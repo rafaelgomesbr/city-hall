@@ -1,0 +1,171 @@
+// ============================================================
+// Design System DC360 v0.1 - _tokens.scss
+// Para a fase de produto real (web React com SCSS).
+// Mesmos valores de tokens.css e DESIGN_SYSTEM.md: uma fonte de verdade.
+// Estratégia: SCSS organiza e emite variáveis CSS (--ds-*) em tempo de
+// compilação; a troca de tema acontece em runtime via [data-theme="dark"].
+// Componentes consomem var(--ds-*), nunca variáveis SCSS diretamente.
+// ============================================================
+
+@use "sass:map";
+
+// ---------- Primitivas ----------
+$orange: (
+  300: #FFC078,
+  400: #FFA94D,
+  500: #F76707,
+  600: #E8590C,
+  700: #C2410C,
+  800: #9A3412,
+);
+
+$ink: (
+  950: #101519,
+  900: #14191D,
+  850: #171E24,
+  800: #1E262D,
+  700: #2A343C,
+  500: #5A6B76,
+  400: #9BAAB5,
+  200: #DDE3E7,
+  100: #E9EDF1,
+  50:  #F5F7F8,
+);
+
+$white: #FFFFFF;
+$ice:   #ECF1F4;
+
+// ---------- Temas semânticos ----------
+$theme-light: (
+  bg:             map.get($ink, 50),
+  surface:        $white,
+  surface-2:      map.get($ink, 100),
+  border:         map.get($ink, 200),
+  text:           map.get($ink, 900),
+  text-muted:     map.get($ink, 500),
+  accent:         map.get($orange, 700),
+  accent-hover:   map.get($orange, 800),
+  accent-graphic: map.get($orange, 600),
+  on-accent:      $white,
+  sev-baixa-fg:   #4A5763,  sev-baixa-bg:   map.get($ink, 100),
+  sev-media-fg:   #92400E,  sev-media-bg:   #FEF3C7,
+  sev-alta-fg:    #B91C1C,  sev-alta-bg:    #FEE2E2,
+  sev-critica-fg: #FFFFFF,  sev-critica-bg: #B91C1C,
+  info-fg:    #1864AB,  info-bg:    #E7F5FF,
+  success-fg: #14702F,  success-bg: #E6F6EA,
+  danger-fg:  #C92A2A,  danger-bg:  #FDEBEB,
+  shadow-1: (0 1px 2px rgba(16, 21, 25, 0.06), 0 1px 3px rgba(16, 21, 25, 0.10)),
+  shadow-2: (0 4px 12px rgba(16, 21, 25, 0.10)),
+  shadow-3: (0 12px 28px rgba(16, 21, 25, 0.16)),
+  focus-ring-color: map.get($orange, 600),
+);
+
+$theme-dark: (
+  bg:             map.get($ink, 950),
+  surface:        map.get($ink, 850),
+  surface-2:      map.get($ink, 800),
+  border:         map.get($ink, 700),
+  text:           $ice,
+  text-muted:     map.get($ink, 400),
+  accent:         map.get($orange, 400),
+  accent-hover:   map.get($orange, 300),
+  accent-graphic: map.get($orange, 500),
+  on-accent:      map.get($ink, 950),
+  sev-baixa-fg:   #AEB9C2,  sev-baixa-bg:   rgba(174, 185, 194, 0.12),
+  sev-media-fg:   #FCC419,  sev-media-bg:   rgba(252, 196, 25, 0.12),
+  sev-alta-fg:    #FF8787,  sev-alta-bg:    rgba(255, 135, 135, 0.12),
+  sev-critica-fg: #FFFFFF,  sev-critica-bg: #B91C1C,
+  info-fg:    #74C0FC,  info-bg:    rgba(116, 192, 252, 0.12),
+  success-fg: #69DB7C,  success-bg: rgba(105, 219, 124, 0.12),
+  danger-fg:  #FF8787,  danger-bg:  rgba(255, 135, 135, 0.12),
+  shadow-1: (0 1px 2px rgba(0, 0, 0, 0.45)),
+  shadow-2: (0 4px 12px rgba(0, 0, 0, 0.50)),
+  shadow-3: (0 12px 28px rgba(0, 0, 0, 0.60)),
+  focus-ring-color: map.get($orange, 400),
+);
+
+// ---------- Escalas não temáticas ----------
+$font-stack: (-apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+
+$type: (
+  display: (size: 44px, line: 48px, weight: 800, tracking: -0.02em),
+  h1:      (size: 32px, line: 38px, weight: 700, tracking: 0),
+  h2:      (size: 24px, line: 30px, weight: 700, tracking: 0),
+  h3:      (size: 20px, line: 26px, weight: 600, tracking: 0),
+  body-lg: (size: 18px, line: 26px, weight: 400, tracking: 0),
+  body:    (size: 16px, line: 24px, weight: 400, tracking: 0),
+  body-sm: (size: 14px, line: 20px, weight: 400, tracking: 0),
+  caption: (size: 12px, line: 16px, weight: 600, tracking: 0.04em),
+);
+
+$space: (1: 4px, 2: 8px, 3: 12px, 4: 16px, 5: 24px, 6: 32px, 7: 48px, 8: 64px);
+$radius: (base: 8px, card: 12px, pill: 999px);
+$touch-min: 44px;
+$z: (sticky: 10, dropdown: 20, overlay: 30, modal: 40, toast: 50);
+$duration: (fast: 150ms, base: 200ms, slow: 300ms);
+$ease: cubic-bezier(0.2, 0, 0, 1);
+$ease-in: cubic-bezier(0, 0, 0.2, 1);
+
+// ---------- Emissão das variáveis CSS ----------
+@mixin emit-theme($theme) {
+  @each $name, $value in $theme {
+    @if $name != focus-ring-color {
+      --ds-#{$name}: #{$value};
+    }
+  }
+  --ds-focus-ring: 0 0 0 2px var(--ds-bg), 0 0 0 4px #{map.get($theme, focus-ring-color)};
+}
+
+@mixin emit-scales {
+  --ds-font: #{$font-stack};
+  @each $k, $v in $space { --ds-sp-#{$k}: #{$v}; }
+  --ds-radius: #{map.get($radius, base)};
+  --ds-radius-card: #{map.get($radius, card)};
+  --ds-radius-pill: #{map.get($radius, pill)};
+  --ds-touch: #{$touch-min};
+  @each $k, $v in $z { --ds-z-#{$k}: #{$v}; }
+  --ds-dur-fast: #{map.get($duration, fast)};
+  --ds-dur-base: #{map.get($duration, base)};
+  --ds-dur-slow: #{map.get($duration, slow)};
+  --ds-ease: #{$ease};
+  --ds-ease-in: #{$ease-in};
+  @each $k, $v in $type {
+    --ds-fs-#{$k}: #{map.get($v, size)};
+    --ds-lh-#{$k}: #{map.get($v, line)};
+  }
+}
+
+// Uso no entrypoint global de estilos:
+//   :root { @include emit-theme($theme-light); @include emit-scales; color-scheme: light; }
+//   [data-theme="dark"] { @include emit-theme($theme-dark); color-scheme: dark; }
+
+// ---------- Mixins de componente ----------
+@mixin type($role) {
+  $t: map.get($type, $role);
+  font-family: var(--ds-font);
+  font-size: map.get($t, size);
+  line-height: map.get($t, line);
+  font-weight: map.get($t, weight);
+  letter-spacing: map.get($t, tracking);
+}
+
+@mixin elevation($level) {
+  @if $level == 1 { box-shadow: var(--ds-shadow-1); }
+  @else if $level == 2 { box-shadow: var(--ds-shadow-2); }
+  @else if $level == 3 { box-shadow: var(--ds-shadow-3); }
+  @else { box-shadow: none; }
+}
+
+@mixin focus-ring {
+  outline: none;
+  box-shadow: var(--ds-focus-ring);
+}
+
+@mixin touch-target {
+  min-width: $touch-min;
+  min-height: $touch-min;
+}
+
+@mixin reduced-motion {
+  @media (prefers-reduced-motion: reduce) { @content; }
+}
