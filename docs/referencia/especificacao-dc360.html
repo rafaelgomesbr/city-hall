@@ -1,0 +1,1055 @@
+<title>Especificação DC360</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #F5F6F7;
+    --paper: #FFFFFF;
+    --paper-2: #EDEFF1;
+    --border: #DBE0E3;
+    --border-strong: #C2C9CE;
+    --text: #171E24;
+    --text-muted: #5B6771;
+    --text-faint: #8B96A0;
+    --accent: #C8500C;
+    --accent-strong: #9C3D09;
+    --accent-tint: #FCEEE3;
+    --accent-tint-border: #F0CBA8;
+    --info: #2A5F8C;
+    --info-tint: #E7F0F7;
+    --mvp: #29694A;
+    --mvp-tint: #E5F2EB;
+    --future: #7A5A9C;
+    --future-tint: #F1E9F7;
+    --shadow-card: 0 1px 2px rgba(23,30,36,.06), 0 6px 16px rgba(23,30,36,.05);
+    --shadow-pop: 0 12px 32px rgba(23,30,36,.14);
+    --font-display: "Archivo", "Segoe UI", Arial, sans-serif;
+    --font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161A;
+      --paper: #181D22;
+      --paper-2: #1E252B;
+      --border: #2C353C;
+      --border-strong: #3B454D;
+      --text: #EDF0F2;
+      --text-muted: #9FACB5;
+      --text-faint: #6D7981;
+      --accent: #F0813E;
+      --accent-strong: #FFA766;
+      --accent-tint: #2E1F14;
+      --accent-tint-border: #4A2F18;
+      --info: #7CB0DD;
+      --info-tint: #16232E;
+      --mvp: #7BC79C;
+      --mvp-tint: #14261C;
+      --future: #C3A6E0;
+      --future-tint: #241A2E;
+      --shadow-card: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.35);
+      --shadow-pop: 0 16px 40px rgba(0,0,0,.5);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #12161A;
+    --paper: #181D22;
+    --paper-2: #1E252B;
+    --border: #2C353C;
+    --border-strong: #3B454D;
+    --text: #EDF0F2;
+    --text-muted: #9FACB5;
+    --text-faint: #6D7981;
+    --accent: #F0813E;
+    --accent-strong: #FFA766;
+    --accent-tint: #2E1F14;
+    --accent-tint-border: #4A2F18;
+    --info: #7CB0DD;
+    --info-tint: #16232E;
+    --mvp: #7BC79C;
+    --mvp-tint: #14261C;
+    --future: #C3A6E0;
+    --future-tint: #241A2E;
+    --shadow-card: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.35);
+    --shadow-pop: 0 16px 40px rgba(0,0,0,.5);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.65;
+  }
+  ::selection { background: var(--accent-tint-border); }
+
+  img, svg { max-width: 100%; }
+
+  a { color: var(--accent-strong); }
+
+  h1, h2, h3, h4 { font-family: var(--font-display); text-wrap: balance; color: var(--text); margin: 0; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    max-width: 1320px;
+    margin: 0 auto;
+  }
+
+  /* ---------- Navegação lateral ---------- */
+  .toc {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 32px 20px 40px 32px;
+    border-right: 1px solid var(--border);
+    font-family: var(--font-display);
+  }
+  .toc__marca {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toc__marca-icone {
+    width: 34px; height: 34px; flex-shrink: 0;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 15px;
+  }
+  .toc__marca-texto { line-height: 1.25; }
+  .toc__marca-titulo { font-weight: 800; font-size: 14.5px; }
+  .toc__marca-sub { font-size: 11.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: .05em; }
+
+  .toc__lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+  .toc__lista a {
+    display: block;
+    padding: 7px 10px;
+    border-radius: 7px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 600;
+    border-left: 2px solid transparent;
+    transition: background .15s ease, color .15s ease;
+  }
+  .toc__lista a:hover { background: var(--paper-2); color: var(--text); }
+  .toc__lista a.ativo { color: var(--accent-strong); background: var(--accent-tint); border-left-color: var(--accent); }
+  .toc__num { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); margin-right: 6px; }
+  .toc__lista a.ativo .toc__num { color: var(--accent-strong); }
+
+  .toc__rodape { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--text-faint); line-height: 1.6; }
+
+  /* ---------- Conteúdo ---------- */
+  .conteudo { min-width: 0; padding: 0 56px 100px; }
+
+  .capa {
+    padding: 72px 0 44px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 52px;
+  }
+  .capa__etiqueta {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px; font-weight: 600; letter-spacing: .04em;
+    color: var(--accent-strong);
+    background: var(--accent-tint);
+    border: 1px solid var(--accent-tint-border);
+    padding: 5px 11px;
+    border-radius: 999px;
+    margin-bottom: 22px;
+  }
+  .capa h1 {
+    font-size: clamp(34px, 4.4vw, 52px);
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    line-height: 1.05;
+  }
+  .capa__sub { font-family: var(--font-body); font-size: 19px; color: var(--text-muted); margin-top: 16px; max-width: 62ch; }
+
+  .capa__meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    margin-top: 36px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+  }
+  .capa__meta-item { display: flex; flex-direction: column; gap: 4px; }
+  .capa__meta-rotulo { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); }
+  .capa__meta-valor { font-family: var(--font-mono); font-size: 14px; font-weight: 500; }
+
+  .capa__decisao {
+    margin-top: 36px;
+    display: flex;
+    gap: 16px;
+    padding: 22px 24px;
+    background: var(--accent-tint);
+    border: 1px solid var(--accent-tint-border);
+    border-radius: 12px;
+  }
+  .capa__decisao-rotulo { font-family: var(--font-display); font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent-strong); flex-shrink: 0; padding-top: 2px; }
+  .capa__decisao p { margin: 0; font-size: 16px; }
+
+  section.topico { margin-bottom: 64px; scroll-margin-top: 24px; }
+  section.topico:last-of-type { margin-bottom: 24px; }
+
+  .topico__cabecalho { display: flex; align-items: baseline; gap: 14px; margin-bottom: 22px; }
+  .topico__num { font-family: var(--font-mono); font-size: 15px; font-weight: 600; color: var(--accent-strong); }
+  .topico h2 { font-size: 27px; font-weight: 800; letter-spacing: -0.01em; }
+  .topico h3 { font-size: 19px; font-weight: 700; margin: 30px 0 12px; }
+  .topico h3:first-child { margin-top: 0; }
+
+  .topico p { max-width: 72ch; margin: 0 0 16px; }
+  .topico ul, .topico ol { max-width: 70ch; padding-left: 22px; margin: 0 0 16px; }
+  .topico li { margin-bottom: 7px; }
+  .topico ol.processo { list-style: none; padding-left: 0; counter-reset: passo; max-width: 62ch; }
+  .topico ol.processo li {
+    counter-increment: passo;
+    position: relative;
+    padding: 4px 0 4px 42px;
+    margin-bottom: 4px;
+    border-left: 2px solid var(--border-strong);
+  }
+  .topico ol.processo li:last-child { border-left-color: transparent; }
+  .topico ol.processo li::before {
+    content: counter(passo);
+    position: absolute; left: -15px; top: 2px;
+    width: 28px; height: 28px;
+    background: var(--paper);
+    border: 2px solid var(--accent);
+    color: var(--accent-strong);
+    border-radius: 999px;
+    font-family: var(--font-mono); font-weight: 700; font-size: 12.5px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ---------- Callouts ---------- */
+  .callout {
+    margin: 26px 0;
+    padding: 18px 22px;
+    border-radius: 10px;
+    background: var(--paper-2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    max-width: 72ch;
+  }
+  .callout__rotulo {
+    font-family: var(--font-display); font-weight: 800; font-size: 11.5px;
+    text-transform: uppercase; letter-spacing: .06em; color: var(--accent-strong);
+    margin-bottom: 8px;
+  }
+  .callout p { margin: 0; font-size: 16px; }
+  .callout p + p { margin-top: 10px; }
+
+  /* ---------- Tabelas ---------- */
+  .tabela-scroll { overflow-x: auto; margin: 22px 0 28px; border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-card); }
+  table { border-collapse: collapse; width: 100%; min-width: 560px; background: var(--paper); font-family: var(--font-display); font-size: 13.5px; }
+  th, td { padding: 11px 16px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th {
+    background: var(--paper-2); color: var(--text-muted);
+    font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    position: sticky; top: 0;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--paper-2); }
+  td.mono, th.mono { font-family: var(--font-mono); }
+  td:first-child { font-family: var(--font-mono); font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+
+  .pri { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 5px; font-size: 11px; font-weight: 800; font-family: var(--font-mono); }
+  .pri-M { background: var(--mvp-tint); color: var(--mvp); }
+  .pri-S { background: var(--info-tint); color: var(--info); }
+  .pri-C { background: var(--paper-2); color: var(--text-muted); border: 1px solid var(--border-strong); }
+  .pri-F { background: var(--future-tint); color: var(--future); }
+
+  /* ---------- Cartões de grade ---------- */
+  .grade {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px; margin: 22px 0 28px;
+  }
+  .cartao {
+    background: var(--paper); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 20px; box-shadow: var(--shadow-card);
+  }
+  .cartao h4 { font-size: 14.5px; font-weight: 700; margin-bottom: 6px; }
+  .cartao p { font-size: 14px; margin: 0; color: var(--text-muted); max-width: none; }
+  .cartao .etiqueta {
+    display: inline-block; font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
+    color: var(--text-faint); background: var(--paper-2); padding: 2px 8px; border-radius: 5px; margin-bottom: 10px;
+  }
+
+  /* ---------- Diagrama de arquitetura (camadas) ---------- */
+  .camadas { display: flex; flex-direction: column; gap: 3px; margin: 24px 0 30px; max-width: 74ch; }
+  .camada { display: flex; align-items: stretch; gap: 3px; }
+  .camada__rotulo {
+    flex: 0 0 108px;
+    display: flex; align-items: center;
+    font-family: var(--font-display); font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint);
+    padding-right: 10px;
+  }
+  .camada__blocos { display: flex; gap: 3px; flex: 1; flex-wrap: wrap; }
+  .bloco {
+    flex: 1 1 140px;
+    background: var(--paper); border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    border-radius: 6px; padding: 10px 12px;
+    font-family: var(--font-display); font-size: 12.5px; font-weight: 700;
+  }
+  .camada--dados .bloco { border-top-color: var(--info); }
+  .camada--transversal .bloco { border-top-color: var(--future); }
+
+  /* ---------- Referências ---------- */
+  .referencias { list-style: none; padding: 0; margin: 0; max-width: 74ch; font-size: 14.5px; color: var(--text-muted); }
+  .referencias li { padding: 9px 0; border-bottom: 1px solid var(--border); display: flex; gap: 10px; }
+  .referencias li:last-child { border-bottom: none; }
+  .referencias .ref-tag { font-family: var(--font-mono); font-weight: 700; color: var(--accent-strong); flex-shrink: 0; }
+
+  .rodape-doc {
+    margin-top: 64px; padding-top: 28px; border-top: 1px solid var(--border);
+    font-size: 13px; color: var(--text-faint); display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  }
+
+  /* ---------- Alternância de tema (widget flutuante) ---------- */
+  .alterna-tema {
+    position: fixed; bottom: 22px; right: 22px; z-index: 40;
+    display: flex; align-items: center; gap: 6px;
+    background: var(--paper); border: 1px solid var(--border-strong);
+    border-radius: 999px; padding: 5px; box-shadow: var(--shadow-pop);
+  }
+  .alterna-tema button {
+    width: 32px; height: 32px; border-radius: 999px; border: none; background: transparent;
+    color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-size: 15px;
+  }
+  .alterna-tema button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .alterna-tema button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .nav-toggle { display: none; }
+  .nav-toggle-btn { display: none; }
+
+  @media (max-width: 980px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc {
+      position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border);
+      padding: 18px 24px;
+    }
+    .toc__lista { display: none; }
+    .nav-toggle:checked ~ .toc__lista { display: flex; }
+    .nav-toggle-btn {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      background: var(--paper-2); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 14px; font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--text);
+      cursor: pointer;
+    }
+    .conteudo { padding: 0 22px 80px; }
+    .capa { padding-top: 40px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { transition-duration: 0.01ms !important; }
+  }
+</style>
+
+<div class="layout">
+  <nav class="toc" aria-label="Sumário do documento">
+    <div class="toc__marca">
+      <span class="toc__marca-icone">DC</span>
+      <span class="toc__marca-texto">
+        <span class="toc__marca-titulo" style="display:block;">Operacional 360</span>
+        <span class="toc__marca-sub">Especificação v0.1</span>
+      </span>
+    </div>
+
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    <label for="nav-toggle" class="nav-toggle-btn">Sumário ▾</label>
+
+    <ul class="toc__lista">
+      <li><a href="#capa"><span class="toc__num">00</span>Abertura</a></li>
+      <li><a href="#s1"><span class="toc__num">01</span>Problema e oportunidade</a></li>
+      <li><a href="#s2"><span class="toc__num">02</span>Visão e valor</a></li>
+      <li><a href="#s3"><span class="toc__num">03</span>Usuários e permissões</a></li>
+      <li><a href="#s4"><span class="toc__num">04</span>Escopo por fases</a></li>
+      <li><a href="#s5"><span class="toc__num">05</span>Fluxos operacionais</a></li>
+      <li><a href="#s6"><span class="toc__num">06</span>Requisitos do MVP</a></li>
+      <li><a href="#s7"><span class="toc__num">07</span>Emergência e logística</a></li>
+      <li><a href="#s8"><span class="toc__num">08</span>Regras de negócio</a></li>
+      <li><a href="#s9"><span class="toc__num">09</span>Requisitos não funcionais</a></li>
+      <li><a href="#s10"><span class="toc__num">10</span>Arquitetura de referência</a></li>
+      <li><a href="#s11"><span class="toc__num">11</span>Modelo de dados</a></li>
+      <li><a href="#s12"><span class="toc__num">12</span>Integrações e APIs</a></li>
+      <li><a href="#s13"><span class="toc__num">13</span>Segurança e LGPD</a></li>
+      <li><a href="#s14"><span class="toc__num">14</span>Critérios de aceite</a></li>
+      <li><a href="#s15"><span class="toc__num">15</span>Roadmap e estimativa</a></li>
+      <li><a href="#s16"><span class="toc__num">16</span>Questões para Rafael</a></li>
+      <li><a href="#s17"><span class="toc__num">17</span>Validação de campo</a></li>
+      <li><a href="#s18"><span class="toc__num">18</span>Referências</a></li>
+    </ul>
+
+    <div class="toc__rodape">
+      Documento para análise técnica. Não constitui ETP, TR ou projeto executivo. Fonte: Defesa_Civil_Operacional_360_Especificacao_Tecnica_Preliminar.docx
+    </div>
+  </nav>
+
+  <div class="conteudo">
+    <header class="capa" id="capa">
+      <span class="capa__etiqueta">Especificação técnica preliminar · v0.1</span>
+      <h1>Plataforma Defesa Civil Operacional 360</h1>
+      <p class="capa__sub">Base para Rafael avaliar arquitetura, esforço, dependências, custos e viabilidade do MVP a partir da visão de negócio de Alyson.</p>
+
+      <div class="capa__meta">
+        <div class="capa__meta-item"><span class="capa__meta-rotulo">Destinatário técnico</span><span class="capa__meta-valor">Rafael</span></div>
+        <div class="capa__meta-item"><span class="capa__meta-rotulo">Visão de negócio</span><span class="capa__meta-valor">Alyson</span></div>
+        <div class="capa__meta-item"><span class="capa__meta-rotulo">Versão e data</span><span class="capa__meta-valor">v0.1 · 18/08/2026</span></div>
+        <div class="capa__meta-item"><span class="capa__meta-rotulo">Status</span><span class="capa__meta-valor">Análise, não é TR</span></div>
+      </div>
+
+      <div class="capa__decisao">
+        <span class="capa__decisao-rotulo">Decisão<br>recomendada</span>
+        <p>Construir primeiro um sistema operacional de registro de ocorrências, despacho, vistoria de campo offline, evidências, documentos e acompanhamento. Preparar a arquitetura para o modo emergência e a logística humanitária, mas não tentar entregar tudo no primeiro MVP.</p>
+      </div>
+    </header>
+
+    <main>
+
+      <section class="topico" id="s1">
+        <div class="topico__cabecalho"><span class="topico__num">01</span><h2>Problema e recorte da oportunidade</h2></div>
+
+        <p>A oportunidade não é criar outro aplicativo de alerta meteorológico nem substituir o S2ID. A dor mais concreta está na operação municipal diária: receber uma solicitação, classificar o risco, enviar uma equipe, vistoriar mesmo sem internet, registrar evidências, gerar o documento técnico, encaminhar providências e comprovar o encerramento. Hoje, essa cadeia costuma ser fragmentada entre telefone, WhatsApp, planilhas, fotos pessoais, mapas separados e modelos de documentos.</p>
+
+        <h3>O que já existe e o que permanece descoberto</h3>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>Camada existente</th><th>O que cobre</th><th>Lacuna que o produto preenche</th></tr></thead>
+            <tbody>
+              <tr><td>S2ID</td><td>Planos, registro de desastre, reconhecimento e prestação de contas de recursos federais.</td><td>Não é o sistema diário de protocolo, despacho, vistoria, documentos e encerramento local.</td></tr>
+              <tr><td>Defesa Civil Alerta / IDAP</td><td>Envio de alertas à população por canais oficiais.</td><td>Não gerencia equipes, inspeções, evidências, documentos, abrigos ou materiais.</td></tr>
+              <tr><td>Cemaden e centros estaduais</td><td>Monitoramento de ameaças, chuva, rios e cenários de risco.</td><td>Não substituem o fluxo municipal de atendimento e comprovação da resposta.</td></tr>
+              <tr><td>Sistemas próprios locais</td><td>Alguns entes criaram soluções para suas rotinas.</td><td>Oferta fragmentada, pouca padronização e pouco replicável para municípios menores.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <div class="callout__rotulo">Posicionamento correto</div>
+          <p>A solução será a camada operacional municipal e consorcial. Ela deve produzir dados e documentos que facilitem o trabalho com sistemas oficiais, sem prometer substituir competências federais ou integrações ainda não disponíveis.</p>
+        </div>
+
+        <h3>Evidências públicas da dor</h3>
+        <ul>
+          <li>Jaboatão dos Guararapes justificou a contratação de solução web e aplicativo após registrar cerca de 14,7 mil ocorrências em 2022, apontando limites de ferramentas gratuitas e inviabilidade do desenvolvimento interno.</li>
+          <li>O Rio de Janeiro desenvolveu internamente o PRODEC porque poucos municípios tinham recursos para comprar ou criar sistemas; 71 aderiram e 41 o utilizavam rotineiramente.</li>
+          <li>Aracaju e Eldorado do Sul também divulgaram sistemas próprios, sinal de que equipes atuantes procuram organizar solicitações, vistorias, documentos, resgates, abrigos, voluntários e recursos.</li>
+          <li>Na consulta de inovação de Joinville, o desafio de gestão de donativos recebeu apenas uma proposta, ainda em nível de protótipo, sinal de escassez relativa de oferta madura.</li>
+          <li>Estudo de mercado do Espírito Santo não encontrou equivalente nacional a soluções internacionais maduras de gestão de incidentes.</li>
+        </ul>
+
+        <div class="callout">
+          <div class="callout__rotulo">Hipótese central</div>
+          <p>Se a equipe conseguir executar todo o ciclo da ocorrência em um único sistema, inclusive em campo sem conexão, ela reduzirá retrabalho, acelerará respostas e formará uma memória técnica útil para gestão de risco, defesa administrativa e auditoria.</p>
+        </div>
+      </section>
+
+      <section class="topico" id="s2">
+        <div class="topico__cabecalho"><span class="topico__num">02</span><h2>Visão do produto e proposta de valor</h2></div>
+        <p>Nome provisório: Defesa Civil Operacional 360. Categoria: sistema de registro operacional e coordenação de campo para municípios e consórcios públicos.</p>
+
+        <h3>Proposta de valor por perfil</h3>
+        <div class="grade">
+          <div class="cartao"><span class="etiqueta">Coordenação</span><p>Visão em tempo real de prioridades, filas, prazos, equipes e áreas recorrentes.</p></div>
+          <div class="cartao"><span class="etiqueta">Agente de campo</span><p>Formulário simples, offline, com GPS, fotos, assinatura e geração de relatório.</p></div>
+          <div class="cartao"><span class="etiqueta">Prefeitura</span><p>Histórico auditável, documentos padronizados e proteção adequada dos dados.</p></div>
+          <div class="cartao"><span class="etiqueta">Emergência</span><p>Continuidade do mesmo cadastro, agrupado em incidente, equipes, abrigos e logística.</p></div>
+          <div class="cartao"><span class="etiqueta">Consórcios</span><p>Visão regional, apoio mútuo futuro, estoques compartilhados e indicadores consolidados.</p></div>
+        </div>
+
+        <h3>Resultados a medir no piloto</h3>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>Indicador</th><th>Linha de base</th><th>Meta inicial</th></tr></thead>
+            <tbody>
+              <tr><td>Tempo da entrada à triagem</td><td>Medir no piloto</td><td>Redução mínima de 30%</td></tr>
+              <tr><td>Tempo para localizar o processo</td><td>Medir antes do piloto</td><td>Até 2 min por protocolo</td></tr>
+              <tr><td>Vistorias sem retrabalho documental</td><td>Medir no piloto</td><td>Pelo menos 85%</td></tr>
+              <tr><td>Providências vencidas sem responsável</td><td>Medir no piloto</td><td>Redução mínima de 50%</td></tr>
+              <tr><td>Evidências com data, local e autoria</td><td>Medir no piloto</td><td>Pelo menos 95%</td></tr>
+              <tr><td>Adoção semanal dos agentes</td><td>Não aplicável</td><td>Pelo menos 80% ativos</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="topico" id="s3">
+        <div class="topico__cabecalho"><span class="topico__num">03</span><h2>Usuários e permissões</h2></div>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>Perfil</th><th>Responsabilidades principais</th><th>Acesso típico</th></tr></thead>
+            <tbody>
+              <tr><td>Administrador</td><td>Configura município, unidades, usuários, formulários e modelos.</td><td>Todos os módulos do tenant.</td></tr>
+              <tr><td>Coordenador</td><td>Prioriza, distribui, supervisiona, ativa incidente e aprova documentos.</td><td>Painel completo, relatórios e auditoria.</td></tr>
+              <tr><td>Operador / plantonista</td><td>Registra chamados, localiza duplicidades, classifica e despacha.</td><td>Ocorrências, contatos e fila.</td></tr>
+              <tr><td>Agente / vistoriador</td><td>Atende em campo, coleta evidências e propõe providências.</td><td>Suas tarefas e formulários offline.</td></tr>
+              <tr><td>Técnico responsável</td><td>Valida laudos, interdições e documentos técnicos.</td><td>Documentos, evidências e assinatura.</td></tr>
+              <tr><td>Órgão parceiro</td><td>Recebe e responde encaminhamentos de Obras, Assistência etc.</td><td>Somente demandas atribuídas.</td></tr>
+              <tr><td>Gestor / auditor</td><td>Consulta indicadores e trilha de auditoria.</td><td>Leitura, relatórios e logs.</td></tr>
+              <tr><td>Cidadão</td><td>Abre solicitação e acompanha status não sigiloso.</td><td>Portal externo por protocolo.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Regra estrutural: permissões são definidas por organização, unidade, perfil e, quando necessário, nível de sigilo. O sistema não assume que todo servidor pode ver dados de famílias, documentos pessoais ou endereços sensíveis.</p>
+      </section>
+
+      <section class="topico" id="s4">
+        <div class="topico__cabecalho"><span class="topico__num">04</span><h2>Escopo por fases</h2></div>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>Fase</th><th>Objetivo</th><th>Inclui</th><th>Não inclui</th></tr></thead>
+            <tbody>
+              <tr><td>Descoberta</td><td>Validar o fluxo real e prototipar.</td><td>Entrevistas, protótipo navegável, escolha técnica.</td><td>Código de produção.</td></tr>
+              <tr><td>MVP 1</td><td>Resolver a rotina diária ponta a ponta.</td><td>Ocorrências, triagem, despacho, PWA offline, evidências, documentos, mapa, painel, auditoria.</td><td>Logística completa, sensores, app nativo.</td></tr>
+              <tr><td>MVP 2</td><td>Aumentar gestão e colaboração.</td><td>Portal do cidadão, formulários configuráveis, BI, assinatura, SLA.</td><td>Centro completo de comando de incidentes.</td></tr>
+              <tr><td>Fase 3</td><td>Operar emergências e logística.</td><td>Incidentes, abrigos, recursos, estoques, doações, entrega.</td><td>Previsão meteorológica própria e despacho 190/193.</td></tr>
+              <tr><td>Fase 4</td><td>Escala regional e interoperabilidade.</td><td>Apoio mútuo consorcial, APIs, integrações oficiais.</td><td>Promessas de integração sem API ou autorização.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Fora do MVP, sem ambiguidade</h3>
+        <ul>
+          <li>Aplicativos nativos Android e iOS: a primeira entrega é PWA instalável.</li>
+          <li>Previsão meteorológica, hardware, sensores, sirenes ou telecomunicações de emergência.</li>
+          <li>Substituição do S2ID, Defesa Civil Alerta, Cemaden, 190, 192 ou 193.</li>
+          <li>Integração não oficial com WhatsApp; somente API oficial em fase posterior.</li>
+          <li>Gestão de obras de engenharia, prontuário de saúde ou benefícios socioassistenciais completos.</li>
+          <li>Microserviços e infraestrutura de alta complexidade antes de existir escala que os justifique.</li>
+        </ul>
+      </section>
+
+      <section class="topico" id="s5">
+        <div class="topico__cabecalho"><span class="topico__num">05</span><h2>Fluxos operacionais</h2></div>
+
+        <h3>Fluxo A: ocorrência diária</h3>
+        <ol class="processo">
+          <li>Entrada por operador, formulário do cidadão, encaminhamento interno ou importação autorizada.</li>
+          <li>Busca por endereço, telefone, coordenada e assunto para sugerir possível duplicidade.</li>
+          <li>Triagem com tipo, gravidade, urgência, pessoas vulneráveis e risco de agravamento.</li>
+          <li>Designação de equipe e prazo; agente recebe os dados mínimos necessários.</li>
+          <li>Vistoria offline com checklist, GPS, precisão, fotos, observações, assinatura e classificação.</li>
+          <li>Geração de relatório, notificação, termo de interdição ou encaminhamento a outro órgão.</li>
+          <li>Acompanhamento de providências e alertas de vencimento.</li>
+          <li>Encerramento com motivo, responsável, evidências e trilha de auditoria.</li>
+        </ol>
+
+        <h3>Fluxo B: ativação de emergência</h3>
+        <p>A coordenação cria um incidente e associa ocorrências já abertas, áreas, equipes e recursos. O sistema passa a oferecer quadro de situação, tarefas críticas, turnos e relatórios de período. O histórico das ocorrências permanece individual e auditável.</p>
+
+        <h3>Fluxo C: suprimentos humanitários</h3>
+        <p>Na fase 3, pontos de coleta, depósitos e abrigos registram entrada, lote, validade, condição, transferência, separação, entrega e comprovante. O saldo é calculado por movimentos, sem edição direta silenciosa. Necessidade, estoque e promessa de doação são comparados para reduzir excessos e faltas.</p>
+      </section>
+
+      <section class="topico" id="s6">
+        <div class="topico__cabecalho"><span class="topico__num">06</span><h2>Requisitos funcionais do MVP</h2></div>
+        <p>Prioridade: <span class="pri pri-M">M</span> indispensável ao MVP · <span class="pri pri-S">S</span> importante, entra se o cronograma permitir · <span class="pri pri-C">C</span> desejável · <span class="pri pri-F">F</span> evolução futura.</p>
+
+        <h3>Organização, usuários e acesso</h3>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>ID</th><th>Requisito</th><th>Pri.</th><th>Critério de aceite resumido</th></tr></thead>
+            <tbody>
+              <tr><td>AUT-01</td><td>Cadastrar organizações, unidades e equipes multi-tenant.</td><td><span class="pri pri-M">M</span></td><td>Usuário de um tenant não consulta nem altera dados de outro.</td></tr>
+              <tr><td>AUT-02</td><td>Autenticar por e-mail e senha com recuperação segura.</td><td><span class="pri pri-M">M</span></td><td>Entrada, saída, bloqueio e redefinição funcionam e ficam registrados.</td></tr>
+              <tr><td>AUT-03</td><td>Controle de acesso por perfil e unidade.</td><td><span class="pri pri-M">M</span></td><td>API e interface respeitam as mesmas permissões.</td></tr>
+              <tr><td>AUT-04</td><td>MFA para administradores e perfis críticos.</td><td><span class="pri pri-S">S</span></td><td>Segundo fator ativável e exigível por política.</td></tr>
+              <tr><td>AUT-05</td><td>Registrar aceite de termos e ciência de uso.</td><td><span class="pri pri-S">S</span></td><td>Versão, data, usuário e IP disponíveis para auditoria.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Ocorrências, protocolo e triagem</h3>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>ID</th><th>Requisito</th><th>Pri.</th><th>Critério de aceite resumido</th></tr></thead>
+            <tbody>
+              <tr><td>OCO-01</td><td>Protocolo único por organização e ano.</td><td><span class="pri pri-M">M</span></td><td>Duas ocorrências não recebem o mesmo número; sequência rastreável.</td></tr>
+              <tr><td>OCO-02</td><td>Registrar solicitante, contato, endereço, coordenada, descrição, anexos.</td><td><span class="pri pri-M">M</span></td><td>Campos obrigatórios variam conforme o tipo.</td></tr>
+              <tr><td>OCO-03</td><td>Classificar tipo, prioridade, risco, vulnerabilidade e prazo.</td><td><span class="pri pri-M">M</span></td><td>Classificação produz fila ordenada e histórico de mudanças.</td></tr>
+              <tr><td>OCO-04</td><td>Sugerir duplicidade por endereço, coordenada, contato e período.</td><td><span class="pri pri-S">S</span></td><td>Operador confirma vínculo ou mantém protocolos independentes.</td></tr>
+              <tr><td>OCO-05</td><td>Relacionar ocorrências ao mesmo imóvel, área ou evento.</td><td><span class="pri pri-M">M</span></td><td>Histórico territorial consultável sem mesclar registros.</td></tr>
+              <tr><td>OCO-06</td><td>Atribuir equipe, responsável, prazo e instruções.</td><td><span class="pri pri-M">M</span></td><td>Responsáveis recebem a tarefa; coordenação vê aceite e andamento.</td></tr>
+              <tr><td>OCO-07</td><td>Linha do tempo imutável dos eventos principais.</td><td><span class="pri pri-M">M</span></td><td>Criação, despacho, visita, documento e encerramento com autoria e data.</td></tr>
+              <tr><td>OCO-08</td><td>Importar lote inicial por CSV validado.</td><td><span class="pri pri-C">C</span></td><td>Arquivo inválido gera relatório de erros, sem dado parcial silencioso.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>PWA de campo e vistoria offline</h3>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>ID</th><th>Requisito</th><th>Pri.</th><th>Critério de aceite resumido</th></tr></thead>
+            <tbody>
+              <tr><td>VIS-01</td><td>PWA responsiva e instalável.</td><td><span class="pri pri-M">M</span></td><td>Funciona nos navegadores móveis-alvo, mostra estado de sincronização.</td></tr>
+              <tr><td>VIS-02</td><td>Baixar tarefas e formulários para uso sem conexão.</td><td><span class="pri pri-M">M</span></td><td>Agente conclui vistoria em modo avião e sincroniza depois.</td></tr>
+              <tr><td>VIS-03</td><td>Capturar GPS, precisão, data/hora e autoria.</td><td><span class="pri pri-M">M</span></td><td>Metadados acompanham a inspeção, sem prometer precisão absoluta.</td></tr>
+              <tr><td>VIS-04</td><td>Capturar fotos, legendas e ordem de evidência.</td><td><span class="pri pri-M">M</span></td><td>Fotos comprimidas com qualidade configurável, upload retomável.</td></tr>
+              <tr><td>VIS-05</td><td>Checklist por tipo de ocorrência.</td><td><span class="pri pri-M">M</span></td><td>Perguntas condicionais e obrigatórias funcionam offline.</td></tr>
+              <tr><td>VIS-06</td><td>Coletar assinatura na tela quando aplicável.</td><td><span class="pri pri-S">S</span></td><td>Assinatura registra finalidade, data e vínculo com o documento.</td></tr>
+              <tr><td>VIS-07</td><td>Exibir rascunhos, pendências e conflitos de sincronização.</td><td><span class="pri pri-M">M</span></td><td>Nenhum dado é descartado sem aviso e ação explícita.</td></tr>
+              <tr><td>VIS-08</td><td>Complemento posterior sem apagar evidência original.</td><td><span class="pri pri-M">M</span></td><td>Aditamento versionado com autoria e justificativa.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Documentos, providências e acompanhamento</h3>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>ID</th><th>Requisito</th><th>Pri.</th><th>Critério de aceite resumido</th></tr></thead>
+            <tbody>
+              <tr><td>DOC-01</td><td>Gerar relatório de vistoria em PDF a partir de modelo.</td><td><span class="pri pri-M">M</span></td><td>PDF com protocolo, dados, checklist, fotos, autoria, data e versão.</td></tr>
+              <tr><td>DOC-02</td><td>Gerar notificação, encaminhamento, termo e relatório fotográfico.</td><td><span class="pri pri-M">M</span></td><td>Modelos habilitáveis por organização e tipo.</td></tr>
+              <tr><td>DOC-03</td><td>Versionar modelos e documentos emitidos.</td><td><span class="pri pri-M">M</span></td><td>Documento emitido preserva conteúdo e modelo da época.</td></tr>
+              <tr><td>DOC-04</td><td>Revisão/aprovação por responsável técnico.</td><td><span class="pri pri-S">S</span></td><td>Rascunho, em revisão, aprovado e cancelado com permissões próprias.</td></tr>
+              <tr><td>FLU-01</td><td>Criar providência com responsável, prazo, prioridade e órgão.</td><td><span class="pri pri-M">M</span></td><td>Providência aparece na fila do responsável e na linha do tempo.</td></tr>
+              <tr><td>FLU-02</td><td>Registrar resposta e evidência de cumprimento.</td><td><span class="pri pri-M">M</span></td><td>Encerramento exige resposta ou justificativa de dispensa.</td></tr>
+              <tr><td>FLU-03</td><td>Notificar prazos próximos e vencidos.</td><td><span class="pri pri-M">M</span></td><td>Alertas internos funcionam; canais externos vêm depois.</td></tr>
+              <tr><td>FLU-04</td><td>Encerrar e reabrir ocorrência com motivo obrigatório.</td><td><span class="pri pri-M">M</span></td><td>Ação auditada, sem apagar dados anteriores.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Mapa, painel, relatórios e auditoria</h3>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>ID</th><th>Requisito</th><th>Pri.</th><th>Critério de aceite resumido</th></tr></thead>
+            <tbody>
+              <tr><td>GEO-01</td><td>Ocorrências por coordenada, status, tipo e prioridade.</td><td><span class="pri pri-M">M</span></td><td>Filtros alteram mapa e lista de forma consistente.</td></tr>
+              <tr><td>GEO-02</td><td>Histórico por imóvel, raio ou área de risco.</td><td><span class="pri pri-S">S</span></td><td>Busca retorna registros autorizados e diferencia coincidência aproximada.</td></tr>
+              <tr><td>PAI-01</td><td>Fila, prazos, volume, tipos e tempo de atendimento.</td><td><span class="pri pri-M">M</span></td><td>Indicadores respeitam filtros e permissões.</td></tr>
+              <tr><td>REL-01</td><td>Exportar relatórios PDF e CSV.</td><td><span class="pri pri-M">M</span></td><td>Exportação identifica filtros, data, organização e responsável.</td></tr>
+              <tr><td>AUD-01</td><td>Registrar criação, alteração, consulta sensível e exportação.</td><td><span class="pri pri-M">M</span></td><td>Log com usuário, ação, alvo, data, tenant e contexto.</td></tr>
+              <tr><td>AUD-02</td><td>Auditoria consultável só por perfis autorizados.</td><td><span class="pri pri-M">M</span></td><td>Logs não editáveis pela interface comum.</td></tr>
+              <tr><td>CFG-01</td><td>Configurar tipos, prioridades, prazos e modelos.</td><td><span class="pri pri-S">S</span></td><td>Configuração versionada, sem quebrar histórico.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="topico" id="s7">
+        <div class="topico__cabecalho"><span class="topico__num">07</span><h2>Evoluções para emergência e logística</h2></div>
+        <p>Tudo nesta seção é prioridade <span class="pri pri-F">F</span>, evolução futura: a arquitetura do MVP deve deixar espaço para isso, sem construir agora.</p>
+
+        <h3>Modo incidente</h3>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>ID</th><th>Requisito</th><th>Critério de aceite resumido</th></tr></thead>
+            <tbody>
+              <tr><td>INC-01</td><td>Criar incidente com nível, período, área, comando e objetivos.</td><td>Incidente agrupa recursos sem apagar a autonomia das ocorrências.</td></tr>
+              <tr><td>INC-02</td><td>Quadro de situação e linha do tempo operacional.</td><td>Atualizações com autoria, horário e versão.</td></tr>
+              <tr><td>INC-03</td><td>Equipes, turnos, tarefas e check-in/check-out.</td><td>Coordenação vê disponibilidade e responsável por cada ação.</td></tr>
+              <tr><td>INC-04</td><td>Relatório de situação por período.</td><td>Documento consolida ocorrências, ações, recursos e pendências.</td></tr>
+              <tr><td>ABR-01</td><td>Cadastrar abrigos, capacidade, ocupação e necessidades.</td><td>Painel mostra capacidade declarada e atualização mais recente.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Logística humanitária 365</h3>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>ID</th><th>Requisito</th><th>Critério de aceite resumido</th></tr></thead>
+            <tbody>
+              <tr><td>LOG-01</td><td>Depósitos, pontos de coleta, abrigos e responsáveis.</td><td>Locais com geografia, horário e permissões.</td></tr>
+              <tr><td>LOG-02</td><td>Item, unidade, lote, validade, condição e origem.</td><td>Campos obrigatórios variam por categoria; entrada gera movimento.</td></tr>
+              <tr><td>LOG-03</td><td>Ler QR code ou código de barras quando disponível.</td><td>Leitura acelera a operação; entrada manual continua possível.</td></tr>
+              <tr><td>LOG-04</td><td>Entrada, transferência, separação, entrega e ajuste.</td><td>Todo saldo deriva de movimentos auditados; ajuste exige motivo.</td></tr>
+              <tr><td>LOG-05</td><td>Comparar necessidade, estoque e promessa de doação.</td><td>Painel aponta falta, cobertura e excesso por local e período.</td></tr>
+              <tr><td>LOG-06</td><td>Registrar carga, rota e comprovante de entrega.</td><td>Entrega vincula itens, quantidades, destino, recebedor e evidência.</td></tr>
+              <tr><td>LOG-07</td><td>Estoque permanente de kits e simulados durante o ano.</td><td>Alertas de validade e inventário mantêm uso fora da calamidade.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="topico" id="s8">
+        <div class="topico__cabecalho"><span class="topico__num">08</span><h2>Regras de negócio essenciais</h2></div>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>Regra</th><th>Tema</th><th>Definição</th></tr></thead>
+            <tbody>
+              <tr><td>RN-01</td><td>Isolamento por tenant</td><td>Todo registro tem organização proprietária; consultas e arquivos aplicam a mesma segregação.</td></tr>
+              <tr><td>RN-02</td><td>Protocolo</td><td>Número único por organização e exercício; cancelamento não libera o número.</td></tr>
+              <tr><td>RN-03</td><td>Evidência</td><td>Evidência usada em documento aprovado não é substituída; correção ocorre por aditamento.</td></tr>
+              <tr><td>RN-04</td><td>Geolocalização</td><td>Guardar coordenada, precisão do dispositivo, data, origem e ajuste manual justificado.</td></tr>
+              <tr><td>RN-05</td><td>Encerramento</td><td>Exige motivo, responsável e verificação das providências obrigatórias.</td></tr>
+              <tr><td>RN-06</td><td>Conflito offline</td><td>Registros append-only são combinados; campos concorrentes exigem regra ou revisão humana.</td></tr>
+              <tr><td>RN-07</td><td>Sigilo</td><td>Dados pessoais e endereços sensíveis não aparecem em painel público ou exportação ampla.</td></tr>
+              <tr><td>RN-08</td><td>Incidente</td><td>Agrupar ocorrência não altera autoria, datas, documentos ou histórico.</td></tr>
+              <tr><td>RN-09</td><td>Estoque futuro</td><td>Saldo é soma de movimentos; ajuste é movimento com motivo e aprovação.</td></tr>
+              <tr><td>RN-10</td><td>Configuração</td><td>Mudança de formulário ou modelo é versionada, preservando processos anteriores.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="topico" id="s9">
+        <div class="topico__cabecalho"><span class="topico__num">09</span><h2>Requisitos não funcionais</h2></div>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>ID</th><th>Área</th><th>Definição inicial</th><th>Fase</th></tr></thead>
+            <tbody>
+              <tr><td>RNF-01</td><td>Disponibilidade</td><td>Meta inicial 99,5% mensal, exclui janelas pactuadas.</td><td>MVP</td></tr>
+              <tr><td>RNF-02</td><td>Desempenho</td><td>95% das operações usuais em até 2s, sem contar upload de mídia.</td><td>MVP</td></tr>
+              <tr><td>RNF-03</td><td>Offline</td><td>Vistoria essencial sem rede; fila de sincronização visível e retomável.</td><td>MVP</td></tr>
+              <tr><td>RNF-04</td><td>Segurança</td><td>TLS, senha forte, segredo fora do código, RBAC e validação no backend.</td><td>MVP</td></tr>
+              <tr><td>RNF-05</td><td>Auditoria</td><td>Logs protegidos contra alteração comum, retenção e pesquisa configuráveis.</td><td>MVP</td></tr>
+              <tr><td>RNF-06</td><td>Backup</td><td>Hipótese inicial RPO 24h e RTO 8h, a validar com Rafael.</td><td>MVP</td></tr>
+              <tr><td>RNF-07</td><td>Escala</td><td>Multi-tenant capaz de escalar horizontalmente componentes críticos.</td><td>MVP</td></tr>
+              <tr><td>RNF-08</td><td>Mídia</td><td>Compressão, miniaturas, upload retomável e retenção por organização.</td><td>MVP</td></tr>
+              <tr><td>RNF-09</td><td>Acessibilidade</td><td>WCAG 2.1 AA nos fluxos principais.</td><td>MVP</td></tr>
+              <tr><td>RNF-10</td><td>Compatibilidade</td><td>Chrome/Edge atuais; Android e iOS recentes via navegador/PWA.</td><td>MVP</td></tr>
+              <tr><td>RNF-11</td><td>Observabilidade</td><td>Métricas, logs estruturados, alertas de erro, rastreio de jobs e sync.</td><td>MVP</td></tr>
+              <tr><td>RNF-12</td><td>Portabilidade</td><td>Exportação dos dados e documentos do tenant em formato documentado.</td><td>MVP</td></tr>
+              <tr><td>RNF-13</td><td>Manutenibilidade</td><td>Testes automatizados, migrações versionadas, CI/CD, ambientes separados.</td><td>MVP</td></tr>
+              <tr><td>RNF-14</td><td>Localização</td><td>Português do Brasil, datas e fusos corretos.</td><td>MVP</td></tr>
+              <tr><td>RNF-15</td><td>Continuidade</td><td>Plano de contingência e operação degradada antes da fase 3.</td><td>Fase 3</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <div class="callout__rotulo">Hipóteses, não promessas</div>
+          <p>Disponibilidade, RPO, RTO e desempenho precisam ser recalculados depois que Rafael escolher hospedagem, banco, estratégia offline e política de mídia. Os números acima orientam a estimativa inicial.</p>
+        </div>
+      </section>
+
+      <section class="topico" id="s10">
+        <div class="topico__cabecalho"><span class="topico__num">10</span><h2>Arquitetura de referência</h2></div>
+        <p>Recomendação: monólito modular, API-first e multi-tenant. Microserviços aumentariam custo operacional sem benefício proporcional no estágio inicial. Os limites de domínio devem existir no código para permitir separação futura, caso o produto cresça.</p>
+
+        <h3>Componentes sugeridos, por camada</h3>
+        <div class="camadas">
+          <div class="camada">
+            <span class="camada__rotulo">Cliente</span>
+            <div class="camada__blocos">
+              <div class="bloco">Frontend administrativo</div>
+              <div class="bloco">PWA de campo (offline)</div>
+            </div>
+          </div>
+          <div class="camada">
+            <span class="camada__rotulo">Aplicação</span>
+            <div class="camada__blocos">
+              <div class="bloco">Backend modular, API versionada</div>
+              <div class="bloco">Fila de jobs (PDF, notificação, sync)</div>
+            </div>
+          </div>
+          <div class="camada camada--dados">
+            <span class="camada__rotulo">Dados</span>
+            <div class="camada__blocos">
+              <div class="bloco">PostgreSQL + PostGIS</div>
+              <div class="bloco">Armazenamento de objetos (S3)</div>
+            </div>
+          </div>
+          <div class="camada camada--transversal">
+            <span class="camada__rotulo">Transversal</span>
+            <div class="camada__blocos">
+              <div class="bloco">Auditoria</div>
+              <div class="bloco">Observabilidade</div>
+            </div>
+          </div>
+        </div>
+
+        <h3>Estratégia offline recomendada</h3>
+        <ul>
+          <li>Sincronizar apenas tarefas autorizadas e dados mínimos necessários para o agente.</li>
+          <li>UUID gerado no cliente para permitir criação offline sem colisão.</li>
+          <li>Formulários e metadados em IndexedDB, não só no cache do navegador.</li>
+          <li>Fotos como uploads independentes, comprimidos, retomáveis e associados por identificador.</li>
+          <li>Estados claros: salvo localmente, aguardando envio, sincronizado, conflito e erro.</li>
+          <li>Idempotência na API de sincronização, para não duplicar por reenvio.</li>
+          <li>Política de conflito por tipo de dado; nunca escolher silenciosamente em campo crítico.</li>
+        </ul>
+
+        <div class="callout">
+          <div class="callout__rotulo">Stack em aberto</div>
+          <p>O documento não fixa tecnologia. Uma combinação comum seria React/TypeScript no frontend, Node.js/TypeScript ou outra linguagem dominada por Rafael no backend, PostgreSQL/PostGIS e armazenamento compatível com S3. O critério é velocidade de entrega, segurança, capacidade offline e custo de manutenção, não moda tecnológica.</p>
+        </div>
+      </section>
+
+      <section class="topico" id="s11">
+        <div class="topico__cabecalho"><span class="topico__num">11</span><h2>Modelo conceitual de dados</h2></div>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>Domínio</th><th>Entidades principais</th><th>Relacionamentos relevantes</th></tr></thead>
+            <tbody>
+              <tr><td>Identidade</td><td>Organization, Unit, User, Role, Team</td><td>Usuário pertence a organizações/unidades e recebe papéis contextualizados.</td></tr>
+              <tr><td>Ocorrência</td><td>Occurrence, Type, Location, Contact, StatusEvent</td><td>Local, solicitantes, linha do tempo e vínculos territoriais.</td></tr>
+              <tr><td>Campo</td><td>Inspection, FormVersion, Answer, Evidence, Signature</td><td>Vistoria usa uma versão de formulário e produz respostas e evidências.</td></tr>
+              <tr><td>Documentos</td><td>Document, TemplateVersion, Approval</td><td>Documento nasce de dados versionados e pode exigir aprovação.</td></tr>
+              <tr><td>Fluxo</td><td>Task, Referral, Deadline, Notification</td><td>Providências têm responsável, prazo, retorno e evidências.</td></tr>
+              <tr><td>Risco</td><td>RiskArea, Asset, GeoLayer</td><td>Ocorrências e locais podem interceptar áreas e camadas de risco.</td></tr>
+              <tr><td>Incidente</td><td>Incident, SituationUpdate, Assignment, Resource</td><td>Agrupa ocorrências, objetivos, equipes e recursos.</td></tr>
+              <tr><td>Abrigos</td><td>Shelter, CapacityUpdate, Household, Stay</td><td>Dados de famílias são sensíveis, acesso restrito.</td></tr>
+              <tr><td>Logística</td><td>Warehouse, Item, StockLot, StockMovement, Need, Donation, Delivery</td><td>Saldo deriva de movimentos; entrega atende uma necessidade.</td></tr>
+              <tr><td>Auditoria</td><td>AuditEvent, ExportEvent, AccessEvent</td><td>Eventos registram ações e consultas sensíveis por tenant.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <div class="callout__rotulo">Decisão crítica</div>
+          <p>Rafael deve avaliar se o isolamento multi-tenant será por banco separado, schema separado ou coluna <code>organization_id</code> com políticas de acesso. Para o MVP, coluna por tenant com controles rigorosos e testes automáticos costuma ser mais econômica; clientes maiores podem exigir opções dedicadas.</p>
+        </div>
+      </section>
+
+      <section class="topico" id="s12">
+        <div class="topico__cabecalho"><span class="topico__num">12</span><h2>Integrações e desenho inicial de APIs</h2></div>
+
+        <h3>Prioridade de integração</h3>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>Integração</th><th>Estratégia do MVP</th><th>Evolução</th></tr></thead>
+            <tbody>
+              <tr><td>S2ID</td><td>Gerar pacote de dados, relatórios e anexos para uso humano.</td><td>Integrar só com API oficial, credenciamento e regras claras.</td></tr>
+              <tr><td>GIS municipal/estadual</td><td>Importar ou referenciar camadas GeoJSON/KML validadas.</td><td>Serviços WMS/WFS e catálogos por jurisdição.</td></tr>
+              <tr><td>Processo eletrônico</td><td>Exportar PDF e metadados.</td><td>API com SEI ou sistema municipal quando disponível.</td></tr>
+              <tr><td>Assinatura digital</td><td>Aprovação interna e identificação de autoria.</td><td>ICP-Brasil ou provedor autorizado conforme necessidade.</td></tr>
+              <tr><td>Mensageria</td><td>Notificações internas e e-mail transacional.</td><td>SMS, WhatsApp oficial e push com consentimento e custo controlado.</td></tr>
+              <tr><td>Login gov.br</td><td>Não essencial ao piloto interno.</td><td>Avaliar para portal externo e federação de identidade.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Recursos de API sugeridos</h3>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>Recurso</th><th>Exemplos de operação</th><th>Observação</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">/organizations, /users</td><td>configurar tenant, equipes e papéis</td><td>Somente administradores; auditoria obrigatória.</td></tr>
+              <tr><td class="mono">/occurrences</td><td>criar, consultar, classificar, atribuir, encerrar</td><td>Filtros espaciais e por status.</td></tr>
+              <tr><td class="mono">/inspections, /evidence</td><td>rascunho, sincronizar respostas e mídia</td><td>Idempotência e controle de versão.</td></tr>
+              <tr><td class="mono">/documents</td><td>gerar, revisar, aprovar, baixar</td><td>PDF assíncrono, modelo versionado.</td></tr>
+              <tr><td class="mono">/tasks, /referrals</td><td>atribuir, responder, vencer, comprovar</td><td>Notificações derivadas de eventos.</td></tr>
+              <tr><td class="mono">/sync</td><td>manifesto, pull autorizado, push, conflito</td><td>Contrato próprio para uso offline.</td></tr>
+              <tr><td class="mono">/incidents, /logistics</td><td>ativar módulos futuros</td><td>Rotas separadas por domínio.</td></tr>
+              <tr><td class="mono">/exports, /audit</td><td>solicitar exportação, consultar trilha</td><td>Jobs assíncronos e autorização reforçada.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>A API deve ser versionada desde o início. Operações de escrita relevantes aceitam chave de idempotência e retornam identificador estável, versão e horário do servidor.</p>
+      </section>
+
+      <section class="topico" id="s13">
+        <div class="topico__cabecalho"><span class="topico__num">13</span><h2>Segurança, privacidade e LGPD</h2></div>
+        <ul>
+          <li>Mapear controlador, operador, finalidades e bases legais com cada cliente; o software não decide isso sozinho.</li>
+          <li>Aplicar minimização: o agente recebe somente os dados necessários para a tarefa.</li>
+          <li>Criptografar tráfego e armazenamentos; administrar chaves e segredos fora do repositório.</li>
+          <li>Separar dados pessoais de painéis públicos; anonimizar/agregar quando cabível.</li>
+          <li>Registrar acesso e exportação de dados sensíveis, não só alteração.</li>
+          <li>Definir retenção por tipo de dado, obrigação legal e contrato; oferecer descarte controlado.</li>
+          <li>Testar automaticamente o isolamento entre tenants e perfis em cada versão.</li>
+          <li>Prever resposta a incidente, comunicação, backup, restauração e revogação de sessões.</li>
+          <li>Evitar fotos e documentos em aparelhos pessoais fora da área controlada pela PWA.</li>
+          <li>Fazer avaliação de impacto antes de módulos de famílias em abrigos e geolocalização sensível.</li>
+        </ul>
+      </section>
+
+      <section class="topico" id="s14">
+        <div class="topico__cabecalho"><span class="topico__num">14</span><h2>Critérios de aceite do MVP</h2></div>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>ID</th><th>Cenário</th><th>Resultado esperado</th></tr></thead>
+            <tbody>
+              <tr><td>CA-01</td><td>Ocorrência completa</td><td>Operador cria, classifica e atribui; agente recebe; coordenação acompanha e encerra com histórico.</td></tr>
+              <tr><td>CA-02</td><td>Vistoria offline</td><td>Em modo avião, agente preenche formulário, captura GPS e cinco fotos; ao reconectar, tudo sincroniza sem duplicação ou perda.</td></tr>
+              <tr><td>CA-03</td><td>Documento</td><td>PDF padronizado com protocolo, respostas, evidências, autoria, data e versão.</td></tr>
+              <tr><td>CA-04</td><td>Encaminhamento</td><td>Providência atribuída, notificada, respondida e comprovada; atraso aparece no painel.</td></tr>
+              <tr><td>CA-05</td><td>Conflito</td><td>Alterações concorrentes produzem regra previsível ou fila de revisão, sem descarte silencioso.</td></tr>
+              <tr><td>CA-06</td><td>Isolamento</td><td>Testes comprovam que o usuário do município A não acessa dados do município B.</td></tr>
+              <tr><td>CA-07</td><td>Auditoria</td><td>Criação, mudança de status, aprovação, consulta sensível e exportação são rastreáveis.</td></tr>
+              <tr><td>CA-08</td><td>Recuperação</td><td>Backup de teste é restaurado e o procedimento é documentado.</td></tr>
+              <tr><td>CA-09</td><td>Usabilidade</td><td>Agentes do piloto concluem o roteiro principal sem assistência constante.</td></tr>
+              <tr><td>CA-10</td><td>Exportação</td><td>Cliente baixa dados e documentos do piloto em formato legível e documentado.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="topico" id="s15">
+        <div class="topico__cabecalho"><span class="topico__num">15</span><h2>Roadmap e estimativa preliminar</h2></div>
+        <p>Hipóteses para um desenvolvedor full-stack experiente com apoio de Alyson na descoberta e validação. Rafael recalcula após escolher stack, profundidade offline, geração de documentos, mapa, hospedagem e escopo do piloto.</p>
+
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>Etapa</th><th>Faixa</th><th>Entrega principal</th></tr></thead>
+            <tbody>
+              <tr><td>0. Descoberta</td><td>2-3 semanas</td><td>Entrevistas, processo atual, protótipo, tipos de ocorrência, decisão técnica.</td></tr>
+              <tr><td>1. Fundação</td><td>2-3 semanas</td><td>Tenant, autenticação, autorização, banco, arquivos, CI/CD, auditoria básica.</td></tr>
+              <tr><td>2. Núcleo operacional</td><td>5-7 semanas</td><td>Ocorrências, triagem, atribuição, linha do tempo, providências, painel.</td></tr>
+              <tr><td>3. Campo offline</td><td>4-6 semanas</td><td>PWA, formulários, GPS, fotos, fila de sincronização, conflitos.</td></tr>
+              <tr><td>4. Documentos e mapa</td><td>3-5 semanas</td><td>PDFs, modelos, aprovações, mapa, filtros, relatórios, exportação.</td></tr>
+              <tr><td>5. Piloto assistido</td><td>4-6 semanas</td><td>Implantação, treinamento, correções, métricas, segurança, restauração.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <div class="callout__rotulo">Faixa total de planejamento</div>
+          <p>A soma bruta sugere aproximadamente 20 a 30 semanas até o encerramento de um piloto robusto. Descoberta, design, infraestrutura e validação podem se sobrepor. Não usar esta faixa como compromisso comercial sem a estimativa de Rafael.</p>
+        </div>
+
+        <h3>Modelo de implantação que impacta a técnica</h3>
+        <ul>
+          <li>SaaS multi-tenant hospedado pelo fornecedor como padrão do MVP.</li>
+          <li>Assinatura anual por município ou consórcio; implantação e treinamento cobrados à parte.</li>
+          <li>Faixas futuras por número de entes, usuários ativos, armazenamento e módulos.</li>
+          <li>Ambiente dedicado ou instalação local só após cliente que pague o custo adicional.</li>
+          <li>Custos variáveis a mensurar: armazenamento e tráfego de fotos, mapas, mensageria, assinatura, backup, suporte em incidentes.</li>
+        </ul>
+      </section>
+
+      <section class="topico" id="s16">
+        <div class="topico__cabecalho"><span class="topico__num">16</span><h2>Questões que Rafael deverá responder</h2></div>
+        <div class="tabela-scroll">
+          <table>
+            <thead><tr><th>Tema</th><th>Pergunta para análise técnica</th></tr></thead>
+            <tbody>
+              <tr><td>Arquitetura</td><td>Monólito modular é adequado? Quais fronteiras de domínio e riscos técnicos?</td></tr>
+              <tr><td>Stack</td><td>Qual combinação reduz tempo de desenvolvimento e risco de manutenção?</td></tr>
+              <tr><td>Offline</td><td>Qual estratégia de cache, IndexedDB, sync, idempotência e conflitos?</td></tr>
+              <tr><td>Multi-tenant</td><td>Coluna, schema ou banco por cliente? Como testar isolamento?</td></tr>
+              <tr><td>GIS</td><td>PostGIS e qual biblioteca de mapa? Como operar camadas e custo de tiles?</td></tr>
+              <tr><td>Documentos</td><td>Como gerar PDFs confiáveis, versionar modelos e suportar assinatura futura?</td></tr>
+              <tr><td>Mídia</td><td>Compressão, miniaturas, upload retomável, antivírus, retenção e custo?</td></tr>
+              <tr><td>Segurança</td><td>Auth próprio ou serviço gerenciado? MFA, logs, backups e segredos?</td></tr>
+              <tr><td>Infraestrutura</td><td>Provedor, ambientes, CI/CD, observabilidade, RPO/RTO e custo mensal?</td></tr>
+              <tr><td>Escopo</td><td>O que cortar para piloto sem comprometer o valor central?</td></tr>
+              <tr><td>Estimativa</td><td>Horas por módulo, dependências, margem de risco e custo de manutenção?</td></tr>
+              <tr><td>Reuso</td><td>Vale avaliar Sahana Eden, OpenBoxes ou componentes de mercado?</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Entregáveis esperados de Rafael</h3>
+        <ul>
+          <li>Parecer de viabilidade do MVP e principais riscos.</li>
+          <li>Arquitetura proposta e escolha justificada da stack.</li>
+          <li>Decomposição em épicos, dependências e marcos.</li>
+          <li>Estimativa por faixa de esforço, não somente uma data única.</li>
+          <li>Estimativa de infraestrutura e custos variáveis para 1, 10 e 50 municípios.</li>
+          <li>Lista do que deve ser prototipado ou testado antes do desenvolvimento completo.</li>
+          <li>Proposta de escopo mínimo para um piloto com uma Defesa Civil atuante.</li>
+        </ul>
+      </section>
+
+      <section class="topico" id="s17">
+        <div class="topico__cabecalho"><span class="topico__num">17</span><h2>Validação de campo antes de programar a fundo</h2></div>
+        <p>Recomendação: 10 a 15 entrevistas com coordenações e agentes de campo, incluindo ao menos um município pequeno, um médio, um de alto volume e um consórcio. Pedir demonstração do último atendimento real, não apenas opiniões gerais.</p>
+        <ul>
+          <li>Quantos chamados entram por mês e por quais canais?</li>
+          <li>Quais tipos de ocorrência ocupam mais tempo e quais exigem documento?</li>
+          <li>Como é feita hoje a triagem, o despacho e o plantão?</li>
+          <li>Onde ficam fotos, vídeos, coordenadas, assinaturas e relatórios?</li>
+          <li>Quais áreas não têm sinal e por quanto tempo o agente fica offline?</li>
+          <li>Quais documentos e formulários variam por município ou tipo?</li>
+          <li>Como são enviados e cobrados encaminhamentos a outras secretarias?</li>
+          <li>Que dados pessoais são coletados e quem pode consultá-los?</li>
+          <li>Quais sistemas, mapas e processos eletrônicos já são usados?</li>
+          <li>Qual foi o maior problema de auditoria, perda de informação ou resposta tardia?</li>
+          <li>Existe orçamento anual, fonte de recurso e rota de contratação?</li>
+          <li>O órgão aceitaria piloto pago ou carta de intenção se o protótipo atender ao fluxo?</li>
+        </ul>
+
+        <div class="callout">
+          <div class="callout__rotulo">Critério de avanço</div>
+          <p>Só iniciar o desenvolvimento amplo se a dor aparecer de forma recorrente em pelo menos cinco entrevistas e houver pelo menos dois órgãos dispostos a testar formalmente, preferencialmente com piloto pago ou carta de intenção.</p>
+        </div>
+      </section>
+
+      <section class="topico" id="s18">
+        <div class="topico__cabecalho"><span class="topico__num">18</span><h2>Referências públicas consultadas</h2></div>
+        <ul class="referencias">
+          <li><span class="ref-tag">R1</span> Ministério da Integração e do Desenvolvimento Regional, Sistema Integrado de Informações sobre Desastres (S2ID)</li>
+          <li><span class="ref-tag">R2</span> Ministério da Integração e do Desenvolvimento Regional, Defesa Civil Alerta</li>
+          <li><span class="ref-tag">R3</span> Jaboatão dos Guararapes, Termo de Referência para sistema web e aplicativo de ocorrências</li>
+          <li><span class="ref-tag">R4</span> MIDR, boa prática PRODEC, Programa de Registro de Ocorrências da Defesa Civil do Rio de Janeiro</li>
+          <li><span class="ref-tag">R5</span> Prefeitura de Aracaju, SIGER para solicitações, vistorias e documentos georreferenciados</li>
+          <li><span class="ref-tag">R6</span> Prefeitura de Eldorado do Sul, plataforma para emergências, donativos, abrigos, voluntários e recursos</li>
+          <li><span class="ref-tag">R7</span> Prefeitura de Joinville, Relatório Final da Consulta para Compra Pública de Soluções Inovadoras 2026</li>
+          <li><span class="ref-tag">R8</span> Espírito Santo, justificativa e estudo de mercado para sistema de coordenação de incidentes</li>
+          <li><span class="ref-tag">R9</span> Lei 12.608/2012, Política Nacional de Proteção e Defesa Civil</li>
+        </ul>
+      </section>
+
+      <footer class="rodape-doc">
+        <span>Especificação técnica preliminar v0.1 · 18 de agosto de 2026 · não constitui ETP, TR ou projeto executivo.</span>
+        <span>Transcrição de apoio: docs/referencia/ESPECIFICACAO_TECNICA_PRELIMINAR.md</span>
+      </footer>
+    </main>
+  </div>
+</div>
+
+<div class="alterna-tema" role="group" aria-label="Tema da página">
+  <button type="button" data-tema="light" aria-pressed="false" aria-label="Tema claro">☀</button>
+  <button type="button" data-tema="dark" aria-pressed="false" aria-label="Tema escuro">☾</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var CHAVE = "dc360-especificacao-tema";
+  var botoes = document.querySelectorAll(".alterna-tema [data-tema]");
+
+  function aplicar(tema, persistir) {
+    if (tema === "sistema") {
+      document.documentElement.removeAttribute("data-theme");
+    } else {
+      document.documentElement.setAttribute("data-theme", tema);
+    }
+    botoes.forEach(function (b) {
+      b.setAttribute("aria-pressed", b.dataset.tema === tema ? "true" : "false");
+    });
+    if (persistir) {
+      try { localStorage.setItem(CHAVE, tema); } catch (e) {}
+    }
+  }
+
+  var salvo = null;
+  try { salvo = localStorage.getItem(CHAVE); } catch (e) {}
+  if (salvo) { aplicar(salvo, false); }
+
+  botoes.forEach(function (botao) {
+    botao.addEventListener("click", function () { aplicar(botao.dataset.tema, true); });
+  });
+
+  var links = document.querySelectorAll(".toc__lista a");
+  var alvos = Array.prototype.map.call(links, function (a) {
+    return document.getElementById(a.getAttribute("href").slice(1));
+  });
+
+  function marcarAtivo() {
+    var posicao = window.scrollY + 140;
+    var atual = alvos[0];
+    for (var i = 0; i < alvos.length; i++) {
+      if (alvos[i] && alvos[i].offsetTop <= posicao) { atual = alvos[i]; }
+    }
+    links.forEach(function (a, i) {
+      a.classList.toggle("ativo", alvos[i] === atual);
+    });
+  }
+  window.addEventListener("scroll", marcarAtivo, { passive: true });
+  marcarAtivo();
+})();
+</script>
