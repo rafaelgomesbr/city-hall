@@ -31,6 +31,13 @@ O plano original tinha 8 checkpoints. Este roadmap tem 9: o antigo CP4 foi divid
 
 Quatro itens exigidos pelo `docs/CONTEXTO.md` que não estavam na lista original entram aqui em checkpoints nomeados: assinatura da moradora (CP4), termo de interdição parcial (CP6), seletor de perfil visível (CP1) e tela de visão futura (CP7).
 
+## Decisão adicional de escopo (2026-08-20)
+
+Depois de ver o CP1 (só esqueleto, como o próprio checkpoint previa), o Rafa pediu mais dados, mais capricho visual e uma camada administrativa, alinhada ao documento de especificação técnica do Alyson (`docs/referencia/Defesa_Civil_Operacional_360_Especificacao_Tecnica_Preliminar.docx`, transcrito também em `docs/referencia/ESPECIFICACAO_TECNICA_PRELIMINAR.md`). Duas decisões, confirmadas com ele:
+
+1. **"Criar um banco de dados" significa enriquecer `app/dados.js`**, não montar um backend real. Continua zero rede, zero servidor, `file://`: essa regra do `CLAUDE.md` é não negociável nesta fase. O que muda é o tamanho e a riqueza do objeto mock: mais ocorrências, histórico, providências, documentos e equipes, todos estáticos.
+2. **Camada administrativa leve, escolhida entre três opções**: três telas dentro do perfil coordenador (Configurações da organização, Perfil do usuário logado, Usuários e equipes), sem CRUD real, só para mostrar que o produto é multiusuário e configurável. Não é cobertura ampla de todos os requisitos do documento do Alyson: o fio condutor de uma ocorrência ainda é o centro da demo de 10 minutos. Essas três telas entram como entregável adicional do CP2, abaixo.
+
 ---
 
 ## Decisões técnicas fixadas no CP1
@@ -83,7 +90,9 @@ Chrome e Edge atuais. Firefox verificado no CP9.
 
 ### Dados mock canônicos
 
-Definidos no CP1 e nunca contraditos depois: município fictício, brasão genérico em SVG, formato de protocolo `000482/2026`, 14 ocorrências na base (1 crítica, 3 atrasadas, 2 encerradas, 1 rascunho para exercitar o estado vazio) e a ocorrência protagonista da demo (rachadura em encosta após chuva forte, com moradora idosa no imóvel) como registro âncora citado por todas as telas. Nomes, endereços e coordenadas são fictícios e verossímeis. Nunca dados reais de pessoas.
+Definidos no CP1 e nunca contraditos depois (os 14 registros originais permanecem intactos): município fictício, brasão genérico em SVG, formato de protocolo `000482/2026`, e a ocorrência protagonista da demo (rachadura em encosta após chuva forte, com moradora idosa no imóvel) como registro âncora citado por todas as telas. Nomes, endereços e coordenadas são fictícios e verossímeis. Nunca dados reais de pessoas.
+
+Ampliados no CP2 (decisão de 2026-08-20, só adição, nenhum dos 14 originais mudou): base foi de 14 para 18 ocorrências, mais o elenco completo de usuários (`app/dados.js: usuarios`), status de disponibilidade por equipe e prazos padrão por severidade (`prazosPadraoHoras`). Contagem canônica atual: 1 crítica, 3 atrasadas (regra: status em registrada/triagem/em_campo com prazo vencido; vistoria concluída e providência pendente têm prazo próprio, não contam como atrasada de fila), 3 encerradas, 1 rascunho.
 
 ### Checagem mecânica de proibições
 
@@ -146,6 +155,8 @@ Qualquer conteúdo real de tela: fila de ocorrências, formulários funcionais, 
 - Filtro rápido por status.
 - Estado vazio do filtro sem resultado.
 - Tela de detalhe da ocorrência (cabeçalho com protocolo, dados, status atual).
+- Base mock (`app/dados.js`) enriquecida: mais ocorrências e histórico, providências, equipes com status de disponibilidade, para o painel parecer uma operação de verdade acontecendo, não uma lista de exemplo.
+- Camada administrativa leve (decisão de 2026-08-20), dentro do perfil coordenador: tela de Configurações da organização (tipos de ocorrência, prazos padrão por severidade, equipes cadastradas), tela de Perfil do usuário logado, tela de Usuários e equipes (lista de pessoas e papéis). Sem operação de criar, editar ou excluir de verdade.
 
 **Critérios de aceite**
 
@@ -156,18 +167,21 @@ Qualquer conteúdo real de tela: fila de ocorrências, formulários funcionais, 
 - Ao clicar em uma linha da fila, abre o detalhe daquela ocorrência com o mesmo protocolo mostrado na lista.
 - Ao usar mouse e teclado, toda linha e todo controle têm repouso, hover, pressionado, foco visível e desabilitado.
 - Ao olhar o painel de longe, atrasadas e críticas são a primeira coisa que se enxerga.
+- Ao abrir Configurações, os tipos de ocorrência, prazos e equipes mostrados são os mesmos usados no resto do protótipo, nunca uma lista solta e diferente.
+- Ao abrir Perfil, os dados batem com o usuário do perfil coordenador definido em `app/dados.js`.
+- Ao abrir Usuários e equipes, a equipe e o responsável de cada ocorrência da fila aparecem também aqui, com o mesmo nome.
 
 **Gate de QA**
 
-Coerência numérica entre contadores, filtros e fila; nenhuma ordenação que perca registro; protocolo idêntico entre lista e detalhe; tipos COBRADE com nomes reais; console limpo; checagem mecânica.
+Coerência numérica entre contadores, filtros e fila; nenhuma ordenação que perca registro; protocolo idêntico entre lista e detalhe; tipos COBRADE com nomes reais; coerência entre Configurações/Perfil/Usuários e o resto do protótipo; console limpo; checagem mecânica.
 
 **Gate de UX**
 
-Dimensão 1 com atenção especial: laranja é identidade, nunca severidade; selo de prioridade em laranja é defeito crítico. Dimensão 5: selos idênticos em toda parte, sempre com ícone. Dimensão 10: atrasados e críticos saltando aos olhos primeiro. Mais: legibilidade da tabela em projetor, sem cinza claro sobre branco em informação importante.
+Dimensão 1 com atenção especial: laranja é identidade, nunca severidade; selo de prioridade em laranja é defeito crítico. Dimensão 5: selos idênticos em toda parte, sempre com ícone. Dimensão 10: atrasados e críticos saltando aos olhos primeiro. Mais: legibilidade da tabela em projetor, sem cinza claro sobre branco em informação importante; as três telas administrativas com o mesmo padrão visual do painel, não uma sub-seção esquecida.
 
 **Fora deste checkpoint**
 
-Abertura e triagem de ocorrência, mapa, documentos, visão de campo.
+Abertura e triagem de ocorrência, mapa, documentos, visão de campo. Qualquer operação real de criar, editar ou excluir usuário, equipe ou configuração.
 
 ---
 

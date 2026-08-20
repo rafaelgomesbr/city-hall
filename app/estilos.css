@@ -9,6 +9,8 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+.sprite-oculto { display: none; }
+
 .visualmente-oculto {
   position: absolute;
   width: 1px; height: 1px;
@@ -79,6 +81,7 @@ ul { list-style: none; margin: 0; padding: 0; }
   font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
 }
 .tx-muted { color: var(--ds-text-muted); }
+.tx-forte { font-weight: 600; }
 
 /* ---------- Layout geral ---------- */
 .cabecalho {
@@ -191,6 +194,78 @@ ul { list-style: none; margin: 0; padding: 0; }
   flex-wrap: wrap;
 }
 .tela__legenda { color: var(--ds-text-muted); margin-top: var(--ds-sp-1); }
+
+.tela__corpo { display: flex; flex-direction: column; gap: var(--ds-sp-5); }
+
+/* ---------- Barra de ferramentas e chips (filtro/ordenação) ---------- */
+.painel-barra-ferramentas {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-sp-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--ds-sp-4);
+}
+.painel-grupo-chips { display: flex; align-items: center; gap: var(--ds-sp-2); flex-wrap: wrap; }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-sp-1);
+  padding: var(--ds-sp-1) var(--ds-sp-3);
+  min-height: var(--ds-sp-6);
+  border-radius: var(--ds-radius-pill);
+  border: 1px solid var(--ds-border);
+  background: var(--ds-surface);
+  color: var(--ds-text-muted);
+  font-size: var(--ds-fs-body-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease), border-color var(--ds-dur-fast) var(--ds-ease);
+}
+.chip:hover { background: var(--ds-surface-2); color: var(--ds-text); }
+.chip:active { transform: scale(0.98); }
+.chip[aria-pressed="true"] { background: var(--ds-accent); border-color: var(--ds-accent); color: var(--ds-on-accent); }
+.chip__contagem {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: var(--ds-sp-5); height: var(--ds-sp-5); padding: 0 var(--ds-sp-1);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-2);
+  font-size: var(--ds-fs-caption);
+  color: var(--ds-text);
+}
+.chip[aria-pressed="true"] .chip__contagem { background: var(--ds-surface); color: var(--ds-accent-hover); }
+
+/* ---------- Campo de leitura (detalhe, perfil) ---------- */
+.grade-leitura {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--ds-sp-4);
+}
+.campo-leitura { display: flex; flex-direction: column; gap: var(--ds-sp-1); }
+.campo-leitura__rotulo { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ds-text-muted); }
+.campo-leitura__valor { font-size: var(--ds-fs-body); }
+
+.avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: var(--ds-sp-8); height: var(--ds-sp-8);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-2);
+  color: var(--ds-accent);
+  font-weight: 800;
+  font-size: var(--ds-fs-h2);
+  flex-shrink: 0;
+}
+.avatar--pequeno { width: var(--ds-sp-6); height: var(--ds-sp-6); font-size: var(--ds-fs-body); }
+
+.linha-cabecalho-entidade { display: flex; align-items: center; gap: var(--ds-sp-4); }
+
+.chip--estatico { cursor: default; }
+.chip--estatico:hover { background: var(--ds-surface); color: var(--ds-text-muted); }
+
+.mb-2 { margin-bottom: var(--ds-sp-2); }
+.mb-3 { margin-bottom: var(--ds-sp-3); }
+.mb-4 { margin-bottom: var(--ds-sp-4); }
 
 /* ---------- Botões ---------- */
 .btn {
@@ -332,8 +407,9 @@ ul { list-style: none; margin: 0; padding: 0; }
   font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
   color: var(--ds-text-muted); background: var(--ds-surface-2);
 }
-.tabela tbody tr { cursor: pointer; transition: background var(--ds-dur-fast) var(--ds-ease); }
+.tabela tbody tr { cursor: pointer; transition: background var(--ds-dur-fast) var(--ds-ease), transform var(--ds-dur-fast) var(--ds-ease); }
 .tabela tbody tr:hover { background: var(--ds-surface-2); }
+.tabela tbody tr:active { background: var(--ds-border); transform: scale(0.997); }
 .tabela tbody tr:last-child td { border-bottom: none; }
 .tabela tbody tr:focus-visible { outline: none; box-shadow: inset var(--ds-focus-ring); }
 

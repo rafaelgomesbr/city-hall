@@ -45,9 +45,18 @@
     ],
 
     equipes: [
-      { id: "alfa", nome: "Equipe Alfa", membros: ["Rogério Nascimento", "Patrícia Lemos"] },
-      { id: "bravo", nome: "Equipe Bravo", membros: ["Wellington Costa", "Ísis Andrade"] },
-      { id: "charlie", nome: "Equipe Charlie", membros: ["Marcelo Tavares", "Débora Nunes"] }
+      {
+        id: "alfa", nome: "Equipe Alfa", especialidade: "Geotecnia e estruturas", status: "em_campo",
+        membros: ["Rogério Nascimento", "Patrícia Lemos"]
+      },
+      {
+        id: "bravo", nome: "Equipe Bravo", especialidade: "Hidrologia e incêndio urbano", status: "em_campo",
+        membros: ["Wellington Costa", "Ísis Andrade"]
+      },
+      {
+        id: "charlie", nome: "Equipe Charlie", especialidade: "Atendimento geral", status: "disponivel",
+        membros: ["Marcelo Tavares", "Débora Nunes"]
+      }
     ],
 
     secretarias: [
@@ -57,11 +66,28 @@
       "Secretaria de Meio Ambiente"
     ],
 
+    prazosPadraoHoras: { baixa: 72, media: 48, alta: 24, critica: 4 },
+
     usuariosPorPerfil: {
       coordenador: { nome: "Marina Albuquerque", cargo: "Coordenadora de Defesa Civil", matricula: "DC-0142" },
       operador: { nome: "Jonas Ferreira", cargo: "Operador de plantão", matricula: "DC-0288" },
       "agente-campo": { nome: "Rogério Nascimento", cargo: "Agente de campo, Equipe Alfa", matricula: "DC-0355" }
     },
+
+    /* Elenco completo de pessoas da organização, para a tela "Usuários e equipes".
+       Cada agente de campo aqui corresponde a um membro de alguma equipe acima. */
+    usuarios: [
+      { nome: "Marina Albuquerque", matricula: "DC-0142", cargo: "Coordenadora de Defesa Civil", perfil: "coordenador", equipeId: null, status: "ativo", email: "marina.albuquerque@serraalta.mg.gov.br", telefone: "(32) 99801-1142" },
+      { nome: "Eduardo Bastos", matricula: "DC-0101", cargo: "Administrador da organização", perfil: "coordenador", equipeId: null, status: "ativo", email: "eduardo.bastos@serraalta.mg.gov.br", telefone: "(32) 99801-1101" },
+      { nome: "Jonas Ferreira", matricula: "DC-0288", cargo: "Operador de plantão", perfil: "operador", equipeId: null, status: "ativo", email: "jonas.ferreira@serraalta.mg.gov.br", telefone: "(32) 99801-1288" },
+      { nome: "Camila Duarte", matricula: "DC-0299", cargo: "Operadora de plantão", perfil: "operador", equipeId: null, status: "afastado", email: "camila.duarte@serraalta.mg.gov.br", telefone: "(32) 99801-1299" },
+      { nome: "Rogério Nascimento", matricula: "DC-0355", cargo: "Agente de campo", perfil: "agente-campo", equipeId: "alfa", status: "ativo", email: "rogerio.nascimento@serraalta.mg.gov.br", telefone: "(32) 99801-1355" },
+      { nome: "Patrícia Lemos", matricula: "DC-0356", cargo: "Agente de campo", perfil: "agente-campo", equipeId: "alfa", status: "ativo", email: "patricia.lemos@serraalta.mg.gov.br", telefone: "(32) 99801-1356" },
+      { nome: "Wellington Costa", matricula: "DC-0367", cargo: "Agente de campo", perfil: "agente-campo", equipeId: "bravo", status: "ativo", email: "wellington.costa@serraalta.mg.gov.br", telefone: "(32) 99801-1367" },
+      { nome: "Ísis Andrade", matricula: "DC-0368", cargo: "Agente de campo", perfil: "agente-campo", equipeId: "bravo", status: "ativo", email: "isis.andrade@serraalta.mg.gov.br", telefone: "(32) 99801-1368" },
+      { nome: "Marcelo Tavares", matricula: "DC-0379", cargo: "Agente de campo", perfil: "agente-campo", equipeId: "charlie", status: "ativo", email: "marcelo.tavares@serraalta.mg.gov.br", telefone: "(32) 99801-1379" },
+      { nome: "Débora Nunes", matricula: "DC-0380", cargo: "Agente de campo", perfil: "agente-campo", equipeId: "charlie", status: "ativo", email: "debora.nunes@serraalta.mg.gov.br", telefone: "(32) 99801-1380" }
+    ],
 
     /* prazoOffsetHoras e criadoOffsetHoras são relativos ao momento em que o protótipo
        carrega (Date.now() em app.js), para a demo nunca mostrar prazo vencido errado
@@ -304,6 +330,70 @@
         criadoOffsetHoras: -3,
         despachadoOffsetHoras: -2,
         prazoOffsetHoras: 50
+      },
+      {
+        protocolo: "000499/2026",
+        tipo: "Deslizamento",
+        endereco: "Rua Doutor Anísio Salles, 90, Bairro Vista Alegre",
+        mapaX: 60, mapaY: 44,
+        gps: { lat: -19.9834, lng: -43.9038 },
+        severidade: "media",
+        vulnerabilidade: false,
+        solicitante: "Paulo Roberto Andrade",
+        descricao: "Pequena movimentação de solo no talude lateral, vizinho à ocorrência 000482.",
+        status: "triagem",
+        equipeId: null,
+        criadoOffsetHoras: -0.8,
+        prazoOffsetHoras: 47
+      },
+      {
+        protocolo: "000501/2026",
+        tipo: "Alagamento",
+        endereco: "Avenida das Torres, 640, Bairro Baixada",
+        mapaX: 42, mapaY: 74,
+        gps: { lat: -19.9972, lng: -43.9205 },
+        severidade: "media",
+        vulnerabilidade: false,
+        solicitante: "Mercado Central Baixada Ltda.",
+        descricao: "Água acumulada na área de carga e descarga após chuva forte.",
+        status: "registrada",
+        equipeId: null,
+        criadoOffsetHoras: -1,
+        prazoOffsetHoras: 47
+      },
+      {
+        protocolo: "000474/2026",
+        tipo: "Vendaval",
+        endereco: "Rua Ministro Salgado Filho, 155, Centro",
+        mapaX: 46, mapaY: 44,
+        gps: { lat: -19.9762, lng: -43.9105 },
+        severidade: "baixa",
+        vulnerabilidade: false,
+        solicitante: "Câmara Municipal de Serra Alta",
+        descricao: "Placa de sinalização derrubada pelo vento sobre a calçada.",
+        status: "encerrada",
+        equipeId: "charlie",
+        criadoOffsetHoras: -168,
+        despachadoOffsetHoras: -166,
+        prazoOffsetHoras: -142,
+        encerradaOffsetHoras: -150,
+        motivoEncerramento: "Placa removida e sinalização provisória instalada no mesmo dia."
+      },
+      {
+        protocolo: "000497/2026",
+        tipo: "Colapso de edificação",
+        endereco: "Rua Bela Vista, 33, Morro do Sol",
+        mapaX: 66, mapaY: 34,
+        gps: { lat: -19.9702, lng: -43.8975 },
+        severidade: "baixa",
+        vulnerabilidade: false,
+        solicitante: "José Maurício Lopes",
+        descricao: "Pequena rachadura em muro de contenção do quintal, sem risco aparente à edificação.",
+        status: "em_campo",
+        equipeId: "charlie",
+        criadoOffsetHoras: -6,
+        despachadoOffsetHoras: -5,
+        prazoOffsetHoras: 67
       }
     ]
   };

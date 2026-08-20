@@ -13,7 +13,7 @@
 <div class="visualmente-oculto" id="anunciador" role="status" aria-live="polite"></div>
 
 <!-- Sprite de ícones SVG, inline, sem rede. Usado com <use href="#icone-x"> -->
-<svg style="display:none" aria-hidden="true">
+<svg class="sprite-oculto" aria-hidden="true">
   <symbol id="icone-escudo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/>
     <path d="M9 12l2 2 4-4"/>
@@ -45,6 +45,23 @@
   <symbol id="icone-mais-circulo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="12" cy="12" r="9"/>
     <path d="M12 8v8M8 12h8"/>
+  </symbol>
+  <symbol id="icone-seta-esquerda" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 12H5M11 6l-6 6 6 6"/>
+  </symbol>
+  <symbol id="icone-engrenagem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M12 3v2M12 19v2M4.6 6l1.4 1.4M18 16.6l1.4 1.4M3 12h2M19 12h2M4.6 18L6 16.6M18 6l1.4-1.4"/>
+  </symbol>
+  <symbol id="icone-usuario" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="8" r="4"/>
+    <path d="M4 20c1.5-4 5-6 8-6s6.5 2 8 6"/>
+  </symbol>
+  <symbol id="icone-usuarios" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="9" cy="8" r="3.5"/>
+    <path d="M2.5 20c1.2-3.4 3.8-5 6.5-5s5.3 1.6 6.5 5"/>
+    <circle cx="18" cy="9" r="2.5"/>
+    <path d="M15.5 20c0.8-2.6 2-3.9 3.6-4.4"/>
   </symbol>
   <symbol id="icone-prancheta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <rect x="5" y="4" width="14" height="17" rx="2"/>
@@ -131,10 +148,31 @@
         <p class="tela__legenda tx-body-sm">Fila de ocorrências, prioridades e prazos do dia</p>
       </div>
     </div>
-    <div class="estado-vazio card">
-      <svg aria-hidden="true"><use href="#icone-relogio"></use></svg>
-      <p class="estado-vazio__titulo">A fila do dia chega no próximo checkpoint</p>
-      <p class="estado-vazio__texto tx-body-sm">Aqui vão aparecer os indicadores de atrasadas e críticas, a fila completa de ocorrências com prioridade e prazo, e o acesso ao detalhe de cada uma.</p>
+    <div class="tela__corpo">
+      <div class="grade-cartoes" id="painel-indicadores"></div>
+      <div class="card">
+        <div class="painel-barra-ferramentas">
+          <div class="painel-grupo-chips" id="painel-filtros" role="group" aria-label="Filtrar fila por status"></div>
+          <div class="painel-grupo-chips" id="painel-ordenacao" role="group" aria-label="Ordenar fila"></div>
+        </div>
+        <div class="tabela-wrap" id="painel-tabela-wrap">
+          <table class="tabela">
+            <thead>
+              <tr>
+                <th>Protocolo</th>
+                <th>Tipo</th>
+                <th>Severidade</th>
+                <th>Endereço</th>
+                <th>Equipe</th>
+                <th>Prazo</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="painel-tabela-corpo"></tbody>
+          </table>
+        </div>
+        <div class="estado-vazio" id="painel-estado-vazio" hidden></div>
+      </div>
     </div>
   </section>
 
@@ -164,6 +202,50 @@
       <p class="estado-vazio__titulo">Prévia da evolução do produto</p>
       <p class="estado-vazio__texto tx-body-sm">Esta tela vai apenas insinuar o modo emergência e a logística humanitária como fases futuras, sem detalhar. Ainda não existe no protótipo.</p>
     </div>
+  </section>
+
+  <section class="tela" data-tela="detalhe" data-perfil="coordenador" aria-labelledby="titulo-detalhe">
+    <div class="tela__cabecalho">
+      <div>
+        <button type="button" class="btn btn--fantasma btn--pequeno" id="detalhe-voltar">
+          <svg aria-hidden="true"><use href="#icone-seta-esquerda"></use></svg>
+          Voltar ao painel
+        </button>
+        <h1 class="tx-h1" id="titulo-detalhe" tabindex="-1">Detalhe da ocorrência</h1>
+        <p class="tela__legenda tx-body-sm" id="detalhe-subtitulo">Carregando</p>
+      </div>
+    </div>
+    <div class="tela__corpo" id="detalhe-conteudo"></div>
+  </section>
+
+  <section class="tela" data-tela="configuracoes" data-perfil="coordenador" aria-labelledby="titulo-configuracoes">
+    <div class="tela__cabecalho">
+      <div>
+        <h1 class="tx-h1" id="titulo-configuracoes" tabindex="-1">Configurações da organização</h1>
+        <p class="tela__legenda tx-body-sm">Tipos de ocorrência, prazos padrão por severidade e equipes cadastradas</p>
+      </div>
+    </div>
+    <div class="tela__corpo" id="configuracoes-conteudo"></div>
+  </section>
+
+  <section class="tela" data-tela="perfil" data-perfil="coordenador" aria-labelledby="titulo-perfil">
+    <div class="tela__cabecalho">
+      <div>
+        <h1 class="tx-h1" id="titulo-perfil" tabindex="-1">Meu perfil</h1>
+        <p class="tela__legenda tx-body-sm">Dados do usuário logado nesta demonstração</p>
+      </div>
+    </div>
+    <div class="tela__corpo" id="perfil-conteudo"></div>
+  </section>
+
+  <section class="tela" data-tela="usuarios" data-perfil="coordenador" aria-labelledby="titulo-usuarios">
+    <div class="tela__cabecalho">
+      <div>
+        <h1 class="tx-h1" id="titulo-usuarios" tabindex="-1">Usuários e equipes</h1>
+        <p class="tela__legenda tx-body-sm">Pessoas da organização, papel e equipe de cada uma</p>
+      </div>
+    </div>
+    <div class="tela__corpo" id="usuarios-conteudo"></div>
   </section>
 
   <!-- ===== Perfil: operador ===== -->
