@@ -63,6 +63,29 @@
     <circle cx="18" cy="9" r="2.5"/>
     <path d="M15.5 20c0.8-2.6 2-3.9 3.6-4.4"/>
   </symbol>
+  <symbol id="icone-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/>
+    <circle cx="12" cy="13" r="3.5"/>
+  </symbol>
+  <symbol id="icone-gps" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+    <circle cx="12" cy="12" r="8"/>
+  </symbol>
+  <symbol id="icone-assinatura" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 17c2-1 3 1 5 0s2-3 4-2 2 2.5 4 1.5 2-2.5 5-1.5"/>
+    <path d="M3 21h18"/>
+  </symbol>
+  <symbol id="icone-caminhao" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="8" width="12" height="9"/>
+    <path d="M14 11h4l4 4v2h-8z"/>
+    <circle cx="7" cy="19" r="1.6"/>
+    <circle cx="17.5" cy="19" r="1.6"/>
+  </symbol>
+  <symbol id="icone-celular" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="6" y="2" width="12" height="20" rx="2.5"/>
+    <path d="M10.5 18.5h3" stroke-width="2.4"/>
+  </symbol>
   <symbol id="icone-prancheta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <rect x="5" y="4" width="14" height="17" rx="2"/>
     <rect x="9" y="2" width="6" height="4" rx="1"/>
@@ -126,15 +149,33 @@
       <option value="agente-campo">Agente de campo</option>
     </select>
 
+    <button class="avatar-cabecalho" id="botao-avatar" type="button">
+      <span class="avatar avatar--pequeno" id="avatar-iniciais" aria-hidden="true"></span>
+      <span class="visualmente-oculto" id="avatar-rotulo">Ver meu perfil</span>
+    </button>
+
     <button class="btn-icone" id="botao-tema" type="button" aria-pressed="false">
       <svg aria-hidden="true"><use href="#icone-lua"></use></svg>
       <span class="visualmente-oculto">Alternar para modo escuro</span>
     </button>
 
-    <button class="btn btn--secundario btn--pequeno" id="botao-reiniciar" type="button">
-      <svg aria-hidden="true"><use href="#icone-atualizar"></use></svg>
-      Reiniciar demo
-    </button>
+    <div class="menu-dev">
+      <button class="btn btn--secundario btn--pequeno" id="botao-menu-dev" type="button" aria-haspopup="true" aria-expanded="false">
+        <svg aria-hidden="true"><use href="#icone-engrenagem"></use></svg>
+        Menu da demo
+      </button>
+      <div class="menu-dev__painel" id="menu-dev-painel" role="menu" aria-label="Menu da demonstração" hidden>
+        <button type="button" class="menu-dev__item" id="item-modo-mobile" role="menuitemcheckbox" aria-checked="false">
+          <svg aria-hidden="true"><use href="#icone-celular"></use></svg>
+          <span>Ver em modo mobile</span>
+          <span class="menu-dev__marca" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="menu-dev__item" id="item-reiniciar-demo" role="menuitem">
+          <svg aria-hidden="true"><use href="#icone-atualizar"></use></svg>
+          <span>Reiniciar demonstração</span>
+        </button>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -183,10 +224,81 @@
         <p class="tela__legenda tx-body-sm">Visão geográfica com filtro por tipo e status</p>
       </div>
     </div>
-    <div class="estado-vazio card">
-      <svg aria-hidden="true"><use href="#icone-mapa"></use></svg>
-      <p class="estado-vazio__titulo">O mapa chega mais adiante no roadmap</p>
-      <p class="estado-vazio__texto tx-body-sm">Aqui vão aparecer os pinos das ocorrências sobre o mapa do município, com filtro por tipo COBRADE e por status.</p>
+    <div class="tela__corpo">
+      <div class="card">
+        <div class="painel-barra-ferramentas">
+          <div class="painel-grupo-chips" id="mapa-filtro-tipo" role="group" aria-label="Filtrar mapa por tipo de ocorrência"></div>
+          <div class="painel-grupo-chips" id="mapa-filtro-status" role="group" aria-label="Filtrar mapa por status"></div>
+        </div>
+      </div>
+
+      <div class="mapa-layout">
+        <div class="mapa-quadro card" id="mapa-quadro-vazio" hidden>
+          <div class="estado-vazio">
+            <svg aria-hidden="true"><use href="#icone-mapa"></use></svg>
+            <p class="estado-vazio__titulo">Nenhuma ocorrência com esse filtro</p>
+            <p class="estado-vazio__texto tx-body-sm">Combine outro tipo ou status, ou limpe os filtros para ver o mapa completo.</p>
+            <button type="button" class="btn btn--secundario btn--pequeno" id="mapa-limpar-filtros">Limpar filtros</button>
+          </div>
+        </div>
+        <div class="mapa-quadro card" id="mapa-quadro">
+          <svg class="mapa-svg" id="mapa-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="mapa-svg-titulo">
+            <title id="mapa-svg-titulo">Mapa esquemático do município de Serra Alta com as ocorrências ativas</title>
+            <rect class="mapa-svg__terreno" x="0" y="0" width="100" height="100"/>
+
+            <path class="mapa-svg__vegetacao" d="M 4 4 C 14 0, 24 3, 22 12 C 20 20, 6 22, 2 14 C 0 10, 0 6, 4 4 Z"/>
+            <path class="mapa-svg__vegetacao" d="M 90 70 C 100 68, 102 80, 94 86 C 86 90, 78 84, 80 76 C 82 70, 86 70, 90 70 Z"/>
+
+            <path class="mapa-svg__curva-nivel" d="M 62 8 C 74 4, 88 8, 92 18 C 96 28, 88 36, 76 36 C 64 36, 56 28, 58 18 C 59 13, 60 10, 62 8 Z"/>
+            <path class="mapa-svg__curva-nivel" d="M 65 12 C 74 9, 84 12, 87 19 C 90 27, 84 32, 76 32 C 68 32, 62 27, 63 19 C 64 16, 64 14, 65 12 Z"/>
+            <path class="mapa-svg__curva-nivel" d="M 68 16 C 74 14, 80 16, 82 20 C 84 25, 80 28, 76 28 C 71 28, 67 25, 68 20 Z"/>
+
+            <path class="mapa-svg__curva-nivel" d="M 58 22 C 66 20, 74 24, 74 30 C 74 36, 66 40, 58 39 C 50 38, 46 33, 49 27 C 51 24, 54 23, 58 22 Z"/>
+            <path class="mapa-svg__curva-nivel" d="M 59 25 C 65 24, 70 27, 70 31 C 70 35, 64 38, 58 37 C 53 36, 51 32, 53 29 Z"/>
+
+            <path class="mapa-svg__rio" d="M -5 78 C 20 70, 30 85, 48 74 C 64 65, 74 78, 108 60"/>
+            <line class="mapa-svg__via" x1="0" y1="46" x2="100" y2="46"/>
+            <line class="mapa-svg__via" x1="46" y1="0" x2="58" y2="100"/>
+            <line class="mapa-svg__via" x1="0" y1="20" x2="100" y2="26"/>
+            <line class="mapa-svg__via" x1="20" y1="100" x2="14" y2="30"/>
+
+            <rect class="mapa-svg__quarteirao" x="6" y="6" width="16" height="12"/>
+            <rect class="mapa-svg__quarteirao" x="26" y="6" width="14" height="10"/>
+            <rect class="mapa-svg__quarteirao" x="60" y="8" width="18" height="10"/>
+            <rect class="mapa-svg__quarteirao" x="82" y="10" width="14" height="9"/>
+            <rect class="mapa-svg__quarteirao" x="38" y="34" width="20" height="14"/>
+            <rect class="mapa-svg__quarteirao" x="62" y="30" width="16" height="12"/>
+            <rect class="mapa-svg__quarteirao" x="8" y="40" width="14" height="10"/>
+            <rect class="mapa-svg__quarteirao" x="18" y="58" width="16" height="10"/>
+            <rect class="mapa-svg__quarteirao" x="70" y="52" width="16" height="12"/>
+
+            <g class="mapa-svg__rotulos" aria-hidden="true">
+              <text x="76" y="40" text-anchor="middle">Vista Alegre</text>
+              <text x="20" y="74" text-anchor="middle">Porto Novo</text>
+              <text x="46" y="84" text-anchor="middle">Baixada</text>
+              <text x="82" y="10" text-anchor="middle">Industrial</text>
+              <text x="38" y="48" text-anchor="middle">Centro</text>
+              <text x="66" y="16" text-anchor="middle">Morro do Sol</text>
+              <text x="86" y="50" text-anchor="middle">Aeroporto</text>
+              <text x="14" y="58" text-anchor="middle">Flamboyant</text>
+              <text x="12" y="18" text-anchor="middle">Zona Rural</text>
+            </g>
+
+            <g id="mapa-pinos"></g>
+          </svg>
+          <div class="mapa-legenda" aria-hidden="true">
+            <span class="mapa-legenda__item"><span class="mapa-legenda__ponto mapa-legenda__ponto--baixa"></span>Baixa</span>
+            <span class="mapa-legenda__item"><span class="mapa-legenda__ponto mapa-legenda__ponto--media"></span>Média</span>
+            <span class="mapa-legenda__item"><span class="mapa-legenda__ponto mapa-legenda__ponto--alta"></span>Alta</span>
+            <span class="mapa-legenda__item"><span class="mapa-legenda__ponto mapa-legenda__ponto--critica"></span>Crítica</span>
+          </div>
+        </div>
+
+        <div class="mapa-lista card" aria-label="Lista das ocorrências visíveis no mapa">
+          <h2 class="tx-h3 mb-3">Ocorrências no filtro atual</h2>
+          <div id="mapa-lista-corpo"></div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -228,14 +340,14 @@
     <div class="tela__corpo" id="configuracoes-conteudo"></div>
   </section>
 
-  <section class="tela" data-tela="perfil" data-perfil="coordenador" aria-labelledby="titulo-perfil">
+  <section class="tela" data-tela="perfil" data-perfil="coordenador" aria-labelledby="titulo-perfil-coordenador">
     <div class="tela__cabecalho">
       <div>
-        <h1 class="tx-h1" id="titulo-perfil" tabindex="-1">Meu perfil</h1>
+        <h1 class="tx-h1" id="titulo-perfil-coordenador" tabindex="-1">Meu perfil</h1>
         <p class="tela__legenda tx-body-sm">Dados do usuário logado nesta demonstração</p>
       </div>
     </div>
-    <div class="tela__corpo" id="perfil-conteudo"></div>
+    <div class="tela__corpo conteudo-perfil"></div>
   </section>
 
   <section class="tela" data-tela="usuarios" data-perfil="coordenador" aria-labelledby="titulo-usuarios">
@@ -256,25 +368,27 @@
         <p class="tela__legenda tx-body-sm">Entrada do chamado, com aviso de possível duplicidade</p>
       </div>
     </div>
-    <div class="estado-vazio card">
-      <svg aria-hidden="true"><use href="#icone-mais-circulo"></use></svg>
-      <p class="estado-vazio__titulo">O formulário de abertura chega no próximo checkpoint</p>
-      <p class="estado-vazio__texto tx-body-sm">Aqui vão aparecer o endereço, o tipo de ocorrência conforme a COBRADE e o aviso automático de possível duplicidade.</p>
-    </div>
+    <div class="tela__corpo" id="abertura-conteudo"></div>
   </section>
 
   <section class="tela" data-tela="triagem" data-perfil="operador" aria-labelledby="titulo-triagem">
     <div class="tela__cabecalho">
       <div>
-        <h1 class="tx-h1" id="titulo-triagem" tabindex="-1">Triagem e despacho</h1>
-        <p class="tela__legenda tx-body-sm">Gravidade, vulnerabilidade e envio para a equipe de campo</p>
+        <h1 class="tx-h1" id="titulo-triagem" tabindex="-1">Triagem</h1>
+        <p class="tela__legenda tx-body-sm">Gravidade e vulnerabilidade; o despacho para a equipe é feito pelo coordenador</p>
       </div>
     </div>
-    <div class="estado-vazio card">
-      <svg aria-hidden="true"><use href="#icone-prancheta"></use></svg>
-      <p class="estado-vazio__titulo">A triagem chega no próximo checkpoint</p>
-      <p class="estado-vazio__texto tx-body-sm">Aqui vão aparecer a classificação de gravidade, o registro de vulnerabilidade presente e o despacho para uma equipe com prazo.</p>
+    <div class="tela__corpo" id="triagem-conteudo"></div>
+  </section>
+
+  <section class="tela" data-tela="perfil" data-perfil="operador" aria-labelledby="titulo-perfil-operador">
+    <div class="tela__cabecalho">
+      <div>
+        <h1 class="tx-h1" id="titulo-perfil-operador" tabindex="-1">Meu perfil</h1>
+        <p class="tela__legenda tx-body-sm">Dados do usuário logado nesta demonstração</p>
+      </div>
     </div>
+    <div class="tela__corpo conteudo-perfil"></div>
   </section>
 
   <!-- ===== Perfil: agente de campo (moldura de celular) ===== -->
@@ -290,12 +404,17 @@
             <svg aria-hidden="true" width="20" height="14"><use href="#icone-bateria"></use></svg>
           </span>
         </div>
-        <div class="moldura-celular__tela">
-          <div class="estado-vazio">
-            <svg aria-hidden="true"><use href="#icone-prancheta"></use></svg>
-            <p class="estado-vazio__titulo">A lista de tarefas chega mais adiante</p>
-            <p class="estado-vazio__texto tx-body-lg">Aqui vão aparecer as vistorias designadas para você, com checklist, foto simulada, GPS e assinatura.</p>
-          </div>
+        <div class="moldura-celular__tela" id="campo-conteudo"></div>
+        <div class="moldura-celular__acao-primaria" id="campo-acao-primaria" hidden></div>
+        <div class="moldura-celular__rodape" role="tablist" aria-label="Navegação do aplicativo de campo">
+          <button type="button" class="moldura-celular__aba" id="aba-campo-tarefas" role="tab" aria-selected="true">
+            <svg aria-hidden="true"><use href="#icone-fila"></use></svg>
+            <span>Tarefas</span>
+          </button>
+          <button type="button" class="moldura-celular__aba" id="aba-campo-perfil" role="tab" aria-selected="false">
+            <svg aria-hidden="true"><use href="#icone-usuario"></use></svg>
+            <span>Meu perfil</span>
+          </button>
         </div>
       </div>
     </div>

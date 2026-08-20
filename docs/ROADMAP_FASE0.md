@@ -40,6 +40,18 @@ Depois de ver o CP1 (só esqueleto, como o próprio checkpoint previa), o Rafa p
 
 ---
 
+## Decisão adicional de estrutura (2026-08-20, segunda rodada)
+
+Depois de ver o CP2 ampliado, o Rafa pediu que a identidade visual da Fase 0 já seja a semente do produto real (não muda o `CLAUDE.md`: continua sem código de produção, só reforça que a linguagem visual dos tokens deve se manter) e três mudanças concretas:
+
+1. **Mapa entregue adiantado.** O mapa esquemático (SVG, pinos por severidade, filtro por tipo e status, painel lateral, clique abre detalhe) foi construído durante esta rodada, antecipando o que o CP7 previa. O CP7, abaixo, tem esse item já riscado.
+2. **Perfil virou avatar fixo no cabeçalho**, não mais item de menu. Vale para coordenador e operador; fica oculto no perfil de agente de campo (imersivo, sem menu superior).
+3. **CP3 e CP4 passam a ser executados e revisados juntos**, como uma fatia vertical única, porque o Rafa quer que os três papéis (coordenador, operador, agente de campo) tenham função real na demonstração antes de continuar, não só o coordenador. A divisão de papéis é exatamente a do `docs/CONTEXTO.md`, sem mudança: operador registra e faz a triagem; coordenador despacha para a equipe com prazo (a ação de despachar sai do menu do operador e passa a viver no detalhe da ocorrência, no perfil coordenador); agente de campo recebe a tarefa, faz a vistoria e é quem "recebe a missão e relata". A persistência continua em memória, no mesmo padrão de hoje (nada de `sessionStorage`); "Reiniciar demo" continua restaurando tudo. O simulador de offline continua sendo o CP5, sozinho, por ser o clímax da demo.
+
+Critérios de aceite, gates de QA e UX de CP3 e CP4 abaixo continuam valendo cada um por si; a diferença é que os dois são concluídos e revisados na mesma rodada, não em duas aprovações separadas.
+
+---
+
 ## Decisões técnicas fixadas no CP1
 
 Estas decisões valem para todos os checkpoints. Os revisores devem tratá-las como lei, não como defeito.
@@ -79,6 +91,8 @@ As telas de documento (relatório de vistoria e termo de interdição) mantêm f
 ### Exceção declarada de primitivas no palco e na moldura de celular
 
 O palco escurecido atrás da moldura de celular (`.palco-campo`) e o chassi do aparelho (`.moldura-celular`, `.moldura-celular__notch`) leem `--ds-ink-950` e `--ds-ink-900` diretamente, em vez de tokens semânticos. Motivo: são cenário de demonstração e chassi físico de aparelho, não superfície de aplicativo, então não devem clarear no tema claro. É a mesma lógica da exceção da folha de documento, aplicada ao inverso (aqui o elemento fica sempre escuro, lá sempre claro). O gate de UX não deve tratar isso como defeito.
+
+Mesma lógica se aplica ao fundo do `body.modo-mobile-forcado` (menu da demonstração, pré-visualização em largura de celular para as telas de coordenador e operador): é palco de pré-visualização, não superfície de app, então também lê `--ds-ink-950` direto.
 
 ### Marca d'água obrigatória nos documentos
 
@@ -191,10 +205,10 @@ Abertura e triagem de ocorrência, mapa, documentos, visão de campo. Qualquer o
 
 **Entregáveis**
 
-- Formulário de abertura: solicitante, canal de entrada, endereço, descrição, tipo COBRADE.
+- Formulário de abertura (perfil operador): solicitante, canal de entrada, endereço, descrição, tipo COBRADE.
 - Painel de possível duplicidade comparando com o chamado anterior do mesmo endereço, com as opções de vincular ou seguir como novo registro.
-- Tela de triagem: tipo COBRADE, gravidade, vulnerabilidade presente.
-- Despacho: escolha de equipe e prazo.
+- Tela de triagem (perfil operador): tipo COBRADE, gravidade, vulnerabilidade presente.
+- Despacho (perfil coordenador, a partir do detalhe da ocorrência): escolha de equipe e prazo, disponível quando a ocorrência está registrada ou triada sem equipe.
 - Confirmação com o protocolo gerado.
 
 **Critérios de aceite**
@@ -336,10 +350,10 @@ Mapa, providência a outra secretaria, encerramento.
 
 **Objetivo:** fechar o ciclo operacional, do mapa da cidade ao encerramento com motivo obrigatório, e insinuar a evolução do produto.
 
-**Entregáveis**
+**Já entregue, adiantado durante o feedback do CP2 (ver "Decisão adicional de estrutura" acima):** mapa esquemático da cidade em SVG com pinos por severidade, filtros por tipo COBRADE e por status, painel lateral sincronizado, legenda, clique no pino ou na lista abre o detalhe. Falta rodar o gate de QA/UX formal sobre o mapa, o que acontece junto deste checkpoint.
 
-- Mapa estático da cidade em SVG inline, com pinos por ocorrência e legenda.
-- Filtros por tipo COBRADE e por status, com painel lateral sincronizado ao filtro.
+**Entregáveis restantes**
+
 - Encaminhamento de providência à Secretaria de Obras, com prazo e responsável.
 - Acompanhamento da providência no painel do coordenador, com o vencimento visível.
 - Encerramento com motivo obrigatório e confirmação.
