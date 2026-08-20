@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Defesa Civil Operacional 360, protótipo</title>
+<link rel="stylesheet" href="design-system/tokens.css">
+<link rel="stylesheet" href="app/estilos.css">
+</head>
+<body>
+
+<a class="pular-para-conteudo" href="#conteudo-principal">Pular para o conteúdo</a>
+<div class="visualmente-oculto" id="anunciador" role="status" aria-live="polite"></div>
+
+<!-- Sprite de ícones SVG, inline, sem rede. Usado com <use href="#icone-x"> -->
+<svg style="display:none" aria-hidden="true">
+  <symbol id="icone-escudo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/>
+    <path d="M9 12l2 2 4-4"/>
+  </symbol>
+  <symbol id="icone-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="4"/>
+    <path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>
+  </symbol>
+  <symbol id="icone-lua" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>
+  </symbol>
+  <symbol id="icone-atualizar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 12a9 9 0 0 1 15.3-6.4L21 8"/>
+    <path d="M21 3v5h-5"/>
+    <path d="M21 12a9 9 0 0 1-15.3 6.4L3 16"/>
+    <path d="M3 21v-5h5"/>
+  </symbol>
+  <symbol id="icone-fila" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 6h16M4 12h16M4 18h10"/>
+  </symbol>
+  <symbol id="icone-mapa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 4L4 6v14l5-2 6 2 5-2V4l-5 2-6-2z"/>
+    <path d="M9 4v14M15 6v14"/>
+  </symbol>
+  <symbol id="icone-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/>
+    <path d="M19 15l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>
+  </symbol>
+  <symbol id="icone-mais-circulo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M12 8v8M8 12h8"/>
+  </symbol>
+  <symbol id="icone-prancheta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="5" y="4" width="14" height="17" rx="2"/>
+    <rect x="9" y="2" width="6" height="4" rx="1"/>
+    <path d="M8 12h8M8 16h5"/>
+  </symbol>
+  <symbol id="icone-relogio" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M12 7v5l3.5 2"/>
+  </symbol>
+  <symbol id="icone-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3l10 18H2z"/>
+    <path d="M12 10v4M12 17.5v.01"/>
+  </symbol>
+  <symbol id="icone-check-circulo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M8 12.5l2.5 2.5L16 9.5"/>
+  </symbol>
+  <symbol id="icone-wifi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 8.5a16 16 0 0 1 18 0"/>
+    <path d="M6.5 12a11 11 0 0 1 11 0"/>
+    <path d="M10 15.5a5.5 5.5 0 0 1 4 0"/>
+    <path d="M12 19.5v.01"/>
+  </symbol>
+  <symbol id="icone-wifi-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 8.5a16 16 0 0 1 6.3-3.5"/>
+    <path d="M14.7 5a16 16 0 0 1 6.3 3.5"/>
+    <path d="M6.5 12a11 11 0 0 1 3.4-2M14 10a11 11 0 0 1 3.5 2"/>
+    <path d="M10 15.5a5.5 5.5 0 0 1 4 0"/>
+    <path d="M12 19.5v.01"/>
+    <path d="M2 2l20 20"/>
+  </symbol>
+  <symbol id="icone-sinal" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+    <rect x="2" y="14" width="3" height="6" rx="0.5"/>
+    <rect x="7.5" y="10" width="3" height="10" rx="0.5"/>
+    <rect x="13" y="6" width="3" height="14" rx="0.5"/>
+    <rect x="18.5" y="3" width="3" height="17" rx="0.5"/>
+  </symbol>
+  <symbol id="icone-bateria" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="7" width="18" height="10" rx="2"/>
+    <path d="M22 10v4" stroke-width="2.4"/>
+    <rect x="4.5" y="9.3" width="12" height="5.4" rx="1" fill="currentColor" stroke="none"/>
+  </symbol>
+</svg>
+
+<header class="cabecalho">
+  <a class="marca" href="#" data-acao="ir-painel">
+    <svg aria-hidden="true"><use href="#icone-escudo"></use></svg>
+    <span>
+      <span class="marca__nome">Defesa Civil 360</span>
+      <span class="marca__sub">Protótipo, Serra Alta/MG</span>
+    </span>
+  </a>
+
+  <nav class="nav-telas" aria-label="Telas do perfil atual" id="nav-telas"></nav>
+
+  <div class="cabecalho__controles">
+    <label class="visualmente-oculto" for="seletor-perfil">Perfil de visualização</label>
+    <select class="seletor-perfil" id="seletor-perfil">
+      <option value="coordenador">Coordenador</option>
+      <option value="operador">Operador</option>
+      <option value="agente-campo">Agente de campo</option>
+    </select>
+
+    <button class="btn-icone" id="botao-tema" type="button" aria-pressed="false">
+      <svg aria-hidden="true"><use href="#icone-lua"></use></svg>
+      <span class="visualmente-oculto">Alternar para modo escuro</span>
+    </button>
+
+    <button class="btn btn--secundario btn--pequeno" id="botao-reiniciar" type="button">
+      <svg aria-hidden="true"><use href="#icone-atualizar"></use></svg>
+      Reiniciar demo
+    </button>
+  </div>
+</header>
+
+<main class="principal" id="conteudo-principal">
+
+  <!-- ===== Perfil: coordenador ===== -->
+  <section class="tela" data-tela="painel" data-perfil="coordenador" aria-labelledby="titulo-painel">
+    <div class="tela__cabecalho">
+      <div>
+        <h1 class="tx-h1" id="titulo-painel" tabindex="-1">Painel do coordenador</h1>
+        <p class="tela__legenda tx-body-sm">Fila de ocorrências, prioridades e prazos do dia</p>
+      </div>
+    </div>
+    <div class="estado-vazio card">
+      <svg aria-hidden="true"><use href="#icone-relogio"></use></svg>
+      <p class="estado-vazio__titulo">A fila do dia chega no próximo checkpoint</p>
+      <p class="estado-vazio__texto tx-body-sm">Aqui vão aparecer os indicadores de atrasadas e críticas, a fila completa de ocorrências com prioridade e prazo, e o acesso ao detalhe de cada uma.</p>
+    </div>
+  </section>
+
+  <section class="tela" data-tela="mapa" data-perfil="coordenador" aria-labelledby="titulo-mapa">
+    <div class="tela__cabecalho">
+      <div>
+        <h1 class="tx-h1" id="titulo-mapa" tabindex="-1">Mapa de ocorrências</h1>
+        <p class="tela__legenda tx-body-sm">Visão geográfica com filtro por tipo e status</p>
+      </div>
+    </div>
+    <div class="estado-vazio card">
+      <svg aria-hidden="true"><use href="#icone-mapa"></use></svg>
+      <p class="estado-vazio__titulo">O mapa chega mais adiante no roadmap</p>
+      <p class="estado-vazio__texto tx-body-sm">Aqui vão aparecer os pinos das ocorrências sobre o mapa do município, com filtro por tipo COBRADE e por status.</p>
+    </div>
+  </section>
+
+  <section class="tela" data-tela="visao-futura" data-perfil="coordenador" aria-labelledby="titulo-visao-futura">
+    <div class="tela__cabecalho">
+      <div>
+        <h1 class="tx-h1" id="titulo-visao-futura" tabindex="-1">Visão futura</h1>
+        <p class="tela__legenda tx-body-sm">O que vem depois da Fase 0, em linhas gerais</p>
+      </div>
+    </div>
+    <div class="estado-vazio card">
+      <svg aria-hidden="true"><use href="#icone-sparkles"></use></svg>
+      <p class="estado-vazio__titulo">Prévia da evolução do produto</p>
+      <p class="estado-vazio__texto tx-body-sm">Esta tela vai apenas insinuar o modo emergência e a logística humanitária como fases futuras, sem detalhar. Ainda não existe no protótipo.</p>
+    </div>
+  </section>
+
+  <!-- ===== Perfil: operador ===== -->
+  <section class="tela" data-tela="abertura" data-perfil="operador" aria-labelledby="titulo-abertura">
+    <div class="tela__cabecalho">
+      <div>
+        <h1 class="tx-h1" id="titulo-abertura" tabindex="-1">Abrir ocorrência</h1>
+        <p class="tela__legenda tx-body-sm">Entrada do chamado, com aviso de possível duplicidade</p>
+      </div>
+    </div>
+    <div class="estado-vazio card">
+      <svg aria-hidden="true"><use href="#icone-mais-circulo"></use></svg>
+      <p class="estado-vazio__titulo">O formulário de abertura chega no próximo checkpoint</p>
+      <p class="estado-vazio__texto tx-body-sm">Aqui vão aparecer o endereço, o tipo de ocorrência conforme a COBRADE e o aviso automático de possível duplicidade.</p>
+    </div>
+  </section>
+
+  <section class="tela" data-tela="triagem" data-perfil="operador" aria-labelledby="titulo-triagem">
+    <div class="tela__cabecalho">
+      <div>
+        <h1 class="tx-h1" id="titulo-triagem" tabindex="-1">Triagem e despacho</h1>
+        <p class="tela__legenda tx-body-sm">Gravidade, vulnerabilidade e envio para a equipe de campo</p>
+      </div>
+    </div>
+    <div class="estado-vazio card">
+      <svg aria-hidden="true"><use href="#icone-prancheta"></use></svg>
+      <p class="estado-vazio__titulo">A triagem chega no próximo checkpoint</p>
+      <p class="estado-vazio__texto tx-body-sm">Aqui vão aparecer a classificação de gravidade, o registro de vulnerabilidade presente e o despacho para uma equipe com prazo.</p>
+    </div>
+  </section>
+
+  <!-- ===== Perfil: agente de campo (moldura de celular) ===== -->
+  <section class="tela" data-tela="tarefas" data-perfil="agente-campo" aria-labelledby="titulo-campo-tarefas">
+    <h1 class="visualmente-oculto" id="titulo-campo-tarefas" tabindex="-1">Minhas tarefas, visão de campo</h1>
+    <div class="palco-campo">
+      <div class="moldura-celular" role="group" aria-label="Simulação de aparelho celular do agente de campo">
+        <div class="moldura-celular__notch" aria-hidden="true"></div>
+        <div class="moldura-celular__barra-status">
+          <span>09:41</span>
+          <span class="moldura-celular__icones-status">
+            <svg aria-hidden="true" width="16" height="16"><use href="#icone-sinal"></use></svg>
+            <svg aria-hidden="true" width="20" height="14"><use href="#icone-bateria"></use></svg>
+          </span>
+        </div>
+        <div class="moldura-celular__tela">
+          <div class="estado-vazio">
+            <svg aria-hidden="true"><use href="#icone-prancheta"></use></svg>
+            <p class="estado-vazio__titulo">A lista de tarefas chega mais adiante</p>
+            <p class="estado-vazio__texto tx-body-lg">Aqui vão aparecer as vistorias designadas para você, com checklist, foto simulada, GPS e assinatura.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="app/dados.js" defer></script>
+<script src="app/app.js" defer></script>
+</body>
+</html>
