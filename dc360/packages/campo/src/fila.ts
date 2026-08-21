@@ -2,7 +2,10 @@ import type { EnvelopeSincronizacao } from "@dc360/shared";
 import {
   FalhaPermanente,
   FalhaTemporaria,
+  type Arquivos,
   type Deposito,
+  type FotoLocal,
+  type FotoNaFila,
   type ItemFila,
   type ResultadoDreno,
   type ResumoFila,
@@ -12,6 +15,8 @@ import {
 export type OpcoesFila = {
   deposito: Deposito;
   transporte: Transporte;
+  /** De onde saem os bytes das fotos. So necessario se houver foto na coleta. */
+  arquivos?: Arquivos;
   /** Injetáveis para o teste poder controlar o tempo em vez de esperar por ele. */
   agora?: () => Date;
   dormir?: (ms: number) => Promise<void>;
@@ -46,6 +51,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
   const {
     deposito,
     transporte,
+    arquivos,
     agora = () => new Date(),
     dormir = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
     ruido = Math.random,
@@ -99,7 +105,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
    */
   async function enfileirar(
     envelope: EnvelopeSincronizacao,
-    dados: { protocolo: string },
+    dados: { protocolo: string; fotos?: FotoLocal[] },
   ): Promise<ItemFila> {
     const existente = (await deposito.listar()).find((i) => i.id === envelope.idempotencyKey);
     if (existente) return existente;
@@ -116,6 +122,9 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       liberadoEm: instante,
       ultimoErro: null,
       confirmadoEm: null,
+      fotos: (dados.fotos ?? []).map((f): FotoNaFila => ({
+        ...f, chave: null, evidenciaId: null, enviada: false,
+      })),
     };
     await deposito.salvar(item);
     await avisar();
@@ -139,7 +148,10 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
    */
   async function drenar(): Promise<ResultadoDreno> {
     if (drenando) {
-      return { enviados: 0, duplicados: 0, adiados: 0, bloqueados: 0, interrompido: true };
+      return {
+        fotosEnviadas: 0, enviados: 0, duplicados: 0, adiados: 0, bloqueados: 0,
+        interrompido: true,
+      };
     }
 
     marcaAtual += 1;
@@ -148,7 +160,8 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
     await avisar();
 
     const resultado: ResultadoDreno = {
-      enviados: 0, duplicados: 0, adiados: 0, bloqueados: 0, interrompido: false,
+      fotosEnviadas: 0, enviados: 0, duplicados: 0, adiados: 0, bloqueados: 0,
+      interrompido: false,
     };
 
     try {
@@ -175,7 +188,19 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
         await avisar();
 
         try {
-          const recibo = await transporte.enviar(item.envelope);
+          /**
+           * As fotos sobem ANTES do envelope, e nunca depois.
+           *
+           * O envelope referencia as fotos pela chave que o servidor devolveu
+           * na autorizacao. Mandar o envelope primeiro criaria um laudo
+           * apontando para arquivo que ainda nao existe, e se o envio das
+           * fotos falhasse depois disso o laudo ficaria permanentemente
+           * incompleto, sem nada na fila indicando o que faltou.
+           */
+          const comFotos = await subirFotos(item);
+          resultado.fotosEnviadas += comFotos.enviadasAgora;
+
+          const recibo = await transporte.enviar(comFotos.envelope);
 
           if (minhaMarca !== marcaAtual) {
             // O dreno foi cancelado enquanto esta resposta voltava. O envio
@@ -184,8 +209,9 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
             resultado.interrompido = true;
           }
 
+          const aposFotos = (await deposito.listar()).find((i) => i.id === item.id) ?? item;
           await deposito.salvar({
-            ...item,
+            ...aposFotos,
             estado: "confirmado",
             tentativas: item.tentativas + 1,
             ultimoErro: null,
@@ -220,15 +246,86 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
     }
   }
 
+  /**
+   * Sobe as fotos que ainda faltam e devolve o envelope pronto.
+   *
+   * O progresso e gravado foto a foto: se a rede cair na terceira de cinco, a
+   * proxima tentativa retoma da terceira em vez de reenviar tudo. Em conexao
+   * de borda de cidade, reenviar quatro megabytes ja enviados e a diferenca
+   * entre sincronizar e nao sincronizar.
+   */
+  async function subirFotos(
+    item: ItemFila,
+  ): Promise<{ envelope: EnvelopeSincronizacao; enviadasAgora: number }> {
+    if (item.fotos.length === 0) {
+      return { envelope: item.envelope, enviadasAgora: 0 };
+    }
+    if (!arquivos) {
+      throw new FalhaPermanente(
+        "A coleta tem foto, mas a fila foi criada sem acesso aos arquivos do aparelho.",
+        "sem_acesso_a_arquivos",
+      );
+    }
+
+    let enviadasAgora = 0;
+    const atualizadas = [...item.fotos];
+
+    for (let i = 0; i < atualizadas.length; i++) {
+      const foto = atualizadas[i]!;
+      if (foto.enviada && foto.chave) continue;
+
+      const autorizacao = await transporte.autorizarFoto({
+        ocorrenciaId: item.ocorrenciaId,
+        foto,
+      });
+
+      // `jaEnviada` cobre o caso de o aparelho ter enviado os bytes e perdido
+      // a resposta: reenviar seria gastar rede a toa.
+      if (!autorizacao.jaEnviada) {
+        const corpo = await arquivos.ler(foto.uriLocal);
+        await transporte.enviarBytes(autorizacao.url, autorizacao.cabecalhos, corpo);
+        await transporte.confirmarFoto(autorizacao.evidenciaId);
+        enviadasAgora += 1;
+      }
+
+      atualizadas[i] = {
+        ...foto,
+        chave: autorizacao.chave,
+        evidenciaId: autorizacao.evidenciaId,
+        enviada: true,
+      };
+      // Grava a cada foto: e o que torna a retomada possivel.
+      await deposito.salvar({ ...item, fotos: atualizadas, estado: "enviando" });
+    }
+
+    const envelope: EnvelopeSincronizacao = {
+      ...item.envelope,
+      vistoria: {
+        ...item.envelope.vistoria,
+        fotos: atualizadas.map((f) => ({
+          chave: f.chave!,
+          capturadaEm: f.capturadaEm,
+          ...(f.legenda ? { legenda: f.legenda } : {}),
+          ...(f.coordenada ? { coordenada: f.coordenada } : {}),
+        })),
+      },
+    };
+
+    return { envelope, enviadasAgora };
+  }
+
   async function tratarFalha(
     item: ItemFila,
     erro: unknown,
   ): Promise<"adiado" | "bloqueado"> {
     const tentativas = item.tentativas + 1;
+    // Rele do deposito para nao descartar as fotos que subiram nesta rodada.
+    const atual = (await deposito.listar()).find((i) => i.id === item.id) ?? item;
+    const comProgresso = { ...item, fotos: atual.fotos };
 
     if (erro instanceof FalhaPermanente) {
       await deposito.salvar({
-        ...item,
+        ...comProgresso,
         estado: "bloqueado",
         tentativas,
         ultimoErro: erro.message,
@@ -238,7 +335,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
 
     if (tentativas >= maximoTentativas) {
       await deposito.salvar({
-        ...item,
+        ...comProgresso,
         estado: "bloqueado",
         tentativas,
         ultimoErro:
@@ -250,7 +347,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
 
     const espera = esperaAteProximaTentativa(tentativas, ruido);
     await deposito.salvar({
-      ...item,
+      ...comProgresso,
       estado: "pendente",
       tentativas,
       liberadoEm: new Date(agora().getTime() + espera).toISOString(),

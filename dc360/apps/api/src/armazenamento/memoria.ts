@@ -13,8 +13,14 @@ import type { Armazenamento, Envio, PedidoEnvio } from "./tipos.js";
  * provedor externo exige, e ele tem o próprio teste contra o vetor oficial.
  */
 export type ConfigMemoria = {
-  /** Prefixo público da API, para montar a URL. */
-  baseUrl: string;
+  /**
+   * Prefixo público da API, para montar a URL.
+   *
+   * Aceita função porque o endereço às vezes só é conhecido depois de o
+   * servidor começar a escutar (porta efêmera). Lido na construção, viraria
+   * string vazia e a URL sairia relativa, que `fetch` recusa.
+   */
+  baseUrl: string | (() => string);
   segredo?: string;
   segundosEnvio?: number;
   segundosLeitura?: number;
@@ -45,7 +51,7 @@ export function armazenamentoEmMemoria(config: ConfigMemoria): ArmazenamentoEmMe
   } = config;
 
   const objetos = new Map<string, { corpo: Buffer; tipoConteudo: string }>();
-  const base = baseUrl.replace(/\/$/, "");
+  const base = () => (typeof baseUrl === "function" ? baseUrl() : baseUrl).replace(/\/$/, "");
 
   function assinar(metodo: string, chave: string, expiraEm: number): string {
     return createHmac("sha256", segredo)
@@ -60,7 +66,7 @@ export function armazenamentoEmMemoria(config: ConfigMemoria): ArmazenamentoEmMe
     // A chave vai codificada inteira num único parâmetro: ela tem barras, e
     // deixá-las no caminho abriria espaço para travessia de diretório.
     p.set("chave", chave);
-    return `${base}/armazenamento/objeto?${p.toString()}`;
+    return `${base()}/armazenamento/objeto?${p.toString()}`;
   }
 
   return {

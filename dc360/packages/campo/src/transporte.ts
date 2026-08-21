@@ -1,5 +1,8 @@
 import type { EnvelopeSincronizacao } from "@dc360/shared";
-import { FalhaPermanente, FalhaTemporaria, type Recibo, type Transporte } from "./tipos.js";
+import {
+  FalhaPermanente, FalhaTemporaria,
+  type AutorizacaoFoto, type Recibo, type Transporte,
+} from "./tipos.js";
 
 /**
  * Transporte HTTP contra a API.
@@ -38,7 +41,115 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
   const { baseUrl, obterToken, buscar = fetch, tempoLimiteMs = 30_000 } = opcoes;
   const base = baseUrl.replace(/\/$/, "");
 
+  /**
+   * Uma chamada, com token, tempo limite e a mesma traducao de erro para
+   * todas as rotas da API. Centralizar isso evita que uma rota nova classifique
+   * um 503 como permanente por descuido e faca a fila descartar coleta.
+   */
+  async function chamar<T>(
+    caminho: string,
+    corpo: unknown,
+    metodo = "POST",
+  ): Promise<T> {
+    const token = await obterToken();
+    if (!token) {
+      throw new FalhaPermanente("Sessao encerrada. Entre novamente para sincronizar.", "sem_sessao");
+    }
+
+    const cancelador = new AbortController();
+    const relogio = setTimeout(() => cancelador.abort(), tempoLimiteMs);
+
+    let resposta: Response;
+    try {
+      resposta = await buscar(`${base}${caminho}`, {
+        method: metodo,
+        headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+        body: corpo === undefined ? undefined : JSON.stringify(corpo),
+        signal: cancelador.signal,
+      });
+    } catch (erro) {
+      throw new FalhaTemporaria("Sem conexao com o servidor.", erro);
+    } finally {
+      clearTimeout(relogio);
+    }
+
+    if (resposta.ok) return (await lerCorpo(resposta)) as T;
+
+    if (resposta.status >= 500 || resposta.status === 429) {
+      throw new FalhaTemporaria(`Servidor indisponivel (${resposta.status}).`);
+    }
+
+    const erro = await lerCorpo(resposta);
+    throw new FalhaPermanente(
+      String(erro["mensagem"] ?? `O servidor recusou o envio (${resposta.status}).`),
+      String(erro["erro"] ?? `http_${resposta.status}`),
+    );
+  }
+
   return {
+    async autorizarFoto({ ocorrenciaId, foto }): Promise<AutorizacaoFoto> {
+      const r = await chamar<{
+        evidenciaId: string; chave: string; url: string;
+        cabecalhos: Record<string, string>; jaEnviada: boolean;
+      }>("/evidencias/autorizar-envio", {
+        ocorrenciaId,
+        idempotencyKey: foto.idempotencyKey,
+        nomeArquivo: foto.nomeArquivo,
+        tipoConteudo: foto.tipoConteudo,
+        tamanhoBytes: foto.tamanhoBytes,
+        capturadaEm: foto.capturadaEm,
+        legenda: foto.legenda,
+        coordenada: foto.coordenada,
+        ordem: foto.ordem,
+      });
+      return r;
+    },
+
+    /**
+     * Os bytes vao direto para o armazenamento, sem passar pela API e sem
+     * token: quem autoriza e a assinatura embutida na URL, que vence em
+     * minutos. Os cabecalhos sao repetidos como vieram porque entram nessa
+     * assinatura: mudar um invalida a URL.
+     */
+    async enviarBytes(url, cabecalhos, corpo): Promise<void> {
+      const cancelador = new AbortController();
+      // Foto e maior que payload de negocio, e rede de campo e lenta: o tempo
+      // limite aqui precisa ser mais generoso que o das outras chamadas.
+      const relogio = setTimeout(() => cancelador.abort(), tempoLimiteMs * 4);
+
+      let resposta: Response;
+      try {
+        resposta = await buscar(url, {
+          method: "PUT",
+          headers: cabecalhos,
+          body: corpo,
+          signal: cancelador.signal,
+        });
+      } catch (erro) {
+        throw new FalhaTemporaria("Sem conexao com o armazenamento.", erro);
+      } finally {
+        clearTimeout(relogio);
+      }
+
+      if (resposta.ok) return;
+
+      if (resposta.status >= 500 || resposta.status === 429) {
+        throw new FalhaTemporaria(`Armazenamento indisponivel (${resposta.status}).`);
+      }
+      // 403 aqui costuma ser URL vencida, e a proxima tentativa pede outra.
+      if (resposta.status === 403) {
+        throw new FalhaTemporaria("A autorizacao de envio venceu.");
+      }
+      throw new FalhaPermanente(
+        `O armazenamento recusou o arquivo (${resposta.status}).`,
+        `storage_${resposta.status}`,
+      );
+    },
+
+    async confirmarFoto(evidenciaId: string): Promise<void> {
+      await chamar("/evidencias/confirmar-envio", { evidenciaId });
+    },
+
     async enviar(envelope: EnvelopeSincronizacao): Promise<Recibo> {
       const token = await obterToken();
       if (!token) {

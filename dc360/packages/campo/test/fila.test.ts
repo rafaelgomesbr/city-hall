@@ -8,7 +8,9 @@ import {
   esperaAteProximaTentativa,
   lojaEmMemoria,
   transporteHttp,
+  type Arquivos,
   type ChaveValor,
+  type FotoLocal,
   type Recibo,
   type Transporte,
 } from "../src/index.js";
@@ -45,6 +47,23 @@ const CHAVE_A = "11111111-1111-4111-8111-111111111111";
 const CHAVE_B = "22222222-2222-4222-8222-222222222222";
 const CHAVE_C = "33333333-3333-4333-8333-333333333333";
 
+/**
+ * Transporte completo a partir do pedaço que cada teste se importa.
+ *
+ * As três operações de foto lançam por padrão: se um teste que não deveria
+ * mexer em foto acabar chamando uma delas, isso aparece como erro em vez de
+ * passar silenciosamente.
+ */
+function transporteFalso(parcial: Partial<Transporte>): Transporte {
+  return {
+    enviar: async () => ({ vistoriaId: "v", duplicada: false }),
+    autorizarFoto: async () => { throw new Error("autorizarFoto nao esperado neste teste"); },
+    enviarBytes: async () => { throw new Error("enviarBytes nao esperado neste teste"); },
+    confirmarFoto: async () => { throw new Error("confirmarFoto nao esperado neste teste"); },
+    ...parcial,
+  };
+}
+
 /** Relógio controlado: esperar de verdade tornaria o teste lento e instável. */
 function relogio(inicio = MOMENTO) {
   let atual = inicio.getTime();
@@ -55,14 +74,14 @@ function relogio(inicio = MOMENTO) {
 }
 
 function montar(
-  transporte: Transporte,
+  transporte: Partial<Transporte>,
   extras: Partial<Parameters<typeof criarFilaDeSincronizacao>[0]> = {},
 ) {
   const loja = lojaEmMemoria();
   const tempo = relogio();
   const fila = criarFilaDeSincronizacao({
     deposito: depositoSobreChaveValor(loja),
-    transporte,
+    transporte: transporteFalso(transporte),
     agora: tempo.agora,
     dormir: async () => undefined,
     ruido: () => 0.5, // determinístico
@@ -74,7 +93,9 @@ function montar(
 describe("Enfileirar", () => {
   it("guarda a coleta e a fila sobrevive ao aplicativo fechar", async () => {
     const loja = lojaEmMemoria();
-    const transporte: Transporte = { enviar: async () => ({ vistoriaId: "v1", duplicada: false }) };
+    const transporte = transporteFalso({
+      enviar: async () => ({ vistoriaId: "v1", duplicada: false }),
+    });
 
     const primeira = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(loja), transporte, agora: relogio().agora,
@@ -394,12 +415,12 @@ describe("Cancelamento no meio do dreno", () => {
     const morreu = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(loja),
       agora: tempo.agora,
-      transporte: {
+      transporte: transporteFalso({
         enviar: async (e) => {
           chavesVistas.push(e.idempotencyKey);
           throw new FalhaTemporaria("processo encerrado no meio do envio");
         },
-      },
+      }),
     });
     await morreu.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
     await morreu.drenar();
@@ -410,12 +431,12 @@ describe("Cancelamento no meio do dreno", () => {
     const reaberto = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(loja),
       agora: tempo.agora,
-      transporte: {
+      transporte: transporteFalso({
         enviar: async (e): Promise<Recibo> => {
           chavesVistas.push(e.idempotencyKey);
           return { vistoriaId: "v1", duplicada: true };
         },
-      },
+      }),
     });
     const r = await reaberto.drenar();
 
@@ -485,7 +506,7 @@ describe("Depósito", () => {
     const deposito = depositoSobreChaveValor(loja);
     const fila = criarFilaDeSincronizacao({
       deposito,
-      transporte: { enviar: async () => ({ vistoriaId: "v", duplicada: false }) },
+      transporte: transporteFalso({}),
       agora: relogio().agora,
     });
 
@@ -504,7 +525,7 @@ describe("Depósito", () => {
     });
     const fila = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(loja),
-      transporte: { enviar: async () => ({ vistoriaId: "v", duplicada: false }) },
+      transporte: transporteFalso({}),
       agora: relogio().agora,
     });
     expect(await fila.itens()).toHaveLength(0);
@@ -656,5 +677,227 @@ describe("O dia inteiro de um agente", () => {
     const resumoFinal = await fila.resumo();
     expect(resumoFinal.pendentes).toBe(0);
     expect(resumoFinal.bloqueados).toBe(0);
+  });
+});
+
+describe("Fotos da coleta", () => {
+  const FOTO_A = "ffffffff-1111-4111-8111-000000000001";
+  const FOTO_B = "ffffffff-2222-4222-8222-000000000002";
+
+  function foto(chaveIdem: string, ordem: number): FotoLocal {
+    return {
+      idempotencyKey: chaveIdem,
+      uriLocal: `file:///fotos/${ordem}.jpg`,
+      nomeArquivo: `IMG_000${ordem}.jpg`,
+      tipoConteudo: "image/jpeg",
+      tamanhoBytes: 1024 * (ordem + 1),
+      capturadaEm: MOMENTO.toISOString(),
+      legenda: `Foto ${ordem}`,
+      ordem,
+    };
+  }
+
+  /** Sistema de arquivos do aparelho, simulado. */
+  function arquivosFalsos(): Arquivos & { lidos: string[] } {
+    const lidos: string[] = [];
+    return {
+      lidos,
+      async ler(uri: string) {
+        lidos.push(uri);
+        return new Uint8Array([1, 2, 3, 4]);
+      },
+    };
+  }
+
+  function comFotos(
+    parcial: Partial<Transporte>,
+    arquivos: Arquivos,
+    extras: Partial<Parameters<typeof criarFilaDeSincronizacao>[0]> = {},
+  ) {
+    const loja = lojaEmMemoria();
+    const tempo = relogio();
+    const fila = criarFilaDeSincronizacao({
+      deposito: depositoSobreChaveValor(loja),
+      transporte: transporteFalso(parcial),
+      arquivos,
+      agora: tempo.agora,
+      dormir: async () => undefined,
+      ruido: () => 0.5,
+      ...extras,
+    });
+    return { fila, tempo, loja };
+  }
+
+  function autorizacaoDe(alvo: { idempotencyKey: string }, jaEnviada = false) {
+    return {
+      evidenciaId: `ev-${alvo.idempotencyKey}`,
+      chave: `tenant/org/ocorrencias/oc/${alvo.idempotencyKey}.jpg`,
+      url: `https://armazenamento.exemplo/${alvo.idempotencyKey}`,
+      cabecalhos: { "content-type": "image/jpeg" },
+      jaEnviada,
+    };
+  }
+
+  it("as fotos sobem antes do envelope, e o envelope leva as chaves do servidor", async () => {
+    const ordem: string[] = [];
+    const arquivos = arquivosFalsos();
+    const { fila } = comFotos({
+      autorizarFoto: async ({ foto: f }) => {
+        ordem.push(`autorizou:${f.idempotencyKey}`);
+        return autorizacaoDe(f);
+      },
+      enviarBytes: async (url) => { ordem.push(`bytes:${url.split("/").pop()}`); },
+      confirmarFoto: async (id) => { ordem.push(`confirmou:${id}`); },
+      enviar: async (e) => {
+        ordem.push(`envelope:${e.vistoria.fotos.map((f) => f.chave).join(",")}`);
+        return { vistoriaId: "v1", duplicada: false };
+      },
+    }, arquivos);
+
+    await fila.enfileirar(envelope(CHAVE_A), {
+      protocolo: "000471/2026",
+      fotos: [foto(FOTO_A, 0), foto(FOTO_B, 1)],
+    });
+
+    const r = await fila.drenar();
+
+    expect(r.fotosEnviadas).toBe(2);
+    expect(r.enviados).toBe(1);
+    // O envelope e sempre o ultimo: ele referencia arquivos que precisam ja
+    // existir, senao o laudo nasce apontando para foto que nao subiu.
+    expect(ordem.at(-1)).toContain("envelope:");
+    expect(ordem.at(-1)).toContain(FOTO_A);
+    expect(ordem.at(-1)).toContain(FOTO_B);
+    expect(ordem.at(-1)).toContain("tenant/org/ocorrencias/oc/");
+    expect(arquivos.lidos).toEqual(["file:///fotos/0.jpg", "file:///fotos/1.jpg"]);
+  });
+
+  it("retoma da foto que faltou, sem reenviar as que ja subiram", async () => {
+    let quebrarNaSegunda = true;
+    const bytesEnviados: string[] = [];
+    const arquivos = arquivosFalsos();
+
+    const { fila, tempo } = comFotos({
+      autorizarFoto: async ({ foto: f }) => autorizacaoDe(f),
+      enviarBytes: async (url) => {
+        const qual = url.split("/").pop()!;
+        if (quebrarNaSegunda && qual === FOTO_B) {
+          throw new FalhaTemporaria("Sem conexao com o armazenamento.");
+        }
+        bytesEnviados.push(qual);
+      },
+      confirmarFoto: async () => undefined,
+      enviar: async () => ({ vistoriaId: "v1", duplicada: false }),
+    }, arquivos);
+
+    await fila.enfileirar(envelope(CHAVE_A), {
+      protocolo: "000471/2026",
+      fotos: [foto(FOTO_A, 0), foto(FOTO_B, 1)],
+    });
+
+    const primeira = await fila.drenar();
+    expect(primeira.enviados).toBe(0);
+    expect(bytesEnviados).toEqual([FOTO_A]);
+
+    const meio = (await fila.itens())[0]!;
+    expect(meio.fotos[0]!.enviada).toBe(true);
+    expect(meio.fotos[1]!.enviada).toBe(false);
+
+    quebrarNaSegunda = false;
+    tempo.avancar(10 * 60_000);
+    const segunda = await fila.drenar();
+
+    expect(segunda.enviados).toBe(1);
+    // Em conexao de borda de cidade, reenviar o que ja subiu e a diferenca
+    // entre sincronizar e nao sincronizar.
+    expect(bytesEnviados, "a primeira foto nao sobe de novo").toEqual([FOTO_A, FOTO_B]);
+  });
+
+  it("foto que o servidor ja tem nao e enviada de novo", async () => {
+    const arquivos = arquivosFalsos();
+    const { fila } = comFotos({
+      autorizarFoto: async ({ foto: f }) => autorizacaoDe(f, true),
+      enviar: async () => ({ vistoriaId: "v1", duplicada: false }),
+    }, arquivos);
+
+    await fila.enfileirar(envelope(CHAVE_A), {
+      protocolo: "000471/2026",
+      fotos: [foto(FOTO_A, 0)],
+    });
+
+    const r = await fila.drenar();
+    expect(r.enviados).toBe(1);
+    expect(r.fotosEnviadas).toBe(0);
+    expect(arquivos.lidos, "nem chegou a abrir o arquivo no aparelho").toEqual([]);
+  });
+
+  it("URL de envio vencida e temporaria: pede outra na proxima tentativa", async () => {
+    let venceu = true;
+    let autorizacoes = 0;
+    const arquivos = arquivosFalsos();
+
+    const { fila, tempo } = comFotos({
+      autorizarFoto: async ({ foto: f }) => {
+        autorizacoes += 1;
+        return autorizacaoDe(f);
+      },
+      enviarBytes: async () => {
+        if (venceu) {
+          venceu = false;
+          throw new FalhaTemporaria("A autorizacao de envio venceu.");
+        }
+      },
+      confirmarFoto: async () => undefined,
+      enviar: async () => ({ vistoriaId: "v1", duplicada: false }),
+    }, arquivos);
+
+    await fila.enfileirar(envelope(CHAVE_A), {
+      protocolo: "000471/2026",
+      fotos: [foto(FOTO_A, 0)],
+    });
+
+    await fila.drenar();
+    tempo.avancar(10 * 60_000);
+    const segunda = await fila.drenar();
+
+    expect(segunda.enviados).toBe(1);
+    // Duas autorizacoes, uma evidencia: a chave de idempotencia da captura e
+    // o que impede a segunda de criar linha orfa no banco.
+    expect(autorizacoes).toBe(2);
+  });
+
+  it("recusa permanente do armazenamento bloqueia sem gastar bateria", async () => {
+    const arquivos = arquivosFalsos();
+    const { fila } = comFotos({
+      autorizarFoto: async ({ foto: f }) => autorizacaoDe(f),
+      enviarBytes: async () => {
+        throw new FalhaPermanente("O armazenamento recusou o arquivo (415).", "storage_415");
+      },
+    }, arquivos);
+
+    await fila.enfileirar(envelope(CHAVE_A), {
+      protocolo: "000471/2026",
+      fotos: [foto(FOTO_A, 0)],
+    });
+
+    const r = await fila.drenar();
+    expect(r.bloqueados).toBe(1);
+    expect((await fila.itens())[0]!.ultimoErro).toContain("415");
+  });
+
+  it("coleta com foto numa fila sem acesso a arquivos bloqueia, e diz por que", async () => {
+    // Erro de montagem do aplicativo, nao da rua: insistir nunca resolveria.
+    const { fila } = montar({
+      autorizarFoto: async ({ foto: f }) => autorizacaoDe(f),
+    });
+
+    await fila.enfileirar(envelope(CHAVE_A), {
+      protocolo: "000471/2026",
+      fotos: [foto(FOTO_A, 0)],
+    });
+
+    const r = await fila.drenar();
+    expect(r.bloqueados).toBe(1);
+    expect((await fila.itens())[0]!.ultimoErro).toContain("acesso aos arquivos");
   });
 });

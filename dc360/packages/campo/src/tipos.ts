@@ -20,6 +20,39 @@ export type EstadoItem =
   /** O servidor recusou por um motivo que repetir não resolve. */
   | "bloqueado";
 
+/**
+ * Uma foto tirada em campo, ainda no aparelho.
+ *
+ * O arquivo mora no sistema de arquivos do celular; aqui guardamos só a
+ * referência e o metadado. Copiar os bytes para dentro da fila dobraria o uso
+ * de armazenamento num aparelho que já costuma estar cheio.
+ */
+export type FotoLocal = {
+  /** Gerada na captura. É o que impede autorizar a mesma foto duas vezes. */
+  idempotencyKey: string;
+  /** Caminho no aparelho, resolvido pela porta `Arquivos`. */
+  uriLocal: string;
+  nomeArquivo: string;
+  tipoConteudo: string;
+  tamanhoBytes: number;
+  capturadaEm: string;
+  legenda?: string;
+  coordenada?: { lat: number; lng: number };
+  ordem: number;
+};
+
+export type FotoNaFila = FotoLocal & {
+  /** Devolvida pelo servidor na autorização. O cliente nunca a escolhe. */
+  chave: string | null;
+  evidenciaId: string | null;
+  enviada: boolean;
+};
+
+/** De onde saem os bytes da foto. No aparelho, `expo-file-system`. */
+export type Arquivos = {
+  ler(uriLocal: string): Promise<Uint8Array>;
+};
+
 export type ItemFila = {
   /**
    * A chave de idempotência, gerada no aparelho no momento da coleta. É
@@ -38,6 +71,11 @@ export type ItemFila = {
   liberadoEm: string;
   ultimoErro: string | null;
   confirmadoEm: string | null;
+  /**
+   * Fotos que precisam subir ANTES do envelope. Vazio quando a coleta não tem
+   * foto, ou quando quem enfileirou já resolveu o envio por fora.
+   */
+  fotos: FotoNaFila[];
 };
 
 /**
@@ -57,6 +95,15 @@ export type Deposito = {
 /** Resposta do servidor a um envio aceito. */
 export type Recibo = { vistoriaId: string; duplicada: boolean };
 
+export type AutorizacaoFoto = {
+  evidenciaId: string;
+  chave: string;
+  url: string;
+  cabecalhos: Record<string, string>;
+  /** O servidor já tinha esse arquivo: não precisa mandar os bytes de novo. */
+  jaEnviada: boolean;
+};
+
 /**
  * O que leva o envelope até o servidor.
  *
@@ -65,6 +112,19 @@ export type Recibo = { vistoriaId: string; duplicada: boolean };
  */
 export type Transporte = {
   enviar(envelope: EnvelopeSincronizacao): Promise<Recibo>;
+  /** Pede ao servidor a chave e a URL de escrita. */
+  autorizarFoto(pedido: {
+    ocorrenciaId: string;
+    foto: FotoLocal;
+  }): Promise<AutorizacaoFoto>;
+  /** Manda os bytes direto ao armazenamento, sem passar pela API. */
+  enviarBytes(
+    url: string,
+    cabecalhos: Record<string, string>,
+    corpo: Uint8Array,
+  ): Promise<void>;
+  /** Avisa o servidor, que então confere com o armazenamento se chegou. */
+  confirmarFoto(evidenciaId: string): Promise<void>;
 };
 
 /**
@@ -100,6 +160,7 @@ export type ResumoFila = {
 };
 
 export type ResultadoDreno = {
+  fotosEnviadas: number;
   enviados: number;
   duplicados: number;
   adiados: number;

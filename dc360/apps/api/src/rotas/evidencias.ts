@@ -24,6 +24,13 @@ import {
 
 const pedidoSchema = z.object({
   ocorrenciaId: z.string().uuid(),
+  /**
+   * Gerada no aparelho no momento da captura. Pedir autorização duas vezes
+   * para a mesma foto é o caso comum, não a exceção: o sinal cai entre
+   * autorizar e enviar, a URL vence esperando a rede, o aplicativo é fechado
+   * no meio. Sem a chave, cada tentativa deixaria uma linha órfã.
+   */
+  idempotencyKey: z.string().uuid().optional(),
   nomeArquivo: z.string().min(1).max(200),
   tipoConteudo: z.enum(TIPOS_ACEITOS),
   tamanhoBytes: z.number().int().positive().max(TAMANHO_MAXIMO_BYTES),
@@ -55,6 +62,24 @@ export async function rotasEvidencias(
     const dados = pedidoSchema.parse(req.body);
 
     const resultado = await banco.comTenant(quem.organizacaoId, async (c) => {
+      // Já autorizada antes: devolve a MESMA linha, com URL nova. Uma URL
+      // pré-assinada vence em minutos, então reemitir é esperado; criar outra
+      // evidência não é.
+      if (dados.idempotencyKey) {
+        const anterior = await c.query<{ id: string; chave_storage: string; enviada_em: string | null }>(
+          "SELECT id, chave_storage, enviada_em FROM evidencias WHERE idempotency_key = $1",
+          [dados.idempotencyKey],
+        );
+        const achada = anterior.rows[0];
+        if (achada) {
+          return {
+            evidenciaId: achada.id,
+            chave: achada.chave_storage,
+            jaEnviada: achada.enviada_em !== null,
+          };
+        }
+      }
+
       // Sob RLS: ocorrência de outro município simplesmente não existe daqui.
       const ocorrencia = await c.query<{ id: string; status: string }>(
         "SELECT id, status FROM ocorrencias WHERE id = $1",
@@ -80,17 +105,18 @@ export async function rotasEvidencias(
       const evidencia = await c.query<{ id: string }>(
         `INSERT INTO evidencias
            (organizacao_id, ocorrencia_id, chave_storage, legenda, latitude, longitude,
-            capturada_em, ordem, tipo_conteudo, tamanho_bytes)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+            capturada_em, ordem, tipo_conteudo, tamanho_bytes, idempotency_key)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
          RETURNING id`,
         [
           quem.organizacaoId, dados.ocorrenciaId, chave, dados.legenda ?? null,
           dados.coordenada?.lat ?? null, dados.coordenada?.lng ?? null,
           dados.capturadaEm, dados.ordem, dados.tipoConteudo, dados.tamanhoBytes,
+          dados.idempotencyKey ?? null,
         ],
       );
 
-      return { evidenciaId: evidencia.rows[0]!.id, chave };
+      return { evidenciaId: evidencia.rows[0]!.id, chave, jaEnviada: false };
     });
 
     const envio = await armazenamento.urlParaEnviar({
@@ -102,6 +128,9 @@ export async function rotasEvidencias(
     return resposta.code(201).send({
       evidenciaId: resultado.evidenciaId,
       chave: resultado.chave,
+      // Quando o arquivo já subiu, o aparelho pode pular direto para a
+      // sincronização em vez de mandar os bytes de novo.
+      jaEnviada: resultado.jaEnviada,
       url: envio.url,
       cabecalhos: envio.cabecalhos,
       expiraEm: envio.expiraEm,

@@ -7,10 +7,10 @@ import {
   transporteHttp,
   type ChaveValor,
 } from "@dc360/campo";
+import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
 import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
-import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
 
 /**
  * A fila do aplicativo de campo contra a API de verdade.
@@ -142,16 +142,22 @@ beforeAll(async () => {
     LOGIN_POR_IP: "10000",
   } as NodeJS.ProcessEnv);
 
-  app = await construirServidor({
-    banco: mem.banco, config,
-    armazenamento: armazenamentoEmMemoria({ baseUrl: "http://127.0.0.1:0" }),
-  });
+  /**
+   * O armazenamento local monta a URL a partir do endereço público, que só é
+   * conhecido depois do `listen`. Como o teste usa `fetch` de verdade, uma URL
+   * com porta errada faria o envio bater em outro processo.
+   */
+  const enderecoTardio = { valor: "" };
+  const armazenamento = armazenamentoEmMemoria({ baseUrl: () => enderecoTardio.valor });
+
+  app = await construirServidor({ banco: mem.banco, config, armazenamento });
   // Servidor de verdade numa porta efêmera: o transporte usa `fetch`, então
   // requisição injetada não serviria.
   await app.listen({ port: 0, host: "127.0.0.1" });
   const info = app.server.address();
   if (!info || typeof info === "string") throw new Error("nao foi possivel obter a porta");
   endereco = `http://127.0.0.1:${info.port}`;
+  enderecoTardio.valor = endereco;
 
   const entrada = await app.inject({
     method: "POST", url: "/auth/entrar", payload: { email: AGENTE, senha: SENHA },
@@ -348,3 +354,134 @@ describe("Fila de campo contra a API", () => {
     expect(loja.escritas - antes).toBeLessThanOrEqual(3);
   }, 60_000);
 });
+
+describe("Foto de campo do aparelho ao banco", () => {
+  const PIXEL = new Uint8Array(
+    Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64",
+    ),
+  );
+
+  /** Sistema de arquivos do aparelho, com uma foto dentro. */
+  const arquivos = {
+    async ler(uri: string): Promise<Uint8Array> {
+      if (uri !== "file:///dcim/IMG_0042.png") throw new Error(`arquivo inexistente: ${uri}`);
+      return PIXEL;
+    },
+  };
+
+  function filaComFotos(loja = lojaEmMemoria()) {
+    return criarFilaDeSincronizacao({
+      deposito: depositoSobreChaveValor(loja),
+      transporte: transporteHttp({
+        baseUrl: endereco,
+        obterToken: async () => tokenAcesso,
+      }),
+      arquivos,
+      dormir: async () => undefined,
+    });
+  }
+
+  function fotoDe(chaveIdem: string) {
+    return {
+      idempotencyKey: chaveIdem,
+      uriLocal: "file:///dcim/IMG_0042.png",
+      nomeArquivo: "IMG_0042.png",
+      tipoConteudo: "image/png",
+      tamanhoBytes: PIXEL.byteLength,
+      capturadaEm: new Date(Date.now() - 3_600_000).toISOString(),
+      legenda: "Trinca na parede dos fundos",
+      ordem: 0,
+    };
+  }
+
+  it("a foto sobe, é confirmada e fica amarrada à vistoria", async () => {
+    const alvo = await prepararOcorrenciaEmCampo("Rua da Foto, 100");
+    const chaveColeta = "aaaaaaaa-0000-4000-8000-00000000000a";
+    const chaveFoto = "bbbbbbbb-0000-4000-8000-00000000000a";
+
+    const fila = filaComFotos();
+    await fila.enfileirar(
+      { ...envelopeDe(alvo.id, chaveColeta), vistoria: { ...envelopeDe(alvo.id, chaveColeta).vistoria, fotos: [] } },
+      { protocolo: alvo.protocolo, fotos: [fotoDe(chaveFoto)] },
+    );
+
+    const r = await fila.drenar();
+    expect(r.fotosEnviadas).toBe(1);
+    expect(r.enviados).toBe(1);
+
+    const evidencia = await mem.bruto.query<{
+      chave_storage: string; enviada_em: string | null; vistoria_id: string | null;
+      tamanho_bytes: string; tipo_conteudo: string;
+    }>(
+      `SELECT chave_storage, enviada_em, vistoria_id, tamanho_bytes, tipo_conteudo
+         FROM evidencias WHERE ocorrencia_id = $1`,
+      [alvo.id],
+    );
+
+    expect(evidencia.rows).toHaveLength(1);
+    const linha = evidencia.rows[0]!;
+    // Confirmada de verdade: o servidor perguntou ao armazenamento.
+    expect(linha.enviada_em).not.toBeNull();
+    // Amarrada à vistoria pela sincronização, sem virar linha duplicada.
+    expect(linha.vistoria_id).not.toBeNull();
+    expect(Number(linha.tamanho_bytes)).toBe(PIXEL.byteLength);
+    expect(linha.tipo_conteudo).toBe("image/png");
+    // A chave é a do servidor, com o prefixo do município.
+    expect(linha.chave_storage).toMatch(/^tenant\/[0-9a-f-]{36}\/ocorrencias\//);
+  }, 120_000);
+
+  it("o coordenador consegue ver a foto que o agente enviou", async () => {
+    const listagem = await app.inject({
+      method: "GET", url: "/evidencias/ocorrencia/" + (await ultimaOcorrenciaComFoto()),
+      headers: { authorization: `Bearer ${tokenCoordenador}` },
+    });
+
+    expect(listagem.statusCode).toBe(200);
+    const itens = listagem.json().itens as Array<{ url: string; legenda: string }>;
+    expect(itens).toHaveLength(1);
+    expect(itens[0]!.legenda).toBe("Trinca na parede dos fundos");
+
+    // A URL é assinada e serve o conteúdo que subiu.
+    const alvo = new URL(itens[0]!.url);
+    const bytes = await app.inject({ method: "GET", url: alvo.pathname + alvo.search });
+    expect(bytes.statusCode).toBe(200);
+    expect(Buffer.from(PIXEL).equals(bytes.rawPayload)).toBe(true);
+  }, 60_000);
+
+  it("reenviar a coleta inteira não duplica a foto", async () => {
+    const alvo = await prepararOcorrenciaEmCampo("Rua do Reenvio, 200");
+    const chaveColeta = "aaaaaaaa-0000-4000-8000-00000000000b";
+    const chaveFoto = "bbbbbbbb-0000-4000-8000-00000000000b";
+
+    const base = envelopeDe(alvo.id, chaveColeta);
+    const semFotos = { ...base, vistoria: { ...base.vistoria, fotos: [] } };
+
+    // Três aparelhos, ou o mesmo reaberto três vezes, com as mesmas chaves.
+    for (let i = 0; i < 3; i++) {
+      const fila = filaComFotos();
+      await fila.enfileirar(semFotos, { protocolo: alvo.protocolo, fotos: [fotoDe(chaveFoto)] });
+      await fila.drenar();
+    }
+
+    const evidencias = await mem.bruto.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM evidencias WHERE ocorrencia_id = $1", [alvo.id],
+    );
+    const vistorias = await mem.bruto.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM vistorias WHERE ocorrencia_id = $1", [alvo.id],
+    );
+
+    // Uma foto, um laudo. A chave de idempotência da captura protege a
+    // evidência; a da coleta protege a vistoria.
+    expect(evidencias.rows[0]!.n).toBe("1");
+    expect(vistorias.rows[0]!.n).toBe("1");
+  }, 180_000);
+});
+
+async function ultimaOcorrenciaComFoto(): Promise<string> {
+  const r = await mem.bruto.query<{ ocorrencia_id: string }>(
+    "SELECT ocorrencia_id FROM evidencias WHERE enviada_em IS NOT NULL ORDER BY capturada_em DESC LIMIT 1",
+  );
+  return r.rows[0]!.ocorrencia_id;
+}
