@@ -13,7 +13,11 @@
  *
  * Como rodar:
  *   # terminal 1
- *   cd apps/api && JWT_SEGREDO=... ORIGENS_PERMITIDAS=http://localhost:4173 npx tsx src/index.ts
+ *   cd apps/api && JWT_SEGREDO=... ORIGENS_PERMITIDAS=http://localhost:4173  *     LOGIN_POR_IP=10000 npx tsx src/index.ts
+ *
+ * `LOGIN_POR_IP` alto porque a suíte entra e sai dezenas de vezes do mesmo
+ * endereço, e o limite real (10 em 5 minutos) existe justamente para impedir
+ * isso. O limite em si é exercitado nos testes de integração da API.
  *   # terminal 2
  *   cd apps/web && VITE_API_URL=http://127.0.0.1:3333 npm run build && npx vite preview --port 4173
  *   # terminal 3
@@ -69,6 +73,19 @@ async function entrar(email, senha = SENHA) {
   await page.locator("#entrada-email").fill(email);
   await page.locator("#entrada-senha").fill(senha);
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
+
+  // Falhar dizendo o motivo: um timeout genérico esperando o painel esconde
+  // se foi senha errada, conta bloqueada ou limite por endereço.
+  const erro = page.locator(".campo__erro");
+  const chegou = await Promise.race([
+    page.waitForSelector(".indicador", { timeout: 30_000 }).then(() => "painel"),
+    erro.waitFor({ timeout: 30_000 }).then(() => "erro"),
+  ]).catch(() => "tempo esgotado");
+
+  if (chegou !== "painel") {
+    const texto = await erro.textContent().catch(() => "(sem mensagem)");
+    throw new Error(`nao entrou como ${email}: ${texto}`);
+  }
 }
 
 console.log("\n== 1. Entrada por senha, contra a API ==");
@@ -286,6 +303,70 @@ const negado = await page.evaluate(async ({ api, id }) => {
   return r.status;
 }, { api: process.env.BASE_API ?? "http://127.0.0.1:3333", id: idDocumento });
 ok("outro municipio nao gera o laudo de uma ocorrencia alheia", negado === 404, `(${negado})`);
+
+console.log("\n== 13. Galeria de evidencia no painel ==");
+await entrar("diego.alves@serraalta.exemplo.gov.br");
+await page.waitForSelector(".indicador", { timeout: 30_000 });
+
+// Sobe uma foto pelo caminho real da API, como o aplicativo de campo faria.
+const envio = await page.evaluate(async ({ api, ocorrenciaId }) => {
+  const tokens = JSON.parse(sessionStorage.getItem("dc360:tokens"));
+  const cab = { "content-type": "application/json", authorization: `Bearer ${tokens.acesso}` };
+
+  const pixel = Uint8Array.from(atob(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+  ), (c) => c.charCodeAt(0));
+
+  const autorizacao = await (await fetch(`${api}/evidencias/autorizar-envio`, {
+    method: "POST", headers: cab,
+    body: JSON.stringify({
+      ocorrenciaId,
+      nomeArquivo: "trinca.png",
+      tipoConteudo: "image/png",
+      tamanhoBytes: pixel.length,
+      capturadaEm: new Date().toISOString(),
+      legenda: "Trinca na parede dos fundos",
+      ordem: 0,
+    }),
+  })).json();
+
+  const put = await fetch(autorizacao.url, {
+    method: "PUT", headers: autorizacao.cabecalhos, body: pixel,
+  });
+
+  const confirmacao = await fetch(`${api}/evidencias/confirmar-envio`, {
+    method: "POST", headers: cab,
+    body: JSON.stringify({ evidenciaId: autorizacao.evidenciaId }),
+  });
+
+  return { put: put.status, confirmacao: confirmacao.status };
+}, { api: process.env.BASE_API ?? "http://127.0.0.1:3333", ocorrenciaId: idDocumento });
+
+ok("os bytes sobem direto para o armazenamento", envio.put === 200, `(${envio.put})`);
+ok("o servidor confirma o envio", envio.confirmacao === 200, `(${envio.confirmacao})`);
+
+await entrar("helena.coutinho@serraalta.exemplo.gov.br");
+await page.waitForSelector(".indicador", { timeout: 30_000 });
+await page.goto(`${BASE}/ocorrencias/${idDocumento}`);
+await page.waitForSelector(".galeria__item", { timeout: 20_000 });
+
+ok("a foto do agente aparece para o coordenador",
+   (await page.locator(".galeria__item").count()) === 1);
+ok("a legenda vem junto",
+   (await page.textContent(".galeria__legenda")).includes("Trinca na parede dos fundos"));
+
+// A imagem carrega de verdade, e nao e um quadrado quebrado.
+const carregou = await page.locator(".galeria__item img").evaluate(
+  (img) => img.complete && img.naturalWidth > 0,
+);
+ok("a imagem carrega pela URL assinada", carregou);
+
+await page.locator(".galeria__item").first().click();
+await page.waitForSelector(".lightbox", { timeout: 10_000 });
+ok("clicar amplia a foto", await page.locator(".lightbox img").isVisible());
+await page.getByRole("button", { name: "Fechar" }).click();
+await page.waitForTimeout(300);
+ok("da para fechar a ampliacao", (await page.locator(".lightbox").count()) === 0);
 
 await navegador.close();
 

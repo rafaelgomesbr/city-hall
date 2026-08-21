@@ -45,6 +45,7 @@ export const {
   criarUsuario,
   alternarUsuarioAtivo,
   abrirDocumento,
+  listarEvidencias,
 } = impl;
 
 export { ErroDaApi } from "./http";
@@ -55,6 +56,7 @@ export type {
   Indicadores,
   LinhaEquipe,
   LinhaEvento,
+  LinhaEvidencia,
   LinhaOcorrencia,
   LinhaProvidencia,
   LinhaUsuario,

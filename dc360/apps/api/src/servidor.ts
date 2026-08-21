@@ -76,7 +76,13 @@ export async function construirServidor(
   await app.register(cors, {
     origin: config.origens,
     credentials: true,
-    methods: ["GET", "POST", "PATCH", "DELETE"],
+    // PUT entra por causa do envio de evidência: o navegador manda os bytes
+    // direto para o armazenamento, e sem PUT liberado o preflight falha e o
+    // upload nem sai. Em produção o armazenamento é externo e tem o próprio
+    // CORS, mas no caminho local quem serve é esta API.
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    // O envio assinado repete os cabeçalhos que entraram na assinatura.
+    allowedHeaders: ["content-type", "authorization", "accept"],
   });
 
   await app.register(rateLimit, {

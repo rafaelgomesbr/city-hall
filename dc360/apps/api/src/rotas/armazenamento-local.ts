@@ -61,6 +61,15 @@ export async function rotasArmazenamentoLocal(
       .header("content-type", objeto.tipoConteudo)
       // Evidência não é conteúdo de cache compartilhado.
       .header("cache-control", "private, max-age=60")
+      /*
+        A política padrão do helmet é `same-site`, e ela bloqueia a imagem
+        quando o painel está numa origem e a API noutra, que é exatamente o
+        arranjo de produção (painel do município, API do fornecedor). Aqui a
+        proteção do arquivo é a URL assinada de vida curta, não a política de
+        origem: sem a assinatura correta esta rota devolve 403 antes de chegar
+        neste ponto. Vale só para a entrega do objeto, e não para a API.
+      */
+      .header("cross-origin-resource-policy", "cross-origin")
       .send(objeto.corpo);
   });
 }

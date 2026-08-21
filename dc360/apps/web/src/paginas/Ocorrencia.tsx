@@ -9,8 +9,8 @@ import {
 import {
   buscarOcorrencia, classificarNaTriagem, despacharEquipe, encaminharProvidencia,
   encerrarOcorrencia, listarEquipes, providenciasDaOcorrencia, trilhaDaOcorrencia,
-  vistoriaDaOcorrencia, abrirDocumento, MODO,
-  type LinhaEquipe, type LinhaEvento, type LinhaOcorrencia,
+  vistoriaDaOcorrencia, abrirDocumento, listarEvidencias, MODO,
+  type LinhaEquipe, type LinhaEvento, type LinhaEvidencia, type LinhaOcorrencia,
   type LinhaProvidencia, type LinhaVistoria,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
@@ -41,6 +41,7 @@ type Conjunto = {
   vistoria: LinhaVistoria | null;
   providencias: LinhaProvidencia[];
   equipes: LinhaEquipe[];
+  evidencias: LinhaEvidencia[];
 };
 
 /**
@@ -61,15 +62,16 @@ export function Ocorrencia() {
   const [aviso, setAviso] = useState<string | null>(null);
 
   const recarregar = useCallback(async () => {
-    const [ocorrencia, trilha, vistoria, providencias, equipes] = await Promise.all([
+    const [ocorrencia, trilha, vistoria, providencias, equipes, evidencias] = await Promise.all([
       buscarOcorrencia(sessao, id),
       trilhaDaOcorrencia(sessao, id),
       vistoriaDaOcorrencia(sessao, id),
       providenciasDaOcorrencia(sessao, id),
       listarEquipes(sessao),
+      listarEvidencias(sessao, id),
     ]);
     if (!ocorrencia) throw new Error("Ocorrência não encontrada nesta organização");
-    setDados({ ocorrencia, trilha, vistoria, providencias, equipes });
+    setDados({ ocorrencia, trilha, vistoria, providencias, equipes, evidencias });
   }, [sessao, id]);
 
   useEffect(() => {
@@ -91,7 +93,7 @@ export function Ocorrencia() {
   if (erro && !dados) return <Aviso tom="perigo">{erro}</Aviso>;
   if (!dados) return <Carregando />;
 
-  const { ocorrencia: o, trilha, vistoria, providencias, equipes } = dados;
+  const { ocorrencia: o, trilha, vistoria, providencias, equipes, evidencias } = dados;
   // Mesma tabela que o repositório usa para recusar a escrita. A tela decide
   // o que desenhar; quem impede de verdade é a camada de dados.
   const podeTriagem = podeExecutar(sessao.papel, "classificar_triagem");
@@ -239,6 +241,8 @@ export function Ocorrencia() {
               )}
             </Cartao>
           )}
+
+          {vistoria && <CartaoEvidencias fotos={evidencias} />}
 
           {providencias.length > 0 && (
             <Cartao titulo="Providências encaminhadas">
@@ -639,6 +643,61 @@ function CartaoDocumentos({ ocorrenciaId }: { ocorrenciaId: string }) {
             {abrindo === "termo-de-interdicao" ? "Gerando" : "Termo de interdição"}
           </button>
           {erro && <ErroCampo id="documento-erro">{erro}</ErroCampo>}
+        </div>
+      )}
+    </Cartao>
+  );
+}
+
+/**
+ * As fotos que o agente enviou do campo.
+ *
+ * Elas aparecem aqui e não só dentro do laudo porque o coordenador decide o
+ * despacho olhando a foto, antes de qualquer documento existir. Os endereços
+ * são assinados e de vida curta: evidência de vistoria mostra a casa e a rua
+ * de uma família em situação de risco, e link permanente circularia sozinho.
+ */
+function CartaoEvidencias({ fotos }: { fotos: LinhaEvidencia[] }) {
+  const [ampliada, setAmpliada] = useState<LinhaEvidencia | null>(null);
+
+  if (fotos.length === 0) {
+    return (
+      <Cartao titulo="Registro fotográfico">
+        <p style={{ margin: 0, fontSize: "var(--ds-fs-body-sm)", color: "var(--ds-text-muted)" }}>
+          {MODO === "local"
+            ? "O envio de foto depende do servidor de armazenamento. Este painel está em modo local."
+            : "Nenhuma fotografia foi anexada a esta vistoria."}
+        </p>
+      </Cartao>
+    );
+  }
+
+  return (
+    <Cartao titulo={`Registro fotográfico (${fotos.length})`}>
+      <ul className="galeria">
+        {fotos.map((f, i) => (
+          <li key={f.id}>
+            <button type="button" className="galeria__item" onClick={() => setAmpliada(f)}>
+              <img src={f.url} alt={f.legenda ?? `Fotografia ${i + 1} da vistoria`} loading="lazy" />
+              <span className="galeria__legenda">
+                {f.legenda ?? `Foto ${i + 1}`}
+                <br />
+                <span className="tabela__secundario">{formatarDataHora(f.capturadaEm)}</span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {ampliada && (
+        <div className="lightbox" role="dialog" aria-modal="true"
+             aria-label={ampliada.legenda ?? "Fotografia da vistoria"}
+             onClick={() => setAmpliada(null)}>
+          <img src={ampliada.url} alt={ampliada.legenda ?? "Fotografia da vistoria"} />
+          <button type="button" className="botao botao--secundario"
+                  onClick={() => setAmpliada(null)}>
+            Fechar
+          </button>
         </div>
       )}
     </Cartao>

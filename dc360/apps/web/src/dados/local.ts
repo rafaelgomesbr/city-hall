@@ -45,6 +45,15 @@ export const MODO = "local" as const;
  * há documento, e dizer isso é melhor que gerar uma versão parecida que
  * divergiria da oficial.
  */
+/**
+ * Evidência fotográfica depende de armazenamento, que só existe com servidor.
+ * Devolver lista vazia é o retrato honesto do modo local: não há foto, e a
+ * tela diz isso em vez de inventar imagem de exemplo.
+ */
+export async function listarEvidencias(): Promise<never[]> {
+  return [];
+}
+
 export async function abrirDocumento(): Promise<string> {
   throw new Error("O documento oficial é gerado pelo servidor. Este painel está em modo local.");
 }

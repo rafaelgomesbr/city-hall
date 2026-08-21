@@ -350,13 +350,19 @@ cd apps/web && VITE_API_URL=http://127.0.0.1:3333 npx vite build   && npx vite p
 npm run test:e2e:api --workspace @dc360/web
 ```
 
-São 39 verificações que só existem neste caminho: entrada por senha, senha
+São 46 verificações que só existem neste caminho: entrada por senha, senha
 errada recusada, token guardado sem a senha nem o hash, isolamento imposto
 pelo servidor (inclusive abrindo a URL de outro município na mão), fluxo
 gravando de verdade, dado criado numa sessão aparecendo em outro navegador,
 papel recusado **mesmo chamando a API direto pelo console**, sair revogando a
 sessão no servidor, cadastro com senha inicial seguido de entrada, e o laudo
-oficial abrindo numa aba com protocolo, checklist e autoria corretos.
+oficial abrindo numa aba com protocolo, checklist e autoria corretos, e a foto
+enviada pelo agente aparecendo na galeria do coordenador.
+
+Duas correções vieram dessa suíte, e nenhuma apareceria em teste de servidor:
+o CORS da API não permitia `PUT`, então o envio de bytes nem saía do
+navegador; e o `Cross-Origin-Resource-Policy` do helmet bloqueava a imagem
+quando painel e API ficam em origens diferentes, que é o arranjo de produção.
 
 São 43 verificações: entrada, isolamento entre municípios visto dos dois lados,
 geração de protocolo em sequência, triagem, despacho, encerramento com motivo

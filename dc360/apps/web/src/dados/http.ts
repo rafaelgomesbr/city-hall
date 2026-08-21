@@ -3,7 +3,8 @@ import type {
 } from "@dc360/shared";
 import type {
   ContaDisponivel, FiltroOcorrencias, Indicadores, LinhaEquipe, LinhaEvento,
-  LinhaOcorrencia, LinhaProvidencia, LinhaUsuario, LinhaVistoria, Sessao,
+  LinhaEvidencia, LinhaOcorrencia, LinhaProvidencia, LinhaUsuario,
+  LinhaVistoria, Sessao,
 } from "./tipos";
 
 /**
@@ -368,4 +369,12 @@ export async function abrirDocumento(
     throw new ErroDaApi(resposta.status, corpo);
   }
   return URL.createObjectURL(await resposta.blob());
+}
+
+export async function listarEvidencias(
+  _s: Sessao,
+  ocorrenciaId: string,
+): Promise<LinhaEvidencia[]> {
+  const r = await chamar<{ itens: LinhaEvidencia[] }>(`/evidencias/ocorrencia/${ocorrenciaId}`);
+  return r.itens;
 }

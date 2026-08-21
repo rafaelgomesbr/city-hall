@@ -119,3 +119,14 @@ export type Indicadores = {
 
 /** Como o painel está conversando com o banco nesta execução. */
 export type Modo = "local" | "api";
+
+export type LinhaEvidencia = {
+  id: string;
+  legenda: string | null;
+  capturadaEm: string;
+  ordem: number;
+  tipoConteudo: string;
+  tamanhoBytes: number;
+  /** Assinada e de vida curta: nunca existe endereço público para evidência. */
+  url: string;
+};
