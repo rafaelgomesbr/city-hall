@@ -62,6 +62,27 @@ export async function redefinirSenha(): Promise<string> {
   throw new Error("A recuperação de senha exige a API. Este painel está em modo local.");
 }
 
+/**
+ * A trilha e os relatórios existem no banco local, mas a tela de auditoria
+ * consulta a API porque é lá que a consulta filtrada vive. No modo local a
+ * página avisa em vez de mostrar meia funcionalidade.
+ */
+export async function consultarTrilha(): Promise<never> {
+  throw new Error("A auditoria consolidada exige a API. Este painel está em modo local.");
+}
+
+export async function tiposDeEvento(): Promise<never[]> {
+  return [];
+}
+
+export async function resumoDoPeriodo(): Promise<never> {
+  throw new Error("Os relatórios exigem a API. Este painel está em modo local.");
+}
+
+export async function baixarCsvDeOcorrencias(): Promise<never> {
+  throw new Error("A exportação exige a API. Este painel está em modo local.");
+}
+
 export async function abrirDocumento(): Promise<string> {
   throw new Error("O documento oficial é gerado pelo servidor. Este painel está em modo local.");
 }

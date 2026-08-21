@@ -49,6 +49,10 @@ export const {
   listarEvidencias,
   pedirRecuperacao,
   redefinirSenha,
+  consultarTrilha,
+  tiposDeEvento,
+  resumoDoPeriodo,
+  baixarCsvDeOcorrencias,
 } = impl;
 
 export { ErroDaApi } from "./http";
@@ -59,8 +63,11 @@ export type {
   Indicadores,
   LinhaEquipe,
   LinhaEvento,
+  FiltroTrilha,
   LinhaEvidencia,
   LinhaOcorrencia,
+  LinhaTrilha,
+  ResumoPeriodo,
   LinhaProvidencia,
   LinhaUsuario,
   LinhaVistoria,

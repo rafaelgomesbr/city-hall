@@ -297,6 +297,44 @@ contrário. O órgão responde, e a resposta entra com desfecho de lista fechada
   para sempre. Mas o encerramento devolve quais ficaram em aberto e registra
   isso na trilha, para ser decisão consciente e não esquecimento.
 
+## Prestação de contas
+
+Um órgão público responde três perguntas o tempo todo, e nenhuma cabe na tela
+de uma ocorrência isolada: quem alterou este registro, o que a Defesa Civil fez
+no semestre, e quantos chamados vieram daquele bairro.
+
+**A trilha não é escrita à parte.** Ela é o subproduto de cada transição,
+gravada na mesma transação da mudança. Se um evento falta, é porque a mudança
+não aconteceu. A tela de auditoria filtra por autor, tipo de evento e
+protocolo, e respeita o município como todo o resto.
+
+**O resumo usa mediana, não média.** Uma ocorrência parada seis meses por causa
+de uma obra puxa a média e faz o serviço parecer pior do que é. A mediana
+descreve o atendimento típico, que é o que a pergunta quer saber.
+
+### A planilha não pode virar arma contra quem a abre
+
+Célula que começa com `=`, `+`, `-`, `@` ou tabulação é interpretada como
+FÓRMULA pelo Excel e pelo LibreOffice. Num sistema onde o relato vem do que um
+cidadão dita por telefone, basta alguém ditar um endereço que comece com `=`
+para a planilha executar comando na máquina de quem a abriu. A vítima é o
+servidor público, e ele nunca vai suspeitar do arquivo que a própria prefeitura
+gerou.
+
+`montarCsv` neutraliza isso prefixando a célula com apóstrofo, e um teste
+percorre todas as células do arquivo exportado conferindo que nenhuma começa
+com caractere executável. O arquivo também sai com marca de ordem de bytes e
+ponto e vírgula, senão "Acácias" vira "AcÃ¡cias" e a planilha abre em uma
+coluna só no Excel em português.
+
+### Quem exportou fica registrado
+
+Um CSV de ocorrências carrega nome, contato e relato de cidadãos, e sai do
+sistema para viver num pen drive ou num email. A Lei 13.709/2018 exige registro
+do tratamento de dado pessoal, e exportação é tratamento. A tabela `exportacoes`
+guarda quem levou, qual recorte e quantos registros, é append-only como a
+trilha, e o registro acontece na mesma transação da leitura.
+
 ## Autorização por papel
 
 Quem pode o quê vive em `packages/shared/src/permissoes.ts`, e não numa
@@ -311,6 +349,9 @@ API entrar, ela importa a mesma função em vez de redescobrir a regra.
 | Agente de campo | Registrar vistoria |
 | Coordenador | Triagem, despacho, providência, encerramento, equipes, usuários |
 | Administrador | O mesmo que o coordenador |
+
+Consultar a trilha e exportar a base ficam com coordenação e administração: são
+as ações que alcançam o município inteiro de uma vez.
 
 O operador também registra a resposta de uma providência: é ele quem atende o
 telefone quando a secretaria liga de volta. Continua sem decidir o fluxo.
@@ -356,9 +397,9 @@ modo API, basta reiniciar o servidor: o banco efêmero nasce semeado de novo.
 ## Como testar
 
 ```bash
-npm test                    # 146 testes: isolamento, permissões, API, documentos, PDF, evidência, senha, providência e fila de campo
+npm test                    # 172 testes em quatro pacotes
 npm run test:isolamento     # portão CA-06 sozinho: 14 testes
-npm run test:api            # 92 testes da API: rotas, documentos, PDF, evidência, senha, providência, assinatura e a fila de campo
+npm run test:api            # 110 testes da API
 npm run test --workspace @dc360/campo   # 28 testes do motor de sincronização
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
@@ -385,7 +426,7 @@ cd apps/web && VITE_API_URL=http://127.0.0.1:3333 npx vite build   && npx vite p
 npm run test:e2e:api --workspace @dc360/web
 ```
 
-São 53 verificações que só existem neste caminho: entrada por senha, senha
+São 63 verificações que só existem neste caminho: entrada por senha, senha
 errada recusada, token guardado sem a senha nem o hash, isolamento imposto
 pelo servidor (inclusive abrindo a URL de outro município na mão), fluxo
 gravando de verdade, dado criado numa sessão aparecendo em outro navegador,
@@ -393,7 +434,8 @@ papel recusado **mesmo chamando a API direto pelo console**, sair revogando a
 sessão no servidor, cadastro com senha inicial seguido de entrada, e o laudo
 oficial abrindo numa aba com protocolo, checklist e autoria corretos, e a foto
 enviada pelo agente aparecendo na galeria do coordenador, e a recuperação de
-senha do pedido até entrar com a senha nova.
+senha do pedido até entrar com a senha nova, a trilha de auditoria filtrada, e
+o CSV baixado e conferido célula a célula contra injeção de fórmula.
 
 Duas correções vieram dessa suíte, e nenhuma apareceria em teste de servidor:
 o CORS da API não permitia `PUT`, então o envio de bytes nem saía do

@@ -5,8 +5,8 @@ import { useSessao, useTema } from "../estado/sessao";
 import { encerrarSessao } from "../dados/repositorio";
 import { iniciais } from "./comuns";
 import {
-  IconeBusca, IconeEquipes, IconeLua, IconeMapa, IconeOcorrencias,
-  IconePainel, IconeSair, IconeSol, IconeUsuarios,
+  IconeBusca, IconeDocumento, IconeEquipes, IconeLua, IconeMapa,
+  IconeOcorrencias, IconePainel, IconeSair, IconeSol, IconeUsuarios,
 } from "./Icones";
 
 /**
@@ -28,6 +28,8 @@ const NAVEGACAO: ItemNav[] = [
     exige: "gerenciar_equipes" },
   { para: "/usuarios", rotulo: "Usuários", icone: <IconeUsuarios />, grupo: "Administração",
     exige: "gerenciar_usuarios" },
+  { para: "/auditoria", rotulo: "Prestação de contas", icone: <IconeDocumento />,
+    grupo: "Administração", exige: "consultar_trilha" },
 ];
 
 export function Estrutura() {

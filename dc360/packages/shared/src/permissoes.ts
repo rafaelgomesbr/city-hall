@@ -25,6 +25,8 @@ export const ACOES = [
   "registrar_vistoria",
   "gerenciar_equipes",
   "gerenciar_usuarios",
+  "consultar_trilha",
+  "exportar_dados",
 ] as const;
 
 export type Acao = (typeof ACOES)[number];
@@ -39,6 +41,8 @@ export const ROTULO_ACAO: Record<Acao, string> = {
   registrar_vistoria: "registrar vistoria",
   gerenciar_equipes: "gerenciar equipes",
   gerenciar_usuarios: "gerenciar usuários",
+  consultar_trilha: "consultar a trilha de auditoria",
+  exportar_dados: "exportar dados",
 };
 
 const PERMISSOES: Record<Papel, readonly Acao[]> = {
@@ -55,6 +59,8 @@ const PERMISSOES: Record<Papel, readonly Acao[]> = {
     "encerrar_ocorrencia",
     "gerenciar_equipes",
     "gerenciar_usuarios",
+    "consultar_trilha",
+    "exportar_dados",
   ],
   administrador: [
     "abrir_ocorrencia",
@@ -65,6 +71,8 @@ const PERMISSOES: Record<Papel, readonly Acao[]> = {
     "encerrar_ocorrencia",
     "gerenciar_equipes",
     "gerenciar_usuarios",
+    "consultar_trilha",
+    "exportar_dados",
   ],
 };
 

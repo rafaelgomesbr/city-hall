@@ -10,6 +10,7 @@ import { Ocorrencia } from "./paginas/Ocorrencia";
 import { Ocorrencias } from "./paginas/Ocorrencias";
 import { Painel } from "./paginas/Painel";
 import { Usuarios } from "./paginas/Usuarios";
+import { Auditoria } from "./paginas/Auditoria";
 
 /**
  * Rotas privadas ficam todas atrás da mesma checagem. Isso é conveniência de
@@ -46,6 +47,7 @@ export function App() {
         <Route path="/mapa" element={<Mapa />} />
         <Route path="/equipes" element={<Equipes />} />
         <Route path="/usuarios" element={<Usuarios />} />
+        <Route path="/auditoria" element={<Auditoria />} />
       </Route>
 
       <Route path="*" element={<Navigate to={sessao ? "/painel" : "/entrar"} replace />} />

@@ -3,8 +3,8 @@ import type {
 } from "@dc360/shared";
 import type {
   ContaDisponivel, FiltroOcorrencias, Indicadores, LinhaEquipe, LinhaEvento,
-  LinhaEvidencia, LinhaOcorrencia, LinhaProvidencia, LinhaUsuario,
-  LinhaVistoria, Sessao,
+  FiltroTrilha, LinhaEvidencia, LinhaOcorrencia, LinhaProvidencia, LinhaTrilha,
+  LinhaUsuario, LinhaVistoria, ResumoPeriodo, Sessao,
 } from "./tipos";
 
 /**
@@ -402,4 +402,67 @@ export async function redefinirSenha(token: string, senha: string): Promise<stri
     metodo: "POST", corpo: { token, senha },
   });
   return r.mensagem;
+}
+
+// ---------------------------------------------------------------------------
+// Prestação de contas
+// ---------------------------------------------------------------------------
+
+export async function consultarTrilha(
+  _s: Sessao,
+  filtro: FiltroTrilha = {},
+): Promise<{ itens: LinhaTrilha[]; total: number; pagina: number; porPagina: number }> {
+  const p = new URLSearchParams();
+  if (filtro.autor?.trim()) p.set("autor", filtro.autor.trim());
+  if (filtro.tipo) p.set("tipo", filtro.tipo);
+  if (filtro.protocolo?.trim()) p.set("protocolo", filtro.protocolo.trim());
+  p.set("pagina", String(filtro.pagina ?? 1));
+  p.set("porPagina", "25");
+  return chamar(`/trilha?${p.toString()}`);
+}
+
+export async function tiposDeEvento(
+  _s: Sessao,
+): Promise<Array<{ tipo: string; total: number }>> {
+  const r = await chamar<{ itens: Array<{ tipo: string; total: number }> }>("/trilha/tipos");
+  return r.itens;
+}
+
+export async function resumoDoPeriodo(
+  _s: Sessao,
+  periodo: { de?: string; ate?: string } = {},
+): Promise<ResumoPeriodo> {
+  const p = new URLSearchParams();
+  if (periodo.de) p.set("de", periodo.de);
+  if (periodo.ate) p.set("ate", periodo.ate);
+  return chamar<ResumoPeriodo>(`/relatorios/resumo?${p.toString()}`);
+}
+
+/**
+ * Baixa o CSV com o token e entrega um endereço local para o navegador salvar.
+ *
+ * Apontar um link direto para a rota não funcionaria: ela exige o token no
+ * cabeçalho, e navegação comum não o envia. Pôr o token na URL resolveria e
+ * seria pior, porque ele acabaria no histórico e no log do servidor.
+ */
+export async function baixarCsvDeOcorrencias(
+  _s: Sessao,
+  periodo: { de?: string; ate?: string; status?: string } = {},
+): Promise<{ url: string; nome: string }> {
+  const p = new URLSearchParams();
+  if (periodo.de) p.set("de", periodo.de);
+  if (periodo.ate) p.set("ate", periodo.ate);
+  if (periodo.status) p.set("status", periodo.status);
+
+  const tokens = lerTokens();
+  const resposta = await fetch(`${BASE}/relatorios/ocorrencias.csv?${p.toString()}`, {
+    headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
+  });
+  if (!resposta.ok) {
+    throw new ErroDaApi(resposta.status, await resposta.json().catch(() => ({})));
+  }
+  return {
+    url: URL.createObjectURL(await resposta.blob()),
+    nome: `ocorrencias-${new Date().toISOString().slice(0, 10)}.csv`,
+  };
 }

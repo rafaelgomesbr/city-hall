@@ -133,3 +133,34 @@ export type LinhaEvidencia = {
   /** Assinada e de vida curta: nunca existe endereço público para evidência. */
   url: string;
 };
+
+export type LinhaTrilha = {
+  id: string;
+  tipo: string;
+  autor_nome: string;
+  autor_papel: Papel;
+  origem: Origem;
+  ocorrido_em: string;
+  registrado_em: string;
+  detalhe: Record<string, unknown> | null;
+  ocorrencia_id: string;
+  protocolo: string;
+  endereco: string;
+};
+
+export type ResumoPeriodo = {
+  total: number;
+  encerradas: number;
+  criticas: number;
+  comVulnerabilidade: number;
+  medianaHorasAteEncerrar: number | null;
+  porTipo: Array<{ tipo: string; rotulo: string; total: number }>;
+  porBairro: Array<{ bairro: string; total: number }>;
+};
+
+export type FiltroTrilha = {
+  autor?: string;
+  tipo?: string;
+  protocolo?: string;
+  pagina?: number;
+};

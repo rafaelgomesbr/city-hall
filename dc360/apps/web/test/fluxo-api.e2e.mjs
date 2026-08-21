@@ -431,6 +431,60 @@ ok("a senha antiga nao vale mais", page.url().includes("/entrar"));
 await entrar(alvoRecuperacao, "senha-nova-da-simone-2026");
 ok("a senha nova entra", (await page.textContent(".identidade__nome")).includes("Simone"));
 
+console.log("\n== 15. Prestacao de contas ==");
+await entrar("helena.coutinho@serraalta.exemplo.gov.br");
+await page.waitForSelector(".indicador", { timeout: 30_000 });
+
+await page.getByRole("link", { name: "Prestação de contas" }).click();
+await page.waitForSelector(".barras", { timeout: 20_000 });
+
+const resumoTexto = await page.textContent(".conteudo");
+ok("mostra o tempo mediano, nao a media", resumoTexto.includes("Tempo mediano até encerrar"));
+ok("quebra por tipo de ocorrencia", resumoTexto.includes("Deslizamento"));
+
+await page.waitForSelector(".tabela tbody tr", { timeout: 20_000 });
+const eventosNaTrilha = await page.locator(".tabela tbody tr").count();
+ok("a trilha do municipio aparece", eventosNaTrilha > 0, `(${eventosNaTrilha})`);
+
+const primeiraLinha = await page.locator(".tabela tbody tr").first().textContent();
+ok("cada evento diz quem agiu", /Coordenador|Operador|Agente/.test(primeiraLinha));
+
+await page.locator("#trilha-autor").fill("helena");
+await page.getByRole("button", { name: "Filtrar", exact: true }).click();
+await page.waitForTimeout(1500);
+const linhasFiltradas = await page.locator(".tabela tbody tr").allTextContents();
+ok("filtrar por autor funciona",
+   linhasFiltradas.length > 0 && linhasFiltradas.every((l) => l.includes("Helena")),
+   `(${linhasFiltradas.length} linhas)`);
+
+const [download] = await Promise.all([
+  page.waitForEvent("download", { timeout: 30_000 }),
+  page.getByRole("button", { name: /Baixar ocorrências em CSV/ }).click(),
+]);
+ok("o CSV e baixado com nome de arquivo util",
+   /ocorrencias-\d{4}-\d{2}-\d{2}\.csv/.test(download.suggestedFilename()),
+   `(${download.suggestedFilename()})`);
+
+const conteudoCsv = readFileSync(await download.path(), "utf8");
+ok("o CSV traz o cabecalho legivel", conteudoCsv.includes("Protocolo;Tipo (COBRADE)"));
+ok("nenhuma celula do CSV comeca com caractere de formula",
+   !conteudoCsv.split(/\r?\n/).some((linha) => linha.split(";").some((c) => /^[=+@]/.test(c))));
+
+console.log("\n== 16. Auditoria so para quem tem papel ==");
+await entrar("jonas.ferreira@serraalta.exemplo.gov.br");
+await page.waitForSelector(".indicador", { timeout: 30_000 });
+ok("operador nao ve Prestacao de contas no menu",
+   (await page.locator(".lateral__item", { hasText: "Prestação de contas" }).count()) === 0);
+
+const negadoTrilha = await page.evaluate(async (api) => {
+  const tokens = JSON.parse(sessionStorage.getItem("dc360:tokens"));
+  const r = await fetch(`${api}/trilha`, {
+    headers: { authorization: `Bearer ${tokens.acesso}` },
+  });
+  return r.status;
+}, process.env.BASE_API ?? "http://127.0.0.1:3333");
+ok("e a API recusa mesmo contornando a tela", negadoTrilha === 403, `(${negadoTrilha})`);
+
 await navegador.close();
 
 console.log(`\n${"=".repeat(52)}`);

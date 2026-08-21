@@ -15,6 +15,7 @@ import { rotasAdministracao } from "./rotas/administracao.js";
 import { rotasSincronizacao } from "./rotas/sincronizacao.js";
 import { rotasEvidencias } from "./rotas/evidencias.js";
 import { rotasDocumentos } from "./rotas/documentos.js";
+import { rotasPrestacaoDeContas } from "./rotas/prestacao-de-contas.js";
 import { rotasArmazenamentoLocal } from "./rotas/armazenamento-local.js";
 import type { Armazenamento } from "./armazenamento/tipos.js";
 import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
@@ -188,6 +189,7 @@ export async function construirServidor(
   await app.register(rotasOcorrencias, { prefix: "/ocorrencias", banco });
   await app.register(rotasAdministracao, { prefix: "/", banco });
   await app.register(rotasSincronizacao, { prefix: "/sincronizacao", banco });
+  await app.register(rotasPrestacaoDeContas, { prefix: "/", banco });
   await app.register(rotasEvidencias, { prefix: "/evidencias", banco, armazenamento });
   await app.register(rotasDocumentos, {
     prefix: "/documentos", banco, armazenamento, pdf,
