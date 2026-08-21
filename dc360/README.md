@@ -12,8 +12,8 @@ build) valem lá, não aqui.
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 29 testes passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 43 verificações no modo local e 31 contra a API |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 83 testes de integração passando |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência | Pronto, 28 testes de unidade e 7 de integração contra a API |
-| `apps/campo` | Casca do aplicativo em React Native com Expo | Não iniciada |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 43 testes de unidade e 7 de integração contra a API |
+| `apps/campo` | Casca do aplicativo em React Native com Expo | **Escrita, nunca executada.** Ver `apps/campo/LEIA-ME.md` |
 
 ## Os dois modos do painel
 
@@ -512,10 +512,13 @@ mesmo papel sem privilégio que a API usará em produção.
 
 ## O que falta, e por quê
 
-- **Casca do aplicativo de campo em Expo.** A API já está pronta e o motor de
-  sincronização também, com a integração entre os dois coberta por teste. O
-  que falta é a interface: câmera, assinatura em tela, GPS e o vínculo com
-  `expo-sqlite`. Nada disso é verificável fora de um aparelho ou emulador.
+- **Rodar o aplicativo de campo num aparelho.** O motor está testado, o
+  adaptador de SQLite também, e a ligação entre eles está escrita em
+  `apps/campo/src/dados/fila.ts`. O que falta é o que só existe no celular:
+  câmera, assinatura no dedo, GPS, e a prova de que o `expo-sqlite` guarda o
+  que promete quando o sistema mata o processo. `apps/campo` fica **fora do
+  `workspaces`** de propósito: instalar o Expo traria mais de mil pacotes para
+  dentro de um repositório cujo `npm audit` fecha em zero hoje.
 - **Conta no provedor de armazenamento.** O código está pronto e testado
   contra o vetor oficial da AWS, mas nunca falou com um R2 ou S3 de verdade:
   isso só se comprova com credencial em mão.

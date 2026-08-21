@@ -5,7 +5,8 @@
   "description": "Defesa Civil Operacional 360, produto real",
   "workspaces": [
     "packages/*",
-    "apps/*",
+    "apps/api",
+    "apps/web",
     "db"
   ],
   "engines": {
