@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { PAPEIS, ROTULO_PAPEL, type Papel } from "@dc360/shared";
 import {
-  alternarUsuarioAtivo, criarUsuario, listarEquipes, listarUsuarios,
+  MODO, alternarUsuarioAtivo, criarUsuario, listarEquipes, listarUsuarios,
   type LinhaEquipe, type LinhaUsuario,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
@@ -27,6 +27,7 @@ export function Usuarios() {
   const [email, setEmail] = useState("");
   const [papel, setPapel] = useState<Papel>("agente_campo");
   const [equipeId, setEquipeId] = useState("");
+  const [senha, setSenha] = useState("");
 
   const recarregar = useCallback(async () => {
     const [u, e] = await Promise.all([listarUsuarios(sessao), listarEquipes(sessao)]);
@@ -44,13 +45,18 @@ export function Usuarios() {
       setErro("Nome, matrícula e email são obrigatórios");
       return;
     }
+    if (MODO === "api" && senha.trim().length < 12) {
+      setErro("A senha inicial precisa de pelo menos 12 caracteres");
+      return;
+    }
     setErro(null);
     try {
       await criarUsuario(sessao, {
         nome, matricula, email, papel,
         equipeId: papel === "agente_campo" && equipeId ? equipeId : null,
+        ...(MODO === "api" ? { senha } : {}),
       });
-      setNome(""); setMatricula(""); setEmail(""); setEquipeId("");
+      setNome(""); setMatricula(""); setEmail(""); setEquipeId(""); setSenha("");
       await recarregar();
     } catch (e: unknown) {
       const texto = e instanceof Error ? e.message : String(e);
@@ -108,6 +114,18 @@ export function Usuarios() {
                     <option value="">Sem equipe fixa</option>
                     {equipes.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
                   </select>
+                </div>
+              )}
+              {MODO === "api" && (
+                <div className="campo">
+                  <label htmlFor="usuario-senha">Senha inicial</label>
+                  <input id="usuario-senha" type="password" value={senha}
+                         autoComplete="new-password"
+                         onChange={(e) => setSenha(e.target.value)} />
+                  <span className="campo__dica">
+                    Mínimo de 12 caracteres. Sem exigência de símbolo ou número: regra de
+                    composição só produz senha pior e mais difícil de lembrar.
+                  </span>
                 </div>
               )}
               <button type="submit" className="botao botao--primario">

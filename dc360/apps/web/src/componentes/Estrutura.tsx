@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { ROTULO_PAPEL, podeExecutar, type Acao } from "@dc360/shared";
 import { useSessao, useTema } from "../estado/sessao";
+import { encerrarSessao } from "../dados/repositorio";
 import { iniciais } from "./comuns";
 import {
   IconeBusca, IconeEquipes, IconeLua, IconeMapa, IconeOcorrencias,
@@ -75,7 +76,12 @@ export function Estrutura() {
             {tema === "claro" ? <IconeLua /> : <IconeSol />}
             {tema === "claro" ? "Tema escuro" : "Tema claro"}
           </button>
-          <button type="button" className="lateral__item" onClick={() => { sair(); navegar("/entrar"); }}
+          <button type="button" className="lateral__item"
+                  onClick={() => {
+                    // Revoga no servidor antes de esquecer localmente: sem
+                    // isso, o token de renovação continuaria valendo por dias.
+                    void encerrarSessao().finally(() => { sair(); navegar("/entrar"); });
+                  }}
                   style={{ border: "none", background: "transparent", cursor: "pointer", width: "100%" }}>
             <IconeSair />
             Sair

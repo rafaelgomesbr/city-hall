@@ -10,9 +10,26 @@ build) valem lá, não aqui.
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migração PostgreSQL com multi-tenancy por RLS forçada, e o teste de isolamento CA-06 | Pronto, 14 testes passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, rodando contra o banco de verdade | Pronto, 43 verificações ponta a ponta passando |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 43 verificações no modo local e 31 contra a API |
 | `apps/api` | API HTTP com autenticação própria, isolamento por token e sincronização idempotente | Pronta, 26 testes de integração passando |
 | `apps/campo` | Aplicativo de campo em React Native com Expo, coleta offline | Não iniciado |
+
+## Os dois modos do painel
+
+O mesmo painel roda de duas formas, e a escolha é de configuração, não de
+código de tela. Nenhuma página sabe qual está ativa: as duas implementações
+cumprem a mesma porta em `src/dados/`.
+
+| | Modo local (sem `VITE_API_URL`) | Modo API (com `VITE_API_URL`) |
+| --- | --- | --- |
+| Banco | Postgres em WebAssembly, na própria aba | Postgres do servidor, via HTTP |
+| Entrada | Escolha de perfil, sem senha | Email e senha, com bloqueio por tentativa |
+| Para que serve | Demonstrar num notebook de prefeitura sem instalar nada | O caminho de produção |
+| Isolamento | RLS, dentro da aba | RLS, no servidor, fora do alcance do navegador |
+
+O modo local não é maquete: são as mesmas migrações, o mesmo RLS e a mesma
+semente que a API usa. O que ele não tem é autenticação, e a tela diz isso em
+voz alta em vez de fingir que tem.
 
 ## A decisão que explica o resto: o banco é real desde o primeiro dia
 
@@ -161,12 +178,27 @@ API entrar, ela importa a mesma função em vez de redescobrir a regra.
 
 ## Como rodar
 
+Modo local, sem servidor nenhum:
+
 ```bash
 cd dc360
 npm install
 npm run build --workspace @dc360/shared   # o app web importa o pacote compilado
-npm run dev                               # painel web em http://localhost:5173
+npm run dev                               # painel em http://localhost:5173
 ```
+
+Painel ligado à API, que é o caminho de produção:
+
+```bash
+# terminal 1
+JWT_SEGREDO="pelo-menos-trinta-e-dois-bytes-aqui" npm run dev:api
+
+# terminal 2
+VITE_API_URL=http://127.0.0.1:3333 npm run dev
+```
+
+Sem `DATABASE_URL`, a API sobe um Postgres em WebAssembly já semeado. A senha
+de todas as contas de desenvolvimento é `defesa-civil-2026`.
 
 Na primeira abertura o navegador baixa o Postgres em WebAssembly (cerca de
 13 MB entre `.wasm` e `.data`) e semeia dois municípios fictícios, Serra Alta e
@@ -178,8 +210,9 @@ fluxo completo. Entre como **Aurélio Prates Machado** (Vale Fundo) para ver o
 isolamento: nenhum protocolo, equipe ou usuário de Serra Alta aparece, e buscar
 por um protocolo do outro município não devolve nada.
 
-Para começar do zero, limpe o site nas ferramentas do navegador (isso apaga o
-IndexedDB) ou chame `recriarBanco()` de `src/dados/banco.ts`.
+Para começar do zero no modo local, limpe o site nas ferramentas do navegador
+(isso apaga o IndexedDB) ou chame `recriarBanco()` de `src/dados/banco.ts`. No
+modo API, basta reiniciar o servidor: o banco efêmero nasce semeado de novo.
 
 ## Como testar
 
@@ -191,13 +224,33 @@ npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
 ```
 
-Fluxo ponta a ponta no navegador (exige o build e o servidor de preview):
+Fluxo ponta a ponta no navegador, modo local:
 
 ```bash
 npm run build --workspace @dc360/web
 cd apps/web && npx vite preview --port 4173 --strictPort   # deixe rodando
-npm run test:e2e --workspace @dc360/web                    # em outro terminal
+npm run test:e2e                                            # em outro terminal
 ```
+
+Fluxo ponta a ponta com a API, que é o caminho de produção:
+
+```bash
+# terminal 1: API recém-iniciada (a suíte confere contagens exatas)
+cd apps/api && JWT_SEGREDO="pelo-menos-trinta-e-dois-bytes-aqui"   ORIGENS_PERMITIDAS=http://localhost:4173 npx tsx src/index.ts
+
+# terminal 2
+cd apps/web && VITE_API_URL=http://127.0.0.1:3333 npx vite build   && npx vite preview --port 4173 --strictPort
+
+# terminal 3
+npm run test:e2e:api --workspace @dc360/web
+```
+
+São 31 verificações que só existem neste caminho: entrada por senha, senha
+errada recusada, token guardado sem a senha nem o hash, isolamento imposto
+pelo servidor (inclusive abrindo a URL de outro município na mão), fluxo
+gravando de verdade, dado criado numa sessão aparecendo em outro navegador,
+papel recusado **mesmo chamando a API direto pelo console**, sair revogando a
+sessão no servidor, e cadastro com senha inicial seguido de entrada.
 
 São 43 verificações: entrada, isolamento entre municípios visto dos dois lados,
 geração de protocolo em sequência, triagem, despacho, encerramento com motivo
@@ -225,12 +278,12 @@ mesmo papel sem privilégio que a API usará em produção.
 
 ## O que falta, e por quê
 
-- **Ligar o painel web à API.** O painel ainda fala direto com o Postgres da
-  aba, e a API já existe ao lado. A troca é de implementação em
-  `src/dados/repositorio.ts`, que foi desenhado como ponto único justamente
-  para isso; as páginas não mudam.
 - **Aplicativo de campo.** A API que ele consome já está pronta
-  (`/sincronizacao/pendencias` e `/sincronizacao/vistoria`). Falta o Expo.
+  (`/sincronizacao/pendencias` e `/sincronizacao/vistoria`), com idempotência
+  coberta por teste. Falta o Expo.
+- **Upload de evidência.** A rota de sincronização já grava o metadado da foto
+  com a chave prefixada por tenant, mas o arquivo em si ainda não sobe: falta
+  o bucket e a URL pré-assinada.
 - **Recuperação de senha.** Hoje só o administrador do município define senha
   ao cadastrar. Sem isso, esquecer a senha é chamado para o suporte.
 - **Mapa cartográfico.** MapLibre GL JS depende de um provedor de tiles, que é

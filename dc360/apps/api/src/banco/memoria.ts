@@ -23,7 +23,9 @@ export type BancoEmMemoria = {
   bruto: PGlite;
 };
 
-export async function bancoEmMemoria(): Promise<BancoEmMemoria> {
+export async function bancoEmMemoria(
+  opcoes: { semear?: boolean } = {},
+): Promise<BancoEmMemoria> {
   const db = new PGlite();
   await db.waitReady;
 
@@ -31,6 +33,14 @@ export async function bancoEmMemoria(): Promise<BancoEmMemoria> {
   const pasta = join(aqui, "..", "..", "..", "..", "db", "migrations");
   for (const arquivo of readdirSync(pasta).filter((f) => f.endsWith(".sql")).sort()) {
     await db.exec(readFileSync(join(pasta, arquivo), "utf8"));
+  }
+
+  // A mesma semente que o painel web usa em modo local. Um arquivo só, para o
+  // protocolo que aparece na tela ser o mesmo que a API devolve.
+  if (opcoes.semear) {
+    await db.exec(
+      readFileSync(join(aqui, "..", "..", "..", "..", "db", "seeds", "desenvolvimento.sql"), "utf8"),
+    );
   }
 
   async function emTransacao<T>(

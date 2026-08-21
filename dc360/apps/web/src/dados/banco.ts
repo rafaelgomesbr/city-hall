@@ -1,7 +1,8 @@
 import { PGlite } from "@electric-sql/pglite";
 import type { Transaction } from "@electric-sql/pglite";
-import migracao from "../../../../db/migrations/001_base.sql?raw";
-import { semear } from "./semente";
+import migracaoBase from "../../../../db/migrations/001_base.sql?raw";
+import migracaoAutenticacao from "../../../../db/migrations/002_autenticacao.sql?raw";
+import sementeDesenvolvimento from "../../../../db/seeds/desenvolvimento.sql?raw";
 
 /**
  * O banco desta fase roda em PGlite: Postgres 16 compilado para WebAssembly,
@@ -21,7 +22,7 @@ let iniciando: Promise<PGlite> | null = null;
 export type Contexto = Transaction;
 
 const CHAVE_PERSISTENCIA = "idb://dc360";
-const MARCA_SEMENTE = "dc360:semeado:v1";
+const MARCA_SEMENTE = "dc360:semeado:v2";
 
 export async function banco(): Promise<PGlite> {
   if (instancia) return instancia;
@@ -36,10 +37,14 @@ export async function banco(): Promise<PGlite> {
     );
 
     if (!jaMigrado.rows[0]?.existe) {
-      await db.exec(migracao);
+      // As mesmas migrações que rodam no servidor, na mesma ordem.
+      await db.exec(migracaoBase);
+      await db.exec(migracaoAutenticacao);
     }
     if (!localStorage.getItem(MARCA_SEMENTE)) {
-      await semear(db);
+      // E a mesma semente que a API usa quando sobe sem banco externo, para o
+      // protocolo que aparece aqui ser o mesmo que a API devolveria.
+      await db.exec(sementeDesenvolvimento);
       localStorage.setItem(MARCA_SEMENTE, new Date().toISOString());
     }
 

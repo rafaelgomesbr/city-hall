@@ -13,11 +13,12 @@ if (config.DATABASE_URL) {
   // Sem DATABASE_URL, sobe um Postgres em WebAssembly no próprio processo.
   // Serve para desenvolver sem instalar nada; em produção a configuração
   // recusa essa combinação e o processo nem chega aqui.
-  const memoria = await bancoEmMemoria();
+  const memoria = await bancoEmMemoria({ semear: true });
   banco = memoria.banco;
   console.warn(
     "DATABASE_URL ausente: subindo Postgres em WebAssembly, efêmero e só para desenvolvimento.",
   );
+  console.warn("Semeado com dois municípios fictícios. Senha de todas as contas: defesa-civil-2026");
 }
 
 const app = await construirServidor({ banco, config });

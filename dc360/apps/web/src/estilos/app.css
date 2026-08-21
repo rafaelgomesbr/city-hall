@@ -444,6 +444,12 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
   width: var(--emblema-sm); height: var(--emblema-sm); flex: 0 0 var(--emblema-sm);
 }
 
+.entrada__rodape {
+  margin-top: var(--ds-sp-4); text-align: center;
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted);
+}
+
 .lista-contas { display: flex; flex-direction: column; gap: var(--ds-sp-2); }
 .lista-contas__grupo { font-size: var(--ds-fs-caption); text-transform: uppercase; letter-spacing: var(--tracking-rotulo);
   font-weight: 700; color: var(--ds-text-muted); margin: var(--ds-sp-4) 0 var(--ds-sp-1); }
