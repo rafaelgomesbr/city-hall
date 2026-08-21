@@ -441,8 +441,8 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 207 testes em quatro pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 35 testes
+npm test                    # 214 testes em quatro pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 42 testes
 npm run test:api            # 115 testes da API
 npm run test --workspace @dc360/campo   # 28 testes do motor de sincronização
 npm run typecheck           # TypeScript estrito em todos os pacotes
@@ -532,6 +532,35 @@ reprovam se a migração 008 for removida.
 `db/test/isolamento.test.ts` é o teste que bloqueia merge. Ele responde uma
 pergunta só: com o contexto de um município, é possível ler, alterar ou criar
 dado de outro?
+
+**Ele descobre o que verificar, em vez de conferir uma lista.** A versão
+anterior enumerava as tabelas à mão, e o efeito foi silencioso duas vezes:
+`sessoes` (migração 002) e `exportacoes` (migração 007) ficaram fora do portão
+até alguém lembrar de acrescentá-las. Um portão que depende de memória não é
+portão.
+
+Hoje ele pergunta ao banco e exige, de toda tabela que existir:
+
+| Invariante | Por que ela é invariante |
+| --- | --- |
+| RLS ativada **e forçada** | Sem `FORCE`, o dono da tabela ignora a policy |
+| Ao menos uma policy, e toda expressão citando `app_organizacao_atual()` | Uma policy `USING (true)` passaria no teste anterior e não isolaria nada |
+| Coluna `organizacao_id` obrigatória | Sem ela não há em que a policy se apoiar |
+| Toda referência entre tabelas de negócio inclui `organizacao_id` | Chave estrangeira roda por baixo do RLS; ver a seção acima |
+
+E das funções `SECURITY DEFINER`, que são portas abertas na parede do RLS:
+
+| Invariante | Por que |
+| --- | --- |
+| Todas fixam `search_path` | Sem isso, quem controla o search_path faz a função chamar código dele com privilégio de dono. É a escalada clássica, e não precisa de bug no SQL |
+| Nenhuma executável por `PUBLIC` | O padrão do Postgres é conceder `EXECUTE` a PUBLIC: esquecer o `REVOKE` abre a função para qualquer papel conectado |
+| No máximo doze | Se o número disparar, alguém está resolvendo com privilégio o que deveria resolver com contexto |
+| `dc360_app` não é superusuário, não ignora RLS e não é dono de tabela | Se fosse, todo o resto viraria enfeite |
+
+Verifiquei o portão contra migrações descuidadas de propósito: uma tabela nova
+sem RLS, uma com RLS mas com chave estrangeira simples, e uma função
+`SECURITY DEFINER` sem `search_path`. Cada uma reprova no teste que existe para
+ela, sem ninguém precisar lembrar de nada.
 
 Ele roda em PGlite justamente para não depender de Docker. O teste que protege o
 isolamento não pode ser o que alguém pula porque a infraestrutura não subiu.

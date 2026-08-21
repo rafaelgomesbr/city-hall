@@ -149,29 +149,187 @@ describe("CA-06: isolamento entre organizações", () => {
     expect(r.rows).toHaveLength(0);
   });
 
-  it("o isolamento vale para todas as tabelas de negócio", async () => {
-    const tabelas = [
-      "organizacoes",
-      "equipes",
-      "usuarios",
-      "ocorrencias",
-      "vistorias",
-      "evidencias",
-      "providencias",
-      "trilha_eventos",
-      "sessoes",
-      "recuperacoes_senha",
-      "exportacoes",
-    ];
+  /**
+   * A lista de tabelas é DESCOBERTA, não escrita à mão.
+   *
+   * Uma versão anterior deste teste enumerava as tabelas uma a uma. O efeito
+   * era silencioso e já aconteceu duas vezes: `sessoes` (migração 002) e
+   * `exportacoes` (migração 007) ficaram fora do portão até alguém lembrar de
+   * acrescentá-las. Um portão que depende de memória não é portão.
+   *
+   * Agora ele pergunta ao banco quais tabelas existem, e a única isenta é a de
+   * controle de migrações, que não guarda dado de município nenhum.
+   */
+  const SEM_TENANT = new Set([
+    // Controle do próprio aplicador de migrações.
+    "schema_migracoes",
+    // A raiz do tenant: ela não tem organizacao_id, ela É a organização.
+    "organizacoes",
+    // Sequência de protocolo: tem organizacao_id e policy, mas a chave
+    // primária é composta e não tem coluna `id`.
+    "protocolo_sequencias",
+  ]);
+
+  async function tabelasDeNegocio(): Promise<string[]> {
+    const r = await db.query<{ tablename: string }>(
+      "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename",
+    );
+    return r.rows.map((l) => l.tablename).filter((t) => t !== "schema_migracoes");
+  }
+
+  it("toda tabela do esquema tem RLS ativada E forçada", async () => {
+    const tabelas = await tabelasDeNegocio();
+    expect(tabelas.length).toBeGreaterThanOrEqual(11);
+
     for (const t of tabelas) {
       const r = await db.query<{ relrowsecurity: boolean; relforcerowsecurity: boolean }>(
         "SELECT relrowsecurity, relforcerowsecurity FROM pg_class WHERE relname = $1",
         [t],
       );
-      expect(r.rows[0], `tabela ${t} não existe`).toBeDefined();
+      expect(r.rows[0], `tabela ${t} não encontrada`).toBeDefined();
       expect(r.rows[0]!.relrowsecurity, `RLS desligada em ${t}`).toBe(true);
       expect(r.rows[0]!.relforcerowsecurity, `RLS não forçada em ${t}`).toBe(true);
     }
+  });
+
+  it("toda tabela de negócio tem policy amarrada na organização do contexto", async () => {
+    for (const t of await tabelasDeNegocio()) {
+      const r = await db.query<{ qual: string | null; with_check: string | null }>(
+        "SELECT qual, with_check FROM pg_policies WHERE schemaname='public' AND tablename = $1",
+        [t],
+      );
+      expect(r.rows.length, `tabela ${t} sem nenhuma policy`).toBeGreaterThan(0);
+
+      // Toda policy precisa se apoiar na função de contexto. Uma policy com
+      // `USING (true)` passaria pelo teste anterior e não isolaria nada.
+      const expressoes = r.rows
+        .flatMap((linha) => [linha.qual, linha.with_check])
+        .filter((e): e is string => Boolean(e));
+      expect(expressoes.length, `policies de ${t} sem expressão`).toBeGreaterThan(0);
+      for (const expressao of expressoes) {
+        expect(
+          expressao,
+          `policy de ${t} não usa app_organizacao_atual(): ${expressao}`,
+        ).toContain("app_organizacao_atual");
+      }
+    }
+  });
+
+  it("toda tabela de negócio carrega a coluna organizacao_id", async () => {
+    for (const t of await tabelasDeNegocio()) {
+      if (SEM_TENANT.has(t)) continue;
+      const r = await db.query<{ existe: boolean }>(
+        `SELECT EXISTS (
+           SELECT 1 FROM information_schema.columns
+            WHERE table_schema='public' AND table_name=$1 AND column_name='organizacao_id'
+              AND is_nullable = 'NO'
+         ) AS existe`,
+        [t],
+      );
+      expect(r.rows[0]!.existe, `${t} não tem organizacao_id obrigatório`).toBe(true);
+    }
+  });
+
+  it("toda referência entre tabelas de negócio inclui a organização", async () => {
+    /*
+      A verificação de chave estrangeira roda por baixo do RLS. Uma referência
+      simples a outra tabela de negócio alcança linha de qualquer município, e
+      isso já foi vazamento real aqui (ver migração 008). Este teste impede que
+      volte por uma migração futura.
+    */
+    const r = await db.query<{ tabela: string; nome: string; colunas: string; alvo: string }>(`
+      SELECT c.conrelid::regclass::text AS tabela,
+             c.conname AS nome,
+             (SELECT string_agg(a.attname, ',' ORDER BY a.attnum)
+                FROM unnest(c.conkey) AS k(attnum)
+                JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k.attnum) AS colunas,
+             c.confrelid::regclass::text AS alvo
+        FROM pg_constraint c
+       WHERE c.contype = 'f' AND c.connamespace = 'public'::regnamespace
+    `);
+
+    for (const fk of r.rows) {
+      // Referência para `organizacoes` é a âncora do tenant: ela não precisa
+      // (nem pode) incluir organizacao_id duas vezes.
+      if (fk.alvo === "organizacoes") continue;
+      expect(
+        fk.colunas.split(",").includes("organizacao_id"),
+        `${fk.tabela} -> ${fk.alvo} (${fk.nome}) não inclui organizacao_id: ` +
+        "essa referência alcança linha de outro município",
+      ).toBe(true);
+    }
+  });
+
+});
+
+describe("Funções privilegiadas", () => {
+  /**
+   * Login e recuperação de senha acontecem antes de existir contexto de
+   * tenant, então precisam de funções `SECURITY DEFINER`, que rodam com os
+   * privilégios do dono das tabelas. Cada uma delas é uma porta aberta na
+   * parede do RLS, e duas coisas as mantêm portas em vez de buracos.
+   */
+  async function definidoras(): Promise<Array<{ nome: string; config: string[] | null; acl: string | null }>> {
+    const r = await db.query<{ nome: string; config: string[] | null; acl: string | null }>(`
+      SELECT p.proname AS nome,
+             p.proconfig AS config,
+             array_to_string(p.proacl, ',') AS acl
+        FROM pg_proc p
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+       WHERE n.nspname = 'public' AND p.prosecdef
+       ORDER BY p.proname
+    `);
+    return r.rows;
+  }
+
+  it("existem, e são poucas o bastante para caberem numa revisão", async () => {
+    const lista = await definidoras();
+    expect(lista.length).toBeGreaterThan(0);
+    // Se este número disparar, alguém está resolvendo com privilégio o que
+    // deveria resolver com contexto de tenant.
+    expect(lista.length, `funções SECURITY DEFINER demais: ${lista.map((f) => f.nome).join(", ")}`)
+      .toBeLessThanOrEqual(12);
+  });
+
+  it("toda função privilegiada fixa o search_path", async () => {
+    /*
+      Sem `SET search_path`, quem controla o search_path da sessão pode criar
+      uma tabela ou função com o mesmo nome de uma que a função usa por
+      dentro, e ela será chamada com os privilégios do dono. É a escalada de
+      privilégio clássica de `SECURITY DEFINER`, e ela não precisa de bug
+      nenhum no SQL da função para funcionar.
+    */
+    for (const f of await definidoras()) {
+      const fixa = (f.config ?? []).some((c) => c.startsWith("search_path="));
+      expect(fixa, `${f.nome} é SECURITY DEFINER sem SET search_path`).toBe(true);
+    }
+  });
+
+  it("nenhuma função privilegiada é executável por PUBLIC", async () => {
+    for (const f of await definidoras()) {
+      // ACL nula significa privilégio padrão, e o padrão do Postgres é
+      // EXECUTE para PUBLIC: qualquer papel conectado chamaria a função.
+      expect(f.acl, `${f.nome} está com o privilégio padrão, que inclui PUBLIC`).not.toBeNull();
+      expect(
+        /=X\//.test(f.acl!) && f.acl!.split(",").some((entrada) => entrada.startsWith("=X/")),
+        `${f.nome} concede EXECUTE a PUBLIC: ${f.acl}`,
+      ).toBe(false);
+    }
+  });
+
+  it("o papel de aplicação não é superusuário nem dono das tabelas", async () => {
+    // Se fosse, o RLS seria ignorado e tudo acima viraria enfeite.
+    const papel = await db.query<{ rolsuper: boolean; rolbypassrls: boolean }>(
+      "SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = 'dc360_app'",
+    );
+    expect(papel.rows[0]!.rolsuper).toBe(false);
+    expect(papel.rows[0]!.rolbypassrls).toBe(false);
+
+    const donas = await db.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM pg_tables
+        WHERE schemaname = 'public' AND tableowner = 'dc360_app'`,
+    );
+    expect(donas.rows[0]!.n).toBe("0");
   });
 });
 
