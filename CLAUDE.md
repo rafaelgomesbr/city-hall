@@ -9,10 +9,10 @@ delas ele está:
 | Onde | O que é | Regras que valem |
 | --- | --- | --- |
 | `mockup/` (`index.html`, `app/`, `design-system/`) | Protótipo da Fase 0, descartável, peça de apresentação | Todas as regras deste arquivo, incluindo as proibições de framework, npm e rede |
-| `produto/` | O produto real, autorizado e em construção | `produto/README.md` e o levantamento técnico. As proibições da Fase 0 NÃO se aplicam ali |
+| `dc360/` | O produto real, autorizado e em construção | `dc360/README.md` e o levantamento técnico. As proibições da Fase 0 NÃO se aplicam ali |
 
 Concretamente: React, TypeScript, npm, Vite, banco de dados, teste automatizado
-e etapa de build são PROIBIDOS em `mockup/` e OBRIGATÓRIOS em `produto/`. Não misture
+e etapa de build são PROIBIDOS em `mockup/` e OBRIGATÓRIOS em `dc360/`. Não misture
 as duas. O protótipo continua existindo porque ainda é usado para demonstrar, e
 continua descartável.
 
@@ -28,7 +28,7 @@ Protótipo navegável em HTML puro, mais documentação de apresentação, para 
 
 ## Proibido no protótipo (não negociável)
 
-Estas proibições valem para `mockup/`. Em `produto/` elas não valem: lá a stack é
+Estas proibições valem para `mockup/`. Em `dc360/` elas não valem: lá a stack é
 exatamente a que o levantamento técnico definiu.
 - React, Angular, Vue, Tailwind, qualquer framework ou biblioteca externa.
 - npm, package.json, bundlers, servidores locais.
@@ -95,7 +95,7 @@ O Rafa mandou um HTML de referência (export do canvas do Claude Design) com pal
 - Respostas curtas e diretas, sem recapitular o projeto a cada mensagem.
 - Delegue as revisões aos subagentes para manter o contexto principal limpo.
 
-## O produto real (`produto/`)
+## O produto real (`dc360/`)
 
 Autorizado pelo Rafa em 21/08/2026. A stack não é escolha em aberto: está fixada
 em `docs/referencia/LEVANTAMENTO_TECNICO_JURIDICO_GOVTECH.md` seção 4.2, e o
@@ -109,7 +109,7 @@ Regras que valem lá e não são negociáveis:
   `organizacao_id`, RLS ativada E FORÇADA em toda tabela de negócio, papel de
   aplicação que não é superusuário nem dono das tabelas. A organização vem
   sempre do token já verificado, via `SET LOCAL`, nunca de parâmetro de
-  requisição. O teste `produto/db/test/isolamento.test.ts` (critério CA-06) é o
+  requisição. O teste `dc360/db/test/isolamento.test.ts` (critério CA-06) é o
   portão: se ele quebrar, nada entra.
 - **A trilha de auditoria é append-only no banco**, por ausência de policy de
   UPDATE e DELETE. Correção entra como evento novo. Nem a aplicação reescreve
@@ -125,4 +125,4 @@ Regras que valem lá e não são negociáveis:
 - Idioma, taxonomia COBRADE, proibição de travessão e proibição de inventar
   norma continuam valendo igual, lá e aqui.
 
-Ver `produto/README.md` para como rodar e testar.
+Ver `dc360/README.md` para como rodar e testar.
