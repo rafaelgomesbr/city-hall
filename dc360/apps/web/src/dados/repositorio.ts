@@ -44,6 +44,7 @@ export const {
   listarUsuarios,
   criarUsuario,
   alternarUsuarioAtivo,
+  abrirDocumento,
 } = impl;
 
 export { ErroDaApi } from "./http";

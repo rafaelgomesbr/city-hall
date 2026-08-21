@@ -11,7 +11,7 @@ build) valem lá, não aqui.
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migração PostgreSQL com multi-tenancy por RLS forçada, e o teste de isolamento CA-06 | Pronto, 14 testes passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 43 verificações no modo local e 31 contra a API |
-| `apps/api` | API HTTP com autenticação própria, isolamento por token, sincronização idempotente e evidência fotográfica | Pronta, 54 testes de integração passando |
+| `apps/api` | API HTTP: autenticação, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 69 testes de integração passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência | Pronto, 28 testes de unidade e 7 de integração contra a API |
 | `apps/campo` | Casca do aplicativo em React Native com Expo | Não iniciada |
 
@@ -235,6 +235,36 @@ URL assinada e expirando do mesmo jeito. A configuração recusa essa combinaç�
 em produção: guardar evidência na memória do processo perderia toda foto no
 primeiro reinício.
 
+## Documentos oficiais
+
+O servidor público julga o software pelo documento que ele produz, e um laudo
+é peça de processo administrativo: ele pode acabar numa audiência. A API gera
+`GET /documentos/:id/laudo` e `GET /documentos/:id/termo-de-interdicao` como
+HTML pronto para impressão.
+
+**Gerados no servidor, não montados na tela.** O mesmo laudo precisa sair
+igual no navegador do coordenador, na impressora da recepção e no PDF anexado
+ao processo. Montar em três lugares produziria três documentos com o mesmo
+número de protocolo. Quando a geração de PDF entrar, ela renderiza exatamente
+estas páginas: o template é um só, versionado com o código.
+
+Duas regras de conteúdo que não são estéticas:
+
+- **As duas marcas de tempo aparecem sempre que diferem.** Coleta e
+  sincronização em horários distintos é o normal de uma vistoria feita sem
+  sinal. Mostrar só a segunda faria o documento afirmar que a vistoria
+  aconteceu na hora em que o sinal voltou. O laudo diz qual é a data de
+  referência do ato, e por que há duas.
+- **Nenhuma norma além das autorizadas, e nenhum número de artigo.** Artigo
+  errado num termo de interdição é motivo para anular o ato. Um teste varre o
+  HTML procurando qualquer citação de lei ou decreto e reprova se aparecer
+  algo fora da lista de `docs/CONTEXTO.md`; outro reprova se aparecer a
+  palavra "artigo" seguida de número.
+
+Enquanto o produto está em validação, todo documento sai com marca d'água. Um
+laudo de demonstração indistinguível de um real acaba anexado a processo por
+engano.
+
 ## Autorização por papel
 
 Quem pode o quê vive em `packages/shared/src/permissoes.ts`, e não numa
@@ -291,9 +321,9 @@ modo API, basta reiniciar o servidor: o banco efêmero nasce semeado de novo.
 ## Como testar
 
 ```bash
-npm test                    # 102 testes: isolamento, permissões, API, evidência e fila de campo
+npm test                    # 123 testes: isolamento, permissões, API, documentos, evidência e fila de campo
 npm run test:isolamento     # portão CA-06 sozinho: 14 testes
-npm run test:api            # 54 testes da API: rotas, evidência, assinatura e a fila de campo
+npm run test:api            # 69 testes da API: rotas, documentos, evidência, assinatura e a fila de campo
 npm run test --workspace @dc360/campo   # 28 testes do motor de sincronização
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
@@ -320,12 +350,13 @@ cd apps/web && VITE_API_URL=http://127.0.0.1:3333 npx vite build   && npx vite p
 npm run test:e2e:api --workspace @dc360/web
 ```
 
-São 31 verificações que só existem neste caminho: entrada por senha, senha
+São 39 verificações que só existem neste caminho: entrada por senha, senha
 errada recusada, token guardado sem a senha nem o hash, isolamento imposto
 pelo servidor (inclusive abrindo a URL de outro município na mão), fluxo
 gravando de verdade, dado criado numa sessão aparecendo em outro navegador,
 papel recusado **mesmo chamando a API direto pelo console**, sair revogando a
-sessão no servidor, e cadastro com senha inicial seguido de entrada.
+sessão no servidor, cadastro com senha inicial seguido de entrada, e o laudo
+oficial abrindo numa aba com protocolo, checklist e autoria corretos.
 
 São 43 verificações: entrada, isolamento entre municípios visto dos dois lados,
 geração de protocolo em sequência, triagem, despacho, encerramento com motivo
@@ -369,9 +400,8 @@ mesmo papel sem privilégio que a API usará em produção.
   falta o bucket. O levantamento aponta Cloudflare R2 por causa do egress.
 - **PostGIS.** A migração ainda não cria a extensão porque nada hoje faz
   consulta espacial. Entra quando entrar busca por raio ou por setor de risco.
-- **Upload de foto na fila de campo.** O motor de sincronização ainda envia só
-  o metadado; falta enfileirar os bytes junto, com a mesma disciplina de
-  tentativa e idempotência.
+- **Geração de PDF.** O documento já sai como HTML versionado e pronto para
+  impressão. Falta o passo que o renderiza em PDF num job assíncrono.
 
 ## Onde estão as decisões
 

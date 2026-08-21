@@ -9,7 +9,7 @@ import {
 import {
   buscarOcorrencia, classificarNaTriagem, despacharEquipe, encaminharProvidencia,
   encerrarOcorrencia, listarEquipes, providenciasDaOcorrencia, trilhaDaOcorrencia,
-  vistoriaDaOcorrencia,
+  vistoriaDaOcorrencia, abrirDocumento, MODO,
   type LinhaEquipe, type LinhaEvento, type LinhaOcorrencia,
   type LinhaProvidencia, type LinhaVistoria,
 } from "../dados/repositorio";
@@ -17,7 +17,7 @@ import { useSessaoObrigatoria } from "../estado/sessao";
 import {
   Aviso, Carregando, Cartao, ErroCampo, Prazo, SeloSeveridade, SeloStatus, formatarDataHora,
 } from "../componentes/comuns";
-import { IconeEvento, IconeVoltar } from "../componentes/Icones";
+import { IconeDocumento, IconeEvento, IconeVoltar } from "../componentes/Icones";
 
 const ROTULO_CHECKLIST: Record<string, string> = {
   risco_iminente: "Risco iminente identificado",
@@ -331,6 +331,8 @@ export function Ocorrencia() {
             </p>
           </Cartao>
 
+          {vistoria && <CartaoDocumentos ocorrenciaId={o.id} />}
+
           <Cartao titulo="Ver também">
             <Link className="botao botao--secundario" to="/ocorrencias" style={{ width: "100%" }}>
               Voltar para a lista
@@ -587,6 +589,58 @@ function BlocoEncerramento({ onEnviar }: { onEnviar: (e: { motivo: string }) => 
         {erro && <ErroCampo id="encerramento-erro">{erro}</ErroCampo>}
         <button type="submit" className="botao botao--perigo">Encerrar ocorrência</button>
       </form>
+    </Cartao>
+  );
+}
+
+/**
+ * Documentos oficiais da ocorrência.
+ *
+ * Eles são gerados no servidor e abertos numa aba nova. O painel não monta o
+ * documento: o mesmo laudo precisa sair igual na tela, na impressora e no PDF
+ * anexado ao processo, e montar em três lugares produziria três documentos
+ * diferentes com o mesmo número de protocolo.
+ */
+function CartaoDocumentos({ ocorrenciaId }: { ocorrenciaId: string }) {
+  const sessao = useSessaoObrigatoria();
+  const [abrindo, setAbrindo] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function abrir(tipo: "laudo" | "termo-de-interdicao") {
+    setErro(null);
+    setAbrindo(tipo);
+    try {
+      const endereco = await abrirDocumento(sessao, ocorrenciaId, tipo);
+      window.open(endereco, "_blank", "noopener");
+    } catch (e: unknown) {
+      setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAbrindo(null);
+    }
+  }
+
+  return (
+    <Cartao titulo="Documentos oficiais">
+      {MODO === "local" ? (
+        <p style={{ margin: 0, fontSize: "var(--ds-fs-body-sm)", color: "var(--ds-text-muted)" }}>
+          O laudo e o termo de interdição são gerados pelo servidor, para saírem
+          idênticos na tela, na impressora e no arquivo anexado ao processo.
+          Este painel está em modo local, sem servidor.
+        </p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--ds-sp-2)" }}>
+          <button type="button" className="botao botao--secundario"
+                  disabled={abrindo !== null} onClick={() => void abrir("laudo")}>
+            <IconeDocumento /> {abrindo === "laudo" ? "Gerando" : "Laudo de vistoria"}
+          </button>
+          <button type="button" className="botao botao--secundario"
+                  disabled={abrindo !== null} onClick={() => void abrir("termo-de-interdicao")}>
+            <IconeDocumento />
+            {abrindo === "termo-de-interdicao" ? "Gerando" : "Termo de interdição"}
+          </button>
+          {erro && <ErroCampo id="documento-erro">{erro}</ErroCampo>}
+        </div>
+      )}
     </Cartao>
   );
 }

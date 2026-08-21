@@ -13,6 +13,7 @@ import { rotasOcorrencias } from "./rotas/ocorrencias.js";
 import { rotasAdministracao } from "./rotas/administracao.js";
 import { rotasSincronizacao } from "./rotas/sincronizacao.js";
 import { rotasEvidencias } from "./rotas/evidencias.js";
+import { rotasDocumentos } from "./rotas/documentos.js";
 import { rotasArmazenamentoLocal } from "./rotas/armazenamento-local.js";
 import type { Armazenamento } from "./armazenamento/tipos.js";
 import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
@@ -172,6 +173,13 @@ export async function construirServidor(
   await app.register(rotasAdministracao, { prefix: "/", banco });
   await app.register(rotasSincronizacao, { prefix: "/sincronizacao", banco });
   await app.register(rotasEvidencias, { prefix: "/evidencias", banco, armazenamento });
+  await app.register(rotasDocumentos, {
+    prefix: "/documentos", banco, armazenamento,
+    // Enquanto o produto não estiver em uso oficial, todo documento sai
+    // marcado. Um laudo de demonstração indistinguível de um real é o tipo de
+    // coisa que acaba anexada a processo por engano.
+    marcaDagua: config.NODE_ENV === "production" ? undefined : "DOCUMENTO DE VALIDAÇÃO",
+  });
 
   // Só existe quando a própria API guarda os bytes, o que a configuração
   // proíbe em produção.

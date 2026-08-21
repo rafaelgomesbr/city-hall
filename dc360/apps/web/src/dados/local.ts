@@ -40,6 +40,16 @@ import type {
 export const MODO = "local" as const;
 
 /**
+ * O documento oficial é gerado pelo servidor de propósito: ele precisa sair
+ * igual no navegador, na impressora e no PDF anexado ao processo. Sem API não
+ * há documento, e dizer isso é melhor que gerar uma versão parecida que
+ * divergiria da oficial.
+ */
+export async function abrirDocumento(): Promise<string> {
+  throw new Error("O documento oficial é gerado pelo servidor. Este painel está em modo local.");
+}
+
+/**
  * Sem servidor não há sessão para revogar: sair é esquecer o que estava na
  * aba. A função existe para as duas implementações terem a mesma forma.
  */

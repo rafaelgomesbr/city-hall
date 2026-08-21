@@ -344,3 +344,28 @@ export async function alternarUsuarioAtivo(
 ): Promise<void> {
   await chamar(`/usuarios/${id}/situacao`, { metodo: "PATCH", corpo: { ativo } });
 }
+
+/**
+ * Baixa um documento oficial e devolve um endereço que o navegador consegue
+ * abrir numa aba.
+ *
+ * Não dá para simplesmente apontar o navegador para a rota: ela exige o token
+ * no cabeçalho, e uma navegação comum não o envia. Colocar o token na URL
+ * resolveria e seria pior: ele acabaria no histórico, no log do servidor e no
+ * link que alguém copia e cola.
+ */
+export async function abrirDocumento(
+  _s: Sessao,
+  ocorrenciaId: string,
+  tipo: "laudo" | "termo-de-interdicao",
+): Promise<string> {
+  const tokens = lerTokens();
+  const resposta = await fetch(`${BASE}/documentos/${ocorrenciaId}/${tipo}`, {
+    headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
+  });
+  if (!resposta.ok) {
+    const corpo = await resposta.json().catch(() => ({}));
+    throw new ErroDaApi(resposta.status, corpo);
+  }
+  return URL.createObjectURL(await resposta.blob());
+}

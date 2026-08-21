@@ -243,6 +243,50 @@ ok("Vale Fundo ve apenas as proprias 2 ocorrencias", filaVF.trim() === "2", `(${
 const conteudoVF = await page.textContent(".conteudo");
 ok("nenhum protocolo de Serra Alta vaza", !conteudoVF.includes("000471") && !conteudoVF.includes("000479"));
 
+console.log("\n== 11. Documento oficial gerado pelo servidor ==");
+await entrar("helena.coutinho@serraalta.exemplo.gov.br");
+await page.waitForSelector(".indicador", { timeout: 30_000 });
+
+// A ocorrencia 000473 da semente ja tem vistoria concluida.
+await page.goto(`${BASE}/ocorrencias?status=todas&busca=000473`);
+await page.waitForTimeout(1500);
+await page.locator(".tabela__protocolo").first().click();
+await page.waitForSelector(".trilha__item", { timeout: 20_000 });
+
+const botaoLaudo = page.getByRole("button", { name: "Laudo de vistoria" });
+ok("o detalhe oferece o laudo quando ha vistoria", (await botaoLaudo.count()) === 1);
+
+const [aba] = await Promise.all([
+  page.context().waitForEvent("page"),
+  botaoLaudo.click(),
+]);
+await aba.waitForLoadState("domcontentloaded");
+const documento = await aba.content();
+
+ok("o laudo traz o protocolo", documento.includes("000473/2026"));
+ok("o laudo identifica o orgao", documento.includes("Defesa Civil de Serra Alta"));
+ok("o laudo traz o checklist respondido", documento.includes("Risco iminente identificado"));
+ok("o laudo identifica quem assinou", documento.includes("Diego Nakamura Alves"));
+ok("o laudo sai marcado como documento de validacao",
+   documento.includes("DOCUMENTO DE VALIDA"));
+const temImprimir = await aba.getByRole("button", { name: "Imprimir" }).count();
+ok("o documento tem botao de imprimir", temImprimir === 1);
+await aba.close();
+
+console.log("\n== 12. Isolamento tambem no documento ==");
+const urlOcorrenciaComVistoria = page.url();
+const idDocumento = urlOcorrenciaComVistoria.split("/").pop();
+await entrar("aurelio.machado@valefundo.exemplo.gov.br");
+await page.waitForSelector(".indicador", { timeout: 30_000 });
+const negado = await page.evaluate(async ({ api, id }) => {
+  const tokens = JSON.parse(sessionStorage.getItem("dc360:tokens"));
+  const r = await fetch(`${api}/documentos/${id}/laudo`, {
+    headers: { authorization: `Bearer ${tokens.acesso}` },
+  });
+  return r.status;
+}, { api: process.env.BASE_API ?? "http://127.0.0.1:3333", id: idDocumento });
+ok("outro municipio nao gera o laudo de uma ocorrencia alheia", negado === 404, `(${negado})`);
+
 await navegador.close();
 
 console.log(`\n${"=".repeat(52)}`);
