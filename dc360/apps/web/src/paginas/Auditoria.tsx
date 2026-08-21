@@ -256,7 +256,7 @@ function ResumoDoPeriodo({ resumo }: { resumo: ResumoPeriodo }) {
           <span className="indicador__valor">
             {resumo.medianaHorasAteEncerrar !== null
               ? `${resumo.medianaHorasAteEncerrar}h`
-              : "—"}
+              : "sem dados"}
           </span>
           <span className="indicador__rotulo">Tempo mediano até encerrar</span>
         </div>

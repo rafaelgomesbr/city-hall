@@ -335,6 +335,25 @@ do tratamento de dado pessoal, e exportação é tratamento. A tabela `exportaco
 guarda quem levou, qual recorte e quantos registros, é append-only como a
 trilha, e o registro acontece na mesma transação da leitura.
 
+## As regras de conteúdo também
+
+`CLAUDE.md` fixa duas que não são estilo e sim risco: nenhum travessão em texto
+nenhum, e nenhuma norma além das que `docs/CONTEXTO.md` autoriza. Um número de
+lei errado num termo de interdição é motivo para anular o ato, e um artigo
+inventado num documento oficial é pior que nenhuma citação.
+
+`packages/shared/test/regras-de-conteudo.test.ts` varre o código do sistema, o
+protótipo e a documentação viva. Há uma isenção, e a razão dela importa:
+`docs/referencia/` são documentos de **pesquisa**, e o trabalho deles é
+justamente levantar normas. Várias que eles citam não estão na lista
+autorizada, porque a lista governa o que o produto AFIRMA e não o que a
+pesquisa investigou. Apagar citação de pesquisa para satisfazer um teste seria
+destruir a evidência que sustentou a decisão.
+
+Sobre artigo, a varredura é mais estreita e mais dura: nos geradores de
+documento oficial, nenhum número de artigo passa. Comentário de código pode
+falar de artigo; papel com o brasão do município, não.
+
 ## O design system é verificado por máquina
 
 `CLAUDE.md` diz que cor, sombra ou duração escritos direto no componente são
@@ -476,7 +495,7 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 226 testes em cinco pacotes
+npm test                    # 231 testes em cinco pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 42 testes
 npm run test:api            # 123 testes da API
 npm run test --workspace @dc360/campo   # 28 testes do motor de sincronização
@@ -544,7 +563,7 @@ antes da migração 008 dava para:
 - vincular uma ocorrência de Serra Alta a uma de Vale Fundo;
 - despachar para uma equipe de outra prefeitura;
 - gravar vistoria apontando para ocorrência que o município não enxerga;
-- **assinar um evento da trilha com um servidor de outro município** — o pior
+- **assinar um evento da trilha com um servidor de outro município** , o pior
   dos casos, porque a trilha é a prova de quem fez o quê.
 
 Nada disso aparecia em teste de leitura, porque a linha continuava invisível.
