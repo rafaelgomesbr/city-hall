@@ -1,0 +1,187 @@
+import { z } from "zod";
+import {
+  CANAIS_ENTRADA,
+  ORIGENS,
+  PAPEIS,
+  SEVERIDADES,
+  STATUS_OCORRENCIA,
+  TIPOS_COBRADE,
+} from "./dominio.js";
+
+/**
+ * Um schema, uma verdade. Estes schemas validam tanto o payload que entra na
+ * API quanto o que o formulário do front envia, para as duas pontas nunca
+ * divergirem sobre o que é um dado válido.
+ */
+
+export const uuidSchema = z.string().uuid();
+
+/**
+ * Protocolo no formato NNNNNN/AAAA, único por organização e ano.
+ * O formato é o que o servidor público já reconhece no papel.
+ */
+export const protocoloSchema = z
+  .string()
+  .regex(/^\d{6}\/\d{4}$/, "Protocolo deve estar no formato 000123/2026");
+
+export const coordenadaSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+});
+
+export const organizacaoSchema = z.object({
+  id: uuidSchema,
+  nome: z.string().min(1).max(200),
+  municipio: z.string().min(1).max(200),
+  uf: z.string().length(2),
+  criadoEm: z.string().datetime(),
+});
+
+export const usuarioSchema = z.object({
+  id: uuidSchema,
+  organizacaoId: uuidSchema,
+  nome: z.string().min(1).max(200),
+  matricula: z.string().min(1).max(40),
+  email: z.string().email(),
+  papel: z.enum(PAPEIS),
+  equipeId: uuidSchema.nullable(),
+  ativo: z.boolean(),
+});
+
+export const equipeSchema = z.object({
+  id: uuidSchema,
+  organizacaoId: uuidSchema,
+  nome: z.string().min(1).max(120),
+  especialidade: z.string().max(200).nullable(),
+  ativa: z.boolean(),
+});
+
+/** Abertura: o que o operador informa quando o chamado entra. */
+export const aberturaOcorrenciaSchema = z.object({
+  solicitanteNome: z.string().min(1, "Informe o nome do solicitante").max(200),
+  solicitanteContato: z.string().max(120).optional(),
+  canalEntrada: z.enum(CANAIS_ENTRADA),
+  endereco: z.string().min(1, "Informe o endereço").max(400),
+  coordenada: coordenadaSchema.optional(),
+  tipo: z.enum(TIPOS_COBRADE),
+  descricao: z.string().min(1, "Descreva o que foi relatado").max(4000),
+  /** Preenchido quando o operador decide vincular a um chamado anterior. */
+  vinculadaA: uuidSchema.optional(),
+});
+export type AberturaOcorrencia = z.infer<typeof aberturaOcorrenciaSchema>;
+
+/** Triagem: classificação técnica, feita por quem tem competência para isso. */
+export const triagemSchema = z.object({
+  severidade: z.enum(SEVERIDADES),
+  vulnerabilidadePresente: z.boolean(),
+  vulnerabilidadeDescricao: z.string().max(500).optional(),
+}).refine(
+  (v) => !v.vulnerabilidadePresente || !!v.vulnerabilidadeDescricao?.trim(),
+  { message: "Descreva a vulnerabilidade identificada", path: ["vulnerabilidadeDescricao"] },
+);
+export type Triagem = z.infer<typeof triagemSchema>;
+
+export const despachoSchema = z.object({
+  equipeId: uuidSchema,
+  prazoHoras: z.number().int().min(1).max(720),
+  instrucoes: z.string().max(2000).optional(),
+});
+export type Despacho = z.infer<typeof despachoSchema>;
+
+export const itemChecklistSchema = z.object({
+  chave: z.string().min(1).max(60),
+  resposta: z.boolean(),
+});
+
+export const evidenciaFotoSchema = z.object({
+  /** Chave no storage, sempre prefixada por tenant/{orgId}/. */
+  chave: z.string().min(1),
+  capturadaEm: z.string().datetime(),
+  coordenada: coordenadaSchema.optional(),
+  legenda: z.string().max(300).optional(),
+});
+
+/**
+ * Vistoria concluída em campo. `coletadaEm` é a hora do aparelho no momento
+ * da coleta; `sincronizadaEm` é quando o servidor recebeu. Os dois diferem
+ * sempre que a coleta foi offline, e o laudo precisa mostrar ambos.
+ */
+export const vistoriaSchema = z.object({
+  checklist: z.array(itemChecklistSchema).min(1),
+  fotos: z.array(evidenciaFotoSchema),
+  gpsPrecisaoMetros: z.number().positive().nullable(),
+  assinanteNome: z.string().min(1, "Informe quem assinou").max(200),
+  /** Traço da assinatura, como chave de storage. */
+  assinaturaChave: z.string().min(1).nullable(),
+  coletadaEm: z.string().datetime(),
+  observacoes: z.string().max(4000).optional(),
+});
+export type Vistoria = z.infer<typeof vistoriaSchema>;
+
+export const providenciaSchema = z.object({
+  orgaoDestino: z.string().min(1, "Informe o órgão de destino").max(200),
+  descricao: z.string().min(1, "Descreva a providência").max(2000),
+  responsavel: z.string().min(1, "Informe o responsável").max(200),
+  prazoHoras: z.number().int().min(1).max(2160),
+});
+export type Providencia = z.infer<typeof providenciaSchema>;
+
+export const encerramentoSchema = z.object({
+  motivo: z.string().min(1, "O motivo do encerramento é obrigatório").max(2000),
+});
+export type Encerramento = z.infer<typeof encerramentoSchema>;
+
+export const ocorrenciaSchema = z.object({
+  id: uuidSchema,
+  organizacaoId: uuidSchema,
+  protocolo: protocoloSchema,
+  tipo: z.enum(TIPOS_COBRADE),
+  status: z.enum(STATUS_OCORRENCIA),
+  severidade: z.enum(SEVERIDADES).nullable(),
+  vulnerabilidadePresente: z.boolean(),
+  vulnerabilidadeDescricao: z.string().nullable(),
+  endereco: z.string(),
+  coordenada: coordenadaSchema.nullable(),
+  solicitanteNome: z.string(),
+  descricao: z.string(),
+  equipeId: uuidSchema.nullable(),
+  prazoEm: z.string().datetime().nullable(),
+  criadoEm: z.string().datetime(),
+  encerradoEm: z.string().datetime().nullable(),
+  motivoEncerramento: z.string().nullable(),
+});
+export type Ocorrencia = z.infer<typeof ocorrenciaSchema>;
+
+/**
+ * Evento da trilha auditável. Responde "quem fez o quê, quando e de onde".
+ * Nunca é editado nem apagado: correção entra como evento novo.
+ */
+export const eventoTrilhaSchema = z.object({
+  id: uuidSchema,
+  organizacaoId: uuidSchema,
+  ocorrenciaId: uuidSchema,
+  tipo: z.string().min(1).max(60),
+  autorId: uuidSchema.nullable(),
+  autorNome: z.string(),
+  autorPapel: z.enum(PAPEIS),
+  origem: z.enum(ORIGENS),
+  ocorridoEm: z.string().datetime(),
+  registradoEm: z.string().datetime(),
+  detalhe: z.record(z.unknown()).nullable(),
+});
+export type EventoTrilha = z.infer<typeof eventoTrilhaSchema>;
+
+/**
+ * Envelope de sincronização vindo do app de campo.
+ *
+ * `idempotencyKey` é gerada no aparelho e é o que impede duplicação quando o
+ * agente reenvia a mesma coleta depois de uma falha de rede: o servidor
+ * reconhece a chave e devolve o resultado anterior em vez de aplicar de novo.
+ */
+export const envelopeSincronizacaoSchema = z.object({
+  idempotencyKey: uuidSchema,
+  ocorrenciaId: uuidSchema,
+  coletadaEm: z.string().datetime(),
+  vistoria: vistoriaSchema,
+});
+export type EnvelopeSincronizacao = z.infer<typeof envelopeSincronizacaoSchema>;

@@ -1,16 +1,35 @@
-# Defesa Civil Operacional 360 - Fase 0 (protótipo conceitual)
+# Defesa Civil Operacional 360
 
-## O que é este repositório
+## Como este repositório está dividido (leia isto primeiro)
+
+Depois da autorização de 21/08/2026, o repositório passou a ter DUAS bases de
+código com regras opostas. Antes de tocar em qualquer arquivo, veja em qual
+delas ele está:
+
+| Onde | O que é | Regras que valem |
+| --- | --- | --- |
+| Raiz (`index.html`, `app/`, `design-system/`, `docs/`) | Protótipo da Fase 0, descartável, peça de apresentação | Todas as regras deste arquivo, incluindo as proibições de framework, npm e rede |
+| `produto/` | O produto real, autorizado e em construção | `produto/README.md` e o levantamento técnico. As proibições da Fase 0 NÃO se aplicam ali |
+
+Concretamente: React, TypeScript, npm, Vite, banco de dados, teste automatizado
+e etapa de build são PROIBIDOS na raiz e OBRIGATÓRIOS em `produto/`. Não misture
+as duas. O protótipo continua existindo porque ainda é usado para demonstrar, e
+continua descartável.
+
+## O que é o protótipo da raiz
 Protótipo navegável em HTML puro, mais documentação de apresentação, para validar o conceito de um sistema de gestão operacional para Defesas Civis municipais: entrada de solicitação, protocolo, triagem, despacho, vistoria de campo offline, evidências, documento técnico, providências e encerramento auditável. O protótipo é peça de venda e instrumento de pesquisa. Será descartado depois: nada aqui é código de produção.
 
-## Escopo permitido (Fase 0)
+## Escopo permitido no protótipo da raiz (Fase 0)
 - HTML + CSS + JavaScript puros (vanilla). Poucos arquivos, sem etapa de build.
 - Dados falsos (mock) em objetos JS dentro do próprio projeto.
 - Deve abrir com duplo clique (file://) em qualquer notebook, sem internet e sem servidor.
 - Duas visões: painel do coordenador (desktop) e visão do agente de campo dentro de uma moldura de smartphone desenhada na tela.
 - Documentação de apresentação em linguagem humana (docs/APRESENTACAO.md).
 
-## Proibido nesta fase (não negociável)
+## Proibido no protótipo da raiz (não negociável)
+
+Estas proibições valem para a raiz. Em `produto/` elas não valem: lá a stack é
+exatamente a que o levantamento técnico definiu.
 - React, Angular, Vue, Tailwind, qualquer framework ou biblioteca externa.
 - npm, package.json, bundlers, servidores locais.
 - Backend, banco, login real, upload real, chamadas de rede (fetch/XHR) e qualquer recurso vindo de CDN. A demo roda 100% offline.
@@ -75,3 +94,35 @@ O Rafa mandou um HTML de referência (export do canvas do Claude Design) com pal
 - Tarefas pequenas e objetivas. Não reler arquivos inteiros sem necessidade.
 - Respostas curtas e diretas, sem recapitular o projeto a cada mensagem.
 - Delegue as revisões aos subagentes para manter o contexto principal limpo.
+
+## O produto real (`produto/`)
+
+Autorizado pelo Rafa em 21/08/2026. A stack não é escolha em aberto: está fixada
+em `docs/referencia/LEVANTAMENTO_TECNICO_JURIDICO_GOVTECH.md` seção 4.2, e o
+dossiê de viabilidade a confirmou. React com Vite e TypeScript no painel web,
+React Native com Expo no aplicativo de campo, PostgreSQL com PostGIS, esquemas
+Zod compartilhados entre as pontas, monorepo com pacote comum.
+
+Regras que valem lá e não são negociáveis:
+
+- **Isolamento entre municípios é a regra número um.** Banco único, coluna
+  `organizacao_id`, RLS ativada E FORÇADA em toda tabela de negócio, papel de
+  aplicação que não é superusuário nem dono das tabelas. A organização vem
+  sempre do token já verificado, via `SET LOCAL`, nunca de parâmetro de
+  requisição. O teste `produto/db/test/isolamento.test.ts` (critério CA-06) é o
+  portão: se ele quebrar, nada entra.
+- **A trilha de auditoria é append-only no banco**, por ausência de policy de
+  UPDATE e DELETE. Correção entra como evento novo. Nem a aplicação reescreve
+  histórico.
+- **Registro não se apaga, se encerra com motivo.** Vale para ocorrência, e
+  usuário e equipe se desativam em vez de sumir, porque assinam laudo e
+  aparecem na trilha.
+- **Regra de negócio mora no banco e no pacote compartilhado**, não na tela. Se
+  a validação só existe no formulário, ela não existe.
+- **Régua de segurança:** OWASP ASVS 4.0 nível 2 como alvo, CIS Controls v8 IG1
+  como piso. Dependência com vulnerabilidade conhecida em runtime é bug, não
+  pendência: `npm audit` precisa fechar em zero.
+- Idioma, taxonomia COBRADE, proibição de travessão e proibição de inventar
+  norma continuam valendo igual, lá e aqui.
+
+Ver `produto/README.md` para como rodar e testar.

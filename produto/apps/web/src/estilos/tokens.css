@@ -1,0 +1,150 @@
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600&display=swap');
+
+/* ============================================================
+   Design System DC360 v0.2 - tokens.css
+   Fonte única de tokens para o protótipo (Fase 0).
+   Componentes usam SOMENTE variáveis --ds-*. Valor fora daqui é bug.
+   Espelha design-system/DESIGN_SYSTEM.md e _tokens.scss.
+
+   Decisão de 2026-08-20: identidade trocada de laranja para violeta,
+   com Work Sans e Roboto Mono via Google Fonts. Isso é uma exceção
+   explícita e pontual à regra de zero rede do CLAUDE.md, pedida e
+   confirmada pelo Rafa: a única chamada de rede permitida no protótipo
+   inteiro é este @import de fonte. Nenhuma outra chamada de rede,
+   nenhum outro CDN. Ver CLAUDE.md e docs/ROADMAP_FASE0.md.
+   ============================================================ */
+
+:root {
+  /* ---------- Primitivas: violeta (marca, decisão de 2026-08-20) ----------
+     Contraste verificado (luminância relativa, fórmula WCAG):
+     violeta-700 (#5B21B6) sobre branco: 8.98:1 (tema claro, --ds-accent).
+     violeta-400 (#A78BFA) sobre ink-950: 6.75:1 (tema escuro, --ds-accent).
+     Ambos acima do mínimo AA (4.5:1). */
+  --ds-violet-300: #C4B5FD;
+  --ds-violet-400: #A78BFA;
+  --ds-violet-500: #7C3AED;
+  --ds-violet-600: #6D28D9;
+  --ds-violet-700: #5B21B6;
+  --ds-violet-800: #4C1D95;
+
+  /* ---------- Primitivas: neutros ---------- */
+  --ds-ink-950: #101519;
+  --ds-ink-900: #14191D;
+  --ds-ink-850: #171E24;
+  --ds-ink-800: #1E262D;
+  --ds-ink-700: #2A343C;
+  --ds-ink-500: #5A6B76;
+  --ds-ink-400: #9BAAB5;
+  --ds-ink-200: #DDE3E7;
+  --ds-ink-100: #E9EDF1;
+  --ds-ink-50:  #F5F7F8;
+  --ds-white:   #FFFFFF;
+  --ds-ice:     #ECF1F4;
+
+  /* ---------- Semânticos: TEMA CLARO (padrão) ---------- */
+  --ds-bg:            var(--ds-ink-50);
+  --ds-surface:       var(--ds-white);
+  --ds-surface-2:     var(--ds-ink-100);
+  --ds-border:        var(--ds-ink-200);
+  --ds-text:          var(--ds-ink-900);
+  --ds-text-muted:    var(--ds-ink-500);
+  --ds-accent:        var(--ds-violet-700); /* links e ações: 8.98:1 sobre branco */
+  --ds-accent-hover:  var(--ds-violet-800);
+  --ds-accent-graphic: var(--ds-violet-600); /* só elementos gráficos grandes */
+  --ds-on-accent:     var(--ds-white);
+
+  /* Severidade (texto / fundo) */
+  --ds-sev-baixa-fg:   #4A5763;  --ds-sev-baixa-bg:   var(--ds-ink-100);
+  --ds-sev-media-fg:   #92400E;  --ds-sev-media-bg:   #FEF3C7;
+  --ds-sev-alta-fg:    #B91C1C;  --ds-sev-alta-bg:    #FEE2E2;
+  --ds-sev-critica-fg: #FFFFFF;  --ds-sev-critica-bg: #B91C1C; /* selo sólido + ponto pulsante */
+
+  /* Status (texto / fundo) */
+  --ds-info-fg:    #1864AB;  --ds-info-bg:    #E7F5FF;
+  --ds-success-fg: #14702F;  --ds-success-bg: #E6F6EA;
+  --ds-danger-fg:  #C92A2A;  --ds-danger-bg:  #FDEBEB;
+
+  /* Sombras / elevação */
+  --ds-shadow-1: 0 1px 2px rgba(16, 21, 25, 0.06), 0 1px 3px rgba(16, 21, 25, 0.10);
+  --ds-shadow-2: 0 4px 12px rgba(16, 21, 25, 0.10);
+  --ds-shadow-3: 0 12px 28px rgba(16, 21, 25, 0.16);
+  --ds-focus-ring: 0 0 0 2px var(--ds-bg), 0 0 0 4px var(--ds-violet-600);
+
+  /* Gradiente de marca: entre --ds-accent e --ds-accent-hover, então herda o
+     contraste já verificado desses dois tokens em cada tema (nunca as pontas
+     soltas violet-400/500, que reprovam AA como fundo de texto). O brilho usa
+     primitiva fixa porque é sombra decorativa, não fundo de texto. */
+  --ds-accent-gradient: linear-gradient(135deg, var(--ds-accent), var(--ds-accent-hover));
+  --ds-accent-glow: 0 8px 20px color-mix(in srgb, var(--ds-violet-500) 35%, transparent);
+
+  /* Tipografia */
+  --ds-font: "Work Sans", -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ds-font-mono: "Roboto Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --ds-fs-display: 44px; --ds-lh-display: 48px;
+  --ds-fs-h1: 32px;      --ds-lh-h1: 38px;
+  --ds-fs-h2: 24px;      --ds-lh-h2: 30px;
+  --ds-fs-h3: 20px;      --ds-lh-h3: 26px;
+  --ds-fs-body-lg: 18px; --ds-lh-body-lg: 26px;
+  --ds-fs-body: 16px;    --ds-lh-body: 24px;
+  --ds-fs-body-sm: 14px; --ds-lh-body-sm: 20px;
+  --ds-fs-caption: 12px; --ds-lh-caption: 16px;
+
+  /* Espaçamento, raio, toque */
+  --ds-sp-1: 4px;  --ds-sp-2: 8px;  --ds-sp-3: 12px; --ds-sp-4: 16px;
+  --ds-sp-5: 24px; --ds-sp-6: 32px; --ds-sp-7: 48px; --ds-sp-8: 64px;
+  --ds-radius: 8px; --ds-radius-card: 12px; --ds-radius-pill: 999px;
+  --ds-touch: 44px;
+
+  /* Z-index */
+  --ds-z-sticky: 10; --ds-z-dropdown: 20; --ds-z-overlay: 30;
+  --ds-z-modal: 40;  --ds-z-toast: 50;
+
+  /* Movimento */
+  --ds-dur-fast: 150ms; --ds-dur-base: 200ms; --ds-dur-slow: 300ms;
+  --ds-ease: cubic-bezier(0.2, 0, 0, 1);
+  --ds-ease-in: cubic-bezier(0, 0, 0.2, 1);
+
+  color-scheme: light;
+}
+
+/* ---------- Semânticos: TEMA ESCURO ---------- */
+[data-theme="dark"] {
+  --ds-bg:            var(--ds-ink-950);
+  --ds-surface:       var(--ds-ink-850);
+  --ds-surface-2:     var(--ds-ink-800);
+  --ds-border:        var(--ds-ink-700);
+  --ds-text:          var(--ds-ice);
+  --ds-text-muted:    var(--ds-ink-400);
+  --ds-accent:        var(--ds-violet-400); /* 6.75:1 sobre ink-950 */
+  --ds-accent-hover:  var(--ds-violet-300);
+  --ds-accent-graphic: var(--ds-violet-500);
+  --ds-on-accent:     var(--ds-ink-950);    /* botão escuro: fundo violet-400, texto ink-950 (6.75:1) */
+
+  --ds-sev-baixa-fg:   #AEB9C2;  --ds-sev-baixa-bg:   rgba(174, 185, 194, 0.12);
+  --ds-sev-media-fg:   #FCC419;  --ds-sev-media-bg:   rgba(252, 196, 25, 0.12);
+  --ds-sev-alta-fg:    #FF8787;  --ds-sev-alta-bg:    rgba(255, 135, 135, 0.12);
+  --ds-sev-critica-fg: #FFFFFF;  --ds-sev-critica-bg: #B91C1C;
+
+  --ds-info-fg:    #74C0FC;  --ds-info-bg:    rgba(116, 192, 252, 0.12);
+  --ds-success-fg: #69DB7C;  --ds-success-bg: rgba(105, 219, 124, 0.12);
+  --ds-danger-fg:  #FF8787;  --ds-danger-bg:  rgba(255, 135, 135, 0.12);
+
+  --ds-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --ds-shadow-2: 0 4px 12px rgba(0, 0, 0, 0.50);
+  --ds-shadow-3: 0 12px 28px rgba(0, 0, 0, 0.60);
+  --ds-focus-ring: 0 0 0 2px var(--ds-bg), 0 0 0 4px var(--ds-violet-400);
+
+  color-scheme: dark;
+}
+
+/* ---------- Acessibilidade de movimento ---------- */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ds-dur-fast: 0ms; --ds-dur-base: 0ms; --ds-dur-slow: 0ms;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
