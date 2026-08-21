@@ -13,9 +13,12 @@
   },
   "scripts": {
     "dev": "npm run dev --workspace @dc360/web",
-    "build": "npm run build --workspace @dc360/shared && npm run build --workspace @dc360/web",
+    "dev:api": "npm run dev --workspace @dc360/api",
+    "build": "npm run build --workspace @dc360/shared && npm run build --workspace @dc360/web && npm run build --workspace @dc360/api",
     "test": "npm run test --workspaces --if-present",
     "test:isolamento": "npm run test --workspace @dc360/db",
+    "test:api": "npm run test --workspace @dc360/api",
+    "test:e2e": "npm run test:e2e --workspace @dc360/web",
     "typecheck": "npm run typecheck --workspaces --if-present"
   }
 }

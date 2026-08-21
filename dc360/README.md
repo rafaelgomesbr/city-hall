@@ -11,8 +11,8 @@ build) valem lá, não aqui.
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migração PostgreSQL com multi-tenancy por RLS forçada, e o teste de isolamento CA-06 | Pronto, 14 testes passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, rodando contra o banco de verdade | Pronto, 43 verificações ponta a ponta passando |
+| `apps/api` | API HTTP com autenticação própria, isolamento por token e sincronização idempotente | Pronta, 26 testes de integração passando |
 | `apps/campo` | Aplicativo de campo em React Native com Expo, coleta offline | Não iniciado |
-| `apps/api` | API HTTP | Não iniciada |
 
 ## A decisão que explica o resto: o banco é real desde o primeiro dia
 
@@ -85,6 +85,65 @@ contextos de tenant ao mesmo tempo.**
 - Reenvio da mesma coleta de campo é recusado pela unicidade de
   `(organizacao_id, idempotency_key)`.
 
+## A API (`apps/api`)
+
+Fastify com TypeScript. Ela existe para que o aplicativo de campo tenha com
+quem falar, e para que a regra de isolamento passe a valer também do lado do
+servidor, não só dentro da aba do navegador.
+
+### De onde vem o município, e de onde nunca vem
+
+O identificador da organização sai do JWT verificado, e vai direto para o
+`SET LOCAL`. Nunca de cabeçalho, nunca de parâmetro de rota, nunca do corpo.
+Existe um teste que fixa isso: ele cadastra um usuário mandando
+`organizacaoId` do OUTRO município no corpo da requisição, e confere no banco
+que o registro nasceu no município do token. O campo é simplesmente ignorado,
+porque a rota nem o lê.
+
+Consultar ocorrência de outro município devolve **404, não 403**. Um 403
+confirmaria que o registro existe, e confirmar existência já é vazamento.
+
+### Autenticação
+
+| Peça | Escolha | Por quê |
+| --- | --- | --- |
+| Senha | scrypt do `node:crypto`, N=2^16 | Aprovado no ASVS 4.0 (2.4.3), sem dependência nova e sem módulo nativo para compilar |
+| Token de acesso | JWT HS256, 15 minutos | Verificado por assinatura, sem ida ao banco. Curto porque não dá para revogar antes de expirar |
+| Token de renovação | 32 bytes opacos, guardado só como hash | Revogável, e vazamento do banco não devolve sessão utilizável |
+| Rotação | A cada renovação | Reúso de token gasto é sintoma de roubo: derruba todas as sessões do usuário |
+| Força bruta | Limite por endereço (10 por 5 min) e bloqueio por conta (5 falhas, 15 min) | Um trata o atacante que vem de um lugar, o outro trata a conta martelada de muitos |
+| Enumeração de conta | Resposta idêntica e tempo equivalente para email inexistente | Senão a API vira lista de emails da prefeitura |
+
+Login e renovação acontecem antes de existir contexto de tenant, então
+precisam ler tabelas que o RLS protege. Em vez de abrir exceção geral, a
+migração 002 cria funções `SECURITY DEFINER` estreitas: cada uma responde uma
+pergunta, por igualdade, sem filtro livre, devolvendo só o necessário, com
+`search_path` fixo e `EXECUTE` revogado de `PUBLIC`.
+
+### Sincronização do campo
+
+`POST /sincronizacao/vistoria` é a rota que decide se o produto funciona na
+chuva. O agente coleta sem sinal e o envio sai quando a rede volta, muitas
+vezes já no carro, com a conexão indo e vindo: a mesma coleta chega mais de
+uma vez. Um laudo duplicado numa interdição é problema jurídico.
+
+A chave de idempotência vem do aparelho e é única por município no banco.
+Reenvio devolve o resultado da primeira vez, com 200 em vez de 201, e não cria
+laudo nem evento novo. A chave de storage da foto é remontada no servidor a
+partir da organização do token: aceitar a que o aparelho mandou permitiria
+gravar evidência sob o prefixo de outra prefeitura.
+
+### Rodar
+
+```bash
+npm run dev:api     # sobe em http://127.0.0.1:3333
+```
+
+Sem `DATABASE_URL` ela sobe um Postgres em WebAssembly no próprio processo,
+efêmero, só para desenvolver. Em produção a configuração recusa essa
+combinação e exige `DATABASE_URL` e `JWT_SEGREDO`: um servidor que sobe com
+chave padrão é pior que um que não sobe, porque parece funcionar.
+
 ## Autorização por papel
 
 Quem pode o quê vive em `packages/shared/src/permissoes.ts`, e não numa
@@ -125,8 +184,9 @@ IndexedDB) ou chame `recriarBanco()` de `src/dados/banco.ts`.
 ## Como testar
 
 ```bash
-npm run test:isolamento     # portão CA-06: 14 testes de isolamento entre municípios
-npm test                    # inclui a tabela de permissões por papel
+npm test                    # 46 testes: isolamento, permissões e API
+npm run test:isolamento     # portão CA-06 sozinho: 14 testes
+npm run test:api            # 26 testes de integração da API
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
 ```
@@ -165,12 +225,14 @@ mesmo papel sem privilégio que a API usará em produção.
 
 ## O que falta, e por quê
 
-- **API HTTP e autenticação real.** Hoje a escolha de perfil na entrada faz o
-  papel do token. O contrato já está no lugar certo: a organização sai de um
-  único ponto e vai para o `SET LOCAL`.
-- **Aplicativo de campo.** É onde vive a coleta offline com fila de
-  sincronização. O envelope e a chave de idempotência já estão definidos em
-  `packages/shared/src/schemas.ts` e a restrição de unicidade já está no banco.
+- **Ligar o painel web à API.** O painel ainda fala direto com o Postgres da
+  aba, e a API já existe ao lado. A troca é de implementação em
+  `src/dados/repositorio.ts`, que foi desenhado como ponto único justamente
+  para isso; as páginas não mudam.
+- **Aplicativo de campo.** A API que ele consome já está pronta
+  (`/sincronizacao/pendencias` e `/sincronizacao/vistoria`). Falta o Expo.
+- **Recuperação de senha.** Hoje só o administrador do município define senha
+  ao cadastrar. Sem isso, esquecer a senha é chamado para o suporte.
 - **Mapa cartográfico.** MapLibre GL JS depende de um provedor de tiles, que é
   custo recorrente por carregamento. Entra junto com a decisão de provedor. O
   que já existe plota as coordenadas reais gravadas.

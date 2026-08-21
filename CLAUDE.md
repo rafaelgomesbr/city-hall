@@ -122,6 +122,11 @@ Regras que valem lá e não são negociáveis:
 - **Régua de segurança:** OWASP ASVS 4.0 nível 2 como alvo, CIS Controls v8 IG1
   como piso. Dependência com vulnerabilidade conhecida em runtime é bug, não
   pendência: `npm audit` precisa fechar em zero.
+- **Na API, a organização vem do token verificado e de mais lugar nenhum.**
+  Nunca de cabeçalho, de parâmetro de rota ou do corpo da requisição. Recurso
+  de outro município responde 404, nunca 403: 403 confirmaria que existe.
+- **Toda escrita passa por `exigirPermissao` antes de tocar no banco.**
+  Esconder o botão na tela não é controle de acesso.
 - Idioma, taxonomia COBRADE, proibição de travessão e proibição de inventar
   norma continuam valendo igual, lá e aqui.
 
