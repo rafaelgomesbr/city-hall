@@ -1,0 +1,43 @@
+<h2><span class="num">02</span> &nbsp;Quem realmente compete</h2>
+<div class="h2-rule"></div>
+<p class="lead">Nenhum concorrente comercial cobre o fluxo operacional inteiro. Mas existem quatro tipos de concorrência parcial, cada um ocupando um pedaço diferente do problema, e é a soma deles que define o espaço real de manobra, não a ausência de um "líder" único para atacar.</p>
+
+<table>
+<thead><tr><th>Concorrente</th><th>O que é</th><th>Cobre do fluxo alvo</th><th>Preço/alcance</th><th>Fonte</th></tr></thead>
+<tbody>
+<tr><td><strong>Kad Defesa Civil</strong> (Enkad)</td><td>Software desktop de cadastro e fichas de ocorrência, para municípios pequenos</td><td>Só registro e relatório simples. Sem triagem, despacho, vistoria de campo, documento técnico ou encerramento auditável</td><td>R$ 195,00, licença vitalícia, sem mensalidade. Indicado a municípios de até 100 mil habitantes</td><td>enkad.com.br, 20/08/2026</td></tr>
+<tr><td><strong>PRODEC</strong> (Sec. de Defesa Civil do Rio de Janeiro)</td><td>Sistema web estadual, gratuito para municípios fluminenses</td><td>Registro de boletim de ocorrência, relatório fotográfico, mapa georreferenciado e estatística. Não cobre triagem, despacho, vistoria estruturada, documento técnico nem encerramento</td><td>Gratuito. 71 de 92 municípios do RJ aderiram, 41 usam rotineiramente</td><td>gov.br/mdr, boas práticas PRODEC (fev/2022); defesacivil.rj.gov.br, 20/08/2026</td></tr>
+<tr><td><strong>CCONET LTDA</strong> ("199 Cidadão")</td><td>Plataforma comercial de segurança pública e atendimento ao cidadão, com módulo de defesa civil</td><td>Canal de abertura de ocorrência e chat com o cidadão. Não há evidência de triagem interna, despacho de equipe, vistoria de campo ou documento técnico</td><td>Comercial, já implantada em mais de 30 municípios. Preço não público</td><td>cconet.com.br, 20/08/2026</td></tr>
+<tr><td><strong>Colab</strong> ("Colab Campo")</td><td>Grande plataforma de participação cidadã e gestão municipal, com app nativo dedicado ao servidor de campo</td><td>Vistoria/fiscalização de campo, offline, com foto e GPS — tecnicamente o problema mais difícil deste produto, já resolvido por eles para outros casos de uso municipal. Não é especializado em defesa civil (sem COBRADE, sem laudo de interdição, sem exportação alinhada ao S2ID)</td><td>Comercial, adoção em centenas de prefeituras brasileiras (posição de mercado, não medida diretamente nesta pesquisa). App nativo (não PWA) confirmado na App Store</td><td>App Store BR (id 1480417557), 20/08/2026</td></tr>
+</tbody>
+</table>
+
+<div class="box neutral">
+<span class="bt">O que NÃO é concorrente, e por quê</span>
+<p style="margin-bottom:0">O S2ID (sistema federal de registro de desastre e pedido de recursos, usado por 94,3% dos municípios brasileiros) e sistemas de alerta como Defesa Civil Alerta e o Cemaden não competem com o produto: eles não fazem protocolo de solicitação do cidadão, triagem, despacho de equipe nem vistoria de campo. São, na melhor hipótese, sistemas com os quais o produto deveria gerar dados compatíveis, nunca substituir. O próprio posicionamento do projeto (<code>docs/CONTEXTO.md</code>) já acerta nisso.</p>
+</div>
+
+<h3>Sistemas próprios, feitos por dentro da prefeitura: o padrão mais comum</h3>
+<p>A busca por apps de defesa civil na App Store brasileira (API pública da Apple, 20/08/2026) devolveu majoritariamente aplicativos operados diretamente por órgãos públicos (Defesa Civil do Amazonas, Prefeitura de Sorocaba, Prefeitura de Blumenau, Defesa Civil de Niterói, entre outros), quase todos com adoção muito baixa: o Alerta SP tem nota 1,65 com 20 avaliações; o ALERTABLU, de Blumenau, tem nota 2,07 com 57 avaliações; a maioria dos demais não chega a dez avaliações. Também encontrei, fora das lojas, sistemas próprios de Belém ("Sistema de Vistorias da Defesa Civil", dentro do portal Descomplica Belém), Rio de Janeiro (autovistoria.rio.rj.gov.br) e Juiz de Fora (protocolo digital de vistorias), todos aparentando ser desenvolvimento interno da prefeitura, sem indício de venda a terceiros.</p>
+<p><strong>Minha leitura é que</strong> essa fragmentação é, ao mesmo tempo, a prova da dor (cada prefeitura maior sente a necessidade e tenta resolver sozinha, com resultado mediano) e o maior risco comercial: não existe uma linha orçamentária consolidada de "software de defesa civil" em edital público que um vendedor possa repetir. Cada venda provavelmente exige educar o comprador do zero sobre por que contratar em vez de continuar com WhatsApp, planilha e um sistema caseiro.</p>
+
+<h3>Betha Sistemas e IPM Sistemas: os grandes ERPs municipais não têm módulo de defesa civil, até onde a pesquisa alcançou</h3>
+<p>Checagem em duas rodadas independentes (a minha e a de um subagente dedicado) não encontrou módulo de defesa civil, proteção civil, gestão de riscos ou ocorrências no catálogo público da Betha Sistemas (betha.com.br, betha.store) nem da IPM Sistemas/Atende.Net (ipm.com.br). Várias prefeituras têm uma página "Defesa Civil" dentro do portal do cidadão hospedado em Atende.Net (Indaial, Presidente Getúlio, Brusque, Porto Belo, Gravataí, Pinhais), mas a inspecionada (Indaial) é conteúdo institucional estático, sem formulário funcional. <span class="tag tag-warn">A confirmar</span>: as duas checagens foram superficiais (catálogos são SPAs difíceis de indexar por busca); não naveguei uma demo logada de nenhum dos dois antes de descartar a hipótese. Isso importa porque, se qualquer um deles lançar um módulo de defesa civil, o custo marginal de venda deles (cliente já pagando por outros módulos) é quase zero — um risco de entrada de concorrente que vale monitorar, não uma ameaça confirmada hoje.</p>
+
+<h3>A voz do cliente insatisfeito: onde o "grande" já falha</h3>
+<p>Não há perfil localizável da Enkad/Kad no Reclame Aqui (busca e tentativa de acesso direto, ambas sem resultado em 20/08/2026) — indício de visibilidade muito baixa, não prova de ausência de reclamação. Já o Colab Campo, apesar de ser o concorrente mais capitalizado e de maior alcance encontrado nesta pesquisa, tem avaliações públicas reais que expõem exatamente o tipo de falha que mais destrói confiança num aplicativo usado por servidor público em campo:</p>
+<div class="box danger no-break">
+<span class="bt">Avaliação de 1 estrela, Colab Campo, App Store Brasil</span>
+<p style="margin-bottom:4px">"Existe um cadastro mas não tem a opção de esqueci a senha para mudar." — Renata Aroca, versão 1.4.13, 07/02/2023</p>
+<p style="margin-bottom:4px">"Baixei o APP por conta da prefeitura, mas não tem a opção de cadastr[ar]..." — V. Alvarenga, versão 1.4.14, 23/02/2023</p>
+<p style="margin-bottom:0">"Após atualização não abre mais." — gpec2, versão 2.0.0, 08/08/2024</p>
+</div>
+<p><strong>Minha leitura é que</strong> um concorrente do tamanho do Colab ainda erra em onboarding básico (recuperação de senha, cadastro) e em estabilidade pós-atualização, dois anos depois da primeira reclamação registrada. Isso é, ao mesmo tempo, um alerta (não presuma que "ser grande" resolve qualidade) e uma oportunidade real e barata: um produto novo que acerte onboarding e suporte responsivo desde o primeiro piloto já nasce à frente do concorrente mais forte identificado nesta pesquisa nesse quesito específico.</p>
+
+<h3>Lacunas desta seção, declaradas</h3>
+<ul>
+<li><span class="tag tag-warn">A confirmar</span> Catálogo completo da Betha Sistemas e da IPM Sistemas, com navegação logada ou contato comercial direto.</li>
+<li><span class="tag tag-warn">A confirmar</span> Alcance real do CCONET (quantos municípios usam especificamente o módulo de defesa civil, não só os módulos de segurança) e se o backend interno deles já cobre triagem/despacho.</li>
+<li><span class="tag tag-warn">Não encontrado</span> Perfil da Enkad/Kad no Reclame Aqui (bloqueio de acesso e busca sem resultado).</li>
+<li><span class="tag tag-warn">Não pesquisado</span> Google Play (a API pública equivalente à da Apple não existe da mesma forma; ficou fora do orçamento desta rodada).</li>
+</ul>

@@ -1,18 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600&display=swap');
+
 /* ============================================================
-   Design System DC360 v0.1 - tokens.css
+   Design System DC360 v0.2 - tokens.css
    Fonte única de tokens para o protótipo (Fase 0).
    Componentes usam SOMENTE variáveis --ds-*. Valor fora daqui é bug.
    Espelha design-system/DESIGN_SYSTEM.md e _tokens.scss.
+
+   Decisão de 2026-08-20: identidade trocada de laranja para violeta,
+   com Work Sans e Roboto Mono via Google Fonts. Isso é uma exceção
+   explícita e pontual à regra de zero rede do CLAUDE.md, pedida e
+   confirmada pelo Rafa: a única chamada de rede permitida no protótipo
+   inteiro é este @import de fonte. Nenhuma outra chamada de rede,
+   nenhum outro CDN. Ver CLAUDE.md e docs/ROADMAP_FASE0.md.
    ============================================================ */
 
 :root {
-  /* ---------- Primitivas: laranja (marca) ---------- */
-  --ds-orange-300: #FFC078;
-  --ds-orange-400: #FFA94D;
-  --ds-orange-500: #F76707;
-  --ds-orange-600: #E8590C;
-  --ds-orange-700: #C2410C;
-  --ds-orange-800: #9A3412;
+  /* ---------- Primitivas: violeta (marca, decisão de 2026-08-20) ----------
+     Contraste verificado (luminância relativa, fórmula WCAG):
+     violeta-700 (#5B21B6) sobre branco: 8.98:1 (tema claro, --ds-accent).
+     violeta-400 (#A78BFA) sobre ink-950: 6.75:1 (tema escuro, --ds-accent).
+     Ambos acima do mínimo AA (4.5:1). */
+  --ds-violet-300: #C4B5FD;
+  --ds-violet-400: #A78BFA;
+  --ds-violet-500: #7C3AED;
+  --ds-violet-600: #6D28D9;
+  --ds-violet-700: #5B21B6;
+  --ds-violet-800: #4C1D95;
 
   /* ---------- Primitivas: neutros ---------- */
   --ds-ink-950: #101519;
@@ -35,9 +48,9 @@
   --ds-border:        var(--ds-ink-200);
   --ds-text:          var(--ds-ink-900);
   --ds-text-muted:    var(--ds-ink-500);
-  --ds-accent:        var(--ds-orange-700); /* links e ações: 5.18:1 sobre branco */
-  --ds-accent-hover:  var(--ds-orange-800);
-  --ds-accent-graphic: var(--ds-orange-600); /* só elementos gráficos grandes */
+  --ds-accent:        var(--ds-violet-700); /* links e ações: 8.98:1 sobre branco */
+  --ds-accent-hover:  var(--ds-violet-800);
+  --ds-accent-graphic: var(--ds-violet-600); /* só elementos gráficos grandes */
   --ds-on-accent:     var(--ds-white);
 
   /* Severidade (texto / fundo) */
@@ -55,10 +68,18 @@
   --ds-shadow-1: 0 1px 2px rgba(16, 21, 25, 0.06), 0 1px 3px rgba(16, 21, 25, 0.10);
   --ds-shadow-2: 0 4px 12px rgba(16, 21, 25, 0.10);
   --ds-shadow-3: 0 12px 28px rgba(16, 21, 25, 0.16);
-  --ds-focus-ring: 0 0 0 2px var(--ds-bg), 0 0 0 4px var(--ds-orange-600);
+  --ds-focus-ring: 0 0 0 2px var(--ds-bg), 0 0 0 4px var(--ds-violet-600);
+
+  /* Gradiente de marca: entre --ds-accent e --ds-accent-hover, então herda o
+     contraste já verificado desses dois tokens em cada tema (nunca as pontas
+     soltas violet-400/500, que reprovam AA como fundo de texto). O brilho usa
+     primitiva fixa porque é sombra decorativa, não fundo de texto. */
+  --ds-accent-gradient: linear-gradient(135deg, var(--ds-accent), var(--ds-accent-hover));
+  --ds-accent-glow: 0 8px 20px color-mix(in srgb, var(--ds-violet-500) 35%, transparent);
 
   /* Tipografia */
-  --ds-font: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ds-font: "Work Sans", -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ds-font-mono: "Roboto Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
   --ds-fs-display: 44px; --ds-lh-display: 48px;
   --ds-fs-h1: 32px;      --ds-lh-h1: 38px;
   --ds-fs-h2: 24px;      --ds-lh-h2: 30px;
@@ -94,10 +115,10 @@
   --ds-border:        var(--ds-ink-700);
   --ds-text:          var(--ds-ice);
   --ds-text-muted:    var(--ds-ink-400);
-  --ds-accent:        var(--ds-orange-400); /* 8.84:1 sobre surface */
-  --ds-accent-hover:  var(--ds-orange-300);
-  --ds-accent-graphic: var(--ds-orange-500);
-  --ds-on-accent:     var(--ds-ink-950);    /* botão escuro: fundo orange-500, texto ink-950 (6.03:1) */
+  --ds-accent:        var(--ds-violet-400); /* 6.75:1 sobre ink-950 */
+  --ds-accent-hover:  var(--ds-violet-300);
+  --ds-accent-graphic: var(--ds-violet-500);
+  --ds-on-accent:     var(--ds-ink-950);    /* botão escuro: fundo violet-400, texto ink-950 (6.75:1) */
 
   --ds-sev-baixa-fg:   #AEB9C2;  --ds-sev-baixa-bg:   rgba(174, 185, 194, 0.12);
   --ds-sev-media-fg:   #FCC419;  --ds-sev-media-bg:   rgba(252, 196, 25, 0.12);
@@ -111,7 +132,7 @@
   --ds-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45);
   --ds-shadow-2: 0 4px 12px rgba(0, 0, 0, 0.50);
   --ds-shadow-3: 0 12px 28px rgba(0, 0, 0, 0.60);
-  --ds-focus-ring: 0 0 0 2px var(--ds-bg), 0 0 0 4px var(--ds-orange-400);
+  --ds-focus-ring: 0 0 0 2px var(--ds-bg), 0 0 0 4px var(--ds-violet-400);
 
   color-scheme: dark;
 }

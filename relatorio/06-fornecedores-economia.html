@@ -1,0 +1,62 @@
+<h2><span class="num">05</span> &nbsp;Fornecedores, arquitetura e economia unitária</h2>
+<div class="h2-rule"></div>
+<p class="lead">O custo que escala neste produto não é o de um SaaS de consumo comum: não é "por usuário", é por evidência fotográfica armazenada e reaberta, e por chamada de mapa. Isso muda qual decisão de arquitetura vale dinheiro de verdade.</p>
+
+<h3>Nuvem: a decisão de maior alavancagem é onde guardar a foto, não onde rodar o servidor</h3>
+<table class="tight">
+<thead><tr><th>Item</th><th>AWS S3 (sa-east-1, São Paulo)</th><th>Cloudflare R2</th><th>Fonte</th></tr></thead>
+<tbody>
+<tr><td>Armazenamento</td><td>US$ 0,0405/GB-mês</td><td>US$ 0,015/GB-mês</td><td>aws.amazon.com/s3 (API oficial de preços), developers.cloudflare.com/r2/pricing, 20/08/2026</td></tr>
+<tr class="row-hi"><td>Saída de dados (egress)</td><td>US$ 0,15/GB (até 10 TB/mês)</td><td><strong>US$ 0 — gratuito</strong></td><td>Idem. Preço da AWS em São Paulo não muda desde a redução de 2020, e segue sendo a região mais cara da AWS para egress</td></tr>
+</tbody>
+</table>
+<p>R2 custa cerca de 2,7 vezes menos em armazenamento puro e elimina inteiramente a cobrança de egress. Como o app de campo existe justamente para baixar e reabrir fotos de vistoria (coordenador revisando, laudo sendo composto, reenvio depois de falha), <strong>o multiplicador de economia cresce com o próprio uso do produto</strong> — esta é a decisão de arquitetura de maior retorno financeiro deste projeto, mais impactante que a escolha de linguagem ou framework.</p>
+
+<h3>Mapa: a cota gratuita do Google mudou, e isso muda o cálculo de custo por cliente pequeno</h3>
+<p>Em 1º de março de 2025, o Google removeu o antigo crédito mensal fixo de US$ 200 do Google Maps Platform e passou a conceder <strong>10.000 chamadas grátis por mês, por API individual</strong> (Geocoding, Maps JavaScript, Places, cada uma com sua própria cota), no nível Essentials — confirmado diretamente na página oficial de preços em 20/08/2026. Acima disso, Geocoding custa entre US$ 4,00 e US$ 5,00 por mil chamadas, com desconto automático de volume. Para a esmagadora maioria dos municípios pequenos e médios do produto, o uso mensal de mapa deve ficar dentro da cota gratuita por SKU. A alternativa de custo zero garantido é Leaflet ou MapLibre GL JS (ambos de código aberto, licença permissiva) com tiles do OpenStreetMap — mas o serviço público de geocodificação do OpenStreetMap (Nominatim) tem limite rígido de 1 requisição por segundo e proíbe uso comercial sério sem hospedagem própria, segundo a própria política oficial do projeto.</p>
+
+<h3>Assinatura eletrônica do documento técnico: existe caminho gratuito, mas o custo para uso por terceiros não está publicado</h3>
+<p>O governo federal mantém uma API oficial de Assinatura Eletrônica Avançada gov.br (Decreto nº 10.543/2020), com validade jurídica equivalente à assinatura física, e que dispensaria certificado ICP-Brasil por usuário. Não encontrei, nas páginas públicas, o custo dessa API para uso por um SaaS privado atuando em nome de várias prefeituras — <span class="tag tag-warn">a confirmar</span> diretamente com a equipe do produto (contato oficial: int-assinatura-govbr@gestao.gov.br). Como alternativa comercial de mercado, com preço público confirmado em 20/08/2026: Clicksign a partir de R$ 59/mês ou R$ 4,30 a R$ 6,90 por documento avulso; D4Sign a partir de R$ 24,90/mês (5 envios); DocuSign Brasil a partir de R$ 45/mês (5 envelopes).</p>
+
+<h3>Arquitetura offline-first: o padrão de mercado brasileiro já respondeu essa pergunta</h3>
+<p>O ponto mais frágil tecnicamente do produto é a promessa central de venda: sincronizar sem perder nem duplicar depois de dias sem sinal. A pesquisa confirmou, de forma independente, que o Safari/iOS tem histórico documentado de limitar e, em versões passadas, descartar dado armazenado localmente em aplicativo não revisitado (política de expiração que já chegou a ser de 7 dias), não oferece suporte real à Background Sync API (o aplicativo precisa estar aberto em primeiro plano para sincronizar), e tem histórico de bugs de IndexedDB associados a atualizações de sistema operacional. <span class="tag tag-warn">A confirmar</span> o estado exato dessa política em 2026, já que o iOS já mudou essa regra mais de uma vez.</p>
+<p>Mais decisivo que a limitação técnica isolada é o padrão de mercado: confirmei diretamente, via a API pública da App Store brasileira, que o <strong>Colab Campo</strong> (o concorrente indireto mais capitalizado identificado nesta pesquisa, seção 02) é um <strong>aplicativo nativo</strong>, não um PWA, para exatamente o mesmo cenário de uso ("funciona offline, envia automaticamente quando a conexão voltar"). Nenhum produto de gestão pública municipal brasileira encontrado nesta pesquisa resolve vistoria de campo offline com foto e GPS por PWA.</p>
+<div class="box no-break">
+<span class="bt">Isto confirma, de forma independente, uma decisão já tomada</span>
+<p style="margin-bottom:0">O levantamento técnico interno do projeto já havia decidido, na v1.1, migrar o app de campo do produto real para React Native com Expo e SQLite local, exatamente pelo mesmo motivo agora corroborado pelo padrão de mercado. Não é uma recomendação nova desta análise: é uma segunda fonte independente confirmando que a decisão já tomada está certa, e que tratar o protótipo HTML como base de código para o app de campo real seria um erro.</p>
+</div>
+
+<h3>Economia unitária: premissas explícitas</h3>
+<p>Premissa de câmbio: US$ 1,00 ≈ R$ 5,20 (referência de mercado em 20/08/2026, a confirmar no dia do fechamento de preço). Premissa de arquitetura: banco de dados e computação são <strong>compartilhados entre todos os clientes</strong> (multi-tenant com Row Level Security, decisão já fixada no levantamento técnico interno) — ou seja, o custo de nuvem é majoritariamente um <strong>custo fixo da operação como um todo</strong>, que cresce em degraus conforme o volume total soma, não um custo que se multiplica por cliente. Isso corrige uma leitura ingênua que trataria "custo por cliente" como se cada prefeitura tivesse seu próprio servidor.</p>
+
+<table class="tight">
+<thead><tr><th>Item de custo</th><th>Natureza</th><th>Valor estimado</th><th>Confiança</th></tr></thead>
+<tbody>
+<tr><td>Computação (2 vCPU/4GB, ponto de partida)</td><td>Fixo da operação</td><td>US$ 49 a 98/mês (R$ 255 a R$ 510)</td><td>Estimado por agregador de preço regional, não pela calculadora oficial — a confirmar</td></tr>
+<tr><td>Banco PostgreSQL gerenciado compartilhado</td><td>Fixo da operação</td><td>US$ 89 a 190/mês (R$ 460 a R$ 990)</td><td>Idem, a confirmar</td></tr>
+<tr><td>Fila/jobs (Redis)</td><td>Fixo da operação</td><td>Não cotado nesta pesquisa</td><td>Não encontrado — orçar na Fase 1</td></tr>
+<tr><td>Assinatura eletrônica (plano de entrada comercial)</td><td>Fixo da operação</td><td>R$ 60 a R$ 100/mês</td><td>Preço público confirmado (seção acima)</td></tr>
+<tr><td>Armazenamento + egress de evidências, por cliente pequeno</td><td>Variável por cliente</td><td>≈ R$ 0,50 a R$ 2/mês (R2) a R$ 2 a R$ 5/mês (S3)</td><td>Fonte oficial (tabela de nuvem acima)</td></tr>
+<tr><td>Armazenamento + egress de evidências, por cliente médio</td><td>Variável por cliente</td><td>≈ R$ 5/mês (R2) a R$ 23/mês (S3)</td><td>Idem</td></tr>
+<tr><td>Armazenamento + egress de evidências, por cliente grande</td><td>Variável por cliente</td><td>≈ R$ 42/mês (R2) a R$ 289/mês (S3)</td><td>Idem</td></tr>
+<tr><td>DPO externo, seguro de responsabilidade profissional, pentest anual</td><td>Fixo da operação</td><td>Não cotado nesta pesquisa</td><td>Não encontrado — o próprio levantamento técnico interno já sinaliza que são custos reais e recorrentes, mas nenhuma cotação brasileira foi levantada</td></tr>
+</tbody>
+</table>
+
+<div class="callout-grid no-break">
+<div><div class="cg-t">Margem de contribuição, cliente médio</div><div class="cg-v">≈ R$ 2.450/mês</div><div class="cg-d">Preço sugerido de R$ 2.500/mês (seção 07) menos custo variável direto de ≈ R$ 25 a 50/mês</div></div>
+<div><div class="cg-t">Ponto de equilíbrio, só infraestrutura mensurável</div><div class="cg-v">1 a 2 clientes</div><div class="cg-d">de porte médio já cobrem compute + banco + assinatura eletrônica mensuráveis nesta pesquisa</div></div>
+<div><div class="cg-t">Ponto de equilíbrio real, com os itens não cotados</div><div class="cg-v">Não determinável</div><div class="cg-d">DPO, seguro e pentest ainda sem cotação. Provavelmente mais alto — ver aviso abaixo</div></div>
+</div>
+
+<div class="box warn no-break">
+<span class="bt">O número que engana se lido sozinho</span>
+<p style="margin-bottom:0">A infraestrutura de nuvem, isolada, se paga com um ou dois clientes de porte médio. <strong>Isso não significa que o negócio se sustenta com um ou dois clientes.</strong> O verdadeiro fator limitante, segundo o próprio levantamento técnico interno do projeto, é a capacidade de entrega: um desenvolvedor, até 10 horas por semana, com estimativa de 18 a 24 meses até um piloto realista. Nenhuma quantidade de clientes paga isso de volta rápido o suficiente sem também resolver a questão de tempo e de sócio (seção 10). Trate o "ponto de equilíbrio de servidor" como a menor das preocupações financeiras deste projeto, não a maior.</p>
+</div>
+
+<h3>Lacunas desta seção, declaradas</h3>
+<ul>
+<li><span class="tag tag-warn">A confirmar</span> Preço exato de computação e banco de dados nas três nuvens em região Brasil, direto da calculadora oficial (as estimativas acima vieram de agregador de terceiros, cruzado contra o múltiplo regional confirmado via S3, não da calculadora).</li>
+<li><span class="tag tag-warn">A confirmar</span> Custo da API gov.br de assinatura avançada para uso por SaaS privado em nome de terceiros.</li>
+<li><span class="tag tag-warn">Não encontrado</span> Cotação brasileira de DPO externo, seguro de responsabilidade profissional (E&O/cyber) e pentest anual — pesa diretamente no custo fixo real da operação e precisa ser levantado antes de fechar preço final.</li>
+</ul>

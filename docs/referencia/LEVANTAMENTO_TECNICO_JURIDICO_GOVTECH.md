@@ -19,6 +19,37 @@ A seção 11 fecha com o escopo exato do protótipo HTML clicável que você ped
 
 **Aviso honesto:** eu não sou advogado. As referências normativas abaixo foram verificadas em fontes oficiais em 19/08/2026, mas contrato administrativo, cessão de direitos de software e cláusulas de LGPD precisam de revisão de advogado com prática em direito público e digital antes de qualquer assinatura. O custo disso é baixo perto do risco.
 
+### Registro de revisões (v1.2, 21/08/2026): reconciliação com o dossiê de viabilidade
+
+O dossiê de viabilidade (`relatorio/Defesa-Civil-360-Dossie-Viabilidade.pdf`, 20/08/2026) produziu evidência de fonte primária sobre concorrência, preço de fornecedor e arquitetura offline. Este registro reconcilia essa evidência com o que a v1.1 já afirmava. Onde uma seção antiga divergir daqui, este registro prevalece.
+
+**Confirmado por evidência externa (a v1.1 estava certa, agora com prova)**
+
+- **App de campo nativo, não PWA (seção 4.2).** A escolha por React Native com Expo e `expo-sqlite` era, na v1.1, um argumento técnico. Agora tem prova de mercado: o Colab distribui o "Colab Campo" como app nativo nas duas lojas, e o 1Doc faz o mesmo com o "Fiscaliza App", ambos para o cenário de servidor municipal trabalhando offline (App Store brasileira, consultada em 20/08/2026). Nenhum concorrente brasileiro de gestão pública municipal resolve vistoria de campo offline por PWA. As limitações que sustentam isso também foram documentadas: no iOS não há Background Sync real (o app precisa estar aberto em primeiro plano para sincronizar) e o IndexedDB tem histórico de eviction e corrupção. **A confirmar:** o estado atual exato da política de eviction do Safari, que a WebKit já revisou mais de uma vez.
+- **MapLibre GL JS (seção 4.2).** Confirmado como escolha correta, e o alerta de "custo de tile é armadilha orçamentária clássica" ficou mais concreto: em 01/03/2025 o Google removeu o crédito mensal de US$ 200 do Maps Platform, substituindo por cotas gratuitas por SKU que não somam entre si. Além disso, o Nominatim público não é viável para uso comercial (limite de 1 requisição por segundo por aplicação, e a própria política recomenda instância própria ou provedor pago para uso sério), o que transforma geocodificação em custo operacional fixo, não em custo por requisição.
+- **PostgreSQL com PostGIS e RLS por `organization_id` (seção 4.3).** Sem contradição. O dossiê reforça o portão de saída que a especificação original já definia (CA-06): teste automatizado que tenta ler dado de um tenant com token de outro, rodando em cada PR e bloqueando o merge.
+
+**Corrigido ou quantificado (a v1.1 identificou o problema, o dossiê traz o número)**
+
+- **Armazenamento de objetos: a armadilha da seção 6.3 agora tem saída.** A v1.1 chamava o tráfego de saída de "armadilha do modelo de negócio" mas não tinha preço. Números oficiais obtidos da AWS Price List Bulk API em 20/08/2026: S3 Standard em sa-east-1 custa **US$ 0,0405 por GB-mês**, e o Data Transfer Out custa **US$ 0,15 por GB** (São Paulo é a região mais cara da AWS nesse quesito; o preço não muda desde a redução anunciada em 2020). Cloudflare R2, pela documentação oficial: **US$ 0,015 por GB-mês e egress zero, inclusive via API S3**. Para um produto cujo custo variável dominante é foto de vistoria sendo revisitada (triagem revendo, laudo compondo, reenvio após falha de sincronização), isso é a decisão de arquitetura de maior alavancagem financeira do produto. A recomendação da seção 4.2 ("S3-compatível") continua válida como interface; a escolha de fornecedor pende fortemente para R2.
+- **Assinatura eletrônica (seção 2).** Existe API oficial de Assinatura Eletrônica **Avançada** do gov.br, regulamentada pelo Decreto 10.543/2020, com manual de integração público. A leitura preliminar é que o nível avançado basta para laudo de vistoria e termo de interdição, sem exigir certificado ICP-Brasil (o que elimina custo recorrente de certificado por usuário). **Isto não é parecer jurídico:** antes de comprometer a arquitetura, confirmar com o jurídico do órgão-piloto se há norma municipal ou estadual exigindo nível qualificado para termo de interdição.
+
+**Lacunas que continuam abertas, com o que resolve cada uma**
+
+Nenhuma delas deve ser preenchida por estimativa em documento comercial. Todas exigem consulta a fonte.
+
+| Lacuna | O que resolve | Por que importa |
+| --- | --- | --- |
+| Preço real de computação e banco em região Brasil | Rodar as três calculadoras oficiais (AWS, GCP, Azure) uma vez, manualmente | O dossiê estimou por múltiplo regional (60 a 75% de sobretaxa sobre a região americana), confirmado só para S3 e Data Transfer. Compute e banco seguem estimados |
+| Custo da API gov.br de assinatura avançada para SaaS privado em nome de terceiros | Contato direto com a coordenação responsável (int-assinatura-govbr@gestao.gov.br) | Se houver custo por assinatura, muda a economia unitária por vistoria |
+| Cotação de DPO externo, seguro de responsabilidade profissional e pentest anual | Três cotações no mercado brasileiro | São custos fixos de conformidade que não aparecem na conta de servidor e distorcem a margem real. O dossiê classifica essa lacuna como risco de impacto médio e probabilidade alta |
+| Estado atual da política de eviction de armazenamento do Safari/iOS | Documentação corrente do WebKit | Só importa se o PWA voltar a ser considerado para o app de campo; com a decisão por nativo, é risco secundário |
+| Equivalente ao PRODEC (RJ) em outros estados | Consulta às defesas civis estaduais | O PRODEC é gratuito e usado por 41 dos 92 municípios fluminenses. Se houver equivalente em outros estados, muda o mapa de concorrência antes da expansão |
+
+**O que não muda**
+
+A régua de segurança da seção 5 permanece: OWASP ASVS 4.0 nível 2 como alvo, CIS Controls v8 IG1 como piso operacional, ISO 27001 como meta comercial de médio prazo, ZAP em staging a cada release, e OWASP MASVS/MASTG no app mobile. O dossiê não trouxe evidência que contradiga nada disso, e o levantamento continua sendo a fonte de verdade para arquitetura e segurança do produto real.
+
 ### Registro de revisões (v1.1, 19/08/2026)
 
 Decisões tomadas depois da v1.0, que este documento agora reflete. Onde uma seção antiga divergir deste registro, o registro prevalece.

@@ -37,12 +37,30 @@ Protótipo navegável em HTML puro, mais documentação de apresentação, para 
 A paleta, os temas, as sombras, a tipografia e o movimento estão DEFINIDOS em design-system/tokens.css e documentados em design-system/DESIGN_SYSTEM.md, com contraste AA verificado numericamente. Importe tokens.css e use somente variáveis --ds-*. Cor, sombra, raio ou duração hardcoded em componente é bug e reprova no gate de QA. O arquivo design-system/_tokens.scss é a versão para a fase real do produto: não usar no protótipo.
 
 A primeira reação de quem assiste à demo deve ser: "isso é muito mais bonito que qualquer sistema público que eu já usei". A estética alvo é produto enterprise polido e sóbrio, com acabamento de aplicativo moderno. Nunca visual de brinquedo, nunca template genérico de dashboard.
-- Identidade: o laranja institucional da Defesa Civil como cor de destaque, sobre neutros sólidos e profundos. A paleta já está pronta nos tokens: não criar cores novas. Não usar creme com serifa e terracota, nem fundo preto com verde ácido: são clichês de design gerado por IA.
+- Identidade: violeta como cor de destaque (ver decisão de 2026-08-20 abaixo; era laranja institucional até então), sobre neutros sólidos e profundos. A paleta já está pronta nos tokens: não criar cores novas fora deles. Não usar creme com serifa e terracota, nem fundo preto com verde ácido: são clichês de design gerado por IA.
 - Modo claro e modo escuro completos desde o CP1, com alternância visível no topo e aplicada a todas as telas. Nenhuma tela pode existir em um modo só.
-- Tipografia: pilha de fontes do sistema (a regra de zero rede impede fonte externa), mas com hierarquia forte e intencional: números grandes com rótulos discretos no painel, pesos e espaçamentos definidos como tokens.
-- Movimento: micro-interações com propósito, em CSS puro (transitions e keyframes), entre 150 e 300 ms, easing suave. Feedback de toque, transição de status na fila, contadores que sobem ao carregar o painel, skeleton sutil. Sempre respeitar prefers-reduced-motion.
+- Tipografia: Work Sans (corpo) e Roboto Mono (protocolos, matrículas, números tabulares), carregadas por um único `@import` de fonte no `tokens.css` (ver exceção de rede na decisão de 2026-08-20), com fallback para a pilha do sistema se a fonte não carregar. Hierarquia forte e intencional: números grandes com rótulos discretos no painel, pesos e espaçamentos definidos como tokens.
+- Movimento: micro-interações com propósito, em CSS puro (transitions e keyframes), easing suave. Sempre respeitar prefers-reduced-motion.
 - O elemento assinatura do protótipo é o simulador de offline: a fila de sincronização enchendo item a item, o retorno do sinal e a sincronização concluindo com feedback visual satisfatório. Concentre o melhor do capricho visual nesse momento; ele é o clímax da demo.
-- Proibido: animação que bloqueie interação por mais de 300 ms, confete, som, parallax, gradientes espalhafatosos e qualquer efeito que engasgue num notebook fraco de prefeitura.
+- Proibido, sem exceção: confete, som, parallax e qualquer efeito que engasgue num notebook fraco de prefeitura.
+
+### Decisão de 2026-08-20: direção visual mais ousada
+
+O Rafa pediu explicitamente mais impacto visual no protótipo inteiro, não só sobriedade bem executada. Isso afrouxa (não revoga) a regra acima:
+
+- O teto de 150-300 ms para movimento deixa de ser rígido. Transições de tela, confirmações e o clímax do offline podem durar mais (até por volta de 500 ms), desde que a duração venha de `calc()` sobre um token existente (ex.: `calc(var(--ds-dur-slow) * 1.5)`), nunca de um número solto. Interações rápidas de resposta a toque (hover, clique) continuam curtas.
+- Elevação pode ser usada com mais liberdade: cards de destaque (indicadores do painel, momentos de confirmação) podem saltar para `--ds-shadow-2`/`--ds-shadow-3` mesmo fora de dropdown/modal, se isso for deliberado e consistente entre telas.
+- Gradiente é permitido quando os dois pontos do gradiente são tokens `--ds-*` já existentes (ex.: `--ds-accent` para `--ds-accent-hover`), nunca cor inventada, e nunca no fundo inteiro da tela: uso pontual, em elementos de destaque.
+- Continua proibido: cor, sombra, raio ou duração fora de `--ds-*` (incluindo dentro de gradientes ou `calc()`).
+
+### Decisão de 2026-08-20 (segunda emenda): troca de identidade para violeta e exceção de fonte de rede
+
+O Rafa mandou um HTML de referência (export do canvas do Claude Design) com paleta roxa/violeta e tipografia Work Sans + Roboto Mono via Google Fonts, e pediu explicitamente para o protótipo assumir esse visual, autorizando mexer no design system se necessário. Isso substitui a identidade laranja e abre uma exceção pontual à regra de zero rede:
+
+- A cor de destaque deixa de ser laranja e passa a ser violeta. As primitivas `--ds-orange-*` foram renomeadas para `--ds-violet-*` em `design-system/tokens.css` (e espelhadas em `_tokens.scss`), com os mesmos tokens semânticos (`--ds-accent`, `--ds-accent-hover`, `--ds-accent-graphic`, `--ds-focus-ring`) apontando para as novas primitivas. Contraste AA reverificado e documentado em comentário no próprio `tokens.css`. Continua proibido inventar cor fora dessas primitivas.
+- `design-system/tokens.css` deixa de ser somente local: seu topo agora tem um único `@import` do Google Fonts (Work Sans e Roboto Mono). Essa é a ÚNICA chamada de rede permitida no protótipo inteiro. Continua proibido qualquer outro `fetch`, `XMLHttpRequest`, CDN de script, imagem remota ou qualquer outro recurso de rede. Se a demo rodar sem internet, a fonte cai no fallback do sistema definido no próprio token (`-apple-system, "Segoe UI", ...`), então o protótipo continua abrindo e funcionando offline, só sem a fonte bonita.
+- `design-system/_tokens.scss` pode ser tocado para espelhar a paleta violeta (deixou de ser "intocado"), mas continua sendo a versão de referência para a fase real, não para uso direto no protótipo.
+- Pinos de severidade no mapa, selos de status e cores semânticas (sucesso/perigo/info) NÃO mudam: a regra de "nunca comunicar severidade com a cor de marca" vale igual para violeta.
 
 ## Protocolo de trabalho (checkpoints)
 1. Trabalhe sempre em checkpoints definidos em docs/ROADMAP_FASE0.md.

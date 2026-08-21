@@ -1,0 +1,35 @@
+<h2><span class="num">08</span> &nbsp;O protótipo hoje, e a reunião de segunda-feira</h2>
+<div class="h2-rule"></div>
+<p class="lead">Esta seção não vem de pesquisa de mercado. Vem de ler o próprio repositório do projeto: o histórico do git, o roadmap da Fase 0 e o contexto de produto. É a descoberta mais acionável deste dossiê, porque muda o que fazer nos próximos quatro dias, não em dezoito meses.</p>
+
+<div class="callout-grid no-break">
+<div><div class="cg-t">Checkpoints concluídos</div><div class="cg-v">4 de 9</div><div class="cg-d">Commits confirmam CP1 (esqueleto), CP2 (painel do coordenador), CP3+CP4 (abertura, duplicidade, triagem, despacho e vistoria de campo completa)</div></div>
+<div><div class="cg-t">Dias até a reunião</div><div class="cg-v">4</div><div class="cg-d">Hoje é quinta-feira, 20/08/2026; a reunião é segunda-feira, 24/08/2026</div></div>
+<div><div class="cg-t">Checkpoints pendentes</div><div class="cg-v">5</div><div class="cg-d">CP5, CP6, resto do CP7, CP8 e CP9, cada um com critério de aceite próprio ainda não demonstrado</div></div>
+</div>
+
+<h3>O que falta, em ordem de prioridade para segunda-feira</h3>
+<table class="tight">
+<thead><tr><th>Checkpoint</th><th>O que entrega</th><th>Por que importa para a demo</th></tr></thead>
+<tbody>
+<tr class="row-hi"><td><strong>CP5</strong></td><td>Simulador de offline: fila de sincronização enchendo item a item, reconexão sincronizando sem duplicar</td><td>O próprio roadmap do projeto chama isso de "o momento que vende o produto" e "o clímax da demo". É o critério de sucesso da Fase 0 inteira (ver <code>docs/CONTEXTO.md</code>): sem isso funcionando de verdade, a demonstração perde exatamente a cena que diferencia este produto de um formulário comum</td></tr>
+<tr class="row-hi"><td><strong>CP6</strong></td><td>Relatório de vistoria e termo de interdição com aparência de documento oficial, mais linha do tempo auditável</td><td>O próprio roadmap registra que "o servidor público avalia o software pelo documento que sai dele". Um coordenador de Defesa Civil decide muito rápido se um sistema é sério ou não pelo documento que ele produz</td></tr>
+<tr><td>CP7 (restante)</td><td>Providência à Secretaria de Obras, encerramento com motivo obrigatório, tela de visão futura</td><td>Fecha o ciclo completo da história de dez minutos que a demo conta (o mapa já foi adiantado, segundo o próprio roadmap)</td></tr>
+<tr><td>CP8</td><td><code>docs/APRESENTACAO.md</code> e roteiro de demo cronometrado de dez minutos</td><td>Sem isso, a reunião depende inteiramente de quem estiver operando o protótipo saber a história de cor. Um roteiro escrito é o que permite a qualquer pessoa (inclusive alguém que não seja o Rafa) conduzir a demonstração</td></tr>
+<tr><td>CP9</td><td>Empacotamento final, <code>LEIA-ME.txt</code>, roteiro de vídeo como plano B</td><td>Protege contra o pior cenário: máquina desconhecida, sem internet, projetor ruim, alguém apertando o botão errado</td></tr>
+</tbody>
+</table>
+
+<h3>Recomendação direta para os próximos quatro dias</h3>
+<p>Não é razoável, nem necessário, concluir os nove checkpoints com o rigor de QA e UX completo (dois revisores, correção de críticos, aprovação humana a cada etapa) que o próprio <code>CLAUDE.md</code> exige em condições normais de trabalho. Isso é bom processo para os checkpoints já entregues; sob prazo de quatro dias, a prioridade muda:</p>
+<ol>
+<li><strong>CP5 primeiro, sem exceção.</strong> É o único item desta lista que o próprio time já identificou como decisivo para a reação do coordenador. Se sobrar tempo para só uma coisa, é esta.</li>
+<li><strong>CP6 em seguida, mesmo que reduzido.</strong> Um relatório de vistoria com aparência de documento oficial, mesmo sem o termo de interdição completo, já comunica seriedade.</li>
+<li><strong>Um roteiro de dez minutos escrito à mão, mesmo informal</strong>, cobrindo pelo menos a história âncora (rachadura em encosta, moradora idosa) do início ao fim, é mais valioso agora do que o CP8 formal completo.</li>
+<li><strong>Trate o encerramento, a providência e o empacotamento (CP7 restante, CP9) como aceitáveis de ficar incompletos</strong> para esta reunião específica, desde que a navegação não trave em nenhum ponto do roteiro escolhido. Um caminho morto durante a demonstração custa mais caro que uma funcionalidade ausente que nunca foi prometida.</li>
+</ol>
+
+<div class="box warn no-break">
+<span class="bt">O risco que isso não resolve</span>
+<p style="margin-bottom:0">Mesmo com CP5 e CP6 prontos, o protótipo continua sendo, por definição do próprio projeto, uma peça de venda descartável, não um produto. A recomendação da seção 01 de tratar a reunião como <strong>validação</strong>, não como fechamento de contrato, vale exatamente por isso: apressar o acabamento para "parecer pronto" não deveria mudar o que é prometido verbalmente na sala.</p>
+</div>

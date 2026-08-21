@@ -1,0 +1,25 @@
+<h2><span class="num">04</span> &nbsp;A trava do domínio: o que é obrigatório, e o que é mito</h2>
+<div class="h2-rule"></div>
+<p class="lead">O projeto já tem, no próprio repositório, um levantamento jurídico e técnico extenso (<code>docs/referencia/LEVANTAMENTO_TECNICO_JURIDICO_GOVTECH.md</code>, v1.1, 19/08/2026), que trata LGPD, Lei 14.133/2021, marco setorial de defesa civil e arquitetura com profundidade acima do que uma pesquisa de mercado padrão produziria. Não vou repetir esse trabalho. Esta seção valida os pontos mais críticos, e adiciona três correções que mudam a leitura do problema.</p>
+
+<h3>O que já está bem resolvido, e não precisa ser reaberto</h3>
+<ul>
+<li><strong>LGPD:</strong> a prefeitura é controladora, o produto é operador, e a base legal é execução de política pública (art. 7º, II e III, e art. 11 para dado sensível), não consentimento. Está correto e é o erro mais comum de quem vem de produto de consumo.</li>
+<li><strong>COBRADE</strong> como taxonomia obrigatória de tipos de ocorrência: correto, e já é regra dura do próprio protótipo (<code>CLAUDE.md</code> já exige nomes reais da COBRADE nos dados mock).</li>
+<li><strong>Lei 14.063/2020</strong> (assinatura eletrônica em três níveis): a leitura de que o nível avançado provavelmente basta para laudo de vistoria e termo de interdição, evitando o custo de certificado ICP-Brasil por usuário, é razoável e consistente com o que a pesquisa de fornecedores desta análise encontrou (seção 05 seguinte).</li>
+<li><strong>Modelo de licenciamento SaaS com licença de uso</strong>, não cessão de código: é a única estrutura em que o produto continua sendo revendável depois do primeiro cliente. Ler a cláusula de propriedade intelectual de cada edital antes de responder continua sendo o hábito mais importante de todos.</li>
+</ul>
+
+<h3>Correção 1: este produto, na prática, não paga comissão de loja de aplicativo</h3>
+<p>O sistema de comissão de 15% a 30% da Apple e de 15% do Google (documentado em <code>LOJAS.md</code>) existe para assinatura vendida <strong>dentro do aplicativo</strong>, via compra in-app, a um consumidor final. Este produto é vendido por contrato direto com a prefeitura, faturado fora da loja. Isso significa que a "conformidade das lojas", no sentido de tela de assinatura, comissão e Small Business Program, <strong>não se aplica</strong> a este projeto na forma como o template padrão desta análise assume. O que continua valendo, se o app do agente de campo for distribuído numa loja pública, são as regras de ficha técnica, privacidade, e o cadastro de desenvolvedor com D-U-N-S — não a mecânica de cobrança.</p>
+
+<h3>Correção 2: distribuição privada (o caminho escolhido) tem um custo de visibilidade que vale decidir conscientemente</h3>
+<p>O levantamento interno decidiu, na v1.1, distribuir o app do agente de campo por canal privado (Managed Google Play e Apple Business Manager), reservando a loja pública só para um futuro app do cidadão. Isso evita revisão pública e reduz a superfície de crítica visível. Mas a pesquisa desta seção encontrou algo que pesa na outra direção: o concorrente mais forte identificado (Colab Campo, seção 02) está numa loja <strong>pública</strong>, e isso permitiu a esta própria análise localizar, em texto literal, exatamente onde ele falha (recuperação de senha, estabilidade pós-atualização) — uma vantagem de inteligência competitiva que um app privado não oferece a ninguém, nem a favor nem contra o produto. <strong>Minha leitura é que</strong> a distribuição privada continua sendo a escolha certa para o MVP (menos fricção de revisão, mais controle), mas vale registrar que ela tem esse custo de opacidade, inclusive para o próprio time medir sua reputação.</p>
+
+<h3>Correção 3: nenhuma certificação pesada é pré-requisito para o primeiro contrato</h3>
+<p>ISO 27001, pentest externo recorrente e SOC 2 são investimento real e o levantamento interno já os posiciona corretamente como meta de médio prazo, não de MVP. Isso é importante repetir com todas as letras porque é um mito comum travar o primeiro piloto tentando alcançar um nível de maturidade que nem o comprador município pequeno vai exigir contratualmente. O que a dispensa de licitação e a CPSI exigem de fato é regularidade fiscal, trabalhista e capacidade de entregar o que foi prometido — não certificação internacional.</p>
+
+<div class="box neutral">
+<span class="bt">Lacuna declarada</span>
+<p style="margin-bottom:0">Não verifiquei, nesta rodada, se as regras específicas de Managed Google Play e Apple Business Manager (distribuição privada) diferem das regras de <code>LOJAS.md</code> (que documentam a loja pública) em algum ponto que afete o cronograma — por exemplo, se o D-U-N-S e o prazo de 30 dias continuam se aplicando da mesma forma. <span class="tag tag-warn">A confirmar</span> antes de abrir a conta de desenvolvedor, na Fase 1 do roadmap.</p>
+</div>

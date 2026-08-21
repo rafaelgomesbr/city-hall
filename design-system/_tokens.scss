@@ -10,13 +10,13 @@
 @use "sass:map";
 
 // ---------- Primitivas ----------
-$orange: (
-  300: #FFC078,
-  400: #FFA94D,
-  500: #F76707,
-  600: #E8590C,
-  700: #C2410C,
-  800: #9A3412,
+$violet: (
+  300: #C4B5FD,
+  400: #A78BFA,
+  500: #7C3AED,
+  600: #6D28D9,
+  700: #5B21B6,
+  800: #4C1D95,
 );
 
 $ink: (
@@ -43,9 +43,9 @@ $theme-light: (
   border:         map.get($ink, 200),
   text:           map.get($ink, 900),
   text-muted:     map.get($ink, 500),
-  accent:         map.get($orange, 700),
-  accent-hover:   map.get($orange, 800),
-  accent-graphic: map.get($orange, 600),
+  accent:         map.get($violet, 700),
+  accent-hover:   map.get($violet, 800),
+  accent-graphic: map.get($violet, 600),
   on-accent:      $white,
   sev-baixa-fg:   #4A5763,  sev-baixa-bg:   map.get($ink, 100),
   sev-media-fg:   #92400E,  sev-media-bg:   #FEF3C7,
@@ -57,7 +57,7 @@ $theme-light: (
   shadow-1: (0 1px 2px rgba(16, 21, 25, 0.06), 0 1px 3px rgba(16, 21, 25, 0.10)),
   shadow-2: (0 4px 12px rgba(16, 21, 25, 0.10)),
   shadow-3: (0 12px 28px rgba(16, 21, 25, 0.16)),
-  focus-ring-color: map.get($orange, 600),
+  focus-ring-color: map.get($violet, 600),
 );
 
 $theme-dark: (
@@ -67,9 +67,9 @@ $theme-dark: (
   border:         map.get($ink, 700),
   text:           $ice,
   text-muted:     map.get($ink, 400),
-  accent:         map.get($orange, 400),
-  accent-hover:   map.get($orange, 300),
-  accent-graphic: map.get($orange, 500),
+  accent:         map.get($violet, 400),
+  accent-hover:   map.get($violet, 300),
+  accent-graphic: map.get($violet, 500),
   on-accent:      map.get($ink, 950),
   sev-baixa-fg:   #AEB9C2,  sev-baixa-bg:   rgba(174, 185, 194, 0.12),
   sev-media-fg:   #FCC419,  sev-media-bg:   rgba(252, 196, 25, 0.12),
@@ -81,11 +81,11 @@ $theme-dark: (
   shadow-1: (0 1px 2px rgba(0, 0, 0, 0.45)),
   shadow-2: (0 4px 12px rgba(0, 0, 0, 0.50)),
   shadow-3: (0 12px 28px rgba(0, 0, 0, 0.60)),
-  focus-ring-color: map.get($orange, 400),
+  focus-ring-color: map.get($violet, 400),
 );
 
 // ---------- Escalas não temáticas ----------
-$font-stack: (-apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+$font-stack: ("Work Sans", -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
 
 $type: (
   display: (size: 44px, line: 48px, weight: 800, tracking: -0.02em),

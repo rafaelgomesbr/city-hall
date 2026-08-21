@@ -244,7 +244,22 @@
         criadoOffsetHoras: -20,
         despachadoOffsetHoras: -19,
         prazoOffsetHoras: -4,
-        vistoriaConcluidaOffsetHoras: -4
+        vistoriaConcluidaOffsetHoras: -4,
+        /* Vistoria ja concluida na carga inicial: permite demonstrar o
+           relatorio e o termo de interdicao sem precisar refazer o fluxo
+           de campo inteiro durante a apresentacao. */
+        vistoria: {
+          checklist: {
+            area_isolada: true,
+            risco_imediato: true,
+            estrutura_fotografada: true,
+            moradores_orientados: true,
+            acesso_verificado: false
+          },
+          totalFotos: 4,
+          gpsPrecisaoMetros: 7,
+          assinante: "Regina Costa Pereira"
+        }
       },
       {
         protocolo: "000488/2026",

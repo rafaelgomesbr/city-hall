@@ -1,0 +1,98 @@
+<h2><span class="num">09</span> &nbsp;Roadmap da Fase 0 ao piloto vendável</h2>
+<div class="h2-rule"></div>
+<p class="lead">Dez fases, da validação em andamento até o primeiro contrato formal. As estimativas de semana assumem a capacidade real registrada no próprio levantamento técnico interno do projeto: <strong>um desenvolvedor, até 10 horas por semana</strong>, até que exista contrato ou carta de intenção que justifique dedicação maior. Três fases correm em paralelo desde o início: a papelada societária não espera o código, e a validação comercial não espera o produto pronto.</p>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">0</span><span class="ptitle">Validação com o protótipo descartável</span><span class="pmeta">Em andamento<br>4 de 9 checkpoints</span></div>
+  <div class="phase-body">
+    <p>Concluir CP5 a CP9 do roadmap já existente (<code>docs/ROADMAP_FASE0.md</code>), priorizando o simulador de offline e os documentos oficiais, conforme a seção 08. Demonstrar a pelo menos três Defesas Civis distintas.</p>
+    <ul class="chk"><li>Simulador de offline funcionando sem duplicação em qualquer ordem de clique</li><li>Documento de vistoria com aparência oficial</li><li>Roteiro de dez minutos escrito, ainda que informal</li></ul>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> demonstração para pelo menos três Defesas Civis municipais distintas, com o coordenador reconhecendo o fluxo como o dele sem explicação longa, e pelo menos duas manifestações formais de interesse (carta de intenção ou disposição a piloto pago) — critério já definido em <code>docs/CONTEXTO.md</code>, não inventado por esta análise.</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">1</span><span class="ptitle">Fundação jurídica e societária</span><span class="pmeta">Semanas 0-6<br>paralela à Fase 0</span></div>
+  <div class="phase-body">
+    <ul class="chk"><li>Acordo de sócios escrito com o Alyson, com participação, vesting e propriedade do código definidos</li><li>CNPJ com CNAE de desenvolvimento de software</li><li>Cotação real de DPO externo, seguro de responsabilidade profissional e pentest anual (lacuna declarada na seção 06)</li><li>Confirmação do custo da API gov.br de assinatura avançada para uso por terceiros</li></ul>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> acordo de sócios assinado <strong>antes de qualquer receita entrar</strong> (o próprio levantamento técnico interno classifica isso como risco fatal, R08) e CNPJ ativo com regularidade fiscal em dia.</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">2</span><span class="ptitle">Validação de fornecedores e prova técnica do offline</span><span class="pmeta">Semanas 2-5<br>paralela</span></div>
+  <div class="phase-body">
+    <p>Antes de desenhar a arquitetura inteira em cima de uma suposição, provar as peças mais arriscadas isoladamente, num spike técnico pequeno, não no produto completo.</p>
+    <ul class="chk"><li>Preço real de computação e banco de dados obtido direto das três calculadoras oficiais de nuvem (não estimado por múltiplo)</li><li>Protótipo técnico mínimo (não o app completo) de sincronização offline em app nativo, testado em modo avião real por pelo menos 48 horas contínuas</li><li>Decisão fechada entre Cloudflare R2 e S3 com números reais de uso, não estimativa</li></ul>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> o spike de sincronização offline completa 50 ciclos de perda e retorno de sinal, em dispositivo real, sem uma única duplicação nem perda de registro.</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">3</span><span class="ptitle">Primeira rota comercial</span><span class="pmeta">Semanas 2-20<br>paralela, ritmo do comprador</span></div>
+  <div class="phase-body">
+    <ul class="chk"><li>Pelo menos 5 a 8 conversas de validação além das três mínimas da Fase 0, incluindo ao menos um consórcio intermunicipal</li><li>Rota de contratação definida com o órgão mais engajado: CPSI (LC 182/2021) ou dispensa de licitação por valor</li><li>Material técnico de apoio (benchmark, catálogo de requisitos) entregue ao órgão para instruir o ETP/TR dele, sem redigir pelo órgão</li></ul>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> carta de intenção formal assinada, ou processo de CPSI oficialmente aberto, com pelo menos um órgão público.</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">4</span><span class="ptitle">Fundação técnica do produto real</span><span class="pmeta">Semanas 6 a 18<br>8 a 12 semanas de trabalho a 10h/semana</span></div>
+  <div class="phase-body">
+    <ul class="chk"><li>Monólito modular API-first, multi-tenant, PostgreSQL com PostGIS, região Brasil</li><li>Row Level Security ativada e forçada por <code>organization_id</code></li><li>Autenticação, RBAC + ABAC, auditoria básica, CI/CD, ambientes separados</li></ul>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> teste automatizado que tenta ler dado de um tenant com token de outro tenant, rodando em cada PR, bloqueando o merge em caso de falha (critério CA-06 já definido na especificação original do produto).</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">5</span><span class="ptitle">Núcleo operacional</span><span class="pmeta">Semanas 14 a 40<br>20 a 28 semanas</span></div>
+  <div class="phase-body">
+    <p>Ocorrência com protocolo único, triagem, despacho, linha do tempo, providências e painel do coordenador, agora com dado real, não mock.</p>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> um operador cria, classifica e atribui uma ocorrência real; um coordenador acompanha e encerra com motivo obrigatório; cem ocorrências de teste passam pelo ciclo completo sem um único protocolo duplicado.</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">6</span><span class="ptitle">Campo offline nativo</span><span class="pmeta">Semanas 32 a 56<br>16 a 24 semanas</span></div>
+  <div class="phase-body">
+    <p>React Native com Expo, SQLite local para a fila de saída (outbox), upload de mídia por URL pré-assinada, idempotência na sincronização. Este é o maior risco técnico do produto inteiro, confirmado pela seção 06.</p>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> trinta dias de uso assistido por um agente de campo real, alternando sinal repetidamente, sem uma única duplicação nem perda de vistoria registrada.</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">7</span><span class="ptitle">Documentos oficiais, mapa e assinatura</span><span class="pmeta">Semanas 48 a 68<br>12 a 20 semanas</span></div>
+  <div class="phase-body">
+    <ul class="chk"><li>Geração de PDF versionado, com protocolo, evidências, autoria e QR de validação</li><li>Termo de interdição com base normativa correta</li><li>Integração de assinatura eletrônica avançada (gov.br ou comercial, decisão da Fase 1)</li><li>Mapa com PostGIS e filtros reais</li></ul>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> cem documentos gerados em lote de teste sem um único dado divergente da origem, e assinatura eletrônica validável por terceiro via QR code.</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">8</span><span class="ptitle">Piloto assistido com o primeiro cliente real</span><span class="pmeta">Semanas 64 a 80<br>12 a 16 semanas</span></div>
+  <div class="phase-body">
+    <p>Implantação, treinamento por perfil, acompanhamento assistido, medição dos indicadores já definidos na especificação original (redução de pelo menos 30% no tempo de triagem, pelo menos 85% das vistorias sem retrabalho documental).</p>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> piloto ativo por 90 dias consecutivos, com os indicadores mínimos batendo e sem incidente de segurança ou de perda de dado registrado.</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">9</span><span class="ptitle">Contrato formal e expansão</span><span class="pmeta">A partir da semana 80<br>ritmo do comprador</span></div>
+  <div class="phase-body">
+    <p>Conversão do piloto em contrato formal (o piloto gera o primeiro atestado de capacidade técnica, hoje inexistente e apontado como o maior gargalo de habilitação). Preparação de ata de registro de preços para adesão por outros municípios pelo canal de carona mapeado na seção 03.</p>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> primeiro contrato formal assinado com faturamento recorrente, e pelo menos um pedido de adesão (carona) de outro município em andamento.</div>
+</div>
+
+<h3>O que fica deliberadamente fora da v1, e por quê</h3>
+<table class="tight">
+<thead><tr><th>Fora do escopo</th><th>Motivo do corte</th></tr></thead>
+<tbody>
+<tr><td>Modo emergência completo (incidentes, abrigos, turnos)</td><td>A especificação original já classifica como Fase 3; entrar antes da hora é o risco de maior probabilidade já identificado no levantamento interno (R04, "muito alta")</td></tr>
+<tr><td>Logística humanitária (estoque, doações, distribuição)</td><td>Mesmo motivo; depende do modo emergência existir primeiro</td></tr>
+<tr><td>Portal externo do cidadão</td><td>O comprador do MVP é a Defesa Civil, não o cidadão; adicionar canal de entrada pública multiplica superfície de LGPD antes de validar a operação interna</td></tr>
+<tr><td>Integração oficial com S2ID</td><td>Não há API oficial disponível hoje; prometer integração sem credenciamento é risco de imagem e de contrato</td></tr>
+<tr><td>Triagem ou classificação automática por IA</td><td>Some valor real, mas cada sugestão de IA exige revisão humana registrada por LGPD art. 20; construir isso antes do núcleo operacional estar sólido inverte a ordem de risco</td></tr>
+<tr><td>App público do cidadão nas lojas</td><td>O app do MVP é de uso interno do agente de campo, distribuído por canal privado (seção 04); loja pública só entra quando houver um produto voltado ao cidadão de fato</td></tr>
+</tbody>
+</table>

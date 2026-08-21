@@ -1,0 +1,13 @@
+<h2><span class="num">06</span> &nbsp;Identidade visual: o violeta vende para prefeitura?</h2>
+<div class="h2-rule"></div>
+<p class="lead">Esta seção é deliberadamente curta: o design system do protótipo (<code>design-system/DESIGN_SYSTEM.md</code>, v0.2) já é incomum para um protótipo descartável — contraste AA verificado numericamente, dois temas completos, escalas de severidade separadas da cor de marca. O trabalho de fundação está feito. O que vale examinar é uma pergunta de posicionamento, não de execução.</p>
+
+<h3>A cor certa, ou só a mais recente?</h3>
+<p>O histórico do projeto mostra a identidade mudando de laranja institucional para violeta em 20/08/2026, na mesma semana desta análise, a partir de uma referência visual trazida pelo Rafa. Tecnicamente a troca foi bem executada (contraste reverificado, regra de "cor nunca comunica severidade sozinha" mantida). Mas troca de identidade a poucos dias de uma apresentação a clientes é, por si só, um sinal de processo a observar: se a próxima reunião gerar mais uma reação forte sobre cor, o risco é entrar num ciclo de retrabalho visual que rouba tempo do que decide a venda de verdade, que é o fluxo operacional e o simulador de offline.</p>
+<p><strong>Minha leitura é que</strong> violeta é uma escolha defensável para diferenciar de um mercado onde a esmagadora maioria dos portais de prefeitura brasileira usa azul institucional (o próprio Atende.Net, os portais de cidadão, o gov.br). Para um comprador público conservador, a pergunta não é se violeta é bonito, é se ele lê como "produto sério" ou como "aplicativo de startup" — e a resposta depende mais da sobriedade de execução (que o design system já entrega: neutros profundos, sem gradiente decorativo espalhado, hierarquia tipográfica forte) do que do matiz em si. Não recomendo mexer nisso de novo antes da reunião de segunda-feira: qualquer ajuste agora é custo de tempo sem retorno de venda.</p>
+
+<h3>Dois pontos operacionais, não estéticos</h3>
+<ul>
+<li>A única chamada de rede permitida no protótipo (o <code>@import</code> do Google Fonts para Work Sans e Roboto Mono) já tem fallback documentado para a pilha de fontes do sistema. Isso importa porque redes de prefeitura às vezes bloqueiam recursos externos por política de firewall municipal — o protótipo já está coberto para esse cenário, o que é uma decisão de engenharia acertada e barata.</li>
+<li>Os pinos de severidade no mapa e os selos de status usam escalas de cor separadas da marca (âmbar, vermelho, cinza-azulado), nunca o violeta — está certo, e é a regra de acessibilidade mais frequentemente quebrada por protótipos de painel operacional (cor de marca sendo reaproveitada como cor de alerta).</li>
+</ul>

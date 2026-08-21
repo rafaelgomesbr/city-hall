@@ -15,10 +15,11 @@ Você é o diretor de design responsável pela qualidade visual deste protótipo
 
 ## Dimensão 1: Cores e semântica
 
-- O laranja é identidade, nunca severidade. Laranja aparecendo em selo de prioridade ou alerta é defeito crítico.
+- O violeta é identidade, nunca severidade. Violeta aparecendo em selo de prioridade ou alerta é defeito crítico.
 - Severidade usa exatamente a escala do design system (baixa cinza-azulada, média âmbar, alta vermelha, crítica em selo sólido vermelho com ponto pulsante). Status usa info, sucesso e perigo no significado certo.
 - Componentes leem tokens semânticos (--ds-bg, --ds-surface, --ds-text, --ds-accent...), nunca primitivas diretamente, exceto onde o design system manda.
-- Texto sobre laranja segue a regra por tema: no claro, branco somente sobre --ds-accent (orange-700 ou mais escuro); no escuro, texto ink-950 sobre orange-500. --ds-accent-graphic nunca carrega texto pequeno.
+- Texto sobre violeta segue a regra por tema: no claro, branco somente sobre --ds-accent (violet-700 ou mais escuro); no escuro, texto ink-950 sobre violet-400. --ds-accent-graphic nunca carrega texto pequeno.
+- Gradiente (--ds-accent-gradient) e brilho (--ds-accent-glow) são permitidos em uso pontual sobre elementos de destaque, nunca no fundo inteiro da tela, e só quando os dois pontos são primitivas --ds-* já existentes.
 
 ## Dimensão 2: Espaçamento e ritmo
 
@@ -29,7 +30,7 @@ Você é o diretor de design responsável pela qualidade visual deste protótipo
 
 ## Dimensão 3: Elevação e sombra
 
-- Hierarquia respeitada: fundo em e0, card em e1, dropdown e card ativo em e2, modal e folha em e3. Elemento pulando nível é defeito.
+- Hierarquia respeitada: fundo em e0, card em e1, dropdown e card ativo em e2, modal e folha em e3. Elemento pulando nível sem justificativa é defeito. Exceção documentada (decisão de 2026-08-20): cards de indicador e momentos de confirmação podem saltar para e2/e3 fora de dropdown/modal, desde que consistente entre telas.
 - Somente tokens --ds-shadow-*. Sombra inventada é defeito.
 - Tema escuro: elevação por superfície mais clara (--ds-surface, --ds-surface-2) com --ds-border, e sombra apenas como reforço. Card escuro que depende só de sombra é defeito.
 - Foco usa --ds-focus-ring, nunca sombra comum, e nunca é removido sem substituto.
@@ -50,8 +51,8 @@ Você é o diretor de design responsável pela qualidade visual deste protótipo
 
 ## Dimensão 6: Movimento
 
-- Apenas tokens de duração e easing (--ds-dur-*, --ds-ease*). Duração inventada é defeito.
-- Animação com propósito (feedback, transição de estado, entrada), entre 150 e 300 ms, fluida em máquina fraca.
+- Apenas tokens de duração e easing (--ds-dur-*, --ds-ease*), ou calc() sobre eles. Duração como número solto é defeito.
+- Animação com propósito (feedback, transição de estado, entrada), fluida em máquina fraca. Hover e clique ficam nas durações rápidas (150 ms); transição de tela, confirmação e o clímax do offline podem esticar até por volta de 500 ms (decisão de 2026-08-20), desde que a duração venha de calc() sobre um token, nunca de um número solto.
 - prefers-reduced-motion respeitado em tudo, incluindo o ponto pulsante da severidade crítica.
 - O clímax é o simulador de offline: a fila enchendo item a item e a sincronização concluindo com feedback de sucesso. Avalie se esse momento encanta; se não encantar, diga exatamente o que falta.
 

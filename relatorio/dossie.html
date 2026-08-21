@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Defesa Civil Operacional 360 — Dossiê de viabilidade</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+  @page :first { margin: 0; }
+
+  :root{
+    --ink:#12161c;
+    --ink-2:#3d4654;
+    --ink-3:#6b7686;
+    --line:#dfe4ea;
+    --line-2:#eef1f5;
+    --accent:#5B21B6;
+    --accent-soft:#f1eafb;
+    --accent-deep:#3d1780;
+    --accent-bright:#C4B5FD;
+    --warn:#8a4b00;
+    --warn-soft:#fdf3e4;
+    --danger:#9b1c1c;
+    --danger-soft:#fdeaea;
+    --paper:#ffffff;
+  }
+
+  *{ box-sizing:border-box; }
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Segoe UI","Inter",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;
+    font-size:9.6pt; line-height:1.5;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  /* ---------- CAPA ---------- */
+  .cover{
+    height:297mm; width:210mm; padding:34mm 24mm 22mm 24mm;
+    display:flex; flex-direction:column; justify-content:space-between;
+    background:linear-gradient(158deg,#1a0f33 0%,#341a6e 46%,#5B21B6 100%);
+    color:#fff; page-break-after:always; position:relative; overflow:hidden;
+  }
+  .cover::after{
+    content:""; position:absolute; right:-90mm; bottom:-90mm;
+    width:220mm; height:220mm; border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.075) 0%,rgba(255,255,255,0) 68%);
+  }
+  .cover-mark{ display:flex; align-items:center; gap:9px; position:relative; z-index:2;}
+  .cover-mark .glyph{
+    width:26px;height:26px;border-radius:8px;background:var(--accent-bright);
+    display:flex;align-items:center;justify-content:center;
+    color:#1a0f33;font-weight:800;font-size:13pt;line-height:1;
+  }
+  .cover-mark .wordmark{ font-size:11.5pt; font-weight:650; letter-spacing:.16em; text-transform:uppercase; }
+  .cover h1{
+    font-size:33pt; line-height:1.08; margin:0 0 14px; font-weight:700; letter-spacing:-.022em;
+    position:relative; z-index:2;
+  }
+  .cover .sub{ font-size:12.5pt; color:#d7c8f5; max-width:132mm; line-height:1.45; position:relative; z-index:2; font-weight:350;}
+  .cover .kicker{
+    display:inline-block; font-size:7.6pt; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--accent-bright); border:1px solid rgba(196,181,253,.4); border-radius:999px;
+    padding:5px 13px; margin-bottom:22px; position:relative; z-index:2;
+  }
+  .cover-foot{ display:flex; justify-content:space-between; align-items:flex-end; font-size:8.4pt; color:#b9a4e0; position:relative; z-index:2;}
+  .cover-foot strong{ color:#fff; display:block; font-size:9.6pt; font-weight:600; margin-bottom:3px;}
+  .cover-stats{ display:flex; gap:0; border-top:1px solid rgba(255,255,255,.16); padding-top:16px; margin-top:26px; position:relative; z-index:2;}
+  .cover-stats div{ flex:1; padding-right:10px;}
+  .cover-stats .n{ font-size:16pt; font-weight:700; color:var(--accent-bright); letter-spacing:-.02em; display:block; line-height:1.15;}
+  .cover-stats .l{ font-size:7.5pt; color:#c9b8ea; line-height:1.35; display:block; margin-top:3px;}
+
+  /* ---------- ESTRUTURA ---------- */
+  .page-break{ page-break-before:always; }
+
+  h2{ font-size:16pt; letter-spacing:-.018em; margin:0 0 3px; font-weight:680; page-break-after:avoid; }
+  h2 .num{ color:var(--accent); font-weight:700; }
+  .h2-rule{ height:2.5px; background:var(--accent); width:42px; border-radius:2px; margin:9px 0 15px;}
+  h3{ font-size:11pt; margin:19px 0 7px; font-weight:660; letter-spacing:-.008em; page-break-after:avoid; }
+  h4{ font-size:9.6pt; margin:14px 0 5px; color:var(--ink-2); font-weight:660; page-break-after:avoid;}
+  p{ margin:0 0 8px; }
+  ul,ol{ margin:0 0 9px; padding-left:16px; }
+  li{ margin-bottom:3.5px; }
+  p,li{ orphans:2; widows:2; }
+  strong{ font-weight:650; color:var(--ink); }
+  a{ color:var(--accent); text-decoration:none; }
+  code{
+    font-family:"Cascadia Mono","Consolas",monospace; font-size:8.4pt;
+    background:var(--line-2); padding:1px 4px; border-radius:3px; color:#25303d;
+  }
+  .lead{ font-size:10.4pt; color:var(--ink-2); line-height:1.55; margin-bottom:13px; }
+
+  table{ width:100%; border-collapse:collapse; margin:10px 0 13px; font-size:8.5pt; page-break-inside:auto; }
+  thead{ display:table-header-group; }
+  tr{ page-break-inside:avoid; }
+  th{
+    text-align:left; background:#f4f2fa; color:var(--ink-2); font-weight:640;
+    padding:6px 8px; border-bottom:1.5px solid var(--line); font-size:7.9pt;
+    text-transform:uppercase; letter-spacing:.045em; vertical-align:bottom;
+  }
+  td{ padding:6px 8px; border-bottom:1px solid var(--line-2); vertical-align:top; line-height:1.42; }
+  tr:last-child td{ border-bottom:1px solid var(--line); }
+  .t-num{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .t-c{ text-align:center; }
+  table.tight td, table.tight th{ padding:4.5px 7px; font-size:8.1pt; }
+  .row-hi td{ background:var(--accent-soft); font-weight:600; }
+  .row-bad td{ background:var(--danger-soft); }
+
+  .box{
+    border:1px solid var(--line); border-left:3px solid var(--accent);
+    background:#fbfaff; padding:10px 13px; margin:11px 0; border-radius:0 5px 5px 0;
+    page-break-inside:avoid;
+  }
+  .box.warn{ border-left-color:#c98a2b; background:var(--warn-soft); }
+  .box.danger{ border-left-color:var(--danger); background:var(--danger-soft); }
+  .box.neutral{ border-left-color:var(--ink-3); background:#f8fafb; }
+  .box .bt{
+    font-size:7.6pt; text-transform:uppercase; letter-spacing:.1em; font-weight:700;
+    color:var(--accent); margin-bottom:5px; display:block;
+  }
+  .box.warn .bt{ color:var(--warn); }
+  .box.danger .bt{ color:var(--danger); }
+  .box.neutral .bt{ color:var(--ink-3); }
+  .box p:last-child, .box ul:last-child, .box ol:last-child{ margin-bottom:0; }
+
+  .callout-grid{ display:flex; gap:9px; margin:12px 0; page-break-inside:avoid; }
+  .callout-grid > div{ flex:1; border:1px solid var(--line); border-radius:6px; padding:10px 11px; background:#fbfcfd; }
+  .callout-grid .cg-t{ font-size:7.4pt; text-transform:uppercase; letter-spacing:.09em; color:var(--ink-3); font-weight:700; margin-bottom:4px;}
+  .callout-grid .cg-v{ font-size:14pt; font-weight:700; color:var(--accent); letter-spacing:-.02em; line-height:1.15;}
+  .callout-grid .cg-d{ font-size:7.8pt; color:var(--ink-3); margin-top:3px; line-height:1.35;}
+
+  .tag{ display:inline-block; font-size:7.1pt; font-weight:700; padding:2px 6px; border-radius:3px;
+        text-transform:uppercase; letter-spacing:.06em; vertical-align:middle; }
+  .tag-ok{ background:var(--accent-soft); color:var(--accent); }
+  .tag-warn{ background:var(--warn-soft); color:var(--warn); }
+  .tag-bad{ background:var(--danger-soft); color:var(--danger); }
+  .tag-info{ background:#e8eef7; color:#1d4a8a; }
+
+  .src{ font-size:7.4pt; color:var(--ink-3); font-style:italic; margin-top:-5px; margin-bottom:11px; }
+
+  .verdict{
+    border:2px solid var(--accent); border-radius:8px; padding:14px 16px; margin:14px 0 16px;
+    background:var(--accent-soft); page-break-inside:avoid;
+  }
+  .verdict.no{ border-color:var(--danger); background:var(--danger-soft); }
+  .verdict.maybe{ border-color:#c98a2b; background:var(--warn-soft); }
+  .verdict .vlabel{ font-size:7.6pt; text-transform:uppercase; letter-spacing:.12em; font-weight:700; color:var(--accent); margin-bottom:6px; display:block;}
+  .verdict.no .vlabel{ color:var(--danger); }
+  .verdict.maybe .vlabel{ color:var(--warn); }
+  .verdict .vtext{ font-size:14pt; font-weight:700; letter-spacing:-.015em; line-height:1.25; margin-bottom:7px; }
+  .verdict p:last-child{ margin-bottom:0; }
+
+  .toc{ margin-top:6px; }
+  .toc-item{ display:flex; align-items:baseline; gap:8px; padding:6.5px 0; border-bottom:1px solid var(--line-2); font-size:9.4pt; }
+  .toc-item .tn{ color:var(--accent); font-weight:700; width:22px; flex-shrink:0; font-size:9pt;}
+  .toc-item .tt{ flex:1; font-weight:600; }
+  .toc-item .td{ color:var(--ink-3); font-size:8.3pt; font-weight:400; margin-left:6px;}
+
+  .phase{ border:1px solid var(--line); border-radius:7px; margin:11px 0; page-break-inside:auto; }
+  .phase-head{
+    background:#f4f2fa; padding:8px 12px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:10px;
+    page-break-inside:avoid; page-break-after:avoid; border-radius:6px 6px 0 0;
+  }
+  .phase-head .pnum{
+    background:var(--accent); color:#fff; font-weight:700; font-size:8pt;
+    width:23px; height:23px; border-radius:5px; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .phase-head .ptitle{ font-weight:680; font-size:10.2pt; flex:1; letter-spacing:-.01em;}
+  .phase-head .pmeta{ font-size:7.7pt; color:var(--ink-3); text-align:right; line-height:1.35; }
+  .phase-body{ padding:10px 13px; }
+  .phase-body p:last-child, .phase-body ul:last-child, .phase-body table:last-child{ margin-bottom:0; }
+  .gate{
+    background:var(--accent-soft); border-top:1px solid #e0d3f7; padding:7px 13px;
+    font-size:8.2pt; color:var(--accent-deep); page-break-inside:avoid; border-radius:0 0 6px 6px;
+  }
+  .gate b{ text-transform:uppercase; font-size:7.3pt; letter-spacing:.08em; }
+
+  .chk{ list-style:none; padding-left:0; }
+  .chk li{ padding-left:17px; position:relative; margin-bottom:4px; }
+  .chk li::before{
+    content:""; position:absolute; left:0; top:4.5px; width:9px; height:9px;
+    border:1.4px solid var(--accent); border-radius:2.5px;
+  }
+
+  .footer-note{ margin-top:26px; padding-top:11px; border-top:1px solid var(--line); font-size:7.8pt; color:var(--ink-3); line-height:1.5; }
+  .no-break{ page-break-inside:avoid; }
+</style>
+</head>
+<body>
+
+<!-- ============ CAPA ============ -->
+<div class="cover">
+  <div>
+    <div class="cover-mark">
+      <div class="glyph">R</div>
+      <div class="wordmark">Ronaldinho · Dossiê de decisão</div>
+    </div>
+  </div>
+
+  <div>
+    <span class="kicker">Documento de decisão · Confidencial</span>
+    <h1>Defesa Civil Operacional 360</h1>
+    <div class="sub">Vale gastar os próximos 18 a 24 meses construindo um SaaS de gestão operacional para Defesas Civis municipais? Concorrência real, mecânica de licitação, preço e o que falta no roadmap até um piloto vendável.</div>
+
+    <div class="cover-stats">
+      <div><span class="n">0</span><span class="l">concorrentes comerciais vivos com o fluxo operacional completo (protocolo a encerramento)</span></div>
+      <div><span class="n">R$ 65.492</span><span class="l">teto de dispensa de licitação por valor em 2026 (Decreto 12.807/2025)</span></div>
+      <div><span class="n">4 a 12</span><span class="l">meses de ciclo médio de pregão eletrônico, via de regra</span></div>
+      <div><span class="n">CP4 / 9</span><span class="l">checkpoints do protótipo concluídos até 20/08/2026, de um total de 9</span></div>
+    </div>
+  </div>
+
+  <div class="cover-foot">
+    <div>
+      <strong>Preparado para Rafael (Rafa)</strong>
+      Insumo de decisão para a reunião de apresentação a prefeituras
+    </div>
+    <div style="text-align:right">
+      <strong>20 de agosto de 2026</strong>
+      Versão 1.0 · para decisão
+    </div>
+  </div>
+</div>
+
+<main>
+
+<!-- ============ SUMÁRIO ============ -->
+<h2><span class="num">00</span> &nbsp;Sumário</h2>
+<div class="h2-rule"></div>
+
+<div class="toc">
+  <div class="toc-item"><span class="tn">01</span><span class="tt">Veredito executivo<span class="td">— a decisão e o que a sustenta</span></span></div>
+  <div class="toc-item"><span class="tn">02</span><span class="tt">Quem realmente compete<span class="td">— Kad, PRODEC, CCONET, Colab, e o que sobrou depois de checar cada um</span></span></div>
+  <div class="toc-item"><span class="tn">03</span><span class="tt">A mecânica de venda para prefeitura<span class="td">— licitação, dispensa, CPSI, consórcio e o calendário real</span></span></div>
+  <div class="toc-item"><span class="tn">04</span><span class="tt">A trava do domínio<span class="td">— o que é obrigatório, o que é mito, e o que já está bem resolvido</span></span></div>
+  <div class="toc-item"><span class="tn">05</span><span class="tt">Fornecedores, arquitetura e economia unitária<span class="td">— nuvem, mapa, assinatura, offline-first, e o ponto de equilíbrio</span></span></div>
+  <div class="toc-item"><span class="tn">06</span><span class="tt">Identidade visual<span class="td">— o violeta, a tipografia, e se isso vende para prefeitura</span></span></div>
+  <div class="toc-item"><span class="tn">07</span><span class="tt">Oferta e precificação<span class="td">— o que cobrar, de quem, e como</span></span></div>
+  <div class="toc-item"><span class="tn">08</span><span class="tt">O protótipo hoje e a reunião de segunda-feira<span class="td">— o que está pronto e o que falta, sem rodeio</span></span></div>
+  <div class="toc-item"><span class="tn">09</span><span class="tt">Roadmap da Fase 0 ao piloto vendável<span class="td">— dez fases, com portão de saída verificável em cada uma</span></span></div>
+  <div class="toc-item"><span class="tn">10</span><span class="tt">Riscos e as decisões que dependem de você<span class="td">— o que ninguém resolve por você</span></span></div>
+</div>
+
+<div class="box neutral" style="margin-top:18px">
+  <span class="bt">Como ler este documento</span>
+  <p style="margin-bottom:6px">Esta pesquisa combinou reconhecimento direto (consulta de domínio via RDAP, leitura de página oficial de concorrente, API pública de metadados de app, fontes governamentais primárias), dois subagentes de investigação orientada (concorrência e mecânica de licitação; fornecedores e arquitetura), e uma rodada de verificação cruzada feita por mim em quatro das afirmações de maior peso antes de qualquer uma delas entrar neste texto. Também usei um levantamento jurídico e técnico já existente no próprio repositório do projeto (datado de 19/08/2026), tratando-o como fonte interna e conferindo os pontos mais críticos.</p>
+  <p style="margin-bottom:0">Onde um dado não pôde ser confirmado em fonte oficial, ele aparece marcado como <span class="tag tag-warn">a confirmar</span>. Onde uma conclusão é interpretação e não fato citável, o texto diz "minha leitura é que". Nenhum número foi estimado sem estar rotulado como estimativa.</p>
+</div>
+
+<h2><span class="num">01</span> &nbsp;Veredito executivo</h2>
+<div class="h2-rule"></div>
+
+<div class="verdict maybe">
+  <span class="vlabel">Veredito</span>
+  <div class="vtext">Prosseguir, mas com mudança de escopo: não venda um produto segunda-feira, valide um mercado. Construa depois, pela rota mais curta que existe (CPSI ou dispensa pequena, nunca pregão aberto), e só depois de fechar a papelada societária.</div>
+  <p>A ideia como veio (protótipo pronto como peça de venda direta, mirando fechar contrato por licitação tradicional) não fecha a conta nem no tempo nem na capacidade de entrega atual. O recorte que fecha é específico: tratar a reunião de segunda-feira (24/08/2026, a quatro dias desta análise) como coleta de validação formal, entrar no primeiro cliente pela Lei Complementar 182/2021 (Compra Pública de Solução Inovadora) ou por dispensa de licitação de pequeno valor, e recusar-se a competir de igual para igual com quem já tem uma base instalada de prefeituras (Colab, 1Doc, CCONET) num terreno genérico de "vistoria municipal". A diferenciação tem nome: aderência à COBRADE, aos formulários de reconhecimento federal do S2ID, e sincronização offline de verdade, não simulada.</p>
+</div>
+
+<div class="box warn no-break">
+  <span class="bt">O relógio que importa</span>
+  <p style="margin-bottom:0">A reunião de segunda-feira é em <strong>quatro dias</strong>. Duas peças que o próprio roadmap do projeto chama de decisivas (o simulador de sincronização offline, tratado como "o clímax da demo", e os documentos oficiais, dos quais "o servidor público avalia o software") ainda não existem no protótipo: o repositório está no checkpoint 4 de 9. Isso não muda o veredito de mercado, mas é um risco de execução imediato, tratado na seção 08.</p>
+</div>
+
+<h3>As cinco descobertas que sustentam esta decisão</h3>
+
+<p><strong>1. Não existe hoje, no Brasil, um concorrente comercial vivo que cubra o fluxo operacional completo</strong> (protocolo, triagem, despacho, vistoria de campo offline, documento técnico, providências e encerramento auditável) para Defesa Civil municipal. O produto mais próximo, "Kad Defesa Civil" (enkad.com.br), vende uma licença de uso vitalícia por <strong>R$ 195,00</strong>, sem mensalidade, indicada para municípios de até 100 mil habitantes — e cobre só cadastro, fichas de ocorrência e relatórios simples, sem vistoria de campo, triagem estruturada, despacho ou documento técnico digital (enkad.com.br, consultado em 20/08/2026). Isso confirma a lacuna que a especificação original do produto identificou, mas o preço desse concorrente também fixa uma âncora perigosa de expectativa de preço no comprador, tratada na seção 07.</p>
+
+<p><strong>2. A lacuna não está vazia: há três frentes de concorrência parcial que reduzem o espaço de manobra</strong>, nenhuma delas cobrindo o fluxo inteiro, mas todas com algo que o produto proposto também quer oferecer. O PRODEC, do estado do Rio de Janeiro, é gratuito e já usado rotineiramente por 41 dos 92 municípios fluminenses, mas seu escopo confirmado em fonte oficial é só registro de boletim de ocorrência, relatório fotográfico e mapa, sem triagem, despacho, vistoria estruturada ou encerramento (gov.br/mdr, boas práticas PRODEC, consultado em 20/08/2026). A CCONET LTDA já vende, sob contrato, uma plataforma de segurança e atendimento ao cidadão para mais de 30 municípios, com um aplicativo específico de defesa civil ("199 Cidadão"), mas como canal de entrada e acompanhamento, não como operação interna de vistoria e documento (cconet.com.br, consultado em 20/08/2026). E o Colab, que já atende centenas de prefeituras brasileiras com o "Colab Campo", distribui um aplicativo nativo (não PWA) especificamente para o cenário de "servidor de campo trabalhando offline" (confirmado na App Store brasileira, consultado em 20/08/2026) — ou seja, um player grande e capitalizado já resolveu tecnicamente o problema mais difícil deste produto para outro caso de uso, e pode estender isso para defesa civil mais rápido do que uma empresa nova constrói do zero.</p>
+
+<p><strong>3. A venda para prefeitura é estruturalmente lenta e a rota de entrada precisa ser a mais curta, não a mais óbvia.</strong> O pregão eletrônico, a modalidade padrão da Lei 14.133/2021 para esse tipo de contratação, leva tipicamente de 4 a 12 meses e coloca uma empresa nova competindo com integradores estabelecidos por menor preço. Não encontrei, na pesquisa, nenhum caso real e confirmado de edital ou contrato especificamente para "software de defesa civil" no Portal Nacional de Contratações Públicas — lacuna que pode ser da própria limitação da busca (a API pública do PNCP não indexa por palavra-chave em texto livre) e não prova de que a contratação nunca acontece, mas também não há evidência de que já acontece. A rota mais realista para o primeiro contrato é a Compra Pública de Solução Inovadora (LC 182/2021), com prazo típico de 2 a 6 meses e sem exigir produto pronto, ou dispensa de licitação por valor, cujo teto foi atualizado pelo Decreto nº 12.807/2025 para <strong>R$ 65.492,11</strong> em compras e serviços a partir de 1º de janeiro de 2026 (confirmado de forma independente em effecti.com.br, elicitacao.com.br e ronnycharles.com.br, consultados em 20/08/2026).</p>
+
+<p><strong>4. A economia de infraestrutura fecha com folga, mas esse número isolado engana.</strong> O ponto de equilíbrio de custo de nuvem mensurável fica abaixo de dois municípios de porte médio pagando o preço sugerido na seção 07. O problema real não é o servidor: é que o próprio levantamento técnico interno do projeto (datado de 19/08/2026) já registra que a capacidade de entrega atual é de <strong>um desenvolvedor, até 10 horas por semana</strong>, com estimativa de 18 a 24 meses até um piloto realista — e que uma lista de custos fixos de conformidade (DPO externo, seguro de responsabilidade profissional, pentest anual) segue sem cotação. Nenhum desses dois fatores aparece na economia de servidor, e são eles que decidem se a conta fecha de verdade.</p>
+
+<p><strong>5. O protótipo que vai à reunião de segunda-feira ainda não tem as duas peças que o próprio time já identificou como decisivas.</strong> O histórico do repositório confirma que os checkpoints 1 a 4 (esqueleto, painel do coordenador, abertura/triagem/despacho, vistoria de campo) estão concluídos, mas os checkpoints 5 a 9 (simulador de offline, documentos oficiais, mapa/providência/encerramento restantes, material de apresentação, empacotamento final) ainda não. Isso é detalhado com o que fazer na seção 08.</p>
+
+<h3>O que isso significa na prática para segunda-feira</h3>
+<ul>
+<li>Vá à reunião com o protótipo posicionado explicitamente como <strong>instrumento de validação</strong>, não como sistema à venda. O objetivo do encontro é confirmar a dor e conseguir uma manifestação formal de interesse (carta de intenção ou disposição a piloto pago), exatamente o critério que o próprio <code>docs/CONTEXTO.md</code> do projeto já define como sucesso da Fase 0.</li>
+<li>Não prometa prazo de entrega nem preço fechado nesta reunião. Colete a dor, o volume de ocorrências mensais, e pergunte diretamente pela rota de contratação preferida do órgão (CPSI, dispensa, ou consórcio).</li>
+<li>Priorize, nos próximos quatro dias, fechar pelo menos o simulador de offline (CP5) antes de qualquer outro item pendente: é a cena que, segundo o próprio roteiro do projeto, decide se o coordenador "entende o produto".</li>
+</ul>
+
+<h2><span class="num">02</span> &nbsp;Quem realmente compete</h2>
+<div class="h2-rule"></div>
+<p class="lead">Nenhum concorrente comercial cobre o fluxo operacional inteiro. Mas existem quatro tipos de concorrência parcial, cada um ocupando um pedaço diferente do problema, e é a soma deles que define o espaço real de manobra, não a ausência de um "líder" único para atacar.</p>
+
+<table>
+<thead><tr><th>Concorrente</th><th>O que é</th><th>Cobre do fluxo alvo</th><th>Preço/alcance</th><th>Fonte</th></tr></thead>
+<tbody>
+<tr><td><strong>Kad Defesa Civil</strong> (Enkad)</td><td>Software desktop de cadastro e fichas de ocorrência, para municípios pequenos</td><td>Só registro e relatório simples. Sem triagem, despacho, vistoria de campo, documento técnico ou encerramento auditável</td><td>R$ 195,00, licença vitalícia, sem mensalidade. Indicado a municípios de até 100 mil habitantes</td><td>enkad.com.br, 20/08/2026</td></tr>
+<tr><td><strong>PRODEC</strong> (Sec. de Defesa Civil do Rio de Janeiro)</td><td>Sistema web estadual, gratuito para municípios fluminenses</td><td>Registro de boletim de ocorrência, relatório fotográfico, mapa georreferenciado e estatística. Não cobre triagem, despacho, vistoria estruturada, documento técnico nem encerramento</td><td>Gratuito. 71 de 92 municípios do RJ aderiram, 41 usam rotineiramente</td><td>gov.br/mdr, boas práticas PRODEC (fev/2022); defesacivil.rj.gov.br, 20/08/2026</td></tr>
+<tr><td><strong>CCONET LTDA</strong> ("199 Cidadão")</td><td>Plataforma comercial de segurança pública e atendimento ao cidadão, com módulo de defesa civil</td><td>Canal de abertura de ocorrência e chat com o cidadão. Não há evidência de triagem interna, despacho de equipe, vistoria de campo ou documento técnico</td><td>Comercial, já implantada em mais de 30 municípios. Preço não público</td><td>cconet.com.br, 20/08/2026</td></tr>
+<tr><td><strong>Colab</strong> ("Colab Campo")</td><td>Grande plataforma de participação cidadã e gestão municipal, com app nativo dedicado ao servidor de campo</td><td>Vistoria/fiscalização de campo, offline, com foto e GPS — tecnicamente o problema mais difícil deste produto, já resolvido por eles para outros casos de uso municipal. Não é especializado em defesa civil (sem COBRADE, sem laudo de interdição, sem exportação alinhada ao S2ID)</td><td>Comercial, adoção em centenas de prefeituras brasileiras (posição de mercado, não medida diretamente nesta pesquisa). App nativo (não PWA) confirmado na App Store</td><td>App Store BR (id 1480417557), 20/08/2026</td></tr>
+</tbody>
+</table>
+
+<div class="box neutral">
+<span class="bt">O que NÃO é concorrente, e por quê</span>
+<p style="margin-bottom:0">O S2ID (sistema federal de registro de desastre e pedido de recursos, usado por 94,3% dos municípios brasileiros) e sistemas de alerta como Defesa Civil Alerta e o Cemaden não competem com o produto: eles não fazem protocolo de solicitação do cidadão, triagem, despacho de equipe nem vistoria de campo. São, na melhor hipótese, sistemas com os quais o produto deveria gerar dados compatíveis, nunca substituir. O próprio posicionamento do projeto (<code>docs/CONTEXTO.md</code>) já acerta nisso.</p>
+</div>
+
+<h3>Sistemas próprios, feitos por dentro da prefeitura: o padrão mais comum</h3>
+<p>A busca por apps de defesa civil na App Store brasileira (API pública da Apple, 20/08/2026) devolveu majoritariamente aplicativos operados diretamente por órgãos públicos (Defesa Civil do Amazonas, Prefeitura de Sorocaba, Prefeitura de Blumenau, Defesa Civil de Niterói, entre outros), quase todos com adoção muito baixa: o Alerta SP tem nota 1,65 com 20 avaliações; o ALERTABLU, de Blumenau, tem nota 2,07 com 57 avaliações; a maioria dos demais não chega a dez avaliações. Também encontrei, fora das lojas, sistemas próprios de Belém ("Sistema de Vistorias da Defesa Civil", dentro do portal Descomplica Belém), Rio de Janeiro (autovistoria.rio.rj.gov.br) e Juiz de Fora (protocolo digital de vistorias), todos aparentando ser desenvolvimento interno da prefeitura, sem indício de venda a terceiros.</p>
+<p><strong>Minha leitura é que</strong> essa fragmentação é, ao mesmo tempo, a prova da dor (cada prefeitura maior sente a necessidade e tenta resolver sozinha, com resultado mediano) e o maior risco comercial: não existe uma linha orçamentária consolidada de "software de defesa civil" em edital público que um vendedor possa repetir. Cada venda provavelmente exige educar o comprador do zero sobre por que contratar em vez de continuar com WhatsApp, planilha e um sistema caseiro.</p>
+
+<h3>Betha Sistemas e IPM Sistemas: os grandes ERPs municipais não têm módulo de defesa civil, até onde a pesquisa alcançou</h3>
+<p>Checagem em duas rodadas independentes (a minha e a de um subagente dedicado) não encontrou módulo de defesa civil, proteção civil, gestão de riscos ou ocorrências no catálogo público da Betha Sistemas (betha.com.br, betha.store) nem da IPM Sistemas/Atende.Net (ipm.com.br). Várias prefeituras têm uma página "Defesa Civil" dentro do portal do cidadão hospedado em Atende.Net (Indaial, Presidente Getúlio, Brusque, Porto Belo, Gravataí, Pinhais), mas a inspecionada (Indaial) é conteúdo institucional estático, sem formulário funcional. <span class="tag tag-warn">A confirmar</span>: as duas checagens foram superficiais (catálogos são SPAs difíceis de indexar por busca); não naveguei uma demo logada de nenhum dos dois antes de descartar a hipótese. Isso importa porque, se qualquer um deles lançar um módulo de defesa civil, o custo marginal de venda deles (cliente já pagando por outros módulos) é quase zero — um risco de entrada de concorrente que vale monitorar, não uma ameaça confirmada hoje.</p>
+
+<h3>A voz do cliente insatisfeito: onde o "grande" já falha</h3>
+<p>Não há perfil localizável da Enkad/Kad no Reclame Aqui (busca e tentativa de acesso direto, ambas sem resultado em 20/08/2026) — indício de visibilidade muito baixa, não prova de ausência de reclamação. Já o Colab Campo, apesar de ser o concorrente mais capitalizado e de maior alcance encontrado nesta pesquisa, tem avaliações públicas reais que expõem exatamente o tipo de falha que mais destrói confiança num aplicativo usado por servidor público em campo:</p>
+<div class="box danger no-break">
+<span class="bt">Avaliação de 1 estrela, Colab Campo, App Store Brasil</span>
+<p style="margin-bottom:4px">"Existe um cadastro mas não tem a opção de esqueci a senha para mudar." — Renata Aroca, versão 1.4.13, 07/02/2023</p>
+<p style="margin-bottom:4px">"Baixei o APP por conta da prefeitura, mas não tem a opção de cadastr[ar]..." — V. Alvarenga, versão 1.4.14, 23/02/2023</p>
+<p style="margin-bottom:0">"Após atualização não abre mais." — gpec2, versão 2.0.0, 08/08/2024</p>
+</div>
+<p><strong>Minha leitura é que</strong> um concorrente do tamanho do Colab ainda erra em onboarding básico (recuperação de senha, cadastro) e em estabilidade pós-atualização, dois anos depois da primeira reclamação registrada. Isso é, ao mesmo tempo, um alerta (não presuma que "ser grande" resolve qualidade) e uma oportunidade real e barata: um produto novo que acerte onboarding e suporte responsivo desde o primeiro piloto já nasce à frente do concorrente mais forte identificado nesta pesquisa nesse quesito específico.</p>
+
+<h3>Lacunas desta seção, declaradas</h3>
+<ul>
+<li><span class="tag tag-warn">A confirmar</span> Catálogo completo da Betha Sistemas e da IPM Sistemas, com navegação logada ou contato comercial direto.</li>
+<li><span class="tag tag-warn">A confirmar</span> Alcance real do CCONET (quantos municípios usam especificamente o módulo de defesa civil, não só os módulos de segurança) e se o backend interno deles já cobre triagem/despacho.</li>
+<li><span class="tag tag-warn">Não encontrado</span> Perfil da Enkad/Kad no Reclame Aqui (bloqueio de acesso e busca sem resultado).</li>
+<li><span class="tag tag-warn">Não pesquisado</span> Google Play (a API pública equivalente à da Apple não existe da mesma forma; ficou fora do orçamento desta rodada).</li>
+</ul>
+
+<h2><span class="num">03</span> &nbsp;A mecânica de venda para prefeitura</h2>
+<div class="h2-rule"></div>
+<p class="lead">A Lei 14.133/2021 oferece seis caminhos possíveis para uma prefeitura contratar este produto. Só dois deles são realistas para uma empresa nova sem contrato anterior. Escolher a rota certa é mais decisivo para a sobrevivência do caixa do que qualquer decisão de produto.</p>
+
+<table>
+<thead><tr><th>Rota</th><th>Base legal</th><th>Prazo típico</th><th>Viabilidade para uma empresa nova, sem atestado técnico anterior</th></tr></thead>
+<tbody>
+<tr class="row-hi"><td><strong>Dispensa de licitação por valor</strong></td><td>Lei 14.133/2021, art. 75, II</td><td>2 a 8 semanas</td><td><strong>Alta.</strong> Teto de <strong>R$ 65.492,11</strong> para compras e serviços em geral, vigente desde 01/01/2026 (Decreto nº 12.807/2025, reajuste de 4,41%). Cabe um primeiro contrato pequeno ou um módulo reduzido. Fracionar contrato maior para caber no teto é irregular e não deve ser tentado.</td></tr>
+<tr class="row-hi"><td><strong>Compra Pública de Solução Inovadora (CPSI)</strong></td><td>Lei Complementar 182/2021 (Marco Legal das Startups), art. 13 e seguintes</td><td>2 a 6 meses</td><td><strong>Alta, e é a rota recomendada.</strong> Permite contratar uma solução ainda em fase de testes, com contrato de até 12 meses, sem exigir produto pronto nem atestado de capacidade técnica prévio. Foi o instrumento usado por Joinville numa consulta de inovação equivalente (fonte: levantamento interno do projeto, a confirmar diretamente no portal de Joinville).</td></tr>
+<tr><td>Adesão a Ata de Registro de Preços (carona)</td><td>Lei 14.133/2021, art. 86</td><td>4 a 10 semanas</td><td>Só depois que <strong>um</strong> ente já tiver licitado a solução. É a alavanca de expansão, não de entrada.</td></tr>
+<tr><td>Consórcio público</td><td>Lei 11.107/2005</td><td>3 a 9 meses</td><td>Média. Uma única contratação atende vários municípios de uma vez — melhor relação esforço/receita depois do primeiro cliente, mas o ciclo de decisão de um consórcio costuma ser mais lento que o de um único município.</td></tr>
+<tr class="row-bad"><td>Pregão eletrônico</td><td>Lei 14.133/2021</td><td>4 a 12 meses</td><td><strong>Baixa como porta de entrada.</strong> Rota padrão do mercado, mas concorre por menor preço contra integradores estabelecidos e normalmente exige atestado de capacidade técnica que uma empresa nova ainda não tem.</td></tr>
+<tr><td>Inexigibilidade</td><td>Lei 14.133/2021, art. 74</td><td>Variável</td><td>Baixa. Exige inviabilidade de competição, difícil de sustentar quando já existem concorrentes parciais mapeados na seção 02.</td></tr>
+</tbody>
+</table>
+<p class="src">Valores do Decreto nº 12.807/2025 confirmados de forma independente em effecti.com.br, 123licitar.com.br, elicitacao.com.br, enebeloadvogados.com.br e ronnycharles.com.br (blog especializado em licitações), todos consultados em 20/08/2026. Texto oficial do decreto em si <span class="tag tag-warn">a confirmar</span> diretamente no Diário Oficial da União.</p>
+
+<h3>Nenhum caso real do nicho foi encontrado no PNCP, e isso é uma lacuna, não uma conclusão</h3>
+<p>O Portal Nacional de Contratações Públicas deveria ser a fonte definitiva para provar que prefeituras já compram esse tipo de sistema, com que frequência e a que preço. A pesquisa não conseguiu extrair nenhum caso real: a API pública do PNCP não indexa por palavra-chave em texto livre (só por modalidade, data e órgão), e o site é uma aplicação que não responde a buscas simples. <span class="tag tag-warn">Não encontrado</span> — recomendo, como tarefa de Fase 1, navegar manualmente <code>pncp.gov.br/app/editais</code> com termos como "defesa civil", "proteção civil" e "gestão de riscos e desastres", e também revisitar o Termo de Referência de Jaboatão dos Guararapes citado no levantamento interno do projeto (contratação motivada por 14,7 mil ocorrências em 2022), que não foi localizado diretamente nesta rodada.</p>
+
+<h3>O calendário real: o que trava e o que é só cultura de aversão a risco</h3>
+<div class="callout-grid no-break">
+<div><div class="cg-t">Vedação legal real</div><div class="cg-v">120 dias</div><div class="cg-d">antes do fim do mandato: proibidas operações de crédito. Não impede contratar um SaaS comum.</div></div>
+<div><div class="cg-t">Vedação legal real</div><div class="cg-v">180 dias</div><div class="cg-d">antes do fim do mandato: proibido aumentar despesa de pessoal sem justificativa. Não se aplica a contrato de software.</div></div>
+<div><div class="cg-t">Não é vedação legal</div><div class="cg-v">Ano eleitoral</div><div class="cg-d">2028 é ano de eleição municipal. Não há proibição geral de licitar ou assinar contrato comum nesse ano — é praxe de gestores evitarem risco de auditoria, não lei.</div></div>
+</div>
+<p>Isso significa que 2026 e 2027 são uma janela limpa, sem restrição legal relevante, para negociar e assinar. A cautela real do comprador em ano eleitoral (2028) é política, não jurídica, e pode ser contornada com uma rota de contratação pequena e um piloto já em andamento antes do período mais sensível.</p>
+
+<h3>A dispensa emergencial pós-desastre: janela real, mas ainda não vista neste nicho</h3>
+<p>O art. 75, VIII da Lei 14.133/2021 permite contratação emergencial direta quando há urgência real e risco de dano, com execução limitada a até um ano e proibição de recontratar a mesma empresa depois sem novo processo. É um mecanismo legal genuíno e usado na prática (encontrei um exemplo real no PNCP, mas na área de saúde, não em defesa civil). <strong>Minha leitura é que</strong> esse dispositivo é uma hipótese de venda plausível logo após um desastre de grande repercussão local (a prefeitura precisa organizar rapidamente registro, vistoria e prova de atendimento para prestar contas à União), mas não encontrei nenhum caso confirmado de uso desse artigo especificamente para comprar software de defesa civil — trate como tese a testar em campo, não como plano de vendas.</p>
+
+<h3>O que isso muda na estratégia comercial</h3>
+<ul>
+<li>Não abra conversa com "vamos participar do próximo pregão de vocês". Abra com "topam um piloto de solução inovadora, sem custo de licitação tradicional, por até 12 meses?" — é a pergunta que testa a rota CPSI.</li>
+<li>Pergunte, na própria reunião de segunda-feira, se o produto já está no Plano de Contratações Anual (PCA) do órgão. Se não está, a contratação por rota tradicional só aconteceria no exercício seguinte de qualquer forma.</li>
+<li>Priorize consórcios intermunicipais e municípios que já tenham Defesa Civil estruturada (equipe dedicada, não só um decreto de nomeação) — são os que têm orçamento e urgência reais.</li>
+</ul>
+
+<h2><span class="num">04</span> &nbsp;A trava do domínio: o que é obrigatório, e o que é mito</h2>
+<div class="h2-rule"></div>
+<p class="lead">O projeto já tem, no próprio repositório, um levantamento jurídico e técnico extenso (<code>docs/referencia/LEVANTAMENTO_TECNICO_JURIDICO_GOVTECH.md</code>, v1.1, 19/08/2026), que trata LGPD, Lei 14.133/2021, marco setorial de defesa civil e arquitetura com profundidade acima do que uma pesquisa de mercado padrão produziria. Não vou repetir esse trabalho. Esta seção valida os pontos mais críticos, e adiciona três correções que mudam a leitura do problema.</p>
+
+<h3>O que já está bem resolvido, e não precisa ser reaberto</h3>
+<ul>
+<li><strong>LGPD:</strong> a prefeitura é controladora, o produto é operador, e a base legal é execução de política pública (art. 7º, II e III, e art. 11 para dado sensível), não consentimento. Está correto e é o erro mais comum de quem vem de produto de consumo.</li>
+<li><strong>COBRADE</strong> como taxonomia obrigatória de tipos de ocorrência: correto, e já é regra dura do próprio protótipo (<code>CLAUDE.md</code> já exige nomes reais da COBRADE nos dados mock).</li>
+<li><strong>Lei 14.063/2020</strong> (assinatura eletrônica em três níveis): a leitura de que o nível avançado provavelmente basta para laudo de vistoria e termo de interdição, evitando o custo de certificado ICP-Brasil por usuário, é razoável e consistente com o que a pesquisa de fornecedores desta análise encontrou (seção 05 seguinte).</li>
+<li><strong>Modelo de licenciamento SaaS com licença de uso</strong>, não cessão de código: é a única estrutura em que o produto continua sendo revendável depois do primeiro cliente. Ler a cláusula de propriedade intelectual de cada edital antes de responder continua sendo o hábito mais importante de todos.</li>
+</ul>
+
+<h3>Correção 1: este produto, na prática, não paga comissão de loja de aplicativo</h3>
+<p>O sistema de comissão de 15% a 30% da Apple e de 15% do Google (documentado em <code>LOJAS.md</code>) existe para assinatura vendida <strong>dentro do aplicativo</strong>, via compra in-app, a um consumidor final. Este produto é vendido por contrato direto com a prefeitura, faturado fora da loja. Isso significa que a "conformidade das lojas", no sentido de tela de assinatura, comissão e Small Business Program, <strong>não se aplica</strong> a este projeto na forma como o template padrão desta análise assume. O que continua valendo, se o app do agente de campo for distribuído numa loja pública, são as regras de ficha técnica, privacidade, e o cadastro de desenvolvedor com D-U-N-S — não a mecânica de cobrança.</p>
+
+<h3>Correção 2: distribuição privada (o caminho escolhido) tem um custo de visibilidade que vale decidir conscientemente</h3>
+<p>O levantamento interno decidiu, na v1.1, distribuir o app do agente de campo por canal privado (Managed Google Play e Apple Business Manager), reservando a loja pública só para um futuro app do cidadão. Isso evita revisão pública e reduz a superfície de crítica visível. Mas a pesquisa desta seção encontrou algo que pesa na outra direção: o concorrente mais forte identificado (Colab Campo, seção 02) está numa loja <strong>pública</strong>, e isso permitiu a esta própria análise localizar, em texto literal, exatamente onde ele falha (recuperação de senha, estabilidade pós-atualização) — uma vantagem de inteligência competitiva que um app privado não oferece a ninguém, nem a favor nem contra o produto. <strong>Minha leitura é que</strong> a distribuição privada continua sendo a escolha certa para o MVP (menos fricção de revisão, mais controle), mas vale registrar que ela tem esse custo de opacidade, inclusive para o próprio time medir sua reputação.</p>
+
+<h3>Correção 3: nenhuma certificação pesada é pré-requisito para o primeiro contrato</h3>
+<p>ISO 27001, pentest externo recorrente e SOC 2 são investimento real e o levantamento interno já os posiciona corretamente como meta de médio prazo, não de MVP. Isso é importante repetir com todas as letras porque é um mito comum travar o primeiro piloto tentando alcançar um nível de maturidade que nem o comprador município pequeno vai exigir contratualmente. O que a dispensa de licitação e a CPSI exigem de fato é regularidade fiscal, trabalhista e capacidade de entregar o que foi prometido — não certificação internacional.</p>
+
+<div class="box neutral">
+<span class="bt">Lacuna declarada</span>
+<p style="margin-bottom:0">Não verifiquei, nesta rodada, se as regras específicas de Managed Google Play e Apple Business Manager (distribuição privada) diferem das regras de <code>LOJAS.md</code> (que documentam a loja pública) em algum ponto que afete o cronograma — por exemplo, se o D-U-N-S e o prazo de 30 dias continuam se aplicando da mesma forma. <span class="tag tag-warn">A confirmar</span> antes de abrir a conta de desenvolvedor, na Fase 1 do roadmap.</p>
+</div>
+
+<h2><span class="num">05</span> &nbsp;Fornecedores, arquitetura e economia unitária</h2>
+<div class="h2-rule"></div>
+<p class="lead">O custo que escala neste produto não é o de um SaaS de consumo comum: não é "por usuário", é por evidência fotográfica armazenada e reaberta, e por chamada de mapa. Isso muda qual decisão de arquitetura vale dinheiro de verdade.</p>
+
+<h3>Nuvem: a decisão de maior alavancagem é onde guardar a foto, não onde rodar o servidor</h3>
+<table class="tight">
+<thead><tr><th>Item</th><th>AWS S3 (sa-east-1, São Paulo)</th><th>Cloudflare R2</th><th>Fonte</th></tr></thead>
+<tbody>
+<tr><td>Armazenamento</td><td>US$ 0,0405/GB-mês</td><td>US$ 0,015/GB-mês</td><td>aws.amazon.com/s3 (API oficial de preços), developers.cloudflare.com/r2/pricing, 20/08/2026</td></tr>
+<tr class="row-hi"><td>Saída de dados (egress)</td><td>US$ 0,15/GB (até 10 TB/mês)</td><td><strong>US$ 0 — gratuito</strong></td><td>Idem. Preço da AWS em São Paulo não muda desde a redução de 2020, e segue sendo a região mais cara da AWS para egress</td></tr>
+</tbody>
+</table>
+<p>R2 custa cerca de 2,7 vezes menos em armazenamento puro e elimina inteiramente a cobrança de egress. Como o app de campo existe justamente para baixar e reabrir fotos de vistoria (coordenador revisando, laudo sendo composto, reenvio depois de falha), <strong>o multiplicador de economia cresce com o próprio uso do produto</strong> — esta é a decisão de arquitetura de maior retorno financeiro deste projeto, mais impactante que a escolha de linguagem ou framework.</p>
+
+<h3>Mapa: a cota gratuita do Google mudou, e isso muda o cálculo de custo por cliente pequeno</h3>
+<p>Em 1º de março de 2025, o Google removeu o antigo crédito mensal fixo de US$ 200 do Google Maps Platform e passou a conceder <strong>10.000 chamadas grátis por mês, por API individual</strong> (Geocoding, Maps JavaScript, Places, cada uma com sua própria cota), no nível Essentials — confirmado diretamente na página oficial de preços em 20/08/2026. Acima disso, Geocoding custa entre US$ 4,00 e US$ 5,00 por mil chamadas, com desconto automático de volume. Para a esmagadora maioria dos municípios pequenos e médios do produto, o uso mensal de mapa deve ficar dentro da cota gratuita por SKU. A alternativa de custo zero garantido é Leaflet ou MapLibre GL JS (ambos de código aberto, licença permissiva) com tiles do OpenStreetMap — mas o serviço público de geocodificação do OpenStreetMap (Nominatim) tem limite rígido de 1 requisição por segundo e proíbe uso comercial sério sem hospedagem própria, segundo a própria política oficial do projeto.</p>
+
+<h3>Assinatura eletrônica do documento técnico: existe caminho gratuito, mas o custo para uso por terceiros não está publicado</h3>
+<p>O governo federal mantém uma API oficial de Assinatura Eletrônica Avançada gov.br (Decreto nº 10.543/2020), com validade jurídica equivalente à assinatura física, e que dispensaria certificado ICP-Brasil por usuário. Não encontrei, nas páginas públicas, o custo dessa API para uso por um SaaS privado atuando em nome de várias prefeituras — <span class="tag tag-warn">a confirmar</span> diretamente com a equipe do produto (contato oficial: int-assinatura-govbr@gestao.gov.br). Como alternativa comercial de mercado, com preço público confirmado em 20/08/2026: Clicksign a partir de R$ 59/mês ou R$ 4,30 a R$ 6,90 por documento avulso; D4Sign a partir de R$ 24,90/mês (5 envios); DocuSign Brasil a partir de R$ 45/mês (5 envelopes).</p>
+
+<h3>Arquitetura offline-first: o padrão de mercado brasileiro já respondeu essa pergunta</h3>
+<p>O ponto mais frágil tecnicamente do produto é a promessa central de venda: sincronizar sem perder nem duplicar depois de dias sem sinal. A pesquisa confirmou, de forma independente, que o Safari/iOS tem histórico documentado de limitar e, em versões passadas, descartar dado armazenado localmente em aplicativo não revisitado (política de expiração que já chegou a ser de 7 dias), não oferece suporte real à Background Sync API (o aplicativo precisa estar aberto em primeiro plano para sincronizar), e tem histórico de bugs de IndexedDB associados a atualizações de sistema operacional. <span class="tag tag-warn">A confirmar</span> o estado exato dessa política em 2026, já que o iOS já mudou essa regra mais de uma vez.</p>
+<p>Mais decisivo que a limitação técnica isolada é o padrão de mercado: confirmei diretamente, via a API pública da App Store brasileira, que o <strong>Colab Campo</strong> (o concorrente indireto mais capitalizado identificado nesta pesquisa, seção 02) é um <strong>aplicativo nativo</strong>, não um PWA, para exatamente o mesmo cenário de uso ("funciona offline, envia automaticamente quando a conexão voltar"). Nenhum produto de gestão pública municipal brasileira encontrado nesta pesquisa resolve vistoria de campo offline com foto e GPS por PWA.</p>
+<div class="box no-break">
+<span class="bt">Isto confirma, de forma independente, uma decisão já tomada</span>
+<p style="margin-bottom:0">O levantamento técnico interno do projeto já havia decidido, na v1.1, migrar o app de campo do produto real para React Native com Expo e SQLite local, exatamente pelo mesmo motivo agora corroborado pelo padrão de mercado. Não é uma recomendação nova desta análise: é uma segunda fonte independente confirmando que a decisão já tomada está certa, e que tratar o protótipo HTML como base de código para o app de campo real seria um erro.</p>
+</div>
+
+<h3>Economia unitária: premissas explícitas</h3>
+<p>Premissa de câmbio: US$ 1,00 ≈ R$ 5,20 (referência de mercado em 20/08/2026, a confirmar no dia do fechamento de preço). Premissa de arquitetura: banco de dados e computação são <strong>compartilhados entre todos os clientes</strong> (multi-tenant com Row Level Security, decisão já fixada no levantamento técnico interno) — ou seja, o custo de nuvem é majoritariamente um <strong>custo fixo da operação como um todo</strong>, que cresce em degraus conforme o volume total soma, não um custo que se multiplica por cliente. Isso corrige uma leitura ingênua que trataria "custo por cliente" como se cada prefeitura tivesse seu próprio servidor.</p>
+
+<table class="tight">
+<thead><tr><th>Item de custo</th><th>Natureza</th><th>Valor estimado</th><th>Confiança</th></tr></thead>
+<tbody>
+<tr><td>Computação (2 vCPU/4GB, ponto de partida)</td><td>Fixo da operação</td><td>US$ 49 a 98/mês (R$ 255 a R$ 510)</td><td>Estimado por agregador de preço regional, não pela calculadora oficial — a confirmar</td></tr>
+<tr><td>Banco PostgreSQL gerenciado compartilhado</td><td>Fixo da operação</td><td>US$ 89 a 190/mês (R$ 460 a R$ 990)</td><td>Idem, a confirmar</td></tr>
+<tr><td>Fila/jobs (Redis)</td><td>Fixo da operação</td><td>Não cotado nesta pesquisa</td><td>Não encontrado — orçar na Fase 1</td></tr>
+<tr><td>Assinatura eletrônica (plano de entrada comercial)</td><td>Fixo da operação</td><td>R$ 60 a R$ 100/mês</td><td>Preço público confirmado (seção acima)</td></tr>
+<tr><td>Armazenamento + egress de evidências, por cliente pequeno</td><td>Variável por cliente</td><td>≈ R$ 0,50 a R$ 2/mês (R2) a R$ 2 a R$ 5/mês (S3)</td><td>Fonte oficial (tabela de nuvem acima)</td></tr>
+<tr><td>Armazenamento + egress de evidências, por cliente médio</td><td>Variável por cliente</td><td>≈ R$ 5/mês (R2) a R$ 23/mês (S3)</td><td>Idem</td></tr>
+<tr><td>Armazenamento + egress de evidências, por cliente grande</td><td>Variável por cliente</td><td>≈ R$ 42/mês (R2) a R$ 289/mês (S3)</td><td>Idem</td></tr>
+<tr><td>DPO externo, seguro de responsabilidade profissional, pentest anual</td><td>Fixo da operação</td><td>Não cotado nesta pesquisa</td><td>Não encontrado — o próprio levantamento técnico interno já sinaliza que são custos reais e recorrentes, mas nenhuma cotação brasileira foi levantada</td></tr>
+</tbody>
+</table>
+
+<div class="callout-grid no-break">
+<div><div class="cg-t">Margem de contribuição, cliente médio</div><div class="cg-v">≈ R$ 2.450/mês</div><div class="cg-d">Preço sugerido de R$ 2.500/mês (seção 07) menos custo variável direto de ≈ R$ 25 a 50/mês</div></div>
+<div><div class="cg-t">Ponto de equilíbrio, só infraestrutura mensurável</div><div class="cg-v">1 a 2 clientes</div><div class="cg-d">de porte médio já cobrem compute + banco + assinatura eletrônica mensuráveis nesta pesquisa</div></div>
+<div><div class="cg-t">Ponto de equilíbrio real, com os itens não cotados</div><div class="cg-v">Não determinável</div><div class="cg-d">DPO, seguro e pentest ainda sem cotação. Provavelmente mais alto — ver aviso abaixo</div></div>
+</div>
+
+<div class="box warn no-break">
+<span class="bt">O número que engana se lido sozinho</span>
+<p style="margin-bottom:0">A infraestrutura de nuvem, isolada, se paga com um ou dois clientes de porte médio. <strong>Isso não significa que o negócio se sustenta com um ou dois clientes.</strong> O verdadeiro fator limitante, segundo o próprio levantamento técnico interno do projeto, é a capacidade de entrega: um desenvolvedor, até 10 horas por semana, com estimativa de 18 a 24 meses até um piloto realista. Nenhuma quantidade de clientes paga isso de volta rápido o suficiente sem também resolver a questão de tempo e de sócio (seção 10). Trate o "ponto de equilíbrio de servidor" como a menor das preocupações financeiras deste projeto, não a maior.</p>
+</div>
+
+<h3>Lacunas desta seção, declaradas</h3>
+<ul>
+<li><span class="tag tag-warn">A confirmar</span> Preço exato de computação e banco de dados nas três nuvens em região Brasil, direto da calculadora oficial (as estimativas acima vieram de agregador de terceiros, cruzado contra o múltiplo regional confirmado via S3, não da calculadora).</li>
+<li><span class="tag tag-warn">A confirmar</span> Custo da API gov.br de assinatura avançada para uso por SaaS privado em nome de terceiros.</li>
+<li><span class="tag tag-warn">Não encontrado</span> Cotação brasileira de DPO externo, seguro de responsabilidade profissional (E&O/cyber) e pentest anual — pesa diretamente no custo fixo real da operação e precisa ser levantado antes de fechar preço final.</li>
+</ul>
+
+<h2><span class="num">06</span> &nbsp;Identidade visual: o violeta vende para prefeitura?</h2>
+<div class="h2-rule"></div>
+<p class="lead">Esta seção é deliberadamente curta: o design system do protótipo (<code>design-system/DESIGN_SYSTEM.md</code>, v0.2) já é incomum para um protótipo descartável — contraste AA verificado numericamente, dois temas completos, escalas de severidade separadas da cor de marca. O trabalho de fundação está feito. O que vale examinar é uma pergunta de posicionamento, não de execução.</p>
+
+<h3>A cor certa, ou só a mais recente?</h3>
+<p>O histórico do projeto mostra a identidade mudando de laranja institucional para violeta em 20/08/2026, na mesma semana desta análise, a partir de uma referência visual trazida pelo Rafa. Tecnicamente a troca foi bem executada (contraste reverificado, regra de "cor nunca comunica severidade sozinha" mantida). Mas troca de identidade a poucos dias de uma apresentação a clientes é, por si só, um sinal de processo a observar: se a próxima reunião gerar mais uma reação forte sobre cor, o risco é entrar num ciclo de retrabalho visual que rouba tempo do que decide a venda de verdade, que é o fluxo operacional e o simulador de offline.</p>
+<p><strong>Minha leitura é que</strong> violeta é uma escolha defensável para diferenciar de um mercado onde a esmagadora maioria dos portais de prefeitura brasileira usa azul institucional (o próprio Atende.Net, os portais de cidadão, o gov.br). Para um comprador público conservador, a pergunta não é se violeta é bonito, é se ele lê como "produto sério" ou como "aplicativo de startup" — e a resposta depende mais da sobriedade de execução (que o design system já entrega: neutros profundos, sem gradiente decorativo espalhado, hierarquia tipográfica forte) do que do matiz em si. Não recomendo mexer nisso de novo antes da reunião de segunda-feira: qualquer ajuste agora é custo de tempo sem retorno de venda.</p>
+
+<h3>Dois pontos operacionais, não estéticos</h3>
+<ul>
+<li>A única chamada de rede permitida no protótipo (o <code>@import</code> do Google Fonts para Work Sans e Roboto Mono) já tem fallback documentado para a pilha de fontes do sistema. Isso importa porque redes de prefeitura às vezes bloqueiam recursos externos por política de firewall municipal — o protótipo já está coberto para esse cenário, o que é uma decisão de engenharia acertada e barata.</li>
+<li>Os pinos de severidade no mapa e os selos de status usam escalas de cor separadas da marca (âmbar, vermelho, cinza-azulado), nunca o violeta — está certo, e é a regra de acessibilidade mais frequentemente quebrada por protótipos de painel operacional (cor de marca sendo reaproveitada como cor de alerta).</li>
+</ul>
+
+<h2><span class="num">07</span> &nbsp;Oferta e precificação</h2>
+<div class="h2-rule"></div>
+<p class="lead">O maior risco de precificação deste produto não é cobrar caro demais. É deixar o comprador comparar com a âncora errada.</p>
+
+<div class="box danger no-break">
+<span class="bt">A âncora que precisa ser neutralizada na conversa de venda</span>
+<p style="margin-bottom:0">O concorrente mais barato mapeado nesta pesquisa, Kad Defesa Civil, vende por <strong>R$ 195,00, uma vez, sem mensalidade</strong>. Se um coordenador de Defesa Civil comparar esse número com uma assinatura anual de dezenas de milhares de reais sem entender a diferença de categoria de produto, a venda morre na primeira objeção de preço. A defesa não é "somos melhores que o Kad" — é nunca mencionar o Kad, e ancorar a conversa inteira no custo real do que já acontece hoje: retrabalho, prova perdida em auditoria, e o tempo da equipe gasto em WhatsApp e planilha. É exatamente o enquadramento que a especificação técnica original do produto já usa bem; a única falha seria abandoná-lo na hora de falar de preço.</p>
+</div>
+
+<h3>Modelo recomendado: assinatura anual por município, faixada por porte populacional</h3>
+<p>Assinatura anual (não mensal nem por uso) é a escolha certa para este comprador, porque o ciclo orçamentário público funciona por exercício financeiro e empenho: cobrança "usage-based" agressiva não encaixa no processo de aprovação de despesa de uma prefeitura. Faixar por porte populacional, e não por número de usuários, tem duas vantagens: acompanha o volume real de ocorrências (que é o que determina o custo variável de armazenamento e mapa, seção 06), e evita a política incômoda de cobrar por assento num órgão onde o quadro de pessoal muda por decreto, não por decisão de compra.</p>
+
+<table>
+<thead><tr><th>Porte do município</th><th>Faixa de assinatura anual</th><th>Equivalente mensal</th><th>Justificativa</th></tr></thead>
+<tbody>
+<tr><td>Pequeno (até ~50 mil habitantes)</td><td>R$ 9.600 a R$ 14.400</td><td>R$ 800 a R$ 1.200</td><td>Custo variável desprezível (seção 06); preço ainda assim muito acima da percepção do Kad, exigindo discurso de valor forte desde a primeira reunião</td></tr>
+<tr class="row-hi"><td>Médio (50 a 200 mil habitantes)</td><td>R$ 24.000 a R$ 36.000</td><td>R$ 2.000 a R$ 3.000</td><td>Faixa de referência para o primeiro piloto: cobre com folga o custo de infraestrutura mensurável (seção 06) e é compatível com dispensa de licitação por valor (teto de R$ 65.492,11 cobre a assinatura de um ano inteiro mais implantação)</td></tr>
+<tr><td>Grande (200 mil+ ou capital/RM)</td><td>Negociado, referência R$ 60.000 a R$ 108.000</td><td>R$ 5.000 a R$ 9.000</td><td>Volume de ocorrências e de armazenamento pode dobrar em pico de chuva (seção 06); negociar com cláusula de reajuste por volume real, não preço fechado desde o início</td></tr>
+<tr><td>Consórcio intermunicipal</td><td>Pacote negociado, com desconto por volume sobre a soma dos municípios membros</td><td>—</td><td>Uma única contratação atende vários entes: é o canal de maior retorno por esforço comercial, segundo o levantamento técnico interno e a mecânica de licitação (seção 03)</td></tr>
+</tbody>
+</table>
+
+<h3>Implantação e treinamento: cobrar à parte, não diluir na mensalidade</h3>
+<p>Recomendo uma taxa única de implantação (configuração do tenant, cadastro de tipos de ocorrência e formulários, treinamento por perfil, acompanhamento assistido de 30 dias) separada da assinatura, seguindo a mesma lógica já usada por concorrentes de ERP municipal e já recomendada pelo levantamento técnico interno. <span class="tag tag-warn">Não encontrei</span> cotação de mercado brasileira específica para esse tipo de serviço nesta pesquisa; uma referência de bom senso, não uma cotação validada, é ancorar essa taxa em torno de três a seis vezes o valor da primeira mensalidade equivalente — a validar com o primeiro cliente piloto, não a tratar como preço fechado.</p>
+
+<h3>Por que fixar a tabela agora, mesmo sem o produto pronto</h3>
+<p>A rota de expansão mais barata identificada na seção 03 é a adesão a uma ata de registro de preços já vigente (carona). Isso só funciona bem se o preço cobrado do primeiro cliente for público, defensável e replicável — não uma negociação ad hoc por simpatia ou pressa em fechar o primeiro contrato. Fixar a tabela de porte populacional antes da primeira venda protege exatamente essa alavanca de crescimento.</p>
+
+<div class="box neutral no-break">
+<span class="bt">O que ainda falta para fechar o preço final</span>
+<p style="margin-bottom:0">Os custos fixos de conformidade não cotados (DPO, seguro, pentest, seção 06) precisam entrar nesta tabela antes de uma proposta comercial real ser enviada a qualquer prefeitura. Até lá, trate os números desta seção como faixa de referência para a conversa, não como tabela final.</p>
+</div>
+
+<h2><span class="num">08</span> &nbsp;O protótipo hoje, e a reunião de segunda-feira</h2>
+<div class="h2-rule"></div>
+<p class="lead">Esta seção não vem de pesquisa de mercado. Vem de ler o próprio repositório do projeto: o histórico do git, o roadmap da Fase 0 e o contexto de produto. É a descoberta mais acionável deste dossiê, porque muda o que fazer nos próximos quatro dias, não em dezoito meses.</p>
+
+<div class="callout-grid no-break">
+<div><div class="cg-t">Checkpoints concluídos</div><div class="cg-v">4 de 9</div><div class="cg-d">Commits confirmam CP1 (esqueleto), CP2 (painel do coordenador), CP3+CP4 (abertura, duplicidade, triagem, despacho e vistoria de campo completa)</div></div>
+<div><div class="cg-t">Dias até a reunião</div><div class="cg-v">4</div><div class="cg-d">Hoje é quinta-feira, 20/08/2026; a reunião é segunda-feira, 24/08/2026</div></div>
+<div><div class="cg-t">Checkpoints pendentes</div><div class="cg-v">5</div><div class="cg-d">CP5, CP6, resto do CP7, CP8 e CP9, cada um com critério de aceite próprio ainda não demonstrado</div></div>
+</div>
+
+<h3>O que falta, em ordem de prioridade para segunda-feira</h3>
+<table class="tight">
+<thead><tr><th>Checkpoint</th><th>O que entrega</th><th>Por que importa para a demo</th></tr></thead>
+<tbody>
+<tr class="row-hi"><td><strong>CP5</strong></td><td>Simulador de offline: fila de sincronização enchendo item a item, reconexão sincronizando sem duplicar</td><td>O próprio roadmap do projeto chama isso de "o momento que vende o produto" e "o clímax da demo". É o critério de sucesso da Fase 0 inteira (ver <code>docs/CONTEXTO.md</code>): sem isso funcionando de verdade, a demonstração perde exatamente a cena que diferencia este produto de um formulário comum</td></tr>
+<tr class="row-hi"><td><strong>CP6</strong></td><td>Relatório de vistoria e termo de interdição com aparência de documento oficial, mais linha do tempo auditável</td><td>O próprio roadmap registra que "o servidor público avalia o software pelo documento que sai dele". Um coordenador de Defesa Civil decide muito rápido se um sistema é sério ou não pelo documento que ele produz</td></tr>
+<tr><td>CP7 (restante)</td><td>Providência à Secretaria de Obras, encerramento com motivo obrigatório, tela de visão futura</td><td>Fecha o ciclo completo da história de dez minutos que a demo conta (o mapa já foi adiantado, segundo o próprio roadmap)</td></tr>
+<tr><td>CP8</td><td><code>docs/APRESENTACAO.md</code> e roteiro de demo cronometrado de dez minutos</td><td>Sem isso, a reunião depende inteiramente de quem estiver operando o protótipo saber a história de cor. Um roteiro escrito é o que permite a qualquer pessoa (inclusive alguém que não seja o Rafa) conduzir a demonstração</td></tr>
+<tr><td>CP9</td><td>Empacotamento final, <code>LEIA-ME.txt</code>, roteiro de vídeo como plano B</td><td>Protege contra o pior cenário: máquina desconhecida, sem internet, projetor ruim, alguém apertando o botão errado</td></tr>
+</tbody>
+</table>
+
+<h3>Recomendação direta para os próximos quatro dias</h3>
+<p>Não é razoável, nem necessário, concluir os nove checkpoints com o rigor de QA e UX completo (dois revisores, correção de críticos, aprovação humana a cada etapa) que o próprio <code>CLAUDE.md</code> exige em condições normais de trabalho. Isso é bom processo para os checkpoints já entregues; sob prazo de quatro dias, a prioridade muda:</p>
+<ol>
+<li><strong>CP5 primeiro, sem exceção.</strong> É o único item desta lista que o próprio time já identificou como decisivo para a reação do coordenador. Se sobrar tempo para só uma coisa, é esta.</li>
+<li><strong>CP6 em seguida, mesmo que reduzido.</strong> Um relatório de vistoria com aparência de documento oficial, mesmo sem o termo de interdição completo, já comunica seriedade.</li>
+<li><strong>Um roteiro de dez minutos escrito à mão, mesmo informal</strong>, cobrindo pelo menos a história âncora (rachadura em encosta, moradora idosa) do início ao fim, é mais valioso agora do que o CP8 formal completo.</li>
+<li><strong>Trate o encerramento, a providência e o empacotamento (CP7 restante, CP9) como aceitáveis de ficar incompletos</strong> para esta reunião específica, desde que a navegação não trave em nenhum ponto do roteiro escolhido. Um caminho morto durante a demonstração custa mais caro que uma funcionalidade ausente que nunca foi prometida.</li>
+</ol>
+
+<div class="box warn no-break">
+<span class="bt">O risco que isso não resolve</span>
+<p style="margin-bottom:0">Mesmo com CP5 e CP6 prontos, o protótipo continua sendo, por definição do próprio projeto, uma peça de venda descartável, não um produto. A recomendação da seção 01 de tratar a reunião como <strong>validação</strong>, não como fechamento de contrato, vale exatamente por isso: apressar o acabamento para "parecer pronto" não deveria mudar o que é prometido verbalmente na sala.</p>
+</div>
+
+<h2><span class="num">09</span> &nbsp;Roadmap da Fase 0 ao piloto vendável</h2>
+<div class="h2-rule"></div>
+<p class="lead">Dez fases, da validação em andamento até o primeiro contrato formal. As estimativas de semana assumem a capacidade real registrada no próprio levantamento técnico interno do projeto: <strong>um desenvolvedor, até 10 horas por semana</strong>, até que exista contrato ou carta de intenção que justifique dedicação maior. Três fases correm em paralelo desde o início: a papelada societária não espera o código, e a validação comercial não espera o produto pronto.</p>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">0</span><span class="ptitle">Validação com o protótipo descartável</span><span class="pmeta">Em andamento<br>4 de 9 checkpoints</span></div>
+  <div class="phase-body">
+    <p>Concluir CP5 a CP9 do roadmap já existente (<code>docs/ROADMAP_FASE0.md</code>), priorizando o simulador de offline e os documentos oficiais, conforme a seção 08. Demonstrar a pelo menos três Defesas Civis distintas.</p>
+    <ul class="chk"><li>Simulador de offline funcionando sem duplicação em qualquer ordem de clique</li><li>Documento de vistoria com aparência oficial</li><li>Roteiro de dez minutos escrito, ainda que informal</li></ul>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> demonstração para pelo menos três Defesas Civis municipais distintas, com o coordenador reconhecendo o fluxo como o dele sem explicação longa, e pelo menos duas manifestações formais de interesse (carta de intenção ou disposição a piloto pago) — critério já definido em <code>docs/CONTEXTO.md</code>, não inventado por esta análise.</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">1</span><span class="ptitle">Fundação jurídica e societária</span><span class="pmeta">Semanas 0-6<br>paralela à Fase 0</span></div>
+  <div class="phase-body">
+    <ul class="chk"><li>Acordo de sócios escrito com o Alyson, com participação, vesting e propriedade do código definidos</li><li>CNPJ com CNAE de desenvolvimento de software</li><li>Cotação real de DPO externo, seguro de responsabilidade profissional e pentest anual (lacuna declarada na seção 06)</li><li>Confirmação do custo da API gov.br de assinatura avançada para uso por terceiros</li></ul>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> acordo de sócios assinado <strong>antes de qualquer receita entrar</strong> (o próprio levantamento técnico interno classifica isso como risco fatal, R08) e CNPJ ativo com regularidade fiscal em dia.</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">2</span><span class="ptitle">Validação de fornecedores e prova técnica do offline</span><span class="pmeta">Semanas 2-5<br>paralela</span></div>
+  <div class="phase-body">
+    <p>Antes de desenhar a arquitetura inteira em cima de uma suposição, provar as peças mais arriscadas isoladamente, num spike técnico pequeno, não no produto completo.</p>
+    <ul class="chk"><li>Preço real de computação e banco de dados obtido direto das três calculadoras oficiais de nuvem (não estimado por múltiplo)</li><li>Protótipo técnico mínimo (não o app completo) de sincronização offline em app nativo, testado em modo avião real por pelo menos 48 horas contínuas</li><li>Decisão fechada entre Cloudflare R2 e S3 com números reais de uso, não estimativa</li></ul>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> o spike de sincronização offline completa 50 ciclos de perda e retorno de sinal, em dispositivo real, sem uma única duplicação nem perda de registro.</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">3</span><span class="ptitle">Primeira rota comercial</span><span class="pmeta">Semanas 2-20<br>paralela, ritmo do comprador</span></div>
+  <div class="phase-body">
+    <ul class="chk"><li>Pelo menos 5 a 8 conversas de validação além das três mínimas da Fase 0, incluindo ao menos um consórcio intermunicipal</li><li>Rota de contratação definida com o órgão mais engajado: CPSI (LC 182/2021) ou dispensa de licitação por valor</li><li>Material técnico de apoio (benchmark, catálogo de requisitos) entregue ao órgão para instruir o ETP/TR dele, sem redigir pelo órgão</li></ul>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> carta de intenção formal assinada, ou processo de CPSI oficialmente aberto, com pelo menos um órgão público.</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">4</span><span class="ptitle">Fundação técnica do produto real</span><span class="pmeta">Semanas 6 a 18<br>8 a 12 semanas de trabalho a 10h/semana</span></div>
+  <div class="phase-body">
+    <ul class="chk"><li>Monólito modular API-first, multi-tenant, PostgreSQL com PostGIS, região Brasil</li><li>Row Level Security ativada e forçada por <code>organization_id</code></li><li>Autenticação, RBAC + ABAC, auditoria básica, CI/CD, ambientes separados</li></ul>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> teste automatizado que tenta ler dado de um tenant com token de outro tenant, rodando em cada PR, bloqueando o merge em caso de falha (critério CA-06 já definido na especificação original do produto).</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">5</span><span class="ptitle">Núcleo operacional</span><span class="pmeta">Semanas 14 a 40<br>20 a 28 semanas</span></div>
+  <div class="phase-body">
+    <p>Ocorrência com protocolo único, triagem, despacho, linha do tempo, providências e painel do coordenador, agora com dado real, não mock.</p>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> um operador cria, classifica e atribui uma ocorrência real; um coordenador acompanha e encerra com motivo obrigatório; cem ocorrências de teste passam pelo ciclo completo sem um único protocolo duplicado.</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">6</span><span class="ptitle">Campo offline nativo</span><span class="pmeta">Semanas 32 a 56<br>16 a 24 semanas</span></div>
+  <div class="phase-body">
+    <p>React Native com Expo, SQLite local para a fila de saída (outbox), upload de mídia por URL pré-assinada, idempotência na sincronização. Este é o maior risco técnico do produto inteiro, confirmado pela seção 06.</p>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> trinta dias de uso assistido por um agente de campo real, alternando sinal repetidamente, sem uma única duplicação nem perda de vistoria registrada.</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">7</span><span class="ptitle">Documentos oficiais, mapa e assinatura</span><span class="pmeta">Semanas 48 a 68<br>12 a 20 semanas</span></div>
+  <div class="phase-body">
+    <ul class="chk"><li>Geração de PDF versionado, com protocolo, evidências, autoria e QR de validação</li><li>Termo de interdição com base normativa correta</li><li>Integração de assinatura eletrônica avançada (gov.br ou comercial, decisão da Fase 1)</li><li>Mapa com PostGIS e filtros reais</li></ul>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> cem documentos gerados em lote de teste sem um único dado divergente da origem, e assinatura eletrônica validável por terceiro via QR code.</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">8</span><span class="ptitle">Piloto assistido com o primeiro cliente real</span><span class="pmeta">Semanas 64 a 80<br>12 a 16 semanas</span></div>
+  <div class="phase-body">
+    <p>Implantação, treinamento por perfil, acompanhamento assistido, medição dos indicadores já definidos na especificação original (redução de pelo menos 30% no tempo de triagem, pelo menos 85% das vistorias sem retrabalho documental).</p>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> piloto ativo por 90 dias consecutivos, com os indicadores mínimos batendo e sem incidente de segurança ou de perda de dado registrado.</div>
+</div>
+
+<div class="phase no-break">
+  <div class="phase-head"><span class="pnum">9</span><span class="ptitle">Contrato formal e expansão</span><span class="pmeta">A partir da semana 80<br>ritmo do comprador</span></div>
+  <div class="phase-body">
+    <p>Conversão do piloto em contrato formal (o piloto gera o primeiro atestado de capacidade técnica, hoje inexistente e apontado como o maior gargalo de habilitação). Preparação de ata de registro de preços para adesão por outros municípios pelo canal de carona mapeado na seção 03.</p>
+  </div>
+  <div class="gate"><b>Portão de saída:</b> primeiro contrato formal assinado com faturamento recorrente, e pelo menos um pedido de adesão (carona) de outro município em andamento.</div>
+</div>
+
+<h3>O que fica deliberadamente fora da v1, e por quê</h3>
+<table class="tight">
+<thead><tr><th>Fora do escopo</th><th>Motivo do corte</th></tr></thead>
+<tbody>
+<tr><td>Modo emergência completo (incidentes, abrigos, turnos)</td><td>A especificação original já classifica como Fase 3; entrar antes da hora é o risco de maior probabilidade já identificado no levantamento interno (R04, "muito alta")</td></tr>
+<tr><td>Logística humanitária (estoque, doações, distribuição)</td><td>Mesmo motivo; depende do modo emergência existir primeiro</td></tr>
+<tr><td>Portal externo do cidadão</td><td>O comprador do MVP é a Defesa Civil, não o cidadão; adicionar canal de entrada pública multiplica superfície de LGPD antes de validar a operação interna</td></tr>
+<tr><td>Integração oficial com S2ID</td><td>Não há API oficial disponível hoje; prometer integração sem credenciamento é risco de imagem e de contrato</td></tr>
+<tr><td>Triagem ou classificação automática por IA</td><td>Some valor real, mas cada sugestão de IA exige revisão humana registrada por LGPD art. 20; construir isso antes do núcleo operacional estar sólido inverte a ordem de risco</td></tr>
+<tr><td>App público do cidadão nas lojas</td><td>O app do MVP é de uso interno do agente de campo, distribuído por canal privado (seção 04); loja pública só entra quando houver um produto voltado ao cidadão de fato</td></tr>
+</tbody>
+</table>
+
+<h2><span class="num">10</span> &nbsp;Riscos, e as decisões que dependem de você</h2>
+<div class="h2-rule"></div>
+
+<div class="box danger no-break">
+<span class="bt">O risco grave sem mitigação completa</span>
+<p style="margin-bottom:0">Colab, 1Doc ou a CCONET decidirem entrar de propósito no nicho de defesa civil antes do primeiro piloto deste projeto terminar. Os três já têm capital, relação comercial com centenas de prefeituras e, no caso do Colab, a peça técnica mais difícil (sincronização offline nativa) já resolvida para outro caso de uso. Não existe mitigação completa para isso: a única resposta real é correr mais rápido na diferenciação específica de domínio (taxonomia COBRADE, formulários alinhados ao reconhecimento federal do S2ID, laudo com validade jurídica) e transformar o primeiro cliente numa relação de confiança difícil de replicar por um concorrente maior e mais genérico, antes que esse cliente converse com eles. Se um desses três players anunciar um módulo de defesa civil dedicado, o cálculo deste dossiê muda e precisa ser revisto.</p>
+</div>
+
+<table class="tight">
+<thead><tr><th>Risco</th><th>Impacto</th><th>Probabilidade</th><th>Mitigação disponível</th></tr></thead>
+<tbody>
+<tr class="row-bad"><td>Ciclo de venda pública mais longo que o caixa aguenta</td><td>Fatal</td><td>Alta</td><td>Rota CPSI ou dispensa pequena (seção 03); carta de intenção antes de comprometer tempo de desenvolvimento</td></tr>
+<tr class="row-bad"><td>Sociedade com o Alyson sem acordo escrito</td><td>Fatal</td><td>Média</td><td>Acordo de sócios assinado antes de qualquer receita (Fase 1 do roadmap) — já apontado como risco no levantamento técnico interno (R08)</td></tr>
+<tr><td>Expectativa de prazo do cliente descolada da capacidade real (10h/semana)</td><td>Alto</td><td>Alta</td><td>Nunca prometer data de entrega na reunião de segunda-feira; comunicar a Fase 0 como validação, não como produto a caminho</td></tr>
+<tr><td>Preço ancorado pela referência do Kad (R$ 195 vitalício)</td><td>Alto</td><td>Média</td><td>Nunca mencionar o Kad na conversa comercial; ancorar em custo do retrabalho atual, não em concorrente (seção 07)</td></tr>
+<tr><td>Custos fixos de conformidade (DPO, seguro, pentest) sem cotação, distorcendo a margem real</td><td>Médio</td><td>Alta</td><td>Cotar antes de fechar qualquer proposta comercial formal (Fase 1 do roadmap)</td></tr>
+<tr><td>Sincronização offline duplicando ou perdendo dado em campo real</td><td>Fatal para a reputação</td><td>Média</td><td>Spike técnico isolado (Fase 2) antes de comprometer o produto inteiro à arquitetura escolhida</td></tr>
+<tr><td>Estados com equivalente ao PRODEC gratuito fora do Rio de Janeiro</td><td>Médio</td><td>Não determinado</td><td>Não verificado nesta pesquisa; checar antes de expandir para outros estados</td></tr>
+</tbody>
+</table>
+
+<h3>Decisões que só você pode tomar</h3>
+<ul>
+<li><strong>Apresentar segunda-feira mesmo que CP6 (documentos) fique incompleto</strong>, ou pedir mais alguns dias ao contato da prefeitura para entregar a demonstração completa? A seção 08 já prioriza CP5 acima de tudo; a decisão de adiar ou não é sua.</li>
+<li><strong>Fechar o acordo de sócios com o Alyson antes ou depois da reunião de segunda?</strong> O risco (R08 do levantamento interno) é classificado como fatal se receita entrar antes do acordo existir — mas nada nesta pesquisa indica que a reunião de segunda já gera receita, só validação.</li>
+<li><strong>Seguir a 10 horas por semana, ou buscar sócio técnico adicional ou capital para acelerar?</strong> O ciclo de venda mapeado na seção 03 (mínimo 2 a 6 meses mesmo pela rota mais rápida) dá alguma folga, mas o roadmap da seção 09 só fecha em 18 a 24 meses no ritmo atual.</li>
+<li><strong>Distribuição privada ou pública do app de campo?</strong> A seção 04 mostra o trade-off entre controle de reputação (privado) e inteligência competitiva/prova social (público, como o Colab).</li>
+<li><strong>Investir agora em confirmar se PRODEC tem equivalente em outros estados</strong> antes de decidir se o produto mira só municípios fora do Rio de Janeiro no primeiro ano, ou se entra de qualquer forma nesse estado sabendo da concorrência gratuita parcial.</li>
+</ul>
+
+<h3>O que fica marcado como lacuna em todo o documento, reunido aqui</h3>
+<ul>
+<li><span class="tag tag-warn">A confirmar</span> Catálogo completo de Betha Sistemas e IPM Sistemas (checagem só superficial em ambos)</li>
+<li><span class="tag tag-warn">A confirmar</span> Alcance real do módulo de defesa civil da CCONET (quantos municípios o usam de fato, e a profundidade funcional dele)</li>
+<li><span class="tag tag-warn">Não encontrado</span> Caso real de edital ou contrato de "software de defesa civil" no PNCP</li>
+<li><span class="tag tag-warn">A confirmar</span> Preço oficial de computação e banco de dados nas três nuvens em região Brasil, direto da calculadora, não por múltiplo estimado</li>
+<li><span class="tag tag-warn">Não encontrado</span> Cotação brasileira de DPO externo, seguro de responsabilidade profissional e pentest anual</li>
+<li><span class="tag tag-warn">A confirmar</span> Custo da API gov.br de assinatura eletrônica avançada para uso por SaaS privado em nome de terceiros</li>
+<li><span class="tag tag-warn">A confirmar</span> Se existe, em outros estados, um equivalente ao PRODEC (Rio de Janeiro) oferecido gratuitamente por secretaria estadual de defesa civil</li>
+</ul>
+
+<div class="footer-note">
+<strong>Nota de método.</strong> Levantamento sobre fontes públicas primárias nas datas indicadas ao longo do documento.
+Preços de terceiros mudam sem aviso e devem ser reconfirmados antes de qualquer contratação.
+Itens marcados como &ldquo;a confirmar&rdquo; não puderam ser validados em fonte oficial e estão listados como tarefa da primeira fase.
+</div>
+</main>
+</body>
+</html>

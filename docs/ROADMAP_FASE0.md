@@ -40,6 +40,23 @@ Depois de ver o CP1 (só esqueleto, como o próprio checkpoint previa), o Rafa p
 
 ---
 
+## Decisão adicional de direção visual (2026-08-20, terceira rodada)
+
+O Rafa pediu redesenho visual do protótipo inteiro (não só o mapa), com mais impacto, mais animação e mais presença do laranja de marca. Isso afrouxa a regra de movimento do `CLAUDE.md` (seção "Direção visual"), documentado lá em detalhe: durações maiores derivadas de `calc()` sobre tokens, elevação mais livre para elementos de destaque, gradiente permitido entre dois tokens `--ds-*`. Continua proibido qualquer valor fora de `--ds-*`, e `design-system/tokens.css` continua intocado. Vale para todas as telas já entregues (CP1-CP4) e para o mapa, que está sendo reconstruído com aparência de mapa de navegação de verdade (pinos em gota, ruas com acostamento, zoom).
+
+## Decisão adicional de direção visual (2026-08-20, quarta rodada: cabeçalho e capricho pontual)
+
+Depois de comparar o protótipo com mockups feitos no Claude Design e com outros projetos do Rafa, três ajustes concretos, sem mudar nenhuma regra do `CLAUDE.md` além do que a terceira rodada já havia afrouxado:
+
+1. **Terceira exceção de tema declarada: `.cabecalho` é sempre escuro nos dois temas** (como um console fixo acima do conteúdo, mesma lógica de `.folha` e `.palco-campo`/`.moldura-celular`). Lê `--ds-ink-*`/`--ds-violet-*` direto, nunca as semânticas. Documentado aqui e em comentário no próprio `app/estilos.css`.
+2. **Sombra com tingimento de marca em elementos de destaque pontuais**: usar `color-mix(in srgb, var(--ds-*) X%, transparent)` para compor um brilho/pulso a partir de um token semântico já existente (ex.: o indicador de ocorrências críticas), na mesma lógica já permitida para gradientes na terceira rodada (deriva de tokens, nunca cor inventada). `design-system/tokens.css` continua intocado.
+3. **Mapa esquemático**: pinos menores e reagrupamento por proximidade (não só coordenada idêntica) para parar de se sobrepor visualmente; prédios com um leve degradê de dois tons (mesmos tokens de superfície) em vez de bloco chapado; sombra do pino movida do grupo inteiro para cada pino individualmente.
+4. **"Usuários e equipes" ganhou interação**: linhas da tabela e o nome da equipe abrem um modal de detalhe (colaborador ou equipe), primeiro uso do token `--ds-z-modal` que já existia em `tokens.css` sem consumidor. Novo componente `.sobreposicao-modal`/`.modal`, com fechamento por Esc, clique fora e botão fechar, seguindo o mesmo padrão de popover já usado no menu da demonstração. Ganhou também um cadastro fake ("Novo colaborador"): formulário no mesmo modal, some da fila de mocks congelados (`window.DC360_DADOS_INICIAIS`) para uma cópia mutável em `estado.usuarios`/`estado.equipes` (o mesmo padrão que `estado.ocorrencias` já usava), sem back-end, restaurado pelo "Reiniciar demonstração".
+
+## Decisão adicional de direção visual (2026-08-20, quinta rodada: mapa reconstruído)
+
+O mapa em SVG (pinos em gota, prédios em retângulo) continuou "feio" mesmo depois dos ajustes da quarta rodada, na avaliação direta do Rafa. Reconstruído do zero como divs com CSS, na mesma técnica do mockup do Claude Design aprovado: manchas de terreno borradas (`filter: blur()`), pinos como círculos com brilho via `box-shadow` (cor derivada de `color-mix()` sobre os tokens de severidade), sem prédios literais. O mapa vira a quinta exceção de tema declarada (sempre escuro, junto de `.folha`, `.palco-campo`/`.moldura-celular` e `.cabecalho`), documentada em comentário no `estilos.css`. A lista de tarefas do agente de campo também ganhou mais densidade visual (selo de severidade, endereço com ícone, vulnerabilidade, equipe, destaque na tarefa mais urgente), mesma técnica de card já usada no painel do coordenador.
+
 ## Decisão adicional de estrutura (2026-08-20, segunda rodada)
 
 Depois de ver o CP2 ampliado, o Rafa pediu que a identidade visual da Fase 0 já seja a semente do produto real (não muda o `CLAUDE.md`: continua sem código de produção, só reforça que a linguagem visual dos tokens deve se manter) e três mudanças concretas:
@@ -275,6 +292,16 @@ Perda de sinal, fila de sincronização, geração de documento.
 
 ---
 
+## Decisão de 2026-08-21: shell de admin, conectividade real e estatísticas navegáveis
+
+Rodada de feedback direto do Rafa sobre a apresentação. Mudanças estruturais que valem para todas as telas já entregues:
+
+- **Shell de administração**: a navegação saiu do cabeçalho e virou uma barra lateral escura (`.barra-lateral`), agrupada por seção (Operação, Administração, Produto), recolhível e com o estado persistido em `localStorage`. O cabeçalho passou a concentrar busca global (com atalho Ctrl+K), relógio, notificações, avatar e ações rápidas, separados por divisores visuais.
+- **Menu da demo removido**: o dropdown de engenharia (`.menu-dev`, com "Ver em modo mobile") foi eliminado, junto com toda a CSS de `body.modo-mobile-forcado`. Motivo: o botão de engrenagem era visualmente confundido com o alternador de tema, e o layout responsivo real tornou a pré-visualização forçada desnecessária. "Reiniciar demonstração" e "Sair" viraram ícones diretos no cabeçalho.
+- **Ícone de marca**: o escudo arredondado foi substituído por `icone-marca` (círculo com triângulo, inspirado no símbolo internacional de proteção civil), com traço anguloso. Aplicado no cabeçalho, no portal de login e no rodapé.
+- **CP5 entregue** (ver seção abaixo): o simulador de offline saiu do papel. Detalhes de implementação registrados no próprio CP5.
+- **Estatísticas de campo navegáveis**: os blocos Pendentes/Atrasadas/Concluídas viraram botões que abrem uma subtela filtrada (`estado.campoSubtela === "lista-filtrada"`), reaproveitando o mesmo cartão de tarefa. Pendentes e atrasadas abrem a vistoria; concluídas são somente leitura, com selo distinguindo "Sincronizada" de "Aguardando sincronização".
+
 ## CP5: simulador de offline, o clímax da demo
 
 **Objetivo:** entregar o momento que vende o produto, quando o sinal cai, a vistoria continua inteira e a reconexão sincroniza item a item sem perder nem duplicar nada.
@@ -309,6 +336,38 @@ Dimensão 6 com veredito explícito sobre o encanto deste momento e, se não enc
 **Fora deste checkpoint**
 
 Documentos, mapa, providência e encerramento.
+
+**Como ficou implementado (2026-08-21)**
+
+- Estado novo em `app/app.js`: `estado.conectividade` ("online" | "offline" | "sincronizando"), `estado.filaSincronizacao` e `estado.tokenSincronizacao`. Os três entram em `persistirEstado()`/`carregarEstadoPersistido()` (a fila sobrevive a F5) e são zerados por `reiniciarDemo()`. Um F5 durante a sincronização volta como "offline" com a fila intacta, nunca como "sincronizando".
+- Dois componentes, papéis distintos: leitura ambiente na barra de status do celular (`.moldura-celular__conexao`, sempre visível, ícone mais texto) e faixa acionável no conteúdo (`.campo-conectividade`), que concentra o único botão de alternância e a lista da fila.
+- A fila é granular: checklist, cada foto, GPS e assinatura entram como itens próprios, além da conclusão. Só o item `tipo: "conclusao"` muda `estado.ocorrencias` ao drenar; os outros quatro são registro visual (a fonte de verdade continua sendo `rascunhoVistoria`), o que elimina risco de estado parcialmente aplicado.
+- `concluirVistoria()` foi dividida em `montarRegistroVistoria()` (monta o registro) e `aplicarConclusaoVistoria()` (aplica em `estado.ocorrencias`, idempotente: só age se o status ainda for `em_campo`). A função original virou um roteador: online aplica na hora, offline empilha na fila.
+- O dreno é FIFO e cancelável por token de geração (`estado.tokenSincronizacao`): perder sinal no meio incrementa o token, e o `setTimeout` em voo se auto-cancela sem aplicar nada. Itens não drenados permanecem intactos, sem lógica de desfazer. Clicar em sincronizar repetidamente não duplica.
+- O re-render pesado (`atualizarTudoAposMudanca()`) roda uma vez ao final do dreno, não item a item.
+- Linha do tempo do coordenador: quando `vistoriaConcluidaEm` e `vistoria.sincronizadoEm` diferem, o evento ganha o corpo "Coletada offline às HH:MM, sincronizada às HH:MM", reaproveitando o parâmetro que `eventoLinhaTempo` já aceitava.
+- Pendência conhecida: o indicador de conexão existe só na moldura do celular, não no painel do coordenador (os entregáveis pediam nos dois). Narrativamente faz sentido (quem perde sinal é o agente), mas fica registrado como divergência deliberada em relação ao texto original do checkpoint.
+
+---
+
+## Situação dos checkpoints em 21/08/2026
+
+CP1 a CP9 concluídos. O dossiê de viabilidade (relatorio/) recomendou priorizar CP5 e CP6, que foram entregues nesta ordem, seguidos de CP7 restante, CP8 e CP9.
+
+Divergências deliberadas em relação ao texto original dos checkpoints:
+- CP5: o indicador de conectividade existe na moldura do celular, não no painel do coordenador.
+- CP6: o QR de validação é um padrão geométrico decorativo, não um QR legível (protótipo não valida nada de verdade).
+
+### Correções da rodada final de revisão (CP9)
+
+O revisor de UX e o de QA reprovaram a primeira versão do CP9. O que foi corrigido:
+
+- **Fila de sincronização invisível durante a coleta.** A faixa de conectividade não era renderizada dentro da tela de vistoria, então o agente marcava checklist, foto, GPS e assinatura sem nenhum retorno visual: a fila só aparecia depois, cheia de uma vez. Agora a vistoria mostra uma faixa compacta fixa no topo, com o contador subindo a cada ação, e a lista completa continua na tela de tarefas. A entrada dos itens ganhou `animation-delay` escalonado.
+- **Faixa fixa cobria o canvas de assinatura.** Corrigido junto: a variante compacta não renderiza a lista, e `atualizarFaixaConectividadeNaTela` preserva o modificador `--compacta` ao trocar a classe de estado (antes reescrevia `className` inteiro e a lista voltava por cima do formulário).
+- **Tamanhos de fonte e espaçamentos fora da escala** em 10 pontos do CSS, inclusive dentro do documento oficial (legenda de foto e aviso legal do rodapé). Todos migrados para `--ds-fs-caption` e `--ds-sp-1`.
+- **Indicador "Total na fila" nunca caía**, contrariando critério de aceite do CP7: contava o histórico inteiro. Virou "Na fila", contando só ocorrências ativas.
+- **Roteiro de demo com passos irreproduzíveis.** Três falhas encontradas executando o roteiro do começo ao fim com automação: mandava despachar a 000482, que já nasce despachada; não avisava que ao trocar de perfil o sistema volta para a última tela usada; e não avisava que o filtro de status continua ativo e impede a busca de encontrar a ocorrência do documento. Todos corrigidos e o roteiro inteiro revalidado ponta a ponta.
+- **Pacote de distribuição desatualizado**, gerado antes das correções. Reempacotado e revalidado com o navegador offline.
 
 ---
 

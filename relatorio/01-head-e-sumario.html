@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Defesa Civil Operacional 360 — Dossiê de viabilidade</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+  @page :first { margin: 0; }
+
+  :root{
+    --ink:#12161c;
+    --ink-2:#3d4654;
+    --ink-3:#6b7686;
+    --line:#dfe4ea;
+    --line-2:#eef1f5;
+    --accent:#5B21B6;
+    --accent-soft:#f1eafb;
+    --accent-deep:#3d1780;
+    --accent-bright:#C4B5FD;
+    --warn:#8a4b00;
+    --warn-soft:#fdf3e4;
+    --danger:#9b1c1c;
+    --danger-soft:#fdeaea;
+    --paper:#ffffff;
+  }
+
+  *{ box-sizing:border-box; }
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Segoe UI","Inter",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;
+    font-size:9.6pt; line-height:1.5;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  /* ---------- CAPA ---------- */
+  .cover{
+    height:297mm; width:210mm; padding:34mm 24mm 22mm 24mm;
+    display:flex; flex-direction:column; justify-content:space-between;
+    background:linear-gradient(158deg,#1a0f33 0%,#341a6e 46%,#5B21B6 100%);
+    color:#fff; page-break-after:always; position:relative; overflow:hidden;
+  }
+  .cover::after{
+    content:""; position:absolute; right:-90mm; bottom:-90mm;
+    width:220mm; height:220mm; border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.075) 0%,rgba(255,255,255,0) 68%);
+  }
+  .cover-mark{ display:flex; align-items:center; gap:9px; position:relative; z-index:2;}
+  .cover-mark .glyph{
+    width:26px;height:26px;border-radius:8px;background:var(--accent-bright);
+    display:flex;align-items:center;justify-content:center;
+    color:#1a0f33;font-weight:800;font-size:13pt;line-height:1;
+  }
+  .cover-mark .wordmark{ font-size:11.5pt; font-weight:650; letter-spacing:.16em; text-transform:uppercase; }
+  .cover h1{
+    font-size:33pt; line-height:1.08; margin:0 0 14px; font-weight:700; letter-spacing:-.022em;
+    position:relative; z-index:2;
+  }
+  .cover .sub{ font-size:12.5pt; color:#d7c8f5; max-width:132mm; line-height:1.45; position:relative; z-index:2; font-weight:350;}
+  .cover .kicker{
+    display:inline-block; font-size:7.6pt; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--accent-bright); border:1px solid rgba(196,181,253,.4); border-radius:999px;
+    padding:5px 13px; margin-bottom:22px; position:relative; z-index:2;
+  }
+  .cover-foot{ display:flex; justify-content:space-between; align-items:flex-end; font-size:8.4pt; color:#b9a4e0; position:relative; z-index:2;}
+  .cover-foot strong{ color:#fff; display:block; font-size:9.6pt; font-weight:600; margin-bottom:3px;}
+  .cover-stats{ display:flex; gap:0; border-top:1px solid rgba(255,255,255,.16); padding-top:16px; margin-top:26px; position:relative; z-index:2;}
+  .cover-stats div{ flex:1; padding-right:10px;}
+  .cover-stats .n{ font-size:16pt; font-weight:700; color:var(--accent-bright); letter-spacing:-.02em; display:block; line-height:1.15;}
+  .cover-stats .l{ font-size:7.5pt; color:#c9b8ea; line-height:1.35; display:block; margin-top:3px;}
+
+  /* ---------- ESTRUTURA ---------- */
+  .page-break{ page-break-before:always; }
+
+  h2{ font-size:16pt; letter-spacing:-.018em; margin:0 0 3px; font-weight:680; page-break-after:avoid; }
+  h2 .num{ color:var(--accent); font-weight:700; }
+  .h2-rule{ height:2.5px; background:var(--accent); width:42px; border-radius:2px; margin:9px 0 15px;}
+  h3{ font-size:11pt; margin:19px 0 7px; font-weight:660; letter-spacing:-.008em; page-break-after:avoid; }
+  h4{ font-size:9.6pt; margin:14px 0 5px; color:var(--ink-2); font-weight:660; page-break-after:avoid;}
+  p{ margin:0 0 8px; }
+  ul,ol{ margin:0 0 9px; padding-left:16px; }
+  li{ margin-bottom:3.5px; }
+  p,li{ orphans:2; widows:2; }
+  strong{ font-weight:650; color:var(--ink); }
+  a{ color:var(--accent); text-decoration:none; }
+  code{
+    font-family:"Cascadia Mono","Consolas",monospace; font-size:8.4pt;
+    background:var(--line-2); padding:1px 4px; border-radius:3px; color:#25303d;
+  }
+  .lead{ font-size:10.4pt; color:var(--ink-2); line-height:1.55; margin-bottom:13px; }
+
+  table{ width:100%; border-collapse:collapse; margin:10px 0 13px; font-size:8.5pt; page-break-inside:auto; }
+  thead{ display:table-header-group; }
+  tr{ page-break-inside:avoid; }
+  th{
+    text-align:left; background:#f4f2fa; color:var(--ink-2); font-weight:640;
+    padding:6px 8px; border-bottom:1.5px solid var(--line); font-size:7.9pt;
+    text-transform:uppercase; letter-spacing:.045em; vertical-align:bottom;
+  }
+  td{ padding:6px 8px; border-bottom:1px solid var(--line-2); vertical-align:top; line-height:1.42; }
+  tr:last-child td{ border-bottom:1px solid var(--line); }
+  .t-num{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .t-c{ text-align:center; }
+  table.tight td, table.tight th{ padding:4.5px 7px; font-size:8.1pt; }
+  .row-hi td{ background:var(--accent-soft); font-weight:600; }
+  .row-bad td{ background:var(--danger-soft); }
+
+  .box{
+    border:1px solid var(--line); border-left:3px solid var(--accent);
+    background:#fbfaff; padding:10px 13px; margin:11px 0; border-radius:0 5px 5px 0;
+    page-break-inside:avoid;
+  }
+  .box.warn{ border-left-color:#c98a2b; background:var(--warn-soft); }
+  .box.danger{ border-left-color:var(--danger); background:var(--danger-soft); }
+  .box.neutral{ border-left-color:var(--ink-3); background:#f8fafb; }
+  .box .bt{
+    font-size:7.6pt; text-transform:uppercase; letter-spacing:.1em; font-weight:700;
+    color:var(--accent); margin-bottom:5px; display:block;
+  }
+  .box.warn .bt{ color:var(--warn); }
+  .box.danger .bt{ color:var(--danger); }
+  .box.neutral .bt{ color:var(--ink-3); }
+  .box p:last-child, .box ul:last-child, .box ol:last-child{ margin-bottom:0; }
+
+  .callout-grid{ display:flex; gap:9px; margin:12px 0; page-break-inside:avoid; }
+  .callout-grid > div{ flex:1; border:1px solid var(--line); border-radius:6px; padding:10px 11px; background:#fbfcfd; }
+  .callout-grid .cg-t{ font-size:7.4pt; text-transform:uppercase; letter-spacing:.09em; color:var(--ink-3); font-weight:700; margin-bottom:4px;}
+  .callout-grid .cg-v{ font-size:14pt; font-weight:700; color:var(--accent); letter-spacing:-.02em; line-height:1.15;}
+  .callout-grid .cg-d{ font-size:7.8pt; color:var(--ink-3); margin-top:3px; line-height:1.35;}
+
+  .tag{ display:inline-block; font-size:7.1pt; font-weight:700; padding:2px 6px; border-radius:3px;
+        text-transform:uppercase; letter-spacing:.06em; vertical-align:middle; }
+  .tag-ok{ background:var(--accent-soft); color:var(--accent); }
+  .tag-warn{ background:var(--warn-soft); color:var(--warn); }
+  .tag-bad{ background:var(--danger-soft); color:var(--danger); }
+  .tag-info{ background:#e8eef7; color:#1d4a8a; }
+
+  .src{ font-size:7.4pt; color:var(--ink-3); font-style:italic; margin-top:-5px; margin-bottom:11px; }
+
+  .verdict{
+    border:2px solid var(--accent); border-radius:8px; padding:14px 16px; margin:14px 0 16px;
+    background:var(--accent-soft); page-break-inside:avoid;
+  }
+  .verdict.no{ border-color:var(--danger); background:var(--danger-soft); }
+  .verdict.maybe{ border-color:#c98a2b; background:var(--warn-soft); }
+  .verdict .vlabel{ font-size:7.6pt; text-transform:uppercase; letter-spacing:.12em; font-weight:700; color:var(--accent); margin-bottom:6px; display:block;}
+  .verdict.no .vlabel{ color:var(--danger); }
+  .verdict.maybe .vlabel{ color:var(--warn); }
+  .verdict .vtext{ font-size:14pt; font-weight:700; letter-spacing:-.015em; line-height:1.25; margin-bottom:7px; }
+  .verdict p:last-child{ margin-bottom:0; }
+
+  .toc{ margin-top:6px; }
+  .toc-item{ display:flex; align-items:baseline; gap:8px; padding:6.5px 0; border-bottom:1px solid var(--line-2); font-size:9.4pt; }
+  .toc-item .tn{ color:var(--accent); font-weight:700; width:22px; flex-shrink:0; font-size:9pt;}
+  .toc-item .tt{ flex:1; font-weight:600; }
+  .toc-item .td{ color:var(--ink-3); font-size:8.3pt; font-weight:400; margin-left:6px;}
+
+  .phase{ border:1px solid var(--line); border-radius:7px; margin:11px 0; page-break-inside:auto; }
+  .phase-head{
+    background:#f4f2fa; padding:8px 12px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:10px;
+    page-break-inside:avoid; page-break-after:avoid; border-radius:6px 6px 0 0;
+  }
+  .phase-head .pnum{
+    background:var(--accent); color:#fff; font-weight:700; font-size:8pt;
+    width:23px; height:23px; border-radius:5px; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .phase-head .ptitle{ font-weight:680; font-size:10.2pt; flex:1; letter-spacing:-.01em;}
+  .phase-head .pmeta{ font-size:7.7pt; color:var(--ink-3); text-align:right; line-height:1.35; }
+  .phase-body{ padding:10px 13px; }
+  .phase-body p:last-child, .phase-body ul:last-child, .phase-body table:last-child{ margin-bottom:0; }
+  .gate{
+    background:var(--accent-soft); border-top:1px solid #e0d3f7; padding:7px 13px;
+    font-size:8.2pt; color:var(--accent-deep); page-break-inside:avoid; border-radius:0 0 6px 6px;
+  }
+  .gate b{ text-transform:uppercase; font-size:7.3pt; letter-spacing:.08em; }
+
+  .chk{ list-style:none; padding-left:0; }
+  .chk li{ padding-left:17px; position:relative; margin-bottom:4px; }
+  .chk li::before{
+    content:""; position:absolute; left:0; top:4.5px; width:9px; height:9px;
+    border:1.4px solid var(--accent); border-radius:2.5px;
+  }
+
+  .footer-note{ margin-top:26px; padding-top:11px; border-top:1px solid var(--line); font-size:7.8pt; color:var(--ink-3); line-height:1.5; }
+  .no-break{ page-break-inside:avoid; }
+</style>
+</head>
+<body>
+
+<!-- ============ CAPA ============ -->
+<div class="cover">
+  <div>
+    <div class="cover-mark">
+      <div class="glyph">R</div>
+      <div class="wordmark">Ronaldinho · Dossiê de decisão</div>
+    </div>
+  </div>
+
+  <div>
+    <span class="kicker">Documento de decisão · Confidencial</span>
+    <h1>Defesa Civil Operacional 360</h1>
+    <div class="sub">Vale gastar os próximos 18 a 24 meses construindo um SaaS de gestão operacional para Defesas Civis municipais? Concorrência real, mecânica de licitação, preço e o que falta no roadmap até um piloto vendável.</div>
+
+    <div class="cover-stats">
+      <div><span class="n">0</span><span class="l">concorrentes comerciais vivos com o fluxo operacional completo (protocolo a encerramento)</span></div>
+      <div><span class="n">R$ 65.492</span><span class="l">teto de dispensa de licitação por valor em 2026 (Decreto 12.807/2025)</span></div>
+      <div><span class="n">4 a 12</span><span class="l">meses de ciclo médio de pregão eletrônico, via de regra</span></div>
+      <div><span class="n">CP4 / 9</span><span class="l">checkpoints do protótipo concluídos até 20/08/2026, de um total de 9</span></div>
+    </div>
+  </div>
+
+  <div class="cover-foot">
+    <div>
+      <strong>Preparado para Rafael (Rafa)</strong>
+      Insumo de decisão para a reunião de apresentação a prefeituras
+    </div>
+    <div style="text-align:right">
+      <strong>20 de agosto de 2026</strong>
+      Versão 1.0 · para decisão
+    </div>
+  </div>
+</div>
+
+<main>
+
+<!-- ============ SUMÁRIO ============ -->
+<h2><span class="num">00</span> &nbsp;Sumário</h2>
+<div class="h2-rule"></div>
+
+<div class="toc">
+  <div class="toc-item"><span class="tn">01</span><span class="tt">Veredito executivo<span class="td">— a decisão e o que a sustenta</span></span></div>
+  <div class="toc-item"><span class="tn">02</span><span class="tt">Quem realmente compete<span class="td">— Kad, PRODEC, CCONET, Colab, e o que sobrou depois de checar cada um</span></span></div>
+  <div class="toc-item"><span class="tn">03</span><span class="tt">A mecânica de venda para prefeitura<span class="td">— licitação, dispensa, CPSI, consórcio e o calendário real</span></span></div>
+  <div class="toc-item"><span class="tn">04</span><span class="tt">A trava do domínio<span class="td">— o que é obrigatório, o que é mito, e o que já está bem resolvido</span></span></div>
+  <div class="toc-item"><span class="tn">05</span><span class="tt">Fornecedores, arquitetura e economia unitária<span class="td">— nuvem, mapa, assinatura, offline-first, e o ponto de equilíbrio</span></span></div>
+  <div class="toc-item"><span class="tn">06</span><span class="tt">Identidade visual<span class="td">— o violeta, a tipografia, e se isso vende para prefeitura</span></span></div>
+  <div class="toc-item"><span class="tn">07</span><span class="tt">Oferta e precificação<span class="td">— o que cobrar, de quem, e como</span></span></div>
+  <div class="toc-item"><span class="tn">08</span><span class="tt">O protótipo hoje e a reunião de segunda-feira<span class="td">— o que está pronto e o que falta, sem rodeio</span></span></div>
+  <div class="toc-item"><span class="tn">09</span><span class="tt">Roadmap da Fase 0 ao piloto vendável<span class="td">— dez fases, com portão de saída verificável em cada uma</span></span></div>
+  <div class="toc-item"><span class="tn">10</span><span class="tt">Riscos e as decisões que dependem de você<span class="td">— o que ninguém resolve por você</span></span></div>
+</div>
+
+<div class="box neutral" style="margin-top:18px">
+  <span class="bt">Como ler este documento</span>
+  <p style="margin-bottom:6px">Esta pesquisa combinou reconhecimento direto (consulta de domínio via RDAP, leitura de página oficial de concorrente, API pública de metadados de app, fontes governamentais primárias), dois subagentes de investigação orientada (concorrência e mecânica de licitação; fornecedores e arquitetura), e uma rodada de verificação cruzada feita por mim em quatro das afirmações de maior peso antes de qualquer uma delas entrar neste texto. Também usei um levantamento jurídico e técnico já existente no próprio repositório do projeto (datado de 19/08/2026), tratando-o como fonte interna e conferindo os pontos mais críticos.</p>
+  <p style="margin-bottom:0">Onde um dado não pôde ser confirmado em fonte oficial, ele aparece marcado como <span class="tag tag-warn">a confirmar</span>. Onde uma conclusão é interpretação e não fato citável, o texto diz "minha leitura é que". Nenhum número foi estimado sem estar rotulado como estimativa.</p>
+</div>
