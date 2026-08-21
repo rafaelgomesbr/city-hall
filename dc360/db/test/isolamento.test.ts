@@ -374,3 +374,131 @@ describe("Isolamento sob concorrência na mesma conexão", () => {
     }
   });
 });
+
+describe("Chave estrangeira nao atravessa municipio", () => {
+  /**
+   * Row Level Security governa SELECT, INSERT, UPDATE e DELETE. Ela NAO
+   * governa a verificacao de chave estrangeira: o Postgres checa a existencia
+   * da linha referenciada com privilegio de sistema, por baixo da policy.
+   *
+   * Antes da migracao 008, isso permitia gravar dado apontando para linha de
+   * outro municipio, e ainda funcionava como oraculo de existencia: o insert
+   * passava se o identificador existia la e falhava se nao existia. E o mesmo
+   * vazamento que a resposta 404 no lugar de 403 existe para impedir na API,
+   * so que pela porta dos fundos.
+   *
+   * A defesa e chave estrangeira COMPOSTA com organizacao_id nos dois lados.
+   */
+  let equipeDeB: string;
+  let usuarioDeB: string;
+
+  beforeAll(async () => {
+    const e = await db.query<{ id: string }>(
+      "INSERT INTO equipes (organizacao_id, nome) VALUES ($1, 'Equipe do vizinho') RETURNING id",
+      [orgB],
+    );
+    equipeDeB = e.rows[0]!.id;
+
+    const u = await db.query<{ id: string }>(
+      `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
+       VALUES ($1, 'Servidor do vizinho', 'VZ-1', 'vizinho@exemplo.gov.br', 'operador')
+       RETURNING id`,
+      [orgB],
+    );
+    usuarioDeB = u.rows[0]!.id;
+  });
+
+  it("nao vincula ocorrencia a chamado de outro municipio", async () => {
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO ocorrencias
+             (organizacao_id, protocolo, tipo, status, endereco, solicitante_nome,
+              canal_entrada, descricao, vinculada_a)
+           VALUES ($1,'000801/2026','granizo','registrada','Rua A','F','telefone','x',$2)`,
+          [orgA, ocorrenciaDeB],
+        ),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("nao despacha para equipe de outro municipio", async () => {
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO ocorrencias
+             (organizacao_id, protocolo, tipo, status, endereco, solicitante_nome,
+              canal_entrada, descricao, equipe_id)
+           VALUES ($1,'000802/2026','granizo','registrada','Rua A','F','telefone','x',$2)`,
+          [orgA, equipeDeB],
+        ),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("nao coloca servidor em equipe de outro municipio", async () => {
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel, equipe_id)
+           VALUES ($1,'Novo','SA-801','novo801@exemplo.gov.br','agente_campo',$2)`,
+          [orgA, equipeDeB],
+        ),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("nao grava vistoria apontando para ocorrencia de outro municipio", async () => {
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO vistorias
+             (organizacao_id, ocorrencia_id, checklist, assinante_nome, coletada_em, idempotency_key)
+           VALUES ($1,$2,'[]'::jsonb,'x', now(), gen_random_uuid())`,
+          [orgA, ocorrenciaDeB],
+        ),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("nao assina evento da trilha com servidor de outro municipio", async () => {
+    // O pior dos casos: a trilha e a prova de quem fez o que, e apontar para
+    // a pessoa errada a transforma no oposto do que ela existe para ser.
+    const propria = await db.query<{ id: string }>(
+      "SELECT id FROM ocorrencias WHERE organizacao_id = $1 LIMIT 1",
+      [orgA],
+    );
+
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO trilha_eventos
+             (organizacao_id, ocorrencia_id, tipo, autor_id, autor_nome, autor_papel,
+              origem, ocorrido_em)
+           VALUES ($1,$2,'registro',$3,'x','operador','escritorio', now())`,
+          [orgA, propria.rows[0]!.id, usuarioDeB],
+        ),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("o vinculo dentro do proprio municipio continua funcionando", async () => {
+    // A correcao nao pode ter fechado o caminho legitimo junto.
+    const propria = await db.query<{ id: string }>(
+      "SELECT id FROM ocorrencias WHERE organizacao_id = $1 LIMIT 1",
+      [orgA],
+    );
+
+    const criada = await comoApp(orgA, (tx) =>
+      tx.query<{ id: string }>(
+        `INSERT INTO ocorrencias
+           (organizacao_id, protocolo, tipo, status, endereco, solicitante_nome,
+            canal_entrada, descricao, vinculada_a)
+         VALUES ($1,'000803/2026','granizo','registrada','Rua A','F','telefone','x',$2)
+         RETURNING id`,
+        [orgA, propria.rows[0]!.id],
+      ),
+    );
+    expect(criada.rows[0]!.id).toBeTruthy();
+  });
+});

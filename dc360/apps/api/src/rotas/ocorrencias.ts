@@ -160,7 +160,7 @@ export async function rotasOcorrencias(
         throw new RegraDeNegocio("nao_encontrada", "Ocorrência não encontrada.", 404);
       }
 
-      const [trilha, vistoria, providencias] = await Promise.all([
+      const [trilha, vistoria, providencias, vinculada, vinculadas] = await Promise.all([
         c.query(
           `SELECT id, tipo, autor_nome, autor_papel, origem, ocorrido_em, registrado_em, detalhe
              FROM trilha_eventos WHERE ocorrencia_id = $1 ORDER BY ocorrido_em`,
@@ -176,6 +176,25 @@ export async function rotasOcorrencias(
           `SELECT * FROM providencias WHERE ocorrencia_id = $1 ORDER BY encaminhada_em DESC`,
           [id],
         ),
+        /*
+          O vínculo de duplicidade era capturado na abertura e nunca mostrado.
+          Isso deixava a deteção de duplicidade pela metade: o operador
+          escolhia vincular, e ninguém mais via a decisão. Nas duas direções,
+          porque a pergunta "este chamado é o mesmo daquele?" aparece dos dois
+          lados.
+        */
+        c.query(
+          `SELECT o.id, o.protocolo, o.status, o.endereco, o.criado_em
+             FROM ocorrencias o
+             JOIN ocorrencias filha ON filha.vinculada_a = o.id
+            WHERE filha.id = $1`,
+          [id],
+        ),
+        c.query(
+          `SELECT id, protocolo, status, endereco, criado_em
+             FROM ocorrencias WHERE vinculada_a = $1 ORDER BY criado_em`,
+          [id],
+        ),
       ]);
 
       return {
@@ -183,6 +202,10 @@ export async function rotasOcorrencias(
         trilha: trilha.rows,
         vistoria: vistoria.rows[0] ?? null,
         providencias: providencias.rows,
+        /** A ocorrência da qual esta é continuação, se houver. */
+        vinculadaA: vinculada.rows[0] ?? null,
+        /** As que foram registradas depois e apontam para esta. */
+        vinculadas: vinculadas.rows,
       };
     });
   });
@@ -422,6 +445,29 @@ export async function rotasOcorrencias(
     return { status: "encerrada", providenciasSemResposta: pendentes };
   });
 
+  /**
+   * Providências que vencem sem resposta.
+   *
+   * Elas somem da fila do coordenador assim que a ocorrência é encerrada, e é
+   * justamente aí que ficam esquecidas. Esta lista existe para que "a
+   * secretaria não respondeu" seja um fato visível e não uma descoberta seis
+   * meses depois.
+   */
+  app.get("/providencias/pendentes", async (req) => {
+    const quem = await app.exigirAutenticacao(req);
+    return banco.comTenant(quem.organizacaoId, async (c) => {
+      const r = await c.query(
+        `SELECT p.id, p.orgao_destino, p.descricao, p.responsavel,
+                p.prazo_em, p.encaminhada_em,
+                o.id AS ocorrencia_id, o.protocolo, o.endereco, o.status
+           FROM providencias p JOIN ocorrencias o ON o.id = p.ocorrencia_id
+          WHERE p.respondida_em IS NULL
+          ORDER BY p.prazo_em`,
+      );
+      return { itens: r.rows };
+    });
+  });
+
   app.get("/indicadores/painel", async (req) => {
     const quem = await app.exigirAutenticacao(req);
     return banco.comTenant(quem.organizacaoId, async (c) => {
@@ -434,7 +480,12 @@ export async function rotasOcorrencias(
            count(*) FILTER (WHERE status = 'encerrada'
                               AND encerrado_em > now() - interval '7 days')::int AS encerradas_7d,
            count(*) FILTER (WHERE status NOT IN ('encerrada','rascunho')
-                              AND severidade = 'critica')::int AS criticas
+                              AND severidade = 'critica')::int AS criticas,
+           (SELECT count(*) FROM providencias
+             WHERE respondida_em IS NULL)::int AS providencias_abertas,
+           (SELECT count(*) FROM providencias
+             WHERE respondida_em IS NULL AND prazo_em < now())::int
+             AS providencias_vencidas
          FROM ocorrencias`,
       );
       return r.rows[0];

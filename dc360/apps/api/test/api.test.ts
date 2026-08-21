@@ -788,3 +788,100 @@ describe("Resposta do orgao a providencia", () => {
     expect(r.json().providenciasSemResposta).toEqual([]);
   }, 120_000);
 });
+
+describe("Vinculo de duplicidade e providencias vencendo", () => {
+  it("o vinculo aparece nos DOIS lados", async () => {
+    const original = await app.inject({
+      method: "POST", url: "/ocorrencias", headers: comToken(tokens["coordA"]!.acesso),
+      payload: {
+        solicitanteNome: "Primeiro vizinho", canalEntrada: "telefone",
+        endereco: "Rua do Vinculo, 100, Centro", tipo: "alagamento",
+        descricao: "Agua entrando no comercio.",
+      },
+    });
+    const idOriginal = original.json().id;
+
+    // Outro morador liga sobre o mesmo evento, e o operador vincula.
+    const segunda = await app.inject({
+      method: "POST", url: "/ocorrencias", headers: comToken(tokens["operadorA"]!.acesso),
+      payload: {
+        solicitanteNome: "Segundo vizinho", canalEntrada: "whatsapp",
+        endereco: "Rua do Vinculo, 102, Centro", tipo: "alagamento",
+        descricao: "Mesma agua, dois numeros adiante.",
+        vinculadaA: idOriginal,
+      },
+    });
+    expect(segunda.statusCode).toBe(201);
+    const idSegunda = segunda.json().id;
+
+    // Do lado da filha: ela sabe de quem e continuacao.
+    const daFilha = await app.inject({
+      method: "GET", url: `/ocorrencias/${idSegunda}`, headers: comToken(tokens["coordA"]!.acesso),
+    });
+    expect(daFilha.json().vinculadaA?.id).toBe(idOriginal);
+    expect(daFilha.json().vinculadaA?.protocolo).toBe(original.json().protocolo);
+
+    // Do lado da original: ela sabe quais chamados vieram depois. Sem isto, o
+    // coordenador encerraria a primeira sem saber que ha outra pendurada.
+    const daOriginal = await app.inject({
+      method: "GET", url: `/ocorrencias/${idOriginal}`, headers: comToken(tokens["coordA"]!.acesso),
+    });
+    expect(daOriginal.json().vinculadas.map((v: { id: string }) => v.id)).toContain(idSegunda);
+    expect(daOriginal.json().vinculadaA).toBeNull();
+  }, 120_000);
+
+  it("nao vincula a ocorrencia de outro municipio", async () => {
+    const r = await app.inject({
+      method: "POST", url: "/ocorrencias", headers: comToken(tokens["coordA"]!.acesso),
+      payload: {
+        solicitanteNome: "Alguem", canalEntrada: "telefone",
+        endereco: "Rua Alheia, 1", tipo: "granizo", descricao: "x",
+        vinculadaA: ocorrenciaB,
+      },
+    });
+    // A chave estrangeira nao alcanca linha de outro tenant sob RLS.
+    expect(r.statusCode).toBeGreaterThanOrEqual(400);
+  }, 60_000);
+
+  it("lista as providencias que vencem sem resposta", async () => {
+    const r = await app.inject({
+      method: "GET", url: "/ocorrencias/providencias/pendentes",
+      headers: comToken(tokens["coordA"]!.acesso),
+    });
+    expect(r.statusCode).toBe(200);
+
+    const itens = r.json().itens as Array<{ respondida_em?: string; protocolo: string; prazo_em: string }>;
+    for (const p of itens) {
+      expect(p.protocolo).toMatch(/^\d{6}\/\d{4}$/);
+      expect(p.respondida_em).toBeUndefined();
+    }
+    // Ordenadas pelo prazo: o que vence antes aparece antes.
+    const prazos = itens.map((p) => new Date(p.prazo_em).getTime());
+    for (let i = 1; i < prazos.length; i++) {
+      expect(prazos[i - 1]!).toBeLessThanOrEqual(prazos[i]!);
+    }
+  }, 60_000);
+
+  it("o painel conta providencia aberta e vencida", async () => {
+    const r = await app.inject({
+      method: "GET", url: "/ocorrencias/indicadores/painel",
+      headers: comToken(tokens["coordA"]!.acesso),
+    });
+    const i = r.json();
+    expect(i).toHaveProperty("providencias_abertas");
+    expect(i).toHaveProperty("providencias_vencidas");
+    expect(i.providencias_vencidas).toBeLessThanOrEqual(i.providencias_abertas);
+  }, 60_000);
+
+  it("a providencia continua visivel depois de a ocorrencia encerrar", async () => {
+    // E exatamente ai que ela costuma ser esquecida: sai da fila do
+    // coordenador e some do radar.
+    const antes = await app.inject({
+      method: "GET", url: "/ocorrencias/providencias/pendentes",
+      headers: comToken(tokens["coordA"]!.acesso),
+    });
+    const encerradas = (antes.json().itens as Array<{ status: string }>)
+      .filter((p) => p.status === "encerrada");
+    expect(encerradas.length).toBeGreaterThan(0);
+  }, 60_000);
+});

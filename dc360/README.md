@@ -441,9 +441,9 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 187 testes em quatro pacotes
-npm run test:isolamento     # portão CA-06 sozinho: 14 testes
-npm run test:api            # 110 testes da API
+npm test                    # 207 testes em quatro pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 35 testes
+npm run test:api            # 115 testes da API
 npm run test --workspace @dc360/campo   # 28 testes do motor de sincronização
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
@@ -496,6 +496,36 @@ de mapa com forma própria por severidade, e erro de campo com `role="alert"` e
 `aria-describedby`. O teste também falha se aparecer qualquer erro no console.
 
 Na primeira vez: `npx playwright install chromium`.
+
+## RLS não cobre chave estrangeira
+
+Este é o achado que mais custou a aparecer, e vale registrar por extenso.
+
+Row Level Security governa `SELECT`, `INSERT`, `UPDATE` e `DELETE`. Ela **não**
+governa a verificação de chave estrangeira: o Postgres confere a existência da
+linha referenciada com privilégio de sistema, por baixo da policy. Na prática,
+antes da migração 008 dava para:
+
+- vincular uma ocorrência de Serra Alta a uma de Vale Fundo;
+- despachar para uma equipe de outra prefeitura;
+- gravar vistoria apontando para ocorrência que o município não enxerga;
+- **assinar um evento da trilha com um servidor de outro município** — o pior
+  dos casos, porque a trilha é a prova de quem fez o quê.
+
+Nada disso aparecia em teste de leitura, porque a linha continuava invisível.
+E o estrago tinha duas naturezas: dado incoerente gravado, e um oráculo de
+existência (o insert passa se o identificador existe lá, falha se não existe),
+que é exatamente o vazamento que a resposta 404 no lugar de 403 existe para
+impedir na API, só que pela porta dos fundos.
+
+**A correção é chave estrangeira composta**, com `organizacao_id` nos dois
+lados. O banco passa a exigir que pai e filho sejam do mesmo município, e a
+garantia deixa de depender de o desenvolvedor lembrar de consultar antes de
+inserir. O custo é uma restrição de unicidade em `(organizacao_id, id)`,
+redundante com a chave primária: é o preço da garantia.
+
+Cinco testes do portão CA-06 cobrem isso, e foi verificado que os cinco
+reprovam se a migração 008 for removida.
 
 ## O portão CA-06
 
