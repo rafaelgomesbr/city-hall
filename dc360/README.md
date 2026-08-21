@@ -335,6 +335,22 @@ do tratamento de dado pessoal, e exportação é tratamento. A tabela `exportaco
 guarda quem levou, qual recorte e quantos registros, é append-only como a
 trilha, e o registro acontece na mesma transação da leitura.
 
+## A superfície da API se defende sozinha
+
+O erro que mais barato custa cometer e mais caro custa descobrir é banal:
+alguém adiciona uma rota e esquece `exigirAutenticacao`. Nenhum teste de
+funcionalidade pega isso, porque a rota funciona perfeitamente. Ela só funciona
+para qualquer um.
+
+`test/superficie.test.ts` lê a árvore de rotas **do servidor montado** e exige
+token de todas. As exceções ficam numa lista curta, cada uma com a razão
+escrita, e o teste reprova se uma isenção sobrar apontando para rota que já não
+existe. É lista de exceções e não de regras de propósito: exceção alguém
+revisa, regra alguém esquece.
+
+Verificado adicionando uma rota sem autenticação de propósito: o teste a nomeia
+na mensagem de falha.
+
 ## Autorização por papel
 
 Quem pode o quê vive em `packages/shared/src/permissoes.ts`, e não numa
@@ -441,9 +457,9 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 214 testes em quatro pacotes
+npm test                    # 222 testes em quatro pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 42 testes
-npm run test:api            # 115 testes da API
+npm run test:api            # 123 testes da API
 npm run test --workspace @dc360/campo   # 28 testes do motor de sincronização
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
