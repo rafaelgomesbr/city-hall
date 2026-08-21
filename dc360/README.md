@@ -335,6 +335,25 @@ do tratamento de dado pessoal, e exportação é tratamento. A tabela `exportaco
 guarda quem levou, qual recorte e quantos registros, é append-only como a
 trilha, e o registro acontece na mesma transação da leitura.
 
+## O design system é verificado por máquina
+
+`CLAUDE.md` diz que cor, sombra ou duração escritos direto no componente são
+bug. Até agora isso dependia de um revisor humano olhar cada mudança, e revisor
+humano não olha o diff das duas da manhã.
+
+A razão da regra não é gosto: **cor literal não troca com o tema.** Ela fica
+igual no claro e no escuro, e o resultado é texto ilegível num dos dois. Sombra
+literal também não acompanha, e sombra clara sobre fundo escuro simplesmente
+some. E cada valor solto é um lugar a mais para consertar quando a identidade
+mudar, como já mudou uma vez aqui (laranja para violeta).
+
+`apps/web/test/design-system.test.ts` varre o CSS e os estilos escritos dentro
+dos componentes. Exceção deliberada é possível, escrevendo um comentário com o
+marcador e a razão na linha de cima: assim ela é uma decisão registrada, e não
+um valor que ninguém percebeu. O teste tem dois casos que provam as expressões
+funcionando e não produzindo falso positivo, para não depender de o código
+estar errado para descobrir que a varredura quebrou.
+
 ## A superfície da API se defende sozinha
 
 O erro que mais barato custa cometer e mais caro custa descobrir é banal:
@@ -457,7 +476,7 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 222 testes em quatro pacotes
+npm test                    # 226 testes em cinco pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 42 testes
 npm run test:api            # 123 testes da API
 npm run test --workspace @dc360/campo   # 28 testes do motor de sincronização

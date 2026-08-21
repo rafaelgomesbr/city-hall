@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:e2e": "node test/fluxo.e2e.mjs",
-    "test:e2e:api": "node test/fluxo-api.e2e.mjs"
+    "test:e2e:api": "node test/fluxo-api.e2e.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@dc360/shared": "*",
