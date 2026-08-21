@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
+import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
 import { derivarSenha } from "../src/auth/senha.js";
 import { hashDoToken } from "../src/auth/tokens.js";
 
@@ -123,7 +124,10 @@ beforeAll(async () => {
     LOGIN_POR_IP: "10000",
   } as NodeJS.ProcessEnv);
 
-  app = await construirServidor({ banco: mem.banco, config });
+  app = await construirServidor({
+    banco: mem.banco, config,
+    armazenamento: armazenamentoEmMemoria({ baseUrl: "http://127.0.0.1:0" }),
+  });
   await app.ready();
   await semear();
 
@@ -589,7 +593,10 @@ describe("Limite de tentativas por endereço", () => {
       JWT_SEGREDO: "outro-segredo-de-teste-com-mais-de-32-bytes",
       LOGIN_POR_IP: "3",
     } as NodeJS.ProcessEnv);
-    const restrito = await construirServidor({ banco: mem.banco, config });
+    const restrito = await construirServidor({
+      banco: mem.banco, config,
+      armazenamento: armazenamentoEmMemoria({ baseUrl: "http://127.0.0.1:0" }),
+    });
     await restrito.ready();
 
     const respostas: number[] = [];

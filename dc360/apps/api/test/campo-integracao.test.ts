@@ -10,6 +10,7 @@ import {
 import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
+import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
 
 /**
  * A fila do aplicativo de campo contra a API de verdade.
@@ -141,7 +142,10 @@ beforeAll(async () => {
     LOGIN_POR_IP: "10000",
   } as NodeJS.ProcessEnv);
 
-  app = await construirServidor({ banco: mem.banco, config });
+  app = await construirServidor({
+    banco: mem.banco, config,
+    armazenamento: armazenamentoEmMemoria({ baseUrl: "http://127.0.0.1:0" }),
+  });
   // Servidor de verdade numa porta efêmera: o transporte usa `fetch`, então
   // requisição injetada não serviria.
   await app.listen({ port: 0, host: "127.0.0.1" });

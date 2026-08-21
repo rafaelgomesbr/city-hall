@@ -67,10 +67,31 @@ export async function rotasSincronizacao(
       const novaId = inserida.rows[0]!.id;
 
       for (const [ordem, foto] of v.fotos.entries()) {
-        // A chave é remontada aqui, no servidor, a partir da organização do
-        // token. Aceitar a chave que o aparelho mandou permitiria gravar
-        // evidência sob o prefixo de outra prefeitura. O CHECK no banco
-        // recusaria, mas a decisão não pode depender do cliente.
+        /**
+         * A foto pode ter subido antes, pelo fluxo de evidência: nesse caso a
+         * linha já existe no banco, com `enviada_em` preenchido, e o que falta
+         * é amarrá-la a esta vistoria.
+         *
+         * A chave só é aceita como veio se ela pertencer a ESTA organização e
+         * a ESTA ocorrência. Qualquer outra coisa é remontada a partir do
+         * nome, porque aceitar chave escolhida pelo cliente permitiria gravar
+         * sob o prefixo de outra prefeitura.
+         */
+        const prefixoEsperado = `tenant/${quem.organizacaoId}/ocorrencias/${envelope.ocorrenciaId}/`;
+        const jaEnviada = foto.chave.startsWith(prefixoEsperado);
+
+        if (jaEnviada) {
+          const vinculada = await c.query<{ id: string }>(
+            `UPDATE evidencias SET vistoria_id = $1, ordem = $2, legenda = COALESCE($3, legenda)
+              WHERE ocorrencia_id = $4 AND chave_storage = $5
+              RETURNING id`,
+            [novaId, ordem, foto.legenda ?? null, envelope.ocorrenciaId, foto.chave],
+          );
+          if (vinculada.rows[0]) continue;
+          // Chave com o prefixo certo mas sem linha correspondente: o aparelho
+          // inventou. Cai no caminho de baixo, que remonta uma chave nova.
+        }
+
         const chave = chaveDeStorage(
           quem.organizacaoId,
           envelope.ocorrenciaId,
@@ -78,11 +99,12 @@ export async function rotasSincronizacao(
         );
         await c.query(
           `INSERT INTO evidencias
-             (organizacao_id, vistoria_id, chave_storage, legenda, latitude, longitude,
-              capturada_em, ordem)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+             (organizacao_id, ocorrencia_id, vistoria_id, chave_storage, legenda,
+              latitude, longitude, capturada_em, ordem)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+           ON CONFLICT (organizacao_id, chave_storage) DO NOTHING`,
           [
-            quem.organizacaoId, novaId, chave, foto.legenda ?? null,
+            quem.organizacaoId, envelope.ocorrenciaId, novaId, chave, foto.legenda ?? null,
             foto.coordenada?.lat ?? null, foto.coordenada?.lng ?? null,
             foto.capturadaEm, ordem,
           ],

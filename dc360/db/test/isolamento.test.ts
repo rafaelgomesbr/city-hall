@@ -19,13 +19,25 @@
  * disputam a mesma conexão. O último bloco cobre exatamente esse caso.
  */
 import { PGlite } from "@electric-sql/pglite";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const aqui = dirname(fileURLToPath(import.meta.url));
-const migracao = readFileSync(join(aqui, "..", "migrations", "001_base.sql"), "utf8");
+/**
+ * TODAS as migrações, na ordem, e não só a primeira.
+ *
+ * Uma versão anterior lia apenas `001_base.sql`, e o efeito foi silencioso: a
+ * tabela `sessoes`, criada na 002, ficou fora do portão que existe justamente
+ * para garantir que nenhuma tabela de negócio escape do isolamento. Ler a
+ * pasta inteira faz com que uma migração nova entre no teste sozinha.
+ */
+const pastaDeMigracoes = join(aqui, "..", "migrations");
+const migracoes = readdirSync(pastaDeMigracoes)
+  .filter((f) => f.endsWith(".sql"))
+  .sort()
+  .map((f) => readFileSync(join(pastaDeMigracoes, f), "utf8"));
 
 let db: PGlite;
 let orgA: string;
@@ -54,7 +66,7 @@ async function comoApp<T>(orgId: string | null, fn: (tx: any) => Promise<T>): Pr
 
 beforeAll(async () => {
   db = new PGlite();
-  await db.exec(migracao);
+  for (const migracao of migracoes) await db.exec(migracao);
 
   // Semeadura roda como dono das tabelas, fora do papel de aplicação.
   const a = await db.query<{ id: string }>(
@@ -147,6 +159,7 @@ describe("CA-06: isolamento entre organizações", () => {
       "evidencias",
       "providencias",
       "trilha_eventos",
+      "sessoes",
     ];
     for (const t of tabelas) {
       const r = await db.query<{ relrowsecurity: boolean; relforcerowsecurity: boolean }>(
@@ -254,9 +267,10 @@ describe("Regras de negócio garantidas pelo banco", () => {
     await expect(
       comoApp(orgA, (tx) =>
         tx.query(
-          `INSERT INTO evidencias (organizacao_id, vistoria_id, chave_storage, capturada_em)
-           VALUES ($1,$2,'tenant/outro-municipio/foto.jpg', now())`,
-          [orgA, v.rows[0]!.id],
+          `INSERT INTO evidencias
+             (organizacao_id, ocorrencia_id, vistoria_id, chave_storage, capturada_em)
+           VALUES ($1,$2,$3,'tenant/outro-municipio/foto.jpg', now())`,
+          [orgA, oc.rows[0]!.id, v.rows[0]!.id],
         ),
       ),
     ).rejects.toThrow(/chave_com_prefixo_do_tenant/i);

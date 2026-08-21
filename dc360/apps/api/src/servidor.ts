@@ -12,6 +12,10 @@ import { rotasAutenticacao } from "./rotas/autenticacao.js";
 import { rotasOcorrencias } from "./rotas/ocorrencias.js";
 import { rotasAdministracao } from "./rotas/administracao.js";
 import { rotasSincronizacao } from "./rotas/sincronizacao.js";
+import { rotasEvidencias } from "./rotas/evidencias.js";
+import { rotasArmazenamentoLocal } from "./rotas/armazenamento-local.js";
+import type { Armazenamento } from "./armazenamento/tipos.js";
+import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
 
 export type Identidade = {
   usuarioId: string;
@@ -30,9 +34,11 @@ declare module "fastify" {
   }
 }
 
-export type Dependencias = { banco: Banco; config: Config };
+export type Dependencias = { banco: Banco; config: Config; armazenamento: Armazenamento };
 
-export async function construirServidor({ banco, config }: Dependencias): Promise<FastifyInstance> {
+export async function construirServidor(
+  { banco, config, armazenamento }: Dependencias,
+): Promise<FastifyInstance> {
   const app = Fastify({
     // O id de requisição aparece em todo log e na resposta de erro 500. É o
     // que permite alguém dizer "deu erro às 14h32" e a equipe achar a linha.
@@ -54,6 +60,9 @@ export async function construirServidor({ banco, config }: Dependencias): Promis
           },
         },
     trustProxy: config.NODE_ENV === "production",
+    // Um megabyte cobre qualquer payload de negócio. O upload de foto NÃO
+    // passa por aqui: ele vai direto para o armazenamento, com URL assinada.
+    // A exceção é a rota do armazenamento local, que ajusta o próprio limite.
     bodyLimit: 1_048_576,
   });
 
@@ -162,6 +171,16 @@ export async function construirServidor({ banco, config }: Dependencias): Promis
   await app.register(rotasOcorrencias, { prefix: "/ocorrencias", banco });
   await app.register(rotasAdministracao, { prefix: "/", banco });
   await app.register(rotasSincronizacao, { prefix: "/sincronizacao", banco });
+  await app.register(rotasEvidencias, { prefix: "/evidencias", banco, armazenamento });
+
+  // Só existe quando a própria API guarda os bytes, o que a configuração
+  // proíbe em produção.
+  if ("guardar" in armazenamento) {
+    await app.register(rotasArmazenamentoLocal, {
+      prefix: "/armazenamento",
+      armazenamento: armazenamento as ArmazenamentoEmMemoria,
+    });
+  }
 
   return app;
 }

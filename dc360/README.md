@@ -11,7 +11,7 @@ build) valem lá, não aqui.
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migração PostgreSQL com multi-tenancy por RLS forçada, e o teste de isolamento CA-06 | Pronto, 14 testes passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 43 verificações no modo local e 31 contra a API |
-| `apps/api` | API HTTP com autenticação própria, isolamento por token e sincronização idempotente | Pronta, 26 testes de integração passando |
+| `apps/api` | API HTTP com autenticação própria, isolamento por token, sincronização idempotente e evidência fotográfica | Pronta, 54 testes de integração passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência | Pronto, 28 testes de unidade e 7 de integração contra a API |
 | `apps/campo` | Casca do aplicativo em React Native com Expo | Não iniciada |
 
@@ -191,6 +191,50 @@ em que ele está subindo.
 A persistência é uma porta (`ChaveValor`), não um SQLite direto: no aparelho
 será `expo-sqlite`, nos testes é um mapa. A lógica não muda.
 
+## Evidência fotográfica
+
+A foto é a prova de uma vistoria de interdição, e ela mostra a casa e a rua de
+uma família em situação de risco. Duas regras vêm daí:
+
+**O arquivo nunca passa pelo servidor.** O aparelho recebe uma URL
+pré-assinada de vida curta e envia direto ao armazenamento. Passar dezenas de
+fotos por dentro da API significaria pagar banda duas vezes e derrubar o
+servidor no dia de temporal, que é quando o sistema precisa funcionar.
+
+**Nunca existe URL pública.** Toda leitura é pré-assinada, curta, gerada só
+depois de conferir permissão.
+
+O ciclo tem quatro passos, e o quarto não é burocracia:
+
+1. O aparelho pede autorização dizendo tipo e tamanho.
+2. O servidor confere permissão e dono da ocorrência, **decide a chave** e
+   devolve a URL. O cliente não escolhe onde grava: aceitar a chave proposta
+   permitiria escrever sob o prefixo de outra prefeitura.
+3. O aparelho envia os bytes.
+4. O aparelho confirma, e o servidor **pergunta ao armazenamento** se o objeto
+   existe e com que tamanho. Sem esse passo, um metadado fica apontando para
+   arquivo que nunca chegou, e a falta aparece meses depois, numa audiência.
+
+Tipo e tamanho entram na assinatura, então mandar diferente invalida a URL: o
+limite deixa de depender da boa vontade do cliente. O banco impõe as mesmas
+regras por CHECK, para valerem mesmo se outra ponta gravar direto.
+
+### A assinatura
+
+`src/armazenamento/assinatura.ts` implementa AWS Signature Version 4 sobre
+`node:crypto`, sem o SDK da AWS: o SDK traz dezenas de pacotes transitivos
+para uma conta que precisa fechar em zero no `npm audit`, e o provedor
+escolhido é S3-compatível (Cloudflare R2, por causa do egress), não a AWS.
+
+A correção não é opinião. O teste confere a saída contra o **vetor oficial da
+AWS**, e ela bate byte a byte. Uma assinatura de 256 bits não coincide por
+acaso.
+
+Sem `S3_ENDPOINT` configurado, a própria API guarda os bytes em memória, com
+URL assinada e expirando do mesmo jeito. A configuração recusa essa combinação
+em produção: guardar evidência na memória do processo perderia toda foto no
+primeiro reinício.
+
 ## Autorização por papel
 
 Quem pode o quê vive em `packages/shared/src/permissoes.ts`, e não numa
@@ -247,9 +291,9 @@ modo API, basta reiniciar o servidor: o banco efêmero nasce semeado de novo.
 ## Como testar
 
 ```bash
-npm test                    # 81 testes: isolamento, permissões, API e fila de campo
+npm test                    # 102 testes: isolamento, permissões, API, evidência e fila de campo
 npm run test:isolamento     # portão CA-06 sozinho: 14 testes
-npm run test:api            # 33 testes da API, incluindo a fila de campo contra ela
+npm run test:api            # 54 testes da API: rotas, evidência, assinatura e a fila de campo
 npm run test --workspace @dc360/campo   # 28 testes do motor de sincronização
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
@@ -313,9 +357,9 @@ mesmo papel sem privilégio que a API usará em produção.
   sincronização também, com a integração entre os dois coberta por teste. O
   que falta é a interface: câmera, assinatura em tela, GPS e o vínculo com
   `expo-sqlite`. Nada disso é verificável fora de um aparelho ou emulador.
-- **Upload de evidência.** A rota de sincronização já grava o metadado da foto
-  com a chave prefixada por tenant, mas o arquivo em si ainda não sobe: falta
-  o bucket e a URL pré-assinada.
+- **Conta no provedor de armazenamento.** O código está pronto e testado
+  contra o vetor oficial da AWS, mas nunca falou com um R2 ou S3 de verdade:
+  isso só se comprova com credencial em mão.
 - **Recuperação de senha.** Hoje só o administrador do município define senha
   ao cadastrar. Sem isso, esquecer a senha é chamado para o suporte.
 - **Mapa cartográfico.** MapLibre GL JS depende de um provedor de tiles, que é
@@ -325,6 +369,9 @@ mesmo papel sem privilégio que a API usará em produção.
   falta o bucket. O levantamento aponta Cloudflare R2 por causa do egress.
 - **PostGIS.** A migração ainda não cria a extensão porque nada hoje faz
   consulta espacial. Entra quando entrar busca por raio ou por setor de risco.
+- **Upload de foto na fila de campo.** O motor de sincronização ainda envia só
+  o metadado; falta enfileirar os bytes junto, com a mesma disciplina de
+  tentativa e idempotência.
 
 ## Onde estão as decisões
 

@@ -29,6 +29,18 @@ const esquema = z.object({
   BLOQUEIO_MINUTOS: z.coerce.number().int().min(1).max(1440).default(15),
   /** Tentativas de login por endereço, na janela de 5 minutos. */
   LOGIN_POR_IP: z.coerce.number().int().min(1).max(10_000).default(10),
+
+  /**
+   * Armazenamento de evidência. Ausentes em desenvolvimento: aí a própria API
+   * guarda os bytes em memória, com URL assinada e expirando do mesmo jeito.
+   */
+  S3_ENDPOINT: z.string().url().optional(),
+  S3_BALDE: z.string().min(1).optional(),
+  S3_REGIAO: z.string().min(1).default("auto"),
+  S3_CHAVE_ID: z.string().min(1).optional(),
+  S3_CHAVE_SECRETA: z.string().min(1).optional(),
+  /** Endereço público desta API, para montar a URL do armazenamento local. */
+  URL_PUBLICA: z.string().url().default("http://127.0.0.1:3333"),
 });
 
 export type Config = z.infer<typeof esquema> & {
@@ -51,6 +63,14 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
     if (!c.JWT_SEGREDO) throw new Error("JWT_SEGREDO é obrigatória em produção");
     if (c.ORIGENS_PERMITIDAS.includes("*")) {
       throw new Error("ORIGENS_PERMITIDAS não pode conter curinga em produção");
+    }
+    // Guardar evidência na memória do processo em produção significaria perder
+    // toda foto de vistoria no primeiro reinício.
+    if (!c.S3_ENDPOINT || !c.S3_BALDE || !c.S3_CHAVE_ID || !c.S3_CHAVE_SECRETA) {
+      throw new Error(
+        "Armazenamento de evidência é obrigatório em produção: " +
+        "defina S3_ENDPOINT, S3_BALDE, S3_CHAVE_ID e S3_CHAVE_SECRETA",
+      );
     }
   }
 
