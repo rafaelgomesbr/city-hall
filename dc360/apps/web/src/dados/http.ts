@@ -378,3 +378,17 @@ export async function listarEvidencias(
   const r = await chamar<{ itens: LinhaEvidencia[] }>(`/evidencias/ocorrencia/${ocorrenciaId}`);
   return r.itens;
 }
+
+export async function pedirRecuperacao(email: string): Promise<string> {
+  const r = await chamar<{ mensagem: string }>("/auth/recuperar", {
+    metodo: "POST", corpo: { email },
+  });
+  return r.mensagem;
+}
+
+export async function redefinirSenha(token: string, senha: string): Promise<string> {
+  const r = await chamar<{ mensagem: string }>("/auth/redefinir", {
+    metodo: "POST", corpo: { token, senha },
+  });
+  return r.mensagem;
+}

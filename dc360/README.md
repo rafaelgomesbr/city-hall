@@ -11,7 +11,7 @@ build) valem lá, não aqui.
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migração PostgreSQL com multi-tenancy por RLS forçada, e o teste de isolamento CA-06 | Pronto, 14 testes passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 43 verificações no modo local e 31 contra a API |
-| `apps/api` | API HTTP: autenticação, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 69 testes de integração passando |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 83 testes de integração passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência | Pronto, 28 testes de unidade e 7 de integração contra a API |
 | `apps/campo` | Casca do aplicativo em React Native com Expo | Não iniciada |
 
@@ -131,6 +131,18 @@ confirmaria que o registro existe, e confirmar existência já é vazamento.
 | Rotação | A cada renovação | Reúso de token gasto é sintoma de roubo: derruba todas as sessões do usuário |
 | Força bruta | Limite por endereço (10 por 5 min) e bloqueio por conta (5 falhas, 15 min) | Um trata o atacante que vem de um lugar, o outro trata a conta martelada de muitos |
 | Enumeração de conta | Resposta idêntica e tempo equivalente para email inexistente | Senão a API vira lista de emails da prefeitura |
+| Recuperação de senha | Link de uso único, 30 minutos, entregue por um notificador injetável | Esquecer a senha não pode virar chamado para o suporte, nem "manda a senha no WhatsApp" |
+| Troca de senha | Exige a senha atual, e derruba as outras sessões | Aparelho esquecido desbloqueado na mesa vira conta sequestrada em dois cliques |
+
+Redefinir a senha derruba **todas** as sessões. Se a recuperação foi pedida
+porque alguém invadiu a conta, deixar as sessões antigas vivas entregaria a
+conta de volta ao invasor. E o banco valida o link e grava a senha nova numa
+operação só: separar em "confere o token" e depois "grava" abriria uma janela
+em que o mesmo link serve duas vezes.
+
+O envio da mensagem passa por uma porta (`Notificador`), não por um cliente de
+email direto: o provedor ainda não foi escolhido, e um teste que precisasse de
+servidor de email nunca seria rodado. Em desenvolvimento o link vai para o log.
 
 Login e renovação acontecem antes de existir contexto de tenant, então
 precisam ler tabelas que o RLS protege. Em vez de abrir exceção geral, a
@@ -321,9 +333,9 @@ modo API, basta reiniciar o servidor: o banco efêmero nasce semeado de novo.
 ## Como testar
 
 ```bash
-npm test                    # 123 testes: isolamento, permissões, API, documentos, evidência e fila de campo
+npm test                    # 137 testes: isolamento, permissões, API, documentos, evidência, senha e fila de campo
 npm run test:isolamento     # portão CA-06 sozinho: 14 testes
-npm run test:api            # 69 testes da API: rotas, documentos, evidência, assinatura e a fila de campo
+npm run test:api            # 83 testes da API: rotas, documentos, evidência, senha, assinatura e a fila de campo
 npm run test --workspace @dc360/campo   # 28 testes do motor de sincronização
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
@@ -350,14 +362,15 @@ cd apps/web && VITE_API_URL=http://127.0.0.1:3333 npx vite build   && npx vite p
 npm run test:e2e:api --workspace @dc360/web
 ```
 
-São 46 verificações que só existem neste caminho: entrada por senha, senha
+São 53 verificações que só existem neste caminho: entrada por senha, senha
 errada recusada, token guardado sem a senha nem o hash, isolamento imposto
 pelo servidor (inclusive abrindo a URL de outro município na mão), fluxo
 gravando de verdade, dado criado numa sessão aparecendo em outro navegador,
 papel recusado **mesmo chamando a API direto pelo console**, sair revogando a
 sessão no servidor, cadastro com senha inicial seguido de entrada, e o laudo
 oficial abrindo numa aba com protocolo, checklist e autoria corretos, e a foto
-enviada pelo agente aparecendo na galeria do coordenador.
+enviada pelo agente aparecendo na galeria do coordenador, e a recuperação de
+senha do pedido até entrar com a senha nova.
 
 Duas correções vieram dessa suíte, e nenhuma apareceria em teste de servidor:
 o CORS da API não permitia `PUT`, então o envio de bytes nem saía do
@@ -397,8 +410,10 @@ mesmo papel sem privilégio que a API usará em produção.
 - **Conta no provedor de armazenamento.** O código está pronto e testado
   contra o vetor oficial da AWS, mas nunca falou com um R2 ou S3 de verdade:
   isso só se comprova com credencial em mão.
-- **Recuperação de senha.** Hoje só o administrador do município define senha
-  ao cadastrar. Sem isso, esquecer a senha é chamado para o suporte.
+- **Provedor de email.** A recuperação de senha está pronta e testada, mas o
+  link sai pelo notificador de log: falta escolher o provedor e implementar a
+  porta `Notificador`. Sem isso, em produção a rota responderia "enviamos o
+  link" sem enviar nada.
 - **Mapa cartográfico.** MapLibre GL JS depende de um provedor de tiles, que é
   custo recorrente por carregamento. Entra junto com a decisão de provedor. O
   que já existe plota as coordenadas reais gravadas.

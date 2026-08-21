@@ -5,6 +5,8 @@ import { conferirSenha, gastarTempoEquivalente } from "./senha.js";
 import {
   emitirAcesso, gerarTokenRenovacao, hashDoToken, type Identidade,
 } from "./tokens.js";
+import { derivarSenha } from "./senha.js";
+import { mensagemDeRecuperacao, type Notificador } from "./notificador.js";
 
 export type Credenciais = { email: string; senha: string };
 
@@ -56,7 +58,11 @@ type LinhaCredencial = {
  */
 const MENSAGEM_GENERICA = "Email ou senha inválidos.";
 
-export function servicoDeAutenticacao(banco: Banco, config: Config) {
+export function servicoDeAutenticacao(
+  banco: Banco,
+  config: Config,
+  notificador: Notificador,
+) {
   async function entrar(
     credenciais: Credenciais,
     contexto: { userAgent?: string; ip?: string },
@@ -241,13 +247,100 @@ export function servicoDeAutenticacao(banco: Banco, config: Config) {
     }
   }
 
+  /**
+   * Pede a redefinicao de senha.
+   *
+   * Responde sempre igual, exista a conta ou nao. Dizer "esse email nao esta
+   * cadastrado" ajudaria quem esqueceu a senha e ajudaria igualmente quem esta
+   * montando a lista de emails da prefeitura. Como o segundo uso e mais
+   * provavel num sistema publico exposto, a resposta e uniforme.
+   */
+  async function pedirRecuperacao(
+    email: string,
+    contexto: { ip?: string },
+  ): Promise<void> {
+    const token = gerarTokenRenovacao();
+
+    const alvo = await banco.semTenant(async (c) => {
+      const r = await c.query<{ usuario_id: string; nome: string; email: string }>(
+        "SELECT * FROM abrir_recuperacao($1,$2,$3::interval,$4)",
+        [email, hashDoToken(token), `${config.RECUPERACAO_MINUTOS} minutes`, contexto.ip ?? null],
+      );
+      return r.rows[0] ?? null;
+    });
+
+    if (!alvo) return;
+
+    const link = `${config.URL_PAINEL.replace(/\/$/, "")}/redefinir-senha?token=${encodeURIComponent(token)}`;
+    await notificador.enviar(
+      mensagemDeRecuperacao(alvo.nome, alvo.email, link, config.RECUPERACAO_MINUTOS),
+    );
+  }
+
+  /**
+   * Redefine a senha com o link recebido.
+   *
+   * O banco valida e grava numa operacao so: separar em "confere o token" e
+   * depois "grava a senha" abriria uma janela em que o mesmo link serve duas
+   * vezes, que e exatamente o que um atacante com o link procura.
+   */
+  async function redefinirSenha(token: string, senhaNova: string): Promise<void> {
+    const hash = await derivarSenha(senhaNova);
+
+    const trocada = await banco.semTenant(async (c) => {
+      const r = await c.query<{ usuario_id: string }>(
+        "SELECT * FROM consumir_recuperacao($1,$2)",
+        [hashDoToken(token), hash],
+      );
+      return r.rows[0] ?? null;
+    });
+
+    if (!trocada) {
+      throw new FalhaAutenticacao(
+        "sessao",
+        "Este link de redefinicao nao vale mais. Peca um novo.",
+      );
+    }
+  }
+
+  /**
+   * Troca de senha por quem ja esta dentro.
+   *
+   * Exige a senha atual: sem isso, um aparelho deixado desbloqueado na mesa
+   * vira uma conta sequestrada em dois cliques.
+   */
+  async function trocarSenha(
+    identidade: { usuarioId: string; sessaoId: string; organizacaoId: string },
+    senhaAtual: string,
+    senhaNova: string,
+  ): Promise<void> {
+    const atual = await banco.comTenant(identidade.organizacaoId, async (c) => {
+      const r = await c.query<{ senha_hash: string | null }>(
+        "SELECT senha_hash FROM usuarios WHERE id = $1",
+        [identidade.usuarioId],
+      );
+      return r.rows[0]?.senha_hash ?? null;
+    });
+
+    if (!(await conferirSenha(senhaAtual, atual))) {
+      throw new FalhaAutenticacao("credenciais", "A senha atual nao confere.");
+    }
+
+    const hash = await derivarSenha(senhaNova);
+    await banco.semTenant((c) =>
+      c.query("SELECT trocar_senha($1,$2,$3)", [
+        identidade.usuarioId, hash, identidade.sessaoId,
+      ]),
+    );
+  }
+
   async function sair(tokenRenovacao: string): Promise<void> {
     await banco.semTenant((c) =>
       c.query("SELECT revogar_sessao($1, $2)", [hashDoToken(tokenRenovacao), "saida do usuario"]),
     );
   }
 
-  return { entrar, renovar, sair };
+  return { entrar, renovar, sair, pedirRecuperacao, redefinirSenha, trocarSenha };
 }
 
 export type ServicoAutenticacao = ReturnType<typeof servicoDeAutenticacao>;

@@ -24,6 +24,7 @@
  *   node test/fluxo-api.e2e.mjs
  */
 import { chromium } from "playwright";
+import { readFileSync } from "node:fs";
 
 const BASE = process.env.BASE_WEB ?? "http://localhost:4173";
 const SENHA = "defesa-civil-2026";
@@ -367,6 +368,68 @@ ok("clicar amplia a foto", await page.locator(".lightbox img").isVisible());
 await page.getByRole("button", { name: "Fechar" }).click();
 await page.waitForTimeout(300);
 ok("da para fechar a ampliacao", (await page.locator(".lightbox").count()) === 0);
+
+console.log("\n== 14. Recuperacao de senha ==");
+await page.goto(`${BASE}/entrar`, { waitUntil: "networkidle" });
+const jaLogado = await page.locator("#entrada-email").count();
+if (jaLogado === 0) {
+  await page.goto(`${BASE}/painel`);
+  await page.getByRole("button", { name: "Sair" }).click();
+  await page.waitForSelector("#entrada-email", { timeout: 20_000 });
+}
+
+await page.getByRole("link", { name: "Esqueceu a senha?" }).click();
+await page.waitForSelector("#recuperar-email", { timeout: 20_000 });
+
+const alvoRecuperacao = "simone.paz@valefundo.exemplo.gov.br";
+await page.locator("#recuperar-email").fill(alvoRecuperacao);
+await page.getByRole("button", { name: /Enviar link/ }).click();
+await page.waitForSelector(".aviso--sucesso", { timeout: 20_000 });
+const respostaRecuperacao = await page.textContent(".aviso--sucesso");
+ok("responde sem confirmar se a conta existe",
+   respostaRecuperacao.includes("Se existir conta com esse email"));
+
+// A mesma resposta para email que nao existe: e o que impede a tela de virar
+// verificador de quais servidores a prefeitura tem.
+await page.goto(`${BASE}/recuperar-senha`);
+await page.waitForSelector("#recuperar-email", { timeout: 20_000 });
+await page.locator("#recuperar-email").fill("ninguem-mesmo@exemplo.gov.br");
+await page.getByRole("button", { name: /Enviar link/ }).click();
+await page.waitForSelector(".aviso--sucesso", { timeout: 20_000 });
+ok("resposta identica para email inexistente",
+   (await page.textContent(".aviso--sucesso")) === respostaRecuperacao);
+
+// O link sai pelo notificador, que em desenvolvimento escreve no log.
+const logApi = readFileSync(process.env.LOG_API ?? "", "utf8");
+const links = [...logApi.matchAll(/https?:\/\/\S*redefinir-senha\?token=\S+/g)].map((m) => m[0]);
+ok("um link de redefinicao foi emitido", links.length >= 1, `(${links.length})`);
+
+const tokenRecuperacao = new URL(links.at(-1)).searchParams.get("token");
+await page.goto(`${BASE}/redefinir-senha?token=${encodeURIComponent(tokenRecuperacao)}`);
+await page.waitForSelector("#nova-senha", { timeout: 20_000 });
+
+await page.locator("#nova-senha").fill("senha-nova-da-simone-2026");
+await page.locator("#repetir-senha").fill("digitei-diferente");
+await page.getByRole("button", { name: /Definir nova senha/ }).click();
+await page.waitForTimeout(400);
+ok("recusa quando as duas digitacoes diferem",
+   (await page.textContent(".campo__erro")).includes("precisam ser iguais"));
+
+await page.locator("#repetir-senha").fill("senha-nova-da-simone-2026");
+await page.getByRole("button", { name: /Definir nova senha/ }).click();
+await page.waitForSelector(".aviso--sucesso", { timeout: 20_000 });
+ok("redefine a senha", (await page.textContent(".aviso--sucesso")).includes("Senha redefinida"));
+
+await page.goto(`${BASE}/entrar`);
+await page.waitForSelector("#entrada-email", { timeout: 20_000 });
+await page.locator("#entrada-email").fill(alvoRecuperacao);
+await page.locator("#entrada-senha").fill(SENHA);
+await page.getByRole("button", { name: "Entrar", exact: true }).click();
+await page.waitForSelector(".campo__erro", { timeout: 20_000 });
+ok("a senha antiga nao vale mais", page.url().includes("/entrar"));
+
+await entrar(alvoRecuperacao, "senha-nova-da-simone-2026");
+ok("a senha nova entra", (await page.textContent(".identidade__nome")).includes("Simone"));
 
 await navegador.close();
 

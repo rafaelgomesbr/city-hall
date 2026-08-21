@@ -8,6 +8,7 @@ import type { Config } from "./config.js";
 import type { Banco } from "./banco/tipos.js";
 import { verificarAcesso } from "./auth/tokens.js";
 import { servicoDeAutenticacao, FalhaAutenticacao } from "./auth/servico.js";
+import { notificadorDeLog, type Notificador } from "./auth/notificador.js";
 import { rotasAutenticacao } from "./rotas/autenticacao.js";
 import { rotasOcorrencias } from "./rotas/ocorrencias.js";
 import { rotasAdministracao } from "./rotas/administracao.js";
@@ -35,10 +36,16 @@ declare module "fastify" {
   }
 }
 
-export type Dependencias = { banco: Banco; config: Config; armazenamento: Armazenamento };
+export type Dependencias = {
+  banco: Banco;
+  config: Config;
+  armazenamento: Armazenamento;
+  /** Por onde sai o link de redefinicao de senha. */
+  notificador?: Notificador;
+};
 
 export async function construirServidor(
-  { banco, config, armazenamento }: Dependencias,
+  { banco, config, armazenamento, notificador = notificadorDeLog() }: Dependencias,
 ): Promise<FastifyInstance> {
   const app = Fastify({
     // O id de requisição aparece em todo log e na resposta de erro 500. É o
@@ -93,7 +100,7 @@ export async function construirServidor(
     keyGenerator: (req) => req.ip,
   });
 
-  const autenticacao = servicoDeAutenticacao(banco, config);
+  const autenticacao = servicoDeAutenticacao(banco, config, notificador);
 
   /**
    * Extrai e verifica o token de acesso. A organização usada no `SET LOCAL`

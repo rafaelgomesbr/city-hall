@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { Estrutura } from "./componentes/Estrutura";
 import { useSessao, useTema } from "./estado/sessao";
 import { Entrar } from "./paginas/Entrar";
+import { DefinirNovaSenha, RecuperarSenha } from "./paginas/RecuperarSenha";
 import { Equipes } from "./paginas/Equipes";
 import { Mapa } from "./paginas/Mapa";
 import { NovaOcorrencia } from "./paginas/NovaOcorrencia";
@@ -32,6 +33,10 @@ export function App() {
   return (
     <Routes>
       <Route path="/entrar" element={sessao ? <Navigate to="/painel" replace /> : <Entrar />} />
+      <Route path="/recuperar-senha" element={<RecuperarSenha />} />
+      {/* Alcançável mesmo com sessão ativa: o link chega por email e pode ser
+          aberto num navegador onde outra pessoa já está logada. */}
+      <Route path="/redefinir-senha" element={<DefinirNovaSenha />} />
 
       <Route element={<Protegida><Estrutura /></Protegida>}>
         <Route path="/painel" element={<Painel />} />

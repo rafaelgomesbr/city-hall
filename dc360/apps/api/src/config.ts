@@ -41,6 +41,9 @@ const esquema = z.object({
   S3_CHAVE_SECRETA: z.string().min(1).optional(),
   /** Endereço público desta API, para montar a URL do armazenamento local. */
   URL_PUBLICA: z.string().url().default("http://127.0.0.1:3333"),
+  /** Endereço público do painel, para montar o link de redefinição de senha. */
+  URL_PAINEL: z.string().url().default("http://localhost:5173"),
+  RECUPERACAO_MINUTOS: z.coerce.number().int().min(5).max(120).default(30),
 });
 
 export type Config = z.infer<typeof esquema> & {

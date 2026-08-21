@@ -12,6 +12,30 @@ const renovacaoSchema = z.object({
   renovacao: z.string().min(1).max(200),
 });
 
+/**
+ * Minimo de 12 caracteres, maximo alto o bastante para nao atrapalhar
+ * gerenciador de senha, e nenhuma exigencia de composicao: regra de simbolo e
+ * numero so produz "Senha@123", que e pior e mais dificil de lembrar. Segue o
+ * ASVS 4.0, secao 2.1.
+ */
+const senhaSchema = z.string()
+  .min(12, "A senha precisa de pelo menos 12 caracteres")
+  .max(200);
+
+const recuperacaoSchema = z.object({
+  email: z.string().email("Informe um email valido").max(320),
+});
+
+const redefinicaoSchema = z.object({
+  token: z.string().min(1).max(200),
+  senha: senhaSchema,
+});
+
+const trocaSchema = z.object({
+  senhaAtual: z.string().min(1).max(200),
+  senha: senhaSchema,
+});
+
 type Opcoes = { autenticacao: ServicoAutenticacao; config: Config };
 
 export async function rotasAutenticacao(app: FastifyInstance, opcoes: Opcoes): Promise<void> {
@@ -58,6 +82,40 @@ export async function rotasAutenticacao(app: FastifyInstance, opcoes: Opcoes): P
     const { renovacao } = renovacaoSchema.parse(req.body);
     await autenticacao.sair(renovacao);
     return resposta.code(204).send();
+  });
+
+  /**
+   * Responde 202 sempre, com a mesma mensagem, exista a conta ou nao. E o
+   * unico jeito de a rota nao virar um verificador de quais emails estao
+   * cadastrados na prefeitura.
+   */
+  app.post("/recuperar", limiteLogin, async (req, resposta) => {
+    const { email } = recuperacaoSchema.parse(req.body);
+    await autenticacao.pedirRecuperacao(email, { ip: req.ip });
+    return resposta.code(202).send({
+      mensagem:
+        "Se existir conta com esse email, enviamos um link de redefinicao. " +
+        "Confira sua caixa de entrada.",
+    });
+  });
+
+  app.post("/redefinir", limiteLogin, async (req, resposta) => {
+    const dados = redefinicaoSchema.parse(req.body);
+    await autenticacao.redefinirSenha(dados.token, dados.senha);
+    // Nenhum token de sessao volta daqui: quem redefiniu entra de novo, e
+    // isso confirma que a senha nova funciona.
+    return resposta.code(200).send({
+      mensagem: "Senha redefinida. Entre com a nova senha.",
+    });
+  });
+
+  app.post("/trocar-senha", async (req, resposta) => {
+    const identidade = await app.exigirAutenticacao(req);
+    const dados = trocaSchema.parse(req.body);
+    await autenticacao.trocarSenha(identidade, dados.senhaAtual, dados.senha);
+    return resposta.code(200).send({
+      mensagem: "Senha trocada. As outras sessoes foram encerradas.",
+    });
   });
 
   app.get("/eu", async (req) => {

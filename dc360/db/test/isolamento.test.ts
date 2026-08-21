@@ -160,6 +160,7 @@ describe("CA-06: isolamento entre organizações", () => {
       "providencias",
       "trilha_eventos",
       "sessoes",
+      "recuperacoes_senha",
     ];
     for (const t of tabelas) {
       const r = await db.query<{ relrowsecurity: boolean; relforcerowsecurity: boolean }>(

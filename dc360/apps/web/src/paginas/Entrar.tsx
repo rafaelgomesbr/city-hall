@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ROTULO_PAPEL } from "@dc360/shared";
 import {
   MODO, contasDisponiveis, entrarComSenha, type ContaDisponivel,
@@ -99,8 +99,7 @@ function FormularioSenha() {
       </section>
 
       <p className="entrada__rodape">
-        Esqueceu a senha? Peça ao administrador do seu município para definir uma nova.
-        A recuperação por email ainda não está disponível.
+        <Link to="/recuperar-senha">Esqueceu a senha?</Link>
       </p>
     </>
   );

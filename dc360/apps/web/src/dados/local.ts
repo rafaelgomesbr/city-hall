@@ -54,6 +54,14 @@ export async function listarEvidencias(): Promise<never[]> {
   return [];
 }
 
+export async function pedirRecuperacao(): Promise<string> {
+  throw new Error("A recuperação de senha exige a API. Este painel está em modo local.");
+}
+
+export async function redefinirSenha(): Promise<string> {
+  throw new Error("A recuperação de senha exige a API. Este painel está em modo local.");
+}
+
 export async function abrirDocumento(): Promise<string> {
   throw new Error("O documento oficial é gerado pelo servidor. Este painel está em modo local.");
 }
