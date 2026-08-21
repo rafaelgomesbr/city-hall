@@ -19,6 +19,7 @@
     "test:isolamento": "npm run test --workspace @dc360/db",
     "test:api": "npm run test --workspace @dc360/api",
     "test:e2e": "npm run test:e2e --workspace @dc360/web",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "migrar": "npm run migrar --workspace @dc360/db"
   }
 }

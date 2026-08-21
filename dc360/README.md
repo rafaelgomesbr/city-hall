@@ -9,7 +9,7 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
-| `db` | Migração PostgreSQL com multi-tenancy por RLS forçada, e o teste de isolamento CA-06 | Pronto, 14 testes passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 29 testes passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 43 verificações no modo local e 31 contra a API |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 83 testes de integração passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência | Pronto, 28 testes de unidade e 7 de integração contra a API |
@@ -394,10 +394,54 @@ Para começar do zero no modo local, limpe o site nas ferramentas do navegador
 (isso apaga o IndexedDB) ou chame `recriarBanco()` de `src/dados/banco.ts`. No
 modo API, basta reiniciar o servidor: o banco efêmero nasce semeado de novo.
 
+## Implantação
+
+### Aplicar migrações
+
+```bash
+DATABASE_URL=postgres://... npm run migrar             # aplica o que falta
+DATABASE_URL=postgres://... npm run migrar -- --conferir  # só diz o que falta
+```
+
+O aplicador garante quatro coisas, e cada uma corresponde a um jeito de o
+deploy quebrar:
+
+| Garantia | O que ela evita |
+| --- | --- |
+| Cada migração roda uma vez | O segundo deploy tentando criar tabela que já existe |
+| Sempre na ordem do nome | Uma migração alterando tabela que a seguinte ainda vai criar |
+| Uma transação por migração | Esquema meio aplicado, num estado que ninguém sabe descrever |
+| Histórico não se reescreve | Banco de produção divergindo em silêncio do repositório |
+
+A última merece detalhe: se o conteúdo de uma migração já aplicada mudar, o
+aplicador **para**. Editar uma migração que já rodou em produção significa que
+o banco de lá e o daqui divergiram, e seguir em frente esconderia isso até uma
+consulta falhar sem explicação. Reindentar não conta: o hash normaliza espaço
+em branco, porque clonar o repositório no Windows troca LF por CRLF sozinho e
+travar o deploy por isso seria alarme falso diário.
+
+### A API recusa subir com esquema atrasado
+
+Um processo servindo requisição contra um banco sem a coluna que o código
+espera falha de um jeito difícil de diagnosticar: erro de SQL no meio de uma
+rota, em produção, com o usuário na frente. O boot confere e sai com erro.
+`GET /saude` reporta a última migração aplicada, para o balanceador saber se o
+processo está pronto.
+
+Migrar é passo **separado** do deploy, de propósito: dois contêineres subindo
+juntos não podem migrar em paralelo.
+
+### Contêiner
+
+`Dockerfile` e `compose.yaml` estão no repositório. **Nenhum dos dois foi
+construído ou executado**: o ambiente onde foram escritos não tem Docker. São
+proposta revisável, não receita comprovada, e o primeiro deploy tem que
+começar por subir os dois uma vez.
+
 ## Como testar
 
 ```bash
-npm test                    # 172 testes em quatro pacotes
+npm test                    # 187 testes em quatro pacotes
 npm run test:isolamento     # portão CA-06 sozinho: 14 testes
 npm run test:api            # 110 testes da API
 npm run test --workspace @dc360/campo   # 28 testes do motor de sincronização

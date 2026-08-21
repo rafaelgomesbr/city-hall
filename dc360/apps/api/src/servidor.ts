@@ -183,7 +183,29 @@ export async function construirServidor(
     });
   });
 
-  app.get("/saude", async () => ({ status: "ok" }));
+  /**
+   * Saúde e prontidão numa rota só.
+   *
+   * `esquemaEmDia: false` é a informação que importa num rolling deploy: um
+   * processo novo servindo requisição contra banco sem a coluna que o código
+   * espera falha de um jeito difícil de diagnosticar. Melhor o balanceador
+   * saber que este processo ainda não está pronto.
+   */
+  app.get("/saude", async (_req, resposta) => {
+    try {
+      const pendentes = await banco.semTenant(async (c) => {
+        const r = await c.query<{ versao: string }>(
+          "SELECT versao FROM schema_migracoes ORDER BY versao DESC LIMIT 1",
+        );
+        return r.rows[0]?.versao ?? null;
+      });
+      return { status: "ok", banco: "ok", ultimaMigracao: pendentes };
+    } catch {
+      // Sem detalhe do erro: esta rota é pública por natureza, e mensagem de
+      // banco costuma trazer nome de host e de tabela.
+      return resposta.code(503).send({ status: "indisponivel", banco: "indisponivel" });
+    }
+  });
 
   await app.register(rotasAutenticacao, { prefix: "/auth", autenticacao, config });
   await app.register(rotasOcorrencias, { prefix: "/ocorrencias", banco });

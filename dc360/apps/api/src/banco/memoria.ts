@@ -1,7 +1,5 @@
 import { PGlite } from "@electric-sql/pglite";
-import { readFileSync, readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { aplicarMigracoes, carregarMigracoes, carregarSemente } from "@dc360/db";
 import type { Banco, Consulta } from "./tipos.js";
 
 /**
@@ -29,18 +27,26 @@ export async function bancoEmMemoria(
   const db = new PGlite();
   await db.waitReady;
 
-  const aqui = dirname(fileURLToPath(import.meta.url));
-  const pasta = join(aqui, "..", "..", "..", "..", "db", "migrations");
-  for (const arquivo of readdirSync(pasta).filter((f) => f.endsWith(".sql")).sort()) {
-    await db.exec(readFileSync(join(pasta, arquivo), "utf8"));
-  }
+  // O MESMO aplicador que roda contra o banco de produção, e não um
+  // `exec` de tudo: assim o caminho exercitado em teste é o caminho real, e
+  // uma migração que quebre a ordem aparece aqui antes de aparecer no deploy.
+  await aplicarMigracoes(
+    {
+      query: async <T>(sql: string, params?: readonly unknown[]) => {
+        const r = await db.query<Record<string, unknown>>(
+          sql, params ? [...params] : undefined,
+        );
+        return { rows: r.rows as T[] };
+      },
+      exec: (sql: string) => db.exec(sql),
+    },
+    carregarMigracoes(),
+  );
 
   // A mesma semente que o painel web usa em modo local. Um arquivo só, para o
   // protocolo que aparece na tela ser o mesmo que a API devolve.
   if (opcoes.semear) {
-    await db.exec(
-      readFileSync(join(aqui, "..", "..", "..", "..", "db", "seeds", "desenvolvimento.sql"), "utf8"),
-    );
+    await db.exec(carregarSemente());
   }
 
   async function emTransacao<T>(

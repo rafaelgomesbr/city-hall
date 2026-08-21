@@ -6,6 +6,7 @@ import type { Banco } from "./banco/tipos.js";
 import { armazenamentoS3 } from "./armazenamento/s3.js";
 import { armazenamentoEmMemoria } from "./armazenamento/memoria.js";
 import { geradorPlaywright } from "./documentos/pdf.js";
+import { carregarMigracoes, migracoesPendentes } from "@dc360/db";
 import type { Armazenamento } from "./armazenamento/tipos.js";
 
 const config = carregarConfig();
@@ -13,6 +14,29 @@ const config = carregarConfig();
 let banco: Banco;
 if (config.DATABASE_URL) {
   banco = bancoPostgres(config.DATABASE_URL);
+
+  /*
+    Recusa subir com esquema atrasado.
+
+    Um processo servindo requisição contra um banco sem a coluna que o código
+    espera falha de um jeito difícil de diagnosticar: erro de SQL no meio de
+    uma rota, em produção, com o usuário na frente. Melhor não subir e deixar
+    o deploy falhar de forma óbvia. Aplicar a migração é passo separado, de
+    propósito: dois processos subindo juntos não podem migrar ao mesmo tempo.
+  */
+  const pendentes = await banco.semTenant(async (c) =>
+    migracoesPendentes(
+      { query: (sql, params) => c.query(sql, params), exec: (sql) => c.query(sql) },
+      carregarMigracoes(),
+    ),
+  );
+  if (pendentes.length > 0) {
+    console.error(
+      `Esquema atrasado: faltam ${pendentes.length} migração(ões) (${pendentes.join(", ")}). ` +
+      "Rode `npm run migrar --workspace @dc360/db` antes de subir a API.",
+    );
+    process.exit(1);
+  }
 } else {
   // Sem DATABASE_URL, sobe um Postgres em WebAssembly no próprio processo.
   // Serve para desenvolver sem instalar nada; em produção a configuração
