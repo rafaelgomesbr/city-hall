@@ -12,7 +12,8 @@ build) valem lá, não aqui.
 | `db` | Migração PostgreSQL com multi-tenancy por RLS forçada, e o teste de isolamento CA-06 | Pronto, 14 testes passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 43 verificações no modo local e 31 contra a API |
 | `apps/api` | API HTTP com autenticação própria, isolamento por token e sincronização idempotente | Pronta, 26 testes de integração passando |
-| `apps/campo` | Aplicativo de campo em React Native com Expo, coleta offline | Não iniciado |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência | Pronto, 28 testes de unidade e 7 de integração contra a API |
+| `apps/campo` | Casca do aplicativo em React Native com Expo | Não iniciada |
 
 ## Os dois modos do painel
 
@@ -161,6 +162,35 @@ efêmero, só para desenvolver. Em produção a configuração recusa essa
 combinação e exige `DATABASE_URL` e `JWT_SEGREDO`: um servidor que sobe com
 chave padrão é pior que um que não sobe, porque parece funcionar.
 
+## O motor de sincronização offline (`packages/campo`)
+
+É a parte difícil do aplicativo de campo, e está pronta e testada antes da
+casca em Expo existir, porque é aqui que mora o risco. O agente coleta no
+morro sem sinal e o envio acontece depois, muitas vezes já no carro, com a
+conexão indo e vindo. Duas coisas não podem acontecer nesse trecho: perder uma
+coleta feita no morro, e gravar o mesmo laudo duas vezes.
+
+Decisões que o código toma, e por quê:
+
+| Situação | O que a fila faz | Por quê |
+| --- | --- | --- |
+| Sem sinal | Guarda e agenda nova tentativa | A coleta já foi feita; refazer significa subir o morro de novo |
+| Erro de rede no meio da fila | Para ali, não varre o resto | Rede caída não melhora no item seguinte, e insistir gasta bateria |
+| 5xx ou 429 | Tenta de novo, com espera crescente | Servidor reinicia em deploy; insistir resolve |
+| 400, 403, 404, 409, 422 | Bloqueia na hora | Repetir não muda o resultado, só enche o log |
+| 401 | Bloqueia **também** | Insistir com token morto estoura o limite de tentativas e bloqueia a conta de quem está trabalhando |
+| App morre no meio do envio | Reenvia com a MESMA chave | O servidor reconhece e devolve o recibo antigo em vez de gravar outro laudo |
+| Dois drenos ao mesmo tempo | O segundo recusa começar | Wi-Fi de prefeitura reconecta sozinho e dispara sincronização em cima de outra |
+
+A espera entre tentativas cresce exponencialmente **com ruído**. Sem o
+exponencial, um servidor fora do ar recebe uma tentativa por segundo de cada
+aparelho em campo. Sem o ruído, todos os aparelhos que perderam sinal no mesmo
+temporal voltam no mesmo instante e derrubam o servidor de novo justo na hora
+em que ele está subindo.
+
+A persistência é uma porta (`ChaveValor`), não um SQLite direto: no aparelho
+será `expo-sqlite`, nos testes é um mapa. A lógica não muda.
+
 ## Autorização por papel
 
 Quem pode o quê vive em `packages/shared/src/permissoes.ts`, e não numa
@@ -217,9 +247,10 @@ modo API, basta reiniciar o servidor: o banco efêmero nasce semeado de novo.
 ## Como testar
 
 ```bash
-npm test                    # 46 testes: isolamento, permissões e API
+npm test                    # 81 testes: isolamento, permissões, API e fila de campo
 npm run test:isolamento     # portão CA-06 sozinho: 14 testes
-npm run test:api            # 26 testes de integração da API
+npm run test:api            # 33 testes da API, incluindo a fila de campo contra ela
+npm run test --workspace @dc360/campo   # 28 testes do motor de sincronização
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
 ```
@@ -278,9 +309,10 @@ mesmo papel sem privilégio que a API usará em produção.
 
 ## O que falta, e por quê
 
-- **Aplicativo de campo.** A API que ele consome já está pronta
-  (`/sincronizacao/pendencias` e `/sincronizacao/vistoria`), com idempotência
-  coberta por teste. Falta o Expo.
+- **Casca do aplicativo de campo em Expo.** A API já está pronta e o motor de
+  sincronização também, com a integração entre os dois coberta por teste. O
+  que falta é a interface: câmera, assinatura em tela, GPS e o vínculo com
+  `expo-sqlite`. Nada disso é verificável fora de um aparelho ou emulador.
 - **Upload de evidência.** A rota de sincronização já grava o metadado da foto
   com a chave prefixada por tenant, mas o arquivo em si ainda não sobe: falta
   o bucket e a URL pré-assinada.

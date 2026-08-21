@@ -22,6 +22,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@dc360/campo": "*",
     "@electric-sql/pglite": "^0.2.17",
     "@types/node": "^22.9.0",
     "@types/pg": "^8.11.10",
