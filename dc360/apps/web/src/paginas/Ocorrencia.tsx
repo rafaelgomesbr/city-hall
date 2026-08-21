@@ -3,13 +3,15 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   PRAZO_PADRAO_HORAS, ROTULO_CANAL, ROTULO_PAPEL, ROTULO_SEVERIDADE,
   ROTULO_TIPO_COBRADE, SEVERIDADES, podeExecutar,
+  DESFECHOS_PROVIDENCIA, ROTULO_DESFECHO, respostaProvidenciaSchema,
+  type DesfechoProvidencia,
   despachoSchema, encerramentoSchema, providenciaSchema, triagemSchema,
   type Severidade,
 } from "@dc360/shared";
 import {
   buscarOcorrencia, classificarNaTriagem, despacharEquipe, encaminharProvidencia,
   encerrarOcorrencia, listarEquipes, providenciasDaOcorrencia, trilhaDaOcorrencia,
-  vistoriaDaOcorrencia, abrirDocumento, listarEvidencias, MODO,
+  vistoriaDaOcorrencia, abrirDocumento, listarEvidencias, responderProvidencia, MODO,
   type LinhaEquipe, type LinhaEvento, type LinhaEvidencia, type LinhaOcorrencia,
   type LinhaProvidencia, type LinhaVistoria,
 } from "../dados/repositorio";
@@ -100,6 +102,7 @@ export function Ocorrencia() {
   const podeDespachar = podeExecutar(sessao.papel, "despachar_equipe");
   const podeProvidencia = podeExecutar(sessao.papel, "encaminhar_providencia");
   const podeEncerrar = podeExecutar(sessao.papel, "encerrar_ocorrencia");
+  const podeResponder = podeExecutar(sessao.papel, "responder_providencia");
   const encerrada = o.status === "encerrada";
 
   return (
@@ -253,27 +256,53 @@ export function Ocorrencia() {
                       <th scope="col">Órgão de destino</th>
                       <th scope="col">Responsável</th>
                       <th scope="col">Encaminhada em</th>
-                      <th scope="col">Prazo</th>
+                      <th scope="col">Situação</th>
                     </tr>
                   </thead>
                   <tbody>
                     {providencias.map((p) => (
                       <tr key={p.id}>
                         <td>
-                          <div>{p.orgao_destino}</div>
+                          <div className="tabela__principal">{p.orgao_destino}</div>
                           <div className="tabela__secundario">{p.descricao}</div>
+                          {p.resposta && (
+                            <div className="trilha__detalhe" style={{ marginTop: "var(--ds-sp-2)" }}>
+                              <strong>Resposta:</strong> {p.resposta}
+                              <br />
+                              <span className="tabela__secundario">
+                                por {p.respondida_por} em{" "}
+                                {p.respondida_em ? formatarDataHora(p.respondida_em) : ""}
+                              </span>
+                            </div>
+                          )}
                         </td>
                         <td>{p.responsavel}</td>
                         <td>{formatarDataHora(p.encaminhada_em)}</td>
                         <td>
-                          <Prazo prazoEm={p.prazo_em} criadoEm={p.encaminhada_em}
-                                 encerrada={p.respondida_em !== null} />
+                          {p.desfecho ? (
+                            <span className={`selo selo--${p.desfecho === "recusada" ? "perigo" : "sucesso"}`}>
+                              {ROTULO_DESFECHO[p.desfecho as DesfechoProvidencia] ?? p.desfecho}
+                            </span>
+                          ) : (
+                            <Prazo prazoEm={p.prazo_em} criadoEm={p.encaminhada_em}
+                                   encerrada={false} />
+                          )}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+
+              {podeResponder && providencias.some((p) => !p.respondida_em) && (
+                <BlocoRespostaProvidencia
+                  abertas={providencias.filter((p) => !p.respondida_em)}
+                  onEnviar={(providenciaId, r) => executar(
+                    () => responderProvidencia(sessao, o.id, providenciaId, r),
+                    "Resposta do órgão registrada.",
+                  )}
+                />
+              )}
             </Cartao>
           )}
 
@@ -610,7 +639,9 @@ function CartaoDocumentos({ ocorrenciaId }: { ocorrenciaId: string }) {
   const [abrindo, setAbrindo] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
-  async function abrir(tipo: "laudo" | "termo-de-interdicao") {
+  async function abrir(
+    tipo: "laudo" | "termo-de-interdicao" | "laudo.pdf" | "termo-de-interdicao.pdf",
+  ) {
     setErro(null);
     setAbrindo(tipo);
     try {
@@ -642,6 +673,24 @@ function CartaoDocumentos({ ocorrenciaId }: { ocorrenciaId: string }) {
             <IconeDocumento />
             {abrindo === "termo-de-interdicao" ? "Gerando" : "Termo de interdição"}
           </button>
+
+          <p style={{
+            margin: "var(--ds-sp-2) 0 0", fontSize: "var(--ds-fs-caption)",
+            lineHeight: "var(--ds-lh-caption)", color: "var(--ds-text-muted)",
+          }}>
+            Em PDF, para anexar ao processo:
+          </p>
+          <div style={{ display: "flex", gap: "var(--ds-sp-2)" }}>
+            <button type="button" className="botao botao--discreto"
+                    disabled={abrindo !== null} onClick={() => void abrir("laudo.pdf")}>
+              {abrindo === "laudo.pdf" ? "Gerando" : "Laudo em PDF"}
+            </button>
+            <button type="button" className="botao botao--discreto"
+                    disabled={abrindo !== null}
+                    onClick={() => void abrir("termo-de-interdicao.pdf")}>
+              {abrindo === "termo-de-interdicao.pdf" ? "Gerando" : "Termo em PDF"}
+            </button>
+          </div>
           {erro && <ErroCampo id="documento-erro">{erro}</ErroCampo>}
         </div>
       )}
@@ -701,5 +750,92 @@ function CartaoEvidencias({ fotos }: { fotos: LinhaEvidencia[] }) {
         </div>
       )}
     </Cartao>
+  );
+}
+
+/**
+ * Registra o que o órgão respondeu.
+ *
+ * Fica dentro do cartão de providências, junto do que está sendo respondido,
+ * porque a pessoa está com o telefone no ouvido enquanto a secretaria explica.
+ * Formulário em outra tela significaria anotar no papel e transcrever depois,
+ * que é exatamente o hábito que o sistema existe para substituir.
+ */
+function BlocoRespostaProvidencia({ abertas, onEnviar }: {
+  abertas: LinhaProvidencia[];
+  onEnviar: (
+    providenciaId: string,
+    r: { desfecho: DesfechoProvidencia; resposta: string; respondidaPor: string },
+  ) => void;
+}) {
+  const [alvo, setAlvo] = useState(abertas[0]?.id ?? "");
+  const [desfecho, setDesfecho] = useState<DesfechoProvidencia>("atendida");
+  const [texto, setTexto] = useState("");
+  const [quem, setQuem] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+
+  function enviar(evento: React.FormEvent) {
+    evento.preventDefault();
+    const resultado = respostaProvidenciaSchema.safeParse({
+      desfecho, resposta: texto.trim(), respondidaPor: quem.trim(),
+    });
+    if (!resultado.success) {
+      setErro(resultado.error.issues[0]?.message ?? "Dados inválidos");
+      return;
+    }
+    setErro(null);
+    onEnviar(alvo, resultado.data);
+  }
+
+  return (
+    <form onSubmit={enviar} style={{ marginTop: "var(--ds-sp-5)" }}>
+      <h3 className="cartao__titulo" style={{ fontSize: "var(--ds-fs-body-lg)" }}>
+        Registrar resposta do órgão
+      </h3>
+
+      <div className="linha-campos">
+        {abertas.length > 1 && (
+          <div className="campo">
+            <label htmlFor="resposta-alvo">Qual providência</label>
+            <select id="resposta-alvo" value={alvo} onChange={(e) => setAlvo(e.target.value)}>
+              {abertas.map((p) => (
+                <option key={p.id} value={p.id}>{p.orgao_destino}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div className="campo">
+          <label htmlFor="resposta-desfecho">Desfecho</label>
+          <select id="resposta-desfecho" value={desfecho}
+                  onChange={(e) => setDesfecho(e.target.value as DesfechoProvidencia)}>
+            {DESFECHOS_PROVIDENCIA.map((d) => (
+              <option key={d} value={d}>{ROTULO_DESFECHO[d]}</option>
+            ))}
+          </select>
+        </div>
+        <div className="campo">
+          <label htmlFor="resposta-quem">Quem respondeu</label>
+          <input id="resposta-quem" type="text" value={quem}
+                 onChange={(e) => setQuem(e.target.value)}
+                 placeholder="Fiscal da Secretaria de Obras" />
+        </div>
+      </div>
+
+      <div className="campo">
+        <label htmlFor="resposta-texto">O que o órgão informou</label>
+        <textarea id="resposta-texto" value={texto}
+                  aria-invalid={!!erro}
+                  aria-describedby={erro ? "resposta-erro" : undefined}
+                  onChange={(e) => setTexto(e.target.value)}
+                  placeholder="Estrutura removida da via. Escoramento fica para a próxima semana." />
+        <span className="campo__dica">
+          A resposta não pode ser alterada depois: corrigir seria apagar o que o
+          órgão disse. Se algo mudar, encaminhe uma providência nova.
+        </span>
+      </div>
+
+      {erro && <ErroCampo id="resposta-erro">{erro}</ErroCampo>}
+      <button type="submit" className="botao botao--primario">Registrar resposta</button>
+    </form>
   );
 }

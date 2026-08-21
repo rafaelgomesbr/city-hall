@@ -20,6 +20,7 @@ export const ACOES = [
   "classificar_triagem",
   "despachar_equipe",
   "encaminhar_providencia",
+  "responder_providencia",
   "encerrar_ocorrencia",
   "registrar_vistoria",
   "gerenciar_equipes",
@@ -33,6 +34,7 @@ export const ROTULO_ACAO: Record<Acao, string> = {
   classificar_triagem: "classificar na triagem",
   despachar_equipe: "despachar equipe",
   encaminhar_providencia: "encaminhar providência",
+  responder_providencia: "registrar a resposta de uma providência",
   encerrar_ocorrencia: "encerrar ocorrência",
   registrar_vistoria: "registrar vistoria",
   gerenciar_equipes: "gerenciar equipes",
@@ -40,13 +42,16 @@ export const ROTULO_ACAO: Record<Acao, string> = {
 };
 
 const PERMISSOES: Record<Papel, readonly Acao[]> = {
-  operador: ["abrir_ocorrencia"],
+  // O operador registra a resposta porque é quem atende o telefone quando a
+  // secretaria liga de volta. Ele continua sem decidir o fluxo.
+  operador: ["abrir_ocorrencia", "responder_providencia"],
   agente_campo: ["registrar_vistoria"],
   coordenador: [
     "abrir_ocorrencia",
     "classificar_triagem",
     "despachar_equipe",
     "encaminhar_providencia",
+    "responder_providencia",
     "encerrar_ocorrencia",
     "gerenciar_equipes",
     "gerenciar_usuarios",
@@ -56,6 +61,7 @@ const PERMISSOES: Record<Papel, readonly Acao[]> = {
     "classificar_triagem",
     "despachar_equipe",
     "encaminhar_providencia",
+    "responder_providencia",
     "encerrar_ocorrencia",
     "gerenciar_equipes",
     "gerenciar_usuarios",

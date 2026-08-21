@@ -372,6 +372,35 @@ export async function encerrarOcorrencia(s: Sessao, id: string, e: Encerramento)
   });
 }
 
+export async function responderProvidencia(
+  s: Sessao,
+  ocorrenciaId: string,
+  providenciaId: string,
+  r: { desfecho: string; resposta: string; respondidaPor: string },
+): Promise<void> {
+  exigirPermissao(s.papel, "responder_providencia");
+  await comoApp(s.organizacaoId, async (db) => {
+    const atual = await db.query<{ respondida_em: string | null; orgao_destino: string }>(
+      "SELECT respondida_em, orgao_destino FROM providencias WHERE id = $1 AND ocorrencia_id = $2",
+      [providenciaId, ocorrenciaId],
+    );
+    const alvo = atual.rows[0];
+    if (!alvo) throw new Error("Providência não encontrada.");
+    if (alvo.respondida_em) {
+      throw new Error("Essa providência já tem resposta registrada.");
+    }
+    await db.query(
+      `UPDATE providencias
+          SET respondida_em = now(), resposta = $2, desfecho = $3, respondida_por = $4
+        WHERE id = $1`,
+      [providenciaId, r.resposta, r.desfecho, r.respondidaPor],
+    );
+    await registrarEvento(db, s, ocorrenciaId, "resposta_providencia", {
+      orgao: alvo.orgao_destino, desfecho: r.desfecho, respondidaPor: r.respondidaPor,
+    });
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Painel
 // ---------------------------------------------------------------------------

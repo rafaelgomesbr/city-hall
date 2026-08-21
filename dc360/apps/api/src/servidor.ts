@@ -18,6 +18,7 @@ import { rotasDocumentos } from "./rotas/documentos.js";
 import { rotasArmazenamentoLocal } from "./rotas/armazenamento-local.js";
 import type { Armazenamento } from "./armazenamento/tipos.js";
 import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
+import type { GeradorDePdf } from "./documentos/pdf.js";
 
 export type Identidade = {
   usuarioId: string;
@@ -42,10 +43,12 @@ export type Dependencias = {
   armazenamento: Armazenamento;
   /** Por onde sai o link de redefinicao de senha. */
   notificador?: Notificador;
+  /** Ausente quando o servidor sobe sem navegador para renderizar PDF. */
+  pdf?: GeradorDePdf;
 };
 
 export async function construirServidor(
-  { banco, config, armazenamento, notificador = notificadorDeLog() }: Dependencias,
+  { banco, config, armazenamento, notificador = notificadorDeLog(), pdf }: Dependencias,
 ): Promise<FastifyInstance> {
   const app = Fastify({
     // O id de requisição aparece em todo log e na resposta de erro 500. É o
@@ -187,7 +190,7 @@ export async function construirServidor(
   await app.register(rotasSincronizacao, { prefix: "/sincronizacao", banco });
   await app.register(rotasEvidencias, { prefix: "/evidencias", banco, armazenamento });
   await app.register(rotasDocumentos, {
-    prefix: "/documentos", banco, armazenamento,
+    prefix: "/documentos", banco, armazenamento, pdf,
     // Enquanto o produto não estiver em uso oficial, todo documento sai
     // marcado. Um laudo de demonstração indistinguível de um real é o tipo de
     // coisa que acaba anexada a processo por engano.

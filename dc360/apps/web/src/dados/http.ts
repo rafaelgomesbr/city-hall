@@ -287,6 +287,17 @@ export async function encerrarOcorrencia(
   await chamar(`/ocorrencias/${id}/encerramento`, { metodo: "POST", corpo: e });
 }
 
+export async function responderProvidencia(
+  _s: Sessao,
+  ocorrenciaId: string,
+  providenciaId: string,
+  resposta: { desfecho: string; resposta: string; respondidaPor: string },
+): Promise<void> {
+  await chamar(`/ocorrencias/${ocorrenciaId}/providencia/${providenciaId}/resposta`, {
+    metodo: "POST", corpo: resposta,
+  });
+}
+
 export async function indicadores(_s: Sessao): Promise<Indicadores> {
   return chamar<Indicadores>("/ocorrencias/indicadores/painel");
 }
@@ -358,7 +369,7 @@ export async function alternarUsuarioAtivo(
 export async function abrirDocumento(
   _s: Sessao,
   ocorrenciaId: string,
-  tipo: "laudo" | "termo-de-interdicao",
+  tipo: "laudo" | "termo-de-interdicao" | "laudo.pdf" | "termo-de-interdicao.pdf",
 ): Promise<string> {
   const tokens = lerTokens();
   const resposta = await fetch(`${BASE}/documentos/${ocorrenciaId}/${tipo}`, {

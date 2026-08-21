@@ -5,6 +5,7 @@ import { construirServidor } from "./servidor.js";
 import type { Banco } from "./banco/tipos.js";
 import { armazenamentoS3 } from "./armazenamento/s3.js";
 import { armazenamentoEmMemoria } from "./armazenamento/memoria.js";
+import { geradorPlaywright } from "./documentos/pdf.js";
 import type { Armazenamento } from "./armazenamento/tipos.js";
 
 const config = carregarConfig();
@@ -42,7 +43,15 @@ if (config.S3_ENDPOINT && config.S3_BALDE && config.S3_CHAVE_ID && config.S3_CHA
   console.warn("Armazenamento de evidência em memória: as fotos somem ao reiniciar.");
 }
 
-const app = await construirServidor({ banco, config, armazenamento });
+/**
+ * O gerador só abre o navegador na primeira renderização, então declará-lo
+ * aqui não custa nada na partida. Se o Chromium não estiver instalado, a rota
+ * responde 503 dizendo para usar a versão para impressão, em vez de derrubar
+ * o servidor inteiro.
+ */
+const pdf = geradorPlaywright();
+
+const app = await construirServidor({ banco, config, armazenamento, pdf });
 
 // Encerramento ordenado: a requisição em andamento termina, e o pool fecha.
 // Sem isso, um deploy derruba transação no meio.
@@ -51,6 +60,7 @@ for (const sinal of ["SIGINT", "SIGTERM"] as const) {
     void (async () => {
       app.log.info(`recebido ${sinal}, encerrando`);
       await app.close();
+      await pdf.encerrar();
       await banco.encerrar();
       process.exit(0);
     })();

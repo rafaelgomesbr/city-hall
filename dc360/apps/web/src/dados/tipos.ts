@@ -90,6 +90,9 @@ export type LinhaProvidencia = {
   prazo_em: string;
   encaminhada_em: string;
   respondida_em: string | null;
+  resposta: string | null;
+  desfecho: string | null;
+  respondida_por: string | null;
 };
 
 export type ContaDisponivel = {

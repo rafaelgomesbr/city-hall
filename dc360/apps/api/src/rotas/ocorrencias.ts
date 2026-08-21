@@ -8,6 +8,7 @@ import {
   despachoSchema,
   encerramentoSchema,
   providenciaSchema,
+  respostaProvidenciaSchema,
   transicaoPermitida,
   triagemSchema,
   type Origem,
@@ -334,22 +335,91 @@ export async function rotasOcorrencias(
     return { status: "providencia_pendente" };
   });
 
+  /**
+   * Registra o que o órgão respondeu.
+   *
+   * A providência fica no caminho do encerramento de propósito: encerrar uma
+   * ocorrência cuja providência nunca teve desfecho é o que produz o "a
+   * prefeitura não fez nada" seis meses depois, sem ninguém conseguir provar
+   * o contrário.
+   */
+  app.post("/:id/providencia/:providenciaId/resposta", async (req) => {
+    const quem = await autorizar(app, req, "responder_providencia");
+    const { id, providenciaId } = z.object({
+      id: z.string().uuid(),
+      providenciaId: z.string().uuid(),
+    }).parse(req.params);
+    const r = respostaProvidenciaSchema.parse(req.body);
+
+    await banco.comTenant(quem.organizacaoId, async (c) => {
+      const atual = await c.query<{ respondida_em: string | null; orgao_destino: string }>(
+        "SELECT respondida_em, orgao_destino FROM providencias WHERE id = $1 AND ocorrencia_id = $2",
+        [providenciaId, id],
+      );
+      const alvo = atual.rows[0];
+      if (!alvo) {
+        throw new RegraDeNegocio("nao_encontrada", "Providência não encontrada.", 404);
+      }
+      if (alvo.respondida_em) {
+        // Corrigir uma resposta não é sobrescrever: seria apagar o que o
+        // órgão disse antes. Entra como providência nova, encaminhada de novo.
+        throw new RegraDeNegocio(
+          "ja_respondida",
+          "Essa providência já tem resposta registrada. Encaminhe uma nova se algo mudou.",
+        );
+      }
+
+      await c.query(
+        `UPDATE providencias
+            SET respondida_em = now(), resposta = $2, desfecho = $3, respondida_por = $4
+          WHERE id = $1`,
+        [providenciaId, r.resposta, r.desfecho, r.respondidaPor],
+      );
+
+      await registrarEvento(c, quem, id, "resposta_providencia", {
+        orgao: alvo.orgao_destino,
+        desfecho: r.desfecho,
+        respondidaPor: r.respondidaPor,
+      });
+    });
+
+    return { desfecho: r.desfecho };
+  });
+
   app.post("/:id/encerramento", async (req) => {
     const quem = await autorizar(app, req, "encerrar_ocorrencia");
     const { id } = idSchema.parse(req.params);
     const e = encerramentoSchema.parse(req.body);
 
-    await banco.comTenant(quem.organizacaoId, async (c) => {
+    const pendentes = await banco.comTenant(quem.organizacaoId, async (c) => {
       await exigirTransicao(c, id, "encerrada");
+
+      /*
+        Providência sem resposta não impede encerrar: a realidade da rua é que
+        a secretaria às vezes nunca responde, e travar o encerramento faria a
+        fila do coordenador crescer para sempre. Mas o fato entra na trilha e
+        volta na resposta, para o encerramento ser uma decisão consciente e não
+        um esquecimento.
+      */
+      const abertas = await c.query<{ orgao_destino: string }>(
+        "SELECT orgao_destino FROM providencias WHERE ocorrencia_id = $1 AND respondida_em IS NULL",
+        [id],
+      );
+
       await c.query(
         `UPDATE ocorrencias SET status = 'encerrada', encerrado_em = now(),
                 motivo_encerramento = $2 WHERE id = $1`,
         [id, e.motivo],
       );
-      await registrarEvento(c, quem, id, "encerramento", { motivo: e.motivo });
+      await registrarEvento(c, quem, id, "encerramento", {
+        motivo: e.motivo,
+        providenciasSemResposta: abertas.rows.map((p) => p.orgao_destino),
+      });
+
+      return abertas.rows.map((p) => p.orgao_destino);
     });
 
-    return { status: "encerrada" };
+    return { status: "encerrada", providenciasSemResposta: pendentes };
   });
 
   app.get("/indicadores/painel", async (req) => {

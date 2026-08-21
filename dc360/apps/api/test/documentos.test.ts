@@ -358,3 +358,83 @@ describe("Fotografia no documento", () => {
     expect(bytes.rawPayload.equals(pixel)).toBe(true);
   }, 120_000);
 });
+
+describe("Documento em PDF", () => {
+  it("gera um PDF valido a partir do mesmo HTML", async () => {
+    const { geradorPlaywright } = await import("../src/documentos/pdf.js");
+    const pdf = geradorPlaywright();
+
+    const config = carregarConfig({
+      NODE_ENV: "test",
+      JWT_SEGREDO: "segredo-de-pdf-com-mais-de-trinta-e-dois-byt",
+      LOGIN_POR_IP: "10000",
+    } as NodeJS.ProcessEnv);
+
+    const comPdf = await construirServidor({
+      banco: mem.banco, config, pdf,
+      armazenamento: armazenamentoEmMemoria({ baseUrl: "http://api.local" }),
+    });
+    await comPdf.ready();
+
+    try {
+      const entrada = await comPdf.inject({
+        method: "POST", url: "/auth/entrar",
+        payload: { email: "helena.coutinho@serraalta.exemplo.gov.br", senha: SENHA },
+      });
+      const token = entrada.json().acesso;
+
+      // Reaproveita uma ocorrencia que ja tem vistoria, criada acima.
+      const comVistorias = await mem.bruto.query<{ ocorrencia_id: string }>(
+        "SELECT ocorrencia_id FROM vistorias ORDER BY coletada_em DESC LIMIT 1",
+      );
+      const alvo = comVistorias.rows[0]!.ocorrencia_id;
+
+      const r = await comPdf.inject({
+        method: "GET", url: `/documentos/${alvo}/laudo.pdf`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(r.statusCode).toBe(200);
+      expect(r.headers["content-type"]).toContain("application/pdf");
+      expect(String(r.headers["content-disposition"])).toContain("laudo-de-vistoria");
+
+      // Assinatura de arquivo PDF, e tamanho compativel com uma pagina real.
+      expect(r.rawPayload.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+      expect(r.rawPayload.length).toBeGreaterThan(5_000);
+      // Todo PDF termina com o marcador de fim de arquivo.
+      expect(r.rawPayload.subarray(-1024).toString("latin1")).toContain("%%EOF");
+    } finally {
+      await comPdf.close();
+      await pdf.encerrar();
+    }
+  }, 180_000);
+
+  it("responde 503 explicando, quando o servidor nao tem gerador", async () => {
+    // O servidor principal da suite sobe sem gerador de PDF.
+    const comVistorias = await mem.bruto.query<{ ocorrencia_id: string }>(
+      "SELECT ocorrencia_id FROM vistorias ORDER BY coletada_em DESC LIMIT 1",
+    );
+    const r = await app.inject({
+      method: "GET", url: `/documentos/${comVistorias.rows[0]!.ocorrencia_id}/laudo.pdf`,
+      headers: com(tokenCoordenador),
+    });
+
+    // Melhor um 503 que diz o que fazer do que um 500 sem explicacao.
+    expect(r.statusCode).toBe(503);
+    expect(r.json().erro).toBe("pdf_indisponivel");
+    expect(r.json().mensagem).toContain("versão para impressão");
+  }, 60_000);
+
+  it("o PDF tambem respeita o isolamento entre municipios", async () => {
+    const comVistorias = await mem.bruto.query<{ ocorrencia_id: string }>(
+      "SELECT ocorrencia_id FROM vistorias ORDER BY coletada_em DESC LIMIT 1",
+    );
+    const r = await app.inject({
+      method: "GET", url: `/documentos/${comVistorias.rows[0]!.ocorrencia_id}/laudo.pdf`,
+      headers: com(tokenDeFora),
+    });
+    // 404 antes de qualquer renderizacao: nao gasta navegador com quem nao
+    // tem acesso, e nao confirma que o registro existe.
+    expect(r.statusCode).toBe(404);
+  }, 60_000);
+});

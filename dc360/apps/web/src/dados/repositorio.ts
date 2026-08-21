@@ -36,6 +36,7 @@ export const {
   classificarNaTriagem,
   despacharEquipe,
   encaminharProvidencia,
+  responderProvidencia,
   encerrarOcorrencia,
   indicadores,
   listarEquipes,

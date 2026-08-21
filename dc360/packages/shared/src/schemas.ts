@@ -126,6 +126,34 @@ export const providenciaSchema = z.object({
 });
 export type Providencia = z.infer<typeof providenciaSchema>;
 
+export const DESFECHOS_PROVIDENCIA = [
+  "atendida",
+  "atendida_parcialmente",
+  "recusada",
+] as const;
+export type DesfechoProvidencia = (typeof DESFECHOS_PROVIDENCIA)[number];
+
+export const ROTULO_DESFECHO: Record<DesfechoProvidencia, string> = {
+  atendida: "Atendida",
+  atendida_parcialmente: "Atendida parcialmente",
+  recusada: "Recusada",
+};
+
+/**
+ * Resposta do órgão a uma providência.
+ *
+ * O desfecho é uma lista fechada porque "resolvido" escrito de dez jeitos
+ * diferentes não vira indicador nenhum, e é indicador do tipo "quantas
+ * providências a Secretaria de Obras atendeu no semestre" que sustenta uma
+ * conversa com o prefeito.
+ */
+export const respostaProvidenciaSchema = z.object({
+  desfecho: z.enum(DESFECHOS_PROVIDENCIA),
+  resposta: z.string().min(1, "Descreva o que o órgão respondeu").max(2000),
+  respondidaPor: z.string().min(1, "Informe quem respondeu").max(200),
+});
+export type RespostaProvidencia = z.infer<typeof respostaProvidenciaSchema>;
+
 export const encerramentoSchema = z.object({
   motivo: z.string().min(1, "O motivo do encerramento é obrigatório").max(2000),
 });

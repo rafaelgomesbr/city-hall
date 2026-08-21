@@ -273,9 +273,29 @@ Duas regras de conteúdo que não são estéticas:
   algo fora da lista de `docs/CONTEXTO.md`; outro reprova se aparecer a
   palavra "artigo" seguida de número.
 
+Os dois saem também em PDF (`/documentos/:id/laudo.pdf`), renderizados do
+**mesmo** HTML por Chromium sem interface. Gerados sob demanda e não guardados:
+o laudo muda se uma foto for anexada depois, e um PDF em cache seria a versão
+errada com cara de definitiva. Sem navegador instalado, a rota responde 503
+dizendo para usar a versão para impressão, em vez de derrubar o pedido.
+
 Enquanto o produto está em validação, todo documento sai com marca d'água. Um
 laudo de demonstração indistinguível de um real acaba anexado a processo por
 engano.
+
+## O ciclo da providência se fecha
+
+Encaminhar uma providência sem nunca registrar o desfecho é o que produz o "a
+prefeitura não fez nada" seis meses depois, sem ninguém conseguir provar o
+contrário. O órgão responde, e a resposta entra com desfecho de lista fechada
+(atendida, atendida parcialmente, recusada), texto e quem respondeu.
+
+- **A resposta não é editável.** Corrigir seria apagar o que o órgão disse. Se
+  algo muda, encaminha-se uma providência nova.
+- **Providência sem resposta não impede encerrar.** A secretaria às vezes
+  nunca responde, e travar o encerramento faria a fila do coordenador crescer
+  para sempre. Mas o encerramento devolve quais ficaram em aberto e registra
+  isso na trilha, para ser decisão consciente e não esquecimento.
 
 ## Autorização por papel
 
@@ -291,6 +311,9 @@ API entrar, ela importa a mesma função em vez de redescobrir a regra.
 | Agente de campo | Registrar vistoria |
 | Coordenador | Triagem, despacho, providência, encerramento, equipes, usuários |
 | Administrador | O mesmo que o coordenador |
+
+O operador também registra a resposta de uma providência: é ele quem atende o
+telefone quando a secretaria liga de volta. Continua sem decidir o fluxo.
 
 ## Como rodar
 
@@ -333,9 +356,9 @@ modo API, basta reiniciar o servidor: o banco efêmero nasce semeado de novo.
 ## Como testar
 
 ```bash
-npm test                    # 137 testes: isolamento, permissões, API, documentos, evidência, senha e fila de campo
+npm test                    # 146 testes: isolamento, permissões, API, documentos, PDF, evidência, senha, providência e fila de campo
 npm run test:isolamento     # portão CA-06 sozinho: 14 testes
-npm run test:api            # 83 testes da API: rotas, documentos, evidência, senha, assinatura e a fila de campo
+npm run test:api            # 92 testes da API: rotas, documentos, PDF, evidência, senha, providência, assinatura e a fila de campo
 npm run test --workspace @dc360/campo   # 28 testes do motor de sincronização
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
@@ -421,8 +444,10 @@ mesmo papel sem privilégio que a API usará em produção.
   falta o bucket. O levantamento aponta Cloudflare R2 por causa do egress.
 - **PostGIS.** A migração ainda não cria a extensão porque nada hoje faz
   consulta espacial. Entra quando entrar busca por raio ou por setor de risco.
-- **Geração de PDF.** O documento já sai como HTML versionado e pronto para
-  impressão. Falta o passo que o renderiza em PDF num job assíncrono.
+- **PDF em job assíncrono.** Hoje o PDF é gerado na própria requisição, o que
+  serve para um laudo por vez. Quando alguém exportar a fila inteira, isso
+  precisa virar fila com download por link, como o levantamento prevê. A porta
+  `GeradorDePdf` já está no lugar para a troca.
 
 ## Onde estão as decisões
 

@@ -614,3 +614,177 @@ describe("Limite de tentativas por endereço", () => {
     await restrito.close();
   }, 120_000);
 });
+
+describe("Resposta do orgao a providencia", () => {
+  async function ateProvidencia(): Promise<{ id: string; providenciaId: string }> {
+    const criar = await app.inject({
+      method: "POST", url: "/ocorrencias", headers: comToken(tokens["coordA"]!.acesso),
+      payload: {
+        solicitanteNome: "Moradora", canalEntrada: "telefone",
+        endereco: `Rua da Providencia, ${Math.floor(Math.random() * 1e6)}`,
+        tipo: "vendaval", descricao: "Telhado sobre a via.",
+      },
+    });
+    const id = criar.json().id;
+
+    await app.inject({
+      method: "POST", url: `/ocorrencias/${id}/triagem`, headers: comToken(tokens["coordA"]!.acesso),
+      payload: { severidade: "media", vulnerabilidadePresente: false },
+    });
+    await app.inject({
+      method: "POST", url: `/ocorrencias/${id}/despacho`, headers: comToken(tokens["coordA"]!.acesso),
+      payload: { equipeId: equipeA, prazoHoras: 48 },
+    });
+    await app.inject({
+      method: "POST", url: "/sincronizacao/vistoria", headers: comToken(tokens["agenteA"]!.acesso),
+      payload: {
+        idempotencyKey: crypto.randomUUID(),
+        ocorrenciaId: id,
+        coletadaEm: new Date().toISOString(),
+        vistoria: {
+          checklist: [{ chave: "acionar_outro_orgao", resposta: true }],
+          fotos: [], gpsPrecisaoMetros: 5,
+          assinanteNome: "Moradora", assinaturaChave: null,
+          coletadaEm: new Date().toISOString(),
+        },
+      },
+    });
+    await app.inject({
+      method: "POST", url: `/ocorrencias/${id}/providencia`,
+      headers: comToken(tokens["coordA"]!.acesso),
+      payload: {
+        orgaoDestino: "Secretaria de Obras",
+        descricao: "Remocao da estrutura sobre a via.",
+        responsavel: "Engenheiro de plantao", prazoHoras: 72,
+      },
+    });
+
+    const detalhe = await app.inject({
+      method: "GET", url: `/ocorrencias/${id}`, headers: comToken(tokens["coordA"]!.acesso),
+    });
+    return { id, providenciaId: detalhe.json().providencias[0].id };
+  }
+
+  it("registra o desfecho e entra na trilha", async () => {
+    const alvo = await ateProvidencia();
+
+    const r = await app.inject({
+      method: "POST", url: `/ocorrencias/${alvo.id}/providencia/${alvo.providenciaId}/resposta`,
+      headers: comToken(tokens["coordA"]!.acesso),
+      payload: {
+        desfecho: "atendida_parcialmente",
+        resposta: "Estrutura removida da via. Escoramento do galpao fica para a proxima semana.",
+        respondidaPor: "Fiscal da Secretaria de Obras",
+      },
+    });
+    expect(r.statusCode).toBe(200);
+
+    const detalhe = await app.inject({
+      method: "GET", url: `/ocorrencias/${alvo.id}`, headers: comToken(tokens["coordA"]!.acesso),
+    });
+    const providencia = detalhe.json().providencias[0];
+    expect(providencia.desfecho).toBe("atendida_parcialmente");
+    expect(providencia.respondida_em).not.toBeNull();
+    expect(providencia.respondida_por).toBe("Fiscal da Secretaria de Obras");
+
+    // Quem registrou a resposta fica na trilha: e essa a pergunta que aparece
+    // quando a familia volta a pedir socorro no mesmo endereco.
+    const evento = detalhe.json().trilha.find(
+      (e: { tipo: string }) => e.tipo === "resposta_providencia",
+    );
+    expect(evento).toBeDefined();
+    expect(evento.detalhe.desfecho).toBe("atendida_parcialmente");
+  }, 120_000);
+
+  it("nao sobrescreve uma resposta ja registrada", async () => {
+    const alvo = await ateProvidencia();
+    const corpo = {
+      desfecho: "atendida", resposta: "Servico executado.", respondidaPor: "Fiscal",
+    };
+
+    const primeira = await app.inject({
+      method: "POST", url: `/ocorrencias/${alvo.id}/providencia/${alvo.providenciaId}/resposta`,
+      headers: comToken(tokens["coordA"]!.acesso), payload: corpo,
+    });
+    const segunda = await app.inject({
+      method: "POST", url: `/ocorrencias/${alvo.id}/providencia/${alvo.providenciaId}/resposta`,
+      headers: comToken(tokens["coordA"]!.acesso),
+      payload: { ...corpo, resposta: "Na verdade nao foi executado." },
+    });
+
+    expect(primeira.statusCode).toBe(200);
+    // Sobrescrever seria apagar o que o orgao disse antes.
+    expect(segunda.statusCode).toBe(409);
+    expect(segunda.json().erro).toBe("ja_respondida");
+  }, 120_000);
+
+  it("recusa desfecho fora da lista e resposta vazia", async () => {
+    const alvo = await ateProvidencia();
+
+    const desfechoInvalido = await app.inject({
+      method: "POST", url: `/ocorrencias/${alvo.id}/providencia/${alvo.providenciaId}/resposta`,
+      headers: comToken(tokens["coordA"]!.acesso),
+      payload: { desfecho: "mais_ou_menos", resposta: "x", respondidaPor: "y" },
+    });
+    const semTexto = await app.inject({
+      method: "POST", url: `/ocorrencias/${alvo.id}/providencia/${alvo.providenciaId}/resposta`,
+      headers: comToken(tokens["coordA"]!.acesso),
+      payload: { desfecho: "atendida", resposta: "", respondidaPor: "y" },
+    });
+
+    // Lista fechada porque "resolvido" escrito de dez jeitos nao vira
+    // indicador nenhum.
+    expect(desfechoInvalido.statusCode).toBe(422);
+    expect(semTexto.statusCode).toBe(422);
+  }, 120_000);
+
+  it("o agente de campo nao registra resposta de orgao", async () => {
+    const alvo = await ateProvidencia();
+    const r = await app.inject({
+      method: "POST", url: `/ocorrencias/${alvo.id}/providencia/${alvo.providenciaId}/resposta`,
+      headers: comToken(tokens["agenteA"]!.acesso),
+      payload: { desfecho: "atendida", resposta: "Feito.", respondidaPor: "Alguem" },
+    });
+    expect(r.statusCode).toBe(403);
+  }, 120_000);
+
+  it("encerrar avisa quais providencias ficaram sem resposta", async () => {
+    const alvo = await ateProvidencia();
+
+    const r = await app.inject({
+      method: "POST", url: `/ocorrencias/${alvo.id}/encerramento`,
+      headers: comToken(tokens["coordA"]!.acesso),
+      payload: { motivo: "Risco cessou, mas a obra segue com a secretaria." },
+    });
+
+    expect(r.statusCode).toBe(200);
+    // Nao trava o encerramento: a secretaria as vezes nunca responde, e travar
+    // faria a fila do coordenador crescer para sempre. Mas o fato volta na
+    // resposta e entra na trilha, entao encerrar vira decisao e nao descuido.
+    expect(r.json().providenciasSemResposta).toEqual(["Secretaria de Obras"]);
+
+    const detalhe = await app.inject({
+      method: "GET", url: `/ocorrencias/${alvo.id}`, headers: comToken(tokens["coordA"]!.acesso),
+    });
+    const encerramento = detalhe.json().trilha.find(
+      (e: { tipo: string }) => e.tipo === "encerramento",
+    );
+    expect(encerramento.detalhe.providenciasSemResposta).toEqual(["Secretaria de Obras"]);
+  }, 120_000);
+
+  it("providencia respondida nao aparece como pendente no encerramento", async () => {
+    const alvo = await ateProvidencia();
+    await app.inject({
+      method: "POST", url: `/ocorrencias/${alvo.id}/providencia/${alvo.providenciaId}/resposta`,
+      headers: comToken(tokens["coordA"]!.acesso),
+      payload: { desfecho: "atendida", resposta: "Servico executado.", respondidaPor: "Fiscal" },
+    });
+
+    const r = await app.inject({
+      method: "POST", url: `/ocorrencias/${alvo.id}/encerramento`,
+      headers: comToken(tokens["coordA"]!.acesso),
+      payload: { motivo: "Providencia atendida e risco cessado." },
+    });
+    expect(r.json().providenciasSemResposta).toEqual([]);
+  }, 120_000);
+});

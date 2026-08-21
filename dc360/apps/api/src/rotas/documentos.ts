@@ -1,9 +1,10 @@
-import type { FastifyInstance, FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { Banco } from "../banco/tipos.js";
 import { RegraDeNegocio } from "../servidor.js";
 import type { Armazenamento } from "../armazenamento/tipos.js";
 import { laudoDeVistoria, termoDeInterdicao, type DadosDocumento } from "../documentos/laudo.js";
+import type { GeradorDePdf } from "../documentos/pdf.js";
 
 /**
  * Documentos oficiais.
@@ -97,8 +98,13 @@ async function reunirDados(
 
 export async function rotasDocumentos(
   app: FastifyInstance,
-  { banco, armazenamento, marcaDagua }:
-    { banco: Banco; armazenamento: Armazenamento; marcaDagua?: string },
+  { banco, armazenamento, marcaDagua, pdf }: {
+    banco: Banco;
+    armazenamento: Armazenamento;
+    marcaDagua?: string;
+    /** Ausente quando o servidor sobe sem navegador para renderizar. */
+    pdf?: GeradorDePdf;
+  },
 ): Promise<void> {
   async function responder(
     req: FastifyRequest,
@@ -122,4 +128,63 @@ export async function rotasDocumentos(
     const html = await responder(req, termoDeInterdicao);
     return resposta.type("text/html; charset=utf-8").send(html);
   });
+
+  /**
+   * O mesmo documento em PDF.
+   *
+   * Gerado sob demanda, e não guardado: o laudo muda se uma foto for anexada
+   * depois, e um PDF em cache seria a versão errada com cara de definitiva.
+   * Quando o volume crescer, isto vira job assíncrono com download por link,
+   * como o levantamento técnico prevê. A porta já está no lugar para isso.
+   */
+  async function responderPdf(
+    req: FastifyRequest,
+    resposta: FastifyReply,
+    gerar: (d: DadosDocumento) => string,
+    nome: string,
+  ) {
+    /*
+      A permissão e o dono da ocorrência são checados ANTES da capacidade do
+      servidor. Ao contrário, um pedido de outro município receberia 503 num
+      servidor sem gerador e 404 num servidor com gerador, e a diferença entre
+      as duas respostas contaria a quem sonda que o registro existe.
+    */
+    const html = await responder(req, gerar);
+
+    if (!pdf) {
+      throw new RegraDeNegocio(
+        "pdf_indisponivel",
+        "Este servidor não tem gerador de PDF configurado. Use a versão para impressão.",
+        503,
+      );
+    }
+    let bytes: Uint8Array;
+    try {
+      bytes = await pdf.gerar(html);
+    } catch (erro) {
+      // Navegador ausente ou que morreu no meio. O coordenador precisa do
+      // laudo agora, e a versão para impressão continua servindo: dizer isso
+      // vale mais do que um 500 sem saída.
+      req.log.error({ err: erro }, "falha ao renderizar PDF");
+      throw new RegraDeNegocio(
+        "pdf_indisponivel",
+        "Não foi possível gerar o PDF agora. Use a versão para impressão.",
+        503,
+      );
+    }
+    const { id } = idSchema.parse(req.params);
+    return resposta
+      .type("application/pdf")
+      // `inline` para abrir no visualizador em vez de baixar direto: quem
+      // quer salvar salva, e quem só quer conferir não enche a pasta de
+      // downloads.
+      .header("content-disposition", `inline; filename="${nome}-${id.slice(0, 8)}.pdf"`)
+      .send(Buffer.from(bytes));
+  }
+
+  app.get("/:id/laudo.pdf", async (req, resposta) =>
+    responderPdf(req, resposta, laudoDeVistoria, "laudo-de-vistoria"));
+
+  app.get("/:id/termo-de-interdicao.pdf", async (req, resposta) =>
+    responderPdf(req, resposta, termoDeInterdicao, "termo-de-interdicao"));
 }
