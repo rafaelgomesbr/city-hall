@@ -8,27 +8,27 @@ delas ele está:
 
 | Onde | O que é | Regras que valem |
 | --- | --- | --- |
-| Raiz (`index.html`, `app/`, `design-system/`, `docs/`) | Protótipo da Fase 0, descartável, peça de apresentação | Todas as regras deste arquivo, incluindo as proibições de framework, npm e rede |
+| `mockup/` (`index.html`, `app/`, `design-system/`) | Protótipo da Fase 0, descartável, peça de apresentação | Todas as regras deste arquivo, incluindo as proibições de framework, npm e rede |
 | `produto/` | O produto real, autorizado e em construção | `produto/README.md` e o levantamento técnico. As proibições da Fase 0 NÃO se aplicam ali |
 
 Concretamente: React, TypeScript, npm, Vite, banco de dados, teste automatizado
-e etapa de build são PROIBIDOS na raiz e OBRIGATÓRIOS em `produto/`. Não misture
+e etapa de build são PROIBIDOS em `mockup/` e OBRIGATÓRIOS em `produto/`. Não misture
 as duas. O protótipo continua existindo porque ainda é usado para demonstrar, e
 continua descartável.
 
-## O que é o protótipo da raiz
+## O que é o protótipo (`mockup/`)
 Protótipo navegável em HTML puro, mais documentação de apresentação, para validar o conceito de um sistema de gestão operacional para Defesas Civis municipais: entrada de solicitação, protocolo, triagem, despacho, vistoria de campo offline, evidências, documento técnico, providências e encerramento auditável. O protótipo é peça de venda e instrumento de pesquisa. Será descartado depois: nada aqui é código de produção.
 
-## Escopo permitido no protótipo da raiz (Fase 0)
+## Escopo permitido no protótipo (Fase 0)
 - HTML + CSS + JavaScript puros (vanilla). Poucos arquivos, sem etapa de build.
 - Dados falsos (mock) em objetos JS dentro do próprio projeto.
 - Deve abrir com duplo clique (file://) em qualquer notebook, sem internet e sem servidor.
 - Duas visões: painel do coordenador (desktop) e visão do agente de campo dentro de uma moldura de smartphone desenhada na tela.
 - Documentação de apresentação em linguagem humana (docs/APRESENTACAO.md).
 
-## Proibido no protótipo da raiz (não negociável)
+## Proibido no protótipo (não negociável)
 
-Estas proibições valem para a raiz. Em `produto/` elas não valem: lá a stack é
+Estas proibições valem para `mockup/`. Em `produto/` elas não valem: lá a stack é
 exatamente a que o levantamento técnico definiu.
 - React, Angular, Vue, Tailwind, qualquer framework ou biblioteca externa.
 - npm, package.json, bundlers, servidores locais.
@@ -53,7 +53,7 @@ exatamente a que o levantamento técnico definiu.
 - Zero erro no console do navegador.
 
 ## Direção visual (o protótipo precisa impressionar)
-A paleta, os temas, as sombras, a tipografia e o movimento estão DEFINIDOS em design-system/tokens.css e documentados em design-system/DESIGN_SYSTEM.md, com contraste AA verificado numericamente. Importe tokens.css e use somente variáveis --ds-*. Cor, sombra, raio ou duração hardcoded em componente é bug e reprova no gate de QA. O arquivo design-system/_tokens.scss é a versão para a fase real do produto: não usar no protótipo.
+A paleta, os temas, as sombras, a tipografia e o movimento estão DEFINIDOS em mockup/design-system/tokens.css e documentados em mockup/design-system/DESIGN_SYSTEM.md, com contraste AA verificado numericamente. Importe tokens.css e use somente variáveis --ds-*. Cor, sombra, raio ou duração hardcoded em componente é bug e reprova no gate de QA. O arquivo mockup/design-system/_tokens.scss é a versão para a fase real do produto: não usar no protótipo.
 
 A primeira reação de quem assiste à demo deve ser: "isso é muito mais bonito que qualquer sistema público que eu já usei". A estética alvo é produto enterprise polido e sóbrio, com acabamento de aplicativo moderno. Nunca visual de brinquedo, nunca template genérico de dashboard.
 - Identidade: violeta como cor de destaque (ver decisão de 2026-08-20 abaixo; era laranja institucional até então), sobre neutros sólidos e profundos. A paleta já está pronta nos tokens: não criar cores novas fora deles. Não usar creme com serifa e terracota, nem fundo preto com verde ácido: são clichês de design gerado por IA.
@@ -76,9 +76,9 @@ O Rafa pediu explicitamente mais impacto visual no protótipo inteiro, não só 
 
 O Rafa mandou um HTML de referência (export do canvas do Claude Design) com paleta roxa/violeta e tipografia Work Sans + Roboto Mono via Google Fonts, e pediu explicitamente para o protótipo assumir esse visual, autorizando mexer no design system se necessário. Isso substitui a identidade laranja e abre uma exceção pontual à regra de zero rede:
 
-- A cor de destaque deixa de ser laranja e passa a ser violeta. As primitivas `--ds-orange-*` foram renomeadas para `--ds-violet-*` em `design-system/tokens.css` (e espelhadas em `_tokens.scss`), com os mesmos tokens semânticos (`--ds-accent`, `--ds-accent-hover`, `--ds-accent-graphic`, `--ds-focus-ring`) apontando para as novas primitivas. Contraste AA reverificado e documentado em comentário no próprio `tokens.css`. Continua proibido inventar cor fora dessas primitivas.
-- `design-system/tokens.css` deixa de ser somente local: seu topo agora tem um único `@import` do Google Fonts (Work Sans e Roboto Mono). Essa é a ÚNICA chamada de rede permitida no protótipo inteiro. Continua proibido qualquer outro `fetch`, `XMLHttpRequest`, CDN de script, imagem remota ou qualquer outro recurso de rede. Se a demo rodar sem internet, a fonte cai no fallback do sistema definido no próprio token (`-apple-system, "Segoe UI", ...`), então o protótipo continua abrindo e funcionando offline, só sem a fonte bonita.
-- `design-system/_tokens.scss` pode ser tocado para espelhar a paleta violeta (deixou de ser "intocado"), mas continua sendo a versão de referência para a fase real, não para uso direto no protótipo.
+- A cor de destaque deixa de ser laranja e passa a ser violeta. As primitivas `--ds-orange-*` foram renomeadas para `--ds-violet-*` em `mockup/design-system/tokens.css` (e espelhadas em `_tokens.scss`), com os mesmos tokens semânticos (`--ds-accent`, `--ds-accent-hover`, `--ds-accent-graphic`, `--ds-focus-ring`) apontando para as novas primitivas. Contraste AA reverificado e documentado em comentário no próprio `tokens.css`. Continua proibido inventar cor fora dessas primitivas.
+- `mockup/design-system/tokens.css` deixa de ser somente local: seu topo agora tem um único `@import` do Google Fonts (Work Sans e Roboto Mono). Essa é a ÚNICA chamada de rede permitida no protótipo inteiro. Continua proibido qualquer outro `fetch`, `XMLHttpRequest`, CDN de script, imagem remota ou qualquer outro recurso de rede. Se a demo rodar sem internet, a fonte cai no fallback do sistema definido no próprio token (`-apple-system, "Segoe UI", ...`), então o protótipo continua abrindo e funcionando offline, só sem a fonte bonita.
+- `mockup/design-system/_tokens.scss` pode ser tocado para espelhar a paleta violeta (deixou de ser "intocado"), mas continua sendo a versão de referência para a fase real, não para uso direto no protótipo.
 - Pinos de severidade no mapa, selos de status e cores semânticas (sucesso/perigo/info) NÃO mudam: a regra de "nunca comunicar severidade com a cor de marca" vale igual para violeta.
 
 ## Protocolo de trabalho (checkpoints)

@@ -35,21 +35,21 @@ Quatro itens exigidos pelo `docs/CONTEXTO.md` que não estavam na lista original
 
 Depois de ver o CP1 (só esqueleto, como o próprio checkpoint previa), o Rafa pediu mais dados, mais capricho visual e uma camada administrativa, alinhada ao documento de especificação técnica do Alyson (`docs/referencia/Defesa_Civil_Operacional_360_Especificacao_Tecnica_Preliminar.docx`, transcrito também em `docs/referencia/ESPECIFICACAO_TECNICA_PRELIMINAR.md`). Duas decisões, confirmadas com ele:
 
-1. **"Criar um banco de dados" significa enriquecer `app/dados.js`**, não montar um backend real. Continua zero rede, zero servidor, `file://`: essa regra do `CLAUDE.md` é não negociável nesta fase. O que muda é o tamanho e a riqueza do objeto mock: mais ocorrências, histórico, providências, documentos e equipes, todos estáticos.
+1. **"Criar um banco de dados" significa enriquecer `mockup/app/dados.js`**, não montar um backend real. Continua zero rede, zero servidor, `file://`: essa regra do `CLAUDE.md` é não negociável nesta fase. O que muda é o tamanho e a riqueza do objeto mock: mais ocorrências, histórico, providências, documentos e equipes, todos estáticos.
 2. **Camada administrativa leve, escolhida entre três opções**: três telas dentro do perfil coordenador (Configurações da organização, Perfil do usuário logado, Usuários e equipes), sem CRUD real, só para mostrar que o produto é multiusuário e configurável. Não é cobertura ampla de todos os requisitos do documento do Alyson: o fio condutor de uma ocorrência ainda é o centro da demo de 10 minutos. Essas três telas entram como entregável adicional do CP2, abaixo.
 
 ---
 
 ## Decisão adicional de direção visual (2026-08-20, terceira rodada)
 
-O Rafa pediu redesenho visual do protótipo inteiro (não só o mapa), com mais impacto, mais animação e mais presença do laranja de marca. Isso afrouxa a regra de movimento do `CLAUDE.md` (seção "Direção visual"), documentado lá em detalhe: durações maiores derivadas de `calc()` sobre tokens, elevação mais livre para elementos de destaque, gradiente permitido entre dois tokens `--ds-*`. Continua proibido qualquer valor fora de `--ds-*`, e `design-system/tokens.css` continua intocado. Vale para todas as telas já entregues (CP1-CP4) e para o mapa, que está sendo reconstruído com aparência de mapa de navegação de verdade (pinos em gota, ruas com acostamento, zoom).
+O Rafa pediu redesenho visual do protótipo inteiro (não só o mapa), com mais impacto, mais animação e mais presença do laranja de marca. Isso afrouxa a regra de movimento do `CLAUDE.md` (seção "Direção visual"), documentado lá em detalhe: durações maiores derivadas de `calc()` sobre tokens, elevação mais livre para elementos de destaque, gradiente permitido entre dois tokens `--ds-*`. Continua proibido qualquer valor fora de `--ds-*`, e `mockup/design-system/tokens.css` continua intocado. Vale para todas as telas já entregues (CP1-CP4) e para o mapa, que está sendo reconstruído com aparência de mapa de navegação de verdade (pinos em gota, ruas com acostamento, zoom).
 
 ## Decisão adicional de direção visual (2026-08-20, quarta rodada: cabeçalho e capricho pontual)
 
 Depois de comparar o protótipo com mockups feitos no Claude Design e com outros projetos do Rafa, três ajustes concretos, sem mudar nenhuma regra do `CLAUDE.md` além do que a terceira rodada já havia afrouxado:
 
-1. **Terceira exceção de tema declarada: `.cabecalho` é sempre escuro nos dois temas** (como um console fixo acima do conteúdo, mesma lógica de `.folha` e `.palco-campo`/`.moldura-celular`). Lê `--ds-ink-*`/`--ds-violet-*` direto, nunca as semânticas. Documentado aqui e em comentário no próprio `app/estilos.css`.
-2. **Sombra com tingimento de marca em elementos de destaque pontuais**: usar `color-mix(in srgb, var(--ds-*) X%, transparent)` para compor um brilho/pulso a partir de um token semântico já existente (ex.: o indicador de ocorrências críticas), na mesma lógica já permitida para gradientes na terceira rodada (deriva de tokens, nunca cor inventada). `design-system/tokens.css` continua intocado.
+1. **Terceira exceção de tema declarada: `.cabecalho` é sempre escuro nos dois temas** (como um console fixo acima do conteúdo, mesma lógica de `.folha` e `.palco-campo`/`.moldura-celular`). Lê `--ds-ink-*`/`--ds-violet-*` direto, nunca as semânticas. Documentado aqui e em comentário no próprio `mockup/app/estilos.css`.
+2. **Sombra com tingimento de marca em elementos de destaque pontuais**: usar `color-mix(in srgb, var(--ds-*) X%, transparent)` para compor um brilho/pulso a partir de um token semântico já existente (ex.: o indicador de ocorrências críticas), na mesma lógica já permitida para gradientes na terceira rodada (deriva de tokens, nunca cor inventada). `mockup/design-system/tokens.css` continua intocado.
 3. **Mapa esquemático**: pinos menores e reagrupamento por proximidade (não só coordenada idêntica) para parar de se sobrepor visualmente; prédios com um leve degradê de dois tons (mesmos tokens de superfície) em vez de bloco chapado; sombra do pino movida do grupo inteiro para cada pino individualmente.
 4. **"Usuários e equipes" ganhou interação**: linhas da tabela e o nome da equipe abrem um modal de detalhe (colaborador ou equipe), primeiro uso do token `--ds-z-modal` que já existia em `tokens.css` sem consumidor. Novo componente `.sobreposicao-modal`/`.modal`, com fechamento por Esc, clique fora e botão fechar, seguindo o mesmo padrão de popover já usado no menu da demonstração. Ganhou também um cadastro fake ("Novo colaborador"): formulário no mesmo modal, some da fila de mocks congelados (`window.DC360_DADOS_INICIAIS`) para uma cópia mutável em `estado.usuarios`/`estado.equipes` (o mesmo padrão que `estado.ocorrencias` já usava), sem back-end, restaurado pelo "Reiniciar demonstração".
 
@@ -76,14 +76,14 @@ Estas decisões valem para todos os checkpoints. Os revisores devem tratá-las c
 ### Arquitetura de arquivos
 
 ```
-index.html                  shell único, todas as telas como <section>
-app/estilos.css             componentes, somente variáveis --ds-*
-app/dados.js                mocks, objeto único
-app/app.js                  estado, navegação, tema, comportamento das telas
-design-system/tokens.css    já existe, nunca editado pelo protótipo
+mockup/index.html                  shell único, todas as telas como <section>
+mockup/app/estilos.css             componentes, somente variáveis --ds-*
+mockup/app/dados.js                mocks, objeto único
+mockup/app/app.js                  estado, navegação, tema, comportamento das telas
+mockup/design-system/tokens.css    já existe, nunca editado pelo protótipo
 ```
 
-Se `app/app.js` passar de cerca de 800 linhas, ele é dividido por área de tela, mantendo a regra de poucos arquivos e de scripts clássicos.
+Se `mockup/app/app.js` passar de cerca de 800 linhas, ele é dividido por área de tela, mantendo a regra de poucos arquivos e de scripts clássicos.
 
 ### Página única, não várias páginas HTML
 
@@ -91,7 +91,7 @@ A fila de sincronização offline, o tema e o estado da ocorrência precisam sob
 
 ### Scripts clássicos, nunca módulos ES
 
-`<script src="app/dados.js" defer>` e `<script src="app/app.js" defer>`, nesta ordem. Módulos ES (`type="module"`) são bloqueados por CORS em `file://` e quebrariam a regra do duplo clique.
+`<script src="mockup/app/dados.js" defer>` e `<script src="mockup/app/app.js" defer>`, nesta ordem. Módulos ES (`type="module"`) são bloqueados por CORS em `file://` e quebrariam a regra do duplo clique.
 
 ### Estado em memória
 
@@ -123,7 +123,7 @@ Chrome e Edge atuais. Firefox verificado no CP9.
 
 Definidos no CP1 e nunca contraditos depois (os 14 registros originais permanecem intactos): município fictício, brasão genérico em SVG, formato de protocolo `000482/2026`, e a ocorrência protagonista da demo (rachadura em encosta após chuva forte, com moradora idosa no imóvel) como registro âncora citado por todas as telas. Nomes, endereços e coordenadas são fictícios e verossímeis. Nunca dados reais de pessoas.
 
-Ampliados no CP2 (decisão de 2026-08-20, só adição, nenhum dos 14 originais mudou): base foi de 14 para 18 ocorrências, mais o elenco completo de usuários (`app/dados.js: usuarios`), status de disponibilidade por equipe e prazos padrão por severidade (`prazosPadraoHoras`). Contagem canônica atual: 1 crítica, 3 atrasadas (regra: status em registrada/triagem/em_campo com prazo vencido; vistoria concluída e providência pendente têm prazo próprio, não contam como atrasada de fila), 3 encerradas, 1 rascunho.
+Ampliados no CP2 (decisão de 2026-08-20, só adição, nenhum dos 14 originais mudou): base foi de 14 para 18 ocorrências, mais o elenco completo de usuários (`mockup/app/dados.js: usuarios`), status de disponibilidade por equipe e prazos padrão por severidade (`prazosPadraoHoras`). Contagem canônica atual: 1 crítica, 3 atrasadas (regra: status em registrada/triagem/em_campo com prazo vencido; vistoria concluída e providência pendente têm prazo próprio, não contam como atrasada de fila), 3 encerradas, 1 rascunho.
 
 ### Checagem mecânica de proibições
 
@@ -131,7 +131,7 @@ Roda no gate de QA de todo checkpoint:
 
 - `http://`, `https://`, `fetch(`, `XMLHttpRequest`, `type="module"`, `cdn`
 - travessão em qualquer arquivo do projeto
-- hexadecimal de cor, `box-shadow` e duração em `ms` fora de `design-system/tokens.css`
+- hexadecimal de cor, `box-shadow` e duração em `ms` fora de `mockup/design-system/tokens.css`
 - `outline: none` sem substituto de foco
 
 ---
@@ -142,11 +142,11 @@ Roda no gate de QA de todo checkpoint:
 
 **Entregáveis**
 
-- `index.html`, `app/estilos.css`, `app/dados.js`, `app/app.js`.
+- `index.html`, `mockup/app/estilos.css`, `mockup/app/dados.js`, `mockup/app/app.js`.
 - Cabeçalho fixo com marca, seletor de perfil (coordenador, operador, agente de campo), alternância de tema visível e botão "Reiniciar demo".
 - Biblioteca de componentes base no CSS: botão (primário, secundário, perigo), selo de severidade, selo de status, card, campo de formulário, tabela, linha do tempo, estado vazio, ícones SVG inline.
 - Telas esqueleto de todas as etapas seguintes, cada uma com estado vazio orientado (diz o que virá e como chegar lá).
-- Base mock canônica em `app/dados.js`.
+- Base mock canônica em `mockup/app/dados.js`.
 - Repositório git inicializado; `CONTEXTO.md` da raiz removido (é cópia antiga do agente revisor-qa; o contexto válido é `docs/CONTEXTO.md`).
 
 **Critérios de aceite**
@@ -157,7 +157,7 @@ Roda no gate de QA de todo checkpoint:
 - Ao trocar de perfil no topo, o menu de telas muda para o conjunto daquele papel e a tela atual reflete o papel escolhido.
 - Ao navegar por Tab, o foco é sempre visível e segue a ordem lógica; ao apertar Enter em um item de menu, a tela troca e o foco vai para o título dela.
 - Ao clicar em "Reiniciar demo", o estado volta ao inicial sem recarregar a página.
-- Ao procurar cor, sombra, raio ou duração hardcoded em `app/estilos.css`, não existe nenhuma ocorrência fora de `var(--ds-*)`.
+- Ao procurar cor, sombra, raio ou duração hardcoded em `mockup/app/estilos.css`, não existe nenhuma ocorrência fora de `var(--ds-*)`.
 - Ao entrar em qualquer tela esqueleto, existe um estado vazio que orienta a próxima ação, nunca uma tela em branco.
 
 **Gate de QA (revisor-qa)**
@@ -186,7 +186,7 @@ Qualquer conteúdo real de tela: fila de ocorrências, formulários funcionais, 
 - Filtro rápido por status.
 - Estado vazio do filtro sem resultado.
 - Tela de detalhe da ocorrência (cabeçalho com protocolo, dados, status atual).
-- Base mock (`app/dados.js`) enriquecida: mais ocorrências e histórico, providências, equipes com status de disponibilidade, para o painel parecer uma operação de verdade acontecendo, não uma lista de exemplo.
+- Base mock (`mockup/app/dados.js`) enriquecida: mais ocorrências e histórico, providências, equipes com status de disponibilidade, para o painel parecer uma operação de verdade acontecendo, não uma lista de exemplo.
 - Camada administrativa leve (decisão de 2026-08-20), dentro do perfil coordenador: tela de Configurações da organização (tipos de ocorrência, prazos padrão por severidade, equipes cadastradas), tela de Perfil do usuário logado, tela de Usuários e equipes (lista de pessoas e papéis). Sem operação de criar, editar ou excluir de verdade.
 
 **Critérios de aceite**
@@ -199,7 +199,7 @@ Qualquer conteúdo real de tela: fila de ocorrências, formulários funcionais, 
 - Ao usar mouse e teclado, toda linha e todo controle têm repouso, hover, pressionado, foco visível e desabilitado.
 - Ao olhar o painel de longe, atrasadas e críticas são a primeira coisa que se enxerga.
 - Ao abrir Configurações, os tipos de ocorrência, prazos e equipes mostrados são os mesmos usados no resto do protótipo, nunca uma lista solta e diferente.
-- Ao abrir Perfil, os dados batem com o usuário do perfil coordenador definido em `app/dados.js`.
+- Ao abrir Perfil, os dados batem com o usuário do perfil coordenador definido em `mockup/app/dados.js`.
 - Ao abrir Usuários e equipes, a equipe e o responsável de cada ocorrência da fila aparecem também aqui, com o mesmo nome.
 
 **Gate de QA**
@@ -339,7 +339,7 @@ Documentos, mapa, providência e encerramento.
 
 **Como ficou implementado (2026-08-21)**
 
-- Estado novo em `app/app.js`: `estado.conectividade` ("online" | "offline" | "sincronizando"), `estado.filaSincronizacao` e `estado.tokenSincronizacao`. Os três entram em `persistirEstado()`/`carregarEstadoPersistido()` (a fila sobrevive a F5) e são zerados por `reiniciarDemo()`. Um F5 durante a sincronização volta como "offline" com a fila intacta, nunca como "sincronizando".
+- Estado novo em `mockup/app/app.js`: `estado.conectividade` ("online" | "offline" | "sincronizando"), `estado.filaSincronizacao` e `estado.tokenSincronizacao`. Os três entram em `persistirEstado()`/`carregarEstadoPersistido()` (a fila sobrevive a F5) e são zerados por `reiniciarDemo()`. Um F5 durante a sincronização volta como "offline" com a fila intacta, nunca como "sincronizando".
 - Dois componentes, papéis distintos: leitura ambiente na barra de status do celular (`.moldura-celular__conexao`, sempre visível, ícone mais texto) e faixa acionável no conteúdo (`.campo-conectividade`), que concentra o único botão de alternância e a lista da fila.
 - A fila é granular: checklist, cada foto, GPS e assinatura entram como itens próprios, além da conclusão. Só o item `tipo: "conclusao"` muda `estado.ocorrencias` ao drenar; os outros quatro são registro visual (a fonte de verdade continua sendo `rascunhoVistoria`), o que elimina risco de estado parcialmente aplicado.
 - `concluirVistoria()` foi dividida em `montarRegistroVistoria()` (monta o registro) e `aplicarConclusaoVistoria()` (aplica em `estado.ocorrencias`, idempotente: só age se o status ainda for `em_campo`). A função original virou um roteador: online aplica na hora, offline empilha na fila.
@@ -485,7 +485,7 @@ Alteração de tela do protótipo, salvo correção de erro factual descoberto a
 - Correção de todos os itens críticos apontados.
 - `LEIA-ME.txt` com abertura em 3 passos para leigos.
 - `docs/ROTEIRO_VIDEO.md`: roteiro de gravação de 3 a 5 minutos, plano B da demo.
-- Zip único de distribuição com `index.html`, `app/`, `design-system/tokens.css`, `LEIA-ME.txt` e os documentos de apresentação.
+- Zip único de distribuição com `mockup/index.html`, `mockup/app/`, `mockup/design-system/tokens.css`, `LEIA-ME.txt` e os documentos de apresentação.
 
 **Critérios de aceite**
 
@@ -516,7 +516,7 @@ Funcionalidade nova de qualquer espécie. Só correção, empacotamento e docume
 1. **Inconsistência entre telas feitas em checkpoints distintos.** Mitigação: os componentes visuais nascem no CP1 e os checkpoints seguintes apenas compõem. Criar variante nova de componente exige justificativa no relatório do checkpoint.
 2. **Fila de sincronização duplicando.** É o defeito que mataria a demo no momento mais importante. Mitigação: o CP5 tem critério explícito de sincronizar duas vezes e de alternar o sinal repetidamente conferindo que nada duplica.
 3. **Documento com aparência oficial e dados fictícios.** Mitigação: marca d'água obrigatória, dados fictícios verossímeis e nenhuma norma fora da lista permitida.
-4. **Crescimento de `app/app.js` além do sustentável.** Mitigação: acima de cerca de 800 linhas, dividir por área de tela, mantendo scripts clássicos e poucos arquivos.
+4. **Crescimento de `mockup/app/app.js` além do sustentável.** Mitigação: acima de cerca de 800 linhas, dividir por área de tela, mantendo scripts clássicos e poucos arquivos.
 5. **Notebook fraco de prefeitura engasgando na animação.** Mitigação: animar somente `transform` e `opacity`, nenhuma animação acima de 300 ms, nenhuma animação simultânea em lista longa.
 6. **Projetor ruim apagando a hierarquia visual.** Mitigação: verificação de legibilidade a distância em todo gate de UX, sem cinza claro sobre branco em informação importante.
 

@@ -4,7 +4,7 @@ Plano B para quando a demonstração ao vivo não for possível: máquina descon
 
 **Como gravar:** qualquer gravador de tela serve. Grave a janela do navegador em tela cheia, com o protótipo já aberto e reiniciado. Narre por cima. Não precisa aparecer.
 
-**Antes de gravar:** abra `index.html`, entre como Coordenador, e clique no ícone de recarregar (Reiniciar demonstração) para garantir o estado inicial.
+**Antes de gravar:** abra `mockup/index.html`, entre como Coordenador, e clique no ícone de recarregar (Reiniciar demonstração) para garantir o estado inicial.
 
 ---
 

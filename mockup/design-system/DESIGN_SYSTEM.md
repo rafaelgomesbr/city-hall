@@ -124,6 +124,6 @@ Duas famílias, carregadas por um único `@import` do Google Fonts no topo de `t
 
 ## Como consumir
 
-- Protótipo (Fase 0): `<link rel="stylesheet" href="design-system/tokens.css">` e usar apenas variáveis `--ds-*`.
+- Protótipo (Fase 0): `<link rel="stylesheet" href="mockup/design-system/tokens.css">` e usar apenas variáveis `--ds-*`.
 - Produto real (web React): importar `_tokens.scss`, que emite as mesmas variáveis CSS e oferece mixins (`elevation()`, `focus-ring()`, `touch-target()`).
 - Produto real (React Native): os valores serão exportados como módulo TypeScript no pacote shared, derivados desta especificação, quando essa fase começar.

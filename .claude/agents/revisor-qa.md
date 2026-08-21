@@ -16,7 +16,7 @@ Verifique, nesta ordem:
 6. Console limpo: aponte qualquer trecho de código com probabilidade de gerar erro ou warning no console.
 7. Regras do CLAUDE.md: sem frameworks, sem travessão (—) em nenhum texto, português do Brasil em tudo.
 8. Movimento: existe tratamento para prefers-reduced-motion; nenhuma animação bloqueia interação por mais de 300 ms; os dois temas (claro e escuro) cobrem todas as telas sem elemento ilegível.
-9. Aderência ao design system: os estilos importam design-system/tokens.css e usam somente variáveis --ds-*. Procure por cores hex, box-shadow e durações hardcoded fora de tokens.css: cada ocorrência é defeito.
+9. Aderência ao design system: os estilos importam mockup/design-system/tokens.css e usam somente variáveis --ds-*. Procure por cores hex, box-shadow e durações hardcoded fora de tokens.css: cada ocorrência é defeito.
 
 Formato do relatório:
 - CRÍTICO (impede a demo): lista numerada com arquivo, trecho e como reproduzir.

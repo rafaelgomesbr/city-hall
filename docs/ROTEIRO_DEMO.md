@@ -2,7 +2,7 @@
 
 Roteiro cronometrado para conduzir a demo do início ao fim. Qualquer pessoa que leia isto consegue apresentar, mesmo sem ter construído o protótipo.
 
-**Antes de começar:** abra `index.html`, entre como **Coordenador** (qualquer usuário e senha funcionam, ou use o link "Entrar direto"), e deixe a tela do Painel aberta. Se tiver mexido no protótipo antes, clique no ícone de recarregar no topo (Reiniciar demonstração) para voltar ao estado inicial.
+**Antes de começar:** abra `mockup/index.html`, entre como **Coordenador** (qualquer usuário e senha funcionam, ou use o link "Entrar direto"), e deixe a tela do Painel aberta. Se tiver mexido no protótipo antes, clique no ícone de recarregar no topo (Reiniciar demonstração) para voltar ao estado inicial.
 
 **A ocorrência âncora da história é a 000482/2026**: rachadura em encosta, Rua das Acácias 245, com moradora idosa no imóvel.
 
