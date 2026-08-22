@@ -395,6 +395,16 @@ Ele achou dois defeitos que nenhuma leitura acharia:
 
 Os dois seriam descobertos na reunião.
 
+### Os três navegadores deixam de ser promessa, em 22/08/2026
+
+O critério de aceite do CP9 pede que o protótipo abra em Chrome, Edge e Firefox com o layout mantido e o simulador de offline funcionando igual nos três. Isso constava como verificado, sem nada no repositório que permitisse repetir a verificação.
+
+O `conferir-roteiro.mjs` passou a receber o motor do navegador como segundo argumento, e roda inteiro em três: **Chromium** (que é o motor do Chrome e do Edge), **Firefox** (Gecko) e **WebKit** (o motor do Safari, que veio de brinde e cobre iPad e Mac). Os 60 passos passam nos três, sem nenhum erro de console.
+
+Comportamento igual não prova layout igual, então cada tela crítica ganhou uma medida de vazamento lateral: o painel, a tela de abrir ocorrência, a moldura de celular na vistoria e a folha do laudo. Rolagem horizontal é como o layout quebra de verdade num motor diferente, e numa sala de reunião ela aparece como uma barra embaixo do projetor antes de qualquer outra coisa. Uma mutação (largura mínima de 2400 px na tabela do painel) confirmou que a medida reprova.
+
+`scripts/conferir-demo.ps1` encadeia tudo num comando só: monta o pacote, extrai numa pasta nova, confere o pacote extraído e roda o roteiro nos três motores. São 201 verificações, e ele termina em "TUDO CERTO" ou não termina. É o que precisa passar antes de o zip sair daqui.
+
 ---
 
 ## CP6: documentos oficiais e linha do tempo auditável

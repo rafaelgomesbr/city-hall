@@ -19,16 +19,26 @@
  * Rodar (a partir da raiz do repositório):
  *   node scripts/conferir-roteiro.mjs
  *   node scripts/conferir-roteiro.mjs <pasta extraída do zip>
+ *   node scripts/conferir-roteiro.mjs <pasta> webkit
  *
- * Sem argumento, ele usa o protótipo do próprio repositório (`mockup/`).
+ * Sem argumento, ele usa o protótipo do próprio repositório (`mockup/`) e o
+ * Chromium, que é o motor do Chrome e do Edge. O segundo argumento troca o
+ * motor: o critério de aceite do CP9 pede que o protótipo funcione igual fora
+ * do Chromium, e isso só se descobre rodando em outro motor de verdade.
  */
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 
 const raiz = resolve(process.argv[2] ?? join(process.cwd(), "mockup"));
+const motor = process.argv[3] ?? "chromium";
 const requireDaqui = createRequire(import.meta.url);
-const { chromium } = requireDaqui(join(process.cwd(), "dc360", "node_modules", "playwright"));
+const playwright = requireDaqui(join(process.cwd(), "dc360", "node_modules", "playwright"));
+const lancador = playwright[motor];
+if (!lancador) {
+  console.error(`motor desconhecido: ${motor} (use chromium, firefox ou webkit)`);
+  process.exit(2);
+}
 
 let passou = 0, falhou = 0;
 const erros = [];
@@ -38,7 +48,7 @@ function ok(nome, cond, extra = "") {
   else { falhou++; console.log(`  FALHA ${nome} ${extra}`); }
 }
 
-const navegador = await chromium.launch();
+const navegador = await lancador.launch();
 const contexto = await navegador.newContext({ viewport: { width: 1440, height: 900 } });
 const page = await contexto.newPage();
 page.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
@@ -61,7 +71,29 @@ async function irPara(tela) {
   await page.waitForTimeout(400);
 }
 
-console.log(`\nExecutando o roteiro de dez minutos sobre: ${raiz}\n`);
+/**
+ * Barra rolagem horizontal, que é como o layout quebra de verdade num motor
+ * diferente.
+ *
+ * O critério de aceite do CP9 fala em "o layout se mantém" nos três
+ * navegadores. Comportamento igual não prova layout igual: um `flex` ou um
+ * `grid` que o Chromium tolera e outro motor não pode empurrar a tela para o
+ * lado sem quebrar nenhum clique. Numa sala de reunião isso é uma barra de
+ * rolagem embaixo do projetor, e é o que se vê antes de qualquer outra coisa.
+ */
+async function semVazamentoLateral(onde) {
+  const medida = await page.evaluate(() => ({
+    conteudo: document.documentElement.scrollWidth,
+    janela: document.documentElement.clientWidth,
+  }));
+  // Um pixel de folga: arredondamento de subpixel difere entre motores.
+  ok(`sem rolagem lateral em ${onde}`,
+     medida.conteudo <= medida.janela + 1,
+     `(conteúdo ${medida.conteudo}px numa janela de ${medida.janela}px)`);
+}
+
+console.log(`\nExecutando o roteiro de dez minutos sobre: ${raiz}`);
+console.log(`Motor do navegador: ${motor}\n`);
 
 await page.goto(pathToFileURL(join(raiz, "index.html")).href, { waitUntil: "load" });
 await page.waitForTimeout(1200);
@@ -83,6 +115,7 @@ for (const rotulo of ["Na fila", "Em campo", "Atrasadas", "Críticas ativas"]) {
 }
 ok("a fila carregou com ocorrências",
    (await page.locator("#painel-tabela-corpo tr").count()) > 0);
+await semVazamentoLateral("o painel do coordenador");
 
 await page.click("#botao-notificacoes");
 await page.waitForTimeout(300);
@@ -96,6 +129,7 @@ await trocarPerfil("operador");
 await irPara("abertura");
 ok("o operador chega na tela de abrir ocorrência",
    await page.locator("#form-abertura").isVisible());
+await semVazamentoLateral("a tela de abrir ocorrência");
 
 await page.fill("#abertura-solicitante", "Marcos Vinícius Prado");
 await page.selectOption("#abertura-canal", { label: "Telefone" });
@@ -190,6 +224,7 @@ await page.waitForTimeout(500);
 const caixas = page.locator("[data-check]");
 const quantasCaixas = await caixas.count();
 ok("o checklist da vistoria abriu", quantasCaixas > 0, `(${quantasCaixas})`);
+await semVazamentoLateral("a moldura de celular na vistoria");
 for (let i = 0; i < quantasCaixas; i++) await caixas.nth(i).check();
 await page.waitForTimeout(300);
 
@@ -305,6 +340,7 @@ for (const [oQue, presente] of [
 }
 ok("o laudo tem botão de imprimir",
    (await page.locator('[data-acao="imprimir-documento"]').count()) >= 1);
+await semVazamentoLateral("a folha do laudo");
 
 await page.click('section.tela[data-tela="documento-vistoria"] [data-acao="voltar-detalhe"]');
 await page.waitForTimeout(500);
