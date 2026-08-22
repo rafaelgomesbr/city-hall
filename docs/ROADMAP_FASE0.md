@@ -369,6 +369,19 @@ O revisor de UX e o de QA reprovaram a primeira versão do CP9. O que foi corrig
 - **Roteiro de demo com passos irreproduzíveis.** Três falhas encontradas executando o roteiro do começo ao fim com automação: mandava despachar a 000482, que já nasce despachada; não avisava que ao trocar de perfil o sistema volta para a última tela usada; e não avisava que o filtro de status continua ativo e impede a busca de encontrar a ocorrência do documento. Todos corrigidos e o roteiro inteiro revalidado ponta a ponta.
 - **Pacote de distribuição desatualizado**, gerado antes das correções. Reempacotado e revalidado com o navegador offline.
 
+### O empacotamento vira script, em 21/08/2026
+
+A revisão do CP9 acima registrou o pacote como reempacotado e revalidado, mas nem o `LEIA-ME.txt` nem o script que monta o zip estavam no controle de versão: existiam só na máquina de quem rodou. Isso significa que "o pacote abre com dois cliques", que é o critério de encerramento da Fase 0, não podia ser reconferido por ninguém depois.
+
+Agora existem dois arquivos versionados:
+
+- `scripts/empacotar-demo.ps1` monta `dist/DefesaCivil360-demonstracao.zip` com o `index.html` na raiz do zip, os vizinhos que ele referencia, o `LEIA-ME.txt` e os três documentos de apresentação. Ele falha em vez de gerar pacote incompleto se algum arquivo tiver sumido do repositório. O `DESIGN_SYSTEM.md` e o `_tokens.scss` ficam de fora de propósito: o primeiro é documentação interna de design, o segundo é a versão para a fase real, e nenhum dos dois é usado pelo `index.html`.
+- `scripts/conferir-pacote.mjs` abre o `index.html` EXTRAÍDO por `file://`, com a rede bloqueada, e reprova em qualquer erro de console, em qualquer requisição que não seja a fonte autorizada, em tela que não montou, e em rótulo citado no `LEIA-ME.txt` que não existe mais na demonstração. São 21 verificações.
+
+Nada disso é etapa de compilação do protótipo, e a proibição da Fase 0 continua valendo: o `index.html` do repositório abre com dois cliques sem passar por script nenhum. O que os dois arquivos fazem é copiar, compactar e conferir.
+
+Quatro mutações confirmaram que o conferidor morde: remover o CSS do pacote, apontar uma imagem para um domínio externo, renomear um botão citado no `LEIA-ME.txt`, e renomear um botão cujo rótulo quebra em duas linhas dentro do arquivo. A quarta é a que importa registrar: a primeira versão da checagem passou verde nela, porque procurava as aspas linha a linha e não enxergava rótulo que quebrava na margem. Foi corrigida antes de entrar.
+
 ---
 
 ## CP6: documentos oficiais e linha do tempo auditável

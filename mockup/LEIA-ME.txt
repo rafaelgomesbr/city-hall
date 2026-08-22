@@ -1,0 +1,101 @@
+﻿DEFESA CIVIL OPERACIONAL 360
+Demonstração navegável
+
+===============================================================
+COMO ABRIR, EM TRÊS PASSOS
+===============================================================
+
+1. Extraia esta pasta inteira para algum lugar do computador
+   (a Área de Trabalho serve).
+
+   Importante: extraia de verdade. Abrir o arquivo compactado com
+   dois cliques e clicar no index.html de dentro dele não funciona
+   em algumas versões do Windows, porque o sistema abre uma cópia
+   temporária sem os arquivos vizinhos.
+
+2. Entre na pasta e dê dois cliques em:
+
+       index.html
+
+3. Vai abrir no seu navegador. Na tela de entrada, clique em
+   "Entrar direto", ou digite qualquer usuário e qualquer senha.
+   Não existe cadastro e não existe servidor: é uma demonstração.
+
+Pronto. Nada para instalar, nada para configurar.
+
+===============================================================
+O QUE VOCÊ PRECISA TER
+===============================================================
+
+Um navegador atualizado: Chrome, Edge ou Firefox.
+Não precisa de internet.
+Não precisa de senha de administrador.
+Não instala nada no computador.
+
+Se estiver sem internet, a demonstração abre e funciona igual.
+A única diferença é a fonte das letras, que cai na fonte padrão
+do sistema.
+
+===============================================================
+O QUE ISTO É, E O QUE NÃO É
+===============================================================
+
+É uma demonstração para validar o fluxo de trabalho: entrada do
+chamado, protocolo, triagem, despacho, vistoria de campo sem
+sinal, evidência fotográfica, documento técnico, providência e
+encerramento.
+
+Todos os dados são fictícios. Os nomes, endereços, coordenadas e
+protocolos foram inventados para a demonstração. Nenhum dado de
+pessoa real aparece aqui.
+
+Não é um sistema em produção. Não grava nada em servidor nenhum,
+não envia nada pela internet e não se conecta a base de dado
+alguma. Tudo o que você fizer fica só no seu navegador, e some
+quando você clicar em "Reiniciar demonstração" (o ícone de
+recarregar, no topo da tela).
+
+===============================================================
+POR ONDE COMEÇAR A OLHAR
+===============================================================
+
+A tela que abre é o painel do coordenador: a fila de ocorrências
+ordenada por urgência, não por ordem de chegada.
+
+Se tiver tempo para uma coisa só: no seletor de perfil no topo da
+tela, troque para "Agente de campo". A tela vira uma moldura de
+celular. Lá dentro, abra uma vistoria e use o botão "Simular
+perda de sinal". É o momento que mostra o problema real: o agente
+faz a vistoria no meio do barranco, sem sinal nenhum, e nada se
+perde quando o sinal volta.
+
+===============================================================
+DOCUMENTOS QUE ACOMPANHAM
+===============================================================
+
+Na pasta "documentos":
+
+  APRESENTACAO.md    o que é o produto, para quem, e o que ele
+                     explicitamente não substitui
+  ROTEIRO_DEMO.md    roteiro de dez minutos para conduzir a
+                     demonstração do início ao fim
+  ROTEIRO_VIDEO.md   roteiro de gravação, de três a cinco minutos
+
+São arquivos de texto. Abrem em qualquer editor, inclusive no
+Bloco de Notas.
+
+===============================================================
+SE ALGUMA COISA NÃO ABRIR
+===============================================================
+
+Tela em branco:
+  Confira se a pasta foi extraída inteira. O index.html precisa
+  dos vizinhos "app" e "design-system" para funcionar.
+
+Abriu com aparência quebrada:
+  Provavelmente o navegador está muito desatualizado. Tente pelo
+  Chrome ou pelo Edge.
+
+Abriu um editor de texto em vez do navegador:
+  Clique com o botão direito no index.html, escolha "Abrir com" e
+  selecione o navegador.
