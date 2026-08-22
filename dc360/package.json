@@ -21,6 +21,7 @@
     "test:api": "npm run test --workspace @dc360/api",
     "test:e2e": "npm run test:e2e --workspace @dc360/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
+    "conferir:numeros": "node scripts/conferir-numeros.mjs",
     "migrar": "npm run migrar --workspace @dc360/db"
   }
 }

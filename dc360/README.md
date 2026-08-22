@@ -9,10 +9,10 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 29 testes passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 42 testes passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 15 testes de fonte mais 47 verificações no navegador no modo local e 73 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 83 testes de integração passando |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 43 testes de unidade e 7 de integração contra a API |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 123 testes de integração passando |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 43 testes de unidade e 10 de integração contra a API |
 | `apps/campo` | Casca do aplicativo em React Native com Expo | **Escrita, nunca executada.** Ver `apps/campo/LEIA-ME.md` |
 
 ## Os dois modos do painel
@@ -557,10 +557,37 @@ começar por subir os dois uma vez.
 npm test                    # 242 testes em cinco pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 42 testes
 npm run test:api            # 123 testes da API
-npm run test --workspace @dc360/campo   # 28 testes do motor de sincronização
+npm run test --workspace @dc360/campo   # 43 testes do motor de sincronização
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
 ```
+
+Os números que este README afirma são conferidos por máquina:
+
+```bash
+npm run conferir:numeros
+```
+
+Ele pergunta ao vitest quais testes existem (`vitest list`, que enumera sem
+executar), conta as verificações de navegador pelas chamadas de `ok(` nas
+suítes de ponta a ponta, e exige que **todo número seguido de "teste" ou
+"verificação" em qualquer markdown deste diretório** corresponda a uma
+contagem real. Fica fora de `npm test` porque chama o vitest, e chamar o
+vitest de dentro do vitest pendura o processo.
+
+<!-- numeros: nao sao contagem -->
+Ele existe porque a precisão deste documento é a única coisa que o torna útil,
+e na primeira execução encontrou cinco números envelhecidos: a tabela do topo
+dizia 29 testes de banco (eram 42), 83 da API (eram 123) e 7 de integração do
+campo (eram 10); o bloco de comandos dizia 28 do motor de sincronização (eram
+43); e o LEIA-ME do aplicativo dizia 34 de unidade (eram 43).
+
+<!-- numeros: nao sao contagem -->
+Uma armadilha da primeira versão vale registrar, porque é o tipo de coisa que
+faz um portão passar verde sem verificar nada: a lista de isenções casava por
+pedaço de texto, e a isenção `"2 testes"` casou dentro de `"242 testes"`,
+desligando em silêncio a afirmação mais importante do documento. Isenção agora
+é um marcador explícito na linha, nunca um trecho solto.
 
 Fluxo ponta a ponta no navegador, modo local:
 

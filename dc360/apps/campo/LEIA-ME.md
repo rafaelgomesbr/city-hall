@@ -14,8 +14,8 @@ mexe no resto.
 ## O que já está pronto e testado, e não está aqui
 
 A parte difícil do aplicativo não é a tela: é a fila que não perde nem duplica
-coleta feita sem sinal. Ela vive em `packages/campo`, tem 34 testes de unidade
-e mais 7 de integração contra a API de verdade, e é o que estes arquivos
+coleta feita sem sinal. Ela vive em `packages/campo`, tem 43 testes de unidade
+e mais 10 de integração contra a API de verdade, e é o que estes arquivos
 consomem.
 
 O que falta de fato é o que só existe no aparelho: câmera, assinatura no dedo,
