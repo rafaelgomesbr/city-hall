@@ -271,8 +271,12 @@ await page.locator("#usuario-papel").selectOption("operador");
 await page.locator("#usuario-senha").fill("curta");
 await page.getByRole("button", { name: /Cadastrar usuário/ }).click();
 await page.waitForTimeout(800);
+// O erro aparece NO CAMPO, nao num aviso generico no topo: e a anatomia de
+// erro que o resto do produto usa, e foi para ca que este formulario veio.
 ok("recusa senha curta",
-   (await page.textContent(".aviso--perigo").catch(() => "")).includes("12 caracteres"));
+   (await page.textContent("#usuario-senha-erro").catch(() => "")).includes("12 caracteres"));
+ok("e marca o campo como invalido para o leitor de tela",
+   (await page.locator("#usuario-senha").getAttribute("aria-invalid")) === "true");
 
 await page.locator("#usuario-senha").fill("senha-inicial-do-marcos");
 await page.getByRole("button", { name: /Cadastrar usuário/ }).click();

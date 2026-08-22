@@ -10,7 +10,7 @@ build) valem lá, não aqui.
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 42 testes passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 16 testes de fonte mais 47 verificações no navegador no modo local e 89 contra a API |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 16 testes de fonte mais 47 verificações no navegador no modo local e 90 contra a API |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 134 testes de integração passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 43 testes de unidade e 10 de integração contra a API |
 | `apps/campo` | Casca do aplicativo em React Native com Expo | **Escrita, nunca executada.** Ver `apps/campo/LEIA-ME.md` |
@@ -635,7 +635,7 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 261 testes em cinco pacotes
+npm test                    # 269 testes em cinco pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 42 testes
 npm run test:api            # 134 testes da API
 npm run test --workspace @dc360/campo   # 43 testes do motor de sincronização
@@ -738,7 +738,7 @@ LOG_API=/caminho/do/log-da-api npm run test:e2e:api --workspace @dc360/web
 email: em desenvolvimento o link sai no log do servidor, e é de lá que a suíte
 o lê.
 
-São 89 verificações que só existem neste caminho: entrada por senha, senha
+São 90 verificações que só existem neste caminho: entrada por senha, senha
 errada recusada, token guardado sem a senha nem o hash, isolamento imposto
 pelo servidor (inclusive abrindo a URL de outro município na mão), fluxo
 gravando de verdade, dado criado numa sessão aparecendo em outro navegador,

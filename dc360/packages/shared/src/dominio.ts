@@ -97,6 +97,32 @@ export function transicaoPermitida(de: StatusOcorrencia, para: StatusOcorrencia)
   return TRANSICOES_PERMITIDAS[de].includes(para);
 }
 
+/** Por onde uma ocorrência entra no fluxo. Hoje só existe um caminho. */
+export const STATUS_INICIAL: StatusOcorrencia = "registrada";
+
+/**
+ * Estados que existem no domínio sem ninguém produzir, e por quê.
+ *
+ * `rascunho` foi encontrado numa auditoria como estado inteiramente morto:
+ * declarado, com rótulo, ícone, cor de selo e até um índice parcial do banco
+ * que o exclui, mas sem um único produtor. Nada no sistema jamais cria uma
+ * ocorrência nesse estado, o que tornava duas transições da máquina de estados
+ * permanentemente inalcançáveis.
+ *
+ * Ele fica, e a razão está aqui em vez de na cabeça de alguém: é o estado que
+ * o aplicativo de campo vai usar para a ocorrência aberta sem sinal, que
+ * existe no aparelho antes de existir protocolo. Tirá-lo agora custaria uma
+ * migração para mudar a restrição do banco, e outra para trazê-lo de volta.
+ *
+ * A lista é a exceção, e o teste exige que qualquer estado fora dela seja
+ * alcançável a partir de `STATUS_INICIAL`. Estado morto novo reprova.
+ */
+export const STATUS_RESERVADOS: Partial<Record<StatusOcorrencia, string>> = {
+  rascunho:
+    "Reservado para a ocorrência aberta sem sinal no aplicativo de campo, que " +
+    "existe no aparelho antes de existir protocolo. Nenhum produtor hoje.",
+};
+
 /** Ocorrência ativa é a que ainda consome atenção da equipe. */
 export function ocorrenciaAtiva(status: StatusOcorrencia): boolean {
   return status !== "encerrada" && status !== "rascunho";

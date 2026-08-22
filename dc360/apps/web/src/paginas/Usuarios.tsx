@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { PAPEIS, ROTULO_PAPEL, type Papel } from "@dc360/shared";
+import {
+  ROTULO_PAPEL, cadastroUsuarioSchema, papeisQuePodeConceder, type Papel,
+} from "@dc360/shared";
 import {
   MODO, alternarUsuarioAtivo, criarUsuario, listarEquipes, listarUsuarios,
   type LinhaEquipe, type LinhaUsuario,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
-import { Aviso, Carregando, Cartao, Vazio, iniciais } from "../componentes/comuns";
+import { Aviso, Carregando, Cartao, ErroCampo, Vazio, iniciais } from "../componentes/comuns";
 import { IconeMais } from "../componentes/Icones";
 
 /**
@@ -21,6 +23,7 @@ export function Usuarios() {
   const [usuarios, setUsuarios] = useState<LinhaUsuario[] | null>(null);
   const [equipes, setEquipes] = useState<LinhaEquipe[]>([]);
   const [erro, setErro] = useState<string | null>(null);
+  const [errosDeCampo, setErrosDeCampo] = useState<Record<string, string>>({});
 
   const [nome, setNome] = useState("");
   const [matricula, setMatricula] = useState("");
@@ -41,14 +44,41 @@ export function Usuarios() {
 
   async function submeter(evento: React.FormEvent) {
     evento.preventDefault();
-    if (!nome.trim() || !matricula.trim() || !email.trim()) {
-      setErro("Nome, matrícula e email são obrigatórios");
+
+    /*
+      Validação pelo mesmo schema que o servidor usa, e o erro vai para o
+      campo, não para um aviso genérico no topo.
+
+      Antes eram duas regras diferentes: a da API, completa, e uma cópia mais
+      fraca aqui, que não conferia formato de email nem tamanho máximo. Quem
+      preenchia descobria no envio um erro que a tela poderia ter apontado no
+      lugar certo. E a anatomia do erro divergia do resto do produto, onde todo
+      formulário marca o campo com `aria-invalid` e explica embaixo dele.
+
+      No modo local não há senha: a entrada é por escolha de perfil.
+    */
+    const molde = MODO === "api"
+      ? cadastroUsuarioSchema
+      : cadastroUsuarioSchema.omit({ senha: true });
+
+    const conferido = molde.safeParse({
+      nome, matricula, email, papel,
+      equipeId: papel === "agente_campo" && equipeId ? equipeId : null,
+      ...(MODO === "api" ? { senha } : {}),
+    });
+
+    if (!conferido.success) {
+      const porCampo: Record<string, string> = {};
+      for (const problema of conferido.error.issues) {
+        const campo = String(problema.path[0] ?? "");
+        porCampo[campo] ??= problema.message;
+      }
+      setErrosDeCampo(porCampo);
+      setErro(null);
       return;
     }
-    if (MODO === "api" && senha.trim().length < 12) {
-      setErro("A senha inicial precisa de pelo menos 12 caracteres");
-      return;
-    }
+
+    setErrosDeCampo({});
     setErro(null);
     try {
       await criarUsuario(sessao, {
@@ -57,6 +87,7 @@ export function Usuarios() {
         ...(MODO === "api" ? { senha } : {}),
       });
       setNome(""); setMatricula(""); setEmail(""); setEquipeId(""); setSenha("");
+      setErrosDeCampo({});
       await recarregar();
     } catch (e: unknown) {
       const texto = e instanceof Error ? e.message : String(e);
@@ -86,24 +117,47 @@ export function Usuarios() {
               <div className="linha-campos">
                 <div className="campo">
                   <label htmlFor="usuario-nome">Nome completo</label>
-                  <input id="usuario-nome" type="text" value={nome} onChange={(e) => setNome(e.target.value)} />
+                  <input id="usuario-nome" type="text" value={nome}
+                         aria-invalid={Boolean(errosDeCampo["nome"])}
+                         aria-describedby={errosDeCampo["nome"] ? "usuario-nome-erro" : undefined}
+                         onChange={(e) => setNome(e.target.value)} />
+                  {errosDeCampo["nome"] && (
+                    <ErroCampo id="usuario-nome-erro">{errosDeCampo["nome"]}</ErroCampo>
+                  )}
                 </div>
                 <div className="campo">
                   <label htmlFor="usuario-matricula">Matrícula</label>
                   <input id="usuario-matricula" type="text" value={matricula}
+                         aria-invalid={Boolean(errosDeCampo["matricula"])}
+                         aria-describedby={errosDeCampo["matricula"] ? "usuario-matricula-erro" : undefined}
                          onChange={(e) => setMatricula(e.target.value)} placeholder="SA-4001" />
+                  {errosDeCampo["matricula"] && (
+                    <ErroCampo id="usuario-matricula-erro">{errosDeCampo["matricula"]}</ErroCampo>
+                  )}
                 </div>
               </div>
               <div className="linha-campos">
                 <div className="campo">
                   <label htmlFor="usuario-email">Email funcional</label>
                   <input id="usuario-email" type="email" value={email}
+                         aria-invalid={Boolean(errosDeCampo["email"])}
+                         aria-describedby={errosDeCampo["email"] ? "usuario-email-erro" : undefined}
                          onChange={(e) => setEmail(e.target.value)} />
+                  {errosDeCampo["email"] && (
+                    <ErroCampo id="usuario-email-erro">{errosDeCampo["email"]}</ErroCampo>
+                  )}
                 </div>
                 <div className="campo">
                   <label htmlFor="usuario-papel">Papel</label>
                   <select id="usuario-papel" value={papel} onChange={(e) => setPapel(e.target.value as Papel)}>
-                    {PAPEIS.map((p) => <option key={p} value={p}>{ROTULO_PAPEL[p]}</option>)}
+                    {/*
+                      Só os papéis que este posto concede. Um coordenador não
+                      cria administrador, e o servidor recusa; oferecer a opção
+                      seria construir a recusa de propósito.
+                    */}
+                    {papeisQuePodeConceder(sessao.papel).map((p) => (
+                      <option key={p} value={p}>{ROTULO_PAPEL[p]}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -121,7 +175,12 @@ export function Usuarios() {
                   <label htmlFor="usuario-senha">Senha inicial</label>
                   <input id="usuario-senha" type="password" value={senha}
                          autoComplete="new-password"
+                         aria-invalid={Boolean(errosDeCampo["senha"])}
+                         aria-describedby={errosDeCampo["senha"] ? "usuario-senha-erro" : undefined}
                          onChange={(e) => setSenha(e.target.value)} />
+                  {errosDeCampo["senha"] && (
+                    <ErroCampo id="usuario-senha-erro">{errosDeCampo["senha"]}</ErroCampo>
+                  )}
                   <span className="campo__dica">
                     Mínimo de 12 caracteres. Sem exigência de símbolo ou número: regra de
                     composição só produz senha pior e mais difícil de lembrar.

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
+import { cadastroEquipeSchema } from "@dc360/shared";
 import {
   atualizarEquipe, criarEquipe, listarEquipes, type LinhaEquipe,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
-import { Aviso, Carregando, Cartao, Vazio } from "../componentes/comuns";
+import { Aviso, Carregando, Cartao, ErroCampo, Vazio } from "../componentes/comuns";
 import { IconeMais } from "../componentes/Icones";
 
 /**
@@ -17,6 +18,7 @@ export function Equipes() {
   const sessao = useSessaoObrigatoria();
   const [equipes, setEquipes] = useState<LinhaEquipe[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [errosDeCampo, setErrosDeCampo] = useState<Record<string, string>>({});
   const [editando, setEditando] = useState<string | null>(null);
   const [nome, setNome] = useState("");
   const [especialidade, setEspecialidade] = useState("");
@@ -31,10 +33,21 @@ export function Equipes() {
 
   async function submeter(evento: React.FormEvent) {
     evento.preventDefault();
-    if (!nome.trim()) {
-      setErro("Informe o nome da equipe");
+
+    // Mesmo schema do servidor, erro no campo. Ver a explicação em Usuarios.tsx:
+    // a anatomia de erro do produto é `aria-invalid` mais texto sob o campo.
+    const conferido = cadastroEquipeSchema.safeParse({ nome, especialidade });
+    if (!conferido.success) {
+      const porCampo: Record<string, string> = {};
+      for (const problema of conferido.error.issues) {
+        const campo = String(problema.path[0] ?? "");
+        porCampo[campo] ??= problema.message;
+      }
+      setErrosDeCampo(porCampo);
+      setErro(null);
       return;
     }
+    setErrosDeCampo({});
     setErro(null);
     try {
       if (editando) {
@@ -43,7 +56,7 @@ export function Equipes() {
       } else {
         await criarEquipe(sessao, nome, especialidade);
       }
-      setNome(""); setEspecialidade(""); setEditando(null);
+      setNome(""); setEspecialidade(""); setEditando(null); setErrosDeCampo({});
       await recarregar();
     } catch (e: unknown) {
       const texto = e instanceof Error ? e.message : String(e);
@@ -83,13 +96,25 @@ export function Equipes() {
                 <div className="campo">
                   <label htmlFor="equipe-nome">Nome</label>
                   <input id="equipe-nome" type="text" value={nome}
+                         aria-invalid={Boolean(errosDeCampo["nome"])}
+                         aria-describedby={errosDeCampo["nome"] ? "equipe-nome-erro" : undefined}
                          onChange={(ev) => setNome(ev.target.value)} placeholder="Equipe Delta" />
+                  {errosDeCampo["nome"] && (
+                    <ErroCampo id="equipe-nome-erro">{errosDeCampo["nome"]}</ErroCampo>
+                  )}
                 </div>
                 <div className="campo">
                   <label htmlFor="equipe-especialidade">Especialidade (opcional)</label>
                   <input id="equipe-especialidade" type="text" value={especialidade}
+                         aria-invalid={Boolean(errosDeCampo["especialidade"])}
+                         aria-describedby={errosDeCampo["especialidade"] ? "equipe-especialidade-erro" : undefined}
                          onChange={(ev) => setEspecialidade(ev.target.value)}
                          placeholder="Vistoria geotécnica" />
+                  {errosDeCampo["especialidade"] && (
+                    <ErroCampo id="equipe-especialidade-erro">
+                      {errosDeCampo["especialidade"]}
+                    </ErroCampo>
+                  )}
                 </div>
               </div>
               <div style={{ display: "flex", gap: "var(--ds-sp-2)" }}>

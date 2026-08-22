@@ -191,6 +191,75 @@ if (await alternador.count() > 0) {
   ok("alternador de tema encontrado", false, "(seletor não achou o botão)");
 }
 
+console.log("\n== 6. Movimento respeita quem pede menos movimento ==");
+
+/*
+  Critério de aceite do CP1 e do CP5: com `prefers-reduced-motion: reduce`, a
+  interface continua funcionando e a fila de sincronização esvazia sem
+  animação. Até aqui isso dependia de alguém lembrar de ligar a preferência no
+  sistema operacional e olhar.
+
+  Vale mais do que parece: movimento não é enfeite para quem tem transtorno
+  vestibular, e uma fila animada de vinte itens numa tela cheia é exatamente o
+  tipo de coisa que passa mal.
+*/
+const contextoQuieto = await navegador.newContext({ reducedMotion: "reduce" });
+const quieta = await contextoQuieto.newPage();
+await quieta.route("**/*", (rota) => {
+  const u = rota.request().url();
+  return u.startsWith("file://") || u.startsWith("data:") || u.startsWith("blob:")
+    ? rota.continue() : rota.abort();
+});
+await quieta.goto(url, { waitUntil: "load" });
+await quieta.waitForTimeout(1200);
+await quieta.click("#botao-entrada-rapida");
+await quieta.waitForTimeout(800);
+
+ok("a demonstração abre normalmente com movimento reduzido",
+   await quieta.locator('section.tela[data-tela="painel"]').isVisible());
+
+const duracoes = await quieta.evaluate(() => {
+  const raiz = getComputedStyle(document.documentElement);
+  return {
+    rapida: raiz.getPropertyValue("--ds-dur-fast").trim(),
+    base: raiz.getPropertyValue("--ds-dur-base").trim(),
+    lenta: raiz.getPropertyValue("--ds-dur-slow").trim(),
+  };
+});
+ok("os tokens de duração zeram sob prefers-reduced-motion",
+   duracoes.rapida === "0ms" && duracoes.base === "0ms" && duracoes.lenta === "0ms",
+   JSON.stringify(duracoes));
+
+// E a fila do simulador de offline, que é o momento mais animado da demo.
+await quieta.selectOption("#seletor-perfil", "agente-campo");
+await quieta.waitForTimeout(600);
+await quieta.click("#campo-conectividade-alternar");
+await quieta.waitForTimeout(600);
+const tarefa = quieta.locator("#campo-conteudo [data-protocolo]").first();
+if (await tarefa.count()) {
+  await tarefa.click();
+  await quieta.waitForTimeout(500);
+  const caixas = quieta.locator("[data-check]");
+  const quantas = await caixas.count();
+  for (let i = 0; i < quantas; i++) await caixas.nth(i).check();
+  await quieta.waitForTimeout(400);
+  await quieta.click("#vistoria-voltar");
+  await quieta.waitForTimeout(600);
+}
+
+const animacaoDaFila = await quieta.evaluate(() => {
+  const item = document.querySelector("#campo-conectividade-fila li, .campo-conectividade__fila li");
+  if (!item) return null;
+  const e = getComputedStyle(item);
+  return { animacao: e.animationDuration, transicao: e.transitionDuration };
+});
+ok("os itens da fila entram sem animação",
+   animacaoDaFila === null ||
+   (parseFloat(animacaoDaFila.animacao) <= 0.02 && parseFloat(animacaoDaFila.transicao) <= 0.02),
+   JSON.stringify(animacaoDaFila));
+
+await contextoQuieto.close();
+
 await navegador.close();
 
 console.log(`\n${"=".repeat(52)}`);

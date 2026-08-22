@@ -22,6 +22,7 @@
     "test:e2e": "npm run test:e2e --workspace @dc360/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "conferir:numeros": "node scripts/conferir-numeros.mjs",
+    "verificar": "npm run typecheck && npm test && npm audit --audit-level=low && npm run conferir:numeros",
     "migrar": "npm run migrar --workspace @dc360/db",
     "provisionar": "npm run provisionar --workspace @dc360/api --"
   }
