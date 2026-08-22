@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ROTULO_TIPO_COBRADE } from "@dc360/shared";
+import { ROTULO_TIPO_COBRADE, podeExecutar } from "@dc360/shared";
 import {
   indicadores as carregarIndicadores,
   listarOcorrencias,
@@ -77,9 +77,18 @@ export function Painel() {
           <p>{sessao.organizacaoNome}</p>
         </div>
         <div className="cabecalho-pagina__acoes">
-          <Link className="botao botao--primario" to="/ocorrencias/nova">
-            <IconeMais /> Registrar ocorrência
-          </Link>
+          {/*
+            Só aparece para quem consegue concluir. Sem esta guarda, o agente
+            de campo via o botão, preenchia endereço, relato e coordenada, e o
+            recusa vinha no fim, da camada de dados. Esconder não é controle de
+            acesso (quem impede é `exigirPermissao`), mas oferecer o que vai
+            ser negado é um beco sem saída construído de propósito.
+          */}
+          {podeExecutar(sessao.papel, "abrir_ocorrencia") && (
+            <Link className="botao botao--primario" to="/ocorrencias/nova">
+              <IconeMais /> Registrar ocorrência
+            </Link>
+          )}
         </div>
       </div>
 

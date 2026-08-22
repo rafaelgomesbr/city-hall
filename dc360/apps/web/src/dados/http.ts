@@ -96,6 +96,36 @@ async function renovar(): Promise<boolean> {
   return renovacaoEmVoo;
 }
 
+/**
+ * Erro de rede vira frase que a pessoa entende.
+ *
+ * Quando o `fetch` não alcança o servidor, ele lança `TypeError: Failed to
+ * fetch`, em inglês e sem dizer o que fazer. Essa mensagem chegava crua à
+ * tela. Para um agente numa área de risco, onde o sinal cai, é justamente a
+ * mensagem que mais aparece, e ela precisa dizer duas coisas: que o problema é
+ * a conexão e não o dado que ele digitou, e que nada foi gravado.
+ */
+export class SemConexao extends Error {
+  constructor() {
+    super(
+      "Sem conexão com o servidor. O que você preencheu não foi enviado. " +
+      "Verifique o sinal e tente de novo.",
+    );
+    this.name = "SemConexao";
+  }
+}
+
+async function comRedeTraduzida(chamada: () => Promise<Response>): Promise<Response> {
+  try {
+    return await chamada();
+  } catch (erro) {
+    // `TypeError` é o que todo navegador lança quando a requisição não sai:
+    // sem rede, DNS falhando, servidor fora, CORS barrando.
+    if (erro instanceof TypeError) throw new SemConexao();
+    throw erro;
+  }
+}
+
 async function chamar<T>(
   caminho: string,
   opcoes: { metodo?: string; corpo?: unknown; repetiu?: boolean } = {},
@@ -105,11 +135,11 @@ async function chamar<T>(
   if (opcoes.corpo !== undefined) cabecalhos["content-type"] = "application/json";
   if (tokens) cabecalhos["authorization"] = `Bearer ${tokens.acesso}`;
 
-  const resposta = await fetch(`${BASE}${caminho}`, {
+  const resposta = await comRedeTraduzida(() => fetch(`${BASE}${caminho}`, {
     method: opcoes.metodo ?? "GET",
     headers: cabecalhos,
     body: opcoes.corpo === undefined ? undefined : JSON.stringify(opcoes.corpo),
-  });
+  }));
 
   // 401 uma vez significa "o token de acesso venceu": renova e repete. 401 de
   // novo significa que a sessão acabou de verdade, e aí não adianta insistir.
@@ -388,9 +418,10 @@ export async function abrirDocumento(
   tipo: "laudo" | "termo-de-interdicao" | "laudo.pdf" | "termo-de-interdicao.pdf",
 ): Promise<string> {
   const tokens = lerTokens();
-  const resposta = await fetch(`${BASE}/documentos/${ocorrenciaId}/${tipo}`, {
-    headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
-  });
+  const resposta = await comRedeTraduzida(() =>
+    fetch(`${BASE}/documentos/${ocorrenciaId}/${tipo}`, {
+      headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
+    }));
   if (!resposta.ok) {
     const corpo = await resposta.json().catch(() => ({}));
     throw new ErroDaApi(resposta.status, corpo);
@@ -471,9 +502,10 @@ export async function baixarCsvDeOcorrencias(
   if (periodo.status) p.set("status", periodo.status);
 
   const tokens = lerTokens();
-  const resposta = await fetch(`${BASE}/relatorios/ocorrencias.csv?${p.toString()}`, {
-    headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
-  });
+  const resposta = await comRedeTraduzida(() =>
+    fetch(`${BASE}/relatorios/ocorrencias.csv?${p.toString()}`, {
+      headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
+    }));
   if (!resposta.ok) {
     throw new ErroDaApi(resposta.status, await resposta.json().catch(() => ({})));
   }

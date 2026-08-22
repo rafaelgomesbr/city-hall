@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
-  ROTULO_STATUS, ROTULO_TIPO_COBRADE, SEVERIDADES, ROTULO_SEVERIDADE,
+  ROTULO_STATUS, ROTULO_TIPO_COBRADE, SEVERIDADES, ROTULO_SEVERIDADE, podeExecutar,
   type Severidade, type StatusOcorrencia,
 } from "@dc360/shared";
 import { listarOcorrencias, type LinhaOcorrencia } from "../dados/repositorio";
@@ -89,9 +89,18 @@ export function Ocorrencias() {
           <p>{sessao.organizacaoNome}</p>
         </div>
         <div className="cabecalho-pagina__acoes">
-          <Link className="botao botao--primario" to="/ocorrencias/nova">
-            <IconeMais /> Registrar ocorrência
-          </Link>
+          {/*
+            Só aparece para quem consegue concluir. Sem esta guarda, o agente
+            de campo via o botão, preenchia endereço, relato e coordenada, e o
+            recusa vinha no fim, da camada de dados. Esconder não é controle de
+            acesso (quem impede é `exigirPermissao`), mas oferecer o que vai
+            ser negado é um beco sem saída construído de propósito.
+          */}
+          {podeExecutar(sessao.papel, "abrir_ocorrencia") && (
+            <Link className="botao botao--primario" to="/ocorrencias/nova">
+              <IconeMais /> Registrar ocorrência
+            </Link>
+          )}
         </div>
       </div>
 

@@ -213,3 +213,53 @@ export const envelopeSincronizacaoSchema = z.object({
   vistoria: vistoriaSchema,
 });
 export type EnvelopeSincronizacao = z.infer<typeof envelopeSincronizacaoSchema>;
+
+/* ==========================================================================
+   Cadastro de usuário e de equipe
+   ========================================================================== */
+
+/**
+ * Senha segundo o ASVS 4.0 (2.1.1 a 2.1.9): mínimo de doze caracteres, teto
+ * alto o bastante para não atrapalhar gerenciador de senha, e nenhuma
+ * exigência de composição, que só produz "Senha@123".
+ */
+export const senhaSchema = z.string()
+  .min(12, "A senha precisa de pelo menos 12 caracteres")
+  .max(200, "Senha longa demais");
+
+/**
+ * O cadastro de usuário mora aqui, e não dentro da rota, porque a mesma regra
+ * precisa valer nos dois lados.
+ *
+ * Antes existiam duas versões: a da API, completa, e uma reimplementação mais
+ * fraca no formulário, que não conferia formato de email nem tamanho máximo. O
+ * resultado era o usuário descobrir no servidor um erro que a tela poderia ter
+ * apontado no campo certo. Uma regra, um lugar.
+ */
+export const cadastroUsuarioSchema = z.object({
+  nome: z.string().trim().min(1, "Informe o nome").max(200, "Nome longo demais"),
+  matricula: z.string().trim().min(1, "Informe a matrícula").max(40, "Matrícula longa demais"),
+  email: z.string().trim().toLowerCase()
+    .min(1, "Informe o email")
+    .email("Informe um email válido")
+    .max(320, "Email longo demais"),
+  papel: z.enum(PAPEIS),
+  equipeId: uuidSchema.nullish(),
+  senha: senhaSchema,
+});
+export type CadastroUsuario = z.infer<typeof cadastroUsuarioSchema>;
+
+/**
+ * Edição de usuário já cadastrado. Sem senha: trocar senha é outro ato, com
+ * outras consequências (derruba sessões), e misturar os dois num formulário só
+ * faz alguém trocar senha sem querer.
+ */
+export const edicaoUsuarioSchema = cadastroUsuarioSchema.omit({ senha: true });
+export type EdicaoUsuario = z.infer<typeof edicaoUsuarioSchema>;
+
+export const cadastroEquipeSchema = z.object({
+  nome: z.string().trim().min(1, "Informe o nome da equipe").max(120, "Nome longo demais"),
+  especialidade: z.string().trim().max(200, "Especialidade longa demais").nullish(),
+  ativa: z.boolean().default(true),
+});
+export type CadastroEquipe = z.infer<typeof cadastroEquipeSchema>;

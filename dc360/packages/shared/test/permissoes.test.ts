@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { ACOES, PAPEIS, SemPermissao, exigirPermissao, podeExecutar } from "../src/index.js";
+import {
+  ACOES, PAPEIS, POSTO, PostoInsuficiente, SemPermissao, acoesDoPapel,
+  exigirPermissao, exigirPostoParaGerir, papeisQuePodeConceder, podeExecutar,
+  podeGerirPapel,
+} from "../src/index.js";
 
 /**
  * A tabela de permissões é a única fonte da regra de quem pode o quê. A tela
@@ -55,6 +59,72 @@ describe("Permissões por papel", () => {
     for (const acao of ACOES) {
       const algum = PAPEIS.some((p) => podeExecutar(p, acao));
       expect(algum, `nenhum papel pode ${acao}`).toBe(true);
+    }
+  });
+});
+
+describe("Posto: quem manda em quem", () => {
+  it("o administrador é o teto do município", () => {
+    for (const papel of PAPEIS) {
+      expect(POSTO["administrador"], papel).toBeGreaterThanOrEqual(POSTO[papel]);
+    }
+    // E é teto sozinho: se empatasse com o coordenador, a regra de posto não
+    // separaria nada e voltaríamos aos dois nomes para a mesma coisa.
+    expect(POSTO["administrador"]).toBeGreaterThan(POSTO["coordenador"]);
+  });
+
+  it("o coordenador não administra o administrador", () => {
+    expect(podeGerirPapel("coordenador", "administrador")).toBe(false);
+    expect(podeGerirPapel("coordenador", "coordenador")).toBe(true);
+    expect(podeGerirPapel("coordenador", "operador")).toBe(true);
+    expect(podeGerirPapel("coordenador", "agente_campo")).toBe(true);
+  });
+
+  it("o administrador administra todo mundo, inclusive outro administrador", () => {
+    for (const papel of PAPEIS) {
+      expect(podeGerirPapel("administrador", papel), papel).toBe(true);
+    }
+  });
+
+  it("ninguém concede papel de posto acima do seu", () => {
+    // É esta a regra que impede o coordenador de se promover: para virar
+    // administrador ele precisaria conceder um papel que não alcança.
+    expect(papeisQuePodeConceder("coordenador")).not.toContain("administrador");
+    expect(papeisQuePodeConceder("administrador")).toContain("administrador");
+    expect(papeisQuePodeConceder("operador")).not.toContain("coordenador");
+  });
+
+  it("exigirPostoParaGerir lança com mensagem que diz o que fazer", () => {
+    expect(() => exigirPostoParaGerir("administrador", "coordenador")).not.toThrow();
+    try {
+      exigirPostoParaGerir("coordenador", "administrador");
+      throw new Error("devia ter lançado");
+    } catch (erro) {
+      expect(erro).toBeInstanceOf(PostoInsuficiente);
+      expect((erro as Error).message).toMatch(/administra o município/i);
+    }
+  });
+
+  it("o administrador tem ação que o coordenador não tem", () => {
+    /*
+      O defeito que este caso existe para impedir: antes, as duas listas de
+      permissão eram idênticas item por item, e "administrador" era um papel
+      decorativo. Se alguém empatar as duas de novo, aqui reprova.
+    */
+    const doAdmin = new Set(acoesDoPapel("administrador"));
+    const doCoord = new Set(acoesDoPapel("coordenador"));
+    const exclusivas = [...doAdmin].filter((a) => !doCoord.has(a));
+    expect(exclusivas.length, "administrador voltou a ser cópia do coordenador")
+      .toBeGreaterThan(0);
+    // E o contrário não pode existir: o teto não pode ter menos que o de baixo.
+    expect([...doCoord].filter((a) => !doAdmin.has(a))).toEqual([]);
+  });
+
+  it("todo papel tem posto declarado", () => {
+    // Papel novo sem posto entraria como undefined e as comparações virariam
+    // false silenciosamente, liberando ou barrando por acidente.
+    for (const papel of PAPEIS) {
+      expect(typeof POSTO[papel], papel).toBe("number");
     }
   });
 });

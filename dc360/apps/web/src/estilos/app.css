@@ -280,7 +280,23 @@ body {
   display: flex; align-items: center; gap: var(--ds-sp-1);
 }
 
-input[type="text"], input[type="email"], input[type="search"], input[type="number"], select, textarea {
+/*
+  Lista de EXCEÇÃO, não lista de permissão.
+
+  Antes isto enumerava os tipos que recebiam estilo (text, email, search,
+  number), e o resultado foi previsível: `type="password"` ficou de fora e os
+  quatro campos de senha do produto, inclusive o da tela de entrada, saíram com
+  a aparência crua do navegador, ao lado de um campo de email perfeitamente
+  estilizado no mesmo formulário.
+
+  Invertido, o esquecimento passa a ser inofensivo: um `type="date"` ou
+  `type="tel"` novo nasce com estilo, e só fica sem quem for excluído aqui de
+  propósito. Os excluídos são os que precisam do desenho nativo: as marcações,
+  os que já são botão e os controles com interface própria do sistema.
+*/
+input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]),
+select,
+textarea {
   width: 100%;
   min-height: var(--ds-touch);
   padding: var(--ds-sp-2) var(--ds-sp-3);

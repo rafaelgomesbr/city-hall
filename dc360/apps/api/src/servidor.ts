@@ -2,7 +2,7 @@ import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
-import { SemPermissao, exigirPermissao, type Acao } from "@dc360/shared";
+import { PostoInsuficiente, SemPermissao, exigirPermissao, type Acao } from "@dc360/shared";
 import type { ZodError } from "zod";
 import type { Config } from "./config.js";
 import type { Banco } from "./banco/tipos.js";
@@ -150,6 +150,14 @@ export async function construirServidor(
     }
     if (erro instanceof SemPermissao) {
       return resposta.code(403).send({ erro: "sem_permissao", mensagem: erro.message });
+    }
+    /*
+      403 e não 404: aqui a pessoa administra usuários, ela só não administra
+      AQUELE usuário. O 404 existe para não revelar que um recurso de outro
+      município existe, e esse não é o caso: a conta é do município dela.
+    */
+    if (erro instanceof PostoInsuficiente) {
+      return resposta.code(403).send({ erro: "posto_insuficiente", mensagem: erro.message });
     }
     if (erro instanceof FalhaAutenticacao) {
       const status = erro.codigo === "bloqueado" ? 429 : 401;

@@ -141,6 +141,46 @@ describe("Nenhum valor de design escrito à mão", () => {
     }
   });
 
+  it("todo tipo de input que as telas usam recebe estilo", () => {
+    /*
+      Este caso nasceu de um defeito real: a regra de campo era uma lista de
+      tipos PERMITIDOS (text, email, search, number), e `type="password"` não
+      estava nela. Os quatro campos de senha do produto, incluindo o da tela de
+      entrada, saíam com a aparência crua do navegador ao lado de um campo de
+      email estilizado, no mesmo formulário.
+
+      A regra virou lista de EXCEÇÃO. Este teste confere que ela continua
+      assim: todo tipo de input que as telas realmente renderizam ou recebe
+      estilo, ou está declarado como exceção deliberada.
+    */
+    const css = readFileSync(join(RAIZ, "estilos", "app.css"), "utf8");
+    // A regra encadeia vários `:not(...)` no mesmo seletor, então a busca
+    // precisa ser pela linha inteira, e não por cada `input:not(` isolado.
+    const seletor = css.split("\n").find((l) => l.startsWith("input:not(")) ?? "";
+    const excluidos = new Set(
+      [...seletor.matchAll(/:not\(\[type="([a-z]+)"\]\)/g)].map((m) => m[1]!),
+    );
+    expect(excluidos.size, "a regra de campo deixou de ser lista de exceção").toBeGreaterThan(3);
+
+    /* Tipos que são botão ou marcação não precisam do estilo de campo. */
+    const NAO_SAO_CAMPO = new Set(["button", "submit", "reset", "checkbox", "radio"]);
+
+    const usados = new Set<string>();
+    for (const caminho of arquivosDeFonte(RAIZ)) {
+      if (!caminho.endsWith(".tsx")) continue;
+      for (const casou of readFileSync(caminho, "utf8").matchAll(/type="([a-z]+)"/g)) {
+        usados.add(casou[1]!);
+      }
+    }
+    expect(usados.has("password"), "âncora: as telas ainda têm campo de senha").toBe(true);
+
+    const semEstilo = [...usados].filter((t) => !NAO_SAO_CAMPO.has(t) && excluidos.has(t));
+    expect(
+      semEstilo,
+      `tipo de input renderizado pelas telas e excluído do estilo: ${semEstilo.join(", ")}`,
+    ).toEqual([]);
+  });
+
   it("a varredura não reclama do que está certo", () => {
     const corretos = [
       "color: var(--ds-text);",

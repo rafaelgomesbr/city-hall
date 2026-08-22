@@ -1,35 +1,22 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { PAPEIS } from "@dc360/shared";
+import {
+  cadastroEquipeSchema, cadastroUsuarioSchema, edicaoUsuarioSchema,
+  exigirPostoParaGerir, type Papel,
+} from "@dc360/shared";
 import type { Banco } from "../banco/tipos.js";
 import { RegraDeNegocio, autorizar } from "../servidor.js";
 import { derivarSenha } from "../auth/senha.js";
 
 const idSchema = z.object({ id: z.string().uuid() });
 
-const equipeSchema = z.object({
-  nome: z.string().min(1, "Informe o nome da equipe").max(120),
-  especialidade: z.string().max(200).nullish(),
-  ativa: z.boolean().default(true),
-});
-
-/**
- * Senha de cadastro segue o ASVS 4.0 (2.1.1 a 2.1.9): mínimo de 12
- * caracteres, máximo alto o bastante para não atrapalhar gerenciador de
- * senha, e nenhuma exigência de composição, que só produz "Senha@123".
- */
-const senhaSchema = z.string()
-  .min(12, "A senha precisa de pelo menos 12 caracteres")
-  .max(200);
-
-const usuarioSchema = z.object({
-  nome: z.string().min(1, "Informe o nome").max(200),
-  matricula: z.string().min(1, "Informe a matrícula").max(40),
-  email: z.string().email("Informe um email válido").max(320),
-  papel: z.enum(PAPEIS),
-  equipeId: z.string().uuid().nullish(),
-  senha: senhaSchema,
-});
+/*
+  Os schemas vêm do pacote compartilhado, e não são redefinidos aqui. Antes
+  eram: a API tinha a versão completa e o formulário do painel tinha uma cópia
+  mais fraca, sem formato de email e sem tamanho máximo. Uma regra, um lugar.
+*/
+const equipeSchema = cadastroEquipeSchema;
+const usuarioSchema = cadastroUsuarioSchema;
 
 /** Erro de unicidade do Postgres, traduzido para linguagem de quem preenche. */
 function ehDuplicidade(erro: unknown): boolean {
@@ -116,6 +103,9 @@ export async function rotasAdministracao(
   app.post("/usuarios", async (req, resposta) => {
     const quem = await autorizar(app, req, "gerenciar_usuarios");
     const dados = usuarioSchema.parse(req.body);
+    // Ninguém concede papel de posto acima do seu. Sem isto, um coordenador
+    // criaria um administrador e, por ele, faria tudo o que não pode.
+    exigirPostoParaGerir(quem.papel, dados.papel);
     const hash = await derivarSenha(dados.senha);
 
     try {
@@ -165,18 +155,120 @@ export async function rotasAdministracao(
     }
 
     await banco.comTenant(quem.organizacaoId, async (c) => {
-      const r = await c.query(
-        "UPDATE usuarios SET ativo = $2 WHERE id = $1 RETURNING id",
-        [id, ativo],
+      const atual = await c.query<{ papel: Papel; ativo: boolean }>(
+        "SELECT papel, ativo FROM usuarios WHERE id = $1",
+        [id],
       );
-      if (r.rows.length === 0) {
+      const alvo = atual.rows[0];
+      if (!alvo) {
         throw new RegraDeNegocio("nao_encontrado", "Usuário não encontrado.", 404);
       }
+
+      // Posto antes de tudo: um coordenador não desativa o administrador.
+      exigirPostoParaGerir(quem.papel, alvo.papel);
+
+      /*
+        O município não pode ficar sem quem o administra.
+
+        A regra de autodesativação sozinha não garantia isso: ela impede a
+        pessoa de se desligar, mas nada impedia o penúltimo administrador de
+        desativar o último. O resultado seria um município sem ninguém capaz de
+        criar usuário, e a saída seria SQL na mão no banco de produção.
+
+        Vale para administrador porque é o teto do município. Coordenador
+        abaixo do último continua podendo ser desativado: sempre sobra o
+        administrador para recriar.
+      */
+      if (!ativo && alvo.papel === "administrador" && alvo.ativo) {
+        const restantes = await c.query<{ quantos: string }>(
+          "SELECT count(*) AS quantos FROM usuarios WHERE papel = 'administrador' AND ativo = true AND id <> $1",
+          [id],
+        );
+        if (Number(restantes.rows[0]?.quantos ?? 0) === 0) {
+          throw new RegraDeNegocio(
+            "ultimo_administrador",
+            "Este é o último administrador ativo do município. Promova outra " +
+            "pessoa a administrador antes de desativar esta conta.",
+            422,
+          );
+        }
+      }
+
+      await c.query("UPDATE usuarios SET ativo = $2 WHERE id = $1", [id, ativo]);
       if (!ativo) {
         await c.query("SELECT revogar_sessoes_do_usuario($1, $2)", [id, "usuario desativado"]);
       }
     });
 
     return { id, ativo };
+  });
+
+  /**
+   * Corrigir o cadastro de quem já existe.
+   *
+   * Sem esta rota, um usuário cadastrado com o papel errado só se resolvia
+   * desativando a conta e criando outra, o que parte o histórico da pessoa em
+   * duas contas. A trilha de auditoria não sofre com a edição: ela grava nome
+   * e papel no momento de cada evento, então o passado continua contando o que
+   * de fato aconteceu.
+   *
+   * Senha fica de fora de propósito: trocar senha derruba sessões e é outro
+   * ato. Misturar os dois faz alguém trocar senha sem querer.
+   */
+  app.patch("/usuarios/:id", async (req) => {
+    const quem = await autorizar(app, req, "gerenciar_usuarios");
+    const { id } = idSchema.parse(req.params);
+    const dados = edicaoUsuarioSchema.parse(req.body);
+
+    // Posto dos DOIS lados: não se mexe em conta acima do seu posto, e não se
+    // concede papel acima do seu. Sem o segundo, um coordenador se promoveria.
+    exigirPostoParaGerir(quem.papel, dados.papel);
+
+    try {
+      return await banco.comTenant(quem.organizacaoId, async (c) => {
+        const atual = await c.query<{ papel: Papel; ativo: boolean }>(
+          "SELECT papel, ativo FROM usuarios WHERE id = $1",
+          [id],
+        );
+        const alvo = atual.rows[0];
+        if (!alvo) {
+          throw new RegraDeNegocio("nao_encontrado", "Usuário não encontrado.", 404);
+        }
+        exigirPostoParaGerir(quem.papel, alvo.papel);
+
+        // Rebaixar o último administrador tranca o município igual a desativar.
+        if (alvo.papel === "administrador" && alvo.ativo && dados.papel !== "administrador") {
+          const restantes = await c.query<{ quantos: string }>(
+            "SELECT count(*) AS quantos FROM usuarios WHERE papel = 'administrador' AND ativo = true AND id <> $1",
+            [id],
+          );
+          if (Number(restantes.rows[0]?.quantos ?? 0) === 0) {
+            throw new RegraDeNegocio(
+              "ultimo_administrador",
+              "Este é o último administrador ativo do município. Promova outra " +
+              "pessoa a administrador antes de mudar o papel desta conta.",
+              422,
+            );
+          }
+        }
+
+        const r = await c.query<{ id: string }>(
+          `UPDATE usuarios
+              SET nome = $2, matricula = $3, email = $4, papel = $5, equipe_id = $6
+            WHERE id = $1
+        RETURNING id`,
+          [id, dados.nome, dados.matricula, dados.email, dados.papel, dados.equipeId ?? null],
+        );
+        return r.rows[0];
+      });
+    } catch (erro) {
+      if (ehDuplicidade(erro)) {
+        throw new RegraDeNegocio(
+          "usuario_repetido",
+          "Já existe usuário com essa matrícula ou esse email.",
+        );
+      }
+      throw erro;
+    }
   });
 }

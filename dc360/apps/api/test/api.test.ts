@@ -68,6 +68,9 @@ async function semear(): Promise<void> {
     [orgA, "Jonas Ferreira", "SA-2", "jonas@serraalta.exemplo.gov.br", "operador", null, hashA],
     [orgA, "Diego Alves", "SA-3", "diego@serraalta.exemplo.gov.br", "agente_campo", equipeA, hashA],
     [orgB, "Aurelio Machado", "VF-1", "aurelio@valefundo.exemplo.gov.br", "coordenador", null, hashB],
+    // Administradora de Serra Alta: é ela que os testes de posto usam como
+    // teto do município.
+    [orgA, "Rita Lopes", "SA-4", "rita@serraalta.exemplo.gov.br", "administrador", null, hashA],
   ];
   for (const [org, nome, matricula, email, papel, equipe, hash] of pessoas) {
     const r = await db.query<{ id: string }>(
@@ -135,6 +138,7 @@ beforeAll(async () => {
   tokens["operadorA"] = await entrar("jonas@serraalta.exemplo.gov.br", SENHA_A);
   tokens["agenteA"] = await entrar("diego@serraalta.exemplo.gov.br", SENHA_A);
   tokens["coordB"] = await entrar("aurelio@valefundo.exemplo.gov.br", SENHA_B);
+  tokens["adminA"] = await entrar("rita@serraalta.exemplo.gov.br", SENHA_A);
 }, 120_000);
 
 afterAll(async () => {
@@ -884,4 +888,161 @@ describe("Vinculo de duplicidade e providencias vencendo", () => {
       .filter((p) => p.status === "encerrada");
     expect(encerradas.length).toBeGreaterThan(0);
   }, 60_000);
+});
+
+/**
+ * Quem manda em quem, imposto pelo servidor.
+ *
+ * A pergunta que originou este bloco: "quem tem o poder máximo, administrador
+ * ou coordenador, e um não pode anular o outro". Até aqui a resposta era
+ * constrangedora: os dois tinham exatamente a mesma lista de permissões, então
+ * ninguém era o teto e qualquer um desfazia o outro.
+ *
+ * O posto resolveu isso no pacote compartilhado. Estes casos provam que a
+ * regra vale onde importa, que é no servidor, e não na tela.
+ */
+describe("Posto entre papeis", () => {
+  it("o coordenador nao cria administrador", async () => {
+    const r = await app.inject({
+      method: "POST", url: "/usuarios",
+      headers: comToken(tokens["coordA"]!.acesso),
+      payload: {
+        nome: "Tentativa de Promocao", matricula: "SA-90",
+        email: "promocao@serraalta.exemplo.gov.br",
+        papel: "administrador", senha: "senha-bem-longa-de-teste",
+      },
+    });
+    expect(r.statusCode).toBe(403);
+    expect(r.json().erro).toBe("posto_insuficiente");
+  }, 60_000);
+
+  it("o administrador cria administrador", async () => {
+    const r = await app.inject({
+      method: "POST", url: "/usuarios",
+      headers: comToken(tokens["adminA"]!.acesso),
+      payload: {
+        nome: "Segunda Administradora", matricula: "SA-91",
+        email: "segunda.admin@serraalta.exemplo.gov.br",
+        papel: "administrador", senha: "senha-bem-longa-de-teste",
+      },
+    });
+    expect(r.statusCode).toBe(201);
+  }, 60_000);
+
+  it("o coordenador nao desativa o administrador", async () => {
+    const lista = await app.inject({
+      method: "GET", url: "/usuarios", headers: comToken(tokens["coordA"]!.acesso),
+    });
+    const rita = (lista.json().itens as Array<{ id: string; email: string }>)
+      .find((u) => u.email === "rita@serraalta.exemplo.gov.br");
+    expect(rita, "a administradora precisa existir para o caso valer").toBeDefined();
+
+    const r = await app.inject({
+      method: "PATCH", url: `/usuarios/${rita!.id}/situacao`,
+      headers: comToken(tokens["coordA"]!.acesso),
+      payload: { ativo: false },
+    });
+    expect(r.statusCode).toBe(403);
+    expect(r.json().erro).toBe("posto_insuficiente");
+  }, 60_000);
+
+  it("o coordenador nao se promove a administrador pela edicao", async () => {
+    const lista = await app.inject({
+      method: "GET", url: "/usuarios", headers: comToken(tokens["coordA"]!.acesso),
+    });
+    const helena = (lista.json().itens as Array<{ id: string; email: string }>)
+      .find((u) => u.email === "helena@serraalta.exemplo.gov.br");
+
+    const r = await app.inject({
+      method: "PATCH", url: `/usuarios/${helena!.id}`,
+      headers: comToken(tokens["coordA"]!.acesso),
+      payload: {
+        nome: "Helena Coutinho", matricula: "SA-1",
+        email: "helena@serraalta.exemplo.gov.br", papel: "administrador",
+      },
+    });
+    expect(r.statusCode).toBe(403);
+    expect(r.json().erro).toBe("posto_insuficiente");
+  }, 60_000);
+
+  it("o coordenador corrige o cadastro de quem esta abaixo dele", async () => {
+    const lista = await app.inject({
+      method: "GET", url: "/usuarios", headers: comToken(tokens["coordA"]!.acesso),
+    });
+    const jonas = (lista.json().itens as Array<{ id: string; email: string }>)
+      .find((u) => u.email === "jonas@serraalta.exemplo.gov.br");
+
+    const r = await app.inject({
+      method: "PATCH", url: `/usuarios/${jonas!.id}`,
+      headers: comToken(tokens["coordA"]!.acesso),
+      payload: {
+        nome: "Jonas Ferreira da Silva", matricula: "SA-2",
+        email: "jonas@serraalta.exemplo.gov.br", papel: "operador",
+      },
+    });
+    expect(r.statusCode).toBe(200);
+
+    const depois = await app.inject({
+      method: "GET", url: "/usuarios", headers: comToken(tokens["coordA"]!.acesso),
+    });
+    const atualizado = (depois.json().itens as Array<{ nome: string; email: string }>)
+      .find((u) => u.email === "jonas@serraalta.exemplo.gov.br");
+    expect(atualizado!.nome).toBe("Jonas Ferreira da Silva");
+  }, 60_000);
+
+  it("o municipio nao fica sem administrador ativo", async () => {
+    /*
+      O cenário: a regra de autodesativação impede a pessoa de se desligar, mas
+      nada impedia o penúltimo administrador de desativar o último. O município
+      ficaria sem ninguém capaz de criar usuário, e a saída seria SQL na mão no
+      banco de produção.
+    */
+    const lista = await app.inject({
+      method: "GET", url: "/usuarios", headers: comToken(tokens["adminA"]!.acesso),
+    });
+    const admins = (lista.json().itens as Array<{ id: string; papel: string; ativo: boolean }>)
+      .filter((u) => u.papel === "administrador" && u.ativo);
+    expect(admins.length, "o caso precisa de dois administradores ativos")
+      .toBeGreaterThanOrEqual(2);
+
+    // Desativa todos menos um: até aqui é permitido.
+    const rita = admins.find((u) => u.id !== undefined)!;
+    const outros = admins.filter((u) => u.id !== rita.id);
+    for (const outro of outros) {
+      const r = await app.inject({
+        method: "PATCH", url: `/usuarios/${outro.id}/situacao`,
+        headers: comToken(tokens["adminA"]!.acesso),
+        payload: { ativo: false },
+      });
+      expect(r.statusCode, `desativar ${outro.id}`).toBe(200);
+    }
+
+    // Agora só resta a Rita, e ela é quem está autenticada: a autodesativação
+    // barra antes. Reativa uma segunda para provar a regra do último de fora.
+    const segunda = outros[0]!;
+    await app.inject({
+      method: "PATCH", url: `/usuarios/${segunda.id}/situacao`,
+      headers: comToken(tokens["adminA"]!.acesso),
+      payload: { ativo: true },
+    });
+    // Desativa a Rita pela conta da segunda administradora? Não temos o token
+    // dela. Em vez disso, desativa a segunda de novo e tenta rebaixar a Rita,
+    // que é o outro caminho para o mesmo lockout.
+    await app.inject({
+      method: "PATCH", url: `/usuarios/${segunda.id}/situacao`,
+      headers: comToken(tokens["adminA"]!.acesso),
+      payload: { ativo: false },
+    });
+
+    const rebaixar = await app.inject({
+      method: "PATCH", url: `/usuarios/${rita.id}`,
+      headers: comToken(tokens["adminA"]!.acesso),
+      payload: {
+        nome: "Rita Lopes", matricula: "SA-4",
+        email: "rita@serraalta.exemplo.gov.br", papel: "coordenador",
+      },
+    });
+    expect(rebaixar.statusCode).toBe(422);
+    expect(rebaixar.json().erro).toBe("ultimo_administrador");
+  }, 90_000);
 });

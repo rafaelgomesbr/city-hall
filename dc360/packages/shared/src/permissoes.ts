@@ -1,4 +1,4 @@
-import type { Papel } from "./dominio.js";
+import { PAPEIS, ROTULO_PAPEL, type Papel } from "./dominio.js";
 
 /**
  * Quem pode fazer o quê.
@@ -17,6 +17,7 @@ import type { Papel } from "./dominio.js";
 
 export const ACOES = [
   "abrir_ocorrencia",
+  "gerenciar_organizacao",
   "classificar_triagem",
   "despachar_equipe",
   "encaminhar_providencia",
@@ -33,6 +34,7 @@ export type Acao = (typeof ACOES)[number];
 
 export const ROTULO_ACAO: Record<Acao, string> = {
   abrir_ocorrencia: "registrar ocorrência",
+  gerenciar_organizacao: "alterar os dados do município",
   classificar_triagem: "classificar na triagem",
   despachar_equipe: "despachar equipe",
   encaminhar_providencia: "encaminhar providência",
@@ -63,6 +65,7 @@ const PERMISSOES: Record<Papel, readonly Acao[]> = {
     "exportar_dados",
   ],
   administrador: [
+    "gerenciar_organizacao",
     "abrir_ocorrencia",
     "classificar_triagem",
     "despachar_equipe",
@@ -82,6 +85,74 @@ export function podeExecutar(papel: Papel, acao: Acao): boolean {
 
 export function acoesDoPapel(papel: Papel): readonly Acao[] {
   return PERMISSOES[papel];
+}
+
+/* ==========================================================================
+   Posto: quem manda mais que quem
+   ========================================================================== */
+
+/**
+ * A tabela acima diz o que cada papel FAZ. Ela não diz quem manda em quem, e
+ * essa era a pergunta sem resposta: coordenador e administrador tinham
+ * exatamente a mesma lista, então eram dois nomes para a mesma coisa e
+ * nenhum dos dois era o poder máximo do município.
+ *
+ * O posto resolve isso. Número maior manda mais, e a regra que decorre dele é
+ * uma só: **ninguém administra conta de posto acima do seu, nem concede papel
+ * de posto acima do seu.**
+ *
+ * Consequência que interessa: um coordenador não desativa o administrador, não
+ * rebaixa o administrador e não se promove a administrador. É isso que impede
+ * um de anular o outro. O administrador é o teto do município; acima dele só
+ * existe quem provisiona o município, que não é papel de aplicação e sim a
+ * ferramenta de linha de comando do banco (ver `db/src/cli.ts`), de propósito:
+ * um super-usuário que enxerga todos os municípios contradiria o isolamento,
+ * que é a regra número um deste produto.
+ */
+export const POSTO: Record<Papel, number> = {
+  agente_campo: 1,
+  operador: 1,
+  coordenador: 2,
+  administrador: 3,
+};
+
+/** Se `quem` pode criar, editar, ativar ou desativar uma conta de `alvo`. */
+export function podeGerirPapel(quem: Papel, alvo: Papel): boolean {
+  return POSTO[quem] >= POSTO[alvo];
+}
+
+/** Erro de posto, distinguível de "não tem a permissão". */
+export class PostoInsuficiente extends Error {
+  readonly papel: Papel;
+  readonly alvo: Papel;
+
+  constructor(papel: Papel, alvo: Papel) {
+    super(
+      `Seu perfil não administra conta de ${ROTULO_PAPEL[alvo].toLowerCase()}. ` +
+      "Peça a quem administra o município.",
+    );
+    this.name = "PostoInsuficiente";
+    this.papel = papel;
+    this.alvo = alvo;
+  }
+}
+
+/**
+ * Lança se `quem` não tiver posto para mexer numa conta de `alvo`.
+ *
+ * Vem SEMPRE junto de `exigirPermissao(papel, "gerenciar_usuarios")`, nunca no
+ * lugar dela: a permissão diz que a pessoa administra usuários, o posto diz
+ * até onde.
+ */
+export function exigirPostoParaGerir(quem: Papel, alvo: Papel): void {
+  if (!podeGerirPapel(quem, alvo)) {
+    throw new PostoInsuficiente(quem, alvo);
+  }
+}
+
+/** Os papéis que `quem` consegue conceder. Serve para montar o formulário. */
+export function papeisQuePodeConceder(quem: Papel): readonly Papel[] {
+  return PAPEIS.filter((p) => podeGerirPapel(quem, p));
 }
 
 /** Erro de autorização, distinguível de erro de validação e de erro de banco. */
