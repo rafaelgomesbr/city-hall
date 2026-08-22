@@ -4,7 +4,8 @@ import type {
 import type {
   ContaDisponivel, FiltroOcorrencias, Indicadores, LinhaEquipe, LinhaEvento,
   FiltroTrilha, LinhaEvidencia, LinhaOcorrencia, LinhaProvidencia, LinhaTrilha,
-  LinhaUsuario, LinhaVistoria, ResumoPeriodo, Sessao,
+  LinhaUsuario, LinhaVistoria, ProvidenciaPendente, ResumoPeriodo, Sessao,
+  VinculoOcorrencia,
 } from "./tipos";
 
 /**
@@ -204,6 +205,8 @@ type Detalhe = {
   trilha: LinhaEvento[];
   vistoria: LinhaVistoria | null;
   providencias: LinhaProvidencia[];
+  vinculadaA: VinculoOcorrencia | null;
+  vinculadas: VinculoOcorrencia[];
 };
 
 /**
@@ -246,6 +249,19 @@ export async function providenciasDaOcorrencia(
   id: string,
 ): Promise<LinhaProvidencia[]> {
   return (await detalhe(id)).providencias;
+}
+
+export async function vinculosDaOcorrencia(
+  _s: Sessao,
+  id: string,
+): Promise<{ vinculadaA: VinculoOcorrencia | null; vinculadas: VinculoOcorrencia[] }> {
+  const d = await detalhe(id);
+  return { vinculadaA: d.vinculadaA ?? null, vinculadas: d.vinculadas ?? [] };
+}
+
+export async function providenciasPendentes(_s: Sessao): Promise<ProvidenciaPendente[]> {
+  const r = await chamar<{ itens: ProvidenciaPendente[] }>("/ocorrencias/providencias/pendentes");
+  return r.itens;
 }
 
 export async function possiveisDuplicidades(

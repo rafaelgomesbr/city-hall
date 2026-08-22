@@ -111,7 +111,15 @@ ok("identidade vem do servidor",
 
 console.log("\n== 2. Dados vêm da API, com o mesmo conteúdo da semente ==");
 const naFila = await page.locator(".indicador").first().locator(".indicador__valor").textContent();
-ok("Na fila conta as 6 ativas de Serra Alta", naFila.trim() === "6", `(${naFila})`);
+ok(
+  "Na fila conta as 6 ativas de Serra Alta",
+  naFila.trim() === "6",
+  naFila.trim() === "6"
+    ? ""
+    : `(${naFila.trim()}) A suite exige API recem-iniciada: ela confere contagens ` +
+      "exatas da semente, e uma execucao anterior deixa registros para tras. " +
+      "Reinicie o servidor da API e rode de novo.",
+);
 ok("fila mostra a critica primeiro",
    (await page.locator(".tabela tbody tr").first().textContent()).includes("000471/2026"));
 
@@ -484,6 +492,60 @@ const negadoTrilha = await page.evaluate(async (api) => {
   return r.status;
 }, process.env.BASE_API ?? "http://127.0.0.1:3333");
 ok("e a API recusa mesmo contornando a tela", negadoTrilha === 403, `(${negadoTrilha})`);
+
+console.log("\n== 17. Vinculo de duplicidade e providencias no painel ==");
+await entrar("helena.coutinho@serraalta.exemplo.gov.br");
+await page.waitForSelector(".indicador", { timeout: 30_000 });
+
+// Abre um chamado, e depois outro no mesmo endereco, vinculando.
+await page.goto(`${BASE}/ocorrencias/nova`);
+await page.waitForSelector("#nova-solicitante", { timeout: 20_000 });
+await page.locator("#nova-tipo").selectOption("alagamento");
+await page.locator("#nova-solicitante").fill("Primeiro vizinho");
+await page.locator("#nova-endereco").fill("Rua do Vinculo Visivel, 300, Centro");
+await page.locator("#nova-descricao").fill("Agua entrando no comercio.");
+await page.getByRole("button", { name: /Registrar e gerar protocolo/ }).click();
+await page.waitForURL(/\/ocorrencias\/[0-9a-f-]{36}$/, { timeout: 30_000 });
+const protocoloOriginal = (await page.locator("h1 .mono").textContent()).trim();
+const urlOriginal = page.url();
+
+await page.goto(`${BASE}/ocorrencias/nova`);
+await page.waitForSelector("#nova-solicitante", { timeout: 20_000 });
+await page.locator("#nova-tipo").selectOption("alagamento");
+await page.locator("#nova-solicitante").fill("Segundo vizinho");
+await page.locator("#nova-endereco").fill("Rua do Vinculo Visivel, 302, Centro");
+await page.locator("#nova-descricao").fill("Mesma agua, dois numeros adiante.");
+await page.getByRole("button", { name: /Registrar e gerar protocolo/ }).click();
+
+// A tela de duplicidade aparece porque o tipo e o endereco batem.
+await page.waitForSelector("text=Já existe chamado parecido", { timeout: 20_000 });
+ok("a duplicidade e detectada na abertura", true);
+await page.getByRole("button", { name: /Registrar vinculando a este/ }).first().click();
+await page.waitForURL(/\/ocorrencias\/[0-9a-f-]{36}$/, { timeout: 30_000 });
+// waitForURL volta na navegacao; o detalhe ainda esta carregando os dados.
+await page.waitForSelector(".trilha__item", { timeout: 20_000 });
+
+const textoFilha = await page.textContent(".conteudo");
+ok("a filha diz de quem e continuacao",
+   textoFilha.includes("continuação de") && textoFilha.includes(protocoloOriginal));
+
+await page.goto(urlOriginal);
+await page.waitForSelector(".trilha__item", { timeout: 20_000 });
+const textoOriginal = await page.textContent(".conteudo");
+ok("a original avisa que ha outro chamado sobre o mesmo evento",
+   textoOriginal.includes("sobre o mesmo evento"));
+ok("e avisa que encerrar um nao encerra o outro",
+   textoOriginal.includes("Encerrar este não encerra os outros"));
+
+// Providencia pendente aparece no painel, e continua apos encerrar.
+await page.goto(`${BASE}/painel`);
+await page.waitForSelector(".indicador", { timeout: 20_000 });
+const textoPainel = await page.textContent(".conteudo");
+ok("o painel conta providencias vencidas", textoPainel.includes("Providências vencidas"));
+ok("o painel lista as providencias sem resposta",
+   textoPainel.includes("Providências aguardando resposta"));
+ok("e explica por que elas continuam ali",
+   textoPainel.includes("somem da fila assim que a ocorrência é encerrada"));
 
 await navegador.close();
 

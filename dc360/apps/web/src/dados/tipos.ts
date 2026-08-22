@@ -118,6 +118,30 @@ export type Indicadores = {
   atrasadas: number;
   encerradas_7d: number;
   criticas: number;
+  providencias_abertas: number;
+  providencias_vencidas: number;
+};
+
+/** Uma ocorrência apontada por, ou apontando para, outra. */
+export type VinculoOcorrencia = {
+  id: string;
+  protocolo: string;
+  status: StatusOcorrencia;
+  endereco: string;
+  criado_em: string;
+};
+
+export type ProvidenciaPendente = {
+  id: string;
+  orgao_destino: string;
+  descricao: string;
+  responsavel: string;
+  prazo_em: string;
+  encaminhada_em: string;
+  ocorrencia_id: string;
+  protocolo: string;
+  endereco: string;
+  status: StatusOcorrencia;
 };
 
 /** Como o painel está conversando com o banco nesta execução. */

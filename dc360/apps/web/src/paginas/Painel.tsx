@@ -4,8 +4,10 @@ import { ROTULO_TIPO_COBRADE } from "@dc360/shared";
 import {
   indicadores as carregarIndicadores,
   listarOcorrencias,
+  providenciasPendentes,
   type Indicadores,
   type LinhaOcorrencia,
+  type ProvidenciaPendente,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
@@ -24,13 +26,23 @@ import { IconeMais } from "../componentes/Icones";
 export function Painel() {
   const sessao = useSessaoObrigatoria();
   const navegar = useNavigate();
-  const [dados, setDados] = useState<{ ind: Indicadores; fila: LinhaOcorrencia[] } | null>(null);
+  const [dados, setDados] = useState<{
+    ind: Indicadores;
+    fila: LinhaOcorrencia[];
+    providencias: ProvidenciaPendente[];
+  } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
     let vivo = true;
-    Promise.all([carregarIndicadores(sessao), listarOcorrencias(sessao, { status: "ativas" })])
-      .then(([ind, fila]) => { if (vivo) setDados({ ind, fila }); })
+    Promise.all([
+      carregarIndicadores(sessao),
+      listarOcorrencias(sessao, { status: "ativas" }),
+      providenciasPendentes(sessao),
+    ])
+      .then(([ind, fila, providencias]) => {
+        if (vivo) setDados({ ind, fila, providencias: providencias as ProvidenciaPendente[] });
+      })
       .catch((e: unknown) => { if (vivo) setErro(e instanceof Error ? e.message : String(e)); });
     return () => { vivo = false; };
   }, [sessao]);
@@ -38,7 +50,7 @@ export function Painel() {
   if (erro) return <Aviso tom="perigo">Falha ao carregar o painel: {erro}</Aviso>;
   if (!dados) return <Carregando />;
 
-  const { ind, fila } = dados;
+  const { ind, fila, providencias } = dados;
   const prioritarias = fila.slice(0, 6);
 
   const cartoes: Array<{ rotulo: string; valor: number; para: string; alerta?: boolean }> = [
@@ -47,7 +59,15 @@ export function Painel() {
     { rotulo: "Atrasadas", valor: ind.atrasadas, para: "/ocorrencias?status=ativas&atrasadas=1", alerta: ind.atrasadas > 0 },
     { rotulo: "Críticas ativas", valor: ind.criticas, para: "/ocorrencias?status=ativas&severidade=critica", alerta: ind.criticas > 0 },
     { rotulo: "Encerradas em 7 dias", valor: ind.encerradas_7d, para: "/ocorrencias?status=encerrada" },
+    {
+      rotulo: "Providências vencidas",
+      valor: ind.providencias_vencidas ?? 0,
+      para: "/painel",
+      alerta: (ind.providencias_vencidas ?? 0) > 0,
+    },
   ];
+
+
 
   return (
     <>
@@ -130,6 +150,52 @@ export function Painel() {
           </div>
         )}
       </Cartao>
+
+      {providencias.length > 0 && (
+        <Cartao titulo={`Providências aguardando resposta (${providencias.length})`}>
+          <p style={{ marginTop: 0, fontSize: "var(--ds-fs-body-sm)", color: "var(--ds-text-muted)" }}>
+            Elas somem da fila assim que a ocorrência é encerrada, e é justamente
+            aí que ficam esquecidas. Por isso continuam aqui.
+          </p>
+          <div className="tabela-envolucro">
+            <table className="tabela">
+              <caption className="oculto-visualmente">
+                Providências encaminhadas e ainda sem resposta do órgão
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Órgão</th>
+                  <th scope="col">Protocolo</th>
+                  <th scope="col">Encaminhada em</th>
+                  <th scope="col">Prazo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {providencias.slice(0, 8).map((p) => (
+                  <tr key={p.id}>
+                    <td>
+                      <div className="tabela__principal">{p.orgao_destino}</div>
+                      <div className="tabela__secundario">{p.descricao}</div>
+                    </td>
+                    <td>
+                      <Link className="tabela__protocolo" to={`/ocorrencias/${p.ocorrencia_id}`}>
+                        {p.protocolo}
+                      </Link>
+                      {p.status === "encerrada" && (
+                        <div className="tabela__secundario">ocorrência já encerrada</div>
+                      )}
+                    </td>
+                    <td>{formatarDataHora(p.encaminhada_em)}</td>
+                    <td>
+                      <Prazo prazoEm={p.prazo_em} criadoEm={p.encaminhada_em} encerrada={false} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Cartao>
+      )}
     </>
   );
 }

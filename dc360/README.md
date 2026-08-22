@@ -283,6 +283,24 @@ Enquanto o produto está em validação, todo documento sai com marca d'água. U
 laudo de demonstração indistinguível de um real acaba anexado a processo por
 engano.
 
+## Nada capturado fica invisível
+
+Duas informações eram gravadas e nunca mostradas, o que deixava as duas
+funcionalidades pela metade.
+
+**O vínculo de duplicidade** agora aparece nos dois sentidos: o chamado novo
+diz de quem é continuação, e o original avisa que há outros sobre o mesmo
+evento, com a frase que importa junto (encerrar um não encerra os outros).
+Sem isso, o coordenador encerraria o primeiro sem saber que há outro pendurado.
+
+**As providências sem resposta** ganharam cartão próprio no painel e contagem
+de vencidas. Elas somem da fila assim que a ocorrência é encerrada, e é
+justamente aí que ficam esquecidas, então o cartão as mantém à vista mesmo
+depois do encerramento, dizendo por escrito por que continuam ali.
+
+O cartão fica **abaixo** da fila, e não acima: a fila é o que o coordenador
+abre o painel para ver.
+
 ## O ciclo da providência se fecha
 
 Encaminhar uma providência sem nunca registrar o desfecho é o que produz o "a
@@ -524,7 +542,7 @@ cd apps/web && VITE_API_URL=http://127.0.0.1:3333 npx vite build   && npx vite p
 npm run test:e2e:api --workspace @dc360/web
 ```
 
-São 63 verificações que só existem neste caminho: entrada por senha, senha
+São 70 verificações que só existem neste caminho: entrada por senha, senha
 errada recusada, token guardado sem a senha nem o hash, isolamento imposto
 pelo servidor (inclusive abrindo a URL de outro município na mão), fluxo
 gravando de verdade, dado criado numa sessão aparecendo em outro navegador,

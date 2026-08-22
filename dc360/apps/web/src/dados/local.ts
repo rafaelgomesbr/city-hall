@@ -50,6 +50,40 @@ export const MODO = "local" as const;
  * Devolver lista vazia é o retrato honesto do modo local: não há foto, e a
  * tela diz isso em vez de inventar imagem de exemplo.
  */
+export async function vinculosDaOcorrencia(
+  s: Sessao,
+  id: string,
+): Promise<{ vinculadaA: unknown; vinculadas: unknown[] }> {
+  return comoApp(s.organizacaoId, async (db) => {
+    const pai = await db.query(
+      `SELECT o.id, o.protocolo, o.status, o.endereco, o.criado_em
+         FROM ocorrencias o JOIN ocorrencias filha ON filha.vinculada_a = o.id
+        WHERE filha.id = $1`,
+      [id],
+    );
+    const filhas = await db.query(
+      `SELECT id, protocolo, status, endereco, criado_em
+         FROM ocorrencias WHERE vinculada_a = $1 ORDER BY criado_em`,
+      [id],
+    );
+    return { vinculadaA: pai.rows[0] ?? null, vinculadas: filhas.rows };
+  });
+}
+
+export async function providenciasPendentes(s: Sessao): Promise<unknown[]> {
+  return comoApp(s.organizacaoId, async (db) => {
+    const r = await db.query(
+      `SELECT p.id, p.orgao_destino, p.descricao, p.responsavel,
+              p.prazo_em, p.encaminhada_em,
+              o.id AS ocorrencia_id, o.protocolo, o.endereco, o.status
+         FROM providencias p JOIN ocorrencias o ON o.id = p.ocorrencia_id
+        WHERE p.respondida_em IS NULL
+        ORDER BY p.prazo_em`,
+    );
+    return r.rows;
+  });
+}
+
 export async function listarEvidencias(): Promise<never[]> {
   return [];
 }

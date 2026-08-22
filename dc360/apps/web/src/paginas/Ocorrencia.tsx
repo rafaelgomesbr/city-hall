@@ -11,9 +11,10 @@ import {
 import {
   buscarOcorrencia, classificarNaTriagem, despacharEquipe, encaminharProvidencia,
   encerrarOcorrencia, listarEquipes, providenciasDaOcorrencia, trilhaDaOcorrencia,
-  vistoriaDaOcorrencia, abrirDocumento, listarEvidencias, responderProvidencia, MODO,
+  vistoriaDaOcorrencia, abrirDocumento, listarEvidencias, responderProvidencia,
+  vinculosDaOcorrencia, MODO,
   type LinhaEquipe, type LinhaEvento, type LinhaEvidencia, type LinhaOcorrencia,
-  type LinhaProvidencia, type LinhaVistoria,
+  type LinhaProvidencia, type LinhaVistoria, type VinculoOcorrencia,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
@@ -44,6 +45,8 @@ type Conjunto = {
   providencias: LinhaProvidencia[];
   equipes: LinhaEquipe[];
   evidencias: LinhaEvidencia[];
+  vinculadaA: VinculoOcorrencia | null;
+  vinculadas: VinculoOcorrencia[];
 };
 
 /**
@@ -64,16 +67,22 @@ export function Ocorrencia() {
   const [aviso, setAviso] = useState<string | null>(null);
 
   const recarregar = useCallback(async () => {
-    const [ocorrencia, trilha, vistoria, providencias, equipes, evidencias] = await Promise.all([
+    const [ocorrencia, trilha, vistoria, providencias, equipes, evidencias, vinculos] =
+      await Promise.all([
       buscarOcorrencia(sessao, id),
       trilhaDaOcorrencia(sessao, id),
       vistoriaDaOcorrencia(sessao, id),
       providenciasDaOcorrencia(sessao, id),
       listarEquipes(sessao),
       listarEvidencias(sessao, id),
+      vinculosDaOcorrencia(sessao, id),
     ]);
     if (!ocorrencia) throw new Error("Ocorrência não encontrada nesta organização");
-    setDados({ ocorrencia, trilha, vistoria, providencias, equipes, evidencias });
+    setDados({
+      ocorrencia, trilha, vistoria, providencias, equipes, evidencias,
+      vinculadaA: vinculos.vinculadaA as VinculoOcorrencia | null,
+      vinculadas: vinculos.vinculadas as VinculoOcorrencia[],
+    });
   }, [sessao, id]);
 
   useEffect(() => {
@@ -95,7 +104,10 @@ export function Ocorrencia() {
   if (erro && !dados) return <Aviso tom="perigo">{erro}</Aviso>;
   if (!dados) return <Carregando />;
 
-  const { ocorrencia: o, trilha, vistoria, providencias, equipes, evidencias } = dados;
+  const {
+    ocorrencia: o, trilha, vistoria, providencias, equipes, evidencias,
+    vinculadaA, vinculadas,
+  } = dados;
   // Mesma tabela que o repositório usa para recusar a escrita. A tela decide
   // o que desenhar; quem impede de verdade é a camada de dados.
   const podeTriagem = podeExecutar(sessao.papel, "classificar_triagem");
@@ -126,6 +138,32 @@ export function Ocorrencia() {
 
       {erro && <Aviso tom="perigo">{erro}</Aviso>}
       {aviso && <Aviso tom="sucesso">{aviso}</Aviso>}
+      {(vinculadaA || vinculadas.length > 0) && (
+        <Aviso tom="info">
+          {vinculadaA ? (
+            <>
+              Este chamado foi registrado como continuação de{" "}
+              <Link to={`/ocorrencias/${vinculadaA.id}`} className="mono">
+                {vinculadaA.protocolo}
+              </Link>
+              , em {vinculadaA.endereco}.
+            </>
+          ) : (
+            <>
+              {vinculadas.length === 1 ? "Há outro chamado" : `Há ${vinculadas.length} chamados`}
+              {" "}sobre o mesmo evento:{" "}
+              {vinculadas.map((v, i) => (
+                <span key={v.id}>
+                  {i > 0 && ", "}
+                  <Link to={`/ocorrencias/${v.id}`} className="mono">{v.protocolo}</Link>
+                </span>
+              ))}
+              . Encerrar este não encerra os outros.
+            </>
+          )}
+        </Aviso>
+      )}
+
       {o.vulnerabilidade_presente && (
         <Aviso tom="alerta">
           <strong>Vulnerabilidade social registrada.</strong> {o.vulnerabilidade_descricao}
