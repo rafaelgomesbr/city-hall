@@ -10,7 +10,7 @@ build) valem lá, não aqui.
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 29 testes passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 43 verificações no modo local e 31 contra a API |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 15 testes de fonte mais 47 verificações no navegador no modo local e 73 contra a API |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 83 testes de integração passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 43 testes de unidade e 7 de integração contra a API |
 | `apps/campo` | Casca do aplicativo em React Native com Expo | **Escrita, nunca executada.** Ver `apps/campo/LEIA-ME.md` |
@@ -391,6 +391,47 @@ um valor que ninguém percebeu. O teste tem dois casos que provam as expressões
 funcionando e não produzindo falso positivo, para não depender de o código
 estar errado para descobrir que a varredura quebrou.
 
+## Acessibilidade também deixou de depender de lembrança
+
+`CLAUDE.md` exige contraste AA, navegação por teclado nos fluxos principais e
+estado nunca comunicado só por cor. As três dependiam de um revisor humano
+olhar cada tela, e o contraste em particular estava escrito como comentário
+dentro de `tokens.css` ("8.98:1 sobre branco"). **Comentário não recalcula.**
+Quem escurece um neutro seis meses depois não abre o comentário, e o texto
+some sem nada reclamar.
+
+`apps/web/test/acessibilidade.test.ts` calcula. Ele lê `tokens.css`, resolve as
+cadeias de `var()`, achata a transparência dos selos sobre a superfície de
+baixo (senão o número do tema escuro seria ficção, porque o selo tem 12% de
+opacidade) e aplica a fórmula de luminância da WCAG a dezessete pares de
+frente e fundo, **nos dois temas**. Onde o alvo não é texto, o mínimo cai para
+3:1, e a razão está escrita ao lado do par.
+
+O resto da varredura pega o que dá para pegar na fonte: `onClick` pendurado em
+elemento que o teclado não alcança (funciona com mouse, some no Tab), imagem
+sem `alt`, `outline: none` sem devolver o anel de foco, e a ausência do atalho
+de pular para o conteúdo. Exceção é possível com marcador e razão escrita, como
+no portão do design system.
+
+O que a varredura encontrou na primeira execução, e foi corrigido:
+
+- **Não havia atalho para pular a navegação.** Quem usa teclado atravessava os
+  onze itens da lateral a cada troca de tela. Agora o primeiro Tab cai num
+  atalho que aparece ao receber foco.
+- **A foto ampliada era uma armadilha de teclado.** Abria sem levar o foco
+  junto, não fechava com Escape, e ao fechar o foco voltava para o início da
+  página em vez da miniatura. Os três estão corrigidos e verificados no
+  navegador.
+
+Seis mutações confirmaram que o portão morde: clarear um neutro, trocar o
+violeta do tema escuro pelo do claro, remover um `alt`, remover o anel de foco,
+remover o atalho e pendurar `onClick` numa `div`. As seis reprovaram.
+
+O que ele **não** faz: não substitui teste com leitor de tela nem com pessoa
+real. Ele calcula contraste sobre tokens, não sobre pixels renderizados, então
+não vê texto sobre imagem nem sobreposição acidental. Substitui a lembrança de
+um revisor, que era o que sustentava as regras antes.
+
 ## A superfície da API se defende sozinha
 
 O erro que mais barato custa cometer e mais caro custa descobrir é banal:
@@ -513,7 +554,7 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 231 testes em cinco pacotes
+npm test                    # 242 testes em cinco pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 42 testes
 npm run test:api            # 123 testes da API
 npm run test --workspace @dc360/campo   # 28 testes do motor de sincronização
@@ -538,11 +579,15 @@ cd apps/api && JWT_SEGREDO="pelo-menos-trinta-e-dois-bytes-aqui"   ORIGENS_PERMI
 # terminal 2
 cd apps/web && VITE_API_URL=http://127.0.0.1:3333 npx vite build   && npx vite preview --port 4173 --strictPort
 
-# terminal 3
-npm run test:e2e:api --workspace @dc360/web
+# terminal 3, com LOG_API apontando para onde o terminal 1 está escrevendo
+LOG_API=/caminho/do/log-da-api npm run test:e2e:api --workspace @dc360/web
 ```
 
-São 70 verificações que só existem neste caminho: entrada por senha, senha
+`LOG_API` é necessário porque a recuperação de senha ainda não tem provedor de
+email: em desenvolvimento o link sai no log do servidor, e é de lá que a suíte
+o lê.
+
+São 73 verificações que só existem neste caminho: entrada por senha, senha
 errada recusada, token guardado sem a senha nem o hash, isolamento imposto
 pelo servidor (inclusive abrindo a URL de outro município na mão), fluxo
 gravando de verdade, dado criado numa sessão aparecendo em outro navegador,
@@ -558,14 +603,17 @@ o CORS da API não permitia `PUT`, então o envio de bytes nem saía do
 navegador; e o `Cross-Origin-Resource-Policy` do helmet bloqueava a imagem
 quando painel e API ficam em origens diferentes, que é o arranjo de produção.
 
-São 43 verificações: entrada, isolamento entre municípios visto dos dois lados,
+São 47 verificações: entrada, isolamento entre municípios visto dos dois lados,
 geração de protocolo em sequência, triagem, despacho, encerramento com motivo
 obrigatório, indicadores do painel reagindo às mudanças, cadastro de equipes e
 usuários com recusa de duplicata, mapa, restrição de menu por papel, tema
 escuro nas duas pontas (inclusive na tela de entrada) e persistência entre
 recarregamentos, mais as garantias de acessibilidade: selo com ícone, marcador
-de mapa com forma própria por severidade, e erro de campo com `role="alert"` e
-`aria-describedby`. O teste também falha se aparecer qualquer erro no console.
+de mapa com forma própria por severidade, erro de campo com `role="alert"` e
+`aria-describedby`, e a navegação por teclado: o primeiro Tab caindo no atalho
+de pular para o conteúdo, o atalho aparecendo ao receber foco e levando de fato
+ao conteúdo, e todo item da lateral alcançável sem mouse. O teste também falha
+se aparecer qualquer erro no console.
 
 Na primeira vez: `npx playwright install chromium`.
 

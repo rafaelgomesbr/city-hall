@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   PRAZO_PADRAO_HORAS, ROTULO_CANAL, ROTULO_PAPEL, ROTULO_SEVERIDADE,
@@ -746,6 +746,30 @@ function CartaoDocumentos({ ocorrenciaId }: { ocorrenciaId: string }) {
  */
 function CartaoEvidencias({ fotos }: { fotos: LinhaEvidencia[] }) {
   const [ampliada, setAmpliada] = useState<LinhaEvidencia | null>(null);
+  const fechar = useRef<HTMLButtonElement | null>(null);
+  const origem = useRef<HTMLElement | null>(null);
+
+  /*
+    Abrir a foto ampliada leva o foco junto, e fechar devolve o foco à
+    miniatura de onde ela veio. Sem isso, quem navega por teclado abre a foto
+    e continua com o foco lá atrás, sem alcançar o botão de fechar; e ao
+    fechar, o foco cai no início da página e o lugar na galeria se perde.
+  */
+  useEffect(() => {
+    if (!ampliada) {
+      origem.current?.focus();
+      origem.current = null;
+      return;
+    }
+    origem.current = document.activeElement as HTMLElement | null;
+    fechar.current?.focus();
+
+    function aoTeclar(evento: KeyboardEvent): void {
+      if (evento.key === "Escape") setAmpliada(null);
+    }
+    document.addEventListener("keydown", aoTeclar);
+    return () => document.removeEventListener("keydown", aoTeclar);
+  }, [ampliada]);
 
   if (fotos.length === 0) {
     return (
@@ -777,11 +801,14 @@ function CartaoEvidencias({ fotos }: { fotos: LinhaEvidencia[] }) {
       </ul>
 
       {ampliada && (
+        // acessibilidade: excecao. Clicar no fundo é atalho de mouse. Pelo
+        // teclado o mesmo fecha com Escape e pelo botão Fechar, que recebe o
+        // foco assim que a foto abre, então nada aqui depende do clique.
         <div className="lightbox" role="dialog" aria-modal="true"
              aria-label={ampliada.legenda ?? "Fotografia da vistoria"}
              onClick={() => setAmpliada(null)}>
           <img src={ampliada.url} alt={ampliada.legenda ?? "Fotografia da vistoria"} />
-          <button type="button" className="botao botao--secundario"
+          <button type="button" className="botao botao--secundario" ref={fechar}
                   onClick={() => setAmpliada(null)}>
             Fechar
           </button>

@@ -46,6 +46,19 @@ body {
   clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
 }
 
+/* Atalho de teclado: some da tela até alguém dar Tab nele. Fica acima de
+   tudo porque o cabeçalho é fixo e o esconderia. */
+.pular-para-conteudo {
+  position: absolute; left: var(--ds-sp-3); top: calc(var(--ds-sp-3) * -6);
+  z-index: var(--ds-z-toast);
+  display: inline-flex; align-items: center; min-height: var(--ds-touch);
+  padding: 0 var(--ds-sp-4); border-radius: var(--ds-radius);
+  background: var(--ds-accent); color: var(--ds-on-accent);
+  font-weight: 600; text-decoration: none;
+  transition: top var(--ds-dur-fast) var(--ds-ease);
+}
+.pular-para-conteudo:focus { top: var(--ds-sp-3); }
+
 /* ---------- Estrutura ---------- */
 
 .aplicacao {

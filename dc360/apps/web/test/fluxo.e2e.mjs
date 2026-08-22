@@ -234,6 +234,48 @@ ok("erro de campo tem icone", (await page.locator(".campo__erro svg").count()) >
 ok("campo aponta para o proprio erro via aria-describedby",
    (await page.locator("#nova-solicitante").getAttribute("aria-describedby")) === "nova-solicitante-erro");
 
+console.log("\n== 17. Navegacao por teclado ==");
+await page.goto(`${BASE}/painel`, { waitUntil: "networkidle" });
+await page.waitForSelector(".indicador", { timeout: 20_000 });
+
+// O primeiro Tab da pagina precisa cair no atalho, senao ele nao serve de
+// atalho: quem navega por teclado atravessaria a lateral inteira antes.
+await page.keyboard.press("Tab");
+const primeiroFoco = await page.evaluate(() => ({
+  classe: document.activeElement?.className ?? "",
+  texto: document.activeElement?.textContent ?? "",
+}));
+ok("primeiro Tab cai no atalho de pular para o conteudo",
+   primeiroFoco.classe.includes("pular-para-conteudo"), `(${primeiroFoco.texto})`);
+
+// E ele precisa aparecer ao receber foco: atalho invisivel nao ajuda ninguem.
+// A espera cobre a transicao de entrada; medir antes dela leria o meio do
+// caminho e reprovaria um atalho que funciona.
+await page.waitForTimeout(400);
+const caixa = await page.evaluate(() => {
+  const a = document.querySelector(".pular-para-conteudo");
+  if (!a) return null;
+  const r = a.getBoundingClientRect();
+  return { top: r.top, altura: r.height, largura: r.width };
+});
+ok("o atalho aparece na tela quando recebe foco",
+   caixa !== null && caixa.top >= 0 && caixa.altura >= 44 && caixa.largura > 0,
+   JSON.stringify(caixa));
+
+await page.keyboard.press("Enter");
+await page.waitForTimeout(200);
+const foiParaConteudo = await page.evaluate(() =>
+  document.activeElement?.id === "conteudo" || location.hash === "#conteudo");
+ok("acionar o atalho leva ao conteudo", foiParaConteudo);
+
+// Percorrer a lateral inteira por teclado tem que alcancar cada destino.
+const alcancaveis = await page.evaluate(() =>
+  [...document.querySelectorAll(".lateral__item")]
+    .filter((n) => n.tabIndex >= 0 || n.tagName === "A" || n.tagName === "BUTTON").length);
+const itensLaterais = await page.locator(".lateral__item").count();
+ok("todo item da lateral e alcancavel por teclado",
+   alcancaveis === itensLaterais, `(${alcancaveis}/${itensLaterais})`);
+
 await navegador.close();
 
 console.log(`\n${"=".repeat(50)}`);

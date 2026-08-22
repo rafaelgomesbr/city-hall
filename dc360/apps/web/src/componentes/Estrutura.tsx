@@ -51,6 +51,13 @@ export function Estrutura() {
 
   return (
     <div className="aplicacao">
+      {/*
+        Primeiro alvo de Tab da página. Sem ele, quem navega por teclado
+        atravessa a lateral inteira, item por item, a cada troca de tela, só
+        para chegar ao conteúdo. Fica invisível até receber foco.
+      */}
+      <a className="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
+
       <nav className="lateral" aria-label="Navegação principal">
         <div className="lateral__marca">
           <span className="lateral__sigla" aria-hidden="true">DC</span>
@@ -114,7 +121,7 @@ export function Estrutura() {
         </div>
       </header>
 
-      <main className="conteudo">
+      <main className="conteudo" id="conteudo" tabIndex={-1}>
         <Outlet />
       </main>
     </div>

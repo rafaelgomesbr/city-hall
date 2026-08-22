@@ -373,9 +373,30 @@ ok("a imagem carrega pela URL assinada", carregou);
 await page.locator(".galeria__item").first().click();
 await page.waitForSelector(".lightbox", { timeout: 10_000 });
 ok("clicar amplia a foto", await page.locator(".lightbox img").isVisible());
+
+// Abrir a foto tem que levar o foco junto: sem isso, quem navega por teclado
+// abre a ampliacao e continua com o foco na miniatura, sem alcancar o Fechar.
+const focoNaAmpliacao = await page.evaluate(() =>
+  document.activeElement?.textContent?.trim() ?? "");
+ok("o foco vai para o botao Fechar ao ampliar", focoNaAmpliacao === "Fechar",
+   `(${focoNaAmpliacao})`);
+
+await page.keyboard.press("Escape");
+await page.waitForTimeout(300);
+ok("Escape fecha a ampliacao", (await page.locator(".lightbox").count()) === 0);
+
+// E o foco volta para a miniatura de onde a foto veio, senao o lugar na
+// galeria se perde a cada foto aberta.
+const focoDepois = await page.evaluate(() =>
+  document.activeElement?.className ?? "");
+ok("o foco volta para a miniatura ao fechar",
+   focoDepois.includes("galeria__item"), `(${focoDepois})`);
+
+await page.locator(".galeria__item").first().click();
+await page.waitForSelector(".lightbox", { timeout: 10_000 });
 await page.getByRole("button", { name: "Fechar" }).click();
 await page.waitForTimeout(300);
-ok("da para fechar a ampliacao", (await page.locator(".lightbox").count()) === 0);
+ok("o botao Fechar tambem fecha", (await page.locator(".lightbox").count()) === 0);
 
 console.log("\n== 14. Recuperacao de senha ==");
 await page.goto(`${BASE}/entrar`, { waitUntil: "networkidle" });
