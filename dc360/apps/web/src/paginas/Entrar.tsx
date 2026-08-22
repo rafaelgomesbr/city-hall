@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ROTULO_PAPEL } from "@dc360/shared";
 import {
-  MODO, contasDisponiveis, entrarComSenha, type ContaDisponivel,
+  MODO, bancoSemPersistencia, contasDisponiveis, entrarComSenha, type ContaDisponivel,
 } from "../dados/repositorio";
 import { useSessao } from "../estado/sessao";
 import { Aviso, Carregando, ErroCampo, iniciais } from "../componentes/comuns";
@@ -131,7 +131,13 @@ function EscolhaDePerfil() {
   }
 
   if (erro) {
-    return <Aviso tom="perigo">Não foi possível preparar o banco local: {erro}</Aviso>;
+    return (
+      <Aviso tom="perigo">
+        Não foi possível preparar o banco local: {erro}. Este modo depende de
+        Postgres em WebAssembly rodando na própria aba. Tente pelo Chrome, pelo
+        Edge ou pelo Firefox, ou use o painel ligado à API.
+      </Aviso>
+    );
   }
   if (!contas) {
     return <Carregando mensagem="Preparando o banco de dados local (Postgres em WebAssembly)" />;
@@ -141,6 +147,15 @@ function EscolhaDePerfil() {
 
   return (
     <>
+      {bancoSemPersistencia() && (
+        // Dizer isto importa: sem o aviso, alguém cadastra meia hora de dado
+        // numa demonstração e descobre que sumiu só depois de fechar a aba.
+        <Aviso tom="alerta">
+          Este navegador não deixou o banco local guardar dado entre visitas.
+          A demonstração funciona normalmente, mas tudo o que for feito aqui
+          some ao fechar a aba.
+        </Aviso>
+      )}
       <section className="cartao">
         <div className="cartao__corpo">
           {municipios.map((m) => (

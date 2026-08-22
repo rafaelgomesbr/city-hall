@@ -12,7 +12,19 @@
  *
  * Na primeira vez, baixe o navegador: npx playwright install chromium
  */
-import { chromium } from "playwright";
+import * as playwright from "playwright";
+
+/*
+  O motor vem por variavel de ambiente porque o painel precisa funcionar
+  fora do Chromium: uma prefeitura abre o que estiver instalado na maquina.
+  MOTOR=firefox ou MOTOR=webkit troca o motor sem mexer no teste.
+*/
+const MOTOR = process.env.MOTOR ?? "chromium";
+const lancador = playwright[MOTOR];
+if (!lancador) {
+  console.error(`motor desconhecido: ${MOTOR}`);
+  process.exit(2);
+}
 
 const BASE = "http://localhost:4173";
 const erros = [];
@@ -23,7 +35,7 @@ function ok(nome, cond, extra = "") {
   else { falhou++; console.log(`  FALHA ${nome} ${extra}`); }
 }
 
-const navegador = await chromium.launch();
+const navegador = await lancador.launch();
 const contexto = await navegador.newContext();
 const page = await contexto.newPage();
 page.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));

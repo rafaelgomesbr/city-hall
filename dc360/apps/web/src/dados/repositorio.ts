@@ -59,6 +59,12 @@ export const {
 
 export { ErroDaApi } from "./http";
 
+/*
+  Só o modo local tem persistência para perder. No modo API o dado mora no
+  servidor, e a pergunta não faz sentido: a resposta é sempre não.
+*/
+export { bancoSemPersistencia } from "./banco";
+
 export type {
   ContaDisponivel,
   FiltroOcorrencias,

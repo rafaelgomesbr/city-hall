@@ -595,7 +595,50 @@ Fluxo ponta a ponta no navegador, modo local:
 npm run build --workspace @dc360/web
 cd apps/web && npx vite preview --port 4173 --strictPort   # deixe rodando
 npm run test:e2e                                            # em outro terminal
+MOTOR=firefox npm run test:e2e                              # e no Gecko
 ```
+
+A variável `MOTOR` troca o motor do navegador (`chromium`, `firefox`,
+`webkit`). As 47 verificações passam no Chromium, que é o motor do Chrome e do
+Edge, e no Firefox. Sobre o WebKit, leia a seção seguinte antes de tentar.
+
+### O modo local não serve para o Safari
+
+Medido, não suposto: no motor do Safari o Postgres em WebAssembly com
+persistência em IndexedDB leva **163 segundos** para abrir. Não trava, termina,
+quase três minutos depois. No Chromium e no Firefox o mesmo banco abre em
+poucos segundos.
+
+Antes disso ser medido, o sintoma era uma tela de entrada parada para sempre em
+"Preparando o banco de dados local", sem barra de progresso, sem erro e sem
+nada para o usuário procurar. **A pior forma de falhar é a que não se
+distingue de estar funcionando.**
+
+O que mudou por causa disso, em `apps/web/src/dados/banco.ts`:
+
+- **Teto de vinte segundos para o banco abrir.** Passou disso, a persistência é
+  considerada indisponível e o banco sobe em memória, o que leva pouco mais de
+  um segundo. A demonstração fica de pé em torno de vinte e um segundos em vez
+  de cento e sessenta e três, ao custo de perder o dado ao fechar a aba.
+- **A tela declara a troca.** Um aviso na entrada diz que este navegador não
+  guardou o banco entre visitas e que o que for feito ali some. Sem o aviso,
+  alguém cadastraria meia hora de dado numa demonstração e descobriria depois.
+- **A semeadura ignora a marca do `localStorage` quando o banco é de memória.**
+  A marca sobrevive ao recarregamento, o banco não; sem essa distinção a
+  segunda visita abriria um banco vazio dizendo que já tinha sido semeado.
+- **Prova de escrita na abertura.** Uma transação real, com o papel
+  `dc360_app`, o contexto de organização e um INSERT numa tabela com RLS,
+  desfeita por `rollback`. Um banco que sobe mas não aceita escrita passa a
+  falhar na abertura, não no meio de um cadastro.
+- **Nenhum teto por operação, de propósito.** O PGlite roda na thread
+  principal: enquanto o WebAssembly trabalha, nenhum `setTimeout` dispara. Um
+  teto ali não interromperia nada e, quando disparasse, acusaria de travada uma
+  operação que ainda vai terminar. No Safari uma gravação leva mais de vinte
+  segundos e conclui.
+
+Mesmo com tudo isso, **o modo local no Safari é lento a ponto de parecer
+travado** em cada escrita. Para Mac e iPad, use o painel ligado à API, onde o
+banco é o do servidor e o navegador só desenha.
 
 Fluxo ponta a ponta com a API, que é o caminho de produção:
 
