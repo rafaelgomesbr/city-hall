@@ -147,7 +147,11 @@ Mostre a **linha do tempo**, agora completa.
 
 > "Cada evento aqui tem quem fez, o papel da pessoa, quando, e se foi do escritório ou do campo. Quando o Ministério Público ou o Tribunal de Contas perguntar o que foi feito naquele endereço, a resposta é essa tela."
 
-Aponte especificamente o evento de vistoria, que mostra as duas marcas de tempo (coletada offline às X, sincronizada às Y).
+Agora limpe a busca, digite `000482` e abra a ocorrência que você acabou de vistoriar sem sinal. Na linha do tempo dela, aponte o evento de vistoria: ele mostra **as duas marcas de tempo**, coletada offline às X e sincronizada às Y.
+
+> "Essa é a ocorrência que a gente acabou de fazer aqui, sem sinal. Repara que o sistema não finge que a vistoria aconteceu na hora em que o sinal voltou: ele registra as duas horas. Se alguém contestar o laudo depois, é essa diferença que sustenta ele."
+
+A 000479, que a gente usou para o documento, não tem as duas marcas porque a vistoria dela já veio pronta na carga inicial, sem passar pelo modo offline.
 
 ---
 

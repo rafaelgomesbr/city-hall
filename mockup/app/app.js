@@ -1417,10 +1417,18 @@
     return texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
   }
 
+  /* Duplicidade por prefixo, e nao por igualdade exata.
+     Exigir o endereco identico so encontrava duplicidade se o operador
+     digitasse "Rua das Acacias, 245, Bairro Vista Alegre" byte a byte, o que
+     nao acontece: o operador digita a rua e o numero, e para. O piso de 12
+     caracteres evita que "rua das" case com meia cidade. */
   function buscarOcorrenciaPorEndereco(endereco) {
     var alvo = normalizarTexto(endereco || "");
-    if (alvo.length < 4) { return null; }
-    return estado.ocorrencias.filter(function (o) { return normalizarTexto(o.endereco) === alvo; })[0] || null;
+    if (alvo.length < 12) { return null; }
+    return estado.ocorrencias.filter(function (o) {
+      var gravado = normalizarTexto(o.endereco);
+      return gravado === alvo || gravado.indexOf(alvo) === 0 || alvo.indexOf(gravado) === 0;
+    })[0] || null;
   }
 
   function coordenadaAleatoriaMapa() {

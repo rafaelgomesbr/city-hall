@@ -382,6 +382,19 @@ Nada disso é etapa de compilação do protótipo, e a proibição da Fase 0 con
 
 Quatro mutações confirmaram que o conferidor morde: remover o CSS do pacote, apontar uma imagem para um domínio externo, renomear um botão citado no `LEIA-ME.txt`, e renomear um botão cujo rótulo quebra em duas linhas dentro do arquivo. A quarta é a que importa registrar: a primeira versão da checagem passou verde nela, porque procurava as aspas linha a linha e não enxergava rótulo que quebrava na margem. Foi corrigida antes de entrar.
 
+### O roteiro de dez minutos também vira script, em 21/08/2026
+
+Mesmo problema, e mais grave: o registro do CP9 diz que o roteiro foi revalidado ponta a ponta com automação, e que a automação encontrou três passos irreproduzíveis. Aquela automação não ficou no repositório, então não podia pegar o quarto.
+
+`scripts/conferir-roteiro.mjs` executa o `docs/ROTEIRO_DEMO.md` passo a passo, do "Entrar direto" até o "Reiniciar demonstração", incluindo a vistoria offline inteira (checklist, foto, GPS em etapas, assinatura arrastada com o mouse) e a sincronização item a item. São 56 verificações, e ele roda tanto sobre o `mockup/` do repositório quanto sobre a pasta extraída do zip.
+
+Ele achou dois defeitos que nenhuma leitura acharia:
+
+- **A duplicidade não aparecia no endereço que o roteiro manda digitar.** A busca por chamado anterior exigia o endereço IDÊNTICO ao gravado, e o gravado é `Rua das Acácias, 245, Bairro Vista Alegre`. O roteiro manda digitar `Rua das Acácias, 245`, que é o que um operador digita de verdade, e nada acontecia. Isso quebrava o momento do minuto 2 a 3,5 na frente da plateia. Corrigido no protótipo, não no roteiro: a busca passou a casar por prefixo, com piso de 12 caracteres para não casar meia cidade.
+- **A dupla marca de tempo estava sendo apontada na ocorrência errada.** O roteiro mandava mostrá-la na 000479, cuja vistoria já vem pronta na carga inicial e por isso tem uma marca só. Ela existe na 000482, que é justamente a que foi coletada sem sinal na frente de quem assiste, e isso é um momento melhor: o sistema não finge que a vistoria aconteceu na hora em que o sinal voltou. O roteiro foi corrigido para apontar onde a coisa de fato está.
+
+Os dois seriam descobertos na reunião.
+
 ---
 
 ## CP6: documentos oficiais e linha do tempo auditável
