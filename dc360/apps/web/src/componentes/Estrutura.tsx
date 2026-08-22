@@ -6,7 +6,7 @@ import { encerrarSessao } from "../dados/repositorio";
 import { iniciais } from "./comuns";
 import {
   IconeBusca, IconeDocumento, IconeEquipes, IconeLua, IconeMapa,
-  IconeOcorrencias, IconePainel, IconeSair, IconeSol, IconeUsuarios,
+  IconeOcorrencias, IconePainel, IconePrancheta, IconeSair, IconeSol, IconeUsuarios,
 } from "./Icones";
 
 /**
@@ -18,11 +18,30 @@ import {
  * menor privilégio que o RLS aplica no banco, refletido na tela.
  */
 
-type ItemNav = { para: string; rotulo: string; icone: JSX.Element; grupo: string; exige?: Acao };
+type ItemNav = {
+  para: string; rotulo: string; icone: JSX.Element; grupo: string;
+  /** Só aparece para quem pode executar esta ação. */
+  exige?: Acao;
+  /** Só aparece para quem NÃO pode executar esta ação. */
+  escondeSePuder?: Acao;
+};
 
+/*
+  O agente de campo é o caso que obrigou a segunda regra.
+
+  Ele não pode triar, despachar, encaminhar nem encerrar, então o painel do
+  coordenador e a tabela do município inteiro não têm uma ação sequer para ele.
+  Antes ele via as duas telas mesmo assim, e não via nenhuma das suas. Agora o
+  menu dele começa em "Meu trabalho" e as telas de coordenação saem de vista,
+  pelo mesmo princípio de menor privilégio que o resto do sistema segue.
+*/
 const NAVEGACAO: ItemNav[] = [
-  { para: "/painel", rotulo: "Painel", icone: <IconePainel />, grupo: "Operação" },
-  { para: "/ocorrencias", rotulo: "Ocorrências", icone: <IconeOcorrencias />, grupo: "Operação" },
+  { para: "/meu-trabalho", rotulo: "Meu trabalho", icone: <IconePrancheta />,
+    grupo: "Operação", exige: "registrar_vistoria" },
+  { para: "/painel", rotulo: "Painel", icone: <IconePainel />, grupo: "Operação",
+    escondeSePuder: "registrar_vistoria" },
+  { para: "/ocorrencias", rotulo: "Ocorrências", icone: <IconeOcorrencias />, grupo: "Operação",
+    escondeSePuder: "registrar_vistoria" },
   { para: "/mapa", rotulo: "Mapa da cidade", icone: <IconeMapa />, grupo: "Operação" },
   { para: "/equipes", rotulo: "Equipes", icone: <IconeEquipes />, grupo: "Administração",
     exige: "gerenciar_equipes" },
@@ -40,7 +59,9 @@ export function Estrutura() {
 
   if (!sessao) return null;
 
-  const visiveis = NAVEGACAO.filter((i) => !i.exige || podeExecutar(sessao.papel, i.exige));
+  const visiveis = NAVEGACAO.filter((i) =>
+    (!i.exige || podeExecutar(sessao.papel, i.exige)) &&
+    (!i.escondeSePuder || !podeExecutar(sessao.papel, i.escondeSePuder)));
   const grupos = [...new Set(visiveis.map((i) => i.grupo))];
 
   function enviarBusca(evento: React.FormEvent) {

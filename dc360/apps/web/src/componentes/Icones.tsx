@@ -162,6 +162,18 @@ export function IconeDocumento({ tamanho = 18, titulo }: Props) {
   );
 }
 
+/** Prancheta: o que o agente leva a campo. */
+export function IconePrancheta({ tamanho = 18, titulo }: Props) {
+  return (
+    <svg {...base(tamanho, titulo)}>
+      {titulo && <title>{titulo}</title>}
+      <path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1Z" />
+      <path d="M16 5h2a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h2" />
+      <path d="M9 12.5l2 2 4-4" />
+    </svg>
+  );
+}
+
 export function IconeEscudo({ tamanho = 18, titulo }: Props) {
   return (
     <svg {...base(tamanho, titulo)}>

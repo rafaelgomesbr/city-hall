@@ -4,8 +4,8 @@ import type {
 import type {
   ContaDisponivel, FiltroOcorrencias, Indicadores, LinhaEquipe, LinhaEvento,
   FiltroTrilha, LinhaEvidencia, LinhaOcorrencia, LinhaProvidencia, LinhaTrilha,
-  LinhaUsuario, LinhaVistoria, ProvidenciaPendente, ResumoPeriodo, Sessao,
-  VinculoOcorrencia,
+  LinhaUsuario, LinhaVistoria, MeuTrabalho, ProvidenciaPendente, ResumoPeriodo,
+  Sessao, VinculoOcorrencia,
 } from "./tipos";
 
 /**
@@ -287,6 +287,17 @@ export async function vinculosDaOcorrencia(
 ): Promise<{ vinculadaA: VinculoOcorrencia | null; vinculadas: VinculoOcorrencia[] }> {
   const d = await detalhe(id);
   return { vinculadaA: d.vinculadaA ?? null, vinculadas: d.vinculadas ?? [] };
+}
+
+/**
+ * Tudo o que a tela do agente de campo mostra, numa requisição só.
+ *
+ * Uma só porque a tela é uma só, e porque quem abre isso costuma estar com
+ * sinal ruim: três idas ao servidor para montar uma tela é desperdício onde
+ * cada ida pode falhar.
+ */
+export async function meuTrabalhoDeCampo(_s: Sessao): Promise<MeuTrabalho> {
+  return chamar<MeuTrabalho>("/campo/meu-trabalho");
 }
 
 export async function providenciasPendentes(_s: Sessao): Promise<ProvidenciaPendente[]> {

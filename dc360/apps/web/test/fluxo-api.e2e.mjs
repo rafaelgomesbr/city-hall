@@ -49,7 +49,8 @@ function ok(nome, cond, extra = "") {
 }
 
 const navegador = await lancador.launch();
-const page = await (await navegador.newContext()).newPage();
+const contexto = await navegador.newContext();
+const page = await contexto.newPage();
 /**
  * O Chrome registra no console toda resposta que não é 2xx, e esta suíte
  * provoca 401, 403 e 404 DE PROPÓSITO: senha errada, papel sem permissão e
@@ -59,7 +60,13 @@ const page = await (await navegador.newContext()).newPage();
  * O que continua sendo falha: exceção na página, e qualquer outro erro de
  * console, incluindo 5xx e bloqueio de CORS.
  */
-const ESPERADOS = /Failed to load resource: the server responded with a status of (401|403|404|422)/;
+const ESPERADOS = new RegExp([
+  "Failed to load resource: the server responded with a status of (401|403|404|422)",
+  // A seção 19 derruba a rota da API de propósito para conferir a mensagem de
+  // rede caída. O navegador reclama por causa disso, e a reclamação é o
+  // comportamento esperado do teste, não defeito do app.
+  "Failed to load resource: net::ERR_FAILED",
+].join("|"));
 
 function registrar(page) {
   page.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
@@ -90,8 +97,13 @@ async function entrar(email, senha = SENHA) {
   // Falhar dizendo o motivo: um timeout genérico esperando o painel esconde
   // se foi senha errada, conta bloqueada ou limite por endereço.
   const erro = page.locator(".campo__erro");
+  //
+  // A espera aceita duas telas porque cada papel cai numa: a coordenação vai
+  // para o painel, que tem indicadores, e o agente de campo vai para "Meu
+  // trabalho", que não tem nenhum, e nem deveria ter.
   const chegou = await Promise.race([
     page.waitForSelector(".indicador", { timeout: 30_000 }).then(() => "painel"),
+    page.waitForSelector(".cartao", { timeout: 30_000 }).then(() => "painel"),
     erro.waitFor({ timeout: 30_000 }).then(() => "erro"),
   ]).catch(() => "tempo esgotado");
 
@@ -327,7 +339,8 @@ ok("outro municipio nao gera o laudo de uma ocorrencia alheia", negado === 404, 
 
 console.log("\n== 13. Galeria de evidencia no painel ==");
 await entrar("diego.alves@serraalta.exemplo.gov.br");
-await page.waitForSelector(".indicador", { timeout: 30_000 });
+// O agente cai em "Meu trabalho", nao no painel do coordenador.
+await page.waitForSelector(".cabecalho-pagina h1", { timeout: 30_000 });
 
 // Sobe uma foto pelo caminho real da API, como o aplicativo de campo faria.
 const envio = await page.evaluate(async ({ api, ocorrenciaId }) => {
@@ -579,6 +592,75 @@ ok("o painel lista as providencias sem resposta",
    textoPainel.includes("Providências aguardando resposta"));
 ok("e explica por que elas continuam ali",
    textoPainel.includes("somem da fila assim que a ocorrência é encerrada"));
+
+console.log("\n== 18. O agente de campo tem a tela dele ==");
+await entrar("diego.alves@serraalta.exemplo.gov.br");
+await page.waitForSelector(".cabecalho-pagina h1", { timeout: 30_000 });
+
+ok("o agente cai em Meu trabalho, nao no painel do coordenador",
+   page.url().endsWith("/meu-trabalho"), `(${page.url()})`);
+ok("o titulo da tela e o dele",
+   (await page.textContent(".cabecalho-pagina h1")).includes("Meu trabalho"));
+
+// O aviso mais importante: este painel nao funciona sem sinal, e o agente
+// precisa saber disso antes de sair, nao no barranco.
+const avisos = await page.locator(".aviso").allTextContents();
+ok("a tela avisa que precisa de conexao",
+   avisos.some((t) => /precisa de conex/i.test(t)), `(${avisos.join(" | ").slice(0, 100)})`);
+ok("e diz onde fica o trabalho sem sinal",
+   avisos.some((t) => /aplicativo de campo/i.test(t)));
+
+const cartoes = await page.locator(".cartao__titulo, .cartao h2").allTextContents();
+ok("mostra as vistorias designadas para a equipe dele",
+   cartoes.some((t) => /designadas/i.test(t)), `(${cartoes.join(" | ")})`);
+ok("mostra o que ele ja concluiu",
+   cartoes.some((t) => /conclu/i.test(t)));
+ok("mostra qual e a equipe dele",
+   cartoes.some((t) => /minha equipe/i.test(t)));
+
+const equipe = await page.locator(".par__valor").allTextContents();
+ok("nomeia a equipe", equipe.some((t) => t.includes("Alfa")), `(${equipe.join(" | ")})`);
+
+// O menu dele nao oferece o que ele nao pode fazer.
+const menu = await page.locator(".lateral__item").allTextContents();
+ok("o menu do agente comeca por Meu trabalho",
+   menu.some((t) => t.includes("Meu trabalho")), `(${menu.join(" | ")})`);
+ok("o menu do agente nao tem o painel do coordenador",
+   !menu.some((t) => t.trim() === "Painel"), `(${menu.join(" | ")})`);
+ok("nem a tabela de todas as ocorrencias",
+   !menu.some((t) => t.includes("Ocorrências")), `(${menu.join(" | ")})`);
+ok("nem administracao de usuarios",
+   !menu.some((t) => t.includes("Usuários")), `(${menu.join(" | ")})`);
+
+// E abrir a URL na mao tambem nao entrega o formulario.
+await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
+await page.waitForTimeout(1000);
+ok("abrir /usuarios pela URL mostra recusa, nao o formulario",
+   (await page.locator("#usuario-nome").count()) === 0);
+ok("e a recusa explica o que fazer",
+   ((await page.textContent(".aviso")) ?? "").includes("administra o município"));
+
+console.log("\n== 19. Erro de rede fala portugues ==");
+await entrar("helena.coutinho@serraalta.exemplo.gov.br");
+await page.waitForSelector(".indicador", { timeout: 30_000 });
+await page.goto(`${BASE}/ocorrencias/nova`, { waitUntil: "networkidle" });
+await page.waitForSelector("#nova-solicitante", { timeout: 30_000 });
+await page.locator("#nova-tipo").selectOption("vendaval");
+await page.locator("#nova-solicitante").fill("Teste de queda de rede");
+await page.locator("#nova-endereco").fill("Rua Sem Sinal, 1, Centro");
+await page.locator("#nova-descricao").fill("Registro que nao deve chegar ao servidor.");
+
+// Derruba a rota para a API e envia: o agente precisa saber que nada foi
+// gravado, e nao ler "Failed to fetch".
+await contexto.route("**/127.0.0.1:3333/**", (rota) => rota.abort());
+await page.getByRole("button", { name: /Registrar e gerar protocolo/ }).click();
+await page.waitForTimeout(2500);
+const mensagemDeRede = (await page.locator(".aviso, .campo__erro").allTextContents()).join(" ");
+ok("erro de rede vira frase em portugues",
+   /sem conex/i.test(mensagemDeRede), `(${mensagemDeRede.slice(0, 90)})`);
+ok("e diz que nada foi enviado",
+   /nao foi enviado|não foi enviado/i.test(mensagemDeRede));
+await contexto.unroute("**/127.0.0.1:3333/**");
 
 await navegador.close();
 

@@ -14,8 +14,9 @@ import {
 } from "@dc360/shared";
 import { comoApp, semTenant, type Contexto } from "./banco";
 import type {
-  ContaDisponivel, FiltroOcorrencias, Indicadores, LinhaEquipe, LinhaEvento,
-  LinhaOcorrencia, LinhaProvidencia, LinhaUsuario, LinhaVistoria, Sessao,
+  ColegaDeEquipe, ContaDisponivel, FiltroOcorrencias, Indicadores, LinhaEquipe,
+  LinhaEvento, LinhaOcorrencia, LinhaProvidencia, LinhaUsuario, LinhaVistoria,
+  MeuTrabalho, Sessao, TarefaDesignada, VistoriaConcluida,
 } from "./tipos";
 
 /**
@@ -81,6 +82,69 @@ export async function providenciasPendentes(s: Sessao): Promise<unknown[]> {
         ORDER BY p.prazo_em`,
     );
     return r.rows;
+  });
+}
+
+/**
+ * O trabalho do agente de campo, no modo local.
+ *
+ * Mesma consulta que a API faz, pelo mesmo motivo de sempre: as duas
+ * implementações da porta precisam prometer a mesma coisa, senão a tela passa
+ * a depender de qual delas está ativa.
+ */
+export async function meuTrabalhoDeCampo(s: Sessao): Promise<MeuTrabalho> {
+  return comoApp(s.organizacaoId, async (db) => {
+    const eu = await db.query<{
+      equipe_id: string | null; equipe_nome: string | null;
+      equipe_especialidade: string | null; equipe_ativa: boolean | null;
+    }>(
+      `SELECT u.equipe_id, e.nome AS equipe_nome,
+              e.especialidade AS equipe_especialidade, e.ativa AS equipe_ativa
+         FROM usuarios u LEFT JOIN equipes e ON e.id = u.equipe_id
+        WHERE u.id = $1`,
+      [s.usuarioId],
+    );
+    const meu = eu.rows[0];
+    if (!meu?.equipe_id) {
+      return { equipe: null, colegas: [], designadas: [], concluidas: [] };
+    }
+
+    const colegas = await db.query<ColegaDeEquipe>(
+      "SELECT id, nome, papel, ativo FROM usuarios WHERE equipe_id = $1 AND ativo = true ORDER BY nome",
+      [meu.equipe_id],
+    );
+    const designadas = await db.query<TarefaDesignada>(
+      `SELECT o.id, o.protocolo, o.tipo, o.severidade, o.status, o.endereco,
+              o.latitude, o.longitude, o.descricao,
+              o.solicitante_nome, o.solicitante_contato,
+              o.vulnerabilidade_presente, o.vulnerabilidade_descricao,
+              o.prazo_em, o.criado_em
+         FROM ocorrencias o
+        WHERE o.equipe_id = $1 AND o.status = 'em_campo'
+        ORDER BY o.prazo_em NULLS LAST, o.criado_em`,
+      [meu.equipe_id],
+    );
+    const concluidas = await db.query<VistoriaConcluida>(
+      `SELECT v.id, v.coletada_em, v.sincronizada_em, v.gps_precisao_metros,
+              v.assinante_nome,
+              o.id AS ocorrencia_id, o.protocolo, o.tipo, o.severidade,
+              o.status, o.endereco
+         FROM vistorias v JOIN ocorrencias o ON o.id = v.ocorrencia_id
+        WHERE v.agente_id = $1
+        ORDER BY v.coletada_em DESC
+        LIMIT 50`,
+      [s.usuarioId],
+    );
+
+    return {
+      equipe: {
+        id: meu.equipe_id, nome: meu.equipe_nome,
+        especialidade: meu.equipe_especialidade, ativa: meu.equipe_ativa,
+      },
+      colegas: colegas.rows,
+      designadas: designadas.rows,
+      concluidas: concluidas.rows,
+    };
   });
 }
 

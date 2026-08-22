@@ -188,3 +188,60 @@ export type FiltroTrilha = {
   protocolo?: string;
   pagina?: number;
 };
+
+/* ==========================================================================
+   O trabalho do agente de campo
+   ========================================================================== */
+
+export type EquipeDoAgente = {
+  id: string;
+  nome: string | null;
+  especialidade: string | null;
+  ativa: boolean | null;
+};
+
+export type ColegaDeEquipe = {
+  id: string;
+  nome: string;
+  papel: Papel;
+  ativo: boolean;
+};
+
+export type TarefaDesignada = {
+  id: string;
+  protocolo: string;
+  tipo: TipoCobrade;
+  severidade: Severidade | null;
+  status: StatusOcorrencia;
+  endereco: string;
+  latitude: number | null;
+  longitude: number | null;
+  descricao: string;
+  solicitante_nome: string;
+  solicitante_contato: string | null;
+  vulnerabilidade_presente: boolean;
+  vulnerabilidade_descricao: string | null;
+  prazo_em: string | null;
+  criado_em: string;
+};
+
+export type VistoriaConcluida = {
+  id: string;
+  coletada_em: string;
+  sincronizada_em: string;
+  gps_precisao_metros: number | null;
+  assinante_nome: string;
+  ocorrencia_id: string;
+  protocolo: string;
+  tipo: TipoCobrade;
+  severidade: Severidade | null;
+  status: StatusOcorrencia;
+  endereco: string;
+};
+
+export type MeuTrabalho = {
+  equipe: EquipeDoAgente | null;
+  colegas: ColegaDeEquipe[];
+  designadas: TarefaDesignada[];
+  concluidas: VistoriaConcluida[];
+};

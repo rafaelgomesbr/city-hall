@@ -113,7 +113,7 @@ export function Ocorrencias() {
         <input id="filtro-busca" type="search" value={rascunhoBusca}
                onChange={(e) => setRascunhoBusca(e.target.value)}
                placeholder="Protocolo, endereço, solicitante ou relato"
-               style={{ maxWidth: "360px" }} />
+               className="campo--longo" />
         <button type="submit" className="botao botao--secundario">Buscar</button>
         {(busca || soAtrasadas || severidade !== "todas" || status !== "ativas") && (
           <button type="button" className="botao botao--discreto"

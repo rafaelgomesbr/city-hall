@@ -108,12 +108,12 @@ export function Auditoria() {
         >
           <label className="oculto-visualmente" htmlFor="trilha-autor">Filtrar por autor</label>
           <input id="trilha-autor" type="search" value={rascunhoAutor}
-                 placeholder="Nome de quem agiu" style={{ maxWidth: "240px" }}
+                 placeholder="Nome de quem agiu" className="campo--medio"
                  onChange={(e) => setRascunhoAutor(e.target.value)} />
 
           <label className="oculto-visualmente" htmlFor="trilha-protocolo">Filtrar por protocolo</label>
           <input id="trilha-protocolo" type="search" value={rascunhoProtocolo}
-                 placeholder="Protocolo" style={{ maxWidth: "160px" }}
+                 placeholder="Protocolo" className="campo--curto"
                  onChange={(e) => setRascunhoProtocolo(e.target.value)} />
 
           <button type="submit" className="botao botao--secundario">Filtrar</button>
@@ -145,7 +145,9 @@ export function Auditoria() {
         {!trilha ? (
           <Carregando />
         ) : trilha.length === 0 ? (
-          <Vazio titulo="Nenhum evento com esses filtros" />
+          <Vazio titulo="Nenhum evento com esses filtros">
+            Limpe o filtro de tipo, ou amplie o período, para ver o que existe.
+          </Vazio>
         ) : (
           <>
             <div className="tabela-envolucro">

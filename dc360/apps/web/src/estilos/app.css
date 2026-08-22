@@ -156,8 +156,12 @@ body {
 
 .identidade { display: flex; align-items: center; gap: var(--ds-sp-3); }
 .identidade__avatar {
+  /* Gradiente de marca e `on-accent`, iguais aos da sigla da lateral. Antes
+     era `accent-graphic` com branco fixo: o token diz, no próprio comentário,
+     que serve só para elemento gráfico grande, e branco fixo não acompanha o
+     tema, que foi exatamente o defeito de contraste já corrigido na sigla. */
   width: var(--emblema-md); height: var(--emblema-md); border-radius: var(--ds-radius-pill);
-  background: var(--ds-accent-graphic); color: var(--ds-white);
+  background: var(--ds-accent-gradient); color: var(--ds-on-accent);
   display: grid; place-items: center; font-weight: 600; font-size: var(--ds-fs-body-sm);
   flex: 0 0 var(--emblema-md);
 }
@@ -312,6 +316,12 @@ input:hover, select:hover, textarea:hover { border-color: var(--ds-text-muted); 
 input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="true"] {
   border-color: var(--ds-danger-fg);
 }
+
+/* Larguras de campo por intenção, não por número solto na tela. Antes eram
+   três `style={{ maxWidth: "240px" }}` espalhados por duas páginas. */
+.campo--curto { max-width: calc(var(--ds-sp-8) * 2.5); }
+.campo--medio { max-width: calc(var(--ds-sp-8) * 3.75); }
+.campo--longo { max-width: calc(var(--ds-sp-8) * 5.625); }
 
 .linha-campos { display: grid; gap: var(--ds-sp-4); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 

@@ -51,6 +51,22 @@ export function Painel() {
   if (!dados) return <Carregando />;
 
   const { ind, fila, providencias } = dados;
+
+  /**
+   * Indicador que aponta para outra tela navega; indicador cuja lista já está
+   * nesta tela rola até ela e leva o foco junto, senão quem usa teclado clica
+   * e não vai a lugar nenhum.
+   */
+  function irPara(destino: string): void {
+    if (!destino.startsWith("#")) {
+      navegar(destino);
+      return;
+    }
+    const alvo = document.getElementById(destino.slice(1));
+    if (!alvo) return;
+    alvo.scrollIntoView({ behavior: "smooth", block: "start" });
+    alvo.focus({ preventScroll: true });
+  }
   const prioritarias = fila.slice(0, 6);
 
   const cartoes: Array<{ rotulo: string; valor: number; para: string; alerta?: boolean }> = [
@@ -62,7 +78,9 @@ export function Painel() {
     {
       rotulo: "Providências vencidas",
       valor: ind.providencias_vencidas ?? 0,
-      para: "/painel",
+      // Este não navega: a lista dele já está mais abaixo, nesta mesma tela.
+      // Antes apontava para "/painel", o que era clicar e não acontecer nada.
+      para: "#providencias-pendentes",
       alerta: (ind.providencias_vencidas ?? 0) > 0,
     },
   ];
@@ -103,7 +121,7 @@ export function Painel() {
         {cartoes.map((c) => (
           <button key={c.rotulo} type="button"
                   className={`indicador${c.alerta ? " indicador--alerta" : ""}`}
-                  onClick={() => navegar(c.para)}>
+                  onClick={() => irPara(c.para)}>
             <span className="indicador__valor">{c.valor}</span>
             <span className="indicador__rotulo">{c.rotulo}</span>
           </button>
@@ -161,6 +179,7 @@ export function Painel() {
       </Cartao>
 
       {providencias.length > 0 && (
+        <div id="providencias-pendentes" tabIndex={-1}>
         <Cartao titulo={`Providências aguardando resposta (${providencias.length})`}>
           <p style={{ marginTop: 0, fontSize: "var(--ds-fs-body-sm)", color: "var(--ds-text-muted)" }}>
             Elas somem da fila assim que a ocorrência é encerrada, e é justamente
@@ -204,6 +223,7 @@ export function Painel() {
             </table>
           </div>
         </Cartao>
+        </div>
       )}
     </>
   );

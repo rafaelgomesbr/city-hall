@@ -151,6 +151,10 @@ const PARES: Array<{
   { oQue: "link ou ação no cartão", frente: "--ds-accent", fundo: "--ds-surface" },
   { oQue: "texto do botão primário", frente: "--ds-on-accent", fundo: "--ds-accent" },
   { oQue: "texto do botão primário em hover", frente: "--ds-on-accent", fundo: "--ds-accent-hover" },
+  // Iniciais do avatar na lista de contas e na tabela de usuários: violeta
+  // sobre a superfície secundária, que é um fundo diferente dos verificados
+  // acima e por isso precisa do seu próprio par.
+  { oQue: "iniciais do avatar na superfície secundária", frente: "--ds-accent", fundo: "--ds-surface-2" },
 
   { oQue: "selo de severidade baixa", frente: "--ds-sev-baixa-fg", fundo: "--ds-sev-baixa-bg", sobre: "--ds-surface" },
   { oQue: "selo de severidade média", frente: "--ds-sev-media-fg", fundo: "--ds-sev-media-bg", sobre: "--ds-surface" },

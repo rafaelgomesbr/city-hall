@@ -10,8 +10,8 @@ build) valem lá, não aqui.
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 42 testes passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 15 testes de fonte mais 47 verificações no navegador no modo local e 73 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 123 testes de integração passando |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 16 testes de fonte mais 47 verificações no navegador no modo local e 89 contra a API |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 134 testes de integração passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 43 testes de unidade e 10 de integração contra a API |
 | `apps/campo` | Casca do aplicativo em React Native com Expo | **Escrita, nunca executada.** Ver `apps/campo/LEIA-ME.md` |
 
@@ -432,6 +432,87 @@ real. Ele calcula contraste sobre tokens, não sobre pixels renderizados, então
 não vê texto sobre imagem nem sobreposição acidental. Substitui a lembrança de
 um revisor, que era o que sustentava as regras antes.
 
+## Quem manda em quem
+
+`CLAUDE.md` divide o trabalho por papel, e a tabela de permissões diz o que
+cada um FAZ. Faltava dizer quem manda em quem, e a ausência tinha uma
+consequência concreta: **as listas de `coordenador` e `administrador` eram
+idênticas item por item.** Eram dois nomes para a mesma coisa, ninguém era o
+teto do município, e qualquer um desfazia o que o outro fez.
+
+O posto resolve isso em `packages/shared/src/permissoes.ts`. Número maior manda
+mais, e dele decorre uma regra só: **ninguém administra conta de posto acima do
+seu, nem concede papel de posto acima do seu.**
+
+| Papel | Posto | O que isso significa |
+| --- | --- | --- |
+| Agente de campo | 1 | Registra vistoria. Não administra ninguém. |
+| Operador de plantão | 1 | Registra chamado e responde providência. Não administra ninguém. |
+| Coordenador | 2 | Manda no fluxo operacional inteiro e administra equipes e usuários **abaixo dele**. |
+| Administrador | 3 | Teto do município. Tudo o que o coordenador faz, mais alterar os dados do órgão, e é o único que administra outro administrador. |
+
+O que a regra impede, imposto pelo servidor e não pela tela:
+
+- o coordenador não cria administrador;
+- o coordenador não desativa administrador;
+- o coordenador não se promove a administrador pela edição;
+- **o município não fica sem administrador ativo**, nem por desativação nem por
+  rebaixamento.
+
+A última merece explicação, porque parecia coberta e não estava. Existia a
+regra de não desativar a própria conta, e ela dava a impressão de garantir o
+resto. Não dava: nada impedia o penúltimo administrador de desativar o último.
+O município ficaria sem ninguém capaz de criar usuário, e a única saída seria
+SQL na mão no banco de produção.
+
+### Acima do administrador não existe papel
+
+Um usuário que enxergasse todos os municípios contradiria o isolamento, que é a
+regra número um daqui: bastaria um token vazado para alcançar todas as
+prefeituras de uma vez. Por isso **provisionar município é ato de operador da
+plataforma**, feito pela linha de comando com a credencial de dono do banco, a
+mesma que aplica migração:
+
+```bash
+DATABASE_URL=postgres://... npm run provisionar --   --municipio "Serra Alta" --uf MG   --nome "Rita Lopes" --matricula SA-1 --email rita@serraalta.mg.gov.br
+```
+
+Ele cria a organização e o primeiro administrador, sorteia a senha inicial e a
+imprime uma única vez. Recusa provisionar o mesmo município duas vezes, porque
+o segundo enxergaria zero dados do primeiro e o sintoma seria "o sistema perdeu
+tudo", com tudo intacto do lado errado da parede.
+
+Antes disso não havia porta nenhuma: `organizacoes` só era populada pela
+semente de desenvolvimento ou por INSERT manual. Na prática o poder máximo do
+produto era quem tinha a `DATABASE_URL`, e isso não estava escrito em lugar
+nenhum.
+
+## O agente de campo tem a tela dele
+
+O agente entrava no sistema e caía no painel do coordenador: a fila do
+município inteiro, o mapa da cidade, a tabela de todas as ocorrências. **Nenhuma
+ação disponível**, porque o papel dele não tria, não despacha, não encaminha e
+não encerra. Ele via tudo o que não é da conta dele e nada do que é.
+
+`/meu-trabalho` responde as três perguntas que ele faz, na ordem em que faz:
+
+1. **O que é meu agora?** As ocorrências despachadas para a equipe dele, prazo
+   correndo, mais urgente primeiro.
+2. **O que eu já terminei?** As vistorias que ele assinou, com as duas marcas de
+   tempo, que é onde aparece o que foi coletado sem sinal.
+3. **Quem é a minha equipe?** Nome, especialidade e colegas.
+
+E a tela diz, em destaque, o que seria desastroso deixar implícito: **este
+painel precisa de conexão.** O trabalho sem sinal é o do aplicativo de campo,
+que guarda no aparelho e envia sozinho quando o sinal volta. Um agente que
+descobrisse isso no barranco perderia a vistoria inteira.
+
+O menu dele também mudou: começa em "Meu trabalho" e não oferece painel nem a
+tabela do município, pelo mesmo princípio de menor privilégio do resto do
+sistema. E as telas de administração passaram a recusar pela rota, com uma
+frase que diz o que fazer, em vez de mostrar o formulário inteiro e negar só no
+envio.
+
 ## A superfície da API se defende sozinha
 
 O erro que mais barato custa cometer e mais caro custa descobrir é banal:
@@ -554,9 +635,9 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 242 testes em cinco pacotes
+npm test                    # 261 testes em cinco pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 42 testes
-npm run test:api            # 123 testes da API
+npm run test:api            # 134 testes da API
 npm run test --workspace @dc360/campo   # 43 testes do motor de sincronização
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
@@ -657,7 +738,7 @@ LOG_API=/caminho/do/log-da-api npm run test:e2e:api --workspace @dc360/web
 email: em desenvolvimento o link sai no log do servidor, e é de lá que a suíte
 o lê.
 
-São 73 verificações que só existem neste caminho: entrada por senha, senha
+São 89 verificações que só existem neste caminho: entrada por senha, senha
 errada recusada, token guardado sem a senha nem o hash, isolamento imposto
 pelo servidor (inclusive abrindo a URL de outro município na mão), fluxo
 gravando de verdade, dado criado numa sessão aparecendo em outro navegador,
