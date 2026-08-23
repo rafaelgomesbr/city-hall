@@ -75,6 +75,40 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
         "defina S3_ENDPOINT, S3_BALDE, S3_CHAVE_ID e S3_CHAVE_SECRETA",
       );
     }
+
+    /*
+      Endereço apontando para localhost em produção é a pior categoria de
+      defeito de configuração: silenciosa. O servidor sobe, responde, e só o
+      destinatário descobre, sozinho, que o link não abre.
+
+      URL_PAINEL vira o link de redefinição de senha que chega por email.
+      URL_PUBLICA vira o endereço de onde o aparelho busca a foto de vistoria.
+      Nenhum dos dois tem valor padrão que faça sentido fora da máquina de
+      quem desenvolve, então em produção os dois são obrigatórios e explícitos.
+    */
+    for (const [nome, valor] of [
+      ["URL_PAINEL", c.URL_PAINEL],
+      ["URL_PUBLICA", c.URL_PUBLICA],
+      ["ORIGENS_PERMITIDAS", c.ORIGENS_PERMITIDAS],
+    ] as const) {
+      if (/localhost|127\.0\.0\.1|0\.0\.0\.0/.test(valor)) {
+        throw new Error(
+          `${nome} aponta para a máquina local em produção (${valor}). ` +
+          "Defina o endereço real: um link para localhost chega quebrado a " +
+          "quem recebe, e ninguém percebe pelo lado de cá.",
+        );
+      }
+    }
+
+    // HTTPS não é preferência: token de sessão e foto de vistoria viajam aí.
+    for (const [nome, valor] of [
+      ["URL_PAINEL", c.URL_PAINEL],
+      ["URL_PUBLICA", c.URL_PUBLICA],
+    ] as const) {
+      if (!valor.startsWith("https://")) {
+        throw new Error(`${nome} precisa ser https em produção (${valor})`);
+      }
+    }
   }
 
   // Fora de produção, um segredo efêmero por processo: reiniciar invalida os

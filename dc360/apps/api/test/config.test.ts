@@ -1,0 +1,163 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+import { carregarConfig } from "../src/config.js";
+
+/**
+ * A configuração de produção, verificada.
+ *
+ * O arquivo de config abre dizendo que "um servidor que sobe com chave padrão
+ * é pior que um servidor que não sobe, porque parece funcionar". Estes casos
+ * cobram essa frase, e cobram também o caso que ela não pegava: endereço
+ * apontando para a máquina local.
+ *
+ * Esse é o defeito silencioso do conjunto. O servidor sobe, responde a tudo, e
+ * quem descobre o erro é o destinatário: o link de redefinição de senha que
+ * chega por email apontando para `localhost` simplesmente não abre na casa da
+ * pessoa, e do lado de cá ninguém vê nada acontecer.
+ */
+
+/** O mínimo que faz uma produção válida. Cada caso estraga um pedaço. */
+function producao(sobrescrever: Record<string, string> = {}): NodeJS.ProcessEnv {
+  return {
+    NODE_ENV: "production",
+    DATABASE_URL: "postgres://dc360:senha@banco.interno:5432/dc360",
+    JWT_SEGREDO: "segredo-de-producao-com-mais-de-trinta-e-dois-bytes",
+    ORIGENS_PERMITIDAS: "https://painel.serraalta.mg.gov.br",
+    S3_ENDPOINT: "https://balde.exemplo.com",
+    S3_BALDE: "dc360-evidencias",
+    S3_CHAVE_ID: "chave-de-acesso",
+    S3_CHAVE_SECRETA: "segredo-de-acesso",
+    URL_PUBLICA: "https://api.dc360.exemplo.br",
+    URL_PAINEL: "https://painel.serraalta.mg.gov.br",
+    ...sobrescrever,
+  } as NodeJS.ProcessEnv;
+}
+
+describe("Configuração de produção", () => {
+  it("uma produção bem montada sobe", () => {
+    // Âncora: sem ela, um erro no molde faria todos os outros casos passarem
+    // pelo motivo errado.
+    const c = carregarConfig(producao());
+    expect(c.NODE_ENV).toBe("production");
+    expect(c.origens).toEqual(["https://painel.serraalta.mg.gov.br"]);
+  });
+
+  it("recusa subir sem banco, sem segredo ou sem armazenamento", () => {
+    const semBanco = producao();
+    delete semBanco["DATABASE_URL"];
+    expect(() => carregarConfig(semBanco)).toThrow(/DATABASE_URL/);
+
+    const semSegredo = producao();
+    delete semSegredo["JWT_SEGREDO"];
+    expect(() => carregarConfig(semSegredo)).toThrow(/JWT_SEGREDO/);
+
+    const semBalde = producao();
+    delete semBalde["S3_BALDE"];
+    expect(() => carregarConfig(semBalde)).toThrow(/Armazenamento de evidência/);
+  });
+
+  it("recusa curinga de origem", () => {
+    expect(() => carregarConfig(producao({ ORIGENS_PERMITIDAS: "*" })))
+      .toThrow(/curinga/);
+  });
+
+  it("recusa endereço apontando para a máquina local", () => {
+    /*
+      Três variantes, porque as três aparecem em arquivo de ambiente copiado
+      do desenvolvimento, e as três produzem o mesmo estrago.
+    */
+    expect(() => carregarConfig(producao({ URL_PAINEL: "http://localhost:5173" })))
+      .toThrow(/URL_PAINEL.*máquina local/s);
+    expect(() => carregarConfig(producao({ URL_PUBLICA: "http://127.0.0.1:3333" })))
+      .toThrow(/URL_PUBLICA.*máquina local/s);
+    expect(() => carregarConfig(producao({ ORIGENS_PERMITIDAS: "http://localhost:4173" })))
+      .toThrow(/ORIGENS_PERMITIDAS.*máquina local/s);
+  });
+
+  it("o padrão de desenvolvimento é justamente o que produção recusa", () => {
+    // Esta é a prova de que a checagem não é decorativa: os valores padrão do
+    // esquema apontam para a máquina local, então esquecer de definir os dois
+    // em produção é o caso comum, não o exótico.
+    const padrao = carregarConfig({ NODE_ENV: "development" } as NodeJS.ProcessEnv);
+    expect(padrao.URL_PAINEL).toMatch(/localhost/);
+    expect(padrao.URL_PUBLICA).toMatch(/127\.0\.0\.1/);
+
+    const semEnderecos = producao();
+    delete semEnderecos["URL_PAINEL"];
+    delete semEnderecos["URL_PUBLICA"];
+    expect(() => carregarConfig(semEnderecos)).toThrow(/máquina local/);
+  });
+
+  it("recusa endereço sem https em produção", () => {
+    // Token de sessão e foto de vistoria viajam por esses endereços.
+    expect(() => carregarConfig(producao({ URL_PAINEL: "http://painel.exemplo.gov.br" })))
+      .toThrow(/URL_PAINEL precisa ser https/);
+    expect(() => carregarConfig(producao({ URL_PUBLICA: "http://api.exemplo.br" })))
+      .toThrow(/URL_PUBLICA precisa ser https/);
+  });
+
+  it("desenvolvimento continua subindo sem nada configurado", () => {
+    // A recusa é de produção. Exigir o mesmo em desenvolvimento tornaria o
+    // repositório impossível de rodar recém-clonado, que é o oposto do que
+    // este projeto quer.
+    const c = carregarConfig({} as NodeJS.ProcessEnv);
+    expect(c.NODE_ENV).toBe("development");
+    expect(c.jwtSegredo.length).toBeGreaterThan(31);
+  });
+});
+
+describe("O modelo de ambiente acompanha o esquema", () => {
+  /**
+   * `.env.example` é a única coisa que um operador lê antes de subir isto num
+   * servidor. Variável nova que não aparece lá é variável que ninguém define,
+   * e o efeito varia entre "o padrão serve" e "o link de recuperação de senha
+   * aponta para a máquina de quem programou".
+   *
+   * Manter o arquivo sincronizado à mão dura até a primeira pressa. Aqui a
+   * lista sai do próprio esquema.
+   */
+  const AQUI = dirname(fileURLToPath(import.meta.url));
+
+  function variaveisDoEsquema(): string[] {
+    const fonte = readFileSync(join(AQUI, "..", "src", "config.ts"), "utf8");
+    const bloco = fonte.slice(fonte.indexOf("const esquema"), fonte.indexOf("export type Config"));
+    return [...bloco.matchAll(/^\s{2}([A-Z][A-Z0-9_]+):/gm)].map((m) => m[1]!);
+  }
+
+  it("a leitura do esquema encontra as variáveis", () => {
+    // Âncora: um erro na expressão faria o teste passar com lista vazia.
+    const nomes = variaveisDoEsquema();
+    expect(nomes.length).toBeGreaterThan(12);
+    expect(nomes).toContain("JWT_SEGREDO");
+    expect(nomes).toContain("S3_BALDE");
+  });
+
+  it("toda variável do esquema aparece no .env.example", () => {
+    const modelo = readFileSync(join(AQUI, "..", ".env.example"), "utf8");
+    const faltando = variaveisDoEsquema().filter((v) => !modelo.includes(v));
+    expect(
+      faltando,
+      "variável nova sem linha no .env.example: quem for subir isto num " +
+      "servidor não vai saber que ela existe",
+    ).toEqual([]);
+  });
+
+  it("o modelo não traz segredo preenchido", () => {
+    /*
+      Modelo com valor real vira credencial commitada. As linhas de segredo
+      ficam comentadas e vazias de propósito, e este caso impede que alguém
+      "ajude" preenchendo.
+    */
+    const modelo = readFileSync(join(AQUI, "..", ".env.example"), "utf8");
+    for (const linha of modelo.split("\n")) {
+      const limpa = linha.trim();
+      if (limpa.startsWith("#") || !limpa.includes("=")) continue;
+      const [nome, valor] = limpa.split("=", 2) as [string, string];
+      if (/SEGREDO|SECRETA|CHAVE_ID|DATABASE_URL/.test(nome)) {
+        expect(valor.trim(), `${nome} preenchido no modelo`).toBe("");
+      }
+    }
+  });
+});

@@ -11,7 +11,7 @@ build) valem lá, não aqui.
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 42 testes passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 16 testes de fonte mais 47 verificações no navegador no modo local e 104 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 137 testes de integração passando |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 147 testes de integração passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 43 testes de unidade e 10 de integração contra a API |
 | `apps/campo` | Casca do aplicativo em React Native com Expo | **Escrita, nunca executada.** Ver `apps/campo/LEIA-ME.md` |
 
@@ -590,6 +590,34 @@ modo API, basta reiniciar o servidor: o banco efêmero nasce semeado de novo.
 
 ## Implantação
 
+### O primeiro município, do zero
+
+Na ordem, e nenhum passo é opcional:
+
+```bash
+# 1. Ambiente. O modelo lista tudo, diz o que é obrigatório em produção e por quê.
+cp apps/api/.env.example apps/api/.env && $EDITOR apps/api/.env
+
+# 2. Esquema.
+DATABASE_URL=postgres://... npm run migrar
+
+# 3. O município e o primeiro administrador. Anote a senha que ele imprime:
+#    ela não é guardada em texto claro e não aparece de novo.
+DATABASE_URL=postgres://... npm run provisionar --   --municipio "Serra Alta" --uf MG   --nome "Rita Lopes" --matricula SA-1 --email rita@serraalta.mg.gov.br
+
+# 4. Suba a API e o painel.
+```
+
+O que a pessoa faz na primeira entrada, e é o passo que se esquece: abrir
+**Minha conta**, pelo nome dela no topo do painel, e trocar a senha ditada por
+telefone. A troca derruba as outras sessões e não depende de email, que é o
+que ainda não existe.
+
+A partir daí o administrador cria o resto do município pela tela de usuários.
+Ele é o teto: ninguém acima dele existe como papel, e provisionar outro
+município é de novo linha de comando, com a credencial de dono do banco. Ver
+"Quem manda em quem".
+
 ### Aplicar migrações
 
 ```bash
@@ -635,9 +663,9 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 272 testes em cinco pacotes
+npm test                    # 282 testes em cinco pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 42 testes
-npm run test:api            # 137 testes da API
+npm run test:api            # 147 testes da API
 npm run test --workspace @dc360/campo   # 43 testes do motor de sincronização
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
