@@ -695,32 +695,37 @@ ok("a correcao aparece na tabela",
 console.log("\n== 21. Trocar equipe depois de despachar ==");
 await page.goto(`${BASE}/ocorrencias?status=em_campo`, { waitUntil: "networkidle" });
 await page.waitForTimeout(1200);
+/*
+  Sem `if` em volta das verificações, de propósito. Checagem dentro de
+  condicional às vezes não roda, e um portão que às vezes não roda ensina a
+  ignorar o verde. A semente sempre tem ocorrência em campo; se um dia não
+  tiver, é aqui que se descobre.
+*/
 const emCampo = page.locator("tbody tr .tabela__protocolo").first();
-if (await emCampo.count()) {
-  await emCampo.click();
-  await page.waitForSelector(".cabecalho-pagina h1", { timeout: 20_000 });
-  /*
-    Pelo título, e não contando cartões: `hasText` casa qualquer ancestral que
-    contenha o texto, então a contagem oscilava entre execuções. Portão que
-    falha às vezes é pior que portão nenhum, porque ensina a ignorar vermelho.
-  */
-  const trocar = page.getByRole("heading", { name: "Trocar equipe ou prazo" });
-  ok("ocorrencia ja em campo oferece trocar equipe ou prazo",
-     (await trocar.count()) >= 1, `(${await trocar.count()})`);
-  if (await trocar.count()) {
-    await page.locator("#despacho-prazo").fill("8");
-    await page.getByRole("button", { name: "Salvar troca" }).click();
-    await page.waitForSelector(".aviso--sucesso", { timeout: 20_000 });
-    ok("a troca confirma que ficou registrada",
-       ((await page.textContent(".aviso--sucesso")) ?? "").includes("trilha"));
-    const eventos = await page.locator(".linha-tempo__item, .linha-tempo li, .trilha__item").allTextContents();
-    ok("e a trilha guarda os dois despachos",
-       eventos.filter((t) => /despach/i.test(t)).length >= 2,
-       `(${eventos.filter((t) => /despach/i.test(t)).length})`);
-  }
-} else {
-  ok("havia ocorrencia em campo para trocar a equipe", false, "(nenhuma na lista)");
-}
+ok("a semente tem ocorrencia em campo para trocar a equipe",
+   (await emCampo.count()) === 1);
+await emCampo.click();
+await page.waitForSelector(".cabecalho-pagina h1", { timeout: 20_000 });
+
+/*
+  Pelo título, e não contando cartões: `hasText` casa qualquer ancestral que
+  contenha o texto, então a contagem oscilava entre execuções.
+*/
+const trocar = page.getByRole("heading", { name: "Trocar equipe ou prazo" });
+ok("ocorrencia ja em campo oferece trocar equipe ou prazo",
+   (await trocar.count()) >= 1, `(${await trocar.count()})`);
+
+await page.locator("#despacho-prazo").fill("8");
+await page.getByRole("button", { name: "Salvar troca" }).click();
+await page.waitForSelector(".aviso--sucesso", { timeout: 20_000 });
+ok("a troca confirma que ficou registrada",
+   ((await page.textContent(".aviso--sucesso")) ?? "").includes("trilha"));
+
+const eventosDespacho = await page
+  .locator(".linha-tempo__item, .linha-tempo li, .trilha__item").allTextContents();
+ok("e a trilha guarda os dois despachos",
+   eventosDespacho.filter((t) => /despach/i.test(t)).length >= 2,
+   `(${eventosDespacho.filter((t) => /despach/i.test(t)).length})`);
 
 console.log("\n== 22. Minha conta e troca de senha ==");
 await page.goto(`${BASE}/painel`, { waitUntil: "networkidle" });
