@@ -12,8 +12,8 @@ build) valem lá, não aqui.
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 42 testes passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 16 testes de fonte mais 47 verificações no navegador no modo local e 103 contra a API |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 147 testes de integração passando |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 43 testes de unidade e 10 de integração contra a API |
-| `apps/campo` | Casca do aplicativo em React Native com Expo | **Escrita, nunca executada.** Ver `apps/campo/LEIA-ME.md` |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 46 testes de unidade e 10 de integração contra a API |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Completo em código, **nunca rodou em aparelho**. TypeScript limpo, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 
 ## Os dois modos do painel
 
@@ -663,10 +663,10 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 282 testes em cinco pacotes
+npm test                    # 290 testes em cinco pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 42 testes
 npm run test:api            # 147 testes da API
-npm run test --workspace @dc360/campo   # 43 testes do motor de sincronização
+npm run test --workspace @dc360/campo   # 46 testes do motor de sincronização
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
 ```
@@ -884,13 +884,25 @@ dois motores. Na máquina, o mesmo se pede com `npm run verificar` e
 
 ## O que falta, e por quê
 
-- **Rodar o aplicativo de campo num aparelho.** O motor está testado, o
-  adaptador de SQLite também, e a ligação entre eles está escrita em
-  `apps/campo/src/dados/fila.ts`. O que falta é o que só existe no celular:
-  câmera, assinatura no dedo, GPS, e a prova de que o `expo-sqlite` guarda o
-  que promete quando o sistema mata o processo. `apps/campo` fica **fora do
-  `workspaces`** de propósito: instalar o Expo traria mais de mil pacotes para
-  dentro de um repositório cujo `npm audit` fecha em zero hoje.
+- **Rodar o aplicativo de campo num aparelho.** Ele está inteiro: telas,
+  coleta offline, câmera, GPS, assinatura no dedo, fila de envio, ícones e a
+<!-- numeros: nao sao contagem -->
+  configuração das duas lojas. Compila, passa nas 21 verificações do
+  `expo-doctor` e fecha o `npm audit` em zero. O que falta é o que só o
+  aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
+  verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
+
+  Essa última já tem 46 testes cobrindo a lógica fora do celular, inclusive
+  retomada arquivo a arquivo.
+  `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
+  seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e
+  desacopla o `npm audit` do produto do ciclo do React Native. Ele tem o
+  próprio lockfile e a própria auditoria, que também fecha em zero.
+- **Conta de desenvolvedor nas lojas.** `apps/campo/LOJAS.md` cobre Play
+  Console e App Store Connect passo a passo, com os textos da ficha prontos e
+  o formulário de segurança de dados respondido linha a linha. Dois itens têm
+  prazo longo e independem de código: a verificação de identidade da
+  organização na Google e o número D-U-N-S exigido pela Apple.
 - **Conta no provedor de armazenamento.** O código está pronto e testado
   contra o vetor oficial da AWS, mas nunca falou com um R2 ou S3 de verdade:
   isso só se comprova com credencial em mão.

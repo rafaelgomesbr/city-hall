@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import {
-  ROTULO_CANAL, ROTULO_SEVERIDADE, ROTULO_TIPO_COBRADE,
+  ROTULO_CANAL, ROTULO_CHECKLIST, ROTULO_SEVERIDADE, ROTULO_TIPO_COBRADE,
   type CanalEntrada, type Severidade, type TipoCobrade,
 } from "@dc360/shared";
 import { assinatura, campo, escapar, formatarDataHora, montarFolha } from "./folha.js";
@@ -64,15 +64,6 @@ export type DadosDocumento = {
   emitidoEm: Date;
   /** Marca d'água. Vazio em ambiente definitivo. */
   marcaDagua?: string;
-};
-
-const ROTULO_CHECKLIST: Record<string, string> = {
-  risco_iminente: "Risco iminente identificado",
-  evacuacao_necessaria: "Evacuação necessária",
-  interdicao_indicada: "Interdição indicada",
-  acionar_outro_orgao: "Necessário acionar outro órgão",
-  danos_estruturais: "Danos estruturais visíveis",
-  acesso_comprometido: "Acesso ao imóvel comprometido",
 };
 
 /**

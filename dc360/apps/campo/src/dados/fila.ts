@@ -1,5 +1,5 @@
 import * as SQLite from "expo-sqlite";
-import * as FileSystem from "expo-file-system";
+import { File } from "expo-file-system";
 import {
   criarFilaDeSincronizacao,
   depositoSobreChaveValor,
@@ -18,22 +18,23 @@ import {
  * bloquear vive em `packages/campo`, com 43 testes rodando fora do celular.
  * Aqui só se conectam os fios.
  *
- * ATENÇÃO: este arquivo NUNCA FOI EXECUTADO. Ver `apps/campo/LEIA-ME.md`.
+ * ATENÇÃO: nunca foi executado em aparelho. Ver `apps/campo/LEIA-ME.md`.
  */
 
 let fila: FilaDeSincronizacao | null = null;
 
-/** Leitura dos bytes da foto, a partir do caminho que a câmera devolveu. */
+/**
+ * Leitura dos bytes da foto, a partir do caminho que a câmera devolveu.
+ *
+ * `bytes()` da API nova do `expo-file-system` devolve o binário direto. A
+ * versão anterior deste arquivo lia em base64 e decodificava à mão com
+ * `atob`, o que gastava memória três vezes (arquivo, string base64, array) e
+ * era exatamente o tipo de coisa que derruba aparelho de entrada numa foto de
+ * doze megapixels.
+ */
 const arquivos: Arquivos = {
   async ler(uriLocal: string): Promise<Uint8Array> {
-    const base64 = await FileSystem.readAsStringAsync(uriLocal, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    // `Buffer` não existe em React Native sem polyfill; `atob` existe.
-    const binario = globalThis.atob(base64);
-    const bytes = new Uint8Array(binario.length);
-    for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
-    return bytes;
+    return new File(uriLocal).bytes();
   },
 };
 

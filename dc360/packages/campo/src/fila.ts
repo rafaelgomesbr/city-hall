@@ -105,7 +105,19 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
    */
   async function enfileirar(
     envelope: EnvelopeSincronizacao,
-    dados: { protocolo: string; fotos?: FotoLocal[] },
+    dados: {
+      protocolo: string;
+      fotos?: FotoLocal[];
+      /**
+       * O traço que a pessoa fez com o dedo, se houver.
+       *
+       * Sobe junto com as fotos e pelo mesmo caminho, porque idempotência,
+       * retomada e URL assinada já estão resolvidas ali e uma segunda
+       * implementação seria a que ninguém testa. O que muda é só onde o
+       * envelope guarda a chave depois.
+       */
+      assinatura?: FotoLocal;
+    },
   ): Promise<ItemFila> {
     const existente = (await deposito.listar()).find((i) => i.id === envelope.idempotencyKey);
     if (existente) return existente;
@@ -122,9 +134,18 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       liberadoEm: instante,
       ultimoErro: null,
       confirmadoEm: null,
-      fotos: (dados.fotos ?? []).map((f): FotoNaFila => ({
-        ...f, chave: null, evidenciaId: null, enviada: false,
-      })),
+      fotos: [
+        ...(dados.fotos ?? []).map((f): FotoNaFila => ({
+          ...f, papel: "foto", chave: null, evidenciaId: null, enviada: false,
+        })),
+        ...(dados.assinatura
+          ? [{
+              ...dados.assinatura,
+              papel: "assinatura" as const,
+              chave: null, evidenciaId: null, enviada: false,
+            }]
+          : []),
+      ],
     };
     await deposito.salvar(item);
     await avisar();
@@ -298,16 +319,26 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       await deposito.salvar({ ...item, fotos: atualizadas, estado: "enviando" });
     }
 
+    /*
+      O envelope é remontado a partir do que o servidor devolveu, e não do que
+      o aparelho achava. A assinatura sai da lista de fotos e vai para o campo
+      dela: no laudo, uma é o registro fotográfico e a outra é o traço acima
+      da linha de assinatura.
+    */
+    const assinatura = atualizadas.find((f) => f.papel === "assinatura");
     const envelope: EnvelopeSincronizacao = {
       ...item.envelope,
       vistoria: {
         ...item.envelope.vistoria,
-        fotos: atualizadas.map((f) => ({
-          chave: f.chave!,
-          capturadaEm: f.capturadaEm,
-          ...(f.legenda ? { legenda: f.legenda } : {}),
-          ...(f.coordenada ? { coordenada: f.coordenada } : {}),
-        })),
+        assinaturaChave: assinatura?.chave ?? item.envelope.vistoria.assinaturaChave,
+        fotos: atualizadas
+          .filter((f) => f.papel !== "assinatura")
+          .map((f) => ({
+            chave: f.chave!,
+            capturadaEm: f.capturadaEm,
+            ...(f.legenda ? { legenda: f.legenda } : {}),
+            ...(f.coordenada ? { coordenada: f.coordenada } : {}),
+          })),
       },
     };
 

@@ -15,11 +15,33 @@ import type { ChaveValor } from "./deposito.js";
  * injeta um banco falso e confere o SQL emitido e o comportamento, o que é
  * exatamente a parte que dá para verificar fora do celular.
  */
+/*
+  Os parâmetros são OBRIGATÓRIOS nas três consultas, mesmo quando vazios.
+
+  Não é preciosismo de tipo: o `expo-sqlite` declara duas sobrecargas, uma que
+  recebe um array e outra variádica, e nenhuma das duas aceita `undefined`. Com
+  o parâmetro opcional aqui, o `SQLiteDatabase` do aparelho deixava de ser
+  atribuível a esta porta, e o aplicativo não compilava. Exigir o array vazio
+  custa quatro caracteres na chamada e faz os dois lados se encaixarem.
+
+  Mutável, e não `readonly`, pela mesma razão: o tipo do `expo-sqlite` recebe
+  array mutável, e uma porta mais restritiva que a implementação real não
+  protege nada, só impede o encaixe.
+*/
+/**
+ * O que o SQLite aceita como parâmetro, e nada além disso.
+ *
+ * Era `unknown`, o que parecia generoso e não era: `unknown` não se encaixa no
+ * tipo do `expo-sqlite`, e além disso descrevia mal a realidade. Objeto não se
+ * grava em coluna de SQLite; ou vira texto antes, ou não entra.
+ */
+export type ValorSqlite = string | number | boolean | null | Uint8Array;
+
 export type BancoSqlite = {
   execAsync(sql: string): Promise<unknown>;
-  runAsync(sql: string, params?: readonly unknown[]): Promise<unknown>;
-  getAllAsync<T>(sql: string, params?: readonly unknown[]): Promise<T[]>;
-  getFirstAsync<T>(sql: string, params?: readonly unknown[]): Promise<T | null>;
+  runAsync(sql: string, params: ValorSqlite[]): Promise<unknown>;
+  getAllAsync<T>(sql: string, params: ValorSqlite[]): Promise<T[]>;
+  getFirstAsync<T>(sql: string, params: ValorSqlite[]): Promise<T | null>;
 };
 
 const TABELA = "fila_sincronizacao";
@@ -75,6 +97,7 @@ export function lojaSqlite(db: BancoSqlite): ChaveValor {
         // Ordem estável: sem ela, a fila poderia mudar de ordem entre
         // aberturas do aplicativo, e a ordem de coleta é a ordem do laudo.
         `SELECT chave FROM ${TABELA} ORDER BY atualizado_em, chave`,
+        [],
       );
       return linhas.map((l) => l.chave);
     },

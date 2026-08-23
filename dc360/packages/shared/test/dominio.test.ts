@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { dirname, join, relative, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
+  CHECKLIST_OBRIGATORIO, CHECKLIST_VISTORIA, ROTULO_CHECKLIST,
   STATUS_INICIAL, STATUS_OCORRENCIA, STATUS_RESERVADOS, TRANSICOES_PERMITIDAS,
   ocorrenciaAtiva, transicaoPermitida, type StatusOcorrencia,
 } from "../src/index.js";
@@ -109,5 +113,90 @@ describe("Máquina de estados da ocorrência", () => {
     expect(chegam.has("em_campo")).toBe(true);
     expect(chegam.has("providencia_pendente")).toBe(true);
     expect(chegam.size).toBeGreaterThan(4);
+  });
+});
+
+describe("Checklist da vistoria", () => {
+  /**
+   * O defeito que originou este bloco: o checklist estava definido duas vezes,
+   * e as duas cópias tinham listas diferentes. O gerador de documento conhecia
+   * seis itens e o painel conhecia quatro. Uma vistoria com
+   * `danos_estruturais` saía por extenso no laudo e como chave crua na tela do
+   * coordenador: mesmo dado, dois documentos.
+   */
+
+  it("todo item tem chave, rótulo e obrigatoriedade declarada", () => {
+    expect(CHECKLIST_VISTORIA.length).toBeGreaterThan(3);
+    for (const item of CHECKLIST_VISTORIA) {
+      expect(item.chave, JSON.stringify(item)).toMatch(/^[a-z_]+$/);
+      expect(item.rotulo.length, item.chave).toBeGreaterThan(5);
+      expect(typeof item.obrigatorio, item.chave).toBe("boolean");
+    }
+  });
+
+  it("nenhuma chave repetida", () => {
+    // Chave repetida com rótulo diferente faria a resposta do agente aparecer
+    // de um jeito no aparelho e de outro no laudo.
+    const chaves = CHECKLIST_VISTORIA.map((i) => i.chave);
+    expect(new Set(chaves).size).toBe(chaves.length);
+  });
+
+  it("os rótulos cobrem todas as chaves", () => {
+    for (const item of CHECKLIST_VISTORIA) {
+      expect(ROTULO_CHECKLIST[item.chave], item.chave).toBe(item.rotulo);
+    }
+  });
+
+  it("existe pelo menos um item obrigatório, e nem todos são", () => {
+    /*
+      Nenhum obrigatório permitiria concluir vistoria em branco. Todos
+      obrigatórios ensinaria a marcar qualquer coisa em item que não se aplica,
+      só para o botão liberar, e a resposta viraria ruído no laudo.
+    */
+    expect(CHECKLIST_OBRIGATORIO.length).toBeGreaterThan(0);
+    expect(CHECKLIST_OBRIGATORIO.length).toBeLessThan(CHECKLIST_VISTORIA.length);
+  });
+
+  it("ninguém redefine o checklist fora do pacote compartilhado", () => {
+    /*
+      Este é o caso que impede a divergência de voltar. Ele varre o código do
+      produto atrás de outra tabela de rótulos de checklist, e reprova se
+      encontrar: a definição é uma só, e quem precisa dela importa.
+    */
+    const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+    const IGNORADAS = new Set(["node_modules", "dist", ".git", "coverage"]);
+
+    function fontes(pasta: string): string[] {
+      const achados: string[] = [];
+      for (const nome of readdirSync(pasta)) {
+        if (IGNORADAS.has(nome)) continue;
+        const caminho = join(pasta, nome);
+        if (statSync(caminho).isDirectory()) achados.push(...fontes(caminho));
+        else if (/\.(ts|tsx)$/.test(nome)) achados.push(caminho);
+      }
+      return achados;
+    }
+
+    const arquivos = fontes(RAIZ);
+    expect(arquivos.length, "âncora: a varredura precisa achar arquivos").toBeGreaterThan(20);
+
+    const culpados: string[] = [];
+    for (const caminho of arquivos) {
+      const relativo = relative(RAIZ, caminho).split(sep).join("/");
+      // O próprio dominio.ts é onde a definição mora, e este teste a cita.
+      if (relativo.endsWith("src/dominio.ts")) continue;
+      if (relativo.endsWith("test/dominio.test.ts")) continue;
+
+      const fonte = readFileSync(caminho, "utf8");
+      // Uma tabela que mapeia a chave de um item para um texto é a assinatura
+      // da cópia. Importar e usar o rótulo não casa com isto.
+      if (/(risco_iminente|evacuacao_necessaria|interdicao_indicada)\s*:\s*"/.test(fonte)) {
+        culpados.push(relativo);
+      }
+    }
+    expect(
+      culpados,
+      "checklist redefinido fora do pacote compartilhado: importe ROTULO_CHECKLIST",
+    ).toEqual([]);
   });
 });

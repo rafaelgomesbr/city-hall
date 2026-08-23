@@ -901,3 +901,140 @@ describe("Fotos da coleta", () => {
     expect((await fila.itens())[0]!.ultimoErro).toContain("acesso aos arquivos");
   });
 });
+
+describe("Assinatura de quem estava no local", () => {
+  /**
+   * A assinatura sobe pelo mesmo caminho das fotos, e o envelope precisa
+   * separá-la delas.
+   *
+   * Sem essa separação, o traço que a moradora fez com o dedo entraria no
+   * laudo como mais uma foto do registro fotográfico, e o campo de assinatura,
+   * que é o que sustenta um termo de interdição quando alguém contesta,
+   * ficaria vazio.
+   */
+
+  const arquivos: Arquivos = { ler: async () => new Uint8Array([1, 2, 3]) };
+
+  function fotoLocal(id: string, nome: string, ordem: number): FotoLocal {
+    return {
+      idempotencyKey: id,
+      uriLocal: `file:///${nome}`,
+      nomeArquivo: nome,
+      tipoConteudo: nome.endsWith(".png") ? "image/png" : "image/jpeg",
+      tamanhoBytes: 3,
+      capturadaEm: MOMENTO.toISOString(),
+      ordem,
+    };
+  }
+
+  it("sobe junto com as fotos e vai para o campo dela no envelope", async () => {
+    const enviados: EnvelopeSincronizacao[] = [];
+    const autorizadas: string[] = [];
+
+    const { fila } = montar({
+      autorizarFoto: async ({ foto }) => {
+        autorizadas.push(foto.nomeArquivo);
+        return {
+          evidenciaId: `e-${foto.idempotencyKey}`,
+          chave: `tenant/org/${foto.nomeArquivo}`,
+          url: "https://balde.exemplo/put",
+          cabecalhos: {},
+          jaEnviada: false,
+        };
+      },
+      enviarBytes: async () => undefined,
+      confirmarFoto: async () => undefined,
+      enviar: async (e) => { enviados.push(e); return { vistoriaId: "v1", duplicada: false }; },
+    }, { arquivos });
+
+    await fila.enfileirar(envelope(CHAVE_A), {
+      protocolo: "000100/2026",
+      fotos: [fotoLocal("f1", "trinca.jpg", 0), fotoLocal("f2", "talude.jpg", 1)],
+      assinatura: fotoLocal("as", "assinatura.png", 2),
+    });
+    await fila.drenar();
+
+    // As três subiram pelo mesmo caminho, com a mesma idempotência.
+    expect(autorizadas.sort()).toEqual(["assinatura.png", "talude.jpg", "trinca.jpg"]);
+
+    const enviado = enviados[0]!;
+    // Mas o envelope separa: duas fotos no registro fotográfico...
+    expect(enviado.vistoria.fotos.map((f) => f.chave)).toEqual([
+      "tenant/org/trinca.jpg",
+      "tenant/org/talude.jpg",
+    ]);
+    // ...e a assinatura no campo de assinatura.
+    expect(enviado.vistoria.assinaturaChave).toBe("tenant/org/assinatura.png");
+  });
+
+  it("sem assinatura, o campo continua sendo o que a coleta declarou", async () => {
+    // Coleta sem traço é situação normal: o morador pode se recusar a assinar,
+    // e o agente registra isso no laudo. O envelope não pode inventar chave.
+    const enviados: EnvelopeSincronizacao[] = [];
+    const { fila } = montar({
+      autorizarFoto: async ({ foto }) => ({
+        evidenciaId: "e1", chave: `tenant/org/${foto.nomeArquivo}`,
+        url: "https://balde.exemplo/put", cabecalhos: {}, jaEnviada: false,
+      }),
+      enviarBytes: async () => undefined,
+      confirmarFoto: async () => undefined,
+      enviar: async (e) => { enviados.push(e); return { vistoriaId: "v1", duplicada: false }; },
+    }, { arquivos });
+
+    await fila.enfileirar(envelope(CHAVE_B), {
+      protocolo: "000101/2026",
+      fotos: [fotoLocal("f1", "trinca.jpg", 0)],
+    });
+    await fila.drenar();
+
+    expect(enviados[0]!.vistoria.fotos).toHaveLength(1);
+    expect(enviados[0]!.vistoria.assinaturaChave).toBe("assinatura.png");
+  });
+
+  it("o envio da assinatura retoma de onde parou, como o das fotos", async () => {
+    /*
+      O cenário: as duas fotos sobem, o sinal cai antes da assinatura. Na
+      próxima tentativa, só a assinatura pode subir de novo. Reenviar as fotos
+      gastaria a franquia de dados do agente, e num plano de prefeitura isso
+      acaba antes do fim do mês.
+    */
+    let falhar = true;
+    const autorizadas: string[] = [];
+
+    const { fila, tempo } = montar({
+      autorizarFoto: async ({ foto }) => {
+        if (falhar && foto.nomeArquivo === "assinatura.png") {
+          throw new FalhaTemporaria("sinal caiu antes da assinatura");
+        }
+        autorizadas.push(foto.nomeArquivo);
+        return {
+          evidenciaId: `e-${foto.idempotencyKey}`,
+          chave: `tenant/org/${foto.nomeArquivo}`,
+          url: "https://balde.exemplo/put", cabecalhos: {}, jaEnviada: false,
+        };
+      },
+      enviarBytes: async () => undefined,
+      confirmarFoto: async () => undefined,
+      enviar: async () => ({ vistoriaId: "v1", duplicada: false }),
+    }, { arquivos });
+
+    await fila.enfileirar(envelope(CHAVE_C), {
+      protocolo: "000102/2026",
+      fotos: [fotoLocal("f1", "trinca.jpg", 0), fotoLocal("f2", "talude.jpg", 1)],
+      assinatura: fotoLocal("as", "assinatura.png", 2),
+    });
+
+    await fila.drenar();
+    expect(autorizadas).toEqual(["trinca.jpg", "talude.jpg"]);
+
+    falhar = false;
+    autorizadas.length = 0;
+    // O item ficou adiado com espera crescente. Avançar o relógio é o que
+    // permite testar a retomada sem esperar de verdade.
+    tempo.avancar(10 * 60_000);
+    await fila.drenar();
+
+    // Só a assinatura foi pedida de novo. As duas fotos já tinham chave.
+    expect(autorizadas).toEqual(["assinatura.png"]);
+  });
+});

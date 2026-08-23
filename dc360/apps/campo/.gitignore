@@ -1,0 +1,23 @@
+# Dependências e artefatos de build do aplicativo.
+node_modules/
+.expo/
+dist/
+web-build/
+
+# Credenciais de publicação. NUNCA versionar.
+#
+# A chave de conta de serviço do Play Console dá poder de publicar em nome da
+# organização, e a da Apple, de assinar binário. Commitar qualquer uma delas
+# significa rotacionar as duas contas.
+segredos/
+*.keystore
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+
+# Ambiente local.
+.env
+.env.local

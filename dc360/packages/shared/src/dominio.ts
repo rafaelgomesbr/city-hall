@@ -158,3 +158,39 @@ export const ROTULO_CANAL: Record<CanalEntrada, string> = {
   oficio: "Ofício de secretaria",
   outro: "Outro",
 };
+
+/* ==========================================================================
+   Checklist da vistoria de campo
+   ========================================================================== */
+
+/**
+ * Os itens que o agente responde no local, e a única definição deles.
+ *
+ * Antes existiam duas: o gerador de documento conhecia seis itens e o painel
+ * conhecia quatro. Uma vistoria com `danos_estruturais` saía escrita por
+ * extenso no laudo e como `danos_estruturais`, chave crua, na tela do
+ * coordenador. Mesmo dado, dois documentos diferentes, e o aplicativo de campo
+ * ia herdar uma terceira cópia.
+ *
+ * `obrigatorio` governa o aparelho: sem esses itens respondidos, a vistoria não
+ * pode ser concluída. Os opcionais existem porque nem toda ocorrência os
+ * envolve, e obrigar resposta em item que não se aplica ensina a pessoa a
+ * marcar qualquer coisa para o botão liberar.
+ */
+export const CHECKLIST_VISTORIA = [
+  { chave: "risco_iminente", rotulo: "Risco iminente identificado", obrigatorio: true },
+  { chave: "evacuacao_necessaria", rotulo: "Evacuação necessária", obrigatorio: true },
+  { chave: "interdicao_indicada", rotulo: "Interdição indicada", obrigatorio: true },
+  { chave: "acionar_outro_orgao", rotulo: "Necessário acionar outro órgão", obrigatorio: true },
+  { chave: "danos_estruturais", rotulo: "Danos estruturais visíveis", obrigatorio: false },
+  { chave: "acesso_comprometido", rotulo: "Acesso ao imóvel comprometido", obrigatorio: false },
+] as const;
+
+export type ChaveChecklist = (typeof CHECKLIST_VISTORIA)[number]["chave"];
+
+export const ROTULO_CHECKLIST: Record<string, string> = Object.fromEntries(
+  CHECKLIST_VISTORIA.map((i) => [i.chave, i.rotulo]),
+);
+
+/** Os que o aparelho exige antes de liberar a conclusão da vistoria. */
+export const CHECKLIST_OBRIGATORIO = CHECKLIST_VISTORIA.filter((i) => i.obrigatorio);

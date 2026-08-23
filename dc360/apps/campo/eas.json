@@ -1,0 +1,44 @@
+{
+  "cli": { "version": ">= 5.0.0", "appVersionSource": "remote" },
+  "build": {
+    "base": {
+      "node": "22.17.0",
+      "env": { "DC360_API_URL": "http://localhost:3333" }
+    },
+    "desenvolvimento": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "desenvolvimento"
+    },
+    "homologacao": {
+      "extends": "base",
+      "distribution": "internal",
+      "channel": "homologacao",
+      "android": { "buildType": "apk" },
+      "env": { "DC360_API_URL": "https://api-homologacao.exemplo.gov.br" }
+    },
+    "producao": {
+      "extends": "base",
+      "distribution": "store",
+      "channel": "producao",
+      "autoIncrement": true,
+      "android": { "buildType": "app-bundle" },
+      "env": { "DC360_API_URL": "https://api.exemplo.gov.br" }
+    }
+  },
+  "submit": {
+    "producao": {
+      "android": {
+        "serviceAccountKeyPath": "./segredos/play-console.json",
+        "track": "internal",
+        "releaseStatus": "draft"
+      },
+      "ios": {
+        "appleId": "PREENCHER: email da conta Apple Developer",
+        "ascAppId": "PREENCHER: App Store Connect App ID",
+        "appleTeamId": "PREENCHER: Team ID"
+      }
+    }
+  }
+}

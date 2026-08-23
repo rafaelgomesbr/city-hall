@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  PRAZO_PADRAO_HORAS, ROTULO_CANAL, ROTULO_PAPEL, ROTULO_SEVERIDADE,
+  PRAZO_PADRAO_HORAS, ROTULO_CANAL, ROTULO_CHECKLIST, ROTULO_PAPEL, ROTULO_SEVERIDADE,
   ROTULO_TIPO_COBRADE, SEVERIDADES, podeExecutar,
   DESFECHOS_PROVIDENCIA, ROTULO_DESFECHO, respostaProvidenciaSchema,
   type DesfechoProvidencia,
@@ -21,13 +21,6 @@ import {
   Aviso, Carregando, Cartao, ErroCampo, Prazo, SeloSeveridade, SeloStatus, formatarDataHora,
 } from "../componentes/comuns";
 import { IconeDocumento, IconeEvento, IconeVoltar } from "../componentes/Icones";
-
-const ROTULO_CHECKLIST: Record<string, string> = {
-  risco_iminente: "Risco iminente identificado",
-  evacuacao_necessaria: "Evacuação necessária",
-  interdicao_indicada: "Interdição indicada",
-  acionar_outro_orgao: "Necessário acionar outro órgão",
-};
 
 const ORGAOS = [
   "Secretaria de Obras",

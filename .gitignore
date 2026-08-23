@@ -4,3 +4,6 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Credenciais de publicacao do aplicativo de campo.
+dc360/apps/campo/segredos/

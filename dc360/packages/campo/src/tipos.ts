@@ -41,7 +41,18 @@ export type FotoLocal = {
   ordem: number;
 };
 
+/**
+ * Papel do arquivo dentro da coleta.
+ *
+ * A assinatura sobe pelo mesmo caminho das fotos, com a mesma idempotência e
+ * a mesma retomada, mas o envelope a referencia noutro campo. Sem esta marca,
+ * a assinatura da moradora entraria no laudo como "Foto 5" do registro
+ * fotográfico, e o campo de assinatura ficaria vazio.
+ */
+export type PapelDoArquivo = "foto" | "assinatura";
+
 export type FotoNaFila = FotoLocal & {
+  papel: PapelDoArquivo;
   /** Devolvida pelo servidor na autorização. O cliente nunca a escolhe. */
   chave: string | null;
   evidenciaId: string | null;
