@@ -109,6 +109,8 @@ const ESTILO = `
   .foto .legenda { font-size: 9pt; color: var(--tinta-fraca); margin-top: 4px; }
   .assinaturas { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 26px; }
   .assinatura { text-align: center; break-inside: avoid; }
+  /* Altura fixa para o bloco não pular quando um lado tem traço e o outro não. */
+  .assinatura .traco { display: block; height: 46px; margin: 0 auto -2px; max-width: 100%; }
   .assinatura .linha { border-top: 1px solid var(--tinta); margin-bottom: 5px; }
   .assinatura .nome { font-size: 11pt; font-weight: 600; }
   .assinatura .papel { font-size: 9pt; color: var(--tinta-fraca); }
@@ -220,8 +222,23 @@ export function campo(rotulo: string, valor: unknown, opcoes: { largo?: boolean;
   </div>`;
 }
 
-export function assinatura(nome: string, papel: string): string {
+/**
+ * Bloco de assinatura da folha.
+ *
+ * `tracoUrl` é o traço coletado no aparelho, quando existe. Ele fica ACIMA da
+ * linha, no lugar onde a pessoa assinaria no papel, e a linha continua ali:
+ * assinatura eletrônica avançada não é o que este documento entrega hoje, e
+ * quem imprimir para colher assinatura de próprio punho precisa da linha.
+ *
+ * Sem traço, o bloco é exatamente o que sempre foi. Um documento não pode
+ * ficar diferente por causa de um dado que o aparelho não mandou.
+ */
+export function assinatura(nome: string, papel: string, tracoUrl?: string | null): string {
+  const traco = tracoUrl
+    ? `<img class="traco" src="${escapar(tracoUrl)}" alt="Assinatura de ${escapar(nome)}">`
+    : "";
   return `<div class="assinatura">
+    ${traco}
     <div class="linha"></div>
     <div class="nome">${escapar(nome)}</div>
     <div class="papel">${escapar(papel)}</div>

@@ -11,7 +11,7 @@ build) valem lá, não aqui.
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 42 testes passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 16 testes de fonte mais 47 verificações no navegador no modo local e 104 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 134 testes de integração passando |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 137 testes de integração passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 43 testes de unidade e 10 de integração contra a API |
 | `apps/campo` | Casca do aplicativo em React Native com Expo | **Escrita, nunca executada.** Ver `apps/campo/LEIA-ME.md` |
 
@@ -635,9 +635,9 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 269 testes em cinco pacotes
+npm test                    # 272 testes em cinco pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 42 testes
-npm run test:api            # 134 testes da API
+npm run test:api            # 137 testes da API
 npm run test --workspace @dc360/campo   # 43 testes do motor de sincronização
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
@@ -840,6 +840,20 @@ Detalhe que faz o teste valer alguma coisa: o superusuário do Postgres ignora
 RLS. Por isso tudo que simula a aplicação roda com `SET LOCAL ROLE dc360_app`, o
 mesmo papel sem privilégio que a API usará em produção.
 
+## Integração contínua
+
+`.github/workflows/verificar.yml` está escrito e **nunca rodou**: o repositório
+não tem remoto, e GitHub Actions só existe depois que existir um. Está aqui
+pronto para esse dia, e não depois, porque os portões que ele executa já são
+todos reais e rodam hoje na máquina. O que falta é a máquina de outra pessoa
+rodá-los sem ninguém pedir.
+
+Ele tem três trabalhos: tipos, testes, `npm audit` em zero e a conferência dos
+números do README; o fluxo no navegador em Chromium e Firefox; e o pacote da
+demonstração, montado, extraído e percorrido pelo roteiro de dez minutos nos
+dois motores. Na máquina, o mesmo se pede com `npm run verificar` e
+`scripts/conferir-demo.ps1`.
+
 ## O que falta, e por quê
 
 - **Rodar o aplicativo de campo num aparelho.** O motor está testado, o
@@ -855,7 +869,12 @@ mesmo papel sem privilégio que a API usará em produção.
 - **Provedor de email.** A recuperação de senha está pronta e testada, mas o
   link sai pelo notificador de log: falta escolher o provedor e implementar a
   porta `Notificador`. Sem isso, em produção a rota responderia "enviamos o
-  link" sem enviar nada.
+  link" sem enviar nada. Enquanto não existe, quem precisa trocar a senha
+  troca por dentro, em "Minha conta", sem depender de email.
+- **Captura da assinatura no aparelho.** O caminho de saída está pronto e
+  testado: o documento lê a chave, confere se os bytes chegaram, assina uma
+  URL de vida curta e desenha o traço acima da linha, no laudo e no termo. O
+  que falta é quem produz, que é o dedo na tela do aplicativo de campo.
 - **Mapa cartográfico.** MapLibre GL JS depende de um provedor de tiles, que é
   custo recorrente por carregamento. Entra junto com a decisão de provedor. O
   que já existe plota as coordenadas reais gravadas.

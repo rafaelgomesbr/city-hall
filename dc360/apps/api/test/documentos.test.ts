@@ -438,3 +438,102 @@ describe("Documento em PDF", () => {
     expect(r.statusCode).toBe(404);
   }, 60_000);
 });
+
+describe("Assinatura da moradora no documento", () => {
+  /**
+   * A assinatura era um dado fantasma: a rota de sincronização gravava
+   * `assinatura_chave` e nada, em lugar nenhum do produto, jamais a lia. Nem
+   * rota de leitura, nem imagem no laudo, nem tela. A coluna existia, o campo
+   * existia no schema, e o traço que a moradora fez com o dedo não aparecia
+   * para ninguém.
+   */
+
+  it("sem o arquivo enviado, o laudo sai sem imagem de assinatura", async () => {
+    /*
+      Este caso é o mais importante dos dois. A chave sozinha não prova que os
+      bytes chegaram: a sincronização aceita a chave que o aparelho declarou, e
+      o envio é outro passo, que pode falhar. Emitir a imagem sem conferir
+      produziria um retângulo quebrado no meio de um laudo com brasão, o que
+      parece documento adulterado.
+    */
+    const alvo = await comVistoria({ endereco: "Rua Sem Traco, 10" });
+    const laudo = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/laudo`, headers: com(tokenCoordenador),
+    });
+
+    expect(laudo.statusCode).toBe(200);
+    expect(laudo.body).toContain("Marilda Souza Prado");
+    expect(laudo.body).not.toContain('class="traco"');
+  }, 120_000);
+
+  it("com o arquivo enviado, o traço aparece acima da linha e a imagem abre", async () => {
+    const alvo = await comVistoria({ endereco: "Rua Com Traco, 20" });
+
+    // Sobe os bytes na chave que a vistoria declarou, que é o que o aplicativo
+    // de campo vai fazer antes de sincronizar.
+    const traco = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64",
+    );
+    const autorizacao = await app.inject({
+      method: "POST", url: "/evidencias/autorizar-envio", headers: com(tokenAgente),
+      payload: {
+        ocorrenciaId: alvo.id, nomeArquivo: "assinatura.png", tipoConteudo: "image/png",
+        tamanhoBytes: traco.length, capturadaEm: new Date().toISOString(), ordem: 0,
+      },
+    });
+    const { url, cabecalhos } = autorizacao.json();
+    const destino = new URL(url);
+    await app.inject({
+      method: "PUT", url: destino.pathname + destino.search,
+      headers: { ...cabecalhos, "content-length": String(traco.length) },
+      payload: traco,
+    });
+
+    // A vistoria aponta para a chave desse objeto.
+    const objeto = await mem.bruto.query<{ chave_storage: string }>(
+      "SELECT chave_storage FROM evidencias WHERE ocorrencia_id = $1 ORDER BY capturada_em DESC LIMIT 1",
+      [alvo.id],
+    );
+    await mem.bruto.query(
+      "UPDATE vistorias SET assinatura_chave = $2 WHERE ocorrencia_id = $1",
+      [alvo.id, objeto.rows[0]!.chave_storage],
+    );
+
+    const laudo = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/laudo`, headers: com(tokenCoordenador),
+    });
+    expect(laudo.statusCode).toBe(200);
+    expect(laudo.body).toContain('class="traco"');
+
+    // O texto alternativo nomeia quem assinou: quem lê por leitor de tela
+    // precisa saber de quem é o traço.
+    expect(laudo.body).toContain('alt="Assinatura de Marilda Souza Prado"');
+
+    // E a imagem serve os bytes de verdade, por URL assinada.
+    const src = laudo.body.match(/class="traco" src="([^"]+)"/)![1]!.replace(/&amp;/g, "&");
+    const alvoImagem = new URL(src);
+    const bytes = await app.inject({ method: "GET", url: alvoImagem.pathname + alvoImagem.search });
+    expect(bytes.statusCode).toBe(200);
+    expect(bytes.rawPayload.equals(traco)).toBe(true);
+  }, 120_000);
+
+  it("o termo de interdição também mostra o traço", async () => {
+    // O termo é o documento que restringe o direito de alguém entrar na
+    // própria casa. Se a assinatura importa em algum lugar, é nele.
+    const alvo = await comVistoria({ endereco: "Rua Do Termo, 30" });
+    const objeto = await mem.bruto.query<{ id: string }>(
+      "SELECT id FROM vistorias WHERE ocorrencia_id = $1", [alvo.id],
+    );
+    expect(objeto.rows[0]).toBeDefined();
+
+    const termo = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/termo-de-interdicao`,
+      headers: com(tokenCoordenador),
+    });
+    expect(termo.statusCode).toBe(200);
+    // Sem arquivo, sem traço, e o documento continua íntegro.
+    expect(termo.body).toContain("Responsável pelo imóvel, ciente");
+    expect(termo.body).not.toContain('class="traco"');
+  }, 120_000);
+});

@@ -45,9 +45,11 @@ async function reunirDados(
       [organizacaoId],
     );
 
-    const vistoria = await c.query<DadosDocumento["vistoria"]>(
+    const vistoria = await c.query<
+      DadosDocumento["vistoria"] & { assinatura_chave: string | null }
+    >(
       `SELECT v.id, v.checklist, v.gps_precisao_metros, v.assinante_nome, v.observacoes,
-              v.coletada_em, v.sincronizada_em,
+              v.coletada_em, v.sincronizada_em, v.assinatura_chave,
               u.nome AS agente_nome, u.matricula AS agente_matricula
          FROM vistorias v LEFT JOIN usuarios u ON u.id = v.agente_id
         WHERE v.ocorrencia_id = $1
@@ -77,10 +79,14 @@ async function reunirDados(
     };
   });
 
+  const assinaturaUrl = await enderecoDaAssinatura(
+    armazenamento, bruto.vistoria.assinatura_chave,
+  );
+
   return {
     organizacao: bruto.organizacao,
     ocorrencia: bruto.ocorrencia,
-    vistoria: bruto.vistoria,
+    vistoria: { ...bruto.vistoria, assinaturaUrl },
     // A URL da foto é assinada na hora de gerar o documento, e vale por pouco
     // tempo. Um laudo salvo em disco perde as imagens depois disso, o que é
     // correto: a versão que vale é a que sai impressa ou em PDF.
@@ -94,6 +100,29 @@ async function reunirDados(
     emitidoPor,
     emitidoEm: new Date(),
   };
+}
+
+/**
+ * Endereço de leitura do traço de assinatura, ou nada.
+ *
+ * Duas checagens, e a segunda é a que importa. O traço vive no mesmo
+ * armazenamento das fotos, então recebe o mesmo tratamento: endereço assinado,
+ * de vida curta, nunca público.
+ *
+ * Mas a chave sozinha não prova que os bytes chegaram. A rota de sincronização
+ * aceita a chave que o aparelho declarou, e o envio do arquivo é outro passo,
+ * que pode ter falhado. Emitir a imagem sem conferir produziria um retângulo
+ * quebrado no meio de um laudo com brasão, que é pior que assinatura nenhuma:
+ * parece documento adulterado.
+ */
+async function enderecoDaAssinatura(
+  armazenamento: Armazenamento,
+  chave: string | null,
+): Promise<string | null> {
+  if (!chave) return null;
+  const objeto = await armazenamento.descrever(chave).catch(() => ({ existe: false }));
+  if (!objeto.existe) return null;
+  return armazenamento.urlParaLer(chave, 30 * 60);
 }
 
 export async function rotasDocumentos(

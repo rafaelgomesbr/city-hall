@@ -51,6 +51,13 @@ export type DadosDocumento = {
     sincronizada_em: string;
     agente_nome: string | null;
     agente_matricula: string | null;
+    /**
+     * Endereço de leitura do traço de assinatura coletado no aparelho, quando
+     * existe. Vazio hoje na prática: a captura mora no aplicativo de campo,
+     * que ainda não roda. O documento sabe usar assim que ela chegar, em vez
+     * de a coluna continuar sendo gravada e nunca vista.
+     */
+    assinaturaUrl?: string | null;
   };
   fotos: Array<{ url: string; legenda: string | null; capturadaEm: string }>;
   emitidoPor: string;
@@ -179,7 +186,7 @@ export function laudoDeVistoria(d: DadosDocumento): string {
     ${blocoFotos(d)}
     <div class="assinaturas">
       ${assinatura(d.vistoria.agente_nome ?? "Agente de campo", "Agente de proteção e defesa civil")}
-      ${assinatura(d.vistoria.assinante_nome, "Presente no local")}
+      ${assinatura(d.vistoria.assinante_nome, "Presente no local", d.vistoria.assinaturaUrl)}
     </div>`;
 
   return montarFolha({
@@ -231,7 +238,7 @@ razões que a motivaram e da vedação de permanência no imóvel.</p>
 
     <div class="assinaturas">
       ${assinatura(d.vistoria.agente_nome ?? "Agente de campo", "Agente de proteção e defesa civil")}
-      ${assinatura(d.vistoria.assinante_nome, "Responsável pelo imóvel, ciente")}
+      ${assinatura(d.vistoria.assinante_nome, "Responsável pelo imóvel, ciente", d.vistoria.assinaturaUrl)}
     </div>`;
 
   return montarFolha({

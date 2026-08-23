@@ -28,14 +28,17 @@ if (Test-Path $zip) { Remove-Item $zip -Force }
 New-Item -ItemType Directory -Path $palco -Force | Out-Null
 
 # O que o prototipo precisa para abrir. Nada alem disto.
+# Barra normal, e nao contrabarra, nos dois lados: o Windows aceita as duas, e
+# o Linux so aceita esta. O empacotador roda tanto na maquina de quem
+# apresenta quanto no servidor de integracao, que e Linux.
 $conteudo = @(
-    @{ de = "mockup\index.html";               para = "index.html" },
-    @{ de = "mockup\LEIA-ME.txt";              para = "LEIA-ME.txt" },
-    @{ de = "mockup\app";                      para = "app" },
-    @{ de = "mockup\design-system\tokens.css"; para = "design-system\tokens.css" },
-    @{ de = "docs\APRESENTACAO.md";            para = "documentos\APRESENTACAO.md" },
-    @{ de = "docs\ROTEIRO_DEMO.md";            para = "documentos\ROTEIRO_DEMO.md" },
-    @{ de = "docs\ROTEIRO_VIDEO.md";           para = "documentos\ROTEIRO_VIDEO.md" }
+    @{ de = "mockup/index.html";                para = "index.html" },
+    @{ de = "mockup/LEIA-ME.txt";               para = "LEIA-ME.txt" },
+    @{ de = "mockup/app";                       para = "app" },
+    @{ de = "mockup/design-system/tokens.css";  para = "design-system/tokens.css" },
+    @{ de = "docs/APRESENTACAO.md";             para = "documentos/APRESENTACAO.md" },
+    @{ de = "docs/ROTEIRO_DEMO.md";             para = "documentos/ROTEIRO_DEMO.md" },
+    @{ de = "docs/ROTEIRO_VIDEO.md";            para = "documentos/ROTEIRO_VIDEO.md" }
 )
 
 foreach ($item in $conteudo) {

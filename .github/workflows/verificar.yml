@@ -1,0 +1,160 @@
+# Portão de integração do DC360.
+#
+# Este arquivo ainda não rodou: o repositório não tem remoto configurado, e
+# GitHub Actions só existe depois que existir um. Ele está aqui pronto para o
+# dia em que existir, e não depois, porque os portões que ele executa já são
+# todos reais e rodam hoje na máquina. O que falta é a máquina de outra pessoa
+# rodá-los sem ninguém pedir.
+#
+# O que ele impõe, e por quê:
+#
+# - `npm audit` fechando em zero é regra do CLAUDE.md, não recomendação.
+#   Dependência com vulnerabilidade conhecida em runtime é bug, não pendência.
+# - O portão CA-06, de isolamento entre municípios, roda separado e primeiro.
+#   É a regra número um do produto, e se ela quebrar nada mais importa.
+# - Os números que o README afirma são conferidos contra a realidade.
+
+name: Verificar
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+# Cancela execução antiga do mesmo ramo: revisar resultado de commit que já
+# foi substituído é desperdício de fila e fonte de confusão.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  produto:
+    name: Testes, tipos e auditoria
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dc360
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dc360/package-lock.json
+
+      # `npm ci` e não `npm install`: instalação reprodutível, a partir do
+      # lockfile, sem atualizar nada por conta própria.
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: TypeScript estrito
+        run: npm run typecheck
+
+      # Primeiro e sozinho: isolamento entre municípios é a regra número um.
+      - name: Portão de isolamento (CA-06)
+        run: npm run test:isolamento
+
+      - name: Suíte completa
+        run: npm test
+
+      - name: Dependência com vulnerabilidade conhecida
+        run: npm audit --audit-level=low
+
+      - name: Os números do README batem com a realidade
+        run: npm run conferir:numeros
+
+  navegador:
+    name: Fluxo ponta a ponta no navegador
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dc360
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dc360/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # Chromium é o motor do Chrome e do Edge; Firefox é o segundo motor que o
+      # critério de aceite exige. `--with-deps` traz as bibliotecas de sistema
+      # que faltam numa imagem limpa.
+      - name: Instalar navegadores
+        run: npx playwright install --with-deps chromium firefox
+
+      - name: Construir o painel
+        run: npm run build --workspace @dc360/web
+
+      # `nohup` porque o processo precisa sobreviver ao fim deste passo, e
+      # espera por resposta de verdade em vez de `sleep`: dormir um número
+      # inventado de segundos é como testes ficam intermitentes.
+      - name: Servir o painel
+        run: nohup npx vite preview --port 4173 --strictPort > /tmp/preview.log 2>&1 &
+        working-directory: dc360/apps/web
+
+      - name: Esperar o painel responder
+        run: |
+          for _ in $(seq 1 60); do
+            if curl -sf -o /dev/null http://localhost:4173; then
+              echo "painel de pé"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "o painel não respondeu em 60 segundos"
+          cat /tmp/preview.log
+          exit 1
+
+      - name: Modo local, no Chromium
+        run: npm run test:e2e
+
+      - name: Modo local, no Firefox
+        run: MOTOR=firefox npm run test:e2e
+
+  demonstracao:
+    name: Pacote da demonstração
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dc360/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+        working-directory: dc360
+
+      - name: Instalar navegadores
+        run: npx playwright install --with-deps chromium firefox
+        working-directory: dc360
+
+      # O empacotador é PowerShell, que existe no runner do Ubuntu como `pwsh`.
+      - name: Montar o pacote
+        shell: pwsh
+        run: ./scripts/empacotar-demo.ps1
+
+      - name: Extrair como o destinatário faz
+        run: |
+          mkdir -p /tmp/pacote
+          unzip -q dist/DefesaCivil360-demonstracao.zip -d /tmp/pacote
+
+      - name: Conferir o pacote extraído
+        run: node scripts/conferir-pacote.mjs /tmp/pacote
+
+      - name: Roteiro de dez minutos, Chromium
+        run: node scripts/conferir-roteiro.mjs /tmp/pacote chromium
+
+      - name: Roteiro de dez minutos, Firefox
+        run: node scripts/conferir-roteiro.mjs /tmp/pacote firefox
