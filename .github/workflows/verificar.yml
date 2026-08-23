@@ -1,11 +1,5 @@
 # Portão de integração do DC360.
 #
-# Este arquivo ainda não rodou: o repositório não tem remoto configurado, e
-# GitHub Actions só existe depois que existir um. Ele está aqui pronto para o
-# dia em que existir, e não depois, porque os portões que ele executa já são
-# todos reais e rodam hoje na máquina. O que falta é a máquina de outra pessoa
-# rodá-los sem ninguém pedir.
-#
 # O que ele impõe, e por quê:
 #
 # - `npm audit` fechando em zero é regra do CLAUDE.md, não recomendação.
@@ -158,3 +152,39 @@ jobs:
 
       - name: Roteiro de dez minutos, Firefox
         run: node scripts/conferir-roteiro.mjs /tmp/pacote firefox
+
+  aplicativo:
+    name: Aplicativo de campo
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dc360/apps/campo
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dc360/apps/campo/package-lock.json
+
+      # Os pacotes compartilhados entram por link e precisam estar compilados:
+      # o aplicativo consome o `dist`, não o TypeScript de origem.
+      - name: Compilar os pacotes compartilhados
+        run: npm ci && npm run build --workspace @dc360/shared && npm run build --workspace @dc360/campo
+        working-directory: dc360
+
+      - name: Instalar dependências do aplicativo
+        run: npm ci
+
+      - name: TypeScript estrito
+        run: npm run typecheck
+
+      # 21 verificações da própria Expo: versões incompatíveis com o SDK,
+      # configuração de plugin, arquivo de projeto conflitante.
+      - name: Saúde do projeto Expo
+        run: npx expo-doctor
+
+      - name: Dependência com vulnerabilidade conhecida
+        run: npm audit --audit-level=low

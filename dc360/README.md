@@ -870,16 +870,21 @@ mesmo papel sem privilégio que a API usará em produção.
 
 ## Integração contínua
 
-`.github/workflows/verificar.yml` está escrito e **nunca rodou**: o repositório
-não tem remoto, e GitHub Actions só existe depois que existir um. Está aqui
-pronto para esse dia, e não depois, porque os portões que ele executa já são
-todos reais e rodam hoje na máquina. O que falta é a máquina de outra pessoa
-rodá-los sem ninguém pedir.
+`.github/workflows/verificar.yml` roda a cada push e a cada pull request, em
+quatro trabalhos paralelos:
 
-Ele tem três trabalhos: tipos, testes, `npm audit` em zero e a conferência dos
-números do README; o fluxo no navegador em Chromium e Firefox; e o pacote da
-demonstração, montado, extraído e percorrido pelo roteiro de dez minutos nos
-dois motores. Na máquina, o mesmo se pede com `npm run verificar` e
+<!-- numeros: nao sao contagem -->
+| Trabalho | O que ele impõe |
+| --- | --- |
+| Testes, tipos e auditoria | TypeScript estrito, o portão CA-06 sozinho e primeiro, a suíte inteira, `npm audit` em zero e os números do README conferidos |
+| Fluxo no navegador | O painel de ponta a ponta, em Chromium e em Firefox |
+| Pacote da demonstração | O zip montado, extraído e percorrido pelo roteiro de dez minutos nos dois motores |
+| Aplicativo de campo | TypeScript, as 21 verificações do `expo-doctor` e auditoria própria |
+
+O CA-06 roda separado e antes de tudo de propósito: isolamento entre
+municípios é a regra número um, e se ela quebrar nada mais importa.
+
+Na máquina, o mesmo se pede com `npm run verificar` e
 `scripts/conferir-demo.ps1`.
 
 ## O que falta, e por quê
