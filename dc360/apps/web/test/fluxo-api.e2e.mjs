@@ -693,24 +693,47 @@ ok("a correcao aparece na tabela",
    (await page.textContent("tbody")).includes("Marcos Vinicius Teles Junior"));
 
 console.log("\n== 21. Trocar equipe depois de despachar ==");
-await page.goto(`${BASE}/ocorrencias?status=em_campo`, { waitUntil: "networkidle" });
-await page.waitForTimeout(1200);
 /*
-  Sem `if` em volta das verificações, de propósito. Checagem dentro de
-  condicional às vezes não roda, e um portão que às vezes não roda ensina a
-  ignorar o verde. A semente sempre tem ocorrência em campo; se um dia não
-  tiver, é aqui que se descobre.
+  A ocorrência deste bloco é criada e despachada aqui, e não pescada da lista.
+
+  A primeira versão abria a primeira linha do filtro "em campo", e falhava de
+  vez em quando: o que está em campo depende do que as seções anteriores
+  fizeram, e uma delas conclui vistoria. Portão que falha às vezes ensina a
+  ignorar vermelho, que é pior do que não ter portão.
 */
-const emCampo = page.locator("tbody tr .tabela__protocolo").first();
-ok("a semente tem ocorrencia em campo para trocar a equipe",
-   (await emCampo.count()) === 1);
-await emCampo.click();
+const paraRedespachar = await page.evaluate(async ({ api }) => {
+  const tokens = JSON.parse(sessionStorage.getItem("dc360:tokens"));
+  const cab = { "content-type": "application/json", authorization: `Bearer ${tokens.acesso}` };
+
+  const criada = await (await fetch(`${api}/ocorrencias`, {
+    method: "POST", headers: cab,
+    body: JSON.stringify({
+      tipo: "vendaval",
+      endereco: "Rua do Redespacho, 77, Centro",
+      solicitanteNome: "Neuza Aparecida Bento",
+      canalEntrada: "telefone",
+      descricao: "Telhado parcialmente arrancado por rajada de vento.",
+    }),
+  })).json();
+
+  await fetch(`${api}/ocorrencias/${criada.id}/triagem`, {
+    method: "POST", headers: cab,
+    body: JSON.stringify({ severidade: "media", vulnerabilidadePresente: false }),
+  });
+
+  const equipes = await (await fetch(`${api}/equipes`, { headers: cab })).json();
+  const equipe = equipes.itens.find((e) => e.ativa);
+  await fetch(`${api}/ocorrencias/${criada.id}/despacho`, {
+    method: "POST", headers: cab,
+    body: JSON.stringify({ equipeId: equipe.id, prazoHoras: 24 }),
+  });
+
+  return criada.id;
+}, { api: process.env.BASE_API ?? "http://127.0.0.1:3333" });
+
+await page.goto(`${BASE}/ocorrencias/${paraRedespachar}`, { waitUntil: "networkidle" });
 await page.waitForSelector(".cabecalho-pagina h1", { timeout: 20_000 });
 
-/*
-  Pelo título, e não contando cartões: `hasText` casa qualquer ancestral que
-  contenha o texto, então a contagem oscilava entre execuções.
-*/
 const trocar = page.getByRole("heading", { name: "Trocar equipe ou prazo" });
 ok("ocorrencia ja em campo oferece trocar equipe ou prazo",
    (await trocar.count()) >= 1, `(${await trocar.count()})`);
