@@ -155,6 +155,14 @@ body {
 .topo__direita { margin-left: auto; display: flex; align-items: center; gap: var(--ds-sp-3); }
 
 .identidade { display: flex; align-items: center; gap: var(--ds-sp-3); }
+.identidade--acionavel {
+  text-decoration: none; color: inherit;
+  padding: var(--ds-sp-1) var(--ds-sp-2);
+  border-radius: var(--ds-radius);
+  min-height: var(--ds-touch);
+  transition: background-color var(--ds-dur-fast) var(--ds-ease);
+}
+.identidade--acionavel:hover { background: var(--ds-surface-2); }
 .identidade__avatar {
   /* Gradiente de marca e `on-accent`, iguais aos da sigla da lateral. Antes
      era `accent-graphic` com branco fixo: o token diz, no próprio comentário,

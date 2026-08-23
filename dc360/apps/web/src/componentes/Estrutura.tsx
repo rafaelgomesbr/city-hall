@@ -131,14 +131,19 @@ export function Estrutura() {
         </form>
 
         <div className="topo__direita">
-          <div className="identidade">
+          {/*
+            A identidade era só um rótulo. Agora é o caminho para a própria
+            conta, que é onde se troca a senha: quem recebe uma senha inicial
+            ditada por telefone procura a troca aqui, e não num menu escondido.
+          */}
+          <NavLink to="/minha-conta" className="identidade identidade--acionavel">
             <span className="identidade__avatar" aria-hidden="true">{iniciais(sessao.usuarioNome)}</span>
             <span>
               <span className="identidade__nome">{sessao.usuarioNome}</span>
               <br />
               <span className="identidade__papel">{ROTULO_PAPEL[sessao.papel]}</span>
             </span>
-          </div>
+          </NavLink>
         </div>
       </header>
 

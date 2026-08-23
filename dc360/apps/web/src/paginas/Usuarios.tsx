@@ -3,7 +3,7 @@ import {
   ROTULO_PAPEL, cadastroUsuarioSchema, papeisQuePodeConceder, type Papel,
 } from "@dc360/shared";
 import {
-  MODO, alternarUsuarioAtivo, criarUsuario, listarEquipes, listarUsuarios,
+  MODO, alternarUsuarioAtivo, atualizarUsuario, criarUsuario, listarEquipes, listarUsuarios,
   type LinhaEquipe, type LinhaUsuario,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
@@ -24,6 +24,8 @@ export function Usuarios() {
   const [equipes, setEquipes] = useState<LinhaEquipe[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [errosDeCampo, setErrosDeCampo] = useState<Record<string, string>>({});
+  /* Quem está sendo corrigido. Nulo é cadastro novo. */
+  const [editando, setEditando] = useState<string | null>(null);
 
   const [nome, setNome] = useState("");
   const [matricula, setMatricula] = useState("");
@@ -57,14 +59,16 @@ export function Usuarios() {
 
       No modo local não há senha: a entrada é por escolha de perfil.
     */
-    const molde = MODO === "api"
+    // Editar não pede senha: trocar senha derruba sessões e é outro ato. No
+    // modo local não há senha nem no cadastro, porque a entrada é por perfil.
+    const molde = MODO === "api" && !editando
       ? cadastroUsuarioSchema
       : cadastroUsuarioSchema.omit({ senha: true });
 
     const conferido = molde.safeParse({
       nome, matricula, email, papel,
       equipeId: papel === "agente_campo" && equipeId ? equipeId : null,
-      ...(MODO === "api" ? { senha } : {}),
+      ...(MODO === "api" && !editando ? { senha } : {}),
     });
 
     if (!conferido.success) {
@@ -81,13 +85,19 @@ export function Usuarios() {
     setErrosDeCampo({});
     setErro(null);
     try {
-      await criarUsuario(sessao, {
+      const dados = {
         nome, matricula, email, papel,
         equipeId: papel === "agente_campo" && equipeId ? equipeId : null,
-        ...(MODO === "api" ? { senha } : {}),
-      });
-      setNome(""); setMatricula(""); setEmail(""); setEquipeId(""); setSenha("");
-      setErrosDeCampo({});
+      };
+      if (editando) {
+        await atualizarUsuario(sessao, editando, dados);
+      } else {
+        await criarUsuario(sessao, {
+          ...dados,
+          ...(MODO === "api" ? { senha } : {}),
+        });
+      }
+      limparFormulario();
       await recarregar();
     } catch (e: unknown) {
       const texto = e instanceof Error ? e.message : String(e);
@@ -95,6 +105,25 @@ export function Usuarios() {
         ? "Já existe usuário com essa matrícula ou esse email neste município."
         : texto);
     }
+  }
+
+  function limparFormulario(): void {
+    setNome(""); setMatricula(""); setEmail(""); setEquipeId(""); setSenha("");
+    setPapel("agente_campo");
+    setErrosDeCampo({});
+    setEditando(null);
+  }
+
+  function editar(u: LinhaUsuario): void {
+    setEditando(u.id);
+    setNome(u.nome);
+    setMatricula(u.matricula);
+    setEmail(u.email);
+    setPapel(u.papel);
+    setEquipeId(u.equipe_id ?? "");
+    setSenha("");
+    setErrosDeCampo({});
+    setErro(null);
   }
 
   if (!usuarios && !erro) return <Carregando />;
@@ -112,7 +141,7 @@ export function Usuarios() {
 
       <div className="detalhe">
         <div className="coluna">
-          <Cartao titulo="Cadastrar usuário">
+          <Cartao titulo={editando ? "Corrigir cadastro" : "Cadastrar usuário"}>
             <form onSubmit={submeter}>
               <div className="linha-campos">
                 <div className="campo">
@@ -170,7 +199,7 @@ export function Usuarios() {
                   </select>
                 </div>
               )}
-              {MODO === "api" && (
+              {MODO === "api" && !editando && (
                 <div className="campo">
                   <label htmlFor="usuario-senha">Senha inicial</label>
                   <input id="usuario-senha" type="password" value={senha}
@@ -187,9 +216,23 @@ export function Usuarios() {
                   </span>
                 </div>
               )}
-              <button type="submit" className="botao botao--primario">
-                <IconeMais /> Cadastrar usuário
-              </button>
+              {editando && (
+                <p className="campo__dica">
+                  A senha não muda por aqui. Quem troca senha é a própria
+                  pessoa, em "Minha conta", ou o link de recuperação.
+                </p>
+              )}
+              <div style={{ display: "flex", gap: "var(--ds-sp-2)" }}>
+                <button type="submit" className="botao botao--primario">
+                  {editando ? "Salvar correção" : <><IconeMais /> Cadastrar usuário</>}
+                </button>
+                {editando && (
+                  <button type="button" className="botao botao--secundario"
+                          onClick={limparFormulario}>
+                    Cancelar
+                  </button>
+                )}
+              </div>
             </form>
           </Cartao>
 
@@ -235,6 +278,10 @@ export function Usuarios() {
                           </span>
                         </td>
                         <td>
+                          <button type="button" className="botao botao--discreto"
+                                  onClick={() => editar(u)}>
+                            Corrigir
+                          </button>
                           <button type="button" className="botao botao--discreto"
                                   disabled={u.id === sessao.usuarioId}
                                   title={u.id === sessao.usuarioId

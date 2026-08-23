@@ -231,6 +231,27 @@ export function Ocorrencia() {
             />
           )}
 
+          {/*
+            Redespachar já era possível no servidor e não existia na tela.
+            Acontece na rua: a equipe designada trava noutro atendimento, o
+            prazo se mostra curto demais, o caso muda de mão. A saída era
+            encerrar e reabrir, o que inventa um protocolo novo para o mesmo
+            evento. A troca entra como evento novo na trilha, então quem
+            despachou antes continua registrado.
+          */}
+          {podeDespachar && !encerrada && o.status === "em_campo" && (
+            <BlocoDespacho
+              titulo="Trocar equipe ou prazo"
+              equipes={equipes.filter((e) => e.ativa)}
+              severidade={o.severidade}
+              equipeAtual={o.equipe_id}
+              onEnviar={(d) => executar(
+                () => despacharEquipe(sessao, o.id, d),
+                "Despacho atualizado. A troca ficou registrada na trilha.",
+              )}
+            />
+          )}
+
           {podeProvidencia && !encerrada && o.status === "vistoria_concluida" && (
             <BlocoProvidencia
               onEnviar={(p) => executar(
@@ -500,12 +521,17 @@ function BlocoTriagem({ onEnviar }: { onEnviar: (t: { severidade: Severidade; vu
   );
 }
 
-function BlocoDespacho({ equipes, severidade, onEnviar }: {
+function BlocoDespacho({ equipes, severidade, onEnviar, titulo, equipeAtual }: {
   equipes: LinhaEquipe[];
   severidade: Severidade | null;
   onEnviar: (d: { equipeId: string; prazoHoras: number; instrucoes?: string }) => void;
+  /** "Despachar equipe" na primeira vez, "Trocar equipe ou prazo" depois. */
+  titulo?: string;
+  /** Já despachada: o seletor começa em quem está com o caso hoje. */
+  equipeAtual?: string | null;
 }) {
-  const [equipeId, setEquipeId] = useState(equipes[0]?.id ?? "");
+  const rotulo = titulo ?? "Despachar equipe";
+  const [equipeId, setEquipeId] = useState(equipeAtual ?? equipes[0]?.id ?? "");
   const [prazo, setPrazo] = useState(severidade ? PRAZO_PADRAO_HORAS[severidade] : 24);
   const [instrucoes, setInstrucoes] = useState("");
   const [erro, setErro] = useState<string | null>(null);
@@ -525,7 +551,7 @@ function BlocoDespacho({ equipes, severidade, onEnviar }: {
 
   if (equipes.length === 0) {
     return (
-      <Cartao titulo="Despachar equipe">
+      <Cartao titulo={rotulo}>
         <Aviso tom="alerta">
           Nenhuma equipe ativa cadastrada. Cadastre uma em <Link to="/equipes">Equipes</Link> para
           poder despachar.
@@ -535,7 +561,7 @@ function BlocoDespacho({ equipes, severidade, onEnviar }: {
   }
 
   return (
-    <Cartao titulo="Despachar equipe">
+    <Cartao titulo={rotulo}>
       <form onSubmit={enviar}>
         <div className="linha-campos">
           <div className="campo">
@@ -563,7 +589,9 @@ function BlocoDespacho({ equipes, severidade, onEnviar }: {
         </div>
 
         {erro && <ErroCampo id="despacho-erro">{erro}</ErroCampo>}
-        <button type="submit" className="botao botao--primario">Despachar</button>
+        <button type="submit" className="botao botao--primario">
+          {equipeAtual ? "Salvar troca" : "Despachar"}
+        </button>
       </form>
     </Cartao>
   );

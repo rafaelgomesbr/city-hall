@@ -666,6 +666,109 @@ ok("e diz que nada foi enviado",
    /nao foi enviado|não foi enviado/i.test(mensagemDeRede));
 await contexto.unroute("**/127.0.0.1:3333/**");
 
+console.log("\n== 20. Corrigir cadastro sem recriar a conta ==");
+await entrar("helena.coutinho@serraalta.exemplo.gov.br");
+await page.waitForSelector(".indicador", { timeout: 30_000 });
+await page.getByRole("link", { name: "Usuários" }).click();
+await page.waitForSelector("#usuario-nome", { timeout: 20_000 });
+
+// O coordenador nao pode conceder papel de administrador, entao a opcao nem
+// aparece: oferecer o que o servidor recusa e construir o beco de proposito.
+const papeisOferecidos = await page.locator("#usuario-papel option").allTextContents();
+ok("coordenador nao ve o papel de administrador no seletor",
+   !papeisOferecidos.some((t) => /Administrador/i.test(t)), `(${papeisOferecidos.join(" | ")})`);
+
+const linhaMarcos = page.locator("tbody tr", { hasText: "marcos.teles@serraalta.exemplo.gov.br" });
+await linhaMarcos.getByRole("button", { name: "Corrigir" }).click();
+await page.waitForTimeout(600);
+ok("corrigir carrega o cadastro no formulario",
+   (await page.locator("#usuario-nome").inputValue()) === "Marcos Vinicius Teles");
+ok("e o formulario nao pede senha na correcao",
+   (await page.locator("#usuario-senha").count()) === 0);
+
+await page.locator("#usuario-nome").fill("Marcos Vinicius Teles Junior");
+await page.getByRole("button", { name: "Salvar correção" }).click();
+await page.waitForTimeout(1500);
+ok("a correcao aparece na tabela",
+   (await page.textContent("tbody")).includes("Marcos Vinicius Teles Junior"));
+
+console.log("\n== 21. Trocar equipe depois de despachar ==");
+await page.goto(`${BASE}/ocorrencias?status=em_campo`, { waitUntil: "networkidle" });
+await page.waitForTimeout(1200);
+const emCampo = page.locator("tbody tr .tabela__protocolo").first();
+if (await emCampo.count()) {
+  await emCampo.click();
+  await page.waitForSelector(".cabecalho-pagina h1", { timeout: 20_000 });
+  /*
+    Pelo título, e não contando cartões: `hasText` casa qualquer ancestral que
+    contenha o texto, então a contagem oscilava entre execuções. Portão que
+    falha às vezes é pior que portão nenhum, porque ensina a ignorar vermelho.
+  */
+  const trocar = page.getByRole("heading", { name: "Trocar equipe ou prazo" });
+  ok("ocorrencia ja em campo oferece trocar equipe ou prazo",
+     (await trocar.count()) >= 1, `(${await trocar.count()})`);
+  if (await trocar.count()) {
+    await page.locator("#despacho-prazo").fill("8");
+    await page.getByRole("button", { name: "Salvar troca" }).click();
+    await page.waitForSelector(".aviso--sucesso", { timeout: 20_000 });
+    ok("a troca confirma que ficou registrada",
+       ((await page.textContent(".aviso--sucesso")) ?? "").includes("trilha"));
+    const eventos = await page.locator(".linha-tempo__item, .linha-tempo li, .trilha__item").allTextContents();
+    ok("e a trilha guarda os dois despachos",
+       eventos.filter((t) => /despach/i.test(t)).length >= 2,
+       `(${eventos.filter((t) => /despach/i.test(t)).length})`);
+  }
+} else {
+  ok("havia ocorrencia em campo para trocar a equipe", false, "(nenhuma na lista)");
+}
+
+console.log("\n== 22. Minha conta e troca de senha ==");
+await page.goto(`${BASE}/painel`, { waitUntil: "networkidle" });
+await page.waitForSelector(".indicador", { timeout: 30_000 });
+await page.locator(".identidade--acionavel").click();
+await page.waitForSelector("#conta-senha-atual", { timeout: 20_000 });
+ok("a identidade no topo leva para a propria conta", page.url().endsWith("/minha-conta"));
+
+await page.locator("#conta-senha-atual").fill(SENHA);
+await page.locator("#conta-senha-nova").fill("curta");
+await page.locator("#conta-senha-repetida").fill("curta");
+await page.getByRole("button", { name: "Trocar senha" }).click();
+await page.waitForTimeout(600);
+ok("recusa senha nova curta, no campo",
+   ((await page.textContent("#conta-senha-nova-erro")) ?? "").includes("12 caracteres"));
+
+const SENHA_NOVA = "senha-nova-da-helena-2026";
+await page.locator("#conta-senha-nova").fill(SENHA_NOVA);
+await page.locator("#conta-senha-repetida").fill("outra-coisa-qualquer");
+await page.getByRole("button", { name: "Trocar senha" }).click();
+await page.waitForTimeout(600);
+ok("recusa quando a repeticao nao bate",
+   ((await page.textContent("#conta-senha-repetida-erro")) ?? "").includes("não são iguais"));
+
+await page.locator("#conta-senha-repetida").fill(SENHA_NOVA);
+await page.getByRole("button", { name: "Trocar senha" }).click();
+await page.waitForSelector(".aviso--sucesso", { timeout: 20_000 });
+ok("a troca acontece e avisa que as outras sessoes cairam",
+   ((await page.textContent(".aviso--sucesso")) ?? "").toLowerCase().includes("sess"));
+
+// E a prova real: a senha nova entra, e a antiga nao.
+await entrar("helena.coutinho@serraalta.exemplo.gov.br", SENHA_NOVA);
+ok("a senha nova entra", true);
+
+// A senha antiga precisa ter morrido. A pergunta é do servidor, e é ele que
+// responde: perguntar pela tela dependeria de a tela estar certa.
+const recusaDaAntiga = await page.evaluate(async ({ api }) => {
+  const r = await fetch(`${api}/auth/entrar`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      email: "helena.coutinho@serraalta.exemplo.gov.br",
+      senha: "defesa-civil-2026",
+    }),
+  });
+  return r.status;
+}, { api: process.env.BASE_API ?? "http://127.0.0.1:3333" });
+ok("a senha antiga deixa de valer", recusaDaAntiga === 401, `(${recusaDaAntiga})`);
+
 await navegador.close();
 
 console.log(`\n${"=".repeat(52)}`);

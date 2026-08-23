@@ -406,6 +406,21 @@ export async function criarUsuario(
   });
 }
 
+/** Corrigir cadastro sem desativar e recriar. Senha fica de fora: é outro ato. */
+export async function atualizarUsuario(
+  _s: Sessao,
+  id: string,
+  dados: { nome: string; matricula: string; email: string; papel: Papel; equipeId: string | null },
+): Promise<void> {
+  await chamar(`/usuarios/${id}`, {
+    metodo: "PATCH",
+    corpo: {
+      nome: dados.nome, matricula: dados.matricula, email: dados.email,
+      papel: dados.papel, equipeId: dados.equipeId,
+    },
+  });
+}
+
 export async function alternarUsuarioAtivo(
   _s: Sessao,
   id: string,
@@ -451,6 +466,22 @@ export async function listarEvidencias(
 export async function pedirRecuperacao(email: string): Promise<string> {
   const r = await chamar<{ mensagem: string }>("/auth/recuperar", {
     metodo: "POST", corpo: { email },
+  });
+  return r.mensagem;
+}
+
+/**
+ * Trocar a própria senha, estando dentro do sistema.
+ *
+ * Faltava, e a falta tinha uma consequência prática: o provisionamento de um
+ * município novo entrega uma senha inicial sorteada, ditada por telefone, e
+ * pede que ela seja trocada na primeira entrada. Sem esta tela não havia como.
+ * O único caminho era pedir link de recuperação por email, que é o caminho de
+ * quem esqueceu, não de quem quer trocar.
+ */
+export async function trocarSenha(senhaAtual: string, senha: string): Promise<string> {
+  const r = await chamar<{ mensagem: string }>("/auth/trocar-senha", {
+    metodo: "POST", corpo: { senhaAtual, senha },
   });
   return r.mensagem;
 }

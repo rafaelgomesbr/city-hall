@@ -14,6 +14,7 @@ import { Usuarios } from "./paginas/Usuarios";
 import { Auditoria } from "./paginas/Auditoria";
 import { Aviso } from "./componentes/comuns";
 import { MeuTrabalho } from "./paginas/MeuTrabalho";
+import { MinhaConta } from "./paginas/MinhaConta";
 
 /**
  * Rotas privadas ficam todas atrás da mesma checagem. Isso é conveniência de
@@ -80,6 +81,7 @@ export function App() {
       <Route element={<Protegida><Estrutura /></Protegida>}>
         <Route path="/painel" element={<Painel />} />
         <Route path="/meu-trabalho" element={<MeuTrabalho />} />
+        <Route path="/minha-conta" element={<MinhaConta />} />
         <Route path="/ocorrencias" element={<Ocorrencias />} />
         <Route path="/ocorrencias/nova" element={<NovaOcorrencia />} />
         <Route path="/ocorrencias/:id" element={<Ocorrencia />} />

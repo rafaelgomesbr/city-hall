@@ -1,6 +1,7 @@
 import {
   PRAZO_PADRAO_HORAS,
   exigirPermissao,
+  exigirPostoParaGerir,
   transicaoPermitida,
   type Origem,
   type Papel,
@@ -158,6 +159,17 @@ export async function pedirRecuperacao(): Promise<string> {
 
 export async function redefinirSenha(): Promise<string> {
   throw new Error("A recuperação de senha exige a API. Este painel está em modo local.");
+}
+
+/**
+ * No modo local não existe senha para trocar: a entrada é por escolha de
+ * perfil, sem autenticação. Dizer isso é melhor que oferecer um formulário que
+ * não muda nada.
+ */
+export async function trocarSenha(): Promise<string> {
+  throw new Error(
+    "Trocar senha exige a API. Neste painel a entrada é por escolha de perfil, sem senha.",
+  );
 }
 
 /**
@@ -598,6 +610,9 @@ export async function criarUsuario(
   dados: { nome: string; matricula: string; email: string; papel: Papel; equipeId: string | null },
 ): Promise<void> {
   exigirPermissao(s.papel, "gerenciar_usuarios");
+  // Posto além da permissão: quem administra usuários não administra qualquer
+  // usuário. A regra é a mesma da API, e não pode valer só de um lado.
+  exigirPostoParaGerir(s.papel, dados.papel);
   await comoApp(s.organizacaoId, async (db) => {
     await db.query(
       `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel, equipe_id)
@@ -607,13 +622,76 @@ export async function criarUsuario(
   });
 }
 
+/** Corrigir cadastro sem desativar e recriar, que partiria o histórico em duas contas. */
+export async function atualizarUsuario(
+  s: Sessao,
+  id: string,
+  dados: { nome: string; matricula: string; email: string; papel: Papel; equipeId: string | null },
+): Promise<void> {
+  exigirPermissao(s.papel, "gerenciar_usuarios");
+  exigirPostoParaGerir(s.papel, dados.papel);
+  await comoApp(s.organizacaoId, async (db) => {
+    const alvo = await db.query<{ papel: Papel; ativo: boolean }>(
+      "SELECT papel, ativo FROM usuarios WHERE id = $1", [id],
+    );
+    const atual = alvo.rows[0];
+    if (!atual) throw new Error("Usuário não encontrado neste município");
+    exigirPostoParaGerir(s.papel, atual.papel);
+    await exigirQueSobreAdministrador(db, id, atual, dados.papel !== "administrador");
+
+    await db.query(
+      `UPDATE usuarios
+          SET nome = $2, matricula = $3, email = $4, papel = $5, equipe_id = $6
+        WHERE id = $1`,
+      [id, dados.nome.trim(), dados.matricula.trim(), dados.email.trim().toLowerCase(),
+       dados.papel, dados.equipeId],
+    );
+  });
+}
+
+/**
+ * O município não pode ficar sem quem o administra.
+ *
+ * Vale para desativar e para rebaixar, porque as duas coisas produzem o mesmo
+ * resultado: ninguém capaz de criar usuário, e saída só por SQL na mão.
+ */
+async function exigirQueSobreAdministrador(
+  db: Contexto,
+  id: string,
+  atual: { papel: Papel; ativo: boolean },
+  vaiPerderOPosto: boolean,
+): Promise<void> {
+  if (!vaiPerderOPosto || atual.papel !== "administrador" || !atual.ativo) return;
+  const restantes = await db.query<{ quantos: string }>(
+    "SELECT count(*) AS quantos FROM usuarios WHERE papel = 'administrador' AND ativo = true AND id <> $1",
+    [id],
+  );
+  if (Number(restantes.rows[0]?.quantos ?? 0) === 0) {
+    throw new Error(
+      "Este é o último administrador ativo do município. Promova outra pessoa " +
+      "a administrador antes de mexer nesta conta.",
+    );
+  }
+}
+
 /**
  * Usuário não é apagado: é desativado. Ele assina laudo e aparece na trilha,
  * e a trilha precisa continuar apontando para alguém depois do fato.
  */
 export async function alternarUsuarioAtivo(s: Sessao, id: string, ativo: boolean): Promise<void> {
   exigirPermissao(s.papel, "gerenciar_usuarios");
+  if (id === s.usuarioId && !ativo) {
+    throw new Error("Você não pode desativar a própria conta.");
+  }
   await comoApp(s.organizacaoId, async (db) => {
+    const alvo = await db.query<{ papel: Papel; ativo: boolean }>(
+      "SELECT papel, ativo FROM usuarios WHERE id = $1", [id],
+    );
+    const atual = alvo.rows[0];
+    if (!atual) throw new Error("Usuário não encontrado neste município");
+    exigirPostoParaGerir(s.papel, atual.papel);
+    await exigirQueSobreAdministrador(db, id, atual, !ativo);
+
     await db.query("UPDATE usuarios SET ativo = $2 WHERE id = $1", [id, ativo]);
   });
 }
