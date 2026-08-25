@@ -7,15 +7,16 @@ import {
   aberturaOcorrenciaSchema,
   despachoSchema,
   encerramentoSchema,
+  estadoTerminal,
   providenciaSchema,
   respostaProvidenciaSchema,
   transicaoPermitida,
   triagemSchema,
-  type Origem,
   type StatusOcorrencia,
 } from "@dc360/shared";
 import type { Banco, Consulta } from "../banco/tipos.js";
-import { RegraDeNegocio, autorizar, type Identidade } from "../servidor.js";
+import { RegraDeNegocio, autorizar } from "../servidor.js";
+import { registrarEvento } from "../trilha.js";
 
 const idSchema = z.object({ id: z.string().uuid("Identificador inválido") });
 
@@ -26,33 +27,6 @@ const consultaSchema = z.object({
   pagina: z.coerce.number().int().min(1).default(1),
   porPagina: z.coerce.number().int().min(1).max(100).default(20),
 });
-
-/**
- * Registra um evento na trilha auditável.
- *
- * Autor, papel e origem vêm da identidade do token, nunca do corpo da
- * requisição: se o cliente pudesse dizer quem assinou, a trilha não provaria
- * nada. Roda na mesma transação da mudança que descreve, então ou os dois
- * acontecem ou nenhum acontece: não existe estado alterado sem rastro.
- */
-async function registrarEvento(
-  c: Consulta,
-  quem: Identidade,
-  ocorrenciaId: string,
-  tipo: string,
-  detalhe: unknown,
-  origem: Origem = "escritorio",
-): Promise<void> {
-  await c.query(
-    `INSERT INTO trilha_eventos
-       (organizacao_id, ocorrencia_id, tipo, autor_id, autor_nome, autor_papel, origem, ocorrido_em, detalhe)
-     VALUES ($1,$2,$3,$4,$5,$6,$7, now(), $8)`,
-    [
-      quem.organizacaoId, ocorrenciaId, tipo, quem.usuarioId,
-      quem.nome, quem.papel, origem, JSON.stringify(detalhe),
-    ],
-  );
-}
 
 /**
  * Lê o status atual e recusa transição que a máquina de estados não permite.
@@ -73,7 +47,26 @@ async function exigirTransicao(
   );
   const de = r.rows[0]?.status;
   if (!de) throw new RegraDeNegocio("nao_encontrada", "Ocorrência não encontrada.", 404);
-  if (de === para) return de;
+  if (de === para) {
+    /*
+      Repetir um passo é diferente de repetir um desfecho.
+
+      Reclassificar quem já está em triagem é rotina, e o evento novo diz uma
+      verdade: a severidade mudou. Já encerrar quem já está encerrado é clique
+      duplicado, e antes disto a rota seguia adiante e gravava um SEGUNDO
+      evento de encerramento numa trilha append-only, que por definição não se
+      corrige. O `disabled` no botão ajuda; ele não é controle, porque o
+      segundo clique pode vir de outra aba, de um F5 ou de uma conexão lenta.
+    */
+    if (estadoTerminal(de)) {
+      throw new RegraDeNegocio(
+        "ja_no_estado_final",
+        "Essa ocorrência já está encerrada. Nada foi alterado.",
+        409,
+      );
+    }
+    return de;
+  }
   if (!transicaoPermitida(de, para)) {
     throw new RegraDeNegocio(
       "transicao_invalida",

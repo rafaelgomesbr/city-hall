@@ -1046,3 +1046,76 @@ describe("Posto entre papeis", () => {
     expect(rebaixar.json().erro).toBe("ultimo_administrador");
   }, 90_000);
 });
+
+/**
+ * Clique duplicado no botão de encerrar.
+ *
+ * Este caso existe porque `exigirTransicao` retornava cedo quando o estado
+ * pedido já era o atual, e a rota seguia adiante gravando um segundo evento de
+ * encerramento. A trilha não tem policy de DELETE: o segundo evento não se
+ * corrige, e ele diz que a ocorrência foi encerrada duas vezes, por duas
+ * pessoas ou pela mesma em dois instantes.
+ */
+describe("Encerrar duas vezes", () => {
+  it("recusa a segunda com 409 e não duplica o evento na trilha", async () => {
+    const criar = await app.inject({
+      method: "POST", url: "/ocorrencias", headers: comToken(tokens["coordA"]!.acesso),
+      payload: {
+        solicitanteNome: "Iracema Nunes Barbosa", solicitanteContato: "(35) 99612-3355",
+        canalEntrada: "telefone", endereco: "Rua dos Lírios, 240, Jardim Bela Vista",
+        tipo: "alagamento", descricao: "Água entrou na garagem e subiu meio metro.",
+      },
+    });
+    const { id } = criar.json();
+
+    const primeira = await app.inject({
+      method: "POST", url: `/ocorrencias/${id}/encerramento`, headers: comToken(tokens["coordA"]!.acesso),
+      payload: { motivo: "Bueiro desobstruído pela zeladoria, risco cessado." },
+    });
+    expect(primeira.statusCode).toBe(200);
+
+    const segunda = await app.inject({
+      method: "POST", url: `/ocorrencias/${id}/encerramento`, headers: comToken(tokens["coordA"]!.acesso),
+      payload: { motivo: "Bueiro desobstruído pela zeladoria, risco cessado." },
+    });
+    expect(segunda.statusCode).toBe(409);
+    expect(segunda.json().erro).toBe("ja_no_estado_final");
+
+    const detalhe = await app.inject({
+      method: "GET", url: `/ocorrencias/${id}`, headers: comToken(tokens["coordA"]!.acesso),
+    });
+    const encerramentos = detalhe.json().trilha.filter(
+      (e: { tipo: string }) => e.tipo === "encerramento",
+    );
+    expect(encerramentos).toHaveLength(1);
+  });
+
+  it("reclassificar na triagem continua permitido, porque triagem não é desfecho", async () => {
+    const criar = await app.inject({
+      method: "POST", url: "/ocorrencias", headers: comToken(tokens["coordA"]!.acesso),
+      payload: {
+        solicitanteNome: "Vicente Aparecido Rosa", solicitanteContato: "(35) 99188-7720",
+        canalEntrada: "presencial", endereco: "Travessa São Bento, 19, Centro",
+        tipo: "vendaval", descricao: "Telhado do galpão levantou com o vento.",
+      },
+    });
+    const { id } = criar.json();
+
+    for (const severidade of ["media", "critica"]) {
+      const r = await app.inject({
+        method: "POST", url: `/ocorrencias/${id}/triagem`, headers: comToken(tokens["coordA"]!.acesso),
+        payload: { severidade, vulnerabilidadePresente: false },
+      });
+      expect(r.statusCode).toBe(200);
+    }
+
+    const detalhe = await app.inject({
+      method: "GET", url: `/ocorrencias/${id}`, headers: comToken(tokens["coordA"]!.acesso),
+    });
+    expect(detalhe.json().ocorrencia.severidade).toBe("critica");
+    // Duas classificações são dois fatos verdadeiros, e os dois ficam.
+    expect(detalhe.json().trilha.filter(
+      (e: { tipo: string }) => e.tipo === "triagem",
+    )).toHaveLength(2);
+  });
+});

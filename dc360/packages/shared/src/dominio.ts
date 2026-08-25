@@ -97,6 +97,22 @@ export function transicaoPermitida(de: StatusOcorrencia, para: StatusOcorrencia)
   return TRANSICOES_PERMITIDAS[de].includes(para);
 }
 
+/**
+ * Estado do qual não se sai.
+ *
+ * Serve para separar dois casos que parecem o mesmo: repetir um passo e
+ * repetir um desfecho.
+ *
+ * Reclassificar uma ocorrência que já está em triagem é rotina, e o segundo
+ * evento na trilha é informação verdadeira: a severidade mudou. Encerrar uma
+ * ocorrência já encerrada não é rotina, é um clique duplicado num botão, e o
+ * segundo evento é uma mentira gravada num histórico que não tem policy de
+ * DELETE. Não existe correção depois.
+ */
+export function estadoTerminal(status: StatusOcorrencia): boolean {
+  return TRANSICOES_PERMITIDAS[status].length === 0;
+}
+
 /** Por onde uma ocorrência entra no fluxo. Hoje só existe um caminho. */
 export const STATUS_INICIAL: StatusOcorrencia = "registrada";
 

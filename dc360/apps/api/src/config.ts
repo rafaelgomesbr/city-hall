@@ -15,6 +15,22 @@ const esquema = z.object({
   DATABASE_URL: z.string().url().optional(),
 
   /**
+   * Carimbo impresso em todo documento oficial.
+   *
+   * O padrão MARCA, e desmarcar exige ato deliberado: `MARCA_DAGUA=` vazio.
+   * A regra já foi o contrário, ligada ao ambiente, e o contrário estava
+   * errado de um jeito específico: `NODE_ENV === "production" ? undefined :
+   * "DOCUMENTO DE VALIDAÇÃO"` desligava o carimbo exatamente no ambiente onde
+   * o piloto roda. Ou seja, durante toda a validação com município real, o
+   * laudo de teste saía indistinguível de um laudo verdadeiro, e não havia
+   * variável nenhuma para corrigir isso.
+   *
+   * Um documento a mais com carimbo é um constrangimento. Um documento a menos
+   * é uma peça anexada a processo por engano.
+   */
+  MARCA_DAGUA: z.string().default("DOCUMENTO DE VALIDAÇÃO"),
+
+  /**
    * Chave de assinatura dos tokens de acesso. Mínimo de 32 bytes de entropia.
    * Em produção é obrigatória; sem ela o processo não sobe.
    */

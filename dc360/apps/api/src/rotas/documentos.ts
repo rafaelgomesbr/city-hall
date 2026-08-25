@@ -5,6 +5,7 @@ import { RegraDeNegocio } from "../servidor.js";
 import type { Armazenamento } from "../armazenamento/tipos.js";
 import { laudoDeVistoria, termoDeInterdicao, type DadosDocumento } from "../documentos/laudo.js";
 import type { GeradorDePdf } from "../documentos/pdf.js";
+import { registrarEmissao } from "../trilha.js";
 
 /**
  * Documentos oficiais.
@@ -80,7 +81,7 @@ async function reunirDados(
   });
 
   const assinaturaUrl = await enderecoDaAssinatura(
-    armazenamento, bruto.vistoria.assinatura_chave,
+    armazenamento, organizacaoId, bruto.vistoria.assinatura_chave,
   );
 
   return {
@@ -117,9 +118,26 @@ async function reunirDados(
  */
 async function enderecoDaAssinatura(
   armazenamento: Armazenamento,
+  organizacaoId: string,
   chave: string | null,
 ): Promise<string | null> {
   if (!chave) return null;
+
+  /*
+   * Terceira camada, e a única que roda na hora de LER.
+   *
+   * A rota de sincronização remonta a chave e o banco tem a restrição da
+   * migração 009, então uma chave estranha não deveria conseguir chegar até
+   * aqui. Esta conferência existe para o dia em que uma das duas falhar, e
+   * porque é ela que evita tocar o armazenamento: sem ela, uma chave de outra
+   * prefeitura vira uma chamada `descrever` cujo resultado é observável no
+   * documento, ou seja, um oráculo de existência sobre o balde inteiro.
+   *
+   * Recusar aqui devolve exatamente o mesmo que "não colheu assinatura", que é
+   * o que mata o oráculo: o laudo sai idêntico nos dois casos.
+   */
+  if (!chave.startsWith(`tenant/${organizacaoId}/`)) return null;
+
   const objeto = await armazenamento.descrever(chave).catch(() => ({ existe: false }));
   if (!objeto.existe) return null;
   return armazenamento.urlParaLer(chave, 30 * 60);
@@ -135,9 +153,35 @@ export async function rotasDocumentos(
     pdf?: GeradorDePdf;
   },
 ): Promise<void> {
+  /**
+   * Interdição é ato administrativo, não um botão de imprimir.
+   *
+   * O termo tira uma família de casa. Quem decide isso é o agente que esteve
+   * no local e respondeu o checklist, e `interdicao_indicada` é item
+   * OBRIGATÓRIO da vistoria justamente por isso: ele sempre existe e sempre
+   * tem resposta.
+   *
+   * Até aqui a rota nunca o lia. Uma vistoria que concluiu "interdição
+   * indicada: não" produzia, do mesmo jeito, um documento com brasão dizendo
+   * "Fica INTERDITADO o imóvel". O papel não tinha como ser distinguido de um
+   * termo legítimo, e nada no sistema registrava que ele havia saído.
+   */
+  function exigirInterdicaoIndicada(dados: DadosDocumento): void {
+    const indicada = dados.vistoria.checklist
+      .some((i) => i.chave === "interdicao_indicada" && i.resposta);
+    if (indicada) return;
+    throw new RegraDeNegocio(
+      "interdicao_nao_indicada",
+      "A vistoria desta ocorrência não indicou interdição, então não há termo a emitir. "
+      + "Se o risco mudou, registre uma vistoria nova antes de interditar.",
+      409,
+    );
+  }
+
   async function responder(
     req: FastifyRequest,
-    gerar: (d: DadosDocumento) => string,
+    documento: "laudo" | "termo_de_interdicao",
+    formato: "html" | "pdf",
   ): Promise<string> {
     const quem = await app.exigirAutenticacao(req);
     const { id } = idSchema.parse(req.params);
@@ -145,16 +189,29 @@ export async function rotasDocumentos(
       banco, armazenamento, quem.organizacaoId, id,
       `${quem.nome} (${quem.papel})`,
     );
+
+    if (documento === "termo_de_interdicao") exigirInterdicaoIndicada(dados);
+
+    /*
+      O rastro é gravado ANTES de devolver o documento, e numa transação sua.
+      Antes, porque o que interessa registrar é que alguém obteve o papel; se a
+      geração falhar depois disso, sobra um evento a mais, que é o erro barato.
+      O contrário deixaria termos circulando sem registro, que é o erro caro.
+    */
+    await banco.comTenant(quem.organizacaoId, (c) =>
+      registrarEmissao(c, quem, id, documento, dados.vistoria.id, formato));
+
+    const gerar = documento === "laudo" ? laudoDeVistoria : termoDeInterdicao;
     return gerar({ ...dados, ...(marcaDagua ? { marcaDagua } : {}) });
   }
 
   app.get("/:id/laudo", async (req, resposta) => {
-    const html = await responder(req, laudoDeVistoria);
+    const html = await responder(req, "laudo", "html");
     return resposta.type("text/html; charset=utf-8").send(html);
   });
 
   app.get("/:id/termo-de-interdicao", async (req, resposta) => {
-    const html = await responder(req, termoDeInterdicao);
+    const html = await responder(req, "termo_de_interdicao", "html");
     return resposta.type("text/html; charset=utf-8").send(html);
   });
 
@@ -169,7 +226,7 @@ export async function rotasDocumentos(
   async function responderPdf(
     req: FastifyRequest,
     resposta: FastifyReply,
-    gerar: (d: DadosDocumento) => string,
+    documento: "laudo" | "termo_de_interdicao",
     nome: string,
   ) {
     /*
@@ -178,7 +235,7 @@ export async function rotasDocumentos(
       servidor sem gerador e 404 num servidor com gerador, e a diferença entre
       as duas respostas contaria a quem sonda que o registro existe.
     */
-    const html = await responder(req, gerar);
+    const html = await responder(req, documento, "pdf");
 
     if (!pdf) {
       throw new RegraDeNegocio(
@@ -212,8 +269,8 @@ export async function rotasDocumentos(
   }
 
   app.get("/:id/laudo.pdf", async (req, resposta) =>
-    responderPdf(req, resposta, laudoDeVistoria, "laudo-de-vistoria"));
+    responderPdf(req, resposta, "laudo", "laudo-de-vistoria"));
 
   app.get("/:id/termo-de-interdicao.pdf", async (req, resposta) =>
-    responderPdf(req, resposta, termoDeInterdicao, "termo-de-interdicao"));
+    responderPdf(req, resposta, "termo_de_interdicao", "termo-de-interdicao"));
 }

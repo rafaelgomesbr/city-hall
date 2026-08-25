@@ -51,6 +51,31 @@ export async function rotasSincronizacao(
       }
 
       const v = envelope.vistoria;
+
+      /**
+       * A chave da assinatura nunca é aceita como veio.
+       *
+       * Este campo é o único do envelope que ia cru para o banco. A foto, no
+       * mesmo envelope, já conferia o prefixo do município logo abaixo; a
+       * assinatura não conferia nada, e a coluna era `text` puro. Enquanto o
+       * traço era gravado e nunca lido, o campo era inerte. No dia em que o
+       * laudo passou a exibi-lo, virou um caminho de leitura: bastava apontar
+       * para um objeto de outra prefeitura e o documento saía com uma URL
+       * assinada dela.
+       *
+       * A regra aqui é a mesma da foto, e mais estrita porque não existe
+       * fluxo de envio antecipado de assinatura: o servidor remonta a chave a
+       * partir do token e do nome do arquivo, sempre. O que o cliente escolhe
+       * é, no máximo, o nome.
+       */
+      const assinaturaChave = v.assinaturaChave
+        ? chaveDeStorage(
+            quem.organizacaoId,
+            envelope.ocorrenciaId,
+            v.assinaturaChave.split("/").pop() ?? "assinatura.png",
+          )
+        : null;
+
       const inserida = await c.query<{ id: string }>(
         `INSERT INTO vistorias
            (organizacao_id, ocorrencia_id, agente_id, checklist, gps_precisao_metros,
@@ -60,7 +85,7 @@ export async function rotasSincronizacao(
         [
           quem.organizacaoId, envelope.ocorrenciaId, quem.usuarioId,
           JSON.stringify(v.checklist), v.gpsPrecisaoMetros,
-          v.assinanteNome, v.assinaturaChave, v.observacoes ?? null,
+          v.assinanteNome, assinaturaChave, v.observacoes ?? null,
           v.coletadaEm, envelope.idempotencyKey,
         ],
       );

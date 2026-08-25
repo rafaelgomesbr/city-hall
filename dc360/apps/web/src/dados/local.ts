@@ -2,6 +2,7 @@ import {
   PRAZO_PADRAO_HORAS,
   exigirPermissao,
   exigirPostoParaGerir,
+  estadoTerminal,
   transicaoPermitida,
   type Origem,
   type Papel,
@@ -419,7 +420,16 @@ async function exigirTransicao(
   );
   const de = atual.rows[0]?.status;
   if (!de) throw new Error("Ocorrência não encontrada nesta organização");
-  if (de === para) return de;
+  if (de === para) {
+    // Mesma regra da API, palavra por palavra: repetir um passo é legítimo,
+    // repetir um desfecho é clique duplicado, e o segundo evento fica gravado
+    // numa trilha que não se corrige. Os dois modos precisam produzir a MESMA
+    // trilha, porque ela é a peça que sai como prova.
+    if (estadoTerminal(de)) {
+      throw new Error("Essa ocorrência já está encerrada. Nada foi alterado.");
+    }
+    return de;
+  }
   if (!transicaoPermitida(de, para)) {
     throw new Error(`Transição não permitida: de ${de} para ${para}`);
   }

@@ -226,9 +226,10 @@ export async function construirServidor(
   await app.register(rotasDocumentos, {
     prefix: "/documentos", banco, armazenamento, pdf,
     // Enquanto o produto não estiver em uso oficial, todo documento sai
-    // marcado. Um laudo de demonstração indistinguível de um real é o tipo de
-    // coisa que acaba anexada a processo por engano.
-    marcaDagua: config.NODE_ENV === "production" ? undefined : "DOCUMENTO DE VALIDAÇÃO",
+    // marcado. Quem decide é `MARCA_DAGUA`, e não o ambiente: o piloto roda
+    // com NODE_ENV=production, então amarrar o carimbo ao ambiente o desligava
+    // justamente onde ele mais importa. Vazio desmarca, e é ato deliberado.
+    ...(config.MARCA_DAGUA ? { marcaDagua: config.MARCA_DAGUA } : {}),
   });
 
   // Só existe quando a própria API guarda os bytes, o que a configuração

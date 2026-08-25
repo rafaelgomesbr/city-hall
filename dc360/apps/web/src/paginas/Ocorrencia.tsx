@@ -83,7 +83,22 @@ export function Ocorrencia() {
     recarregar().catch((e: unknown) => setErro(e instanceof Error ? e.message : String(e)));
   }, [recarregar]);
 
+  /**
+   * Uma escrita por vez.
+   *
+   * O `disabled` nos botões abaixo é conforto; esta trava é o controle. Numa
+   * conexão de prefeitura o segundo clique chega antes de a primeira resposta
+   * voltar, e o resultado era duas providências para o mesmo órgão, ou dois
+   * eventos de encerramento numa trilha que não tem como ser corrigida.
+   *
+   * Repare na ironia que isto conserta: o botão de LER documento já recusava
+   * clique concorrente. Os cinco de GRAVAR, não.
+   */
+  const [gravando, setGravando] = useState(false);
+
   async function executar(acao: () => Promise<void>, mensagem: string) {
+    if (gravando) return;
+    setGravando(true);
     setErro(null);
     try {
       await acao();
@@ -91,6 +106,8 @@ export function Ocorrencia() {
       setAviso(mensagem);
     } catch (e: unknown) {
       setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setGravando(false);
     }
   }
 
@@ -206,6 +223,7 @@ export function Ocorrencia() {
 
           {podeTriagem && !encerrada && o.status === "registrada" && (
             <BlocoTriagem
+              gravando={gravando}
               onEnviar={(t) => executar(
                 () => classificarNaTriagem(sessao, o.id, t),
                 "Triagem registrada. O prazo de atendimento foi calculado pela severidade.",
@@ -215,6 +233,7 @@ export function Ocorrencia() {
 
           {podeDespachar && !encerrada && o.status === "triagem" && (
             <BlocoDespacho
+              gravando={gravando}
               equipes={equipes.filter((e) => e.ativa)}
               severidade={o.severidade}
               onEnviar={(d) => executar(
@@ -234,6 +253,7 @@ export function Ocorrencia() {
           */}
           {podeDespachar && !encerrada && o.status === "em_campo" && (
             <BlocoDespacho
+              gravando={gravando}
               titulo="Trocar equipe ou prazo"
               equipes={equipes.filter((e) => e.ativa)}
               severidade={o.severidade}
@@ -247,6 +267,7 @@ export function Ocorrencia() {
 
           {podeProvidencia && !encerrada && o.status === "vistoria_concluida" && (
             <BlocoProvidencia
+              gravando={gravando}
               onEnviar={(p) => executar(
                 () => encaminharProvidencia(sessao, o.id, p),
                 "Providência encaminhada e registrada na trilha.",
@@ -348,6 +369,7 @@ export function Ocorrencia() {
 
               {podeResponder && providencias.some((p) => !p.respondida_em) && (
                 <BlocoRespostaProvidencia
+              gravando={gravando}
                   abertas={providencias.filter((p) => !p.respondida_em)}
                   onEnviar={(providenciaId, r) => executar(
                     () => responderProvidencia(sessao, o.id, providenciaId, r),
@@ -360,6 +382,7 @@ export function Ocorrencia() {
 
           {podeEncerrar && !encerrada && (
             <BlocoEncerramento
+              gravando={gravando}
               onEnviar={(e) => executar(
                 () => encerrarOcorrencia(sessao, o.id, e),
                 "Ocorrência encerrada com motivo registrado.",
@@ -452,7 +475,7 @@ function descreverDetalhe(detalhe: Record<string, unknown>): string {
 // Blocos de ação
 // ---------------------------------------------------------------------------
 
-function BlocoTriagem({ onEnviar }: { onEnviar: (t: { severidade: Severidade; vulnerabilidadePresente: boolean; vulnerabilidadeDescricao?: string }) => void }) {
+function BlocoTriagem({ onEnviar, gravando }: { onEnviar: (t: { severidade: Severidade; vulnerabilidadePresente: boolean; vulnerabilidadeDescricao?: string }) => void; gravando: boolean }) {
   const [severidade, setSeveridade] = useState<Severidade>("media");
   const [vulneravel, setVulneravel] = useState(false);
   const [descricao, setDescricao] = useState("");
@@ -508,16 +531,19 @@ function BlocoTriagem({ onEnviar }: { onEnviar: (t: { severidade: Severidade; vu
         )}
 
         {erro && <ErroCampo id="triagem-erro">{erro}</ErroCampo>}
-        <button type="submit" className="botao botao--primario">Registrar triagem</button>
+        <button type="submit" className="botao botao--primario" disabled={gravando}>
+          {gravando ? "Registrando" : "Registrar triagem"}
+        </button>
       </form>
     </Cartao>
   );
 }
 
-function BlocoDespacho({ equipes, severidade, onEnviar, titulo, equipeAtual }: {
+function BlocoDespacho({ equipes, severidade, onEnviar, titulo, equipeAtual, gravando }: {
   equipes: LinhaEquipe[];
   severidade: Severidade | null;
   onEnviar: (d: { equipeId: string; prazoHoras: number; instrucoes?: string }) => void;
+  gravando: boolean;
   /** "Despachar equipe" na primeira vez, "Trocar equipe ou prazo" depois. */
   titulo?: string;
   /** Já despachada: o seletor começa em quem está com o caso hoje. */
@@ -582,16 +608,17 @@ function BlocoDespacho({ equipes, severidade, onEnviar, titulo, equipeAtual }: {
         </div>
 
         {erro && <ErroCampo id="despacho-erro">{erro}</ErroCampo>}
-        <button type="submit" className="botao botao--primario">
-          {equipeAtual ? "Salvar troca" : "Despachar"}
+        <button type="submit" className="botao botao--primario" disabled={gravando}>
+          {gravando ? "Enviando" : equipeAtual ? "Salvar troca" : "Despachar"}
         </button>
       </form>
     </Cartao>
   );
 }
 
-function BlocoProvidencia({ onEnviar }: {
+function BlocoProvidencia({ onEnviar, gravando }: {
   onEnviar: (p: { orgaoDestino: string; descricao: string; responsavel: string; prazoHoras: number }) => void;
+  gravando: boolean;
 }) {
   const [orgao, setOrgao] = useState(ORGAOS[0]!);
   const [descricao, setDescricao] = useState("");
@@ -642,13 +669,15 @@ function BlocoProvidencia({ onEnviar }: {
         </div>
 
         {erro && <ErroCampo id="providencia-erro">{erro}</ErroCampo>}
-        <button type="submit" className="botao botao--primario">Encaminhar providência</button>
+        <button type="submit" className="botao botao--primario" disabled={gravando}>
+          {gravando ? "Encaminhando" : "Encaminhar providência"}
+        </button>
       </form>
     </Cartao>
   );
 }
 
-function BlocoEncerramento({ onEnviar }: { onEnviar: (e: { motivo: string }) => void }) {
+function BlocoEncerramento({ onEnviar, gravando }: { onEnviar: (e: { motivo: string }) => void; gravando: boolean }) {
   const [motivo, setMotivo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
 
@@ -679,7 +708,9 @@ function BlocoEncerramento({ onEnviar }: { onEnviar: (e: { motivo: string }) => 
           <span className="campo__dica">O banco recusa encerramento sem motivo: a regra não é da tela.</span>
         </div>
         {erro && <ErroCampo id="encerramento-erro">{erro}</ErroCampo>}
-        <button type="submit" className="botao botao--perigo">Encerrar ocorrência</button>
+        <button type="submit" className="botao botao--perigo" disabled={gravando}>
+          {gravando ? "Encerrando" : "Encerrar ocorrência"}
+        </button>
       </form>
     </Cartao>
   );
@@ -847,12 +878,13 @@ function CartaoEvidencias({ fotos }: { fotos: LinhaEvidencia[] }) {
  * Formulário em outra tela significaria anotar no papel e transcrever depois,
  * que é exatamente o hábito que o sistema existe para substituir.
  */
-function BlocoRespostaProvidencia({ abertas, onEnviar }: {
+function BlocoRespostaProvidencia({ abertas, onEnviar, gravando }: {
   abertas: LinhaProvidencia[];
   onEnviar: (
     providenciaId: string,
     r: { desfecho: DesfechoProvidencia; resposta: string; respondidaPor: string },
   ) => void;
+  gravando: boolean;
 }) {
   const [alvo, setAlvo] = useState(abertas[0]?.id ?? "");
   const [desfecho, setDesfecho] = useState<DesfechoProvidencia>("atendida");
@@ -921,7 +953,9 @@ function BlocoRespostaProvidencia({ abertas, onEnviar }: {
       </div>
 
       {erro && <ErroCampo id="resposta-erro">{erro}</ErroCampo>}
-      <button type="submit" className="botao botao--primario">Registrar resposta</button>
+      <button type="submit" className="botao botao--primario" disabled={gravando}>
+        {gravando ? "Registrando" : "Registrar resposta"}
+      </button>
     </form>
   );
 }

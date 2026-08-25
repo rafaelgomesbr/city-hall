@@ -55,7 +55,9 @@ const com = (t: string) => ({ authorization: `Bearer ${t}` });
  */
 const corrido = (html: string) => html.replace(/\s+/g, " ");
 
-async function comVistoria(opcoes: { offline: boolean; endereco: string }): Promise<{
+async function comVistoria(
+  opcoes: { offline: boolean; endereco: string; interdicao?: boolean },
+): Promise<{
   id: string; protocolo: string; vistoriaId: string;
 }> {
   const criar = await app.inject({
@@ -93,7 +95,7 @@ async function comVistoria(opcoes: { offline: boolean; endereco: string }): Prom
         checklist: [
           { chave: "risco_iminente", resposta: true },
           { chave: "evacuacao_necessaria", resposta: true },
-          { chave: "interdicao_indicada", resposta: true },
+          { chave: "interdicao_indicada", resposta: opcoes.interdicao ?? true },
           { chave: "acionar_outro_orgao", resposta: false },
         ],
         fotos: [],
@@ -536,4 +538,167 @@ describe("Assinatura da moradora no documento", () => {
     expect(termo.body).toContain("Responsável pelo imóvel, ciente");
     expect(termo.body).not.toContain('class="traco"');
   }, 120_000);
+});
+
+/**
+ * O termo de interdição é ato administrativo, não um botão de imprimir.
+ *
+ * Estes casos existem porque, até a auditoria do conselho, a rota nunca lia
+ * `interdicao_indicada`. O item é OBRIGATÓRIO no checklist da vistoria, ou
+ * seja, sempre tem resposta, e mesmo assim uma vistoria que concluiu "não
+ * interditar" produzia um documento com brasão mandando desocupar o imóvel.
+ */
+describe("O termo exige a decisão que o autoriza", () => {
+  it("recusa com 409 quando a vistoria não indicou interdição", async () => {
+    const alvo = await comVistoria({
+      offline: false,
+      endereco: "Rua das Camélias, 88, Bairro Alto",
+      interdicao: false,
+    });
+
+    const termo = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/termo-de-interdicao`,
+      headers: com(tokenCoordenador),
+    });
+
+    expect(termo.statusCode).toBe(409);
+    expect(termo.json().erro).toBe("interdicao_nao_indicada");
+    // A mensagem precisa dizer o caminho de saída, senão o coordenador conclui
+    // que o sistema quebrou e emite o termo por fora, no Word.
+    expect(termo.json().mensagem).toContain("vistoria nova");
+    // E o laudo continua saindo: a recusa é do termo, não do documento técnico.
+    const laudo = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/laudo`, headers: com(tokenCoordenador),
+    });
+    expect(laudo.statusCode).toBe(200);
+  });
+
+  it("emite quando a vistoria indicou, e deixa rastro de quem emitiu", async () => {
+    const alvo = await comVistoria({
+      offline: false, endereco: "Servidão do Cedro, 12, Vila Nova",
+    });
+
+    const termo = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/termo-de-interdicao`,
+      headers: com(tokenCoordenador),
+    });
+    expect(termo.statusCode).toBe(200);
+
+    const detalhe = await app.inject({
+      method: "GET", url: `/ocorrencias/${alvo.id}`, headers: com(tokenCoordenador),
+    });
+    const emissoes = detalhe.json().trilha.filter(
+      (e: { tipo: string }) => e.tipo === "documento_emitido",
+    );
+    expect(emissoes).toHaveLength(1);
+    expect(emissoes[0].detalhe.documento).toBe("termo_de_interdicao");
+    expect(emissoes[0].autor_nome).toBeTruthy();
+  });
+
+  it("abrir o mesmo documento de novo não polui a trilha", async () => {
+    // Um laudo é aberto várias vezes por dia pelas mesmas pessoas: por quem
+    // despachou, por quem assina, pela recepção que imprime. Se cada abertura
+    // virasse linha, a trilha viraria registro de cliques, e ela não tem
+    // policy de DELETE: o que entra ali fica.
+    const alvo = await comVistoria({
+      offline: false, endereco: "Rua do Mirante, 401, Morro Azul",
+    });
+
+    for (let i = 0; i < 3; i += 1) {
+      const r = await app.inject({
+        method: "GET", url: `/documentos/${alvo.id}/laudo`, headers: com(tokenCoordenador),
+      });
+      expect(r.statusCode).toBe(200);
+    }
+
+    const detalhe = await app.inject({
+      method: "GET", url: `/ocorrencias/${alvo.id}`, headers: com(tokenCoordenador),
+    });
+    const emissoes = detalhe.json().trilha.filter(
+      (e: { tipo: string }) => e.tipo === "documento_emitido",
+    );
+    expect(emissoes).toHaveLength(1);
+  });
+});
+
+/**
+ * A chave da assinatura vinha crua do aparelho.
+ *
+ * Enquanto o traço era gravado e nunca lido, o campo era inerte. Quando o
+ * laudo passou a exibi-lo, virou caminho de leitura para qualquer objeto do
+ * balde, inclusive de outra prefeitura.
+ */
+describe("A chave da assinatura não é escolhida pelo cliente", () => {
+  it("remonta a chave sob o prefixo do próprio município", async () => {
+    const alvo = await comVistoria({
+      offline: false, endereco: "Alameda dos Ipês, 77, Centro",
+    });
+
+    const linha = await mem.bruto.query<{
+      assinatura_chave: string | null; organizacao_id: string;
+    }>(
+      "SELECT assinatura_chave, organizacao_id FROM vistorias WHERE id = $1",
+      [alvo.vistoriaId],
+    );
+
+    const gravada = linha.rows[0]!;
+    expect(gravada.assinatura_chave).toBe(
+      `tenant/${gravada.organizacao_id}/ocorrencias/${alvo.id}/assinatura.png`,
+    );
+  });
+
+  it("uma chave apontando para outro município não sobrevive à gravação", async () => {
+    const criar = await app.inject({
+      method: "POST", url: "/ocorrencias", headers: com(tokenCoordenador),
+      payload: {
+        solicitanteNome: "Otávio Ramires Pinto", solicitanteContato: "(35) 99400-1188",
+        canalEntrada: "telefone", endereco: "Rua da Pedreira, 5, Alto da Serra",
+        tipo: "deslizamento", descricao: "Barranco cedeu na lateral da casa.",
+        coordenada: { lat: -22.41, lng: -45.45 },
+      },
+    });
+    const { id } = criar.json();
+    await app.inject({
+      method: "POST", url: `/ocorrencias/${id}/triagem`, headers: com(tokenCoordenador),
+      payload: { severidade: "alta", vulnerabilidadePresente: false },
+    });
+    await app.inject({
+      method: "POST", url: `/ocorrencias/${id}/despacho`, headers: com(tokenCoordenador),
+      payload: { equipeId: EQUIPE_ALFA, prazoHoras: 6 },
+    });
+
+    const agora = new Date().toISOString();
+    const alheio = "tenant/00000000-0000-4000-8000-000000000999/ocorrencias/xyz/assinatura.png";
+    const enviada = await app.inject({
+      method: "POST", url: "/sincronizacao/vistoria", headers: com(tokenAgente),
+      payload: {
+        idempotencyKey: crypto.randomUUID(),
+        ocorrenciaId: id,
+        coletadaEm: agora,
+        vistoria: {
+          checklist: [
+            { chave: "risco_iminente", resposta: true },
+            { chave: "evacuacao_necessaria", resposta: false },
+            { chave: "interdicao_indicada", resposta: false },
+            { chave: "acionar_outro_orgao", resposta: false },
+          ],
+          fotos: [],
+          gpsPrecisaoMetros: 8,
+          assinanteNome: "Otávio Ramires Pinto",
+          assinaturaChave: alheio,
+          coletadaEm: agora,
+        },
+      },
+    });
+    expect(enviada.statusCode).toBe(201);
+
+    // O envio é aceito: recusar diria ao aparelho que a chave existe em algum
+    // lugar. O que não sobrevive é a chave.
+    const linha = await mem.bruto.query<{ assinatura_chave: string | null }>(
+      "SELECT assinatura_chave FROM vistorias WHERE id = $1",
+      [enviada.json().vistoriaId],
+    );
+    expect(linha.rows[0]!.assinatura_chave).not.toContain("000000000999");
+    expect(linha.rows[0]!.assinatura_chave).toContain("/assinatura.png");
+  });
 });
