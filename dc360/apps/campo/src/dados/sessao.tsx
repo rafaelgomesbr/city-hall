@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as SecureStore from "expo-secure-store";
 import { entrar as entrarNaApi, renovar, sair as sairDaApi, type Credenciais, type Identidade } from "./api";
+import { criarObtentorDeToken } from "./token";
 
 /**
  * A sessão do agente, guardada no cofre do aparelho.
@@ -14,6 +15,9 @@ import { entrar as entrarNaApi, renovar, sair as sairDaApi, type Credenciais, ty
  * A sessão sobrevive ao aplicativo fechar de propósito. O agente não pode
  * precisar digitar senha no alto do morro, sem sinal, para abrir a vistoria
  * que baixou antes de sair.
+ *
+ * A decisão de QUANDO renovar o token mora em `token.ts`, fora do React, e o
+ * porquê está documentado lá.
  */
 
 const CHAVE_CREDENCIAIS = "dc360.credenciais";
@@ -24,7 +28,7 @@ type EstadoSessao = {
   identidade: Identidade | null;
   entrar(email: string, senha: string): Promise<void>;
   sair(): Promise<void>;
-  /** Devolve um token de acesso válido, renovando se necessário. */
+  /** Devolve um token de acesso válido, renovando só se estiver perto de vencer. */
   obterToken(): Promise<string | null>;
 };
 
@@ -58,7 +62,23 @@ async function ler<T>(chave: string): Promise<T | null> {
 export function ProvedorDeSessao({ children }: { children: ReactNode }) {
   const [carregando, setCarregando] = useState(true);
   const [identidade, setIdentidade] = useState<Identidade | null>(null);
-  const [credenciais, setCredenciais] = useState<Credenciais | null>(null);
+
+  /*
+    As credenciais moram numa ref, e não em estado, por duas razões.
+
+    A primeira é correção. A fila de sincronização é memoizada: ela guarda a
+    primeira função `obterToken` que recebe e usa aquela pelo resto da vida do
+    aplicativo. Com as credenciais em estado, essa primeira função fechava
+    sobre as credenciais da PRIMEIRA renderização e reapresentava, a cada
+    envio, um token de renovação já rotacionado. O servidor lê isso como roubo
+    e derruba a sessão inteira do agente. Com a ref, a função é uma só e
+    sempre lê o que vale agora.
+
+    A segunda é custo. Este provedor embrulha o aplicativo inteiro, e
+    `setCredenciais` a cada renovação re-renderizava toda a árvore. Nenhuma
+    tela mostra o token: ele não é dado de renderização, é dado de transporte.
+  */
+  const credenciais = useRef<Credenciais | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -71,18 +91,34 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
         de quem é a sessão; identidade sem credencial mostraria o nome de
         alguém que não consegue sincronizar nada.
       */
-      if (c && i) { setCredenciais(c); setIdentidade(i); }
+      if (c && i) { credenciais.current = c; setIdentidade(i); }
       setCarregando(false);
     })();
   }, []);
 
+  /*
+    Uma trava de renovação por provedor, criada na primeira renderização e
+    nunca mais. Recriar o obtentor recriaria a trava, e duas travas valem o
+    mesmo que trava nenhuma.
+  */
+  const obtentor = useRef<(() => Promise<string | null>) | null>(null);
+  obtentor.current ??= criarObtentorDeToken({
+    lerCredenciais: () => credenciais.current,
+    guardarCredenciais: async (novas) => {
+      credenciais.current = novas;
+      await guardar(CHAVE_CREDENCIAIS, novas);
+    },
+    renovar,
+  });
+  const obterToken = obtentor.current;
+
   const entrar = useCallback(async (email: string, senha: string) => {
     const r = await entrarNaApi(email.trim().toLowerCase(), senha);
+    credenciais.current = r.credenciais;
     await Promise.all([
       guardar(CHAVE_CREDENCIAIS, r.credenciais),
       guardar(CHAVE_IDENTIDADE, r.identidade),
     ]);
-    setCredenciais(r.credenciais);
     setIdentidade(r.identidade);
   }, []);
 
@@ -94,42 +130,15 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
       ficaria preso numa sessão que ele mandou encerrar. Revogar no servidor é
       o que importa para a segurança, mas não pode ser condição para sair.
     */
-    const atual = credenciais;
-    setCredenciais(null);
+    const atual = credenciais.current;
+    credenciais.current = null;
     setIdentidade(null);
     await Promise.all([
       guardar(CHAVE_CREDENCIAIS, null),
       guardar(CHAVE_IDENTIDADE, null),
     ]);
     if (atual) await sairDaApi(atual.renovacao);
-  }, [credenciais]);
-
-  /**
-   * Token de acesso válido para a fila usar.
-   *
-   * A fila chama isto a cada tentativa de envio, e não uma vez no começo: o
-   * dreno pode durar minutos com o sinal indo e vindo, e o token de acesso
-   * vive quinze minutos. Buscar uma vez só faria a segunda metade do dreno
-   * falhar com 401.
-   */
-  const obterToken = useCallback(async (): Promise<string | null> => {
-    if (!credenciais) return null;
-    try {
-      const novas = await renovar(credenciais.renovacao);
-      await guardar(CHAVE_CREDENCIAIS, novas);
-      setCredenciais(novas);
-      return novas.acesso;
-    } catch {
-      /*
-        Falhou a renovação: pode ser sinal, pode ser sessão morta. Devolver o
-        token atual é o certo nos dois casos. Se for sinal, o token ainda vale
-        e o envio vai tentar; se estiver morto, o servidor responde 401, que o
-        transporte já classifica como falha permanente, e a fila para de
-        insistir em vez de queimar bateria.
-      */
-      return credenciais.acesso;
-    }
-  }, [credenciais]);
+  }, []);
 
   const valor = useMemo<EstadoSessao>(
     () => ({ carregando, identidade, entrar, sair, obterToken }),

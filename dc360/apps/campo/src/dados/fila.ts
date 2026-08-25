@@ -38,6 +38,18 @@ const arquivos: Arquivos = {
   },
 };
 
+/**
+ * A fila, criada uma vez e reaproveitada.
+ *
+ * CONTRATO, e ele é a parte perigosa: a fila guarda o PRIMEIRO `obterToken`
+ * que recebe e ignora todos os seguintes. Quem passar essa função precisa
+ * garantir que ela seja estável e que leia as credenciais de fonte viva, e
+ * não de uma closure congelada. É o que `sessao.tsx` faz, mantendo as
+ * credenciais numa ref. Passar aqui uma função que fecha sobre um valor de
+ * estado faz o aplicativo reapresentar, a cada envio, um token de renovação
+ * já rotacionado, o que a API lê como roubo e responde derrubando todas as
+ * sessões do agente.
+ */
 export async function obterFila(
   baseUrl: string,
   obterToken: () => Promise<string | null>,

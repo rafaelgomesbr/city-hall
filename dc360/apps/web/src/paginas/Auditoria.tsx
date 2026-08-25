@@ -167,7 +167,26 @@ export function Auditoria() {
                   {trilha.map((e) => (
                     <tr key={e.id}>
                       <td>
+                        {/*
+                          Duas horas, e a distinção entre elas é o que sustenta
+                          a trilha como prova.
+
+                          `ocorrido_em` é o relógio do aparelho do agente: é a
+                          hora do ato no barranco, e é a que o laudo imprime.
+                          Mas ela é DECLARADA, e um celular pode estar com o
+                          fuso trocado ou ajustado à mão. `registrado_em` é
+                          `now()` do banco, e ninguém escolhe.
+
+                          Por isso o filtro de período desta tela recorta pela
+                          segunda, e a primeira aparece rotulada. Sem o rótulo,
+                          quem lê a auditoria trata declaração como apuração.
+                        */}
                         <div>{formatarDataHora(e.ocorrido_em)}</div>
+                        {e.origem === "campo" && (
+                          <div className="tabela__secundario">
+                            hora informada pelo aparelho
+                          </div>
+                        )}
                         {e.registrado_em !== e.ocorrido_em && (
                           <div className="tabela__secundario">
                             recebido em {formatarDataHora(e.registrado_em)}

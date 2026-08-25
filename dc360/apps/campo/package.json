@@ -11,7 +11,8 @@
     "lojas:android": "eas build --platform android --profile producao",
     "lojas:ios": "eas build --platform ios --profile producao",
     "enviar:android": "eas submit --platform android --latest",
-    "enviar:ios": "eas submit --platform ios --latest"
+    "enviar:ios": "eas submit --platform ios --latest",
+    "test": "jest"
   },
   "dependencies": {
     "@dc360/campo": "file:../../packages/campo",
@@ -38,9 +39,19 @@
     "react-native-svg": "15.15.4"
   },
   "devDependencies": {
+    "@testing-library/react-native": "^14.0.1",
+    "@types/jest": "29.5.14",
+    "jest": "~29.7.0",
+    "jest-expo": "~57.0.4",
     "typescript": "~6.0.3"
   },
   "overrides": {
     "uuid": "^11.1.1"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg))"
+    ]
   }
 }

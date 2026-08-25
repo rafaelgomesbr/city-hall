@@ -1,4 +1,4 @@
-import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyRequest, type FastifyServerOptions } from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
@@ -47,31 +47,115 @@ export type Dependencias = {
   notificador?: Notificador;
   /** Ausente quando o servidor sobe sem navegador para renderizar PDF. */
   pdf?: GeradorDePdf;
+  /**
+   * Para onde o log vai. Só o teste passa isto, e passa um coletor em memória
+   * para poder AFIRMAR o que saiu: a lista de `redact` é a defesa contra vazar
+   * dado pessoal, e defesa que ninguém exercita não é defesa.
+   */
+  destinoDeLog?: { write: (linha: string) => void };
 };
 
 export async function construirServidor(
-  { banco, config, armazenamento, notificador = notificadorDeLog(), pdf }: Dependencias,
+  { banco, config, armazenamento, notificador = notificadorDeLog(), pdf, destinoDeLog }: Dependencias,
 ): Promise<FastifyInstance> {
+  /*
+    O logger fica LIGADO em teste, com destino silencioso por padrão.
+
+    Antes ele era `false` quando `NODE_ENV === "test"`, e a consequência é
+    que a configuração de `redact` abaixo, que é a defesa do produto contra
+    vazar dado pessoal em log, nunca era executada por teste nenhum. Uma
+    lista de proteção que ninguém exercita é uma lista que mente.
+
+    `destinoDeLog` permite ao teste passar um coletor em memória e afirmar o
+    que saiu; sem ele, o log de teste vai para lugar nenhum e não polui a
+    saída da suíte.
+  */
+  const opcoesDeLog: FastifyServerOptions["logger"] = {
+    level: config.NODE_ENV === "test"
+      ? "debug"
+      : config.NODE_ENV === "production" ? "info" : "debug",
+    ...(config.NODE_ENV === "test" && !destinoDeLog
+      ? { stream: { write: () => {} } }
+      : {}),
+    ...(destinoDeLog ? { stream: destinoDeLog } : {}),
+    redact: {
+      // Senha, token e cookie nunca vão para o log. Log é lido por mais
+      // gente e guardado por mais tempo do que qualquer um imagina.
+      //
+      // `senhaAtual` e `token` entraram depois: a lista cobria a entrada de
+      // `/auth/entrar` e esquecia a troca de senha de quem já está dentro e
+      // o link de uso único da redefinição.
+      //
+      //
+      // A barra de endereço NÃO se resolve aqui: ver o serializador de `req`
+      // logo abaixo.
+      paths: [
+        "req.headers.authorization",
+        "req.headers.cookie",
+        "req.body.senha",
+        "req.body.senhaAtual",
+        "req.body.novaSenha",
+        "req.body.renovacao",
+        "req.body.token",
+      ],
+      censor: "[removido]",
+    },
+    serializers: {
+      /*
+        O erro do `pg` carrega, em `detail`, o VALOR que violou a restrição.
+        Uma violação de unicidade de email registra o email do servidor
+        municipal; uma de outra tabela pode registrar o contato do
+        solicitante. `where` e `internalQuery` carregam trecho de SQL com
+        parâmetro embutido.
+
+        Nada disso ajuda a diagnosticar: o nome da restrição e o código já
+        dizem o que quebrou. O que eles fazem é transformar todo erro de
+        banco num registro permanente de dado pessoal, num produto vendido
+        como auditável.
+      */
+      /*
+        A barra de endereço é a parte do pedido que mais vaza sozinha: entra em
+        log de proxy, em histórico de navegador e no cabeçalho `referer` de
+        qualquer link que a página abrir depois. E ela carrega dado pessoal
+        aqui: `GET /duplicidades/consulta?endereco=` leva o ENDEREÇO do imóvel
+        de uma família em situação de risco.
+
+        Redigir `req.query` não resolvia, e isso só apareceu porque a correção
+        foi quebrada de propósito para ver o teste reprovar, e ele não
+        reprovou: o serializador padrão do Fastify não registra `query`,
+        registra `url`, que já vem com a query string colada nela.
+      */
+      req: (req) => ({
+        method: req.method,
+        url: req.url.split("?")[0],
+        ...(req.url.includes("?") ? { query: "[removido]" } : {}),
+        host: req.host,
+        remoteAddress: req.ip,
+      }),
+      err: (erro) => {
+        const bruto = erro as unknown as Record<string, unknown>;
+        const manter = (chave: string) =>
+          typeof bruto[chave] === "string" || typeof bruto[chave] === "number"
+            ? { [chave]: bruto[chave] }
+            : {};
+        return {
+          type: erro.name,
+          message: erro.message,
+          stack: erro.stack ?? "",
+          ...manter("code"),
+          ...manter("constraint"),
+          ...manter("table"),
+          ...manter("statusCode"),
+        };
+      },
+    },
+  };
+
   const app = Fastify({
     // O id de requisição aparece em todo log e na resposta de erro 500. É o
     // que permite alguém dizer "deu erro às 14h32" e a equipe achar a linha.
     genReqId: () => crypto.randomUUID(),
-    logger: config.NODE_ENV === "test"
-      ? false
-      : {
-          level: config.NODE_ENV === "production" ? "info" : "debug",
-          redact: {
-            // Senha, token e cookie nunca vão para o log. Log é lido por mais
-            // gente e guardado por mais tempo do que qualquer um imagina.
-            paths: [
-              "req.headers.authorization",
-              "req.headers.cookie",
-              'req.body.senha',
-              'req.body.renovacao',
-            ],
-            censor: "[removido]",
-          },
-        },
+    logger: opcoesDeLog,
     trustProxy: config.NODE_ENV === "production",
     // Um megabyte cobre qualquer payload de negócio. O upload de foto NÃO
     // passa por aqui: ele vai direto para o armazenamento, com URL assinada.

@@ -9,7 +9,11 @@
     "noUncheckedIndexedAccess": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    // Declarado na mão porque o TypeScript 6 não varre mais `node_modules/@types`
+    // sozinho. Sem esta linha, os arquivos de teste não enxergam `describe`,
+    // `it` nem `expect`, e o `typecheck` reprova por motivo que não é defeito.
+    "types": ["jest"]
   },
   "include": ["src"]
 }

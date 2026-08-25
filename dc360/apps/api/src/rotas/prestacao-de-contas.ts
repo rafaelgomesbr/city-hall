@@ -59,8 +59,23 @@ export async function rotasPrestacaoDeContas(
       const condicoes: string[] = [];
       const params: unknown[] = [];
 
-      if (f.de) { params.push(f.de); condicoes.push(`t.ocorrido_em >= $${params.length}`); }
-      if (f.ate) { params.push(f.ate); condicoes.push(`t.ocorrido_em <= $${params.length}`); }
+      /*
+        O recorte por período usa `registrado_em`, a hora do SERVIDOR, e não
+        `ocorrido_em`, que é declarada pelo aparelho.
+
+        `ocorrido_em` continua sendo exibido, porque é a hora em que o ato
+        aconteceu de verdade no barranco, e o laudo depende dela. Mas ela é
+        declaração, não fato: quem a escolhe é o relógio de um celular que pode
+        estar com o fuso trocado, ajustado à mão, ou nas mãos de quem tem
+        motivo para datar uma vistoria dentro de um prazo que já estourou.
+
+        Filtrar por ela permitia uma coisa que a trilha append-only existe para
+        impedir: um evento datado em 2019 sumia de qualquer recorte por mês sem
+        nunca ter sido apagado. A auditoria continuava íntegra e continuava
+        cega. `registrado_em` é `now()` do banco, ninguém escolhe.
+      */
+      if (f.de) { params.push(f.de); condicoes.push(`t.registrado_em >= $${params.length}`); }
+      if (f.ate) { params.push(f.ate); condicoes.push(`t.registrado_em <= $${params.length}`); }
       if (f.autor?.trim()) {
         params.push(`%${f.autor.trim().toLowerCase()}%`);
         condicoes.push(`lower(t.autor_nome) LIKE $${params.length}`);
@@ -87,7 +102,7 @@ export async function rotasPrestacaoDeContas(
                 o.id AS ocorrencia_id, o.protocolo, o.endereco
            FROM trilha_eventos t JOIN ocorrencias o ON o.id = t.ocorrencia_id
            ${onde}
-          ORDER BY t.ocorrido_em DESC
+          ORDER BY t.registrado_em DESC
           LIMIT $${params.length - 1} OFFSET $${params.length}`,
         params,
       );

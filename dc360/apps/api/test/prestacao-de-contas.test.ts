@@ -411,3 +411,42 @@ describe("Registro de quem exportou", () => {
     expect(doOperador.statusCode).toBe(403);
   }, 60_000);
 });
+
+/**
+ * A auditoria recorta por hora do servidor, não pela declarada pelo aparelho.
+ *
+ * `ocorrido_em` vem do relógio do celular do agente. Enquanto o filtro de
+ * período usava esse campo, um evento datado para trás sumia de qualquer
+ * recorte por mês sem nunca ter sido apagado: a trilha continuava íntegra,
+ * append-only, e completamente cega. Bastava um fuso trocado para o acidente,
+ * e um agente com motivo para o resto.
+ */
+describe("O recorte da trilha usa a hora do servidor", () => {
+  it("evento datado no passado pelo aparelho continua no recorte de hoje", async () => {
+    const antiga = "2020-03-15T08:30:00.000Z";
+    await mem.bruto.query(
+      `INSERT INTO trilha_eventos
+         (organizacao_id, ocorrencia_id, tipo, autor_nome, autor_papel, origem, ocorrido_em)
+       SELECT o.organizacao_id, o.id, 'vistoria', 'Agente de teste', 'agente_campo', 'campo', $1
+         FROM ocorrencias o LIMIT 1`,
+      [antiga],
+    );
+
+    const hoje = new Date();
+    const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString();
+
+    const r = await app.inject({
+      method: "GET",
+      url: `/trilha?de=${encodeURIComponent(inicio)}&tipo=vistoria`,
+      headers: com(tokenCoordenador),
+    });
+
+    expect(r.statusCode).toBe(200);
+    const encontrado = r.json().itens.find(
+      (i: { ocorrido_em: string }) => new Date(i.ocorrido_em).getUTCFullYear() === 2020,
+    );
+    // Ele foi REGISTRADO agora, então pertence ao recorte de agora, por mais
+    // que diga ter acontecido em 2020.
+    expect(encontrado).toBeTruthy();
+  });
+});
