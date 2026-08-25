@@ -11,7 +11,7 @@ build) valem lá, não aqui.
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 42 testes passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 16 testes de fonte mais 47 verificações no navegador no modo local e 103 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 161 testes de integração passando |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 163 testes de integração passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 46 testes de unidade e 10 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Completo em código, **nunca rodou em aparelho**. TypeScript limpo, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 
@@ -537,15 +537,31 @@ função de escrita do repositório começa por `exigirPermissao`, porque escond
 um botão não impede nada de quem tem o console do navegador aberto. Quando a
 API entrar, ela importa a mesma função em vez de redescobrir a regra.
 
+Esta tabela é gerada a partir de `acoesDoPapel`, e um teste reprova se ela
+divergir do código. Ela já mentiu antes: dizia que o administrador fazia "o
+mesmo que o coordenador", o que deixou de ser verdade no dia em que o sistema
+de postos entrou, e ninguém percebeu porque documentação não quebra build.
+
+<!-- permissoes: gerado a partir de packages/shared/src/permissoes.ts -->
+
 | Papel | Pode |
 | --- | --- |
-| Operador de plantão | Registrar ocorrência |
-| Agente de campo | Registrar vistoria |
-| Coordenador | Triagem, despacho, providência, encerramento, equipes, usuários |
-| Administrador | O mesmo que o coordenador |
+| Operador de plantão | registrar ocorrência, registrar a resposta de uma providência |
+| Agente de campo | registrar vistoria |
+| Coordenador | registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados |
+| Administrador | alterar os dados do município, registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados |
+
+O administrador NÃO é um coordenador com outro nome. Ele é o único que altera
+os dados do município, e o sistema de postos impede que qualquer pessoa
+gerencie uma conta de posto acima do seu: coordenador não rebaixa
+administrador, e ninguém se promove.
 
 Consultar a trilha e exportar a base ficam com coordenação e administração: são
-as ações que alcançam o município inteiro de uma vez.
+as ações que alcançam o município inteiro de uma vez. Emitir laudo e termo de
+interdição entrou na mesma lista, e por motivo parecido: o documento reúne numa
+página só o nome, o contato, o endereço, a vulnerabilidade da família e todas
+as fotos da casa. Cada pedaço já circula em algum lugar; a concentração é que
+muda a natureza da coisa.
 
 O operador também registra a resposta de uma providência: é ele quem atende o
 telefone quando a secretaria liga de volta. Continua sem decidir o fluxo.
@@ -663,9 +679,9 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 304 testes em cinco pacotes
+npm test                    # 306 testes em cinco pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 42 testes
-npm run test:api            # 161 testes da API
+npm run test:api            # 163 testes da API
 npm run test --workspace @dc360/campo   # 46 testes do motor de sincronização
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero

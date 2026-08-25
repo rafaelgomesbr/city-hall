@@ -88,8 +88,13 @@ function Sonda() {
   const sessao = useSessao();
   sessaoAtual = sessao;
   renderizacoes += 1;
-  // Exatamente o que `obterFila` faz: guarda o primeiro e ignora os demais.
-  obterTokenCapturado ??= sessao.obterToken;
+  /*
+    Captura depois da entrada, e não na primeira renderização, porque é assim
+    que acontece de verdade: `obterFila` só é chamada dentro do grupo de rotas
+    do agente, que só monta com sessão aberta. Capturar antes da entrada
+    esconderia o defeito atrás de um "credenciais nulas".
+  */
+  if (sessao.identidade) obterTokenCapturado ??= sessao.obterToken;
   return null;
 }
 
@@ -189,11 +194,19 @@ describe("ProvedorDeSessao", () => {
     expect(renderizacoes).toBe(antes);
   });
 
-  it("obterToken continua sendo a mesma função depois de entrar", async () => {
+  it("obterToken continua sendo a mesma função depois de uma renovação", async () => {
     await montarEEntrar();
-    // É este contrato que a memoização de `obterFila` consome. Se ele cair, a
-    // fila volta a guardar uma função obsoleta.
-    expect(sessaoAtual?.obterToken).toBe(obterTokenCapturado);
+    const obterToken = obterTokenCapturado;
+    if (!obterToken) throw new Error("a sonda não capturou obterToken");
+
+    await act(async () => { await obterToken(); });
+
+    /*
+      É este contrato que a memoização de `obterFila` consome: a fila guarda a
+      função uma vez e usa pelo resto do plantão. Se o provedor trocar de
+      função a cada renovação, a fila fica com uma cópia obsoleta na mão.
+    */
+    expect(sessaoAtual?.obterToken).toBe(obterToken);
   });
 
   it("depois de sair, a função capturada devolve nulo em vez de token", async () => {

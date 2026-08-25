@@ -702,3 +702,35 @@ describe("A chave da assinatura não é escolhida pelo cliente", () => {
     expect(linha.rows[0]!.assinatura_chave).toContain("/assinatura.png");
   });
 });
+
+describe("Quem pode emitir documento oficial", () => {
+  it("o agente de campo não emite laudo, mesmo tendo feito a vistoria", async () => {
+    const alvo = await comVistoria({
+      offline: false, endereco: "Rua da Figueira, 300, Alto do Cruzeiro",
+    });
+
+    const laudo = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/laudo`, headers: com(tokenAgente),
+    });
+    expect(laudo.statusCode).toBe(403);
+
+    const termo = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/termo-de-interdicao`,
+      headers: com(tokenAgente),
+    });
+    expect(termo.statusCode).toBe(403);
+  });
+
+  it("mas continua conseguindo ver as fotos da ocorrência", async () => {
+    // Deliberado, e contra a recomendação do auditor: a foto já aparece na
+    // tela de detalhe que ele abre todo dia, e restringir aqui quebraria a
+    // tela de quem atende o telefone sem esconder nada de ninguém.
+    const alvo = await comVistoria({
+      offline: false, endereco: "Beco do Sabiá, 14, Vila Operária",
+    });
+    const fotos = await app.inject({
+      method: "GET", url: `/evidencias/ocorrencia/${alvo.id}`, headers: com(tokenAgente),
+    });
+    expect(fotos.statusCode).toBe(200);
+  });
+});

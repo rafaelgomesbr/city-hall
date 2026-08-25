@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { Banco } from "../banco/tipos.js";
-import { RegraDeNegocio } from "../servidor.js";
+import { RegraDeNegocio, autorizar } from "../servidor.js";
 import type { Armazenamento } from "../armazenamento/tipos.js";
 import { laudoDeVistoria, termoDeInterdicao, type DadosDocumento } from "../documentos/laudo.js";
 import type { GeradorDePdf } from "../documentos/pdf.js";
@@ -183,7 +183,26 @@ export async function rotasDocumentos(
     documento: "laudo" | "termo_de_interdicao",
     formato: "html" | "pdf",
   ): Promise<string> {
-    const quem = await app.exigirAutenticacao(req);
+    /*
+      Permissão, e não só token.
+
+      O laudo não é uma tela a mais: é o dossiê montado. Ele reúne, numa página
+      só, o nome e o contato do solicitante, o endereço completo, a descrição
+      da vulnerabilidade social da família, todas as fotos da casa e a
+      identificação do agente que assinou. Cada pedaço disso já circula em
+      algum lugar do sistema; a concentração é que muda a natureza da coisa, e
+      é ela que sai impressa e vai parar num processo.
+
+      Emitir é ato de coordenação, pela mesma razão que encerrar é.
+
+      A leitura de EVIDÊNCIA continua exigindo apenas autenticação, e isso é
+      deliberado, contra a recomendação do auditor. As fotos já aparecem na
+      tela de detalhe que operador e agente de campo abrem legitimamente todo
+      dia; restringir por papel quebraria a tela de quem atende o telefone sem
+      esconder nada que essa pessoa não pudesse ver de qualquer jeito. Ali o
+      controle que importa é o isolamento por município, e ele existe.
+    */
+    const quem = await autorizar(app, req, "emitir_documento");
     const { id } = idSchema.parse(req.params);
     const dados = await reunirDados(
       banco, armazenamento, quem.organizacaoId, id,

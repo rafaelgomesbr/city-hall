@@ -124,6 +124,7 @@ export function Ocorrencia() {
   const podeDespachar = podeExecutar(sessao.papel, "despachar_equipe");
   const podeProvidencia = podeExecutar(sessao.papel, "encaminhar_providencia");
   const podeEncerrar = podeExecutar(sessao.papel, "encerrar_ocorrencia");
+  const podeDocumento = podeExecutar(sessao.papel, "emitir_documento");
   const podeResponder = podeExecutar(sessao.papel, "responder_providencia");
   const encerrada = o.status === "encerrada";
 
@@ -439,7 +440,7 @@ export function Ocorrencia() {
             </p>
           </Cartao>
 
-          {vistoria && <CartaoDocumentos ocorrenciaId={o.id} />}
+          {vistoria && podeDocumento && <CartaoDocumentos ocorrenciaId={o.id} />}
 
           <Cartao titulo="Ver também">
             <Link className="botao botao--secundario" to="/ocorrencias" style={{ width: "100%" }}>

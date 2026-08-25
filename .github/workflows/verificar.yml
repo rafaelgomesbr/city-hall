@@ -181,6 +181,13 @@ jobs:
       - name: TypeScript estrito
         run: npm run typecheck
 
+      # O aplicativo passou a ter teste. Antes deste passo, o job media só
+      # higiene de dependência: TypeScript limpo, Expo saudável e audit em
+      # zero. Nenhuma das três enxerga comportamento, e a corrida de renovação
+      # que derrubava a sessão do agente no meio do campo passava nas três.
+      - name: Testes do aplicativo
+        run: npm test
+
       # 21 verificações da própria Expo: versões incompatíveis com o SDK,
       # configuração de plugin, arquivo de projeto conflitante.
       - name: Saúde do projeto Expo
