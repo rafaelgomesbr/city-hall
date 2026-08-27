@@ -169,3 +169,78 @@ describe("O que nunca pode aparecer no log", () => {
     expect(tudo()).toContain("violacao de restricao");
   });
 });
+
+/**
+ * O link de redefinição de senha nunca chega ao log.
+ *
+ * Este era o único caminho do produto em que um segredo VIVO saía em texto
+ * puro. `servidor.ts` tinha `notificador = notificadorDeLog()` como padrão,
+ * `index.ts` não passava notificador, e `config.ts` não tinha variável
+ * nenhuma de notificação: produção caía no log, e o `console.log` do
+ * notificador passa por fora do `redact` do Fastify.
+ *
+ * O que saía era uma credencial de uso único, viva por meia hora, que assume
+ * qualquer conta de qualquer município, inclusive a de administrador, junto
+ * do email de quem pediu.
+ */
+describe("O notificador de log", () => {
+  it("anuncia que houve notificação, e não o que ela dizia", async () => {
+    const { notificadorDeLog, mensagemDeRecuperacao } =
+      await import("../src/auth/notificador.js");
+
+    const saiu: string[] = [];
+    const token = "token-de-uso-unico-muito-peculiar-8827";
+    const link = `https://painel.exemplo.gov.br/redefinir-senha?token=${token}`;
+
+    await notificadorDeLog((linha) => { saiu.push(linha); }).enviar(
+      mensagemDeRecuperacao("Helena Vasques Coutinho", "helena@serraalta.exemplo.gov.br", link, 30),
+    );
+
+    const tudo = saiu.join("\n");
+    // Prova de que o segredo ESTAVA na mensagem: sem isto o caso passaria
+    // provando apenas que a mensagem era vazia.
+    expect(
+      mensagemDeRecuperacao("Helena", "helena@serraalta.exemplo.gov.br", link, 30).corpo,
+    ).toContain(token);
+
+    expect(tudo, "o token de redefinição saiu no log").not.toContain(token);
+    expect(tudo, "o link de redefinição saiu no log").not.toContain("redefinir-senha");
+    // O email inteiro também não: dado pessoal no mesmo lugar de onde o
+    // commit anterior tirou endereço e `detail` do pg.
+    expect(tudo).not.toContain("helena@serraalta.exemplo.gov.br");
+    // E o que serve para diagnosticar continua lá.
+    expect(tudo).toContain("[notificacao]");
+    expect(tudo).toContain("h***@serraalta.exemplo.gov.br");
+  });
+
+  it("produção recusa subir com a recuperação ligada e sem destino", async () => {
+    const { carregarConfig } = await import("../src/config.js");
+    const base = {
+      NODE_ENV: "production",
+      DATABASE_URL: "postgres://u:s@localhost:5432/d",
+      JWT_SEGREDO: "segredo-de-producao-com-mais-de-trinta-e-dois-bytes",
+      ORIGENS_PERMITIDAS: "https://painel.exemplo.gov.br",
+      URL_PAINEL: "https://painel.exemplo.gov.br",
+      URL_PUBLICA: "https://api.exemplo.gov.br",
+      S3_ENDPOINT: "https://s3.exemplo.com",
+      S3_BALDE: "dc360",
+      S3_CHAVE_ID: "chave",
+      S3_CHAVE_SECRETA: "segredo",
+    } as unknown as NodeJS.ProcessEnv;
+
+    expect(
+      () => carregarConfig(base),
+      "produção subiu com a recuperação ligada e sem provedor: o link iria "
+      + "para o log e nenhum email sairia",
+    ).toThrow(/recuperação de senha está ligada e não tem por onde sair/i);
+
+    // Desligar é decisão legítima, e explícita.
+    expect(() => carregarConfig({ ...base, RECUPERACAO_ATIVA: "nao" })).not.toThrow();
+    // E com destino de verdade, sobe.
+    expect(() => carregarConfig({
+      ...base,
+      NOTIFICADOR_URL: "https://email.exemplo.com/enviar",
+      NOTIFICADOR_CHAVE: "chave-do-provedor",
+    })).not.toThrow();
+  });
+});

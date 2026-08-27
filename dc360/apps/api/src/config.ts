@@ -31,6 +31,29 @@ const esquema = z.object({
   MARCA_DAGUA: z.string().default("DOCUMENTO DE VALIDAÇÃO"),
 
   /**
+   * Para onde sai o link de redefinição de senha.
+   *
+   * Vazias, o servidor cai no notificador que só anuncia no log. Isso é
+   * aceitável em desenvolvimento e inaceitável em produção, e a checagem lá
+   * embaixo recusa subir sem elas: até aqui, produção escrevia o link de uso
+   * único em `console.log`, por fora do `redact`, e a rota respondia
+   * "enviamos o link" sem enviar nada.
+   */
+  NOTIFICADOR_URL: z.string().url().optional(),
+  NOTIFICADOR_CHAVE: z.string().min(1).optional(),
+
+  /**
+   * Desliga a recuperação de senha por email, de propósito.
+   *
+   * Enquanto não houver provedor, isto é mais honesto que uma tela que promete
+   * um email que não sai: a rota recusa e manda procurar quem administra o
+   * município, que consegue redefinir a senha de qualquer jeito. Precisa ser
+   * declarado, porque produção não sobe com a recuperação nem ligada sem
+   * destino nem desligada sem alguém ter decidido.
+   */
+  RECUPERACAO_ATIVA: z.enum(["sim", "nao"]).default("sim"),
+
+  /**
    * Chave de assinatura dos tokens de acesso. Mínimo de 32 bytes de entropia.
    * Em produção é obrigatória; sem ela o processo não sobe.
    */
@@ -80,6 +103,25 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
   if (c.NODE_ENV === "production") {
     if (!c.DATABASE_URL) throw new Error("DATABASE_URL é obrigatória em produção");
     if (!c.JWT_SEGREDO) throw new Error("JWT_SEGREDO é obrigatória em produção");
+    /*
+      Recuperação de senha ligada exige destino de verdade.
+
+      Sem esta checagem, produção caía no `notificadorDeLog` e a recuperação
+      respondia 202 "enviamos um link" sem enviar nada, enquanto escrevia a
+      credencial de uso único no log do servidor. Duas falhas na mesma linha:
+      uma promessa falsa ao usuário e um segredo vivo em texto puro.
+
+      Desligar é decisão legítima e explícita: `RECUPERACAO_ATIVA=nao`, e a
+      tela passa a mandar procurar quem administra o município.
+    */
+    if (c.RECUPERACAO_ATIVA === "sim" && (!c.NOTIFICADOR_URL || !c.NOTIFICADOR_CHAVE)) {
+      throw new Error(
+        "A recuperação de senha está ligada e não tem por onde sair. Defina "
+        + "NOTIFICADOR_URL e NOTIFICADOR_CHAVE, ou desligue com "
+        + "RECUPERACAO_ATIVA=nao. Sem isso o link de redefinição iria para o "
+        + "log do servidor, em texto puro, e nenhum email seria enviado.",
+      );
+    }
     if (c.ORIGENS_PERMITIDAS.includes("*")) {
       throw new Error("ORIGENS_PERMITIDAS não pode conter curinga em produção");
     }

@@ -34,9 +34,13 @@ export function notificadorDeLog(
 ): Notificador {
   return {
     async enviar(m) {
-      registrar(
-        `[notificacao] para=${m.para} assunto="${m.assunto}"\n${m.corpo}`,
-      );
+      // Só o suficiente para saber que a notificação aconteceu: destinatário
+      // parcialmente encoberto e assunto. NADA do corpo, porque o corpo carrega
+      // o link de redefinição, que é credencial de uso único viva por meia hora,
+      // capaz de assumir qualquer conta de qualquer município. Ela saía por
+      // `console.log`, ou seja, por fora do `redact` do Fastify.
+      const encoberto = m.para.replace(/^(.)[^@]*(@.*)$/, "$1***$2");
+      registrar(`[notificacao] para=${encoberto} assunto="${m.assunto}"`);
     },
   };
 }
@@ -58,5 +62,24 @@ export function mensagemDeRecuperacao(
       `${link}\n\n` +
       `Se não foi você, ignore esta mensagem: sua senha continua a mesma e ` +
       `nenhuma sessão foi encerrada.\n`,
+  };
+}
+
+/**
+ * O notificador de produção enquanto não existe provedor: recusa, alto.
+ *
+ * Deliberadamente pior de usar que o de log, e melhor de ter. Sem provedor, a
+ * alternativa honesta não é escrever o link em algum lugar: é a recuperação
+ * dizer que não está disponível e mandar procurar quem administra o município,
+ * que consegue redefinir a senha de qualquer jeito.
+ */
+export function notificadorIndisponivel(): Notificador {
+  return {
+    async enviar() {
+      throw new Error(
+        "Não há provedor de notificação configurado: nenhuma mensagem foi "
+        + "enviada. Defina NOTIFICADOR_URL e NOTIFICADOR_CHAVE.",
+      );
+    },
   };
 }

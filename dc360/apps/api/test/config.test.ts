@@ -31,6 +31,15 @@ function producao(sobrescrever: Record<string, string> = {}): NodeJS.ProcessEnv 
     S3_CHAVE_SECRETA: "segredo-de-acesso",
     URL_PUBLICA: "https://api.dc360.exemplo.br",
     URL_PAINEL: "https://painel.serraalta.mg.gov.br",
+    /*
+      Destino da recuperação de senha. Entrou no mínimo porque produção passou
+      a recusar subir com a recuperação ligada e sem provedor: até então ela
+      caía no notificador de log, que escrevia o link de uso único em texto
+      puro no log do servidor, e a rota respondia "enviamos o link" sem enviar
+      nada. Ver o caso "recusa recuperação ligada sem destino" abaixo.
+    */
+    NOTIFICADOR_URL: "https://email.exemplo.com/enviar",
+    NOTIFICADOR_CHAVE: "chave-do-provedor",
     ...sobrescrever,
   } as NodeJS.ProcessEnv;
 }
@@ -159,5 +168,25 @@ describe("O modelo de ambiente acompanha o esquema", () => {
         expect(valor.trim(), `${nome} preenchido no modelo`).toBe("");
       }
     }
+  });
+});
+
+describe("A recuperação de senha precisa de destino", () => {
+  /** Produção sem as variáveis de notificação, que é o caso de esquecer. */
+  function semDestino(extra: Record<string, string> = {}): NodeJS.ProcessEnv {
+    const env = producao(extra);
+    delete env["NOTIFICADOR_URL"];
+    delete env["NOTIFICADOR_CHAVE"];
+    return env;
+  }
+
+  it("recusa recuperação ligada sem destino", () => {
+    // O padrão é ligada, então esquecer o provedor é o caminho fácil, e era
+    // exatamente ele que levava o segredo para o log.
+    expect(() => carregarConfig(semDestino())).toThrow(/não tem por onde sair/i);
+  });
+
+  it("aceita a recuperação desligada, que é decisão explícita", () => {
+    expect(() => carregarConfig(semDestino({ RECUPERACAO_ATIVA: "nao" }))).not.toThrow();
   });
 });
