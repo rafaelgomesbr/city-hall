@@ -84,3 +84,30 @@ O Expo traz quase seiscentos pacotes. Deixá-lo fora significa que
 não passa a depender do ciclo de lançamento do React Native. Este diretório
 tem o próprio `package-lock.json` e a própria auditoria, que também fecha em
 zero.
+
+## Por que `react-native-reanimated` e `react-native-worklets` estão fixados
+
+As duas linhas em `package.json` têm versão exata, sem `~` nem `^`, e não são
+usadas diretamente por nenhum arquivo deste aplicativo. **Não remova.**
+
+Elas existem porque o `expo-router` puxa o `react-native-reanimated`, que puxa
+o `react-native-worklets`. Sem o pino, o npm resolvia o worklets para `0.12.1`,
+e o `expo-modules-core` aceita no máximo `0.10`. A consequência não aparece em
+lugar nenhum até a compilação nativa, e lá ela aparece assim:
+
+```
+WorkletJSCallInvoker.cpp:27:21: error: no member named 'executeSync'
+  in 'worklets::WorkletRuntime'
+```
+
+Vale registrar o que NÃO pegou isso, porque é a lição:
+
+- `npm run typecheck` passou. É código C++, não TypeScript.
+- Os testes passaram. Eles rodam em Node, não no aparelho.
+- `npm audit` fechou em zero. Não é vulnerabilidade, é incompatibilidade.
+- `npx expo-doctor` deu 21 de 21. Ele não confere dependência transitiva.
+- O `npm ls` já imprimia `invalid` ao lado do pacote, e ninguém lia.
+
+Seis minutos de compilação foram a primeira coisa a reclamar. Os números que o
+SDK espera estão em `node_modules/expo/bundledNativeModules.json`, e é de lá
+que os pinos saíram.

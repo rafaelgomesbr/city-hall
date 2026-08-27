@@ -1,5 +1,5 @@
-import * as SQLite from "expo-sqlite";
 import type { FotoLocal } from "@dc360/campo";
+import { bancoLocal } from "./banco-local";
 
 /**
  * A vistoria em andamento, gravada a cada toque.
@@ -38,28 +38,6 @@ export type Rascunho = {
   atualizadoEm: string;
 };
 
-let banco: SQLite.SQLiteDatabase | null = null;
-
-async function abrir(): Promise<SQLite.SQLiteDatabase> {
-  if (banco) return banco;
-  const db = await SQLite.openDatabaseAsync("dc360-campo.db");
-  /*
-    WAL: leitura não bloqueia escrita. A tela lê o rascunho enquanto a fila
-    escreve na mesma base, e sem isto uma das duas trava esperando a outra,
-    em aparelho de entrada, no meio da coleta.
-  */
-  await db.execAsync("PRAGMA journal_mode = WAL;");
-  await db.execAsync(`
-    CREATE TABLE IF NOT EXISTS rascunhos (
-      ocorrencia_id TEXT PRIMARY KEY,
-      conteudo      TEXT NOT NULL,
-      atualizado_em TEXT NOT NULL
-    );
-  `);
-  banco = db;
-  return db;
-}
-
 /**
  * Grava por completo, sempre.
  *
@@ -70,7 +48,7 @@ async function abrir(): Promise<SQLite.SQLiteDatabase> {
  * aplicativo.
  */
 export async function salvarRascunho(rascunho: Rascunho): Promise<void> {
-  const db = await abrir();
+  const db = await bancoLocal();
   const atualizado: Rascunho = { ...rascunho, atualizadoEm: new Date().toISOString() };
   await db.runAsync(
     `INSERT INTO rascunhos (ocorrencia_id, conteudo, atualizado_em)
@@ -82,7 +60,7 @@ export async function salvarRascunho(rascunho: Rascunho): Promise<void> {
 }
 
 export async function lerRascunho(ocorrenciaId: string): Promise<Rascunho | null> {
-  const db = await abrir();
+  const db = await bancoLocal();
   const linha = await db.getFirstAsync<{ conteudo: string }>(
     "SELECT conteudo FROM rascunhos WHERE ocorrencia_id = ?",
     [ocorrenciaId],
@@ -99,7 +77,7 @@ export async function lerRascunho(ocorrenciaId: string): Promise<Rascunho | null
 }
 
 export async function listarRascunhos(): Promise<Rascunho[]> {
-  const db = await abrir();
+  const db = await bancoLocal();
   const linhas = await db.getAllAsync<{ conteudo: string }>(
     "SELECT conteudo FROM rascunhos ORDER BY atualizado_em DESC",
   );
@@ -111,7 +89,7 @@ export async function listarRascunhos(): Promise<Rascunho[]> {
 }
 
 export async function descartarRascunho(ocorrenciaId: string): Promise<void> {
-  const db = await abrir();
+  const db = await bancoLocal();
   await db.runAsync("DELETE FROM rascunhos WHERE ocorrencia_id = ?", [ocorrenciaId]);
 }
 

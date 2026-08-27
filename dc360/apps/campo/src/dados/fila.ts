@@ -1,4 +1,3 @@
-import * as SQLite from "expo-sqlite";
 import { File } from "expo-file-system";
 import {
   criarFilaDeSincronizacao,
@@ -9,6 +8,7 @@ import {
   type Arquivos,
   type FilaDeSincronizacao,
 } from "@dc360/campo";
+import { bancoLocal } from "./banco-local";
 
 /**
  * Onde a parte testada encontra o aparelho.
@@ -57,13 +57,16 @@ export async function obterFila(
   if (fila) return fila;
 
   /*
-    O banco é aberto uma vez e vive enquanto o aplicativo viver.
+    O banco é aberto uma vez, em `banco-local.ts`, e é o MESMO que o rascunho
+    e a lista de pendências usam.
 
-    Abrir por operação custa caro em aparelho de entrada, que é o que uma
-    prefeitura compra, e ainda arrisca duas conexões escrevendo ao mesmo tempo
-    na mesma coleta.
+    Este comentário já dizia que abrir por operação "arrisca duas conexões
+    escrevendo ao mesmo tempo na mesma coleta", e mesmo assim esta linha abria
+    a terceira. O risco se materializou em aparelho: escrita recusada na hora,
+    com a promessa não tratada, quando o sinal volta e a lista de tarefas é
+    trocada enquanto o agente grava o rascunho.
   */
-  const db = await SQLite.openDatabaseAsync("dc360-campo.db");
+  const db = await bancoLocal();
   await prepararSqlite(db);
 
   fila = criarFilaDeSincronizacao({

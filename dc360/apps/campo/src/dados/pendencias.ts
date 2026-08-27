@@ -1,5 +1,5 @@
-import * as SQLite from "expo-sqlite";
 import { baixarPendencias, type Pendencia } from "./api";
+import { bancoLocal } from "./banco-local";
 
 /**
  * A lista de tarefas, guardada no aparelho.
@@ -16,31 +16,10 @@ import { baixarPendencias, type Pendencia } from "./api";
  * trabalhar.
  */
 
-let banco: SQLite.SQLiteDatabase | null = null;
-
-async function abrir(): Promise<SQLite.SQLiteDatabase> {
-  if (banco) return banco;
-  const db = await SQLite.openDatabaseAsync("dc360-campo.db");
-  await db.execAsync("PRAGMA journal_mode = WAL;");
-  await db.execAsync(`
-    CREATE TABLE IF NOT EXISTS pendencias (
-      id        TEXT PRIMARY KEY,
-      conteudo  TEXT NOT NULL,
-      prazo_em  TEXT
-    );
-    CREATE TABLE IF NOT EXISTS marcas (
-      chave TEXT PRIMARY KEY,
-      valor TEXT NOT NULL
-    );
-  `);
-  banco = db;
-  return db;
-}
-
 const MARCA_ULTIMA_BAIXA = "pendencias.baixadas_em";
 
 export async function pendenciasGuardadas(): Promise<Pendencia[]> {
-  const db = await abrir();
+  const db = await bancoLocal();
   const linhas = await db.getAllAsync<{ conteudo: string }>(
     // Prazo mais próximo primeiro, e o sem prazo por último: a ordem da tela é
     // a ordem da urgência, não a de chegada.
@@ -55,7 +34,7 @@ export async function pendenciasGuardadas(): Promise<Pendencia[]> {
 
 /** Quando a lista foi baixada pela última vez, para a tela poder dizer. */
 export async function baixadasEm(): Promise<string | null> {
-  const db = await abrir();
+  const db = await bancoLocal();
   const linha = await db.getFirstAsync<{ valor: string }>(
     "SELECT valor FROM marcas WHERE chave = ?", [MARCA_ULTIMA_BAIXA],
   );
@@ -71,7 +50,7 @@ export async function baixadasEm(): Promise<string | null> {
  */
 export async function atualizarPendencias(token: string): Promise<Pendencia[]> {
   const recebidas = await baixarPendencias(token);
-  const db = await abrir();
+  const db = await bancoLocal();
   const agora = new Date().toISOString();
 
   await db.withTransactionAsync(async () => {
@@ -94,7 +73,7 @@ export async function atualizarPendencias(token: string): Promise<Pendencia[]> {
 
 /** Uma tarefa específica, do disco. Serve para abrir a vistoria sem sinal. */
 export async function pendenciaGuardada(id: string): Promise<Pendencia | null> {
-  const db = await abrir();
+  const db = await bancoLocal();
   const linha = await db.getFirstAsync<{ conteudo: string }>(
     "SELECT conteudo FROM pendencias WHERE id = ?", [id],
   );
