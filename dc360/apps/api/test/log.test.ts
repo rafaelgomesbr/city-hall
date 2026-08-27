@@ -40,7 +40,20 @@ beforeAll(async () => {
     destinoDeLog: coletor,
   });
   await app.ready();
-});
+  /*
+    Tempo limite explícito, como nos nove arquivos irmãos.
+
+    Este `beforeAll` sobe PGlite, aplica nove migrações e semeia. Isolado leva
+    perto de 1,5 s; com a suíte inteira em paralelo, medimos de 4,2 a 6,3 s,
+    contra o teto padrão de 10 s do vitest. Num runner de dois núcleos isso
+    vira vermelho, e o portão do produto já ficou vermelho numa execução e
+    verde na seguinte, no mesmo commit, por causa desta linha faltando.
+
+    Portão que às vezes não roda ensina o time a ignorar vermelho, e o teste
+    que ficava intermitente era justamente o que guarda dado pessoal fora do
+    log.
+  */
+}, 180_000);
 
 afterAll(async () => {
   await app.close();

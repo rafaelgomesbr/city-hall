@@ -1,8 +1,32 @@
 import { PGlite } from "@electric-sql/pglite";
 import type { Transaction } from "@electric-sql/pglite";
-import migracaoBase from "../../../../db/migrations/001_base.sql?raw";
-import migracaoAutenticacao from "../../../../db/migrations/002_autenticacao.sql?raw";
 import sementeDesenvolvimento from "../../../../db/seeds/desenvolvimento.sql?raw";
+
+/**
+ * TODAS as migrações, descobertas em vez de listadas.
+ *
+ * Isto era uma lista de dois `import` com um comentário ao lado dizendo "as
+ * mesmas migrações que rodam no servidor, na mesma ordem". Eram duas de nove,
+ * e o comentário escondeu o defeito por sete migrações seguidas.
+ *
+ * O estrago não era teórico. `responderProvidencia` escreve em `desfecho` e
+ * `respondida_por`, colunas que nascem na 006: responder uma providência no
+ * modo de demonstração falhava com "coluna não existe", na frente de quem
+ * estivesse assistindo. E sem a 008 o modo local não tinha a chave estrangeira
+ * composta, ou seja, a garantia de isolamento que o README descreve por três
+ * parágrafos não valia justamente no modo em que a demonstração roda.
+ *
+ * `import.meta.glob` com `eager` resolve em tempo de build: o Vite embute o
+ * conteúdo de cada arquivo no bundle, sem rede. A migração 010 entra sozinha,
+ * e é isso que faz esta correção durar.
+ */
+const MIGRACOES = Object.entries(
+  import.meta.glob("../../../../db/migrations/*.sql", {
+    query: "?raw",
+    import: "default",
+    eager: true,
+  }) as Record<string, string>,
+).sort(([a], [b]) => a.localeCompare(b));
 
 /**
  * O banco desta fase roda em PGlite: Postgres 16 compilado para WebAssembly,
@@ -21,8 +45,22 @@ let iniciando: Promise<PGlite> | null = null;
 /** O que as funções do repositório recebem para consultar dentro da transação. */
 export type Contexto = Transaction;
 
-const CHAVE_PERSISTENCIA = "idb://dc360";
-const MARCA_SEMENTE = "dc360:semeado:v2";
+/*
+  A versão faz parte do nome do banco persistido, de propósito.
+
+  O modo de demonstração decide se precisa migrar perguntando se a tabela
+  `ocorrencias` existe. Enquanto ele aplicava só duas migrações, um navegador
+  que já tinha o banco antigo responderia "existe" e pularia as sete
+  migrações novas para sempre: a correção não chegaria em quem mais precisa
+  dela, que é justamente quem já usou.
+
+  Subir o número aposenta o banco anterior e o próximo abre do zero, semeado.
+  Aqui isso não custa nada: o dado é fictício e a semente é a mesma que a API
+  usa. Num banco de verdade seria inaceitável, e é por isso que este atalho
+  vale só para o modo de demonstração.
+*/
+const CHAVE_PERSISTENCIA = "idb://dc360-v3";
+const MARCA_SEMENTE = "dc360:semeado:v3";
 
 /**
  * Teto para o banco ficar de pé. Existe por um número medido, não por
@@ -141,9 +179,19 @@ export async function banco(): Promise<PGlite> {
     );
 
     if (!jaMigrado.rows[0]?.existe) {
-      // As mesmas migrações que rodam no servidor, na mesma ordem.
-      await db.exec(migracaoBase);
-      await db.exec(migracaoAutenticacao);
+      // As mesmas migrações que rodam no servidor, todas, na ordem do nome.
+      for (const [caminho, sql] of MIGRACOES) {
+        try {
+          await db.exec(sql);
+        } catch (erro) {
+          // Falhar aqui em silêncio produziria um banco pela metade e uma tela
+          // que quebra três cliques depois, longe da causa.
+          throw new Error(
+            `A migração ${caminho.split("/").pop()} não aplicou no banco local: `
+            + `${erro instanceof Error ? erro.message : String(erro)}`,
+          );
+        }
+      }
     }
     /*
       A marca de semeadura vive no localStorage, que SOBREVIVE mesmo quando o
