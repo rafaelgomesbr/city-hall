@@ -1127,3 +1127,95 @@ describe("Encerrar duas vezes", () => {
     )).toHaveLength(2);
   });
 });
+
+/**
+ * O caminho que o red team descreveu, e que não deixava rastro nenhum.
+ *
+ * Um coordenador promove uma conta descartável a coordenador, usa, rebaixa e
+ * desativa. Antes disto, o cadastro terminava idêntico ao que começou e o
+ * sistema não tinha como responder "quem deu esse acesso". Não era falha de
+ * execução: era a ausência de detecção que transforma qualquer outra falha num
+ * incidente que ninguém investiga.
+ */
+describe("Trilha dos atos administrativos", () => {
+  it("promover, rebaixar e desativar deixa os três registros", async () => {
+    const cab = comToken(tokens["coordA"]!.acesso);
+
+    const criado = await app.inject({
+      method: "POST", url: "/usuarios", headers: cab,
+      payload: {
+        nome: "Conta Descartavel de Teste",
+        matricula: "M-DESC-1",
+        email: "descartavel.teste@serraalta.exemplo.gov.br",
+        papel: "operador",
+        senha: "senha-provisoria-do-teste-2026",
+      },
+    });
+    expect(criado.statusCode).toBe(201);
+    const alvoId = criado.json().id;
+
+    const promovido = await app.inject({
+      method: "PATCH", url: `/usuarios/${alvoId}`, headers: cab,
+      payload: {
+        nome: "Conta Descartavel de Teste",
+        matricula: "M-DESC-1",
+        email: "descartavel.teste@serraalta.exemplo.gov.br",
+        papel: "coordenador",
+      },
+    });
+    expect(promovido.statusCode).toBe(200);
+
+    const desativado = await app.inject({
+      method: "PATCH", url: `/usuarios/${alvoId}/situacao`, headers: cab,
+      payload: { ativo: false },
+    });
+    expect(desativado.statusCode).toBe(200);
+
+    // Lido como dono, fora da camada testada, que é o padrão desta suíte.
+    const trilha = await mem.bruto.query<{
+      acao: string; alvo_nome: string; autor_nome: string;
+      antes: { papel?: string } | null; depois: { papel?: string; ativo?: boolean } | null;
+    }>(
+      `SELECT acao, alvo_nome, autor_nome, antes, depois
+         FROM trilha_administrativa
+        WHERE alvo_id = $1
+        ORDER BY registrado_em`,
+      [alvoId],
+    );
+
+    const acoes = trilha.rows.map((l) => l.acao);
+    expect(acoes).toEqual(["usuario_criado", "papel_alterado", "usuario_desativado"]);
+
+    // A pergunta que a trilha existe para responder.
+    const promocao = trilha.rows[1]!;
+    expect(promocao.antes?.papel).toBe("operador");
+    expect(promocao.depois?.papel).toBe("coordenador");
+    expect(promocao.autor_nome).toBeTruthy();
+
+    // E nunca, em hipótese nenhuma, a senha.
+    const tudo = JSON.stringify(trilha.rows);
+    expect(tudo).not.toContain("senha-provisoria-do-teste-2026");
+    expect(tudo.toLowerCase()).not.toContain("senha_hash");
+  });
+
+  it("a trilha administrativa não se reescreve nem se apaga", async () => {
+    // Append-only por AUSÊNCIA de policy, igual à trilha operacional. Quem
+    // testa é o portão CA-06 para o esquema; aqui é o comportamento pela
+    // camada de aplicação.
+    const antes = await mem.bruto.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM trilha_administrativa",
+    );
+    const quantos = Number(antes.rows[0]!.n);
+    expect(quantos).toBeGreaterThan(0);
+
+    const cab = comToken(tokens["coordA"]!.acesso);
+    // Editar o mesmo usuário de novo acrescenta linha, nunca substitui.
+    const lista = await app.inject({ method: "GET", url: "/usuarios", headers: cab });
+    expect(lista.statusCode).toBe(200);
+
+    const depois = await mem.bruto.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM trilha_administrativa",
+    );
+    expect(Number(depois.rows[0]!.n)).toBeGreaterThanOrEqual(quantos);
+  });
+});

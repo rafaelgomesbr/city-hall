@@ -6,6 +6,7 @@ import {
 } from "@dc360/shared";
 import type { Banco } from "../banco/tipos.js";
 import { RegraDeNegocio, autorizar } from "../servidor.js";
+import { registrarAtoAdministrativo } from "../trilha.js";
 import { derivarSenha } from "../auth/senha.js";
 
 const idSchema = z.object({ id: z.string().uuid() });
@@ -52,6 +53,13 @@ export async function rotasAdministracao(
           "INSERT INTO equipes (organizacao_id, nome, especialidade) VALUES ($1,$2,$3) RETURNING id",
           [quem.organizacaoId, dados.nome.trim(), dados.especialidade?.trim() || null],
         );
+        await registrarAtoAdministrativo(c, quem, {
+          acao: "equipe_criada",
+          alvoTipo: "equipe",
+          alvoId: r.rows[0]!.id,
+          alvoNome: dados.nome.trim(),
+          depois: { nome: dados.nome.trim(), especialidade: dados.especialidade?.trim() || null },
+        });
         return r.rows[0];
       });
       return resposta.code(201).send(criada);
@@ -73,6 +81,19 @@ export async function rotasAdministracao(
           "UPDATE equipes SET nome = $2, especialidade = $3, ativa = $4 WHERE id = $1 RETURNING id",
           [id, dados.nome.trim(), dados.especialidade?.trim() || null, dados.ativa],
         );
+        if (r.rows.length > 0) {
+          await registrarAtoAdministrativo(c, quem, {
+            acao: dados.ativa ? "equipe_editada" : "equipe_desativada",
+            alvoTipo: "equipe",
+            alvoId: id,
+            alvoNome: dados.nome.trim(),
+            depois: {
+              nome: dados.nome.trim(),
+              especialidade: dados.especialidade?.trim() || null,
+              ativa: dados.ativa,
+            },
+          });
+        }
         if (r.rows.length === 0) {
           throw new RegraDeNegocio("nao_encontrada", "Equipe não encontrada.", 404);
         }
@@ -120,6 +141,24 @@ export async function rotasAdministracao(
             dados.equipeId ?? null, hash,
           ],
         );
+        /*
+          Criar conta é o ato administrativo de maior consequência que existe,
+          e era o que menos deixava rastro. O `depois` NÃO leva senha nem hash:
+          leva papel, equipe e identificação, que é o que uma investigação
+          precisa e o máximo que ela pode ver.
+        */
+        await registrarAtoAdministrativo(c, quem, {
+          acao: "usuario_criado",
+          alvoTipo: "usuario",
+          alvoId: r.rows[0]!.id,
+          alvoNome: dados.nome.trim(),
+          depois: {
+            papel: dados.papel,
+            matricula: dados.matricula.trim(),
+            equipeId: dados.equipeId ?? null,
+            ativo: true,
+          },
+        });
         return r.rows[0];
       });
       return resposta.code(201).send(criado);
@@ -198,6 +237,24 @@ export async function rotasAdministracao(
       if (!ativo) {
         await c.query("SELECT revogar_sessoes_do_usuario($1, $2)", [id, "usuario desativado"]);
       }
+
+      /*
+        Desativar e reativar é o par de atos que o red team descreveu como o
+        caminho de quem quer usar uma conta e sumir com o rastro. Sem este
+        registro, a conta volta ao estado anterior e nada indica que ela esteve
+        em uso no meio.
+      */
+      const nomeAlvo = await c.query<{ nome: string }>(
+        "SELECT nome FROM usuarios WHERE id = $1", [id],
+      );
+      await registrarAtoAdministrativo(c, quem, {
+        acao: ativo ? "usuario_reativado" : "usuario_desativado",
+        alvoTipo: "usuario",
+        alvoId: id,
+        alvoNome: nomeAlvo.rows[0]?.nome ?? "(conta removida do cadastro)",
+        antes: { ativo: alvo.ativo, papel: alvo.papel },
+        depois: { ativo, papel: alvo.papel },
+      });
     });
 
     return { id, ativo };
@@ -259,6 +316,25 @@ export async function rotasAdministracao(
         RETURNING id`,
           [id, dados.nome, dados.matricula, dados.email, dados.papel, dados.equipeId ?? null],
         );
+        /*
+          A MUDANÇA DE PAPEL é o ato que mais importa registrar de todos.
+
+          É por aqui que uma conta vira coordenador e volta a ser operador, e
+          era exatamente isso que não deixava rastro: o cadastro terminava
+          igual ao que começou, e nada dizia o que ele foi no meio.
+        */
+        await registrarAtoAdministrativo(c, quem, {
+          acao: alvo.papel === dados.papel ? "usuario_editado" : "papel_alterado",
+          alvoTipo: "usuario",
+          alvoId: id,
+          alvoNome: dados.nome,
+          antes: { papel: alvo.papel },
+          depois: {
+            papel: dados.papel,
+            matricula: dados.matricula,
+            equipeId: dados.equipeId ?? null,
+          },
+        });
         return r.rows[0];
       });
     } catch (erro) {

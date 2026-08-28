@@ -68,3 +68,50 @@ export async function registrarEmissao(
     ],
   );
 }
+
+/** O que um ato administrativo alcança. */
+export type AlvoAdministrativo = "usuario" | "equipe" | "organizacao";
+
+/**
+ * Registra um ato administrativo: quem mexeu em conta, equipe ou município.
+ *
+ * Existe porque `rotas/administracao.ts` tinha cinco caminhos de escrita e
+ * ZERO registro. Promover uma conta, usar, rebaixar e desativar não deixava
+ * rastro nenhum, e o sistema não conseguia responder "quem deu esse acesso".
+ *
+ * Escreve em `trilha_administrativa`, e não em `trilha_eventos`, porque
+ * aquela exige `ocorrencia_id NOT NULL` e um ato administrativo não tem
+ * ocorrência. Ver a migração 010.
+ *
+ * Roda na MESMA transação do efeito. Ou os dois acontecem, ou nenhum: não
+ * existe conta promovida sem registro, nem registro de promoção que não
+ * aconteceu.
+ *
+ * `antes` e `depois` NUNCA levam senha, hash nem token. Papel, equipe,
+ * situação e nome, e nada além disso.
+ */
+export async function registrarAtoAdministrativo(
+  c: Consulta,
+  quem: Identidade,
+  ato: {
+    acao: string;
+    alvoTipo: AlvoAdministrativo;
+    alvoId: string | null;
+    alvoNome: string;
+    antes?: unknown;
+    depois?: unknown;
+  },
+): Promise<void> {
+  await c.query(
+    `INSERT INTO trilha_administrativa
+       (organizacao_id, autor_id, autor_nome, autor_papel,
+        acao, alvo_tipo, alvo_id, alvo_nome, antes, depois)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+    [
+      quem.organizacaoId, quem.usuarioId, quem.nome, quem.papel,
+      ato.acao, ato.alvoTipo, ato.alvoId, ato.alvoNome,
+      ato.antes === undefined ? null : JSON.stringify(ato.antes),
+      ato.depois === undefined ? null : JSON.stringify(ato.depois),
+    ],
+  );
+}
