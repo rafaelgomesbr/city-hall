@@ -65,6 +65,14 @@ export const aberturaOcorrenciaSchema = z.object({
   canalEntrada: z.enum(CANAIS_ENTRADA),
   endereco: z.string().min(1, "Informe o endereço").max(400),
   coordenada: coordenadaSchema.optional(),
+  /**
+   * Como chegar, em linguagem de quem mora ali.
+   *
+   * Em área de risco, rua sem placa e numeração que pula são a regra, e
+   * ninguém no telefone sabe dizer coordenada. O que a pessoa sabe dizer é
+   * a referência, e era isso que estava se perdendo por falta de campo.
+   */
+  pontoReferencia: z.string().max(300).optional(),
   tipo: z.enum(TIPOS_COBRADE),
   descricao: z.string().min(1, "Descreva o que foi relatado").max(4000),
   /** Preenchido quando o operador decide vincular a um chamado anterior. */

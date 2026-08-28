@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   CANAIS_ENTRADA, ROTULO_CANAL, ROTULO_TIPO_COBRADE, TIPOS_COBRADE,
-  aberturaOcorrenciaSchema,
+  aberturaOcorrenciaSchema, coordenadaEmTexto, lerLocalizacao, linkParaMapa,
   type AberturaOcorrencia, type CanalEntrada, type TipoCobrade,
 } from "@dc360/shared";
 import { abrirOcorrencia, possiveisDuplicidades, type LinhaOcorrencia } from "../dados/repositorio";
@@ -31,8 +31,18 @@ export function NovaOcorrencia() {
   const [contato, setContato] = useState("");
   const [endereco, setEndereco] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [lat, setLat] = useState("");
-  const [lng, setLng] = useState("");
+  const [localizacao, setLocalizacao] = useState("");
+  const [referencia, setReferencia] = useState("");
+
+  /*
+    A leitura acontece a cada tecla, e de propósito.
+
+    O operador está com o telefone no ombro: ele cola o link e precisa ver na
+    hora se o sistema entendeu. Confirmar só no envio faria a descoberta do
+    erro acontecer depois de a ligação terminar, quando ninguém mais pode
+    conferir o endereço.
+  */
+  const leitura = lerLocalizacao(localizacao);
 
   const [erros, setErros] = useState<Record<string, string>>({});
   const [duplicidades, setDuplicidades] = useState<LinhaOcorrencia[] | null>(null);
@@ -40,15 +50,22 @@ export function NovaOcorrencia() {
   const [falha, setFalha] = useState<string | null>(null);
 
   function montar() {
-    const coordenada = lat.trim() && lng.trim()
-      ? { lat: Number(lat), lng: Number(lng) }
-      : undefined;
+    /*
+      Só a leitura BEM SUCEDIDA vira coordenada.
+
+      Link encurtado e texto não reconhecido não viram nada: a ocorrência é
+      gravada sem ponto no mapa, com o endereço e a referência que a pessoa
+      informou. Recusar o registro inteiro por causa de um campo opcional
+      seria perder o chamado por causa do enfeite.
+    */
+    const coordenada = leitura.tipo === "coordenada" ? leitura.coordenada : undefined;
     return {
       solicitanteNome: solicitante.trim(),
       solicitanteContato: contato.trim() || undefined,
       canalEntrada: canal,
       endereco: endereco.trim(),
       coordenada,
+      pontoReferencia: referencia.trim() || undefined,
       tipo,
       descricao: descricao.trim(),
     };
@@ -221,17 +238,75 @@ export function NovaOcorrencia() {
               {erros["endereco"] && <ErroCampo id="nova-endereco-erro">{erros["endereco"]}</ErroCampo>}
             </div>
 
-            <div className="linha-campos">
-              <div className="campo">
-                <label htmlFor="nova-lat">Latitude (opcional)</label>
-                <input id="nova-lat" type="text" inputMode="decimal" value={lat}
-                       onChange={(e) => setLat(e.target.value)} placeholder="-22.4187" />
-              </div>
-              <div className="campo">
-                <label htmlFor="nova-lng">Longitude (opcional)</label>
-                <input id="nova-lng" type="text" inputMode="decimal" value={lng}
-                       onChange={(e) => setLng(e.target.value)} placeholder="-45.4523" />
-              </div>
+            <div className="campo">
+              <label htmlFor="nova-ref">Ponto de referência (opcional)</label>
+              <input
+                id="nova-ref" value={referencia} maxLength={300}
+                onChange={(e) => setReferencia(e.target.value)}
+                placeholder="A última casa antes do córrego, portão azul"
+                autoComplete="off"
+              />
+              <p className="campo__dica">
+                É por aqui que o agente vai achar o lugar. Vale mais que a
+                coordenada quando a rua não tem placa.
+              </p>
+            </div>
+
+            <div className="campo">
+              <label htmlFor="nova-local">Localização no mapa (opcional)</label>
+              <input
+                id="nova-local" value={localizacao}
+                onChange={(e) => setLocalizacao(e.target.value)}
+                placeholder="Cole o link do Google Maps que o solicitante mandou"
+                aria-describedby="nova-local-leitura"
+                autoComplete="off"
+              />
+              {/*
+                A resposta fica sempre no mesmo lugar, com a mesma altura, e
+                nunca só na cor: cada estado tem ícone e texto. Um campo que
+                empurra o formulário para baixo a cada tecla é um campo que
+                faz o operador perder o botão de vista no meio da ligação.
+              */}
+              <p className="campo__dica" id="nova-local-leitura" role="status">
+                {leitura.tipo === "vazio" && (
+                  <>Aceita link do Google Maps, do WhatsApp, ou a coordenada colada.</>
+                )}
+                {leitura.tipo === "coordenada" && (
+                  <span className="leitura leitura--ok">
+                    <span aria-hidden="true">✓</span> Localização reconhecida:{" "}
+                    <span className="mono">{coordenadaEmTexto(leitura.coordenada)}</span>.{" "}
+                    <a href={linkParaMapa(leitura.coordenada)} target="_blank" rel="noreferrer noopener">
+                      Conferir no mapa
+                    </a>
+                  </span>
+                )}
+                {leitura.tipo === "invertida" && (
+                  <span className="leitura leitura--erro">
+                    <span aria-hidden="true">!</span> Este ponto cai fora do Brasil.
+                    Latitude e longitude podem estar trocadas.{" "}
+                    <button
+                      type="button" className="botao-texto"
+                      onClick={() => setLocalizacao(coordenadaEmTexto(leitura.sugestao))}
+                    >
+                      Usar {coordenadaEmTexto(leitura.sugestao)}
+                    </button>
+                  </span>
+                )}
+                {leitura.tipo === "encurtado" && (
+                  <span className="leitura leitura--nota">
+                    <span aria-hidden="true">!</span> Este link é encurtado e não
+                    carrega a coordenada. Abra ele no navegador e cole o endereço
+                    que aparecer na barra.
+                  </span>
+                )}
+                {leitura.tipo === "nao_reconhecido" && (
+                  <span className="leitura leitura--nota">
+                    <span aria-hidden="true">!</span> Não reconheci coordenada
+                    nisso. Pode registrar assim mesmo: o endereço e a referência
+                    já levam o agente ao local.
+                  </span>
+                )}
+              </p>
             </div>
 
             <div className="campo">

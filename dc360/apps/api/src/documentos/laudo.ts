@@ -84,12 +84,20 @@ export function codigoDeValidacao(protocolo: string, vistoriaId: string): string
 
 function blocoIdentificacao(d: DadosDocumento): string {
   const o = d.ocorrencia;
+  /*
+    "Chamado registrado em", e não "Registrada em".
+
+    O documento traz DUAS datas de atos diferentes: a abertura do chamado e a
+    vistoria em campo. "Registrada em", sozinho, ao lado de "Data e hora da
+    vistoria em campo", não diz qual das duas é, e o leitor do laudo é quem
+    vai decidir sobre a casa de alguém a partir dessa distinção.
+  */
   return `<h2>Identificação da ocorrência</h2>
   <div class="campos">
     ${campo("Protocolo", o.protocolo, { mono: true })}
     ${campo("Tipo (COBRADE)", ROTULO_TIPO_COBRADE[o.tipo])}
     ${campo("Severidade", o.severidade ? ROTULO_SEVERIDADE[o.severidade] : "não classificada")}
-    ${campo("Registrada em", formatarDataHora(o.criado_em))}
+    ${campo("Chamado registrado em", formatarDataHora(o.criado_em))}
     ${campo("Endereço", o.endereco, { largo: true })}
     ${campo("Coordenada",
       o.latitude !== null && o.longitude !== null

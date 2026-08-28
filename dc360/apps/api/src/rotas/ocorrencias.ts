@@ -220,12 +220,14 @@ export async function rotasOcorrencias(
 
       const r = await c.query<{ id: string; protocolo: string }>(
         `INSERT INTO ocorrencias
-           (organizacao_id, protocolo, tipo, status, endereco, latitude, longitude,
+           (organizacao_id, protocolo, tipo, status, endereco, ponto_referencia,
+            latitude, longitude,
             solicitante_nome, solicitante_contato, canal_entrada, descricao, vinculada_a)
-         VALUES ($1,$2,$3,'registrada',$4,$5,$6,$7,$8,$9,$10,$11)
+         VALUES ($1,$2,$3,'registrada',$4,$5,$6,$7,$8,$9,$10,$11,$12)
          RETURNING id, protocolo`,
         [
           quem.organizacaoId, protocolo, dados.tipo, dados.endereco,
+          dados.pontoReferencia?.trim() || null,
           dados.coordenada?.lat ?? null, dados.coordenada?.lng ?? null,
           dados.solicitanteNome, dados.solicitanteContato ?? null,
           dados.canalEntrada, dados.descricao, dados.vinculadaA ?? null,

@@ -314,6 +314,46 @@ body {
 .campo { display: flex; flex-direction: column; gap: var(--ds-sp-2); margin-bottom: var(--ds-sp-4); }
 .campo > label { font-size: var(--ds-fs-body-sm); font-weight: 600; }
 .campo__dica { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
+/*
+  A resposta do campo de localização.
+
+  Três estados, e nenhum deles comunicado só por cor: cada um traz um símbolo
+  antes do texto. O bloco reserva a própria altura mínima para que ler o link
+  colado não empurre o botão de registrar para fora da vista, que é o tipo de
+  salto que faz o operador clicar no lugar errado com o telefone no ombro.
+*/
+.campo__dica:has(.leitura) { min-height: calc(var(--ds-lh-caption) * 2); }
+.leitura { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: var(--ds-sp-1); }
+.leitura--ok { color: var(--ds-success-fg); }
+/*
+  Só a coordenada invertida é `danger`, e a distinção não é estética.
+
+  Latitude e longitude trocadas gravam a família num ponto errado do mapa, e o
+  agente sai para o lugar errado: é dado errado entrando. Link encurtado e
+  texto não reconhecido não são erro nenhum, são o sistema avisando que não
+  conseguiu ler um campo OPCIONAL, e pintá-los de vermelho ensinaria o
+  operador a ignorar vermelho.
+*/
+.leitura--erro { color: var(--ds-danger-fg); font-weight: 600; }
+.leitura--nota { color: var(--ds-text); }
+.leitura .mono { color: inherit; }
+
+/*
+  Botão que se comporta como link.
+
+  Elemento `button` porque a ação é uma mudança de estado nesta página, e não
+  uma navegação: um `a` sem href mentiria para o leitor de tela sobre o que
+  vai acontecer ao ativar.
+*/
+.botao-texto {
+  background: none; border: 0; padding: 0; font: inherit; color: var(--ds-accent);
+  text-decoration: underline; cursor: pointer;
+}
+.botao-texto:hover { color: var(--ds-accent-hover); }
+/* `--ds-focus-ring` é um valor de `box-shadow` completo nesta folha, e não
+   uma cor: usá-lo em `outline` não desenharia anel nenhum. */
+.botao-texto:focus-visible { box-shadow: var(--ds-focus-ring); border-radius: var(--ds-radius); }
+
 .campo__erro {
   font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
   color: var(--ds-danger-fg); font-weight: 600;

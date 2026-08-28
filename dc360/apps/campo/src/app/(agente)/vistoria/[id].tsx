@@ -6,7 +6,7 @@ import * as Crypto from "expo-crypto";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { File } from "expo-file-system";
 import {
-  CHECKLIST_OBRIGATORIO, CHECKLIST_VISTORIA, ROTULO_TIPO_COBRADE,
+  CHECKLIST_OBRIGATORIO, CHECKLIST_VISTORIA, ROTULO_TIPO_COBRADE, montarMinuta,
   type EnvelopeSincronizacao,
 } from "@dc360/shared";
 import type { FotoLocal } from "@dc360/campo";
@@ -18,6 +18,7 @@ import {
 } from "../../../dados/rascunho";
 import { useSessao } from "../../../dados/sessao";
 import { Assinatura } from "../../../ui/Assinatura";
+import { MinutaDoLaudo } from "../../../ui/MinutaDoLaudo";
 import {
   Aviso, Botao, Cartao, Carregando, SeloSeveridade, Separador, Txt, useTema,
 } from "../../../ui/componentes";
@@ -40,7 +41,7 @@ export default function TelaDeVistoria() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navegacao = useNavigation();
   const tema = useTema();
-  const { obterToken } = useSessao();
+  const { obterToken, identidade } = useSessao();
 
   const [ocorrencia, setOcorrencia] = useState<Pendencia | null>(null);
   const [rascunho, setRascunho] = useState<Rascunho | null>(null);
@@ -52,6 +53,7 @@ export default function TelaDeVistoria() {
   const [cameraAberta, setCameraAberta] = useState(false);
   const [fotografando, setFotografando] = useState(false);
   const [capturandoGps, setCapturandoGps] = useState(false);
+  const [minutaAberta, setMinutaAberta] = useState(false);
   const cameraRef = useRef<CameraView>(null);
 
   useEffect(() => {
@@ -257,6 +259,93 @@ export default function TelaDeVistoria() {
   const temAssinante = rascunho.assinanteNome.trim().length > 0;
   const podeConcluir = obrigatoriosFeitos && temFoto && temAssinante;
 
+  if (minutaAberta) {
+    /*
+      A minuta é uma SOBREPOSIÇÃO, e não uma rota.
+
+      A câmera nesta mesma tela já faz assim, e a razão é a mesma: `concluir()`
+      precisa estar em escopo. Levar a minuta para outra rota significaria ou
+      duplicar a conclusão, ou devolver um sinal pela navegação para que esta
+      tela conclua depois, e as duas saídas colocam a gravação da vistoria a
+      depender de estado de navegação. Numa tela em que perder o rascunho
+      custa outra subida ao morro, isso não se faz por elegância de rotas.
+
+      A minuta é montada AQUI, na hora, do rascunho que está no disco. Nenhuma
+      chamada, nenhum dado que não esteja no aparelho.
+    */
+    const minuta = montarMinuta({
+      organizacao: {
+        nome: identidade?.organizacaoNome ?? "Defesa Civil municipal",
+        municipio: identidade?.municipio ?? "",
+        uf: identidade?.uf ?? "",
+      },
+      ocorrencia: {
+        protocolo: ocorrencia.protocolo,
+        tipo: ocorrencia.tipo,
+        severidade: ocorrencia.severidade,
+        endereco: ocorrencia.endereco,
+        pontoReferencia: ocorrencia.ponto_referencia,
+        // A coordenada da MINUTA é a que o agente capturou no local, e não a
+        // que veio da abertura: é ela que vai para o laudo.
+        latitude: rascunho.coordenada?.lat ?? ocorrencia.latitude,
+        longitude: rascunho.coordenada?.lng ?? ocorrencia.longitude,
+        solicitanteNome: ocorrencia.solicitante_nome,
+        criadoEm: ocorrencia.criado_em,
+        descricao: ocorrencia.descricao,
+        vulnerabilidadePresente: ocorrencia.vulnerabilidade_presente,
+        vulnerabilidadeDescricao: ocorrencia.vulnerabilidade_descricao,
+      },
+      vistoria: {
+        checklist: CHECKLIST_VISTORIA.map((item) => ({
+          chave: item.chave,
+          resposta: Boolean(rascunho.checklist[item.chave]),
+        })),
+        observacoes: rascunho.observacoes,
+        assinanteNome: rascunho.assinanteNome.trim(),
+        gpsPrecisaoMetros: rascunho.gpsPrecisaoMetros,
+        coletadaEm: rascunho.coletadaEm,
+        agenteNome: identidade?.nome ?? "não identificado",
+        agenteMatricula: identidade?.matricula ?? "não informada",
+      },
+      quantasFotos: rascunho.fotos.length,
+    });
+
+    return (
+      <View style={{ flex: 1, backgroundColor: tema.fundo }}>
+        <MinutaDoLaudo minuta={minuta} />
+        {/*
+          As duas ações ficam FORA da rolagem, presas no rodapé.
+
+          A minuta é longa e o agente lê com alguém esperando na porta. Se o
+          botão de concluir estivesse no fim do texto, ele rolaria o documento
+          inteiro de novo só para achá-lo, e quem está lendo em voz alta perde
+          a linha. Voltar vem primeiro porque é a ação reversível.
+        */}
+        <View style={{
+          flexDirection: "row", gap: espaco.e3,
+          padding: espaco.e4, paddingBottom: espaco.e5,
+          borderTopWidth: 1, borderTopColor: tema.borda,
+          backgroundColor: tema.superficie,
+        }}>
+          <View style={{ flex: 1 }}>
+            <Botao
+              titulo="Corrigir"
+              tipo="secundario"
+              onPress={() => setMinutaAberta(false)}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Botao
+              titulo="Concluir vistoria"
+              onPress={() => void concluir()}
+              carregando={concluindo}
+            />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   if (cameraAberta) {
     return (
       <View style={{ flex: 1, backgroundColor: "#000" }}>
@@ -317,6 +406,18 @@ export default function TelaDeVistoria() {
         </View>
         <Txt variante="h3">{ROTULO_TIPO_COBRADE[ocorrencia.tipo]}</Txt>
         <Txt variante="corpoP">{ocorrencia.endereco}</Txt>
+        {/*
+          A referência vem logo abaixo do endereço, e não no fim do cartão.
+
+          É com ela que o agente acha a casa quando a rua não tem placa, e ele
+          lê isso dentro do carro, no morro, muitas vezes sem sinal. Enterrá-la
+          depois do relato seria escondê-la exatamente de quem precisa dela.
+        */}
+        {ocorrencia.ponto_referencia && (
+          <Txt variante="corpoP" discreto>
+            Referência: {ocorrencia.ponto_referencia}
+          </Txt>
+        )}
         <Separador />
         <Txt variante="legenda" discreto>Relato recebido</Txt>
         <Txt variante="corpoP">{ocorrencia.descricao}</Txt>
@@ -510,16 +611,28 @@ export default function TelaDeVistoria() {
         </Aviso>
       )}
 
+      {/*
+        A conclusão passa pela minuta, e isso não é uma tela a mais por gosto.
+
+        Antes, "Concluir vistoria" gravava direto: o agente descia o morro sem
+        nunca ter visto o que ficou escrito, e quem assinou dizendo que estava
+        presente também não. Um item marcado errado só aparecia no dia
+        seguinte, quando voltar lá custa outra viagem.
+
+        Agora o último toque abre o texto do laudo, montado no próprio
+        aparelho, para ser lido em voz alta na porta. Concluir de verdade é o
+        botão que fica lá dentro.
+      */}
       <Botao
-        titulo="Concluir vistoria"
-        onPress={() => void concluir()}
+        titulo="Revisar e concluir"
+        onPress={() => setMinutaAberta(true)}
         desabilitado={!podeConcluir}
-        carregando={concluindo}
       />
 
       <Txt variante="legenda" discreto alinhamento="center">
-        Tudo o que você preencheu já está guardado neste aparelho. Concluir
-        coloca a vistoria na fila de envio.
+        Tudo o que você preencheu já está guardado neste aparelho. O próximo
+        passo mostra a minuta do laudo para você conferir com quem está no
+        local, antes de a vistoria entrar na fila de envio.
       </Txt>
     </ScrollView>
   );

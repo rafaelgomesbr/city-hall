@@ -61,6 +61,7 @@ export async function rotasCampo(
       // Designadas: o que a equipe tem em campo agora, mais urgente primeiro.
       const designadas = await c.query(
         `SELECT o.id, o.protocolo, o.tipo, o.severidade, o.status, o.endereco,
+                o.ponto_referencia,
                 o.latitude, o.longitude, o.descricao,
                 o.solicitante_nome, o.solicitante_contato,
                 o.vulnerabilidade_presente, o.vulnerabilidade_descricao,

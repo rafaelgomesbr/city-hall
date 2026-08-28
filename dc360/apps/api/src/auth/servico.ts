@@ -17,6 +17,8 @@ export type Autenticado = {
   usuario: {
     id: string;
     nome: string;
+    /** Sai impressa em todo documento que esta pessoa assina. Ver migração 013. */
+    matricula: string;
     papel: Papel;
     organizacaoId: string;
     organizacaoNome: string;
@@ -42,6 +44,7 @@ type LinhaCredencial = {
   senha_hash: string | null;
   ativo: boolean;
   bloqueado_ate: string | null;
+  matricula: string;
   organizacao_nome: string;
   municipio: string;
   uf: string;
@@ -153,6 +156,7 @@ export function servicoDeAutenticacao(
       usuario: {
         id: linha.usuario_id,
         nome: linha.nome,
+        matricula: linha.matricula,
         papel: linha.papel,
         organizacaoId: linha.organizacao_id,
         organizacaoNome: linha.organizacao_nome,
@@ -182,6 +186,7 @@ export function servicoDeAutenticacao(
       const r = await c.query<{
         sessao_id: string; organizacao_id: string; usuario_id: string;
         nome: string; papel: Papel; ativo: boolean;
+        matricula: string;
         organizacao_nome: string; municipio: string; uf: string;
       }>("SELECT * FROM sessao_por_token($1)", [hash]);
       return r.rows[0] ?? null;
@@ -210,6 +215,7 @@ export function servicoDeAutenticacao(
         usuario_id: sessao.usuario_id,
         organizacao_id: sessao.organizacao_id,
         nome: sessao.nome,
+        matricula: sessao.matricula,
         papel: sessao.papel,
         senha_hash: null,
         ativo: true,

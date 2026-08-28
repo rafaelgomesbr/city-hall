@@ -3,3 +3,5 @@ export * from "./schemas.js";
 export * from "./protocolo.js";
 export * from "./permissoes.js";
 export * from "./csv.js";
+export * from "./localizacao.js";
+export * from "./minuta.js";

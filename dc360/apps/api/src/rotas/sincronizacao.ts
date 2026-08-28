@@ -183,9 +183,11 @@ export async function rotasSincronizacao(
     const quem = await autorizar(app, req, "registrar_vistoria");
     return banco.comTenant(quem.organizacaoId, async (c) => {
       const r = await c.query(
-        `SELECT o.id, o.protocolo, o.tipo, o.severidade, o.endereco, o.latitude, o.longitude,
+        `SELECT o.id, o.protocolo, o.tipo, o.severidade, o.endereco,
+                o.ponto_referencia, o.latitude, o.longitude,
                 o.descricao, o.solicitante_nome, o.solicitante_contato,
-                o.vulnerabilidade_presente, o.vulnerabilidade_descricao, o.prazo_em
+                o.vulnerabilidade_presente, o.vulnerabilidade_descricao,
+                o.prazo_em, o.criado_em
            FROM ocorrencias o
            JOIN usuarios u ON u.equipe_id = o.equipe_id
           WHERE u.id = $1 AND o.status = 'em_campo'

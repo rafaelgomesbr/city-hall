@@ -72,7 +72,10 @@ export function Mapa() {
           <Cartao>
             {comCoordenada.length === 0 ? (
               <Vazio titulo="Nenhuma ocorrência ativa com coordenada">
-                <p>Registre latitude e longitude na abertura para a ocorrência aparecer aqui.</p>
+                <p>
+                  Na abertura, cole no campo de localização o link do mapa que o
+                  solicitante mandou: a ocorrência aparece aqui em seguida.
+                </p>
               </Vazio>
             ) : (
               <div style={{

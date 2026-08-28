@@ -130,6 +130,8 @@ async function chamar<T>(
 export type Identidade = {
   usuarioId: string;
   nome: string;
+  /** Sai impressa em todo documento que o agente assina. Ver migração 013. */
+  matricula: string;
   papel: Papel;
   organizacaoNome: string;
   municipio: string;
@@ -145,7 +147,7 @@ export async function entrar(
   const r = await chamar<{
     acesso: string; renovacao: string;
     usuario: {
-      id: string; nome: string; papel: Papel;
+      id: string; nome: string; matricula: string; papel: Papel;
       organizacaoNome: string; municipio: string; uf: string;
     };
   }>("/auth/entrar", { metodo: "POST", corpo: { email, senha } });
@@ -155,6 +157,7 @@ export async function entrar(
     identidade: {
       usuarioId: r.usuario.id,
       nome: r.usuario.nome,
+      matricula: r.usuario.matricula,
       papel: r.usuario.papel,
       organizacaoNome: r.usuario.organizacaoNome,
       municipio: r.usuario.municipio,
@@ -185,6 +188,8 @@ export type Pendencia = {
   tipo: TipoCobrade;
   severidade: Severidade | null;
   endereco: string;
+  /** Como chegar, em linguagem de quem mora ali. Ver a migração 012. */
+  ponto_referencia: string | null;
   latitude: number | null;
   longitude: number | null;
   descricao: string;
@@ -193,6 +198,8 @@ export type Pendencia = {
   vulnerabilidade_presente: boolean;
   vulnerabilidade_descricao: string | null;
   prazo_em: string | null;
+  /** Abertura do chamado. Sai impressa na minuta e no laudo. */
+  criado_em: string;
 };
 
 /**
