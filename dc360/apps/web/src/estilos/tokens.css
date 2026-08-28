@@ -46,6 +46,24 @@
   --ds-surface:       var(--ds-white);
   --ds-surface-2:     var(--ds-ink-100);
   --ds-border:        var(--ds-ink-200);
+  /*
+    Borda de CONTROLE, separada da borda decorativa, e a separação é a coisa
+    importante aqui.
+
+    A WCAG 1.4.11 exige 3:1 para o que identifica um componente de interação.
+    `--ds-border` sozinho dava 1.30 no tema claro e 1.33 no escuro, medido: a
+    borda de um campo de formulário sobre um cartão da mesma cor, que é a única
+    coisa dizendo onde o campo está.
+
+    Não bastaria escurecer `--ds-border`, porque ele também desenha borda de
+    cartão, linha de tabela e separador. Esses são decoração, não controle, e
+    escurecê-los deixaria o painel inteiro pesado sem que a norma peça.
+
+    Sem cor nova: `ink-500` no claro dá 5.53 sobre branco e 4.70 sobre a
+    superfície secundária; `ink-400` no escuro dá 7.06 e 6.43. Os dois já eram
+    primitivas.
+  */
+  --ds-border-controle: var(--ds-ink-500);
   --ds-text:          var(--ds-ink-900);
   --ds-text-muted:    var(--ds-ink-500);
   --ds-accent:        var(--ds-violet-700); /* links e ações: 8.98:1 sobre branco */
@@ -113,6 +131,7 @@
   --ds-surface:       var(--ds-ink-850);
   --ds-surface-2:     var(--ds-ink-800);
   --ds-border:        var(--ds-ink-700);
+  --ds-border-controle: var(--ds-ink-400);
   --ds-text:          var(--ds-ice);
   --ds-text-muted:    var(--ds-ink-400);
   --ds-accent:        var(--ds-violet-400); /* 6.75:1 sobre ink-950 */

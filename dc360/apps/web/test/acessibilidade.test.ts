@@ -167,6 +167,21 @@ const PARES: Array<{
 
   // Elemento gráfico, não texto: a régua da WCAG para componente é 3:1.
   { oQue: "elemento gráfico da marca no fundo", frente: "--ds-accent-graphic", fundo: "--ds-bg", minimo: 3 },
+
+  /*
+    Borda de campo de formulário, também 3:1, e é o par que faltava.
+
+    Ela é a ÚNICA coisa que identifica onde um campo começa: o campo tem o
+    mesmo fundo do cartão em que está. Com `--ds-border` isto media 1.30 no
+    tema claro e 1.33 no escuro, o que reprova a WCAG 1.4.11 por larga
+    margem, e ninguém percebia porque a régua de 4.5 só era aplicada a texto.
+
+    Três fundos, porque o campo aparece nos três: cartão, superfície
+    secundária e fundo da página.
+  */
+  { oQue: "borda de campo sobre o cartão", frente: "--ds-border-controle", fundo: "--ds-surface", minimo: 3 },
+  { oQue: "borda de campo na superfície secundária", frente: "--ds-border-controle", fundo: "--ds-surface-2", minimo: 3 },
+  { oQue: "borda de campo no fundo da página", frente: "--ds-border-controle", fundo: "--ds-bg", minimo: 3 },
 ];
 
 const AA_TEXTO = 4.5;
@@ -349,6 +364,42 @@ describe("Teclado e leitor de tela", () => {
     expect(
       achados,
       `outline removido sem devolver o anel de foco:\n${achados.join("\n")}`,
+    ).toEqual([]);
+  });
+
+  it("campo de formulário usa a borda de CONTROLE, não a decorativa", () => {
+    /*
+      O par de contraste acima confere o TOKEN. Este confere quem o CSS usa.
+
+      Sem os dois, o portão tem um buraco por onde a correção volta: alguém
+      troca `--ds-border-controle` por `--ds-border` na regra do campo, o
+      contraste cai de 5.53 para 1.30, e o teste de token continua verde
+      porque o token em si não mudou. Descobri isso tentando desfazer a
+      correção de propósito e vendo a suíte passar.
+    */
+    const faltando: string[] = [];
+    for (const caminho of arquivos(join(RAIZ, "estilos"), /\.css$/)) {
+      const css = readFileSync(caminho, "utf8");
+      for (const casou of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        const seletor = casou[1]!.trim();
+        const corpo = casou[2]!;
+        // Só a regra que desenha a caixa do campo. Estado (hover, inválido) e
+        // outros elementos ficam de fora.
+        const ehCampo = /\binput\b/.test(seletor)
+          && /\bselect\b/.test(seletor)
+          && /\btextarea\b/.test(seletor)
+          && !/:hover|:focus|\[aria-invalid/.test(seletor);
+        if (!ehCampo) continue;
+        if (!/border\s*:/.test(corpo)) continue;
+        if (/--ds-border-controle/.test(corpo)) continue;
+        faltando.push(`${nome(caminho)}  ${seletor.slice(0, 70)}`);
+      }
+    }
+    expect(
+      faltando,
+      "a borda do campo é a única coisa que diz onde ele começa, e por isso "
+      + "precisa de --ds-border-controle (3:1) e não de --ds-border (1.30):\n"
+      + faltando.join("\n"),
     ).toEqual([]);
   });
 
