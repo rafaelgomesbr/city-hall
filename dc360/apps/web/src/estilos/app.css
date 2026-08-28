@@ -39,6 +39,34 @@ body {
 
 :focus-visible { outline: none; box-shadow: var(--ds-focus-ring); border-radius: var(--ds-radius); }
 
+/*
+  Alto Contraste do Windows, que é o cenário de máquina de prefeitura.
+
+  O modo de cores forçadas DESCARTA `box-shadow`. Como o anel de foco desta
+  folha é desenhado só por sombra, quem liga o Alto Contraste fica sem foco
+  visível em lugar nenhum do painel: navegar por Tab passa a ser adivinhação.
+
+  `Highlight` e `CanvasText` são as cores que o próprio sistema expõe. Usar
+  qualquer outra aqui seria ignorar a escolha de quem ligou o modo, que é
+  exatamente o que o modo existe para impedir.
+*/
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  /*
+    Selo, aviso, indicador e cartão perdem o fundo colorido no modo forçado, e
+    sem borda eles somem dentro do texto ao redor. A regra do produto de nunca
+    comunicar estado só por cor já garante que o texto continua dizendo o que
+    é; a borda devolve a separação visual.
+  */
+  .selo, .aviso, .indicador, .cartao {
+    border: 1px solid CanvasText;
+  }
+}
+
 .mono { font-family: var(--ds-font-mono); font-variant-numeric: tabular-nums; }
 
 .oculto-visualmente {

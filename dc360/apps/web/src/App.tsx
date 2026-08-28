@@ -15,6 +15,7 @@ import { Auditoria } from "./paginas/Auditoria";
 import { Aviso } from "./componentes/comuns";
 import { MeuTrabalho } from "./paginas/MeuTrabalho";
 import { MinhaConta } from "./paginas/MinhaConta";
+import { TrocaDeTela } from "./componentes/TrocaDeTela";
 
 /**
  * Rotas privadas ficam todas atrás da mesma checagem. Isso é conveniência de
@@ -71,6 +72,10 @@ export function App() {
   useTema();
 
   return (
+    <>
+      {/* Título da aba e foco no conteúdo a cada troca de rota. Sem isto, quem
+          usa leitor de tela navega em silêncio absoluto. */}
+      <TrocaDeTela />
     <Routes>
       <Route path="/entrar" element={sessao ? <Navigate to={inicio} replace /> : <Entrar />} />
       <Route path="/recuperar-senha" element={<RecuperarSenha />} />
@@ -93,5 +98,6 @@ export function App() {
 
       <Route path="*" element={<Navigate to={inicio} replace />} />
     </Routes>
+    </>
   );
 }

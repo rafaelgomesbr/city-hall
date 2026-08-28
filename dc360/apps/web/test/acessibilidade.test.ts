@@ -25,6 +25,7 @@ import { describe, expect, it } from "vitest";
  */
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
+const REGEX_CSS = /\.css$/;
 const TOKENS = join(RAIZ, "estilos", "tokens.css");
 
 /* ============================================================
@@ -367,6 +368,34 @@ describe("Teclado e leitor de tela", () => {
     ).toEqual([]);
   });
 
+  it("o foco sobrevive ao Alto Contraste do Windows", () => {
+    /*
+      O modo de cores forçadas do Windows DESCARTA `box-shadow`. Como o anel de
+      foco desta folha é desenhado só por sombra, sem uma contrapartida em
+      `forced-colors` quem liga o Alto Contraste navega por Tab às cegas, e
+      esse é justamente o cenário de máquina antiga de prefeitura.
+
+      O teste é grosseiro de propósito: exige que exista pelo menos um bloco
+      `@media (forced-colors: active)` devolvendo `outline` no arquivo que
+      remove o outline. Não tenta provar que o desenho está bonito, só que a
+      saída existe.
+    */
+    const semSaida: string[] = [];
+    for (const caminho of arquivos(join(RAIZ, "estilos"), REGEX_CSS)) {
+      const css = readFileSync(caminho, "utf8");
+      const removeFoco = /:focus-visible[^{]*\{[^{}]*box-shadow:\s*var\(--ds-focus-ring\)/.test(css);
+      if (!removeFoco) continue;
+      const temForcado = /@media[^{]*forced-colors:\s*active[^{]*\{[\s\S]*?outline:/.test(css);
+      if (!temForcado) semSaida.push(nome(caminho));
+    }
+    expect(
+      semSaida,
+      "desenha o anel de foco por box-shadow e não devolve outline em "
+      + "@media (forced-colors: active). No Alto Contraste do Windows o foco "
+      + "some da tela inteira:\n" + semSaida.join("\n"),
+    ).toEqual([]);
+  });
+
   it("campo de formulário usa a borda de CONTROLE, não a decorativa", () => {
     /*
       O par de contraste acima confere o TOKEN. Este confere quem o CSS usa.
@@ -424,5 +453,44 @@ describe("Teclado e leitor de tela", () => {
 
     expect(/\balt=/.test('<img src={u} loading="lazy" />')).toBe(false);
     expect(/\balt=/.test('<img src={u} alt="foto" />')).toBe(true);
+  });
+});
+
+describe("Troca de tela", () => {
+  it("toda rota do painel tem título próprio", async () => {
+    /*
+      Numa aplicação de página única, trocar de rota não é navegação para o
+      navegador: o endereço muda, o conteúdo é substituído, e nada é
+      anunciado. O título da aba é a primeira coisa que o leitor de tela lê, e
+      era estático desde que a página abria.
+
+      Este teste lê as rotas declaradas em `App.tsx` e exige que cada uma
+      tenha nome. Assim, rota nova sem título reprova aqui, e não seis meses
+      depois num teste com leitor de tela que ninguém vai fazer.
+    */
+    const { nomeDaTela } = await import("../src/componentes/TrocaDeTela");
+    const app = readFileSync(join(RAIZ, "App.tsx"), "utf8");
+
+    const rotas = [...app.matchAll(/<Route\s+path="([^"]+)"/g)]
+      .map((m) => m[1]!)
+      // O curinga é redirecionamento, não tela.
+      .filter((r) => r !== "*")
+      // Parâmetro vira um valor de exemplo, porque o nome sai de um padrão.
+      .map((r) => r.replace(":id", "00000000-0000-4000-8000-000000000000"));
+
+    expect(rotas.length).toBeGreaterThan(5);
+
+    const semNome = rotas.filter((r) => nomeDaTela(r) === "Defesa Civil 360");
+    expect(
+      semNome,
+      "rota sem título próprio: quem usa leitor de tela não sabe que a tela "
+      + "mudou, e a aba do navegador continua dizendo a mesma coisa:\n"
+      + semNome.join("\n"),
+    ).toEqual([]);
+  });
+
+  it("o conteúdo pode receber foco, senão levar o foco até ele não funciona", () => {
+    const estrutura = readFileSync(join(RAIZ, "componentes", "Estrutura.tsx"), "utf8");
+    expect(estrutura).toMatch(/id="conteudo"[^>]*tabIndex=\{-1\}/);
   });
 });
