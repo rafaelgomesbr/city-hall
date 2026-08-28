@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, View, type ColorValue } from "react-native";
 import { Redirect, Tabs, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { FilaDeSincronizacao, ResumoFila } from "@dc360/campo";
@@ -20,6 +20,50 @@ import { espaco, raio, toque } from "../../ui/tokens";
  * estão à vista, ninguém precisa confiar; quando faltam, todo mundo desconfia
  * do sistema justamente na hora em que ele está funcionando.
  */
+
+/**
+ * Altura da pílula do menu.
+ *
+ * `toque` é o alvo mínimo do design system (52, e não 44: ver o comentário no
+ * arquivo de tokens). A folga extra acomoda a pílula do item ativo sem
+ * espremer o rótulo, que continua sendo obrigatório.
+ */
+const ALTURA_MENU = toque + espaco.e2;
+
+/**
+ * O ícone dentro da pílula arredondada.
+ *
+ * A pílula só aparece no item ativo, preenchida com a cor de destaque suave.
+ * Ela não é enfeite: é a SEGUNDA pista de qual aba está aberta, ao lado da
+ * cor do traço, para quem não distingue violeta de cinza e para quem está sob
+ * sol forte. A regra do aplicativo é que nada se comunica só por cor, e ela
+ * vale para o menu igual.
+ */
+function IconeEmPilula({
+  Icone, cor, ativo, fundoAtivo,
+}: {
+  /* `ColorValue` e não `string`: é o que o `tabBarIcon` entrega, e é o mesmo
+     tipo que os ícones já aceitam. */
+  Icone: (p: { cor: ColorValue; tamanho?: number }) => React.JSX.Element;
+  cor: ColorValue;
+  ativo: boolean;
+  fundoAtivo: string;
+}) {
+  return (
+    <View
+      style={{
+        width: 44,
+        height: 26,
+        borderRadius: raio.pilula,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: ativo ? fundoAtivo : "transparent",
+      }}
+    >
+      <Icone cor={cor} tamanho={22} />
+    </View>
+  );
+}
 
 export default function LayoutDoAgente() {
   const { identidade, obterToken } = useSessao();
@@ -126,22 +170,35 @@ export default function LayoutDoAgente() {
       </Pressable>
 
       {/*
-        Barra inferior, e não pilha.
+        Barra FLUTUANTE, e não encostada na borda.
 
-        O motivo é alcance, não estética. Antes, o único caminho para a fila
-        era tocar esta faixa aqui em cima, e "Minha conta" ficava no FIM do
-        rolamento das tarefas. Num aparelho de 6,7 polegadas segurado com uma
-        mão, no alto de um barranco, o topo da tela é o ponto mais distante do
-        polegar que existe.
+        O motivo primeiro é alcance, não estética. Antes de existir barra
+        nenhuma, o único caminho para a fila era tocar a faixa lá em cima, e
+        "Minha conta" ficava no FIM do rolamento das tarefas. Num aparelho de
+        6,7 polegadas segurado com uma mão, no alto de um barranco, o topo da
+        tela é o ponto mais distante do polegar que existe.
+
+        Ela flutua porque encostada na borda ela disputa espaço com a barra de
+        gestos do Android, e porque uma pílula solta sobre o conteúdo diz
+        sozinha que é um menu, sem precisar de linha divisória. O conteúdo
+        rola por baixo dela, e por isso `sceneStyle` reserva o espaço no fim
+        do rolamento: sem esse recuo, o último item de toda lista nasceria
+        escondido atrás do menu, que é o defeito clássico de barra flutuante.
 
         Três abas, e não cinco. O Instagram tem cinco destinos de peso igual;
         este aplicativo tem um destino (Tarefas) e uma tarefa (Vistoria). Duas
         abas a mais seriam duas invenções.
 
-        Ícone COM palavra, sempre. A regra do aplicativo é que nada se comunica
-        só por cor, porque tem sol na tela e luva no dedo. Ícone sozinho falha
-        pela mesma razão, e o agente usa isto duas vezes por semana: ele não
-        decora pictograma.
+        Ícone COM palavra, sempre, e aqui o produto se afasta do Instagram de
+        propósito. Lá o ícone sozinho funciona porque a pessoa abre o
+        aplicativo várias vezes por dia e decorou os pictogramas. O agente
+        abre este duas vezes por semana, com sol na tela e luva no dedo. A
+        regra da casa é que nada se comunica só por cor; ícone sozinho falha
+        pela mesma razão.
+
+        O item ativo ganha uma pílula preenchida atrás do ícone. É a parte
+        "arredondada e bonita" do pedido, e ela também é funcional: soma uma
+        segunda pista à cor, para quem não distingue violeta de cinza.
 
         E a barra SOME dentro da vistoria. Aquela tela é uma tarefa com fim
         irreversível, tem o formulário mais longo do produto, e uma escotilha
@@ -153,19 +210,42 @@ export default function LayoutDoAgente() {
           headerStyle: { backgroundColor: tema.superficie },
           headerTintColor: tema.texto,
           headerTitleStyle: { fontWeight: "700" },
-          sceneStyle: { backgroundColor: tema.fundo },
+          // O recuo reserva, no fim de toda rolagem, a altura da barra mais a
+          // folga em que ela flutua. Sem ele o último item de cada lista
+          // nasce atrás do menu.
+          sceneStyle: {
+            backgroundColor: tema.fundo,
+            paddingBottom: ALTURA_MENU + recuo.bottom + espaco.e3,
+          },
           tabBarActiveTintColor: tema.destaque,
           tabBarInactiveTintColor: tema.textoDiscreto,
           tabBarStyle: {
+            position: "absolute",
+            left: espaco.e4,
+            right: espaco.e4,
+            bottom: recuo.bottom + espaco.e3,
+            height: ALTURA_MENU,
+            paddingTop: espaco.e2,
+            paddingBottom: espaco.e2,
             backgroundColor: tema.superficie,
-            borderTopColor: tema.borda,
-            // O `toque` é o alvo mínimo do design system. Somado ao recuo
-            // seguro, impede a barra de gestos do Android de comer a área
-            // tocável, que é o pior lugar possível para economizar pixel.
-            height: toque + recuo.bottom,
-            paddingBottom: recuo.bottom,
-            paddingTop: espaco.e1,
+            borderRadius: raio.pilula,
+            // A borda superior padrão desenharia uma linha reta atravessando
+            // a pílula. Aqui o contorno é o anel inteiro.
+            borderTopWidth: 0,
+            borderWidth: 1,
+            borderColor: tema.borda,
+            /*
+              Sombra nas duas plataformas, porque cada uma lê uma propriedade
+              e ignora a outra em silêncio. Sem `elevation` a barra flutuante
+              fica sem sombra no Android, que é o aparelho de campo.
+            */
+            elevation: 8,
+            shadowColor: "#000000",
+            shadowOpacity: 0.18,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 4 },
           },
+          tabBarItemStyle: { paddingTop: 0 },
           tabBarLabelStyle: { fontSize: 12, fontWeight: "600" },
         }}
       >
@@ -174,7 +254,10 @@ export default function LayoutDoAgente() {
           options={{
             title: "Minhas tarefas",
             tabBarLabel: "Tarefas",
-            tabBarIcon: ({ color }) => <IconeTarefas cor={color} />,
+            tabBarIcon: ({ color, focused }) => (
+              <IconeEmPilula Icone={IconeTarefas} cor={color} ativo={focused}
+                             fundoAtivo={tema.superficie2} />
+            ),
           }}
         />
         <Tabs.Screen
@@ -182,7 +265,10 @@ export default function LayoutDoAgente() {
           options={{
             title: "Fila de envio",
             tabBarLabel: "Envio",
-            tabBarIcon: ({ color }) => <IconeEnvio cor={color} />,
+            tabBarIcon: ({ color, focused }) => (
+              <IconeEmPilula Icone={IconeEnvio} cor={color} ativo={focused}
+                             fundoAtivo={tema.superficie2} />
+            ),
             // Número, e não pontinho colorido: o agente precisa saber QUANTAS
             // coletas estão esperando, não só que existe alguma.
             tabBarBadge: naFila > 0 ? naFila : undefined,
@@ -202,7 +288,10 @@ export default function LayoutDoAgente() {
           options={{
             title: "Minha equipe",
             tabBarLabel: "Equipe",
-            tabBarIcon: ({ color }) => <IconeEquipe cor={color} />,
+            tabBarIcon: ({ color, focused }) => (
+              <IconeEmPilula Icone={IconeEquipe} cor={color} ativo={focused}
+                             fundoAtivo={tema.superficie2} />
+            ),
           }}
         />
         {/* Fora da barra: alcançada pela tela de equipe. */}
