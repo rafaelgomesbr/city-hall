@@ -454,3 +454,40 @@ describe("O recorte da trilha usa a hora do servidor", () => {
     expect(encontrado).toBeTruthy();
   });
 });
+
+/**
+ * A planilha vai ao Tribunal de Contas, e a primeira coisa que alguém faz com
+ * ela é ordenar por data.
+ *
+ * As datas saíam como `Sat Aug 22 2026 01:49:16 GMT-0300 (Horário Padrão de
+ * Brasília)`, que é o `toString` do `Date` em inglês. Excel e LibreOffice
+ * tratam isso como texto: a coluna não ordena, não filtra por período e não
+ * entra em fórmula.
+ */
+describe("Datas do CSV", () => {
+  it("saem no formato que o Excel em português entende sozinho", async () => {
+    const r = await app.inject({
+      method: "GET", url: "/relatorios/ocorrencias.csv", headers: com(tokenCoordenador),
+    });
+    expect(r.statusCode).toBe(200);
+
+    const linhas = r.body.split("\n").filter((l) => l.trim());
+    const cabecalho = linhas[0]!.split(";");
+    const coluna = cabecalho.indexOf("Registrada em");
+    expect(coluna).toBeGreaterThan(-1);
+
+    // Toda linha de dado, e não só a primeira: uma data mal formatada no meio
+    // da planilha quebra a ordenação da mesma forma.
+    const datas = linhas.slice(1)
+      .map((l) => l.split(";")[coluna] ?? "")
+      .filter((d) => d.trim());
+    expect(datas.length).toBeGreaterThan(0);
+
+    for (const d of datas) {
+      expect(d).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/);
+    }
+    // E nenhum resquício do formato em inglês.
+    expect(r.body).not.toMatch(/\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun) [A-Z][a-z]{2} \d{2} \d{4}/);
+    expect(r.body).not.toContain("GMT");
+  });
+});

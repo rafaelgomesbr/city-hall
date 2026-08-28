@@ -313,11 +313,6 @@ export default function Tarefas() {
         />
       </Cartao>
 
-      <Botao
-        titulo="Minha conta"
-        tipo="discreto"
-        onPress={() => router.push("/(agente)/conta")}
-      />
     </ScrollView>
   );
 }

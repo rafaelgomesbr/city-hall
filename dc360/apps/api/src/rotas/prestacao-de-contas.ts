@@ -41,6 +41,30 @@ const filtroExportacaoSchema = z.object({
   status: z.string().max(30).optional(),
 });
 
+/**
+ * Data que o Excel entende, e não a que o JavaScript imprime.
+ *
+ * O valor vinha do banco como `Date` e era concatenado direto na célula, o que
+ * produz `Sat Aug 22 2026 01:49:16 GMT-0300 (Horário Padrão de Brasília)`.
+ * Excel e LibreOffice tratam isso como TEXTO: a coluna não ordena, não filtra
+ * por período e não entra em fórmula.
+ *
+ * Isso não é detalhe de formatação. Este arquivo é a peça que vai ao Tribunal
+ * de Contas e ao Ministério Público, e a primeira coisa que alguém faz com ele
+ * é ordenar por data.
+ *
+ * `dd/MM/yyyy HH:mm` é o formato que o Excel em português reconhece sozinho,
+ * sem assistente de importação.
+ */
+function dataParaPlanilha(valor: string | Date | null): string {
+  if (!valor) return "";
+  const d = valor instanceof Date ? valor : new Date(valor);
+  if (Number.isNaN(d.getTime())) return "";
+  const doisDigitos = (n: number) => String(n).padStart(2, "0");
+  return `${doisDigitos(d.getDate())}/${doisDigitos(d.getMonth() + 1)}/${d.getFullYear()}`
+    + ` ${doisDigitos(d.getHours())}:${doisDigitos(d.getMinutes())}`;
+}
+
 export async function rotasPrestacaoDeContas(
   app: FastifyInstance,
   { banco }: { banco: Banco },
@@ -249,7 +273,9 @@ export async function rotasPrestacaoDeContas(
         l.vulnerabilidade_presente ? "sim" : "não",
         l.descricao,
         l.equipe_nome ?? "",
-        l.criado_em, l.prazo_em ?? "", l.encerrado_em ?? "",
+        dataParaPlanilha(l.criado_em),
+        dataParaPlanilha(l.prazo_em),
+        dataParaPlanilha(l.encerrado_em),
         l.motivo_encerramento ?? "",
         l.horas_ate_vistoria ?? "", l.horas_ate_encerramento ?? "",
         l.providencias, l.providencias_sem_resposta,
