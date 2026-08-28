@@ -221,8 +221,26 @@ export default function LayoutDoAgente() {
           tabBarInactiveTintColor: tema.textoDiscreto,
           tabBarStyle: {
             position: "absolute",
-            left: espaco.e4,
-            right: espaco.e4,
+            /*
+              A folga lateral é maior que a do conteúdo (e6 contra e4), e a
+              diferença é deliberada. Uma pílula flutuante alinhada com a
+              margem do conteúdo não parece solta: parece uma barra encostada
+              que alguém arredondou. O recuo extra é o que faz o olho ler
+              "isto está por cima", e de quebra tira os dois alvos das pontas
+              da zona de toque acidental na borda curva da tela.
+            */
+            /*
+              MARGEM, e não `left`/`right`.
+
+              O React Navigation posiciona a barra por conta própria e
+              sobrescreve `left` e `right` do estilo. Eu tinha escrito assim, e
+              o efeito era silencioso do pior jeito: o `borderRadius` aplicava,
+              então a barra PARECIA flutuante, e ela continuava colada nas duas
+              bordas. Medindo o pixel da captura, a pílula começava em x=4 com
+              recuo declarado de 16 e de 32: os dois valores foram ignorados
+              igual. `marginHorizontal` age no mesmo elemento e sobrevive.
+            */
+            marginHorizontal: espaco.e6,
             bottom: recuo.bottom + espaco.e3,
             height: ALTURA_MENU,
             paddingTop: espaco.e2,
