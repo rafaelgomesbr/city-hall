@@ -36,6 +36,7 @@ const TITULOS: Record<string, string> = {
   "/entrar": "Entrar",
   "/recuperar-senha": "Recuperar senha",
   "/redefinir-senha": "Definir nova senha",
+  "/quero-conhecer": "Quero conhecer",
 };
 
 const PRODUTO = "Defesa Civil 360";

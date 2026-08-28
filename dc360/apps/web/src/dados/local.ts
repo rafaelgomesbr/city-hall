@@ -154,6 +154,12 @@ export async function listarEvidencias(): Promise<never[]> {
   return [];
 }
 
+export async function registrarInteresse(): Promise<string> {
+  throw new Error(
+    "O formulário de interesse exige a API. Este painel está em modo de demonstração.",
+  );
+}
+
 export async function pedirRecuperacao(): Promise<string> {
   throw new Error("A recuperação de senha exige a API. Este painel está em modo local.");
 }

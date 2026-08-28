@@ -1,5 +1,6 @@
 import type {
-  AberturaOcorrencia, Despacho, Encerramento, Papel, Providencia, Triagem,
+  AberturaOcorrencia, Despacho, Encerramento, InteresseMunicipio, Papel,
+  Providencia, Triagem,
 } from "@dc360/shared";
 import type {
   ContaDisponivel, FiltroOcorrencias, Indicadores, LinhaEquipe, LinhaEvento,
@@ -461,6 +462,21 @@ export async function listarEvidencias(
 ): Promise<LinhaEvidencia[]> {
   const r = await chamar<{ itens: LinhaEvidencia[] }>(`/evidencias/ocorrencia/${ocorrenciaId}`);
   return r.itens;
+}
+
+/**
+ * O formulário público de interesse.
+ *
+ * Não passa por token e não devolve nada além da confirmação. A resposta é a
+ * MESMA tenha o pedido sido gravado ou recusado pela janela de seis horas: se
+ * a tela dissesse "você já pediu", ela viraria um verificador de quais
+ * municípios já procuraram o produto.
+ */
+export async function registrarInteresse(dados: InteresseMunicipio): Promise<string> {
+  const r = await chamar<{ mensagem: string }>("/publico/interesse", {
+    metodo: "POST", corpo: dados,
+  });
+  return r.mensagem;
 }
 
 export async function pedirRecuperacao(email: string): Promise<string> {

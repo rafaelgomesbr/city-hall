@@ -36,6 +36,12 @@ const SEM_TOKEN = new Map<string, string>([
   ["POST /auth/redefinir", "autentica pelo link de uso único"],
   ["PUT /armazenamento/objeto", "autenticado pela assinatura embutida na URL"],
   ["GET /armazenamento/objeto", "autenticado pela assinatura embutida na URL"],
+  [
+    "POST /publico/interesse",
+    "formulário público de contato: quem preenche ainda não é cliente e não "
+    + "tem token. Grava pedido e NÃO cria município nenhum; o papel de "
+    + "aplicação insere e não lê (migração 011)",
+  ],
 ]);
 
 type Rota = { metodo: string; caminho: string };
@@ -50,11 +56,37 @@ function rotasRegistradas(instancia: FastifyInstance): Rota[] {
   const arvore = instancia.printRoutes({ commonPrefix: false });
   const rotas: Rota[] = [];
 
+  /*
+    O caminho de verdade é a CONCATENAÇÃO da árvore, e não o texto de uma
+    linha.
+
+    `printRoutes` desenha uma árvore em que cada linha traz só o próprio
+    segmento. A versão anterior deste parser tomava o segmento como se fosse o
+    caminho inteiro, e o resultado era pedir `GET :id` e `POST /triagem`, que
+    não existem: DEZESSETE rotas do produto respondiam 404, e o portão aceitava
+    404 como prova de que estavam protegidas.
+
+    Ou seja: o portão que existe para garantir que nenhuma rota responde sem
+    token estava, para a maioria delas, verificando endereço nenhum. Isso só
+    apareceu quando a régua foi apertada para exigir 401.
+
+    A profundidade sai do prefixo de desenho, contado em blocos de quatro
+    caracteres, que é como o Fastify indenta.
+  */
+  const pilha: string[] = [];
+
   for (const linha of arvore.split("\n")) {
-    const casou = /^[\s│├└─]*(\S+)\s+\((.+?)\)\s*$/.exec(linha);
+    const casou = /^([\s│├└─]*)(\S+)\s+\((.+?)\)\s*$/.exec(linha);
     if (!casou) continue;
-    const caminho = casou[1]!;
-    for (const metodo of casou[2]!.split(",").map((m) => m.trim())) {
+
+    const profundidade = Math.floor(casou[1]!.length / 4);
+    const segmento = casou[2]!;
+
+    pilha.length = profundidade;
+    pilha[profundidade] = segmento;
+    const caminho = pilha.slice(0, profundidade + 1).join("");
+
+    for (const metodo of casou[3]!.split(",").map((m) => m.trim())) {
       if (metodo === "HEAD" || metodo === "OPTIONS") continue;
       rotas.push({ metodo, caminho });
     }
@@ -109,12 +141,23 @@ describe("Toda rota exige token", () => {
       });
 
       /*
-        401 é o esperado. 404 e 422 também servem como prova de que a rota não
-        entregou nada: o que reprova é 2xx, e 403, que significaria ter passado
-        pela autenticação e parado só na permissão.
+        401, e SÓ 401.
+
+        Antes isto aceitava qualquer coisa de 400 para cima menos 403, com o
+        argumento de que 404 e 422 também provam que nada foi entregue. O
+        argumento está certo sobre o vazamento e errado sobre o que este
+        portão existe para pegar: uma rota INTENCIONALMENTE pública responde
+        422 a um corpo vazio, exatamente como uma protegida responderia se a
+        validação rodasse antes da autenticação. As duas ficavam
+        indistinguíveis, e foi assim que a rota do formulário público entrou
+        sem ser declarada aqui.
+
+        Numa rota protegida deste produto, a autenticação roda ANTES do
+        `parse`, então corpo vazio devolve 401. Exigir 401 é exigir que a
+        autenticação tenha acontecido, que é a pergunta que interessa.
       */
-      if (r.statusCode < 400 || r.statusCode === 403) {
-        desprotegidas.push(`${chave} respondeu ${r.statusCode}`);
+      if (r.statusCode !== 401) {
+        desprotegidas.push(`${chave} respondeu ${r.statusCode}, e não 401`);
       }
     }
 

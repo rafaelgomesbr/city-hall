@@ -1219,3 +1219,85 @@ describe("Trilha dos atos administrativos", () => {
     expect(Number(depois.rows[0]!.n)).toBeGreaterThanOrEqual(quantos);
   });
 });
+
+/**
+ * O formulário público de interesse.
+ *
+ * Única rota de escrita sem autenticação do produto, e por isso a que mais
+ * precisa de prova do que NÃO faz.
+ */
+describe("Formulário público de interesse", () => {
+  const pedido = {
+    nome: "Coordenadora de Teste",
+    cargo: "Coordenadora de Proteção e Defesa Civil",
+    email: "coordenadora.teste@municipio.exemplo.gov.br",
+    telefone: "(35) 3333-1000",
+    municipio: "Município de Teste",
+    uf: "MG",
+    faixaPopulacao: "de_50_a_200_mil",
+    quantosAgentes: 4,
+    mensagem: "Gostaríamos de conhecer o sistema.",
+  };
+
+  it("aceita sem token e responde sempre a mesma coisa", async () => {
+    const r = await app.inject({ method: "POST", url: "/publico/interesse", payload: pedido });
+    expect(r.statusCode).toBe(202);
+    expect(r.json().recebido).toBe(true);
+
+    const gravado = await mem.bruto.query<{ municipio: string; uf: string }>(
+      "SELECT municipio, uf FROM interesse_municipio WHERE lower(email) = lower($1)",
+      [pedido.email],
+    );
+    expect(gravado.rows).toHaveLength(1);
+    expect(gravado.rows[0]!.uf).toBe("MG");
+  });
+
+  it("pedir de novo na mesma janela não duplica, e a resposta não muda", async () => {
+    // Dizer "você já pediu" transformaria a rota num verificador de quais
+    // emails já procuraram o produto.
+    const r = await app.inject({ method: "POST", url: "/publico/interesse", payload: pedido });
+    expect(r.statusCode).toBe(202);
+    expect(r.json().recebido).toBe(true);
+
+    const quantos = await mem.bruto.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM interesse_municipio WHERE lower(email) = lower($1)",
+      [pedido.email],
+    );
+    expect(Number(quantos.rows[0]!.n)).toBe(1);
+  });
+
+  it("NÃO cria município nenhum", async () => {
+    // A garantia central desta rota. Um formulário público que criasse
+    // ambiente seria um formulário público que cria banco de dados.
+    const orgs = await mem.bruto.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM organizacoes",
+    );
+    await app.inject({
+      method: "POST", url: "/publico/interesse",
+      payload: { ...pedido, email: "outra.pessoa@municipio.exemplo.gov.br" },
+    });
+    const depois = await mem.bruto.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM organizacoes",
+    );
+    expect(depois.rows[0]!.n).toBe(orgs.rows[0]!.n);
+
+    // Nem usuário.
+    const usuarios = await mem.bruto.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM usuarios WHERE email LIKE '%municipio.exemplo.gov.br'",
+    );
+    expect(Number(usuarios.rows[0]!.n)).toBe(0);
+  });
+
+  it("recusa dados que não fazem sentido", async () => {
+    const semNome = await app.inject({
+      method: "POST", url: "/publico/interesse", payload: { ...pedido, nome: "" },
+    });
+    expect(semNome.statusCode).toBe(422);
+
+    const ufErrada = await app.inject({
+      method: "POST", url: "/publico/interesse",
+      payload: { ...pedido, email: "x@y.gov.br", uf: "MINAS" },
+    });
+    expect(ufErrada.statusCode).toBe(422);
+  });
+});

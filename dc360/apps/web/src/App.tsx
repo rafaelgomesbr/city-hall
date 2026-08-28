@@ -16,6 +16,7 @@ import { Aviso } from "./componentes/comuns";
 import { MeuTrabalho } from "./paginas/MeuTrabalho";
 import { MinhaConta } from "./paginas/MinhaConta";
 import { TrocaDeTela } from "./componentes/TrocaDeTela";
+import { QueroConhecer } from "./paginas/QueroConhecer";
 
 /**
  * Rotas privadas ficam todas atrás da mesma checagem. Isso é conveniência de
@@ -79,6 +80,9 @@ export function App() {
     <Routes>
       <Route path="/entrar" element={sessao ? <Navigate to={inicio} replace /> : <Entrar />} />
       <Route path="/recuperar-senha" element={<RecuperarSenha />} />
+      {/* Pública, e alcançável mesmo com sessão ativa: quem já usa pode
+          querer indicar o sistema para o município vizinho. */}
+      <Route path="/quero-conhecer" element={<QueroConhecer />} />
       {/* Alcançável mesmo com sessão ativa: o link chega por email e pode ser
           aberto num navegador onde outra pessoa já está logada. */}
       <Route path="/redefinir-senha" element={<DefinirNovaSenha />} />

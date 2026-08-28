@@ -674,3 +674,36 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
   min-width: 3px;
 }
 .barras__valor { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/*
+  A tela pública de interesse.
+
+  Ela reusa `entrada__painel`, e só acrescenta o que a tela de login não
+  precisa: mais largura, porque o formulário tem duas colunas, e a lista dos
+  três motivos que aparecem ANTES de pedir qualquer dado.
+*/
+/*
+  Mais largo, porque o formulário tem duas colunas, e com respiro entre os
+  blocos.
+
+  `.entrada__painel` não tem `gap` porque a tela de login é uma pilha curta em
+  que as margens dos próprios elementos bastam. Aqui são cinco blocos
+  (identidade, lista de motivos, aviso, formulário, rodapé) e sem o `gap` eles
+  encostam uns nos outros: dá para ver na primeira captura de tela.
+*/
+.entrada__painel--largo {
+  max-width: 640px;
+  display: flex; flex-direction: column; gap: var(--ds-sp-5);
+}
+
+.lista-valor {
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: var(--ds-sp-3);
+}
+.lista-valor li {
+  padding-left: var(--ds-sp-4);
+  border-left: 2px solid var(--ds-accent-graphic);
+  color: var(--ds-text-muted); font-size: var(--ds-fs-body-sm);
+  line-height: var(--ds-lh-body-sm);
+}
+.lista-valor strong { color: var(--ds-text); font-weight: 600; }

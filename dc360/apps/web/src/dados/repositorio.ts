@@ -52,6 +52,7 @@ export const {
   abrirDocumento,
   listarEvidencias,
   pedirRecuperacao,
+  registrarInteresse,
   redefinirSenha,
   trocarSenha,
   consultarTrilha,

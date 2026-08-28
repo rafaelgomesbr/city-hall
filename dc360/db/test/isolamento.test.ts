@@ -168,7 +168,29 @@ describe("CA-06: isolamento entre organizações", () => {
     // Sequência de protocolo: tem organizacao_id e policy, mas a chave
     // primária é composta e não tem coluna `id`.
     "protocolo_sequencias",
+    /*
+      Pedidos vindos do formulário público.
+
+      É a única tabela do produto que é ANTERIOR ao município: quem preenche
+      ainda não é cliente, não tem token e não tem organização. Exigir
+      `organizacao_id` aqui seria exigir que a pessoa já pertencesse ao que ela
+      está pedindo para conhecer.
+
+      A isenção NÃO é buraco, e o teste logo abaixo prova isso: o papel de
+      aplicação insere e NÃO lê. Sem SELECT, um formulário aberto na internet
+      não consegue virar uma lista de contatos de servidores públicos.
+    */
+    "interesse_municipio",
   ]);
+
+  /**
+   * Quem não se amarra ao contexto do município, e por quê.
+   *
+   * Muito mais estreita que `SEM_TENANT`: aqui só entra tabela que existe
+   * ANTES de qualquer município. `organizacoes` e `protocolo_sequencias` não
+   * têm a coluna e mesmo assim têm policy de contexto, e continuam checadas.
+   */
+  const SEM_POLICY_DE_TENANT = new Set(["interesse_municipio"]);
 
   async function tabelasDeNegocio(): Promise<string[]> {
     const r = await db.query<{ tablename: string }>(
@@ -192,8 +214,61 @@ describe("CA-06: isolamento entre organizações", () => {
     }
   });
 
+  it("o formulário público escreve e NÃO lê", async () => {
+    /*
+      Esta é a prova de que a isenção de `interesse_municipio` não abre buraco.
+
+      A tabela é anterior ao município: quem preenche o formulário público não
+      tem token, não tem organização e não é cliente. Por isso ela não pode se
+      amarrar ao contexto, e por isso a proteção precisa vir de outro lugar.
+
+      Vem daqui: o papel de aplicação tem INSERT e NÃO tem SELECT. Sem essa
+      assimetria, um formulário aberto na internet vira uma lista de contatos
+      de servidores públicos servida a quem descobrir a rota.
+    */
+    await comoApp(null, async (tx) => {
+      await tx.exec(`INSERT INTO interesse_municipio (nome, email, municipio, uf)
+                     VALUES ('Fulana de Teste', 'fulana@exemplo.gov.br', 'Serra Alta', 'MG')`);
+    });
+
+    // Gravou de verdade, lido como dono.
+    const comoDono = await db.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM interesse_municipio",
+    );
+    expect(Number(comoDono.rows[0]!.n)).toBeGreaterThan(0);
+
+    // E o papel de aplicação não enxerga nada.
+    let recusou = false;
+    try {
+      await comoApp(null, (tx) => tx.query("SELECT * FROM interesse_municipio"));
+    } catch {
+      recusou = true;
+    }
+    expect(
+      recusou,
+      "o papel de aplicação conseguiu LER os pedidos do formulário público: "
+      + "sem SELECT negado, a rota pública vira uma lista de contatos de "
+      + "servidores disponível a quem descobrir o endereço",
+    ).toBe(true);
+  });
+
   it("toda tabela de negócio tem policy amarrada na organização do contexto", async () => {
     for (const t of await tabelasDeNegocio()) {
+      /*
+        Isenção ESTREITA, e de propósito.
+
+        `SEM_TENANT` é a lista de quem não tem a COLUNA `organizacao_id`, e
+        usá-la aqui seria isentar demais: `organizacoes` e
+        `protocolo_sequencias` não têm a coluna e TÊM policy amarrada ao
+        contexto, então precisam continuar sendo verificadas. Usar a lista
+        larga aqui enfraqueceria o portão para fazer um teste passar, que é
+        exatamente o que ele existe para impedir.
+
+        Só `interesse_municipio` é isenta, porque é anterior ao município: não
+        há contexto a que se amarrar. O teste logo abaixo prova que a isenção
+        não abre buraco.
+      */
+      if (SEM_POLICY_DE_TENANT.has(t)) continue;
       const r = await db.query<{ qual: string | null; with_check: string | null }>(
         "SELECT qual, with_check FROM pg_policies WHERE schemaname='public' AND tablename = $1",
         [t],

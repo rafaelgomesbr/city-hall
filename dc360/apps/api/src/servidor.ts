@@ -14,6 +14,7 @@ import { rotasOcorrencias } from "./rotas/ocorrencias.js";
 import { rotasAdministracao } from "./rotas/administracao.js";
 import { rotasSincronizacao } from "./rotas/sincronizacao.js";
 import { rotasCampo } from "./rotas/campo.js";
+import { rotasInteresse } from "./rotas/interesse.js";
 import { rotasEvidencias } from "./rotas/evidencias.js";
 import { rotasDocumentos } from "./rotas/documentos.js";
 import { rotasPrestacaoDeContas } from "./rotas/prestacao-de-contas.js";
@@ -305,6 +306,9 @@ export async function construirServidor(
   await app.register(rotasAdministracao, { prefix: "/", banco });
   await app.register(rotasSincronizacao, { prefix: "/sincronizacao", banco });
   await app.register(rotasCampo, { prefix: "/campo", banco });
+  // Única rota de escrita sem autenticação do produto. Ela grava pedido de
+  // contato e NÃO cria município: provisionar continua por linha de comando.
+  await app.register(rotasInteresse, { prefix: "/publico", banco });
   await app.register(rotasPrestacaoDeContas, { prefix: "/", banco });
   await app.register(rotasEvidencias, { prefix: "/evidencias", banco, armazenamento });
   await app.register(rotasDocumentos, {

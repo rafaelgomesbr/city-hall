@@ -303,3 +303,41 @@ export const cadastroEquipeSchema = z.object({
   ativa: z.boolean().default(true),
 });
 export type CadastroEquipe = z.infer<typeof cadastroEquipeSchema>;
+
+/**
+ * O formulário público de interesse.
+ *
+ * Pede o mínimo, e o mínimo é decisão e não preguiça: quem preenche isto ainda
+ * não é cliente, e cada campo a mais é dado pessoal guardado antes de existir
+ * contrato, base legal ou prazo de retenção acordado.
+ *
+ * Nada de CPF, nada de dado de cidadão, nada de anexo.
+ */
+export const interesseMunicipioSchema = z.object({
+  nome: z.string().trim().min(2, "Informe o seu nome").max(200),
+  cargo: z.string().trim().max(200).optional(),
+  email: z.string().trim().email("Informe um email válido").max(200),
+  telefone: z.string().trim().max(40).optional(),
+
+  municipio: z.string().trim().min(2, "Informe o município").max(200),
+  uf: z.string().trim().length(2, "UF com duas letras").regex(/^[A-Za-z]{2}$/, "UF inválida"),
+  orgao: z.string().trim().max(200).optional(),
+
+  faixaPopulacao: z.enum([
+    "ate_50_mil", "de_50_a_200_mil", "acima_de_200_mil", "nao_sei",
+  ]).optional(),
+  quantosAgentes: z.coerce.number().int().min(0).max(999).optional(),
+
+  mensagem: z.string().trim().max(2000).optional(),
+
+  /** De onde veio o pedido, para saber o que funciona. Preenchido pela tela. */
+  origem: z.string().trim().max(100).optional(),
+});
+export type InteresseMunicipio = z.infer<typeof interesseMunicipioSchema>;
+
+export const ROTULO_FAIXA_POPULACAO: Record<string, string> = {
+  ate_50_mil: "até 50 mil habitantes",
+  de_50_a_200_mil: "de 50 a 200 mil habitantes",
+  acima_de_200_mil: "acima de 200 mil habitantes",
+  nao_sei: "não sei dizer",
+};
