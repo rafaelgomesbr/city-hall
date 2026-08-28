@@ -72,7 +72,9 @@ export function deveAtualizar(
 export function idadeEmPalavras(baixadaEm: Date | null, agora: Date): string {
   if (!baixadaEm) return "ainda não baixada";
   const segundos = Math.max(0, Math.floor((agora.getTime() - baixadaEm.getTime()) / 1000));
-  if (segundos < 90) return "agora há pouco";
+  // "há instantes" e não "agora há pouco": este texto sempre aparece depois
+  // da palavra "atualizada", e "atualizada agora há pouco" é redundante.
+  if (segundos < 90) return "há instantes";
   const minutos = Math.floor(segundos / 60);
   if (minutos < 60) return `há ${minutos} min`;
   const horas = Math.floor(minutos / 60);

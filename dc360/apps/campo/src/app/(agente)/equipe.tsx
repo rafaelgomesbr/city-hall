@@ -139,7 +139,9 @@ export default function Equipe() {
           </Txt>
         </Cartao>
       ) : (
-        <Cartao titulo={`Equipe ${dados.equipe.nome}`}>
+        // O nome já costuma trazer a palavra "Equipe" (o cadastro do município
+        // chama de "Equipe Alfa"), e prefixar produzia "Equipe Equipe Alfa".
+        <Cartao titulo={dados.equipe.nome}>
           <View style={{ gap: espaco.e2 }}>
             <View>
               <Txt variante="legenda" discreto>Especialidade</Txt>

@@ -88,8 +88,8 @@ describe("idadeEmPalavras", () => {
   const agora = new Date(BASE);
   const atras = (ms: number) => new Date(BASE - ms);
 
-  it("diz agora há pouco no primeiro minuto e meio", () => {
-    expect(idadeEmPalavras(atras(30_000), agora)).toBe("agora há pouco");
+  it("diz há instantes no primeiro minuto e meio", () => {
+    expect(idadeEmPalavras(atras(30_000), agora)).toBe("há instantes");
   });
 
   it("conta em minutos, depois em horas, depois em dias", () => {
@@ -102,7 +102,7 @@ describe("idadeEmPalavras", () => {
 
   it("nunca diz que a lista veio do futuro", () => {
     // Relógio de aparelho de campo anda para trás mais do que se imagina.
-    expect(idadeEmPalavras(new Date(BASE + 60_000), agora)).toBe("agora há pouco");
+    expect(idadeEmPalavras(new Date(BASE + 60_000), agora)).toBe("há instantes");
   });
 
   it("diz que ainda não baixou quando nunca baixou", () => {
