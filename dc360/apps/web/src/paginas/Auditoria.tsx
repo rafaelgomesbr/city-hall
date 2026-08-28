@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ROTULO_PAPEL } from "@dc360/shared";
+import { ROTULO_PAPEL, rotuloEventoTrilha } from "@dc360/shared";
 import {
   MODO, baixarCsvDeOcorrencias, consultarTrilha, resumoDoPeriodo, tiposDeEvento,
   type LinhaTrilha, type ResumoPeriodo,
@@ -20,16 +20,6 @@ import { IconeDocumento, IconeEvento } from "../componentes/Icones";
  * existe um registro de auditoria separado que alguém precise lembrar de
  * escrever: se um evento falta, é porque a mudança não aconteceu.
  */
-
-const ROTULO_EVENTO: Record<string, string> = {
-  registro: "Chamado registrado",
-  triagem: "Classificado na triagem",
-  despacho: "Equipe despachada",
-  vistoria: "Vistoria concluída em campo",
-  providencia: "Providência encaminhada",
-  resposta_providencia: "Resposta do órgão registrada",
-  encerramento: "Ocorrência encerrada",
-};
 
 const POR_PAGINA = 25;
 
@@ -137,7 +127,7 @@ export function Auditoria() {
             <button key={t.tipo} type="button" className="filtros__pilula"
                     aria-pressed={tipo === t.tipo}
                     onClick={() => { setTipo(t.tipo); setPagina(1); }}>
-              {ROTULO_EVENTO[t.tipo] ?? t.tipo} ({t.total})
+              {rotuloEventoTrilha(t.tipo)} ({t.total})
             </button>
           ))}
         </div>
@@ -197,7 +187,7 @@ export function Auditoria() {
                         <span style={{ display: "inline-flex", alignItems: "center",
                                        gap: "var(--ds-sp-2)" }}>
                           <IconeEvento tipo={e.tipo} tamanho={14} />
-                          {ROTULO_EVENTO[e.tipo] ?? e.tipo}
+                          {rotuloEventoTrilha(e.tipo)}
                         </span>
                         {e.detalhe && Object.keys(e.detalhe).length > 0 && (
                           <div className="tabela__secundario">{descrever(e.detalhe)}</div>

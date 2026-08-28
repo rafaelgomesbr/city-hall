@@ -210,3 +210,37 @@ export const ROTULO_CHECKLIST: Record<string, string> = Object.fromEntries(
 
 /** Os que o aparelho exige antes de liberar a conclusão da vistoria. */
 export const CHECKLIST_OBRIGATORIO = CHECKLIST_VISTORIA.filter((i) => i.obrigatorio);
+
+/**
+ * Os tipos de evento da trilha, e como cada um se lê na tela.
+ *
+ * Este mapa existia DUAS vezes, copiado, uma na tela de auditoria e outra na
+ * linha do tempo da ocorrência, e as duas cópias já tinham divergido: nenhuma
+ * conhecia `documento_emitido`, e a da linha do tempo também não conhecia
+ * `resposta_providencia`. As duas telas caíam no `?? tipo` e mostravam a chave
+ * crua do banco para o coordenador.
+ *
+ * Não é defeito estético. A auditoria é a tela que alguém abre quando precisa
+ * provar o que aconteceu, e "documento_emitido" numa linha de prova é o
+ * sistema falando consigo mesmo na frente de quem precisa entender.
+ *
+ * `trilha_eventos.tipo` é texto livre no banco de propósito (evento novo não
+ * deve exigir migração), e por isso a garantia mora aqui e num portão de
+ * teste que varre o código do servidor atrás de tipo sem rótulo.
+ */
+export const ROTULO_EVENTO_TRILHA: Record<string, string> = {
+  registro: "Chamado registrado",
+  triagem: "Classificado na triagem",
+  despacho: "Equipe despachada",
+  vistoria: "Vistoria concluída em campo",
+  documento_emitido: "Documento oficial emitido",
+  providencia: "Providência encaminhada",
+  resposta_providencia: "Resposta do órgão registrada",
+  desinterdicao: "Interdição levantada",
+  encerramento: "Ocorrência encerrada",
+};
+
+/** O rótulo, ou a própria chave quando o evento é mais novo que esta versão. */
+export function rotuloEventoTrilha(tipo: string): string {
+  return ROTULO_EVENTO_TRILHA[tipo] ?? tipo;
+}

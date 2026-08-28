@@ -69,6 +69,31 @@ export async function registrarEmissao(
   );
 }
 
+/**
+ * Marca o imóvel como interditado, no ato em que o termo é emitido.
+ *
+ * Não existe rota para "interditar" separada da emissão do termo, e a ausência
+ * é a decisão: interdição sem documento é interdição que ninguém consegue
+ * provar, e um botão que interdita sem gerar papel seria o caminho mais curto
+ * para exatamente isso.
+ *
+ * `interditada_em IS NULL` no WHERE torna a operação idempotente pelo lado
+ * certo. Reimprimir o termo é rotina (o primeiro papel molhou, o processo pede
+ * segunda via), e a segunda impressão NÃO pode reescrever a data do ato: a
+ * interdição aconteceu quando aconteceu. A trilha registra cada emissão; a
+ * data da interdição é a da primeira.
+ */
+export async function marcarInterditada(
+  c: Consulta, quem: Identidade, ocorrenciaId: string,
+): Promise<void> {
+  await c.query(
+    `UPDATE ocorrencias
+        SET interditada_em = now(), interditada_por = $1
+      WHERE id = $2 AND interditada_em IS NULL`,
+    [quem.usuarioId, ocorrenciaId],
+  );
+}
+
 /** O que um ato administrativo alcança. */
 export type AlvoAdministrativo = "usuario" | "equipe" | "organizacao";
 

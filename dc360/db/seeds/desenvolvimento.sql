@@ -187,6 +187,34 @@ INSERT INTO vistorias (
    now() - interval '49 hours', now() - interval '48 hours',
    '11111111-1111-4111-8111-0000000000a2');
 
+-- ---------------------------------------------------------------------
+-- Um imóvel interditado, e ele fica interditado na demonstração de propósito.
+--
+-- A ocorrência c3 teve vistoria indicando interdição, e o termo foi emitido há
+-- quase um mês. Ninguém levantou. É exatamente o caso que o cartão "Imóveis
+-- interditados" do painel existe para tornar visível: interdição não tem
+-- prazo, ninguém é cobrado por ela, e enquanto o levantamento não é registrado
+-- tem família fora de casa.
+--
+-- Na demonstração isso vale mais que um banco arrumado: quem assiste vê o
+-- sistema apontando um problema real da própria casa, em vez de mostrar tudo
+-- verde.
+-- ---------------------------------------------------------------------
+UPDATE ocorrencias
+   SET interditada_em = now() - interval '27 days',
+       interditada_por = '11111111-1111-4111-8111-0000000000d1'
+ WHERE id = '11111111-1111-4111-8111-0000000000c3';
+
+INSERT INTO trilha_eventos (
+  organizacao_id, ocorrencia_id, tipo, autor_id, autor_nome, autor_papel,
+  origem, ocorrido_em, detalhe
+) VALUES
+  ('11111111-1111-4111-8111-000000000001', '11111111-1111-4111-8111-0000000000c3',
+   'documento_emitido', '11111111-1111-4111-8111-0000000000d1',
+   'Helena Vasques Coutinho', 'coordenador', 'escritorio',
+   now() - interval '27 days',
+   '{"documento":"termo_de_interdicao","vistoriaId":"11111111-1111-4111-8111-0000000000f1","formato":"html"}'::jsonb);
+
 INSERT INTO providencias (
   organizacao_id, ocorrencia_id, orgao_destino, descricao, responsavel, prazo_em, encaminhada_em
 ) VALUES

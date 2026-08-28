@@ -74,8 +74,20 @@ await page.locator("#nova-tipo").selectOption("vendaval");
 await page.locator("#nova-solicitante").fill("Benedito Alcantara Rosa");
 await page.locator("#nova-contato").fill("(35) 99000-1234");
 await page.locator("#nova-endereco").fill("Rua Sete de Setembro, 410, Centro");
-await page.locator("#nova-lat").fill("-22.4200");
-await page.locator("#nova-lng").fill("-45.4480");
+await page.locator("#nova-ref").fill("Em frente ao poste caido, portao verde");
+/*
+  O campo de localizacao le o link que o solicitante mandou, e nao dois campos
+  de coordenada. Colar um link do Google Maps aqui exercita o leitor de
+  verdade, que e o caminho que o operador usa: ninguem que atende telefone
+  digita latitude.
+*/
+await page.locator("#nova-local").fill("https://www.google.com/maps?q=-22.4200,-45.4480");
+const leitura = (await page.locator("#nova-local-leitura").textContent()).trim();
+ok(
+  "o link colado vira coordenada reconhecida na tela",
+  leitura.includes("-22.420000, -45.448000"),
+  `(${leitura})`,
+);
 await page.locator("#nova-descricao").fill("Arvore de grande porte caiu sobre a via apos rajada de vento.");
 await page.getByRole("button", { name: /Registrar e gerar protocolo/ }).click();
 await page.waitForURL(/\/ocorrencias\/[0-9a-f-]{36}$/, { timeout: 20_000 });
@@ -160,6 +172,42 @@ ok("usuario criado", (await page.textContent(".tabela")).includes("Marcos Vinici
 const propriaConta = page.locator(".tabela tbody tr", { hasText: "Helena Vasques Coutinho" })
   .getByRole("button", { name: "Desativar" });
 ok("nao permite desativar a propria conta", await propriaConta.isDisabled());
+
+console.log("\n== 9b. Imovel interditado ==");
+/*
+  A semente deixa a ocorrencia c3 interditada ha 27 dias, sem levantamento. E o
+  caso que o cartao existe para tornar visivel: interdicao nao tem prazo,
+  ninguem e cobrado por ela, e enquanto o levantamento nao e registrado tem
+  familia fora de casa.
+*/
+await page.goto(`${BASE}/painel`);
+await page.waitForSelector("#imoveis-interditados", { timeout: 20_000 });
+const cartaoInterditados = await page.textContent("#imoveis-interditados");
+ok("o painel lista o imovel interditado", cartaoInterditados.includes("Imóveis interditados"));
+ok("mostra ha quantos dias, e nao so a data", /2[0-9] dias/.test(cartaoInterditados),
+   `(${cartaoInterditados.slice(0, 80)})`);
+
+await page.locator("#imoveis-interditados .tabela__protocolo").first().click();
+await page.waitForURL(/\/ocorrencias\/[0-9a-f-]{36}$/, { timeout: 20_000 });
+await page.locator(".cartao", { hasText: "Imóvel interditado" }).first().waitFor({ timeout: 20_000 });
+ok("a ocorrencia mostra o bloco de interdicao", true);
+
+await page.locator("#desinterdicao-motivo").fill("ok");
+await page.getByRole("button", { name: "Levantar interdição" }).click();
+const recusa = await page.locator("#desinterdicao-erro").textContent();
+ok("motivo curto e recusado antes de gravar", recusa.length > 10, `(${recusa})`);
+
+await page.locator("#desinterdicao-motivo").fill(
+  "Contencao do talude executada pela Secretaria de Obras e conferida em nova vistoria tecnica.",
+);
+await page.getByRole("button", { name: "Levantar interdição" }).click();
+await page.locator(".aviso--sucesso", { hasText: "Interdição levantada" }).waitFor({ timeout: 20_000 });
+ok("levantamento gravado, com aviso na tela", true);
+
+await page.goto(`${BASE}/painel`);
+await page.waitForSelector(".grade-indicadores", { timeout: 20_000 });
+ok("o imovel saiu da lista de interditados",
+   (await page.locator("#imoveis-interditados").count()) === 0);
 
 console.log("\n== 10. Mapa ==");
 await page.getByRole("link", { name: "Mapa da cidade" }).click();

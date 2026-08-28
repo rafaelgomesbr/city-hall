@@ -207,6 +207,25 @@ export const encerramentoSchema = z.object({
 });
 export type Encerramento = z.infer<typeof encerramentoSchema>;
 
+/**
+ * Levantar a interdição de um imóvel.
+ *
+ * O motivo é obrigatório e sai impresso no termo de desinterdição. Ele não é
+ * burocracia: é o que responde, anos depois, por que uma família foi
+ * autorizada a voltar para uma casa que o município tinha declarado insegura.
+ * "Contenção executada e vistoriada" e "o morador insistiu" são respostas
+ * muito diferentes, e a segunda precisa ficar escrita se for a verdadeira.
+ *
+ * O mínimo é maior que o de encerramento de propósito. Encerrar admite
+ * "improcedente"; liberar imóvel interditado não admite uma palavra só.
+ */
+export const desinterdicaoSchema = z.object({
+  motivo: z.string()
+    .min(15, "Descreva o que mudou no imóvel para justificar o levantamento")
+    .max(2000),
+});
+export type Desinterdicao = z.infer<typeof desinterdicaoSchema>;
+
 export const ocorrenciaSchema = z.object({
   id: uuidSchema,
   organizacaoId: uuidSchema,

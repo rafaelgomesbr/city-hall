@@ -10,8 +10,8 @@ build) valem lá, não aqui.
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 43 testes passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 26 testes de fonte mais 47 verificações no navegador no modo local e 103 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 187 testes de integração passando |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 26 testes de fonte mais 54 verificações no navegador no modo local e 103 contra a API |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 202 testes de integração passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 46 testes de unidade e 10 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Completo em código, **nunca rodou em aparelho**. TypeScript limpo, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 
@@ -679,9 +679,9 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 356 testes em cinco pacotes
+npm test                    # 371 testes em cinco pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 43 testes
-npm run test:api            # 187 testes da API
+npm run test:api            # 202 testes da API
 npm run test --workspace @dc360/campo   # 46 testes do motor de sincronização
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
@@ -724,7 +724,7 @@ MOTOR=firefox npm run test:e2e                              # e no Gecko
 ```
 
 A variável `MOTOR` troca o motor do navegador (`chromium`, `firefox`,
-`webkit`). As 47 verificações passam no Chromium, que é o motor do Chrome e do
+`webkit`). As 54 verificações passam no Chromium, que é o motor do Chrome e do
 Edge, e no Firefox. Sobre o WebKit, leia a seção seguinte antes de tentar.
 
 ### O modo local não serve para o Safari
@@ -798,7 +798,7 @@ o CORS da API não permitia `PUT`, então o envio de bytes nem saía do
 navegador; e o `Cross-Origin-Resource-Policy` do helmet bloqueava a imagem
 quando painel e API ficam em origens diferentes, que é o arranjo de produção.
 
-São 47 verificações: entrada, isolamento entre municípios visto dos dois lados,
+São 54 verificações: entrada, isolamento entre municípios visto dos dois lados,
 geração de protocolo em sequência, triagem, despacho, encerramento com motivo
 obrigatório, indicadores do painel reagindo às mudanças, cadastro de equipes e
 usuários com recusa de duplicata, mapa, restrição de menu por papel, tema

@@ -6,7 +6,7 @@ import {
   STATUS_OCORRENCIA,
   aberturaOcorrenciaSchema,
   despachoSchema,
-  encerramentoSchema,
+  desinterdicaoSchema, encerramentoSchema,
   estadoTerminal,
   providenciaSchema,
   respostaProvidenciaSchema,
@@ -439,6 +439,111 @@ export async function rotasOcorrencias(
     });
 
     return { status: "encerrada", providenciasSemResposta: pendentes };
+  });
+
+  /**
+   * Levantar a interdição de um imóvel.
+   *
+   * O ato que faltava. O sistema sabia interditar (o termo é emitido, a
+   * ocorrência fica marcada) e não sabia desinterditar: a casa constava
+   * interditada para sempre, e a família voltava para casa sem papel nenhum ou
+   * não voltava.
+   *
+   * Três recusas deliberadas nesta rota:
+   *
+   * 1. **Não levanta o que não foi interditado.** Sem isso, um clique errado
+   *    gravaria um levantamento de interdição que nunca existiu, e o termo
+   *    sairia afirmando que uma casa foi liberada de uma restrição imaginária.
+   * 2. **Não levanta duas vezes.** O segundo levantamento seria um evento
+   *    falso numa trilha que não tem policy de DELETE: não existe correção
+   *    depois. É a mesma regra do encerramento duplicado.
+   * 3. **Não aceita motivo curto.** O esquema exige quinze caracteres. Quem
+   *    autoriza uma família a voltar para uma casa que o município declarou
+   *    insegura deve conseguir escrever uma frase sobre o porquê.
+   *
+   * O que ela deliberadamente NÃO faz: exigir vistoria nova. Deveria, e a
+   * norma de campo é essa, mas travar aqui deixaria imóveis interditados sem
+   * saída no dia em que a equipe está afogada, que é justamente quando isso
+   * acontece. O termo imprime o motivo por extenso, e "sem nova vistoria"
+   * fica escrito nele se for o caso.
+   */
+  app.post("/:id/desinterdicao", async (req) => {
+    const quem = await autorizar(app, req, "levantar_interdicao");
+    const { id } = idSchema.parse(req.params);
+    const d = desinterdicaoSchema.parse(req.body);
+
+    return banco.comTenant(quem.organizacaoId, async (c) => {
+      /*
+        `FOR UPDATE` porque duas coordenadoras clicando ao mesmo tempo é o
+        cenário em que a checagem sem trava deixa passar os dois: as duas leem
+        `desinterditada_em` nulo antes de qualquer uma escrever, e a trilha
+        ganha dois levantamentos do mesmo imóvel.
+      */
+      const atual = await c.query<{
+        interditada_em: string | null; desinterditada_em: string | null;
+      }>(
+        `SELECT interditada_em, desinterditada_em FROM ocorrencias
+          WHERE id = $1 FOR UPDATE`,
+        [id],
+      );
+      const alvo = atual.rows[0];
+      // 404, e não 403: recurso de outro município não se confirma.
+      if (!alvo) throw new RegraDeNegocio("nao_encontrada", "Ocorrência não encontrada.", 404);
+
+      if (!alvo.interditada_em) {
+        throw new RegraDeNegocio(
+          "nao_interditada",
+          "Este imóvel não está interditado, então não há interdição a levantar.",
+          409,
+        );
+      }
+      if (alvo.desinterditada_em) {
+        throw new RegraDeNegocio(
+          "ja_desinterditada",
+          "A interdição deste imóvel já foi levantada. Se o risco voltou, "
+          + "registre uma vistoria nova e emita novo termo de interdição.",
+          409,
+        );
+      }
+
+      await c.query(
+        `UPDATE ocorrencias
+            SET desinterditada_em = now(), desinterditada_por = $2,
+                desinterdicao_motivo = $3
+          WHERE id = $1`,
+        [id, quem.usuarioId, d.motivo.trim()],
+      );
+      await registrarEvento(c, quem, id, "desinterdicao", {
+        motivo: d.motivo.trim(),
+        interditadaEm: alvo.interditada_em,
+      });
+
+      return { status: "desinterditada" };
+    });
+  });
+
+  /**
+   * Os imóveis interditados agora.
+   *
+   * Esta lista existe pelo mesmo motivo que a de providências vencidas: para
+   * que "tem gente fora de casa há quatro meses" seja um fato visível na tela,
+   * e não uma descoberta quando alguém reclama. Ordenada pela mais antiga
+   * primeiro, que é a que mais dói.
+   */
+  app.get("/interditados", async (req) => {
+    const quem = await app.exigirAutenticacao(req);
+    return banco.comTenant(quem.organizacaoId, async (c) => {
+      const r = await c.query(
+        `SELECT o.id, o.protocolo, o.tipo, o.severidade, o.status, o.endereco,
+                o.ponto_referencia, o.interditada_em,
+                u.nome AS interditada_por_nome
+           FROM ocorrencias o
+           LEFT JOIN usuarios u ON u.id = o.interditada_por
+          WHERE o.interditada_em IS NOT NULL AND o.desinterditada_em IS NULL
+          ORDER BY o.interditada_em`,
+      );
+      return { itens: r.rows };
+    });
   });
 
   /**

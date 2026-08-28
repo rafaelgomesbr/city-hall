@@ -5,7 +5,8 @@ import type {
 import type {
   ContaDisponivel, FiltroOcorrencias, Indicadores, LinhaEquipe, LinhaEvento,
   FiltroTrilha, LinhaEvidencia, LinhaOcorrencia, LinhaProvidencia, LinhaTrilha,
-  LinhaUsuario, LinhaVistoria, MeuTrabalho, ProvidenciaPendente, ResumoPeriodo,
+  ImovelInterditado, LinhaUsuario, LinhaVistoria, MeuTrabalho, ProvidenciaPendente,
+  ResumoPeriodo,
   Sessao, VinculoOcorrencia,
 } from "./tipos";
 
@@ -304,6 +305,17 @@ export async function meuTrabalhoDeCampo(_s: Sessao): Promise<MeuTrabalho> {
 export async function providenciasPendentes(_s: Sessao): Promise<ProvidenciaPendente[]> {
   const r = await chamar<{ itens: ProvidenciaPendente[] }>("/ocorrencias/providencias/pendentes");
   return r.itens;
+}
+
+export async function imoveisInterditados(_s: Sessao): Promise<ImovelInterditado[]> {
+  const r = await chamar<{ itens: ImovelInterditado[] }>("/ocorrencias/interditados");
+  return r.itens;
+}
+
+export async function levantarInterdicao(
+  _s: Sessao, id: string, motivo: string,
+): Promise<void> {
+  await chamar(`/ocorrencias/${id}/desinterdicao`, { metodo: "POST", corpo: { motivo } });
 }
 
 export async function possiveisDuplicidades(

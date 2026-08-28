@@ -88,6 +88,55 @@ export async function providenciasPendentes(s: Sessao): Promise<unknown[]> {
 }
 
 /**
+ * Os imóveis interditados, no modo local.
+ *
+ * Mesma consulta da API, pelo mesmo motivo de sempre: as duas implementações
+ * da porta precisam prometer a mesma coisa, senão a tela passa a depender de
+ * qual delas está ativa. A deriva entre os dois modos já mordeu este produto
+ * nove vezes, e uma delas era a triagem deixando de registrar a
+ * vulnerabilidade na trilha só de um lado.
+ */
+export async function imoveisInterditados(s: Sessao): Promise<unknown[]> {
+  return comoApp(s.organizacaoId, async (db) => {
+    const r = await db.query(
+      `SELECT o.id, o.protocolo, o.tipo, o.severidade, o.status, o.endereco,
+              o.ponto_referencia, o.interditada_em,
+              u.nome AS interditada_por_nome
+         FROM ocorrencias o
+         LEFT JOIN usuarios u ON u.id = o.interditada_por
+        WHERE o.interditada_em IS NOT NULL AND o.desinterditada_em IS NULL
+        ORDER BY o.interditada_em`,
+    );
+    return r.rows;
+  });
+}
+
+export async function levantarInterdicao(
+  s: Sessao, id: string, motivo: string,
+): Promise<void> {
+  await comoApp(s.organizacaoId, async (db) => {
+    const atual = await db.query<{
+      interditada_em: string | null; desinterditada_em: string | null;
+    }>("SELECT interditada_em, desinterditada_em FROM ocorrencias WHERE id = $1", [id]);
+    const alvo = atual.rows[0];
+    if (!alvo?.interditada_em) throw new Error("Este imóvel não está interditado.");
+    if (alvo.desinterditada_em) throw new Error("A interdição deste imóvel já foi levantada.");
+
+    await db.query(
+      `UPDATE ocorrencias
+          SET desinterditada_em = now(), desinterditada_por = $2,
+              desinterdicao_motivo = $3
+        WHERE id = $1`,
+      [id, s.usuarioId, motivo.trim()],
+    );
+    await registrarEvento(db, s, id, "desinterdicao", {
+      motivo: motivo.trim(),
+      interditadaEm: alvo.interditada_em,
+    });
+  });
+}
+
+/**
  * O trabalho do agente de campo, no modo local.
  *
  * Mesma consulta que a API faz, pelo mesmo motivo de sempre: as duas

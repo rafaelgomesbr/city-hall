@@ -5,7 +5,7 @@ import { RegraDeNegocio, autorizar } from "../servidor.js";
 import type { Armazenamento } from "../armazenamento/tipos.js";
 import { laudoDeVistoria, termoDeInterdicao, type DadosDocumento } from "../documentos/laudo.js";
 import type { GeradorDePdf } from "../documentos/pdf.js";
-import { registrarEmissao } from "../trilha.js";
+import { marcarInterditada, registrarEmissao } from "../trilha.js";
 
 /**
  * Documentos oficiais.
@@ -240,8 +240,18 @@ export async function rotasDocumentos(
       geração falhar depois disso, sobra um evento a mais, que é o erro barato.
       O contrário deixaria termos circulando sem registro, que é o erro caro.
     */
-    await banco.comTenant(quem.organizacaoId, (c) =>
-      registrarEmissao(c, quem, id, documento, dados.vistoria.id, formato));
+    await banco.comTenant(quem.organizacaoId, async (c) => {
+      await registrarEmissao(c, quem, id, documento, dados.vistoria.id, formato);
+      /*
+        Emitir o termo É interditar.
+
+        Antes, o termo saía e o sistema não guardava em lugar nenhum que aquele
+        imóvel estava interditado: a informação existia só no papel impresso e
+        na trilha. Sem estado, não havia como listar o que está interditado
+        hoje, e nada obrigava alguém a levantar a interdição um dia.
+      */
+      if (documento === "termo_de_interdicao") await marcarInterditada(c, quem, id);
+    });
 
     const gerar = documento === "laudo" ? laudoDeVistoria : termoDeInterdicao;
     return gerar({ ...dados, ...(marcaDagua ? { marcaDagua } : {}) });

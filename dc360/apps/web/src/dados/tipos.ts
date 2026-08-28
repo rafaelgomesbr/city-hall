@@ -39,6 +39,10 @@ export type LinhaOcorrencia = {
   criado_em: string;
   encerrado_em: string | null;
   motivo_encerramento: string | null;
+  /** Interdição, quando existe. Ver a migração 014: ela tem começo e fim. */
+  interditada_em: string | null;
+  desinterditada_em: string | null;
+  desinterdicao_motivo: string | null;
 };
 
 export type LinhaEvento = {
@@ -129,6 +133,25 @@ export type VinculoOcorrencia = {
   status: StatusOcorrencia;
   endereco: string;
   criado_em: string;
+};
+
+/**
+ * Um imóvel interditado que ainda não foi liberado.
+ *
+ * A lista que isto alimenta existe pelo mesmo motivo que a de providências
+ * vencidas: para que "tem família fora de casa há quatro meses" seja um fato
+ * na tela, e não uma descoberta quando alguém reclama.
+ */
+export type ImovelInterditado = {
+  id: string;
+  protocolo: string;
+  tipo: TipoCobrade;
+  severidade: Severidade | null;
+  status: StatusOcorrencia;
+  endereco: string;
+  ponto_referencia: string | null;
+  interditada_em: string;
+  interditada_por_nome: string | null;
 };
 
 export type ProvidenciaPendente = {

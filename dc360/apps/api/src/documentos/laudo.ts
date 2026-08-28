@@ -62,6 +62,18 @@ export type DadosDocumento = {
   fotos: Array<{ url: string; legenda: string | null; capturadaEm: string }>;
   emitidoPor: string;
   emitidoEm: Date;
+  /**
+   * O levantamento da interdição, quando existe.
+   *
+   * Opcional porque os outros dois documentos não o conhecem: só o termo de
+   * desinterdição depende dele, e ele exige a presença dos três campos.
+   */
+  desinterdicao?: {
+    em: string;
+    motivo: string;
+    porNome: string;
+    interditadaEm: string;
+  };
   /** Marca d'água. Vazio em ambiente definitivo. */
   marcaDagua?: string;
 };
@@ -250,6 +262,86 @@ razões que a motivaram e da vedação de permanência no imóvel.</p>
     },
     corpo,
     validacao: codigoDeValidacao(`INT-${o.protocolo}`, d.vistoria.id),
+    emitidoEm: d.emitidoEm,
+    emitidoPor: d.emitidoPor,
+    ...(d.marcaDagua ? { marcaDagua: d.marcaDagua } : {}),
+  });
+}
+
+/**
+ * Termo de desinterdição: o papel que autoriza a família a voltar para casa.
+ *
+ * Ele existe porque o contrário existia. O sistema sabia interditar e não
+ * sabia levantar a interdição: o termo saía, a casa ficava interditada, e não
+ * havia documento nenhum para o dia em que o risco cessasse. Na prática isso
+ * significa uma de duas coisas, e as duas são ruins: a família espera um papel
+ * que ninguém emite, ou volta por conta própria e o município continua com um
+ * registro dizendo que aquela casa é insegura.
+ *
+ * Três coisas que este documento faz questão de imprimir:
+ *
+ * 1. **As duas datas**, a da interdição e a do levantamento. Quem lê precisa
+ *    saber quanto tempo a família ficou fora, e é a diferença entre as duas
+ *    que responde isso sem ninguém precisar contar nos dedos.
+ * 2. **O motivo, na íntegra**, que é o que responde anos depois por que a
+ *    autorização foi dada.
+ * 3. **Quem autorizou**, com nome e cargo. Levantar interdição é ato de
+ *    coordenação, não de sistema, e o documento diz quem assinou.
+ */
+export function termoDeDesinterdicao(d: DadosDocumento): string {
+  const o = d.ocorrencia;
+  const dez = d.desinterdicao;
+  if (!dez) {
+    throw new Error(
+      "termoDeDesinterdicao exige os dados do levantamento. Emitir este termo "
+      + "sem eles imprimiria um documento afirmando que a interdição foi "
+      + "levantada, sem dizer quando, por quem, nem por quê.",
+    );
+  }
+
+  const corpo = `
+    ${blocoIdentificacao(d)}
+
+    <h2>Interdição anterior</h2>
+    <div class="campos">
+      ${campo("Imóvel interditado em", formatarDataHora(dez.interditadaEm))}
+      ${campo("Levantamento autorizado em", formatarDataHora(dez.em))}
+      ${campo("Autorizado por", dez.porNome)}
+    </div>
+
+    <h2>Fundamento</h2>
+    <p class="relato">O presente termo é lavrado no exercício das competências do órgão
+municipal de proteção e defesa civil, nos termos da Lei 12.608/2012, que institui a
+Política Nacional de Proteção e Defesa Civil, alterada pela Lei 14.750/2023, e revoga a
+interdição lavrada sobre o imóvel identificado no protocolo ${escapar(o.protocolo)}.</p>
+
+    <h2>Motivo do levantamento</h2>
+    <p class="relato">${escapar(dez.motivo)}</p>
+
+    <h2>Decisão</h2>
+    <p class="relato">Fica LEVANTADA a interdição do imóvel situado em
+${escapar(o.endereco)}, restabelecida a permanência de pessoas no local. O levantamento
+alcança exclusivamente o risco descrito neste processo e não afasta a obrigação de
+comunicar ao órgão municipal de proteção e defesa civil qualquer alteração nas condições
+do imóvel ou do terreno.</p>
+
+    ${blocoVistoria(d)}
+
+    <div class="assinaturas">
+      ${assinatura(dez.porNome, "Coordenação de proteção e defesa civil")}
+      ${assinatura(d.vistoria.assinante_nome, "Responsável pelo imóvel, ciente")}
+    </div>`;
+
+  return montarFolha({
+    titulo: "Termo de desinterdição",
+    protocolo: o.protocolo,
+    cabecalho: {
+      orgao: d.organizacao.nome,
+      municipio: d.organizacao.municipio,
+      uf: d.organizacao.uf,
+    },
+    corpo,
+    validacao: codigoDeValidacao(`DES-${o.protocolo}`, d.vistoria.id),
     emitidoEm: d.emitidoEm,
     emitidoPor: d.emitidoPor,
     ...(d.marcaDagua ? { marcaDagua: d.marcaDagua } : {}),

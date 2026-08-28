@@ -5,8 +5,10 @@ import {
   indicadores as carregarIndicadores,
   listarOcorrencias,
   providenciasPendentes,
+  imoveisInterditados,
   type Indicadores,
   type LinhaOcorrencia,
+  type ImovelInterditado,
   type ProvidenciaPendente,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
@@ -30,6 +32,7 @@ export function Painel() {
     ind: Indicadores;
     fila: LinhaOcorrencia[];
     providencias: ProvidenciaPendente[];
+    interditados: ImovelInterditado[];
   } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -39,9 +42,16 @@ export function Painel() {
       carregarIndicadores(sessao),
       listarOcorrencias(sessao, { status: "ativas" }),
       providenciasPendentes(sessao),
+      imoveisInterditados(sessao),
     ])
-      .then(([ind, fila, providencias]) => {
-        if (vivo) setDados({ ind, fila, providencias: providencias as ProvidenciaPendente[] });
+      .then(([ind, fila, providencias, interditados]) => {
+        if (vivo) {
+          setDados({
+            ind, fila,
+            providencias: providencias as ProvidenciaPendente[],
+            interditados: interditados as ImovelInterditado[],
+          });
+        }
       })
       .catch((e: unknown) => { if (vivo) setErro(e instanceof Error ? e.message : String(e)); });
     return () => { vivo = false; };
@@ -50,7 +60,7 @@ export function Painel() {
   if (erro) return <Aviso tom="perigo">Falha ao carregar o painel: {erro}</Aviso>;
   if (!dados) return <Carregando />;
 
-  const { ind, fila, providencias } = dados;
+  const { ind, fila, providencias, interditados } = dados;
 
   /**
    * Indicador que aponta para outra tela navega; indicador cuja lista já está
@@ -225,6 +235,79 @@ export function Painel() {
         </Cartao>
         </div>
       )}
+
+      {/*
+        Imóveis interditados, e a lista não se esvazia sozinha.
+
+        Ela existe pela mesma razão que a de providências sem resposta: o que
+        some da tela some da cabeça. Uma interdição não tem prazo, ninguém é
+        cobrado por ela, e a ocorrência pode até ser encerrada com a família
+        ainda fora de casa. Sem esta lista, o único jeito de lembrar de uma
+        interdição de quatro meses é alguém reclamar.
+
+        A mais antiga vem primeiro, e o tempo aparece em dias, porque é assim
+        que a pergunta é feita: há quanto tempo essa gente está fora.
+      */}
+      {interditados.length > 0 && (
+        <div id="imoveis-interditados" tabIndex={-1}>
+        <Cartao titulo={`Imóveis interditados (${interditados.length})`}>
+          <p style={{ marginTop: 0, fontSize: "var(--ds-fs-body-sm)", color: "var(--ds-text-muted)" }}>
+            Interdição não tem prazo e ninguém é cobrado por ela. Enquanto o
+            levantamento não for registrado, tem gente fora de casa.
+          </p>
+          <div className="tabela-envolucro">
+            <table className="tabela">
+              <caption className="oculto-visualmente">
+                Imóveis interditados sem levantamento registrado, do mais antigo para o mais recente
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Endereço</th>
+                  <th scope="col">Protocolo</th>
+                  <th scope="col">Interditado em</th>
+                  <th scope="col">Há quanto tempo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {interditados.slice(0, 8).map((i) => (
+                  <tr key={i.id}>
+                    <td>
+                      <div className="tabela__principal">{i.endereco}</div>
+                      {i.ponto_referencia && (
+                        <div className="tabela__secundario">{i.ponto_referencia}</div>
+                      )}
+                    </td>
+                    <td>
+                      <Link className="tabela__protocolo" to={`/ocorrencias/${i.id}`}>
+                        {i.protocolo}
+                      </Link>
+                      {i.status === "encerrada" && (
+                        <div className="tabela__secundario">ocorrência já encerrada</div>
+                      )}
+                    </td>
+                    <td>{formatarDataHora(i.interditada_em)}</td>
+                    <td>{diasDesde(i.interditada_em)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Cartao>
+        </div>
+      )}
     </>
   );
+}
+
+/**
+ * Há quanto tempo, em dias inteiros.
+ *
+ * Em dias, e não "há 3 meses": a conversa sobre uma família fora de casa é
+ * feita em dias, e arredondar para mês esconde justamente a diferença entre
+ * vinte e nove e trinta e um.
+ */
+function diasDesde(iso: string): string {
+  const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (dias <= 0) return "hoje";
+  return `${dias} ${dias === 1 ? "dia" : "dias"}`;
 }

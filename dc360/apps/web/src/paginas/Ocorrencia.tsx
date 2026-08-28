@@ -5,12 +5,12 @@ import {
   ROTULO_TIPO_COBRADE, SEVERIDADES, podeExecutar,
   DESFECHOS_PROVIDENCIA, ROTULO_DESFECHO, respostaProvidenciaSchema,
   type DesfechoProvidencia,
-  despachoSchema, encerramentoSchema, providenciaSchema, triagemSchema,
-  type Severidade,
-} from "@dc360/shared";
+  despachoSchema, desinterdicaoSchema, encerramentoSchema, providenciaSchema, triagemSchema,
+  type Severidade, rotuloEventoTrilha } from "@dc360/shared";
 import {
   buscarOcorrencia, classificarNaTriagem, despacharEquipe, encaminharProvidencia,
-  encerrarOcorrencia, listarEquipes, providenciasDaOcorrencia, trilhaDaOcorrencia,
+  encerrarOcorrencia,
+  levantarInterdicao, listarEquipes, providenciasDaOcorrencia, trilhaDaOcorrencia,
   vistoriaDaOcorrencia, abrirDocumento, listarEvidencias, responderProvidencia,
   vinculosDaOcorrencia, MODO,
   type LinhaEquipe, type LinhaEvento, type LinhaEvidencia, type LinhaOcorrencia,
@@ -150,6 +150,8 @@ export function Ocorrencia() {
   const podeDespachar = podeExecutar(sessao.papel, "despachar_equipe");
   const podeProvidencia = podeExecutar(sessao.papel, "encaminhar_providencia");
   const podeEncerrar = podeExecutar(sessao.papel, "encerrar_ocorrencia");
+  const podeLevantar = podeExecutar(sessao.papel, "levantar_interdicao");
+  const interditada = Boolean(o.interditada_em) && !o.desinterditada_em;
   const podeDocumento = podeExecutar(sessao.papel, "emitir_documento");
   const podeResponder = podeExecutar(sessao.papel, "responder_providencia");
   const encerrada = o.status === "encerrada";
@@ -409,6 +411,38 @@ export function Ocorrencia() {
             </Cartao>
           )}
 
+          {/*
+            A interdição vem ANTES do encerramento na ordem da tela, e a ordem
+            é a decisão. Encerrar o caso com a família ainda fora de casa é
+            legítimo (a interdição é medida de prazo indeterminado), mas quem
+            está com o dedo no botão de encerrar precisa ver primeiro que tem
+            gente esperando para voltar.
+          */}
+          {interditada && (
+            <BlocoDesinterdicao
+              gravando={gravando}
+              podeLevantar={podeLevantar}
+              interditadaEm={o.interditada_em!}
+              onEnviar={(motivo) => executar(
+                () => levantarInterdicao(sessao, o.id, motivo),
+                "Interdição levantada. Emita o termo de desinterdição para o morador.",
+              )}
+            />
+          )}
+
+          {o.desinterditada_em && (
+            <Cartao titulo="Interdição levantada">
+              <div className="par">
+                <span className="par__rotulo">Levantada em</span>
+                <span className="par__valor">{formatarDataHora(o.desinterditada_em)}</span>
+              </div>
+              <div className="par">
+                <span className="par__rotulo">Motivo</span>
+                <span className="par__valor">{o.desinterdicao_motivo}</span>
+              </div>
+            </Cartao>
+          )}
+
           {podeEncerrar && !encerrada && (
             <BlocoEncerramento
               gravando={gravando}
@@ -443,7 +477,7 @@ export function Ocorrencia() {
                   <span className="trilha__marca" aria-hidden="true">
                     <IconeEvento tipo={e.tipo} />
                   </span>
-                  <div className="trilha__titulo">{rotuloEvento(e.tipo)}</div>
+                  <div className="trilha__titulo">{rotuloEventoTrilha(e.tipo)}</div>
                   <div className="trilha__autoria">
                     {formatarDataHora(e.ocorrido_em)} por {e.autor_nome} ({ROTULO_PAPEL[e.autor_papel]}),
                     {e.origem === "campo" ? " em campo" : " no escritório"}
@@ -479,18 +513,6 @@ export function Ocorrencia() {
       </div>
     </>
   );
-}
-
-function rotuloEvento(tipo: string): string {
-  const mapa: Record<string, string> = {
-    registro: "Chamado registrado",
-    triagem: "Classificado na triagem",
-    despacho: "Equipe despachada",
-    vistoria: "Vistoria concluída em campo",
-    providencia: "Providência encaminhada",
-    encerramento: "Ocorrência encerrada",
-  };
-  return mapa[tipo] ?? tipo;
 }
 
 function descreverDetalhe(detalhe: Record<string, unknown>): string {
@@ -986,5 +1008,82 @@ function BlocoRespostaProvidencia({ abertas, onEnviar, gravando }: {
         {gravando ? "Registrando" : "Registrar resposta"}
       </button>
     </form>
+  );
+}
+
+/**
+ * Levantar a interdição.
+ *
+ * O botão é vermelho e o texto não é gentil, de propósito. Autorizar uma
+ * família a voltar para uma casa que o município declarou insegura é o ato de
+ * maior consequência desta tela: se o barranco cair depois, a pergunta será
+ * quem assinou isto e com base em quê. O motivo sai impresso no termo, é o que
+ * responde essa pergunta, e por isso o esquema compartilhado exige quinze
+ * caracteres em vez de aceitar "ok".
+ *
+ * Quem não tem a permissão vê o cartão e não vê o formulário. Ver que existe
+ * uma interdição em aberto é informação de trabalho para a equipe inteira;
+ * levantá-la é da coordenação. E esconder o formulário não é o controle: o
+ * controle é `exigirPermissao`, no servidor.
+ */
+function BlocoDesinterdicao({
+  gravando, podeLevantar, interditadaEm, onEnviar,
+}: {
+  gravando: boolean;
+  podeLevantar: boolean;
+  interditadaEm: string;
+  onEnviar: (motivo: string) => void;
+}) {
+  const [motivo, setMotivo] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+
+  const dias = Math.floor((Date.now() - new Date(interditadaEm).getTime()) / 86_400_000);
+
+  function enviar(evento: React.FormEvent) {
+    evento.preventDefault();
+    const resultado = desinterdicaoSchema.safeParse({ motivo: motivo.trim() });
+    if (!resultado.success) {
+      setErro(resultado.error.issues[0]?.message ?? "Dados inválidos");
+      return;
+    }
+    setErro(null);
+    onEnviar(resultado.data.motivo);
+  }
+
+  return (
+    <Cartao titulo="Imóvel interditado">
+      <div className="par">
+        <span className="par__rotulo">Interditado em</span>
+        <span className="par__valor">
+          {formatarDataHora(interditadaEm)}
+          {dias > 0 && ` (há ${dias} ${dias === 1 ? "dia" : "dias"})`}
+        </span>
+      </div>
+
+      {!podeLevantar ? (
+        <p style={{ fontSize: "var(--ds-fs-body-sm)", color: "var(--ds-text-muted)" }}>
+          O levantamento da interdição é registrado pela coordenação.
+        </p>
+      ) : (
+        <form onSubmit={enviar}>
+          <div className="campo">
+            <label htmlFor="desinterdicao-motivo">Motivo do levantamento</label>
+            <textarea id="desinterdicao-motivo" value={motivo}
+                      onChange={(e) => setMotivo(e.target.value)}
+                      aria-invalid={!!erro}
+                      aria-describedby={erro ? "desinterdicao-erro" : undefined}
+                      placeholder="Contenção do talude executada e conferida em nova vistoria técnica" />
+            <span className="campo__dica">
+              Sai impresso no termo de desinterdição. É o que responde, anos depois,
+              por que a família foi autorizada a voltar.
+            </span>
+          </div>
+          {erro && <ErroCampo id="desinterdicao-erro">{erro}</ErroCampo>}
+          <button type="submit" className="botao botao--perigo" disabled={gravando}>
+            {gravando ? "Registrando" : "Levantar interdição"}
+          </button>
+        </form>
+      )}
+    </Cartao>
   );
 }
