@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
-import { Redirect, Stack, router } from "expo-router";
+import { Redirect, Tabs, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { FilaDeSincronizacao, ResumoFila } from "@dc360/campo";
 import { iniciarSincronizacaoContinua, obterFila } from "../../dados/fila";
@@ -8,6 +8,7 @@ import { useSinal } from "../../dados/conectividade";
 import { useSessao } from "../../dados/sessao";
 import { enderecoDaApi } from "../../dados/api";
 import { Txt, useTema } from "../../ui/componentes";
+import { IconeEnvio, IconeEquipe, IconeTarefas } from "../../ui/icones";
 import { espaco, raio, toque } from "../../ui/tokens";
 
 /**
@@ -68,6 +69,9 @@ export default function LayoutDoAgente() {
 
   const pendentes = (resumo?.pendentes ?? 0) + (resumo?.enviando ?? 0);
   const bloqueados = resumo?.bloqueados ?? 0;
+  // O que a aba de envio mostra no número: tudo que ainda não chegou lá.
+  const naFila = pendentes + bloqueados;
+  const recuo = margens;
 
   const faixa = !sinal.temSinal
     ? { fundo: tema.alertaFundo, cor: tema.alertaTexto, sinalTexto: "!",
@@ -121,19 +125,94 @@ export default function LayoutDoAgente() {
         <Txt variante="legenda" cor={faixa.cor}>ver fila</Txt>
       </Pressable>
 
-      <Stack
+      {/*
+        Barra inferior, e não pilha.
+
+        O motivo é alcance, não estética. Antes, o único caminho para a fila
+        era tocar esta faixa aqui em cima, e "Minha conta" ficava no FIM do
+        rolamento das tarefas. Num aparelho de 6,7 polegadas segurado com uma
+        mão, no alto de um barranco, o topo da tela é o ponto mais distante do
+        polegar que existe.
+
+        Três abas, e não cinco. O Instagram tem cinco destinos de peso igual;
+        este aplicativo tem um destino (Tarefas) e uma tarefa (Vistoria). Duas
+        abas a mais seriam duas invenções.
+
+        Ícone COM palavra, sempre. A regra do aplicativo é que nada se comunica
+        só por cor, porque tem sol na tela e luva no dedo. Ícone sozinho falha
+        pela mesma razão, e o agente usa isto duas vezes por semana: ele não
+        decora pictograma.
+
+        E a barra SOME dentro da vistoria. Aquela tela é uma tarefa com fim
+        irreversível, tem o formulário mais longo do produto, e uma escotilha
+        de fuga permanente embaixo do polegar, ao lado de um rolamento longo, é
+        como se produz vistoria pela metade.
+      */}
+      <Tabs
         screenOptions={{
           headerStyle: { backgroundColor: tema.superficie },
           headerTintColor: tema.texto,
           headerTitleStyle: { fontWeight: "700" },
-          contentStyle: { backgroundColor: tema.fundo },
+          sceneStyle: { backgroundColor: tema.fundo },
+          tabBarActiveTintColor: tema.destaque,
+          tabBarInactiveTintColor: tema.textoDiscreto,
+          tabBarStyle: {
+            backgroundColor: tema.superficie,
+            borderTopColor: tema.borda,
+            // O `toque` é o alvo mínimo do design system. Somado ao recuo
+            // seguro, impede a barra de gestos do Android de comer a área
+            // tocável, que é o pior lugar possível para economizar pixel.
+            height: toque + recuo.bottom,
+            paddingBottom: recuo.bottom,
+            paddingTop: espaco.e1,
+          },
+          tabBarLabelStyle: { fontSize: 12, fontWeight: "600" },
         }}
       >
-        <Stack.Screen name="index" options={{ title: "Minhas tarefas" }} />
-        <Stack.Screen name="fila" options={{ title: "Fila de envio" }} />
-        <Stack.Screen name="conta" options={{ title: "Minha conta" }} />
-        <Stack.Screen name="vistoria/[id]" options={{ title: "Vistoria" }} />
-      </Stack>
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: "Minhas tarefas",
+            tabBarLabel: "Tarefas",
+            tabBarIcon: ({ color }) => <IconeTarefas cor={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="fila"
+          options={{
+            title: "Fila de envio",
+            tabBarLabel: "Envio",
+            tabBarIcon: ({ color }) => <IconeEnvio cor={color} />,
+            // Número, e não pontinho colorido: o agente precisa saber QUANTAS
+            // coletas estão esperando, não só que existe alguma.
+            tabBarBadge: naFila > 0 ? naFila : undefined,
+            tabBarBadgeStyle: {
+              backgroundColor: bloqueados > 0 ? tema.perigoTexto : tema.destaque,
+              color: "#FFFFFF",
+              fontSize: 11,
+            },
+            tabBarAccessibilityLabel: naFila === 0
+              ? "Envio, nada esperando"
+              : `Envio, ${naFila} ${naFila === 1 ? "coleta" : "coletas"} esperando`
+                + (bloqueados > 0 ? `, ${bloqueados} com problema` : ""),
+          }}
+        />
+        <Tabs.Screen
+          name="equipe"
+          options={{
+            title: "Minha equipe",
+            tabBarLabel: "Equipe",
+            tabBarIcon: ({ color }) => <IconeEquipe cor={color} />,
+          }}
+        />
+        {/* Fora da barra: alcançada pela tela de equipe. */}
+        <Tabs.Screen name="conta" options={{ title: "Minha conta", href: null }} />
+        {/* Fora da barra, e sem barra: ver o comentário acima. */}
+        <Tabs.Screen
+          name="vistoria/[id]"
+          options={{ title: "Vistoria", href: null, tabBarStyle: { display: "none" } }}
+        />
+      </Tabs>
     </View>
   );
 }

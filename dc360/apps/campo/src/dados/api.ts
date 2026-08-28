@@ -206,3 +206,54 @@ export async function baixarPendencias(token: string): Promise<Pendencia[]> {
   const r = await chamar<{ itens: Pendencia[] }>("/sincronizacao/pendencias", { token });
   return r.itens;
 }
+
+export type Colega = {
+  id: string;
+  nome: string;
+  papel: Papel;
+  ativo: boolean;
+};
+
+export type Equipe = {
+  id: string;
+  nome: string;
+  especialidade: string | null;
+  ativa: boolean;
+};
+
+export type VistoriaConcluida = {
+  id: string;
+  ocorrencia_id: string;
+  protocolo: string;
+  tipo: TipoCobrade;
+  severidade: Severidade | null;
+  status: string;
+  endereco: string;
+  coletada_em: string;
+  sincronizada_em: string;
+};
+
+export type MeuTrabalho = {
+  equipe: Equipe | null;
+  colegas: Colega[];
+  concluidas: VistoriaConcluida[];
+};
+
+/**
+ * Quem é a minha equipe, e o que eu já concluí.
+ *
+ * Esta rota existia na API desde que o painel do coordenador ganhou a tela
+ * "Meu trabalho", e o aplicativo nunca a chamou. O agente via a lista do que
+ * falta fazer e nada do resto: não sabia de que equipe fazia parte, quem eram
+ * os colegas, nem o que ele mesmo já tinha entregado.
+ *
+ * De propósito, o aplicativo consome só `equipe`, `colegas` e `concluidas`. O
+ * campo `designadas` que a rota também devolve fica de fora, e a razão é dura:
+ * ele vem da REDE, enquanto a lista de tarefas do aplicativo vem do DISCO. Se
+ * a tela de equipe mostrasse tarefas da rede, o agente veria ali uma vistoria
+ * que a tela de tarefas não abre sem sinal. Duas listas com o mesmo nome e
+ * conteúdos diferentes é como se destrói a confiança num aplicativo de campo.
+ */
+export async function baixarMeuTrabalho(token: string): Promise<MeuTrabalho> {
+  return chamar<MeuTrabalho>("/campo/meu-trabalho", { token });
+}

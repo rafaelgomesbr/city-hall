@@ -1,4 +1,6 @@
-import { baixarPendencias, type Pendencia } from "./api";
+import {
+  baixarMeuTrabalho, baixarPendencias, type MeuTrabalho, type Pendencia,
+} from "./api";
 import { bancoLocal } from "./banco-local";
 
 /**
@@ -79,4 +81,58 @@ export async function pendenciaGuardada(id: string): Promise<Pendencia | null> {
   );
   if (!linha) return null;
   try { return JSON.parse(linha.conteudo) as Pendencia; } catch { return null; }
+}
+
+/**
+ * A equipe do agente, guardada no disco.
+ *
+ * Mesma razão de tudo o mais aqui: a tela precisa abrir no alto do morro. Sem
+ * cópia local, "Minha equipe" seria uma tela que só existe na base, ou seja,
+ * exatamente onde ninguém precisa dela.
+ *
+ * Guarda o objeto inteiro num registro só, em `marcas`, porque ele é pequeno,
+ * é lido de uma vez e nunca é consultado por parte.
+ */
+const MARCA_MEU_TRABALHO = "meu_trabalho";
+const MARCA_MEU_TRABALHO_EM = "meu_trabalho_em";
+
+export async function guardarMeuTrabalho(dados: MeuTrabalho): Promise<void> {
+  const db = await bancoLocal();
+  const agora = new Date().toISOString();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `INSERT INTO marcas (chave, valor) VALUES (?, ?)
+       ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor`,
+      [MARCA_MEU_TRABALHO, JSON.stringify(dados)],
+    );
+    await db.runAsync(
+      `INSERT INTO marcas (chave, valor) VALUES (?, ?)
+       ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor`,
+      [MARCA_MEU_TRABALHO_EM, agora],
+    );
+  });
+}
+
+export async function meuTrabalhoGuardado(): Promise<
+  { dados: MeuTrabalho; baixadoEm: string } | null
+> {
+  const db = await bancoLocal();
+  const linha = await db.getFirstAsync<{ valor: string }>(
+    "SELECT valor FROM marcas WHERE chave = ?", [MARCA_MEU_TRABALHO],
+  );
+  if (!linha) return null;
+  const quando = await db.getFirstAsync<{ valor: string }>(
+    "SELECT valor FROM marcas WHERE chave = ?", [MARCA_MEU_TRABALHO_EM],
+  );
+  return {
+    dados: JSON.parse(linha.valor) as MeuTrabalho,
+    baixadoEm: quando?.valor ?? new Date(0).toISOString(),
+  };
+}
+
+/** Busca na rede e guarda. Devolve o que guardou. */
+export async function atualizarMeuTrabalho(token: string): Promise<MeuTrabalho> {
+  const dados = await baixarMeuTrabalho(token);
+  await guardarMeuTrabalho(dados);
+  return dados;
 }

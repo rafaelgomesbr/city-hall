@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AppState, Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { ROTULO_TIPO_COBRADE } from "@dc360/shared";
 import { SemSinal, type Pendencia } from "../../dados/api";
@@ -11,6 +11,9 @@ import {
   Aviso, Botao, Cartao, Carregando, SeloSeveridade, Txt, Vazio, useTema,
 } from "../../ui/componentes";
 import { espaco, raio, toque } from "../../ui/tokens";
+import {
+  INTERVALO_PADRAO_MS, deveAtualizar, idadeEmPalavras, listaEnvelheceu,
+} from "../../dados/atualizacao";
 
 /**
  * As tarefas do agente.
@@ -44,6 +47,18 @@ export default function Tarefas() {
   const [tarefas, setTarefas] = useState<Pendencia[] | null>(null);
   const [rascunhos, setRascunhos] = useState<Rascunho[]>([]);
   const [atualizadoEm, setAtualizadoEm] = useState<string | null>(null);
+
+  /*
+    Relógio da tela, só para a idade da lista não congelar em "agora há pouco"
+    enquanto o aparelho fica aberto em cima da mesa. Trinta segundos é bem mais
+    curto do que a menor faixa que o texto distingue, então nunca dá para ver a
+    frase errada.
+  */
+  const [agora, setAgora] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setAgora(new Date()), 30_000);
+    return () => { clearInterval(t); };
+  }, []);
   const [atualizando, setAtualizando] = useState(false);
   const [avisoDeRede, setAvisoDeRede] = useState<string | null>(null);
 
@@ -56,16 +71,31 @@ export default function Tarefas() {
     setRascunhos(emAndamento);
   }, []);
 
+  /*
+    O que a tela sabe sobre a última ida à rede.
+
+    Fica em `ref` e não em estado porque nada disto se desenha: é a memória que
+    a regra de idade consulta. Em estado, cada leitura provocaria renderização
+    e o relógio abaixo entraria em laço.
+  */
+  const ultimaTentativa = useRef<number | null>(null);
+  const ultimaDeuCerto = useRef(true);
+  const emVoo = useRef(false);
+
   const buscarNaRede = useCallback(async () => {
+    emVoo.current = true;
+    ultimaTentativa.current = Date.now();
     setAtualizando(true);
     setAvisoDeRede(null);
     try {
       const token = await obterToken();
       if (!token) return;
       const novas = await atualizarPendencias(token);
+      ultimaDeuCerto.current = true;
       setTarefas(novas);
       setAtualizadoEm(await baixadasEm());
     } catch (erro: unknown) {
+      ultimaDeuCerto.current = false;
       /*
         Falhar em atualizar NÃO é falhar em mostrar. A lista do disco continua
         na tela, e o aviso diz que ela pode estar velha. Trocar a lista por uma
@@ -77,22 +107,85 @@ export default function Tarefas() {
           : "Não deu para atualizar agora. Mostrando a lista que você já tinha baixado.",
       );
     } finally {
+      emVoo.current = false;
       setAtualizando(false);
     }
   }, [obterToken]);
 
-  // Ao voltar de uma vistoria, os rascunhos mudaram: relê o disco.
-  useFocusEffect(useCallback(() => { void lerDoDisco(); }, [lerDoDisco]));
+  /*
+    Uma porta só para a rede, e ela pergunta pela IDADE da lista.
+
+    Quatro coisas querem atualizar: a tela ganhar foco, o aplicativo voltar do
+    segundo plano, o sinal voltar, e o relógio. Se cada uma disparasse por
+    conta própria, numa área de sombra onde o sinal pisca a cada segundo o
+    aparelho passaria o dia buscando. Todas passam por aqui, e aqui a resposta
+    é não enquanto a lista for recente.
+  */
+  const atualizarSeValer = useCallback(() => {
+    const decidir = deveAtualizar({
+      ultimaTentativa: ultimaTentativa.current,
+      ultimaDeuCerto: ultimaDeuCerto.current,
+      emVoo: emVoo.current,
+      temSinal: sinal.temSinal,
+    }, Date.now());
+    if (decidir) void buscarNaRede();
+  }, [buscarNaRede, sinal.temSinal]);
+
+  /*
+    Ao voltar de uma vistoria os rascunhos mudaram, então relê o disco. E
+    aproveita para perguntar se vale ir à rede: se o agente ficou dez minutos
+    dentro de uma coleta, a coordenação pode ter despachado outra coisa.
+  */
+  useFocusEffect(useCallback(() => {
+    void lerDoDisco();
+    atualizarSeValer();
+  }, [lerDoDisco, atualizarSeValer]));
 
   useEffect(() => {
     void (async () => {
       await lerDoDisco();
-      if (sinal.temSinal) await buscarNaRede();
+      atualizarSeValer();
     })();
-    // Só na montagem: atualizar a cada mudança de sinal encheria a rede de
-    // requisições numa área de sombra, onde o sinal pisca a cada segundo.
+    // Só na montagem. As atualizações seguintes vêm dos três gatilhos abaixo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /*
+    O sinal voltou.
+
+    É o momento de maior valor de todos: o agente desceu do morro, ou saiu da
+    sombra, e é justamente aí que ele precisa saber o que mudou enquanto
+    esteve fora. A regra de idade protege contra o sinal piscando.
+  */
+  useEffect(() => {
+    if (sinal.temSinal) atualizarSeValer();
+  }, [sinal.temSinal, atualizarSeValer]);
+
+  /*
+    O aplicativo voltou do segundo plano.
+
+    O agente atende uma ligação, olha o mapa, volta. O Android pode ter matado
+    a tela nesse meio tempo, e mesmo que não tenha, a lista envelheceu.
+  */
+  useEffect(() => {
+    const assinatura = AppState.addEventListener("change", (estado) => {
+      if (estado === "active") {
+        void lerDoDisco();
+        atualizarSeValer();
+      }
+    });
+    return () => { assinatura.remove(); };
+  }, [lerDoDisco, atualizarSeValer]);
+
+  /*
+    E o relógio, para o caso mais simples e mais comum de todos: o aparelho
+    aberto em cima da mesa da base, com sinal, enquanto a coordenação despacha.
+    Sem isto, o agente olha uma tela parada e conclui que não tem trabalho.
+  */
+  useEffect(() => {
+    const relogio = setInterval(atualizarSeValer, INTERVALO_PADRAO_MS);
+    return () => { clearInterval(relogio); };
+  }, [atualizarSeValer]);
 
   if (tarefas === null) return <Carregando mensagem="Abrindo suas tarefas" />;
 
@@ -122,12 +215,26 @@ export default function Tarefas() {
         <Txt variante="h2">
           {tarefas.length === 1 ? "1 vistoria para fazer" : `${tarefas.length} vistorias para fazer`}
         </Txt>
+        {/*
+          A idade da lista, e não a data cheia.
+
+          O agente decide uma coisa só olhando isto: dá para confiar nesta
+          lista, ou preciso procurar sinal antes de subir? "28/08/2026,
+          20:52:41" não responde essa pergunta enquanto ele calcula a
+          diferença de cabeça, em pé, na chuva. "há 3 min" responde.
+        */}
         <Txt variante="legenda" discreto>
           {identidade?.municipio}
-          {atualizadoEm
-            ? `, lista baixada em ${new Date(atualizadoEm).toLocaleString("pt-BR")}`
-            : ""}
+          {`, atualizada ${idadeEmPalavras(atualizadoEm ? new Date(atualizadoEm) : null, agora)}`}
+          {atualizando ? " (buscando)" : ""}
         </Txt>
+        {listaEnvelheceu(atualizadoEm ? new Date(atualizadoEm) : null, agora)
+          && !!atualizadoEm && (
+          <Aviso tom="alerta">
+            Esta lista tem mais de meia hora. Se você tem sinal agora, puxe a
+            tela para baixo antes de subir: pode ter chegado despacho novo.
+          </Aviso>
+        )}
       </View>
 
       {tarefas.length === 0 ? (

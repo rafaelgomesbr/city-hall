@@ -17,6 +17,7 @@
   "dependencies": {
     "@dc360/campo": "file:../../packages/campo",
     "@dc360/shared": "file:../../packages/shared",
+    "@react-navigation/bottom-tabs": "^7.18.18",
     "expo": "~57.0.16",
     "expo-camera": "~57.0.4",
     "expo-constants": "~57.0.13",
