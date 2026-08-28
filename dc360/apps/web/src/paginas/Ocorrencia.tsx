@@ -96,9 +96,30 @@ export function Ocorrencia() {
    */
   const [gravando, setGravando] = useState(false);
 
+  /**
+   * Para onde o olho vai depois de uma ação.
+   *
+   * As duas faixas ficam no TOPO de uma página de duas colunas que rola muito,
+   * e o botão de encerrar fica no fim da coluna esquerda. Quem clica está no
+   * rodapé: se a ação falha, o botão volta ao normal e nada mais acontece onde
+   * essa pessoa está olhando. O `role="alert"` do `Aviso` resolve para quem usa
+   * leitor de tela e não resolve para quem enxerga.
+   */
+  const faixaDeAviso = useRef<HTMLDivElement>(null);
+
   async function executar(acao: () => Promise<void>, mensagem: string) {
     if (gravando) return;
     setGravando(true);
+    /*
+      Limpar o aviso ANTERIOR é o ponto.
+
+      Sem isto, a faixa verde de "triagem registrada" ficava na tela para
+      sempre. O coordenador despachava, encaminhava providência, tentava
+      encerrar e falhava, e a tela mostrava a faixa verde velha e a vermelha
+      nova na mesma altura: o sistema dizendo "deu certo" e "deu errado" ao
+      mesmo tempo, sobre coisas diferentes, sem dizer qual é qual.
+    */
+    setAviso(null);
     setErro(null);
     try {
       await acao();
@@ -108,6 +129,11 @@ export function Ocorrencia() {
       setErro(e instanceof Error ? e.message : String(e));
     } finally {
       setGravando(false);
+      // Depois de pintar o resultado, leva o olho e o foco até ele.
+      requestAnimationFrame(() => {
+        faixaDeAviso.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+        faixaDeAviso.current?.focus();
+      });
     }
   }
 
@@ -147,8 +173,10 @@ export function Ocorrencia() {
         </div>
       </div>
 
-      {erro && <Aviso tom="perigo">{erro}</Aviso>}
-      {aviso && <Aviso tom="sucesso">{aviso}</Aviso>}
+      <div ref={faixaDeAviso} tabIndex={-1} style={{ outline: "none" }}>
+        {erro && <Aviso tom="perigo">{erro}</Aviso>}
+        {aviso && <Aviso tom="sucesso">{aviso}</Aviso>}
+      </div>
       {(vinculadaA || vinculadas.length > 0) && (
         <Aviso tom="info">
           {vinculadaA ? (

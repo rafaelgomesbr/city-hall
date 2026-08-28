@@ -58,6 +58,9 @@ export function Estrutura() {
   const [busca, setBusca] = useState("");
 
   if (!sessao) return null;
+  // Capturado aqui porque `enviarBusca` é declaração içada, e o TypeScript não
+  // leva o estreitamento do `if` acima para dentro dela.
+  const papel = sessao.papel;
 
   const visiveis = NAVEGACAO.filter((i) =>
     (!i.exige || podeExecutar(sessao.papel, i.exige)) &&
@@ -67,7 +70,27 @@ export function Estrutura() {
   function enviarBusca(evento: React.FormEvent) {
     evento.preventDefault();
     const termo = busca.trim();
-    navegar(termo ? `/ocorrencias?busca=${encodeURIComponent(termo)}` : "/ocorrencias");
+
+    /*
+      A busca leva cada papel para o lugar dele.
+
+      O menu esconde "Ocorrências" de quem registra vistoria, de propósito: o
+      agente de campo trabalha sobre o que foi despachado para a equipe dele, e
+      não sobre a fila do município inteiro. Mas a caixa de busca aparece em
+      toda tela, para todo mundo, e mandava todos para `/ocorrencias`.
+
+      O resultado era uma contradição de produto: o controle mais visível da
+      interface alcançava a tela que o menu decidiu esconder. E o beco vinha
+      logo depois, porque abrir uma ocorrência de outra equipe renderiza a
+      página inteira sem uma única ação disponível, sem dizer por quê.
+
+      Não era vazamento: o município vem do token e o RLS continua de pé. Era
+      pior de outro jeito, porque não parecia erro nenhum.
+    */
+    const destino = podeExecutar(papel, "registrar_vistoria")
+      ? "/meu-trabalho"
+      : "/ocorrencias";
+    navegar(termo ? `${destino}?busca=${encodeURIComponent(termo)}` : destino);
   }
 
   return (

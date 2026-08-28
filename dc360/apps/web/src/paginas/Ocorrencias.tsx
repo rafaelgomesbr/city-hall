@@ -59,6 +59,11 @@ export function Ocorrencias() {
     return () => { vivo = false; };
   }, [sessao, busca, status, severidade]);
 
+  // Trocar o filtro de atrasadas devolve para a primeira página, como todo
+  // outro filtro já fazia. Ele é aplicado no cliente, então não passa pelo
+  // efeito acima e precisava desta linha.
+  useEffect(() => { setPagina(1); }, [soAtrasadas]);
+
   const filtradas = useMemo(() => {
     if (!linhas) return null;
     if (!soAtrasadas) return linhas;
@@ -79,7 +84,22 @@ export function Ocorrencias() {
 
   const total = filtradas?.length ?? 0;
   const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
-  const visiveis = filtradas?.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA) ?? [];
+
+  /*
+    A página é presa ao teto, e isto conserta um caso que mentia o número.
+
+    "Só atrasadas" filtra no cliente, depois que a lista já chegou, e ele não
+    entrava nas dependências do efeito que devolve a paginação para a primeira
+    página. Quem estivesse na página 3 e clicasse no filtro com duas atrasadas
+    ficava com `pagina` em 3 e `total` em 2: o recorte devolvia lista vazia, o
+    estado vazio NÃO aparecia (porque o total não é zero), e o rodapé escrevia
+    "Mostrando 21 a 2 de 2". A tabela ficava com cabeçalho e nenhuma linha.
+
+    A leitura óbvia disso é "não tem nenhuma atrasada", e é exatamente o clique
+    que o coordenador dá quando alguma coisa acabou de vencer.
+  */
+  const paginaSegura = Math.min(pagina, paginas);
+  const visiveis = filtradas?.slice((paginaSegura - 1) * POR_PAGINA, paginaSegura * POR_PAGINA) ?? [];
 
   return (
     <>
@@ -203,15 +223,15 @@ export function Ocorrencias() {
 
             <div className="paginacao">
               <span>
-                Mostrando {(pagina - 1) * POR_PAGINA + 1} a {Math.min(pagina * POR_PAGINA, total)} de {total}
+                Mostrando {(paginaSegura - 1) * POR_PAGINA + 1} a {Math.min(paginaSegura * POR_PAGINA, total)} de {total}
               </span>
               <div className="paginacao__controles">
                 <button type="button" className="botao botao--secundario"
-                        disabled={pagina === 1} onClick={() => setPagina((p) => p - 1)}>
+                        disabled={paginaSegura === 1} onClick={() => setPagina(paginaSegura - 1)}>
                   Anterior
                 </button>
                 <button type="button" className="botao botao--secundario"
-                        disabled={pagina >= paginas} onClick={() => setPagina((p) => p + 1)}>
+                        disabled={paginaSegura >= paginas} onClick={() => setPagina(paginaSegura + 1)}>
                   Próxima
                 </button>
               </div>
