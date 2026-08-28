@@ -43,6 +43,17 @@ const esquema = z.object({
   NOTIFICADOR_CHAVE: z.string().min(1).optional(),
 
   /**
+   * Canal de teste: grava a mensagem inteira, com o link, neste arquivo.
+   *
+   * Só existe para a suíte de ponta a ponta contra a API conseguir conferir a
+   * recuperação de senha sem que o link volte a sair no log do servidor. A
+   * checagem lá embaixo DERRUBA A PARTIDA se isto vier preenchido em produção:
+   * um arquivo com link de redefinição de qualquer conta é credencial em texto
+   * puro esperando para ser lida.
+   */
+  NOTIFICADOR_ARQUIVO: z.string().min(1).optional(),
+
+  /**
    * Desliga a recuperação de senha por email, de propósito.
    *
    * Enquanto não houver provedor, isto é mais honesto que uma tela que promete
@@ -103,6 +114,13 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
   if (c.NODE_ENV === "production") {
     if (!c.DATABASE_URL) throw new Error("DATABASE_URL é obrigatória em produção");
     if (!c.JWT_SEGREDO) throw new Error("JWT_SEGREDO é obrigatória em produção");
+    if (c.NOTIFICADOR_ARQUIVO) {
+      throw new Error(
+        "NOTIFICADOR_ARQUIVO é canal de teste e não pode existir em produção: "
+        + "ele grava o link de redefinição de senha em texto puro, e esse link "
+        + "assume qualquer conta de qualquer município enquanto estiver vivo.",
+      );
+    }
     /*
       Recuperação de senha ligada exige destino de verdade.
 

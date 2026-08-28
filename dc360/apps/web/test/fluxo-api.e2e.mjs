@@ -457,9 +457,28 @@ await page.waitForSelector(".aviso--sucesso", { timeout: 20_000 });
 ok("resposta identica para email inexistente",
    (await page.textContent(".aviso--sucesso")) === respostaRecuperacao);
 
-// O link sai pelo notificador, que em desenvolvimento escreve no log.
-const logApi = readFileSync(process.env.LOG_API ?? "", "utf8");
-const links = [...logApi.matchAll(/https?:\/\/\S*redefinir-senha\?token=\S+/g)].map((m) => m[0]);
+/*
+  O link vem do canal de arquivo do notificador, e não mais do log.
+
+  Ele saía no log até o dia em que o log parou de imprimir o corpo da
+  mensagem, por segurança e com razão. A consequência passou despercebida por
+  dias: 49 das 103 verificações abaixo deixaram de ser alcançadas, porque esta
+  linha lançava e derrubava o arquivo inteiro. Ninguém viu, porque esta suíte
+  nunca esteve na integração contínua.
+
+  `NOTIFICADOR_ARQUIVO` é canal de teste, e `config.ts` derruba a partida se
+  ele aparecer em produção.
+*/
+const destinoNotificacao = process.env.NOTIFICADOR_ARQUIVO;
+if (!destinoNotificacao) {
+  throw new Error(
+    "NOTIFICADOR_ARQUIVO não está definida. Suba a API com essa variável "
+    + "apontando para um arquivo, e passe a mesma variável para este teste. "
+    + "Sem ela a seção 14 não tem de onde ler o link de redefinição.",
+  );
+}
+const notificacoes = readFileSync(destinoNotificacao, "utf8");
+const links = [...notificacoes.matchAll(/https?:\/\/\S*redefinir-senha\?token=\S+/g)].map((m) => m[0]);
 ok("um link de redefinicao foi emitido", links.length >= 1, `(${links.length})`);
 
 const tokenRecuperacao = new URL(links.at(-1)).searchParams.get("token");
@@ -656,7 +675,14 @@ await page.locator("#nova-descricao").fill("Registro que nao deve chegar ao serv
 
 // Derruba a rota para a API e envia: o agente precisa saber que nada foi
 // gravado, e nao ler "Failed to fetch".
-await contexto.route("**/127.0.0.1:3333/**", (rota) => rota.abort());
+//
+// O padrao sai de BASE_API, e nao de uma porta fixa. Ele ficou preso em 3333
+// por meses e ninguem viu, porque esta suite nunca rodou na integracao
+// continua: com a API em qualquer outra porta, a interceptacao nao casava, a
+// requisicao ia normalmente, e as duas verificacoes abaixo reprovavam por
+// motivo que nao tinha nada a ver com o produto.
+const alvoDeRede = new URL(process.env.BASE_API ?? "http://127.0.0.1:3333");
+await contexto.route(`**/${alvoDeRede.host}/**`, (rota) => rota.abort());
 await page.getByRole("button", { name: /Registrar e gerar protocolo/ }).click();
 await page.waitForTimeout(2500);
 const mensagemDeRede = (await page.locator(".aviso, .campo__erro").allTextContents()).join(" ");
@@ -664,7 +690,11 @@ ok("erro de rede vira frase em portugues",
    /sem conex/i.test(mensagemDeRede), `(${mensagemDeRede.slice(0, 90)})`);
 ok("e diz que nada foi enviado",
    /nao foi enviado|não foi enviado/i.test(mensagemDeRede));
-await contexto.unroute("**/127.0.0.1:3333/**");
+// Mesmo alvo do `route` acima. Estava com a porta fixa e removia um padrão
+// que nunca tinha sido registrado, ou seja, era linha morta ao lado de outra
+// linha morta. Com a interceptação funcionando, esquecer o `unroute` derruba
+// a rede para todas as seções seguintes.
+await contexto.unroute(`**/${alvoDeRede.host}/**`);
 
 console.log("\n== 20. Corrigir cadastro sem recriar a conta ==");
 await entrar("helena.coutinho@serraalta.exemplo.gov.br");

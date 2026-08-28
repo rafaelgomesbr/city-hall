@@ -113,6 +113,26 @@ jobs:
       - name: Modo local, no Firefox
         run: MOTOR=firefox npm run test:e2e
 
+      # O CAMINHO DE PRODUÇÃO. Este passo é o mais importante do arquivo.
+      #
+      # Ele ficou fora daqui desde sempre, e o preço apareceu duas vezes: uma
+      # correção de segurança tirou o link de redefinição do log, que era de
+      # onde a suíte o lia, e 49 das 103 verificações deixaram de ser
+      # alcançadas sem ninguém ver. Antes disso, a interceptação de rede da
+      # seção 19 apontava para uma porta fixa e era linha morta ao lado de
+      # outra linha morta.
+      #
+      # As 47 verificações acima rodam o modo local, que é o modo de
+      # demonstração. Só as de baixo passam por autenticação real, CORS,
+      # renovação de sessão, upload de evidência e documento saindo do
+      # servidor. Verde sem elas é verde que não cobre o que vai a produção.
+      #
+      # O script sobe API e painel do zero em portas próprias: a suíte confere
+      # protocolo por número e a detecção de duplicidade recusa o segundo
+      # registro no mesmo endereço, então instância suja reprova.
+      - name: Caminho de produção, contra a API
+        run: npm run test:e2e:api
+
   demonstracao:
     name: Pacote da demonstração
     runs-on: ubuntu-latest
@@ -188,9 +208,34 @@ jobs:
       - name: Testes do aplicativo
         run: npm test
 
-      # 21 verificações da própria Expo: versões incompatíveis com o SDK,
-      # configuração de plugin, arquivo de projeto conflitante.
+      # A ÁRVORE DE DEPENDÊNCIA PRECISA SER COERENTE.
+      #
+      # Este é o portão que teria pego o defeito que impediu o aplicativo de
+      # compilar: o `expo-router` puxava `react-native-worklets@0.12.1` e o
+      # `expo-modules-core` aceita no máximo `0.10`. O npm já imprimia
+      # `invalid` ao lado do pacote, e ninguém lia. O erro só apareceu seis
+      # minutos build adentro, em compilação C++.
+      #
+      # `npm ls` sai com código diferente de zero quando a árvore é
+      # incoerente, então basta chamá-lo.
+      - name: Árvore de dependência coerente
+        run: npm ls
+
+      # Verificações da própria Expo: configuração de plugin, arquivo de
+      # projeto conflitante, compatibilidade com o SDK.
+      #
+      # A checagem de versão de pacote fica DE FORA, e é decisão consciente.
+      # Ela consulta a rede e reprova quando a Expo publica qualquer patch, o
+      # que acontece toda semana: o resultado é integração contínua vermelha
+      # por motivo que não é nosso, e time que aprende a ignorar vermelho.
+      #
+      # Não é perda de cobertura real: essa checagem só olha dependência
+      # DIRETA, e o defeito do worklets era transitivo. Quem cobre isso é o
+      # passo acima. Atualizar patch da Expo continua sendo trabalho de
+      # manutenção, e ele tem lugar: a conferência trimestral do LOJAS.md.
       - name: Saúde do projeto Expo
+        env:
+          EXPO_DOCTOR_SKIP_DEPENDENCY_VERSION_CHECK: "1"
         run: npx expo-doctor
 
       - name: Dependência com vulnerabilidade conhecida

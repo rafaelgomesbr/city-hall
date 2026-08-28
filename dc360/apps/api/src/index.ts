@@ -2,6 +2,7 @@ import { carregarConfig } from "./config.js";
 import { bancoPostgres } from "./banco/postgres.js";
 import { bancoEmMemoria } from "./banco/memoria.js";
 import { construirServidor } from "./servidor.js";
+import { notificadorDeArquivo } from "./auth/notificador.js";
 import type { Banco } from "./banco/tipos.js";
 import { armazenamentoS3 } from "./armazenamento/s3.js";
 import { armazenamentoEmMemoria } from "./armazenamento/memoria.js";
@@ -75,7 +76,19 @@ if (config.S3_ENDPOINT && config.S3_BALDE && config.S3_CHAVE_ID && config.S3_CHA
  */
 const pdf = geradorPlaywright();
 
-const app = await construirServidor({ banco, config, armazenamento, pdf });
+/*
+  O canal de arquivo só existe quando alguém pede, e `config.ts` derruba a
+  partida se ele aparecer em produção. Serve à suíte de ponta a ponta contra a
+  API, que precisa do link de redefinição e não pode mais colhê-lo do log.
+*/
+const notificador = config.NOTIFICADOR_ARQUIVO
+  ? notificadorDeArquivo(config.NOTIFICADOR_ARQUIVO)
+  : undefined;
+
+const app = await construirServidor({
+  banco, config, armazenamento, pdf,
+  ...(notificador ? { notificador } : {}),
+});
 
 // Encerramento ordenado: a requisição em andamento termina, e o pool fecha.
 // Sem isso, um deploy derruba transação no meio.

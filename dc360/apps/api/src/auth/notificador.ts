@@ -45,6 +45,42 @@ export function notificadorDeLog(
   };
 }
 
+/**
+ * Implementação de teste: grava a mensagem INTEIRA num arquivo.
+ *
+ * Existe por um motivo específico e vale registrar, porque a alternativa
+ * parecia mais simples e estava errada.
+ *
+ * A suíte de ponta a ponta contra a API precisa do link de redefinição para
+ * conferir o fluxo de recuperação de senha. Ela colhia esse link do log do
+ * servidor. No dia em que o log parou de imprimir o corpo, por segurança e com
+ * razão, 49 das 103 verificações deixaram de ser alcançadas, e ninguém viu,
+ * porque essa suíte nunca esteve na integração contínua.
+ *
+ * Voltar a imprimir no log seria trocar a cobertura pela credencial. O canal
+ * separado resolve os dois: o log continua limpo e o teste continua tendo onde
+ * ler.
+ *
+ * A trava está em `config.ts`: `NOTIFICADOR_ARQUIVO` derruba a partida em
+ * produção. Um arquivo com link de redefinição de qualquer conta de qualquer
+ * município é exatamente o que não pode existir num servidor de verdade.
+ */
+export function notificadorDeArquivo(caminho: string): Notificador {
+  return {
+    async enviar(m) {
+      const { appendFile } = await import("node:fs/promises");
+      await appendFile(
+        caminho,
+        `[notificacao] para=${m.para} assunto="${m.assunto}"
+${m.corpo}
+---
+`,
+        "utf8",
+      );
+    },
+  };
+}
+
 export function mensagemDeRecuperacao(
   nome: string,
   email: string,
