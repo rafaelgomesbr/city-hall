@@ -475,7 +475,11 @@ describe("Sincronização do aplicativo de campo", () => {
       ocorrenciaId: id,
       coletadaEm: new Date(Date.now() - 3_600_000).toISOString(),
       vistoria: {
-        checklist: [{ chave: "risco_iminente", resposta: true }],
+        checklist: [{ chave: "risco_iminente", resposta: true },
+        { chave: "evacuacao_necessaria", resposta: false },
+        { chave: "interdicao_indicada", resposta: false },
+        { chave: "acionar_outro_orgao", resposta: false },
+      ],
         fotos: [{
           chave: "foto-1.jpg",
           capturadaEm: new Date(Date.now() - 3_600_000).toISOString(),
@@ -646,7 +650,11 @@ describe("Resposta do orgao a providencia", () => {
         ocorrenciaId: id,
         coletadaEm: new Date().toISOString(),
         vistoria: {
-          checklist: [{ chave: "acionar_outro_orgao", resposta: true }],
+          checklist: [{ chave: "acionar_outro_orgao", resposta: true },
+        { chave: "risco_iminente", resposta: false },
+        { chave: "evacuacao_necessaria", resposta: false },
+        { chave: "interdicao_indicada", resposta: false },
+      ],
           fotos: [], gpsPrecisaoMetros: 5,
           assinanteNome: "Moradora", assinaturaChave: null,
           coletadaEm: new Date().toISOString(),

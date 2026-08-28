@@ -372,7 +372,11 @@ describe("Vínculo com a vistoria", () => {
         ocorrenciaId: ocorrencia,
         coletadaEm: agoraIso,
         vistoria: {
-          checklist: [{ chave: "risco_iminente", resposta: true }],
+          checklist: [{ chave: "risco_iminente", resposta: true },
+        { chave: "evacuacao_necessaria", resposta: false },
+        { chave: "interdicao_indicada", resposta: false },
+        { chave: "acionar_outro_orgao", resposta: false },
+      ],
           // A chave devolvida na autorização, não um nome de arquivo solto.
           fotos: [{ chave: autorizacao.chave, capturadaEm: agoraIso, legenda: "Trinca" }],
           gpsPrecisaoMetros: 5,
@@ -407,7 +411,11 @@ describe("Vínculo com a vistoria", () => {
         ocorrenciaId: ocorrencia,
         coletadaEm: agoraIso,
         vistoria: {
-          checklist: [{ chave: "risco_iminente", resposta: true }],
+          checklist: [{ chave: "risco_iminente", resposta: true },
+        { chave: "evacuacao_necessaria", resposta: false },
+        { chave: "interdicao_indicada", resposta: false },
+        { chave: "acionar_outro_orgao", resposta: false },
+      ],
           fotos: [{ chave: `tenant/${orgOutro}/ocorrencias/x/roubada.jpg`, capturadaEm: agoraIso }],
           gpsPrecisaoMetros: 5,
           assinanteNome: "Moradora",

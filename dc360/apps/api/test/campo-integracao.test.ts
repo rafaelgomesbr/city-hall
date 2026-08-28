@@ -121,6 +121,8 @@ function envelopeDe(ocorrenciaId: string, chave: string) {
       checklist: [
         { chave: "risco_iminente", resposta: true },
         { chave: "interdicao_indicada", resposta: true },
+        { chave: "evacuacao_necessaria", resposta: false },
+        { chave: "acionar_outro_orgao", resposta: false },
       ],
       fotos: [
         { chave: "foto-1.jpg", capturadaEm: coletadaEm, legenda: "Trinca na parede dos fundos" },

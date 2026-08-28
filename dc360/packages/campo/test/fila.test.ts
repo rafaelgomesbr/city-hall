@@ -33,7 +33,11 @@ function envelope(chave: string, ocorrencia = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaa
     ocorrenciaId: ocorrencia,
     coletadaEm: MOMENTO.toISOString(),
     vistoria: {
-      checklist: [{ chave: "risco_iminente", resposta: true }],
+      checklist: [{ chave: "risco_iminente", resposta: true },
+        { chave: "evacuacao_necessaria", resposta: false },
+        { chave: "interdicao_indicada", resposta: false },
+        { chave: "acionar_outro_orgao", resposta: false },
+      ],
       fotos: [],
       gpsPrecisaoMetros: 6,
       assinanteNome: "Moradora",

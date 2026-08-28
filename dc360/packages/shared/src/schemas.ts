@@ -1,6 +1,8 @@
 import { z } from "zod";
 import {
   CANAIS_ENTRADA,
+  CHECKLIST_OBRIGATORIO,
+  CHECKLIST_VISTORIA,
   ORIGENS,
   PAPEIS,
   SEVERIDADES,
@@ -106,8 +108,46 @@ export const evidenciaFotoSchema = z.object({
  * da coleta; `sincronizadaEm` é quando o servidor recebeu. Os dois diferem
  * sempre que a coleta foi offline, e o laudo precisa mostrar ambos.
  */
+/**
+ * O checklist precisa ser o checklist, e isto é regra de negócio, não de tela.
+ *
+ * Antes, `z.array(itemChecklistSchema).min(1)` aceitava qualquer coisa: uma
+ * vistoria com `[{ chave: "chave_inventada_pelo_aparelho", resposta: true }]`
+ * era gravada com 201, virava a vistoria vigente, e o LAUDO OFICIAL saía com
+ * essa linha na tabela e sem nenhum dos itens obrigatórios. Reproduzido pelo
+ * QA contra a API de verdade.
+ *
+ * `CHECKLIST_OBRIGATORIO` existia no pacote compartilhado desde o começo e era
+ * usado só pela tela do aplicativo, com o comentário dizendo que "obrigatorio
+ * governa o aparelho". Governar o aparelho não é governar nada: o aparelho é
+ * exatamente a parte que um cliente adulterado não executa. O `CLAUDE.md` diz
+ * isto com todas as letras: se a validação só existe no formulário, ela não
+ * existe.
+ *
+ * Duas regras, e a segunda importa tanto quanto a primeira:
+ *
+ * 1. Todo item obrigatório tem que estar respondido.
+ * 2. Nenhuma chave fora do catálogo entra. Sem isto, o laudo continua sendo um
+ *    lugar onde o aparelho escreve texto livre num documento com brasão.
+ */
+const CHAVES_CONHECIDAS = new Set<string>(CHECKLIST_VISTORIA.map((i) => i.chave));
+
+const checklistSchema = z.array(itemChecklistSchema).min(1)
+  .refine(
+    (itens) => CHECKLIST_OBRIGATORIO.every((o) => itens.some((i) => i.chave === o.chave)),
+    {
+      message:
+        "A vistoria precisa responder todos os itens obrigatórios do checklist: "
+        + CHECKLIST_OBRIGATORIO.map((i) => i.rotulo).join(", ") + ".",
+    },
+  )
+  .refine(
+    (itens) => itens.every((i) => CHAVES_CONHECIDAS.has(i.chave)),
+    { message: "O checklist tem item que não existe no catálogo da vistoria." },
+  );
+
 export const vistoriaSchema = z.object({
-  checklist: z.array(itemChecklistSchema).min(1),
+  checklist: checklistSchema,
   fotos: z.array(evidenciaFotoSchema),
   gpsPrecisaoMetros: z.number().positive().nullable(),
   assinanteNome: z.string().min(1, "Informe quem assinou").max(200),

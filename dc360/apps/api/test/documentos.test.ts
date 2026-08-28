@@ -734,3 +734,149 @@ describe("Quem pode emitir documento oficial", () => {
     expect(fotos.statusCode).toBe(200);
   });
 });
+
+/**
+ * O relógio do aparelho não decide quem sai de casa.
+ *
+ * Achado pelo QA, reproduzido contra a API de verdade. A rota do documento
+ * ordenava as vistorias por `coletada_em`, que é declarada pelo aparelho, e a
+ * migração 009 aceita até doze horas no futuro de propósito, porque relógio
+ * trocado é rotina em campo.
+ *
+ * O efeito: dois agentes, dois aparelhos, e vencia o relógio mais adiantado em
+ * vez de quem foi por último. Um termo de interdição saía mandando desocupar um
+ * imóvel cujo risco a última vistoria real dizia ter cessado.
+ */
+describe("Qual vistoria vale", () => {
+  async function sincronizar(
+    ocorrenciaId: string,
+    coletadaEm: string,
+    interdicao: boolean,
+    assinante: string,
+  ) {
+    const r = await app.inject({
+      method: "POST", url: "/sincronizacao/vistoria", headers: com(tokenAgente),
+      payload: {
+        idempotencyKey: crypto.randomUUID(),
+        ocorrenciaId,
+        coletadaEm,
+        vistoria: {
+          checklist: [
+            { chave: "risco_iminente", resposta: interdicao },
+            { chave: "evacuacao_necessaria", resposta: interdicao },
+            { chave: "interdicao_indicada", resposta: interdicao },
+            { chave: "acionar_outro_orgao", resposta: false },
+          ],
+          fotos: [],
+          gpsPrecisaoMetros: 7,
+          assinanteNome: assinante,
+          assinaturaChave: null,
+          coletadaEm,
+        },
+      },
+    });
+    if (r.statusCode !== 201) throw new Error(`sincronizacao falhou: ${r.body}`);
+    return r.json().vistoriaId;
+  }
+
+  it("vale a que o servidor recebeu por último, não a de relógio adiantado", async () => {
+    const alvo = await comVistoria({
+      offline: false,
+      endereco: "Rua do Relógio, 900, Alto da Boa Vista",
+      interdicao: false,
+    });
+
+    // Primeiro chega a vistoria com o relógio onze horas adiantado, dizendo
+    // que é para interditar. Ela é aceita: a folga da migração 009 existe
+    // justamente porque aparelho com fuso trocado é rotina.
+    const adiantada = new Date(Date.now() + 11 * 3_600_000).toISOString();
+    await sincronizar(alvo.id, adiantada, true, "Aparelho adiantado");
+
+    // Depois chega a vistoria REAL, feita agora, dizendo que o risco cessou.
+    await sincronizar(alvo.id, new Date().toISOString(), false, "Aparelho certo");
+
+    const termo = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/termo-de-interdicao`,
+      headers: com(tokenCoordenador),
+    });
+
+    expect(termo.statusCode).toBe(409);
+    expect(termo.json().erro).toBe("interdicao_nao_indicada");
+  });
+
+  it("o laudo mostra a última recebida, e não a de data mais alta", async () => {
+    const alvo = await comVistoria({
+      offline: false, endereco: "Travessa do Sino, 45, Vila Aurora", interdicao: false,
+    });
+
+    const adiantada = new Date(Date.now() + 11 * 3_600_000).toISOString();
+    await sincronizar(alvo.id, adiantada, true, "Aparelho adiantado");
+    await sincronizar(alvo.id, new Date().toISOString(), false, "Aparelho certo");
+
+    const laudo = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/laudo`, headers: com(tokenCoordenador),
+    });
+    expect(laudo.statusCode).toBe(200);
+    // O detalhe da tela e o documento precisam mostrar a MESMA vistoria, senão
+    // o coordenador decide olhando uma e o papel sai com outra.
+    expect(laudo.body).toContain("Aparelho certo");
+    expect(laudo.body).not.toContain("Aparelho adiantado");
+  });
+});
+
+/**
+ * O checklist do laudo é o checklist, e não o que o aparelho quis mandar.
+ *
+ * `CHECKLIST_OBRIGATORIO` existia no pacote compartilhado e era usado só pela
+ * tela do aplicativo. Governar o aparelho não governa nada: o aparelho é
+ * exatamente a parte que um cliente adulterado não executa.
+ */
+describe("O servidor não aceita qualquer checklist", () => {
+  async function enviarChecklist(itens: Array<{ chave: string; resposta: boolean }>) {
+    const alvo = await comVistoria({
+      offline: false, endereco: "Rua da Prova, 1, Centro", interdicao: false,
+    });
+    const agora = new Date().toISOString();
+    return app.inject({
+      method: "POST", url: "/sincronizacao/vistoria", headers: com(tokenAgente),
+      payload: {
+        idempotencyKey: crypto.randomUUID(),
+        ocorrenciaId: alvo.id,
+        coletadaEm: agora,
+        vistoria: {
+          checklist: itens, fotos: [], gpsPrecisaoMetros: 5,
+          assinanteNome: "Quem assinou", assinaturaChave: null, coletadaEm: agora,
+        },
+      },
+    });
+  }
+
+  it("recusa chave que não existe no catálogo", async () => {
+    const r = await enviarChecklist([
+      { chave: "chave_inventada_pelo_aparelho", resposta: true },
+    ]);
+    expect(r.statusCode).toBe(422);
+  });
+
+  it("recusa quando falta item obrigatório", async () => {
+    const r = await enviarChecklist([{ chave: "risco_iminente", resposta: true }]);
+    expect(r.statusCode).toBe(422);
+    // A mensagem precisa dizer QUAIS faltam, senão o aparelho não tem como
+    // corrigir e o agente fica com a coleta presa no bolso. O texto do topo é
+    // genérico de propósito; o detalhe vem em `campos`, que é o que o
+    // aplicativo lê.
+    const detalhe = (r.json().campos as Array<{ mensagem: string }>)
+      .map((c) => c.mensagem).join(" ");
+    expect(detalhe).toContain("Interdição indicada");
+  });
+
+  it("aceita o checklist completo, com os opcionais de fora", async () => {
+    const r = await enviarChecklist([
+      { chave: "risco_iminente", resposta: true },
+      { chave: "evacuacao_necessaria", resposta: false },
+      { chave: "interdicao_indicada", resposta: false },
+      { chave: "acionar_outro_orgao", resposta: true },
+    ]);
+    expect(r.statusCode).toBe(201);
+  });
+});

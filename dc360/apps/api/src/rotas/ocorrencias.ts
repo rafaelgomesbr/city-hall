@@ -162,7 +162,8 @@ export async function rotasOcorrencias(
         c.query(
           `SELECT v.*, u.nome AS agente_nome FROM vistorias v
              LEFT JOIN usuarios u ON u.id = v.agente_id
-            WHERE v.ocorrencia_id = $1 ORDER BY v.coletada_em DESC LIMIT 1`,
+                        WHERE v.ocorrencia_id = $1
+            ORDER BY v.sincronizada_em DESC, v.coletada_em DESC LIMIT 1`,
           [id],
         ),
         c.query(

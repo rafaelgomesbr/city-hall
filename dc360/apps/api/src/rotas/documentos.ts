@@ -46,6 +46,29 @@ async function reunirDados(
       [organizacaoId],
     );
 
+    /*
+      A vistoria vigente é a última que o SERVIDOR recebeu, e não a que se diz
+      ter acontecido por último.
+
+      Isto ordenava por `coletada_em`, que é declarada pelo aparelho. A migração
+      009 aceita até doze horas no futuro de propósito, porque relógio trocado é
+      rotina em campo. O efeito era este: dois agentes, dois aparelhos, e vencia
+      o relógio mais adiantado em vez de quem foi por último.
+
+      Reproduzido pelo QA: uma vistoria datada onze horas à frente dizendo
+      "interditar" continuava vigente depois de uma vistoria real, feita depois,
+      dizendo "não interditar". O termo saía, com brasão, mandando desocupar um
+      imóvel cujo risco tinha cessado.
+
+      O caso espelho é igual de ruim: uma vistoria futura dizendo "não
+      interditar" travaria para sempre a re-vistoria legítima, e a mensagem do
+      próprio 409 manda "registre uma vistoria nova", que nunca viraria vigente.
+
+      `sincronizada_em` é `now()` do banco, e ninguém escolhe. `coletada_em`
+      continua sendo o que o laudo imprime como data do ato, porque é a hora em
+      que o agente esteve no barranco. Ela só deixa de decidir qual vistoria
+      vale.
+    */
     const vistoria = await c.query<
       DadosDocumento["vistoria"] & { assinatura_chave: string | null }
     >(
@@ -54,7 +77,7 @@ async function reunirDados(
               u.nome AS agente_nome, u.matricula AS agente_matricula
          FROM vistorias v LEFT JOIN usuarios u ON u.id = v.agente_id
         WHERE v.ocorrencia_id = $1
-        ORDER BY v.coletada_em DESC LIMIT 1`,
+                ORDER BY v.sincronizada_em DESC, v.coletada_em DESC LIMIT 1`,
       [ocorrenciaId],
     );
     if (!vistoria.rows[0]) {
