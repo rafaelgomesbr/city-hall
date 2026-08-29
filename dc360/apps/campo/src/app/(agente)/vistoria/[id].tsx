@@ -6,8 +6,9 @@ import * as Crypto from "expo-crypto";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { File } from "expo-file-system";
 import {
-  CHECKLIST_OBRIGATORIO, CHECKLIST_VISTORIA, ROTULO_TIPO_COBRADE, montarMinuta,
-  type EnvelopeSincronizacao,
+  CAMPOS_PESSOAS, CHECKLIST_OBRIGATORIO, CHECKLIST_VISTORIA, ROTULO_TIPO_COBRADE,
+  montarMinuta,
+  type EnvelopeSincronizacao, type PessoasAtingidas,
 } from "@dc360/shared";
 import type { FotoLocal } from "@dc360/campo";
 import { enderecoDaApi, type Pendencia } from "../../../dados/api";
@@ -36,6 +37,28 @@ import { espaco, fonte, raio, toque } from "../../../ui/tokens";
  * tenta. Tentar e falhar no alto do morro gastaria bateria e ensinaria o
  * agente a desconfiar de uma coleta que está perfeitamente guardada.
  */
+
+/**
+ * O que a pessoa digitou vira número, ou não vira nada.
+ *
+ * Campo vazio devolve `undefined`, que é NÃO CONTADO, e não zero. `Number("")`
+ * é zero em JavaScript, e é assim que um laudo passa a afirmar que ninguém
+ * saiu de casa porque o agente não preencheu o campo.
+ *
+ * Texto que não é número inteiro também vira `undefined`: melhor o servidor
+ * gravar "não contado" do que gravar um número que ninguém digitou.
+ */
+function contagensDoRascunho(pessoas: Record<string, string>): PessoasAtingidas {
+  const saida: Record<string, number> = {};
+  for (const campo of CAMPOS_PESSOAS) {
+    const bruto = (pessoas[campo.chave] ?? "").trim();
+    if (!bruto) continue;
+    const n = Number(bruto);
+    if (!Number.isInteger(n) || n < 0) continue;
+    saida[campo.chave] = n;
+  }
+  return saida as PessoasAtingidas;
+}
 
 export default function TelaDeVistoria() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -198,6 +221,7 @@ export default function TelaDeVistoria() {
           assinaturaChave: null,
           coletadaEm: rascunho.coletadaEm,
           ...(rascunho.observacoes.trim() ? { observacoes: rascunho.observacoes.trim() } : {}),
+          ...contagensDoRascunho(rascunho.pessoas),
         },
       };
 
@@ -306,6 +330,7 @@ export default function TelaDeVistoria() {
         coletadaEm: rascunho.coletadaEm,
         agenteNome: identidade?.nome ?? "não identificado",
         agenteMatricula: identidade?.matricula ?? "não informada",
+        pessoas: contagensDoRascunho(rascunho.pessoas),
       },
       quantasFotos: rascunho.fotos.length,
     });
@@ -585,6 +610,49 @@ export default function TelaDeVistoria() {
           aoConfirmar={(uri) => void alterar({ assinaturaUri: uri })}
           aoLimpar={() => void alterar({ assinaturaUri: null })}
         />
+      </Cartao>
+
+      {/*
+        A contagem de pessoas, e ela vem ANTES das observações.
+
+        Não é ordem de formulário, é ordem de conversa. O agente está na porta
+        com alguém, e é essa pessoa que sabe quantos dormiram fora ontem. As
+        observações ele escreve depois, sozinho, no carro.
+
+        Cada campo pode ficar vazio, e vazio significa NÃO CONTADO. O laudo
+        imprime "não informado", nunca zero: dizer "0 desabrigados" quando
+        ninguém contou é uma afirmação falsa num documento que vai para
+        processo.
+
+        A ajuda fica embaixo de cada campo em vez de num cabeçalho geral,
+        porque a diferença entre desalojado e desabrigado é exatamente o que
+        alguém que nunca trabalhou em Defesa Civil não sabe, e ela precisa
+        estar visível no instante em que o dedo vai digitar.
+      */}
+      <Cartao titulo="Pessoas atingidas">
+        <Txt variante="legenda" discreto>
+          Deixe em branco o que você não contou. Em branco não é zero.
+        </Txt>
+        {CAMPOS_PESSOAS.map((c) => (
+          <View key={c.chave} style={{ gap: espaco.e1 }}>
+            <Txt variante="corpoP" negrito>{c.rotulo}</Txt>
+            <TextInput
+              value={rascunho.pessoas[c.chave] ?? ""}
+              onChangeText={(t) => void alterar({
+                // Só dígito entra. Teclado numérico de Android ainda oferece
+                // vírgula, ponto e sinal, e "2,5 feridos" não existe.
+                pessoas: { ...rascunho.pessoas, [c.chave]: t.replace(/[^0-9]/g, "") },
+              })}
+              style={[campo, { minHeight: toque }]}
+              keyboardType="number-pad"
+              placeholder="não contado"
+              placeholderTextColor={tema.textoDiscreto}
+              maxLength={6}
+              accessibilityLabel={`${c.rotulo}. ${c.ajuda}`}
+            />
+            <Txt variante="legenda" discreto>{c.ajuda}</Txt>
+          </View>
+        ))}
       </Cartao>
 
       <Cartao titulo="Observações do agente">

@@ -93,6 +93,11 @@ function dadosDoLaudo(): DadosDocumento {
       sincronizada_em: "2026-08-20T18:02:00.000Z",
       agente_nome: "Joana Ribeiro",
       agente_matricula: "DC-2291",
+      desalojados: 4,
+      desabrigados: 2,
+      feridos: 0,
+      desaparecidos: null,
+      obitos: 0,
     },
     fotos: [],
     emitidoPor: "Coordenação",
@@ -126,6 +131,16 @@ function dadosDaMinuta(): DadosMinuta {
       coletadaEm: d.vistoria.coletada_em,
       agenteNome: d.vistoria.agente_nome!,
       agenteMatricula: d.vistoria.agente_matricula!,
+      pessoas: {
+        desalojados: 4,
+        desabrigados: 2,
+        feridos: 0,
+        // Não contado no laudo é `null`; na minuta, que vem do Zod, é
+        // `undefined`. Os dois significam a mesma coisa e os dois documentos
+        // precisam imprimir "não informado", nunca zero.
+        desaparecidos: undefined,
+        obitos: 0,
+      },
     },
     quantasFotos: 0,
   };

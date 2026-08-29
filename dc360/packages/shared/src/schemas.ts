@@ -154,6 +154,59 @@ const checklistSchema = z.array(itemChecklistSchema).min(1)
     { message: "O checklist tem item que não existe no catálogo da vistoria." },
   );
 
+/**
+ * Quantas pessoas, e em que situação.
+ *
+ * A distinção entre DESALOJADO e DESABRIGADO é a razão de este bloco existir
+ * separado de um simples "quantos afetados", e ela não é vocabulário:
+ *
+ *   Desalojado   saiu de casa e tem para onde ir (parente, vizinho, aluguel).
+ *   Desabrigado  saiu de casa e NÃO tem. Depende de abrigo público.
+ *
+ * Somar os dois num campo só é o erro clássico, e custa exatamente a
+ * informação que decide se alguém precisa abrir uma escola às dez da noite.
+ *
+ * Todos são opcionais, e nenhum tem valor padrão zero. "Não contei" e "contei
+ * e deu zero" são coisas diferentes: a primeira é vistoria incompleta, a
+ * segunda é casa em que ninguém precisou sair. O laudo imprime as duas de
+ * formas distintas.
+ */
+const contagemDePessoas = z.number().int()
+  .min(0, "A contagem não pode ser negativa")
+  .max(100000, "Confira o número: parece dedo escorregando no teclado")
+  .optional();
+
+export const pessoasAtingidasSchema = z.object({
+  desalojados: contagemDePessoas,
+  desabrigados: contagemDePessoas,
+  feridos: contagemDePessoas,
+  desaparecidos: contagemDePessoas,
+  obitos: contagemDePessoas,
+});
+export type PessoasAtingidas = z.infer<typeof pessoasAtingidasSchema>;
+
+/** O rótulo e a explicação de cada contagem, como aparecem na tela e no laudo. */
+export const CAMPOS_PESSOAS: ReadonlyArray<{
+  chave: keyof PessoasAtingidas;
+  rotulo: string;
+  ajuda: string;
+}> = [
+  {
+    chave: "desalojados",
+    rotulo: "Desalojados",
+    ajuda: "Saíram de casa e têm para onde ir: parente, vizinho, aluguel.",
+  },
+  {
+    chave: "desabrigados",
+    rotulo: "Desabrigados",
+    ajuda: "Saíram de casa e dependem de abrigo público. É este número que "
+      + "decide se o município precisa abrir abrigo hoje.",
+  },
+  { chave: "feridos", rotulo: "Feridos", ajuda: "Precisaram de atendimento de saúde." },
+  { chave: "desaparecidos", rotulo: "Desaparecidos", ajuda: "Não localizados até o fim da vistoria." },
+  { chave: "obitos", rotulo: "Óbitos", ajuda: "Confirmados no local." },
+];
+
 export const vistoriaSchema = z.object({
   checklist: checklistSchema,
   fotos: z.array(evidenciaFotoSchema),
@@ -163,6 +216,17 @@ export const vistoriaSchema = z.object({
   assinaturaChave: z.string().min(1).nullable(),
   coletadaEm: z.string().datetime(),
   observacoes: z.string().max(4000).optional(),
+  /*
+    Achatado dentro da vistoria, e não aninhado num objeto `pessoas`.
+
+    O envelope de sincronização já está em uso por aparelho em campo, e um
+    campo novo OPCIONAL no mesmo nível é compatível com o que já existe: um
+    aplicativo antigo simplesmente não manda, e o servidor grava nulo, que é
+    exatamente o significado de "não contei". Aninhar exigiria o objeto
+    existir, e a fila do aparelho antigo passaria a receber 422 numa coleta
+    que já está guardada no morro.
+  */
+  ...pessoasAtingidasSchema.shape,
 });
 export type Vistoria = z.infer<typeof vistoriaSchema>;
 

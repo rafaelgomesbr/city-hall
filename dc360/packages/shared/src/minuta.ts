@@ -1,5 +1,6 @@
 import { ROTULO_CHECKLIST, ROTULO_SEVERIDADE, ROTULO_TIPO_COBRADE } from "./dominio.js";
 import type { Severidade, TipoCobrade } from "./dominio.js";
+import { CAMPOS_PESSOAS, type PessoasAtingidas } from "./schemas.js";
 
 /**
  * A minuta do laudo, montada no aparelho, sem sinal e sem servidor.
@@ -55,6 +56,8 @@ export type DadosMinuta = {
     coletadaEm: string;
     agenteNome: string;
     agenteMatricula: string;
+    /** Contagem de pessoas. Ausente significa não contado, e não zero. */
+    pessoas: PessoasAtingidas;
   };
   quantasFotos: number;
 };
@@ -150,6 +153,39 @@ export function montarMinuta(d: DadosMinuta): Minuta {
       { rotulo: "Presente no local", valor: v.assinanteNome },
     ],
   });
+
+  /*
+    A contagem de pessoas vem ANTES do checklist, e a ordem é deliberada.
+
+    É a parte que o agente lê em voz alta para conferir com quem está na porta,
+    porque é a única em que a pessoa presente sabe corrigir: ela sabe quantos
+    dormiram fora, o sistema não. O checklist é técnico e ela não tem como
+    contestar.
+
+    Se NADA foi contado, a seção diz isso em vez de imprimir cinco zeros. Um
+    documento afirmando "0 desabrigados" quando ninguém contou é uma afirmação
+    falsa, e é a mesma regra do laudo oficial.
+  */
+  const contadas = CAMPOS_PESSOAS.filter((c) => v.pessoas[c.chave] !== undefined);
+  if (contadas.length === 0) {
+    secoes.push({
+      tipo: "texto",
+      titulo: "Pessoas atingidas",
+      corpo: "Não contadas nesta vistoria. A ausência de contagem não significa "
+        + "ausência de atingidos.",
+    });
+  } else {
+    secoes.push({
+      tipo: "campos",
+      titulo: "Pessoas atingidas",
+      linhas: CAMPOS_PESSOAS.map((c) => ({
+        rotulo: c.rotulo,
+        valor: v.pessoas[c.chave] === undefined
+          ? "não informado"
+          : String(v.pessoas[c.chave]),
+      })),
+    });
+  }
 
   secoes.push({
     tipo: "checklist",

@@ -79,14 +79,22 @@ export async function rotasSincronizacao(
       const inserida = await c.query<{ id: string }>(
         `INSERT INTO vistorias
            (organizacao_id, ocorrencia_id, agente_id, checklist, gps_precisao_metros,
-            assinante_nome, assinatura_chave, observacoes, coletada_em, idempotency_key)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+            assinante_nome, assinatura_chave, observacoes, coletada_em, idempotency_key,
+            desalojados, desabrigados, feridos, desaparecidos, obitos)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
          RETURNING id`,
         [
           quem.organizacaoId, envelope.ocorrenciaId, quem.usuarioId,
           JSON.stringify(v.checklist), v.gpsPrecisaoMetros,
           v.assinanteNome, assinaturaChave, v.observacoes ?? null,
           v.coletadaEm, envelope.idempotencyKey,
+          /*
+            `?? null` e não `?? 0`. Ausente significa NÃO CONTADO, e é uma
+            afirmação diferente de "contei e deu zero". Zero por omissão faria
+            toda coleta de aplicativo antigo declarar que ninguém saiu de casa.
+          */
+          v.desalojados ?? null, v.desabrigados ?? null, v.feridos ?? null,
+          v.desaparecidos ?? null, v.obitos ?? null,
         ],
       );
       const novaId = inserida.rows[0]!.id;

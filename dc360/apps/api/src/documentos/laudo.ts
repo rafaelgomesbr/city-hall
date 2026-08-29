@@ -51,6 +51,12 @@ export type DadosDocumento = {
     sincronizada_em: string;
     agente_nome: string | null;
     agente_matricula: string | null;
+    /** Contagem de pessoas. NULL significa não contado, e não zero. */
+    desalojados: number | null;
+    desabrigados: number | null;
+    feridos: number | null;
+    desaparecidos: number | null;
+    obitos: number | null;
     /**
      * Endereço de leitura do traço de assinatura coletado no aparelho, quando
      * existe. Vazio hoje na prática: a captura mora no aplicativo de campo,
@@ -168,9 +174,55 @@ function blocoVistoria(d: DadosDocumento): string {
   <h2>Checklist técnico</h2>
   <table class="checklist"><tbody>${linhas}</tbody></table>
 
+  ${blocoPessoas(v)}
+
   ${v.observacoes
     ? `<h2>Observações do agente</h2><p class="relato">${escapar(v.observacoes)}</p>`
     : ""}`;
+}
+
+/**
+ * Quantas pessoas, e em que situação.
+ *
+ * Duas decisões que o documento precisa acertar, e as duas são sobre a
+ * diferença entre não saber e saber que é zero:
+ *
+ * 1. Se NADA foi contado, o bloco imprime uma frase dizendo isso, em vez de
+ *    imprimir cinco zeros. Um laudo afirmando "0 desabrigados" quando ninguém
+ *    contou é uma afirmação falsa num documento que vai para processo.
+ * 2. Contagem individual não informada aparece como "não informado", e não
+ *    como zero, pela mesma razão.
+ *
+ * E a distinção que dá nome ao bloco: desalojado saiu de casa e tem para onde
+ * ir; desabrigado depende de abrigo público. O segundo número é o que decide
+ * se o município precisa abrir uma escola hoje à noite, e somá-lo ao primeiro
+ * apagaria exatamente essa informação.
+ */
+function blocoPessoas(v: DadosDocumento["vistoria"]): string {
+  const contagens = [
+    { rotulo: "Desalojados", valor: v.desalojados,
+      nota: "saíram de casa e têm para onde ir" },
+    { rotulo: "Desabrigados", valor: v.desabrigados,
+      nota: "saíram de casa e dependem de abrigo público" },
+    { rotulo: "Feridos", valor: v.feridos, nota: "" },
+    { rotulo: "Desaparecidos", valor: v.desaparecidos, nota: "" },
+    { rotulo: "Óbitos", valor: v.obitos, nota: "" },
+  ];
+
+  if (contagens.every((c) => c.valor === null)) {
+    return `<h2>Pessoas atingidas</h2>
+      <p class="relato">A contagem de pessoas atingidas não foi registrada nesta
+vistoria. A ausência de contagem não significa ausência de atingidos.</p>`;
+  }
+
+  const campos = contagens
+    .map((c) => campo(
+      c.nota ? `${c.rotulo} (${c.nota})` : c.rotulo,
+      c.valor === null ? "não informado" : String(c.valor),
+    ))
+    .join("");
+
+  return `<h2>Pessoas atingidas</h2><div class="campos">${campos}</div>`;
 }
 
 function blocoFotos(d: DadosDocumento): string {

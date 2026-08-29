@@ -679,7 +679,7 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 371 testes em cinco pacotes
+npm test                    # 381 testes em cinco pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 43 testes
 npm run test:api            # 202 testes da API
 npm run test --workspace @dc360/campo   # 46 testes do motor de sincronização

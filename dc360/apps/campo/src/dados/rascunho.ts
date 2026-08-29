@@ -33,6 +33,19 @@ export type Rascunho = {
   /** Caminho local do traço da assinatura, ainda no aparelho. */
   assinaturaUri: string | null;
   observacoes: string;
+  /*
+    Guardadas como TEXTO, e não como número.
+
+    É o que o campo de digitação produz, e converter a cada tecla obrigaria a
+    escolher o que fazer com o estado intermediário: "" e "1" são os dois
+    válidos enquanto a pessoa digita, e `Number("")` é zero. Converter só no
+    envio deixa o rascunho fiel ao que está na tela, inclusive depois de o
+    sistema matar o aplicativo no meio da digitação.
+
+    Campo vazio significa NÃO CONTADO. É diferente de "0", e o laudo imprime
+    os dois de formas distintas.
+  */
+  pessoas: Record<string, string>;
   /** Quando a coleta começou. É a data que vale no laudo, não a do envio. */
   coletadaEm: string;
   atualizadoEm: string;
@@ -111,6 +124,7 @@ export function rascunhoNovo(
     assinanteNome: "",
     assinaturaUri: null,
     observacoes: "",
+    pessoas: {},
     coletadaEm: agora,
     atualizadoEm: agora,
   };
