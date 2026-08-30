@@ -212,6 +212,17 @@ describe("Respostas não vazam estrutura interna", () => {
     }
   });
 
+  it("no-store em toda resposta, para o cache não guardar dado de família", async () => {
+    // O caso concreto é o computador compartilhado da recepção: sem no-store,
+    // o "voltar" do navegador reabre a ocorrência da família anterior a partir
+    // do cache de disco. Vale até para o 404, que não carrega dado, porque a
+    // garantia é do hook global e não pode depender de a rota lembrar.
+    for (const url of ["/ocorrencias", "/saude", "/nao-existe"]) {
+      const r = await app.inject({ method: "GET", url });
+      expect(r.headers["cache-control"], url).toBe("no-store");
+    }
+  });
+
   it("não anuncia qual servidor está rodando", async () => {
     const r = await app.inject({ method: "GET", url: "/saude" });
     // Versão de servidor no cabeçalho é presente para quem procura CVE.

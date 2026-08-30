@@ -24,11 +24,14 @@ function scryptAsync(
  * dependência nova, nenhum módulo nativo para compilar em cada servidor) e é
  * duro contra hardware dedicado por exigir memória, não só CPU.
  *
- * Parâmetros: N = 2^16, r = 8, p = 1, cerca de 64 MB por verificação. É o que
- * o ASVS pede como piso, e é caro o suficiente para tornar um ataque de lista
- * de senhas vazadas inviável contra o banco inteiro.
+ * Parâmetros: N = 2^17, r = 8, p = 1, cerca de 128 MB por verificação. O
+ * OWASP subiu o piso recomendado de 2^16 para 2^17: o comentário antigo dizia
+ * "é o que o ASVS pede como piso" e envelheceu quando a régua externa se
+ * moveu. Senhas já derivadas com N antigo continuam válidas: o formato guarda
+ * o N usado e a verificação lê o N do próprio hash, então só as novas usam o
+ * teto mais alto.
  */
-const N = 65_536;
+const N = 131_072;
 const R = 8;
 const P = 1;
 const BYTES_CHAVE = 32;

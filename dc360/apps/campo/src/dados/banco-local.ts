@@ -1,4 +1,5 @@
 import * as SQLite from "expo-sqlite";
+import { Directory, File, Paths } from "expo-file-system";
 
 /**
  * A conexão única com o banco local do aparelho.
@@ -92,4 +93,46 @@ export function bancoLocal(): Promise<SQLite.SQLiteDatabase> {
 /** Só para teste e para o logout, que apaga a base inteira. */
 export function esquecerConexao(): void {
   conexao = null;
+}
+
+/**
+ * Apaga TODO dado local do aparelho: o banco e as assinaturas em disco.
+ *
+ * Chamado no logout. O aparelho de Defesa Civil de município pequeno é
+ * compartilhado entre turnos, e o `sair()` limpava só as credenciais: o banco
+ * seguia com o JSON integral das ocorrências (endereço, contato do cidadão,
+ * descrição da vulnerabilidade de saúde da família) e os PNGs de assinatura
+ * ficavam no disco para sempre, sem nada que os apagasse. O agente da noite
+ * entrava com a própria conta e via o dado do turno do dia.
+ *
+ * Zera as tabelas em vez de derrubar o arquivo: o esquema fica de pé para o
+ * próximo login, e o WAL não precisa recriar nada. Depois esquece a conexão,
+ * para o próximo `bancoLocal()` reabrir limpo.
+ *
+ * Cada passo é isolado: uma assinatura que não apaga não pode impedir o banco
+ * de ser limpo, e vice-versa. O que falha aqui é registrado, não engolido.
+ */
+export async function apagarDadosLocais(): Promise<void> {
+  try {
+    const db = await bancoLocal();
+    await db.execAsync(
+      "DELETE FROM rascunhos; DELETE FROM pendencias; DELETE FROM marcas;",
+    );
+  } catch (erro) {
+    console.warn("Falha ao limpar o banco local no logout", erro);
+  }
+
+  // Os PNGs de assinatura: assinatura-<timestamp>.png em Paths.document.
+  try {
+    const dir = new Directory(Paths.document);
+    for (const item of dir.list()) {
+      if (item instanceof File && /^assinatura-\d+\.png$/.test(item.name)) {
+        item.delete();
+      }
+    }
+  } catch (erro) {
+    console.warn("Falha ao apagar assinaturas no logout", erro);
+  }
+
+  esquecerConexao();
 }

@@ -122,6 +122,14 @@ describe("O que o esquema recusa", () => {
     expect(pessoasAtingidasSchema.safeParse({ desabrigados: -1 }).success).toBe(false);
   });
 
+  it("prende a fronteira do teto: 100000 passa, 100001 não", () => {
+    // O caso de 42 milhões está longe demais da fronteira: apertar o teto para
+    // 100 passava despercebido. Estes dois prendem o número exato, e é o que o
+    // maxLength=5 do aparelho garante nunca ser ultrapassado na entrada.
+    expect(pessoasAtingidasSchema.safeParse({ desabrigados: 100000 }).success).toBe(true);
+    expect(pessoasAtingidasSchema.safeParse({ desabrigados: 100001 }).success).toBe(false);
+  });
+
   it("recusa número que só pode ser dedo escorregando", () => {
     // Teclado numérico de celular, no escuro, com luva. Um laudo dizendo
     // "42000000 desabrigados" num município de vinte mil sai impresso e

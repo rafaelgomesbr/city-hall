@@ -77,19 +77,37 @@ export async function registrarEmissao(
  * provar, e um botão que interdita sem gerar papel seria o caminho mais curto
  * para exatamente isso.
  *
- * `interditada_em IS NULL` no WHERE torna a operação idempotente pelo lado
- * certo. Reimprimir o termo é rotina (o primeiro papel molhou, o processo pede
- * segunda via), e a segunda impressão NÃO pode reescrever a data do ato: a
- * interdição aconteceu quando aconteceu. A trilha registra cada emissão; a
- * data da interdição é a da primeira.
+ * O WHERE cobre TRÊS estados, e a distinção entre eles é a correção de um
+ * defeito que a auditoria achou: depois de um levantamento, o imóvel nunca
+ * mais podia ser interditado, e o termo novo saía sem efeito.
+ *
+ *   1. Nunca interditada (`interditada_em IS NULL`): interdita.
+ *   2. Interditada e AINDA não levantada: NÃO toca. Reimprimir o termo é
+ *      rotina (o papel molhou, o processo pede segunda via) e a segunda
+ *      impressão não pode reescrever a data: a interdição aconteceu quando
+ *      aconteceu.
+ *   3. Interditada e JÁ levantada (`desinterditada_em IS NOT NULL`, o risco
+ *      voltou e há vistoria nova): reinterdita, com data nova, e limpa o
+ *      levantamento anterior do ESTADO.
+ *
+ * Limpar o levantamento não apaga história: cada emissão e cada desinterdição
+ * são eventos na trilha, que é append-only. O estado guarda o agora; a trilha
+ * guarda o que aconteceu, inclusive a data do levantamento que saiu daqui. Sem
+ * isto, o CHECK `desinterdicao_nao_antecede_interdicao` da migração 014
+ * travaria a reinterdição para sempre, e a própria mensagem de erro da rota
+ * ("registre uma vistoria nova e emita novo termo") apontava para um caminho
+ * que não funcionava.
  */
 export async function marcarInterditada(
   c: Consulta, quem: Identidade, ocorrenciaId: string,
 ): Promise<void> {
   await c.query(
     `UPDATE ocorrencias
-        SET interditada_em = now(), interditada_por = $1
-      WHERE id = $2 AND interditada_em IS NULL`,
+        SET interditada_em = now(), interditada_por = $1,
+            desinterditada_em = NULL, desinterditada_por = NULL,
+            desinterdicao_motivo = NULL
+      WHERE id = $2
+        AND (interditada_em IS NULL OR desinterditada_em IS NOT NULL)`,
     [quem.usuarioId, ocorrenciaId],
   );
 }

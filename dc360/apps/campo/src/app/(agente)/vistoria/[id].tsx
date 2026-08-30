@@ -647,7 +647,7 @@ export default function TelaDeVistoria() {
               keyboardType="number-pad"
               placeholder="não contado"
               placeholderTextColor={tema.textoDiscreto}
-              maxLength={6}
+              maxLength={5}
               accessibilityLabel={`${c.rotulo}. ${c.ajuda}`}
             />
             <Txt variante="legenda" discreto>{c.ajuda}</Txt>

@@ -104,6 +104,31 @@ async function comVistoria(
   return { id, protocolo };
 }
 
+/** Sincroniza uma nova vistoria na mesma ocorrência: é o que a re-vistoria faz. */
+async function novaVistoria(ocorrenciaId: string): Promise<void> {
+  const coletadaEm = new Date().toISOString();
+  const s = await app.inject({
+    method: "POST", url: "/sincronizacao/vistoria", headers: com(tokenAgente),
+    payload: {
+      idempotencyKey: crypto.randomUUID(),
+      ocorrenciaId,
+      coletadaEm,
+      vistoria: {
+        checklist: [
+          { chave: "risco_iminente", resposta: true },
+          { chave: "evacuacao_necessaria", resposta: true },
+          { chave: "interdicao_indicada", resposta: true },
+          { chave: "acionar_outro_orgao", resposta: false },
+        ],
+        fotos: [], gpsPrecisaoMetros: 6.2,
+        assinanteNome: "Marilda Souza Prado", assinaturaChave: null,
+        coletadaEm, observacoes: "Re-vistoria: risco voltou.",
+      },
+    },
+  });
+  if (s.statusCode !== 201) throw new Error(`re-vistoria falhou: ${s.body}`);
+}
+
 /** Emite o termo, que é o ato que interdita. */
 async function interditar(id: string): Promise<void> {
   const r = await app.inject({
@@ -316,6 +341,64 @@ describe("O município vizinho não alcança", () => {
 
     expect(daqui.json().itens.some((i: { id: string }) => i.id === alvo.id)).toBe(true);
     expect(dela.json().itens.some((i: { id: string }) => i.id === alvo.id)).toBe(false);
+  });
+});
+
+describe("Reinterdição: o risco volta", () => {
+  /*
+    O defeito que a auditoria achou, em dois: depois de levantada, a interdição
+    nunca mais podia ser refeita (`marcarInterditada` tinha `WHERE
+    interditada_em IS NULL`, que nunca casava de novo), e o CHECK bloqueava a
+    saída manual. O termo novo saía com brasão e o imóvel não voltava para a
+    lista. Chuva de novembro sobre casa interditada em agosto: a família recebe
+    o papel e o painel diz que está tudo liberado.
+  */
+  const MOTIVO =
+    "Contenção do talude executada e conferida em nova vistoria técnica.";
+
+  it("volta para a lista de interditados, com data nova", async () => {
+    const alvo = await comVistoria("Rua do Ciclo, 100");
+    await interditar(alvo.id);
+    const primeira = (await interditados(tokenCoordenador)).json()
+      .itens.find((i: { id: string }) => i.id === alvo.id).interditada_em;
+
+    // Levanta.
+    const lev = await app.inject({
+      method: "POST", url: `/ocorrencias/${alvo.id}/desinterdicao`,
+      headers: com(tokenCoordenador), payload: { motivo: MOTIVO },
+    });
+    expect(lev.statusCode).toBe(200);
+    expect((await interditados(tokenCoordenador)).json()
+      .itens.some((i: { id: string }) => i.id === alvo.id)).toBe(false);
+
+    // O risco volta: nova vistoria, novo termo.
+    await new Promise((r) => setTimeout(r, 20));
+    await novaVistoria(alvo.id);
+    await interditar(alvo.id);
+
+    const linha = (await interditados(tokenCoordenador)).json()
+      .itens.find((i: { id: string }) => i.id === alvo.id);
+    expect(linha, "o imóvel não voltou para a lista de interditados").toBeDefined();
+    expect(new Date(linha.interditada_em).getTime())
+      .toBeGreaterThan(new Date(primeira).getTime());
+  });
+
+  it("depois de reinterditar, pode levantar de novo", async () => {
+    const alvo = await comVistoria("Rua do Ciclo, 200");
+    await interditar(alvo.id);
+    await app.inject({
+      method: "POST", url: `/ocorrencias/${alvo.id}/desinterdicao`,
+      headers: com(tokenCoordenador), payload: { motivo: MOTIVO },
+    });
+    await novaVistoria(alvo.id);
+    await interditar(alvo.id);
+
+    // A segunda desinterdição precisa ser aceita: o ciclo é reaberto de verdade.
+    const segunda = await app.inject({
+      method: "POST", url: `/ocorrencias/${alvo.id}/desinterdicao`,
+      headers: com(tokenCoordenador), payload: { motivo: MOTIVO },
+    });
+    expect(segunda.statusCode, segunda.body).toBe(200);
   });
 });
 

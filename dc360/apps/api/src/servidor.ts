@@ -170,6 +170,25 @@ export async function construirServidor(
     crossOriginResourcePolicy: { policy: "same-site" },
   });
 
+  /*
+    `no-store` em TODA resposta, por hook global.
+
+    A API não serve nada cacheável de propósito: fora `/saude`, toda resposta
+    carrega dado de município (nome, endereço, contato e vulnerabilidade de
+    família em risco, o laudo inteiro em HTML). O caso concreto é o computador
+    compartilhado da recepção: sem isto, o botão "voltar" do navegador reabre a
+    ocorrência da família anterior a partir do cache de disco.
+
+    Global, e não rota a rota, de propósito: foi marcando caso a caso que as
+    colunas novas escaparam da validação de saída. Assim, rota nova nasce
+    protegida. A foto de vistoria em produção vem do armazenamento externo e
+    não passa por aqui; no caminho local de desenvolvimento, deixar de cachear
+    a foto por 60s é o lado seguro da troca.
+  */
+  app.addHook("onSend", async (_req, resposta) => {
+    resposta.header("cache-control", "no-store");
+  });
+
   await app.register(cors, {
     origin: config.origens,
     credentials: true,

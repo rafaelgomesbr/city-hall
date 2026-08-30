@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as SecureStore from "expo-secure-store";
 import { entrar as entrarNaApi, renovar, sair as sairDaApi, type Credenciais, type Identidade } from "./api";
+import { apagarDadosLocais } from "./banco-local";
 import { criarObtentorDeToken } from "./token";
 
 /**
@@ -136,6 +137,13 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
     await Promise.all([
       guardar(CHAVE_CREDENCIAIS, null),
       guardar(CHAVE_IDENTIDADE, null),
+      /*
+        Apaga o dado da família do aparelho. O aparelho é compartilhado entre
+        turnos, e sem isto o banco local e as assinaturas do turno anterior
+        ficam para o próximo agente. É a parte do logout que protege quem está
+        no laudo, não quem está segurando o telefone.
+      */
+      apagarDadosLocais(),
     ]);
     if (atual) await sairDaApi(atual.renovacao);
   }, []);
