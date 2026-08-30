@@ -1,11 +1,14 @@
 # =====================================================================
 # Imagem da API.
 #
-# NÃO FOI CONSTRUÍDA NEM EXECUTADA. O ambiente onde este arquivo foi
-# escrito não tem Docker, então ele é uma proposta revisável e não uma
-# receita comprovada. Antes do primeiro deploy, construir e subir uma vez.
+# NÃO FOI CONSTRUÍDA NEM EXECUTADA AQUI: a máquina não tem Docker. A partida
+# da API contra Postgres real foi provada À MÃO, contra um PostgreSQL 18
+# nativo (sem contêiner), e é isso que garante que o produto sobe; a
+# construção da imagem em si é conferida pelo job `implantavel` da integração
+# contínua, onde há Docker. Construir e subir uma vez antes do primeiro deploy
+# continua obrigatório.
 #
-# Duas escolhas que valem explicação:
+# Três escolhas que valem explicação:
 #
 # 1. A imagem NÃO aplica migrações ao subir. Dois contêineres subindo ao
 #    mesmo tempo migrariam em paralelo, e o segundo falharia no meio. A
@@ -13,6 +16,17 @@
 # 2. Chromium vem instalado por causa da geração de PDF. Ele engorda a
 #    imagem em algumas centenas de megabytes; se o PDF virar job separado,
 #    esta imagem perde o navegador e o job ganha.
+# 3. DECISÃO PENDENTE sobre o PDF na imagem, e ela é do Rafa: `playwright` é
+#    devDependency e a etapa `dependencias` roda `--omit=dev`, então ele NÃO
+#    entra na imagem. O import dinâmico em pdf.ts é capturado e a rota de PDF
+#    responde 503 "use a versão para impressão" (graciosamente), mas o
+#    Chromium instalado acima fica de peso morto. As duas saídas coerentes:
+#    (a) PDF na imagem: mover playwright para `dependencies` e setar
+#        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 também na etapa `dependencias`;
+#    (b) sem PDF na imagem: remover a instalação do Chromium abaixo e assumir
+#        o 503 (o laudo HTML já tem botão de imprimir, e o levantamento prevê
+#        o PDF como job assíncrono quando o volume crescer).
+#    Enquanto não decidido, fica como está: 503 gracioso, Chromium ocioso.
 # =====================================================================
 FROM node:22-bookworm-slim AS base
 ENV NODE_ENV=production

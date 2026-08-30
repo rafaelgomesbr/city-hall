@@ -1,25 +1,37 @@
 # =====================================================================
-# Ambiente completo para desenvolvimento e para conferir um deploy.
+# Ambiente local: sobe banco, aplica migrações, cria os papéis e serve a API.
 #
-# NÃO FOI EXECUTADO: o ambiente onde este arquivo foi escrito não tem
-# Docker. É proposta revisável, não receita comprovada.
+# NÃO PÔDE SER EXECUTADO onde foi escrito: a máquina não tem Docker. As
+# correções abaixo vêm da auditoria (NODE_ENV, HOST, papéis) e da partida
+# provada À MÃO contra um PostgreSQL 18 real, sem Docker, que é o que garante
+# que a API sobe. A conferência no contêiner é o job `implantavel` da
+# integração contínua, que roda onde há Docker. Construir e subir uma vez
+# antes do primeiro deploy continua sendo obrigatório.
 #
-# O serviço `migrar` roda uma vez, antes da API, e a API só sobe depois
-# que ele termina com sucesso. É isso que evita dois processos migrando
-# em paralelo num deploy com mais de uma réplica.
+# ESTE COMPOSE É PARA DESENVOLVER E PARA CONFERIR QUE A IMAGEM SOBE, não para
+# produção. Produção usa Postgres gerenciado (com backup e PITR) e um proxy
+# reverso terminando TLS na frente da API. Ver o README, seção Implantação.
+#
+# O modelo de três papéis do README está reproduzido aqui: `banco` cria o
+# superusuário local (papel de setup, com CREATEROLE e BYPASSRLS); `migrar`
+# aplica o esquema com ele; `papeis` cria o login de aplicação e o torna
+# membro de dc360_app; e a `api` conecta com esse login restrito, nunca com o
+# de setup.
 # =====================================================================
 services:
   banco:
     image: postgis/postgis:16-3.4
     environment:
       POSTGRES_DB: dc360
-      POSTGRES_USER: dc360_dono
-      # Só para o ambiente local. Em produção vem do gerenciador de segredos.
+      # O usuário inicial do POSTGRES_USER é superusuário: é o papel de SETUP
+      # (tem CREATEROLE e BYPASSRLS, que a migração 001 e as funções de
+      # autenticação SECURITY DEFINER exigem). Só para o ambiente local.
+      POSTGRES_USER: dc360_setup
       POSTGRES_PASSWORD: senha-local-de-desenvolvimento
     ports: ["5432:5432"]
     volumes: ["dados-do-banco:/var/lib/postgresql/data"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dc360_dono -d dc360"]
+      test: ["CMD-SHELL", "pg_isready -U dc360_setup -d dc360"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -28,34 +40,57 @@ services:
     build: { context: ., dockerfile: Dockerfile }
     command: ["node", "db/dist/cli.js"]
     environment:
-      DATABASE_URL: postgres://dc360_dono:senha-local-de-desenvolvimento@banco:5432/dc360
+      # Migra com o papel de setup: a migração 001 cria o papel dc360_app.
+      DATABASE_URL: postgres://dc360_setup:senha-local-de-desenvolvimento@banco:5432/dc360
     depends_on:
       banco: { condition: service_healthy }
+    restart: "no"
+
+  # Cria o login de aplicação e o torna membro de dc360_app COM SET. Roda
+  # depois do migrar (o papel dc360_app nasce lá) e antes da API. Idempotente:
+  # subir de novo não falha se o papel já existir.
+  papeis:
+    image: postgis/postgis:16-3.4
+    entrypoint: ["bash", "-c"]
+    command:
+      - |
+        export PGPASSWORD=senha-local-de-desenvolvimento
+        psql -h banco -U dc360_setup -d dc360 -v ON_ERROR_STOP=1 -c "
+          DO \$\$ BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='dc360_api') THEN
+              CREATE ROLE dc360_api LOGIN PASSWORD 'senha-app-local' NOSUPERUSER;
+            END IF;
+          END \$\$;
+          GRANT dc360_app TO dc360_api WITH SET TRUE;
+        "
+    depends_on:
+      migrar: { condition: service_completed_successfully }
     restart: "no"
 
   api:
     build: { context: ., dockerfile: Dockerfile }
     environment:
-      NODE_ENV: production
-      DATABASE_URL: postgres://dc360_dono:senha-local-de-desenvolvimento@banco:5432/dc360
-      # Em produção estes três vêm do gerenciador de segredos, nunca do arquivo.
+      # development, e não production: este compose não tem TLS nem S3, e o
+      # config.ts recusa produção sem HTTPS e sem armazenamento. Produção sobe
+      # em PaaS gerenciada, não aqui.
+      NODE_ENV: development
+      # 0.0.0.0, senão a API escuta só o loopback DENTRO do contêiner e a porta
+      # publicada não atende ninguém, com o healthcheck mentindo que está de pé.
+      HOST: 0.0.0.0
+      # A API conecta com o papel de APLICAÇÃO, restrito, nunca com o de setup.
+      DATABASE_URL: postgres://dc360_api:senha-app-local@banco:5432/dc360
       JWT_SEGREDO: troque-por-pelo-menos-trinta-e-dois-bytes-reais
-      ORIGENS_PERMITIDAS: http://localhost:5173
-      URL_PUBLICA: http://localhost:3333
-      URL_PAINEL: http://localhost:5173
-      S3_ENDPOINT: ${S3_ENDPOINT:-}
-      S3_BALDE: ${S3_BALDE:-}
-      S3_CHAVE_ID: ${S3_CHAVE_ID:-}
-      S3_CHAVE_SECRETA: ${S3_CHAVE_SECRETA:-}
     ports: ["3333:3333"]
     depends_on:
       banco: { condition: service_healthy }
       migrar: { condition: service_completed_successfully }
+      papeis: { condition: service_completed_successfully }
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3333/saude').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
       interval: 10s
       timeout: 5s
       retries: 6
+    restart: unless-stopped
 
 volumes:
   dados-do-banco:

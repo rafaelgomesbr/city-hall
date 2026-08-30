@@ -611,17 +611,45 @@ modo API, basta reiniciar o servidor: o banco efêmero nasce semeado de novo.
 Na ordem, e nenhum passo é opcional:
 
 ```bash
+# 0. Papeis do banco. Provado contra PostgreSQL 18 real; sem isto a API sobe e
+#    o login responde "credenciais invalidas" sem erro no log, e o diagnostico
+#    leva horas. Sao TRES competencias, e a aplicacao usa a terceira:
+#
+#    - QUEM MIGRA E DONO DAS FUNCOES DE AUTENTICACAO: precisa de CREATEROLE (a
+#      migracao 001 cria o papel dc360_app) e de BYPASSRLS. O BYPASSRLS nao e
+#      luxo: credenciais_para_login e sessao_por_token sao SECURITY DEFINER e
+#      rodam como o dono; a autenticacao e cross-tenant por natureza (nao se
+#      sabe a organizacao antes de autenticar), e com RLS FORCADA o dono
+#      tambem e filtrado pelas policies. Sem BYPASSRLS a funcao de login
+#      devolve zero linhas.
+#    - QUEM SERVE (a aplicacao): um login proprio, membro de dc360_app COM SET,
+#      sem superusuario, sem BYPASSRLS, nao dono. E este que vai na DATABASE_URL
+#      da API.
+#
+#    Em Postgres gerenciado (Neon, Supabase, RDS) o papel administrativo que o
+#    provedor entrega ja tem CREATEROLE e BYPASSRLS: use-o como dono/setup.
+#
+#    CREATE ROLE dc360_setup LOGIN PASSWORD '...' CREATEROLE BYPASSRLS NOSUPERUSER;
+#    CREATE ROLE dc360_api   LOGIN PASSWORD '...' NOSUPERUSER;
+#    -- como dono do banco/schema:
+#    ALTER SCHEMA public OWNER TO dc360_setup;
+#    -- depois de migrar (passo 2), o papel dc360_app ja existe:
+#    GRANT dc360_app TO dc360_api WITH SET TRUE;
+
 # 1. Ambiente. O modelo lista tudo, diz o que é obrigatório em produção e por quê.
 cp apps/api/.env.example apps/api/.env && $EDITOR apps/api/.env
 
-# 2. Esquema.
-DATABASE_URL=postgres://... npm run migrar
+# 2. Esquema, com o papel de SETUP (CREATEROLE + BYPASSRLS).
+DATABASE_URL=postgres://dc360_setup:...@host/dc360 npm run migrar
 
-# 3. O município e o primeiro administrador. Anote a senha que ele imprime:
-#    ela não é guardada em texto claro e não aparece de novo.
-DATABASE_URL=postgres://... npm run provisionar --   --municipio "Serra Alta" --uf MG   --nome "Rita Lopes" --matricula SA-1 --email rita@serraalta.mg.gov.br
+# 3. O município e o primeiro administrador, com o papel de SETUP (o provisionar
+#    insere em organizacoes, que so o BYPASSRLS alcanca). Anote a senha que ele
+#    imprime: ela não é guardada em texto claro e não aparece de novo.
+DATABASE_URL=postgres://dc360_setup:...@host/dc360 npm run provisionar --   --municipio "Serra Alta" --uf MG   --nome "Rita Lopes" --matricula SA-1 --email rita@serraalta.mg.gov.br
 
-# 4. Suba a API e o painel.
+# 4. Suba a API e o painel. A DATABASE_URL da API e a do papel de APLICACAO
+#    (dc360_api), nunca a do setup: a API nao pode ter CREATEROLE nem BYPASSRLS.
+#    DATABASE_URL=postgres://dc360_api:...@host/dc360
 ```
 
 O que a pessoa faz na primeira entrada, e é o passo que se esquece: abrir

@@ -240,3 +240,91 @@ jobs:
 
       - name: Dependência com vulnerabilidade conhecida
         run: npm audit --audit-level=low
+
+  implantavel:
+    # O job que faltava, e o que os auditores disseram valer mais que qualquer
+    # outro se fosse um só: prova que a API SOBE contra Postgres real, com o
+    # modelo de tres papeis, e responde /saude com 200. Nenhum dos 393 testes
+    # pega isto, porque todos rodam em PGlite como superusuario, onde permissao
+    # nunca e negada. Foi assim que "a API nao sobe contra Postgres nenhum"
+    # sobreviveu a suite inteira ate a auditoria achar a mao.
+    name: A API sobe contra Postgres real
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dc360
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dc360/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Construir shared, db e api
+        run: |
+          npm run build --workspace @dc360/shared
+          npm run build --workspace @dc360/db
+          npm run build --workspace @dc360/api
+
+      # Os TRES papeis do README, provados: setup (CREATEROLE + BYPASSRLS)
+      # cria e migra; a aplicacao conecta com um login restrito, membro de
+      # dc360_app, que nao e superusuario nem dono.
+      - name: Provisionar papeis e banco
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: |
+          psql -c "CREATE DATABASE dc360;"
+          psql -d dc360 -c "CREATE ROLE dc360_setup LOGIN PASSWORD 'setup' CREATEROLE BYPASSRLS NOSUPERUSER;"
+          psql -d dc360 -c "ALTER SCHEMA public OWNER TO dc360_setup;"
+          psql -d dc360 -c "GRANT ALL ON SCHEMA public TO dc360_setup;"
+          psql -d dc360 -c "CREATE ROLE dc360_api LOGIN PASSWORD 'api' NOSUPERUSER;"
+
+      - name: Migrar com o papel de setup
+        run: DATABASE_URL=postgres://dc360_setup:setup@localhost:5432/dc360 npm run migrar
+      - name: Migrar de novo e provar idempotencia
+        run: DATABASE_URL=postgres://dc360_setup:setup@localhost:5432/dc360 npm run migrar -- --conferir
+
+      - name: Conceder a associacao ao login de aplicacao
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: psql -d dc360 -c "GRANT dc360_app TO dc360_api WITH SET TRUE;"
+
+      # Sobe a API com o papel de APLICACAO (restrito) e prova /saude=200.
+      # Se o CREATE TABLE voltar ao caminho de leitura, ou o papel perder a
+      # associacao, este passo falha aqui, e nao em producao.
+      - name: A API sobe como aplicacao e responde /saude
+        env:
+          NODE_ENV: development
+          HOST: 127.0.0.1
+          PORT: "3333"
+          DATABASE_URL: postgres://dc360_api:api@localhost:5432/dc360
+          JWT_SEGREDO: segredo-de-ci-com-pelo-menos-trinta-e-dois-bytes
+        run: |
+          node apps/api/dist/index.js &
+          API_PID=$!
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:3333/saude > /tmp/saude.json; then break; fi
+            sleep 1
+          done
+          cat /tmp/saude.json
+          node -e "const s=require('/tmp/saude.json'); process.exit(s.status==='ok'&&s.banco==='ok'?0:1)"
+          kill $API_PID

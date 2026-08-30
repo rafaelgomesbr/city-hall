@@ -1,0 +1,21 @@
+# O node_modules da maquina de build (Windows) tem binarios nativos que nao
+# rodam no Linux da imagem. O Dockerfile roda `npm ci` dentro da imagem; o de
+# fora nunca deve entrar. Sem este arquivo, COPY packages/db leva o
+# node_modules do host junto, e a imagem quebra em runtime de forma dificil de
+# diagnosticar.
+node_modules
+**/node_modules
+**/dist
+**/dist-api
+**/.expo
+**/.turbo
+*.tsbuildinfo
+.git
+.github
+apps/web
+apps/campo
+mockup
+**/test
+**/*.test.ts
+**/.env
+**/.env.*

@@ -164,11 +164,31 @@ async function permitirLeituraDoRegistro(bd: ExecutorSql): Promise<void> {
   `);
 }
 
-/** O que já está aplicado, para diagnóstico e para a rota de saúde. */
+/**
+ * O que já está aplicado, para diagnóstico e para a rota de saúde.
+ *
+ * NÃO cria a tabela. É este o caminho que a API roda na partida, como o papel
+ * de aplicação (`dc360_app`), que tem USAGE no schema e não tem CREATE. Um
+ * `CREATE TABLE IF NOT EXISTS` aqui falhava com "permission denied for schema
+ * public": o Postgres confere o privilégio de CREATE ANTES de resolver o
+ * IF NOT EXISTS, então a tabela já existir não salvava. A API morria na
+ * partida e `/saude` respondia 503 para sempre.
+ *
+ * `to_regclass` devolve o OID da tabela, ou NULL se ela não existe, sem exigir
+ * privilégio nenhum além de poder enxergar o schema. Tabela ausente significa
+ * "nada aplicado ainda", que é a resposta certa num banco recém-criado. Criar
+ * a tabela é responsabilidade de `aplicarMigracoes`, rodado pelo dono no
+ * deploy, e de mais ninguém.
+ */
 export async function migracoesAplicadas(bd: ExecutorSql): Promise<
   Array<{ versao: string; aplicada_em: string }>
 > {
-  await garantirTabela(bd);
+  const existe = await bd.query<{ reg: string | null }>(
+    "SELECT to_regclass($1) AS reg",
+    [TABELA],
+  );
+  if (!existe.rows[0]?.reg) return [];
+
   const r = await bd.query<{ versao: string; aplicada_em: string }>(
     `SELECT versao, aplicada_em FROM ${TABELA} ORDER BY versao`,
   );

@@ -36,27 +36,27 @@ INSERT INTO equipes (id, organizacao_id, nome, especialidade) VALUES
 INSERT INTO usuarios (id, organizacao_id, nome, matricula, email, papel, equipe_id, senha_hash) VALUES
   ('11111111-1111-4111-8111-0000000000d1', '11111111-1111-4111-8111-000000000001',
    'Helena Vasques Coutinho', 'SA-1042', 'helena.coutinho@serraalta.exemplo.gov.br', 'coordenador', NULL,
-   'scrypt$65536$8$1$QV3wEJKmnMIZMUVfEoAEbA$IvJ9l1OPbhawvM0cuoJzsoIsbqQP7E7XeczItgsqFCA'),
+   'scrypt$131072$8$1$56BVGGGziTxmINg0pEIjxw$F-aIq495xKVd9OKClsyKAFxxLHj26KkyKIWFMFAnBwk'),
   ('11111111-1111-4111-8111-0000000000d2', '11111111-1111-4111-8111-000000000001',
    'Jonas Ferreira', 'SA-2211', 'jonas.ferreira@serraalta.exemplo.gov.br', 'operador', NULL,
-   'scrypt$65536$8$1$QV3wEJKmnMIZMUVfEoAEbA$IvJ9l1OPbhawvM0cuoJzsoIsbqQP7E7XeczItgsqFCA'),
+   'scrypt$131072$8$1$56BVGGGziTxmINg0pEIjxw$F-aIq495xKVd9OKClsyKAFxxLHj26KkyKIWFMFAnBwk'),
   ('11111111-1111-4111-8111-0000000000d3', '11111111-1111-4111-8111-000000000001',
    'Diego Nakamura Alves', 'SA-3390', 'diego.alves@serraalta.exemplo.gov.br', 'agente_campo',
    '11111111-1111-4111-8111-0000000000e1',
-   'scrypt$65536$8$1$QV3wEJKmnMIZMUVfEoAEbA$IvJ9l1OPbhawvM0cuoJzsoIsbqQP7E7XeczItgsqFCA'),
+   'scrypt$131072$8$1$56BVGGGziTxmINg0pEIjxw$F-aIq495xKVd9OKClsyKAFxxLHj26KkyKIWFMFAnBwk'),
   ('11111111-1111-4111-8111-0000000000d4', '11111111-1111-4111-8111-000000000001',
    'Rita Sampaio Lopes', 'SA-3391', 'rita.lopes@serraalta.exemplo.gov.br', 'administrador', NULL,
-   'scrypt$65536$8$1$QV3wEJKmnMIZMUVfEoAEbA$IvJ9l1OPbhawvM0cuoJzsoIsbqQP7E7XeczItgsqFCA'),
+   'scrypt$131072$8$1$56BVGGGziTxmINg0pEIjxw$F-aIq495xKVd9OKClsyKAFxxLHj26KkyKIWFMFAnBwk'),
   ('22222222-2222-4222-8222-0000000000d1', '22222222-2222-4222-8222-000000000002',
    'Aurélio Prates Machado', 'VF-0101', 'aurelio.machado@valefundo.exemplo.gov.br', 'coordenador', NULL,
-   'scrypt$65536$8$1$QV3wEJKmnMIZMUVfEoAEbA$IvJ9l1OPbhawvM0cuoJzsoIsbqQP7E7XeczItgsqFCA'),
+   'scrypt$131072$8$1$56BVGGGziTxmINg0pEIjxw$F-aIq495xKVd9OKClsyKAFxxLHj26KkyKIWFMFAnBwk'),
   ('22222222-2222-4222-8222-0000000000d2', '22222222-2222-4222-8222-000000000002',
    'Simone Vieira da Paz', 'VF-0102', 'simone.paz@valefundo.exemplo.gov.br', 'operador', NULL,
-   'scrypt$65536$8$1$QV3wEJKmnMIZMUVfEoAEbA$IvJ9l1OPbhawvM0cuoJzsoIsbqQP7E7XeczItgsqFCA'),
+   'scrypt$131072$8$1$56BVGGGziTxmINg0pEIjxw$F-aIq495xKVd9OKClsyKAFxxLHj26KkyKIWFMFAnBwk'),
   ('22222222-2222-4222-8222-0000000000d3', '22222222-2222-4222-8222-000000000002',
    'Tarcísio Bueno Ramos', 'VF-0103', 'tarcisio.ramos@valefundo.exemplo.gov.br', 'agente_campo',
    '22222222-2222-4222-8222-0000000000e1',
-   'scrypt$65536$8$1$QV3wEJKmnMIZMUVfEoAEbA$IvJ9l1OPbhawvM0cuoJzsoIsbqQP7E7XeczItgsqFCA');
+   'scrypt$131072$8$1$56BVGGGziTxmINg0pEIjxw$F-aIq495xKVd9OKClsyKAFxxLHj26KkyKIWFMFAnBwk');
 
 -- ---------------------------------------------------------------------
 -- Ocorrências. As datas são relativas a agora, então a fila sempre parece
