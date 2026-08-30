@@ -425,7 +425,7 @@ export function Ocorrencia() {
               interditadaEm={o.interditada_em!}
               onEnviar={(motivo) => executar(
                 () => levantarInterdicao(sessao, o.id, motivo),
-                "Interdição levantada. Emita o termo de desinterdição para o morador.",
+                "Interdição levantada. O termo de desinterdição já pode ser emitido em Documentos oficiais.",
               )}
             />
           )}
@@ -502,7 +502,9 @@ export function Ocorrencia() {
             </p>
           </Cartao>
 
-          {vistoria && podeDocumento && <CartaoDocumentos ocorrenciaId={o.id} />}
+          {vistoria && podeDocumento && (
+            <CartaoDocumentos ocorrenciaId={o.id} desinterditada={Boolean(o.desinterditada_em)} />
+          )}
 
           <Cartao titulo="Ver também">
             <Link className="botao botao--secundario" to="/ocorrencias" style={{ width: "100%" }}>
@@ -775,13 +777,17 @@ function BlocoEncerramento({ onEnviar, gravando }: { onEnviar: (e: { motivo: str
  * anexado ao processo, e montar em três lugares produziria três documentos
  * diferentes com o mesmo número de protocolo.
  */
-function CartaoDocumentos({ ocorrenciaId }: { ocorrenciaId: string }) {
+function CartaoDocumentos(
+  { ocorrenciaId, desinterditada }: { ocorrenciaId: string; desinterditada: boolean },
+) {
   const sessao = useSessaoObrigatoria();
   const [abrindo, setAbrindo] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   async function abrir(
-    tipo: "laudo" | "termo-de-interdicao" | "laudo.pdf" | "termo-de-interdicao.pdf",
+    tipo:
+      | "laudo" | "termo-de-interdicao" | "termo-de-desinterdicao"
+      | "laudo.pdf" | "termo-de-interdicao.pdf",
   ) {
     setErro(null);
     setAbrindo(tipo);
@@ -814,6 +820,19 @@ function CartaoDocumentos({ ocorrenciaId }: { ocorrenciaId: string }) {
             <IconeDocumento />
             {abrindo === "termo-de-interdicao" ? "Gerando" : "Termo de interdição"}
           </button>
+          {/*
+            O termo de desinterdição só aparece quando a interdição foi
+            levantada. Antes disso não há o que emitir, e o botão seria uma
+            promessa vazia igual à que a mensagem de sucesso fazia.
+          */}
+          {desinterditada && (
+            <button type="button" className="botao botao--secundario"
+                    disabled={abrindo !== null}
+                    onClick={() => void abrir("termo-de-desinterdicao")}>
+              <IconeDocumento />
+              {abrindo === "termo-de-desinterdicao" ? "Gerando" : "Termo de desinterdição"}
+            </button>
+          )}
 
           <p style={{
             margin: "var(--ds-sp-2) 0 0", fontSize: "var(--ds-fs-caption)",

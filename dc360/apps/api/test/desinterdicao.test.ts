@@ -318,3 +318,70 @@ describe("O município vizinho não alcança", () => {
     expect(dela.json().itens.some((i: { id: string }) => i.id === alvo.id)).toBe(false);
   });
 });
+
+describe("O termo de desinterdição", () => {
+  const MOTIVO_LONGO =
+    "Contenção do talude executada pela Secretaria de Obras e conferida em nova "
+    + "vistoria técnica. Sem trincas ativas.";
+
+  async function levantar(id: string, token = tokenCoordenador) {
+    return app.inject({
+      method: "POST", url: `/ocorrencias/${id}/desinterdicao`,
+      headers: com(token), payload: { motivo: MOTIVO_LONGO },
+    });
+  }
+
+  it("sai como HTML depois do levantamento, com o motivo e as duas datas", async () => {
+    const alvo = await comVistoria("Rua do Termo, 1");
+    await interditar(alvo.id);
+    expect((await levantar(alvo.id)).statusCode).toBe(200);
+
+    const r = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/termo-de-desinterdicao`,
+      headers: com(tokenCoordenador),
+    });
+    expect(r.statusCode, r.body).toBe(200);
+    expect(r.headers["content-type"]).toContain("text/html");
+    const html = r.body;
+    expect(html).not.toContain("undefined");
+    expect(html).toContain("desinterdição");
+    // O motivo por extenso: é o que responde por que a família voltou.
+    expect(html).toContain("Contenção do talude executada");
+    // Quem autorizou.
+    expect(html).toContain("Helena Vasques Coutinho");
+  });
+
+  it("recusa emitir antes de a interdição ser levantada", async () => {
+    const alvo = await comVistoria("Rua Sem Levantamento, 2");
+    await interditar(alvo.id);
+    // interditado, mas NÃO desinterditado ainda
+    const r = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/termo-de-desinterdicao`,
+      headers: com(tokenCoordenador),
+    });
+    expect(r.statusCode).toBe(409);
+    expect(r.json().erro).toBe("nao_desinterditada");
+  });
+
+  it("responde 404 para município vizinho, não 403", async () => {
+    const alvo = await comVistoria("Rua Fronteira do Termo, 3");
+    await interditar(alvo.id);
+    await levantar(alvo.id);
+    const r = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/termo-de-desinterdicao`,
+      headers: com(tokenDeFora),
+    });
+    expect(r.statusCode).toBe(404);
+  });
+
+  it("o agente de campo não emite documento", async () => {
+    const alvo = await comVistoria("Rua do Agente, 4");
+    await interditar(alvo.id);
+    await levantar(alvo.id);
+    const r = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/termo-de-desinterdicao`,
+      headers: com(tokenAgente),
+    });
+    expect(r.statusCode).toBe(403);
+  });
+});

@@ -53,7 +53,7 @@ export async function registrarEmissao(
   c: Consulta,
   quem: Identidade,
   ocorrenciaId: string,
-  documento: "laudo" | "termo_de_interdicao",
+  documento: "laudo" | "termo_de_interdicao" | "termo_de_desinterdicao",
   vistoriaId: string,
   formato: "html" | "pdf",
 ): Promise<void> {

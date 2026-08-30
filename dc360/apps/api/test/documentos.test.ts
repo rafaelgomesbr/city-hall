@@ -56,7 +56,10 @@ const com = (t: string) => ({ authorization: `Bearer ${t}` });
 const corrido = (html: string) => html.replace(/\s+/g, " ");
 
 async function comVistoria(
-  opcoes: { offline: boolean; endereco: string; interdicao?: boolean },
+  opcoes: {
+    offline: boolean; endereco: string; interdicao?: boolean;
+    pessoas?: Record<string, number>;
+  },
 ): Promise<{
   id: string; protocolo: string; vistoriaId: string;
 }> {
@@ -104,6 +107,7 @@ async function comVistoria(
         assinaturaChave: "assinatura.png",
         coletadaEm,
         observacoes: "Vistoria realizada com a moradora presente.",
+        ...(opcoes.pessoas ?? {}),
       },
     },
   });
@@ -238,6 +242,81 @@ describe("Laudo de vistoria", () => {
     expect(r.statusCode).toBe(409);
     expect(r.json().erro).toBe("sem_vistoria");
   }, 60_000);
+});
+
+describe("Pessoas atingidas no laudo", () => {
+  /*
+    O caminho REAL: aparelho grava as contagens pela sincronização, o laudo as
+    lê do banco. O portão da minuta nunca cobriu isto porque monta o objeto à
+    mão. O QA achou o laudo imprimindo "undefined" cinco vezes em toda emissão:
+    o SELECT que alimenta o documento não trazia as colunas. Este bloco prende
+    o caminho de ponta a ponta.
+  */
+  it("imprime os números contados, e zero como zero", async () => {
+    const alvo = await comVistoria({
+      offline: false, endereco: "Rua da Contagem, 10",
+      pessoas: { desalojados: 4, desabrigados: 2, feridos: 0, obitos: 0 },
+    });
+    const laudo = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/laudo`, headers: com(tokenCoordenador),
+    });
+    expect(laudo.statusCode).toBe(200);
+    const html = laudo.body;
+    expect(html, "o laudo imprimiu undefined").not.toContain("undefined");
+    // Contado com valor: sai o número.
+    expect(corrido(html)).toContain('Desalojados (saíram de casa e têm para onde ir)</div> <div class="valor">4</div>');
+    expect(corrido(html)).toContain('Desabrigados (saíram de casa e dependem de abrigo público)</div> <div class="valor">2</div>');
+    // Contado e deu ZERO: sai "0", nunca "não informado". A diferença é a
+    // decisão central da entrega.
+    expect(corrido(html)).toContain('Feridos</div> <div class="valor">0</div>');
+    // NÃO contado (desaparecidos não foi enviado): "não informado", nunca "0".
+    expect(corrido(html)).toContain('Desaparecidos</div> <div class="valor">não informado</div>');
+  });
+
+  it("quando nada foi contado, imprime a frase única, não cinco zeros", async () => {
+    const alvo = await comVistoria({ offline: false, endereco: "Rua Sem Contagem, 20" });
+    const laudo = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/laudo`, headers: com(tokenCoordenador),
+    });
+    expect(laudo.statusCode).toBe(200);
+    expect(laudo.body).not.toContain("undefined");
+    expect(laudo.body).toContain("não foi registrada");
+    // A frase substitui as linhas: não pode haver rótulo de contagem individual.
+    expect(laudo.body).not.toContain("dependem de abrigo público");
+  });
+});
+
+describe("PDF sem gerador não interdita ao falhar", () => {
+  /*
+    O QA reproduziu: pedir o termo em PDF num servidor sem gerador interditava
+    o imóvel e depois respondia 503. A interdição ficava com a data da
+    tentativa que falhou, para sempre. O `app` deste arquivo é construído sem
+    `pdf`, então é o cenário exato.
+  */
+  it("responde 503 e o imóvel NÃO fica interditado", async () => {
+    const alvo = await comVistoria({ offline: false, endereco: "Rua do PDF, 30", interdicao: true });
+
+    const antes = await app.inject({
+      method: "GET", url: "/ocorrencias/interditados", headers: com(tokenCoordenador),
+    });
+    expect(antes.json().itens.some((i: { id: string }) => i.id === alvo.id)).toBe(false);
+
+    const pdf = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/termo-de-interdicao.pdf`,
+      headers: com(tokenCoordenador),
+    });
+    expect(pdf.statusCode).toBe(503);
+    expect(pdf.json().erro).toBe("pdf_indisponivel");
+
+    // A prova: o imóvel continua fora da lista de interditados. Antes, entrava.
+    const depois = await app.inject({
+      method: "GET", url: "/ocorrencias/interditados", headers: com(tokenCoordenador),
+    });
+    expect(
+      depois.json().itens.some((i: { id: string }) => i.id === alvo.id),
+      "o PDF falhou e mesmo assim interditou o imóvel",
+    ).toBe(false);
+  });
 });
 
 describe("Termo de interdição", () => {

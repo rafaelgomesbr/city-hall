@@ -454,7 +454,9 @@ export async function alternarUsuarioAtivo(
 export async function abrirDocumento(
   _s: Sessao,
   ocorrenciaId: string,
-  tipo: "laudo" | "termo-de-interdicao" | "laudo.pdf" | "termo-de-interdicao.pdf",
+  tipo:
+    | "laudo" | "termo-de-interdicao" | "termo-de-desinterdicao"
+    | "laudo.pdf" | "termo-de-interdicao.pdf",
 ): Promise<string> {
   const tokens = lerTokens();
   const resposta = await comRedeTraduzida(() =>

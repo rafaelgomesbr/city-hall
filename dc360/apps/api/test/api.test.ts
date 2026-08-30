@@ -437,6 +437,46 @@ describe("Fluxo e trilha auditável", () => {
     expect(r.json().campos[0].campo).toBe("motivo");
   });
 
+  it("a troca de email de outra conta entra na trilha, de/para", async () => {
+    /*
+      A brecha que o ASVS levantou: trocar o email de outra conta é o primeiro
+      passo da tomada de conta (trocar -> pedir recuperação -> entrar como a
+      pessoa -> devolver o email). Era a única mudança da rota de edição que
+      não deixava rastro. Este caso prende o de/para na trilha administrativa.
+    */
+    const db = mem.bruto;
+    const criada = await db.query<{ id: string }>(
+      `INSERT INTO usuarios (organizacao_id,nome,matricula,email,papel,senha_hash)
+       VALUES ($1,'Bruno Alvo','SA-78','bruno.antigo@serraalta.exemplo.gov.br','operador',$2)
+       RETURNING id`,
+      [orgA, await derivarSenha("senha-do-bruno-longa")],
+    );
+    const alvoId = criada.rows[0]!.id;
+
+    const r = await app.inject({
+      method: "PATCH", url: `/usuarios/${alvoId}`,
+      headers: comToken(tokens["adminA"]!.acesso),
+      payload: {
+        nome: "Bruno Alvo", matricula: "SA-78",
+        email: "bruno.novo@serraalta.exemplo.gov.br",
+        papel: "operador", equipeId: null,
+      },
+    });
+    expect(r.statusCode, r.body).toBe(200);
+
+    const evento = await mem.banco.comTenant(orgA, (c) =>
+      c.query<{ antes: Record<string, unknown>; depois: Record<string, unknown> }>(
+        `SELECT antes, depois FROM trilha_administrativa
+          WHERE alvo_id = $1 ORDER BY registrado_em DESC LIMIT 1`,
+        [alvoId],
+      ),
+    );
+    const linha = evento.rows[0];
+    expect(linha, "o ato de edição não entrou na trilha administrativa").toBeDefined();
+    expect(linha!.antes["email"]).toBe("bruno.antigo@serraalta.exemplo.gov.br");
+    expect(linha!.depois["email"]).toBe("bruno.novo@serraalta.exemplo.gov.br");
+  });
+
   it("a trilha é append-only mesmo para quem tem token válido", async () => {
     // Não existe rota para editar trilha, e o banco também recusa: a policy
     // de UPDATE simplesmente não existe.

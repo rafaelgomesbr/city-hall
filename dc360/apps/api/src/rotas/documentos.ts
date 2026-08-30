@@ -1,9 +1,11 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { Banco } from "../banco/tipos.js";
-import { RegraDeNegocio, autorizar } from "../servidor.js";
+import { RegraDeNegocio, autorizar, type Identidade } from "../servidor.js";
 import type { Armazenamento } from "../armazenamento/tipos.js";
-import { laudoDeVistoria, termoDeInterdicao, type DadosDocumento } from "../documentos/laudo.js";
+import {
+  laudoDeVistoria, termoDeDesinterdicao, termoDeInterdicao, type DadosDocumento,
+} from "../documentos/laudo.js";
 import type { GeradorDePdf } from "../documentos/pdf.js";
 import { marcarInterditada, registrarEmissao } from "../trilha.js";
 
@@ -74,6 +76,7 @@ async function reunirDados(
     >(
       `SELECT v.id, v.checklist, v.gps_precisao_metros, v.assinante_nome, v.observacoes,
               v.coletada_em, v.sincronizada_em, v.assinatura_chave,
+              v.desalojados, v.desabrigados, v.feridos, v.desaparecidos, v.obitos,
               u.nome AS agente_nome, u.matricula AS agente_matricula
          FROM vistorias v LEFT JOIN usuarios u ON u.id = v.agente_id
         WHERE v.ocorrencia_id = $1
@@ -201,11 +204,21 @@ export async function rotasDocumentos(
     );
   }
 
-  async function responder(
+  /*
+    A emissão é dividida em PREPARAR e EFETIVAR, e a divisão conserta um
+    defeito com pessoa dentro: pedir o termo em PDF num servidor sem gerador
+    interditava o imóvel e depois respondia 503. A interdição ficava com a data
+    da tentativa que falhou, para sempre, e a única saída registrada era uma
+    desinterdição. O QA reproduziu.
+
+    Agora o efeito colateral (registrar emissão, interditar) só acontece em
+    EFETIVAR, chamado depois que o servidor já sabe que consegue produzir o
+    documento. PREPARAR não muda estado: autoriza, confere o dono e valida.
+  */
+  async function prepararDocumento(
     req: FastifyRequest,
     documento: "laudo" | "termo_de_interdicao",
-    formato: "html" | "pdf",
-  ): Promise<string> {
+  ): Promise<{ quem: Identidade; id: string; dados: DadosDocumento }> {
     /*
       Permissão, e não só token.
 
@@ -233,26 +246,35 @@ export async function rotasDocumentos(
     );
 
     if (documento === "termo_de_interdicao") exigirInterdicaoIndicada(dados);
+    return { quem, id, dados };
+  }
 
-    /*
-      O rastro é gravado ANTES de devolver o documento, e numa transação sua.
-      Antes, porque o que interessa registrar é que alguém obteve o papel; se a
-      geração falhar depois disso, sobra um evento a mais, que é o erro barato.
-      O contrário deixaria termos circulando sem registro, que é o erro caro.
-    */
+  /*
+    O efeito colateral, numa transação sua. Só é chamado quando o documento
+    vai ser entregue de verdade. Emitir o termo É interditar: antes, o termo
+    saía e o sistema não guardava em lugar nenhum que aquele imóvel estava
+    interditado, então não havia como listar o que está interditado hoje, nem
+    nada que obrigasse alguém a levantar a interdição um dia.
+  */
+  async function efetivarEmissao(
+    quem: Identidade, id: string,
+    documento: "laudo" | "termo_de_interdicao" | "termo_de_desinterdicao",
+    vistoriaId: string, formato: "html" | "pdf",
+  ): Promise<void> {
     await banco.comTenant(quem.organizacaoId, async (c) => {
-      await registrarEmissao(c, quem, id, documento, dados.vistoria.id, formato);
-      /*
-        Emitir o termo É interditar.
-
-        Antes, o termo saía e o sistema não guardava em lugar nenhum que aquele
-        imóvel estava interditado: a informação existia só no papel impresso e
-        na trilha. Sem estado, não havia como listar o que está interditado
-        hoje, e nada obrigava alguém a levantar a interdição um dia.
-      */
+      await registrarEmissao(c, quem, id, documento, vistoriaId, formato);
       if (documento === "termo_de_interdicao") await marcarInterditada(c, quem, id);
     });
+  }
 
+  /** Caminho HTML: prepara, efetiva e gera, nesta ordem. */
+  async function responder(
+    req: FastifyRequest,
+    documento: "laudo" | "termo_de_interdicao",
+    formato: "html" | "pdf",
+  ): Promise<string> {
+    const { quem, id, dados } = await prepararDocumento(req, documento);
+    await efetivarEmissao(quem, id, documento, dados.vistoria.id, formato);
     const gerar = documento === "laudo" ? laudoDeVistoria : termoDeInterdicao;
     return gerar({ ...dados, ...(marcaDagua ? { marcaDagua } : {}) });
   }
@@ -264,6 +286,71 @@ export async function rotasDocumentos(
 
   app.get("/:id/termo-de-interdicao", async (req, resposta) => {
     const html = await responder(req, "termo_de_interdicao", "html");
+    return resposta.type("text/html; charset=utf-8").send(html);
+  });
+
+  /**
+   * O termo de desinterdição: o papel que autoriza a família a voltar.
+   *
+   * Existe porque o contrário existia. O levantamento já é registrado (rota
+   * `POST /ocorrencias/:id/desinterdicao`), mas até aqui não havia como emitir
+   * o documento que o morador leva. A tela mandava "emita o termo de
+   * desinterdição" e não havia onde.
+   *
+   * Ela NÃO desinterdita: isso já aconteceu, e é pré-requisito. Emitir sobre
+   * um imóvel que não foi desinterditado responde 409, não inventa um estado.
+   */
+  async function responderDesinterdicao(req: FastifyRequest): Promise<string> {
+    const quem = await autorizar(app, req, "emitir_documento");
+    const { id } = idSchema.parse(req.params);
+
+    const dez = await banco.comTenant(quem.organizacaoId, async (c) => {
+      const r = await c.query<{
+        interditada_em: string | null;
+        desinterditada_em: string | null;
+        desinterdicao_motivo: string | null;
+        por_nome: string | null;
+      }>(
+        `SELECT o.interditada_em, o.desinterditada_em, o.desinterdicao_motivo,
+                u.nome AS por_nome
+           FROM ocorrencias o
+           LEFT JOIN usuarios u ON u.id = o.desinterditada_por
+          WHERE o.id = $1`,
+        [id],
+      );
+      return r.rows[0] ?? null;
+    });
+
+    // 404, e não 403: recurso de outro município não se confirma.
+    if (!dez) throw new RegraDeNegocio("nao_encontrada", "Ocorrência não encontrada.", 404);
+    if (!dez.desinterditada_em || !dez.interditada_em) {
+      throw new RegraDeNegocio(
+        "nao_desinterditada",
+        "Esta ocorrência não teve interdição levantada, então não há termo de "
+        + "desinterdição a emitir.",
+        409,
+      );
+    }
+
+    const dados = await prepararDocumento(req, "termo_de_interdicao");
+    const completo: DadosDocumento = {
+      ...dados.dados,
+      ...(marcaDagua ? { marcaDagua } : {}),
+      desinterdicao: {
+        em: dez.desinterditada_em,
+        motivo: dez.desinterdicao_motivo ?? "",
+        porNome: dez.por_nome ?? "Coordenação",
+        interditadaEm: dez.interditada_em,
+      },
+    };
+
+    // Registra a emissão. Não interdita nada: o imóvel já está liberado.
+    await efetivarEmissao(quem, id, "termo_de_desinterdicao", dados.dados.vistoria.id, "html");
+    return termoDeDesinterdicao(completo);
+  }
+
+  app.get("/:id/termo-de-desinterdicao", async (req, resposta) => {
+    const html = await responderDesinterdicao(req);
     return resposta.type("text/html; charset=utf-8").send(html);
   });
 
@@ -282,12 +369,18 @@ export async function rotasDocumentos(
     nome: string,
   ) {
     /*
-      A permissão e o dono da ocorrência são checados ANTES da capacidade do
-      servidor. Ao contrário, um pedido de outro município receberia 503 num
-      servidor sem gerador e 404 num servidor com gerador, e a diferença entre
-      as duas respostas contaria a quem sonda que o registro existe.
+      A ordem aqui conserta o defeito que o QA achou: interditar ao FALHAR.
+
+      1. PREPARAR primeiro: autoriza, confere o dono, valida. Não muda estado.
+         Um pedido de outro município morre aqui, em 404, num servidor com ou
+         sem gerador, então a resposta não conta a quem sonda que o registro
+         existe.
+      2. Checar a CAPACIDADE do servidor. Sem gerador, 503 SEM ter interditado
+         nada. Antes, o efeito colateral acontecia dentro de `responder()` e o
+         imóvel ficava interditado com a data de uma tentativa que devolveu 503.
+      3. EFETIVAR só quando o documento vai sair de verdade.
     */
-    const html = await responder(req, documento, "pdf");
+    const { quem, id, dados } = await prepararDocumento(req, documento);
 
     if (!pdf) {
       throw new RegraDeNegocio(
@@ -296,13 +389,19 @@ export async function rotasDocumentos(
         503,
       );
     }
+
+    const html = (documento === "laudo" ? laudoDeVistoria : termoDeInterdicao)(
+      { ...dados, ...(marcaDagua ? { marcaDagua } : {}) },
+    );
+
     let bytes: Uint8Array;
     try {
       bytes = await pdf.gerar(html);
     } catch (erro) {
       // Navegador ausente ou que morreu no meio. O coordenador precisa do
       // laudo agora, e a versão para impressão continua servindo: dizer isso
-      // vale mais do que um 500 sem saída.
+      // vale mais do que um 500 sem saída. E não efetivamos: nada foi
+      // interditado numa geração que falhou.
       req.log.error({ err: erro }, "falha ao renderizar PDF");
       throw new RegraDeNegocio(
         "pdf_indisponivel",
@@ -310,7 +409,10 @@ export async function rotasDocumentos(
         503,
       );
     }
-    const { id } = idSchema.parse(req.params);
+
+    // O PDF existe: agora sim registra a emissão e, se for termo, interdita.
+    await efetivarEmissao(quem, id, documento, dados.vistoria.id, "pdf");
+
     return resposta
       .type("application/pdf")
       // `inline` para abrir no visualizador em vez de baixar direto: quem

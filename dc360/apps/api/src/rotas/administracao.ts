@@ -283,8 +283,8 @@ export async function rotasAdministracao(
 
     try {
       return await banco.comTenant(quem.organizacaoId, async (c) => {
-        const atual = await c.query<{ papel: Papel; ativo: boolean }>(
-          "SELECT papel, ativo FROM usuarios WHERE id = $1",
+        const atual = await c.query<{ papel: Papel; ativo: boolean; email: string }>(
+          "SELECT papel, ativo, email FROM usuarios WHERE id = $1",
           [id],
         );
         const alvo = atual.rows[0];
@@ -328,9 +328,18 @@ export async function rotasAdministracao(
           alvoTipo: "usuario",
           alvoId: id,
           alvoNome: dados.nome,
-          antes: { papel: alvo.papel },
+          /*
+            O EMAIL entra no antes/depois, e não é detalhe: trocar o email de
+            outra conta é o primeiro passo da tomada de conta (trocar, pedir
+            recuperação de senha, entrar como a pessoa, devolver o email). Era
+            a única mudança desta rota que não deixava rastro, num produto que
+            se vende como auditável. Agora a trilha mostra de qual email para
+            qual.
+          */
+          antes: { papel: alvo.papel, email: alvo.email },
           depois: {
             papel: dados.papel,
+            email: dados.email,
             matricula: dados.matricula,
             equipeId: dados.equipeId ?? null,
           },
