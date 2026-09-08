@@ -37,16 +37,43 @@ const TINTA = "#101519";
 const GELO = "#ECF1F4";
 
 /**
+ * O brasão: escudo cheio com a encosta vazada nele.
+ *
+ * O escudo diz defesa; o cume diz o que está sendo defendido. Deslizamento em
+ * encosta ocupada é o que mais mata na Defesa Civil brasileira, então a marca
+ * fala do trabalho e não de "segurança" genérica.
+ *
+ * Duas formas só, ambas cheias: aos 40 pixels da tela inicial, que é onde o
+ * ícone realmente vive, linha fina some e detalhe vira sujeira.
+ */
+const BRASAO = `
+  <path d="M50 12 L82 24 V52 C82 71 68 83 50 89 C32 83 18 71 18 52 V24 Z" fill="${GELO}"/>
+  <path d="M28 70 L44 44 L54 58 L63 45 L76 70 Z" fill="${VIOLETA}"/>`;
+
+/**
  * A marca: monograma sobre gradiente, dentro de um escudo arredondado.
  *
- * `preencher` controla a margem interna. O ícone de loja ocupa a arte toda; o
- * ícone adaptativo do Android precisa de folga porque o sistema recorta em
- * círculo, quadrado ou gota conforme o fabricante, e desenho encostado na
- * borda some no recorte.
+ * `folga` controla a margem interna, e `raio` o arredondamento da arte.
+ *
+ * Os dois são ZERO nas artes de loja, e a razão é um erro fácil de cometer:
+ * o sistema operacional já aplica a máscara arredondada por cima do ícone.
+ * Arte que chega arredondada, com o fundo da tela aparecendo nos cantos, sai
+ * com uma borda escura em volta depois da máscara. Arte de ícone sangra até
+ * a borda, sempre.
+ *
+ * A folga do ícone adaptativo do Android é outra história: lá o sistema
+ * recorta em círculo, quadrado ou gota conforme o fabricante, e o desenho
+ * encostado na borda some no recorte. O fundo continua sangrando; o que
+ * recua é o desenho.
  */
-function marca({ lado, folga, fundo }) {
-  const raio = Math.round(lado * 0.22);
+function marca({ lado, folga, fundo, raio, recuo = 0 }) {
   const caixa = lado - folga * 2;
+  /*
+    `recuo` encolhe SÓ o desenho, deixando o fundo sangrar. É o que a área de
+    segurança do ícone adaptativo do Android pede: o recorte do fabricante come
+    a borda, e o que não pode ser comido é o brasão.
+  */
+  const desenho = Math.round(caixa * 0.62 * (1 - recuo));
   return `<!doctype html>
 <html><head><meta charset="utf-8"><style>
   html, body { margin: 0; padding: 0; width: ${lado}px; height: ${lado}px; }
@@ -64,16 +91,9 @@ function marca({ lado, folga, fundo }) {
     content: ""; position: absolute; inset: 0;
     background: linear-gradient(200deg, rgba(255,255,255,.14), transparent 58%);
   }
-  .sigla {
-    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-    font-weight: 800; letter-spacing: ${Math.round(caixa * 0.005)}px;
-    font-size: ${Math.round(caixa * 0.36)}px;
-    color: ${GELO};
-    line-height: 1;
-    z-index: 1;
-  }
+  .marca { width: ${desenho}px; height: ${desenho}px; z-index: 1; }
 </style></head>
-<body><div class="escudo"><span class="sigla">DC</span></div></body></html>`;
+<body><div class="escudo"><svg class="marca" viewBox="0 0 100 100">${BRASAO}</svg></div></body></html>`;
 }
 
 /** Tela de abertura: marca centrada sobre o fundo escuro do tema. */
@@ -89,16 +109,15 @@ function abertura({ largura, altura }) {
     border-radius: ${Math.round(emblema * 0.22)}px;
     background: linear-gradient(135deg, ${VIOLETA}, ${VIOLETA_ESCURO});
     display: grid; place-items: center;
-    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-    font-weight: 800; font-size: ${Math.round(emblema * 0.36)}px; color: ${GELO};
   }
+  .escudo svg { width: ${Math.round(emblema * 0.62)}px; height: ${Math.round(emblema * 0.62)}px; }
   .nome {
     font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     color: ${GELO}; font-weight: 700; font-size: ${Math.round(emblema * 0.17)}px;
     letter-spacing: .02em;
   }
 </style></head>
-<body><div class="marca"><div class="escudo">DC</div><div class="nome">Defesa Civil 360</div></div></body></html>`;
+<body><div class="marca"><div class="escudo"><svg viewBox="0 0 100 100">${BRASAO}</svg></div><div class="nome">Defesa Civil 360</div></div></body></html>`;
 }
 
 /*
@@ -114,9 +133,9 @@ function abertura({ largura, altura }) {
 */
 const ARTES = [
   { arquivo: "icone.png", largura: 1024, altura: 1024,
-    html: marca({ lado: 1024, folga: 0, fundo: TINTA }) },
+    html: marca({ lado: 1024, folga: 0, raio: 0, fundo: VIOLETA }) },
   { arquivo: "icone-adaptativo.png", largura: 1024, altura: 1024,
-    html: marca({ lado: 1024, folga: Math.round(1024 * 0.22), fundo: "transparent" }) },
+    html: marca({ lado: 1024, folga: 0, raio: 0, fundo: VIOLETA, recuo: 0.22 }) },
   { arquivo: "splash.png", largura: 1284, altura: 2778,
     html: abertura({ largura: 1284, altura: 2778 }) },
 ];

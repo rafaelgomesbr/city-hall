@@ -69,8 +69,27 @@ const config: ExpoConfig = {
       NSPhotoLibraryAddUsageDescription:
         "As fotografias da vistoria podem ser salvas no aparelho para servirem " +
         "de cópia até a sincronização com a Defesa Civil terminar.",
-      // Sem exceção de transporte: tudo trafega por https.
-      NSAppTransportSecurity: { NSAllowsArbitraryLoads: false },
+      /*
+        Sem exceção de transporte: tudo trafega por https.
+
+        A única folga é para desenvolvimento em rede local, e ela precisa ser
+        pedida de propósito (DC360_DEV_LOCAL=1). Serve para o caso de instalar
+        o aplicativo num aparelho pelo cabo e falar com a API rodando no Mac,
+        que atende em http num endereço 10.x ou 192.168.x. Sem isso a tela de
+        entrada gira e não explica, porque o sistema corta a conexão antes de
+        ela sair do aparelho.
+
+        NSAllowsLocalNetworking libera SOMENTE nome .local e IP de faixa
+        privada. Endereço público continua exigindo https, então um build
+        gerado com esta folga ligada por engano não passa a aceitar servidor
+        qualquer na internet. Ainda assim, build de loja sai sem a variável.
+      */
+      NSAppTransportSecurity: {
+        NSAllowsArbitraryLoads: false,
+        ...(process.env["DC360_DEV_LOCAL"] === "1"
+          ? { NSAllowsLocalNetworking: true }
+          : {}),
+      },
       ITSAppUsesNonExemptEncryption: false,
     },
   },

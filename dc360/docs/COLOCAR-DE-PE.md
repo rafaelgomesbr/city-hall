@@ -20,7 +20,7 @@ código.** Os bloqueios são de terceiros e de tempo de espera:
 
 **O que DÁ para ter no fim de semana, e é o que importa para testar de verdade:**
 
-1. **Backend em produção real** — servidor, banco, domínio, HTTPS. Isso é
+1. **Backend em produção real**: servidor, banco, domínio, HTTPS. Isso é
    inteiramente possível em um fim de semana.
 2. **O app rodando no seu iPhone**, via simulador do Xcode (grátis, agora) e
    via TestFlight/build interno (com a conta paga, **sem** revisão de loja).
@@ -31,7 +31,7 @@ D-U-N-S e a revisão não forem gargalo.
 
 ---
 
-## Parte 1 — O que já está pronto (não precisa mexer)
+## Parte 1: o que já está pronto (não precisa mexer)
 
 - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
@@ -42,14 +42,14 @@ D-U-N-S e a revisão não forem gargalo.
   vistoria offline, laudo, termo de interdição e desinterdição, contagem de
   pessoas.
 - O app foi verificado inteiro no emulador **Android**: menu, minuta, login,
-  GPS, câmera, o ciclo completo. **Nunca rodou em iOS** — é o que você vai fazer
+  GPS, câmera, o ciclo completo. **Nunca rodou em iOS**, e é o que você vai fazer
   no Mac.
 
 ---
 
-## Parte 2 — Os 5 bloqueios do app iOS (resolver ANTES do primeiro build)
+## Parte 2: os 5 bloqueios do app iOS (resolver ANTES do primeiro build)
 
-### CRÍTICO 1 — Trocar o bundle identifier `br.gov.dc360.campo`
+### CRÍTICO 1: trocar o bundle identifier `br.gov.dc360.campo`
 
 `gov.br` é namespace de governo. Um desenvolvedor privado publicando sob ele cai
 na **política de personificação da Apple** (e da Google), e o bundle é
@@ -65,14 +65,14 @@ android.package:      "br.gov.dc360.campo"   →   "com.SUAEMPRESA.dc360campo"
 Use o CNPJ/marca sob o qual você vai vender. Isto depende de uma decisão sua
 (nome da empresa).
 
-### CRÍTICO 2 — Conta Apple Developer
+### CRÍTICO 2: conta Apple Developer
 
 - US$ 99/ano, em [developer.apple.com](https://developer.apple.com).
 - Para o fim de semana: **conta pessoal** (verificação em horas a 1–2 dias).
 - Organização (com a marca da empresa na App Store) exige D-U-N-S: peça já se
   for esse o caminho, mas não bloqueie o fim de semana por ela.
 
-### CRÍTICO 3 — Projeto Expo (EAS)
+### CRÍTICO 3: projeto Expo (EAS)
 
 O `app.config.ts` lê `EAS_PROJECT_ID` de variável, e a EAS **não define essa
 variável no worker de build**. Rode uma vez, no Mac, e ele grava o ID:
@@ -84,13 +84,13 @@ eas login
 eas init          # cria o projeto no Expo e grava o projectId
 ```
 
-### CRÍTICO 4 — O endereço do servidor no build
+### CRÍTICO 4: o endereço do servidor no build
 
 Um binário aponta para um servidor fixo. `apps/campo/eas.json` tem
 `https://api.exemplo.gov.br` nos perfis. **Troque pelo domínio real** (Parte 3)
 antes de gerar o build que você vai usar.
 
-### CRÍTICO 5 — HTTPS é pré-requisito, não opção
+### CRÍTICO 5: HTTPS é pré-requisito, não opção
 
 O app declara `NSAllowsArbitraryLoads: false`: ele **só conecta em `https://`**.
 Sem domínio com TLS válido, a tela de login gira e não explica. É por isso que o
@@ -98,9 +98,9 @@ servidor (Parte 3) vem antes do app.
 
 ---
 
-## Parte 3 — A infraestrutura, na ordem do caminho crítico
+## Parte 3: a infraestrutura, na ordem do caminho crítico
 
-### 1. Domínio (primeiro de tudo — HTTPS e o app dependem dele)
+### 1. Domínio (primeiro de tudo, porque HTTPS e o app dependem dele)
 
 - Registre em [registro.br](https://registro.br) (`.com.br`, ~R$ 40/ano) ou num
   registrador `.com`.
@@ -112,14 +112,14 @@ servidor (Parte 3) vem antes do app.
 Não use Postgres numa VM que você administra: backup só existe depois de um
 **restore testado**, e provedor gerenciado já dá isso e PITR.
 
-- **Neon** (neon.tech) ou **Supabase** — os dois têm plano inicial grátis e
+- **Neon** (neon.tech) ou **Supabase**: os dois têm plano inicial grátis e
   Postgres real. Neon é o mais direto.
 - Crie o banco `dc360`.
 - **Modelo de três papéis** (o app depende disto; provado contra Postgres real):
 
   ```sql
   -- papel de SETUP: cria papéis e migra. O provedor gerenciado já te dá um
-  -- papel administrativo com CREATEROLE e BYPASSRLS — use-o como setup.
+  -- papel administrativo com CREATEROLE e BYPASSRLS, use-o como setup.
   -- papel de APLICAÇÃO: é este que vai na DATABASE_URL da API.
   CREATE ROLE dc360_api LOGIN PASSWORD '...' NOSUPERUSER;
   -- depois de migrar (a migração 001 cria dc360_app):
@@ -141,10 +141,10 @@ Não use Postgres numa VM que você administra: backup só existe depois de um
 PaaS que dá HTTPS automático e roda contêiner ou Node:
 
 - **Fly.io**, **Railway** ou **Render**. O repositório tem `Dockerfile` e
-  `compose.yaml` (revisados, mas ainda não construídos — o job de CI
+  `compose.yaml` (revisados, mas ainda não construídos, e o job de CI
   `implantavel` os confere no primeiro push).
 - Variáveis de ambiente obrigatórias em produção (o processo **recusa subir**
-  sem elas — é de propósito):
+  sem elas, e isso é de propósito):
 
   | Variável | O que é |
   | --- | --- |
@@ -158,7 +158,7 @@ PaaS que dá HTTPS automático e roda contêiner ou Node:
   | `S3_ENDPOINT` `S3_BALDE` `S3_CHAVE_ID` `S3_CHAVE_SECRETA` | armazenamento (item 4) |
   | `RECUPERACAO_ATIVA` | `nao` no piloto, ou `sim` + `NOTIFICADOR_URL`/`_CHAVE` (item 5) |
 
-  Tudo em `https://` — a config recusa `http` e `localhost` em produção.
+  Tudo em `https://`, e a config recusa `http` e `localhost` em produção.
 
 ### 4. Armazenamento de fotos e assinaturas
 
@@ -191,7 +191,7 @@ Na primeira entrada, o coordenador troca a senha em **Minha conta**.
 
 ---
 
-## Parte 4 — No Mac, na ordem
+## Parte 4: no Mac, na ordem
 
 ```bash
 # 1. Clonar e conferir que tudo passa no Mac
@@ -217,13 +217,13 @@ Para o `eas submit`, preencha `apps/campo/eas.json` em `submit.producao.ios`
 
 ---
 
-## Parte 5 — O que só você decide (destrava o resto)
+## Parte 5: o que só você decide (destrava o resto)
 
-1. **Nome/CNPJ da empresa** — define o bundle identifier e a conta Apple.
-2. **Conta Apple: pessoal ou organização** — pessoal para o fim de semana.
-3. **Provedores** — Neon (banco), Fly/Railway (API), R2 (fotos), registro.br
+1. **Nome/CNPJ da empresa**: define o bundle identifier e a conta Apple.
+2. **Conta Apple: pessoal ou organização**, sendo pessoal a do fim de semana.
+3. **Provedores**: Neon (banco), Fly/Railway (API), R2 (fotos), registro.br
    (domínio). Todos têm plano inicial barato ou grátis.
-4. **Recuperação de senha** — desligada no piloto (recomendado) ou com provedor.
+4. **Recuperação de senha**: desligada no piloto (recomendado) ou com provedor.
 5. **Duas decisões de produto pendentes**, anotadas no código:
    - fechar a tomada de conta entre pares de mesmo posto (notificar email antigo
      ou exigir reautenticação);
@@ -244,5 +244,5 @@ Para o `eas submit`, preencha `apps/campo/eas.json` em `submit.producao.ios`
 | Apple Developer | Apple | US$ 99/ano |
 
 O gargalo de dinheiro não é a infraestrutura; é a conta Apple. O gargalo de
-tempo é o D-U-N-S (se organização) e a revisão da loja — nenhum dos dois bloqueia
+tempo é o D-U-N-S (se organização) e a revisão da loja, e nenhum dos dois bloqueia
 ter o app no seu iPhone via TestFlight neste fim de semana.
