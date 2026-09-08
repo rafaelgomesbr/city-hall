@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { Config } from "../config.js";
 import type { ServicoAutenticacao } from "../auth/servico.js";
+import { enderecoDoCliente } from "../rede.js";
 
 const entradaSchema = z.object({
   email: z.string().email("Informe um email válido").max(320),
@@ -50,7 +51,15 @@ export async function rotasAutenticacao(app: FastifyInstance, opcoes: Opcoes): P
    */
   const limiteLogin = {
     config: {
-      rateLimit: { max: opcoes.config.LOGIN_POR_IP, timeWindow: "5 minutes" },
+      rateLimit: {
+        max: opcoes.config.LOGIN_POR_IP,
+        timeWindow: "5 minutes",
+        // Mesma chave do limitador global. Sem isto, este limite, que é o que
+        // protege contra varredura de lista de senhas, era contornado trocando
+        // o cabeçalho `X-Forwarded-For` a cada tentativa. Ver `rede.ts`.
+        keyGenerator: (req: { headers: Record<string, unknown>; ip: string }) =>
+          enderecoDoCliente(req as never),
+      },
     },
   };
 
@@ -58,7 +67,7 @@ export async function rotasAutenticacao(app: FastifyInstance, opcoes: Opcoes): P
     const dados = entradaSchema.parse(req.body);
     const resultado = await autenticacao.entrar(dados, {
       userAgent: req.headers["user-agent"],
-      ip: req.ip,
+      ip: enderecoDoCliente(req),
     });
     return resposta.code(200).send(resultado);
   });
@@ -67,7 +76,7 @@ export async function rotasAutenticacao(app: FastifyInstance, opcoes: Opcoes): P
     const { renovacao } = renovacaoSchema.parse(req.body);
     const resultado = await autenticacao.renovar(renovacao, {
       userAgent: req.headers["user-agent"],
-      ip: req.ip,
+      ip: enderecoDoCliente(req),
     });
     return resposta.code(200).send(resultado);
   });
@@ -91,7 +100,7 @@ export async function rotasAutenticacao(app: FastifyInstance, opcoes: Opcoes): P
    */
   app.post("/recuperar", limiteLogin, async (req, resposta) => {
     const { email } = recuperacaoSchema.parse(req.body);
-    await autenticacao.pedirRecuperacao(email, { ip: req.ip });
+    await autenticacao.pedirRecuperacao(email, { ip: enderecoDoCliente(req) });
     return resposta.code(202).send({
       mensagem:
         "Se existir conta com esse email, enviamos um link de redefinicao. " +

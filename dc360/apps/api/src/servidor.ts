@@ -22,6 +22,7 @@ import { rotasArmazenamentoLocal } from "./rotas/armazenamento-local.js";
 import type { Armazenamento } from "./armazenamento/tipos.js";
 import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
 import type { GeradorDePdf } from "./documentos/pdf.js";
+import { enderecoDoCliente } from "./rede.js";
 
 export type Identidade = {
   usuarioId: string;
@@ -131,7 +132,7 @@ export async function construirServidor(
         url: req.url.split("?")[0],
         ...(req.url.includes("?") ? { query: "[removido]" } : {}),
         host: req.host,
-        remoteAddress: req.ip,
+        remoteAddress: enderecoDoCliente(req),
       }),
       err: (erro) => {
         const bruto = erro as unknown as Record<string, unknown>;
@@ -157,7 +158,18 @@ export async function construirServidor(
     // que permite alguém dizer "deu erro às 14h32" e a equipe achar a linha.
     genReqId: () => crypto.randomUUID(),
     logger: opcoesDeLog,
-    trustProxy: config.NODE_ENV === "production",
+    // `1` salto, e não a cadeia inteira: confiar em tudo faz o Fastify aceitar como
+    // origem a primeira entrada de `X-Forwarded-For`, que é escrita pelo
+    // cliente. `0` fora de produção é o mesmo que não confiar em nenhum.
+    // Ver `rede.ts` para o defeito que isso causava.
+    trustProxy: config.NODE_ENV === "production"
+      // `hop === 0` confia SÓ em quem abriu a conexão, que em produção é o
+      // proxy do Fly. Assim `req.ip` passa a ser a última entrada de
+      // `X-Forwarded-For` (a que o edge acrescenta) em vez da primeira (a
+      // que o cliente escreve). O tipo do Fastify instalado não aceita o
+      // atalho numérico, então a contagem de saltos vai como função.
+      ? (_endereco: string, hop: number) => hop === 0
+      : false,
     // Um megabyte cobre qualquer payload de negócio. O upload de foto NÃO
     // passa por aqui: ele vai direto para o armazenamento, com URL assinada.
     // A exceção é a rota do armazenamento local, que ajusta o próprio limite.
@@ -206,7 +218,7 @@ export async function construirServidor(
     timeWindow: "1 minute",
     // Limite global por endereço. O login tem o seu, bem mais apertado, na
     // própria rota: força bruta se combate onde ela acontece.
-    keyGenerator: (req) => req.ip,
+    keyGenerator: (req) => enderecoDoCliente(req),
   });
 
   const autenticacao = servicoDeAutenticacao(banco, config, notificador);

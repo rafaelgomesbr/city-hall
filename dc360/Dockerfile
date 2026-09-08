@@ -48,7 +48,11 @@ COPY package.json package-lock.json ./
 COPY packages packages
 COPY db db
 COPY apps/api apps/api
-RUN npm ci --workspaces --include-workspace-root \
+# `--include=dev` não é redundante: a etapa `base` define NODE_ENV=production,
+# e com isso o npm omite devDependencies sozinho, mesmo sem `--omit=dev`. O
+# TypeScript é devDependency, então sem esta flag o build morre em
+# `sh: 1: tsc: not found`, que é uma mensagem que não aponta para a causa.
+RUN npm ci --workspaces --include-workspace-root --include=dev \
  && npm run build --workspace @dc360/shared \
  && npm run build --workspace @dc360/db \
  && npm run build --workspace @dc360/campo \

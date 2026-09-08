@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm ci --workspaces --include-workspace-root --include=dev",
+  "buildCommand": "npm run build --workspace @dc360/shared && npm run build --workspace @dc360/db && npm run build --workspace @dc360/campo && npm run build --workspace @dc360/web",
+  "outputDirectory": "apps/web/dist",
+  "framework": null,
+  "build": {
+    "env": {
+      "VITE_API_URL": "https://defesa-civil.fly.dev"
+    }
+  },
+  "rewrites": [{ "source": "/((?!assets/).*)", "destination": "/index.html" }]
+}

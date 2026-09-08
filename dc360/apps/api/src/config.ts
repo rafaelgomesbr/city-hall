@@ -6,13 +6,30 @@ import { z } from "zod";
  * Falhar no boot quando falta segredo é deliberado: um servidor que sobe com
  * chave padrão é pior que um servidor que não sobe, porque parece funcionar.
  */
+/**
+ * Trata variável vazia como variável ausente, nos campos opcionais.
+ *
+ * `VAR=` num arquivo .env não apaga a variável: ela chega como string vazia.
+ * Sem isto, seguir o `.env.example` ao pé da letra (ele manda DEIXAR VAZIO o
+ * NOTIFICADOR_ARQUIVO) derruba a partida com "String must contain at least 1
+ * character", que não diz a ninguém o que fazer. O defeito nunca apareceu
+ * porque no compose e na PaaS a variável não existe, em vez de existir vazia.
+ *
+ * Só vale onde ausente e vazio querem dizer a mesma coisa. NÃO se aplica ao
+ * MARCA_DAGUA, onde apagar o valor é um ato deliberado que desliga o carimbo,
+ * e virar "ausente" traria o carimbo de volta em silêncio.
+ */
+function vazioEhAusente<T extends z.ZodTypeAny>(esquema: T) {
+  return z.preprocess((v) => (v === "" ? undefined : v), esquema);
+}
+
 const esquema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().min(1).max(65535).default(3333),
   HOST: z.string().default("127.0.0.1"),
 
   /** Ausente em desenvolvimento e em teste: aí o banco sobe em WebAssembly. */
-  DATABASE_URL: z.string().url().optional(),
+  DATABASE_URL: vazioEhAusente(z.string().url().optional()),
 
   /**
    * Carimbo impresso em todo documento oficial.
@@ -39,8 +56,8 @@ const esquema = z.object({
    * único em `console.log`, por fora do `redact`, e a rota respondia
    * "enviamos o link" sem enviar nada.
    */
-  NOTIFICADOR_URL: z.string().url().optional(),
-  NOTIFICADOR_CHAVE: z.string().min(1).optional(),
+  NOTIFICADOR_URL: vazioEhAusente(z.string().url().optional()),
+  NOTIFICADOR_CHAVE: vazioEhAusente(z.string().min(1).optional()),
 
   /**
    * Canal de teste: grava a mensagem inteira, com o link, neste arquivo.
@@ -51,7 +68,7 @@ const esquema = z.object({
    * um arquivo com link de redefinição de qualquer conta é credencial em texto
    * puro esperando para ser lida.
    */
-  NOTIFICADOR_ARQUIVO: z.string().min(1).optional(),
+  NOTIFICADOR_ARQUIVO: vazioEhAusente(z.string().min(1).optional()),
 
   /**
    * Desliga a recuperação de senha por email, de propósito.
@@ -68,7 +85,7 @@ const esquema = z.object({
    * Chave de assinatura dos tokens de acesso. Mínimo de 32 bytes de entropia.
    * Em produção é obrigatória; sem ela o processo não sobe.
    */
-  JWT_SEGREDO: z.string().min(32).optional(),
+  JWT_SEGREDO: vazioEhAusente(z.string().min(32).optional()),
 
   /** Origens permitidas, separadas por vírgula. Em produção não pode ser "*". */
   ORIGENS_PERMITIDAS: z.string().default("http://localhost:5173"),
@@ -84,11 +101,11 @@ const esquema = z.object({
    * Armazenamento de evidência. Ausentes em desenvolvimento: aí a própria API
    * guarda os bytes em memória, com URL assinada e expirando do mesmo jeito.
    */
-  S3_ENDPOINT: z.string().url().optional(),
-  S3_BALDE: z.string().min(1).optional(),
+  S3_ENDPOINT: vazioEhAusente(z.string().url().optional()),
+  S3_BALDE: vazioEhAusente(z.string().min(1).optional()),
   S3_REGIAO: z.string().min(1).default("auto"),
-  S3_CHAVE_ID: z.string().min(1).optional(),
-  S3_CHAVE_SECRETA: z.string().min(1).optional(),
+  S3_CHAVE_ID: vazioEhAusente(z.string().min(1).optional()),
+  S3_CHAVE_SECRETA: vazioEhAusente(z.string().min(1).optional()),
   /** Endereço público desta API, para montar a URL do armazenamento local. */
   URL_PUBLICA: z.string().url().default("http://127.0.0.1:3333"),
   /** Endereço público do painel, para montar o link de redefinição de senha. */

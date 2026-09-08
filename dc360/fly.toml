@@ -1,0 +1,78 @@
+# =====================================================================
+# Implantação da API do DC360 no Fly.
+#
+# Este arquivo mora em `dc360/`, e não na raiz do repositório, de propósito:
+# o contexto de build do Fly é a pasta do `fly.toml`, e o `Dockerfile` faz
+# `COPY package.json package-lock.json ./` logo na primeira etapa. Da raiz
+# do `city-hall` esse COPY não acha nada e o build morre ali.
+#
+# Ou seja, o deploy roda daqui:
+#   cd dc360 && fly deploy -a defesa-civil
+#
+# Antes do primeiro deploy que precisa dar certo, na ordem:
+#   1. `npm run migrar` com o papel `postgres` do Supabase (a API recusa
+#      subir com esquema atrasado, ver apps/api/src/index.ts).
+#   2. criar o papel `dc360_api` e o `GRANT dc360_app TO dc360_api`.
+#   3. `fly secrets set` com o que está listado em SEGREDOS, abaixo.
+# =====================================================================
+
+app = "defesa-civil"
+primary_region = "gru"
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Só o que NÃO é segredo. O resto entra por `fly secrets set`, que grava
+# cifrado e nunca aparece no repositório nem no painel.
+#
+# SEGREDOS que precisam existir, senão o processo recusa subir (de propósito,
+# ver a lista de checagens em apps/api/src/config.ts):
+#   DATABASE_URL       papel dc360_api, NUNCA o postgres do Supabase
+#   JWT_SEGREDO        >= 32 bytes
+#   URL_PUBLICA        https, sem localhost
+#   URL_PAINEL         https, sem localhost
+#   ORIGENS_PERMITIDAS https, sem curinga
+#   S3_ENDPOINT S3_BALDE S3_CHAVE_ID S3_CHAVE_SECRETA
+[env]
+  NODE_ENV = "production"
+  # 0.0.0.0 porque num contêiner a porta publicada não atende em 127.0.0.1,
+  # e o healthcheck mentiria que está de pé.
+  HOST = "0.0.0.0"
+  PORT = "3333"
+  # Piloto sem provedor de email: a tela manda procurar quem administra o
+  # município. Ligar sem NOTIFICADOR_URL derruba a partida.
+  RECUPERACAO_ATIVA = "nao"
+  # Só apague quando o município homologar e os documentos passarem a valer.
+  MARCA_DAGUA = "DOCUMENTO DE VALIDAÇÃO"
+  # O armazenamento é o do próprio Supabase, então a região é a real do
+  # projeto, e não o "auto" que valeria no Cloudflare R2.
+  S3_REGIAO = "sa-east-1"
+
+[http_service]
+  internal_port = 3333
+  force_https = true
+  # Sistema de emergência não hiberna. O padrão do Fly é parar a máquina sem
+  # tráfego, e o custo disso seria a ocorrência das 3h esperando a partida,
+  # que aqui não é instantânea: o processo confere o esquema no banco antes
+  # de atender.
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  # `/saude` responde 503 enquanto o banco não responde ou o esquema está
+  # atrasado, então o balanceador não manda tráfego para um processo que
+  # ainda não pode servir. É rota pública e não vaza detalhe de erro.
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/saude"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  # 1 GB, e não 256 MB, por causa do Chromium que a imagem instala para o
+  # PDF. Se a decisão pendente no topo do Dockerfile for tirar o PDF da
+  # imagem, isto cai para 512 MB e a imagem encolhe algumas centenas de MB.
+  memory = "1gb"

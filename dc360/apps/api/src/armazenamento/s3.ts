@@ -31,8 +31,25 @@ export function armazenamentoS3(config: ConfigS3): Armazenamento {
     agora = () => new Date(),
   } = config;
 
-  const host = new URL(endpoint).host;
-  const caminhoDe = (chave: string) => `/${balde}/${chave}`;
+  const base = new URL(endpoint);
+  const host = base.host;
+  /*
+    O caminho do endpoint precisa sobreviver, e não sobrevivia.
+
+    Guardar só o `host` funciona no Cloudflare R2 e na AWS, onde o endpoint é
+    a raiz do domínio. No Supabase Storage o endpoint é
+    `https://<ref>.storage.supabase.co/storage/v1/s3`, e jogar fora o
+    `/storage/v1/s3` produzia uma URL assinada apontando para uma rota que não
+    existe.
+
+    O efeito não era um erro de assinatura, era pior: o `PUT` do aparelho
+    respondia 404, `descrever()` devolvia `existe: false`, e
+    `POST /evidencias/confirmar-envio` respondia para sempre que o arquivo não
+    havia chegado. Ou seja, foto de vistoria e assinatura do morador nunca
+    entrariam no laudo, e o laudo sairia sem a prova do ato.
+  */
+  const prefixo = base.pathname.replace(/\/$/, "");
+  const caminhoDe = (chave: string) => `${prefixo}/${balde}/${chave}`;
 
   return {
     async urlParaEnviar(pedido: PedidoEnvio): Promise<Envio> {

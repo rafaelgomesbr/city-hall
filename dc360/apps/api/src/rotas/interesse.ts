@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { interesseMunicipioSchema } from "@dc360/shared";
 import type { Banco } from "../banco/tipos.js";
+import { enderecoDoCliente } from "../rede.js";
 
 /**
  * O formulário público de interesse.
@@ -69,7 +70,7 @@ export async function rotasInteresse(
           dados.quantosAgentes ?? null,
           dados.mensagem?.trim() || null,
           dados.origem?.trim() || null,
-          req.ip,
+          enderecoDoCliente(req),
         ],
       );
     });

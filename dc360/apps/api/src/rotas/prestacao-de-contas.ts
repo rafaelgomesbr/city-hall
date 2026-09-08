@@ -7,6 +7,7 @@ import {
 } from "@dc360/shared";
 import type { Banco } from "../banco/tipos.js";
 import { autorizar } from "../servidor.js";
+import { enderecoDoCliente } from "../rede.js";
 
 /**
  * Prestação de contas: trilha de auditoria e exportação.
@@ -245,7 +246,7 @@ export async function rotasPrestacaoDeContas(
           quem.organizacaoId, quem.usuarioId, quem.nome,
           JSON.stringify({ de: f.de ?? null, ate: f.ate ?? null, status: f.status ?? null }),
           r.rows.length,
-          req.ip || null,
+          enderecoDoCliente(req) || null,
         ],
       );
 
