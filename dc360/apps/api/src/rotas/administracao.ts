@@ -12,6 +12,24 @@ import { encerrarSessoes } from "../auth/sessoes.js";
 
 const idSchema = z.object({ id: z.string().uuid() });
 
+/**
+ * O prazo de retenção, em dias, por município.
+ *
+ * NULO É VALOR, e não campo esquecido: significa "o município ainda não
+ * decidiu", e a varredura pula quem está assim. Por isso `nullable()` e não
+ * `optional()`: omitir a chave e mandá-la nula precisam ser coisas
+ * diferentes, senão desligar a retenção seria impossível de expressar e
+ * alguém acabaria "desligando" com o número 36500.
+ *
+ * A faixa repete a do banco (migração 021), que é quem manda. Aqui ela existe
+ * para a mensagem de erro chegar ao formulário em vez de "violates check
+ * constraint".
+ */
+const retencaoSchema = z.object({
+  solicitanteDias: z.number().int().min(1).max(36500).nullable(),
+  vulnerabilidadeDias: z.number().int().min(1).max(36500).nullable(),
+});
+
 /*
   Os schemas vêm do pacote compartilhado, e não são redefinidos aqui. Antes
   eram: a API tinha a versão completa e o formulário do painel tinha uma cópia
@@ -547,6 +565,113 @@ export async function rotasAdministracao(
       });
 
       return { id, sessoesEncerradas: encerradas };
+    });
+  });
+
+  /**
+   * A retenção de dado pessoal, que é decisão do MUNICÍPIO.
+   *
+   * O município é o controlador na acepção da Lei 13.709/2018: é ele que
+   * decide por quanto tempo o dado fica, porque é a competência dele que
+   * justifica o tratamento. O fornecedor entrega o mecanismo (a varredura da
+   * migração 021) e nunca o número.
+   *
+   * Por isso a rota existe, e por isso ela não tem valor padrão: sem ela o
+   * mecanismo estaria pronto e sem nenhuma forma de ser ligado, e a seção 4 da
+   * política de privacidade descreveria uma retenção que ninguém consegue
+   * configurar. Documento que promete o que o sistema não faz é pior que
+   * documento nenhum.
+   */
+  app.get("/organizacao/retencao", async (req) => {
+    const quem = await autorizar(app, req, "gerenciar_organizacao");
+    return banco.comTenant(quem.organizacaoId, async (c) => {
+      const r = await c.query<{
+        nome: string;
+        retencao_solicitante_dias: number | null;
+        retencao_vulnerabilidade_dias: number | null;
+      }>(
+        `SELECT nome, retencao_solicitante_dias, retencao_vulnerabilidade_dias
+           FROM organizacoes WHERE id = $1`,
+        [quem.organizacaoId],
+      );
+      const linha = r.rows[0]!;
+      return {
+        nome: linha.nome,
+        solicitanteDias: linha.retencao_solicitante_dias,
+        vulnerabilidadeDias: linha.retencao_vulnerabilidade_dias,
+      };
+    });
+  });
+
+  app.patch("/organizacao/retencao", async (req) => {
+    const quem = await autorizar(app, req, "gerenciar_organizacao");
+    const dados = retencaoSchema.parse(req.body);
+
+    return banco.comTenant(quem.organizacaoId, async (c) => {
+      const antes = await c.query<{
+        nome: string;
+        retencao_solicitante_dias: number | null;
+        retencao_vulnerabilidade_dias: number | null;
+      }>(
+        `SELECT nome, retencao_solicitante_dias, retencao_vulnerabilidade_dias
+           FROM organizacoes WHERE id = $1`,
+        [quem.organizacaoId],
+      );
+      const anterior = antes.rows[0]!;
+
+      /*
+        A checagem de ordem também vive no banco (migração 021), e aqui ela
+        existe só para a mensagem: o CHECK do Postgres devolveria "violates
+        check constraint", que não diz a quem preenche o formulário o que
+        corrigir. A regra continua sendo a do banco; esta é a tradução.
+      */
+      if (
+        dados.solicitanteDias !== null && dados.vulnerabilidadeDias !== null
+        && dados.vulnerabilidadeDias > dados.solicitanteDias
+      ) {
+        throw new RegraDeNegocio(
+          "vulnerabilidade_depois_do_nome",
+          "O prazo da descrição de vulnerabilidade social não pode ser maior que o do "
+          + "nome do solicitante: seria descartar o identificador comum e continuar "
+          + "guardando o dado sensível.",
+          422,
+        );
+      }
+
+      await c.query(
+        `UPDATE organizacoes
+            SET retencao_solicitante_dias = $2,
+                retencao_vulnerabilidade_dias = $3
+          WHERE id = $1`,
+        [quem.organizacaoId, dados.solicitanteDias, dados.vulnerabilidadeDias],
+      );
+
+      /*
+        Mudar prazo de retenção é ato administrativo, e dos graves: encurtar
+        um prazo destrói dado de cidadão que ainda estava dentro do anterior, e
+        alongar mantém vivo o que já devia ter saído. Sem `antes` e `depois` na
+        trilha, a pergunta "quem mandou apagar isso?" não tem resposta, e a
+        varredura fica sendo o único suspeito de um descarte que alguém pediu.
+      */
+      await registrarAtoAdministrativo(c, quem, {
+        acao: "retencao_alterada",
+        alvoTipo: "organizacao",
+        alvoId: quem.organizacaoId,
+        alvoNome: anterior.nome,
+        antes: {
+          solicitanteDias: anterior.retencao_solicitante_dias,
+          vulnerabilidadeDias: anterior.retencao_vulnerabilidade_dias,
+        },
+        depois: {
+          solicitanteDias: dados.solicitanteDias,
+          vulnerabilidadeDias: dados.vulnerabilidadeDias,
+        },
+      });
+
+      return {
+        solicitanteDias: dados.solicitanteDias,
+        vulnerabilidadeDias: dados.vulnerabilidadeDias,
+      };
     });
   });
 }

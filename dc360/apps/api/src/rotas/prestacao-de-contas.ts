@@ -1,12 +1,14 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
-  PAPEIS, ROTULO_CANAL, ROTULO_PAPEL, ROTULO_SEVERIDADE, ROTULO_STATUS,
+  PAPEIS, POSTO, ROTULO_CANAL, ROTULO_PAPEL, ROTULO_SEVERIDADE, ROTULO_STATUS,
   ROTULO_TIPO_COBRADE, montarCsv,
-  type CanalEntrada, type Severidade, type StatusOcorrencia, type TipoCobrade,
+  type CanalEntrada, type Papel, type Severidade, type StatusOcorrencia,
+  type TipoDeEntrada,
 } from "@dc360/shared";
 import type { Banco } from "../banco/tipos.js";
-import { autorizar } from "../servidor.js";
+import { RegraDeNegocio, autorizar } from "../servidor.js";
+import { registrarAtoAdministrativo } from "../trilha.js";
 import { enderecoDoCliente } from "../rede.js";
 
 /**
@@ -41,6 +43,99 @@ const filtroExportacaoSchema = z.object({
   ate: z.string().datetime().optional(),
   status: z.string().max(30).optional(),
 });
+
+/**
+ * A exportação passa a ter dois níveis, e o padrão é o que NÃO leva pessoa.
+ *
+ * O DEFEITO QUE ISTO CORRIGE: até aqui existia um botão só, e ele produzia um
+ * arquivo com nome, contato, relato e marca de vulnerabilidade de todas as
+ * famílias atendidas. Quem queria responder ao Tribunal de Contas quantos
+ * chamados houve por bairro levava, no mesmo arquivo, a lista de quem ligou
+ * para a Defesa Civil. Esse arquivo sai do sistema e passa a viver num pen
+ * drive, num anexo de email e numa pasta compartilhada, e nada consegue
+ * trazê-lo de volta.
+ *
+ * O BÁSICO ATENDE A PRESTAÇÃO DE CONTAS INTEIRA: protocolo, tipo, severidade,
+ * endereço, datas, situação, tempos e providências. Nada do que a câmara, o
+ * Tribunal de Contas ou o Ministério Público perguntam exige o nome de quem
+ * ligou.
+ *
+ * O COMPLETO NÃO É O PADRÃO, e essa é a decisão inteira: quem exporta tudo por
+ * engano já vazou, e o engano é o caso comum, não o raro. Para chegar nele
+ * são necessárias três coisas ao mesmo tempo, e nenhuma delas é um clique
+ * distraído: posto de administrador, justificativa escrita e um recorte que
+ * caiba no teto.
+ */
+const nivelDaExportacaoSchema = z.object({
+  nivel: z.enum(["basico", "completo"]).default("basico"),
+  /*
+    O mínimo de vinte caracteres não é burocracia. Sem ele, o campo vira "ok" e
+    o registro passa a existir sem informar nada, o que é pior do que não
+    existir: dá a aparência de controle sem o controle. Vinte caracteres
+    obrigam uma frase, e uma frase é o que alguém lê quando pergunta por que
+    aquele arquivo saiu. O mesmo mínimo está no CHECK da migração 021, para
+    valer também para qualquer caminho futuro que insira em `exportacoes`.
+  */
+  justificativa: z.string().trim().min(20, "Escreva por que os dados pessoais precisam sair.")
+    .max(500).optional(),
+}).refine((v) => v.nivel !== "completo" || Boolean(v.justificativa), {
+  path: ["justificativa"],
+  message:
+    "A exportação com dados pessoais exige justificativa escrita. "
+    + "Ela fica no registro de exportações e na trilha administrativa.",
+});
+
+/**
+ * Teto de linhas do nível completo.
+ *
+ * Ele não protege o servidor: protege a pessoa. Uma exportação com dado
+ * pessoal precisa ser um RECORTE que alguém consegue justificar, e "a base
+ * inteira desde 2026" não é recorte. O teto transforma a pergunta "por que
+ * você exportou isso?" numa que tem resposta possível.
+ *
+ * Estourar RECUSA em vez de cortar. Um arquivo truncado em silêncio é pior que
+ * uma recusa: ele parece completo, alguém o anexa a um processo, e as
+ * ocorrências que ficaram de fora somem sem nenhum sinal.
+ */
+const TETO_DA_EXPORTACAO_COMPLETA = 5000;
+
+const filtroConsultasSchema = z.object({
+  ocorrencia: z.string().uuid().optional(),
+  usuario: z.string().uuid().optional(),
+  pagina: z.coerce.number().int().min(1).default(1),
+  porPagina: z.coerce.number().int().min(1).max(200).default(50),
+});
+
+/**
+ * O segundo portão do nível completo: o POSTO MÁXIMO do município.
+ *
+ * POR QUE POSTO, E NÃO A MESMA PERMISSÃO DE SEMPRE. `exportar_dados` é a
+ * permissão da prestação de contas, e a prestação de contas inteira se faz com
+ * o nível básico. Se o completo herdasse dela, todo mundo que exporta um
+ * relatório de rotina teria, no mesmo botão, a base de nomes das famílias
+ * atendidas, e o "não pode ser o padrão" viraria só um texto de tela.
+ *
+ * O administrador é o teto do município (ver `POSTO`, no pacote compartilhado):
+ * acima dele só existe quem provisiona o município, que nem é papel de
+ * aplicação. Quem tira nome, contato e descrição de vulnerabilidade do sistema
+ * responde pessoalmente por isso perante o encarregado, e essa
+ * responsabilidade pertence ao mesmo lugar onde termina a administração das
+ * contas.
+ *
+ * 403 e não 404: o recurso é do próprio município da pessoa, ela só não tem
+ * posto para ele. O 404 existe para não revelar recurso de OUTRO município, e
+ * não é o caso aqui.
+ */
+function exigirPostoParaDadoPessoal(papel: Papel): void {
+  if (POSTO[papel] < POSTO.administrador) {
+    throw new RegraDeNegocio(
+      "posto_insuficiente_para_dado_pessoal",
+      "A exportação com dados pessoais é de quem administra o município. "
+      + "Use a exportação sem dados pessoais, ou peça a quem administra.",
+      403,
+    );
+  }
+}
 
 /**
  * Data que o Excel entende, e não a que o JavaScript imprime.
@@ -155,15 +250,20 @@ export async function rotasPrestacaoDeContas(
 
   type LinhaExportacao = {
     protocolo: string;
-    tipo: TipoCobrade;
+    /*
+      `TipoDeEntrada` e nao `TipoCobrade`: a exportacao le o banco, e desde a
+      migracao 019 o banco guarda tambem a marca de "ainda nao classificado".
+      Declarar so os oito da COBRADE fazia o tipo prometer uma coisa que a
+      consulta nao garante, e o rotulo cairia no `?? l.tipo` imprimindo a
+      chave crua do banco dentro de um relatorio que vai para a camara.
+    */
+    tipo: TipoDeEntrada;
     status: StatusOcorrencia;
     severidade: Severidade | null;
     endereco: string;
     latitude: number | null;
     longitude: number | null;
     canal_entrada: string;
-    solicitante_nome: string;
-    descricao: string;
     vulnerabilidade_presente: boolean;
     equipe_nome: string | null;
     criado_em: string;
@@ -174,15 +274,33 @@ export async function rotasPrestacaoDeContas(
     horas_ate_encerramento: string | null;
     providencias: string;
     providencias_sem_resposta: string;
+    /*
+      As quatro colunas do nivel COMPLETO. Sao opcionais no tipo porque a
+      consulta do nivel basico simplesmente nao as pede: elas nao chegam a sair
+      do banco, e nao e a montagem do CSV que as esconde depois. Filtrar
+      no fim seria a versao fragil da mesma ideia, porque a primeira alteracao
+      distraida na montagem devolveria as colunas ao arquivo.
+    */
+    solicitante_nome?: string;
+    solicitante_contato?: string | null;
+    vulnerabilidade_descricao?: string | null;
+    descricao?: string;
   };
 
   /**
-   * Exportação em CSV.
+   * Exportação em CSV, em dois níveis.
    *
    * Colunas escolhidas para responder o que perguntam a uma Defesa Civil, e
    * não para espelhar o banco: quanto tempo levou até a vistoria, quanto até
    * encerrar, quantas providências ficaram sem resposta. Exportar o esquema
    * cru daria um arquivo que ninguém consegue ler numa reunião.
+   *
+   * O PADRÃO É O BÁSICO, que não leva pessoa nenhuma. O relato também fica de
+   * fora dele, e essa é a decisão menos óbvia daqui: relato é texto livre
+   * ditado por telefone, e no meio dele vêm nome de vizinho, telefone de
+   * parente e condição de saúde de quem mora na casa. Não existe como
+   * minimizar um campo assim, então ele acompanha o nível que já é tratado
+   * como dado pessoal.
    *
    * A montagem passa por `montarCsv` do pacote compartilhado, que neutraliza
    * célula começando com `=`. O relato vem do que um cidadão dita por
@@ -192,6 +310,19 @@ export async function rotasPrestacaoDeContas(
   app.get("/relatorios/ocorrencias.csv", async (req, resposta) => {
     const quem = await autorizar(app, req, "exportar_dados");
     const f = filtroExportacaoSchema.parse(req.query);
+    const n = nivelDaExportacaoSchema.parse(req.query);
+    const completo = n.nivel === "completo";
+
+    /*
+      O portão do dado pessoal, ANTES de tocar no banco.
+
+      `exportar_dados` continua sendo a permissão de prestação de contas, e ela
+      dá o nível básico, que é o que coordenador e administrador usam para
+      responder à câmara. Ela NÃO dá o nível completo, e é isso que impede o
+      caminho fácil: com uma permissão só, qualquer relatório de rotina
+      carregaria a base de nomes junto.
+    */
+    if (completo) exigirPostoParaDadoPessoal(quem.papel);
 
     const linhas = await banco.comTenant(quem.organizacaoId, async (c) => {
       const condicoes: string[] = [];
@@ -204,10 +335,32 @@ export async function rotasPrestacaoDeContas(
       }
       const onde = condicoes.length ? `WHERE ${condicoes.join(" AND ")}` : "";
 
+      /*
+        As colunas de pessoa entram na CONSULTA só no nível completo. Ver o
+        comentário do tipo acima: esconder na montagem seria a versão frágil.
+
+        `solicitante_nome` pode vir como o marcador de "removido por prazo"
+        (migração 021), e isso é o comportamento certo: a planilha mostra que o
+        município cumpriu a retenção, em vez de uma célula vazia que não
+        distingue descarte de dado que nunca existiu.
+      */
+      const colunasDePessoa = completo
+        ? `, o.solicitante_nome, o.solicitante_contato,
+             o.vulnerabilidade_descricao, o.descricao`
+        : "";
+
+      /*
+        O teto pede uma linha a MAIS do que o permitido, de propósito: é assim
+        que dá para distinguir "coube" de "estourou" sem uma segunda consulta
+        de contagem, que leria a mesma tabela duas vezes para responder a
+        mesma pergunta.
+      */
+      const teto = completo ? `\n          LIMIT ${TETO_DA_EXPORTACAO_COMPLETA + 1}` : "";
+
       const r = await c.query<LinhaExportacao>(
         `SELECT o.protocolo, o.tipo, o.status, o.severidade, o.endereco,
-                o.latitude, o.longitude, o.canal_entrada, o.solicitante_nome,
-                o.descricao, o.vulnerabilidade_presente, e.nome AS equipe_nome,
+                o.latitude, o.longitude, o.canal_entrada,
+                o.vulnerabilidade_presente, e.nome AS equipe_nome,
                 o.criado_em, o.prazo_em, o.encerrado_em, o.motivo_encerramento,
                 round(extract(epoch FROM (v.coletada_em - o.criado_em)) / 3600.0, 1)::text
                   AS horas_ate_vistoria,
@@ -215,6 +368,7 @@ export async function rotasPrestacaoDeContas(
                   AS horas_ate_encerramento,
                 coalesce(p.total, '0') AS providencias,
                 coalesce(p.abertas, '0') AS providencias_sem_resposta
+                ${colunasDePessoa}
            FROM ocorrencias o
            LEFT JOIN equipes e ON e.id = o.equipe_id
            LEFT JOIN LATERAL (
@@ -227,28 +381,80 @@ export async function rotasPrestacaoDeContas(
                FROM providencias p2 WHERE p2.ocorrencia_id = o.id
            ) p ON true
            ${onde}
-          ORDER BY o.criado_em`,
+          ORDER BY o.criado_em${teto}`,
         params,
       );
+
+      if (completo && r.rows.length > TETO_DA_EXPORTACAO_COMPLETA) {
+        throw new RegraDeNegocio(
+          "recorte_grande_demais",
+          `Esse recorte passa de ${TETO_DA_EXPORTACAO_COMPLETA} ocorrências. `
+          + "Exportação com dados pessoais precisa ser um recorte justificável: "
+          + "estreite o período ou a situação, ou use a exportação sem dados pessoais.",
+          409,
+        );
+      }
+
       /*
         A exportação é registrada na MESMA transação que a leitura.
 
-        Um CSV de ocorrências carrega nome, contato e relato de cidadãos, e sai
-        do sistema para viver num pen drive ou num email. Registrar quem levou
-        qual recorte é o que permite responder "quem tirou a base em março?",
-        pergunta que só aparece depois que um dado vaza.
+        Um CSV de ocorrências sai do sistema para viver num pen drive ou num
+        email. Registrar quem levou qual recorte, em que nível e por quê é o
+        que permite responder "quem tirou a base em março?", pergunta que só
+        aparece depois que um dado vaza.
+
+        O nível e a justificativa vão junto porque sem eles o registro não
+        distingue o relatório de rotina da retirada da base de nomes, que são
+        coisas de gravidade completamente diferente. O CHECK da migração 021
+        recusa nível completo sem justificativa, então este par não tem como
+        ficar pela metade nem por caminho futuro.
       */
       await c.query(
         `INSERT INTO exportacoes
-           (organizacao_id, usuario_id, usuario_nome, tipo, filtros, total_registros, ip)
-         VALUES ($1,$2,$3,'ocorrencias_csv',$4,$5,$6)`,
+           (organizacao_id, usuario_id, usuario_nome, tipo, filtros, total_registros,
+            ip, nivel, justificativa)
+         VALUES ($1,$2,$3,'ocorrencias_csv',$4,$5,$6,$7,$8)`,
         [
           quem.organizacaoId, quem.usuarioId, quem.nome,
           JSON.stringify({ de: f.de ?? null, ate: f.ate ?? null, status: f.status ?? null }),
           r.rows.length,
           enderecoDoCliente(req) || null,
+          n.nivel,
+          completo ? n.justificativa! : null,
         ],
       );
+
+      /*
+        O nível completo entra TAMBÉM na trilha administrativa, e o básico não.
+
+        Não é redundância com o registro acima. `exportacoes` é a lista
+        especializada, que alguém abre quando já está investigando; a trilha
+        administrativa é onde a corregedoria e a chefia olham para saber o que
+        de excepcional aconteceu no mês, ao lado de "promoveram uma conta" e
+        "desativaram um órgão". Tirar a base de nomes de cidadãos do sistema
+        pertence a essa lista, e exportar o resumo do trimestre não pertence:
+        pôr as duas ali faria a mais grave desaparecer no meio da rotina.
+
+        A justificativa viaja junto do ato, e não num lugar que alguém precise
+        cruzar depois.
+      */
+      if (completo) {
+        const org = await c.query<{ nome: string }>(
+          "SELECT nome FROM organizacoes WHERE id = $1",
+          [quem.organizacaoId],
+        );
+        await registrarAtoAdministrativo(c, quem, {
+          acao: "exportacao_com_dado_pessoal",
+          alvoTipo: "organizacao",
+          alvoId: quem.organizacaoId,
+          alvoNome: org.rows[0]?.nome ?? "município",
+          depois: {
+            justificativa: n.justificativa,
+            totalRegistros: r.rows.length,
+            filtros: { de: f.de ?? null, ate: f.ate ?? null, status: f.status ?? null },
+          },
+        });
+      }
 
       return r.rows;
     });
@@ -256,11 +462,14 @@ export async function rotasPrestacaoDeContas(
     const csv = montarCsv(
       [
         "Protocolo", "Tipo (COBRADE)", "Situação", "Severidade", "Endereço",
-        "Latitude", "Longitude", "Canal de entrada", "Solicitante",
-        "Vulnerabilidade social", "Relato", "Equipe", "Registrada em", "Prazo",
+        "Latitude", "Longitude", "Canal de entrada",
+        "Vulnerabilidade social", "Equipe", "Registrada em", "Prazo",
         "Encerrada em", "Motivo do encerramento",
         "Horas até a vistoria", "Horas até o encerramento",
         "Providências", "Providências sem resposta",
+        ...(completo
+          ? ["Solicitante", "Contato do solicitante", "Vulnerabilidade (descrição)", "Relato"]
+          : []),
       ],
       linhas.map((l) => [
         l.protocolo,
@@ -270,9 +479,7 @@ export async function rotasPrestacaoDeContas(
         l.endereco,
         l.latitude, l.longitude,
         ROTULO_CANAL[l.canal_entrada as CanalEntrada] ?? l.canal_entrada,
-        l.solicitante_nome,
         l.vulnerabilidade_presente ? "sim" : "não",
-        l.descricao,
         l.equipe_nome ?? "",
         dataParaPlanilha(l.criado_em),
         dataParaPlanilha(l.prazo_em),
@@ -280,13 +487,32 @@ export async function rotasPrestacaoDeContas(
         l.motivo_encerramento ?? "",
         l.horas_ate_vistoria ?? "", l.horas_ate_encerramento ?? "",
         l.providencias, l.providencias_sem_resposta,
+        ...(completo
+          ? [
+              l.solicitante_nome ?? "",
+              l.solicitante_contato ?? "",
+              l.vulnerabilidade_descricao ?? "",
+              l.descricao ?? "",
+            ]
+          : []),
       ]),
     );
 
     const hoje = new Date().toISOString().slice(0, 10);
+    /*
+      O NOME DO ARQUIVO DIZ O QUE ELE CARREGA.
+
+      Os dois níveis produzem planilhas parecidas na tela, e a de dados
+      pessoais vai parar na mesma pasta de downloads da outra. "ocorrencias-
+      2026-09-09.csv" duas vezes é o caminho mais curto para alguém anexar a
+      errada num email para fora da prefeitura, e o arquivo já não tem volta.
+    */
+    const nome = completo
+      ? `ocorrencias-com-dados-pessoais-${hoje}.csv`
+      : `ocorrencias-${hoje}.csv`;
     return resposta
       .type("text/csv; charset=utf-8")
-      .header("content-disposition", `attachment; filename="ocorrencias-${hoje}.csv"`)
+      .header("content-disposition", `attachment; filename="${nome}"`)
       .send(csv);
   });
 
@@ -323,7 +549,7 @@ export async function rotasPrestacaoDeContas(
         params,
       );
 
-      const porTipo = await c.query<{ tipo: TipoCobrade; total: string }>(
+      const porTipo = await c.query<{ tipo: TipoDeEntrada; total: string }>(
         `SELECT o.tipo, count(*)::text AS total FROM ocorrencias o ${onde}
           GROUP BY o.tipo ORDER BY count(*) DESC`,
         params,
@@ -368,6 +594,71 @@ export async function rotasPrestacaoDeContas(
            FROM exportacoes ORDER BY criada_em DESC LIMIT 200`,
       );
       return { itens: r.rows };
+    });
+  });
+
+  /**
+   * Quem consultou dado de cidadão, e sobre qual ocorrência.
+   *
+   * Esta rota existe porque um registro que ninguém consegue ler é um registro
+   * que não responde nada. A pergunta que ela atende é a da autoridade
+   * nacional e a do próprio titular: "quem viu os dados dessa família?". Com o
+   * filtro por servidor ela também responde a da corregedoria: "o que essa
+   * pessoa andou consultando?".
+   *
+   * Sob `consultar_trilha`, que é a mesma permissão da auditoria: quem lê o
+   * registro de acesso está fazendo auditoria, e o registro de acesso, lido em
+   * série, descreve o comportamento de servidores identificados. Não é
+   * material de tela de rotina.
+   */
+  app.get("/relatorios/consultas", async (req) => {
+    const quem = await autorizar(app, req, "consultar_trilha");
+    const f = filtroConsultasSchema.parse(req.query);
+
+    return banco.comTenant(quem.organizacaoId, async (c) => {
+      const condicoes: string[] = [];
+      const params: unknown[] = [];
+      if (f.ocorrencia) {
+        params.push(f.ocorrencia);
+        condicoes.push(`k.ocorrencia_id = $${params.length}`);
+      }
+      if (f.usuario) {
+        params.push(f.usuario);
+        condicoes.push(`k.usuario_id = $${params.length}`);
+      }
+      const onde = condicoes.length ? `WHERE ${condicoes.join(" AND ")}` : "";
+
+      const total = await c.query<{ total: string }>(
+        `SELECT count(*)::text AS total FROM ocorrencia_consultas k ${onde}`,
+        params,
+      );
+
+      params.push(f.porPagina, (f.pagina - 1) * f.porPagina);
+      const itens = await c.query(
+        `SELECT k.id, k.usuario_nome, k.usuario_papel, k.recurso, k.finalidade,
+                k.consultada_em, k.ocorrencia_id, o.protocolo
+           FROM ocorrencia_consultas k
+           JOIN ocorrencias o ON o.id = k.ocorrencia_id
+           ${onde}
+          ORDER BY k.consultada_em DESC
+          LIMIT $${params.length - 1} OFFSET $${params.length}`,
+        params,
+      );
+
+      /*
+        O endereço de rede de quem consultou NÃO sai daqui, e a ausência é
+        deliberada. Ele fica gravado, porque é o que distingue "abriu da
+        prefeitura" de "abriu de casa às três da manhã" numa investigação, e
+        ele é entregue por quem administra o banco a quem estiver investigando.
+        Numa tela de auditoria de uso diário ele seria vigilância de servidor
+        público, que não é a finalidade desta tabela.
+      */
+      return {
+        itens: itens.rows,
+        total: Number(total.rows[0]!.total),
+        pagina: f.pagina,
+        porPagina: f.porPagina,
+      };
     });
   });
 

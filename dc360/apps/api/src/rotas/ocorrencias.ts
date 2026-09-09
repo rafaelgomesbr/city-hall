@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
+  MOTIVO_RECLASSIFICAR,
   PRAZO_PADRAO_HORAS,
   SEVERIDADES,
   STATUS_OCORRENCIA,
@@ -8,6 +9,7 @@ import {
   despachoSchema,
   desinterdicaoSchema, encerramentoSchema,
   estadoTerminal,
+  precisaReclassificar,
   providenciaSchema,
   respostaProvidenciaSchema,
   transicaoPermitida,
@@ -17,6 +19,8 @@ import {
 import type { Banco, Consulta } from "../banco/tipos.js";
 import { RegraDeNegocio, autorizar } from "../servidor.js";
 import { registrarEvento } from "../trilha.js";
+import { registrarConsulta } from "../privacidade/consulta.js";
+import { enderecoDoCliente } from "../rede.js";
 
 const idSchema = z.object({ id: z.string().uuid("Identificador inválido") });
 
@@ -310,6 +314,27 @@ export async function rotasOcorrencias(
         ),
       ]);
 
+      /*
+        Quem abriu o dossiê fica registrado.
+
+        Esta é a resposta que faltava para "quem viu os dados dessa família?".
+        Ela vem DEPOIS da checagem de existência, de propósito: registrar uma
+        ocorrência que não existe (ou que é de outro município, o que aqui dá
+        no mesmo) transformaria a tabela num diário de tentativas de
+        adivinhação de identificador, e daria a quem varre uma forma de encher
+        o registro de acesso de um município sem nem saber se ele existe.
+
+        Roda na mesma transação da leitura: ou o dossiê sai e a linha fica, ou
+        nenhum dos dois acontece. Ver `privacidade/consulta.ts` para o critério
+        de por que o detalhe registra e a listagem não.
+      */
+      await registrarConsulta(c, quem, {
+        ocorrenciaId: id,
+        recurso: "ocorrencia_detalhe",
+        finalidade: "atendimento",
+        ip: enderecoDoCliente(req),
+      });
+
       return {
         ocorrencia: ocorrencia.rows[0],
         trilha: trilha.rows,
@@ -339,13 +364,25 @@ export async function rotasOcorrencias(
 
       const r = await c.query<{ id: string; protocolo: string }>(
         `INSERT INTO ocorrencias
-           (organizacao_id, protocolo, tipo, status, endereco, ponto_referencia,
-            latitude, longitude,
+           (organizacao_id, protocolo, tipo, tipo_descricao, status, endereco,
+            ponto_referencia, latitude, longitude,
             solicitante_nome, solicitante_contato, canal_entrada, descricao, vinculada_a)
-         VALUES ($1,$2,$3,'registrada',$4,$5,$6,$7,$8,$9,$10,$11,$12)
+         VALUES ($1,$2,$3,$4,'registrada',$5,$6,$7,$8,$9,$10,$11,$12,$13)
          RETURNING id, protocolo`,
         [
-          quem.organizacaoId, protocolo, dados.tipo, dados.endereco,
+          quem.organizacaoId, protocolo, dados.tipo,
+          /*
+            A descricao SO acompanha "outro", e o banco recusa o contrario
+            (`tipo_da_cobrade_nao_guarda_descricao`, migracao 019).
+
+            Sem este `precisaReclassificar` a rota mandaria adiante um texto que
+            um cliente tivesse anexado a um tipo da COBRADE, e o chamado morreria
+            no INSERT com 500. Descartar aqui e a resposta certa porque nesse
+            caso o campo nao e informacao do chamado: e anotacao paralela sem
+            lugar, e o formulario nem sequer o oferece quando ha tipo escolhido.
+          */
+          precisaReclassificar(dados.tipo) ? dados.tipoDescricao?.trim() ?? null : null,
+          dados.endereco,
           dados.pontoReferencia?.trim() || null,
           dados.coordenada?.lat ?? null, dados.coordenada?.lng ?? null,
           dados.solicitanteNome, dados.solicitanteContato ?? null,
@@ -357,6 +394,18 @@ export async function rotasOcorrencias(
         protocolo: nova.protocolo,
         canal: dados.canalEntrada,
         vinculadaA: dados.vinculadaA ?? null,
+        tipo: dados.tipo,
+        /*
+          O texto entra na trilha alem da coluna, e nao por capricho de
+          registro: a reclassificacao na triagem LIMPA `tipo_descricao`, porque
+          tipo da COBRADE nao guarda descricao. Sem esta copia na trilha, o que
+          o solicitante relatou ao telefone desapareceria no instante em que
+          alguem classificasse o chamado, e ninguem conseguiria mais conferir se
+          a classificacao correspondia ao relato.
+        */
+        tipoDescricao: precisaReclassificar(dados.tipo)
+          ? dados.tipoDescricao?.trim() ?? null
+          : null,
       });
       return nova;
     });
@@ -395,18 +444,65 @@ export async function rotasOcorrencias(
 
     await banco.comTenant(quem.organizacaoId, async (c) => {
       await exigirTransicao(c, id, "triagem");
+
+      /*
+        A RECLASSIFICACAO, que era coletada e jogada fora.
+
+        `triagemSchema.tipo` existia e esta rota nunca o gravava: o corpo
+        passava pelo Zod, o campo era lido e o UPDATE nao o mencionava. Quem
+        fizesse a triagem escolhia o tipo, via a tela confirmar, e o chamado
+        continuava "outro" no banco, sem nenhum sinal de que a escolha se
+        perdeu. Depois do despacho ninguem volta para conferir.
+
+        O tipo anterior e lido ANTES do UPDATE porque e ele que vai para a
+        trilha: "reclassificado de outro para deslizamento" e um fato do
+        processo, e a trilha e o unico lugar onde ele cabe, ja que a coluna
+        guarda so o estado de agora.
+      */
+      const antes = await c.query<{ tipo: string; tipo_descricao: string | null }>(
+        "SELECT tipo, tipo_descricao FROM ocorrencias WHERE id = $1",
+        [id],
+      );
+      const anterior = antes.rows[0]!;
+      const tipoNovo = t.tipo ?? anterior.tipo;
+
+      /*
+        `tipo_descricao` e zerada junto com a reclassificacao, e a restricao
+        `tipo_da_cobrade_nao_guarda_descricao` (migracao 019) recusaria o UPDATE
+        se ela ficasse. O texto nao se perde: ele foi para a trilha no registro
+        e vai de novo no evento abaixo, que e append-only. O que deixa de
+        existir e um campo livre pendurado num registro ja classificado, que
+        vira lixeira de anotacao paralela justamente porque ninguem mais o le.
+      */
       await c.query(
         `UPDATE ocorrencias
             SET status = 'triagem', severidade = $2,
                 vulnerabilidade_presente = $3, vulnerabilidade_descricao = $4,
-                prazo_em = criado_em + ($5 || ' hours')::interval
+                prazo_em = criado_em + ($5 || ' hours')::interval,
+                tipo = $6,
+                tipo_descricao = CASE WHEN $6 = 'outro' THEN tipo_descricao ELSE NULL END
           WHERE id = $1`,
         [id, t.severidade, t.vulnerabilidadePresente,
-         t.vulnerabilidadeDescricao ?? null, String(PRAZO_PADRAO_HORAS[t.severidade])],
+         t.vulnerabilidadeDescricao ?? null, String(PRAZO_PADRAO_HORAS[t.severidade]),
+         tipoNovo],
       );
       await registrarEvento(c, quem, id, "triagem", {
         severidade: t.severidade,
         prazoHoras: PRAZO_PADRAO_HORAS[t.severidade],
+        tipo: tipoNovo,
+        ...(tipoNovo !== anterior.tipo
+          ? {
+              tipoAnterior: anterior.tipo,
+              /*
+                O relato que motivou a classificacao, guardado no mesmo evento
+                que a classificacao. Depois deste UPDATE ele nao existe mais em
+                coluna nenhuma, e quem auditar precisa poder ler os dois lado a
+                lado para saber se a decisao tecnica correspondia ao que a
+                pessoa contou ao telefone.
+              */
+              tipoDescricaoAnterior: anterior.tipo_descricao,
+            }
+          : {}),
       });
     });
 
@@ -420,6 +516,32 @@ export async function rotasOcorrencias(
 
     await banco.comTenant(quem.organizacaoId, async (c) => {
       await exigirTransicao(c, id, "em_campo");
+
+      /*
+        O PORTAO DA RECLASSIFICACAO. "outro" nao sobrevive ao despacho.
+
+        A taxonomia COBRADE existe para o dado do municipio conversar com o
+        sistema nacional, e uma ocorrencia que fica "outro" para sempre e dado
+        perdido. Sem este portao a marca de "ainda nao classificado" atravessa
+        o fluxo inteiro: o agente coleta, o laudo sai com brasao e assinatura
+        dizendo "Outro" no campo do tipo, e ninguem volta para classificar
+        depois que a equipe ja foi.
+
+        Aqui e no banco, e nao so aqui: a restricao
+        `tipo_a_classificar_nao_passa_do_despacho` (migracao 019) recusa o mesmo
+        UPDATE por outro caminho. Esta checagem existe para o coordenador ler
+        uma frase que diz o que fazer, em vez de um 500 vindo de SQLSTATE 23514,
+        e a do banco existe porque regra de negocio que so mora na rota nao vale
+        para a escrita que alguem fizer amanha por um caminho novo.
+      */
+      const classificacao = await c.query<{ tipo: string }>(
+        "SELECT tipo FROM ocorrencias WHERE id = $1",
+        [id],
+      );
+      if (precisaReclassificar(classificacao.rows[0]!.tipo)) {
+        throw new RegraDeNegocio("tipo_a_classificar", MOTIVO_RECLASSIFICAR, 409);
+      }
+
       // A equipe é lida sob RLS: equipe de outro município simplesmente não
       // existe daqui, então não há como despachar para fora da prefeitura.
       const equipe = await c.query<{ nome: string; ativa: boolean }>(

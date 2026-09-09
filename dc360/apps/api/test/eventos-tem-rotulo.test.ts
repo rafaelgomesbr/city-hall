@@ -24,6 +24,24 @@ import { ROTULO_EVENTO_TRILHA } from "@dc360/shared";
 
 const RAIZ = new URL("../src/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 
+/**
+ * As migracoes tambem gravam na trilha, e o portao era cego para elas.
+ *
+ * O caso que abriu o buraco: a varredura de minimizacao por prazo grava o
+ * evento `minimizacao_por_prazo` de dentro do proprio SQL, na MESMA transacao
+ * que remove o nome e o contato do solicitante. Essa escolha e deliberada e
+ * esta escrita na migracao: em transacao separada, um processo que morresse no
+ * meio deixaria dado removido sem rastro nenhum, e isso e indistinguivel de
+ * perda de dado numa auditoria.
+ *
+ * O efeito colateral foi este portao reprovar o rotulo em portugues dizendo
+ * que ninguem grava aquele evento. Ele so lia TypeScript, entao a resposta
+ * certa nao era abrir excecao para o rotulo: era ensinar o portao a ler o
+ * outro lugar de onde a trilha nasce.
+ */
+const RAIZ_MIGRACOES = new URL("../../../db/migrations/", import.meta.url)
+  .pathname.replace(/^\/([A-Za-z]:)/, "$1");
+
 function arquivosTypeScript(dir: string): string[] {
   const achados: string[] = [];
   for (const entrada of readdirSync(dir, { withFileTypes: true })) {
@@ -68,6 +86,30 @@ function tiposGravados(): Set<string> {
     for (const m of fonte.matchAll(chamada)) tipos.add(m[1]!);
     for (const m of fonte.matchAll(insercao)) tipos.add(m[1]!);
   }
+  for (const tipo of tiposGravadosPorMigracao()) tipos.add(tipo);
+  return tipos;
+}
+
+/**
+ * Os tipos que nascem dentro de uma migracao, e nao de uma rota.
+ *
+ * Mesma regra posicional dos outros dois leitores: o tipo e a TERCEIRA coluna,
+ * porque a lista de colunas do INSERT e sempre
+ * `(organizacao_id, ocorrencia_id, tipo, ...)`. Aqui a forma e
+ * `INSERT ... SELECT a, b, 'tipo'` em vez de `VALUES ($1, $2, 'tipo')`, porque
+ * a varredura grava um evento por linha removida, de uma vez so.
+ */
+function tiposGravadosPorMigracao(): Set<string> {
+  const tipos = new Set<string>();
+  const porSelect = /INSERT INTO trilha_eventos[\s\S]*?SELECT\s+[^,]+,\s*[^,]+,\s*'([a-z_]+)'/g;
+  const porValues = /INSERT INTO trilha_eventos[\s\S]*?VALUES\s*\(\s*[^,]+,\s*[^,]+,\s*'([a-z_]+)'/g;
+
+  for (const entrada of readdirSync(RAIZ_MIGRACOES, { withFileTypes: true })) {
+    if (!entrada.name.endsWith(".sql")) continue;
+    const fonte = readFileSync(join(RAIZ_MIGRACOES, entrada.name), "utf8");
+    for (const m of fonte.matchAll(porSelect)) tipos.add(m[1]!);
+    for (const m of fonte.matchAll(porValues)) tipos.add(m[1]!);
+  }
   return tipos;
 }
 
@@ -83,6 +125,18 @@ describe("Nenhum evento da trilha aparece cru na tela", () => {
     expect(tipos.size).toBeGreaterThan(5);
     expect(tipos).toContain("encerramento");
     expect(tipos).toContain("registro");
+  });
+
+  it("acha tambem os tipos que nascem dentro de uma migracao", () => {
+    /*
+      Ancora propria para o leitor de SQL. Sem ela, o dia em que alguem mudar a
+      forma do INSERT (ou a pasta de migracoes mudar de lugar) o leitor voltaria
+      um conjunto vazio, o caso do orfao passaria de novo, e o portao voltaria a
+      cobrar rotulo de um evento que existe.
+    */
+    const daMigracao = tiposGravadosPorMigracao();
+    expect(daMigracao.size).toBeGreaterThan(0);
+    expect(daMigracao).toContain("minimizacao_por_prazo");
   });
 
   it("todo tipo gravado tem rótulo em português", () => {

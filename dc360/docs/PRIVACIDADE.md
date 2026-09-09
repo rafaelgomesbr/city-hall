@@ -60,8 +60,13 @@ restrições próprias, e as três já estão no produto ou entram nesta onda:
 
 1. Não aparece em nenhuma lista, nenhum resumo, nenhum cartão de apoio e nenhum
    documento que não seja o laudo da própria ocorrência.
-2. Não sai por exportação de nível básico.
-3. Todo acesso a ela é registrado.
+2. Não sai por exportação de nível básico, que é o padrão. O nível que a leva
+   exige a conta de administrador do município, justificativa escrita, um teto
+   de linhas, e deixa registro em dois lugares.
+3. Todo acesso a ela é registrado: abrir o dossiê da ocorrência e emitir o laudo
+   gravam quem leu, quando e com que finalidade. O registro guarda o acesso e
+   nunca o conteúdo lido, porque um registro que copiasse o dado sensível seria
+   uma segunda cópia dele, com a mesma exposição e sem a mesma retenção.
 
 ### 2.2 Do servidor público que usa o sistema
 
@@ -111,20 +116,53 @@ Dois esclarecimentos que a declaração das lojas precisa refletir:
 ## 4. Por quanto tempo os dados ficam
 
 O ato administrativo é permanente; o dado pessoal, não. A regra é a
-**minimização por prazo**, e ela é executada pelo sistema, não por lembrete:
+**minimização por prazo**, e ela é executada por uma varredura do próprio
+sistema, de hora em hora, não por lembrete:
 
 | O que | Prazo | O que acontece no fim |
 | --- | --- | --- |
-| Nome e contato do solicitante | `[[prazo definido pelo município]]` | Viram marcador de "removido por prazo". Protocolo, endereço, fatos, laudo e trilha permanecem |
-| Descrição de vulnerabilidade social | `[[prazo definido pelo município]]`, nunca maior que o anterior | Idem |
-| Fotografias | `[[prazo definido pelo município]]` | Removidas do armazenamento, com o registro da remoção na trilha |
+| Nome e contato do solicitante | `[[prazo definido pelo município]]`, contado do encerramento da ocorrência | Viram marcador de "removido por prazo". Protocolo, endereço, fatos, laudo e trilha permanecem |
+| Descrição de vulnerabilidade social | `[[prazo definido pelo município]]`, nunca maior que o anterior | Idem. Quando o município fixa só o primeiro prazo, a descrição sai junto com o nome, nunca depois |
+| Fotografias | `[[prazo definido pelo município]]` | **Previsto, ainda não implantado.** Hoje elas permanecem. Ver a seção 6 |
 | Protocolo, endereço, tipo, severidade, decisão técnica, trilha | Permanente | Nada. É o registro do ato |
+| Registro de quem acessou e de quem exportou | Permanente | Nada. É prova de acesso, e prova de acesso não se descarta junto com o dado que ela protege |
 | Conta de servidor público desativada | Permanente | Nada. Ele assina laudo e aparece na trilha |
 
 **Por que o endereço fica e o nome sai:** o endereço é atributo do imóvel
 vistoriado e do ato praticado sobre ele; o nome é atributo da pessoa que ligou.
 Manter o segundo depois que ele deixou de ser necessário é acúmulo sem
 finalidade, que é exatamente o que a lei manda evitar.
+
+**Marcador, e não campo vazio.** O nome é substituído pelo texto "removido por
+prazo", e não apagado para nulo. Um campo vazio não distingue "nunca teve nome"
+de "o nome foi descartado no prazo", e é o segundo que o município precisa
+conseguir demonstrar numa fiscalização. Cada remoção também entra na trilha da
+própria ocorrência, dizendo em que dia aconteceu e quais campos saíram, porque
+sem isso minimização e perda de dado seriam indistinguíveis.
+
+**O relógio começa no encerramento**, e não na abertura. Enquanto o atendimento
+corre, o nome e o contato continuam necessários: é por eles que o órgão avisa a
+família da vistoria e da interdição. A consequência, dita porque é real: uma
+ocorrência que nunca é encerrada mantém o dado do solicitante indefinidamente.
+
+**Município que ainda não fixou o prazo não perde nada.** O sistema não traz
+número de fábrica: enquanto o município não decidir, a varredura simplesmente
+pula as ocorrências dele. Quem fixa é a conta de administrador do município, e a
+mudança fica na trilha administrativa com o valor anterior e o novo.
+
+**O que não é minimizado, e por quê:**
+
+- **Registro de acesso e registro de exportação** (quem leu, quem exportou, com
+  que finalidade, de qual endereço de rede). São a prova de que o dado circulou,
+  e é justamente ela que responde ao titular com quem os dados dele foram
+  compartilhados. Descartá-la junto com o nome apagaria a testemunha.
+- **Observações escritas no ofício encaminhado a outro órgão.** O ofício é
+  documento oficial numerado, e o órgão destinatário tem cópia dele. Alterar o
+  nosso lado não alteraria o dele: faria as duas versões divergirem. Por isso
+  vale a orientação operacional: **não escrever nome de cidadão no campo de
+  observações do ofício**, porque ali ele é permanente.
+- **Nome de quem assinou a ciência da interdição.** É a prova de que a pessoa
+  foi cientificada do ato administrativo, e faz parte do ato.
 
 O prazo é decisão do município, porque ele é o controlador. O fornecedor entrega
 o mecanismo, não o número.
@@ -172,12 +210,42 @@ O que está implementado hoje, sem promessa de futuro:
 - **Teto de tentativas** de autenticação, e a conta trava depois de insistência.
 - **Controle de acesso conferido no servidor antes de tocar no banco.** Esconder
   o botão na tela não é controle de acesso.
+- **O segredo que assina a sessão pode ser trocado sem derrubar quem está em
+  campo.** O servidor aceita uma lista de segredos: assina sempre com o
+  primeiro e aceita qualquer um dela na verificação. Rotacionar é acrescentar o
+  novo na frente, esperar os tokens antigos vencerem (quinze minutos no padrão,
+  uma hora no teto configurável)
+  e tirar o velho. Isso importa porque a alternativa era não rotacionar nunca:
+  a troca derrubava toda sessão aberta no instante em que o processo reiniciava,
+  o que num município significa derrubar o plantão no meio de um temporal.
+  **O caso do vazamento é o oposto e está previsto:** segredo comprometido sai
+  da lista na hora, e aí derrubar todo mundo é o comportamento certo, porque
+  quem tem o segredo fabrica sessão de administrador enquanto ele valer.
+- **Registro de quem leu dado de cidadão**, gravado na mesma transação da
+  leitura: quem, quando, qual recurso e com que finalidade. Ele registra o
+  acesso e nunca o conteúdo lido, e não se altera nem se apaga, pelo mesmo
+  mecanismo da trilha.
+- **Minimização por prazo executada pelo sistema**, com a decisão do prazo na
+  mão do município e cada remoção registrada na trilha da ocorrência.
+- **Exportação em dois níveis**, com o nível sem dados pessoais como padrão.
 
 O que **ainda não** está pronto, dito aqui porque omitir seria enganar:
 
 - Segundo fator para o administrador do município: previsto, não implantado.
-- Rotação programada do segredo de sessão: prevista, não implantada.
+- **Calendário** de rotação do segredo de sessão: o mecanismo existe (seção
+  acima), mas quem decide a data ainda é uma pessoa, e não um lembrete do
+  sistema.
 - Registro separado de evento de segurança com alerta: previsto, não implantado.
+- **Descarte de fotografia por prazo: previsto, não implantado.** Remover uma
+  foto exige apagar o arquivo no armazenamento, que é outro sistema e falha de
+  outro jeito (o arquivo some e o registro fica, ou o contrário). Até isso
+  entrar, a fotografia de vistoria permanece, e a seção 4 diz isso com todas as
+  letras em vez de descrever como se já funcionasse.
+- **A listagem da fila de ocorrências ainda não gera registro de acesso.** O
+  registro cobre o dossiê e os documentos oficiais, que são onde o dado pessoal
+  se concentra. A listagem do painel, recarregada o dia inteiro por todo mundo,
+  ficou de fora por volume, e ela ainda devolve nome e contato junto: estreitar
+  as colunas dela é o passo que falta.
 
 ## 7. Incidente
 
@@ -214,7 +282,9 @@ Controlador: o órgão municipal de proteção e defesa civil que opera o sistem
 1. Preencher os `[[ ]]`. Enquanto houver um, não publica.
 2. Publicar num endereço estável e público, e apontar as duas lojas para ele.
    O painel serve arquivo estático, então a rota pode sair dele.
-3. O município precisa fixar os três prazos da seção 4. Sem eles, a retenção por
-   minimização não tem número para executar.
+3. O município precisa fixar os prazos da seção 4. O mecanismo está pronto e a
+   conta de administrador do município já configura os dois primeiros no
+   sistema; enquanto não configurar, nada é removido. O terceiro (fotografia)
+   depende do descarte no armazenamento, que ainda não existe.
 4. Rever quando entrarem: notificação por push, envio de ofício por email,
    console do fornecedor e mapa do Google. Os quatro mudam esta política.

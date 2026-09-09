@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  CANAIS_ENTRADA, ROTULO_CANAL, ROTULO_TIPO_COBRADE, TIPOS_COBRADE,
+  CANAIS_ENTRADA, ROTULO_CANAL, ROTULO_TIPO_COBRADE, TIPOS_DE_ENTRADA,
   aberturaOcorrenciaSchema, coordenadaEmTexto, digitosDoTelefone, errosPorCampo,
-  lerLocalizacao, linkParaMapa, mascararTelefone, telefoneParecePlausivel,
-  type AberturaOcorrencia, type CanalEntrada, type TipoCobrade,
+  linkParaMapa, mascararTelefone, precisaReclassificar, telefoneParecePlausivel,
+  type AberturaOcorrencia, type CanalEntrada, type TipoDeEntrada,
 } from "@dc360/shared";
 import {
   ErroDaApi, abrirOcorrencia, possiveisDuplicidades, type LinhaOcorrencia,
 } from "../dados/repositorio";
+import { lerLocalizacaoColada } from "./coordenada-colada";
+import { descricaoDoTipoNaAbertura } from "./ocorrencia-regras";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
   Aviso, AvisoDeObrigatorios, Cartao, ErrosDoServidor, formatarDataHora,
@@ -31,7 +33,17 @@ export function NovaOcorrencia() {
   const sessao = useSessaoObrigatoria();
   const navegar = useNavigate();
 
-  const [tipo, setTipo] = useState<TipoCobrade>("deslizamento");
+  const [tipo, setTipo] = useState<TipoDeEntrada>("deslizamento");
+  /*
+    O relato curto que só existe junto de "Outro".
+
+    Ele é a matéria prima da triagem: sem esta linha, quem classifica abre um
+    chamado que diz "Outro" e nada mais, e a decisão técnica que a triagem
+    existe para tomar fica sem base nenhuma. O banco recusa "outro" mudo
+    (migração 019), e o esquema compartilhado pede dez caracteres, que é o piso
+    que separa uma descrição de um "x" digitado para o formulário liberar.
+  */
+  const [tipoDescricao, setTipoDescricao] = useState("");
   const [canal, setCanal] = useState<CanalEntrada>("telefone");
   const [solicitante, setSolicitante] = useState("");
   const [contato, setContato] = useState("");
@@ -47,8 +59,13 @@ export function NovaOcorrencia() {
     hora se o sistema entendeu. Confirmar só no envio faria a descoberta do
     erro acontecer depois de a ligação terminar, quando ninguém mais pode
     conferir o endereço.
+
+    `lerLocalizacaoColada` é o leitor compartilhado (link do Google, `geo:`,
+    par com ponto decimal) mais o que chega pelo WhatsApp num município
+    brasileiro: vírgula decimal, grau/minuto/segundo, e a recusa explícita
+    quando o mesmo texto admite dois pontos diferentes.
   */
-  const leitura = lerLocalizacao(localizacao);
+  const leitura = lerLocalizacaoColada(localizacao);
 
   const [erros, setErros] = useState<Record<string, string>>({});
   const [duplicidades, setDuplicidades] = useState<LinhaOcorrencia[] | null>(null);
@@ -80,6 +97,13 @@ export function NovaOcorrencia() {
       coordenada,
       pontoReferencia: referencia.trim() || undefined,
       tipo,
+      /*
+        O texto só viaja com "Outro", e quem decide isso é a regra, não o
+        estado do React: quem escolhe "Outro", digita o relato e volta atrás
+        para "Vendaval" deixaria o texto para trás, e o banco recusa descrição
+        pendurada em tipo da COBRADE.
+      */
+      tipoDescricao: descricaoDoTipoNaAbertura(tipo, tipoDescricao),
       descricao: descricao.trim(),
     };
   }
@@ -242,11 +266,29 @@ export function NovaOcorrencia() {
           <form onSubmit={verificar} noValidate>
             <AvisoDeObrigatorios />
             <div className="linha-campos">
-              <Campo id="nova-tipo" rotulo="Tipo de ocorrência" dica="Taxonomia da COBRADE.">
+              {/*
+                A lista da ABERTURA é mais larga que a taxonomia, e essa é a
+                decisão de produto inteira.
+
+                A COBRADE é fechada e não se inventa nome dentro dela, mas o
+                plantão recebe chamado que não cabe nos oito: queda de árvore
+                sobre a via, rompimento de adutora, muro do vizinho que
+                desabou. Sem "Outro", quem atende escolhe o menos errado, e
+                isso não produz dado incompleto, produz dado FALSO: o município
+                manda para o sistema nacional um deslizamento que era outra
+                coisa. A lacuna é melhor que a mentira, porque a lacuna se vê.
+              */}
+              <Campo
+                id="nova-tipo"
+                rotulo="Tipo de ocorrência"
+                dica={"Taxonomia da COBRADE. Se o chamado não couber em nenhum dos oito, "
+                  + "escolha \"Outro\": a classificação é feita na triagem, por quem tem "
+                  + "competência técnica para decidir. Você não precisa decidir agora."}
+              >
                 {(campo) => (
                   <select {...campo} value={tipo}
-                          onChange={(e) => setTipo(e.target.value as TipoCobrade)}>
-                    {TIPOS_COBRADE.map((t) => (
+                          onChange={(e) => setTipo(e.target.value as TipoDeEntrada)}>
+                    {TIPOS_DE_ENTRADA.map((t) => (
                       <option key={t} value={t}>{ROTULO_TIPO_COBRADE[t]}</option>
                     ))}
                   </select>
@@ -264,6 +306,32 @@ export function NovaOcorrencia() {
                 )}
               </Campo>
             </div>
+
+            {/*
+              Só aparece com "Outro" escolhido, e é obrigatório quando aparece.
+
+              Campo sempre visível e sempre opcional seria a lixeira de anotação
+              paralela que a migração 019 proíbe do lado do banco: um lugar
+              livre dentro de um registro estruturado, preenchido com o que não
+              coube em outro lugar, que ninguém lê e que ninguém sabe que
+              existe.
+            */}
+            {precisaReclassificar(tipo) && (
+              <Campo
+                id="nova-tipo-descricao"
+                rotulo="O que foi relatado"
+                erro={erros["tipoDescricao"]}
+                dica={"Em poucas palavras, com as palavras de quem ligou. É o que a "
+                  + "triagem vai ler para classificar."}
+              >
+                {(campo) => (
+                  <input {...campo} type="text" value={tipoDescricao} maxLength={300}
+                         onChange={(e) => setTipoDescricao(e.target.value)}
+                         placeholder="Árvore de grande porte caída sobre a via"
+                         autoComplete="off" />
+                )}
+              </Campo>
+            )}
 
             <div className="linha-campos">
               <Campo id="nova-solicitante" rotulo="Nome do solicitante"
@@ -342,7 +410,10 @@ export function NovaOcorrencia() {
               opcional
               dica={<span role="status">
                 {leitura.tipo === "vazio" && (
-                  <>Aceita link do Google Maps, do WhatsApp, ou a coordenada colada.</>
+                  <>
+                    Aceita link do Google Maps, do WhatsApp, e a coordenada colada com vírgula
+                    ou com ponto, inclusive em grau, minuto e segundo.
+                  </>
                 )}
                 {leitura.tipo === "coordenada" && (
                   <span className="leitura leitura--ok">
@@ -365,11 +436,29 @@ export function NovaOcorrencia() {
                     </button>
                   </span>
                 )}
+                {leitura.tipo === "ambigua" && (
+                  <span className="leitura leitura--erro">
+                    <span aria-hidden="true">!</span> Este texto tem duas leituras
+                    possíveis e o sistema não escolhe por você. Aponte qual é:{" "}
+                    {leitura.leituras.map((c, i) => (
+                      <span key={coordenadaEmTexto(c)}>
+                        {i > 0 && " ou "}
+                        <button
+                          type="button" className="botao-texto"
+                          onClick={() => setLocalizacao(coordenadaEmTexto(c))}
+                        >
+                          {coordenadaEmTexto(c)}
+                        </button>
+                      </span>
+                    ))}
+                  </span>
+                )}
                 {leitura.tipo === "encurtado" && (
                   <span className="leitura leitura--nota">
-                    <span aria-hidden="true">!</span> Este link é encurtado e não
-                    carrega a coordenada. Abra ele no navegador e cole o endereço
-                    que aparecer na barra.
+                    <span aria-hidden="true">!</span> Este link é encurtado, e o
+                    painel não abre link nenhum para descobrir o que tem dentro.
+                    Abra ele no seu navegador e cole aqui o endereço que aparecer
+                    na barra, ou a coordenada que a página mostrar.
                   </span>
                 )}
                 {leitura.tipo === "nao_reconhecido" && (

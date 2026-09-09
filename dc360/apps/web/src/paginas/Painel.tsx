@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ROTULO_TIPO_COBRADE, podeExecutar } from "@dc360/shared";
+import { podeExecutar } from "@dc360/shared";
 import {
   indicadores as carregarIndicadores,
   listarOcorrencias,
@@ -13,7 +13,8 @@ import {
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
-  Aviso, Carregando, Cartao, Prazo, SeloSeveridade, SeloStatus, Vazio, formatarDataHora,
+  Aviso, Carregando, Cartao, Prazo, SeloSeveridade, SeloStatus, TipoDaOcorrencia, Vazio,
+  formatarDataHora,
 } from "../componentes/comuns";
 import { IconeMais } from "../componentes/Icones";
 
@@ -170,7 +171,7 @@ export function Painel() {
                       <div className="tabela__secundario">{formatarDataHora(o.criado_em)}</div>
                     </td>
                     <td>
-                      <div>{ROTULO_TIPO_COBRADE[o.tipo]}</div>
+                      <div><TipoDaOcorrencia tipo={o.tipo} /></div>
                       <div className="tabela__secundario">{o.endereco}</div>
                     </td>
                     <td><SeloSeveridade severidade={o.severidade} /></td>

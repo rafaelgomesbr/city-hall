@@ -140,7 +140,9 @@ export function servicoDeAutenticacao(
     });
 
     const acesso = await emitirAcesso(
-      config.jwtSegredo,
+      // O PRIMEIRO da lista assina. Os demais existem só para verificar, e
+      // assinar com um deles ressuscitaria o segredo que está saindo.
+      config.jwtSegredos[0],
       {
         sub: linha.usuario_id,
         org: linha.organizacao_id,

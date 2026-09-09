@@ -1,7 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { chaveDeStorage, envelopeSincronizacaoSchema } from "@dc360/shared";
-import type { Banco } from "../banco/tipos.js";
+import {
+  chaveDeStorage, envelopeSincronizacaoSchema, type OrgaoIndicado,
+} from "@dc360/shared";
+import type { Banco, Consulta } from "../banco/tipos.js";
 import { RegraDeNegocio, autorizar } from "../servidor.js";
 
 /**
@@ -29,6 +31,88 @@ const reconciliacaoSchema = z.object({
  * outro teto.
  */
 const TETO_DE_PENDENCIAS = 200;
+
+/**
+ * Quantos orgaos do catalogo descem para o aparelho junto com as tarefas.
+ *
+ * Existe como amarra e nao como paginacao: catalogo de orgao e cadastro
+ * estrutural de um municipio (bombeiros, concessionaria de energia, obras,
+ * saude, assistencia social), e ele vive na casa das dezenas. Duzentos e um
+ * numero que nao alcanca nenhum municipio real, e serve para o dia em que uma
+ * importacao errada encher a tabela: o aparelho no 3G do morro nao pode baixar
+ * o estrago junto com a lista de trabalho.
+ *
+ * O corte NAO e calado, e nao e calado no lugar certo: quando ele acontece, o
+ * servidor registra aviso no log. O agente nao tem o que fazer com essa
+ * informacao em campo (o campo livre da tela conclui a vistoria de qualquer
+ * jeito), e quem precisa agir e a coordenacao, que e quem limpa o cadastro.
+ */
+const TETO_DO_CATALOGO = 200;
+
+/**
+ * Grava quem a vistoria mandou acionar, na MESMA transacao da vistoria.
+ *
+ * Ate aqui esta lista chegava no envelope, passava pelo Zod e era descartada
+ * por falta de tabela. O laudo dizia "Necessario acionar outro orgao: SIM" e
+ * calava QUAL, que era exatamente a reclamacao que originou o item.
+ *
+ * Roda dentro do `comTenant` da vistoria de proposito: se a gravacao dos
+ * orgaos falhar, a vistoria inteira volta atras. Meia vistoria e pior que
+ * nenhuma, porque ela parece completa: o laudo sairia afirmando que ha orgao a
+ * acionar, com a lista vazia, e ninguem saberia que a lista existiu.
+ *
+ * O identificador do catalogo e CONFERIDO sob RLS antes de virar coluna, e o
+ * que nao resolve vira campo livre em vez de derrubar o envelope. As duas
+ * metades dessa decisao importam:
+ *
+ *   * Conferir e o que impede o INSERT de bater na chave estrangeira composta e
+ *     virar 500. A chave continua la, e continua sendo a garantia estrutural
+ *     (ver migracao 020); esta consulta e o que faz a garantia nunca precisar
+ *     ser acionada por dado que chegou pela rede.
+ *   * Nao derrubar e o que salva a manha de trabalho do agente. Uma coleta
+ *     recusada volta para a fila do aparelho e e reenviada, e recebe a mesma
+ *     recusa para sempre: nao existe tela para corrigir item bloqueado. O nome
+ *     do orgao viaja sempre no envelope, entao o laudo continua dizendo quem
+ *     acionar mesmo quando o identificador nao serve para contagem.
+ */
+async function gravarOrgaosIndicados(
+  c: Consulta,
+  organizacaoId: string,
+  vistoriaId: string,
+  indicados: readonly OrgaoIndicado[],
+): Promise<void> {
+  if (indicados.length === 0) return;
+
+  const pedidos = [...new Set(
+    indicados.map((o) => o.orgaoId).filter((id): id is string => id !== null),
+  )];
+  const doCatalogo = pedidos.length > 0
+    ? await c.query<{ id: string }>(
+        "SELECT id FROM orgaos WHERE id = ANY($1::uuid[])",
+        [pedidos],
+      )
+    : { rows: [] };
+  const conhecidos = new Set(doCatalogo.rows.map((l) => l.id));
+
+  for (const [ordem, o] of indicados.entries()) {
+    /*
+      Orgao DESATIVADO continua sendo aceito, e isso e escolha.
+
+      O catalogo do aparelho pode ter meses, e a coleta e mais velha que a
+      desativacao. Recusar aqui reescreveria a historia: a vistoria daquele dia
+      indicou aquele orgao, e era ele que atendia a competencia na epoca. Quem
+      decide para onde encaminhar HOJE e a providencia, que le o catalogo vigente.
+    */
+    const orgaoId = o.orgaoId !== null && conhecidos.has(o.orgaoId) ? o.orgaoId : null;
+    await c.query(
+      `INSERT INTO vistoria_orgaos_indicados
+         (organizacao_id, vistoria_id, orgao_id, nome, ordem)
+       VALUES ($1,$2,$3,$4,$5)
+       ON CONFLICT (organizacao_id, vistoria_id, orgao_id) DO NOTHING`,
+      [organizacaoId, vistoriaId, orgaoId, o.nome, ordem],
+    );
+  }
+}
 
 /**
  * Recepção da coleta feita em campo.
@@ -164,6 +248,8 @@ export async function rotasSincronizacao(
       }
 
       const novaId = inserida.rows[0].id;
+
+      await gravarOrgaosIndicados(c, quem.organizacaoId, novaId, v.orgaosParaAcionar ?? []);
 
       for (const [ordem, foto] of v.fotos.entries()) {
         /**
@@ -392,10 +478,44 @@ export async function rotasSincronizacao(
         [quem.usuarioId, TETO_DE_PENDENCIAS + 1],
       );
       const truncada = r.rows.length > TETO_DE_PENDENCIAS;
+
+      /*
+        O CATALOGO DE ORGAOS DESCE JUNTO, e nao numa chamada propria.
+
+        Sem ele, todo aparelho ficava com catalogo vazio e todo agente concluia
+        a vistoria pelo campo livre. O aplicativo tem o caminho de catalogo
+        vazio e ele funciona, mas era por acidente: o catalogo do municipio
+        simplesmente nunca chegava ao aparelho, e as indicacoes saiam todas sem
+        identificador, o que apaga a conta de "quantas vezes acionamos os
+        bombeiros" antes mesmo de ela existir.
+
+        Na MESMA resposta porque uma segunda chamada teria uma segunda chance de
+        falhar, e falharia onde nao pode: o aparelho que baixou a lista de manha
+        e nao baixou o catalogo sobe o morro com um item OBRIGATORIO do
+        checklist sem resposta possivel. O aplicativo grava os dois numa
+        transacao so (`apps/campo/src/dados/pendencias.ts`), entao ou entram os
+        dois, ou continua valendo o par que ja estava no disco.
+
+        Somente os ATIVOS: orgao desativado nao pode voltar a ser oferecido em
+        tela nova. As indicacoes antigas continuam gravadas apontando para ele,
+        que e outra pergunta e tem outra resposta (ver migracao 020).
+      */
+      const catalogo = await c.query<{ id: string; nome: string; sigla: string | null }>(
+        `SELECT id, nome, sigla FROM orgaos WHERE ativo ORDER BY nome, id LIMIT $1`,
+        [TETO_DO_CATALOGO + 1],
+      );
+      if (catalogo.rows.length > TETO_DO_CATALOGO) {
+        req.log.warn(
+          { teto: TETO_DO_CATALOGO },
+          "catalogo de orgaos do municipio passou do teto e desceu cortado para o aparelho",
+        );
+      }
+
       return {
         itens: truncada ? r.rows.slice(0, TETO_DE_PENDENCIAS) : r.rows,
         teto: TETO_DE_PENDENCIAS,
         truncada,
+        orgaos: catalogo.rows.slice(0, TETO_DO_CATALOGO),
       };
     });
   });

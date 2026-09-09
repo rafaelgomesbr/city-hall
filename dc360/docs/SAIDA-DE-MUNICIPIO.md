@@ -18,9 +18,9 @@ Tudo que é dele, em formato aberto, sem precisar do nosso software para ler.
 
 | O que | Formato | Por que assim |
 | --- | --- | --- |
-| Ocorrências, vistorias, providências, equipes, usuários, trilha de auditoria | Um `CSV` por tabela, `UTF-8`, mais o mesmo conteúdo em `JSON` | `CSV` abre no Excel da prefeitura sem ninguém instalar nada. `JSON` preserva estrutura aninhada que o `CSV` achata |
+| Toda tabela do município: ocorrências, vistorias, providências, equipes, usuários, órgãos, ofícios, avisos, aparelhos, trilha de auditoria e registro de acesso | Um `CSV` por tabela, `UTF-8`, mais o mesmo conteúdo em `JSON` | `CSV` abre no Excel da prefeitura sem ninguém instalar nada. `JSON` preserva estrutura aninhada que o `CSV` achata |
 | Fotografias e assinaturas | Arquivos originais, em pastas por protocolo | Prova técnica precisa do arquivo, não de uma miniatura |
-| Laudos, termos de interdição e de desinterdição, ofícios | `HTML` autossuficiente, um arquivo por documento, mais `PDF` | O `HTML` do produto já carrega o estilo dentro dele: abre em qualquer navegador, daqui a dez anos, sem servidor |
+| Laudos, termos de interdição e de desinterdição, ofícios | `HTML` autossuficiente, um arquivo por documento | O `HTML` do produto já carrega o estilo dentro dele: abre em qualquer navegador, daqui a dez anos, sem servidor, e imprime em `PDF` de dentro do navegador. O pacote NÃO traz `PDF` pronto: gerar milhares deles numa requisição só derrubaria o servidor, e o `PDF` seria uma segunda cópia do mesmo documento |
 | Esquema do banco | `SQL` de criação, comentado | Quem for migrar precisa entender o que cada coluna significa |
 | Dicionário de dados | `Markdown` | `status = 'em_campo'` não se explica sozinho |
 
@@ -69,21 +69,38 @@ Nada mais. Sem cópia "para o caso de voltar", sem base de dados agregada, sem
 
 ## 4. Estado da implementação
 
-Honestamente: **o procedimento está escrito, a ferramenta não está pronta.**
+**A ferramenta existe.** `POST /saida/pacote.zip`, no painel de quem administra
+o município, produz o pacote inteiro num arquivo só. Exige permissão de
+administrador, registra o ato na trilha e no registro de exportações, e **não
+apaga nada**: a eliminação continua sendo o passo 6, depois da conferência do
+município.
 
 | Peça | Estado |
 | --- | --- |
-| Exportação das tabelas em `CSV` e `JSON` | Existe exportação no painel, e ela cobre parte das tabelas. Falta cobrir todas e falta o `JSON` |
-| Exportação das fotografias e assinaturas | **Não existe.** Hoje sairia por acesso direto ao armazenamento, à mão |
-| Exportação dos documentos gerados | **Não existe** em lote. Um a um, pela tela |
-| Índice ligando protocolo a arquivo | **Não existe** |
-| Dicionário de dados | `DICIONARIO-DE-DADOS.md` |
+| Exportação das tabelas em `CSV` e `JSON` | **Existe.** Uma planilha e um `JSON` por tabela, e são TODAS as tabelas do município, inclusive as que o banco ganhou depois (órgão, ofício, aviso, aparelho, registro de consulta). Um teste compara a lista com o que o banco tem, então tabela nova de migração futura obriga alguém a decidir se ela sai |
+| Exportação das fotografias e assinaturas | **Existe.** Arquivos originais, em pastas por protocolo. O que o banco promete e o armazenamento não tem vai para `PENDENCIAS-DA-EXTRACAO.txt` em vez de sumir |
+| Exportação dos documentos gerados | **Existe** para laudo, termo de interdição, termo de desinterdição e ofício, em `HTML` autossuficiente (estilo dentro do arquivo, imagens apontando para a pasta do próprio pacote). **Não sai em `PDF`**: o `HTML` imprime, e gerar milhares de `PDF` numa requisição só derrubaria o servidor |
+| Índice ligando protocolo a arquivo | **Existe.** `INDICE.html` (abre por duplo clique, sem internet) e `INDICE.csv` na raiz, ligando protocolo, pasta, documentos e a linha correspondente de `tabelas/ocorrencias.csv` |
+| Esquema do banco | **Existe.** `esquema/`, com as próprias migrações comentadas, que explicam o que cada coluna significa |
+| Soma de verificação | **Existe.** `SOMAS-SHA256.txt`, um `SHA-256` por arquivo do pacote |
+| Dicionário de dados | `DICIONARIO-DE-DADOS.md`, e ele **ainda não vai dentro do pacote**: é entregue à parte |
 | Declaração de eliminação | **Não existe** modelo |
 
-Enquanto a ferramenta não existe, a saída é executável **à mão**, por quem tem
-acesso ao servidor, e leva dias em vez de horas. Isso é sustentável para um
-município e não é para dez.
+### O que o pacote NÃO leva, de propósito
 
-**Enquanto este quadro tiver "não existe", a cláusula 9 do contrato depende de
-trabalho manual, e isso precisa ser dito ao município em vez de escondido atrás
-do procedimento bonito acima.**
+Senha, hash de senha, token de sessão, link de redefinição e ficha de
+notificação não saem. São material de credencial, e não dado do município:
+entregá-los num arquivo que viaja por email ou pen drive seria entregar acesso.
+O `LEIA-ME.txt` do próprio pacote diz isso a quem o recebe.
+
+### O que continua manual
+
+- A **declaração de eliminação** do passo 6 é redigida à mão. Sem modelo, ela
+  depende de alguém lembrar o que precisa estar escrito nela.
+- A **entrega** (por qual meio, para quem) continua sendo combinada caso a
+  caso. O pacote traz a soma de verificação; conferi-la é ato de quem recebe.
+- O **dicionário de dados** é anexado à parte.
+
+Enquanto a declaração de eliminação não tiver modelo, o passo 6 depende de
+trabalho manual, e isso precisa ser dito ao município em vez de escondido
+atrás do procedimento bonito acima.

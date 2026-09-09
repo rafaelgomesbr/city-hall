@@ -69,6 +69,21 @@ body {
 
 .mono { font-family: var(--ds-font-mono); font-variant-numeric: tabular-nums; }
 
+/*
+  Parágrafo de apoio dentro de cartão.
+
+  Existia repetido como estilo escrito dentro do componente, três propriedades
+  de cada vez. Estilo copiado é estilo que diverge: bastava alguém esquecer o
+  `line-height` numa das cópias para o mesmo texto sair com respiro diferente
+  em duas telas irmãs.
+*/
+.texto-apoio {
+  margin: 0 0 var(--ds-sp-3);
+  color: var(--ds-text-muted);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+}
+.texto-apoio:last-child { margin-bottom: 0; }
+
 .oculto-visualmente {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
   clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
@@ -660,6 +675,40 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
   .lateral__grupo { flex-direction: row; }
   .conteudo { padding: var(--ds-sp-4); }
 }
+
+/* ---------- O desenho do mapa, nos dois modos ---------- */
+
+/*
+  A caixa do desenho tem a MESMA proporção nos dois modos.
+
+  O município com chave e o município sem chave leem a mesma tela, e a
+  legenda de modo, a tabela e a paginação caem no mesmo lugar em qualquer
+  captura de tela usada em treinamento. Altura diferente por modo faria a
+  documentação valer só para metade dos clientes.
+*/
+.mapa__plano, .mapa__base {
+  position: relative; width: 100%; aspect-ratio: 4 / 3;
+  background: var(--ds-surface-2);
+  border-radius: var(--ds-radius-card);
+  border: 1px solid var(--ds-border);
+  overflow: hidden;
+}
+.mapa__grade { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/*
+  A legenda de modo, colada embaixo do desenho.
+
+  Ela responde a pergunta que nasce ao olhar o plano quadriculado ("cadê as
+  ruas?"), então precisa estar onde o olho já está. Cor discreta e símbolo
+  antes do texto: é informação de contexto, não alarme, e não pode competir
+  com o aviso de teto logo acima.
+*/
+.mapa__modo {
+  margin: var(--ds-sp-3) 0 0;
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted);
+}
+.mapa__modo strong { color: var(--ds-text); }
 
 /* ---------- Pinos do mapa ---------- */
 

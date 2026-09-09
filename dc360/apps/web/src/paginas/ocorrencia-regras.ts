@@ -1,6 +1,7 @@
 import {
-  encerramentoSchema, estadoTerminal, podeExecutar,
-  type Papel, type StatusOcorrencia, type TipoCobrade,
+  MOTIVO_RECLASSIFICAR, ROTULO_TIPO_COBRADE, TIPOS_COBRADE, TIPO_A_CLASSIFICAR,
+  encerramentoSchema, estadoTerminal, podeExecutar, precisaReclassificar,
+  type Papel, type StatusOcorrencia, type TipoCobrade, type TipoDeEntrada,
 } from "@dc360/shared";
 
 /**
@@ -159,7 +160,7 @@ export type ItemVerTambem = {
    * Nulo quando o tipo não é conhecido. Os chamados vinculados chegam sem
    * ele, e inventar um seria pior que omitir.
    */
-  tipo: TipoCobrade | null;
+  tipo: TipoDeEntrada | null;
   relacao: RelacaoVerTambem;
 };
 
@@ -179,7 +180,7 @@ export type ItemVerTambem = {
  */
 export function montarVerTambem(entrada: {
   ocorrenciaId: string;
-  tipo: TipoCobrade;
+  tipo: TipoDeEntrada;
   vinculadaA: OcorrenciaRelacionada | null;
   vinculadas: readonly OcorrenciaRelacionada[];
   mesmoEndereco: readonly OcorrenciaRelacionada[];
@@ -190,7 +191,7 @@ export function montarVerTambem(entrada: {
   function juntar(
     o: OcorrenciaRelacionada,
     relacao: RelacaoVerTambem,
-    tipo: TipoCobrade | null,
+    tipo: TipoDeEntrada | null,
   ): void {
     if (vistos.has(o.id)) return;
     vistos.add(o.id);
@@ -215,4 +216,152 @@ export function montarVerTambem(entrada: {
   for (const v of entrada.mesmoEndereco) juntar(v, "mesmo_endereco", entrada.tipo);
 
   return itens;
+}
+
+/* ============================================================
+   O tipo "outro": a confissão de que a classificação ainda não foi feita
+   ============================================================ */
+
+/**
+ * O texto do relato que acompanha a abertura, e só quando ele tem lugar.
+ *
+ * A regra não é da tela, é do banco: a migração 019 tem duas restrições
+ * opostas, e as duas recusam o INSERT. "outro" sem descrição abre um chamado
+ * que diz "Outro" e nada mais, e a triagem fica sem a matéria prima da decisão
+ * que ela existe para tomar; tipo da COBRADE COM descrição transforma a coluna
+ * em lixeira de anotação paralela dentro de um registro estruturado.
+ *
+ * Fica aqui, e não dentro do `onSubmit`, porque o formulário troca de tipo
+ * enquanto a pessoa digita: quem escolhe "Outro", escreve o relato e volta
+ * atrás para "Vendaval" deixaria o texto para trás, no estado do React, e ele
+ * viajaria junto do vendaval até o erro de restrição do banco.
+ */
+export function descricaoDoTipoNaAbertura(
+  tipo: TipoDeEntrada,
+  digitado: string,
+): string | undefined {
+  if (!precisaReclassificar(tipo)) return undefined;
+  return digitado.trim() || undefined;
+}
+
+/** A âncora do seletor de tipo da triagem, dita uma vez só. */
+export const ANCORA_DA_CLASSIFICACAO = "triagem-tipo";
+
+/**
+ * Quando o painel oferece a triagem.
+ *
+ * O primeiro caso é o de sempre: chamado recém registrado, ninguém olhou
+ * ainda. O SEGUNDO é a porta que faltava e sem a qual o recurso vira armadilha.
+ *
+ * A triagem pode acontecer em duas etapas (severidade agora, tipo quando
+ * alguém olhar a foto), e o esquema compartilhado torna o tipo opcional
+ * justamente por isso. Só que, com o cartão de triagem aparecendo apenas em
+ * "registrada", um chamado que passou pela triagem ainda como "outro" ficava
+ * sem saída nenhuma: o despacho recusa (`precisaReclassificar`), e a tela não
+ * oferecia mais nenhum lugar para escolher o tipo. O chamado ficava preso, e a
+ * única saída visível seria encerrar um caso que não foi atendido.
+ */
+export function ofereceTriagem(
+  papel: Papel,
+  status: StatusOcorrencia,
+  tipo: TipoDeEntrada,
+): boolean {
+  if (!podeExecutar(papel, "classificar_triagem")) return false;
+  if (estadoTerminal(status)) return false;
+  if (status === "registrada") return true;
+  return status === "triagem" && precisaReclassificar(tipo);
+}
+
+/**
+ * Quando o despacho é recusado por falta de classificação, ANTES de tentar.
+ *
+ * Mostrar o formulário de despacho a um chamado que o servidor vai recusar é
+ * pedir para a pessoa preencher equipe, prazo e instruções para levar um 409
+ * no fim. O aviso toma o lugar do formulário e diz o passo que destrava.
+ */
+export function despachoEsperaClassificacao(
+  status: StatusOcorrencia,
+  tipo: TipoDeEntrada,
+): boolean {
+  return status === "triagem" && precisaReclassificar(tipo);
+}
+
+/**
+ * O código que a API usa para esta recusa. Espelha `RegraDeNegocio` da rota de
+ * despacho, e mora aqui porque o painel não importa código do servidor.
+ */
+export const CODIGO_A_CLASSIFICAR = "tipo_a_classificar";
+
+/**
+ * A falha que a tela precisa tratar diferente das outras.
+ *
+ * As duas pontas erram com formas diferentes e o painel não pode saber em qual
+ * modo está: a API devolve 409 com `erro: "tipo_a_classificar"`, que vira
+ * `ErroDaApi.codigo`; o modo de demonstração levanta um `Error` com a mesma
+ * frase do pacote compartilhado. Reconhecer as duas é o que permite a faixa
+ * vermelha terminar num caminho em vez de terminar num beco.
+ *
+ * Reconhecer pelo CÓDIGO vem primeiro, e a frase é o segundo caminho, não uma
+ * heurística sobre texto: `MOTIVO_RECLASSIFICAR` é a constante compartilhada
+ * que as duas pontas mandam, comparada inteira e não por pedaço.
+ */
+export function recusadoPorFaltaDeClassificacao(erro: unknown): boolean {
+  if (!(erro instanceof Error)) return false;
+  const codigo = (erro as { codigo?: unknown }).codigo;
+  if (typeof codigo === "string") return codigo === CODIGO_A_CLASSIFICAR;
+  return erro.message === MOTIVO_RECLASSIFICAR;
+}
+
+/** Uma opção do seletor de tipo da triagem. */
+export type OpcaoDeTipo = { valor: string; rotulo: string };
+
+/**
+ * O valor que representa "não decidir agora" no seletor da triagem.
+ *
+ * String vazia porque ela não é um tipo: mandar "outro" de volta seria
+ * reclassificar para o lugar de onde se veio, e o esquema compartilhado recusa
+ * ("outro" não está em `TIPOS_COBRADE`) justamente para o portão do despacho
+ * não virar formalidade.
+ */
+export const SEM_CLASSIFICAR = "";
+
+/**
+ * As opções do seletor de tipo da triagem.
+ *
+ * O chamado que chega como "outro" abre em "ainda não classificar", e essa é a
+ * decisão inteira: um seletor que já viesse marcado em "Deslizamento" faria
+ * quem tria confirmar sem escolher, e a classificação falsa que "outro" existe
+ * para eliminar voltaria pela porta da triagem, agora com o carimbo de quem
+ * tem competência técnica, que é pior.
+ *
+ * Quem já tem tipo da COBRADE abre no próprio tipo, e a lista não oferece a
+ * volta para "outro": corrigir um tipo errado é legítimo, desclassificar não.
+ */
+export function opcoesDeTipoNaTriagem(tipoAtual: TipoDeEntrada): OpcaoDeTipo[] {
+  const daTaxonomia = TIPOS_COBRADE.map((t) => ({ valor: t, rotulo: ROTULO_TIPO_COBRADE[t] }));
+  if (!precisaReclassificar(tipoAtual)) return daTaxonomia;
+  return [
+    {
+      valor: SEM_CLASSIFICAR,
+      rotulo: "Ainda não classificar, segue como Outro",
+    },
+    ...daTaxonomia,
+  ];
+}
+
+/** O valor inicial do seletor: nunca um palpite. */
+export function tipoInicialNaTriagem(tipoAtual: TipoDeEntrada): string {
+  return precisaReclassificar(tipoAtual) ? SEM_CLASSIFICAR : tipoAtual;
+}
+
+/**
+ * O que vai no corpo da triagem, a partir do que está escolhido no seletor.
+ *
+ * `undefined` e não `"outro"`: o campo é opcional no esquema compartilhado, e
+ * omiti-lo é o jeito de dizer "não mexi no tipo". Mandar `"outro"` seria pedir
+ * ao servidor uma reclassificação que ele recusa.
+ */
+export function tipoEscolhidoNaTriagem(valor: string): TipoCobrade | undefined {
+  if (valor === SEM_CLASSIFICAR || valor === TIPO_A_CLASSIFICAR) return undefined;
+  return TIPOS_COBRADE.find((t) => t === valor);
 }

@@ -134,8 +134,21 @@ const esquema = z.object({
   OFICIO_MAX_ENVIOS: z.coerce.number().int().min(1).max(20).default(3),
 
   /**
-   * Chave de assinatura dos tokens de acesso. Mínimo de 32 bytes de entropia.
-   * Em produção é obrigatória; sem ela o processo não sobe.
+   * Chave de assinatura dos tokens de acesso, ou uma LISTA delas separada por
+   * vírgula. Mínimo de 32 bytes de entropia cada. Em produção é obrigatória;
+   * sem ela o processo não sobe.
+   *
+   * Aceitar lista existe para que trocar o segredo deixe de significar
+   * derrubar o plantão inteiro. Com um segredo só, a troca invalida toda
+   * sessão aberta no instante em que o processo reinicia, e num município isso
+   * cai no meio de um temporal: todo agente em campo perde o token e precisa
+   * digitar senha na chuva. O resultado prático era que ninguém trocava, e um
+   * segredo que nunca gira é um segredo que só precisa vazar uma vez.
+   *
+   * A regra: **assina sempre com o PRIMEIRO, aceita qualquer um da lista na
+   * verificação.** Ver `separarSegredos` abaixo para os dois procedimentos
+   * opostos (rotação programada e revogação por vazamento), porque confundir
+   * um com o outro é o jeito de transformar esta variável em buraco.
    */
   JWT_SEGREDO: vazioEhAusente(z.string().min(32).optional()),
 
@@ -212,9 +225,95 @@ const esquema = z.object({
 });
 
 export type Config = z.infer<typeof esquema> & {
-  jwtSegredo: Uint8Array;
+  /**
+   * Os segredos de token, em ordem. O primeiro assina; todos verificam.
+   *
+   * Tupla não vazia, e não `Uint8Array[]`, porque o tipo é quem garante que
+   * `jwtSegredos[0]` existe. Com um array comum, o dia em que uma refatoração
+   * deixasse a lista vazia o servidor assinaria com `undefined`, e o
+   * `TextEncoder` transformaria isso na string "undefined": um segredo público
+   * de nove caracteres, aceito por qualquer instalação do produto.
+   */
+  jwtSegredos: readonly [Uint8Array, ...Uint8Array[]];
   origens: string[];
 };
+
+/**
+ * Quantos segredos a lista aceita ao mesmo tempo.
+ *
+ * O teto não é burocracia: cada segredo na lista é um segredo que ainda ABRE
+ * sessão. Uma lista que só cresce é uma lista onde o segredo aposentado em
+ * março continua valendo em dezembro, que é exatamente o contrário do motivo
+ * de rotacionar. Três cobre a rotação real (o novo, o que sai, e uma folga
+ * para quem rotacionou duas vezes seguidas sem esperar) e força a limpeza.
+ */
+const MAXIMO_DE_SEGREDOS = 3;
+
+/**
+ * Separa e confere a lista de segredos de token.
+ *
+ * **Rotação programada** (o segredo está velho, ninguém sabe dele): põe o novo
+ * NA FRENTE, mantém o antigo atrás, e sobe. A partir daí todo token novo sai
+ * assinado com o novo segredo, e os tokens já emitidos continuam valendo até
+ * expirarem sozinhos, o que leva no máximo `ACESSO_MINUTOS` (teto de 60). Uma
+ * hora depois, tira o antigo da lista e sobe de novo. Ninguém é derrubado, e é
+ * por isso que a rotação passa a acontecer de verdade.
+ *
+ * **Revogação por vazamento** (alguém tem o segredo): o segredo vazado SAI DA
+ * LISTA IMEDIATAMENTE, sem período de convivência. Aqui derrubar todo mundo é
+ * o comportamento certo, e não um efeito colateral a ser evitado: enquanto o
+ * segredo vazado estiver na lista, quem o tem fabrica token de administrador de
+ * qualquer município, com a organização que quiser dentro. Esperar uma hora
+ * para "não incomodar o plantão" é dar uma hora de acesso total ao invasor. O
+ * plantão entra de novo com a senha; o invasor, não.
+ *
+ * Os dois procedimentos usam a mesma variável e são opostos. Quem estiver
+ * fazendo o segundo pensando que está fazendo o primeiro deixa o produto
+ * aberto, e essa é a única forma de errar aqui que não aparece em log nenhum.
+ */
+function separarSegredos(bruto: string): [string, ...string[]] {
+  const lista = bruto.split(",").map((s) => s.trim()).filter(Boolean);
+
+  const primeiro = lista[0];
+  if (!primeiro) {
+    throw new Error(
+      "JWT_SEGREDO está preenchida mas não tem nenhum segredo: ela é um "
+      + "segredo, ou uma lista separada por vírgula, e o primeiro da lista é o "
+      + "que assina.",
+    );
+  }
+
+  const curtos = lista.filter((s) => s.length < 32).length;
+  if (curtos > 0) {
+    throw new Error(
+      `JWT_SEGREDO tem ${curtos} segredo(s) com menos de 32 caracteres. `
+      + "O tamanho vale para CADA item da lista, e não para a linha inteira: um "
+      + "item curto continua sendo aceito na verificação, então ele é o elo que "
+      + "o ataque escolhe.",
+    );
+  }
+
+  // Repetido não é erro inofensivo: ele faz a lista PARECER rotacionada
+  // ("olha, tem dois") enquanto na prática o segredo é um só, e a troca que
+  // alguém acha que fez não aconteceu.
+  if (new Set(lista).size !== lista.length) {
+    throw new Error(
+      "JWT_SEGREDO tem segredo repetido. Uma lista com o mesmo valor duas "
+      + "vezes não é uma rotação: é um segredo só, com aparência de dois.",
+    );
+  }
+
+  if (lista.length > MAXIMO_DE_SEGREDOS) {
+    throw new Error(
+      `JWT_SEGREDO tem ${lista.length} segredos e o teto é ${MAXIMO_DE_SEGREDOS}. `
+      + "Cada item da lista ainda abre sessão: lista que só cresce é segredo "
+      + "aposentado que nunca foi aposentado. Termine a rotação anterior antes "
+      + "de começar outra.",
+    );
+  }
+
+  return [primeiro, ...lista.slice(1)];
+}
 
 export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Config {
   const analisado = esquema.safeParse(ambiente);
@@ -389,11 +488,16 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
 
   // Fora de produção, um segredo efêmero por processo: reiniciar invalida os
   // tokens, que é o comportamento correto para um ambiente descartável.
-  const segredo = c.JWT_SEGREDO ?? crypto.randomUUID() + crypto.randomUUID();
+  const segredos = c.JWT_SEGREDO
+    ? separarSegredos(c.JWT_SEGREDO)
+    : ([crypto.randomUUID() + crypto.randomUUID()] as [string, ...string[]]);
+
+  const codificador = new TextEncoder();
+  const [assina, ...aceitos] = segredos.map((s) => codificador.encode(s));
 
   return {
     ...c,
-    jwtSegredo: new TextEncoder().encode(segredo),
+    jwtSegredos: [assina!, ...aceitos],
     origens: c.ORIGENS_PERMITIDAS.split(",").map((o) => o.trim()).filter(Boolean),
   };
 }

@@ -8,6 +8,8 @@ import {
 } from "../documentos/laudo.js";
 import type { GeradorDePdf } from "../documentos/pdf.js";
 import { marcarInterditada, registrarEmissao } from "../trilha.js";
+import { registrarConsulta } from "../privacidade/consulta.js";
+import { enderecoDoCliente } from "../rede.js";
 
 /**
  * Documentos oficiais.
@@ -98,10 +100,32 @@ async function reunirDados(
       [ocorrenciaId],
     );
 
+    /*
+      Os órgãos que a vistoria indicou.
+
+      Ligados à VISTORIA e não à ocorrência, de propósito: numa re-vistoria o
+      risco pode ter mudado, e o laudo novo precisa listar quem o agente indicou
+      naquela ida, não a soma de tudo o que já foi indicado no protocolo.
+
+      `nome` sai desta tabela e não de `orgaos`, mesmo quando há vínculo. O nome
+      gravado é o que o agente viu na tela no dia da coleta, e é ele que torna o
+      laudo legível daqui a cinco anos, depois de o órgão ter sido renomeado ou
+      fundido com outro. A sigla, essa sim, vem do cadastro: ela é abreviação e
+      não identidade, e nenhuma coleta a carrega.
+    */
+    const orgaos = await c.query<{ nome: string; sigla: string | null }>(
+      `SELECT i.nome, g.sigla
+         FROM vistoria_orgaos_indicados i
+         LEFT JOIN orgaos g ON g.id = i.orgao_id
+        WHERE i.vistoria_id = $1
+        ORDER BY i.ordem, i.criado_em, i.id`,
+      [vistoria.rows[0]!.id],
+    );
+
     return {
       organizacao: organizacao.rows[0]!,
       ocorrencia: ocorrencia.rows[0],
-      vistoria: vistoria.rows[0],
+      vistoria: { ...vistoria.rows[0], orgaosIndicados: orgaos.rows },
       fotos: fotos.rows,
     };
   });
@@ -260,10 +284,34 @@ export async function rotasDocumentos(
     quem: Identidade, id: string,
     documento: "laudo" | "termo_de_interdicao" | "termo_de_desinterdicao",
     vistoriaId: string, formato: "html" | "pdf",
+    ip: string | null,
   ): Promise<void> {
     await banco.comTenant(quem.organizacaoId, async (c) => {
       await registrarEmissao(c, quem, id, documento, vistoriaId, formato);
       if (documento === "termo_de_interdicao") await marcarInterditada(c, quem, id);
+
+      /*
+        O acesso ao documento fica registrado, e SEMPRE, inclusive na décima
+        vez que alguém abrir o mesmo laudo.
+
+        A diferença entre isto e `registrarEmissao` logo acima é o ponto: a
+        trilha guarda o ATO de emitir (uma linha por documento e vistoria,
+        porque dez aberturas do mesmo laudo não são dez atos administrativos),
+        e aqui guarda-se o ACESSO. Para "quem viu os dados dessa família?" a
+        décima abertura conta tanto quanto a primeira, e é justamente a
+        repetição que descreve alguém consultando dado que não precisa
+        consultar.
+
+        O laudo é onde a concentração é maior: nome, contato, endereço,
+        descrição de vulnerabilidade social, fotos da casa e a identificação de
+        quem assinou, tudo numa página que sai impressa.
+      */
+      await registrarConsulta(c, quem, {
+        ocorrenciaId: id,
+        recurso: documento,
+        finalidade: "emissao_de_documento",
+        ip,
+      });
     });
   }
 
@@ -274,7 +322,7 @@ export async function rotasDocumentos(
     formato: "html" | "pdf",
   ): Promise<string> {
     const { quem, id, dados } = await prepararDocumento(req, documento);
-    await efetivarEmissao(quem, id, documento, dados.vistoria.id, formato);
+    await efetivarEmissao(quem, id, documento, dados.vistoria.id, formato, enderecoDoCliente(req));
     const gerar = documento === "laudo" ? laudoDeVistoria : termoDeInterdicao;
     return gerar({ ...dados, ...(marcaDagua ? { marcaDagua } : {}) });
   }
@@ -345,7 +393,10 @@ export async function rotasDocumentos(
     };
 
     // Registra a emissão. Não interdita nada: o imóvel já está liberado.
-    await efetivarEmissao(quem, id, "termo_de_desinterdicao", dados.dados.vistoria.id, "html");
+    await efetivarEmissao(
+      quem, id, "termo_de_desinterdicao", dados.dados.vistoria.id, "html",
+      enderecoDoCliente(req),
+    );
     return termoDeDesinterdicao(completo);
   }
 
@@ -411,7 +462,7 @@ export async function rotasDocumentos(
     }
 
     // O PDF existe: agora sim registra a emissão e, se for termo, interdita.
-    await efetivarEmissao(quem, id, documento, dados.vistoria.id, "pdf");
+    await efetivarEmissao(quem, id, documento, dados.vistoria.id, "pdf", enderecoDoCliente(req));
 
     return resposta
       .type("application/pdf")

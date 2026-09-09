@@ -372,9 +372,20 @@ describe("Funções privilegiadas", () => {
       é o link, e o único caminho até essa organização é o hash do próprio
       link. Levantar o teto por isso é diferente de levantá-lo para não
       escrever o `SET LOCAL`, e é essa diferença que este caso guarda.
+
+      Subiu de 13 para 14 em 09/09/2026, por `minimizar_por_prazo` (migração
+      021), pela mesma razão de `varrer_prazos`: ela roda num relógio, sem
+      ninguém logado, então não existe token, não existe município no contexto
+      e o papel de aplicação não enxergaria uma linha sequer. Sem contexto, ela
+      não teria nem como descobrir QUAIS municípios têm prazo vencido. A
+      alternativa seria a aplicação carregar a lista de municípios por fora do
+      RLS, que é a mesma porta com o cadeado do lado de dentro. Os casos do
+      bloco "Minimizacao por prazo e registro de consulta", mais abaixo,
+      guardam o tamanho desta porta: sem município de parâmetro, sem prazo de
+      parâmetro, e sem dado de pessoa na saída.
     */
     expect(lista.length, `funções SECURITY DEFINER demais: ${lista.map((f) => f.nome).join(", ")}`)
-      .toBeLessThanOrEqual(13);
+      .toBeLessThanOrEqual(14);
   });
 
   it("toda função privilegiada fixa o search_path", async () => {
@@ -1831,5 +1842,443 @@ describe("O link do oficio nao se estende, se reenvia", () => {
         `o papel de aplicacao conseguiu executar: ${comando}`,
       ).rejects.toThrow(/permission denied|permissao/i);
     }
+  });
+});
+
+describe("O tipo a classificar, e ate onde ele pode ir", () => {
+  /**
+   * A migracao 019 abre a restricao de `ocorrencias.tipo` para aceitar
+   * "outro", e o defeito que ela fecha era do tipo mais caro: o esquema
+   * compartilhado aceitava o valor e o banco recusava. `POST /ocorrencias` com
+   * tipo "outro" passava pelo Zod e morria no INSERT com SQLSTATE 23514, entao
+   * o operador de plantao, com a pessoa na linha, recebia "erro inesperado,
+   * informe o codigo ao suporte" em vez de uma frase dizendo o que corrigir.
+   *
+   * Este bloco trava as quatro coisas que fazem a abertura valer, e a quarta e
+   * a regra de negocio de verdade: "outro" nao passa do despacho, porque a
+   * taxonomia existe para o dado do municipio conversar com o sistema
+   * nacional, e um chamado que fica "outro" para sempre e dado perdido.
+   */
+  async function abrir(
+    protocolo: string, tipo: string, descricao: string | null, status = "registrada",
+  ) {
+    return comoApp(orgA, (tx) =>
+      tx.query<{ id: string }>(
+        `INSERT INTO ocorrencias
+           (organizacao_id, protocolo, tipo, tipo_descricao, status, endereco,
+            solicitante_nome, canal_entrada, descricao)
+         VALUES ($1,$2,$3,$4,$5,'Rua do Morro, 12','Joana','telefone','Relato de teste')
+         RETURNING id`,
+        [orgA, protocolo, tipo, descricao, status],
+      ),
+    );
+  }
+
+  it("aceita o chamado que entrou sem classificacao, com o relato junto", async () => {
+    const r = await abrir("000901/2026", "outro", "Queda de arvore sobre a via");
+    expect(r.rows[0]!.id).toBeTruthy();
+  });
+
+  it("recusa 'outro' sem dizer o que foi relatado", async () => {
+    // Sem esta linha a triagem abre um chamado que diz "Outro" e nada mais, e
+    // a decisao tecnica que a triagem existe para tomar fica sem materia prima.
+    await expect(
+      abrir("000902/2026", "outro", null),
+    ).rejects.toThrow(/tipo_a_classificar_exige_descricao/i);
+  });
+
+  it("recusa descricao pendurada em tipo da COBRADE", async () => {
+    // Campo livre dentro de registro ja classificado vira lixeira de anotacao
+    // paralela: alguem escreve, ninguem le, e ninguem sabe que existe.
+    await expect(
+      abrir("000903/2026", "deslizamento", "anotacao que nao cabe em lugar nenhum"),
+    ).rejects.toThrow(/tipo_da_cobrade_nao_guarda_descricao/i);
+  });
+
+  it("recusa despachar equipe para chamado que continua 'outro'", async () => {
+    /*
+      O portao. Sem ele "outro" atravessa o fluxo inteiro ate o laudo, e o
+      documento oficial sai com brasao, assinatura e a palavra "Outro" no campo
+      do tipo. Depois que a equipe sai, ninguem volta para classificar.
+    */
+    const criada = await abrir("000904/2026", "outro", "Rompimento de adutora");
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query("UPDATE ocorrencias SET status = 'em_campo' WHERE id = $1",
+          [criada.rows[0]!.id]),
+      ),
+    ).rejects.toThrow(/tipo_a_classificar_nao_passa_do_despacho/i);
+  });
+
+  it("encerrar sem nunca classificar continua permitido", async () => {
+    /*
+      A excecao do portao, e ela e deliberada. Chamado improcedente ("era poda
+      de arvore, ja resolvido") e encerrado sem nunca ter sido classificado.
+      Exigir COBRADE para encerrar produziria exatamente o dado falso que a
+      migracao 019 existe para acabar: alguem escolheria o menos errado so para
+      o sistema deixar fechar.
+    */
+    const criada = await abrir("000905/2026", "outro", "Muro do vizinho caiu");
+    const fechada = await comoApp(orgA, (tx) =>
+      tx.query<{ status: string }>(
+        `UPDATE ocorrencias
+            SET status = 'encerrada', encerrado_em = now(),
+                motivo_encerramento = 'Improcedente: caso de zeladoria urbana'
+          WHERE id = $1 RETURNING status`,
+        [criada.rows[0]!.id],
+      ),
+    );
+    expect(fechada.rows[0]!.status).toBe("encerrada");
+  });
+
+  it("reclassificar limpa a descricao e libera o despacho", async () => {
+    // O caminho legitimo inteiro, para a correcao nao ter fechado junto o que
+    // ela existe para permitir.
+    const criada = await abrir("000906/2026", "outro", "Barranco cedeu nos fundos");
+    const id = criada.rows[0]!.id;
+
+    await comoApp(orgA, (tx) =>
+      tx.query(
+        "UPDATE ocorrencias SET tipo = 'deslizamento', tipo_descricao = NULL, status = 'triagem' WHERE id = $1",
+        [id],
+      ),
+    );
+    const despachada = await comoApp(orgA, (tx) =>
+      tx.query<{ status: string }>(
+        "UPDATE ocorrencias SET status = 'em_campo' WHERE id = $1 RETURNING status",
+        [id],
+      ),
+    );
+    expect(despachada.rows[0]!.status).toBe("em_campo");
+  });
+});
+
+describe("Orgaos indicados pela vistoria", () => {
+  /**
+   * A migracao 020 cria a tabela que faltava. O envelope de sincronizacao ja
+   * trazia `orgaosParaAcionar`, o Zod ja o validava, e o servidor descartava
+   * por nao ter onde gravar: o laudo dizia "Necessario acionar outro orgao:
+   * SIM" e calava QUAL.
+   *
+   * O que precisa ser provado aqui nao e que a tabela existe (a varredura de
+   * RLS ja a alcanca sozinha), e sim que as DUAS chaves estrangeiras sao
+   * compostas. Row Level Security nao governa verificacao de chave
+   * estrangeira: o Postgres confere a linha referenciada com privilegio de
+   * sistema, por baixo da policy. Com chave simples, uma vistoria de Serra
+   * Alta indicaria um orgao de Vale Fundo e o laudo de um municipio sairia
+   * nomeando o cadastro do outro, sem que nada no RLS reclamasse.
+   */
+  let vistoriaDeA: string;
+  let orgaoDeA: string;
+  let orgaoDeB: string;
+  let vistoriaDeB: string;
+
+  beforeAll(async () => {
+    const ocorrenciaDeA = await db.query<{ id: string }>(
+      "SELECT id FROM ocorrencias WHERE organizacao_id = $1 LIMIT 1", [orgA],
+    );
+    const va = await db.query<{ id: string }>(
+      `INSERT INTO vistorias
+         (organizacao_id, ocorrencia_id, checklist, assinante_nome, coletada_em, idempotency_key)
+       VALUES ($1,$2,'[]'::jsonb,'Morador', now(), gen_random_uuid()) RETURNING id`,
+      [orgA, ocorrenciaDeA.rows[0]!.id],
+    );
+    vistoriaDeA = va.rows[0]!.id;
+
+    const vb = await db.query<{ id: string }>(
+      `INSERT INTO vistorias
+         (organizacao_id, ocorrencia_id, checklist, assinante_nome, coletada_em, idempotency_key)
+       VALUES ($1,$2,'[]'::jsonb,'Morador do vizinho', now(), gen_random_uuid()) RETURNING id`,
+      [orgB, ocorrenciaDeB],
+    );
+    vistoriaDeB = vb.rows[0]!.id;
+
+    const ga = await db.query<{ id: string }>(
+      "INSERT INTO orgaos (organizacao_id, nome, sigla) VALUES ($1,'Corpo de Bombeiros de Serra Alta','CBMSA') RETURNING id",
+      [orgA],
+    );
+    orgaoDeA = ga.rows[0]!.id;
+    const gb = await db.query<{ id: string }>(
+      "INSERT INTO orgaos (organizacao_id, nome, sigla) VALUES ($1,'Corpo de Bombeiros de Vale Fundo','CBMVF') RETURNING id",
+      [orgB],
+    );
+    orgaoDeB = gb.rows[0]!.id;
+  });
+
+  it("grava a indicacao do proprio municipio, do catalogo e por texto livre", async () => {
+    /*
+      Os dois caminhos numa vistoria so, de proposito: o catalogo e o campo
+      livre convivem porque um aparelho novo, que nunca sincronizou, tem
+      catalogo vazio, e um item OBRIGATORIO do checklist nao pode ficar sem
+      resposta possivel justamente sem sinal.
+    */
+    const r = await comoApp(orgA, (tx) =>
+      tx.query<{ n: string }>(
+        `INSERT INTO vistoria_orgaos_indicados
+           (organizacao_id, vistoria_id, orgao_id, nome, ordem)
+         VALUES ($1,$2,$3,'Corpo de Bombeiros de Serra Alta',0),
+                ($1,$2,NULL,'Associacao de moradores do Alto da Serra',1)
+         RETURNING id::text AS n`,
+        [orgA, vistoriaDeA, orgaoDeA],
+      ),
+    );
+    expect(r.rows).toHaveLength(2);
+  });
+
+  it("nao indica orgao do catalogo de outro municipio", async () => {
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO vistoria_orgaos_indicados
+             (organizacao_id, vistoria_id, orgao_id, nome)
+           VALUES ($1,$2,$3,'Corpo de Bombeiros de Vale Fundo')`,
+          [orgA, vistoriaDeA, orgaoDeB],
+        ),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("nao pendura indicacao em vistoria de outro municipio", async () => {
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO vistoria_orgaos_indicados
+             (organizacao_id, vistoria_id, orgao_id, nome)
+           VALUES ($1,$2,NULL,'Defesa Civil estadual')`,
+          [orgA, vistoriaDeB],
+        ),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("o vizinho nao le as indicacoes de quem esta ao lado", async () => {
+    const daqui = await comoApp(orgB, (tx) =>
+      tx.query("SELECT id FROM vistoria_orgaos_indicados"),
+    );
+    expect(daqui.rows).toHaveLength(0);
+  });
+
+  it("o mesmo orgao do catalogo nao entra duas vezes na mesma vistoria", async () => {
+    // Envelope reenviado com a lista repetida faria o laudo imprimir o mesmo
+    // orgao duas vezes e a conta de acionamentos contar duas.
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO vistoria_orgaos_indicados
+             (organizacao_id, vistoria_id, orgao_id, nome)
+           VALUES ($1,$2,$3,'Corpo de Bombeiros de Serra Alta')`,
+          [orgA, vistoriaDeA, orgaoDeA],
+        ),
+      ),
+    ).rejects.toThrow(/orgao_do_catalogo_uma_vez_por_vistoria|duplicate key/i);
+  });
+
+  it("a coleta de campo nao se reescreve nem se apaga", async () => {
+    /*
+      Sem UPDATE e sem DELETE no papel de aplicacao, pela mesma razao da
+      trilha: isto e o que o agente respondeu no local, embaixo da assinatura
+      do morador. Correcao se faz com vistoria nova, nunca reescrevendo o que
+      ele disse depois de o laudo ter saido.
+    */
+    for (const comando of [
+      "UPDATE vistoria_orgaos_indicados SET nome = 'Outro orgao qualquer'",
+      "DELETE FROM vistoria_orgaos_indicados",
+    ]) {
+      await expect(
+        comoApp(orgA, (tx) => tx.query(comando)),
+        `o papel de aplicacao conseguiu executar: ${comando}`,
+      ).rejects.toThrow(/permission denied|permissao/i);
+    }
+  });
+});
+
+describe("Minimizacao por prazo e registro de consulta", () => {
+  /**
+   * A migracao 021 traz uma tabela nova e uma funcao privilegiada nova, e as
+   * duas mexem com o assunto mais delicado do produto: a primeira registra
+   * QUEM leu dado de cidadao, e a segunda APAGA dado de cidadao.
+   *
+   * Uma funcao que escreve sem contexto de municipio e uma porta no RLS, e
+   * porta no RLS precisa de caso proprio no portao. O que este bloco prova e
+   * que a porta e do tamanho da pergunta que ela responde: nao aceita
+   * municipio de quem chama, nao aceita prazo de quem chama, e nao devolve
+   * dado de pessoa.
+   */
+  let servidorDeA: string;
+  let servidorDeB: string;
+  let ocorrenciaDeA: string;
+  let consultaDeB: string;
+
+  beforeAll(async () => {
+    const uA = await db.query<{ id: string }>(
+      `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
+       VALUES ($1,'Coordenadora de Serra Alta','SA-LGPD-1','lgpd.sa@exemplo.gov.br','coordenador')
+       RETURNING id`,
+      [orgA],
+    );
+    servidorDeA = uA.rows[0]!.id;
+
+    const uB = await db.query<{ id: string }>(
+      `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
+       VALUES ($1,'Coordenador de Vale Fundo','VF-LGPD-1','lgpd.vf@exemplo.gov.br','coordenador')
+       RETURNING id`,
+      [orgB],
+    );
+    servidorDeB = uB.rows[0]!.id;
+
+    const oc = await db.query<{ id: string }>(
+      "SELECT id FROM ocorrencias WHERE organizacao_id = $1 LIMIT 1", [orgA],
+    );
+    ocorrenciaDeA = oc.rows[0]!.id;
+
+    const k = await db.query<{ id: string }>(
+      `INSERT INTO ocorrencia_consultas
+         (organizacao_id, ocorrencia_id, usuario_id, usuario_nome, usuario_papel,
+          recurso, finalidade)
+       VALUES ($1,$2,$3,'Coordenador de Vale Fundo','coordenador',
+               'ocorrencia_detalhe','atendimento')
+       RETURNING id`,
+      [orgB, ocorrenciaDeB, servidorDeB],
+    );
+    consultaDeB = k.rows[0]!.id;
+  });
+
+  it("nao le o registro de acesso do municipio vizinho", async () => {
+    const r = await comoApp(orgA, (tx) =>
+      tx.query("SELECT id FROM ocorrencia_consultas WHERE id = $1", [consultaDeB]),
+    );
+    expect(
+      r.rows,
+      "quem consultou o que no municipio ao lado ficou legivel: o registro de "
+      + "acesso descreve o comportamento de servidores identificados",
+    ).toHaveLength(0);
+  });
+
+  it("nao registra consulta apontando para ocorrencia de outro municipio", async () => {
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO ocorrencia_consultas
+             (organizacao_id, ocorrencia_id, usuario_id, usuario_nome, usuario_papel,
+              recurso, finalidade)
+           VALUES ($1,$2,$3,'Coordenadora de Serra Alta','coordenador',
+                   'ocorrencia_detalhe','atendimento')`,
+          [orgA, ocorrenciaDeB, servidorDeA],
+        ),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("nao registra consulta no nome de servidor de outro municipio", async () => {
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO ocorrencia_consultas
+             (organizacao_id, ocorrencia_id, usuario_id, usuario_nome, usuario_papel,
+              recurso, finalidade)
+           VALUES ($1,$2,$3,'Coordenador de Vale Fundo','coordenador',
+                   'ocorrencia_detalhe','atendimento')`,
+          [orgA, ocorrenciaDeA, servidorDeB],
+        ),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("nao carimba o registro com o id de outro municipio", async () => {
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO ocorrencia_consultas
+             (organizacao_id, ocorrencia_id, usuario_id, usuario_nome, usuario_papel,
+              recurso, finalidade)
+           VALUES ($1,$2,$3,'Coordenador de Vale Fundo','coordenador',
+                   'ocorrencia_detalhe','atendimento')`,
+          [orgB, ocorrenciaDeB, servidorDeB],
+        ),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("o registro de acesso nao se reescreve nem se apaga", async () => {
+    /*
+      Um registro de acesso que quem acessou consegue apagar nao e registro de
+      acesso. Append-only pelo mesmo mecanismo da trilha: ausencia de policy de
+      UPDATE e de DELETE, com RLS forcada.
+    */
+    for (const comando of [
+      "UPDATE ocorrencia_consultas SET usuario_nome = 'Outra pessoa'",
+      "DELETE FROM ocorrencia_consultas",
+    ]) {
+      await expect(
+        comoApp(orgB, (tx) => tx.query(comando)),
+        `o papel de aplicacao conseguiu executar: ${comando}`,
+      ).rejects.toThrow(/permission denied|permissao|policy/i);
+    }
+  });
+
+  it("nao le nem altera o prazo de retencao do municipio vizinho", async () => {
+    /*
+      O prazo e a decisao do CONTROLADOR sobre o dia em que o dado de um
+      cidadao e destruido. Alcancar a coluna do vizinho seria decidir isso no
+      lugar dele.
+    */
+    await comoApp(orgA, (tx) =>
+      tx.query("UPDATE organizacoes SET retencao_solicitante_dias = 1"),
+    );
+    const doVizinho = await db.query<{ dias: number | null }>(
+      "SELECT retencao_solicitante_dias AS dias FROM organizacoes WHERE id = $1",
+      [orgB],
+    );
+    expect(doVizinho.rows[0]!.dias).toBeNull();
+
+    // E de volta ao estado anterior, para nao mudar o mundo dos outros casos.
+    await db.query(
+      "UPDATE organizacoes SET retencao_solicitante_dias = NULL WHERE id = $1", [orgA],
+    );
+  });
+
+  it("a minimizacao nao aceita municipio nem prazo de quem chama", async () => {
+    const assinatura = await db.query<{ args: string }>(
+      `SELECT pg_get_function_identity_arguments(p.oid) AS args
+         FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'minimizar_por_prazo'`,
+    );
+    expect(assinatura.rows).toHaveLength(1);
+    expect(
+      assinatura.rows[0]!.args,
+      "a minimizacao passou a aceitar municipio, e virou uma porta para "
+      + "escrever em municipio escolhido por quem chama",
+    ).not.toMatch(/uuid/);
+    expect(
+      assinatura.rows[0]!.args,
+      "a minimizacao passou a aceitar prazo de fora, e com isso quem chama "
+      + "decide o dia da destruicao do dado, no lugar do controlador",
+    ).not.toMatch(/interval/);
+  });
+
+  it("a minimizacao nao devolve dado de pessoa", async () => {
+    const saida = await db.query<{ resultado: string }>(
+      `SELECT pg_get_function_result(p.oid) AS resultado
+         FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'minimizar_por_prazo'`,
+    );
+    for (const proibido of ["solicitante", "contato", "endereco", "descricao"]) {
+      expect(
+        saida.rows[0]!.resultado,
+        `a minimizacao passou a devolver ${proibido}, e o que ela apaga voltaria pelo log`,
+      ).not.toContain(proibido);
+    }
+  });
+
+  it("nem PUBLIC nem uma conta qualquer executa a minimizacao", async () => {
+    const r = await db.query<{ tem: boolean }>(
+      `SELECT has_function_privilege('public', p.oid, 'EXECUTE') AS tem
+         FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'minimizar_por_prazo'`,
+    );
+    expect(
+      r.rows[0]!.tem,
+      "a funcao que apaga dado de cidadao ficou executavel por PUBLIC",
+    ).toBe(false);
   });
 });

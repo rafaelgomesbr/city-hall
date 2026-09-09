@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
-  ROTULO_STATUS, ROTULO_TIPO_COBRADE, SEVERIDADES, ROTULO_SEVERIDADE, podeExecutar,
+  ROTULO_STATUS, SEVERIDADES, ROTULO_SEVERIDADE, podeExecutar,
   type Severidade, type StatusOcorrencia,
 } from "@dc360/shared";
 import { listarPaginaDeOcorrencias, type PaginaDeOcorrencias } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
-  Aviso, Carregando, Prazo, PrazoVenceEm, SeloSeveridade, SeloStatus, Vazio, formatarDataHora,
+  Aviso, Carregando, Prazo, PrazoVenceEm, SeloSeveridade, SeloStatus, TipoDaOcorrencia,
+  Vazio, formatarDataHora,
 } from "../componentes/comuns";
 import { IconeMais } from "../componentes/Icones";
 
@@ -225,7 +226,14 @@ export function Ocorrencias() {
                         <div className="tabela__secundario">{formatarDataHora(o.criado_em)}</div>
                       </td>
                       <td>
-                        <div>{ROTULO_TIPO_COBRADE[o.tipo]}</div>
+                        {/*
+                          Um chamado "outro" está ESPERANDO classificação, e
+                          isso é diferente de um classificado. Impresso igual
+                          aos outros oito no meio da coluna, ele lê como
+                          decisão já tomada, e a linha que exige uma decisão de
+                          quem está lendo é justamente a que desaparece.
+                        */}
+                        <div><TipoDaOcorrencia tipo={o.tipo} /></div>
                         <div className="tabela__secundario">{o.endereco}</div>
                       </td>
                       <td>

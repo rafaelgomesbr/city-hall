@@ -105,5 +105,33 @@ export function armazenamentoS3(config: ConfigS3): Armazenamento {
       const tamanho = r.headers.get("content-length");
       return { existe: true, tamanhoBytes: tamanho ? Number(tamanho) : null };
     },
+
+    async baixar(chave: string) {
+      /*
+        A URL assinada vive sessenta segundos, e não os cinco minutos da
+        leitura normal: aqui ela não é entregue a ninguém, é consumida na linha
+        seguinte pelo próprio processo. URL de vida longa que não sai do
+        servidor é vida longa desperdiçada, e ela ainda passaria por log de
+        proxy no caminho.
+      */
+      const url = assinarUrl({
+        metodo: "GET",
+        host,
+        caminho: caminhoDe(chave),
+        regiao,
+        credenciais,
+        agora: agora(),
+        expiraEmSegundos: 60,
+      });
+      const r = await buscar(url, { method: "GET" }).catch(() => null);
+      // Devolve nada em vez de lançar: quem monta o pacote de saída precisa
+      // registrar a falta no relatório de pendências e seguir, e não abortar a
+      // extração inteira porque um objeto sumiu do balde.
+      if (!r || !r.ok) return null;
+      return {
+        corpo: new Uint8Array(await r.arrayBuffer()),
+        tipoConteudo: r.headers.get("content-type"),
+      };
+    },
   };
 }

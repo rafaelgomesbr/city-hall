@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
+  MOTIVO_RECLASSIFICAR,
   PRAZO_PADRAO_HORAS, ROTULO_CANAL, ROTULO_CHECKLIST, ROTULO_PAPEL, ROTULO_SEVERIDADE,
-  ROTULO_TIPO_COBRADE, SEVERIDADES, podeExecutar,
+  ROTULO_TIPO_COBRADE, SEVERIDADES, coordenadaEmTexto, podeExecutar, precisaReclassificar,
   DESFECHOS_PROVIDENCIA, ROTULO_DESFECHO, respostaProvidenciaSchema,
-  type DesfechoProvidencia,
+  type DesfechoProvidencia, type TipoCobrade, type TipoDeEntrada,
   despachoSchema, desinterdicaoSchema, providenciaSchema, triagemSchema,
   type Severidade, rotuloEventoTrilha } from "@dc360/shared";
 import {
@@ -21,7 +22,7 @@ import {
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
   Aviso, AvisoDeObrigatorios, Carregando, Cartao, ErroCampo, Prazo, SeloSeveridade, SeloStatus,
-  Vazio, formatarDataHora,
+  TipoDaOcorrencia, Vazio, formatarDataHora,
 } from "../componentes/comuns";
 import { Campo } from "../componentes/Campo";
 import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
@@ -32,9 +33,11 @@ import {
   estadoDoEnvio, providenciasSemOficio, rotuloDoEnvio,
 } from "./oficio-regras";
 import {
-  avisoDoRegistro, montarVerTambem, podeOferecerEncerramento, proximoPassoDoEncerramento,
-  rotuloDoBotaoDeEncerrar, type ItemVerTambem, type PassoDoEncerramento,
-  type RelacaoVerTambem,
+  ANCORA_DA_CLASSIFICACAO, avisoDoRegistro, despachoEsperaClassificacao,
+  montarVerTambem, ofereceTriagem, opcoesDeTipoNaTriagem, podeOferecerEncerramento,
+  proximoPassoDoEncerramento, recusadoPorFaltaDeClassificacao, rotuloDoBotaoDeEncerrar,
+  tipoEscolhidoNaTriagem, tipoInicialNaTriagem,
+  type ItemVerTambem, type PassoDoEncerramento, type RelacaoVerTambem,
 } from "./ocorrencia-regras";
 
 type Conjunto = {
@@ -84,6 +87,16 @@ export function Ocorrencia() {
   const local = useLocation();
   const [dados, setDados] = useState<Conjunto | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  /*
+    A falha que tem um caminho de saída, separada das que não têm.
+
+    Erro que não termina numa ação é erro inútil: a recusa do despacho por
+    falta de classificação é justamente a que tem um próximo passo óbvio, e ele
+    fica a uma rolagem de distância, no cartão de triagem desta mesma coluna.
+    Guardar a marca em estado, em vez de procurar palavra no texto do erro na
+    hora de desenhar, é o que mantém o reconhecimento num lugar só.
+  */
+  const [erroLevaAClassificar, setErroLevaAClassificar] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
   /*
@@ -190,12 +203,21 @@ export function Ocorrencia() {
     */
     setAviso(null);
     setErro(null);
+    setErroLevaAClassificar(false);
     try {
       await acao();
       await recarregar();
       setAviso(mensagem);
     } catch (e: unknown) {
       setErro(e instanceof Error ? e.message : String(e));
+      /*
+        As duas pontas erram com formas diferentes (409 com código na API,
+        `Error` com a frase compartilhada no modo de demonstração) e esta tela
+        não sabe em qual modo está. O reconhecimento das duas mora em
+        `ocorrencia-regras`, e é ele que transforma a faixa vermelha num
+        caminho em vez de um beco.
+      */
+      setErroLevaAClassificar(recusadoPorFaltaDeClassificacao(e));
     } finally {
       setGravando(false);
       // Depois de pintar o resultado, leva o olho e o foco até ele.
@@ -215,7 +237,6 @@ export function Ocorrencia() {
   } = dados;
   // Mesma tabela que o repositório usa para recusar a escrita. A tela decide
   // o que desenhar; quem impede de verdade é a camada de dados.
-  const podeTriagem = podeExecutar(sessao.papel, "classificar_triagem");
   const podeDespachar = podeExecutar(sessao.papel, "despachar_equipe");
   const podeProvidencia = podeExecutar(sessao.papel, "encaminhar_providencia");
   // Permissão E momento do fluxo, na mesma resposta. Ver `ocorrencia-regras`:
@@ -238,7 +259,12 @@ export function Ocorrencia() {
           <h1>
             <span className="mono">{o.protocolo}</span>
           </h1>
-          <p>{ROTULO_TIPO_COBRADE[o.tipo]} em {o.endereco}</p>
+          {/*
+            O tipo do cabeçalho passa pelo mesmo componente da lista: um
+            chamado "outro" é um chamado ESPERANDO classificação, e a linha que
+            abre a tela é onde isso precisa aparecer primeiro.
+          */}
+          <p><TipoDaOcorrencia tipo={o.tipo} /> em {o.endereco}</p>
         </div>
         <div className="cabecalho-pagina__acoes">
           <SeloSeveridade severidade={o.severidade} />
@@ -247,7 +273,14 @@ export function Ocorrencia() {
       </div>
 
       <div ref={faixaDeAviso} tabIndex={-1} style={{ outline: "none" }}>
-        {erro && <Aviso tom="perigo">{erro}</Aviso>}
+        {erro && (
+          <Aviso tom="perigo">
+            {erro}
+            {erroLevaAClassificar && podeExecutar(sessao.papel, "classificar_triagem") && (
+              <>{" "}<a href={`#${ANCORA_DA_CLASSIFICACAO}`}>Ir para a classificação</a></>
+            )}
+          </Aviso>
+        )}
         {aviso && <Aviso tom="sucesso">{aviso}</Aviso>}
       </div>
 
@@ -325,22 +358,48 @@ export function Ocorrencia() {
               </div>
               <div className="par">
                 <span className="par__rotulo">Coordenada</span>
+                {/*
+                  Seis casas, que é o que o laudo e a minuta imprimem.
+
+                  Aqui saíam quatro. Onze metros separam a coordenada que o
+                  coordenador lê na tela da que sai no documento assinado, para
+                  o mesmo ponto, e é assim que nasce a discussão sobre qual dos
+                  dois está certo, dentro de um processo.
+                */}
                 <span className="par__valor mono">
                   {o.latitude !== null && o.longitude !== null
-                    ? `${o.latitude.toFixed(4)}, ${o.longitude.toFixed(4)}`
+                    ? coordenadaEmTexto({ lat: o.latitude, lng: o.longitude })
                     : "Não informada"}
                 </span>
               </div>
             </div>
+            {/*
+              O texto que só existe enquanto o tipo for "outro", e que a
+              reclassificação apaga da coluna (o banco recusa descrição em tipo
+              da COBRADE). Enquanto ele existe, é a única base da decisão da
+              triagem, e escondê-lo aqui obrigaria quem classifica a garimpar a
+              trilha para achar o que a pessoa contou ao telefone.
+            */}
+            {precisaReclassificar(o.tipo) && (
+              <div className="par">
+                <span className="par__rotulo">O que foi relatado, a classificar</span>
+                <span className="par__valor">{o.tipo_descricao ?? "Não informado"}</span>
+              </div>
+            )}
             <div className="par" style={{ marginBottom: 0 }}>
               <span className="par__rotulo">Relato</span>
               <span className="par__valor">{o.descricao}</span>
             </div>
           </Cartao>
 
-          {podeTriagem && !encerrada && o.status === "registrada" && (
+          {ofereceTriagem(sessao.papel, o.status, o.tipo) && (
             <BlocoTriagem
               gravando={gravando}
+              tipoAtual={o.tipo}
+              tipoDescricao={o.tipo_descricao}
+              severidadeAtual={o.severidade}
+              vulnerabilidadeAtual={o.vulnerabilidade_presente}
+              vulnerabilidadeDescricaoAtual={o.vulnerabilidade_descricao}
               onEnviar={(t) => executar(
                 () => classificarNaTriagem(sessao, o.id, t),
                 "Triagem registrada. O prazo de atendimento foi calculado pela severidade.",
@@ -348,7 +407,30 @@ export function Ocorrencia() {
             />
           )}
 
-          {podeDespachar && !encerrada && o.status === "triagem" && (
+          {/*
+            O DESPACHO RECUSADO ANTES DE SER TENTADO.
+
+            A rota responde 409 a um chamado ainda "outro", e a restrição
+            `tipo_a_classificar_nao_passa_do_despacho` (migração 019) recusa o
+            mesmo UPDATE por outro caminho. Desenhar o formulário aqui seria
+            fazer o coordenador escolher equipe, prazo e instruções para levar
+            a recusa no fim. O aviso toma o lugar do formulário e termina numa
+            ação: o link leva o foco direto ao seletor de tipo da triagem, que
+            está aberto logo acima nesta mesma coluna.
+          */}
+          {podeDespachar && !encerrada && despachoEsperaClassificacao(o.status, o.tipo) && (
+            <Cartao titulo="Despachar equipe">
+              <Aviso tom="alerta">
+                <strong>Falta classificar o tipo.</strong> {MOTIVO_RECLASSIFICAR}{" "}
+                {podeExecutar(sessao.papel, "classificar_triagem")
+                  ? <a href={`#${ANCORA_DA_CLASSIFICACAO}`}>Ir para a classificação</a>
+                  : "Quem tem competência para classificar é a coordenação."}
+              </Aviso>
+            </Cartao>
+          )}
+
+          {podeDespachar && !encerrada && o.status === "triagem"
+            && !despachoEsperaClassificacao(o.status, o.tipo) && (
             <BlocoDespacho
               gravando={gravando}
               equipes={equipes.filter((e) => e.ativa)}
@@ -716,16 +798,65 @@ export function CartaoVerTambem(
 // Blocos de ação
 // ---------------------------------------------------------------------------
 
-function BlocoTriagem({ onEnviar, gravando }: { onEnviar: (t: { severidade: Severidade; vulnerabilidadePresente: boolean; vulnerabilidadeDescricao?: string }) => void; gravando: boolean }) {
-  const [severidade, setSeveridade] = useState<Severidade>("media");
-  const [vulneravel, setVulneravel] = useState(false);
-  const [descricao, setDescricao] = useState("");
+/**
+ * A triagem, que é onde a classificação técnica acontece de verdade.
+ *
+ * O cartão nasceu com severidade e vulnerabilidade e sem TIPO, e essa ausência
+ * era o buraco no meio do caminho: `triagemSchema` já tinha o campo, a rota já
+ * sabia gravá-lo, e a única tela capaz de exercer a decisão não o oferecia. Um
+ * chamado aberto como "Outro" não tinha caminho nenhum até a COBRADE, e o
+ * despacho o recusava para sempre.
+ *
+ * Os valores atuais entram como padrão do formulário, e isso não é conforto: a
+ * triagem pode rodar duas vezes (severidade agora, tipo quando alguém olhar a
+ * foto), e um formulário que abrisse sempre em "média, sem vulnerabilidade"
+ * rebaixaria em silêncio a severidade e apagaria a vulnerabilidade social de um
+ * caso já triado, no clique de quem só queria escolher o tipo.
+ */
+function BlocoTriagem({
+  onEnviar, gravando, tipoAtual, tipoDescricao,
+  severidadeAtual, vulnerabilidadeAtual, vulnerabilidadeDescricaoAtual,
+}: {
+  onEnviar: (t: {
+    severidade: Severidade;
+    tipo?: TipoCobrade;
+    vulnerabilidadePresente: boolean;
+    vulnerabilidadeDescricao?: string;
+  }) => void;
+  gravando: boolean;
+  tipoAtual: TipoDeEntrada;
+  /** O relato que acompanha "outro", enquanto ele existe. */
+  tipoDescricao: string | null;
+  severidadeAtual: Severidade | null;
+  vulnerabilidadeAtual: boolean;
+  vulnerabilidadeDescricaoAtual: string | null;
+}) {
+  const [severidade, setSeveridade] = useState<Severidade>(severidadeAtual ?? "media");
+  /*
+    Nunca um palpite: um chamado "outro" abre em "ainda não classificar". Um
+    seletor que já viesse marcado em "Deslizamento" faria quem tria confirmar
+    sem escolher, e a classificação apressada que "Outro" existe para eliminar
+    voltaria pela porta da triagem, agora com o carimbo de quem tem competência
+    técnica, que é pior do que a do operador de plantão.
+  */
+  const [tipo, setTipo] = useState<string>(tipoInicialNaTriagem(tipoAtual));
+  const [vulneravel, setVulneravel] = useState(vulnerabilidadeAtual);
+  const [descricao, setDescricao] = useState(vulnerabilidadeDescricaoAtual ?? "");
   const [erro, setErro] = useState<string | null>(null);
+
+  const aClassificar = precisaReclassificar(tipoAtual);
 
   function enviar(evento: React.FormEvent) {
     evento.preventDefault();
     const resultado = triagemSchema.safeParse({
       severidade,
+      /*
+        `undefined` quando nada foi escolhido, e não `"outro"`: o esquema
+        compartilhado só aceita os oito da COBRADE aqui, de propósito, porque
+        reclassificar para o mesmo lugar de onde se veio transformaria o portão
+        do despacho em formalidade. Omitir é o jeito de dizer "não mexi".
+      */
+      tipo: tipoEscolhidoNaTriagem(tipo),
       vulnerabilidadePresente: vulneravel,
       vulnerabilidadeDescricao: descricao.trim() || undefined,
     });
@@ -738,7 +869,7 @@ function BlocoTriagem({ onEnviar, gravando }: { onEnviar: (t: { severidade: Seve
   }
 
   return (
-    <Cartao titulo="Classificar na triagem">
+    <Cartao titulo={aClassificar ? "Classificar o tipo e a severidade" : "Classificar na triagem"}>
       {/*
         `noValidate` não é descuido: a validação é a do esquema compartilhado,
         a mesma que o servidor roda. Sem ele, o navegador barra o envio antes
@@ -749,6 +880,50 @@ function BlocoTriagem({ onEnviar, gravando }: { onEnviar: (t: { severidade: Seve
       */}
       <form onSubmit={enviar} noValidate>
         <AvisoDeObrigatorios />
+
+        {/*
+          O relato ao lado da decisão, e não numa aba acima.
+
+          Quem classifica precisa ler o que o solicitante contou para poder
+          decidir, e a coluna que guarda esse texto some no instante da
+          reclassificação (tipo da COBRADE não guarda descrição). Ler aqui é a
+          última oportunidade de comparar a decisão técnica com o relato, e é
+          por isso que o texto também vai inteiro para a trilha, que ninguém
+          reescreve.
+        */}
+        {aClassificar && (
+          <Aviso tom="info">
+            <strong>Chamado a classificar.</strong> O que foi relatado na abertura:{" "}
+            {tipoDescricao ?? "nada foi informado"}
+          </Aviso>
+        )}
+
+        {/*
+          O `id` é literal, e não `{ANCORA_DA_CLASSIFICACAO}`, de propósito: a
+          varredura de `test/formularios.test.ts` lê `id="..."` como texto, e um
+          identificador vindo de expressão faria este campo sumir do portão sem
+          que ninguém percebesse, que é o jeito silencioso de um portão parar
+          de olhar. O que amarra o link a este campo é o teste, que compara os
+          dois contra a mesma constante.
+        */}
+        <Campo
+          id="triagem-tipo"
+          rotulo="Tipo de ocorrência"
+          dica={aClassificar
+            ? "A taxonomia da COBRADE é fechada, e é ela que o município manda para o "
+              + "sistema nacional. Enquanto o tipo for \"Outro\", o chamado não pode ser "
+              + "despachado."
+            : "Corrigir o tipo aqui é legítimo, e a troca fica registrada na trilha."}
+        >
+          {(campo) => (
+            <select {...campo} value={tipo} onChange={(e) => setTipo(e.target.value)}>
+              {opcoesDeTipoNaTriagem(tipoAtual).map((o) => (
+                <option key={o.valor} value={o.valor}>{o.rotulo}</option>
+              ))}
+            </select>
+          )}
+        </Campo>
+
         <Campo id="triagem-severidade" rotulo="Severidade"
                dica="A severidade define o prazo de atendimento, não o contrário.">
           {(campo) => (

@@ -126,7 +126,7 @@ describe("Configuração de produção", () => {
     // este projeto quer.
     const c = carregarConfig({} as NodeJS.ProcessEnv);
     expect(c.NODE_ENV).toBe("development");
-    expect(c.jwtSegredo.length).toBeGreaterThan(31);
+    expect(c.jwtSegredos[0]!.length).toBeGreaterThan(31);
   });
 });
 

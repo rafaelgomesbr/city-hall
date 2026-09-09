@@ -402,7 +402,20 @@ export const ocorrenciaSchema = z.object({
   id: uuidSchema,
   organizacaoId: uuidSchema,
   protocolo: protocoloSchema,
-  tipo: z.enum(TIPOS_COBRADE),
+  /*
+    `TIPOS_DE_ENTRADA` e não `TIPOS_COBRADE`, e a diferença é o defeito que
+    esta linha carregava.
+
+    Este esquema descreve uma ocorrência COMO ELA ESTÁ NO BANCO, e a abertura
+    aceita "outro" desde que existe `TIPO_A_CLASSIFICAR`. Enquanto aqui só
+    coubessem os oito da COBRADE, o tipo declarado dizia que "outro" nunca
+    chega, e qualquer código que confiasse nele estaria confiando numa promessa
+    que a rota de abertura não faz. O portão do despacho impede "outro" de
+    seguir adiante; ele não impede que exista.
+  */
+  tipo: z.enum(TIPOS_DE_ENTRADA),
+  /** Preenchido enquanto o tipo for "outro", e só enquanto for. */
+  tipoDescricao: z.string().nullable(),
   status: z.enum(STATUS_OCORRENCIA),
   severidade: z.enum(SEVERIDADES).nullable(),
   vulnerabilidadePresente: z.boolean(),

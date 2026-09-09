@@ -2,8 +2,11 @@ import type { ReactNode } from "react";
 import {
   ROTULO_SEVERIDADE,
   ROTULO_STATUS,
+  ROTULO_TIPO_COBRADE,
+  precisaReclassificar,
   type Severidade,
   type StatusOcorrencia,
+  type TipoDeEntrada,
 } from "@dc360/shared";
 import { IconeAlerta, IconeCheck, IconeStatus } from "./Icones";
 import { rotuloDoCampo } from "@dc360/shared";
@@ -23,6 +26,26 @@ export function SeloSeveridade({ severidade }: { severidade: Severidade | null }
     <span className={`selo selo--${severidade}`}>
       <span className="selo__ponto" aria-hidden="true" />
       {ROTULO_SEVERIDADE[severidade]}
+    </span>
+  );
+}
+
+/**
+ * O tipo da ocorrência, dizendo quando ele ainda NÃO é uma classificação.
+ *
+ * "Outro" não é a nona categoria da COBRADE: é a marca de que a decisão
+ * técnica está pendente. Impresso igual aos outros oito, no meio de uma
+ * coluna de tipos, ele lê como classificação já feita, e a fila de triagem
+ * perde de vista justamente as linhas que exigem uma decisão de quem está
+ * olhando. Aqui ele ganha selo e ícone, e o rótulo compartilhado já diz a
+ * palavra: nada nesta diferença é comunicado só por cor.
+ */
+export function TipoDaOcorrencia({ tipo }: { tipo: TipoDeEntrada }) {
+  if (!precisaReclassificar(tipo)) return <>{ROTULO_TIPO_COBRADE[tipo]}</>;
+  return (
+    <span className="selo selo--media">
+      <IconeAlerta tamanho={12} />
+      {ROTULO_TIPO_COBRADE[tipo]}
     </span>
   );
 }

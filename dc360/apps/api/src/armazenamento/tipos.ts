@@ -38,6 +38,21 @@ export type Armazenamento = {
   urlParaLer(chave: string, segundos?: number): Promise<string>;
   /** Confere se o objeto realmente chegou, e com que tamanho. */
   descrever(chave: string): Promise<{ existe: boolean; tamanhoBytes: number | null }>;
+  /**
+   * Traz os bytes PARA DENTRO do servidor.
+   *
+   * Isto contraria a regra 1 lá de cima de propósito, e o lugar onde a exceção
+   * vale é um só: a exportação de saída de município. Ali o destino do arquivo
+   * não é um navegador (que poderia buscar direto, com URL assinada), é um
+   * pacote único que o município leva embora, e não existe como montar esse
+   * pacote sem os bytes passarem por aqui.
+   *
+   * A exceção é aceitável porque o ato é raro (uma vez na vida do contrato),
+   * exige administrador e deixa trilha. Não use isto para servir foto na tela:
+   * lá continua valendo a URL assinada, senão o servidor paga a banda de toda
+   * vistoria aberta e cai no dia de temporal.
+   */
+  baixar(chave: string): Promise<{ corpo: Uint8Array; tipoConteudo: string | null } | null>;
 };
 
 /** Tipos aceitos. Lista fechada: o que não está aqui não sobe. */

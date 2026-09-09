@@ -327,6 +327,19 @@ export const ROTULO_EVENTO_TRILHA: Record<string, string> = {
   resposta_providencia: "Resposta do órgão registrada",
   desinterdicao: "Interdição levantada",
   encerramento: "Ocorrência encerrada",
+  /*
+    Este evento NÃO é escrito por rota, e é o único assim: ele nasce dentro do
+    SQL da varredura de minimização, na MESMA transação que remove o nome e o
+    contato do solicitante. Em transação separada, um processo que morresse no
+    meio deixaria dado removido sem rastro nenhum, e isso é indistinguível de
+    perda de dado numa auditoria.
+
+    A consequência para este arquivo: o portão `eventos-tem-rotulo.test.ts`
+    varre `apps/api/src` atrás dos tipos gravados, então ele NÃO enxerga este.
+    Sem a linha aqui, a tela de auditoria imprimiria a chave crua do banco para
+    justamente o evento que o cidadão tem mais razão de querer ler.
+  */
+  minimizacao_por_prazo: "Dado do solicitante removido por prazo",
 };
 
 /** O rótulo, ou a própria chave quando o evento é mais novo que esta versão. */

@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import {
+  CHAVE_ACIONAR_ORGAO,
   ROTULO_CANAL, ROTULO_CHECKLIST, ROTULO_SEVERIDADE, ROTULO_TIPO_COBRADE,
-  type CanalEntrada, type Severidade, type TipoCobrade,
+  type CanalEntrada, type Severidade, type TipoDeEntrada,
 } from "@dc360/shared";
 import { assinatura, campo, escapar, formatarDataHora, montarFolha } from "./folha.js";
 
@@ -27,7 +28,19 @@ export type DadosDocumento = {
   ocorrencia: {
     id: string;
     protocolo: string;
-    tipo: TipoCobrade;
+    /**
+     * `TipoDeEntrada` e nao `TipoCobrade`, e a diferenca e uma so: "outro".
+     *
+     * A migracao 019 passou a aceitar no banco a marca de "ainda nao
+     * classificado", e o tipo daqui estava afirmando que ela nao chega. Chega
+     * numa unica situacao, e ela nao e hipotetica: um chamado que entrou como
+     * "outro" e foi encerrado como improcedente antes de ser classificado
+     * continua podendo ter vistoria, e continua tendo laudo. O portao do
+     * despacho impede tudo o mais.
+     */
+    tipo: TipoDeEntrada;
+    /** O que foi relatado, quando o chamado entrou sem classificacao. */
+    tipo_descricao?: string | null;
     severidade: Severidade | null;
     endereco: string;
     latitude: number | null;
@@ -70,6 +83,17 @@ export type DadosDocumento = {
      * DIZ que não foi coletada, em vez de deixar espaço em branco.
      */
     assinaturaUrl?: string | null;
+    /**
+     * Quem a vistoria mandou acionar, um por linha, na ordem em que o agente
+     * escolheu no local.
+     *
+     * Opcional pela mesma razao de `assinaturaUrl`: as vistorias que ja estao
+     * no banco foram coletadas antes de existir tabela para isto, e o laudo
+     * delas continua sendo emitido. Ausente e lista vazia significam a mesma
+     * coisa para o papel, e as duas produzem a frase que diz que a indicacao
+     * ficou sem nome, em vez de um espaco em branco embaixo do titulo.
+     */
+    orgaosIndicados?: ReadonlyArray<{ nome: string; sigla: string | null }>;
   };
   fotos: Array<{ url: string; legenda: string | null; capturadaEm: string }>;
   emitidoPor: string;
@@ -115,11 +139,21 @@ function blocoIdentificacao(d: DadosDocumento): string {
     vistoria em campo. "Registrada em", sozinho, ao lado de "Data e hora da
     vistoria em campo", não diz qual das duas é, e o leitor do laudo é quem
     vai decidir sobre a casa de alguém a partir dessa distinção.
+
+    "Relatado como" só aparece quando o chamado entrou sem classificação, e
+    existe para o documento não sair afirmando apenas "Outro" no campo do
+    tipo. O texto é o que o solicitante contou ao telefone, e sem ele o laudo
+    de um chamado não classificado seria um papel com brasão que não diz sobre
+    o que é. Some da folha assim que a triagem classifica, porque tipo da
+    COBRADE não guarda descrição (migração 019).
   */
   return `<h2>Identificação da ocorrência</h2>
   <div class="campos">
     ${campo("Protocolo", o.protocolo, { mono: true })}
     ${campo("Tipo (COBRADE)", ROTULO_TIPO_COBRADE[o.tipo])}
+    ${o.tipo_descricao?.trim()
+      ? campo("Relatado como", o.tipo_descricao.trim(), { largo: true })
+      : ""}
     ${campo("Severidade", o.severidade ? ROTULO_SEVERIDADE[o.severidade] : "não classificada")}
     ${campo("Chamado registrado em", formatarDataHora(o.criado_em))}
     ${campo("Endereço", o.endereco, { largo: true })}
@@ -178,11 +212,56 @@ function blocoVistoria(d: DadosDocumento): string {
   <h2>Checklist técnico</h2>
   <table class="checklist"><tbody>${linhas}</tbody></table>
 
+  ${blocoOrgaos(v)}
+
   ${blocoPessoas(v)}
 
   ${v.observacoes
     ? `<h2>Observações do agente</h2><p class="relato">${escapar(v.observacoes)}</p>`
     : ""}`;
+}
+
+/**
+ * Quem precisa ser acionado, e por que a seção existe mesmo vazia.
+ *
+ * O DEFEITO QUE ISTO ACABA. O laudo dizia "Necessário acionar outro órgão:
+ * SIM" na tabela do checklist e não dizia QUAL. A primeira providência do
+ * coordenador virava um telefonema para o agente, horas depois, com ele já em
+ * outra ocorrência ou fora do turno, para perguntar uma coisa que estava clara
+ * no barranco no minuto da vistoria. A informação existia e faltava lugar para
+ * escrever; agora ela é coletada, gravada e impressa.
+ *
+ * Entra LOGO DEPOIS do checklist, e não em outro ponto da folha, porque é a
+ * resposta daquele item se abrindo: quem lê acabou de ver "SIM" na linha, e a
+ * seção seguinte responde quem. É a mesma ordem da minuta lida em voz alta na
+ * porta da casa, e os dois documentos precisam ser conferíveis um contra o
+ * outro sem ninguém procurar.
+ *
+ * Quando a resposta foi "sim" e a lista está vazia, a seção existe assim mesmo
+ * e DIZ que não foi especificado. É o caso da vistoria coletada por aparelho
+ * que ainda não atualizou, e calar aqui devolveria o coordenador ao telefonema
+ * que este bloco existe para acabar: ele leria um laudo sem menção nenhuma a
+ * órgão e não saberia que a informação faltou.
+ *
+ * A sigla entra entre parênteses e nunca sozinha: "CBM" num documento de
+ * processo, lido daqui a cinco anos por alguém de fora da Defesa Civil, não é
+ * nome de órgão nenhum.
+ */
+function blocoOrgaos(v: DadosDocumento["vistoria"]): string {
+  const indicado = v.checklist
+    .some((i) => i.chave === CHAVE_ACIONAR_ORGAO && i.resposta);
+  if (!indicado) return "";
+
+  const nomes = (v.orgaosIndicados ?? [])
+    .map((o) => (o.sigla?.trim() ? `${o.nome.trim()} (${o.sigla.trim()})` : o.nome.trim()))
+    .filter((n) => n.length > 0);
+
+  return `<h2>Órgãos a acionar</h2>
+    <p class="${nomes.length > 0 ? "relato" : "nota"}">${escapar(
+      nomes.length > 0
+        ? nomes.join("\n")
+        : "Indicada a necessidade de acionar outro órgão, sem especificar qual.",
+    )}</p>`;
 }
 
 /**

@@ -13,8 +13,11 @@ import { criarProvedorApns } from "./push/apns.js";
 import { lerSegredoDoDisco } from "./push/segredo.js";
 import { criarProvedorFcm, lerContaDeServico } from "./push/fcm.js";
 import { criarEnvio, type ProvedorDePush } from "./push/envio.js";
-import { travaDeProcesso, travaPostgres, type Trava } from "./push/trava.js";
+import {
+  CHAVE_DA_MINIMIZACAO, travaDeProcesso, travaPostgres, type Trava,
+} from "./push/trava.js";
 import { agendarVarredura, type VarreduraAgendada } from "./push/varredor.js";
+import { agendarMinimizacao, type MinimizacaoAgendada } from "./privacidade/minimizacao.js";
 
 const config = carregarConfig();
 
@@ -199,6 +202,48 @@ if (config.PUSH_ATIVO === "sim") {
   );
 }
 
+/**
+ * De quanto em quanto tempo a minimização por prazo roda.
+ *
+ * Uma hora. O prazo que ela executa é medido em DIAS, então rodar mais rápido
+ * não adianta nada: uma ocorrência que vence à meia-noite é minimizada até a
+ * uma da manhã, e ninguém consegue perceber a diferença. Rodar mais devagar
+ * (uma vez por dia, por exemplo) concentraria toda a limpeza num instante só e
+ * faria o teto por rodada levar dias para pôr um histórico grande em dia.
+ */
+const INTERVALO_DA_MINIMIZACAO_MS = 60 * 60_000;
+
+/*
+  A MINIMIZAÇÃO SOBE SEMPRE, e não atrás de uma variável de ambiente.
+
+  Ela é a execução de uma obrigação legal que o município assume no contrato, e
+  não um recurso opcional como o push. Uma chave para desligá-la seria uma
+  chave para deixar de cumprir a retenção prometida em
+  `docs/PRIVACIDADE.md` sem que nada no sistema registrasse a decisão.
+
+  Ela não faz nada em município que não configurou prazo, que é o estado de
+  todos eles no dia em que isto entra: a função do banco pula quem tem prazo
+  nulo. O custo de ligá-la sempre é uma consulta por hora.
+
+  A trava e o pool seguem o mesmo desenho da varredura de prazo, e pela mesma
+  razão: em produção são duas máquinas no Fly, e a limpeza não pode consumir as
+  conexões de quem está sincronizando vistoria no meio da chuva.
+*/
+const bancoDaMinimizacao = config.DATABASE_URL
+  ? bancoPostgres(config.DATABASE_URL, { maximoConexoes: 2 })
+  : banco;
+
+const minimizacao: MinimizacaoAgendada = agendarMinimizacao(
+  {
+    banco: bancoDaMinimizacao,
+    trava: config.DATABASE_URL
+      ? travaPostgres(config.DATABASE_URL, { maximoConexoes: 1 }, CHAVE_DA_MINIMIZACAO)
+      : travaDeProcesso(),
+    registrar: (evento, mensagem) => app.log.info(evento, mensagem),
+  },
+  INTERVALO_DA_MINIMIZACAO_MS,
+);
+
 // Encerramento ordenado: a requisição em andamento termina, e o pool fecha.
 // Sem isso, um deploy derruba transação no meio.
 for (const sinal of ["SIGINT", "SIGTERM"] as const) {
@@ -210,6 +255,7 @@ for (const sinal of ["SIGINT", "SIGTERM"] as const) {
       // contra um pool já fechado, e o deploy termina com um erro que não é
       // erro nenhum.
       await varredura?.parar();
+      await minimizacao.parar();
       await pdf.encerrar();
       await banco.encerrar();
       process.exit(0);

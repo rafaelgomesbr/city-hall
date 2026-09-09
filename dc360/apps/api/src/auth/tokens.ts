@@ -51,17 +51,36 @@ export async function emitirAcesso(
  * conteúdo não foi adulterado, não que ele tem o formato esperado. Como o
  * campo `org` vira o contexto de tenant no banco, ele precisa ser um UUID
  * comprovado antes de chegar perto de uma consulta.
+ *
+ * Recebe uma LISTA de segredos e aceita o token que casar com qualquer um
+ * deles. É isso que permite rotacionar o segredo sem derrubar quem já está
+ * dentro: ver `separarSegredos` em `config.ts`, onde estão os dois
+ * procedimentos opostos (rotação programada e revogação por vazamento).
+ *
+ * `algorithms: ["HS256"]` fica FIXO, e a lista de segredos não muda isso. Ler
+ * o algoritmo do cabeçalho do token é a falha clássica de JWT: quem manda o
+ * token escolheria `none` (sem assinatura nenhuma) ou trocaria a família
+ * inteira. Aqui quem decide o algoritmo é o servidor, e o token só diz o
+ * conteúdo.
  */
 export async function verificarAcesso(
-  segredo: Uint8Array,
+  segredos: readonly Uint8Array[],
   token: string,
 ): Promise<ConteudoAcesso | null> {
-  try {
-    const { payload } = await jwtVerify(token, segredo, {
-      issuer: EMISSOR,
-      audience: PLATEIA,
-      algorithms: ["HS256"],
-    });
+  for (const segredo of segredos) {
+    let payload;
+    try {
+      ({ payload } = await jwtVerify(token, segredo, {
+        issuer: EMISSOR,
+        audience: PLATEIA,
+        algorithms: ["HS256"],
+      }));
+    } catch {
+      // Assinatura de outro segredo, token expirado ou adulterado. Tenta o
+      // próximo da lista: é o segredo que ainda não saiu da rotação.
+      continue;
+    }
+
     const analisado = CONTEUDO_ACESSO.safeParse({
       sub: payload.sub,
       org: payload["org"],
@@ -69,10 +88,15 @@ export async function verificarAcesso(
       nome: payload["nome"],
       sid: payload["sid"],
     });
+    /*
+      Assinatura boa e conteúdo torto para AQUI, e não segue para o próximo
+      segredo. O token já foi provado autêntico: se o conteúdo dele não tem
+      forma, quem o emitiu foi este produto com defeito, e nenhum outro segredo
+      da lista vai mudar isso. Continuar o laço só gastaria HMAC.
+    */
     return analisado.success ? analisado.data : null;
-  } catch {
-    return null;
   }
+  return null;
 }
 
 /** Segredo opaco de 256 bits. Não carrega informação, então não há o que ler nele. */

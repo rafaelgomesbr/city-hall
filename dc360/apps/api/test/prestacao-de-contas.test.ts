@@ -22,6 +22,7 @@ const EQUIPE_ALFA = "11111111-1111-4111-8111-0000000000e1";
 let mem: BancoEmMemoria;
 let app: FastifyInstance;
 let tokenCoordenador: string;
+let tokenAdministrador: string;
 let tokenOperador: string;
 let tokenAgente: string;
 let tokenDeFora: string;
@@ -48,6 +49,9 @@ beforeAll(async () => {
   await app.ready();
 
   tokenCoordenador = await entrar("helena.coutinho@serraalta.exemplo.gov.br");
+  // Só o posto máximo do município exporta dado pessoal. Ver
+  // `exigirPostoParaDadoPessoal` em `rotas/prestacao-de-contas.ts`.
+  tokenAdministrador = await entrar("rita.lopes@serraalta.exemplo.gov.br");
   tokenOperador = await entrar("jonas.ferreira@serraalta.exemplo.gov.br");
   tokenAgente = await entrar("diego.alves@serraalta.exemplo.gov.br");
   tokenDeFora = await entrar("aurelio.machado@valefundo.exemplo.gov.br");
@@ -168,10 +172,14 @@ describe("Exportação em CSV", () => {
     expect(cabecalho).not.toMatch(/\bid\b/i);
   }, 60_000);
 
-  it("um relato malicioso não vira fórmula na planilha", async () => {
+  it("um relato malicioso não vira fórmula na planilha, nos dois níveis", async () => {
     // O relato vem do que um cidadão dita por telefone. Se ele ditar isto e o
     // operador digitar como ouviu, a planilha executaria na máquina de quem
     // abrisse, e a vítima seria o próprio servidor público.
+    //
+    // Os DOIS níveis precisam do mesmo cuidado, e por isso este caso cobre os
+    // dois: o básico carrega o endereço, que também é digitado por quem atende
+    // o telefone, e o completo carrega ainda o nome e o relato.
     const criar = await app.inject({
       method: "POST", url: "/ocorrencias", headers: com(tokenCoordenador),
       payload: {
@@ -184,21 +192,32 @@ describe("Exportação em CSV", () => {
     });
     expect(criar.statusCode).toBe(201);
 
-    const r = await app.inject({
+    const basico = await app.inject({
       method: "GET", url: "/relatorios/ocorrencias.csv", headers: com(tokenCoordenador),
     });
+    expect(basico.body).toContain("'@SUM(1+1)*cmd");
 
+    const completo = await app.inject({
+      method: "GET",
+      url: "/relatorios/ocorrencias.csv?nivel=completo&justificativa="
+        + encodeURIComponent("Conferencia de neutralizacao de formula na planilha."),
+      headers: com(tokenAdministrador),
+    });
+    expect(completo.statusCode).toBe(200);
     // O conteúdo está lá, mas neutralizado com apóstrofo.
-    expect(r.body).toContain("'=cmd|");
-    expect(r.body).toContain("'@SUM(1+1)*cmd");
-    expect(r.body).toContain("'=HYPERLINK");
+    expect(completo.body).toContain("'=cmd|");
+    expect(completo.body).toContain("'@SUM(1+1)*cmd");
+    expect(completo.body).toContain("'=HYPERLINK");
+
     // E em nenhum lugar uma célula começa direto com o caractere perigoso.
-    for (const linha of r.body.replace("﻿", "").split("\r\n")) {
-      for (const celula of linha.split(";")) {
-        expect(
-          /^[=+@]/.test(celula),
-          `celula executavel na planilha: ${celula.slice(0, 40)}`,
-        ).toBe(false);
+    for (const corpo of [basico.body, completo.body]) {
+      for (const linha of corpo.replace("﻿", "").split("\r\n")) {
+        for (const celula of linha.split(";")) {
+          expect(
+            /^[=+@]/.test(celula),
+            `celula executavel na planilha: ${celula.slice(0, 40)}`,
+          ).toBe(false);
+        }
       }
     }
   }, 120_000);

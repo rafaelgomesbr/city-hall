@@ -1,13 +1,15 @@
 import {
+  MOTIVO_RECLASSIFICAR,
   PRAZO_PADRAO_HORAS,
   exigirPermissao,
   exigirPostoParaGerir,
   estadoTerminal,
+  precisaReclassificar,
   transicaoPermitida,
   type Origem,
   type Papel,
   type StatusOcorrencia,
-  type TipoCobrade,
+  type TipoDeEntrada,
   type AberturaOcorrencia,
   type Despacho,
   type Encerramento,
@@ -550,7 +552,13 @@ export async function providenciasDaOcorrencia(s: Sessao, id: string): Promise<L
 /** Duplicidade provável: mesmo tipo, ainda ativa, aberta nas últimas 48 horas. */
 export async function possiveisDuplicidades(
   s: Sessao,
-  tipo: TipoCobrade,
+  /*
+    `TipoDeEntrada` porque a checagem roda na ABERTURA, e a abertura aceita
+    "outro". Enquanto aqui só coubessem os oito da COBRADE, a tela de registro
+    não conseguiria nem perguntar por duplicidade de um chamado a classificar,
+    e dois telefonemas sobre a mesma árvore caída virariam dois protocolos.
+  */
+  tipo: TipoDeEntrada,
   endereco: string,
 ): Promise<LinhaOcorrencia[]> {
   const termo = endereco.trim().split(",")[0]?.trim().toLowerCase() ?? "";
@@ -594,15 +602,26 @@ export async function abrirOcorrencia(s: Sessao, dados: AberturaOcorrencia): Pro
     );
     const protocolo = p.rows[0]!.proximo_protocolo;
 
+    /*
+      A descricao SO acompanha "outro", palavra por palavra como a rota HTTP
+      faz, e as duas restricoes da migracao 019 recusam qualquer outro arranjo:
+      "outro" mudo e descricao pendurada em tipo da COBRADE. Sem esta linha o
+      modo de demonstracao morria no INSERT com SQLSTATE 23514 na frente de
+      quem estivesse assistindo, porque a coluna simplesmente nao era escrita.
+    */
+    const tipoDescricao = precisaReclassificar(dados.tipo)
+      ? dados.tipoDescricao?.trim() ?? null
+      : null;
+
     const r = await db.query<{ id: string }>(
       `INSERT INTO ocorrencias
-         (organizacao_id, protocolo, tipo, status, endereco, ponto_referencia,
-          latitude, longitude,
+         (organizacao_id, protocolo, tipo, tipo_descricao, status, endereco,
+          ponto_referencia, latitude, longitude,
           solicitante_nome, solicitante_contato, canal_entrada, descricao, vinculada_a)
-       VALUES ($1,$2,$3,'registrada',$4,$5,$6,$7,$8,$9,$10,$11,$12)
+       VALUES ($1,$2,$3,$4,'registrada',$5,$6,$7,$8,$9,$10,$11,$12,$13)
        RETURNING id`,
       [
-        s.organizacaoId, protocolo, dados.tipo, dados.endereco,
+        s.organizacaoId, protocolo, dados.tipo, tipoDescricao, dados.endereco,
         dados.pontoReferencia?.trim() || null,
         dados.coordenada?.lat ?? null, dados.coordenada?.lng ?? null,
         dados.solicitanteNome, dados.solicitanteContato ?? null,
@@ -614,6 +633,15 @@ export async function abrirOcorrencia(s: Sessao, dados: AberturaOcorrencia): Pro
       protocolo,
       canal: dados.canalEntrada,
       vinculadaA: dados.vinculadaA ?? null,
+      tipo: dados.tipo,
+      /*
+        O texto vai para a trilha ALEM da coluna, porque a reclassificacao na
+        triagem apaga a coluna (tipo da COBRADE nao guarda descricao). Sem esta
+        copia, o relato que o solicitante fez ao telefone desapareceria no
+        instante da classificacao, e ninguem mais conseguiria conferir se a
+        decisao tecnica correspondia ao que a pessoa contou.
+      */
+      tipoDescricao,
     });
     return id;
   });
@@ -655,21 +683,65 @@ export async function classificarNaTriagem(s: Sessao, id: string, t: Triagem): P
   exigirPermissao(s.papel, "classificar_triagem");
   await comoApp(s.organizacaoId, async (db) => {
     await exigirTransicao(db, id, "triagem");
+
+    /*
+      A RECLASSIFICACAO, que este modo coletava e jogava fora.
+
+      `triagemSchema.tipo` chegava aqui e o UPDATE nao o mencionava: quem
+      classificasse um chamado "outro" no modo de demonstracao via a tela
+      confirmar e o chamado continuava "outro" no banco, para descobrir isso no
+      despacho, recusado, sem nenhuma pista de que a escolha se perdeu.
+
+      O tipo anterior e lido ANTES do UPDATE porque e ele que vai para a
+      trilha: "reclassificado de outro para deslizamento" e um fato do
+      processo, e a coluna so guarda o estado de agora.
+    */
+    const antes = await db.query<{ tipo: TipoDeEntrada; tipo_descricao: string | null }>(
+      "SELECT tipo, tipo_descricao FROM ocorrencias WHERE id = $1",
+      [id],
+    );
+    const anterior = antes.rows[0]!;
+    const tipoNovo = t.tipo ?? anterior.tipo;
+
+    /*
+      `tipo_descricao` e zerada junto com a reclassificacao, e a restricao
+      `tipo_da_cobrade_nao_guarda_descricao` (migracao 019) recusaria o UPDATE
+      se ela ficasse. O texto nao se perde: foi para a trilha no registro e vai
+      de novo no evento abaixo, que e append-only. O que deixa de existir e um
+      campo livre pendurado num registro ja classificado, que vira lixeira de
+      anotacao paralela justamente porque ninguem mais o le.
+    */
     await db.query(
       `UPDATE ocorrencias
           SET status = 'triagem', severidade = $2,
               vulnerabilidade_presente = $3, vulnerabilidade_descricao = $4,
-              prazo_em = criado_em + ($5 || ' hours')::interval
+              prazo_em = criado_em + ($5 || ' hours')::interval,
+              tipo = $6,
+              tipo_descricao = CASE WHEN $6 = 'outro' THEN tipo_descricao ELSE NULL END
         WHERE id = $1`,
       [
         id, t.severidade, t.vulnerabilidadePresente,
         t.vulnerabilidadeDescricao ?? null, String(PRAZO_PADRAO_HORAS[t.severidade]),
+        tipoNovo,
       ],
     );
     await registrarEvento(db, s, id, "triagem", {
       severidade: t.severidade,
       vulnerabilidade: t.vulnerabilidadePresente ? t.vulnerabilidadeDescricao : null,
       prazoHoras: PRAZO_PADRAO_HORAS[t.severidade],
+      tipo: tipoNovo,
+      ...(tipoNovo !== anterior.tipo
+        ? {
+            tipoAnterior: anterior.tipo,
+            /*
+              O relato que motivou a classificacao, guardado no mesmo evento que
+              a classificacao. Depois deste UPDATE ele nao existe mais em coluna
+              nenhuma, e quem auditar precisa ler os dois lado a lado para saber
+              se a decisao tecnica correspondia ao que a pessoa contou.
+            */
+            tipoDescricaoAnterior: anterior.tipo_descricao,
+          }
+        : {}),
     });
   });
 }
@@ -678,6 +750,30 @@ export async function despacharEquipe(s: Sessao, id: string, d: Despacho): Promi
   exigirPermissao(s.papel, "despachar_equipe");
   await comoApp(s.organizacaoId, async (db) => {
     await exigirTransicao(db, id, "em_campo");
+
+    /*
+      O PORTAO DA RECLASSIFICACAO, o mesmo que a rota HTTP impoe. "outro" nao
+      sobrevive ao despacho: a taxonomia COBRADE existe para o dado do
+      municipio conversar com o sistema nacional, e um chamado que fica "outro"
+      para sempre e dado perdido, porque depois que a equipe sai ninguem volta
+      para classificar.
+
+      A checagem existe AQUI, e nao so na restricao
+      `tipo_a_classificar_nao_passa_do_despacho` da migracao 019, pelo mesmo
+      motivo da API: sem ela o coordenador leria o texto cru de um erro de
+      constraint do Postgres, no meio de uma demonstracao, em vez da frase que
+      diz o que fazer. O modo de demonstracao precisa recusar pela MESMA razao
+      e com a MESMA frase, senao ele ensina um fluxo que o produto real nao
+      tem.
+    */
+    const classificacao = await db.query<{ tipo: TipoDeEntrada }>(
+      "SELECT tipo FROM ocorrencias WHERE id = $1",
+      [id],
+    );
+    if (precisaReclassificar(classificacao.rows[0]!.tipo)) {
+      throw new Error(MOTIVO_RECLASSIFICAR);
+    }
+
     const equipe = await db.query<{ nome: string }>("SELECT nome FROM equipes WHERE id = $1", [d.equipeId]);
     if (!equipe.rows[0]) throw new Error("Equipe não encontrada nesta organização");
     await db.query(

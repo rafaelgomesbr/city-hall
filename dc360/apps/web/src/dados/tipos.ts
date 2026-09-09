@@ -6,7 +6,9 @@
  * duas precisam prometer exatamente a mesma coisa. Se os tipos morassem numa
  * delas, a outra viraria a "secundária" e as duas divergiriam com o tempo.
  */
-import type { Papel, Severidade, StatusOcorrencia, TipoCobrade, Origem } from "@dc360/shared";
+import type {
+  Papel, Severidade, StatusOcorrencia, TipoCobrade, TipoDeEntrada, Origem,
+} from "@dc360/shared";
 
 export type Sessao = {
   organizacaoId: string;
@@ -21,7 +23,24 @@ export type Sessao = {
 export type LinhaOcorrencia = {
   id: string;
   protocolo: string;
-  tipo: TipoCobrade;
+  /*
+    `TipoDeEntrada` e nao `TipoCobrade`, e a diferenca e um defeito que estava
+    aberto: a abertura aceita "outro" desde a migracao 019, e as duas rotas de
+    leitura devolvem `SELECT o.*`, entao "outro" CHEGA aqui. Enquanto o tipo
+    declarado prometia so os oito da COBRADE, o compilador liberava
+    `if (o.tipo === "deslizamento") ... else` sobre uma promessa que o banco
+    nao faz, e nenhuma tela era obrigada a tratar o chamado que ainda espera
+    classificacao.
+  */
+  tipo: TipoDeEntrada;
+  /**
+   * O que o solicitante contou, enquanto o tipo for "outro" e so enquanto for.
+   *
+   * Sem esta coluna na tela, quem faz a triagem precisa classificar sem ler o
+   * relato que motivou o "outro", que e exatamente a classificacao no escuro
+   * que a migracao 019 existe para evitar.
+   */
+  tipo_descricao: string | null;
   status: StatusOcorrencia;
   severidade: Severidade | null;
   endereco: string;
@@ -151,7 +170,12 @@ export type PaginaDeOcorrencias = {
 export type PontoNoMapa = {
   id: string;
   protocolo: string;
-  tipo: TipoCobrade;
+  /*
+    Tambem `TipoDeEntrada`: o mapa desenha as ativas, e "outro" vive nos dois
+    primeiros estados do fluxo, que sao ativos. Um chamado a classificar com
+    coordenada aparece no mapa antes de qualquer triagem.
+  */
+  tipo: TipoDeEntrada;
   status: StatusOcorrencia;
   severidade: Severidade | null;
   endereco: string;

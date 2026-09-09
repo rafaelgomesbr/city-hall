@@ -93,6 +93,11 @@ export function armazenamentoEmMemoria(config: ConfigMemoria): ArmazenamentoEmMe
         : { existe: false, tamanhoBytes: null };
     },
 
+    async baixar(chave: string) {
+      const objeto = objetos.get(chave);
+      return objeto ? { corpo: objeto.corpo, tipoConteudo: objeto.tipoConteudo } : null;
+    },
+
     guardar(chave, corpo, tipoConteudo) {
       objetos.set(chave, { corpo, tipoConteudo });
     },

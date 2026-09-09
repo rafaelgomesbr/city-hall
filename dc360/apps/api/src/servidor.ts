@@ -22,6 +22,7 @@ import { rotasInteresse } from "./rotas/interesse.js";
 import { rotasEvidencias } from "./rotas/evidencias.js";
 import { rotasDocumentos } from "./rotas/documentos.js";
 import { rotasPrestacaoDeContas } from "./rotas/prestacao-de-contas.js";
+import { rotasSaida } from "./rotas/saida.js";
 import { rotasArmazenamentoLocal } from "./rotas/armazenamento-local.js";
 import type { Armazenamento } from "./armazenamento/tipos.js";
 import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
@@ -233,7 +234,7 @@ export async function construirServidor(
       na rota dele: força bruta se combate onde ela acontece, e lá não existe
       token para chavear.
     */
-    keyGenerator: (req) => chaveDoLimitador(req, config.jwtSegredo),
+    keyGenerator: (req) => chaveDoLimitador(req, config.jwtSegredos),
   });
 
   const autenticacao = servicoDeAutenticacao(banco, config, notificador);
@@ -248,7 +249,7 @@ export async function construirServidor(
     if (!cabecalho?.startsWith("Bearer ")) {
       throw new NaoAutenticado("Informe o token de acesso.");
     }
-    const conteudo = await verificarAcesso(config.jwtSegredo, cabecalho.slice(7));
+    const conteudo = await verificarAcesso(config.jwtSegredos, cabecalho.slice(7));
     if (!conteudo) {
       throw new NaoAutenticado("Token inválido ou expirado.");
     }
@@ -389,6 +390,15 @@ export async function construirServidor(
     ...(config.MARCA_DAGUA ? { marcaDagua: config.MARCA_DAGUA } : {}),
   });
   await app.register(rotasPrestacaoDeContas, { prefix: "/", banco });
+  /*
+    A saída de município: o pacote com tudo que é do município, em formato
+    aberto. Exige administrador e deixa trilha, e não apaga nada: a eliminação
+    é ato contratual, depois de o município conferir. Ver `rotas/saida.ts`.
+  */
+  await app.register(rotasSaida, {
+    prefix: "/saida", banco, armazenamento,
+    ...(config.MARCA_DAGUA ? { marcaDagua: config.MARCA_DAGUA } : {}),
+  });
   await app.register(rotasEvidencias, { prefix: "/evidencias", banco, armazenamento });
   await app.register(rotasDocumentos, {
     prefix: "/documentos", banco, armazenamento, pdf,

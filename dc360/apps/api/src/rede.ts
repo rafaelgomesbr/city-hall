@@ -59,11 +59,11 @@ export function enderecoDoCliente(req: FastifyRequest): string {
  */
 export async function chaveDoLimitador(
   req: FastifyRequest,
-  segredoJwt: Uint8Array,
+  segredosJwt: readonly Uint8Array[],
 ): Promise<string> {
   const cabecalho = req.headers.authorization;
   if (cabecalho?.startsWith("Bearer ")) {
-    const conteudo = await verificarAcesso(segredoJwt, cabecalho.slice(7));
+    const conteudo = await verificarAcesso(segredosJwt, cabecalho.slice(7));
     // O `sub` do token, e não o token: sessão renovada troca o token e continua
     // sendo a mesma pessoa. Chavear pelo token daria balde novo a cada
     // renovação, e renovar é coisa que o aplicativo faz sozinho.

@@ -39,6 +39,17 @@ export type Trava = {
 export const CHAVE_DA_VARREDURA_DE_PRAZO = 5410360016;
 
 /**
+ * A trava da varredura de minimização por prazo (migração 021).
+ *
+ * Número PRÓPRIO, e não o mesmo da varredura de prazo, porque as duas rodam em
+ * relógios diferentes e não competem pelo mesmo trabalho. Compartilhar a chave
+ * faria a minimização deixar de rodar toda vez que a varredura de push
+ * estivesse no ar naquele instante, e o efeito seria dado pessoal sobrevivendo
+ * ao prazo sem que nada no log dissesse por quê.
+ */
+export const CHAVE_DA_MINIMIZACAO = 5410360021;
+
+/**
  * Trava de verdade, sobre `pg_try_advisory_lock`.
  *
  * CONEXÃO PRÓPRIA, e isso não é detalhe de implementação: a trava de aviso do
@@ -50,8 +61,16 @@ export const CHAVE_DA_VARREDURA_DE_PRAZO = 5410360016;
  * A conexão exclusiva resolve os dois lados: a trava dura exatamente a
  * varredura, e a varredura não consome uma conexão que o agente em campo
  * precisa para sincronizar a vistoria dele.
+ *
+ * `chave` é parâmetro porque existe mais de uma rotina que roda sozinha em
+ * duas máquinas do Fly. Cada uma traz a sua; o padrão continua sendo a
+ * varredura de prazo, que é quem já chamava isto.
  */
-export function travaPostgres(url: string, opcoes: OpcoesDoBanco = {}): Trava {
+export function travaPostgres(
+  url: string,
+  opcoes: OpcoesDoBanco = {},
+  chave: number = CHAVE_DA_VARREDURA_DE_PRAZO,
+): Trava {
   const configuracao = montarConfiguracaoDoPool(url, opcoes);
   let cliente: pg.Client | null = null;
 
@@ -74,14 +93,14 @@ export function travaPostgres(url: string, opcoes: OpcoesDoBanco = {}): Trava {
       const c = await conectado();
       const r = await c.query<{ travou: boolean }>(
         "SELECT pg_try_advisory_lock($1::bigint) AS travou",
-        [String(CHAVE_DA_VARREDURA_DE_PRAZO)],
+        [String(chave)],
       );
       return r.rows[0]?.travou === true;
     },
     async soltar() {
       if (!cliente) return;
       await cliente.query("SELECT pg_advisory_unlock($1::bigint)", [
-        String(CHAVE_DA_VARREDURA_DE_PRAZO),
+        String(chave),
       ]).catch(() => undefined);
     },
     async encerrar() {
