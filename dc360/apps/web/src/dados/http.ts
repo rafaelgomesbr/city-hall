@@ -5,10 +5,10 @@ import type {
 import type {
   ContaDisponivel, FiltroOcorrencias, Indicadores, LinhaEquipe, LinhaEvento,
   FiltroTrilha, LinhaEvidencia, LinhaOcorrencia, LinhaProvidencia, LinhaTrilha,
-  ImovelInterditado, LinhaUsuario, LinhaVistoria, MeuTrabalho, PaginaDeOcorrencias,
-  PontosDoMapa, ProvidenciaPendente,
-  ResumoPeriodo,
-  Sessao, VinculoOcorrencia,
+  ImovelInterditado, LinhaUsuario, LinhaVistoria, MeuTrabalho, MinhasSessoes,
+  PaginaDeOcorrencias, PontosDoMapa, ProvidenciaPendente,
+  ResumoPeriodo, SenhaRedefinida, SessoesDeOutrem,
+  Sessao, TipoDeDocumento, VinculoOcorrencia,
 } from "./tipos";
 
 /**
@@ -487,6 +487,33 @@ export async function alternarUsuarioAtivo(
 }
 
 /**
+ * Redefinir a senha de OUTRA pessoa, para quem gerencia usuários.
+ *
+ * A senha temporária volta em texto na resposta e aparece uma vez só. Isso é
+ * decisão do servidor, não descuido daqui: com o envio de email desligado não
+ * existe outro canal, e quem administra vai ditá-la por telefone. Por isso
+ * esta função devolve o corpo inteiro em vez de engolir a resposta: perder o
+ * campo aqui significaria a conta ficar com uma senha que ninguém conhece.
+ *
+ * A rota recusa o próprio id (para a própria senha existe `trocarSenha`, que
+ * exige a senha atual), e derruba junto as sessões do alvo, porque o caso que
+ * motiva a redefinição é justamente a conta ter sido invadida.
+ */
+export async function redefinirSenhaDeUsuario(id: string): Promise<SenhaRedefinida> {
+  return chamar<SenhaRedefinida>(`/usuarios/${id}/redefinir-senha`, { metodo: "POST" });
+}
+
+/**
+ * Derrubar as sessões de outra pessoa sem mexer na senha.
+ *
+ * É o botão do celular perdido em área de risco: retira o acesso agora e
+ * preserva a credencial de quem talvez volte ao trabalho em uma hora.
+ */
+export async function encerrarSessoesDeUsuario(id: string): Promise<SessoesDeOutrem> {
+  return chamar<SessoesDeOutrem>(`/usuarios/${id}/encerrar-sessoes`, { metodo: "POST" });
+}
+
+/**
  * Baixa um documento oficial e devolve um endereço que o navegador consegue
  * abrir numa aba.
  *
@@ -498,9 +525,7 @@ export async function alternarUsuarioAtivo(
 export async function abrirDocumento(
   _s: Sessao,
   ocorrenciaId: string,
-  tipo:
-    | "laudo" | "termo-de-interdicao" | "termo-de-desinterdicao"
-    | "laudo.pdf" | "termo-de-interdicao.pdf",
+  tipo: TipoDeDocumento,
 ): Promise<string> {
   const tokens = lerTokens();
   const resposta = await comRedeTraduzida(() =>
@@ -558,6 +583,18 @@ export async function trocarSenha(senhaAtual: string, senha: string): Promise<st
     metodo: "POST", corpo: { senhaAtual, senha },
   });
   return r.mensagem;
+}
+
+/**
+ * Sair de todos os outros aparelhos, preservando este.
+ *
+ * Não pede a senha atual, e o servidor decidiu assim de propósito: trocar
+ * senha CONCEDE acesso novo, encerrar sessão só RETIRA. Exigir credencial
+ * para retirar acesso é o atrito que faz a pessoa desistir do botão no minuto
+ * seguinte a perder o celular, que é o único minuto em que ele importa.
+ */
+export async function encerrarMinhasSessoes(): Promise<MinhasSessoes> {
+  return chamar<MinhasSessoes>("/auth/encerrar-sessoes", { metodo: "POST" });
 }
 
 export async function redefinirSenha(token: string, senha: string): Promise<string> {

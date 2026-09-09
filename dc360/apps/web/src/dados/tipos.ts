@@ -321,3 +321,44 @@ export type MeuTrabalho = {
   designadas: TarefaDesignada[];
   concluidas: VistoriaConcluida[];
 };
+
+/**
+ * Os documentos oficiais que o servidor sabe emitir.
+ *
+ * A lista vive aqui, e não dentro de uma das duas implementações, porque as
+ * duas precisam dela: enquanto ela morava só no arquivo HTTP, o modo de
+ * demonstração não tinha como declarar a mesma assinatura, e a divergência
+ * entre os dois modos passava despercebida.
+ */
+export type TipoDeDocumento =
+  | "laudo"
+  | "termo-de-interdicao"
+  | "termo-de-desinterdicao"
+  | "laudo.pdf"
+  | "termo-de-interdicao.pdf";
+
+/**
+ * O que volta ao redefinir a senha de outra pessoa.
+ *
+ * A senha em claro vem UMA vez, e só aqui: com o envio de email desligado, é
+ * por este campo que ela chega em quem administra para ser ditada por
+ * telefone. Guardar isso em estado que sobrevive à tela seria transformar a
+ * exceção em vazamento.
+ */
+export type SenhaRedefinida = {
+  senhaTemporaria: string;
+  sessoesEncerradas: number;
+  mensagem: string;
+};
+
+/** O que volta ao derrubar as sessões de outra pessoa, sem tocar na senha. */
+export type SessoesDeOutrem = {
+  id: string;
+  sessoesEncerradas: number;
+};
+
+/** O que volta ao sair de todos os outros aparelhos, preservando este. */
+export type MinhasSessoes = {
+  sessoesEncerradas: number;
+  mensagem: string;
+};

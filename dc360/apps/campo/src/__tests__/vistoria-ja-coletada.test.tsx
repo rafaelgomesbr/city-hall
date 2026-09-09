@@ -20,7 +20,6 @@
  * aplicativo publicado.
  */
 
-import { Alert } from "react-native";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { DatabaseSync } from "node:sqlite";
 
@@ -231,14 +230,19 @@ describe("a ocorrência que este aparelho já coletou", () => {
   it("a saída deliberada pergunta antes, e nada muda no disco enquanto ninguém confirma", async () => {
     await guardarATarefa();
     await guardarALapide();
-    const perguntou = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
 
     await abrirATela();
     await act(async () => {
       fireEvent.press(screen.getByText("Fazer nova vistoria desta ocorrência"));
     });
 
-    expect(perguntou).toHaveBeenCalled();
+    /*
+      A pergunta é do aplicativo (`Dialogo`) e não mais do sistema
+      (`Alert.alert`), e por isso ela é procurada na tela em vez de num espião.
+      Ver `ui/Dialogo.tsx` para o motivo da troca: tema, tamanho de fonte e alvo
+      de 52 pontos, que o alerta nativo não obedecia.
+    */
+    expect(screen.getByTestId("dialogo")).toBeTruthy();
     expect((await coletaDe(ID))?.situacao).toBe("na_fila");
     expect(screen.queryByText("Checklist técnico")).toBeNull();
     expect(mockChavesCunhadas).toEqual([]);
@@ -247,14 +251,14 @@ describe("a ocorrência que este aparelho já coletou", () => {
   it("confirmada, a nova vistoria abre e a coleta anterior fica arquivada", async () => {
     await guardarATarefa();
     await guardarALapide();
-    /* Aperta o botão destrutivo do diálogo, que é o que o agente faz. */
-    jest.spyOn(Alert, "alert").mockImplementation((_titulo, _texto, botoes) => {
-      botoes?.find((b) => b.style === "destructive")?.onPress?.();
-    });
 
     await abrirATela();
     await act(async () => {
       fireEvent.press(screen.getByText("Fazer nova vistoria desta ocorrência"));
+    });
+    /* Aperta o botão destrutivo do diálogo, que é o que o agente faz. */
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("dialogo-acao"));
     });
 
     expect(screen.getByText("Checklist técnico")).toBeTruthy();

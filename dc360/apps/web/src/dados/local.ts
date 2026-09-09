@@ -11,15 +11,16 @@ import {
   type AberturaOcorrencia,
   type Despacho,
   type Encerramento,
+  type InteresseMunicipio,
   type Providencia,
   type Triagem,
 } from "@dc360/shared";
 import { comoApp, semTenant, type Contexto } from "./banco";
 import type {
-  ColegaDeEquipe, ContaDisponivel, FiltroOcorrencias, Indicadores, LinhaEquipe,
-  LinhaEvento, LinhaOcorrencia, LinhaProvidencia, LinhaUsuario, LinhaVistoria,
-  MeuTrabalho, PaginaDeOcorrencias, PontoNoMapa, PontosDoMapa, Sessao,
-  TarefaDesignada, VistoriaConcluida,
+  ColegaDeEquipe, ContaDisponivel, FiltroOcorrencias, FiltroTrilha, Indicadores,
+  LinhaEquipe, LinhaEvento, LinhaOcorrencia, LinhaProvidencia, LinhaUsuario,
+  LinhaVistoria, MeuTrabalho, PaginaDeOcorrencias, PontoNoMapa, PontosDoMapa,
+  Sessao, TarefaDesignada, TipoDeDocumento, VistoriaConcluida,
 } from "./tipos";
 
 /**
@@ -43,17 +44,6 @@ import type {
 
 export const MODO = "local" as const;
 
-/**
- * O documento oficial é gerado pelo servidor de propósito: ele precisa sair
- * igual no navegador, na impressora e no PDF anexado ao processo. Sem API não
- * há documento, e dizer isso é melhor que gerar uma versão parecida que
- * divergiria da oficial.
- */
-/**
- * Evidência fotográfica depende de armazenamento, que só existe com servidor.
- * Devolver lista vazia é o retrato honesto do modo local: não há foto, e a
- * tela diz isso em vez de inventar imagem de exemplo.
- */
 export async function vinculosDaOcorrencia(
   s: Sessao,
   id: string,
@@ -200,21 +190,41 @@ export async function meuTrabalhoDeCampo(s: Sessao): Promise<MeuTrabalho> {
   });
 }
 
-export async function listarEvidencias(): Promise<never[]> {
+/*
+  DAQUI PARA BAIXO ESTÃO OS DEGRAUS DO MODO DE DEMONSTRAÇÃO.
+
+  São as funções que existem só para as duas implementações terem a MESMA
+  superfície, e que recusam em vez de fingir. Todas declaram os mesmos
+  parâmetros da ponta HTTP, inclusive os que ignoram, e isso não é enfeite:
+  enquanto elas declaravam zero parâmetro, as duas implementações divergiam
+  sem nada reprovar, e a tela que passasse a mandar um argumento novo
+  continuava compilando contra um degrau que jamais o receberia. O portão que
+  confere isso é `test/paridade-dos-modos.test.ts`.
+*/
+
+/**
+ * Evidência fotográfica depende de armazenamento, que só existe com servidor.
+ * Devolver lista vazia é o retrato honesto do modo local: não há foto, e a
+ * tela diz isso em vez de inventar imagem de exemplo.
+ */
+export async function listarEvidencias(
+  _s: Sessao,
+  _ocorrenciaId: string,
+): Promise<never[]> {
   return [];
 }
 
-export async function registrarInteresse(): Promise<string> {
+export async function registrarInteresse(_dados: InteresseMunicipio): Promise<string> {
   throw new Error(
     "O formulário de interesse exige a API. Este painel está em modo de demonstração.",
   );
 }
 
-export async function pedirRecuperacao(): Promise<string> {
+export async function pedirRecuperacao(_email: string): Promise<string> {
   throw new Error("A recuperação de senha exige a API. Este painel está em modo local.");
 }
 
-export async function redefinirSenha(): Promise<string> {
+export async function redefinirSenha(_token: string, _senha: string): Promise<string> {
   throw new Error("A recuperação de senha exige a API. Este painel está em modo local.");
 }
 
@@ -223,9 +233,43 @@ export async function redefinirSenha(): Promise<string> {
  * perfil, sem autenticação. Dizer isso é melhor que oferecer um formulário que
  * não muda nada.
  */
-export async function trocarSenha(): Promise<string> {
+export async function trocarSenha(_senhaAtual: string, _senha: string): Promise<string> {
   throw new Error(
     "Trocar senha exige a API. Neste painel a entrada é por escolha de perfil, sem senha.",
+  );
+}
+
+/**
+ * Redefinir a senha de outra pessoa recusa pelo mesmo motivo que trocar a
+ * própria: aqui não há senha nenhuma para redefinir, a entrada é escolha de
+ * perfil. Sortear uma senha temporária que ninguém vai usar seria pior que
+ * recusar, porque quem administra sairia da demonstração acreditando que
+ * distribuiu credencial.
+ */
+export async function redefinirSenhaDeUsuario(_id: string): Promise<never> {
+  throw new Error(
+    "Redefinir a senha de outra pessoa exige a API. Neste painel a entrada é " +
+    "por escolha de perfil, sem senha.",
+  );
+}
+
+/**
+ * Encerrar sessão de outra pessoa recusa porque não existe sessão para
+ * derrubar: no modo de demonstração a entrada não emite token, e o que a tela
+ * chama de sessão vive só nesta aba. Responder "duas sessões encerradas" seria
+ * inventar um efeito de segurança que não aconteceu.
+ */
+export async function encerrarSessoesDeUsuario(_id: string): Promise<never> {
+  throw new Error(
+    "Encerrar as sessões de outra pessoa exige a API. Este painel está em modo local.",
+  );
+}
+
+/** Mesmo motivo: sem servidor não há sessão em outro aparelho para encerrar. */
+export async function encerrarMinhasSessoes(): Promise<never> {
+  throw new Error(
+    "Encerrar as suas outras sessões exige a API. Neste painel a entrada vale " +
+    "só nesta aba.",
   );
 }
 
@@ -234,23 +278,42 @@ export async function trocarSenha(): Promise<string> {
  * consulta a API porque é lá que a consulta filtrada vive. No modo local a
  * página avisa em vez de mostrar meia funcionalidade.
  */
-export async function consultarTrilha(): Promise<never> {
+export async function consultarTrilha(
+  _s: Sessao,
+  _filtro: FiltroTrilha = {},
+): Promise<never> {
   throw new Error("A auditoria consolidada exige a API. Este painel está em modo local.");
 }
 
-export async function tiposDeEvento(): Promise<never[]> {
+export async function tiposDeEvento(_s: Sessao): Promise<never[]> {
   return [];
 }
 
-export async function resumoDoPeriodo(): Promise<never> {
+export async function resumoDoPeriodo(
+  _s: Sessao,
+  _periodo: { de?: string; ate?: string } = {},
+): Promise<never> {
   throw new Error("Os relatórios exigem a API. Este painel está em modo local.");
 }
 
-export async function baixarCsvDeOcorrencias(): Promise<never> {
+export async function baixarCsvDeOcorrencias(
+  _s: Sessao,
+  _periodo: { de?: string; ate?: string; status?: string } = {},
+): Promise<never> {
   throw new Error("A exportação exige a API. Este painel está em modo local.");
 }
 
-export async function abrirDocumento(): Promise<string> {
+/**
+ * O documento oficial é gerado pelo servidor de propósito: ele precisa sair
+ * igual no navegador, na impressora e no PDF anexado ao processo. Sem API não
+ * há documento, e dizer isso é melhor que gerar uma versão parecida que
+ * divergiria da oficial.
+ */
+export async function abrirDocumento(
+  _s: Sessao,
+  _ocorrenciaId: string,
+  _tipo: TipoDeDocumento,
+): Promise<string> {
   throw new Error("O documento oficial é gerado pelo servidor. Este painel está em modo local.");
 }
 

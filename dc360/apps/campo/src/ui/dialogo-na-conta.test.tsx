@@ -1,0 +1,161 @@
+/**
+ * Sair da conta, com coleta pendente no aparelho.
+ *
+ * É a decisão mais cara desta tela e uma das mais caras do produto: sair apaga
+ * a sessão, e sem sessão a fila não consegue enviar. Uma vistoria feita no
+ * morro fica presa no aparelho até alguém entrar de novo, e ninguém do lado da
+ * coordenação sabe que ela existe.
+ *
+ * O que estes testes travam, e o que mudou: a pergunta era `Alert.alert`, do
+ * sistema, e um alerta do sistema é invisível para o teste da tela. Dava para
+ * provar "o alerta foi chamado" espionando o módulo, e não dava para provar o
+ * que importa, que é **a sessão continuar de pé enquanto ninguém respondeu**.
+ * Agora a pergunta é um componente desta árvore, e a prova é direta.
+ *
+ * O arquivo mora em `src/ui` junto do `Dialogo` que ele exercita, e não em
+ * `src/__tests__`: aquela pasta existe por causa do Expo, que transforma tudo
+ * dentro de `src/app` em rota, e nada aqui está dentro de `src/app`.
+ */
+
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
+  __esModule: true, default: () => "dark",
+}));
+
+jest.mock("expo-router", () => ({
+  router: { replace: jest.fn(), back: jest.fn(), push: jest.fn() },
+}));
+
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: { expoConfig: { version: "0.1.0" } },
+}));
+
+jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
+
+/** Quantas coletas o aparelho diz ter esperando. Cada teste ajusta. */
+let mockPendentes = 0;
+jest.mock("../dados/fila", () => ({
+  obterFila: async () => ({
+    resumo: async () => ({
+      pendentes: mockPendentes, enviando: 0, bloqueados: 0, confirmados: 0,
+    }),
+  }),
+}));
+
+const mockSair = jest.fn(async () => {});
+jest.mock("../dados/sessao", () => ({
+  useSessao: () => ({
+    sair: mockSair,
+    obterToken: async () => "token-de-mentira",
+    identidade: {
+      nome: "Agente de teste",
+      papel: "agente_campo",
+      matricula: "0001",
+      organizacaoNome: "Defesa Civil de Teste",
+      municipio: "Teste",
+      uf: "SC",
+    },
+  }),
+}));
+
+jest.mock("../dados/conectividade", () => ({
+  useSinal: () => ({ temSinal: false, tipo: null }),
+}));
+
+import { router } from "expo-router";
+import Conta from "../app/(agente)/conta";
+
+beforeEach(() => {
+  mockPendentes = 0;
+  mockSair.mockClear();
+  (router.replace as jest.Mock).mockClear();
+});
+
+/** Monta a tela e espera o resumo da fila responder. */
+async function abrirATela(): Promise<void> {
+  await render(<Conta />);
+  await act(async () => {});
+}
+
+async function tocar(texto: string): Promise<void> {
+  await act(async () => { fireEvent.press(screen.getByText(texto)); });
+}
+
+describe("a pergunta antes de sair", () => {
+  it("o toque em 'Sair da conta' abre a pergunta e NÃO encerra a sessão", async () => {
+    /*
+      O defeito que isto trava: qualquer refatoração que ligue o botão direto ao
+      `sair()` deixa a tela funcionando aos olhos de quem testa à mão, porque o
+      aplicativo volta para a entrada do mesmo jeito. O que se perde é a chance
+      de o agente ver que tem três coletas presas no aparelho, e isso só
+      aparece horas depois, quando ninguém mais liga o efeito à causa.
+    */
+    mockPendentes = 3;
+    await abrirATela();
+
+    await tocar("Sair da conta");
+
+    expect(screen.getByTestId("dialogo")).toBeTruthy();
+    expect(mockSair).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("a pergunta conta quantas coletas ficam presas no aparelho", async () => {
+    mockPendentes = 3;
+    await abrirATela();
+
+    await tocar("Sair da conta");
+
+    expect(screen.getByText(/3 coletas ainda não enviadas/)).toBeTruthy();
+  });
+
+  it("sem coleta pendente, a pergunta continua existindo, com outro texto", async () => {
+    // Sair sem fila também custa: entrar de novo exige sinal, e sinal é
+    // justamente o que falta onde este aplicativo é usado.
+    await abrirATela();
+
+    await tocar("Sair da conta");
+
+    expect(screen.getByText(/precisar de sinal e da sua senha/)).toBeTruthy();
+  });
+});
+
+describe("as duas respostas", () => {
+  it("'Continuar conectado' fecha a pergunta e a sessão segue de pé", async () => {
+    mockPendentes = 2;
+    await abrirATela();
+    await tocar("Sair da conta");
+
+    await act(async () => { fireEvent.press(screen.getByTestId("dialogo-recusa")); });
+
+    expect(mockSair).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("dialogo")).toBeNull();
+  });
+
+  it("o botão que repete o verbo encerra a sessão e leva para a entrada", async () => {
+    mockPendentes = 2;
+    await abrirATela();
+    await tocar("Sair da conta");
+
+    await act(async () => { fireEvent.press(screen.getByTestId("dialogo-acao")); });
+
+    expect(mockSair).toHaveBeenCalledTimes(1);
+    expect(router.replace).toHaveBeenCalledWith("/entrar");
+  });
+
+  /*
+    "OK" responderia à pergunta do título sem dizer o que acontece com as
+    coletas que estão no aparelho, e é exatamente essa a dúvida de quem lê isto
+    no fim do plantão.
+  */
+  it("o botão que age diz o que faz, e não 'OK'", async () => {
+    await abrirATela();
+    await tocar("Sair da conta");
+
+    expect(screen.getByTestId("dialogo-acao").props.accessibilityLabel)
+      .toBe("Sair da conta");
+  });
+});

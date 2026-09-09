@@ -8,6 +8,7 @@ import { useSessao } from "../estado/sessao";
 import {
   Aviso, AvisoDeObrigatorios, Carregando, ErroCampo, iniciais,
 } from "../componentes/comuns";
+import { Campo } from "../componentes/Campo";
 
 /**
  * Entrada da aplicação, em duas formas conforme o painel esteja ligado à API
@@ -74,22 +75,37 @@ function FormularioSenha() {
         <div className="cartao__corpo">
           <form onSubmit={enviar} noValidate>
             <AvisoDeObrigatorios />
-            <div className="campo">
-              <label htmlFor="entrada-email">Email funcional</label>
-              <input
-                id="entrada-email" type="email" value={email} autoComplete="username" required
-                aria-invalid={!!erro} aria-describedby={erro ? "entrada-erro" : undefined}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="campo">
-              <label htmlFor="entrada-senha">Senha</label>
-              <input
-                id="entrada-senha" type="password" value={senha} autoComplete="current-password" required
-                aria-invalid={!!erro} aria-describedby={erro ? "entrada-erro" : undefined}
-                onChange={(e) => setSenha(e.target.value)}
-              />
-            </div>
+            {/*
+              A recusa da entrada NÃO é erro de campo, e por isso ela não vai
+              no `erro` do `Campo`.
+
+              O servidor responde a mesma frase para email inexistente e para
+              senha errada, de propósito: dizer qual dos dois falhou entregaria
+              a lista de quem tem conta na prefeitura. Pendurar essa frase em
+              um dos dois campos contaria justamente o que a resposta se recusa
+              a contar. Ela pertence ao par, então fica embaixo dos dois, e os
+              dois a referenciam em `aria-describedby`.
+            */}
+            <Campo id="entrada-email" rotulo="Email funcional">
+              {(campo) => (
+                <input
+                  {...campo} type="email" value={email} autoComplete="username"
+                  aria-invalid={erro ? true : undefined}
+                  aria-describedby={erro ? "entrada-erro" : undefined}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              )}
+            </Campo>
+            <Campo id="entrada-senha" rotulo="Senha">
+              {(campo) => (
+                <input
+                  {...campo} type="password" value={senha} autoComplete="current-password"
+                  aria-invalid={erro ? true : undefined}
+                  aria-describedby={erro ? "entrada-erro" : undefined}
+                  onChange={(e) => setSenha(e.target.value)}
+                />
+              )}
+            </Campo>
 
             {erro && <ErroCampo id="entrada-erro">{erro}</ErroCampo>}
 

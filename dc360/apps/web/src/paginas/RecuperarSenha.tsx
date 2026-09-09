@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { MODO, pedirRecuperacao, redefinirSenha } from "../dados/repositorio";
-import { Aviso, AvisoDeObrigatorios, ErroCampo } from "../componentes/comuns";
+import { Aviso, AvisoDeObrigatorios } from "../componentes/comuns";
+import { Campo } from "../componentes/Campo";
 
 /**
  * Recuperação de senha, em duas telas que compartilham a mesma moldura.
@@ -72,13 +73,12 @@ export function RecuperarSenha() {
               A recuperação de senha exige o servidor. Este painel está em modo local.
             </Aviso>
           )}
-          <div className="campo">
-            <label htmlFor="recuperar-email">Email funcional</label>
-            <input id="recuperar-email" type="email" value={email} autoComplete="username" required
-                   aria-invalid={!!erro} aria-describedby={erro ? "recuperar-erro" : undefined}
-                   onChange={(e) => setEmail(e.target.value)} />
-          </div>
-          {erro && <ErroCampo id="recuperar-erro">{erro}</ErroCampo>}
+          <Campo id="recuperar-email" rotulo="Email funcional" erro={erro}>
+            {(campo) => (
+              <input {...campo} type="email" value={email} autoComplete="username"
+                     onChange={(e) => setEmail(e.target.value)} />
+            )}
+          </Campo>
           <button type="submit" className="botao botao--primario"
                   style={{ width: "100%" }} disabled={enviando}>
             {enviando ? "Enviando" : "Enviar link de redefinição"}
@@ -89,6 +89,15 @@ export function RecuperarSenha() {
   );
 }
 
+/**
+ * Quanto tempo a confirmação fica na tela antes de levar para a entrada.
+ *
+ * Tempo suficiente para ler "Senha redefinida" e entender que a próxima tela
+ * não é erro. Menos que isto e a troca de tela parece falha; muito mais e a
+ * pessoa fica olhando uma tela que não pede nada.
+ */
+const ESPERA_ATE_A_ENTRADA_MS = 2500;
+
 export function DefinirNovaSenha() {
   const [params] = useSearchParams();
   const token = params.get("token") ?? "";
@@ -98,6 +107,24 @@ export function DefinirNovaSenha() {
   const [pronto, setPronto] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const navegar = useNavigate();
+
+  /*
+    A ida para a entrada é agendada DENTRO de um efeito, e cancelada quando a
+    tela sai.
+
+    Solta dentro do envio, ela deixava um relógio de pé que ninguém tinha como
+    parar: quem redefine a senha e clica em "Voltar para a entrada" antes dos
+    dois segundos e meio (ou fecha a tela por qualquer outro caminho) levava
+    uma navegação disparada por cima da tela seguinte, alguns segundos depois,
+    sem ter pedido nada. Em desenvolvimento isso vira aviso de atualizar
+    componente desmontado; em produção vira a tela pulando sozinha, que é o
+    tipo de coisa que ninguém consegue reproduzir para relatar.
+  */
+  useEffect(() => {
+    if (!pronto) return;
+    const relogio = setTimeout(() => navegar("/entrar"), ESPERA_ATE_A_ENTRADA_MS);
+    return () => clearTimeout(relogio);
+  }, [pronto, navegar]);
 
   async function enviar(evento: React.FormEvent) {
     evento.preventDefault();
@@ -119,7 +146,6 @@ export function DefinirNovaSenha() {
     try {
       await redefinirSenha(token, senha);
       setPronto(true);
-      setTimeout(() => navegar("/entrar"), 2500);
     } catch (e: unknown) {
       setErro(e instanceof Error ? e.message : String(e));
     } finally {
@@ -145,22 +171,31 @@ export function DefinirNovaSenha() {
       ) : (
         <form onSubmit={enviar} noValidate>
           <AvisoDeObrigatorios />
-          <div className="campo">
-            <label htmlFor="nova-senha">Nova senha</label>
-            <input id="nova-senha" type="password" value={senha} autoComplete="new-password" required
-                   aria-invalid={!!erro} aria-describedby={erro ? "nova-senha-erro" : undefined}
-                   onChange={(e) => setSenha(e.target.value)} />
-            <span className="campo__dica">
-              Mínimo de 12 caracteres. Sem exigência de símbolo ou número: regra de
-              composição só produz senha pior e mais difícil de lembrar.
-            </span>
-          </div>
-          <div className="campo">
-            <label htmlFor="repetir-senha">Repita a nova senha</label>
-            <input id="repetir-senha" type="password" value={repetida} autoComplete="new-password" required
-                   onChange={(e) => setRepetida(e.target.value)} />
-          </div>
-          {erro && <ErroCampo id="nova-senha-erro">{erro}</ErroCampo>}
+          {/*
+            As duas mensagens possíveis ("as senhas não são iguais" e "faltam
+            caracteres") falam da senha nova, então o erro fica nela. Repetir o
+            mesmo texto embaixo dos dois campos faria o leitor de tela anunciar
+            duas vezes o mesmo problema, e quem enxerga leria dois erros onde
+            existe um.
+          */}
+          <Campo
+            id="nova-senha"
+            rotulo="Nova senha"
+            erro={erro}
+            dica={"Mínimo de 12 caracteres. Sem exigência de símbolo ou número: regra de "
+              + "composição só produz senha pior e mais difícil de lembrar."}
+          >
+            {(campo) => (
+              <input {...campo} type="password" value={senha} autoComplete="new-password"
+                     onChange={(e) => setSenha(e.target.value)} />
+            )}
+          </Campo>
+          <Campo id="repetir-senha" rotulo="Repita a nova senha">
+            {(campo) => (
+              <input {...campo} type="password" value={repetida} autoComplete="new-password"
+                     onChange={(e) => setRepetida(e.target.value)} />
+            )}
+          </Campo>
           <button type="submit" className="botao botao--primario"
                   style={{ width: "100%" }} disabled={salvando}>
             {salvando ? "Salvando" : "Definir nova senha"}

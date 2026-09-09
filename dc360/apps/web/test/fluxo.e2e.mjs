@@ -82,7 +82,7 @@ await page.locator("#nova-ref").fill("Em frente ao poste caido, portao verde");
   digita latitude.
 */
 await page.locator("#nova-local").fill("https://www.google.com/maps?q=-22.4200,-45.4480");
-const leitura = (await page.locator("#nova-local-leitura").textContent()).trim();
+const leitura = (await page.locator("#nova-local-dica").textContent()).trim();
 ok(
   "o link colado vira coordenada reconhecida na tela",
   leitura.includes("-22.420000, -45.448000"),
@@ -209,13 +209,21 @@ ok("a ocorrencia mostra o bloco de interdicao", true);
 
 await page.locator("#desinterdicao-motivo").fill("ok");
 await page.getByRole("button", { name: "Levantar interdição" }).click();
-const recusa = await page.locator("#desinterdicao-erro").textContent();
+const recusa = await page.locator("#desinterdicao-motivo-erro").textContent();
 ok("motivo curto e recusado antes de gravar", recusa.length > 10, `(${recusa})`);
 
 await page.locator("#desinterdicao-motivo").fill(
   "Contencao do talude executada pela Secretaria de Obras e conferida em nova vistoria tecnica.",
 );
 await page.getByRole("button", { name: "Levantar interdição" }).click();
+/*
+  DOIS cliques, e o segundo é o que grava.
+
+  Levantar a interdição autoriza uma família a voltar para dentro de uma casa
+  que foi considerada insegura, e passou a exigir confirmação no turno T6: o
+  primeiro clique abre a janela, o segundo confirma. Antes era um clique só.
+*/
+await page.getByRole("button", { name: "Levantar a interdição deste imóvel" }).click();
 await page.locator(".aviso--sucesso", { hasText: "Interdição levantada" }).waitFor({ timeout: 20_000 });
 ok("levantamento gravado, com aviso na tela", true);
 

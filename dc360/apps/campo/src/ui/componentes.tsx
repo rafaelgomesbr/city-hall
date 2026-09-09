@@ -102,10 +102,18 @@ type PropsBotao = {
   /** Descrição para leitor de tela, quando o título não bastar. */
   descricao?: string;
   estilo?: StyleProp<ViewStyle>;
+  /*
+    Só para teste alcançar o botão pelo papel que ele exerce, e não pelo texto.
+
+    Rótulo é conteúdo, e conteúdo muda: um teste que procura o botão por
+    "Descartar esta coleta" reprova quando alguém reescreve a frase, e o defeito
+    que ele guardava passa a ser reescrito junto com a frase sem ninguém notar.
+  */
+  testID?: string;
 };
 
 export function Botao({
-  titulo, onPress, tipo = "primario", desabilitado, carregando, descricao, estilo,
+  titulo, onPress, tipo = "primario", desabilitado, carregando, descricao, estilo, testID,
 }: PropsBotao) {
   const tema = useTema();
   const inativo = desabilitado || carregando;
@@ -121,6 +129,7 @@ export function Botao({
     <Pressable
       onPress={onPress}
       disabled={inativo}
+      testID={testID}
       accessibilityRole="button"
       accessibilityLabel={descricao ?? titulo}
       accessibilityState={{ disabled: Boolean(inativo), busy: Boolean(carregando) }}

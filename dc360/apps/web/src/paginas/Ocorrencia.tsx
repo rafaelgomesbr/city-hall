@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   PRAZO_PADRAO_HORAS, ROTULO_CANAL, ROTULO_CHECKLIST, ROTULO_PAPEL, ROTULO_SEVERIDADE,
   ROTULO_TIPO_COBRADE, SEVERIDADES, podeExecutar,
@@ -21,9 +21,13 @@ import {
   Aviso, AvisoDeObrigatorios, Carregando, Cartao, ErroCampo, Prazo, SeloSeveridade, SeloStatus,
   Vazio, formatarDataHora,
 } from "../componentes/comuns";
+import { Campo } from "../componentes/Campo";
+import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
+import { Modal } from "../componentes/Modal";
+import { Toast } from "../componentes/Toast";
 import { IconeDocumento, IconeEvento, IconeVoltar } from "../componentes/Icones";
 import {
-  montarVerTambem, podeOferecerEncerramento, proximoPassoDoEncerramento,
+  avisoDoRegistro, montarVerTambem, podeOferecerEncerramento, proximoPassoDoEncerramento,
   rotuloDoBotaoDeEncerrar, type ItemVerTambem, type PassoDoEncerramento,
   type RelacaoVerTambem,
 } from "./ocorrencia-regras";
@@ -70,9 +74,38 @@ export function Ocorrencia() {
   const sessao = useSessaoObrigatoria();
   const { id = "" } = useParams();
   const navegar = useNavigate();
+  const local = useLocation();
   const [dados, setDados] = useState<Conjunto | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+
+  /*
+    A confirmação do registro só existe nesta tela, e não na que gravou.
+
+    Quem abre o chamado está com o telefone no ombro e sai da tela de registro
+    no mesmo instante em que ela grava, então um aviso lá dentro não seria
+    lido por ninguém. O número do protocolo também não pode viajar junto pela
+    navegação: a rota de gravação devolve o `id` da ocorrência, e o protocolo
+    quem gera é o banco. Ele é lido aqui, do próprio registro, o que dá de
+    graça a garantia que importa: o número dito no aviso é o mesmo que está
+    no título da tela, e não uma cópia que pode divergir.
+  */
+  const chegouDoRegistro =
+    (local.state as { recemRegistrada?: boolean } | null)?.recemRegistrada === true;
+  const [anunciarRegistro, setAnunciarRegistro] = useState(chegouDoRegistro);
+
+  /*
+    A marca sai do histórico assim que é lida.
+
+    Sem isto, ela fica guardada na entrada do histórico: recarregar a aba
+    semanas depois faria a tela anunciar de novo "ocorrência registrada", sobre
+    um chamado que já foi a campo e voltou. Aviso que mente uma vez é aviso que
+    ninguém lê na segunda.
+  */
+  useEffect(() => {
+    if (!chegouDoRegistro) return;
+    navegar(`${local.pathname}${local.search}`, { replace: true, state: null });
+  }, [chegouDoRegistro, navegar, local.pathname, local.search]);
 
   const recarregar = useCallback(async () => {
     const [ocorrencia, trilha, vistoria, providencias, equipes, evidencias, vinculos] =
@@ -205,6 +238,21 @@ export function Ocorrencia() {
         {erro && <Aviso tom="perigo">{erro}</Aviso>}
         {aviso && <Aviso tom="sucesso">{aviso}</Aviso>}
       </div>
+
+      {/*
+        O aviso passageiro do registro. Ele repete o protocolo que já está no
+        título logo acima e diz qual é o próximo passo, porque quem acabou de
+        gravar não sabe se o trabalho terminou ali. Some sozinho, e nada se
+        perde quando some: o protocolo continua no título e o passo seguinte
+        continua sendo o cartão aberto na coluna da esquerda.
+      */}
+      {anunciarRegistro && (
+        <Toast
+          tom="sucesso"
+          mensagem={avisoDoRegistro({ protocolo: o.protocolo, papel: sessao.papel })}
+          aoFechar={() => setAnunciarRegistro(false)}
+        />
+      )}
       {(vinculadaA || vinculadas.length > 0) && (
         <Aviso tom="info">
           {vinculadaA ? (
@@ -671,19 +719,34 @@ function BlocoTriagem({ onEnviar, gravando }: { onEnviar: (t: { severidade: Seve
       */}
       <form onSubmit={enviar} noValidate>
         <AvisoDeObrigatorios />
-        <div className="campo">
-          <label htmlFor="triagem-severidade">Severidade</label>
-          <select id="triagem-severidade" value={severidade}
-                  onChange={(e) => setSeveridade(e.target.value as Severidade)}>
-            {SEVERIDADES.map((s) => (
-              <option key={s} value={s}>
-                {ROTULO_SEVERIDADE[s]} (prazo de {PRAZO_PADRAO_HORAS[s]} horas)
-              </option>
-            ))}
-          </select>
-          <span className="campo__dica">A severidade define o prazo de atendimento, não o contrário.</span>
-        </div>
+        <Campo id="triagem-severidade" rotulo="Severidade"
+               dica="A severidade define o prazo de atendimento, não o contrário.">
+          {(campo) => (
+            <select {...campo} value={severidade}
+                    onChange={(e) => setSeveridade(e.target.value as Severidade)}>
+              {SEVERIDADES.map((s) => (
+                <option key={s} value={s}>
+                  {ROTULO_SEVERIDADE[s]} (prazo de {PRAZO_PADRAO_HORAS[s]} horas)
+                </option>
+              ))}
+            </select>
+          )}
+        </Campo>
 
+        {/*
+          Esta marcação fica FORA de `Campo`, e não por descuido.
+
+          `Campo` amarra rótulo e controle por `htmlFor`/`id`, e essa amarração
+          é justamente a que se desfaz em silêncio quando alguém renomeia um
+          dos dois. Aqui o rótulo ENVOLVE a caixa: não existe par de
+          identificadores para divergir, e clicar no texto marca a caixa porque
+          o texto é o rótulo, não porque alguém lembrou de apontar para ela.
+
+          E a convenção de obrigatoriedade não se aplica: `required` numa caixa
+          de marcação significa "precisa estar marcada", e esta pode ficar
+          desmarcada, que é o caso mais comum. Marcá-la como obrigatória seria
+          o leitor de tela anunciando uma exigência que não existe.
+        */}
         <label className="caixa-marcacao">
           <input type="checkbox" checked={vulneravel} onChange={(e) => setVulneravel(e.target.checked)} />
           <span>
@@ -694,13 +757,14 @@ function BlocoTriagem({ onEnviar, gravando }: { onEnviar: (t: { severidade: Seve
         </label>
 
         {vulneravel && (
-          <div className="campo">
-            <label htmlFor="triagem-vuln">Descreva a vulnerabilidade</label>
-            <textarea id="triagem-vuln" value={descricao} required
-                      onChange={(e) => setDescricao(e.target.value)}
-                      aria-invalid={!!erro}
-                      aria-describedby={erro ? "triagem-erro" : undefined} />
-          </div>
+          <Campo id="triagem-vuln" rotulo="Descreva a vulnerabilidade">
+            {(campo) => (
+              <textarea {...campo} value={descricao}
+                        onChange={(e) => setDescricao(e.target.value)}
+                        aria-invalid={erro ? true : undefined}
+                        aria-describedby={erro ? "triagem-erro" : undefined} />
+            )}
+          </Campo>
         )}
 
         {erro && <ErroCampo id="triagem-erro">{erro}</ErroCampo>}
@@ -757,29 +821,32 @@ function BlocoDespacho({ equipes, severidade, onEnviar, titulo, equipeAtual, gra
       <form onSubmit={enviar} noValidate>
         <AvisoDeObrigatorios />
         <div className="linha-campos">
-          <div className="campo">
-            <label htmlFor="despacho-equipe">Equipe</label>
-            <select id="despacho-equipe" value={equipeId} onChange={(e) => setEquipeId(e.target.value)}>
-              {equipes.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.nome} ({e.em_atendimento} em atendimento)
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="campo">
-            <label htmlFor="despacho-prazo">Prazo em horas</label>
-            <input id="despacho-prazo" type="number" min={1} max={720} value={prazo} required
-                   onChange={(e) => setPrazo(Number(e.target.value))} />
-          </div>
+          <Campo id="despacho-equipe" rotulo="Equipe">
+            {(campo) => (
+              <select {...campo} value={equipeId} onChange={(e) => setEquipeId(e.target.value)}>
+                {equipes.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.nome} ({e.em_atendimento} em atendimento)
+                  </option>
+                ))}
+              </select>
+            )}
+          </Campo>
+          <Campo id="despacho-prazo" rotulo="Prazo em horas">
+            {(campo) => (
+              <input {...campo} type="number" min={1} max={720} value={prazo}
+                     onChange={(e) => setPrazo(Number(e.target.value))} />
+            )}
+          </Campo>
         </div>
 
-        <div className="campo">
-          <label htmlFor="despacho-instrucoes">Instruções para a equipe (opcional)</label>
-          <textarea id="despacho-instrucoes" value={instrucoes}
-                    onChange={(e) => setInstrucoes(e.target.value)}
-                    placeholder="Acesso pela lateral do lote, cuidado com fiação exposta" />
-        </div>
+        <Campo id="despacho-instrucoes" rotulo="Instruções para a equipe" opcional>
+          {(campo) => (
+            <textarea {...campo} value={instrucoes}
+                      onChange={(e) => setInstrucoes(e.target.value)}
+                      placeholder="Acesso pela lateral do lote, cuidado com fiação exposta" />
+          )}
+        </Campo>
 
         {erro && <ErroCampo id="despacho-erro">{erro}</ErroCampo>}
         <button type="submit" className="botao botao--primario" disabled={gravando}>
@@ -819,30 +886,34 @@ function BlocoProvidencia({ onEnviar, gravando }: {
       <form onSubmit={enviar} noValidate>
         <AvisoDeObrigatorios />
         <div className="linha-campos">
-          <div className="campo">
-            <label htmlFor="prov-orgao">Órgão de destino</label>
-            <select id="prov-orgao" value={orgao} onChange={(e) => setOrgao(e.target.value)}>
-              {ORGAOS.map((o) => <option key={o} value={o}>{o}</option>)}
-            </select>
-          </div>
-          <div className="campo">
-            <label htmlFor="prov-responsavel">Responsável no órgão</label>
-            <input id="prov-responsavel" type="text" value={responsavel} required
-                   onChange={(e) => setResponsavel(e.target.value)} />
-          </div>
-          <div className="campo">
-            <label htmlFor="prov-prazo">Prazo em horas</label>
-            <input id="prov-prazo" type="number" min={1} max={2160} value={prazo} required
-                   onChange={(e) => setPrazo(Number(e.target.value))} />
-          </div>
+          <Campo id="prov-orgao" rotulo="Órgão de destino">
+            {(campo) => (
+              <select {...campo} value={orgao} onChange={(e) => setOrgao(e.target.value)}>
+                {ORGAOS.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+            )}
+          </Campo>
+          <Campo id="prov-responsavel" rotulo="Responsável no órgão">
+            {(campo) => (
+              <input {...campo} type="text" value={responsavel}
+                     onChange={(e) => setResponsavel(e.target.value)} />
+            )}
+          </Campo>
+          <Campo id="prov-prazo" rotulo="Prazo em horas">
+            {(campo) => (
+              <input {...campo} type="number" min={1} max={2160} value={prazo}
+                     onChange={(e) => setPrazo(Number(e.target.value))} />
+            )}
+          </Campo>
         </div>
 
-        <div className="campo">
-          <label htmlFor="prov-descricao">O que se pede ao órgão</label>
-          <textarea id="prov-descricao" value={descricao} required
-                    onChange={(e) => setDescricao(e.target.value)}
-                    placeholder="Execução de contenção provisória no talude e remoção do material deslizado" />
-        </div>
+        <Campo id="prov-descricao" rotulo="O que se pede ao órgão">
+          {(campo) => (
+            <textarea {...campo} value={descricao}
+                      onChange={(e) => setDescricao(e.target.value)}
+                      placeholder="Execução de contenção provisória no talude e remoção do material deslizado" />
+          )}
+        </Campo>
 
         {erro && <ErroCampo id="providencia-erro">{erro}</ErroCampo>}
         <button type="submit" className="botao botao--primario" disabled={gravando}>
@@ -854,18 +925,32 @@ function BlocoProvidencia({ onEnviar, gravando }: {
 }
 
 /**
- * Encerrar em dois toques.
+ * Encerrar: o formulário na tela, a pergunta numa janela.
  *
- * O painel inteiro não tinha uma confirmação sequer, e este é o botão de
- * consequência mais definitiva dele: encerrada é estado terminal, e o evento
- * entra numa trilha sem policy de UPDATE nem de DELETE. Não existe desfazer,
- * existe evento novo dizendo que o anterior estava errado.
+ * Este é o botão de consequência mais definitiva do painel: encerrada é estado
+ * terminal, e o evento entra numa trilha sem policy de UPDATE nem de DELETE.
+ * Não existe desfazer, existe evento novo dizendo que o anterior estava
+ * errado.
  *
- * A confirmação é aqui dentro, em dois passos, e não numa janela modal, por
- * duas razões. Modal de verdade (foco preso, Escape, foco devolvido) é peça
- * de biblioteca e é outro turno de trabalho; e meia biblioteca de modal, feita
- * às pressas neste arquivo, seria uma armadilha de teclado, que é pior do que
- * a ausência de confirmação para quem navega por Tab.
+ * A confirmação já foi dois toques no próprio bloco, e o comentário que
+ * justificava aquilo dizia por quê: modal de verdade (foco preso, Escape, foco
+ * devolvido a quem abriu) era outro turno de trabalho, e meia biblioteca de
+ * modal escrita às pressas dentro desta página seria uma armadilha de teclado,
+ * que é pior do que não ter confirmação nenhuma. Esse turno aconteceu, e a
+ * peça é `ConfirmarAcao`. Os dois toques saem, e com eles saem os dois
+ * defeitos que ninguém tinha como consertar aqui dentro:
+ *
+ * - o botão que trocava de texto por baixo do dedo. Quem estava com o foco
+ *   nele via o rótulo virar "Confirmar encerramento de ..." sem que nada fosse
+ *   anunciado, e o segundo toque gravava. A janela obriga o foco a se mover,
+ *   e ele começa em "Cancelar";
+ * - a página inteira continuava clicável durante a pergunta. Agora ela fica
+ *   `inert`, então não há como responder a pergunta mexendo em outra coisa.
+ *
+ * O estado de dois passos FICA, porque ele não era só desenho: é ele que
+ * garante que editar o motivo derruba a confirmação. O que foi confirmado é o
+ * texto que estava na tela naquele instante, e deixar a janela de pé enquanto
+ * o texto muda gravaria motivo diferente do confirmado.
  */
 export function BlocoEncerramento({ protocolo, onEnviar, gravando }: {
   protocolo: string;
@@ -875,23 +960,20 @@ export function BlocoEncerramento({ protocolo, onEnviar, gravando }: {
   const [motivo, setMotivo] = useState("");
   const [passo, setPasso] = useState<PassoDoEncerramento>("editando");
   const [erro, setErro] = useState<string | null>(null);
-  const botao = useRef<HTMLButtonElement>(null);
 
   /*
-    O foco vai para o botão quando ele muda de pergunta para confirmação.
-    Sem isso, quem usa leitor de tela dá um toque, o rótulo do botão sob o
-    foco muda por baixo dele sem nada ser anunciado, e o segundo toque grava
-    o encerramento sem que a pessoa tenha ouvido a pergunta.
+    Um caminho só, chamado de dois lugares: o envio do formulário e o botão da
+    janela. Duas cópias da mesma decisão divergiriam na primeira correção, e a
+    que ficaria para trás seria justamente a de dentro da janela, que é a que
+    grava.
   */
-  useEffect(() => {
-    if (passo === "confirmando") botao.current?.focus();
-  }, [passo]);
-
-  function enviar(evento: React.FormEvent) {
-    evento.preventDefault();
+  function avancar(): void {
     const decisao = proximoPassoDoEncerramento(passo, motivo);
     if (decisao.tipo === "erro") {
       setErro(decisao.mensagem);
+      // Fecha a janela junto: erro anunciado atrás de uma pergunta aberta é
+      // erro que ninguém lê.
+      setPasso("editando");
       return;
     }
     setErro(null);
@@ -908,41 +990,53 @@ export function BlocoEncerramento({ protocolo, onEnviar, gravando }: {
         Ocorrência não é apagada, é encerrada com motivo. O registro continua consultável e a
         trilha continua íntegra depois do fato.
       </p>
-      <form onSubmit={enviar} noValidate>
-        <div className="campo">
-          <label htmlFor="encerrar-motivo">Motivo do encerramento</label>
-          {/*
-            Editar o motivo derruba a confirmação. O que foi confirmado é o
-            texto que estava na tela naquele momento; deixar a confirmação de
-            pé enquanto o texto muda gravaria motivo diferente do confirmado.
-          */}
-          <textarea id="encerrar-motivo" value={motivo} required
-                    onChange={(e) => { setMotivo(e.target.value); setPasso("editando"); }}
-                    aria-invalid={!!erro}
-                    aria-describedby={erro ? "encerramento-erro" : undefined}
-                    placeholder="Vistoria constatou ausência de risco remanescente e o morador foi orientado" />
-          <span className="campo__dica">O banco recusa encerramento sem motivo: a regra não é da tela.</span>
-        </div>
-        {erro && <ErroCampo id="encerramento-erro">{erro}</ErroCampo>}
-        {passo === "confirmando" && (
-          <Aviso tom="alerta">
+      <form onSubmit={(evento) => { evento.preventDefault(); avancar(); }} noValidate>
+        <Campo
+          id="encerrar-motivo"
+          rotulo="Motivo do encerramento"
+          erro={erro}
+          dica="O banco recusa encerramento sem motivo: a regra não é da tela."
+        >
+          {(campo) => (
+            <textarea {...campo} value={motivo}
+                      onChange={(e) => { setMotivo(e.target.value); setPasso("editando"); }}
+                      placeholder="Vistoria constatou ausência de risco remanescente e o morador foi orientado" />
+          )}
+        </Campo>
+        {/*
+          O rótulo do botão que ABRE a pergunta não muda mais: ele diz o ato, e
+          a janela é que repete o ato com o protocolo dentro.
+        */}
+        <button type="submit" className="botao botao--perigo" disabled={gravando}>
+          {rotuloDoBotaoDeEncerrar("editando", protocolo, gravando)}
+        </button>
+      </form>
+
+      <ConfirmarAcao
+        aberto={passo === "confirmando"}
+        titulo="Encerrar ocorrência"
+        consequencia={
+          <>
             Encerrar o protocolo <span className="mono">{protocolo}</span> não tem desfazer:
             a correção depois entra como evento novo na trilha, e o encerramento errado
             fica registrado do mesmo jeito.
-          </Aviso>
-        )}
-        <div style={{ display: "flex", gap: "var(--ds-sp-2)", flexWrap: "wrap" }}>
-          <button type="submit" className="botao botao--perigo" disabled={gravando} ref={botao}>
-            {rotuloDoBotaoDeEncerrar(passo, protocolo, gravando)}
-          </button>
-          {passo === "confirmando" && (
-            <button type="button" className="botao botao--secundario"
-                    onClick={() => setPasso("editando")}>
-              Cancelar
-            </button>
-          )}
-        </div>
-      </form>
+          </>
+        }
+        rotuloDaAcao={rotuloDoBotaoDeEncerrar("confirmando", protocolo, false)}
+        destrutiva
+        ocupado={gravando}
+        aoConfirmar={avancar}
+        aoCancelar={() => setPasso("editando")}
+      >
+        {/*
+          O motivo digitado é repetido dentro da janela porque ele sai no
+          registro e não tem correção: é a última chance de ver que o texto é o
+          da outra aba, ou que ficou pela metade.
+        */}
+        <p className="campo__dica" style={{ marginTop: "var(--ds-sp-3)" }}>
+          Motivo que fica registrado: {motivo.trim()}
+        </p>
+      </ConfirmarAcao>
     </Cartao>
   );
 }
@@ -1046,31 +1140,21 @@ function CartaoDocumentos(
  */
 function CartaoEvidencias({ fotos }: { fotos: LinhaEvidencia[] }) {
   const [ampliada, setAmpliada] = useState<LinhaEvidencia | null>(null);
-  const fechar = useRef<HTMLButtonElement | null>(null);
-  const origem = useRef<HTMLElement | null>(null);
 
   /*
-    Abrir a foto ampliada leva o foco junto, e fechar devolve o foco à
-    miniatura de onde ela veio. Sem isso, quem navega por teclado abre a foto
-    e continua com o foco lá atrás, sem alcançar o botão de fechar; e ao
-    fechar, o foco cai no início da página e o lugar na galeria se perde.
+    A foto ampliada era uma janela pela metade.
+
+    Ela declarava `role="dialog"` e `aria-modal="true"`, que é a promessa, ao
+    leitor de tela, de que aquilo tem começo e fim e que nada atrás dela
+    responde. Levava o foco ao abrir, devolvia ao fechar e fechava no Escape,
+    mas não prendia o Tab: da terceira tabulação em diante o foco saía pela
+    borda e voltava para a página de trás, que continuava desenhada embaixo do
+    fundo escuro. Quem navega por teclado passava a operar controles que não
+    via, achando que ainda estava na foto, e o Enter caía em qualquer coisa,
+    inclusive em "Encerrar ocorrência".
+
+    `Modal` faz as quatro coisas de uma vez, e num lugar só.
   */
-  useEffect(() => {
-    if (!ampliada) {
-      origem.current?.focus();
-      origem.current = null;
-      return;
-    }
-    origem.current = document.activeElement as HTMLElement | null;
-    fechar.current?.focus();
-
-    function aoTeclar(evento: KeyboardEvent): void {
-      if (evento.key === "Escape") setAmpliada(null);
-    }
-    document.addEventListener("keydown", aoTeclar);
-    return () => document.removeEventListener("keydown", aoTeclar);
-  }, [ampliada]);
-
   if (fotos.length === 0) {
     return (
       <Cartao titulo="Registro fotográfico">
@@ -1101,18 +1185,23 @@ function CartaoEvidencias({ fotos }: { fotos: LinhaEvidencia[] }) {
       </ul>
 
       {ampliada && (
-        // acessibilidade: excecao. Clicar no fundo é atalho de mouse. Pelo
-        // teclado o mesmo fecha com Escape e pelo botão Fechar, que recebe o
-        // foco assim que a foto abre, então nada aqui depende do clique.
-        <div className="lightbox" role="dialog" aria-modal="true"
-             aria-label={ampliada.legenda ?? "Fotografia da vistoria"}
-             onClick={() => setAmpliada(null)}>
-          <img src={ampliada.url} alt={ampliada.legenda ?? "Fotografia da vistoria"} />
-          <button type="button" className="botao botao--secundario" ref={fechar}
-                  onClick={() => setAmpliada(null)}>
-            Fechar
-          </button>
-        </div>
+        <Modal
+          aberto
+          titulo={ampliada.legenda ?? "Fotografia da vistoria"}
+          aoFechar={() => setAmpliada(null)}
+        >
+          <img
+            src={ampliada.url}
+            alt={ampliada.legenda ?? "Fotografia da vistoria"}
+            style={{
+              display: "block", width: "100%", height: "auto",
+              borderRadius: "var(--ds-radius)", background: "var(--ds-surface-2)",
+            }}
+          />
+          <p className="campo__dica" style={{ marginTop: "var(--ds-sp-3)", marginBottom: 0 }}>
+            Capturada em {formatarDataHora(ampliada.capturadaEm)}.
+          </p>
+        </Modal>
       )}
     </Cartao>
   );
@@ -1139,22 +1228,46 @@ function BlocoRespostaProvidencia({ abertas, onEnviar, gravando }: {
   const [texto, setTexto] = useState("");
   const [quem, setQuem] = useState("");
   const [erro, setErro] = useState<string | null>(null);
+  /*
+    A resposta do órgão é gravada uma vez e não tem correção: o próprio cartão
+    diz isso a quem preenche. Antes disso era um clique só, no fim de um
+    formulário de quatro campos, com o telefone no ouvido e a secretaria
+    ditando. Trocar o desfecho sem querer ("recusada" onde era "atendida")
+    imprime no laudo o contrário do que o órgão disse, e o conserto vira
+    encaminhar providência nova, que reabre o caso.
+  */
+  const [confirmando, setConfirmando] = useState(false);
 
-  function enviar(evento: React.FormEvent) {
-    evento.preventDefault();
+  /** Um caminho só: o envio do formulário pergunta, o botão da janela grava. */
+  function avancar(): void {
     const resultado = respostaProvidenciaSchema.safeParse({
       desfecho, resposta: texto.trim(), respondidaPor: quem.trim(),
     });
     if (!resultado.success) {
       setErro(resultado.error.issues[0]?.message ?? "Dados inválidos");
+      setConfirmando(false);
       return;
     }
     setErro(null);
+    if (!confirmando) {
+      setConfirmando(true);
+      return;
+    }
+    setConfirmando(false);
     onEnviar(alvo, resultado.data);
   }
 
+  /*
+    Toda edição derruba a pergunta, e por isso cada `onChange` abaixo começa
+    por `setConfirmando(false)`: o que foi confirmado é o texto que estava na
+    tela naquele instante, e deixar a janela de pé enquanto os campos mudam
+    gravaria uma resposta diferente da que apareceu nela.
+  */
+  const alvoAberto = abertas.find((p) => p.id === alvo) ?? abertas[0];
+
   return (
-    <form onSubmit={enviar} noValidate style={{ marginTop: "var(--ds-sp-5)" }}>
+    <form onSubmit={(evento) => { evento.preventDefault(); avancar(); }} noValidate
+          style={{ marginTop: "var(--ds-sp-5)" }}>
       <h3 className="cartao__titulo" style={{ fontSize: "var(--ds-fs-body-lg)" }}>
         Registrar resposta do órgão
       </h3>
@@ -1162,49 +1275,76 @@ function BlocoRespostaProvidencia({ abertas, onEnviar, gravando }: {
 
       <div className="linha-campos">
         {abertas.length > 1 && (
-          <div className="campo">
-            <label htmlFor="resposta-alvo">Qual providência</label>
-            <select id="resposta-alvo" value={alvo} onChange={(e) => setAlvo(e.target.value)}>
-              {abertas.map((p) => (
-                <option key={p.id} value={p.id}>{p.orgao_destino}</option>
+          <Campo id="resposta-alvo" rotulo="Qual providência">
+            {(campo) => (
+              <select {...campo} value={alvo}
+                      onChange={(e) => { setConfirmando(false); setAlvo(e.target.value); }}>
+                {abertas.map((p) => (
+                  <option key={p.id} value={p.id}>{p.orgao_destino}</option>
+                ))}
+              </select>
+            )}
+          </Campo>
+        )}
+        <Campo id="resposta-desfecho" rotulo="Desfecho">
+          {(campo) => (
+            <select {...campo} value={desfecho}
+                    onChange={(e) => { setConfirmando(false); setDesfecho(e.target.value as DesfechoProvidencia); }}>
+              {DESFECHOS_PROVIDENCIA.map((d) => (
+                <option key={d} value={d}>{ROTULO_DESFECHO[d]}</option>
               ))}
             </select>
-          </div>
-        )}
-        <div className="campo">
-          <label htmlFor="resposta-desfecho">Desfecho</label>
-          <select id="resposta-desfecho" value={desfecho}
-                  onChange={(e) => setDesfecho(e.target.value as DesfechoProvidencia)}>
-            {DESFECHOS_PROVIDENCIA.map((d) => (
-              <option key={d} value={d}>{ROTULO_DESFECHO[d]}</option>
-            ))}
-          </select>
-        </div>
-        <div className="campo">
-          <label htmlFor="resposta-quem">Quem respondeu</label>
-          <input id="resposta-quem" type="text" value={quem} required
-                 onChange={(e) => setQuem(e.target.value)}
-                 placeholder="Fiscal da Secretaria de Obras" />
-        </div>
+          )}
+        </Campo>
+        <Campo id="resposta-quem" rotulo="Quem respondeu">
+          {(campo) => (
+            <input {...campo} type="text" value={quem}
+                   onChange={(e) => { setConfirmando(false); setQuem(e.target.value); }}
+                   placeholder="Fiscal da Secretaria de Obras" />
+          )}
+        </Campo>
       </div>
 
-      <div className="campo">
-        <label htmlFor="resposta-texto">O que o órgão informou</label>
-        <textarea id="resposta-texto" value={texto} required
-                  aria-invalid={!!erro}
-                  aria-describedby={erro ? "resposta-erro" : undefined}
-                  onChange={(e) => setTexto(e.target.value)}
-                  placeholder="Estrutura removida da via. Escoramento fica para a próxima semana." />
-        <span className="campo__dica">
-          A resposta não pode ser alterada depois: corrigir seria apagar o que o
-          órgão disse. Se algo mudar, encaminhe uma providência nova.
-        </span>
-      </div>
+      <Campo
+        id="resposta-texto"
+        rotulo="O que o órgão informou"
+        dica={"A resposta não pode ser alterada depois: corrigir seria apagar o que o "
+          + "órgão disse. Se algo mudar, encaminhe uma providência nova."}
+      >
+        {(campo) => (
+          <textarea {...campo} value={texto}
+                    aria-invalid={erro ? true : undefined}
+                    aria-describedby={erro ? "resposta-erro" : undefined}
+                    onChange={(e) => { setConfirmando(false); setTexto(e.target.value); }}
+                    placeholder="Estrutura removida da via. Escoramento fica para a próxima semana." />
+        )}
+      </Campo>
 
       {erro && <ErroCampo id="resposta-erro">{erro}</ErroCampo>}
       <button type="submit" className="botao botao--primario" disabled={gravando}>
         {gravando ? "Registrando" : "Registrar resposta"}
       </button>
+
+      <ConfirmarAcao
+        aberto={confirmando}
+        titulo="Registrar resposta do órgão"
+        consequencia={
+          <>
+            A resposta entra no registro do jeito que está e não tem correção
+            depois: o desfecho aparece no laudo e fecha a cobrança daquela
+            providência.
+          </>
+        }
+        rotuloDaAcao={`Registrar resposta como ${ROTULO_DESFECHO[desfecho]}`}
+        destrutiva
+        ocupado={gravando}
+        aoConfirmar={avancar}
+        aoCancelar={() => setConfirmando(false)}
+      >
+        <p className="campo__dica" style={{ marginTop: "var(--ds-sp-3)" }}>
+          {alvoAberto?.orgao_destino ?? "Providência"}, respondida por {quem.trim()}: {texto.trim()}
+        </p>
+      </ConfirmarAcao>
     </form>
   );
 }
@@ -1234,17 +1374,35 @@ function BlocoDesinterdicao({
 }) {
   const [motivo, setMotivo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
+  /*
+    Era um clique só, e é a escrita de maior consequência do produto.
+
+    Levantar a interdição autoriza uma família a dormir de novo numa casa que o
+    município declarou insegura. O botão vermelho e o texto duro já estavam
+    aqui, e não impediam nada: um clique distraído no fim de um formulário
+    gravava a autorização, e o desfazer não existe (o levantamento vira evento
+    na trilha, e desinterditar de novo não apaga o primeiro). Se o barranco
+    cair depois, a pergunta é quem assinou isto e com base em quê.
+  */
+  const [confirmando, setConfirmando] = useState(false);
 
   const dias = Math.floor((Date.now() - new Date(interditadaEm).getTime()) / 86_400_000);
 
-  function enviar(evento: React.FormEvent) {
-    evento.preventDefault();
+  /** Um caminho só: o envio pergunta, o botão da janela grava. */
+  function avancar(): void {
     const resultado = desinterdicaoSchema.safeParse({ motivo: motivo.trim() });
     if (!resultado.success) {
       setErro(resultado.error.issues[0]?.message ?? "Dados inválidos");
+      // Fecha a janela junto: erro atrás de uma pergunta aberta não é lido.
+      setConfirmando(false);
       return;
     }
     setErro(null);
+    if (!confirmando) {
+      setConfirmando(true);
+      return;
+    }
+    setConfirmando(false);
     onEnviar(resultado.data.motivo);
   }
 
@@ -1263,23 +1421,51 @@ function BlocoDesinterdicao({
           O levantamento da interdição é registrado pela coordenação.
         </p>
       ) : (
-        <form onSubmit={enviar} noValidate>
-          <div className="campo">
-            <label htmlFor="desinterdicao-motivo">Motivo do levantamento</label>
-            <textarea id="desinterdicao-motivo" value={motivo} required
-                      onChange={(e) => setMotivo(e.target.value)}
-                      aria-invalid={!!erro}
-                      aria-describedby={erro ? "desinterdicao-erro" : undefined}
-                      placeholder="Contenção do talude executada e conferida em nova vistoria técnica" />
-            <span className="campo__dica">
-              Sai impresso no termo de desinterdição. É o que responde, anos depois,
-              por que a família foi autorizada a voltar.
-            </span>
-          </div>
-          {erro && <ErroCampo id="desinterdicao-erro">{erro}</ErroCampo>}
+        <form onSubmit={(evento) => { evento.preventDefault(); avancar(); }} noValidate>
+          <Campo
+            id="desinterdicao-motivo"
+            rotulo="Motivo do levantamento"
+            erro={erro}
+            dica={"Sai impresso no termo de desinterdição. É o que responde, anos depois, "
+              + "por que a família foi autorizada a voltar."}
+          >
+            {(campo) => (
+              <textarea {...campo} value={motivo}
+                        onChange={(e) => { setConfirmando(false); setMotivo(e.target.value); }}
+                        placeholder="Contenção do talude executada e conferida em nova vistoria técnica" />
+            )}
+          </Campo>
           <button type="submit" className="botao botao--perigo" disabled={gravando}>
             {gravando ? "Registrando" : "Levantar interdição"}
           </button>
+
+          <ConfirmarAcao
+            aberto={confirmando}
+            titulo="Levantar a interdição"
+            consequencia={
+              <>
+                O imóvel deixa de constar como interditado e a família fica
+                autorizada a voltar para dentro. Não tem desfazer: interditar de
+                novo é ato novo, com vistoria nova, e este levantamento continua
+                registrado na trilha com o seu nome.
+              </>
+            }
+            rotuloDaAcao="Levantar a interdição deste imóvel"
+            destrutiva
+            ocupado={gravando}
+            aoConfirmar={avancar}
+            aoCancelar={() => setConfirmando(false)}
+          >
+            {/*
+              O motivo é repetido dentro da janela porque ele sai impresso no
+              termo. É a última chance de ver que ele ficou pela metade, ou que
+              descreve outra vistoria.
+            */}
+            <p className="campo__dica" style={{ marginTop: "var(--ds-sp-3)" }}>
+              Interditado há {dias} {dias === 1 ? "dia" : "dias"}. Motivo que sai no
+              termo: {motivo.trim()}
+            </p>
+          </ConfirmarAcao>
         </form>
       )}
     </Cartao>

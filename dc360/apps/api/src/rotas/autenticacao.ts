@@ -14,6 +14,17 @@ const renovacaoSchema = z.object({
 });
 
 /**
+ * Sair leva a ficha do aparelho junto, quando existe.
+ *
+ * Opcional porque o painel web nao tem aparelho, e porque uma versao antiga do
+ * aplicativo, ainda instalada em algum telefone, continua saindo sem mandar
+ * nada. Obrigar quebraria as duas na mesma linha.
+ */
+const saidaSchema = renovacaoSchema.extend({
+  ficha: z.string().min(1).max(4096).optional(),
+});
+
+/**
  * Minimo de 12 caracteres, maximo alto o bastante para nao atrapalhar
  * gerenciador de senha, e nenhuma exigencia de composicao: regra de simbolo e
  * numero so produz "Senha@123", que e pior e mais dificil de lembrar. Segue o
@@ -110,10 +121,17 @@ export async function rotasAutenticacao(app: FastifyInstance, opcoes: Opcoes): P
    *
    * Dizer "esse token não estava ativo" transformaria a rota num oráculo para
    * testar tokens, e não ajudaria em nada quem legitimamente quer sair.
+   *
+   * Quando o aplicativo manda a ficha do aparelho, sair também CALA A
+   * NOTIFICAÇÃO daquele telefone. Sem isso, o aparelho de quem saiu continuava
+   * recebendo aviso de prazo de uma equipe da qual a pessoa não faz mais parte,
+   * com município, ocorrência e endereço no dado da mensagem. Ver
+   * `auth/servico.ts` para a ordem das duas revogações e para o caso que
+   * continua descoberto.
    */
   app.post("/sair", async (req, resposta) => {
-    const { renovacao } = renovacaoSchema.parse(req.body);
-    await autenticacao.sair(renovacao);
+    const { renovacao, ficha } = saidaSchema.parse(req.body);
+    await autenticacao.sair(renovacao, ficha);
     return resposta.code(204).send();
   });
 

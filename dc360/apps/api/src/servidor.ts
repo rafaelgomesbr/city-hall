@@ -14,6 +14,7 @@ import { rotasOcorrencias } from "./rotas/ocorrencias.js";
 import { rotasAdministracao } from "./rotas/administracao.js";
 import { rotasSincronizacao } from "./rotas/sincronizacao.js";
 import { rotasCampo } from "./rotas/campo.js";
+import { rotasAparelhos } from "./rotas/aparelhos.js";
 import { rotasInteresse } from "./rotas/interesse.js";
 import { rotasEvidencias } from "./rotas/evidencias.js";
 import { rotasDocumentos } from "./rotas/documentos.js";
@@ -348,6 +349,10 @@ export async function construirServidor(
   await app.register(rotasAdministracao, { prefix: "/", banco });
   await app.register(rotasSincronizacao, { prefix: "/sincronizacao", banco });
   await app.register(rotasCampo, { prefix: "/campo", banco });
+  // Registro do aparelho que recebe notificação. Com `PUSH_ATIVO=nao`, que é o
+  // padrão, as rotas existem e recusam, em vez de sumirem: uma rota ausente
+  // responde 404, que o aplicativo leria como "versão velha do servidor".
+  await app.register(rotasAparelhos, { prefix: "/aparelhos", banco, config });
   // Única rota de escrita sem autenticação do produto. Ela grava pedido de
   // contato e NÃO cria município: provisionar continua por linha de comando.
   await app.register(rotasInteresse, { prefix: "/publico", banco });

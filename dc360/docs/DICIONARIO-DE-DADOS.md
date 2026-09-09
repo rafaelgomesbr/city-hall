@@ -177,6 +177,42 @@ append-only.
 
 ---
 
+## `aparelhos`
+
+Qual aparelho recebe notificação de qual agente.
+
+| Coluna | Significado |
+| --- | --- |
+| `usuario_id` | De quem é o aparelho. Chave estrangeira **composta** com `organizacao_id`, para não existir aparelho apontando para usuário de outro município |
+| `plataforma` | `ios` ou `android` |
+| `ficha` | O identificador que a Apple ou o Google usa para entregar. **É a única coisa aqui que um terceiro estrangeiro conhece** |
+| `visto_em` | Última vez que o aplicativo confirmou este aparelho |
+| `revogado_em`, `motivo_revogacao` | Aparelho revogado não recebe mais. Revogar é o que impede quem saiu de continuar recebendo tarefa da equipe |
+
+**A unicidade é `(organizacao_id, ficha)`, e não `ficha` sozinha.** Unicidade
+global vazaria existência entre municípios: o segundo município a registrar o
+mesmo aparelho físico receberia um erro dizendo que aquela ficha já existe em
+algum lugar, e isso é informação sobre outra prefeitura. O custo aceito, escrito
+na própria migração, é que a mesma ficha pode ficar viva em dois municípios; a
+defesa contra isso é o `organizacaoId` viajar no dado da notificação, e o
+aplicativo descartar o que não é do município em que está.
+
+## `notificacoes_enviadas`
+
+Quem foi avisado do quê, e quando.
+
+| Coluna | Significado |
+| --- | --- |
+| `tipo` | `tarefa_nova` ou `prazo_vencendo` |
+| `desfecho` | `enviando`, `entregue`, `falha` ou `ficha_invalida` |
+| `tentativas` | Quantas vezes se tentou |
+
+A restrição de unicidade `(organizacao_id, aparelho_id, ocorrencia_id, tipo)` é o
+que impede a mesma notificação de sair duas vezes quando o varredor reinicia.
+**Não existe política de remoção nesta tabela**, então nenhuma requisição apaga
+registro de quem foi avisado: o expurgo por idade é feito pela própria função de
+varredura, com retenção de 90 dias.
+
 ## Tabelas de apoio
 
 | Tabela | Para quê |

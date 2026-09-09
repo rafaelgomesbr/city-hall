@@ -87,6 +87,52 @@ const esquema = z.object({
    */
   JWT_SEGREDO: vazioEhAusente(z.string().min(32).optional()),
 
+  /**
+   * Desliga a notificação por push, de propósito, e é a mesma classe de
+   * decisão do `RECUPERACAO_ATIVA` acima.
+   *
+   * Enquanto a metade aplicativo não existir, ligar isto seria montar um
+   * varredor que manda notificação para lugar nenhum e uma rota de registro
+   * que aceita ficha de aparelho que nunca vai receber nada. Com `nao`, o
+   * varredor NÃO SOBE e as rotas de aparelho recusam dizendo isso.
+   *
+   * Precisa ser declarado porque as duas metades sobem em turnos diferentes:
+   * o dia em que o aplicativo passar a registrar aparelho é o dia em que
+   * alguém troca isto para `sim`, e não um dia antes.
+   */
+  PUSH_ATIVO: z.enum(["sim", "nao"]).default("nao"),
+
+  /**
+   * Quantos minutos antes de o prazo vencer o aviso sai.
+   *
+   * Uma hora por padrão: tempo de o agente sair de onde está e chegar. Menos
+   * que isso vira aviso que chega junto com o vencimento, que não serve para
+   * agir; muito mais vira aviso que a pessoa esquece antes da hora.
+   */
+  PUSH_JANELA_MINUTOS: z.coerce.number().int().min(5).max(1440).default(60),
+
+  /**
+   * Credenciais de envio DIRETO para a Apple e para o Google.
+   *
+   * O serviço de push da Expo foi recusado pelo dono do produto em 09/09/2026:
+   * a instalação é nativa e não fazia sentido o servidor depender de um
+   * terceiro que a instalação não usa. O ganho é concreto para o laudo de
+   * proteção de dados, porque a ficha do aparelho e o texto da notificação
+   * deixam de passar por mais um servidor estrangeiro.
+   *
+   * `APNS_CHAVE` é o CAMINHO do arquivo `.p8`, e o arquivo nunca entra no
+   * repositório. O conteúdo dele é lido uma vez, na partida, e vive só na
+   * memória do processo: ele assina notificação para QUALQUER aplicativo do
+   * time, então quem o obtém escreve na tela bloqueada de um agente de Defesa
+   * Civil, e uma ordem falsa de evacuação escrita ali é dano na rua.
+   */
+  APNS_KEY_ID: vazioEhAusente(z.string().min(1).optional()),
+  APNS_TEAM_ID: vazioEhAusente(z.string().min(1).optional()),
+  APNS_CHAVE: vazioEhAusente(z.string().min(1).optional()),
+  APNS_BUNDLE: vazioEhAusente(z.string().min(1).optional()),
+  /** Caminho do JSON da conta de serviço do Firebase. Só o Android usa. */
+  FCM_CONTA_SERVICO: vazioEhAusente(z.string().min(1).optional()),
+
   /** Origens permitidas, separadas por vírgula. Em produção não pode ser "*". */
   ORIGENS_PERMITIDAS: z.string().default("http://localhost:5173"),
 
@@ -127,6 +173,49 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
     throw new Error(`Configuração inválida: ${problemas}`);
   }
   const c = analisado.data;
+
+  /*
+    Push ligado exige credencial de verdade, e a checagem vale em TODO
+    ambiente, não só em produção.
+
+    A razão é a mesma que derrubou a recuperação de senha ligada sem destino: o
+    servidor sobe, o aplicativo registra o aparelho, o varredor roda, e nada
+    chega a lugar nenhum. Ninguém percebe pelo lado de cá, porque a única
+    evidência de sucesso é uma notificação aparecendo num telefone que está no
+    bolso de outra pessoa.
+
+    Fora de produção a checagem serve a outra coisa: quem ligar o push na
+    própria máquina para experimentar descobre na hora que falta credencial,
+    em vez de descobrir depois de meia hora achando que o varredor está mudo
+    por outro motivo.
+
+    O Google fica de fora da exigência de propósito: a instalação de hoje é o
+    aplicativo do iPhone, e exigir a conta de serviço do Firebase impediria o
+    piloto de subir por causa de uma plataforma que ainda não existe. O que
+    fecha esse buraco é a rota de registro, que recusa aparelho Android
+    enquanto `FCM_CONTA_SERVICO` estiver ausente, em vez de aceitar a ficha e
+    guardar um aparelho que nunca receberia nada.
+  */
+  if (c.PUSH_ATIVO === "sim") {
+    const faltando = (
+      [
+        ["APNS_KEY_ID", c.APNS_KEY_ID],
+        ["APNS_TEAM_ID", c.APNS_TEAM_ID],
+        ["APNS_CHAVE", c.APNS_CHAVE],
+        ["APNS_BUNDLE", c.APNS_BUNDLE],
+      ] as const
+    ).filter(([, valor]) => !valor).map(([nome]) => nome);
+
+    if (faltando.length > 0) {
+      throw new Error(
+        `A notificação por push está ligada e não tem como assinar o envio: falta ${faltando.join(", ")}. ` +
+        "Preencha, ou desligue com PUSH_ATIVO=nao. Sem isso o servidor sobe, o " +
+        "aplicativo registra o aparelho, o varredor roda e nenhuma notificação " +
+        "chega, e o único lugar onde isso apareceria é o telefone que está no " +
+        "bolso de outra pessoa.",
+      );
+    }
+  }
 
   if (c.NODE_ENV === "production") {
     if (!c.DATABASE_URL) throw new Error("DATABASE_URL é obrigatória em produção");

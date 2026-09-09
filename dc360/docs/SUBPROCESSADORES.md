@@ -22,8 +22,8 @@ Estado em 09/09/2026, com o produto no piloto de Florianópolis.
 | **Supabase Storage** | Armazenamento das fotografias e assinaturas | Fotografia de imóvel, traço de assinatura | São Paulo, Brasil |
 | **Fly.io** | Servidor da API | Todos, em trânsito e em memória durante o processamento | São Paulo, Brasil (`gru`) |
 | **Vercel** | Entrega do painel do coordenador | **Nenhum.** Serve arquivo estático; o dado vai do navegador direto à API | Rede de distribuição global |
-| **Apple (APNs)** | Notificação no iPhone | Identificador do aparelho e o texto da notificação | Estados Unidos |
-| **Google (Firebase Cloud Messaging)** | Notificação no Android | Identificador do aparelho e o texto da notificação | Estados Unidos |
+| **Apple (APNs)** | Notificação no iPhone | Identificador do aparelho, o texto genérico, e os identificadores de município e de ocorrência mais a severidade | Estados Unidos |
+| **Google (Firebase Cloud Messaging)** | Notificação no Android | O mesmo do acima | Estados Unidos |
 | **Google (Maps)** | Mapa no painel | Coordenada das ocorrências desenhadas, enviada ao carregar o mapa | Estados Unidos |
 
 ### Ainda não contratados, e que entram nesta lista quando entrarem
@@ -48,6 +48,16 @@ Isso não é preciosismo. Uma notificação que diz "Interdição em Servidão B
 Esperança, 148" fica legível na tela bloqueada, na mão de quem estiver por
 perto, e passa por um servidor estrangeiro no caminho.
 
+**E o dado da mensagem também atravessa a fronteira**, junto com a vitrine. Por
+isso ele carrega o mínimo: identificador do município, identificador da
+ocorrência, severidade e prazo. Protocolo e endereço foram tirados, porque o
+aplicativo já tem a ocorrência no disco e o identificador basta para abri-la.
+Para a tarefa que ele ainda não baixou, a tela diz isso e oferece atualizar, o
+que é melhor do que mandar o endereço de uma família para fora do país para
+economizar um toque. A severidade fica porque ela escolhe o canal de notificação
+no Android antes de o aplicativo abrir, e é uma palavra de quatro valores
+possíveis que não diz nada sobre pessoa nenhuma.
+
 ### 2.2 Mapa: Google
 
 Ao desenhar o mapa, a coordenada das ocorrências ativas é enviada ao Google.
@@ -71,7 +81,8 @@ do município, e o consentimento não é a base usada.
 
 O dado que efetivamente atravessa a fronteira está limitado, por decisão de
 projeto, ao mínimo listado na tabela da seção 1: identificador de aparelho, texto
-genérico de notificação e coordenada de mapa. **Nome, contato, relato,
+genérico de notificação, identificador de município e de ocorrência, severidade,
+prazo, e coordenada de mapa. **Nome, contato, endereço, protocolo, relato,
 fotografia, assinatura e descrição de vulnerabilidade não saem do Brasil.**
 
 ---

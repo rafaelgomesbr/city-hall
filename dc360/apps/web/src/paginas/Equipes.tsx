@@ -5,8 +5,10 @@ import {
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
-  Aviso, AvisoDeObrigatorios, Carregando, Cartao, ErroCampo, Vazio,
+  Aviso, AvisoDeObrigatorios, Carregando, Cartao, Vazio,
 } from "../componentes/comuns";
+import { Campo } from "../componentes/Campo";
+import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
 import { IconeMais } from "../componentes/Icones";
 
 /**
@@ -24,6 +26,17 @@ export function Equipes() {
   const [editando, setEditando] = useState<string | null>(null);
   const [nome, setNome] = useState("");
   const [especialidade, setEspecialidade] = useState("");
+  /*
+    Qual equipe está a um passo de perder o plantão.
+
+    Desativar era um clique só, numa célula de tabela, ao lado de "Editar", em
+    linhas que só se distinguem pelo nome. Errar a linha tira do despacho a
+    equipe que está atendendo agora, e quem coordena só descobre quando for
+    procurar por ela na lista do próximo chamado. Reativar existe, então o
+    estrago se desfaz; achar o estrago é que não é imediato.
+  */
+  const [aDesativar, setADesativar] = useState<LinhaEquipe | null>(null);
+  const [desativando, setDesativando] = useState(false);
 
   const recarregar = useCallback(async () => {
     setEquipes(await listarEquipes(sessao));
@@ -69,11 +82,16 @@ export function Equipes() {
   }
 
   async function alternarAtiva(e: LinhaEquipe) {
+    if (desativando) return;
+    setDesativando(true);
     try {
       await atualizarEquipe(sessao, e.id, e.nome, e.especialidade ?? "", !e.ativa);
+      setADesativar(null);
       await recarregar();
     } catch (erroAlternar: unknown) {
       setErro(erroAlternar instanceof Error ? erroAlternar.message : String(erroAlternar));
+    } finally {
+      setDesativando(false);
     }
   }
 
@@ -102,29 +120,20 @@ export function Equipes() {
             <form onSubmit={submeter} noValidate>
               <AvisoDeObrigatorios />
               <div className="linha-campos">
-                <div className="campo">
-                  <label htmlFor="equipe-nome">Nome</label>
-                  <input id="equipe-nome" type="text" value={nome} required
-                         aria-invalid={Boolean(errosDeCampo["nome"])}
-                         aria-describedby={errosDeCampo["nome"] ? "equipe-nome-erro" : undefined}
-                         onChange={(ev) => setNome(ev.target.value)} placeholder="Equipe Delta" />
-                  {errosDeCampo["nome"] && (
-                    <ErroCampo id="equipe-nome-erro">{errosDeCampo["nome"]}</ErroCampo>
+                <Campo id="equipe-nome" rotulo="Nome" erro={errosDeCampo["nome"]}>
+                  {(campo) => (
+                    <input {...campo} type="text" value={nome}
+                           onChange={(ev) => setNome(ev.target.value)} placeholder="Equipe Delta" />
                   )}
-                </div>
-                <div className="campo">
-                  <label htmlFor="equipe-especialidade">Especialidade (opcional)</label>
-                  <input id="equipe-especialidade" type="text" value={especialidade}
-                         aria-invalid={Boolean(errosDeCampo["especialidade"])}
-                         aria-describedby={errosDeCampo["especialidade"] ? "equipe-especialidade-erro" : undefined}
-                         onChange={(ev) => setEspecialidade(ev.target.value)}
-                         placeholder="Vistoria geotécnica" />
-                  {errosDeCampo["especialidade"] && (
-                    <ErroCampo id="equipe-especialidade-erro">
-                      {errosDeCampo["especialidade"]}
-                    </ErroCampo>
+                </Campo>
+                <Campo id="equipe-especialidade" rotulo="Especialidade" opcional
+                       erro={errosDeCampo["especialidade"]}>
+                  {(campo) => (
+                    <input {...campo} type="text" value={especialidade}
+                           onChange={(ev) => setEspecialidade(ev.target.value)}
+                           placeholder="Vistoria geotécnica" />
                   )}
-                </div>
+                </Campo>
               </div>
               <div style={{ display: "flex", gap: "var(--ds-sp-2)" }}>
                 <button type="submit" className="botao botao--primario">
@@ -179,8 +188,18 @@ export function Equipes() {
                                     }}>
                               Editar
                             </button>
+                            {/*
+                              Só a DESATIVAÇÃO pergunta. Reativar devolve a
+                              equipe ao despacho, não tira nada de ninguém, e
+                              exigir confirmação para o gesto inofensivo é o
+                              jeito conhecido de ensinar a clicar em "sim" sem
+                              ler, o que estraga a pergunta que importa.
+                            */}
                             <button type="button" className="botao botao--discreto"
-                                    onClick={() => void alternarAtiva(e)}>
+                                    onClick={() => {
+                                      if (e.ativa) setADesativar(e);
+                                      else void alternarAtiva(e);
+                                    }}>
                               {e.ativa ? "Desativar" : "Reativar"}
                             </button>
                           </div>
@@ -205,6 +224,32 @@ export function Equipes() {
           </Cartao>
         </div>
       </div>
+
+      <ConfirmarAcao
+        aberto={aDesativar !== null}
+        titulo="Desativar equipe"
+        consequencia={
+          <>
+            A equipe some das listas de despacho e ninguém consegue mandá-la a
+            campo. Os despachos e laudos antigos continuam apontando para ela,
+            e reativar devolve tudo.
+          </>
+        }
+        rotuloDaAcao={`Desativar ${aDesativar?.nome ?? "equipe"}`}
+        destrutiva
+        ocupado={desativando}
+        aoConfirmar={() => { if (aDesativar) void alternarAtiva(aDesativar); }}
+        aoCancelar={() => setADesativar(null)}
+      >
+        {aDesativar && aDesativar.em_atendimento > 0 && (
+          <Aviso tom="alerta">
+            Esta equipe está em {aDesativar.em_atendimento}{" "}
+            {aDesativar.em_atendimento === 1 ? "atendimento" : "atendimentos"} agora.
+            Desativar não devolve esses chamados para a fila: eles continuam com
+            ela, e alguém precisa redespachar um por um.
+          </Aviso>
+        )}
+      </ConfirmarAcao>
     </>
   );
 }

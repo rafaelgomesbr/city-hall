@@ -11,8 +11,9 @@ import {
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
-  Aviso, AvisoDeObrigatorios, Cartao, ErroCampo, ErrosDoServidor, formatarDataHora,
+  Aviso, AvisoDeObrigatorios, Cartao, ErrosDoServidor, formatarDataHora,
 } from "../componentes/comuns";
+import { Campo } from "../componentes/Campo";
 import { IconeVoltar } from "../componentes/Icones";
 
 /**
@@ -156,7 +157,15 @@ export function NovaOcorrencia() {
     setCamposRecusados([]);
     try {
       const id = await abrirOcorrencia(sessao, vinculadaA ? { ...dados, vinculadaA } : dados);
-      navegar(`/ocorrencias/${id}`);
+      /*
+        O protocolo não viaja daqui: a gravação devolve só o `id`, e quem gera
+        o número é o banco, dentro da transação. O que viaja é a marca de que
+        esta navegação veio de um registro; a tela de destino lê o protocolo do
+        próprio registro e o anuncia. Assim o número do aviso é, por
+        construção, o mesmo que está no título da tela, e não uma cópia que
+        pode divergir dele.
+      */
+      navegar(`/ocorrencias/${id}`, { state: { recemRegistrada: true } });
     } catch (e: unknown) {
       tratarFalha(e);
       setGravando(false);
@@ -233,98 +242,105 @@ export function NovaOcorrencia() {
           <form onSubmit={verificar} noValidate>
             <AvisoDeObrigatorios />
             <div className="linha-campos">
-              <div className="campo">
-                <label htmlFor="nova-tipo">Tipo de ocorrência</label>
-                <select id="nova-tipo" value={tipo} onChange={(e) => setTipo(e.target.value as TipoCobrade)}>
-                  {TIPOS_COBRADE.map((t) => (
-                    <option key={t} value={t}>{ROTULO_TIPO_COBRADE[t]}</option>
-                  ))}
-                </select>
-                <span className="campo__dica">Taxonomia da COBRADE.</span>
-              </div>
+              <Campo id="nova-tipo" rotulo="Tipo de ocorrência" dica="Taxonomia da COBRADE.">
+                {(campo) => (
+                  <select {...campo} value={tipo}
+                          onChange={(e) => setTipo(e.target.value as TipoCobrade)}>
+                    {TIPOS_COBRADE.map((t) => (
+                      <option key={t} value={t}>{ROTULO_TIPO_COBRADE[t]}</option>
+                    ))}
+                  </select>
+                )}
+              </Campo>
 
-              <div className="campo">
-                <label htmlFor="nova-canal">Canal de entrada</label>
-                <select id="nova-canal" value={canal} onChange={(e) => setCanal(e.target.value as CanalEntrada)}>
-                  {CANAIS_ENTRADA.map((c) => (
-                    <option key={c} value={c}>{ROTULO_CANAL[c]}</option>
-                  ))}
-                </select>
-              </div>
+              <Campo id="nova-canal" rotulo="Canal de entrada">
+                {(campo) => (
+                  <select {...campo} value={canal}
+                          onChange={(e) => setCanal(e.target.value as CanalEntrada)}>
+                    {CANAIS_ENTRADA.map((c) => (
+                      <option key={c} value={c}>{ROTULO_CANAL[c]}</option>
+                    ))}
+                  </select>
+                )}
+              </Campo>
             </div>
 
             <div className="linha-campos">
-              <div className="campo">
-                <label htmlFor="nova-solicitante">Nome do solicitante</label>
-                <input id="nova-solicitante" type="text" value={solicitante} required
-                       aria-invalid={!!erros["solicitanteNome"]}
-                       aria-describedby={erros["solicitanteNome"] ? "nova-solicitante-erro" : undefined}
-                       onChange={(e) => setSolicitante(e.target.value)} />
-                {erros["solicitanteNome"] && <ErroCampo id="nova-solicitante-erro">{erros["solicitanteNome"]}</ErroCampo>}
-              </div>
-
-              <div className="campo">
-                <label htmlFor="nova-contato">Contato (opcional)</label>
-                {/*
-                  Máscara na digitação, e nenhuma validação que bloqueie o
-                  envio. Quem liga pedindo socorro pode ditar ramal, número de
-                  outro estado ou telefone do vizinho, e recusar isso
-                  transformaria o campo de contato numa barreira no pior momento
-                  possível. O aviso abaixo cobre o erro de digitação de verdade,
-                  que é dígito faltando, sem impedir nada.
-                */}
-                <input id="nova-contato" type="tel" inputMode="tel" autoComplete="tel"
-                       value={contato}
-                       onChange={(e) => setContato(mascararTelefone(e.target.value))}
-                       placeholder="(48) 9 9999-0000" />
-                {contato.trim() !== "" && !telefoneParecePlausivel(contato) && (
-                  <span className="campo__dica">
-                    Confira o número: parece faltar dígito. Pode registrar assim mesmo.
-                  </span>
+              <Campo id="nova-solicitante" rotulo="Nome do solicitante"
+                     erro={erros["solicitanteNome"]}>
+                {(campo) => (
+                  <input {...campo} type="text" value={solicitante}
+                         onChange={(e) => setSolicitante(e.target.value)} />
                 )}
-              </div>
-            </div>
+              </Campo>
 
-            <div className="campo">
-              <label htmlFor="nova-endereco">Endereço</label>
-              <input id="nova-endereco" type="text" value={endereco} required
-                     aria-invalid={!!erros["endereco"]}
-                       aria-describedby={erros["endereco"] ? "nova-endereco-erro" : undefined}
-                     onChange={(e) => setEndereco(e.target.value)}
-                     placeholder="Rua, número, bairro" />
-              {erros["endereco"] && <ErroCampo id="nova-endereco-erro">{erros["endereco"]}</ErroCampo>}
-            </div>
-
-            <div className="campo">
-              <label htmlFor="nova-ref">Ponto de referência (opcional)</label>
-              <input
-                id="nova-ref" value={referencia} maxLength={300}
-                onChange={(e) => setReferencia(e.target.value)}
-                placeholder="A última casa antes do córrego, portão azul"
-                autoComplete="off"
-              />
-              <p className="campo__dica">
-                É por aqui que o agente vai achar o lugar. Vale mais que a
-                coordenada quando a rua não tem placa.
-              </p>
-            </div>
-
-            <div className="campo">
-              <label htmlFor="nova-local">Localização no mapa (opcional)</label>
-              <input
-                id="nova-local" value={localizacao}
-                onChange={(e) => setLocalizacao(e.target.value)}
-                placeholder="Cole o link do Google Maps que o solicitante mandou"
-                aria-describedby="nova-local-leitura"
-                autoComplete="off"
-              />
               {/*
-                A resposta fica sempre no mesmo lugar, com a mesma altura, e
-                nunca só na cor: cada estado tem ícone e texto. Um campo que
-                empurra o formulário para baixo a cada tecla é um campo que
-                faz o operador perder o botão de vista no meio da ligação.
+                Máscara na digitação, e nenhuma validação que bloqueie o
+                envio. Quem liga pedindo socorro pode ditar ramal, número de
+                outro estado ou telefone do vizinho, e recusar isso
+                transformaria o campo de contato numa barreira no pior momento
+                possível. A dica cobre o erro de digitação de verdade, que é
+                dígito faltando, sem impedir nada.
               */}
-              <p className="campo__dica" id="nova-local-leitura" role="status">
+              <Campo
+                id="nova-contato"
+                rotulo="Contato"
+                opcional
+                dica={contato.trim() !== "" && !telefoneParecePlausivel(contato)
+                  ? "Confira o número: parece faltar dígito. Pode registrar assim mesmo."
+                  : undefined}
+              >
+                {(campo) => (
+                  <input {...campo} type="tel" inputMode="tel" autoComplete="tel"
+                         value={contato}
+                         onChange={(e) => setContato(mascararTelefone(e.target.value))}
+                         placeholder="(48) 9 9999-0000" />
+                )}
+              </Campo>
+            </div>
+
+            <Campo id="nova-endereco" rotulo="Endereço" erro={erros["endereco"]}>
+              {(campo) => (
+                <input {...campo} type="text" value={endereco}
+                       onChange={(e) => setEndereco(e.target.value)}
+                       placeholder="Rua, número, bairro" />
+              )}
+            </Campo>
+
+            <Campo
+              id="nova-ref"
+              rotulo="Ponto de referência"
+              opcional
+              dica={"É por aqui que o agente vai achar o lugar. Vale mais que a "
+                + "coordenada quando a rua não tem placa."}
+            >
+              {(campo) => (
+                <input
+                  {...campo} value={referencia} maxLength={300}
+                  onChange={(e) => setReferencia(e.target.value)}
+                  placeholder="A última casa antes do córrego, portão azul"
+                  autoComplete="off"
+                />
+              )}
+            </Campo>
+
+            {/*
+              A resposta da leitura fica sempre no mesmo lugar, com a mesma
+              altura, e nunca só na cor: cada estado tem ícone e texto. Um campo
+              que empurra o formulário para baixo a cada tecla é um campo que
+              faz o operador perder o botão de vista no meio da ligação.
+
+              O `role="status"` fica no elemento de DENTRO da dica porque é a
+              dica do `Campo` que carrega o `id` referenciado pelo campo, e a
+              região viva precisa existir na tela desde o começo: marcar como
+              viva uma caixa que só aparece depois faz o leitor de tela perder
+              justamente o primeiro anúncio, que é a leitura do link colado.
+            */}
+            <Campo
+              id="nova-local"
+              rotulo="Localização no mapa"
+              opcional
+              dica={<span role="status">
                 {leitura.tipo === "vazio" && (
                   <>Aceita link do Google Maps, do WhatsApp, ou a coordenada colada.</>
                 )}
@@ -363,18 +379,25 @@ export function NovaOcorrencia() {
                     já levam o agente ao local.
                   </span>
                 )}
-              </p>
-            </div>
+              </span>}
+            >
+              {(campo) => (
+                <input
+                  {...campo} value={localizacao}
+                  onChange={(e) => setLocalizacao(e.target.value)}
+                  placeholder="Cole o link do Google Maps que o solicitante mandou"
+                  autoComplete="off"
+                />
+              )}
+            </Campo>
 
-            <div className="campo">
-              <label htmlFor="nova-descricao">Relato</label>
-              <textarea id="nova-descricao" value={descricao} required
-                        aria-invalid={!!erros["descricao"]}
-                       aria-describedby={erros["descricao"] ? "nova-descricao-erro" : undefined}
-                        onChange={(e) => setDescricao(e.target.value)}
-                        placeholder="O que o solicitante descreveu, com as próprias palavras dele" />
-              {erros["descricao"] && <ErroCampo id="nova-descricao-erro">{erros["descricao"]}</ErroCampo>}
-            </div>
+            <Campo id="nova-descricao" rotulo="Relato" erro={erros["descricao"]}>
+              {(campo) => (
+                <textarea {...campo} value={descricao}
+                          onChange={(e) => setDescricao(e.target.value)}
+                          placeholder="O que o solicitante descreveu, com as próprias palavras dele" />
+              )}
+            </Campo>
 
             <button type="submit" className="botao botao--primario" disabled={gravando}>
               {gravando ? "Gravando" : "Registrar e gerar protocolo"}

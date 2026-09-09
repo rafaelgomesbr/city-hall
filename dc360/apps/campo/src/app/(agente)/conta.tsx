@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import Constants from "expo-constants";
 import { ROTULO_PAPEL } from "@dc360/shared";
@@ -8,6 +8,7 @@ import { obterFila } from "../../dados/fila";
 import { useSessao } from "../../dados/sessao";
 import { useSinal } from "../../dados/conectividade";
 import { Aviso, Botao, Cartao, Separador, Txt } from "../../ui/componentes";
+import { Dialogo } from "../../ui/Dialogo";
 import { espaco } from "../../ui/tokens";
 
 /**
@@ -23,6 +24,13 @@ export default function Conta() {
   const { identidade, sair, obterToken } = useSessao();
   const sinal = useSinal();
   const [pendentes, setPendentes] = useState<number | null>(null);
+  /*
+    A pergunta é estado desta tela, e não um efeito colateral disparado no
+    toque. Enquanto ela vale `true` nada aconteceu ainda: a sessão continua de
+    pé e a fila continua com dono. Sair só acontece no toque do botão que
+    repete o verbo, e é isso que o teste desta tela cobra.
+  */
+  const [perguntandoSaida, setPerguntandoSaida] = useState(false);
 
   useEffect(() => {
     let vivo = true;
@@ -36,25 +44,11 @@ export default function Conta() {
     return () => { vivo = false; };
   }, [obterToken]);
 
-  function confirmarSaida(): void {
-    const aviso = pendentes && pendentes > 0
-      ? `Você tem ${pendentes} ${pendentes === 1 ? "coleta" : "coletas"} ainda não enviadas. ` +
-        "Ao sair, elas continuam guardadas no aparelho, mas só voltam a ser " +
-        "enviadas quando você entrar de novo, e isso exige sinal."
-      : "Você vai precisar de sinal e da sua senha para entrar de novo.";
-
-    Alert.alert("Sair da conta?", aviso, [
-      { text: "Continuar conectado", style: "cancel" },
-      {
-        text: "Sair",
-        style: "destructive",
-        onPress: () => void (async () => {
-          await sair();
-          router.replace("/entrar");
-        })(),
-      },
-    ]);
-  }
+  const avisoDaSaida = pendentes && pendentes > 0
+    ? `Você tem ${pendentes} ${pendentes === 1 ? "coleta" : "coletas"} ainda não enviadas. ` +
+      "Ao sair, elas continuam guardadas no aparelho, mas só voltam a ser " +
+      "enviadas quando você entrar de novo, e isso exige sinal."
+    : "Você vai precisar de sinal e da sua senha para entrar de novo.";
 
   if (!identidade) return null;
 
@@ -127,7 +121,32 @@ export default function Conta() {
         </Aviso>
       )}
 
-      <Botao titulo="Sair da conta" tipo="perigo" onPress={confirmarSaida} />
+      <Botao
+        titulo="Sair da conta"
+        tipo="perigo"
+        onPress={() => { setPerguntandoSaida(true); }}
+      />
+
+      <Dialogo
+        aberto={perguntandoSaida}
+        titulo="Sair da conta?"
+        texto={avisoDaSaida}
+        /*
+          O rótulo repete o verbo. "OK" aqui responderia à pergunta do título
+          sem dizer o que acontece com as coletas que estão no aparelho, e é
+          exatamente essa a dúvida de quem está lendo isto no fim do plantão.
+        */
+        acao={{
+          rotulo: "Sair da conta",
+          destrutiva: true,
+          aoTocar: () => void (async () => {
+            await sair();
+            router.replace("/entrar");
+          })(),
+        }}
+        recusa={{ rotulo: "Continuar conectado" }}
+        aoFechar={() => { setPerguntandoSaida(false); }}
+      />
     </ScrollView>
   );
 }

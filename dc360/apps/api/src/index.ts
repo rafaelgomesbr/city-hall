@@ -9,6 +9,12 @@ import { armazenamentoEmMemoria } from "./armazenamento/memoria.js";
 import { geradorPlaywright } from "./documentos/pdf.js";
 import { carregarMigracoes, migracoesPendentes } from "@dc360/db";
 import type { Armazenamento } from "./armazenamento/tipos.js";
+import { criarProvedorApns } from "./push/apns.js";
+import { lerSegredoDoDisco } from "./push/segredo.js";
+import { criarProvedorFcm, lerContaDeServico } from "./push/fcm.js";
+import { criarEnvio, type ProvedorDePush } from "./push/envio.js";
+import { travaDeProcesso, travaPostgres, type Trava } from "./push/trava.js";
+import { agendarVarredura, type VarreduraAgendada } from "./push/varredor.js";
 
 const config = carregarConfig();
 
@@ -90,6 +96,92 @@ const app = await construirServidor({
   ...(notificador ? { notificador } : {}),
 });
 
+/**
+ * De quanto em quanto tempo a varredura de prazo roda.
+ *
+ * Cinco minutos, e o número é o resultado de uma conta: a janela de aviso é de
+ * uma hora por padrão, então cinco minutos dão doze oportunidades de pegar cada
+ * prazo antes de ele vencer. Menos que isso seria ida ao banco a troco de nada
+ * na maior parte do dia; muito mais faria o aviso chegar perto demais do
+ * vencimento nos casos em que o prazo entra na janela logo depois de uma
+ * varredura.
+ */
+const INTERVALO_DA_VARREDURA_MS = 5 * 60_000;
+
+
+/*
+  A varredura de prazo só existe com o push ligado.
+
+  Com `PUSH_ATIVO=nao`, que é o padrão enquanto a metade aplicativo não existir,
+  o relógio nem é criado: um varredor rodando contra um banco sem aparelho
+  nenhum é ida ao banco a cada cinco minutos para não fazer nada, e é ruído no
+  log que ensina a equipe a ignorar log.
+*/
+let varredura: VarreduraAgendada | null = null;
+
+if (config.PUSH_ATIVO === "sim") {
+  const apple: ProvedorDePush = criarProvedorApns({
+    keyId: config.APNS_KEY_ID!,
+    teamId: config.APNS_TEAM_ID!,
+    bundle: config.APNS_BUNDLE!,
+    chavePem: lerSegredoDoDisco(config.APNS_CHAVE!, "a chave de push da Apple"),
+  });
+
+  const google = config.FCM_CONTA_SERVICO
+    ? criarProvedorFcm(
+        lerContaDeServico(
+          lerSegredoDoDisco(config.FCM_CONTA_SERVICO, "a conta de serviço do Firebase"),
+          /*
+            O segundo argumento entra em MENSAGEM DE ERRO, então ele nunca pode
+            ser o valor cru: quando a variável carrega o conteúdo da conta de
+            serviço (que é como ela chega em produção), o valor cru é a chave
+            privada do Firebase, e um JSON malformado despejaria essa chave no
+            log do servidor. Erro de configuração viraria vazamento, que é
+            exatamente o que `lerSegredoDoDisco` existe para impedir.
+          */
+          config.FCM_CONTA_SERVICO.trim().startsWith("{")
+            ? "a variável FCM_CONTA_SERVICO (conteúdo)"
+            : config.FCM_CONTA_SERVICO,
+        ),
+      )
+    : undefined;
+
+  /*
+    POOL PRÓPRIO, pequeno, e trava em conexão exclusiva.
+
+    A varredura não pode consumir as conexões das requisições: numa noite de
+    chuva, a operação que não pode esperar é o agente em campo sincronizando a
+    vistoria, e não o aviso de prazo. Duas conexões bastam, porque a varredura
+    faz uma consulta e depois uma atualização por notificação.
+
+    Sem `DATABASE_URL` o banco é o Postgres em WebAssembly do desenvolvimento,
+    que tem uma conexão só e um processo só: ali a trava do banco não teria o
+    que separar, e a trava de processo diz a verdade sobre o que faz.
+  */
+  const bancoDaVarredura = config.DATABASE_URL
+    ? bancoPostgres(config.DATABASE_URL, { maximoConexoes: 2 })
+    : banco;
+  const trava: Trava = config.DATABASE_URL
+    ? travaPostgres(config.DATABASE_URL)
+    : travaDeProcesso();
+
+  varredura = agendarVarredura(
+    {
+      banco: bancoDaVarredura,
+      trava,
+      enviar: criarEnvio({ apple, ...(google ? { google } : {}) }),
+      janelaMinutos: config.PUSH_JANELA_MINUTOS,
+      registrar: (evento, mensagem) => app.log.warn(evento, mensagem),
+    },
+    INTERVALO_DA_VARREDURA_MS,
+  );
+
+  app.log.info(
+    { janelaMinutos: config.PUSH_JANELA_MINUTOS, android: Boolean(google) },
+    "varredura de prazo ligada",
+  );
+}
+
 // Encerramento ordenado: a requisição em andamento termina, e o pool fecha.
 // Sem isso, um deploy derruba transação no meio.
 for (const sinal of ["SIGINT", "SIGTERM"] as const) {
@@ -97,6 +189,10 @@ for (const sinal of ["SIGINT", "SIGTERM"] as const) {
     void (async () => {
       app.log.info(`recebido ${sinal}, encerrando`);
       await app.close();
+      // A varredura para antes do banco: senão o relógio dispara uma consulta
+      // contra um pool já fechado, e o deploy termina com um erro que não é
+      // erro nenhum.
+      await varredura?.parar();
       await pdf.encerrar();
       await banco.encerrar();
       process.exit(0);

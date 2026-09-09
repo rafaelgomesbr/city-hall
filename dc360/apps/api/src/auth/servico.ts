@@ -342,9 +342,71 @@ export function servicoDeAutenticacao(
     );
   }
 
-  async function sair(tokenRenovacao: string): Promise<void> {
+  /**
+   * Sair encerra a sessao E CALA O APARELHO.
+   *
+   * A metade que faltava era a segunda, e a falta dela e vazamento de dado
+   * operacional, nao inconveniencia: o telefone de quem saiu continuava
+   * recebendo "prazo vencendo" das ocorrencias da equipe, com o municipio, a
+   * ocorrencia e o endereco no dado da notificacao. Quem devolveu o telefone
+   * da prefeitura, ou quem foi realocado, seguia sendo avisado do trabalho de
+   * um grupo do qual nao faz mais parte.
+   *
+   * A FICHA VEM DO APLICATIVO, e precisa vir: o servidor nao tem como saber
+   * qual dos aparelhos daquela pessoa esta saindo. Quem tem dois (o telefone
+   * da prefeitura e o proprio) sai de um e continua recebendo no outro, que e
+   * o comportamento correto.
+   *
+   * A ORDEM IMPORTA. A sessao e consultada ANTES de ser revogada, porque
+   * `sessao_por_token` (migracao 002) so devolve sessao viva, de proposito, e
+   * e dela que sai o municipio necessario para alcancar a tabela de aparelhos
+   * sob RLS. Invertida a ordem, a revogacao do aparelho nunca aconteceria.
+   *
+   * LIMITACAO CONHECIDA, escrita para nao virar surpresa: sair com um token de
+   * renovacao ja expirado ou ja revogado nao revoga o aparelho, porque nesse
+   * caso nao ha como descobrir de qual municipio ele e. Sobram as duas outras
+   * barreiras: o varredor so avisa quem continua ativo E na equipe
+   * responsavel, e a ficha recusada pelo provedor revoga o aparelho sozinha.
+   */
+  async function sair(tokenRenovacao: string, ficha?: string): Promise<void> {
+    const hash = hashDoToken(tokenRenovacao);
+
+    if (ficha) {
+      const sessao = await banco.semTenant(async (c) => {
+        const r = await c.query<{ organizacao_id: string; usuario_id: string }>(
+          "SELECT organizacao_id, usuario_id FROM sessao_por_token($1)",
+          [hash],
+        );
+        return r.rows[0] ?? null;
+      });
+
+      if (sessao) {
+        try {
+          await banco.comTenant(sessao.organizacao_id, (c) =>
+            c.query(
+              `UPDATE aparelhos
+                  SET revogado_em = now(),
+                      motivo_revogacao = 'saida do usuario'
+                WHERE ficha = $1 AND usuario_id = $2 AND revogado_em IS NULL`,
+              [ficha, sessao.usuario_id],
+            ),
+          );
+        } catch {
+          /*
+            Falhar aqui NAO pode impedir a saida.
+
+            Sair e a operacao que a pessoa aperta quando perdeu o controle do
+            aparelho, e ela precisa funcionar mesmo com o banco de mau humor. A
+            sessao logo abaixo e a parte que de fato retira o acesso; o aparelho
+            que continuar recebendo aviso e um dano menor, e coberto pelas duas
+            barreiras descritas acima.
+          */
+        }
+      }
+    }
+
     await banco.semTenant((c) =>
-      c.query("SELECT revogar_sessao($1, $2)", [hashDoToken(tokenRenovacao), "saida do usuario"]),
+      c.query("SELECT revogar_sessao($1, $2)", [hash, "saida do usuario"]),
     );
   }
 

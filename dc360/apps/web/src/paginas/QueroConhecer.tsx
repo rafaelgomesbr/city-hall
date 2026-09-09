@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { interesseMunicipioSchema, ROTULO_FAIXA_POPULACAO } from "@dc360/shared";
 import { registrarInteresse } from "../dados/repositorio";
-import { Aviso, AvisoDeObrigatorios, ErroCampo } from "../componentes/comuns";
+import { Aviso, AvisoDeObrigatorios } from "../componentes/comuns";
+import { Campo } from "../componentes/Campo";
 import { digitosDoTelefone, mascararTelefone } from "@dc360/shared";
 
 /**
@@ -150,117 +151,115 @@ export function QueroConhecer() {
           <AvisoDeObrigatorios />
 
           <div className="linha-campos">
-            <div className="campo">
-              <label htmlFor="ic-municipio">Município</label>
+            <Campo id="ic-municipio" rotulo="Município" erro={erros["municipio"]}>
+              {(campo) => (
+                <input
+                  {...campo} value={campos.municipio}
+                  onChange={(e) => alterar("municipio", e.target.value)}
+                  autoComplete="off"
+                />
+              )}
+            </Campo>
+            <Campo id="ic-uf" rotulo="UF" largura="curto" erro={erros["uf"]}>
+              {(campo) => (
+                <input
+                  {...campo} value={campos.uf} maxLength={2}
+                  onChange={(e) => alterar("uf", e.target.value.toUpperCase())}
+                  autoComplete="off"
+                />
+              )}
+            </Campo>
+          </div>
+
+          <Campo id="ic-orgao" rotulo="Órgão" opcional>
+            {(campo) => (
               <input
-                id="ic-municipio" value={campos.municipio} required
-                onChange={(e) => alterar("municipio", e.target.value)}
-                aria-invalid={erros["municipio"] ? true : undefined}
-                aria-describedby={erros["municipio"] ? "ic-municipio-erro" : undefined}
+                {...campo} value={campos.orgao}
+                onChange={(e) => alterar("orgao", e.target.value)}
+                placeholder="Coordenadoria Municipal de Proteção e Defesa Civil"
                 autoComplete="off"
               />
-              {erros["municipio"] && <ErroCampo id="ic-municipio-erro">{erros["municipio"]}</ErroCampo>}
-            </div>
-            <div className="campo campo--curto">
-              <label htmlFor="ic-uf">UF</label>
-              <input
-                id="ic-uf" value={campos.uf} maxLength={2} required
-                onChange={(e) => alterar("uf", e.target.value.toUpperCase())}
-                aria-invalid={erros["uf"] ? true : undefined}
-                aria-describedby={erros["uf"] ? "ic-uf-erro" : undefined}
-                autoComplete="off"
-              />
-              {erros["uf"] && <ErroCampo id="ic-uf-erro">{erros["uf"]}</ErroCampo>}
-            </div>
-          </div>
+            )}
+          </Campo>
 
-          <div className="campo">
-            <label htmlFor="ic-orgao">Órgão (opcional)</label>
-            <input
-              id="ic-orgao" value={campos.orgao}
-              onChange={(e) => alterar("orgao", e.target.value)}
-              placeholder="Coordenadoria Municipal de Proteção e Defesa Civil"
-              autoComplete="off"
-            />
+          <div className="linha-campos">
+            <Campo id="ic-nome" rotulo="Seu nome" erro={erros["nome"]}>
+              {(campo) => (
+                <input
+                  {...campo} value={campos.nome}
+                  onChange={(e) => alterar("nome", e.target.value)}
+                  autoComplete="name"
+                />
+              )}
+            </Campo>
+            <Campo id="ic-cargo" rotulo="Seu cargo" opcional>
+              {(campo) => (
+                <input
+                  {...campo} value={campos.cargo}
+                  onChange={(e) => alterar("cargo", e.target.value)}
+                  autoComplete="organization-title"
+                />
+              )}
+            </Campo>
           </div>
 
           <div className="linha-campos">
-            <div className="campo">
-              <label htmlFor="ic-nome">Seu nome</label>
-              <input
-                id="ic-nome" value={campos.nome} required
-                onChange={(e) => alterar("nome", e.target.value)}
-                aria-invalid={erros["nome"] ? true : undefined}
-                aria-describedby={erros["nome"] ? "ic-nome-erro" : undefined}
-                autoComplete="name"
-              />
-              {erros["nome"] && <ErroCampo id="ic-nome-erro">{erros["nome"]}</ErroCampo>}
-            </div>
-            <div className="campo">
-              <label htmlFor="ic-cargo">Seu cargo (opcional)</label>
-              <input
-                id="ic-cargo" value={campos.cargo}
-                onChange={(e) => alterar("cargo", e.target.value)}
-                autoComplete="organization-title"
-              />
-            </div>
+            <Campo id="ic-email" rotulo="Email" erro={erros["email"]}>
+              {(campo) => (
+                <input
+                  {...campo} type="email" value={campos.email}
+                  onChange={(e) => alterar("email", e.target.value)}
+                  autoComplete="email"
+                />
+              )}
+            </Campo>
+            {/* Mesma máscara da abertura de ocorrência, pela mesma razão:
+                o número entra por duas portas e precisa sair igual das duas. */}
+            <Campo id="ic-telefone" rotulo="Telefone" opcional>
+              {(campo) => (
+                <input
+                  {...campo} type="tel" inputMode="tel" value={campos.telefone}
+                  onChange={(e) => alterar("telefone", mascararTelefone(e.target.value))}
+                  autoComplete="tel" placeholder="(48) 9 9999-0000"
+                />
+              )}
+            </Campo>
           </div>
 
           <div className="linha-campos">
-            <div className="campo">
-              <label htmlFor="ic-email">Email</label>
-              <input
-                id="ic-email" type="email" value={campos.email} required
-                onChange={(e) => alterar("email", e.target.value)}
-                aria-invalid={erros["email"] ? true : undefined}
-                aria-describedby={erros["email"] ? "ic-email-erro" : undefined}
-                autoComplete="email"
-              />
-              {erros["email"] && <ErroCampo id="ic-email-erro">{erros["email"]}</ErroCampo>}
-            </div>
-            <div className="campo">
-              <label htmlFor="ic-telefone">Telefone (opcional)</label>
-              {/* Mesma máscara da abertura de ocorrência, pela mesma razão:
-                  o número entra por duas portas e precisa sair igual das duas. */}
-              <input
-                id="ic-telefone" type="tel" inputMode="tel" value={campos.telefone}
-                onChange={(e) => alterar("telefone", mascararTelefone(e.target.value))}
-                autoComplete="tel" placeholder="(48) 9 9999-0000"
-              />
-            </div>
+            <Campo id="ic-faixa" rotulo="Porte do município" opcional>
+              {(campo) => (
+                <select
+                  {...campo} value={campos.faixaPopulacao}
+                  onChange={(e) => alterar("faixaPopulacao", e.target.value)}
+                >
+                  <option value="">Prefiro não dizer</option>
+                  {Object.entries(ROTULO_FAIXA_POPULACAO).map(([valor, rotulo]) => (
+                    <option key={valor} value={valor}>{rotulo}</option>
+                  ))}
+                </select>
+              )}
+            </Campo>
+            <Campo id="ic-agentes" rotulo="Agentes" opcional largura="curto">
+              {(campo) => (
+                <input
+                  {...campo} type="number" min={0} max={999}
+                  value={campos.quantosAgentes}
+                  onChange={(e) => alterar("quantosAgentes", e.target.value)}
+                />
+              )}
+            </Campo>
           </div>
 
-          <div className="linha-campos">
-            <div className="campo">
-              <label htmlFor="ic-faixa">Porte do município (opcional)</label>
-              <select
-                id="ic-faixa" value={campos.faixaPopulacao}
-                onChange={(e) => alterar("faixaPopulacao", e.target.value)}
-              >
-                <option value="">Prefiro não dizer</option>
-                {Object.entries(ROTULO_FAIXA_POPULACAO).map(([valor, rotulo]) => (
-                  <option key={valor} value={valor}>{rotulo}</option>
-                ))}
-              </select>
-            </div>
-            <div className="campo campo--curto">
-              <label htmlFor="ic-agentes">Agentes (opcional)</label>
-              <input
-                id="ic-agentes" type="number" min={0} max={999}
-                value={campos.quantosAgentes}
-                onChange={(e) => alterar("quantosAgentes", e.target.value)}
+          <Campo id="ic-mensagem" rotulo="Alguma coisa que a gente deva saber" opcional>
+            {(campo) => (
+              <textarea
+                {...campo} value={campos.mensagem} rows={3}
+                onChange={(e) => alterar("mensagem", e.target.value)}
+                placeholder="Como vocês registram as ocorrências hoje, o que mais atrapalha, prazos que estão apertando"
               />
-            </div>
-          </div>
-
-          <div className="campo">
-            <label htmlFor="ic-mensagem">Alguma coisa que a gente deva saber (opcional)</label>
-            <textarea
-              id="ic-mensagem" value={campos.mensagem} rows={3}
-              onChange={(e) => alterar("mensagem", e.target.value)}
-              placeholder="Como vocês registram as ocorrências hoje, o que mais atrapalha, prazos que estão apertando"
-            />
-          </div>
+            )}
+          </Campo>
 
           <button type="submit" className="botao botao--primario" disabled={enviando}>
             {enviando ? "Enviando" : "Quero conhecer"}

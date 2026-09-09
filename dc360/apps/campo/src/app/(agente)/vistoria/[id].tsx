@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Image, Pressable, ScrollView, TextInput, View } from "react-native";
+import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import * as Location from "expo-location";
 import * as Crypto from "expo-crypto";
@@ -26,6 +26,8 @@ import { MinutaDoLaudo } from "../../../ui/MinutaDoLaudo";
 import {
   Aviso, Botao, Cartao, Carregando, Selo, SeloSeveridade, Separador, Txt, useTema,
 } from "../../../ui/componentes";
+import { Chip } from "../../../ui/Chip";
+import { Dialogo } from "../../../ui/Dialogo";
 import { espaco, fonte, raio, toque } from "../../../ui/tokens";
 import {
   concluirColetaEmOrdem, dataDoPrazo, decidirAberturaDaVistoria, faltaParaConcluir, quantoFalta,
@@ -113,6 +115,16 @@ export default function TelaDeVistoria() {
   const [fotografando, setFotografando] = useState(false);
   const [capturandoGps, setCapturandoGps] = useState(false);
   const [minutaAberta, setMinutaAberta] = useState(false);
+  /*
+    As duas perguntas desta tela são ESTADO, e não efeito colateral do toque.
+
+    Enquanto elas valem `false`, nada aconteceu: a tela não voltou para a lista
+    e a lápide da coleta anterior continua de pé. É o que os testes desta tela
+    cobram, e é a diferença entre "o agente foi perguntado" e "o aplicativo já
+    fez", que era invisível enquanto isto era `Alert.alert`.
+  */
+  const [avisandoQueGuardou, setAvisandoQueGuardou] = useState(false);
+  const [perguntandoNovaVistoria, setPerguntandoNovaVistoria] = useState(false);
   /** Enquanto true, o ScrollView desta tela nao rola: o dedo esta assinando. */
   const [desenhando, setDesenhando] = useState(false);
   const cameraRef = useRef<CameraView>(null);
@@ -444,11 +456,7 @@ export default function TelaDeVistoria() {
         descartarRascunho: () => descartarRascunho(rascunho.ocorrenciaId),
       });
 
-      Alert.alert(
-        "Vistoria guardada",
-        "Ela vai ser enviada assim que houver sinal. Você pode acompanhar na fila de envio.",
-        [{ text: "Entendi", onPress: () => router.back() }],
-      );
+      setAvisandoQueGuardou(true);
     } catch (e: unknown) {
       setErro(
         e instanceof Error
@@ -491,6 +499,25 @@ export default function TelaDeVistoria() {
           <Txt variante="corpoP">{ocorrencia.endereco}</Txt>
         </Cartao>
 
+        {/*
+          O estado da coleta anterior num selo, e não só na frase.
+
+          A frase abaixo diz a mesma coisa, e ela continua ali para quem lê. O
+          selo existe para quem NÃO lê: o agente que abriu esta tela por engano,
+          de relance, no meio da rua, precisa distinguir "já subiu" de "ainda
+          está no aparelho" antes de decidir se vale a pena refazer.
+        */}
+        <Chip
+          texto={jaColetada.situacao === "enviada" ? "Enviada" : "Na fila de envio"}
+          simbolo={jaColetada.situacao === "enviada" ? "✓" : "↑"}
+          tom={jaColetada.situacao === "enviada" ? "ok" : "neutro"}
+          descricao={
+            jaColetada.situacao === "enviada"
+              ? "A vistoria já foi enviada ao servidor"
+              : "A vistoria está na fila de envio deste aparelho"
+          }
+        />
+
         <Aviso tom="info">
           Esta ocorrência já foi coletada neste aparelho.
           {jaColetada.situacao === "enviada"
@@ -518,28 +545,67 @@ export default function TelaDeVistoria() {
         <Botao
           titulo="Fazer nova vistoria desta ocorrência"
           tipo="secundario"
-          onPress={() => {
-            Alert.alert(
-              "Fazer nova vistoria?",
-              "A vistoria que você já fez continua guardada e vai ser enviada do " +
-              "mesmo jeito. Esta será uma SEGUNDA vistoria da mesma ocorrência, e " +
-              "as duas vão aparecer no protocolo.",
-              [
-                { text: "Cancelar", style: "cancel" },
-                {
-                  text: "Fazer nova vistoria",
-                  style: "destructive",
-                  onPress: () => void refazerVistoria(),
-                },
-              ],
-            );
+          onPress={() => { setPerguntandoNovaVistoria(true); }}
+        />
+
+        <Dialogo
+          aberto={perguntandoNovaVistoria}
+          titulo="Fazer nova vistoria?"
+          texto={
+            "A vistoria que você já fez continua guardada e vai ser enviada do " +
+            "mesmo jeito. Esta será uma SEGUNDA vistoria da mesma ocorrência, e " +
+            "as duas vão aparecer no protocolo."
+          }
+          /*
+            "Cancelar" some, e no lugar dele entra o que a recusa realmente faz.
+            Num diálogo lido com pressa, "Cancelar" é ambíguo do jeito mais caro
+            possível: cancelar a nova vistoria, ou cancelar a que já foi feita?
+          */
+          acao={{
+            rotulo: "Fazer nova vistoria",
+            destrutiva: true,
+            aoTocar: () => void refazerVistoria(),
           }}
+          recusa={{ rotulo: "Manter só a vistoria que já fiz" }}
+          aoFechar={() => { setPerguntandoNovaVistoria(false); }}
         />
       </ScrollView>
     );
   }
 
   if (!ocorrencia || !rascunho) return null;
+
+  /*
+    A confirmação é montada UMA vez e colocada em DUAS telas, e isso é a
+    diferença entre um diálogo do aplicativo e o alerta do sistema.
+
+    `Alert.alert` flutuava por cima de qualquer coisa: não importava se a tela
+    embaixo era o formulário ou a minuta. Um `Modal` do aplicativo só existe na
+    árvore em que foi montado, e a conclusão acontece com a MINUTA aberta, que é
+    outro `return` desta função. Montar a confirmação só no formulário deixava a
+    coleta entrar na fila e nada aparecer na tela: o agente ficava olhando a
+    minuta, sem saber se apertou o botão certo, e o toque seguinte era em
+    "Concluir vistoria" de novo.
+
+    O botão diz para onde leva em vez de dizer "Entendi". Quem lê isto acaba de
+    descer o morro e quer saber o que fazer agora, não confirmar que entendeu
+    uma frase.
+  */
+  const confirmacaoDeGuardado = (
+    <Dialogo
+      aberto={avisandoQueGuardou}
+      titulo="Vistoria guardada"
+      texto={
+        "Ela vai ser enviada assim que houver sinal. Você pode acompanhar na " +
+        "fila de envio."
+      }
+      acao={{
+        rotulo: "Voltar para a lista de tarefas",
+        aoTocar: () => { router.back(); },
+      }}
+      aoFechar={() => { setAvisandoQueGuardou(false); }}
+    />
+  );
 
   /*
     Uma lista so, calculada fora da tela.
@@ -648,6 +714,7 @@ export default function TelaDeVistoria() {
             />
           </View>
         </View>
+        {confirmacaoDeGuardado}
       </View>
     );
   }
@@ -1079,6 +1146,12 @@ export default function TelaDeVistoria() {
         passo mostra a minuta do laudo para você conferir com quem está no
         local, antes de a vistoria entrar na fila de envio.
       </Txt>
+
+      {/*
+        A mesma confirmação da minuta. É o único diálogo desta tela sem recusa:
+        não existe desfazer aqui, a vistoria já está na fila.
+      */}
+      {confirmacaoDeGuardado}
     </ScrollView>
   );
 }

@@ -735,3 +735,276 @@ describe("Chave estrangeira nao atravessa municipio", () => {
     expect(criada.rows[0]!.id).toBeTruthy();
   });
 });
+
+describe("Aparelho de push e aviso de prazo", () => {
+  /**
+   * A migracao 016 traz duas tabelas novas, e uma delas guarda a coisa mais
+   * perigosa que este banco passou a guardar: a ficha de push. Quem tem a
+   * ficha escreve na tela bloqueada de um agente de Defesa Civil, e uma ordem
+   * falsa de evacuacao escrita ali e dano real na rua.
+   *
+   * Por isso ela entra no portao com caso proprio, e nao so pelas varreduras
+   * genericas de RLS: o que precisa ser provado aqui e que a ficha de um
+   * municipio nao e legivel, nem alteravel, nem enumeravel pelo outro.
+   */
+  const FICHA_COMPARTILHADA = "ficha-do-mesmo-aparelho-fisico";
+
+  let agenteDeA: string;
+  let agenteDeB: string;
+  let equipeDeAgenteA: string;
+  let ocorrenciaComPrazoDeA: string;
+  let aparelhoDeB: string;
+
+  beforeAll(async () => {
+    const equipeA = await db.query<{ id: string }>(
+      "INSERT INTO equipes (organizacao_id, nome) VALUES ($1, 'Equipe de push A') RETURNING id",
+      [orgA],
+    );
+    equipeDeAgenteA = equipeA.rows[0]!.id;
+
+    const equipeB = await db.query<{ id: string }>(
+      "INSERT INTO equipes (organizacao_id, nome) VALUES ($1, 'Equipe de push B') RETURNING id",
+      [orgB],
+    );
+
+    const uA = await db.query<{ id: string }>(
+      `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel, equipe_id)
+       VALUES ($1, 'Agente de Serra Alta', 'SA-PUSH-1', 'push.sa@exemplo.gov.br', 'agente_campo', $2)
+       RETURNING id`,
+      [orgA, equipeDeAgenteA],
+    );
+    agenteDeA = uA.rows[0]!.id;
+
+    const uB = await db.query<{ id: string }>(
+      `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel, equipe_id)
+       VALUES ($1, 'Agente de Vale Fundo', 'VF-PUSH-1', 'push.vf@exemplo.gov.br', 'agente_campo', $2)
+       RETURNING id`,
+      [orgB, equipeB.rows[0]!.id],
+    );
+    agenteDeB = uB.rows[0]!.id;
+
+    const oc = await db.query<{ id: string }>(
+      `INSERT INTO ocorrencias
+         (organizacao_id, protocolo, tipo, status, severidade, endereco, solicitante_nome,
+          canal_entrada, descricao, equipe_id, prazo_em)
+       VALUES ($1,'000910/2026','deslizamento','em_campo','alta','Rua do Prazo, 10','Fulano',
+               'telefone','x',$2, now() + interval '20 minutes')
+       RETURNING id`,
+      [orgA, equipeDeAgenteA],
+    );
+    ocorrenciaComPrazoDeA = oc.rows[0]!.id;
+
+    const apB = await db.query<{ id: string }>(
+      `INSERT INTO aparelhos (organizacao_id, usuario_id, plataforma, ficha)
+       VALUES ($1,$2,'ios','ficha-so-de-vale-fundo') RETURNING id`,
+      [orgB, agenteDeB],
+    );
+    aparelhoDeB = apB.rows[0]!.id;
+  });
+
+  it("nao le a ficha de push do aparelho de outro municipio", async () => {
+    const r = await comoApp(orgA, (tx) =>
+      tx.query("SELECT ficha FROM aparelhos WHERE id = $1", [aparelhoDeB]),
+    );
+    expect(
+      r.rows,
+      "a ficha de push de outro municipio ficou legivel: quem tem a ficha "
+      + "escreve na tela bloqueada do agente daquela prefeitura",
+    ).toHaveLength(0);
+  });
+
+  it("nao revoga o aparelho de outro municipio", async () => {
+    await comoApp(orgA, (tx) =>
+      tx.query(
+        "UPDATE aparelhos SET revogado_em = now(), motivo_revogacao = 'invadido' WHERE id = $1",
+        [aparelhoDeB],
+      ),
+    );
+    const conf = await db.query<{ revogado_em: string | null }>(
+      "SELECT revogado_em FROM aparelhos WHERE id = $1",
+      [aparelhoDeB],
+    );
+    expect(conf.rows[0]!.revogado_em).toBeNull();
+  });
+
+  it("nao registra aparelho no nome de servidor de outro municipio", async () => {
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO aparelhos (organizacao_id, usuario_id, plataforma, ficha)
+           VALUES ($1,$2,'android','ficha-roubada')`,
+          [orgA, agenteDeB],
+        ),
+      ),
+    ).rejects.toThrow();
+  });
+
+  /**
+   * A decisao registrada no topo da migracao 016, conferida aqui.
+   *
+   * A ficha e unica POR MUNICIPIO, e nao globalmente. O motivo e que
+   * `UNIQUE (ficha)` global faria o segundo registro falhar com uma mensagem
+   * de erro que denuncia a existencia daquela ficha em outra prefeitura, que
+   * e o mesmo vazamento que a resposta 404 no lugar de 403 existe para
+   * impedir na API.
+   *
+   * Este teste guarda os dois lados: o registro passa (nao vaza), e a linha
+   * do outro municipio continua invisivel.
+   */
+  it("a mesma ficha registrada por dois municipios nao denuncia a existencia da outra", async () => {
+    await comoApp(orgB, (tx) =>
+      tx.query(
+        `INSERT INTO aparelhos (organizacao_id, usuario_id, plataforma, ficha)
+         VALUES ($1,$2,'ios',$3)`,
+        [orgB, agenteDeB, FICHA_COMPARTILHADA],
+      ),
+    );
+
+    // O segundo municipio registra a MESMA ficha, e nao pode nem falhar nem
+    // saber que ela ja existe em outro lugar.
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO aparelhos (organizacao_id, usuario_id, plataforma, ficha)
+           VALUES ($1,$2,'ios',$3)`,
+          [orgA, agenteDeA, FICHA_COMPARTILHADA],
+        ),
+      ),
+    ).resolves.toBeDefined();
+
+    const vistoPorA = await comoApp(orgA, (tx) =>
+      tx.query<{ n: string }>("SELECT count(*)::text AS n FROM aparelhos WHERE ficha = $1", [
+        FICHA_COMPARTILHADA,
+      ]),
+    );
+    expect(
+      Number(vistoPorA.rows[0]!.n),
+      "o municipio enxergou o aparelho do outro pela ficha",
+    ).toBe(1);
+  });
+
+  it("a mesma ficha registrada duas vezes no mesmo municipio atualiza, nao duplica", async () => {
+    const alvo = await comoApp(orgA, (tx) =>
+      tx.query<{ id: string }>(
+        `INSERT INTO aparelhos (organizacao_id, usuario_id, plataforma, ficha)
+         VALUES ($1,$2,'ios','ficha-que-volta')
+         ON CONFLICT ON CONSTRAINT aparelhos_ficha_unica_no_municipio DO UPDATE
+            SET visto_em = now()
+         RETURNING id`,
+        [orgA, agenteDeA],
+      ),
+    );
+    const denovo = await comoApp(orgA, (tx) =>
+      tx.query<{ id: string }>(
+        `INSERT INTO aparelhos (organizacao_id, usuario_id, plataforma, ficha)
+         VALUES ($1,$2,'ios','ficha-que-volta')
+         ON CONFLICT ON CONSTRAINT aparelhos_ficha_unica_no_municipio DO UPDATE
+            SET visto_em = now()
+         RETURNING id`,
+        [orgA, agenteDeA],
+      ),
+    );
+    expect(denovo.rows[0]!.id).toBe(alvo.rows[0]!.id);
+  });
+
+  it("aparelho nao se apaga, se revoga", async () => {
+    // Mesma regra da ocorrencia e do usuario: a notificacao enviada aponta
+    // para o aparelho, e apagar a linha apagaria a resposta de suporte junto.
+    await expect(
+      comoApp(orgB, (tx) => tx.query("DELETE FROM aparelhos WHERE id = $1", [aparelhoDeB])),
+    ).rejects.toThrow();
+  });
+
+  it("revogar aparelho sem motivo e recusado pelo banco", async () => {
+    await expect(
+      comoApp(orgB, (tx) =>
+        tx.query("UPDATE aparelhos SET revogado_em = now() WHERE id = $1", [aparelhoDeB]),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("nao registra aviso apontando para ocorrencia de outro municipio", async () => {
+    const meu = await comoApp(orgB, (tx) =>
+      tx.query<{ id: string }>("SELECT id FROM aparelhos WHERE id = $1", [aparelhoDeB]),
+    );
+    expect(meu.rows).toHaveLength(1);
+
+    await expect(
+      comoApp(orgB, (tx) =>
+        tx.query(
+          `INSERT INTO notificacoes_enviadas
+             (organizacao_id, aparelho_id, ocorrencia_id, tipo, desfecho)
+           VALUES ($1,$2,$3,'prazo_vencendo','enviando')`,
+          [orgB, aparelhoDeB, ocorrenciaComPrazoDeA],
+        ),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("o papel de aplicacao nao apaga aviso enviado: quem expurga e a varredura, por idade", async () => {
+    /*
+      Sem policy de DELETE e com RLS forcada, a operacao e negada. Isso e o que
+      impede que uma rota, um dia, "limpe" o registro de quem foi avisado sobre
+      o que. O expurgo existe (noventa dias, ver a migracao 016), acontece
+      dentro de `varrer_prazos` e e sempre por idade, nunca por escolha de quem
+      chama.
+    */
+    await comoApp(orgA, (tx) =>
+      tx.query("SELECT * FROM varrer_prazos($1::interval,$2::interval,$3,$4,$5::interval)", [
+        "60 minutes", "10 minutes", 5, 500, "90 days",
+      ]),
+    );
+    const gravou = await db.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM notificacoes_enviadas WHERE organizacao_id = $1",
+      [orgA],
+    );
+    expect(Number(gravou.rows[0]!.n)).toBeGreaterThan(0);
+
+    await expect(
+      comoApp(orgA, (tx) => tx.query("DELETE FROM notificacoes_enviadas")),
+    ).rejects.toThrow();
+  });
+
+  it("nao le o aviso enviado por outro municipio", async () => {
+    const deB = await comoApp(orgB, (tx) =>
+      tx.query("SELECT id FROM notificacoes_enviadas"),
+    );
+    expect(deB.rows).toHaveLength(0);
+  });
+
+  /**
+   * A funcao de varredura roda sem contexto de municipio, por necessidade: o
+   * varredor nao tem token, entao nao tem municipio, e sem municipio o papel
+   * de aplicacao nao enxerga nada. Ela e a porta que a migracao 016 abre, e o
+   * que a mantem porta e nao buraco e nao aceitar municipio como parametro.
+   *
+   * O portao de cima ja confere `search_path` fixo e ausencia de EXECUTE para
+   * PUBLIC em toda funcao privilegiada, esta inclusa. O que falta provar e que
+   * ela nao virou uma leitura de dado de municipio disfarcada.
+   */
+  it("a varredura nao aceita municipio de quem chama e nao devolve dado de pessoa", async () => {
+    const assinatura = await db.query<{ args: string }>(
+      `SELECT pg_get_function_identity_arguments(p.oid) AS args
+         FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'varrer_prazos'`,
+    );
+    expect(assinatura.rows).toHaveLength(1);
+    expect(
+      assinatura.rows[0]!.args,
+      "a varredura passou a aceitar parametro de municipio, e com isso virou "
+      + "uma porta para ler dado de um municipio escolhido por quem chama",
+    ).not.toMatch(/uuid/);
+
+    const saida = await db.query<{ resultado: string }>(
+      `SELECT pg_get_function_result(p.oid) AS resultado
+         FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'varrer_prazos'`,
+    );
+    for (const proibido of ["solicitante", "descricao", "vulnerabilidade", "contato", "nome"]) {
+      expect(
+        saida.rows[0]!.resultado,
+        `a varredura passou a devolver ${proibido}, e isso sai do pais na notificacao`,
+      ).not.toContain(proibido);
+    }
+  });
+});

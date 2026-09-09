@@ -8,8 +8,10 @@ import {
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
-  Aviso, AvisoDeObrigatorios, Carregando, Cartao, ErroCampo, Vazio, iniciais,
+  Aviso, AvisoDeObrigatorios, Carregando, Cartao, Vazio, iniciais,
 } from "../componentes/comuns";
+import { Campo } from "../componentes/Campo";
+import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
 import { IconeMais } from "../componentes/Icones";
 
 /**
@@ -35,6 +37,17 @@ export function Usuarios() {
   const [papel, setPapel] = useState<Papel>("agente_campo");
   const [equipeId, setEquipeId] = useState("");
   const [senha, setSenha] = useState("");
+  /*
+    Quem está a um clique de perder o acesso.
+
+    "Desativar" ficava numa célula de tabela, colado em "Corrigir", numa lista
+    de linhas que só se distinguem pelo nome. Um clique na linha de cima tira
+    do ar a conta de quem está de plantão agora: a sessão dela é derrubada e o
+    aplicativo de campo para de sincronizar no meio de uma vistoria. Reativar
+    desfaz, mas quem descobre é a pessoa em campo, sem sinal, sem saber por quê.
+  */
+  const [aDesativar, setADesativar] = useState<LinhaUsuario | null>(null);
+  const [desativando, setDesativando] = useState(false);
 
   const recarregar = useCallback(async () => {
     const [u, e] = await Promise.all([listarUsuarios(sessao), listarEquipes(sessao)]);
@@ -109,6 +122,20 @@ export function Usuarios() {
     }
   }
 
+  async function alternarAtivo(u: LinhaUsuario): Promise<void> {
+    if (desativando) return;
+    setDesativando(true);
+    try {
+      await alternarUsuarioAtivo(sessao, u.id, !u.ativo);
+      setADesativar(null);
+      await recarregar();
+    } catch (e: unknown) {
+      setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setDesativando(false);
+    }
+  }
+
   function limparFormulario(): void {
     setNome(""); setMatricula(""); setEmail(""); setEquipeId(""); setSenha("");
     setPapel("agente_campo");
@@ -147,77 +174,67 @@ export function Usuarios() {
             <form onSubmit={submeter} noValidate>
               <AvisoDeObrigatorios />
               <div className="linha-campos">
-                <div className="campo">
-                  <label htmlFor="usuario-nome">Nome completo</label>
-                  <input id="usuario-nome" type="text" value={nome} required
-                         aria-invalid={Boolean(errosDeCampo["nome"])}
-                         aria-describedby={errosDeCampo["nome"] ? "usuario-nome-erro" : undefined}
-                         onChange={(e) => setNome(e.target.value)} />
-                  {errosDeCampo["nome"] && (
-                    <ErroCampo id="usuario-nome-erro">{errosDeCampo["nome"]}</ErroCampo>
+                <Campo id="usuario-nome" rotulo="Nome completo" erro={errosDeCampo["nome"]}>
+                  {(campo) => (
+                    <input {...campo} type="text" value={nome}
+                           onChange={(e) => setNome(e.target.value)} />
                   )}
-                </div>
-                <div className="campo">
-                  <label htmlFor="usuario-matricula">Matrícula</label>
-                  <input id="usuario-matricula" type="text" value={matricula} required
-                         aria-invalid={Boolean(errosDeCampo["matricula"])}
-                         aria-describedby={errosDeCampo["matricula"] ? "usuario-matricula-erro" : undefined}
-                         onChange={(e) => setMatricula(e.target.value)} placeholder="SA-4001" />
-                  {errosDeCampo["matricula"] && (
-                    <ErroCampo id="usuario-matricula-erro">{errosDeCampo["matricula"]}</ErroCampo>
+                </Campo>
+                <Campo id="usuario-matricula" rotulo="Matrícula" erro={errosDeCampo["matricula"]}>
+                  {(campo) => (
+                    <input {...campo} type="text" value={matricula}
+                           onChange={(e) => setMatricula(e.target.value)} placeholder="SA-4001" />
                   )}
-                </div>
+                </Campo>
               </div>
               <div className="linha-campos">
-                <div className="campo">
-                  <label htmlFor="usuario-email">Email funcional</label>
-                  <input id="usuario-email" type="email" value={email} required
-                         aria-invalid={Boolean(errosDeCampo["email"])}
-                         aria-describedby={errosDeCampo["email"] ? "usuario-email-erro" : undefined}
-                         onChange={(e) => setEmail(e.target.value)} />
-                  {errosDeCampo["email"] && (
-                    <ErroCampo id="usuario-email-erro">{errosDeCampo["email"]}</ErroCampo>
+                <Campo id="usuario-email" rotulo="Email funcional" erro={errosDeCampo["email"]}>
+                  {(campo) => (
+                    <input {...campo} type="email" value={email}
+                           onChange={(e) => setEmail(e.target.value)} />
                   )}
-                </div>
-                <div className="campo">
-                  <label htmlFor="usuario-papel">Papel</label>
-                  <select id="usuario-papel" value={papel} onChange={(e) => setPapel(e.target.value as Papel)}>
-                    {/*
-                      Só os papéis que este posto concede. Um coordenador não
-                      cria administrador, e o servidor recusa; oferecer a opção
-                      seria construir a recusa de propósito.
-                    */}
-                    {papeisQuePodeConceder(sessao.papel).map((p) => (
-                      <option key={p} value={p}>{ROTULO_PAPEL[p]}</option>
-                    ))}
-                  </select>
-                </div>
+                </Campo>
+                <Campo id="usuario-papel" rotulo="Papel">
+                  {(campo) => (
+                    <select {...campo} value={papel}
+                            onChange={(e) => setPapel(e.target.value as Papel)}>
+                      {/*
+                        Só os papéis que este posto concede. Um coordenador não
+                        cria administrador, e o servidor recusa; oferecer a opção
+                        seria construir a recusa de propósito.
+                      */}
+                      {papeisQuePodeConceder(sessao.papel).map((p) => (
+                        <option key={p} value={p}>{ROTULO_PAPEL[p]}</option>
+                      ))}
+                    </select>
+                  )}
+                </Campo>
               </div>
               {papel === "agente_campo" && (
-                <div className="campo">
-                  <label htmlFor="usuario-equipe">Equipe (opcional)</label>
-                  <select id="usuario-equipe" value={equipeId} onChange={(e) => setEquipeId(e.target.value)}>
-                    <option value="">Sem equipe fixa</option>
-                    {equipes.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
-                  </select>
-                </div>
+                <Campo id="usuario-equipe" rotulo="Equipe" opcional>
+                  {(campo) => (
+                    <select {...campo} value={equipeId}
+                            onChange={(e) => setEquipeId(e.target.value)}>
+                      <option value="">Sem equipe fixa</option>
+                      {equipes.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                    </select>
+                  )}
+                </Campo>
               )}
               {MODO === "api" && !editando && (
-                <div className="campo">
-                  <label htmlFor="usuario-senha">Senha inicial</label>
-                  <input id="usuario-senha" type="password" value={senha} required
-                         autoComplete="new-password"
-                         aria-invalid={Boolean(errosDeCampo["senha"])}
-                         aria-describedby={errosDeCampo["senha"] ? "usuario-senha-erro" : undefined}
-                         onChange={(e) => setSenha(e.target.value)} />
-                  {errosDeCampo["senha"] && (
-                    <ErroCampo id="usuario-senha-erro">{errosDeCampo["senha"]}</ErroCampo>
+                <Campo
+                  id="usuario-senha"
+                  rotulo="Senha inicial"
+                  erro={errosDeCampo["senha"]}
+                  dica={"Mínimo de 12 caracteres. Sem exigência de símbolo ou número: regra de "
+                    + "composição só produz senha pior e mais difícil de lembrar."}
+                >
+                  {(campo) => (
+                    <input {...campo} type="password" value={senha}
+                           autoComplete="new-password"
+                           onChange={(e) => setSenha(e.target.value)} />
                   )}
-                  <span className="campo__dica">
-                    Mínimo de 12 caracteres. Sem exigência de símbolo ou número: regra de
-                    composição só produz senha pior e mais difícil de lembrar.
-                  </span>
-                </div>
+                </Campo>
               )}
               {editando && (
                 <p className="campo__dica">
@@ -285,16 +302,20 @@ export function Usuarios() {
                                   onClick={() => editar(u)}>
                             Corrigir
                           </button>
+                          {/*
+                            Só a DESATIVAÇÃO pergunta. Reativar devolve o
+                            acesso e não tira nada de ninguém; pedir confirmação
+                            também para ela ensinaria a clicar em "sim" sem ler,
+                            e a pergunta que importa perderia o efeito.
+                          */}
                           <button type="button" className="botao botao--discreto"
                                   disabled={u.id === sessao.usuarioId}
                                   title={u.id === sessao.usuarioId
                                     ? "Você não pode desativar a própria conta"
                                     : undefined}
                                   onClick={() => {
-                                    alternarUsuarioAtivo(sessao, u.id, !u.ativo)
-                                      .then(recarregar)
-                                      .catch((e: unknown) =>
-                                        setErro(e instanceof Error ? e.message : String(e)));
+                                    if (u.ativo) setADesativar(u);
+                                    else void alternarAtivo(u);
                                   }}>
                             {u.ativo ? "Desativar" : "Reativar"}
                           </button>
@@ -338,6 +359,36 @@ export function Usuarios() {
           </Cartao>
         </div>
       </div>
+
+      <ConfirmarAcao
+        aberto={aDesativar !== null}
+        titulo="Desativar usuário"
+        consequencia={
+          <>
+            A pessoa perde o acesso agora: as sessões dela caem e o aplicativo
+            de campo para de sincronizar. O nome continua nos laudos que ela
+            assinou e na trilha de auditoria, e reativar devolve o acesso.
+          </>
+        }
+        rotuloDaAcao={`Desativar ${aDesativar?.nome ?? "usuário"}`}
+        destrutiva
+        ocupado={desativando}
+        aoConfirmar={() => { if (aDesativar) void alternarAtivo(aDesativar); }}
+        aoCancelar={() => setADesativar(null)}
+      >
+        {aDesativar && (
+          /*
+            A matrícula e o email na janela não são enfeite: a lista tem
+            homônimos e nomes parecidos, e é aqui que dá para perceber que a
+            linha clicada não era a que se estava lendo.
+          */
+          <p className="campo__dica">
+            <span className="mono">{aDesativar.matricula}</span>, {aDesativar.email},{" "}
+            {ROTULO_PAPEL[aDesativar.papel]}
+            {aDesativar.equipe_nome ? `, ${aDesativar.equipe_nome}` : ""}.
+          </p>
+        )}
+      </ConfirmarAcao>
     </>
   );
 }

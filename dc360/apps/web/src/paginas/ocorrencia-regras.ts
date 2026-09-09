@@ -91,6 +91,42 @@ export function rotuloDoBotaoDeEncerrar(
 }
 
 /* ============================================================
+   O aviso de que a ocorrência nasceu
+   ============================================================ */
+
+/**
+ * A frase que a pessoa recebe ao chegar na ocorrência recém registrada.
+ *
+ * Ela conserta um buraco de produto: quem registrava o chamado era jogado na
+ * tela de detalhe sem nenhum sinal de que a gravação deu certo, e sem o número
+ * do protocolo dito em lugar nenhum além do título, que a pessoa ainda não
+ * sabia ser o protocolo. Com o telefone no ombro, a pergunta imediata é "posso
+ * passar o número para quem está na linha?", e a tela não respondia.
+ *
+ * Duas decisões dentro dela:
+ *
+ * - o PROTOCOLO vem inteiro na frase. Ele é lido do registro que já está na
+ *   tela, então o número anunciado é o mesmo do título por construção, e não
+ *   por coincidência;
+ * - o PRÓXIMO PASSO muda com o papel de quem está olhando. O operador de
+ *   plantão não classifica, e mandá-lo "classificar na triagem" seria mandar
+ *   fazer uma coisa que o servidor vai recusar. Ele precisa saber que o
+ *   chamado agora espera a coordenação, para poder dizer isso ao morador.
+ *
+ * É função pura, e não texto solto no meio do JSX, pelo motivo de sempre nesta
+ * pasta: condição escondida dentro de um componente que só roda em navegador
+ * não tem como ser exercitada.
+ */
+export function avisoDoRegistro(
+  { protocolo, papel }: { protocolo: string; papel: Papel },
+): string {
+  const proximo = podeExecutar(papel, "classificar_triagem")
+    ? "Próximo passo: classificar na triagem, que é o que define a severidade e o prazo."
+    : "Próximo passo: a coordenação classifica na triagem, que é o que define o prazo.";
+  return `Ocorrência registrada com o protocolo ${protocolo}. ${proximo}`;
+}
+
+/* ============================================================
    Ver também
    ============================================================ */
 
