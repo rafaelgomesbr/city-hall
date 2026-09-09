@@ -19,7 +19,70 @@ export const TIPOS_COBRADE = [
 
 export type TipoCobrade = (typeof TIPOS_COBRADE)[number];
 
-export const ROTULO_TIPO_COBRADE: Record<TipoCobrade, string> = {
+/**
+ * A confissão de que a classificação ainda não foi feita.
+ *
+ * Fica FORA de `TIPOS_COBRADE`, e essa é a decisão inteira. A COBRADE é fechada
+ * e não se inventa nome novo dentro dela: quem varre a taxonomia (o gráfico por
+ * tipo, a prestação de contas, a série histórica do município) continua varrendo
+ * os oito de cima, e nenhum deles ganha um nono irmão que a norma não tem.
+ *
+ * Só que o plantão recebe chamado que não cabe nos oito: queda de árvore sobre a
+ * via, rompimento de adutora, muro do vizinho que desabou. Até aqui o operador
+ * escolhia o menos errado, e isso não produz dado incompleto, produz dado FALSO.
+ * "Vendaval: dez chamados", dos quais três eram outra coisa, é um número que
+ * ninguém pode usar e que ninguém sabe que não pode usar. É pior que a lacuna,
+ * porque a lacuna se vê.
+ *
+ * `outro` não é categoria: é a marca de que a decisão técnica está pendente. E
+ * ela não pode ficar pendente para sempre, por isso `precisaReclassificar` barra
+ * o despacho enquanto o tipo for este.
+ */
+export const TIPO_A_CLASSIFICAR = "outro";
+
+/**
+ * O que o operador pode escolher na abertura do chamado.
+ *
+ * A abertura é feita ao telefone, por quem atende, em minutos, e não é ali que
+ * mora a competência técnica para dizer se aquilo é enxurrada ou alagamento. A
+ * triagem é. Por isso a lista da ABERTURA é mais larga que a taxonomia, e a
+ * lista da TRIAGEM é exatamente a taxonomia.
+ */
+export const TIPOS_DE_ENTRADA = [...TIPOS_COBRADE, TIPO_A_CLASSIFICAR] as const;
+export type TipoDeEntrada = (typeof TIPOS_DE_ENTRADA)[number];
+
+/**
+ * Quem ainda não pode ser despachado, e por quê.
+ *
+ * O tipo real precisa ser decidido por quem tem competência técnica, e o único
+ * momento em que isso acontece com alguém olhando o chamado inteiro é a triagem.
+ * Sem este portão, "outro" atravessaria o fluxo até o laudo: o documento oficial
+ * sairia com brasão, assinatura e a palavra "Outro" no campo do tipo, e a
+ * classificação nunca mais seria feita, porque depois do despacho ninguém volta.
+ *
+ * Barra o DESPACHO e não a abertura, de propósito. Recusar na abertura devolveria
+ * o problema para quem está ao telefone com a pessoa, que é justamente quem não
+ * sabe responder.
+ */
+export function precisaReclassificar(tipo: string): boolean {
+  return tipo === TIPO_A_CLASSIFICAR;
+}
+
+/** A frase que a tela e a API dizem quando o despacho é barrado por isto. */
+export const MOTIVO_RECLASSIFICAR =
+  "Esta ocorrência entrou como \"Outro\" e ainda não foi classificada. "
+  + "Escolha o tipo na triagem antes de despachar a equipe.";
+
+/*
+  A tabela de rótulos cobre `TipoDeEntrada`, e não só a COBRADE, apesar do nome.
+
+  Não é descuido de nomenclatura: toda tela do produto imprime o tipo com
+  `ROTULO_TIPO_COBRADE[o.tipo]`, e uma ocorrência aberta como "outro" que caísse
+  numa tabela sem essa chave sairia como espaço em branco no meio da lista do
+  coordenador. Espaço em branco não é erro visível, é uma linha que parece sem
+  tipo, e ninguém abre chamado para investigar um branco.
+*/
+export const ROTULO_TIPO_COBRADE: Record<TipoDeEntrada, string> = {
   deslizamento: "Deslizamento",
   inundacao: "Inundação",
   alagamento: "Alagamento",
@@ -28,6 +91,12 @@ export const ROTULO_TIPO_COBRADE: Record<TipoCobrade, string> = {
   granizo: "Granizo",
   colapso_edificacao: "Colapso de edificação",
   incendio_urbano: "Incêndio urbano",
+  /*
+    O rótulo diz o que falta, e não só "Outro". Quem lê isto na fila de triagem
+    precisa entender que a linha exige uma decisão dele, e "Outro" sozinho parece
+    uma categoria legítima que já foi escolhida por alguém.
+  */
+  [TIPO_A_CLASSIFICAR]: "Outro, a classificar na triagem",
 };
 
 export const SEVERIDADES = ["baixa", "media", "alta", "critica"] as const;
@@ -210,6 +279,26 @@ export const ROTULO_CHECKLIST: Record<string, string> = Object.fromEntries(
 
 /** Os que o aparelho exige antes de liberar a conclusão da vistoria. */
 export const CHECKLIST_OBRIGATORIO = CHECKLIST_VISTORIA.filter((i) => i.obrigatorio);
+
+/**
+ * O item que não se resolve com sim ou não, e o defeito que isso causava.
+ *
+ * "Necessário acionar outro órgão: sim" é meia informação. O laudo chegava ao
+ * coordenador dizendo que alguém precisa ser acionado e não dizia quem, então a
+ * primeira coisa que ele fazia era ligar para o agente para perguntar. Isso
+ * acontecia depois, na base, com o agente já em outra ocorrência ou fora do
+ * turno, e é um telefonema que existia só porque a resposta ficou no aparelho.
+ *
+ * A informação existe no instante da vistoria: quem está no barranco sabe que
+ * ali precisa da concessionária de energia, e sabe naquele minuto. O que faltava
+ * era lugar para escrever.
+ *
+ * A constante mora aqui, tipada como `ChaveChecklist`, porque três pontas
+ * dependem dela (a tela que abre a seleção, a regra que libera a conclusão e a
+ * validação do envelope). Renomear a chave no catálogo acima passa a quebrar a
+ * compilação das três, em vez de desligar o desdobramento em silêncio.
+ */
+export const CHAVE_ACIONAR_ORGAO: ChaveChecklist = "acionar_outro_orgao";
 
 /**
  * Os tipos de evento da trilha, e como cada um se lê na tela.

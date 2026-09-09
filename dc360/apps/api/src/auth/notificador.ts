@@ -119,3 +119,101 @@ export function notificadorIndisponivel(): Notificador {
     },
   };
 }
+
+/**
+ * Tira de um texto qualquer endereço que apareça no corpo da mensagem.
+ *
+ * O corpo carrega o link de uso único, e link de uso único é credencial. Um
+ * provedor transacional costuma ecoar o pedido inteiro dentro do corpo do erro
+ * ("campo `text` inválido: ..."), e esse corpo de erro vai para o log do
+ * servidor e para a coluna `detalhe` da tentativa de envio, que é lida pelo
+ * suporte. Sem esta limpeza, um erro de configuração do provedor grava o link
+ * do dossiê de uma família em dois lugares que ninguém trata como segredo.
+ *
+ * Recorta por endereço inteiro, e não pelo token: assim vale para o link de
+ * redefinição de senha e para o do ofício sem precisar saber qual dos dois é.
+ */
+export function semOsEnderecos(texto: string, corpo: string): string {
+  let limpo = texto;
+  for (const endereco of corpo.match(/https?:\/\/\S+/g) ?? []) {
+    limpo = limpo.split(endereco).join("[endereco removido]");
+  }
+  return limpo;
+}
+
+const TETO_DO_ERRO = 300;
+
+/**
+ * O cliente de verdade: um POST para a API HTTP de um provedor transacional.
+ *
+ * É a peça que faltava, e a falta era silenciosa da pior maneira.
+ * `NOTIFICADOR_URL` e `NOTIFICADOR_CHAVE` existiam na configuração, a partida
+ * em produção recusava subir com a recuperação de senha ligada sem elas, e
+ * NENHUMA linha do servidor jamais as leu. O produto conferia o endereço de um
+ * provedor com o qual nunca falou, e toda mensagem caía no notificador de log.
+ *
+ * Sem dependência nova de propósito: a API de um provedor transacional é um
+ * POST com JSON, e `fetch` é do Node desde a versão 18. Um SDK aqui traria
+ * uma árvore de dependências inteira para dentro do `npm audit` de um produto
+ * que precisa fechar em zero, em troca de nada.
+ *
+ * Três decisões que valem estar escritas:
+ *
+ * 1. **Tempo limite explícito.** Sem ele, um provedor que aceita a conexão e
+ *    não responde pendura a requisição do coordenador até o limite do
+ *    servidor. Dez segundos é mais do que qualquer API transacional leva.
+ * 2. **Erro sobe como exceção.** Quem chama decide o que fazer: a recuperação
+ *    de senha responde ao usuário, e o ofício grava a tentativa como falha.
+ *    Engolir aqui produziria o defeito que este arquivo inteiro existe para
+ *    fechar, que é responder "enviamos" sem ter enviado.
+ * 3. **O corpo da resposta do provedor passa pela limpeza acima** antes de
+ *    virar mensagem de erro.
+ */
+export function notificadorHttp(opcoes: {
+  url: string;
+  chave: string;
+  /** Remetente, quando o provedor exige. Vai no corpo, e o provedor valida. */
+  remetente?: string;
+  /** Injeção para o teste: sem isto não haveria como exercitar o cliente. */
+  buscar?: typeof fetch;
+  tempoLimiteMs?: number;
+}): Notificador {
+  const buscar = opcoes.buscar ?? fetch;
+  const tempoLimiteMs = opcoes.tempoLimiteMs ?? 10_000;
+
+  return {
+    async enviar(m) {
+      let resposta: Response;
+      try {
+        resposta = await buscar(opcoes.url, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${opcoes.chave}`,
+          },
+          body: JSON.stringify({
+            ...(opcoes.remetente ? { de: opcoes.remetente } : {}),
+            para: m.para,
+            nome: m.nome,
+            assunto: m.assunto,
+            texto: m.corpo,
+          }),
+          signal: AbortSignal.timeout(tempoLimiteMs),
+        });
+      } catch (erro) {
+        const bruto = erro instanceof Error ? erro.message : String(erro);
+        throw new Error(
+          `O provedor de email nao respondeu: ${semOsEnderecos(bruto, m.corpo).slice(0, TETO_DO_ERRO)}`,
+        );
+      }
+
+      if (!resposta.ok) {
+        const corpo = await resposta.text().catch(() => "");
+        throw new Error(
+          `O provedor de email recusou o envio (HTTP ${resposta.status}): `
+          + semOsEnderecos(corpo, m.corpo).slice(0, TETO_DO_ERRO),
+        );
+      }
+    },
+  };
+}

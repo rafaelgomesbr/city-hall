@@ -150,7 +150,30 @@ export function criarProvedorFcm(
             // `notification` é a vitrine, `data` é o detalhe que só o
             // aplicativo lê. Ver `mensagem.ts`.
             notification: { title: notificacao.titulo, body: notificacao.corpo },
-            data: notificacao.dados,
+            /*
+              `channelId` VAI NO DADO, e sem ele os dois canais do Android não
+              servem para nada.
+
+              O aplicativo declara dois canais: um de urgência, com som e
+              vibração, e um comum, silencioso. Quem escolhe entre eles é a
+              MENSAGEM, não o aplicativo: o `expo-notifications` lê
+              `remoteMessage.notification?.channelId ?: remoteMessage.data["channelId"]`
+              e, na ausência dos dois, joga tudo no canal padrão. Ou seja, sem
+              esta linha o agente recebe prazo de severidade baixa com som às
+              três da manhã, e a resposta dele é silenciar o aplicativo inteiro
+              nos ajustes, para sempre, inclusive o aviso crítico.
+
+              Os nomes casam com os declarados em apps/campo. Se um dia
+              divergirem, o Android cai no canal padrão em silêncio, então
+              existe teste comparando os dois lados.
+            */
+            data: {
+              ...notificacao.dados,
+              channelId: notificacao.dados.severidade === "alta"
+                || notificacao.dados.severidade === "critica"
+                ? "dc360.urgencia.v1"
+                : "dc360.comum.v1",
+            },
             android: { priority: "high" },
           },
         }),

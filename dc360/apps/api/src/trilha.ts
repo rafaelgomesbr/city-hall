@@ -112,8 +112,16 @@ export async function marcarInterditada(
   );
 }
 
-/** O que um ato administrativo alcança. */
-export type AlvoAdministrativo = "usuario" | "equipe" | "organizacao";
+/**
+ * O que um ato administrativo alcança.
+ *
+ * `orgao` entrou com o catálogo de destinos (migração 017). Criar, editar e
+ * desativar órgão muda quem o município consegue acionar e para qual endereço
+ * o ofício sai, então é a mesma família de "promover conta" e "desativar
+ * equipe": sem entrar aqui, o catálogo seria o único caminho de escrita
+ * administrativa do produto sem rastro.
+ */
+export type AlvoAdministrativo = "usuario" | "equipe" | "organizacao" | "orgao";
 
 /**
  * Registra um ato administrativo: quem mexeu em conta, equipe ou município.

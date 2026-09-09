@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   CANAIS_ENTRADA,
+  CHAVE_ACIONAR_ORGAO,
   CHECKLIST_OBRIGATORIO,
   CHECKLIST_VISTORIA,
   ORIGENS,
@@ -8,6 +9,8 @@ import {
   SEVERIDADES,
   STATUS_OCORRENCIA,
   TIPOS_COBRADE,
+  TIPOS_DE_ENTRADA,
+  TIPO_A_CLASSIFICAR,
 } from "./dominio.js";
 
 /**
@@ -73,16 +76,51 @@ export const aberturaOcorrenciaSchema = z.object({
    * a referência, e era isso que estava se perdendo por falta de campo.
    */
   pontoReferencia: z.string().max(300).optional(),
-  tipo: z.enum(TIPOS_COBRADE),
+  /*
+    A abertura aceita `outro`, e a triagem não. Ver `TIPO_A_CLASSIFICAR`: quem
+    atende o telefone não tem competência técnica para separar enxurrada de
+    alagamento, e obrigá-lo a escolher um dos oito produz classificação falsa,
+    que é pior que a lacuna porque ninguém desconfia de um campo preenchido.
+  */
+  tipo: z.enum(TIPOS_DE_ENTRADA),
+  /**
+   * O que foi relatado, quando não cabe na COBRADE.
+   *
+   * Obrigatório junto com `outro`, e é ele que torna a reclassificação possível:
+   * sem esta linha, quem faz a triagem abre um chamado que diz "Outro" e nada
+   * mais, e a decisão técnica que a triagem existe para tomar fica sem matéria
+   * prima. Dez caracteres é o piso que separa uma descrição de um "x" digitado
+   * para o formulário liberar.
+   */
+  tipoDescricao: z.string().trim().max(300).optional(),
   descricao: z.string().min(1, "Descreva o que foi relatado").max(4000),
   /** Preenchido quando o operador decide vincular a um chamado anterior. */
   vinculadaA: uuidSchema.optional(),
-});
+}).refine(
+  (v) => v.tipo !== TIPO_A_CLASSIFICAR || (v.tipoDescricao?.trim().length ?? 0) >= 10,
+  {
+    message: "Descreva em poucas palavras o que foi relatado, para a triagem poder classificar",
+    path: ["tipoDescricao"],
+  },
+);
 export type AberturaOcorrencia = z.infer<typeof aberturaOcorrenciaSchema>;
 
 /** Triagem: classificação técnica, feita por quem tem competência para isso. */
 export const triagemSchema = z.object({
   severidade: z.enum(SEVERIDADES),
+  /**
+   * O tipo decidido por quem tem competência para decidir.
+   *
+   * `TIPOS_COBRADE` e não `TIPOS_DE_ENTRADA`: a triagem só pode mover o chamado
+   * PARA dentro da taxonomia, nunca de volta para "outro". Permitir a volta
+   * transformaria o portão do despacho numa formalidade, porque bastaria
+   * reclassificar para o mesmo lugar de onde se veio.
+   *
+   * Opcional porque a maioria dos chamados já entra classificada, e reafirmar o
+   * tipo em toda triagem seria pedir de novo o que ninguém tem motivo para mudar.
+   * Quem obriga a escolha é `precisaReclassificar`, no despacho.
+   */
+  tipo: z.enum(TIPOS_COBRADE).optional(),
   vulnerabilidadePresente: z.boolean(),
   vulnerabilidadeDescricao: z.string().max(500).optional(),
 }).refine(
@@ -207,8 +245,49 @@ export const CAMPOS_PESSOAS: ReadonlyArray<{
   { chave: "obitos", rotulo: "Óbitos", ajuda: "Confirmados no local." },
 ];
 
+/**
+ * Um órgão que a vistoria diz que precisa ser acionado.
+ *
+ * `orgaoId` nulo NÃO é dado faltando: é o campo livre, e ele existe por uma razão
+ * que governa o produto inteiro. O catálogo de órgãos do município desce para o
+ * aparelho junto com a lista de tarefas, e um aparelho novo, que nunca
+ * sincronizou, tem catálogo vazio. Se o desdobramento dependesse só do catálogo,
+ * um item OBRIGATÓRIO do checklist travaria a conclusão da vistoria justamente
+ * sem sinal, que é a condição normal de trabalho deste aplicativo. Nenhuma
+ * vistoria pode ficar impossível por falta de um cadastro.
+ *
+ * O nome viaja SEMPRE, inclusive quando o id existe. Parece redundante e não é:
+ * o laudo é documento de processo e precisa continuar legível daqui a cinco
+ * anos, depois de o órgão ter sido desativado, renomeado ou fundido com outro.
+ * Guardar só o id transformaria o laudo antigo numa consulta que pode não achar
+ * mais nada.
+ */
+export const orgaoIndicadoSchema = z.object({
+  /** Do catálogo do município. Nulo quando o agente digitou o nome. */
+  orgaoId: uuidSchema.nullable(),
+  nome: z.string().trim().min(2, "Informe o nome do órgão").max(200),
+});
+export type OrgaoIndicado = z.infer<typeof orgaoIndicadoSchema>;
+
 export const vistoriaSchema = z.object({
   checklist: checklistSchema,
+  /*
+    O desdobramento de "Necessário acionar outro órgão", achatado na vistoria e
+    OPCIONAL, pelo mesmo motivo das contagens de pessoas logo abaixo: o envelope
+    já está em uso por aparelho em campo. Um aparelho que ainda não atualizou
+    simplesmente não manda a lista, e o servidor grava "não especificado".
+
+    Exigir aqui a lista quando a resposta é "sim" pareceria mais rigoroso e seria
+    destrutivo: a coleta antiga que já está guardada no morro voltaria com 422, a
+    fila a marcaria como falha permanente, e não existe tela para corrigir item
+    bloqueado. O agente perderia a manhã de trabalho por causa de um campo que o
+    aplicativo dele nem sabia que existia. Quem exige a lista é o aparelho
+    atualizado, em `faltaParaConcluir`, antes de a coleta virar envelope.
+
+    O teto de vinte não é generosidade: é o que impede um cliente adulterado de
+    escrever vinte mil linhas dentro de um documento com brasão.
+  */
+  orgaosParaAcionar: z.array(orgaoIndicadoSchema).max(20).optional(),
   fotos: z.array(evidenciaFotoSchema),
   gpsPrecisaoMetros: z.number().positive().nullable(),
   assinanteNome: z.string().min(1, "Informe quem assinou").max(200),
@@ -227,6 +306,35 @@ export const vistoriaSchema = z.object({
     que já está guardada no morro.
   */
   ...pessoasAtingidasSchema.shape,
+}).superRefine((v, ctx) => {
+  /*
+    A incoerência que o servidor recusa, e só ela.
+
+    Uma coleta que responde "não é necessário acionar outro órgão" e ainda assim
+    lista três órgãos é uma contradição dentro do mesmo documento, e o laudo
+    imprimiria as duas metades: o checklist dizendo que não e a seção seguinte
+    nomeando quem acionar. Nenhum aplicativo publicado produz isso (a lista só é
+    preenchida depois do "sim", e responder "não" limpa o que havia), então
+    recusar aqui não alcança nenhuma coleta legítima que esteja guardada em
+    aparelho nenhum: alcança só cliente adulterado, que é exatamente o que uma
+    validação de servidor existe para alcançar.
+
+    O caminho contrário ("sim" sem lista) NÃO é recusado, e a razão está no
+    comentário de `orgaosParaAcionar`: recusar ali destruiria coleta boa de
+    aparelho antigo.
+  */
+  const respondeuSim = v.checklist.some(
+    (i) => i.chave === CHAVE_ACIONAR_ORGAO && i.resposta,
+  );
+  if (!respondeuSim && (v.orgaosParaAcionar?.length ?? 0) > 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["orgaosParaAcionar"],
+      message:
+        "A vistoria lista órgãos a acionar, mas o checklist respondeu que não é "
+        + "necessário acionar outro órgão.",
+    });
+  }
 });
 export type Vistoria = z.infer<typeof vistoriaSchema>;
 

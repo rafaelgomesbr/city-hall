@@ -31,6 +31,7 @@ const TITULOS: Record<string, string> = {
   "/ocorrencias/nova": "Registrar ocorrência",
   "/mapa": "Mapa da cidade",
   "/equipes": "Equipes",
+  "/orgaos": "Órgãos de destino",
   "/usuarios": "Usuários",
   "/auditoria": "Auditoria",
   "/entrar": "Entrar",

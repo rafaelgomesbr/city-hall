@@ -40,6 +40,19 @@ function producao(sobrescrever: Record<string, string> = {}): NodeJS.ProcessEnv 
     */
     NOTIFICADOR_URL: "https://email.exemplo.com/enviar",
     NOTIFICADOR_CHAVE: "chave-do-provedor",
+    /*
+      E o interruptor que faz alguém FALAR com esse provedor.
+
+      Entrou no mínimo em 09/09/2026, junto do cliente HTTP de email. Até
+      então, ter as duas variáveis acima preenchidas era condição suficiente
+      para a partida aceitar a recuperação de senha ligada, e mesmo assim
+      nenhum email saía: não existia cliente nenhum no servidor, e a mensagem
+      caía no notificador de log com o link de uso único dentro. A checagem
+      passava, a configuração parecia certa, e o defeito só aparecia na caixa
+      de entrada que nunca recebia nada. Ver o caso "recusa recuperação ligada
+      com o envio de email desligado" abaixo.
+    */
+    EMAIL_ATIVO: "sim",
     ...sobrescrever,
   } as NodeJS.ProcessEnv;
 }
@@ -174,7 +187,10 @@ describe("O modelo de ambiente acompanha o esquema", () => {
 describe("A recuperação de senha precisa de destino", () => {
   /** Produção sem as variáveis de notificação, que é o caso de esquecer. */
   function semDestino(extra: Record<string, string> = {}): NodeJS.ProcessEnv {
-    const env = producao(extra);
+    // `EMAIL_ATIVO=nao` junto, porque ligar o envio sem provedor tem checagem
+    // própria, que roda antes e em todo ambiente. Este bloco é sobre a outra
+    // metade: a recuperação de senha ligada sem para onde mandar.
+    const env = producao({ EMAIL_ATIVO: "nao", ...extra });
     delete env["NOTIFICADOR_URL"];
     delete env["NOTIFICADOR_CHAVE"];
     return env;
@@ -188,5 +204,39 @@ describe("A recuperação de senha precisa de destino", () => {
 
   it("aceita a recuperação desligada, que é decisão explícita", () => {
     expect(() => carregarConfig(semDestino({ RECUPERACAO_ATIVA: "nao" }))).not.toThrow();
+  });
+
+  it("recusa recuperação ligada com o envio de email desligado", () => {
+    /*
+      O buraco que ficou aberto por semanas, e que a checagem acima NÃO pegava.
+
+      `NOTIFICADOR_URL` e `NOTIFICADOR_CHAVE` preenchidas, produção subindo sem
+      reclamar, e nenhum email saindo: não havia cliente HTTP no servidor, as
+      duas variáveis eram validadas e nunca lidas, e toda mensagem caía no
+      notificador de log, que escreve o link de uso único em texto puro. A
+      configuração parecia impecável dos dois lados.
+
+      É por isso que a produção de hoje roda com `RECUPERACAO_ATIVA=nao`: não
+      foi decisão de produto, foi a única saída honesta enquanto o envio não
+      existia.
+    */
+    expect(() => carregarConfig(producao({ EMAIL_ATIVO: "nao" })))
+      .toThrow(/EMAIL_ATIVO=nao/);
+
+    // Desligar a recuperação continua sendo saída legítima e explícita.
+    expect(() => carregarConfig(producao({ EMAIL_ATIVO: "nao", RECUPERACAO_ATIVA: "nao" })))
+      .not.toThrow();
+  });
+
+  it("o envio de email ligado sem provedor não sobe, em ambiente nenhum", () => {
+    /*
+      Vale FORA de produção também, e de propósito: quem liga o envio na
+      própria máquina para experimentar descobre na hora que falta o endereço
+      do provedor, em vez de descobrir depois de meia hora achando que o ofício
+      não chegou por outro motivo. É a mesma régua do `PUSH_ATIVO`.
+    */
+    expect(() => carregarConfig({
+      NODE_ENV: "development", EMAIL_ATIVO: "sim",
+    } as NodeJS.ProcessEnv)).toThrow(/não tem para onde mandar/i);
   });
 });

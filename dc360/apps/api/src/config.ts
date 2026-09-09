@@ -82,6 +82,58 @@ const esquema = z.object({
   RECUPERACAO_ATIVA: z.enum(["sim", "nao"]).default("sim"),
 
   /**
+   * Liga o envio de email de verdade, e é a mesma classe de decisão do
+   * `PUSH_ATIVO`: desligado por padrão, e ligar é ato deliberado.
+   *
+   * O buraco que ele fecha é específico. `NOTIFICADOR_URL` e
+   * `NOTIFICADOR_CHAVE` existem desde a migração da recuperação de senha, a
+   * partida em produção RECUSA subir sem elas com a recuperação ligada, e
+   * NENHUM código jamais as leu: não havia cliente HTTP. O servidor conferia a
+   * configuração de um provedor com o qual nunca falava, e a mensagem ia para
+   * o `notificadorDeLog`. Por isso a recuperação está em `nao` na produção de
+   * hoje: não por decisão de produto, por falta de cliente.
+   *
+   * Com `nao`, a rota que dependeria de email RECUSA dizendo que o recurso
+   * está desligado, em vez de responder que mandou. Prometer email que não sai
+   * foi um defeito real deste produto, confirmado contra a produção, e é o
+   * defeito que esta variável existe para não repetir no ofício.
+   */
+  EMAIL_ATIVO: z.enum(["sim", "nao"]).default("nao"),
+
+  /**
+   * Remetente que o provedor deve usar, quando ele exige um.
+   *
+   * Opcional porque provedor nenhum é igual: alguns amarram o remetente à
+   * chave e recusam receber outro. Fica aqui, e não fixo no código, porque o
+   * endereço tem que ser de um domínio que a prefeitura controla, senão a
+   * mensagem cai em spam ou é recusada na entrada do órgão destinatário.
+   */
+  EMAIL_REMETENTE: vazioEhAusente(z.string().email().optional()),
+
+  /**
+   * Por quantas horas vale o link de uso único do ofício.
+   *
+   * Setenta e duas horas por padrão: um ofício enviado na sexta à noite
+   * precisa continuar abrindo na segunda de manhã. Menos que isso transforma
+   * fim de semana em link morto, e a recepção do órgão liga pedindo reenvio.
+   * O teto de trinta dias existe porque link de uso único que vive um semestre
+   * é, na prática, link permanente.
+   */
+  OFICIO_LINK_HORAS: z.coerce.number().int().min(1).max(720).default(72),
+
+  /**
+   * Quantas vezes o mesmo ofício pode ser enviado, contando a primeira vez.
+   *
+   * O teto existe porque cada envio cria um link de uso único novo para o
+   * mesmo dossiê. Sem teto, um botão de "reenviar" clicado em série espalha
+   * dezenas de endereços vivos para o mesmo conteúdo, e basta um deles vazar.
+   * Três cobre o caso real (foi para a caixa de spam, a pessoa mudou de setor)
+   * sem virar torneira aberta. O banco guarda um teto absoluto de vinte, que
+   * vale mesmo se esta regra sumir.
+   */
+  OFICIO_MAX_ENVIOS: z.coerce.number().int().min(1).max(20).default(3),
+
+  /**
    * Chave de assinatura dos tokens de acesso. Mínimo de 32 bytes de entropia.
    * Em produção é obrigatória; sem ela o processo não sobe.
    */
@@ -217,6 +269,23 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
     }
   }
 
+  /*
+    Email ligado exige destino de verdade, e a checagem vale em TODO ambiente,
+    pelo mesmo motivo do `PUSH_ATIVO` acima.
+
+    Quem liga o envio na própria máquina para experimentar descobre na hora que
+    falta o endereço do provedor, em vez de descobrir depois de meia hora
+    achando que o ofício não chegou por outro motivo.
+  */
+  if (c.EMAIL_ATIVO === "sim" && (!c.NOTIFICADOR_URL || !c.NOTIFICADOR_CHAVE)) {
+    throw new Error(
+      "O envio de email está ligado e não tem para onde mandar: defina "
+      + "NOTIFICADOR_URL e NOTIFICADOR_CHAVE, ou desligue com EMAIL_ATIVO=nao. "
+      + "Sem isso o servidor sobe, a rota responde que enviou, e nenhuma "
+      + "mensagem sai deste processo.",
+    );
+  }
+
   if (c.NODE_ENV === "production") {
     if (!c.DATABASE_URL) throw new Error("DATABASE_URL é obrigatória em produção");
     if (!c.JWT_SEGREDO) throw new Error("JWT_SEGREDO é obrigatória em produção");
@@ -244,6 +313,31 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
         + "NOTIFICADOR_URL e NOTIFICADOR_CHAVE, ou desligue com "
         + "RECUPERACAO_ATIVA=nao. Sem isso o link de redefinição iria para o "
         + "log do servidor, em texto puro, e nenhum email seria enviado.",
+      );
+    }
+    /*
+      E ter as variáveis preenchidas não basta: alguém precisa FALAR com o
+      provedor.
+
+      Este é o buraco que ficou aberto por semanas. A checagem acima existia,
+      passava, e mesmo assim nenhum email saía, porque o servidor não tinha
+      cliente HTTP nenhum: `NOTIFICADOR_URL` era conferida e nunca usada, e a
+      mensagem caía no `notificadorDeLog`, que escreve o link de uso único em
+      texto puro por fora do `redact`. Duas falhas na mesma linha, e a
+      configuração parecia correta nas duas.
+
+      Com `EMAIL_ATIVO=sim` o cliente de verdade é montado na partida (ver
+      `index.ts`). Sem ele, a recuperação em produção precisa estar desligada,
+      e aí a tela manda procurar quem administra o município, que é o único
+      caminho que de fato funciona nesse estado.
+    */
+    if (c.RECUPERACAO_ATIVA === "sim" && c.EMAIL_ATIVO !== "sim") {
+      throw new Error(
+        "A recuperação de senha está ligada com EMAIL_ATIVO=nao: as variáveis "
+        + "do provedor estão preenchidas, mas nada neste processo fala com ele, "
+        + "então o link de redefinição iria para o log do servidor em vez da "
+        + "caixa de entrada de quem pediu. Ligue com EMAIL_ATIVO=sim, ou "
+        + "desligue a recuperação com RECUPERACAO_ATIVA=nao.",
       );
     }
     if (c.ORIGENS_PERMITIDAS.includes("*")) {

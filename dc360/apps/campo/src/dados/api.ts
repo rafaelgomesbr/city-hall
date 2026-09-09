@@ -164,6 +164,20 @@ export type Identidade = {
   /** Sai impressa em todo documento que o agente assina. Ver migração 013. */
   matricula: string;
   papel: Papel;
+  /**
+   * O município da sessão, e ele NÃO é para a tela: nenhuma tela mostra UUID.
+   *
+   * Ele existe porque é a terceira barreira contra o aviso de push de outro
+   * município (ver `push/aviso.ts`). A ficha de push é única por APARELHO
+   * FÍSICO e a unicidade no banco é por município, então a mesma ficha pode
+   * ficar viva em duas prefeituras e um aviso da A pode alcançar um aparelho
+   * logado na B. Comparar este campo com o `organizacaoId` do aviso é o que
+   * fecha esse buraco, e sem ele o aplicativo não tem como fazer a comparação.
+   *
+   * Vem do token verificado no servidor, via resposta de `/auth/entrar`, e de
+   * lugar nenhum mais.
+   */
+  organizacaoId: string;
   organizacaoNome: string;
   municipio: string;
   uf: string;
@@ -179,6 +193,7 @@ export async function entrar(
     acesso: string; renovacao: string;
     usuario: {
       id: string; nome: string; matricula: string; papel: Papel;
+      organizacaoId: string;
       organizacaoNome: string; municipio: string; uf: string;
     };
   }>("/auth/entrar", { metodo: "POST", corpo: { email, senha } });
@@ -190,6 +205,7 @@ export async function entrar(
       nome: r.usuario.nome,
       matricula: r.usuario.matricula,
       papel: r.usuario.papel,
+      organizacaoId: r.usuario.organizacaoId,
       organizacaoNome: r.usuario.organizacaoNome,
       municipio: r.usuario.municipio,
       uf: r.usuario.uf,
@@ -204,9 +220,72 @@ export async function renovar(renovacao: string): Promise<Credenciais> {
   return { acesso: r.acesso, renovacao: r.renovacao };
 }
 
-/** Revoga no servidor. Esquecer o token só do lado de cá deixaria a sessão viva. */
-export async function sair(renovacao: string): Promise<void> {
-  await chamar("/auth/sair", { metodo: "POST", corpo: { renovacao } }).catch(() => undefined);
+/**
+ * Revoga no servidor. Esquecer o token só do lado de cá deixaria a sessão viva.
+ *
+ * A FICHA VAI JUNTO, e mandá-la é obrigação do aplicativo, não gentileza. A
+ * rota `/auth/sair` cala a notificação daquele telefone quando recebe a ficha,
+ * e não tem como descobri-la sozinha: ela conhece a sessão, e a sessão não sabe
+ * de qual dos aparelhos daquela pessoa o pedido está vindo.
+ *
+ * Sem isto, o aparelho de quem saiu continua recebendo tarefa de uma equipe da
+ * qual ele não faz mais parte. Num telefone de plantão que passa de turno em
+ * turno, isso é vazamento de dado operacional: o agente do turno da noite
+ * recebe, na tela bloqueada, o aviso de prazo da equipe do turno da manhã.
+ *
+ * Ela é opcional no tipo porque o aparelho pode legitimamente não ter ficha
+ * (permissão negada, build sem push). Nesse caso não há o que calar.
+ */
+export async function sair(renovacao: string, ficha?: string | null): Promise<void> {
+  await chamar("/auth/sair", {
+    metodo: "POST",
+    corpo: ficha ? { renovacao, ficha } : { renovacao },
+  }).catch(() => undefined);
+}
+
+/* ========================================================================
+   O aparelho que recebe notificação
+   ======================================================================== */
+
+export type PlataformaDoAparelho = "ios" | "android";
+
+/**
+ * Registra, ou atualiza, a ficha de push deste aparelho.
+ *
+ * Reenviar a mesma ficha ATUALIZA e não duplica (a rota tem `ON CONFLICT`), e é
+ * por isso que o aplicativo pode chamar isto a cada entrada sem medo: é assim
+ * que ele descobre que a ficha mudou, e é assim que o telefone de plantão que
+ * trocou de mão passa a receber a tarefa da equipe de quem está com ele agora.
+ *
+ * O município e o usuário NÃO viajam aqui. Eles saem do token verificado, no
+ * servidor. Mandar qualquer um dos dois no corpo seria oferecer ao aplicativo
+ * um jeito de registrar aparelho no nome de outra pessoa.
+ */
+export async function registrarAparelho(
+  token: string,
+  plataforma: PlataformaDoAparelho,
+  ficha: string,
+): Promise<void> {
+  // Teto de conforto: falhar aqui não perde trabalho nenhum, só adia o aviso
+  // até a próxima entrada. Ver `TEMPO_LIMITE_CONFORTO_MS`.
+  await chamar<{ id: string; registrado: boolean }>("/aparelhos", {
+    token, metodo: "POST", corpo: { plataforma, ficha },
+    tempoLimiteMs: TEMPO_LIMITE_CONFORTO_MS,
+  });
+}
+
+/**
+ * Para de receber neste aparelho, sem encerrar a sessão.
+ *
+ * Serve ao caso em que a pessoa desliga os avisos por escolha, e não por sair
+ * da conta. Responde 204 mesmo quando não havia nada registrado, de propósito:
+ * ver o comentário da rota.
+ */
+export async function revogarAparelho(token: string, ficha: string): Promise<void> {
+  await chamar("/aparelhos/revogar", {
+    token, metodo: "POST", corpo: { ficha },
+    tempoLimiteMs: TEMPO_LIMITE_CONFORTO_MS,
+  });
 }
 
 /* ========================================================================
@@ -234,6 +313,20 @@ export type Pendencia = {
 };
 
 /**
+ * Um órgão do catálogo do município, como ele desce para o aparelho.
+ *
+ * Enxuto de propósito: a tela de vistoria precisa mostrar o nome e devolver o
+ * id, e mais nada. O email e o telefone do órgão ficam no servidor, que é quem
+ * emite ofício, e trazê-los para cá espalharia contato oficial por dezenas de
+ * aparelhos que passam de turno em turno sem nenhuma serventia em campo.
+ */
+export type OrgaoDoCatalogo = {
+  id: string;
+  nome: string;
+  sigla: string | null;
+};
+
+/**
  * As ocorrências despachadas para a equipe do agente.
  *
  * É esta chamada que precisa acontecer ANTES de subir o morro. O que ela
@@ -246,6 +339,19 @@ export type ListaDePendencias = {
   teto: number;
   /** Havia mais do que coube. */
   truncada: boolean;
+  /**
+   * O catálogo de órgãos do município, ou `null` quando o servidor não disse.
+   *
+   * `null` e lista vazia são coisas DIFERENTES, e confundir as duas apaga
+   * cadastro bom. `null` é servidor que ainda não manda o campo: o aparelho
+   * mantém o catálogo que já tem. Lista vazia é o município dizendo que não
+   * cadastrou órgão nenhum, e aí o disco passa a refletir isso.
+   *
+   * Sem a distinção, toda sincronização contra um servidor antigo apagaria o
+   * catálogo do aparelho, e o agente perderia a lista justamente por ter
+   * sincronizado, que é o oposto do que sincronizar significa.
+   */
+  orgaos: OrgaoDoCatalogo[] | null;
 };
 
 export async function baixarPendencias(token: string): Promise<ListaDePendencias> {
@@ -263,13 +369,24 @@ export async function baixarPendencias(token: string): Promise<ListaDePendencias
     antigo, que ainda não manda os dois campos, se comporta como antes em vez de
     fazer a tela mentir para o outro lado.
   */
-  const r = await chamar<{ itens: Pendencia[]; teto?: number; truncada?: boolean }>(
-    "/sincronizacao/pendencias", { token },
-  );
+  const r = await chamar<{
+    itens: Pendencia[]; teto?: number; truncada?: boolean;
+    orgaos?: OrgaoDoCatalogo[];
+  }>("/sincronizacao/pendencias", { token });
   return {
     itens: r.itens,
     teto: r.teto ?? r.itens.length,
     truncada: r.truncada ?? false,
+    /*
+      O catálogo viaja JUNTO com as tarefas, e não numa chamada própria.
+
+      Uma segunda chamada teria uma segunda chance de falhar, e ela falharia
+      exatamente onde não pode: o aparelho que baixou a lista de manhã e não
+      baixou o catálogo sobe o morro com um item obrigatório do checklist sem
+      resposta possível. Na mesma resposta, ou vêm os dois, ou não veio nada e o
+      disco continua como estava.
+    */
+    orgaos: r.orgaos ?? null,
   };
 }
 

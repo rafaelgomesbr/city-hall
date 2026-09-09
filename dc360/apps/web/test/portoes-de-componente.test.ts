@@ -516,6 +516,20 @@ describe("Portões de componente", () => {
       gravacao: 'await atualizarEquipe(sessao, e.id, e.nome, e.especialidade ?? "", !e.ativa)',
       porque: "tira do despacho uma equipe que pode estar em atendimento agora",
     },
+    {
+      arquivo: "paginas/Orgaos.tsx",
+      componente: "Orgaos",
+      gravacao: "await desativarOrgao(sessao, alvo.id, conferido.motivo)",
+      porque: "tira da lista de destinos um órgão que pode ter providência sem resposta agora, "
+        + "e o motivo digitado entra numa trilha que não tem policy de UPDATE nem de DELETE",
+    },
+    {
+      arquivo: "paginas/Ocorrencia.tsx",
+      componente: "CartaoOficios",
+      gravacao: "await enviarOficio(sessao, oficio.id)",
+      porque: "coloca um endereço de uso único para o dossiê de uma família dentro da caixa de "
+        + "entrada de outro órgão, e email enviado não se recolhe",
+    },
   ];
 
   it("todo ato irreversível pergunta antes, e quem grava é quem a janela chama", () => {

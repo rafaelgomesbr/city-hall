@@ -68,6 +68,9 @@ jest.mock("../dados/mapa", () => ({ abrirNoMapa: jest.fn() }));
 let mockOcorrencia: Pendencia;
 jest.mock("../dados/pendencias", () => ({
   pendenciaGuardada: async () => mockOcorrencia,
+  /* Aparelho que nunca sincronizou: catálogo vazio. A tela precisa abrir e
+     concluir assim mesmo, e é o campo livre que garante isso. */
+  orgaosGuardados: async () => [],
 }));
 
 /*
@@ -100,7 +103,7 @@ jest.mock("../dados/rascunho", () => ({
   descartarRascunho: (id: string) => mockDescartarRascunho(id),
   rascunhoNovo: (ocorrenciaId: string, protocolo: string, idempotencyKey: string) => ({
     ocorrenciaId, protocolo, idempotencyKey,
-    checklist: {}, fotos: [], gpsPrecisaoMetros: null, coordenada: null,
+    checklist: {}, orgaosParaAcionar: [], fotos: [], gpsPrecisaoMetros: null, coordenada: null,
     assinanteNome: "", assinaturaUri: null, observacoes: "", pessoas: {},
     coletadaEm: "2026-09-09T12:00:00.000Z",
     atualizadoEm: "2026-09-09T12:00:00.000Z",
@@ -152,6 +155,13 @@ function rascunhoPronto(): Rascunho {
     protocolo: "2026/000123",
     idempotencyKey: "chave-da-coleta",
     checklist,
+    /*
+      O checklist acima responde SIM a tudo, inclusive a "necessário acionar
+      outro órgão", e desde 09/09/2026 esse sim pede o nome de quem acionar. Sem
+      esta linha o rascunho não é mais "pronto": a conclusão fica barrada, e
+      estes casos passariam a provar outra coisa.
+    */
+    orgaosParaAcionar: [{ orgaoId: null, nome: "Concessionária de energia" }],
     fotos: [{
       idempotencyKey: "foto-1",
       uriLocal: "file:///foto-1.jpg",

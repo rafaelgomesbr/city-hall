@@ -174,6 +174,29 @@ export function IconePrancheta({ tamanho = 18, titulo }: Props) {
   );
 }
 
+/** Sino: o que aconteceu enquanto a pessoa olhava outra tela. */
+export function IconeSino({ tamanho = 18, titulo }: Props) {
+  return (
+    <svg {...base(tamanho, titulo)}>
+      {titulo && <title>{titulo}</title>}
+      <path d="M18 8a6 6 0 1 0-12 0c0 5-2 6-2 6h16s-2-1-2-6Z" />
+      <path d="M10.3 19a2 2 0 0 0 3.4 0" />
+    </svg>
+  );
+}
+
+/** Prédio: o órgão de destino do catálogo do município. */
+export function IconePredio({ tamanho = 18, titulo }: Props) {
+  return (
+    <svg {...base(tamanho, titulo)}>
+      {titulo && <title>{titulo}</title>}
+      <path d="M4 21V6a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v15" />
+      <path d="M14 10h5a1 1 0 0 1 1 1v10" />
+      <path d="M7 9h4M7 13h4M7 17h4M17 14h1M17 18h1M2 21h20" />
+    </svg>
+  );
+}
+
 export function IconeEscudo({ tamanho = 18, titulo }: Props) {
   return (
     <svg {...base(tamanho, titulo)}>

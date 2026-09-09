@@ -15,6 +15,9 @@ import { rotasAdministracao } from "./rotas/administracao.js";
 import { rotasSincronizacao } from "./rotas/sincronizacao.js";
 import { rotasCampo } from "./rotas/campo.js";
 import { rotasAparelhos } from "./rotas/aparelhos.js";
+import { rotasAvisos } from "./rotas/avisos.js";
+import { rotasOrgaos } from "./rotas/orgaos.js";
+import { rotasOficios, rotasOficioPublico } from "./rotas/oficios.js";
 import { rotasInteresse } from "./rotas/interesse.js";
 import { rotasEvidencias } from "./rotas/evidencias.js";
 import { rotasDocumentos } from "./rotas/documentos.js";
@@ -353,9 +356,38 @@ export async function construirServidor(
   // padrão, as rotas existem e recusam, em vez de sumirem: uma rota ausente
   // responde 404, que o aplicativo leria como "versão velha do servidor".
   await app.register(rotasAparelhos, { prefix: "/aparelhos", banco, config });
+  // O sino do painel. Não depende de `PUSH_ATIVO`: ele é o canal de quem está
+  // na frente do computador, e existe mesmo num município que nunca ligou
+  // notificação em telefone nenhum.
+  await app.register(rotasAvisos, { prefix: "/avisos", banco });
+  // O catálogo de destinos de providência. A leitura é aberta a qualquer conta
+  // autenticada porque o formulário de providência precisa da lista; escrever
+  // exige `gerenciar_equipes`. Ver `rotas/orgaos.ts`.
+  await app.register(rotasOrgaos, { prefix: "/orgaos", banco });
+  /*
+    O ofício numerado e o envio por email. O envio recusa com `EMAIL_ATIVO=nao`,
+    que é o padrão, em vez de a rota sumir: rota ausente responde 404, e o
+    painel leria isso como "versão velha do servidor" em vez de "o município
+    ainda não ligou o envio".
+  */
+  await app.register(rotasOficios, {
+    prefix: "/oficios", banco, config, notificador,
+    ...(config.MARCA_DAGUA ? { marcaDagua: config.MARCA_DAGUA } : {}),
+  });
   // Única rota de escrita sem autenticação do produto. Ela grava pedido de
   // contato e NÃO cria município: provisionar continua por linha de comando.
   await app.register(rotasInteresse, { prefix: "/publico", banco });
+  /*
+    A ÚNICA rota de leitura sem autenticação que devolve dado de município, e
+    ela é assim de propósito: quem abre o ofício é uma pessoa do órgão
+    destinatário, sem conta no sistema. O que a protege não é token, é um
+    segredo de 32 bytes que só existe dentro do email enviado, que expira, que
+    abre uma vez só e cuja abertura fica registrada. Ver `rotas/oficios.ts`.
+  */
+  await app.register(rotasOficioPublico, {
+    prefix: "/publico", banco,
+    ...(config.MARCA_DAGUA ? { marcaDagua: config.MARCA_DAGUA } : {}),
+  });
   await app.register(rotasPrestacaoDeContas, { prefix: "/", banco });
   await app.register(rotasEvidencias, { prefix: "/evidencias", banco, armazenamento });
   await app.register(rotasDocumentos, {

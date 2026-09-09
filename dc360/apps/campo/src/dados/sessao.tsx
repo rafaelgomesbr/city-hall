@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import * as SecureStore from "expo-secure-store";
 import { entrar as entrarNaApi, renovar, sair as sairDaApi, type Credenciais, type Identidade } from "./api";
 import { apagarDadosLocais } from "./banco-local";
+import { esquecerFicha, fichaGuardada } from "../push/ficha-do-aparelho";
 import { criarObtentorDeToken } from "./token";
 
 /**
@@ -132,6 +133,19 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
       o que importa para a segurança, mas não pode ser condição para sair.
     */
     const atual = credenciais.current;
+    /*
+      A ficha é lida ANTES de qualquer apagamento, e mandá-la ao servidor é
+      OBRIGAÇÃO do aplicativo, não gentileza.
+
+      `/auth/sair` cala a notificação daquele telefone quando recebe a ficha, e
+      não tem como descobri-la sozinho: o servidor conhece a sessão, e a sessão
+      não sabe de qual dos aparelhos daquela pessoa o pedido veio. Sem esta
+      linha, o aparelho de quem saiu continua recebendo tarefa de uma equipe da
+      qual ele não faz mais parte, e num telefone de plantão que passa de turno
+      em turno isso é vazamento de dado operacional: o agente da noite lê, na
+      tela bloqueada, o aviso de prazo da equipe da manhã.
+    */
+    const ficha = await fichaGuardada();
     credenciais.current = null;
     setIdentidade(null);
     await Promise.all([
@@ -145,7 +159,14 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
       */
       apagarDadosLocais(),
     ]);
-    if (atual) await sairDaApi(atual.renovacao);
+    if (atual) await sairDaApi(atual.renovacao, ficha);
+    /*
+      Esquece a ficha DEPOIS de usá-la. Ela continua sendo do aparelho, mas o
+      direito de apresentá-la ao servidor era da sessão que acabou; quem entrar
+      depois pede a sua ao sistema e registra de novo, e é esse registro que
+      carimba a linha com o usuário certo.
+    */
+    await esquecerFicha();
   }, []);
 
   const valor = useMemo<EstadoSessao>(

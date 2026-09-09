@@ -7,13 +7,18 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { File } from "expo-file-system";
 import Svg, { Circle, Path } from "react-native-svg";
 import {
-  CAMPOS_PESSOAS, CHECKLIST_OBRIGATORIO, CHECKLIST_VISTORIA, ROTULO_TIPO_COBRADE,
+  CAMPOS_PESSOAS, CHAVE_ACIONAR_ORGAO, CHECKLIST_OBRIGATORIO, CHECKLIST_VISTORIA,
+  ROTULO_TIPO_COBRADE,
   montarMinuta,
   type EnvelopeSincronizacao, type PessoasAtingidas,
 } from "@dc360/shared";
 import type { ColetaLocal, FotoLocal } from "@dc360/campo";
-import { enderecoDaApi, type Pendencia } from "../../../dados/api";
-import { pendenciaGuardada } from "../../../dados/pendencias";
+import {
+  SemSinal, enderecoDaApi, type OrgaoDoCatalogo, type Pendencia,
+} from "../../../dados/api";
+import {
+  atualizarPendencias, orgaosGuardados, pendenciaGuardada,
+} from "../../../dados/pendencias";
 import { arquivarColeta, coletaDe, marcarColetada } from "../../../dados/coletas";
 import { obterFila } from "../../../dados/fila";
 import { abrirNoMapa } from "../../../dados/mapa";
@@ -24,10 +29,11 @@ import { useSessao } from "../../../dados/sessao";
 import { Assinatura } from "../../../ui/Assinatura";
 import { MinutaDoLaudo } from "../../../ui/MinutaDoLaudo";
 import {
-  Aviso, Botao, Cartao, Carregando, Selo, SeloSeveridade, Separador, Txt, useTema,
+  Aviso, Botao, Cartao, Carregando, Selo, SeloSeveridade, Separador, Txt, Vazio, useTema,
 } from "../../../ui/componentes";
 import { Chip } from "../../../ui/Chip";
 import { Dialogo } from "../../../ui/Dialogo";
+import { OrgaosParaAcionar } from "../../../ui/OrgaosParaAcionar";
 import { espaco, fonte, raio, toque } from "../../../ui/tokens";
 import {
   concluirColetaEmOrdem, dataDoPrazo, decidirAberturaDaVistoria, faltaParaConcluir, quantoFalta,
@@ -106,8 +112,28 @@ export default function TelaDeVistoria() {
    * nenhum: mostra o aviso e as duas saidas. Ver `decidirAberturaDaVistoria`.
    */
   const [jaColetada, setJaColetada] = useState<ColetaLocal | null>(null);
+  /**
+   * O catálogo de órgãos do município, lido do DISCO ao abrir a tela.
+   *
+   * Estado, e não leitura na hora de desenhar: a tela é redesenhada a cada toque
+   * do checklist, e uma consulta ao SQLite por renderização disputaria o banco
+   * com a gravação do rascunho, que é a escrita que não pode falhar aqui.
+   *
+   * Começa vazio e assim permanece no aparelho que nunca sincronizou. Isso é
+   * previsto: o campo livre da seleção conclui a vistoria sozinho.
+   */
+  const [catalogoDeOrgaos, setCatalogoDeOrgaos] = useState<OrgaoDoCatalogo[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  /**
+   * A tarefa existe no servidor e ainda não chegou a este aparelho.
+   *
+   * Estado próprio, e não uma frase dentro de `erro`, porque as duas coisas
+   * pedem telas diferentes: erro mostra tarja vermelha e não oferece saída,
+   * enquanto isto aqui é ordem de chegada e tem conserto de um toque.
+   */
+  const [faltaBaixar, setFaltaBaixar] = useState(false);
+  const [baixando, setBaixando] = useState(false);
   const [concluindo, setConcluindo] = useState(false);
 
   const [permissaoCamera, pedirCamera] = useCameraPermissions();
@@ -125,6 +151,14 @@ export default function TelaDeVistoria() {
   */
   const [avisandoQueGuardou, setAvisandoQueGuardou] = useState(false);
   const [perguntandoNovaVistoria, setPerguntandoNovaVistoria] = useState(false);
+  /*
+    Trocar a resposta para "não" APAGA os órgãos que o agente já indicou, e por
+    isso passa por pergunta. Não é zelo: a lista precisa mesmo sair (uma coleta
+    que diz "não é necessário acionar ninguém" e lista três órgãos é uma
+    contradição que o servidor recusa), e apagar em silêncio um nome digitado à
+    mão é perder trabalho por causa de um toque errado numa tela pequena.
+  */
+  const [perguntandoDescartarOrgaos, setPerguntandoDescartarOrgaos] = useState(false);
   /** Enquanto true, o ScrollView desta tela nao rola: o dedo esta assinando. */
   const [desenhando, setDesenhando] = useState(false);
   const cameraRef = useRef<CameraView>(null);
@@ -144,17 +178,29 @@ export default function TelaDeVistoria() {
     return () => { clearInterval(t); };
   }, []);
 
-  useEffect(() => {
-    void (async () => {
+  const carregarDoDisco = useCallback(async () => {
+    {
       const alvo = await pendenciaGuardada(id);
       if (!alvo) {
-        setErro(
-          "Esta ocorrência não está guardada neste aparelho. Volte, conecte-se " +
-          "e baixe as tarefas de novo.",
-        );
+        /*
+          Não é erro, é ORDEM DE CHEGADA, e a diferença muda o que a tela diz.
+
+          Este caminho ficou muito mais comum depois que tocar na notificação
+          passou a abrir a tarefa: o aviso de push chega no segundo em que a
+          coordenação despacha, e a lista de tarefas deste aparelho só é
+          reescrita na próxima atualização. Entre um instante e outro a
+          ocorrência existe no servidor e não existe no disco, e isso é o
+          sistema funcionando, não falhando.
+
+          A tela anterior dizia "Esta ocorrência não está guardada neste
+          aparelho", em tarja vermelha, o que soa a defeito e não sugere ação
+          nenhuma. Agora ela nomeia a causa e oferece o botão que resolve.
+        */
+        setFaltaBaixar(true);
         setCarregando(false);
         return;
       }
+      setFaltaBaixar(false);
       setOcorrencia(alvo);
       navegacao.setOptions({ title: alvo.protocolo });
 
@@ -173,7 +219,15 @@ export default function TelaDeVistoria() {
         obedece: quando a resposta e `ja_coletada`, nenhum rascunho e criado,
         porque criar rascunho e exatamente o que produz a segunda vistoria.
       */
-      const [guardado, lapide] = await Promise.all([lerRascunho(id), coletaDe(id)]);
+      /*
+        O catálogo desce do DISCO junto com a tarefa, e nunca da rede: esta tela
+        não faz chamada nenhuma, porque tentar e falhar no alto do morro gasta
+        bateria e ensina o agente a desconfiar de uma coleta que está guardada.
+      */
+      const [guardado, lapide, orgaos] = await Promise.all([
+        lerRascunho(id), coletaDe(id), orgaosGuardados(),
+      ]);
+      setCatalogoDeOrgaos(orgaos);
       const decisao = decidirAberturaDaVistoria({ rascunho: guardado, coleta: lapide });
       if (decisao === "ja_coletada") {
         setJaColetada(lapide);
@@ -184,8 +238,40 @@ export default function TelaDeVistoria() {
         guardado ?? rascunhoNovo(id, alvo.protocolo, Crypto.randomUUID()),
       );
       setCarregando(false);
-    })();
+    }
   }, [id, navegacao]);
+
+  useEffect(() => { void carregarDoDisco(); }, [carregarDoDisco]);
+
+  /**
+   * Busca a lista de tarefas e tenta abrir de novo.
+   *
+   * É a única ida à rede desta tela, e ela só existe neste estado: a tela de
+   * coleta continua sem tocar na rede, porque tentar e falhar no alto do morro
+   * gasta bateria e ensina o agente a desconfiar de uma coleta que está
+   * perfeitamente guardada. Aqui a rede é o ponto: sem ela não há o que abrir.
+   */
+  const baixarEAbrir = useCallback(async () => {
+    setBaixando(true);
+    setErro(null);
+    try {
+      const token = await obterToken();
+      if (!token) {
+        setErro("A sua sessão expirou. Entre de novo para baixar as tarefas.");
+        return;
+      }
+      await atualizarPendencias(token);
+      await carregarDoDisco();
+    } catch (e: unknown) {
+      setErro(
+        e instanceof SemSinal
+          ? "Sem sinal para baixar a lista agora. Procure sinal e tente de novo."
+          : "Não deu para baixar a lista agora. Tente de novo em alguns minutos.",
+      );
+    } finally {
+      setBaixando(false);
+    }
+  }, [obterToken, carregarDoDisco]);
 
   /**
    * Toda mudança passa por aqui, e toda mudança grava.
@@ -389,6 +475,19 @@ export default function TelaDeVistoria() {
             preencher agora seria inventar chave que não existe.
           */
           fotos: [],
+          /*
+            A lista só viaja quando a resposta foi SIM.
+
+            Mandar uma lista com o item respondido "não" é contradição dentro do
+            mesmo documento, e o servidor recusa (ver `vistoriaSchema`). O
+            caminho normal já limpa a lista ao trocar a resposta; isto é o
+            segundo fecho, para que um rascunho gravado num estado intermediário
+            de uma versão anterior não vire coleta bloqueada na fila.
+          */
+          ...(rascunho.checklist[CHAVE_ACIONAR_ORGAO] === true
+              && rascunho.orgaosParaAcionar.length > 0
+            ? { orgaosParaAcionar: rascunho.orgaosParaAcionar }
+            : {}),
           gpsPrecisaoMetros: rascunho.gpsPrecisaoMetros,
           assinanteNome: rascunho.assinanteNome.trim(),
           // A chave do traço é resolvida pela fila, junto com as fotos: aqui
@@ -469,6 +568,47 @@ export default function TelaDeVistoria() {
   }
 
   if (carregando) return <Carregando mensagem="Abrindo a vistoria" />;
+
+  /*
+    A tarefa ainda não desceu para este aparelho.
+
+    Tela inteira, e não uma tarja: o agente chegou aqui tocando numa
+    notificação, então ele TEM sinal neste instante, e a coisa mais provável de
+    ele querer é justamente baixar. A frase nomeia a causa (a lista é mais
+    velha que o despacho) porque "não está guardada neste aparelho" sugere
+    defeito, e defeito é o que faz o agente ligar para a coordenação em vez de
+    tocar no botão que resolve.
+
+    Vem ANTES da checagem de erro para que uma falha de rede na tentativa
+    anterior não substitua esta tela pela tarja vermelha: o aviso da falha entra
+    aqui dentro, ao lado do botão de tentar de novo.
+  */
+  if (faltaBaixar) {
+    return (
+      <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}>
+        <Vazio
+          titulo="Esta tarefa ainda não está neste aparelho"
+          descricao={
+            "Ela foi despachada depois da última vez que você baixou a lista. "
+            + "Com sinal, baixe agora e ela abre em seguida."
+          }
+        />
+        {erro && <Aviso tom="alerta">{erro}</Aviso>}
+        <Botao
+          titulo="Baixar tarefas agora"
+          onPress={() => void baixarEAbrir()}
+          carregando={baixando}
+          testID="baixar-para-abrir"
+        />
+        <Botao
+          titulo="Voltar para as tarefas"
+          tipo="secundario"
+          onPress={() => { router.back(); }}
+        />
+      </ScrollView>
+    );
+  }
+
   if (erro && !ocorrencia) return <View style={{ padding: espaco.e4 }}><Aviso tom="perigo">{erro}</Aviso></View>;
 
   /*
@@ -622,6 +762,7 @@ export default function TelaDeVistoria() {
   const faltas = faltaParaConcluir(
     {
       checklist: rascunho.checklist,
+      orgaosParaAcionar: rascunho.orgaosParaAcionar,
       quantasFotos: rascunho.fotos.length,
       assinanteNome: rascunho.assinanteNome,
       assinaturaUri: rascunho.assinaturaUri ?? null,
@@ -678,6 +819,13 @@ export default function TelaDeVistoria() {
         agenteNome: identidade?.nome ?? "não identificado",
         agenteMatricula: identidade?.matricula ?? "não informada",
         pessoas: contagensDoRascunho(rascunho.pessoas),
+        /*
+          Os órgãos entram na minuta que o agente lê em voz alta na porta da
+          casa, e não só no envelope. É ali que quem está presente ouve "vamos
+          acionar a concessionária de energia" e corrige se estiver errado, que é
+          a única chance de corrigir antes de o laudo virar documento.
+        */
+        orgaosParaAcionar: rascunho.orgaosParaAcionar,
       },
       quantasFotos: rascunho.fotos.length,
     });
@@ -930,9 +1078,27 @@ export default function TelaDeVistoria() {
                   return (
                     <Pressable
                       key={opcao.rotulo}
-                      onPress={() => void alterar({
-                        checklist: { ...rascunho.checklist, [item.chave]: opcao.valor },
-                      })}
+                      onPress={() => {
+                        /*
+                          Responder "não" depois de ter indicado órgãos apaga a
+                          indicação, e apagar em silêncio o nome que alguém
+                          digitou à mão é perder trabalho por um toque errado
+                          numa tela pequena. A lista precisa mesmo sair: coleta
+                          que diz "não é necessário acionar ninguém" e lista três
+                          órgãos é contradição que o servidor recusa.
+                        */
+                        if (
+                          item.chave === CHAVE_ACIONAR_ORGAO
+                          && opcao.valor === false
+                          && rascunho.orgaosParaAcionar.length > 0
+                        ) {
+                          setPerguntandoDescartarOrgaos(true);
+                          return;
+                        }
+                        void alterar({
+                          checklist: { ...rascunho.checklist, [item.chave]: opcao.valor },
+                        });
+                      }}
                       accessibilityRole="radio"
                       accessibilityState={{ checked: marcada }}
                       accessibilityLabel={`${item.rotulo}: ${opcao.rotulo}`}
@@ -958,11 +1124,50 @@ export default function TelaDeVistoria() {
                   );
                 })}
               </View>
+
+              {/*
+                O desdobramento nasce COLADO no item que o produziu, e não numa
+                seção separada do formulário.
+
+                Longe dali, ele seria mais um cartão no meio de um rolamento
+                longo, e o agente que respondeu "sim" desceria a tela sem ver a
+                pergunta que a resposta dele abriu. A conclusão travaria depois,
+                lá embaixo, dizendo que falta uma coisa que está trezentos pixels
+                acima.
+              */}
+              {item.chave === CHAVE_ACIONAR_ORGAO && resposta === true && (
+                <OrgaosParaAcionar
+                  catalogo={catalogoDeOrgaos}
+                  escolhidos={rascunho.orgaosParaAcionar}
+                  aoMudar={(lista) => void alterar({ orgaosParaAcionar: lista })}
+                />
+              )}
               <Separador />
             </View>
           );
         })}
       </Cartao>
+
+      <Dialogo
+        aberto={perguntandoDescartarOrgaos}
+        titulo="Apagar os órgãos indicados?"
+        texto={
+          `Você indicou ${rascunho.orgaosParaAcionar.length === 1
+            ? "um órgão"
+            : `${rascunho.orgaosParaAcionar.length} órgãos`} para acionar. `
+          + "Responder que não é necessário acionar outro órgão apaga essa lista."
+        }
+        acao={{
+          rotulo: "Responder não e apagar a lista",
+          destrutiva: true,
+          aoTocar: () => void alterar({
+            checklist: { ...rascunho.checklist, [CHAVE_ACIONAR_ORGAO]: false },
+            orgaosParaAcionar: [],
+          }),
+        }}
+        recusa={{ rotulo: "Manter os órgãos que indiquei" }}
+        aoFechar={() => { setPerguntandoDescartarOrgaos(false); }}
+      />
 
       <Cartao titulo={`Fotografias (${rascunho.fotos.length})`}>
         {rascunho.fotos.length === 0 ? (

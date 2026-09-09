@@ -6,8 +6,10 @@ import { encerrarSessao } from "../dados/repositorio";
 import { iniciais } from "./comuns";
 import {
   IconeBusca, IconeDocumento, IconeEquipes, IconeLua, IconeMapa,
-  IconeOcorrencias, IconePainel, IconePrancheta, IconeSair, IconeSol, IconeUsuarios,
+  IconeOcorrencias, IconePainel, IconePrancheta, IconePredio, IconeSair,
+  IconeSol, IconeUsuarios,
 } from "./Icones";
+import { Sino } from "./Sino";
 
 /**
  * Estrutura fixa da aplicação: lateral de navegação, topo com busca e
@@ -45,6 +47,16 @@ const NAVEGACAO: ItemNav[] = [
   { para: "/mapa", rotulo: "Mapa da cidade", icone: <IconeMapa />, grupo: "Operação" },
   { para: "/equipes", rotulo: "Equipes", icone: <IconeEquipes />, grupo: "Administração",
     exige: "gerenciar_equipes" },
+  /*
+    O catálogo de órgãos fica atrás de `gerenciar_equipes`, e não de
+    `gerenciar_organizacao`, pela mesma razão que a rota do servidor: ele é
+    cadastro estrutural da operação, como a lista de equipes, e quem monta a
+    operação é a coordenação. Exigir administrador deixaria o coordenador
+    travado no meio de um encaminhamento urgente, esperando alguém aparecer
+    para cadastrar "Corpo de Bombeiros".
+  */
+  { para: "/orgaos", rotulo: "Órgãos de destino", icone: <IconePredio />,
+    grupo: "Administração", exige: "gerenciar_equipes" },
   { para: "/usuarios", rotulo: "Usuários", icone: <IconeUsuarios />, grupo: "Administração",
     exige: "gerenciar_usuarios" },
   { para: "/auditoria", rotulo: "Prestação de contas", icone: <IconeDocumento />,
@@ -154,6 +166,12 @@ export function Estrutura() {
         </form>
 
         <div className="topo__direita">
+          {/*
+            O sino fica ao lado da identidade, e não dentro do menu lateral,
+            porque ele precisa estar visível em toda tela: o coordenador olha
+            para cá sem sair do que está fazendo.
+          */}
+          <Sino />
           {/*
             A identidade era só um rótulo. Agora é o caminho para a própria
             conta, que é onde se troca a senha: quem recebe uma senha inicial

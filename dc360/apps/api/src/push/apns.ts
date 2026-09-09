@@ -131,10 +131,32 @@ export function criarProvedorApns(
         bloqueada. O detalhe vai ao lado, fora do `aps`, e é o que só o
         aplicativo lê. Ver `mensagem.ts` para por que a separação existe.
       */
+      /*
+        SOM SÓ PARA ALTA E CRÍTICA, e isso não é conforto.
+
+        Antes o som saía em toda notificação. Prazo de severidade baixa tocando
+        às três da manhã é como se ensina um agente a silenciar o aplicativo
+        inteiro nos ajustes do sistema, e a partir daí o aviso de severidade
+        crítica também não toca. O silêncio de uma notificação que não importa
+        custa atraso; o silêncio de todas custa a evacuação.
+
+        Ausência de severidade cai no silencioso de propósito: errar para o lado
+        do som é o erro que não tem volta.
+      */
+      const urgente = notificacao.dados.severidade === "alta"
+        || notificacao.dados.severidade === "critica";
+
       const corpo = JSON.stringify({
         aps: {
           alert: { title: notificacao.titulo, body: notificacao.corpo },
-          sound: "default",
+          ...(urgente ? { sound: "default" } : {}),
+          /*
+            `interruption-level` é o que faz a notificação furar o Foco e o Não
+            Perturbe do iOS. `time-sensitive` para o que é urgente, e o padrão
+            `active` para o resto. Sem isso, o agente com Foco ligado no plantão
+            noturno não vê o aviso de prazo crítico.
+          */
+          "interruption-level": urgente ? "time-sensitive" : "active",
         },
         ...notificacao.dados,
       });

@@ -11,6 +11,7 @@ import { Ocorrencia } from "./paginas/Ocorrencia";
 import { Ocorrencias } from "./paginas/Ocorrencias";
 import { Painel } from "./paginas/Painel";
 import { Usuarios } from "./paginas/Usuarios";
+import { Orgaos } from "./paginas/Orgaos";
 import { Auditoria } from "./paginas/Auditoria";
 import { Aviso } from "./componentes/comuns";
 import { MeuTrabalho } from "./paginas/MeuTrabalho";
@@ -96,6 +97,9 @@ export function App() {
         <Route path="/ocorrencias/:id" element={<Ocorrencia />} />
         <Route path="/mapa" element={<Mapa />} />
         <Route path="/equipes" element={<Exige acao="gerenciar_equipes"><Equipes /></Exige>} />
+        {/* Mesma permissão da rota do servidor: o catálogo é cadastro da
+            operação, e quem monta a operação é a coordenação. */}
+        <Route path="/orgaos" element={<Exige acao="gerenciar_equipes"><Orgaos /></Exige>} />
         <Route path="/usuarios" element={<Exige acao="gerenciar_usuarios"><Usuarios /></Exige>} />
         <Route path="/auditoria" element={<Exige acao="consultar_trilha"><Auditoria /></Exige>} />
       </Route>

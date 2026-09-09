@@ -360,10 +360,21 @@ describe("Funções privilegiadas", () => {
   it("existem, e são poucas o bastante para caberem numa revisão", async () => {
     const lista = await definidoras();
     expect(lista.length).toBeGreaterThan(0);
-    // Se este número disparar, alguém está resolvendo com privilégio o que
-    // deveria resolver com contexto de tenant.
+    /*
+      Se este número disparar, alguém está resolvendo com privilégio o que
+      deveria resolver com contexto de tenant.
+
+      Subiu de 12 para 13 em 09/09/2026, por `abrir_oficio` (migração 017), e a
+      razão é a mesma que já justifica `credenciais_para_login` e
+      `consumir_recuperacao`: quem clica no link de uso único do ofício é uma
+      pessoa do órgão destinatário, sem conta, sem token e sem município. Não
+      existe contexto de tenant a definir antes de descobrir de qual município
+      é o link, e o único caminho até essa organização é o hash do próprio
+      link. Levantar o teto por isso é diferente de levantá-lo para não
+      escrever o `SET LOCAL`, e é essa diferença que este caso guarda.
+    */
     expect(lista.length, `funções SECURITY DEFINER demais: ${lista.map((f) => f.nome).join(", ")}`)
-      .toBeLessThanOrEqual(12);
+      .toBeLessThanOrEqual(13);
   });
 
   it("toda função privilegiada fixa o search_path", async () => {
@@ -1005,6 +1016,820 @@ describe("Aparelho de push e aviso de prazo", () => {
         saida.rows[0]!.resultado,
         `a varredura passou a devolver ${proibido}, e isso sai do pais na notificacao`,
       ).not.toContain(proibido);
+    }
+  });
+});
+
+
+describe("Sino de avisos", () => {
+  /**
+   * A migracao 018 traz duas tabelas, e a segunda delas tem uma armadilha de
+   * isolamento que o RLS NAO pega sozinho.
+   *
+   * `avisos_lidos` aponta para `usuarios`. Integridade referencial roda por
+   * dentro, com os privilegios do dono das tabelas, e nao enxerga policy
+   * nenhuma. Com uma chave estrangeira simples para `usuarios(id)`, o banco
+   * aceitaria gravar "o servidor tal, de Vale Fundo, leu o aviso tal, de Serra
+   * Alta": a linha ficaria carimbada com a organizacao de Serra Alta, o RLS
+   * acharia tudo em ordem, e nenhuma consulta do produto teria como acusar.
+   * Por isso a chave e composta, e por isso ela tem caso proprio aqui.
+   */
+  let coordenadorDeA: string;
+  let coordenadorDeB: string;
+  let avisoDeA: string;
+  let avisoDeB: string;
+  let ocorrenciaDeA: string;
+
+  beforeAll(async () => {
+    const uA = await db.query<{ id: string }>(
+      `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
+       VALUES ($1,'Coordenadora de Serra Alta','SA-SINO-1','sino.sa@exemplo.gov.br','coordenador')
+       RETURNING id`,
+      [orgA],
+    );
+    coordenadorDeA = uA.rows[0]!.id;
+
+    const uB = await db.query<{ id: string }>(
+      `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
+       VALUES ($1,'Coordenador de Vale Fundo','VF-SINO-1','sino.vf@exemplo.gov.br','coordenador')
+       RETURNING id`,
+      [orgB],
+    );
+    coordenadorDeB = uB.rows[0]!.id;
+
+    const oc = await db.query<{ id: string }>(
+      `INSERT INTO ocorrencias
+         (organizacao_id, protocolo, tipo, status, endereco, solicitante_nome,
+          canal_entrada, descricao)
+       VALUES ($1,'000920/2026','inundacao','em_campo','Rua do Sino, 10','Fulano',
+               'telefone','x')
+       RETURNING id`,
+      [orgA],
+    );
+    ocorrenciaDeA = oc.rows[0]!.id;
+
+    const aA = await db.query<{ id: string }>(
+      `INSERT INTO avisos (organizacao_id, tipo, ocorrencia_id, chave_do_fato)
+       VALUES ($1,'vistoria_recebida',$2,'vistoria:sino-a') RETURNING id`,
+      [orgA, ocorrenciaDeA],
+    );
+    avisoDeA = aA.rows[0]!.id;
+
+    const aB = await db.query<{ id: string }>(
+      `INSERT INTO avisos (organizacao_id, tipo, ocorrencia_id, chave_do_fato)
+       VALUES ($1,'vistoria_recebida',$2,'vistoria:sino-b') RETURNING id`,
+      [orgB, ocorrenciaDeB],
+    );
+    avisoDeB = aB.rows[0]!.id;
+  });
+
+  it("nao le o aviso de outro municipio", async () => {
+    const r = await comoApp(orgA, (tx) =>
+      tx.query("SELECT id FROM avisos WHERE id = $1", [avisoDeB]),
+    );
+    expect(
+      r.rows,
+      "o sino de um municipio mostrou o acontecimento de outro, com o protocolo "
+      + "vindo por juncao junto",
+    ).toHaveLength(0);
+  });
+
+  it("nao cria aviso carimbado com o id de outro municipio", async () => {
+    let recusou = false;
+    try {
+      await comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO avisos (organizacao_id, tipo, ocorrencia_id, chave_do_fato)
+           VALUES ($1,'vistoria_recebida',$2,'vistoria:invasao')`,
+          [orgB, ocorrenciaDeB],
+        ),
+      );
+    } catch {
+      recusou = true;
+    }
+    expect(recusou, "escreveu no sino de outra prefeitura").toBe(true);
+  });
+
+  it("nao cria aviso apontando para ocorrencia de outro municipio", async () => {
+    /*
+      O caso que a chave estrangeira COMPOSTA existe para fechar. Com uma
+      referencia simples a `ocorrencias(id)`, o INSERT passaria: o RLS
+      aprovaria a linha (a organizacao e a do contexto) e a verificacao da
+      chave, que roda por baixo do RLS, encontraria a ocorrencia da outra
+      prefeitura. A juncao da rota do sino traria o protocolo de la.
+    */
+    let recusou = false;
+    try {
+      await comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO avisos (organizacao_id, tipo, ocorrencia_id, chave_do_fato)
+           VALUES ($1,'vistoria_recebida',$2,'vistoria:atravessa')`,
+          [orgA, ocorrenciaDeB],
+        ),
+      );
+    } catch {
+      recusou = true;
+    }
+    expect(
+      recusou,
+      "criou aviso apontando para ocorrencia de outro municipio: o sino passaria "
+      + "a exibir o protocolo da prefeitura vizinha",
+    ).toBe(true);
+  });
+
+  it("nao registra leitura no nome de servidor de outro municipio", async () => {
+    /*
+      A armadilha descrita no topo deste bloco, e a razao de a chave para
+      `usuarios` ser (organizacao_id, id) e nao (id).
+    */
+    let recusou = false;
+    try {
+      await comoApp(orgA, (tx) =>
+        tx.query(
+          "INSERT INTO avisos_lidos (organizacao_id, usuario_id, aviso_id) VALUES ($1,$2,$3)",
+          [orgA, coordenadorDeB, avisoDeA],
+        ),
+      );
+    } catch {
+      recusou = true;
+    }
+    expect(
+      recusou,
+      "gravou que um servidor de outro municipio leu um aviso deste: a linha fica "
+      + "carimbada com a organizacao certa e o RLS nao tem como acusar",
+    ).toBe(true);
+  });
+
+  it("nao registra leitura de aviso de outro municipio", async () => {
+    let recusou = false;
+    try {
+      await comoApp(orgA, (tx) =>
+        tx.query(
+          "INSERT INTO avisos_lidos (organizacao_id, usuario_id, aviso_id) VALUES ($1,$2,$3)",
+          [orgA, coordenadorDeA, avisoDeB],
+        ),
+      );
+    } catch {
+      recusou = true;
+    }
+    expect(recusou, "marcou como lido um aviso da prefeitura vizinha").toBe(true);
+  });
+
+  it("nao le quem leu o que no outro municipio", async () => {
+    await db.query(
+      "INSERT INTO avisos_lidos (organizacao_id, usuario_id, aviso_id) VALUES ($1,$2,$3)",
+      [orgB, coordenadorDeB, avisoDeB],
+    );
+    const r = await comoApp(orgA, (tx) =>
+      tx.query("SELECT usuario_id FROM avisos_lidos WHERE aviso_id = $1", [avisoDeB]),
+    );
+    expect(
+      r.rows,
+      "leu quem da outra prefeitura leu o que, que e rotina de trabalho de "
+      + "servidor de outro municipio",
+    ).toHaveLength(0);
+  });
+
+  it("nao apaga aviso de outro municipio, nem o velho", async () => {
+    /*
+      `avisos` tem policy de DELETE, ao contrario da trilha, porque o expurgo
+      por idade precisa dela. Este caso garante que ela continua amarrada ao
+      contexto: um DELETE por idade rodando no municipio A nao pode levar junto
+      o historico do municipio B.
+    */
+    const velhoDeB = await db.query<{ id: string }>(
+      `INSERT INTO avisos (organizacao_id, tipo, ocorrencia_id, chave_do_fato, criado_em)
+       VALUES ($1,'vistoria_recebida',$2,'vistoria:velho-b', now() - interval '400 days')
+       RETURNING id`,
+      [orgB, ocorrenciaDeB],
+    );
+
+    await comoApp(orgA, (tx) =>
+      tx.query("DELETE FROM avisos WHERE criado_em < now() - interval '60 days'"),
+    );
+
+    const conf = await db.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM avisos WHERE id = $1",
+      [velhoDeB.rows[0]!.id],
+    );
+    expect(conf.rows[0]!.n, "o expurgo de um municipio apagou o sino do vizinho").toBe("1");
+  });
+
+  it("a retencao e do banco: nem o proprio municipio apaga aviso que ainda vale", async () => {
+    /*
+      A idade esta DENTRO da policy de DELETE, e nao so na clausula da rota.
+
+      A diferenca aparece no dia em que alguem escrever `DELETE FROM avisos`
+      sem clausula, ou com uma clausula errada: com a idade so na rota, esse
+      comando limparia o sino inteiro do municipio e ninguem descobriria, porque
+      sino vazio e indistinguivel de sino sem novidade. Com a idade na policy, o
+      banco recusa a parte que ainda vale e o resto do produto continua de pe.
+    */
+    await comoApp(orgA, (tx) => tx.query("DELETE FROM avisos"));
+
+    const conf = await db.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM avisos WHERE id = $1",
+      [avisoDeA],
+    );
+    expect(
+      conf.rows[0]!.n,
+      "um DELETE sem clausula limpou o sino do municipio inteiro: a regra de "
+      + "retencao so existia no codigo da rota",
+    ).toBe("1");
+  });
+
+  it("o expurgo por idade leva junto quem leu, em vez de travar", async () => {
+    /*
+      Com ON DELETE RESTRICT, o primeiro aviso que alguem lesse travaria a
+      limpeza inteira, e a tabela do sino voltaria a crescer para sempre, que e
+      justamente o defeito que a retencao existe para evitar.
+    */
+    const velho = await db.query<{ id: string }>(
+      `INSERT INTO avisos (organizacao_id, tipo, ocorrencia_id, chave_do_fato, criado_em)
+       VALUES ($1,'vistoria_recebida',$2,'vistoria:velho-a', now() - interval '400 days')
+       RETURNING id`,
+      [orgA, ocorrenciaDeA],
+    );
+    const idVelho = velho.rows[0]!.id;
+    await db.query(
+      "INSERT INTO avisos_lidos (organizacao_id, usuario_id, aviso_id) VALUES ($1,$2,$3)",
+      [orgA, coordenadorDeA, idVelho],
+    );
+
+    await comoApp(orgA, (tx) =>
+      tx.query("DELETE FROM avisos WHERE criado_em < now() - interval '60 days'"),
+    );
+
+    const sobrou = await db.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM avisos_lidos WHERE aviso_id = $1",
+      [idVelho],
+    );
+    expect(sobrou.rows[0]!.n, "sobrou marca de leitura orfa de aviso ja expurgado").toBe("0");
+  });
+
+  it("o mesmo fato nao vira dois avisos", async () => {
+    /*
+      A rota do sino materializa prazo vencido a cada consulta, e a consulta
+      roda a cada trinta segundos em toda aba aberta. Sem a unicidade por chave
+      do fato, o mesmo prazo viraria uma linha nova a cada meio minuto, para
+      sempre, e o sino ensinaria o coordenador a ignora-lo.
+    */
+    await comoApp(orgA, (tx) =>
+      tx.query(
+        `INSERT INTO avisos (organizacao_id, tipo, ocorrencia_id, chave_do_fato)
+         VALUES ($1,'prazo_vencido',$2,'prazo:repetido:1')`,
+        [orgA, ocorrenciaDeA],
+      ),
+    );
+    let recusou = false;
+    try {
+      await comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO avisos (organizacao_id, tipo, ocorrencia_id, chave_do_fato)
+           VALUES ($1,'prazo_vencido',$2,'prazo:repetido:1')`,
+          [orgA, ocorrenciaDeA],
+        ),
+      );
+    } catch {
+      recusou = true;
+    }
+    expect(recusou, "o mesmo fato virou dois avisos").toBe(true);
+
+    /*
+      E a chave e por MUNICIPIO: dois municipios podem viver o mesmo fato, com
+      a mesma chave, sem um denunciar a existencia do outro. Unicidade global
+      aqui faria o INSERT do segundo falhar, e a mensagem de erro do Postgres
+      contaria que aquela chave ja existe em algum lugar, que e o vazamento que
+      a migracao 016 descreve por extenso.
+    */
+    await comoApp(orgB, (tx) =>
+      tx.query(
+        `INSERT INTO avisos (organizacao_id, tipo, ocorrencia_id, chave_do_fato)
+         VALUES ($1,'prazo_vencido',$2,'prazo:repetido:1')`,
+        [orgB, ocorrenciaDeB],
+      ),
+    );
+  });
+
+  it("aviso nao se edita, e leitura nao se desfaz", async () => {
+    /*
+      Sem UPDATE nao ha como antedatar `criado_em` para fugir do expurgo, nem
+      trocar "prazo vencido" por outra coisa depois que alguem ja leu. E sem
+      UPDATE nem DELETE em `avisos_lidos`, ninguem apaga o proprio rastro de
+      ter sido avisado.
+    */
+    const naAvisos = await db.query<{ cmd: string }>(
+      "SELECT cmd FROM pg_policies WHERE schemaname='public' AND tablename='avisos'",
+    );
+    expect(naAvisos.rows.map((l) => l.cmd)).not.toContain("UPDATE");
+    expect(naAvisos.rows.map((l) => l.cmd)).not.toContain("ALL");
+
+    const nosLidos = await db.query<{ cmd: string }>(
+      "SELECT cmd FROM pg_policies WHERE schemaname='public' AND tablename='avisos_lidos' ORDER BY cmd",
+    );
+    expect(
+      nosLidos.rows.map((l) => l.cmd),
+      "avisos_lidos ganhou UPDATE ou DELETE: `lido_em` e a unica resposta para "
+      + '"a coordenacao viu esse aviso, e a que horas?"',
+    ).toEqual(["INSERT", "SELECT"]);
+  });
+
+  it("os gatilhos do sino nao sao privilegiados", async () => {
+    /*
+      Gatilho `SECURITY DEFINER` seria uma porta a mais na parede do RLS, e uma
+      porta que nem precisa existir: os dois rodam dentro da transacao de quem
+      escreveu a vistoria ou a resposta, que ja tem o municipio no contexto.
+      Sem privilegio, a policy de insercao de `avisos` continua valendo para
+      eles, e nenhum deles vira caminho para escrever aviso em municipio alheio.
+    */
+    const r = await db.query<{ nome: string; prosecdef: boolean }>(
+      `SELECT p.proname AS nome, p.prosecdef
+         FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public'
+          AND p.proname IN ('aviso_de_vistoria_recebida','aviso_de_providencia_respondida')`,
+    );
+    expect(r.rows, "os gatilhos do sino sumiram").toHaveLength(2);
+    for (const f of r.rows) {
+      expect(f.prosecdef, `${f.nome} virou SECURITY DEFINER sem precisar`).toBe(false);
+    }
+  });
+});
+
+describe("Catalogo de orgaos, oficio numerado e link de uso unico", () => {
+  /**
+   * A migracao 017 traz cinco tabelas, e cada uma responde por uma pergunta
+   * diferente do portao:
+   *
+   *   `orgaos`            o destino da providencia deixou de ser texto livre;
+   *   `oficio_sequencias` o numero do documento e por municipio e por ano;
+   *   `oficios`           documento oficial emitido nao se corrige;
+   *   `oficio_envios`     o email so vai para dominio do proprio catalogo;
+   *   `oficio_aberturas`  o link abre UMA vez, e a garantia e do banco.
+   *
+   * As varreduras genericas la de cima ja cobram RLS forcada, policy amarrada
+   * no contexto e chave estrangeira composta em todas elas. O que este bloco
+   * prova e o que varredura nenhuma alcanca: a regra de negocio.
+   */
+  let orgaoDeA: string;
+  let orgaoDeB: string;
+  let providenciaDeA: string;
+  let oficioDeA: string;
+  let envioDeA: string;
+
+  beforeAll(async () => {
+    const a = await db.query<{ id: string }>(
+      `INSERT INTO orgaos (organizacao_id, nome, sigla, email)
+       VALUES ($1, 'Corpo de Bombeiros', 'CBM', 'sinistros@bombeiros-a.exemplo.gov.br')
+       RETURNING id`,
+      [orgA],
+    );
+    orgaoDeA = a.rows[0]!.id;
+
+    const b = await db.query<{ id: string }>(
+      `INSERT INTO orgaos (organizacao_id, nome, email)
+       VALUES ($1, 'Secretaria de Obras', 'obras@valefundo.exemplo.gov.br')
+       RETURNING id`,
+      [orgB],
+    );
+    orgaoDeB = b.rows[0]!.id;
+
+    const ocorrenciaDeA = await db.query<{ id: string }>(
+      "SELECT id FROM ocorrencias WHERE organizacao_id = $1 LIMIT 1",
+      [orgA],
+    );
+
+    const p = await db.query<{ id: string }>(
+      `INSERT INTO providencias
+         (organizacao_id, ocorrencia_id, orgao_id, orgao_destino, descricao, responsavel, prazo_em)
+       VALUES ($1,$2,$3,'Corpo de Bombeiros','Vistoria conjunta','Chefe de plantao', now() + interval '3 days')
+       RETURNING id`,
+      [orgA, ocorrenciaDeA.rows[0]!.id, orgaoDeA],
+    );
+    providenciaDeA = p.rows[0]!.id;
+
+    const o = await db.query<{ id: string }>(
+      `INSERT INTO oficios
+         (organizacao_id, ocorrencia_id, providencia_id, orgao_id, numero, ano, emitido_por_nome)
+       VALUES ($1,$2,$3,$4,'000001/2026',2026,'Helena Coutinho')
+       RETURNING id`,
+      [orgA, ocorrenciaDeA.rows[0]!.id, providenciaDeA, orgaoDeA],
+    );
+    oficioDeA = o.rows[0]!.id;
+
+    const e = await db.query<{ id: string }>(
+      `INSERT INTO oficio_envios
+         (organizacao_id, oficio_id, tentativa, destinatario_email, token_hash,
+          expira_em, solicitado_por_nome)
+       VALUES ($1,$2,1,'sinistros@bombeiros-a.exemplo.gov.br','hash-do-link-vivo',
+               now() + interval '3 days','Helena Coutinho')
+       RETURNING id`,
+      [orgA, oficioDeA],
+    );
+    envioDeA = e.rows[0]!.id;
+  });
+
+  it("nao le o orgao de outro municipio nem pedindo pelo id exato", async () => {
+    const r = await comoApp(orgA, (tx) =>
+      tx.query("SELECT id FROM orgaos WHERE id = $1", [orgaoDeB]),
+    );
+    expect(r.rows).toHaveLength(0);
+  });
+
+  it("nao encaminha providencia para orgao de outro municipio", async () => {
+    /*
+      O caso que a chave composta existe para fechar. A verificacao de chave
+      estrangeira roda por baixo do RLS, entao uma chave simples deixaria
+      passar, e o relatorio de "para quem encaminhamos" de Serra Alta apontaria
+      para um orgao de Vale Fundo.
+    */
+    const ocorrencia = await comoApp(orgA, (tx) =>
+      tx.query<{ id: string }>("SELECT id FROM ocorrencias LIMIT 1"),
+    );
+
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO providencias
+             (organizacao_id, ocorrencia_id, orgao_id, orgao_destino, descricao, responsavel, prazo_em)
+           VALUES ($1,$2,$3,'Secretaria de Obras','x','y', now() + interval '1 day')`,
+          [orgA, ocorrencia.rows[0]!.id, orgaoDeB],
+        ),
+      ),
+    ).rejects.toThrow();
+
+    const conferencia = await db.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM providencias WHERE orgao_id = $1",
+      [orgaoDeB],
+    );
+    expect(conferencia.rows[0]!.n).toBe("0");
+  });
+
+  it("providencia sem orgao_id cai no catalogo do proprio municipio, e nao no do vizinho", async () => {
+    /*
+      A rede de seguranca da migracao 017. Um caminho que ainda escreva texto
+      livre precisa continuar funcionando, e precisa acabar amarrado ao
+      catalogo: sem isso, `orgao_id` voltaria a ser anulavel e a chave composta
+      seria dispensada pelo MATCH SIMPLE.
+    */
+    const ocorrencia = await comoApp(orgA, (tx) =>
+      tx.query<{ id: string }>("SELECT id FROM ocorrencias LIMIT 1"),
+    );
+
+    const criada = await comoApp(orgA, (tx) =>
+      tx.query<{ orgao_id: string }>(
+        `INSERT INTO providencias
+           (organizacao_id, ocorrencia_id, orgao_destino, descricao, responsavel, prazo_em)
+         VALUES ($1,$2,'  corpo de bombeiros ','Escoramento','Engenheiro', now() + interval '2 days')
+         RETURNING orgao_id`,
+        [orgA, ocorrencia.rows[0]!.id],
+      ),
+    );
+
+    // A grafia diferente NAO criou um segundo orgao: caiu no que ja existia.
+    expect(criada.rows[0]!.orgao_id).toBe(orgaoDeA);
+  });
+
+  it("o mesmo nome de orgao nao entra duas vezes so por causa da caixa", async () => {
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          "INSERT INTO orgaos (organizacao_id, nome) VALUES ($1,'CORPO DE BOMBEIROS')",
+          [orgA],
+        ),
+      ),
+    ).rejects.toThrow(/orgaos_nome_unico_no_municipio|duplicate key/i);
+  });
+
+  it("orgao nao se apaga, se desativa com motivo", async () => {
+    const alvo = await db.query<{ id: string }>(
+      "INSERT INTO orgaos (organizacao_id, nome) VALUES ($1,'Defesa Sanitaria') RETURNING id",
+      [orgA],
+    );
+
+    // Sem privilegio de DELETE, e nao por policy: o papel de aplicacao nunca
+    // recebeu o direito de apagar orgao.
+    await expect(
+      comoApp(orgA, (tx) => tx.query("DELETE FROM orgaos WHERE id = $1", [alvo.rows[0]!.id])),
+    ).rejects.toThrow(/permission denied|permissao/i);
+
+    // E desativar exige motivo escrito.
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          "UPDATE orgaos SET ativo = false, desativado_em = now() WHERE id = $1",
+          [alvo.rows[0]!.id],
+        ),
+      ),
+    ).rejects.toThrow(/desativacao_de_orgao_exige_motivo/i);
+
+    const ok = await comoApp(orgA, (tx) =>
+      tx.query(
+        `UPDATE orgaos SET ativo = false, desativado_em = now(),
+                motivo_desativacao = 'Competencia transferida para a Secretaria de Saude'
+          WHERE id = $1 RETURNING ativo`,
+        [alvo.rows[0]!.id],
+      ),
+    );
+    expect(ok.rows[0]!.ativo).toBe(false);
+  });
+
+  it("numera oficio por municipio e por ano, sem colidir entre municipios", async () => {
+    const a1 = await comoApp(orgA, (tx) =>
+      tx.query<{ n: string }>("SELECT proximo_oficio(2031) AS n"),
+    );
+    const b1 = await comoApp(orgB, (tx) =>
+      tx.query<{ n: string }>("SELECT proximo_oficio(2031) AS n"),
+    );
+    const a2 = await comoApp(orgA, (tx) =>
+      tx.query<{ n: string }>("SELECT proximo_oficio(2031) AS n"),
+    );
+
+    expect(a1.rows[0]!.n).toBe("000001/2031");
+    // O primeiro oficio de Vale Fundo e o numero um dele, e nao o dois de
+    // Serra Alta: sequencia compartilhada vazaria volume entre municipios.
+    expect(b1.rows[0]!.n).toBe("000001/2031");
+    expect(a2.rows[0]!.n).toBe("000002/2031");
+  });
+
+  it("a numeracao de oficio recusa rodar sem contexto de municipio", async () => {
+    await expect(
+      comoApp(null, (tx) => tx.query("SELECT proximo_oficio(2031)")),
+    ).rejects.toThrow(/app\.organizacao_atual/i);
+  });
+
+  it("nao emite dois oficios para a mesma providencia", async () => {
+    const ocorrencia = await db.query<{ id: string }>(
+      "SELECT ocorrencia_id AS id FROM providencias WHERE id = $1",
+      [providenciaDeA],
+    );
+
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO oficios
+             (organizacao_id, ocorrencia_id, providencia_id, orgao_id, numero, ano, emitido_por_nome)
+           VALUES ($1,$2,$3,$4,'000999/2026',2026,'Outra pessoa')`,
+          [orgA, ocorrencia.rows[0]!.id, providenciaDeA, orgaoDeA],
+        ),
+      ),
+    ).rejects.toThrow(/oficios_um_por_providencia|duplicate key/i);
+  });
+
+  it("oficio emitido nao se corrige: sem UPDATE e sem DELETE", async () => {
+    /*
+      O numero de um oficio identifica o papel que esta na mao do orgao
+      destinatario. Se o numero, o orgao ou a providencia pudessem ser trocados
+      depois, o 000001/2026 que o Corpo de Bombeiros recebeu passaria a ser
+      outro documento aqui dentro, e ninguem conseguiria provar qual dos dois e
+      o verdadeiro.
+    */
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query("UPDATE oficios SET numero = '000042/2026' WHERE id = $1", [oficioDeA]),
+      ),
+    ).rejects.toThrow();
+
+    await expect(
+      comoApp(orgA, (tx) => tx.query("DELETE FROM oficios WHERE id = $1", [oficioDeA])),
+    ).rejects.toThrow();
+
+    const conferencia = await db.query<{ numero: string }>(
+      "SELECT numero FROM oficios WHERE id = $1",
+      [oficioDeA],
+    );
+    expect(conferencia.rows[0]!.numero).toBe("000001/2026");
+  });
+
+  it("nao le o oficio nem o envio de outro municipio", async () => {
+    const oficios = await comoApp(orgB, (tx) =>
+      tx.query("SELECT id FROM oficios WHERE id = $1", [oficioDeA]),
+    );
+    expect(oficios.rows).toHaveLength(0);
+
+    const envios = await comoApp(orgB, (tx) =>
+      tx.query("SELECT id FROM oficio_envios WHERE token_hash = 'hash-do-link-vivo'"),
+    );
+    expect(envios.rows).toHaveLength(0);
+  });
+
+  it("o email so sai para dominio de orgao ativo do proprio municipio", async () => {
+    /*
+      Sem esta trava, quem tem login no painel usa o sistema como encaminhador:
+      manda o link do dossie de uma familia em risco para o endereco que
+      quiser, com o cabecalho da prefeitura em cima.
+    */
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO oficio_envios
+             (organizacao_id, oficio_id, tentativa, destinatario_email, token_hash,
+              expira_em, solicitado_por_nome)
+           VALUES ($1,$2,2,'qualquer.um@provedor-pessoal.exemplo.com','hash-fora-da-lista',
+                   now() + interval '1 day','Helena Coutinho')`,
+          [orgA, oficioDeA],
+        ),
+      ),
+    ).rejects.toThrow(/nao pertence a nenhum orgao ativo/i);
+
+    // E o dominio do vizinho tambem nao serve, mesmo estando cadastrado la.
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO oficio_envios
+             (organizacao_id, oficio_id, tentativa, destinatario_email, token_hash,
+              expira_em, solicitado_por_nome)
+           VALUES ($1,$2,3,'alguem@valefundo.exemplo.gov.br','hash-do-vizinho',
+                   now() + interval '1 day','Helena Coutinho')`,
+          [orgA, oficioDeA],
+        ),
+      ),
+    ).rejects.toThrow(/nao pertence a nenhum orgao ativo/i);
+  });
+
+  it("o link abre uma vez, e a segunda abertura e recusada e registrada", async () => {
+    const primeira = await comoApp(null, (tx) =>
+      tx.query<{ resultado: string; organizacao_id: string }>(
+        "SELECT * FROM abrir_oficio($1,$2,$3)",
+        ["hash-do-link-vivo", "203.0.113.10", "navegador de teste"],
+      ),
+    );
+    expect(primeira.rows[0]!.resultado).toBe("entregue");
+    expect(primeira.rows[0]!.organizacao_id).toBe(orgA);
+
+    const segunda = await comoApp(null, (tx) =>
+      tx.query<{ resultado: string }>(
+        "SELECT * FROM abrir_oficio($1,$2,$3)",
+        ["hash-do-link-vivo", "198.51.100.7", "outro navegador"],
+      ),
+    );
+    expect(segunda.rows[0]!.resultado).toBe("ja_aberto");
+
+    // As duas ficaram registradas, com o endereco de quem abriu: e assim que a
+    // prefeitura descobre que alguem no caminho abriu antes do destinatario.
+    const registro = await db.query<{ resultado: string; ip: string }>(
+      "SELECT resultado, host(ip) AS ip FROM oficio_aberturas WHERE envio_id = $1 ORDER BY registrado_em",
+      [envioDeA],
+    );
+    expect(registro.rows.map((l) => l.resultado)).toEqual(["entregue", "recusado_ja_aberto"]);
+    expect(registro.rows[0]!.ip).toBe("203.0.113.10");
+  });
+
+  it("o uso unico e do banco, e nao da aplicacao", async () => {
+    /*
+      A prova de que a garantia nao depende de ninguem lembrar de marcar o link
+      como usado: inserir uma segunda abertura `entregue` a mao, como dono das
+      tabelas e por fora da funcao, tambem e recusado.
+    */
+    await expect(
+      db.query(
+        `INSERT INTO oficio_aberturas (organizacao_id, oficio_id, envio_id, resultado)
+         VALUES ($1,$2,$3,'entregue')`,
+        [orgA, oficioDeA, envioDeA],
+      ),
+    ).rejects.toThrow(/oficio_link_abre_uma_vez|duplicate key/i);
+  });
+
+  it("link expirado nao entrega o oficio, e a recusa fica registrada", async () => {
+    await db.query(
+      `INSERT INTO oficio_envios
+         (organizacao_id, oficio_id, tentativa, destinatario_email, token_hash,
+          expira_em, solicitado_por_nome)
+       VALUES ($1,$2,4,'sinistros@bombeiros-a.exemplo.gov.br','hash-do-link-vencido',
+               now() - interval '1 hour','Helena Coutinho')`,
+      [orgA, oficioDeA],
+    );
+
+    const r = await comoApp(null, (tx) =>
+      tx.query<{ resultado: string }>(
+        "SELECT * FROM abrir_oficio($1,$2,$3)",
+        ["hash-do-link-vencido", "203.0.113.11", "navegador"],
+      ),
+    );
+    expect(r.rows[0]!.resultado).toBe("expirado");
+
+    const registro = await db.query<{ resultado: string }>(
+      `SELECT a.resultado FROM oficio_aberturas a
+         JOIN oficio_envios e ON e.id = a.envio_id
+        WHERE e.token_hash = 'hash-do-link-vencido'`,
+    );
+    expect(registro.rows[0]!.resultado).toBe("recusado_expirado");
+  });
+
+  it("link desconhecido nao registra nada e nao conta se o municipio existe", async () => {
+    const antes = await db.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM oficio_aberturas",
+    );
+
+    const r = await comoApp(null, (tx) =>
+      tx.query<{ resultado: string; organizacao_id: string | null }>(
+        "SELECT * FROM abrir_oficio($1,$2,$3)",
+        ["hash-que-nunca-existiu", "203.0.113.99", "varredor"],
+      ),
+    );
+    expect(r.rows[0]!.resultado).toBe("desconhecido");
+    expect(r.rows[0]!.organizacao_id).toBeNull();
+
+    const depois = await db.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM oficio_aberturas",
+    );
+    expect(depois.rows[0]!.n).toBe(antes.rows[0]!.n);
+  });
+
+  it("a trilha de aberturas e append-only: o papel de aplicacao le e nao escreve", async () => {
+    for (const comando of [
+      "INSERT INTO oficio_aberturas (organizacao_id, oficio_id, envio_id, resultado) VALUES ($1,$2,$3,'entregue')",
+      "UPDATE oficio_aberturas SET resultado = 'recusado_expirado' WHERE envio_id = $3",
+      "DELETE FROM oficio_aberturas WHERE envio_id = $3",
+    ]) {
+      await expect(
+        comoApp(orgA, (tx) => tx.query(comando, [orgA, oficioDeA, envioDeA])),
+        `o papel de aplicacao conseguiu executar: ${comando}`,
+      ).rejects.toThrow();
+    }
+
+    const leitura = await comoApp(orgA, (tx) =>
+      tx.query("SELECT id FROM oficio_aberturas WHERE envio_id = $1", [envioDeA]),
+    );
+    expect(leitura.rows.length).toBeGreaterThan(0);
+  });
+});
+
+describe("O link do oficio nao se estende, se reenvia", () => {
+  /**
+   * Separado do bloco acima porque prova outra coisa: nao e isolamento entre
+   * municipios, e sim o limite do que o PROPRIO municipio consegue fazer com
+   * uma tentativa de envio ja gravada.
+   *
+   * Um link que a aplicacao consegue prorrogar nao expira de verdade, e um
+   * `token_hash` substituivel transforma uma tentativa antiga, registrada como
+   * enviada para um endereco, num link novo para outro, sem deixar rastro
+   * novo. Por isso o privilegio de UPDATE aqui e por COLUNA, e nao por tabela.
+   */
+  let envio: string;
+
+  /*
+    Fixture propria, e nao a do bloco anterior.
+
+    Este bloco chegou apoiado nas linhas criadas la em cima, e isso quebrou na
+    primeira vez que alguem rodou a suite com filtro: `vitest -t` pula o
+    `beforeAll` do bloco vizinho, e o teste morria lendo `undefined`. Portao
+    que so passa quando a suite inteira roda e portao que ninguem consegue usar
+    para investigar um caso especifico.
+  */
+  beforeAll(async () => {
+    const orgao = await db.query<{ id: string }>(
+      `INSERT INTO orgaos (organizacao_id, nome, email)
+       VALUES ($1, 'Companhia de Agua', 'rede@agua-a.exemplo.gov.br') RETURNING id`,
+      [orgA],
+    );
+    const ocorrencia = await db.query<{ id: string }>(
+      "SELECT id FROM ocorrencias WHERE organizacao_id = $1 LIMIT 1",
+      [orgA],
+    );
+    const providencia = await db.query<{ id: string }>(
+      `INSERT INTO providencias
+         (organizacao_id, ocorrencia_id, orgao_id, orgao_destino, descricao, responsavel, prazo_em)
+       VALUES ($1,$2,$3,'Companhia de Agua','Limpeza da rede','Encarregado', now() + interval '4 days')
+       RETURNING id`,
+      [orgA, ocorrencia.rows[0]!.id, orgao.rows[0]!.id],
+    );
+    const oficio = await db.query<{ id: string }>(
+      `INSERT INTO oficios
+         (organizacao_id, ocorrencia_id, providencia_id, orgao_id, numero, ano, emitido_por_nome)
+       VALUES ($1,$2,$3,$4,'000777/2026',2026,'Helena Coutinho')
+       RETURNING id`,
+      [orgA, ocorrencia.rows[0]!.id, providencia.rows[0]!.id, orgao.rows[0]!.id],
+    );
+    const r = await db.query<{ id: string }>(
+      `INSERT INTO oficio_envios
+         (organizacao_id, oficio_id, tentativa, destinatario_email, token_hash,
+          expira_em, solicitado_por_nome)
+       VALUES ($1,$2,1,'rede@agua-a.exemplo.gov.br','hash-do-envio-que-nao-se-estende',
+               now() + interval '2 days','Helena Coutinho')
+       RETURNING id`,
+      [orgA, oficio.rows[0]!.id],
+    );
+    envio = r.rows[0]!.id;
+  });
+
+  it("o papel de aplicacao registra o desfecho e nao mexe no prazo nem no token", async () => {
+    const ok = await comoApp(orgA, (tx) =>
+      tx.query(
+        "UPDATE oficio_envios SET desfecho = 'entregue', detalhe = 'aceito pelo provedor' WHERE id = $1 RETURNING desfecho",
+        [envio],
+      ),
+    );
+    expect(ok.rows[0]!.desfecho).toBe("entregue");
+
+    for (const comando of [
+      "UPDATE oficio_envios SET expira_em = now() + interval '365 days' WHERE id = $1",
+      "UPDATE oficio_envios SET token_hash = 'hash-trocado-na-marra' WHERE id = $1",
+      "UPDATE oficio_envios SET destinatario_email = 'outro@agua-a.exemplo.gov.br' WHERE id = $1",
+    ]) {
+      await expect(
+        comoApp(orgA, (tx) => tx.query(comando, [envio])),
+        `o papel de aplicacao conseguiu executar: ${comando}`,
+      ).rejects.toThrow(/permission denied|permissao/i);
     }
   });
 });

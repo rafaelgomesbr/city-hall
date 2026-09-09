@@ -2,7 +2,7 @@ import { carregarConfig } from "./config.js";
 import { bancoPostgres } from "./banco/postgres.js";
 import { bancoEmMemoria } from "./banco/memoria.js";
 import { construirServidor } from "./servidor.js";
-import { notificadorDeArquivo } from "./auth/notificador.js";
+import { notificadorDeArquivo, notificadorHttp } from "./auth/notificador.js";
 import type { Banco } from "./banco/tipos.js";
 import { armazenamentoS3 } from "./armazenamento/s3.js";
 import { armazenamentoEmMemoria } from "./armazenamento/memoria.js";
@@ -83,13 +83,30 @@ if (config.S3_ENDPOINT && config.S3_BALDE && config.S3_CHAVE_ID && config.S3_CHA
 const pdf = geradorPlaywright();
 
 /*
-  O canal de arquivo só existe quando alguém pede, e `config.ts` derruba a
-  partida se ele aparecer em produção. Serve à suíte de ponta a ponta contra a
-  API, que precisa do link de redefinição e não pode mais colhê-lo do log.
+  Por onde a mensagem sai, em ordem de precedência.
+
+  1. O canal de ARQUIVO, quando alguém pede. `config.ts` derruba a partida se
+     ele aparecer em produção. Serve à suíte de ponta a ponta contra a API, que
+     precisa do link de redefinição e não pode mais colhê-lo do log.
+  2. O cliente HTTP de verdade, com `EMAIL_ATIVO=sim`. Esta é a peça que
+     faltava: até 09/09/2026, `NOTIFICADOR_URL` e `NOTIFICADOR_CHAVE` eram
+     validadas na partida e nunca lidas por linha nenhuma do servidor, então
+     toda mensagem caía no notificador de log, e a recuperação de senha
+     respondia "enviamos o link" enquanto escrevia a credencial de uso único no
+     log. É por causa disso que a produção roda com `RECUPERACAO_ATIVA=nao`.
+  3. Nada disso: o padrão do servidor, que é o notificador de log. Só existe
+     fora de produção, porque `config.ts` recusa subir com recuperação ligada
+     sem `EMAIL_ATIVO=sim`, e o envio de ofício recusa por conta própria.
 */
 const notificador = config.NOTIFICADOR_ARQUIVO
   ? notificadorDeArquivo(config.NOTIFICADOR_ARQUIVO)
-  : undefined;
+  : config.EMAIL_ATIVO === "sim"
+    ? notificadorHttp({
+        url: config.NOTIFICADOR_URL!,
+        chave: config.NOTIFICADOR_CHAVE!,
+        ...(config.EMAIL_REMETENTE ? { remetente: config.EMAIL_REMETENTE } : {}),
+      })
+    : undefined;
 
 const app = await construirServidor({
   banco, config, armazenamento, pdf,

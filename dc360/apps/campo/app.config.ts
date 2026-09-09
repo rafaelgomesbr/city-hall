@@ -164,6 +164,49 @@ const config: ExpoConfig = {
         imageWidth: 180,
       },
     ],
+    [
+      "expo-notifications",
+      {
+        /*
+          A cor do aviso na bandeja do Android. Mesma violeta da marca, e ela
+          NÃO comunica severidade: quem faz isso é o canal (som ou silêncio) e o
+          texto. A regra da casa vale aqui igual, e cor de marca nunca diz risco.
+        */
+        color: "#5B21B6",
+
+        /*
+          O canal em que cai o aviso que chega SEM `channelId` no dado da
+          mensagem, e a escolha do silencioso é deliberada.
+
+          O Android roteia por `data["channelId"]`; enquanto o servidor não o
+          enviar, tudo cai neste padrão. Das duas maneiras de errar, esta é a
+          barata: um aviso que espera o agente abrir o aplicativo custa atraso,
+          e um aviso de severidade baixa tocando às três da manhã custa o
+          aplicativo inteiro silenciado nos ajustes, para sempre, inclusive o de
+          severidade crítica. O raciocínio completo está em `src/push/canais.ts`.
+
+          O valor é cópia literal de `CANAL_COMUM`, e existe teste que reprova
+          se os dois divergirem: este arquivo é lido pelo Expo antes de qualquer
+          TypeScript nosso, então importar a constante daqui não é possível.
+        */
+        defaultChannel: "dc360.comum.v1",
+
+        /*
+          O `aps-environment` do iOS, decidido pelo perfil do build e não à mão.
+
+          Escrito à mão, ele erra na direção que não avisa: um binário de loja
+          assinado com `development` é aceito pela App Store, instala, registra
+          a ficha, e simplesmente nunca recebe notificação nenhuma, porque a
+          ficha é de um ambiente e o servidor fala com o outro. Ninguém descobre
+          pelo aplicativo: o agente conclui que o produto não avisa.
+
+          `EAS_BUILD_PROFILE` é posto pelo próprio EAS durante o build, então o
+          perfil `producao` de `eas.json` já responde por isto sem ninguém
+          precisar lembrar.
+        */
+        mode: process.env["EAS_BUILD_PROFILE"] === "producao" ? "production" : "development",
+      },
+    ],
   ],
 
   experiments: { typedRoutes: true },

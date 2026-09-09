@@ -362,3 +362,158 @@ export type MinhasSessoes = {
   sessoesEncerradas: number;
   mensagem: string;
 };
+
+// ---------------------------------------------------------------------------
+// Sino de avisos
+// ---------------------------------------------------------------------------
+
+/**
+ * Um fato do município que o sino mostra.
+ *
+ * O que ele NÃO carrega é regra do banco (migração 018) e vale igual aqui:
+ * nada de nome de solicitante, contato, endereço, relato ou descrição de
+ * vulnerabilidade. O sino é a superfície mais consultada do produto, uma vez
+ * a cada trinta segundos por pessoa logada, e o caminho para o dado pessoal é
+ * a ocorrência, onde as permissões valem.
+ */
+export type Aviso = {
+  id: string;
+  tipo: string;
+  ocorrenciaId: string;
+  protocolo: string;
+  criadoEm: string;
+  detalhe: string | null;
+  lido: boolean;
+};
+
+/**
+ * O par que a próxima pergunta devolve ao servidor, sem alterar nada.
+ *
+ * O painel NUNCA monta este valor com o relógio dele. O relógio do computador
+ * da coordenadoria não é o do servidor, e um marco adiantado faz a janela
+ * seguinte começar no futuro: tudo que acontecer nesse intervalo cai fora e
+ * não volta em pergunta nenhuma. Aviso repetido é chato, aviso pulado é o que
+ * dói, porque nada na tela diz que faltou alguma coisa.
+ */
+export type CursorDeAvisos = {
+  desde: string;
+  /** Só vem preenchido quando a resposta anterior foi cortada pelo teto. */
+  desdeId: string | null;
+};
+
+export type RespostaDeAvisos = {
+  ate: string;
+  ateId: string | null;
+  itens: Aviso[];
+  teto: number;
+  /** A resposta bateu no teto: há mais para buscar, e o cursor diz onde. */
+  truncada: boolean;
+  naoLidos: number;
+  /** A contagem bateu no próprio teto: o número é um piso, não o total. */
+  naoLidosTruncado: boolean;
+};
+
+// ---------------------------------------------------------------------------
+// Catálogo de órgãos
+// ---------------------------------------------------------------------------
+
+/**
+ * Um órgão de destino do município.
+ *
+ * `providencias` e `abertas` vêm junto porque é o que torna a desativação uma
+ * decisão informada: tirar da lista um órgão com trinta encaminhamentos em
+ * aberto é diferente de tirar um que nunca foi usado, e a tela não tem como
+ * saber a diferença sozinha.
+ */
+export type LinhaOrgao = {
+  id: string;
+  nome: string;
+  sigla: string | null;
+  email: string | null;
+  telefone: string | null;
+  ativo: boolean;
+  desativado_em: string | null;
+  motivo_desativacao: string | null;
+  providencias: number;
+  abertas: number;
+};
+
+/** O que o formulário de órgão manda, nos dois modos. */
+export type DadosDoOrgao = {
+  nome: string;
+  sigla?: string;
+  email?: string;
+  telefone?: string;
+};
+
+// ---------------------------------------------------------------------------
+// Ofício
+// ---------------------------------------------------------------------------
+
+/** Uma tentativa de envio, com o desfecho que ela teve. */
+export type EnvioDeOficio = {
+  id: string;
+  tentativa: number;
+  destinatario_email: string;
+  solicitado_em: string;
+  solicitado_por_nome: string;
+  desfecho: string;
+  detalhe: string | null;
+  expira_em: string;
+};
+
+/** Uma abertura do link de uso único, inclusive a recusada. */
+export type AberturaDeOficio = {
+  envio_id: string;
+  resultado: string;
+  registrado_em: string;
+};
+
+export type LinhaOficio = {
+  id: string;
+  numero: string;
+  emitido_em: string;
+  emitido_por_nome: string;
+  providencia_id: string;
+  orgao_nome: string;
+  orgao_sigla: string | null;
+  envios: number;
+  ultimo_envio: string | null;
+  aberto_em: string | null;
+};
+
+/**
+ * A ficha do ofício: as tentativas e as aberturas.
+ *
+ * É a tela que responde "mandamos ou não, e alguém abriu". Ela não traz o
+ * token do link nem o hash dele, e a razão é do servidor: devolver isso
+ * transformaria uma leitura corriqueira num caminho para reconstruir o
+ * endereço fora do controle da rota pública, que é onde o uso único é cobrado.
+ */
+export type OficioDetalhado = {
+  id: string;
+  numero: string;
+  observacoes: string | null;
+  emitido_em: string;
+  emitido_por_nome: string;
+  providencia_id: string;
+  orgao_nome: string;
+  orgao_sigla: string | null;
+  orgao_email: string | null;
+  envios: EnvioDeOficio[];
+  aberturas: AberturaDeOficio[];
+};
+
+/**
+ * O recibo do envio.
+ *
+ * O endereço volta encoberto de propósito, e é o servidor que encobre: esta
+ * resposta entra no log do navegador, e a tela só precisa confirmar para onde
+ * foi, não repetir o endereço inteiro.
+ */
+export type ResultadoDeEnvio = {
+  tentativa: number;
+  destinatario: string;
+  expiraEmHoras: number;
+  restantes: number;
+};

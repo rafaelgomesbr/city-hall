@@ -1,4 +1,5 @@
 import type { FotoLocal } from "@dc360/campo";
+import type { OrgaoIndicado } from "@dc360/shared";
 import { bancoLocal } from "./banco-local";
 
 /**
@@ -26,6 +27,20 @@ export type Rascunho = {
   /** Gerada na abertura da vistoria e reusada em toda tentativa de envio. */
   idempotencyKey: string;
   checklist: RespostaChecklist;
+  /**
+   * O desdobramento de "necessário acionar outro órgão".
+   *
+   * Vive no rascunho e não em estado de React, como todo o resto desta tela: o
+   * agente escolhe os órgãos na porta da casa, o Android mata o aplicativo para
+   * liberar memória enquanto ele atende uma ligação, e a lista precisa estar no
+   * disco quando a tela voltar.
+   *
+   * `orgaoId` nulo é o órgão digitado à mão, e não dado faltando. Ver
+   * `orgaoIndicadoSchema`: aparelho que nunca sincronizou tem catálogo vazio, e
+   * o campo livre é o que impede um item OBRIGATÓRIO do checklist de travar a
+   * vistoria justamente sem sinal.
+   */
+  orgaosParaAcionar: OrgaoIndicado[];
   fotos: FotoLocal[];
   gpsPrecisaoMetros: number | null;
   coordenada: { lat: number; lng: number } | null;
@@ -72,6 +87,37 @@ export async function salvarRascunho(rascunho: Rascunho): Promise<void> {
   );
 }
 
+/**
+ * Traz para o formato de hoje um rascunho gravado por uma versão anterior.
+ *
+ * Segue o precedente de `normalizar()` em `@dc360/campo`, e pela mesma razão:
+ * este é o único ponto por onde rascunho persistido volta para a tela, então a
+ * migração acontece por mecanismo e não por disciplina.
+ *
+ * O que mudou em 09/09/2026: o item "necessário acionar outro órgão" deixou de
+ * ser só sim ou não e passou a pedir QUAIS órgãos. Um agente pode ter no
+ * aparelho uma vistoria começada antes disso, com fotos, GPS, assinatura e meia
+ * hora de barranco dentro dela.
+ *
+ * `JSON.parse` não falha com formato antigo: ele devolve um objeto sem a
+ * propriedade. Sem esta conversão, a tela leria `undefined` onde espera uma
+ * lista, `orgaosParaAcionar.length` estouraria na renderização e o rascunho
+ * inteiro ficaria inacessível, no morro, que é exatamente o desfecho que gravar
+ * a cada toque existe para impedir. Por isso a conversão é explícita, e por isso
+ * ela não pode ficar no `catch` de conteúdo ilegível logo abaixo: aquele caminho
+ * DESCARTA o rascunho.
+ *
+ * A lista nasce vazia, e não com um palpite. Se o item já estava respondido
+ * "sim", a conclusão passa a cobrar o desdobramento, e cobrar é o comportamento
+ * certo: o agente ainda está com a tela aberta e responde num toque, enquanto
+ * inventar um órgão para desbloquear seria escrever no laudo um nome que ninguém
+ * disse.
+ */
+function normalizar(bruto: Record<string, unknown>): Rascunho {
+  if (Array.isArray(bruto["orgaosParaAcionar"])) return bruto as unknown as Rascunho;
+  return { ...bruto, orgaosParaAcionar: [] } as unknown as Rascunho;
+}
+
 export async function lerRascunho(ocorrenciaId: string): Promise<Rascunho | null> {
   const db = await bancoLocal();
   const linha = await db.getFirstAsync<{ conteudo: string }>(
@@ -80,7 +126,7 @@ export async function lerRascunho(ocorrenciaId: string): Promise<Rascunho | null
   );
   if (!linha) return null;
   try {
-    return JSON.parse(linha.conteudo) as Rascunho;
+    return normalizar(JSON.parse(linha.conteudo) as Record<string, unknown>);
   } catch {
     // Conteúdo ilegível é rascunho perdido, e perder um rascunho é ruim; ficar
     // com a tela quebrada toda vez que ela abre é pior.
@@ -96,7 +142,9 @@ export async function listarRascunhos(): Promise<Rascunho[]> {
   );
   const lidos: Rascunho[] = [];
   for (const l of linhas) {
-    try { lidos.push(JSON.parse(l.conteudo) as Rascunho); } catch { /* ignora o ilegível */ }
+    try {
+      lidos.push(normalizar(JSON.parse(l.conteudo) as Record<string, unknown>));
+    } catch { /* ignora o ilegível */ }
   }
   return lidos;
 }
@@ -118,6 +166,7 @@ export function rascunhoNovo(
     protocolo,
     idempotencyKey,
     checklist: {},
+    orgaosParaAcionar: [],
     fotos: [],
     gpsPrecisaoMetros: null,
     coordenada: null,

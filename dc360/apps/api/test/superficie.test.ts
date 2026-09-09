@@ -42,6 +42,16 @@ const SEM_TOKEN = new Map<string, string>([
     + "tem token. Grava pedido e NÃO cria município nenhum; o papel de "
     + "aplicação insere e não lê (migração 011)",
   ],
+  [
+    "GET /publico/oficio/:token",
+    "o ofício que o órgão destinatário abre: quem clica é uma pessoa do Corpo "
+    + "de Bombeiros ou da Secretaria de Obras, sem conta no sistema. O que "
+    + "protege não é token de sessão e sim o próprio endereço, que é um segredo "
+    + "de 32 bytes que só existe dentro do email enviado, EXPIRA, ABRE UMA VEZ "
+    + "SÓ e deixa registro de quem abriu (migração 017). É a única leitura sem "
+    + "autenticação que devolve dado de município, e é por isso que o email não "
+    + "leva o conteúdo do ofício",
+  ],
 ]);
 
 type Rota = { metodo: string; caminho: string };

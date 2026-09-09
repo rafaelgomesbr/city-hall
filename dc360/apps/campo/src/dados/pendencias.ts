@@ -1,6 +1,6 @@
 import {
   baixarMeuTrabalho, baixarPendencias, reconciliarPendencias,
-  TETO_DE_RECONCILIACAO, type MeuTrabalho, type Pendencia,
+  TETO_DE_RECONCILIACAO, type MeuTrabalho, type OrgaoDoCatalogo, type Pendencia,
 } from "./api";
 import { bancoLocal } from "./banco-local";
 import { esquecerColeta } from "./coletas";
@@ -29,6 +29,26 @@ const MARCA_ULTIMA_BAIXA = "pendencias.baixadas_em";
  */
 const MARCA_LISTA_TRUNCADA = "pendencias.teto_atingido";
 
+/**
+ * O catálogo de órgãos do município, no disco do aparelho.
+ *
+ * Isto NÃO é otimização, é a condição para um item obrigatório do checklist
+ * poder ser respondido. "Necessário acionar outro órgão: sim" pede o nome de
+ * quem acionar, e a tela que perguntasse isso à rede travaria a vistoria
+ * justamente sem sinal, que é a condição normal de trabalho deste aplicativo e
+ * o princípio que governa o produto inteiro.
+ *
+ * Mora em `marcas`, num registro só, pela mesma razão de "meu trabalho": é
+ * pequeno, é lido inteiro de uma vez para montar a lista de seleção, e nunca é
+ * consultado por parte. Uma tabela própria com índice serviria a uma consulta
+ * que não existe.
+ *
+ * Some no logout junto com o resto de `marcas`, e isso é obrigatório e não
+ * efeito colateral: o aparelho de plantão passa de turno em turno, às vezes
+ * entre municípios diferentes, e catálogo é cadastro de um município só.
+ */
+const MARCA_CATALOGO_ORGAOS = "orgaos.catalogo";
+
 export async function pendenciasGuardadas(): Promise<Pendencia[]> {
   const db = await bancoLocal();
   const linhas = await db.getAllAsync<{ conteudo: string }>(
@@ -41,6 +61,34 @@ export async function pendenciasGuardadas(): Promise<Pendencia[]> {
     try { lidas.push(JSON.parse(l.conteudo) as Pendencia); } catch { /* ignora ilegível */ }
   }
   return lidas;
+}
+
+/**
+ * O catálogo de órgãos que este aparelho tem, lido do DISCO.
+ *
+ * Nunca da rede, e nem sequer com a rede como plano B: a tela de vistoria não
+ * toca na rede em lugar nenhum, porque tentar e falhar no alto do morro gasta
+ * bateria e ensina o agente a desconfiar de uma coleta que está perfeitamente
+ * guardada.
+ *
+ * Devolve lista vazia quando não há catálogo, e a tela precisa saber lidar com
+ * isso sem travar: aparelho novo, que nunca sincronizou, é o caso mais comum de
+ * lista vazia, e ali o campo livre sozinho tem que bastar para concluir.
+ */
+export async function orgaosGuardados(): Promise<OrgaoDoCatalogo[]> {
+  const db = await bancoLocal();
+  const linha = await db.getFirstAsync<{ valor: string }>(
+    "SELECT valor FROM marcas WHERE chave = ?", [MARCA_CATALOGO_ORGAOS],
+  );
+  if (!linha) return [];
+  try {
+    const lido = JSON.parse(linha.valor) as OrgaoDoCatalogo[];
+    return Array.isArray(lido) ? lido : [];
+  } catch {
+    // Registro ilegível não pode impedir a vistoria: sem catálogo, o campo
+    // livre continua concluindo a coleta, que é o caminho do aparelho novo.
+    return [];
+  }
 }
 
 /**
@@ -116,6 +164,36 @@ export async function atualizarPendencias(token: string): Promise<Pendencia[]> {
        ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor`,
       [MARCA_LISTA_TRUNCADA, lista.truncada ? String(lista.teto) : ""],
     );
+    /*
+      O catálogo entra na MESMA transação da lista de tarefas, e isso é a regra
+      inteira do item 2 desta mudança.
+
+      Junto porque as duas coisas servem à mesma vistoria: a tarefa sem o
+      catálogo é uma tela que pergunta "qual órgão?" e não tem o que oferecer, e
+      o catálogo sem a tarefa não serve a nada. Numa transação só, ou o aparelho
+      fica com o par novo, ou continua com o par velho, e os dois pares servem
+      para trabalhar. Gravar fora deixaria a janela em que existe um sem o outro,
+      e essa janela cai justamente no aparelho que perdeu o sinal no meio da
+      sincronização, que é o aparelho que mais precisa dos dois.
+
+      `null` NÃO apaga: é servidor que não mandou o campo, e o catálogo que já
+      está no disco continua valendo. Apagar ali faria a sincronização, que
+      existe para trazer, ser a coisa que leva embora.
+
+      A pergunta é `Array.isArray` e não `!== null` de propósito: qualquer coisa
+      que não seja uma lista (campo ausente, nulo, um objeto vindo de um servidor
+      mais novo) significa "não sei dizer", e a resposta a "não sei" é deixar o
+      disco como está. Com a comparação estrita, um `undefined` chegava até o
+      `JSON.stringify` e a gravação estourava DENTRO da transação, derrubando
+      junto a lista de tarefas que já tinha entrado.
+    */
+    if (Array.isArray(lista.orgaos)) {
+      await db.runAsync(
+        `INSERT INTO marcas (chave, valor) VALUES (?, ?)
+         ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor`,
+        [MARCA_CATALOGO_ORGAOS, JSON.stringify(lista.orgaos)],
+      );
+    }
   });
 
   /*

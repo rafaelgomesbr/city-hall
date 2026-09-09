@@ -21,6 +21,8 @@ import type {
   LinhaEquipe, LinhaEvento, LinhaOcorrencia, LinhaProvidencia, LinhaUsuario,
   LinhaVistoria, MeuTrabalho, PaginaDeOcorrencias, PontoNoMapa, PontosDoMapa,
   Sessao, TarefaDesignada, TipoDeDocumento, VistoriaConcluida,
+  AberturaDeOficio, CursorDeAvisos, DadosDoOrgao, EnvioDeOficio, LinhaOficio,
+  LinhaOrgao, OficioDetalhado, RespostaDeAvisos, ResultadoDeEnvio,
 } from "./tipos";
 
 /**
@@ -693,19 +695,56 @@ export async function despacharEquipe(s: Sessao, id: string, d: Despacho): Promi
   });
 }
 
-export async function encaminharProvidencia(s: Sessao, id: string, p: Providencia): Promise<void> {
+/**
+ * Encaminha, com o destino saindo do catálogo quando ele existe.
+ *
+ * O nome é COPIADO para `orgao_destino` mesmo quando o identificador vem
+ * junto, e isso não é redundância: `orgao_destino` é o registro do destino que
+ * este encaminhamento realmente levou, e ele precisa continuar valendo se o
+ * órgão for renomeado no catálogo depois. Sem o identificador, um gatilho do
+ * banco amarra a providência ao catálogo pelo nome (migração 017).
+ */
+export async function encaminharProvidencia(
+  s: Sessao,
+  id: string,
+  p: Providencia & { orgaoId?: string },
+): Promise<void> {
   exigirPermissao(s.papel, "encaminhar_providencia");
   await comoApp(s.organizacaoId, async (db) => {
     await exigirTransicao(db, id, "providencia_pendente");
+
+    let orgaoId: string | null = null;
+    let nomeDoDestino = p.orgaoDestino;
+    if (p.orgaoId) {
+      const orgao = await db.query<{ nome: string; ativo: boolean }>(
+        "SELECT nome, ativo FROM orgaos WHERE id = $1", [p.orgaoId],
+      );
+      // A leitura roda com o RLS aplicado, então órgão de outro município
+      // simplesmente não volta, e a resposta é a mesma de um identificador
+      // que nunca existiu: recurso de outro município não se confirma.
+      if (!orgao.rows[0]) throw new Error("Órgão não encontrado.");
+      if (!orgao.rows[0].ativo) {
+        throw new Error(
+          `${orgao.rows[0].nome} está desativado no catálogo deste município. `
+          + "Escolha outro destino, ou reative o órgão.",
+        );
+      }
+      orgaoId = p.orgaoId;
+      nomeDoDestino = orgao.rows[0].nome;
+    }
+
     await db.query(
       `INSERT INTO providencias
-         (organizacao_id, ocorrencia_id, orgao_destino, descricao, responsavel, prazo_em)
-       VALUES ($1,$2,$3,$4,$5, now() + ($6 || ' hours')::interval)`,
-      [s.organizacaoId, id, p.orgaoDestino, p.descricao, p.responsavel, String(p.prazoHoras)],
+         (organizacao_id, ocorrencia_id, orgao_id, orgao_destino, descricao, responsavel, prazo_em)
+       VALUES ($1,$2,$3,$4,$5,$6, now() + ($7 || ' hours')::interval)`,
+      [
+        s.organizacaoId, id, orgaoId, nomeDoDestino,
+        p.descricao, p.responsavel, String(p.prazoHoras),
+      ],
     );
     await db.query("UPDATE ocorrencias SET status = 'providencia_pendente' WHERE id = $1", [id]);
     await registrarEvento(db, s, id, "providencia", {
-      orgao: p.orgaoDestino,
+      orgao: nomeDoDestino,
       responsavel: p.responsavel,
       prazoHoras: p.prazoHoras,
     });
@@ -919,4 +958,423 @@ export async function alternarUsuarioAtivo(s: Sessao, id: string, ativo: boolean
 
     await db.query("UPDATE usuarios SET ativo = $2 WHERE id = $1", [id, ativo]);
   });
+}
+
+// ---------------------------------------------------------------------------
+// Sino de avisos
+//
+// As tabelas e os gatilhos da migração 018 valem aqui igual: o modo de
+// demonstração roda as mesmas migrações. O que muda é onde a consulta mora, e
+// por isso ela é reescrita aqui em vez de ser importada da API: os dois lados
+// falam com bancos diferentes, e um pacote comum entre painel e servidor
+// arrastaria o Fastify para dentro do navegador.
+// ---------------------------------------------------------------------------
+
+/**
+ * A margem entre o relógio do banco e o corte da resposta, em segundos.
+ *
+ * O mesmo número da rota da API, e pela mesma razão: `criado_em` recebe
+ * `now()`, que no Postgres é o instante em que a transação COMEÇOU. Uma
+ * gravação que começa às 10h00m00s e confirma às 10h00m04s deixa um aviso
+ * carimbado antes de ele existir para quem lê. Sem a margem, a consulta
+ * seguinte pergunta por um instante posterior ao carimbo dele e o aviso nunca
+ * aparece no sino de ninguém.
+ */
+const MARGEM_DE_COMMIT_SEGUNDOS = 10;
+
+/** Os mesmos tetos da rota, para que os dois modos cortem no mesmo lugar. */
+const TETO_DE_AVISOS = 200;
+const TETO_DA_CONTAGEM = 500;
+const RETENCAO_DE_AVISOS_DIAS = 60;
+const LOTE_DE_PRAZOS = 200;
+
+export async function avisosDesde(
+  s: Sessao,
+  cursor: CursorDeAvisos | null,
+): Promise<RespostaDeAvisos> {
+  return comoApp(s.organizacaoId, async (db) => {
+    const marco = await db.query<{ ate: string }>(
+      "SELECT (now() - ($1 || ' seconds')::interval)::text AS ate",
+      [String(MARGEM_DE_COMMIT_SEGUNDOS)],
+    );
+    const ate = marco.rows[0]!.ate;
+
+    /*
+      Cursor adiante do relógio do banco é descartado, e vira primeira carga.
+
+      Nenhum `ate` emitido daqui é maior que o `now()` daqui, então um `desde`
+      no futuro só pode ter sido inventado. Aceitá-lo faria a resposta vir
+      vazia e o cursor avançar assim mesmo: tudo o que estava gravado antes
+      ficaria atrás dele e não voltaria em pergunta nenhuma.
+    */
+    const noFuturo = cursor !== null
+      && Date.parse(cursor.desde) > Date.parse(ate);
+    const desde = noFuturo ? null : cursor?.desde ?? null;
+    const desdeId = desde === null ? null : cursor?.desdeId ?? null;
+
+    /*
+      O prazo vencido é o único fato do sino que nenhuma escrita dispara: ele
+      acontece pela passagem do tempo. Os outros dois nascem de gatilho.
+
+      `NOT EXISTS` antes do lote, e não só o `ON CONFLICT`: com o lote aplicado
+      sobre a lista inteira, os mesmos primeiros seriam escolhidos toda vez,
+      engolidos pelo conflito, e os que sobrassem nunca entrariam.
+    */
+    await db.query(
+      `WITH vencidos AS (
+         SELECT o.organizacao_id AS org,
+                o.id             AS ocorrencia,
+                o.severidade     AS severidade,
+                o.prazo_em       AS prazo,
+                'prazo:' || o.id::text || ':'
+                  || trunc(extract(epoch FROM o.prazo_em))::text AS chave
+           FROM ocorrencias o
+          WHERE o.prazo_em IS NOT NULL
+            AND o.prazo_em <= now()
+            AND o.prazo_em > now() - ($1 || ' days')::interval
+            AND o.status NOT IN ('encerrada','rascunho','vistoria_concluida')
+       )
+       INSERT INTO avisos (organizacao_id, tipo, ocorrencia_id, chave_do_fato, detalhe)
+       SELECT v.org, 'prazo_vencido', v.ocorrencia, v.chave, v.severidade
+         FROM vencidos v
+        WHERE NOT EXISTS (
+                SELECT 1 FROM avisos a
+                 WHERE a.organizacao_id = v.org AND a.chave_do_fato = v.chave
+              )
+        ORDER BY v.prazo DESC
+        LIMIT $2
+       ON CONFLICT ON CONSTRAINT aviso_unico_por_fato DO NOTHING`,
+      [String(RETENCAO_DE_AVISOS_DIAS), LOTE_DE_PRAZOS],
+    );
+
+    /*
+      A ORDEM É CRESCENTE, e é a única em que o corte não perde nada. Cortando
+      o fim de uma lista decrescente, quem fica de fora são os mais antigos, e
+      o cursor devolvido aponta para a frente deles: eles ficariam contados no
+      número do sino e inalcançáveis pela lista, para sempre.
+    */
+    const lista = await db.query<{
+      id: string; tipo: string; ocorrencia_id: string; protocolo: string;
+      criado_em: string; detalhe: string | null; lido: boolean;
+    }>(
+      `SELECT a.id, a.tipo, a.ocorrencia_id, a.criado_em::text AS criado_em, a.detalhe,
+              o.protocolo,
+              (l.usuario_id IS NOT NULL) AS lido
+         FROM avisos a
+         JOIN ocorrencias o
+           ON o.organizacao_id = a.organizacao_id AND o.id = a.ocorrencia_id
+         LEFT JOIN avisos_lidos l
+           ON l.organizacao_id = a.organizacao_id
+          AND l.aviso_id = a.id
+          AND l.usuario_id = $1
+        WHERE a.criado_em <= $2::timestamptz
+          AND ($3::timestamptz IS NULL OR a.criado_em > $3::timestamptz
+               OR ($4::uuid IS NOT NULL
+                   AND a.criado_em = $3::timestamptz AND a.id > $4::uuid))
+        ORDER BY a.criado_em, a.id
+        LIMIT $5`,
+      [s.usuarioId, ate, desde, desdeId, TETO_DE_AVISOS + 1],
+    );
+
+    const truncada = lista.rows.length > TETO_DE_AVISOS;
+    const entregues = truncada ? lista.rows.slice(0, TETO_DE_AVISOS) : lista.rows;
+    /*
+      O cursor de uma resposta cortada é o ÚLTIMO AVISO ENTREGUE, e não o
+      relógio: devolver o relógio diria "você viu tudo até agora" logo depois
+      de ter deixado avisos de fora, e a pergunta seguinte pularia justamente
+      eles.
+    */
+    const ultimo = entregues[entregues.length - 1];
+
+    const contagem = await db.query<{ n: number }>(
+      `SELECT count(*)::int AS n
+         FROM (
+           SELECT 1
+             FROM avisos a
+             LEFT JOIN avisos_lidos l
+               ON l.organizacao_id = a.organizacao_id
+              AND l.aviso_id = a.id
+              AND l.usuario_id = $1
+            WHERE l.usuario_id IS NULL
+              AND a.criado_em <= $2::timestamptz
+            LIMIT $3
+         ) AS amostra`,
+      [s.usuarioId, ate, TETO_DA_CONTAGEM + 1],
+    );
+    const contados = Number(contagem.rows[0]?.n ?? 0);
+
+    return {
+      ate: truncada && ultimo ? ultimo.criado_em : ate,
+      ateId: truncada && ultimo ? ultimo.id : null,
+      itens: entregues.map((a) => ({
+        id: a.id,
+        tipo: a.tipo,
+        ocorrenciaId: a.ocorrencia_id,
+        protocolo: a.protocolo,
+        criadoEm: a.criado_em,
+        detalhe: a.detalhe,
+        lido: a.lido,
+      })),
+      teto: TETO_DE_AVISOS,
+      truncada,
+      naoLidos: Math.min(contados, TETO_DA_CONTAGEM),
+      naoLidosTruncado: contados > TETO_DA_CONTAGEM,
+    };
+  });
+}
+
+export async function marcarAvisosLidos(
+  s: Sessao,
+  ids: readonly string[],
+): Promise<{ marcados: number }> {
+  if (ids.length === 0) return { marcados: 0 };
+  return comoApp(s.organizacaoId, async (db) => {
+    /*
+      A inserção passa POR DENTRO de `avisos`, e não direto pela lista
+      recebida: identificador de outro município não casa com nenhuma linha
+      visível e some sem resposta, em vez de bater na chave estrangeira e
+      contar, pelo erro, que aquele aviso existe em algum lugar.
+    */
+    const r = await db.query<{ aviso_id: string }>(
+      `INSERT INTO avisos_lidos (organizacao_id, usuario_id, aviso_id)
+       SELECT a.organizacao_id, $1, a.id
+         FROM avisos a
+        WHERE a.id = ANY($2::uuid[])
+       ON CONFLICT DO NOTHING
+       RETURNING aviso_id`,
+      [s.usuarioId, [...ids]],
+    );
+    return { marcados: r.rows.length };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Catálogo de órgãos
+// ---------------------------------------------------------------------------
+
+export async function listarOrgaos(s: Sessao, incluirInativos = false): Promise<LinhaOrgao[]> {
+  return comoApp(s.organizacaoId, async (db) => {
+    const r = await db.query<LinhaOrgao>(
+      `SELECT o.id, o.nome, o.sigla, o.email, o.telefone, o.ativo,
+              o.desativado_em::text AS desativado_em, o.motivo_desativacao,
+              (SELECT count(*) FROM providencias p WHERE p.orgao_id = o.id)::int
+                AS providencias,
+              (SELECT count(*) FROM providencias p
+                WHERE p.orgao_id = o.id AND p.respondida_em IS NULL)::int
+                AS abertas
+         FROM orgaos o
+        WHERE ($1 OR o.ativo)
+        ORDER BY o.ativo DESC, o.nome`,
+      [incluirInativos],
+    );
+    return r.rows;
+  });
+}
+
+export async function criarOrgao(s: Sessao, dados: DadosDoOrgao): Promise<{ id: string }> {
+  exigirPermissao(s.papel, "gerenciar_equipes");
+  return comoApp(s.organizacaoId, async (db) => {
+    const r = await db.query<{ id: string }>(
+      `INSERT INTO orgaos (organizacao_id, nome, sigla, email, telefone)
+       VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+      [
+        s.organizacaoId, dados.nome.trim(),
+        dados.sigla?.trim() || null,
+        dados.email?.trim().toLowerCase() || null,
+        dados.telefone?.trim() || null,
+      ],
+    );
+    return r.rows[0]!;
+  });
+}
+
+export async function atualizarOrgao(
+  s: Sessao,
+  id: string,
+  dados: DadosDoOrgao,
+): Promise<void> {
+  exigirPermissao(s.papel, "gerenciar_equipes");
+  await comoApp(s.organizacaoId, async (db) => {
+    await db.query(
+      "UPDATE orgaos SET nome = $2, sigla = $3, email = $4, telefone = $5 WHERE id = $1",
+      [
+        id, dados.nome.trim(),
+        dados.sigla?.trim() || null,
+        dados.email?.trim().toLowerCase() || null,
+        dados.telefone?.trim() || null,
+      ],
+    );
+  });
+}
+
+/**
+ * Órgão não se apaga, se desativa com motivo.
+ *
+ * A recusa de desativar duas vezes existe aqui e no servidor pelo mesmo
+ * motivo: o segundo clique gravaria um ato dizendo que algo aconteceu quando
+ * nada aconteceu, numa trilha que não tem policy de UPDATE nem de DELETE.
+ */
+export async function desativarOrgao(s: Sessao, id: string, motivo: string): Promise<void> {
+  exigirPermissao(s.papel, "gerenciar_equipes");
+  await comoApp(s.organizacaoId, async (db) => {
+    const atual = await db.query<{ ativo: boolean }>(
+      "SELECT ativo FROM orgaos WHERE id = $1", [id],
+    );
+    if (!atual.rows[0]) throw new Error("Órgão não encontrado.");
+    if (!atual.rows[0].ativo) {
+      throw new Error("Esse órgão já está desativado. Nada foi alterado.");
+    }
+    await db.query(
+      `UPDATE orgaos
+          SET ativo = false, desativado_em = now(), motivo_desativacao = $2
+        WHERE id = $1`,
+      [id, motivo.trim()],
+    );
+  });
+}
+
+export async function reativarOrgao(s: Sessao, id: string): Promise<void> {
+  exigirPermissao(s.papel, "gerenciar_equipes");
+  await comoApp(s.organizacaoId, async (db) => {
+    const atual = await db.query<{ ativo: boolean }>(
+      "SELECT ativo FROM orgaos WHERE id = $1", [id],
+    );
+    if (!atual.rows[0]) throw new Error("Órgão não encontrado.");
+    if (atual.rows[0].ativo) throw new Error("Esse órgão já está ativo. Nada foi alterado.");
+    await db.query(
+      `UPDATE orgaos
+          SET ativo = true, desativado_em = NULL, motivo_desativacao = NULL
+        WHERE id = $1`,
+      [id],
+    );
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Ofício
+// ---------------------------------------------------------------------------
+
+export async function listarOficios(s: Sessao, ocorrenciaId: string): Promise<LinhaOficio[]> {
+  return comoApp(s.organizacaoId, async (db) => {
+    const r = await db.query<LinhaOficio>(
+      `SELECT f.id, f.numero, f.emitido_em::text AS emitido_em, f.emitido_por_nome,
+              f.providencia_id, g.nome AS orgao_nome, g.sigla AS orgao_sigla,
+              (SELECT count(*) FROM oficio_envios e WHERE e.oficio_id = f.id)::int
+                AS envios,
+              (SELECT max(e.solicitado_em)::text FROM oficio_envios e
+                WHERE e.oficio_id = f.id AND e.desfecho = 'entregue') AS ultimo_envio,
+              (SELECT max(a.registrado_em)::text FROM oficio_aberturas a
+                WHERE a.oficio_id = f.id AND a.resultado = 'entregue') AS aberto_em
+         FROM oficios f JOIN orgaos g ON g.id = f.orgao_id
+        WHERE f.ocorrencia_id = $1
+        ORDER BY f.emitido_em DESC`,
+      [ocorrenciaId],
+    );
+    return r.rows;
+  });
+}
+
+export async function detalharOficio(s: Sessao, id: string): Promise<OficioDetalhado> {
+  return comoApp(s.organizacaoId, async (db) => {
+    const oficio = await db.query<Omit<OficioDetalhado, "envios" | "aberturas">>(
+      `SELECT f.id, f.numero, f.observacoes, f.emitido_em::text AS emitido_em,
+              f.emitido_por_nome, f.providencia_id,
+              g.nome AS orgao_nome, g.sigla AS orgao_sigla, g.email AS orgao_email
+         FROM oficios f JOIN orgaos g ON g.id = f.orgao_id
+        WHERE f.id = $1`,
+      [id],
+    );
+    if (!oficio.rows[0]) throw new Error("Ofício não encontrado.");
+    const envios = await db.query<EnvioDeOficio>(
+      `SELECT id, tentativa, destinatario_email, solicitado_em::text AS solicitado_em,
+              solicitado_por_nome, desfecho, detalhe, expira_em::text AS expira_em
+         FROM oficio_envios WHERE oficio_id = $1 ORDER BY tentativa`,
+      [id],
+    );
+    const aberturas = await db.query<AberturaDeOficio>(
+      `SELECT envio_id, resultado, registrado_em::text AS registrado_em
+         FROM oficio_aberturas WHERE oficio_id = $1 ORDER BY registrado_em`,
+      [id],
+    );
+    return { ...oficio.rows[0], envios: envios.rows, aberturas: aberturas.rows };
+  });
+}
+
+/**
+ * Emitir queima um número da sequência do município.
+ *
+ * O ano sai do relógio do BANCO, e não do processo: um computador com fuso
+ * errado emitiria, em 31 de dezembro, um ofício numerado no ano seguinte, e a
+ * sequência do ano novo começaria em dois.
+ */
+export async function emitirOficio(
+  s: Sessao,
+  providenciaId: string,
+  observacoes?: string,
+): Promise<{ id: string; numero: string }> {
+  exigirPermissao(s.papel, "emitir_documento");
+  return comoApp(s.organizacaoId, async (db) => {
+    const providencia = await db.query<{ ocorrencia_id: string; orgao_id: string }>(
+      "SELECT ocorrencia_id, orgao_id FROM providencias WHERE id = $1",
+      [providenciaId],
+    );
+    if (!providencia.rows[0]) throw new Error("Providência não encontrada.");
+
+    const jaTem = await db.query<{ numero: string }>(
+      "SELECT numero FROM oficios WHERE providencia_id = $1", [providenciaId],
+    );
+    if (jaTem.rows[0]) {
+      /*
+        Um ofício por providência. O segundo clique não queima outro número: o
+        órgão receberia dois documentos oficiais pedindo a mesma coisa, e o
+        coordenador não saberia qual dos dois cobrar depois.
+      */
+      throw new Error(
+        `Essa providência já tem o ofício ${jaTem.rows[0].numero}. `
+        + "Reenvie esse, em vez de emitir outro.",
+      );
+    }
+
+    const ano = await db.query<{ ano: number }>("SELECT extract(year from now())::int AS ano");
+    const numero = await db.query<{ numero: string }>(
+      "SELECT proximo_oficio($1) AS numero", [ano.rows[0]!.ano],
+    );
+
+    const r = await db.query<{ id: string; numero: string }>(
+      `INSERT INTO oficios
+         (organizacao_id, ocorrencia_id, providencia_id, orgao_id, numero, ano,
+          observacoes, emitido_por, emitido_por_nome)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       RETURNING id, numero`,
+      [
+        s.organizacaoId, providencia.rows[0].ocorrencia_id, providenciaId,
+        providencia.rows[0].orgao_id, numero.rows[0]!.numero, ano.rows[0]!.ano,
+        observacoes?.trim() || null, s.usuarioId, `${s.usuarioNome} (${s.papel})`,
+      ],
+    );
+    return r.rows[0]!;
+  });
+}
+
+/**
+ * O envio por email é do servidor, e a recusa aqui é honesta.
+ *
+ * Fingir um envio no modo de demonstração seria o pior desfecho possível: a
+ * tela diria "enviado" e nada teria saído. Prometer email que não sai já foi
+ * um defeito real deste produto, e não volta por conta de uma demonstração.
+ */
+export async function enviarOficio(
+  _s: Sessao,
+  _id: string,
+  _destinatario?: string,
+): Promise<ResultadoDeEnvio> {
+  throw new Error(
+    "O envio do ofício por email é feito pelo servidor. Este painel está em "
+    + "modo local: imprima o ofício e encaminhe pelo canal de sempre.",
+  );
+}
+
+/** Mesma razão do laudo: o documento é montado pelo servidor. */
+export async function abrirOficio(_s: Sessao, _id: string): Promise<string> {
+  throw new Error("O ofício é gerado pelo servidor. Este painel está em modo local.");
 }

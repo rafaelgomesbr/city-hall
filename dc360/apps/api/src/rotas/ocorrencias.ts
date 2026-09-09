@@ -469,28 +469,79 @@ export async function rotasOcorrencias(
     return { status: "em_campo" };
   });
 
+  /*
+    O destino da providência passa a sair do CATÁLOGO (migração 017).
+
+    `orgaoId` é opcional aqui, e a razão é de compatibilidade, não de gosto:
+    uma tela ainda no ar manda só `orgaoDestino`, e recusar esse corpo tiraria
+    o encaminhamento do ar no meio de uma chuva. Quando ele vem, o texto do
+    catálogo é copiado para `orgao_destino`, que continua existindo como
+    registro do nome que o encaminhamento realmente levou; quando não vem, um
+    gatilho do banco resolve o nome contra o catálogo do próprio município, e
+    cria a entrada se ela não existir. Nos dois caminhos a providência acaba
+    amarrada ao catálogo, que é o que permite `orgao_id` ser NOT NULL e a chave
+    estrangeira composta valer de verdade.
+
+    O esquema do corpo é estendido AQUI, e não no pacote compartilhado, porque
+    `providenciaSchema` é usado também pela tela: acrescentar um campo
+    obrigatório lá quebraria o formulário antes de ele existir.
+  */
+  const providenciaComOrgaoSchema = providenciaSchema.extend({
+    orgaoId: z.string().uuid("Órgão inválido").optional(),
+  });
+
   app.post("/:id/providencia", async (req) => {
     const quem = await autorizar(app, req, "encaminhar_providencia");
     const { id } = idSchema.parse(req.params);
-    const p = providenciaSchema.parse(req.body);
+    const p = providenciaComOrgaoSchema.parse(req.body);
 
-    await banco.comTenant(quem.organizacaoId, async (c) => {
+    const destino = await banco.comTenant(quem.organizacaoId, async (c) => {
       await exigirTransicao(c, id, "providencia_pendente");
+
+      let orgaoId: string | null = null;
+      let nomeDoDestino = p.orgaoDestino;
+
+      if (p.orgaoId) {
+        const orgao = await c.query<{ nome: string; ativo: boolean }>(
+          "SELECT nome, ativo FROM orgaos WHERE id = $1",
+          [p.orgaoId],
+        );
+        // 404 e não 403: órgão de outro município não se confirma. A leitura
+        // roda com o RLS aplicado, então nenhuma linha volta nesse caso, e a
+        // resposta é a mesma de um identificador que nunca existiu.
+        if (!orgao.rows[0]) {
+          throw new RegraDeNegocio("orgao_nao_encontrado", "Órgão não encontrado.", 404);
+        }
+        if (!orgao.rows[0].ativo) {
+          throw new RegraDeNegocio(
+            "orgao_desativado",
+            `${orgao.rows[0].nome} está desativado no catálogo deste município. `
+            + "Escolha outro destino, ou reative o órgão.",
+          );
+        }
+        orgaoId = p.orgaoId;
+        nomeDoDestino = orgao.rows[0].nome;
+      }
+
       await c.query(
         `INSERT INTO providencias
-           (organizacao_id, ocorrencia_id, orgao_destino, descricao, responsavel, prazo_em)
-         VALUES ($1,$2,$3,$4,$5, now() + ($6 || ' hours')::interval)`,
-        [quem.organizacaoId, id, p.orgaoDestino, p.descricao, p.responsavel, String(p.prazoHoras)],
+           (organizacao_id, ocorrencia_id, orgao_id, orgao_destino, descricao, responsavel, prazo_em)
+         VALUES ($1,$2,$3,$4,$5,$6, now() + ($7 || ' hours')::interval)`,
+        [
+          quem.organizacaoId, id, orgaoId, nomeDoDestino,
+          p.descricao, p.responsavel, String(p.prazoHoras),
+        ],
       );
       await c.query("UPDATE ocorrencias SET status = 'providencia_pendente' WHERE id = $1", [id]);
       await registrarEvento(c, quem, id, "providencia", {
-        orgao: p.orgaoDestino,
+        orgao: nomeDoDestino,
         responsavel: p.responsavel,
         prazoHoras: p.prazoHoras,
       });
+      return nomeDoDestino;
     });
 
-    return { status: "providencia_pendente" };
+    return { status: "providencia_pendente", orgaoDestino: destino };
   });
 
   /**

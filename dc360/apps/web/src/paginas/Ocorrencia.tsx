@@ -13,8 +13,10 @@ import {
   levantarInterdicao, listarEquipes, providenciasDaOcorrencia, trilhaDaOcorrencia,
   vistoriaDaOcorrencia, abrirDocumento, listarEvidencias, responderProvidencia,
   vinculosDaOcorrencia, possiveisDuplicidades, MODO,
+  abrirOficio, detalharOficio, emitirOficio, enviarOficio, listarOficios, listarOrgaos,
   type LinhaEquipe, type LinhaEvento, type LinhaEvidencia, type LinhaOcorrencia,
-  type LinhaProvidencia, type LinhaVistoria, type VinculoOcorrencia,
+  type LinhaOficio, type LinhaOrgao, type LinhaProvidencia, type LinhaVistoria,
+  type OficioDetalhado, type VinculoOcorrencia,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
@@ -27,19 +29,13 @@ import { Modal } from "../componentes/Modal";
 import { Toast } from "../componentes/Toast";
 import { IconeDocumento, IconeEvento, IconeVoltar } from "../componentes/Icones";
 import {
+  estadoDoEnvio, providenciasSemOficio, rotuloDoEnvio,
+} from "./oficio-regras";
+import {
   avisoDoRegistro, montarVerTambem, podeOferecerEncerramento, proximoPassoDoEncerramento,
   rotuloDoBotaoDeEncerrar, type ItemVerTambem, type PassoDoEncerramento,
   type RelacaoVerTambem,
 } from "./ocorrencia-regras";
-
-const ORGAOS = [
-  "Secretaria de Obras",
-  "Secretaria de Assistência Social",
-  "Secretaria de Saúde",
-  "Companhia de Energia",
-  "Companhia de Saneamento",
-  "Corpo de Bombeiros Militar",
-];
 
 type Conjunto = {
   ocorrencia: LinhaOcorrencia;
@@ -47,6 +43,17 @@ type Conjunto = {
   vistoria: LinhaVistoria | null;
   providencias: LinhaProvidencia[];
   equipes: LinhaEquipe[];
+  /*
+    O catálogo do município, só os ativos.
+
+    A lista de destinos era uma constante de seis nomes escrita nesta tela, e
+    ela era o defeito que o catálogo veio consertar: o mesmo órgão digitado de
+    quatro jeitos ao longo de um ano faz a conta de "quantas providências foram
+    para os bombeiros" deixar de fechar, e é essa conta que sustenta a conversa
+    de orçamento.
+  */
+  orgaos: LinhaOrgao[];
+  oficios: LinhaOficio[];
   evidencias: LinhaEvidencia[];
   vinculadaA: VinculoOcorrencia | null;
   vinculadas: VinculoOcorrencia[];
@@ -108,8 +115,10 @@ export function Ocorrencia() {
   }, [chegouDoRegistro, navegar, local.pathname, local.search]);
 
   const recarregar = useCallback(async () => {
-    const [ocorrencia, trilha, vistoria, providencias, equipes, evidencias, vinculos] =
-      await Promise.all([
+    const [
+      ocorrencia, trilha, vistoria, providencias, equipes, evidencias, vinculos,
+      orgaos, oficios,
+    ] = await Promise.all([
       buscarOcorrencia(sessao, id),
       trilhaDaOcorrencia(sessao, id),
       vistoriaDaOcorrencia(sessao, id),
@@ -117,6 +126,8 @@ export function Ocorrencia() {
       listarEquipes(sessao),
       listarEvidencias(sessao, id),
       vinculosDaOcorrencia(sessao, id),
+      listarOrgaos(sessao),
+      listarOficios(sessao, id),
     ]);
     if (!ocorrencia) throw new Error("Ocorrência não encontrada nesta organização");
     /*
@@ -130,6 +141,7 @@ export function Ocorrencia() {
       .catch(() => null);
     setDados({
       ocorrencia, trilha, vistoria, providencias, equipes, evidencias, mesmoEndereco,
+      orgaos, oficios,
       vinculadaA: vinculos.vinculadaA as VinculoOcorrencia | null,
       vinculadas: vinculos.vinculadas as VinculoOcorrencia[],
     });
@@ -199,7 +211,7 @@ export function Ocorrencia() {
 
   const {
     ocorrencia: o, trilha, vistoria, providencias, equipes, evidencias,
-    vinculadaA, vinculadas, mesmoEndereco,
+    vinculadaA, vinculadas, mesmoEndereco, orgaos, oficios,
   } = dados;
   // Mesma tabela que o repositório usa para recusar a escrita. A tela decide
   // o que desenhar; quem impede de verdade é a camada de dados.
@@ -372,6 +384,7 @@ export function Ocorrencia() {
 
           {podeProvidencia && !encerrada && o.status === "vistoria_concluida" && (
             <BlocoProvidencia
+              orgaos={orgaos}
               gravando={gravando}
               onEnviar={(p) => executar(
                 () => encaminharProvidencia(sessao, o.id, p),
@@ -483,6 +496,23 @@ export function Ocorrencia() {
                 />
               )}
             </Cartao>
+          )}
+
+          {/*
+            Os ofícios vêm logo depois das providências porque é a mesma
+            conversa: a providência diz que alguém foi cobrado, e o ofício é o
+            papel que o órgão de fato recebeu. Separar as duas em cantos
+            diferentes da tela faria o coordenador responder "encaminhei" sem
+            saber que nada saiu do prédio.
+          */}
+          {providencias.length > 0 && (
+            <CartaoOficios
+              providencias={providencias}
+              oficios={oficios}
+              podeEmitir={podeDocumento}
+              podeEnviar={podeProvidencia}
+              aoMudar={recarregar}
+            />
           )}
 
           {/*
@@ -857,20 +887,46 @@ function BlocoDespacho({ equipes, severidade, onEnviar, titulo, equipeAtual, gra
   );
 }
 
-function BlocoProvidencia({ onEnviar, gravando }: {
-  onEnviar: (p: { orgaoDestino: string; descricao: string; responsavel: string; prazoHoras: number }) => void;
+/**
+ * Encaminhar providência, com o destino saindo do CATÁLOGO.
+ *
+ * O que este bloco deixou de ter é o ponto: uma lista de seis nomes escrita
+ * dentro da tela. Ela produzia dois defeitos ao mesmo tempo. O primeiro é o
+ * que o catálogo conserta: nome digitado de jeitos diferentes vira destinos
+ * diferentes no relatório. O segundo é mais silencioso: a lista era a mesma em
+ * todo município, então uma prefeitura que não tem companhia de saneamento
+ * própria escolhia um destino que não existe ali.
+ *
+ * O CAMPO LIVRE CONTINUA EXISTINDO, e só quando o catálogo está vazio. Um
+ * município que sobe o sistema durante uma chuva não pode ficar travado num
+ * encaminhamento urgente esperando alguém cadastrar "Corpo de Bombeiros". O
+ * banco resolve o nome contra o catálogo do próprio município e cria a entrada
+ * se ela não existir (migração 017), então nem esse caminho deixa providência
+ * solta fora do catálogo.
+ */
+function BlocoProvidencia({ orgaos, onEnviar, gravando }: {
+  orgaos: LinhaOrgao[];
+  onEnviar: (p: {
+    orgaoDestino: string; descricao: string; responsavel: string; prazoHoras: number;
+    orgaoId?: string;
+  }) => void;
   gravando: boolean;
 }) {
-  const [orgao, setOrgao] = useState(ORGAOS[0]!);
+  const catalogo = orgaos.filter((o) => o.ativo);
+  const [orgaoId, setOrgaoId] = useState(catalogo[0]?.id ?? "");
+  const [orgaoLivre, setOrgaoLivre] = useState("");
   const [descricao, setDescricao] = useState("");
   const [responsavel, setResponsavel] = useState("");
   const [prazo, setPrazo] = useState(72);
   const [erro, setErro] = useState<string | null>(null);
 
+  const escolhido = catalogo.find((o) => o.id === orgaoId) ?? null;
+
   function enviar(evento: React.FormEvent) {
     evento.preventDefault();
     const resultado = providenciaSchema.safeParse({
-      orgaoDestino: orgao, descricao: descricao.trim(),
+      orgaoDestino: escolhido ? escolhido.nome : orgaoLivre.trim(),
+      descricao: descricao.trim(),
       responsavel: responsavel.trim(), prazoHoras: Number(prazo),
     });
     if (!resultado.success) {
@@ -878,7 +934,12 @@ function BlocoProvidencia({ onEnviar, gravando }: {
       return;
     }
     setErro(null);
-    onEnviar(resultado.data);
+    /*
+      O identificador vai junto do nome, e não no lugar dele. O nome é o
+      registro do destino que o encaminhamento realmente levou, e ele precisa
+      continuar valendo mesmo que o órgão seja renomeado no catálogo depois.
+    */
+    onEnviar(escolhido ? { ...resultado.data, orgaoId: escolhido.id } : resultado.data);
   }
 
   return (
@@ -886,13 +947,39 @@ function BlocoProvidencia({ onEnviar, gravando }: {
       <form onSubmit={enviar} noValidate>
         <AvisoDeObrigatorios />
         <div className="linha-campos">
-          <Campo id="prov-orgao" rotulo="Órgão de destino">
-            {(campo) => (
-              <select {...campo} value={orgao} onChange={(e) => setOrgao(e.target.value)}>
-                {ORGAOS.map((o) => <option key={o} value={o}>{o}</option>)}
-              </select>
-            )}
-          </Campo>
+          {catalogo.length > 0 ? (
+            <Campo
+              id="prov-orgao"
+              rotulo="Órgão de destino"
+              dica={escolhido && !escolhido.email
+                ? "Este órgão não tem email cadastrado: o ofício será emitido e "
+                  + "impresso, mas não sai por email daqui."
+                : undefined}
+            >
+              {(campo) => (
+                <select {...campo} value={orgaoId} onChange={(e) => setOrgaoId(e.target.value)}>
+                  {catalogo.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.sigla ? `${o.nome} (${o.sigla})` : o.nome}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </Campo>
+          ) : (
+            <Campo
+              id="prov-orgao-livre"
+              rotulo="Órgão de destino"
+              dica={"Nenhum órgão cadastrado ainda. O que for digitado aqui entra no "
+                + "catálogo do município, e a partir daí vira opção de lista."}
+            >
+              {(campo) => (
+                <input {...campo} type="text" value={orgaoLivre}
+                       onChange={(e) => setOrgaoLivre(e.target.value)}
+                       placeholder="Corpo de Bombeiros Militar" />
+              )}
+            </Campo>
+          )}
           <Campo id="prov-responsavel" rotulo="Responsável no órgão">
             {(campo) => (
               <input {...campo} type="text" value={responsavel}
@@ -1126,6 +1213,238 @@ function CartaoDocumentos(
           {erro && <ErroCampo id="documento-erro">{erro}</ErroCampo>}
         </div>
       )}
+    </Cartao>
+  );
+}
+
+/**
+ * Ofícios de encaminhamento: o papel que sai da prefeitura.
+ *
+ * A providência diz, dentro do sistema, que alguém foi cobrado. O ofício é o
+ * documento que o órgão recebe, com número da sequência do município, e é ele
+ * que existe fora daqui. Este cartão junta as três perguntas que ninguém tinha
+ * onde responder: qual é o número, foi enviado, e alguém abriu.
+ *
+ * EMITIR E ENVIAR SÃO DOIS ATOS, e a separação não é burocracia. Emitir produz
+ * um papel dentro do município; enviar coloca um endereço de uso único para o
+ * dossiê de uma família dentro da caixa de entrada de outro órgão. Por isso só
+ * o envio pergunta antes, e o botão da pergunta repete o número e o órgão: é a
+ * última chance de perceber que a janela aberta não é a do ofício que se
+ * estava lendo.
+ *
+ * Emitir não pergunta, e isso é decisão e não esquecimento: ele queima um
+ * número da sequência e não tem cancelamento, mas o estrago é um número pulado
+ * numa lista interna, não um documento na mão de terceiro. Pedir confirmação
+ * para os dois ensinaria a clicar em "sim" sem ler, e a pergunta que importa
+ * é a do envio.
+ */
+function CartaoOficios({ providencias, oficios, podeEmitir, podeEnviar, aoMudar }: {
+  providencias: LinhaProvidencia[];
+  oficios: LinhaOficio[];
+  podeEmitir: boolean;
+  podeEnviar: boolean;
+  aoMudar: () => Promise<void>;
+}) {
+  const sessao = useSessaoObrigatoria();
+  const [gravando, setGravando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [recibo, setRecibo] = useState<string | null>(null);
+  const [aEnviar, setAEnviar] = useState<LinhaOficio | null>(null);
+  const [detalhe, setDetalhe] = useState<OficioDetalhado | null>(null);
+  const [abrindo, setAbrindo] = useState<string | null>(null);
+
+  const semOficio = providenciasSemOficio(providencias, oficios);
+
+  async function emitir(providencia: LinhaProvidencia): Promise<void> {
+    if (gravando) return;
+    setGravando(true);
+    setErro(null);
+    try {
+      const criado = await emitirOficio(sessao, providencia.id);
+      /*
+        O número aparece no recibo E na lista logo abaixo, depois do
+        recarregamento. Se ele existisse só aqui, quem desviou o olho perderia
+        o número do documento que acabou de nascer, com o órgão ainda na linha.
+      */
+      setRecibo(`Ofício ${criado.numero} emitido para ${providencia.orgao_destino}.`);
+      await aoMudar();
+    } catch (e: unknown) {
+      setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setGravando(false);
+    }
+  }
+
+  /** Um caminho só: o botão pergunta, e o botão da janela envia. */
+  async function enviar(oficio: LinhaOficio): Promise<void> {
+    if (gravando) return;
+    setGravando(true);
+    setErro(null);
+    try {
+      const resultado = await enviarOficio(sessao, oficio.id);
+      setAEnviar(null);
+      setRecibo(
+        `Ofício ${oficio.numero} enviado para ${resultado.destinatario}. O link `
+        + `vale ${resultado.expiraEmHoras} horas e abre uma vez só. `
+        + `Restam ${resultado.restantes} envios para este ofício.`,
+      );
+      await aoMudar();
+    } catch (e: unknown) {
+      setAEnviar(null);
+      setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setGravando(false);
+    }
+  }
+
+  async function verTentativas(oficio: LinhaOficio): Promise<void> {
+    setErro(null);
+    try {
+      setDetalhe(await detalharOficio(sessao, oficio.id));
+    } catch (e: unknown) {
+      setErro(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function abrir(oficio: LinhaOficio): Promise<void> {
+    setErro(null);
+    setAbrindo(oficio.id);
+    try {
+      window.open(await abrirOficio(sessao, oficio.id), "_blank", "noopener");
+    } catch (e: unknown) {
+      setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAbrindo(null);
+    }
+  }
+
+  return (
+    <Cartao titulo="Ofícios de encaminhamento">
+      {erro && <Aviso tom="perigo">{erro}</Aviso>}
+      {recibo && <Aviso tom="sucesso">{recibo}</Aviso>}
+
+      {oficios.length === 0 && semOficio.length === 0 && (
+        <Vazio titulo="Nenhum ofício emitido">
+          <p>O ofício é emitido a partir de uma providência encaminhada.</p>
+        </Vazio>
+      )}
+
+      {oficios.map((f) => {
+        const envio = estadoDoEnvio(f);
+        const daProvidencia = providencias.find((p) => p.id === f.providencia_id);
+        return (
+          <div className="oficio" key={f.id}>
+            <div className="oficio__numero mono">{f.numero}</div>
+            <div className="oficio__linha">
+              <span>{f.orgao_sigla ? `${f.orgao_nome} (${f.orgao_sigla})` : f.orgao_nome}</span>
+              <span>Emitido por {f.emitido_por_nome} em {formatarDataHora(f.emitido_em)}</span>
+            </div>
+            {daProvidencia && (
+              <div className="oficio__linha">Providência: {daProvidencia.descricao}</div>
+            )}
+
+            {/* Estado nunca só por cor: o selo carrega a frase inteira. */}
+            <div className="oficio__linha">
+              <span className={`selo selo--${envio.tom}`}>{envio.rotulo}</span>
+            </div>
+            <p className="campo__dica" style={{ margin: 0 }}>{envio.explicacao}</p>
+
+            <div style={{ display: "flex", gap: "var(--ds-sp-2)", flexWrap: "wrap" }}>
+              {podeEmitir && MODO === "api" && (
+                <button type="button" className="botao botao--secundario"
+                        disabled={abrindo !== null}
+                        onClick={() => void abrir(f)}>
+                  <IconeDocumento />
+                  {abrindo === f.id ? "Gerando" : "Abrir ofício"}
+                </button>
+              )}
+              {podeEnviar && MODO === "api" && (
+                <button type="button" className="botao botao--secundario"
+                        disabled={gravando}
+                        onClick={() => setAEnviar(f)}>
+                  {f.envios === 0 ? "Enviar por email" : "Reenviar por email"}
+                </button>
+              )}
+              {f.envios > 0 && (
+                /*
+                  Alterna em vez de só abrir: uma lista que aparece e não fecha
+                  é um beco, e este cartão pode ter vários ofícios abertos ao
+                  mesmo tempo empurrando o resto da tela para baixo.
+                */
+                <button type="button" className="botao botao--discreto"
+                        onClick={() => {
+                          if (detalhe?.id === f.id) setDetalhe(null);
+                          else void verTentativas(f);
+                        }}>
+                  {detalhe?.id === f.id ? "Esconder" : "Ver"} as {f.envios}{" "}
+                  {f.envios === 1 ? "tentativa" : "tentativas"}
+                </button>
+              )}
+            </div>
+
+            {detalhe?.id === f.id && (
+              <ul style={{ margin: 0, paddingLeft: "var(--ds-sp-5)" }}>
+                {detalhe.envios.map((tentativa) => (
+                  <li key={tentativa.id} className="oficio__linha">
+                    Tentativa {tentativa.tentativa} para {tentativa.destinatario_email},{" "}
+                    por {tentativa.solicitado_por_nome} em{" "}
+                    {formatarDataHora(tentativa.solicitado_em)}:{" "}
+                    <strong>{tentativa.desfecho}</strong>
+                    {tentativa.detalhe && ` (${tentativa.detalhe})`}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        );
+      })}
+
+      {podeEmitir && semOficio.length > 0 && (
+        <div className="oficio">
+          <p className="campo__dica" style={{ margin: 0 }}>
+            Um ofício por providência. Emitir queima um número da sequência do
+            município e não tem cancelamento.
+          </p>
+          <div style={{ display: "flex", gap: "var(--ds-sp-2)", flexWrap: "wrap" }}>
+            {semOficio.map((p) => (
+              <button type="button" className="botao botao--primario" key={p.id}
+                      disabled={gravando}
+                      onClick={() => void emitir(p)}>
+                <IconeDocumento /> Emitir ofício para {p.orgao_destino}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {MODO === "local" && oficios.length > 0 && (
+        <p className="campo__dica" style={{ margin: 0 }}>
+          O documento e o envio por email são feitos pelo servidor. Este painel está
+          em modo local: o número já foi reservado, e o papel sai no ambiente real.
+        </p>
+      )}
+
+      <ConfirmarAcao
+        aberto={aEnviar !== null}
+        titulo="Enviar ofício por email"
+        consequencia={
+          <>
+            O órgão de destino recebe um endereço de uso único que abre o ofício
+            com os dados da ocorrência. O link vale por tempo limitado, abre uma
+            vez só, e a abertura fica registrada. Não tem como recolher um email
+            enviado.
+          </>
+        }
+        rotuloDaAcao={rotuloDoEnvio(aEnviar)}
+        ocupado={gravando}
+        aoConfirmar={() => { if (aEnviar) void enviar(aEnviar); }}
+        aoCancelar={() => setAEnviar(null)}
+      >
+        <p className="campo__dica" style={{ marginTop: "var(--ds-sp-3)" }}>
+          Vai para o email cadastrado no catálogo de órgãos. Se o endereço estiver
+          errado, corrija o cadastro antes de enviar: o link já sai vivo.
+        </p>
+      </ConfirmarAcao>
     </Cartao>
   );
 }

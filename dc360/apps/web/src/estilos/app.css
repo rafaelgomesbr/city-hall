@@ -782,3 +782,103 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
 /* Lista de campos recusados pelo servidor, dentro de um Aviso de perigo. */
 .erros-do-servidor { margin: var(--ds-sp-2) 0 0; padding-left: var(--ds-sp-5); display: grid; gap: var(--ds-sp-1); }
 .erros-do-servidor li { font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
+
+/* ---------------------------------------------------------------------------
+   Sino de avisos
+   ---------------------------------------------------------------------------
+   O painel é ancorado no botão e sai do fluxo, então ele precisa de `position:
+   relative` no envoltório: sem isso ele se ancoraria no primeiro ancestral
+   posicionado, que é o `.topo` fixo, e passaria a nascer na ponta esquerda do
+   cabeçalho em telas estreitas. */
+.sino { position: relative; }
+
+.sino__botao {
+  position: relative;
+  display: grid; place-items: center;
+  width: var(--ds-touch); height: var(--ds-touch);
+  border: 1px solid transparent; border-radius: var(--ds-radius);
+  background: transparent; color: var(--ds-text); cursor: pointer;
+  transition: background-color var(--ds-dur-fast) var(--ds-ease);
+}
+.sino__botao:hover { background: var(--ds-surface-2); }
+
+/* O selo é redundante com o `aria-label` do botão de propósito: o número
+   sozinho, para o leitor de tela, seria "12" sem dizer doze do quê.
+
+   O par é `accent` mais `on-accent`, e não vermelho. Vermelho seria o hábito,
+   e ele quebra nos dois temas de uma vez: `--ds-danger-fg` é escuro no tema
+   claro e claro no tema escuro, então um texto de cor fixa por cima dele fica
+   ilegível em um dos dois. `on-accent` existe justamente para ser o texto em
+   cima do accent, e troca junto com o tema. Contagem também não é severidade,
+   então a proibição de comunicar severidade com a cor da marca não se aplica
+   aqui. */
+.sino__selo {
+  position: absolute; top: var(--ds-sp-1); right: var(--ds-sp-1);
+  min-width: 18px; padding: 0 var(--ds-sp-1);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-accent); color: var(--ds-on-accent);
+  font-size: var(--ds-fs-caption); line-height: 18px; font-weight: 600;
+  text-align: center;
+}
+
+.sino__painel {
+  position: absolute; right: 0; top: calc(100% + var(--ds-sp-2));
+  width: min(400px, calc(100vw - var(--ds-sp-6)));
+  max-height: 70vh; overflow-y: auto;
+  background: var(--ds-surface); color: var(--ds-text);
+  border: 1px solid var(--ds-border); border-radius: var(--ds-radius-card);
+  box-shadow: var(--ds-shadow-3);
+  z-index: var(--ds-z-dropdown);
+  padding: var(--ds-sp-4);
+}
+
+.sino__cabecalho {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  margin-bottom: var(--ds-sp-3);
+}
+.sino__titulo { margin: 0; font-size: var(--ds-fs-h3); }
+.sino__cabecalho .botao { margin-left: auto; }
+
+.sino__nota {
+  margin: var(--ds-sp-2) 0 0;
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+  color: var(--ds-text-muted);
+}
+
+.sino__lista { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--ds-sp-1); }
+.sino__item {
+  display: flex; align-items: flex-start; gap: var(--ds-sp-2);
+  padding: var(--ds-sp-2);
+  border-radius: var(--ds-radius);
+  border-left: 3px solid transparent;
+}
+.sino__item--novo { border-left-color: var(--ds-accent-graphic); background: var(--ds-surface-2); }
+
+.sino__link {
+  flex: 1 1 auto; display: grid; gap: var(--ds-sp-1);
+  color: inherit; text-decoration: none;
+  min-height: var(--ds-touch); align-content: center;
+}
+.sino__link:hover .sino__frase { color: var(--ds-accent-hover); }
+.sino__frase { font-size: var(--ds-fs-body-sm); font-weight: 600; line-height: var(--ds-lh-caption); }
+.sino__protocolo { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); }
+.sino__complemento { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); }
+.sino__instante { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); }
+.sino__estado { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); }
+
+.sino__rodape {
+  margin-top: var(--ds-sp-3); padding-top: var(--ds-sp-3);
+  border-top: 1px solid var(--ds-border);
+  display: grid; gap: var(--ds-sp-2);
+}
+
+/* ---------------------------------------------------------------------------
+   Catálogo de órgãos e ofícios
+   --------------------------------------------------------------------------- */
+.oficio { display: grid; gap: var(--ds-sp-2); padding: var(--ds-sp-3) 0; }
+.oficio + .oficio { border-top: 1px solid var(--ds-border); }
+.oficio__numero { font-size: var(--ds-fs-body-lg); font-weight: 600; }
+.oficio__linha {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-2);
+  font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
+}

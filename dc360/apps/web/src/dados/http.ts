@@ -9,6 +9,8 @@ import type {
   PaginaDeOcorrencias, PontosDoMapa, ProvidenciaPendente,
   ResumoPeriodo, SenhaRedefinida, SessoesDeOutrem,
   Sessao, TipoDeDocumento, VinculoOcorrencia,
+  CursorDeAvisos, DadosDoOrgao, LinhaOficio, LinhaOrgao, OficioDetalhado,
+  RespostaDeAvisos, ResultadoDeEnvio,
 } from "./tipos";
 
 /**
@@ -385,10 +387,19 @@ export async function despacharEquipe(_s: Sessao, id: string, d: Despacho): Prom
   await chamar(`/ocorrencias/${id}/despacho`, { metodo: "POST", corpo: d });
 }
 
+/**
+ * Encaminha, com o destino saindo do catálogo quando ele existe.
+ *
+ * `orgaoId` é OPCIONAL, e a compatibilidade é deliberada dos dois lados: um
+ * município sem catálogo montado ainda precisa encaminhar no meio de uma
+ * chuva. Sem o identificador, o banco resolve o nome contra o catálogo do
+ * próprio município e cria a entrada se ela não existir (migração 017), então
+ * os dois caminhos terminam amarrados ao catálogo.
+ */
 export async function encaminharProvidencia(
   _s: Sessao,
   id: string,
-  p: Providencia,
+  p: Providencia & { orgaoId?: string },
 ): Promise<void> {
   await chamar(`/ocorrencias/${id}/providencia`, { metodo: "POST", corpo: p });
 }
@@ -666,4 +677,172 @@ export async function baixarCsvDeOcorrencias(
     url: URL.createObjectURL(await resposta.blob()),
     nome: `ocorrencias-${new Date().toISOString().slice(0, 10)}.csv`,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Sino de avisos
+// ---------------------------------------------------------------------------
+
+/**
+ * O que mudou desde a última pergunta.
+ *
+ * O cursor é ECOADO, nunca calculado aqui. Ele saiu do relógio do banco na
+ * resposta anterior, e é essa a razão de ele existir como parâmetro em vez de
+ * a função montar um `new Date()`: o relógio da máquina da coordenadoria não
+ * é o do servidor, e um marco adiantado faz a janela seguinte começar no
+ * futuro. Tudo o que acontecesse até o servidor alcançar aquele instante
+ * ficaria atrás do cursor e não voltaria em pergunta nenhuma, sem erro e sem
+ * nada na tela dizendo que faltou um aviso.
+ */
+export async function avisosDesde(
+  _s: Sessao,
+  cursor: CursorDeAvisos | null,
+): Promise<RespostaDeAvisos> {
+  const p = new URLSearchParams();
+  if (cursor) {
+    p.set("desde", cursor.desde);
+    // Só acompanha o instante quando a resposta anterior foi cortada: sem ele,
+    // um corte no meio de avisos gravados no mesmo instante perderia os de
+    // fora, porque `criado_em > desde` não alcança os empatados.
+    if (cursor.desdeId) p.set("desdeId", cursor.desdeId);
+  }
+  const consulta = p.toString();
+  return chamar<RespostaDeAvisos>(`/avisos${consulta ? `?${consulta}` : ""}`);
+}
+
+/**
+ * Marca como lidos os avisos que esta pessoa recebeu.
+ *
+ * A lista é de identificadores, e não um marco de tempo, porque "marcar tudo
+ * até agora" apagaria também o que o teto da resposta cortou e ninguém chegou
+ * a ver. Só sai do sino o que passou pelos olhos de alguém.
+ */
+export async function marcarAvisosLidos(
+  _s: Sessao,
+  ids: readonly string[],
+): Promise<{ marcados: number }> {
+  return chamar<{ marcados: number }>("/avisos/lidos", {
+    metodo: "POST",
+    corpo: { ids },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Catálogo de órgãos
+// ---------------------------------------------------------------------------
+
+export async function listarOrgaos(
+  _s: Sessao,
+  incluirInativos = false,
+): Promise<LinhaOrgao[]> {
+  const r = await chamar<{ itens: LinhaOrgao[] }>(
+    `/orgaos${incluirInativos ? "?incluirInativos=1" : ""}`,
+  );
+  return r.itens;
+}
+
+export async function criarOrgao(_s: Sessao, dados: DadosDoOrgao): Promise<{ id: string }> {
+  return chamar<{ id: string }>("/orgaos", { metodo: "POST", corpo: dados });
+}
+
+export async function atualizarOrgao(
+  _s: Sessao,
+  id: string,
+  dados: DadosDoOrgao,
+): Promise<void> {
+  await chamar<{ id: string }>(`/orgaos/${id}`, { metodo: "PATCH", corpo: dados });
+}
+
+/**
+ * Órgão não se apaga, se desativa com motivo.
+ *
+ * A rota de exclusão não existe, e a ausência é a decisão: o órgão aparece em
+ * ofício já emitido e na trilha de quem encaminhou o quê. Apagar a linha
+ * apagaria a resposta para "para onde foi este ofício", que é a pergunta que
+ * uma auditoria faz.
+ */
+export async function desativarOrgao(_s: Sessao, id: string, motivo: string): Promise<void> {
+  await chamar<{ id: string }>(`/orgaos/${id}/desativacao`, {
+    metodo: "POST",
+    corpo: { motivo },
+  });
+}
+
+export async function reativarOrgao(_s: Sessao, id: string): Promise<void> {
+  await chamar<{ id: string }>(`/orgaos/${id}/reativacao`, { metodo: "POST" });
+}
+
+// ---------------------------------------------------------------------------
+// Ofício
+// ---------------------------------------------------------------------------
+
+export async function listarOficios(
+  _s: Sessao,
+  ocorrenciaId: string,
+): Promise<LinhaOficio[]> {
+  const r = await chamar<{ itens: LinhaOficio[] }>(
+    `/oficios?ocorrenciaId=${encodeURIComponent(ocorrenciaId)}`,
+  );
+  return r.itens;
+}
+
+export async function detalharOficio(_s: Sessao, id: string): Promise<OficioDetalhado> {
+  return chamar<OficioDetalhado>(`/oficios/${id}`);
+}
+
+/**
+ * Emitir queima um número da sequência do município, e por isso é ato de quem
+ * emite documento oficial.
+ *
+ * Um ofício por providência: o segundo clique não queima outro número, e o
+ * servidor devolve o número que já existe dentro da mensagem. O órgão receber
+ * dois documentos oficiais pedindo a mesma coisa deixa o coordenador sem saber
+ * qual dos dois cobrar depois.
+ */
+export async function emitirOficio(
+  _s: Sessao,
+  providenciaId: string,
+  observacoes?: string,
+): Promise<{ id: string; numero: string }> {
+  return chamar<{ id: string; numero: string }>("/oficios", {
+    metodo: "POST",
+    corpo: { providenciaId, ...(observacoes ? { observacoes } : {}) },
+  });
+}
+
+/**
+ * Envia, ou reenvia, o ofício por email.
+ *
+ * Ato separado da emissão, e a separação não é burocracia: emitir produz um
+ * papel dentro do município, enviar coloca um endereço de uso único para o
+ * dossiê de uma família dentro da caixa de entrada de outro órgão.
+ */
+export async function enviarOficio(
+  _s: Sessao,
+  id: string,
+  destinatario?: string,
+): Promise<ResultadoDeEnvio> {
+  return chamar<ResultadoDeEnvio>(`/oficios/${id}/envio`, {
+    metodo: "POST",
+    corpo: destinatario ? { destinatario } : {},
+  });
+}
+
+/**
+ * O documento do ofício, buscado com o token e entregue como endereço local.
+ *
+ * Mesma razão do laudo: apontar o navegador para a rota não funciona, porque
+ * ela exige o token no cabeçalho e navegação comum não o envia. Pôr o token na
+ * URL resolveria e seria pior, porque ele acabaria no histórico e no log.
+ */
+export async function abrirOficio(_s: Sessao, id: string): Promise<string> {
+  const tokens = lerTokens();
+  const resposta = await comRedeTraduzida(() =>
+    fetch(`${BASE}/oficios/${id}/documento`, {
+      headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
+    }));
+  if (!resposta.ok) {
+    throw new ErroDaApi(resposta.status, await resposta.json().catch(() => ({})));
+  }
+  return URL.createObjectURL(await resposta.blob());
 }

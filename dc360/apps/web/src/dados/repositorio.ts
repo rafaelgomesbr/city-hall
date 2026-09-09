@@ -66,6 +66,18 @@ export const {
   tiposDeEvento,
   resumoDoPeriodo,
   baixarCsvDeOcorrencias,
+  avisosDesde,
+  marcarAvisosLidos,
+  listarOrgaos,
+  criarOrgao,
+  atualizarOrgao,
+  desativarOrgao,
+  reativarOrgao,
+  listarOficios,
+  detalharOficio,
+  emitirOficio,
+  enviarOficio,
+  abrirOficio,
 } = impl;
 
 export { ErroDaApi } from "./http";
@@ -106,4 +118,14 @@ export type {
   SessoesDeOutrem,
   TipoDeDocumento,
   Sessao,
+  Aviso,
+  CursorDeAvisos,
+  RespostaDeAvisos,
+  LinhaOrgao,
+  DadosDoOrgao,
+  LinhaOficio,
+  OficioDetalhado,
+  EnvioDeOficio,
+  AberturaDeOficio,
+  ResultadoDeEnvio,
 } from "./tipos";

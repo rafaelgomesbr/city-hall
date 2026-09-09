@@ -236,11 +236,27 @@ describe("O notificador de log", () => {
 
     // Desligar é decisão legítima, e explícita.
     expect(() => carregarConfig({ ...base, RECUPERACAO_ATIVA: "nao" })).not.toThrow();
-    // E com destino de verdade, sobe.
+    /*
+      E com destino de verdade E alguém falando com ele, sobe.
+
+      `EMAIL_ATIVO=sim` entrou aqui em 09/09/2026, junto do cliente HTTP de
+      email, e a razão é a metade que faltava neste mesmo defeito: ter as
+      variáveis do provedor preenchidas nunca foi suficiente, porque nenhuma
+      linha do servidor as lia. A produção subia, a rota respondia "enviamos" e
+      o link de uso único ia para o log, exatamente como no caso acima.
+    */
     expect(() => carregarConfig({
       ...base,
       NOTIFICADOR_URL: "https://email.exemplo.com/enviar",
       NOTIFICADOR_CHAVE: "chave-do-provedor",
+      EMAIL_ATIVO: "sim",
     })).not.toThrow();
+
+    // E preencher o provedor sem ligar o envio continua sendo recusado.
+    expect(() => carregarConfig({
+      ...base,
+      NOTIFICADOR_URL: "https://email.exemplo.com/enviar",
+      NOTIFICADOR_CHAVE: "chave-do-provedor",
+    })).toThrow(/EMAIL_ATIVO=nao/);
   });
 });

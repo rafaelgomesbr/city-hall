@@ -213,6 +213,68 @@ que impede a mesma notificação de sair duas vezes quando o varredor reinicia.
 registro de quem foi avisado: o expurgo por idade é feito pela própria função de
 varredura, com retenção de 90 dias.
 
+## `orgaos`
+
+Para quem o município encaminha providência: bombeiros, obras, assistência
+social. **Uma linha por órgão, por município.**
+
+Existe porque `providencias.orgao_destino` era texto livre, e "Corpo de
+Bombeiros", "Bombeiros", "CBMSC" e "corpo de bombeiros" viravam quatro destinos
+diferentes. Nenhum relatório de quantas providências foram para bombeiros saía
+certo.
+
+| Coluna | Significado |
+| --- | --- |
+| `nome`, `sigla` | Como o órgão é chamado, e a sigla que sai no ofício |
+| `email` | Para onde o ofício é enviado. **É a lista fechada de destinos**: não sai email para domínio que não esteja aqui |
+| `ativo`, `desativado_em`, `motivo_desativacao` | Órgão **não se apaga**, se desativa. Ele aparece em ofício já emitido |
+
+A chave estrangeira de `providencias` para cá é **composta** com
+`organizacao_id`. Chave simples deixaria uma providência apontar para órgão de
+outro município, e a segurança em nível de linha não protege contra isso: a
+integridade referencial roda por dentro do banco, e é a única coisa que fecha
+essa porta.
+
+## `oficios`, `oficio_sequencias`, `oficio_envios`, `oficio_aberturas`
+
+O ofício que encaminha uma providência a um órgão.
+
+| Tabela | Para quê |
+| --- | --- |
+| `oficio_sequencias` | O último número usado por município e por ano, igual ao protocolo. Sequência global vazaria volume entre municípios |
+| `oficios` | O documento: número no formato `NNNNNN/AAAA`, a providência, o órgão, quem emitiu |
+| `oficio_envios` | Uma linha **por tentativa** de envio, inclusive as que falharam. Tentativa que não fica registrada é a que ninguém consegue investigar |
+| `oficio_aberturas` | Quem abriu o endereço de uso único, quando, e de qual endereço de origem |
+
+**O email leva só o número e um link de uso único, e essa é a decisão de
+privacidade do bloco.** O ofício carrega endereço, nome do solicitante e às
+vezes descrição de vulnerabilidade social. Email sai do nosso controle no
+instante em que é entregue: fica na caixa de quem recebeu, no servidor do
+provedor dele, e em qualquer encaminhamento que ele fizer. Então o dado sensível
+não viaja por email: quem precisa dele abre o link, o acesso fica registrado em
+`oficio_aberturas`, e a segunda abertura é recusada.
+
+## `avisos` e `avisos_lidos`
+
+O sino do painel. **Duas tabelas, e a separação é o ponto.**
+
+`avisos` guarda o FATO (vistoria chegou, prazo venceu, providência respondida).
+`avisos_lidos` guarda quem leu o quê. Uma coluna `lido` no próprio aviso faria a
+primeira pessoa a ler apagar o sino de todo mundo, que é o defeito clássico
+deste recurso.
+
+| Coluna de `avisos` | Significado |
+| --- | --- |
+| `tipo` | Que fato aconteceu |
+| `ocorrencia_id` | Sobre qual ocorrência |
+| `chave_do_fato` | O que impede o mesmo fato de virar dois avisos |
+| `criado_em` | Também é metade do cursor de leitura |
+
+O cursor da consulta é o par `(criado_em, id)`, e o `id` não é enfeite: uma
+sincronização grava várias vistorias na mesma transação, com o mesmo instante, e
+com o instante sozinho um corte no meio de um empate deixaria os empatados para
+trás para sempre. Retenção de 60 dias, dentro da própria política de remoção.
+
 ## Tabelas de apoio
 
 | Tabela | Para quê |

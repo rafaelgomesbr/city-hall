@@ -1,5 +1,7 @@
-import { ROTULO_CHECKLIST, ROTULO_SEVERIDADE, ROTULO_TIPO_COBRADE } from "./dominio.js";
-import type { Severidade, TipoCobrade } from "./dominio.js";
+import {
+  CHAVE_ACIONAR_ORGAO, ROTULO_CHECKLIST, ROTULO_SEVERIDADE, ROTULO_TIPO_COBRADE,
+} from "./dominio.js";
+import type { Severidade, TipoDeEntrada } from "./dominio.js";
 import { CAMPOS_PESSOAS, type PessoasAtingidas } from "./schemas.js";
 
 /**
@@ -36,7 +38,13 @@ export type DadosMinuta = {
   organizacao: { nome: string; municipio: string; uf: string };
   ocorrencia: {
     protocolo: string;
-    tipo: TipoCobrade;
+    /*
+      `TipoDeEntrada` e não `TipoCobrade`: a minuta é montada no aparelho a
+      partir da tarefa que desceu do servidor, e um chamado que entrou como
+      "outro" e escapou da reclassificação precisa imprimir a palavra em vez de
+      um branco no lugar do tipo. Documento com campo vazio não denuncia nada.
+    */
+    tipo: TipoDeEntrada;
     severidade: Severidade | null;
     endereco: string;
     pontoReferencia: string | null;
@@ -58,6 +66,14 @@ export type DadosMinuta = {
     agenteMatricula: string;
     /** Contagem de pessoas. Ausente significa não contado, e não zero. */
     pessoas: PessoasAtingidas;
+    /**
+     * Quem precisa ser acionado, quando o checklist respondeu que sim.
+     *
+     * Opcional porque rascunho gravado antes desta mudança não tem a lista, e
+     * porque o texto lido em voz alta precisa ser montável do que existe no
+     * aparelho naquele instante, nunca do que falta.
+     */
+    orgaosParaAcionar?: ReadonlyArray<{ nome: string }>;
   };
   quantasFotos: number;
 };
@@ -195,6 +211,31 @@ export function montarMinuta(d: DadosMinuta): Minuta {
       resposta: i.resposta,
     })),
   });
+
+  /*
+    Os órgãos entram LOGO DEPOIS do checklist, e só quando a resposta foi sim.
+
+    Depois porque é a resposta do item se abrindo: quem lê em voz alta acabou de
+    dizer "necessário acionar outro órgão: sim", e a linha seguinte responde
+    quem. Antes do checklist, a lista apareceria sem a pergunta que a explica.
+
+    Quando a resposta foi sim e a lista está vazia, a seção existe assim mesmo e
+    diz que não foi especificado. É o caso do aparelho que ainda não atualizou, e
+    calar aqui devolveria o coordenador ao telefonema que este bloco existe para
+    acabar: ele leria um laudo sem nenhuma menção a órgão nenhum e não saberia
+    que a informação faltou.
+  */
+  const pedeOrgaos = v.checklist.some((i) => i.chave === CHAVE_ACIONAR_ORGAO && i.resposta);
+  if (pedeOrgaos) {
+    const nomes = (v.orgaosParaAcionar ?? []).map((o) => o.nome.trim()).filter(Boolean);
+    secoes.push({
+      tipo: "texto",
+      titulo: "Órgãos a acionar",
+      corpo: nomes.length > 0
+        ? nomes.join("\n")
+        : "Indicada a necessidade de acionar outro órgão, sem especificar qual.",
+    });
+  }
 
   if (v.observacoes?.trim()) {
     secoes.push({ tipo: "texto", titulo: "Observações do agente", corpo: v.observacoes.trim() });

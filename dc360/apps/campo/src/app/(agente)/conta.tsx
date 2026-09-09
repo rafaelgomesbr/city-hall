@@ -7,6 +7,8 @@ import { enderecoDaApi } from "../../dados/api";
 import { obterFila } from "../../dados/fila";
 import { useSessao } from "../../dados/sessao";
 import { useSinal } from "../../dados/conectividade";
+import { usePush } from "../../push/contexto";
+import { frasesDoEstado, ofereceAjustes } from "../../push/permissao";
 import { Aviso, Botao, Cartao, Separador, Txt } from "../../ui/componentes";
 import { Dialogo } from "../../ui/Dialogo";
 import { espaco } from "../../ui/tokens";
@@ -23,6 +25,7 @@ import { espaco } from "../../ui/tokens";
 export default function Conta() {
   const { identidade, sair, obterToken } = useSessao();
   const sinal = useSinal();
+  const push = usePush();
   const [pendentes, setPendentes] = useState<number | null>(null);
   /*
     A pergunta é estado desta tela, e não um efeito colateral disparado no
@@ -103,6 +106,63 @@ export default function Conta() {
           <Txt variante="legenda" discreto>Servidor</Txt>
           <Txt variante="corpoP" mono>{enderecoDaApi()}</Txt>
         </View>
+      </Cartao>
+
+      {/*
+        Os avisos, e o caminho de volta para quem já recusou.
+
+        Este cartão existe por causa de uma característica do iOS que não tem
+        conserto pelo código: a caixa de permissão do sistema aparece UMA vez
+        por instalação, e depois de um "não" ela nunca mais abre. Quem recusou
+        fica sem aviso de prazo para sempre, e nada na tela dizia isso: nem o
+        agente, nem a coordenação, nem o servidor tinham como saber, porque a
+        entrega continua sendo bem sucedida do lado de lá.
+
+        Por isso o estado é escrito com todas as letras, e o único caminho que
+        de fato funciona (os ajustes do sistema) é oferecido aqui, onde a pessoa
+        procura quando quer, em vez de aparecer sozinho quando ela não quer.
+      */}
+      <Cartao titulo="Avisos deste aparelho">
+        <View>
+          <Txt variante="legenda" discreto>Notificação de tarefa e de prazo</Txt>
+          <Txt variante="corpo">{frasesDoEstado(push.permissao).titulo}</Txt>
+        </View>
+        <Txt variante="corpoP" discreto>{frasesDoEstado(push.permissao).texto}</Txt>
+
+        {push.permissao === "nao_perguntada" && (
+          <Botao
+            titulo="Ligar os avisos"
+            tipo="secundario"
+            onPress={() => void push.pedirPermissao()}
+          />
+        )}
+
+        {ofereceAjustes(push.permissao) && (
+          <Botao
+            titulo="Abrir os ajustes do aparelho"
+            tipo="secundario"
+            descricao="Abrir os ajustes do sistema para ligar as notificações deste aplicativo"
+            onPress={() => void push.abrirAjustes()}
+          />
+        )}
+
+        {/*
+          Push desligado no servidor não é defeito e não pode alarmar: o agente
+          não tem o que fazer a respeito. A frase existe para ele não passar a
+          semana achando que o aparelho dele está quebrado.
+        */}
+        {push.registro === "push_desligado" && (
+          <Aviso tom="info">
+            A prefeitura ainda não ligou o envio de aviso neste servidor. As
+            tarefas continuam aparecendo quando você abre o aplicativo.
+          </Aviso>
+        )}
+        {push.registro === "falhou" && (
+          <Aviso tom="alerta">
+            Não deu para registrar este aparelho para receber aviso. Entre de
+            novo com sinal, e avise a coordenação se continuar assim.
+          </Aviso>
+        )}
       </Cartao>
 
       <Cartao titulo="Trocar a senha">

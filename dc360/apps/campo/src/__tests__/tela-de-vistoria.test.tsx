@@ -82,8 +82,13 @@ let mockOcorrencia: Pendencia;
 
 jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
 
+/** O catálogo de órgãos que este aparelho tem. Cada teste ajusta o que precisa. */
+let mockCatalogoDeOrgaos: Array<{ id: string; nome: string; sigla: string | null }> = [];
+
 jest.mock("../dados/pendencias", () => ({
   pendenciaGuardada: jest.fn(async () => mockOcorrencia),
+  /* Lido do DISCO, sempre. A tela não faz chamada de rede em lugar nenhum. */
+  orgaosGuardados: jest.fn(async () => mockCatalogoDeOrgaos),
 }));
 
 jest.mock("../dados/coletas", () => ({
@@ -125,6 +130,7 @@ jest.mock("../dados/rascunho", () => ({
     protocolo,
     idempotencyKey,
     checklist: {},
+    orgaosParaAcionar: [],
     fotos: [],
     gpsPrecisaoMetros: null,
     coordenada: null,
@@ -175,6 +181,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(AGORA);
   mockOcorrencia = ocorrenciaDeTeste();
+  mockCatalogoDeOrgaos = [];
 
   abrirUrl = jest.spyOn(Linking, "openURL");
   abrirUrl.mockReset();
