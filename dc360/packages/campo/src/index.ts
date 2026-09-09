@@ -5,3 +5,4 @@ export * from "./deposito-sqlite.js";
 export * from "./transporte.js";
 export * from "./conclusao.js";
 export * from "./prazo.js";
+export * from "./coleta.js";

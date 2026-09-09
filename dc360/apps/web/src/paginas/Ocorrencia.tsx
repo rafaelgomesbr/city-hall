@@ -5,22 +5,28 @@ import {
   ROTULO_TIPO_COBRADE, SEVERIDADES, podeExecutar,
   DESFECHOS_PROVIDENCIA, ROTULO_DESFECHO, respostaProvidenciaSchema,
   type DesfechoProvidencia,
-  despachoSchema, desinterdicaoSchema, encerramentoSchema, providenciaSchema, triagemSchema,
+  despachoSchema, desinterdicaoSchema, providenciaSchema, triagemSchema,
   type Severidade, rotuloEventoTrilha } from "@dc360/shared";
 import {
   buscarOcorrencia, classificarNaTriagem, despacharEquipe, encaminharProvidencia,
   encerrarOcorrencia,
   levantarInterdicao, listarEquipes, providenciasDaOcorrencia, trilhaDaOcorrencia,
   vistoriaDaOcorrencia, abrirDocumento, listarEvidencias, responderProvidencia,
-  vinculosDaOcorrencia, MODO,
+  vinculosDaOcorrencia, possiveisDuplicidades, MODO,
   type LinhaEquipe, type LinhaEvento, type LinhaEvidencia, type LinhaOcorrencia,
   type LinhaProvidencia, type LinhaVistoria, type VinculoOcorrencia,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
-  Aviso, Carregando, Cartao, ErroCampo, Prazo, SeloSeveridade, SeloStatus, formatarDataHora,
+  Aviso, AvisoDeObrigatorios, Carregando, Cartao, ErroCampo, Prazo, SeloSeveridade, SeloStatus,
+  Vazio, formatarDataHora,
 } from "../componentes/comuns";
 import { IconeDocumento, IconeEvento, IconeVoltar } from "../componentes/Icones";
+import {
+  montarVerTambem, podeOferecerEncerramento, proximoPassoDoEncerramento,
+  rotuloDoBotaoDeEncerrar, type ItemVerTambem, type PassoDoEncerramento,
+  type RelacaoVerTambem,
+} from "./ocorrencia-regras";
 
 const ORGAOS = [
   "Secretaria de Obras",
@@ -40,6 +46,15 @@ type Conjunto = {
   evidencias: LinhaEvidencia[];
   vinculadaA: VinculoOcorrencia | null;
   vinculadas: VinculoOcorrencia[];
+  /**
+   * Outros chamados no mesmo endereço, ou `null` quando a consulta falhou.
+   *
+   * Os dois casos são diferentes e a tela precisa saber qual é: lista vazia é
+   * "não há nada", e `null` é "não sei". Colapsar os dois faria o cartão
+   * afirmar que não existe chamado vizinho justamente quando a busca por eles
+   * não funcionou.
+   */
+  mesmoEndereco: LinhaOcorrencia[] | null;
 };
 
 /**
@@ -71,8 +86,17 @@ export function Ocorrencia() {
       vinculosDaOcorrencia(sessao, id),
     ]);
     if (!ocorrencia) throw new Error("Ocorrência não encontrada nesta organização");
+    /*
+      A vizinhança é consultada depois das outras, porque depende do tipo e do
+      endereço que só a própria ocorrência informa, e a falha dela não derruba
+      a página. O cartão "Ver também" é apoio; o detalhe da ocorrência é o
+      trabalho. Deixar a exceção subir trocaria a tela inteira por uma faixa
+      vermelha por causa de um cartão lateral.
+    */
+    const mesmoEndereco = await possiveisDuplicidades(sessao, ocorrencia.tipo, ocorrencia.endereco)
+      .catch(() => null);
     setDados({
-      ocorrencia, trilha, vistoria, providencias, equipes, evidencias,
+      ocorrencia, trilha, vistoria, providencias, equipes, evidencias, mesmoEndereco,
       vinculadaA: vinculos.vinculadaA as VinculoOcorrencia | null,
       vinculadas: vinculos.vinculadas as VinculoOcorrencia[],
     });
@@ -142,14 +166,16 @@ export function Ocorrencia() {
 
   const {
     ocorrencia: o, trilha, vistoria, providencias, equipes, evidencias,
-    vinculadaA, vinculadas,
+    vinculadaA, vinculadas, mesmoEndereco,
   } = dados;
   // Mesma tabela que o repositório usa para recusar a escrita. A tela decide
   // o que desenhar; quem impede de verdade é a camada de dados.
   const podeTriagem = podeExecutar(sessao.papel, "classificar_triagem");
   const podeDespachar = podeExecutar(sessao.papel, "despachar_equipe");
   const podeProvidencia = podeExecutar(sessao.papel, "encaminhar_providencia");
-  const podeEncerrar = podeExecutar(sessao.papel, "encerrar_ocorrencia");
+  // Permissão E momento do fluxo, na mesma resposta. Ver `ocorrencia-regras`:
+  // o encerramento não é oferecido enquanto o chamado é só um telefonema.
+  const ofereceEncerramento = podeOferecerEncerramento(sessao.papel, o.status);
   const podeLevantar = podeExecutar(sessao.papel, "levantar_interdicao");
   const interditada = Boolean(o.interditada_em) && !o.desinterditada_em;
   const podeDocumento = podeExecutar(sessao.papel, "emitir_documento");
@@ -443,9 +469,10 @@ export function Ocorrencia() {
             </Cartao>
           )}
 
-          {podeEncerrar && !encerrada && (
+          {ofereceEncerramento && (
             <BlocoEncerramento
               gravando={gravando}
+              protocolo={o.protocolo}
               onEnviar={(e) => executar(
                 () => encerrarOcorrencia(sessao, o.id, e),
                 "Ocorrência encerrada com motivo registrado.",
@@ -506,11 +533,16 @@ export function Ocorrencia() {
             <CartaoDocumentos ocorrenciaId={o.id} desinterditada={Boolean(o.desinterditada_em)} />
           )}
 
-          <Cartao titulo="Ver também">
-            <Link className="botao botao--secundario" to="/ocorrencias" style={{ width: "100%" }}>
-              Voltar para a lista
-            </Link>
-          </Cartao>
+          <CartaoVerTambem
+            itens={montarVerTambem({
+              ocorrenciaId: o.id,
+              tipo: o.tipo,
+              vinculadaA,
+              vinculadas,
+              mesmoEndereco: mesmoEndereco ?? [],
+            })}
+            consultaFalhou={mesmoEndereco === null}
+          />
         </div>
       </div>
     </>
@@ -522,6 +554,84 @@ function descreverDetalhe(detalhe: Record<string, unknown>): string {
     .filter(([, v]) => v !== null && v !== undefined && v !== "")
     .map(([k, v]) => `${k}: ${String(v)}`)
     .join(" · ");
+}
+
+const GRUPOS_VER_TAMBEM: ReadonlyArray<{ relacao: RelacaoVerTambem; rotulo: string }> = [
+  { relacao: "continuacao", rotulo: "Este chamado é continuação de" },
+  { relacao: "mesmo_evento", rotulo: "Mesmo evento" },
+  { relacao: "mesmo_endereco", rotulo: "Mesmo endereço, nas últimas 48 horas" },
+];
+
+/**
+ * Os outros chamados que têm a ver com este.
+ *
+ * Cada linha diz protocolo, tipo quando ele é conhecido, data e situação, e
+ * nada além disso. A tentação seria mostrar o relato para poupar um clique:
+ * seria expor o texto que o solicitante ditou, e junto com ele a
+ * vulnerabilidade social do vizinho, num cartão lateral de um caso que a
+ * pessoa nem abriu. Quem precisa do conteúdo clica e o acesso fica na trilha
+ * do caso certo.
+ *
+ * O estado vazio diz o que foi procurado, e não só que não achou. "Nada
+ * relacionado" sozinho é ambíguo entre "não existe" e "não procurei direito",
+ * e é o tipo de ambiguidade que faz a pessoa desconfiar da tela inteira.
+ */
+export function CartaoVerTambem(
+  { itens, consultaFalhou }: { itens: ItemVerTambem[]; consultaFalhou: boolean },
+) {
+  const grupos = GRUPOS_VER_TAMBEM
+    .map((g) => ({ ...g, itens: itens.filter((i) => i.relacao === g.relacao) }))
+    .filter((g) => g.itens.length > 0);
+
+  return (
+    <Cartao titulo="Ver também">
+      {grupos.length === 0 ? (
+        <Vazio titulo="Nada relacionado">
+          {/*
+            Vazio com a busca quebrada não é a mesma frase. Afirmar "nenhum
+            outro neste endereço" quando a consulta nem respondeu seria dar
+            como fato o que a tela não sabe.
+          */}
+          <p style={{ margin: 0 }}>
+            {consultaFalhou
+              ? "Nenhum chamado vinculado a este. A busca por outros no mesmo "
+                + "endereço não respondeu agora."
+              : "Nenhum chamado vinculado a este, e nenhum outro do mesmo tipo "
+                + "neste endereço nas últimas 48 horas."}
+          </p>
+        </Vazio>
+      ) : (
+        grupos.map((g) => (
+          <div key={g.relacao} className="relacionados__grupo">
+            <h3 className="relacionados__rotulo">{g.rotulo}</h3>
+            <ul className="relacionados">
+              {g.itens.map((i) => (
+                <li key={i.id}>
+                  <Link className="relacionados__item" to={`/ocorrencias/${i.id}`}>
+                    <span className="relacionados__topo">
+                      <span className="mono">{i.protocolo}</span>
+                      <SeloStatus status={i.status} />
+                    </span>
+                    <span className="relacionados__meta">
+                      {i.tipo ? `${ROTULO_TIPO_COBRADE[i.tipo]}, aberta em ` : "Aberta em "}
+                      {formatarDataHora(i.criadoEm)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      )}
+
+      {consultaFalhou && grupos.length > 0 && (
+        <p className="campo__dica" style={{ marginBottom: 0 }}>
+          A busca por outros chamados neste endereço não respondeu agora, então
+          esta lista pode estar incompleta.
+        </p>
+      )}
+    </Cartao>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -551,7 +661,16 @@ function BlocoTriagem({ onEnviar, gravando }: { onEnviar: (t: { severidade: Seve
 
   return (
     <Cartao titulo="Classificar na triagem">
-      <form onSubmit={enviar}>
+      {/*
+        `noValidate` não é descuido: a validação é a do esquema compartilhado,
+        a mesma que o servidor roda. Sem ele, o navegador barra o envio antes
+        com a bolha nativa dele, em texto que não é nosso, e as mensagens
+        escritas para este domínio nunca aparecem. O `required` de cada campo
+        continua fazendo o trabalho que importa aqui, que é ser anunciado pelo
+        leitor de tela junto do rótulo.
+      */}
+      <form onSubmit={enviar} noValidate>
+        <AvisoDeObrigatorios />
         <div className="campo">
           <label htmlFor="triagem-severidade">Severidade</label>
           <select id="triagem-severidade" value={severidade}
@@ -577,7 +696,8 @@ function BlocoTriagem({ onEnviar, gravando }: { onEnviar: (t: { severidade: Seve
         {vulneravel && (
           <div className="campo">
             <label htmlFor="triagem-vuln">Descreva a vulnerabilidade</label>
-            <textarea id="triagem-vuln" value={descricao} onChange={(e) => setDescricao(e.target.value)}
+            <textarea id="triagem-vuln" value={descricao} required
+                      onChange={(e) => setDescricao(e.target.value)}
                       aria-invalid={!!erro}
                       aria-describedby={erro ? "triagem-erro" : undefined} />
           </div>
@@ -634,7 +754,8 @@ function BlocoDespacho({ equipes, severidade, onEnviar, titulo, equipeAtual, gra
 
   return (
     <Cartao titulo={rotulo}>
-      <form onSubmit={enviar}>
+      <form onSubmit={enviar} noValidate>
+        <AvisoDeObrigatorios />
         <div className="linha-campos">
           <div className="campo">
             <label htmlFor="despacho-equipe">Equipe</label>
@@ -648,7 +769,7 @@ function BlocoDespacho({ equipes, severidade, onEnviar, titulo, equipeAtual, gra
           </div>
           <div className="campo">
             <label htmlFor="despacho-prazo">Prazo em horas</label>
-            <input id="despacho-prazo" type="number" min={1} max={720} value={prazo}
+            <input id="despacho-prazo" type="number" min={1} max={720} value={prazo} required
                    onChange={(e) => setPrazo(Number(e.target.value))} />
           </div>
         </div>
@@ -695,7 +816,8 @@ function BlocoProvidencia({ onEnviar, gravando }: {
 
   return (
     <Cartao titulo="Encaminhar providência">
-      <form onSubmit={enviar}>
+      <form onSubmit={enviar} noValidate>
+        <AvisoDeObrigatorios />
         <div className="linha-campos">
           <div className="campo">
             <label htmlFor="prov-orgao">Órgão de destino</label>
@@ -705,19 +827,20 @@ function BlocoProvidencia({ onEnviar, gravando }: {
           </div>
           <div className="campo">
             <label htmlFor="prov-responsavel">Responsável no órgão</label>
-            <input id="prov-responsavel" type="text" value={responsavel}
+            <input id="prov-responsavel" type="text" value={responsavel} required
                    onChange={(e) => setResponsavel(e.target.value)} />
           </div>
           <div className="campo">
             <label htmlFor="prov-prazo">Prazo em horas</label>
-            <input id="prov-prazo" type="number" min={1} max={2160} value={prazo}
+            <input id="prov-prazo" type="number" min={1} max={2160} value={prazo} required
                    onChange={(e) => setPrazo(Number(e.target.value))} />
           </div>
         </div>
 
         <div className="campo">
           <label htmlFor="prov-descricao">O que se pede ao órgão</label>
-          <textarea id="prov-descricao" value={descricao} onChange={(e) => setDescricao(e.target.value)}
+          <textarea id="prov-descricao" value={descricao} required
+                    onChange={(e) => setDescricao(e.target.value)}
                     placeholder="Execução de contenção provisória no talude e remoção do material deslizado" />
         </div>
 
@@ -730,19 +853,53 @@ function BlocoProvidencia({ onEnviar, gravando }: {
   );
 }
 
-function BlocoEncerramento({ onEnviar, gravando }: { onEnviar: (e: { motivo: string }) => void; gravando: boolean }) {
+/**
+ * Encerrar em dois toques.
+ *
+ * O painel inteiro não tinha uma confirmação sequer, e este é o botão de
+ * consequência mais definitiva dele: encerrada é estado terminal, e o evento
+ * entra numa trilha sem policy de UPDATE nem de DELETE. Não existe desfazer,
+ * existe evento novo dizendo que o anterior estava errado.
+ *
+ * A confirmação é aqui dentro, em dois passos, e não numa janela modal, por
+ * duas razões. Modal de verdade (foco preso, Escape, foco devolvido) é peça
+ * de biblioteca e é outro turno de trabalho; e meia biblioteca de modal, feita
+ * às pressas neste arquivo, seria uma armadilha de teclado, que é pior do que
+ * a ausência de confirmação para quem navega por Tab.
+ */
+export function BlocoEncerramento({ protocolo, onEnviar, gravando }: {
+  protocolo: string;
+  onEnviar: (e: { motivo: string }) => void;
+  gravando: boolean;
+}) {
   const [motivo, setMotivo] = useState("");
+  const [passo, setPasso] = useState<PassoDoEncerramento>("editando");
   const [erro, setErro] = useState<string | null>(null);
+  const botao = useRef<HTMLButtonElement>(null);
+
+  /*
+    O foco vai para o botão quando ele muda de pergunta para confirmação.
+    Sem isso, quem usa leitor de tela dá um toque, o rótulo do botão sob o
+    foco muda por baixo dele sem nada ser anunciado, e o segundo toque grava
+    o encerramento sem que a pessoa tenha ouvido a pergunta.
+  */
+  useEffect(() => {
+    if (passo === "confirmando") botao.current?.focus();
+  }, [passo]);
 
   function enviar(evento: React.FormEvent) {
     evento.preventDefault();
-    const resultado = encerramentoSchema.safeParse({ motivo: motivo.trim() });
-    if (!resultado.success) {
-      setErro(resultado.error.issues[0]?.message ?? "Dados inválidos");
+    const decisao = proximoPassoDoEncerramento(passo, motivo);
+    if (decisao.tipo === "erro") {
+      setErro(decisao.mensagem);
       return;
     }
     setErro(null);
-    onEnviar(resultado.data);
+    if (decisao.tipo === "perguntar") {
+      setPasso("confirmando");
+      return;
+    }
+    onEnviar({ motivo: decisao.motivo });
   }
 
   return (
@@ -751,19 +908,40 @@ function BlocoEncerramento({ onEnviar, gravando }: { onEnviar: (e: { motivo: str
         Ocorrência não é apagada, é encerrada com motivo. O registro continua consultável e a
         trilha continua íntegra depois do fato.
       </p>
-      <form onSubmit={enviar}>
+      <form onSubmit={enviar} noValidate>
         <div className="campo">
           <label htmlFor="encerrar-motivo">Motivo do encerramento</label>
-          <textarea id="encerrar-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+          {/*
+            Editar o motivo derruba a confirmação. O que foi confirmado é o
+            texto que estava na tela naquele momento; deixar a confirmação de
+            pé enquanto o texto muda gravaria motivo diferente do confirmado.
+          */}
+          <textarea id="encerrar-motivo" value={motivo} required
+                    onChange={(e) => { setMotivo(e.target.value); setPasso("editando"); }}
                     aria-invalid={!!erro}
                     aria-describedby={erro ? "encerramento-erro" : undefined}
                     placeholder="Vistoria constatou ausência de risco remanescente e o morador foi orientado" />
           <span className="campo__dica">O banco recusa encerramento sem motivo: a regra não é da tela.</span>
         </div>
         {erro && <ErroCampo id="encerramento-erro">{erro}</ErroCampo>}
-        <button type="submit" className="botao botao--perigo" disabled={gravando}>
-          {gravando ? "Encerrando" : "Encerrar ocorrência"}
-        </button>
+        {passo === "confirmando" && (
+          <Aviso tom="alerta">
+            Encerrar o protocolo <span className="mono">{protocolo}</span> não tem desfazer:
+            a correção depois entra como evento novo na trilha, e o encerramento errado
+            fica registrado do mesmo jeito.
+          </Aviso>
+        )}
+        <div style={{ display: "flex", gap: "var(--ds-sp-2)", flexWrap: "wrap" }}>
+          <button type="submit" className="botao botao--perigo" disabled={gravando} ref={botao}>
+            {rotuloDoBotaoDeEncerrar(passo, protocolo, gravando)}
+          </button>
+          {passo === "confirmando" && (
+            <button type="button" className="botao botao--secundario"
+                    onClick={() => setPasso("editando")}>
+              Cancelar
+            </button>
+          )}
+        </div>
       </form>
     </Cartao>
   );
@@ -976,10 +1154,11 @@ function BlocoRespostaProvidencia({ abertas, onEnviar, gravando }: {
   }
 
   return (
-    <form onSubmit={enviar} style={{ marginTop: "var(--ds-sp-5)" }}>
+    <form onSubmit={enviar} noValidate style={{ marginTop: "var(--ds-sp-5)" }}>
       <h3 className="cartao__titulo" style={{ fontSize: "var(--ds-fs-body-lg)" }}>
         Registrar resposta do órgão
       </h3>
+      <AvisoDeObrigatorios />
 
       <div className="linha-campos">
         {abertas.length > 1 && (
@@ -1003,7 +1182,7 @@ function BlocoRespostaProvidencia({ abertas, onEnviar, gravando }: {
         </div>
         <div className="campo">
           <label htmlFor="resposta-quem">Quem respondeu</label>
-          <input id="resposta-quem" type="text" value={quem}
+          <input id="resposta-quem" type="text" value={quem} required
                  onChange={(e) => setQuem(e.target.value)}
                  placeholder="Fiscal da Secretaria de Obras" />
         </div>
@@ -1011,7 +1190,7 @@ function BlocoRespostaProvidencia({ abertas, onEnviar, gravando }: {
 
       <div className="campo">
         <label htmlFor="resposta-texto">O que o órgão informou</label>
-        <textarea id="resposta-texto" value={texto}
+        <textarea id="resposta-texto" value={texto} required
                   aria-invalid={!!erro}
                   aria-describedby={erro ? "resposta-erro" : undefined}
                   onChange={(e) => setTexto(e.target.value)}
@@ -1084,10 +1263,10 @@ function BlocoDesinterdicao({
           O levantamento da interdição é registrado pela coordenação.
         </p>
       ) : (
-        <form onSubmit={enviar}>
+        <form onSubmit={enviar} noValidate>
           <div className="campo">
             <label htmlFor="desinterdicao-motivo">Motivo do levantamento</label>
-            <textarea id="desinterdicao-motivo" value={motivo}
+            <textarea id="desinterdicao-motivo" value={motivo} required
                       onChange={(e) => setMotivo(e.target.value)}
                       aria-invalid={!!erro}
                       aria-describedby={erro ? "desinterdicao-erro" : undefined}

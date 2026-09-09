@@ -41,6 +41,15 @@ export default function Equipe() {
   const [dados, setDados] = useState<MeuTrabalho | null>(null);
   const [baixadoEm, setBaixadoEm] = useState<string | null>(null);
   const [atualizando, setAtualizando] = useState(false);
+  /*
+    O agente cansou de esperar e pediu para sair da tela de espera.
+
+    Não cancela a busca, de propósito: a resposta pode chegar meio segundo
+    depois, e jogar fora uma resposta que já está a caminho gastaria o dado do
+    agente duas vezes pelo mesmo dado. O que isto muda é só quem manda na tela,
+    que volta a ser ele.
+  */
+  const [desistiuDeEsperar, setDesistiuDeEsperar] = useState(false);
   const [avisoDeRede, setAvisoDeRede] = useState<string | null>(null);
   const [agora, setAgora] = useState(() => new Date());
 
@@ -60,6 +69,7 @@ export default function Equipe() {
 
   const buscarNaRede = useCallback(async () => {
     setAtualizando(true);
+    setDesistiuDeEsperar(false);
     setAvisoDeRede(null);
     try {
       const token = await obterToken();
@@ -88,7 +98,14 @@ export default function Equipe() {
   }, []);
 
   if (!dados) {
-    if (atualizando) return <Carregando mensagem="Abrindo a sua equipe" />;
+    if (atualizando && !desistiuDeEsperar) {
+      return (
+        <Carregando
+          mensagem="Abrindo a sua equipe"
+          aoDesistir={() => setDesistiuDeEsperar(true)}
+        />
+      );
+    }
     return (
       <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}>
         <Vazio
@@ -98,12 +115,22 @@ export default function Equipe() {
             + "depois a equipe aparece aqui mesmo sem conexão."
           }
         />
+        {/*
+          Um indicador por fato, e o fato aqui é um só: existe uma busca em voo.
+          Quem conta isso é o texto. O botão não repete a mesma notícia com uma
+          roda girando dentro dele: ele só fica desabilitado, que é a outra
+          coisa, e a única que o botão tem para dizer.
+        */}
         <Botao
           titulo="Baixar minha equipe"
           onPress={() => void buscarNaRede()}
-          carregando={atualizando}
-          desabilitado={!sinal.temSinal}
+          desabilitado={!sinal.temSinal || atualizando}
         />
+        {atualizando && (
+          <Txt variante="corpoP" discreto alinhamento="center">
+            Buscando a sua equipe. Você pode continuar usando as outras abas.
+          </Txt>
+        )}
         {!sinal.temSinal && (
           <Aviso tom="alerta">Sem sinal agora. Tente de novo quando a conexão voltar.</Aviso>
         )}
@@ -116,6 +143,7 @@ export default function Equipe() {
 
   return (
     <ScrollView
+      testID="tela-da-equipe"
       contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}
       refreshControl={
         <RefreshControl
@@ -238,8 +266,15 @@ export default function Equipe() {
         onPress={() => router.push("/conta")}
       />
 
+      {/*
+        A busca em voo aparece aqui, em palavras, e no RefreshControl lá em
+        cima. O RefreshControl sozinho não bastaria: ele só desenha enquanto o
+        dedo segura a tela, e a atualização que acontece sozinha na abertura
+        não teria indicador nenhum.
+      */}
       <Txt variante="legenda" discreto alinhamento="center">
         Atualizada {idadeEmPalavras(baixadoEm ? new Date(baixadoEm) : null, agora)}
+        {atualizando ? " (buscando)" : ""}
       </Txt>
     </ScrollView>
   );

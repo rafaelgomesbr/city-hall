@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ROTULO_PAPEL, senhaSchema } from "@dc360/shared";
 import { MODO, trocarSenha } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
-import { Aviso, Cartao, ErroCampo } from "../componentes/comuns";
+import { Aviso, AvisoDeObrigatorios, Cartao, ErroCampo } from "../componentes/comuns";
 
 /**
  * A conta de quem está usando o sistema, e a troca da própria senha.
@@ -116,10 +116,11 @@ export function MinhaConta() {
                   navegadores e aparelhos. Esta continua aberta.
                 </p>
 
-                <form onSubmit={submeter}>
+                <form onSubmit={submeter} noValidate>
+                  <AvisoDeObrigatorios />
                   <div className="campo">
                     <label htmlFor="conta-senha-atual">Senha que você usa hoje</label>
-                    <input id="conta-senha-atual" type="password" value={atual}
+                    <input id="conta-senha-atual" type="password" value={atual} required
                            autoComplete="current-password"
                            aria-invalid={Boolean(errosDeCampo["atual"])}
                            aria-describedby={errosDeCampo["atual"] ? "conta-senha-atual-erro" : undefined}
@@ -131,7 +132,7 @@ export function MinhaConta() {
 
                   <div className="campo">
                     <label htmlFor="conta-senha-nova">Senha nova</label>
-                    <input id="conta-senha-nova" type="password" value={nova}
+                    <input id="conta-senha-nova" type="password" value={nova} required
                            autoComplete="new-password"
                            aria-invalid={Boolean(errosDeCampo["nova"])}
                            aria-describedby={errosDeCampo["nova"] ? "conta-senha-nova-erro" : undefined}
@@ -148,7 +149,7 @@ export function MinhaConta() {
 
                   <div className="campo">
                     <label htmlFor="conta-senha-repetida">Repita a senha nova</label>
-                    <input id="conta-senha-repetida" type="password" value={repetida}
+                    <input id="conta-senha-repetida" type="password" value={repetida} required
                            autoComplete="new-password"
                            aria-invalid={Boolean(errosDeCampo["repetida"])}
                            aria-describedby={errosDeCampo["repetida"] ? "conta-senha-repetida-erro" : undefined}

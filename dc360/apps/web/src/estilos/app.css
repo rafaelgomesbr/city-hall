@@ -317,6 +317,10 @@ body {
 .campo { display: flex; flex-direction: column; gap: var(--ds-sp-2); margin-bottom: var(--ds-sp-4); }
 .campo > label { font-size: var(--ds-fs-body-sm); font-weight: 600; }
 .campo__dica { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
+/* A frase que abre o formulário. Como é um <p>, sem isto o navegador aplica a
+   margem própria dele e a distância até o primeiro rótulo fica maior que a
+   distância entre os campos, sugerindo que a frase é de outro bloco. */
+.formulario__obrigatorios { margin: 0 0 var(--ds-sp-4); }
 /*
   A resposta do campo de localização.
 
@@ -487,6 +491,30 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
   text-transform: uppercase; letter-spacing: var(--tracking-rotulo); font-weight: 700; color: var(--ds-text-muted);
 }
 .par__valor { font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
+
+/* ---------- Ver também ---------- */
+
+.relacionados__grupo + .relacionados__grupo { margin-top: var(--ds-sp-4); }
+.relacionados__rotulo {
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); font-weight: 700;
+  color: var(--ds-text-muted); margin: 0 0 var(--ds-sp-2);
+}
+.relacionados { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ds-sp-2); }
+/*
+  A linha inteira é o alvo do clique, e é um link de verdade: dá para abrir em
+  outra aba com o botão do meio, que é como quem coordena compara dois
+  chamados sem perder o que estava lendo.
+*/
+.relacionados__item {
+  display: flex; flex-direction: column; gap: var(--ds-sp-1);
+  padding: var(--ds-sp-3); border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius); color: var(--ds-text); text-decoration: none;
+  transition: background-color var(--ds-dur-fast) var(--ds-ease);
+}
+.relacionados__item:hover { background: var(--ds-surface-2); }
+.relacionados__topo { display: flex; align-items: center; justify-content: space-between; gap: var(--ds-sp-2); flex-wrap: wrap; }
+.relacionados__meta { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
 
 /* ---------- Linha do tempo ---------- */
 

@@ -93,10 +93,33 @@ const ESTILO = `
   .valor { font-size: 11pt; }
   .valor.mono { font-family: "Roboto Mono", ui-monospace, Consolas, monospace; }
   .largo { grid-column: 1 / -1; }
-  .relato {
+  /*
+    ATENÇÃO: este bloco está DENTRO de um template literal. Crase aqui fecha a
+    string e o arquivo para de compilar. Sem crase, então.
+
+    A classe relato é para texto que uma PESSOA digitou: o relato do
+    solicitante, a descrição da vulnerabilidade, a observação do agente, o
+    motivo do levantamento. O pre-wrap existe por causa deles: quem escreveu
+    separou parágrafos, e o documento oficial mostra o texto como foi escrito.
+
+    A classe nota é para a prosa que o SISTEMA escreve, e ela é separada
+    justamente porque não pode ter pre-wrap. Prosa do sistema mora em template
+    literal, e template literal guarda a quebra de linha e a indentação do
+    arquivo .ts. Com pre-wrap, essas quebras iam parar no papel: o laudo real do
+    protocolo 000001/2026, renderizado em 09/09/2026, saía com "A contagem de
+    pessoas atingidas não foi registrada nesta" quebrando no meio da frase, e
+    com o aviso de coleta sem conexão saindo com recuo pendurado, como se o
+    documento estivesse mal impresso.
+
+    Havia uma gambiarra parcial no lugar: escrever a continuação da frase na
+    coluna zero do arquivo, o que esconde o recuo e mantém a quebra. Ela sai
+    junto, porque deixava o fonte ilegível e não resolvia o defeito.
+  */
+  .relato, .nota {
     border-left: 3px solid var(--linha); padding-left: 10px;
-    font-size: 11pt; white-space: pre-wrap;
+    font-size: 11pt;
   }
+  .relato { white-space: pre-wrap; }
   table.checklist { width: 100%; border-collapse: collapse; font-size: 11pt; }
   table.checklist td { padding: 5px 0; border-bottom: 1px solid var(--linha); }
   table.checklist td.resposta { text-align: right; font-weight: 700; white-space: nowrap; }
@@ -109,8 +132,22 @@ const ESTILO = `
   .foto .legenda { font-size: 9pt; color: var(--tinta-fraca); margin-top: 4px; }
   .assinaturas { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 26px; }
   .assinatura { text-align: center; break-inside: avoid; }
-  /* Altura fixa para o bloco não pular quando um lado tem traço e o outro não. */
-  .assinatura .traco { display: block; height: 46px; margin: 0 auto -2px; max-width: 100%; }
+  /*
+    Altura fixa para o bloco não pular quando um lado tem traço e o outro não.
+
+    A margem inferior é ZERO, e não pode voltar a ser negativa. O PNG que o
+    aparelho grava tem papel branco OPACO por baixo do traço, de propósito: sem
+    ele o traço ficaria transparente e dependeria do fundo de quem abrisse o
+    laudo. A consequência é que o PNG cobre o que estiver atrás dele. Com uma
+    margem inferior de -2px ele subia em cima da linha de assinatura e apagava
+    justamente o trecho que ele cobre, deixando dois tocos de linha, um de cada
+    lado. Conferido a olho no laudo do protocolo 000001/2026 em 09/09/2026: a
+    coluna do agente saía com a linha inteira e a do morador saía partida.
+
+    A linha precisa continuar inteira porque quem imprime o laudo para colher
+    assinatura de próprio punho assina em cima dela.
+  */
+  .assinatura .traco { display: block; height: 46px; margin: 0 auto; max-width: 100%; }
   .assinatura .traco-ausente {
     height: 46px; display: flex; align-items: flex-end; justify-content: center;
     font-size: 9pt; font-style: italic; color: #8A5A00;

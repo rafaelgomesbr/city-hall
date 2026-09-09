@@ -11,7 +11,7 @@ import {
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
-  Aviso, Cartao, ErroCampo, ErrosDoServidor, formatarDataHora,
+  Aviso, AvisoDeObrigatorios, Cartao, ErroCampo, ErrosDoServidor, formatarDataHora,
 } from "../componentes/comuns";
 import { IconeVoltar } from "../componentes/Icones";
 
@@ -231,6 +231,7 @@ export function NovaOcorrencia() {
       {!(duplicidades && duplicidades.length > 0) && (
         <Cartao>
           <form onSubmit={verificar} noValidate>
+            <AvisoDeObrigatorios />
             <div className="linha-campos">
               <div className="campo">
                 <label htmlFor="nova-tipo">Tipo de ocorrência</label>
@@ -255,7 +256,7 @@ export function NovaOcorrencia() {
             <div className="linha-campos">
               <div className="campo">
                 <label htmlFor="nova-solicitante">Nome do solicitante</label>
-                <input id="nova-solicitante" type="text" value={solicitante}
+                <input id="nova-solicitante" type="text" value={solicitante} required
                        aria-invalid={!!erros["solicitanteNome"]}
                        aria-describedby={erros["solicitanteNome"] ? "nova-solicitante-erro" : undefined}
                        onChange={(e) => setSolicitante(e.target.value)} />
@@ -286,7 +287,7 @@ export function NovaOcorrencia() {
 
             <div className="campo">
               <label htmlFor="nova-endereco">Endereço</label>
-              <input id="nova-endereco" type="text" value={endereco}
+              <input id="nova-endereco" type="text" value={endereco} required
                      aria-invalid={!!erros["endereco"]}
                        aria-describedby={erros["endereco"] ? "nova-endereco-erro" : undefined}
                      onChange={(e) => setEndereco(e.target.value)}
@@ -367,7 +368,7 @@ export function NovaOcorrencia() {
 
             <div className="campo">
               <label htmlFor="nova-descricao">Relato</label>
-              <textarea id="nova-descricao" value={descricao}
+              <textarea id="nova-descricao" value={descricao} required
                         aria-invalid={!!erros["descricao"]}
                        aria-describedby={erros["descricao"] ? "nova-descricao-erro" : undefined}
                         onChange={(e) => setDescricao(e.target.value)}

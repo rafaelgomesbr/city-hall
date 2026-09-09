@@ -7,7 +7,9 @@ import {
   type LinhaEquipe, type LinhaUsuario,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
-import { Aviso, Carregando, Cartao, ErroCampo, Vazio, iniciais } from "../componentes/comuns";
+import {
+  Aviso, AvisoDeObrigatorios, Carregando, Cartao, ErroCampo, Vazio, iniciais,
+} from "../componentes/comuns";
 import { IconeMais } from "../componentes/Icones";
 
 /**
@@ -142,11 +144,12 @@ export function Usuarios() {
       <div className="detalhe">
         <div className="coluna">
           <Cartao titulo={editando ? "Corrigir cadastro" : "Cadastrar usuário"}>
-            <form onSubmit={submeter}>
+            <form onSubmit={submeter} noValidate>
+              <AvisoDeObrigatorios />
               <div className="linha-campos">
                 <div className="campo">
                   <label htmlFor="usuario-nome">Nome completo</label>
-                  <input id="usuario-nome" type="text" value={nome}
+                  <input id="usuario-nome" type="text" value={nome} required
                          aria-invalid={Boolean(errosDeCampo["nome"])}
                          aria-describedby={errosDeCampo["nome"] ? "usuario-nome-erro" : undefined}
                          onChange={(e) => setNome(e.target.value)} />
@@ -156,7 +159,7 @@ export function Usuarios() {
                 </div>
                 <div className="campo">
                   <label htmlFor="usuario-matricula">Matrícula</label>
-                  <input id="usuario-matricula" type="text" value={matricula}
+                  <input id="usuario-matricula" type="text" value={matricula} required
                          aria-invalid={Boolean(errosDeCampo["matricula"])}
                          aria-describedby={errosDeCampo["matricula"] ? "usuario-matricula-erro" : undefined}
                          onChange={(e) => setMatricula(e.target.value)} placeholder="SA-4001" />
@@ -168,7 +171,7 @@ export function Usuarios() {
               <div className="linha-campos">
                 <div className="campo">
                   <label htmlFor="usuario-email">Email funcional</label>
-                  <input id="usuario-email" type="email" value={email}
+                  <input id="usuario-email" type="email" value={email} required
                          aria-invalid={Boolean(errosDeCampo["email"])}
                          aria-describedby={errosDeCampo["email"] ? "usuario-email-erro" : undefined}
                          onChange={(e) => setEmail(e.target.value)} />
@@ -192,7 +195,7 @@ export function Usuarios() {
               </div>
               {papel === "agente_campo" && (
                 <div className="campo">
-                  <label htmlFor="usuario-equipe">Equipe</label>
+                  <label htmlFor="usuario-equipe">Equipe (opcional)</label>
                   <select id="usuario-equipe" value={equipeId} onChange={(e) => setEquipeId(e.target.value)}>
                     <option value="">Sem equipe fixa</option>
                     {equipes.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
@@ -202,7 +205,7 @@ export function Usuarios() {
               {MODO === "api" && !editando && (
                 <div className="campo">
                   <label htmlFor="usuario-senha">Senha inicial</label>
-                  <input id="usuario-senha" type="password" value={senha}
+                  <input id="usuario-senha" type="password" value={senha} required
                          autoComplete="new-password"
                          aria-invalid={Boolean(errosDeCampo["senha"])}
                          aria-describedby={errosDeCampo["senha"] ? "usuario-senha-erro" : undefined}

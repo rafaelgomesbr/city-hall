@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { MODO, pedirRecuperacao, redefinirSenha } from "../dados/repositorio";
-import { Aviso, ErroCampo } from "../componentes/comuns";
+import { Aviso, AvisoDeObrigatorios, ErroCampo } from "../componentes/comuns";
 
 /**
  * Recuperação de senha, em duas telas que compartilham a mesma moldura.
@@ -74,7 +74,7 @@ export function RecuperarSenha() {
           )}
           <div className="campo">
             <label htmlFor="recuperar-email">Email funcional</label>
-            <input id="recuperar-email" type="email" value={email} autoComplete="username"
+            <input id="recuperar-email" type="email" value={email} autoComplete="username" required
                    aria-invalid={!!erro} aria-describedby={erro ? "recuperar-erro" : undefined}
                    onChange={(e) => setEmail(e.target.value)} />
           </div>
@@ -144,9 +144,10 @@ export function DefinirNovaSenha() {
         <Aviso tom="sucesso">Senha redefinida. Entre com a nova senha.</Aviso>
       ) : (
         <form onSubmit={enviar} noValidate>
+          <AvisoDeObrigatorios />
           <div className="campo">
             <label htmlFor="nova-senha">Nova senha</label>
-            <input id="nova-senha" type="password" value={senha} autoComplete="new-password"
+            <input id="nova-senha" type="password" value={senha} autoComplete="new-password" required
                    aria-invalid={!!erro} aria-describedby={erro ? "nova-senha-erro" : undefined}
                    onChange={(e) => setSenha(e.target.value)} />
             <span className="campo__dica">
@@ -156,7 +157,7 @@ export function DefinirNovaSenha() {
           </div>
           <div className="campo">
             <label htmlFor="repetir-senha">Repita a nova senha</label>
-            <input id="repetir-senha" type="password" value={repetida} autoComplete="new-password"
+            <input id="repetir-senha" type="password" value={repetida} autoComplete="new-password" required
                    onChange={(e) => setRepetida(e.target.value)} />
           </div>
           {erro && <ErroCampo id="nova-senha-erro">{erro}</ErroCampo>}

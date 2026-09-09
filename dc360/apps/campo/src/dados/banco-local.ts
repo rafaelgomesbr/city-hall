@@ -72,6 +72,23 @@ async function abrirUmaVez(): Promise<SQLite.SQLiteDatabase> {
       chave TEXT PRIMARY KEY,
       valor TEXT NOT NULL
     );
+    /*
+      A lápide da coleta: uma linha por ocorrência já vistoriada NESTE
+      aparelho, viva desde a conclusão até o servidor confirmar.
+
+      Chave primária na ocorrência, e não na chave de idempotência, porque a
+      pergunta que a tela faz é "esta ocorrência já foi coletada aqui?". Com a
+      chave de idempotência no lugar da ocorrência, duas coletas da mesma
+      ocorrência seriam duas linhas, que é justamente o estado que esta tabela
+      existe para tornar impossível de acontecer por acidente.
+    */
+    CREATE TABLE IF NOT EXISTS coletas (
+      ocorrencia_id   TEXT PRIMARY KEY,
+      idempotency_key TEXT NOT NULL,
+      protocolo       TEXT NOT NULL,
+      coletada_em     TEXT NOT NULL,
+      situacao        TEXT NOT NULL
+    );
   `);
 
   return db;
@@ -115,8 +132,15 @@ export function esquecerConexao(): void {
 export async function apagarDadosLocais(): Promise<void> {
   try {
     const db = await bancoLocal();
+    /*
+      `coletas` entra aqui junto com o resto, e não é detalhe: a lápide guarda
+      protocolo e horário da vistoria que o agente do turno fez. Deixá-la de
+      fora entregaria ao agente da noite, no mesmo aparelho compartilhado, a
+      lista do que o colega do dia coletou, que é exatamente o vazamento que
+      este bloco existe para impedir.
+    */
     await db.execAsync(
-      "DELETE FROM rascunhos; DELETE FROM pendencias; DELETE FROM marcas;",
+      "DELETE FROM rascunhos; DELETE FROM pendencias; DELETE FROM marcas; DELETE FROM coletas;",
     );
   } catch (erro) {
     console.warn("Falha ao limpar o banco local no logout", erro);

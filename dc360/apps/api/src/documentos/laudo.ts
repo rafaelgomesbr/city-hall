@@ -59,9 +59,15 @@ export type DadosDocumento = {
     obitos: number | null;
     /**
      * Endereço de leitura do traço de assinatura coletado no aparelho, quando
-     * existe. Vazio hoje na prática: a captura mora no aplicativo de campo,
-     * que ainda não roda. O documento sabe usar assim que ela chegar, em vez
-     * de a coluna continuar sendo gravada e nunca vista.
+     * existe.
+     *
+     * Continua opcional, e não por provisoriedade: em 09/09/2026 as três
+     * vistorias reais do piloto de Florianópolis estavam no banco com
+     * `assinatura_chave` nula, porque a tela do aplicativo liberava concluir
+     * sem a assinatura confirmada. A tela foi corrigida, mas o documento não
+     * pode presumir que toda vistoria tem traço: as que já existem não têm, e
+     * o laudo delas continua sendo emitido. Sem traço, o bloco de assinatura
+     * DIZ que não foi coletada, em vez de deixar espaço em branco.
      */
     assinaturaUrl?: string | null;
   };
@@ -166,9 +172,7 @@ function blocoVistoria(d: DadosDocumento): string {
   </div>
 
   ${offline
-    ? `<p class="relato">Esta vistoria foi coletada em campo sem conexão e transmitida
-       ao sistema posteriormente. As duas datas acima constam por essa razão, e a
-       data de referência do ato é a da vistoria em campo.</p>`
+    ? `<p class="nota">Esta vistoria foi coletada em campo sem conexão e transmitida ao sistema posteriormente. As duas datas acima constam por essa razão, e a data de referência do ato é a da vistoria em campo.</p>`
     : ""}
 
   <h2>Checklist técnico</h2>
@@ -211,8 +215,7 @@ function blocoPessoas(v: DadosDocumento["vistoria"]): string {
 
   if (contagens.every((c) => c.valor === null)) {
     return `<h2>Pessoas atingidas</h2>
-      <p class="relato">A contagem de pessoas atingidas não foi registrada nesta
-vistoria. A ausência de contagem não significa ausência de atingidos.</p>`;
+      <p class="nota">A contagem de pessoas atingidas não foi registrada nesta vistoria. A ausência de contagem não significa ausência de atingidos.</p>`;
   }
 
   const campos = contagens
@@ -228,7 +231,7 @@ vistoria. A ausência de contagem não significa ausência de atingidos.</p>`;
 function blocoFotos(d: DadosDocumento): string {
   if (d.fotos.length === 0) {
     return `<h2>Registro fotográfico</h2>
-      <p class="relato">Nenhuma fotografia foi anexada a esta vistoria.</p>`;
+      <p class="nota">Nenhuma fotografia foi anexada a esta vistoria.</p>`;
   }
   const itens = d.fotos
     .map((f, i) => `<figure class="foto">
@@ -282,19 +285,13 @@ export function termoDeInterdicao(d: DadosDocumento): string {
     ${blocoIdentificacao(d)}
 
     <h2>Fundamento</h2>
-    <p class="relato">O presente termo é lavrado no exercício das competências do órgão
-municipal de proteção e defesa civil, nos termos da Lei 12.608/2012, que institui a
-Política Nacional de Proteção e Defesa Civil, alterada pela Lei 14.750/2023, diante do
-risco constatado na vistoria técnica registrada sob o protocolo ${escapar(o.protocolo)}.</p>
+    <p class="nota">O presente termo é lavrado no exercício das competências do órgão municipal de proteção e defesa civil, nos termos da Lei 12.608/2012, que institui a Política Nacional de Proteção e Defesa Civil, alterada pela Lei 14.750/2023, diante do risco constatado na vistoria técnica registrada sob o protocolo ${escapar(o.protocolo)}.</p>
 
     <h2>Decisão</h2>
-    <p class="relato">Fica INTERDITADO o imóvel situado em ${escapar(o.endereco)}, em caráter
-preventivo, ficando vedada a permanência de pessoas no local até que as condições de
-segurança sejam restabelecidas e nova vistoria ateste a cessação do risco.</p>
+    <p class="nota">Fica INTERDITADO o imóvel situado em ${escapar(o.endereco)}, em caráter preventivo, ficando vedada a permanência de pessoas no local até que as condições de segurança sejam restabelecidas e nova vistoria ateste a cessação do risco.</p>
 
     <h2>Ciência do responsável</h2>
-    <p class="relato">O responsável abaixo identificado declara ciência da interdição, das
-razões que a motivaram e da vedação de permanência no imóvel.</p>
+    <p class="nota">O responsável abaixo identificado declara ciência da interdição, das razões que a motivaram e da vedação de permanência no imóvel.</p>
 
     ${blocoVistoria(d)}
     ${blocoFotos(d)}
@@ -362,20 +359,13 @@ export function termoDeDesinterdicao(d: DadosDocumento): string {
     </div>
 
     <h2>Fundamento</h2>
-    <p class="relato">O presente termo é lavrado no exercício das competências do órgão
-municipal de proteção e defesa civil, nos termos da Lei 12.608/2012, que institui a
-Política Nacional de Proteção e Defesa Civil, alterada pela Lei 14.750/2023, e revoga a
-interdição lavrada sobre o imóvel identificado no protocolo ${escapar(o.protocolo)}.</p>
+    <p class="nota">O presente termo é lavrado no exercício das competências do órgão municipal de proteção e defesa civil, nos termos da Lei 12.608/2012, que institui a Política Nacional de Proteção e Defesa Civil, alterada pela Lei 14.750/2023, e revoga a interdição lavrada sobre o imóvel identificado no protocolo ${escapar(o.protocolo)}.</p>
 
     <h2>Motivo do levantamento</h2>
     <p class="relato">${escapar(dez.motivo)}</p>
 
     <h2>Decisão</h2>
-    <p class="relato">Fica LEVANTADA a interdição do imóvel situado em
-${escapar(o.endereco)}, restabelecida a permanência de pessoas no local. O levantamento
-alcança exclusivamente o risco descrito neste processo e não afasta a obrigação de
-comunicar ao órgão municipal de proteção e defesa civil qualquer alteração nas condições
-do imóvel ou do terreno.</p>
+    <p class="nota">Fica LEVANTADA a interdição do imóvel situado em ${escapar(o.endereco)}, restabelecida a permanência de pessoas no local. O levantamento alcança exclusivamente o risco descrito neste processo e não afasta a obrigação de comunicar ao órgão municipal de proteção e defesa civil qualquer alteração nas condições do imóvel ou do terreno.</p>
 
     ${blocoVistoria(d)}
 

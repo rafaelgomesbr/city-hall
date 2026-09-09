@@ -170,8 +170,102 @@ function markdowns(pasta) {
 */
 const AFIRMACAO = /(\d+)\s+(?:teste|verificaç|de\s+(?:integraç|unidade))/gi;
 
+/**
+ * O ASSUNTO da afirmação, e por que este bloco existe.
+ *
+ * O portão casava só por VALOR, contra a tabela `VERDADE` inteira: qualquer
+ * número que existisse em qualquer linha da tabela passava, dissesse a frase o
+ * que dissesse. Duas mentiras sobreviveram turnos assim, e as duas foram
+ * encontradas a mão em 09/09/2026, não pelo portão:
+ *
+ * - "46 testes do banco", quando o banco tem 43. O 46 é da fila de
+ *   sincronização, e por isso casava.
+ * - "54 verificações no navegador", quando são 58. O 54 é o número de testes de
+ *   fonte do painel.
+ *
+ * Nos dois casos o portão dizia "conferido". Agora, quando a própria frase diz
+ * de que grandeza ela fala, o número precisa ser o daquela grandeza.
+ *
+ * A chave é o termo como ele aparece na prosa; o valor é a lista de contagens
+ * que aquele termo autoriza. Termo que não aparece perto do número não impõe
+ * nada: a checagem por valor continua valendo como piso, e o relatório separa
+ * as duas para a fraqueza restante ficar visível em vez de virar verde mudo.
+ */
+const ASSUNTO = [
+  ["banco", ["testes do banco"]],
+  ["isolamento", ["testes de isolamento (CA-06)"]],
+  ["CA-06", ["testes de isolamento (CA-06)"]],
+  ["migraç", ["testes do aplicador de migrações"]],
+  ["aplicador", ["testes do aplicador de migrações"]],
+  ["navegador", [
+    "verificações no navegador, modo local",
+    "verificações no navegador, contra a API",
+    "verificações no navegador, somadas",
+  ]],
+  ["fila", ["testes da fila de sincronização"]],
+  ["SQLite", ["testes do depósito SQLite"]],
+  ["depósito", ["testes do depósito SQLite"]],
+  ["aplicativo", ["testes do aplicativo de campo", "total de testes automatizados, somando o aplicativo"]],
+  ["painel", ["testes de fonte do painel"]],
+  ["compartilhado", ["testes do pacote compartilhado"]],
+  ["motor de campo", ["testes do motor de campo"]],
+  /*
+    O termo precisa ser a frase INTEIRA, e não "integraç": os 256 da API também
+    são testes de integração no sentido comum da palavra, e o termo curto
+    reprovava aquela linha exigindo dela o valor do arquivo do campo.
+  */
+  ["de integração contra a API", ["testes de integração do campo contra a API"]],
+  ["integração do campo", ["testes de integração do campo contra a API"]],
+  ["API", ["testes da API", "verificações no navegador, contra a API"]],
+];
+
+/**
+ * Onde termina o texto que ainda fala DAQUELE número.
+ *
+ * Três limites, e cada um saiu de uma reprovação falsa observada ao ligar isto
+ * contra o repositório em 09/09/2026:
+ *
+ * 1. A próxima afirmação. Sem esse corte, em "54 testes de fonte mais 58
+ *    verificações no navegador" a janela do 54 alcançava "navegador" e o
+ *    portão exigia do 54 o valor do outro número.
+ * 2. Dois pontos, ponto e vírgula, barra vertical, parêntese. Em "São 58
+ *    verificações: entrada, isolamento entre municípios", o que vem depois dos
+ *    dois pontos é a ENUMERAÇÃO do que as 58 cobrem, e "isolamento" ali não é
+ *    o assunto da contagem. A barra fecha célula de tabela.
+ * 3. Sessenta caracteres, como teto.
+ *
+ * A vírgula NÃO corta: ela aparece dentro de sintagma legítimo, e o corte pela
+ * afirmação seguinte já resolve o caso que importa.
+ */
+const JANELA = 60;
+const FIM_DE_SINTAGMA = /[:;|(]/;
+
+/**
+ * As contagens que a frase autoriza, ou `null` se ela não disser do que fala.
+ *
+ * União, e não interseção: "103 verificações no navegador, contra a API"
+ * legitimamente casa dois termos, e os dois estão certos.
+ */
+function contagensAutorizadas(linha, inicio, proximaAfirmacao) {
+  let fim = Math.min(inicio + JANELA, proximaAfirmacao ?? Infinity, linha.length);
+  const corte = linha.slice(inicio, fim).search(FIM_DE_SINTAGMA);
+  if (corte >= 0) fim = inicio + corte;
+
+  const janela = linha.slice(inicio, fim).toLowerCase();
+  const permitidas = new Set();
+  let achou = false;
+  for (const [termo, rotulos] of ASSUNTO) {
+    if (!janela.includes(termo.toLowerCase())) continue;
+    achou = true;
+    for (const r of rotulos) permitidas.add(VERDADE[r]);
+  }
+  return achou ? permitidas : null;
+}
+
 const problemas = [];
 const conferidos = [];
+/** Afirmações que passaram sem dizer de que grandeza falam. */
+const soPorValor = [];
 
 for (const caminho of markdowns(RAIZ)) {
   const relativo = relative(RAIZ, caminho).split(sep).join("/");
@@ -188,12 +282,29 @@ for (const caminho of markdowns(RAIZ)) {
     if (linha.includes(NAO_E_CONTAGEM)) isento = true;
     if (isento) return;
 
-    for (const casou of linha.matchAll(AFIRMACAO)) {
+    const achados = [...linha.matchAll(AFIRMACAO)];
+    achados.forEach((casou, n) => {
       const numero = Number(casou[1]);
       const local = `${relativo}:${i + 1}`;
 
+      const autorizadas = contagensAutorizadas(linha, casou.index, achados[n + 1]?.index);
       const bate = Object.entries(VERDADE).filter(([, v]) => v === numero);
-      if (bate.length > 0) {
+
+      if (autorizadas) {
+        if (autorizadas.has(numero)) {
+          conferidos.push(`${local}  ${numero}, conferido contra a grandeza que a frase nomeia`);
+        } else {
+          problemas.push(
+            `${local}\n    afirma: ${linha.trim().slice(0, 110)}\n` +
+            `    a frase fala de uma grandeza cujo valor real é ` +
+            `${[...autorizadas].join(" ou ")}, e não ${numero}` +
+            (bate.length > 0
+              ? `\n    (o ${numero} existe, mas mede outra coisa: ${bate.map(([r]) => r).join(", ")})`
+              : ""),
+          );
+        }
+      } else if (bate.length > 0) {
+        soPorValor.push(`${local}  ${numero} = ${bate[0][0]}`);
         conferidos.push(`${local}  ${numero} = ${bate[0][0]}`);
       } else {
         problemas.push(
@@ -201,7 +312,7 @@ for (const caminho of markdowns(RAIZ)) {
           `    o número ${numero} não corresponde a nenhuma contagem real`,
         );
       }
-    }
+    });
   });
 }
 
@@ -211,6 +322,18 @@ for (const [rotulo, valor] of Object.entries(VERDADE)) {
 }
 
 console.log(`\nAfirmações conferidas: ${conferidos.length}`);
+if (soPorValor.length > 0) {
+  /*
+    Fraqueza declarada em voz alta, em vez de verde mudo. Estas passaram só
+    porque o número existe em algum lugar da tabela: a frase não diz de que
+    grandeza fala, então o portão não tem como saber se ela fala da certa. Foi
+    exatamente assim que "46 testes do banco" sobreviveu.
+  */
+  console.log(
+    `  destas, ${soPorValor.length} passaram SÓ por valor, sem dizer de que grandeza falam:`,
+  );
+  for (const s of soPorValor) console.log(`    ${s}`);
+}
 
 if (problemas.length > 0) {
   console.log(`\nAfirmações que não batem (${problemas.length}):\n`);

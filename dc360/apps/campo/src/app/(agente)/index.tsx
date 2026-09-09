@@ -2,8 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { ROTULO_TIPO_COBRADE } from "@dc360/shared";
-import { SemSinal, type Pendencia } from "../../dados/api";
+import { SemSinal, enderecoDaApi, type Pendencia } from "../../dados/api";
 import { atualizarPendencias, baixadasEm, pendenciasGuardadas } from "../../dados/pendencias";
+import { listarColetas, marcarEnviada } from "../../dados/coletas";
+import { obterFila } from "../../dados/fila";
 import { listarRascunhos, type Rascunho } from "../../dados/rascunho";
 import { useSinal } from "../../dados/conectividade";
 import { useSessao } from "../../dados/sessao";
@@ -14,7 +16,7 @@ import { espaco, raio, toque } from "../../ui/tokens";
 import {
   INTERVALO_PADRAO_MS, deveAtualizar, idadeEmPalavras, listaEnvelheceu,
 } from "../../dados/atualizacao";
-import { quantoFalta } from "@dc360/campo";
+import { quantoFalta, seloDaColeta, type ColetaLocal } from "@dc360/campo";
 
 /**
  * As tarefas do agente.
@@ -33,6 +35,14 @@ export default function Tarefas() {
 
   const [tarefas, setTarefas] = useState<Pendencia[] | null>(null);
   const [rascunhos, setRascunhos] = useState<Rascunho[]>([]);
+  /**
+   * As lapides das coletas ja feitas neste aparelho, por ocorrencia.
+   *
+   * Sem elas, a tarefa concluida continua na lista identica as intocadas
+   * durante todo o tempo em que faltar sinal, e nada na tela diz que o agente
+   * ja esteve la.
+   */
+  const [coletas, setColetas] = useState<ColetaLocal[]>([]);
   const [atualizadoEm, setAtualizadoEm] = useState<string | null>(null);
 
   /*
@@ -49,14 +59,44 @@ export default function Tarefas() {
   const [atualizando, setAtualizando] = useState(false);
   const [avisoDeRede, setAvisoDeRede] = useState<string | null>(null);
 
+  /*
+    A fila confirmou: a lapide sobe de "na fila" para "enviada".
+
+    Esta e a unica tela que ja le o disco a cada foco, a cada volta do segundo
+    plano e a cada janela do relogio, entao e aqui que a promocao sai de graca.
+    Nada de rede acontece: `itens()` le a mesma base local que o resto.
+
+    So promove item CONFIRMADO. Item que sumiu da fila nao serve de prova de
+    envio, porque descartar tambem tira da fila, e uma lapide dizendo "enviada"
+    sobre uma coleta descartada seria a tela afirmando que o servidor tem o que
+    ele nao tem. Errar para o lado de "aguardando envio" custa uma frase velha
+    por algumas horas; errar para o outro lado custa um laudo que ninguem
+    procura porque a tela disse que ja foi.
+
+    Falhar aqui nao pode custar a lista: a lista e a unica coisa que o agente
+    tem no morro.
+  */
+  const promoverColetasConfirmadas = useCallback(async () => {
+    try {
+      const fila = await obterFila(enderecoDaApi(), obterToken);
+      for (const item of await fila.itens()) {
+        if (item.estado === "confirmado") await marcarEnviada(item.ocorrenciaId);
+      }
+    } catch {
+      /* A fila indisponivel deixa o selo como esta, e nada mais. */
+    }
+  }, [obterToken]);
+
   const lerDoDisco = useCallback(async () => {
-    const [guardadas, marcadas, emAndamento] = await Promise.all([
-      pendenciasGuardadas(), baixadasEm(), listarRascunhos(),
+    await promoverColetasConfirmadas();
+    const [guardadas, marcadas, emAndamento, coletadas] = await Promise.all([
+      pendenciasGuardadas(), baixadasEm(), listarRascunhos(), listarColetas(),
     ]);
     setTarefas(guardadas);
     setAtualizadoEm(marcadas);
     setRascunhos(emAndamento);
-  }, []);
+    setColetas(coletadas);
+  }, [promoverColetasConfirmadas]);
 
   /*
     O que a tela sabe sobre a última ida à rede.
@@ -177,6 +217,7 @@ export default function Tarefas() {
   if (tarefas === null) return <Carregando mensagem="Abrindo suas tarefas" />;
 
   const emAndamento = new Set(rascunhos.map((r) => r.ocorrenciaId));
+  const lapides = new Map(coletas.map((c) => [c.ocorrenciaId, c]));
 
   return (
     <ScrollView
@@ -233,12 +274,30 @@ export default function Tarefas() {
         tarefas.map((t) => {
           const prazo = quantoFalta(t.prazo_em, Date.now());
           const comecada = emAndamento.has(t.id);
+          /*
+            O selo da coleta ja feita.
+
+            Ele responde a pergunta que a lista nao respondia: "eu ja subi
+            nessa?". Enquanto faltava sinal, a tarefa concluida ficava aqui
+            identica as intocadas, e o agente que abrisse de novo comecava, sem
+            saber, a segunda vistoria do mesmo protocolo.
+
+            Sai da lapide, e nao da fila, porque e a lapide que sobrevive ao
+            aplicativo ser morto pelo sistema e a fila ser limpa.
+          */
+          const selo = seloDaColeta(lapides.get(t.id) ?? null);
           return (
             <Pressable
               key={t.id}
               onPress={() => router.push({ pathname: "/(agente)/vistoria/[id]", params: { id: t.id } })}
               accessibilityRole="button"
-              accessibilityLabel={`Abrir a vistoria do protocolo ${t.protocolo}, ${t.endereco}`}
+              /* O selo entra no rotulo tambem: quem usa leitor de tela nao ve
+                 nem a borda nem o tique, e a informacao de "isso ja foi
+                 coletado" e justamente a que evita a segunda vistoria. */
+              accessibilityLabel={
+                `Abrir a vistoria do protocolo ${t.protocolo}, ${t.endereco}`
+                + (selo ? `. ${selo}` : "")
+              }
               style={({ pressed }) => ({
                 minHeight: toque,
                 backgroundColor: tema.superficie,
@@ -247,7 +306,7 @@ export default function Tarefas() {
                 // Borda de destaque no que já foi começado: é para lá que o
                 // agente volta, e procurar isso numa lista longa custa tempo
                 // que ele não tem.
-                borderColor: comecada ? tema.destaque : tema.borda,
+                borderColor: comecada || selo ? tema.destaque : tema.borda,
                 padding: espaco.e4,
                 gap: espaco.e2,
                 opacity: pressed ? 0.85 : 1,
@@ -275,7 +334,21 @@ export default function Tarefas() {
                     ! Vulnerabilidade social
                   </Txt>
                 )}
-                {comecada && (
+                {/*
+                  O selo da coleta vem ANTES do "vistoria começada", e os dois
+                  nunca aparecem juntos: quando existe lápide que barra, a tela
+                  de vistoria não retoma rascunho nenhum, e convidar a
+                  "continuar" seria prometer uma tela que não vai abrir.
+
+                  Texto, e nunca só a borda de destaque: a regra do aplicativo
+                  é que nada se comunica só por cor, e aqui o que se comunica é
+                  se o trabalho está feito.
+                */}
+                {selo ? (
+                  <Txt variante="legenda" negrito cor={tema.destaque}>
+                    ✓ {selo}
+                  </Txt>
+                ) : comecada && (
                   <Txt variante="legenda" negrito cor={tema.destaque}>
                     Vistoria começada, toque para continuar
                   </Txt>

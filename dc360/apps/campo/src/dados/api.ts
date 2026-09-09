@@ -74,11 +74,39 @@ export class SemSinal extends Error {
   }
 }
 
+/**
+ * Tempo limite de quem não pode desistir: entrar, sair, baixar o que trabalhar.
+ *
+ * Vinte segundos é longo de propósito. Numa borda de cobertura o aperto de mão
+ * do TLS sozinho já leva alguns segundos, e desistir cedo de uma dessas
+ * chamadas custa ao agente subir o morro sem a lista de ocorrências.
+ */
 const TEMPO_LIMITE_MS = 20_000;
+
+/**
+ * Tempo limite de chamada de CONFORTO, que é outra coisa.
+ *
+ * Baixar "minha equipe" não decide plantão nenhum: se falhar, a tela mostra a
+ * cópia que já estava no aparelho, e o agente segue trabalhando. Só que essa
+ * chamada acontece com o agente parado olhando para uma tela de espera, e a
+ * espera dura o tempo limite inteiro. Vinte segundos de tela parada é o que
+ * produziu o relato do "spinner pendurado para sempre": tempo demais para
+ * alguém em pé na rua, que a essa altura já concluiu que o aplicativo travou e
+ * já o matou.
+ *
+ * Oito segundos entrega o mesmo resultado, com o fracasso chegando enquanto a
+ * pessoa ainda está olhando. Envio de coleta continua com os vinte: lá,
+ * desistir cedo significa refazer vistoria.
+ */
+const TEMPO_LIMITE_CONFORTO_MS = 8_000;
 
 async function chamar<T>(
   caminho: string,
-  opcoes: { metodo?: string; corpo?: unknown; token?: string | null } = {},
+  opcoes: {
+    metodo?: string; corpo?: unknown; token?: string | null;
+    /** Teto próprio, para chamada cujo fracasso é barato. Padrão: o dos vinte. */
+    tempoLimiteMs?: number;
+  } = {},
 ): Promise<T> {
   if (!BASE) {
     throw new Error(
@@ -88,7 +116,10 @@ async function chamar<T>(
   }
 
   const cancelador = new AbortController();
-  const relogio = setTimeout(() => cancelador.abort(), TEMPO_LIMITE_MS);
+  const relogio = setTimeout(
+    () => cancelador.abort(),
+    opcoes.tempoLimiteMs ?? TEMPO_LIMITE_MS,
+  );
 
   let resposta: Response;
   try {
@@ -214,6 +245,59 @@ export async function baixarPendencias(token: string): Promise<Pendencia[]> {
   return r.itens;
 }
 
+/**
+ * Uma tarefa que sumiu da lista, e o motivo.
+ *
+ * `desfecho` é o campo para a tela, e `status` é o fato cru registrado na
+ * ocorrência. Os dois vêm porque servem a coisas diferentes: a tela mostra o
+ * desfecho, e a decisão de apagar a lápide da coleta compara o status, que não
+ * ganha nuance nova quando alguém melhorar o texto do desfecho.
+ */
+export type SaidaDeLista = {
+  id: string;
+  protocolo: string;
+  status: string;
+  motivo: string | null;
+  saiuEm: string | null;
+  desfecho: "concluida" | "encerrada" | "outra_equipe" | "devolvida";
+};
+
+/**
+ * Teto de ids por pergunta, igual ao do servidor.
+ *
+ * O `reconciliacaoSchema` da rota recusa mais que isto, e recusar vira erro
+ * 422 que derrubaria a reconciliação inteira do aparelho que ficou muito tempo
+ * fora, que é exatamente o aparelho que mais precisa dela.
+ */
+export const TETO_DE_RECONCILIACAO = 200;
+
+/**
+ * Por que a tarefa sumiu da lista.
+ *
+ * A rota existe desde o turno anterior, com teste, e NINGUÉM a chamava: o
+ * único vestígio dela no aplicativo era um comentário. Enquanto isso o agente
+ * continuava vendo tarefa desaparecer sem explicação, e as lápides de coleta
+ * (`coletas`) nunca eram apagadas, porque é a confirmação do servidor que as
+ * apaga. Sem esta chamada, aquela tabela cresce por todo o tempo de vida do
+ * aparelho e a defesa contra vistoria duplicada nunca solta a ocorrência.
+ *
+ * Teto de conforto no tempo, e não o de envio: fracassar aqui não perde
+ * trabalho nenhum, só adia a explicação até a próxima atualização.
+ */
+export async function reconciliarPendencias(
+  token: string,
+  conhecidas: readonly string[],
+): Promise<SaidaDeLista[]> {
+  if (conhecidas.length === 0) return [];
+  const r = await chamar<{ saidas: SaidaDeLista[] }>("/sincronizacao/pendencias/reconciliar", {
+    token,
+    metodo: "POST",
+    corpo: { conhecidas: conhecidas.slice(0, TETO_DE_RECONCILIACAO) },
+    tempoLimiteMs: TEMPO_LIMITE_CONFORTO_MS,
+  });
+  return r.saidas;
+}
+
 export type Colega = {
   id: string;
   nome: string;
@@ -262,5 +346,10 @@ export type MeuTrabalho = {
  * conteúdos diferentes é como se destrói a confiança num aplicativo de campo.
  */
 export async function baixarMeuTrabalho(token: string): Promise<MeuTrabalho> {
-  return chamar<MeuTrabalho>("/campo/meu-trabalho", { token });
+  // Teto curto, e a razão está em `TEMPO_LIMITE_CONFORTO_MS`: esta é a única
+  // chamada do aplicativo que o agente espera olhando para uma tela parada,
+  // e é a única cujo fracasso não custa nada além de mostrar a cópia antiga.
+  return chamar<MeuTrabalho>("/campo/meu-trabalho", {
+    token, tempoLimiteMs: TEMPO_LIMITE_CONFORTO_MS,
+  });
 }

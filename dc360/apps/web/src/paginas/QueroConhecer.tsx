@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { interesseMunicipioSchema, ROTULO_FAIXA_POPULACAO } from "@dc360/shared";
 import { registrarInteresse } from "../dados/repositorio";
-import { Aviso, ErroCampo } from "../componentes/comuns";
+import { Aviso, AvisoDeObrigatorios, ErroCampo } from "../componentes/comuns";
 import { digitosDoTelefone, mascararTelefone } from "@dc360/shared";
 
 /**
@@ -147,12 +147,13 @@ export function QueroConhecer() {
 
         <form onSubmit={enviar} noValidate>
           {falha && <Aviso tom="perigo">{falha}</Aviso>}
+          <AvisoDeObrigatorios />
 
           <div className="linha-campos">
             <div className="campo">
               <label htmlFor="ic-municipio">Município</label>
               <input
-                id="ic-municipio" value={campos.municipio}
+                id="ic-municipio" value={campos.municipio} required
                 onChange={(e) => alterar("municipio", e.target.value)}
                 aria-invalid={erros["municipio"] ? true : undefined}
                 aria-describedby={erros["municipio"] ? "ic-municipio-erro" : undefined}
@@ -163,7 +164,7 @@ export function QueroConhecer() {
             <div className="campo campo--curto">
               <label htmlFor="ic-uf">UF</label>
               <input
-                id="ic-uf" value={campos.uf} maxLength={2}
+                id="ic-uf" value={campos.uf} maxLength={2} required
                 onChange={(e) => alterar("uf", e.target.value.toUpperCase())}
                 aria-invalid={erros["uf"] ? true : undefined}
                 aria-describedby={erros["uf"] ? "ic-uf-erro" : undefined}
@@ -187,7 +188,7 @@ export function QueroConhecer() {
             <div className="campo">
               <label htmlFor="ic-nome">Seu nome</label>
               <input
-                id="ic-nome" value={campos.nome}
+                id="ic-nome" value={campos.nome} required
                 onChange={(e) => alterar("nome", e.target.value)}
                 aria-invalid={erros["nome"] ? true : undefined}
                 aria-describedby={erros["nome"] ? "ic-nome-erro" : undefined}
@@ -209,7 +210,7 @@ export function QueroConhecer() {
             <div className="campo">
               <label htmlFor="ic-email">Email</label>
               <input
-                id="ic-email" type="email" value={campos.email}
+                id="ic-email" type="email" value={campos.email} required
                 onChange={(e) => alterar("email", e.target.value)}
                 aria-invalid={erros["email"] ? true : undefined}
                 aria-describedby={erros["email"] ? "ic-email-erro" : undefined}

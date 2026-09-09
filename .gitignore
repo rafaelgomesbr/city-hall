@@ -7,3 +7,13 @@ node_modules/
 
 # Credenciais de publicacao do aplicativo de campo.
 dc360/apps/campo/segredos/
+
+# Chave de push da Apple. Manda notificacao para qualquer app do time:
+# se vazar, alguem escreve na tela de bloqueio de um agente de Defesa Civil.
+*.p8
+*.mobileprovision
+
+# Conta de servico do Firebase. Autoriza mandar notificacao para qualquer
+# aparelho do projeto: e segredo de verdade, ao contrario do google-services.json.
+*firebase-adminsdk*.json
+*-conta-servico.json

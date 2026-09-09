@@ -5,7 +5,9 @@ import {
   MODO, bancoSemPersistencia, contasDisponiveis, entrarComSenha, type ContaDisponivel,
 } from "../dados/repositorio";
 import { useSessao } from "../estado/sessao";
-import { Aviso, Carregando, ErroCampo, iniciais } from "../componentes/comuns";
+import {
+  Aviso, AvisoDeObrigatorios, Carregando, ErroCampo, iniciais,
+} from "../componentes/comuns";
 
 /**
  * Entrada da aplicação, em duas formas conforme o painel esteja ligado à API
@@ -71,10 +73,11 @@ function FormularioSenha() {
       <section className="cartao">
         <div className="cartao__corpo">
           <form onSubmit={enviar} noValidate>
+            <AvisoDeObrigatorios />
             <div className="campo">
               <label htmlFor="entrada-email">Email funcional</label>
               <input
-                id="entrada-email" type="email" value={email} autoComplete="username"
+                id="entrada-email" type="email" value={email} autoComplete="username" required
                 aria-invalid={!!erro} aria-describedby={erro ? "entrada-erro" : undefined}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -82,7 +85,7 @@ function FormularioSenha() {
             <div className="campo">
               <label htmlFor="entrada-senha">Senha</label>
               <input
-                id="entrada-senha" type="password" value={senha} autoComplete="current-password"
+                id="entrada-senha" type="password" value={senha} autoComplete="current-password" required
                 aria-invalid={!!erro} aria-describedby={erro ? "entrada-erro" : undefined}
                 onChange={(e) => setSenha(e.target.value)}
               />

@@ -9,11 +9,11 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 46 testes passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 26 testes de fonte mais 54 verificações no navegador no modo local e 103 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 242 testes de integração passando |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 69 testes de unidade e 10 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Completo em código, **nunca rodou em aparelho**. TypeScript limpo, 42 testes passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 43 testes passando |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 54 testes de fonte mais 58 verificações no navegador no modo local e 103 contra a API |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 256 testes de integração passando |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 83 testes de unidade e 10 de integração contra a API |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 115 testes passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 
 ## Os dois modos do painel
 
@@ -707,11 +707,11 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 462 testes em cinco pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 46 testes
-npm run test:api            # 242 testes da API
-npm run test --workspace @dc360/campo   # 69 testes do motor de sincronização
-npm run test:campo          # o aplicativo de campo: tipos e os 42 testes dele
+npm test                    # 518 testes em cinco pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 43 testes
+npm run test:api            # 256 testes da API
+npm run test --workspace @dc360/campo   # 83 testes do motor de sincronização
+npm run test:campo          # o aplicativo de campo: tipos e os 115 testes dele
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
 ```
@@ -790,7 +790,7 @@ MOTOR=firefox npm run test:e2e                              # e no Gecko
 ```
 
 A variável `MOTOR` troca o motor do navegador (`chromium`, `firefox`,
-`webkit`). As 54 verificações passam no Chromium, que é o motor do Chrome e do
+`webkit`). As 58 verificações passam no Chromium, que é o motor do Chrome e do
 Edge, e no Firefox. Sobre o WebKit, leia a seção seguinte antes de tentar.
 
 ### O modo local não serve para o Safari
@@ -864,7 +864,7 @@ o CORS da API não permitia `PUT`, então o envio de bytes nem saía do
 navegador; e o `Cross-Origin-Resource-Policy` do helmet bloqueava a imagem
 quando painel e API ficam em origens diferentes, que é o arranjo de produção.
 
-São 54 verificações: entrada, isolamento entre municípios visto dos dois lados,
+São 58 verificações: entrada, isolamento entre municípios visto dos dois lados,
 geração de protocolo em sequência, triagem, despacho, encerramento com motivo
 obrigatório, indicadores do painel reagindo às mudanças, cadastro de equipes e
 usuários com recusa de duplicata, mapa, restrição de menu por papel, tema
@@ -988,7 +988,7 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
 
-  Essa última já tem 69 testes cobrindo a lógica fora do celular, inclusive
+  Essa última já tem 83 testes cobrindo a lógica fora do celular, inclusive
   retomada arquivo a arquivo.
   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e

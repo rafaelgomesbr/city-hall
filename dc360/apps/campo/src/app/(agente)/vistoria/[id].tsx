@@ -5,15 +5,18 @@ import * as Location from "expo-location";
 import * as Crypto from "expo-crypto";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { File } from "expo-file-system";
+import Svg, { Circle, Path } from "react-native-svg";
 import {
   CAMPOS_PESSOAS, CHECKLIST_OBRIGATORIO, CHECKLIST_VISTORIA, ROTULO_TIPO_COBRADE,
   montarMinuta,
   type EnvelopeSincronizacao, type PessoasAtingidas,
 } from "@dc360/shared";
-import type { FotoLocal } from "@dc360/campo";
+import type { ColetaLocal, FotoLocal } from "@dc360/campo";
 import { enderecoDaApi, type Pendencia } from "../../../dados/api";
 import { pendenciaGuardada } from "../../../dados/pendencias";
+import { arquivarColeta, coletaDe, marcarColetada } from "../../../dados/coletas";
 import { obterFila } from "../../../dados/fila";
+import { abrirNoMapa } from "../../../dados/mapa";
 import {
   descartarRascunho, lerRascunho, rascunhoNovo, salvarRascunho, type Rascunho,
 } from "../../../dados/rascunho";
@@ -21,10 +24,12 @@ import { useSessao } from "../../../dados/sessao";
 import { Assinatura } from "../../../ui/Assinatura";
 import { MinutaDoLaudo } from "../../../ui/MinutaDoLaudo";
 import {
-  Aviso, Botao, Cartao, Carregando, SeloSeveridade, Separador, Txt, useTema,
+  Aviso, Botao, Cartao, Carregando, Selo, SeloSeveridade, Separador, Txt, useTema,
 } from "../../../ui/componentes";
 import { espaco, fonte, raio, toque } from "../../../ui/tokens";
-import { faltaParaConcluir } from "@dc360/campo";
+import {
+  concluirColetaEmOrdem, decidirAberturaDaVistoria, faltaParaConcluir, quantoFalta,
+} from "@dc360/campo";
 
 /**
  * A coleta em campo. É por esta tela que o produto existe.
@@ -61,6 +66,29 @@ function contagensDoRascunho(pessoas: Record<string, string>): PessoasAtingidas 
   return saida as PessoasAtingidas;
 }
 
+/**
+ * Alfinete de mapa, desenhado aqui e não no arquivo dos ícones da barra.
+ *
+ * `ui/icones.tsx` guarda os três destinos do menu, que são de navegação. Este
+ * é de uma ação de uma tela só, e mora junto de quem o usa.
+ *
+ * Traço e não preenchimento, para acompanhar os outros, e sempre ao lado da
+ * palavra "Abrir no mapa": o agente abre este aplicativo duas vezes por semana
+ * e não decora pictograma. Ícone sozinho seria recurso que existe no código e
+ * não existe para quem está na rua.
+ */
+function IconeMapa({ cor, tamanho = 20 }: { cor: string; tamanho?: number }) {
+  return (
+    <Svg width={tamanho} height={tamanho} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 21.5s7-6.53 7-11.5a7 7 0 1 0-14 0c0 4.97 7 11.5 7 11.5Z"
+        stroke={cor} strokeWidth={1.8} strokeLinejoin="round"
+      />
+      <Circle cx="12" cy="10" r="2.6" stroke={cor} strokeWidth={1.8} />
+    </Svg>
+  );
+}
+
 export default function TelaDeVistoria() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navegacao = useNavigation();
@@ -69,6 +97,13 @@ export default function TelaDeVistoria() {
 
   const [ocorrencia, setOcorrencia] = useState<Pendencia | null>(null);
   const [rascunho, setRascunho] = useState<Rascunho | null>(null);
+  /**
+   * A lapide da coleta que este aparelho ja fez desta ocorrencia.
+   *
+   * Enquanto ela existe e nao esta arquivada, esta tela NAO abre formulario
+   * nenhum: mostra o aviso e as duas saidas. Ver `decidirAberturaDaVistoria`.
+   */
+  const [jaColetada, setJaColetada] = useState<ColetaLocal | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [concluindo, setConcluindo] = useState(false);
@@ -81,6 +116,21 @@ export default function TelaDeVistoria() {
   /** Enquanto true, o ScrollView desta tela nao rola: o dedo esta assinando. */
   const [desenhando, setDesenhando] = useState(false);
   const cameraRef = useRef<CameraView>(null);
+
+  /*
+    O relógio do prazo, dentro da vistoria.
+
+    Sem ele, a conta seria feita uma vez, quando a tela abriu, e ficaria
+    congelada ali. Uma vistoria de morro dura quarenta minutos: o selo diria
+    "vence em 1h" durante a coleta inteira e continuaria dizendo isso depois de
+    o prazo já ter passado. Trinta segundos é bem mais curto que a menor faixa
+    que o texto distingue (minutos), então nunca dá para ver a frase errada.
+  */
+  const [agora, setAgora] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setAgora(Date.now()), 30_000);
+    return () => { clearInterval(t); };
+  }, []);
 
   useEffect(() => {
     void (async () => {
@@ -96,7 +146,28 @@ export default function TelaDeVistoria() {
       setOcorrencia(alvo);
       navegacao.setOptions({ title: alvo.protocolo });
 
-      const guardado = await lerRascunho(id);
+      /*
+        A pergunta que faltava, e a ausencia dela produzia dois laudos para o
+        mesmo protocolo: alem de "existe rascunho?", esta tela precisa saber
+        "esta ocorrencia ja foi coletada neste aparelho?".
+
+        Sem a lapide, o caminho era este: o agente conclui a vistoria, ela entra
+        na fila, o rascunho e apagado, e a lista de tarefas continua a mesma por
+        horas porque nao ha sinal. Um toque na tarefa caia aqui, `lerRascunho`
+        devolvia nulo, e a linha abaixo cunhava chave de idempotencia NOVA. Duas
+        chaves diferentes sao, para o servidor, duas coletas legitimas.
+
+        A decisao mora em `@dc360/campo` e tem teste sem Expo. Aqui a tela so
+        obedece: quando a resposta e `ja_coletada`, nenhum rascunho e criado,
+        porque criar rascunho e exatamente o que produz a segunda vistoria.
+      */
+      const [guardado, lapide] = await Promise.all([lerRascunho(id), coletaDe(id)]);
+      const decisao = decidirAberturaDaVistoria({ rascunho: guardado, coleta: lapide });
+      if (decisao === "ja_coletada") {
+        setJaColetada(lapide);
+        setCarregando(false);
+        return;
+      }
       setRascunho(
         guardado ?? rascunhoNovo(id, alvo.protocolo, Crypto.randomUUID()),
       );
@@ -119,6 +190,35 @@ export default function TelaDeVistoria() {
       return novo;
     });
   }, []);
+
+  /**
+   * A saida deliberada da tela de "ja coletada".
+   *
+   * Arquiva a lapide em vez de apaga-la: apagar perderia o unico registro local
+   * de que houve uma coleta antes, e e ele que explica, na fila de envio, por
+   * que existem duas coletas do mesmo protocolo esperando para subir.
+   *
+   * Rele o rascunho do disco antes de criar um novo, e isso nao e zelo vazio.
+   * Existe um caso real em que os dois convivem: a conclusao morreu entre
+   * gravar a lapide e apagar o rascunho. Ali, criar rascunho novo por cima
+   * jogaria fora o que o agente digitou no morro. Arquivar devolve o rascunho
+   * preso em vez de destrui-lo.
+   */
+  async function refazerVistoria(): Promise<void> {
+    if (!ocorrencia) return;
+    try {
+      await arquivarColeta(id);
+      const guardado = await lerRascunho(id);
+      setRascunho(
+        guardado ?? rascunhoNovo(id, ocorrencia.protocolo, Crypto.randomUUID()),
+      );
+      setJaColetada(null);
+    } catch {
+      setErro(
+        "Não foi possível liberar uma nova vistoria neste aparelho. Tente de novo.",
+      );
+    }
+  }
 
   async function capturarGps(): Promise<void> {
     setCapturandoGps(true);
@@ -196,6 +296,66 @@ export default function TelaDeVistoria() {
     setCameraAberta(false);
   }
 
+  /**
+   * A saída nomeada, e ela não apaga nada.
+   *
+   * A barra de abas some dentro desta tela de propósito: um caminho de fuga
+   * permanente embaixo do polegar, ao lado de um rolamento longo, é como se
+   * produz vistoria pela metade. Só que esconder a barra respondia à pergunta
+   * "como eu saio daqui?" com uma justificativa em vez de uma saída, e o dono
+   * do aparelho reclamou disso com razão.
+   *
+   * Então a saída existe, tem nome e diz o que faz. Sair daqui nunca foi
+   * perder trabalho: `alterar()` grava no disco a cada toque, e o rascunho
+   * continua na lista de tarefas com a marca de vistoria começada. Por isso
+   * também não há confirmação: pedir "tem certeza?" para uma ação que não
+   * destrói nada ensina o agente a responder "sim" sem ler, e no dia em que a
+   * pergunta for séria ele responde igual.
+   *
+   * `descartarRascunho` NÃO é chamado aqui, e não é esquecimento: quem apaga o
+   * rascunho é a conclusão, depois de a fila aceitar a coleta.
+   */
+  function salvarESair(): void {
+    /*
+      Sem histórico não adianta voltar.
+
+      A vistoria também é aberta direto, sem passar pela lista, quando o agente
+      chega nela por um link. Nesse caso `back()` não tem para onde ir e o
+      botão não faria absolutamente nada, que é o pior comportamento possível
+      para o botão que existe justamente para provar que dá para sair.
+    */
+    if (router.canGoBack()) router.back();
+    else router.replace("/(agente)");
+  }
+
+  /**
+   * Entrega a coordenada da ocorrência ao aplicativo de mapas do aparelho.
+   *
+   * A coordenada usada é a da OCORRÊNCIA, e não a do rascunho. A do rascunho é
+   * onde o agente está de pé; a da ocorrência é onde ele precisa chegar. Levar
+   * alguém até onde ele já está não é uma rota.
+   */
+  async function abrirRota(): Promise<void> {
+    if (ocorrencia?.latitude == null || ocorrencia.longitude == null) return;
+    setErro(null);
+    const abriu = await abrirNoMapa(
+      ocorrencia.latitude, ocorrencia.longitude, ocorrencia.endereco,
+    );
+    if (!abriu) {
+      /*
+        A coordenada vai no texto do aviso, e isso é o que salva a ida.
+
+        Se nenhum aplicativo de mapas atendeu, dizer "não deu" deixaria o
+        agente sem nada. Com os números na tela ele copia para onde quiser, ou
+        lê por rádio para a base.
+      */
+      setErro(
+        "Nenhum aplicativo de mapas atendeu neste aparelho. A coordenada da " +
+        `ocorrência é ${ocorrencia.latitude.toFixed(6)}, ${ocorrencia.longitude.toFixed(6)}.`,
+      );
+    }
+  }
+
   async function concluir(): Promise<void> {
     if (!rascunho || !ocorrencia) return;
     setConcluindo(true);
@@ -249,17 +409,40 @@ export default function TelaDeVistoria() {
           }
         : undefined;
 
-      await fila.enfileirar(envelope, {
-        protocolo: rascunho.protocolo,
-        fotos: rascunho.fotos,
-        ...(assinatura ? { assinatura } : {}),
-      });
       /*
-        Só descarta o rascunho DEPOIS de a fila aceitar. Na ordem inversa, uma
-        falha ao enfileirar apagaria a vistoria inteira, que é o pior desfecho
-        possível desta tela.
+        A ORDEM DOS TRES PASSOS E OBRIGATORIA: enfileirar, gravar a lapide,
+        apagar o rascunho. Cada inversao perde alguma coisa que ninguem
+        recupera em campo.
+
+        Apagar o rascunho antes de enfileirar apagaria a vistoria inteira se a
+        fila recusasse, que e o pior desfecho possivel desta tela.
+
+        Apagar o rascunho antes de gravar a lapide e o erro mais discreto e o
+        mais caro: uma falha ao gravar a lapide deixaria a coleta na fila, o
+        rascunho apagado e a tarefa parecendo intocada na lista. O toque
+        seguinte abriria a segunda vistoria, que e o defeito que a lapide
+        existe para impedir.
+
+        Na ordem certa toda falha para num ponto seguro. Se a lapide falhar, o
+        rascunho continua no disco; se o descarte falhar, a lapide ja barra a
+        abertura. Ela esta em `concluirColetaEmOrdem`, e nao solta em tres
+        linhas aqui, porque ordem sem teste e ordem que a proxima edicao
+        inverte sem ninguem perceber.
       */
-      await descartarRascunho(rascunho.ocorrenciaId);
+      await concluirColetaEmOrdem({
+        enfileirar: () => fila.enfileirar(envelope, {
+          protocolo: rascunho.protocolo,
+          fotos: rascunho.fotos,
+          ...(assinatura ? { assinatura } : {}),
+        }),
+        registrarColeta: () => marcarColetada({
+          ocorrenciaId: rascunho.ocorrenciaId,
+          idempotencyKey: rascunho.idempotencyKey,
+          protocolo: rascunho.protocolo,
+          coletadaEm: rascunho.coletadaEm,
+        }),
+        descartarRascunho: () => descartarRascunho(rascunho.ocorrenciaId),
+      });
 
       Alert.alert(
         "Vistoria guardada",
@@ -279,6 +462,83 @@ export default function TelaDeVistoria() {
 
   if (carregando) return <Carregando mensagem="Abrindo a vistoria" />;
   if (erro && !ocorrencia) return <View style={{ padding: espaco.e4 }}><Aviso tom="perigo">{erro}</Aviso></View>;
+
+  /*
+    A ocorrencia ja foi coletada neste aparelho, e por isso esta tela nao e o
+    formulario.
+
+    Nao ha formulario nenhum montado por baixo: a decisao de abertura impediu a
+    criacao do rascunho la em cima. Isso importa, porque um formulario montado
+    "so para mostrar" seria um formulario que grava no disco no primeiro toque,
+    e ai a coleta nova ja teria comecado antes de qualquer confirmacao.
+
+    Revistoriar continua sendo possivel, e de proposito: a mesma ocorrencia pode
+    precisar de segunda vistoria depois de uma chuva nova, e a migracao 009 do
+    banco trata disso. O que nao pode e a segunda vistoria acontecer por
+    acidente de um toque numa lista velha. Por isso a saida existe, fica em
+    segundo lugar, e passa por confirmacao.
+  */
+  if (ocorrencia && jaColetada) {
+    return (
+      <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}>
+        <Cartao>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
+            <Txt variante="corpoP" mono negrito>{ocorrencia.protocolo}</Txt>
+            <View style={{ flex: 1 }} />
+            <SeloSeveridade severidade={ocorrencia.severidade} />
+          </View>
+          <Txt variante="h3">{ROTULO_TIPO_COBRADE[ocorrencia.tipo]}</Txt>
+          <Txt variante="corpoP">{ocorrencia.endereco}</Txt>
+        </Cartao>
+
+        <Aviso tom="info">
+          Esta ocorrência já foi coletada neste aparelho.
+          {jaColetada.situacao === "enviada"
+            ? " A vistoria já foi enviada ao servidor."
+            : " A vistoria está na fila de envio e sobe assim que houver sinal."}
+        </Aviso>
+
+        <Txt variante="corpoP" discreto>
+          A tarefa continua aparecendo na sua lista porque ela só sai de lá
+          quando o aparelho conseguir falar com o servidor. Isso pode demorar
+          horas sem sinal, e não significa que a vistoria se perdeu.
+        </Txt>
+
+        <Botao
+          titulo="Ver na fila de envio"
+          onPress={() => router.push("/(agente)/fila")}
+        />
+
+        {/*
+          A saida deliberada. Segundo lugar, tipo secundario e confirmacao, os
+          tres pela mesma razao: ela e legitima e e rara, e o custo de errar
+          para o lado dela e um segundo laudo do mesmo protocolo, que o
+          coordenador so descobre quando ja assinou um dos dois.
+        */}
+        <Botao
+          titulo="Fazer nova vistoria desta ocorrência"
+          tipo="secundario"
+          onPress={() => {
+            Alert.alert(
+              "Fazer nova vistoria?",
+              "A vistoria que você já fez continua guardada e vai ser enviada do " +
+              "mesmo jeito. Esta será uma SEGUNDA vistoria da mesma ocorrência, e " +
+              "as duas vão aparecer no protocolo.",
+              [
+                { text: "Cancelar", style: "cancel" },
+                {
+                  text: "Fazer nova vistoria",
+                  style: "destructive",
+                  onPress: () => void refazerVistoria(),
+                },
+              ],
+            );
+          }}
+        />
+      </ScrollView>
+    );
+  }
+
   if (!ocorrencia || !rascunho) return null;
 
   /*
@@ -428,6 +688,34 @@ export default function TelaDeVistoria() {
     );
   }
 
+  /*
+    O prazo, dentro do formulário.
+
+    Ele existia só na lista de tarefas. Uma vez dentro da vistoria, o agente
+    perdia de vista exatamente a informação que decide se ele para para
+    fotografar mais uma parede ou se desce para a próxima ocorrência.
+
+    A conta é a mesma da lista, e vem do pacote compartilhado de propósito:
+    duas contagens regressivas escritas separadamente divergem, e o dia em que
+    divergirem a lista vai dizer uma coisa e a tela aberta outra.
+
+    O selo diz a PALAVRA junto com a cor. Âmbar e vermelho são
+    indistinguíveis sob sol forte na tela do aparelho, e para quem não separa
+    as duas cores eles nunca foram distinguíveis.
+  */
+  const prazo = quantoFalta(ocorrencia.prazo_em, agora);
+  const rotuloDoPrazo = ocorrencia.prazo_em
+    ? `${prazo.atrasado ? "! " : ""}Prazo `
+      + prazo.texto.charAt(0).toLowerCase() + prazo.texto.slice(1)
+    : prazo.texto;
+  const coresDoPrazo = prazo.vencido
+    ? { fundo: tema.perigoFundo, cor: tema.perigoTexto }
+    : prazo.atrasado
+      ? { fundo: tema.alertaFundo, cor: tema.alertaTexto }
+      : { fundo: tema.superficie2, cor: tema.textoDiscreto };
+
+  const temCoordenada = ocorrencia.latitude != null && ocorrencia.longitude != null;
+
   const campo = {
     minHeight: toque,
     borderWidth: 1,
@@ -470,6 +758,61 @@ export default function TelaDeVistoria() {
         {ocorrencia.ponto_referencia && (
           <Txt variante="corpoP" discreto>
             Referência: {ocorrencia.ponto_referencia}
+          </Txt>
+        )}
+
+        <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2, flexWrap: "wrap" }}>
+          <Selo texto={rotuloDoPrazo} fundo={coresDoPrazo.fundo} cor={coresDoPrazo.cor} />
+        </View>
+
+        {/*
+          As duas ações da cabeça da tela: chegar lá, e sair daqui.
+
+          Ficam no alto, e não no fim do rolamento. "Abrir no mapa" é lido
+          dentro do carro, antes de a vistoria começar, e procurá-lo depois de
+          rolar o formulário inteiro seria escondê-lo de quem só precisa dele
+          antes de sair. "Salvar e sair" fica junto pelo motivo oposto: no alto
+          ele exige um gesto deliberado, enquanto uma barra fixa embaixo do
+          polegar é a escotilha de fuga que produz vistoria pela metade.
+        */}
+        <View style={{ flexDirection: "row", gap: espaco.e2 }}>
+          {temCoordenada && (
+            <Pressable
+              onPress={() => void abrirRota()}
+              accessibilityRole="button"
+              accessibilityLabel={`Abrir a rota até ${ocorrencia.endereco} no aplicativo de mapas`}
+              style={({ pressed }) => ({
+                flex: 1,
+                minHeight: toque,
+                paddingHorizontal: espaco.e3,
+                borderRadius: raio.normal,
+                borderWidth: 1,
+                borderColor: tema.borda,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: espaco.e2,
+                opacity: pressed ? 0.85 : 1,
+              })}
+            >
+              <IconeMapa cor={tema.texto} />
+              <Txt variante="corpo" negrito>Abrir no mapa</Txt>
+            </Pressable>
+          )}
+          <View style={{ flex: 1 }}>
+            <Botao
+              titulo="Salvar e sair"
+              tipo="secundario"
+              onPress={salvarESair}
+              descricao="Salvar e sair, voltando para a lista de tarefas sem perder o que já foi preenchido"
+            />
+          </View>
+        </View>
+
+        {!temCoordenada && (
+          <Txt variante="legenda" discreto>
+            Esta ocorrência chegou sem coordenada. Use o endereço e a
+            referência para chegar.
           </Txt>
         )}
         <Separador />

@@ -128,6 +128,28 @@ export function ErrosDoServidor(
   );
 }
 
+/**
+ * A convenção do formulário, dita uma vez, no topo.
+ *
+ * O painel marca a EXCEÇÃO: campo opcional leva "(opcional)" no rótulo, e o
+ * resto é obrigatório. A convenção é boa (marcar o comum polui a tela inteira
+ * de asterisco), mas ela só funciona se alguém a tiver contado. Sem esta
+ * frase, quem chega no formulário vê dez rótulos limpos e dois com
+ * "(opcional)" e não tem como saber se os limpos são obrigatórios ou se os
+ * dois marcados são o único destaque de alguém.
+ *
+ * Quem navega por leitor de tela ganha isto no `required` de cada campo, que
+ * o navegador anuncia junto do rótulo. A frase é para quem enxerga, e para
+ * quem lê o formulário inteiro antes de começar a preencher.
+ */
+export function AvisoDeObrigatorios() {
+  return (
+    <p className="campo__dica formulario__obrigatorios">
+      Todos os campos são obrigatórios, exceto os marcados como opcional.
+    </p>
+  );
+}
+
 export function Carregando({ mensagem = "Carregando" }: { mensagem?: string }) {
   return (
     <div className="carregando" role="status" aria-live="polite">

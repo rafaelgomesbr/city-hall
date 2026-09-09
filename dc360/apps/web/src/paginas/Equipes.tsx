@@ -4,7 +4,9 @@ import {
   atualizarEquipe, criarEquipe, listarEquipes, type LinhaEquipe,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
-import { Aviso, Carregando, Cartao, ErroCampo, Vazio } from "../componentes/comuns";
+import {
+  Aviso, AvisoDeObrigatorios, Carregando, Cartao, ErroCampo, Vazio,
+} from "../componentes/comuns";
 import { IconeMais } from "../componentes/Icones";
 
 /**
@@ -91,11 +93,18 @@ export function Equipes() {
       <div className="detalhe">
         <div className="coluna">
           <Cartao titulo={editando ? "Editar equipe" : "Cadastrar equipe"}>
-            <form onSubmit={submeter}>
+            {/*
+              `noValidate` porque a validação é a do esquema compartilhado, a
+              mesma que o servidor roda: sem isto o navegador barra o envio
+              antes, com a bolha nativa dele, e as mensagens escritas para
+              este domínio nunca chegam à tela.
+            */}
+            <form onSubmit={submeter} noValidate>
+              <AvisoDeObrigatorios />
               <div className="linha-campos">
                 <div className="campo">
                   <label htmlFor="equipe-nome">Nome</label>
-                  <input id="equipe-nome" type="text" value={nome}
+                  <input id="equipe-nome" type="text" value={nome} required
                          aria-invalid={Boolean(errosDeCampo["nome"])}
                          aria-describedby={errosDeCampo["nome"] ? "equipe-nome-erro" : undefined}
                          onChange={(ev) => setNome(ev.target.value)} placeholder="Equipe Delta" />

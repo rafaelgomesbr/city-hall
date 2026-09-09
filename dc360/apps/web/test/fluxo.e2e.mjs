@@ -94,6 +94,10 @@ await page.waitForURL(/\/ocorrencias\/[0-9a-f-]{36}$/, { timeout: 20_000 });
 const protocoloNovo = (await page.locator("h1 .mono").textContent()).trim();
 ok("protocolo segue a sequencia do municipio (000479/2026)", protocoloNovo === "000479/2026", `(${protocoloNovo})`);
 ok("status inicial Registrada", await page.locator(".selo", { hasText: "Registrada" }).first().isVisible());
+// O defeito que isto guarda: o encerramento aparecia colado na triagem, com
+// botao vermelho, numa ocorrencia em que a unica coisa conhecida e o telefonema.
+ok("encerramento nao e oferecido antes da triagem",
+   (await page.locator("#encerrar-motivo").count()) === 0);
 
 console.log("\n== 5. Fluxo completo: triagem, despacho, encerramento ==");
 await page.locator("#triagem-severidade").selectOption("alta");
@@ -122,12 +126,23 @@ ok("trilha tem 3 eventos com autoria", eventos === 3, `(${eventos})`);
 const autoria = await page.locator(".trilha__autoria").first().textContent();
 ok("trilha nomeia autor e papel", autoria.includes("Helena Vasques Coutinho") && autoria.includes("Coordenador"));
 
-console.log("\n== 6. Encerramento exige motivo ==");
+console.log("\n== 6. Encerramento exige motivo, e dois toques ==");
 await page.getByRole("button", { name: "Encerrar ocorrência" }).click();
 await page.waitForTimeout(400);
 ok("recusa encerrar sem motivo", await page.locator(".campo__erro").isVisible());
+// Motivo vazio nem chega a pedir confirmacao: confirmar para so depois
+// reclamar do campo faria a pessoa confirmar duas vezes o mesmo encerramento.
+ok("motivo vazio nao chega a pedir confirmacao",
+   (await page.getByRole("button", { name: /^Confirmar encerramento/ }).count()) === 0);
 await page.locator("#encerrar-motivo").fill("Via desobstruida pela equipe e arvore removida. Sem risco remanescente.");
 await page.getByRole("button", { name: "Encerrar ocorrência" }).click();
+await page.waitForTimeout(400);
+ok("o primeiro toque pergunta e nao encerra",
+   (await page.locator(".selo", { hasText: "Encerrada" }).count()) === 0);
+const confirmar = page.getByRole("button", { name: /^Confirmar encerramento de / });
+ok("a confirmacao diz qual protocolo esta sendo encerrado",
+   (await confirmar.textContent()).includes(protocoloNovo));
+await confirmar.click();
 await page.locator(".selo", { hasText: "Encerrada" }).first().waitFor({ timeout: 20_000 }).catch(() => {});
 ok("encerrou com motivo", await page.locator(".selo", { hasText: "Encerrada" }).first().isVisible());
 ok("motivo aparece no cartao de encerramento",

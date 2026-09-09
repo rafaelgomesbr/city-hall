@@ -1,7 +1,9 @@
 import {
-  baixarMeuTrabalho, baixarPendencias, type MeuTrabalho, type Pendencia,
+  baixarMeuTrabalho, baixarPendencias, reconciliarPendencias,
+  TETO_DE_RECONCILIACAO, type MeuTrabalho, type Pendencia,
 } from "./api";
 import { bancoLocal } from "./banco-local";
+import { esquecerColeta } from "./coletas";
 
 /**
  * A lista de tarefas, guardada no aparelho.
@@ -51,6 +53,14 @@ export async function baixadasEm(): Promise<string | null> {
  * existe `baixadasEm`.
  */
 export async function atualizarPendencias(token: string): Promise<Pendencia[]> {
+  /*
+    Os ids que este aparelho conhece são lidos ANTES da substituição.
+
+    Depois dela a tarefa que sumiu já sumiu do disco, e não sobra o que
+    perguntar ao servidor: a lista local é apagada e reescrita inteira. Ler
+    antes é o que permite descobrir, logo em seguida, por que cada uma saiu.
+  */
+  const conhecidas = await idsConhecidos();
   const recebidas = await baixarPendencias(token);
   const db = await bancoLocal();
   const agora = new Date().toISOString();
@@ -70,7 +80,48 @@ export async function atualizarPendencias(token: string): Promise<Pendencia[]> {
     );
   });
 
+  /*
+    A reconciliação vem DEPOIS, e o que ela devolve não pode derrubar a
+    atualização que já entrou. Ela é conforto: explica o que sumiu e libera as
+    lápides que o servidor já confirmou. Fracassar aqui adia a explicação até a
+    próxima atualização, e não custa trabalho nenhum ao agente.
+
+    Por isso o `catch` é vazio, e essa é uma decisão e não desleixo: propagar
+    faria a lista nova, já gravada em disco, chegar à tela como erro de rede.
+  */
+  try {
+    await aplicarReconciliacao(await reconciliarPendencias(token, conhecidas));
+  } catch { /* explicação adiada, lista preservada */ }
+
   return pendenciasGuardadas();
+}
+
+/**
+ * Os ids sobre os quais vale a pena perguntar ao servidor.
+ *
+ * Duas fontes, e a ORDEM entre elas importa por causa do teto de 200 da rota:
+ *
+ * 1. As lápides de coleta primeiro. Elas são o que impede vistoria duplicada e
+ *    o que cresce sem limite se ninguém as apagar, e só a confirmação do
+ *    servidor as apaga. Um aparelho que passou o mês fora tem lápide de sobra e
+ *    tarefa de sobra, e cortar a lápide seria cortar justamente a que precisa
+ *    de resposta.
+ * 2. Depois as tarefas que o aparelho ainda acha que tem. Essas se resolvem
+ *    sozinhas na próxima atualização, porque a lista é reescrita inteira.
+ *
+ * Sem repetição: id que está nas duas fontes é perguntado uma vez só, senão
+ * metade do teto iria embora em duplicata.
+ */
+async function idsConhecidos(): Promise<string[]> {
+  const db = await bancoLocal();
+  const lapides = await db.getAllAsync<{ ocorrencia_id: string }>(
+    "SELECT ocorrencia_id FROM coletas",
+  );
+  const tarefas = await db.getAllAsync<{ id: string }>("SELECT id FROM pendencias");
+  const vistos = new Set<string>();
+  for (const l of lapides) vistos.add(l.ocorrencia_id);
+  for (const t of tarefas) vistos.add(t.id);
+  return [...vistos].slice(0, TETO_DE_RECONCILIACAO);
 }
 
 /** Uma tarefa específica, do disco. Serve para abrir a vistoria sem sinal. */
@@ -135,4 +186,41 @@ export async function atualizarMeuTrabalho(token: string): Promise<MeuTrabalho> 
   const dados = await baixarMeuTrabalho(token);
   await guardarMeuTrabalho(dados);
   return dados;
+}
+
+/**
+ * O que a reconciliação devolve sobre uma tarefa que sumiu da lista.
+ *
+ * Estruturalmente mínimo de propósito: o que interessa aqui é o par
+ * `id` mais `status`, e amarrar este arquivo ao formato inteiro da resposta
+ * criaria uma dependência que quebra a cada campo novo que a rota ganhar.
+ */
+export type SaidaReconciliada = { id: string; status: string };
+
+/**
+ * O servidor confirmando: a partir daqui a lápide da coleta não serve mais.
+ *
+ * A lápide (`coletas`) é o que impede a segunda vistoria enquanto a lista de
+ * tarefas está velha, e ela precisa sair em algum momento, senão a tabela
+ * cresce por todo o tempo de vida do aparelho. O momento certo é este, e só
+ * este: `POST /sincronizacao/pendencias/reconciliar` responder que a ocorrência
+ * saiu da lista COM vistoria concluída. Isso é o servidor dizendo que recebeu
+ * a coleta, e a partir daí a defesa contra duplicata é dele, que reconhece a
+ * chave de idempotência.
+ *
+ * Apagar por qualquer outro desfecho seria errado, e cada um por uma razão
+ * diferente: `encerrada` e `devolvida` significam que a vistoria NÃO chegou, e
+ * `outra_equipe` significa que ela mudou de dono. Nos três, a coleta que este
+ * aparelho tem na fila continua sendo a única prova de que o agente esteve lá,
+ * e a lápide continua sendo o que impede alguém de coletar de novo por cima.
+ *
+ * Compara o `status` cru, e não o `desfecho`: o desfecho é tradução para a tela
+ * e pode ganhar nuance amanhã; o status é o fato registrado na ocorrência.
+ */
+export async function aplicarReconciliacao(
+  saidas: readonly SaidaReconciliada[],
+): Promise<void> {
+  for (const s of saidas) {
+    if (s.status === "vistoria_concluida") await esquecerColeta(s.id);
+  }
 }
