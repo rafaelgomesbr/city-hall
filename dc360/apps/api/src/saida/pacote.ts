@@ -73,6 +73,22 @@ export const TABELAS_DA_SAIDA = [
   "ocorrencia_consultas",
   "exportacoes",
   "protocolo_sequencias",
+  /*
+    O resumo diário que o município escreve sobre si mesmo (migração 023).
+
+    Sai, e a razão não é "porque tem `organizacao_id`". É que a minimização por
+    prazo (migração 021) apaga o detalhe das ocorrências antigas, e quando ela
+    apaga, esta série de contagens vira o único registro que sobra de quanto o
+    município trabalhou naquele ano. Deixar ela para trás entregaria ao
+    município um arquivo sem a única memória agregada da própria operação, que
+    é justamente o que se leva para uma prestação de contas ou para a defesa de
+    um orçamento.
+
+    Não carrega segredo nem dado de pessoa: só contagem, mediana e marca de
+    tempo, e o portão de privilégio em `db/test/isolamento.test.ts` cobra isso
+    do catálogo.
+  */
+  "metricas_municipio",
 ] as const;
 
 /**

@@ -9,7 +9,7 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 124 testes do banco passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 142 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 254 testes de fonte do painel mais 58 verificações no navegador no modo local e 103 contra a API |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 561 testes da API passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 90 testes de unidade do motor de campo e 10 de integração contra a API |
@@ -733,8 +733,8 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 1132 testes em cinco pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 124 testes do banco
+npm test                    # 1150 testes em cinco pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 142 testes do banco
 npm run test:api            # 561 testes da API
 npm run test --workspace @dc360/campo   # 90 testes do motor de campo
 npm run test:campo          # tipos e os 287 testes do aplicativo de campo

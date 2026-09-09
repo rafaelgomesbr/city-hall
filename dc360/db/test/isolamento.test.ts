@@ -269,15 +269,58 @@ describe("CA-06: isolamento entre organizações", () => {
         não abre buraco.
       */
       if (SEM_POLICY_DE_TENANT.has(t)) continue;
-      const r = await db.query<{ qual: string | null; with_check: string | null }>(
-        "SELECT qual, with_check FROM pg_policies WHERE schemaname='public' AND tablename = $1",
+      const r = await db.query<{
+        policyname: string;
+        cmd: string;
+        papeis: string;
+        qual: string | null;
+        with_check: string | null;
+      }>(
+        `SELECT policyname, cmd, array_to_string(roles, ',') AS papeis, qual, with_check
+           FROM pg_policies WHERE schemaname='public' AND tablename = $1`,
         [t],
       );
       expect(r.rows.length, `tabela ${t} sem nenhuma policy`).toBeGreaterThan(0);
 
+      /*
+        As policies do CONSOLE são separadas aqui, e a regra delas é OUTRA, não
+        uma mais frouxa.
+
+        O console do fornecedor (ADR 0008) existe para ler número agregado de
+        mais de um município, então uma policy dele amarrada ao contexto do
+        município seria fingimento: ela não teria contexto nenhum a que se
+        amarrar, porque o console não é município. Fingir isolamento onde a
+        leitura cruzada é o requisito produziria exatamente o teste verde e
+        falso que a ADR 0008 recusa por escrito.
+
+        O que a mantém estreita é a cobrança logo abaixo, mais o portão de
+        privilégio no fim deste arquivo: a policy do console só vale onde a ADR
+        a autoriza, só para SELECT, e não vale nada sem uma concessão, que é o
+        que aquele portão nega em toda tabela que não seja essas duas.
+      */
+      const AUTORIZADAS_PARA_O_CONSOLE = new Set(["metricas_municipio", "organizacoes"]);
+      const doConsole = r.rows.filter((linha) => linha.papeis === "dc360_console");
+      for (const linha of doConsole) {
+        expect(
+          AUTORIZADAS_PARA_O_CONSOLE.has(t),
+          `policy ${linha.policyname} dá ao console leitura cruzada em ${t}, e a ` +
+          "ADR 0008 só autoriza isso na tabela de métricas e no cadastro de organizações",
+        ).toBe(true);
+        expect(
+          linha.cmd,
+          `policy ${linha.policyname} dá ao console mais que SELECT em ${t}: o console só lê`,
+        ).toBe("SELECT");
+      }
+
+      const doProduto = r.rows.filter((linha) => linha.papeis !== "dc360_console");
+      expect(
+        doProduto.length,
+        `tabela ${t} só tem policy de console, e nenhuma do produto`,
+      ).toBeGreaterThan(0);
+
       // Toda policy precisa se apoiar na função de contexto. Uma policy com
       // `USING (true)` passaria pelo teste anterior e não isolaria nada.
-      const expressoes = r.rows
+      const expressoes = doProduto
         .flatMap((linha) => [linha.qual, linha.with_check])
         .filter((e): e is string => Boolean(e));
       expect(expressoes.length, `policies de ${t} sem expressão`).toBeGreaterThan(0);
@@ -2420,5 +2463,846 @@ describe("Segundo fator", () => {
         tx.query("DELETE FROM segundo_fator WHERE usuario_id = $1", [usuarioDeA]),
       ),
     ).rejects.toThrow();
+  });
+});
+
+/* =====================================================================
+ * A ASSERCAO UNIVERSAL DE PRIVILEGIO (ADR 0008, decisao 3).
+ *
+ * Os portoes de cima descobrem as tabelas no catalogo e cobram RLS, policy e
+ * `organizacao_id` de cada uma. Falta a outra metade da mesma pergunta: QUEM
+ * TEM PRIVILEGIO nelas. RLS so vale contra quem tem permissao de chegar na
+ * tabela; um papel novo com SELECT direto responde a policy com o proprio
+ * contexto, e um papel com BYPASSRLS nem isso.
+ *
+ * A frase que este bloco afirma e uma so: nenhum papel do banco, alem do papel
+ * de aplicacao e do dono das tabelas, tem privilegio em tabela de negocio. A
+ * unica excecao esta escrita na ADR 0008 e e conferida aqui uma a uma: o papel
+ * do console, com SELECT, e so na tabela de metricas, no cadastro de
+ * organizacoes e na visao que junta as duas.
+ *
+ * UNIVERSAL, e nao lista de nomes: as tabelas vem do catalogo. A lista a uma
+ * vale para as tabelas de hoje; a assercao vale para a tabela que alguem criar
+ * amanha sem lembrar desta regra.
+ * ===================================================================== */
+describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
+  type Achado = {
+    relacao: string;
+    detalhe: string | null;
+    especie: string;
+    papel: string;
+    privilegio: string;
+    caminho: string;
+  };
+
+  /**
+   * Os seis caminhos por onde privilegio chega, num lugar so.
+   *
+   * Cada um deles ja foi, em algum banco de alguem, o caminho esquecido:
+   *
+   * 1. concessao direta, o obvio;
+   * 2. privilegio de COLUNA, que passa por fora de `role_table_grants` e por
+   *    isso e o mais facil de esquecer (este banco tem um hoje, em
+   *    `oficio_envios`, e ele e o que ancora esta varredura);
+   * 3. heranca de papel: papel sem concessao propria que herda de quem tem;
+   * 4. `PUBLIC`, que concede a todo mundo de uma vez e nao aparece como papel
+   *    nomeado em lista nenhuma;
+   * 5. VISAO sobre tabela de negocio, porque visao com privilegio dribla a
+   *    concessao da tabela;
+   * 6. funcao `SECURITY DEFINER`, porque ela roda com os privilegios do dono.
+   *
+   * E, no fim, o caminho que nao depende de eu ter lembrado dos outros seis: o
+   * proprio banco respondendo `has_table_privilege`, que ja soma concessao
+   * direta, `PUBLIC` e heranca. Ele existe porque as duas primeiras consultas
+   * saem de `information_schema`, e as visoes de `information_schema` so
+   * mostram concessao em que quem consulta e parte interessada. Se um dia este
+   * teste rodar com um papel que nao enxerga tudo, e o `has_table_privilege`
+   * que continua respondendo a verdade.
+   */
+  async function varredura(): Promise<Achado[]> {
+    const r = await db.query<Achado>(`
+      WITH RECURSIVE
+      /* 5: o que cada visao alcanca, inclusive visao sobre visao. */
+      alcance_da_visao AS (
+        SELECT v.oid AS visao, d.refobjid AS alvo
+          FROM pg_class v
+          JOIN pg_rewrite w ON w.ev_class = v.oid
+          JOIN pg_depend d ON d.objid = w.oid
+                          AND d.classid = 'pg_rewrite'::regclass
+                          AND d.refclassid = 'pg_class'::regclass
+                          AND d.refobjid <> v.oid
+         WHERE v.relkind IN ('v','m') AND v.relnamespace = 'public'::regnamespace
+        UNION
+        SELECT a.visao, d.refobjid
+          FROM alcance_da_visao a
+          JOIN pg_rewrite w ON w.ev_class = a.alvo
+          JOIN pg_depend d ON d.objid = w.oid
+                          AND d.classid = 'pg_rewrite'::regclass
+                          AND d.refclassid = 'pg_class'::regclass
+                          AND d.refobjid <> a.alvo
+      ),
+      /* 3: heranca, inclusive indireta (A membro de B, B membro de C). */
+      membros AS (
+        SELECT m.member AS membro, m.roleid AS ancestral
+          FROM pg_auth_members m
+        UNION
+        SELECT x.membro, m.roleid
+          FROM membros x
+          JOIN pg_auth_members m ON m.member = x.ancestral
+      ),
+      /* 1 e 4: concessao direta, com PUBLIC aparecendo como grantee. */
+      direta AS (
+        SELECT g.table_name::text AS relacao,
+               NULL::text AS detalhe,
+               'tabela'::text AS especie,
+               g.grantee::text AS papel,
+               g.privilege_type::text AS privilegio,
+               CASE WHEN g.grantee = 'PUBLIC'
+                    THEN 'concessao a PUBLIC'
+                    ELSE 'concessao direta' END AS caminho
+          FROM information_schema.role_table_grants g
+         WHERE g.table_schema = 'public'
+      ),
+      /*
+        2: privilegio de coluna, e SO o que nao aparece no de cima.
+
+        column_privileges tambem repete, coluna a coluna, tudo que foi
+        concedido na tabela inteira. Trazer isso junto encheria a varredura de
+        milhares de linhas repetidas e esconderia justamente o caso que
+        importa: o GRANT feito em coluna, que nao aparece em
+        role_table_grants nenhuma.
+      */
+      por_coluna AS (
+        SELECT c.table_name::text,
+               c.column_name::text,
+               'coluna'::text,
+               c.grantee::text,
+               c.privilege_type::text,
+               'privilegio de coluna'::text
+          FROM information_schema.column_privileges c
+         WHERE c.table_schema = 'public'
+           AND NOT EXISTS (
+             SELECT 1 FROM information_schema.role_table_grants g
+              WHERE g.table_schema = 'public'
+                AND g.table_name = c.table_name
+                AND g.grantee = c.grantee
+                AND g.privilege_type = c.privilege_type)
+      ),
+      por_heranca AS (
+        SELECT t.relname::text,
+               NULL::text,
+               'tabela'::text,
+               m.membro::regrole::text,
+               x.privilege_type::text,
+               'heranca do papel ' || m.ancestral::regrole::text
+          FROM membros m
+          JOIN pg_class t ON t.relnamespace = 'public'::regnamespace
+                         AND t.relkind IN ('r','p')
+          CROSS JOIN LATERAL aclexplode(t.relacl) x
+         WHERE x.grantee = m.ancestral
+      ),
+      por_visao AS (
+        SELECT DISTINCT
+               a.visao::regclass::text,
+               NULL::text,
+               'visao'::text,
+               COALESCE(r.rolname::text, 'PUBLIC'),
+               x.privilege_type::text,
+               'visao que alcanca ' || a.alvo::regclass::text
+          FROM alcance_da_visao a
+          JOIN pg_class v ON v.oid = a.visao
+          JOIN pg_class alvo ON alvo.oid = a.alvo AND alvo.relkind IN ('r','p')
+          CROSS JOIN LATERAL aclexplode(v.relacl) x
+          LEFT JOIN pg_roles r ON r.oid = x.grantee
+      ),
+      /*
+        6: acldefault no lugar de proacl quando ela e nula, porque nula
+        significa "privilegio padrao", e o padrao do Postgres para funcao e
+        EXECUTE para PUBLIC. Ler proacl cru deixaria a funcao mais aberta que
+        existe passar como se nao tivesse concessao nenhuma.
+      */
+      por_funcao AS (
+        SELECT p.proname::text || '()',
+               NULL::text,
+               'funcao'::text,
+               COALESCE(r.rolname::text, 'PUBLIC'),
+               x.privilege_type::text,
+               'funcao SECURITY DEFINER'::text
+          FROM pg_proc p
+          JOIN pg_namespace n ON n.oid = p.pronamespace
+          CROSS JOIN LATERAL aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) x
+          LEFT JOIN pg_roles r ON r.oid = x.grantee
+         WHERE n.nspname = 'public' AND p.prosecdef
+      ),
+      /*
+        O caminho que nao depende de memoria: o proprio banco respondendo se
+        aquele papel pode. Os papeis pg_* sao os predefinidos do Postgres, e
+        ficam de fora porque pg_read_all_data responde "sim" para toda tabela
+        por definicao. Isso nao e brecha: se alguem tornar um papel do produto
+        membro dele, e o papel do produto que aparece aqui com o "sim".
+      */
+      efetivo AS (
+        SELECT t.relname::text,
+               NULL::text,
+               CASE WHEN t.relkind IN ('v','m') THEN 'visao' ELSE 'tabela' END,
+               r.rolname::text,
+               p.privilegio::text,
+               'privilegio efetivo, venha ele de onde vier'::text
+          FROM pg_class t
+          CROSS JOIN pg_roles r
+          CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE',
+                                  'TRUNCATE','REFERENCES','TRIGGER']) AS p(privilegio)
+         WHERE t.relnamespace = 'public'::regnamespace
+           AND t.relkind IN ('r','p','v','m')
+           AND r.rolname NOT LIKE 'pg\\_%'
+           AND has_table_privilege(r.oid, t.oid, p.privilegio)
+      )
+      SELECT * FROM direta
+      UNION ALL SELECT * FROM por_coluna
+      UNION ALL SELECT * FROM por_heranca
+      UNION ALL SELECT * FROM por_visao
+      UNION ALL SELECT * FROM por_funcao
+      UNION ALL SELECT * FROM efetivo
+    `);
+    return r.rows;
+  }
+
+  /** O dono das tabelas, perguntado ao catalogo e nunca escrito a mao. */
+  async function dono(): Promise<string> {
+    const r = await db.query<{ tableowner: string }>(
+      "SELECT DISTINCT tableowner FROM pg_tables WHERE schemaname = 'public'",
+    );
+    expect(r.rows.length, "mais de um dono no schema public").toBe(1);
+    return r.rows[0]!.tableowner;
+  }
+
+  /**
+   * A UNICA excecao, e ela esta na decisao 3 da ADR 0008.
+   *
+   * Duas tabelas e a visao que junta as duas, so SELECT. A visao entra porque
+   * sem ela o console nao distinguiria "municipio parado" de "municipio que
+   * nao escreveu", e ela e segura pela mesma razao que as outras duas: nao
+   * alcanca tabela nenhuma alem delas, e isso e cobrado logo aqui embaixo.
+   */
+  const O_CONSOLE_LE = new Set([
+    "metricas_municipio",
+    "organizacoes",
+    "console_situacao_dos_municipios",
+  ]);
+
+  async function sobras(): Promise<Achado[]> {
+    const donoAtual = await dono();
+    return (await varredura()).filter((a) => {
+      if (a.papel === donoAtual || a.papel === "dc360_app") return false;
+      if (a.papel === "dc360_console") {
+        return !(a.privilegio === "SELECT" && a.especie !== "funcao" && O_CONSOLE_LE.has(a.relacao));
+      }
+      return true;
+    });
+  }
+
+  function descrever(achados: Achado[]): string {
+    return achados
+      .map((a) => `${a.papel} tem ${a.privilegio} em ${a.relacao}` +
+                  `${a.detalhe ? "." + a.detalhe : ""} (${a.caminho})`)
+      .join("; ");
+  }
+
+  /**
+   * A ANCORA, e ela nao e opcional.
+   *
+   * Uma consulta de catalogo com erro de nome de coluna devolve vazio, e vazio
+   * passa verde numa assercao de "ninguem mais tem": o teste fica lindo e nao
+   * verifica nada. Este projeto ja teve dois testes assim na mesma semana.
+   *
+   * Entao, antes de afirmar que ninguem mais tem, este caso afirma que a
+   * varredura ENXERGA quem tem: o papel de aplicacao, nas tabelas conhecidas,
+   * por cada um dos caminhos que existem hoje no banco.
+   */
+  it("a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio", async () => {
+    const tudo = await varredura();
+    expect(tudo.length, "a varredura voltou vazia: ela quebrou, nao o banco").toBeGreaterThan(100);
+
+    const doApp = tudo.filter((a) => a.papel === "dc360_app");
+
+    const tabelasVistas = new Set(
+      doApp.filter((a) => a.caminho === "concessao direta").map((a) => a.relacao),
+    );
+    expect(
+      tabelasVistas.size,
+      "a varredura de concessao direta nao achou o papel de aplicacao nas tabelas " +
+      "que a migracao 001 concede a ele",
+    ).toBeGreaterThanOrEqual(15);
+    for (const conhecida of ["ocorrencias", "vistorias", "trilha_eventos", "metricas_municipio"]) {
+      expect(
+        tabelasVistas.has(conhecida),
+        `a varredura nao viu o privilegio que o papel de aplicacao tem em ${conhecida}`,
+      ).toBe(true);
+    }
+
+    /*
+      A ancora do caminho mais facil de esquecer. A migracao 017 concede UPDATE
+      em DUAS COLUNAS de `oficio_envios`, e nao na tabela: se a varredura de
+      coluna estiver quebrada, e exatamente este privilegio que some da tela
+      sem ninguem notar.
+    */
+    const colunas = doApp.filter((a) => a.especie === "coluna");
+    expect(
+      colunas.map((a) => `${a.relacao}.${a.detalhe}:${a.privilegio}`).sort(),
+      "a varredura de privilegio de coluna nao enxergou o GRANT UPDATE (desfecho, detalhe) " +
+      "que a migracao 017 faz em oficio_envios",
+    ).toEqual(["oficio_envios.desfecho:UPDATE", "oficio_envios.detalhe:UPDATE"]);
+
+    // E a ancora do caminho das funcoes privilegiadas.
+    const funcoes = new Set(doApp.filter((a) => a.especie === "funcao").map((a) => a.relacao));
+    expect(
+      funcoes.size,
+      "a varredura nao enxergou o EXECUTE que o papel de aplicacao tem nas funcoes " +
+      "SECURITY DEFINER",
+    ).toBeGreaterThanOrEqual(10);
+    expect(funcoes.has("credenciais_para_login()")).toBe(true);
+
+    // E a do caminho das visoes.
+    const visoes = new Set(tudo.filter((a) => a.especie === "visao").map((a) => a.relacao));
+    expect(
+      visoes.has("console_situacao_dos_municipios"),
+      "a varredura de visao nao enxergou a unica visao que o schema tem hoje",
+    ).toBe(true);
+  });
+
+  it("nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio", async () => {
+    const restou = await sobras();
+    expect(
+      restou.length,
+      "papel com privilegio fora do permitido: " + descrever(restou),
+    ).toBe(0);
+  });
+
+  it("nenhum papel do produto e superusuario ou ignora RLS", async () => {
+    /*
+      Universal pelo mesmo motivo do resto: pergunta ao catalogo quais papeis
+      existem, em vez de conferir os que eu lembrei de escrever. Um papel novo
+      criado com BYPASSRLS reprova aqui no dia em que a migracao dele entrar.
+    */
+    const donoAtual = await dono();
+    const r = await db.query<{ rolname: string; rolsuper: boolean; rolbypassrls: boolean }>(
+      `SELECT rolname, rolsuper, rolbypassrls FROM pg_roles
+        WHERE rolname NOT LIKE 'pg\\_%' AND rolname <> $1`,
+      [donoAtual],
+    );
+    expect(r.rows.length, "nenhum papel de produto encontrado: a consulta quebrou").toBeGreaterThan(0);
+    for (const papel of r.rows) {
+      expect(papel.rolsuper, `${papel.rolname} e superusuario`).toBe(false);
+      expect(
+        papel.rolbypassrls,
+        `${papel.rolname} tem BYPASSRLS, e com isso o isolamento inteiro vira enfeite`,
+      ).toBe(false);
+    }
+  });
+
+  /**
+   * A prova de que a varredura ACHA cada um dos seis caminhos.
+   *
+   * A ancora de cima mostra que ela ve o que existe. Este caso mostra o
+   * contrario, que e o que de fato importa: que ela ACUSA o que nao deveria
+   * existir, caminho por caminho. Cada bloco abre a porta, confere que o
+   * portao gritou, e fecha a porta no `finally`.
+   *
+   * Sem isto, cinco dos seis ramos da consulta poderiam estar escritos errado
+   * e o teste continuaria verde para sempre, porque o banco correto nao produz
+   * linha nenhuma neles.
+   */
+  it("a varredura acusa cada um dos seis caminhos de privilegio", async () => {
+    expect((await sobras()).length, "o banco ja comeca sujo").toBe(0);
+
+    async function comOBuraco(abrir: string, fechar: string, esperado: RegExp, oQueSeriaVazado: string) {
+      await db.exec(abrir);
+      try {
+        const achados = await sobras();
+        expect(
+          achados.length,
+          `a varredura NAO acusou "${abrir}". ${oQueSeriaVazado}`,
+        ).toBeGreaterThan(0);
+        expect(
+          achados.some((a) => esperado.test(a.caminho)),
+          `a varredura acusou "${abrir}", mas por outro caminho: ${descrever(achados)}`,
+        ).toBe(true);
+      } finally {
+        await db.exec(fechar);
+      }
+      expect(
+        (await sobras()).length,
+        `a limpeza de "${abrir}" nao desfez o buraco`,
+      ).toBe(0);
+    }
+
+    // 1. Concessao direta.
+    await comOBuraco(
+      "GRANT SELECT ON ocorrencias TO dc360_console",
+      "REVOKE SELECT ON ocorrencias FROM dc360_console",
+      /concessao direta|efetivo/,
+      "Um SELECT direto na tabela de ocorrencias entrega endereco, nome do " +
+      "solicitante e relato de todos os municipios de uma vez.",
+    );
+
+    // 2. Privilegio de coluna, que passa por fora de role_table_grants.
+    await comOBuraco(
+      "GRANT UPDATE (descricao) ON ocorrencias TO dc360_console",
+      "REVOKE UPDATE (descricao) ON ocorrencias FROM dc360_console",
+      /coluna/,
+      "Privilegio de coluna nao aparece em role_table_grants: e o caminho que " +
+      "some da varredura sem ninguem perceber.",
+    );
+
+    // 3. Heranca de papel: sem concessao propria, herdando de quem tem.
+    await comOBuraco(
+      "GRANT dc360_app TO dc360_console",
+      "REVOKE dc360_app FROM dc360_console",
+      /heranca|efetivo/,
+      "O console passaria a poder tudo que a aplicacao pode, sem uma linha de " +
+      "GRANT com o nome dele em lugar nenhum.",
+    );
+
+    // 4. PUBLIC, que concede a todo mundo de uma vez.
+    await comOBuraco(
+      "GRANT SELECT ON ocorrencias TO PUBLIC",
+      "REVOKE SELECT ON ocorrencias FROM PUBLIC",
+      /PUBLIC|efetivo/,
+      "PUBLIC nao aparece como papel nomeado: uma varredura que so olha a lista " +
+      "de papeis passa direto por ele.",
+    );
+
+    // 5. Visao sobre tabela de negocio.
+    await comOBuraco(
+      `CREATE VIEW espia_do_portao AS SELECT protocolo, endereco FROM ocorrencias;
+       GRANT SELECT ON espia_do_portao TO dc360_console`,
+      "DROP VIEW espia_do_portao",
+      /visao que alcanca ocorrencias/,
+      "A visao pertence ao dono das tabelas, entao ela le por baixo do RLS: " +
+      "quem tem SELECT nela dribla a concessao da tabela inteira.",
+    );
+
+    /*
+      6. Funcao SECURITY DEFINER que alcance tabela de negocio.
+
+      A funcao entra e sai dentro deste caso, no `finally`. O teto de funcoes
+      SECURITY DEFINER do bloco "Funcoes privilegiadas" continua em 14 e nao
+      foi tocado: nada desta entrega precisou de funcao privilegiada nova, e a
+      funcao que escreve a metrica e SECURITY INVOKER de proposito.
+    */
+    await comOBuraco(
+      `CREATE FUNCTION espiar_do_portao() RETURNS bigint
+         LANGUAGE sql SECURITY DEFINER SET search_path = public, pg_temp
+         AS 'SELECT count(*) FROM ocorrencias';
+       REVOKE ALL ON FUNCTION espiar_do_portao() FROM PUBLIC;
+       GRANT EXECUTE ON FUNCTION espiar_do_portao() TO dc360_console`,
+      "DROP FUNCTION espiar_do_portao()",
+      /SECURITY DEFINER/,
+      "Funcao SECURITY DEFINER roda com os privilegios do dono: quem pode " +
+      "executa-la nao precisa de privilegio nenhum na tabela que ela le.",
+    );
+    /*
+      Prazo folgado de proposito: este caso roda a varredura inteira treze
+      vezes (antes, durante e depois de cada um dos seis buracos), e a
+      varredura pergunta privilegio efetivo papel a papel, tabela a tabela. O
+      teto padrao de cinco segundos do vitest transformaria uma maquina lenta
+      numa reprovacao que nao fala do banco.
+    */
+  }, 60_000);
+});
+
+/* =====================================================================
+ * A TABELA DE METRICAS, ESCRITA PELO PROPRIO MUNICIPIO (ADR 0008, decisao 2).
+ *
+ * A direcao do dado e o ponto inteiro. O console NAO consulta o municipio: o
+ * municipio escreve o proprio resumo, na propria transacao, com o papel de
+ * aplicacao de sempre e debaixo do mesmo RLS de sempre. Os casos abaixo provam
+ * as duas metades: que a escrita nao alcanca o vizinho, e que a leitura do
+ * console nao alcanca nada alem de numero agregado.
+ * ===================================================================== */
+describe("Metricas escritas pelo proprio municipio", () => {
+  let orgC: string;
+
+  beforeAll(async () => {
+    const c = await db.query<{ id: string }>(
+      `INSERT INTO organizacoes (nome, municipio, uf)
+       VALUES ('Defesa Civil de Morro Claro','Morro Claro','MG') RETURNING id`,
+    );
+    orgC = c.rows[0]!.id;
+
+    // Duas ocorrencias hoje, uma delas com prazo ja vencido, e um servidor.
+    for (const [protocolo, prazo] of [
+      ["000401/2026", "now() - interval '2 hours'"],
+      ["000402/2026", "NULL"],
+    ] as const) {
+      await db.query(
+        `INSERT INTO ocorrencias
+           (organizacao_id, protocolo, tipo, status, endereco, solicitante_nome,
+            canal_entrada, descricao, prazo_em)
+         VALUES ($1,$2,'inundacao','registrada','Rua da Metrica, 1','Fulano',
+                 'telefone','x', ${prazo})`,
+        [orgC, protocolo],
+      );
+    }
+    await db.query(
+      `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
+       VALUES ($1,'Servidora de Morro Claro','MC-1','mc1@exemplo.gov.br','coordenador')`,
+      [orgC],
+    );
+  });
+
+  it("o municipio escreve o proprio resumo, e ele bate com o que o municipio ve", async () => {
+    await comoApp(orgC, (tx) => tx.query("SELECT resumir_municipio()"));
+
+    const linha = await comoApp(orgC, (tx) =>
+      tx.query<{
+        ocorrencias_registradas: number;
+        ocorrencias_abertas: number;
+        ocorrencias_atrasadas: number;
+        usuarios_ativos: number;
+      }>("SELECT * FROM metricas_municipio"),
+    );
+    expect(linha.rows, "o municipio nao conseguiu escrever o proprio resumo").toHaveLength(1);
+    expect(linha.rows[0]!.ocorrencias_registradas).toBe(2);
+    expect(linha.rows[0]!.ocorrencias_abertas).toBe(2);
+    expect(linha.rows[0]!.ocorrencias_atrasadas).toBe(1);
+    expect(linha.rows[0]!.usuarios_ativos).toBe(1);
+  });
+
+  it("chamar duas vezes no mesmo dia corrige a linha, nao empilha outra", async () => {
+    await comoApp(orgC, (tx) => tx.query("SELECT resumir_municipio()"));
+    await comoApp(orgC, (tx) => tx.query("SELECT resumir_municipio()"));
+    const n = await comoApp(orgC, (tx) =>
+      tx.query<{ n: string }>("SELECT count(*)::text AS n FROM metricas_municipio"),
+    );
+    expect(n.rows[0]!.n, "o resumo do dia duplicou, e o console veria dois numeros").toBe("1");
+  });
+
+  it("o resumo conta o proprio municipio, e nao enxerga o vizinho", async () => {
+    /*
+      O caso que a inversao da seta existe para garantir. `resumir_municipio()`
+      e SECURITY INVOKER: as contagens rodam debaixo do RLS de quem chama,
+      entao as linhas do vizinho nao estao la para serem contadas. Nao existe
+      erro de clausula nessa funcao capaz de produzir o numero de outra
+      prefeitura.
+    */
+    await comoApp(orgA, (tx) => tx.query("SELECT resumir_municipio()"));
+
+    const deC = await comoApp(orgC, (tx) =>
+      tx.query<{ organizacao_id: string }>("SELECT organizacao_id FROM metricas_municipio"),
+    );
+    expect(deC.rows, "o municipio enxergou o resumo do vizinho").toHaveLength(1);
+    expect(deC.rows[0]!.organizacao_id).toBe(orgC);
+
+    // E, como dono, as duas linhas existem: cada uma escrita pelo seu dono.
+    const todas = await db.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM metricas_municipio",
+    );
+    expect(Number(todas.rows[0]!.n)).toBeGreaterThanOrEqual(2);
+  });
+
+  it("nao escreve resumo carimbado com o id de outro municipio", async () => {
+    await expect(
+      comoApp(orgC, (tx) =>
+        tx.query(
+          "INSERT INTO metricas_municipio (organizacao_id, dia) VALUES ($1, current_date + 1)",
+          [orgB],
+        ),
+      ),
+    ).rejects.toThrow(/row-level security/i);
+  });
+
+  it("sem contexto de municipio, a escrita nao acontece", async () => {
+    // Chamar isto de um relogio, sem token e sem municipio, nao pode escrever
+    // uma linha orfa: `app_organizacao_atual()` devolve nulo e a policy nega.
+    await expect(
+      comoApp(null, (tx) => tx.query("SELECT resumir_municipio()")),
+    ).rejects.toThrow();
+  });
+
+  it("o municipio nao apaga o proprio historico de metricas", async () => {
+    // Sem policy de DELETE, e com RLS forcada, a operacao e negada. Enquanto o
+    // expurgo por idade nao existir, e melhor que ninguem apague nada do que
+    // uma rota poder zerar a serie de um municipio com um DELETE sem clausula.
+    await expect(
+      comoApp(orgC, (tx) => tx.query("DELETE FROM metricas_municipio")),
+    ).rejects.toThrow();
+  });
+
+  /* ------------------------------------------------------------------
+   * O QUE PODE ENTRAR NA METRICA, conferido no CATALOGO.
+   * ------------------------------------------------------------------ */
+
+  /**
+   * As relacoes que o console consegue ler, perguntadas ao banco.
+   *
+   * Escrever a lista a mao aqui seria conferir a tabela de hoje e deixar
+   * passar a de amanha, que e o defeito que a ADR 0008 nomeia. Se alguem der
+   * SELECT ao console numa relacao nova, ela cai nesta varredura sozinha e
+   * precisa passar pelas mesmas regras.
+   */
+  async function relacoesQueOConsoleLe(): Promise<Array<{ relacao: string }>> {
+    const r = await db.query<{ relacao: string }>(`
+      SELECT c.relname AS relacao
+        FROM pg_class c
+       WHERE c.relnamespace = 'public'::regnamespace
+         AND c.relkind IN ('r','p','v','m')
+         AND has_table_privilege('dc360_console', c.oid, 'SELECT')
+       ORDER BY 1
+    `);
+    return r.rows;
+  }
+
+  /**
+   * Tipos que nao carregam pessoa nem imovel dentro.
+   *
+   * E lista de PERMITIDOS, e nao de proibidos, porque proibir por nome de tipo
+   * envelhece mal: bastaria alguem usar `varchar`, `citext`, `json` ou um tipo
+   * de geometria para a proibicao nao casar. Tipo novo reprova por padrao, e
+   * quem quiser incluir um escreve a razao aqui.
+   */
+  const TIPOS_QUE_NAO_IDENTIFICAM = new Set([
+    "smallint", "integer", "bigint", "numeric", "real", "double precision",
+    "date", "timestamp with time zone", "interval", "boolean",
+  ]);
+
+  /**
+   * Nomes que denunciam dado de pessoa ou de imovel.
+   *
+   * O tipo ja e a barreira dura (nao cabe endereco num integer). Esta segunda
+   * cobranca existe para o caso que o tipo nao pega: `latitude` e `longitude`
+   * sao double precision, e um par deles aponta a casa de alguem.
+   */
+  const NOMES_PROIBIDOS = [
+    "nome", "contato", "endereco", "email", "telefone", "coordenada",
+    "latitude", "longitude", "protocolo", "relato", "descricao",
+    "vulnerabilidade", "matricula", "cpf", "assinatura", "ficha",
+  ];
+
+  async function colunas(relacao: string) {
+    const r = await db.query<{ column_name: string; data_type: string }>(
+      `SELECT column_name, data_type FROM information_schema.columns
+        WHERE table_schema='public' AND table_name = $1 ORDER BY ordinal_position`,
+      [relacao],
+    );
+    return r.rows;
+  }
+
+  function reprovacoes(nome: string, tipo: string): string[] {
+    const problemas: string[] = [];
+    if (nome === "organizacao_id") {
+      // O unico identificador permitido pela ADR 0008, e ele identifica a
+      // prefeitura, nao pessoa nem imovel.
+      if (tipo !== "uuid") problemas.push(`organizacao_id deveria ser uuid, e e ${tipo}`);
+      return problemas;
+    }
+    if (!TIPOS_QUE_NAO_IDENTIFICAM.has(tipo)) {
+      problemas.push(`coluna ${nome} e do tipo ${tipo}, que cabe dado de pessoa dentro`);
+    }
+    for (const proibido of NOMES_PROIBIDOS) {
+      if (nome.includes(proibido)) problemas.push(`coluna ${nome} carrega ${proibido}`);
+    }
+    return problemas;
+  }
+
+  it("a regra de coluna proibida reprova de verdade quando ha o que reprovar", async () => {
+    /*
+      A ancora desta metade. Uma regra escrita errada aprova tudo em silencio,
+      e o teste fica verde afirmando que conferiu. Entao ela e apontada para
+      uma tabela que SABIDAMENTE tem dado de pessoa e de imovel: se `ocorrencias`
+      passar por ela, a regra nao esta verificando nada.
+    */
+    const problemas = (await colunas("ocorrencias"))
+      .flatMap((c) => reprovacoes(c.column_name, c.data_type));
+    expect(
+      problemas.length,
+      "a regra de coluna aprovou a tabela de ocorrencias, que tem endereco, nome " +
+      "do solicitante, coordenada e relato: a regra esta quebrada",
+    ).toBeGreaterThan(0);
+    expect(problemas.join(" ")).toContain("endereco");
+    expect(problemas.join(" ")).toContain("latitude");
+  });
+
+  it("nada que identifique pessoa ou imovel entra no que o console le", async () => {
+    const relacoes = await relacoesQueOConsoleLe();
+    expect(
+      relacoes.length,
+      "a varredura nao achou nenhuma relacao legivel pelo console: ela quebrou",
+    ).toBeGreaterThanOrEqual(3);
+
+    for (const { relacao } of relacoes) {
+      /*
+        `organizacoes` e a unica excecao, e ela esta nomeada na decisao 3 da
+        ADR 0008: sem o cadastro, o console teria uma lista de uuid e nenhuma
+        forma de dizer de que prefeitura esta falando. Ela guarda dado de
+        ORGAO (nome da coordenadoria, municipio, UF), nao de pessoa nem de
+        imovel, e e por isso que a excecao cabe.
+      */
+      if (relacao === "organizacoes") continue;
+
+      const problemas = (await colunas(relacao))
+        .flatMap((c) => reprovacoes(c.column_name, c.data_type));
+      expect(
+        problemas,
+        `${relacao} e legivel pelo console e carrega dado que nao pode sair do ` +
+        `municipio: ${problemas.join("; ")}`,
+      ).toEqual([]);
+    }
+  });
+
+  it("a marca de tempo da ultima escrita existe e e obrigatoria", async () => {
+    const r = await db.query<{ data_type: string; is_nullable: string }>(
+      `SELECT data_type, is_nullable FROM information_schema.columns
+        WHERE table_schema='public' AND table_name='metricas_municipio'
+          AND column_name='atualizado_em'`,
+    );
+    expect(
+      r.rows,
+      "sem marca de tempo da ultima escrita, o console mostra silencio, e silencio " +
+      "e indistinguivel de 'ninguem usou hoje'",
+    ).toHaveLength(1);
+    expect(r.rows[0]!.data_type).toBe("timestamp with time zone");
+    expect(r.rows[0]!.is_nullable).toBe("NO");
+  });
+
+  it("municipio que nao escreveu aparece como sinal, e nao como linha faltando", async () => {
+    /*
+      A consequencia ruim assumida na ADR 0008, virada em teste. Uma consulta
+      direta a `metricas_municipio` simplesmente NAO TRAZ o municipio quebrado,
+      e ninguem sente falta do que nao esta la. A visao parte de
+      `organizacoes`, entao todo municipio aparece sempre, e quem nao escreveu
+      aparece dizendo que nao escreveu.
+    */
+    const semMetrica = await db.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM metricas_municipio WHERE organizacao_id = $1",
+      [orgB],
+    );
+    expect(semMetrica.rows[0]!.n, "o municipio B precisa estar sem metrica neste caso").toBe("0");
+
+    const visao = await db.query<{ organizacao_id: string; sem_escrita_recente: boolean }>(
+      "SELECT organizacao_id, sem_escrita_recente FROM console_situacao_dos_municipios",
+    );
+    const linhaDeB = visao.rows.find((l) => l.organizacao_id === orgB);
+    expect(
+      linhaDeB,
+      "o municipio que nao escreveu sumiu da visao: o console mostraria silencio",
+    ).toBeDefined();
+    expect(linhaDeB!.sem_escrita_recente).toBe(true);
+
+    const linhaDeC = visao.rows.find((l) => l.organizacao_id === orgC);
+    expect(linhaDeC!.sem_escrita_recente, "quem acabou de escrever apareceu como calado").toBe(false);
+  });
+});
+
+/* =====================================================================
+ * O PAPEL DO CONSOLE, visto do lado de dentro da conexao dele.
+ *
+ * O bloco de privilegio de cima prova o que ele NAO tem, lendo o catalogo.
+ * Este prova a mesma coisa pelo unico caminho que nao depende de eu ter lido o
+ * catalogo direito: conectando como ele e tentando.
+ * ===================================================================== */
+describe("O console le metrica e nao alcanca dado de municipio", () => {
+  async function comoConsole<T>(fn: (tx: any) => Promise<T>): Promise<T> {
+    return db.transaction(async (tx) => {
+      await tx.exec("SET LOCAL ROLE dc360_console");
+      return fn(tx);
+    }) as Promise<T>;
+  }
+
+  it("le o resumo de mais de um municipio, que e o motivo de ele existir", async () => {
+    const r = await comoConsole((tx) =>
+      tx.query<{ organizacao_id: string }>("SELECT DISTINCT organizacao_id FROM metricas_municipio"),
+    );
+    expect(
+      r.rows.length,
+      "o console nao conseguiu ler o resumo de mais de um municipio, e sem isso " +
+      "ele nao responde nenhuma das tres perguntas da ADR 0008",
+    ).toBeGreaterThanOrEqual(2);
+  });
+
+  it("nao le ocorrencia, vistoria, usuario nem trilha, de municipio nenhum", async () => {
+    for (const tabela of [
+      "ocorrencias", "vistorias", "evidencias", "usuarios", "trilha_eventos",
+      "sessoes", "aparelhos", "segundo_fator", "interesse_municipio",
+    ]) {
+      let recusou = false;
+      try {
+        await comoConsole((tx) => tx.query(`SELECT * FROM ${tabela} LIMIT 1`));
+      } catch {
+        recusou = true;
+      }
+      expect(
+        recusou,
+        `o console alcancou ${tabela}: uma conta do fornecedor comprometida passaria ` +
+        "a valer dado de cidadao de todas as prefeituras de uma vez",
+      ).toBe(true);
+    }
+  });
+
+  it("nao escreve nada, nem na tabela que ele le", async () => {
+    let recusou = false;
+    try {
+      await comoConsole((tx) =>
+        tx.query("UPDATE metricas_municipio SET ocorrencias_atrasadas = 0"),
+      );
+    } catch {
+      recusou = true;
+    }
+    expect(recusou, "o console alterou a metrica que ele deveria apenas ler").toBe(true);
+  });
+
+  it("a visao que ele le roda com os privilegios DELE, e nao com os do dono", async () => {
+    /*
+      `security_invoker` e o que impede a visao de virar a porta dos fundos.
+      Sem ele, a visao rodaria com os privilegios do dono das tabelas, que e
+      superusuario e ignora RLS: bastaria alguem acrescentar uma juncao com
+      `ocorrencias` ali para o console passar a ler dado de cidadao sem que
+      nenhuma concessao mudasse de lugar. Com ele, uma juncao dessas responde
+      "permissao negada".
+    */
+    const r = await db.query<{ opcoes: string | null }>(
+      `SELECT array_to_string(c.reloptions, ',') AS opcoes
+         FROM pg_class c
+        WHERE c.relname = 'console_situacao_dos_municipios'`,
+    );
+    expect(r.rows[0]!.opcoes ?? "").toContain("security_invoker=true");
+
+    /*
+      E a prova de que a opcao e o que faz a diferenca, e nao um enfeite na
+      definicao. Duas visoes identicas sobre `ocorrencias`, uma com a opcao e
+      outra sem, as duas concedidas ao console: a sem opcao ENTREGA o dado, a
+      com opcao responde "permissao negada". As duas saem no `finally`.
+    */
+    await db.exec(`
+      CREATE VIEW prova_com_invoker WITH (security_invoker = true) AS
+        SELECT endereco FROM ocorrencias;
+      CREATE VIEW prova_sem_invoker AS
+        SELECT endereco FROM ocorrencias;
+      GRANT SELECT ON prova_com_invoker, prova_sem_invoker TO dc360_console;
+    `);
+    try {
+      let recusou = false;
+      try {
+        await comoConsole((tx) => tx.query("SELECT * FROM prova_com_invoker"));
+      } catch {
+        recusou = true;
+      }
+      expect(
+        recusou,
+        "com security_invoker a visao deveria bater na falta de concessao do console " +
+        "na tabela de baixo, e ela nao bateu",
+      ).toBe(true);
+
+      const semOpcao = await comoConsole((tx) =>
+        tx.query<{ endereco: string }>("SELECT * FROM prova_sem_invoker"),
+      );
+      expect(
+        semOpcao.rows.length,
+        "a visao SEM security_invoker deveria ter entregue endereco de cidadao ao " +
+        "console: se ela nao entregou, esta prova nao esta provando nada",
+      ).toBeGreaterThan(0);
+    } finally {
+      await db.exec("DROP VIEW prova_com_invoker; DROP VIEW prova_sem_invoker;");
+    }
   });
 });
