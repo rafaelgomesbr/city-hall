@@ -547,6 +547,55 @@ describe("Espera entre tentativas", () => {
   });
 });
 
+/*
+  A faixa de estado que piscava, relatada no primeiro uso em aparelho: "a faixa
+  verde fica piscando a cada sincronizacao, isso e chato demais".
+
+  O laco de fundo do aplicativo chama `drenar()` a cada 15 segundos, com ou sem
+  fila. O dreno ligava `drenando` e notificava a tela ANTES de olhar se havia o
+  que enviar, entao com a fila vazia a faixa fazia, para sempre: verde "Tudo
+  sincronizado", cinza "Enviando, 0 na fila", verde de novo.
+*/
+describe("Dreno preguiçoso", () => {
+  it("com a fila vazia, não avisa a tela nenhuma vez", async () => {
+    const { fila } = montar({});
+    const avisos: number[] = [];
+    fila.assinar(() => { avisos.push(1); });
+    // `assinar` avisa uma vez na inscrição, de propósito, e esse aviso chega
+    // num tique posterior. Esperamos ele passar antes de zerar, senão o teste
+    // conta a inscrição como se fosse do dreno.
+    await new Promise((r) => setTimeout(r, 0));
+    avisos.length = 0;
+
+    await fila.drenar();
+    await fila.drenar();
+    await fila.drenar();
+
+    expect(avisos.length, "fila vazia não muda nada, então não anuncia nada").toBe(0);
+  });
+
+  it("com a fila vazia, não chama o transporte", async () => {
+    let chamadas = 0;
+    const { fila } = montar({
+      enviar: async () => { chamadas += 1; return { vistoriaId: "v", duplicada: false }; },
+    });
+    await fila.drenar();
+    expect(chamadas).toBe(0);
+  });
+
+  it("com item pronto, volta a avisar normalmente", async () => {
+    const { fila } = montar({});
+    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
+    const avisos: number[] = [];
+    fila.assinar(() => { avisos.push(1); });
+    await new Promise((r) => setTimeout(r, 0));
+    avisos.length = 0;
+
+    await fila.drenar();
+    expect(avisos.length, "aqui houve trabalho de verdade").toBeGreaterThan(0);
+  });
+});
+
 describe("Resumo para a tela", () => {
   it("conta cada estado e avisa quem está ouvindo", async () => {
     const { fila, tempo } = montar({

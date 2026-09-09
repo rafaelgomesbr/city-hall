@@ -34,6 +34,16 @@ type Props = {
   aoLimpar(): void;
   /** Já assinada: mostra o estado e o caminho de refazer. */
   jaAssinada: boolean;
+  /*
+    Cinto e suspensório para o roubo de gesto.
+
+    Os callbacks de captura do PanResponder já ganham a disputa, mas desligar o
+    ScrollView pai enquanto o dedo desenha remove a disputa inteira. Só pode
+    virar DUAS vezes por traço, no início e no fim: quem amarrar isso ao
+    movimento faz o ScrollView remontar a cada quadro.
+  */
+  aoComecarDesenho?: () => void;
+  aoTerminarDesenho?: () => void;
 };
 
 const ALTURA = 180;
@@ -49,7 +59,9 @@ const ALTURA = 180;
  */
 const LIMITE_DE_GRAVACAO_MS = 8000;
 
-export function Assinatura({ aoConfirmar, aoLimpar, jaAssinada }: Props) {
+export function Assinatura(
+  { aoConfirmar, aoLimpar, jaAssinada, aoComecarDesenho, aoTerminarDesenho }: Props,
+) {
   const tema = useTema();
   const [tracos, setTracos] = useState<string[]>([]);
   const [tracoAtual, setTracoAtual] = useState<string>("");
@@ -57,6 +69,29 @@ export function Assinatura({ aoConfirmar, aoLimpar, jaAssinada }: Props) {
   const [erro, setErro] = useState<string | null>(null);
   const [largura, setLargura] = useState(0);
   const svgRef = useRef<Svg>(null);
+
+  /*
+    Os avisos vao por ref, e nao direto no PanResponder.
+
+    `useRef(PanResponder.create(...))` congela a closure na primeira renderização.
+    Se os callbacks fossem capturados ali, uma tela que trocasse a função
+    passaria a ter um ScrollView que nunca mais volta a ser desligado, e o
+    defeito voltaria calado.
+  */
+  const aoComecarDesenhoRef = useRef(aoComecarDesenho);
+  aoComecarDesenhoRef.current = aoComecarDesenho;
+  const aoTerminarDesenhoRef = useRef(aoTerminarDesenho);
+  aoTerminarDesenhoRef.current = aoTerminarDesenho;
+
+  /** Fecha o traço em curso. Um lugar só, porque soltar e ser interrompido
+      pelo sistema precisam terminar exatamente igual. */
+  function encerrarTraco(): void {
+    setTracoAtual((t) => {
+      if (t) setTracos((anteriores) => [...anteriores, t]);
+      return "";
+    });
+    aoTerminarDesenhoRef.current?.();
+  }
 
   /*
     `PanResponder` e não um gesto de biblioteca: o desenho precisa de cada
@@ -67,7 +102,36 @@ export function Assinatura({ aoConfirmar, aoLimpar, jaAssinada }: Props) {
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
+
+      /*
+        A FASE DE CAPTURA e o que resolve o defeito relatado no primeiro uso em
+        aparelho: "onde pede a assinatura esta rolando a tela, e o usuario nao
+        consegue assinar".
+
+        Sem captura, o ScrollView que embrulha a tela de vistoria avalia o
+        movimento ANTES do quadro de assinatura e reivindica o gesto assim que o
+        dedo passa do limiar de rolagem. Num traco de assinatura isso acontece em
+        milimetros: a pessoa comeca a escrever e a tela sobe.
+
+        `onStartShouldSetPanResponderCapture` e seguro aqui porque o quadro nao
+        tem nenhum filho tocavel. Num container com botoes dentro, ele engoliria
+        os filhos.
+      */
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
+
+      /*
+        A recusa formal quando o ScrollView pede o responder no meio do traco.
+        Sem ela, mesmo tendo ganhado o gesto na captura, o traco e cortado ao
+        meio quando o pai insiste.
+      */
+      onPanResponderTerminationRequest: () => false,
+
+      /* So age no Android, e e justamente o Android que rouba o gesto. */
+      onShouldBlockNativeResponder: () => true,
+
       onPanResponderGrant: (evento) => {
+        aoComecarDesenhoRef.current?.();
         const { locationX, locationY } = evento.nativeEvent;
         setTracoAtual(`M${locationX.toFixed(1)},${locationY.toFixed(1)}`);
       },
@@ -76,10 +140,18 @@ export function Assinatura({ aoConfirmar, aoLimpar, jaAssinada }: Props) {
         setTracoAtual((t) => `${t} L${locationX.toFixed(1)},${locationY.toFixed(1)}`);
       },
       onPanResponderRelease: () => {
-        setTracoAtual((t) => {
-          if (t) setTracos((anteriores) => [...anteriores, t]);
-          return "";
-        });
+        encerrarTraco();
+      },
+
+      /*
+        O sistema arranca o responder quando entra ligacao ou quando alguem puxa
+        a central de notificacoes. Sem tratar, o traco em curso desaparecia e
+        `tracoAtual` ficava pendurado: o quadro deixava de estar vazio sem ter
+        nenhum traco na lista, e o botao de confirmar liberava uma assinatura
+        que nao existia.
+      */
+      onPanResponderTerminate: () => {
+        encerrarTraco();
       },
     }),
   ).current;

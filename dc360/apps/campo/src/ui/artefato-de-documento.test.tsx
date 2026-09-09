@@ -165,35 +165,41 @@ async function montarQuadroDeAssinatura(esquema: "light" | "dark") {
 }
 
 /**
- * Um traço de dedo, do jeito que o `PanResponder` recebe.
+ * Um toque, do jeito EXATO que o `PanResponder` recebe.
  *
  * O `touchHistory` vem completo de propósito: o `PanResponder` de verdade
- * calcula o centroide do gesto lendo o `touchBank`, e estoura com ele vazio.
- * Um evento pela metade exercitaria um caminho que o aparelho nunca executa.
+ * calcula o centroide do gesto lendo o `touchBank`, e estoura com ele vazio ou
+ * com o índice errado. Um evento pela metade exercitaria um caminho que o
+ * aparelho nunca executa.
+ *
+ * Fica num lugar só porque duas cópias divergem, e a segunda cópia deste
+ * objeto já custou meia hora antes de existir esta função.
  */
-async function assinarComODedo(quadro: Elemento): Promise<void> {
-  let instante = 1000;
-  const toque = (x: number, y: number) => {
-    instante += 16;
-    const ponto = {
-      locationX: x, locationY: y, pageX: x, pageY: y,
-      identifier: 1, target: 1, timestamp: instante,
-    };
-    return {
-      nativeEvent: { ...ponto, touches: [ponto], changedTouches: [ponto] },
-      touchHistory: {
-        touchBank: [{
-          touchActive: true,
-          startPageX: x, startPageY: y, startTimeStamp: instante,
-          currentPageX: x, currentPageY: y, currentTimeStamp: instante,
-          previousPageX: x, previousPageY: y, previousTimeStamp: instante,
-        }],
-        numberActiveTouches: 1,
-        indexOfSingleActiveTouch: 0,
-        mostRecentTimeStamp: instante,
-      },
-    };
+let relogioDoToque = 1000;
+function toque(x: number, y: number) {
+  relogioDoToque += 16;
+  const instante = relogioDoToque;
+  const ponto = {
+    locationX: x, locationY: y, pageX: x, pageY: y,
+    identifier: 1, target: 1, timestamp: instante,
   };
+  return {
+    nativeEvent: { ...ponto, touches: [ponto], changedTouches: [ponto] },
+    touchHistory: {
+      touchBank: [{
+        touchActive: true,
+        startPageX: x, startPageY: y, startTimeStamp: instante,
+        currentPageX: x, currentPageY: y, currentTimeStamp: instante,
+        previousPageX: x, previousPageY: y, previousTimeStamp: instante,
+      }],
+      numberActiveTouches: 1,
+      indexOfSingleActiveTouch: 0,
+      mostRecentTimeStamp: instante,
+    },
+  };
+}
+
+async function assinarComODedo(quadro: Elemento): Promise<void> {
   await fireEvent(quadro, "responderGrant", toque(24, 120));
   await fireEvent(quadro, "responderMove", toque(90, 60));
   await fireEvent(quadro, "responderMove", toque(160, 130));
@@ -413,5 +419,89 @@ describe("a minuta que o agente vira para o morador ler", () => {
       await screen.unmount();
     }
     expect(new Set(cores).size).toBe(1);
+  });
+});
+
+/* ============================================================
+   O gesto: a tela rolava e o agente não conseguia assinar
+   ============================================================
+
+   Defeito relatado no primeiro uso em aparelho real, em 08/09/2026: "onde pede
+   a assinatura está rolando a tela, e o usuário não consegue assinar".
+
+   Causa: o PanResponder do quadro não usava a fase de CAPTURA, então o
+   ScrollView que embrulha a tela de vistoria avaliava o movimento primeiro e
+   reivindicava o gesto assim que o dedo passava do limiar de rolagem. Num
+   traço de assinatura isso acontece em milímetros.
+
+   A disputa em si é do sistema operacional, e só o aparelho responde. O que dá
+   para provar aqui é o contrato que desliga o ScrollView, e que ele avisa uma
+   vez no início e uma no fim.
+*/
+describe("o quadro de assinatura contra a rolagem da tela", () => {
+  async function montarComAvisos() {
+    mockEsquemaDoAparelho = "dark";
+    const aoComecar = jest.fn();
+    const aoTerminar = jest.fn();
+    await render(
+      <ProvedorDeTema>
+        <Assinatura
+          jaAssinada={false}
+          aoConfirmar={jest.fn()}
+          aoLimpar={jest.fn()}
+          aoComecarDesenho={aoComecar}
+          aoTerminarDesenho={aoTerminar}
+        />
+      </ProvedorDeTema>,
+    );
+    return { aoComecar, aoTerminar, quadro: screen.getByTestId("quadro-de-assinatura") };
+  }
+
+  it("reivindica o gesto na fase de captura, antes de o ScrollView opinar", async () => {
+    const { quadro } = await montarComAvisos();
+    const props = quadro.props as Record<string, (e: unknown) => boolean>;
+    expect(props["onStartShouldSetResponderCapture"]!(toque(10, 10))).toBe(true);
+    expect(props["onMoveShouldSetResponderCapture"]!(toque(12, 14))).toBe(true);
+    await screen.unmount();
+  });
+
+  it("recusa entregar o gesto ao pai no meio do traço", async () => {
+    const { quadro } = await montarComAvisos();
+    const props = quadro.props as Record<string, (e: unknown) => boolean>;
+    // Entregar o gesto ao pai corta a assinatura ao meio.
+    expect(props["onResponderTerminationRequest"]!(toque(10, 10))).toBe(false);
+    await screen.unmount();
+  });
+
+  it("avisa uma vez ao encostar e uma vez ao soltar", async () => {
+    const { aoComecar, aoTerminar, quadro } = await montarComAvisos();
+    await fireEvent(quadro, "responderGrant", toque(10, 10));
+    expect(aoComecar).toHaveBeenCalledTimes(1);
+    expect(aoTerminar).not.toHaveBeenCalled(); // ainda desenhando
+
+    await fireEvent(quadro, "responderRelease", toque(40, 30));
+    expect(aoTerminar).toHaveBeenCalledTimes(1);
+    await screen.unmount();
+  });
+
+  it("o movimento NÃO avisa de novo: o ScrollView não pode remontar por quadro", async () => {
+    const { aoComecar, quadro } = await montarComAvisos();
+    await fireEvent(quadro, "responderGrant", toque(10, 10));
+    for (let i = 0; i < 20; i += 1) {
+      await fireEvent(quadro, "responderMove", toque(10 + i, 20));
+    }
+    expect(aoComecar).toHaveBeenCalledTimes(1);
+    await screen.unmount();
+  });
+
+  it("interrupção do sistema encerra o traço igual a soltar o dedo", async () => {
+    // Ligação entrando, ou central de notificações puxada. Sem tratar, o traço
+    // em curso some e o quadro fica num estado em que não está vazio e não tem
+    // traço nenhum na lista.
+    const { aoTerminar, quadro } = await montarComAvisos();
+    await fireEvent(quadro, "responderGrant", toque(10, 10));
+    await fireEvent(quadro, "responderTerminate", toque(10, 10));
+    expect(aoTerminar).toHaveBeenCalledTimes(1);
+    await screen.unmount();
   });
 });

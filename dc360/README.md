@@ -9,11 +9,11 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 43 testes passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 46 testes passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 26 testes de fonte mais 54 verificações no navegador no modo local e 103 contra a API |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 242 testes de integração passando |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 59 testes de unidade e 10 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Completo em código, **nunca rodou em aparelho**. TypeScript limpo, 37 testes passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 69 testes de unidade e 10 de integração contra a API |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Completo em código, **nunca rodou em aparelho**. TypeScript limpo, 42 testes passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 
 ## Os dois modos do painel
 
@@ -707,11 +707,11 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 452 testes em cinco pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 43 testes
+npm test                    # 462 testes em cinco pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 46 testes
 npm run test:api            # 242 testes da API
-npm run test --workspace @dc360/campo   # 59 testes do motor de sincronização
-npm run test:campo          # o aplicativo de campo: tipos e os 37 testes dele
+npm run test --workspace @dc360/campo   # 69 testes do motor de sincronização
+npm run test:campo          # o aplicativo de campo: tipos e os 42 testes dele
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
 ```
@@ -759,7 +759,7 @@ tabela, ele **estoura** em vez de devolver um número menor.
 Ler código é aposta, e aposta sem árbitro envelhece. O árbitro é o
 `npm run test:campo`: ele pede o relatório JSON ao jest e cruza o número
 executado com o número lido, no único comando que sabe que o aplicativo está
-instalado. As duas contas divergiram na primeira versão (34 contra 37, três
+instalado. As duas contas divergiram na primeira versão (34 contra 42, três
 `it.each` de dois temas cada) e o README teria afirmado um número falso.
 
 Antes de tudo isso, o README não podia afirmar nenhum número conferível sobre
@@ -771,7 +771,7 @@ Ele existe porque a precisão deste documento é a única coisa que o torna úti
 e na primeira execução encontrou cinco números envelhecidos: a tabela do topo
 dizia 29 testes de banco (eram 42), 83 da API (eram 123) e 7 de integração do
 campo (eram 10); o bloco de comandos dizia 28 do motor de sincronização (eram
-43); e o LEIA-ME do aplicativo dizia 34 de unidade (eram 43).
+46); e o LEIA-ME do aplicativo dizia 34 de unidade (eram 46).
 
 <!-- numeros: nao sao contagem -->
 Uma armadilha da primeira versão vale registrar, porque é o tipo de coisa que
@@ -988,7 +988,7 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
 
-  Essa última já tem 59 testes cobrindo a lógica fora do celular, inclusive
+  Essa última já tem 69 testes cobrindo a lógica fora do celular, inclusive
   retomada arquivo a arquivo.
   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e

@@ -204,9 +204,47 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       };
     }
 
+    /*
+      A MARCA E O SINALIZADOR SAO SINCRONOS, e precisam continuar sendo.
+
+      A primeira versao desta correcao pos um `await` antes de `drenando = true`
+      e abriu uma janela: dois drenos passavam pelo portao acima antes de
+      qualquer um marcar, e o mesmo item saia duas vezes. O teste "dois drenos
+      ao mesmo tempo nao enviam o mesmo item duas vezes" pegou na hora, e e por
+      isso que ele existe. Nenhum `await` entra entre o `if (drenando)` e a
+      linha abaixo.
+    */
     marcaAtual += 1;
     const minhaMarca = marcaAtual;
     drenando = true;
+
+    /*
+      Nada pronto? Ninguem e avisado de nada.
+
+      Antes daqui, `avisar()` vinha antes de olhar se havia o que enviar. Com o
+      laco de fundo chamando `drenar()` a cada 15 segundos mesmo com a fila
+      vazia, isso produzia, para sempre: verde "Tudo sincronizado", cinza
+      "Enviando, 0 na fila", verde de novo, a cada 15 segundos. Foi o relatado
+      como "a faixa verde fica piscando, isso e chato demais".
+
+      `limparConfirmados` continua rodando porque ela pode remover item, e isso
+      muda o resumo de verdade. So avisa se removeu algo.
+    */
+    try {
+      const removeu = await limparConfirmados();
+      if (prontos(await deposito.listar(), agora()).length === 0) {
+        if (minhaMarca === marcaAtual) drenando = false;
+        if (removeu) await avisar();
+        return {
+          fotosEnviadas: 0, enviados: 0, duplicados: 0, adiados: 0, bloqueados: 0,
+          interrompido: false,
+        };
+      }
+    } catch (erro) {
+      if (minhaMarca === marcaAtual) drenando = false;
+      throw erro;
+    }
+
     await avisar();
 
     const resultado: ResultadoDreno = {
@@ -449,15 +487,19 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
   }
 
   /** Confirmado some depois de um tempo: a lista é do que falta, não do que já foi. */
-  async function limparConfirmados(): Promise<void> {
+  /** Devolve se removeu algo: quem chama decide se vale avisar a tela. */
+  async function limparConfirmados(): Promise<boolean> {
     const limite = agora().getTime() - reterConfirmadoMs;
+    let removeu = false;
     for (const item of await deposito.listar()) {
       if (item.estado === "confirmado" && item.confirmadoEm) {
         if (new Date(item.confirmadoEm).getTime() <= limite) {
           await deposito.remover(item.id);
+          removeu = true;
         }
       }
     }
+    return removeu;
   }
 
   /**

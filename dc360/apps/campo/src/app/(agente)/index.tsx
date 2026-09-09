@@ -14,6 +14,7 @@ import { espaco, raio, toque } from "../../ui/tokens";
 import {
   INTERVALO_PADRAO_MS, deveAtualizar, idadeEmPalavras, listaEnvelheceu,
 } from "../../dados/atualizacao";
+import { quantoFalta } from "@dc360/campo";
 
 /**
  * As tarefas do agente.
@@ -24,20 +25,6 @@ import {
  * no aparelho, não consegue vê-la.
  */
 
-function quantoFalta(prazo: string | null): { texto: string; atrasado: boolean } {
-  if (!prazo) return { texto: "Sem prazo definido", atrasado: false };
-  const restante = new Date(prazo).getTime() - Date.now();
-  const horas = Math.round(restante / 3_600_000);
-  if (restante < 0) {
-    const atraso = Math.abs(horas);
-    return {
-      texto: atraso < 1 ? "Prazo vencido" : `Vencido há ${atraso}h`,
-      atrasado: true,
-    };
-  }
-  if (horas < 1) return { texto: "Vence em menos de 1h", atrasado: true };
-  return { texto: `Vence em ${horas}h`, atrasado: horas <= 4 };
-}
 
 export default function Tarefas() {
   const tema = useTema();
@@ -244,7 +231,7 @@ export default function Tarefas() {
         />
       ) : (
         tarefas.map((t) => {
-          const prazo = quantoFalta(t.prazo_em);
+          const prazo = quantoFalta(t.prazo_em, Date.now());
           const comecada = emAndamento.has(t.id);
           return (
             <Pressable

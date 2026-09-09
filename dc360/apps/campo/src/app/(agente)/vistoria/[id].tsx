@@ -78,6 +78,8 @@ export default function TelaDeVistoria() {
   const [fotografando, setFotografando] = useState(false);
   const [capturandoGps, setCapturandoGps] = useState(false);
   const [minutaAberta, setMinutaAberta] = useState(false);
+  /** Enquanto true, o ScrollView desta tela nao rola: o dedo esta assinando. */
+  const [desenhando, setDesenhando] = useState(false);
   const cameraRef = useRef<CameraView>(null);
 
   useEffect(() => {
@@ -439,7 +441,15 @@ export default function TelaDeVistoria() {
   } as const;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: espaco.e8 }}>
+    <ScrollView
+      /*
+        Desligado enquanto o dedo desenha a assinatura. Os callbacks de
+        captura do PanResponder ja ganham a disputa pelo gesto; isto remove a
+        disputa. So vira duas vezes por traco, no inicio e no fim.
+      */
+      scrollEnabled={!desenhando}
+      contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: espaco.e8 }}
+    >
       {erro && <Aviso tom="perigo">{erro}</Aviso>}
 
       <Cartao>
@@ -628,6 +638,8 @@ export default function TelaDeVistoria() {
           jaAssinada={Boolean(rascunho.assinaturaUri)}
           aoConfirmar={(uri) => void alterar({ assinaturaUri: uri })}
           aoLimpar={() => void alterar({ assinaturaUri: null })}
+          aoComecarDesenho={() => setDesenhando(true)}
+          aoTerminarDesenho={() => setDesenhando(false)}
         />
       </Cartao>
 
