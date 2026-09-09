@@ -6,6 +6,7 @@ import { RegraDeNegocio, autorizar } from "../servidor.js";
 import {
   TAMANHO_MAXIMO_BYTES, TIPOS_ACEITOS, type Armazenamento,
 } from "../armazenamento/tipos.js";
+import { registrarEvento } from "../trilha.js";
 
 /**
  * Ciclo de vida de uma evidência fotográfica.
@@ -22,6 +23,37 @@ import {
  * alguém abre o laudo numa audiência.
  */
 
+/**
+ * A folga de relógio, em milissegundos, e o piso de datas.
+ *
+ * Cópia deliberada de `coletada_em_plausivel` (migração 009), que instalou
+ * exatamente esta regra no campo IRMÃO desta foto. `vistorias.coletada_em` e
+ * `evidencias.capturada_em` saem impressos no MESMO documento, um como data do
+ * ato e outro como data do registro fotográfico, e só o primeiro era conferido.
+ *
+ * Sem limite nenhum, o posto mais baixo do sistema data uma foto para 2019 e
+ * ela sai no laudo como "Capturada em 05/01/2019" embaixo da imagem, ou some
+ * de qualquer recorte por período da auditoria sem nunca ter sido apagada. Data
+ * no futuro passava igual.
+ *
+ * As doze horas para frente não são desleixo: relógio trocado, fuso errado e
+ * aparelho sem sinal por horas são rotina em campo, e recusar uma evidência
+ * legítima em dia de temporal é pior do que aceitar uma hora imprecisa. Quem
+ * resolve a precisão é `enviada_em`, que é do servidor e ninguém escolhe.
+ *
+ * A mesma regra está no banco (migração 024). Aqui ela existe para a resposta
+ * ser 422 com explicação, e não 500 vindo de uma restrição de CHECK.
+ */
+const FOLGA_DE_RELOGIO_MS = 12 * 60 * 60 * 1000;
+const PISO_DE_CAPTURA = Date.parse("2020-01-01T00:00:00Z");
+
+function capturaPlausivel(iso: string): boolean {
+  const instante = Date.parse(iso);
+  return Number.isFinite(instante)
+    && instante > PISO_DE_CAPTURA
+    && instante < Date.now() + FOLGA_DE_RELOGIO_MS;
+}
+
 const pedidoSchema = z.object({
   ocorrenciaId: z.string().uuid(),
   /**
@@ -35,7 +67,11 @@ const pedidoSchema = z.object({
   tipoConteudo: z.enum(TIPOS_ACEITOS),
   tamanhoBytes: z.number().int().positive().max(TAMANHO_MAXIMO_BYTES),
   legenda: z.string().max(300).optional(),
-  capturadaEm: z.string().datetime(),
+  capturadaEm: z.string().datetime().refine(capturaPlausivel, {
+    message:
+      "A data de captura não é plausível: precisa ser posterior a 2020 e não "
+      + "pode estar a mais de doze horas no futuro.",
+  }),
   coordenada: z.object({ lat: z.number(), lng: z.number() }).optional(),
   ordem: z.number().int().min(0).max(200).default(0),
 });
@@ -62,9 +98,29 @@ export async function rotasEvidencias(
     const dados = pedidoSchema.parse(req.body);
 
     const resultado = await banco.comTenant(quem.organizacaoId, async (c) => {
-      // Já autorizada antes: devolve a MESMA linha, com URL nova. Uma URL
-      // pré-assinada vence em minutos, então reemitir é esperado; criar outra
-      // evidência não é.
+      /*
+        Já autorizada antes: devolve a MESMA linha. Uma URL pré-assinada vence
+        em minutos, então reemitir é esperado; criar outra evidência não é.
+
+        MAS SÓ ENQUANTO O ARQUIVO NÃO SUBIU. Este ramo devolvia URL DE ESCRITA
+        também quando `enviada_em` já existia, e a revisão adversarial usou
+        isso: o mesmo agente repete o pedido com a MESMA `idempotencyKey`
+        semanas depois, recebe 201 com `jaEnviada: true`, a mesma
+        `chave_storage` e uma autorização de escrita nova, e um PUT com bytes
+        diferentes responde 200. O banco continua declarando o `tamanho_bytes` e
+        o `sha256` antigos, `enviada_em` intacto, e a trilha não registra nada,
+        porque nada mudou no banco. O laudo reimpresso serve os bytes NOVOS,
+        com a mesma legenda e o mesmo número de foto.
+
+        A foto é a única peça deste sistema que é prova material do ato. Trocar
+        os bytes depois de confirmada não é editar um campo: é substituir a
+        prova sem deixar rastro, e num documento que vai para processo.
+
+        Não quebra o fluxo pretendido, e o comentário logo abaixo já dizia por
+        quê: quando `jaEnviada` é verdadeiro o aparelho pula o envio dos bytes
+        (`packages/campo/src/fila.ts`), então ele nunca usa a URL neste caso. O
+        vencimento que justificava reemitir a URL só existe antes do envio.
+      */
       if (dados.idempotencyKey) {
         const anterior = await c.query<{ id: string; chave_storage: string; enviada_em: string | null }>(
           "SELECT id, chave_storage, enviada_em FROM evidencias WHERE idempotency_key = $1",
@@ -102,22 +158,48 @@ export async function rotasEvidencias(
       const nome = `${unico}-${dados.nomeArquivo}`;
       const chave = chaveDeStorage(quem.organizacaoId, dados.ocorrenciaId, nome);
 
+      /*
+        `anexada_por` vem do token verificado, como todo autor deste produto.
+
+        A coluna não existia, e o identificador do usuário já estava em mãos
+        aqui, vindo do token, e era descartado. `evidencias` era a única tabela
+        de conteúdo sem dono, num sistema que registra até quem ABRIU um laudo.
+        Ver a migração 024.
+      */
       const evidencia = await c.query<{ id: string }>(
         `INSERT INTO evidencias
            (organizacao_id, ocorrencia_id, chave_storage, legenda, latitude, longitude,
-            capturada_em, ordem, tipo_conteudo, tamanho_bytes, idempotency_key)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+            capturada_em, ordem, tipo_conteudo, tamanho_bytes, idempotency_key,
+            anexada_por)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
          RETURNING id`,
         [
           quem.organizacaoId, dados.ocorrenciaId, chave, dados.legenda ?? null,
           dados.coordenada?.lat ?? null, dados.coordenada?.lng ?? null,
           dados.capturadaEm, dados.ordem, dados.tipoConteudo, dados.tamanhoBytes,
-          dados.idempotencyKey ?? null,
+          dados.idempotencyKey ?? null, quem.usuarioId,
         ],
       );
 
       return { evidenciaId: evidencia.rows[0]!.id, chave, jaEnviada: false };
     });
+
+    /*
+      O arquivo já está lá: a resposta sai SEM autorização de escrita.
+
+      Emitir a URL e confiar que o aparelho não vai usá-la seria deixar a
+      substituição de prova dependendo do bom comportamento do cliente. O
+      aparelho já lê `jaEnviada` e pula o envio dos bytes, então o que sai daqui
+      é exatamente o que ele usa: o identificador da evidência e a chave, para
+      ele amarrar a foto ao envelope da vistoria.
+    */
+    if (resultado.jaEnviada) {
+      return resposta.code(201).send({
+        evidenciaId: resultado.evidenciaId,
+        chave: resultado.chave,
+        jaEnviada: true,
+      });
+    }
 
     const envio = await armazenamento.urlParaEnviar({
       chave: resultado.chave,
@@ -128,9 +210,7 @@ export async function rotasEvidencias(
     return resposta.code(201).send({
       evidenciaId: resultado.evidenciaId,
       chave: resultado.chave,
-      // Quando o arquivo já subiu, o aparelho pode pular direto para a
-      // sincronização em vez de mandar os bytes de novo.
-      jaEnviada: resultado.jaEnviada,
+      jaEnviada: false,
       url: envio.url,
       cabecalhos: envio.cabecalhos,
       expiraEm: envio.expiraEm,
@@ -150,9 +230,11 @@ export async function rotasEvidencias(
 
     const evidencia = await banco.comTenant(quem.organizacaoId, async (c) => {
       const r = await c.query<{
-        id: string; chave_storage: string; tamanho_bytes: string; enviada_em: string | null;
+        id: string; ocorrencia_id: string; chave_storage: string;
+        tamanho_bytes: string; enviada_em: string | null;
       }>(
-        "SELECT id, chave_storage, tamanho_bytes, enviada_em FROM evidencias WHERE id = $1",
+        `SELECT id, ocorrencia_id, chave_storage, tamanho_bytes, enviada_em
+           FROM evidencias WHERE id = $1`,
         [dados.evidenciaId],
       );
       const achada = r.rows[0];
@@ -185,9 +267,50 @@ export async function rotasEvidencias(
     }
 
     await banco.comTenant(quem.organizacaoId, async (c) => {
-      await c.query(
-        "UPDATE evidencias SET enviada_em = now(), sha256 = COALESCE($2, sha256) WHERE id = $1",
+      /*
+        O `WHERE enviada_em IS NULL` e o `RETURNING` não são zelo: eles são o
+        que garante UM evento por evidência. A checagem lá em cima resolve o
+        reenvio comum, e não resolve a corrida (o aparelho desiste por tempo
+        esgotado e repete a confirmação enquanto a primeira ainda roda). As
+        duas passariam pela leitura sem achar `enviada_em`, e a trilha, que não
+        tem policy de DELETE, ficaria com duas linhas dizendo que a mesma foto
+        foi anexada duas vezes.
+      */
+      const marcada = await c.query<{ id: string }>(
+        `UPDATE evidencias
+            SET enviada_em = now(), sha256 = COALESCE($2, sha256)
+          WHERE id = $1 AND enviada_em IS NULL
+        RETURNING id`,
         [dados.evidenciaId, dados.sha256 ?? null],
+      );
+      if (!marcada.rows[0]) return;
+
+      /*
+        ANEXAR PROVA ENTRA NA TRILHA, e até aqui não entrava.
+
+        Esta rota e a de autorização eram as duas únicas escritas do produto
+        que não chamavam `registrarEvento`. O sistema registrava quem ABRIU um
+        laudo e não registrava quem acrescentou uma FOTO a ele, que é a peça
+        que sai impressa no documento oficial. Era a escrita mais barata para
+        introduzir prova num dossiê alheio sem deixar rastro.
+
+        O evento nasce AQUI, e não na autorização, porque é aqui que a foto
+        passa a existir para o resto do sistema: laudo, termo e tela de detalhe
+        filtram por `enviada_em IS NOT NULL`. Uma autorização sem bytes não
+        anexa nada, e um evento para ela treinaria quem lê a trilha a ignorar
+        linhas que não significam nada.
+
+        Na MESMA transação do UPDATE: ou a foto entra e o rastro entra, ou não
+        entra nenhum dos dois.
+      */
+      await registrarEvento(
+        c, quem, evidencia.ocorrencia_id, "evidencia_anexada",
+        {
+          evidenciaId: evidencia.id,
+          tamanhoBytes: Number(evidencia.tamanho_bytes),
+          sha256: dados.sha256 ?? null,
+        },
+        quem.papel === "agente_campo" ? "campo" : "escritorio",
       );
     });
 

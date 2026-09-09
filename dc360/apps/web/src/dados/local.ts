@@ -110,6 +110,24 @@ export async function imoveisInterditados(s: Sessao): Promise<unknown[]> {
 export async function levantarInterdicao(
   s: Sessao, id: string, motivo: string,
 ): Promise<void> {
+  /*
+    Levantar interdição é escrita, e escrita começa por permissão.
+
+    Esta era a ÚNICA das dezoito escritas deste arquivo que ia direto para o
+    banco, e o comentário do cabeçalho afirmava o contrário. A rota equivalente
+    da API sempre conferiu (`autorizar(app, req, "levantar_interdicao")`), então
+    o modo de demonstração estava mais permissivo que o produto, que é a
+    direção errada de divergir: quem demonstra descobre um caminho que não
+    existe no ambiente real.
+
+    A tela já escondia o formulário para quem não pode, mas esconder o botão
+    não é controle de acesso, e este arquivo é chamado direto do console do
+    navegador na demonstração.
+
+    E o ato em si não é pequeno: levantar interdição autoriza uma família a
+    voltar para dentro de uma casa que foi considerada insegura.
+  */
+  exigirPermissao(s.papel, "levantar_interdicao");
   await comoApp(s.organizacaoId, async (db) => {
     const atual = await db.query<{
       interditada_em: string | null; desinterditada_em: string | null;
@@ -139,6 +157,15 @@ export async function levantarInterdicao(
  * implementações da porta precisam prometer a mesma coisa, senão a tela passa
  * a depender de qual delas está ativa.
  */
+/**
+ * Quantas vistorias concluidas a tela traz de uma vez.
+ *
+ * Espelha o teto da rota da API de proposito: os dois modos precisam cortar no
+ * mesmo lugar, senao a demonstracao mostra uma lista que o produto real nao
+ * mostra.
+ */
+const TETO_DE_CONCLUIDAS = 50;
+
 export async function meuTrabalhoDeCampo(s: Sessao): Promise<MeuTrabalho> {
   return comoApp(s.organizacaoId, async (db) => {
     const eu = await db.query<{
@@ -153,7 +180,10 @@ export async function meuTrabalhoDeCampo(s: Sessao): Promise<MeuTrabalho> {
     );
     const meu = eu.rows[0];
     if (!meu?.equipe_id) {
-      return { equipe: null, colegas: [], designadas: [], concluidas: [] };
+      return {
+        equipe: null, colegas: [], designadas: [], concluidas: [],
+        totalConcluidas: 0, tetoDeConcluidas: TETO_DE_CONCLUIDAS,
+      };
     }
 
     const colegas = await db.query<ColegaDeEquipe>(
@@ -179,7 +209,13 @@ export async function meuTrabalhoDeCampo(s: Sessao): Promise<MeuTrabalho> {
          FROM vistorias v JOIN ocorrencias o ON o.id = v.ocorrencia_id
         WHERE v.agente_id = $1
         ORDER BY v.coletada_em DESC
-        LIMIT 50`,
+        LIMIT $2`,
+      [s.usuarioId, TETO_DE_CONCLUIDAS],
+    );
+    /* O total de verdade, separado do teto: ver o comentario de MeuTrabalho em
+       dados/tipos.ts para o defeito que isto acaba. */
+    const total = await db.query<{ total: number }>(
+      "SELECT count(*)::int AS total FROM vistorias WHERE agente_id = $1",
       [s.usuarioId],
     );
 
@@ -191,6 +227,8 @@ export async function meuTrabalhoDeCampo(s: Sessao): Promise<MeuTrabalho> {
       colegas: colegas.rows,
       designadas: designadas.rows,
       concluidas: concluidas.rows,
+      totalConcluidas: Number(total.rows[0]?.total ?? 0),
+      tetoDeConcluidas: TETO_DE_CONCLUIDAS,
     };
   });
 }
@@ -963,7 +1001,30 @@ export async function indicadores(s: Sessao): Promise<Indicadores> {
          count(*) FILTER (WHERE o.status = 'encerrada'
                             AND o.encerrado_em > now() - interval '7 days')::int AS encerradas_7d,
          count(*) FILTER (WHERE o.status NOT IN ('encerrada','rascunho')
-                            AND o.severidade = 'critica')::int AS criticas
+                            AND o.severidade = 'critica')::int AS criticas,
+         /*
+           As duas de providência FALTAVAM aqui, e a falta era silenciosa.
+
+           ATENÇÃO: este bloco está DENTRO de um template literal, então crase
+           aqui fecha a string. Sem crase.
+
+           A consulta tipada é asserção de tipo, não verificação: o
+           TypeScript aceitou a consulta com cinco colunas contra um tipo de
+           sete, e a tela leu ausente com padrao zero, e imprimiu ZERO. O resultado era
+           o painel dizendo "Providências vencidas: 0" com o cartão logo abaixo
+           mostrando as mesmas providências marcadas como vencidas, na mesma
+           tela, na demonstração que o produto usa para vender.
+
+           A expressão é a MESMA da rota de indicadores da API, e
+           precisa continuar sendo: dois lugares contando a mesma coisa de
+           jeitos diferentes é o defeito que o comentário do atrasadas, logo
+           acima, já existe para evitar.
+         */
+         (SELECT count(*) FROM providencias
+           WHERE respondida_em IS NULL)::int AS providencias_abertas,
+         (SELECT count(*) FROM providencias
+           WHERE respondida_em IS NULL AND prazo_em < now())::int
+           AS providencias_vencidas
        FROM ocorrencias o`,
     );
     return r.rows[0]!;

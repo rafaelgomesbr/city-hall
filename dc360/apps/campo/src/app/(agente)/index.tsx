@@ -31,7 +31,7 @@ import { dataDoPrazo, quantoFalta, seloDaColeta, type ColetaLocal } from "@dc360
 export default function Tarefas() {
   const tema = useTema();
   const sinal = useSinal();
-  const { obterToken, identidade } = useSessao();
+  const { obterToken, identidade, lerIdentidade } = useSessao();
 
   const [tarefas, setTarefas] = useState<Pendencia[] | null>(null);
   const [rascunhos, setRascunhos] = useState<Rascunho[]>([]);
@@ -80,14 +80,14 @@ export default function Tarefas() {
   */
   const promoverColetasConfirmadas = useCallback(async () => {
     try {
-      const fila = await obterFila(enderecoDaApi(), obterToken);
+      const fila = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
       for (const item of await fila.itens()) {
         if (item.estado === "confirmado") await marcarEnviada(item.ocorrenciaId);
       }
     } catch {
       /* A fila indisponivel deixa o selo como esta, e nada mais. */
     }
-  }, [obterToken]);
+  }, [obterToken, lerIdentidade]);
 
   const lerDoDisco = useCallback(async () => {
     await promoverColetasConfirmadas();

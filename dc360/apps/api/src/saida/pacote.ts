@@ -274,7 +274,60 @@ export async function* montarPacoteDeSaida(
 ): AsyncGenerator<EntradaZip> {
   const { banco, armazenamento, organizacaoId, emitidoPor } = opcoes;
   const agora = opcoes.agora ?? new Date();
+  /** O banco referia, e o armazenamento RESPONDEU que não tem. */
   const pendencias: string[] = [];
+  /*
+    O banco referia, e ninguém conseguiu dizer se existe.
+
+    LISTA SEPARADA, e essa separação é o defeito inteiro. As duas caíam na
+    mesma lista e saíam impressas sob "estes arquivos NÃO foram encontrados no
+    armazenamento", que é uma AFIRMAÇÃO sobre o mundo. Um pico de limite de
+    taxa (429), um 503 do provedor ou uma conexão cortada faziam o pacote
+    declarar inexistente uma fotografia que existe, com soma de verificação ao
+    lado dando aparência de conferência feita. E o passo 6 do procedimento (a
+    eliminação das nossas cópias) acontece DEPOIS da conferência do município,
+    sem volta: o produto destruiria prova no dia em que está provando que não
+    aprisiona ninguém.
+  */
+  const naoLidos: string[] = [];
+
+  /**
+   * Uma leitura de armazenamento que nunca vira "não existe" por engano.
+   *
+   * O `try` aqui é a última rede: uma implementação de `Armazenamento` que
+   * lance em vez de devolver `falha` não pode derrubar a extração inteira, e
+   * também não pode virar `ausente`. Antes desta correção o ponto de chamada
+   * fazia `.catch(() => null)`, e esse `null` era indistinguível do 404.
+   */
+  async function ler(a: Armazenamento, chave: string) {
+    try {
+      return await a.baixar(chave);
+    } catch (erro) {
+      return {
+        situacao: "falha" as const,
+        motivo: erro instanceof Error ? erro.message : String(erro),
+        tentativas: 1,
+      };
+    }
+  }
+
+  /** Manda a falta para a lista certa, e escreve a verdade sobre o que houve. */
+  function registrarFalta(
+    resultado: { situacao: "ausente" } | { situacao: "falha"; motivo: string; tentativas: number },
+    oQue: string,
+    protocolo: string,
+    chave: string,
+  ): void {
+    if (resultado.situacao === "ausente") {
+      pendencias.push(`${oQue} ausente no armazenamento: protocolo ${protocolo}, chave ${chave}`);
+      return;
+    }
+    naoLidos.push(
+      `${oQue} NÃO LIDA: protocolo ${protocolo}, chave ${chave}. `
+      + `O armazenamento não respondeu depois de ${resultado.tentativas} tentativa(s): `
+      + `${resultado.motivo}. Isto NÃO quer dizer que o arquivo não exista.`,
+    );
+  }
   const somas: Array<{ caminho: string; sha256: string }> = [];
 
   /** Toda entrada passa por aqui, para a soma de verificação sair de graça. */
@@ -634,12 +687,9 @@ export async function* montarPacoteDeSaida(
     for (let i = 0; i < lista.length; i += 1) {
       const e = lista[i]!;
       const nome = nomeDoArquivo(e.chave_storage, `foto-${i + 1}.jpg`);
-      const objeto = await armazenamento.baixar(e.chave_storage).catch(() => null);
-      if (!objeto) {
-        pendencias.push(
-          `Fotografia ausente no armazenamento: protocolo ${ocorrencia.protocolo}, `
-          + `chave ${e.chave_storage}`,
-        );
+      const objeto = await ler(armazenamento, e.chave_storage);
+      if (objeto.situacao !== "encontrado") {
+        registrarFalta(objeto, "Fotografia", ocorrencia.protocolo, e.chave_storage);
         continue;
       }
       yield entrada({
@@ -654,8 +704,8 @@ export async function* montarPacoteDeSaida(
     const vistoria = vistoriaPorOcorrencia.get(ocorrencia.id);
     if (vistoria?.assinatura_chave) {
       const nome = nomeDoArquivo(vistoria.assinatura_chave, "assinatura.png");
-      const objeto = await armazenamento.baixar(vistoria.assinatura_chave).catch(() => null);
-      if (objeto) {
+      const objeto = await ler(armazenamento, vistoria.assinatura_chave);
+      if (objeto.situacao === "encontrado") {
         yield entrada({
           caminho: `evidencias/${item.pasta}/${nome}`,
           conteudo: objeto.corpo,
@@ -663,10 +713,7 @@ export async function* montarPacoteDeSaida(
         });
         item.evidencias.push(`evidencias/${item.pasta}/${nome}`);
       } else {
-        pendencias.push(
-          `Assinatura ausente no armazenamento: protocolo ${ocorrencia.protocolo}, `
-          + `chave ${vistoria.assinatura_chave}`,
-        );
+        registrarFalta(objeto, "Assinatura", ocorrencia.protocolo, vistoria.assinatura_chave);
       }
     }
   }
@@ -687,19 +734,28 @@ export async function* montarPacoteDeSaida(
 
   yield entrada({
     caminho: "INDICE.html",
-    conteudo: texto(indiceEmHtml(indice, { municipio, agora, pendencias: pendencias.length })),
+    conteudo: texto(indiceEmHtml(indice, {
+      municipio, agora, pendencias: pendencias.length, naoLidos: naoLidos.length,
+    })),
   });
 
+  /*
+    O relatório separa NÃO EXISTE de NÃO CONSEGUI LER, e essa separação é o
+    ponto do arquivo inteiro.
+
+    Antes, as duas saíam sob a mesma frase, que é uma AFIRMAÇÃO sobre o mundo:
+    "o banco referia estes arquivos e eles NÃO foram encontrados no
+    armazenamento". Um pico de limite de taxa do provedor bastava para o pacote
+    declarar inexistente uma fotografia que existe. E o passo 6 do procedimento
+    (a eliminação das nossas cópias) vem DEPOIS da conferência do município: o
+    erro só apareceria quando não houvesse mais como voltar.
+
+    A segunda lista, quando existe, diz explicitamente para NÃO seguir para o
+    passo 6, porque essa é a única instrução que impede a perda.
+  */
   yield entrada({
     caminho: "PENDENCIAS-DA-EXTRACAO.txt",
-    conteudo: texto(
-      pendencias.length === 0
-        ? "Nenhuma pendência: todo arquivo referido pelo banco foi incluído no pacote.\n"
-        : "O banco referia estes arquivos e eles NÃO foram encontrados no\n"
-          + "armazenamento. Isto precisa ser resolvido antes de o município\n"
-          + "declarar a conferência do passo 5 concluída.\n\n"
-          + pendencias.map((p) => `- ${p}`).join("\n") + "\n",
-    ),
+    conteudo: texto(relatorioDePendencias(pendencias, naoLidos)),
   });
 
   /*
@@ -715,6 +771,50 @@ export async function* montarPacoteDeSaida(
       somas.map((s) => `${s.sha256}  ${s.caminho}`).join("\n") + "\n",
     ),
   };
+}
+
+/**
+ * O texto de `PENDENCIAS-DA-EXTRACAO.txt`.
+ *
+ * Fora do gerador, e exportada, para o teste conseguir cobrar a redação sem
+ * montar um pacote inteiro. A redação É a correção aqui: o defeito não estava
+ * em perder arquivo, estava em AFIRMAR que ele não existe.
+ */
+export function relatorioDePendencias(
+  ausentes: readonly string[],
+  naoLidos: readonly string[],
+): string {
+  if (ausentes.length === 0 && naoLidos.length === 0) {
+    return "Nenhuma pendência: todo arquivo referido pelo banco foi incluído no pacote.\n";
+  }
+
+  const partes: string[] = [];
+
+  if (naoLidos.length > 0) {
+    partes.push(
+      "ATENÇÃO: A EXTRAÇÃO NÃO ESTÁ COMPLETA.\n\n"
+      + `Estes ${naoLidos.length} arquivo(s) o banco refere, e o armazenamento NÃO\n`
+      + "RESPONDEU sobre eles. Não é o mesmo que dizer que não existem: pode ter\n"
+      + "sido limite de taxa do provedor, indisponibilidade momentânea ou falha de\n"
+      + "rede, e nesse caso os arquivos existem e simplesmente não vieram nesta\n"
+      + "extração.\n\n"
+      + "NÃO SIGA para o passo 6 do procedimento (eliminação das nossas cópias)\n"
+      + "com esta lista preenchida: depois dele não há como voltar. Peça a\n"
+      + "repetição da extração, e compare o pacote novo com este.\n\n"
+      + naoLidos.map((p) => `- ${p}`).join("\n") + "\n",
+    );
+  }
+
+  if (ausentes.length > 0) {
+    partes.push(
+      "O banco referia estes arquivos e o armazenamento respondeu que NÃO OS\n"
+      + "TEM. Isto precisa ser resolvido antes de o município declarar a\n"
+      + "conferência do passo 5 concluída.\n\n"
+      + ausentes.map((p) => `- ${p}`).join("\n") + "\n",
+    );
+  }
+
+  return partes.join("\n");
 }
 
 function leiaMe(d: {
@@ -756,7 +856,9 @@ function leiaMe(d: {
     "                protocolo.",
     "  SOMAS-SHA256.txt  a soma de verificação de cada arquivo, para conferir",
     "                que o pacote chegou íntegro.",
-    "  PENDENCIAS-DA-EXTRACAO.txt  o que o banco referia e não foi encontrado",
+    "  PENDENCIAS-DA-EXTRACAO.txt  o que o banco referia e não veio: separado\n"
+    + "                              entre o que o armazenamento disse não ter e o\n"
+    + "                              que ele não respondeu (leia antes de aceitar)",
     "                no armazenamento. Confira este arquivo antes de aceitar",
     "                a entrega.",
     "",
@@ -785,7 +887,7 @@ function leiaMe(d: {
 
 function indiceEmHtml(
   itens: ItemDoIndice[],
-  contexto: { municipio: string; agora: Date; pendencias: number },
+  contexto: { municipio: string; agora: Date; pendencias: number; naoLidos: number },
 ): string {
   const linhas = itens.map((i) => `
     <tr>
@@ -806,11 +908,25 @@ function indiceEmHtml(
       }</td>
     </tr>`).join("");
 
-  const aviso = contexto.pendencias > 0
-    ? `<p class="alerta">Atenção: ${contexto.pendencias} arquivo(s) referido(s) pelo banco não
-       foram encontrados no armazenamento. Veja PENDENCIAS-DA-EXTRACAO.txt antes de
-       aceitar a entrega.</p>`
-    : "";
+  /*
+    Dois avisos, e não um, pela mesma razão que as listas são duas: "não existe"
+    e "não consegui ler" pedem ações opostas de quem confere. O primeiro é uma
+    pendência a resolver; o segundo é uma ordem de NÃO seguir para o passo que
+    apaga as nossas cópias.
+  */
+  const aviso = [
+    contexto.naoLidos > 0
+      ? `<p class="alerta">Atenção: a extração NÃO está completa. O armazenamento não
+         respondeu sobre ${contexto.naoLidos} arquivo(s), e isso não quer dizer que eles
+         não existam. NÃO siga para o passo 6 do procedimento (eliminação das cópias)
+         antes de repetir a extração. Veja PENDENCIAS-DA-EXTRACAO.txt.</p>`
+      : "",
+    contexto.pendencias > 0
+      ? `<p class="alerta">Atenção: ${contexto.pendencias} arquivo(s) referido(s) pelo banco não
+         foram encontrados no armazenamento. Veja PENDENCIAS-DA-EXTRACAO.txt antes de
+         aceitar a entrega.</p>`
+      : "",
+  ].join("");
 
   /*
     Estilo dentro do arquivo, sem fonte de rede e sem script.

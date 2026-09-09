@@ -5,6 +5,7 @@ import {
 } from "@dc360/shared";
 import type { Banco, Consulta } from "../banco/tipos.js";
 import { RegraDeNegocio, autorizar } from "../servidor.js";
+import { registrarEvento } from "../trilha.js";
 
 /**
  * Teto de 200 de proposito: o aparelho manda o que tem guardado, e uma lista
@@ -136,18 +137,18 @@ export async function rotasSincronizacao(
     const quem = await autorizar(app, req, "registrar_vistoria");
     const envelope = envelopeSincronizacaoSchema.parse(req.body);
 
-    const { vistoriaId, jaExistia } = await banco.comTenant(quem.organizacaoId, async (c) => {
+    const recebida = await banco.comTenant(quem.organizacaoId, async (c) => {
       // Chave já vista: devolve o que foi gravado antes e não toca em nada.
       const anterior = await c.query<{ id: string }>(
         "SELECT id FROM vistorias WHERE idempotency_key = $1",
         [envelope.idempotencyKey],
       );
       if (anterior.rows[0]) {
-        return { vistoriaId: anterior.rows[0].id, jaExistia: true };
+        return { vistoriaId: anterior.rows[0].id, jaExistia: true, foraDaEquipe: false };
       }
 
-      const ocorrencia = await c.query<{ id: string; status: string }>(
-        "SELECT id, status FROM ocorrencias WHERE id = $1",
+      const ocorrencia = await c.query<{ id: string; status: string; equipe_id: string | null }>(
+        "SELECT id, status, equipe_id FROM ocorrencias WHERE id = $1",
         [envelope.ocorrenciaId],
       );
       const alvo = ocorrencia.rows[0];
@@ -160,6 +161,48 @@ export async function rotasSincronizacao(
           "Essa ocorrência já foi encerrada e não aceita vistoria nova.",
         );
       }
+
+      /*
+        A CONFERÊNCIA DE EQUIPE, que até aqui não existia.
+
+        Reproduzido: ocorrência despachada para a Equipe Bravo; o agente Diego,
+        da Equipe Alfa, NÃO a enxerga em `GET /sincronizacao/pendencias`, e
+        ainda assim esta rota respondia 201, o status virava
+        `vistoria_concluida` (a tarefa sumia da fila da equipe que de fato foi
+        ao local) e a coordenação emitia o termo de interdição assinado com o
+        nome dele. É o caminho mais curto entre uma conta de agente
+        comprometida e um ato administrativo com brasão.
+
+        POR QUE ACEITAR E MARCAR, EM VEZ DE RECUSAR. Recusar é o que parece
+        certo e é pior. `packages/campo/src/transporte.ts` transforma toda
+        resposta 4xx desta rota em `FalhaPermanente`, e não existe tela no
+        aplicativo para desbloquear item recusado: a coleta morre na fila do
+        aparelho, com a vistoria daquela família dentro. E o caso legítimo é
+        comum: o agente trocou de equipe entre coletar e enviar, ou a
+        coordenação redespachou a ocorrência enquanto ele subia o morro. Trocar
+        "qualquer agente registra em qualquer ocorrência" por "coleta de campo
+        se perde em silêncio" é trocar um defeito por outro pior.
+
+        Então a coleta entra e a divergência vira FATO GRAVADO, em três lugares
+        que ninguém precisa ir procurar: as duas equipes ficam na vistoria
+        (migração 024), a trilha ganha um evento próprio, e o laudo e o termo
+        imprimem o aviso na cara de quem vai assinar.
+
+        A equipe do agente é lida agora, do banco, e não do token: o token pode
+        ter sido emitido antes da troca de equipe, e o que vale é a lotação de
+        hoje.
+      */
+      const lotacao = await c.query<{ equipe_id: string | null }>(
+        "SELECT equipe_id FROM usuarios WHERE id = $1",
+        [quem.usuarioId],
+      );
+      const equipeDoAgente = lotacao.rows[0]?.equipe_id ?? null;
+      /*
+        Só há designação a violar quando houve despacho. Ocorrência sem equipe
+        designada não produz aviso, senão o documento treinaria quem lê a
+        ignorar o aviso justamente quando ele importa.
+      */
+      const foraDaEquipe = alvo.equipe_id !== null && alvo.equipe_id !== equipeDoAgente;
 
       const v = envelope.vistoria;
 
@@ -191,8 +234,9 @@ export async function rotasSincronizacao(
         `INSERT INTO vistorias
            (organizacao_id, ocorrencia_id, agente_id, checklist, gps_precisao_metros,
             assinante_nome, assinatura_chave, observacoes, coletada_em, idempotency_key,
-            desalojados, desabrigados, feridos, desaparecidos, obitos)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+            desalojados, desabrigados, feridos, desaparecidos, obitos,
+            equipe_designada_id, equipe_do_agente_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
          ON CONFLICT (organizacao_id, idempotency_key) DO NOTHING
          RETURNING id`,
         [
@@ -207,6 +251,7 @@ export async function rotasSincronizacao(
           */
           v.desalojados ?? null, v.desabrigados ?? null, v.feridos ?? null,
           v.desaparecidos ?? null, v.obitos ?? null,
+          alvo.equipe_id, equipeDoAgente,
         ],
       );
       /*
@@ -244,7 +289,7 @@ export async function rotasSincronizacao(
             "Restrição de unicidade inesperada.",
           );
         }
-        return { vistoriaId: jaGravada.id, jaExistia: true };
+        return { vistoriaId: jaGravada.id, jaExistia: true, foraDaEquipe: false };
       }
 
       const novaId = inserida.rows[0].id;
@@ -285,18 +330,33 @@ export async function rotasSincronizacao(
         await c.query(
           `INSERT INTO evidencias
              (organizacao_id, ocorrencia_id, vistoria_id, chave_storage, legenda,
-              latitude, longitude, capturada_em, ordem)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+              latitude, longitude, capturada_em, ordem, anexada_por)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
            ON CONFLICT (organizacao_id, chave_storage) DO NOTHING`,
           [
             quem.organizacaoId, envelope.ocorrenciaId, novaId, chave, foto.legenda ?? null,
             foto.coordenada?.lat ?? null, foto.coordenada?.lng ?? null,
-            foto.capturadaEm, ordem,
+            foto.capturadaEm, ordem, quem.usuarioId,
           ],
         );
       }
 
-      if (alvo.status === "em_campo") {
+      /*
+        A tarefa só é dada por concluída quando quem coletou é a equipe
+        designada.
+
+        Esta era a metade mais cara do defeito: a coleta de fora empurrava o
+        status para `vistoria_concluida` e a ocorrência SUMIA de
+        `GET /sincronizacao/pendencias` da equipe que de fato tinha ido ao
+        local, sem lápide e sem aviso (o aparelho apaga e reescreve a lista
+        inteira). A equipe designada perdia a tarefa da tela por um envio que
+        não foi dela.
+
+        Mantendo `em_campo`, a coleta divergente entra e fica registrada, a fila
+        da equipe designada continua intacta, e quem decide o que fazer é a
+        coordenação, que é quem tem tela para isso.
+      */
+      if (alvo.status === "em_campo" && !foraDaEquipe) {
         await c.query(
           "UPDATE ocorrencias SET status = 'vistoria_concluida' WHERE id = $1",
           [envelope.ocorrenciaId],
@@ -326,12 +386,40 @@ export async function rotasSincronizacao(
         ],
       );
 
-      return { vistoriaId: novaId, jaExistia: false };
+      /*
+        O evento da divergência é SEPARADO do evento de vistoria, e não um campo
+        dentro dele. A auditoria precisa conseguir listar "que vistorias
+        entraram por agente de fora da equipe designada" sem escrever consulta
+        dentro de JSON, que é a mesma razão da migração 020 para os órgãos.
+
+        Origem `campo` porque o ato aconteceu no aparelho, não no escritório.
+      */
+      if (foraDaEquipe) {
+        await registrarEvento(
+          c, quem, envelope.ocorrenciaId, "vistoria_fora_da_equipe",
+          {
+            vistoriaId: novaId,
+            equipeDesignadaId: alvo.equipe_id,
+            equipeDoAgenteId: equipeDoAgente,
+          },
+          "campo",
+        );
+      }
+
+      return { vistoriaId: novaId, jaExistia: false, foraDaEquipe };
     });
 
-    return resposta.code(jaExistia ? 200 : 201).send({
-      vistoriaId,
-      duplicada: jaExistia,
+    return resposta.code(recebida.jaExistia ? 200 : 201).send({
+      vistoriaId: recebida.vistoriaId,
+      duplicada: recebida.jaExistia,
+      /*
+        O aparelho não trata este campo hoje, e ele sai assim mesmo: quem
+        coletou é a única pessoa que consegue explicar a divergência enquanto
+        ela é fresca, e a tela do aplicativo vai poder dizer a ela que a coleta
+        entrou e foi sinalizada. Enquanto isso não existe, o campo é inerte e
+        não muda o desfecho do envio, que continua sendo sucesso.
+      */
+      foraDaEquipeDesignada: recebida.foraDaEquipe,
     });
   });
 

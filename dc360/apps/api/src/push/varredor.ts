@@ -31,6 +31,12 @@ export type ResumoDaVarredura = {
   entregues: number;
   falhas: number;
   aparelhosRevogados: number;
+  /**
+   * Quantas notificações já reivindicadas ficaram sem tentativa porque a
+   * rodada bateu no teto de tempo. Elas NÃO se perdem: a reivindicação está no
+   * banco, e a rodada seguinte as pega de novo depois da espera.
+   */
+  adiadasPorTempo: number;
 };
 
 type LinhaDeAlvo = {
@@ -60,6 +66,22 @@ export type DependenciasDoVarredor = {
   teto?: number;
   /** Retenção de `notificacoes_enviadas`, em dias. Ver a migração 016. */
   retencaoDias?: number;
+  /**
+   * Teto de tempo da RODADA INTEIRA, e não de cada chamada.
+   *
+   * Tempo limite por chamada não basta, e a conta mostra por quê: com o teto
+   * de 500 notificações por rodada e dez segundos por envio, uma noite em que
+   * o provedor engasga em todas prende a trava por até uma hora e vinte. Nesse
+   * tempo a outra máquina do Fly desiste de dezenas de rodadas, e o produto
+   * fica sem avisar prazo por um motivo que nenhum log explica.
+   *
+   * Quatro minutos, contra o intervalo de cinco do relógio: a rodada termina
+   * antes de a seguinte bater na porta, que é o que mantém uma rodada por
+   * intervalo mesmo no pior dia.
+   */
+  tempoLimiteDaRodadaMs?: number;
+  /** Injeção de relógio, para o teste medir o teto sem esperar de verdade. */
+  agora?: () => number;
   registrar?: (evento: Record<string, unknown>, mensagem: string) => void;
 };
 
@@ -67,12 +89,17 @@ const ESPERA_PADRAO_MINUTOS = 10;
 const TENTATIVAS_PADRAO = 5;
 const TETO_PADRAO = 500;
 const RETENCAO_PADRAO_DIAS = 90;
+const TEMPO_LIMITE_PADRAO_DA_RODADA_MS = 4 * 60_000;
 
 export async function varrerPrazos(dep: DependenciasDoVarredor): Promise<ResumoDaVarredura> {
   const resumo: ResumoDaVarredura = {
     travado: false, reivindicadas: 0, entregues: 0, falhas: 0, aparelhosRevogados: 0,
+    adiadasPorTempo: 0,
   };
   const registrar = dep.registrar ?? (() => {});
+  const agora = dep.agora ?? (() => Date.now());
+  const limiteDaRodada = agora()
+    + (dep.tempoLimiteDaRodadaMs ?? TEMPO_LIMITE_PADRAO_DA_RODADA_MS);
 
   if (!(await dep.trava.tentar())) {
     // Não é erro nem aviso: é o comportamento correto quando a outra máquina
@@ -100,6 +127,25 @@ export async function varrerPrazos(dep: DependenciasDoVarredor): Promise<ResumoD
     resumo.reivindicadas = alvos.length;
 
     for (const alvo of alvos) {
+      /*
+        O teto de tempo da rodada é conferido ANTES de cada envio, e não
+        depois: conferir depois já teria pago o custo que o teto existe para
+        evitar.
+
+        Parar aqui não perde notificação nenhuma. A reivindicação está gravada
+        em `notificacoes_enviadas` (migração 016), então a rodada seguinte
+        encontra estas de novo depois da espera. O que se perde é atraso, e é a
+        troca certa: o alternativo é a trava presa e o produto inteiro mudo.
+      */
+      if (agora() >= limiteDaRodada) {
+        resumo.adiadasPorTempo = alvos.length - (resumo.entregues + resumo.falhas);
+        registrar(
+          { reivindicadas: alvos.length, adiadas: resumo.adiadasPorTempo },
+          "varredura de prazo interrompida pelo teto de tempo da rodada",
+        );
+        break;
+      }
+
       /*
         Uma notificação por vez, e o erro de uma NÃO derruba as outras.
 
@@ -186,7 +232,7 @@ export type VarreduraAgendada = { parar(): Promise<void> };
 /**
  * Põe a varredura num relógio.
  *
- * Duas defesas pequenas e necessárias:
+ * Três defesas pequenas e necessárias:
  *
  *   1. `unref()` no relógio: um temporizador vivo segura o processo em pé no
  *      encerramento, e o deploy passa a esperar o tempo do intervalo para
@@ -195,6 +241,7 @@ export type VarreduraAgendada = { parar(): Promise<void> };
  *      mais que o intervalo, a seguinte não começa por cima dela. A trava do
  *      banco resolveria isso também, mas ela custa uma ida ao banco, e a
  *      resposta certa para "ainda estou varrendo" é não ir.
+ *   3. VIGIA da rodada, abaixo, para o caso em que a rodada não termina.
  */
 export function agendarVarredura(
   dep: DependenciasDoVarredor,
@@ -202,10 +249,52 @@ export function agendarVarredura(
 ): VarreduraAgendada {
   let emAndamento = false;
   const registrar = dep.registrar ?? (() => {});
+  /*
+    O vigia solta a trava quando a rodada NÃO TERMINA.
+
+    O teto por chamada e o teto por rodada, lá em cima, são cooperativos: os
+    dois dependem de o laço continuar rodando. Este aqui cobre a hipótese que
+    eles não cobrem, e que é a que prende a trava de verdade: uma promessa que
+    nunca resolve nem rejeita, por um `await` pendurado em qualquer biblioteca
+    que não respeite sinal de aborto. Ali o `finally` do `varrerPrazos` nunca
+    executa, `dep.trava.soltar()` nunca é chamado, e a trava de aviso do
+    Postgres fica presa à conexão exclusiva da trava até o processo morrer. A
+    consequência é a pior possível para um sistema de emergência: a outra
+    máquina do Fly desiste de TODAS as rodadas seguintes, e o produto para de
+    avisar prazo sem um erro, sem falha de health check e sem alerta.
+
+    Soltar a trava por fora significa admitir que outra máquina pode varrer
+    junto com a rodada travada, e essa é a troca deliberada. A duplicata é
+    barrada pela segunda barreira, que é a unicidade em `notificacoes_enviadas`
+    (ver `trava.ts`): trava de processo cai junto com o processo, linha em
+    tabela não. Entre "pode haver notificação repetida" e "não sai notificação
+    nenhuma, em lugar nenhum, até alguém reimplantar", o produto escolhe a
+    primeira.
+
+    O prazo do vigia é o dobro do teto da rodada: se ele disparasse junto,
+    dispararia em toda rodada que apenas encostou no teto, que é justamente
+    quando o mecanismo cooperativo está funcionando.
+  */
+  const tetoDaRodada = dep.tempoLimiteDaRodadaMs ?? TEMPO_LIMITE_PADRAO_DA_RODADA_MS;
 
   const relogio = setInterval(() => {
     if (emAndamento) return;
     emAndamento = true;
+
+    let rodadaViva = true;
+    const vigia = setTimeout(() => {
+      if (!rodadaViva) return;
+      registrar(
+        { tetoMs: tetoDaRodada * 2 },
+        "varredura de prazo nao terminou no teto: a trava foi solta por fora",
+      );
+      void dep.trava.soltar().catch(() => undefined);
+      // `emAndamento` volta a `false` aqui de propósito: a rodada presa não
+      // pode impedir para sempre que o relógio tente de novo.
+      emAndamento = false;
+    }, tetoDaRodada * 2);
+    if (typeof vigia.unref === "function") vigia.unref();
+
     void varrerPrazos(dep)
       .catch((erro: unknown) => {
         // A varredura inteira falhando não pode derrubar a API. Ela volta no
@@ -215,7 +304,11 @@ export function agendarVarredura(
           "varredura de prazo falhou inteira",
         );
       })
-      .finally(() => { emAndamento = false; });
+      .finally(() => {
+        rodadaViva = false;
+        clearTimeout(vigia);
+        emAndamento = false;
+      });
   }, intervaloMs);
 
   relogio.unref();

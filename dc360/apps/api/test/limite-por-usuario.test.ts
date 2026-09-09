@@ -59,6 +59,20 @@ beforeAll(async () => {
     NODE_ENV: "test",
     JWT_SEGREDO: "segredo-de-teste-com-mais-de-trinta-e-dois-bytes",
     LOGIN_POR_IP: "10000",
+    /*
+      Este arquivo inteiro simula uma API atrás do edge do Fly: é assim que ele
+      dá a cada caso um endereço de origem próprio, por `Fly-Client-IP`, sem
+      abrir trinta conexões de lugares diferentes.
+
+      A declaração precisa estar aqui desde 09/09/2026, quando o servidor
+      deixou de aceitar aquele cabeçalho de qualquer cliente. Sem ela, todos os
+      casos abaixo dividiriam UM balde (o do `req.ip` do `inject`), e o segundo
+      caso já começaria com o teto do primeiro estourado. Ver
+      `endereco-de-origem.test.ts` para o defeito que a declaração fecha, e
+      note que ele é a outra metade deste: aqui o cabeçalho PRECISA valer, lá
+      ele precisa não valer.
+    */
+    PROXY_DE_BORDA: "fly",
   } as NodeJS.ProcessEnv);
   app = await construirServidor({
     banco: mem.banco, config,

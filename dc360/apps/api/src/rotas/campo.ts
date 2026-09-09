@@ -3,6 +3,15 @@ import type { Banco } from "../banco/tipos.js";
 import { autorizar } from "../servidor.js";
 
 /**
+ * Quantas vistorias concluidas a tela de "meu trabalho" traz de uma vez.
+ *
+ * Cinquenta e o que cabe numa tela de resumo. O total de verdade vai junto na
+ * resposta, para a tela dizer quantas existem em vez de imprimir este numero
+ * como se fosse a contagem.
+ */
+const TETO_DE_CONCLUIDAS = 50;
+
+/**
  * O que o agente de campo precisa ver, que não é o painel do coordenador.
  *
  * Até aqui o agente entrava no sistema e caía na mesma tela do coordenador:
@@ -78,6 +87,25 @@ export async function rotasCampo(
         terminei". A dupla marca de tempo vem junto porque é ela que mostra o
         que foi coletado sem sinal e sincronizado depois.
       */
+      /*
+        O TETO SAI JUNTO COM O TOTAL DE VERDADE, e essa e a correcao.
+
+        A lista corta em cinquenta, o que e certo: ninguem le mais que isso numa
+        tela de resumo. O que estava errado era a tela imprimir o TAMANHO DA
+        LISTA como se fosse a contagem. Um agente que assinou sessenta e duas
+        vistorias numa temporada de chuva lia "Vistorias que eu conclui (50)", e
+        as doze mais antigas nao apareciam em lugar nenhum: sem rodape, sem
+        aviso, sem "ver mais". Se ele precisasse mostrar que vistoriou aquele
+        imovel em janeiro, a tela AFIRMAVA que ele nunca vistoriou.
+
+        E o registro do trabalho dele, e e o que ele leva quando o ato for
+        questionado. Contar errado ali nao e detalhe de interface.
+      */
+      const totalConcluidas = await c.query<{ total: string }>(
+        "SELECT count(*)::int AS total FROM vistorias WHERE agente_id = $1",
+        [quem.usuarioId],
+      );
+
       const concluidas = await c.query(
         `SELECT v.id, v.coletada_em, v.sincronizada_em, v.gps_precisao_metros,
                 v.assinante_nome,
@@ -86,8 +114,8 @@ export async function rotasCampo(
            FROM vistorias v JOIN ocorrencias o ON o.id = v.ocorrencia_id
           WHERE v.agente_id = $1
           ORDER BY v.coletada_em DESC
-          LIMIT 50`,
-        [quem.usuarioId],
+          LIMIT $2`,
+        [quem.usuarioId, TETO_DE_CONCLUIDAS],
       );
 
       return {
@@ -100,6 +128,10 @@ export async function rotasCampo(
         colegas: colegas.rows,
         designadas: designadas.rows,
         concluidas: concluidas.rows,
+        /* O total de verdade, para a tela nunca mais imprimir o teto no lugar
+           dele. `truncada` existe para a tela poder DIZER que cortou. */
+        totalConcluidas: Number(totalConcluidas.rows[0]?.total ?? 0),
+        tetoDeConcluidas: TETO_DE_CONCLUIDAS,
       };
     });
   });

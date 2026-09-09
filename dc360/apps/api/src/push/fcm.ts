@@ -33,6 +33,11 @@ export type Buscar = (url: string, opcoes: {
   method: string;
   headers: Record<string, string>;
   body: string;
+  /**
+   * Existe para o `fetch` real conseguir DERRUBAR a conexão no estouro do
+   * tempo, e não só desistir de esperar por ela. Duplo de teste ignora.
+   */
+  signal?: AbortSignal;
 }) => Promise<{ status: number; text(): Promise<string> }>;
 
 const ESCOPO = "https://www.googleapis.com/auth/firebase.messaging";
@@ -41,6 +46,63 @@ const ENVIO_BASE = "https://fcm.googleapis.com/v1/projects";
 
 /** Folga antes de o token de acesso expirar. Um minuto cobre a rodada em voo. */
 const FOLGA_SEGUNDOS = 60;
+
+/**
+ * Teto por chamada ao Google, nos MESMOS dez segundos do caminho da Apple.
+ *
+ * O DEFEITO QUE ISTO FECHA foi reproduzido e é do tipo que não acende nenhuma
+ * luz. O `fetch` global do Node NÃO tem tempo limite: se o servidor do outro
+ * lado aceita a conexão e para de responder, que é o modo de falha comum de
+ * rede móvel e de balanceador saturado, o `await` simplesmente nunca retorna.
+ *
+ * O que isso custa não é uma notificação. O varredor segura uma trava de aviso
+ * do Postgres durante a rodada e só a solta no `finally`; com o `await` preso
+ * para sempre, o `finally` nunca roda, a trava nunca é solta, e a OUTRA
+ * máquina do Fly desiste de todas as rodadas seguintes. O aviso de prazo para
+ * de sair do produto inteiro, nas duas máquinas, sem uma linha de log, sem
+ * falha de health check e sem alerta, até alguém reimplantar por outro motivo.
+ *
+ * Vale para as DUAS chamadas: a troca do token de acesso e o envio. A troca é
+ * a mais perigosa das duas, porque ela acontece uma vez e prende a rodada
+ * inteira antes de a primeira notificação sequer ser tentada.
+ */
+const TEMPO_LIMITE_PADRAO_MS = 10_000;
+
+/**
+ * Põe teto de tempo em qualquer `Buscar`, inclusive num duplo de teste.
+ *
+ * Duas defesas, e as duas precisam existir. O `signal` faz o `fetch` real
+ * abortar a conexão, liberando o socket; a corrida com o temporizador garante
+ * que a promessa RESOLVA mesmo quando quem está do outro lado ignora o sinal,
+ * que é o caso de qualquer implementação que não seja o `fetch`.
+ *
+ * `unref()` no temporizador porque um relógio vivo segura o processo em pé no
+ * encerramento, e o deploy passaria a esperar o tempo limite para trocar de
+ * versão.
+ */
+export function comTempoLimite(buscar: Buscar, tempoLimiteMs: number): Buscar {
+  return async (url, opcoes) => {
+    const controle = new AbortController();
+    let estourou: (() => void) | null = null;
+    const relogio = setTimeout(() => {
+      controle.abort();
+      estourou?.();
+    }, tempoLimiteMs);
+    if (typeof relogio.unref === "function") relogio.unref();
+
+    const limite = new Promise<never>((_, rejeitar) => {
+      estourou = () => rejeitar(new Error(
+        `o Google nao respondeu no tempo limite de ${tempoLimiteMs} ms`,
+      ));
+    });
+
+    try {
+      return await Promise.race([buscar(url, { ...opcoes, signal: controle.signal }), limite]);
+    } finally {
+      clearTimeout(relogio);
+    }
+  };
+}
 
 /**
  * Lê a conta de serviço a partir do texto do arquivo JSON.
@@ -73,10 +135,22 @@ export function lerContaDeServico(conteudo: string, caminho: string): ContaDeSer
 
 export function criarProvedorFcm(
   conta: ContaDeServico,
-  opcoes: { buscar?: Buscar; agora?: () => number } = {},
+  opcoes: { buscar?: Buscar; agora?: () => number; tempoLimiteMs?: number } = {},
 ): ProvedorDePush {
   const agora = opcoes.agora ?? (() => Date.now());
-  const buscar = opcoes.buscar ?? ((url, o) => fetch(url, o));
+  /*
+    O teto envolve TAMBÉM o `buscar` injetado, e não só o `fetch` global.
+
+    Se ele valesse apenas no caminho de produção, a única forma de exercitar a
+    defesa seria uma chamada de verdade ao Google, ou seja, ela nunca seria
+    exercitada, e uma defesa que nenhum teste roda é uma defesa que mente sobre
+    existir. É a mesma razão pela qual o `redact` do log deixou de ser
+    desligado em teste.
+  */
+  const buscar = comTempoLimite(
+    opcoes.buscar ?? ((url, o) => fetch(url, o)),
+    opcoes.tempoLimiteMs ?? TEMPO_LIMITE_PADRAO_MS,
+  );
   const tokenUri = conta.token_uri ?? TOKEN_URI_PADRAO;
 
   // Em fechamento léxico, como na APNs: não existe propriedade para um

@@ -322,6 +322,19 @@ export const ROTULO_EVENTO_TRILHA: Record<string, string> = {
   triagem: "Classificado na triagem",
   despacho: "Equipe despachada",
   vistoria: "Vistoria concluída em campo",
+  /*
+    A coleta entrou por agente de fora da equipe designada. Evento próprio, e
+    não um campo dentro de `vistoria`, porque a pergunta que ele responde é uma
+    lista: quais vistorias precisam de conferência da coordenação. Ver a
+    migração 024 e `rotas/sincronizacao.ts`.
+  */
+  vistoria_fora_da_equipe: "Vistoria coletada fora da equipe designada",
+  /*
+    Alguém acrescentou prova ao processo. O produto registrava quem ABRIU um
+    laudo e não registrava quem colocou uma foto dentro dele, que é a peça que
+    sai impressa no documento oficial.
+  */
+  evidencia_anexada: "Evidência fotográfica anexada",
   documento_emitido: "Documento oficial emitido",
   providencia: "Providência encaminhada",
   resposta_providencia: "Resposta do órgão registrada",

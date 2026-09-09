@@ -29,7 +29,7 @@ import { rotasArmazenamentoLocal } from "./rotas/armazenamento-local.js";
 import type { Armazenamento } from "./armazenamento/tipos.js";
 import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
 import type { GeradorDePdf } from "./documentos/pdf.js";
-import { chaveDoLimitador, enderecoDoCliente } from "./rede.js";
+import { chaveDoLimitador, declararProxyDeBorda, enderecoDoCliente } from "./rede.js";
 
 export type Identidade = {
   usuarioId: string;
@@ -75,6 +75,47 @@ export type Dependencias = {
  * ponto de diagnóstico, e esse dia é justamente o dia em que ninguém vai abrir
  * este arquivo para conferir se a lista está completa.
  */
+/**
+ * Prefixos de rota cujo PRÓXIMO segmento de caminho é um segredo vivo.
+ *
+ * Vive fora da função, exportado, pelo mesmo motivo de `CAMINHOS_REDIGIDOS`: é
+ * o único jeito de um teste cobrar a lista item a item.
+ *
+ * O DEFEITO QUE ISTO FECHA foi reproduzido em produção. O serializador de `req`
+ * abaixo redige a QUERY STRING, porque foi para isso que ele foi escrito, e o
+ * `GET /publico/oficio/<token>` grava `"url":"/publico/oficio/TOKEN-..."` no
+ * log de requisição: o segredo de 32 bytes viaja no CAMINHO, e a rota é
+ * `/oficio/:token`.
+ *
+ * O que está em jogo é o produto inteiro daquela rota. Ela é a única leitura
+ * sem autenticação que devolve dado de município, e o que a protege não é
+ * token de sessão: é um segredo que só existe dentro do email enviado ao órgão
+ * destinatário. Com ele no log, quem lê o log abre o dossiê da família (nome,
+ * contato, endereço, vulnerabilidade) ANTES do destinatário, e o link de uso
+ * único queima: o bombeiro que abrir depois recebe a página de "já foi
+ * aberto", e a providência para de andar sem ninguém entender por quê.
+ */
+export const PREFIXOS_COM_SEGREDO_NA_URL = [
+  "/publico/oficio/",
+] as const;
+
+/**
+ * O caminho como ele pode ir para o log: sem query string e sem segredo.
+ *
+ * Separada e exportada porque o teste precisa cobrar o CAMINHO, e o teste que
+ * existia (`test/log.test.ts`) conferia corpo, cabeçalho e query string, e
+ * passava verde sem cobrir a única rota do produto que carrega segredo na URL.
+ */
+export function caminhoParaLog(url: string): string {
+  const caminho = url.split("?")[0] ?? "";
+  for (const prefixo of PREFIXOS_COM_SEGREDO_NA_URL) {
+    // `startsWith` e não igualdade: o que vem depois do prefixo é o segredo, e
+    // é justamente o que não pode sobrar na string.
+    if (caminho.startsWith(prefixo)) return `${prefixo}[removido]`;
+  }
+  return caminho;
+}
+
 export const CAMINHOS_REDIGIDOS = [
   "req.headers.authorization",
   "req.headers.cookie",
@@ -160,7 +201,10 @@ export async function construirServidor(
       */
       req: (req) => ({
         method: req.method,
-        url: req.url.split("?")[0],
+        // `caminhoParaLog` e não `split("?")`: a query string não era o único
+        // lugar do produto onde um segredo vivo viaja na URL. Ver
+        // `PREFIXOS_COM_SEGREDO_NA_URL`.
+        url: caminhoParaLog(req.url),
         ...(req.url.includes("?") ? { query: "[removido]" } : {}),
         host: req.host,
         remoteAddress: enderecoDoCliente(req),
@@ -206,6 +250,14 @@ export async function construirServidor(
     // A exceção é a rota do armazenamento local, que ajusta o próprio limite.
     bodyLimit: 1_048_576,
   });
+
+  /*
+    De quem este processo aceita cabeçalho de endereço de origem, declarado
+    ANTES de qualquer rota subir: é este valor que decide se `Fly-Client-IP`
+    vale alguma coisa. Ver `rede.ts` para o defeito que a leitura incondicional
+    daquele cabeçalho reabria.
+  */
+  declararProxyDeBorda(app, config.PROXY_DE_BORDA);
 
   await app.register(helmet, {
     // A API não serve HTML, então a política mais restritiva possível serve.

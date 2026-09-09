@@ -149,6 +149,13 @@ export async function rotasSaida(
       com dez mil vistorias derrubaria o servidor no dia em que pedisse para
       sair, que é o pior dia possível para o servidor cair: é o dia em que ele
       está provando que não aprisiona ninguém.
+
+      ATENÇÃO, ESTE PARÁGRAFO AINDA NÃO É VERDADE INTEIRA. O ZIP sai em fluxo,
+      mas `montarPacoteDeSaida` lê TODAS as tabelas sem `LIMIT` e as guarda em
+      memória antes do primeiro byte. Ou seja, o risco descrito acima continua
+      aberto pelo outro lado, e as tabelas que mais crescem (`trilha_eventos` e
+      `trilha_administrativa`) nunca encolhem, porque a trilha é append-only.
+      Está escrito em `apps/api/PENDENCIAS.md`, com o caminho de correção.
     */
     return resposta
       .type("application/zip")

@@ -23,7 +23,7 @@ import { espaco } from "../../ui/tokens";
  * confirmação explícita.
  */
 export default function Conta() {
-  const { identidade, sair, obterToken } = useSessao();
+  const { identidade, sair, obterToken, lerIdentidade } = useSessao();
   const sinal = useSinal();
   const push = usePush();
   const [pendentes, setPendentes] = useState<number | null>(null);
@@ -38,19 +38,31 @@ export default function Conta() {
   useEffect(() => {
     let vivo = true;
     void (async () => {
-      const fila = await obterFila(enderecoDaApi(), obterToken);
+      const fila = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
       const resumo = await fila.resumo();
       if (vivo) {
         setPendentes(resumo.pendentes + resumo.enviando + resumo.bloqueados);
       }
     })();
     return () => { vivo = false; };
-  }, [obterToken]);
+  }, [obterToken, lerIdentidade]);
 
+  /*
+    A promessa da saída, e ela precisa ser exata.
+
+    "Continuam guardadas no aparelho" já era verdade: o logout apaga rascunho,
+    pendência e assinatura, e não toca na fila. O que faltava era a segunda
+    metade: elas só voltam a subir com a SUA conta. Num aparelho de plantão
+    compartilhado, o agente que lê isto no fim do turno precisa saber que deixar
+    a coleta para o colega enviar não é uma opção, e por quê: o nome de quem
+    apresenta o token é o nome que o laudo e a trilha registram como autor da
+    vistoria, e a trilha é append-only.
+  */
   const avisoDaSaida = pendentes && pendentes > 0
     ? `Você tem ${pendentes} ${pendentes === 1 ? "coleta" : "coletas"} ainda não enviadas. ` +
-      "Ao sair, elas continuam guardadas no aparelho, mas só voltam a ser " +
-      "enviadas quando você entrar de novo, e isso exige sinal."
+      "Ao sair, elas continuam guardadas no aparelho e ninguém mais consegue " +
+      "enviá-las: o laudo sai com o nome de quem fez a vistoria, que é você. " +
+      "Elas voltam a subir quando você entrar de novo, com sinal."
     : "Você vai precisar de sinal e da sua senha para entrar de novo.";
 
   if (!identidade) return null;
@@ -177,7 +189,8 @@ export default function Conta() {
       {pendentes !== null && pendentes > 0 && (
         <Aviso tom="alerta">
           Antes de sair, procure sinal e espere a fila esvaziar. Enquanto você
-          estiver fora da conta, nada é enviado.
+          estiver fora da conta, estas coletas não são enviadas, nem por quem
+          entrar depois neste aparelho.
         </Aviso>
       )}
 

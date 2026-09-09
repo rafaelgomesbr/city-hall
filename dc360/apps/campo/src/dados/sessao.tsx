@@ -32,6 +32,20 @@ type EstadoSessao = {
   sair(): Promise<void>;
   /** Devolve um token de acesso válido, renovando só se estiver perto de vencer. */
   obterToken(): Promise<string | null>;
+  /**
+   * Quem está logado AGORA, lido no momento da chamada.
+   *
+   * Existe ao lado de `identidade` (que é o valor para renderizar) pela mesma
+   * razão que `obterToken` existe ao lado das credenciais: a fila de
+   * sincronização é memoizada e vive o dia inteiro, atravessando logout e
+   * login. Ela precisa carimbar cada coleta com quem coletou, e um valor
+   * capturado na primeira renderização faria a fila continuar acreditando,
+   * depois da troca de turno, que quem está no aparelho é o agente da manhã.
+   *
+   * Estável entre renderizações, como `obterToken`: passar uma função nova a
+   * cada renderização rodaria de novo o efeito que abre a fila.
+   */
+  lerIdentidade(): Identidade | null;
 };
 
 const Contexto = createContext<EstadoSessao | null>(null);
@@ -82,6 +96,19 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
   */
   const credenciais = useRef<Credenciais | null>(null);
 
+  /*
+    A identidade tambem mora numa ref, ALEM do estado, e pela mesma razao das
+    credenciais.
+
+    O estado e o que as telas desenham. A ref e o que a fila memoizada le no
+    momento de carimbar o autor da coleta, e ela precisa dizer quem esta logado
+    AGORA. Sem esta segunda copia, a fila carimbaria para sempre o agente da
+    primeira renderizacao, e a coleta do turno da manha subiria assinada pelo
+    agente da noite no aparelho de plantao compartilhado.
+  */
+  const identidadeViva = useRef<Identidade | null>(null);
+  const lerIdentidade = useRef(() => identidadeViva.current).current;
+
   useEffect(() => {
     void (async () => {
       const [c, i] = await Promise.all([
@@ -93,7 +120,11 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
         de quem é a sessão; identidade sem credencial mostraria o nome de
         alguém que não consegue sincronizar nada.
       */
-      if (c && i) { credenciais.current = c; setIdentidade(i); }
+      if (c && i) {
+        credenciais.current = c;
+        identidadeViva.current = i;
+        setIdentidade(i);
+      }
       setCarregando(false);
     })();
   }, []);
@@ -117,6 +148,7 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
   const entrar = useCallback(async (email: string, senha: string) => {
     const r = await entrarNaApi(email.trim().toLowerCase(), senha);
     credenciais.current = r.credenciais;
+    identidadeViva.current = r.identidade;
     await Promise.all([
       guardar(CHAVE_CREDENCIAIS, r.credenciais),
       guardar(CHAVE_IDENTIDADE, r.identidade),
@@ -147,6 +179,7 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
     */
     const ficha = await fichaGuardada();
     credenciais.current = null;
+    identidadeViva.current = null;
     setIdentidade(null);
     await Promise.all([
       guardar(CHAVE_CREDENCIAIS, null),
@@ -170,8 +203,8 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
   }, []);
 
   const valor = useMemo<EstadoSessao>(
-    () => ({ carregando, identidade, entrar, sair, obterToken }),
-    [carregando, identidade, entrar, sair, obterToken],
+    () => ({ carregando, identidade, entrar, sair, obterToken, lerIdentidade }),
+    [carregando, identidade, entrar, sair, obterToken, lerIdentidade],
   );
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;

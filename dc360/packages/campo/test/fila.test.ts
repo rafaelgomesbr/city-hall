@@ -9,6 +9,7 @@ import {
   lojaEmMemoria,
   transporteHttp,
   type Arquivos,
+  type AutorDaColeta,
   type ChaveValor,
   type FotoLocal,
   type Recibo,
@@ -47,6 +48,19 @@ function envelope(chave: string, ocorrencia = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaa
   };
 }
 
+/**
+ * As duas pessoas que dividem o aparelho de plantao.
+ *
+ * Elas existem em quase todo teste porque a fila nao envia nada sem saber de
+ * quem e a coleta: a sessao aberta e parte do estado da fila, como o relogio.
+ */
+const AGENTE_A: AutorDaColeta = {
+  usuarioId: "u-ana", nome: "Ana Ribeiro", organizacaoId: "org-serra-alta",
+};
+const AGENTE_B: AutorDaColeta = {
+  usuarioId: "u-bruno", nome: "Bruno Lima", organizacaoId: "org-vale-fundo",
+};
+
 const CHAVE_A = "11111111-1111-4111-8111-111111111111";
 const CHAVE_B = "22222222-2222-4222-8222-222222222222";
 const CHAVE_C = "33333333-3333-4333-8333-333333333333";
@@ -83,15 +97,20 @@ function montar(
 ) {
   const loja = lojaEmMemoria();
   const tempo = relogio();
+  /* A sessao aberta e mutavel de proposito: e assim que o teste representa a
+     troca de turno no aparelho compartilhado, sem recriar a fila (a fila do
+     aplicativo tambem nao e recriada no logout). */
+  const sessao = { atual: AGENTE_A as AutorDaColeta | null };
   const fila = criarFilaDeSincronizacao({
     deposito: depositoSobreChaveValor(loja),
     transporte: transporteFalso(transporte),
+    sessaoAtual: () => sessao.atual,
     agora: tempo.agora,
     dormir: async () => undefined,
     ruido: () => 0.5, // determinístico
     ...extras,
   });
-  return { fila, loja, tempo };
+  return { fila, loja, tempo, sessao };
 }
 
 describe("Enfileirar", () => {
@@ -103,12 +122,14 @@ describe("Enfileirar", () => {
 
     const primeira = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(loja), transporte, agora: relogio().agora,
+      sessaoAtual: () => AGENTE_A,
     });
     await primeira.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
 
     // Mesma loja, instância nova: é o que acontece quando o app é reaberto.
     const depoisDeReabrir = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(loja), transporte, agora: relogio().agora,
+      sessaoAtual: () => AGENTE_A,
     });
     const itens = await depoisDeReabrir.itens();
 
@@ -386,24 +407,73 @@ describe("Servidor recusando", () => {
     expect(r.enviados).toBe(1);
   });
 
-  it("desiste depois do teto de tentativas, sem perder o dado", async () => {
-    const { fila, tempo } = montar(
-      { enviar: async () => { throw new FalhaTemporaria("Servidor indisponível (503)."); } },
-      { maximoTentativas: 3 },
-    );
+  /*
+    Este teste substitui o que exigia `bloqueado` depois de um teto de
+    tentativas, e a troca e o conserto de um defeito medido.
+
+    Wi-Fi de prefeitura de pe mas sem rota, ou borda de cobertura: as esperas
+    (1-2s, 2-4s, 4-8s ... 64-128s) mais o piso de 15s do laco de fundo somam
+    cerca de CINCO MINUTOS ate a oitava falha. O item virava `bloqueado` com
+    codigo `tentativas_esgotadas`, a tela pintava o cartao de vermelho e dizia
+    "repetir o envio nao resolve sozinho" ao lado de um botao "Descartar",
+    sobre uma coleta que subiria sozinha na proxima janela de sinal.
+  */
+  it("rede ruim por muito tempo nao aposenta a coleta: ela continua tentando", async () => {
+    let tentativas = 0;
+    const { fila, tempo } = montar({
+      enviar: async () => {
+        tentativas += 1;
+        throw new FalhaTemporaria("Sem conexao com o servidor.");
+      },
+    });
     await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
 
-    for (let i = 0; i < 3; i++) {
+    // Vinte falhas seguidas: muito mais que os cinco minutos que bastavam
+    // para o teto antigo transformar sinal ruim em bloqueio permanente.
+    for (let i = 0; i < 20; i++) {
       await fila.drenar();
       tempo.avancar(10 * 60_000);
     }
 
     const [item] = await fila.itens();
-    expect(item!.estado).toBe("bloqueado");
-    // Bloqueado é diferente de perdido: o envelope continua inteiro na fila,
-    // e a pessoa pode mandar tentar de novo.
+    expect(tentativas, "tentou as vinte vezes").toBe(20);
+    expect(item!.estado, "sinal ruim nao e recusa do servidor").toBe("pendente");
     expect(item!.envelope.vistoria.assinanteNome).toBe("Moradora");
-    expect(item!.ultimaFalha!.mensagem).toContain("3 tentativas");
+
+    const resumo = await fila.resumo();
+    expect(resumo.bloqueados, "nada para pedir atencao: e so sinal").toBe(0);
+    expect(resumo.pendentes).toBe(1);
+
+    // E quando o sinal volta de verdade, ela sobe, sem ninguem tocar em nada.
+    const { fila: filaBoa } = montar({});
+    await filaBoa.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
+    expect((await filaBoa.drenar()).enviados).toBe(1);
+  });
+
+  /*
+    O 404 nao diz por que a ocorrencia sumiu, e a API responde 404 (nunca 403)
+    tambem para recurso de outro municipio, de proposito. Arquivar nesse codigo
+    fazia o aplicativo AFIRMAR um motivo que ele nao tinha, e ainda tirava o
+    item da contagem de atencao: a coordenacao nunca recebia o laudo e a faixa
+    dizia "Tudo sincronizado".
+  */
+  it("404 nao vira 'Arquivada': ninguem no aparelho sabe por que a ocorrencia sumiu", async () => {
+    const { fila } = montar({
+      enviar: async () => {
+        throw new FalhaPermanente("Ocorrencia nao encontrada.", "nao_encontrada");
+      },
+    });
+    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
+
+    await fila.drenar();
+
+    const [item] = await fila.itens();
+    expect(item!.estado).toBe("bloqueado");
+    expect(item!.ultimaFalha!.codigo).toBe("nao_encontrada");
+
+    const resumo = await fila.resumo();
+    expect(resumo.arquivados, "arquivar aqui seria inventar o motivo").toBe(0);
+    expect(resumo.bloqueados, "alguem precisa olhar para isto").toBe(1);
   });
 
   it("a pessoa pode mandar tentar de novo, e aí funciona", async () => {
@@ -424,6 +494,230 @@ describe("Servidor recusando", () => {
 
     await fila.drenar();
     expect((await fila.itens())[0]!.estado).toBe("confirmado");
+  });
+});
+
+describe("Aparelho de plantao compartilhado", () => {
+  /*
+    O cenario inteiro, medido: o agente A coleta a vistoria no morro, sem sinal,
+    le a minuta em voz alta COM O NOME DELE e a moradora assina no dedo. A sai
+    da conta, e o dialogo promete que a coleta continua guardada no aparelho. As
+    19:00 o agente B entra no mesmo aparelho, o laco de fundo dispara assim que
+    ha sinal, e a fila memoizada usa o `obterToken` VIVO, que agora devolve o
+    token de B. O envelope nao carrega autor: o servidor tira o `agente_id` de
+    quem apresentou o token.
+
+    Resultado antes desta correcao: o laudo e a trilha atribuiam a vistoria a um
+    servidor que nunca esteve no local, contra a propria minuta lida em voz alta
+    com outro nome. E a trilha e append-only: o autor errado nunca e corrigido.
+  */
+  it("a coleta de um agente NAO sobe com o token do agente do turno seguinte", async () => {
+    const enviados: string[] = [];
+    const { fila, sessao } = montar({
+      enviar: async (e) => {
+        enviados.push(e.idempotencyKey);
+        return { vistoriaId: "v", duplicada: false };
+      },
+    });
+
+    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
+
+    // A troca de turno: a fila e a mesma (ela e memoizada e vive o dia inteiro),
+    // so a sessao aberta mudou.
+    sessao.atual = null;   // logout de A
+    sessao.atual = AGENTE_B; // login de B
+
+    const r = await fila.drenar();
+
+    expect(enviados, "nada pode sair com a credencial de quem nao coletou").toEqual([]);
+    expect(r.enviados).toBe(0);
+
+    const [item] = await fila.itens();
+    expect(item!.estado, "a promessa do logout continua valendo").toBe("pendente");
+    expect(item!.autor!.nome).toBe("Ana Ribeiro");
+
+    const resumo = await fila.resumo();
+    expect(resumo.pendentes, "para B ela nao esta 'esperando envio'").toBe(0);
+    expect(resumo.deOutroAutor, "mas ela continua aparecendo").toBe(1);
+  });
+
+  it("quando o autor entra de novo no aparelho, a coleta dele sobe", async () => {
+    const { fila, sessao } = montar({});
+    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
+
+    sessao.atual = AGENTE_B;
+    expect((await fila.drenar()).enviados).toBe(0);
+
+    sessao.atual = AGENTE_A;
+    expect((await fila.drenar()).enviados, "sem ninguem tocar em nada").toBe(1);
+  });
+
+  /*
+    O cenario 2 da revisao: o aparelho passa de turno em turno entre municipios
+    diferentes. A coleta de A (Serra Alta) sobrevive ao logout, B entra por Vale
+    Fundo, o dreno mandava o envelope com o token de B, o servidor consultava a
+    ocorrencia sob o RLS de Vale Fundo, nao achava, e devolvia 404. O item virava
+    "Arquivada" com a frase "a ocorrencia foi encerrada no painel", que nao foi o
+    que aconteceu, o cracha zerava e Serra Alta nunca recebia o laudo.
+
+    O portao de autoria mata o cenario na origem: o envelope nem chega a sair.
+  */
+  it("o 404 de outro municipio nem chega a acontecer: o envelope nao sai", async () => {
+    let chamou = false;
+    const { fila, sessao } = montar({
+      enviar: async () => {
+        chamou = true;
+        throw new FalhaPermanente("Ocorrencia nao encontrada.", "nao_encontrada");
+      },
+    });
+    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
+
+    sessao.atual = AGENTE_B; // outro municipio
+    await fila.drenar();
+
+    expect(chamou, "o token de Vale Fundo nao pergunta por ocorrencia de Serra Alta").toBe(false);
+    const [item] = await fila.itens();
+    expect(item!.estado).toBe("pendente");
+    expect((await fila.resumo()).arquivados).toBe(0);
+  });
+
+  it("a coleta de outro agente pode ser descartada, para o cracha poder zerar", async () => {
+    /*
+      A saida do caso "o agente da manha nunca mais entra neste aparelho". Sem
+      ela a coleta ficaria no cracha para sempre, e cracha que nunca zera e
+      cracha que a pessoa aprende a ignorar. Quem chama pergunta com o nome de
+      quem coletou dentro da pergunta.
+    */
+    const { fila, sessao } = montar({});
+    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
+    sessao.atual = AGENTE_B;
+
+    await fila.descartar(CHAVE_A);
+
+    expect(await fila.itens()).toEqual([]);
+  });
+
+  it("coleta propria em espera continua protegida do descarte acidental", async () => {
+    // O descarte solto so existe para o item que nao vai sair sozinho. Item
+    // pendente do proprio agente sai por conta da fila, e apagar seria perder
+    // trabalho por engano.
+    const { fila } = montar({});
+    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
+
+    await fila.descartar(CHAVE_A);
+
+    expect(await fila.itens()).toHaveLength(1);
+  });
+});
+
+describe("Coleta sem autor registrado (aparelho que atualizou o aplicativo)", () => {
+  /**
+   * Grava direto na loja um item no formato anterior a `autor`, que e o que o
+   * aparelho de quem atualizou o aplicativo com coleta na fila realmente tem.
+   */
+  async function comItemAntigo() {
+    const loja = lojaEmMemoria();
+    await loja.escrever("dc360:fila:" + CHAVE_A, JSON.stringify({
+      id: CHAVE_A,
+      ocorrenciaId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      protocolo: "000471/2026",
+      envelope: envelope(CHAVE_A),
+      estado: "pendente",
+      tentativas: 0,
+      criadoEm: MOMENTO.toISOString(),
+      liberadoEm: MOMENTO.toISOString(),
+      ultimaFalha: null,
+      confirmadoEm: null,
+      fotos: [],
+    }));
+    return loja;
+  }
+
+  it("nao sobe sozinha: nao da para saber de quem ela e", async () => {
+    const loja = await comItemAntigo();
+    let chamou = false;
+    const fila = criarFilaDeSincronizacao({
+      deposito: depositoSobreChaveValor(loja),
+      transporte: transporteFalso({
+        enviar: async () => { chamou = true; return { vistoriaId: "v", duplicada: false }; },
+      }),
+      sessaoAtual: () => AGENTE_B,
+      agora: relogio().agora,
+    });
+
+    await fila.drenar();
+
+    expect(chamou, "subir com quem estiver logado e o defeito, nao a correcao").toBe(false);
+    expect((await fila.itens())[0]!.autor).toBeNull();
+    expect((await fila.resumo()).deOutroAutor).toBe(1);
+  });
+
+  it("sobe depois que alguem assume a autoria com o dedo", async () => {
+    const loja = await comItemAntigo();
+    const fila = criarFilaDeSincronizacao({
+      deposito: depositoSobreChaveValor(loja),
+      transporte: transporteFalso({}),
+      sessaoAtual: () => AGENTE_B,
+      agora: relogio().agora,
+    });
+
+    await fila.assumir(CHAVE_A);
+
+    expect((await fila.itens())[0]!.autor).toEqual(AGENTE_B);
+    expect((await fila.drenar()).enviados).toBe(1);
+  });
+
+  it("assumir NUNCA reescreve o autor de uma coleta que ja tem um", async () => {
+    // Reescrever a autoria com um toque seria o mesmo dado falso que o carimbo
+    // evita, so que de proposito.
+    const { fila, sessao } = montar({});
+    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
+    sessao.atual = AGENTE_B;
+
+    await fila.assumir(CHAVE_A);
+
+    expect((await fila.itens())[0]!.autor).toEqual(AGENTE_A);
+  });
+});
+
+describe("Aparelho que atualizou com item aposentado pelo teto antigo", () => {
+  it("`tentativas_esgotadas` gravado no disco volta a ser tentado", async () => {
+    /*
+      O teto de tentativas deixou de existir, mas o aparelho que atualiza pode
+      ter uma vistoria boa gravada em `bloqueado` por causa dele. `bloqueado`
+      nao sai do dreno sozinho: ela ficaria vermelha na tela, dizendo "repetir
+      nao resolve", ate alguem apagar a manha de trabalho.
+    */
+    const loja = lojaEmMemoria();
+    await loja.escrever("dc360:fila:" + CHAVE_A, JSON.stringify({
+      id: CHAVE_A,
+      autor: AGENTE_A,
+      ocorrenciaId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      protocolo: "000471/2026",
+      envelope: envelope(CHAVE_A),
+      estado: "bloqueado",
+      tentativas: 8,
+      criadoEm: MOMENTO.toISOString(),
+      liberadoEm: MOMENTO.toISOString(),
+      ultimaFalha: {
+        codigo: "tentativas_esgotadas",
+        mensagem: "Não foi possível enviar depois de 8 tentativas.",
+        campos: [], permanente: true, em: MOMENTO.toISOString(),
+      },
+      confirmadoEm: null,
+      fotos: [],
+    }));
+
+    const fila = criarFilaDeSincronizacao({
+      deposito: depositoSobreChaveValor(loja),
+      transporte: transporteFalso({}),
+      sessaoAtual: () => AGENTE_A,
+      agora: relogio().agora,
+    });
+
+    expect((await fila.itens())[0]!.estado).toBe("pendente");
+    expect((await fila.resumo()).bloqueados).toBe(0);
+    expect((await fila.drenar()).enviados).toBe(1);
   });
 });
 
@@ -493,6 +787,7 @@ describe("Cancelamento no meio do dreno", () => {
     const morreu = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(loja),
       agora: tempo.agora,
+      sessaoAtual: () => AGENTE_A,
       transporte: transporteFalso({
         enviar: async (e) => {
           chavesVistas.push(e.idempotencyKey);
@@ -509,6 +804,7 @@ describe("Cancelamento no meio do dreno", () => {
     const reaberto = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(loja),
       agora: tempo.agora,
+      sessaoAtual: () => AGENTE_A,
       transporte: transporteFalso({
         enviar: async (e): Promise<Recibo> => {
           chavesVistas.push(e.idempotencyKey);
@@ -700,6 +996,7 @@ describe("Depósito", () => {
     const fila = criarFilaDeSincronizacao({
       deposito,
       transporte: transporteFalso({}),
+      sessaoAtual: () => AGENTE_A,
       agora: relogio().agora,
     });
 
@@ -719,6 +1016,7 @@ describe("Depósito", () => {
     const fila = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(loja),
       transporte: transporteFalso({}),
+      sessaoAtual: () => AGENTE_A,
       agora: relogio().agora,
     });
     expect(await fila.itens()).toHaveLength(0);
@@ -912,6 +1210,7 @@ describe("Fotos da coleta", () => {
     const fila = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(loja),
       transporte: transporteFalso(parcial),
+      sessaoAtual: () => AGENTE_A,
       arquivos,
       agora: tempo.agora,
       dormir: async () => undefined,

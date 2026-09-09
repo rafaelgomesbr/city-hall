@@ -11,9 +11,9 @@ build) valem lá, não aqui.
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 142 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 254 testes de fonte do painel mais 58 verificações no navegador no modo local e 103 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 561 testes da API passando |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 90 testes de unidade do motor de campo e 10 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 287 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 624 testes da API passando |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 100 testes de unidade do motor de campo e 10 de integração contra a API |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 308 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 
 ## Os dois modos do painel
 
@@ -199,6 +199,14 @@ Sem `DATABASE_URL` ela sobe um Postgres em WebAssembly no próprio processo,
 efêmero, só para desenvolver. Em produção a configuração recusa essa
 combinação e exige `DATABASE_URL` e `JWT_SEGREDO`: um servidor que sobe com
 chave padrão é pior que um que não sobe, porque parece funcionar.
+
+Em produção a `DATABASE_URL` também precisa pedir verificação do certificado
+do banco, ou seja, terminar em `?sslmode=verify-full`. Sem isso o pool não
+monta a âncora de confiança e a conexão sobe cifrada e **não autenticada**,
+que é uma combinação com cara de segura: quem estiver entre a API e o banco lê
+e reescreve a base de todos os municípios, e o SCRAM não acusa nada, porque o
+intermediário só retransmite o desafio e a resposta. O certificado raiz já vem
+versionado em `db/provedores/`, então não há mais nada a configurar.
 
 ## O motor de sincronização offline (`packages/campo`)
 
@@ -675,7 +683,13 @@ DATABASE_URL=postgres://dc360_setup:...@host/dc360 npm run provisionar --   --mu
 
 # 4. Suba a API e o painel. A DATABASE_URL da API e a do papel de APLICACAO
 #    (dc360_api), nunca a do setup: a API nao pode ter CREATEROLE nem BYPASSRLS.
-#    DATABASE_URL=postgres://dc360_api:...@host/dc360
+#    E ela PRECISA terminar em ?sslmode=verify-full: a URL que o painel do
+#    provedor oferece nao traz esse parametro, e sem ele a conexao com o banco
+#    sobe cifrada e NAO autenticada, com a base de todos os municipios exposta
+#    para leitura e escrita a quem estiver no meio do caminho. A ancora de
+#    confianca ja vem versionada em db/provedores/, entao nao ha mais nada a
+#    configurar, e a partida em producao recusa subir sem o parametro.
+#    DATABASE_URL=postgres://dc360_api:...@host/dc360?sslmode=verify-full
 ```
 
 O que a pessoa faz na primeira entrada, e é o passo que se esquece: abrir
@@ -733,11 +747,11 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 1150 testes em cinco pacotes
+npm test                    # 1223 testes em cinco pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 142 testes do banco
-npm run test:api            # 561 testes da API
-npm run test --workspace @dc360/campo   # 90 testes do motor de campo
-npm run test:campo          # tipos e os 287 testes do aplicativo de campo
+npm run test:api            # 624 testes da API
+npm run test --workspace @dc360/campo   # 100 testes do motor de campo
+npm run test:campo          # tipos e os 308 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
 ```
@@ -1014,7 +1028,7 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
 
-  Essa última já tem 90 testes do motor de campo cobrindo a lógica fora do
+  Essa última já tem 100 testes do motor de campo cobrindo a lógica fora do
   celular, inclusive retomada arquivo a arquivo.
   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e

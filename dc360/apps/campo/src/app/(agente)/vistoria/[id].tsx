@@ -20,6 +20,7 @@ import {
   atualizarPendencias, orgaosGuardados, pendenciaGuardada,
 } from "../../../dados/pendencias";
 import { arquivarColeta, coletaDe, marcarColetada } from "../../../dados/coletas";
+import { guardarFotoNoAparelho } from "../../../dados/evidencia-no-disco";
 import { obterFila } from "../../../dados/fila";
 import { abrirNoMapa } from "../../../dados/mapa";
 import {
@@ -101,7 +102,7 @@ export default function TelaDeVistoria() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navegacao = useNavigation();
   const tema = useTema();
-  const { obterToken, identidade } = useSessao();
+  const { obterToken, identidade, lerIdentidade } = useSessao();
 
   const [ocorrencia, setOcorrencia] = useState<Pendencia | null>(null);
   const [rascunho, setRascunho] = useState<Rascunho | null>(null);
@@ -377,15 +378,24 @@ export default function TelaDeVistoria() {
 
   async function guardarFoto(uri: string): Promise<void> {
     if (!rascunho) return;
-    const arquivo = new File(uri);
+    /*
+      A foto sai do cache do sistema ANTES de entrar no rascunho.
+
+      A câmera devolve um caminho de cache, e cache é o que o sistema apaga
+      sozinho quando o armazenamento aperta. Guardar esse caminho aqui faria a
+      coleta apontar, por horas, para um arquivo que pode sumir sem aviso, e o
+      envio inteiro morreria nele. O porquê está inteiro em
+      `dados/evidencia-no-disco.ts`.
+    */
+    const guardada = guardarFotoNoAparelho(uri, rascunho.fotos.length);
     const foto: FotoLocal = {
       // A chave nasce aqui, com a foto, e não no envio: é ela que impede o
       // servidor de aceitar a mesma imagem duas vezes se o envio for repetido.
       idempotencyKey: Crypto.randomUUID(),
-      uriLocal: uri,
+      uriLocal: guardada.uriLocal,
       nomeArquivo: `vistoria-${rascunho.protocolo.replace("/", "-")}-${rascunho.fotos.length + 1}.jpg`,
       tipoConteudo: "image/jpeg",
-      tamanhoBytes: arquivo.size ?? 0,
+      tamanhoBytes: guardada.tamanhoBytes,
       capturadaEm: new Date().toISOString(),
       ordem: rascunho.fotos.length,
       ...(rascunho.coordenada ? { coordenada: rascunho.coordenada } : {}),
@@ -499,7 +509,7 @@ export default function TelaDeVistoria() {
         },
       };
 
-      const fila = await obterFila(enderecoDaApi(), obterToken);
+      const fila = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
 
       /*
         A assinatura vai por fora da lista de fotos. Ela sobe pelo mesmo

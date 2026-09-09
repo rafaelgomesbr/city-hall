@@ -1,0 +1,125 @@
+/**
+ * A foto da vistoria não pode morar no cache do sistema.
+ *
+ * O defeito que este arquivo trava: `takePictureAsync` devolve um caminho no
+ * diretório de cache, nada copiava a foto de lá, e o sistema apaga cache sozinho
+ * quando o armazenamento aperta, num aparelho de entrada que vive cheio. A
+ * coleta espera horas por sinal. Quando o envio finalmente acontece, ele lê os
+ * bytes da foto ANTES de mandar o envelope: o arquivo não existe mais, a leitura
+ * estoura, e o envelope inteiro (checklist, GPS, assinatura, observações) nunca
+ * sai. Uma foto apagada pelo sistema destruía a vistoria inteira.
+ */
+
+/* Prefixo `mock`: é o que o jest permite dentro da fábrica de `jest.mock`. */
+const mockCopias: { de: string; para: string }[] = [];
+const mockTamanhos = new Map<string, number>();
+
+jest.mock("expo-file-system", () => ({
+  Paths: { document: "file:///documentos" },
+  File: class {
+    uri: string;
+    constructor(base: string | { document: string }, nome?: string) {
+      const raiz = typeof base === "string" ? base : base.document;
+      this.uri = nome ? `${raiz}/${nome}` : raiz;
+    }
+    get size(): number | null {
+      return mockTamanhos.get(this.uri) ?? null;
+    }
+    get exists(): boolean {
+      return mockTamanhos.has(this.uri);
+    }
+    async bytes(): Promise<Uint8Array> {
+      return new Uint8Array(mockTamanhos.get(this.uri) ?? 0);
+    }
+    copy(destino: { uri: string }): void {
+      mockCopias.push({ de: this.uri, para: destino.uri });
+      mockTamanhos.set(destino.uri, mockTamanhos.get(this.uri) ?? 0);
+    }
+  },
+}));
+
+import { FalhaPermanente } from "@dc360/campo";
+import { arquivosDoAparelho, guardarFotoNoAparelho } from "./evidencia-no-disco";
+
+beforeEach(() => {
+  mockCopias.length = 0;
+  mockTamanhos.clear();
+  jest.spyOn(Date, "now").mockReturnValue(1_757_000_000_000);
+});
+
+afterEach(() => { jest.restoreAllMocks(); });
+
+const DA_CAMERA = "file:///cache/ImagePicker/abc123.jpg";
+
+describe("a foto recém tirada", () => {
+  it("é copiada do cache para o diretório de documentos", async () => {
+    mockTamanhos.set(DA_CAMERA, 812_345);
+
+    const r = guardarFotoNoAparelho(DA_CAMERA, 0);
+
+    expect(mockCopias).toEqual([
+      { de: DA_CAMERA, para: "file:///documentos/foto-1757000000000-0.jpg" },
+    ]);
+    // O rascunho não pode guardar o caminho do cache.
+    expect(r.uriLocal).toBe("file:///documentos/foto-1757000000000-0.jpg");
+    expect(r.uriLocal).not.toContain("cache");
+  });
+
+  it("declara o tamanho do arquivo que ficou, e não o do original", async () => {
+    /*
+      É esse número que vai na autorização de envio, e o servidor confere. Ler
+      do original faria a conferência bater por acaso, e deixaria de bater no
+      dia em que a cópia falhasse pela metade.
+    */
+    mockTamanhos.set(DA_CAMERA, 812_345);
+
+    expect(guardarFotoNoAparelho(DA_CAMERA, 0).tamanhoBytes).toBe(812_345);
+  });
+
+  it("duas fotos no mesmo milissegundo não viram uma só", async () => {
+    // Acontece quando o agente segura o botão. Nome repetido sobrescreveria a
+    // foto anterior, e a foto anterior é prova.
+    const primeira = guardarFotoNoAparelho(DA_CAMERA, 0);
+    const segunda = guardarFotoNoAparelho(DA_CAMERA, 1);
+
+    expect(primeira.uriLocal).not.toBe(segunda.uriLocal);
+  });
+});
+
+describe("a leitura dos bytes na hora de enviar", () => {
+  it("lê o arquivo que está lá", async () => {
+    mockTamanhos.set("file:///documentos/foto-1-0.jpg", 3);
+
+    const bytes = await arquivosDoAparelho.ler("file:///documentos/foto-1-0.jpg");
+
+    expect(bytes).toHaveLength(3);
+  });
+
+  it("arquivo que sumiu vira falha PERMANENTE, e não tentativa eterna", async () => {
+    /*
+      A fila insiste para sempre em falha temporária, de propósito: sinal ruim é
+      a condição normal de trabalho e não pode aposentar coleta boa. Um arquivo
+      que não existe nunca vai existir. Deixar o erro cru do sistema subir faria
+      a fila tratá-lo como problema de rede e tentar de novo a cada cinco
+      minutos, para sempre, com a tela dizendo "vai continuar tentando sozinha".
+    */
+    await expect(arquivosDoAparelho.ler("file:///documentos/sumiu.jpg"))
+      .rejects.toBeInstanceOf(FalhaPermanente);
+  });
+
+  it("e a frase é em português e termina numa ação", async () => {
+    // O erro do `expo-file-system` chega em inglês, e ele apareceria como texto
+    // final na tela do agente, na rua.
+    let falha: FalhaPermanente | null = null;
+    try {
+      await arquivosDoAparelho.ler("file:///documentos/sumiu.jpg");
+    } catch (e) {
+      falha = e as FalhaPermanente;
+    }
+    if (!falha) throw new Error("a leitura precisava ter falhado");
+
+    expect(falha.codigo).toBe("arquivo_sumiu");
+    expect(falha.message).toContain("não está mais neste aparelho");
+    expect(falha.message).toContain("Avise a coordenação");
+  });
+});

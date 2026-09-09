@@ -91,6 +91,31 @@ export type FalhaRegistrada = {
   em: string;
 };
 
+/**
+ * Quem coletou. Fica gravado no item da fila, junto com a coleta.
+ *
+ * O aparelho de plantão é compartilhado entre turnos, e o envelope NÃO carrega
+ * autor nenhum: o servidor tira o `agente_id` de quem apresentou o token. Sem
+ * esta marca, a coleta que o agente da manhã fez no morro, com a minuta lida em
+ * voz alta com o nome dele e a assinatura da moradora por cima, subia às 19:00
+ * com a credencial do agente da noite. O laudo e a trilha passavam a atribuir a
+ * vistoria a um servidor que nunca esteve no local, contra a própria minuta, e
+ * a trilha é append-only: o autor errado nunca é corrigido, só comentado por um
+ * evento novo.
+ *
+ * `organizacaoId` entra junto com o usuário, e não é redundância: o mesmo
+ * aparelho passa de município em município, e a mesma pessoa pode ter conta em
+ * dois. O que precisa bater é o par.
+ *
+ * `nome` é o único campo que existe para a tela: sem ele, o item de outro turno
+ * aparece na fila como uma coleta anônima que ninguém sabe de quem cobrar.
+ */
+export type AutorDaColeta = {
+  usuarioId: string;
+  nome: string;
+  organizacaoId: string;
+};
+
 export type ItemFila = {
   /**
    * A chave de idempotência, gerada no aparelho no momento da coleta. É
@@ -98,6 +123,17 @@ export type ItemFila = {
    * exatamente isso que permite ao servidor reconhecer o reenvio.
    */
   id: string;
+  /**
+   * Quem coletou, carimbado no momento de enfileirar a partir da sessão que
+   * estava aberta.
+   *
+   * `null` significa "não dá para saber": item gravado por uma versão do
+   * aplicativo anterior a este campo. Item sem autor não sobe sozinho, porque
+   * subir com a credencial de quem estiver logado é exatamente o defeito que
+   * este campo existe para impedir; ele espera alguém assumir a autoria com o
+   * dedo, em `assumir`.
+   */
+  autor: AutorDaColeta | null;
   ocorrenciaId: string;
   protocolo: string;
   envelope: EnvelopeSincronizacao;
@@ -218,6 +254,18 @@ export type ResumoFila = {
   bloqueados: number;
   /** Coletas que perderam o destino. Fora da contagem de "precisa de atenção". */
   arquivados: number;
+  /**
+   * Coletas que NÃO sobem com a sessão que está aberta agora: são de outro
+   * agente, ou não têm autor registrado.
+   *
+   * Conta separado de `pendentes` porque as duas frases da tela são opostas.
+   * "Esperando envio" promete que sai sozinha assim que houver sinal, e isso
+   * seria mentira aqui: enquanto o autor não entrar neste aparelho, ela não
+   * sai. Somar as duas produziria a faixa verde "Tudo sincronizado" com uma
+   * vistoria parada no aparelho, que é a pior frase que este produto pode
+   * exibir.
+   */
+  deOutroAutor: number;
   /** Verdadeiro enquanto um dreno está em andamento. */
   sincronizando: boolean;
 };

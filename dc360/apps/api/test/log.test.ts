@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
-import { CAMINHOS_REDIGIDOS, construirServidor } from "../src/servidor.js";
+import {
+  CAMINHOS_REDIGIDOS, PREFIXOS_COM_SEGREDO_NA_URL, caminhoParaLog, construirServidor,
+} from "../src/servidor.js";
 import { carregarConfig } from "../src/config.js";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
 
@@ -259,8 +261,13 @@ describe("O segundo fator no log", () => {
 /**
  * O link de redefinição de senha nunca chega ao log.
  *
- * Este era o único caminho do produto em que um segredo VIVO saía em texto
- * puro. `servidor.ts` tinha `notificador = notificadorDeLog()` como padrão,
+ * Este ERA o único caminho do produto em que um segredo VIVO saía em texto
+ * puro, e deixou de ser: o ofício numerado trouxe
+ * `GET /publico/oficio/<token>`, que leva o segredo no CAMINHO da URL. Ver o
+ * bloco "O segredo que viaja no caminho da URL" no fim deste arquivo, e note
+ * que este arquivo ficou verde por todo esse tempo conferindo corpo, cabeçalho
+ * e query string, e caminho nenhum. `servidor.ts` tinha
+ * `notificador = notificadorDeLog()` como padrão,
  * `index.ts` não passava notificador, e `config.ts` não tinha variável
  * nenhuma de notificação: produção caía no log, e o `console.log` do
  * notificador passa por fora do `redact` do Fastify.
@@ -303,7 +310,9 @@ describe("O notificador de log", () => {
     const { carregarConfig } = await import("../src/config.js");
     const base = {
       NODE_ENV: "production",
-      DATABASE_URL: "postgres://u:s@localhost:5432/d",
+      // Com `sslmode=verify-full` porque produção recusa subir sem ele desde
+      // 09/09/2026. Ver `banco-tls.test.ts`.
+      DATABASE_URL: "postgres://u:s@localhost:5432/d?sslmode=verify-full",
       JWT_SEGREDO: "segredo-de-producao-com-mais-de-trinta-e-dois-bytes",
       ORIGENS_PERMITIDAS: "https://painel.exemplo.gov.br",
       URL_PAINEL: "https://painel.exemplo.gov.br",
@@ -344,5 +353,73 @@ describe("O notificador de log", () => {
       NOTIFICADOR_URL: "https://email.exemplo.com/enviar",
       NOTIFICADOR_CHAVE: "chave-do-provedor",
     })).toThrow(/EMAIL_ATIVO=nao/);
+  });
+});
+
+/**
+ * O segredo que viaja no CAMINHO da URL.
+ *
+ * O serializador de `req` foi escrito para redigir a query string, e resolvia
+ * o caso que o motivou (`GET /duplicidades/consulta?endereco=`). Só que o
+ * produto ganhou depois uma rota cujo segredo não vai na query: o ofício
+ * numerado é `/publico/oficio/:token`, e `req.url.split("?")[0]` preserva o
+ * caminho inteiro. Reproduzido com NODE_ENV=production: o log de requisição
+ * gravava `"url":"/publico/oficio/TOKEN-..."`.
+ *
+ * O que isso custa é o produto inteiro daquela rota. Ela é a única leitura sem
+ * autenticação que devolve dado de município, e o que a protege não é token de
+ * sessão: é um segredo de 32 bytes que só existe dentro do email enviado ao
+ * órgão destinatário. Com ele no log, quem lê o log abre o dossiê da família
+ * (nome, contato, endereço, vulnerabilidade) ANTES do destinatário, e o link
+ * queima: o bombeiro que abrir depois recebe a página de "já foi aberto", e a
+ * providência para de andar sem ninguém entender por quê.
+ *
+ * E o log é lido por mais gente, e guardado por mais tempo, do que a caixa de
+ * entrada do órgão: é o oposto exato da promessa de que aquele segredo só
+ * existe dentro do email.
+ */
+describe("O segredo que viaja no caminho da URL", () => {
+  const TOKEN = "TOKEN-de-uso-unico-do-oficio-muito-peculiar-8841";
+
+  it("o token do oficio nao sai no log de requisicao", async () => {
+    linhas = [];
+
+    const r = await app.inject({ method: "GET", url: `/publico/oficio/${TOKEN}` });
+
+    /*
+      A rota precisa EXISTIR, senão o caso passa provando nada: uma rota
+      inexistente cai no `setNotFoundHandler`, que responde JSON, e a asserção
+      abaixo ficaria verde para sempre. Token desconhecido responde 404 em
+      HTML, com a mesma cara de rota que não existe, de propósito.
+    */
+    expect(r.headers["content-type"]).toContain("text/html");
+
+    const saiu = tudo();
+    // Prova de que a requisição FOI registrada: sem isto, um log desligado
+    // faria o caso passar pelo motivo errado.
+    expect(saiu).toContain("/publico/oficio/");
+    expect(saiu, "o segredo de uso único do ofício saiu no log, no caminho da URL")
+      .not.toContain(TOKEN);
+  });
+
+  it("o caminho registrado continua servindo para diagnosticar", () => {
+    // Redigir não pode virar apagar: quem investiga precisa saber que alguém
+    // bateu naquela rota, e quantas vezes.
+    expect(caminhoParaLog(`/publico/oficio/${TOKEN}`)).toBe("/publico/oficio/[removido]");
+    expect(caminhoParaLog("/ocorrencias/123?pagina=2")).toBe("/ocorrencias/123");
+    expect(caminhoParaLog("/saude")).toBe("/saude");
+  });
+
+  it("todo prefixo declarado e uma rota de verdade", () => {
+    /*
+      A lista mente no dia em que uma rota é renomeada e ninguém mexe aqui: o
+      prefixo deixa de casar, o segredo volta ao log, e nada fica vermelho.
+      Este caso confere que cada prefixo declarado ainda encontra rota.
+    */
+    const tabela = app.printRoutes({ commonPrefix: false });
+    for (const prefixo of PREFIXOS_COM_SEGREDO_NA_URL) {
+      expect(tabela, `${prefixo} não corresponde a nenhuma rota registrada`)
+        .toContain(prefixo.replace(/\/$/, ""));
+    }
   });
 });

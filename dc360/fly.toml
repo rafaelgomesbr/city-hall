@@ -27,7 +27,15 @@ primary_region = "gru"
 #
 # SEGREDOS que precisam existir, senão o processo recusa subir (de propósito,
 # ver a lista de checagens em apps/api/src/config.ts):
-#   DATABASE_URL       papel dc360_api, NUNCA o postgres do Supabase
+#   DATABASE_URL       papel dc360_api, NUNCA o postgres do Supabase, e ela
+#                      PRECISA terminar em `?sslmode=verify-full`. A URL que o
+#                      painel do Supabase oferece NÃO traz isso, e sem isso a
+#                      conexão sobe cifrada e não autenticada: quem estiver
+#                      entre o Fly e o banco lê e reescreve a base de todos os
+#                      municípios. Desde 09/09/2026 a partida em produção
+#                      RECUSA subir sem o parâmetro, em vez de subir calada.
+#                      Exemplo:
+#                        fly secrets set DATABASE_URL='postgres://dc360_api:SENHA@HOST:5432/postgres?sslmode=verify-full'
 #   JWT_SEGREDO        >= 32 bytes
 #   URL_PUBLICA        https, sem localhost
 #   URL_PAINEL         https, sem localhost
@@ -47,6 +55,15 @@ primary_region = "gru"
   # O armazenamento é o do próprio Supabase, então a região é a real do
   # projeto, e não o "auto" que valeria no Cloudflare R2.
   S3_REGIAO = "sa-east-1"
+  # De quem este processo aceita cabeçalho de origem. `fly` faz o servidor ler
+  # `Fly-Client-IP`, e essa declaração PRECISA existir aqui, e não ser
+  # adivinhada pelo código: o cabeçalho é posto pelo edge do Fly, mas fora do
+  # Fly ele é só um cabeçalho que qualquer cliente escreve. Com o valor padrão
+  # (`nenhum`), trinta tentativas de login com `Fly-Client-IP` diferente a cada
+  # uma davam ZERO recusas, e o endereço gravado na trilha como autor da
+  # exportação da base de cidadãos era escolhido por quem exportava.
+  # Trocar de PaaS (Railway, Render) significa VOLTAR isto para `nenhum`.
+  PROXY_DE_BORDA = "fly"
 
 [http_service]
   internal_port = 3333

@@ -51,6 +51,11 @@ function bancoFalso(): BancoSqlite & {
   };
 }
 
+/** Quem esta logado no aparelho durante estes testes. */
+const AGENTE = {
+  usuarioId: "u-ana", nome: "Ana Ribeiro", organizacaoId: "org-serra-alta",
+};
+
 const CHAVE_A = "11111111-1111-4111-8111-111111111111";
 const CHAVE_B = "22222222-2222-4222-8222-222222222222";
 
@@ -156,6 +161,7 @@ describe("A fila inteira sobre SQLite", () => {
     const primeira = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(lojaSqlite(db)),
       transporte,
+      sessaoAtual: () => AGENTE,
     });
     await primeira.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
 
@@ -164,6 +170,7 @@ describe("A fila inteira sobre SQLite", () => {
     const reaberta = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(lojaSqlite(db)),
       transporte,
+      sessaoAtual: () => AGENTE,
     });
     const itens = await reaberta.itens();
 
@@ -178,6 +185,7 @@ describe("A fila inteira sobre SQLite", () => {
 
     const fila = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(lojaSqlite(db)),
+      sessaoAtual: () => AGENTE,
       transporte: {
         ...transporte,
         enviar: async (e) => {
@@ -205,6 +213,7 @@ describe("A fila inteira sobre SQLite", () => {
     const fila = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(lojaSqlite(db)),
       transporte,
+      sessaoAtual: () => AGENTE,
     });
     await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
 

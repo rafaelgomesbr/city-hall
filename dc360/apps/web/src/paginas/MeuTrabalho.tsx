@@ -43,7 +43,7 @@ export function MeuTrabalho() {
   if (erro) return <Aviso tom="perigo">{erro}</Aviso>;
   if (!dados) return <Carregando />;
 
-  const { equipe, colegas, designadas, concluidas } = dados;
+  const { equipe, colegas, designadas, concluidas, totalConcluidas, tetoDeConcluidas } = dados;
 
   return (
     <>
@@ -135,7 +135,18 @@ export function MeuTrabalho() {
         )}
       </Cartao>
 
-      <Cartao titulo={`Vistorias que eu concluí (${concluidas.length})`}>
+      {/*
+        O NUMERO DO TITULO E O TOTAL, e nao o tamanho da lista.
+
+        Antes ele imprimia o tamanho da lista, e as duas pontas cortam em
+        cinquenta: um agente com sessenta e duas vistorias lia "(50)", e as doze
+        mais antigas nao apareciam em lugar nenhum do produto, sem rodape, sem
+        aviso e sem "ver mais". Se ele precisasse mostrar que vistoriou aquele
+        imovel em janeiro, a tela AFIRMAVA que ele nunca vistoriou. Esta e a
+        tela do registro do trabalho dele, e e o que ele leva quando o ato for
+        questionado.
+      */}
+      <Cartao titulo={`Vistorias que eu concluí (${totalConcluidas})`}>
         {concluidas.length === 0 ? (
           <Vazio titulo="Você ainda não concluiu nenhuma vistoria">
             {MODO === "local"
@@ -191,6 +202,13 @@ export function MeuTrabalho() {
               </tbody>
             </table>
           </div>
+        )}
+        {totalConcluidas > tetoDeConcluidas && (
+          <Aviso tom="info">
+            {`Mostrando as ${tetoDeConcluidas} mais recentes. Outras `}
+            {totalConcluidas - tetoDeConcluidas}
+            {" estão registradas e não cabem nesta lista."}
+          </Aviso>
         )}
       </Cartao>
 

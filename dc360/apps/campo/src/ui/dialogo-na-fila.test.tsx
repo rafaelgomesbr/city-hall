@@ -24,7 +24,21 @@
  */
 
 import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
-import type { ItemFila } from "@dc360/campo";
+import type { AutorDaColeta, ItemFila } from "@dc360/campo";
+
+/*
+  Quem está logado, e de quem são as coletas.
+
+  Não é enfeite do teste: a fila só envia coleta de quem está com a sessão
+  aberta, porque o autor da vistoria no laudo é quem apresentou o token. Uma
+  coleta sem autor, ou de outro agente, é outro cartão e outra tela.
+*/
+const AGENTE: AutorDaColeta = {
+  usuarioId: "u-ana", nome: "Ana Ribeiro", organizacaoId: "org-serra-alta",
+};
+const OUTRO_AGENTE: AutorDaColeta = {
+  usuarioId: "u-bruno", nome: "Bruno Lima", organizacaoId: "org-serra-alta",
+};
 
 jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
   __esModule: true, default: () => "dark",
@@ -40,7 +54,11 @@ jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" })
   `setState` no fim, o teste entra em laço infinito até o Node ficar sem
   memória. Nada disso seria culpa da tela.
 */
-const mockSessao = { obterToken: async () => "token-de-mentira" };
+const mockSessao = {
+  obterToken: async () => "token-de-mentira",
+  lerIdentidade: () => AGENTE,
+  identidade: AGENTE,
+};
 jest.mock("../dados/sessao", () => ({ useSessao: () => mockSessao }));
 
 jest.mock("../dados/conectividade", () => ({
@@ -50,6 +68,7 @@ jest.mock("../dados/conectividade", () => ({
 let mockItens: ItemFila[] = [];
 const mockDescartar = jest.fn(async () => {});
 const mockReenviar = jest.fn(async () => {});
+const mockAssumir = jest.fn(async () => {});
 /* Pelo mesmo motivo da sessão: uma fila nova a cada chamada vira estado novo,
    que vira renderização nova, que abre a fila de novo, para sempre. */
 const mockFila = {
@@ -58,6 +77,7 @@ const mockFila = {
   drenar: async () => undefined,
   descartar: mockDescartar,
   reenviar: mockReenviar,
+  assumir: mockAssumir,
 };
 jest.mock("../dados/fila", () => ({ obterFila: async () => mockFila }));
 
@@ -68,6 +88,7 @@ function item(parcial: Partial<ItemFila> & Pick<ItemFila, "id" | "estado">): Ite
   return {
     ocorrenciaId: `oc-${parcial.id}`,
     protocolo: "2026/000123",
+    autor: AGENTE,
     envelope: {} as ItemFila["envelope"],
     tentativas: 0,
     criadoEm: "2026-09-09T09:00:00.000Z",
@@ -96,6 +117,7 @@ beforeEach(() => {
   mockItens = [BLOQUEADO];
   mockDescartar.mockClear();
   mockReenviar.mockClear();
+  mockAssumir.mockClear();
 });
 
 /** Monta a tela e espera a fila responder com a lista. */
@@ -231,5 +253,138 @@ describe("o selo de estado de cada item", () => {
     expect(
       screen.getByLabelText("Protocolo 2026/000777: Precisa de atenção"),
     ).toBeTruthy();
+  });
+});
+
+describe("a coleta arquivada tem saída pela tela", () => {
+  /*
+    O defeito, medido: a coordenação encerra a ocorrência por engano às 14:00
+    enquanto a coleta espera sinal, às 15:00 o item vira `arquivado`, às 15:10 a
+    coordenação reabre. O agente abre a fila e o cartão mostra o selo "Arquivada"
+    e MAIS NADA: a linha de botões inteira estava atrás de
+    `item.estado === "bloqueado"`. "Tentar enviar agora" também não resolvia,
+    porque o dreno só pega pendente e enviando.
+
+    O motor já aceitava os dois verbos para `arquivado`, com um comentário
+    dizendo "sem isto, o botão some exatamente nos itens que o estado novo
+    criou". Quem fazia o botão sumir era esta tela.
+  */
+  const ARQUIVADA = item({
+    id: "coleta-arquivada",
+    estado: "arquivado",
+    protocolo: "2026/000888",
+  });
+
+  it("oferece 'Tentar de novo', para o caso de a ocorrência ser reaberta", async () => {
+    mockItens = [ARQUIVADA];
+    await abrirATela();
+
+    await tocar("Tentar de novo");
+
+    expect(mockReenviar).toHaveBeenCalledWith("coleta-arquivada");
+  });
+
+  it("oferece 'Descartar', com a mesma pergunta das outras", async () => {
+    mockItens = [ARQUIVADA];
+    await abrirATela();
+
+    await tocar("Descartar");
+    expect(mockDescartar).not.toHaveBeenCalled();
+
+    await act(async () => { fireEvent.press(screen.getByTestId("dialogo-acao")); });
+    expect(mockDescartar).toHaveBeenCalledWith("coleta-arquivada");
+  });
+
+  it("não entra no contador de 'coletas na fila', que precisa poder zerar", async () => {
+    /*
+      Arquivada não vai ser enviada por ninguém. Contá-la ali produzia um número
+      que nunca descia para zero, e contador que nunca zera é contador que a
+      pessoa aprende a ignorar, inclusive quando ele passa a indicar algo de
+      verdade.
+    */
+    mockItens = [ARQUIVADA];
+    await abrirATela();
+
+    expect(screen.queryByText("1 coleta na fila")).toBeNull();
+    expect(screen.getByText("1 coleta arquivada")).toBeTruthy();
+  });
+});
+
+describe("a coleta do agente do turno anterior", () => {
+  const DE_OUTRO = item({
+    id: "coleta-da-ana",
+    estado: "pendente",
+    protocolo: "2026/000999",
+    autor: OUTRO_AGENTE,
+  });
+
+  it("não diz 'Aguardando': ela não sai enquanto quem coletou não entrar", async () => {
+    /*
+      No disco ela está em `pendente`, e "Aguardando" prometia que sai assim que
+      houver sinal. Não sai: o dreno não toca em coleta de outra pessoa, porque o
+      servidor tira o autor da vistoria de quem apresentou o token.
+    */
+    mockItens = [DE_OUTRO];
+    await abrirATela();
+
+    expect(screen.queryByText("Aguardando")).toBeNull();
+    expect(screen.getByText("De outro agente")).toBeTruthy();
+  });
+
+  it("diz o nome de quem fez a vistoria, para alguém poder ir atrás", async () => {
+    mockItens = [DE_OUTRO];
+    await abrirATela();
+
+    expect(screen.getByText(/Bruno Lima/)).toBeTruthy();
+  });
+
+  it("a pergunta antes de descartar diz de quem é a vistoria", async () => {
+    // Sem o nome, o agente da noite apagaria a vistoria da colega achando que
+    // estava limpando a própria fila.
+    mockItens = [DE_OUTRO];
+    await abrirATela();
+
+    await tocar("Descartar");
+
+    expect(within(screen.getByTestId("dialogo")).getByText(/Bruno Lima/)).toBeTruthy();
+  });
+});
+
+describe("a coleta guardada por uma versão anterior do aplicativo", () => {
+  it("pede que alguém assuma a autoria, em vez de subir com quem estiver logado", async () => {
+    /*
+      Item gravado antes de a fila carimbar o autor. Não dá para saber de quem
+      é: subir com quem estiver logado seria o defeito de novo, e deixá-la presa
+      para sempre seria perder uma vistoria feita no morro. Então a autoria vira
+      um ato da pessoa, com o dedo.
+    */
+    mockItens = [item({ id: "coleta-antiga", estado: "pendente", autor: null })];
+    await abrirATela();
+
+    expect(screen.getByText("Sem autor registrado")).toBeTruthy();
+
+    await tocar("Esta coleta é minha");
+
+    expect(mockAssumir).toHaveBeenCalledWith("coleta-antiga");
+  });
+});
+
+describe("sinal ruim por muito tempo", () => {
+  it("não vira convite para apagar a vistoria", async () => {
+    /*
+      Antes, cerca de cinco minutos de sinal ruim (Wi-Fi de prefeitura de pé mas
+      sem rota, borda de cobertura) bloqueavam a coleta: cartão vermelho,
+      "repetir o envio não resolve sozinho", e um botão "Descartar" ao lado, em
+      cima de uma vistoria que subiria sozinha na janela de sinal seguinte.
+    */
+    mockItens = [item({ id: "muitas-tentativas", estado: "pendente", tentativas: 14 })];
+    await abrirATela();
+
+    expect(screen.getByText("Aguardando")).toBeTruthy();
+    expect(screen.getByText(/vai continuar tentando sozinha/)).toBeTruthy();
+    expect(screen.getByText(/sinal melhor/)).toBeTruthy();
+    // Não se oferece apagar o que ainda vai subir sozinho.
+    expect(screen.queryByText("Descartar")).toBeNull();
+    expect(screen.queryByText(/precisa de atenção/i)).toBeNull();
   });
 });

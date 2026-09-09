@@ -35,13 +35,43 @@ const PREFIXO = "dc360:fila:";
  * a propriedade errada. Por isso a conversao precisa ser explicita, e por isso
  * ela nao podia ficar no `catch` de registro corrompido logo abaixo.
  */
+/**
+ * Desbloqueia o item que a versao anterior aposentou por teimosia de rede.
+ *
+ * `tentativas_esgotadas` era o codigo que a fila gravava quando o item batia no
+ * teto de oito falhas temporarias, o que acontecia em cerca de cinco minutos de
+ * sinal ruim. O teto deixou de existir (ver o comentario em `tratarFalha`), mas
+ * o aparelho que atualiza pode ter uma vistoria boa gravada nesse estado, e
+ * `bloqueado` nao sai do dreno sozinho: ela ficaria vermelha na tela, dizendo
+ * "repetir o envio nao resolve", ao lado de um botao "Descartar", ate alguem
+ * apagar a manha de trabalho.
+ *
+ * Voltar para `pendente` e conservador do jeito certo: no pior caso o item
+ * tenta de novo e falha de novo.
+ */
+function destravarTentativasEsgotadas(item: ItemFila): ItemFila {
+  if (item.estado !== "bloqueado") return item;
+  if (item.ultimaFalha?.codigo !== "tentativas_esgotadas") return item;
+  return { ...item, estado: "pendente", tentativas: 0, ultimaFalha: null };
+}
+
 function normalizar(bruto: Record<string, unknown>): ItemFila {
+  /*
+    `autor` nulo explicito, e nao ausente.
+
+    Item gravado antes de este campo existir nao diz de quem e, e a fila trata
+    isso como "espera alguem assumir" em vez de "sobe com quem estiver logado".
+    Deixar a propriedade ausente daria no mesmo para o `if` da fila, mas nao
+    para a tela, que precisa distinguir os tres casos com todas as letras.
+  */
+  if (bruto["autor"] === undefined) bruto["autor"] = null;
+
   if (bruto["ultimaFalha"] !== undefined || bruto["ultimoErro"] === undefined) {
-    return bruto as unknown as ItemFila;
+    return destravarTentativasEsgotadas(bruto as unknown as ItemFila);
   }
   const antigo = bruto["ultimoErro"];
   const { ultimoErro: _descartado, ...resto } = bruto;
-  return {
+  return destravarTentativasEsgotadas({
     ...resto,
     ultimaFalha: typeof antigo === "string"
       ? {
@@ -56,7 +86,7 @@ function normalizar(bruto: Record<string, unknown>): ItemFila {
         em: String(bruto["criadoEm"] ?? new Date(0).toISOString()),
       }
       : null,
-  } as unknown as ItemFila;
+  } as unknown as ItemFila);
 }
 
 export function depositoSobreChaveValor(loja: ChaveValor): Deposito {

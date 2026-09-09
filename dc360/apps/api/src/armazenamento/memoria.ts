@@ -95,7 +95,12 @@ export function armazenamentoEmMemoria(config: ConfigMemoria): ArmazenamentoEmMe
 
     async baixar(chave: string) {
       const objeto = objetos.get(chave);
-      return objeto ? { corpo: objeto.corpo, tipoConteudo: objeto.tipoConteudo } : null;
+      // `ausente`, e nunca `falha`: aqui o "armazenamento" é um mapa em
+      // memória, então ele SEMPRE sabe responder se a chave existe. Devolver
+      // falha daqui inventaria uma incerteza que este caminho não tem.
+      return objeto
+        ? { situacao: "encontrado" as const, corpo: objeto.corpo, tipoConteudo: objeto.tipoConteudo }
+        : { situacao: "ausente" as const };
     },
 
     guardar(chave, corpo, tipoConteudo) {

@@ -8,7 +8,7 @@ import { useSinal } from "../../dados/conectividade";
 import { useSessao } from "../../dados/sessao";
 import { enderecoDaApi } from "../../dados/api";
 import { Txt, useTema } from "../../ui/componentes";
-import { FaixaDeSincronizacao, type EstadoDaFaixa } from "../../ui/FaixaDeSincronizacao";
+import { FaixaDeSincronizacao, decidirFaixa, type EstadoDaFaixa } from "../../ui/FaixaDeSincronizacao";
 import { IconeEnvio, IconeEquipe, IconeTarefas } from "../../ui/icones";
 import { espaco, raio, toque } from "../../ui/tokens";
 
@@ -67,7 +67,7 @@ function IconeEmPilula({
 }
 
 export default function LayoutDoAgente() {
-  const { identidade, obterToken } = useSessao();
+  const { identidade, obterToken, lerIdentidade } = useSessao();
   const tema = useTema();
   const margens = useSafeAreaInsets();
   const sinal = useSinal();
@@ -84,7 +84,7 @@ export default function LayoutDoAgente() {
     let desassinar: (() => void) | undefined;
 
     void (async () => {
-      const fila = await obterFila(enderecoDaApi(), obterToken);
+      const fila = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
       if (!vivo) return;
       filaRef.current = fila;
       desassinar = fila.assinar((r) => { if (vivo) setResumo(r); });
@@ -102,7 +102,7 @@ export default function LayoutDoAgente() {
       desassinar?.();
       parar?.();
     };
-  }, [identidade, obterToken]);
+  }, [identidade, obterToken, lerIdentidade]);
 
   // Sinal voltou: tenta agora, sem esperar a próxima janela do laço. É o
   // momento em que o agente está olhando para a tela esperando ver acontecer.
@@ -114,8 +114,18 @@ export default function LayoutDoAgente() {
 
   const pendentes = (resumo?.pendentes ?? 0) + (resumo?.enviando ?? 0);
   const bloqueados = resumo?.bloqueados ?? 0;
+  /*
+    Coleta de outro agente (ou sem autor registrado) entra no crachá, e NÃO em
+    `pendentes`.
+
+    No crachá porque ela é uma vistoria feita no morro que ainda não chegou à
+    coordenação, e o crachá responde exatamente essa pergunta. Fora de
+    `pendentes` porque "esperando envio" promete que sai sozinha assim que
+    houver sinal, e essa não sai enquanto o autor não entrar neste aparelho.
+  */
+  const deOutroAutor = resumo?.deOutroAutor ?? 0;
   // O que a aba de envio mostra no número: tudo que ainda não chegou lá.
-  const naFila = pendentes + bloqueados;
+  const naFila = pendentes + bloqueados + deOutroAutor;
   const recuo = margens;
 
   /*
@@ -123,22 +133,15 @@ export default function LayoutDoAgente() {
     texto mudou. Sem ela, "3 esperando envio" virando "2 esperando envio" seria
     indistinguível de "esperando" virando "sincronizado", e o clímax da fila
     esvaziando dispararia a cada item enviado, o que o esvaziaria de sentido.
+
+    A decisão em si mora em `decidirFaixa`, fora daqui: ela é a promessa central
+    do aplicativo para quem desceu o morro, e aqui dentro não havia como
+    testá-la sem montar as abas inteiras.
   */
-  const faixa: EstadoDaFaixa = !sinal.temSinal
-    ? { chave: "sem_sinal",
-        fundo: tema.alertaFundo, cor: tema.alertaTexto, sinalTexto: "!",
-        titulo: "Sem sinal", detalhe: "Salvando neste aparelho" }
-    : resumo?.sincronizando
-      ? { chave: "enviando",
-          fundo: tema.superficie2, cor: tema.texto, sinalTexto: "↑",
-          titulo: "Enviando", detalhe: `${pendentes} na fila` }
-      : pendentes > 0
-        ? { chave: "esperando",
-            fundo: tema.superficie2, cor: tema.texto, sinalTexto: "↑",
-            titulo: "Com sinal", detalhe: `${pendentes} esperando envio` }
-        : { chave: "sincronizado",
-            fundo: tema.okFundo, cor: tema.okTexto, sinalTexto: "✓",
-            titulo: "Tudo sincronizado", detalhe: "Nada pendente no aparelho" };
+  const faixa: EstadoDaFaixa = decidirFaixa(
+    { temSinal: sinal.temSinal, pendentes, deOutroAutor, sincronizando: resumo?.sincronizando ?? false },
+    tema,
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: tema.fundo, paddingTop: margens.top }}>

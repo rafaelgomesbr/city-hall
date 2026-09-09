@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { mensagemDeUrlSemVerificacao, urlDoBancoVerifica } from "./banco/tls.js";
 
 /**
  * Configuração vem do ambiente e é validada na partida.
@@ -254,6 +255,34 @@ const esquema = z.object({
   SEGUNDO_FATOR_MAX_FALHAS: z.coerce.number().int().min(3).max(20).default(5),
   SEGUNDO_FATOR_BLOQUEIO_MINUTOS: z.coerce.number().int().min(1).max(1440).default(15),
 
+  /**
+   * De quem este processo aceita cabeçalho de endereço de origem.
+   *
+   * `nenhum` (o padrão) usa o salto imediato, e cabeçalho nenhum o muda.
+   * `fly` autoriza a leitura de `Fly-Client-IP`, que o edge do Fly.io
+   * reescreve antes de repassar.
+   *
+   * ISTO É UMA DECLARAÇÃO, e não uma adivinhação, porque adivinhar reabriu um
+   * defeito já corrigido. `rede.ts` nasceu para fechar o `X-Forwarded-For`
+   * escolhido pelo cliente e passou a ler `Fly-Client-IP` SEM amarração a
+   * ambiente, a plataforma ou a lista de proxies confiáveis. Reproduzido: com
+   * `LOGIN_POR_IP` no padrão, trinta POST /auth/entrar do mesmo endereço
+   * davam vinte recusas; as mesmas trinta mandando `Fly-Client-IP` diferente a
+   * cada uma davam ZERO. E `docs/COLOCAR-DE-PE.md` oferece Fly, Railway e
+   * Render como opções equivalentes, então nada garantia que o edge do Fly
+   * estivesse na frente.
+   *
+   * Além da força bruta, o que este valor governa é a trilha: quem exporta a
+   * base de cidadãos escolhia o endereço gravado como autor do ato, e esse
+   * registro é a resposta do município à autoridade nacional no dia em que um
+   * dado vaza.
+   *
+   * O padrão é o valor SEGURO, e não o do ambiente onde hoje se implanta:
+   * quem muda de PaaS esquece de mexer em variável, e o esquecimento precisa
+   * cair do lado que não abre buraco.
+   */
+  PROXY_DE_BORDA: z.enum(["nenhum", "fly"]).default("nenhum"),
+
   /** Origens permitidas, separadas por vírgula. Em produção não pode ser "*". */
   ORIGENS_PERMITIDAS: z.string().default("http://localhost:5173"),
 
@@ -465,6 +494,26 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
 
   if (c.NODE_ENV === "production") {
     if (!c.DATABASE_URL) throw new Error("DATABASE_URL é obrigatória em produção");
+    /*
+      E ter a URL não basta: ela precisa PEDIR verificação do certificado.
+
+      Esta checagem existe porque o buraco já tinha sido fechado uma vez, em
+      09/09/2026, e voltou pela omissão de uma palavra numa variável de
+      ambiente. `montarConfiguracaoDoPool` só monta a âncora de confiança
+      quando a URL traz `sslmode` verificado; sem ele, devolvia a string crua e
+      o processo subia calado. Como `verify-full` não estava escrito em nenhum
+      lugar que o operador lê, provisionar o segundo município colando a URL
+      que o painel do provedor oferece bastava para a base de TODOS os
+      municípios voltar a trafegar cifrada e não autenticada.
+
+      É a mesma classe de decisão do PUSH_ATIVO, do EMAIL_ATIVO e do
+      SEGUNDO_FATOR_ATIVO logo acima: em produção o processo NÃO SOBE quando
+      falta o que importa, porque servidor que sobe pela metade parece que
+      funcionou.
+    */
+    if (!urlDoBancoVerifica(c.DATABASE_URL)) {
+      throw new Error(mensagemDeUrlSemVerificacao("DATABASE_URL", c.DATABASE_URL));
+    }
     if (!c.JWT_SEGREDO) throw new Error("JWT_SEGREDO é obrigatória em produção");
     if (c.NOTIFICADOR_ARQUIVO) {
       throw new Error(

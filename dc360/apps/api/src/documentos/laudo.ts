@@ -4,7 +4,9 @@ import {
   ROTULO_CANAL, ROTULO_CHECKLIST, ROTULO_SEVERIDADE, ROTULO_TIPO_COBRADE,
   type CanalEntrada, type Severidade, type TipoDeEntrada,
 } from "@dc360/shared";
-import { assinatura, campo, escapar, formatarDataHora, montarFolha } from "./folha.js";
+import {
+  assinatura, campo, escapar, formatarDataHora, fusoDoEstado, montarFolha,
+} from "./folha.js";
 
 /**
  * Laudo de vistoria e termo de interdição.
@@ -94,8 +96,56 @@ export type DadosDocumento = {
      * ficou sem nome, em vez de um espaco em branco embaixo do titulo.
      */
     orgaosIndicados?: ReadonlyArray<{ nome: string; sigla: string | null }>;
+    /**
+     * As duas equipes do momento em que o servidor recebeu a coleta: a que
+     * estava designada para a ocorrência e a do agente que coletou.
+     *
+     * Existem no documento porque o defeito era invisível justamente no papel.
+     * Um agente de qualquer equipe registrava vistoria em qualquer ocorrência
+     * do município, a tarefa sumia da fila da equipe que de fato foi ao local,
+     * e o termo de interdição saía com brasão e com o nome de quem não foi
+     * designado. Nada no papel dizia isso.
+     *
+     * O servidor aceita a coleta assim mesmo (recusar mataria coleta legítima
+     * de quem trocou de equipe entre coletar e enviar, e o aplicativo trata
+     * recusa como falha permanente), então quem precisa enxergar a divergência
+     * é quem assina o documento. Ver a migração 024.
+     *
+     * Opcionais porque as vistorias que já estão no banco foram coletadas
+     * antes de existirem as colunas, e o laudo delas continua sendo emitido.
+     */
+    equipe_designada_nome?: string | null;
+    equipe_do_agente_nome?: string | null;
   };
+  /**
+   * As fotografias DESTA vistoria, e só delas.
+   *
+   * O defeito que isto acaba: a consulta filtrava só por ocorrência, enquanto
+   * todo o resto do documento (checklist, agente, assinante, datas, órgãos
+   * indicados) era da vistoria vigente. O laudo de uma re-vistoria que concluía
+   * que o risco cessou saía com as fotos do talude destruído da vistoria
+   * anterior, numeradas como registro daquela ida.
+   */
   fotos: Array<{ url: string; legenda: string | null; capturadaEm: string }>;
+  /**
+   * As fotografias que estão no protocolo sem pertencer a vistoria nenhuma.
+   *
+   * Elas existem: o fluxo de evidência avulsa grava a foto com `vistoria_id`
+   * nulo, e alguém a anexou de propósito. As duas saídas óbvias são erradas.
+   * Somá-las às da vistoria é o defeito de novo, agora em versão menor: o
+   * documento afirmaria que o agente fotografou aquilo naquela ida. Descartá-las
+   * cala uma prova que alguém pôs no processo, e o laudo é o lugar onde o
+   * processo se lê.
+   *
+   * Então elas saem, em seção própria, ditas pelo que são, com quem anexou e
+   * quando. O leitor consegue distinguir o registro do agente em campo do que
+   * foi acrescentado depois, que é a distinção que o documento existia para
+   * apagar.
+   */
+  fotosAvulsas?: Array<{
+    url: string; legenda: string | null; capturadaEm: string;
+    anexadaPorNome: string | null;
+  }>;
   emitidoPor: string;
   emitidoEm: Date;
   /**
@@ -132,6 +182,7 @@ export function codigoDeValidacao(protocolo: string, vistoriaId: string): string
 
 function blocoIdentificacao(d: DadosDocumento): string {
   const o = d.ocorrencia;
+  const fuso = fusoDoEstado(d.organizacao.uf);
   /*
     "Chamado registrado em", e não "Registrada em".
 
@@ -155,7 +206,7 @@ function blocoIdentificacao(d: DadosDocumento): string {
       ? campo("Relatado como", o.tipo_descricao.trim(), { largo: true })
       : ""}
     ${campo("Severidade", o.severidade ? ROTULO_SEVERIDADE[o.severidade] : "não classificada")}
-    ${campo("Chamado registrado em", formatarDataHora(o.criado_em))}
+    ${campo("Chamado registrado em", formatarDataHora(o.criado_em, fuso))}
     ${campo("Endereço", o.endereco, { largo: true })}
     ${campo("Coordenada",
       o.latitude !== null && o.longitude !== null
@@ -179,6 +230,7 @@ function blocoIdentificacao(d: DadosDocumento): string {
 
 function blocoVistoria(d: DadosDocumento): string {
   const v = d.vistoria;
+  const fuso = fusoDoEstado(d.organizacao.uf);
   const coleta = new Date(v.coletada_em).getTime();
   const sincronia = new Date(v.sincronizada_em).getTime();
   // Um minuto de folga: diferença menor que isso é latência, não coleta
@@ -194,10 +246,10 @@ function blocoVistoria(d: DadosDocumento): string {
 
   return `<h2>Vistoria realizada</h2>
   <div class="campos">
-    ${campo("Data e hora da vistoria em campo", formatarDataHora(v.coletada_em))}
+    ${campo("Data e hora da vistoria em campo", formatarDataHora(v.coletada_em, fuso))}
     ${offline
-      ? campo("Recebida pelo sistema em", formatarDataHora(v.sincronizada_em))
-      : campo("Registrada no sistema em", formatarDataHora(v.sincronizada_em))}
+      ? campo("Recebida pelo sistema em", formatarDataHora(v.sincronizada_em, fuso))
+      : campo("Registrada no sistema em", formatarDataHora(v.sincronizada_em, fuso))}
     ${campo("Agente responsável", v.agente_nome ?? "não identificado")}
     ${campo("Matrícula", v.agente_matricula ?? "não informada", { mono: true })}
     ${campo("Precisão do GPS",
@@ -208,6 +260,8 @@ function blocoVistoria(d: DadosDocumento): string {
   ${offline
     ? `<p class="nota">Esta vistoria foi coletada em campo sem conexão e transmitida ao sistema posteriormente. As duas datas acima constam por essa razão, e a data de referência do ato é a da vistoria em campo.</p>`
     : ""}
+
+  ${avisoDeEquipe(v)}
 
   <h2>Checklist técnico</h2>
   <table class="checklist"><tbody>${linhas}</tbody></table>
@@ -307,21 +361,94 @@ function blocoPessoas(v: DadosDocumento["vistoria"]): string {
   return `<h2>Pessoas atingidas</h2><div class="campos">${campos}</div>`;
 }
 
-function blocoFotos(d: DadosDocumento): string {
-  if (d.fotos.length === 0) {
-    return `<h2>Registro fotográfico</h2>
-      <p class="nota">Nenhuma fotografia foi anexada a esta vistoria.</p>`;
-  }
-  const itens = d.fotos
+/**
+ * A divergência entre a equipe designada e a equipe de quem coletou.
+ *
+ * Impressa no documento, e não só guardada no banco, porque é aqui que ela
+ * muda alguma coisa: quem assina o termo de interdição precisa saber que a
+ * vistoria que o sustenta veio de agente de outra equipe antes de assinar, e
+ * não depois, numa consulta de auditoria que ninguém faz por conta própria.
+ *
+ * Só aparece quando houve designação: coleta em ocorrência que nunca foi
+ * despachada não viola designação nenhuma, e imprimir aviso ali seria treinar
+ * o leitor a ignorar o aviso.
+ *
+ * O texto NÃO acusa ninguém, de propósito. Trocar de equipe entre a coleta e o
+ * envio é rotina, e o caso legítimo é mais comum que o outro. O que o papel
+ * precisa dizer é que os dois nomes não batem e que alguém tem que olhar.
+ */
+function avisoDeEquipe(v: DadosDocumento["vistoria"]): string {
+  const designada = v.equipe_designada_nome?.trim();
+  if (!designada) return "";
+  const doAgente = v.equipe_do_agente_nome?.trim() ?? "";
+  if (doAgente === designada) return "";
+
+  return `<p class="nota">Atenção: esta ocorrência estava designada à ${
+    escapar(designada)
+  } e a vistoria foi coletada por agente ${
+    doAgente
+      ? `lotado na ${escapar(doAgente)}`
+      : "sem equipe registrada no momento do recebimento"
+  }. O sistema registrou a coleta e manteve a tarefa com a equipe designada. A divergência precisa ser conferida pela coordenação antes de o ato ser praticado.</p>`;
+}
+
+function galeria(
+  fotos: ReadonlyArray<{ url: string; legenda: string | null; capturadaEm: string }>,
+  fuso: string,
+  alt: string,
+): string {
+  return fotos
     .map((f, i) => `<figure class="foto">
-        <img src="${escapar(f.url)}" alt="Fotografia ${i + 1} da vistoria">
+        <img src="${escapar(f.url)}" alt="${escapar(alt)} ${i + 1}">
         <figcaption class="legenda">
           Foto ${i + 1}. ${escapar(f.legenda ?? "sem legenda")}<br>
-          Capturada em ${escapar(formatarDataHora(f.capturadaEm))}
+          Capturada em ${escapar(formatarDataHora(f.capturadaEm, fuso))}
         </figcaption>
       </figure>`)
     .join("");
-  return `<h2>Registro fotográfico</h2><div class="fotos">${itens}</div>`;
+}
+
+function blocoFotos(d: DadosDocumento): string {
+  const fuso = fusoDoEstado(d.organizacao.uf);
+  const daVistoria = d.fotos.length === 0
+    ? `<h2>Registro fotográfico</h2>
+      <p class="nota">Nenhuma fotografia foi anexada a esta vistoria.</p>`
+    : `<h2>Registro fotográfico</h2><div class="fotos">${
+        galeria(d.fotos, fuso, "Fotografia da vistoria")
+      }</div>`;
+
+  return `${daVistoria}${blocoFotosAvulsas(d, fuso)}`;
+}
+
+/**
+ * As fotos que estão no protocolo sem pertencer a vistoria nenhuma.
+ *
+ * Seção separada, e nunca somada à de cima. Somar era o defeito: o documento
+ * passaria a afirmar que aquelas imagens são o registro do agente naquela ida,
+ * com número de foto e tudo, quando ninguém disse isso. Omitir seria o defeito
+ * espelho, e mais silencioso: alguém anexou aquilo ao processo de propósito, e
+ * o laudo é onde o processo se lê.
+ *
+ * Cada uma sai com quem a anexou, porque é a pergunta que a separação abre.
+ */
+function blocoFotosAvulsas(d: DadosDocumento, fuso: string): string {
+  const avulsas = d.fotosAvulsas ?? [];
+  if (avulsas.length === 0) return "";
+
+  const itens = avulsas
+    .map((f, i) => `<figure class="foto">
+        <img src="${escapar(f.url)}" alt="Fotografia ${i + 1} anexada ao protocolo">
+        <figcaption class="legenda">
+          Anexo ${i + 1}. ${escapar(f.legenda ?? "sem legenda")}<br>
+          Capturada em ${escapar(formatarDataHora(f.capturadaEm, fuso))}<br>
+          Anexada por ${escapar(f.anexadaPorNome ?? "autor não registrado")}
+        </figcaption>
+      </figure>`)
+    .join("");
+
+  return `<h2>Fotografias anexadas ao protocolo</h2>
+    <p class="nota">As imagens abaixo foram anexadas ao protocolo fora do fluxo de vistoria, então não integram o registro fotográfico desta vistoria e não têm agente responsável por elas.</p>
+    <div class="fotos">${itens}</div>`;
 }
 
 export function laudoDeVistoria(d: DadosDocumento): string {
@@ -427,13 +554,14 @@ export function termoDeDesinterdicao(d: DadosDocumento): string {
     );
   }
 
+  const fuso = fusoDoEstado(d.organizacao.uf);
   const corpo = `
     ${blocoIdentificacao(d)}
 
     <h2>Interdição anterior</h2>
     <div class="campos">
-      ${campo("Imóvel interditado em", formatarDataHora(dez.interditadaEm))}
-      ${campo("Levantamento autorizado em", formatarDataHora(dez.em))}
+      ${campo("Imóvel interditado em", formatarDataHora(dez.interditadaEm, fuso))}
+      ${campo("Levantamento autorizado em", formatarDataHora(dez.em, fuso))}
       ${campo("Autorizado por", dez.porNome)}
     </div>
 

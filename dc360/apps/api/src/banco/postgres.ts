@@ -3,6 +3,7 @@ import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import type { Banco, Consulta } from "./tipos.js";
+import { mensagemDeUrlSemVerificacao, urlDoBancoVerifica } from "./tls.js";
 
 /**
  * Caminho da âncora de confiança do provedor, a partir da raiz do repositório.
@@ -13,17 +14,6 @@ import type { Banco, Consulta } from "./tipos.js";
  * viraria uma partida sem verificação.
  */
 export const CA_DO_PROVEDOR = "db/provedores/supabase-prod-ca-2021.crt";
-
-/**
- * Modos em que o `pg` VERIFICA a cadeia do servidor.
- *
- * Cuidado que já custou caro: neste `pg`, `require` e `verify-ca` são apelidos
- * de `verify-full`, não os modos frouxos do libpq. O próprio
- * `pg-connection-string` avisa isso por `process.emitWarning`. Ou seja, os
- * três exigem CA e conferem o nome do host, e `sslmode=require` sem âncora não
- * conecta.
- */
-const MODOS_QUE_VERIFICAM = new Set(["require", "verify-ca", "verify-full"]);
 
 /**
  * Parâmetros que, se sobrarem na string de conexão, ANULAM o objeto `ssl`.
@@ -54,6 +44,25 @@ export type OpcoesDoBanco = {
   ca?: string;
   /** Caminho do PEM. Vence o `sslrootcert` da string de conexão. */
   caminhoDaCa?: string;
+  /**
+   * Se `true`, uma URL sem modo verificado DERRUBA a montagem do pool em vez
+   * de virar uma conexão cifrada e não autenticada.
+   *
+   * O padrão é "produção sim, o resto não", e não é preferência: o `compose`
+   * local sobe um Postgres sem TLS, e exigir verificação ali quebraria o
+   * ambiente de desenvolvimento para ninguém. Já em produção, a URL sem
+   * `sslmode` é o defeito que reabriu este buraco depois de ele ter sido
+   * fechado uma vez, então a checagem vive AQUI também, e não só em
+   * `config.ts`: a trava do varredor (`push/trava.ts`) monta o próprio pool e
+   * não passa pela validação de configuração.
+   *
+   * Lê `process.env` direto de propósito. A alternativa seria passar a
+   * configuração por parâmetro em todos os pontos de chamada, e o dia em que
+   * um deles esquecesse de passar seria o dia em que a verificação sumiria de
+   * novo, em silêncio, que é exatamente a forma de falha que este arquivo
+   * existe para não repetir.
+   */
+  exigirVerificacao?: boolean;
 };
 
 /**
@@ -148,7 +157,21 @@ export function montarConfiguracaoDoPool(url: string, opcoes: OpcoesDoBanco = {}
 
   const endereco = new URL(url);
   const modo = endereco.searchParams.get("sslmode");
-  const verificado = modo !== null && MODOS_QUE_VERIFICAM.has(modo);
+  const verificado = urlDoBancoVerifica(url);
+
+  /*
+    Sem modo verificado em produção, o pool NÃO NASCE.
+
+    Este é o ramo que reabriu o buraco. Até aqui, uma URL sem `sslmode` caía
+    silenciosamente no `return` lá embaixo, com a string crua e sem objeto
+    `ssl` nenhum, e o processo subia respondendo a tudo. Nada em log, nada em
+    health check, e a única evidência do problema estaria na rede de outra
+    pessoa. Ver `tls.ts` para o cenário completo.
+  */
+  const exigir = opcoes.exigirVerificacao ?? process.env["NODE_ENV"] === "production";
+  if (!verificado && exigir) {
+    throw new Error(mensagemDeUrlSemVerificacao("A string de conexão do banco", url));
+  }
 
   if (!verificado) {
     /*

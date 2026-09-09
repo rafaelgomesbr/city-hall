@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, View } from "react-native";
 
 import { Txt } from "./componentes";
-import { movimento, raio, espaco, toque } from "./tokens";
+import { movimento, raio, espaco, toque, type Tema } from "./tokens";
 import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
 
 /**
@@ -36,13 +36,82 @@ import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
 
 export type EstadoDaFaixa = {
   /** Identidade do estado. Trocou, houve transição. */
-  chave: "sem_sinal" | "enviando" | "esperando" | "sincronizado";
+  chave: "sem_sinal" | "enviando" | "esperando" | "aguardando_autor" | "sincronizado";
   fundo: string;
   cor: string;
   sinalTexto: string;
   titulo: string;
   detalhe: string;
 };
+
+/**
+ * O que a faixa diz, decidido fora do componente que a desenha.
+ *
+ * Isto era uma cadeia de ternários dentro do layout do grupo autenticado, o que
+ * a tornava inalcançável por teste: provar "a faixa nunca diz Tudo
+ * sincronizado com uma vistoria parada no aparelho" exigiria montar as abas
+ * inteiras. A frase é a promessa central do aplicativo para quem desceu o
+ * morro, e promessa central precisa de teste próprio.
+ *
+ * A ORDEM DOS CASOS É O CONTEÚDO, e ela vai do mais concreto ao mais otimista:
+ * sem sinal, enviando agora, esperando sinal, esperando o autor, e só então
+ * tudo certo. "Tudo sincronizado" é o último, e só sobra quando nada mais
+ * sobrou.
+ */
+export function decidirFaixa(
+  entrada: {
+    temSinal: boolean;
+    /** Coletas próprias que ainda vão sair (pendente mais enviando). */
+    pendentes: number;
+    /** Coletas de outro agente, ou sem autor: não saem com esta sessão. */
+    deOutroAutor: number;
+    sincronizando: boolean;
+  },
+  tema: Tema,
+): EstadoDaFaixa {
+  if (!entrada.temSinal) {
+    return {
+      chave: "sem_sinal",
+      fundo: tema.alertaFundo, cor: tema.alertaTexto, sinalTexto: "!",
+      titulo: "Sem sinal", detalhe: "Salvando neste aparelho",
+    };
+  }
+  if (entrada.sincronizando) {
+    return {
+      chave: "enviando",
+      fundo: tema.superficie2, cor: tema.texto, sinalTexto: "↑",
+      titulo: "Enviando", detalhe: `${entrada.pendentes} na fila`,
+    };
+  }
+  if (entrada.pendentes > 0) {
+    return {
+      chave: "esperando",
+      fundo: tema.superficie2, cor: tema.texto, sinalTexto: "↑",
+      titulo: "Com sinal", detalhe: `${entrada.pendentes} esperando envio`,
+    };
+  }
+  /*
+    "Tudo sincronizado" com uma coleta parada no aparelho é a pior frase que
+    este produto pode exibir, e era o que acontecia no aparelho de plantão
+    compartilhado: o agente da noite entrava, a coleta do turno da manhã não
+    subia (o laudo sairia com o nome errado), e a faixa ficava verde.
+  */
+  if (entrada.deOutroAutor > 0) {
+    return {
+      chave: "aguardando_autor",
+      fundo: tema.alertaFundo, cor: tema.alertaTexto, sinalTexto: "⏸",
+      titulo: "Coleta de outro agente no aparelho",
+      detalhe: entrada.deOutroAutor === 1
+        ? "1 coleta espera quem a fez entrar"
+        : `${entrada.deOutroAutor} coletas esperam quem as fez entrar`,
+    };
+  }
+  return {
+    chave: "sincronizado",
+    fundo: tema.okFundo, cor: tema.okTexto, sinalTexto: "✓",
+    titulo: "Tudo sincronizado", detalhe: "Nada pendente no aparelho",
+  };
+}
 
 export function FaixaDeSincronizacao({
   estado,

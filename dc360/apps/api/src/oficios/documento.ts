@@ -1,7 +1,9 @@
 import {
   ROTULO_SEVERIDADE, ROTULO_TIPO_COBRADE, type Severidade, type TipoCobrade,
 } from "@dc360/shared";
-import { campo, escapar, formatarDataHora, montarFolha } from "../documentos/folha.js";
+import {
+  campo, escapar, formatarDataHora, fusoDoEstado, montarFolha,
+} from "../documentos/folha.js";
 import { codigoDeValidacao } from "../documentos/laudo.js";
 import type { Mensagem } from "../auth/notificador.js";
 
@@ -60,6 +62,13 @@ export type DadosDoOficio = {
 };
 
 export function oficioDeEncaminhamento(d: DadosDoOficio): string {
+  /*
+    O fuso do MUNICÍPIO, e não o do contêiner. Ver `fusoDoEstado`: sem isto o
+    prazo solicitado neste ofício sairia em UTC em produção, e um prazo com o
+    dia errado num pedido a outro órgão é o mesmo defeito do laudo, só que com
+    testemunha de fora da prefeitura.
+  */
+  const fuso = fusoDoEstado(d.organizacao.uf);
   const destinatario = d.orgao.sigla
     ? `${d.orgao.nome} (${d.orgao.sigla})`
     : d.orgao.nome;
@@ -76,7 +85,7 @@ export function oficioDeEncaminhamento(d: DadosDoOficio): string {
   <h2>Destinatário</h2>
   <div class="campos">
     ${campo("Órgão", destinatario, { largo: true })}
-    ${campo("Prazo solicitado", formatarDataHora(d.providencia.prazo_em))}
+    ${campo("Prazo solicitado", formatarDataHora(d.providencia.prazo_em, fuso))}
     ${campo("Responsável indicado", d.providencia.responsavel)}
   </div>
 
@@ -96,7 +105,7 @@ export function oficioDeEncaminhamento(d: DadosDoOficio): string {
       ? ROTULO_SEVERIDADE[d.ocorrencia.severidade as Severidade] ?? d.ocorrencia.severidade
       : "não classificada")}
     ${d.ocorrencia.interditada_em
-      ? campo("Imóvel interditado em", formatarDataHora(d.ocorrencia.interditada_em), { largo: true })
+      ? campo("Imóvel interditado em", formatarDataHora(d.ocorrencia.interditada_em, fuso), { largo: true })
       : ""}
   </div>
   <p class="relato">${escapar(d.ocorrencia.descricao)}</p>
@@ -113,7 +122,7 @@ export function oficioDeEncaminhamento(d: DadosDoOficio): string {
 
   <h2>Encaminhamento</h2>
   <p class="nota">
-    Encaminhado em ${escapar(formatarDataHora(d.providencia.encaminhada_em))}.
+    Encaminhado em ${escapar(formatarDataHora(d.providencia.encaminhada_em, fuso))}.
     A resposta deste órgão deve ser registrada no protocolo acima, e a ausência
     de resposta fica registrada junto do encerramento da ocorrência.
   </p>

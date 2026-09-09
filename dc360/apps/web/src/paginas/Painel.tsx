@@ -19,6 +19,26 @@ import {
 import { IconeMais } from "../componentes/Icones";
 
 /**
+ * Quantas linhas cada cartao de apoio do painel desenha.
+ *
+ * O painel e tela de olhar de relance, entao um cartao com quarenta linhas
+ * deixa de ser resumo. O numero e pequeno de proposito; o que nao pode e ele
+ * cortar em silencio, e por isso quem passa dele ganha aviso com a contagem do
+ * que ficou de fora.
+ */
+const TETO_DA_PREVIA = 8;
+
+/**
+ * De quanto em quanto tempo o painel busca de novo, com a aba a vista.
+ *
+ * Um minuto, e nao os trinta segundos do sino: o painel faz quatro consultas e
+ * uma delas lista as ocorrencias ativas inteiras. Um minuto e curto o bastante
+ * para o numero na tela nunca estar mais de um minuto velho, e longo o bastante
+ * para nao pesar no dia de pico, que e justamente o dia em que a tela importa.
+ */
+const INTERVALO_DE_ATUALIZACAO_MS = 60_000;
+
+/**
  * Painel do coordenador. A pergunta que ele responde ao ser aberto de manhã é
  * uma só: o que exige decisão agora?
  *
@@ -36,26 +56,67 @@ export function Painel() {
     interditados: ImovelInterditado[];
   } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [carregadoEm, setCarregadoEm] = useState<Date | null>(null);
 
+  /*
+    O PAINEL SE ATUALIZA, e DIZ de quando sao os numeros.
+
+    Antes ele carregava uma vez ao montar e nunca mais: sem botao de atualizar,
+    sem relogio, sem marca de hora. Enquanto isso o sino, no MESMO cabecalho,
+    consulta o servidor a cada trinta segundos. As 8h a coordenadora abria o
+    painel com "Atrasadas 3"; as 11h o sino mostrava dezessete avisos por ler,
+    varios de prazo vencido, e os cartoes ao lado continuavam dizendo 3. Pior
+    nos prazos: `Restam 4 h` e calculado no instante da renderizacao, entao ele
+    congela e passa a mentir por horas.
+
+    Numero errado numa tela de decisao operacional e o defeito recorrente deste
+    produto, e aqui ele nem avisava que estava velho.
+
+    A janela e de um minuto, e nao de trinta segundos como a do sino: o painel
+    faz quatro consultas e uma delas lista as ocorrencias ativas inteiras. E
+    aba escondida NAO consulta, porque coordenador deixa o painel aberto o dia
+    todo numa aba de fundo, e mil e quatrocentas requisicoes por dia por pessoa,
+    a troco de nada, sao o tipo de coisa que derruba o teto de requisicao.
+  */
   useEffect(() => {
     let vivo = true;
-    Promise.all([
-      carregarIndicadores(sessao),
-      listarOcorrencias(sessao, { status: "ativas" }),
-      providenciasPendentes(sessao),
-      imoveisInterditados(sessao),
-    ])
-      .then(([ind, fila, providencias, interditados]) => {
-        if (vivo) {
+
+    const buscar = () => {
+      Promise.all([
+        carregarIndicadores(sessao),
+        listarOcorrencias(sessao, { status: "ativas" }),
+        providenciasPendentes(sessao),
+        imoveisInterditados(sessao),
+      ])
+        .then(([ind, fila, providencias, interditados]) => {
+          if (!vivo) return;
           setDados({
             ind, fila,
             providencias: providencias as ProvidenciaPendente[],
             interditados: interditados as ImovelInterditado[],
           });
-        }
-      })
-      .catch((e: unknown) => { if (vivo) setErro(e instanceof Error ? e.message : String(e)); });
-    return () => { vivo = false; };
+          setCarregadoEm(new Date());
+          /* Uma busca boa apaga o erro da anterior: erro que fica pendurado
+             depois de a rede voltar e o painel mentindo na outra direcao. */
+          setErro(null);
+        })
+        .catch((e: unknown) => { if (vivo) setErro(e instanceof Error ? e.message : String(e)); });
+    };
+
+    buscar();
+    const relogio = setInterval(() => {
+      if (!document.hidden) buscar();
+    }, INTERVALO_DE_ATUALIZACAO_MS);
+    /* Voltar para a aba busca na hora: quem volta depois de uma hora quer o
+       numero de agora, e nao esperar o proximo tique. */
+    const aoVoltar = () => { if (!document.hidden) buscar(); };
+    document.addEventListener("visibilitychange", aoVoltar);
+
+    return () => {
+      vivo = false;
+      clearInterval(relogio);
+      document.removeEventListener("visibilitychange", aoVoltar);
+    };
   }, [sessao]);
 
   if (erro) return <Aviso tom="perigo">Falha ao carregar o painel: {erro}</Aviso>;
@@ -103,7 +164,27 @@ export function Painel() {
       <div className="cabecalho-pagina">
         <div>
           <h1>Painel operacional</h1>
-          <p>{sessao.organizacaoNome}</p>
+          <p>
+            {sessao.organizacaoNome}
+            {/*
+              A HORA DOS NUMEROS, dita na tela.
+
+              Sem ela, quem passa a manha com a aba aberta nao tem como saber se
+              o "Atrasadas 3" e de agora ou das 8h. Numero de tela de decisao
+              operacional sem carimbo de hora e numero em que ninguem deveria
+              confiar, e o produto estava pedindo essa confianca.
+            */}
+            {carregadoEm && (
+              <>
+                {" \u00b7 "}
+                <span className="tabela__secundario">
+                  {`números de ${carregadoEm.toLocaleTimeString("pt-BR", {
+                    hour: "2-digit", minute: "2-digit",
+                  })}`}
+                </span>
+              </>
+            )}
+          </p>
         </div>
         <div className="cabecalho-pagina__acoes">
           {/*
@@ -189,6 +270,22 @@ export function Painel() {
         )}
       </Cartao>
 
+      {/*
+        O TETO DE OITO E DITO, e nao calado.
+
+        As duas tabelas abaixo desenhavam `slice(0, 8)` e o titulo mostrava o
+        total: quatorze imoveis interditados viravam "Imoveis interditados (14)"
+        com oito linhas na tela, e as seis interdicoes mais recentes nao
+        apareciam em lugar nenhum do PRODUTO INTEIRO, porque estas duas consultas
+        so sao chamadas aqui. A ordem e do mais antigo para o mais recente, entao
+        o que sumia era justamente o que acabou de acontecer, depois do temporal.
+
+        Teto calado ja foi defeito real deste produto duas vezes nesta semana (o
+        mapa desenhava cem ocorrencias sem avisar, e a lista de tarefas do
+        aplicativo cortava em duzentas). Aqui ele nao vira paginacao, porque o
+        painel e tela de olhar de relance: ele vira AVISO com o numero do que
+        ficou de fora, mais o caminho para a lista completa.
+      */}
       {providencias.length > 0 && (
         <div id="providencias-pendentes" tabIndex={-1}>
         <Cartao titulo={`Providências aguardando resposta (${providencias.length})`}>
@@ -210,7 +307,7 @@ export function Painel() {
                 </tr>
               </thead>
               <tbody>
-                {providencias.slice(0, 8).map((p) => (
+                {providencias.slice(0, TETO_DA_PREVIA).map((p) => (
                   <tr key={p.id}>
                     <td>
                       <div className="tabela__principal">{p.orgao_destino}</div>
@@ -233,6 +330,13 @@ export function Painel() {
               </tbody>
             </table>
           </div>
+          {providencias.length > TETO_DA_PREVIA && (
+            <Aviso tom="info">
+              {`Mostrando as ${TETO_DA_PREVIA} mais antigas. Outras `}
+              {providencias.length - TETO_DA_PREVIA}
+              {" aguardam resposta e não cabem neste cartão."}
+            </Aviso>
+          )}
         </Cartao>
         </div>
       )}
@@ -270,7 +374,7 @@ export function Painel() {
                 </tr>
               </thead>
               <tbody>
-                {interditados.slice(0, 8).map((i) => (
+                {interditados.slice(0, TETO_DA_PREVIA).map((i) => (
                   <tr key={i.id}>
                     <td>
                       <div className="tabela__principal">{i.endereco}</div>
@@ -293,6 +397,13 @@ export function Painel() {
               </tbody>
             </table>
           </div>
+          {interditados.length > TETO_DA_PREVIA && (
+            <Aviso tom="info">
+              {`Mostrando os ${TETO_DA_PREVIA} mais antigos. Outros `}
+              {interditados.length - TETO_DA_PREVIA}
+              {" seguem interditados e não cabem neste cartão."}
+            </Aviso>
+          )}
         </Cartao>
         </div>
       )}

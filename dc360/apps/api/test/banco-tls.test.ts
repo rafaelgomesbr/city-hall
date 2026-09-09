@@ -231,3 +231,106 @@ describe("Certificado do banco: contra um servidor que apresenta o proprio", () 
     }
   }, 30_000);
 });
+
+/**
+ * O buraco que voltou por omissão de uma palavra.
+ *
+ * Os casos acima provam que, COM `sslmode=verify-full`, a conexão confere o
+ * certificado. Nenhum deles provava o caso que uma revisão adversarial
+ * reproduziu em 09/09/2026: a URL SEM `sslmode` nenhum.
+ *
+ * Ali `montarConfiguracaoDoPool` caía no ramo "ninguém pediu verificação",
+ * devolvia a string crua sem objeto `ssl`, e a API subia calada, respondendo a
+ * tudo, com a base de todos os municípios trafegando cifrada e NÃO
+ * autenticada. E a palavra `verify-full` não existia em nenhum arquivo que o
+ * operador lê: nem no `fly.toml`, nem na tabela de variáveis obrigatórias do
+ * `COLOCAR-DE-PE.md`, nem no `.env.example`, nem no README. Ela vivia só no
+ * `.env` local, que o git ignora, e nestes testes.
+ *
+ * Bastava então provisionar o segundo município colando a URL que o painel do
+ * provedor oferece, que não traz `sslmode`, para reabrir por inteiro o defeito
+ * que este arquivo diz ter fechado, e `docs/PRIVACIDADE.md` continuava
+ * afirmando como fato que a conexão é verificada.
+ */
+describe("DATABASE_URL sem verificacao nao sobe", () => {
+  /** O que o painel do provedor entrega, sem uma palavra sobre TLS. */
+  const COMO_O_PROVEDOR_ENTREGA = "postgres://dc360_api:senha@db.projeto.supabase.com:5432/postgres";
+
+  function producao(sobrescrever: Record<string, string> = {}): NodeJS.ProcessEnv {
+    return {
+      NODE_ENV: "production",
+      DATABASE_URL: `${COMO_O_PROVEDOR_ENTREGA}?sslmode=verify-full`,
+      JWT_SEGREDO: "segredo-de-producao-com-mais-de-trinta-e-dois-bytes",
+      ORIGENS_PERMITIDAS: "https://painel.serraalta.mg.gov.br",
+      URL_PUBLICA: "https://api.dc360.exemplo.br",
+      URL_PAINEL: "https://painel.serraalta.mg.gov.br",
+      S3_ENDPOINT: "https://balde.exemplo.com",
+      S3_BALDE: "dc360-evidencias",
+      S3_CHAVE_ID: "chave-de-acesso",
+      S3_CHAVE_SECRETA: "segredo-de-acesso",
+      RECUPERACAO_ATIVA: "nao",
+      ...sobrescrever,
+    } as NodeJS.ProcessEnv;
+  }
+
+  it("uma producao com verify-full sobe", async () => {
+    // Âncora: sem ela, um erro no molde faria os casos abaixo passarem pelo
+    // motivo errado, que é como esta defesa some sem ninguém ver.
+    const { carregarConfig } = await import("../src/config.js");
+    expect(() => carregarConfig(producao())).not.toThrow();
+  });
+
+  it("a partida recusa a URL que o painel do provedor entrega", async () => {
+    const { carregarConfig } = await import("../src/config.js");
+
+    expect(
+      () => carregarConfig(producao({ DATABASE_URL: COMO_O_PROVEDOR_ENTREGA })),
+      "produção subiu com a DATABASE_URL sem sslmode: a conexão com o banco "
+      + "voltaria a ser cifrada e não autenticada, em silêncio",
+    ).toThrow(/sslmode=verify-full/);
+
+    // E os modos que NÃO verificam são recusados pelo nome, um a um: cada um
+    // deles é uma forma de a URL parecer que trata de TLS sem tratar.
+    for (const modo of ["no-verify", "disable", "prefer", "allow"]) {
+      expect(
+        () => carregarConfig(producao({ DATABASE_URL: `${COMO_O_PROVEDOR_ENTREGA}?sslmode=${modo}` })),
+        `produção subiu com sslmode=${modo}`,
+      ).toThrow(/sslmode=verify-full/);
+    }
+  });
+
+  it("o pool recusa nascer sem verificacao, e nao so a partida", () => {
+    /*
+      A trava do varredor (`push/trava.ts`) monta o próprio pool e NÃO passa
+      por `carregarConfig`. Se a checagem morasse só na partida, esse caminho
+      abriria uma conexão sem âncora contra o mesmo banco.
+    */
+    expect(() => montarConfiguracaoDoPool(url(""), { exigirVerificacao: true }))
+      .toThrow(/sslmode=verify-full/);
+    expect(() => montarConfiguracaoDoPool(url("?sslmode=no-verify"), { exigirVerificacao: true }))
+      .toThrow(/sslmode=verify-full/);
+
+    // E o desenvolvimento continua subindo: o `compose` local tem um Postgres
+    // sem TLS, e exigir verificação ali quebraria o ambiente para ninguém.
+    expect(() => montarConfiguracaoDoPool(url(""), { exigirVerificacao: false })).not.toThrow();
+  });
+
+  it("verify-full esta escrito onde o operador le", () => {
+    /*
+      Este caso não testa código, e é de propósito. O defeito não foi uma
+      linha errada: foi uma palavra ausente de todo arquivo que alguém abre na
+      hora de subir o segundo município. Enquanto a instrução não estiver
+      escrita, a próxima pessoa cola a URL do painel do provedor de novo.
+    */
+    for (const relativo of [
+      "fly.toml",
+      "docs/COLOCAR-DE-PE.md",
+      "apps/api/.env.example",
+      "README.md",
+    ]) {
+      const conteudo = readFileSync(join(RAIZ, relativo), "utf8");
+      expect(conteudo, `${relativo} não diz sslmode=verify-full em lugar nenhum`)
+        .toContain("sslmode=verify-full");
+    }
+  });
+});

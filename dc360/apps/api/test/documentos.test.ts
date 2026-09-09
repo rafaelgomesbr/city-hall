@@ -397,7 +397,20 @@ describe("Quem pode ver o documento", () => {
 });
 
 describe("Fotografia no documento", () => {
-  it("a foto entra com URL assinada e legenda, e a imagem abre", async () => {
+  /*
+    ESTA FOTO É AVULSA, e a expectativa mudou por causa disso.
+
+    Ela sobe pelo fluxo de evidência e NUNCA é amarrada a uma vistoria (não há
+    sincronização de coleta carregando a chave), então fica com `vistoria_id`
+    nulo. Antes, o laudo a imprimia como "Foto 1." do registro fotográfico da
+    vistoria, que é o defeito reproduzido em `fotos-do-documento.test.ts`: o
+    documento atribuía ao agente uma imagem que ele não fez naquela ida.
+
+    Agora ela sai em seção própria, dita pelo que é, com quem anexou. O que este
+    teste continua provando é o que ele sempre provou: a legenda vai para o
+    papel, a URL é assinada e a imagem abre de verdade.
+  */
+  it("a foto avulsa entra com URL assinada e legenda, e a imagem abre", async () => {
     const alvo = await comVistoria({ offline: true, endereco: "Rua Com Foto, 120" });
 
     const pixel = Buffer.from(
@@ -429,7 +442,11 @@ describe("Fotografia no documento", () => {
     });
 
     expect(laudo.body).toContain("Trinca na parede dos fundos");
-    expect(laudo.body).toContain("Foto 1.");
+    expect(laudo.body).toContain("Fotografias anexadas ao protocolo");
+    expect(laudo.body).toContain("Anexo 1.");
+    expect(laudo.body).toContain("Anexada por Diego Nakamura Alves");
+    // E não vira registro fotográfico da vistoria, que não teve foto nenhuma.
+    expect(laudo.body).toContain("Nenhuma fotografia foi anexada a esta vistoria.");
 
     // A URL da imagem é assinada e serve o conteúdo de verdade.
     const src = laudo.body.match(/<img src="([^"]+)"/)![1]!.replace(/&amp;/g, "&");

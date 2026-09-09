@@ -22,7 +22,16 @@ import { carregarConfig } from "../src/config.js";
 function producao(sobrescrever: Record<string, string> = {}): NodeJS.ProcessEnv {
   return {
     NODE_ENV: "production",
-    DATABASE_URL: "postgres://dc360:senha@banco.interno:5432/dc360",
+    /*
+      Com `sslmode=verify-full`, e isto NÃO é enfeite do molde.
+
+      Sem esse parâmetro a partida em produção é recusada desde 09/09/2026,
+      porque `montarConfiguracaoDoPool` só monta a âncora de confiança quando a
+      URL pede verificação: sem ele a conexão com o banco subia cifrada e não
+      autenticada, em silêncio. Ver o caso "recusa DATABASE_URL sem verificação
+      de certificado" em `banco-tls.test.ts`.
+    */
+    DATABASE_URL: "postgres://dc360:senha@banco.interno:5432/dc360?sslmode=verify-full",
     JWT_SEGREDO: "segredo-de-producao-com-mais-de-trinta-e-dois-bytes",
     ORIGENS_PERMITIDAS: "https://painel.serraalta.mg.gov.br",
     S3_ENDPOINT: "https://balde.exemplo.com",

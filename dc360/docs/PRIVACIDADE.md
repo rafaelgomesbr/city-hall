@@ -205,6 +205,13 @@ O que está implementado hoje, sem promessa de futuro:
   alteração e de remoção no próprio banco. Correção entra como evento novo.
 - **Senha guardada com derivação de chave de custo alto**, nunca em texto.
 - **Conexão com o banco cifrada e com a autoridade certificadora conferida.**
+  A afirmação depende de um parâmetro na string de conexão
+  (`sslmode=verify-full`), e por isso ela deixou de ser só uma promessa
+  escrita: desde 09/09/2026 a partida em produção **recusa subir** com uma
+  `DATABASE_URL` que não peça verificação. Antes disso, a URL colada do
+  painel do provedor, que não traz o parâmetro, fazia a conexão subir
+  cifrada e **não autenticada**, em silêncio, e este documento continuava
+  afirmando o contrário.
 - **Fotografia entregue por endereço temporário e assinado**, não por link
   público.
 - **Teto de tentativas** de autenticação, e a conta trava depois de insistência.

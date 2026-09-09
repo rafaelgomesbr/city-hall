@@ -52,8 +52,39 @@ export type Armazenamento = {
    * lá continua valendo a URL assinada, senão o servidor paga a banda de toda
    * vistoria aberta e cai no dia de temporal.
    */
-  baixar(chave: string): Promise<{ corpo: Uint8Array; tipoConteudo: string | null } | null>;
+  baixar(chave: string): Promise<ResultadoDeLeitura>;
 };
+
+/**
+ * O que aconteceu ao tentar ler um objeto, e por que são TRÊS situações e não
+ * duas.
+ *
+ * Isto já foi `objeto | null`, e o `null` juntava numa coisa só duas coisas
+ * opostas: "este arquivo não existe" e "eu não consegui ler este arquivo". O
+ * `baixar` do S3 fazia `.catch(() => null)` e devolvia `null` para erro de
+ * rede, DNS, conexão cortada, 429 de limite de taxa e 503 do provedor, e o
+ * pacote de saída imprimia todos eles sob o texto "O banco referia estes
+ * arquivos e eles NÃO foram encontrados no armazenamento".
+ *
+ * O cenário que isso produz é o pior dia possível do produto. Um município com
+ * três anos pede a saída; o pacote faz milhares de GET assinados seguidos; o
+ * provedor devolve 429 em quarenta deles. Quarenta fotografias que EXISTEM
+ * saem declaradas inexistentes, com soma de verificação ao lado dando
+ * aparência de conferência feita, e o passo 6 do procedimento (a eliminação
+ * das nossas cópias) acontece depois disso, sem volta. É destruição de prova
+ * por engolir erro, no dia em que o produto está provando que não aprisiona
+ * ninguém.
+ */
+export type ResultadoDeLeitura =
+  | { situacao: "encontrado"; corpo: Uint8Array; tipoConteudo: string | null }
+  /** O armazenamento respondeu, e respondeu que o objeto não está lá. */
+  | { situacao: "ausente" }
+  /**
+   * Ninguém conseguiu dizer se o objeto existe. Quem recebe isto NÃO PODE
+   * escrever "não encontrado": precisa dizer que não conseguiu ler, e o que
+   * houve.
+   */
+  | { situacao: "falha"; motivo: string; tentativas: number };
 
 /** Tipos aceitos. Lista fechada: o que não está aqui não sobe. */
 export const TIPOS_ACEITOS = [

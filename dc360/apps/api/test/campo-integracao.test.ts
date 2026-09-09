@@ -36,6 +36,20 @@ let tokenCoordenador: string;
 
 const EQUIPE_ALFA = "11111111-1111-4111-8111-0000000000e1";
 
+/**
+ * Quem está com a sessão aberta no aparelho.
+ *
+ * A fila passou a exigir isto (`sessaoAtual` em `packages/campo/src/fila.ts`):
+ * item coletado por um agente não sobe com a credencial de quem estiver logado
+ * depois. Aqui é sempre o mesmo agente, porque é a sessão dele que o
+ * `transporteHttp` acima carrega no token.
+ */
+const SESSAO_DO_DIEGO = {
+  usuarioId: "11111111-1111-4111-8111-0000000000d3",
+  nome: "Diego Nakamura Alves",
+  organizacaoId: "11111111-1111-4111-8111-000000000001",
+};
+
 /** Loja com contador, para enxergar o que a fila realmente persistiu. */
 function lojaObservavel(): ChaveValor & { escritas: number } {
   const interna = lojaEmMemoria();
@@ -59,6 +73,7 @@ function montarFila(loja: ChaveValor) {
       baseUrl: endereco,
       obterToken: async () => tokenAcesso,
     }),
+    sessaoAtual: () => SESSAO_DO_DIEGO,
     dormir: async () => undefined,
   });
 }
@@ -266,6 +281,7 @@ describe("Fila de campo contra a API", () => {
         obterToken: async () => tokenAcesso,
         tempoLimiteMs: 2_000,
       }),
+      sessaoAtual: () => SESSAO_DO_DIEGO,
       dormir: async () => undefined,
     });
 
@@ -283,6 +299,7 @@ describe("Fila de campo contra a API", () => {
     const filaComServidor = criarFilaDeSincronizacao({
       deposito: depositoSobreChaveValor(loja),
       transporte: transporteHttp({ baseUrl: endereco, obterToken: async () => tokenAcesso }),
+      sessaoAtual: () => SESSAO_DO_DIEGO,
       dormir: async () => undefined,
       // O item ficou com janela de espera: no aparelho isso é minutos, aqui
       // adiantamos o relógio em vez de esperar.
@@ -307,6 +324,7 @@ describe("Fila de campo contra a API", () => {
         baseUrl: endereco,
         obterToken: async () => "token.completamente.invalido",
       }),
+      sessaoAtual: () => SESSAO_DO_DIEGO,
       dormir: async () => undefined,
     });
 
@@ -329,6 +347,7 @@ describe("Fila de campo contra a API", () => {
         baseUrl: endereco,
         obterToken: async () => tokenCoordenador,
       }),
+      sessaoAtual: () => SESSAO_DO_DIEGO,
       dormir: async () => undefined,
     });
 
@@ -394,6 +413,7 @@ describe("Foto de campo do aparelho ao banco", () => {
         baseUrl: endereco,
         obterToken: async () => tokenAcesso,
       }),
+      sessaoAtual: () => SESSAO_DO_DIEGO,
       arquivos,
       dormir: async () => undefined,
     });

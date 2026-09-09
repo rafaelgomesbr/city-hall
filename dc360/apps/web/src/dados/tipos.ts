@@ -344,6 +344,17 @@ export type MeuTrabalho = {
   colegas: ColegaDeEquipe[];
   designadas: TarefaDesignada[];
   concluidas: VistoriaConcluida[];
+  /**
+   * Quantas o agente concluiu DE VERDADE, e o teto que a lista acima respeita.
+   *
+   * Os dois existem porque a tela imprimia o tamanho da lista como se fosse a
+   * contagem. Um agente com sessenta e duas vistorias lia "Vistorias que eu
+   * concluí (50)", e as doze mais antigas não apareciam em lugar nenhum: se ele
+   * precisasse mostrar que vistoriou aquele imóvel em janeiro, a tela AFIRMAVA
+   * que ele nunca vistoriou.
+   */
+  totalConcluidas: number;
+  tetoDeConcluidas: number;
 };
 
 /**

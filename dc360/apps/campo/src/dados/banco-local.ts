@@ -39,6 +39,58 @@ import { Directory, File, Paths } from "expo-file-system";
 
 let conexao: Promise<SQLite.SQLiteDatabase> | null = null;
 
+/**
+ * Os arquivos de prova que o aplicativo grava no diretório de documentos.
+ *
+ * Assinatura da moradora e foto da vistoria. Os dois nascem no cache do
+ * sistema (o quadro de assinatura e a câmera devolvem caminho de cache) e são
+ * copiados para cá justamente porque o sistema apaga cache sem avisar quando o
+ * armazenamento aperta, e a coleta pode passar horas no aparelho antes de
+ * sincronizar.
+ */
+const EVIDENCIA_NO_DISCO = /^(assinatura-\d+\.png|foto-\d+-\d+\.jpg)$/;
+
+/** O nome do arquivo dentro do caminho, sem depender de `path` do Node. */
+function nomeDoArquivo(uri: string): string {
+  return uri.split("/").pop() ?? uri;
+}
+
+/**
+ * Quais arquivos de prova alguma coleta da fila ainda referencia.
+ *
+ * Devolve `null` quando não deu para saber, e quem chama trata isso como "não
+ * apague nada". A escolha é deliberada e assimétrica: deixar um PNG a mais no
+ * disco por um turno é um problema de privacidade pequeno e reversível no
+ * próximo logout; apagar a assinatura de uma vistoria que ainda não subiu
+ * destrói a prova de um ato administrativo que aconteceu, e não há como
+ * refazer, porque a moradora assinou uma vez, no morro.
+ */
+async function arquivosAindaNaFila(
+  db: SQLite.SQLiteDatabase,
+): Promise<Set<string> | null> {
+  try {
+    const linhas = await db.getAllAsync<{ valor: string }>(
+      "SELECT valor FROM fila_sincronizacao", [],
+    );
+    const nomes = new Set<string>();
+    for (const linha of linhas) {
+      try {
+        const item = JSON.parse(linha.valor) as { fotos?: { uriLocal?: unknown }[] };
+        for (const foto of item.fotos ?? []) {
+          if (typeof foto.uriLocal === "string") nomes.add(nomeDoArquivo(foto.uriLocal));
+        }
+      } catch {
+        // Um registro corrompido não pode impedir a limpeza do resto, e também
+        // não pode ser lido: ele simplesmente não protege arquivo nenhum.
+      }
+    }
+    return nomes;
+  } catch (erro) {
+    console.warn("Não deu para ler a fila antes de limpar os arquivos", erro);
+    return null;
+  }
+}
+
 async function abrirUmaVez(): Promise<SQLite.SQLiteDatabase> {
   const db = await SQLite.openDatabaseAsync("dc360-campo.db");
 
@@ -139,6 +191,24 @@ export async function apagarDadosLocais(): Promise<void> {
       lista do que o colega do dia coletou, que é exatamente o vazamento que
       este bloco existe para impedir.
     */
+    /*
+      `fila_sincronizacao` NÃO entra nesta lista, e a ausência é a decisão mais
+      importante deste arquivo.
+
+      A fila guarda vistoria já feita no morro e ainda não entregue: apagá-la no
+      logout mandaria o agente subir o morro de novo, e o diálogo de saída
+      promete o contrário com todas as letras. A promessa vale.
+
+      O que a promessa NÃO pode significar é a coleta subir com a credencial de
+      quem entrar depois neste aparelho de plantão. O envelope não carrega autor:
+      o servidor tira o `agente_id` de quem apresentou o token, e o laudo e a
+      trilha (append-only) passariam a atribuir a vistoria a um servidor que
+      nunca esteve no local, contra a minuta que foi lida em voz alta ali com
+      outro nome. Quem impede isso é o carimbo de autor no próprio item da fila,
+      em `packages/campo/src/fila.ts`: cada item lembra de quem é, e o dreno só
+      envia o que for de quem está logado. Se um dia esta linha passar a apagar a
+      fila, aquele carimbo perde o sentido junto.
+    */
     await db.execAsync(
       "DELETE FROM rascunhos; DELETE FROM pendencias; DELETE FROM marcas; DELETE FROM coletas;",
     );
@@ -146,16 +216,37 @@ export async function apagarDadosLocais(): Promise<void> {
     console.warn("Falha ao limpar o banco local no logout", erro);
   }
 
-  // Os PNGs de assinatura: assinatura-<timestamp>.png em Paths.document.
+  /*
+    Os arquivos de prova em disco, MENOS os que uma coleta na fila ainda usa.
+
+    O bloco apagava toda `assinatura-<timestamp>.png` sem olhar a fila, e isso
+    desmentia em silêncio a promessa do diálogo de saída. A sequência era esta:
+    o agente coleta no morro, a moradora assina, ele sai da conta no fim do
+    turno, o PNG é apagado, o item continua na fila apontando para um arquivo
+    que não existe mais, e no próximo login o envio falha para sempre num
+    arquivo inexistente. A vistoria inteira (checklist, GPS, observações,
+    assinatura) morria por causa desta linha, sem nada na tela.
+
+    Continua apagando o que NÃO está mais na fila, que é o caso comum: coleta já
+    confirmada sai da fila e o arquivo dela vira lixo com dado de família dentro,
+    num aparelho compartilhado entre turnos.
+  */
   try {
-    const dir = new Directory(Paths.document);
-    for (const item of dir.list()) {
-      if (item instanceof File && /^assinatura-\d+\.png$/.test(item.name)) {
-        item.delete();
+    const emUso = await arquivosAindaNaFila(await bancoLocal());
+    if (emUso === null) {
+      console.warn("Arquivos de prova preservados: não deu para conferir a fila");
+    } else {
+      const dir = new Directory(Paths.document);
+      for (const item of dir.list()) {
+        if (item instanceof File
+            && EVIDENCIA_NO_DISCO.test(item.name)
+            && !emUso.has(item.name)) {
+          item.delete();
+        }
       }
     }
   } catch (erro) {
-    console.warn("Falha ao apagar assinaturas no logout", erro);
+    console.warn("Falha ao apagar arquivos de prova no logout", erro);
   }
 
   esquecerConexao();

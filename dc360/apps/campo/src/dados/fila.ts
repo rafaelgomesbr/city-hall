@@ -1,14 +1,15 @@
-import { File } from "expo-file-system";
+import type { Identidade } from "./api";
 import {
   criarFilaDeSincronizacao,
   depositoSobreChaveValor,
   lojaSqlite,
   prepararSqlite,
   transporteHttp,
-  type Arquivos,
+  type AutorDaColeta,
   type FilaDeSincronizacao,
 } from "@dc360/campo";
 import { bancoLocal } from "./banco-local";
+import { arquivosDoAparelho } from "./evidencia-no-disco";
 
 /**
  * Onde a parte testada encontra o aparelho.
@@ -24,21 +25,6 @@ import { bancoLocal } from "./banco-local";
 let fila: FilaDeSincronizacao | null = null;
 
 /**
- * Leitura dos bytes da foto, a partir do caminho que a câmera devolveu.
- *
- * `bytes()` da API nova do `expo-file-system` devolve o binário direto. A
- * versão anterior deste arquivo lia em base64 e decodificava à mão com
- * `atob`, o que gastava memória três vezes (arquivo, string base64, array) e
- * era exatamente o tipo de coisa que derruba aparelho de entrada numa foto de
- * doze megapixels.
- */
-const arquivos: Arquivos = {
-  async ler(uriLocal: string): Promise<Uint8Array> {
-    return new File(uriLocal).bytes();
-  },
-};
-
-/**
  * A fila, criada uma vez e reaproveitada.
  *
  * CONTRATO, e ele é a parte perigosa: a fila guarda o PRIMEIRO `obterToken`
@@ -49,10 +35,15 @@ const arquivos: Arquivos = {
  * estado faz o aplicativo reapresentar, a cada envio, um token de renovação
  * já rotacionado, o que a API lê como roubo e responde derrubando todas as
  * sessões do agente.
+ *
+ * O MESMO contrato vale para `lerIdentidade`, e ali o preço de errar é pior que
+ * uma sessão derrubada: é um laudo assinado pela pessoa errada. Ver
+ * `sessaoAtual` logo abaixo.
  */
 export async function obterFila(
   baseUrl: string,
   obterToken: () => Promise<string | null>,
+  lerIdentidade: () => Identidade | null,
 ): Promise<FilaDeSincronizacao> {
   if (fila) return fila;
 
@@ -72,7 +63,37 @@ export async function obterFila(
   fila = criarFilaDeSincronizacao({
     deposito: depositoSobreChaveValor(lojaSqlite(db)),
     transporte: transporteHttp({ baseUrl, obterToken }),
-    arquivos,
+    /*
+      QUEM esta logado, lido a cada vez, pelo mesmo motivo e com o mesmo
+      cuidado do `obterToken`.
+
+      Do lado do servidor, o autor da vistoria e simplesmente quem apresentou o
+      token: o envelope nao carrega autor nenhum. Entao a fila precisa carimbar
+      quem coletou no momento da coleta e recusar-se a enviar coleta de outra
+      pessoa. Este getter e a fonte viva desse carimbo. Uma funcao que fechasse
+      sobre um valor de estado deixaria a fila presa no agente da primeira
+      renderizacao, que e o defeito ao contrario: a coleta do turno da noite
+      subindo com o nome do agente da manha.
+
+      So os tres campos que decidem a autoria atravessam. Matricula, papel e
+      municipio ficam de fora porque a fila nao tem o que fazer com eles, e o
+      item da fila vai para o disco do aparelho.
+    */
+    sessaoAtual: (): AutorDaColeta | null => {
+      const eu = lerIdentidade();
+      if (!eu) return null;
+      return {
+        usuarioId: eu.usuarioId,
+        nome: eu.nome,
+        organizacaoId: eu.organizacaoId,
+      };
+    },
+    /*
+      A leitura dos bytes, com o cuidado de dizer em português (e como falha
+      permanente) quando o arquivo não está mais no aparelho. Ver
+      `evidencia-no-disco.ts`.
+    */
+    arquivos: arquivosDoAparelho,
     /*
       Tempo limite mais generoso que o padrão do pacote: a rede de borda de
       cidade é lenta, e cortar cedo transforma envio que ia completar em

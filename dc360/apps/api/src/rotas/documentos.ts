@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import type { Banco } from "../banco/tipos.js";
+import type { Banco, Consulta } from "../banco/tipos.js";
 import { RegraDeNegocio, autorizar, type Identidade } from "../servidor.js";
 import type { Armazenamento } from "../armazenamento/tipos.js";
 import {
@@ -25,7 +25,18 @@ import { enderecoDoCliente } from "../rede.js";
 
 const idSchema = z.object({ id: z.string().uuid() });
 
-type LinhaOcorrencia = DadosDocumento["ocorrencia"] & { organizacao_id: string };
+/**
+ * A ocorrência como o documento a lê, mais o estado da interdição.
+ *
+ * As duas datas de interdição não entram na folha: elas decidem se a emissão
+ * do termo é o ATO de interditar ou a SEGUNDA VIA de um ato que já aconteceu.
+ * Ver `emissaoEhAtoDeInterdicao`.
+ */
+type LinhaOcorrencia = DadosDocumento["ocorrencia"] & {
+  organizacao_id: string;
+  interditada_em: string | null;
+  desinterditada_em: string | null;
+};
 
 async function reunirDados(
   banco: Banco,
@@ -79,8 +90,12 @@ async function reunirDados(
       `SELECT v.id, v.checklist, v.gps_precisao_metros, v.assinante_nome, v.observacoes,
               v.coletada_em, v.sincronizada_em, v.assinatura_chave,
               v.desalojados, v.desabrigados, v.feridos, v.desaparecidos, v.obitos,
-              u.nome AS agente_nome, u.matricula AS agente_matricula
-         FROM vistorias v LEFT JOIN usuarios u ON u.id = v.agente_id
+              u.nome AS agente_nome, u.matricula AS agente_matricula,
+              ed.nome AS equipe_designada_nome, ea.nome AS equipe_do_agente_nome
+         FROM vistorias v
+         LEFT JOIN usuarios u ON u.id = v.agente_id
+         LEFT JOIN equipes ed ON ed.id = v.equipe_designada_id
+         LEFT JOIN equipes ea ON ea.id = v.equipe_do_agente_id
         WHERE v.ocorrencia_id = $1
                 ORDER BY v.sincronizada_em DESC, v.coletada_em DESC LIMIT 1`,
       [ocorrenciaId],
@@ -93,10 +108,54 @@ async function reunirDados(
       );
     }
 
-    const fotos = await c.query<{ chave_storage: string; legenda: string | null; capturada_em: string }>(
+    /*
+      AS FOTOS SÃO DA VISTORIA VIGENTE, e não da ocorrência inteira.
+
+      Esta consulta filtrava só por `ocorrencia_id`, enquanto todo o resto do
+      documento (checklist, agente, assinante, datas, órgãos indicados) vinha
+      da vistoria vigente. Reproduzido pela revisão: o laudo da re-vistoria B,
+      que concluiu que o risco cessou, saía com as fotos do talude destruído da
+      vistoria A, numeradas como "Fotografia 1 da vistoria". O documento
+      afirmava, com brasão, que o agente fotografou aquilo naquela ida.
+
+      O caso de re-vistoria não é raro: é o caminho normal de todo levantamento
+      de interdição, e é justamente o documento em que a diferença entre as
+      duas idas é a coisa mais importante da folha.
+    */
+    const fotos = await c.query<{
+      chave_storage: string; legenda: string | null; capturada_em: string;
+    }>(
       `SELECT chave_storage, legenda, capturada_em FROM evidencias
-        WHERE ocorrencia_id = $1 AND enviada_em IS NOT NULL
+        WHERE ocorrencia_id = $1 AND vistoria_id = $2 AND enviada_em IS NOT NULL
         ORDER BY ordem, capturada_em`,
+      [ocorrenciaId, vistoria.rows[0]!.id],
+    );
+
+    /*
+      AS FOTOS SEM VISTORIA, e por que elas não somem nem se misturam.
+
+      Existem de verdade: o fluxo de evidência avulsa (`POST
+      /evidencias/autorizar-envio` sem coleta atrás) grava a linha com
+      `vistoria_id` nulo, e ela nunca é amarrada a vistoria nenhuma. Somá-las à
+      vistoria vigente é o defeito acima em versão menor, e mais difícil de
+      pegar: o documento passaria a atribuir ao agente uma imagem que ele não
+      fez. Descartá-las cala uma prova que alguém anexou ao processo de
+      propósito, e o laudo é onde o processo se lê.
+
+      A terceira saída é dizer o que elas são: seção própria, com quem anexou e
+      quando, sem número de foto da vistoria. Quem lê consegue separar o
+      registro do agente em campo do que foi acrescentado depois.
+    */
+    const avulsas = await c.query<{
+      chave_storage: string; legenda: string | null; capturada_em: string;
+      anexada_por_nome: string | null;
+    }>(
+      `SELECT e.chave_storage, e.legenda, e.capturada_em, u.nome AS anexada_por_nome
+         FROM evidencias e
+         LEFT JOIN usuarios u ON u.id = e.anexada_por
+        WHERE e.ocorrencia_id = $1 AND e.vistoria_id IS NULL
+          AND e.enviada_em IS NOT NULL
+        ORDER BY e.ordem, e.capturada_em`,
       [ocorrenciaId],
     );
 
@@ -127,6 +186,7 @@ async function reunirDados(
       ocorrencia: ocorrencia.rows[0],
       vistoria: { ...vistoria.rows[0], orgaosIndicados: orgaos.rows },
       fotos: fotos.rows,
+      avulsas: avulsas.rows,
     };
   });
 
@@ -146,6 +206,14 @@ async function reunirDados(
         url: await armazenamento.urlParaLer(f.chave_storage, 30 * 60),
         legenda: f.legenda,
         capturadaEm: f.capturada_em,
+      })),
+    ),
+    fotosAvulsas: await Promise.all(
+      bruto.avulsas.map(async (f) => ({
+        url: await armazenamento.urlParaLer(f.chave_storage, 30 * 60),
+        legenda: f.legenda,
+        capturadaEm: f.capturada_em,
+        anexadaPorNome: f.anexada_por_nome,
       })),
     ),
     emitidoPor,
@@ -280,6 +348,64 @@ export async function rotasDocumentos(
     interditado, então não havia como listar o que está interditado hoje, nem
     nada que obrigasse alguém a levantar a interdição um dia.
   */
+  /**
+   * Emitir o termo é interditar. Reimprimir o termo NÃO é interditar de novo.
+   *
+   * O DEFEITO, reproduzido pela revisão adversarial, em três passos: emitir o
+   * termo (interdita), levantar a interdição com motivo, e pedir o MESMO termo
+   * outra vez, que é a segunda via de rotina que o próprio
+   * `desinterdicao.test.ts` chama de legítima (o papel molhou, o processo pede
+   * cópia). Depois do terceiro passo, `marcarInterditada` reinterditava:
+   * `interditada_em` ganhava data nova, `desinterditada_em` voltava a NULL e
+   * `desinterdicao_motivo` era APAGADO, tudo sem um único evento na trilha.
+   *
+   * O estrago é do pior tipo que este produto pode produzir. A casa volta a
+   * constar interditada por um ato que ninguém praticou. O termo de
+   * desinterdição deixa de poder ser emitido, porque a rota dele exige
+   * `desinterditada_em`, então a família perde o papel que a autoriza a voltar.
+   * E some a coluna que responde, anos depois, POR QUE ela foi autorizada a
+   * voltar. Como a trilha é append-only, o evento de desinterdição continua lá:
+   * o registro passa a se contradizer sozinho.
+   *
+   * A regra que faltava é a que o comentário de `marcarInterditada` já
+   * afirmava e ninguém conferia: reinterditar depois de um levantamento exige
+   * VISTORIA NOVA, porque o risco voltou. Sem vistoria posterior ao
+   * levantamento, o que está sendo pedido é a cópia de um documento antigo, e
+   * cópia não pratica ato.
+   *
+   * Roda na MESMA transação da emissão, e não antes dela, porque o que decide
+   * é o estado no instante da escrita.
+   */
+  async function emissaoEhAtoDeInterdicao(
+    c: Consulta, ocorrenciaId: string,
+  ): Promise<boolean> {
+    const r = await c.query<{
+      nunca_interditada: boolean;
+      levantada: boolean;
+      ha_vistoria_apos_levantamento: boolean;
+    }>(
+      `SELECT o.interditada_em IS NULL     AS nunca_interditada,
+              o.desinterditada_em IS NOT NULL AS levantada,
+              EXISTS (
+                SELECT 1 FROM vistorias v
+                 WHERE v.ocorrencia_id = o.id
+                   AND o.desinterditada_em IS NOT NULL
+                   AND v.sincronizada_em > o.desinterditada_em
+              ) AS ha_vistoria_apos_levantamento
+         FROM ocorrencias o
+        WHERE o.id = $1`,
+      [ocorrenciaId],
+    );
+    const estado = r.rows[0];
+    if (!estado) return false;
+
+    // Nunca interditada: esta emissão é o ato. Interditada e ainda não
+    // levantada: é segunda via, e `marcarInterditada` já não tocaria na data.
+    // Levantada: só volta a ser ato se houver vistoria depois do levantamento.
+    return estado.nunca_interditada
+      || (estado.levantada && estado.ha_vistoria_apos_levantamento);
+  }
+
   async function efetivarEmissao(
     quem: Identidade, id: string,
     documento: "laudo" | "termo_de_interdicao" | "termo_de_desinterdicao",
@@ -288,7 +414,9 @@ export async function rotasDocumentos(
   ): Promise<void> {
     await banco.comTenant(quem.organizacaoId, async (c) => {
       await registrarEmissao(c, quem, id, documento, vistoriaId, formato);
-      if (documento === "termo_de_interdicao") await marcarInterditada(c, quem, id);
+      if (documento === "termo_de_interdicao" && await emissaoEhAtoDeInterdicao(c, id)) {
+        await marcarInterditada(c, quem, id);
+      }
 
       /*
         O acesso ao documento fica registrado, e SEMPRE, inclusive na décima

@@ -37,7 +37,7 @@ D-U-N-S e a revisão não forem gargalo.
 - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
   compartilhados.
-- **1437 testes verdes somando o aplicativo, e `npm audit` em zero.**
+- **1531 testes verdes somando o aplicativo, e `npm audit` em zero.**
 - **A API sobe contra PostgreSQL real** (provado contra o Postgres 18, à mão) e
   serve o ciclo inteiro: login, isolamento entre municípios, ocorrência,
   vistoria offline, laudo, termo de interdição e desinterdição, contagem de
@@ -148,6 +148,12 @@ PaaS que dá HTTPS automático e roda contêiner ou Node:
 - **Fly.io**, **Railway** ou **Render**. O repositório tem `Dockerfile` e
   `compose.yaml` (revisados, mas ainda não construídos, e o job de CI
   `implantavel` os confere no primeiro push).
+  As três são equivalentes para rodar o contêiner, mas **não** para o endereço
+  de origem: o `fly.toml` do repositório declara `PROXY_DE_BORDA = "fly"`, e
+  levar essa linha para outra PaaS transforma o cabeçalho `Fly-Client-IP` num
+  campo que o cliente preenche sozinho. Em Railway ou Render, deixe
+  `PROXY_DE_BORDA` em `nenhum` (o padrão) e o endereço passa a vir do salto
+  imediato, que é o edge da própria PaaS.
 - Variáveis de ambiente obrigatórias em produção (o processo **recusa subir**
   sem elas, e isso é de propósito):
 
@@ -155,11 +161,12 @@ PaaS que dá HTTPS automático e roda contêiner ou Node:
   | --- | --- |
   | `NODE_ENV` | `production` |
   | `HOST` | `0.0.0.0` (senão a porta publicada não atende) |
-  | `DATABASE_URL` | do papel de **aplicação** (`dc360_api`), nunca o de setup |
+  | `DATABASE_URL` | do papel de **aplicação** (`dc360_api`), nunca o de setup, e ela **precisa terminar em `?sslmode=verify-full`**. A URL que o painel do provedor oferece não traz esse parâmetro, e sem ele a conexão com o banco sobe cifrada e **não autenticada**: quem estiver entre a API e o banco lê e reescreve a base de todos os municípios, e o SCRAM não acusa nada, porque o intermediário só retransmite o desafio e a resposta. A âncora de confiança já vem versionada no repositório, então o parâmetro funciona sem mais nenhuma configuração, e desde 09/09/2026 a partida em produção **recusa subir** sem ele. Exemplo: `postgres://dc360_api:SENHA@HOST:5432/postgres?sslmode=verify-full` |
   | `JWT_SEGREDO` | ≥ 32 bytes aleatórios (`openssl rand -base64 48`). Aceita **lista separada por vírgula**: o primeiro assina, todos são aceitos. É assim que se troca o segredo sem derrubar o plantão. Rode `node scripts/rotacionar-segredo.mjs` para a linha pronta, e leia o cabeçalho dele antes: rotação e revogação são procedimentos OPOSTOS que usam a mesma variável |
   | `URL_PUBLICA` | `https://api.seudominio.com.br` |
   | `URL_PAINEL` | `https://painel.seudominio.com.br` |
   | `ORIGENS_PERMITIDAS` | `https://painel.seudominio.com.br` (sem curinga) |
+  | `PROXY_DE_BORDA` | `fly` **só no Fly.io**; `nenhum` (o padrão) em Railway, Render ou atrás de proxy próprio. É a declaração de quem este processo aceita como fonte do endereço de origem. Com `fly`, o servidor lê o cabeçalho `Fly-Client-IP`, que o edge do Fly reescreve; em qualquer outro lugar esse cabeçalho é só um texto que o próprio cliente escolhe, e aceitá-lo entrega ao atacante o teto de tentativas de login **e** o endereço que fica gravado na trilha como autor da exportação da base de cidadãos |
   | `S3_ENDPOINT` `S3_BALDE` `S3_CHAVE_ID` `S3_CHAVE_SECRETA` | armazenamento (item 4) |
   | `RECUPERACAO_ATIVA` | `nao` no piloto, ou `sim` + `NOTIFICADOR_URL`/`_CHAVE` (item 5) |
   | `SEGUNDO_FATOR_ATIVO` | `nao` por padrão. Com `sim`, o **administrador do município** passa a precisar do código de seis dígitos do aplicativo de autenticação para entrar, e os demais papéis podem ligar se quiserem. Ligar exige a variável abaixo, em qualquer ambiente: sem ela o processo não sobe |
@@ -204,7 +211,7 @@ Na primeira entrada, o coordenador troca a senha em **Minha conta**.
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 1437 testes com o aplicativo, npm audit, números
+npm run verificar          # typecheck, 1531 testes com o aplicativo, npm audit, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo

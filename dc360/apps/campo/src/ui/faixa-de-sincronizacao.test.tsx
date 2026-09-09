@@ -23,7 +23,8 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
 }));
 
 import { ProvedorDeTema } from "./componentes";
-import { FaixaDeSincronizacao, type EstadoDaFaixa } from "./FaixaDeSincronizacao";
+import { FaixaDeSincronizacao, decidirFaixa, type EstadoDaFaixa } from "./FaixaDeSincronizacao";
+import { temaEscuro } from "./tokens";
 
 const ESTADOS: Record<EstadoDaFaixa["chave"], EstadoDaFaixa> = {
   sem_sinal: {
@@ -37,6 +38,17 @@ const ESTADOS: Record<EstadoDaFaixa["chave"], EstadoDaFaixa> = {
   esperando: {
     chave: "esperando", fundo: "#F1F5F9", cor: "#14191D", sinalTexto: "↑",
     titulo: "Com sinal", detalhe: "2 esperando envio",
+  },
+  /*
+    O estado do aparelho de plantão compartilhado: existe coleta guardada aqui
+    que a sessão aberta não pode enviar, porque o laudo sai com o nome de quem
+    fez a vistoria. Ele existe para que "Tudo sincronizado" nunca apareça com
+    uma vistoria parada no aparelho.
+  */
+  aguardando_autor: {
+    chave: "aguardando_autor", fundo: "#FEF3C7", cor: "#92400E", sinalTexto: "⏸",
+    titulo: "Coleta de outro agente no aparelho",
+    detalhe: "1 coleta espera quem a fez entrar",
   },
   sincronizado: {
     chave: "sincronizado", fundo: "#DCFCE7", cor: "#14532D", sinalTexto: "✓",
@@ -169,5 +181,42 @@ describe("redução de movimento", () => {
     expect(sequencias).toBe(0);
     expect(screen.getByText("Tudo sincronizado")).toBeTruthy();
     expect(screen.getByText("✓")).toBeTruthy();
+  });
+});
+
+describe("o que a faixa promete", () => {
+  /*
+    A frase verde é a promessa central deste aplicativo para quem desceu o
+    morro: "o que eu fiz já chegou". Ela precisa ser verdade sempre, e por isso
+    tem teste próprio.
+  */
+  function faixa(entrada: Parameters<typeof decidirFaixa>[0]) {
+    return decidirFaixa(entrada, temaEscuro);
+  }
+
+  it("NÃO diz 'Tudo sincronizado' com a coleta de outro agente parada no aparelho", async () => {
+    /*
+      O aparelho de plantão compartilhado: o agente da manhã coletou no morro e
+      saiu da conta, o da noite entrou. A coleta dela não sobe, e não pode subir
+      (o laudo sairia com o nome errado). Antes, com nada de próprio na fila, a
+      faixa ficava verde dizendo "Nada pendente no aparelho".
+    */
+    const r = faixa({ temSinal: true, pendentes: 0, deOutroAutor: 1, sincronizando: false });
+
+    expect(r.chave).not.toBe("sincronizado");
+    expect(r.titulo).toBe("Coleta de outro agente no aparelho");
+    expect(r.detalhe).toBe("1 coleta espera quem a fez entrar");
+    // Nada se comunica só por cor: o emblema muda junto com a palavra.
+    expect(r.sinalTexto).not.toBe("✓");
+  });
+
+  it("com a fila realmente vazia, continua dizendo que está tudo certo", async () => {
+    const r = faixa({ temSinal: true, pendentes: 0, deOutroAutor: 0, sincronizando: false });
+    expect(r.chave).toBe("sincronizado");
+  });
+
+  it("sem sinal, a falta de sinal vem antes de qualquer outra coisa", async () => {
+    const r = faixa({ temSinal: false, pendentes: 0, deOutroAutor: 3, sincronizando: false });
+    expect(r.chave).toBe("sem_sinal");
   });
 });

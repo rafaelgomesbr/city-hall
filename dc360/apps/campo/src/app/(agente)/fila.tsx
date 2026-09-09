@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
-import type { FilaDeSincronizacao, ItemFila } from "@dc360/campo";
+import { autoriaDaColeta, type Autoria, type FilaDeSincronizacao, type ItemFila } from "@dc360/campo";
 import { enderecoDaApi } from "../../dados/api";
 import { obterFila } from "../../dados/fila";
 import { useSinal } from "../../dados/conectividade";
@@ -40,9 +40,61 @@ import { espaco } from "../../ui/tokens";
  * O símbolo não é enfeite e por isso é campo obrigatório do `Chip`: esta tela é
  * lida em pé, na rua, com sol na tela, onde âmbar e verde são a mesma mancha.
  */
-function descreverEstado(item: ItemFila): {
+/**
+ * Depois de quantas tentativas a frase muda de "vai tentar de novo" para "a
+ * conexão daqui não está dando conta".
+ *
+ * Oito era o antigo teto que BLOQUEAVA a coleta, e ele mentia: cerca de cinco
+ * minutos de sinal ruim pintavam o cartão de vermelho com "repetir o envio não
+ * resolve sozinho" ao lado de um botão "Descartar", sobre uma vistoria que
+ * subiria sozinha na janela de sinal seguinte. O número continua sendo oito,
+ * mas agora ele só troca a frase: a coleta continua tentando, e a frase manda a
+ * pessoa procurar sinal, que é a única coisa que resolve.
+ */
+const TENTATIVAS_ATE_AVISAR = 8;
+
+/** O primeiro nome, que é como o colega é chamado no plantão. */
+function primeiroNome(nome: string): string {
+  return nome.trim().split(/\s+/)[0] ?? nome;
+}
+
+function descreverEstado(item: ItemFila, autoria: Autoria): {
   rotulo: string; explicacao: string; simbolo: string; tom: TomDoChip;
 } {
+  /*
+    A AUTORIA VEM ANTES DO ESTADO, e a ordem é o conteúdo.
+
+    Um item de outro agente fica em `pendente` no disco, e "Aguardando" prometia
+    que ele sai assim que houver sinal. Não sai: o dreno não toca em coleta que
+    não é de quem está logado, porque o servidor tira o autor da vistoria de
+    quem apresentou o token. Mostrar a promessa da espera aqui seria a mesma
+    mentira de sempre, só que na tela em vez de no laudo.
+  */
+  if (autoria === "de_outro" && item.autor) {
+    return {
+      rotulo: "De outro agente",
+      simbolo: "⏸",
+      tom: "alerta",
+      explicacao:
+        `Coletada por ${item.autor.nome}. Ela só pode ser enviada pela conta de `
+        + `quem fez a vistoria, porque é esse nome que vai para o laudo. Peça para `
+        + `${primeiroNome(item.autor.nome)} entrar neste aparelho com sinal. Se isso `
+        + `não for possível, avise a coordenação e informe o protocolo acima.`,
+    };
+  }
+  if (autoria === "sem_autor") {
+    return {
+      rotulo: "Sem autor registrado",
+      simbolo: "?",
+      tom: "alerta",
+      explicacao:
+        "Esta coleta ficou guardada por uma versão anterior do aplicativo, que não "
+        + "registrava quem tinha feito a vistoria. Se ela é sua, toque em "
+        + "\"Esta coleta é minha\" para enviá-la com o seu nome no laudo. Se não for "
+        + "sua, avise a coordenação antes de descartar.",
+    };
+  }
+
   switch (item.estado) {
     case "pendente":
       return {
@@ -51,7 +103,16 @@ function descreverEstado(item: ItemFila): {
         tom: "neutro",
         explicacao: item.tentativas === 0
           ? "Ainda não saiu do aparelho. Vai sair assim que houver sinal."
-          : `Já tentou ${item.tentativas}x. Vai tentar de novo em instantes.`,
+          : item.tentativas < TENTATIVAS_ATE_AVISAR
+            ? `Já tentou ${item.tentativas}x. Vai tentar de novo em instantes.`
+            /*
+              Muitas tentativas não viram acusação nem convite ao descarte: a
+              coleta continua tentando sozinha, e o que falta é sinal. A frase
+              diz isso e termina na única ação que resolve.
+            */
+            : `Já tentou ${item.tentativas}x e vai continuar tentando sozinha. A `
+              + "conexão daqui não está completando o envio: procure um lugar com "
+              + "sinal melhor ou uma rede Wi-Fi que funcione.",
       };
     case "enviando":
       return {
@@ -70,8 +131,21 @@ function descreverEstado(item: ItemFila): {
         rotulo: "Precisa de atenção",
         simbolo: "!",
         tom: "perigo",
-        explicacao: item.ultimaFalha?.mensagem
-          ?? "O servidor recusou por um motivo que repetir não resolve.",
+        /*
+          O 404 ganha frase própria, e não a do servidor.
+
+          "Ocorrência não encontrada" não diz nada a quem está na rua, e o
+          aplicativo não tem como saber o motivo: a API responde 404 (nunca 403)
+          também para recurso de outro município, justamente para não confirmar
+          que ele existe. Então a frase diz o que se sabe e termina na ação, em
+          vez de inventar um motivo como o "Arquivada" fazia.
+        */
+        explicacao: item.ultimaFalha?.codigo === "nao_encontrada"
+          ? "O servidor não encontrou esta ocorrência para a sua conta. Fale com a "
+            + "coordenação e informe o protocolo acima antes de descartar: a coleta "
+            + "continua guardada aqui."
+          : item.ultimaFalha?.mensagem
+            ?? "O servidor recusou por um motivo que repetir não resolve.",
       };
     /*
       Coleta arquivada é a que perdeu o destino: a ocorrência foi encerrada no
@@ -105,7 +179,7 @@ function descreverEstado(item: ItemFila): {
 
 export default function TelaDaFila() {
   const sinal = useSinal();
-  const { obterToken } = useSessao();
+  const { obterToken, lerIdentidade, identidade } = useSessao();
 
   const [fila, setFila] = useState<FilaDeSincronizacao | null>(null);
   const [itens, setItens] = useState<ItemFila[] | null>(null);
@@ -128,7 +202,7 @@ export default function TelaDaFila() {
     let vivo = true;
     let desassinar: (() => void) | undefined;
     void (async () => {
-      const f = await obterFila(enderecoDaApi(), obterToken);
+      const f = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
       if (!vivo) return;
       setFila(f);
       await recarregar(f);
@@ -137,7 +211,7 @@ export default function TelaDaFila() {
       desassinar = f.assinar(() => { void recarregar(f); });
     })();
     return () => { vivo = false; desassinar?.(); };
-  }, [obterToken, recarregar]);
+  }, [obterToken, lerIdentidade, recarregar]);
 
   async function sincronizarAgora(): Promise<void> {
     if (!fila) return;
@@ -152,8 +226,160 @@ export default function TelaDaFila() {
 
   if (!itens) return <Carregando mensagem="Abrindo a fila" />;
 
-  const bloqueados = itens.filter((i) => i.estado === "bloqueado");
-  const emEspera = itens.filter((i) => i.estado !== "bloqueado");
+  /*
+    Quem está logado agora, no formato que o motor da fila compara.
+
+    A comparação em si NÃO é feita aqui: ela mora em `autoriaDaColeta`, no
+    pacote, e é a mesma linha que o dreno usa para decidir o que enviar. Duas
+    listas para o mesmo fato divergem na primeira pressa, e a divergência aqui
+    seria a tela prometer "sai assim que houver sinal" num item que o dreno
+    nunca vai tocar.
+  */
+  const eu = identidade
+    ? {
+        usuarioId: identidade.usuarioId,
+        nome: identidade.nome,
+        organizacaoId: identidade.organizacaoId,
+      }
+    : null;
+
+  const daSessao = itens.filter((i) => autoriaDaColeta(i, eu) === "propria");
+  const deOutroAutor = itens.filter((i) => autoriaDaColeta(i, eu) !== "propria");
+  const bloqueados = daSessao.filter((i) => i.estado === "bloqueado");
+  const arquivados = daSessao.filter((i) => i.estado === "arquivado");
+  const emEspera = daSessao.filter(
+    (i) => i.estado !== "bloqueado" && i.estado !== "arquivado",
+  );
+
+  /*
+    O título conta o que ainda tem destino, e a arquivada fica FORA dele.
+
+    Coleta arquivada não vai ser enviada por ninguém: somá-la aqui produzia um
+    "3 coletas na fila" que nunca descia para zero, e contador que nunca zera é
+    contador que a pessoa aprende a ignorar. Ela tem a própria seção, com o
+    próprio número e com saída pelo botão.
+  */
+  const naFila = bloqueados.length + emEspera.length + deOutroAutor.length;
+
+  /*
+    O que o botão "Tentar enviar agora" de fato faz sair.
+
+    Era `itens.length === 0`, o que deixava o botão aceso numa fila que só tinha
+    coleta arquivada ou de outro agente: a pessoa tocava, o dreno não pegava
+    nada, e a tela não mudava. Botão que responde ao toque sem fazer nada ensina
+    a desconfiar da tela inteira.
+  */
+  const prontasParaSair = emEspera.filter(
+    (i) => i.estado === "pendente" || i.estado === "enviando",
+  ).length;
+
+  /**
+   * O cartão de um item, um só para todas as seções.
+   *
+   * Era código repetido dentro de um `map` que só sabia de dois grupos, e é
+   * assim que o defeito nasceu: a linha inteira de botões estava atrás de
+   * `item.estado === "bloqueado"`, então o estado "arquivado" chegou à tela sem
+   * nenhuma saída. O motor já aceitava os dois verbos para ele.
+   */
+  function cartaoDaColeta(item: ItemFila) {
+    const autoria = autoriaDaColeta(item, eu);
+    const estado = descreverEstado(item, autoria);
+    const fotosEnviadas = item.fotos.filter((f) => f.enviada).length;
+    /*
+      QUEM TEM SAÍDA PELA TELA, e por quê.
+
+      Todo item que não sai sozinho precisa de botão, sem exceção: é a regra que
+      o produto inteiro afirma ter e que esta tela furava. Bloqueado e arquivado
+      não saem porque o dreno não os pega; coleta de outro autor não sai porque
+      a credencial é de outra pessoa.
+    */
+    const podeReenviar = item.estado === "bloqueado" || item.estado === "arquivado";
+    const podeAssumir = autoria === "sem_autor";
+    const podeDescartar = podeReenviar || autoria !== "propria";
+
+    return (
+      <Cartao key={item.id}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
+          <Txt variante="corpoP" mono negrito>{item.protocolo}</Txt>
+          <View style={{ flex: 1 }} />
+          <Chip
+            texto={estado.rotulo}
+            simbolo={estado.simbolo}
+            tom={estado.tom}
+            descricao={`Protocolo ${item.protocolo}: ${estado.rotulo}`}
+          />
+        </View>
+
+        <Txt variante="corpoP" discreto>{estado.explicacao}</Txt>
+
+        {item.fotos.length > 0 && (
+          <Txt variante="legenda" discreto>
+            {fotosEnviadas} de {item.fotos.length} arquivos já subiram
+          </Txt>
+        )}
+
+        <Txt variante="legenda" discreto>
+          Coletada em {new Date(item.criadoEm).toLocaleString("pt-BR")}
+        </Txt>
+
+        {(podeReenviar || podeAssumir || podeDescartar) && (
+          <>
+            <Separador />
+            <View style={{ flexDirection: "row", gap: espaco.e2 }}>
+              {podeReenviar && (
+                <Botao
+                  titulo="Tentar de novo"
+                  tipo="secundario"
+                  estilo={{ flex: 1 }}
+                  descricao={item.estado === "arquivado"
+                    ? `Tentar enviar de novo a coleta do protocolo ${item.protocolo}, `
+                      + "para o caso de a ocorrência ter sido reaberta"
+                    : `Tentar enviar de novo a coleta do protocolo ${item.protocolo}`}
+                  onPress={() => void (async () => {
+                    await fila?.reenviar(item.id);
+                    if (fila) await recarregar(fila);
+                  })()}
+                />
+              )}
+              {podeAssumir && (
+                /*
+                  Assumir a autoria é um ato da pessoa, com o dedo, e por isso é
+                  botão e não automatismo: o nome que ficar aqui é o nome que vai
+                  para o laudo e para a trilha, que é append-only.
+                */
+                <Botao
+                  titulo="Esta coleta é minha"
+                  tipo="secundario"
+                  estilo={{ flex: 1 }}
+                  descricao={`Assumir a autoria da coleta do protocolo ${item.protocolo} `
+                    + "e enviá-la com o seu nome"}
+                  onPress={() => void (async () => {
+                    await fila?.assumir(item.id);
+                    if (fila) await recarregar(fila);
+                  })()}
+                />
+              )}
+              {podeDescartar && (
+                /*
+                  Descartar existe, e pergunta duas vezes. Sem a saída, um item
+                  parado ficaria para sempre na tela, e o agente aprenderia a
+                  ignorar a fila inteira. Com ela sem confirmação, um toque
+                  errado apagaria a vistoria.
+                */
+                <Botao
+                  titulo="Descartar"
+                  tipo="perigo"
+                  estilo={{ flex: 1 }}
+                  descricao={`Descartar a coleta do protocolo ${item.protocolo}`}
+                  onPress={() => { setADescartar(item); }}
+                />
+              )}
+            </View>
+          </>
+        )}
+      </Cartao>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}>
@@ -171,9 +397,11 @@ export default function TelaDaFila() {
         />
       ) : (
         <>
-          <Txt variante="h2">
-            {itens.length === 1 ? "1 coleta na fila" : `${itens.length} coletas na fila`}
-          </Txt>
+          {naFila > 0 && (
+            <Txt variante="h2">
+              {naFila === 1 ? "1 coleta na fila" : `${naFila} coletas na fila`}
+            </Txt>
+          )}
 
           {bloqueados.length > 0 && (
             <Aviso tom="perigo">
@@ -183,65 +411,43 @@ export default function TelaDaFila() {
             </Aviso>
           )}
 
-          {[...bloqueados, ...emEspera].map((item) => {
-            const estado = descreverEstado(item);
-            const fotosEnviadas = item.fotos.filter((f) => f.enviada).length;
-            return (
-              <Cartao key={item.id}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
-                  <Txt variante="corpoP" mono negrito>{item.protocolo}</Txt>
-                  <View style={{ flex: 1 }} />
-                  <Chip
-                    texto={estado.rotulo}
-                    simbolo={estado.simbolo}
-                    tom={estado.tom}
-                    descricao={`Protocolo ${item.protocolo}: ${estado.rotulo}`}
-                  />
-                </View>
+          {[...bloqueados, ...emEspera].map(cartaoDaColeta)}
 
-                <Txt variante="corpoP" discreto>{estado.explicacao}</Txt>
+          {/*
+            A seção de quem não é da sessão aberta.
 
-                {item.fotos.length > 0 && (
-                  <Txt variante="legenda" discreto>
-                    {fotosEnviadas} de {item.fotos.length} arquivos já subiram
-                  </Txt>
-                )}
+            Ela existe para o aparelho de plantão compartilhado: a coleta do
+            turno anterior continua guardada (o diálogo de saída promete isso) e
+            continua VISÍVEL, com o nome de quem a fez. Escondê-la seria repetir
+            o defeito por outro caminho: uma vistoria parada no aparelho que
+            ninguém vê é uma vistoria perdida.
+          */}
+          {deOutroAutor.length > 0 && (
+            <>
+              <Txt variante="h2">
+                {deOutroAutor.length === 1
+                  ? "1 coleta de outro agente"
+                  : `${deOutroAutor.length} coletas de outro agente`}
+              </Txt>
+              <Aviso tom="alerta">
+                Estas coletas não são enviadas pela sua conta: o nome de quem fez a
+                vistoria é o nome que vai para o laudo. Elas ficam guardadas aqui
+                até quem coletou entrar neste aparelho.
+              </Aviso>
+              {deOutroAutor.map(cartaoDaColeta)}
+            </>
+          )}
 
-                <Txt variante="legenda" discreto>
-                  Coletada em {new Date(item.criadoEm).toLocaleString("pt-BR")}
-                </Txt>
-
-                {item.estado === "bloqueado" && (
-                  <>
-                    <Separador />
-                    <View style={{ flexDirection: "row", gap: espaco.e2 }}>
-                      <Botao
-                        titulo="Tentar de novo"
-                        tipo="secundario"
-                        estilo={{ flex: 1 }}
-                        onPress={() => void (async () => {
-                          await fila?.reenviar(item.id);
-                          if (fila) await recarregar(fila);
-                        })()}
-                      />
-                      {/*
-                        Descartar existe, e pergunta duas vezes. Sem a saída, um
-                        item bloqueado ficaria para sempre na tela, e o agente
-                        aprenderia a ignorar a fila inteira. Com ela sem
-                        confirmação, um toque errado apagaria a vistoria.
-                      */}
-                      <Botao
-                        titulo="Descartar"
-                        tipo="perigo"
-                        estilo={{ flex: 1 }}
-                        onPress={() => { setADescartar(item); }}
-                      />
-                    </View>
-                  </>
-                )}
-              </Cartao>
-            );
-          })}
+          {arquivados.length > 0 && (
+            <>
+              <Txt variante="h2">
+                {arquivados.length === 1
+                  ? "1 coleta arquivada"
+                  : `${arquivados.length} coletas arquivadas`}
+              </Txt>
+              {arquivados.map(cartaoDaColeta)}
+            </>
+          )}
         </>
       )}
 
@@ -249,7 +455,7 @@ export default function TelaDaFila() {
         titulo="Tentar enviar agora"
         onPress={() => void sincronizarAgora()}
         carregando={sincronizando}
-        desabilitado={itens.length === 0 || !sinal.temSinal}
+        desabilitado={prontasParaSair === 0 || !sinal.temSinal}
       />
 
       <Txt variante="legenda" discreto alinhamento="center">
@@ -267,7 +473,17 @@ export default function TelaDaFila() {
       <Dialogo
         aberto={aDescartar !== null}
         titulo="Descartar esta coleta?"
+        /*
+          Quando a coleta é de outra pessoa, a pergunta diz o nome dela.
+
+          Sem o nome, o agente da noite apagaria a vistoria que a colega fez no
+          morro achando que estava limpando a própria fila. O protocolo sozinho
+          não conta essa parte, e é a parte que faz a pessoa parar.
+        */
         texto={
+          (aDescartar?.autor && aDescartar.autor.usuarioId !== identidade?.usuarioId
+            ? `Esta vistoria foi feita por ${aDescartar.autor.nome}. `
+            : "") +
           `A vistoria do protocolo ${aDescartar?.protocolo ?? ""} será apagada deste ` +
           "aparelho e não chegará à coordenação. Não dá para desfazer."
         }

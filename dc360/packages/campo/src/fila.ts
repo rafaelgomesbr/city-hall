@@ -3,6 +3,7 @@ import {
   FalhaPermanente,
   FalhaTemporaria,
   type Arquivos,
+  type AutorDaColeta,
   type Deposito,
   type FotoLocal,
   type FotoNaFila,
@@ -17,23 +18,73 @@ import {
  * esta errada".
  *
  * `ja_encerrada` vem de 409 quando a ocorrencia foi encerrada no painel
- * enquanto a coleta esperava sinal. `nao_encontrada` vem de 404. Nos dois casos
- * o agente fez o trabalho certo e nao ha o que corrigir.
+ * enquanto a coleta esperava sinal. O agente fez o trabalho certo, nao ha o que
+ * corrigir, e a tela pode dizer com todas as letras o que aconteceu.
+ *
+ * `nao_encontrada` SAIU desta lista em 09/09/2026, e a saida e o conserto de um
+ * defeito de prova. O 404 nao diz por que a ocorrencia sumiu, e a API responde
+ * 404 (nunca 403) tambem para recurso de outro municipio, justamente para nao
+ * confirmar que ele existe. Arquivar nesse codigo fazia o aplicativo AFIRMAR um
+ * motivo que ele nao tinha: o cartao mostrava "Arquivada" com a frase "a
+ * ocorrencia foi encerrada no painel", o cracha zerava, a faixa dizia "Tudo
+ * sincronizado", e o laudo nunca chegava a lugar nenhum. Um 404 e o unico
+ * desfecho aqui que ninguem no aparelho sabe explicar, entao ele vira
+ * `bloqueado`: alguem precisa olhar.
  *
  * Este e o primeiro `if` sobre codigo de erro da fila inteira. Ate 09/09/2026 o
  * `codigo` chegava dentro de `FalhaPermanente` e era descartado na hora de
  * gravar, entao a fila nao tinha como distinguir um caso do outro.
  */
-export const CODIGOS_SEM_DESTINO = ["ja_encerrada", "nao_encontrada"] as const;
+export const CODIGOS_SEM_DESTINO = ["ja_encerrada"] as const;
 
 export function coletaSemDestino(codigo: string): boolean {
   return (CODIGOS_SEM_DESTINO as readonly string[]).includes(codigo);
+}
+
+/** De quem e a coleta, olhando da sessao que esta aberta agora. */
+export type Autoria = "propria" | "de_outro" | "sem_autor";
+
+/**
+ * A comparacao entre o autor da coleta e a sessao aberta, escrita UMA vez.
+ *
+ * Fica exportada porque a tela precisa exatamente da mesma resposta que o dreno
+ * usa para decidir o que enviar. Duas listas para o mesmo fato divergem na
+ * primeira pressa, e a divergencia aqui seria a tela oferecendo "vai sair assim
+ * que houver sinal" para um item que o dreno nunca vai tocar.
+ */
+export function autoriaDaColeta(
+  item: Pick<ItemFila, "autor">,
+  sessao: AutorDaColeta | null,
+): Autoria {
+  if (!item.autor) return "sem_autor";
+  if (!sessao) return "de_outro";
+  return item.autor.usuarioId === sessao.usuarioId
+    && item.autor.organizacaoId === sessao.organizacaoId
+    ? "propria"
+    : "de_outro";
 }
 
 
 export type OpcoesFila = {
   deposito: Deposito;
   transporte: Transporte;
+  /**
+   * Quem esta logado AGORA. Obrigatorio, e um getter, nao um valor.
+   *
+   * Obrigatorio porque a alternativa (um padrao silencioso que deixa passar
+   * tudo) e o defeito: quem esquecesse de passar teria uma fila que sobe coleta
+   * de qualquer um com a credencial de qualquer um, e nada na tela indicaria
+   * isso. Quem constroi a fila precisa responder de quem ela e.
+   *
+   * Getter, e nao valor, porque a fila do aplicativo e memoizada: ela e criada
+   * uma vez e vive o dia inteiro, atravessando logout e login. Um valor
+   * congelado no momento da criacao faria a fila continuar acreditando, depois
+   * da troca de turno, que quem esta no aparelho e o agente da manha.
+   *
+   * Devolve `null` quando nao ha sessao. Nesse caso nada sobe, que e o certo:
+   * sem token o transporte falharia de todo jeito.
+   */
+  sessaoAtual: () => AutorDaColeta | null;
   /** De onde saem os bytes das fotos. So necessario se houver foto na coleta. */
   arquivos?: Arquivos;
   /** Injetáveis para o teste poder controlar o tempo em vez de esperar por ele. */
@@ -41,8 +92,6 @@ export type OpcoesFila = {
   dormir?: (ms: number) => Promise<void>;
   /** Ruído no tempo de espera. Injetável para o teste ser determinístico. */
   ruido?: () => number;
-  /** Depois de quantas falhas seguidas o item é bloqueado. */
-  maximoTentativas?: number;
   /** Quanto tempo um item confirmado fica visível antes de sair da fila. */
   reterConfirmadoMs?: number;
 };
@@ -70,11 +119,11 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
   const {
     deposito,
     transporte,
+    sessaoAtual,
     arquivos,
     agora = () => new Date(),
     dormir = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
     ruido = Math.random,
-    maximoTentativas = 8,
     reterConfirmadoMs = 30_000,
   } = opcoes;
 
@@ -105,12 +154,23 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
   }
 
   async function resumo(): Promise<ResumoFila> {
-    const itens = await deposito.listar();
+    const todos = await deposito.listar();
+    /*
+      Coleta de outro autor sai de TODOS os contadores de estado e vai para o
+      seu proprio.
+
+      Ela continua na fila, continua visivel e continua contando no cracha do
+      menu (a tela soma os dois numeros), mas nao pode entrar em "pendentes":
+      pendente e a promessa de que sai sozinha quando houver sinal, e essa
+      coleta nao sai enquanto o autor dela nao entrar neste aparelho.
+    */
+    const itens = todos.filter((i) => autoriaDaColeta(i, sessaoAtual()) === "propria");
     return {
       pendentes: itens.filter((i) => i.estado === "pendente").length,
       enviando: itens.filter((i) => i.estado === "enviando").length,
       confirmados: itens.filter((i) => i.estado === "confirmado").length,
       bloqueados: itens.filter((i) => i.estado === "bloqueado").length,
+      deOutroAutor: todos.length - itens.length,
       /*
         Arquivado conta separado, e NAO entra em `bloqueados`, de proposito.
 
@@ -154,6 +214,14 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
     const instante = agora().toISOString();
     const item: ItemFila = {
       id: envelope.idempotencyKey,
+      /*
+        O autor e carimbado AQUI, no momento da coleta, e nunca mais muda.
+
+        Carimbar no envio seria carimbar quem estava logado na hora do envio,
+        que pode ser o agente do turno seguinte, e e exatamente o que a minuta
+        lida em voz alta no local desmente.
+      */
+      autor: sessaoAtual(),
       ocorrenciaId: envelope.ocorrenciaId,
       protocolo: dados.protocolo,
       envelope,
@@ -183,7 +251,22 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
 
   /** Ordem de coleta, sempre: a primeira vistoria feita é a primeira a subir. */
   function prontos(itens: ItemFila[], instante: Date): ItemFila[] {
+    const sessao = sessaoAtual();
     return itens
+      /*
+        O PORTAO DE AUTORIA, e ele vem antes de tudo.
+
+        O envelope nao carrega autor: o servidor tira o `agente_id` de quem
+        apresentou o token. Entao a unica coisa que impede a coleta do agente da
+        manha de subir assinada pelo agente da noite, num aparelho de plantao
+        compartilhado, e esta linha. Sem ela o laudo e a trilha (que e
+        append-only) atribuem a vistoria a um servidor que nunca esteve no
+        local, e ninguem no aparelho fica sabendo.
+
+        O item nao e apagado nem bloqueado: ele espera o autor. O logout promete
+        que a coleta continua guardada, e essa promessa continua valendo.
+      */
+      .filter((i) => autoriaDaColeta(i, sessao) === "propria")
       .filter((i) => (i.estado === "pendente" || i.estado === "enviando"))
       .filter((i) => new Date(i.liberadoEm) <= instante)
       .sort((a, b) => a.criadoEm.localeCompare(b.criadoEm));
@@ -457,24 +540,32 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       return semDestino ? "arquivado" : "bloqueado";
     }
 
-    if (tentativas >= maximoTentativas) {
-      await deposito.salvar({
-        ...comProgresso,
-        estado: "bloqueado",
-        tentativas,
-        ultimaFalha: {
-          codigo: "tentativas_esgotadas",
-          mensagem:
-            `Não foi possível enviar depois de ${tentativas} tentativas. `
-            + `Último erro: ${erro instanceof Error ? erro.message : String(erro)}`,
-          campos: [],
-          permanente: true,
-          em: agora().toISOString(),
-        },
-      });
-      return "bloqueado";
-    }
+    /*
+      NAO EXISTE TETO DE TENTATIVAS PARA FALHA TEMPORARIA, e a ausencia e
+      deliberada.
 
+      Existia um: oito falhas seguidas e o item virava `bloqueado` com codigo
+      `tentativas_esgotadas`. As esperas sao 1-2s, 2-4s, 4-8s, 8-16s, 16-32s,
+      32-64s, 64-128s, mais o piso de 15s por volta do laco de fundo: cerca de
+      CINCO MINUTOS. Cinco minutos de sinal ruim nao e caso raro, e a condicao
+      normal de trabalho deste aplicativo: Wi-Fi de prefeitura de pe mas sem
+      rota, ou borda de cobertura em que o Android devolve `isInternetReachable`
+      indefinido, que `conectividade.ts` trata de proposito como "tem sinal".
+
+      O resultado do teto era o inverso da verdade: o cartao ficava vermelho com
+      "repetir o envio nao resolve sozinho", ao lado de um botao "Descartar", em
+      cima de uma coleta que subiria sozinha na proxima janela de sinal. O
+      produto convidava a pessoa a apagar uma vistoria boa.
+
+      Insistir para sempre nao e desperdicio porque a espera tem teto
+      (`ESPERA_MAXIMA_MS`, cinco minutos): o custo maximo e uma tentativa a cada
+      cinco minutos, que e menos do que a tela de bloqueio do aparelho gasta. E
+      o item continua contado e visivel o tempo todo, com o numero de tentativas
+      na tela, entao ninguem precisa adivinhar que ele existe.
+
+      `bloqueado` continua existindo, e continua querendo dizer uma coisa so:
+      o servidor recusou por um motivo que repetir nao resolve.
+    */
     const espera = esperaAteProximaTentativa(tentativas, ruido);
     await deposito.salvar({
       ...comProgresso,
@@ -533,14 +624,61 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
   }
 
   /**
+   * Assume a autoria de uma coleta que nao tem autor registrado.
+   *
+   * Existe por causa da atualizacao do aplicativo: o aparelho que ja tinha
+   * coleta na fila quando esta versao chegou guarda itens sem autor, e nao ha
+   * como descobrir de quem sao. Deixar essas coletas subirem com quem estiver
+   * logado seria o defeito de novo; deixa-las presas para sempre seria perder
+   * uma vistoria feita no morro.
+   *
+   * Entao a autoria vira um ATO DA PESSOA, com o dedo, numa tela que diz o
+   * protocolo e a data da coleta. E o unico caminho honesto: alguem afirma
+   * "esta vistoria e minha" e passa a responder por ela no laudo.
+   *
+   * Item que JA tem autor nunca e reassumido, em nenhuma circunstancia. Deixar
+   * um agente reescrever o autor de uma coleta de outro seria o mesmo dado
+   * falso que o carimbo evita, so que com um toque no lugar de um descuido.
+   */
+  async function assumir(id: string): Promise<void> {
+    const sessao = sessaoAtual();
+    if (!sessao) return;
+    const item = (await deposito.listar()).find((i) => i.id === id);
+    if (!item || item.autor) return;
+    await deposito.salvar({
+      ...item,
+      autor: sessao,
+      // Volta para a fila junto: o item pode ter parado em `bloqueado` por
+      // falta de sessao antes de este campo existir.
+      estado: item.estado === "arquivado" ? item.estado : "pendente",
+      liberadoEm: agora().toISOString(),
+    });
+    await avisar();
+  }
+
+  /**
    * Descarta um item bloqueado. Exige confirmação de quem chama, porque
    * descartar coleta de campo é perder trabalho já feito no morro.
    */
   async function descartar(id: string): Promise<void> {
     const item = (await deposito.listar()).find((i) => i.id === id);
+    if (!item) return;
+    /*
+      Coleta de outro autor tambem pode ser descartada, em QUALQUER estado, e
+      esta e a saida do caso "o agente da manha nunca mais entra neste
+      aparelho".
+
+      Sem ela, aquela coleta ficaria no cracha para sempre, e um cracha que
+      nunca zera e um cracha que a pessoa aprende a ignorar, inclusive quando
+      ele passa a indicar algo de verdade. Quem chama pergunta com o nome de
+      quem coletou dentro da pergunta: descartar trabalho de outra pessoa nao
+      pode acontecer por um toque distraido.
+    */
+    const deOutro = autoriaDaColeta(item, sessaoAtual()) !== "propria";
     // Arquivado tambem pode ser descartado: e o caminho do agente que confere
     // que a ocorrencia foi mesmo encerrada e nao quer mais aquilo na tela.
-    if (!item || (item.estado !== "bloqueado" && item.estado !== "arquivado")) return;
+    const parado = item.estado === "bloqueado" || item.estado === "arquivado";
+    if (!deOutro && !parado) return;
     await deposito.remover(id);
     await avisar();
   }
@@ -552,7 +690,13 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
   /** Espera até o próximo item ficar liberado. Para o laço de fundo do app. */
   async function aguardarProximaJanela(): Promise<void> {
     const lista = await deposito.listar();
-    const pendentes = lista.filter((i) => i.estado === "pendente");
+    const sessao = sessaoAtual();
+    // Item de outro autor nao entra na conta: ele nao vai ser tentado, e o
+    // `liberadoEm` dele no passado faria este laco voltar a rodar na hora, em
+    // giro apertado, contra uma coleta que o dreno nem toca.
+    const pendentes = lista.filter(
+      (i) => i.estado === "pendente" && autoriaDaColeta(i, sessao) === "propria",
+    );
     if (pendentes.length === 0) return;
     const proximo = Math.min(...pendentes.map((i) => new Date(i.liberadoEm).getTime()));
     const espera = proximo - agora().getTime();
@@ -564,6 +708,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
     drenar,
     cancelar,
     reenviar,
+    assumir,
     descartar,
     itens,
     resumo,

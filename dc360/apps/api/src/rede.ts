@@ -1,5 +1,38 @@
-import type { FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import { verificarAcesso } from "./auth/tokens.js";
+
+/** Plataformas de borda cujo cabeçalho de origem este processo sabe ler. */
+export type ProxyDeBorda = "nenhum" | "fly";
+
+/**
+ * O cabeçalho de origem de cada borda conhecida.
+ *
+ * Uma tabela, e não um `if`, porque o dia em que entrar uma segunda plataforma
+ * a pergunta certa vai ser "qual cabeçalho ela reescreve", e não "onde encaixo
+ * mais uma condição".
+ */
+const CABECALHO_DA_BORDA: Record<ProxyDeBorda, string | null> = {
+  nenhum: null,
+  fly: "fly-client-ip",
+};
+
+/**
+ * De quem ESTE servidor aceita cabeçalho de origem.
+ *
+ * Fica no `FastifyInstance`, e não numa variável de módulo, porque a suíte
+ * sobe vários servidores no mesmo processo: variável de módulo faria a
+ * declaração de um teste vazar para o servidor do outro, e uma defesa que
+ * depende de ordem de execução não é defesa.
+ */
+declare module "fastify" {
+  interface FastifyInstance {
+    proxyDeBorda: ProxyDeBorda;
+  }
+}
+
+export function declararProxyDeBorda(app: FastifyInstance, valor: ProxyDeBorda): void {
+  app.decorate("proxyDeBorda", valor);
+}
 
 /**
  * O endereço de quem realmente chamou, e não o que o cliente disse ser.
@@ -16,15 +49,39 @@ import { verificarAcesso } from "./auth/tokens.js";
  * atacante escolhia o próprio teto de requisições E escolhia o endereço que
  * ficaria registrado na trilha como autor da exportação da base de cidadãos.
  *
- * `Fly-Client-IP` é posto pelo edge do Fly e não pode ser sobrescrito por
- * quem chama de fora: o edge reescreve o cabeçalho antes de repassar. Fora do
- * Fly ele não existe, e aí vale o `req.ip`, que com `trustProxy: 1` passa a
- * ser o salto imediato em vez da ponta da lista.
+ * A PRIMEIRA CORREÇÃO TROCOU O CABEÇALHO E MANTEVE O DEFEITO, e é por isso
+ * que este comentário existe. Ela passou a ler `Fly-Client-IP`, justificando
+ * que o edge do Fly reescreve o cabeçalho antes de repassar, mas não amarrou
+ * essa leitura a ambiente, plataforma nem lista de proxies confiáveis: fora do
+ * Fly, `Fly-Client-IP` é um cabeçalho comum, que quem chama escreve como
+ * quiser. Reproduzido com `LOGIN_POR_IP` no padrão (10 em 5 minutos): trinta
+ * `POST /auth/entrar` do mesmo endereço devolviam vinte recusas, e as mesmas
+ * trinta mandando `Fly-Client-IP: 10.0.0.N`, com N diferente a cada uma,
+ * devolviam ZERO. E `docs/COLOCAR-DE-PE.md` oferece Fly, Railway e Render como
+ * opções equivalentes, então não havia nem promessa de que o edge do Fly
+ * estivesse na frente.
+ *
+ * A correção é DECLARAR de quem o processo aceita cabeçalho de origem, em vez
+ * de adivinhar: `PROXY_DE_BORDA`, que o `fly.toml` traz em `fly` e cujo padrão
+ * é `nenhum`. Com `nenhum`, nenhum cabeçalho muda o endereço, e vale o
+ * `req.ip`, que com `trustProxy: 1` é o salto imediato em vez da ponta da
+ * lista escolhida pelo cliente. O padrão é o valor seguro de propósito: quem
+ * troca de PaaS esquece de mexer em variável, e o esquecimento tem que cair do
+ * lado que não abre buraco.
  */
 export function enderecoDoCliente(req: FastifyRequest): string {
-  const doEdge = req.headers["fly-client-ip"];
-  if (typeof doEdge === "string" && doEdge.length > 0) return doEdge;
-  if (Array.isArray(doEdge) && doEdge[0]) return doEdge[0];
+  /*
+    `req.server` e não uma variável de módulo: cada instância carrega a própria
+    declaração. O `?? "nenhum"` cobre o servidor montado sem passar por
+    `construirServidor` (teste de unidade, script), e cobre pelo lado seguro.
+  */
+  const borda: ProxyDeBorda = req.server?.proxyDeBorda ?? "nenhum";
+  const cabecalho = CABECALHO_DA_BORDA[borda];
+  if (cabecalho) {
+    const daBorda = req.headers[cabecalho];
+    if (typeof daBorda === "string" && daBorda.length > 0) return daBorda;
+    if (Array.isArray(daBorda) && daBorda[0]) return daBorda[0];
+  }
   return req.ip;
 }
 
