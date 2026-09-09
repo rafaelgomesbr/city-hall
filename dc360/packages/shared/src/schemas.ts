@@ -462,6 +462,42 @@ export const envelopeSincronizacaoSchema = z.object({
   idempotencyKey: uuidSchema,
   ocorrenciaId: uuidSchema,
   coletadaEm: z.string().datetime(),
+  /**
+   * Quem coletou, dito pelo aparelho e CONFERIDO pelo servidor contra o dono
+   * do token verificado.
+   *
+   * O defeito que este campo fecha é do aparelho de plantão compartilhado
+   * entre turnos. A agente da manhã coleta no morro sem sinal, lê a minuta em
+   * voz alta COM O NOME DELA e a moradora assina no dedo. Ela sai da conta, e o
+   * aplicativo promete (com razão) que as coletas continuam guardadas no
+   * aparelho. Às 19:00 o agente da noite entra, a fila drena, e como o envelope
+   * não dizia autor nenhum o servidor tirava o `agente_id` de quem apresentou o
+   * token: o laudo e a trilha passavam a atribuir a vistoria a um servidor que
+   * nunca esteve no local, contra a minuta lida em voz alta. A trilha é
+   * append-only, então o autor errado nunca é corrigido, só comentado.
+   *
+   * O aplicativo já se recusa a enviar coleta que não é de quem está logado
+   * (`packages/campo/src/fila.ts`), e isso é portão de cliente: binário
+   * adulterado ou defeito futuro naquele filtro produz o mesmo laudo falso.
+   * Quem decide é o servidor, em `rotas/sincronizacao.ts`.
+   *
+   * OPCIONAL, e a escolha é o assunto principal deste comentário. Existem
+   * aparelhos com coleta gravada por versão anterior a este campo, guardada com
+   * `autor: null` (o próprio `deposito.ts` normaliza assim), e não existe tela
+   * para corrigir item que o servidor bloqueou. Nascendo obrigatório, essas
+   * coletas passariam a receber 422 do Zod PARA SEMPRE, e uma vistoria de morro
+   * seria destruída por uma mudança de esquema. Então: ausente entra como
+   * entrava (o autor vira o dono do token, como antes); presente e divergente é
+   * recusado.
+   *
+   * QUANDO ELE PODE VIRAR OBRIGATÓRIO: quando não restar aparelho em campo com
+   * coleta anterior a esta versão. O sinal de que isso aconteceu é o mesmo do
+   * verbo `assumir` (ver `apps/campo/PENDENCIAS.md`, item 5): no dia em que o
+   * cartão "Sem autor registrado" puder ser removido do aplicativo, este campo
+   * pode virar obrigatório, e o caminho de compatibilidade abaixo sai junto.
+   * Não antes, e nunca por conta de um turno que só olhou o esquema.
+   */
+  coletadaPor: uuidSchema.optional(),
   vistoria: vistoriaSchema,
 });
 export type EnvelopeSincronizacao = z.infer<typeof envelopeSincronizacaoSchema>;

@@ -680,6 +680,77 @@ describe("Coleta sem autor registrado (aparelho que atualizou o aplicativo)", ()
   });
 });
 
+describe("O envelope diz ao servidor quem coletou", () => {
+  /*
+    A metade que o aparelho sozinho nao resolve.
+
+    O filtro de autoria daqui e portao de cliente, e portao de cliente nao e
+    controle de acesso: binario adulterado, ou um defeito futuro em `prontos`,
+    volta a subir a coleta da agente da manha com a credencial do agente da
+    noite, e o servidor aceitava sem piscar porque o envelope nao dizia autor
+    nenhum. `coletadaPor` e o que permite ao servidor recusar sozinho (ver
+    `apps/api/test/autoria-da-coleta.test.ts`), e ele so serve se o aparelho
+    honesto de fato mandar o campo.
+  */
+  function espiao() {
+    const enviados: Array<{ chave: string; coletadaPor?: string }> = [];
+    return {
+      enviados,
+      enviar: async (e: EnvelopeSincronizacao) => {
+        enviados.push({ chave: e.idempotencyKey, coletadaPor: e.coletadaPor });
+        return { vistoriaId: "v", duplicada: false } satisfies Recibo;
+      },
+    };
+  }
+
+  it("manda o autor carimbado na coleta", async () => {
+    const olho = espiao();
+    const { fila } = montar({ enviar: olho.enviar });
+    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
+
+    await fila.drenar();
+
+    expect(olho.enviados[0]!.coletadaPor).toBe(AGENTE_A.usuarioId);
+  });
+
+  it("manda quem assumiu a coleta antiga, e nao o que estava gravado no envelope", async () => {
+    /*
+      O campo e montado na hora do envio a partir de `item.autor`, e nao gravado
+      dentro do envelope no enfileirar. E o que faz `assumir` valer: a coleta de
+      versao anterior nao tem autor no disco, alguem afirma com o dedo que ela e
+      dele, e e esse nome que precisa chegar ao servidor. Com o envelope
+      congelado, ela subiria sem autor e o portao do servidor ficaria cego
+      justamente no item que mais precisa dele.
+    */
+    const loja = lojaEmMemoria();
+    await loja.escrever("dc360:fila:" + CHAVE_A, JSON.stringify({
+      id: CHAVE_A,
+      ocorrenciaId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      protocolo: "000471/2026",
+      envelope: envelope(CHAVE_A),
+      estado: "pendente",
+      tentativas: 0,
+      criadoEm: MOMENTO.toISOString(),
+      liberadoEm: MOMENTO.toISOString(),
+      ultimaFalha: null,
+      confirmadoEm: null,
+      fotos: [],
+    }));
+    const olho = espiao();
+    const fila = criarFilaDeSincronizacao({
+      deposito: depositoSobreChaveValor(loja),
+      transporte: transporteFalso({ enviar: olho.enviar }),
+      sessaoAtual: () => AGENTE_B,
+      agora: relogio().agora,
+    });
+
+    await fila.assumir(CHAVE_A);
+    await fila.drenar();
+
+    expect(olho.enviados[0]!.coletadaPor).toBe(AGENTE_B.usuarioId);
+  });
+});
+
 describe("Aparelho que atualizou com item aposentado pelo teto antigo", () => {
   it("`tentativas_esgotadas` gravado no disco volta a ser tentado", async () => {
     /*

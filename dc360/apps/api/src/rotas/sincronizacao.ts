@@ -4,7 +4,7 @@ import {
   chaveDeStorage, envelopeSincronizacaoSchema, type OrgaoIndicado,
 } from "@dc360/shared";
 import type { Banco, Consulta } from "../banco/tipos.js";
-import { RegraDeNegocio, autorizar } from "../servidor.js";
+import { RegraDeNegocio, autorizar, type Identidade } from "../servidor.js";
 import { registrarEvento } from "../trilha.js";
 
 /**
@@ -116,6 +116,62 @@ async function gravarOrgaosIndicados(
 }
 
 /**
+ * Grava a tentativa recusada por autor divergente, em transação PRÓPRIA.
+ *
+ * Separada de propósito, e a separação é a peça que faz o registro existir: a
+ * recusa termina em exceção, e exceção derruba a transação da rota inteira. Um
+ * `registrarEvento` lá dentro seria desfeito pelo ROLLBACK junto com a vistoria
+ * que não entrou, e o produto afirmaria registrar uma tentativa que ele não
+ * registra, que é pior do que não registrar nada.
+ *
+ * A ocorrência é CONFERIDA sob RLS antes do INSERT. Sem essa consulta, um
+ * envelope apontando para ocorrência de outro município (ou para um id
+ * inventado) bateria na chave estrangeira e viraria 500: a recusa deixaria de
+ * ser recusa e viraria erro de servidor, justamente no caminho que mais
+ * interessa a quem está tentando forjar autoria. Sem ocorrência visível não há
+ * onde pendurar o evento, então fica o aviso no log e a recusa acontece do
+ * mesmo jeito.
+ *
+ * O evento se REPETE a cada tentativa, e isso é informação e não ruído: cada
+ * linha é uma tentativa de gravar vistoria com autor que não é o do token, e
+ * quem audita precisa contar quantas foram, não saber que houve alguma.
+ */
+async function registrarRecusaPorAutorDivergente(
+  banco: Banco,
+  quem: Identidade,
+  envelope: { ocorrenciaId: string; idempotencyKey: string; coletadaPor?: string },
+  log: { warn: (dados: unknown, mensagem: string) => void },
+): Promise<void> {
+  await banco.comTenant(quem.organizacaoId, async (c) => {
+    const alvo = await c.query<{ id: string }>(
+      "SELECT id FROM ocorrencias WHERE id = $1",
+      [envelope.ocorrenciaId],
+    );
+    if (!alvo.rows[0]) {
+      log.warn(
+        { ocorrenciaId: envelope.ocorrenciaId, usuarioId: quem.usuarioId },
+        "coleta com autor divergente apontando para ocorrencia que este municipio nao enxerga",
+      );
+      return;
+    }
+    await registrarEvento(
+      c, quem, envelope.ocorrenciaId, "vistoria_recusada_autor_divergente",
+      {
+        /*
+          Os dois lados da divergência, nomeados: `declarado` é o que o
+          aparelho afirmou, e o autor do evento (que `registrarEvento` tira da
+          identidade) é quem apresentou o token. Guardar só um dos dois deixaria
+          a auditoria com metade da frase.
+        */
+        coletadaPorDeclarado: envelope.coletadaPor ?? null,
+        idempotencyKey: envelope.idempotencyKey,
+      },
+      "campo",
+    );
+  });
+}
+
+/**
  * Recepção da coleta feita em campo.
  *
  * Esta é a rota que decide se o produto funciona no mundo real. O agente
@@ -136,6 +192,46 @@ export async function rotasSincronizacao(
   app.post("/vistoria", async (req, resposta) => {
     const quem = await autorizar(app, req, "registrar_vistoria");
     const envelope = envelopeSincronizacaoSchema.parse(req.body);
+
+    /*
+      O PORTÃO DE AUTORIA DA COLETA, do lado do servidor.
+
+      O aplicativo já não envia coleta de outro agente (`prontos`, em
+      `packages/campo/src/fila.ts`), e portão de cliente não é controle de
+      acesso: binário adulterado, ou um defeito futuro naquele filtro, volta a
+      subir a coleta da agente da manhã com a credencial do agente da noite, e o
+      servidor aceitava sem piscar. O laudo e a trilha atribuiriam a vistoria a
+      quem nunca esteve no local, contra a minuta que a moradora ouviu antes de
+      assinar, e a trilha é append-only: esse autor nunca seria corrigido.
+
+      VEM ANTES DE QUALQUER LEITURA DE OCORRÊNCIA, e antes da idempotência.
+
+      * Antes da leitura porque a comparação não toca no banco: ela não depende
+        de a ocorrência existir, então não devolve desfecho diferente conforme
+        exista ou não. É o que impede a recusa de virar oráculo de existência,
+        pela mesma razão que faz esta API responder 404 e nunca 403 para
+        recurso de outro município.
+      * Antes da idempotência porque o reenvio de uma coleta JÁ gravada, agora
+        com credencial de outra pessoa, receberia 200 com o recibo da vistoria.
+        Confirmar a coleta para quem não a fez é o começo do mesmo problema, só
+        que em silêncio.
+
+      O código e o status são escolhidos pelo que o aplicativo faz com eles: 409
+      cai em `FalhaPermanente` no transporte, e a fila marca o item como
+      `bloqueado`, que é o único estado parado com saída pela tela (reenviar e
+      descartar). Arquivar seria errado (a coleta tem destino, e ela é
+      verdadeira) e temporário seria pior (o aparelho repetiria para sempre uma
+      recusa que só a troca de conta resolve).
+    */
+    if (envelope.coletadaPor && envelope.coletadaPor !== quem.usuarioId) {
+      await registrarRecusaPorAutorDivergente(banco, quem, envelope, req.log);
+      throw new RegraDeNegocio(
+        "autor_divergente",
+        "Esta coleta foi feita por outro agente. Entre neste aparelho com a conta "
+        + "de quem fez a vistoria para poder enviá-la.",
+        409,
+      );
+    }
 
     const recebida = await banco.comTenant(quem.organizacaoId, async (c) => {
       // Chave já vista: devolve o que foi gravado antes e não toca em nada.

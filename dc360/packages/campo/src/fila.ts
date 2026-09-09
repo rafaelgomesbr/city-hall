@@ -65,6 +65,34 @@ export function autoriaDaColeta(
 }
 
 
+/**
+ * O envelope como ele sai do aparelho: com o autor da coleta dentro.
+ *
+ * O carimbo do autor no item da fila resolvia metade do problema (o aparelho
+ * deixou de enviar coleta de outra pessoa), e a outra metade só o servidor
+ * resolve: enquanto o envelope não dissesse quem coletou, o `agente_id` da
+ * vistoria continuaria saindo de quem apresentou o token, e um binário
+ * adulterado produziria de novo o laudo assinado por quem não estava lá.
+ *
+ * Montado NA HORA DO ENVIO a partir de `item.autor`, e não gravado dentro do
+ * envelope no `enfileirar`, por três motivos que apontam para o mesmo lugar:
+ * um fato tem uma fonte só (dois campos para o mesmo autor divergem na
+ * primeira pressa); `assumir` carimba o autor depois, e o envelope guardado
+ * ficaria para trás; e coleta gravada por versão anterior continua sem autor,
+ * sem precisar de reescrita de disco.
+ *
+ * Autor ausente sai SEM o campo, de propósito: é a coleta de versão anterior, e
+ * o servidor a aceita como aceitava antes. Mandar o dono da sessão aqui seria
+ * escrever exatamente a mentira que o campo existe para impedir.
+ */
+function envelopeComAutoria(
+  envelope: EnvelopeSincronizacao,
+  autor: AutorDaColeta | null,
+): EnvelopeSincronizacao {
+  if (!autor) return envelope;
+  return { ...envelope, coletadaPor: autor.usuarioId };
+}
+
 export type OpcoesFila = {
   deposito: Deposito;
   transporte: Transporte;
@@ -371,7 +399,9 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
           const comFotos = await subirFotos(item);
           resultado.fotosEnviadas += comFotos.enviadasAgora;
 
-          const recibo = await transporte.enviar(comFotos.envelope);
+          const recibo = await transporte.enviar(
+            envelopeComAutoria(comFotos.envelope, item.autor),
+          );
 
           if (minhaMarca !== marcaAtual) {
             // O dreno foi cancelado enquanto esta resposta voltava. O envio

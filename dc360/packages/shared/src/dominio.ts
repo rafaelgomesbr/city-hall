@@ -330,6 +330,14 @@ export const ROTULO_EVENTO_TRILHA: Record<string, string> = {
   */
   vistoria_fora_da_equipe: "Vistoria coletada fora da equipe designada",
   /*
+    O envelope disse que a coleta é de um agente, e quem apresentou o token era
+    outro. A vistoria NÃO entra, e a tentativa fica: ela é exatamente o que
+    alguém vai querer auditar depois, porque o desfecho alternativo (aceitar)
+    produziria um laudo assinado por quem nunca esteve no local, num registro
+    que não se corrige. Ver `rotas/sincronizacao.ts` e o campo `coletadaPor`.
+  */
+  vistoria_recusada_autor_divergente: "Envio de vistoria recusado por autor divergente",
+  /*
     Alguém acrescentou prova ao processo. O produto registrava quem ABRIU um
     laudo e não registrava quem colocou uma foto dentro dele, que é a peça que
     sai impressa no documento oficial.

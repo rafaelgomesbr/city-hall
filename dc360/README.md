@@ -11,8 +11,8 @@ build) valem lá, não aqui.
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 142 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 254 testes de fonte do painel mais 58 verificações no navegador no modo local e 103 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 624 testes da API passando |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 100 testes de unidade do motor de campo e 10 de integração contra a API |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 630 testes da API passando |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 102 testes de unidade do motor de campo e 10 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 308 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 
 ## Os dois modos do painel
@@ -188,6 +188,33 @@ Reenvio devolve o resultado da primeira vez, com 200 em vez de 201, e não cria
 laudo nem evento novo. A chave de storage da foto é remontada no servidor a
 partir da organização do token: aceitar a que o aparelho mandou permitiria
 gravar evidência sob o prefixo de outra prefeitura.
+
+#### Quem coletou não é quem enviou
+
+O aparelho de plantão é compartilhado entre turnos, e isso quebrava a autoria da
+vistoria. A agente da manhã coleta no morro sem sinal, lê a minuta em voz alta
+COM O NOME DELA e a moradora assina no dedo. Ela sai da conta, e o aplicativo
+promete (com razão) que a coleta continua guardada no aparelho. Às 19:00 o agente
+da noite entra, a fila drena, e como o envelope não dizia autor nenhum o servidor
+tirava o `agente_id` de quem apresentou o token. O laudo e a trilha passavam a
+atribuir a vistoria a um servidor que nunca esteve no local, contra a minuta lida
+em voz alta, e a trilha é append-only: esse autor nunca seria corrigido, só
+comentado.
+
+O aplicativo carimba o autor no item da fila e não envia coleta que não é de quem
+está logado. Isso é portão de cliente, e **portão de cliente não é controle de
+acesso**: binário adulterado ou defeito naquele filtro reproduz o laudo falso. O
+envelope passou a carregar `coletadaPor`, e o servidor compara com o dono do
+token verificado. Divergiu, recusa com 409 `autor_divergente`, e a tentativa
+entra na trilha: tentar gravar vistoria com autor que não é o do token é
+exatamente o que alguém vai querer auditar depois. O registro é escrito em
+transação própria, senão o ROLLBACK da recusa o levaria junto.
+
+O campo é **opcional**, e a razão tem data de validade escrita no esquema: há
+aparelho em campo com coleta gravada antes dele, e não existe tela para
+desbloquear item recusado. Obrigatório agora, essas coletas virariam 422 para
+sempre, e uma vistoria de morro seria destruída por uma mudança de esquema. Ele
+passa a obrigatório quando não restar coleta antiga em nenhum aparelho.
 
 ### Rodar
 
@@ -747,10 +774,10 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 1223 testes em cinco pacotes
+npm test                    # 1231 testes em cinco pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 142 testes do banco
-npm run test:api            # 624 testes da API
-npm run test --workspace @dc360/campo   # 100 testes do motor de campo
+npm run test:api            # 630 testes da API
+npm run test --workspace @dc360/campo   # 102 testes do motor de campo
 npm run test:campo          # tipos e os 308 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
@@ -1028,7 +1055,7 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
 
-  Essa última já tem 100 testes do motor de campo cobrindo a lógica fora do
+  Essa última já tem 102 testes do motor de campo cobrindo a lógica fora do
   celular, inclusive retomada arquivo a arquivo.
   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e

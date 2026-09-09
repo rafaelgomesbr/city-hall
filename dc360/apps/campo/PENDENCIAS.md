@@ -4,37 +4,53 @@ O que este turno deixou pronto para o próximo pegar, e o que ficou fora da faix
 de `apps/campo/` e `packages/campo/`. Cada item diz o que precisa existir e por
 quê, para o turno seguinte não ter que reconstruir o raciocínio.
 
-## 1. API: o envelope precisa dizer quem coletou, e o servidor precisa conferir
+## 1. O portão de autoria fechou do lado do servidor. Falta a tela reagir ao código
 
-**Fora da faixa.** Exige campo novo no esquema compartilhado e mudança na rota
-`/sincronizacao/vistoria`, que estão com outros agentes.
+**Feito na API, em 09/09/2026.** O envelope passou a ter `coletadaPor`
+(`packages/shared/src/schemas.ts`), `POST /sincronizacao/vistoria` compara esse
+campo com o dono do token verificado e recusa a divergência com **409
+`autor_divergente`**, e a tentativa recusada entra na trilha como
+`vistoria_recusada_autor_divergente`, com quem apresentou o token e com o autor
+que o envelope declarou. O portão do cliente continua onde estava, e agora ele é
+a primeira barreira e não a única: binário adulterado ou defeito futuro em
+`prontos` não produz mais laudo assinado por quem não estava lá.
 
-**O problema, que só está meio resolvido.** Hoje o envelope não carrega autor: o
-servidor tira o `agente_id` de quem apresentou o token. No aparelho de plantão
-compartilhado isso fazia a coleta do agente da manhã subir com a credencial do
-agente da noite, e o laudo saía atribuído a um servidor que nunca esteve no
-local, contra a minuta lida em voz alta ali com outro nome. A trilha é
-append-only: o autor errado nunca é corrigido, só comentado por um evento novo.
+Duas coisas ficaram decididas e precisam ser conhecidas antes de mexer aqui:
 
-Neste turno o aplicativo passou a carimbar o autor no item da fila e a se recusar
-a enviar coleta que não é de quem está logado (`packages/campo/src/fila.ts`,
-`autoriaDaColeta` e o filtro em `prontos`). **Isso é um portão de cliente, e
-portão de cliente não é controle de acesso.** Um binário adulterado, ou um
-defeito futuro nesse filtro, volta a produzir o mesmo laudo falso e o servidor
-aceita sem piscar.
+- **`coletadaPor` é OPCIONAL, e vai continuar sendo por enquanto.** Existe
+  aparelho em campo com coleta gravada antes deste campo, com `autor: null`, e
+  não existe tela para desbloquear item que o servidor recusou: campo
+  obrigatório daria 422 do Zod para sempre nessas coletas, e uma vistoria de
+  morro seria destruída por uma mudança de esquema. Ele pode virar obrigatório no
+  mesmo dia em que o cartão "Sem autor registrado" puder sair daqui (item 5), e
+  não antes.
+- **O campo é montado na hora do envio**, a partir de `item.autor`
+  (`envelopeComAutoria`, em `packages/campo/src/fila.ts`), e não gravado dentro
+  do envelope no `enfileirar`. É o que faz `assumir` chegar ao servidor: a coleta
+  antiga não tem autor no disco, alguém afirma com o dedo que ela é dele, e é
+  esse nome que sobe.
 
-O que a API precisa:
+**O que falta, e é desta faixa.** O que o aplicativo faz hoje com o 409, lido do
+código e não suposto: `transporte.ts` transforma todo 4xx desta rota em
+`FalhaPermanente`; `tratarFalha` não encontra `autor_divergente` em
+`CODIGOS_SEM_DESTINO` e marca o item como `bloqueado`; a tela mostra a mensagem
+que veio do servidor ("Esta coleta foi feita por outro agente. Entre neste
+aparelho com a conta de quem fez a vistoria para poder enviá-la"), com os botões
+de reenviar e descartar. Ou seja: existe saída, e ela não é destrutiva. O que
+está torto é o caminho de volta:
 
-1. **Campo `coletadaPor` no envelope** (id do usuário), no esquema Zod
-   compartilhado, obrigatório.
-2. **O servidor compara** esse campo com o dono do token verificado. Diferentes:
-   recusa com código próprio (`autor_divergente`), 409, e a mensagem diz para
-   entrar com a conta de quem fez a vistoria. O transporte já transforma isso em
-   falha permanente, e a tela da fila já sabe mostrar item bloqueado com saída.
-3. **A recusa entra na trilha**, porque a tentativa de gravar vistoria com autor
-   divergente é exatamente o evento que alguém vai querer auditar depois.
-4. Enquanto o campo não existir, o portão do cliente é tudo o que há: não mexer
-   nele sem ler o comentário em `prontos`.
+1. **Quando o autor entra de novo no aparelho, o item continua `bloqueado`** e só
+   volta a andar se alguém tocar em "Tentar enviar agora" naquele cartão. A
+   correção certa é o motor devolver para `pendente` o item bloqueado em
+   `autor_divergente` assim que a sessão aberta for a do autor dele, do mesmo
+   jeito que o item aposentado pelo teto antigo já volta na leitura. Sem isso, a
+   pessoa certa entra no aparelho e a coleta continua parada, sem nada dizendo
+   que basta um toque.
+2. **A frase pode dizer o nome.** O item bloqueado nesse código tem `item.autor`
+   preenchido, então a tela pode dizer de quem é a coleta, como já faz no cartão
+   "De outro agente", em vez de repetir a frase genérica do servidor.
+3. **Enquanto isso não existir, não mexer no filtro em `prontos`** sem ler o
+   comentário que está lá: é ele que impede a recusa de acontecer no uso normal.
 
 ## 2. API: vistoria não pode morrer porque um arquivo sumiu
 
@@ -96,6 +112,11 @@ inteiro existe para impedir.
 
 Consequência a conhecer: quando não sobrar nenhum aparelho com coleta daquela
 época, o verbo e o cartão "Sem autor registrado" podem ser removidos. Não antes.
+
+Esse mesmo dia é o gatilho de outra mudança, e as duas andam juntas: é quando
+`coletadaPor` pode deixar de ser opcional no envelope (item 1). Enquanto houver
+coleta sem autor no disco de algum aparelho, tornar o campo obrigatório
+transforma essa coleta em 422 permanente.
 
 ## 6. Nada disto foi executado em aparelho
 
