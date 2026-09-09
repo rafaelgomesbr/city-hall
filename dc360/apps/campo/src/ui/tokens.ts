@@ -167,3 +167,31 @@ export const toque = 52;
 
 /** O texto da interface nunca encolhe abaixo disto, mesmo em tela pequena. */
 export const fonteMinima = 14;
+
+/**
+ * Duração de movimento, em milissegundos.
+ *
+ * Três valores e não sete, porque escala de movimento com sete degraus vira
+ * escolha por gosto a cada componente, e o resultado é uma tela onde nada tem
+ * o mesmo ritmo de nada.
+ *
+ * `respostaAoToque` é curto porque ele responde ao dedo: acima de uns 150 ms o
+ * toque começa a parecer que não pegou, e o agente toca de novo. `mudancaDeEstado`
+ * é para o que muda sozinho e precisa ser percebido sem atrapalhar. `climax` é
+ * um só, para um momento só: a fila esvaziando.
+ *
+ * O clímax é mais longo de propósito, e essa é a única duração deste arquivo
+ * que existe por razão emocional em vez de funcional. O agente subiu o morro,
+ * coletou sem sinal e desceu sem saber se o trabalho dele chegou. Ver a fila
+ * zerar é a resposta a essa dúvida, e ela merece durar o suficiente para ser
+ * vista. Um piscar de 150 ms comunicaria o mesmo fato e não resolveria a
+ * dúvida.
+ *
+ * Nada aqui roda quando o aparelho pede redução de movimento: ver
+ * `useReducaoDeMovimento`.
+ */
+export const movimento = {
+  respostaAoToque: 120,
+  mudancaDeEstado: 260,
+  climax: 520,
+} as const;

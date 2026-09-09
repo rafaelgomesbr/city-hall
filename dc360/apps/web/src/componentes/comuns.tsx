@@ -46,6 +46,41 @@ export function SeloStatus({ status }: { status: StatusOcorrencia }) {
   );
 }
 
+/**
+ * A DATA do vencimento, que é a metade do prazo que faltava na tela.
+ *
+ * "Restam 4h" responde "está apertado?" e não responde "quando?". Quem escala
+ * equipe precisa das duas: o coordenador que lê às 17h que restam quatro horas
+ * ainda tem de fazer a conta para descobrir que aquilo vence às 21h, com a
+ * equipe já fora do turno, e essa conta é feita de cabeça, na pressa, na
+ * frente do rádio. A data por extenso tira a conta do caminho.
+ *
+ * O vencido é dito por cor, por ícone e pela palavra: a regra da casa é nunca
+ * comunicar estado só por cor, e quem lê em tela de sol ou não distingue
+ * vermelho continua vendo "Vencido" escrito.
+ */
+export function PrazoVenceEm({ prazoEm, encerrada }: {
+  prazoEm: string | null;
+  encerrada: boolean;
+}) {
+  // Sem triagem não existe prazo, e dizer a razão é melhor que deixar a
+  // célula vazia: vazio parece dado faltando.
+  if (!prazoEm) return <span className="tabela__secundario">Aguarda triagem</span>;
+
+  const vencido = !encerrada && Date.now() > new Date(prazoEm).getTime();
+  return (
+    <>
+      <div className="mono">{formatarDataHora(prazoEm)}</div>
+      {vencido && (
+        <span className="selo selo--perigo">
+          <IconeAlerta tamanho={14} />
+          Vencido
+        </span>
+      )}
+    </>
+  );
+}
+
 /** Prazo com barra: a proporção consumida é mais legível que a data crua. */
 export function Prazo({ prazoEm, criadoEm, encerrada }: {
   prazoEm: string | null;

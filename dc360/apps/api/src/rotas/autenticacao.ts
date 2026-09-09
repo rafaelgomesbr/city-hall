@@ -153,6 +153,32 @@ export async function rotasAutenticacao(app: FastifyInstance, opcoes: Opcoes): P
     });
   });
 
+  /**
+   * "Encerrar todas as minhas sessoes", disponivel para qualquer papel.
+   *
+   * Nao pede senha atual de proposito, e a razao e a diferenca entre os dois
+   * atos: trocar a senha CONCEDE acesso novo (por isso exige provar que a
+   * pessoa e ela mesma), enquanto encerrar sessao so RETIRA acesso. Exigir
+   * senha para retirar acesso e o tipo de atrito que faz o agente desistir de
+   * usar o botao no momento em que ele mais importa, que e o minuto seguinte a
+   * perder o celular na area de risco. O pior que uma sessao roubada consegue
+   * fazer por aqui e expulsar o dono legitimo, e o dono legitimo entra de novo
+   * com a senha, que o ladrao continua sem ter.
+   *
+   * A sessao de onde a pessoa clicou continua aberta. Ver `auth/servico.ts`.
+   */
+  app.post("/encerrar-sessoes", async (req, resposta) => {
+    const identidade = await app.exigirAutenticacao(req);
+    const encerradas = await autenticacao.encerrarMinhasSessoes(identidade);
+    return resposta.code(200).send({
+      sessoesEncerradas: encerradas,
+      mensagem: encerradas === 0
+        ? "Nenhuma outra sessao estava aberta. Esta continua."
+        : `${encerradas} ${encerradas === 1 ? "sessao foi encerrada" : "sessoes foram encerradas"}`
+          + " em outros navegadores e aparelhos. Esta continua aberta.",
+    });
+  });
+
   app.get("/eu", async (req) => {
     const identidade = await app.exigirAutenticacao(req);
     return {

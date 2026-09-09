@@ -47,3 +47,29 @@ export function quantoFalta(prazoEm: string | null, agora: number): Prazo {
   }
   return { texto: `Vence em ${horas}h`, atrasado: false, vencido: false };
 }
+
+/**
+ * A DATA do prazo, ao lado de quanto falta.
+ *
+ * O relativo sozinho não basta, e a razão é operacional: "Vence em 9h" não diz
+ * ao agente se o prazo cai dentro do turno dele ou já na madrugada, e é essa
+ * distinção que decide se ele sobe hoje ou passa a tarefa. O painel ganhou as
+ * duas colunas no mesmo turno em que este item entrou; o aplicativo mostrava só
+ * o relativo, e o agente é justamente quem está longe de um calendário.
+ *
+ * Formato curto de propósito: dia, mês e hora, sem ano e sem segundos. Cabe na
+ * linha de uma tarefa num aparelho segurado com uma mão, e o ano de um prazo de
+ * Defesa Civil nunca é a informação em disputa.
+ *
+ * Devolve string vazia sem prazo, e não "sem data": quem chama já mostra
+ * "Sem prazo definido" pelo `quantoFalta`, e repetir a mesma ausência duas
+ * vezes na mesma linha é ruído.
+ */
+export function dataDoPrazo(prazoEm: string | null): string {
+  if (!prazoEm) return "";
+  const quando = new Date(prazoEm);
+  if (Number.isNaN(quando.getTime())) return "";
+  return quando.toLocaleString("pt-BR", {
+    day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+  });
+}

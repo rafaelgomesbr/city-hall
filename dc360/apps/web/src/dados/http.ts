@@ -5,7 +5,8 @@ import type {
 import type {
   ContaDisponivel, FiltroOcorrencias, Indicadores, LinhaEquipe, LinhaEvento,
   FiltroTrilha, LinhaEvidencia, LinhaOcorrencia, LinhaProvidencia, LinhaTrilha,
-  ImovelInterditado, LinhaUsuario, LinhaVistoria, MeuTrabalho, ProvidenciaPendente,
+  ImovelInterditado, LinhaUsuario, LinhaVistoria, MeuTrabalho, PaginaDeOcorrencias,
+  PontosDoMapa, ProvidenciaPendente,
   ResumoPeriodo,
   Sessao, VinculoOcorrencia,
 } from "./tipos";
@@ -215,21 +216,64 @@ export async function encerrarSessao(): Promise<void> {
 // não precisarem saber com qual implementação estão falando.
 // ---------------------------------------------------------------------------
 
+/**
+ * Quantas linhas pedir quando quem chama não diz.
+ *
+ * O teto da rota é cem, e era isso que este arquivo pedia sempre. O problema
+ * nunca foi o número: era ninguém olhar o `total` que vinha do lado dele.
+ */
+const POR_PAGINA_PADRAO = 100;
+
 function consulta(filtro: FiltroOcorrencias): string {
   const p = new URLSearchParams();
   if (filtro.busca?.trim()) p.set("busca", filtro.busca.trim());
   if (filtro.status) p.set("status", filtro.status);
   if (filtro.severidade) p.set("severidade", filtro.severidade);
-  p.set("porPagina", "100");
+  // Só vai quando está ligado, e o servidor recusa qualquer outro valor.
+  if (filtro.atrasadas) p.set("atrasadas", "1");
+  p.set("pagina", String(filtro.pagina ?? 1));
+  p.set("porPagina", String(filtro.porPagina ?? POR_PAGINA_PADRAO));
   return p.toString();
 }
 
+/**
+ * Uma página da lista, com o total de todas as que casam com o filtro.
+ *
+ * Quem desenha lista ou mapa usa esta, nunca a de baixo: sem o `total` a tela
+ * não tem como saber (nem como dizer) que está mostrando um recorte.
+ */
+export async function listarPaginaDeOcorrencias(
+  _s: Sessao,
+  filtro: FiltroOcorrencias = {},
+): Promise<PaginaDeOcorrencias> {
+  return chamar<PaginaDeOcorrencias>(`/ocorrencias?${consulta(filtro)}`);
+}
+
+/**
+ * Só as linhas da primeira página, para quem mostra um topo de fila curto e
+ * já sabe disso (o painel mostra seis).
+ */
 export async function listarOcorrencias(
   _s: Sessao,
   filtro: FiltroOcorrencias = {},
 ): Promise<LinhaOcorrencia[]> {
-  const r = await chamar<{ itens: LinhaOcorrencia[] }>(`/ocorrencias?${consulta(filtro)}`);
+  const r = await listarPaginaDeOcorrencias(_s, filtro);
   return r.itens;
+}
+
+/**
+ * Os pontos do mapa e, junto, quantos existem.
+ *
+ * O mapa pedia a lista comum e desenhava o que chegasse. Como a lista sempre
+ * foi paginada, numa enxurrada com duzentas ativas ele desenhava cem e não
+ * dizia nada: metade da cidade sumia de uma tela de decisão. Aqui vêm os três
+ * números que faltavam, e a tela é obrigada a mostrá-los.
+ */
+export async function pontosDoMapa(
+  _s: Sessao,
+  pagina = 1,
+): Promise<PontosDoMapa> {
+  return chamar<PontosDoMapa>(`/ocorrencias/mapa?pagina=${pagina}`);
 }
 
 type Detalhe = {

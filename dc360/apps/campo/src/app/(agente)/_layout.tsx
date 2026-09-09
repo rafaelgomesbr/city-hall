@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Pressable, View, type ColorValue } from "react-native";
+import { View, type ColorValue } from "react-native";
 import { Redirect, Tabs, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { FilaDeSincronizacao, ResumoFila } from "@dc360/campo";
@@ -8,6 +8,7 @@ import { useSinal } from "../../dados/conectividade";
 import { useSessao } from "../../dados/sessao";
 import { enderecoDaApi } from "../../dados/api";
 import { Txt, useTema } from "../../ui/componentes";
+import { FaixaDeSincronizacao, type EstadoDaFaixa } from "../../ui/FaixaDeSincronizacao";
 import { IconeEnvio, IconeEquipe, IconeTarefas } from "../../ui/icones";
 import { espaco, raio, toque } from "../../ui/tokens";
 
@@ -117,57 +118,35 @@ export default function LayoutDoAgente() {
   const naFila = pendentes + bloqueados;
   const recuo = margens;
 
-  const faixa = !sinal.temSinal
-    ? { fundo: tema.alertaFundo, cor: tema.alertaTexto, sinalTexto: "!",
+  /*
+    A `chave` existe para a faixa saber que houve TRANSIÇÃO, e não só que o
+    texto mudou. Sem ela, "3 esperando envio" virando "2 esperando envio" seria
+    indistinguível de "esperando" virando "sincronizado", e o clímax da fila
+    esvaziando dispararia a cada item enviado, o que o esvaziaria de sentido.
+  */
+  const faixa: EstadoDaFaixa = !sinal.temSinal
+    ? { chave: "sem_sinal",
+        fundo: tema.alertaFundo, cor: tema.alertaTexto, sinalTexto: "!",
         titulo: "Sem sinal", detalhe: "Salvando neste aparelho" }
     : resumo?.sincronizando
-      ? { fundo: tema.superficie2, cor: tema.texto, sinalTexto: "↑",
+      ? { chave: "enviando",
+          fundo: tema.superficie2, cor: tema.texto, sinalTexto: "↑",
           titulo: "Enviando", detalhe: `${pendentes} na fila` }
       : pendentes > 0
-        ? { fundo: tema.superficie2, cor: tema.texto, sinalTexto: "↑",
+        ? { chave: "esperando",
+            fundo: tema.superficie2, cor: tema.texto, sinalTexto: "↑",
             titulo: "Com sinal", detalhe: `${pendentes} esperando envio` }
-        : { fundo: tema.okFundo, cor: tema.okTexto, sinalTexto: "✓",
+        : { chave: "sincronizado",
+            fundo: tema.okFundo, cor: tema.okTexto, sinalTexto: "✓",
             titulo: "Tudo sincronizado", detalhe: "Nada pendente no aparelho" };
 
   return (
     <View style={{ flex: 1, backgroundColor: tema.fundo, paddingTop: margens.top }}>
-      {/*
-        A faixa inteira é tocável e leva à fila. Quem lê "3 esperando envio"
-        quer ver quais são, e obrigar a procurar isso num menu é o caminho
-        para o agente concluir que o aplicativo comeu a vistoria dele.
-      */}
-      <Pressable
-        onPress={() => router.push("/(agente)/fila")}
-        accessibilityRole="button"
-        accessibilityLabel={`${faixa.titulo}. ${faixa.detalhe}. Toque para ver a fila de envio.`}
-        style={{
-          backgroundColor: faixa.fundo,
-          minHeight: toque,
-          paddingHorizontal: espaco.e4,
-          paddingVertical: espaco.e2,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: espaco.e3,
-        }}
-      >
-        {/* Símbolo além da cor: sol na tela apaga a diferença entre âmbar e
-            verde, e daltonismo apaga de vez. */}
-        <View style={{
-          width: 28, height: 28, borderRadius: raio.pilula,
-          backgroundColor: faixa.cor,
-          alignItems: "center", justifyContent: "center",
-        }}>
-          <Txt variante="corpoP" negrito cor={faixa.fundo}>{faixa.sinalTexto}</Txt>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Txt variante="corpoP" negrito cor={faixa.cor}>{faixa.titulo}</Txt>
-          <Txt variante="legenda" cor={faixa.cor}>
-            {faixa.detalhe}
-            {bloqueados > 0 && `, ${bloqueados} com problema`}
-          </Txt>
-        </View>
-        <Txt variante="legenda" cor={faixa.cor}>ver fila</Txt>
-      </Pressable>
+      <FaixaDeSincronizacao
+        estado={faixa}
+        bloqueados={bloqueados}
+        aoTocar={() => router.push("/(agente)/fila")}
+      />
 
       {/*
         Barra FLUTUANTE, e não encostada na borda.

@@ -240,9 +240,37 @@ export type Pendencia = {
  * trouxer fica guardado no aparelho; o que ela não trouxer não existe lá em
  * cima, e por isso a tela insiste tanto em sincronizar antes de sair.
  */
-export async function baixarPendencias(token: string): Promise<Pendencia[]> {
-  const r = await chamar<{ itens: Pendencia[] }>("/sincronizacao/pendencias", { token });
-  return r.itens;
+export type ListaDePendencias = {
+  itens: Pendencia[];
+  /** Quantas cabem numa resposta. */
+  teto: number;
+  /** Havia mais do que coube. */
+  truncada: boolean;
+};
+
+export async function baixarPendencias(token: string): Promise<ListaDePendencias> {
+  /*
+    `teto` e `truncada` NÃO podem ser descartados aqui, e é por isso que esta
+    função devolve o envelope em vez da lista crua.
+
+    A rota corta em 200 tarefas para não fazer o aparelho baixar tudo no 3G do
+    morro. Se o cliente jogasse fora a marca de corte, o agente veria uma lista
+    aparentemente completa e subiria confiando nela, e as tarefas que ficaram de
+    fora simplesmente não existiriam para ele. Teto calado é o defeito; o
+    tamanho do teto não é.
+
+    O padrão de `truncada` é falso e o de `teto` é o tamanho recebido: servidor
+    antigo, que ainda não manda os dois campos, se comporta como antes em vez de
+    fazer a tela mentir para o outro lado.
+  */
+  const r = await chamar<{ itens: Pendencia[]; teto?: number; truncada?: boolean }>(
+    "/sincronizacao/pendencias", { token },
+  );
+  return {
+    itens: r.itens,
+    teto: r.teto ?? r.itens.length,
+    truncada: r.truncada ?? false,
+  };
 }
 
 /**

@@ -1,8 +1,15 @@
 # ADR 0006: nenhum papel acima do administrador, e o sistema de postos
 
 - **Data da decisão:** 22/08/2026 (registro escrito em 25/08/2026)
-- **Situação:** aceita, em vigor
+- **Situação:** aceita, em vigor, com um ponto suplantado
 - **Depende de:** ADR 0001
+- **Suplantada em parte pela ADR 0008**, de 09/09/2026, e só no ponto "não existe
+  painel de plataforma", listado abaixo como consequência ruim. Passou a existir
+  console do fornecedor, sem nenhuma credencial que leia dado de negócio de dois
+  municípios: ele lê métrica agregada que cada município escreve. A recusa ao
+  super-administrador, que esta ADR fez por princípio, continua valendo inteira,
+  e o resto deste documento (postos, teto do município, provisionamento por
+  linha de comando) não foi tocado.
 
 ## Contexto
 

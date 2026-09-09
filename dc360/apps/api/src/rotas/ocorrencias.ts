@@ -20,12 +20,60 @@ import { registrarEvento } from "../trilha.js";
 
 const idSchema = z.object({ id: z.string().uuid("Identificador inválido") });
 
+/*
+  Bandeira de filtro que chega pela barra de endereço.
+
+  `z.coerce.boolean()` não serve: em JavaScript toda string não vazia é
+  verdadeira, então "0" e "false" LIGARIAM o filtro. O link do painel é colado
+  e editado à mão, e quem trocasse `atrasadas=1` por `atrasadas=0` para
+  desligar continuaria vendo só as atrasadas, achando que aquilo era a fila
+  inteira.
+*/
+const bandeiraSchema = z.enum(["0", "1", "true", "false"]).optional()
+  .transform((v) => v === "1" || v === "true");
+
 const consultaSchema = z.object({
   busca: z.string().max(200).optional(),
   status: z.enum([...STATUS_OCORRENCIA, "todas", "ativas"]).default("ativas"),
   severidade: z.enum([...SEVERIDADES, "todas"]).default("todas"),
+  atrasadas: bandeiraSchema,
   pagina: z.coerce.number().int().min(1).default(1),
   porPagina: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+/**
+ * O que conta como atrasada, escrito uma vez só.
+ *
+ * O indicador do painel e o filtro da lista respondem à MESMA pergunta, e até
+ * aqui só o painel a respondia no servidor: a lista filtrava no navegador, em
+ * cima da página que já tinha baixado. Duas definições parecidas em lugares
+ * diferentes divergem sempre, e essas duas já divergiam, porque a do navegador
+ * tirava só 'encerrada' e deixava rascunho vencido entrar na conta. O painel
+ * dizia trinta atrasadas, a lista mostrava outro número, e não existe jeito de
+ * o coordenador saber qual das duas telas mentiu.
+ *
+ * Rascunho fica de fora por ser chamado que ninguém assumiu ainda, e prazo
+ * nulo é ocorrência esperando triagem: nenhum dos dois está atrasado.
+ */
+function condicaoAtrasada(alias: string): string {
+  return `${alias}.status NOT IN ('encerrada','rascunho')
+          AND ${alias}.prazo_em IS NOT NULL AND ${alias}.prazo_em < now()`;
+}
+
+/**
+ * Teto de pontos que o mapa desenha de uma vez.
+ *
+ * Existe porque desenhar mil marcadores num notebook de prefeitura trava a
+ * aba, e não porque mil ocorrências sejam impossíveis: numa enxurrada elas
+ * são o esperado. O teto só é aceitável acompanhado do total, que vai na
+ * mesma resposta, para a tela poder dizer quantas existem e quantas estão
+ * desenhadas. Teto que a tela não conta é o defeito; o tamanho dele não é.
+ */
+const TETO_DO_MAPA = 200;
+
+const consultaMapaSchema = z.object({
+  pagina: z.coerce.number().int().min(1).default(1),
+  porPagina: z.coerce.number().int().min(1).max(TETO_DO_MAPA).default(TETO_DO_MAPA),
 });
 
 /**
@@ -106,6 +154,13 @@ export async function rotasOcorrencias(
         params.push(f.severidade);
         condicoes.push(`o.severidade = $${params.length}`);
       }
+      /*
+        O filtro de atrasadas é do SERVIDOR, e a mesma expressão do indicador
+        do painel. Filtrar no navegador só peneirava a página baixada: com o
+        recorte de vinte linhas, "só atrasadas" mostrava as atrasadas QUE
+        COUBERAM na primeira página, e o rodapé contava essas.
+      */
+      if (f.atrasadas) condicoes.push(`(${condicaoAtrasada("o")})`);
 
       const onde = condicoes.length ? `WHERE ${condicoes.join(" AND ")}` : "";
 
@@ -124,7 +179,13 @@ export async function rotasOcorrencias(
             CASE WHEN o.status IN ('encerrada','rascunho') THEN 1 ELSE 0 END,
             CASE o.severidade WHEN 'critica' THEN 0 WHEN 'alta' THEN 1
                               WHEN 'media' THEN 2 WHEN 'baixa' THEN 3 ELSE 4 END,
-            o.criado_em DESC
+            o.criado_em DESC,
+            -- Desempate estável. Sem ele, duas ocorrências com a mesma
+            -- severidade e o mesmo instante de abertura (uma importação, um
+            -- registro em lote) podem sair em ordem diferente a cada
+            -- consulta, e aí a mesma linha aparece na página 1 e na 2
+            -- enquanto outra não aparece em nenhuma.
+            o.id
           LIMIT $${params.length - 1} OFFSET $${params.length}`,
         params,
       );
@@ -132,6 +193,64 @@ export async function rotasOcorrencias(
       return {
         itens: itens.rows,
         total: Number(total.rows[0]!.total),
+        pagina: f.pagina,
+        porPagina: f.porPagina,
+      };
+    });
+  });
+
+  /**
+   * Os pontos que o mapa desenha, com o total ao lado.
+   *
+   * O mapa pedia a lista comum e desenhava o que viesse. O que vinha era uma
+   * página, porque a lista sempre foi paginada e o painel pedia cem por
+   * página: numa enxurrada com duzentas ocorrências ativas, o coordenador via
+   * cem marcadores, metade da cidade, e nada na tela dizia que faltava
+   * metade. Isso não é lentidão, é informação falsa numa tela de decisão.
+   *
+   * Por isso esta rota devolve três números além dos pontos: quantas ativas
+   * têm coordenada (`total`), quantas ativas NÃO têm (`semCoordenada`, que
+   * nunca aparecem no mapa em desenho nenhum) e o tamanho da página. A tela
+   * tem com o que dizer a verdade inteira.
+   *
+   * A ordem é por severidade: se o teto cortar, o que fica de fora é o menos
+   * grave, nunca a crítica.
+   *
+   * Ela também devolve MENOS colunas que a lista, de propósito. O mapa precisa
+   * de protocolo, tipo, severidade, endereço e coordenada; relato do
+   * solicitante, contato e descrição de vulnerabilidade social não têm o que
+   * fazer numa tela que desenha a cidade inteira de uma vez.
+   */
+  app.get("/mapa", async (req) => {
+    const quem = await app.exigirAutenticacao(req);
+    const f = consultaMapaSchema.parse(req.query);
+
+    return banco.comTenant(quem.organizacaoId, async (c) => {
+      const contagem = await c.query<{ com: string; sem: string }>(
+        `SELECT
+           count(*) FILTER (WHERE latitude IS NOT NULL AND longitude IS NOT NULL)::text AS com,
+           count(*) FILTER (WHERE latitude IS NULL OR longitude IS NULL)::text AS sem
+           FROM ocorrencias WHERE status NOT IN ('encerrada','rascunho')`,
+      );
+
+      const itens = await c.query(
+        `SELECT id, protocolo, tipo, status, severidade, endereco, latitude, longitude
+           FROM ocorrencias
+          WHERE status NOT IN ('encerrada','rascunho')
+            AND latitude IS NOT NULL AND longitude IS NOT NULL
+          ORDER BY
+            CASE severidade WHEN 'critica' THEN 0 WHEN 'alta' THEN 1
+                            WHEN 'media' THEN 2 WHEN 'baixa' THEN 3 ELSE 4 END,
+            criado_em DESC,
+            id
+          LIMIT $1 OFFSET $2`,
+        [f.porPagina, (f.pagina - 1) * f.porPagina],
+      );
+
+      return {
+        itens: itens.rows,
+        total: Number(contagem.rows[0]!.com),
+        semCoordenada: Number(contagem.rows[0]!.sem),
         pagina: f.pagina,
         porPagina: f.porPagina,
       };
@@ -593,21 +712,23 @@ export async function rotasOcorrencias(
     const quem = await app.exigirAutenticacao(req);
     return banco.comTenant(quem.organizacaoId, async (c) => {
       const r = await c.query(
+        // O `atrasadas` daqui é a MESMA expressão que a lista usa quando o
+        // filtro está ligado. Clicar no indicador precisa levar a uma lista
+        // que conte a mesma coisa que o número clicado.
         `SELECT
-           count(*) FILTER (WHERE status NOT IN ('encerrada','rascunho'))::int AS na_fila,
-           count(*) FILTER (WHERE status = 'em_campo')::int AS em_campo,
-           count(*) FILTER (WHERE status NOT IN ('encerrada','rascunho')
-                              AND prazo_em IS NOT NULL AND prazo_em < now())::int AS atrasadas,
-           count(*) FILTER (WHERE status = 'encerrada'
-                              AND encerrado_em > now() - interval '7 days')::int AS encerradas_7d,
-           count(*) FILTER (WHERE status NOT IN ('encerrada','rascunho')
-                              AND severidade = 'critica')::int AS criticas,
+           count(*) FILTER (WHERE o.status NOT IN ('encerrada','rascunho'))::int AS na_fila,
+           count(*) FILTER (WHERE o.status = 'em_campo')::int AS em_campo,
+           count(*) FILTER (WHERE ${condicaoAtrasada("o")})::int AS atrasadas,
+           count(*) FILTER (WHERE o.status = 'encerrada'
+                              AND o.encerrado_em > now() - interval '7 days')::int AS encerradas_7d,
+           count(*) FILTER (WHERE o.status NOT IN ('encerrada','rascunho')
+                              AND o.severidade = 'critica')::int AS criticas,
            (SELECT count(*) FROM providencias
              WHERE respondida_em IS NULL)::int AS providencias_abertas,
            (SELECT count(*) FROM providencias
              WHERE respondida_em IS NULL AND prazo_em < now())::int
              AS providencias_vencidas
-         FROM ocorrencias`,
+         FROM ocorrencias o`,
       );
       return r.rows[0];
     });

@@ -246,6 +246,14 @@ describe("salvar e sair", () => {
    2. O prazo dentro do formulário
    ============================================================ */
 
+/*
+  As afirmacoes de prazo casam por PREFIXO, e nao por igualdade.
+
+  O selo passou a trazer tambem a DATA entre parenteses ("Prazo vence em 8h
+  (10/09, 12:30)"): o relativo responde "tenho tempo?" e a data responde "cai
+  dentro do meu turno?". Prender o teste ao texto inteiro faria o fuso da
+  maquina de quem roda a suite decidir se ela passa.
+*/
 describe("o prazo dentro da vistoria", () => {
   it("mostra quanto falta, e não só na lista de tarefas", async () => {
     mockOcorrencia = ocorrenciaDeTeste({
@@ -253,7 +261,7 @@ describe("o prazo dentro da vistoria", () => {
     });
     await abrirATela();
 
-    expect(screen.getByText("Prazo vence em 8h")).toBeTruthy();
+    expect(screen.getByText(/^Prazo vence em 8h \(/)).toBeTruthy();
   });
 
   it("diz a palavra 'vencido', e não confia só na cor", async () => {
@@ -262,7 +270,7 @@ describe("o prazo dentro da vistoria", () => {
     });
     await abrirATela();
 
-    const selo = screen.getByText("! Prazo vencido há 3h");
+    const selo = screen.getByText(/^! Prazo vencido há 3h \(/);
     // Cor MAIS palavra. Sob sol forte na tela do aparelho, e para quem não
     // separa âmbar de vermelho, a cor sozinha não comunica nada.
     expect(StyleSheet.flatten(selo.props.style).color).toBe(temaEscuro.perigoTexto);
@@ -273,7 +281,7 @@ describe("o prazo dentro da vistoria", () => {
       prazo_em: new Date(AGORA.getTime() + 90 * MINUTO).toISOString(),
     });
     await abrirATela();
-    expect(screen.getByText("! Prazo vence em 1h30")).toBeTruthy();
+    expect(screen.getByText(/^! Prazo vence em 1h30 \(/)).toBeTruthy();
 
     /*
       Uma vistoria de morro dura quarenta minutos. Sem relógio, a conta fica
@@ -282,8 +290,8 @@ describe("o prazo dentro da vistoria", () => {
     */
     await act(async () => { jest.advanceTimersByTime(31 * MINUTO); });
 
-    expect(screen.getByText("! Prazo vence em 59min")).toBeTruthy();
-    expect(screen.queryByText("! Prazo vence em 1h30")).toBeNull();
+    expect(screen.getByText(/^! Prazo vence em 59min \(/)).toBeTruthy();
+    expect(screen.queryByText(/^! Prazo vence em 1h30 \(/)).toBeNull();
   });
 
   it("ocorrência sem prazo não inventa contagem", async () => {

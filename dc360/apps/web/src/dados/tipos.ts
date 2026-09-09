@@ -114,6 +114,59 @@ export type FiltroOcorrencias = {
   busca?: string;
   status?: StatusOcorrencia | "todas" | "ativas";
   severidade?: Severidade | "todas";
+  /**
+   * Só as vencidas.
+   *
+   * Mora aqui, e não numa peneira depois da resposta, porque peneirar no
+   * navegador só alcança a página que já desceu: com vinte linhas na mão e
+   * trinta atrasadas na cidade, "só atrasadas" mostrava as que couberam e o
+   * rodapé contava essas.
+   */
+  atrasadas?: boolean;
+  pagina?: number;
+  porPagina?: number;
+};
+
+/**
+ * Uma página da lista com o total de verdade ao lado.
+ *
+ * O total é o que separa "estas são as ocorrências" de "estas são as
+ * ocorrências que couberam". Toda tela que desenha um recorte precisa dele
+ * para poder dizer na cara do usuário quantas ficaram de fora.
+ */
+export type PaginaDeOcorrencias = {
+  itens: LinhaOcorrencia[];
+  total: number;
+  pagina: number;
+  porPagina: number;
+};
+
+/**
+ * Um ponto do mapa: o mínimo que o desenho precisa.
+ *
+ * Deliberadamente mais estreito que `LinhaOcorrencia`. Uma tela que carrega a
+ * cidade inteira de uma vez não tem por que trazer junto o telefone do
+ * solicitante, o relato e a descrição de vulnerabilidade social.
+ */
+export type PontoNoMapa = {
+  id: string;
+  protocolo: string;
+  tipo: TipoCobrade;
+  status: StatusOcorrencia;
+  severidade: Severidade | null;
+  endereco: string;
+  latitude: number;
+  longitude: number;
+};
+
+export type PontosDoMapa = {
+  itens: PontoNoMapa[];
+  /** Ativas COM coordenada. É o universo do mapa. */
+  total: number;
+  /** Ativas sem coordenada: existem, e nenhum desenho as mostra. */
+  semCoordenada: number;
+  pagina: number;
+  porPagina: number;
 };
 
 export type Indicadores = {

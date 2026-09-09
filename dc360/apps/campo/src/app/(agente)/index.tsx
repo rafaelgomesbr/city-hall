@@ -3,7 +3,7 @@ import { AppState, Pressable, RefreshControl, ScrollView, View } from "react-nat
 import { router, useFocusEffect } from "expo-router";
 import { ROTULO_TIPO_COBRADE } from "@dc360/shared";
 import { SemSinal, enderecoDaApi, type Pendencia } from "../../dados/api";
-import { atualizarPendencias, baixadasEm, pendenciasGuardadas } from "../../dados/pendencias";
+import { atualizarPendencias, baixadasEm, pendenciasGuardadas, tetoAtingido } from "../../dados/pendencias";
 import { listarColetas, marcarEnviada } from "../../dados/coletas";
 import { obterFila } from "../../dados/fila";
 import { listarRascunhos, type Rascunho } from "../../dados/rascunho";
@@ -16,7 +16,7 @@ import { espaco, raio, toque } from "../../ui/tokens";
 import {
   INTERVALO_PADRAO_MS, deveAtualizar, idadeEmPalavras, listaEnvelheceu,
 } from "../../dados/atualizacao";
-import { quantoFalta, seloDaColeta, type ColetaLocal } from "@dc360/campo";
+import { dataDoPrazo, quantoFalta, seloDaColeta, type ColetaLocal } from "@dc360/campo";
 
 /**
  * As tarefas do agente.
@@ -44,6 +44,8 @@ export default function Tarefas() {
    */
   const [coletas, setColetas] = useState<ColetaLocal[]>([]);
   const [atualizadoEm, setAtualizadoEm] = useState<string | null>(null);
+  /** Tamanho do teto quando a última baixa foi cortada. Nulo quando veio inteira. */
+  const [teto, setTeto] = useState<number | null>(null);
 
   /*
     Relógio da tela, só para a idade da lista não congelar em "agora há pouco"
@@ -89,11 +91,12 @@ export default function Tarefas() {
 
   const lerDoDisco = useCallback(async () => {
     await promoverColetasConfirmadas();
-    const [guardadas, marcadas, emAndamento, coletadas] = await Promise.all([
-      pendenciasGuardadas(), baixadasEm(), listarRascunhos(), listarColetas(),
+    const [guardadas, marcadas, emAndamento, coletadas, cortada] = await Promise.all([
+      pendenciasGuardadas(), baixadasEm(), listarRascunhos(), listarColetas(), tetoAtingido(),
     ]);
     setTarefas(guardadas);
     setAtualizadoEm(marcadas);
+    setTeto(cortada);
     setRascunhos(emAndamento);
     setColetas(coletadas);
   }, [promoverColetasConfirmadas]);
@@ -121,6 +124,7 @@ export default function Tarefas() {
       ultimaDeuCerto.current = true;
       setTarefas(novas);
       setAtualizadoEm(await baixadasEm());
+      setTeto(await tetoAtingido());
     } catch (erro: unknown) {
       ultimaDeuCerto.current = false;
       /*
@@ -263,6 +267,22 @@ export default function Tarefas() {
             tela para baixo antes de subir: pode ter chegado despacho novo.
           </Aviso>
         )}
+        {/*
+          O aviso de lista cortada, e ele existe porque o silêncio é o defeito.
+
+          A rota devolve no máximo um número de tarefas por resposta, para o
+          aparelho não baixar tudo no 3G do morro. Sem este aviso, o agente veria
+          uma lista aparentemente completa, subiria confiando nela, e as tarefas
+          que ficaram de fora simplesmente não existiriam para ele. Cortar é
+          aceitável; cortar calado não é.
+        */}
+        {teto !== null && (
+          <Aviso tom="alerta">
+            {`Esta lista mostra as ${teto} tarefas mais urgentes da sua equipe, e há mais além delas. `}
+            Trate estas primeiro e atualize a lista: as próximas aparecem quando
+            estas saírem.
+          </Aviso>
+        )}
       </View>
 
       {tarefas.length === 0 ? (
@@ -329,6 +349,16 @@ export default function Tarefas() {
                 >
                   {prazo.atrasado ? "! " : ""}{prazo.texto}
                 </Txt>
+                {/*
+                  A DATA ao lado do relativo. "Vence em 9h" não diz ao agente se
+                  o prazo cai dentro do turno dele ou já na madrugada, e é essa
+                  distinção que decide se ele sobe hoje ou passa a tarefa.
+                */}
+                {!!dataDoPrazo(t.prazo_em) && (
+                  <Txt variante="legenda" cor={tema.textoDiscreto}>
+                    {dataDoPrazo(t.prazo_em)}
+                  </Txt>
+                )}
                 {t.vulnerabilidade_presente && (
                   <Txt variante="legenda" negrito cor={tema.alertaTexto}>
                     ! Vulnerabilidade social

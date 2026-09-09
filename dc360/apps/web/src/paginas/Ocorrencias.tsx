@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   ROTULO_STATUS, ROTULO_TIPO_COBRADE, SEVERIDADES, ROTULO_SEVERIDADE, podeExecutar,
   type Severidade, type StatusOcorrencia,
 } from "@dc360/shared";
-import { listarOcorrencias, type LinhaOcorrencia } from "../dados/repositorio";
+import { listarPaginaDeOcorrencias, type PaginaDeOcorrencias } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
-  Aviso, Carregando, Prazo, SeloSeveridade, SeloStatus, Vazio, formatarDataHora,
+  Aviso, Carregando, Prazo, PrazoVenceEm, SeloSeveridade, SeloStatus, Vazio, formatarDataHora,
 } from "../componentes/comuns";
 import { IconeMais } from "../componentes/Icones";
 
@@ -34,72 +34,86 @@ const FILTROS_STATUS: Array<{ chave: string; rotulo: string }> = [
 export function Ocorrencias() {
   const sessao = useSessaoObrigatoria();
   const [params, setParams] = useSearchParams();
-  const [linhas, setLinhas] = useState<LinhaOcorrencia[] | null>(null);
+  const [dados, setDados] = useState<PaginaDeOcorrencias | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const [pagina, setPagina] = useState(1);
 
   const busca = params.get("busca") ?? "";
   const status = params.get("status") ?? "ativas";
   const severidade = params.get("severidade") ?? "todas";
   const soAtrasadas = params.get("atrasadas") === "1";
+  /*
+    A página vive na URL junto com os filtros, pelo mesmo motivo que eles: o
+    link que o coordenador manda para a equipe precisa reabrir a MESMA tela.
+    Guardá-la em estado, com os filtros na URL, também deixava as duas fontes
+    saírem de sincronia quando o painel abria esta tela já filtrada.
+  */
+  const pagina = Math.max(1, Math.trunc(Number(params.get("pagina") ?? "1")) || 1);
 
   const [rascunhoBusca, setRascunhoBusca] = useState(busca);
   useEffect(() => { setRascunhoBusca(busca); }, [busca]);
 
+  /*
+    Busca, filtros e página vão TODOS para o servidor.
+
+    Antes, a tela baixava as cem primeiras e peneirava as atrasadas aqui, no
+    navegador. Isso mentia duas vezes: mostrava só as atrasadas que couberam
+    nas cem, e contava essas no rodapé. Numa enxurrada, o painel dizia trinta
+    atrasadas e a lista dizia doze, sem nada na tela explicando a diferença.
+  */
   useEffect(() => {
     let vivo = true;
-    setLinhas(null);
-    listarOcorrencias(sessao, {
+    setDados(null);
+    listarPaginaDeOcorrencias(sessao, {
       busca,
       status: status as StatusOcorrencia | "todas" | "ativas",
       severidade: severidade as Severidade | "todas",
+      atrasadas: soAtrasadas,
+      pagina,
+      porPagina: POR_PAGINA,
     })
-      .then((r) => { if (vivo) { setLinhas(r); setPagina(1); } })
+      .then((r) => { if (vivo) setDados(r); })
       .catch((e: unknown) => { if (vivo) setErro(e instanceof Error ? e.message : String(e)); });
     return () => { vivo = false; };
-  }, [sessao, busca, status, severidade]);
-
-  // Trocar o filtro de atrasadas devolve para a primeira página, como todo
-  // outro filtro já fazia. Ele é aplicado no cliente, então não passa pelo
-  // efeito acima e precisava desta linha.
-  useEffect(() => { setPagina(1); }, [soAtrasadas]);
-
-  const filtradas = useMemo(() => {
-    if (!linhas) return null;
-    if (!soAtrasadas) return linhas;
-    const agora = Date.now();
-    return linhas.filter(
-      (o) => o.status !== "encerrada" && o.prazo_em !== null && new Date(o.prazo_em).getTime() < agora,
-    );
-  }, [linhas, soAtrasadas]);
+  }, [sessao, busca, status, severidade, soAtrasadas, pagina]);
 
   function trocar(chave: string, valor: string | null) {
     const proximos = new URLSearchParams(params);
     if (valor === null || valor === "") proximos.delete(chave);
     else proximos.set(chave, valor);
+    /*
+      Trocar qualquer filtro devolve para a primeira página.
+
+      Continuar na página 3 do filtro anterior dava tabela com cabeçalho e
+      nenhuma linha, e a leitura óbvia disso é "não tem nenhuma", que é
+      justamente a conclusão errada no clique que o coordenador dá quando
+      alguma coisa acabou de vencer.
+    */
+    if (chave !== "pagina") proximos.delete("pagina");
     setParams(proximos, { replace: true });
   }
 
-  if (erro) return <Aviso tom="perigo">Falha ao carregar as ocorrências: {erro}</Aviso>;
-
-  const total = filtradas?.length ?? 0;
+  const total = dados?.total ?? 0;
   const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
 
   /*
-    A página é presa ao teto, e isto conserta um caso que mentia o número.
+    Página além do fim se corrige sozinha.
 
-    "Só atrasadas" filtra no cliente, depois que a lista já chegou, e ele não
-    entrava nas dependências do efeito que devolve a paginação para a primeira
-    página. Quem estivesse na página 3 e clicasse no filtro com duas atrasadas
-    ficava com `pagina` em 3 e `total` em 2: o recorte devolvia lista vazia, o
-    estado vazio NÃO aparecia (porque o total não é zero), e o rodapé escrevia
-    "Mostrando 21 a 2 de 2". A tabela ficava com cabeçalho e nenhuma linha.
-
-    A leitura óbvia disso é "não tem nenhuma atrasada", e é exatamente o clique
-    que o coordenador dá quando alguma coisa acabou de vencer.
+    Com a paginação no servidor, a lista pode encurtar embaixo de quem está na
+    página 3 (alguém encerrou, alguém respondeu a providência). O servidor
+    devolve zero linhas e o total verdadeiro, e é por isso que o total precisa
+    vir junto: sem ele a tela só saberia dizer "nenhuma ocorrência" com a
+    cidade cheia.
   */
-  const paginaSegura = Math.min(pagina, paginas);
-  const visiveis = filtradas?.slice((paginaSegura - 1) * POR_PAGINA, paginaSegura * POR_PAGINA) ?? [];
+  useEffect(() => {
+    if (dados && dados.itens.length === 0 && dados.total > 0 && pagina > paginas) {
+      trocar("pagina", String(paginas));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dados, pagina, paginas]);
+
+  if (erro) return <Aviso tom="perigo">Falha ao carregar as ocorrências: {erro}</Aviso>;
+
+  const visiveis = dados?.itens ?? [];
 
   return (
     <>
@@ -171,12 +185,20 @@ export function Ocorrencias() {
       </div>
 
       <section className="cartao">
-        {!filtradas ? (
+        {!dados ? (
           <Carregando />
         ) : total === 0 ? (
           <Vazio titulo="Nenhuma ocorrência com esses filtros">
             <p>Ajuste a busca ou volte para a visão de ativas.</p>
           </Vazio>
+        ) : visiveis.length === 0 ? (
+          /*
+            Página vazia com total cheio: o efeito acima já está trazendo a
+            página certa. Desenhar a tabela neste instante daria cabeçalho sem
+            linha nenhuma e um rodapé dizendo "Mostrando 21 a 2 de 2", que se
+            lê como "não tem nenhuma" bem na hora em que existem.
+          */
+          <Carregando mensagem="Ajustando a página" />
         ) : (
           <>
             <div className="tabela-envolucro">
@@ -191,7 +213,8 @@ export function Ocorrencias() {
                     <th scope="col">Solicitante</th>
                     <th scope="col">Severidade</th>
                     <th scope="col">Situação</th>
-                    <th scope="col">Prazo</th>
+                    <th scope="col">Vence em</th>
+                    <th scope="col">Restam</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -212,6 +235,10 @@ export function Ocorrencias() {
                       <td><SeloSeveridade severidade={o.severidade} /></td>
                       <td><SeloStatus status={o.status} /></td>
                       <td>
+                        <PrazoVenceEm prazoEm={o.prazo_em}
+                                      encerrada={o.status === "encerrada"} />
+                      </td>
+                      <td>
                         <Prazo prazoEm={o.prazo_em} criadoEm={o.criado_em}
                                encerrada={o.status === "encerrada"} />
                       </td>
@@ -222,16 +249,23 @@ export function Ocorrencias() {
             </div>
 
             <div className="paginacao">
-              <span>
-                Mostrando {(paginaSegura - 1) * POR_PAGINA + 1} a {Math.min(paginaSegura * POR_PAGINA, total)} de {total}
+              {/*
+                O total é o do SERVIDOR, contado sobre o mesmo filtro. Ele é a
+                diferença entre "estas são as ocorrências" e "estas são as que
+                couberam nesta página", e essa frase é a única coisa que impede
+                o coordenador de achar que viu a cidade inteira.
+              */}
+              <span aria-live="polite">
+                Mostrando {(pagina - 1) * POR_PAGINA + 1} a {Math.min(pagina * POR_PAGINA, total)} de {total}
+                {" "}ocorrência(s), página {pagina} de {paginas}
               </span>
               <div className="paginacao__controles">
                 <button type="button" className="botao botao--secundario"
-                        disabled={paginaSegura === 1} onClick={() => setPagina(paginaSegura - 1)}>
+                        disabled={pagina === 1} onClick={() => trocar("pagina", String(pagina - 1))}>
                   Anterior
                 </button>
                 <button type="button" className="botao botao--secundario"
-                        disabled={paginaSegura >= paginas} onClick={() => setPagina(paginaSegura + 1)}>
+                        disabled={pagina >= paginas} onClick={() => trocar("pagina", String(pagina + 1))}>
                   Próxima
                 </button>
               </div>

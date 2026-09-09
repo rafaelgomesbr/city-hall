@@ -21,6 +21,13 @@ import { esquecerColeta } from "./coletas";
  */
 
 const MARCA_ULTIMA_BAIXA = "pendencias.baixadas_em";
+/**
+ * Vazio quando a lista veio inteira; o tamanho do teto quando foi cortada.
+ *
+ * Guardar o TETO e não um booleano é o que permite a tela dizer o número em vez
+ * de dizer "tem mais", que é a diferença entre um aviso e um susto.
+ */
+const MARCA_LISTA_TRUNCADA = "pendencias.teto_atingido";
 
 export async function pendenciasGuardadas(): Promise<Pendencia[]> {
   const db = await bancoLocal();
@@ -34,6 +41,22 @@ export async function pendenciasGuardadas(): Promise<Pendencia[]> {
     try { lidas.push(JSON.parse(l.conteudo) as Pendencia); } catch { /* ignora ilegível */ }
   }
   return lidas;
+}
+
+/**
+ * O teto, quando a última baixa foi cortada. Nulo quando veio inteira.
+ *
+ * A tela PRECISA usar isto. Sem o aviso, o agente vê uma lista aparentemente
+ * completa, sobe o morro confiando nela, e as tarefas que ficaram de fora
+ * simplesmente não existem para ele. Cortar é aceitável; calar não é.
+ */
+export async function tetoAtingido(): Promise<number | null> {
+  const db = await bancoLocal();
+  const linha = await db.getFirstAsync<{ valor: string }>(
+    "SELECT valor FROM marcas WHERE chave = ?", [MARCA_LISTA_TRUNCADA],
+  );
+  const valor = linha?.valor ?? "";
+  return valor === "" ? null : Number(valor);
 }
 
 /** Quando a lista foi baixada pela última vez, para a tela poder dizer. */
@@ -61,7 +84,8 @@ export async function atualizarPendencias(token: string): Promise<Pendencia[]> {
     antes é o que permite descobrir, logo em seguida, por que cada uma saiu.
   */
   const conhecidas = await idsConhecidos();
-  const recebidas = await baixarPendencias(token);
+  const lista = await baixarPendencias(token);
+  const recebidas = lista.itens;
   const db = await bancoLocal();
   const agora = new Date().toISOString();
 
@@ -77,6 +101,20 @@ export async function atualizarPendencias(token: string): Promise<Pendencia[]> {
       `INSERT INTO marcas (chave, valor) VALUES (?, ?)
        ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor`,
       [MARCA_ULTIMA_BAIXA, agora],
+    );
+    /*
+      A marca de corte é gravada junto, na MESMA transação da lista.
+
+      Junto porque ela descreve a lista que acabou de entrar: guardada fora da
+      transação, uma falha no meio deixaria a lista nova com o aviso da antiga,
+      ou o contrário, e o aviso passaria a mentir sobre a lista que está na
+      tela. O aparelho é lido offline, e o aviso é a única coisa que separa
+      "estas são todas as suas tarefas" de "estas são as primeiras 200".
+    */
+    await db.runAsync(
+      `INSERT INTO marcas (chave, valor) VALUES (?, ?)
+       ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor`,
+      [MARCA_LISTA_TRUNCADA, lista.truncada ? String(lista.teto) : ""],
     );
   });
 

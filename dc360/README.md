@@ -9,11 +9,11 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 43 testes passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 54 testes de fonte mais 58 verificações no navegador no modo local e 103 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 256 testes de integração passando |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 83 testes de unidade e 10 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 115 testes passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 58 testes do banco passando |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 71 testes de fonte do painel mais 58 verificações no navegador no modo local e 103 contra a API |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 304 testes da API passando |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 86 testes de unidade do motor de campo e 10 de integração contra a API |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 132 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 
 ## Os dois modos do painel
 
@@ -707,11 +707,11 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 518 testes em cinco pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 43 testes
-npm run test:api            # 256 testes da API
-npm run test --workspace @dc360/campo   # 83 testes do motor de sincronização
-npm run test:campo          # o aplicativo de campo: tipos e os 115 testes dele
+npm test                    # 601 testes em cinco pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 58 testes do banco
+npm run test:api            # 304 testes da API
+npm run test --workspace @dc360/campo   # 86 testes do motor de campo
+npm run test:campo          # tipos e os 132 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
 ```
@@ -988,8 +988,8 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
 
-  Essa última já tem 83 testes cobrindo a lógica fora do celular, inclusive
-  retomada arquivo a arquivo.
+  Essa última já tem 86 testes do motor de campo cobrindo a lógica fora do
+  celular, inclusive retomada arquivo a arquivo.
   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e
   desacopla o `npm audit` do produto do ciclo do React Native. Ele tem o

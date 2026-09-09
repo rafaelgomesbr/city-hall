@@ -7,10 +7,28 @@ import { RegraDeNegocio, autorizar } from "../servidor.js";
 /**
  * Teto de 200 de proposito: o aparelho manda o que tem guardado, e uma lista
  * sem limite viraria caminho barato para varrer identificadores.
+ *
+ * Este numero e combinado com o aplicativo: `TETO_DE_RECONCILIACAO` em
+ * `apps/campo/src/dados/api.ts` corta a lista no mesmo 200 antes de enviar. Se
+ * os dois divergirem, quem paga e o aparelho que ficou muito tempo fora, que e
+ * o que tem mais ids guardados e o que mais precisa da reconciliacao: ele leva
+ * 422 e perde a explicacao inteira, em vez de perder o excedente.
  */
+export const TETO_DE_RECONCILIACAO = 200;
+
 const reconciliacaoSchema = z.object({
-  conhecidas: z.array(z.string().uuid()).max(200),
+  conhecidas: z.array(z.string().uuid()).max(TETO_DE_RECONCILIACAO),
 });
+
+/**
+ * Quantas tarefas cabem numa resposta de `/pendencias`.
+ *
+ * Escolhido para caber no 3G do morro, e nao para caber no banco. O numero
+ * casa com o teto da reconciliacao de proposito: o aparelho guarda no maximo
+ * esta quantidade de tarefas, entao perguntar por elas depois nunca estoura o
+ * outro teto.
+ */
+const TETO_DE_PENDENCIAS = 200;
 
 /**
  * Recepção da coleta feita em campo.
@@ -91,6 +109,7 @@ export async function rotasSincronizacao(
             assinante_nome, assinatura_chave, observacoes, coletada_em, idempotency_key,
             desalojados, desabrigados, feridos, desaparecidos, obitos)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+         ON CONFLICT (organizacao_id, idempotency_key) DO NOTHING
          RETURNING id`,
         [
           quem.organizacaoId, envelope.ocorrenciaId, quem.usuarioId,
@@ -106,7 +125,45 @@ export async function rotasSincronizacao(
           v.desaparecidos ?? null, v.obitos ?? null,
         ],
       );
-      const novaId = inserida.rows[0]!.id;
+      /*
+        Nenhuma linha voltou significa que a chave JÁ ESTAVA no banco, gravada
+        entre a consulta lá em cima e este INSERT. Não é caso hipotético: o
+        aparelho desiste por tempo esgotado e repete o envio enquanto o servidor
+        ainda está processando o primeiro, e os dois passam pela consulta sem
+        achar nada.
+
+        Antes, o segundo envio batia na restrição de unicidade e virava erro
+        500. O dado estava a salvo, mas o agente via falha numa coleta que já
+        tinha sido gravada, e o item ficava preso na fila do aparelho PARA
+        SEMPRE, porque a fila reenviaria e receberia o mesmo erro. Vistoria
+        salva no servidor e presa no aparelho é a pior combinação possível:
+        ninguém procura o que já chegou.
+
+        `DO NOTHING` mais releitura transforma a corrida no mesmo desfecho do
+        reenvio comum: a rota responde com a vistoria que existe e marca como
+        duplicada. As evidências, nesta mesma rota, já faziam isso; a vistoria
+        não fazia.
+      */
+      if (!inserida.rows[0]) {
+        const concorrente = await c.query<{ id: string }>(
+          "SELECT id FROM vistorias WHERE idempotency_key = $1",
+          [envelope.idempotencyKey],
+        );
+        const jaGravada = concorrente.rows[0];
+        /*
+          Sem linha aqui, a unicidade recusou por outro motivo que não a chave,
+          e engolir isso esconderia defeito de verdade. Erra alto e ruidoso.
+        */
+        if (!jaGravada) {
+          throw new Error(
+            "INSERT de vistoria não gravou e a chave de idempotência não está no banco. " +
+            "Restrição de unicidade inesperada.",
+          );
+        }
+        return { vistoriaId: jaGravada.id, jaExistia: true };
+      }
+
+      const novaId = inserida.rows[0].id;
 
       for (const [ordem, foto] of v.fotos.entries()) {
         /**
@@ -302,10 +359,25 @@ export async function rotasSincronizacao(
   /**
    * O que o aparelho precisa baixar para trabalhar sem sinal: as ocorrências
    * despachadas para as equipes do agente.
+   *
+   * A resposta é limitada, e DECLARA que limitou. Sem `LIMIT`, uma equipe com
+   * muita ocorrência despachada baixava tudo de uma vez, e quem paga a conta é
+   * o aparelho no 3G do morro, que é exatamente onde a lista precisa chegar.
+   *
+   * `truncada` existe porque calar seria pior que cortar: o agente veria uma
+   * lista aparentemente completa e concluiria que as outras tarefas não são
+   * dele. Com o aviso, o aplicativo pode dizer que há mais trabalho do que cabe
+   * nesta lista, e a coordenação descobre que despachou demais para uma equipe
+   * só, que é o problema de verdade por trás de uma lista estourada.
    */
   app.get("/pendencias", async (req) => {
     const quem = await autorizar(app, req, "registrar_vistoria");
     return banco.comTenant(quem.organizacaoId, async (c) => {
+      /*
+        Uma linha a mais do que o teto, de propósito: é como a rota descobre que
+        há mais sem pagar um `count(*)` na mesma tabela. A linha excedente é
+        cortada antes de sair daqui.
+      */
       const r = await c.query(
         `SELECT o.id, o.protocolo, o.tipo, o.severidade, o.endereco,
                 o.ponto_referencia, o.latitude, o.longitude,
@@ -315,10 +387,16 @@ export async function rotasSincronizacao(
            FROM ocorrencias o
            JOIN usuarios u ON u.equipe_id = o.equipe_id
           WHERE u.id = $1 AND o.status = 'em_campo'
-          ORDER BY o.prazo_em NULLS LAST`,
-        [quem.usuarioId],
+          ORDER BY o.prazo_em NULLS LAST, o.id
+          LIMIT $2`,
+        [quem.usuarioId, TETO_DE_PENDENCIAS + 1],
       );
-      return { itens: r.rows };
+      const truncada = r.rows.length > TETO_DE_PENDENCIAS;
+      return {
+        itens: truncada ? r.rows.slice(0, TETO_DE_PENDENCIAS) : r.rows,
+        teto: TETO_DE_PENDENCIAS,
+        truncada,
+      };
     });
   });
 }

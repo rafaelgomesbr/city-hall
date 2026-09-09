@@ -99,3 +99,41 @@ export async function gastarTempoEquivalente(): Promise<void> {
     N, r: R, p: P, maxmem: MEMORIA_MAXIMA,
   });
 }
+
+/**
+ * Senha temporaria, sorteada pelo servidor, para quem administra entregar a
+ * quem perdeu o acesso.
+ *
+ * SORTEADA PELO SERVIDOR, E NAO DIGITADA POR QUEM ADMINISTRA, por dois
+ * motivos: quem digita repete a mesma senha para todo mundo do setor ("Mudar
+ * @2026"), e quem digita costuma escolher uma senha que tambem usa em outro
+ * lugar. Um sorteio de 60 bits nao tem esses dois defeitos.
+ *
+ * O ALFABETO EXCLUI `l`, `o`, `0` e `1` porque esta senha vai ser DITADA por
+ * telefone ou escrita num papel: `l` e `1` sao o mesmo risco de digitacao, e
+ * uma senha que a pessoa nao consegue digitar volta como chamado para o mesmo
+ * suporte que a rota veio desafogar. So minusculas, pelo mesmo motivo.
+ *
+ * Sao 32 simbolos, exatamente uma potencia de dois, e o sorteio usa `byte & 31`
+ * sobre bytes criptograficos: com alfabeto de tamanho que nao divide 256, o
+ * resto do modulo tornaria os primeiros simbolos mais provaveis que os
+ * ultimos, e entropia anunciada e maior que a real e a definicao de senha
+ * fraca que parece forte.
+ *
+ * Formato `xxxx-xxxx-xxxx`: 12 simbolos sorteados, 60 bits, e os hifens sao so
+ * para ler em voz alta. O tamanho passa o minimo de 12 caracteres do ASVS 4.0
+ * secao 2.1 mesmo se alguem apagar os hifens.
+ */
+const ALFABETO_DITAVEL = "abcdefghijkmnpqrstuvwxyz23456789";
+const SIMBOLOS_POR_GRUPO = 4;
+const GRUPOS = 3;
+
+export function gerarSenhaTemporaria(): string {
+  const bytes = randomBytes(SIMBOLOS_POR_GRUPO * GRUPOS);
+  const simbolos = Array.from(bytes, (b) => ALFABETO_DITAVEL[b & 31]!);
+  const grupos: string[] = [];
+  for (let i = 0; i < GRUPOS; i++) {
+    grupos.push(simbolos.slice(i * SIMBOLOS_POR_GRUPO, (i + 1) * SIMBOLOS_POR_GRUPO).join(""));
+  }
+  return grupos.join("-");
+}

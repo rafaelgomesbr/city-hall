@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { quantoFalta } from "../src/prazo.js";
+import { dataDoPrazo, quantoFalta } from "../src/prazo.js";
 
 const AGORA = new Date("2026-09-09T12:00:00.000Z").getTime();
 const daqui = (ms: number) => new Date(AGORA + ms).toISOString();
@@ -46,5 +46,30 @@ describe("contagem regressiva do prazo", () => {
     expect(p.texto).toBe("Sem prazo definido");
     expect(p.atrasado).toBe(false);
     expect(p.vencido).toBe(false);
+  });
+});
+
+describe("dataDoPrazo", () => {
+  /*
+    "Vence em 9h" nao diz se o prazo cai dentro do turno do agente ou ja na
+    madrugada, e e essa distincao que decide se ele sobe hoje. O painel ganhou
+    as duas colunas; o aplicativo mostrava so o relativo, e o agente e quem esta
+    mais longe de um calendario.
+  */
+  it("mostra dia, mes e hora, sem ano e sem segundos", () => {
+    const texto = dataDoPrazo("2026-09-10T15:30:00.000Z");
+    expect(texto).toMatch(/^\d{2}\/\d{2}, \d{2}:\d{2}$/);
+  });
+
+  it("sem prazo, devolve vazio em vez de repetir a ausencia", () => {
+    // Quem chama ja mostra "Sem prazo definido" pelo `quantoFalta`. Dizer a
+    // mesma ausencia duas vezes na mesma linha e ruido.
+    expect(dataDoPrazo(null)).toBe("");
+  });
+
+  it("data ilegivel nao quebra a tela da lista de tarefas", () => {
+    // Rascunho gravado por versao antiga, ou dado corrompido no disco: a lista
+    // inteira do agente nao pode sumir por causa de um campo.
+    expect(dataDoPrazo("nao e uma data")).toBe("");
   });
 });

@@ -22,7 +22,7 @@ import { rotasArmazenamentoLocal } from "./rotas/armazenamento-local.js";
 import type { Armazenamento } from "./armazenamento/tipos.js";
 import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
 import type { GeradorDePdf } from "./documentos/pdf.js";
-import { enderecoDoCliente } from "./rede.js";
+import { chaveDoLimitador, enderecoDoCliente } from "./rede.js";
 
 export type Identidade = {
   usuarioId: string;
@@ -216,9 +216,20 @@ export async function construirServidor(
   await app.register(rateLimit, {
     max: 300,
     timeWindow: "1 minute",
-    // Limite global por endereço. O login tem o seu, bem mais apertado, na
-    // própria rota: força bruta se combate onde ela acontece.
-    keyGenerator: (req) => enderecoDoCliente(req),
+    /*
+      Balde por usuário quando há token verificado, por endereço quando não há.
+
+      Era só por endereço, e por endereço a Defesa Civil inteira, que sai por um
+      NAT só, dividia um balde: numa noite de chuva o quinto agente a sincronizar
+      levava 429 por causa do tráfego dos colegas. Ver `chaveDoLimitador` em
+      `rede.ts` para por que a chave sai do token JÁ VERIFICADO e por que o teto
+      por endereço continua existindo.
+
+      O login tem o seu próprio limite, bem mais apertado e sempre por endereço,
+      na rota dele: força bruta se combate onde ela acontece, e lá não existe
+      token para chavear.
+    */
+    keyGenerator: (req) => chaveDoLimitador(req, config.jwtSegredo),
   });
 
   const autenticacao = servicoDeAutenticacao(banco, config, notificador);

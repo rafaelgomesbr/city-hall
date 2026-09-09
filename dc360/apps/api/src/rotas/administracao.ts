@@ -7,7 +7,8 @@ import {
 import type { Banco } from "../banco/tipos.js";
 import { RegraDeNegocio, autorizar } from "../servidor.js";
 import { registrarAtoAdministrativo } from "../trilha.js";
-import { derivarSenha } from "../auth/senha.js";
+import { derivarSenha, gerarSenhaTemporaria } from "../auth/senha.js";
+import { encerrarSessoes } from "../auth/sessoes.js";
 
 const idSchema = z.object({ id: z.string().uuid() });
 
@@ -355,5 +356,197 @@ export async function rotasAdministracao(
       }
       throw erro;
     }
+  });
+
+  /**
+   * Redefinir a senha de outra pessoa do município.
+   *
+   * O QUE ESTA ROTA SUBSTITUI: até aqui, "esqueci a senha" com a recuperação
+   * por email desligada (`RECUPERACAO_ATIVA=nao`, que é como o piloto roda) não
+   * tinha saída nenhuma pelo produto. A saída praticada foi `UPDATE` na mão no
+   * banco de produção, com o papel que ignora o RLS. Isso não deixa rastro, não
+   * respeita posto, não derruba sessão, e coloca a mão de alguém no papel mais
+   * poderoso do banco para resolver um chamado de rotina. A mensagem de recusa
+   * de `/auth/recuperar` já mandava "procure quem administra o município", e
+   * quem administra não tinha o botão.
+   *
+   * A SENHA VOLTA EM TEXTO NA RESPOSTA, UMA VEZ SÓ, e isso é deliberado: com o
+   * email desligado, não existe outro canal para ela chegar em quem administra,
+   * que vai ditá-la por telefone ou entregá-la em mãos. Ela não vai para o log
+   * (só corpo de requisição é registrado, e a resposta não é), não fica gravada
+   * em lugar nenhum em claro (o banco guarda só o hash scrypt) e a resposta sai
+   * com `no-store` pelo hook global.
+   *
+   * O QUE FICOU FALTANDO, e é honesto dizer: a senha temporária deveria valer
+   * UMA VEZ e obrigar a troca no primeiro acesso. Não dá para marcar isso hoje:
+   * `usuarios` não tem coluna para "precisa trocar a senha" (ver migração 002),
+   * e inventar coluna às pressas dentro desta frente, com outras migrações em
+   * voo, é como se cria conflito de numeração e tabela sem RLS. Enquanto a
+   * coluna não existir, a senha temporária é uma senha comum: quem recebe é
+   * ORIENTADO a trocar em Minha conta, e nada o obriga. A pendência é uma
+   * migração com `usuarios.trocar_senha_no_proximo_acesso boolean NOT NULL
+   * DEFAULT false`, ligada aqui e conferida no login.
+   *
+   * QUEM NÃO PODE: a própria pessoa. Para trocar a própria senha existe
+   * `/auth/trocar-senha`, que exige a senha atual. Se esta rota aceitasse o
+   * próprio id, ela viraria o caminho de escalada mais barato que existe: uma
+   * sessão esquecida aberta na recepção redefine a senha de quem administra sem
+   * precisar saber a senha antiga.
+   */
+  app.post("/usuarios/:id/redefinir-senha", async (req, resposta) => {
+    const quem = await autorizar(app, req, "gerenciar_usuarios");
+    const { id } = idSchema.parse(req.params);
+
+    if (id === quem.usuarioId) {
+      throw new RegraDeNegocio(
+        "autoredefinicao",
+        "Para trocar a sua própria senha use Minha conta, onde a senha atual é " +
+        "exigida. Esta tela redefine a senha de outra pessoa.",
+        422,
+      );
+    }
+
+    /*
+      A derivação acontece ANTES da transação, igual à criação de usuário: são
+      cerca de 128 MB e uma fração de segundo de scrypt, e fazer isso com a
+      transação aberta prenderia a conexão (no Postgres em WebAssembly, o
+      processo inteiro) pelo mesmo tempo.
+    */
+    const senhaTemporaria = gerarSenhaTemporaria();
+    const hash = await derivarSenha(senhaTemporaria);
+
+    const efeito = await banco.comTenant(quem.organizacaoId, async (c) => {
+      /*
+        A leitura é do município do token, e o RLS é quem impõe isso. Conta de
+        outro município simplesmente não aparece, e a resposta é 404: um 403
+        confirmaria que aquele id existe em algum lugar, que é metade do que um
+        atacante quer descobrir.
+      */
+      const atual = await c.query<{ papel: Papel; nome: string; ativo: boolean }>(
+        "SELECT papel, nome, ativo FROM usuarios WHERE id = $1",
+        [id],
+      );
+      const alvo = atual.rows[0];
+      if (!alvo) {
+        throw new RegraDeNegocio("nao_encontrado", "Usuário não encontrado.", 404);
+      }
+
+      /*
+        Posto, e este é o ponto onde a rota inteira seria uma escada: sem esta
+        linha, um coordenador redefiniria a senha do administrador e entraria
+        como ele um minuto depois.
+      */
+      exigirPostoParaGerir(quem.papel, alvo.papel);
+
+      await c.query(
+        `UPDATE usuarios
+            SET senha_hash = $2, falhas_login = 0, bloqueado_ate = NULL
+          WHERE id = $1`,
+        [id, hash],
+      );
+
+      /*
+        Derrubar as sessões é metade da redefinição, não um extra. O caso que
+        importa é justamente aquele em que a senha está sendo redefinida porque
+        alguém invadiu a conta: trocar a senha e deixar o token de renovação do
+        invasor vivo devolve a conta para ele.
+      */
+      const encerradas = await encerrarSessoes(c, {
+        usuarioId: id,
+        motivo: "senha redefinida por quem administra",
+      });
+
+      /*
+        Na trilha, e na mesma transação: ou a senha muda e o registro existe,
+        ou nada acontece. `depois` NÃO leva a senha nem o hash, pela regra da
+        migração 010: o que a investigação precisa é quem redefiniu a senha de
+        quem, e quantas sessões caíram junto.
+      */
+      await registrarAtoAdministrativo(c, quem, {
+        acao: "senha_redefinida",
+        alvoTipo: "usuario",
+        alvoId: id,
+        alvoNome: alvo.nome,
+        depois: { sessoesEncerradas: encerradas, ativo: alvo.ativo },
+      });
+
+      return { nome: alvo.nome, ativo: alvo.ativo, encerradas };
+    });
+
+    return resposta.code(200).send({
+      senhaTemporaria,
+      sessoesEncerradas: efeito.encerradas,
+      mensagem:
+        `Senha temporária de ${efeito.nome}. Ela aparece uma única vez: ` +
+        "entregue em mãos ou dite por telefone, e peça a troca em Minha conta " +
+        "na primeira entrada." +
+        (efeito.ativo
+          ? ""
+          : " Atenção: esta conta está desativada e não entra enquanto assim estiver."),
+    });
+  });
+
+  /**
+   * Encerrar as sessões de outra pessoa, sem mexer na senha.
+   *
+   * É o botão para o caso mais comum de todos: o celular do agente sumiu na
+   * área de risco, ou alguém foi desligado no meio do expediente. Redefinir a
+   * senha resolveria junto, mas obriga a inventar uma credencial nova para
+   * quem talvez volte a trabalhar em uma hora, e trocar a senha de quem não
+   * perdeu a senha é ruído que ninguém entende depois.
+   *
+   * A SESSÃO ATUAL DO ALVO NÃO SOBREVIVE, e é o oposto da decisão tomada em
+   * `/auth/encerrar-sessoes`: lá quem clica é o dono das sessões e preservar a
+   * dele é o que torna o botão usável; aqui o objetivo declarado é expulsar
+   * outra pessoa, e deixar uma sessão de pé seria não fazer o que o botão diz.
+   *
+   * Continua valendo a limitação anotada em `auth/sessoes.ts`: o token de
+   * acesso já emitido vale até expirar, no máximo `ACESSO_MINUTOS`.
+   */
+  app.post("/usuarios/:id/encerrar-sessoes", async (req) => {
+    const quem = await autorizar(app, req, "gerenciar_usuarios");
+    const { id } = idSchema.parse(req.params);
+
+    /*
+      Igual à redefinição: esta rota é sobre outra pessoa. Quem quer sair de
+      todos os aparelhos usa `/auth/encerrar-sessoes`, que preserva a sessão de
+      onde clicou. Sem esta recusa, quem administra se desconectaria sozinho
+      pelo botão errado e leria isso como falha do sistema.
+    */
+    if (id === quem.usuarioId) {
+      throw new RegraDeNegocio(
+        "autoencerramento",
+        "Para encerrar as suas próprias sessões use Minha conta: lá a sessão " +
+        "onde você está agora continua aberta.",
+        422,
+      );
+    }
+
+    return banco.comTenant(quem.organizacaoId, async (c) => {
+      const atual = await c.query<{ papel: Papel; nome: string }>(
+        "SELECT papel, nome FROM usuarios WHERE id = $1",
+        [id],
+      );
+      const alvo = atual.rows[0];
+      if (!alvo) {
+        throw new RegraDeNegocio("nao_encontrado", "Usuário não encontrado.", 404);
+      }
+      exigirPostoParaGerir(quem.papel, alvo.papel);
+
+      const encerradas = await encerrarSessoes(c, {
+        usuarioId: id,
+        motivo: "sessoes encerradas por quem administra",
+      });
+
+      await registrarAtoAdministrativo(c, quem, {
+        acao: "sessoes_encerradas",
+        alvoTipo: "usuario",
+        alvoId: id,
+        alvoNome: alvo.nome,
+        depois: { sessoesEncerradas: encerradas },
+      });
+
+      return { id, sessoesEncerradas: encerradas };
+    });
   });
 }

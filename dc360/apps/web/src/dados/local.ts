@@ -18,7 +18,8 @@ import { comoApp, semTenant, type Contexto } from "./banco";
 import type {
   ColegaDeEquipe, ContaDisponivel, FiltroOcorrencias, Indicadores, LinhaEquipe,
   LinhaEvento, LinhaOcorrencia, LinhaProvidencia, LinhaUsuario, LinhaVistoria,
-  MeuTrabalho, Sessao, TarefaDesignada, VistoriaConcluida,
+  MeuTrabalho, PaginaDeOcorrencias, PontoNoMapa, PontosDoMapa, Sessao,
+  TarefaDesignada, VistoriaConcluida,
 } from "./tipos";
 
 /**
@@ -293,10 +294,37 @@ export async function contasDisponiveis(): Promise<ContaDisponivel[]> {
 // Ocorrências
 // ---------------------------------------------------------------------------
 
-export async function listarOcorrencias(
+/**
+ * O que conta como atrasada, escrito uma vez só neste modo também.
+ *
+ * Espelha `condicaoAtrasada` de `apps/api/src/rotas/ocorrencias.ts`. As duas
+ * implementações desta porta precisam devolver o MESMO número: se a
+ * demonstração conta atrasadas de um jeito e o produto de outro, a reunião
+ * com a prefeitura mostra uma tela que o servidor não sustenta.
+ *
+ * Rascunho fica de fora por ser chamado que ninguém assumiu, e prazo nulo é
+ * ocorrência esperando triagem: nenhum dos dois está atrasado.
+ */
+const ATRASADA = `o.status NOT IN ('encerrada','rascunho')
+                  AND o.prazo_em IS NOT NULL AND o.prazo_em < now()`;
+
+/** O mesmo teto de pontos por página que a rota do mapa aplica. */
+const TETO_DO_MAPA = 200;
+
+/**
+ * Uma página da lista, com o total de todas as que casam com o filtro.
+ *
+ * O total vem de uma contagem própria, sobre o MESMO `WHERE`, e não do tamanho
+ * do recorte. É ele que permite à tela dizer que está mostrando vinte de
+ * duzentas em vez de deixar o coordenador achar que viu tudo.
+ */
+export async function listarPaginaDeOcorrencias(
   s: Sessao,
   filtro: FiltroOcorrencias = {},
-): Promise<LinhaOcorrencia[]> {
+): Promise<PaginaDeOcorrencias> {
+  const pagina = Math.max(1, Math.trunc(filtro.pagina ?? 1));
+  const porPagina = Math.max(1, Math.trunc(filtro.porPagina ?? 100));
+
   return comoApp(s.organizacaoId, async (db) => {
     const condicoes: string[] = [];
     const params: unknown[] = [];
@@ -321,8 +349,16 @@ export async function listarOcorrencias(
       params.push(filtro.severidade);
       condicoes.push(`o.severidade = $${params.length}`);
     }
+    if (filtro.atrasadas) condicoes.push(`(${ATRASADA})`);
 
     const onde = condicoes.length ? `WHERE ${condicoes.join(" AND ")}` : "";
+
+    const contagem = await db.query<{ total: string }>(
+      `SELECT count(*)::text AS total FROM ocorrencias o ${onde}`,
+      params,
+    );
+
+    params.push(porPagina, (pagina - 1) * porPagina);
     const r = await db.query<LinhaOcorrencia>(
       `SELECT o.*, e.nome AS equipe_nome
          FROM ocorrencias o
@@ -332,10 +368,67 @@ export async function listarOcorrencias(
           CASE WHEN o.status IN ('encerrada','rascunho') THEN 1 ELSE 0 END,
           CASE o.severidade WHEN 'critica' THEN 0 WHEN 'alta' THEN 1
                             WHEN 'media' THEN 2 WHEN 'baixa' THEN 3 ELSE 4 END,
-          o.criado_em DESC`,
+          o.criado_em DESC,
+          o.id
+        LIMIT $${params.length - 1} OFFSET $${params.length}`,
       params,
     );
-    return r.rows;
+    return {
+      itens: r.rows,
+      total: Number(contagem.rows[0]!.total),
+      pagina,
+      porPagina,
+    };
+  });
+}
+
+/**
+ * Só as linhas da primeira página, para quem mostra um topo de fila curto e
+ * já sabe disso (o painel mostra seis).
+ */
+export async function listarOcorrencias(
+  s: Sessao,
+  filtro: FiltroOcorrencias = {},
+): Promise<LinhaOcorrencia[]> {
+  const r = await listarPaginaDeOcorrencias(s, filtro);
+  return r.itens;
+}
+
+/**
+ * Os pontos do mapa e, junto, quantos existem.
+ *
+ * A ordem é por severidade porque existe teto: se ele cortar, o que fica de
+ * fora é o menos grave, nunca a crítica.
+ */
+export async function pontosDoMapa(s: Sessao, pagina = 1): Promise<PontosDoMapa> {
+  const p = Math.max(1, Math.trunc(pagina));
+  return comoApp(s.organizacaoId, async (db) => {
+    const contagem = await db.query<{ com: string; sem: string }>(
+      `SELECT
+         count(*) FILTER (WHERE latitude IS NOT NULL AND longitude IS NOT NULL)::text AS com,
+         count(*) FILTER (WHERE latitude IS NULL OR longitude IS NULL)::text AS sem
+         FROM ocorrencias WHERE status NOT IN ('encerrada','rascunho')`,
+    );
+    const r = await db.query<PontoNoMapa>(
+      `SELECT id, protocolo, tipo, status, severidade, endereco, latitude, longitude
+         FROM ocorrencias
+        WHERE status NOT IN ('encerrada','rascunho')
+          AND latitude IS NOT NULL AND longitude IS NOT NULL
+        ORDER BY
+          CASE severidade WHEN 'critica' THEN 0 WHEN 'alta' THEN 1
+                          WHEN 'media' THEN 2 WHEN 'baixa' THEN 3 ELSE 4 END,
+          criado_em DESC,
+          id
+        LIMIT $1 OFFSET $2`,
+      [TETO_DO_MAPA, (p - 1) * TETO_DO_MAPA],
+    );
+    return {
+      itens: r.rows,
+      total: Number(contagem.rows[0]!.com),
+      semCoordenada: Number(contagem.rows[0]!.sem),
+      pagina: p,
+      porPagina: TETO_DO_MAPA,
+    };
   });
 }
 
@@ -606,16 +699,18 @@ export async function responderProvidencia(
 export async function indicadores(s: Sessao): Promise<Indicadores> {
   return comoApp(s.organizacaoId, async (db) => {
     const r = await db.query<Indicadores>(
+      // O `atrasadas` daqui é a MESMA expressão que a lista usa com o filtro
+      // ligado. Clicar no indicador precisa levar a uma lista que conte a
+      // mesma coisa que o número clicado.
       `SELECT
-         count(*) FILTER (WHERE status NOT IN ('encerrada','rascunho'))::int AS na_fila,
-         count(*) FILTER (WHERE status = 'em_campo')::int AS em_campo,
-         count(*) FILTER (WHERE status NOT IN ('encerrada','rascunho')
-                            AND prazo_em IS NOT NULL AND prazo_em < now())::int AS atrasadas,
-         count(*) FILTER (WHERE status = 'encerrada'
-                            AND encerrado_em > now() - interval '7 days')::int AS encerradas_7d,
-         count(*) FILTER (WHERE status NOT IN ('encerrada','rascunho')
-                            AND severidade = 'critica')::int AS criticas
-       FROM ocorrencias`,
+         count(*) FILTER (WHERE o.status NOT IN ('encerrada','rascunho'))::int AS na_fila,
+         count(*) FILTER (WHERE o.status = 'em_campo')::int AS em_campo,
+         count(*) FILTER (WHERE ${ATRASADA})::int AS atrasadas,
+         count(*) FILTER (WHERE o.status = 'encerrada'
+                            AND o.encerrado_em > now() - interval '7 days')::int AS encerradas_7d,
+         count(*) FILTER (WHERE o.status NOT IN ('encerrada','rascunho')
+                            AND o.severidade = 'critica')::int AS criticas
+       FROM ocorrencias o`,
     );
     return r.rows[0]!;
   });

@@ -28,7 +28,7 @@ import {
 } from "../../../ui/componentes";
 import { espaco, fonte, raio, toque } from "../../../ui/tokens";
 import {
-  concluirColetaEmOrdem, decidirAberturaDaVistoria, faltaParaConcluir, quantoFalta,
+  concluirColetaEmOrdem, dataDoPrazo, decidirAberturaDaVistoria, faltaParaConcluir, quantoFalta,
 } from "@dc360/campo";
 
 /**
@@ -704,9 +704,18 @@ export default function TelaDeVistoria() {
     as duas cores eles nunca foram distinguíveis.
   */
   const prazo = quantoFalta(ocorrencia.prazo_em, agora);
+  /*
+    A DATA entra junto com o relativo, e não no lugar dele.
+
+    "Vence em 9h" responde "tenho tempo?"; "10/09, 12:30" responde "cai dentro
+    do meu turno?". As duas perguntas são feitas no mesmo instante por quem está
+    decidindo se para para fotografar mais uma parede, e o agente é justamente
+    quem está mais longe de um calendário.
+  */
   const rotuloDoPrazo = ocorrencia.prazo_em
     ? `${prazo.atrasado ? "! " : ""}Prazo `
       + prazo.texto.charAt(0).toLowerCase() + prazo.texto.slice(1)
+      + ` (${dataDoPrazo(ocorrencia.prazo_em)})`
     : prazo.texto;
   const coresDoPrazo = prazo.vencido
     ? { fundo: tema.perigoFundo, cor: tema.perigoTexto }

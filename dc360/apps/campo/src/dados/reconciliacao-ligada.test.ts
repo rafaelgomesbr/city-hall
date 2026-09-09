@@ -76,6 +76,15 @@ const SUMIDA = "11111111-1111-4111-8111-111111111111";
 const CONTINUA = "22222222-2222-4222-8222-222222222222";
 const TOKEN = "token-de-teste";
 
+/*
+  A rota devolve ENVELOPE, e não a lista crua: `{ itens, teto, truncada }`. O
+  aparelho precisa dos três porque cortar a lista calado faria o agente subir o
+  morro achando que viu todas as tarefas dele.
+*/
+function devolveLista(itens: unknown[]) {
+  mockBaixar.mockResolvedValue({ itens, teto: 200, truncada: false });
+}
+
 function tarefa(id: string) {
   return { id, protocolo: "2026/000123", tipo: "deslizamento", prazo_em: null };
 }
@@ -107,7 +116,7 @@ describe("a atualização da lista pergunta por que as tarefas sumiram", () => {
       não estaria na pergunta, e o agente nunca saberia o que houve com ela.
     */
     await gravarTarefas([SUMIDA, CONTINUA]);
-    mockBaixar.mockResolvedValue([tarefa(CONTINUA)]);
+    devolveLista([tarefa(CONTINUA)]);
 
     await atualizarPendencias(TOKEN);
 
@@ -126,7 +135,7 @@ describe("a atualização da lista pergunta por que as tarefas sumiram", () => {
       protocolo: "2026/000123",
       coletadaEm: "2026-09-09T13:00:00.000Z",
     });
-    mockBaixar.mockResolvedValue([]);
+    devolveLista([]);
 
     await atualizarPendencias(TOKEN);
 
@@ -141,7 +150,7 @@ describe("a atualização da lista pergunta por que as tarefas sumiram", () => {
       protocolo: "2026/000123",
       coletadaEm: "2026-09-09T13:00:00.000Z",
     });
-    mockBaixar.mockResolvedValue([]);
+    devolveLista([]);
 
     await atualizarPendencias(TOKEN);
 
@@ -157,7 +166,7 @@ describe("a atualização da lista pergunta por que as tarefas sumiram", () => {
       protocolo: "2026/000123",
       coletadaEm: "2026-09-09T13:00:00.000Z",
     });
-    mockBaixar.mockResolvedValue([]);
+    devolveLista([]);
 
     await atualizarPendencias(TOKEN);
 
@@ -168,7 +177,7 @@ describe("a atualização da lista pergunta por que as tarefas sumiram", () => {
   it("não chama a rota quando o aparelho não conhece id nenhum", async () => {
     // Aparelho recém instalado. Perguntar sobre lista vazia é gastar rede do
     // agente para receber uma resposta vazia.
-    mockBaixar.mockResolvedValue([tarefa(CONTINUA)]);
+    devolveLista([tarefa(CONTINUA)]);
 
     await atualizarPendencias(TOKEN);
 
@@ -184,7 +193,7 @@ describe("o que a reconciliação responde é aplicado", () => {
       protocolo: "2026/000123",
       coletadaEm: "2026-09-09T13:00:00.000Z",
     });
-    mockBaixar.mockResolvedValue([]);
+    devolveLista([]);
     mockReconciliar.mockResolvedValue(saidas);
     await atualizarPendencias(TOKEN);
   }
@@ -216,7 +225,7 @@ describe("a reconciliação não pode derrubar a atualização", () => {
       justamente onde o sinal é ruim.
     */
     await gravarTarefas([SUMIDA]);
-    mockBaixar.mockResolvedValue([tarefa(CONTINUA)]);
+    devolveLista([tarefa(CONTINUA)]);
     mockReconciliar.mockRejectedValue(new Error("sem sinal"));
 
     const lista = await atualizarPendencias(TOKEN);

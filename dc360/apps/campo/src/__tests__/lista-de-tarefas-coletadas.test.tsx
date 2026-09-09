@@ -47,6 +47,8 @@ jest.mock("../dados/pendencias", () => ({
   pendenciasGuardadas: jest.fn(async () => mockTarefas),
   baixadasEm: jest.fn(async () => "2026-09-09T13:00:00.000Z"),
   atualizarPendencias: jest.fn(async () => mockTarefas),
+  /* Nulo: a lista veio inteira. O aviso de corte tem teste proprio. */
+  tetoAtingido: jest.fn(async () => null),
 }));
 
 jest.mock("../dados/rascunho", () => ({

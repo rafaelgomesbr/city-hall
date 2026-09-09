@@ -6,6 +6,8 @@ import {
   emitirAcesso, gerarTokenRenovacao, hashDoToken, type Identidade,
 } from "./tokens.js";
 import { derivarSenha } from "./senha.js";
+import { encerrarSessoes } from "./sessoes.js";
+import { registrarAtoAdministrativo } from "../trilha.js";
 import { mensagemDeRecuperacao, type Notificador } from "./notificador.js";
 
 export type Credenciais = { email: string; senha: string };
@@ -346,7 +348,59 @@ export function servicoDeAutenticacao(
     );
   }
 
-  return { entrar, renovar, sair, pedirRecuperacao, redefinirSenha, trocarSenha };
+  /**
+   * "Encerrar todas as minhas sessoes", para qualquer papel.
+   *
+   * Isto ja existia como efeito colateral da troca de senha, e so dela. Quem
+   * esqueceu o painel aberto no computador da recepcao, ou perdeu o celular,
+   * precisava inventar uma senha nova para conseguir expulsar a si mesmo dos
+   * outros aparelhos. Trocar a senha vira ritual sem sentido quando a senha
+   * nao e o problema, e ritual sem sentido e o que faz as pessoas pararem de
+   * seguir o procedimento.
+   *
+   * A SESSAO DE ONDE A PESSOA CLICOU SOBREVIVE. E uma decisao, e a razao e
+   * simples: um botao que desloga quem o aperta e um botao que ninguem aperta,
+   * e o objetivo aqui e que ele seja usado no minuto em que o celular sumiu, e
+   * nao depois. Quem quer sair tambem daqui tem o "Sair" ao lado, que revoga
+   * esta. O caso de terceiro, em `rotas/administracao.ts`, decide o contrario
+   * pelo motivo oposto: la o objetivo declarado e expulsar outra pessoa.
+   *
+   * Fica na trilha administrativa, mesmo sendo ato de alguem sobre a propria
+   * conta: "fui deslogado de tudo e nao sei por que" e pergunta de incidente, e
+   * a trilha e o unico lugar que responde se foi a propria pessoa, quem
+   * administra, ou uma sessao roubada apertando o botao.
+   *
+   * ATE ONDE A PRESERVACAO VAI, e isto e limitacao conhecida, nao promessa: se
+   * um dos aparelhos derrubados tentar renovar sozinho com o token que acabou
+   * de cair, `derrubarSePossivelReuso` acima le isso como reuso de token
+   * roubado e derruba a familia inteira, inclusive esta sessao. Nao da para
+   * distinguir os dois casos hoje porque `dono_do_token` (migracao 002)
+   * devolve o dono e nao o motivo da revogacao. O lado seguro da troca e o
+   * atual: na duvida entre "foi o proprio usuario" e "e um token roubado", cai
+   * tudo. Ver a pendencia registrada no teste.
+   */
+  async function encerrarMinhasSessoes(identidade: Identidade): Promise<number> {
+    return banco.comTenant(identidade.organizacaoId, async (c) => {
+      const encerradas = await encerrarSessoes(c, {
+        usuarioId: identidade.usuarioId,
+        motivo: "encerradas pelo proprio usuario",
+        preservarSessaoId: identidade.sessaoId,
+      });
+      await registrarAtoAdministrativo(c, identidade, {
+        acao: "sessoes_encerradas",
+        alvoTipo: "usuario",
+        alvoId: identidade.usuarioId,
+        alvoNome: identidade.nome,
+        depois: { sessoesEncerradas: encerradas, sessaoAtualPreservada: true },
+      });
+      return encerradas;
+    });
+  }
+
+  return {
+    entrar, renovar, sair, pedirRecuperacao, redefinirSenha, trocarSenha,
+    encerrarMinhasSessoes,
+  };
 }
 
 export type ServicoAutenticacao = ReturnType<typeof servicoDeAutenticacao>;

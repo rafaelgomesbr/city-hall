@@ -18,7 +18,7 @@ O que É verificável daqui, e está verificado:
 | TypeScript estrito | `npm run typecheck` | limpo |
 | Saúde do projeto Expo | `npx expo-doctor` | 21 de 21 |
 | Dependência vulnerável | `npm audit` | zero |
-| A fila que ele consome | `npm test --workspace @dc360/campo` | 83 testes |
+| A fila que ele consome | `npm test --workspace @dc360/campo` | 86 testes do motor de campo |
 
 ## Para colocar de pé
 
@@ -54,10 +54,10 @@ na chuva.
 6. Matar o aplicativo no meio do envio e reabrir: **nada pode duplicar no
    servidor**.
 
-Os passos 4 e 6 são os que só o aparelho responde. O 6 já tem 83 testes
-cobrindo a lógica fora do celular, inclusive retomada arquivo a arquivo; o que
-falta comprovar é que o `expo-sqlite` guarda o que promete quando o sistema
-mata o processo.
+Os passos 4 e 6 são os que só o aparelho responde. O 6 já tem 86 testes do
+motor de campo cobrindo a lógica fora do celular, inclusive retomada arquivo a
+arquivo; o que falta comprovar é que o `expo-sqlite` guarda o que promete
+quando o sistema mata o processo.
 
 ## Como ele está organizado
 
@@ -72,7 +72,7 @@ src/ui/              tokens e componentes
 ```
 
 **A lógica difícil não está aqui.** A fila que não perde nem duplica coleta
-feita sem sinal vive em `packages/campo`, com 83 testes de unidade, e a
+feita sem sinal vive em `packages/campo`, com 86 testes de unidade, e a
 integração dela com a API tem mais 10 em `apps/api`. Este diretório liga os
 fios: o que sobra é tela, permissão de aparelho e persistência local, e é por
 isso que ele é fino de propósito.

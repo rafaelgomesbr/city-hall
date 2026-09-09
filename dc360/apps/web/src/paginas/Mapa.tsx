@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ROTULO_SEVERIDADE, ROTULO_TIPO_COBRADE } from "@dc360/shared";
-import { listarOcorrencias, type LinhaOcorrencia } from "../dados/repositorio";
+import { pontosDoMapa, type PontoNoMapa, type PontosDoMapa } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import { Aviso, Carregando, Cartao, SeloSeveridade, SeloStatus, Vazio } from "../componentes/comuns";
 import { FormaSeveridade } from "../componentes/Icones";
@@ -14,63 +14,114 @@ import { FormaSeveridade } from "../componentes/Icones";
  * orçamentária, não técnica. Até lá, o que já é real e já responde à pergunta
  * do coordenador está aqui: as coordenadas gravadas, projetadas em escala,
  * com severidade codificada por forma e por texto, nunca só por cor.
+ *
+ * Esta tela tem um teto de desenho, e ele é DITO em voz alta.
+ *
+ * Antes ela pedia a lista comum e desenhava o que viesse. A lista sempre foi
+ * paginada, e o painel pedia cem por página: numa enxurrada com duzentas
+ * ocorrências ativas, o coordenador via cem marcadores, metade da cidade, e
+ * nada na tela dizia que faltava metade. Isso não é lentidão, é informação
+ * falsa numa tela de decisão operacional. Agora o total vem junto com os
+ * pontos, e o cabeçalho, o aviso e o rodapé repetem quantas existem, quantas
+ * estão desenhadas e quantas nem coordenada têm.
  */
 export function Mapa() {
   const sessao = useSessaoObrigatoria();
-  const [linhas, setLinhas] = useState<LinhaOcorrencia[] | null>(null);
+  const [dados, setDados] = useState<PontosDoMapa | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [selecionada, setSelecionada] = useState<string | null>(null);
+  const [pagina, setPagina] = useState(1);
 
   useEffect(() => {
     let vivo = true;
-    listarOcorrencias(sessao, { status: "ativas" })
-      .then((r) => { if (vivo) setLinhas(r); })
+    setDados(null);
+    pontosDoMapa(sessao, pagina)
+      .then((r) => { if (vivo) setDados(r); })
       .catch((e: unknown) => { if (vivo) setErro(e instanceof Error ? e.message : String(e)); });
     return () => { vivo = false; };
-  }, [sessao]);
+  }, [sessao, pagina]);
 
-  const comCoordenada = useMemo(
-    () => linhas?.filter((o) => o.latitude !== null && o.longitude !== null) ?? [],
-    [linhas],
-  );
+  /*
+    Leva além do fim volta para a primeira.
+
+    A fila encolhe sozinha durante o dia (encerramento, providência
+    respondida). Sem isto, quem estivesse na segunda leva de marcadores leria
+    "Nenhuma ocorrência ativa com coordenada" com a cidade cheia, que é a
+    mesma mentira que esta tela existe para não contar.
+  */
+  useEffect(() => {
+    if (dados && dados.itens.length === 0 && dados.total > 0 && dados.pagina > 1) {
+      setPagina(1);
+    }
+  }, [dados]);
+
+  const desenhados = useMemo(() => dados?.itens ?? [], [dados]);
 
   const limites = useMemo(() => {
-    if (comCoordenada.length === 0) return null;
-    const lats = comCoordenada.map((o) => o.latitude!);
-    const lngs = comCoordenada.map((o) => o.longitude!);
+    if (desenhados.length === 0) return null;
+    const lats = desenhados.map((o) => o.latitude);
+    const lngs = desenhados.map((o) => o.longitude);
     const margem = 0.004;
     return {
       minLat: Math.min(...lats) - margem, maxLat: Math.max(...lats) + margem,
       minLng: Math.min(...lngs) - margem, maxLng: Math.max(...lngs) + margem,
     };
-  }, [comCoordenada]);
+  }, [desenhados]);
 
   if (erro) return <Aviso tom="perigo">Falha ao carregar o mapa: {erro}</Aviso>;
-  if (!linhas) return <Carregando />;
+  if (!dados) return <Carregando />;
 
-  function posicao(o: LinhaOcorrencia): { x: number; y: number } {
+  function posicao(o: PontoNoMapa): { x: number; y: number } {
     if (!limites) return { x: 50, y: 50 };
-    const x = ((o.longitude! - limites.minLng) / (limites.maxLng - limites.minLng)) * 100;
+    const x = ((o.longitude - limites.minLng) / (limites.maxLng - limites.minLng)) * 100;
     // Latitude cresce para o norte, e o eixo Y da tela cresce para baixo.
-    const y = 100 - ((o.latitude! - limites.minLat) / (limites.maxLat - limites.minLat)) * 100;
+    const y = 100 - ((o.latitude - limites.minLat) / (limites.maxLat - limites.minLat)) * 100;
     return { x, y };
   }
 
-  const foco = comCoordenada.find((o) => o.id === selecionada) ?? null;
+  const foco = desenhados.find((o) => o.id === selecionada) ?? null;
+
+  const total = dados.total;
+  const paginas = Math.max(1, Math.ceil(total / dados.porPagina));
+  const primeiro = total === 0 ? 0 : (dados.pagina - 1) * dados.porPagina + 1;
+  const ultimo = primeiro === 0 ? 0 : primeiro + desenhados.length - 1;
+  const faltamDesenhar = total - desenhados.length;
 
   return (
     <>
       <div className="cabecalho-pagina">
         <div>
           <h1>Mapa da cidade</h1>
-          <p>{comCoordenada.length} ocorrência(s) ativa(s) com coordenada registrada, {sessao.municipio}</p>
+          <p>
+            Desenhando {desenhados.length} de {total} ocorrência(s) ativa(s) com
+            coordenada registrada, {sessao.municipio}
+          </p>
         </div>
       </div>
+
+      {/*
+        Dois recortes, e os dois ditos: o que o teto cortou e o que nunca teve
+        coordenada para cortar. O segundo é o mais fácil de esquecer, porque
+        essas ocorrências não somem do mapa, elas nunca entraram nele.
+      */}
+      {faltamDesenhar > 0 && (
+        <Aviso tom="alerta">
+          O mapa desenha até {dados.porPagina} marcadores por vez, e existem {total} ocorrências
+          ativas com coordenada. Esta é a página {dados.pagina} de {paginas}: {faltamDesenhar} não
+          estão neste desenho. As mais graves vêm primeiro.
+        </Aviso>
+      )}
+      {dados.semCoordenada > 0 && (
+        <Aviso tom="info">
+          Mais {dados.semCoordenada} ocorrência(s) ativa(s) estão sem coordenada registrada e não
+          aparecem em desenho nenhum. Elas continuam na lista de ocorrências.
+        </Aviso>
+      )}
 
       <div className="detalhe">
         <div className="coluna">
           <Cartao>
-            {comCoordenada.length === 0 ? (
+            {desenhados.length === 0 ? (
               <Vazio titulo="Nenhuma ocorrência ativa com coordenada">
                 <p>
                   Na abertura, cole no campo de localização o link do mapa que o
@@ -93,7 +144,7 @@ export function Mapa() {
                   ))}
                 </svg>
 
-                {comCoordenada.map((o) => {
+                {desenhados.map((o) => {
                   const { x, y } = posicao(o);
                   return (
                     <button
@@ -120,12 +171,13 @@ export function Mapa() {
               </div>
             )}
 
-            {comCoordenada.length > 0 && (
+            {desenhados.length > 0 && (
               <div className="tabela-envolucro" style={{ marginTop: "var(--ds-sp-4)" }}>
                 <table className="tabela">
                   <caption className="oculto-visualmente">
-                    Mesmas ocorrências do mapa em lista, para alcançar por teclado e para os casos
-                    em que dois pontos ficam próximos demais para distinguir na tela
+                    As {desenhados.length} ocorrências desenhadas neste mapa, de {total} ativas com
+                    coordenada, em lista, para alcançar por teclado e para os casos em que dois
+                    pontos ficam próximos demais para distinguir na tela
                   </caption>
                   <thead>
                     <tr>
@@ -135,7 +187,7 @@ export function Mapa() {
                     </tr>
                   </thead>
                   <tbody>
-                    {comCoordenada.map((o) => (
+                    {desenhados.map((o) => (
                       <tr key={o.id}
                           style={selecionada === o.id
                             ? { background: "var(--ds-surface-2)" }
@@ -158,6 +210,32 @@ export function Mapa() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {paginas > 1 && (
+              <div className="paginacao">
+                {/*
+                  O rodapé repete o recorte em números, ao lado dos botões que
+                  o mudam. O aviso do topo diz que falta gente no desenho; aqui
+                  fica dito QUAL pedaço está na tela, que é o que o coordenador
+                  precisa para não olhar a mesma metade duas vezes.
+                */}
+                <span aria-live="polite">
+                  Marcadores {primeiro} a {ultimo} de {total}, página {dados.pagina} de {paginas}
+                </span>
+                <div className="paginacao__controles">
+                  <button type="button" className="botao botao--secundario"
+                          disabled={dados.pagina === 1}
+                          onClick={() => { setSelecionada(null); setPagina(dados.pagina - 1); }}>
+                    Anterior
+                  </button>
+                  <button type="button" className="botao botao--secundario"
+                          disabled={dados.pagina >= paginas}
+                          onClick={() => { setSelecionada(null); setPagina(dados.pagina + 1); }}>
+                    Próxima
+                  </button>
+                </div>
               </div>
             )}
 
@@ -195,7 +273,7 @@ export function Mapa() {
                 <div className="par">
                   <span className="par__rotulo">Coordenada</span>
                   <span className="par__valor mono">
-                    {foco.latitude!.toFixed(4)}, {foco.longitude!.toFixed(4)}
+                    {foco.latitude.toFixed(4)}, {foco.longitude.toFixed(4)}
                   </span>
                 </div>
                 <div style={{ display: "flex", gap: "var(--ds-sp-2)", marginBottom: "var(--ds-sp-4)" }}>
