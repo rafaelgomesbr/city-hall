@@ -11,6 +11,7 @@ import type {
   Sessao, TipoDeDocumento, VinculoOcorrencia,
   CursorDeAvisos, DadosDoOrgao, LinhaOficio, LinhaOrgao, OficioDetalhado,
   RespostaDeAvisos, ResultadoDeEnvio,
+  AtivacaoSegundoFator, ResultadoDeEntrada, SegundoFatorLigado, SituacaoSegundoFator,
 } from "./tipos";
 
 /**
@@ -175,27 +176,139 @@ export async function contasDisponiveis(): Promise<ContaDisponivel[]> {
   return [];
 }
 
-export async function entrarComSenha(email: string, senha: string): Promise<Sessao> {
-  const r = await chamar<{
-    acesso: string;
-    renovacao: string;
-    usuario: {
-      id: string; nome: string; papel: Papel;
-      organizacaoId: string; organizacaoNome: string; municipio: string; uf: string;
-    };
-  }>("/auth/entrar", { metodo: "POST", corpo: { email, senha } });
-
-  guardarTokens({ acesso: r.acesso, renovacao: r.renovacao });
-
-  return {
-    organizacaoId: r.usuario.organizacaoId,
-    organizacaoNome: r.usuario.organizacaoNome,
-    municipio: r.usuario.municipio,
-    uf: r.usuario.uf,
-    usuarioId: r.usuario.id,
-    usuarioNome: r.usuario.nome,
-    papel: r.usuario.papel,
+type RespostaDeEntrada = {
+  acesso?: string;
+  renovacao?: string;
+  usuario?: {
+    id: string; nome: string; papel: Papel;
+    organizacaoId: string; organizacaoNome: string; municipio: string; uf: string;
   };
+  codigosDeRecuperacaoRestantes?: number;
+  entrouComCodigoDeRecuperacao?: boolean;
+  segundoFator?: "codigo" | "ativacao";
+  desafio?: string;
+  expiraEm?: number;
+  mensagem?: string;
+};
+
+/**
+ * Traduz a resposta da entrada, que tem DOIS desfechos desde o segundo fator.
+ *
+ * O token só é guardado no desfecho que traz sessão. Guardar qualquer coisa no
+ * outro seria repetir, do lado do navegador, o erro que o servidor não comete:
+ * o desafio não é credencial de acesso a nada.
+ */
+function lerEntrada(r: RespostaDeEntrada): ResultadoDeEntrada {
+  if (r.segundoFator && r.desafio) {
+    return {
+      tipo: "segundo-fator",
+      desafio: {
+        segundoFator: r.segundoFator,
+        desafio: r.desafio,
+        expiraEm: r.expiraEm ?? 0,
+        mensagem: r.mensagem ?? "",
+      },
+    };
+  }
+
+  guardarTokens({ acesso: r.acesso!, renovacao: r.renovacao! });
+  const u = r.usuario!;
+  return {
+    tipo: "sessao",
+    sessao: {
+      organizacaoId: u.organizacaoId,
+      organizacaoNome: u.organizacaoNome,
+      municipio: u.municipio,
+      uf: u.uf,
+      usuarioId: u.id,
+      usuarioNome: u.nome,
+      papel: u.papel,
+    },
+    ...(r.codigosDeRecuperacaoRestantes !== undefined
+      ? { codigosDeRecuperacaoRestantes: r.codigosDeRecuperacaoRestantes }
+      : {}),
+    ...(r.entrouComCodigoDeRecuperacao !== undefined
+      ? { entrouComCodigoDeRecuperacao: r.entrouComCodigoDeRecuperacao }
+      : {}),
+  };
+}
+
+export async function entrarComSenha(email: string, senha: string): Promise<ResultadoDeEntrada> {
+  return lerEntrada(await chamar<RespostaDeEntrada>(
+    "/auth/entrar", { metodo: "POST", corpo: { email, senha } },
+  ));
+}
+
+/**
+ * A segunda etapa da entrada: os seis dígitos, ou um código de recuperação.
+ *
+ * O mesmo campo aceita os dois de propósito, e o servidor decide qual é: quem
+ * perdeu o telefone está com pressa, e um segundo formulário escondido atrás
+ * de um link é o formulário que ninguém acha no momento em que precisa.
+ */
+export async function conferirSegundoFator(
+  desafio: string, codigo: string,
+): Promise<ResultadoDeEntrada> {
+  return lerEntrada(await chamar<RespostaDeEntrada>(
+    "/auth/segundo-fator", { metodo: "POST", corpo: { desafio, codigo } },
+  ));
+}
+
+/** Como está a verificação em duas etapas de quem está usando o painel. */
+export async function situacaoSegundoFator(): Promise<SituacaoSegundoFator> {
+  return chamar<SituacaoSegundoFator>("/segundo-fator");
+}
+
+/**
+ * Começa a ativação e devolve o segredo, uma vez.
+ *
+ * `desafio` vem preenchido no caminho em que a pessoa ainda não tem sessão: o
+ * administrador que o município obriga a ligar a verificação antes de entrar.
+ */
+export async function iniciarSegundoFator(desafio?: string): Promise<AtivacaoSegundoFator> {
+  return chamar<AtivacaoSegundoFator>("/segundo-fator/iniciar", {
+    metodo: "POST", corpo: desafio ? { desafio } : {},
+  });
+}
+
+/**
+ * Confirma a ativação com um código de verdade, e devolve os códigos de
+ * recuperação, que aparecem uma única vez: o servidor guarda só o resumo
+ * deles, então nem ele consegue mostrá-los outra vez.
+ */
+export async function confirmarSegundoFator(
+  codigo: string, desafio?: string,
+): Promise<SegundoFatorLigado> {
+  const r = await chamar<{
+    codigosDeRecuperacao: string[];
+    mensagem: string;
+    sessao?: {
+      acesso: string; renovacao: string;
+      usuario: {
+        id: string; nome: string; papel: Papel;
+        organizacaoId: string; organizacaoNome: string; municipio: string; uf: string;
+      };
+    };
+  }>("/segundo-fator/confirmar", {
+    metodo: "POST", corpo: { codigo, ...(desafio ? { desafio } : {}) },
+  });
+
+  if (!r.sessao) return { codigosDeRecuperacao: r.codigosDeRecuperacao, mensagem: r.mensagem };
+
+  const lida = lerEntrada(r.sessao as RespostaDeEntrada);
+  return {
+    codigosDeRecuperacao: r.codigosDeRecuperacao,
+    mensagem: r.mensagem,
+    ...(lida.tipo === "sessao" ? { sessao: lida.sessao } : {}),
+  };
+}
+
+/** Desligar exige a senha atual: ver `rotas/segundo-fator.ts` para o porquê. */
+export async function desativarSegundoFator(senhaAtual: string): Promise<string> {
+  const r = await chamar<{ mensagem: string }>("/segundo-fator/desativar", {
+    metodo: "POST", corpo: { senhaAtual },
+  });
+  return r.mensagem;
 }
 
 /** Revoga a sessão no servidor. Sem isso, sair só esqueceria o token localmente. */

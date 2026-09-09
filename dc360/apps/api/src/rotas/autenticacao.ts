@@ -9,6 +9,21 @@ const entradaSchema = z.object({
   senha: z.string().min(1, "Informe a senha").max(200),
 });
 
+/**
+ * A segunda etapa do login.
+ *
+ * O desafio vem no CORPO, e não no cabeçalho de autorização, e isso é
+ * deliberado: ele não é credencial de acesso a nada, e mandá-lo como `Bearer`
+ * ensinaria a tela (e quem lê o código depois) a tratá-lo como se fosse. O
+ * campo do código aceita tanto os seis dígitos do aplicativo quanto um código
+ * de recuperação, no mesmo lugar, porque quem perdeu o telefone está com pressa
+ * e não vai procurar um segundo formulário.
+ */
+const segundoFatorSchema = z.object({
+  desafio: z.string().min(1).max(4096),
+  codigo: z.string().min(1, "Informe o código").max(64),
+});
+
 const renovacaoSchema = z.object({
   renovacao: z.string().min(1).max(200),
 });
@@ -101,6 +116,24 @@ export async function rotasAutenticacao(app: FastifyInstance, opcoes: Opcoes): P
   app.post("/entrar", limiteLogin, async (req, resposta) => {
     const dados = entradaSchema.parse(req.body);
     const resultado = await autenticacao.entrar(dados, {
+      userAgent: req.headers["user-agent"],
+      ip: enderecoDoCliente(req),
+    });
+    return resposta.code(200).send(resultado);
+  });
+
+  /**
+   * O código de seis dígitos, depois da senha.
+   *
+   * Vive sob o mesmo limite por endereço do login, e pelo mesmo motivo: é uma
+   * porta onde se adivinha credencial. O teto por conta, que é o que trava a
+   * força bruta contra UMA conta específica vinda de muitos endereços, é
+   * separado e mora no banco (`segundo_fator.falhas`, migração 022), como o
+   * bloqueio por senha da migração 002.
+   */
+  app.post("/segundo-fator", limiteLogin, async (req, resposta) => {
+    const dados = segundoFatorSchema.parse(req.body);
+    const resultado = await autenticacao.conferirSegundoFator(dados.desafio, dados.codigo, {
       userAgent: req.headers["user-agent"],
       ip: enderecoDoCliente(req),
     });

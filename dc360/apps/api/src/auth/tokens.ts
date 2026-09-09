@@ -99,6 +99,113 @@ export async function verificarAcesso(
   return null;
 }
 
+/* ==========================================================================
+   O token de desafio: o estado intermediário do login em duas etapas
+   ========================================================================== */
+
+/**
+ * A PLATEIA É OUTRA, e essa é a linha que sustenta a segurança inteira do
+ * login em duas etapas.
+ *
+ * Com o segundo fator, a rota de entrar passou a ter dois desfechos: ou a
+ * sessão, ou "falta o código". O estado intermediário precisa viajar de alguma
+ * forma até a segunda chamada, e a forma errada é tentadora: emitir o token de
+ * acesso normal e "só não deixar a tela avançar". Isso seria dar acesso ANTES
+ * do segundo fator, porque quem tem o token não precisa da tela para nada:
+ * abre o console do navegador e chama a API direto, com o segundo fator ainda
+ * pendente. O produto teria uma etapa a mais e nenhuma proteção a mais.
+ *
+ * Por isso o desafio é um token de PROPÓSITO ÚNICO, e o que o separa não é uma
+ * convenção de nome dentro do conteúdo: é a plateia. `verificarAcesso` exige
+ * `dc360`, então um token de desafio é recusado por TODA rota autenticada do
+ * produto sem que nenhuma delas precise saber que ele existe. Uma rota nova
+ * nasce protegida contra ele.
+ *
+ * Ele também não abre sessão nenhuma: não tem `sid`, porque não existe sessão
+ * antes do segundo fator. A sessão nasce na segunda etapa, e é lá que o
+ * `abrir_sessao` roda.
+ */
+const PLATEIA_DESAFIO = "dc360-desafio";
+
+/**
+ * Para que serve aquele desafio específico.
+ *
+ * `segundo_fator`: a pessoa já tem o recurso ligado e falta digitar o código.
+ * `ativacao_do_segundo_fator`: a pessoa é administradora, o município exige o
+ * segundo fator e ela ainda não ligou. Nesse caso o desafio abre a ativação, e
+ * SÓ a ativação: enquanto ela não confirmar um código, não há sessão.
+ *
+ * São dois valores e não um porque o alcance é diferente, e um só faria a
+ * rota de ativação aceitar o desafio de quem já tem o segundo fator ligado, o
+ * que seria uma forma de trocar o segredo sem provar posse do aparelho atual.
+ */
+export const PROPOSITOS_DE_DESAFIO = ["segundo_fator", "ativacao_do_segundo_fator"] as const;
+export type PropositoDeDesafio = (typeof PROPOSITOS_DE_DESAFIO)[number];
+
+export const CONTEUDO_DESAFIO = z.object({
+  sub: z.string().uuid(),
+  org: z.string().uuid(),
+  papel: z.enum(PAPEIS),
+  nome: z.string(),
+  pp: z.enum(PROPOSITOS_DE_DESAFIO),
+});
+
+export type ConteudoDesafio = z.infer<typeof CONTEUDO_DESAFIO>;
+
+/**
+ * Cinco minutos, e não os quinze do token de acesso.
+ *
+ * O desafio existe para atravessar a distância entre digitar a senha e digitar
+ * o código que já está na tela do telefone. Isso leva segundos. Cada minuto a
+ * mais é tempo em que um desafio copiado (do log de um proxy, do histórico de
+ * uma extensão de navegador) continua servindo para tentar códigos, e o teto
+ * de tentativas do segundo fator é a única coisa entre ele e a conta.
+ */
+export const DESAFIO_MINUTOS = 5;
+
+export async function emitirDesafio(
+  segredo: Uint8Array,
+  dados: ConteudoDesafio,
+): Promise<string> {
+  return new SignJWT({ org: dados.org, papel: dados.papel, nome: dados.nome, pp: dados.pp })
+    .setProtectedHeader({ alg: "HS256", typ: "JWT" })
+    .setSubject(dados.sub)
+    .setIssuer(EMISSOR)
+    .setAudience(PLATEIA_DESAFIO)
+    .setIssuedAt()
+    .setExpirationTime(`${DESAFIO_MINUTOS}m`)
+    .sign(segredo);
+}
+
+/** Mesma verificação do acesso, com a plateia do desafio. Ver `verificarAcesso`. */
+export async function verificarDesafio(
+  segredos: readonly Uint8Array[],
+  token: string,
+): Promise<ConteudoDesafio | null> {
+  for (const segredo of segredos) {
+    let payload;
+    try {
+      ({ payload } = await jwtVerify(token, segredo, {
+        issuer: EMISSOR,
+        audience: PLATEIA_DESAFIO,
+        algorithms: ["HS256"],
+      }));
+    } catch {
+      continue;
+    }
+
+    const analisado = CONTEUDO_DESAFIO.safeParse({
+      sub: payload.sub,
+      org: payload["org"],
+      papel: payload["papel"],
+      nome: payload["nome"],
+      pp: payload["pp"],
+    });
+    return analisado.success ? analisado.data : null;
+  }
+  return null;
+}
+
 /** Segredo opaco de 256 bits. Não carrega informação, então não há o que ler nele. */
 export function gerarTokenRenovacao(): string {
   return randomBytes(32).toString("base64url");

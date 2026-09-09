@@ -71,6 +71,19 @@
   --ds-accent-graphic: var(--ds-violet-600); /* só elementos gráficos grandes */
   --ds-on-accent:     var(--ds-white);
 
+  /*
+    Código QR: escuro sobre claro, e IGUAL nos dois temas.
+
+    É a única superfície do painel que não acompanha o tema, e é uma decisão
+    técnica, não estética: leitor de código QR espera módulo escuro sobre fundo
+    claro, e parte dos aplicativos de autenticação simplesmente não lê o
+    desenho invertido. Como a tela do tema escuro é justamente onde a inversão
+    aconteceria sozinha, os dois tokens apontam para as mesmas primitivas nos
+    dois temas, de propósito.
+  */
+  --ds-qr-claro:      var(--ds-white);
+  --ds-qr-escuro:     var(--ds-ink-950);
+
   /* Severidade (texto / fundo) */
   --ds-sev-baixa-fg:   #4A5763;  --ds-sev-baixa-bg:   var(--ds-ink-100);
   --ds-sev-media-fg:   #92400E;  --ds-sev-media-bg:   #FEF3C7;

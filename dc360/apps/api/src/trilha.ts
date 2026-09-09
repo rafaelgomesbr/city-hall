@@ -141,9 +141,23 @@ export type AlvoAdministrativo = "usuario" | "equipe" | "organizacao" | "orgao";
  * `antes` e `depois` NUNCA levam senha, hash nem token. Papel, equipe,
  * situação e nome, e nada além disso.
  */
+/**
+ * Quem praticou o ato administrativo.
+ *
+ * MENOS que a `Identidade` inteira, e a diferença é o `sessaoId`. A ativação
+ * do segundo fator de um administrador obrigado a ligá-lo acontece ANTES de
+ * existir sessão (ver `auth/segundo-fator.ts`), e esse ato precisa entrar na
+ * trilha como qualquer outro. Exigir aqui um campo que aquele caminho não tem
+ * levaria a inventar um identificador de sessão falso para satisfazer o tipo,
+ * e uma trilha com identificador inventado é pior que uma coluna a menos.
+ */
+export type AutorDoAto = Pick<
+  Identidade, "usuarioId" | "organizacaoId" | "papel" | "nome"
+>;
+
 export async function registrarAtoAdministrativo(
   c: Consulta,
-  quem: Identidade,
+  quem: AutorDoAto,
   ato: {
     acao: string;
     alvoTipo: AlvoAdministrativo;

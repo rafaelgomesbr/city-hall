@@ -8,6 +8,7 @@ import type { Config } from "./config.js";
 import type { Banco } from "./banco/tipos.js";
 import { verificarAcesso } from "./auth/tokens.js";
 import { servicoDeAutenticacao, FalhaAutenticacao } from "./auth/servico.js";
+import { servicoDeSegundoFator } from "./auth/segundo-fator.js";
 import { notificadorDeLog, type Notificador } from "./auth/notificador.js";
 import { rotasAutenticacao } from "./rotas/autenticacao.js";
 import { rotasOcorrencias } from "./rotas/ocorrencias.js";
@@ -23,6 +24,7 @@ import { rotasEvidencias } from "./rotas/evidencias.js";
 import { rotasDocumentos } from "./rotas/documentos.js";
 import { rotasPrestacaoDeContas } from "./rotas/prestacao-de-contas.js";
 import { rotasSaida } from "./rotas/saida.js";
+import { rotasSegundoFator } from "./rotas/segundo-fator.js";
 import { rotasArmazenamentoLocal } from "./rotas/armazenamento-local.js";
 import type { Armazenamento } from "./armazenamento/tipos.js";
 import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
@@ -62,6 +64,45 @@ export type Dependencias = {
   destinoDeLog?: { write: (linha: string) => void };
 };
 
+/**
+ * O que nunca vai para o log, e é a lista que `test/log.test.ts` confere.
+ *
+ * Vive fora da função, e exportada, por um motivo prático: a única forma de um
+ * teste cobrar um caminho desta lista sem depender de qual serializador está
+ * em vigor é lendo a lista. O serializador de `req` logo abaixo NÃO registra o
+ * corpo do pedido, então as entradas `req.body.*` não disparam hoje: elas são
+ * defesa em profundidade para o dia em que alguém registrar `req.body` num
+ * ponto de diagnóstico, e esse dia é justamente o dia em que ninguém vai abrir
+ * este arquivo para conferir se a lista está completa.
+ */
+export const CAMINHOS_REDIGIDOS = [
+  "req.headers.authorization",
+  "req.headers.cookie",
+  "req.body.senha",
+  "req.body.senhaAtual",
+  "req.body.novaSenha",
+  "req.body.renovacao",
+  "req.body.token",
+  /*
+    O segundo fator, e as três entradas dele são segredo de classes
+    diferentes:
+
+    `codigo` é o número de seis dígitos (ou o código de recuperação, que
+    entra pelo mesmo campo e vale uma vez só, mas vale de verdade);
+    `desafio` é o token que atesta que a senha já conferiu, e quem o tem
+    precisa só do código para virar sessão; `segredo` é a semente do TOTP,
+    que não chega em pedido nenhum hoje, e está aqui porque no dia em que
+    alguém logar `req.body` num ponto de diagnóstico, esse dia vai ser
+    justamente o dia em que ninguém confere esta lista.
+
+    O segredo do TOTP fora do banco é o segundo fator inteiro: quem o tem
+    gera os códigos para sempre, sem tocar no telefone de ninguém.
+  */
+  "req.body.codigo",
+  "req.body.desafio",
+  "req.body.segredo",
+] as const;
+
 export async function construirServidor(
   { banco, config, armazenamento, notificador = notificadorDeLog(), pdf, destinoDeLog }: Dependencias,
 ): Promise<FastifyInstance> {
@@ -86,25 +127,10 @@ export async function construirServidor(
       : {}),
     ...(destinoDeLog ? { stream: destinoDeLog } : {}),
     redact: {
-      // Senha, token e cookie nunca vão para o log. Log é lido por mais
-      // gente e guardado por mais tempo do que qualquer um imagina.
-      //
-      // `senhaAtual` e `token` entraram depois: a lista cobria a entrada de
-      // `/auth/entrar` e esquecia a troca de senha de quem já está dentro e
-      // o link de uso único da redefinição.
-      //
-      //
-      // A barra de endereço NÃO se resolve aqui: ver o serializador de `req`
-      // logo abaixo.
-      paths: [
-        "req.headers.authorization",
-        "req.headers.cookie",
-        "req.body.senha",
-        "req.body.senhaAtual",
-        "req.body.novaSenha",
-        "req.body.renovacao",
-        "req.body.token",
-      ],
+      // A lista mora fora desta função, em `CAMINHOS_REDIGIDOS`, para o teste
+      // conseguir cobrá-la item a item. A barra de endereço NÃO se resolve
+      // aqui: ver o serializador de `req` logo abaixo.
+      paths: [...CAMINHOS_REDIGIDOS],
       censor: "[removido]",
     },
     serializers: {
@@ -237,7 +263,17 @@ export async function construirServidor(
     keyGenerator: (req) => chaveDoLimitador(req, config.jwtSegredos),
   });
 
-  const autenticacao = servicoDeAutenticacao(banco, config, notificador);
+  /*
+    O segundo fator sobe antes da autenticação porque ela depende dele: a rota
+    de entrar passou a ter dois desfechos, e quem decide qual é este serviço.
+
+    Com `SEGUNDO_FATOR_ATIVO=nao`, que é o padrão, ele existe e RECUSA, em vez
+    de sumir: rota ausente responde 404, e o painel leria isso como "versão
+    velha do servidor" em vez de "o município ainda não ligou". É a mesma
+    escolha do push e do envio de email.
+  */
+  const segundoFator = servicoDeSegundoFator(banco, config);
+  const autenticacao = servicoDeAutenticacao(banco, config, notificador, segundoFator);
 
   /**
    * Extrai e verifica o token de acesso. A organização usada no `SET LOCAL`
@@ -349,6 +385,15 @@ export async function construirServidor(
   });
 
   await app.register(rotasAutenticacao, { prefix: "/auth", autenticacao, config });
+  /*
+    A verificação em duas etapas da PRÓPRIA conta. Não tem prefixo `/auth`
+    porque não é o login: o login usa `POST /auth/segundo-fator`, que é a
+    segunda etapa da entrada, e estas aqui são a gestão feita por quem já está
+    dentro (ou por quem o município obriga a ligar antes de entrar).
+  */
+  await app.register(rotasSegundoFator, {
+    prefix: "/segundo-fator", banco, config, autenticacao, segundoFator,
+  });
   await app.register(rotasOcorrencias, { prefix: "/ocorrencias", banco });
   await app.register(rotasAdministracao, { prefix: "/", banco });
   await app.register(rotasSincronizacao, { prefix: "/sincronizacao", banco });

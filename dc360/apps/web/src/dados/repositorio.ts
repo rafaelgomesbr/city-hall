@@ -25,6 +25,11 @@ export const MODO: "local" | "api" = usarApi ? "api" : "local";
 export const {
   contasDisponiveis,
   entrarComSenha,
+  conferirSegundoFator,
+  situacaoSegundoFator,
+  iniciarSegundoFator,
+  confirmarSegundoFator,
+  desativarSegundoFator,
   encerrarSessao,
   listarOcorrencias,
   listarPaginaDeOcorrencias,
@@ -128,4 +133,9 @@ export type {
   EnvioDeOficio,
   AberturaDeOficio,
   ResultadoDeEnvio,
+  DesafioDeEntrada,
+  ResultadoDeEntrada,
+  SituacaoSegundoFator,
+  AtivacaoSegundoFator,
+  SegundoFatorLigado,
 } from "./tipos";

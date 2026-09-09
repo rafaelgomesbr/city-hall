@@ -3,8 +3,10 @@ import type { Config } from "../config.js";
 import type { Banco } from "../banco/tipos.js";
 import { conferirSenha, gastarTempoEquivalente } from "./senha.js";
 import {
-  emitirAcesso, gerarTokenRenovacao, hashDoToken, type Identidade,
+  DESAFIO_MINUTOS, emitirAcesso, emitirDesafio, gerarTokenRenovacao, hashDoToken,
+  verificarDesafio, type Identidade, type PropositoDeDesafio,
 } from "./tokens.js";
+import type { ServicoSegundoFator } from "./segundo-fator.js";
 import { derivarSenha } from "./senha.js";
 import { encerrarSessoes } from "./sessoes.js";
 import { registrarAtoAdministrativo } from "../trilha.js";
@@ -27,7 +29,37 @@ export type Autenticado = {
     municipio: string;
     uf: string;
   };
+  /**
+   * Só volta na segunda etapa do login, e existe para uma frase que a pessoa
+   * precisa ler no momento certo: "você entrou com um código de recuperação, e
+   * agora restam N". Quem gasta o penúltimo papel da gaveta tem que descobrir
+   * isso ali, e não no dia em que gastar o último.
+   */
+  codigosDeRecuperacaoRestantes?: number;
+  entrouComCodigoDeRecuperacao?: boolean;
 };
+
+/**
+ * O segundo desfecho possível da rota de entrar.
+ *
+ * A senha conferiu e a sessão NÃO nasceu: falta a segunda etapa. O que volta é
+ * um token de propósito único, com plateia própria, que rota nenhuma do
+ * produto aceita como credencial. Ver `auth/tokens.ts` para por que reusar o
+ * token de acesso aqui seria dar acesso antes do segundo fator.
+ */
+export type DesafioDeEntrada = {
+  segundoFator: "codigo" | "ativacao";
+  desafio: string;
+  expiraEm: number;
+  mensagem: string;
+};
+
+export type ResultadoDeEntrada = Autenticado | DesafioDeEntrada;
+
+/** Discrimina os dois desfechos sem depender da ausência de campo. */
+export function pedeSegundoFator(r: ResultadoDeEntrada): r is DesafioDeEntrada {
+  return "segundoFator" in r;
+}
 
 export class FalhaAutenticacao extends Error {
   readonly codigo: "credenciais" | "bloqueado" | "inativo" | "sessao";
@@ -67,11 +99,12 @@ export function servicoDeAutenticacao(
   banco: Banco,
   config: Config,
   notificador: Notificador,
+  segundoFator: ServicoSegundoFator,
 ) {
   async function entrar(
     credenciais: Credenciais,
     contexto: { userAgent?: string; ip?: string },
-  ): Promise<Autenticado> {
+  ): Promise<ResultadoDeEntrada> {
     const linha = await banco.semTenant(async (c) => {
       const r = await c.query<LinhaCredencial>(
         "SELECT * FROM credenciais_para_login($1)",
@@ -115,7 +148,169 @@ export function servicoDeAutenticacao(
       ]),
     );
 
+    /*
+      A senha conferiu. Aqui a rota passa a ter DOIS desfechos.
+
+      O contador de senha já foi zerado acima, e isso é correto: a senha estava
+      certa. Quem cuida da força bruta contra os seis dígitos é o contador
+      próprio do segundo fator, que só zera quando o CÓDIGO acerta. Fossem o
+      mesmo contador, cada tentativa de adivinhar o código começaria por um
+      acerto de senha e o teto nunca fecharia.
+    */
+    const exigencia = await segundoFator.exigenciaNoLogin(
+      linha.organizacao_id, linha.usuario_id, linha.papel,
+    );
+    if (exigencia !== "nenhuma") {
+      return desafiar(linha, exigencia);
+    }
+
     return emitirPar(linha, contexto);
+  }
+
+  /**
+   * Monta o desafio, que é tudo que a pessoa leva daqui até provar a segunda
+   * etapa.
+   *
+   * O conteúdo é o mínimo para a segunda chamada saber de quem se trata, e
+   * nada mais: nem matrícula, nem município, nem email. Ele não abre sessão,
+   * não carrega `sid` e é recusado por toda rota autenticada, porque a plateia
+   * é outra.
+   */
+  async function desafiar(
+    linha: LinhaCredencial,
+    exigencia: "codigo" | "ativacao",
+  ): Promise<DesafioDeEntrada> {
+    const proposito: PropositoDeDesafio =
+      exigencia === "codigo" ? "segundo_fator" : "ativacao_do_segundo_fator";
+
+    const desafio = await emitirDesafio(config.jwtSegredos[0], {
+      sub: linha.usuario_id,
+      org: linha.organizacao_id,
+      papel: linha.papel,
+      nome: linha.nome,
+      pp: proposito,
+    });
+
+    return {
+      segundoFator: exigencia,
+      desafio,
+      expiraEm: DESAFIO_MINUTOS * 60,
+      mensagem: exigencia === "codigo"
+        ? "Digite o código de seis dígitos do seu aplicativo de autenticação."
+        : "Esta conta administra o município e precisa da verificação em duas "
+          + "etapas para entrar. Ligue agora: leva um minuto e você recebe os "
+          + "códigos de recuperação no fim.",
+    };
+  }
+
+  /**
+   * A segunda etapa do login: o código, ou um código de recuperação.
+   *
+   * Quem chega aqui já provou a senha (é o que o desafio atesta) e agora prova
+   * a posse do aparelho. A sessão nasce SÓ neste ponto, e é por isso que uma
+   * senha vazada, sozinha, não vale mais nada nas contas com o recurso ligado.
+   *
+   * A recusa é sempre a mesma frase, sem dizer se o código estava errado ou se
+   * a conta ficou travada por tentativa demais... com uma exceção deliberada:
+   * o bloqueio É dito, porque quem está travado precisa saber que esperar
+   * resolve, senão ele fica tentando (e reiniciando o relógio do bloqueio) ou
+   * liga para o suporte no meio de um temporal.
+   */
+  async function conferirSegundoFator(
+    desafio: string,
+    codigo: string,
+    contexto: { userAgent?: string; ip?: string },
+  ): Promise<Autenticado> {
+    const conteudo = await verificarDesafio(config.jwtSegredos, desafio);
+    if (!conteudo || conteudo.pp !== "segundo_fator") {
+      throw new FalhaAutenticacao(
+        "sessao",
+        "Esta tentativa de entrada expirou. Informe email e senha de novo.",
+      );
+    }
+
+    const resultado = await segundoFator.conferirNoLogin(
+      conteudo.org, conteudo.sub, codigo,
+    );
+
+    if (!resultado.ok) {
+      if (resultado.motivo === "bloqueado") {
+        throw new FalhaAutenticacao(
+          "bloqueado",
+          "Códigos errados demais. A verificação em duas etapas desta conta ficou "
+          + "bloqueada por alguns minutos. Se você perdeu o telefone, use um código "
+          + "de recuperação.",
+        );
+      }
+      throw new FalhaAutenticacao(
+        "credenciais",
+        "Código inválido. Confira o número que está aparecendo agora no aplicativo, "
+        + "ou use um código de recuperação.",
+      );
+    }
+
+    const linha = await lerCredencialPorId(conteudo.org, conteudo.sub);
+    if (!linha || !linha.ativo) {
+      throw new FalhaAutenticacao("inativo", MENSAGEM_GENERICA);
+    }
+
+    return {
+      ...(await emitirPar(linha, contexto)),
+      codigosDeRecuperacaoRestantes: resultado.codigosRestantes,
+      entrouComCodigoDeRecuperacao: resultado.viaCodigoDeRecuperacao,
+    };
+  }
+
+  /**
+   * A sessão que nasce quando alguém acabou de LIGAR o segundo fator porque
+   * era obrigado a ligar para entrar.
+   *
+   * Quem chega aqui provou a senha (o desafio atesta) e acabou de provar a
+   * posse do aparelho (a confirmação da ativação exige um código válido).
+   * Mandar essa pessoa digitar a senha de novo seria atrito sem ganho: as duas
+   * etapas já aconteceram, na ordem certa, nos últimos cinco minutos.
+   *
+   * Quem chama é a rota de confirmação, e só quando o pedido veio por um
+   * desafio de ativação. Com token de acesso normal a pessoa já está dentro, e
+   * aí nenhuma sessão nova é emitida.
+   */
+  async function sessaoAposAtivacao(
+    organizacaoId: string,
+    usuarioId: string,
+    contexto: { userAgent?: string; ip?: string },
+  ): Promise<Autenticado> {
+    const linha = await lerCredencialPorId(organizacaoId, usuarioId);
+    if (!linha || !linha.ativo) {
+      throw new FalhaAutenticacao("inativo", MENSAGEM_GENERICA);
+    }
+    return emitirPar(linha, contexto);
+  }
+
+  /**
+   * Relê a conta para emitir a sessão, agora COM contexto de município.
+   *
+   * Não usa `credenciais_para_login` de propósito, e a diferença é de
+   * privilégio: aquela função é `SECURITY DEFINER`, existe para o momento em
+   * que ainda não se sabe de qual município é quem está entrando, e busca por
+   * email no sistema inteiro. Aqui o município já é conhecido (veio dentro do
+   * desafio assinado), então a leitura passa pelo caminho comum, sob RLS, sem
+   * abrir mais uma porta na parede do isolamento.
+   */
+  async function lerCredencialPorId(
+    organizacaoId: string, usuarioId: string,
+  ): Promise<LinhaCredencial | null> {
+    return banco.comTenant(organizacaoId, async (c) => {
+      const r = await c.query<LinhaCredencial>(
+        `SELECT u.id AS usuario_id, u.organizacao_id, u.nome, u.papel,
+                NULL::text AS senha_hash, u.ativo, u.bloqueado_ate, u.matricula,
+                o.nome AS organizacao_nome, o.municipio, o.uf
+           FROM usuarios u
+           JOIN organizacoes o ON o.id = u.organizacao_id
+          WHERE u.id = $1`,
+        [usuarioId],
+      );
+      return r.rows[0] ?? null;
+    });
   }
 
   async function emitirPar(
@@ -462,8 +657,8 @@ export function servicoDeAutenticacao(
   }
 
   return {
-    entrar, renovar, sair, pedirRecuperacao, redefinirSenha, trocarSenha,
-    encerrarMinhasSessoes,
+    entrar, conferirSegundoFator, sessaoAposAtivacao, renovar, sair,
+    pedirRecuperacao, redefinirSenha, trocarSenha, encerrarMinhasSessoes,
   };
 }
 

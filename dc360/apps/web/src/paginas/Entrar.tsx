@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ROTULO_PAPEL } from "@dc360/shared";
 import {
-  MODO, bancoSemPersistencia, contasDisponiveis, entrarComSenha, type ContaDisponivel,
+  MODO, bancoSemPersistencia, conferirSegundoFator, contasDisponiveis, entrarComSenha,
+  type ContaDisponivel, type DesafioDeEntrada, type Sessao,
 } from "../dados/repositorio";
 import { useSessao } from "../estado/sessao";
 import {
   Aviso, AvisoDeObrigatorios, Carregando, ErroCampo, iniciais,
 } from "../componentes/comuns";
 import { Campo } from "../componentes/Campo";
+import { AtivarSegundoFator } from "../componentes/SegundoFator";
 
 /**
  * Entrada da aplicação, em duas formas conforme o painel esteja ligado à API
@@ -52,21 +54,67 @@ function FormularioSenha() {
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [entrando, setEntrando] = useState(false);
+  /*
+    O estado intermediário do login em duas etapas.
+
+    Ele guarda o DESAFIO, e não a sessão: enquanto isto estiver preenchido, a
+    pessoa provou a senha e mais nada, e o painel não tem token de acesso
+    nenhum guardado. Quem impõe isso é o servidor (o desafio tem plateia
+    própria e não abre rota nenhuma); aqui a tela apenas não finge o contrário.
+  */
+  const [desafio, setDesafio] = useState<DesafioDeEntrada | null>(null);
   const { entrar } = useSessao();
   const navegar = useNavigate();
+
+  function seguir(sessao: Sessao) {
+    entrar(sessao);
+    navegar("/painel");
+  }
 
   async function enviar(evento: React.FormEvent) {
     evento.preventDefault();
     setErro(null);
     setEntrando(true);
     try {
-      const sessao = await entrarComSenha(email.trim(), senha);
-      entrar(sessao);
-      navegar("/painel");
+      const resultado = await entrarComSenha(email.trim(), senha);
+      if (resultado.tipo === "segundo-fator") {
+        setDesafio(resultado.desafio);
+        // A senha sai do estado no instante em que deixa de ser necessária.
+        setSenha("");
+        setEntrando(false);
+        return;
+      }
+      seguir(resultado.sessao);
     } catch (e: unknown) {
       setErro(e instanceof Error ? e.message : String(e));
       setEntrando(false);
     }
+  }
+
+  if (desafio?.segundoFator === "codigo") {
+    return (
+      <PassoDoCodigo
+        desafio={desafio}
+        aoEntrar={seguir}
+        aoVoltar={() => { setDesafio(null); setErro(null); }}
+      />
+    );
+  }
+
+  if (desafio?.segundoFator === "ativacao") {
+    return (
+      <section className="cartao">
+        <div className="cartao__corpo">
+          <h2 className="cartao__titulo">Ligue a verificação em duas etapas</h2>
+          <Aviso tom="info">{desafio.mensagem}</Aviso>
+          <AtivarSegundoFator
+            desafio={desafio.desafio}
+            aoConcluir={(r) => { if (r.sessao) seguir(r.sessao); }}
+            aoDesistir={() => setDesafio(null)}
+          />
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -121,6 +169,123 @@ function FormularioSenha() {
         <Link to="/recuperar-senha">Esqueceu a senha?</Link>
       </p>
     </>
+  );
+}
+
+/**
+ * A segunda etapa da entrada: o código do aplicativo, ou um de recuperação.
+ *
+ * O MESMO campo aceita os dois, e o servidor decide qual é. Um link "usar
+ * código de recuperação" abrindo outro formulário seria o link que ninguém
+ * acha justamente no dia em que o telefone quebrou, que é o único dia em que
+ * ele importa.
+ *
+ * O botão de voltar existe porque a alternativa é pior: sem ele, quem digitou
+ * o email errado (e só descobre aqui) fica preso numa tela que pede um código
+ * de uma conta que não é a dele, e o caminho vira recarregar a página.
+ */
+function PassoDoCodigo(
+  { desafio, aoEntrar, aoVoltar }: {
+    desafio: DesafioDeEntrada;
+    aoEntrar: (sessao: Sessao) => void;
+    aoVoltar: () => void;
+  },
+) {
+  const [codigo, setCodigo] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  /*
+    A parada obrigatória de quem entrou gastando um código de recuperação.
+
+    Ela existe porque a alternativa não funciona: um aviso mostrado enquanto a
+    tela já está indo embora não é lido por ninguém. Quem gastou um papel da
+    gaveta precisa ver quantos sobraram AGORA, e apertar "continuar" com essa
+    informação na frente, senão descobre que acabaram no dia em que gastar o
+    último, que é o dia em que ele perde o município.
+  */
+  const [gastou, setGastou] = useState<{ sessao: Sessao; restantes: number } | null>(null);
+
+  async function enviar(evento: React.FormEvent) {
+    evento.preventDefault();
+    setErro(null);
+    setEnviando(true);
+    try {
+      const r = await conferirSegundoFator(desafio.desafio, codigo.trim());
+      if (r.tipo !== "sessao") {
+        setErro("O servidor pediu a verificação outra vez. Entre de novo.");
+        setEnviando(false);
+        return;
+      }
+      if (r.entrouComCodigoDeRecuperacao) {
+        setGastou({ sessao: r.sessao, restantes: r.codigosDeRecuperacaoRestantes ?? 0 });
+        setEnviando(false);
+        setCodigo("");
+        return;
+      }
+      aoEntrar(r.sessao);
+    } catch (e: unknown) {
+      setErro(e instanceof Error ? e.message : String(e));
+      setEnviando(false);
+    }
+  }
+
+  if (gastou) {
+    return (
+      <section className="cartao">
+        <div className="cartao__corpo">
+          <h2 className="cartao__titulo">Você entrou com um código de recuperação</h2>
+          <Aviso tom="alerta">
+            Aquele código não vale mais. Restam {gastou.restantes}
+            {gastou.restantes === 1 ? " código" : " códigos"}.
+            {gastou.restantes <= 2 && (
+              " Desligue e ligue a verificação de novo em Minha conta para receber outros."
+            )}
+          </Aviso>
+          <button type="button" className="botao botao--primario" style={{ width: "100%" }}
+                  onClick={() => aoEntrar(gastou.sessao)}>
+            Continuar para o painel
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="cartao">
+      <div className="cartao__corpo">
+        <h2 className="cartao__titulo">Verificação em duas etapas</h2>
+        <p className="campo__dica" style={{ marginTop: 0 }}>{desafio.mensagem}</p>
+
+        {erro && <Aviso tom="perigo">{erro}</Aviso>}
+
+        <form onSubmit={enviar} noValidate>
+          <Campo
+            id="entrada-codigo"
+            rotulo="Código do aplicativo"
+            dica="Seis dígitos. Se você perdeu o telefone, digite aqui um dos seus códigos de recuperação."
+          >
+            {(campo) => (
+              <input
+                {...campo} type="text" inputMode="numeric" autoComplete="one-time-code"
+                value={codigo} autoFocus
+                onChange={(e) => setCodigo(e.target.value)}
+              />
+            )}
+          </Campo>
+
+          <button type="submit" className="botao botao--primario" style={{ width: "100%" }}
+                  disabled={enviando}>
+            {enviando ? "Conferindo" : "Entrar"}
+          </button>
+        </form>
+
+        <p className="entrada__rodape">
+          <button type="button" className="botao botao--discreto" onClick={aoVoltar}>
+            Voltar e digitar o email de novo
+          </button>
+        </p>
+      </div>
+    </section>
   );
 }
 

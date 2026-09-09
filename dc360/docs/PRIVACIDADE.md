@@ -208,6 +208,16 @@ O que está implementado hoje, sem promessa de futuro:
 - **Fotografia entregue por endereço temporário e assinado**, não por link
   público.
 - **Teto de tentativas** de autenticação, e a conta trava depois de insistência.
+- **Segunda etapa de autenticação para quem administra o município**, com o
+  código de seis dígitos do aplicativo de autenticação (não por SMS, que é
+  interceptável por troca de chip e depende da operadora justamente no dia do
+  temporal). O segredo dessa segunda etapa é guardado **cifrado**, com chave
+  que vive fora do banco, então um vazamento do banco não a leva junto; o
+  código usado não vale uma segunda vez; e o teto de tentativas dela é
+  separado do teto da senha. Quem perde o telefone entra pelos códigos de
+  recuperação, entregues uma única vez e guardados só como resumo. Ligar e
+  desligar ficam na trilha administrativa, e desligar exige a senha atual.
+  Cada município decide se a exige, na configuração do servidor.
 - **Controle de acesso conferido no servidor antes de tocar no banco.** Esconder
   o botão na tela não é controle de acesso.
 - **O segredo que assina a sessão pode ser trocado sem derrubar quem está em
@@ -231,7 +241,6 @@ O que está implementado hoje, sem promessa de futuro:
 
 O que **ainda não** está pronto, dito aqui porque omitir seria enganar:
 
-- Segundo fator para o administrador do município: previsto, não implantado.
 - **Calendário** de rotação do segredo de sessão: o mecanismo existe (seção
   acima), mas quem decide a data ainda é uma pessoa, e não um lembrete do
   sistema.

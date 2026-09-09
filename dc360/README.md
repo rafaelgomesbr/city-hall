@@ -9,9 +9,9 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 119 testes do banco passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 243 testes de fonte do painel mais 58 verificações no navegador no modo local e 103 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 538 testes da API passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 124 testes do banco passando |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 254 testes de fonte do painel mais 58 verificações no navegador no modo local e 103 contra a API |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 561 testes da API passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 90 testes de unidade do motor de campo e 10 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 287 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 
@@ -133,6 +133,7 @@ confirmaria que o registro existe, e confirmar existência já é vazamento.
 | Enumeração de conta | Resposta idêntica e tempo equivalente para email inexistente | Senão a API vira lista de emails da prefeitura |
 | Recuperação de senha | Link de uso único, 30 minutos, entregue por um notificador injetável | Esquecer a senha não pode virar chamado para o suporte, nem "manda a senha no WhatsApp" |
 | Troca de senha | Exige a senha atual, e derruba as outras sessões | Aparelho esquecido desbloqueado na mesa vira conta sequestrada em dois cliques |
+| Segunda etapa | Código de seis dígitos do aplicativo de autenticação (TOTP), com segredo guardado cifrado, chave fora do banco | O administrador é o teto do município (ADR 0006): a conta dele estava protegida por senha e mais nada. SMS foi recusado (troca de chip, custo por mensagem, e depende da operadora justamente no dia do temporal) |
 
 Redefinir a senha derruba **todas** as sessões. Se a recuperação foi pedida
 porque alguém invadiu a conta, deixar as sessões antigas vivas entregaria a
@@ -143,6 +144,31 @@ em que o mesmo link serve duas vezes.
 O envio da mensagem passa por uma porta (`Notificador`), não por um cliente de
 email direto: o provedor ainda não foi escolhido, e um teste que precisasse de
 servidor de email nunca seria rodado. Em desenvolvimento o link vai para o log.
+
+#### A segunda etapa, e o desfecho a mais na rota de entrar
+
+`SEGUNDO_FATOR_ATIVO=sim` faz a rota de entrar ter **dois desfechos**: a sessão,
+ou "falta o código". O estado intermediário viaja num **token de propósito
+único**, com plateia própria (`dc360-desafio`), válido por cinco minutos, que
+rota autenticada nenhuma aceita: reusar o token de acesso aqui seria dar acesso
+antes da segunda etapa, porque quem tem o token não precisa da tela para nada.
+Com o recurso ligado, o **administrador** que ainda não ligou a verificação não
+recebe sessão: ele recebe um desafio que abre a ativação e mais nada. Exigência
+que deixa entrar com um aviso é exigência de mentira.
+
+| Peça | Decisão | Por quê |
+| --- | --- | --- |
+| Segredo | Cifrado em AES-256-GCM, amarrado ao município e à pessoa, chave em `SEGUNDO_FATOR_CHAVE` | Banco vazado não devolve segundo fator. A amarração impede copiar o envelope de uma linha para a do administrador |
+| Janela | Um passo de tolerância para cada lado, e o passo usado fica queimado | Cada passo a mais triplica os códigos válidos ao mesmo tempo. Sem queimar, quem leu a tela por cima do ombro entra com o mesmo número |
+| Teto | Contador próprio, separado do da senha | O da senha zera a cada acerto de senha: com um contador só, adivinhar seis dígitos teria tentativas infinitas |
+| Códigos de recuperação | Oito, 80 bits cada, mostrados uma vez, guardados como resumo, cada um vale uma vez | Sem eles, telefone perdido vira SQL na produção com o papel que ignora o isolamento |
+| Ativação | Confere um código ANTES de ligar | Relógio de telefone errado ou leitura que não guardou nada trancariam a pessoa do lado de fora |
+| Desligar | Exige a senha atual, apaga o segredo e derruba os códigos | O painel esquecido aberto na recepção não desliga a proteção de ninguém |
+
+O código QR da ativação é desenhado pelo próprio painel
+(`apps/web/src/componentes/qr.ts`), sem dependência nova, pela mesma razão do
+TOTP no servidor. O segredo aparece em texto ao lado dele: metade dos
+computadores de recepção de Defesa Civil não tem câmera.
 
 Login e renovação acontecem antes de existir contexto de tenant, então
 precisam ler tabelas que o RLS protege. Em vez de abrir exceção geral, a
@@ -707,9 +733,9 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 1093 testes em cinco pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 119 testes do banco
-npm run test:api            # 538 testes da API
+npm test                    # 1132 testes em cinco pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 124 testes do banco
+npm run test:api            # 561 testes da API
 npm run test --workspace @dc360/campo   # 90 testes do motor de campo
 npm run test:campo          # tipos e os 287 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
@@ -1020,6 +1046,14 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
   falta o bucket. O levantamento aponta Cloudflare R2 por causa do egress.
 - **PostGIS.** A migração ainda não cria a extensão porque nada hoje faz
   consulta espacial. Entra quando entrar busca por raio ou por setor de risco.
+- **Desligar o segundo fator de OUTRA pessoa.** Hoje cada um cuida do próprio:
+  quem administra redefine senha de terceiro, mas não desliga a verificação em
+  duas etapas de ninguém. Para quem perdeu o telefone, a saída são os códigos
+  de recuperação, e ela cobre o caso; para quem perdeu o telefone E os códigos,
+  não há caminho pela tela. A rota é pequena (`exigirPermissao` mais
+  `exigirPostoParaGerir`, como a redefinição de senha já faz), e ficou de fora
+  deste turno de propósito: ela é uma porta para retirar a proteção de uma
+  conta alheia, e merece o cuidado inteiro em vez do fim de um turno.
 - **PDF em job assíncrono.** Hoje o PDF é gerado na própria requisição, o que
   serve para um laudo por vez. Quando alguém exportar a fila inteira, isso
   precisa virar fila com download por link, como o levantamento prevê. A porta

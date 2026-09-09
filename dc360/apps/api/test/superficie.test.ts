@@ -30,6 +30,15 @@ let app: FastifyInstance;
 const SEM_TOKEN = new Map<string, string>([
   ["GET /saude", "sonda do balanceador, e não devolve dado de município"],
   ["POST /auth/entrar", "é o que entrega o token"],
+  [
+    "POST /auth/segundo-fator",
+    "é a SEGUNDA metade da entrada, e por definição acontece antes de existir "
+    + "sessão. Quem chega aqui já provou a senha, e o que ele traz é o token de "
+    + "desafio (plateia `dc360-desafio`, cinco minutos, propósito único), que "
+    + "rota nenhuma do produto aceita como credencial: é isso que impede o "
+    + "atalho de emitir o token de acesso antes do segundo fator e só esconder "
+    + "a tela",
+  ],
   ["POST /auth/renovar", "autentica pelo próprio token de renovação"],
   ["POST /auth/sair", "revoga pelo token de renovação, sem precisar do de acesso"],
   ["POST /auth/recuperar", "quem esqueceu a senha não tem token"],

@@ -388,6 +388,60 @@ export type MinhasSessoes = {
 };
 
 // ---------------------------------------------------------------------------
+// Verificação em duas etapas
+// ---------------------------------------------------------------------------
+
+/**
+ * O que a entrada devolve quando a senha conferiu e a sessão NÃO nasceu.
+ *
+ * O painel precisa distinguir os dois desfechos porque as telas são
+ * diferentes: `codigo` pede os seis dígitos, `ativacao` é o administrador que
+ * o município obriga a ligar a verificação antes de entrar. Em nenhum dos dois
+ * existe token de acesso ainda, e é por isso que o `desafio` viaja: ele não
+ * abre rota nenhuma, só a segunda etapa.
+ */
+export type DesafioDeEntrada = {
+  segundoFator: "codigo" | "ativacao";
+  desafio: string;
+  expiraEm: number;
+  mensagem: string;
+};
+
+export type ResultadoDeEntrada =
+  | { tipo: "sessao"; sessao: Sessao; codigosDeRecuperacaoRestantes?: number;
+      entrouComCodigoDeRecuperacao?: boolean }
+  | { tipo: "segundo-fator"; desafio: DesafioDeEntrada };
+
+/** Como está a verificação em duas etapas da conta de quem está usando. */
+export type SituacaoSegundoFator = {
+  ativo: boolean;
+  pendente: boolean;
+  exigido: boolean;
+  codigosRestantes: number;
+  /** Falso quando o servidor está com o recurso desligado. */
+  disponivel: boolean;
+};
+
+/** O que a tela mostra uma vez, e nunca mais: o segredo e o endereço do código QR. */
+export type AtivacaoSegundoFator = {
+  segredo: string;
+  uri: string;
+  mensagem: string;
+};
+
+/**
+ * O fim da ativação: os códigos de recuperação, que aparecem uma vez só.
+ *
+ * `sessao` só vem preenchida quando quem ligou ainda não tinha sessão, que é o
+ * caso do administrador obrigado a ligar para entrar.
+ */
+export type SegundoFatorLigado = {
+  codigosDeRecuperacao: string[];
+  sessao?: Sessao;
+  mensagem: string;
+};
+
+// ---------------------------------------------------------------------------
 // Sino de avisos
 // ---------------------------------------------------------------------------
 

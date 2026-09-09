@@ -198,6 +198,62 @@ const esquema = z.object({
   /** Caminho do JSON da conta de serviço do Firebase. Só o Android usa. */
   FCM_CONTA_SERVICO: vazioEhAusente(z.string().min(1).optional()),
 
+  /**
+   * Liga o segundo fator (o código de seis dígitos do aplicativo de
+   * autenticação), e é a mesma classe de decisão do `PUSH_ATIVO` e do
+   * `EMAIL_ATIVO`: desligado por padrão, ligar é ato deliberado, e ligado sem
+   * o que ele precisa DERRUBA A PARTIDA em vez de subir pela metade.
+   *
+   * Com `sim`, o administrador do município passa a ser OBRIGADO a ter o
+   * segundo fator, e os demais papéis podem ligar se quiserem. Com `nao`, as
+   * rotas de segundo fator existem e RECUSAM dizendo que o recurso está
+   * desligado, em vez de sumirem: rota ausente responde 404, e o painel leria
+   * isso como "versão velha do servidor" em vez de "o município ainda não
+   * ligou".
+   *
+   * DESLIGAR DEPOIS DE LIGADO tem uma consequência que precisa estar escrita:
+   * contas que já tinham o segundo fator voltam a entrar só com a senha, e o
+   * login deixa de pedir o código. Isso não é um buraco de autenticação, é uma
+   * decisão de quem tem o ambiente do servidor, que é a mesma pessoa que tem o
+   * `JWT_SEGREDO` e, com ele, fabricaria token de administrador de qualquer
+   * jeito. O que não pode acontecer é o contrário: o recurso ligado e o
+   * servidor incapaz de conferir o código, que é o que a checagem lá embaixo
+   * impede.
+   */
+  SEGUNDO_FATOR_ATIVO: z.enum(["sim", "nao"]).default("nao"),
+
+  /**
+   * A chave que cifra o segredo do segundo fator dentro do banco: 32 bytes em
+   * base64. Gere com:
+   *   node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
+   *
+   * Ela fica FORA do banco de propósito. É isso que faz um vazamento de banco
+   * (cópia de segurança perdida, credencial de leitura exposta, disco fora de
+   * uso) não devolver segundo fator utilizável: sem esta chave, o que vazou é
+   * um envelope que não abre.
+   *
+   * TROCAR ESTA CHAVE INVALIDA TODOS OS SEGREDOS JÁ GUARDADOS, e não existe
+   * lista de chaves aceitas como no `JWT_SEGREDO`. É deliberado: aquela lista
+   * existe para não derrubar o plantão numa rotação, e aqui derrubar significa
+   * "todo mundo refaz a ativação do aplicativo de autenticação", com os
+   * códigos de recuperação servindo de saída. Uma lista de chaves aqui seria
+   * uma lista de chaves que ainda abrem o segredo, que é o oposto do motivo
+   * de rotacionar.
+   */
+  SEGUNDO_FATOR_CHAVE: vazioEhAusente(z.string().min(1).optional()),
+
+  /**
+   * Teto de tentativas do segundo fator, e por quantos minutos a conta fica
+   * travada nele. SEPARADO do teto de senha, e a separação é o ponto.
+   *
+   * O contador de senha zera a cada acerto de senha. Se o segundo fator
+   * dividisse aquele contador, cada tentativa de adivinhar os seis dígitos
+   * começaria por um acerto de senha, que zeraria o contador, e o teto nunca
+   * fecharia: seriam tentativas infinitas contra um espaço de um milhão.
+   */
+  SEGUNDO_FATOR_MAX_FALHAS: z.coerce.number().int().min(3).max(20).default(5),
+  SEGUNDO_FATOR_BLOQUEIO_MINUTOS: z.coerce.number().int().min(1).max(1440).default(15),
+
   /** Origens permitidas, separadas por vírgula. Em produção não pode ser "*". */
   ORIGENS_PERMITIDAS: z.string().default("http://localhost:5173"),
 
@@ -382,6 +438,28 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
       + "NOTIFICADOR_URL e NOTIFICADOR_CHAVE, ou desligue com EMAIL_ATIVO=nao. "
       + "Sem isso o servidor sobe, a rota responde que enviou, e nenhuma "
       + "mensagem sai deste processo.",
+    );
+  }
+
+  /*
+    Segundo fator ligado exige a chave que cifra o segredo, e a checagem vale
+    em TODO ambiente, pelo mesmo motivo do `PUSH_ATIVO` acima.
+
+    Sem a chave o servidor subiria, a tela de ativação apareceria, e a primeira
+    pessoa a tentar ligar o segundo fator levaria um erro interno no meio da
+    ativação, com metade do estado gravado. Pior: se um dia alguém "resolvesse"
+    isso guardando o segredo em texto, o produto passaria a ter no banco a
+    credencial que o segundo fator existe para proteger. O CHECK
+    `segredo_vem_cifrado` (migração 022) recusa esse atalho no banco, e esta
+    checagem o recusa antes, na partida, que é onde dá para consertar sem
+    ninguém perceber.
+  */
+  if (c.SEGUNDO_FATOR_ATIVO === "sim" && !c.SEGUNDO_FATOR_CHAVE) {
+    throw new Error(
+      "O segundo fator está ligado e não tem chave para cifrar o segredo: "
+      + "defina SEGUNDO_FATOR_CHAVE (32 bytes em base64), ou desligue com "
+      + "SEGUNDO_FATOR_ATIVO=nao. Sem ela o servidor sobe, a tela de ativação "
+      + "aparece, e a ativação quebra no meio.",
     );
   }
 

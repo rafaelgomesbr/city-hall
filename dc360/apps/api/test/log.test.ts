@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
-import { construirServidor } from "../src/servidor.js";
+import { CAMINHOS_REDIGIDOS, construirServidor } from "../src/servidor.js";
 import { carregarConfig } from "../src/config.js";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
 
@@ -167,6 +167,92 @@ describe("O que nunca pode aparecer no log", () => {
     expect(tudo()).not.toContain("peculiar.9931");
     // E o que interessa para diagnosticar continua lá.
     expect(tudo()).toContain("violacao de restricao");
+  });
+});
+
+/**
+ * O segredo da verificação em duas etapas, que é a credencial mais perigosa
+ * que este servidor manipula depois do `JWT_SEGREDO`.
+ *
+ * Quem tem o segredo do TOTP de uma conta gera os códigos dela para sempre,
+ * sem tocar no telefone de ninguém e sem deixar rastro. Ele é guardado
+ * cifrado no banco (migração 022) exatamente por isso, e um vazamento por log
+ * anularia a cifra inteira: log é lido por mais gente, guardado por mais tempo
+ * e copiado para mais lugares do que qualquer banco de dados.
+ *
+ * O PRIMEIRO caso aqui DISCRIMINA, e é o que faltava nos casos de senha logo
+ * acima: eles passam mesmo com a entrada removida de `redact`, porque o
+ * serializador padrão do Fastify não registra corpo nenhum, então não provam
+ * nada sobre a lista. Este registra o corpo DE PROPÓSITO, que é exatamente o
+ * que alguém faz num ponto de diagnóstico às duas da manhã, e é nesse momento
+ * que a lista precisa estar completa: ninguém vai conferi-la ali.
+ */
+describe("O segundo fator no log", () => {
+  it("a lista de redação cobre o segredo, o código e o token de desafio", () => {
+    /*
+      Este caso lê a LISTA, e não a saída de uma requisição, e a diferença é a
+      honestidade do que ele prova.
+
+      O serializador de `req` (em `servidor.ts`) não registra o corpo do
+      pedido, então nenhuma requisição consegue hoje colocar estes valores no
+      log: um caso escrito como os de senha lá em cima passaria com a lista
+      VAZIA, provando exatamente nada. Lendo a lista, ele reprova no instante
+      em que alguém tirar um destes campos dela, que é o que ele existe para
+      impedir.
+    */
+    for (const campo of ["req.body.segredo", "req.body.codigo", "req.body.desafio"]) {
+      expect(
+        CAMINHOS_REDIGIDOS as readonly string[],
+        `${campo} saiu da lista de redação: no dia em que alguém registrar `
+        + "`req.body` num ponto de diagnóstico, o segundo fator inteiro vai "
+        + "junto, e o log é copiado para mais lugares que o banco",
+      ).toContain(campo);
+    }
+  });
+
+  it("e a lista redige de verdade quando o corpo chega ao log", () => {
+    /*
+      A outra metade: a lista pode estar completa e a redação não funcionar
+      (caminho escrito errado, `censor` ausente, aninhamento diferente). Aqui o
+      corpo é registrado DE PROPÓSITO, com um serializador que o deixa passar,
+      que é o que alguém escreve às duas da manhã para descobrir por que uma
+      ativação falha.
+    */
+    linhas = [];
+    const segredo = "JBSWY3DPEHPK3PXPSEGREDOPECULIAR7";
+    const codigo = "918273";
+    const desafio = "desafio-de-uso-unico-muito-peculiar-4419";
+
+    const diagnostico = app.log.child({}, {
+      serializers: {
+        req: (r: { body?: unknown }) => ({ body: r.body }),
+      },
+    });
+    diagnostico.info({ req: { body: { segredo, codigo, desafio } } }, "diagnostico do segundo fator");
+
+    const saiu = tudo();
+    expect(saiu, "o segredo do TOTP saiu no log").not.toContain(segredo);
+    expect(saiu, "o código do segundo fator saiu no log").not.toContain(codigo);
+    expect(saiu, "o token de desafio do login saiu no log").not.toContain(desafio);
+    // E o que serve para diagnosticar continua lá.
+    expect(saiu).toContain("diagnostico do segundo fator");
+    expect(saiu).toContain("[removido]");
+  });
+
+  it("a rota da segunda etapa não deixa o código nem o desafio no log", async () => {
+    linhas = [];
+    const codigo = "554433";
+    const desafio = "outro-desafio-peculiar-8836";
+
+    const r = await app.inject({
+      method: "POST", url: "/auth/segundo-fator", payload: { desafio, codigo },
+    });
+    // A rota precisa EXISTIR, senão o caso passa provando nada: um 404 sai
+    // pelo mesmo caminho de log e a asserção ficaria verde para sempre.
+    expect(r.statusCode).not.toBe(404);
+
+    expect(tudo()).not.toContain(codigo);
+    expect(tudo()).not.toContain(desafio);
   });
 });
 

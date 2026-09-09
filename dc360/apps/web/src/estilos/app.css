@@ -931,3 +931,64 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-2);
   font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
 }
+
+/* ---------------------------------------------------------------------------
+   Verificação em duas etapas
+   --------------------------------------------------------------------------- */
+.segundo-fator { display: grid; gap: var(--ds-sp-4); }
+
+.segundo-fator__passos {
+  margin: 0; padding-left: var(--ds-sp-5);
+  display: grid; gap: var(--ds-sp-2);
+  font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);
+}
+
+/*
+  O desenho e o segredo lado a lado no computador, e um embaixo do outro no
+  telefone. Quem liga a verificação PELO telefone não consegue apontar a câmera
+  para a própria tela, e é exatamente essa pessoa que vai usar o segredo
+  escrito: empilhar põe os dois na ordem em que ela precisa.
+*/
+.segundo-fator__ativacao {
+  display: flex; flex-wrap: wrap; gap: var(--ds-sp-5); align-items: flex-start;
+}
+.segundo-fator__segredo { flex: 1 1 240px; display: grid; gap: var(--ds-sp-2); }
+.segundo-fator__valor {
+  margin: 0;
+  font-size: var(--ds-fs-body-lg);
+  letter-spacing: var(--tracking-rotulo);
+  word-break: break-all;
+}
+
+.segundo-fator__acoes { display: flex; flex-wrap: wrap; gap: var(--ds-sp-2); }
+
+/*
+  Os códigos de recuperação em duas colunas, com número tabular: eles vão ser
+  COPIADOS À MÃO para um papel, e a leitura em coluna é a que não pula linha.
+*/
+.segundo-fator__codigos {
+  margin: 0; padding: var(--ds-sp-4);
+  list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--ds-sp-2);
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+  font-size: var(--ds-fs-body-lg);
+  letter-spacing: var(--tracking-rotulo);
+}
+
+/*
+  O código QR é ESCURO SOBRE CLARO nos dois temas, e essa é a única superfície
+  do painel que não acompanha o tema. Não é descuido: leitor de código QR
+  espera esse contraste, e parte dos aplicativos simplesmente não lê o desenho
+  invertido. Por isso o fundo claro vem do token de superfície mais clara e o
+  módulo do token de texto mais escuro, e não de cor inventada.
+*/
+.qr {
+  width: 200px; height: 200px; flex: 0 0 auto;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+}
+.qr__fundo { fill: var(--ds-qr-claro); }
+.qr__modulo { fill: var(--ds-qr-escuro); }

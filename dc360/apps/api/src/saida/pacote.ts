@@ -90,6 +90,25 @@ export const TABELAS_QUE_NAO_SAEM: Record<string, string> = {
   // Não é do município. É o formulário de contato que alguém preencheu no site
   // do fornecedor, e ele não tem contexto de tenant nenhum.
   interesse_municipio: "não pertence ao município: pedido de contato do site",
+  /*
+    O segredo da verificação em duas etapas, cifrado, e os resumos dos códigos
+    de recuperação (migração 022).
+
+    Não saem pela mesma razão das sessões, e por uma a mais. A razão comum: é
+    material de credencial viva, e este pacote é o arquivo do produto que mais
+    viaja (email, pen drive, pasta compartilhada, e depois fica guardado para
+    sempre numa prefeitura). A razão a mais: o segredo só tem valor com a chave
+    de cifra do servidor de origem, que o município não leva nem pode levar,
+    então o que sairia seria um envelope inútil para quem recebe e perigoso
+    para quem guarda.
+
+    O que o município PRECISA levar sobre isto, ele leva: cada ativação e cada
+    desligamento estão na `trilha_administrativa`, que sai inteira. A pergunta
+    "esta conta tinha segunda etapa, e desde quando" continua tendo resposta do
+    outro lado.
+  */
+  segundo_fator: "material de credencial: segredo cifrado do segundo fator",
+  segundo_fator_recuperacao: "material de credencial: resumo dos códigos de recuperação",
 };
 
 /**

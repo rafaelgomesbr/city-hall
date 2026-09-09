@@ -284,6 +284,8 @@ trás para sempre. Retenção de 60 dias, dentro da própria política de remoç
 | `recuperacoes_senha` | Pedidos de recuperação, com validade e uso único |
 | `exportacoes` | Registro de quem exportou o quê e quando. Exportação de dado de cidadão é ato que fica registrado |
 | `interesse_municipio` | Município que se cadastrou pela página pública. É a única tabela com dado que não pertence a um município do sistema |
+| `segundo_fator` | Verificação em duas etapas por pessoa: o segredo do código de seis dígitos, **cifrado** com chave que vive fora do banco, mais o último passo de tempo aceito (é ele que impede o mesmo código de valer duas vezes) e o teto de tentativas, separado do teto da senha. Desligar apaga o segredo e carimba a data, em vez de apagar a linha: "desde quando esta conta parou de exigir a segunda etapa" precisa ter resposta |
+| `segundo_fator_recuperacao` | Os códigos de recuperação, guardados só como resumo. Cada um vale uma vez; desligar a verificação invalida todos em bloco. Código gasto fica marcado como gasto, e não sai da tabela: sem isso ninguém distinguiria "eu usei três" de "alguém usou três por mim" |
 
 ---
 
@@ -293,5 +295,11 @@ trás para sempre. Retenção de 60 dias, dentro da própria política de remoç
   como resumo criptográfico.
 - **Não há coluna de exclusão lógica em ocorrência.** Encerramento com motivo faz
   esse papel, e ele é semanticamente diferente: diz por que terminou.
+- **Não há segredo de segunda etapa em texto.** O que a coluna guarda é um
+  envelope cifrado, e o próprio banco recusa qualquer outra coisa ali (a
+  restrição `segredo_vem_cifrado`, migração 022). As duas tabelas de segunda
+  etapa **não saem no pacote de saída de município**: são material de
+  credencial, e o segredo delas só teria valor com a chave do servidor de
+  origem, que o município não leva.
 - **Não há papel de banco que enxergue dois municípios**, além do dono, que é
   quem aplica migração e provisiona. Ver ADR 0001 e ADR 0008.

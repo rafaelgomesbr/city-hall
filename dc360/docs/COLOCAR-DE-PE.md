@@ -37,7 +37,7 @@ D-U-N-S e a revisão não forem gargalo.
 - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
   compartilhados.
-- **1380 testes verdes somando o aplicativo, e `npm audit` em zero.**
+- **1419 testes verdes somando o aplicativo, e `npm audit` em zero.**
 - **A API sobe contra PostgreSQL real** (provado contra o Postgres 18, à mão) e
   serve o ciclo inteiro: login, isolamento entre municípios, ocorrência,
   vistoria offline, laudo, termo de interdição e desinterdição, contagem de
@@ -162,6 +162,8 @@ PaaS que dá HTTPS automático e roda contêiner ou Node:
   | `ORIGENS_PERMITIDAS` | `https://painel.seudominio.com.br` (sem curinga) |
   | `S3_ENDPOINT` `S3_BALDE` `S3_CHAVE_ID` `S3_CHAVE_SECRETA` | armazenamento (item 4) |
   | `RECUPERACAO_ATIVA` | `nao` no piloto, ou `sim` + `NOTIFICADOR_URL`/`_CHAVE` (item 5) |
+  | `SEGUNDO_FATOR_ATIVO` | `nao` por padrão. Com `sim`, o **administrador do município** passa a precisar do código de seis dígitos do aplicativo de autenticação para entrar, e os demais papéis podem ligar se quiserem. Ligar exige a variável abaixo, em qualquer ambiente: sem ela o processo não sobe |
+  | `SEGUNDO_FATOR_CHAVE` | 32 bytes em base64 (`openssl rand -base64 32`). É a chave que CIFRA o segredo da segunda etapa dentro do banco, e ela fica fora do banco de propósito: é o que faz um vazamento de banco não levar o segundo fator junto. **Trocar esta chave invalida os segredos já guardados** (não há lista de chaves aceitas como no `JWT_SEGREDO`, e não pode haver: seria uma lista de chaves que ainda abrem o segredo). Depois de trocar, todo mundo refaz a ativação, e quem já estava dentro entra pelos códigos de recuperação |
 
   Tudo em `https://`, e a config recusa `http` e `localhost` em produção.
 
@@ -202,7 +204,7 @@ Na primeira entrada, o coordenador troca a senha em **Minha conta**.
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 1380 testes com o aplicativo, npm audit, números
+npm run verificar          # typecheck, 1419 testes com o aplicativo, npm audit, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo

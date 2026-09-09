@@ -88,9 +88,15 @@ município.
 
 ### O que o pacote NÃO leva, de propósito
 
-Senha, hash de senha, token de sessão, link de redefinição e ficha de
-notificação não saem. São material de credencial, e não dado do município:
-entregá-los num arquivo que viaja por email ou pen drive seria entregar acesso.
+Senha, hash de senha, token de sessão, link de redefinição, ficha de
+notificação e o segredo da verificação em duas etapas não saem. São material de
+credencial, e não dado do município: entregá-los num arquivo que viaja por
+email ou pen drive seria entregar acesso. No caso da verificação em duas etapas
+há uma razão a mais: o segredo dela só tem valor com a chave de cifra do
+servidor de origem, que o município não leva nem pode levar, então o que sairia
+seria um envelope inútil para quem recebe e perigoso para quem guarda. O que
+importa sobre ela vai junto de qualquer forma, na trilha administrativa: quando
+cada conta ligou e quando desligou.
 O `LEIA-ME.txt` do próprio pacote diz isso a quem o recebe.
 
 ### O que continua manual

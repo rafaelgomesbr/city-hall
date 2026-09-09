@@ -2282,3 +2282,143 @@ describe("Minimizacao por prazo e registro de consulta", () => {
     ).toBe(false);
   });
 });
+
+/**
+ * O segundo fator (migracao 022), do lado do banco.
+ *
+ * Os portoes que DESCOBREM tabela em `pg_tables` ja cobram RLS, coluna de
+ * municipio, policy amarrada no contexto e chave estrangeira composta destas
+ * duas tabelas novas, sozinhos. O que este bloco acrescenta e o que so vale
+ * para elas: um segredo de segundo fator nunca entra em texto, um codigo de
+ * recuperacao nunca entra em texto, desligar apaga o segredo em vez de deixar
+ * a credencial viva com a protecao desligada, e nada disso se apaga.
+ *
+ * O caso de isolamento proprio esta aqui e nao la em cima por proximidade: e
+ * mais util ler "o municipio A nao alcanca o segundo fator de B" ao lado das
+ * restricoes que descrevem a mesma tabela.
+ */
+describe("Segundo fator", () => {
+  /** SHA-256 em base64url tem 43 caracteres, que e o que o CHECK cobra. */
+  const RESUMO = "a".repeat(43);
+  const ENVELOPE = "v1.dmV0b3I.c2Vsbw.Y2lmcmFkbw";
+
+  let usuarioDeA: string;
+  let usuarioDeB: string;
+
+  beforeAll(async () => {
+    const criar = async (org: string, email: string) => {
+      const r = await db.query<{ id: string }>(
+        `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
+         VALUES ($1,'Helena Vasques Coutinho','M-2201',$2,'administrador')
+         RETURNING id`,
+        [org, email],
+      );
+      return r.rows[0]!.id;
+    };
+    usuarioDeA = await criar(orgA, "helena@serraalta.exemplo.gov.br");
+    usuarioDeB = await criar(orgB, "helena@valefundo.exemplo.gov.br");
+
+    for (const [org, usuario] of [[orgA, usuarioDeA], [orgB, usuarioDeB]] as const) {
+      await db.query(
+        `INSERT INTO segundo_fator (organizacao_id, usuario_id, segredo_cifrado, confirmado_em)
+         VALUES ($1,$2,$3, now())`,
+        [org, usuario, ENVELOPE],
+      );
+    }
+  });
+
+  it("um municipio nao alcanca o segundo fator do outro, nem pelo id exato", async () => {
+    const lido = await comoApp(orgA, (tx) =>
+      tx.query("SELECT usuario_id FROM segundo_fator WHERE usuario_id = $1", [usuarioDeB]),
+    );
+    expect(
+      lido.rows,
+      "o municipio A leu a linha de segundo fator de uma conta do municipio B",
+    ).toHaveLength(0);
+
+    // E nao desliga o segundo fator de quem nao e dele, que seria o ataque
+    // util: derrubar a protecao da conta alheia antes de tentar a senha.
+    await comoApp(orgA, (tx) =>
+      tx.query(
+        "UPDATE segundo_fator SET desativado_em = now(), segredo_cifrado = NULL WHERE usuario_id = $1",
+        [usuarioDeB],
+      ),
+    );
+    const conferencia = await db.query<{ desativado_em: string | null }>(
+      "SELECT desativado_em FROM segundo_fator WHERE usuario_id = $1",
+      [usuarioDeB],
+    );
+    expect(
+      conferencia.rows[0]!.desativado_em,
+      "o municipio A desligou o segundo fator de uma conta do municipio B",
+    ).toBeNull();
+  });
+
+  it("recusa o segredo do TOTP gravado em texto", async () => {
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `UPDATE segundo_fator SET segredo_cifrado = 'JBSWY3DPEHPK3PXP'
+            WHERE usuario_id = $1`,
+          [usuarioDeA],
+        ),
+      ),
+      "o banco aceitou o segredo do segundo fator em texto puro: um vazamento "
+      + "de banco passaria a devolver o segundo fator junto",
+    ).rejects.toThrow(/segredo_vem_cifrado/i);
+  });
+
+  it("recusa desligar o segundo fator deixando o segredo guardado", async () => {
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          "UPDATE segundo_fator SET desativado_em = now() WHERE usuario_id = $1",
+          [usuarioDeA],
+        ),
+      ),
+      "o banco aceitou protecao desligada com a credencial ainda dentro, que e "
+      + "o risco de guardar sem o beneficio de exigir",
+    ).rejects.toThrow(/segredo_coerente_com_a_situacao/i);
+  });
+
+  it("recusa o codigo de recuperacao gravado em texto", async () => {
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(
+          `INSERT INTO segundo_fator_recuperacao (organizacao_id, usuario_id, codigo_hash)
+           VALUES ($1,$2,'k4mp-7rqs-2xtv-9bdh')`,
+          [orgA, usuarioDeA],
+        ),
+      ),
+    ).rejects.toThrow(/codigo_guardado_como_resumo/i);
+  });
+
+  it("guarda o codigo como resumo e recusa apagar o que ja foi gasto", async () => {
+    await comoApp(orgA, (tx) =>
+      tx.query(
+        `INSERT INTO segundo_fator_recuperacao (organizacao_id, usuario_id, codigo_hash, usado_em)
+         VALUES ($1,$2,$3, now())`,
+        [orgA, usuarioDeA, RESUMO],
+      ),
+    );
+
+    /*
+      Sem policy de DELETE, e a ausencia e o que sustenta a frase da tela
+      ("voce ainda tem N codigos"): se o codigo gasto sumisse, ninguem
+      distinguiria "eu usei tres" de "alguem usou tres por mim".
+    */
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query("DELETE FROM segundo_fator_recuperacao WHERE usuario_id = $1", [usuarioDeA]),
+      ),
+    ).rejects.toThrow();
+
+    // E a linha do segundo fator tambem nao se apaga: "desde quando esta conta
+    // parou de exigir o segundo fator" precisa continuar tendo resposta.
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query("DELETE FROM segundo_fator WHERE usuario_id = $1", [usuarioDeA]),
+      ),
+    ).rejects.toThrow();
+  });
+});

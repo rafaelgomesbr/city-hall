@@ -25,6 +25,7 @@ import type {
   Sessao, TarefaDesignada, TipoDeDocumento, VistoriaConcluida,
   AberturaDeOficio, CursorDeAvisos, DadosDoOrgao, EnvioDeOficio, LinhaOficio,
   LinhaOrgao, OficioDetalhado, RespostaDeAvisos, ResultadoDeEnvio,
+  AtivacaoSegundoFator, ResultadoDeEntrada, SegundoFatorLigado, SituacaoSegundoFator,
 } from "./tipos";
 
 /**
@@ -334,8 +335,63 @@ export async function encerrarSessao(): Promise<void> {
  * perfil, e fingir uma verificação de senha aqui seria pior que não ter:
  * daria a impressão de que existe autenticação onde não existe.
  */
-export async function entrarComSenha(_email: string, _senha: string): Promise<Sessao> {
+export async function entrarComSenha(
+  _email: string, _senha: string,
+): Promise<ResultadoDeEntrada> {
   throw new Error("Entrada por senha exige a API. Este painel está em modo local.");
+}
+
+/**
+ * A verificação em duas etapas, e por que ela recusa aqui.
+ *
+ * É a mesma recusa da troca de senha, pela mesma razão, e vale escrever para
+ * não parecer buraco: a segunda etapa é a segunda METADE de uma autenticação,
+ * e no modo de demonstração não existe a primeira. Um código de seis dígitos
+ * pedido depois de uma escolha de perfil não protegeria nada, e ensinaria a
+ * quem assiste à demonstração que o recurso é enfeite de tela.
+ *
+ * O que a demonstração mostra sobre o assunto é a verdade: que o recurso
+ * existe no ambiente real, ligado por município, e que ali ele exige o
+ * aplicativo de autenticação.
+ */
+export async function conferirSegundoFator(
+  _desafio: string, _codigo: string,
+): Promise<ResultadoDeEntrada> {
+  throw new Error(
+    "A verificação em duas etapas exige a API. Neste painel a entrada é por "
+    + "escolha de perfil, sem senha.",
+  );
+}
+
+/**
+ * Esta NÃO recusa, e a diferença é deliberada: a pergunta "como está a
+ * verificação desta conta" tem uma resposta verdadeira no modo local, que é
+ * "este servidor não oferece o recurso". Devolvê-la deixa a tela de conta
+ * abrir e explicar; levantar erro faria a tela mostrar uma falha vermelha
+ * para uma pergunta que foi respondida.
+ */
+export async function situacaoSegundoFator(): Promise<SituacaoSegundoFator> {
+  return { ativo: false, pendente: false, exigido: false, codigosRestantes: 0, disponivel: false };
+}
+
+export async function iniciarSegundoFator(_desafio?: string): Promise<AtivacaoSegundoFator> {
+  throw new Error(
+    "Ligar a verificação em duas etapas exige a API. Este painel está em modo local.",
+  );
+}
+
+export async function confirmarSegundoFator(
+  _codigo: string, _desafio?: string,
+): Promise<SegundoFatorLigado> {
+  throw new Error(
+    "Ligar a verificação em duas etapas exige a API. Este painel está em modo local.",
+  );
+}
+
+export async function desativarSegundoFator(_senhaAtual: string): Promise<string> {
+  throw new Error(
+    "Desligar a verificação em duas etapas exige a API. Este painel está em modo local.",
+  );
 }
 
 /**
