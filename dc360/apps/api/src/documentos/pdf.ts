@@ -17,12 +17,31 @@ export type GeradorDePdf = {
   encerrar(): Promise<void>;
 };
 
+/**
+ * Variável que aponta o executável do Chromium do sistema.
+ *
+ * O nome é o mesmo que o Dockerfile já definia, e é preciso dizer por quê: o
+ * Playwright NÃO lê esta variável. Conferido no `playwright-core` 1.62.1, as
+ * únicas variáveis que ele lê sobre onde achar navegador são
+ * `PLAYWRIGHT_BROWSERS_PATH` e os endereços de download. Ou seja, a imagem
+ * instalava o Chromium do Debian, apontava esta variável para ele, e o
+ * Playwright ia procurar mesmo assim o navegador que ele baixa sozinho, que
+ * `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` tinha acabado de impedir de existir.
+ * Quem lê a variável somos nós, aqui.
+ */
+const VARIAVEL_DO_NAVEGADOR = "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH";
+
 export type OpcoesPlaywright = {
   /**
    * Quanto tempo esperar a página ficar pronta. As imagens da evidência vêm
    * por URL assinada, então a renderização depende de rede.
    */
   tempoLimiteMs?: number;
+  /**
+   * Executável do navegador. Ausente, vale a variável de ambiente e, na falta
+   * dela, o navegador que o próprio Playwright baixou.
+   */
+  caminhoDoNavegador?: string;
 };
 
 /**
@@ -42,11 +61,32 @@ export function geradorPlaywright(opcoes: OpcoesPlaywright = {}): GeradorDePdf {
     if (abrindo) return abrindo;
     abrindo = (async () => {
       const { chromium } = await import("playwright");
-      navegador = await chromium.launch({ args: ["--no-sandbox"] });
-      abrindo = null;
+      // O caminho é resolvido AGORA, e não na construção do gerador, porque
+      // esta função também roda depois de uma falha: quem consertou a máquina
+      // (instalou o navegador, corrigiu a variável) precisa ver o efeito sem
+      // reiniciar o servidor.
+      const executavel = opcoes.caminhoDoNavegador ?? process.env[VARIAVEL_DO_NAVEGADOR];
+      navegador = await chromium.launch({
+        args: ["--no-sandbox"],
+        ...(executavel ? { executablePath: executavel } : {}),
+      });
       return navegador;
     })();
-    return abrindo;
+    try {
+      return await abrindo;
+    } finally {
+      /*
+        Limpar a promessa TAMBÉM quando ela falha.
+
+        Antes, `abrindo = null` só acontecia no caminho feliz, dentro da
+        própria promessa. Uma abertura que falhasse (navegador ausente, imagem
+        sem as bibliotecas do Chromium) deixava a promessa REJEITADA guardada
+        aqui para sempre, e toda tentativa seguinte recebia aquela mesma
+        rejeição antiga. O sintoma era cruel: instalar o navegador não
+        adiantava nada, e o PDF só voltava depois de reiniciar o processo.
+      */
+      abrindo = null;
+    }
   }
 
   return {

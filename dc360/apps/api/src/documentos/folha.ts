@@ -111,6 +111,10 @@ const ESTILO = `
   .assinatura { text-align: center; break-inside: avoid; }
   /* Altura fixa para o bloco não pular quando um lado tem traço e o outro não. */
   .assinatura .traco { display: block; height: 46px; margin: 0 auto -2px; max-width: 100%; }
+  .assinatura .traco-ausente {
+    height: 46px; display: flex; align-items: flex-end; justify-content: center;
+    font-size: 9pt; font-style: italic; color: #8A5A00;
+  }
   .assinatura .linha { border-top: 1px solid var(--tinta); margin-bottom: 5px; }
   .assinatura .nome { font-size: 11pt; font-weight: 600; }
   .assinatura .papel { font-size: 9pt; color: var(--tinta-fraca); }
@@ -234,9 +238,25 @@ export function campo(rotulo: string, valor: unknown, opcoes: { largo?: boolean;
  * ficar diferente por causa de um dado que o aparelho não mandou.
  */
 export function assinatura(nome: string, papel: string, tracoUrl?: string | null): string {
+  /*
+    Sem traço, o documento DIZ que não houve traço.
+
+    Antes, ausência de assinatura produzia um espaço em branco acima da linha,
+    indistinguível de uma falha de impressão ou de uma imagem que não carregou.
+    Quem lê o papel meses depois não tem como saber se a pessoa não assinou ou
+    se o sistema perdeu a assinatura.
+
+    E não é hipótese: em 09/09/2026, as três vistorias reais do piloto de
+    Florianópolis estavam no banco com `assinatura_chave` nula, porque a tela do
+    aplicativo liberava a conclusão sem a assinatura confirmada. Os três laudos
+    sairiam com o espaço vazio, sem uma palavra sobre o assunto.
+
+    Documento oficial não pode ter silêncio ambíguo: ou tem a assinatura, ou
+    afirma que ela não foi coletada.
+  */
   const traco = tracoUrl
     ? `<img class="traco" src="${escapar(tracoUrl)}" alt="Assinatura de ${escapar(nome)}">`
-    : "";
+    : `<div class="traco-ausente">Assinatura não coletada</div>`;
   return `<div class="assinatura">
     ${traco}
     <div class="linha"></div>

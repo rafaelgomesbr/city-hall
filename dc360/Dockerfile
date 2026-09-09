@@ -8,7 +8,7 @@
 # contínua, onde há Docker. Construir e subir uma vez antes do primeiro deploy
 # continua obrigatório.
 #
-# Três escolhas que valem explicação:
+# Quatro escolhas que valem explicação:
 #
 # 1. A imagem NÃO aplica migrações ao subir. Dois contêineres subindo ao
 #    mesmo tempo migrariam em paralelo, e o segundo falharia no meio. A
@@ -16,20 +16,29 @@
 # 2. Chromium vem instalado por causa da geração de PDF. Ele engorda a
 #    imagem em algumas centenas de megabytes; se o PDF virar job separado,
 #    esta imagem perde o navegador e o job ganha.
-# 3. DECISÃO PENDENTE sobre o PDF na imagem, e ela é do Rafa: `playwright` é
-#    devDependency e a etapa `dependencias` roda `--omit=dev`, então ele NÃO
-#    entra na imagem. O import dinâmico em pdf.ts é capturado e a rota de PDF
-#    responde 503 "use a versão para impressão" (graciosamente), mas o
-#    Chromium instalado acima fica de peso morto. As duas saídas coerentes:
-#    (a) PDF na imagem: mover playwright para `dependencies` e setar
-#        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 também na etapa `dependencias`;
-#    (b) sem PDF na imagem: remover a instalação do Chromium abaixo e assumir
-#        o 503 (o laudo HTML já tem botão de imprimir, e o levantamento prevê
-#        o PDF como job assíncrono quando o volume crescer).
-#    Enquanto não decidido, fica como está: 503 gracioso, Chromium ocioso.
+# 3. O PDF ENTRA na imagem, e a decisão foi tomada em 09/09/2026: é a saída
+#    (a) que estava escrita aqui como pendente. `playwright` saiu de
+#    devDependencies e entrou em `dependencies` de `apps/api`, então a etapa
+#    `dependencias`, que roda `--omit=dev`, agora o instala. O que estava
+#    acontecendo até aqui: o import dinâmico em pdf.ts falhava na imagem, OS
+#    DOIS BOTÕES DE PDF DO PAINEL respondiam 503 em produção, e o Chromium
+#    instalado logo abaixo era peso morto de algumas centenas de megabytes.
+#    Duas consequências que andam junto com a decisão:
+#      - `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` subiu para a etapa `base`, de
+#        onde TODAS as etapas herdam. Sem isso, o `npm ci` de `dependencias` e
+#        o de `construcao` baixariam cada um o seu navegador, e a imagem
+#        carregaria dois Chromium além do do Debian.
+#      - Quem lê `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` é o nosso pdf.ts, não o
+#        Playwright. Ver o comentário em apps/api/src/documentos/pdf.ts.
+# 4. O certificado da autoridade certificadora do provedor de banco entra na
+#    imagem (`COPY db/provedores`). Sem ele, a API não conecta: a conexão
+#    passou a ser verificada, e verificar sem âncora é não conectar.
 # =====================================================================
 FROM node:22-bookworm-slim AS base
 ENV NODE_ENV=production
+# Nenhuma etapa baixa navegador: o Chromium da imagem final é o do Debian,
+# instalado uma vez na etapa `runtime`.
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 WORKDIR /app
 
 FROM base AS dependencias
@@ -64,8 +73,9 @@ FROM base AS runtime
 RUN apt-get update \
  && apt-get install -y --no-install-recommends chromium fonts-liberation ca-certificates \
  && rm -rf /var/lib/apt/lists/*
-ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
-    PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
+# Lida por apps/api/src/documentos/pdf.ts, que a repassa como `executablePath`.
+# O Playwright ignora esta variável; ver o comentário no topo deste arquivo.
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
 
 COPY --from=dependencias /app/node_modules ./node_modules
 COPY --from=construcao /app/packages/shared/dist packages/shared/dist
@@ -75,6 +85,11 @@ COPY --from=construcao /app/packages/campo/package.json packages/campo/
 COPY --from=construcao /app/db/dist db/dist
 COPY --from=construcao /app/db/package.json db/
 COPY db/migrations db/migrations
+# A âncora de confiança do banco. É certificado público, não segredo, e vem do
+# repositório de propósito: baixar a CA na partida colocaria a rede no meio de
+# uma decisão de segurança. Sem este arquivo a API não sobe, porque a conexão
+# está em modo verificado; ver apps/api/src/banco/postgres.ts.
+COPY db/provedores db/provedores
 COPY --from=construcao /app/apps/api/dist apps/api/dist
 COPY --from=construcao /app/apps/api/package.json apps/api/
 

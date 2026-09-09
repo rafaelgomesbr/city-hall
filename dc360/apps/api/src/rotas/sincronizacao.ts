@@ -1,7 +1,16 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { chaveDeStorage, envelopeSincronizacaoSchema } from "@dc360/shared";
 import type { Banco } from "../banco/tipos.js";
 import { RegraDeNegocio, autorizar } from "../servidor.js";
+
+/**
+ * Teto de 200 de proposito: o aparelho manda o que tem guardado, e uma lista
+ * sem limite viraria caminho barato para varrer identificadores.
+ */
+const reconciliacaoSchema = z.object({
+  conhecidas: z.array(z.string().uuid()).max(200),
+});
 
 /**
  * Recepção da coleta feita em campo.
@@ -180,6 +189,113 @@ export async function rotasSincronizacao(
     return resposta.code(jaExistia ? 200 : 201).send({
       vistoriaId,
       duplicada: jaExistia,
+    });
+  });
+
+  /**
+   * Por que a tarefa sumiu da lista do agente.
+   *
+   * O aparelho apaga e reescreve a lista inteira a cada atualização
+   * (`apps/campo/src/dados/pendencias.ts`), então uma ocorrência encerrada no
+   * painel simplesmente DESAPARECE da tela do agente, sem lápide e sem aviso.
+   * Se ele tinha uma vistoria em andamento naquela tarefa, o rascunho fica
+   * órfão e invisível, e ao abrir o protocolo pelo caminho antigo ele recebe
+   * "não está guardada neste aparelho, conecte-se e baixe de novo", que sugere
+   * problema de download quando o que houve foi cancelamento.
+   *
+   * O aparelho manda os ids que conhece e recebe de volta o que saiu e por quê.
+   * Escolhido em vez de janela de tempo fixa (que chuta quantos dias guardar, e
+   * erra justamente no aparelho que ficou muito tempo fora) e em vez de cursor
+   * de alteração (que exigiria coluna, gatilho e índice novos, e cai em
+   * sincronização completa quando o cursor se perde).
+   *
+   * RESTRIÇÃO DE ISOLAMENTO, e ela não é opcional: só responde sobre ocorrência
+   * da equipe do próprio agente. Sem isso a rota vira oráculo de status,
+   * porque quem tem um id qualquer descobre em que pé está a ocorrência de
+   * outra equipe. Município diferente já some no RLS, que é o comportamento
+   * certo: indistinguível de id inexistente.
+   */
+  app.post("/pendencias/reconciliar", async (req) => {
+    const quem = await autorizar(app, req, "registrar_vistoria");
+    const { conhecidas } = reconciliacaoSchema.parse(req.body);
+
+    return banco.comTenant(quem.organizacaoId, async (c) => {
+      const atuais = await c.query<{ id: string }>(
+        `SELECT o.id
+           FROM ocorrencias o
+           JOIN usuarios u ON u.equipe_id = o.equipe_id
+          WHERE u.id = $1 AND o.status = 'em_campo'`,
+        [quem.usuarioId],
+      );
+      const ativos = new Set(atuais.rows.map((r) => r.id));
+      const sumiram = conhecidas.filter((id: string) => !ativos.has(id));
+
+      if (sumiram.length === 0) return { saidas: [] };
+
+      /*
+        A equipe é conferida contra a equipe ATUAL do agente, e o desfecho
+        "passou para outra equipe" sai daí. A ocorrência que nunca foi da equipe
+        dele simplesmente não aparece na resposta, e é assim que a rota deixa de
+        ser oráculo: id desconhecido e id de outra equipe são indistinguíveis.
+      */
+      const minhaEquipe = await c.query<{ equipe_id: string | null }>(
+        "SELECT equipe_id FROM usuarios WHERE id = $1", [quem.usuarioId],
+      );
+      const equipeDoAgente = minhaEquipe.rows[0]?.equipe_id ?? null;
+
+      /*
+        Duas portas, e so duas:
+
+        1. A ocorrencia continua sendo da equipe do agente. E o caso comum:
+           encerrada, devolvida para triagem, ou vistoria ja concluida.
+        2. A ocorrencia mudou de equipe, e o agente tinha coletado nela. Sem
+           isso, quem estava no meio de uma vistoria quando a coordenacao
+           trocou a equipe recebe silencio.
+
+        Fora dessas duas, a ocorrencia NAO aparece na resposta, e id de outra
+        equipe fica indistinguivel de id que nunca existiu. Essa e a linha que
+        impede a rota de virar oraculo de status.
+      */
+      const r = await c.query<{
+        id: string; protocolo: string; status: string;
+        motivo_encerramento: string | null; encerrado_em: string | null;
+        equipe_id: string | null;
+      }>(
+        `SELECT o.id, o.protocolo, o.status, o.motivo_encerramento, o.encerrado_em,
+                o.equipe_id
+           FROM ocorrencias o
+          WHERE o.id = ANY($1::uuid[])
+            AND (
+              o.equipe_id IS NOT DISTINCT FROM $3::uuid
+              OR EXISTS (
+                SELECT 1 FROM vistorias v
+                 WHERE v.ocorrencia_id = o.id AND v.agente_id = $2
+              )
+            )`,
+        [sumiram, quem.usuarioId, equipeDoAgente],
+      );
+
+      return {
+        saidas: r.rows.map((o) => ({
+          id: o.id,
+          protocolo: o.protocolo,
+          status: o.status,
+          motivo: o.motivo_encerramento,
+          saiuEm: o.encerrado_em,
+          /*
+            O motivo em linguagem de quem está na rua. O status cru não serve:
+            "vistoria_concluida" e "encerrada" pedem reações opostas do agente,
+            e uma delas não é alarme nenhum.
+          */
+          desfecho: o.status === "vistoria_concluida"
+            ? "concluida"
+            : o.status === "encerrada"
+              ? "encerrada"
+              : o.equipe_id !== equipeDoAgente
+                ? "outra_equipe"
+                : "devolvida",
+        })),
+      };
     });
   });
 

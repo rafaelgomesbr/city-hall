@@ -2,12 +2,17 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   CANAIS_ENTRADA, ROTULO_CANAL, ROTULO_TIPO_COBRADE, TIPOS_COBRADE,
-  aberturaOcorrenciaSchema, coordenadaEmTexto, lerLocalizacao, linkParaMapa,
+  aberturaOcorrenciaSchema, coordenadaEmTexto, digitosDoTelefone, errosPorCampo,
+  lerLocalizacao, linkParaMapa, mascararTelefone, telefoneParecePlausivel,
   type AberturaOcorrencia, type CanalEntrada, type TipoCobrade,
 } from "@dc360/shared";
-import { abrirOcorrencia, possiveisDuplicidades, type LinhaOcorrencia } from "../dados/repositorio";
+import {
+  ErroDaApi, abrirOcorrencia, possiveisDuplicidades, type LinhaOcorrencia,
+} from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
-import { Aviso, Cartao, ErroCampo, formatarDataHora } from "../componentes/comuns";
+import {
+  Aviso, Cartao, ErroCampo, ErrosDoServidor, formatarDataHora,
+} from "../componentes/comuns";
 import { IconeVoltar } from "../componentes/Icones";
 
 /**
@@ -48,6 +53,10 @@ export function NovaOcorrencia() {
   const [duplicidades, setDuplicidades] = useState<LinhaOcorrencia[] | null>(null);
   const [gravando, setGravando] = useState(false);
   const [falha, setFalha] = useState<string | null>(null);
+  /** Os campos que o servidor recusou, para o resumo do aviso vermelho. */
+  const [camposRecusados, setCamposRecusados] = useState<
+    ReadonlyArray<{ campo: string; mensagem: string }>
+  >([]);
 
   function montar() {
     /*
@@ -61,7 +70,10 @@ export function NovaOcorrencia() {
     const coordenada = leitura.tipo === "coordenada" ? leitura.coordenada : undefined;
     return {
       solicitanteNome: solicitante.trim(),
-      solicitanteContato: contato.trim() || undefined,
+      // Vai só o que serve para ligar de volta. A máscara é ajuda de
+      // digitação, não formato de armazenamento: gravar o desenho faria a
+      // mesma pessoa aparecer com dois telefones diferentes numa busca.
+      solicitanteContato: digitosDoTelefone(contato) || undefined,
       canalEntrada: canal,
       endereco: endereco.trim(),
       coordenada,
@@ -100,7 +112,7 @@ export function NovaOcorrencia() {
     } catch (e: unknown) {
       // Sem este catch, a falha vira rejeição não tratada e o formulário
       // simplesmente para de responder, sem dizer nada a quem está no telefone.
-      setFalha(e instanceof Error ? e.message : String(e));
+      tratarFalha(e);
     }
     setGravando(false);
   }
@@ -115,14 +127,38 @@ export function NovaOcorrencia() {
     await gravar(resultado.data, vinculadaA);
   }
 
+  /*
+    Um lugar so para traduzir falha em coisa acionavel.
+
+    O servidor sempre devolveu, num 422, a lista exata do que precisa ser
+    corrigido, e o painel montava isso em `ErroDaApi.campos` e nunca exibia.
+    Quem estava com o telefone no ombro lia "Alguns campos precisam ser
+    corrigidos" e voltava a cacar o erro no olho.
+
+    Agora a lista vira duas coisas ao mesmo tempo: o erro embaixo do campo
+    certo, casado pelo nome, e a lista de resumo no aviso vermelho, que cobre
+    campo sem input visivel na tela.
+  */
+  function tratarFalha(e: unknown): void {
+    if (e instanceof ErroDaApi && e.campos.length > 0) {
+      setCamposRecusados(e.campos);
+      setErros((atuais) => ({ ...atuais, ...errosPorCampo(e.campos) }));
+      setFalha(e.message);
+      return;
+    }
+    setCamposRecusados([]);
+    setFalha(e instanceof Error ? e.message : String(e));
+  }
+
   async function gravar(dados: AberturaOcorrencia, vinculadaA?: string) {
     setGravando(true);
     setFalha(null);
+    setCamposRecusados([]);
     try {
       const id = await abrirOcorrencia(sessao, vinculadaA ? { ...dados, vinculadaA } : dados);
       navegar(`/ocorrencias/${id}`);
     } catch (e: unknown) {
-      setFalha(e instanceof Error ? e.message : String(e));
+      tratarFalha(e);
       setGravando(false);
     }
   }
@@ -140,7 +176,12 @@ export function NovaOcorrencia() {
         </div>
       </div>
 
-      {falha && <Aviso tom="perigo">Não foi possível gravar: {falha}</Aviso>}
+      {falha && (
+        <Aviso tom="perigo">
+          Não foi possível gravar: {falha}
+          <ErrosDoServidor campos={camposRecusados} />
+        </Aviso>
+      )}
 
       {duplicidades && duplicidades.length > 0 && (
         <Cartao titulo="Já existe chamado parecido nas últimas 48 horas">
@@ -223,8 +264,23 @@ export function NovaOcorrencia() {
 
               <div className="campo">
                 <label htmlFor="nova-contato">Contato (opcional)</label>
-                <input id="nova-contato" type="text" value={contato}
-                       onChange={(e) => setContato(e.target.value)} placeholder="(35) 99999-0000" />
+                {/*
+                  Máscara na digitação, e nenhuma validação que bloqueie o
+                  envio. Quem liga pedindo socorro pode ditar ramal, número de
+                  outro estado ou telefone do vizinho, e recusar isso
+                  transformaria o campo de contato numa barreira no pior momento
+                  possível. O aviso abaixo cobre o erro de digitação de verdade,
+                  que é dígito faltando, sem impedir nada.
+                */}
+                <input id="nova-contato" type="tel" inputMode="tel" autoComplete="tel"
+                       value={contato}
+                       onChange={(e) => setContato(mascararTelefone(e.target.value))}
+                       placeholder="(48) 9 9999-0000" />
+                {contato.trim() !== "" && !telefoneParecePlausivel(contato) && (
+                  <span className="campo__dica">
+                    Confira o número: parece faltar dígito. Pode registrar assim mesmo.
+                  </span>
+                )}
               </div>
             </div>
 

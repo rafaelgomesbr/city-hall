@@ -94,6 +94,50 @@ export const temaEscuro: Tema = {
   sevCriticaTexto: "#FFFFFF", sevCriticaFundo: "#B91C1C",
 };
 
+/**
+ * Tokens de ARTEFATO DE DOCUMENTO. Não seguem o tema, de propósito.
+ *
+ * Existe uma classe de tela neste aplicativo que não é superfície de
+ * aplicativo: é papel desenhado na tela. O quadro de assinatura e a minuta do
+ * laudo são as duas. Papel não tem modo escuro, e tratá-las como se tivessem
+ * produziu um defeito real, encontrado no teste de campo de 08/09/2026:
+ *
+ * O quadro de assinatura desenhava o traço com `tema.texto`. No tema escuro
+ * isso é `tinta.gelo`, quase branco. `toDataURL` do react-native-svg rasteriza
+ * exatamente o que está desenhado, então o PNG saía com traço branco, e esse
+ * PNG entra no laudo oficial, cujo papel é `#FFFFFF`. Traço branco em papel
+ * branco: a assinatura do morador, que é a prova de que ele estava no local
+ * quando a casa foi interditada, ficava invisível no documento. Nada reclamava,
+ * porque na tela do agente, escura, o traço aparecia perfeitamente.
+ *
+ * A minuta falhava pelo mesmo motivo, com consequência mais barata: o agente
+ * vira o telefone para o morador ver o que vai assinar, e no tema escuro aquilo
+ * não parecia documento nenhum.
+ *
+ * Os valores são os mesmos do papel de verdade, em
+ * `apps/api/src/documentos/folha.ts`: é o mesmo documento visto antes e depois
+ * de virar arquivo, e ele precisa ser reconhecível como o mesmo.
+ *
+ * `fundo` precisa ser OPACO. Cor com transparência aqui vira PNG transparente,
+ * e o traço passa a depender do que estiver atrás dele no visualizador de quem
+ * abrir o laudo.
+ */
+export const papel = {
+  /** O papel. Branco nos dois temas, igual ao `--papel` da folha impressa. */
+  fundo: tinta.branco,
+  /** A tinta do traço e do texto, igual ao `--tinta` da folha impressa. */
+  tinta: tinta.t900,
+  /** Tinta secundária, para rótulo e legenda: o `--tinta-fraca` da folha. */
+  tintaDiscreta: "#4A5763",
+  /** Fio de régua, separador e borda da folha: o `--linha` da folha. */
+  linha: "#C9D2D8",
+  /** A mesa sob a folha, para a folha ter onde terminar. */
+  mesa: tinta.t100,
+  /** A tarja de "isto não é o documento", também fixa nos dois temas. */
+  avisoFundo: "#FEF3C7",
+  avisoTinta: "#92400E",
+} as const;
+
 export const espaco = {
   e1: 4, e2: 8, e3: 12, e4: 16, e5: 24, e6: 32, e7: 48, e8: 64,
 } as const;

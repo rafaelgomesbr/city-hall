@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
-import { PanResponder, View } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import { PanResponder, View, type LayoutChangeEvent } from "react-native";
+import Svg, { Path, Rect } from "react-native-svg";
 import { File, Paths } from "expo-file-system";
 import { Botao, Txt, useTema } from "./componentes";
-import { espaco, raio } from "./tokens";
+import { espaco, papel, raio } from "./tokens";
 
 /**
  * Assinatura de próprio punho, com o dedo.
@@ -13,7 +13,7 @@ import { espaco, raio } from "./tokens";
  * alguém contesta, e ela precisa existir como imagem, e não só como nome
  * digitado por quem conduziu a vistoria.
  *
- * Duas decisões que parecem detalhe:
+ * Quatro decisões que parecem detalhe:
  *
  * 1. **Os traços ficam em estado local e a gravação em arquivo só acontece ao
  *    confirmar.** Escrever a cada movimento do dedo travaria o desenho num
@@ -21,6 +21,11 @@ import { espaco, raio } from "./tokens";
  * 2. **O arquivo vai para o diretório de documentos, e não para o cache.** O
  *    sistema apaga cache sem avisar quando o armazenamento aperta, e a coleta
  *    pode passar horas no aparelho antes de sincronizar.
+ * 3. **O quadro é papel, e não superfície de aplicativo.** Ver `papel` em
+ *    `tokens.ts`: o traço saía branco no tema escuro e sumia no laudo, que é
+ *    impresso em papel branco.
+ * 4. **A largura do SVG é medida e passada em pixels.** Ver o comentário sobre
+ *    `onLayout` mais abaixo.
  */
 
 type Props = {
@@ -33,11 +38,24 @@ type Props = {
 
 const ALTURA = 180;
 
+/**
+ * Teto de espera da rasterização.
+ *
+ * `toDataURL` recebe callback e não tem caminho de erro: se a implementação
+ * nativa não chamar de volta, a promessa nunca resolve, `gravando` fica true
+ * para sempre e o botão de confirmar trava, com o morador parado esperando
+ * para assinar. Oito segundos é folgado até para o aparelho mais lento que a
+ * prefeitura compra, e curto o bastante para o agente decidir o que fazer.
+ */
+const LIMITE_DE_GRAVACAO_MS = 8000;
+
 export function Assinatura({ aoConfirmar, aoLimpar, jaAssinada }: Props) {
   const tema = useTema();
   const [tracos, setTracos] = useState<string[]>([]);
   const [tracoAtual, setTracoAtual] = useState<string>("");
   const [gravando, setGravando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [largura, setLargura] = useState(0);
   const svgRef = useRef<Svg>(null);
 
   /*
@@ -71,11 +89,25 @@ export function Assinatura({ aoConfirmar, aoLimpar, jaAssinada }: Props) {
   function limpar(): void {
     setTracos([]);
     setTracoAtual("");
+    setErro(null);
     aoLimpar();
+  }
+
+  /*
+    A largura chega medida, e não como "100%".
+
+    Em parte dos aparelhos Android o `toDataURL` rasteriza errado quando a
+    largura do SVG é percentual: a tela mostra o traço no lugar certo e o PNG
+    sai cortado ou esticado. O defeito só aparece no laudo, dias depois, quando
+    já não dá para chamar o morador de volta para assinar de novo.
+  */
+  function medir(evento: LayoutChangeEvent): void {
+    setLargura(Math.round(evento.nativeEvent.layout.width));
   }
 
   async function confirmar(): Promise<void> {
     if (vazia || !svgRef.current) return;
+    setErro(null);
     setGravando(true);
     try {
       /*
@@ -90,13 +122,33 @@ export function Assinatura({ aoConfirmar, aoLimpar, jaAssinada }: Props) {
           rejeitar(new Error("Este aparelho não conseguiu gerar a imagem da assinatura."));
           return;
         }
-        alvo.toDataURL((dados) => resolver(dados));
+        const relogio = setTimeout(() => {
+          rejeitar(new Error(
+            "O aparelho não respondeu ao gerar a imagem da assinatura. Tente confirmar de novo.",
+          ));
+        }, LIMITE_DE_GRAVACAO_MS);
+        alvo.toDataURL((dados) => {
+          clearTimeout(relogio);
+          resolver(dados);
+        });
       });
 
       const arquivo = new File(Paths.document, `assinatura-${Date.now()}.png`);
       arquivo.create({ overwrite: true });
       arquivo.write(base64ParaBytes(base64));
       aoConfirmar(arquivo.uri);
+    } catch (falha) {
+      /*
+        A falha vira texto na tela, e o traço fica onde está.
+
+        Antes disto a promessa rejeitada morria sem dono e a tela não mudava:
+        o agente via o botão voltar ao normal e não sabia se a assinatura tinha
+        sido guardada. Limpar o desenho aqui seria pior ainda, porque obrigaria
+        o morador a assinar de novo por um defeito que não é dele.
+      */
+      setErro(falha instanceof Error
+        ? falha.message
+        : "Não foi possível gravar a assinatura neste aparelho.");
     } finally {
       setGravando(false);
     }
@@ -129,22 +181,42 @@ export function Assinatura({ aoConfirmar, aoLimpar, jaAssinada }: Props) {
 
       <View
         {...gesto.panHandlers}
+        onLayout={medir}
+        testID="quadro-de-assinatura"
         accessibilityLabel="Quadro de assinatura. Arraste o dedo para assinar."
         style={{
           height: ALTURA,
           borderWidth: 1,
-          borderColor: tema.borda,
+          /*
+            Papel, e não `tema.superficie`. O que está aqui dentro é o que vai
+            para o laudo, e o laudo é impresso em branco nos dois temas.
+          */
+          borderColor: papel.linha,
           borderRadius: raio.normal,
-          backgroundColor: tema.superficie,
+          backgroundColor: papel.fundo,
           overflow: "hidden",
         }}
       >
-        <Svg ref={svgRef} width="100%" height={ALTURA}>
+        <Svg ref={svgRef} width={largura} height={ALTURA} testID="tela-de-assinatura">
+          {/*
+            O fundo é pintado DENTRO do SVG, e não só no `View` de fora.
+
+            `toDataURL` rasteriza o SVG, e mais nada: o `backgroundColor` do
+            `View` fica de fora do arquivo. Sem este retângulo opaco o PNG sai
+            com fundo transparente, e aí o traço aparece ou some conforme o que
+            estiver atrás dele em cada visualizador que abrir o laudo.
+          */}
+          <Rect
+            testID="papel-da-assinatura"
+            x={0} y={0} width={largura} height={ALTURA}
+            fill={papel.fundo}
+          />
           {[...tracos, tracoAtual].filter(Boolean).map((d, i) => (
             <Path
               key={i}
+              testID="traco-da-assinatura"
               d={d}
-              stroke={tema.texto}
+              stroke={papel.tinta}
               strokeWidth={3}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -153,6 +225,19 @@ export function Assinatura({ aoConfirmar, aoLimpar, jaAssinada }: Props) {
           ))}
         </Svg>
       </View>
+
+      {erro && (
+        <View
+          accessibilityRole="alert"
+          style={{
+            backgroundColor: tema.perigoFundo,
+            borderRadius: raio.normal,
+            padding: espaco.e3,
+          }}
+        >
+          <Txt variante="corpoP" cor={tema.perigoTexto}>{erro}</Txt>
+        </View>
+      )}
 
       <View style={{ flexDirection: "row", gap: espaco.e2 }}>
         <Botao

@@ -6,6 +6,7 @@ import {
   type StatusOcorrencia,
 } from "@dc360/shared";
 import { IconeAlerta, IconeCheck, IconeStatus } from "./Icones";
+import { rotuloDoCampo } from "@dc360/shared";
 
 /**
  * Peças reaproveitadas entre páginas. Duas regras do design system são
@@ -96,6 +97,34 @@ export function Aviso({ tom, children }: { tom: "info" | "perigo" | "sucesso" | 
       {tom === "sucesso" ? <IconeCheck tamanho={20} /> : <IconeAlerta tamanho={20} />}
       <div>{children}</div>
     </div>
+  );
+}
+
+/**
+ * A lista de campos que o servidor recusou, dita em português.
+ *
+ * Existe porque o 422 do servidor sempre trouxe `campos`, com o caminho exato e
+ * a mensagem de cada um, e o painel montava isso em `ErroDaApi.campos` e NUNCA
+ * exibia. Quem preenchia o formulário lia "Alguns campos precisam ser
+ * corrigidos" e voltava a caçar o erro no olho.
+ *
+ * A tela casa a maior parte desses campos com os próprios inputs, e o erro
+ * aparece embaixo do campo certo. Este componente cobre o resto: campo que não
+ * tem input visível na tela (item de checklist, foto, coordenada dentro de um
+ * envelope) continuaria invisível sem ele.
+ */
+export function ErrosDoServidor(
+  { campos }: { campos: ReadonlyArray<{ campo: string; mensagem: string }> },
+) {
+  if (campos.length === 0) return null;
+  return (
+    <ul className="erros-do-servidor">
+      {campos.map((c) => (
+        <li key={`${c.campo}:${c.mensagem}`}>
+          <strong>{rotuloDoCampo(c.campo)}:</strong> {c.mensagem}
+        </li>
+      ))}
+    </ul>
   );
 }
 

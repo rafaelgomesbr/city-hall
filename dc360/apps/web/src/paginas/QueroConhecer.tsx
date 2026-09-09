@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { interesseMunicipioSchema, ROTULO_FAIXA_POPULACAO } from "@dc360/shared";
 import { registrarInteresse } from "../dados/repositorio";
 import { Aviso, ErroCampo } from "../componentes/comuns";
+import { digitosDoTelefone, mascararTelefone } from "@dc360/shared";
 
 /**
  * A porta de entrada de quem ainda não é cliente.
@@ -45,7 +46,7 @@ export function QueroConhecer() {
       nome: campos.nome,
       cargo: campos.cargo || undefined,
       email: campos.email,
-      telefone: campos.telefone || undefined,
+      telefone: digitosDoTelefone(campos.telefone) || undefined,
       municipio: campos.municipio,
       uf: campos.uf,
       orgao: campos.orgao || undefined,
@@ -218,10 +219,12 @@ export function QueroConhecer() {
             </div>
             <div className="campo">
               <label htmlFor="ic-telefone">Telefone (opcional)</label>
+              {/* Mesma máscara da abertura de ocorrência, pela mesma razão:
+                  o número entra por duas portas e precisa sair igual das duas. */}
               <input
-                id="ic-telefone" value={campos.telefone}
-                onChange={(e) => alterar("telefone", e.target.value)}
-                autoComplete="tel"
+                id="ic-telefone" type="tel" inputMode="tel" value={campos.telefone}
+                onChange={(e) => alterar("telefone", mascararTelefone(e.target.value))}
+                autoComplete="tel" placeholder="(48) 9 9999-0000"
               />
             </div>
           </div>

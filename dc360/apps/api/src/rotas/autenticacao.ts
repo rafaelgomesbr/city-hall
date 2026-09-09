@@ -39,8 +39,32 @@ const trocaSchema = z.object({
 
 type Opcoes = { autenticacao: ServicoAutenticacao; config: Config };
 
+/*
+  A recuperacao desligada precisa RECUSAR, e essa era a metade que faltava.
+
+  `RECUPERACAO_ATIVA` era validada na partida (`config.ts`) e nunca lida por
+  rota nenhuma. O resultado, confirmado contra a producao em 08/09/2026 com a
+  variavel ja em `nao`: a rota respondia 202 "enviamos um link de redefinicao"
+  e nada saia. O comentario do proprio `config.ts` afirmava que "a rota recusa
+  e manda procurar quem administra o municipio", e essa rota nunca existiu.
+
+  503, e nao 404, porque o servico existe e esta indisponivel por decisao de
+  quem implantou. A mensagem diz o que fazer agora, que e o unico caminho que
+  de fato funciona hoje.
+
+  `/redefinir` recusa junto: sem isso, um token aberto antes de a recuperacao
+  ser desligada continuaria trocando senha depois do desligamento.
+*/
+const RESPOSTA_DESLIGADA = {
+  erro: "recuperacao_desligada",
+  mensagem:
+    "A recuperacao de senha por email esta desligada neste municipio. "
+    + "Procure quem administra o sistema na sua Defesa Civil para redefinir a sua senha.",
+} as const;
+
 export async function rotasAutenticacao(app: FastifyInstance, opcoes: Opcoes): Promise<void> {
   const { autenticacao } = opcoes;
+  const recuperacaoDesligada = opcoes.config.RECUPERACAO_ATIVA === "nao";
 
   /**
    * Limite bem mais apertado que o global, e por endereço.
@@ -100,6 +124,7 @@ export async function rotasAutenticacao(app: FastifyInstance, opcoes: Opcoes): P
    */
   app.post("/recuperar", limiteLogin, async (req, resposta) => {
     const { email } = recuperacaoSchema.parse(req.body);
+    if (recuperacaoDesligada) return resposta.code(503).send(RESPOSTA_DESLIGADA);
     await autenticacao.pedirRecuperacao(email, { ip: enderecoDoCliente(req) });
     return resposta.code(202).send({
       mensagem:
@@ -109,6 +134,7 @@ export async function rotasAutenticacao(app: FastifyInstance, opcoes: Opcoes): P
   });
 
   app.post("/redefinir", limiteLogin, async (req, resposta) => {
+    if (recuperacaoDesligada) return resposta.code(503).send(RESPOSTA_DESLIGADA);
     const dados = redefinicaoSchema.parse(req.body);
     await autenticacao.redefinirSenha(dados.token, dados.senha);
     // Nenhum token de sessao volta daqui: quem redefiniu entra de novo, e

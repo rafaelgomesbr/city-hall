@@ -12,6 +12,25 @@ import {
   type Transporte,
 } from "./tipos.js";
 
+/**
+ * Codigos que significam "esta coleta perdeu o destino", e nao "esta coleta
+ * esta errada".
+ *
+ * `ja_encerrada` vem de 409 quando a ocorrencia foi encerrada no painel
+ * enquanto a coleta esperava sinal. `nao_encontrada` vem de 404. Nos dois casos
+ * o agente fez o trabalho certo e nao ha o que corrigir.
+ *
+ * Este e o primeiro `if` sobre codigo de erro da fila inteira. Ate 09/09/2026 o
+ * `codigo` chegava dentro de `FalhaPermanente` e era descartado na hora de
+ * gravar, entao a fila nao tinha como distinguir um caso do outro.
+ */
+export const CODIGOS_SEM_DESTINO = ["ja_encerrada", "nao_encontrada"] as const;
+
+export function coletaSemDestino(codigo: string): boolean {
+  return (CODIGOS_SEM_DESTINO as readonly string[]).includes(codigo);
+}
+
+
 export type OpcoesFila = {
   deposito: Deposito;
   transporte: Transporte;
@@ -92,6 +111,16 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       enviando: itens.filter((i) => i.estado === "enviando").length,
       confirmados: itens.filter((i) => i.estado === "confirmado").length,
       bloqueados: itens.filter((i) => i.estado === "bloqueado").length,
+      /*
+        Arquivado conta separado, e NAO entra em `bloqueados`, de proposito.
+
+        `bloqueados` alimenta o cracha do menu e a frase "precisa de atencao".
+        Coleta cuja ocorrencia foi encerrada nao precisa de atencao de ninguem:
+        somar ela ali produzia um numero permanente que o agente nao tinha como
+        zerar, e um cracha que nunca zera e um cracha que a pessoa aprende a
+        ignorar, inclusive quando ele passa a indicar algo de verdade.
+      */
+      arquivados: itens.filter((i) => i.estado === "arquivado").length,
       sincronizando: drenando,
     };
   }
@@ -132,7 +161,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       tentativas: 0,
       criadoEm: instante,
       liberadoEm: instante,
-      ultimoErro: null,
+      ultimaFalha: null,
       confirmadoEm: null,
       fotos: [
         ...(dados.fotos ?? []).map((f): FotoNaFila => ({
@@ -235,7 +264,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
             ...aposFotos,
             estado: "confirmado",
             tentativas: item.tentativas + 1,
-            ultimoErro: null,
+            ultimaFalha: null,
             confirmadoEm: agora().toISOString(),
           });
           if (recibo.duplicada) resultado.duplicados += 1;
@@ -345,23 +374,49 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
     return { envelope, enviadasAgora };
   }
 
+  /** Guarda a falha inteira, e nao so a frase: o codigo e os campos importam. */
+  function registrarFalha(erro: unknown, permanente: boolean) {
+    const permanenteConhecida = erro instanceof FalhaPermanente;
+    return {
+      codigo: permanenteConhecida ? erro.codigo : "falha_de_rede",
+      mensagem: erro instanceof Error ? erro.message : String(erro),
+      campos: permanenteConhecida ? erro.campos : [],
+      permanente,
+      em: agora().toISOString(),
+    };
+  }
+
   async function tratarFalha(
     item: ItemFila,
     erro: unknown,
-  ): Promise<"adiado" | "bloqueado"> {
+  ): Promise<"adiado" | "bloqueado" | "arquivado"> {
     const tentativas = item.tentativas + 1;
     // Rele do deposito para nao descartar as fotos que subiram nesta rodada.
     const atual = (await deposito.listar()).find((i) => i.id === item.id) ?? item;
     const comProgresso = { ...item, fotos: atual.fotos };
 
     if (erro instanceof FalhaPermanente) {
+      /*
+        Coleta sem destino nao e a mesma coisa que coleta recusada.
+
+        Quando a ocorrencia foi encerrada no painel enquanto a coleta esperava
+        sinal, repetir nunca vai funcionar e o agente nao errou nada. Antes isso
+        virava `bloqueado`, o cracha do menu passava a gritar um numero que
+        ninguem conseguia zerar, e o unico caminho de saida era o agente apagar
+        o proprio trabalho.
+
+        Arquivado sai do dreno e sai da contagem de atencao, e a coleta continua
+        guardada: ela e prova de um ato que aconteceu, e a ocorrencia pode ter
+        sido encerrada por engano.
+      */
+      const semDestino = coletaSemDestino(erro.codigo);
       await deposito.salvar({
         ...comProgresso,
-        estado: "bloqueado",
+        estado: semDestino ? "arquivado" : "bloqueado",
         tentativas,
-        ultimoErro: erro.message,
+        ultimaFalha: registrarFalha(erro, true),
       });
-      return "bloqueado";
+      return semDestino ? "arquivado" : "bloqueado";
     }
 
     if (tentativas >= maximoTentativas) {
@@ -369,9 +424,15 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
         ...comProgresso,
         estado: "bloqueado",
         tentativas,
-        ultimoErro:
-          `Não foi possível enviar depois de ${tentativas} tentativas. ` +
-          `Último erro: ${erro instanceof Error ? erro.message : String(erro)}`,
+        ultimaFalha: {
+          codigo: "tentativas_esgotadas",
+          mensagem:
+            `Não foi possível enviar depois de ${tentativas} tentativas. `
+            + `Último erro: ${erro instanceof Error ? erro.message : String(erro)}`,
+          campos: [],
+          permanente: true,
+          em: agora().toISOString(),
+        },
       });
       return "bloqueado";
     }
@@ -382,7 +443,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       estado: "pendente",
       tentativas,
       liberadoEm: new Date(agora().getTime() + espera).toISOString(),
-      ultimoErro: erro instanceof Error ? erro.message : String(erro),
+      ultimaFalha: registrarFalha(erro, false),
     });
     return "adiado";
   }
@@ -415,13 +476,16 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
    */
   async function reenviar(id: string): Promise<void> {
     const item = (await deposito.listar()).find((i) => i.id === id);
-    if (!item || item.estado !== "bloqueado") return;
+    // Arquivado entra junto: se a coordenacao reabrir a ocorrencia, o agente
+    // precisa conseguir mandar a coleta que ficou parada. Sem isto, o botao
+    // some exatamente nos itens que o estado novo criou.
+    if (!item || (item.estado !== "bloqueado" && item.estado !== "arquivado")) return;
     await deposito.salvar({
       ...item,
       estado: "pendente",
       tentativas: 0,
       liberadoEm: agora().toISOString(),
-      ultimoErro: null,
+      ultimaFalha: null,
     });
     await avisar();
   }
@@ -432,7 +496,9 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
    */
   async function descartar(id: string): Promise<void> {
     const item = (await deposito.listar()).find((i) => i.id === id);
-    if (!item || item.estado !== "bloqueado") return;
+    // Arquivado tambem pode ser descartado: e o caminho do agente que confere
+    // que a ocorrencia foi mesmo encerrada e nao quer mais aquilo na tela.
+    if (!item || (item.estado !== "bloqueado" && item.estado !== "arquivado")) return;
     await deposito.remover(id);
     await avisar();
   }

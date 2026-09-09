@@ -24,6 +24,7 @@ import {
   Aviso, Botao, Cartao, Carregando, SeloSeveridade, Separador, Txt, useTema,
 } from "../../../ui/componentes";
 import { espaco, fonte, raio, toque } from "../../../ui/tokens";
+import { faltaParaConcluir } from "@dc360/campo";
 
 /**
  * A coleta em campo. É por esta tela que o produto existe.
@@ -278,10 +279,28 @@ export default function TelaDeVistoria() {
   if (erro && !ocorrencia) return <View style={{ padding: espaco.e4 }}><Aviso tom="perigo">{erro}</Aviso></View>;
   if (!ocorrencia || !rascunho) return null;
 
-  const obrigatoriosFeitos = CHECKLIST_OBRIGATORIO.every((i) => i.chave in rascunho.checklist);
-  const temFoto = rascunho.fotos.length > 0;
-  const temAssinante = rascunho.assinanteNome.trim().length > 0;
-  const podeConcluir = obrigatoriosFeitos && temFoto && temAssinante;
+  /*
+    Uma lista so, calculada fora da tela.
+
+    Antes eram duas: a condicao do botao (`obrigatoriosFeitos && temFoto &&
+    temAssinante`) e a frase do aviso, escrita a mao trezentas linhas abaixo com
+    os mesmos tres itens. As duas esqueceram a assinatura, e `temAssinante`
+    olhava o campo de TEXTO com o nome, nunca o traco.
+
+    Consequencia medida em producao em 09/09/2026: as tres vistorias reais do
+    piloto de Florianopolis chegaram ao servidor com `assinatura_chave` nula. O
+    agente desenhou e o botao ja estava liberado.
+  */
+  const faltas = faltaParaConcluir(
+    {
+      checklist: rascunho.checklist,
+      quantasFotos: rascunho.fotos.length,
+      assinanteNome: rascunho.assinanteNome,
+      assinaturaUri: rascunho.assinaturaUri ?? null,
+    },
+    CHECKLIST_OBRIGATORIO,
+  );
+  const podeConcluir = faltas.length === 0;
 
   if (minutaAberta) {
     /*
@@ -669,13 +688,7 @@ export default function TelaDeVistoria() {
 
       {!podeConcluir && (
         <Aviso tom="alerta">
-          Falta{" "}
-          {[
-            !obrigatoriosFeitos && "responder o checklist obrigatório",
-            !temFoto && "tirar pelo menos uma foto",
-            !temAssinante && "informar quem estava no local",
-          ].filter(Boolean).join(", ")}
-          .
+          Falta {faltas.join(", ")}.
         </Aviso>
       )}
 

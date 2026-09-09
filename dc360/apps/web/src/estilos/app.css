@@ -204,7 +204,10 @@ body {
 .identidade__nome { font-size: var(--ds-fs-body-sm); font-weight: 600; line-height: var(--ds-lh-caption); }
 .identidade__papel { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); line-height: var(--ds-lh-caption); }
 
-.conteudo { grid-area: conteudo; padding: var(--ds-sp-6); max-width: 1320px; width: 100%; }
+/* `margin-inline: auto` centraliza o conteudo. Sem ele, o teto de 1320px
+   deixava o painel colado a esquerda e uma faixa vazia permanente a direita
+   em qualquer monitor largo: em 2560px sobravam quase mil pixels de fundo. */
+.conteudo { grid-area: conteudo; padding: var(--ds-sp-6); max-width: 1320px; width: 100%; margin-inline: auto; }
 
 .cabecalho-pagina {
   display: flex; align-items: flex-end; gap: var(--ds-sp-4);
@@ -747,3 +750,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
   line-height: var(--ds-lh-body-sm);
 }
 .lista-valor strong { color: var(--ds-text); font-weight: 600; }
+
+/* Lista de campos recusados pelo servidor, dentro de um Aviso de perigo. */
+.erros-do-servidor { margin: var(--ds-sp-2) 0 0; padding-left: var(--ds-sp-5); display: grid; gap: var(--ds-sp-1); }
+.erros-do-servidor li { font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }

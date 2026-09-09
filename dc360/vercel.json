@@ -6,8 +6,14 @@
   "framework": null,
   "build": {
     "env": {
-      "VITE_API_URL": "https://defesa-civil.fly.dev"
+      "VITE_API_URL": "https://defesa-civil.fly.dev",
+      "VITE_GOOGLE_MAPS_CHAVE": ""
     }
   },
-  "rewrites": [{ "source": "/((?!assets/).*)", "destination": "/index.html" }]
+  "rewrites": [
+    {
+      "source": "/((?!assets/).*)",
+      "destination": "/index.html"
+    }
+  ]
 }

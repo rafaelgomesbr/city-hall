@@ -37,6 +37,31 @@ async function lerCorpo(resposta: Response): Promise<Record<string, unknown>> {
   }
 }
 
+/**
+ * Traduz uma resposta recusada numa falha que a fila sabe explicar.
+ *
+ * Existe em um lugar so de proposito. Antes a classificacao estava escrita
+ * duas vezes, no `chamar` e no `enviar`, e as duas copias liam apenas
+ * `mensagem` e `erro`. A lista `campos`, que o servidor sempre mandou no 422 e
+ * que e a unica parte da resposta que diz QUAL campo esta errado, era lida e
+ * descartada na mesma linha. Duas copias tambem sao duas chances de divergir.
+ */
+function falhaDaResposta(status: number, corpo: Record<string, unknown>): FalhaPermanente {
+  const brutos = Array.isArray(corpo["campos"]) ? corpo["campos"] : [];
+  const campos = brutos
+    .filter((c): c is { campo: string; mensagem: string } =>
+      typeof c === "object" && c !== null
+      && typeof (c as { campo?: unknown }).campo === "string"
+      && typeof (c as { mensagem?: unknown }).mensagem === "string")
+    .map((c) => ({ campo: c.campo, mensagem: c.mensagem }));
+
+  return new FalhaPermanente(
+    String(corpo["mensagem"] ?? `O servidor recusou o envio (${status}).`),
+    String(corpo["erro"] ?? `http_${status}`),
+    campos,
+  );
+}
+
 export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
   const { baseUrl, obterToken, buscar = fetch, tempoLimiteMs = 30_000 } = opcoes;
   const base = baseUrl.replace(/\/$/, "");
@@ -79,11 +104,7 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
       throw new FalhaTemporaria(`Servidor indisponivel (${resposta.status}).`);
     }
 
-    const erro = await lerCorpo(resposta);
-    throw new FalhaPermanente(
-      String(erro["mensagem"] ?? `O servidor recusou o envio (${resposta.status}).`),
-      String(erro["erro"] ?? `http_${resposta.status}`),
-    );
+    throw falhaDaResposta(resposta.status, await lerCorpo(resposta));
   }
 
   return {

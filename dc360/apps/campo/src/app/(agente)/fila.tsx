@@ -42,8 +42,27 @@ function descreverEstado(item: ItemFila): { rotulo: string; explicacao: string }
     case "bloqueado":
       return {
         rotulo: "Precisa de atenção",
-        explicacao: item.ultimoErro
+        explicacao: item.ultimaFalha?.mensagem
           ?? "O servidor recusou por um motivo que repetir não resolve.",
+      };
+    /*
+      Coleta arquivada é a que perdeu o destino: a ocorrência foi encerrada no
+      painel enquanto ela esperava sinal. Precisa de rótulo próprio porque
+      "Precisa de atenção" seria mentira duas vezes: o agente não errou nada, e
+      não existe nada que ele possa fazer para o envio passar.
+
+      O caso não é decoração. Sem ele o `switch` fica sem saída para um estado
+      que já existe no motor, e a tela renderiza um cartão sem rótulo nem
+      explicação para uma coleta que a pessoa acabou de fazer, que é
+      exatamente a dúvida ("cadê a minha vistoria?") que esta tela existe para
+      dissolver.
+    */
+    case "arquivado":
+      return {
+        rotulo: "Arquivada",
+        explicacao: item.ultimaFalha?.mensagem
+          ?? "A ocorrência foi encerrada no painel enquanto esta coleta esperava sinal. "
+             + "Ela fica guardada aqui como registro do que foi feito.",
       };
   }
 }

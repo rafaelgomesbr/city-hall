@@ -11,9 +11,9 @@ build) valem lá, não aqui.
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 43 testes passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 26 testes de fonte mais 54 verificações no navegador no modo local e 103 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 213 testes de integração passando |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 46 testes de unidade e 10 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Completo em código, **nunca rodou em aparelho**. TypeScript limpo, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 242 testes de integração passando |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 59 testes de unidade e 10 de integração contra a API |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Completo em código, **nunca rodou em aparelho**. TypeScript limpo, 37 testes passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 
 ## Os dois modos do painel
 
@@ -707,12 +707,32 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 393 testes em cinco pacotes
+npm test                    # 452 testes em cinco pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 43 testes
-npm run test:api            # 213 testes da API
-npm run test --workspace @dc360/campo   # 46 testes do motor de sincronização
+npm run test:api            # 242 testes da API
+npm run test --workspace @dc360/campo   # 59 testes do motor de sincronização
+npm run test:campo          # o aplicativo de campo: tipos e os 37 testes dele
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
+```
+
+### O aplicativo de campo precisa de um comando próprio
+
+`apps/campo` fica fora do `workspaces` de propósito (o motivo está em "O que
+falta", mais abaixo), e o efeito colateral é que `npm test` na raiz não o
+alcança: nada do que os cinco workspaces somam vem do aplicativo. Por isso
+existe `npm run test:campo`, que compila os pacotes compartilhados de que o
+aplicativo depende, roda o TypeScript estrito dele e executa os testes.
+
+Ele **falha** se `apps/campo/node_modules` não existir, em vez de pular calado.
+Pular calado é como portão vira decoração, e a máquina sem as dependências
+instaladas é justamente aquela em que o aplicativo nunca foi verificado. Quem
+está mexendo só na API e não quer baixar o React Native tem escape, mas
+precisa dizê-lo em voz alta:
+
+```bash
+npm ci --prefix apps/campo   # o caminho normal
+DC360_SEM_APP=1 npm run test:campo   # ou pule, e veja escrito que pulou
 ```
 
 Os números que este README afirma são conferidos por máquina:
@@ -727,6 +747,24 @@ suítes de ponta a ponta, e exige que **todo número seguido de "teste" ou
 "verificação" em qualquer markdown deste diretório** corresponda a uma
 contagem real. Fica fora de `npm test` porque chama o vitest, e chamar o
 vitest de dentro do vitest pendura o processo.
+
+O aplicativo de campo é contado de outro jeito, e a diferença é honesta: ele
+roda no jest, que não tem equivalente de `vitest list` (`--listTests` lista
+arquivos, não casos), e o trabalho de integração contínua que confere os
+números nem instala as dependências dele. Então o script lê o código e conta
+`it(` e `test(` abrindo linha, resolvendo `it.each` pela tabela para não
+contar uma linha onde o jest conta duas. Quando não consegue resolver uma
+tabela, ele **estoura** em vez de devolver um número menor.
+
+Ler código é aposta, e aposta sem árbitro envelhece. O árbitro é o
+`npm run test:campo`: ele pede o relatório JSON ao jest e cruza o número
+executado com o número lido, no único comando que sabe que o aplicativo está
+instalado. As duas contas divergiram na primeira versão (34 contra 37, três
+`it.each` de dois temas cada) e o README teria afirmado um número falso.
+
+Antes de tudo isso, o README não podia afirmar nenhum número conferível sobre
+o aplicativo: a única linha que falava dele contava verificação do
+`expo-doctor`, que não mede comportamento nenhum.
 
 <!-- numeros: nao sao contagem -->
 Ele existe porque a precisão deste documento é a única coisa que o torna útil,
@@ -915,7 +953,7 @@ mesmo papel sem privilégio que a API usará em produção.
 ## Integração contínua
 
 `.github/workflows/verificar.yml` roda a cada push e a cada pull request, em
-quatro trabalhos paralelos:
+cinco trabalhos paralelos:
 
 <!-- numeros: nao sao contagem -->
 | Trabalho | O que ele impõe |
@@ -923,13 +961,22 @@ quatro trabalhos paralelos:
 | Testes, tipos e auditoria | TypeScript estrito, o portão CA-06 sozinho e primeiro, a suíte inteira, `npm audit` em zero e os números do README conferidos |
 | Fluxo no navegador | O painel de ponta a ponta, em Chromium e em Firefox |
 | Pacote da demonstração | O zip montado, extraído e percorrido pelo roteiro de dez minutos nos dois motores |
-| Aplicativo de campo | TypeScript, as 21 verificações do `expo-doctor` e auditoria própria |
+| A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação |
+| Aplicativo de campo | TypeScript, os testes do aplicativo, árvore de dependência coerente, as 21 verificações do `expo-doctor` e auditoria própria |
 
 O CA-06 roda separado e antes de tudo de propósito: isolamento entre
 municípios é a regra número um, e se ela quebrar nada mais importa.
 
 Na máquina, o mesmo se pede com `npm run verificar` e
-`scripts/conferir-demo.ps1`.
+`scripts/conferir-demo.ps1`. O `verificar` inclui `npm run test:campo`: por um
+bom tempo ele não incluía, e o aplicativo era medido só no runner. Portão que
+existe apenas na integração contínua é portão que se descobre quebrado depois
+do push, e a essa altura o conserto custa uma volta inteira.
+
+`npm run test:scripts` fecha o círculo: são os testes dos próprios scripts de
+portão, no executor embutido do node. Eles cobrem a regra (quando falhar,
+quando pular, como contar) e também a fiação, que é onde o defeito estava: a
+regra podia estar impecável e continuar sem ser chamada por comando nenhum.
 
 ## O que falta, e por quê
 
@@ -941,12 +988,14 @@ Na máquina, o mesmo se pede com `npm run verificar` e
   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
 
-  Essa última já tem 46 testes cobrindo a lógica fora do celular, inclusive
+  Essa última já tem 59 testes cobrindo a lógica fora do celular, inclusive
   retomada arquivo a arquivo.
   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e
   desacopla o `npm audit` do produto do ciclo do React Native. Ele tem o
-  próprio lockfile e a própria auditoria, que também fecha em zero.
+  próprio lockfile e a própria auditoria, que também fecha em zero. O preço
+  dessa separação é que nenhum comando da raiz o enxerga de graça: quem o
+  alcança é `npm run test:campo`, e ele está dentro de `npm run verificar`.
 - **Conta de desenvolvedor nas lojas.** `apps/campo/LOJAS.md` cobre Play
   Console e App Store Connect passo a passo, com os textos da ficha prontos e
   o formulário de segurança de dados respondido linha a linha. Dois itens têm

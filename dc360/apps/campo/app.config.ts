@@ -51,7 +51,7 @@ const config: ExpoConfig = {
   ios: {
     // Identificador definitivo. Trocar depois de publicar significa outro
     // aplicativo na loja, sem herdar avaliações nem instalações.
-    bundleIdentifier: "br.gov.dc360.campo",
+    bundleIdentifier: "com.solerte.dc360.campo",
     buildNumber: String(BUILD),
     supportsTablet: true,
     // O agente trabalha na rua, quase sempre em pé, com uma mão. Deitado não
@@ -95,7 +95,18 @@ const config: ExpoConfig = {
   },
 
   android: {
-    package: "br.gov.dc360.campo",
+    package: "com.solerte.dc360.campo",
+
+    /*
+      Arquivo do Firebase, exigido pelo FCM para a notificação chegar no
+      Android. Projeto `defesa-civil-360`, criado em 09/09/2026.
+
+      Fica rastreado no git de propósito: o EAS constrói a partir do
+      repositório, e arquivo ignorado não chega no worker. Ele não é segredo,
+      todo o conteúdo sai de um APK publicado com um descompactador. Ver a
+      justificativa inteira em `.gitignore`.
+    */
+    googleServicesFile: "./google-services.json",
     versionCode: BUILD,
     adaptiveIcon: {
       foregroundImage: "./assets/icone-adaptativo.png",

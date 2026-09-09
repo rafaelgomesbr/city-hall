@@ -271,10 +271,13 @@ describe("Sinal caindo", () => {
 });
 
 describe("Servidor recusando", () => {
-  it("bloqueia na hora quando repetir não resolve", async () => {
+  it("bloqueia na hora quando repetir não resolve e o dado está errado", async () => {
     const { fila } = montar({
       enviar: async () => {
-        throw new FalhaPermanente("Essa ocorrência já foi encerrada.", "ja_encerrada");
+        throw new FalhaPermanente(
+          "Alguns campos precisam ser corrigidos.", "dados_invalidos",
+          [{ campo: "vistoria.assinanteNome", mensagem: "Informe quem assinou" }],
+        );
       },
     });
     await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
@@ -284,8 +287,79 @@ describe("Servidor recusando", () => {
 
     const [item] = await fila.itens();
     expect(item!.estado).toBe("bloqueado");
-    expect(item!.ultimoErro).toContain("já foi encerrada");
+    expect(item!.ultimaFalha!.mensagem).toContain("precisam ser corrigidos");
     expect(item!.tentativas, "não insiste em erro permanente").toBe(1);
+    // A lista de campos e o que o agente precisa para poder corrigir. Ela
+    // sempre veio do servidor e era descartada dentro do transporte.
+    expect(item!.ultimaFalha!.campos).toEqual(
+      [{ campo: "vistoria.assinanteNome", mensagem: "Informe quem assinou" }],
+    );
+  });
+
+  /*
+    Este teste substitui o que antes travava `ja_encerrada` em `bloqueado`.
+
+    A mudanca e de produto, e nao de implementacao: coleta cuja ocorrencia foi
+    encerrada no painel nao "precisa de atencao" de ninguem. Antes ela ficava
+    bloqueada para sempre, contando no cracha do menu, e o unico caminho de
+    saida era o agente apagar o proprio trabalho.
+  */
+  it("arquiva, em vez de bloquear, quando a ocorrência foi encerrada no painel", async () => {
+    const { fila } = montar({
+      enviar: async () => {
+        throw new FalhaPermanente("Essa ocorrência já foi encerrada.", "ja_encerrada");
+      },
+    });
+    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
+
+    const r = await fila.drenar();
+
+    const [item] = await fila.itens();
+    expect(item!.estado).toBe("arquivado");
+    expect(item!.ultimaFalha!.codigo).toBe("ja_encerrada");
+    // A coleta continua guardada: ela é prova de um ato que aconteceu, e a
+    // ocorrência pode ter sido encerrada por engano.
+    expect(item!.envelope.vistoria.assinanteNome).toBe("Moradora");
+
+    const resumo = await fila.resumo();
+    expect(resumo.arquivados).toBe(1);
+    expect(resumo.bloqueados, "não pode gritar no crachá do menu").toBe(0);
+    expect(r.bloqueados).toBe(0);
+  });
+
+  it("o item arquivado não é tentado de novo no dreno seguinte", async () => {
+    let tentativas = 0;
+    const { fila } = montar({
+      enviar: async () => {
+        tentativas += 1;
+        throw new FalhaPermanente("Essa ocorrência já foi encerrada.", "ja_encerrada");
+      },
+    });
+    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
+    await fila.drenar();
+    await fila.drenar();
+    await fila.drenar();
+    expect(tentativas, "arquivado sai do dreno").toBe(1);
+  });
+
+  it("arquivado ainda aceita reenviar, para o caso de a ocorrência ser reaberta", async () => {
+    let recusar = true;
+    const { fila } = montar({
+      enviar: async () => {
+        if (recusar) {
+          throw new FalhaPermanente("Essa ocorrência já foi encerrada.", "ja_encerrada");
+        }
+        return { vistoriaId: "v-1", duplicada: false };
+      },
+    });
+    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026" });
+    await fila.drenar();
+    expect((await fila.itens())[0]!.estado).toBe("arquivado");
+
+    recusar = false;
+    await fila.reenviar(CHAVE_A);
+    const r = await fila.drenar();
+    expect(r.enviados).toBe(1);
   });
 
   it("segue para o próximo item depois de bloquear um", async () => {
@@ -329,7 +403,7 @@ describe("Servidor recusando", () => {
     // Bloqueado é diferente de perdido: o envelope continua inteiro na fila,
     // e a pessoa pode mandar tentar de novo.
     expect(item!.envelope.vistoria.assinanteNome).toBe("Moradora");
-    expect(item!.ultimoErro).toContain("3 tentativas");
+    expect(item!.ultimaFalha!.mensagem).toContain("3 tentativas");
   });
 
   it("a pessoa pode mandar tentar de novo, e aí funciona", async () => {
@@ -499,6 +573,72 @@ describe("Resumo para a tela", () => {
     expect(r.sincronizando).toBe(false);
 
     cancelar();
+  });
+});
+
+/*
+  O aparelho de um agente que atualiza o aplicativo com coleta na fila.
+
+  `ultimoErro`, que era string, virou `ultimaFalha`, que carrega codigo e a
+  lista de campos recusados. `JSON.parse` NAO falha com o formato antigo: ele
+  devolve um objeto com a propriedade errada, e a tela leria `undefined` no
+  lugar da falha, com o trabalho do agente dentro, no morro.
+
+  Por isso a conversao acontece no unico ponto por onde item persistido entra
+  na fila, e nao em cada tela.
+*/
+describe("Formato antigo gravado no aparelho", () => {
+  it("converte `ultimoErro` em `ultimaFalha` na leitura, sem perder o item", async () => {
+    const antigo = {
+      id: CHAVE_A,
+      ocorrenciaId: "oc-1",
+      protocolo: "000471/2026",
+      envelope: envelope(CHAVE_A),
+      estado: "bloqueado",
+      tentativas: 3,
+      criadoEm: "2026-09-01T10:00:00.000Z",
+      liberadoEm: "2026-09-01T10:00:00.000Z",
+      ultimoErro: "O servidor recusou o envio (422).",
+      confirmadoEm: null,
+      fotos: [],
+    };
+    const loja = lojaEmMemoria({ [`dc360:fila:${CHAVE_A}`]: JSON.stringify(antigo) });
+    const deposito = depositoSobreChaveValor(loja);
+
+    const [item] = await deposito.listar();
+
+    expect(item, "o item nao pode ser descartado como corrompido").toBeDefined();
+    expect(item!.id).toBe(CHAVE_A);
+    expect(item!.estado).toBe("bloqueado");
+    expect(item!.ultimaFalha).toEqual({
+      codigo: "desconhecido",
+      mensagem: "O servidor recusou o envio (422).",
+      campos: [],
+      permanente: true,
+      em: "2026-09-01T10:00:00.000Z",
+    });
+    expect((item as unknown as Record<string, unknown>)["ultimoErro"]).toBeUndefined();
+  });
+
+  it("item no formato novo passa intacto", async () => {
+    const novo = {
+      id: CHAVE_A, ocorrenciaId: "oc-1", protocolo: "000471/2026",
+      envelope: envelope(CHAVE_A), estado: "pendente", tentativas: 0,
+      criadoEm: "2026-09-09T10:00:00.000Z", liberadoEm: "2026-09-09T10:00:00.000Z",
+      ultimaFalha: null, confirmadoEm: null, fotos: [],
+    };
+    const deposito = depositoSobreChaveValor(
+      lojaEmMemoria({ [`dc360:fila:${CHAVE_A}`]: JSON.stringify(novo) }),
+    );
+    const [item] = await deposito.listar();
+    expect(item!.ultimaFalha).toBeNull();
+  });
+
+  it("registro que nao e JSON continua saindo de circulacao", async () => {
+    const deposito = depositoSobreChaveValor(
+      lojaEmMemoria({ [`dc360:fila:${CHAVE_A}`]: "isto nao e json" }),
+    );
+    expect(await deposito.listar()).toEqual([]);
   });
 });
 
@@ -886,7 +1026,7 @@ describe("Fotos da coleta", () => {
 
     const r = await fila.drenar();
     expect(r.bloqueados).toBe(1);
-    expect((await fila.itens())[0]!.ultimoErro).toContain("415");
+    expect((await fila.itens())[0]!.ultimaFalha!.mensagem).toContain("415");
   });
 
   it("coleta com foto numa fila sem acesso a arquivos bloqueia, e diz por que", async () => {
@@ -902,7 +1042,7 @@ describe("Fotos da coleta", () => {
 
     const r = await fila.drenar();
     expect(r.bloqueados).toBe(1);
-    expect((await fila.itens())[0]!.ultimoErro).toContain("acesso aos arquivos");
+    expect((await fila.itens())[0]!.ultimaFalha!.mensagem).toContain("acesso aos arquivos");
   });
 });
 

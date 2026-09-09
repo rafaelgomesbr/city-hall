@@ -314,11 +314,31 @@ export async function rotasOcorrencias(
       if (!encontrada.ativa) {
         throw new RegraDeNegocio("equipe_inativa", "Essa equipe está desativada.");
       }
+      /*
+        O despacho NAO toca em `prazo_em`, e essa linha foi removida em
+        09/09/2026 depois de um levantamento achar o defeito.
+
+        Antes daqui saia `prazo_em = now() + prazoHoras`, e isso sobrescrevia o
+        prazo que a triagem tinha calculado a partir da severidade. O efeito era
+        silencioso e do pior tipo: uma critica aberta as 8h com prazo de 4 horas
+        venceria as 12h; despachada as 14h com 24 horas, ela passava a vencer as
+        14h do dia seguinte, e as duas horas de atraso SUMIAM do indicador de
+        atrasadas do painel. Redespachar zerava de novo. O coordenador olhava um
+        numero que dizia que estava tudo em dia.
+
+        Pior ainda, a tela imprimia a regra que este UPDATE contradizia: "o
+        prazo vem da severidade definida na triagem: critica em 4 horas, alta em
+        24, media em 48 e baixa em 72".
+
+        `d.prazoHoras` continua sendo informacao util, e continua registrado no
+        evento da trilha logo abaixo: ele e o coordenador dizendo "cheguem la em
+        N horas", que e outro prazo, e nao o prazo de atendimento da ocorrencia.
+        Dar coluna propria a ele e trabalho da onda C do plano; o que nao podia
+        continuar era um sobrescrever o outro.
+      */
       await c.query(
-        `UPDATE ocorrencias SET status = 'em_campo', equipe_id = $2,
-                prazo_em = now() + ($3 || ' hours')::interval
-          WHERE id = $1`,
-        [id, d.equipeId, String(d.prazoHoras)],
+        "UPDATE ocorrencias SET status = 'em_campo', equipe_id = $2 WHERE id = $1",
+        [id, d.equipeId],
       );
       await registrarEvento(c, quem, id, "despacho", {
         equipe: encontrada.nome,

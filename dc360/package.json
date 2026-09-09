@@ -20,12 +20,15 @@
     "test:isolamento": "npm run test --workspace @dc360/db",
     "test:api": "npm run test --workspace @dc360/api",
     "test:e2e": "npm run test:e2e --workspace @dc360/web",
+    "test:campo": "node scripts/testar-campo.mjs",
+    "test:scripts": "node --test \"scripts/*.test.mjs\"",
     "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present",
     "conferir:numeros": "node scripts/conferir-numeros.mjs",
-    "verificar": "npm run typecheck && npm test && npm audit --audit-level=low && npm run conferir:numeros",
+    "verificar": "npm run typecheck && npm test && npm run test:scripts && npm run test:campo && npm run auditar && npm run conferir:numeros",
     "migrar": "npm run migrar --workspace @dc360/db",
     "provisionar": "npm run provisionar --workspace @dc360/api --",
     "test:e2e:api": "node scripts/e2e-api.mjs",
-    "build:shared": "npm run build --workspace @dc360/shared && npm run build --workspace @dc360/db && npm run build --workspace @dc360/campo"
+    "build:shared": "npm run build --workspace @dc360/shared && npm run build --workspace @dc360/db && npm run build --workspace @dc360/campo",
+    "auditar": "node scripts/auditar.mjs"
   }
 }

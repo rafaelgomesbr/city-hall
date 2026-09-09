@@ -18,7 +18,24 @@ export type EstadoItem =
   /** O servidor confirmou. Fica um tempo visível e depois sai da fila. */
   | "confirmado"
   /** O servidor recusou por um motivo que repetir não resolve. */
-  | "bloqueado";
+  | "bloqueado"
+  /**
+   * A coleta perdeu o destino: a ocorrência foi encerrada no painel enquanto
+   * ela estava na fila.
+   *
+   * Estado separado de `bloqueado` por uma razão de produto. Antes, o servidor
+   * respondia 409 `ja_encerrada`, o item virava `bloqueado` e ficava lá PARA
+   * SEMPRE: os únicos caminhos de saída eram `limparConfirmados`, que só toca
+   * em confirmados, e `descartar`, manual. Ou seja, o único jeito de o agente
+   * limpar a tela era apagar o próprio trabalho, e o crachá do menu ficava
+   * gritando um número que ninguém conseguia zerar.
+   *
+   * Arquivado sai do dreno e sai da contagem de "precisa de atenção", mas a
+   * coleta continua no aparelho, numa seção própria, porque ela é a prova de um
+   * ato administrativo que aconteceu de verdade e a ocorrência pode ter sido
+   * encerrada por engano.
+   */
+  | "arquivado";
 
 /**
  * Uma foto tirada em campo, ainda no aparelho.
@@ -64,6 +81,16 @@ export type Arquivos = {
   ler(uriLocal: string): Promise<Uint8Array>;
 };
 
+/** O que sobrou de uma tentativa que falhou, guardado no disco do aparelho. */
+export type FalhaRegistrada = {
+  codigo: string;
+  mensagem: string;
+  campos: ReadonlyArray<{ campo: string; mensagem: string }>;
+  /** Falha que repetir nao resolve. Determina se o item ainda sai da fila. */
+  permanente: boolean;
+  em: string;
+};
+
 export type ItemFila = {
   /**
    * A chave de idempotência, gerada no aparelho no momento da coleta. É
@@ -80,7 +107,16 @@ export type ItemFila = {
   criadoEm: string;
   /** Antes deste instante, o item não é tentado de novo. */
   liberadoEm: string;
-  ultimoErro: string | null;
+  /**
+   * A ultima falha, inteira.
+   *
+   * Era `ultimoErro: string | null`, e a troca e deliberada em vez de um campo
+   * a mais: dois campos para o mesmo fato divergem na primeira pressa. O
+   * `codigo` importa porque e ele que separa "a ocorrencia foi encerrada"
+   * (nada a fazer, arquiva) de "os dados estao errados" (o agente pode
+   * corrigir), e ele era descartado junto com os campos.
+   */
+  ultimaFalha: FalhaRegistrada | null;
   confirmadoEm: string | null;
   /**
    * Fotos que precisam subir ANTES do envelope. Vazio quando a coleta não tem
@@ -155,7 +191,21 @@ export class FalhaTemporaria extends Error {
  * O item é bloqueado e fica visível para a pessoa decidir o que fazer.
  */
 export class FalhaPermanente extends Error {
-  constructor(mensagem: string, readonly codigo: string) {
+  /**
+   * Os campos que o servidor recusou, quando ele diz quais.
+   *
+   * Posicional e com valor padrao para os chamadores antigos continuarem
+   * compilando. Existe porque o 422 do servidor SEMPRE trouxe esta lista
+   * (`servidor.ts` monta `{ erro, mensagem, campos }`) e o transporte lia so
+   * `mensagem` e `erro`, jogando o resto fora. O agente que perdia uma manha de
+   * coleta no morro lia "Alguns campos precisam ser corrigidos" e nao tinha
+   * como agir.
+   */
+  constructor(
+    mensagem: string,
+    readonly codigo: string,
+    readonly campos: ReadonlyArray<{ campo: string; mensagem: string }> = [],
+  ) {
     super(mensagem);
     this.name = "FalhaPermanente";
   }
@@ -166,6 +216,8 @@ export type ResumoFila = {
   enviando: number;
   confirmados: number;
   bloqueados: number;
+  /** Coletas que perderam o destino. Fora da contagem de "precisa de atenção". */
+  arquivados: number;
   /** Verdadeiro enquanto um dreno está em andamento. */
   sincronizando: boolean;
 };

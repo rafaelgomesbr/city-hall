@@ -14,6 +14,13 @@
  * ou "verificação" e exige que cada um bata com um valor calculado, ou esteja
  * declarado como número que não é contagem de teste.
  *
+ * O aplicativo de campo é a exceção, e a razão está em
+ * `casos-do-aplicativo.mjs`: ele roda no jest, fora do `workspaces`, e é
+ * contado lendo o código. Ficou de fora daqui por tempo demais, e o efeito era
+ * que o README não podia afirmar NENHUM número conferível sobre o aplicativo:
+ * a única linha que falava dele contava verificação do `expo-doctor`, que não
+ * é teste de comportamento nenhum.
+ *
  * Rodar:  npm run conferir:numeros
  *
  * Fica fora de `npm test` de propósito: ele chama o vitest, e chamar o vitest
@@ -23,6 +30,8 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { contarCasosDoAplicativo } from "./casos-do-aplicativo.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -80,6 +89,23 @@ const total = Object.values(porPacote).reduce((a, b) => a + b, 0);
 const e2eLocal = contarVerificacoes("apps/web/test/fluxo.e2e.mjs");
 const e2eApi = contarVerificacoes("apps/web/test/fluxo-api.e2e.mjs");
 
+const casosDoApp = contarCasosDoAplicativo(join(RAIZ, "apps/campo"));
+const app = [...casosDoApp.values()].reduce((a, b) => a + b, 0);
+
+/*
+  Zero aqui não é "o aplicativo não tem teste": é a varredura tendo perdido o
+  caminho, e um zero calado transformaria este portão em decoração exatamente
+  no pedaço que ele acabou de ganhar. Se um dia o aplicativo ficar mesmo sem
+  teste, quem apagar o último apaga esta linha junto, de propósito.
+*/
+if (app === 0) {
+  console.log(
+    "\nNenhum caso de teste encontrado em apps/campo. Ou a varredura quebrou, " +
+    "ou os testes do aplicativo sumiram. Confira antes de confiar no verde.",
+  );
+  process.exit(1);
+}
+
 /**
  * Os valores que a documentação pode afirmar, cada um com o que o mede.
  *
@@ -100,6 +126,15 @@ const VERDADE = {
   "verificações no navegador, modo local": e2eLocal,
   "verificações no navegador, contra a API": e2eApi,
   "verificações no navegador, somadas": e2eLocal + e2eApi,
+  "testes do aplicativo de campo": app,
+  /*
+    Duas somas coexistem porque duas afirmações diferentes são verdadeiras, e
+    confundi-las seria mentir: `npm test` na raiz roda os cinco workspaces e
+    NÃO alcança o aplicativo (que fica fora do `workspaces` por causa do Expo).
+    Quem quiser afirmar o número do produto inteiro usa a soma de baixo, e quem
+    falar do comando usa a de cima.
+  */
+  "total de testes automatizados, somando o aplicativo": total + app,
 };
 
 /**

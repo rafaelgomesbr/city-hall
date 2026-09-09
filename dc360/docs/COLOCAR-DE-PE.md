@@ -3,7 +3,8 @@
 Guia operacional, na ordem, com o que criar, quanto custa, quanto demora, e o
 que é caminho crítico. Escrito para você seguir no Mac com prazo curto.
 
-Data: 08/09/2026.
+Data: 08/09/2026. Partes 6 e 7 acrescentadas em 09/09/2026, depois que o restore
+do banco foi testado de verdade pela primeira vez.
 
 ---
 
@@ -16,7 +17,7 @@ código.** Os bloqueios são de terceiros e de tempo de espera:
   número **D-U-N-S** da empresa, que leva de dias a semanas. Conta **pessoal**
   sai em horas a 1–2 dias, e é o caminho para o fim de semana.
 - **Revisão da App Store** leva de 1 a 3 dias úteis, e o bundle atual
-  (`br.gov.dc360.campo`) provavelmente é **recusado** (ver item crítico abaixo).
+  (`com.solerte.dc360.campo`) provavelmente é **recusado** (ver item crítico abaixo).
 
 **O que DÁ para ter no fim de semana, e é o que importa para testar de verdade:**
 
@@ -36,7 +37,7 @@ D-U-N-S e a revisão não forem gargalo.
 - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
   compartilhados.
-- **393 testes verdes, `npm audit` em zero.**
+- **489 testes verdes, `npm audit` em zero.**
 - **A API sobe contra PostgreSQL real** (provado contra o Postgres 18, à mão) e
   serve o ciclo inteiro: login, isolamento entre municípios, ocorrência,
   vistoria offline, laudo, termo de interdição e desinterdição, contagem de
@@ -49,7 +50,7 @@ D-U-N-S e a revisão não forem gargalo.
 
 ## Parte 2: os 5 bloqueios do app iOS (resolver ANTES do primeiro build)
 
-### CRÍTICO 1: trocar o bundle identifier `br.gov.dc360.campo`
+### CRÍTICO 1: trocar o bundle identifier `com.solerte.dc360.campo`
 
 `gov.br` é namespace de governo. Um desenvolvedor privado publicando sob ele cai
 na **política de personificação da Apple** (e da Google), e o bundle é
@@ -58,8 +59,8 @@ herdar nada. Troque **agora**, antes do primeiro build, em
 `apps/campo/app.config.ts`:
 
 ```
-ios.bundleIdentifier: "br.gov.dc360.campo"   →   "com.SUAEMPRESA.dc360campo"
-android.package:      "br.gov.dc360.campo"   →   "com.SUAEMPRESA.dc360campo"
+ios.bundleIdentifier: "com.solerte.dc360.campo"   →   "com.SUAEMPRESA.dc360campo"
+android.package:      "com.solerte.dc360.campo"   →   "com.SUAEMPRESA.dc360campo"
 ```
 
 Use o CNPJ/marca sob o qual você vai vender. Isto depende de uma decisão sua
@@ -110,7 +111,11 @@ servidor (Parte 3) vem antes do app.
 ### 2. Banco: PostgreSQL gerenciado com backup automático
 
 Não use Postgres numa VM que você administra: backup só existe depois de um
-**restore testado**, e provedor gerenciado já dá isso e PITR.
+**restore testado**, e provedor gerenciado já dá a cópia automática e o PITR.
+
+Cuidado com a palavra "já dá": o provedor guarda o arquivo, e só. Quem prova que
+o arquivo volta é você. Esse restore foi feito e está registrado na **Parte 6**,
+com os dois erros que ele encontrou pelo caminho.
 
 - **Neon** (neon.tech) ou **Supabase**: os dois têm plano inicial grátis e
   Postgres real. Neon é o mais direto.
@@ -197,7 +202,7 @@ Na primeira entrada, o coordenador troca a senha em **Minha conta**.
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 393 testes, npm audit, números
+npm run verificar          # typecheck, 489 testes, npm audit, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo
@@ -246,3 +251,385 @@ Para o `eas submit`, preencha `apps/campo/eas.json` em `submit.producao.ios`
 O gargalo de dinheiro não é a infraestrutura; é a conta Apple. O gargalo de
 tempo é o D-U-N-S (se organização) e a revisão da loja, e nenhum dos dois bloqueia
 ter o app no seu iPhone via TestFlight neste fim de semana.
+
+---
+
+## Parte 6: o restore do banco, testado de verdade (CA-08)
+
+O levantamento técnico fixa que **backup só existe depois de um restore
+testado**. Até agora isso nunca tinha sido feito neste projeto: existia a
+promessa do provedor, e mais nada. Esta seção é o registro do teste, com o
+comando exato, o tempo medido e o resultado colado.
+
+**Feito em:** 09/09/2026, no Mac (Darwin arm64).
+**Origem:** PostgreSQL 17.6 no Supabase, pelo pooler `aws-0-sa-east-1`, com o
+papel de **setup** (usado somente para ler).
+**Destino:** um cluster PostgreSQL **17.6 de verdade**, criado com `initdb` na
+própria máquina e apagado no fim. Não foi PGlite de propósito: o PGlite é
+Postgres 16 e não tem os papéis do provedor, então restaurar nele provaria
+menos do que este teste precisa provar.
+
+### Antes de tudo: onde o dump pode morar
+
+O dump traz **dado real de cidadão**: `ocorrencias` guarda `endereco`,
+`latitude`, `longitude`, `solicitante_nome` e `solicitante_contato`. Ele nunca
+entra no repositório, nunca sobe para nuvem de arquivos e nunca fica na Área de
+Trabalho. Neste teste ele ficou em pasta temporária fora do repositório e foi
+apagado ao fim (a confirmação está no fim desta seção).
+
+### Passo 0: ter um `pg_dump` da mesma versão do servidor
+
+`pg_dump` precisa ser igual ou mais novo que o servidor. O servidor é 17.6,
+então o cliente tem que ser 17.x. Neste Mac não havia cliente nenhum instalado
+(nem `psql`, nem `pg_dump`, nem Homebrew), e esse é o primeiro obstáculo real de
+um dia de incidente:
+
+```bash
+brew install libpq                       # traz pg_dump, pg_restore e psql
+export PATH="$(brew --prefix libpq)/bin:$PATH"
+pg_dump --version                        # tem que responder 17.x
+```
+
+Honestidade sobre o teste: como a máquina não tinha Homebrew, os binários 17.6
+foram baixados avulsos só para a verificação. O caminho acima é o que vale para
+o dia a dia, e ele precisa estar resolvido **antes** do incidente, não durante.
+
+### Passo 1: o dump
+
+A URL de setup está comentada em `apps/api/.env`, na linha `DATABASE_URL_SETUP`.
+Ela termina em `sslmode=no-verify`, que é sintaxe da biblioteca do Node: **o
+libpq não entende esse valor** e o `pg_dump` morre antes de conectar, reclamando
+de um `~/.postgresql/root.crt` que não existe. Troque por `sslmode=require` na
+linha de comando, sem editar o `.env`:
+
+```bash
+cd dc360
+DESTINO=/caminho/fora/do/repositorio            # nunca dentro do repo
+URL="$(grep -o 'postgresql://postgres\.[^ ]*' apps/api/.env)"
+URL="${URL%%\?*}?sslmode=require"
+
+pg_dump --format=custom --schema=public --file="$DESTINO/dc360.dump" "$URL"
+```
+
+`--schema=public` porque o produto inteiro mora nele: os outros esquemas do
+projeto (`auth`, `storage`, `realtime`, `vault`, `graphql`) são infraestrutura do
+provedor. Isso tem uma consequência séria, e ela está na lista do que **não** foi
+provado, mais abaixo.
+
+**Medido:** 6,2 segundos, arquivo de 101.040 bytes (99 KiB). O tempo é quase todo
+ida e volta de rede até sa-east-1, não trabalho do banco. Um banco de piloto com
+um município cabe em menos de 100 KiB comprimidos.
+
+### Passo 2: o destino descartável, e os dois erros que ninguém espera
+
+Aqui o teste ganhou seu valor: o `pg_restore` **falhou duas vezes** antes de
+passar, e nas duas o motivo só aparece na hora de restaurar. Um backup nunca
+restaurado é um backup que ainda vai dar esses dois erros no pior dia possível.
+
+1. `ERROR: schema "public" already exists`. O dump traz o `CREATE SCHEMA public`
+   (o `public` do Supabase pertence a `pg_database_owner`, então ele é dumpado).
+   Solução: criar o banco a partir de `template0` e derrubar o `public` de
+   fábrica antes de restaurar.
+2. `ERROR: role "supabase_admin" does not exist`. O dump carrega
+   `ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin`, além de GRANTs para
+   `anon`, `authenticated` e `service_role`. São nomes de papel do provedor, e o
+   dump não cria papel nenhum. Solução: criar os nomes antes, vazios.
+
+Com os dois já resolvidos, o destino se monta assim:
+
+```bash
+initdb -D "$DESTINO/pgdata" -U postgres -A trust --encoding=UTF8 --locale=C
+pg_ctl -D "$DESTINO/pgdata" -l "$DESTINO/pg.log" \
+       -o "-p 55432 -c listen_addresses=127.0.0.1" -w start
+
+ALVO="postgresql://postgres@127.0.0.1:55432"
+
+# Papéis: os do produto e os do provedor. Sem eles o restore para no meio.
+psql "$ALVO/postgres" -v ON_ERROR_STOP=1 -c "
+  CREATE ROLE dc360_app NOLOGIN;
+  CREATE ROLE dc360_api LOGIN PASSWORD 'trocar' NOSUPERUSER;
+  GRANT dc360_app TO dc360_api WITH SET TRUE;
+  CREATE ROLE anon NOLOGIN;
+  CREATE ROLE authenticated NOLOGIN;
+  CREATE ROLE service_role NOLOGIN;
+  CREATE ROLE supabase_admin NOLOGIN;"
+
+createdb -h 127.0.0.1 -p 55432 -U postgres -T template0 \
+         --encoding=UTF8 --locale=C dc360_restaurado
+psql "$ALVO/dc360_restaurado" -c "DROP SCHEMA public CASCADE;"
+```
+
+### Passo 3: o restore
+
+```bash
+pg_restore --dbname="$ALVO/dc360_restaurado" --exit-on-error "$DESTINO/dc360.dump"
+```
+
+`--exit-on-error` não é detalhe: sem ele o `pg_restore` **segue depois do erro** e
+termina com aparência de sucesso, deixando um banco pela metade. Foi assim que os
+dois erros acima quase passaram despercebidos.
+
+**Medido:** 0,4 segundo, sem nenhum erro.
+
+### Passo 4: conferir, que é a parte que prova alguma coisa
+
+Restaurar sem conferir é achismo. São três conferências, e as três passaram.
+
+As duas primeiras se refazem rodando o mesmo arquivo nos dois bancos, e comparando
+a saída com `diff`:
+
+```bash
+# 1. linhas por tabela (gera o SELECT a partir do catálogo, então nenhuma tabela
+#    nova passa despercebida no dia em que alguém esquecer de atualizar a lista)
+cat > /tmp/contar.sql <<'SQL'
+SELECT c.relname, (xpath('/row/c/text()',
+         query_to_xml(format('SELECT count(*) AS c FROM public.%I', c.relname),
+                      false, true, '')))[1]::text::bigint AS linhas
+  FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+ WHERE n.nspname = 'public' AND c.relkind = 'r'
+ ORDER BY 1;
+SQL
+
+# 2. estrutura
+cat > /tmp/estrutura.sql <<'SQL'
+SELECT 'tabelas', count(*)::text FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r'
+UNION ALL SELECT 'rls_habilitada', count(*)::text FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r' AND c.relrowsecurity
+UNION ALL SELECT 'rls_forcada', count(*)::text FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r' AND c.relforcerowsecurity
+UNION ALL SELECT 'policies', count(*)::text FROM pg_policies WHERE schemaname='public'
+UNION ALL SELECT 'funcoes', count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public'
+UNION ALL SELECT 'indices', count(*)::text FROM pg_indexes WHERE schemaname='public'
+UNION ALL SELECT 'constraints', count(*)::text FROM pg_constraint c JOIN pg_namespace n ON n.oid=c.connamespace WHERE n.nspname='public'
+UNION ALL SELECT 'grants_dc360_app', count(*)::text FROM information_schema.role_table_grants WHERE grantee='dc360_app' AND table_schema='public'
+UNION ALL SELECT 'ultima_migracao', max(versao) FROM schema_migracoes
+UNION ALL SELECT 'impressao_migracoes', md5(string_agg(versao||':'||impressao, ',' ORDER BY versao)) FROM schema_migracoes
+ORDER BY 1;
+SQL
+
+for arquivo in /tmp/contar.sql /tmp/estrutura.sql; do
+  psql "$URL" -At -F'|' -f "$arquivo" > /tmp/origem.txt
+  psql "$ALVO/dc360_restaurado" -At -F'|' -f "$arquivo" > /tmp/destino.txt
+  diff /tmp/origem.txt /tmp/destino.txt && echo "$arquivo: idêntico"
+done
+```
+
+**Linhas por tabela, origem contra destino** (a mesma consulta rodada nos dois):
+
+| Tabela | Produção | Restaurado | |
+| --- | ---: | ---: | --- |
+| equipes | 1 | 1 | igual |
+| evidencias | 7 | 7 | igual |
+| exportacoes | 0 | 0 | igual |
+| interesse_municipio | 0 | 0 | igual |
+| ocorrencias | 5 | 5 | igual |
+| organizacoes | 1 | 1 | igual |
+| protocolo_sequencias | 1 | 1 | igual |
+| providencias | 1 | 1 | igual |
+| recuperacoes_senha | 1 | 1 | igual |
+| schema_migracoes | 15 | 15 | igual |
+| sessoes | 19 | 19 | igual |
+| trilha_administrativa | 2 | 2 | igual |
+| trilha_eventos | 22 | 22 | igual |
+| usuarios | 2 | 2 | igual |
+| vistorias | 3 | 3 | igual |
+| **total** | **80** | **80** | igual |
+
+**Estrutura, origem contra destino:**
+
+| Conferência | Produção | Restaurado | |
+| --- | ---: | ---: | --- |
+| tabelas em `public` | 15 | 15 | igual |
+| RLS habilitada | 15 | 15 | igual |
+| RLS forçada | 14 | 14 | igual |
+| policies | 18 | 18 | igual |
+| funções | 14 | 14 | igual |
+| índices | 53 | 53 | igual |
+| constraints | 97 | 97 | igual |
+| grants do papel `dc360_app` | 38 | 38 | igual |
+| última migração | 015_pessoas_atingidas.sql | 015_pessoas_atingidas.sql | igual |
+| md5 das impressões de migração | b446363ca68b430a7ab01e380eaa0a17 | b446363ca68b430a7ab01e380eaa0a17 | igual |
+
+RLS forçada em 14 de 15 é o estado correto, não uma falha do restore: a tabela de
+fora é `schema_migracoes`, que é catálogo do próprio esquema e não tabela de
+negócio. O número é idêntico nos dois lados.
+
+**Comportamento, no banco restaurado** (contar linha não prova que o isolamento
+sobreviveu; isto prova):
+
+```bash
+ORG=$(psql "$ALVO/dc360_restaurado" -At -c "SELECT id FROM organizacoes LIMIT 1")
+psql "postgresql://dc360_api@127.0.0.1:55432/dc360_restaurado" -At -F'|' <<SQL
+SET ROLE dc360_app;
+BEGIN;
+SELECT set_config('app.organizacao_atual', '$ORG', true);
+SELECT 'municipio certo, ocorrencias visiveis', count(*) FROM ocorrencias;
+SELECT set_config('app.organizacao_atual', '00000000-0000-0000-0000-000000000000', true);
+SELECT 'municipio errado, ocorrencias visiveis', count(*) FROM ocorrencias;
+COMMIT;
+SELECT count(*) FROM interesse_municipio;   -- tem que dar permission denied
+SQL
+```
+
+Saída obtida (só as linhas que interessam, sem os `SET` e `BEGIN` que o psql
+ecoa):
+
+```
+municipio certo, ocorrencias visiveis|5
+municipio errado, ocorrencias visiveis|0
+ERROR:  permission denied for table interesse_municipio
+```
+
+Ou seja: no banco restaurado, o papel de aplicação continua vendo só o município
+do `SET LOCAL`, e continua **sem** conseguir ler a fila de interesse. A regra
+número um do produto e a decisão da migração 011 atravessaram o backup inteiras.
+
+### Passo 5: apagar o dump
+
+```bash
+rm -f "$DESTINO/dc360.dump"
+```
+
+Feito neste teste, junto com o cluster descartável inteiro. Conferido depois com
+`ls`: nenhum arquivo de dump restou na máquina.
+
+### Tempo total
+
+Menos de 10 segundos de comando (6,2 s de dump e 0,4 s de restore). O tempo
+humano é todo na preparação: ter o cliente 17.x instalado e criar os papéis. Num
+incidente de verdade, quem não tiver o Passo 0 resolvido antes vai gastar a
+primeira meia hora instalando `pg_dump`.
+
+### O que este teste NÃO provou (leia antes de dormir tranquilo)
+
+- **As fotos não estão no dump.** As evidências ficam no balde
+  `dc360-evidencias` do Storage do Supabase (hoje 7 objetos, cerca de 6,8 MB), e
+  `--schema=public` não leva nem os arquivos nem os metadados de
+  `storage.objects`. Restaurar só o banco devolve as linhas de `evidencias` com
+  `chave_storage` apontando para arquivo que pode não existir mais. A cópia do
+  balde é um segundo procedimento, ainda **não escrito e não testado**. Quando
+  for feito, a conferência natural é o `sha256` que já está gravado em cada linha
+  de `evidencias`.
+- **Recuperação a um ponto no tempo (PITR) pelo painel do Supabase.** É recurso
+  do provedor, depende do plano contratado, e não foi testado aqui. Também não
+  foi conferido se o backup automático do provedor está ligado nem qual é a
+  retenção: isso se olha no painel do projeto, e precisa ser olhado.
+- **Restaurar por cima da produção.** O que foi provado é restaurar em banco
+  novo. Sobrescrever a produção é destrutivo e não foi ensaiado.
+- **Os esquemas do provedor** (`auth`, `storage`, `realtime`, `vault`,
+  `graphql`) ficaram de fora. O produto não usa `auth.users` (0 linhas hoje, ele
+  tem autenticação própria), mas usa `storage`, e é por isso que o item das fotos
+  acima existe.
+- **Senha de papel não vem no dump.** No destino, `dc360_api` foi criado com
+  senha nova. Num restore de verdade é preciso definir a senha e atualizar o
+  `DATABASE_URL` da API.
+- **A API não foi apontada para o banco restaurado.** O que se provou pelo lado
+  do comportamento foi no nível do banco (RLS e permissões), não um ciclo de
+  login e vistoria contra a cópia.
+
+### Com que frequência repetir
+
+Este procedimento vale enquanto o esquema for o mesmo. Refaça depois de cada
+migração que mexa em papel, policy ou grant, e pelo menos uma vez por mês
+enquanto o piloto estiver de pé. O sinal de que ele continua válido é a linha
+"md5 das impressões de migração" bater nos dois lados.
+
+---
+
+## Parte 7: a fila de pedidos de contato (e por que ela não é uma tela)
+
+O formulário público grava em `interesse_municipio`. Ele é a única rota de
+escrita sem autenticação do produto, e hoje **ninguém lê o que ele grava**. Um
+funil de entrada que ninguém abre não é funil, é caixa fechada. Esta seção
+existe para fechar essa lacuna com o que dá para fazer sem inventar um poder que
+o produto recusa ter.
+
+### Por que não existe tela
+
+Está decidido dentro da própria migração `db/migrations/011_interesse_de_municipio.sql`,
+e a rota `apps/api/src/rotas/interesse.ts` repete a decisão no lugar onde a rota
+de leitura não foi escrita:
+
+- O papel de aplicação recebeu **INSERT e não recebeu SELECT** nessa tabela. É
+  essa assimetria que impede um formulário aberto na internet de virar uma lista
+  de contatos de servidores públicos servida a quem descobrir a rota.
+- Uma tela precisaria de alguém autorizado a vê-la. Esse alguém seria um
+  administrador acima do município, e a ADR 0006 (citada na migração e na rota)
+  recusa o super-administrador justamente porque uma conta capaz de enxergar dois
+  municípios transformaria o isolamento em promessa.
+- Enquanto não existir um nível de plataforma separado do produto, a leitura é
+  pelo banco, com credencial de dono. A migração diz, com todas as letras, que é
+  desconfortável de propósito: melhor desconfortável e honesto do que uma rota
+  "só para mim" que amanhã alguém descobre.
+
+Consequência prática: **alguém precisa rodar a consulta abaixo de propósito**,
+numa rotina. Nada avisa. O lugar natural é junto da conferência de backup da
+Parte 6.
+
+### A consulta, com o papel de setup
+
+```bash
+cd dc360
+URL="$(grep -o 'postgresql://postgres\.[^ ]*' apps/api/.env)"
+URL="${URL%%\?*}?sslmode=require"      # o libpq não aceita o sslmode=no-verify do .env
+
+psql "$URL" -c "
+SELECT recebido_em AT TIME ZONE 'America/Sao_Paulo' AS recebido,
+       nome, cargo, email, telefone,
+       municipio || '/' || uf AS municipio,
+       orgao, faixa_populacao, quantos_agentes, origem, mensagem
+  FROM interesse_municipio
+ WHERE atendido_em IS NULL
+ ORDER BY recebido_em DESC
+ LIMIT 50;"
+```
+
+Depois de falar com a pessoa, feche a linha. As colunas `atendido_em` e
+`observacao` existem exatamente para o formulário não virar uma caixa de entrada
+onde ninguém sabe o que já foi lido:
+
+```bash
+psql "$URL" -c "
+UPDATE interesse_municipio
+   SET atendido_em = now(),
+       observacao  = 'contato por telefone, reunião marcada para 12/09'
+ WHERE id = 'COLE-O-ID-AQUI';"
+```
+
+E o resumo, que é o que serve para acompanhar sem abrir dado pessoal:
+
+```bash
+psql "$URL" -c "
+SELECT count(*) AS total,
+       count(*) FILTER (WHERE atendido_em IS NULL) AS na_fila,
+       count(*) FILTER (WHERE recebido_em > now() - interval '7 days') AS ultimos_7_dias
+  FROM interesse_municipio;"
+```
+
+### Quantos pedidos existem hoje
+
+Rodado contra a produção em 09/09/2026:
+
+```
+ total | na_fila | ultimos_7_dias
+-------+---------+----------------
+     0 |       0 |              0
+```
+
+**Zero.** A fila está vazia: nenhum município preencheu o formulário até agora.
+Isso é bom saber por dois motivos opostos. Não há ninguém esperando resposta há
+semanas, e também não há nenhum sinal de demanda entrando pelo formulário, o que
+diz mais sobre a divulgação do que sobre o produto.
+
+### Cuidados ao rodar
+
+- A primeira consulta devolve **dado pessoal** (nome, cargo, email e telefone de
+  servidor público, mais o IP na coluna que a migração marcou com prazo de
+  descarte). Não cole a saída em grupo de mensagem, não exporte para planilha
+  compartilhada e não guarde cópia solta.
+- Use a URL de setup **somente** para isto e para migrar. Ela nunca vira
+  `DATABASE_URL` da API: o `.env` já explica que descomentar aquela linha faria a
+  API rodar com `BYPASSRLS`, que é exatamente o defeito que o isolamento existe
+  para impedir.
+- A consulta é leitura pura. O `UPDATE` de fechamento toca uma linha por vez, com
+  `WHERE id`, e não tem trilha de auditoria: `interesse_municipio` é anterior ao
+  contrato e fica fora da trilha do município, então o que ficou registrado é o
+  que você escrever em `observacao`.

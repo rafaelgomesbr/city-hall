@@ -336,7 +336,21 @@ describe("Fila de campo contra a API", () => {
     const r = await fila.drenar();
 
     expect(r.bloqueados).toBe(1);
-    expect((await fila.itens())[0]!.ultimoErro).toContain("permissão");
+    /*
+      Lê `ultimaFalha.mensagem` e não mais `ultimoErro`: o motor de campo passou
+      a guardar a falha inteira (código, mensagem e campos recusados) no lugar de
+      uma string solta. A leitura aqui ficou para trás porque este arquivo vive
+      em outro pacote, e o `tsc` da API não olha a pasta `test`, então nada
+      acusou a troca até a suíte rodar.
+
+      O código entra junto de propósito. Só a mensagem não distingue "o papel não
+      pode" de qualquer outra recusa permanente, e é justamente essa separação
+      que decide se o item fica bloqueado esperando alguém, ou se é arquivado.
+    */
+    const parado = (await fila.itens())[0]!;
+    expect(parado.estado).toBe("bloqueado");
+    expect(parado.ultimaFalha!.codigo).toBe("sem_permissao");
+    expect(parado.ultimaFalha!.mensagem).toContain("permissão");
   }, 60_000);
 
   it("cada envio grava uma vez só no armazenamento local", async () => {

@@ -58,8 +58,8 @@ e a correção exige nova submissão e nova revisão.
 Estão em `app.config.ts`:
 
 ```
-ios.bundleIdentifier  br.gov.dc360.campo
-android.package       br.gov.dc360.campo
+ios.bundleIdentifier  com.solerte.dc360.campo
+android.package       com.solerte.dc360.campo
 ```
 
 **São definitivos.** Depois de publicar, trocar significa outro aplicativo, sem
@@ -146,7 +146,7 @@ em `extra.eas.projectId`.
    a Apple exige um **número D-U-N-S** da empresa, e emitir isso leva de dias a
    semanas. **Comece por aqui**, é o caminho crítico do lado da Apple.
 
-2. **Criar o app no App Store Connect**, com o bundle `br.gov.dc360.campo`.
+2. **Criar o app no App Store Connect**, com o bundle `com.solerte.dc360.campo`.
    Anote o **App ID** (numérico) e o **Team ID**: os dois vão para `eas.json`,
    em `submit.producao.ios`, onde hoje está escrito `PREENCHER`.
 

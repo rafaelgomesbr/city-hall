@@ -1,7 +1,7 @@
 import { ScrollView, View } from "react-native";
 import type { Minuta } from "@dc360/shared";
-import { Separador, Txt, useTema } from "./componentes";
-import { espaco, raio } from "./tokens";
+import { Txt } from "./componentes";
+import { espaco, papel, raio } from "./tokens";
 
 /**
  * A minuta desenhada na tela do aparelho.
@@ -17,17 +17,30 @@ import { espaco, raio } from "./tokens";
  * circulando sem essa marca é o pior desfecho desta tela, pior do que ela não
  * existir.
  *
+ * **Esta tela não segue o tema do aplicativo**, e é a única junto com o quadro
+ * de assinatura. Ela usava `tema.fundo` e `tema.superficie`, e no tema escuro
+ * virava um cartão escuro com texto claro: o morador olhava e não via
+ * documento nenhum, que é exatamente o efeito para o qual ela existe. Papel não
+ * tem modo escuro. As cores vêm de `papel`, em `tokens.ts`, e são as mesmas do
+ * papel de verdade em `apps/api/src/documentos/folha.ts`.
+ *
+ * Pelo mesmo motivo o separador é desenhado aqui e não vem de `Separador`, do
+ * arquivo de componentes: aquele usa `tema.borda` e voltaria a escurecer junto
+ * com a interface.
+ *
  * Zero rede, zero servidor, zero dependência nova. Tudo aqui é `View` e
  * `Text` sobre um objeto que veio de `montarMinuta`, no pacote compartilhado,
  * que é onde a regra mora.
  */
 
-export function MinutaDoLaudo({ minuta }: { minuta: Minuta }): React.JSX.Element {
-  const tema = useTema();
+function Regua() {
+  return <View style={{ height: 1, backgroundColor: papel.linha }} />;
+}
 
+export function MinutaDoLaudo({ minuta }: { minuta: Minuta }): React.JSX.Element {
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: tema.fundo }}
+      style={{ flex: 1, backgroundColor: papel.mesa }}
       contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: espaco.e8 }}
     >
       {/*
@@ -40,53 +53,54 @@ export function MinutaDoLaudo({ minuta }: { minuta: Minuta }): React.JSX.Element
       <View
         accessibilityRole="alert"
         style={{
-          backgroundColor: tema.alertaFundo,
+          backgroundColor: papel.avisoFundo,
           borderRadius: raio.cartao,
           padding: espaco.e3,
           borderLeftWidth: 4,
-          borderLeftColor: tema.alertaTexto,
+          borderLeftColor: papel.avisoTinta,
         }}
       >
-        <Txt variante="corpoP" negrito cor={tema.alertaTexto}>
+        <Txt variante="corpoP" negrito cor={papel.avisoTinta}>
           {minuta.aviso}
         </Txt>
       </View>
 
       <View
+        testID="folha-da-minuta"
         style={{
-          backgroundColor: tema.superficie,
+          backgroundColor: papel.fundo,
           borderRadius: raio.cartao,
           borderWidth: 1,
-          borderColor: tema.borda,
+          borderColor: papel.linha,
           padding: espaco.e4,
           gap: espaco.e3,
         }}
       >
         <View style={{ alignItems: "center", gap: espaco.e1 }}>
-          <Txt variante="legenda" discreto alinhamento="center">
+          <Txt variante="legenda" cor={papel.tintaDiscreta} alinhamento="center">
             {minuta.cabecalho.orgao}
           </Txt>
-          <Txt variante="legenda" discreto alinhamento="center">
+          <Txt variante="legenda" cor={papel.tintaDiscreta} alinhamento="center">
             {minuta.cabecalho.municipio}, {minuta.cabecalho.uf}
           </Txt>
-          <Txt variante="h3" alinhamento="center">{minuta.titulo}</Txt>
-          <Txt variante="corpoP" mono negrito>{minuta.protocolo}</Txt>
+          <Txt variante="h3" cor={papel.tinta} alinhamento="center">{minuta.titulo}</Txt>
+          <Txt variante="corpoP" mono negrito cor={papel.tinta}>{minuta.protocolo}</Txt>
         </View>
 
         {minuta.secoes.map((secao) => (
           <View key={secao.titulo} style={{ gap: espaco.e2 }}>
-            <Separador />
-            <Txt variante="legenda" discreto>{secao.titulo.toUpperCase()}</Txt>
+            <Regua />
+            <Txt variante="legenda" cor={papel.tintaDiscreta}>{secao.titulo.toUpperCase()}</Txt>
 
             {secao.tipo === "campos" && secao.linhas.map((linha) => (
               <View key={linha.rotulo} style={{ gap: 2 }}>
-                <Txt variante="legenda" discreto>{linha.rotulo}</Txt>
-                <Txt variante="corpoP" mono={linha.mono}>{linha.valor}</Txt>
+                <Txt variante="legenda" cor={papel.tintaDiscreta}>{linha.rotulo}</Txt>
+                <Txt variante="corpoP" mono={linha.mono} cor={papel.tinta}>{linha.valor}</Txt>
               </View>
             ))}
 
             {secao.tipo === "texto" && (
-              <Txt variante="corpoP">{secao.corpo}</Txt>
+              <Txt variante="corpoP" cor={papel.tinta}>{secao.corpo}</Txt>
             )}
 
             {secao.tipo === "checklist" && secao.itens.map((item) => (
@@ -103,10 +117,12 @@ export function MinutaDoLaudo({ minuta }: { minuta: Minuta }): React.JSX.Element
                 style={{ flexDirection: "row", gap: espaco.e3, alignItems: "flex-start" }}
               >
                 <View style={{ minWidth: 44 }}>
-                  <Txt variante="corpoP" negrito>{item.resposta ? "SIM" : "NÃO"}</Txt>
+                  <Txt variante="corpoP" negrito cor={papel.tinta}>
+                    {item.resposta ? "SIM" : "NÃO"}
+                  </Txt>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Txt variante="corpoP">{item.rotulo}</Txt>
+                  <Txt variante="corpoP" cor={papel.tinta}>{item.rotulo}</Txt>
                 </View>
               </View>
             ))}
@@ -114,7 +130,7 @@ export function MinutaDoLaudo({ minuta }: { minuta: Minuta }): React.JSX.Element
         ))}
       </View>
 
-      <Txt variante="legenda" discreto alinhamento="center">
+      <Txt variante="legenda" cor={papel.tintaDiscreta} alinhamento="center">
         {minuta.aviso}
       </Txt>
     </ScrollView>
