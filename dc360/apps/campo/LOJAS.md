@@ -42,16 +42,24 @@ funcionando** no formulário de revisão. Sem ela, a recusa é automática. Ver
 
 ### 1. O endereço do servidor
 
-Um binário publicado aponta para um servidor. `eas.json` tem três perfis, e o
-de produção está com um endereço de exemplo:
+Um binário publicado aponta para um servidor. `eas.json` tem três perfis.
+
+**Produção já aponta para o servidor de verdade**, corrigido em 09/09/2026:
 
 ```json
-"producao": { "env": { "DC360_API_URL": "https://api.exemplo.gov.br" } }
+"producao": { "env": { "DC360_API_URL": "https://defesa-civil.fly.dev" } }
 ```
 
-**Troque para o endereço real antes do primeiro build de loja.** Um aplicativo
-na Play Store apontando para `exemplo.gov.br` é um aplicativo que não funciona,
-e a correção exige nova submissão e nova revisão.
+Até essa data ele dizia `https://api.exemplo.gov.br`, e um aplicativo publicado
+na Play Store com esse endereço não fala com servidor nenhum: no aparelho o
+sintoma é "sem conexão" com o sinal cheio, e a correção exige nova submissão e
+nova revisão.
+
+**`homologacao` continua apontando para um endereço que não existe**
+(`api-homologacao.exemplo.gov.br`), e isso é deliberado: não há ambiente de
+homologação de pé. O perfil é inutilizável hoje, e apontá-lo para produção
+seria pior, porque um build interno de teste passaria a escrever no banco das
+prefeituras. Quando o ambiente existir, o endereço entra aqui.
 
 ### 2. Os identificadores
 
@@ -109,19 +117,17 @@ em `extra.eas.projectId`.
    continuar assim.**
 
 5. **Formulário de segurança de dados.** É onde a maioria dos aplicativos de
-   governo trava. Responda assim, e cada resposta corresponde ao que o código
-   faz de verdade:
+   governo trava. **A resposta inteira, categoria por categoria, está em
+   `../../docs/DECLARACAO-NAS-LOJAS.md`, seção 4**, com a linha de código que
+   sustenta cada célula.
 
-   | Pergunta | Resposta | Onde isso está no código |
-   | --- | --- | --- |
-   | Coleta dados? | Sim | |
-   | Localização aproximada e precisa | Sim, para funcionalidade do app | `expo-location`, só em primeiro plano, só na vistoria |
-   | Fotos | Sim, para funcionalidade do app | `expo-camera`, só a vistoria |
-   | Nome e email | Sim, para gerenciamento de conta | login |
-   | Dados são criptografados em trânsito? | Sim | `https` obrigatório; `NSAllowsArbitraryLoads: false` |
-   | Usuário pode pedir exclusão? | Sim, pela coordenação do município | usuário se desativa, não se apaga, porque assina laudo |
-   | Dados são compartilhados com terceiros? | Não | |
-   | Há publicidade? | Não | |
+   A tabela resumida que ficava aqui foi removida em 09/09/2026 porque ela
+   respondia **"não"** à pergunta sobre compartilhamento com terceiros, e isso
+   deixou de ser verdade quando a notificação passou a falar direto com a APNs
+   (Apple) e com a FCM (Google). Formulário de loja é declaração assinada:
+   responder "não" ali seria declarar falso, e é motivo de derrubada. Uma
+   segunda cópia da tabela neste arquivo voltaria a envelhecer do mesmo jeito,
+   então ela não volta.
 
 6. **Política de privacidade.** Obrigatória, com URL pública, mesmo em teste
    fechado. Precisa dizer quem é o controlador dos dados (o município, não a

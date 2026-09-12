@@ -3,14 +3,15 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   MOTIVO_RECLASSIFICAR,
   PRAZO_PADRAO_HORAS, ROTULO_CANAL, ROTULO_CHECKLIST, ROTULO_PAPEL, ROTULO_SEVERIDADE,
-  ROTULO_TIPO_COBRADE, SEVERIDADES, coordenadaEmTexto, podeExecutar, precisaReclassificar,
+  ROTULO_TIPO_COBRADE, SEVERIDADES, coordenadaEmTexto, linkParaMapa, podeExecutar,
+  precisaReclassificar, type Coordenada, type CorrecaoDeCoordenada,
   DESFECHOS_PROVIDENCIA, ROTULO_DESFECHO, respostaProvidenciaSchema,
   type DesfechoProvidencia, type TipoCobrade, type TipoDeEntrada,
   despachoSchema, desinterdicaoSchema, providenciaSchema, triagemSchema,
   type Severidade, rotuloEventoTrilha } from "@dc360/shared";
 import {
   buscarOcorrencia, classificarNaTriagem, despacharEquipe, encaminharProvidencia,
-  encerrarOcorrencia,
+  encerrarOcorrencia, corrigirCoordenada,
   levantarInterdicao, listarEquipes, providenciasDaOcorrencia, trilhaDaOcorrencia,
   vistoriaDaOcorrencia, abrirDocumento, listarEvidencias, responderProvidencia,
   vinculosDaOcorrencia, possiveisDuplicidades, MODO,
@@ -27,11 +28,15 @@ import {
 import { Campo } from "../componentes/Campo";
 import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
 import { Modal } from "../componentes/Modal";
-import { Toast } from "../componentes/Toast";
+import { DURACAO_PARA_DITAR, Toast } from "../componentes/Toast";
 import { IconeDocumento, IconeEvento, IconeVoltar } from "../componentes/Icones";
 import {
   estadoDoEnvio, providenciasSemOficio, rotuloDoEnvio,
 } from "./oficio-regras";
+import {
+  avisoDaCorrecao, mensagemDaLeitura, podeCorrigirCoordenada, proximoPassoDaCorrecao,
+} from "./coordenada-corrigida";
+import { lerLocalizacaoColada } from "./coordenada-colada";
 import {
   ANCORA_DA_CLASSIFICACAO, avisoDoRegistro, despachoEsperaClassificacao,
   montarVerTambem, ofereceTriagem, opcoesDeTipoNaTriagem, podeOferecerEncerramento,
@@ -189,7 +194,16 @@ export function Ocorrencia() {
    */
   const faixaDeAviso = useRef<HTMLDivElement>(null);
 
-  async function executar(acao: () => Promise<void>, mensagem: string) {
+  /*
+    A mensagem pode ser uma FUNÇÃO, e não só um texto pronto.
+
+    Quase toda ação daqui tem uma frase que já se sabe antes de gravar
+    ("Triagem registrada"). A correção de coordenada não: ela precisa dizer de
+    onde para onde o alfinete andou, e isso só existe depois que o servidor
+    responde com o ponto anterior. Sem esta forma, o aviso teria que ser
+    genérico justamente na ação em que o valor conferido é o assunto.
+  */
+  async function executar(acao: () => Promise<void>, mensagem: string | (() => string)) {
     if (gravando) return;
     setGravando(true);
     /*
@@ -207,7 +221,7 @@ export function Ocorrencia() {
     try {
       await acao();
       await recarregar();
-      setAviso(mensagem);
+      setAviso(typeof mensagem === "function" ? mensagem() : mensagem);
     } catch (e: unknown) {
       setErro(e instanceof Error ? e.message : String(e));
       /*
@@ -247,6 +261,9 @@ export function Ocorrencia() {
   const podeDocumento = podeExecutar(sessao.papel, "emitir_documento");
   const podeResponder = podeExecutar(sessao.papel, "responder_providencia");
   const encerrada = o.status === "encerrada";
+  // Em três pedaços porque o do meio é um número que vai ser ditado: ver
+  // `avisoDoRegistro` e o `.mono` lá embaixo.
+  const registro = avisoDoRegistro({ protocolo: o.protocolo, papel: sessao.papel });
 
   return (
     <>
@@ -290,11 +307,22 @@ export function Ocorrencia() {
         gravar não sabe se o trabalho terminou ali. Some sozinho, e nada se
         perde quando some: o protocolo continua no título e o passo seguinte
         continua sendo o cartão aberto na coluna da esquerda.
+
+        Duas coisas aqui não são enfeite. O protocolo sai em `.mono` porque ele
+        é ditado ao telefone e copiado, e a fonte tabular é a que não deixa o
+        zero parecer letra nem o "1" ocupar meia largura. E o relógio é o
+        longo, o de ditar, porque o padrão de seis segundos termina antes de a
+        pessoa acabar de passar o número para quem está na linha.
       */}
       {anunciarRegistro && (
         <Toast
           tom="sucesso"
-          mensagem={avisoDoRegistro({ protocolo: o.protocolo, papel: sessao.papel })}
+          duracao={DURACAO_PARA_DITAR}
+          mensagem={<>
+            {registro.antes}
+            <span className="mono">{registro.protocolo}</span>
+            {registro.depois}
+          </>}
           aoFechar={() => setAnunciarRegistro(false)}
         />
       )}
@@ -391,6 +419,44 @@ export function Ocorrencia() {
               <span className="par__valor">{o.descricao}</span>
             </div>
           </Cartao>
+
+          {/*
+            A CORREÇÃO DO ALFINETE, logo abaixo dos dados do chamado.
+
+            É onde o coordenador está quando percebe o erro: o endereço, a
+            referência e a coordenada aparecem no cartão de cima, e é a
+            comparação entre os três que denuncia o ponto na quadra errada.
+            Antes disto não havia como corrigir, e a saída que sobrava era
+            abrir outro protocolo para o mesmo evento, o que faz a cidade ter
+            duas ocorrências onde existe uma casa.
+          */}
+          {podeCorrigirCoordenada(sessao.papel, o.status) && (
+            <BlocoCorrigirCoordenada
+              gravando={gravando}
+              atual={o.latitude !== null && o.longitude !== null
+                ? { lat: o.latitude, lng: o.longitude }
+                : null}
+              onEnviar={(correcao) => {
+                /*
+                  A frase do aviso só existe DEPOIS da resposta: ela diz de
+                  onde para onde o ponto andou, e o ponto anterior é o servidor
+                  que devolve. Por isso a mensagem vai como função.
+                */
+                let frase = "Coordenada corrigida.";
+                executar(
+                  async () => {
+                    const feito = await corrigirCoordenada(sessao, o.id, correcao);
+                    frase = avisoDaCorrecao({
+                      anterior: feito.anterior,
+                      nova: feito.coordenada,
+                      documentoJaEmitido: feito.documentoJaEmitido,
+                    });
+                  },
+                  () => frase,
+                );
+              }}
+            />
+          )}
 
           {ofereceTriagem(sessao.papel, o.status, o.tipo) && (
             <BlocoTriagem
@@ -1858,6 +1924,175 @@ function BlocoRespostaProvidencia({ abertas, onEnviar, gravando }: {
  * levantá-la é da coordenação. E esconder o formulário não é o controle: o
  * controle é `exigirPermissao`, no servidor.
  */
+/**
+ * Corrigir o ponto de uma ocorrência aberta, no lugar onde o erro é percebido.
+ *
+ * POR QUE AQUI, E NÃO NO MAPA. O mapa desenha a cidade inteira e é a tela de
+ * quem procura padrão: arrastar um alfinete lá seria mexer num registro sem o
+ * endereço, o relato e o ponto de referência na frente, que são exatamente as
+ * três coisas que dizem se o alfinete está no lugar errado. Pior, num mapa com
+ * duzentos marcadores em cima de uma enxurrada, corrigir o pino errado é um
+ * deslize de um pixel. Aqui a correção acontece encostada nos dados do chamado
+ * e a poucos centímetros da trilha, que é onde ela vai aparecer.
+ *
+ * O leitor do campo é o MESMO da abertura (`lerLocalizacaoColada`): link do
+ * Google, `geo:` do Android, par com ponto, par com vírgula decimal e
+ * grau/minuto/segundo. Um segundo leitor faria a mesma colagem ser aceita numa
+ * tela e recusada na outra.
+ *
+ * O formulário começa FECHADO. Ele é a exceção, não a rotina: aberto por
+ * padrão, empurraria a triagem para baixo em toda ocorrência e convidaria a
+ * mexer no ponto de casos em que ninguém desconfiou de nada.
+ */
+function BlocoCorrigirCoordenada({
+  gravando, atual, onEnviar,
+}: {
+  gravando: boolean;
+  atual: Coordenada | null;
+  onEnviar: (correcao: CorrecaoDeCoordenada) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [texto, setTexto] = useState("");
+  const [motivo, setMotivo] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+
+  // A cada tecla, como na abertura: quem cola precisa ver na hora se o sistema
+  // entendeu, e não descobrir no envio.
+  const leitura = lerLocalizacaoColada(texto);
+
+  function enviar(): void {
+    const decisao = proximoPassoDaCorrecao(texto, motivo, atual);
+    if (decisao.tipo === "erro") {
+      setErro(decisao.mensagem);
+      return;
+    }
+    setErro(null);
+    onEnviar(decisao.correcao);
+    setAberto(false);
+    setTexto("");
+    setMotivo("");
+  }
+
+  return (
+    <Cartao titulo="Coordenada no mapa">
+      <div className="par">
+        <span className="par__rotulo">Ponto gravado</span>
+        <span className="par__valor mono">
+          {atual ? coordenadaEmTexto(atual) : "Não informada"}
+        </span>
+      </div>
+
+      {!aberto ? (
+        <>
+          <button type="button" className="botao-texto" onClick={() => setAberto(true)}>
+            {atual ? "Corrigir a coordenada" : "Informar a coordenada"}
+          </button>
+          <p className="campo__dica">
+            {atual
+              ? "Use quando o alfinete estiver no lugar errado. A correção fica na "
+                + "trilha, com o ponto anterior e o motivo."
+              : "Esta ocorrência foi aberta sem ponto no mapa, então ela não aparece "
+                + "no mapa da cidade."}
+          </p>
+        </>
+      ) : (
+        <form onSubmit={(evento) => { evento.preventDefault(); enviar(); }} noValidate>
+          {/*
+            Os dois campos são obrigatórios aqui, e o motivo é o que mais
+            surpreende: na abertura a coordenada é opcional, e nesta tela não,
+            porque a pessoa abriu este formulário exatamente para mexer no
+            ponto.
+          */}
+          <AvisoDeObrigatorios />
+          <Campo
+            id="corrigir-coordenada-ponto"
+            rotulo="Ponto correto"
+            dica={<span role="status">
+              {leitura.tipo === "coordenada" ? (
+                <span className="leitura leitura--ok">
+                  <span aria-hidden="true">✓</span> Ponto reconhecido:{" "}
+                  <span className="mono">{coordenadaEmTexto(leitura.coordenada)}</span>.{" "}
+                  <a
+                    href={linkParaMapa(leitura.coordenada)}
+                    target="_blank" rel="noreferrer noopener"
+                  >
+                    Conferir no mapa
+                  </a>
+                </span>
+              ) : (
+                <span
+                  className={leitura.tipo === "vazio" ? "leitura leitura--nota" : "leitura leitura--erro"}
+                >
+                  <span aria-hidden="true">{leitura.tipo === "vazio" ? "i" : "!"}</span>{" "}
+                  {mensagemDaLeitura(leitura.tipo)}
+                </span>
+              )}
+              {leitura.tipo === "invertida" && (
+                <>
+                  {" "}
+                  <button
+                    type="button" className="botao-texto"
+                    onClick={() => setTexto(coordenadaEmTexto(leitura.sugestao))}
+                  >
+                    Usar {coordenadaEmTexto(leitura.sugestao)}
+                  </button>
+                </>
+              )}
+              {leitura.tipo === "ambigua" && leitura.leituras.map((c, i) => (
+                <span key={coordenadaEmTexto(c)}>
+                  {i > 0 ? " ou " : " "}
+                  <button
+                    type="button" className="botao-texto"
+                    onClick={() => setTexto(coordenadaEmTexto(c))}
+                  >
+                    {coordenadaEmTexto(c)}
+                  </button>
+                </span>
+              ))}
+            </span>}
+          >
+            {(campo) => (
+              <input
+                {...campo} value={texto}
+                onChange={(e) => { setErro(null); setTexto(e.target.value); }}
+                placeholder="Cole o link do Google Maps, ou a coordenada"
+                autoComplete="off"
+              />
+            )}
+          </Campo>
+
+          <Campo
+            id="corrigir-coordenada-motivo"
+            rotulo="Motivo da correção"
+            erro={erro}
+            dica={"Obrigatório, porque é obrigatório na trilha. É o que responde, "
+              + "meses depois, por que o laudo impresso aponta para um ponto e o "
+              + "sistema aponta para outro."}
+          >
+            {(campo) => (
+              <textarea
+                {...campo} value={motivo}
+                onChange={(e) => { setErro(null); setMotivo(e.target.value); }}
+                placeholder="O agente conferiu no local: o ponto caía na quadra de baixo"
+              />
+            )}
+          </Campo>
+
+          <button type="submit" className="botao botao--primario" disabled={gravando}>
+            {gravando ? "Corrigindo" : "Corrigir a coordenada"}
+          </button>{" "}
+          <button
+            type="button" className="botao-texto"
+            onClick={() => { setAberto(false); setErro(null); }}
+          >
+            Cancelar
+          </button>
+        </form>
+      )}
+    </Cartao>
+  );
+}
+
 function BlocoDesinterdicao({
   gravando, podeLevantar, interditadaEm, onEnviar,
 }: {

@@ -1,9 +1,9 @@
 import type {
-  AberturaOcorrencia, Despacho, Encerramento, InteresseMunicipio, Papel,
-  Providencia, Triagem,
+  AberturaOcorrencia, CorrecaoDeCoordenada, Despacho, Encerramento,
+  InteresseMunicipio, Papel, Providencia, Triagem,
 } from "@dc360/shared";
 import type {
-  ContaDisponivel, FiltroOcorrencias, Indicadores, LinhaEquipe, LinhaEvento,
+  ContaDisponivel, CorrecaoAplicada, FiltroOcorrencias, Indicadores, LinhaEquipe, LinhaEvento,
   FiltroTrilha, LinhaEvidencia, LinhaOcorrencia, LinhaProvidencia, LinhaTrilha,
   ImovelInterditado, LinhaUsuario, LinhaVistoria, MeuTrabalho, MinhasSessoes,
   PaginaDeOcorrencias, PontosDoMapa, ProvidenciaPendente,
@@ -475,6 +475,23 @@ export async function levantarInterdicao(
   _s: Sessao, id: string, motivo: string,
 ): Promise<void> {
   await chamar(`/ocorrencias/${id}/desinterdicao`, { metodo: "POST", corpo: { motivo } });
+}
+
+/**
+ * Corrigir a coordenada de uma ocorrência aberta.
+ *
+ * A rota é `POST` e não `PATCH` porque isto é um ATO, não uma edição de campo:
+ * ele exige motivo e deixa evento na trilha, como o levantamento de interdição
+ * e o encerramento. As recusas todas são do servidor (permissão, município,
+ * ocorrência encerrada, faixa da coordenada e teto de seis casas), e a tela
+ * apenas evita fazer a pessoa digitar para levar um não no fim.
+ */
+export async function corrigirCoordenada(
+  _s: Sessao, id: string, correcao: CorrecaoDeCoordenada,
+): Promise<CorrecaoAplicada> {
+  return chamar<CorrecaoAplicada>(`/ocorrencias/${id}/coordenada`, {
+    metodo: "POST", corpo: correcao,
+  });
 }
 
 export async function possiveisDuplicidades(

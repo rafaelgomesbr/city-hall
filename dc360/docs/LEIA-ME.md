@@ -13,6 +13,7 @@ O `README.md` na raiz continua sendo o documento técnico principal.
 | [SUBPROCESSADORES.md](SUBPROCESSADORES.md) | Quem mais toca no nosso dado, e onde ficam os servidores. Traz a cláusula de operador para o contrato |
 | [SAIDA-DE-MUNICIPIO.md](SAIDA-DE-MUNICIPIO.md) | E se um dia eu quiser sair? |
 | [INDISPONIBILIDADE.md](INDISPONIBILIDADE.md) | E se cair no dia do temporal? |
+| [DECLARACAO-NAS-LOJAS.md](DECLARACAO-NAS-LOJAS.md) | O que a App Store e a Play Store perguntam sobre dados, e a resposta que o código sustenta. É o que alguém copia para os dois formulários |
 
 **Os três primeiros têm campos marcados `[[assim]]`**: razão social, CNPJ,
 encarregado de dados, prazos de retenção. São decisões que não podem ser
@@ -56,12 +57,16 @@ Estes documentos são a metade da venda, e um documento desatualizado vale menos
 que nenhum: ele transforma o produto em promessa quebrada na primeira
 conferência.
 
-Duas regras, que já pegaram erro real neste projeto:
+Três regras, que já pegaram erro real neste projeto:
 
 1. **Dependência nova que toque dado do município entra em `SUBPROCESSADORES.md`
    no mesmo commit.** Se a variável de ambiente nova aponta para um serviço de
    terceiro, aquela tabela cresce junto.
-2. **A seção 6 de `PRIVACIDADE.md` lista o que NÃO está pronto.** Quando algo
+2. **Permissão nova no binário do aplicativo, ou dado novo saindo do aparelho,
+   muda `DECLARACAO-NAS-LOJAS.md` no mesmo trabalho.** Aquele arquivo é copiado
+   para dois formulários que a pessoa assina, e resposta desatualizada ali não é
+   documento envelhecido: é declaração falsa, e a loja derruba a submissão.
+3. **A seção 6 de `PRIVACIDADE.md` lista o que NÃO está pronto.** Quando algo
    dali ficar pronto, a lista encolhe no mesmo trabalho. Ela erra nas duas
    direções: prometer o que não existe é enganar, e esconder o que já existe é
    perder crédito por modéstia desatualizada.

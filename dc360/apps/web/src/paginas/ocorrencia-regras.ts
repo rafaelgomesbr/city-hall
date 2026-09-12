@@ -96,35 +96,61 @@ export function rotuloDoBotaoDeEncerrar(
    ============================================================ */
 
 /**
- * A frase que a pessoa recebe ao chegar na ocorrência recém registrada.
+ * O aviso que a pessoa recebe ao chegar na ocorrência recém registrada, em
+ * três pedaços, porque o do meio não é texto: é um número.
  *
- * Ela conserta um buraco de produto: quem registrava o chamado era jogado na
+ * Ele conserta um buraco de produto: quem registrava o chamado era jogado na
  * tela de detalhe sem nenhum sinal de que a gravação deu certo, e sem o número
  * do protocolo dito em lugar nenhum além do título, que a pessoa ainda não
  * sabia ser o protocolo. Com o telefone no ombro, a pergunta imediata é "posso
  * passar o número para quem está na linha?", e a tela não respondia.
  *
- * Duas decisões dentro dela:
+ * Três decisões dentro dele:
  *
- * - o PROTOCOLO vem inteiro na frase. Ele é lido do registro que já está na
- *   tela, então o número anunciado é o mesmo do título por construção, e não
- *   por coincidência;
- * - o PRÓXIMO PASSO muda com o papel de quem está olhando. O operador de
- *   plantão não classifica, e mandá-lo "classificar na triagem" seria mandar
- *   fazer uma coisa que o servidor vai recusar. Ele precisa saber que o
- *   chamado agora espera a coordenação, para poder dizer isso ao morador.
+ * - o PROTOCOLO vem separado do texto. Ele é ditado por telefone e copiado,
+ *   e ditar "000123/2026" na fonte do corpo é ditar zeros e letras "o" que se
+ *   parecem, num tipo em que a largura do dígito muda. A tela desenha esta
+ *   parte na fonte tabular do design system (`.mono`, que é
+ *   `--ds-font-mono` com `tabular-nums`), e é só por isso que a frase vem
+ *   partida em vez de pronta. Ele continua sendo lido do registro que já está
+ *   na tela, então o número anunciado é o mesmo do título por construção, e
+ *   não por coincidência;
+ * - o PRÓXIMO PASSO é o do estado em que a ocorrência NASCE. Ela nasce em
+ *   `STATUS_INICIAL` ("registrada"), e a única saída dali que não é o fim do
+ *   caso é "triagem" (ver `TRANSICOES_PERMITIDAS`): quem age em seguida é
+ *   quem classifica, não quem despacha, porque despachar equipe sem
+ *   classificação é recusado. Um teste ancora essa leitura na máquina de
+ *   estados, senão a frase envelheceria calada no dia em que o fluxo mudar;
+ * - o TEXTO do próximo passo muda com o papel de quem está olhando. O
+ *   operador de plantão não classifica, e mandá-lo "classificar na triagem"
+ *   seria mandar fazer uma coisa que o servidor vai recusar. Ele precisa
+ *   saber que o chamado agora espera a coordenação, para poder dizer isso ao
+ *   morador.
  *
  * É função pura, e não texto solto no meio do JSX, pelo motivo de sempre nesta
  * pasta: condição escondida dentro de um componente que só roda em navegador
  * não tem como ser exercitada.
  */
+export type AvisoDeRegistro = {
+  /** O que vem antes do número, já terminando em espaço. */
+  antes: string;
+  /** O protocolo sozinho, para a tela desenhá-lo na fonte tabular. */
+  protocolo: string;
+  /** O ponto final e o próximo passo. */
+  depois: string;
+};
+
 export function avisoDoRegistro(
   { protocolo, papel }: { protocolo: string; papel: Papel },
-): string {
+): AvisoDeRegistro {
   const proximo = podeExecutar(papel, "classificar_triagem")
     ? "Próximo passo: classificar na triagem, que é o que define a severidade e o prazo."
     : "Próximo passo: a coordenação classifica na triagem, que é o que define o prazo.";
-  return `Ocorrência registrada com o protocolo ${protocolo}. ${proximo}`;
+  return {
+    antes: "Ocorrência registrada com o protocolo ",
+    protocolo,
+    depois: `. ${proximo}`,
+  };
 }
 
 /* ============================================================

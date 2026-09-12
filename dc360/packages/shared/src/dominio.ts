@@ -347,6 +347,14 @@ export const ROTULO_EVENTO_TRILHA: Record<string, string> = {
   providencia: "Providência encaminhada",
   resposta_providencia: "Resposta do órgão registrada",
   desinterdicao: "Interdição levantada",
+  /*
+    A coordenada mudou de lugar depois da abertura, e o evento carrega o ponto
+    ANTERIOR, o NOVO e o motivo escrito por quem corrigiu. Os três juntos, e
+    não só o novo: gravar apenas o valor final apagaria exatamente a
+    informação que a pergunta de auditoria pede, que é por que o laudo
+    impresso aponta para um ponto e o sistema aponta para outro.
+  */
+  correcao_de_coordenada: "Coordenada corrigida",
   encerramento: "Ocorrência encerrada",
   /*
     Este evento NÃO é escrito por rota, e é o único assim: ele nasce dentro do

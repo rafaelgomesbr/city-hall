@@ -24,6 +24,8 @@ let mem: BancoEmMemoria;
 let app: FastifyInstance;
 
 const SENHA = "senha-inicial-sorteada-de-teste";
+/** Quem, do lado do fornecedor, executou o provisionamento. */
+const OPERADOR = "Rafael Gomes (operação da plataforma)";
 
 beforeAll(async () => {
   mem = await bancoEmMemoria();
@@ -64,6 +66,7 @@ describe("Provisionar município", () => {
       nome: "Vânia Estevam Nogueira", matricula: "PB-1",
       email: "vania.nogueira@pedrabranca.exemplo.gov.br",
       senha: SENHA,
+      operador: OPERADOR,
     });
 
     expect(criado.organizacaoId).toMatch(/^[0-9a-f-]{36}$/);
@@ -150,6 +153,155 @@ describe("Provisionar município", () => {
       nome: "Outra Pessoa", matricula: "PB-2",
       email: "outra.pessoa@pedrabranca.exemplo.gov.br",
       senha: SENHA,
+      operador: OPERADOR,
     })).rejects.toThrow(/já existe município/i);
+  }, 120_000);
+});
+
+/**
+ * A linha espelho na trilha do município.
+ *
+ * O plano pedia isto com uma frase curta ("linha espelho na trilha escrita
+ * DENTRO da função de provisionamento") e a razão dela é longa.
+ *
+ * Provisionar é o único ato do produto praticado por quem NÃO é do município:
+ * um operador da plataforma, com a credencial de dono do banco, a mesma que
+ * aplica migração. Até aqui esse ato deixava rastro em um lugar só, o log do
+ * servidor, que é justamente o lugar que o município não pode ler. Do lado de
+ * dentro, a organização simplesmente aparecia: nenhuma resposta para "quem
+ * criou isto, quando, e a mando de quem", que é a primeira pergunta de uma
+ * auditoria e a primeira pergunta de um município que desconfia.
+ *
+ * Por que DENTRO da função, e não no comando de linha que a chama: o comando é
+ * uma casca, e amanhã pode existir outra. O ato e o registro do ato precisam
+ * ser a mesma transação, senão existe um caminho que cria município sem
+ * registrar, e um registro que pode ser esquecido não é registro.
+ *
+ * Por que em `trilha_administrativa` e não em `trilha_eventos`: a trilha
+ * operacional tem `ocorrencia_id NOT NULL`, e no instante do provisionamento
+ * não existe ocorrência nenhuma. É a mesma decisão que a migração 010 já
+ * tinha tomado, e ela já previa `alvo_tipo = 'organizacao'`.
+ */
+describe("Provisionar deixa linha espelho na trilha do município", () => {
+  it("o município recém-criado enxerga, na trilha dele, o próprio nascimento", async () => {
+    const criado = await provisionarMunicipio(comoDono(), {
+      orgao: "Coordenadoria Municipal de Proteção e Defesa Civil de Serra Alta",
+      municipio: "Serra Alta", uf: "MG",
+      nome: "Otávio Ramalho Pinto", matricula: "SA-1",
+      email: "otavio.ramalho@serraalta.exemplo.gov.br",
+      senha: SENHA,
+      operador: OPERADOR,
+    });
+
+    /*
+      A leitura é feita como o município leria: papel de aplicação e
+      `app.organizacao_atual`, ou seja, sob a mesma segurança em nível de linha
+      que vale para qualquer tela do produto. Ler como dono provaria só que a
+      linha existe em algum lugar do banco, e não que ela está do lado certo da
+      parede, que é a única coisa que importa aqui.
+    */
+    const linhas = await mem.banco.comTenant(criado.organizacaoId, (c) =>
+      c.query<{
+        acao: string; alvo_tipo: string; alvo_id: string; alvo_nome: string;
+        autor_id: string | null; autor_nome: string; autor_papel: string;
+        antes: unknown; depois: Record<string, unknown> | null;
+      }>("SELECT * FROM trilha_administrativa ORDER BY registrado_em"),
+    );
+
+    expect(linhas.rows).toHaveLength(1);
+    const linha = linhas.rows[0]!;
+    expect(linha.acao).toBe("municipio_provisionado");
+    expect(linha.alvo_tipo).toBe("organizacao");
+    expect(linha.alvo_id).toBe(criado.organizacaoId);
+    expect(linha.alvo_nome).toBe("Serra Alta/MG");
+
+    /*
+      O autor não é usuário do município, e é por isso que `autor_id` fica
+      nulo: carimbar o administrador recém-criado como autor seria escrever no
+      registro que ele criou a si mesmo, que é falso, e é falso justamente na
+      linha que existe para ser confiável.
+    */
+    expect(linha.autor_id).toBeNull();
+    expect(linha.autor_nome).toBe(OPERADOR);
+    expect(linha.autor_papel).toBe("operador_da_plataforma");
+
+    // O ato não tem "antes": não havia município.
+    expect(linha.antes).toBeNull();
+
+    // O "depois" descreve o que nasceu, para a auditoria não precisar cruzar
+    // com o cadastro atual, que pode ter mudado desde então.
+    expect(linha.depois).toMatchObject({
+      orgao: "Coordenadoria Municipal de Proteção e Defesa Civil de Serra Alta",
+      municipio: "Serra Alta",
+      uf: "MG",
+      administrador: {
+        id: criado.usuarioId,
+        nome: "Otávio Ramalho Pinto",
+        matricula: "SA-1",
+        email: "otavio.ramalho@serraalta.exemplo.gov.br",
+        papel: "administrador",
+      },
+    });
+  }, 120_000);
+
+  it("a senha inicial não entra na linha espelho", async () => {
+    /*
+      A migração 010 escreveu isto como regra ("NUNCA guardar senha, hash de
+      senha, nem token"), e este é o único lugar do produto onde uma senha em
+      texto claro passa perto de uma escrita na trilha. A trilha é append-only:
+      uma senha que entrasse aqui não sairia mais, nem por correção.
+    */
+    const linhas = await mem.bruto.query<{ depois: unknown }>(
+      "SELECT depois FROM trilha_administrativa WHERE acao = 'municipio_provisionado'",
+    );
+    const texto = JSON.stringify(linhas.rows.map((l) => l.depois));
+    expect(texto).not.toContain(SENHA);
+    expect(texto).not.toMatch(/senha|hash/i);
+  }, 120_000);
+
+  it("a linha espelho de um município não aparece para outro", async () => {
+    /*
+      A gravação acontece com a credencial de DONO do banco, que é a que provisiona.
+      Se ela fosse feita por fora da segurança em nível de linha, um erro de
+      `organizacao_id` colocaria o nascimento de um município dentro da trilha
+      de outro, e ninguém perceberia. Este caso é o que prova que a escrita
+      passa pela mesma parede que tudo o mais.
+    */
+    const serraAlta = await mem.bruto.query<{ id: string }>(
+      "SELECT id FROM organizacoes WHERE municipio = 'Serra Alta'",
+    );
+    const pedraBranca = await mem.bruto.query<{ id: string }>(
+      "SELECT id FROM organizacoes WHERE municipio = 'Pedra Branca'",
+    );
+
+    const vistoDePedraBranca = await mem.banco.comTenant(pedraBranca.rows[0]!.id, (c) =>
+      c.query<{ alvo_nome: string }>(
+        "SELECT alvo_nome FROM trilha_administrativa WHERE acao = 'municipio_provisionado'",
+      ),
+    );
+    expect(vistoDePedraBranca.rows.map((l) => l.alvo_nome)).toEqual(["Pedra Branca/MG"]);
+    expect(serraAlta.rows[0]!.id).not.toBe(pedraBranca.rows[0]!.id);
+  }, 120_000);
+
+  it("recusa provisionar sem dizer quem está provisionando", async () => {
+    /*
+      Campo obrigatório e não valor padrão: "operador da plataforma", genérico,
+      responderia à pergunta da auditoria com uma frase que não identifica
+      ninguém, e daria a aparência de registro sem o conteúdo dele.
+    */
+    await expect(provisionarMunicipio(comoDono(), {
+      orgao: "Coordenadoria Municipal de Proteção e Defesa Civil de Vale Fundo",
+      municipio: "Vale Fundo", uf: "MG",
+      nome: "Iara Bezerra Lins", matricula: "VF-1",
+      email: "iara.lins@valefundo.exemplo.gov.br",
+      senha: SENHA,
+      operador: "   ",
+    })).rejects.toThrow(/quem está provisionando/i);
+
+    // E a recusa não pode deixar município pela metade para trás.
+    const sobrou = await mem.bruto.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM organizacoes WHERE municipio = 'Vale Fundo'",
+    );
+    expect(sobrou.rows[0]!.n).toBe("0");
   }, 120_000);
 });

@@ -39,6 +39,7 @@ const PACOTES = {
   shared: "packages/shared",
   campo: "packages/campo",
   api: "apps/api",
+  console: "apps/console",
   web: "apps/web",
   db: "db",
 };
@@ -116,6 +117,7 @@ const VERDADE = {
   "testes do pacote compartilhado": porPacote.shared,
   "testes do motor de campo": porPacote.campo,
   "testes da API": porPacote.api,
+  "testes do console do fornecedor": porPacote.console,
   "testes de fonte do painel": porPacote.web,
   "testes do banco": porPacote.db,
   "testes de isolamento (CA-06)": porArquivo["db/test/isolamento.test.ts"],
@@ -207,6 +209,7 @@ const ASSUNTO = [
   ["depósito", ["testes do depósito SQLite"]],
   ["aplicativo", ["testes do aplicativo de campo", "total de testes automatizados, somando o aplicativo"]],
   ["painel", ["testes de fonte do painel"]],
+  ["console", ["testes do console do fornecedor"]],
   ["compartilhado", ["testes do pacote compartilhado"]],
   ["motor de campo", ["testes do motor de campo"]],
   /*

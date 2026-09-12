@@ -6,6 +6,7 @@ import {
   SEVERIDADES,
   STATUS_OCORRENCIA,
   aberturaOcorrenciaSchema,
+  correcaoDeCoordenadaSchema,
   despachoSchema,
   desinterdicaoSchema, encerramentoSchema,
   estadoTerminal,
@@ -831,6 +832,140 @@ export async function rotasOcorrencias(
       });
 
       return { status: "desinterditada" };
+    });
+  });
+
+  /**
+   * Corrigir a coordenada de uma ocorrência ABERTA.
+   *
+   * O DEFEITO QUE ELA FECHA: o alfinete cai no lugar errado e não havia como
+   * mover. Endereço ditado por telefone com alguém apavorado do outro lado,
+   * geocodificação que erra a quadra, coordenada digitada torto, ou chamado
+   * aberto sem ponto nenhum e o ponto descoberto depois. A equipe saía para
+   * vistoriar o lugar errado, e a única saída do coordenador era abrir OUTRO
+   * protocolo para o mesmo evento só para poder digitar o ponto certo: duas
+   * ocorrências onde existe uma casa, e nenhuma das duas contando a história
+   * inteira.
+   *
+   * Cada recusa desta rota, e o motivo de cada uma:
+   *
+   * 1. **`abrir_ocorrencia` antes de tocar no banco.** É a mesma competência
+   *    que informa a localização quando o chamado entra: quem registra o
+   *    chamado é quem erra o ponto e é quem precisa poder corrigi-lo, senão a
+   *    correção depende de achar a coordenação no meio de um temporal e o
+   *    caminho fácil volta a ser abrir protocolo novo. O agente de campo fica
+   *    de fora (ele só tem `registrar_vistoria`), e é o desenho certo: o
+   *    canal dele para dizer onde a casa fica é a vistoria, com o GPS do
+   *    aparelho, e não a edição do registro do escritório.
+   * 2. **A organização vem do token verificado**, como em toda rota daqui. A
+   *    leitura roda sob RLS, então ocorrência de outro município simplesmente
+   *    não existe daqui e a resposta é 404. Nunca 403: um 403 confirmaria que
+   *    aquele identificador existe em alguma prefeitura.
+   * 3. **Ocorrência encerrada não muda de lugar.** O portão é `estadoTerminal`
+   *    e não uma lista de status escrita à mão: os estados que aceitam a
+   *    correção são todos os que ainda têm saída na máquina de estados, e
+   *    amanhã, se um estado novo entrar, ele não vai precisar ser lembrado
+   *    aqui. Encerrada é peça de processo: o laudo já saiu com a coordenada
+   *    impressa, e mexer no ponto depois faria o documento assinado divergir
+   *    do banco sem que nada avisasse. Encerrada se corrige por evento novo.
+   * 4. **A trilha registra ANTES, DEPOIS e o motivo.** Ela não tem policy de
+   *    UPDATE nem de DELETE: gravar só o valor novo apagaria a única
+   *    informação capaz de responder, meses depois, por que o papel diz um
+   *    ponto e a tela diz outro. Coordenada que muda sem rastro é reescrever
+   *    histórico com outro nome.
+   *
+   * A DECISÃO SOBRE VISTORIA JÁ CONCLUÍDA, escrita porque não pode ficar
+   * implícita: a correção CONTINUA valendo depois da vistoria, e continua
+   * valendo depois de um laudo ter sido emitido. Recusar ali seria devolver o
+   * coordenador ao protocolo duplicado justamente no caso mais grave, que é o
+   * do imóvel interditado no endereço errado. O que a rota faz em vez de
+   * recusar é deixar a divergência VISÍVEL: o evento anota o status em que a
+   * ocorrência estava e se um documento oficial já tinha saído com o ponto
+   * anterior, porque o laudo é gerado sob demanda (não fica guardado) e a
+   * reimpressão vai sair com o ponto novo, diferente do papel que já está
+   * dentro do processo. Quem comparar os dois encontra a explicação na trilha.
+   *
+   * E ela NÃO toca na coordenada da vistoria. Aquele é o GPS que o aparelho
+   * mediu no local, um fato de outro autor e de outro momento; sobrescrevê-lo
+   * poria no laudo, no campo do que foi medido em campo, um número que
+   * aparelho nenhum mediu.
+   */
+  app.post("/:id/coordenada", async (req) => {
+    const quem = await autorizar(app, req, "abrir_ocorrencia");
+    const { id } = idSchema.parse(req.params);
+    // A faixa e o teto de seis casas vêm do esquema COMPARTILHADO, o mesmo que
+    // o painel usa: regra de coordenada válida que só existe no formulário não
+    // existe, porque o formulário não é a única porta desta coluna.
+    const correcao = correcaoDeCoordenadaSchema.parse(req.body);
+
+    return banco.comTenant(quem.organizacaoId, async (c) => {
+      /*
+        `FOR UPDATE` pelo mesmo motivo da desinterdição: duas pessoas
+        corrigindo o mesmo ponto ao mesmo tempo leem o valor antigo antes de
+        qualquer uma escrever, e a trilha ganharia dois eventos dizendo, os
+        dois, que o ponto anterior era o da abertura. O segundo estaria
+        mentindo, e a trilha não se corrige.
+      */
+      const atual = await c.query<{
+        status: StatusOcorrencia; latitude: number | null; longitude: number | null;
+      }>(
+        "SELECT status, latitude, longitude FROM ocorrencias WHERE id = $1 FOR UPDATE",
+        [id],
+      );
+      const alvo = atual.rows[0];
+      // 404, e não 403: recurso de outro município não se confirma.
+      if (!alvo) throw new RegraDeNegocio("nao_encontrada", "Ocorrência não encontrada.", 404);
+
+      if (estadoTerminal(alvo.status)) {
+        throw new RegraDeNegocio(
+          "ocorrencia_encerrada",
+          "Esta ocorrência está encerrada, e o laudo assinado aponta para a "
+          + "coordenada que está gravada. Registre a correção como ocorrência "
+          + "nova, vinculada a esta.",
+          409,
+        );
+      }
+
+      /*
+        Se um documento oficial já saiu, isso entra no evento.
+
+        A emissão é gravada na trilha (`documento_emitido`), então a pergunta
+        tem resposta aqui dentro, na mesma transação. Ela não muda o desfecho:
+        muda o que a trilha consegue explicar depois, e é a diferença entre "o
+        papel do processo diverge do sistema, ninguém sabe por quê" e "o ponto
+        foi corrigido em tal dia, por tal pessoa, por tal motivo, e o termo
+        tinha saído antes disso".
+      */
+      const emitidos = await c.query<{ total: string }>(
+        `SELECT count(*)::text AS total FROM trilha_eventos
+          WHERE ocorrencia_id = $1 AND tipo = 'documento_emitido'`,
+        [id],
+      );
+      const documentoJaEmitido = Number(emitidos.rows[0]!.total) > 0;
+
+      const anterior = alvo.latitude !== null && alvo.longitude !== null
+        ? { lat: alvo.latitude, lng: alvo.longitude }
+        : null;
+
+      await c.query(
+        "UPDATE ocorrencias SET latitude = $2, longitude = $3 WHERE id = $1",
+        [id, correcao.coordenada.lat, correcao.coordenada.lng],
+      );
+
+      await registrarEvento(c, quem, id, "correcao_de_coordenada", {
+        motivo: correcao.motivo,
+        /*
+          `anterior` é `null` quando a ocorrência nasceu sem ponto, e isso é
+          informação, não ausência dela: "não tinha coordenada e passou a ter"
+          é um fato diferente de "o ponto estava na quadra de baixo".
+        */
+        anterior,
+        nova: correcao.coordenada,
+        statusNaCorrecao: alvo.status,
+        documentoJaEmitido,
+      });
+
+      return { coordenada: correcao.coordenada, anterior, documentoJaEmitido };
     });
   });
 

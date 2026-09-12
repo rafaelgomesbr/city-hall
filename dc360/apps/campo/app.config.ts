@@ -22,6 +22,32 @@ import type { ExpoConfig } from "expo/config";
 const VERSAO = "0.1.0";
 
 /**
+ * Os textos de permissão do iOS ficam AQUI, num lugar só, e são passados às
+ * opções dos plugins.
+ *
+ * O motivo é um defeito real que estava neste arquivo. `createPermissionsPlugin`
+ * do `@expo/config-plugins` resolve cada chave como
+ * `opção do plugin || ios.infoPlist || texto padrão em inglês`, então a opção do
+ * plugin SEMPRE ganha de `ios.infoPlist`. O texto longo de câmera escrito em
+ * `ios.infoPlist` nunca chegava ao binário: o que ia era a frase curta passada
+ * ao `expo-camera`. Com uma constante só, os dois lados não têm como divergir.
+ *
+ * A régua destes textos: dizem O QUE o aplicativo faz com a permissão, para que
+ * serve o dado e para onde ele vai. Nada de "para melhorar sua experiência", que
+ * a Apple recusa, e nada que o código não faça, que é declaração falsa.
+ */
+const TEXTO_CAMERA =
+  "O aplicativo usa a câmera para fotografar o imóvel durante a vistoria "
+  + "técnica. As fotos ficam guardadas neste aparelho e são enviadas à Defesa "
+  + "Civil do município quando houver sinal.";
+
+const TEXTO_LOCALIZACAO =
+  "O aplicativo lê a coordenada do local no momento em que o agente registra a "
+  + "vistoria, para que o laudo técnico prove onde ela foi feita. A leitura "
+  + "acontece com o aplicativo aberto, a pedido do agente, e nunca em segundo "
+  + "plano.";
+
+/**
  * Contador de build, exigido pelas duas lojas e independente da versão.
  *
  * Sobe a cada envio, mesmo que a versão não mude, porque as lojas recusam
@@ -58,17 +84,20 @@ const config: ExpoConfig = {
     // acrescenta nada e complica a captura de assinatura.
     requireFullScreen: false,
     infoPlist: {
-      NSCameraUsageDescription:
-        "O aplicativo usa a câmera para registrar as fotografias da vistoria " +
-        "técnica no local da ocorrência. As fotos ficam guardadas no aparelho " +
-        "e são enviadas à Defesa Civil do município quando houver sinal.",
-      NSLocationWhenInUseUsageDescription:
-        "O aplicativo registra a coordenada do local da vistoria para que o " +
-        "laudo técnico indique onde ela foi feita. A localização é usada " +
-        "apenas durante a vistoria, e nunca em segundo plano.",
-      NSPhotoLibraryAddUsageDescription:
-        "As fotografias da vistoria podem ser salvas no aparelho para servirem " +
-        "de cópia até a sincronização com a Defesa Civil terminar.",
+      /*
+        Os textos de câmera e de localização NÃO ficam aqui: ficam nas opções
+        dos plugins, porque é a opção do plugin que ganha na hora de escrever o
+        Info.plist. Ver o comentário de `TEXTO_CAMERA` no topo.
+
+        `NSPhotoLibraryAddUsageDescription` foi REMOVIDO. Ele prometia salvar a
+        foto da vistoria na galeria do aparelho, e o aplicativo não faz isso:
+        `expo-camera` devolve um caminho no cache e `evidencia-no-disco.ts`
+        copia o arquivo para o diretório privado do aplicativo
+        (`Paths.document`). Não existe `expo-media-library` no projeto e nada
+        escreve na galeria. Chave de permissão para coisa que o aplicativo não
+        faz é declaração falsa na revisão, e a Apple pergunta onde está o
+        recurso que a justifica.
+      */
       /*
         Sem exceção de transporte: tudo trafega por https.
 
@@ -113,10 +142,22 @@ const config: ExpoConfig = {
       backgroundColor: "#101519",
     },
     /*
-      Lista fechada e curta. Toda permissão a mais é uma pergunta a mais na
-      revisão da Play Store e uma razão a mais para o servidor público
-      desconfiar. Não pedimos armazenamento externo, contatos, telefone nem
-      localização em segundo plano.
+      Lista curta. Toda permissão a mais é uma pergunta a mais na revisão da
+      Play Store e uma razão a mais para o servidor público desconfiar. Não
+      pedimos contatos, telefone nem localização em segundo plano.
+
+      ESTA LISTA NÃO É O MANIFESTO INTEIRO, e a diferença já enganou este
+      arquivo uma vez. O manifesto final é a soma desta lista com o que cada
+      biblioteca declara sozinha, e o que sobra depois de `blockedPermissions`.
+      O manifesto que o aparelho recebe pede também:
+
+      - `POST_NOTIFICATIONS` e `RECEIVE_BOOT_COMPLETED`, do `expo-notifications`
+        (`node_modules/expo-notifications/android/src/main/AndroidManifest.xml`);
+      - `VIBRATE`, do modelo base do Expo, e ela é usada pelo canal de urgência.
+
+      O conjunto conferido, e a maneira de conferir de novo depois de mexer
+      aqui: `npx expo config --type introspect`, com a pasta `android/` ausente.
+      A declaração das lojas fica em `../../docs/DECLARACAO-NAS-LOJAS.md`.
     */
     permissions: [
       "android.permission.CAMERA",
@@ -130,6 +171,41 @@ const config: ExpoConfig = {
       // grava som, e pedir microfone num app de vistoria é o tipo de coisa
       // que trava uma revisão.
       "android.permission.RECORD_AUDIO",
+      /*
+        Armazenamento externo, pedido pelo `expo-file-system`, e que este
+        aplicativo não usa.
+
+        O plugin dele acrescenta as duas por conta própria (ver
+        `node_modules/expo-file-system/plugin/build/withFileSystem.js` e o
+        `AndroidManifest.xml` da própria biblioteca, onde elas vêm com
+        `maxSdkVersion="32"`). Sem estas linhas, o manifesto final pedia leitura
+        e escrita no armazenamento compartilhado, e a ficha da Play Store
+        mostrava isso para quem fosse instalar, embora o comentário logo acima
+        prometesse o contrário.
+
+        A prova de que não são necessárias: tudo o que este aplicativo grava vai
+        para o diretório PRIVADO dele (`Paths.document`, em
+        `dados/evidencia-no-disco.ts` e em `ui/Assinatura.tsx`) ou para o banco
+        local do `expo-sqlite`. Diretório privado de aplicativo nunca exigiu
+        permissão de armazenamento, em nenhuma versão do Android.
+      */
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+      /*
+        "Aparecer sobre outros aplicativos", que vem do modelo de projeto do
+        próprio Expo (o manifesto base em
+        `@expo/config-plugins/build/plugins/withAndroidBaseMods.js` a traz sob
+        um comentário que diz "OPTIONAL PERMISSIONS, REMOVE WHATEVER YOU DO NOT
+        NEED"). Nenhuma tela deste aplicativo desenha por cima de outro, e esta
+        é uma das permissões especiais que a Play Store destaca na ficha e
+        questiona na revisão.
+
+        `android.permission.VIBRATE`, que vem do mesmo modelo, FICA: o canal de
+        urgência vibra de propósito (`vibrationPattern` em `push/PortaExpo.ts`),
+        e é o que faz o aviso de severidade crítica ser percebido com o telefone
+        no bolso, na chuva.
+      */
+      "android.permission.SYSTEM_ALERT_WINDOW",
     ],
     // Backup automático do Android copiaria o banco local, com vistoria ainda
     // não sincronizada, para a conta Google do agente.
@@ -138,21 +214,73 @@ const config: ExpoConfig = {
 
   plugins: [
     "expo-router",
-    "expo-secure-store",
+    [
+      "expo-secure-store",
+      {
+        /*
+          Sem texto de Face ID, porque o aplicativo não usa Face ID.
+
+          O plugin escreve `NSFaceIDUsageDescription` com um texto padrão em
+          inglês quando ninguém diz nada, e ele aparecia no Info.plist gerado:
+          "Allow $(PRODUCT_NAME) to access your Face ID biometric data." Isso é
+          duas coisas ruins de uma vez: está em inglês numa ficha em português,
+          e promete leitura de biometria que não existe. O cofre é usado com
+          `keychainAccessible` apenas (ver `dados/sessao.tsx` e
+          `push/ficha-do-aparelho.ts`), nunca com `requireAuthentication`, então
+          o sistema jamais pede Face ID por nossa causa.
+
+          `false` REMOVE a chave do Info.plist. Ver `applyPermissions` em
+          `@expo/config-plugins`.
+        */
+        faceIDPermission: false,
+      },
+    ],
     "expo-sqlite",
     [
       "expo-camera",
       {
-        cameraPermission:
-          "O aplicativo usa a câmera para registrar as fotografias da vistoria técnica.",
+        cameraPermission: TEXTO_CAMERA,
         recordAudioAndroid: false,
+        /*
+          Sem texto de microfone, porque o aplicativo não grava som.
+
+          No Android isso já estava resolvido (`recordAudioAndroid: false` mais
+          `blockedPermissions`), mas no iOS o plugin continuava escrevendo
+          `NSMicrophoneUsageDescription` com o padrão em inglês. O revisor da
+          Apple lê a lista de permissões do binário: microfone declarado num
+          aplicativo de vistoria é pergunta certa na revisão, e a resposta
+          honesta é que ele não deveria estar ali.
+        */
+        microphonePermission: false,
       },
     ],
     [
       "expo-location",
       {
-        locationAlwaysAndWhenInUsePermission:
-          "O aplicativo registra a coordenada do local da vistoria no laudo técnico.",
+        locationWhenInUsePermission: TEXTO_LOCALIZACAO,
+        /*
+          As três chaves abaixo saem do Info.plist, e essa é a correção mais
+          importante deste arquivo.
+
+          O aplicativo chama `requestForegroundPermissionsAsync` e nada mais
+          (`src/app/(agente)/vistoria/[id].tsx`, na função `capturarGps`). Ele
+          nunca pede autorização permanente e não tem nenhuma tarefa em segundo
+          plano. Mesmo assim o plugin escrevia as duas chaves de "Always" e a de
+          movimento, uma delas com o texto padrão em inglês.
+
+          O custo disso não é cosmético. Chave de "Always" no binário é o que
+          faz a Apple tratar o aplicativo como candidato a localização em
+          segundo plano e o que faz o sistema oferecer "Sempre" na caixa de
+          permissão, e a Google pede vídeo demonstrando o uso de quem declara
+          segundo plano. Declarar o que não se usa é justamente a divergência
+          entre o binário e o formulário que derruba submissão.
+
+          `NSMotionUsageDescription` sai pelo mesmo motivo: nenhum código lê
+          sensor de movimento.
+        */
+        locationAlwaysAndWhenInUsePermission: false,
+        locationAlwaysPermission: false,
+        motionUsagePermission: false,
         isAndroidBackgroundLocationEnabled: false,
       },
     ],

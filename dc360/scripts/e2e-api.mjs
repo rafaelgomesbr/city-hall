@@ -26,6 +26,7 @@
  * Uso: node scripts/e2e-api.mjs [chromium|firefox]
  */
 import { spawn, spawnSync } from "node:child_process";
+import { createConnection } from "node:net";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -110,6 +111,47 @@ function rodar(comando, argumentos, opcoes) {
     });
     p.on("exit", (codigo) => (codigo === 0 ? resolve() : reject(new Error(`saiu com ${codigo}`))));
   });
+}
+
+/**
+ * Porta ocupada: recusa comecar, em vez de falar com a instancia velha.
+ *
+ * Este portao custou duas execucoes falsas em 09/09/2026, e o mecanismo e
+ * cruel. `esperar()` da a API por pronta quando `/saude` responde 200. Se uma
+ * execucao anterior deixou a API viva nesta porta (queda no meio, terminal
+ * fechado, `kill -9` no pai), a execucao nova sobe a SUA API, ela morre na hora
+ * com EADDRINUSE, e o 200 que chega e da instancia VELHA. O painel recem
+ * construido passa a conversar com um banco semeado noutro momento, com conta
+ * ja bloqueada por tentativa, protocolo ja usado e endereco ja registrado: a
+ * suite falha num lugar diferente a cada vez, e vira "intermitente".
+ *
+ * Adivinhar de quem e a API que respondeu seria complicado e fragil. Recusar e
+ * uma linha, e a mensagem ensina o conserto.
+ */
+function portaOcupada(porta) {
+  return new Promise((resolve) => {
+    const c = createConnection({ port: porta, host: "127.0.0.1" });
+    const fechar = (ocupada) => { c.destroy(); resolve(ocupada); };
+    c.setTimeout(1000);
+    c.once("connect", () => fechar(true));
+    c.once("timeout", () => fechar(false));
+    c.once("error", () => fechar(false));
+  });
+}
+
+for (const [porta, oQue] of [[PORTA_API, "a API"], [PORTA_WEB, "o painel"]]) {
+  if (await portaOcupada(porta)) {
+    console.error(
+      `\nA porta ${porta} ja esta ocupada, e e a porta de ${oQue} nesta suite.\n\n` +
+      "Comecar assim seria pior do que parar: esta execucao subiria a propria\n" +
+      "instancia, ela morreria com EADDRINUSE, e o painel conversaria com a\n" +
+      "instancia VELHA, com estado acumulado. A falha apareceria em outro lugar,\n" +
+      "longe daqui.\n\n" +
+      "Quase sempre e sobra de uma execucao anterior que nao foi derrubada:\n\n" +
+      `  lsof -ti :${PORTA_API} -ti :${PORTA_WEB} | xargs kill -9\n`,
+    );
+    process.exit(1);
+  }
 }
 
 console.log(`\n== Subindo API na ${PORTA_API} ==`);

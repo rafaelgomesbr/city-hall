@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { IconeAlerta, IconeCheck } from "./Icones";
 
@@ -31,6 +31,22 @@ import { IconeAlerta, IconeCheck } from "./Icones";
 export const DURACAO_PADRAO = 6000;
 
 /**
+ * O tempo do aviso que carrega um NÚMERO para ser ditado.
+ *
+ * Seis segundos cobrem uma frase lida em silêncio. Não cobrem o que acontece
+ * de verdade quando um protocolo nasce: quem registrou está com o telefone no
+ * ombro, lê o número, dita dígito por dígito e espera a pessoa do outro lado
+ * repetir para conferir. Com o relógio padrão, o aviso some no meio disso e o
+ * número tem de ser caçado de novo com o morador ainda na linha, que é a
+ * reclamação que este aviso existe para resolver.
+ *
+ * Quinze segundos continuam sendo um palpite, e é por isso que ele não anda
+ * sozinho: a pausa de `duracaoComPausa` é que garante o resto, porque ela não
+ * depende de acertar o número.
+ */
+export const DURACAO_PARA_DITAR = 15000;
+
+/**
  * Marca o fim do aviso e devolve o cancelamento.
  *
  * Está fora do componente porque é a parte que precisa ser exercitada: o
@@ -47,6 +63,26 @@ export function agendarFechamento(
   if (duracao === null || duracao <= 0) return () => {};
   const relogio = setTimeout(aoFechar, duracao);
   return () => clearTimeout(relogio);
+}
+
+/**
+ * A duração que vale AGORA, considerando se a pessoa está mexendo no aviso.
+ *
+ * Nenhum número escolhido aqui cobre o tempo de levar o mouse até o canto da
+ * tela e arrastar por cima do protocolo para copiar: o aviso que some no meio
+ * da seleção leva o número junto, e a pessoa descobre isso já sem ele. Com o
+ * ponteiro em cima, ou com o foco do teclado dentro, o relógio simplesmente
+ * não corre.
+ *
+ * A pausa é `null`, que é o mesmo valor que `agendarFechamento` já entende
+ * como "aviso que fica": não existe um segundo caminho de código para manter,
+ * e a saída manual continua sendo o botão Fechar.
+ */
+export function duracaoComPausa(
+  duracao: number | null,
+  interagindo: boolean,
+): number | null {
+  return interagindo ? null : duracao;
 }
 
 const ESTILO_REGIAO: CSSProperties = {
@@ -78,7 +114,7 @@ export type PropsToast = {
 
 export function Toast({ mensagem, tom = "info", duracao = DURACAO_PADRAO, aoFechar }: PropsToast) {
   /*
-    O `aoFechar` mora num ref, e o efeito depende só da duração.
+    O `aoFechar` mora num ref, e o efeito depende só da duração e da pausa.
 
     Sem isto, uma função anônima passada pela tela (`aoFechar={() => setAviso(null)}`)
     é uma identidade nova a cada renderização do pai, o efeito reinicia junto,
@@ -88,10 +124,25 @@ export function Toast({ mensagem, tom = "info", duracao = DURACAO_PADRAO, aoFech
   const ultimoFechar = useRef(aoFechar);
   ultimoFechar.current = aoFechar;
 
-  useEffect(() => agendarFechamento(duracao, () => ultimoFechar.current()), [duracao]);
+  /*
+    Mexer no aviso segura o relógio, e o mouse não é o único jeito de mexer.
+
+    `onFocus` e `onBlur` estão aqui porque quem navega por teclado chega ao
+    botão Fechar por dentro deste bloco, e os dois eventos sobem até ele no
+    React. Sem eles, a pausa seria um favor feito só a quem usa mouse.
+  */
+  const [interagindo, setInteragindo] = useState(false);
+
+  useEffect(() => agendarFechamento(
+    duracaoComPausa(duracao, interagindo), () => ultimoFechar.current(),
+  ), [duracao, interagindo]);
 
   return (
-    <div className="toast" style={ESTILO_REGIAO} role="status" aria-live="polite">
+    <div className="toast" style={ESTILO_REGIAO} role="status" aria-live="polite"
+         onPointerEnter={() => setInteragindo(true)}
+         onPointerLeave={() => setInteragindo(false)}
+         onFocus={() => setInteragindo(true)}
+         onBlur={() => setInteragindo(false)}>
       <div className={`aviso aviso--${tom}`} style={ESTILO_AVISO}>
         {tom === "sucesso" ? <IconeCheck tamanho={20} /> : <IconeAlerta tamanho={20} />}
         <div style={{ flex: 1 }}>{mensagem}</div>

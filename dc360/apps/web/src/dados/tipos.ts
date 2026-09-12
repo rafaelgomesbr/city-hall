@@ -64,6 +64,25 @@ export type LinhaOcorrencia = {
   desinterdicao_motivo: string | null;
 };
 
+/**
+ * O que volta depois de corrigir a coordenada de uma ocorrência aberta.
+ *
+ * O ponto ANTERIOR volta junto porque a tela precisa poder dizer o que mudou,
+ * e não só que mudou: quem acabou de mover o alfinete quer conferir que moveu
+ * de onde achava que estava. `anterior` é nulo quando a ocorrência tinha sido
+ * aberta sem ponto nenhum, que é fato diferente de ponto errado.
+ *
+ * `documentoJaEmitido` existe porque o laudo é gerado sob demanda e nunca
+ * guardado: se um documento oficial já saiu com o ponto antigo, a reimpressão
+ * vai divergir do papel que já está dentro do processo, e quem corrigiu
+ * precisa saber disso na hora, não numa audiência.
+ */
+export type CorrecaoAplicada = {
+  coordenada: { lat: number; lng: number };
+  anterior: { lat: number; lng: number } | null;
+  documentoJaEmitido: boolean;
+};
+
 export type LinhaEvento = {
   id: string;
   tipo: string;

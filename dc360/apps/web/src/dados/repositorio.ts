@@ -48,6 +48,7 @@ export const {
   providenciasPendentes,
   imoveisInterditados,
   levantarInterdicao,
+  corrigirCoordenada,
   meuTrabalhoDeCampo,
   encerrarOcorrencia,
   indicadores,

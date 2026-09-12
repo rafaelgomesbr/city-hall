@@ -18,6 +18,7 @@ import {
 } from "./push/trava.js";
 import { agendarVarredura, type VarreduraAgendada } from "./push/varredor.js";
 import { agendarMinimizacao, type MinimizacaoAgendada } from "./privacidade/minimizacao.js";
+import { CHAVE_DO_RESUMO, agendarResumo, type ResumoAgendado } from "./metricas/resumo.js";
 
 const config = carregarConfig();
 
@@ -244,6 +245,69 @@ const minimizacao: MinimizacaoAgendada = agendarMinimizacao(
   INTERVALO_DA_MINIMIZACAO_MS,
 );
 
+/**
+ * De quanto em quanto tempo cada município reescreve o próprio resumo, e de
+ * quanto tempo o resumo escrito ainda vale.
+ *
+ * Quinze minutos entre rodadas porque metade do que a métrica carrega é
+ * RETRATO DO MOMENTO, e não movimento do dia: "quantas ocorrências estão
+ * abertas agora" e "quantas estão atrasadas agora" são as duas perguntas que o
+ * fornecedor faz ao telefone, e um número de ontem responde a pergunta errada.
+ *
+ * O frescor é menor que o intervalo, e essa folga não é descuido: com os dois
+ * iguais, uma rodada que dispare alguns milissegundos antes da hora encontra o
+ * resumo ainda dentro do prazo, pula, e o município passa a ser atualizado a
+ * cada trinta minutos em vez de quinze, sem nada dizendo por quê.
+ *
+ * Nenhum dos dois números tem relação com o alarme de silêncio do console, que
+ * é de trinta e seis horas e vive na visão da migração 023: entre este relógio e
+ * aquele alarme há folga de mais de cem rodadas, então uma tarde ruim de rede
+ * não faz o console gritar.
+ */
+const INTERVALO_DO_RESUMO_MS = 15 * 60_000;
+const FRESCOR_DO_RESUMO_MINUTOS = 10;
+
+/*
+  O RESUMO SOBE SEMPRE, pela mesma régua da minimização e por uma razão a mais.
+
+  A migração 023 entregou a tabela de métricas, a função que a escreve, a visão
+  do console e o papel de leitura do fornecedor, e ninguém chamava a função.
+  Nesse estado nada está errado, está apenas desligado: a tabela fica vazia, e o
+  console do fornecedor mostra uma tela impecável afirmando que nenhuma
+  prefeitura usa o produto.
+
+  Uma variável para desligar isto seria pior que no caso da minimização, porque
+  o console não distingue "desligado" de "ninguém usou": a ADR 0008 assume por
+  escrito que a ausência de escrita recente é ela própria um sinal na tela, e um
+  sinal que também pode significar "alguém pôs `nao` numa variável" não serve
+  para decidir nada.
+
+  O custo de ligá-lo sempre é uma chamada de função por município a cada quinze
+  minutos, e ela não lê tabela de negócio nenhuma fora do contexto: a lista vem
+  de `municipios_a_resumir` (migração 026), que devolve só identificador, e cada
+  escrita acontece dentro do `comTenant` daquele município, com o papel de
+  aplicação e debaixo do RLS. É a inversão da seta que a ADR 0008 exige.
+
+  Pool próprio e trava própria, como as outras duas rotinas, e pela mesma razão:
+  em produção são duas máquinas no Fly, e escrever métrica não pode consumir a
+  conexão de quem está sincronizando vistoria no meio da chuva.
+*/
+const bancoDoResumo = config.DATABASE_URL
+  ? bancoPostgres(config.DATABASE_URL, { maximoConexoes: 2 })
+  : banco;
+
+const resumo: ResumoAgendado = agendarResumo(
+  {
+    banco: bancoDoResumo,
+    trava: config.DATABASE_URL
+      ? travaPostgres(config.DATABASE_URL, { maximoConexoes: 1 }, CHAVE_DO_RESUMO)
+      : travaDeProcesso(),
+    frescorMinutos: FRESCOR_DO_RESUMO_MINUTOS,
+    registrar: (evento, mensagem) => app.log.info(evento, mensagem),
+  },
+  INTERVALO_DO_RESUMO_MS,
+);
+
 // Encerramento ordenado: a requisição em andamento termina, e o pool fecha.
 // Sem isso, um deploy derruba transação no meio.
 for (const sinal of ["SIGINT", "SIGTERM"] as const) {
@@ -256,6 +320,7 @@ for (const sinal of ["SIGINT", "SIGTERM"] as const) {
       // erro nenhum.
       await varredura?.parar();
       await minimizacao.parar();
+      await resumo.parar();
       await pdf.encerrar();
       await banco.encerrar();
       process.exit(0);

@@ -1,6 +1,7 @@
 import {
   MOTIVO_RECLASSIFICAR,
   PRAZO_PADRAO_HORAS,
+  correcaoDeCoordenadaSchema,
   exigirPermissao,
   exigirPostoParaGerir,
   estadoTerminal,
@@ -11,6 +12,7 @@ import {
   type StatusOcorrencia,
   type TipoDeEntrada,
   type AberturaOcorrencia,
+  type CorrecaoDeCoordenada,
   type Despacho,
   type Encerramento,
   type InteresseMunicipio,
@@ -19,7 +21,7 @@ import {
 } from "@dc360/shared";
 import { comoApp, semTenant, type Contexto } from "./banco";
 import type {
-  ColegaDeEquipe, ContaDisponivel, FiltroOcorrencias, FiltroTrilha, Indicadores,
+  ColegaDeEquipe, ContaDisponivel, CorrecaoAplicada, FiltroOcorrencias, FiltroTrilha, Indicadores,
   LinhaEquipe, LinhaEvento, LinhaOcorrencia, LinhaProvidencia, LinhaUsuario,
   LinhaVistoria, MeuTrabalho, PaginaDeOcorrencias, PontoNoMapa, PontosDoMapa,
   Sessao, TarefaDesignada, TipoDeDocumento, VistoriaConcluida,
@@ -147,6 +149,72 @@ export async function levantarInterdicao(
       motivo: motivo.trim(),
       interditadaEm: alvo.interditada_em,
     });
+  });
+}
+
+/**
+ * Corrigir a coordenada de uma ocorrência aberta, no modo de demonstração.
+ *
+ * As MESMAS recusas da rota da API, e não uma versão simplificada: o modo
+ * local é o que vai à prefeitura, e um caminho que existe aqui e não existe lá
+ * (ou o contrário) faz a demonstração mentir sobre o produto.
+ *
+ * Uma diferença sem jeito: aqui não existe policy de município separando duas
+ * pessoas, porque a aba inteira é de um município só. O que continua igual é
+ * que a consulta roda sob `comoApp`, com o RLS ligado e a organização vinda da
+ * sessão, então ocorrência de outro município não volta nem aqui.
+ */
+export async function corrigirCoordenada(
+  s: Sessao, id: string, correcao: CorrecaoDeCoordenada,
+): Promise<CorrecaoAplicada> {
+  // Antes de tocar no banco. Esconder o formulário não é controle de acesso, e
+  // este arquivo é chamado direto do console do navegador na demonstração.
+  exigirPermissao(s.papel, "abrir_ocorrencia");
+  // A faixa e o teto de seis casas vêm do esquema compartilhado, o mesmo do
+  // servidor: se a regra só valesse no formulário, ela não valeria.
+  const dados = correcaoDeCoordenadaSchema.parse(correcao);
+
+  return comoApp(s.organizacaoId, async (db) => {
+    const atual = await db.query<{
+      status: StatusOcorrencia; latitude: number | null; longitude: number | null;
+    }>(
+      "SELECT status, latitude, longitude FROM ocorrencias WHERE id = $1",
+      [id],
+    );
+    const alvo = atual.rows[0];
+    if (!alvo) throw new Error("Ocorrência não encontrada.");
+    if (estadoTerminal(alvo.status)) {
+      throw new Error(
+        "Esta ocorrência está encerrada, e o laudo assinado aponta para a "
+        + "coordenada que está gravada. Registre a correção como ocorrência "
+        + "nova, vinculada a esta.",
+      );
+    }
+
+    const emitidos = await db.query<{ total: string }>(
+      `SELECT count(*)::text AS total FROM trilha_eventos
+        WHERE ocorrencia_id = $1 AND tipo = 'documento_emitido'`,
+      [id],
+    );
+    const documentoJaEmitido = Number(emitidos.rows[0]!.total) > 0;
+
+    const anterior = alvo.latitude !== null && alvo.longitude !== null
+      ? { lat: alvo.latitude, lng: alvo.longitude }
+      : null;
+
+    await db.query(
+      "UPDATE ocorrencias SET latitude = $2, longitude = $3 WHERE id = $1",
+      [id, dados.coordenada.lat, dados.coordenada.lng],
+    );
+    await registrarEvento(db, s, id, "correcao_de_coordenada", {
+      motivo: dados.motivo,
+      anterior,
+      nova: dados.coordenada,
+      statusNaCorrecao: alvo.status,
+      documentoJaEmitido,
+    });
+
+    return { coordenada: dados.coordenada, anterior, documentoJaEmitido };
   });
 }
 

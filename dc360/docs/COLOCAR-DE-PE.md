@@ -37,7 +37,7 @@ D-U-N-S e a revisão não forem gargalo.
 - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
   compartilhados.
-- **1539 testes verdes somando o aplicativo, e `npm audit` em zero.**
+- **1626 testes verdes somando o aplicativo, e `npm audit` em zero.**
 - **A API sobe contra PostgreSQL real** (provado contra o Postgres 18, à mão) e
   serve o ciclo inteiro: login, isolamento entre municípios, ocorrência,
   vistoria offline, laudo, termo de interdição e desinterdição, contagem de
@@ -197,7 +197,7 @@ Sem isto, a foto da vistoria não sobe.
 ### 7. O primeiro município
 
 ```bash
-DATABASE_URL=postgres://SETUP:...@host/dc360 npm run provisionar --   --municipio "Nome" --uf UF   --nome "Coordenador" --matricula C-1 --email coord@municipio.gov.br
+DATABASE_URL=postgres://SETUP:...@host/dc360 npm run provisionar --   --municipio "Nome" --uf UF   --nome "Coordenador" --matricula C-1 --email coord@municipio.gov.br   --operador "Seu nome, operação da plataforma"
 ```
 
 Anote a senha impressa: ela não é guardada em texto claro e não aparece de novo.
@@ -211,7 +211,7 @@ Na primeira entrada, o coordenador troca a senha em **Minha conta**.
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 1539 testes com o aplicativo, npm audit, números
+npm run verificar          # typecheck, 1626 testes com o aplicativo, npm audit, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo

@@ -606,13 +606,17 @@ describe("Portões de componente", () => {
     */
     const { avisoDoRegistro } = await import("../src/paginas/ocorrencia-regras");
 
-    const frase = avisoDoRegistro({ protocolo: "000123/2026", papel: "coordenador" });
+    // O aviso vem em três pedaços porque o do meio é o número, desenhado na
+    // fonte tabular pela tela. Aqui interessa a frase inteira, montada.
+    const partes = avisoDoRegistro({ protocolo: "000123/2026", papel: "coordenador" });
+    const frase = `${partes.antes}${partes.protocolo}${partes.depois}`;
     expect(frase, "o aviso não diz o número do protocolo").toContain("000123/2026");
     expect(frase, "o aviso não diz o que fazer em seguida").toMatch(/pr[óo]ximo passo/i);
 
     // Quem não classifica não pode ser mandado classificar: o servidor recusa,
     // e a frase viraria uma instrução para levar 403.
-    expect(avisoDoRegistro({ protocolo: "000123/2026", papel: "operador" }))
+    const doOperador = avisoDoRegistro({ protocolo: "000123/2026", papel: "operador" });
+    expect(`${doOperador.antes}${doOperador.protocolo}${doOperador.depois}`)
       .toMatch(/coordena[çc][ãa]o/i);
 
     const detalhe = readFileSync(join(RAIZ, "paginas", "Ocorrencia.tsx"), "utf8");

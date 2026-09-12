@@ -12,6 +12,7 @@ import {
   TIPOS_DE_ENTRADA,
   TIPO_A_CLASSIFICAR,
 } from "./dominio.js";
+import { CASAS_DE_COORDENADA } from "./localizacao.js";
 
 /**
  * Um schema, uma verdade. Estes schemas validam tanto o payload que entra na
@@ -397,6 +398,46 @@ export const desinterdicaoSchema = z.object({
     .max(2000),
 });
 export type Desinterdicao = z.infer<typeof desinterdicaoSchema>;
+
+/**
+ * Corrigir a coordenada de uma ocorrência que ainda está aberta.
+ *
+ * O ALFINETE CAI NO LUGAR ERRADO O TEMPO TODO, e até aqui não havia como
+ * corrigir. O operador cola a localização com o telefone no ombro, o endereço
+ * é ditado por alguém apavorado, a geocodificação erra a quadra, ou a
+ * ocorrência nasce sem coordenada nenhuma e o ponto certo só aparece depois.
+ * Sem esta correção, a única saída era abrir OUTRO protocolo para o mesmo
+ * evento, e aí o município passa a ter duas ocorrências onde existe uma casa.
+ *
+ * Duas regras moram aqui, e não no formulário, porque regra que só existe na
+ * tela não existe:
+ *
+ * 1. **A faixa.** Latitude fora de [-90, 90] e longitude fora de [-180, 180]
+ *    não são pontos: são erro de digitação, e o banco aceitaria os dois em
+ *    silêncio, porque `double precision` não sabe o que é um meridiano.
+ * 2. **O TETO DE SEIS CASAS**, aplicado na entrada e não na saída. O painel já
+ *    arredondava o que lia do campo colado, mas essa era a única porta com
+ *    teto: quinze casas entravam por qualquer outra e a mesma coluna passava a
+ *    guardar duas precisões diferentes para o mesmo tipo de dado.
+ *
+ * O MOTIVO é obrigatório, e o mínimo é o mesmo do levantamento de interdição,
+ * pela mesma razão: ele é a resposta, meses depois, à pergunta "por que o
+ * laudo impresso diz um ponto e o sistema diz outro?". "erro" não responde
+ * nada; "o agente conferiu no local, era a quadra de baixo" responde.
+ */
+export const coordenadaCorrigidaSchema = coordenadaSchema.transform((c) => ({
+  lat: Number(c.lat.toFixed(CASAS_DE_COORDENADA)),
+  lng: Number(c.lng.toFixed(CASAS_DE_COORDENADA)),
+}));
+
+export const correcaoDeCoordenadaSchema = z.object({
+  coordenada: coordenadaCorrigidaSchema,
+  motivo: z.string()
+    .trim()
+    .min(15, "Escreva de onde veio o ponto certo, para quem ler daqui a um ano")
+    .max(2000),
+});
+export type CorrecaoDeCoordenada = z.infer<typeof correcaoDeCoordenadaSchema>;
 
 export const ocorrenciaSchema = z.object({
   id: uuidSchema,

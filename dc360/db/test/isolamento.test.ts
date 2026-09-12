@@ -426,9 +426,21 @@ describe("Funções privilegiadas", () => {
       bloco "Minimizacao por prazo e registro de consulta", mais abaixo,
       guardam o tamanho desta porta: sem município de parâmetro, sem prazo de
       parâmetro, e sem dado de pessoa na saída.
+
+      Subiu de 14 para 15 em 09/09/2026, por `municipios_a_resumir` (migração
+      026), e pela terceira vez pela mesma razão: é um relógio, sem ninguém
+      logado. `resumir_municipio()` é SECURITY INVOKER de propósito (a métrica é
+      escrita pelo próprio município, debaixo do RLS dele, e é essa inversão que
+      sustenta a ADR 0008), então quem a chama precisa JÁ estar no contexto de um
+      município. O relógio não estaria: sem contexto, o papel de aplicação não
+      enxerga uma linha de `organizacoes` e não teria como descobrir para quem
+      chamar. Esta é a menor das quinze portas: devolve `setof uuid` e nada mais,
+      não aceita município de parâmetro, e não alcança tabela de negócio nenhuma.
+      Os casos do bloco "O relogio que descobre para quem chamar o resumo", no
+      fim deste arquivo, guardam esses três limites.
     */
     expect(lista.length, `funções SECURITY DEFINER demais: ${lista.map((f) => f.nome).join(", ")}`)
-      .toBeLessThanOrEqual(14);
+      .toBeLessThanOrEqual(15);
   });
 
   it("toda função privilegiada fixa o search_path", async () => {
@@ -3304,5 +3316,141 @@ describe("O console le metrica e nao alcanca dado de municipio", () => {
     } finally {
       await db.exec("DROP VIEW prova_com_invoker; DROP VIEW prova_sem_invoker;");
     }
+  });
+});
+
+/* =====================================================================
+ * O RELOGIO QUE CHAMA O RESUMO (migracao 026).
+ *
+ * A migracao 023 criou a tabela, a funcao, a visao e o papel do console, e
+ * ninguem chamava a funcao. Tabela vazia para sempre, visao dizendo
+ * `sem_escrita_recente` para todo mundo, console afirmando que nenhum
+ * municipio usa o produto: tudo verde, tudo desligado.
+ *
+ * O que faltava era o relogio saber PARA QUEM chamar, e isso ele nao tem como
+ * descobrir sozinho: `resumir_municipio()` e SECURITY INVOKER, entao precisa
+ * do contexto de um municipio, e sem contexto o papel de aplicacao nao enxerga
+ * uma linha de `organizacoes`. Os casos abaixo guardam o tamanho da porta que
+ * a 026 abriu para resolver isso: sem municipio de parametro, sem nome na
+ * saida, e fechada para o papel do console.
+ * ===================================================================== */
+describe("O relogio que descobre para quem chamar o resumo", () => {
+  async function pendentes(frescor: string): Promise<string[]> {
+    const r = await comoApp(null, (tx) =>
+      tx.query<{ municipios_a_resumir: string }>(
+        "SELECT municipios_a_resumir($1::interval)",
+        [frescor],
+      ),
+    );
+    return r.rows.map((l) => l.municipios_a_resumir);
+  }
+
+  it("descobre quem esta sem resumo fresco, sem contexto de municipio nenhum", async () => {
+    /*
+      O caso central. O relogio roda sem token e sem municipio no contexto, que
+      e a situacao em que o papel de aplicacao nao enxerga nem a propria
+      organizacao. Sem esta funcao ele nao teria como saber que Vale Fundo
+      existe, e o resumo de Vale Fundo nunca seria escrito.
+    */
+    const lista = await pendentes("1 hour");
+    expect(
+      lista,
+      "o relogio nao enxergou o municipio que ainda nao escreveu resumo nenhum: " +
+      "a tabela de metricas ficaria vazia para esse municipio para sempre",
+    ).toContain(orgB);
+    expect(
+      lista,
+      "o municipio que escreveu o resumo ha instantes continua na fila do relogio, " +
+      "e o relogio reescreveria o mesmo numero a cada rodada",
+    ).not.toContain(orgA);
+  });
+
+  it("some da fila assim que o municipio escreve, e volta quando o resumo envelhece", async () => {
+    await comoApp(orgB, (tx) => tx.query("SELECT resumir_municipio()"));
+
+    expect(
+      await pendentes("1 hour"),
+      "escrever o resumo nao tirou o municipio da fila do relogio",
+    ).not.toContain(orgB);
+
+    /*
+      E o outro lado, que e o que impede o resumo de congelar: com frescor
+      zero, todo mundo esta velho, e o relogio reescreve. Sem este ramo, uma
+      funcao que simplesmente devolvesse "quem nunca escreveu" passaria no caso
+      de cima e deixaria o console mostrando o numero da meia-noite para
+      sempre.
+    */
+    expect(
+      await pendentes("0 seconds"),
+      "com frescor zero o municipio deveria voltar para a fila, e nao voltou: " +
+      "o console mostraria o numero da primeira escrita para sempre",
+    ).toContain(orgB);
+  });
+
+  it("nao aceita municipio de parametro, e nao devolve nome de prefeitura", async () => {
+    /*
+      O tamanho da porta, cobrado no catalogo e nao na leitura do arquivo.
+
+      Funcao privilegiada que aceita "de qual municipio" e funcao que alguem
+      vai chamar com o municipio do vizinho. E funcao privilegiada que devolve
+      texto e funcao onde cabe endereco: o tipo de retorno ser `uuid` e o que
+      garante que a resposta e um identificador e nada mais.
+    */
+    const r = await db.query<{ argumentos: string; retorno: string; conjunto: boolean }>(
+      `SELECT pg_get_function_arguments(p.oid) AS argumentos,
+              pg_get_function_result(p.oid)    AS retorno,
+              p.proretset                      AS conjunto
+         FROM pg_proc p
+         JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'municipios_a_resumir'`,
+    );
+    expect(r.rows, "a funcao do relogio nao existe").toHaveLength(1);
+    expect(
+      r.rows[0]!.argumentos,
+      "a funcao do relogio ganhou parametro: se um deles apontar municipio, ela " +
+      "vira a credencial que a ADR 0008 existe para impedir",
+    ).toBe("p_frescor interval");
+    expect(r.rows[0]!.retorno).toBe("SETOF uuid");
+    expect(r.rows[0]!.conjunto).toBe(true);
+  });
+
+  it("o papel do console nao executa o relogio", async () => {
+    /*
+      Ela le `organizacoes` com os privilegios do dono, entao executa-la seria
+      um caminho de leitura que nao passa por nenhuma concessao de tabela. O
+      console ja le `organizacoes` por concessao propria e nao precisa desta
+      funcao para nada; o que ele nao pode e ter em maos uma funcao privilegiada
+      que alguem possa alargar amanha.
+    */
+    /*
+      A ancora deste caso, e ela nao e formalidade: sem a funcao no banco a
+      chamada tambem falha, e o teste ficaria verde afirmando uma recusa que na
+      verdade e uma ausencia. Foi assim que ele passou na execucao em que a 026
+      estava fora do lugar.
+    */
+    const existe = await db.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM pg_proc p
+         JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'municipios_a_resumir'`,
+    );
+    expect(
+      existe.rows[0]!.n,
+      "a funcao do relogio nao existe, entao a recusa abaixo nao prova nada",
+    ).toBe("1");
+
+    let recusou = false;
+    try {
+      await db.transaction(async (tx) => {
+        await tx.exec("SET LOCAL ROLE dc360_console");
+        await tx.query("SELECT municipios_a_resumir(interval '1 hour')");
+      });
+    } catch {
+      recusou = true;
+    }
+    expect(
+      recusou,
+      "o console executou a funcao privilegiada do relogio, que le organizacoes " +
+      "com os privilegios do dono",
+    ).toBe(true);
   });
 });

@@ -9,11 +9,12 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 142 testes do banco passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 254 testes de fonte do painel mais 58 verificações no navegador no modo local e 103 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 630 testes da API passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 146 testes do banco passando |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 275 testes de fonte do painel mais 58 verificações no navegador no modo local e 103 contra a API |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 653 testes da API passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 102 testes de unidade do motor de campo e 10 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 308 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios e não alcança dado de cidadão | Pronto, 39 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
 
@@ -414,6 +415,138 @@ do tratamento de dado pessoal, e exportação é tratamento. A tabela `exportaco
 guarda quem levou, qual recorte e quantos registros, é append-only como a
 trilha, e o registro acontece na mesma transação da leitura.
 
+## O console do fornecedor (`apps/console`)
+
+Três perguntas do dia a dia da operação não tinham resposta sem alguém abrir uma
+sessão na produção com a `DATABASE_URL` na mão: o município está usando, alguém
+está com problema, e há quanto tempo aquele município não dá sinal. Responder
+isso com a credencial de dono do banco é o pior caminho possível, e não por
+comodidade: **é a credencial que ignora RLS**, e nesta mesma operação ela já foi
+usada uma vez para redefinir a senha de um administrador à mão.
+
+A ADR 0006 tinha recusado o "painel de plataforma" por um motivo que continua de
+pé: um papel que enxerga todos os municípios contradiz o isolamento, porque
+bastaria um token vazado para alcançar todas as prefeituras de uma vez. A ADR
+0008 muda a pergunta, não a conclusão: painel de plataforma e credencial que
+enxerga todo mundo só são a mesma coisa **quando o painel lê as tabelas de
+negócio**.
+
+### A direção do dado é o desenho inteiro
+
+O console não consulta os municípios. **Cada município escreve o próprio
+resumo**, numa tabela de métricas, dentro da própria transação, com o mesmo papel
+de aplicação de sempre e debaixo do mesmo RLS de sempre. O console só lê essa
+tabela.
+
+Quem faz a escrita acontecer é um relógio na API (`apps/api/src/metricas/`), que
+sobe sempre, como a minimização por prazo e diferente do push. Ele abre **uma
+transação por município** e chama `resumir_municipio()` lá dentro:
+
+```
+para cada id de municipios_a_resumir(frescor):     -- só identificadores
+  comTenant(id):                                    -- SET LOCAL ROLE dc360_app
+    SELECT resumir_municipio()                      -- SECURITY INVOKER, sob RLS
+```
+
+`resumir_municipio()` é `SECURITY INVOKER` de propósito: as contagens rodam com
+os privilégios e o contexto de quem chama, então cada uma enxerga apenas as
+linhas daquele município. Não existe erro de cláusula nessa função capaz de
+produzir o número da prefeitura vizinha, porque as linhas da vizinha não estão lá
+para serem contadas.
+
+O que a métrica pode conter é contagem, mediana e marca de tempo. O que ela não
+pode conter é regra dura: nome, contato, endereço, coordenada, protocolo, relato,
+descrição de vulnerabilidade, matrícula. A defesa não é a boa intenção de quem
+escrever a próxima migração: as colunas são numéricas, de data ou booleanas, o
+único `uuid` permitido é o da organização, e o portão CA-06 varre o **catálogo**
+reprovando qualquer coluna de texto, `jsonb` ou segundo `uuid` em relação que o
+console consiga ler.
+
+### O papel de banco do console não tem concessão em tabela de negócio
+
+`dc360_console` tem `SELECT` na tabela de métricas, no cadastro de organizações e
+na visão que junta as duas. Nada mais, no banco inteiro: sem escrita, sem
+sequência, sem função privilegiada, sem `BYPASSRLS`.
+
+Isso não é lista conferida uma a uma, é **asserção universal** em
+`db/test/isolamento.test.ts`: nenhum papel além do de aplicação e do dono tem
+privilégio em tabela de negócio, por concessão direta, por privilégio de coluna,
+por herança de papel, por `PUBLIC`, por visão, por função `SECURITY DEFINER`, e
+por fim pelo próprio banco respondendo `has_table_privilege`. A lista a uma vale
+para as tabelas de hoje; a asserção vale para a tabela que alguém criar amanhã
+sem lembrar disto. O mesmo arquivo prova a outra metade conectando **como** o
+console e tentando ler `ocorrencias`, `usuarios`, `evidencias` e `trilha_eventos`:
+quem recusa é o Postgres, não uma condição em TypeScript.
+
+A visão que ele lê é `security_invoker`, e isso não é detalhe: sem a opção, ela
+rodaria com os privilégios do dono das tabelas e bastaria alguém acrescentar uma
+junção com `ocorrencias` ali para o console passar a ler dado de cidadão de todas
+as prefeituras, sem tocar em concessão nenhuma. Há um teste que cria duas visões
+idênticas, uma com a opção e outra sem, e mostra a sem entregando o endereço.
+
+### O silêncio é um sinal, e não uma linha faltando
+
+Métrica escrita pelo município pode faltar se o município estiver quebrado, e aí
+o console mostraria silêncio, que é indistinguível de "ninguém usou hoje". Uma
+consulta direta à tabela de métricas produziria exatamente esse engano: o
+município quebrado simplesmente não aparece na lista, e ninguém sente falta do
+que não está lá.
+
+Por isso o console lê uma **visão que parte de `organizacoes`**. Todo município
+aparece sempre, e quem não escreveu aparece com `sem_escrita_recente` verdadeiro,
+no topo da tabela, com a palavra "calado" junto do marcador, nunca só por cor.
+
+### Aplicação separada, de verdade
+
+Processo próprio, porta própria, conexão própria, segredo próprio, e **plateia
+própria no token**. A separação não repousa no segredo: um teste emite os dois
+tokens com a **mesma chave** e o mesmo conteúdo, trocando só a plateia, e mostra
+cada lado recusando o do outro. Uma rota nova do produto nasce recusando token de
+console, e uma rota nova do console nasce recusando token de município.
+
+O console não tem rota de escrita, não tem CORS (a página é servida pelo próprio
+processo), não carrega a `DATABASE_URL` do produto, não tem credencial de
+armazenamento, de push nem de email, e não provisiona município: isso continua
+sendo linha de comando com a credencial de dono, como a ADR 0006 fixou.
+
+### O segundo fator não é opcional
+
+No município o segundo fator é uma exigência que se liga, e existe um estado
+legítimo de "conta ainda sem ele". No console esse estado não existe: a conta do
+fornecedor é a única do sistema cujo comprometimento afeta mais de um município.
+
+A exigência é cobrada na **partida**, e não no login: operador sem segredo de TOTP
+derruba o processo, porque exigência que só aparece quando alguém tenta entrar
+fica desligada nos meses em que ninguém entra. E a primeira etapa do login nunca
+devolve sessão, só um desafio de plateia própria que rota de leitura nenhuma
+aceita.
+
+O TOTP é o do produto, literalmente: `apps/api/src/auth/totp.ts`, com o mesmo
+passo queimado depois de usado e o mesmo `scrypt` para a senha. O console não tem
+implementação própria de criptografia.
+
+### Onde moram as contas, e por que não no banco
+
+Na configuração do processo, e isso é consequência do papel de banco ser pobre:
+uma tabela de operadores exigiria dar escrita ao console, e escrita é o que separa
+"um vazamento entrega números agregados" de "um vazamento entrega uma porta de
+escrita no banco de todos os municípios".
+
+O que se perde, dito em voz alta: criar operador é mudança de configuração, e o
+passo de TOTP já usado e o contador de tentativas vivem na memória do processo,
+não no banco. Reiniciar o processo esquece os dois, e a janela que isso abre é a
+de um passo de trinta segundos.
+
+```bash
+# 1. Criar o operador. Nada disto vai para o banco: o comando imprime.
+CONSOLE_SEGUNDO_FATOR_CHAVE=... npm run provisionar --workspace @dc360/console \
+  -- --email coordenacao@fornecedor.com.br
+
+# 2. Subir. Ver apps/console/.env.example para as variáveis e o porquê de cada uma.
+npm run dev:console      # http://127.0.0.1:3344
+```
+
+
 ## As regras de conteúdo também
 
 `CLAUDE.md` fixa duas que não são estilo e sim risco: nenhum travessão em texto
@@ -535,7 +668,7 @@ plataforma**, feito pela linha de comando com a credencial de dono do banco, a
 mesma que aplica migração:
 
 ```bash
-DATABASE_URL=postgres://... npm run provisionar --   --municipio "Serra Alta" --uf MG   --nome "Rita Lopes" --matricula SA-1 --email rita@serraalta.mg.gov.br
+DATABASE_URL=postgres://... npm run provisionar --   --municipio "Serra Alta" --uf MG   --nome "Rita Lopes" --matricula SA-1 --email rita@serraalta.mg.gov.br   --operador "Seu nome, operação da plataforma"
 ```
 
 Ele cria a organização e o primeiro administrador, sorteia a senha inicial e a
@@ -706,7 +839,7 @@ DATABASE_URL=postgres://dc360_setup:...@host/dc360 npm run migrar
 # 3. O município e o primeiro administrador, com o papel de SETUP (o provisionar
 #    insere em organizacoes, que so o BYPASSRLS alcanca). Anote a senha que ele
 #    imprime: ela não é guardada em texto claro e não aparece de novo.
-DATABASE_URL=postgres://dc360_setup:...@host/dc360 npm run provisionar --   --municipio "Serra Alta" --uf MG   --nome "Rita Lopes" --matricula SA-1 --email rita@serraalta.mg.gov.br
+DATABASE_URL=postgres://dc360_setup:...@host/dc360 npm run provisionar --   --municipio "Serra Alta" --uf MG   --nome "Rita Lopes" --matricula SA-1 --email rita@serraalta.mg.gov.br   --operador "Seu nome, operação da plataforma"
 
 # 4. Suba a API e o painel. A DATABASE_URL da API e a do papel de APLICACAO
 #    (dc360_api), nunca a do setup: a API nao pode ter CREATEROLE nem BYPASSRLS.
@@ -774,9 +907,9 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 1231 testes em cinco pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 142 testes do banco
-npm run test:api            # 630 testes da API
+npm test                    # 1318 testes em seis pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 146 testes do banco
+npm run test:api            # 653 testes da API
 npm run test --workspace @dc360/campo   # 102 testes do motor de campo
 npm run test:campo          # tipos e os 308 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes

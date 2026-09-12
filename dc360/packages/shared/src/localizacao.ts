@@ -19,6 +19,23 @@
 
 export type Coordenada = { lat: number; lng: number };
 
+/**
+ * Casas decimais que a GRAVAÇÃO guarda, e que todo documento imprime.
+ *
+ * Seis casas são cerca de dez centímetros, mais fino do que qualquer GPS de
+ * celular acerta debaixo de chuva. Quinze casas não são precisão: são o resto
+ * binário do `Number`, e imprimir isso convida quem lê a confiar em dígito que
+ * nunca mediu nada.
+ *
+ * O número mora aqui, e não só no painel, porque o teto precisava valer também
+ * na ESCRITA. Enquanto ele existia apenas em `apps/web`, o mesmo campo aceitava
+ * quinze casas por qualquer outra porta da API, e a divergência voltava por
+ * onde ninguém estava olhando. O painel continua aplicando o teto na leitura do
+ * texto colado (`apps/web/src/paginas/coordenada-colada.ts`), e um teste
+ * confere que os dois números são o mesmo, para um não envelhecer sozinho.
+ */
+export const CASAS_DE_COORDENADA = 6;
+
 export type LeituraDeLocalizacao =
   | { tipo: "vazio" }
   | { tipo: "coordenada"; coordenada: Coordenada }
@@ -111,7 +128,7 @@ export function lerLocalizacao(texto: string): LeituraDeLocalizacao {
 
 /** Como a coordenada aparece na tela depois de reconhecida. */
 export function coordenadaEmTexto(c: Coordenada): string {
-  return `${c.lat.toFixed(6)}, ${c.lng.toFixed(6)}`;
+  return `${c.lat.toFixed(CASAS_DE_COORDENADA)}, ${c.lng.toFixed(CASAS_DE_COORDENADA)}`;
 }
 
 /**

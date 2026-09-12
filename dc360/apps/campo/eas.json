@@ -24,7 +24,7 @@
       "channel": "producao",
       "autoIncrement": true,
       "android": { "buildType": "app-bundle" },
-      "env": { "DC360_API_URL": "https://api.exemplo.gov.br" }
+      "env": { "DC360_API_URL": "https://defesa-civil.fly.dev" }
     }
   },
   "submit": {
