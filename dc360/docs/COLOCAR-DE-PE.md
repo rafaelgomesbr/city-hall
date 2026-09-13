@@ -37,7 +37,7 @@ D-U-N-S e a revisão não forem gargalo.
 - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
   compartilhados.
-- **1626 testes verdes somando o aplicativo, e `npm audit` em zero.**
+- **1628 testes verdes somando o aplicativo, e `npm audit` em zero.**
 - **A API sobe contra PostgreSQL real** (provado contra o Postgres 18, à mão) e
   serve o ciclo inteiro: login, isolamento entre municípios, ocorrência,
   vistoria offline, laudo, termo de interdição e desinterdição, contagem de
@@ -141,6 +141,23 @@ com os dois erros que ele encontrou pelo caminho.
   DATABASE_URL=postgres://SETUP:...@host/dc360 npm run migrar
   ```
 
+  **Não use aqui a `DATABASE_URL` do `.env` da API.** Ela é a do papel de
+  aplicação, que tem `USAGE` no schema e não tem `CREATE`, de propósito: se a
+  API pudesse alterar esquema, uma falha nela viraria alteração de banco. Quem
+  tentar vai receber `permission denied for schema public`, e desde 13/09/2026 o
+  aplicador responde dizendo qual papel está sendo usado e que o certo é o de
+  setup. No Supabase, o papel de setup é o usuário `postgres` da **conexão
+  direta** (Project Settings, Database, Connection string, aba URI), e não a do
+  pooler.
+
+  A conexão exige TLS validado. O certificado da autoridade vem no repositório:
+
+  ```bash
+  CA="$(pwd)/db/provedores/supabase-prod-ca-2021.crt"
+  DATABASE_URL="postgresql://postgres:SENHA@db.SEU-PROJETO.supabase.co:5432/postgres?sslmode=verify-full&sslrootcert=${CA}" \
+    npm run migrar -- --conferir   # confere primeiro, não aplica nada
+  ```
+
 ### 3. Servidor da API
 
 PaaS que dá HTTPS automático e roda contêiner ou Node:
@@ -211,7 +228,7 @@ Na primeira entrada, o coordenador troca a senha em **Minha conta**.
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 1626 testes com o aplicativo, npm audit, números
+npm run verificar          # typecheck, 1628 testes com o aplicativo, npm audit, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo

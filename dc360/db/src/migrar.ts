@@ -67,15 +67,71 @@ function impressao(sql: string): string {
   return createHash("sha256").update(sql.replace(/\s+/g, " ").trim()).digest("hex");
 }
 
+/**
+ * Codigo do Postgres para "privilegio insuficiente". Vale para schema, tabela,
+ * funcao e sequencia, e e o mesmo desde sempre.
+ */
+const PRIVILEGIO_INSUFICIENTE = "42501";
+
+/**
+ * Migrar com o papel errado, e por que a mensagem crua manda procurar longe.
+ *
+ * O `.env` da API guarda a credencial do papel de APLICACAO, que tem `USAGE` no
+ * schema e NAO tem `CREATE`, de proposito: se a API pudesse alterar esquema,
+ * uma falha nela viraria alteracao de banco. Migracao e ato do papel de SETUP,
+ * e essa credencial nao mora no repositorio.
+ *
+ * Quem tem a credencial da API a mao usa ela, e recebe do Postgres:
+ *
+ *     error: permission denied for schema public
+ *
+ * A frase esta certa e e inutil aqui: a pessoa vai conferir policy, RLS e dono
+ * de tabela, que e onde o problema NAO esta. O diagnostico e conhecido e a
+ * saida tambem, entao os dois passam a sair junto, sem perder o texto do banco,
+ * que e o que serve para depurar qualquer caso que nao seja este.
+ */
 async function garantirTabela(bd: ExecutorSql): Promise<void> {
-  await bd.exec(`
-    CREATE TABLE IF NOT EXISTS ${TABELA} (
-      versao      text PRIMARY KEY,
-      impressao   text NOT NULL,
-      aplicada_em timestamptz NOT NULL DEFAULT now(),
-      duracao_ms  integer
+  try {
+    await bd.exec(`
+      CREATE TABLE IF NOT EXISTS ${TABELA} (
+        versao      text PRIMARY KEY,
+        impressao   text NOT NULL,
+        aplicada_em timestamptz NOT NULL DEFAULT now(),
+        duracao_ms  integer
+      );
+    `);
+  } catch (erro) {
+    const codigo = (erro as { code?: string } | null)?.code;
+    if (codigo !== PRIVILEGIO_INSUFICIENTE) throw erro;
+
+    /*
+      O nome do papel e perguntado ao banco, e nao deduzido da URL.
+
+      A URL pode trazer o formato do pooler (`papel.referencia-do-projeto`), ou
+      um papel que assume outro na conexao, e nos dois casos o nome escrito na
+      string nao e o papel que o Postgres usou para recusar. Quem le a mensagem
+      precisa do nome que o banco viu, senao troca a credencial errada.
+    */
+    let papel = "(não foi possível perguntar ao banco)";
+    try {
+      const r = await bd.query<{ papel: string }>("SELECT current_user AS papel");
+      if (r.rows[0]?.papel) papel = r.rows[0].papel;
+    } catch { /* se nem isto responde, a mensagem abaixo ainda serve */ }
+
+    const original = erro instanceof Error ? erro.message : String(erro);
+    throw new Error(
+      `O papel "${papel}" não pode criar tabela no schema public, então não dá ` +
+      "para nem registrar quais migrações já rodaram.\n\n" +
+      "Quase sempre é a credencial errada: a que está no .env da API é a do " +
+      "papel de APLICAÇÃO, que tem USAGE no schema e não tem CREATE, de " +
+      "propósito. Se ela pudesse alterar esquema, uma falha na API viraria " +
+      "alteração de banco.\n\n" +
+      "Migração é ato do papel de SETUP (no Supabase, o usuário postgres da " +
+      "conexão direta). Ver docs/COLOCAR-DE-PE.md, seção 2.\n\n" +
+      `Erro do banco: ${original}`,
+      { cause: erro },
     );
-  `);
+  }
 }
 
 export async function aplicarMigracoes(

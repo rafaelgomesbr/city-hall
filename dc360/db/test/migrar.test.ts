@@ -221,3 +221,75 @@ describe("As migrações reais do produto", () => {
     }
   });
 });
+
+/**
+ * A mensagem quando quem migra é o papel ERRADO.
+ *
+ * Isto custou tempo de verdade em 13/09/2026. O `apps/api/.env` guarda a
+ * credencial do papel de APLICAÇÃO, que tem `USAGE` no schema e não tem
+ * `CREATE`, de propósito: se a API pudesse alterar esquema, uma falha nela
+ * viraria alteração de banco. Migração é ato do papel de SETUP, e essa
+ * credencial não mora no repositório.
+ *
+ * Quem tentou migrar com a credencial que estava à mão recebeu isto, cru:
+ *
+ *     error: permission denied for schema public
+ *         at garantirTabela (db/src/migrar.ts:71:3)
+ *
+ * A frase é do Postgres e está correta, e manda a pessoa procurar no lugar
+ * errado: ela vai conferir policy, RLS, dono de tabela. O diagnóstico é
+ * conhecido (papel sem CREATE no schema), a saída é conhecida (usar o papel de
+ * setup), e nada disso aparecia.
+ *
+ * O caso abaixo cria um papel sem CREATE de verdade e migra com ele, em vez de
+ * simular o erro com um dublê que devolve a string: um dublê provaria que a
+ * função sabe reconhecer um texto que ela mesma inventou.
+ */
+describe("Migrar com o papel errado", () => {
+  /** Um executor que roda tudo como um papel sem CREATE no schema public. */
+  function comoPapelSemCreate(): ExecutorSql {
+    const comPapel = async (fn: () => Promise<unknown>) => {
+      await db.exec("SET ROLE papel_sem_create");
+      try { return await fn(); } finally { await db.exec("RESET ROLE"); }
+    };
+    return {
+      query: async <T>(sql: string, params?: readonly unknown[]) =>
+        comPapel(async () => {
+          const r = await db.query<Record<string, unknown>>(
+            sql, params ? [...params] : undefined,
+          );
+          return { rows: r.rows as T[] };
+        }) as Promise<{ rows: T[] }>,
+      exec: (sql: string) => comPapel(() => db.exec(sql)) as Promise<unknown>,
+    } as ExecutorSql;
+  }
+
+  beforeEach(async () => {
+    await db.exec("CREATE ROLE papel_sem_create NOLOGIN");
+    await db.exec("GRANT USAGE ON SCHEMA public TO papel_sem_create");
+    // E nada de CREATE: é exatamente o que dc360_app tem em produção.
+  });
+
+  it("explica que o papel não pode criar tabela, em vez de repetir o erro do Postgres", async () => {
+    const erro = await aplicarMigracoes(comoPapelSemCreate(), [M1])
+      .then(() => null, (e: unknown) => e as Error);
+
+    expect(erro, "migrou com um papel que não pode criar tabela").not.toBeNull();
+    const texto = erro!.message;
+
+    // Diz o que aconteceu, em português e sem jargão de catálogo.
+    expect(texto, texto).toMatch(/não pode criar|sem permissão de criar/i);
+    // Diz QUAL papel estava sendo usado, senão a pessoa não sabe o que trocar.
+    expect(texto, texto).toContain("papel_sem_create");
+    // Diz a saída, que é a única coisa que resolve.
+    expect(texto, texto).toMatch(/setup/i);
+    // E preserva o erro original: quem depura não pode perder o texto do banco.
+    expect(texto, texto).toMatch(/permission denied for schema public/i);
+  });
+
+  it("o papel certo continua migrando sem nenhum aviso novo", async () => {
+    // O portão não pode transformar o caminho normal em caminho com ressalva.
+    const r = await aplicarMigracoes(bd, [M1, M2]);
+    expect(r.aplicadas).toEqual(["001_primeira.sql", "002_segunda.sql"]);
+  });
+});
