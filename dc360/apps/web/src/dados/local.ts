@@ -28,6 +28,7 @@ import type {
   AberturaDeOficio, CursorDeAvisos, DadosDoOrgao, EnvioDeOficio, LinhaOficio,
   LinhaOrgao, OficioDetalhado, RespostaDeAvisos, ResultadoDeEnvio,
   AtivacaoSegundoFator, ResultadoDeEntrada, SegundoFatorLigado, SituacaoSegundoFator,
+  ConfiguracaoDoPainel,
 } from "./tipos";
 
 /**
@@ -1658,4 +1659,29 @@ export async function enviarOficio(
 /** Mesma razão do laudo: o documento é montado pelo servidor. */
 export async function abrirOficio(_s: Sessao, _id: string): Promise<string> {
   throw new Error("O ofício é gerado pelo servidor. Este painel está em modo local.");
+}
+
+/**
+ * A configuração do ambiente, no modo em que não existe servidor.
+ *
+ * O modo de demonstração roda num notebook de prefeitura sem API nenhuma, e
+ * não tem a quem perguntar: aqui a chave do mapa só pode vir da variável de
+ * build, que é exatamente o papel que ela mantém depois desta mudança, o de
+ * caminho de desenvolvimento e de demonstração.
+ *
+ * Isso NÃO reabre o defeito que a rota da API fechou. O que estava errado era
+ * o painel IMPLANTADO ler a chave do build: ele é um build só servindo todos
+ * os municípios, então a chave assada ali seria a do fornecedor pagando o mapa
+ * de todas as prefeituras. O painel implantado roda em modo API e pergunta ao
+ * servidor daquele município; `vercel.json` mantém `VITE_GOOGLE_MAPS_CHAVE`
+ * vazia justamente para que o build não tenha o que responder.
+ *
+ * Declara a sessão sem usá-la pelo mesmo motivo de todo degrau desta camada:
+ * a assinatura é a mesma dos dois lados, e é ela que faz o compilador reclamar
+ * quando a tela passa a mandar argumento novo. Ver
+ * `test/paridade-dos-modos.test.ts`.
+ */
+export async function configuracaoDoPainel(_s: Sessao): Promise<ConfiguracaoDoPainel> {
+  const doBuild = import.meta.env["VITE_GOOGLE_MAPS_CHAVE"];
+  return { chaveDoMapa: typeof doBuild === "string" ? doBuild.trim() : "" };
 }

@@ -9,7 +9,8 @@ import {
   arredondarCoordenada, candidatasDoTextoColado, lerLocalizacaoColada,
 } from "../src/paginas/coordenada-colada";
 import {
-  carregarGoogleMaps, chaveDoGoogleMaps, modoDoMapa, tokenDaSeveridade,
+  RECUSA_DA_CHAVE_DO_GOOGLE, aoGoogleRecusarAChave, carregarGoogleMaps, chaveDoGoogleMaps,
+  esquecerOuvintesDaRecusa, modoDoMapa, tokenDaSeveridade,
   urlDoCarregadorDoGoogleMaps,
 } from "../src/paginas/mapa-de-base";
 import { ModoDoMapaDito } from "../src/paginas/Mapa";
@@ -224,9 +225,132 @@ describe("O modo sem chave existe, funciona e é dito na tela", () => {
   it("chave vazia é o modo esquemático, e é assim que o produto está hoje", () => {
     expect(modoDoMapa("")).toBe("esquematico");
     expect(modoDoMapa("   ")).toBe("esquematico");
-    expect(chaveDoGoogleMaps(""), "espaço em branco não é chave").toBe("");
-    expect(chaveDoGoogleMaps(undefined)).toBe("");
-    expect(modoDoMapa(chaveDoGoogleMaps("  AIza-de-mentira  "))).toBe("google");
+    expect(chaveDoGoogleMaps("", ""), "espaço em branco não é chave").toBe("");
+    expect(chaveDoGoogleMaps(undefined, undefined)).toBe("");
+    expect(modoDoMapa(chaveDoGoogleMaps("  AIza-de-mentira  ", ""))).toBe("google");
+  });
+
+  it("a chave vem da API, e a variável de build é só a reserva", () => {
+    /*
+      O DEFEITO QUE ISTO FECHA é de conta a pagar, e não de código quebrado.
+
+      `mapa-de-base.ts` lia a chave de `import.meta.env`, que é tempo de
+      BUILD, e o painel é UM build estático servindo TODOS os municípios: a
+      chave assada ali seria a chave do FORNECEDOR, cobrada no cartão dele,
+      pagando o carregamento de mapa de todas as prefeituras, porque o Google
+      cobra por carregamento. Não havia nem onde uma prefeitura pôr a dela, e
+      o resultado prático foi a variável ficar vazia na Vercel: o modo com
+      chave nunca rodou contra o Google.
+
+      Agora a chave vem de `GET /configuracao` da API daquele município, em
+      tempo de execução. A variável de build continua aceita como RESERVA, e
+      só para o desenvolvimento e a demonstração não quebrarem, onde não há
+      API a quem perguntar.
+    */
+    expect(
+      chaveDoGoogleMaps("", "chave-do-build"),
+      "a variável de build deixou de servir de reserva: `npm run dev` e o modo "
+      + "de demonstração, que não têm API a quem perguntar, ficaram sem mapa",
+    ).toBe("chave-do-build");
+
+    expect(
+      chaveDoGoogleMaps("chave-da-api", "chave-do-build"),
+      "a variável de BUILD ganhou da chave servida pela API. Isso é o defeito "
+      + "de volta: o build é um só para todos os municípios, então o valor "
+      + "dali é a chave do fornecedor pagando o mapa de todas as prefeituras",
+    ).toBe("chave-da-api");
+
+    // Espaço em branco dos dois lados não é chave de ninguém.
+    expect(chaveDoGoogleMaps("   ", "  ")).toBe("");
+    expect(chaveDoGoogleMaps("   ", " chave-do-build ")).toBe("chave-do-build");
+  });
+
+  it("a tela do mapa pega a chave da API, e não de `import.meta.env`", () => {
+    const mapa = readFileSync(join(RAIZ, "paginas", "Mapa.tsx"), "utf8");
+    expect(
+      mapa,
+      "a tela do mapa voltou a ler a variável de build direto. Ela é tempo de "
+      + "build, e o painel é um build só para todos os municípios",
+    ).not.toContain("import.meta.env");
+    expect(
+      mapa,
+      "a tela precisa pedir a configuração do ambiente à camada de dados: é "
+      + "de lá que vem a chave da implantação que paga o mapa",
+    ).toContain("useConfiguracaoDoPainel");
+    expect(
+      mapa,
+      "a chave precisa sair da resposta da API, e não de outro lugar",
+    ).toContain("chaveDoGoogleMaps(configuracao?.chaveDoMapa)");
+  });
+
+  it("o build implantado não carrega chave nenhuma, e isso é o portão", () => {
+    /*
+      `vercel.json` é o build do painel que vai para todos os municípios. Uma
+      chave preenchida ali é, por construção, a chave do FORNECEDOR pagando o
+      carregamento de mapa de todas as prefeituras, e ela ainda ganharia de
+      nada, porque a reserva só entra quando a API responde vazio. Este portão
+      existe para que o atalho ("põe a chave aqui que resolve") não passe sem
+      alguém ver.
+    */
+    const bruto = readFileSync(join(RAIZ, "..", "..", "..", "vercel.json"), "utf8");
+    const vercel = JSON.parse(bruto) as { build?: { env?: Record<string, string> } };
+    expect(
+      vercel.build?.env?.["VITE_GOOGLE_MAPS_CHAVE"],
+      "alguém preencheu a chave do mapa no build da Vercel. O painel é um "
+      + "build só servindo todos os municípios: a chave dali é a do fornecedor, "
+      + "cobrada no cartão dele, pagando o mapa de todas as prefeituras. A "
+      + "chave de cada município vai em MAPS_KEY no servidor daquele município",
+    ).toBe("");
+  });
+
+  it("a recusa da chave pelo Google é tratada, e diz onde se conserta", () => {
+    /*
+      A falha mais provável na estreia do modo com chave, e a que mais tempo
+      faz perder, porque tudo parece certo: a chave existe, o script responde
+      200, a API do Google existe e o mapa é construído. A recusa só aparece na
+      primeira renderização, pelo console e por `gm_authFailure`. Sem tratar,
+      o coordenador fica com a caixa cinza do Google e um aviso em inglês sobre
+      chave de desenvolvedor, e nada no produto sabe que aconteceu.
+    */
+    expect(RECUSA_DA_CHAVE_DO_GOOGLE).toMatch(/referenciador/i);
+    expect(RECUSA_DA_CHAVE_DO_GOOGLE).toMatch(/console do Google/i);
+    expect(
+      RECUSA_DA_CHAVE_DO_GOOGLE,
+      "a mensagem precisa dizer que a tela não some: ela volta ao plano "
+      + "esquemático com as mesmas ocorrências",
+    ).toMatch(/esquem/i);
+
+    const avisados: string[] = [];
+    const cancelar = aoGoogleRecusarAChave((motivo) => avisados.push(motivo));
+
+    const janela = globalThis as unknown as { gm_authFailure?: () => void };
+    expect(
+      typeof janela.gm_authFailure,
+      "o gancho global não foi instalado: é o único jeito de o Google avisar "
+      + "que recusou a chave, porque o carregamento em si dá certo",
+    ).toBe("function");
+    janela.gm_authFailure!();
+    expect(avisados).toEqual([RECUSA_DA_CHAVE_DO_GOOGLE]);
+
+    cancelar();
+    janela.gm_authFailure!();
+    expect(avisados, "o ouvinte continuou recebendo depois de cancelado").toHaveLength(1);
+    esquecerOuvintesDaRecusa();
+  });
+
+  it("a tela do Google devolve a recusa para quem desenha", () => {
+    const google = readFileSync(join(RAIZ, "paginas", "MapaDoGoogle.tsx"), "utf8");
+    expect(
+      google,
+      "sem a inscrição, a recusa chega depois do `catch` do carregamento e "
+      + "ninguém no produto fica sabendo",
+    ).toContain("aoGoogleRecusarAChave");
+    const mapa = readFileSync(join(RAIZ, "paginas", "Mapa.tsx"), "utf8");
+    expect(
+      mapa,
+      "a falha do Google precisa derrubar a tela para o plano esquemático, e "
+      + "não para o vazio",
+    ).toContain("aoFalhar={setFalhaDoGoogle}");
   });
 
   it("sem chave, nada é pedido ao Google, nem por engano", async () => {

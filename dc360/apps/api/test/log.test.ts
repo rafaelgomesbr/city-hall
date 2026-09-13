@@ -344,6 +344,7 @@ describe("O notificador de log", () => {
       ...base,
       NOTIFICADOR_URL: "https://email.exemplo.com/enviar",
       NOTIFICADOR_CHAVE: "chave-do-provedor",
+      EMAIL_REMETENTE: "defesacivil@municipio.exemplo.gov.br",
       EMAIL_ATIVO: "sim",
     })).not.toThrow();
 

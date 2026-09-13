@@ -26,7 +26,7 @@ let enviadas: Mensagem[] = [];
 
 /** Notificador que guarda em vez de enviar: é o que torna o link inspecionável. */
 const notificador: Notificador = {
-  async enviar(m) { enviadas.push(m); },
+  async enviar(m) { enviadas.push(m); return { idNoProvedor: null }; },
 };
 
 function linkDaUltima(): string {

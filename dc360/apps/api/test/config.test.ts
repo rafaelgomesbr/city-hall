@@ -62,6 +62,14 @@ function producao(sobrescrever: Record<string, string> = {}): NodeJS.ProcessEnv 
       com o envio de email desligado" abaixo.
     */
     EMAIL_ATIVO: "sim",
+    /*
+      E o remetente, que entrou no mínimo junto do cliente que fala o contrato
+      de verdade do provedor. O provedor escolhido trata `from` como campo
+      obrigatório: sem ele, a configuração passava, o servidor subia, e cem por
+      cento das mensagens eram recusadas na validação, uma a uma, descobertas
+      por quem estava esperando o email.
+    */
+    EMAIL_REMETENTE: "defesacivil@municipio.exemplo.gov.br",
     ...sobrescrever,
   } as NodeJS.ProcessEnv;
 }
@@ -247,5 +255,59 @@ describe("A recuperação de senha precisa de destino", () => {
     expect(() => carregarConfig({
       NODE_ENV: "development", EMAIL_ATIVO: "sim",
     } as NodeJS.ProcessEnv)).toThrow(/não tem para onde mandar/i);
+  });
+});
+
+/**
+ * O ambiente da APNs, e o defeito que a falta dele causava.
+ *
+ * A Apple tem DOIS serviços de push que não se falam: `api.push.apple.com` e
+ * `api.sandbox.push.apple.com`. Qual deles vale é decidido pelo
+ * `aps-environment` com que o aplicativo foi ASSINADO, e uma ficha emitida num
+ * ambiente é recusada no outro.
+ *
+ * Até 13/09/2026 o servidor montava o provedor sem escolha nenhuma, ou seja,
+ * sempre contra produção. Um aplicativo compilado localmente pelo Xcode, que é
+ * como o piloto é instalado e como o aparelho do Rafa recebeu o binário,
+ * assina com `development` e recebe ficha de SANDBOX.
+ *
+ * O que acontecia então, e é pior do que "não chega": a produção responde
+ * `BadDeviceToken`, que está na lista de recusas que significam "este aparelho
+ * não existe mais". O varredor faz o que deve fazer com essa resposta e
+ * REVOGA o aparelho. O agente não recebe o aviso, some da lista de aparelhos,
+ * reinstala para tentar de novo, e o ciclo se repete. Ninguém vê erro nenhum:
+ * o servidor está funcionando exatamente como foi escrito.
+ */
+describe("Ambiente da APNs", () => {
+  const baseComPush = {
+    NODE_ENV: "test",
+    JWT_SEGREDO: "segredo-de-teste-com-mais-de-trinta-e-dois-bytes-aqui",
+    PUSH_ATIVO: "sim",
+    APNS_KEY_ID: "ABCDE12345",
+    APNS_TEAM_ID: "TIME123456",
+    APNS_BUNDLE: "com.exemplo.app",
+    APNS_CHAVE: "-----BEGIN PRIVATE KEY-----\nfalsa\n-----END PRIVATE KEY-----",
+  } as unknown as NodeJS.ProcessEnv;
+
+  it("o padrão é produção, que é onde o binário de loja fala", () => {
+    // Padrão errado aqui seria pior do que padrão ausente: o piloto acabaria e
+    // o produto sairia para a loja falando com o sandbox, calado.
+    const c = carregarConfig({ ...baseComPush });
+    expect(c.APNS_AMBIENTE).toBe("producao");
+  });
+
+  it("aceita o sandbox, que é o que um build local do Xcode precisa", () => {
+    const c = carregarConfig({ ...baseComPush, APNS_AMBIENTE: "teste" });
+    expect(c.APNS_AMBIENTE).toBe("teste");
+  });
+
+  it("recusa valor que não é nenhum dos dois, em vez de escolher por conta", () => {
+    /*
+      Cair no padrão diante de um valor escrito errado (`sandbox`, `dev`,
+      `producão` com acento) devolveria exatamente o defeito que esta variável
+      existe para fechar, agora com alguém convencido de ter configurado.
+    */
+    expect(() => carregarConfig({ ...baseComPush, APNS_AMBIENTE: "sandbox" } as NodeJS.ProcessEnv))
+      .toThrow();
   });
 });

@@ -10,8 +10,8 @@ build) valem lá, não aqui.
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 148 testes do banco passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 275 testes de fonte do painel mais 58 verificações no navegador no modo local e 103 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 653 testes da API passando |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 281 testes de fonte do painel mais 58 verificações no navegador no modo local e 103 contra a API |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 670 testes da API passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 102 testes de unidade do motor de campo e 10 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 308 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios e não alcança dado de cidadão | Pronto, 39 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
@@ -142,9 +142,54 @@ conta de volta ao invasor. E o banco valida o link e grava a senha nova numa
 operação só: separar em "confere o token" e depois "grava" abriria uma janela
 em que o mesmo link serve duas vezes.
 
-O envio da mensagem passa por uma porta (`Notificador`), não por um cliente de
-email direto: o provedor ainda não foi escolhido, e um teste que precisasse de
-servidor de email nunca seria rodado. Em desenvolvimento o link vai para o log.
+O envio da mensagem passa por uma porta (`Notificador`), e não por um cliente de
+email embutido na rota: um teste que precisasse de servidor de email nunca seria
+rodado. Em desenvolvimento o link vai para o log.
+
+#### O cliente de email, e o defeito que ele já foi
+
+Esta porta passou por dois estados errados, e o segundo é mais instrutivo que o
+primeiro.
+
+No primeiro, não havia implementação nenhuma. `NOTIFICADOR_URL` e
+`NOTIFICADOR_CHAVE` existiam na configuração, a partida em produção recusava
+subir sem elas com a recuperação ligada, e **nenhuma linha do servidor jamais
+falou com provedor nenhum**. O produto conferia o endereço de um provedor com o
+qual nunca falava.
+
+No segundo, o cliente existia e montava o pedido com nomes de campo
+**inventados**: `de`, `para`, `nome`, `assunto`, `texto`. Provedor de email
+nenhum aceita esse formato. Ligar o recurso naquele estado teria produzido cem
+por cento de recusa, ou seja, o cliente que existia para o email sair teria
+impedido o email de sair. E nada quebraria: a configuração passava, o servidor
+subia, e o sintoma apareceria uma mensagem de cada vez, na caixa de entrada que
+nunca recebia nada.
+
+Hoje o cliente fala o contrato publicado do **Resend**
+(`POST https://api.resend.com/emails`, com `from`, `to`, `subject` e `text`), e
+`apps/api/test/notificador-http.test.ts` confere o corpo campo a campo, além de
+afirmar que os cinco nomes inventados **não** aparecem nele. Sem SDK, pela mesma
+razão que a assinatura S3 é escrita à mão: o `npm audit` deste produto fecha em
+zero.
+
+Três decisões que vale registrar:
+
+| Peça | Decisão | Por quê |
+| --- | --- | --- |
+| Remetente | `EMAIL_REMETENTE` passou a ser OBRIGATÓRIA com `EMAIL_ATIVO=sim` | O provedor trata `from` como obrigatório. Opcional queria dizer "configuração completa, servidor de pé, toda mensagem recusada" |
+| Recibo | O identificador que o provedor devolve é guardado em `oficio_envios.provedor_id` (migração 027) | Sem ele, "o provedor aceitou" é palavra contra palavra no dia em que o órgão diz que não recebeu |
+| 429 | É o ÚNICO 4xx que o cliente repete sozinho, duas vezes, respeitando o `retry-after` e com a mesma chave de idempotência | É o erro do dia de temporal, e o único que não diz nada sobre a mensagem. E a rota grava a tentativa ANTES de chamar o provedor: devolver o 429 para fora queimaria uma das três tentativas de reenvio do ofício sem nada ter saído |
+
+A chave de idempotência não é enfeite: sem ela, um 429 sobre um pedido que na
+verdade tinha passado faria o mesmo ofício sair duas vezes para o órgão, e
+ofício duplicado numa interdição é problema jurídico.
+
+O corpo da resposta do provedor passa por `semOsEnderecos` antes de virar
+mensagem de erro, e agora leva junto o endereço do destinatário: o erro de
+validação ecoa o campo recusado, e esse eco iria para o log do servidor e para a
+coluna `detalhe` da tentativa, que o suporte lê.
+
+Ligar isso em produção é procedimento, e está escrito em `docs/LIGAR-O-EMAIL.md`.
 
 #### A segunda etapa, e o desfecho a mais na rota de entrar
 
@@ -907,9 +952,9 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 1320 testes em seis pacotes
+npm test                    # 1343 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 148 testes do banco
-npm run test:api            # 653 testes da API
+npm run test:api            # 670 testes da API
 npm run test --workspace @dc360/campo   # 102 testes do motor de campo
 npm run test:campo          # tipos e os 308 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
@@ -1204,11 +1249,13 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
 - **Conta no provedor de armazenamento.** O código está pronto e testado
   contra o vetor oficial da AWS, mas nunca falou com um R2 ou S3 de verdade:
   isso só se comprova com credencial em mão.
-- **Provedor de email.** A recuperação de senha está pronta e testada, mas o
-  link sai pelo notificador de log: falta escolher o provedor e implementar a
-  porta `Notificador`. Sem isso, em produção a rota responderia "enviamos o
-  link" sem enviar nada. Enquanto não existe, quem precisa trocar a senha
-  troca por dentro, em "Minha conta", sem depender de email.
+- **Conta no provedor de email.** O provedor foi escolhido (Resend) e o cliente
+  fala o contrato publicado dele, com teste conferindo o corpo do pedido campo
+  a campo. O que falta é a conta: criar, verificar um domínio da prefeitura no
+  DNS, gerar a chave de envio e preencher as variáveis. O passo a passo está em
+  `docs/LIGAR-O-EMAIL.md`. Até isso acontecer, `EMAIL_ATIVO=nao` e
+  `RECUPERACAO_ATIVA=nao`, e quem precisa trocar a senha troca por dentro, em
+  "Minha conta", sem depender de email.
 - **Captura da assinatura no aparelho.** O caminho de saída está pronto e
   testado: o documento lê a chave, confere se os bytes chegaram, assina uma
   URL de vida curta e desenha o traço acima da linha, no laudo e no termo. O

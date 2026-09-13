@@ -73,6 +73,7 @@ export const {
   resumoDoPeriodo,
   baixarCsvDeOcorrencias,
   avisosDesde,
+  configuracaoDoPainel,
   marcarAvisosLidos,
   listarOrgaos,
   criarOrgao,
@@ -139,4 +140,5 @@ export type {
   SituacaoSegundoFator,
   AtivacaoSegundoFator,
   SegundoFatorLigado,
+  ConfiguracaoDoPainel,
 } from "./tipos";

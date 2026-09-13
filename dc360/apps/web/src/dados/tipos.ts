@@ -625,3 +625,26 @@ export type ResultadoDeEnvio = {
   expiraEmHoras: number;
   restantes: number;
 };
+
+/**
+ * O que o painel precisa saber do ambiente onde ele está rodando.
+ *
+ * Existe porque o painel é UM build estático servindo TODOS os municípios.
+ * Tudo o que ele souber em tempo de build, ele sabe igual para todo mundo, e
+ * isso está certo para a cor do botão e errado para uma chave de mapa que
+ * alguém paga: o Google cobra por carregamento, e a chave assada no build
+ * seria a do fornecedor pagando o mapa de todas as prefeituras.
+ */
+export type ConfiguracaoDoPainel = {
+  /**
+   * Vazia é resposta legítima, e é o padrão.
+   *
+   * Sem chave o painel desenha o plano esquemático, com as mesmas coordenadas
+   * em escala e sem nenhum contato com o Google. É o modo que
+   * `docs/SUBPROCESSADORES.md` seção 2.2 promete ao município que recusar o
+   * envio, e é também o que sobra quando a prefeitura está sem internet. Por
+   * isso o campo é string vazia e não `null`: quem consome não precisa de dois
+   * jeitos de dizer "não tem".
+   */
+  chaveDoMapa: string;
+};

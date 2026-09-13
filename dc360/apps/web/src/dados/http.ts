@@ -12,6 +12,7 @@ import type {
   CursorDeAvisos, DadosDoOrgao, LinhaOficio, LinhaOrgao, OficioDetalhado,
   RespostaDeAvisos, ResultadoDeEnvio,
   AtivacaoSegundoFator, ResultadoDeEntrada, SegundoFatorLigado, SituacaoSegundoFator,
+  ConfiguracaoDoPainel,
 } from "./tipos";
 
 /**
@@ -975,4 +976,23 @@ export async function abrirOficio(_s: Sessao, id: string): Promise<string> {
     throw new ErroDaApi(resposta.status, await resposta.json().catch(() => ({})));
   }
   return URL.createObjectURL(await resposta.blob());
+}
+
+/**
+ * A configuração do ambiente, perguntada ao servidor que serve este município.
+ *
+ * A chave do mapa vem DAQUI, e não de `import.meta.env`, e a razão é de conta
+ * a pagar. `import.meta.env` é tempo de BUILD, e o painel é um build estático
+ * só servindo todos os municípios: a chave assada ali seria a chave do
+ * FORNECEDOR, cobrada no cartão dele, pagando o carregamento de mapa de todas
+ * as prefeituras, porque o Google cobra por carregamento. Pela API, cada
+ * implantação responde com a chave de quem paga por ela.
+ *
+ * A rota exige token, como toda rota desta API, e isso NÃO é o que protege a
+ * chave: chave de navegador do Google é pública por construção e viaja no
+ * JavaScript da página. Quem protege a conta é a restrição por referenciador
+ * HTTP no console do Google. Ver `apps/api/src/rotas/configuracao.ts`.
+ */
+export async function configuracaoDoPainel(_s: Sessao): Promise<ConfiguracaoDoPainel> {
+  return chamar<ConfiguracaoDoPainel>("/configuracao");
 }

@@ -210,6 +210,27 @@ describe("Paridade entre o modo com servidor e o modo de demonstração", () => 
     expect(zumbis, "exceção que deixou de ser verdade. Tire da lista.").toEqual([]);
   });
 
+  it("a configuração do ambiente chegou aos dois modos", () => {
+    /*
+      A chave do Google Maps passou a vir da API em tempo de execução, e não
+      mais de `import.meta.env`, que é tempo de BUILD. A razão é de conta a
+      pagar: o painel é UM build estático servindo TODOS os municípios, então a
+      chave assada ali seria a chave do FORNECEDOR, cobrada no cartão dele,
+      pagando o carregamento de mapa de todas as prefeituras.
+
+      O modo de demonstração não tem API a quem perguntar, e mesmo assim
+      precisa da função: sem ela a tela do mapa quebraria justamente na
+      demonstração que vai à prefeitura. Lá ela responde com a variável de
+      build, que é o papel que sobrou para a variável.
+    */
+    expect(typeof superficieApi["configuracaoDoPainel"], "em http.ts").toBe("function");
+    expect(typeof superficieLocal["configuracaoDoPainel"], "em local.ts").toBe("function");
+    expect(
+      Object.keys(repositorio),
+      "configuracaoDoPainel precisa sair de dados/ para a tela do mapa alcançar",
+    ).toContain("configuracaoDoPainel");
+  });
+
   it("as rotas de senha e sessão chegaram aos dois modos", () => {
     /*
       Âncora nominal do que este turno ligou. As três rotas existiam na API com

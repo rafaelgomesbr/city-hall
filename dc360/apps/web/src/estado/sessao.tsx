@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { Sessao } from "../dados/repositorio";
+import { esquecerConfiguracaoDoPainel } from "./configuracao";
 
 /**
  * A sessão é a única fonte da organização usada no SET LOCAL do RLS.
@@ -41,6 +42,13 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
 
   const sair = useCallback(() => {
     setSessao(null);
+    /*
+      A configuração do ambiente é da IMPLANTAÇÃO e não da pessoa, então trocar
+      de conta não muda o valor. Ela é esquecida aqui assim mesmo: guardar
+      estado de uma sessão para a seguinte é atalho que envelhece mal, e neste
+      caso ele não compra nada, porque a pergunta custa uma requisição por aba.
+    */
+    esquecerConfiguracaoDoPainel();
     try {
       sessionStorage.removeItem(CHAVE);
     } catch {

@@ -5,10 +5,11 @@
  * não é estética, é de a quem o município entrega a coordenada das famílias
  * que ele vistoriou.
  *
- * MODO GOOGLE (`VITE_GOOGLE_MAPS_CHAVE` preenchida). O mapa cartográfico vem
- * do Google. A coordenada de cada ocorrência ativa desenhada é enviada aos
- * Estados Unidos a cada carregamento da tela, e o carregamento é cobrado por
- * unidade.
+ * MODO GOOGLE (a implantação tem chave, servida em tempo de execução por
+ * `GET /configuracao` da API daquele município, e não assada no build). O mapa
+ * cartográfico vem do Google. A coordenada de cada ocorrência ativa desenhada
+ * é enviada aos Estados Unidos a cada carregamento da tela, e o carregamento é
+ * cobrado por unidade.
  *
  * MODO ESQUEMÁTICO (chave vazia, que é como o produto está hoje). As mesmas
  * coordenadas são projetadas em escala sobre um plano quadriculado desenhado
@@ -32,16 +33,35 @@
 export type ModoDoMapa = "google" | "esquematico";
 
 /**
- * A chave, lida do ambiente e de mais lugar nenhum.
+ * A chave, RECEBIDA de quem chamou, com a variável de build só como reserva.
  *
- * O parâmetro existe para o teste conseguir descrever os dois modos sem mexer
- * em variável de ambiente do processo: um portão que só sabe testar o modo em
- * que a máquina dele está configurada é um portão que nunca viu o outro modo.
+ * Este arquivo não lê mais o ambiente por dentro, e a razão é de conta a
+ * pagar. `import.meta.env` é tempo de BUILD, e o painel é UM build estático
+ * servindo TODOS os municípios: a chave assada ali seria a chave do
+ * FORNECEDOR, cobrada no cartão dele, pagando o carregamento de mapa de todas
+ * as prefeituras, porque o Google cobra por carregamento. Enquanto a chave
+ * morava aqui dentro, não havia nem onde uma prefeitura pôr a dela.
+ *
+ * QUEM GANHA DE QUEM: `daApi` ganha. Ela veio de `GET /configuracao` do
+ * servidor daquele município, em tempo de execução, e é a chave de quem paga
+ * a conta. `doBuild` só entra quando `daApi` chega vazia, e o lugar onde isso
+ * acontece é o desenvolvimento: `npm run dev` no modo de demonstração, sem API
+ * nenhuma para perguntar. No painel implantado ela é inerte, porque
+ * `vercel.json` declara `VITE_GOOGLE_MAPS_CHAVE` vazia de propósito, e um
+ * portão em `test/mapa-e-coordenada.test.ts` reprova quem a preencher: um
+ * valor ali voltaria a ser a chave do fornecedor no mapa de todo mundo.
+ *
+ * Os dois parâmetros são explícitos para o teste conseguir descrever os dois
+ * modos e a precedência entre eles sem mexer em variável de ambiente do
+ * processo: um portão que só sabe testar o modo em que a máquina dele está
+ * configurada é um portão que nunca viu o outro modo.
  */
 export function chaveDoGoogleMaps(
-  bruta: unknown = import.meta.env["VITE_GOOGLE_MAPS_CHAVE"],
+  daApi: unknown,
+  doBuild: unknown = import.meta.env["VITE_GOOGLE_MAPS_CHAVE"],
 ): string {
-  return typeof bruta === "string" ? bruta.trim() : "";
+  const limpar = (bruta: unknown): string => (typeof bruta === "string" ? bruta.trim() : "");
+  return limpar(daApi) || limpar(doBuild);
 }
 
 export function modoDoMapa(chave: string): ModoDoMapa {
@@ -109,7 +129,23 @@ export type ApiDoGoogleMaps = {
   LatLngBounds: new () => LimitesDoGoogle;
 };
 
-type JanelaComGoogle = { google?: { maps?: ApiDoGoogleMaps } };
+type JanelaComGoogle = {
+  google?: { maps?: ApiDoGoogleMaps };
+  /**
+   * O gancho pelo qual o Google avisa que RECUSOU a chave.
+   *
+   * Não é opção de estilo: é a única forma de saber. Quando a chave é
+   * inválida, está sem faturamento ou está fora da lista de referenciadores
+   * permitidos, o script do carregador responde 200 e carrega normalmente,
+   * `script.onload` dispara, a API existe e o mapa é construído. A recusa só
+   * aparece na PRIMEIRA renderização, e o Google a comunica de dois jeitos:
+   * escrevendo no console do navegador e chamando esta função global, se ela
+   * existir. Sem ela, o painel fica com a caixa cinza de erro do Google, com
+   * uma mensagem em inglês sobre chave de desenvolvedor, e nenhuma parte do
+   * produto sabe que aconteceu.
+   */
+  gm_authFailure?: () => void;
+};
 
 /**
  * Uma promessa só, guardada, para o script inteiro.
@@ -167,6 +203,68 @@ export function carregarGoogleMaps(chave: string): Promise<ApiDoGoogleMaps> {
 /** Existe para o teste conseguir provar a memória, e para ele não vazar. */
 export function esquecerCarregamentoDoGoogleMaps(): void {
   carregamento = null;
+}
+
+/**
+ * A mensagem da recusa, escrita para quem tem o console do Google na mão.
+ *
+ * É a falha mais provável na estreia do modo com chave, e a que mais tempo
+ * faz perder, porque tudo parece certo: a chave existe, o script carrega, o
+ * mapa é construído, e o que aparece é uma caixa cinza. A frase precisa dizer
+ * onde se conserta, senão o defeito vira "o mapa não funciona".
+ */
+export const RECUSA_DA_CHAVE_DO_GOOGLE =
+  "O Google recusou a chave deste painel e o mapa voltou ao plano esquemático. "
+  + "A causa usual é a restrição por referenciador HTTP: o endereço deste "
+  + "painel precisa estar na lista de sites autorizados da chave, no console do "
+  + "Google Cloud. Faturamento desativado no projeto e a API Maps JavaScript "
+  + "não habilitada dão o mesmo sintoma.";
+
+/**
+ * Quem quer saber que o Google recusou a chave.
+ *
+ * A recusa chega DEPOIS de a promessa de carregamento já ter sido cumprida
+ * (ver `gm_authFailure` acima), então ela não cabe no `catch` de quem chamou:
+ * quando ela acontece, aquele `catch` já passou. Por isso é uma inscrição, e
+ * não um desfecho da promessa.
+ */
+let ouvintesDaRecusa: Array<(motivo: string) => void> = [];
+
+export function aoGoogleRecusarAChave(ouvinte: (motivo: string) => void): () => void {
+  ouvintesDaRecusa.push(ouvinte);
+
+  const janela = globalThis as unknown as JanelaComGoogle;
+  /*
+    Instalada uma vez só, e nunca sobrescrita.
+
+    O Google chama o que estiver nesta propriedade global no momento da
+    recusa. Reatribuir a cada inscrição funcionaria hoje e quebraria no dia em
+    que outra parte do painel também quisesse saber: a última atribuição
+    apagaria a anterior em silêncio. A lista de ouvintes resolve isso, e a
+    função global vira só o porteiro dela.
+  */
+  if (!janela.gm_authFailure) {
+    janela.gm_authFailure = () => {
+      /*
+        Esquece o carregamento pelo mesmo motivo do `onerror`: uma chave
+        recusada pode ser corrigida no console do Google enquanto a aba está
+        aberta, e guardar a promessa faria a tela nunca mais tentar.
+      */
+      carregamento = null;
+      for (const ouvinte of [...ouvintesDaRecusa]) ouvinte(RECUSA_DA_CHAVE_DO_GOOGLE);
+    };
+  }
+
+  return () => {
+    ouvintesDaRecusa = ouvintesDaRecusa.filter((o) => o !== ouvinte);
+  };
+}
+
+/** Existe para o teste não vazar ouvinte de um caso para o outro. */
+export function esquecerOuvintesDaRecusa(): void {
+  ouvintesDaRecusa = [];
+  const janela = globalThis as unknown as JanelaComGoogle;
+  delete janela.gm_authFailure;
 }
 
 /**

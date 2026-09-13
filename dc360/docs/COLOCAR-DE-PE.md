@@ -37,7 +37,7 @@ D-U-N-S e a revisão não forem gargalo.
 - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
   compartilhados.
-- **1628 testes verdes somando o aplicativo, e `npm audit` em zero.**
+- **1651 testes verdes somando o aplicativo, e `npm audit` em zero.**
 - **A API sobe contra PostgreSQL real** (provado contra o Postgres 18, à mão) e
   serve o ciclo inteiro: login, isolamento entre municípios, ocorrência,
   vistoria offline, laudo, termo de interdição e desinterdição, contagem de
@@ -185,9 +185,10 @@ PaaS que dá HTTPS automático e roda contêiner ou Node:
   | `ORIGENS_PERMITIDAS` | `https://painel.seudominio.com.br` (sem curinga) |
   | `PROXY_DE_BORDA` | `fly` **só no Fly.io**; `nenhum` (o padrão) em Railway, Render ou atrás de proxy próprio. É a declaração de quem este processo aceita como fonte do endereço de origem. Com `fly`, o servidor lê o cabeçalho `Fly-Client-IP`, que o edge do Fly reescreve; em qualquer outro lugar esse cabeçalho é só um texto que o próprio cliente escolhe, e aceitá-lo entrega ao atacante o teto de tentativas de login **e** o endereço que fica gravado na trilha como autor da exportação da base de cidadãos |
   | `S3_ENDPOINT` `S3_BALDE` `S3_CHAVE_ID` `S3_CHAVE_SECRETA` | armazenamento (item 4) |
-  | `RECUPERACAO_ATIVA` | `nao` no piloto, ou `sim` + `NOTIFICADOR_URL`/`_CHAVE` (item 5) |
+  | `RECUPERACAO_ATIVA` | `nao` no piloto, ou `sim` + `EMAIL_ATIVO=sim` + `NOTIFICADOR_URL`/`_CHAVE`/`EMAIL_REMETENTE` (item 5, e `docs/LIGAR-O-EMAIL.md`) |
   | `SEGUNDO_FATOR_ATIVO` | `nao` por padrão. Com `sim`, o **administrador do município** passa a precisar do código de seis dígitos do aplicativo de autenticação para entrar, e os demais papéis podem ligar se quiserem. Ligar exige a variável abaixo, em qualquer ambiente: sem ela o processo não sobe |
   | `SEGUNDO_FATOR_CHAVE` | 32 bytes em base64 (`openssl rand -base64 32`). É a chave que CIFRA o segredo da segunda etapa dentro do banco, e ela fica fora do banco de propósito: é o que faz um vazamento de banco não levar o segundo fator junto. **Trocar esta chave invalida os segredos já guardados** (não há lista de chaves aceitas como no `JWT_SEGREDO`, e não pode haver: seria uma lista de chaves que ainda abrem o segredo). Depois de trocar, todo mundo refaz a ativação, e quem já estava dentro entra pelos códigos de recuperação |
+  | `MAPS_KEY` | a chave de navegador do Google Maps deste município, ou vazia. Vazia (o padrão) o painel desenha o plano esquemático: as mesmas coordenadas, em escala, sem camada de ruas e **sem nenhum contato com o Google**, que é o modo prometido na seção 2.2 de `docs/SUBPROCESSADORES.md` ao município que recusar o envio. Ela mora AQUI, no servidor do município, e não no build do painel, porque o painel é um build só servindo todos: a chave assada lá seria a do fornecedor pagando o mapa de todas as prefeituras, e o Google cobra por carregamento. **Não é segredo** (ela viaja no JavaScript da página de qualquer jeito): quem protege a conta é a **restrição por referenciador HTTP** no console do Google Cloud, onde precisa constar o endereço do painel (`https://painel.seudominio.com.br/*`). Sem essa restrição, qualquer site gasta a cota. No mesmo console: faturamento ativo e a API "Maps JavaScript" habilitada. As três faltas dão o mesmo sintoma, e o painel o explica na tela em vez de ficar cinza |
 
   Tudo em `https://`, e a config recusa `http` e `localhost` em produção.
 
@@ -203,8 +204,12 @@ Sem isto, a foto da vistoria não sobe.
 
 - **No piloto, o mais simples é `RECUPERACAO_ATIVA=nao`**: a tela manda procurar
   a coordenação, que redefine a senha por dentro. Zero dependência.
-- Se quiser recuperação por email: provedor (Resend, SES), e
-  `NOTIFICADOR_URL` + `NOTIFICADOR_CHAVE`.
+- Para ligar o email de verdade (recuperação de senha **e** ofício por email), o
+  passo a passo completo está em **`docs/LIGAR-O-EMAIL.md`**: qual conta criar,
+  o que verificar de domínio, quais variáveis preencher e em que ordem, e como
+  conferir que funcionou. O provedor escolhido é o **Resend**, e as variáveis
+  são `NOTIFICADOR_URL`, `NOTIFICADOR_CHAVE`, `EMAIL_REMETENTE` e
+  `EMAIL_ATIVO=sim`, nesta ordem.
 
 ### 6. Painel web (opcional para o app, necessário para o coordenador)
 
@@ -228,7 +233,7 @@ Na primeira entrada, o coordenador troca a senha em **Minha conta**.
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 1628 testes com o aplicativo, npm audit, números
+npm run verificar          # typecheck, 1651 testes com o aplicativo, npm audit, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo

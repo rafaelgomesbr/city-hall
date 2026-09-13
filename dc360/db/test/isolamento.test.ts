@@ -2757,13 +2757,24 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
       em DUAS COLUNAS de `oficio_envios`, e nao na tabela: se a varredura de
       coluna estiver quebrada, e exatamente este privilegio que some da tela
       sem ninguem notar.
+
+      A 027 acrescentou a TERCEIRA, `provedor_id`, e pela mesma porta: o recibo
+      que o provedor de email devolve chega DEPOIS da linha existir (a linha
+      nasce antes da chamada ao provedor, de proposito), entao ele precisa de
+      UPDATE, e entra nomeado em vez de virar GRANT UPDATE na tabela. Tudo o
+      mais da linha (para quem foi, quando, quem pediu, o hash do token) e
+      registro do ato e continua sem poder ser reescrito por rota nenhuma.
     */
     const colunas = doApp.filter((a) => a.especie === "coluna");
     expect(
       colunas.map((a) => `${a.relacao}.${a.detalhe}:${a.privilegio}`).sort(),
-      "a varredura de privilegio de coluna nao enxergou o GRANT UPDATE (desfecho, detalhe) " +
-      "que a migracao 017 faz em oficio_envios",
-    ).toEqual(["oficio_envios.desfecho:UPDATE", "oficio_envios.detalhe:UPDATE"]);
+      "a varredura de privilegio de coluna nao enxergou o GRANT UPDATE por coluna que " +
+      "as migracoes 017 (desfecho, detalhe) e 027 (provedor_id) fazem em oficio_envios",
+    ).toEqual([
+      "oficio_envios.desfecho:UPDATE",
+      "oficio_envios.detalhe:UPDATE",
+      "oficio_envios.provedor_id:UPDATE",
+    ]);
 
     // E a ancora do caminho das funcoes privilegiadas.
     const funcoes = new Set(doApp.filter((a) => a.especie === "funcao").map((a) => a.relacao));

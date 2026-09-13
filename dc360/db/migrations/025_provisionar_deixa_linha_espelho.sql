@@ -91,10 +91,33 @@ COMMENT ON COLUMN trilha_administrativa.autor_papel IS
 -- superusuário assume qualquer papel. O caminho exercitado no teste existia só
 -- no teste, que é a forma mais cara de defeito deste produto.
 --
--- A concessão é para CURRENT_USER de propósito: quem migra é quem provisiona.
--- Ela não amplia poder nenhum, porque este papel já é o dono das tabelas e já
--- tem BYPASSRLS: ele podia gravar em qualquer município antes desta linha, e
--- continua podendo. O que ela permite é o contrário, ele se REBAIXAR ao papel
--- de aplicação para gravar a linha espelho sob a mesma parede que vale para o
--- produto inteiro.
-GRANT dc360_app TO CURRENT_USER WITH SET TRUE;
+-- A concessão é para o DONO DAS TABELAS, perguntado ao catálogo, e não para
+-- `CURRENT_USER`.
+--
+-- Parece a mesma coisa e não é: quem aplica a migração nem sempre é quem
+-- provisiona. Uma ferramenta de painel, um roteiro de integração contínua ou
+-- um papel administrativo emprestado aplicam o esquema e vão embora, e a
+-- concessão teria ido para eles, deixando quem provisiona de fora. O dono das
+-- tabelas é estável: é ele que existe desde a primeira migração e é com ele
+-- que se provisiona.
+--
+-- Ela não amplia poder nenhum, porque o dono já tem BYPASSRLS: ele podia gravar
+-- em qualquer município antes desta linha, e continua podendo. O que ela
+-- permite é o contrário, ele se REBAIXAR ao papel de aplicação para gravar a
+-- linha espelho sob a mesma parede que vale para o produto inteiro.
+DO $$
+DECLARE
+  dono text;
+BEGIN
+  SELECT tableowner INTO dono FROM pg_tables
+   WHERE schemaname = 'public' AND tablename = 'trilha_administrativa';
+
+  IF dono IS NULL THEN
+    RAISE EXCEPTION 'trilha_administrativa nao existe: a migracao 010 nao rodou';
+  END IF;
+
+  -- `WITH SET TRUE` e' o que separa ser MEMBRO de poder ASSUMIR, do Postgres 16
+  -- em diante. Sem ele a concessao existe e o `SET ROLE` continua recusado, que
+  -- foi exatamente o estado encontrado na producao.
+  EXECUTE format('GRANT dc360_app TO %I WITH SET TRUE', dono);
+END $$;

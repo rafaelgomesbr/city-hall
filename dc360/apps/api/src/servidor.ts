@@ -26,6 +26,7 @@ import { rotasPrestacaoDeContas } from "./rotas/prestacao-de-contas.js";
 import { rotasSaida } from "./rotas/saida.js";
 import { rotasSegundoFator } from "./rotas/segundo-fator.js";
 import { rotasArmazenamentoLocal } from "./rotas/armazenamento-local.js";
+import { rotasConfiguracao } from "./rotas/configuracao.js";
 import type { Armazenamento } from "./armazenamento/tipos.js";
 import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
 import type { GeradorDePdf } from "./documentos/pdf.js";
@@ -458,6 +459,14 @@ export async function construirServidor(
   // na frente do computador, e existe mesmo num município que nunca ligou
   // notificação em telefone nenhum.
   await app.register(rotasAvisos, { prefix: "/avisos", banco });
+  /*
+    O que o painel precisa saber do ambiente onde ele está rodando, hoje só a
+    chave do mapa. Ela vem daqui, e não do build do painel, porque o painel é
+    um build só servindo todos os municípios: assada lá, seria a chave do
+    fornecedor pagando o mapa de todas as prefeituras. Não lê o banco e
+    responde igual para todo município. Ver `rotas/configuracao.ts`.
+  */
+  await app.register(rotasConfiguracao, { prefix: "/configuracao", config });
   // O catálogo de destinos de providência. A leitura é aberta a qualquer conta
   // autenticada porque o formulário de providência precisa da lista; escrever
   // exige `gerenciar_equipes`. Ver `rotas/orgaos.ts`.

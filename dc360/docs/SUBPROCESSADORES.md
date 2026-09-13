@@ -72,6 +72,12 @@ Duas consequências assumidas:
    esquemático, sem contato com o Google. Município que não aceitar o envio da
    coordenada trabalha nesse modo, e o resto do produto não muda.
 
+A escolha tem endereço operacional: a chave do mapa é a variável `MAPS_KEY` no
+servidor daquele município, e o painel a pede em tempo de execução. Vazia, o
+mapa é o plano esquemático. Ela fica no servidor de cada município, e não no
+painel, porque o painel é um build só servindo todos: a chave ali seria a do
+fornecedor, e o município não teria onde recusar nem onde pagar a própria conta.
+
 ### 2.3 Transferência internacional
 
 Apple, Google e Vercel operam fora do Brasil. A LGPD admite transferência

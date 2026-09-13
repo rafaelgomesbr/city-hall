@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ROTULO_SEVERIDADE, ROTULO_TIPO_COBRADE, coordenadaEmTexto } from "@dc360/shared";
 import { pontosDoMapa, type PontoNoMapa, type PontosDoMapa } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
+import { useConfiguracaoDoPainel } from "../estado/configuracao";
 import {
   Aviso, Carregando, Cartao, SeloSeveridade, SeloStatus, TipoDaOcorrencia, Vazio,
 } from "../componentes/comuns";
@@ -18,10 +19,13 @@ import {
  * Esta tela tem DOIS modos e DOIS tetos, e todos os quatro são ditos em voz
  * alta para quem está olhando.
  *
- * OS DOIS MODOS estão em `mapa-de-base.ts`. Com `VITE_GOOGLE_MAPS_CHAVE`
- * preenchida, as ruas vêm do Google e a coordenada de cada ocorrência ativa
- * desenhada sai do país a cada carregamento, que também é cobrado. Com a
- * chave vazia, que é como o produto está hoje, as mesmas coordenadas são
+ * OS DOIS MODOS estão em `mapa-de-base.ts`. Com chave configurada, as ruas vêm
+ * do Google e a coordenada de cada ocorrência ativa desenhada sai do país a
+ * cada carregamento, que também é cobrado. A chave vem da API, em tempo de
+ * execução (`GET /configuracao`), e NÃO do build: o painel é um build só
+ * servindo todos os municípios, então a chave assada ali seria a do
+ * fornecedor pagando o mapa de todas as prefeituras. Com a chave vazia, que é
+ * o padrão, as mesmas coordenadas são
  * projetadas em escala sobre um plano quadriculado desenhado aqui, sem
  * nenhuma requisição ao Google. O segundo modo não é consolo: é o que
  * `docs/SUBPROCESSADORES.md` seção 2.2 prometeu ao município que recusar o
@@ -50,8 +54,17 @@ export function Mapa() {
   const [selecionada, setSelecionada] = useState<string | null>(null);
   const [pagina, setPagina] = useState(1);
   const [falhaDoGoogle, setFalhaDoGoogle] = useState<string | null>(null);
+  const { configuracao, pronta: configuracaoPronta } = useConfiguracaoDoPainel(sessao);
 
-  const chave = chaveDoGoogleMaps();
+  /*
+    A chave vem da API, e a variável de build é só a reserva.
+
+    `configuracao.chaveDoMapa` é o que o servidor daquele município respondeu,
+    em tempo de execução. Ela ganha da variável de build, que só entra quando a
+    primeira chega vazia: o lugar onde isso acontece é o desenvolvimento e a
+    demonstração, onde não há API a quem perguntar. Ver `mapa-de-base.ts`.
+  */
+  const chave = chaveDoGoogleMaps(configuracao?.chaveDoMapa);
   /*
     A falha do Google derruba a tela para o modo esquemático, e não para o
     vazio. A cidade continua na tela com as mesmas coordenadas; o que se perde
@@ -97,7 +110,16 @@ export function Mapa() {
   }, [desenhados]);
 
   if (erro) return <Aviso tom="perigo">Falha ao carregar o mapa: {erro}</Aviso>;
-  if (!dados) return <Carregando />;
+  /*
+    Espera a configuração antes de desenhar, e não depois.
+
+    Sem a espera, a tela apareceria no plano esquemático, afirmaria em voz alta
+    "nenhuma coordenada sai deste navegador" e um instante depois trocaria pelo
+    mapa de ruas do Google. A legenda de modo teria dito uma coisa falsa, e é
+    justamente por ela que o município sabe se a coordenada das famílias
+    vistoriadas está saindo daqui.
+  */
+  if (!dados || !configuracaoPronta) return <Carregando />;
 
   function posicao(o: PontoNoMapa): { x: number; y: number } {
     if (!limites) return { x: 50, y: 50 };
@@ -330,7 +352,9 @@ export function Mapa() {
           <Cartao titulo="Sobre o mapa de base">
             <p className="texto-apoio">
               O painel desenha as ocorrências de dois jeitos, e a diferença é quem recebe a
-              coordenada. Com a chave do Google configurada, as ruas vêm do Google e a coordenada
+              coordenada. Com a chave do Google configurada no servidor deste município (a chave
+              vem da API em tempo de execução, e não do build, para cada prefeitura pagar o mapa
+              dela), as ruas vêm do Google e a coordenada
               de cada ocorrência desenhada é enviada aos Estados Unidos a cada carregamento desta
               tela, que também é cobrado por unidade. Sem chave, as mesmas coordenadas são
               projetadas em escala sobre o plano quadriculado, sem nenhum contato com o Google.
@@ -363,7 +387,7 @@ export function ModoDoMapaDito({ modo }: { modo: ModoDoMapa }) {
         <span aria-hidden="true">!</span>{" "}
         <strong>Mapa do Google.</strong> A coordenada de cada ocorrência desenhada é enviada ao
         Google a cada carregamento desta tela, e cada carregamento é cobrado. Para desenhar sem
-        nenhum contato com o Google, deixe VITE_GOOGLE_MAPS_CHAVE vazia.
+        nenhum contato com o Google, deixe MAPS_KEY vazia no servidor deste município.
       </p>
     );
   }
@@ -372,8 +396,8 @@ export function ModoDoMapaDito({ modo }: { modo: ModoDoMapa }) {
       <span aria-hidden="true">✓</span>{" "}
       <strong>Plano esquemático, sem chave do Google.</strong> As coordenadas são reais e estão em
       escala entre si, mas não há camada de ruas: nenhuma coordenada de ocorrência sai deste
-      navegador. Para ver as ruas, o município precisa configurar VITE_GOOGLE_MAPS_CHAVE e aceitar
-      o envio descrito em docs/SUBPROCESSADORES.md, seção 2.2.
+      navegador. Para ver as ruas, o município precisa configurar MAPS_KEY no servidor dele e
+      aceitar o envio descrito em docs/SUBPROCESSADORES.md, seção 2.2.
     </p>
   );
 }

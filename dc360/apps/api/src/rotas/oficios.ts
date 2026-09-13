@@ -225,8 +225,12 @@ export async function rotasOficios(
       }
 
       const envios = await c.query(
+        // `provedor_id` volta junto de propósito: é o número que o município
+        // leva ao painel do provedor quando o órgão diz que não recebeu. Sem
+        // ele na tela, a única forma de responder seria abrir uma sessão no
+        // banco de produção, que é o caminho que este produto evita.
         `SELECT id, tentativa, destinatario_email, solicitado_em, solicitado_por_nome,
-                desfecho, detalhe, expira_em
+                desfecho, detalhe, provedor_id, expira_em
            FROM oficio_envios WHERE oficio_id = $1 ORDER BY tentativa`,
         [id],
       );
@@ -471,8 +475,19 @@ export async function rotasOficios(
       + encodeURIComponent(token);
 
     let falha: string | null = null;
+    /*
+      O recibo do provedor, guardado junto do desfecho.
+
+      Sem ele, "o provedor aceitou" é a afirmação de quem tem interesse no
+      assunto, e nada mais. Com ele, o município leva o identificador ao painel
+      do provedor e lê o que aconteceu com a mensagem depois que ela saiu
+      daqui. Fica `null` quando o envio falhou (não houve mensagem aceita) e
+      quando o canal não devolve identificador, que são os dois casos que a
+      coluna anulável da migração 027 previu.
+    */
+    let idNoProvedor: string | null = null;
     try {
-      await notificador.enviar(mensagemDeOficio({
+      const recibo = await notificador.enviar(mensagemDeOficio({
         para: preparado.destino,
         orgaoNome: preparado.orgaoNome,
         numero: preparado.numero,
@@ -483,6 +498,7 @@ export async function rotasOficios(
         horas: config.OFICIO_LINK_HORAS,
         reenvio: preparado.tentativa > 1,
       }));
+      idNoProvedor = recibo.idNoProvedor;
     } catch (erro) {
       falha = erro instanceof Error ? erro.message : String(erro);
     }
@@ -490,8 +506,13 @@ export async function rotasOficios(
     // Passo 3: o desfecho, sempre, inclusive quando falhou.
     await banco.comTenant(quem.organizacaoId, async (c) => {
       await c.query(
-        "UPDATE oficio_envios SET desfecho = $2, detalhe = $3 WHERE id = $1",
-        [preparado.envioId, falha ? "falha" : "entregue", falha ? falha.slice(0, 500) : null],
+        "UPDATE oficio_envios SET desfecho = $2, detalhe = $3, provedor_id = $4 WHERE id = $1",
+        [
+          preparado.envioId,
+          falha ? "falha" : "entregue",
+          falha ? falha.slice(0, 500) : null,
+          idNoProvedor,
+        ],
       );
     });
 

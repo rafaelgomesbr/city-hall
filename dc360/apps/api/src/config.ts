@@ -104,10 +104,16 @@ const esquema = z.object({
   /**
    * Remetente que o provedor deve usar, quando ele exige um.
    *
-   * Opcional porque provedor nenhum é igual: alguns amarram o remetente à
-   * chave e recusam receber outro. Fica aqui, e não fixo no código, porque o
-   * endereço tem que ser de um domínio que a prefeitura controla, senão a
-   * mensagem cai em spam ou é recusada na entrada do órgão destinatário.
+   * OBRIGATÓRIO quando `EMAIL_ATIVO=sim`, e a obrigação é do provedor: o
+   * Resend documenta `from` como campo obrigatório e recusa na validação toda
+   * mensagem que chegue sem ele. Era opcional aqui, e opcional queria dizer
+   * "configuração completa, servidor de pé, cem por cento das mensagens
+   * recusadas".
+   *
+   * Fica no ambiente, e não fixo no código, porque o endereço tem que ser de
+   * um domínio que a prefeitura controla E que esteja verificado na conta do
+   * provedor. Sem as duas coisas, a mensagem é recusada na origem ou cai em
+   * spam na entrada do órgão destinatário.
    */
   EMAIL_REMETENTE: vazioEhAusente(z.string().email().optional()),
 
@@ -196,6 +202,34 @@ const esquema = z.object({
   APNS_TEAM_ID: vazioEhAusente(z.string().min(1).optional()),
   APNS_CHAVE: vazioEhAusente(z.string().min(1).optional()),
   APNS_BUNDLE: vazioEhAusente(z.string().min(1).optional()),
+
+  /**
+   * Com QUAL das duas APNs falar, e a resposta errada aqui é silenciosa.
+   *
+   * A Apple tem dois serviços de push que não se falam, `api.push.apple.com` e
+   * `api.sandbox.push.apple.com`. Qual vale é decidido pelo `aps-environment`
+   * com que o APLICATIVO foi assinado, e uma ficha emitida num ambiente é
+   * recusada no outro.
+   *
+   * Até 13/09/2026 não havia escolha: o servidor montava o provedor sempre
+   * contra produção. Um binário compilado localmente pelo Xcode, que é como o
+   * piloto instala, assina com `development` e recebe ficha de SANDBOX. A
+   * produção respondia `BadDeviceToken`, que está na lista de recusas que
+   * significam "este aparelho não existe mais", e o varredor fazia o que deve
+   * fazer com essa resposta: REVOGAVA o aparelho. O agente não recebia o
+   * aviso, sumia da lista de aparelhos, reinstalava, e o ciclo repetia. Sem
+   * erro em lugar nenhum, porque o servidor estava funcionando como escrito.
+   *
+   * O padrão é `producao` porque é onde o binário de loja fala, e porque
+   * padrão errado aqui seria pior do que padrão nenhum: o piloto acabaria e o
+   * produto sairia para a loja conversando com o sandbox, calado.
+   *
+   * Valor fora dos dois DERRUBA a partida, em vez de cair no padrão: cair no
+   * padrão diante de `sandbox`, `dev` ou `produção` com acento devolveria
+   * exatamente este defeito, agora com alguém convencido de ter configurado.
+   */
+  APNS_AMBIENTE: z.enum(["producao", "teste"]).default("producao"),
+
   /** Caminho do JSON da conta de serviço do Firebase. Só o Android usa. */
   FCM_CONTA_SERVICO: vazioEhAusente(z.string().min(1).optional()),
 
@@ -307,6 +341,36 @@ const esquema = z.object({
   /** Endereço público do painel, para montar o link de redefinição de senha. */
   URL_PAINEL: z.string().url().default("http://localhost:5173"),
   RECUPERACAO_MINUTOS: z.coerce.number().int().min(5).max(120).default(30),
+
+  /**
+   * A chave de navegador do Google Maps que o PAINEL usa para desenhar as ruas.
+   *
+   * Ela mora aqui, na API, e não no build do painel, e a razão é de conta a
+   * pagar. O painel é UM build estático servindo TODOS os municípios: uma
+   * chave assada ali seria a chave do fornecedor, cobrada no cartão dele, para
+   * o uso de todas as prefeituras, e o Google Maps cobra por carregamento de
+   * mapa. Na API cada implantação carrega a chave de quem paga por ela.
+   *
+   * ELA NÃO É SEGREDO, e tratá-la como se fosse produziria teatro. Chave de
+   * navegador viaja no JavaScript da página para qualquer um que abra as
+   * ferramentas do desenvolvedor: quem protege a conta não é o sigilo, é a
+   * restrição por referenciador HTTP no console do Google, que recusa a chave
+   * usada a partir de qualquer endereço fora da lista. Por isso a rota que a
+   * serve não a esconde, não a encobre em log e não a chama de segredo. O que
+   * ela faz é não servir mais do que o painel precisa.
+   *
+   * Vazia é uma escolha legítima e é o padrão: o painel desenha o plano
+   * esquemático, com as mesmas coordenadas em escala e sem nenhum contato com
+   * o Google. É o modo que `docs/SUBPROCESSADORES.md` seção 2.2 promete ao
+   * município que recusar o envio, e é também o que sobra quando a prefeitura
+   * está sem internet. Não existe checagem de produção exigindo esta variável,
+   * de propósito: um município sem chave precisa subir.
+   *
+   * O nome é `MAPS_KEY` porque é assim que a variável já estava escrita no
+   * ambiente da implantação. Renomear para o padrão em português quebraria a
+   * implantação de pé por uma questão de estilo.
+   */
+  MAPS_KEY: vazioEhAusente(z.string().min(1).optional()),
 });
 
 export type Config = z.infer<typeof esquema> & {
@@ -461,12 +525,27 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
     falta o endereço do provedor, em vez de descobrir depois de meia hora
     achando que o ofício não chegou por outro motivo.
   */
-  if (c.EMAIL_ATIVO === "sim" && (!c.NOTIFICADOR_URL || !c.NOTIFICADOR_CHAVE)) {
+  if (
+    c.EMAIL_ATIVO === "sim"
+    && (!c.NOTIFICADOR_URL || !c.NOTIFICADOR_CHAVE || !c.EMAIL_REMETENTE)
+  ) {
+    /*
+      `EMAIL_REMETENTE` entrou nesta exigência quando o cliente passou a falar
+      o contrato de verdade do provedor, e a mudança não é de gosto.
+
+      O remetente era opcional aqui porque "provedor nenhum é igual". O provedor
+      escolhido (Resend) trata `from` como campo OBRIGATÓRIO, e recusa na
+      validação toda mensagem que chegue sem ele. Opcional, então, queria dizer
+      exatamente isto: uma configuração que parece completa, um servidor que
+      sobe sem reclamar, e cem por cento das mensagens recusadas, descobertas
+      uma a uma por quem estava esperando o email.
+    */
     throw new Error(
       "O envio de email está ligado e não tem para onde mandar: defina "
-      + "NOTIFICADOR_URL e NOTIFICADOR_CHAVE, ou desligue com EMAIL_ATIVO=nao. "
-      + "Sem isso o servidor sobe, a rota responde que enviou, e nenhuma "
-      + "mensagem sai deste processo.",
+      + "NOTIFICADOR_URL, NOTIFICADOR_CHAVE e EMAIL_REMETENTE, ou desligue com "
+      + "EMAIL_ATIVO=nao. Sem isso o servidor sobe, a rota responde que enviou, "
+      + "e nenhuma mensagem sai deste processo. O passo a passo de como ligar "
+      + "está em docs/LIGAR-O-EMAIL.md.",
     );
   }
 

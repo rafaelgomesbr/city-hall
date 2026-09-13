@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import { ROTULO_SEVERIDADE, ROTULO_TIPO_COBRADE } from "@dc360/shared";
 import type { PontoNoMapa } from "../dados/repositorio";
 import {
-  caminhoDaSeveridade, carregarGoogleMaps, corDoToken, tokenDaSeveridade,
+  aoGoogleRecusarAChave, caminhoDaSeveridade, carregarGoogleMaps, corDoToken,
+  tokenDaSeveridade,
   type ApiDoGoogleMaps, type MapaDoGoogle as InstanciaDoMapa, type MarcadorDoGoogle,
 } from "./mapa-de-base";
 
@@ -46,6 +47,19 @@ export function MapaDoGoogle({ chave, pontos, selecionada, aoSelecionar, aoFalha
   selecionar.current = aoSelecionar;
   const falhar = useRef(aoFalhar);
   falhar.current = aoFalhar;
+
+  /*
+    A recusa da chave chega por fora da promessa, e por isso tem efeito próprio.
+
+    Chave inválida, sem faturamento ou fora da lista de referenciadores não
+    falha no carregamento: o script responde 200, a API existe e o mapa é
+    construído. O Google só recusa na primeira renderização, escrevendo no
+    console e chamando `gm_authFailure`. Sem esta inscrição, o `catch` abaixo
+    já passou, ninguém no produto fica sabendo, e o coordenador olha uma caixa
+    cinza com um aviso em inglês sobre chave de desenvolvedor. Com ela, a tela
+    volta ao plano esquemático, com as mesmas ocorrências, e diz o que houve.
+  */
+  useEffect(() => aoGoogleRecusarAChave((motivo) => falhar.current(motivo)), []);
 
   useEffect(() => {
     let vivo = true;

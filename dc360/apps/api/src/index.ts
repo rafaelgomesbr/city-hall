@@ -9,7 +9,7 @@ import { armazenamentoEmMemoria } from "./armazenamento/memoria.js";
 import { geradorPlaywright } from "./documentos/pdf.js";
 import { carregarMigracoes, migracoesPendentes } from "@dc360/db";
 import type { Armazenamento } from "./armazenamento/tipos.js";
-import { criarProvedorApns } from "./push/apns.js";
+import { APNS_PRODUCAO, APNS_TESTE, criarProvedorApns } from "./push/apns.js";
 import { lerSegredoDoDisco } from "./push/segredo.js";
 import { criarProvedorFcm, lerContaDeServico } from "./push/fcm.js";
 import { criarEnvio, type ProvedorDePush } from "./push/envio.js";
@@ -106,9 +106,13 @@ const notificador = config.NOTIFICADOR_ARQUIVO
   ? notificadorDeArquivo(config.NOTIFICADOR_ARQUIVO)
   : config.EMAIL_ATIVO === "sim"
     ? notificadorHttp({
+        // As três com `!` porque `carregarConfig` já recusou subir sem elas
+        // quando `EMAIL_ATIVO=sim`. O remetente entrou nessa lista porque o
+        // provedor trata `from` como obrigatório: sem ele, seria um cliente
+        // montado com sucesso e cem por cento de recusa.
         url: config.NOTIFICADOR_URL!,
         chave: config.NOTIFICADOR_CHAVE!,
-        ...(config.EMAIL_REMETENTE ? { remetente: config.EMAIL_REMETENTE } : {}),
+        remetente: config.EMAIL_REMETENTE!,
       })
     : undefined;
 
@@ -141,12 +145,17 @@ const INTERVALO_DA_VARREDURA_MS = 5 * 60_000;
 let varredura: VarreduraAgendada | null = null;
 
 if (config.PUSH_ATIVO === "sim") {
-  const apple: ProvedorDePush = criarProvedorApns({
-    keyId: config.APNS_KEY_ID!,
-    teamId: config.APNS_TEAM_ID!,
-    bundle: config.APNS_BUNDLE!,
-    chavePem: lerSegredoDoDisco(config.APNS_CHAVE!, "a chave de push da Apple"),
-  });
+  const apple: ProvedorDePush = criarProvedorApns(
+    {
+      keyId: config.APNS_KEY_ID!,
+      teamId: config.APNS_TEAM_ID!,
+      bundle: config.APNS_BUNDLE!,
+      chavePem: lerSegredoDoDisco(config.APNS_CHAVE!, "a chave de push da Apple"),
+    },
+    // Ver `APNS_AMBIENTE` em config.ts: falar com a APNs errada faz o varredor
+    // revogar o aparelho de quem está em campo, sem erro em lugar nenhum.
+    { urlBase: config.APNS_AMBIENTE === "teste" ? APNS_TESTE : APNS_PRODUCAO },
+  );
 
   const google = config.FCM_CONTA_SERVICO
     ? criarProvedorFcm(

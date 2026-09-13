@@ -37,6 +37,8 @@ let orgaoDeB: string;
 const tokens: Record<string, string> = {};
 /** O que o notificador falso recebeu, na ordem. */
 const enviadas: Mensagem[] = [];
+/** O identificador que o provedor de mentira devolve em todo envio aceito. */
+const RECIBO_FALSO = "5b1ff1cf-0000-4000-8000-abcdefabcdef";
 /** Quando preenchido, o próximo envio falha com esta mensagem. */
 let falhaProgramada: string | null = null;
 
@@ -48,8 +50,13 @@ const notificadorFalso: Notificador = {
       throw new Error(erro);
     }
     enviadas.push(m);
+    // O recibo do provedor. Ele existe aqui porque a rota tem que guardá-lo:
+    // sem isso, "o provedor aceitou" é palavra contra palavra no dia em que o
+    // órgão diz que não recebeu.
+    return { idNoProvedor: RECIBO_FALSO };
   },
 };
+
 
 function com(token: string) {
   return { authorization: `Bearer ${token}` };
@@ -125,8 +132,9 @@ beforeAll(async () => {
     config: carregarConfig({
       ...ambienteComum,
       EMAIL_ATIVO: "sim",
-      NOTIFICADOR_URL: "https://provedor.exemplo.com/enviar",
-      NOTIFICADOR_CHAVE: "chave-falsa-de-teste",
+      NOTIFICADOR_URL: "https://api.resend.com/emails",
+      NOTIFICADOR_CHAVE: "re_chave-falsa-de-teste",
+      EMAIL_REMETENTE: "defesacivil@serraalta.exemplo.gov.br",
     } as NodeJS.ProcessEnv),
     armazenamento: armazenamentoEmMemoria({ baseUrl: "http://api.local" }),
     notificador: notificadorFalso,
@@ -500,12 +508,35 @@ describe("Ofício numerado", () => {
       expect(r.statusCode).toBe(502);
       expect(r.json().erro).toBe("envio_falhou");
 
-      const tentativas = await mem.bruto.query<{ tentativa: number; desfecho: string; detalhe: string }>(
-        "SELECT tentativa, desfecho, detalhe FROM oficio_envios WHERE oficio_id = $1 ORDER BY tentativa",
+      const tentativas = await mem.bruto.query<{
+        tentativa: number; desfecho: string; detalhe: string; provedor_id: string | null;
+      }>(
+        `SELECT tentativa, desfecho, detalhe, provedor_id
+           FROM oficio_envios WHERE oficio_id = $1 ORDER BY tentativa`,
         [oficioId],
       );
       expect(tentativas.rows.map((l) => l.desfecho)).toEqual(["entregue", "falha"]);
       expect(tentativas.rows[1]!.detalhe).toContain("402");
+
+      /*
+        O RECIBO DO PROVEDOR, e as duas metades da regra.
+
+        A tentativa que o provedor ACEITOU guarda o identificador que ele
+        devolveu. É ele que transforma "nós enviamos" em algo verificável: o
+        município leva esse número ao painel do provedor e lê o que aconteceu
+        com a mensagem depois que ela saiu daqui. Sem a coluna, a única
+        resposta possível para "o órgão diz que não recebeu" era a palavra de
+        quem tem interesse no assunto.
+
+        A tentativa que FALHOU guarda `null`, e isso não é lacuna: não houve
+        mensagem aceita, então não existe recibo. Gravar qualquer coisa aqui
+        seria inventar um número que não existe no painel de provedor nenhum.
+      */
+      expect(
+        tentativas.rows[0]!.provedor_id,
+        "o envio aceito não guardou o identificador que o provedor devolveu",
+      ).toBe(RECIBO_FALSO);
+      expect(tentativas.rows[1]!.provedor_id).toBeNull();
     });
 
     it("o teto de reenvio para de espalhar link vivo para o mesmo dossiê", async () => {

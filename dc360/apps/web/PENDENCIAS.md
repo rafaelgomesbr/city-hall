@@ -87,24 +87,50 @@ pedir que a pessoa abra o link e cole o endereço da barra) é o certo.
 
 `dc360/README.md`, seção "O que falta, e por quê", ainda diz que o mapa
 cartográfico será MapLibre GL JS com provedor de tiles. Isso deixou de ser
-verdade: `vercel.json` já declara `VITE_GOOGLE_MAPS_CHAVE` e
+verdade: a chave do Google chega ao painel por `GET /configuracao` da API e
 `docs/SUBPROCESSADORES.md` já lista Google (Maps) como subprocessador, com o
 modo sem chave prometido na seção 2.2. O painel agora implementa os dois modos.
 O README está fora da faixa de `apps/web/` e não foi tocado: alguém precisa
 alinhar o texto, ou o próximo a ler vai procurar um MapLibre que não existe.
 
-## 4. O modo com chave do Google nunca foi exercido
+## 4. O modo com chave do Google, exercido contra o Google em 13/09/2026
 
-`VITE_GOOGLE_MAPS_CHAVE` está vazia em `vercel.json`, então o modo Google
-(`src/paginas/MapaDoGoogle.tsx`) foi escrito e revisado, mas **nunca rodou
-contra o Google de verdade**. O que está testado é o modo sem chave, a recusa
-de carregar sem chave, a URL do carregador e a proibição de Geocoding e Places.
-O que só a chave responde: se o marcador desenhado pelo símbolo aparece do
-tamanho certo, se o `fitBounds` com folga enquadra bem uma cidade espalhada, e
-se a cor lida do token pelo `getComputedStyle` chega ao símbolo do Google.
+Este item era "nunca foi exercido", e a causa não era preguiça: a chave era
+lida de `import.meta.env["VITE_GOOGLE_MAPS_CHAVE"]`, que é variável de tempo de
+BUILD, e o painel é UM build estático servindo TODOS os municípios. Assar a
+chave ali seria assar a chave do FORNECEDOR, cobrada no cartão dele, pagando o
+carregamento de mapa de todas as prefeituras, porque o Google cobra por
+carregamento. Não havia onde uma prefeitura pôr a dela, a variável ficou vazia
+em `vercel.json`, e o modo Google nunca teve contato com o Google.
 
-Vale registrar duas escolhas feitas às cegas, para quem for ligar a chave
-revisar com o mapa na frente:
+**A chave passou a vir da API, em tempo de execução**: `MAPS_KEY` no ambiente
+do servidor daquele município, servida por `GET /configuracao` (autenticada,
+um campo só). A variável de build continua aceita, como RESERVA, para o modo de
+demonstração e o `npm run dev`, que não têm API a quem perguntar. Um portão em
+`test/mapa-e-coordenada.test.ts` reprova se `vercel.json` voltar a preencher a
+variável de build.
+
+Exercitado no navegador, com a chave real do Rafa, painel construído e servido
+em `http://localhost:4173` contra a API local:
+
+- o carregador do Google respondeu 200 e `window.google.maps` existe;
+- o mapa renderizou com camada de ruas de verdade, e as seis ocorrências da
+  semente aparecem como marcadores, cada um com protocolo, tipo, severidade
+  POR PALAVRA e endereço no `title`;
+- **zero erro de console**, que era o risco maior: chave recusada por restrição
+  de referenciador aparece exatamente assim;
+- nenhuma requisição a Geocoding, a Places ou com `libraries=`;
+- a chave NÃO aparece em nenhum arquivo do build servido, o que é a prova de
+  que ela deixou de ser assada.
+
+O caminho de falha também foi exercitado, com chave inválida de propósito: a
+tela cai no plano esquemático com as mesmas seis ocorrências, mantém a lista de
+teclado completa, e o aviso diz que o Google recusou a chave e onde se conserta
+(restrição por referenciador, faturamento, API habilitada). Nada de tela em
+branco.
+
+As duas escolhas feitas às cegas continuam de pé, e agora com o aviso do
+console confirmado (são AVISOS, não erros):
 
 - o marcador usa `google.maps.Marker`, que o Google marcou como obsoleto em
   favor de `AdvancedMarkerElement`. O substituto exige um `mapId` criado no
@@ -112,6 +138,9 @@ revisar com o mapa na frente:
 - o carregador é uma tag de script sem `callback` e sem `loading=async`, para
   não precisar de função global. O Google imprime um aviso de desempenho no
   console por causa disso. Trocar por `loading=async` exige o `callback`.
+
+O que continua sem prova: como o `fitBounds` enquadra um município grande e
+espalhado. A semente é de uma cidade compacta.
 
 ## 5. O teto de seis casas está no painel, e ainda não no banco
 
