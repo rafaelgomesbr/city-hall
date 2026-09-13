@@ -10,10 +10,10 @@ build) valem lá, não aqui.
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 148 testes do banco passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 281 testes de fonte do painel mais 58 verificações no navegador no modo local e 103 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 670 testes da API passando |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 102 testes de unidade do motor de campo e 10 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 308 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 318 testes de fonte do painel mais 58 verificações no navegador no modo local e 103 contra a API |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 700 testes da API passando |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 126 testes de unidade do motor de campo e 10 de integração contra a API |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 341 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios e não alcança dado de cidadão | Pronto, 39 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
@@ -952,11 +952,11 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 1343 testes em seis pacotes
+npm test                    # 1434 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 148 testes do banco
-npm run test:api            # 670 testes da API
-npm run test --workspace @dc360/campo   # 102 testes do motor de campo
-npm run test:campo          # tipos e os 308 testes do aplicativo de campo
+npm run test:api            # 700 testes da API
+npm run test --workspace @dc360/campo   # 126 testes do motor de campo
+npm run test:campo          # tipos e os 341 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
 ```
@@ -1233,7 +1233,7 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
 
-  Essa última já tem 102 testes do motor de campo cobrindo a lógica fora do
+  Essa última já tem 126 testes do motor de campo cobrindo a lógica fora do
   celular, inclusive retomada arquivo a arquivo.
   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e

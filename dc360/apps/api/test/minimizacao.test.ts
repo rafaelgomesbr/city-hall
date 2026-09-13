@@ -349,3 +349,123 @@ describe("Minimização por prazo", () => {
     expect((await ler(doVizinho)).solicitante_removido_em).toBeNull();
   }, 60_000);
 });
+
+/**
+ * A observação escrita pelo agente ao devolver uma tarefa também é dado de
+ * cidadão, e a minimização precisava alcançá-la.
+ *
+ * Achado na integração da devolução de tarefa (migração 028). `observacao` é
+ * texto livre digitado na rua, e o produto não tem como saber o que ela diz.
+ * Na prática ela diz coisas como "moradora Dona Marta pediu para voltar às
+ * 18h" ou "casa com idosa acamada": nome de pessoa e condição de saúde, que
+ * são exatamente os dois dados que a migração 021 existe para descartar.
+ *
+ * Sem esta passada, o município apagaria o nome do solicitante em
+ * `ocorrencias` e continuaria guardando a mesma pessoa nomeada numa linha de
+ * devolução ao lado, sem prazo nenhum. A política do controlador valeria pela
+ * metade, e a metade que sobra é a que ninguém olha.
+ *
+ * ## Por que junto da vulnerabilidade, e não junto do solicitante
+ *
+ * Como o texto pode descrever condição de saúde, ele sai no prazo MAIS CURTO
+ * dos dois. A migração 021 já garante que o prazo de vulnerabilidade nunca é
+ * maior que o do solicitante (restrição no banco) e que, sem prazo de
+ * vulnerabilidade configurado, vale o do solicitante como teto. Amarrar aqui
+ * na mesma condição herda as duas garantias sem repetir a regra.
+ *
+ * ## Marcador, e não nulo, por dois motivos que coincidem
+ *
+ * O primeiro é o da 021: `NULL` não distingue "não tinha observação" de "a
+ * observação foi descartada no prazo", e o segundo precisa ser demonstrável
+ * numa auditoria. O segundo é do banco: a restrição
+ * `motivo_outro_exige_observacao` da migração 028 recusa observação vazia
+ * quando o motivo é "outro", então anular quebraria a linha.
+ */
+describe("Minimização alcança a observação da devolução", () => {
+  /** Devolve a tarefa direto no banco: aqui o alvo é a varredura, não a rota. */
+  async function devolverNoBanco(
+    ocorrenciaId: string, org: string, observacao: string, motivo = "outro",
+  ): Promise<string> {
+    const equipe = await mem.bruto.query<{ id: string }>(
+      `INSERT INTO equipes (organizacao_id, nome) VALUES ($1, 'Equipe da prova')
+       RETURNING id`, [org],
+    );
+    const agente = await mem.bruto.query<{ id: string }>(
+      `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel, senha_hash, equipe_id)
+       VALUES ($1,'Agente da prova',$2,$3,'agente_campo','x',$4) RETURNING id`,
+      [org, `M-${Math.random().toString(36).slice(2, 8)}`,
+       `agente-${Math.random().toString(36).slice(2, 8)}@exemplo.gov.br`, equipe.rows[0]!.id],
+    );
+    const r = await mem.bruto.query<{ id: string }>(
+      `INSERT INTO devolucoes_de_tarefa
+         (organizacao_id, ocorrencia_id, equipe_id, devolvida_por,
+          motivo, observacao, prazo_em, decidida_em, idempotency_key)
+       VALUES ($1,$2,$3,$4,$5,$6, now() - interval '3 hours', now(), gen_random_uuid())
+       RETURNING id`,
+      [org, ocorrenciaId, equipe.rows[0]!.id, agente.rows[0]!.id, motivo, observacao],
+    );
+    return r.rows[0]!.id;
+  }
+
+  async function lerDevolucao(id: string) {
+    const r = await mem.bruto.query<{ observacao: string | null; observacao_removida_em: string | null }>(
+      "SELECT observacao, observacao_removida_em FROM devolucoes_de_tarefa WHERE id = $1", [id],
+    );
+    return r.rows[0]!;
+  }
+
+  it("vencido o prazo, o texto livre do agente sai junto com o nome do solicitante", async () => {
+    const oc = await criarOcorrencia(orgComPrazo, "000010/2026", { encerradaHaDias: 60 });
+    const dev = await devolverNoBanco(
+      oc, orgComPrazo, "Moradora Dona Marta pediu para voltar depois das 18h.",
+    );
+
+    await varrer();
+
+    const depois = await lerDevolucao(dev);
+    expect(depois.observacao).not.toContain("Dona Marta");
+    expect(depois.observacao).toBe(MARCADOR_REMOVIDO_POR_PRAZO);
+    expect(depois.observacao_removida_em).not.toBeNull();
+  }, 60_000);
+
+  it("o motivo de lista fechada FICA, porque ele não é dado pessoal", async () => {
+    /*
+      Apagar o motivo junto seria apagar o ato administrativo, que é o mesmo
+      erro que a 021 recusou com o endereço: a coordenação precisa continuar
+      sabendo que uma equipe não conseguiu chegar naquele imóvel, e "outro" é
+      uma palavra de lista fechada, não uma frase sobre alguém.
+    */
+    const oc = await criarOcorrencia(orgComPrazo, "000011/2026", { encerradaHaDias: 60 });
+    const dev = await devolverNoBanco(oc, orgComPrazo, "Portão trancado, vizinha informou viagem.");
+    await varrer();
+
+    const r = await mem.bruto.query<{ motivo: string; prazo_em: string | null }>(
+      "SELECT motivo, prazo_em::text FROM devolucoes_de_tarefa WHERE id = $1", [dev],
+    );
+    expect(r.rows[0]!.motivo).toBe("outro");
+    expect(r.rows[0]!.prazo_em).not.toBeNull();
+  }, 60_000);
+
+  it("município sem prazo configurado não perde a observação", async () => {
+    // Mesma regra do resto da minimização: o controlador é o município, e sem
+    // número decidido por ele o fornecedor não descarta nada.
+    const oc = await criarOcorrencia(orgSemPrazo, "000012/2026", { encerradaHaDias: 900 });
+    const dev = await devolverNoBanco(oc, orgSemPrazo, "Rua sem saída, numeração não confere.");
+    await varrer();
+
+    expect((await lerDevolucao(dev)).observacao).toContain("numeração não confere");
+  }, 60_000);
+
+  it("a trilha diz que a observação saiu, senão descarte e perda ficam iguais", async () => {
+    const oc = await criarOcorrencia(orgComPrazo, "000013/2026", { encerradaHaDias: 60 });
+    await devolverNoBanco(oc, orgComPrazo, "Moradora Dona Marta, voltar às 18h.");
+    await varrer();
+
+    const eventos = await eventosDe(oc);
+    const m = eventos.filter((e) => e.tipo === "minimizacao_por_prazo");
+    expect(m).toHaveLength(1);
+    expect(m[0]!.detalhe.campos).toContain("devolucao_observacao");
+    // E o texto descartado não pode reaparecer justamente no registro do descarte.
+    expect(JSON.stringify(m[0]!.detalhe)).not.toContain("Dona Marta");
+  }, 60_000);
+});

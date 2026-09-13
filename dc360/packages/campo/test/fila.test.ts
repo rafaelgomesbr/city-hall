@@ -75,6 +75,9 @@ const CHAVE_C = "33333333-3333-4333-8333-333333333333";
 function transporteFalso(parcial: Partial<Transporte>): Transporte {
   return {
     enviar: async () => ({ vistoriaId: "v", duplicada: false }),
+    /* Lanca por padrao pelo mesmo motivo das fotos: teste que nao deveria
+       devolver tarefa nenhuma acusa em vez de passar em silencio. */
+    devolver: async () => { throw new Error("devolver nao esperado neste teste"); },
     autorizarFoto: async () => { throw new Error("autorizarFoto nao esperado neste teste"); },
     enviarBytes: async () => { throw new Error("enviarBytes nao esperado neste teste"); },
     confirmarFoto: async () => { throw new Error("confirmarFoto nao esperado neste teste"); },
@@ -340,7 +343,7 @@ describe("Servidor recusando", () => {
     expect(item!.ultimaFalha!.codigo).toBe("ja_encerrada");
     // A coleta continua guardada: ela é prova de um ato que aconteceu, e a
     // ocorrência pode ter sido encerrada por engano.
-    expect(item!.envelope.vistoria.assinanteNome).toBe("Moradora");
+    expect(item!.envelope!.vistoria.assinanteNome).toBe("Moradora");
 
     const resumo = await fila.resumo();
     expect(resumo.arquivados).toBe(1);
@@ -438,7 +441,7 @@ describe("Servidor recusando", () => {
     const [item] = await fila.itens();
     expect(tentativas, "tentou as vinte vezes").toBe(20);
     expect(item!.estado, "sinal ruim nao e recusa do servidor").toBe("pendente");
-    expect(item!.envelope.vistoria.assinanteNome).toBe("Moradora");
+    expect(item!.envelope!.vistoria.assinanteNome).toBe("Moradora");
 
     const resumo = await fila.resumo();
     expect(resumo.bloqueados, "nada para pedir atencao: e so sinal").toBe(0);

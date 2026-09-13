@@ -1,12 +1,14 @@
-import type { EnvelopeSincronizacao } from "@dc360/shared";
+import type { DevolucaoDeTarefa, EnvelopeSincronizacao } from "@dc360/shared";
 import {
   FalhaPermanente,
   FalhaTemporaria,
   type Arquivos,
   type AutorDaColeta,
   type Deposito,
+  type DevolucaoSemAutor,
   type FotoLocal,
   type FotoNaFila,
+  type ItemDeVistoria,
   type ItemFila,
   type ResultadoDreno,
   type ResumoFila,
@@ -92,6 +94,51 @@ function envelopeComAutoria(
   if (!autor) return envelope;
   return { ...envelope, coletadaPor: autor.usuarioId };
 }
+
+/**
+ * A devolução como ela SAI do aparelho: com quem devolveu dentro.
+ *
+ * Mesmo desenho de `envelopeComAutoria`, e o mesmo motivo: o autor vive no
+ * item da fila, é carimbado na hora do toque e vai para o contrato só no
+ * momento do envio. A diferença é que aqui o campo é OBRIGATÓRIO e não tem
+ * caminho de compatibilidade, porque ele nasce hoje: não existe aparelho em
+ * campo com devolução gravada sem autor.
+ *
+ * Devolução sem autor por isso não sai, e lança em vez de mandar o dono da
+ * sessão: mandar seria assinar, com o nome de quem está no aparelho agora, uma
+ * decisão que outra pessoa tomou no morro. Na prática o dreno nunca chega aqui
+ * (o portão de autoria em `prontos` já não entrega item sem autor), e este
+ * lance existe para o dia em que aquele filtro for mexido.
+ */
+function devolucaoComAutoria(
+  devolucao: DevolucaoSemAutor,
+  autor: AutorDaColeta | null,
+): DevolucaoDeTarefa {
+  if (!autor) {
+    throw new FalhaPermanente(
+      "Esta devolução não tem autor registrado neste aparelho e não pode ser enviada.",
+      "devolucao_sem_autor",
+    );
+  }
+  return { ...devolucao, devolvidaPor: autor.usuarioId };
+}
+
+/**
+ * O que aconteceu com o pedido de devolução, dito para a tela.
+ *
+ * Resultado, e não exceção, porque as duas recusas são respostas previstas e a
+ * tela precisa dizer uma frase diferente para cada uma. Exceção aqui viraria um
+ * `catch` genérico e uma frase só, e a frase só seria a errada em um dos casos:
+ * "não deu para devolver" sobre uma coleta esperando envio esconderia
+ * justamente o que o agente precisa saber, que é que o trabalho dele está ali.
+ *
+ * `jaExistia` distingue o toque repetido do primeiro toque. Sem ele a tela não
+ * consegue diferenciar "devolvi agora" de "isto já estava devolvido", e as duas
+ * frases são diferentes para quem está com o dedo na tela.
+ */
+export type ResultadoDoEnfileiramento =
+  | { enfileirada: true; item: ItemFila; jaExistia: boolean }
+  | { enfileirada: false; motivo: "sem_sessao" | "coleta_na_fila" };
 
 export type OpcoesFila = {
   deposito: Deposito;
@@ -241,6 +288,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
 
     const instante = agora().toISOString();
     const item: ItemFila = {
+      tipo: "vistoria",
       id: envelope.idempotencyKey,
       /*
         O autor e carimbado AQUI, no momento da coleta, e nunca mais muda.
@@ -275,6 +323,76 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
     await deposito.salvar(item);
     await avisar();
     return item;
+  }
+
+  /**
+   * Coloca na fila a devolução de uma tarefa vencida.
+   *
+   * Ela entra pela MESMA fila da vistoria porque nasce na mesma situação: o
+   * agente decide no morro, sem sinal, e o envio acontece quando a rede volta.
+   * O que ela não pode é sair antes de a coordenação saber: até o servidor
+   * confirmar, este item é a única memória, no aparelho, de que a tarefa foi
+   * devolvida.
+   *
+   * DUAS RECUSAS, e as duas são de dado e não de tela:
+   *
+   * 1. **Sem sessão aberta, não enfileira.** `devolvidaPor` é obrigatório no
+   *    contrato e é conferido pelo servidor contra o dono do token. Um item sem
+   *    autor ficaria parado para sempre, e a tarefa teria sumido da lista do
+   *    agente em troca de nada.
+   * 2. **Com coleta desta ocorrência na fila, não enfileira.** O agente
+   *    vistoriou e o envio ainda não saiu; devolver jogaria fora o trabalho
+   *    dele, em silêncio, e a coordenação receberia "não deu para vistoriar"
+   *    sobre uma vistoria que existe guardada a dois toques dali. Vale para
+   *    coleta em QUALQUER estado: bloqueada é trabalho a recuperar, confirmada
+   *    já chegou ao servidor, e nos dois casos a devolução é falsa.
+   *
+   * Enfileirar a mesma devolução duas vezes não cria dois itens, pela mesma
+   * razão da coleta: o aparelho velho demora a responder e o dedo toca de novo.
+   * Uma segunda devolução da MESMA ocorrência, com chave nova, também não: o
+   * que ela pediria já está pedido, e dois itens produziriam dois eventos de
+   * devolução para uma tarefa só.
+   */
+  async function enfileirarDevolucao(
+    devolucao: DevolucaoSemAutor,
+    dados: { protocolo: string },
+  ): Promise<ResultadoDoEnfileiramento> {
+    const autor = sessaoAtual();
+    if (!autor) return { enfileirada: false, motivo: "sem_sessao" };
+
+    const naFila = await deposito.listar();
+
+    const jaPedida = naFila.find(
+      (i) => i.tipo === "devolucao" && i.ocorrenciaId === devolucao.ocorrenciaId,
+    );
+    if (jaPedida) return { enfileirada: true, item: jaPedida, jaExistia: true };
+
+    const temColeta = naFila.some(
+      (i) => i.tipo === "vistoria" && i.ocorrenciaId === devolucao.ocorrenciaId,
+    );
+    if (temColeta) return { enfileirada: false, motivo: "coleta_na_fila" };
+
+    const instante = agora().toISOString();
+    const item: ItemFila = {
+      tipo: "devolucao",
+      id: devolucao.idempotencyKey,
+      /* Carimbado agora, como na coleta, e nunca mais reescrito: quem devolveu
+         responde pelo ato na trilha, que é append-only. */
+      autor,
+      ocorrenciaId: devolucao.ocorrenciaId,
+      protocolo: dados.protocolo,
+      devolucao,
+      estado: "pendente",
+      tentativas: 0,
+      criadoEm: instante,
+      liberadoEm: instante,
+      ultimaFalha: null,
+      confirmadoEm: null,
+      fotos: [],
+    };
+    await deposito.salvar(item);
+    await avisar();
+    return { enfileirada: true, item, jaExistia: false };
   }
 
   /** Ordem de coleta, sempre: a primeira vistoria feita é a primeira a subir. */
@@ -387,21 +505,43 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
         await avisar();
 
         try {
-          /**
-           * As fotos sobem ANTES do envelope, e nunca depois.
-           *
-           * O envelope referencia as fotos pela chave que o servidor devolveu
-           * na autorizacao. Mandar o envelope primeiro criaria um laudo
-           * apontando para arquivo que ainda nao existe, e se o envio das
-           * fotos falhasse depois disso o laudo ficaria permanentemente
-           * incompleto, sem nada na fila indicando o que faltou.
-           */
-          const comFotos = await subirFotos(item);
-          resultado.fotosEnviadas += comFotos.enviadasAgora;
+          /*
+            O DESPACHO POR TIPO, e ele é a única bifurcação do dreno.
 
-          const recibo = await transporte.enviar(
-            envelopeComAutoria(comFotos.envelope, item.autor),
-          );
+            Tudo o que vem antes e depois (o portão de autoria, a marca de
+            cancelamento, a espera entre tentativas, o tratamento da falha) vale
+            igual para os dois, porque é a mesma rua e a mesma conexão indo e
+            vindo. O que muda é só o que sai pelo fio.
+          */
+          let duplicada: boolean;
+          if (item.tipo === "devolucao") {
+            /*
+              Devolução não tem foto e não pode ganhar uma: ela é a declaração
+              de que a vistoria NÃO aconteceu. Por isso vai direto, sem o passo
+              de arquivos.
+            */
+            const recibo = await transporte.devolver(
+              devolucaoComAutoria(item.devolucao, item.autor),
+            );
+            duplicada = recibo.duplicada;
+          } else {
+            /**
+             * As fotos sobem ANTES do envelope, e nunca depois.
+             *
+             * O envelope referencia as fotos pela chave que o servidor devolveu
+             * na autorizacao. Mandar o envelope primeiro criaria um laudo
+             * apontando para arquivo que ainda nao existe, e se o envio das
+             * fotos falhasse depois disso o laudo ficaria permanentemente
+             * incompleto, sem nada na fila indicando o que faltou.
+             */
+            const comFotos = await subirFotos(item);
+            resultado.fotosEnviadas += comFotos.enviadasAgora;
+
+            const recibo = await transporte.enviar(
+              envelopeComAutoria(comFotos.envelope, item.autor),
+            );
+            duplicada = recibo.duplicada;
+          }
 
           if (minhaMarca !== marcaAtual) {
             // O dreno foi cancelado enquanto esta resposta voltava. O envio
@@ -418,7 +558,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
             ultimaFalha: null,
             confirmadoEm: agora().toISOString(),
           });
-          if (recibo.duplicada) resultado.duplicados += 1;
+          if (duplicada) resultado.duplicados += 1;
           else resultado.enviados += 1;
           await avisar();
 
@@ -456,7 +596,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
    * entre sincronizar e nao sincronizar.
    */
   async function subirFotos(
-    item: ItemFila,
+    item: ItemDeVistoria,
   ): Promise<{ envelope: EnvelopeSincronizacao; enviadasAgora: number }> {
     if (item.fotos.length === 0) {
       return { envelope: item.envelope, enviadasAgora: 0 };
@@ -735,6 +875,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
 
   return {
     enfileirar,
+    enfileirarDevolucao,
     drenar,
     cancelar,
     reenviar,

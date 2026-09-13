@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
+import * as Crypto from "expo-crypto";
 import { ROTULO_TIPO_COBRADE } from "@dc360/shared";
 import { SemSinal, enderecoDaApi, type Pendencia } from "../../dados/api";
-import { atualizarPendencias, baixadasEm, pendenciasGuardadas, tetoAtingido } from "../../dados/pendencias";
+import {
+  atualizarPendencias, baixadasEm, esquecerPendencia, pendenciasGuardadas, tetoAtingido,
+} from "../../dados/pendencias";
 import { listarColetas, marcarEnviada } from "../../dados/coletas";
 import { obterFila } from "../../dados/fila";
 import { listarRascunhos, type Rascunho } from "../../dados/rascunho";
@@ -16,7 +19,20 @@ import { espaco, raio, toque } from "../../ui/tokens";
 import {
   INTERVALO_PADRAO_MS, deveAtualizar, idadeEmPalavras, listaEnvelheceu,
 } from "../../dados/atualizacao";
-import { dataDoPrazo, quantoFalta, seloDaColeta, type ColetaLocal } from "@dc360/campo";
+import {
+  FRASE_DO_IMPEDIMENTO,
+  dataDoPrazo,
+  devolucoesPorOcorrencia,
+  impedimentoParaDevolver,
+  quantoFalta,
+  seloDaColeta,
+  temColetaNaFila,
+  type ColetaLocal,
+  type DevolucaoNoAparelho,
+  type FilaDeSincronizacao,
+  type ItemFila,
+} from "@dc360/campo";
+import { DialogoDeDevolucao, type PedidoDeDevolucao } from "../../ui/DialogoDeDevolucao";
 
 /**
  * As tarefas do agente.
@@ -62,6 +78,21 @@ export default function Tarefas() {
   const [avisoDeRede, setAvisoDeRede] = useState<string | null>(null);
 
   /*
+    A fila de envio, e o que ela diz sobre estas tarefas.
+
+    A lista PRECISA ler a fila, e não só as lápides: é o item na fila que
+    sustenta a devolução entre o toque do agente e a confirmação do servidor. É
+    ele que tira a tarefa daqui (o alívio que o agente quer) sem tirá-la do
+    aparelho (a garantia de que ninguém perde o que foi decidido no morro).
+  */
+  const fila = useRef<FilaDeSincronizacao | null>(null);
+  const [itensDaFila, setItensDaFila] = useState<ItemFila[]>([]);
+  /** Qual tarefa está sendo perguntada. Enquanto for nulo, nada foi devolvido. */
+  const [aDevolver, setADevolver] = useState<Pendencia | null>(null);
+  /** O que aconteceu com o último pedido, quando ele não pôde ser aceito. */
+  const [avisoDaDevolucao, setAvisoDaDevolucao] = useState<string | null>(null);
+
+  /*
     A fila confirmou: a lapide sobe de "na fila" para "enviada".
 
     Esta e a unica tela que ja le o disco a cada foco, a cada volta do segundo
@@ -78,19 +109,41 @@ export default function Tarefas() {
     Falhar aqui nao pode custar a lista: a lista e a unica coisa que o agente
     tem no morro.
   */
-  const promoverColetasConfirmadas = useCallback(async () => {
+  const lerAFila = useCallback(async (): Promise<ItemFila[]> => {
     try {
       const fila = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
-      for (const item of await fila.itens()) {
-        if (item.estado === "confirmado") await marcarEnviada(item.ocorrenciaId);
+      const itens = await fila.itens();
+
+      for (const item of itens) {
+        /*
+          SÓ VISTORIA promove lápide, e o `tipo` aqui não é zelo: a fila passou
+          a levar dois tipos de item, e uma devolução confirmada marcaria como
+          "coletada e enviada" uma vistoria que nunca foi feita. A lápide é o
+          que impede a segunda vistoria; mentir nela é pior do que não tê-la.
+        */
+        if (item.tipo === "vistoria" && item.estado === "confirmado") {
+          await marcarEnviada(item.ocorrenciaId);
+        }
+        /*
+          A devolução que o servidor confirmou autoriza o aparelho a esquecer a
+          tarefa. Antes disso, quem a esconde da lista é o próprio item na fila;
+          depois, o item some (confirmado fica visível um tempo e sai) e sem esta
+          linha a tarefa voltaria para a lista, sem explicação, até a próxima
+          baixa com sinal.
+        */
+        if (item.tipo === "devolucao" && item.estado === "confirmado") {
+          await esquecerPendencia(item.ocorrenciaId);
+        }
       }
+      return itens;
     } catch {
       /* A fila indisponivel deixa o selo como esta, e nada mais. */
+      return [];
     }
   }, [obterToken, lerIdentidade]);
 
   const lerDoDisco = useCallback(async () => {
-    await promoverColetasConfirmadas();
+    const naFila = await lerAFila();
     const [guardadas, marcadas, emAndamento, coletadas, cortada] = await Promise.all([
       pendenciasGuardadas(), baixadasEm(), listarRascunhos(), listarColetas(), tetoAtingido(),
     ]);
@@ -99,7 +152,45 @@ export default function Tarefas() {
     setTeto(cortada);
     setRascunhos(emAndamento);
     setColetas(coletadas);
-  }, [promoverColetasConfirmadas]);
+    setItensDaFila(naFila);
+  }, [lerAFila]);
+
+  /*
+    A tela escuta a fila, e não só o foco.
+
+    Sem isto, a confirmação da devolução chegaria à lista só no próximo foco: o
+    agente que ficasse parado nesta tela veria a tarefa reaparecer quando o item
+    confirmado saísse da fila, porque a linha local ainda estaria no disco. A
+    fila avisa a cada mudança de estado, e reler o disco aqui é barato.
+  */
+  /*
+    A leitura mais recente do disco, guardada em `ref` para a assinatura abaixo
+    poder chamá-la sem virar dependência dela. Em dependência, cada renderização
+    trocaria a assinatura da fila por uma nova, e o aparelho passaria o dia
+    assinando e desassinando enquanto o agente olha a lista.
+  */
+  const lerDoDiscoAgora = useRef(lerDoDisco);
+  lerDoDiscoAgora.current = lerDoDisco;
+
+  useEffect(() => {
+    let vivo = true;
+    let desassinar: (() => void) | undefined;
+    void (async () => {
+      try {
+        const aberta = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
+        if (!vivo) return;
+        fila.current = aberta;
+        desassinar = aberta.assinar(() => { void lerDoDiscoAgora.current(); });
+      } catch {
+        /* Sem fila não há devolução possível, e a lista continua servindo. */
+      }
+    })();
+    return () => { vivo = false; desassinar?.(); };
+    // Só na montagem, como a leitura inicial logo abaixo: a fila do aplicativo
+    // é memoizada e vive o dia inteiro, então reabri-la a cada renderização não
+    // traria nada e trocaria a assinatura à toa.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /*
     O que a tela sabe sobre a última ida à rede.
@@ -218,10 +309,68 @@ export default function Tarefas() {
     return () => { clearInterval(relogio); };
   }, [atualizarSeValer]);
 
+  /**
+   * O toque que devolve, depois de o agente ter confirmado o motivo.
+   *
+   * A devolução NÃO vai para a rede aqui: ela entra na fila, como tudo o que
+   * sai deste aplicativo, porque quem decide isto está sem sinal por definição
+   * (a tarefa venceu justamente porque ele estava lá fora). O que acontece na
+   * hora é a tarefa sair desta lista, e quem a esconde é o item recém-criado.
+   */
+  async function devolver(alvo: Pendencia, pedido: PedidoDeDevolucao): Promise<void> {
+    const aberta = fila.current;
+    if (!aberta) {
+      setAvisoDaDevolucao(
+        "Não deu para abrir a fila de envio deste aparelho, e sem ela a devolução "
+        + "não fica guardada. Tente de novo.",
+      );
+      return;
+    }
+    const r = await aberta.enfileirarDevolucao(
+      {
+        idempotencyKey: Crypto.randomUUID(),
+        ocorrenciaId: alvo.id,
+        /* A hora do APARELHO, para a trilha. Ela não decide nada: quem decide
+           se a tarefa venceu é o relógio do servidor. */
+        decididaEm: new Date().toISOString(),
+        motivo: pedido.motivo,
+        ...(pedido.observacao ? { observacao: pedido.observacao } : {}),
+      },
+      { protocolo: alvo.protocolo },
+    );
+
+    if (!r.enfileirada) {
+      setAvisoDaDevolucao(
+        r.motivo === "coleta_na_fila"
+          ? FRASE_DO_IMPEDIMENTO.coleta_no_aparelho
+          : "Você não está mais com a sessão aberta neste aparelho. Entre de novo "
+            + "para devolver a tarefa: a devolução leva o seu nome.",
+      );
+      return;
+    }
+    setAvisoDaDevolucao(null);
+    await lerDoDisco();
+  }
+
   if (tarefas === null) return <Carregando mensagem="Abrindo suas tarefas" />;
 
   const emAndamento = new Set(rascunhos.map((r) => r.ocorrenciaId));
   const lapides = new Map(coletas.map((c) => [c.ocorrenciaId, c]));
+  const devolucoes = devolucoesPorOcorrencia(itensDaFila);
+
+  /*
+    A tarefa com devolução A CAMINHO sai da lista na hora, e essa é a metade
+    visível do pedido. A outra metade é que ela continua no aparelho, visível na
+    fila de envio, até o servidor confirmar: item que some antes de o servidor
+    saber é a forma mais cara de perder informação neste produto.
+
+    A tarefa com devolução RECUSADA volta para cá, e o cartão dela diz a frase
+    que veio do servidor. Some daqui sem a coordenação ter recebido seria o pior
+    dos dois mundos: ninguém foi lá e ninguém sabe disso.
+  */
+  const naLista = tarefas.filter(
+    (t) => devolucoes.get(t.id)?.situacao !== "a_caminho",
+  );
 
   return (
     <ScrollView
@@ -245,7 +394,7 @@ export default function Tarefas() {
 
       <View style={{ gap: espaco.e1 }}>
         <Txt variante="h2">
-          {tarefas.length === 1 ? "1 vistoria para fazer" : `${tarefas.length} vistorias para fazer`}
+          {naLista.length === 1 ? "1 vistoria para fazer" : `${naLista.length} vistorias para fazer`}
         </Txt>
         {/*
           A idade da lista, e não a data cheia.
@@ -285,13 +434,15 @@ export default function Tarefas() {
         )}
       </View>
 
-      {tarefas.length === 0 ? (
+      {avisoDaDevolucao && <Aviso tom="alerta">{avisoDaDevolucao}</Aviso>}
+
+      {naLista.length === 0 ? (
         <Vazio
           titulo="Nenhuma vistoria designada"
           descricao="Quando a coordenação despachar uma ocorrência para a sua equipe, ela aparece aqui. Puxe a tela para baixo para procurar de novo."
         />
       ) : (
-        tarefas.map((t) => {
+        naLista.map((t) => {
           const prazo = quantoFalta(t.prazo_em, Date.now());
           const comecada = emAndamento.has(t.id);
           /*
@@ -306,9 +457,32 @@ export default function Tarefas() {
             aplicativo ser morto pelo sistema e a fila ser limpa.
           */
           const selo = seloDaColeta(lapides.get(t.id) ?? null);
+
+          /*
+            A DEVOLUÇÃO só aparece em tarefa VENCIDA, e o prazo aqui é o mesmo
+            que a linha acima já mostra: uma conta só, e não duas que divergem.
+            Este é um portão de tela, e a tela é a primeira barreira e não a
+            única: quem decide de verdade é o relógio do SERVIDOR, que pode
+            recusar, porque relógio de aparelho é ajustável e atravessa fuso.
+          */
+          const lapide = lapides.get(t.id) ?? null;
+          const impedimento = impedimentoParaDevolver({
+            vencida: prazo.vencido,
+            /*
+              A fila E a lápide. Só a fila deixaria uma janela: a coleta
+              confirmada sai da fila em trinta segundos, e a tarefa vencida da
+              lista antiga voltaria a oferecer devolução sobre uma vistoria que
+              já está no servidor. Lápide `arquivada` não conta: ali o agente
+              pediu, com confirmação, para vistoriar de novo.
+            */
+            coletaNoAparelho: temColetaNaFila(itensDaFila, t.id)
+              || (lapide !== null && lapide.situacao !== "arquivada"),
+          });
+          const devolucaoRecusada: DevolucaoNoAparelho | undefined =
+            devolucoes.get(t.id)?.situacao === "recusada" ? devolucoes.get(t.id) : undefined;
           return (
+            <View key={t.id} style={{ gap: espaco.e2 }}>
             <Pressable
-              key={t.id}
               onPress={() => router.push({ pathname: "/(agente)/vistoria/[id]", params: { id: t.id } })}
               accessibilityRole="button"
               /* O selo entra no rotulo tambem: quem usa leitor de tela nao ve
@@ -385,6 +559,56 @@ export default function Tarefas() {
                 )}
               </View>
             </Pressable>
+
+            {/*
+              A RECUSA DO SERVIDOR, no cartão da tarefa que voltou.
+
+              Ela fica aqui, e não só na fila de envio, porque é aqui que o
+              agente vai procurar a tarefa que ele achava resolvida. A frase é a
+              que veio do servidor, sem tradução: o aplicativo não sabe o motivo
+              e inventar um seria repetir o defeito do "Arquivada" (ver a fila
+              de envio). O caminho de saída fica na fila, onde o pedido recusado
+              continua, com os verbos de tentar de novo e descartar.
+            */}
+            {devolucaoRecusada && (
+              <Aviso tom="perigo">
+                {"A coordenação não recebeu esta devolução. "}
+                {devolucaoRecusada.mensagem
+                  ?? "O servidor recusou o pedido, e a tarefa continua sua."}
+                {" O pedido continua na fila de envio, onde você pode tentar de novo ou descartar."}
+              </Aviso>
+            )}
+
+            {/*
+              Tarefa NO PRAZO não mostra nada disto, nem o botão nem a
+              explicação: ela não tem por que falar de devolução, e uma frase a
+              mais por tarefa numa lista de vinte é ruído que ensina a não ler.
+            */}
+            {prazo.vencido && !devolucaoRecusada && (
+              impedimento === null ? (
+                <Botao
+                  titulo="Devolver para a coordenação"
+                  tipo="secundario"
+                  testID={`devolver-${t.id}`}
+                  descricao={
+                    `Devolver para a coordenação a tarefa vencida do protocolo ${t.protocolo}, `
+                    + `${t.endereco}, informando o motivo`
+                  }
+                  onPress={() => { setADevolver(t); }}
+                />
+              ) : (
+                /*
+                  Com coleta esperando envio, o botão não existe e a razão fica
+                  escrita. Esconder sem dizer nada faria o agente procurar o
+                  botão que o colega tem; devolver ali jogaria fora, em silêncio,
+                  a vistoria que ele fez no morro.
+                */
+                <Txt variante="legenda" discreto>
+                  {FRASE_DO_IMPEDIMENTO[impedimento]}
+                </Txt>
+              )
+            )}
+            </View>
           );
         })
       )}
@@ -402,6 +626,24 @@ export default function Tarefas() {
           carregando={atualizando}
         />
       </Cartao>
+
+      {/*
+        Um diálogo só para a lista inteira, e não um por tarefa: a lista pode
+        ter vinte itens, e vinte `Modal` montados por trás da tela o tempo todo
+        é o que faz o aparelho da prefeitura engasgar. Quem responde de qual
+        tarefa se fala é o estado, e o protocolo aparece no texto.
+      */}
+      <DialogoDeDevolucao
+        aberto={aDevolver !== null}
+        protocolo={aDevolver?.protocolo ?? ""}
+        endereco={aDevolver?.endereco ?? ""}
+        aoConfirmar={(pedido) => void (async () => {
+          const alvo = aDevolver;
+          if (!alvo) return;
+          await devolver(alvo, pedido);
+        })()}
+        aoFechar={() => { setADevolver(null); }}
+      />
 
     </ScrollView>
   );

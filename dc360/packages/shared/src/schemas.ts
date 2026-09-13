@@ -543,6 +543,97 @@ export const envelopeSincronizacaoSchema = z.object({
 });
 export type EnvelopeSincronizacao = z.infer<typeof envelopeSincronizacaoSchema>;
 
+/**
+ * Por que o agente devolveu a tarefa sem vistoriar.
+ *
+ * Lista fechada com escape, e as duas metades têm razão de ser. Fechada porque
+ * quem digita está na rua, muitas vezes de capa de chuva, e uma tela que exige
+ * redação produz "n/a" e "nao deu". Com escape porque a realidade não cabe em
+ * cinco linhas, e a coordenação precisa entender o caso para decidir o que
+ * fazer com ele.
+ *
+ * Cada motivo leva a uma ação DIFERENTE da coordenação, e é por isso que eles
+ * não podem virar um campo de texto só: endereço não localizado pede correção
+ * de coordenada (que agora existe), morador ausente pede reagendamento, e
+ * risco de acesso pede apoio de outro órgão.
+ */
+export const MOTIVOS_DE_DEVOLUCAO = [
+  "endereco_nao_localizado",
+  "morador_ausente",
+  "acesso_impedido",
+  "risco_para_a_equipe",
+  "fora_da_area_da_equipe",
+  "outro",
+] as const;
+export type MotivoDeDevolucao = (typeof MOTIVOS_DE_DEVOLUCAO)[number];
+
+export const ROTULO_MOTIVO_DE_DEVOLUCAO: Record<MotivoDeDevolucao, string> = {
+  endereco_nao_localizado: "Não localizei o endereço",
+  morador_ausente: "Não havia ninguém no local",
+  acesso_impedido: "Não consegui acesso ao imóvel",
+  risco_para_a_equipe: "Risco para a equipe no local",
+  fora_da_area_da_equipe: "Não é área desta equipe",
+  outro: "Outro motivo",
+};
+
+/**
+ * Devolver para a coordenação uma tarefa VENCIDA que não foi vistoriada.
+ *
+ * ## O que este ato é, e o que ele não é
+ *
+ * Ele tira a tarefa da lista do agente e devolve a ocorrência para a
+ * coordenação, com nome, hora e motivo na trilha. **Não encerra a ocorrência e
+ * não apaga nada**: a casa continua precisando de vistoria, e quem decide o que
+ * fazer com ela volta a ser quem despacha.
+ *
+ * O verbo na tela é "devolver" e não "descartar", e a diferença importa. A
+ * palavra que o agente lê tem que descrever o que acontece: "descartar" faria
+ * ele acreditar que a ocorrência some, e ele usaria o botão pensando estar
+ * limpando lixo, quando está pedindo que outra pessoa assuma. Do lado da
+ * coordenação o efeito é o mesmo que o Rafa pediu, e do lado de quem aperta é a
+ * verdade.
+ *
+ * ## Por que só depois de vencida, e por que o relógio é o do servidor
+ *
+ * Sem a trava do prazo, um dia ruim vira uma lista limpa: o agente devolve tudo
+ * às oito da manhã e a coordenação descobre ao meio-dia. Vencida é o ponto em
+ * que o produto já falhou e a informação de que ninguém foi lá vale mais do que
+ * a tarefa continuar parada.
+ *
+ * **O critério é o relógio do SERVIDOR.** Relógio de aparelho é ajustável, erra
+ * sozinho e atravessa fuso, e este produto já decidiu isso uma vez (ver a nota
+ * do T2 sobre aceitar coleta tardia). O aparelho manda o instante em que o dedo
+ * tocou, para a trilha, e o servidor confere `prazo_em` contra o relógio dele.
+ */
+export const devolucaoDeTarefaSchema = z.object({
+  /** Gerada no aparelho, pelo mesmo motivo do envelope de vistoria. */
+  idempotencyKey: uuidSchema,
+  ocorrenciaId: uuidSchema,
+  /** Quando o dedo tocou, no aparelho. Vai para a trilha, e NÃO decide nada. */
+  decididaEm: z.string().datetime(),
+  /**
+   * Quem devolveu, conferido pelo servidor contra o dono do token, pelo mesmo
+   * motivo de `coletadaPor`: portão de cliente não é controle de acesso.
+   *
+   * Obrigatório aqui, e opcional lá, porque este campo nasce hoje: não existe
+   * aparelho em campo com devolução gravada sem autor, então não há coleta
+   * antiga para destruir com um 422 permanente.
+   */
+  devolvidaPor: uuidSchema,
+  motivo: z.enum(MOTIVOS_DE_DEVOLUCAO),
+  /**
+   * Obrigatório quando o motivo é "outro", porque "outro" sozinho não responde
+   * nada para quem vai decidir o que fazer com a ocorrência. Nos demais casos é
+   * opcional: o motivo já diz o essencial, e exigir redação de quem está na
+   * chuva produz "n/a".
+   */
+  observacao: z.string().trim().max(500).optional(),
+}).refine(
+  (d) => d.motivo !== "outro" || (d.observacao ?? "").length >= 10,
+  { message: "Com o motivo 'outro', escreva o que aconteceu", path: ["observacao"] },
+);
+export type DevolucaoDeTarefa = z.infer<typeof devolucaoDeTarefaSchema>;
+
 /* ==========================================================================
    Cadastro de usuário e de equipe
    ========================================================================== */

@@ -240,6 +240,25 @@ async function idsConhecidos(): Promise<string[]> {
   return [...vistos].slice(0, TETO_DE_RECONCILIACAO);
 }
 
+/**
+ * Tira uma tarefa da cópia local, e só depois de o SERVIDOR confirmar.
+ *
+ * Existe por causa da devolução. Entre o toque e a confirmação, quem esconde a
+ * tarefa da lista é o item na fila: enquanto ele existir, a tarefa está fora
+ * dali e continua guardada no aparelho, que é a promessa do produto inteiro.
+ * Depois da confirmação o item some da fila (confirmado fica visível um tempo e
+ * sai), e aí a linha aqui voltaria a aparecer na lista, sem explicação nenhuma,
+ * até a próxima baixa com sinal. Esta função é o que fecha essa janela.
+ *
+ * NÃO é para uso fora desse caso. Apagar tarefa por decisão do aparelho é como
+ * se perde trabalho: a lista local é a única coisa que o agente tem no morro, e
+ * ela é reescrita inteira, com transação, por `atualizarPendencias`.
+ */
+export async function esquecerPendencia(ocorrenciaId: string): Promise<void> {
+  const db = await bancoLocal();
+  await db.runAsync("DELETE FROM pendencias WHERE id = ?", [ocorrenciaId]);
+}
+
 /** Uma tarefa específica, do disco. Serve para abrir a vistoria sem sinal. */
 export async function pendenciaGuardada(id: string): Promise<Pendencia | null> {
   const db = await bancoLocal();
@@ -329,6 +348,14 @@ export type SaidaReconciliada = { id: string; status: string };
  * `outra_equipe` significa que ela mudou de dono. Nos três, a coleta que este
  * aparelho tem na fila continua sendo a única prova de que o agente esteve lá,
  * e a lápide continua sendo o que impede alguém de coletar de novo por cima.
+ *
+ * `devolvida` ganhou um segundo significado em 13/09/2026, e a regra daqui não
+ * muda: agora a devolução pode ter sido deste agente, feita neste aparelho. Nem
+ * por isso a lápide pode cair, e a razão é a mesma de antes: devolver significa
+ * que a vistoria não aconteceu, e uma lápide só existe onde ela aconteceu. Na
+ * prática os dois não convivem, porque a tela e a fila recusam devolver tarefa
+ * que tem coleta guardada neste aparelho (ver `impedimentoParaDevolver`), mas a
+ * regra aqui não depende disso para estar certa.
  *
  * Compara o `status` cru, e não o `desfecho`: o desfecho é tradução para a tela
  * e pode ganhar nuance amanhã; o status é o fato registrado na ocorrência.

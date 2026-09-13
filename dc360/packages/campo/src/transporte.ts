@@ -1,7 +1,7 @@
-import type { EnvelopeSincronizacao } from "@dc360/shared";
+import type { DevolucaoDeTarefa, EnvelopeSincronizacao } from "@dc360/shared";
 import {
   FalhaPermanente, FalhaTemporaria,
-  type AutorizacaoFoto, type Recibo, type Transporte,
+  type AutorizacaoFoto, type Recibo, type ReciboDeDevolucao, type Transporte,
 } from "./tipos.js";
 
 /**
@@ -169,6 +169,25 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
 
     async confirmarFoto(evidenciaId: string): Promise<void> {
       await chamar("/evidencias/confirmar-envio", { evidenciaId });
+    },
+
+    /**
+     * A devolução da tarefa vencida.
+     *
+     * Passa por `chamar`, e não por uma cópia da tradução de erro como o
+     * `enviar` abaixo faz: é ali que 5xx e 429 viram falha temporária e o
+     * 4xx vira permanente com código e campos. Uma segunda cópia dessa regra
+     * seria a que classifica um 503 como permanente por descuido, e nesta rota
+     * isso significaria a tarefa voltar para a lista do agente porque o
+     * servidor estava reiniciando.
+     *
+     * `duplicada` vem do servidor: a devolução é idempotente por chave (a
+     * migração 028 impõe isso), e o reenvio da fila responde o resultado da
+     * primeira vez.
+     */
+    async devolver(devolucao: DevolucaoDeTarefa): Promise<ReciboDeDevolucao> {
+      const r = await chamar<{ duplicada?: boolean }>("/sincronizacao/devolucao", devolucao);
+      return { duplicada: Boolean(r["duplicada"]) };
     },
 
     async enviar(envelope: EnvelopeSincronizacao): Promise<Recibo> {

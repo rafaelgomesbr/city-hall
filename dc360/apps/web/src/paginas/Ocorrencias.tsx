@@ -4,13 +4,17 @@ import {
   ROTULO_STATUS, SEVERIDADES, ROTULO_SEVERIDADE, podeExecutar,
   type Severidade, type StatusOcorrencia,
 } from "@dc360/shared";
-import { listarPaginaDeOcorrencias, type PaginaDeOcorrencias } from "../dados/repositorio";
+import {
+  devolucoesPendentes, listarPaginaDeOcorrencias,
+  type DevolucaoPendente, type PaginaDeOcorrencias,
+} from "../dados/repositorio";
+import { marcaDaLista, porOcorrencia } from "../devolucao";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
   Aviso, Carregando, Prazo, PrazoVenceEm, SeloSeveridade, SeloStatus, TipoDaOcorrencia,
   Vazio, formatarDataHora,
 } from "../componentes/comuns";
-import { IconeMais } from "../componentes/Icones";
+import { IconeMais, IconeVoltar } from "../componentes/Icones";
 
 const POR_PAGINA = 10;
 
@@ -36,6 +40,14 @@ export function Ocorrencias() {
   const sessao = useSessaoObrigatoria();
   const [params, setParams] = useSearchParams();
   const [dados, setDados] = useState<PaginaDeOcorrencias | null>(null);
+  /**
+   * As devolvidas do município inteiro, ou `null` enquanto não se sabe.
+   *
+   * São poucas por definição (uma devolução é um caso que espera decisão, não
+   * um estado em que ocorrência fica), então a lista cabe inteira e serve para
+   * marcar qualquer página sem uma consulta por linha.
+   */
+  const [devolvidas, setDevolvidas] = useState<DevolucaoPendente[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   const busca = params.get("busca") ?? "";
@@ -76,6 +88,29 @@ export function Ocorrencias() {
       .catch((e: unknown) => { if (vivo) setErro(e instanceof Error ? e.message : String(e)); });
     return () => { vivo = false; };
   }, [sessao, busca, status, severidade, soAtrasadas, pagina]);
+
+  /*
+    A marcação vem de uma consulta própria, e o fracasso dela não derruba a
+    lista. O `catch` foi escrito quando a rota das devolvidas ainda não existia
+    no servidor, e continua aqui por uma razão diferente e deliberada: a marca
+    é acessória, e trocar a tabela inteira por uma faixa de erro por causa de um
+    rótulo embaixo de um selo seria pagar caro demais por ela.
+
+    O que deixou de ser aceitável é o silêncio. `null` significa "não sei", e
+    era desenhado igual a "nenhuma devolvida": a tela mostrava linhas limpas e
+    o coordenador concluía que nada voltou do campo. Agora a falha tem estado
+    próprio e frase própria acima da tabela. Ver o mesmo tratamento no painel.
+  */
+  const [marcaFalhou, setMarcaFalhou] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    devolucoesPendentes(sessao)
+      .then((d) => { if (!vivo) return; setDevolvidas(d); setMarcaFalhou(false); })
+      .catch(() => { if (!vivo) return; setDevolvidas(null); setMarcaFalhou(true); });
+    return () => { vivo = false; };
+  }, [sessao]);
+
+  const devolucaoPor = porOcorrencia(devolvidas);
 
   function trocar(chave: string, valor: string | null) {
     const proximos = new URLSearchParams(params);
@@ -186,6 +221,20 @@ export function Ocorrencias() {
       </div>
 
       <section className="cartao">
+        {/*
+          A consulta das devolvidas falhou, e a lista diz isso em vez de fingir.
+          Sem esta linha, ausência de marca por falha se lê exatamente como
+          "nenhuma voltou do campo", e as duas pedem decisões opostas. Ícone e
+          texto, nunca cor sozinha.
+        */}
+        {marcaFalhou && (
+          <p className="tabela__secundario" style={{ marginTop: 0 }}>
+            <IconeVoltar tamanho={12} />{" "}
+            A consulta das ocorrências devolvidas do campo não respondeu agora.
+            As linhas abaixo podem estar sem essa marca. Atualize a página para
+            tentar de novo.
+          </p>
+        )}
         {!dados ? (
           <Carregando />
         ) : total === 0 ? (
@@ -241,7 +290,22 @@ export function Ocorrencias() {
                         <div className="tabela__secundario">{o.solicitante_contato ?? "Sem contato"}</div>
                       </td>
                       <td><SeloSeveridade severidade={o.severidade} /></td>
-                      <td><SeloStatus status={o.status} /></td>
+                      <td>
+                        {/*
+                          Devolvida volta para "Em triagem" e passa a parecer,
+                          nesta coluna, igual à que nunca saiu do prédio. É o
+                          contrário: nesta alguém já foi até lá, perdeu a
+                          viagem, e o prazo continua vencido. Ícone e texto, e
+                          nunca cor sozinha.
+                        */}
+                        <SeloStatus status={o.status} />
+                        {devolucaoPor.has(o.id) && (
+                          <div className="tabela__secundario">
+                            <IconeVoltar tamanho={12} />{" "}
+                            {marcaDaLista(devolucaoPor.get(o.id)!)}
+                          </div>
+                        )}
+                      </td>
                       <td>
                         <PrazoVenceEm prazoEm={o.prazo_em}
                                       encerrada={o.status === "encerrada"} />

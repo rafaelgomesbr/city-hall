@@ -1,7 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
-  chaveDeStorage, envelopeSincronizacaoSchema, type OrgaoIndicado,
+  ROTULO_MOTIVO_DE_DEVOLUCAO,
+  chaveDeStorage, devolucaoDeTarefaSchema, envelopeSincronizacaoSchema,
+  transicaoPermitida,
+  type MotivoDeDevolucao, type OrgaoIndicado, type StatusOcorrencia,
 } from "@dc360/shared";
 import type { Banco, Consulta } from "../banco/tipos.js";
 import { RegraDeNegocio, autorizar, type Identidade } from "../servidor.js";
@@ -49,6 +52,35 @@ const TETO_DE_PENDENCIAS = 200;
  * jeito), e quem precisa agir e a coordenacao, que e quem limpa o cadastro.
  */
 const TETO_DO_CATALOGO = 200;
+
+/**
+ * A folga de relogio da devolucao, e o piso de datas.
+ *
+ * Copia deliberada de `coletada_em_plausivel` (migracao 009) e da conferencia
+ * que `rotas/evidencias.ts` faz sobre a data da foto: as doze horas para frente
+ * cobrem fuso trocado e relogio adiantado, que sao rotina em campo, e o piso de
+ * 2020 recusa a data que existe para sumir de recorte por periodo da auditoria.
+ *
+ * Ela NAO e o portao do prazo, e confundir as duas coisas seria o defeito. Quem
+ * decide se a tarefa venceu e `now()` do servidor, comparado com `prazo_em`
+ * dentro da transacao. Esta conferencia existe para o instante que a TRILHA vai
+ * imprimir ser plausivel.
+ *
+ * E existe aqui, e nao so no banco, pela razao que a migracao 024 escreveu: a
+ * mesma regra esta em `decidida_em_plausivel` (migracao 028), e sem a
+ * conferencia na rota o aparelho com a data de amanha recebia 500 vindo de um
+ * CHECK, ou seja, "erro inesperado, informe o codigo ao suporte" para um
+ * problema que a pessoa resolve acertando o relogio do proprio telefone.
+ */
+const FOLGA_DE_RELOGIO_MS = 12 * 60 * 60 * 1000;
+const PISO_DE_DECISAO = Date.parse("2020-01-01T00:00:00Z");
+
+function decisaoPlausivel(iso: string): boolean {
+  const instante = Date.parse(iso);
+  return Number.isFinite(instante)
+    && instante > PISO_DE_DECISAO
+    && instante < Date.now() + FOLGA_DE_RELOGIO_MS;
+}
 
 /**
  * Grava quem a vistoria mandou acionar, na MESMA transacao da vistoria.
@@ -136,25 +168,37 @@ async function gravarOrgaosIndicados(
  * linha é uma tentativa de gravar vistoria com autor que não é o do token, e
  * quem audita precisa contar quantas foram, não saber que houve alguma.
  */
+async function registrarTentativaRecusada(
+  banco: Banco,
+  quem: Identidade,
+  ocorrenciaId: string,
+  log: { warn: (dados: unknown, mensagem: string) => void },
+  escrever: (c: Consulta) => Promise<void>,
+): Promise<void> {
+  await banco.comTenant(quem.organizacaoId, async (c) => {
+    const alvo = await c.query<{ id: string }>(
+      "SELECT id FROM ocorrencias WHERE id = $1",
+      [ocorrenciaId],
+    );
+    if (!alvo.rows[0]) {
+      log.warn(
+        { ocorrenciaId, usuarioId: quem.usuarioId },
+        "envio com autor divergente apontando para ocorrencia que este municipio nao enxerga",
+      );
+      return;
+    }
+    await escrever(c);
+  });
+}
+
 async function registrarRecusaPorAutorDivergente(
   banco: Banco,
   quem: Identidade,
   envelope: { ocorrenciaId: string; idempotencyKey: string; coletadaPor?: string },
   log: { warn: (dados: unknown, mensagem: string) => void },
 ): Promise<void> {
-  await banco.comTenant(quem.organizacaoId, async (c) => {
-    const alvo = await c.query<{ id: string }>(
-      "SELECT id FROM ocorrencias WHERE id = $1",
-      [envelope.ocorrenciaId],
-    );
-    if (!alvo.rows[0]) {
-      log.warn(
-        { ocorrenciaId: envelope.ocorrenciaId, usuarioId: quem.usuarioId },
-        "coleta com autor divergente apontando para ocorrencia que este municipio nao enxerga",
-      );
-      return;
-    }
-    await registrarEvento(
+  await registrarTentativaRecusada(banco, quem, envelope.ocorrenciaId, log, (c) =>
+    registrarEvento(
       c, quem, envelope.ocorrenciaId, "vistoria_recusada_autor_divergente",
       {
         /*
@@ -167,8 +211,40 @@ async function registrarRecusaPorAutorDivergente(
         idempotencyKey: envelope.idempotencyKey,
       },
       "campo",
-    );
-  });
+    ));
+}
+
+/**
+ * O mesmo, para a devolução de tarefa.
+ *
+ * TIPO DE EVENTO PRÓPRIO, e não o da vistoria, apesar de o caminho ser
+ * idêntico. O rótulo daquele afirma que houve envio de vistoria, e aqui não
+ * houve vistoria nenhuma: a trilha é a tela que alguém abre para provar o que
+ * aconteceu, e reaproveitar o rótulo escreveria uma frase falsa numa linha de
+ * prova. Quem auditar tentativa de forjar autoria procura os DOIS tipos, e essa
+ * é a única coisa que a separação custa.
+ *
+ * Repete o `registrarEvento` literal em vez de receber o tipo por parâmetro, e
+ * isso também é deliberado: `test/eventos-tem-rotulo.test.ts` descobre os
+ * eventos lendo a POSIÇÃO do literal na chamada. Tipo vindo de variável some da
+ * varredura, e o portão que garante rótulo em português deixaria de enxergar
+ * justamente o evento novo.
+ */
+async function registrarRecusaDeDevolucaoPorAutorDivergente(
+  banco: Banco,
+  quem: Identidade,
+  pedido: { ocorrenciaId: string; idempotencyKey: string; devolvidaPor: string },
+  log: { warn: (dados: unknown, mensagem: string) => void },
+): Promise<void> {
+  await registrarTentativaRecusada(banco, quem, pedido.ocorrenciaId, log, (c) =>
+    registrarEvento(
+      c, quem, pedido.ocorrenciaId, "devolucao_recusada_autor_divergente",
+      {
+        devolvidaPorDeclarado: pedido.devolvidaPor,
+        idempotencyKey: pedido.idempotencyKey,
+      },
+      "campo",
+    ));
 }
 
 /**
@@ -520,6 +596,393 @@ export async function rotasSincronizacao(
   });
 
   /**
+   * A tarefa VENCIDA que o agente devolve para a coordenação sem ter vistoriado.
+   *
+   * ## O que acontece, e o que não acontece
+   *
+   * A ocorrência volta para `triagem`, que é de onde o despacho sai, e a equipe
+   * é limpa: ela deixou de ser daquela equipe. A ocorrência NÃO é encerrada e
+   * nada é apagado, porque a casa continua precisando de vistoria. O que muda
+   * de dono é a decisão, que volta para quem despacha.
+   *
+   * `prazo_em` NÃO É TOCADO, e essa é a linha mais fácil de escrever errado
+   * aqui. O prazo é da ocorrência e não do despacho (o T2 corrigiu exatamente
+   * isso, ver a nota no despacho em `rotas/ocorrencias.ts`): zerar o relógio na
+   * devolução tiraria a ocorrência do indicador de atrasadas do painel e o
+   * atraso sumiria da tela justamente no minuto em que ele deixou de ser um
+   * risco de atraso e virou um fato.
+   *
+   * ## Ela segue o desenho de `POST /sincronizacao/vistoria`, e não por simetria
+   *
+   * Quem chama é a MESMA fila do mesmo aparelho, com a mesma conexão indo e
+   * vindo dentro do carro. Então: idempotência por chave do aparelho, com
+   * `ON CONFLICT DO NOTHING RETURNING` mais releitura (ver a nota do T5 sobre a
+   * corrida, na rota de vistoria: consulta seguida de inserção deixava o item
+   * preso no aparelho PARA SEMPRE), e conferência de autoria contra o dono do
+   * token antes de qualquer leitura de ocorrência.
+   *
+   * ## Onde ela é DIFERENTE da vistoria, e por quê
+   *
+   * A vistoria de agente de fora da equipe designada é aceita e marcada,
+   * porque recusar destruiria uma coleta de campo verdadeira, feita no morro,
+   * que não existe em nenhum outro lugar. Aqui a recusa não destrói nada: uma
+   * devolução recusada é uma INTENÇÃO perdida, não uma prova. E aceitá-la seria
+   * deixar um agente tirar da fila de OUTRA equipe uma tarefa que ele não tem,
+   * limpando a designação dela. Então ocorrência de outra equipe responde 404,
+   * que é a mesma resposta de ocorrência de outro município: 403 confirmaria
+   * que existe.
+   */
+  app.post("/devolucao", async (req, resposta) => {
+    const quem = await autorizar(app, req, "registrar_vistoria");
+    const d = devolucaoDeTarefaSchema.parse(req.body);
+
+    /*
+      O PORTÃO DE AUTORIA, na mesma posição da rota de vistoria e pelas mesmas
+      duas razões: antes de qualquer leitura de ocorrência, para a recusa não
+      virar oráculo de existência, e antes da idempotência, porque devolver o
+      recibo de uma devolução a quem não a fez é confirmar o ato de outra pessoa
+      para quem apresentou credencial alheia.
+
+      Aqui o campo é OBRIGATÓRIO no esquema, diferente de `coletadaPor`: ele
+      nasce hoje, então não existe aparelho em campo com devolução gravada sem
+      autor, e não há coleta antiga para destruir com um 422 permanente.
+    */
+    if (d.devolvidaPor !== quem.usuarioId) {
+      await registrarRecusaDeDevolucaoPorAutorDivergente(banco, quem, d, req.log);
+      throw new RegraDeNegocio(
+        "autor_divergente",
+        "Esta devolução foi registrada por outro agente. Entre neste aparelho com "
+        + "a conta de quem devolveu a tarefa para poder enviá-la.",
+        409,
+      );
+    }
+
+    /*
+      O RELÓGIO DO APARELHO, conferido antes de tocar no banco.
+
+      `decididaEm` não decide nada (quem decide o prazo é o servidor), e ainda
+      assim ele é impresso na trilha, então uma data impossível viraria uma
+      linha de prova impossível. O banco já recusa por CHECK; sem esta
+      conferência, a recusa chegava ao agente como 500 e a frase "erro
+      inesperado, informe o código ao suporte", para um problema que ele resolve
+      acertando o relógio do próprio telefone.
+
+      A recusa é nomeada de propósito: o aplicativo bloqueia o item e mostra a
+      mensagem, e quem lê precisa entender que não é a devolução que está
+      errada, é a hora do aparelho.
+    */
+    if (!decisaoPlausivel(d.decididaEm)) {
+      throw new RegraDeNegocio(
+        "relogio_do_aparelho",
+        "A data deste aparelho está muito fora do horário real, e a devolução "
+        + "precisa registrar quando ela foi decidida. Acerte a data e a hora do "
+        + "aparelho e envie de novo.",
+      );
+    }
+
+    const feita = await banco.comTenant(quem.organizacaoId, async (c) => {
+      // Chave já vista: devolve o que foi gravado antes e não toca em nada.
+      const anterior = await c.query<{ id: string }>(
+        "SELECT id FROM devolucoes_de_tarefa WHERE idempotency_key = $1",
+        [d.idempotencyKey],
+      );
+      if (anterior.rows[0]) {
+        return { devolucaoId: anterior.rows[0].id, jaExistia: true };
+      }
+
+      /*
+        A ocorrência é lida sob RLS, e `vencida` é calculada pelo BANCO.
+
+        O relógio que decide é o do servidor, e ele decide aqui dentro, na mesma
+        transação da escrita. Comparar em TypeScript com `Date.now()` seria o
+        relógio do processo da API, que é outro relógio: com duas máquinas
+        atrás de um balanceador, a mesma devolução passaria numa e seria
+        recusada na outra.
+      */
+      const ocorrencia = await c.query<{
+        id: string; status: string; equipe_id: string | null;
+        prazo_em: string | null; vencida: boolean;
+      }>(
+        `SELECT id, status, equipe_id, prazo_em,
+                (prazo_em IS NOT NULL AND prazo_em < now()) AS vencida
+           FROM ocorrencias WHERE id = $1`,
+        [d.ocorrenciaId],
+      );
+      const alvo = ocorrencia.rows[0];
+      if (!alvo) {
+        throw new RegraDeNegocio("nao_encontrada", "Ocorrência não encontrada.", 404);
+      }
+
+      /*
+        A equipe do agente é lida do BANCO e não do token, como na vistoria: o
+        token pode ter sido emitido antes de uma troca de equipe, e o que vale é
+        a lotação de hoje.
+      */
+      const lotacao = await c.query<{ equipe_id: string | null }>(
+        "SELECT equipe_id FROM usuarios WHERE id = $1",
+        [quem.usuarioId],
+      );
+      const equipeDoAgente = lotacao.rows[0]?.equipe_id ?? null;
+
+      /*
+        JÁ DEVOLVIDA POR UM COLEGA DA MESMA EQUIPE, e este é o caso que não pode
+        virar erro assustador.
+
+        Dois agentes da mesma equipe vão ao mesmo endereço no mesmo dia, os dois
+        devolvem, e a segunda devolução chega com a ocorrência já em `triagem` e
+        já sem equipe. Tratado como reenvio de fila, que é o que ele é do ponto
+        de vista do aparelho: a tarefa saiu da lista, o item some, e ninguém
+        recebe uma recusa vermelha por ter feito a coisa certa.
+        `duplicada: true` diz a verdade sem alarmar.
+
+        VEM ANTES DO PORTÃO DE EQUIPE de propósito, porque a devolução do colega
+        já limpou `equipe_id` e o portão responderia 404, que no aplicativo é
+        falha permanente: o item ficaria bloqueado na fila de quem acertou.
+
+        A consulta é amarrada à equipe do PRÓPRIO agente, então ela não conta
+        nada a ninguém sobre ocorrência de outra equipe: para quem não é da
+        equipe, ela não acha nada e o 404 acontece igual.
+      */
+      if (equipeDoAgente && alvo.status !== "em_campo") {
+        const doColega = await c.query<{ id: string }>(
+          `SELECT id FROM devolucoes_de_tarefa
+            WHERE ocorrencia_id = $1 AND equipe_id = $2
+            ORDER BY registrada_em DESC, id
+            LIMIT 1`,
+          [d.ocorrenciaId, equipeDoAgente],
+        );
+        if (doColega.rows[0]) {
+          return { devolucaoId: doColega.rows[0].id, jaExistia: true };
+        }
+      }
+
+      /*
+        O PORTÃO DE EQUIPE. Só devolve quem é da equipe para a qual a ocorrência
+        foi despachada, e a resposta para todo o resto é 404: ocorrência de
+        outra equipe e ocorrência de outro município ficam indistinguíveis de
+        identificador que nunca existiu. A comparação exige equipe designada de
+        verdade, senão um agente sem lotação (`null`) devolveria ocorrência sem
+        despacho pela coincidência de dois nulos.
+      */
+      if (!alvo.equipe_id || alvo.equipe_id !== equipeDoAgente) {
+        throw new RegraDeNegocio("nao_encontrada", "Ocorrência não encontrada.", 404);
+      }
+
+      /*
+        O status, caso a caso, porque cada um pede uma frase diferente de quem
+        está na rua com o telefone na mão:
+
+        * `vistoria_concluida`: alguém da equipe já foi e já registrou. Devolver
+          apagaria a designação de uma tarefa que foi CUMPRIDA.
+        * `encerrada`: a coordenação já tirou a ocorrência de circulação, e
+          `encerrada` é terminal na máquina de estados.
+        * qualquer outro: a ocorrência não está em campo, e o que houve é o
+          aparelho trabalhando com uma lista velha.
+      */
+      if (alvo.status === "vistoria_concluida") {
+        throw new RegraDeNegocio(
+          "vistoria_ja_concluida",
+          "Essa vistoria já foi registrada por alguém da sua equipe, então a tarefa "
+          + "não precisa mais ser devolvida.",
+        );
+      }
+      if (alvo.status === "encerrada") {
+        throw new RegraDeNegocio(
+          "ja_encerrada",
+          "Essa ocorrência já foi encerrada pela coordenação.",
+        );
+      }
+      if (alvo.status !== "em_campo") {
+        throw new RegraDeNegocio(
+          "status_nao_permite",
+          "Essa tarefa não está mais em campo. Atualize a lista para ver o que mudou.",
+        );
+      }
+
+      /*
+        O PORTÃO DO PRAZO, e a resposta ao aparelho com o relógio adiantado.
+
+        Sem a trava, um dia ruim vira uma lista limpa: o agente devolve tudo às
+        oito da manhã e a coordenação descobre ao meio-dia. Vencida é o ponto em
+        que o produto já falhou e a informação de que ninguém foi lá vale mais
+        do que a tarefa continuar parada.
+
+        RELÓGIO ADIANTADO: o aparelho pode mandar `decididaEm` no futuro e a
+        tela dele pode mostrar a tarefa como vencida, porque o aplicativo compara
+        `prazo_em` com o relógio LOCAL. Nada disso atravessa: quem compara aqui é
+        o Postgres, com `now()` da transação, e `decididaEm` só vai para a
+        trilha. O agente recebe uma recusa que diz o que aconteceu em vez de um
+        erro genérico, e a mensagem nomeia o relógio do aparelho, que é a única
+        coisa que ele pode corrigir.
+
+        A recusa é 4xx, então o aplicativo marca o item como bloqueado, com
+        saída pela tela (reenviar e descartar). É o comportamento certo: repetir
+        sozinho não adiantaria enquanto o prazo não vence, e depois que ele
+        vencer o reenviar da tela resolve numa tocada.
+      */
+      if (!alvo.vencida) {
+        throw new RegraDeNegocio(
+          "tarefa_no_prazo",
+          "Essa tarefa ainda não venceu, então ela continua com a sua equipe. "
+          + "Devolver só é possível depois do prazo, e quem conta o prazo é o "
+          + "relógio do servidor: se o aparelho mostra outra hora, é o relógio "
+          + "dele que está adiantado.",
+        );
+      }
+
+      const inserida = await c.query<{ id: string }>(
+        `INSERT INTO devolucoes_de_tarefa
+           (organizacao_id, ocorrencia_id, devolvida_por, equipe_id,
+            motivo, observacao, prazo_em, decidida_em, idempotency_key)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+         ON CONFLICT (organizacao_id, idempotency_key) DO NOTHING
+         RETURNING id`,
+        [
+          quem.organizacaoId, d.ocorrenciaId, quem.usuarioId, alvo.equipe_id,
+          d.motivo, d.observacao ?? null, alvo.prazo_em, d.decididaEm, d.idempotencyKey,
+        ],
+      );
+      /*
+        Nenhuma linha voltou significa que a chave JÁ ESTAVA no banco, gravada
+        entre a consulta lá em cima e este INSERT. É a mesma corrida da vistoria,
+        e pelo mesmo motivo: o aparelho desiste por tempo esgotado e repete o
+        envio enquanto o servidor ainda processa o primeiro, e os dois passam
+        pela consulta sem achar nada. Antes da correção do T5, o segundo envio
+        batia na unicidade, virava 500, e o item ficava preso na fila PARA
+        SEMPRE, porque a fila reenviaria e receberia o mesmo erro.
+      */
+      if (!inserida.rows[0]) {
+        const concorrente = await c.query<{ id: string }>(
+          "SELECT id FROM devolucoes_de_tarefa WHERE idempotency_key = $1",
+          [d.idempotencyKey],
+        );
+        const jaGravada = concorrente.rows[0];
+        /*
+          Sem linha aqui, a unicidade recusou por outro motivo que não a chave,
+          e engolir isso esconderia defeito de verdade. Erra alto e ruidoso.
+        */
+        if (!jaGravada) {
+          throw new Error(
+            "INSERT de devolução não gravou e a chave de idempotência não está no banco. "
+            + "Restrição de unicidade inesperada.",
+          );
+        }
+        return { devolucaoId: jaGravada.id, jaExistia: true };
+      }
+
+      /*
+        A transição para trás, a limpeza da equipe e a trilha, na MESMA
+        transação do INSERT acima. Meia devolução é pior que nenhuma: uma
+        ocorrência que voltasse para a triagem sem evento na trilha seria uma
+        tarefa que a equipe perdeu sem ninguém conseguir dizer quem devolveu, e
+        a trilha não tem policy de UPDATE para consertar depois.
+
+        `prazo_em` fica de fora do UPDATE de propósito. Ver o cabeçalho.
+
+        E quem AUTORIZA a transição é a máquina de estados, não este arquivo.
+        As recusas por status lá em cima existem para a FRASE que o agente lê:
+        "já foi vistoriada" e "já foi encerrada" pedem reações diferentes. Quem
+        decide se a aresta existe é `TRANSICOES_PERMITIDAS`, no pacote
+        compartilhado, e é lá que está escrito por que uma aresta para trás é
+        aceitável justamente aqui, numa máquina que é toda para frente.
+
+        Sem esta linha, a regra moraria na rota: o dia em que alguém tirasse a
+        aresta do domínio (achando que ela é só declaração), esta rota
+        continuaria empurrando a ocorrência para `triagem` por UPDATE direto, e
+        o painel em modo local, que passa por `transicaoPermitida`, recusaria a
+        mesma mudança. Duas pontas com regras diferentes sobre o mesmo registro.
+      */
+      if (!transicaoPermitida(alvo.status as StatusOcorrencia, "triagem")) {
+        throw new RegraDeNegocio(
+          "transicao_invalida",
+          `Não é possível devolver uma ocorrência em "${alvo.status}".`,
+        );
+      }
+      await c.query(
+        "UPDATE ocorrencias SET status = 'triagem', equipe_id = NULL WHERE id = $1",
+        [d.ocorrenciaId],
+      );
+
+      /**
+       * Duas marcas de tempo, como no evento de vistoria: `ocorrido_em` é a
+       * hora em que o dedo tocou no aparelho e `registrado_em` é a do servidor.
+       * As duas diferem em toda devolução decidida sem sinal, e mostrar só a
+       * segunda faria a trilha afirmar que o agente desistiu na hora em que o
+       * sinal voltou.
+       *
+       * O detalhe leva TUDO o que a coordenação vai querer meses depois, porque
+       * a trilha é a única memória disto que sobrevive a um redespacho: o
+       * motivo em chave e em português, a observação escrita na chuva, a equipe
+       * que perdeu a tarefa e o prazo que já estava vencido. Sem o prazo aqui,
+       * uma triagem nova que recalcule `prazo_em` apagaria a razão pela qual a
+       * devolução foi permitida.
+       */
+      await c.query(
+        `INSERT INTO trilha_eventos
+           (organizacao_id, ocorrencia_id, tipo, autor_id, autor_nome, autor_papel,
+            origem, ocorrido_em, detalhe)
+         VALUES ($1,$2,'devolucao_de_tarefa',$3,$4,$5,'campo',$6,$7)`,
+        [
+          quem.organizacaoId, d.ocorrenciaId, quem.usuarioId, quem.nome, quem.papel,
+          d.decididaEm,
+          /*
+            A OBSERVAÇÃO EM TEXTO LIVRE NÃO ENTRA AQUI, e isto não é economia
+            de bytes.
+
+            `trilha_eventos` é append-only por projeto, sem policy de UPDATE
+            nem de DELETE: o que entra não sai mais, por caminho nenhum, nem
+            por ato do administrador do município. A observação é escrita pelo
+            agente, na rua, em texto livre, e na prática vai dizer coisas como
+            "moradora Dona Marta pediu para voltar às 18h" ou "casa com idosa
+            acamada": nome de pessoa e condição de saúde, que são exatamente os
+            dois dados que a migração 021 existe para descartar quando vence o
+            prazo que o município fixou como controlador.
+
+            Gravá-la aqui tornaria aquele texto PERMANENTE. A minimização
+            passaria a apagar o nome do solicitante em `ocorrencias` enquanto a
+            mesma pessoa continuaria nomeada numa linha de trilha ao lado, e o
+            município não teria como cumprir a própria política.
+
+            A migração 021 já enfrentou isto e decidiu igual, com todas as
+            letras: gravar o valor "transformaria a trilha, que é append-only e
+            permanente, no lugar onde o dado removido continua".
+
+            O que fica: o motivo, que é de LISTA FECHADA e portanto não é dado
+            pessoal, e o identificador da devolução. Quem precisa do texto
+            segue o identificador até `devolucoes_de_tarefa`, que é onde ele
+            pode ser descartado no prazo. Quem auditar depois do prazo vê que
+            houve devolução, por quê, e que o texto foi descartado, que é
+            exatamente a informação correta.
+          */
+          JSON.stringify({
+            motivo: d.motivo,
+            motivoRotulo: ROTULO_MOTIVO_DE_DEVOLUCAO[d.motivo],
+            temObservacao: Boolean(d.observacao),
+            devolucaoId: inserida.rows[0].id,
+            equipeId: alvo.equipe_id,
+            prazoEm: alvo.prazo_em,
+            statusAnterior: alvo.status,
+          }),
+        ],
+      );
+
+      return { devolucaoId: inserida.rows[0].id, jaExistia: false };
+    });
+
+    return resposta.code(feita.jaExistia ? 200 : 201).send({
+      devolucaoId: feita.devolucaoId,
+      duplicada: feita.jaExistia,
+      /*
+        Para onde a ocorrência foi. O aparelho não precisa disto para apagar o
+        item, e ele sai assim mesmo: é o que permite a tela dizer "voltou para a
+        coordenação" em vez de só sumir, que é a diferença entre devolver e
+        descartar na cabeça de quem apertou o botão.
+      */
+      status: "triagem",
+    });
+  });
+
+  /**
    * Por que a tarefa sumiu da lista do agente.
    *
    * O aparelho apaga e reescreve a lista inteira a cada atualização
@@ -571,15 +1034,25 @@ export async function rotasSincronizacao(
       const equipeDoAgente = minhaEquipe.rows[0]?.equipe_id ?? null;
 
       /*
-        Duas portas, e so duas:
+        Tres portas, e so tres:
 
         1. A ocorrencia continua sendo da equipe do agente. E o caso comum:
-           encerrada, devolvida para triagem, ou vistoria ja concluida.
+           encerrada ou vistoria ja concluida.
         2. A ocorrencia mudou de equipe, e o agente tinha coletado nela. Sem
            isso, quem estava no meio de uma vistoria quando a coordenacao
            trocou a equipe recebe silencio.
+        3. A ocorrencia foi DEVOLVIDA pela equipe do agente (`POST /devolucao`).
 
-        Fora dessas duas, a ocorrencia NAO aparece na resposta, e id de outra
+        A terceira porta e a correcao de um buraco que a devolucao abriria, e o
+        desfecho `"devolvida"` logo abaixo existia antes dela sem nunca poder
+        acontecer: devolver limpa `equipe_id`, entao a primeira porta
+        (`equipe_id IS NOT DISTINCT FROM` a equipe do agente) deixava de casar e
+        a tarefa sumia da tela do aparelho SEM EXPLICACAO, que e exatamente o
+        defeito que esta rota inteira existe para fechar. E ela nao afrouxa o
+        isolamento: a busca e amarrada a equipe do proprio agente, entao
+        devolucao de outra equipe continua invisivel daqui.
+
+        Fora dessas tres, a ocorrencia NAO aparece na resposta, e id de outra
         equipe fica indistinguivel de id que nunca existiu. Essa e a linha que
         impede a rota de virar oraculo de status.
       */
@@ -587,10 +1060,19 @@ export async function rotasSincronizacao(
         id: string; protocolo: string; status: string;
         motivo_encerramento: string | null; encerrado_em: string | null;
         equipe_id: string | null;
+        devolvida_em: string | null; devolucao_motivo: MotivoDeDevolucao | null;
       }>(
         `SELECT o.id, o.protocolo, o.status, o.motivo_encerramento, o.encerrado_em,
-                o.equipe_id
+                o.equipe_id, d.registrada_em AS devolvida_em, d.motivo AS devolucao_motivo
            FROM ocorrencias o
+           LEFT JOIN LATERAL (
+             SELECT dv.registrada_em, dv.motivo
+               FROM devolucoes_de_tarefa dv
+              WHERE dv.ocorrencia_id = o.id
+                AND dv.equipe_id IS NOT DISTINCT FROM $3::uuid
+              ORDER BY dv.registrada_em DESC, dv.id
+              LIMIT 1
+           ) d ON true
           WHERE o.id = ANY($1::uuid[])
             AND (
               o.equipe_id IS NOT DISTINCT FROM $3::uuid
@@ -598,6 +1080,7 @@ export async function rotasSincronizacao(
                 SELECT 1 FROM vistorias v
                  WHERE v.ocorrencia_id = o.id AND v.agente_id = $2
               )
+              OR d.registrada_em IS NOT NULL
             )`,
         [sumiram, quem.usuarioId, equipeDoAgente],
       );
@@ -606,21 +1089,35 @@ export async function rotasSincronizacao(
         saidas: r.rows.map((o) => ({
           id: o.id,
           protocolo: o.protocolo,
-          status: o.status,
-          motivo: o.motivo_encerramento,
-          saiuEm: o.encerrado_em,
+          /*
+            O motivo, e para a devolução ele vem do rótulo em português do
+            catálogo fechado. Sem isto o agente cuja tarefa um colega devolveu
+            leria apenas que ela saiu, e o motivo ("não havia ninguém no local")
+            é justamente o que evita os dois subirem o mesmo morro amanhã.
+          */
+          motivo: o.motivo_encerramento
+            ?? (o.devolucao_motivo ? ROTULO_MOTIVO_DE_DEVOLUCAO[o.devolucao_motivo] : null),
+          saiuEm: o.encerrado_em ?? o.devolvida_em,
           /*
             O motivo em linguagem de quem está na rua. O status cru não serve:
             "vistoria_concluida" e "encerrada" pedem reações opostas do agente,
             e uma delas não é alarme nenhum.
+
+            A devolução é conferida pela EXISTÊNCIA do registro mais a equipe
+            já limpa, e não pelo status: uma ocorrência devolvida e redespachada
+            para outra equipe está em `em_campo` com outra equipe, e o que o
+            agente precisa saber nesse caso é "passou para outra equipe", que é
+            o desfecho certo e não o de ontem.
           */
           desfecho: o.status === "vistoria_concluida"
             ? "concluida"
             : o.status === "encerrada"
               ? "encerrada"
-              : o.equipe_id !== equipeDoAgente
-                ? "outra_equipe"
-                : "devolvida",
+              : o.devolvida_em !== null && o.equipe_id === null
+                ? "devolvida"
+                : o.equipe_id !== equipeDoAgente
+                  ? "outra_equipe"
+                  : "devolvida",
         })),
       };
     });

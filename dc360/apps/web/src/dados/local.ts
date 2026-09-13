@@ -28,7 +28,7 @@ import type {
   AberturaDeOficio, CursorDeAvisos, DadosDoOrgao, EnvioDeOficio, LinhaOficio,
   LinhaOrgao, OficioDetalhado, RespostaDeAvisos, ResultadoDeEnvio,
   AtivacaoSegundoFator, ResultadoDeEntrada, SegundoFatorLigado, SituacaoSegundoFator,
-  ConfiguracaoDoPainel,
+  ConfiguracaoDoPainel, DevolucaoDaOcorrencia, DevolucaoPendente,
 } from "./tipos";
 
 /**
@@ -83,6 +83,91 @@ export async function providenciasPendentes(s: Sessao): Promise<unknown[]> {
         ORDER BY p.prazo_em`,
     );
     return r.rows;
+  });
+}
+
+/**
+ * As ocorrências que voltaram do campo sem vistoria e ainda esperam decisão.
+ *
+ * A fonte é `devolucoes_de_tarefa` (migração 028), e não o JSON do evento da
+ * trilha, pela razão que a própria migração escreve: a pergunta da coordenação
+ * depois de um mês de chuva é uma LISTA, e lista não sai de texto dentro de
+ * `jsonb`. A trilha continua sendo a memória do ato, e é dela que a tela da
+ * ocorrência tira o aviso, porque lá o evento já está carregado.
+ *
+ * "Ainda espera decisão" é `triagem` sem equipe, que é exatamente o estado em
+ * que a devolução deixa o registro: despachar de novo devolve a ocorrência
+ * para `em_campo` com equipe, e a marcação some sozinha da fila e da lista.
+ * Marcação que fica depois de resolvida é marcação que ninguém lê.
+ *
+ * `DISTINCT ON` porque a mesma casa pode derrubar duas viagens: o que vale é a
+ * devolução mais recente, e as anteriores continuam na trilha.
+ */
+export async function devolucoesPendentes(s: Sessao): Promise<DevolucaoPendente[]> {
+  return comoApp(s.organizacaoId, async (db) => {
+    const r = await db.query<DevolucaoPendente>(
+      `SELECT * FROM (
+         SELECT DISTINCT ON (o.id)
+                o.id, o.protocolo, o.endereco, o.status, o.severidade, o.prazo_em,
+                d.decidida_em AS devolvida_em,
+                u.nome        AS devolvida_por_nome,
+                d.motivo,
+                /*
+                  O BOOLEANO, e não o texto. A mesma escolha que a rota da API
+                  faz, pela mesma razão: esta consulta responde pelo município
+                  inteiro a cada carregamento de tela, e o texto livre do agente
+                  nomeia morador e descreve condição de saúde. Quem precisa dele
+                  abre a ocorrência, e lá a leitura fica registrada.
+
+                  Os dois modos precisam prometer a mesma forma, senão a
+                  demonstração ensina uma tela que o produto real não tem.
+                */
+                (d.observacao IS NOT NULL) AS tem_observacao
+           FROM devolucoes_de_tarefa d
+           JOIN ocorrencias o ON o.id = d.ocorrencia_id
+           LEFT JOIN usuarios u ON u.id = d.devolvida_por
+          WHERE o.status = 'triagem' AND o.equipe_id IS NULL
+          ORDER BY o.id, d.decidida_em DESC
+       ) pendentes
+       ORDER BY prazo_em NULLS LAST, id`,
+    );
+    return r.rows;
+  });
+}
+
+/**
+ * A última devolução desta ocorrência, com observação e marca de descarte.
+ *
+ * É a mesma consulta que o dossiê da API faz, e é o único ponto do modo de
+ * demonstração que entrega o texto livre do agente. Os outros dois caminhos
+ * (a lista de devolvidas e o evento da trilha) não o carregam de propósito, e
+ * os porquês estão em `dados/tipos.ts`.
+ *
+ * A mais recente, e só ela: a mesma casa pode ter derrubado duas viagens em
+ * dias diferentes, e a tela mostra uma linha. Mostrar a primeira diria o motivo
+ * que já foi tratado.
+ *
+ * O que o modo de demonstração NÃO tem é o registro de consulta que a API grava
+ * ao abrir o dossiê. Ele não tem autenticação nenhuma para registrar (a tela diz
+ * isso em voz alta), e semear um registro com autor de mentira seria pior que
+ * não ter: viraria prova falsa de quem leu o quê.
+ */
+export async function devolucaoDaOcorrencia(
+  s: Sessao,
+  id: string,
+): Promise<DevolucaoDaOcorrencia | null> {
+  return comoApp(s.organizacaoId, async (db) => {
+    const r = await db.query<DevolucaoDaOcorrencia>(
+      `SELECT d.decidida_em, d.motivo, d.observacao, d.observacao_removida_em,
+              d.prazo_em, u.nome AS devolvida_por_nome
+         FROM devolucoes_de_tarefa d
+         LEFT JOIN usuarios u ON u.id = d.devolvida_por
+        WHERE d.ocorrencia_id = $1
+        ORDER BY d.decidida_em DESC, d.id DESC
+        LIMIT 1`,
+      [id],
+    );
+    return r.rows[0] ?? null;
   });
 }
 

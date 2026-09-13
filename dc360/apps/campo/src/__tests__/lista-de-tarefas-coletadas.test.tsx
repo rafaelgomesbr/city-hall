@@ -40,7 +40,11 @@ jest.mock("../dados/api", () => ({
 let mockTarefas: Pendencia[] = [];
 let mockColetas: ColetaLocal[] = [];
 let mockRascunhos: { ocorrenciaId: string }[] = [];
-let mockItensDaFila: { ocorrenciaId: string; estado: string }[] = [];
+/* `tipo` entra aqui porque a fila passou a levar dois tipos de item, e a
+   promoção da lápide só vale para a vistoria: uma devolução confirmada marcando
+   "coletada e enviada" seria a tela afirmando uma vistoria que não houve. O
+   depósito garante o campo até para item gravado por versão anterior. */
+let mockItensDaFila: { tipo: string; ocorrenciaId: string; estado: string }[] = [];
 const mockPromovidas: string[] = [];
 
 jest.mock("../dados/pendencias", () => ({
@@ -185,7 +189,7 @@ describe("o selo da coleta na lista", () => {
 describe("a promoção do selo pela fila de envio", () => {
   it("item confirmado pela fila promove a lápide para enviada", async () => {
     mockColetas = [lapide("na_fila")];
-    mockItensDaFila = [{ ocorrenciaId: ID, estado: "confirmado" }];
+    mockItensDaFila = [{ tipo: "vistoria", ocorrenciaId: ID, estado: "confirmado" }];
 
     await abrirALista();
 
@@ -205,7 +209,7 @@ describe("a promoção do selo pela fila de envio", () => {
   */
   it("item pendente na fila não promove nada", async () => {
     mockColetas = [lapide("na_fila")];
-    mockItensDaFila = [{ ocorrenciaId: ID, estado: "pendente" }];
+    mockItensDaFila = [{ tipo: "vistoria", ocorrenciaId: ID, estado: "pendente" }];
 
     await abrirALista();
 

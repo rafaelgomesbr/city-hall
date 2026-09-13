@@ -118,7 +118,36 @@ Esse mesmo dia é o gatilho de outra mudança, e as duas andam juntas: é quando
 coleta sem autor no disco de algum aparelho, tornar o campo obrigatório
 transforma essa coleta em 422 permanente.
 
-## 6. Nada disto foi executado em aparelho
+## 6. Devolução de tarefa vencida: o caminho do servidor é combinado, não conferido
+
+**Dentro da faixa, feito, com uma ponta aberta.** A devolução sai por
+`POST /sincronizacao/devolucao` (`packages/campo/src/transporte.ts`), com o corpo
+exatamente no formato de `devolucaoDeTarefaSchema`. **Esse caminho foi escolhido
+por simetria com `/sincronizacao/vistoria` e nunca foi exercitado contra a API**:
+a rota estava sendo escrita por outra frente ao mesmo tempo que esta tela. Quem
+pegar isto confere o nome do caminho e o formato da resposta (o aplicativo lê
+`duplicada`, e trata qualquer 2xx como aceito) antes de instalar em aparelho.
+
+Os códigos de recusa também são tratados por família e não por nome: qualquer
+4xx vira falha permanente, o item fica `bloqueado` e a tarefa volta para a lista
+com a frase que o servidor mandou. Isso funciona com qualquer código, mas
+significa que a frase que o agente lê é a do servidor: se ela for técnica, o
+agente lê texto técnico no barranco.
+
+Duas decisões desta faixa que o próximo turno precisa conhecer:
+
+- **A tarefa sai da lista na hora e o item fica na fila até o servidor
+  confirmar.** Quem esconde a tarefa é o item da fila
+  (`devolucoesPorOcorrencia`), e não uma marca separada. Quando a devolução é
+  confirmada, a lista apaga a linha local (`esquecerPendencia`), porque o item
+  confirmado sai da fila em trinta segundos e sem isso a tarefa voltaria a
+  aparecer sem explicação.
+- **Não se devolve tarefa que tem coleta guardada neste aparelho.** A trava está
+  em dois lugares de propósito: na tela (com a frase escrita) e no motor
+  (`enfileirarDevolucao` recusa com `coleta_na_fila`). A tela olha a fila E a
+  lápide da coleta; o motor olha só a fila, que é o que ele enxerga.
+
+## 7. Nada disto foi executado em aparelho
 
 Continua valendo o que `LEIA-ME.md` já diz. Em especial, três coisas deste turno
 só foram exercitadas com dublê: a cópia da foto para o diretório de documentos, a

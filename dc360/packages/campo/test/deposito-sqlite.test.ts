@@ -82,6 +82,7 @@ function envelope(chave: string): EnvelopeSincronizacao {
 
 const transporte: Transporte = {
   enviar: async () => ({ vistoriaId: "v1", duplicada: false }),
+  devolver: async () => { throw new Error("devolver nao esperado neste teste"); },
   autorizarFoto: async () => { throw new Error("sem foto neste teste"); },
   enviarBytes: async () => { throw new Error("sem foto neste teste"); },
   confirmarFoto: async () => { throw new Error("sem foto neste teste"); },
@@ -176,7 +177,7 @@ describe("A fila inteira sobre SQLite", () => {
 
     expect(itens).toHaveLength(1);
     expect(itens[0]!.protocolo).toBe("000471/2026");
-    expect(itens[0]!.envelope.vistoria.assinanteNome).toBe("Moradora");
+    expect(itens[0]!.envelope!.vistoria.assinanteNome).toBe("Moradora");
   });
 
   it("drena e limpa, mantendo o que ainda falta", async () => {

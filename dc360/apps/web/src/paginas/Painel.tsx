@@ -5,18 +5,21 @@ import {
   indicadores as carregarIndicadores,
   listarOcorrencias,
   providenciasPendentes,
+  devolucoesPendentes,
   imoveisInterditados,
   type Indicadores,
   type LinhaOcorrencia,
   type ImovelInterditado,
   type ProvidenciaPendente,
+  type DevolucaoPendente,
 } from "../dados/repositorio";
+import { avisoDoPainel, marcaDaLista, porOcorrencia } from "../devolucao";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
   Aviso, Carregando, Cartao, Prazo, SeloSeveridade, SeloStatus, TipoDaOcorrencia, Vazio,
   formatarDataHora,
 } from "../componentes/comuns";
-import { IconeMais } from "../componentes/Icones";
+import { IconeMais, IconeVoltar } from "../componentes/Icones";
 
 /**
  * Quantas linhas cada cartao de apoio do painel desenha.
@@ -31,7 +34,7 @@ const TETO_DA_PREVIA = 8;
 /**
  * De quanto em quanto tempo o painel busca de novo, com a aba a vista.
  *
- * Um minuto, e nao os trinta segundos do sino: o painel faz quatro consultas e
+ * Um minuto, e nao os trinta segundos do sino: o painel faz cinco consultas e
  * uma delas lista as ocorrencias ativas inteiras. Um minuto e curto o bastante
  * para o numero na tela nunca estar mais de um minuto velho, e longo o bastante
  * para nao pesar no dia de pico, que e justamente o dia em que a tela importa.
@@ -54,6 +57,14 @@ export function Painel() {
     fila: LinhaOcorrencia[];
     providencias: ProvidenciaPendente[];
     interditados: ImovelInterditado[];
+    /**
+     * As devolvidas, ou `null` quando a consulta não respondeu.
+     *
+     * Lista vazia é "nenhuma voltou do campo"; `null` é "não sei". Colapsar os
+     * dois faria a fila afirmar que nada foi devolvido justamente quando a
+     * pergunta não pôde ser feita.
+     */
+    devolvidas: DevolucaoPendente[] | null;
   } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [carregadoEm, setCarregadoEm] = useState<Date | null>(null);
@@ -73,7 +84,7 @@ export function Painel() {
     produto, e aqui ele nem avisava que estava velho.
 
     A janela e de um minuto, e nao de trinta segundos como a do sino: o painel
-    faz quatro consultas e uma delas lista as ocorrencias ativas inteiras. E
+    faz cinco consultas e uma delas lista as ocorrencias ativas inteiras. E
     aba escondida NAO consulta, porque coordenador deixa o painel aberto o dia
     todo numa aba de fundo, e mil e quatrocentas requisicoes por dia por pessoa,
     a troco de nada, sao o tipo de coisa que derruba o teto de requisicao.
@@ -87,13 +98,33 @@ export function Painel() {
         listarOcorrencias(sessao, { status: "ativas" }),
         providenciasPendentes(sessao),
         imoveisInterditados(sessao),
+        /*
+          A ÚNICA das cinco que falha para dentro, e agora por decisão e não
+          por andaime.
+
+          O `catch` nasceu porque a rota não existia: até semana passada o modo
+          com servidor respondia 404 aqui, e engolir era a forma de a tela viver
+          sem um recurso que faltava. A rota existe. Engolir continua certo, mas
+          por outro motivo: a marca é acessória, e derrubar a fila inteira por
+          ela trocaria a tela que o coordenador abre de manhã por uma faixa
+          vermelha, por causa de um rótulo embaixo de um selo.
+
+          O que mudou é que a falha deixou de ser invisível. `null` quer dizer
+          "não sei", e a tela passa a dizer isso em voz alta logo acima da fila,
+          em vez de desenhar linhas sem marca com cara de linhas sem devolução.
+          Marca ausente por falha é indistinguível de nada devolvido, e essa
+          confusão custa uma equipe mandada para um endereço que já derrubou
+          uma viagem.
+        */
+        devolucoesPendentes(sessao).catch(() => null),
       ])
-        .then(([ind, fila, providencias, interditados]) => {
+        .then(([ind, fila, providencias, interditados, devolvidas]) => {
           if (!vivo) return;
           setDados({
             ind, fila,
             providencias: providencias as ProvidenciaPendente[],
             interditados: interditados as ImovelInterditado[],
+            devolvidas,
           });
           setCarregadoEm(new Date());
           /* Uma busca boa apaga o erro da anterior: erro que fica pendurado
@@ -122,7 +153,8 @@ export function Painel() {
   if (erro) return <Aviso tom="perigo">Falha ao carregar o painel: {erro}</Aviso>;
   if (!dados) return <Carregando />;
 
-  const { ind, fila, providencias, interditados } = dados;
+  const { ind, fila, providencias, interditados, devolvidas } = dados;
+  const devolucaoPor = porOcorrencia(devolvidas);
 
   /**
    * Indicador que aponta para outra tela navega; indicador cuja lista já está
@@ -209,6 +241,31 @@ export function Painel() {
         </Aviso>
       )}
 
+      {/*
+        AS DEVOLVIDAS APARECEM COMO AVISO, E NÃO COMO SÉTIMO INDICADOR.
+
+        A fila de indicadores tem seis cartões e já ocupa a primeira dobra. Um
+        sétimo empurraria a fila de atendimento para baixo, e a fila é o motivo
+        de alguém abrir esta tela de manhã. Além disso, devolvida não é um
+        número que se acompanha ao longo do mês, como "em campo" ou "encerradas
+        em 7 dias": é um punhado de casos que precisa de decisão hoje e some
+        quando a decisão sai. Número pequeno e efêmero em cartão grande vira
+        ruído; número pequeno e efêmero em aviso vira trabalho.
+
+        Ele leva para a lista em triagem, e não para a fila logo abaixo: a fila
+        mostra seis linhas, e uma devolvida de severidade baixa pode não estar
+        entre elas. Filtro próprio de "devolvidas" na URL seria melhor e exige
+        filtro do lado do servidor; peneirar no navegador uma lista que o
+        servidor pagina é o defeito que a própria tela de ocorrências corrigiu.
+      */}
+      {devolvidas && devolvidas.length > 0 && (
+        <Aviso tom="alerta">
+          <strong>{avisoDoPainel(devolvidas.length)}</strong>{" "}
+          O prazo continua correndo, e a equipe foi liberada.{" "}
+          <Link to="/ocorrencias?status=triagem">Ver as ocorrências em triagem</Link>
+        </Aviso>
+      )}
+
       <div className="grade-indicadores">
         {cartoes.map((c) => (
           <button key={c.rotulo} type="button"
@@ -224,6 +281,19 @@ export function Painel() {
         titulo="Fila de atendimento"
         acoes={<Link className="botao botao--secundario" to="/ocorrencias">Ver todas</Link>}
       >
+        {/*
+          A consulta das devolvidas falhou, e a fila diz isso em vez de fingir.
+          Texto e ícone, nunca cor sozinha, e discreto de propósito: é uma
+          limitação do que está na tela, não um erro do atendimento.
+        */}
+        {devolvidas === null && (
+          <p className="tabela__secundario" style={{ marginTop: 0 }}>
+            <IconeVoltar tamanho={12} />{" "}
+            A consulta das ocorrências devolvidas do campo não respondeu agora.
+            As linhas abaixo podem estar sem essa marca. Atualize a página para
+            tentar de novo.
+          </p>
+        )}
         {prioritarias.length === 0 ? (
           <Vazio titulo="Nenhuma ocorrência ativa">
             <p>Tudo que entrou foi encerrado. A fila volta a aparecer aqui no próximo registro.</p>
@@ -256,7 +326,22 @@ export function Painel() {
                       <div className="tabela__secundario">{o.endereco}</div>
                     </td>
                     <td><SeloSeveridade severidade={o.severidade} /></td>
-                    <td><SeloStatus status={o.status} /></td>
+                    <td>
+                      <SeloStatus status={o.status} />
+                      {/*
+                        "Em triagem" é o mesmo selo para a que nunca saiu daqui
+                        e para a que já foi até a porta e voltou, e as duas
+                        pedem decisões diferentes. A marca vai embaixo do selo,
+                        com ícone E texto: estado nenhum se comunica só por cor
+                        neste produto, e este também não.
+                      */}
+                      {devolucaoPor.has(o.id) && (
+                        <div className="tabela__secundario">
+                          <IconeVoltar tamanho={12} />{" "}
+                          {marcaDaLista(devolucaoPor.get(o.id)!)}
+                        </div>
+                      )}
+                    </td>
                     <td>{o.equipe_nome ?? <span className="tabela__secundario">Não despachada</span>}</td>
                     <td>
                       <Prazo prazoEm={o.prazo_em} criadoEm={o.criado_em}

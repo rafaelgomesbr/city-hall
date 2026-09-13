@@ -53,6 +53,18 @@ export const TABELAS_DA_SAIDA = [
   "ocorrencias",
   "vistorias",
   "vistoria_orgaos_indicados",
+  /*
+    As tarefas que venceram e voltaram para a coordenação (migração 028).
+
+    Sai, e não é detalhe operacional: é a única memória de que uma equipe esteve
+    designada, perdeu o prazo e explicou por quê. A ocorrência devolvida volta
+    para a triagem e pode ser redespachada quantas vezes for, e o registro do
+    despacho anterior fica só aqui e na trilha. Um município que levasse embora
+    as ocorrências sem isto perderia a resposta para "por que ninguém foi lá no
+    dia da chuva", que é exatamente a pergunta que o levaria a procurar o
+    arquivo.
+  */
+  "devolucoes_de_tarefa",
   "evidencias",
   "providencias",
   "orgaos",

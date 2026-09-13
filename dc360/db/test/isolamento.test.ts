@@ -2764,13 +2764,23 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
       UPDATE, e entra nomeado em vez de virar GRANT UPDATE na tabela. Tudo o
       mais da linha (para quem foi, quando, quem pediu, o hash do token) e
       registro do ato e continua sem poder ser reescrito por rota nenhuma.
+
+      A 029 traz as DUAS ultimas, em `devolucoes_de_tarefa`, pela mesma
+      decisao: a minimizacao por prazo precisa descartar a observacao em texto
+      livre que o agente escreveu na rua (ela pode nomear um morador), e nada
+      mais daquela linha pode ser reescrito. Motivo, prazo perdido, equipe e
+      autoria sao o registro de que uma equipe nao chegou no imovel, e um
+      GRANT UPDATE na tabela deixaria uma rota futura reescrever isso sem que
+      ninguem percebesse.
     */
     const colunas = doApp.filter((a) => a.especie === "coluna");
     expect(
       colunas.map((a) => `${a.relacao}.${a.detalhe}:${a.privilegio}`).sort(),
       "a varredura de privilegio de coluna nao enxergou o GRANT UPDATE por coluna que " +
-      "as migracoes 017 (desfecho, detalhe) e 027 (provedor_id) fazem em oficio_envios",
+      "as migracoes 017 (desfecho, detalhe), 027 (provedor_id) e 029 (observacao) fazem",
     ).toEqual([
+      "devolucoes_de_tarefa.observacao:UPDATE",
+      "devolucoes_de_tarefa.observacao_removida_em:UPDATE",
       "oficio_envios.desfecho:UPDATE",
       "oficio_envios.detalhe:UPDATE",
       "oficio_envios.provedor_id:UPDATE",

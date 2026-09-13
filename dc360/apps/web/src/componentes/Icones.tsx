@@ -5,6 +5,7 @@
  * Regra do design system que vale para todos: ícone nunca comunica estado
  * sozinho. Ele sempre acompanha texto.
  */
+import { TIPO_EVENTO_DEVOLUCAO } from "../devolucao";
 
 type Props = { tamanho?: number; titulo?: string };
 
@@ -208,8 +209,16 @@ export function IconeEscudo({ tamanho = 18, titulo }: Props) {
 }
 
 /** Ícone por tipo de evento da trilha. */
+/*
+  O tipo do evento de devolução vem do módulo que o define, e não de uma
+  segunda cópia da chave: chave repetida é a que deixa de casar quando a
+  primeira muda, e o sintoma aqui seria silencioso (o ícone genérico volta e
+  ninguém percebe).
+*/
 export function IconeEvento({ tipo, tamanho = 12 }: { tipo: string; tamanho?: number }) {
   switch (tipo) {
+    case TIPO_EVENTO_DEVOLUCAO:
+      return <IconeVoltar tamanho={tamanho} />;
     case "encerramento":
       return <IconeCheck tamanho={tamanho} />;
     case "vistoria":

@@ -14,10 +14,11 @@ import {
   encerrarOcorrencia, corrigirCoordenada,
   levantarInterdicao, listarEquipes, providenciasDaOcorrencia, trilhaDaOcorrencia,
   vistoriaDaOcorrencia, abrirDocumento, listarEvidencias, responderProvidencia,
-  vinculosDaOcorrencia, possiveisDuplicidades, MODO,
+  vinculosDaOcorrencia, possiveisDuplicidades, devolucaoDaOcorrencia, MODO,
   abrirOficio, detalharOficio, emitirOficio, enviarOficio, listarOficios, listarOrgaos,
   type LinhaEquipe, type LinhaEvento, type LinhaEvidencia, type LinhaOcorrencia,
   type LinhaOficio, type LinhaOrgao, type LinhaProvidencia, type LinhaVistoria,
+  type DevolucaoDaOcorrencia,
   type OficioDetalhado, type VinculoOcorrencia,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
@@ -37,6 +38,11 @@ import {
   avisoDaCorrecao, mensagemDaLeitura, podeCorrigirCoordenada, proximoPassoDaCorrecao,
 } from "./coordenada-corrigida";
 import { lerLocalizacaoColada } from "./coordenada-colada";
+import {
+  ANCORA_DA_COORDENADA, ANCORA_DO_DESPACHO, TIPO_EVENTO_DEVOLUCAO, devolucaoEmAberto,
+  lerDevolucao, proximoPasso, rotuloDoMotivo,
+  type ProximoPasso,
+} from "../devolucao";
 import {
   ANCORA_DA_CLASSIFICACAO, avisoDoRegistro, despachoEsperaClassificacao,
   montarVerTambem, ofereceTriagem, opcoesDeTipoNaTriagem, podeOferecerEncerramento,
@@ -65,6 +71,16 @@ type Conjunto = {
   evidencias: LinhaEvidencia[];
   vinculadaA: VinculoOcorrencia | null;
   vinculadas: VinculoOcorrencia[];
+  /**
+   * A última devolução do campo, com o texto livre do agente, ou nada.
+   *
+   * Vem do dossiê e não da trilha, e a diferença é de privacidade: a trilha é
+   * append-only, então o servidor nunca grava lá a observação escrita na rua
+   * (ela nomeia morador e descreve condição de saúde), e o texto vive na
+   * devolução, onde o prazo de retenção do município o alcança. O dossiê é a
+   * rota que registra quem consultou, e é por isso que é dela que o texto sai.
+   */
+  devolucao: DevolucaoDaOcorrencia | null;
   /**
    * Outros chamados no mesmo endereço, ou `null` quando a consulta falhou.
    *
@@ -135,7 +151,7 @@ export function Ocorrencia() {
   const recarregar = useCallback(async () => {
     const [
       ocorrencia, trilha, vistoria, providencias, equipes, evidencias, vinculos,
-      orgaos, oficios,
+      orgaos, oficios, devolucao,
     ] = await Promise.all([
       buscarOcorrencia(sessao, id),
       trilhaDaOcorrencia(sessao, id),
@@ -146,6 +162,7 @@ export function Ocorrencia() {
       vinculosDaOcorrencia(sessao, id),
       listarOrgaos(sessao),
       listarOficios(sessao, id),
+      devolucaoDaOcorrencia(sessao, id),
     ]);
     if (!ocorrencia) throw new Error("Ocorrência não encontrada nesta organização");
     /*
@@ -159,7 +176,7 @@ export function Ocorrencia() {
       .catch(() => null);
     setDados({
       ocorrencia, trilha, vistoria, providencias, equipes, evidencias, mesmoEndereco,
-      orgaos, oficios,
+      orgaos, oficios, devolucao,
       vinculadaA: vinculos.vinculadaA as VinculoOcorrencia | null,
       vinculadas: vinculos.vinculadas as VinculoOcorrencia[],
     });
@@ -247,7 +264,7 @@ export function Ocorrencia() {
 
   const {
     ocorrencia: o, trilha, vistoria, providencias, equipes, evidencias,
-    vinculadaA, vinculadas, mesmoEndereco, orgaos, oficios,
+    vinculadaA, vinculadas, mesmoEndereco, orgaos, oficios, devolucao,
   } = dados;
   // Mesma tabela que o repositório usa para recusar a escrita. A tela decide
   // o que desenhar; quem impede de verdade é a camada de dados.
@@ -260,6 +277,35 @@ export function Ocorrencia() {
   const interditada = Boolean(o.interditada_em) && !o.desinterditada_em;
   const podeDocumento = podeExecutar(sessao.papel, "emitir_documento");
   const podeResponder = podeExecutar(sessao.papel, "responder_providencia");
+
+  /*
+    A DEVOLUÇÃO QUE AINDA ESPERA DECISÃO.
+
+    O CONTEÚDO vem do dossiê (`devolucao`), e a trilha entra só para responder
+    se a coordenação já despachou de novo. Antes a faixa inteira era remontada
+    do `detalhe` do evento, e aquilo quebrou em silêncio quando o servidor parou
+    de gravar a observação na trilha: o texto que o agente escreveu na rua não
+    pode virar linha permanente numa tabela sem UPDATE nem DELETE, senão o
+    município não consegue cumprir o próprio prazo de retenção. Ver `../devolucao`
+    para o critério de "ainda espera decisão", que é a ordem dos fatos e não o
+    status.
+  */
+  const faixaDaDevolucao = devolucaoEmAberto(devolucao, trilha);
+  const passoDaDevolucao = faixaDaDevolucao ? proximoPasso(faixaDaDevolucao.motivo) : null;
+  /*
+    O passo só vira link quando o cartão de destino está na tela DESTA pessoa.
+    Cada bloco tem a sua condição de papel e de momento do fluxo, e link para
+    cartão que não foi desenhado é clique que não acontece, que é o mesmo beco
+    que esta tela já evita no despacho sem classificação.
+  */
+  const passoDisponivel =
+    passoDaDevolucao === null ? false
+      : passoDaDevolucao.destino === `#${ANCORA_DA_COORDENADA}`
+        ? podeCorrigirCoordenada(sessao.papel, o.status)
+        : passoDaDevolucao.destino === `#${ANCORA_DO_DESPACHO}`
+          ? podeDespachar && o.status === "triagem"
+            && !despachoEsperaClassificacao(o.status, o.tipo)
+          : podeExecutar(sessao.papel, "gerenciar_equipes");
   const encerrada = o.status === "encerrada";
   // Em três pedaços porque o do meio é um número que vai ser ditado: ver
   // `avisoDoRegistro` e o `.mono` lá embaixo.
@@ -358,6 +404,70 @@ export function Ocorrencia() {
         </Aviso>
       )}
 
+      {/*
+        A DEVOLUÇÃO NO ALTO DA TELA, e não só na linha do tempo.
+
+        Uma ocorrência que voltou do campo sem vistoria é uma ocorrência que
+        precisa de decisão agora: o prazo já venceu, ninguém entrou na casa, e
+        ela acabou de sair da fila de quem estava indo até lá. Deixar isso como
+        mais um item da trilha seria esconder o fato mais novo embaixo de todos
+        os antigos, numa lista que se lê de cima para baixo e que ninguém rola
+        até o fim.
+
+        É UM aviso, com UMA saída, e não uma caixa de conselhos. A tela já tem o
+        cartão da coordenada, o do despacho e o das providências, cada um no
+        lugar certo do fluxo; repetir aqui o que cada um faz encheria o topo de
+        texto que o coordenador aprende a pular. O motivo é que escolhe para
+        onde a única saída aponta, e o link leva o foco até o cartão de lá.
+
+        Ele vem DEPOIS da vulnerabilidade social de propósito: quem está em
+        risco vem antes do que precisa ser decidido, mesmo quando a decisão é
+        urgente. E some sozinho quando a coordenação despacha de novo, porque
+        aviso que não sai de cena depois de resolvido ensina a ignorar avisos.
+      */}
+      {!encerrada && faixaDaDevolucao && (
+        <Aviso tom="alerta">
+          <strong>Devolvida do campo sem vistoria.</strong>{" "}
+          {/*
+            Sem nome quando a conta de quem devolveu saiu do cadastro. A linha
+            precisa continuar aparecendo: o fato de a equipe ter perdido a
+            viagem não deixa de ser verdade porque o servidor mudou de função.
+          */}
+          {faixaDaDevolucao.quem ?? "Um agente que não está mais no cadastro"} devolveu
+          em {formatarDataHora(faixaDaDevolucao.quando)}.{" "}
+          Motivo: {rotuloDoMotivo(faixaDaDevolucao.motivo)}.
+          {/*
+            TRÊS CASOS, e não dois. Texto escrito, texto descartado no prazo, e
+            nenhum texto. O silêncio serve para o último: quem não escreveu nada
+            não precisa ser anunciado. Para o descartado, o silêncio seria
+            mentira, e mentira numa tela que acaba anexada a processo: a frase
+            existiu, foi lida por quem decidiu, e o município a descartou por
+            política própria. A linha do tempo, logo abaixo, continua dizendo que
+            houve observação, e sem esta frase as duas telas se contradiriam.
+          */}
+          {faixaDaDevolucao.observacao.estado === "escrita" && (
+            <> {faixaDaDevolucao.observacao.texto}</>
+          )}
+          {faixaDaDevolucao.observacao.estado === "descartada" && (
+            <>
+              {" "}A observação escrita pelo agente foi descartada
+              em {formatarDataHora(faixaDaDevolucao.observacao.em)}, pelo prazo de
+              retenção deste município. O motivo e o registro do ato continuam.
+            </>
+          )}
+          {faixaDaDevolucao.prazoPerdidoEm && (
+            <>
+              {" "}O prazo venceu em {formatarDataHora(faixaDaDevolucao.prazoPerdidoEm)} e
+              continua valendo: devolver não reabre prazo.
+            </>
+          )}
+          {" "}
+          {passoDaDevolucao && (
+            <PassoDaDevolucao passo={passoDaDevolucao} disponivel={passoDisponivel} />
+          )}
+        </Aviso>
+      )}
+
       <div className="detalhe">
         <div className="coluna">
           <Cartao titulo="Dados do chamado">
@@ -430,7 +540,15 @@ export function Ocorrencia() {
             abrir outro protocolo para o mesmo evento, o que faz a cidade ter
             duas ocorrências onde existe uma casa.
           */}
+          {/*
+            O `id` fica no ENVOLUCRO do cartão, e não no campo de dentro: o
+            formulário da correção nasce fechado, então uma âncora para o campo
+            apontaria para um elemento que só existe depois de alguém clicar.
+            `tabIndex={-1}` é o que faz o foco ir junto com a rolagem, senão
+            quem usa teclado chega ao cartão sem estar nele.
+          */}
           {podeCorrigirCoordenada(sessao.papel, o.status) && (
+            <div id={ANCORA_DA_COORDENADA} tabIndex={-1}>
             <BlocoCorrigirCoordenada
               gravando={gravando}
               atual={o.latitude !== null && o.longitude !== null
@@ -456,6 +574,7 @@ export function Ocorrencia() {
                 );
               }}
             />
+            </div>
           )}
 
           {ofereceTriagem(sessao.papel, o.status, o.tipo) && (
@@ -497,6 +616,7 @@ export function Ocorrencia() {
 
           {podeDespachar && !encerrada && o.status === "triagem"
             && !despachoEsperaClassificacao(o.status, o.tipo) && (
+            <div id={ANCORA_DO_DESPACHO} tabIndex={-1}>
             <BlocoDespacho
               gravando={gravando}
               equipes={equipes.filter((e) => e.ativa)}
@@ -506,6 +626,7 @@ export function Ocorrencia() {
                 "Equipe despachada. A ocorrência aparece agora no aplicativo de campo.",
               )}
             />
+            </div>
           )}
 
           {/*
@@ -735,7 +856,15 @@ export function Ocorrencia() {
                     {formatarDataHora(e.ocorrido_em)} por {e.autor_nome} ({ROTULO_PAPEL[e.autor_papel]}),
                     {e.origem === "campo" ? " em campo" : " no escritório"}
                   </div>
-                  {e.detalhe && Object.keys(e.detalhe).length > 0 && (
+                  {/*
+                    A devolução tem leitura própria porque `descreverDetalhe`
+                    imprime a chave crua do banco (`motivo: risco_para_a_equipe`),
+                    e este é o evento que a coordenação vai reler meses depois
+                    para entender por que a casa ficou sem vistoria.
+                  */}
+                  {e.tipo === TIPO_EVENTO_DEVOLUCAO ? (
+                    <DetalheDaDevolucao detalhe={e.detalhe} />
+                  ) : e.detalhe && Object.keys(e.detalhe).length > 0 && (
                     <div className="trilha__detalhe">{descreverDetalhe(e.detalhe)}</div>
                   )}
                 </li>
@@ -772,6 +901,61 @@ export function Ocorrencia() {
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * A saída única do aviso de devolução.
+ *
+ * Âncora vira `<a href="#">`, porque o destino está nesta mesma tela e o
+ * navegador leva o foco junto; rota vira `<Link>`, porque trocar de tela com
+ * `href` recarregaria a aplicação inteira.
+ *
+ * Sem o cartão de destino na tela, o passo continua escrito e deixa de ser
+ * link: a informação do que precisa ser feito vale para quem só lê, e quem lê
+ * precisa saber que a ação é de outra pessoa, não que ela não existe.
+ */
+function PassoDaDevolucao({ passo, disponivel }: { passo: ProximoPasso; disponivel: boolean }) {
+  if (!disponivel) {
+    return <>{passo.texto}. Quem tem competência para isso é a coordenação.</>;
+  }
+  return passo.destino.startsWith("#")
+    ? <a href={passo.destino}>{passo.texto}</a>
+    : <Link to={passo.destino}>{passo.texto}</Link>;
+}
+
+/** O evento de devolução na linha do tempo, em português e por extenso. */
+function DetalheDaDevolucao({ detalhe }: { detalhe: Record<string, unknown> | null }) {
+  const lida = lerDevolucao(detalhe);
+  if (!lida) return null;
+  return (
+    <div className="trilha__detalhe">
+      <strong>Motivo:</strong> {rotuloDoMotivo(lida.motivo)}
+      {/*
+        O QUE HOUVE, e não o que foi escrito. O evento nunca carregou o texto e
+        não é falta dele: `trilha_eventos` não tem policy de UPDATE nem de
+        DELETE, e uma frase que nomeia moradora ficaria ali para sempre, fora do
+        alcance do prazo de retenção que o município fixa. Dizer só "Motivo" e
+        calar sobre a observação faria quem reler daqui a um ano concluir que o
+        agente não escreveu nada, então a linha diz que houve e diz onde o texto
+        vive, sem prometer que ele ainda está lá.
+      */}
+      {lida.temObservacao && (
+        <>
+          <br />
+          Com observação do agente. O texto não entra na trilha, que é
+          permanente: ele fica com a devolução, sujeito ao prazo de retenção do
+          município, e aparece no aviso desta ocorrência enquanto ela espera
+          decisão.
+        </>
+      )}
+      {lida.prazoPerdidoEm && (
+        <>
+          <br />
+          Prazo perdido: {formatarDataHora(lida.prazoPerdidoEm)}
+        </>
+      )}
+    </div>
   );
 }
 

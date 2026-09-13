@@ -156,7 +156,33 @@ export const TRANSICOES_PERMITIDAS: Record<StatusOcorrencia, readonly StatusOcor
   rascunho: ["registrada", "encerrada"],
   registrada: ["triagem", "encerrada"],
   triagem: ["em_campo", "encerrada"],
-  em_campo: ["vistoria_concluida", "encerrada"],
+  /*
+    `em_campo` volta para `triagem`, e esta é a ÚNICA aresta para trás da
+    máquina inteira. A exceção precisa de razão escrita, senão a próxima vira
+    rotina e o fluxo deixa de ser fluxo.
+
+    A razão é que o caminho para frente não existe para este caso. O agente
+    subiu o morro, a tarefa VENCEU e ele não conseguiu vistoriar: não localizou
+    o endereço, não havia ninguém, o acesso estava impedido, o local oferecia
+    risco para a equipe. Nenhum dos três desfechos que a máquina oferecia serve.
+    `vistoria_concluida` seria mentira gravada (não houve vistoria, e é dela que
+    nasce o laudo). `encerrada` seria pior: a casa continua precisando de
+    vistoria, e encerrar por não ter ido é exatamente o "a prefeitura não fez
+    nada" que este produto existe para tornar impossível. E ficar em `em_campo`
+    para sempre era o que acontecia: a tarefa envelhecia na tela de quem já
+    tinha desistido dela, e a coordenação só descobria por telefonema.
+
+    Então a ocorrência volta para `triagem`, que é de onde o despacho sai, com a
+    equipe limpa: ela deixou de ser daquela equipe. Não é desfazer o despacho,
+    é devolver a decisão para quem decide. O despacho aconteceu, e continua na
+    trilha, junto com quem devolveu, quando e por quê.
+
+    O que NÃO volta atrás é o relógio: `prazo_em` fica onde estava (ver
+    `rotas/sincronizacao.ts`, a rota de devolução). Devolver não pode limpar o
+    atraso, senão a ocorrência sai do indicador de atrasadas e o defeito some
+    da tela justamente quando alguém precisa vê-lo.
+  */
+  em_campo: ["vistoria_concluida", "triagem", "encerrada"],
   vistoria_concluida: ["providencia_pendente", "encerrada"],
   providencia_pendente: ["encerrada"],
   encerrada: [],
@@ -337,6 +363,23 @@ export const ROTULO_EVENTO_TRILHA: Record<string, string> = {
     que não se corrige. Ver `rotas/sincronizacao.ts` e o campo `coletadaPor`.
   */
   vistoria_recusada_autor_divergente: "Envio de vistoria recusado por autor divergente",
+  /*
+    A tarefa venceu, o agente não conseguiu vistoriar e devolveu a ocorrência
+    para a coordenação. Evento próprio, e não um encerramento com motivo, porque
+    a ocorrência NÃO acabou: ela volta para a fila de quem despacha, e este
+    evento é a única memória de que uma equipe esteve designada, perdeu o prazo
+    e explicou por quê. Ver `rotas/sincronizacao.ts`.
+  */
+  devolucao_de_tarefa: "Tarefa devolvida à coordenação",
+  /*
+    O envelope da devolução disse que quem devolveu é um agente, e quem
+    apresentou o token era outro. Mesma família de
+    `vistoria_recusada_autor_divergente`, e tipo SEPARADO dele de propósito: o
+    rótulo daquele afirma que houve envio de vistoria, e aqui não houve vistoria
+    nenhuma. A trilha é a tela que alguém abre para provar o que aconteceu, e um
+    rótulo que descreve outro ato é uma frase falsa numa linha de prova.
+  */
+  devolucao_recusada_autor_divergente: "Devolução de tarefa recusada por autor divergente",
   /*
     Alguém acrescentou prova ao processo. O produto registrava quem ABRIU um
     laudo e não registrava quem colocou uma foto dentro dele, que é a peça que

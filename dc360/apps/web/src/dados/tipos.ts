@@ -263,6 +263,80 @@ export type ProvidenciaPendente = {
   status: StatusOcorrencia;
 };
 
+/**
+ * Uma ocorrência que voltou do campo sem vistoria e ainda espera decisão.
+ *
+ * Existe pelo mesmo motivo que `ProvidenciaPendente`: um fato que o sistema
+ * registra e nenhuma tela mostra é um fato que não aconteceu para quem trabalha.
+ * Uma ocorrência devolvida volta para `triagem` e passa a parecer, na lista,
+ * igual às que nunca saíram do prédio, quando ela é o contrário disso: alguém
+ * já foi até lá, perdeu a viagem, e o prazo continua vencido.
+ *
+ * `motivo` é texto e não a união fechada de `MOTIVOS_DE_DEVOLUCAO`, porque o
+ * valor vem do banco: aparelho mais novo que este painel manda motivo que ele
+ * ainda não conhece, e o tipo fechado seria uma promessa que a ponta não faz.
+ */
+export type DevolucaoPendente = {
+  id: string;
+  protocolo: string;
+  endereco: string;
+  status: StatusOcorrencia;
+  severidade: Severidade | null;
+  /** Não é tocado pela devolução: ela continua atrasada, e é assim que deve ser. */
+  prazo_em: string | null;
+  devolvida_em: string;
+  devolvida_por_nome: string;
+  motivo: string;
+  /**
+   * QUE existe observação, e não QUAL é.
+   *
+   * A lista sai do servidor sem o texto de propósito, e isto não é economia de
+   * bytes: `observacao` é escrita pelo agente na rua, em texto livre, e na
+   * prática nomeia morador ("a moradora pediu para voltar às 18h") ou descreve
+   * condição de saúde de quem mora na casa. Uma rota de LISTA entregaria esse
+   * texto de todas as devoluções do município a cada carregamento de tela, sem
+   * registro de consulta.
+   *
+   * O booleano é o que permite a marca da lista dizer que há o que ler sem
+   * entregar o que se lê. Quem precisa do texto abre a ocorrência, e é lá que
+   * a consulta fica registrada.
+   */
+  tem_observacao: boolean;
+};
+
+/**
+ * A última devolução de UMA ocorrência, como o dossiê a entrega.
+ *
+ * É o único lugar do produto de onde o texto livre do agente SAI, e ele sai
+ * aqui porque `GET /ocorrencias/:id` registra quem consultou. Os outros dois
+ * lugares onde a devolução aparece não o carregam, e as três decisões são
+ * separadas:
+ *
+ * - a TRILHA não o guarda, porque ela é append-only (sem policy de UPDATE nem
+ *   de DELETE) e o texto ficaria permanente, imune ao prazo de retenção que o
+ *   município fixa como controlador;
+ * - a LISTA de devolvidas não o devolve, pela razão escrita em
+ *   `DevolucaoPendente`;
+ * - AQUI ele sai, uma ocorrência por vez e com a consulta registrada.
+ *
+ * `observacao_removida_em` preenchido significa que o texto foi descartado
+ * pela minimização por prazo (migração 029), e NÃO que nunca existiu. A tela
+ * precisa dos dois casos separados: dizer "sem observação" sobre uma frase que
+ * o município descartou de propósito é afirmar um fato falso numa tela que
+ * vira prova.
+ */
+export type DevolucaoDaOcorrencia = {
+  decidida_em: string;
+  motivo: string;
+  /** Nulo quando não houve, e também quando já foi descartada pelo prazo. */
+  observacao: string | null;
+  observacao_removida_em: string | null;
+  /** O prazo que já estava vencido quando a tarefa voltou. */
+  prazo_em: string | null;
+  /** Nulo quando a conta de quem devolveu não está mais no cadastro. */
+  devolvida_por_nome: string | null;
+};
+
 /** Como o painel está conversando com o banco nesta execução. */
 export type Modo = "local" | "api";
 

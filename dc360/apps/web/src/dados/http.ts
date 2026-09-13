@@ -12,7 +12,7 @@ import type {
   CursorDeAvisos, DadosDoOrgao, LinhaOficio, LinhaOrgao, OficioDetalhado,
   RespostaDeAvisos, ResultadoDeEnvio,
   AtivacaoSegundoFator, ResultadoDeEntrada, SegundoFatorLigado, SituacaoSegundoFator,
-  ConfiguracaoDoPainel,
+  ConfiguracaoDoPainel, DevolucaoDaOcorrencia, DevolucaoPendente,
 } from "./tipos";
 
 /**
@@ -399,6 +399,14 @@ type Detalhe = {
   providencias: LinhaProvidencia[];
   vinculadaA: VinculoOcorrencia | null;
   vinculadas: VinculoOcorrencia[];
+  /**
+   * A última devolução do campo, com o texto livre do agente, ou nada.
+   *
+   * O dossiê é o único lugar de onde esse texto sai, e ele sai aqui porque esta
+   * rota registra quem consultou. A lista de devolvidas e o evento da trilha
+   * não o carregam, e os porquês estão em `dados/tipos.ts`.
+   */
+  devolucao: DevolucaoDaOcorrencia | null;
 };
 
 /**
@@ -443,6 +451,25 @@ export async function providenciasDaOcorrencia(
   return (await detalhe(id)).providencias;
 }
 
+/**
+ * A última devolução desta ocorrência, com observação e marca de descarte.
+ *
+ * Vem do mesmo dossiê que a tela já pede, e não de uma rota própria: uma rota
+ * de "observação da devolução" seria uma porta de leitura de dado pessoal com
+ * registro de consulta próprio para inventar, quando a rota que a tela abre de
+ * qualquer jeito já registra.
+ *
+ * `?? null` porque um servidor mais antigo simplesmente não traz o campo, e a
+ * diferença entre "não veio" e "não houve devolução" não muda nada para quem
+ * desenha a faixa: nos dois casos não há o que mostrar.
+ */
+export async function devolucaoDaOcorrencia(
+  _s: Sessao,
+  id: string,
+): Promise<DevolucaoDaOcorrencia | null> {
+  return (await detalhe(id)).devolucao ?? null;
+}
+
 export async function vinculosDaOcorrencia(
   _s: Sessao,
   id: string,
@@ -464,6 +491,24 @@ export async function meuTrabalhoDeCampo(_s: Sessao): Promise<MeuTrabalho> {
 
 export async function providenciasPendentes(_s: Sessao): Promise<ProvidenciaPendente[]> {
   const r = await chamar<{ itens: ProvidenciaPendente[] }>("/ocorrencias/providencias/pendentes");
+  return r.itens;
+}
+
+/**
+ * As ocorrências devolvidas pelo campo que ainda esperam decisão.
+ *
+ * SEM O TEXTO DA OBSERVAÇÃO, e isso é da rota, não desta função. Ela devolve
+ * `tem_observacao`, um booleano, porque entregar o texto livre de todas as
+ * devoluções do município a cada carregamento de tela seria espalhar nome de
+ * morador e condição de saúde por uma consulta que nem registro de consulta
+ * tem. Quem precisa ler abre a ocorrência, e lá a leitura fica registrada.
+ *
+ * Quem chama trata a falha por conta própria, e continua sendo deliberado: ver
+ * o comentário em `Painel.tsx`, onde a razão está escrita por extenso agora que
+ * a rota existe e um 404 deixou de ser o esperado.
+ */
+export async function devolucoesPendentes(_s: Sessao): Promise<DevolucaoPendente[]> {
+  const r = await chamar<{ itens: DevolucaoPendente[] }>("/ocorrencias/devolvidas");
   return r.itens;
 }
 

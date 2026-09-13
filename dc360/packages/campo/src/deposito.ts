@@ -66,6 +66,19 @@ function normalizar(bruto: Record<string, unknown>): ItemFila {
   */
   if (bruto["autor"] === undefined) bruto["autor"] = null;
 
+  /*
+    `tipo` ausente é coleta de vistoria, e a conversão acontece aqui pelo mesmo
+    motivo do `autor`: este é o único ponto por onde item persistido entra na
+    fila, então a migração é mecanismo e não disciplina.
+
+    Item gravado antes deste campo existir é sempre vistoria: a devolução nasce
+    junto com o campo. Ler a ausência como devolução, ou deixá-la indefinida,
+    faria o dreno tentar enviar um envelope de coleta pela rota de devolução (ou
+    o contrário), e o resultado seria uma manhã de trabalho recusada com 422
+    para sempre por causa de uma leitura de disco.
+  */
+  if (bruto["tipo"] === undefined) bruto["tipo"] = "vistoria";
+
   if (bruto["ultimaFalha"] !== undefined || bruto["ultimoErro"] === undefined) {
     return destravarTentativasEsgotadas(bruto as unknown as ItemFila);
   }

@@ -1,5 +1,7 @@
-import { useEffect, useRef } from "react";
-import { Animated, Easing, Modal, Pressable, StyleSheet, View } from "react-native";
+import { useEffect, useRef, type ReactNode } from "react";
+import {
+  Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, View,
+} from "react-native";
 
 import { Botao, Txt, useTema } from "./componentes";
 import { espaco, movimento, raio, tinta } from "./tokens";
@@ -68,12 +70,37 @@ export type AcaoDoDialogo = {
   aoTocar: () => void;
   /** Perde coleta, sessão ou trabalho já feito. Ganha desenho próprio. */
   destrutiva?: boolean;
+  /**
+   * Trava o botão enquanto a pergunta ainda não foi respondida.
+   *
+   * Existe por causa do diálogo de devolução, que pede um MOTIVO antes de
+   * deixar agir. A alternativa seria aceitar o toque e recusar depois com um
+   * aviso, e isso é pior em campo: o agente lê "devolver", toca, e a tela diz
+   * que não. Botão apagado, com a frase do que falta logo acima, responde a
+   * pergunta antes de ela virar frustração.
+   */
+  desabilitada?: boolean;
 };
 
 type BaseDoDialogo = {
   aberto: boolean;
   titulo: string;
   texto: string;
+  /**
+   * O que a pergunta precisa perguntar ANTES de deixar agir.
+   *
+   * Opcional, e quase sempre ausente: a maioria das decisões daqui é sim ou
+   * não, e um diálogo que pede coisas é um formulário disfarçado. A exceção é a
+   * devolução da tarefa, em que a coordenação não consegue fazer nada sem o
+   * motivo, e perguntar numa tela separada custaria uma navegação a mais a
+   * quem está de capa de chuva.
+   *
+   * Vai dentro de uma área que ROLA: são seis motivos de 52 pontos mais um
+   * campo de texto, e num aparelho pequeno, de lado, isso não cabe. Sem o
+   * rolamento, os botões de agir e recusar seriam empurrados para fora da tela,
+   * e a pergunta ficaria sem resposta possível.
+   */
+  conteudo?: ReactNode;
   aoFechar: () => void;
   testID?: string;
 };
@@ -105,6 +132,7 @@ export function Dialogo({
   aberto,
   titulo,
   texto,
+  conteudo,
   acao,
   recusa,
   aoFechar,
@@ -229,6 +257,23 @@ export function Dialogo({
           <Txt variante="h2">{titulo}</Txt>
           <Txt variante="corpo">{texto}</Txt>
 
+          {conteudo && (
+            /*
+              `flexShrink` é o que faz a área de perguntas ceder espaço aos
+              botões quando o conteúdo é alto. Sem ele, o teclado aberto num
+              aparelho pequeno empurraria "Devolver" e "Manter comigo" para
+              fora da tela, e o diálogo viraria uma pergunta sem resposta.
+            */
+            <ScrollView
+              testID="dialogo-conteudo"
+              style={{ flexShrink: 1 }}
+              contentContainerStyle={{ gap: espaco.e3 }}
+              keyboardShouldPersistTaps="handled"
+            >
+              {conteudo}
+            </ScrollView>
+          )}
+
           <View style={{ gap: espaco.e3 }}>
             <Botao
               testID="dialogo-acao"
@@ -245,6 +290,7 @@ export function Dialogo({
                 anterior e encontra a pergunta ainda de pé, perguntando por algo
                 que já aconteceu.
               */
+              desabilitado={acao.desabilitada}
               onPress={() => { aoFechar(); acao.aoTocar(); }}
             />
             {recusa && (

@@ -24,7 +24,7 @@
  */
 
 import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
-import type { AutorDaColeta, ItemFila } from "@dc360/campo";
+import type { AutorDaColeta, ItemDeVistoria, ItemFila } from "@dc360/campo";
 
 /*
   Quem está logado, e de quem são as coletas.
@@ -84,12 +84,17 @@ jest.mock("../dados/fila", () => ({ obterFila: async () => mockFila }));
 import TelaDaFila from "../app/(agente)/fila";
 import { temaEscuro } from "./tokens";
 
-function item(parcial: Partial<ItemFila> & Pick<ItemFila, "id" | "estado">): ItemFila {
+function item(
+  parcial: Partial<ItemDeVistoria> & Pick<ItemDeVistoria, "id" | "estado">,
+): ItemDeVistoria {
   return {
+    /* A fila leva dois tipos de item desde a devolução de tarefa vencida.
+       Aqui o assunto é a coleta, então o padrão é vistoria. */
+    tipo: "vistoria",
     ocorrenciaId: `oc-${parcial.id}`,
     protocolo: "2026/000123",
     autor: AGENTE,
-    envelope: {} as ItemFila["envelope"],
+    envelope: {} as never,
     tentativas: 0,
     criadoEm: "2026-09-09T09:00:00.000Z",
     liberadoEm: "2026-09-09T09:00:00.000Z",

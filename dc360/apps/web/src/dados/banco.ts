@@ -1,6 +1,16 @@
 import { PGlite } from "@electric-sql/pglite";
 import type { Transaction } from "@electric-sql/pglite";
 import sementeDesenvolvimento from "../../../../db/seeds/desenvolvimento.sql?raw";
+/*
+  A semente que só o modo de demonstração aplica, depois da compartilhada.
+
+  Ela vive aqui dentro, e não em `db/seeds/`, porque aquela pasta é da API
+  também: um caso semeado lá apareceria nos testes do servidor e nas contagens
+  deles. Este arquivo mostra uma tarefa devolvida do campo, que é o tipo de
+  caso que faz um coordenador reconhecer o produto, e a demonstração é peça de
+  venda. Ver o próprio arquivo para o porquê de cada linha.
+*/
+import sementeDaDemonstracao from "./semente-da-demonstracao.sql?raw";
 
 /**
  * TODAS as migrações, descobertas em vez de listadas.
@@ -59,8 +69,8 @@ export type Contexto = Transaction;
   usa. Num banco de verdade seria inaceitável, e é por isso que este atalho
   vale só para o modo de demonstração.
 */
-const CHAVE_PERSISTENCIA = "idb://dc360-v3";
-const MARCA_SEMENTE = "dc360:semeado:v3";
+const CHAVE_PERSISTENCIA = "idb://dc360-v4";
+const MARCA_SEMENTE = "dc360:semeado:v4";
 
 /**
  * Teto para o banco ficar de pé. Existe por um número medido, não por
@@ -204,6 +214,12 @@ export async function banco(): Promise<PGlite> {
       // E a mesma semente que a API usa quando sobe sem banco externo, para o
       // protocolo que aparece aqui ser o mesmo que a API devolveria.
       await db.exec(sementeDesenvolvimento);
+      /*
+        Depois da compartilhada, e nunca antes: ela mexe em ocorrência que a
+        outra cria, e a ordem é o que faz a devolução ter um despacho antes
+        dela na linha do tempo.
+      */
+      await db.exec(sementeDaDemonstracao);
       if (!persistenciaIndisponivel) {
         localStorage.setItem(MARCA_SEMENTE, new Date().toISOString());
       }

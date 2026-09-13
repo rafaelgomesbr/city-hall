@@ -1,4 +1,4 @@
-import type { EnvelopeSincronizacao } from "@dc360/shared";
+import type { DevolucaoDeTarefa, EnvelopeSincronizacao } from "@dc360/shared";
 
 /**
  * Fila de saída do aplicativo de campo.
@@ -116,7 +116,34 @@ export type AutorDaColeta = {
   organizacaoId: string;
 };
 
-export type ItemFila = {
+/**
+ * A devolução como ela fica GUARDADA no aparelho: sem o autor.
+ *
+ * `devolvidaPor` é obrigatório no contrato (`devolucaoDeTarefaSchema`) e mesmo
+ * assim não é gravado aqui, pela mesma razão de `coletadaPor` não ser gravado
+ * dentro do envelope: um fato tem uma fonte só. Quem devolveu já está em
+ * `item.autor`, e dois campos para o mesmo autor divergem na primeira pressa.
+ * O campo é montado na hora do envio, em `devolucaoComAutoria`.
+ */
+export type DevolucaoSemAutor = Omit<DevolucaoDeTarefa, "devolvidaPor">;
+
+/**
+ * O que este item da fila é, e por que a fila precisa saber.
+ *
+ * Duas coisas saem deste aplicativo pela mesma fila, e o motivo de ser a mesma
+ * é que as duas saem da mesma situação: o agente decide sem sinal e o envio
+ * acontece quando a rede volta. Uma segunda fila, só para a devolução, seria
+ * uma segunda implementação de espera entre tentativas, idempotência, dreno
+ * único e autoria, ou seja, a implementação que ninguém testa.
+ *
+ * - `vistoria`: a coleta feita no local, com fotos e assinatura.
+ * - `devolucao`: a tarefa VENCIDA que o agente não conseguiu vistoriar e
+ *   devolveu para a coordenação. Não tem foto, não tem laudo e não encerra
+ *   nada: a ocorrência volta para quem despacha.
+ */
+export type TipoDoItem = "vistoria" | "devolucao";
+
+type ItemBase = {
   /**
    * A chave de idempotência, gerada no aparelho no momento da coleta. É
    * também o identificador do item na fila, e não muda entre tentativas: é
@@ -136,7 +163,6 @@ export type ItemFila = {
   autor: AutorDaColeta | null;
   ocorrenciaId: string;
   protocolo: string;
-  envelope: EnvelopeSincronizacao;
   estado: EstadoItem;
   /** Quantas vezes já saiu daqui, com ou sem resposta. */
   tentativas: number;
@@ -157,9 +183,33 @@ export type ItemFila = {
   /**
    * Fotos que precisam subir ANTES do envelope. Vazio quando a coleta não tem
    * foto, ou quando quem enfileirou já resolveu o envio por fora.
+   *
+   * Fica na base, e não no ramo da vistoria, de propósito: a devolução nunca
+   * tem foto (é sempre uma lista vazia), e tirar o campo daqui obrigaria cada
+   * leitura de progresso da fila, inclusive a limpeza de arquivos do logout em
+   * `banco-local.ts`, a perguntar antes qual é o tipo do item. Campo ausente
+   * ali seria lido como "nenhum arquivo protegido", que é como se apaga a
+   * assinatura de uma vistoria que ainda não subiu.
    */
   fotos: FotoNaFila[];
 };
+
+/**
+ * Um item da fila, nos dois feitios que ele pode ter.
+ *
+ * União discriminada, e não um tipo só com os dois campos opcionais: com campo
+ * opcional nada impede um item de devolução carregar envelope de vistoria, e a
+ * primeira leitura distraída manda para o servidor um laudo que ninguém
+ * coletou. Aqui o compilador cobra a pergunta antes de deixar ler.
+ */
+export type ItemFila = ItemBase & (
+  | { tipo: "vistoria"; envelope: EnvelopeSincronizacao; devolucao?: undefined }
+  | { tipo: "devolucao"; devolucao: DevolucaoSemAutor; envelope?: undefined }
+);
+
+/** Os dois lados da união, nomeados para quem só trata um deles. */
+export type ItemDeVistoria = Extract<ItemFila, { tipo: "vistoria" }>;
+export type ItemDeDevolucao = Extract<ItemFila, { tipo: "devolucao" }>;
 
 /**
  * Onde a fila persiste.
@@ -178,6 +228,17 @@ export type Deposito = {
 /** Resposta do servidor a um envio aceito. */
 export type Recibo = { vistoriaId: string; duplicada: boolean };
 
+/**
+ * Resposta do servidor a uma devolução aceita.
+ *
+ * `duplicada` existe pela mesma razão do recibo da vistoria: a fila reenvia
+ * com a MESMA chave quando não sabe se a primeira chegou, e o servidor
+ * responde o resultado da primeira vez em vez de devolver a tarefa duas vezes.
+ * Sem esse campo, a fila não teria como contar "enviados" sem contar duas
+ * vezes o mesmo ato.
+ */
+export type ReciboDeDevolucao = { duplicada: boolean };
+
 export type AutorizacaoFoto = {
   evidenciaId: string;
   chave: string;
@@ -195,6 +256,15 @@ export type AutorizacaoFoto = {
  */
 export type Transporte = {
   enviar(envelope: EnvelopeSincronizacao): Promise<Recibo>;
+  /**
+   * Devolve para a coordenação uma tarefa vencida que não foi vistoriada.
+   *
+   * Obrigatório na porta, e não opcional: um método opcional aqui produziria
+   * uma fila que ACEITA a devolução, mostra o item esperando envio e nunca o
+   * envia, sem nada reclamando. Quem implementa o transporte precisa responder
+   * por onde a devolução sai.
+   */
+  devolver(devolucao: DevolucaoDeTarefa): Promise<ReciboDeDevolucao>;
   /** Pede ao servidor a chave e a URL de escrita. */
   autorizarFoto(pedido: {
     ocorrenciaId: string;

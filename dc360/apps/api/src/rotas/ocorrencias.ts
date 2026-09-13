@@ -129,10 +129,112 @@ async function exigirTransicao(
   return de;
 }
 
+/**
+ * Uma linha de `GET /ocorrencias/devolvidas`.
+ *
+ * SEM a observação, de propósito: ela é texto livre escrito pelo agente na rua
+ * e pode nomear um morador. Uma rota de lista a entregaria inteira, do
+ * município todo, a cada carregamento de tela e sem registro de consulta.
+ * `tem_observacao` existe para a tela poder dizer que há texto a ler sem
+ * entregar o texto; quem precisa dele abre a ocorrência, e aquela rota
+ * registra a consulta.
+ */
+type DevolvidaEsperandoDecisao = {
+  id: string;
+  protocolo: string;
+  endereco: string;
+  status: string;
+  severidade: string | null;
+  prazo_em: string | null;
+  devolvida_em: string;
+  devolvida_por_nome: string | null;
+  motivo: string;
+  tem_observacao: boolean;
+};
+
 export async function rotasOcorrencias(
   app: FastifyInstance,
   { banco }: { banco: Banco },
 ): Promise<void> {
+  /**
+   * As ocorrências que voltaram do campo sem vistoria e ainda esperam decisão.
+   *
+   * ## Por que uma rota, e não uma coluna a mais na lista
+   *
+   * Devolver tira a ocorrência de `em_campo` e a devolve para `triagem`, e isso
+   * apaga informação na tela: ela passa a aparecer como "Em triagem" no meio
+   * das que nunca saíram. Quem despacha precisa ver a diferença, porque a
+   * decisão é outra: uma nunca foi tentada, a outra já falhou uma vez e o
+   * motivo diz o que mudar.
+   *
+   * Separada da lista paginada de propósito. São poucos casos, eles somem
+   * quando a decisão sai, e o painel precisa deles inteiros para contar quantos
+   * são, enquanto a lista de ocorrências é paginada no servidor desde o T5. Uma
+   * coluna a mais lá obrigaria a peneirar no navegador aquilo que o servidor
+   * pagina, que é o defeito exato que aquela lista já corrigiu uma vez.
+   *
+   * ## Por que ela NÃO devolve a observação do agente
+   *
+   * `observacao` é texto livre escrito na rua e pode nomear um morador ou
+   * descrever a saúde de quem mora na casa. Uma rota de LISTA que a devolvesse
+   * entregaria o texto de todas as devoluções do município de uma vez, a cada
+   * carregamento de tela, sem registro de consulta: seria a versão nova do
+   * resíduo que o T11 declarou sobre `GET /ocorrencias`.
+   *
+   * Sai o MOTIVO, que é de lista fechada e não é dado pessoal, mais
+   * `tem_observacao`, para a tela poder dizer que há texto a ler sem entregar o
+   * texto. Quem precisa dele abre a ocorrência, e aquela rota registra a
+   * consulta, que é o desenho que o T11 deixou pronto.
+   *
+   * ## Permissão
+   *
+   * `despachar_equipe`, porque a decisão que esta lista pede é despachar de
+   * novo. O agente de campo não tem essa permissão, e não deveria: a lista
+   * inteira do município por uma porta lateral é justamente a visão que ele não
+   * tem em lugar nenhum do produto.
+   */
+  app.get("/devolvidas", async (req) => {
+    const quem = await autorizar(app, req, "despachar_equipe");
+
+    return banco.comTenant(quem.organizacaoId, async (c) => {
+      const r = await c.query<DevolvidaEsperandoDecisao>(
+        `SELECT o.id, o.protocolo, o.endereco, o.status, o.severidade,
+                o.prazo_em,
+                d.decidida_em AS devolvida_em,
+                u.nome        AS devolvida_por_nome,
+                d.motivo,
+                (d.observacao IS NOT NULL) AS tem_observacao
+           FROM ocorrencias o
+           JOIN LATERAL (
+             /*
+                A devolução MAIS RECENTE, e só ela. Uma ocorrência pode ter sido
+                devolvida por duas equipes em dias diferentes, e a tela mostra
+                uma linha: mostrar a primeira diria o motivo que já foi tratado.
+             */
+             SELECT dd.decidida_em, dd.motivo, dd.observacao, dd.devolvida_por
+               FROM devolucoes_de_tarefa dd
+              WHERE dd.ocorrencia_id = o.id
+              ORDER BY dd.decidida_em DESC, dd.id DESC
+              LIMIT 1
+           ) d ON true
+           LEFT JOIN usuarios u ON u.id = d.devolvida_por
+          WHERE o.status = 'triagem'
+          ORDER BY o.prazo_em NULLS LAST, o.id`,
+      );
+      /*
+        `status = 'triagem'` é o que faz o aviso sumir sozinho quando a
+        coordenação despacha de novo, sem ninguém marcar nada como lido. Aviso
+        que fica depois de resolvido ensina a ignorar aviso.
+
+        `LEFT JOIN` em `usuarios` porque a conta de quem devolveu pode ter sido
+        desativada desde então, e a linha precisa continuar aparecendo: o fato
+        de a equipe não ter chegado ao imóvel não depende de o agente ainda
+        trabalhar ali.
+      */
+      return { itens: r.rows };
+    });
+  });
+
   app.get("/", async (req) => {
     const quem = await app.exigirAutenticacao(req);
     const f = consultaSchema.parse(req.query);
@@ -277,7 +379,7 @@ export async function rotasOcorrencias(
         throw new RegraDeNegocio("nao_encontrada", "Ocorrência não encontrada.", 404);
       }
 
-      const [trilha, vistoria, providencias, vinculada, vinculadas] = await Promise.all([
+      const [trilha, vistoria, providencias, vinculada, vinculadas, devolucao] = await Promise.all([
         c.query(
           `SELECT id, tipo, autor_nome, autor_papel, origem, ocorrido_em, registrado_em, detalhe
              FROM trilha_eventos WHERE ocorrencia_id = $1 ORDER BY ocorrido_em`,
@@ -313,6 +415,37 @@ export async function rotasOcorrencias(
              FROM ocorrencias WHERE vinculada_a = $1 ORDER BY criado_em`,
           [id],
         ),
+        /*
+          A devolução mais recente, COM a observação em texto livre.
+
+          É aqui que o texto sai, e não na lista nem na trilha, e os três
+          lugares são decisões separadas:
+
+          - Na TRILHA ele nunca entra. Ela é append-only, sem policy de UPDATE
+            nem de DELETE, então o texto ficaria permanente e imune ao prazo de
+            retenção que o município fixa como controlador. A rota de
+            sincronização grava só o motivo e o identificador da devolução.
+          - Na LISTA `/devolvidas` ele não sai. Ela entregaria o texto de todas
+            as devoluções do município a cada carregamento de tela, sem
+            registro de consulta.
+          - AQUI ele sai, porque esta rota é o dossiê de UMA ocorrência e
+            registra a consulta logo abaixo, que é exatamente o desenho que o
+            T11 deixou pronto para dado de cidadão.
+
+          A mais recente, e só ela: duas equipes podem ter devolvido em dias
+          diferentes, e a tela mostra uma linha. Mostrar a primeira diria o
+          motivo que já foi tratado.
+        */
+        c.query(
+          `SELECT d.decidida_em, d.motivo, d.observacao, d.observacao_removida_em,
+                  d.prazo_em, u.nome AS devolvida_por_nome
+             FROM devolucoes_de_tarefa d
+             LEFT JOIN usuarios u ON u.id = d.devolvida_por
+            WHERE d.ocorrencia_id = $1
+            ORDER BY d.decidida_em DESC, d.id DESC
+            LIMIT 1`,
+          [id],
+        ),
       ]);
 
       /*
@@ -345,6 +478,16 @@ export async function rotasOcorrencias(
         vinculadaA: vinculada.rows[0] ?? null,
         /** As que foram registradas depois e apontam para esta. */
         vinculadas: vinculadas.rows,
+        /**
+         * A última devolução do campo, quando houve. Só aqui ela vem com o
+         * texto livre do agente, e o porquê está na consulta acima.
+         *
+         * `observacao_removida_em` preenchido significa que o texto foi
+         * descartado pela minimização por prazo (migração 029), e não que não
+         * existiu: a tela precisa dessa diferença para não dizer "sem
+         * observação" sobre uma frase que o município descartou de propósito.
+         */
+        devolucao: devolucao.rows[0] ?? null,
       };
     });
   });

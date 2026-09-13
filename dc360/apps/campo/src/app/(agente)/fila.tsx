@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
-import { autoriaDaColeta, type Autoria, type FilaDeSincronizacao, type ItemFila } from "@dc360/campo";
+import {
+  autoriaDaColeta,
+  type Autoria,
+  type FilaDeSincronizacao,
+  type ItemDeDevolucao,
+  type ItemFila,
+} from "@dc360/campo";
+import { ROTULO_MOTIVO_DE_DEVOLUCAO } from "@dc360/shared";
 import { enderecoDaApi } from "../../dados/api";
 import { obterFila } from "../../dados/fila";
 import { useSinal } from "../../dados/conectividade";
@@ -53,6 +60,65 @@ import { espaco } from "../../ui/tokens";
  */
 const TENTATIVAS_ATE_AVISAR = 8;
 
+/**
+ * O cartão de uma devolução, estado por estado.
+ *
+ * Separado de `descreverEstado` para caber a explicação de cada desfecho sem
+ * transformar aquele `switch` num labirinto de ternários, que foi exatamente
+ * como o estado "arquivado" nasceu sem desenho próprio.
+ */
+function descreverDevolucao(item: ItemDeDevolucao): {
+  rotulo: string; explicacao: string; simbolo: string; tom: TomDoChip;
+} {
+  const motivo = ROTULO_MOTIVO_DE_DEVOLUCAO[item.devolucao.motivo];
+  switch (item.estado) {
+    case "pendente":
+      return {
+        rotulo: "Devolução aguardando",
+        simbolo: "…",
+        tom: "neutro",
+        explicacao: item.tentativas === 0
+          ? `Motivo: ${motivo}. Ainda não saiu do aparelho, e vai sair assim que `
+            + "houver sinal. A tarefa já saiu da sua lista."
+          : `Motivo: ${motivo}. Já tentou ${item.tentativas}x e vai continuar `
+            + "tentando sozinha. Enquanto ela não chegar, a coordenação não sabe "
+            + "que esta tarefa voltou.",
+      };
+    case "enviando":
+      return {
+        rotulo: "Devolução saindo", simbolo: "↑", tom: "neutro",
+        explicacao: `Motivo: ${motivo}. Saindo do aparelho agora.`,
+      };
+    case "confirmado":
+      return {
+        rotulo: "Devolvida",
+        simbolo: "✓",
+        tom: "ok",
+        explicacao:
+          "A coordenação recebeu e a ocorrência voltou para quem despacha. Some "
+          + "desta lista em instantes.",
+      };
+    /*
+      Recusada, e a tarefa JÁ VOLTOU para a lista de tarefas. Dizer isso aqui não
+      é redundância: sem a frase, o agente lê "precisa de atenção" e não sabe se
+      a tarefa continua com ele ou não, que é a única coisa que ele precisa
+      decidir agora.
+    */
+    case "bloqueado":
+    case "arquivado":
+      return {
+        rotulo: "Devolução recusada",
+        simbolo: "!",
+        tom: "perigo",
+        explicacao: (
+          item.ultimaFalha?.mensagem
+          ?? "O servidor recusou a devolução por um motivo que repetir não resolve."
+        ) + " A tarefa voltou para a sua lista: ou você a vistoria, ou tenta "
+          + "devolver de novo por aqui.",
+      };
+  }
+}
+
 /** O primeiro nome, que é como o colega é chamado no plantão. */
 function primeiroNome(nome: string): string {
   return nome.trim().split(/\s+/)[0] ?? nome;
@@ -75,13 +141,34 @@ function descreverEstado(item: ItemFila, autoria: Autoria): {
       rotulo: "De outro agente",
       simbolo: "⏸",
       tom: "alerta",
-      explicacao:
-        `Coletada por ${item.autor.nome}. Ela só pode ser enviada pela conta de `
-        + `quem fez a vistoria, porque é esse nome que vai para o laudo. Peça para `
-        + `${primeiroNome(item.autor.nome)} entrar neste aparelho com sinal. Se isso `
-        + `não for possível, avise a coordenação e informe o protocolo acima.`,
+      explicacao: item.tipo === "devolucao"
+        /*
+          A devolução também é uma declaração assinada: quem devolveu responde
+          pelo ato na trilha, que é append-only. Enviá-la com a credencial de
+          quem está no aparelho agora atribuiria a decisão à pessoa errada, do
+          mesmo jeito que o laudo com autor trocado.
+        */
+        ? `Devolvida por ${item.autor.nome}. Ela só pode ser enviada pela conta de `
+          + `quem decidiu devolver, porque é esse nome que vai para a coordenação. `
+          + `Peça para ${primeiroNome(item.autor.nome)} entrar neste aparelho com `
+          + `sinal. Se isso não for possível, avise a coordenação e informe o `
+          + `protocolo acima.`
+        : `Coletada por ${item.autor.nome}. Ela só pode ser enviada pela conta de `
+          + `quem fez a vistoria, porque é esse nome que vai para o laudo. Peça para `
+          + `${primeiroNome(item.autor.nome)} entrar neste aparelho com sinal. Se isso `
+          + `não for possível, avise a coordenação e informe o protocolo acima.`,
     };
   }
+
+  /*
+    A DEVOLUÇÃO TEM AS PALAVRAS DELA, e não as da coleta.
+
+    "Aguardando", no cartão de uma devolução, seria lido como vistoria esperando
+    envio, e é o contrário: aqui o agente está dizendo que NÃO vistoriou. Um
+    rótulo que descreve outro ato é uma frase falsa numa tela que existe para
+    dissolver a dúvida "cadê o que eu fiz?".
+  */
+  if (item.tipo === "devolucao") return descreverDevolucao(item);
   if (autoria === "sem_autor") {
     return {
       rotulo: "Sem autor registrado",
@@ -245,9 +332,19 @@ export default function TelaDaFila() {
 
   const daSessao = itens.filter((i) => autoriaDaColeta(i, eu) === "propria");
   const deOutroAutor = itens.filter((i) => autoriaDaColeta(i, eu) !== "propria");
-  const bloqueados = daSessao.filter((i) => i.estado === "bloqueado");
-  const arquivados = daSessao.filter((i) => i.estado === "arquivado");
-  const emEspera = daSessao.filter(
+  /*
+    A DEVOLUÇÃO TEM SEÇÃO PRÓPRIA, e sai das contagens de coleta.
+
+    Somá-la em "3 coletas na fila" seria contar como vistoria um pedido que
+    afirma o contrário, e é justamente essa confusão que a tela existe para não
+    criar. Seção própria também é o que deixa as frases de coleta intactas: elas
+    já dizem a coisa certa sobre coleta.
+  */
+  const devolucoes = daSessao.filter((i) => i.tipo === "devolucao");
+  const coletas = daSessao.filter((i) => i.tipo === "vistoria");
+  const bloqueados = coletas.filter((i) => i.estado === "bloqueado");
+  const arquivados = coletas.filter((i) => i.estado === "arquivado");
+  const emEspera = coletas.filter(
     (i) => i.estado !== "bloqueado" && i.estado !== "arquivado",
   );
 
@@ -259,7 +356,11 @@ export default function TelaDaFila() {
     contador que a pessoa aprende a ignorar. Ela tem a própria seção, com o
     próprio número e com saída pelo botão.
   */
-  const naFila = bloqueados.length + emEspera.length + deOutroAutor.length;
+  const naFila = bloqueados.length + emEspera.length
+    /* Devolução de outro agente existe (aparelho de plantão troca de turno) e
+       continua visível na seção dela, mas não entra numa contagem que diz
+       "coletas": ela afirma o contrário de uma coleta. */
+    + deOutroAutor.filter((i) => i.tipo === "vistoria").length;
 
   /*
     O que o botão "Tentar enviar agora" de fato faz sair.
@@ -269,7 +370,7 @@ export default function TelaDaFila() {
     nada, e a tela não mudava. Botão que responde ao toque sem fazer nada ensina
     a desconfiar da tela inteira.
   */
-  const prontasParaSair = emEspera.filter(
+  const prontasParaSair = [...emEspera, ...devolucoes].filter(
     (i) => i.estado === "pendente" || i.estado === "enviando",
   ).length;
 
@@ -319,7 +420,8 @@ export default function TelaDaFila() {
         )}
 
         <Txt variante="legenda" discreto>
-          Coletada em {new Date(item.criadoEm).toLocaleString("pt-BR")}
+          {item.tipo === "devolucao" ? "Devolvida em " : "Coletada em "}
+          {new Date(item.criadoEm).toLocaleString("pt-BR")}
         </Txt>
 
         {(podeReenviar || podeAssumir || podeDescartar) && (
@@ -414,6 +516,24 @@ export default function TelaDaFila() {
           {[...bloqueados, ...emEspera].map(cartaoDaColeta)}
 
           {/*
+            As devoluções, com título próprio e número próprio.
+
+            Elas ficam aqui embaixo das coletas de propósito: coleta é trabalho
+            feito que pode se perder, e é o que o agente abre esta tela para ver.
+            A devolução é uma decisão que já foi tomada e que só precisa chegar.
+          */}
+          {devolucoes.length > 0 && (
+            <>
+              <Txt variante="h2">
+                {devolucoes.length === 1
+                  ? "1 tarefa devolvida"
+                  : `${devolucoes.length} tarefas devolvidas`}
+              </Txt>
+              {devolucoes.map(cartaoDaColeta)}
+            </>
+          )}
+
+          {/*
             A seção de quem não é da sessão aberta.
 
             Ela existe para o aparelho de plantão compartilhado: a coleta do
@@ -425,9 +545,18 @@ export default function TelaDaFila() {
           {deOutroAutor.length > 0 && (
             <>
               <Txt variante="h2">
-                {deOutroAutor.length === 1
-                  ? "1 coleta de outro agente"
-                  : `${deOutroAutor.length} coletas de outro agente`}
+                {/*
+                  "Envio" quando há devolução misturada: chamar de coleta um
+                  pedido que declara que a vistoria NÃO foi feita seria a tela
+                  afirmando o contrário do que o item diz.
+                */}
+                {deOutroAutor.every((i) => i.tipo === "vistoria")
+                  ? (deOutroAutor.length === 1
+                    ? "1 coleta de outro agente"
+                    : `${deOutroAutor.length} coletas de outro agente`)
+                  : (deOutroAutor.length === 1
+                    ? "1 envio de outro agente"
+                    : `${deOutroAutor.length} envios de outro agente`)}
               </Txt>
               <Aviso tom="alerta">
                 Estas coletas não são enviadas pela sua conta: o nome de quem fez a
@@ -472,7 +601,9 @@ export default function TelaDaFila() {
       */}
       <Dialogo
         aberto={aDescartar !== null}
-        titulo="Descartar esta coleta?"
+        titulo={aDescartar?.tipo === "devolucao"
+          ? "Descartar esta devolução?"
+          : "Descartar esta coleta?"}
         /*
           Quando a coleta é de outra pessoa, a pergunta diz o nome dela.
 
@@ -481,14 +612,28 @@ export default function TelaDaFila() {
           não conta essa parte, e é a parte que faz a pessoa parar.
         */
         texto={
-          (aDescartar?.autor && aDescartar.autor.usuarioId !== identidade?.usuarioId
-            ? `Esta vistoria foi feita por ${aDescartar.autor.nome}. `
-            : "") +
-          `A vistoria do protocolo ${aDescartar?.protocolo ?? ""} será apagada deste ` +
-          "aparelho e não chegará à coordenação. Não dá para desfazer."
+          aDescartar?.tipo === "devolucao"
+            /*
+              Descartar uma devolução não apaga trabalho nenhum: ela é um pedido
+              que não chegou. O que a frase precisa dizer é o que sobra depois,
+              e o que sobra é a tarefa, com o agente. Repetir aqui a frase da
+              coleta ("a vistoria será apagada") assustaria com uma perda que
+              não existe e esconderia a consequência que existe.
+            */
+            ? (aDescartar.autor && aDescartar.autor.usuarioId !== identidade?.usuarioId
+              ? `Esta devolução foi decidida por ${aDescartar.autor.nome}. ` : "")
+              + `O pedido de devolução do protocolo ${aDescartar.protocolo} sai deste `
+              + "aparelho e a coordenação não vai saber dele. A tarefa continua na sua "
+              + "lista, para vistoriar ou devolver de novo."
+            : (aDescartar?.autor && aDescartar.autor.usuarioId !== identidade?.usuarioId
+              ? `Esta vistoria foi feita por ${aDescartar.autor.nome}. ` : "")
+              + `A vistoria do protocolo ${aDescartar?.protocolo ?? ""} será apagada deste `
+              + "aparelho e não chegará à coordenação. Não dá para desfazer."
         }
         acao={{
-          rotulo: "Descartar esta coleta",
+          rotulo: aDescartar?.tipo === "devolucao"
+            ? "Descartar esta devolução"
+            : "Descartar esta coleta",
           destrutiva: true,
           aoTocar: () => void (async () => {
             const alvo = aDescartar;
