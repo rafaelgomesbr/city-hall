@@ -559,6 +559,22 @@ describe("Append-only é por AUSÊNCIA de policy, e não só por ausência de GR
     "avisos_lidos",
     "vistoria_evidencias_perdidas",
     "saidas_a_campo",
+    /*
+      As duas de baixo entraram depois, e pelo mesmo motivo das de cima: as
+      duas prometem SELECT e INSERT por extenso no comentário da própria
+      migração, e as duas nasceram com policy `ALL`.
+
+      `vistoria_orgaos_indicados` (020) guarda o que o agente respondeu no
+      local, embaixo da assinatura do morador, e é o que o laudo imprime como
+      "acionar a Secretaria de Obras". `devolucoes_de_tarefa` (028) guarda a
+      recusa institucional de subir o morro, com motivo escrito e o nome de
+      quem assinou, e é a linha que responde "por que ninguém foi lá".
+
+      Apagáveis as duas, com um `GRANT DELETE` de amanhã, por quem tem
+      interesse em apagá-las.
+    */
+    "vistoria_orgaos_indicados",
+    "devolucoes_de_tarefa",
   ];
 
   it("nenhuma tabela append-only tem policy que alcance DELETE", async () => {
@@ -632,6 +648,30 @@ describe("Append-only é por AUSÊNCIA de policy, e não só por ausência de GR
        VALUES ($1,$2,$3,true,120, now(), now() + interval '2 hours',
                now() + interval '2 hours', gen_random_uuid())`,
       [orgA, ocId, usId],
+    );
+
+    /* O que o agente respondeu no local, e que o laudo imprime como "acionar a
+       Secretaria de Obras". Campo livre, sem `orgao_id`, para o caso não
+       depender de haver catálogo semeado. */
+    await db.query(
+      `INSERT INTO vistoria_orgaos_indicados
+         (organizacao_id, vistoria_id, orgao_id, nome)
+       VALUES ($1,$2,NULL,'Secretaria de Obras')`,
+      [orgA, vist.rows[0]!.id],
+    );
+    /* A recusa institucional de subir o morro, com motivo escrito e o nome de
+       quem assinou: a linha que responde "por que ninguém foi lá". */
+    const eq = await db.query<{ id: string }>(
+      "INSERT INTO equipes (organizacao_id, nome) VALUES ($1, 'Equipe do append-only') RETURNING id",
+      [orgA],
+    );
+    await db.query(
+      `INSERT INTO devolucoes_de_tarefa
+         (organizacao_id, ocorrencia_id, devolvida_por, equipe_id, motivo,
+          observacao, prazo_em, decidida_em, idempotency_key)
+       VALUES ($1,$2,$3,$4,'risco_para_a_equipe','Barranco instável na subida.',
+               now() - interval '3 hours', now(), gen_random_uuid())`,
+      [orgA, ocId, usId, eq.rows[0]!.id],
     );
 
     await db.query(
