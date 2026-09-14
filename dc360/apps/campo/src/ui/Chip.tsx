@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { View } from "react-native";
 
 import { Txt, useTema } from "./componentes";
@@ -45,10 +46,19 @@ export function Chip({
 }: {
   texto: string;
   /**
-   * O segundo canal, além da cor. Curto e de alto contraste: "✓", "!", "↑".
-   * Obrigatório de propósito, ver o comentário acima.
+   * O segundo canal, além da cor. Caractere curto de alto contraste ("✓", "!",
+   * "↑") ou um DESENHO, quando o conjunto de ícones tiver um que diga melhor.
+   *
+   * Continua OBRIGATÓRIO, e é isso que não muda: a escolha é entre caractere e
+   * desenho, nunca a ausência dos dois. Um padrão silencioso aqui seria o jeito
+   * curto de furar a regra de "nada se comunica só por cor".
+   *
+   * O desenho entrou porque a tela de equipe precisou de três selos com ícone e
+   * não pôde usar esta peça, criando uma cópia local com outro nome. Duas peças
+   * iguais com nomes diferentes divergem na primeira mudança, e a que ninguém
+   * lembra é a que fica errada.
    */
-  simbolo: string;
+  simbolo: string | ReactNode;
   tom?: TomDoChip;
   /** A frase que o leitor de tela fala, quando o texto do chip não bastar. */
   descricao?: string;
@@ -79,7 +89,14 @@ export function Chip({
         alignSelf: "flex-start",
       }}
     >
-      <Txt variante="corpoP" negrito cor={cores.cor}>{simbolo}</Txt>
+      {/*
+        Caractere vai dentro de `Txt`, para herdar tamanho e cor. Desenho vai
+        cru: ele já recebe tamanho e cor de quem o escolheu, e embrulhar um nó
+        em `Txt` no React Native muda como ele é medido.
+      */}
+      {typeof simbolo === "string"
+        ? <Txt variante="corpoP" negrito cor={cores.cor}>{simbolo}</Txt>
+        : simbolo}
       <Txt variante="corpoP" negrito cor={cores.cor}>{texto}</Txt>
     </View>
   );

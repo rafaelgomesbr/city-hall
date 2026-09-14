@@ -1,10 +1,15 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  ActivityIndicator, Pressable, StyleSheet, Text, View, useColorScheme,
+  ActivityIndicator, Animated, Easing, Pressable, StyleSheet, Text, View, useColorScheme,
   type StyleProp, type ViewStyle,
 } from "react-native";
 import { ROTULO_SEVERIDADE, type Severidade } from "@dc360/shared";
-import { espaco, fonte, linha, raio, temaClaro, temaEscuro, toque, type Tema } from "./tokens";
+import {
+  borda, easing, elevacao, espaco, fonte, icone as tamanhoDeIcone, linha, movimento,
+  opacidade, peso, raio, temaClaro, temaEscuro, toque, type Peso, type Tema,
+} from "./tokens";
+import { useFontes } from "./fontes";
+import { familiaDoTexto } from "./tipografia";
 import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
 
 /**
@@ -51,15 +56,24 @@ type PropsTexto = {
   discreto?: boolean;
   cor?: string;
   negrito?: boolean;
+  /**
+   * O peso exato, quando `negrito` (que é liga/desliga) não basta. Sai de
+   * `tokens.peso`, e só existe peso para o qual há arquivo de fonte.
+   */
+  peso?: Peso;
+  /** Protocolo, matrícula e número tabular, em Roboto Mono: dígito que se dita
+   *  por rádio precisa ser inconfundível. Ver `tipografia.ts`. */
   mono?: boolean;
   alinhamento?: "left" | "center" | "right";
   numeroDeLinhas?: number;
 };
 
 export function Txt({
-  children, variante = "corpo", discreto, cor, negrito, mono, alinhamento, numeroDeLinhas,
+  children, variante = "corpo", discreto, cor, negrito, peso: pesoPedido, mono,
+  alinhamento, numeroDeLinhas,
 }: PropsTexto) {
   const tema = useTema();
+  const fontes = useFontes();
   const tamanho = {
     display: fonte.display, h1: fonte.h1, h2: fonte.h2, h3: fonte.h3,
     corpo: fonte.corpo, corpoP: fonte.corpoP, legenda: fonte.legenda,
@@ -68,7 +82,8 @@ export function Txt({
     display: linha.display, h1: linha.h1, h2: linha.h2, h3: linha.h3,
     corpo: linha.corpo, corpoP: linha.corpoP, legenda: linha.legenda,
   }[variante];
-  const peso = negrito || variante.startsWith("h") || variante === "display" ? "700" : "400";
+  const pesoFinal: Peso = pesoPedido
+    ?? (negrito || variante.startsWith("h") || variante === "display" ? peso.negrito : peso.normal);
 
   return (
     <Text
@@ -76,12 +91,19 @@ export function Txt({
       style={{
         fontSize: tamanho,
         lineHeight: altura,
-        fontWeight: peso,
+        /*
+          `fontWeight` some quando a fonte do produto está registrada, e essa
+          linha é a que separa "funciona no simulador" de "funciona no
+          aparelho". Com uma família por peso (WorkSans-SemiBold e não WorkSans
+          mais 600), pedir peso POR CIMA da família faz o Android procurar uma
+          variante que não existe e desenhar o que quiser. Na reserva do
+          sistema é o contrário: a família é uma só e o peso é a única coisa
+          que produz hierarquia.
+        */
+        fontWeight: fontes.prontas ? undefined : pesoFinal,
+        fontFamily: familiaDoTexto({ mono, peso: pesoFinal, fontesProntas: fontes.prontas }),
         color: cor ?? (discreto ? tema.textoDiscreto : tema.texto),
         textAlign: alinhamento,
-        // Protocolo e matrícula em monoespaçada, como no painel: número que se
-        // dita por rádio precisa de dígito inconfundível.
-        fontFamily: mono ? (process.env["EXPO_OS"] === "ios" ? "Menlo" : "monospace") : undefined,
       }}
     >
       {children}
@@ -112,10 +134,24 @@ type PropsBotao = {
   testID?: string;
 };
 
+/*
+  O `Pressable` animado existe porque o retorno do toque precisa TRANSICIONAR.
+
+  Antes daqui o botão trocava a opacidade de 1 para 0,85 num quadro, sem
+  transição nenhuma: o dedo encosta, a cor pula, o dedo sai, a cor pula de
+  volta. `movimento.respostaAoToque` estava declarado em `tokens.ts` desde o
+  primeiro dia e nunca tinha sido usado por ninguém.
+*/
+const PressionavelAnimado = Animated.createAnimatedComponent(Pressable);
+
+/** Quanto o botão encolhe sob o dedo. */
+const ESCALA_SOB_O_DEDO = 0.97;
+
 export function Botao({
   titulo, onPress, tipo = "primario", desabilitado, carregando, descricao, estilo, testID,
 }: PropsBotao) {
   const tema = useTema();
+  const reduzirMovimento = useReducaoDeMovimento();
   const inativo = desabilitado || carregando;
 
   const cores = {
@@ -125,27 +161,62 @@ export function Botao({
     perigo: { fundo: tema.perigoFundo, texto: tema.perigoTexto, borda: "transparent" },
   }[tipo];
 
+  /*
+    Um valor só move as duas propriedades (escala e opacidade), porque elas são
+    o mesmo gesto visto de dois jeitos e separá-las abriria a chance de ficarem
+    dessincronizadas. Zero é repouso, um é sob o dedo.
+  */
+  const toqueEmCurso = useRef(new Animated.Value(0)).current;
+
+  function animarPara(destino: number, curva: readonly [number, number, number, number]) {
+    if (reduzirMovimento) {
+      /*
+        Com redução de movimento ligada o estado ainda MUDA, e é isso que
+        importa: quem pediu menos animação continua precisando saber que o
+        toque pegou. O que desaparece é a interpolação, não o retorno.
+      */
+      toqueEmCurso.setValue(destino);
+      return;
+    }
+    Animated.timing(toqueEmCurso, {
+      toValue: destino,
+      duration: movimento.respostaAoToque,
+      easing: Easing.bezier(...curva),
+      // Escala e opacidade rodam na thread de interface: o dedo não pode
+      // esperar o JavaScript, que neste aplicativo pode estar ocupado drenando
+      // a fila de sincronização.
+      useNativeDriver: true,
+    }).start();
+  }
+
   return (
-    <Pressable
+    <PressionavelAnimado
       onPress={onPress}
+      onPressIn={() => { animarPara(1, easing.entrada); }}
+      onPressOut={() => { animarPara(0, easing.saida); }}
       disabled={inativo}
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={descricao ?? titulo}
       accessibilityState={{ disabled: Boolean(inativo), busy: Boolean(carregando) }}
-      style={({ pressed }) => [
+      style={[
         {
           minHeight: toque,
           paddingHorizontal: espaco.e4,
           borderRadius: raio.normal,
           backgroundColor: cores.fundo,
-          borderWidth: tipo === "secundario" ? 1 : 0,
+          borderWidth: tipo === "secundario" ? borda.fio : 0,
           borderColor: cores.borda,
           alignItems: "center",
           justifyContent: "center",
           flexDirection: "row",
           gap: espaco.e2,
-          opacity: inativo ? 0.5 : pressed ? 0.85 : 1,
+          opacity: inativo
+            ? opacidade.inativo
+            : toqueEmCurso.interpolate({ inputRange: [0, 1], outputRange: [1, opacidade.aoToque] }),
+          transform: [{
+            scale: toqueEmCurso.interpolate({ inputRange: [0, 1], outputRange: [1, ESCALA_SOB_O_DEDO] }),
+          }],
         },
         estilo,
       ]}
@@ -157,10 +228,8 @@ export function Botao({
         foi defeito relatado, e o `testID` existe para o teste poder cobrar isso.
       */}
       {carregando && <ActivityIndicator testID="botao-ocupado" color={cores.texto} />}
-      <Text style={{ color: cores.texto, fontSize: fonte.corpo, fontWeight: "700" }}>
-        {titulo}
-      </Text>
-    </Pressable>
+      <Txt cor={cores.texto} peso={peso.negrito}>{titulo}</Txt>
+    </PressionavelAnimado>
   );
 }
 
@@ -173,10 +242,11 @@ export function Cartao({ titulo, children }: { titulo?: string; children: ReactN
   return (
     <View
       style={{
-        backgroundColor: tema.superficie,
+        // Fundo, contorno e sombra saem juntos do token, e é o token que sabe
+        // que a sombra preta do tema escuro precisa de superfície clareando
+        // junto para a peça existir.
+        ...elevacao(tema).cartao,
         borderRadius: raio.cartao,
-        borderWidth: 1,
-        borderColor: tema.borda,
         padding: espaco.e4,
         gap: espaco.e3,
       }}
@@ -187,17 +257,53 @@ export function Cartao({ titulo, children }: { titulo?: string; children: ReactN
   );
 }
 
-export function Aviso({ tom, children }: {
+/**
+ * O aviso, com quatro gravidades que precisam PARECER quatro.
+ *
+ * Duas coisas mudaram aqui, e a primeira era um defeito e não uma falta.
+ *
+ * **Alerta e perigo usavam o mesmo `!`.** O que separava um do outro era a cor
+ * de fundo, e só ela, seis linhas abaixo da regra deste arquivo que proíbe
+ * exatamente isso. Para quem não distingue vermelho de âmbar (e para qualquer
+ * um com sol batendo na tela, que é a situação normal deste aplicativo) as
+ * duas caixas eram a mesma caixa. Agora o perigo é `×`: forma fechada contra a
+ * forma vertical do `!`, distinguível de relance e sem depender de cor. Os
+ * dois sinais ficam na faixa Latin-1, que é o pedaço da Work Sans que
+ * garantidamente existe, então nenhum deles vira quadrado vazio no aparelho.
+ *
+ * **E o sinal ganhou nome para quem ouve.** Leitor de tela lia "exclamação" ou
+ * nada; agora ele lê "Perigo", "Atenção", "Informação" ou "Concluído" antes do
+ * texto. O sinal desenhado e a palavra falada dizem a mesma coisa, que é o que
+ * "nunca só por cor" quer dizer nas duas pontas.
+ *
+ * `titulo` e `acao` são NOVOS e OPCIONAIS. São 25 avisos espalhados pelo
+ * aplicativo, de quatro gravidades, todos com o mesmo tamanho, a mesma forma e
+ * o mesmo peso; sem título, o de perigo tem a mesma altura visual do de
+ * informação. Quem migra decide um a um, e nenhuma chamada existente muda.
+ */
+const SINAL_DO_AVISO = {
+  info: { simbolo: "i", nome: "Informação" },
+  sucesso: { simbolo: "✓", nome: "Concluído" },
+  alerta: { simbolo: "!", nome: "Atenção" },
+  perigo: { simbolo: "×", nome: "Perigo" },
+} as const;
+
+export function Aviso({ tom, titulo, acao, children }: {
   tom: "info" | "sucesso" | "alerta" | "perigo";
+  /** A frase curta que diz o que houve, acima do texto. */
+  titulo?: string;
+  /** O que dá para fazer a respeito, quando houver algo a fazer. */
+  acao?: { titulo: string; onPress: () => void; descricao?: string; testID?: string };
   children: ReactNode;
 }) {
   const tema = useTema();
   const cores = {
-    info: { fundo: tema.superficie2, texto: tema.texto, sinal: "i" },
-    sucesso: { fundo: tema.okFundo, texto: tema.okTexto, sinal: "✓" },
-    alerta: { fundo: tema.alertaFundo, texto: tema.alertaTexto, sinal: "!" },
-    perigo: { fundo: tema.perigoFundo, texto: tema.perigoTexto, sinal: "!" },
+    info: { fundo: tema.superficie2, texto: tema.texto },
+    sucesso: { fundo: tema.okFundo, texto: tema.okTexto },
+    alerta: { fundo: tema.alertaFundo, texto: tema.alertaTexto },
+    perigo: { fundo: tema.perigoFundo, texto: tema.perigoTexto },
   }[tom];
+  const sinal = SINAL_DO_AVISO[tom];
 
   return (
     <View
@@ -212,14 +318,47 @@ export function Aviso({ tom, children }: {
       }}
     >
       {/* O sinal é o "nunca só por cor": sem ele, alerta e perigo seriam a
-          mesma caixa para quem não distingue as duas cores. */}
-      <Text style={{ color: cores.texto, fontWeight: "800", fontSize: fonte.corpo, lineHeight: linha.corpo }}>
-        {cores.sinal}
+          mesma caixa para quem não distingue as duas cores. O rótulo de
+          acessibilidade diz a gravidade em palavra, porque o desenho do
+          caractere não chega a quem usa leitor de tela. */}
+      <Text
+        accessibilityLabel={sinal.nome}
+        style={{
+          color: cores.texto,
+          fontWeight: peso.negrito,
+          fontSize: fonte.corpo,
+          lineHeight: linha.corpo,
+          // Largura fixa para o texto de todos os avisos da tela começar na
+          // mesma coluna, independentemente da largura do caractere.
+          width: tamanhoDeIcone.rotulo,
+          textAlign: "center",
+        }}
+      >
+        {sinal.simbolo}
       </Text>
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, gap: espaco.e2 }}>
+        {titulo && (
+          <Txt variante="corpoP" peso={peso.negrito} cor={cores.texto}>{titulo}</Txt>
+        )}
         <Text style={{ color: cores.texto, fontSize: fonte.corpoP, lineHeight: linha.corpoP }}>
           {children}
         </Text>
+        {acao && (
+          /*
+            A ação fica DENTRO do aviso, e não numa linha solta embaixo dele.
+            O aviso diz o que houve; separar o que fazer a respeito foi o que
+            produziu, em mais de uma tela deste aplicativo, um parágrafo de
+            explicação no lugar onde deveria estar um botão.
+          */
+          <Botao
+            titulo={acao.titulo}
+            onPress={acao.onPress}
+            descricao={acao.descricao}
+            testID={acao.testID}
+            tipo="secundario"
+            estilo={{ alignSelf: "flex-start", paddingHorizontal: espaco.e3 }}
+          />
+        )}
       </View>
     </View>
   );
@@ -234,7 +373,7 @@ export function Selo({ texto, fundo, cor }: { texto: string; fundo: string; cor:
       paddingVertical: espaco.e1,
       alignSelf: "flex-start",
     }}>
-      <Text style={{ color: cor, fontSize: fonte.legenda, fontWeight: "700" }}>{texto}</Text>
+      <Text style={{ color: cor, fontSize: fonte.legenda, fontWeight: peso.negrito }}>{texto}</Text>
     </View>
   );
 }
@@ -254,11 +393,59 @@ export function SeloSeveridade({ severidade }: { severidade: Severidade | null }
   return <Selo texto={ROTULO_SEVERIDADE[severidade]} fundo={cores.fundo} cor={cores.cor} />;
 }
 
-export function Vazio({ titulo, descricao }: { titulo: string; descricao?: string }) {
+/**
+ * O estado vazio, que na maioria das vezes é uma RESPOSTA e não uma ausência.
+ *
+ * Os quatro estados vazios do aplicativo eram idênticos: título e uma frase
+ * cinza. O da fila é o exemplo que dói, porque ele responde a pergunta que o
+ * agente faz depois de descer o morro ("o meu trabalho chegou?"), e respondia
+ * em cinza claro, sem marca nenhuma, do mesmo jeito que "nenhuma tarefa
+ * encontrada com esse filtro".
+ *
+ * `icone` e `acao` são NOVOS e OPCIONAIS, e nenhuma chamada existente muda.
+ * O ícone entra como nó e não como nome porque o conjunto de ícones é de outra
+ * frente: esta peça precisa aceitar o que vier, e aceitar nada.
+ */
+export function Vazio({ titulo, descricao, icone, acao }: {
+  titulo: string;
+  descricao?: string;
+  /** O desenho que diz de que vazio se trata, dentro do círculo. */
+  icone?: ReactNode;
+  /** A saída, quando existe uma. Vazio sem saída é beco. */
+  acao?: { titulo: string; onPress: () => void; descricao?: string; testID?: string };
+}) {
+  const tema = useTema();
   return (
-    <View style={{ padding: espaco.e6, gap: espaco.e2, alignItems: "center" }}>
+    <View style={{ padding: espaco.e6, gap: espaco.e3, alignItems: "center" }}>
+      {icone && (
+        <View
+          // O ícone é decoração de um bloco que já tem título e descrição em
+          // texto: anunciá-lo de novo só faria o leitor de tela repetir.
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{
+            width: tamanhoDeIcone.vazio + espaco.e4,
+            height: tamanhoDeIcone.vazio + espaco.e4,
+            borderRadius: raio.pilula,
+            backgroundColor: tema.superficie2,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {icone}
+        </View>
+      )}
       <Txt variante="h3" alinhamento="center">{titulo}</Txt>
       {descricao && <Txt variante="corpoP" discreto alinhamento="center">{descricao}</Txt>}
+      {acao && (
+        <Botao
+          titulo={acao.titulo}
+          onPress={acao.onPress}
+          descricao={acao.descricao}
+          testID={acao.testID}
+          estilo={{ marginTop: espaco.e2 }}
+        />
+      )}
     </View>
   );
 }
@@ -385,7 +572,7 @@ export function Carregando({ mensagem, aoDesistir, rotuloDaSaida = "Parar de esp
 
 export function Separador() {
   const tema = useTema();
-  return <View style={{ height: 1, backgroundColor: tema.borda }} />;
+  return <View style={{ height: borda.fio, backgroundColor: tema.borda }} />;
 }
 
 export const estilos = StyleSheet.create({

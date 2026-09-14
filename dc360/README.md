@@ -13,7 +13,7 @@ build) valem lá, não aqui.
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 318 testes de fonte do painel mais 58 verificações no navegador no modo local e 103 contra a API |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 700 testes da API passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 126 testes de unidade do motor de campo e 10 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 341 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 727 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios e não alcança dado de cidadão | Pronto, 39 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
@@ -671,6 +671,53 @@ real. Ele calcula contraste sobre tokens, não sobre pixels renderizados, então
 não vê texto sobre imagem nem sobreposição acidental. Substitui a lembrança de
 um revisor, que era o que sustentava as regras antes.
 
+## O aplicativo de campo passou a ter os mesmos portões
+
+Os dois portões acima varriam `apps/web/src` e mais nada. O aplicativo não
+tinha nenhum, e a diferença não era teórica: a tela de vistoria apagava
+fotografia por um botão de 32 pontos, vinte abaixo da régua de 52 que o próprio
+`apps/campo/src/ui/tokens.ts` declara, e a barra de abas escrevia `#000000` e
+`#FFFFFF` à mão. As mesmas linhas, no painel, reprovariam.
+
+Pior que isso, `tokens.ts` prometia por escrito um portão que ninguém tinha
+escrito: dizia que os valores eram cópia de `apps/web/src/estilos/tokens.css` e
+que "um teste reprova se divergirem". Promessa de portão é mais perigosa que
+portão nenhum, porque quem lê para de conferir à mão.
+
+Os três portões moram em `scripts/`, ao lado de
+`entitlements-do-ios.test.mjs`, e não dentro de `apps/campo`. A razão é de
+ambiente: o pacote do aplicativo roda em `jest-expo`, que não tem os tipos de
+Node, então varredura de arquivo lá dentro significaria empurrar `node:fs` e
+`__dirname` para um pacote que não os tem. `npm run test:scripts` já os roda,
+e ele está dentro de `npm run verificar`.
+
+| Portão | O que ele cobra |
+| --- | --- |
+| `portao-design-do-aplicativo` | Cor, raio, duração, peso de fonte e sombra fora de token reprovam, e `Alert.alert` também, com escape nomeado que declara quantas linhas dispensa |
+| `portao-acessibilidade-do-aplicativo` | Contraste AA calculado par a par nos dois temas, alvo de toque abaixo de 52 e tocável que o leitor de tela não sabe anunciar |
+| `paridade-de-tokens-do-aplicativo` | A paridade prometida: primitiva é igualdade nos dois sentidos, semântico é igualdade por par mapeado, e onde as escalas divergem a divergência é declarada com razão |
+
+Duas coisas valem registro, porque são o que separa portão de decoração.
+
+A primeira é que a varredura apaga COMENTÁRIO antes de medir, e procura o
+marcador de exceção na fonte com comentário. Metade dos arquivos do aplicativo
+tem parágrafos contando o defeito que a linha abaixo conserta, e vários citam
+`Alert.alert` e cores em hexadecimal pelo nome. Portão que pune quem explica
+ensina a apagar a explicação.
+
+A segunda é que toda exceção e toda pendência **sabem morrer**. A dispensa de
+peso de fonte valia enquanto não existisse token de peso, e um caso reprova no
+dia em que ele passar a existir. A pendência de contraste da borda de controle
+(1.30:1 no claro e 1.33:1 no escuro, contra os 3:1 da WCAG 1.4.11) aparece na
+saída da execução e some obrigatoriamente quando o número passar. Exceção
+temporária que ninguém poda é exceção permanente.
+
+A rodada de mutação reintroduziu cada defeito e viu cada portão morder com
+mensagem precisa: alvo de 32, rótulo removido, os sete literais de design de
+uma vez, primitiva fora por um dígito, primitiva que só existe de um lado,
+neutro do tema escuro escurecido, e as duas declarações de dívida consertadas
+por baixo.
+
 ## Quem manda em quem
 
 `CLAUDE.md` divide o trabalho por papel, e a tabela de permissões diz o que
@@ -956,7 +1003,7 @@ npm test                    # 1434 testes em seis pacotes
 npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 148 testes do banco
 npm run test:api            # 700 testes da API
 npm run test --workspace @dc360/campo   # 126 testes do motor de campo
-npm run test:campo          # tipos e os 341 testes do aplicativo de campo
+npm run test:campo          # tipos e os 727 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
 ```

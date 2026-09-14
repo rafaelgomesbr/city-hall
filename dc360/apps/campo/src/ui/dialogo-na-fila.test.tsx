@@ -311,7 +311,10 @@ describe("a coleta arquivada tem saída pela tela", () => {
     await abrirATela();
 
     expect(screen.queryByText("1 coleta na fila")).toBeNull();
-    expect(screen.getByText("1 coleta arquivada")).toBeTruthy();
+    /* O número saiu de dentro da frase do título e virou contador da seção; o
+       que o caso guarda é o mesmo: a arquivada aparece, com seção e número
+       próprios, e fora do total que precisa poder zerar. */
+    expect(screen.getByLabelText("Arquivadas, 1 item")).toBeTruthy();
   });
 });
 

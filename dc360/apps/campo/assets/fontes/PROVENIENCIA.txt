@@ -1,0 +1,28 @@
+De onde vieram estes arquivos, e por que eles estao aqui dentro.
+
+O CLAUDE.md deste repositorio fixa Work Sans no corpo e Roboto Mono em
+protocolo, matricula e numero tabular. O painel web carrega as duas pelo
+Google Fonts; o aplicativo de campo nao pode fazer isso, porque ele e usado no
+morro, sem sinal. Produto cuja tipografia depende de rede muda de cara
+justamente no dia de temporal. Por isso os arquivos sao embarcados.
+
+Foram baixados do servico oficial de fontes do Google (fonts.gstatic.com), nas
+versoes que a folha de estilo publicada apontava em 13/09/2026:
+
+  WorkSans-Regular.ttf     Work Sans v24, peso 400
+  WorkSans-SemiBold.ttf    Work Sans v24, peso 600
+  WorkSans-Bold.ttf        Work Sans v24, peso 700
+  RobotoMono-Regular.ttf   Roboto Mono v31, peso 400
+  RobotoMono-Bold.ttf      Roboto Mono v31, peso 700
+
+Sao instancias estaticas, e nao a fonte variavel. A razao e pratica: o React
+Native nao seleciona eixo de peso de fonte variavel de forma confiavel no
+Android, e o Android barato e o aparelho de campo deste produto.
+
+Cinco arquivos e nao dezoito: cada peso embarcado corresponde a um valor de
+`peso` em `src/ui/tokens.ts`, e peso sem arquivo e peso que o Android nao
+sintetiza, ele cai no mais proximo em silencio.
+
+Licenca: SIL Open Font License 1.1, texto integral em OFL-WorkSans.txt e
+OFL-RobotoMono.txt, nesta mesma pasta. A OFL permite embarcar e redistribuir
+com o produto; ela proibe vender a fonte sozinha, o que nao e o caso aqui.

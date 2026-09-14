@@ -37,15 +37,57 @@ export const tinta = {
 } as const;
 
 export type Tema = {
+  /**
+   * Qual dos dois temas é este.
+   *
+   * Não é enfeite nem duplicata do `useColorScheme`: é o que permite a um
+   * token DERIVADO decidir sozinho. A elevação é o caso que obrigou a criar
+   * este campo. Sombra preta sobre fundo quase preto não aparece, então a
+   * escala de elevação precisa de valores diferentes por tema, e quem a
+   * calcula recebe o tema e mais nada. Sem esta bandeira, cada componente
+   * teria que perguntar de novo ao sistema qual esquema está ativo, e o dia em
+   * que um deles esquecesse produziria uma peça sem elevação nenhuma no
+   * escuro, defeito que ninguém vê numa captura de tela clara.
+   */
+  escuro: boolean;
   fundo: string;
   superficie: string;
   superficie2: string;
   borda: string;
+  /**
+   * A borda do que se INTERAGE, e ela é separada da de cima de propósito.
+   *
+   * A WCAG 1.4.11 exige 3:1 para o que identifica um componente de interação.
+   * Medido no portão de acessibilidade: `borda` sozinha dava 1.30:1 no tema
+   * claro e 1.33:1 no escuro sobre o cartão, e é a única coisa dizendo onde um
+   * campo começa. Um campo de formulário praticamente invisível é a definição
+   * do problema que essa regra existe para impedir.
+   *
+   * Não bastava escurecer `borda`, porque ela também desenha borda de cartão e
+   * separador. Esses são decoração, não controle, e escurecê-los deixaria o
+   * aplicativo inteiro pesado sem que a norma peça.
+   *
+   * Sem cor nova, e com os mesmos degraus que o painel escolheu em
+   * `--ds-border-controle`: `t500` no claro, `t400` no escuro. Os dois já eram
+   * primitivas, e a paridade entre as duas pontas continua fechando.
+   */
+  bordaControle: string;
   texto: string;
   textoDiscreto: string;
   destaque: string;
   destaqueEscuro: string;
   sobreDestaque: string;
+  /**
+   * A cor do anel de foco, que NÃO é `destaque`.
+   *
+   * No tema claro `destaque` é violeta 700 porque ele é fundo de texto branco
+   * e precisa passar em AA; o anel de foco não tem texto em cima, é contorno,
+   * e o painel usa violeta 600 nele (`--ds-focus-ring` em `tokens.css`). Usar
+   * `destaque` aqui faria o anel do aplicativo divergir do anel do painel sem
+   * ninguém perceber, que é exatamente o tipo de deriva que este arquivo
+   * existe para impedir.
+   */
+  anelDeFoco: string;
   okTexto: string; okFundo: string;
   alertaTexto: string; alertaFundo: string;
   perigoTexto: string; perigoFundo: string;
@@ -57,15 +99,18 @@ export type Tema = {
 };
 
 export const temaClaro: Tema = {
+  escuro: false,
   fundo: tinta.t50,
   superficie: tinta.branco,
   superficie2: tinta.t100,
   borda: tinta.t200,
+  bordaControle: tinta.t500,
   texto: tinta.t900,
   textoDiscreto: tinta.t500,
   destaque: violeta.v700,
   destaqueEscuro: violeta.v800,
   sobreDestaque: tinta.branco,
+  anelDeFoco: violeta.v600,
   okTexto: "#14702F", okFundo: "#E6F6EA",
   alertaTexto: "#92400E", alertaFundo: "#FEF3C7",
   perigoTexto: "#C92A2A", perigoFundo: "#FDEBEB",
@@ -76,15 +121,18 @@ export const temaClaro: Tema = {
 };
 
 export const temaEscuro: Tema = {
+  escuro: true,
   fundo: tinta.t950,
   superficie: tinta.t850,
   superficie2: tinta.t800,
   borda: tinta.t700,
+  bordaControle: tinta.t400,
   texto: tinta.gelo,
   textoDiscreto: tinta.t400,
   destaque: violeta.v400,
   destaqueEscuro: violeta.v300,
   sobreDestaque: tinta.t950,
+  anelDeFoco: violeta.v400,
   okTexto: "#69DB7C", okFundo: "#17301D",
   alertaTexto: "#FCC419", alertaFundo: "#332B10",
   perigoTexto: "#FF8787", perigoFundo: "#331D1D",
@@ -136,6 +184,38 @@ export const papel = {
   /** A tarja de "isto não é o documento", também fixa nos dois temas. */
   avisoFundo: "#FEF3C7",
   avisoTinta: "#92400E",
+} as const;
+
+/**
+ * A paleta do VISOR DA CÂMERA, que não segue o tema, pelo mesmo motivo do
+ * `papel` acima.
+ *
+ * Existe neste aplicativo uma classe de superfície que não é superfície de
+ * aplicativo. Ali é papel de documento, aqui é o visor de uma câmera, e os dois
+ * são o que são no mundo, nos dois temas.
+ *
+ * As duas escolhas, e nenhuma é estética:
+ *
+ * - o fundo é preto porque qualquer outra cor ao redor do enquadramento altera
+ *   como o olho lê a imagem, e o que o agente está enquadrando é a trinca na
+ *   parede que vai justificar uma interdição;
+ * - o obturador é branco e redondo porque é o que toda câmera de telefone
+ *   desenha, e quem está com uma mão no aparelho, luva na outra e o morador
+ *   esperando não procura botão novo.
+ *
+ * PRETO E BRANCO PUROS, e não `tinta.t950` e `tinta.branco`: neutro de paleta
+ * tem matiz (o nosso puxa para o azul), e matiz encostado na imagem da câmera
+ * aparece como uma dominante de cor que não está na cena.
+ *
+ * Nasceu como constante solta dentro da tela de vistoria, com escape declarado
+ * no portão de design. Mora aqui para a exceção ser uma decisão visível no
+ * sistema, e não um literal que a próxima varredura vai reencontrar.
+ */
+export const visor = {
+  /** O que fica em volta do enquadramento. */
+  fundo: "#000000",
+  /** O anel do obturador e o traço do que se sobrepõe à imagem. */
+  obturador: "#FFFFFF",
 } as const;
 
 export const espaco = {
@@ -195,3 +275,237 @@ export const movimento = {
   mudancaDeEstado: 260,
   climax: 520,
 } as const;
+
+/**
+ * PESO DE FONTE.
+ *
+ * Três e não nove, e a razão é o arquivo de fonte: peso que não tem arquivo
+ * embarcado é peso que o Android NÃO sintetiza. Ele cai no mais próximo que
+ * existir, em silêncio, e o resultado é uma hierarquia que existe no
+ * simulador do iOS e some no aparelho de campo. Ver `tipografia.ts`, que
+ * carrega exatamente um arquivo para cada valor daqui.
+ *
+ * O nome é a intenção e não o número: `forte` é o rótulo que precisa se
+ * separar do valor ao lado, `negrito` é título e número que manda na tela.
+ * Quem escrever `fontWeight: "800"` num componente está pedindo um arquivo
+ * que não existe.
+ */
+export const peso = {
+  normal: "400",
+  forte: "600",
+  negrito: "700",
+} as const;
+
+export type Peso = (typeof peso)[keyof typeof peso];
+
+/**
+ * LARGURA DE BORDA.
+ *
+ * `borderWidth: 1` estava escrito à mão em sete lugares, e um deles era o
+ * contorno da barra de abas. Um número solto repetido sete vezes é uma
+ * decisão que ninguém tomou: ela só aconteceu.
+ *
+ * Os nomes dizem o papel, porque os três fazem coisas diferentes. `fio` é o
+ * contorno normal de superfície, que existe para a peça ter onde terminar.
+ * `enfase` é o contorno que MUDA (campo em foco, cartão selecionado): ele
+ * dobra a espessura para o estado ser perceptível sem depender de cor, que é
+ * a regra da casa. `marca` é a faixa lateral que classifica um cartão inteiro,
+ * e por isso é larga o suficiente para ser lida de relance, com o telefone na
+ * mão e a chuva na tela.
+ */
+export const borda = { fio: 1, enfase: 2, marca: 4 } as const;
+
+/**
+ * OPACIDADE.
+ *
+ * Só o que comunica estado, e cada valor com o estado que ele nomeia. Não
+ * existe aqui "opacidade de texto secundário": texto discreto tem COR própria
+ * (`textoDiscreto`), com contraste verificado, e baixar a opacidade de um
+ * texto é justamente como se produz um cinza que reprova em AA sem ninguém
+ * calcular nada.
+ *
+ * `aoToque` é o retorno do dedo, e é sutil de propósito: some junto com o
+ * toque e não pode parecer que a tela apagou. `inativo` é o oposto, precisa
+ * ser óbvio, porque botão desabilitado que parece habilitado faz o agente
+ * tocar três vezes achando que o aparelho travou.
+ */
+export const opacidade = {
+  inativo: 0.5,
+  aoToque: 0.85,
+  /** O véu escuro por trás de uma folha (diálogo, painel que sobe). */
+  veu: 0.55,
+} as const;
+
+/**
+ * TAMANHO DE ÍCONE.
+ *
+ * Quatro degraus, nomeados pelo lugar onde o ícone está e não pelo número,
+ * porque é o lugar que decide o tamanho: ícone dentro de uma linha de texto
+ * precisa acompanhar a altura daquela linha, e ícone de estado vazio precisa
+ * ser visto do outro lado da mesa.
+ *
+ * `inline` casa com a altura de `legenda`, `rotulo` com a de `corpoP` e
+ * `acao` com a de `corpo`, então um ícone ao lado de um texto nunca desalinha
+ * a linha de base por escolha de tamanho. Este grupo NÃO tem equivalente no
+ * painel: lá o ícone é SVG dimensionado em `em`, e aqui é ponto.
+ */
+export const icone = { inline: 16, rotulo: 20, acao: 24, vazio: 48 } as const;
+
+/**
+ * ANEL DE FOCO.
+ *
+ * Existe porque o aplicativo tem campo de texto, e campo de texto em foco
+ * precisa ser reconhecível sem depender da cor da borda, que é o que ele fazia
+ * (nada: a borda era a mesma em repouso e em foco).
+ *
+ * `folga` é o espaço entre a peça e o anel, e não é estética: sem ela o anel
+ * encosta no contorno da própria peça e os dois viram um traço grosso só, que
+ * some para quem tem baixa visão. A cor sai de `tema.anelDeFoco`. Os dois
+ * números são os mesmos do `--ds-focus-ring` do painel (2 px de anel depois de
+ * 2 px do fundo).
+ */
+export const foco = { largura: 2, folga: 2 } as const;
+
+/**
+ * ELEVAÇÃO.
+ *
+ * Aqui estava o buraco mais caro do arquivo: o aplicativo inteiro tinha UMA
+ * sombra, escrita à mão dentro da barra de abas, com cinco propriedades e um
+ * `#000000` literal. Sombra literal não acompanha o tema, e o efeito não é
+ * "fica feio": é sumir.
+ *
+ * **Por que isto é uma função e não um objeto.** Sombra preta sobre fundo
+ * quase preto não aparece. É o defeito clássico do modo escuro, e uma escala
+ * de elevação copiada do tema claro entrega, no escuro, três níveis
+ * indistinguíveis. O painel já resolveu isso em `tokens.css`, com
+ * `--ds-shadow-1/2/3` redefinidos no bloco do tema escuro: a sombra do escuro
+ * é preto puro com opacidade MUITO maior (0,45 a 0,60 contra 0,06 a 0,16). Os
+ * valores daqui são aqueles, e é por isso que a elevação precisa receber o
+ * tema para existir.
+ *
+ * **A segunda metade da resposta, que a sombra sozinha não dá.** Mesmo com
+ * 60% de opacidade, uma sombra preta sobre `#101519` é um degradê que quase
+ * ninguém enxerga na rua, de dia. Então no escuro quem carrega a elevação é a
+ * SUPERFÍCIE: a peça elevada clareia (`superficie` para `superficie2`), que é
+ * como o próprio painel separa camada no escuro. A sombra fica como reforço,
+ * não como único sinal. No claro é o contrário: a superfície é branca nos dois
+ * níveis e quem separa é a sombra.
+ *
+ * Por isso o que sai daqui é um estilo COMPLETO e espalhável: fundo, contorno
+ * e sombra juntos. Espalhar metade produziria exatamente o cartão invisível
+ * que este bloco existe para evitar.
+ *
+ * Os nomes são o papel na tela, nunca o número:
+ *
+ * - `cartao`: a superfície que se separa da página. É o chão de quase tudo.
+ * - `flutuante`: o que passa POR CIMA do conteúdo e continua ali enquanto ele
+ *   rola (barra, faixa fixa, menu suspenso).
+ * - `folha`: o que cobre a tela e pede decisão (diálogo, painel que sobe). É o
+ *   topo da escala, e não existe nível acima dele de propósito: se tudo pode
+ *   ser o mais alto, nada é.
+ *
+ * Uma conversão declarada: no CSS o terceiro número de `box-shadow` é o raio
+ * de desfoque, e no React Native `shadowRadius` é cerca de metade disso. Os
+ * valores abaixo já estão convertidos, então a sombra do aplicativo e a do
+ * painel se parecem em vez de baterem no papel e divergirem na tela. E o
+ * `--ds-shadow-1` do claro tem DUAS camadas, que o React Native não sabe
+ * desenhar: ficou a de baixo, que é a que dá a forma.
+ */
+export type EstiloDeElevacao = {
+  backgroundColor: string;
+  borderWidth: number;
+  borderColor: string;
+  shadowColor: string;
+  shadowOpacity: number;
+  shadowRadius: number;
+  shadowOffset: { width: number; height: number };
+  /** O Android ignora as quatro de cima e lê só esta. */
+  elevation: number;
+};
+
+export type NivelDeElevacao = "cartao" | "flutuante" | "folha";
+
+export function elevacao(tema: Tema): Record<NivelDeElevacao, EstiloDeElevacao> {
+  /*
+    A cor da sombra também troca com o tema, e não por capricho. No claro,
+    preto puro sobre um neutro quente lê como sujeira; o painel usa a tinta
+    mais escura da paleta (`ink-950`), que é a mesma coisa que este arquivo
+    chama de `tinta.t950`. No escuro o fundo JÁ é essa tinta, então a única
+    sombra que ainda pode escurecer alguma coisa é preto puro.
+  */
+  const corDaSombra = tema.escuro ? "#000000" : tinta.t950;
+
+  /* No escuro a peça elevada clareia; no claro ela continua branca. */
+  const superficieElevada = tema.escuro ? tema.superficie2 : tema.superficie;
+
+  return {
+    cartao: {
+      backgroundColor: tema.superficie,
+      borderWidth: borda.fio,
+      borderColor: tema.borda,
+      shadowColor: corDaSombra,
+      shadowOpacity: tema.escuro ? 0.45 : 0.1,
+      shadowRadius: 1.5,
+      shadowOffset: { width: 0, height: 1 },
+      elevation: 2,
+    },
+    flutuante: {
+      backgroundColor: superficieElevada,
+      borderWidth: borda.fio,
+      borderColor: tema.borda,
+      shadowColor: corDaSombra,
+      shadowOpacity: tema.escuro ? 0.5 : 0.1,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 8,
+    },
+    folha: {
+      backgroundColor: superficieElevada,
+      borderWidth: borda.fio,
+      borderColor: tema.borda,
+      shadowColor: corDaSombra,
+      shadowOpacity: tema.escuro ? 0.6 : 0.16,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 12 },
+      elevation: 16,
+    },
+  };
+}
+
+/**
+ * EASING, nomeado pela intenção.
+ *
+ * Quatro curvas estavam escolhidas DENTRO dos componentes
+ * (`Easing.out(Easing.quad)`, `Easing.out(Easing.cubic)`,
+ * `Easing.out(Easing.back(2))`), o que quer dizer que cada peça nova escolhia
+ * de novo, por gosto, e o aplicativo passou a ter ritmos diferentes em telas
+ * vizinhas.
+ *
+ * São três, pareadas com as três durações de `movimento`, porque duração e
+ * curva são a mesma decisão partida em dois números. O nome diz o que a peça
+ * está fazendo, nunca o formato da curva: quem escreve a tela sabe se o
+ * elemento está entrando ou saindo, e não sabe (nem deve precisar saber) se
+ * quer uma quadrática.
+ *
+ * - `entrada`: o que aparece e o que muda de estado. Desacelera no fim, então
+ *   chega no lugar em vez de bater. É a curva padrão do painel
+ *   (`--ds-ease: cubic-bezier(0.2, 0, 0, 1)`).
+ * - `saida`: o que deixa a tela. Sai andando, e o olho não precisa acompanhar
+ *   o fim. É o `--ds-ease-in` do painel.
+ * - `climax`: passa do alvo e volta. Uma curva com excesso é a diferença
+ *   entre "o estado mudou" e "conseguimos": ela existe para o momento em que a
+ *   fila zera, e para mais nada.
+ *
+ * Os valores são pontos de controle de Bézier, e não objetos de `Easing`, para
+ * este arquivo continuar sendo dado puro: quem anima chama
+ * `Easing.bezier(...easing.entrada)`. Um token que já importasse o React
+ * Native não poderia ser lido por portão de qualidade nem por teste de
+ * paridade com o painel.
+ */
+export const easing = {
+  entrada: [0.2, 0, 0, 1],
+  saida: [0, 0, 0.2, 1],
+  climax: [0.34, 1.56, 0.64, 1],
+} as const;
+
+export type CurvaDeEasing = readonly [number, number, number, number];

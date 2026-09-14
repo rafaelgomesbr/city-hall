@@ -308,16 +308,29 @@ describe("a confirmação de que a vistoria foi guardada", () => {
   it("o botão diz para onde leva, e é ele que volta para a lista", async () => {
     await concluirAVistoria();
 
-    expect(screen.getByTestId("dialogo-acao").props.accessibilityLabel)
+    /*
+      A confirmação deixou de ser `Dialogo` e virou uma TELA de chegada, com
+      emblema, resumo do que foi guardado e as duas saídas. O identificador
+      mudou de `dialogo-acao` para `voltar-depois-de-guardar` por causa disso, e
+      a garantia que este caso guarda é a mesma de antes: o botão nomeia o
+      destino em vez de dizer "Entendi", e é o toque nele, e não a conclusão,
+      que volta para a lista.
+    */
+    expect(screen.getByTestId("voltar-depois-de-guardar").props.accessibilityLabel)
       .toBe("Voltar para a lista de tarefas");
 
-    await act(async () => { fireEvent.press(screen.getByTestId("dialogo-acao")); });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("voltar-depois-de-guardar"));
+    });
 
     expect(router.back).toHaveBeenCalledTimes(1);
   });
 
-  it("não oferece recusa, porque não existe desfazer: a coleta já está na fila", async () => {
+  it("não oferece desfazer, porque a coleta já está na fila", async () => {
     await concluirAVistoria();
+    /* Nem o diálogo antigo nem a tela nova têm recusa: não existe desfazer
+       aqui. As duas saídas levam a lugares, nenhuma cancela o que foi feito. */
     expect(screen.queryByTestId("dialogo-recusa")).toBeNull();
+    expect(screen.queryByText(/Cancelar/)).toBeNull();
   });
 });

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { View, type ColorValue } from "react-native";
+import { Easing, View, type ColorValue } from "react-native";
 import { Redirect, Tabs, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { FilaDeSincronizacao, ResumoFila } from "@dc360/campo";
@@ -10,7 +10,10 @@ import { enderecoDaApi } from "../../dados/api";
 import { Txt, useTema } from "../../ui/componentes";
 import { FaixaDeSincronizacao, decidirFaixa, type EstadoDaFaixa } from "../../ui/FaixaDeSincronizacao";
 import { IconeEnvio, IconeEquipe, IconeTarefas } from "../../ui/icones";
-import { espaco, raio, toque } from "../../ui/tokens";
+import { familiaDoTexto } from "../../ui/tipografia";
+import { useFontes } from "../../ui/fontes";
+import { useReducaoDeMovimento } from "../../ui/useReducaoDeMovimento";
+import { borda, easing, espaco, fonte, icone, movimento, peso, raio, toque } from "../../ui/tokens";
 
 /**
  * A área autenticada, e a faixa de conectividade que fica no topo dela.
@@ -23,13 +26,35 @@ import { espaco, raio, toque } from "../../ui/tokens";
  */
 
 /**
- * Altura da pílula do menu.
+ * A pílula do item ativo, e a conta que decide o tamanho dela.
  *
- * `toque` é o alvo mínimo do design system (52, e não 44: ver o comentário no
- * arquivo de tokens). A folga extra acomoda a pílula do item ativo sem
- * espremer o rótulo, que continua sendo obrigatório.
+ * A pílula SOBREVIVEU à troca da barra flutuante pela barra padrão, e a razão
+ * é a regra da casa: nada neste aplicativo se comunica só por cor. Sem ela, a
+ * única diferença entre a aba aberta e as outras duas seria o violeta do traço
+ * e do rótulo, porque a palavra embaixo do ícone é a mesma nos dois estados.
+ * Quem não distingue violeta de cinza, ou está com sol forte na tela, ficaria
+ * sem saber onde está. Um retângulo preenchido atrás do ícone é uma pista de
+ * FORMA, e forma não depende de enxergar cor.
+ *
+ * O que mudou foi o tamanho, e ele agora sai de uma conta em vez de gosto. A
+ * barra flutuante tinha altura própria (60) e podia acomodar o que quisesse;
+ * a barra padrão recebe do sistema 49 pontos mais a área segura, e o item
+ * dentro dela gasta 5 de recuo em cima e embaixo. Sobram 39 para o ícone e o
+ * rótulo juntos. O rótulo é `fonte.legenda` (12), que ocupa cerca de 15 com a
+ * entrelinha que o React Native calcula sozinho. O que sobra para a pílula são
+ * 24, que é exatamente `icone.acao`, com o ícone de `icone.rotulo` (20) dentro
+ * e 2 de folga de cada lado. Pílula maior que isso não some: ela EMPURRA o
+ * rótulo para fora da barra, e o rótulo é obrigatório aqui.
  */
-const ALTURA_MENU = toque + espaco.e2;
+const PILULA = {
+  /*
+    Mais larga que alta, senão ela lê como bolha em volta do ícone em vez de
+    pílula. A largura sai do alvo de toque menos uma folga, para o desenho
+    nunca ficar mais largo que o alvo mínimo que o item já garante.
+  */
+  largura: toque - espaco.e2,
+  altura: icone.acao,
+} as const;
 
 /**
  * O ícone dentro da pílula arredondada.
@@ -52,16 +77,19 @@ function IconeEmPilula({
 }) {
   return (
     <View
+      /* O identificador existe para o portão conseguir provar que a segunda
+         pista continua na tela depois de a barra virar padrão. */
+      testID={ativo ? "pilula-da-aba-ativa" : "pilula-da-aba"}
       style={{
-        width: 44,
-        height: 26,
+        width: PILULA.largura,
+        height: PILULA.altura,
         borderRadius: raio.pilula,
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: ativo ? fundoAtivo : "transparent",
       }}
     >
-      <Icone cor={cor} tamanho={22} />
+      <Icone cor={cor} tamanho={icone.rotulo} />
     </View>
   );
 }
@@ -71,6 +99,8 @@ export default function LayoutDoAgente() {
   const tema = useTema();
   const margens = useSafeAreaInsets();
   const sinal = useSinal();
+  const fontes = useFontes();
+  const reduzirMovimento = useReducaoDeMovimento();
 
   const [resumo, setResumo] = useState<ResumoFila | null>(null);
   const filaRef = useRef<FilaDeSincronizacao | null>(null);
@@ -126,7 +156,57 @@ export default function LayoutDoAgente() {
   const deOutroAutor = resumo?.deOutroAutor ?? 0;
   // O que a aba de envio mostra no número: tudo que ainda não chegou lá.
   const naFila = pendentes + bloqueados + deOutroAutor;
-  const recuo = margens;
+
+  /*
+    A PASSAGEM DE UMA TELA PARA OUTRA, que até aqui não existia.
+
+    As três abas e a vistoria trocavam sem nenhum movimento: uma tela sumia e
+    a outra aparecia no mesmo quadro. Num aplicativo de formulário longo isso
+    não é neutro, é desorientador, porque nada diz de onde para onde se foi.
+
+    `shift` e não `fade`: as telas deslizam 50 pontos na direção em que estão
+    na barra, cruzando a opacidade. A direção é o que carrega informação, e ela
+    é de graça aqui, porque o React Navigation a tira da POSIÇÃO da aba: sair
+    de Tarefas para Envio vem da direita, voltar vem da esquerda. A vistoria é
+    a última rota declarada neste arquivo, então ela SEMPRE entra pela direita,
+    que é como o olho lê "avancei para dentro do trabalho". Um cruzamento de
+    opacidade puro diria só "a tela trocou".
+
+    A duração é `respostaAoToque` e não `mudancaDeEstado`, e a diferença
+    importa: isto responde ao dedo do agente, não é algo que mudou sozinho.
+    Acima de uns 150 ms uma troca de aba começa a parecer que o toque não
+    pegou, e a pessoa toca de novo. O padrão da biblioteca aqui é 150 ms com
+    uma curva escolhida por ela; o nosso é o token, com a curva de entrada do
+    produto, para o menu ter o mesmo ritmo do resto do aplicativo.
+
+    E some inteiro para quem pediu redução de movimento: `animation: "none"`
+    desliga o interpolador, e sem interpolador nenhuma propriedade é animada.
+    Mandar a duração junto seria pior que inútil, porque sugeriria que ainda
+    existe animação com duração zero.
+
+    SEM `react-native-reanimated`, e a decisão é deliberada. Ele está instalado
+    e inerte, só como dependência de par do `expo-router` e do
+    `react-native-screens`. Usá-lo aqui não traria nada: quem anima a troca de
+    aba é o próprio `BottomTabView`, com `Animated` do React Native e
+    `useNativeDriver` ligado, então o movimento já roda na camada nativa e não
+    atravessa a ponte quadro a quadro. O que custaria é o plugin de Babel que o
+    reanimated exige, e `babel.config.js` é mínimo de propósito: cada plugin a
+    mais é uma diferença a mais entre o que roda no aparelho e o que o
+    TypeScript conferiu. Ligar o reanimated é decisão para quando existir
+    gesto contínuo, que é onde ele ganha de verdade; não existe nenhum aqui.
+  */
+  const transicaoEntreTelas = reduzirMovimento
+    ? { animation: "none" as const }
+    : {
+      animation: "shift" as const,
+      transitionSpec: {
+        animation: "timing" as const,
+        config: {
+          duration: movimento.respostaAoToque,
+          easing: Easing.bezier(...easing.entrada),
+        },
+      },
+    };
 
   /*
     A `chave` existe para a faixa saber que houve TRANSIÇÃO, e não só que o
@@ -152,20 +232,42 @@ export default function LayoutDoAgente() {
       />
 
       {/*
-        Barra FLUTUANTE, e não encostada na borda.
+        Barra PADRÃO, colada na borda de baixo.
 
-        O motivo primeiro é alcance, não estética. Antes de existir barra
-        nenhuma, o único caminho para a fila era tocar a faixa lá em cima, e
-        "Minha conta" ficava no FIM do rolamento das tarefas. Num aparelho de
-        6,7 polegadas segurado com uma mão, no alto de um barranco, o topo da
-        tela é o ponto mais distante do polegar que existe.
+        O motivo primeiro de existir uma barra é alcance, não estética. Antes
+        de existir barra nenhuma, o único caminho para a fila era tocar a faixa
+        lá em cima, e "Minha conta" ficava no FIM do rolamento das tarefas. Num
+        aparelho de 6,7 polegadas segurado com uma mão, no alto de um barranco,
+        o topo da tela é o ponto mais distante do polegar que existe.
 
-        Ela flutua porque encostada na borda ela disputa espaço com a barra de
-        gestos do Android, e porque uma pílula solta sobre o conteúdo diz
-        sozinha que é um menu, sem precisar de linha divisória. O conteúdo
-        rola por baixo dela, e por isso `sceneStyle` reserva o espaço no fim
-        do rolamento: sem esse recuo, o último item de toda lista nasceria
-        escondido atrás do menu, que é o defeito clássico de barra flutuante.
+        Ela FLUTUAVA, e o Rafa reprovou na primeira tela que abriu no iPhone:
+        "esse aplicativo não combina com menu flutuante, deixa um menu padrão
+        inferior". Ele tem razão, e a razão é maior que gosto. Menu flutuante é
+        gramática de aplicativo de consumo, onde o conteúdo é uma esteira
+        infinita que passa por baixo do cromo. Aqui o conteúdo são tarefas e
+        formulários com começo e fim, o aplicativo é ferramenta de trabalho, e
+        ferramenta de trabalho usa o desenho que o sistema operacional já
+        ensinou para todo mundo. O agente não deve gastar um segundo aprendendo
+        o nosso menu.
+
+        O que a troca traz de concreto, e cada item era um defeito da versão
+        flutuante:
+
+        - a ALTURA deixa de ser nossa. Some `height`, e com ela some o
+          conflito com a área segura: `getTabBarHeight` do React Navigation
+          devolve a altura declarada no estilo quando ela existe, então o
+          número escrito à mão ATROPELAVA a conta do sistema (49 mais o
+          inset), e o resultado dependia do aparelho;
+        - some `position: absolute` com `bottom` e `marginHorizontal`, e a
+          barra volta a ocupar lugar no leiaute em vez de pairar sobre ele;
+        - volta a `borderTopWidth`, que é o fio que separa a barra do conteúdo
+          agora que não há mais sombra em volta de uma pílula;
+        - o `paddingBottom` do `sceneStyle` PERDE a razão de existir, e é a
+          parte mais fácil de esquecer. Ele reservava, no fim de toda rolagem,
+          a altura da barra flutuante mais a folga. Com a barra ocupando lugar
+          no leiaute, o React Navigation já encurta a cena e aplica o inset, e
+          manter o recuo deixaria um vão morto no fim de toda lista do
+          aplicativo: o oposto exato do defeito que ele existia para consertar.
 
         Três abas, e não cinco. O Instagram tem cinco destinos de peso igual;
         este aplicativo tem um destino (Tarefas) e uma tarefa (Vistoria). Duas
@@ -178,8 +280,9 @@ export default function LayoutDoAgente() {
         regra da casa é que nada se comunica só por cor; ícone sozinho falha
         pela mesma razão.
 
-        O item ativo ganha uma pílula preenchida atrás do ícone. É a parte
-        "arredondada e bonita" do pedido, e ela também é funcional: soma uma
+        O item ativo continua ganhando uma pílula preenchida atrás do ícone,
+        agora do tamanho que cabe na barra do sistema (ver `PILULA`). Ela
+        sobreviveu à troca porque é funcional e não decorativa: soma uma
         segunda pista à cor, para quem não distingue violeta de cinza.
 
         E a barra SOME dentro da vistoria. Aquela tela é uma tarefa com fim
@@ -191,62 +294,58 @@ export default function LayoutDoAgente() {
         screenOptions={{
           headerStyle: { backgroundColor: tema.superficie },
           headerTintColor: tema.texto,
-          headerTitleStyle: { fontWeight: "700" },
-          // O recuo reserva, no fim de toda rolagem, a altura da barra mais a
-          // folga em que ela flutua. Sem ele o último item de cada lista
-          // nasce atrás do menu.
-          sceneStyle: {
-            backgroundColor: tema.fundo,
-            paddingBottom: ALTURA_MENU + recuo.bottom + espaco.e3,
+          /* Mesma razão do rótulo da aba, logo abaixo: o título do cabeçalho
+             é texto do produto, e a pilha de fora já fazia isto. */
+          headerTitleStyle: {
+            fontFamily: familiaDoTexto({ peso: peso.negrito, fontesProntas: fontes.prontas }),
+            ...(fontes.prontas ? {} : { fontWeight: peso.negrito }),
           },
+          /*
+            Só a cor. O recuo no fim da rolagem SAIU junto com a barra
+            flutuante: ele reservava a altura do menu mais a folga, e agora que
+            a barra ocupa lugar no leiaute ele viraria um vão morto no fim de
+            toda lista do aplicativo.
+          */
+          sceneStyle: { backgroundColor: tema.fundo },
+          ...transicaoEntreTelas,
           tabBarActiveTintColor: tema.destaque,
           tabBarInactiveTintColor: tema.textoDiscreto,
-          tabBarStyle: {
-            position: "absolute",
-            /*
-              A folga lateral é maior que a do conteúdo (e6 contra e4), e a
-              diferença é deliberada. Uma pílula flutuante alinhada com a
-              margem do conteúdo não parece solta: parece uma barra encostada
-              que alguém arredondou. O recuo extra é o que faz o olho ler
-              "isto está por cima", e de quebra tira os dois alvos das pontas
-              da zona de toque acidental na borda curva da tela.
-            */
-            /*
-              MARGEM, e não `left`/`right`.
+          /*
+            Três propriedades, e nenhuma delas é de posição.
 
-              O React Navigation posiciona a barra por conta própria e
-              sobrescreve `left` e `right` do estilo. Eu tinha escrito assim, e
-              o efeito era silencioso do pior jeito: o `borderRadius` aplicava,
-              então a barra PARECIA flutuante, e ela continuava colada nas duas
-              bordas. Medindo o pixel da captura, a pílula começava em x=4 com
-              recuo declarado de 16 e de 32: os dois valores foram ignorados
-              igual. `marginHorizontal` age no mesmo elemento e sobrevive.
-            */
-            marginHorizontal: espaco.e6,
-            bottom: recuo.bottom + espaco.e3,
-            height: ALTURA_MENU,
-            paddingTop: espaco.e2,
-            paddingBottom: espaco.e2,
+            Posição, altura e recuo inferior são do sistema agora: sem `height`
+            no estilo, `getTabBarHeight` devolve 49 mais a área segura que o
+            aparelho informa, que é o único número que acerta no iPhone com
+            faixa inicial, no iPhone com botão e no Android com barra de
+            gestos. Nenhum dos três sobreviveria a um valor escrito aqui.
+
+            `superficie` e não `elevacao(tema).flutuante`: a elevação existe
+            para peça que paira POR CIMA do conteúdo, e esta não paira mais.
+            Quem separa a barra do que está em cima dela agora é o fio, que é
+            justamente o que a barra flutuante tinha desligado com
+            `borderTopWidth: 0` para não cortar a pílula ao meio.
+          */
+          tabBarStyle: {
             backgroundColor: tema.superficie,
-            borderRadius: raio.pilula,
-            // A borda superior padrão desenharia uma linha reta atravessando
-            // a pílula. Aqui o contorno é o anel inteiro.
-            borderTopWidth: 0,
-            borderWidth: 1,
-            borderColor: tema.borda,
-            /*
-              Sombra nas duas plataformas, porque cada uma lê uma propriedade
-              e ignora a outra em silêncio. Sem `elevation` a barra flutuante
-              fica sem sombra no Android, que é o aparelho de campo.
-            */
-            elevation: 8,
-            shadowColor: "#000000",
-            shadowOpacity: 0.18,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: 4 },
+            borderTopWidth: borda.fio,
+            borderTopColor: tema.borda,
           },
-          tabBarItemStyle: { paddingTop: 0 },
-          tabBarLabelStyle: { fontSize: 12, fontWeight: "600" },
+          /*
+            O rótulo da barra era a última superfície do aplicativo ainda
+            desenhada na fonte do sistema, pelo mesmo descuido que o título do
+            cabeçalho tinha em `app/_layout.tsx`. Com a fonte do produto no
+            resto da tela, a palavra embaixo do ícone saía com outro desenho e
+            outra largura, e é a primeira coisa que o olho compara.
+
+            O peso só é declarado quando a fonte NÃO carregou: cada peso tem um
+            arquivo próprio, e pedir `fontWeight` por cima da família certa faz
+            o Android sintetizar em cima de um arquivo que já é o peso pedido.
+          */
+          tabBarLabelStyle: {
+            fontSize: fonte.legenda,
+            fontFamily: familiaDoTexto({ peso: peso.forte, fontesProntas: fontes.prontas }),
+            ...(fontes.prontas ? {} : { fontWeight: peso.forte }),
+          },
         }}
       >
         <Tabs.Screen
@@ -274,8 +373,16 @@ export default function LayoutDoAgente() {
             tabBarBadge: naFila > 0 ? naFila : undefined,
             tabBarBadgeStyle: {
               backgroundColor: bloqueados > 0 ? tema.perigoTexto : tema.destaque,
-              color: "#FFFFFF",
-              fontSize: 11,
+              /*
+                `sobreDestaque`, e não branco escrito à mão. O branco estava
+                certo no tema claro por acidente e ERRADO no escuro: ali
+                `destaque` é violeta 400, um lilás claro, e branco sobre ele dá
+                cerca de 1.9:1. O número de coletas esperando é a informação que
+                o agente confere de relance, e ela estava sumindo justamente no
+                tema que se usa à noite e debaixo de capa de chuva.
+              */
+              color: tema.sobreDestaque,
+              fontSize: fonte.legenda,
             },
             tabBarAccessibilityLabel: naFila === 0
               ? "Envio, nada esperando"

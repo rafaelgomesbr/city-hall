@@ -82,10 +82,14 @@ const registrados: Array<{ devolucao: unknown; dados: unknown }> = [];
 /* A fila é a MESMA a cada chamada, como no aparelho (ela é memoizada e vive o
    dia inteiro): uma fila nova por chamada viraria estado novo e renderização
    nova, para sempre. */
+const mockDrenar = jest.fn(async () => ({
+  fotosEnviadas: 0, enviados: 0, duplicados: 0, adiados: 0, bloqueados: 0, interrompido: false,
+}));
 const mockFila = {
   itens: async () => mockItensDaFila,
   assinar: () => () => undefined,
   enfileirarDevolucao: mockEnfileirarDevolucao,
+  drenar: mockDrenar,
 };
 jest.mock("../dados/fila", () => ({ obterFila: async () => mockFila }));
 
@@ -178,6 +182,7 @@ beforeEach(() => {
     implementação de pé para os casos seguintes. Foi assim que o último caso
     deste arquivo reprovou com a lista vazia de um teste anterior.
   */
+  mockDrenar.mockClear();
   mockEnfileirarDevolucao.mockReset();
   mockEnfileirarDevolucao.mockImplementation(async (devolucao, dados) => {
     registrados.push({ devolucao, dados });
@@ -474,12 +479,22 @@ describe("a coleta que ainda não subiu", () => {
     Devolver aqui jogaria fora a manhã dele, em silêncio, e faria a coordenação
     receber "não deu para vistoriar" sobre uma vistoria que existe.
   */
-  it("tarefa vencida com coleta na fila não oferece devolver, e diz por quê", async () => {
+  it("tarefa vencida com coleta na fila não oferece devolver, e o ⓘ diz por quê", async () => {
     mockItensDaFila = [itemDaFila({ tipo: "vistoria", estado: "pendente" })];
 
     await abrirALista();
 
     expect(screen.queryByTestId(`devolver-${ID}`)).toBeNull();
+    /*
+      O PARÁGRAFO SAIU DO FLUXO, e foi o pedido literal do Rafa olhando o
+      aparelho: 41 palavras ocupavam o lugar do botão em toda tarefa impedida,
+      e com duas tarefas assim na tela aquilo pareceu o mesmo texto duas vezes.
+      A explicação não sumiu, ela ficou a um toque.
+    */
+    expect(screen.queryByText(/Devolver jogaria esse trabalho fora/)).toBeNull();
+
+    await tocar(`por-que-${ID}`);
+
     expect(screen.getByText(/Devolver jogaria esse trabalho fora/)).toBeTruthy();
     expect(screen.getByText(/veja a fila de envio/)).toBeTruthy();
   });
@@ -504,6 +519,7 @@ describe("a coleta que ainda não subiu", () => {
     await abrirALista();
 
     expect(screen.queryByTestId(`devolver-${ID}`)).toBeNull();
+    await tocar(`por-que-${ID}`);
     expect(screen.getByText(/vistoria que existe/)).toBeTruthy();
   });
 
@@ -534,5 +550,160 @@ describe("a coleta que ainda não subiu", () => {
     expect(screen.getByText(/Devolver jogaria esse trabalho fora/)).toBeTruthy();
     /* A tarefa continua onde estava: nada foi devolvido. */
     expect(screen.getByText(PROTOCOLO)).toBeTruthy();
+  });
+});
+
+/*
+  O QUE FALTA ALI NÃO É DEVOLVER, É SINAL. Decidido com o Rafa.
+
+  A tarefa venceu e a coleta está guardada no aparelho: a vistoria EXISTE, e o
+  que a segura é a falta de sinal. Antes, o cartão respondia a essa situação com
+  um parágrafo explicando por que o botão de devolver não estava lá, que é a
+  resposta para uma pergunta que quase ninguém faz. A resposta para a pergunta
+  de todo mundo ("e agora?") não existia em lugar nenhum da tela.
+*/
+describe("a tarefa vencida que já tem coleta guardada", () => {
+  beforeEach(() => {
+    mockItensDaFila = [itemDaFila({ tipo: "vistoria", estado: "pendente" })];
+  });
+
+  it("oferece 'Enviar agora' em destaque, no lugar do parágrafo", async () => {
+    await abrirALista();
+
+    expect(screen.getByTestId(`enviar-${ID}`)).toBeTruthy();
+    expect(screen.getByText("Enviar agora")).toBeTruthy();
+  });
+
+  it("o toque chama o dreno da fila deste aparelho", async () => {
+    await abrirALista();
+
+    await tocar(`enviar-${ID}`);
+
+    expect(mockDrenar).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+    Sem sinal o dreno não manda nada, e a tela precisa dizer isso sem assustar:
+    o trabalho continua guardado e sai sozinho. Prometer envio aqui seria a
+    tela afirmando o que o servidor não tem.
+  */
+  it("sem sinal, a tela diz que a coleta continua guardada", async () => {
+    await abrirALista();
+
+    await tocar(`enviar-${ID}`);
+
+    expect(screen.getByText("Ainda não deu para enviar")).toBeTruthy();
+    expect(screen.getByText(/continua guardada no aparelho/)).toBeTruthy();
+  });
+
+  it("com a confirmação do servidor, a tela diz que a coordenação recebeu", async () => {
+    await abrirALista();
+
+    /* O dreno subiu a coleta, e o item voltou confirmado. */
+    mockDrenar.mockImplementation(async () => {
+      mockItensDaFila = [itemDaFila({ tipo: "vistoria", estado: "confirmado" })];
+      return {
+        fotosEnviadas: 0, enviados: 1, duplicados: 0, adiados: 0, bloqueados: 0,
+        interrompido: false,
+      };
+    });
+
+    await tocar(`enviar-${ID}`);
+
+    expect(screen.getByText("Enviado")).toBeTruthy();
+    expect(screen.getByText(/já recebeu esta vistoria/)).toBeTruthy();
+  });
+
+  /*
+    A frase de resultado sai do ITEM desta ocorrência, e não do total do dreno:
+    o dreno manda tudo o que está pronto, e "enviado" por causa da coleta de
+    OUTRA tarefa seria a mentira mais fácil de escrever aqui.
+  */
+  it("o servidor que recusa não vira 'enviado'", async () => {
+    await abrirALista();
+
+    mockDrenar.mockImplementation(async () => {
+      mockItensDaFila = [itemDaFila({ tipo: "vistoria", estado: "bloqueado" })];
+      return {
+        fotosEnviadas: 0, enviados: 3, duplicados: 0, adiados: 0, bloqueados: 1,
+        interrompido: false,
+      };
+    });
+
+    await tocar(`enviar-${ID}`);
+
+    expect(screen.getByText("O servidor não aceitou este envio")).toBeTruthy();
+    expect(screen.queryByText("Enviado")).toBeNull();
+  });
+
+  /*
+    Devolver continua bloqueado, e não é teimosia: jogaria fora, em silêncio, a
+    vistoria feita no morro.
+  */
+  it("devolver continua bloqueado ali, e o ⓘ explica", async () => {
+    await abrirALista();
+
+    expect(screen.queryByTestId(`devolver-${ID}`)).toBeNull();
+
+    await tocar(`por-que-${ID}`);
+    expect(screen.getByText("Esta tarefa não pode ser devolvida")).toBeTruthy();
+    expect(screen.getByText(/Devolver jogaria esse trabalho fora/)).toBeTruthy();
+  });
+});
+
+/*
+  O AVISO QUE NUNCA ERA LIMPO.
+
+  `avisoDaDevolucao` só era zerado no caminho do sucesso. Uma recusa colava a
+  frase no topo da tela PARA SEMPRE, enquanto o cartão mostrava a própria cópia
+  embaixo: duas fontes independentes do mesmo texto na mesma tela, e foi isso
+  que o Rafa viu como "aparece duas vezes".
+*/
+describe("a recusa não cola nada na tela para sempre", () => {
+  it("a recusa por sessão perdida é dita, e pode ser dispensada", async () => {
+    mockResultado = { enfileirada: false, motivo: "sem_sessao" };
+
+    await abrirALista();
+    await tocar(`devolver-${ID}`);
+    await tocar("motivo-morador_ausente");
+    await tocar("dialogo-acao");
+
+    expect(screen.getByText("A devolução não foi registrada")).toBeTruthy();
+
+    await tocar("detalhe-da-lista");
+    expect(screen.getByText(/sessão aberta neste aparelho/)).toBeTruthy();
+
+    await tocar("dialogo-acao");
+
+    /* O aviso saiu. O `ⓘ` continua ali porque a lista desta suíte é velha, e a
+       faixa passou a mostrar o aviso seguinte: é a faixa fazendo o que ela
+       existe para fazer, uma coisa de cada vez e nenhuma perdida. */
+    expect(screen.queryByText("A devolução não foi registrada")).toBeNull();
+  });
+
+  /*
+    Quando a fila recusa por coleta guardada, a resposta certa é CORRIGIR O
+    CARTÃO, e não escrever um aviso no topo: a tela descobriu, naquele instante,
+    que existe vistoria daquela ocorrência no aparelho. Escrever a frase em cima
+    e deixar o cartão errado embaixo é como as duas fontes nasceram.
+  */
+  it("a recusa por coleta guardada corrige o cartão em vez de escrever no topo", async () => {
+    mockEnfileirarDevolucao.mockImplementation(async (devolucao, dados) => {
+      registrados.push({ devolucao, dados });
+      mockItensDaFila = [itemDaFila({ tipo: "vistoria", estado: "pendente" })];
+      return { enfileirada: false, motivo: "coleta_na_fila" } as const;
+    });
+
+    await abrirALista();
+    await tocar(`devolver-${ID}`);
+    await tocar("motivo-morador_ausente");
+    await tocar("dialogo-acao");
+
+    /* O cartão passou a oferecer o que resolve o caso. */
+    expect(screen.getByTestId(`enviar-${ID}`)).toBeTruthy();
+    expect(screen.queryByTestId(`devolver-${ID}`)).toBeNull();
+    /* E a frase aparece UMA vez, no diálogo que respondeu o toque. */
+    expect(screen.queryAllByText(/Devolver jogaria esse trabalho fora/)).toHaveLength(1);
+    expect(screen.queryByText("A devolução não foi registrada")).toBeNull();
   });
 });

@@ -338,14 +338,21 @@ describe("o aparelho que nunca sincronizou", () => {
     await preencherORestoDaVistoria();
     await abrirATela();
 
-    expect(screen.getByText(/Falta dizer qual órgão/)).toBeTruthy();
+    /*
+      A pendência é lida no cartão de progresso, no alto da tela, e não mais
+      numa frase corrida no fim da rolagem. O texto continua saindo de
+      `faltaParaConcluir`, no pacote compartilhado, que é a única lista do que
+      falta; o que mudou foi onde ela é desenhada e o caminho que cada linha
+      passou a ter.
+    */
+    expect(screen.getByText(/dizer qual órgão/)).toBeTruthy();
 
     await fireEvent.changeText(
       screen.getByTestId("orgao-outro-nome"), "Companhia de saneamento",
     );
     await tocar("Adicionar este órgão");
 
-    expect(screen.queryByText(/Falta dizer qual órgão/)).toBeNull();
+    expect(screen.queryByText(/dizer qual órgão/)).toBeNull();
     expect(screen.getByLabelText("Revisar e concluir").props.accessibilityState.disabled)
       .toBe(false);
   });
@@ -393,7 +400,7 @@ describe("concluir a vistoria", () => {
     await preencherORestoDaVistoria();
     await abrirATela();
 
-    expect(screen.getByText(/Falta dizer qual órgão precisa ser acionado/)).toBeTruthy();
+    expect(screen.getByText(/dizer qual órgão precisa ser acionado/)).toBeTruthy();
     expect(screen.getByLabelText("Revisar e concluir").props.accessibilityState.disabled)
       .toBe(true);
   });

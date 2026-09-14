@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { AppState, FlatList, Pressable, RefreshControl, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import * as Crypto from "expo-crypto";
 import { ROTULO_TIPO_COBRADE } from "@dc360/shared";
@@ -15,7 +15,15 @@ import { useSessao } from "../../dados/sessao";
 import {
   Aviso, Botao, Cartao, Carregando, SeloSeveridade, Txt, Vazio, useTema,
 } from "../../ui/componentes";
-import { espaco, raio, toque } from "../../ui/tokens";
+import { Chip } from "../../ui/Chip";
+import { Dialogo } from "../../ui/Dialogo";
+import {
+  IconeAlerta, IconeAparelho, IconeInformacao, IconePerigo, IconePrazo, IconePrazoVencido,
+  IconeSemSinal, IconeSinal, IconeTarefas, IconeVulnerabilidade,
+} from "../../ui/icones";
+import {
+  borda, elevacao, espaco, icone as tamanhoDeIcone, opacidade, peso, raio, toque,
+} from "../../ui/tokens";
 import {
   INTERVALO_PADRAO_MS, deveAtualizar, idadeEmPalavras, listaEnvelheceu,
 } from "../../dados/atualizacao";
@@ -41,8 +49,125 @@ import { DialogoDeDevolucao, type PedidoDeDevolucao } from "../../ui/DialogoDeDe
  * inversa é o erro clássico de aplicativo offline: a tela fica girando
  * esperando uma rede que não existe, e o agente, que tem a lista guardada ali
  * no aparelho, não consegue vê-la.
+ *
+ * ## A LISTA NÃO PODE PULAR, e por isso a tela está desenhada assim
+ *
+ * O relato veio do aparelho, com estas palavras: "a lista dá uma rolada
+ * sozinha". Eram TRÊS causas somadas, e consertar uma conserta um terço, então
+ * a forma desta tela existe para matar as três:
+ *
+ * 1. **A roda de "puxar para atualizar" só liga no DEDO.** Antes, `atualizando`
+ *    era um estado só, ligado por cinco gatilhos automáticos (foco, montagem,
+ *    sinal que volta, volta do segundo plano e o relógio de 60 s), e ia direto
+ *    para o `refreshing` do `RefreshControl`. Com `refreshing` verdadeiro sem o
+ *    dedo puxando, o iOS desloca o `contentOffset` para revelar a roda: a lista
+ *    anda sozinha uma vez por minuto. Agora são dois estados, `puxando` (só o
+ *    gesto) e `atualizando` (qualquer busca, e ele só pinta texto e botão).
+ * 2. **Nada nasce nem some ACIMA da lista.** Eram sete blocos condicionais
+ *    dentro do conteúdo rolável, e o pior deles era o "esta lista tem mais de
+ *    meia hora": ele sumia assim que a rede respondia, três linhas evaporavam
+ *    do topo e tudo subia debaixo do dedo. Agora o cabeçalho é FIXO (fora da
+ *    rolagem) e os avisos moram numa faixa de ALTURA RESERVADA, que existe
+ *    sempre e nunca muda de tamanho: quando não há o que avisar, ela mostra o
+ *    município e a idade da lista. Nenhuma informação se perdeu: a faixa mostra
+ *    o aviso mais urgente e o `ⓘ` abre todos.
+ * 3. **A lista é uma `FlatList` com `maintainVisibleContentPosition`.** É para
+ *    isto que essa propriedade existe. A lista encurta sozinha no meio da
+ *    rolagem (a leitura da fila chama `esquecerPendencia`, que apaga a linha da
+ *    tarefa devolvida), e sem a âncora o item que estava debaixo dos olhos do
+ *    agente sobe. Junto vêm duas medidas contra o mesmo defeito: leituras de
+ *    disco simultâneas são COALESCIDAS (a fila avisa a cada mudança de estado,
+ *    e eram N reconstruções seguidas da lista inteira), e o estado só é
+ *    trocado quando o conteúdo mudou de verdade, senão cada leitura idêntica
+ *    produzia uma lista nova e uma renderização a mais.
+ *
+ * Nada disto substitui a prova no aparelho, que é onde o `contentOffset`
+ * existe: aqui os testes provam a ESTRUTURA que evita o pulo, não o pulo.
  */
 
+/** Altura da faixa de estado da lista. Ver `FAIXA_RESERVADA`, logo abaixo. */
+const ALTURA_DA_FAIXA = toque;
+
+/**
+ * Troca o estado só quando o conteúdo mudou de verdade.
+ *
+ * A tela relê o disco a cada foco, a cada volta do segundo plano, a cada
+ * janela do relógio e a cada evento da fila. Quase sempre a leitura devolve
+ * exatamente o que já estava na tela, e devolver um array NOVO com o mesmo
+ * conteúdo troca a identidade, o React renderiza de novo e a lista inteira é
+ * reconstruída sem nada ter mudado. Numa `FlatList` isso é trabalho jogado
+ * fora; numa lista que o agente está rolando, é a chance de o desenho
+ * escorregar.
+ *
+ * A comparação é por texto, e não campo a campo, de propósito: campo a campo é
+ * uma segunda lista de campos que diverge da primeira no dia em que a
+ * pendência ganhar uma coluna, e aí a tela para de se atualizar sem ninguém
+ * entender por quê. São dezenas de itens, não milhares.
+ */
+function manterSeIgual<T>(anterior: T, novo: T): T {
+  return JSON.stringify(anterior) === JSON.stringify(novo) ? anterior : novo;
+}
+
+/**
+ * O que a lista precisa dizer sobre si mesma, em uma linha e por extenso.
+ *
+ * `resumo` cabe numa linha só, porque a faixa tem altura reservada e altura
+ * reservada só existe se o conteúdo couber sempre. `detalhe` é o texto inteiro,
+ * que o agente lê no diálogo quando quiser: é a mesma decisão do parágrafo de
+ * impedimento no cartão, e vale pelo mesmo motivo (a explicação não pode ocupar
+ * o lugar da informação).
+ */
+type NotaDaLista = {
+  chave: string;
+  tom: "alerta" | "perigo";
+  resumo: string;
+  detalhe: string;
+  /** O agente pode fazer este aviso sair. Só o que fala de um ato dele. */
+  dispensavel?: boolean;
+};
+
+/** O que o `ⓘ` abre: um texto com título, e às vezes com um ato junto. */
+type Explicacao = {
+  titulo: string;
+  texto: string;
+  extras?: NotaDaLista[];
+  dispensar?: boolean;
+};
+
+/**
+ * O `ⓘ` que abre a explicação.
+ *
+ * Existe porque o Rafa pediu, olhando o aparelho: um parágrafo de 41 palavras
+ * ocupava o lugar do botão em toda tarefa impedida, e com duas tarefas
+ * impedidas na tela aquilo parecia o mesmo texto escrito duas vezes. A
+ * explicação não sumiu, ela saiu do fluxo: fica a um toque, com o alvo de 52
+ * pontos do produto, e a linha volta a ter espaço para o que se FAZ.
+ */
+function BotaoDeInformacao({ rotulo, onPress, testID }: {
+  rotulo: string;
+  onPress: () => void;
+  testID: string;
+}) {
+  const tema = useTema();
+  return (
+    <Pressable
+      testID={testID}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={rotulo}
+      style={({ pressed }) => ({
+        minHeight: toque,
+        minWidth: toque,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: raio.normal,
+        opacity: pressed ? opacidade.aoToque : 1,
+      })}
+    >
+      <IconeInformacao cor={tema.destaque} tamanho={tamanhoDeIcone.acao} />
+    </Pressable>
+  );
+}
 
 export default function Tarefas() {
   const tema = useTema();
@@ -62,6 +187,10 @@ export default function Tarefas() {
   const [atualizadoEm, setAtualizadoEm] = useState<string | null>(null);
   /** Tamanho do teto quando a última baixa foi cortada. Nulo quando veio inteira. */
   const [teto, setTeto] = useState<number | null>(null);
+  /** O agente desistiu de esperar a abertura. Ver `Carregando`, mais abaixo. */
+  const [desistiuDeAbrir, setDesistiuDeAbrir] = useState(false);
+  /** O texto que o `ⓘ` abriu. Enquanto for nulo, nenhum diálogo está de pé. */
+  const [explicacao, setExplicacao] = useState<Explicacao | null>(null);
 
   /*
     Relógio da tela, só para a idade da lista não congelar em "agora há pouco"
@@ -74,7 +203,19 @@ export default function Tarefas() {
     const t = setInterval(() => setAgora(new Date()), 30_000);
     return () => { clearInterval(t); };
   }, []);
+
+  /*
+    DOIS estados para a atualização, e a separação é a correção.
+
+    `atualizando` é qualquer busca em andamento, venha de onde vier: ele pinta
+    o "(buscando)" da faixa e o botão do rodapé, que são coisas que não movem
+    nada. `puxando` é SÓ o gesto do dedo, e é o único que alimenta o
+    `refreshing` do `RefreshControl`. Com `refreshing` verdadeiro sem o dedo
+    estar puxando, o iOS desloca o conteúdo para mostrar a roda, e era isso que
+    o agente via como a lista rolando sozinha uma vez por minuto.
+  */
   const [atualizando, setAtualizando] = useState(false);
+  const [puxando, setPuxando] = useState(false);
   const [avisoDeRede, setAvisoDeRede] = useState<string | null>(null);
 
   /*
@@ -91,6 +232,13 @@ export default function Tarefas() {
   const [aDevolver, setADevolver] = useState<Pendencia | null>(null);
   /** O que aconteceu com o último pedido, quando ele não pôde ser aceito. */
   const [avisoDaDevolucao, setAvisoDaDevolucao] = useState<string | null>(null);
+  /** Qual tarefa está com envio em andamento pelo botão "Enviar agora". */
+  const [enviando, setEnviando] = useState<string | null>(null);
+  /** O resultado do último "Enviar agora", no cartão da tarefa que o pediu. */
+  const [envio, setEnvio] = useState<
+    { ocorrenciaId: string; tom: "sucesso" | "alerta" | "perigo"; titulo: string; texto: string }
+    | null
+  >(null);
 
   /*
     A fila confirmou: a lapide sobe de "na fila" para "enviada".
@@ -130,6 +278,10 @@ export default function Tarefas() {
           depois, o item some (confirmado fica visível um tempo e sai) e sem esta
           linha a tarefa voltaria para a lista, sem explicação, até a próxima
           baixa com sinal.
+
+          É esta linha que ENCURTA a lista, e ela pode acontecer com o agente
+          rolando. Quem segura o desenho no lugar é o `maintainVisibleContentPosition`
+          da lista, lá embaixo.
         */
         if (item.tipo === "devolucao" && item.estado === "confirmado") {
           await esquecerPendencia(item.ocorrenciaId);
@@ -142,17 +294,42 @@ export default function Tarefas() {
     }
   }, [obterToken, lerIdentidade]);
 
+  /*
+    LEITURA DE DISCO COALESCIDA, e ela é a terceira causa do pulo.
+
+    A fila avisa a cada mudança de estado, e uma sincronização muda vários
+    itens em sequência: sem esta trava, cada aviso disparava uma leitura
+    inteira, e a lista era reconstruída cinco ou seis vezes seguidas enquanto o
+    dedo do agente estava em cima dela. As leituras ainda por cima terminavam
+    fora de ordem, então a última a escrever na tela podia ser a mais VELHA.
+
+    Pedido que chega durante uma leitura não é descartado: ele vira uma
+    releitura no fim, uma só, que é o que garante que a tela termina com o
+    estado mais recente do disco sem passar por todos os intermediários.
+  */
+  const lendoODisco = useRef(false);
+  const releituraPedida = useRef(false);
+
   const lerDoDisco = useCallback(async () => {
-    const naFila = await lerAFila();
-    const [guardadas, marcadas, emAndamento, coletadas, cortada] = await Promise.all([
-      pendenciasGuardadas(), baixadasEm(), listarRascunhos(), listarColetas(), tetoAtingido(),
-    ]);
-    setTarefas(guardadas);
-    setAtualizadoEm(marcadas);
-    setTeto(cortada);
-    setRascunhos(emAndamento);
-    setColetas(coletadas);
-    setItensDaFila(naFila);
+    if (lendoODisco.current) { releituraPedida.current = true; return; }
+    lendoODisco.current = true;
+    try {
+      do {
+        releituraPedida.current = false;
+        const naFila = await lerAFila();
+        const [guardadas, marcadas, emAndamento, coletadas, cortada] = await Promise.all([
+          pendenciasGuardadas(), baixadasEm(), listarRascunhos(), listarColetas(), tetoAtingido(),
+        ]);
+        setTarefas((antes) => (antes === null ? guardadas : manterSeIgual(antes, guardadas)));
+        setAtualizadoEm(marcadas);
+        setTeto(cortada);
+        setRascunhos((antes) => manterSeIgual(antes, emAndamento));
+        setColetas((antes) => manterSeIgual(antes, coletadas));
+        setItensDaFila((antes) => manterSeIgual(antes, naFila));
+      } while (releituraPedida.current);
+    } finally {
+      lendoODisco.current = false;
+    }
   }, [lerAFila]);
 
   /*
@@ -203,17 +380,26 @@ export default function Tarefas() {
   const ultimaDeuCerto = useRef(true);
   const emVoo = useRef(false);
 
-  const buscarNaRede = useCallback(async () => {
+  /**
+   * Vai à rede.
+   *
+   * `puxada` é a única coisa que liga a roda do `RefreshControl`, e ela só é
+   * verdadeira quando veio do gesto. Todo o resto (foco, montagem, sinal que
+   * volta, volta do segundo plano, relógio, e o botão do rodapé) atualiza em
+   * silêncio, mostrando "(buscando)" na faixa, que não desloca nada.
+   */
+  const buscarNaRede = useCallback(async (puxada = false) => {
     emVoo.current = true;
     ultimaTentativa.current = Date.now();
     setAtualizando(true);
+    if (puxada) setPuxando(true);
     setAvisoDeRede(null);
     try {
       const token = await obterToken();
       if (!token) return;
       const novas = await atualizarPendencias(token);
       ultimaDeuCerto.current = true;
-      setTarefas(novas);
+      setTarefas((antes) => (antes === null ? novas : manterSeIgual(antes, novas)));
       setAtualizadoEm(await baixadasEm());
       setTeto(await tetoAtingido());
     } catch (erro: unknown) {
@@ -231,6 +417,7 @@ export default function Tarefas() {
     } finally {
       emVoo.current = false;
       setAtualizando(false);
+      setPuxando(false);
     }
   }, [obterToken]);
 
@@ -318,6 +505,16 @@ export default function Tarefas() {
    * hora é a tarefa sair desta lista, e quem a esconde é o item recém-criado.
    */
   async function devolver(alvo: Pendencia, pedido: PedidoDeDevolucao): Promise<void> {
+    /*
+      O aviso da tentativa ANTERIOR sai antes de qualquer coisa.
+
+      Ele só era zerado no caminho do sucesso, e o resultado era uma frase de
+      recusa colada no topo da tela para sempre, ao lado do cartão que já
+      explicava a mesma coisa por conta própria. Duas fontes independentes do
+      mesmo texto na mesma tela é o que o Rafa viu como "aparece duas vezes".
+    */
+    setAvisoDaDevolucao(null);
+
     const aberta = fila.current;
     if (!aberta) {
       setAvisoDaDevolucao(
@@ -340,19 +537,126 @@ export default function Tarefas() {
     );
 
     if (!r.enfileirada) {
+      if (r.motivo === "coleta_na_fila") {
+        /*
+          A FILA SABE DE UMA COLETA QUE A TELA NÃO VIA, e a resposta certa é
+          corrigir o cartão, não escrever um aviso no topo.
+
+          Relendo o disco, o cartão daquela tarefa passa a mostrar o que ela
+          realmente precisa ("Enviar agora", porque o que falta é sinal e não
+          devolução), e a explicação sai UMA vez, no diálogo, respondendo na
+          hora o toque que acabou de não acontecer.
+        */
+        await lerDoDisco();
+        setExplicacao({
+          titulo: "Esta tarefa não pode ser devolvida",
+          texto: FRASE_DO_IMPEDIMENTO.coleta_no_aparelho,
+        });
+        return;
+      }
       setAvisoDaDevolucao(
-        r.motivo === "coleta_na_fila"
-          ? FRASE_DO_IMPEDIMENTO.coleta_no_aparelho
-          : "Você não está mais com a sessão aberta neste aparelho. Entre de novo "
-            + "para devolver a tarefa: a devolução leva o seu nome.",
+        "Você não está mais com a sessão aberta neste aparelho. Entre de novo "
+        + "para devolver a tarefa: a devolução leva o seu nome.",
       );
       return;
     }
-    setAvisoDaDevolucao(null);
     await lerDoDisco();
   }
 
-  if (tarefas === null) return <Carregando mensagem="Abrindo suas tarefas" />;
+  /**
+   * "Enviar agora", na tarefa vencida que JÁ TEM coleta guardada.
+   *
+   * Decidido com o Rafa, e a decisão é de produto antes de ser de tela: ali o
+   * que falta não é devolver, é sinal. A vistoria existe, está presa no
+   * aparelho, e devolver jogaria fora o trabalho do morro em silêncio. Então o
+   * cartão oferece o verbo que resolve o caso de verdade, em destaque, e
+   * devolver continua bloqueado com o `ⓘ` explicando por quê.
+   *
+   * O dreno manda tudo o que está pronto, e não só esta coleta, porque é assim
+   * que a fila funciona. Por isso a frase do resultado é conferida no ITEM
+   * desta ocorrência, e não no total do dreno: "enviado" sobre a coleta de
+   * outra tarefa seria a tela afirmando o que o servidor não tem.
+   */
+  async function enviarAgora(alvo: Pendencia): Promise<void> {
+    const aberta = fila.current;
+    if (!aberta) {
+      setEnvio({
+        ocorrenciaId: alvo.id,
+        tom: "perigo",
+        titulo: "Não deu para abrir a fila de envio",
+        texto: "A coleta continua guardada no aparelho. Abra a aba Envio para tentar por lá.",
+      });
+      return;
+    }
+    setEnviando(alvo.id);
+    setEnvio(null);
+    try {
+      await aberta.drenar();
+      const depois = await aberta.itens();
+      const meu = depois.find((i) => i.tipo === "vistoria" && i.ocorrenciaId === alvo.id);
+      await lerDoDisco();
+
+      if (!meu || meu.estado === "confirmado") {
+        setEnvio({
+          ocorrenciaId: alvo.id,
+          tom: "sucesso",
+          titulo: "Enviado",
+          texto: "A coordenação já recebeu esta vistoria.",
+        });
+      } else if (meu.estado === "bloqueado" || meu.estado === "arquivado") {
+        setEnvio({
+          ocorrenciaId: alvo.id,
+          tom: "perigo",
+          titulo: "O servidor não aceitou este envio",
+          texto: "A coleta continua guardada. Abra a aba Envio para ver o que ele respondeu.",
+        });
+      } else {
+        setEnvio({
+          ocorrenciaId: alvo.id,
+          tom: "alerta",
+          titulo: "Ainda não deu para enviar",
+          texto: "A coleta continua guardada no aparelho e sai sozinha assim que houver sinal.",
+        });
+      }
+    } finally {
+      setEnviando(null);
+    }
+  }
+
+  /*
+    A abertura, com hora marcada para deixar de ser silenciosa.
+
+    `aoDesistir` existe no componente desde o T4 e esta tela nunca o passava, o
+    que desligava metade dele: o agente que desistisse ficava numa folha que
+    dizia "Você parou a espera" e não tinha caminho de volta. Aqui a desistência
+    vira um estado desenhado, com o verbo para tentar de novo.
+  */
+  if (tarefas === null) {
+    if (!desistiuDeAbrir) {
+      return (
+        <Carregando
+          mensagem="Abrindo suas tarefas"
+          rotuloDaSaida="Parar de esperar"
+          aoDesistir={() => { setDesistiuDeAbrir(true); }}
+        />
+      );
+    }
+    return (
+      <View style={{ flex: 1, justifyContent: "center" }}>
+        <Vazio
+          titulo="A lista ainda não abriu"
+          descricao="A leitura do aparelho não terminou. Nada foi perdido: o que estava guardado continua guardado."
+          icone={<IconeAparelho cor={tema.textoDiscreto} tamanho={tamanhoDeIcone.vazio} />}
+          acao={{
+            titulo: "Tentar de novo",
+            testID: "tentar-abrir-de-novo",
+            descricao: "Tentar abrir as suas tarefas de novo",
+            onPress: () => { setDesistiuDeAbrir(false); void lerDoDisco(); },
+          }}
+        />
+      </View>
+    );
+  }
 
   const emAndamento = new Set(rascunhos.map((r) => r.ocorrenciaId));
   const lapides = new Map(coletas.map((c) => [c.ocorrenciaId, c]));
@@ -372,78 +676,203 @@ export default function Tarefas() {
     (t) => devolucoes.get(t.id)?.situacao !== "a_caminho",
   );
 
-  return (
-    <ScrollView
-      contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}
-      refreshControl={
-        <RefreshControl
-          refreshing={atualizando}
-          onRefresh={() => void buscarNaRede()}
-          tintColor={tema.destaque}
-        />
-      }
+  /*
+    AS NOTAS DA LISTA, por ordem de urgência.
+
+    Eram sete blocos condicionais empilhados acima da lista, e cada um que
+    nascia ou morria empurrava tudo. Agora são notas, numa faixa de altura
+    reservada: a mais urgente aparece, e o `ⓘ` abre todas. Nenhum aviso se
+    perdeu e nenhum deles mexe no desenho.
+  */
+  const notas: NotaDaLista[] = [];
+  if (avisoDaDevolucao) {
+    notas.push({
+      chave: "devolucao",
+      tom: "perigo",
+      resumo: "A devolução não foi registrada",
+      detalhe: avisoDaDevolucao,
+      dispensavel: true,
+    });
+  }
+  if (!atualizadoEm) {
+    notas.push({
+      chave: "nunca-baixou",
+      tom: "perigo",
+      resumo: "Nenhuma tarefa baixada neste aparelho",
+      detalhe:
+        "Você ainda não baixou nenhuma tarefa neste aparelho. Faça isso com sinal, "
+        + "antes de sair, ou não haverá o que vistoriar lá fora.",
+    });
+  }
+  if (avisoDeRede) {
+    notas.push({
+      chave: "rede",
+      tom: "alerta",
+      resumo: sinal.temSinal ? "Não deu para atualizar agora" : "Sem sinal para atualizar",
+      detalhe: avisoDeRede,
+    });
+  }
+  if (listaEnvelheceu(atualizadoEm ? new Date(atualizadoEm) : null, agora) && !!atualizadoEm) {
+    notas.push({
+      chave: "idade",
+      tom: "alerta",
+      resumo: "Esta lista tem mais de meia hora",
+      detalhe:
+        "Esta lista tem mais de meia hora. Se você tem sinal agora, puxe a tela para "
+        + "baixo antes de subir: pode ter chegado despacho novo.",
+    });
+  }
+  if (teto !== null) {
+    notas.push({
+      chave: "teto",
+      tom: "alerta",
+      resumo: `Mostrando as ${teto} mais urgentes, e há mais`,
+      detalhe:
+        `Esta lista mostra as ${teto} tarefas mais urgentes da sua equipe, e há mais além `
+        + "delas. Trate estas primeiro e atualize a lista: as próximas aparecem quando "
+        + "estas saírem.",
+    });
+  }
+
+  const nota = notas[0] ?? null;
+  const coresDaFaixa = nota === null
+    ? { fundo: tema.superficie, texto: tema.textoDiscreto }
+    : nota.tom === "perigo"
+      ? { fundo: tema.perigoFundo, texto: tema.perigoTexto }
+      : { fundo: tema.alertaFundo, texto: tema.alertaTexto };
+
+  const SinalDaFaixa = sinal.temSinal ? IconeSinal : IconeSemSinal;
+  const IconeDaFaixa = nota === null
+    ? SinalDaFaixa
+    : nota.tom === "perigo" ? IconePerigo : IconeAlerta;
+
+  /*
+    A faixa é a mesma altura SEMPRE, e é isso que impede o pulo.
+
+    Quando não há o que avisar, ela mostra o município e a idade da lista, que
+    é a linha que já existia ali. Quando há, ela troca de cor e de frase no
+    mesmo espaço. Nenhum pixel a mais, nenhum a menos, e a lista embaixo nunca
+    descobre que alguma coisa mudou.
+  */
+  const FAIXA_RESERVADA = (
+    <View
+      testID="faixa-de-estado"
+      accessibilityLiveRegion="polite"
+      style={{
+        height: ALTURA_DA_FAIXA,
+        backgroundColor: coresDaFaixa.fundo,
+        borderRadius: raio.normal,
+        paddingHorizontal: espaco.e3,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: espaco.e2,
+      }}
     >
-      {avisoDeRede && <Aviso tom="alerta">{avisoDeRede}</Aviso>}
-
-      {!atualizadoEm && (
-        <Aviso tom="perigo">
-          Você ainda não baixou nenhuma tarefa neste aparelho. Faça isso com
-          sinal, antes de sair, ou não haverá o que vistoriar lá fora.
-        </Aviso>
+      <IconeDaFaixa cor={coresDaFaixa.texto} tamanho={tamanhoDeIcone.rotulo} />
+      <View style={{ flex: 1 }}>
+        <Txt
+          variante="corpoP"
+          numeroDeLinhas={1}
+          cor={coresDaFaixa.texto}
+          peso={nota === null ? peso.normal : peso.forte}
+        >
+          {nota === null
+            ? `${identidade?.municipio ?? "Sem município"}, atualizada `
+              + `${idadeEmPalavras(atualizadoEm ? new Date(atualizadoEm) : null, agora)}`
+              + (atualizando ? " (buscando)" : "")
+            : nota.resumo}
+        </Txt>
+      </View>
+      {nota !== null && (
+        <BotaoDeInformacao
+          testID="detalhe-da-lista"
+          rotulo={
+            notas.length === 1
+              ? "Ver o aviso desta lista por extenso"
+              : `Ver os ${notas.length} avisos desta lista por extenso`
+          }
+          onPress={() => {
+            setExplicacao({
+              titulo: nota.resumo,
+              texto: nota.detalhe,
+              extras: notas.slice(1),
+              ...(nota.dispensavel ? { dispensar: true } : {}),
+            });
+          }}
+        />
       )}
+    </View>
+  );
 
-      <View style={{ gap: espaco.e1 }}>
+  return (
+    <View style={{ flex: 1 }}>
+      {/*
+        CABEÇALHO FIXO: ele não rola, e nada dentro dele muda de altura. É a
+        metade estrutural da correção do pulo, junto com a faixa reservada.
+      */}
+      <View style={{ paddingHorizontal: espaco.e4, paddingTop: espaco.e4, gap: espaco.e2 }}>
         <Txt variante="h2">
           {naLista.length === 1 ? "1 vistoria para fazer" : `${naLista.length} vistorias para fazer`}
         </Txt>
-        {/*
-          A idade da lista, e não a data cheia.
-
-          O agente decide uma coisa só olhando isto: dá para confiar nesta
-          lista, ou preciso procurar sinal antes de subir? "28/08/2026,
-          20:52:41" não responde essa pergunta enquanto ele calcula a
-          diferença de cabeça, em pé, na chuva. "há 3 min" responde.
-        */}
-        <Txt variante="legenda" discreto>
-          {identidade?.municipio}
-          {`, atualizada ${idadeEmPalavras(atualizadoEm ? new Date(atualizadoEm) : null, agora)}`}
-          {atualizando ? " (buscando)" : ""}
-        </Txt>
-        {listaEnvelheceu(atualizadoEm ? new Date(atualizadoEm) : null, agora)
-          && !!atualizadoEm && (
-          <Aviso tom="alerta">
-            Esta lista tem mais de meia hora. Se você tem sinal agora, puxe a
-            tela para baixo antes de subir: pode ter chegado despacho novo.
-          </Aviso>
-        )}
-        {/*
-          O aviso de lista cortada, e ele existe porque o silêncio é o defeito.
-
-          A rota devolve no máximo um número de tarefas por resposta, para o
-          aparelho não baixar tudo no 3G do morro. Sem este aviso, o agente veria
-          uma lista aparentemente completa, subiria confiando nela, e as tarefas
-          que ficaram de fora simplesmente não existiriam para ele. Cortar é
-          aceitável; cortar calado não é.
-        */}
-        {teto !== null && (
-          <Aviso tom="alerta">
-            {`Esta lista mostra as ${teto} tarefas mais urgentes da sua equipe, e há mais além delas. `}
-            Trate estas primeiro e atualize a lista: as próximas aparecem quando
-            estas saírem.
-          </Aviso>
-        )}
+        {FAIXA_RESERVADA}
       </View>
 
-      {avisoDaDevolucao && <Aviso tom="alerta">{avisoDaDevolucao}</Aviso>}
-
-      {naLista.length === 0 ? (
-        <Vazio
-          titulo="Nenhuma vistoria designada"
-          descricao="Quando a coordenação despachar uma ocorrência para a sua equipe, ela aparece aqui. Puxe a tela para baixo para procurar de novo."
-        />
-      ) : (
-        naLista.map((t) => {
-          const prazo = quantoFalta(t.prazo_em, Date.now());
+      <FlatList
+        testID="lista-de-tarefas"
+        data={naLista}
+        keyExtractor={(t) => t.id}
+        /*
+          A ÂNCORA. A lista encurta sozinha (devolução confirmada apaga a linha)
+          e cresce sozinha (despacho novo entra no topo), e sem isto o item que
+          o agente está lendo escorrega debaixo do dedo dele. `minIndexForVisible: 0`
+          ancora no primeiro item visível, que é o comportamento certo para uma
+          lista em que o que muda quase sempre está ACIMA do que se está lendo.
+        */
+        maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+        contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}
+        refreshControl={
+          <RefreshControl
+            testID="puxar-para-atualizar"
+            /*
+              SÓ O DEDO. Ver o comentário de `puxando`, lá em cima: com a roda
+              ligada por atualização automática, o iOS desloca o conteúdo para
+              revelá-la, e a lista anda sozinha uma vez por minuto.
+            */
+            refreshing={puxando}
+            onRefresh={() => void buscarNaRede(true)}
+            tintColor={tema.destaque}
+          />
+        }
+        ListEmptyComponent={
+          <Vazio
+            titulo="Nenhuma vistoria designada"
+            descricao="Quando a coordenação despachar uma ocorrência para a sua equipe, ela aparece aqui."
+            icone={<IconeTarefas cor={tema.textoDiscreto} tamanho={tamanhoDeIcone.vazio} />}
+            acao={{
+              titulo: "Procurar tarefas agora",
+              testID: "procurar-tarefas",
+              descricao: "Procurar agora se a coordenação despachou alguma tarefa",
+              onPress: () => void buscarNaRede(),
+            }}
+          />
+        }
+        ListFooterComponent={
+          <Cartao titulo="Antes de subir">
+            <Txt variante="corpoP" discreto>
+              Puxe a tela para baixo com sinal para baixar a lista mais recente. O
+              que estiver aqui funciona sem conexão nenhuma; o que não estiver, não
+              existe no aparelho.
+            </Txt>
+            <Botao
+              titulo="Baixar tarefas agora"
+              tipo="secundario"
+              onPress={() => void buscarNaRede()}
+              carregando={atualizando}
+            />
+          </Cartao>
+        }
+        renderItem={({ item: t }) => {
+          const prazo = quantoFalta(t.prazo_em, agora.getTime());
           const comecada = emAndamento.has(t.id);
           /*
             O selo da coleta ja feita.
@@ -480,8 +909,13 @@ export default function Tarefas() {
           });
           const devolucaoRecusada: DevolucaoNoAparelho | undefined =
             devolucoes.get(t.id)?.situacao === "recusada" ? devolucoes.get(t.id) : undefined;
+
+          const IconeDoPrazo = prazo.atrasado ? IconePrazoVencido : IconePrazo;
+          const corDoPrazo = prazo.atrasado ? tema.perigoTexto : tema.textoDiscreto;
+          const resultadoDoEnvio = envio?.ocorrenciaId === t.id ? envio : null;
+
           return (
-            <View key={t.id} style={{ gap: espaco.e2 }}>
+            <View style={{ gap: espaco.e2 }}>
             <Pressable
               onPress={() => router.push({ pathname: "/(agente)/vistoria/[id]", params: { id: t.id } })}
               accessibilityRole="button"
@@ -491,19 +925,31 @@ export default function Tarefas() {
               accessibilityLabel={
                 `Abrir a vistoria do protocolo ${t.protocolo}, ${t.endereco}`
                 + (selo ? `. ${selo}` : "")
+                /* A tarja de vulnerabilidade é desenho, e o cartão inteiro é
+                   um elemento só para quem ouve a tela: sem esta linha, o
+                   cuidado prioritário simplesmente não existiria ali. */
+                + (t.vulnerabilidade_presente ? ". Vulnerabilidade social" : "")
               }
               style={({ pressed }) => ({
                 minHeight: toque,
-                backgroundColor: tema.superficie,
+                ...elevacao(tema).cartao,
+                /*
+                  A BORDA DE DESTAQUE ACENDE SÓ NO TRABALHO COMEÇADO.
+
+                  Antes ela acendia para "começada" E para "coletada", que são
+                  estados OPOSTOS: um é trabalho pela metade, para onde o agente
+                  precisa voltar, e o outro é trabalho pronto, de onde ele não
+                  precisa voltar nunca. Com a mesma borda, a lista destacava as
+                  duas coisas do mesmo jeito e não destacava nenhuma. Quem diz
+                  "coletada" agora é o chip, que é pílula, tem símbolo e é muito
+                  mais visível do que a linha de 12 pontos que havia ali.
+                */
+                borderColor: comecada ? tema.destaque : tema.borda,
+                borderWidth: comecada ? borda.enfase : borda.fio,
                 borderRadius: raio.cartao,
-                borderWidth: 1,
-                // Borda de destaque no que já foi começado: é para lá que o
-                // agente volta, e procurar isso numa lista longa custa tempo
-                // que ele não tem.
-                borderColor: comecada || selo ? tema.destaque : tema.borda,
                 padding: espaco.e4,
-                gap: espaco.e2,
-                opacity: pressed ? 0.85 : 1,
+                gap: espaco.e3,
+                opacity: pressed ? opacidade.aoToque : 1,
               })}
             >
               <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
@@ -515,13 +961,24 @@ export default function Tarefas() {
               <Txt variante="h3">{ROTULO_TIPO_COBRADE[t.tipo]}</Txt>
               <Txt variante="corpoP">{t.endereco}</Txt>
 
-              <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2, flexWrap: "wrap" }}>
+              {/*
+                O PRAZO GANHOU A LINHA DELE, e essa é a hierarquia que faltava.
+
+                Antes, prazo, data, vulnerabilidade e estado da coleta eram
+                quatro fragmentos de 12 pontos no mesmo `flexWrap`, com o mesmo
+                peso: "Vencido há 73h" pesava igual a "10/09, 14:00". Agora o
+                prazo é a linha, com ícone e no corpo do texto; a data fica ao
+                lado, em legenda discreta, porque ela QUALIFICA o prazo em vez
+                de competir com ele; e o que é estado virou chip embaixo.
+              */}
+              <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
+                <IconeDoPrazo cor={corDoPrazo} tamanho={tamanhoDeIcone.rotulo} />
                 <Txt
-                  variante="legenda"
-                  negrito={prazo.atrasado}
-                  cor={prazo.atrasado ? tema.perigoTexto : tema.textoDiscreto}
+                  variante="corpoP"
+                  peso={prazo.atrasado ? peso.negrito : peso.forte}
+                  cor={corDoPrazo}
                 >
-                  {prazo.atrasado ? "! " : ""}{prazo.texto}
+                  {prazo.texto}
                 </Txt>
                 {/*
                   A DATA ao lado do relativo. "Vence em 9h" não diz ao agente se
@@ -533,31 +990,74 @@ export default function Tarefas() {
                     {dataDoPrazo(t.prazo_em)}
                   </Txt>
                 )}
-                {t.vulnerabilidade_presente && (
-                  <Txt variante="legenda" negrito cor={tema.alertaTexto}>
-                    ! Vulnerabilidade social
-                  </Txt>
-                )}
-                {/*
-                  O selo da coleta vem ANTES do "vistoria começada", e os dois
-                  nunca aparecem juntos: quando existe lápide que barra, a tela
-                  de vistoria não retoma rascunho nenhum, e convidar a
-                  "continuar" seria prometer uma tela que não vai abrir.
-
-                  Texto, e nunca só a borda de destaque: a regra do aplicativo
-                  é que nada se comunica só por cor, e aqui o que se comunica é
-                  se o trabalho está feito.
-                */}
-                {selo ? (
-                  <Txt variante="legenda" negrito cor={tema.destaque}>
-                    ✓ {selo}
-                  </Txt>
-                ) : comecada && (
-                  <Txt variante="legenda" negrito cor={tema.destaque}>
-                    Vistoria começada, toque para continuar
-                  </Txt>
-                )}
               </View>
+
+              {/*
+                A VULNERABILIDADE NÃO É UM CHIP, e a diferença é deliberada.
+
+                Ela e o estado da coleta eram dois fragmentos de 12 pontos lado
+                a lado, e são coisas de naturezas diferentes: uma fala do LUGAR
+                (há quem precise de cuidado prioritário naquele endereço) e a
+                outra fala do MEU TRABALHO. Misturar as duas numa fileira de
+                pílulas faria a mais grave parecer mais uma etiqueta. Aqui ela
+                é uma tarja própria, do lado alerta do tema, com o ícone do
+                conjunto e a palavra inteira.
+
+                O nome e a descrição de quem é NÃO aparecem, e isso é decisão
+                de privacidade já registrada em `docs/PRIVACIDADE.md`: a lista
+                diz que há cuidado prioritário, e nunca quem.
+              */}
+              {t.vulnerabilidade_presente && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: espaco.e2,
+                    backgroundColor: tema.alertaFundo,
+                    borderRadius: raio.normal,
+                    paddingHorizontal: espaco.e3,
+                    paddingVertical: espaco.e2,
+                  }}
+                >
+                  <IconeVulnerabilidade cor={tema.alertaTexto} tamanho={tamanhoDeIcone.rotulo} />
+                  <Txt variante="corpoP" peso={peso.forte} cor={tema.alertaTexto}>
+                    Vulnerabilidade social
+                  </Txt>
+                </View>
+              )}
+
+              {/*
+                O chip do ESTADO DA COLETA, e nunca só a borda de destaque: a
+                regra do aplicativo é que nada se comunica só por cor, e o
+                `Chip` leva isso no tipo (o símbolo é obrigatório) e no tamanho
+                (`corpoP`, acima do mínimo de fonte, contra os 12 pontos de
+                antes).
+
+                O selo da coleta vem ANTES do "vistoria começada", e os dois
+                nunca aparecem juntos: quando existe lápide que barra, a tela
+                de vistoria não retoma rascunho nenhum, e convidar a
+                "continuar" seria prometer uma tela que não vai abrir.
+              */}
+              {(selo || comecada) && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2, flexWrap: "wrap" }}>
+                  {selo ? (
+                    <Chip texto={selo} simbolo="✓" tom="ok" />
+                  ) : (
+                    /*
+                      Reticências como símbolo, e não seta: seta neste
+                      aplicativo significa ENVIO (é o símbolo da fila), e
+                      "vistoria começada" é o contrário disso, é trabalho que
+                      nem saiu do aparelho ainda.
+                    */
+                    <Chip
+                      texto="Vistoria começada"
+                      simbolo="…"
+                      tom="neutro"
+                      descricao="Vistoria começada neste aparelho, toque no cartão para continuar"
+                    />
+                  )}
+                </View>
+              )}
             </Pressable>
 
             {/*
@@ -571,11 +1071,17 @@ export default function Tarefas() {
               continua, com os verbos de tentar de novo e descartar.
             */}
             {devolucaoRecusada && (
-              <Aviso tom="perigo">
-                {"A coordenação não recebeu esta devolução. "}
+              <Aviso tom="perigo" titulo="A coordenação não recebeu esta devolução">
                 {devolucaoRecusada.mensagem
                   ?? "O servidor recusou o pedido, e a tarefa continua sua."}
                 {" O pedido continua na fila de envio, onde você pode tentar de novo ou descartar."}
+              </Aviso>
+            )}
+
+            {/* O que aconteceu com o último "Enviar agora" desta tarefa. */}
+            {resultadoDoEnvio && (
+              <Aviso tom={resultadoDoEnvio.tom} titulo={resultadoDoEnvio.titulo}>
+                {resultadoDoEnvio.texto}
               </Aviso>
             )}
 
@@ -598,34 +1104,53 @@ export default function Tarefas() {
                 />
               ) : (
                 /*
-                  Com coleta esperando envio, o botão não existe e a razão fica
-                  escrita. Esconder sem dizer nada faria o agente procurar o
-                  botão que o colega tem; devolver ali jogaria fora, em silêncio,
-                  a vistoria que ele fez no morro.
+                  A TAREFA VENCIDA COM COLETA GUARDADA PEDE SINAL, E NÃO
+                  DEVOLUÇÃO. Decidido com o Rafa.
+
+                  O parágrafo de 41 palavras que ficava aqui saiu do fluxo: ele
+                  é a resposta para "por que não dá para devolver", que é uma
+                  pergunta que quase ninguém faz, e ocupava o lugar da resposta
+                  para "e agora?", que é a pergunta de todo mundo. Agora o lugar
+                  é do verbo que resolve o caso (a vistoria existe e está presa
+                  no aparelho), e a explicação fica a um toque no `ⓘ`.
+
+                  Devolver continua bloqueado, e não é teimosia: devolver ali
+                  jogaria fora, em silêncio, o trabalho que o agente já fez no
+                  morro, e faria a coordenação receber "não deu para vistoriar"
+                  sobre uma vistoria que existe.
                 */
-                <Txt variante="legenda" discreto>
-                  {FRASE_DO_IMPEDIMENTO[impedimento]}
-                </Txt>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
+                  {impedimento === "coleta_no_aparelho" && (
+                    <View style={{ flex: 1 }}>
+                      <Botao
+                        titulo="Enviar agora"
+                        testID={`enviar-${t.id}`}
+                        carregando={enviando === t.id}
+                        descricao={
+                          `Enviar agora a vistoria guardada do protocolo ${t.protocolo}, `
+                          + `${t.endereco}`
+                        }
+                        onPress={() => void enviarAgora(t)}
+                      />
+                    </View>
+                  )}
+                  <BotaoDeInformacao
+                    testID={`por-que-${t.id}`}
+                    rotulo={`Por que não dá para devolver a tarefa do protocolo ${t.protocolo}`}
+                    onPress={() => {
+                      setExplicacao({
+                        titulo: "Esta tarefa não pode ser devolvida",
+                        texto: FRASE_DO_IMPEDIMENTO[impedimento],
+                      });
+                    }}
+                  />
+                </View>
               )
             )}
             </View>
           );
-        })
-      )}
-
-      <Cartao titulo="Antes de subir">
-        <Txt variante="corpoP" discreto>
-          Puxe a tela para baixo com sinal para baixar a lista mais recente. O
-          que estiver aqui funciona sem conexão nenhuma; o que não estiver, não
-          existe no aparelho.
-        </Txt>
-        <Botao
-          titulo="Baixar tarefas agora"
-          tipo="secundario"
-          onPress={() => void buscarNaRede()}
-          carregando={atualizando}
-        />
-      </Cartao>
+        }}
+      />
 
       {/*
         Um diálogo só para a lista inteira, e não um por tarefa: a lista pode
@@ -638,6 +1163,16 @@ export default function Tarefas() {
         protocolo={aDevolver?.protocolo ?? ""}
         endereco={aDevolver?.endereco ?? ""}
         aoConfirmar={(pedido) => void (async () => {
+          /*
+            `alvo` sai do fecho desta renderização, e precisa continuar saindo:
+            o `Dialogo` chama `aoFechar` ANTES da ação (ver o comentário lá), o
+            que zera `aDevolver` antes desta linha rodar. Ler o estado aqui
+            devolveria nulo e a devolução simplesmente não aconteceria.
+
+            É essa mesma ordem que deixa o caminho livre para o diálogo da
+            explicação: quando a fila recusa, a folha da devolução já saiu, e
+            não há duas folhas empilhadas.
+          */
           const alvo = aDevolver;
           if (!alvo) return;
           await devolver(alvo, pedido);
@@ -645,6 +1180,38 @@ export default function Tarefas() {
         aoFechar={() => { setADevolver(null); }}
       />
 
-    </ScrollView>
+      {/*
+        O diálogo do `ⓘ`. Um só para a tela inteira, pela mesma razão do de
+        cima, e ele serve tanto ao aviso da faixa quanto ao impedimento do
+        cartão: é sempre a mesma coisa, um texto que não cabia onde estava.
+      */}
+      <Dialogo
+        aberto={explicacao !== null}
+        testID="explicacao"
+        titulo={explicacao?.titulo ?? ""}
+        texto={explicacao?.texto ?? ""}
+        conteudo={
+          explicacao?.extras && explicacao.extras.length > 0 ? (
+            <View style={{ gap: espaco.e3 }}>
+              {explicacao.extras.map((outra) => (
+                <View key={outra.chave} style={{ gap: espaco.e1 }}>
+                  <Txt variante="corpoP" peso={peso.forte}>{outra.resumo}</Txt>
+                  <Txt variante="corpoP" discreto>{outra.detalhe}</Txt>
+                </View>
+              ))}
+            </View>
+          ) : undefined
+        }
+        acao={
+          explicacao?.dispensar
+            ? {
+                rotulo: "Dispensar este aviso",
+                aoTocar: () => { setAvisoDaDevolucao(null); setExplicacao(null); },
+              }
+            : { rotulo: "Entendi", aoTocar: () => { setExplicacao(null); } }
+        }
+        aoFechar={() => { setExplicacao(null); }}
+      />
+    </View>
   );
 }

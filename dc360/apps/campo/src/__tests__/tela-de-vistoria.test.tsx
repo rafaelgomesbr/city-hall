@@ -208,8 +208,15 @@ describe("salvar e sair", () => {
   it("volta para a lista sem descartar o que já foi preenchido", async () => {
     await abrirATela();
 
+    /*
+      Por `testID` e não pelo rótulo falado: os três campos crus desta tela
+      viraram `Campo`, que monta o rótulo de acessibilidade com o texto do
+      rótulo mais "opcional" e mais "com erro" quando for o caso. Prender o caso
+      ao rótulo falado faria a suíte reprovar no dia em que o campo ganhasse uma
+      mensagem de erro, que não é o que ele guarda.
+    */
     await fireEvent.changeText(
-      screen.getByLabelText("Observações do agente"),
+      screen.getByTestId("observacoes-do-agente"),
       "Trinca nova na parede dos fundos.",
     );
     await act(async () => {});
@@ -277,9 +284,14 @@ describe("o prazo dentro da vistoria", () => {
     });
     await abrirATela();
 
-    const selo = screen.getByText(/^! Prazo vencido há 3h \(/);
-    // Cor MAIS palavra. Sob sol forte na tela do aparelho, e para quem não
-    // separa âmbar de vermelho, a cor sozinha não comunica nada.
+    /*
+      O "! " que abria o rótulo saiu, e no lugar dele entrou `IconePrazoVencido`.
+      O caractere era o MESMO "!" do aviso de alerta: dois sinais iguais para
+      duas coisas diferentes na mesma tela. A garantia que este caso guarda não
+      mudou, e são as três pistas juntas: a palavra "vencido", a cor de perigo e
+      agora um desenho com forma própria.
+    */
+    const selo = screen.getByText(/^Prazo vencido há 3h \(/);
     expect(StyleSheet.flatten(selo.props.style).color).toBe(temaEscuro.perigoTexto);
   });
 
@@ -288,7 +300,7 @@ describe("o prazo dentro da vistoria", () => {
       prazo_em: new Date(AGORA.getTime() + 90 * MINUTO).toISOString(),
     });
     await abrirATela();
-    expect(screen.getByText(/^! Prazo vence em 1h30 \(/)).toBeTruthy();
+    expect(screen.getByText(/^Prazo vence em 1h30 \(/)).toBeTruthy();
 
     /*
       Uma vistoria de morro dura quarenta minutos. Sem relógio, a conta fica
@@ -297,8 +309,8 @@ describe("o prazo dentro da vistoria", () => {
     */
     await act(async () => { jest.advanceTimersByTime(31 * MINUTO); });
 
-    expect(screen.getByText(/^! Prazo vence em 59min \(/)).toBeTruthy();
-    expect(screen.queryByText(/^! Prazo vence em 1h30 \(/)).toBeNull();
+    expect(screen.getByText(/^Prazo vence em 59min \(/)).toBeTruthy();
+    expect(screen.queryByText(/^Prazo vence em 1h30 \(/)).toBeNull();
   });
 
   it("ocorrência sem prazo não inventa contagem", async () => {

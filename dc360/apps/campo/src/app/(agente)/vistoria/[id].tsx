@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  Animated, Easing, Image, Pressable, ScrollView, TextInput, View,
+} from "react-native";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import * as Location from "expo-location";
 import * as Crypto from "expo-crypto";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { File } from "expo-file-system";
-import Svg, { Circle, Path } from "react-native-svg";
 import {
   CAMPOS_PESSOAS, CHAVE_ACIONAR_ORGAO, CHECKLIST_OBRIGATORIO, CHECKLIST_VISTORIA,
   ROTULO_TIPO_COBRADE,
@@ -30,12 +31,19 @@ import { useSessao } from "../../../dados/sessao";
 import { Assinatura } from "../../../ui/Assinatura";
 import { MinutaDoLaudo } from "../../../ui/MinutaDoLaudo";
 import {
-  Aviso, Botao, Cartao, Carregando, Selo, SeloSeveridade, Separador, Txt, Vazio, useTema,
+  Aviso, Botao, Cartao, Carregando, SeloSeveridade, Separador, Txt, Vazio, useTema,
 } from "../../../ui/componentes";
+import { Campo, CampoDeTexto } from "../../../ui/Campo";
 import { Chip } from "../../../ui/Chip";
 import { Dialogo } from "../../../ui/Dialogo";
+import {
+  IconeAlerta, IconeAssinatura, IconeChecklist, IconeEnvio, IconeFoto, IconeGps,
+  IconeLocalizacao, IconeOrgao, IconePerigo, IconePrazoVencido, IconeSucesso,
+} from "../../../ui/icones";
 import { OrgaosParaAcionar } from "../../../ui/OrgaosParaAcionar";
-import { espaco, fonte, raio, toque } from "../../../ui/tokens";
+import {
+  borda, easing, elevacao, espaco, icone, movimento, opacidade, peso, raio, toque, visor } from "../../../ui/tokens";
+import { useReducaoDeMovimento } from "../../../ui/useReducaoDeMovimento";
 import {
   concluirColetaEmOrdem, dataDoPrazo, decidirAberturaDaVistoria, faltaParaConcluir, quantoFalta,
 } from "@dc360/campo";
@@ -52,6 +60,7 @@ import {
  * tenta. Tentar e falhar no alto do morro gastaria bateria e ensinaria o
  * agente a desconfiar de uma coleta que está perfeitamente guardada.
  */
+
 
 /**
  * O que a pessoa digitou vira número, ou não vira nada.
@@ -76,26 +85,153 @@ function contagensDoRascunho(pessoas: Record<string, string>): PessoasAtingidas 
 }
 
 /**
- * Alfinete de mapa, desenhado aqui e não no arquivo dos ícones da barra.
+ * O lado da miniatura de fotografia, em pontos.
  *
- * `ui/icones.tsx` guarda os três destinos do menu, que são de navegação. Este
- * é de uma ação de uma tela só, e mora junto de quem o usa.
- *
- * Traço e não preenchimento, para acompanhar os outros, e sempre ao lado da
- * palavra "Abrir no mapa": o agente abre este aplicativo duas vezes por semana
- * e não decora pictograma. Ícone sozinho seria recurso que existe no código e
- * não existe para quem está na rua.
+ * Estava escrito 96 duas vezes na mesma linha. Não é token de sistema (não
+ * existe escala de miniatura no produto, e inventar uma aqui seria decidir por
+ * todas as telas a partir de uma), mas é uma medida com nome, num lugar só.
+ * Grande o bastante para o agente reconhecer a parede que fotografou, e pequena
+ * o bastante para caber três por linha no aparelho estreito.
  */
-function IconeMapa({ cor, tamanho = 20 }: { cor: string; tamanho?: number }) {
+const MINIATURA = 96;
+
+/** De onde a miniatura recém guardada cresce. Perto de 1: entrada, não salto. */
+const ESCALA_DA_FOTO_ENTRANDO = 0.8;
+
+/**
+ * As âncoras de rolagem desta tela, e por que elas existem.
+ *
+ * O formulário da vistoria passa de dois mil pontos de altura no aparelho. A
+ * frase "falta tirar ao menos uma fotografia" ficava no FIM dessa rolagem, e o
+ * agente que a lia subia a tela procurando onde. Agora cada pendência tem um
+ * caminho: um toque leva ao cartão que a resolve.
+ *
+ * São três e não sete porque só existem três lugares onde uma pendência de
+ * conclusão se resolve. `checklist` recebe também a indicação de órgão, que é o
+ * desdobramento de um item dele e mora dentro do mesmo cartão, colado na
+ * pergunta que o abriu.
+ */
+type SecaoDaVistoria = "progresso" | "checklist" | "fotos" | "assinatura";
+
+/**
+ * De qual pendência o texto fala, e para onde ela leva.
+ *
+ * A lista do que falta é `faltaParaConcluir`, no pacote compartilhado, e não
+ * pode virar uma segunda lista escrita aqui: foi assim que a assinatura sumiu
+ * de uma e não da outra, e três vistorias reais chegaram ao servidor sem o
+ * traço de quem assinou. Então a TELA não decide o que falta, só decide para
+ * onde cada falta leva.
+ *
+ * O casamento é por trecho estável do texto, e a fragilidade disso é conhecida:
+ * se alguém reescrever a frase no pacote, o caminho some em silêncio. Por isso
+ * existe o caso de teste que gera TODAS as saídas possíveis de
+ * `faltaParaConcluir` e exige que cada uma encontre seção aqui. Sem ele, esta
+ * tabela seria um mapeamento que dá verde para sempre.
+ *
+ * A ordem importa: "coletar e confirmar a assinatura de quem estava no local"
+ * contém os dois trechos de assinatura, e os dois levam ao mesmo cartão.
+ */
+const CAMINHO_DA_FALTA: ReadonlyArray<{ trecho: string; secao: SecaoDaVistoria }> = [
+  { trecho: "checklist", secao: "checklist" },
+  { trecho: "órgão", secao: "checklist" },
+  { trecho: "fotografia", secao: "fotos" },
+  { trecho: "assinatura", secao: "assinatura" },
+  { trecho: "quem estava no local", secao: "assinatura" },
+];
+
+export function secaoDaFalta(falta: string): SecaoDaVistoria | null {
+  return CAMINHO_DA_FALTA.find((c) => falta.includes(c.trecho))?.secao ?? null;
+}
+
+/**
+ * Um requisito de conclusão, do ponto de vista de QUEM ESTÁ PREENCHENDO.
+ *
+ * `faltaParaConcluir` responde "dá para concluir, e o que impede". Esta lista
+ * responde outra pergunta, que ela não tem como responder: "quanto do trabalho
+ * já está feito". Para isso é preciso conhecer também o que está PRONTO, e a
+ * função devolve só o que falta.
+ *
+ * Duas listas para o mesmo fato divergem na primeira pressa, e este arquivo já
+ * pagou esse preço uma vez. O que impede a repetição não é disciplina: é o caso
+ * de teste que exige a EQUIVALÊNCIA das duas (nenhum requisito pendente se e
+ * somente se `faltaParaConcluir` devolve lista vazia), varrendo os estados
+ * intermediários. Barra cheia com botão travado é o defeito que ele guarda.
+ */
+type RequisitoDeConclusao = {
+  chave: string;
+  rotulo: string;
+  secao: SecaoDaVistoria;
+  feito: boolean;
+};
+
+/**
+ * O título de cartão com ícone, montado aqui e não dentro de `Cartao`.
+ *
+ * `Cartao` recebe `titulo` como texto e mora em `src/ui`, que é faixa de outra
+ * frente. Enquanto ele não aceitar um desenho, o cartão entra sem `titulo` e a
+ * linha do título é desenhada aqui. O texto continua sendo o mesmo texto: o
+ * ícone acompanha a palavra, nunca a substitui, porque quem usa este
+ * aplicativo o abre duas vezes por semana e não decora pictograma.
+ *
+ * No nível do módulo, e não dentro da tela: componente declarado dentro de
+ * outro é um tipo novo a cada renderização, e o React desmonta e remonta a
+ * subárvore inteira a cada toque do checklist.
+ */
+function TituloDoCartao({ desenho, texto }: { desenho: ReactNode; texto: string }) {
   return (
-    <Svg width={tamanho} height={tamanho} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M12 21.5s7-6.53 7-11.5a7 7 0 1 0-14 0c0 4.97 7 11.5 7 11.5Z"
-        stroke={cor} strokeWidth={1.8} strokeLinejoin="round"
-      />
-      <Circle cx="12" cy="10" r="2.6" stroke={cor} strokeWidth={1.8} />
-    </Svg>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
+      {desenho}
+      <Txt variante="h3">{texto}</Txt>
+    </View>
   );
+}
+
+export function requisitosDeConclusao(estado: {
+  checklist: Readonly<Record<string, unknown>>;
+  orgaosParaAcionar: ReadonlyArray<{ nome: string }>;
+  quantasFotos: number;
+  assinanteNome: string;
+  assinaturaUri: string | null;
+}): RequisitoDeConclusao[] {
+  return [
+    ...CHECKLIST_OBRIGATORIO.map((item) => ({
+      chave: `checklist:${item.chave}`,
+      rotulo: item.rotulo,
+      secao: "checklist" as const,
+      feito: item.chave in estado.checklist,
+    })),
+    /*
+      O órgão só é requisito depois de o agente ter respondido "sim". Contá-lo
+      sempre faria a barra nascer em "0 de 8" e nunca chegar a oito na vistoria
+      em que ninguém precisa ser acionado, que é a maioria delas.
+    */
+    ...(estado.checklist[CHAVE_ACIONAR_ORGAO] === true
+      ? [{
+          chave: "orgaos",
+          rotulo: "Órgão a acionar indicado",
+          secao: "checklist" as const,
+          feito: estado.orgaosParaAcionar.length > 0,
+        }]
+      : []),
+    {
+      chave: "fotos",
+      rotulo: "Ao menos uma fotografia",
+      secao: "fotos" as const,
+      feito: estado.quantasFotos > 0,
+    },
+    {
+      chave: "assinante",
+      rotulo: "Nome de quem assina",
+      secao: "assinatura" as const,
+      feito: estado.assinanteNome.trim().length > 0,
+    },
+    {
+      chave: "assinatura",
+      rotulo: "Traço da assinatura",
+      secao: "assinatura" as const,
+      feito: Boolean(estado.assinaturaUri),
+    },
+  ];
 }
 
 export default function TelaDeVistoria() {
@@ -160,9 +296,181 @@ export default function TelaDeVistoria() {
     mão é perder trabalho por causa de um toque errado numa tela pequena.
   */
   const [perguntandoDescartarOrgaos, setPerguntandoDescartarOrgaos] = useState(false);
+  /*
+    Apagar fotografia passa a PERGUNTAR, e a comparação que decidiu isto está
+    dentro do próprio aplicativo: descartar um item da fila de envio, que é
+    menos grave (a coleta ainda pode ser refeita do rascunho), já perguntava.
+    Aqui o toque errado apaga a prova de uma interdição, que não se refaz sem
+    subir o morro de novo com o morador esperando.
+  */
+  const [fotoParaApagar, setFotoParaApagar] = useState<FotoLocal | null>(null);
+  /*
+    A última fotografia guardada, para ela ter ENTRADA na tela.
+
+    Antes daqui a câmera fechava e a miniatura simplesmente estava lá, sem
+    flash, sem som e sem movimento: o agente não sabia se o obturador tinha
+    pegado, e a reação natural é tirar a mesma foto de novo. Guardar a chave (e
+    não um booleano) faz a animação valer para a foto CERTA quando duas são
+    tiradas em seguida.
+  */
+  const [fotoRecemGuardada, setFotoRecemGuardada] = useState<string | null>(null);
   /** Enquanto true, o ScrollView desta tela nao rola: o dedo esta assinando. */
   const [desenhando, setDesenhando] = useState(false);
   const cameraRef = useRef<CameraView>(null);
+
+  const reduzirMovimento = useReducaoDeMovimento();
+
+  /*
+    A rolagem e as âncoras: como um toque em "falta a fotografia" leva ao
+    cartão das fotografias.
+
+    As alturas ficam numa `ref` e não em estado. Elas são escritas pelo
+    `onLayout` de cada cartão, que dispara a cada medição; em estado, cada
+    medição provocaria uma renderização nova, e a renderização nova mediria de
+    novo. Nada aqui é lido durante o desenho: só no instante do toque.
+  */
+  const rolagem = useRef<ScrollView>(null);
+  const alturaDaSecao = useRef<Partial<Record<SecaoDaVistoria, number>>>({});
+  /*
+    Onde o agente ACABOU DE CHEGAR.
+
+    Rolar sozinho até um cartão, num formulário com sete deles, deixa quem está
+    olhando sem saber se a tela obedeceu ou se ela se mexeu por conta própria (é
+    a mesma reclamação que a lista de tarefas recebeu: "dá uma rolada sozinha").
+    O destino acende um contorno por alguns segundos, e o contorno é espessura
+    MAIS cor, nunca só cor.
+  */
+  const [secaoEmDestaque, setSecaoEmDestaque] = useState<SecaoDaVistoria | null>(null);
+
+  /*
+    O CLÍMAX da conclusão, e a guarda que impede a comemoração de acontecer à
+    toa.
+
+    O vocabulário é o da `FaixaDeSincronizacao`, que já acertou isto uma vez:
+    `movimento.climax` partido em 40% de ida e 60% de volta, `Easing.out(
+    Easing.back(2))` só na ida (a curva que passa do alvo é o que separa "o
+    estado mudou" de "conseguimos", e por isso ela não é emprestada para mais
+    nada nesta tela), e `useNativeDriver` porque escala é propriedade que a
+    camada nativa anima sozinha. Sem isso cada quadro atravessa a ponte, e num
+    aparelho fraco de prefeitura a comemoração sai travada, que é pior do que
+    não ter comemoração nenhuma.
+
+    **Por que a guarda existe, se o efeito já depende de `avisandoQueGuardou`.**
+    O arranjo de dependências sozinho NÃO garante "uma vez", e vale dizer com
+    precisão por quê: o efeito depende também de `reduzirMovimento`, que é lido
+    de um evento do SISTEMA e muda no meio do plantão (quem liga essa chave
+    quase sempre liga porque começou a passar mal, e este aplicativo fica aberto
+    o dia inteiro). Ligar e desligar a chave com a tela de conclusão aberta faria
+    o efeito rodar de novo, e o emblema pularia sozinho sem nada ter sido
+    concluído.
+
+    A `ref` torna "comemora uma vez por conclusão" verdade por CONSTRUÇÃO, e não
+    por acidente de quais valores estão no arranjo hoje: a dependência que
+    alguém acrescentar amanhã não traz a comemoração de volta junto. Ela volta a
+    `false` quando o estado volta, que é o que permite uma segunda vistoria
+    comemorar de novo.
+
+    O valor de repouso é 1, e não 0: se por qualquer motivo o efeito não rodar,
+    o emblema aparece no tamanho certo em vez de sumir da tela.
+  */
+  const emblemaDaConclusao = useRef(new Animated.Value(1)).current;
+  const jaComemorou = useRef(false);
+
+  useEffect(() => {
+    if (!avisandoQueGuardou) {
+      jaComemorou.current = false;
+      return;
+    }
+    if (jaComemorou.current) return;
+    jaComemorou.current = true;
+
+    if (reduzirMovimento) {
+      // Quem pediu menos movimento continua vendo o emblema, o título e o
+      // resumo. O que some é a interpolação, nunca o fato.
+      emblemaDaConclusao.setValue(1);
+      return;
+    }
+
+    emblemaDaConclusao.setValue(0.6);
+    Animated.sequence([
+      Animated.timing(emblemaDaConclusao, {
+        toValue: 1.12,
+        duration: movimento.climax * 0.4,
+        easing: Easing.out(Easing.back(2)),
+        useNativeDriver: true,
+      }),
+      Animated.timing(emblemaDaConclusao, {
+        toValue: 1,
+        duration: movimento.climax * 0.6,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [avisandoQueGuardou, reduzirMovimento, emblemaDaConclusao]);
+
+  /*
+    A entrada da miniatura recém guardada.
+
+    Um valor só para todas as fotos, porque só UMA é a nova a cada instante:
+    um valor por foto seria uma animação por miniatura viva na tela o plantão
+    inteiro, sem ninguém olhando para elas.
+  */
+  const entradaDaFoto = useRef(new Animated.Value(1)).current;
+  const escalaDaFotoNova = entradaDaFoto.interpolate({
+    inputRange: [0, 1],
+    outputRange: [ESCALA_DA_FOTO_ENTRANDO, 1],
+  });
+
+  useEffect(() => {
+    if (!fotoRecemGuardada) return;
+    if (reduzirMovimento) {
+      entradaDaFoto.setValue(1);
+      return;
+    }
+    entradaDaFoto.setValue(0);
+    Animated.timing(entradaDaFoto, {
+      toValue: 1,
+      duration: movimento.mudancaDeEstado,
+      easing: Easing.bezier(...easing.entrada),
+      // Opacidade e escala: a camada nativa desenha as duas sozinha, e o
+      // JavaScript deste aplicativo pode estar ocupado drenando a fila.
+      useNativeDriver: true,
+    }).start();
+  }, [fotoRecemGuardada, reduzirMovimento, entradaDaFoto]);
+
+  /*
+    A confirmação da fotografia guardada some sozinha.
+
+    Ela é retorno de um ato que acabou de acontecer, não um estado da vistoria:
+    deixada na tela, vira mais uma linha permanente num formulário que já é
+    longo, e o agente para de enxergá-la justamente na foto seguinte, que é
+    quando ela precisa ser vista.
+  */
+  useEffect(() => {
+    if (!fotoRecemGuardada) return;
+    const relogio = setTimeout(() => { setFotoRecemGuardada(null); }, movimento.climax * 8);
+    return () => { clearTimeout(relogio); };
+  }, [fotoRecemGuardada]);
+
+  useEffect(() => {
+    if (!secaoEmDestaque) return;
+    const relogio = setTimeout(() => { setSecaoEmDestaque(null); }, movimento.climax * 6);
+    return () => { clearTimeout(relogio); };
+  }, [secaoEmDestaque]);
+
+  const irPara = useCallback((secao: SecaoDaVistoria) => {
+    setSecaoEmDestaque(secao === "progresso" ? null : secao);
+    const y = alturaDaSecao.current[secao];
+    if (y == null) return;
+    /*
+      Sobe um respiro acima do cartão para o título dele aparecer inteiro. Sem
+      isso o destino fica colado no topo da tela e parece meia seção.
+    */
+    rolagem.current?.scrollTo({
+      y: Math.max(0, y - espaco.e4),
+      animated: !reduzirMovimento,
+    });
+  }, [reduzirMovimento]);
 
   /*
     O relógio do prazo, dentro da vistoria.
@@ -180,7 +488,20 @@ export default function TelaDeVistoria() {
   }, []);
 
   const carregarDoDisco = useCallback(async () => {
-    {
+    /*
+      A leitura do disco passa a ter caminho de falha, e antes não tinha.
+
+      Se o banco local não abrisse (armazenamento cheio, arquivo corrompido,
+      migração do SQLite no meio), a promessa era rejeitada e ninguém pegava:
+      `setCarregando(false)` nunca rodava e a tela ficava com a roda girando
+      PARA SEMPRE, sem uma palavra. O agente em pé no barranco não tem como
+      distinguir isso de sinal ruim, e o que ele faz é matar o aplicativo, que
+      é o único jeito de perder coleta neste produto.
+
+      Agora a falha vira a tela desenhada de erro, com nome e com saída.
+    */
+    setErro(null);
+    try {
       const alvo = await pendenciaGuardada(id);
       if (!alvo) {
         /*
@@ -237,6 +558,12 @@ export default function TelaDeVistoria() {
       }
       setRascunho(
         guardado ?? rascunhoNovo(id, alvo.protocolo, Crypto.randomUUID()),
+      );
+      setCarregando(false);
+    } catch {
+      setErro(
+        "Não foi possível ler esta vistoria no aparelho. O que já estava "
+        + "guardado continua guardado: nada foi apagado.",
       );
       setCarregando(false);
     }
@@ -401,6 +728,19 @@ export default function TelaDeVistoria() {
       ...(rascunho.coordenada ? { coordenada: rascunho.coordenada } : {}),
     };
     await alterar({ fotos: [...rascunho.fotos, foto] });
+    /*
+      O RETORNO do obturador, e ele é a correção de um defeito relatado com o
+      aparelho na mão: a câmera fechava e a miniatura aparecia, sem flash, sem
+      som e sem movimento nenhum. Quem está de luva, na chuva, com o morador
+      esperando, não confere miniatura de 96 pontos: tira a foto de novo.
+
+      Duas coisas, e as duas de propósito. A chave alimenta a ENTRADA da
+      miniatura (escala e opacidade, que a camada nativa anima sozinha), e a
+      linha de confirmação, com região viva, diz em PALAVRA o que aconteceu,
+      porque movimento não chega a quem usa leitor de tela nem a quem desligou
+      a animação no sistema.
+    */
+    setFotoRecemGuardada(foto.idempotencyKey);
     setCameraAberta(false);
   }
 
@@ -577,7 +917,25 @@ export default function TelaDeVistoria() {
     }
   }
 
-  if (carregando) return <Carregando mensagem="Abrindo a vistoria" />;
+  /*
+    A espera com saída, que é metade do componente e não estava ligada.
+
+    `Carregando` sabe declarar a demora aos seis segundos e oferecer uma porta;
+    sem `aoDesistir`, a porta fecha a espera e deixa o agente numa tela que só
+    diz "você parou de esperar", sem levar a lugar nenhum. Aqui a saída é a
+    mesma de "Salvar e sair": volta para a lista, e nada do que estava no disco
+    é tocado. O rótulo diz para onde leva, e não "parar de esperar", porque
+    quem está em pé no morro quer saber o que fazer agora.
+  */
+  if (carregando) {
+    return (
+      <Carregando
+        mensagem="Abrindo a vistoria"
+        aoDesistir={salvarESair}
+        rotuloDaSaida="Voltar para as tarefas"
+      />
+    );
+  }
 
   /*
     A tarefa ainda não desceu para este aparelho.
@@ -619,7 +977,44 @@ export default function TelaDeVistoria() {
     );
   }
 
-  if (erro && !ocorrencia) return <View style={{ padding: espaco.e4 }}><Aviso tom="perigo">{erro}</Aviso></View>;
+  /*
+    A vistoria não abriu, e esta é a tela disso.
+
+    Antes era uma tarja vermelha órfã dentro de um `View` com recuo: sem
+    título, sem ícone, sem nenhuma indicação do que fazer e sem saída. Era a
+    tela menos acabada do aplicativo, e ela aparece justamente no pior momento,
+    que é o agente tocando na tarefa com alguém esperando na porta.
+
+    O desenho é o mesmo do estado de "ainda não baixada", logo acima, e isso é
+    deliberado: as duas são a mesma pergunta ("por que isto não abriu?") com
+    respostas diferentes, e responder as duas com formatos diferentes ensina o
+    agente a não reconhecer nenhuma das duas.
+
+    As duas saídas, nesta ordem: tentar de novo (quase sempre resolve, porque a
+    falha típica é o banco local ocupado por uma gravação da fila) e voltar,
+    que é o que salva quem está preso aqui.
+  */
+  if (erro && !ocorrencia) {
+    return (
+      <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}>
+        <Vazio
+          titulo="Não deu para abrir esta vistoria"
+          descricao={erro}
+          icone={<IconePerigo cor={tema.perigoTexto} tamanho={icone.vazio} />}
+        />
+        <Botao
+          titulo="Tentar de novo"
+          onPress={() => { setCarregando(true); void carregarDoDisco(); }}
+          testID="tentar-abrir-de-novo"
+        />
+        <Botao
+          titulo="Voltar para as tarefas"
+          tipo="secundario"
+          onPress={salvarESair}
+        />
+      </ScrollView>
+    );
+  }
 
   /*
     A ocorrencia ja foi coletada neste aparelho, e por isso esta tela nao e o
@@ -657,9 +1052,19 @@ export default function TelaDeVistoria() {
           de relance, no meio da rua, precisa distinguir "já subiu" de "ainda
           está no aparelho" antes de decidir se vale a pena refazer.
         */}
+        {/*
+          O símbolo é DESENHO e não caractere. Eram "✓" e "↑" tipográficos,
+          que herdam o peso e a altura da fonte em vez do traço do conjunto, e
+          que no aparelho ficavam com dois pesos diferentes lado a lado. O
+          `Chip` passou a aceitar um nó, então o selo usa os mesmos ícones do
+          resto do produto. A palavra continua ali: o desenho é a segunda
+          pista, nunca a única.
+        */}
         <Chip
           texto={jaColetada.situacao === "enviada" ? "Enviada" : "Na fila de envio"}
-          simbolo={jaColetada.situacao === "enviada" ? "✓" : "↑"}
+          simbolo={jaColetada.situacao === "enviada"
+            ? <IconeSucesso cor={tema.okTexto} tamanho={icone.inline} />
+            : <IconeEnvio cor={tema.textoDiscreto} tamanho={icone.inline} />}
           tom={jaColetada.situacao === "enviada" ? "ok" : "neutro"}
           descricao={
             jaColetada.situacao === "enviada"
@@ -726,36 +1131,122 @@ export default function TelaDeVistoria() {
   if (!ocorrencia || !rascunho) return null;
 
   /*
-    A confirmação é montada UMA vez e colocada em DUAS telas, e isso é a
-    diferença entre um diálogo do aplicativo e o alerta do sistema.
+    A CONCLUSÃO, e por que ela é uma tela e não mais um diálogo.
 
-    `Alert.alert` flutuava por cima de qualquer coisa: não importava se a tela
-    embaixo era o formulário ou a minuta. Um `Modal` do aplicativo só existe na
-    árvore em que foi montado, e a conclusão acontece com a MINUTA aberta, que é
-    outro `return` desta função. Montar a confirmação só no formulário deixava a
-    coleta entrar na fila e nada aparecer na tela: o agente ficava olhando a
-    minuta, sem saber se apertou o botão certo, e o toque seguinte era em
-    "Concluir vistoria" de novo.
+    Ela era o mesmo `Dialogo` de "Sair da conta?": duas frases cinzas e um
+    botão, com o desenho de uma pergunta de rotina. Quarenta minutos de
+    trabalho no morro, uma casa interditada, a assinatura de quem mora nela, e
+    o aplicativo respondia com a caixa de confirmação mais barata que ele tem.
 
-    O botão diz para onde leva em vez de dizer "Entendi". Quem lê isto acaba de
-    descer o morro e quer saber o que fazer agora, não confirmar que entendeu
-    uma frase.
+    Três coisas mudam, e nenhuma é enfeite:
+
+    1. **É tela inteira, e vem antes de qualquer outro `return`.** A conclusão
+       acontece com a MINUTA aberta, e o diálogo montado só no formulário
+       deixava a coleta entrar na fila sem nada aparecer, com o agente olhando
+       a minuta e tocando em "Concluir vistoria" de novo. Sendo o primeiro
+       `return`, ela cobre os dois caminhos por construção, e não por lembrança.
+    2. **Ela RESUME o que foi guardado.** A dúvida de quem desce o morro não é
+       "deu certo?", é "foi tudo?". Fotografias, assinatura e checklist ditos em
+       número respondem isso sem abrir a fila.
+    3. **Ela tem o clímax**, com a guarda de origem escrita lá em cima.
+
+    As duas saídas continuam nomeando o destino em vez de dizer "Entendi": quem
+    acaba de descer o morro quer saber o que fazer agora.
   */
-  const confirmacaoDeGuardado = (
-    <Dialogo
-      aberto={avisandoQueGuardou}
-      titulo="Vistoria guardada"
-      texto={
-        "Ela vai ser enviada assim que houver sinal. Você pode acompanhar na " +
-        "fila de envio."
-      }
-      acao={{
-        rotulo: "Voltar para a lista de tarefas",
-        aoTocar: () => { router.back(); },
-      }}
-      aoFechar={() => { setAvisandoQueGuardou(false); }}
-    />
-  );
+  if (avisandoQueGuardou) {
+    const quantasFotos = rascunho.fotos.length;
+    const respondidos = CHECKLIST_VISTORIA.filter((i) => i.chave in rascunho.checklist).length;
+
+    return (
+      <ScrollView
+        testID="vistoria-guardada"
+        contentContainerStyle={{
+          flexGrow: 1,
+          padding: espaco.e5,
+          gap: espaco.e4,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: tema.fundo,
+        }}
+      >
+        {/*
+          O emblema é DECORAÇÃO do título que vem logo abaixo: anunciá-lo de
+          novo faria o leitor de tela dizer "concluído" duas vezes seguidas.
+        */}
+        <Animated.View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          testID="emblema-da-conclusao"
+          style={{
+            width: espaco.e8 + espaco.e5,
+            height: espaco.e8 + espaco.e5,
+            borderRadius: raio.pilula,
+            backgroundColor: tema.okFundo,
+            alignItems: "center",
+            justifyContent: "center",
+            transform: [{ scale: emblemaDaConclusao }],
+          }}
+        >
+          <IconeSucesso cor={tema.okTexto} tamanho={icone.vazio} />
+        </Animated.View>
+
+        <Txt variante="h1" alinhamento="center">Vistoria guardada</Txt>
+        <Txt variante="corpoP" mono negrito>{ocorrencia.protocolo}</Txt>
+
+        {/*
+          O resumo em três linhas com ícone, e não um parágrafo. Cada linha
+          responde uma pergunta que o agente faria à fila de envio se não
+          estivesse escrita aqui.
+        */}
+        <View style={{
+          ...elevacao(tema).cartao,
+          borderRadius: raio.cartao,
+          padding: espaco.e4,
+          gap: espaco.e3,
+          alignSelf: "stretch",
+        }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e3 }}>
+            <IconeChecklist cor={tema.textoDiscreto} tamanho={icone.rotulo} />
+            <Txt variante="corpoP">
+              {respondidos} de {CHECKLIST_VISTORIA.length} itens do checklist respondidos
+            </Txt>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e3 }}>
+            <IconeFoto cor={tema.textoDiscreto} tamanho={icone.rotulo} />
+            <Txt variante="corpoP">
+              {quantasFotos === 1 ? "1 fotografia guardada" : `${quantasFotos} fotografias guardadas`}
+            </Txt>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e3 }}>
+            <IconeAssinatura cor={tema.textoDiscreto} tamanho={icone.rotulo} />
+            <View style={{ flex: 1 }}>
+              <Txt variante="corpoP">
+                Assinada por {rascunho.assinanteNome.trim()}
+              </Txt>
+            </View>
+          </View>
+        </View>
+
+        <Aviso tom="info" titulo="Ela sobe sozinha">
+          Nada depende de sinal agora. A coleta está na fila de envio deste
+          aparelho e sobe assim que houver rede, mesmo com o aplicativo fechado.
+        </Aviso>
+
+        <View style={{ alignSelf: "stretch", gap: espaco.e3 }}>
+          <Botao
+            titulo="Voltar para a lista de tarefas"
+            testID="voltar-depois-de-guardar"
+            onPress={() => { setAvisandoQueGuardou(false); salvarESair(); }}
+          />
+          <Botao
+            titulo="Ver na fila de envio"
+            tipo="secundario"
+            onPress={() => { setAvisandoQueGuardou(false); router.push("/(agente)/fila"); }}
+          />
+        </View>
+      </ScrollView>
+    );
+  }
 
   /*
     Uma lista so, calculada fora da tela.
@@ -780,6 +1271,24 @@ export default function TelaDeVistoria() {
     CHECKLIST_OBRIGATORIO,
   );
   const podeConcluir = faltas.length === 0;
+
+  /*
+    O mesmo estado visto pelo outro lado: o que já está FEITO.
+
+    `faltaParaConcluir` não tem como responder isso, porque ela devolve só o
+    que falta, e o agente precisa saber quanto do trabalho já entrou. As duas
+    listas ficam amarradas por um caso de teste, e não por disciplina: nenhum
+    requisito pendente se e somente se `faltas` está vazia. Barra cheia com
+    botão travado é o defeito exato que ele guarda.
+  */
+  const requisitos = requisitosDeConclusao({
+    checklist: rascunho.checklist,
+    orgaosParaAcionar: rascunho.orgaosParaAcionar,
+    quantasFotos: rascunho.fotos.length,
+    assinanteNome: rascunho.assinanteNome,
+    assinaturaUri: rascunho.assinaturaUri ?? null,
+  });
+  const feitos = requisitos.filter((r) => r.feito).length;
 
   if (minutaAberta) {
     /*
@@ -872,18 +1381,17 @@ export default function TelaDeVistoria() {
             />
           </View>
         </View>
-        {confirmacaoDeGuardado}
       </View>
     );
   }
 
   if (cameraAberta) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#000" }}>
+      <View style={{ flex: 1, backgroundColor: visor.fundo }}>
         <CameraView ref={cameraRef} style={{ flex: 1 }} facing="back" />
         <View style={{
           padding: espaco.e5, gap: espaco.e3,
-          backgroundColor: "#000", alignItems: "center",
+          backgroundColor: visor.fundo, alignItems: "center",
         }}>
           {/*
             Disparador redondo e grande, no lugar onde o polegar já está. Um
@@ -897,7 +1405,7 @@ export default function TelaDeVistoria() {
             accessibilityLabel="Tirar a fotografia"
             style={({ pressed }) => ({
               width: 84, height: 84, borderRadius: raio.pilula,
-              backgroundColor: "#FFFFFF",
+              backgroundColor: visor.obturador,
               borderWidth: 5, borderColor: tema.destaque,
               opacity: fotografando ? 0.5 : pressed ? 0.8 : 1,
             })}
@@ -937,8 +1445,15 @@ export default function TelaDeVistoria() {
     decidindo se para para fotografar mais uma parede, e o agente é justamente
     quem está mais longe de um calendário.
   */
+  /*
+    O "! " que abria o rótulo era um caractere tipográfico fazendo trabalho de
+    ícone, e ele era o mesmo "!" que o aviso de alerta usa: dois sinais iguais
+    para duas coisas diferentes na mesma tela. Agora o prazo estourado leva o
+    desenho do relógio vencido, que tem forma própria, e a PALAVRA "vencido"
+    continua no texto, porque o ícone é a segunda pista e nunca a única.
+  */
   const rotuloDoPrazo = ocorrencia.prazo_em
-    ? `${prazo.atrasado ? "! " : ""}Prazo `
+    ? "Prazo "
       + prazo.texto.charAt(0).toLowerCase() + prazo.texto.slice(1)
       + ` (${dataDoPrazo(ocorrencia.prazo_em)})`
     : prazo.texto;
@@ -950,20 +1465,56 @@ export default function TelaDeVistoria() {
 
   const temCoordenada = ocorrencia.latitude != null && ocorrencia.longitude != null;
 
-  const campo = {
-    minHeight: toque,
-    borderWidth: 1,
-    borderColor: tema.borda,
-    borderRadius: raio.normal,
-    backgroundColor: tema.superficie,
-    color: tema.texto,
-    paddingHorizontal: espaco.e3,
-    paddingVertical: espaco.e2,
-    fontSize: fonte.corpo,
-  } as const;
 
   return (
+    <View style={{ flex: 1, backgroundColor: tema.fundo }}>
+      {/*
+        A TARJA DE ERRO SAI DE DENTRO DA ROLAGEM.
+
+        Ela é o destino de seis falhas diferentes (permissão de localização,
+        GPS, câmera, aplicativo de mapas, nova vistoria e conclusão) e morava
+        no topo do conteúdo rolável. O formulário passa de dois mil pontos: um
+        erro de GPS disparado no cartão da localização era desenhado onde
+        ninguém estava olhando, e para o agente o toque simplesmente não fazia
+        nada. Ele tocava de novo, e de novo.
+
+        Fora da rolagem, ela fica presa no alto da TELA, e por isso aparece
+        onde quer que o dedo esteja. Em fluxo e não sobreposta, de propósito: o
+        conteúdo desce em vez de ser coberto, e nenhum campo some atrás dela.
+
+        Com botão de fechar, porque tarja que não sai é tarja que o agente
+        aprende a ignorar, e a próxima que importar ele também ignora.
+      */}
+      {erro && (
+        <View
+          testID="tarja-de-erro"
+          accessibilityLiveRegion="assertive"
+          style={{
+            ...elevacao(tema).flutuante,
+            borderWidth: 0,
+            borderBottomWidth: borda.fio,
+            borderBottomColor: tema.borda,
+            padding: espaco.e3,
+          }}
+        >
+          <Aviso
+            tom="perigo"
+            titulo="Não deu certo"
+            acao={{
+              titulo: "Fechar",
+              onPress: () => { setErro(null); },
+              descricao: "Fechar este aviso de erro",
+              testID: "fechar-erro",
+            }}
+          >
+            {erro}
+          </Aviso>
+        </View>
+      )}
+
     <ScrollView
+      ref={rolagem}
+      testID="formulario-da-vistoria"
       /*
         Desligado enquanto o dedo desenha a assinatura. Os callbacks de
         captura do PanResponder ja ganham a disputa pelo gesto; isto remove a
@@ -972,8 +1523,6 @@ export default function TelaDeVistoria() {
       scrollEnabled={!desenhando}
       contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: espaco.e8 }}
     >
-      {erro && <Aviso tom="perigo">{erro}</Aviso>}
-
       <Cartao>
         <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
           <Txt variante="corpoP" mono negrito>{ocorrencia.protocolo}</Txt>
@@ -996,7 +1545,31 @@ export default function TelaDeVistoria() {
         )}
 
         <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2, flexWrap: "wrap" }}>
-          <Selo texto={rotuloDoPrazo} fundo={coresDoPrazo.fundo} cor={coresDoPrazo.cor} />
+          {/*
+            A pílula é desenhada aqui, e não com `Selo`, por duas razões que se
+            somam. `Selo` recebe texto e não aceita desenho, e ele usa `legenda`
+            de 12 pontos, dois abaixo do `fonteMinima` que o próprio
+            `tokens.ts` declara: o prazo é justamente o que se lê de relance, em
+            pé, com chuva na tela.
+          */}
+          <View
+            style={{
+              backgroundColor: coresDoPrazo.fundo,
+              borderRadius: raio.pilula,
+              paddingHorizontal: espaco.e3,
+              paddingVertical: espaco.e1,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: espaco.e2,
+            }}
+          >
+            {prazo.atrasado && (
+              <IconePrazoVencido cor={coresDoPrazo.cor} tamanho={icone.inline} />
+            )}
+            <Txt variante="corpoP" peso={peso.negrito} cor={coresDoPrazo.cor}>
+              {rotuloDoPrazo}
+            </Txt>
+          </View>
         </View>
 
         {/*
@@ -1020,16 +1593,22 @@ export default function TelaDeVistoria() {
                 minHeight: toque,
                 paddingHorizontal: espaco.e3,
                 borderRadius: raio.normal,
-                borderWidth: 1,
+                borderWidth: borda.fio,
                 borderColor: tema.borda,
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: espaco.e2,
-                opacity: pressed ? 0.85 : 1,
+                opacity: pressed ? opacidade.aoToque : 1,
               })}
             >
-              <IconeMapa cor={tema.texto} />
+              {/*
+                O alfinete era desenhado à mão neste arquivo, com o mesmo
+                traçado que `ui/icones.tsx` já tinha. Dois desenhos iguais em
+                dois lugares é como o produto inteiro acabou com três ícones:
+                quem precisa de um não acha o que existe e desenha o seu.
+              */}
+              <IconeLocalizacao cor={tema.texto} tamanho={icone.rotulo} />
               <Txt variante="corpo" negrito>Abrir no mapa</Txt>
             </Pressable>
           )}
@@ -1060,7 +1639,142 @@ export default function TelaDeVistoria() {
         )}
       </Cartao>
 
-      <Cartao titulo="Checklist técnico">
+      {/*
+        O PROGRESSO, que era um indicador só e cobria menos da metade do que a
+        conclusão exige.
+
+        A tela inteira tinha UM contador, em legenda cinza de 12 pontos, dizendo
+        quantos itens obrigatórios do checklist estavam respondidos. Fotografia,
+        órgão, nome de quem assina e traço da assinatura não tinham contador
+        nenhum: o agente só descobria que faltavam quando chegava ao fim da
+        rolagem e o botão estava travado.
+
+        E a lista do que falta mora AQUI, no alto, e não lá embaixo. Ela era uma
+        frase corrida de até cinco cláusulas separadas por vírgula, no fim de um
+        formulário de dois mil pontos: o agente lia "falta responder 2 itens
+        obrigatórios do checklist, tirar ao menos uma fotografia, coletar e
+        confirmar a assinatura" e subia a tela procurando onde. Agora cada
+        pendência é uma linha com caminho: um toque leva ao cartão que a
+        resolve.
+      */}
+      <View
+        onLayout={(e) => { alturaDaSecao.current.progresso = e.nativeEvent.layout.y; }}
+        testID="ancora-progresso"
+      >
+        <Cartao>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
+            <Txt variante="h3">Progresso da vistoria</Txt>
+            <View style={{ flex: 1 }} />
+            <Txt variante="corpoP" mono negrito>{feitos}/{requisitos.length}</Txt>
+          </View>
+
+          {/*
+            A barra é a SEGUNDA pista, nunca a única: a contagem em número
+            tabular está ao lado e o rótulo de acessibilidade diz a mesma coisa
+            em palavra, porque desenho de barra não chega a quem ouve a tela.
+          */}
+          <View
+            accessibilityRole="progressbar"
+            accessibilityLabel={`${feitos} de ${requisitos.length} requisitos concluídos`}
+            accessibilityValue={{ min: 0, max: requisitos.length, now: feitos }}
+            testID="barra-de-progresso"
+            style={{
+              height: espaco.e2,
+              borderRadius: raio.pilula,
+              backgroundColor: tema.superficie2,
+              overflow: "hidden",
+            }}
+          >
+            <View
+              style={{
+                width: `${Math.round((feitos / requisitos.length) * 100)}%`,
+                height: espaco.e2,
+                borderRadius: raio.pilula,
+                backgroundColor: podeConcluir ? tema.okTexto : tema.destaque,
+              }}
+            />
+          </View>
+
+          {podeConcluir ? (
+            <Aviso
+              tom="sucesso"
+              titulo="Tudo pronto"
+              /*
+                O rótulo é DIFERENTE do botão que está no fim da rolagem, e de
+                propósito. Os dois levam ao mesmo lugar, mas dois textos iguais
+                na mesma tela obrigam quem lê (e quem ouve) a descobrir se são
+                a mesma coisa, e foi assim que esta tela já colou a mesma frase
+                em dois lugares e pareceu repetição ao dono do aparelho.
+              */
+              acao={{
+                titulo: "Revisar o laudo agora",
+                onPress: () => { setMinutaAberta(true); },
+                testID: "concluir-pelo-progresso",
+              }}
+            >
+              Nada mais é exigido para concluir. O próximo passo é a minuta do
+              laudo, para ler com quem está no local.
+            </Aviso>
+          ) : (
+            <View style={{ gap: espaco.e2 }} testID="lista-do-que-falta">
+              <Txt variante="corpoP" peso={peso.forte}>
+                {faltas.length === 1 ? "Falta 1 item:" : `Faltam ${faltas.length} itens:`}
+              </Txt>
+              {faltas.map((falta) => {
+                const secao = secaoDaFalta(falta);
+                return (
+                  <Pressable
+                    key={falta}
+                    onPress={() => { if (secao) irPara(secao); }}
+                    disabled={!secao}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Falta ${falta}. Toque para ir até onde isso se resolve.`}
+                    testID={`falta-${secao ?? "sem-caminho"}`}
+                    style={({ pressed }) => ({
+                      minHeight: toque,
+                      paddingHorizontal: espaco.e3,
+                      borderRadius: raio.normal,
+                      borderWidth: borda.fio,
+                      borderColor: tema.borda,
+                      backgroundColor: tema.superficie2,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: espaco.e3,
+                      opacity: pressed ? opacidade.aoToque : 1,
+                    })}
+                  >
+                    <IconeAlerta cor={tema.alertaTexto} tamanho={icone.rotulo} />
+                    <View style={{ flex: 1 }}>
+                      <Txt variante="corpoP">{falta}</Txt>
+                    </View>
+                    {/*
+                      A seta diz que a linha LEVA a algum lugar, e some quando
+                      não leva: uma linha que parece tocável e não é ensina o
+                      agente a desconfiar das que são.
+                    */}
+                    {secao && <Txt variante="corpoP" peso={peso.negrito} discreto>›</Txt>}
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+        </Cartao>
+      </View>
+
+      <View
+        onLayout={(e) => { alturaDaSecao.current.checklist = e.nativeEvent.layout.y; }}
+        testID="ancora-checklist"
+        style={{
+          borderRadius: raio.cartao,
+          borderWidth: borda.enfase,
+          borderColor: secaoEmDestaque === "checklist" ? tema.anelDeFoco : "transparent",
+        }}
+      >
+      <Cartao>
+        <TituloDoCartao
+          desenho={<IconeChecklist cor={tema.textoDiscreto} tamanho={icone.acao} />}
+          texto="Checklist técnico"
+        />
         <Txt variante="legenda" discreto>
           {CHECKLIST_OBRIGATORIO.filter((i) => i.chave in rascunho.checklist).length}
           {" de "}{CHECKLIST_OBRIGATORIO.length} itens obrigatórios respondidos
@@ -1115,20 +1829,32 @@ export default function TelaDeVistoria() {
                       style={{
                         flex: 1,
                         minHeight: toque,
+                        flexDirection: "row",
+                        gap: espaco.e2,
                         alignItems: "center",
                         justifyContent: "center",
                         borderRadius: raio.normal,
-                        borderWidth: marcada ? 0 : 1,
+                        borderWidth: marcada ? 0 : borda.fio,
                         borderColor: tema.borda,
                         backgroundColor: marcada ? tema.destaque : "transparent",
                       }}
                     >
+                      {/*
+                        O visto era o caractere "✓" colado na frente do rótulo,
+                        dentro da mesma string. Caractere tipográfico fazendo
+                        trabalho de ícone é o que fez o aplicativo inteiro
+                        parecer "só texto", e ele herda o peso e a altura da
+                        fonte em vez do traço do conjunto.
+                      */}
+                      {marcada && (
+                        <IconeSucesso cor={tema.sobreDestaque} tamanho={icone.inline} />
+                      )}
                       <Txt
                         variante="corpo"
                         negrito={marcada}
                         cor={marcada ? tema.sobreDestaque : tema.texto}
                       >
-                        {marcada ? `✓ ${opcao.rotulo}` : opcao.rotulo}
+                        {opcao.rotulo}
                       </Txt>
                     </Pressable>
                   );
@@ -1146,17 +1872,24 @@ export default function TelaDeVistoria() {
                 acima.
               */}
               {item.chave === CHAVE_ACIONAR_ORGAO && resposta === true && (
+                <>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
+                  <IconeOrgao cor={tema.textoDiscreto} tamanho={icone.rotulo} />
+                  <Txt variante="corpoP" peso={peso.forte}>Órgãos a acionar</Txt>
+                </View>
                 <OrgaosParaAcionar
                   catalogo={catalogoDeOrgaos}
                   escolhidos={rascunho.orgaosParaAcionar}
                   aoMudar={(lista) => void alterar({ orgaosParaAcionar: lista })}
                 />
+                </>
               )}
               <Separador />
             </View>
           );
         })}
       </Cartao>
+      </View>
 
       <Dialogo
         aberto={perguntandoDescartarOrgaos}
@@ -1179,7 +1912,42 @@ export default function TelaDeVistoria() {
         aoFechar={() => { setPerguntandoDescartarOrgaos(false); }}
       />
 
-      <Cartao titulo={`Fotografias (${rascunho.fotos.length})`}>
+      <View
+        onLayout={(e) => { alturaDaSecao.current.fotos = e.nativeEvent.layout.y; }}
+        testID="ancora-fotos"
+        style={{
+          borderRadius: raio.cartao,
+          borderWidth: borda.enfase,
+          borderColor: secaoEmDestaque === "fotos" ? tema.anelDeFoco : "transparent",
+        }}
+      >
+      <Cartao>
+        <TituloDoCartao
+          desenho={<IconeFoto cor={tema.textoDiscreto} tamanho={icone.acao} />}
+          texto={`Fotografias (${rascunho.fotos.length})`}
+        />
+
+        {/*
+          O RETORNO DO OBTURADOR, em palavra.
+
+          A animação da miniatura abaixo é para quem olha; esta linha é para
+          quem ouve a tela, para quem desligou movimento no sistema e para quem
+          está com o aparelho longe do rosto. Região viva, porque ela aparece
+          sem ninguém ter mudado de tela.
+        */}
+        {fotoRecemGuardada && (
+          <View
+            accessibilityLiveRegion="polite"
+            testID="foto-guardada"
+            style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}
+          >
+            <IconeSucesso cor={tema.okTexto} tamanho={icone.rotulo} />
+            <Txt variante="corpoP" peso={peso.forte} cor={tema.okTexto}>
+              Fotografia {rascunho.fotos.length} guardada neste aparelho
+            </Txt>
+          </View>
+        )}
+
         {rascunho.fotos.length === 0 ? (
           <Txt variante="corpoP" discreto>
             Pelo menos uma fotografia é obrigatória. É ela que o coordenador
@@ -1187,27 +1955,57 @@ export default function TelaDeVistoria() {
           </Txt>
         ) : (
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: espaco.e2 }}>
-            {rascunho.fotos.map((f) => (
+            {rascunho.fotos.map((f) => {
+              const recemGuardada = f.idempotencyKey === fotoRecemGuardada;
+              return (
               <View key={f.idempotencyKey} style={{ gap: espaco.e1 }}>
-                <Image
-                  source={{ uri: f.uriLocal }}
-                  style={{ width: 96, height: 96, borderRadius: raio.normal }}
-                  accessibilityLabel={`Fotografia ${f.ordem + 1} da vistoria`}
-                />
+                {/*
+                  A miniatura da foto recém guardada ENTRA na tela em vez de
+                  simplesmente estar lá. É o único sinal visual de que o
+                  obturador pegou, e ele acontece depois de a câmera fechar,
+                  que é onde o olho do agente está.
+                */}
+                <Animated.View
+                  style={{
+                    opacity: recemGuardada ? entradaDaFoto : 1,
+                    transform: [{ scale: recemGuardada ? escalaDaFotoNova : 1 }],
+                  }}
+                >
+                  <Image
+                    source={{ uri: f.uriLocal }}
+                    style={{
+                      width: MINIATURA, height: MINIATURA, borderRadius: raio.normal,
+                    }}
+                    accessibilityLabel={`Fotografia ${f.ordem + 1} da vistoria`}
+                  />
+                </Animated.View>
                 <Pressable
-                  onPress={() => void alterar({
-                    fotos: rascunho.fotos
-                      .filter((o) => o.idempotencyKey !== f.idempotencyKey)
-                      .map((o, i) => ({ ...o, ordem: i })),
-                  })}
+                  /*
+                    Apagar passa a PERGUNTAR. Era imediato e irreversível,
+                    enquanto descartar item da fila de envio, que é menos grave,
+                    já perguntava: o mesmo aplicativo tratava a prova de uma
+                    interdição com menos cuidado do que um item que pode ser
+                    reenviado.
+                  */
+                  onPress={() => { setFotoParaApagar(f); }}
                   accessibilityRole="button"
                   accessibilityLabel={`Apagar a fotografia ${f.ordem + 1}`}
-                  style={{ minHeight: 32, alignItems: "center", justifyContent: "center" }}
+                  testID={`apagar-foto-${f.ordem + 1}`}
+                  /*
+                    `toque`, e não 32. Estava escrito 32 à mão, vinte pontos
+                    abaixo da régua que o próprio `tokens.ts` declara, e nada
+                    reclamava porque o aplicativo não tinha portão nenhum. O
+                    alvo pequeno aqui é o pior lugar possível: errar este botão
+                    apaga uma fotografia de vistoria, que é prova de uma
+                    interdição e não se refaz sem subir o morro de novo.
+                  */
+                  style={{ minHeight: toque, alignItems: "center", justifyContent: "center" }}
                 >
-                  <Txt variante="legenda" cor={tema.perigoTexto}>Apagar</Txt>
+                  <Txt variante="corpoP" cor={tema.perigoTexto}>Apagar</Txt>
                 </Pressable>
               </View>
-            ))}
+              );
+            })}
           </View>
         )}
         <Botao
@@ -1228,8 +2026,47 @@ export default function TelaDeVistoria() {
           })()}
         />
       </Cartao>
+      </View>
 
-      <Cartao titulo="Localização">
+      {/*
+        A pergunta antes de apagar. `Dialogo` e não `Alert.alert`: o alerta
+        nativo ignora o tema, ignora a régua de tipografia do produto e usa a
+        área de toque do sistema, e não os 52 pontos que este aplicativo exige.
+
+        O texto nomeia QUAL fotografia, porque "apagar esta foto?" num cartão
+        com cinco miniaturas não responde a única pergunta que importa.
+      */}
+      <Dialogo
+        aberto={fotoParaApagar !== null}
+        titulo="Apagar esta fotografia?"
+        texto={
+          `A fotografia ${(fotoParaApagar?.ordem ?? 0) + 1} sai da vistoria e o `
+          + "arquivo é descartado deste aparelho. Refazer significa voltar ao "
+          + "local: não há como recuperar depois."
+        }
+        acao={{
+          rotulo: "Apagar a fotografia",
+          destrutiva: true,
+          aoTocar: () => {
+            const alvo = fotoParaApagar;
+            if (!alvo) return;
+            void alterar({
+              fotos: rascunho.fotos
+                .filter((o) => o.idempotencyKey !== alvo.idempotencyKey)
+                .map((o, i) => ({ ...o, ordem: i })),
+            });
+          },
+        }}
+        recusa={{ rotulo: "Manter a fotografia" }}
+        aoFechar={() => { setFotoParaApagar(null); }}
+        testID="dialogo-apagar-foto"
+      />
+
+      <Cartao>
+        <TituloDoCartao
+          desenho={<IconeGps cor={tema.textoDiscreto} tamanho={icone.acao} />}
+          texto="Localização"
+        />
         {rascunho.coordenada ? (
           <>
             <Txt variante="corpoP" mono>
@@ -1255,18 +2092,36 @@ export default function TelaDeVistoria() {
         />
       </Cartao>
 
-      <Cartao titulo="Quem estava no local">
-        <View style={{ gap: espaco.e1 }}>
-          <Txt variante="corpoP" negrito>Nome de quem acompanhou e assina</Txt>
-          <TextInput
-            value={rascunho.assinanteNome}
-            onChangeText={(t) => void alterar({ assinanteNome: t })}
-            style={campo}
-            placeholder="Nome completo"
-            placeholderTextColor={tema.textoDiscreto}
-            accessibilityLabel="Nome de quem estava no local"
-          />
-        </View>
+      <View
+        onLayout={(e) => { alturaDaSecao.current.assinatura = e.nativeEvent.layout.y; }}
+        testID="ancora-assinatura"
+        style={{
+          borderRadius: raio.cartao,
+          borderWidth: borda.enfase,
+          borderColor: secaoEmDestaque === "assinatura" ? tema.anelDeFoco : "transparent",
+        }}
+      >
+      <Cartao>
+        <TituloDoCartao
+          desenho={<IconeAssinatura cor={tema.textoDiscreto} tamanho={icone.acao} />}
+          texto="Quem estava no local"
+        />
+        {/*
+          O estilo deste campo estava copiado verbatim aqui e em `entrar.tsx`,
+          oito propriedades iguais em dois arquivos, e a borda em repouso era a
+          MESMA borda do campo em foco: num formulário de nove campos rolado
+          dois mil pontos, o agente não tinha como saber onde o teclado ia
+          escrever. `Campo` resolve os dois de uma vez.
+        */}
+        <CampoDeTexto
+          rotulo="Nome de quem acompanhou e assina"
+          ajuda="É este nome que sai acima da linha de assinatura no laudo."
+          valor={rascunho.assinanteNome}
+          aoMudar={(t) => void alterar({ assinanteNome: t })}
+          placeholder="Nome completo"
+          capitalizacao="words"
+          testID="nome-de-quem-assina"
+        />
 
         <Assinatura
           jaAssinada={Boolean(rascunho.assinaturaUri)}
@@ -1276,6 +2131,7 @@ export default function TelaDeVistoria() {
           aoTerminarDesenho={() => setDesenhando(false)}
         />
       </Cartao>
+      </View>
 
       {/*
         A contagem de pessoas, e ela vem ANTES das observações.
@@ -1299,42 +2155,77 @@ export default function TelaDeVistoria() {
           Deixe em branco o que você não contou. Em branco não é zero.
         </Txt>
         {CAMPOS_PESSOAS.map((c) => (
-          <View key={c.chave} style={{ gap: espaco.e1 }}>
-            <Txt variante="corpoP" negrito>{c.rotulo}</Txt>
-            <TextInput
-              value={rascunho.pessoas[c.chave] ?? ""}
-              onChangeText={(t) => void alterar({
-                // Só dígito entra. Teclado numérico de Android ainda oferece
-                // vírgula, ponto e sinal, e "2,5 feridos" não existe.
-                pessoas: { ...rascunho.pessoas, [c.chave]: t.replace(/[^0-9]/g, "") },
-              })}
-              style={[campo, { minHeight: toque }]}
-              keyboardType="number-pad"
-              placeholder="não contado"
-              placeholderTextColor={tema.textoDiscreto}
-              maxLength={5}
-              accessibilityLabel={`${c.rotulo}. ${c.ajuda}`}
-            />
-            <Txt variante="legenda" discreto>{c.ajuda}</Txt>
-          </View>
+          /*
+            Aqui é `Campo` com o controle por função, e não `CampoDeTexto`,
+            porque este campo precisa de `maxLength`, que a peça curta não
+            aceita de fora de propósito: aceitar tudo seria reabrir a porta da
+            cópia de estilo que ela existe para fechar.
+          */
+          <Campo
+            key={c.chave}
+            rotulo={c.rotulo}
+            ajuda={c.ajuda}
+            opcional
+            testID={`pessoas-${c.chave}`}
+          >
+            {(ligacoes) => (
+              <TextInput
+                {...ligacoes}
+                value={rascunho.pessoas[c.chave] ?? ""}
+                onChangeText={(t) => void alterar({
+                  // Só dígito entra. Teclado numérico de Android ainda oferece
+                  // vírgula, ponto e sinal, e "2,5 feridos" não existe.
+                  pessoas: { ...rascunho.pessoas, [c.chave]: t.replace(/[^0-9]/g, "") },
+                })}
+                keyboardType="number-pad"
+                placeholder="não contado"
+                maxLength={5}
+              />
+            )}
+          </Campo>
         ))}
       </Cartao>
 
       <Cartao titulo="Observações do agente">
-        <TextInput
-          value={rascunho.observacoes}
-          onChangeText={(t) => void alterar({ observacoes: t })}
-          style={[campo, { minHeight: toque * 2, textAlignVertical: "top" }]}
-          multiline
+        <CampoDeTexto
+          rotulo="Observações do agente"
+          opcional
+          ajuda="O que o checklist não cobre e o laudo precisa registrar."
+          multilinhas
+          valor={rascunho.observacoes}
+          aoMudar={(t) => void alterar({ observacoes: t })}
           placeholder="O que o checklist não cobre e o laudo precisa registrar"
-          placeholderTextColor={tema.textoDiscreto}
-          accessibilityLabel="Observações do agente"
+          testID="observacoes-do-agente"
         />
       </Cartao>
 
+      {/*
+        A tarja do fim da rolagem deixa de LISTAR e passa a APONTAR.
+
+        Ela era a frase corrida de até cinco cláusulas coladas com vírgula, e
+        morava justamente no pior lugar para uma lista: o fim de um formulário
+        de dois mil pontos. A lista inteira, com o caminho de cada item, está no
+        cartão de progresso, no alto. Aqui fica só o FATO (o botão está travado,
+        e por quantos itens) mais um toque que leva até ela.
+
+        O texto não repete a lista, e isso é deliberado: a mesma frase em dois
+        lugares da mesma tela foi exatamente o que o dono do aparelho leu como
+        repetição, na lista de tarefas.
+      */}
       {!podeConcluir && (
-        <Aviso tom="alerta">
-          Falta {faltas.join(", ")}.
+        <Aviso
+          tom="alerta"
+          titulo={faltas.length === 1
+            ? "Falta 1 item para concluir"
+            : `Faltam ${faltas.length} itens para concluir`}
+          acao={{
+            titulo: "Ver o que falta",
+            onPress: () => { irPara("progresso"); },
+            descricao: "Ir para a lista do que falta, no alto desta tela",
+            testID: "ver-o-que-falta",
+          }}
+        >
+          A lista, com o caminho para cada item, está no alto desta tela.
         </Aviso>
       )}
 
@@ -1362,11 +2253,7 @@ export default function TelaDeVistoria() {
         local, antes de a vistoria entrar na fila de envio.
       </Txt>
 
-      {/*
-        A mesma confirmação da minuta. É o único diálogo desta tela sem recusa:
-        não existe desfazer aqui, a vistoria já está na fila.
-      */}
-      {confirmacaoDeGuardado}
     </ScrollView>
+    </View>
   );
 }

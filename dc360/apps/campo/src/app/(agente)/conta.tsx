@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { useEffect, useState, type ReactNode } from "react";
+import { ActivityIndicator, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import Constants from "expo-constants";
 import { ROTULO_PAPEL } from "@dc360/shared";
@@ -9,9 +9,13 @@ import { useSessao } from "../../dados/sessao";
 import { useSinal } from "../../dados/conectividade";
 import { usePush } from "../../push/contexto";
 import { frasesDoEstado, ofereceAjustes } from "../../push/permissao";
-import { Aviso, Botao, Cartao, Separador, Txt } from "../../ui/componentes";
+import { Aviso, Botao, Cartao, Separador, Txt, Vazio, useTema } from "../../ui/componentes";
+import { Chip, type TomDoChip } from "../../ui/Chip";
 import { Dialogo } from "../../ui/Dialogo";
-import { espaco } from "../../ui/tokens";
+import {
+  IconeAparelho, IconeEnvio, IconeSemSinal, IconeSinal,
+} from "../../ui/icones";
+import { espaco, icone, peso } from "../../ui/tokens";
 
 /**
  * A conta do agente, e a saída.
@@ -21,9 +25,75 @@ import { espaco } from "../../ui/tokens";
  * no morro ficaria presa no aparelho até alguém entrar de novo, sem ninguém
  * saber que ela existe. A tela conta quantas estão esperando e pede
  * confirmação explícita.
+ *
+ * ---
+ *
+ * **O que a frente F7 arrumou aqui: identidade e estado deixaram de ser a
+ * mesma coisa.**
+ *
+ * A tela era nove pares rótulo/valor idênticos, empilhados com o mesmo
+ * espaçamento e o mesmo peso. "Conexão agora: Com sinal, por WIFI" tinha
+ * exatamente o desenho de "Nome: Rafael Gomes". São duas naturezas opostas:
+ *
+ * - **Identidade** é quem assina o laudo. Não muda enquanto a sessão durar,
+ *   não tem nada a fazer a respeito, e o que se precisa dela é reconhecer de
+ *   relance ("é a minha conta mesmo?"). Ela virou um bloco de TIPOGRAFIA: nome
+ *   grande, papel abaixo, órgão e município em linha discreta. Nenhum rótulo,
+ *   porque ninguém precisa da palavra "Nome" para saber que aquilo é um nome.
+ * - **Estado** é o que muda sozinho, o que o agente CONFERE antes de guardar o
+ *   telefone, e o que às vezes pede ação. Ele virou linha com ícone, rótulo à
+ *   esquerda e valor alinhado à direita, numa coluna só. Três linhas alinhadas
+ *   se conferem de relance; nove blocos empilhados se leem um a um.
+ *
+ * A ficha técnica do binário (versão e servidor) fica num terceiro grupo,
+ * depois de um separador: não é quem está usando nem o que está acontecendo,
+ * é qual programa está instalado, e ela só é procurada quando algo deu errado.
  */
+
+/**
+ * Uma linha de ESTADO: ícone, rótulo à esquerda, valor à direita.
+ *
+ * O alinhamento à direita é o ponto. Com os valores numa coluna, "Com sinal" e
+ * "3 esperando" se comparam sem o olho procurar onde cada um começa, que é o
+ * que nove blocos empilhados obrigavam a fazer.
+ */
+function LinhaDeEstado({ desenho, rotulo, children }: {
+  /** O ícone da linha, quando ele acrescenta alguma coisa ao rótulo. */
+  desenho?: ReactNode;
+  rotulo: string;
+  children: ReactNode;
+}) {
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: espaco.e3,
+        paddingVertical: espaco.e1,
+      }}
+    >
+      {desenho && (
+        /* O ícone é a segunda pista ao lado da palavra, nunca o lugar dela: o
+           rótulo está logo à direita, e quem ouve a tela não vê desenho. */
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ width: icone.rotulo, alignItems: "center" }}
+        >
+          {desenho}
+        </View>
+      )}
+      <View style={{ flex: 1 }}>
+        <Txt variante="corpoP" discreto>{rotulo}</Txt>
+      </View>
+      <View style={{ alignItems: "flex-end", flexShrink: 1 }}>{children}</View>
+    </View>
+  );
+}
+
 export default function Conta() {
   const { identidade, sair, obterToken, lerIdentidade } = useSessao();
+  const tema = useTema();
   const sinal = useSinal();
   const push = usePush();
   const [pendentes, setPendentes] = useState<number | null>(null);
@@ -34,6 +104,17 @@ export default function Conta() {
     repete o verbo, e é isso que o teste desta tela cobra.
   */
   const [perguntandoSaida, setPerguntandoSaida] = useState(false);
+  /*
+    O parágrafo de 48 palavras sobre a troca de senha ocupava um cartão
+    INTEIRO, sempre aberto, numa tela em que ele nunca é a resposta procurada:
+    ele explica por que uma coisa NÃO está ali. Agora a resposta curta fica na
+    linha e o porquê fica atrás de um toque, para quem duvidar dela.
+  */
+  const [porQueASenha, setPorQueASenha] = useState(false);
+  /** Qual das duas ações do sistema está em voo agora. Nula: nenhuma. */
+  const [acaoDeAviso, setAcaoDeAviso] = useState<null | "permissao" | "ajustes">(null);
+  const [pediuPermissaoAgora, setPediuPermissaoAgora] = useState(false);
+  const [abriuOsAjustes, setAbriuOsAjustes] = useState(false);
 
   useEffect(() => {
     let vivo = true;
@@ -65,59 +146,184 @@ export default function Conta() {
       "Elas voltam a subir quando você entrar de novo, com sinal."
     : "Você vai precisar de sinal e da sua senha para entrar de novo.";
 
-  if (!identidade) return null;
+  /*
+    Sem identidade a tela devolvia `return null`, ou seja, uma aba em branco.
+
+    Acontece de verdade: a sessão expira, o agente toca em "Minha conta" e
+    encontra o nada, sem saber se o aplicativo quebrou, se a conta dele foi
+    desativada ou se as coletas do turno sumiram junto. As três perguntas são
+    respondidas aqui, e a saída é a única que existe.
+  */
+  if (!identidade) {
+    return (
+      <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}>
+        <Vazio
+          icone={<IconeAparelho cor={tema.textoDiscreto} tamanho={icone.vazio} />}
+          titulo="Nenhuma conta aberta neste aparelho"
+          descricao={
+            "A sessão foi encerrada, ou este aparelho ainda não teve a primeira "
+            + "entrada. As coletas já guardadas continuam aqui, esperando a conta "
+            + "que as fez."
+          }
+          acao={{
+            titulo: "Ir para a entrada",
+            descricao: "Ir para a tela de entrar com email funcional e senha",
+            onPress: () => router.replace("/entrar"),
+          }}
+        />
+      </ScrollView>
+    );
+  }
 
   const versao = Constants.expoConfig?.version ?? "desconhecida";
+  const frases = frasesDoEstado(push.permissao);
+
+  /*
+    O estado dos avisos vira chip: símbolo mais palavra, nunca a cor sozinha. O
+    `?` do "ainda não perguntado" é literal: o estado dele é de fato uma
+    pergunta que ninguém fez.
+  */
+  const selo: { tom: TomDoChip; simbolo: string } = {
+    concedida: { tom: "ok" as const, simbolo: "✓" },
+    negada: { tom: "alerta" as const, simbolo: "!" },
+    nao_perguntada: { tom: "neutro" as const, simbolo: "?" },
+    indisponivel: { tom: "neutro" as const, simbolo: "×" },
+  }[push.permissao];
+
+  /*
+    O que o pedido de permissão produziu, lido do estado ATUAL e não guardado
+    no momento do toque. O provedor atualiza a permissão depois que a caixa do
+    sistema fecha, e uma mensagem decidida dentro do `await` falaria do estado
+    anterior à resposta, que é justamente o que ninguém quer saber.
+  */
+  const desfechoDoPedido = !pediuPermissaoAgora ? null : {
+    concedida: {
+      tom: "sucesso" as const,
+      titulo: "Avisos ligados neste aparelho",
+      texto:
+        "Você passa a ser avisado de tarefa nova e de prazo vencendo. O que "
+        + "aparece na tela bloqueada não traz endereço nem protocolo.",
+    },
+    negada: {
+      tom: "alerta" as const,
+      titulo: "O sistema registrou o não",
+      texto:
+        "A caixa do sistema só aparece uma vez por instalação. Para voltar a "
+        + "receber aviso, o caminho agora é ligar a notificação nos ajustes do "
+        + "aparelho, no botão abaixo.",
+    },
+    nao_perguntada: {
+      tom: "info" as const,
+      titulo: "A caixa do sistema não chegou a abrir",
+      texto: "Nada mudou neste aparelho. Você pode tocar de novo.",
+    },
+    indisponivel: {
+      tom: "info" as const,
+      titulo: "Este aparelho não recebe notificação",
+      texto:
+        "As tarefas continuam aparecendo quando você abre o aplicativo, e nada "
+        + "do seu trabalho depende deste aviso.",
+    },
+  }[push.permissao];
 
   return (
     <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}>
-      <Cartao titulo="Quem está usando este aparelho">
-        <View style={{ gap: espaco.e2 }}>
-          <View>
-            <Txt variante="legenda" discreto>Nome</Txt>
-            <Txt variante="corpo">{identidade.nome}</Txt>
-          </View>
-          <View>
-            <Txt variante="legenda" discreto>Perfil</Txt>
-            <Txt variante="corpo">{ROTULO_PAPEL[identidade.papel]}</Txt>
-          </View>
-          <View>
-            <Txt variante="legenda" discreto>Órgão</Txt>
-            <Txt variante="corpo">{identidade.organizacaoNome}</Txt>
-          </View>
-          <View>
-            <Txt variante="legenda" discreto>Município</Txt>
-            <Txt variante="corpo">{identidade.municipio}, {identidade.uf}</Txt>
-          </View>
+      {/*
+        IDENTIDADE. Sem rótulo, porque a hierarquia de tipografia já diz o que
+        cada linha é, e porque nada aqui muda nem pede ação.
+      */}
+      <Cartao>
+        <View style={{ gap: espaco.e1 }}>
+          <Txt variante="h2">{identidade.nome}</Txt>
+          <Txt variante="corpoP" peso={peso.forte}>{ROTULO_PAPEL[identidade.papel]}</Txt>
+          <Txt variante="corpoP" discreto>
+            {identidade.organizacaoNome}, {identidade.municipio}/{identidade.uf}
+          </Txt>
         </View>
+
+        <Separador />
+
+        <LinhaDeEstado rotulo="Senha">
+          <Txt variante="corpoP" peso={peso.forte}>Trocada no painel</Txt>
+        </LinhaDeEstado>
+        <Botao
+          titulo={porQueASenha ? "Ocultar a explicação" : "Por que não aqui?"}
+          tipo="discreto"
+          testID="por-que-a-senha"
+          descricao="Por que a troca de senha não é feita no aplicativo"
+          estilo={{ alignSelf: "flex-start", paddingHorizontal: 0 }}
+          onPress={() => { setPorQueASenha((v) => !v); }}
+        />
+        {porQueASenha && (
+          <Txt variante="corpoP" discreto>
+            A troca é feita no painel da coordenação, pelo navegador, em "Minha
+            conta". Aqui no aparelho ela não é oferecida de propósito: trocar a
+            senha encerra as outras sessões, e fazer isso no meio de uma
+            vistoria deixaria a fila sem conseguir enviar.
+          </Txt>
+        )}
       </Cartao>
 
+      {/* ESTADO. O que muda sozinho, alinhado numa coluna para se conferir de
+          relance, mais a ficha técnica do binário depois do separador. */}
       <Cartao titulo="Este aparelho">
-        <View>
-          <Txt variante="legenda" discreto>Conexão agora</Txt>
-          <Txt variante="corpo">
+        <LinhaDeEstado
+          rotulo="Conexão agora"
+          desenho={sinal.temSinal
+            ? <IconeSinal cor={tema.textoDiscreto} tamanho={icone.rotulo} />
+            : <IconeSemSinal cor={tema.textoDiscreto} tamanho={icone.rotulo} />}
+        >
+          <Txt variante="corpoP" peso={peso.forte}>
             {sinal.temSinal
               ? `Com sinal${sinal.tipo ? `, por ${sinal.tipo}` : ""}`
               : "Sem sinal"}
           </Txt>
-        </View>
-        <View>
-          <Txt variante="legenda" discreto>Coletas esperando envio</Txt>
-          <Txt variante="corpo">
-            {pendentes === null ? "conferindo" : pendentes === 0 ? "nenhuma" : String(pendentes)}
-          </Txt>
-        </View>
+        </LinhaDeEstado>
+
+        <LinhaDeEstado
+          rotulo="Coletas esperando envio"
+          desenho={<IconeEnvio cor={tema.textoDiscreto} tamanho={icone.rotulo} />}
+        >
+          {pendentes === null ? (
+            /*
+              O único indicador de carregamento da tela era a palavra
+              "conferindo" em corpo normal, no meio de uma coluna de valores:
+              indistinguível de um valor que fosse mesmo "conferindo". Agora
+              quem diz que há uma leitura em voo é um indicador de verdade, com
+              nome falado, e a palavra fica ao lado dele.
+            */
+            <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
+              <ActivityIndicator
+                testID="conferindo-coletas"
+                accessibilityRole="progressbar"
+                accessibilityLabel="Conferindo as coletas guardadas neste aparelho"
+                color={tema.destaque}
+              />
+              <Txt variante="corpoP" discreto>Conferindo</Txt>
+            </View>
+          ) : pendentes === 0 ? (
+            <Txt variante="corpoP" peso={peso.forte}>Nenhuma</Txt>
+          ) : (
+            <Chip
+              testID="coletas-esperando"
+              texto={`${pendentes} esperando`}
+              simbolo="↑"
+              tom="alerta"
+              descricao={`${pendentes} ${pendentes === 1 ? "coleta espera" : "coletas esperam"} sinal para serem enviadas`}
+            />
+          )}
+        </LinhaDeEstado>
+
         <Separador />
-        <View>
-          <Txt variante="legenda" discreto>Versão do aplicativo</Txt>
+
+        <LinhaDeEstado rotulo="Versão do aplicativo">
           <Txt variante="corpoP" mono>{versao}</Txt>
-        </View>
-        <View>
-          {/* Qual servidor este binário conversa. Sem isto, descobrir que o
-              aparelho ficou em homologação exige abrir o código. */}
-          <Txt variante="legenda" discreto>Servidor</Txt>
+        </LinhaDeEstado>
+        {/* Qual servidor este binário conversa. Sem isto, descobrir que o
+            aparelho ficou em homologação exige abrir o código. */}
+        <LinhaDeEstado rotulo="Servidor">
           <Txt variante="corpoP" mono>{enderecoDaApi()}</Txt>
-        </View>
+        </LinhaDeEstado>
       </Cartao>
 
       {/*
@@ -135,27 +341,73 @@ export default function Conta() {
         procura quando quer, em vez de aparecer sozinho quando ela não quer.
       */}
       <Cartao titulo="Avisos deste aparelho">
-        <View>
-          <Txt variante="legenda" discreto>Notificação de tarefa e de prazo</Txt>
-          <Txt variante="corpo">{frasesDoEstado(push.permissao).titulo}</Txt>
-        </View>
-        <Txt variante="corpoP" discreto>{frasesDoEstado(push.permissao).texto}</Txt>
+        <LinhaDeEstado
+          rotulo="Notificação de tarefa e de prazo"
+          desenho={<IconeAparelho cor={tema.textoDiscreto} tamanho={icone.rotulo} />}
+        >
+          <Chip texto={frases.titulo} simbolo={selo.simbolo} tom={selo.tom} />
+        </LinhaDeEstado>
+        <Txt variante="corpoP" discreto>{frases.texto}</Txt>
 
+        {/*
+          Os dois botões chamam o SISTEMA, e a tela não mudava nada ao fazer
+          isso: nem enquanto a chamada estava em voo, nem depois que ela voltou.
+          Um toque sem consequência visível é um toque que a pessoa repete.
+        */}
         {push.permissao === "nao_perguntada" && (
           <Botao
-            titulo="Ligar os avisos"
+            titulo={acaoDeAviso === "permissao" ? "Perguntando ao sistema" : "Ligar os avisos"}
             tipo="secundario"
-            onPress={() => void push.pedirPermissao()}
+            carregando={acaoDeAviso === "permissao"}
+            desabilitado={acaoDeAviso !== null}
+            onPress={() => void (async () => {
+              setAcaoDeAviso("permissao");
+              try {
+                await push.pedirPermissao();
+              } finally {
+                setAcaoDeAviso(null);
+                setPediuPermissaoAgora(true);
+              }
+            })()}
           />
         )}
 
         {ofereceAjustes(push.permissao) && (
           <Botao
-            titulo="Abrir os ajustes do aparelho"
+            titulo={acaoDeAviso === "ajustes" ? "Abrindo os ajustes" : "Abrir os ajustes do aparelho"}
             tipo="secundario"
             descricao="Abrir os ajustes do sistema para ligar as notificações deste aplicativo"
-            onPress={() => void push.abrirAjustes()}
+            carregando={acaoDeAviso === "ajustes"}
+            desabilitado={acaoDeAviso !== null}
+            onPress={() => void (async () => {
+              setAcaoDeAviso("ajustes");
+              try {
+                await push.abrirAjustes();
+              } finally {
+                setAcaoDeAviso(null);
+                setAbriuOsAjustes(true);
+              }
+            })()}
           />
+        )}
+
+        {desfechoDoPedido && (
+          <Aviso tom={desfechoDoPedido.tom} titulo={desfechoDoPedido.titulo}>
+            {desfechoDoPedido.texto}
+          </Aviso>
+        )}
+
+        {/*
+          A confirmação do atalho para os ajustes precisa dizer a parte chata:
+          este aplicativo lê a permissão na abertura, e não existe escuta de
+          volta do segundo plano. Quem liga a notificação lá e volta encontra a
+          mesma frase de antes, conclui que não funcionou, e desiste.
+        */}
+        {abriuOsAjustes && (
+          <Aviso tom="info" titulo="Os ajustes foram abertos">
+            Se você ligou a notificação por lá, feche e abra este aplicativo de
+            novo para ele perceber.
+          </Aviso>
         )}
 
         {/*
@@ -177,20 +429,11 @@ export default function Conta() {
         )}
       </Cartao>
 
-      <Cartao titulo="Trocar a senha">
-        <Aviso tom="info">
-          A troca de senha é feita no painel da coordenação, pelo navegador, em
-          "Minha conta". Aqui no aparelho ela não é oferecida de propósito:
-          trocar a senha encerra as outras sessões, e fazer isso no meio de uma
-          vistoria deixaria a fila sem conseguir enviar.
-        </Aviso>
-      </Cartao>
-
       {pendentes !== null && pendentes > 0 && (
-        <Aviso tom="alerta">
-          Antes de sair, procure sinal e espere a fila esvaziar. Enquanto você
-          estiver fora da conta, estas coletas não são enviadas, nem por quem
-          entrar depois neste aparelho.
+        <Aviso tom="alerta" titulo="Espere a fila esvaziar antes de sair">
+          Procure sinal e espere a fila esvaziar. Enquanto você estiver fora da
+          conta, estas coletas não são enviadas, nem por quem entrar depois
+          neste aparelho.
         </Aviso>
       )}
 

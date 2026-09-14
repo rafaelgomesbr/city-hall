@@ -132,7 +132,13 @@ describe("o cartão da devolução tem as palavras dela", () => {
 
     await abrirATela();
 
-    expect(screen.getByText("1 tarefa devolvida")).toBeTruthy();
+    /*
+      O título da seção deixou de carregar o número dentro da frase ("1 tarefa
+      devolvida") e passou a ser nome mais contador em pílula, com a frase
+      inteira no rótulo de acessibilidade. O que o caso guarda não mudou: a
+      devolução tem seção própria e NÃO entra no número que diz "coletas".
+    */
+    expect(screen.getByLabelText("Minhas devoluções, 1 item")).toBeTruthy();
     expect(screen.getByText("1 coleta na fila")).toBeTruthy();
   });
 

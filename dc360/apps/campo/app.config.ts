@@ -56,6 +56,41 @@ const TEXTO_LOCALIZACAO =
  */
 const BUILD = 1;
 
+/**
+ * A TELA DE ABERTURA, agora com os dois temas.
+ *
+ * O defeito, visto no aparelho: `backgroundColor` era `#101519` e mais nada.
+ * Quem usa o telefone em modo claro, que é a maioria de quem trabalha na rua
+ * com sol na tela, abria o aplicativo e via meio segundo de tela quase preta
+ * antes de a interface clara aparecer. Não é detalhe de gosto: abertura que
+ * não combina com o que vem depois parece defeito de carregamento, e é a
+ * primeira coisa que o aplicativo mostra.
+ *
+ * Ele ficou mais visível depois que a abertura passou a segurar também o
+ * carregamento das fontes (ver `src/app/_layout.tsx`): a tela que piscava
+ * agora fica de pé o tempo suficiente para ser lida.
+ *
+ * As cores são as MESMAS de `src/ui/tokens.ts` (`temaClaro.fundo` é
+ * `tinta.t50`, `temaEscuro.fundo` é `tinta.t950`), escritas aqui porque este
+ * arquivo é lido pelo Expo antes de qualquer TypeScript nosso e não pode
+ * importar o módulo de tokens. É a mesma razão já registrada no
+ * `defaultChannel` do `expo-notifications`, mais abaixo.
+ *
+ * E as duas artes vêm SEM fundo, com o desenho recortado no conteúdo. A arte
+ * antiga era uma tela inteira com o fundo escuro pintado dentro dela, o que
+ * teria desenhado um retângulo escuro por cima do fundo claro declarado aqui,
+ * e ainda encolhia o emblema a uns 40 pontos porque `imageWidth` vale para a
+ * imagem toda. Ver `scripts/gerar-icones.mjs`.
+ */
+const ABERTURA = {
+  imagemClara: "./assets/splash.png",
+  imagemEscura: "./assets/splash-escuro.png",
+  fundoClaro: "#F5F7F8",
+  fundoEscuro: "#101519",
+  /** Largura do emblema em pontos, agora que a arte é só o emblema. */
+  larguraDaImagem: 180,
+} as const;
+
 const config: ExpoConfig = {
   name: "Defesa Civil 360",
   slug: "dc360-campo",
@@ -66,10 +101,22 @@ const config: ExpoConfig = {
   primaryColor: "#5B21B6",
 
   icon: "./assets/icone.png",
+  /*
+    Quem manda na abertura NATIVA é o plugin `expo-splash-screen`, lá embaixo.
+    Este bloco é o campo legado, que sobrevive no manifesto e em ferramenta que
+    lê a configuração sem rodar plugin. Os dois saem da mesma constante de
+    propósito: enquanto existirem dois lugares dizendo a mesma coisa, eles
+    precisam dizer a MESMA coisa, senão um deles envelhece em silêncio e o
+    defeito só aparece no aparelho de alguém.
+  */
   splash: {
-    image: "./assets/splash.png",
+    image: ABERTURA.imagemClara,
     resizeMode: "contain",
-    backgroundColor: "#101519",
+    backgroundColor: ABERTURA.fundoClaro,
+    dark: {
+      image: ABERTURA.imagemEscura,
+      backgroundColor: ABERTURA.fundoEscuro,
+    },
   },
 
   assetBundlePatterns: ["**/*"],
@@ -287,9 +334,23 @@ const config: ExpoConfig = {
     [
       "expo-splash-screen",
       {
-        image: "./assets/splash.png",
-        backgroundColor: "#101519",
-        imageWidth: 180,
+        image: ABERTURA.imagemClara,
+        backgroundColor: ABERTURA.fundoClaro,
+        imageWidth: ABERTURA.larguraDaImagem,
+        /*
+          O bloco do tema escuro. Sem ele, `backgroundColor` vale para os dois
+          e a abertura fica presa num modo só, que era exatamente o defeito:
+          antes ela era escura sempre, agora seria clara sempre, o que é a
+          mesma falha com a cor trocada.
+
+          O aplicativo declara `userInterfaceStyle: "automatic"`, então o
+          sistema escolhe qual dos dois mostrar, e a abertura passa a combinar
+          com a primeira tela que vem depois dela.
+        */
+        dark: {
+          image: ABERTURA.imagemEscura,
+          backgroundColor: ABERTURA.fundoEscuro,
+        },
       },
     ],
     [

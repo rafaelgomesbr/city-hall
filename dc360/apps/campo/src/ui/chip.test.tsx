@@ -13,7 +13,7 @@
  * português.
  */
 
-import { StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { act, render, screen } from "@testing-library/react-native";
 
 let mockEsquema: "light" | "dark" = "light";
@@ -113,3 +113,48 @@ describe("o tema, nos dois modos", () => {
     expect(StyleSheet.flatten(screen.getByText("Estado").props.style).color).toBe(escuro);
   });
 });
+
+/**
+ * O `Chip` aceita DESENHO como segundo canal, e não só caractere.
+ *
+ * A frente que refez a tela de equipe precisou de três selos com ícone
+ * (situação, especialidade, papel do colega) e não pôde usar `Chip`, porque o
+ * segundo canal dele era `simbolo: string`, ou seja, caractere tipográfico. Ela
+ * criou uma `Etiqueta` local, que é a mesma peça com outro nome, e declarou a
+ * pendência em vez de duplicar em silêncio.
+ *
+ * Duas peças iguais com nomes diferentes divergem na primeira mudança, e a que
+ * ninguém lembra é a que fica errada. Então o `Chip` aprende o desenho, e a
+ * cópia morre.
+ *
+ * O QUE NÃO MUDA: continua sendo OBRIGATÓRIO ter um segundo canal. A regra da
+ * casa é que estado nunca se comunica só por cor, e um padrão silencioso seria
+ * o jeito curto de furar essa regra. O que passa a existir é a ESCOLHA entre
+ * caractere e desenho, nunca a ausência dos dois.
+ */
+describe("O segundo canal pode ser desenho", () => {
+  it("aceita um nó no lugar do caractere, e desenha ele", async () => {
+    await montar(<Chip tom="ok" texto="Ativa" simbolo={<Marca testID="marca-do-chip" />} />);
+    expect(screen.getByTestId("marca-do-chip")).toBeTruthy();
+  });
+
+  it("o caractere continua funcionando, e as duas formas convivem", async () => {
+    await montar(<Chip tom="alerta" simbolo="!" texto="Precisa de atencao" />);
+    expect(screen.getByText("!")).toBeTruthy();
+  });
+
+  it("o rótulo é lido de uma vez, com o segundo canal fora da fala", async () => {
+    /*
+      Quem ouve a tela não precisa ouvir "exclamação Precisa de atenção", nem o
+      nome de um desenho: o segundo canal existe para quem VÊ. O invólucro é o
+      elemento acessível e diz só o rótulo.
+    */
+    await montar(<Chip tom="ok" texto="Enviada" simbolo={<Marca />} testID="selo-com-desenho" />);
+    expect(screen.getByTestId("selo-com-desenho").props.accessibilityLabel).toBe("Enviada");
+  });
+});
+
+/** Um desenho qualquer, para o teste não depender do conjunto de ícones. */
+function Marca({ testID }: { testID?: string }) {
+  return <View testID={testID} style={{ width: 12, height: 12 }} />;
+}

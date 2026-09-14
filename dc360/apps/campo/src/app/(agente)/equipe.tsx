@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { ROTULO_PAPEL, ROTULO_TIPO_COBRADE } from "@dc360/shared";
@@ -9,7 +9,10 @@ import { useSinal } from "../../dados/conectividade";
 import {
   Aviso, Botao, Cartao, Carregando, Separador, Txt, Vazio, useTema,
 } from "../../ui/componentes";
-import { espaco } from "../../ui/tokens";
+import {
+  IconeAlerta, IconeEquipe, IconeSemSinal, IconeSucesso,
+} from "../../ui/icones";
+import { espaco, icone, peso, raio, type Tema } from "../../ui/tokens";
 import { idadeEmPalavras } from "../../dados/atualizacao";
 
 /**
@@ -32,7 +35,96 @@ import { idadeEmPalavras } from "../../dados/atualizacao";
  *
  * Abre do DISCO, sempre, pela mesma razão de todas as outras: no alto do morro
  * não existe rede, e uma tela que só existe na base é uma tela inútil.
+ *
+ * ---
+ *
+ * **O que a frente F7 arrumou: a tela dizia as coisas certas em cinza.**
+ *
+ * Ela era, literalmente, texto empilhado. Cinco `Txt` por vistoria concluída,
+ * então cinco itens produziam vinte e cinco linhas de pesos quase iguais; dois
+ * `Txt` por colega, sem inicial e sem papel destacado; e três blocos
+ * rótulo/valor no cartão da equipe em que "Integrantes ativos: 3" tinha
+ * exatamente o desenho de "Especialidade: Geral".
+ *
+ * O pior caso era o que mais importa: **"Coletada sem sinal e enviada depois"**
+ * é a prova de que o offline funciona, dita para a pessoa que mais precisa
+ * acreditar nele, e ela era a QUINTA linha cinza de um bloco de cinco linhas
+ * cinzas. Agora é etiqueta com ícone e cor de sucesso.
+ *
+ * O que NÃO mudou, porque já estava certo: esta é a única tela do aplicativo
+ * que passa `aoDesistir` ao `Carregando`, e por isso a única em que a saída aos
+ * seis segundos funciona de fato; e a regra de um indicador por fato, com o
+ * botão dizendo só que apertar de novo não adianta.
  */
+
+/**
+ * A pílula com ÍCONE, que o `Chip` não sabe desenhar.
+ *
+ * `Chip` existe e é a peça certa para estado, mas o segundo canal dele é um
+ * `simbolo: string`, ou seja, um caractere tipográfico. Estas três etiquetas
+ * precisam de DESENHO: "coletada sem sinal" é o momento que a frente de
+ * iconografia desenhou o `IconeSemSinal` para servir, e um "↑" no lugar dele
+ * seria voltar exatamente ao que fez o aplicativo parecer "só texto".
+ *
+ * Ela mora aqui, e não em `src/ui`, porque `src/ui` é faixa de outra frente
+ * neste turno. Ensinar o `Chip` a aceitar um nó é o conserto de verdade, e
+ * está anotado como pendência.
+ */
+function Etiqueta({ desenho, texto, tom, tema }: {
+  desenho: (cor: string) => ReactNode;
+  texto: string;
+  tom: "neutro" | "ok" | "alerta";
+  tema: Tema;
+}) {
+  const cores = {
+    neutro: { fundo: tema.superficie2, cor: tema.textoDiscreto },
+    ok: { fundo: tema.okFundo, cor: tema.okTexto },
+    alerta: { fundo: tema.alertaFundo, cor: tema.alertaTexto },
+  }[tom];
+
+  return (
+    <View
+      /* Um elemento só para quem ouve: o desenho não tem nome, e o texto ao
+         lado já é a frase inteira. */
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={texto}
+      style={{
+        backgroundColor: cores.fundo,
+        borderRadius: raio.pilula,
+        paddingHorizontal: espaco.e3,
+        paddingVertical: espaco.e1,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: espaco.e2,
+        alignSelf: "flex-start",
+      }}
+    >
+      {desenho(cores.cor)}
+      <Txt variante="corpoP" peso={peso.forte} cor={cores.cor}>{texto}</Txt>
+    </View>
+  );
+}
+
+/**
+ * A inicial do colega, para a lista ter ritmo vertical em vez de ser parágrafo.
+ *
+ * Não é enfeite: com dez nomes empilhados, a inicial é o que permite achar o
+ * colega procurado sem ler a lista inteira. Duas letras quando há sobrenome,
+ * porque uma equipe com dois "Carlos" viraria dois "C" idênticos.
+ */
+/* Sem `export`: tudo dentro de `src/app` é rota do Expo, e um arquivo de rota
+   exporta a tela, não utilitário. Quem prova a inicial é a tela renderizada. */
+function iniciaisDe(nome: string): string {
+  const partes = nome.trim().split(/\s+/).filter(Boolean);
+  const primeira = partes[0] ?? "";
+  /* Nome vazio existe: o cadastro do município é de quem cadastrou, não nosso.
+     Um círculo em branco pareceria defeito; a interrogação diz o que houve. */
+  if (!primeira) return "?";
+  const ultima = partes.length > 1 ? (partes[partes.length - 1] ?? "") : "";
+  return ((primeira[0] ?? "") + (ultima[0] ?? "")).toUpperCase();
+}
+
 export default function Equipe() {
   const tema = useTema();
   const sinal = useSinal();
@@ -109,6 +201,7 @@ export default function Equipe() {
     return (
       <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}>
         <Vazio
+          icone={<IconeEquipe cor={tema.textoDiscreto} tamanho={icone.vazio} />}
           titulo="A sua equipe ainda não foi baixada"
           descricao={
             "Isto precisa de sinal uma vez só. Faça na base, antes de sair, e "
@@ -156,57 +249,115 @@ export default function Equipe() {
       {avisoDeRede && <Aviso tom="alerta">{avisoDeRede}</Aviso>}
 
       {dados.equipe === null ? (
-        <Cartao titulo="Você ainda não está em uma equipe">
-          <Txt variante="corpo">
-            Sem equipe, a coordenação não tem para onde despachar, e é por isso
-            que a sua lista de tarefas está vazia.
-          </Txt>
-          <Txt variante="corpoP" discreto>
-            Peça à coordenação do seu município para incluir você em uma equipe.
-            Isso é feito no painel, em Equipes.
-          </Txt>
-        </Cartao>
+        /*
+          "Você não está em uma equipe" era um cartão com título e dois
+          parágrafos, e NENHUMA ação. O agente lia, concordava, e continuava
+          diante de uma tela que não oferece nada para fazer.
+
+          A ação que existe de verdade é esta: quem acabou de ser incluído numa
+          equipe pelo painel precisa BAIXAR de novo, porque esta tela abre do
+          disco. Sem o botão, o caminho era fechar e reabrir o aplicativo.
+        */
+        <Vazio
+          icone={<IconeEquipe cor={tema.textoDiscreto} tamanho={icone.vazio} />}
+          titulo="Você ainda não está em uma equipe"
+          descricao={
+            "Sem equipe, a coordenação não tem para onde despachar, e é por isso "
+            + "que a sua lista de tarefas está vazia. Peça à coordenação do seu "
+            + "município para incluir você em uma equipe, no painel, em Equipes."
+          }
+          acao={{
+            titulo: "Procurar a minha equipe de novo",
+            descricao: "Buscar no servidor se você já foi incluído em uma equipe",
+            testID: "procurar-equipe",
+            onPress: () => void buscarNaRede(),
+          }}
+        />
       ) : (
         // O nome já costuma trazer a palavra "Equipe" (o cadastro do município
         // chama de "Equipe Alfa"), e prefixar produzia "Equipe Equipe Alfa".
         <Cartao titulo={dados.equipe.nome}>
-          <View style={{ gap: espaco.e2 }}>
-            <View>
-              <Txt variante="legenda" discreto>Especialidade</Txt>
-              <Txt variante="corpo">{dados.equipe.especialidade ?? "Geral"}</Txt>
-            </View>
-            <View>
-              <Txt variante="legenda" discreto>Situação</Txt>
-              <Txt variante="corpo">{dados.equipe.ativa ? "Ativa" : "Inativa"}</Txt>
-            </View>
-            <View>
-              <Txt variante="legenda" discreto>Integrantes ativos</Txt>
-              <Txt variante="corpo">{colegasAtivos.length}</Txt>
-            </View>
+          {/*
+            Situação e especialidade viram etiqueta lado a lado. Como par
+            rótulo/valor, "Ativa" tinha o mesmo peso de "Geral", e a situação da
+            equipe é a única das duas que muda o que o agente pode esperar do
+            dia.
+          */}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: espaco.e2 }}>
+            <Etiqueta
+              tema={tema}
+              tom={dados.equipe.ativa ? "ok" : "alerta"}
+              texto={dados.equipe.ativa ? "Equipe ativa" : "Equipe inativa"}
+              desenho={(cor) => (dados.equipe?.ativa
+                ? <IconeSucesso cor={cor} tamanho={icone.inline} />
+                : <IconeAlerta cor={cor} tamanho={icone.inline} />)}
+            />
+            <Etiqueta
+              tema={tema}
+              tom="neutro"
+              texto={dados.equipe.especialidade ?? "Geral"}
+              desenho={(cor) => <IconeEquipe cor={cor} tamanho={icone.inline} />}
+            />
           </View>
 
           {!dados.equipe.ativa && (
-            <Aviso tom="alerta">
-              Esta equipe está inativa no cadastro. Você continua conseguindo
-              concluir e enviar as vistorias que já baixou, mas a coordenação
-              não consegue despachar nada novo para ela. Avise a coordenação.
+            <Aviso tom="alerta" titulo="Esta equipe está inativa no cadastro">
+              Você continua conseguindo concluir e enviar as vistorias que já
+              baixou, mas a coordenação não consegue despachar nada novo para
+              ela. Avise a coordenação.
             </Aviso>
           )}
 
           <Separador />
+
+          {/*
+            A contagem virou o TÍTULO da lista que ela conta, em vez de um par
+            rótulo/valor solto acima dela. Um número e a lista dele separados
+            por um traço horizontal eram duas informações contando a mesma coisa
+            em dois lugares.
+          */}
+          <Txt variante="corpoP" peso={peso.forte}>
+            Integrantes ativos ({colegasAtivos.length})
+          </Txt>
 
           {colegasAtivos.length <= 1 ? (
             <Txt variante="corpoP" discreto>
               Você é o único integrante ativo desta equipe agora.
             </Txt>
           ) : (
-            <View style={{ gap: espaco.e2 }}>
+            <View style={{ gap: espaco.e3 }}>
               {colegasAtivos.map((c) => (
-                <View key={c.id}>
-                  <Txt variante="corpo">
-                    {c.nome}{c.id === eu ? " (você)" : ""}
-                  </Txt>
-                  <Txt variante="legenda" discreto>{ROTULO_PAPEL[c.papel]}</Txt>
+                <View
+                  key={c.id}
+                  style={{ flexDirection: "row", alignItems: "center", gap: espaco.e3 }}
+                >
+                  {/* A inicial dá ritmo vertical à lista: com dez nomes, é o
+                      que deixa achar o colega sem ler tudo. */}
+                  <View
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                    style={{
+                      width: espaco.e6,
+                      height: espaco.e6,
+                      borderRadius: raio.pilula,
+                      backgroundColor: tema.superficie2,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Txt variante="corpoP" peso={peso.negrito}>{iniciaisDe(c.nome)}</Txt>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Txt variante="corpo" peso={c.id === eu ? peso.negrito : peso.normal}>
+                      {c.nome}{c.id === eu ? " (você)" : ""}
+                    </Txt>
+                  </View>
+                  <Etiqueta
+                    tema={tema}
+                    tom="neutro"
+                    texto={ROTULO_PAPEL[c.papel]}
+                    desenho={(cor) => <IconeEquipe cor={cor} tamanho={icone.inline} />}
+                  />
                 </View>
               ))}
             </View>
@@ -222,7 +373,7 @@ export default function Equipe() {
           </Txt>
         ) : (
           <View style={{ gap: espaco.e3 }}>
-            {dados.concluidas.slice(0, 10).map((v) => {
+            {dados.concluidas.slice(0, 10).map((v, posicao) => {
               /*
                 Coletada e sincronizada em momentos diferentes significa que a
                 vistoria foi feita sem sinal. Dizer isso na tela é o que
@@ -233,17 +384,27 @@ export default function Equipe() {
                 new Date(v.sincronizada_em).getTime()
                 - new Date(v.coletada_em).getTime() > 60_000;
               return (
-                <View key={v.id}>
-                  <Txt variante="corpoP" mono negrito>{v.protocolo}</Txt>
+                <View key={v.id} style={{ gap: espaco.e2 }}>
+                  {/* O fio entre itens existe porque cinco blocos colados de
+                      três linhas cada viram um parágrafo só de longe. */}
+                  {posicao > 0 && <Separador />}
+                  <View style={{ flexDirection: "row", alignItems: "baseline", gap: espaco.e2 }}>
+                    <View style={{ flex: 1 }}>
+                      <Txt variante="corpoP" mono peso={peso.negrito}>{v.protocolo}</Txt>
+                    </View>
+                    <Txt variante="legenda" discreto numeroDeLinhas={1}>
+                      {new Date(v.coletada_em).toLocaleString("pt-BR")}
+                    </Txt>
+                  </View>
                   <Txt variante="corpo">{ROTULO_TIPO_COBRADE[v.tipo] ?? v.tipo}</Txt>
                   <Txt variante="legenda" discreto>{v.endereco}</Txt>
-                  <Txt variante="legenda" discreto>
-                    Coletada em {new Date(v.coletada_em).toLocaleString("pt-BR")}
-                  </Txt>
                   {semSinal && (
-                    <Txt variante="legenda" discreto>
-                      Coletada sem sinal e enviada depois
-                    </Txt>
+                    <Etiqueta
+                      tema={tema}
+                      tom="ok"
+                      texto="Coletada sem sinal, enviada depois"
+                      desenho={(cor) => <IconeSemSinal cor={cor} tamanho={icone.inline} />}
+                    />
                   )}
                 </View>
               );
