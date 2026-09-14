@@ -310,7 +310,7 @@ describe("a coleta arquivada tem saída pela tela", () => {
     mockItens = [ARQUIVADA];
     await abrirATela();
 
-    expect(screen.queryByText("1 coleta na fila")).toBeNull();
+    expect(screen.queryByLabelText("1, coleta na fila")).toBeNull();
     /* O número saiu de dentro da frase do título e virou contador da seção; o
        que o caso guarda é o mesmo: a arquivada aparece, com seção e número
        próprios, e fora do total que precisa poder zerar. */

@@ -2772,18 +2772,34 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
       autoria sao o registro de que uma equipe nao chegou no imovel, e um
       GRANT UPDATE na tabela deixaria uma rota futura reescrever isso sem que
       ninguem percebesse.
+
+      A 031 traz as SEIS de `saidas_a_campo`, e ali a lista de colunas E a
+      regra de negocio escrita no catalogo do banco. O que pode mudar depois de
+      gravado: o prazo corrente e o contador (pela prorrogacao) e o bloco de
+      encerramento. O que nunca muda: quem saiu, para onde, quando, se estava
+      sozinho, a duracao declarada e o PRAZO INICIAL. Sem privilegio de coluna,
+      uma rota nova poderia reescrever o prazo inicial de uma saida vencida e
+      fazer o atraso de um agente que nao desceu do morro desaparecer da tela
+      sem deixar rastro.
     */
     const colunas = doApp.filter((a) => a.especie === "coluna");
     expect(
       colunas.map((a) => `${a.relacao}.${a.detalhe}:${a.privilegio}`).sort(),
       "a varredura de privilegio de coluna nao enxergou o GRANT UPDATE por coluna que " +
-      "as migracoes 017 (desfecho, detalhe), 027 (provedor_id) e 029 (observacao) fazem",
+      "as migracoes 017 (desfecho, detalhe), 027 (provedor_id), 029 (observacao) e " +
+      "031 (o bloco de encerramento da saida a campo) fazem",
     ).toEqual([
       "devolucoes_de_tarefa.observacao:UPDATE",
       "devolucoes_de_tarefa.observacao_removida_em:UPDATE",
       "oficio_envios.desfecho:UPDATE",
       "oficio_envios.detalhe:UPDATE",
       "oficio_envios.provedor_id:UPDATE",
+      "saidas_a_campo.desfecho:UPDATE",
+      "saidas_a_campo.encerrada_em:UPDATE",
+      "saidas_a_campo.encerrada_por:UPDATE",
+      "saidas_a_campo.observacao:UPDATE",
+      "saidas_a_campo.prorrogacoes:UPDATE",
+      "saidas_a_campo.retorno_previsto_em:UPDATE",
     ]);
 
     // E a ancora do caminho das funcoes privilegiadas.

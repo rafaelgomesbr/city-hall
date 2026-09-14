@@ -364,6 +364,21 @@ export const ROTULO_EVENTO_TRILHA: Record<string, string> = {
   */
   vistoria_recusada_autor_divergente: "Envio de vistoria recusado por autor divergente",
   /*
+    A coleta subiu SEM um registro que foi capturado em campo, porque o arquivo
+    já não estava no aparelho na hora de enviar (o sistema operacional limpa o
+    cache sozinho quando o armazenamento aperta).
+
+    Evento PRÓPRIO, e não um campo dentro de `vistoria`, pela mesma razão de
+    `vistoria_fora_da_equipe`: a pergunta que ele responde é uma lista, "quais
+    vistorias deste município entraram com prova faltando", e ela não sai de
+    dentro de JSON sem alguém escrever consulta que ninguém revisa.
+
+    A alternativa era a coleta inteira não subir, que é o que acontecia antes:
+    checklist, GPS, assinatura, observações e órgãos a acionar destruídos porque
+    uma imagem sumiu. Ver `evidenciaPerdidaSchema` e `rotas/sincronizacao.ts`.
+  */
+  vistoria_com_evidencia_perdida: "Vistoria recebida com registro de campo perdido",
+  /*
     A tarefa venceu, o agente não conseguiu vistoriar e devolveu a ocorrência
     para a coordenação. Evento próprio, e não um encerramento com motivo, porque
     a ocorrência NÃO acabou: ela volta para a fila de quem despacha, e este
@@ -380,6 +395,31 @@ export const ROTULO_EVENTO_TRILHA: Record<string, string> = {
     rótulo que descreve outro ato é uma frase falsa numa linha de prova.
   */
   devolucao_recusada_autor_divergente: "Devolução de tarefa recusada por autor divergente",
+  /*
+    OS QUATRO ATOS DA SEGURANÇA DO AGENTE QUE TRABALHA SOZINHO (migração 031).
+
+    O produto reconhecia por escrito, desde a migração 028, que o agente entra
+    em lugar que oferece risco à integridade física dele (`risco_para_a_equipe`
+    é motivo de devolução), e não tinha nada para o caso de ele ter entrado.
+
+    Cada rótulo aqui descreve o FATO, e nunca a interpretação dele. Não existe
+    "agente em perigo" nesta lista, porque o produto não sabe disso: ele sabe
+    que o prazo que o próprio agente declarou passou e ninguém confirmou o
+    retorno. Pode ser um talude cedendo e pode ser bateria acabada. A trilha é a
+    tela que alguém abre para provar o que aconteceu, e afirmar perigo numa
+    linha de prova seria afirmar o que ninguém verificou.
+  */
+  saida_a_campo_declarada: "Saída a campo declarada pelo agente",
+  saida_a_campo_prorrogada: "Prazo de retorno prorrogado pelo agente",
+  retorno_de_campo_confirmado: "Retorno de campo confirmado pelo agente",
+  /*
+    O ato da COORDENAÇÃO, e é o que este recurso existe para tornar registrável:
+    a pergunta que uma apuração faz não é "houve alerta", é "o que fizeram
+    quando ele apareceu". Sem este evento, a única coisa que o produto guardaria
+    sobre a segurança de um servidor seria o alerta, e seis meses depois "a
+    prefeitura não fez nada" passaria a valer para o próprio agente dela.
+  */
+  saida_a_campo_encerrada: "Saída a campo encerrada pela coordenação",
   /*
     Alguém acrescentou prova ao processo. O produto registrava quem ABRIU um
     laudo e não registrava quem colocou uma foto dentro dele, que é a peça que

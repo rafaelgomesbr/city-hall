@@ -15,7 +15,7 @@
  */
 
 import {
-  borda, easing, elevacao, foco, fonteMinima, fonte, icone, movimento, opacidade, peso,
+  borda, easing, elevacao, foco, fonteMinimaDeInteracao, fonte, icone, movimento, opacidade, peso,
   temaClaro, temaEscuro, type NivelDeElevacao,
 } from "./tokens";
 
@@ -29,11 +29,43 @@ describe("elevação", () => {
         const acima = escala[NIVEIS[i]!]!;
         const abaixo = escala[NIVEIS[i - 1]!]!;
         expect(acima.shadowRadius).toBeGreaterThan(abaixo.shadowRadius);
-        expect(acima.shadowOffset.height).toBeGreaterThan(abaixo.shadowOffset.height);
+        /*
+          A DISTÂNCIA cresce, e a direção é outra pergunta.
+
+          Este caso comparava o valor com sinal, e o sinal não é parte da
+          escala: ele é decidido por onde a peça está ANCORADA. Cartão e barra
+          flutuante ficam no meio do conteúdo e projetam para baixo, como todo
+          objeto sob luz de cima; a folha é colada no rodapé, e a única borda
+          dela que aparece na tela é a de cima, então a sombra dela sai por
+          cima. Medir o sinal aqui é o que travava a escala num formato que
+          impedia o nível mais alto de ser usado (ver a dívida 9.1, em
+          `PENDENCIAS.md`).
+        */
+        expect(Math.abs(acima.shadowOffset.height))
+          .toBeGreaterThan(Math.abs(abaixo.shadowOffset.height));
         // O Android ignora as quatro propriedades de sombra e lê só esta: uma
         // escala que subisse só na sombra seria plana no aparelho de campo.
         expect(acima.elevation).toBeGreaterThan(abaixo.elevation);
       }
+    }
+  });
+
+  /*
+    E a direção, medida à parte, porque ela é uma decisão e não um efeito
+    colateral do número anterior.
+
+    O que mudou em 14/09/2026: `folha` descia a sombra 12 pontos, e a única
+    folha do produto é colada no rodapé, onde essa sombra cai para fora da tela.
+    Era por isso que o nível não tinha um único uso no aplicativo inteiro e o
+    `Dialogo` desenhava a superfície à mão. Este caso reprova no código
+    anterior, onde `folha.shadowOffset.height` valia +12.
+  */
+  it("o que está no meio do conteúdo projeta para baixo, e a folha colada projeta para cima", () => {
+    for (const tema of [temaClaro, temaEscuro]) {
+      const escala = elevacao(tema);
+      expect(escala.cartao.shadowOffset.height).toBeGreaterThan(0);
+      expect(escala.flutuante.shadowOffset.height).toBeGreaterThan(0);
+      expect(escala.folha.shadowOffset.height).toBeLessThan(0);
     }
   });
 
@@ -158,7 +190,7 @@ describe("borda, opacidade, ícone e foco", () => {
   */
   it("o ícone em linha cabe na menor fonte da interface", () => {
     expect(icone.inline).toBeGreaterThanOrEqual(fonte.legenda);
-    expect(icone.rotulo).toBeGreaterThanOrEqual(fonteMinima);
+    expect(icone.rotulo).toBeGreaterThanOrEqual(fonteMinimaDeInteracao);
     expect(icone.acao).toBeLessThan(icone.vazio);
   });
 

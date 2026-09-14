@@ -285,6 +285,76 @@ export async function rotasAvisos(
       );
 
       /*
+        ============================================================
+        O AGENTE QUE NÃO CONFIRMOU O RETORNO (migração 031).
+        ============================================================
+
+        Segundo fato do sino que nenhuma escrita dispara: ele acontece pela
+        passagem do tempo, exatamente como o prazo vencido logo acima, e por
+        isso mora no mesmo lugar e pelo mesmo motivo. O push deste produto sai
+        de um relógio sem ninguém logado, e relógio sem contexto de município
+        precisa de função `SECURITY DEFINER`: o orçamento está em quinze de
+        quinze e o portão CA-06 reprova a décima sexta.
+
+        O QUE ISSO CUSTA, e está dito em voz alta no guia do coordenador em vez
+        de disfarçado: o aviso só nasce quando alguém daquele município consulta
+        o sino. Se ninguém estiver com o painel aberto, ninguém é avisado. Este
+        produto não tem como acordar quem foi almoçar, e fingir que tem seria a
+        promessa perigosa que este recurso inteiro existe para não fazer.
+
+        `encerrada_em IS NULL` não é filtro de desempenho, é o que impede o
+        alarme falso mais previsível daqui: o agente perde o sinal, volta dez
+        minutos depois do prazo e confirma. Se ele confirmar antes de alguém
+        abrir o sino, o aviso não chega a existir. Depois de existir ele fica,
+        porque aviso é fato acontecido e a tabela não tem policy de UPDATE, e
+        aí a tela de saídas conta o resto da história.
+
+        Sem teto de retenção na cláusula, diferente do prazo vencido: uma saída
+        aberta há sessenta dias é defeito grave e precisa aparecer, não ser
+        varrida por idade. O `LOTE_DE_PRAZOS` continua limitando o tamanho da
+        rodada.
+      */
+      await c.query(
+        `WITH sem_retorno AS (
+           SELECT s.organizacao_id AS org,
+                  s.ocorrencia_id  AS ocorrencia,
+                  s.retorno_previsto_em AS prazo,
+                  /*
+                    O instante do prazo entra na chave pela mesma razão que ele
+                    entra na chave do prazo vencido: prorrogada, a saída pode
+                    vencer de novo, e isso é fato novo. Fosse só o id da saída,
+                    o segundo vencimento seria engolido em silêncio, e engolir
+                    em silêncio é justamente o que não pode acontecer quando o
+                    assunto é alguém que não desceu do morro.
+                  */
+                  'saida:' || s.id::text || ':'
+                    || trunc(extract(epoch FROM s.retorno_previsto_em))::text AS chave,
+                  /*
+                    O detalhe do aviso é 'sozinho' ou 'acompanhado', e mais
+                    nada. Nome do agente não entra: o sino é a consulta mais
+                    frequente do produto, e a regra de que ele não carrega dado
+                    de pessoa vale para o servidor também. O nome está na tela
+                    de saídas, que é para onde o aviso leva.
+                  */
+                  CASE WHEN s.sozinho THEN 'sozinho' ELSE 'acompanhado' END AS detalhe
+             FROM saidas_a_campo s
+            WHERE s.encerrada_em IS NULL
+              AND s.retorno_previsto_em <= now()
+         )
+         INSERT INTO avisos (organizacao_id, tipo, ocorrencia_id, chave_do_fato, detalhe)
+         SELECT v.org, 'retorno_nao_confirmado', v.ocorrencia, v.chave, v.detalhe
+           FROM sem_retorno v
+          WHERE NOT EXISTS (
+                  SELECT 1 FROM avisos a
+                   WHERE a.organizacao_id = v.org AND a.chave_do_fato = v.chave
+                )
+          ORDER BY v.prazo ASC
+          LIMIT $1
+         ON CONFLICT ON CONSTRAINT aviso_unico_por_fato DO NOTHING`,
+        [LOTE_DE_PRAZOS],
+      );
+
+      /*
         A idade também está na policy `avisos_expurgo` (migração 018), então
         repeti-la aqui é redundância de propósito: se um dia alguém escrever um
         `DELETE` sem cláusula nesta tabela, o banco recusa apagar o que ainda

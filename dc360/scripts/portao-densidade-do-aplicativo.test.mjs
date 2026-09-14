@@ -64,8 +64,10 @@ import {
   atributoLiteral,
   contraste,
   corDeTexto,
+  ePeca,
   lerTokensDoApp,
   nomeCurto,
+  PECAS,
   semComentarios,
 } from "./fonte-do-aplicativo.mjs";
 
@@ -105,33 +107,15 @@ const NUNCA_ALEVIAM = new Set(lerListaDaRegua(fonteDaRegua, "TONS_QUE_NUNCA_ALEV
 /** Os tokens de fundo que são RECADO, e não superfície do tema. */
 const FUNDO_SEMANTICO = /tema\.(ok|alerta|perigo|sevBaixa|sevMedia|sevAlta|sevCritica)Fundo\b/;
 
-/**
- * As peças. Cada uma é um recipiente que o olho lê como uma coisa só.
- *
- * `Tocavel` está aqui porque o cartão da lista de tarefas É um `Tocavel`: o
- * cartão inteiro é o botão. Sem ele, os três blocos de dentro do cartão
- * subiriam para o item de lista e se misturariam aos avisos que ficam FORA do
- * cartão, e o portão mediria uma peça que ninguém vê.
- */
-const PECAS = new Set([
-  "Cartao", "ItemDeLista", "Secao", "Tocavel",
-  "ScrollView", "FlatList", "SectionList", "Modal", "Dialogo",
-]);
+/*
+  As peças e `ePeca` moram em `fonte-do-aplicativo.mjs` desde 14/09/2026.
 
-/**
- * Uma `View` que ocupa a tela inteira TAMBÉM é uma peça, e ela precisa ser.
- *
- * A tela de vistoria é o caso: a tarja de erro fica FORA da rolagem, presa no
- * alto, porque o formulário passa de dois mil pontos e um erro desenhado no
- * meio dele acontece onde ninguém está olhando. Sem esta regra, a tarja não
- * teria peça nenhuma a que pertencer e cairia no balde do arquivo, junto com
- * tudo que as OUTRAS telas daquele mesmo arquivo desenham. Balde de arquivo
- * soma coisas que nunca aparecem juntas, e soma errado.
- */
-function ePeca(no) {
-  if (PECAS.has(no.tag)) return true;
-  return no.tag === "View" && /\bflex\s*:\s*1\b/.test(no.atributos);
-}
+  Elas nasceram aqui, para a R1 ter onde contar ("um bloco preenchido por
+  peça"). A régua de hierarquia passou a precisar da MESMA noção para a H1 ("um
+  protagonista por peça"), e duas listas de peças para uma noção só é o defeito
+  que o cabeçalho daquele arquivo nomeia: duas leituras divergem, e aí os dois
+  portões passam a medir árvores diferentes sem ninguém perceber.
+*/
 
 /**
  * Onde o vocabulário de preenchimento é DEFINIDO, e por isso não é medido.
@@ -352,7 +336,7 @@ test("a varredura enxerga o aplicativo de verdade", () => {
   for (const tela of [
     "app/(agente)/index.tsx",
     "app/(agente)/fila.tsx",
-    "app/(agente)/equipe.tsx",
+    "app/(agente)/perfil.tsx",
     "app/(agente)/vistoria/[id].tsx",
   ]) {
     assert.ok(arquivos.has(tela), `${tela} ficou de fora da varredura`);

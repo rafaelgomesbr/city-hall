@@ -161,6 +161,19 @@ function itemDaFila(parcial: Partial<ItemFila> & Pick<ItemFila, "tipo" | "estado
   } as ItemFila;
 }
 
+/**
+ * A CONTAGEM DO CABEÇALHO, lida como um elemento só.
+ *
+ * Ela deixou de ser uma frase de um tamanho só e virou a peça `Dado` (número
+ * grande com rótulo discreto, a H2 da régua de hierarquia). Para quem ouve a
+ * tela, o par continua sendo UM elemento com UMA frase, e é justamente esse
+ * rótulo que se lê aqui: conferir os dois textos separados passaria verde com
+ * o número colado no rótulo errado.
+ */
+function aContagem(): string {
+  return screen.getByTestId("quantas-vistorias").props.accessibilityLabel as string;
+}
+
 async function abrirALista(): Promise<void> {
   await render(<Tarefas />);
   await act(async () => {});
@@ -394,7 +407,7 @@ describe("o que entra na fila", () => {
   */
   it("a tarefa sai da lista assim que a devolução entra na fila", async () => {
     await abrirALista();
-    expect(screen.getByText("1 vistoria para fazer")).toBeTruthy();
+    expect(aContagem()).toBe("1, vistoria para fazer");
 
     mockEnfileirarDevolucao.mockImplementation(async (devolucao, dados) => {
       registrados.push({ devolucao, dados });
@@ -409,7 +422,7 @@ describe("o que entra na fila", () => {
     /* A CONTAGEM não espera a animação: ela é o que o agente lê para saber
        quanto trabalho sobrou, e um número que mente por um quarto de segundo
        mente em cima da única coisa que essa tela existe para dizer. */
-    expect(screen.getByText("0 vistorias para fazer")).toBeTruthy();
+    expect(aContagem()).toBe("0, vistorias para fazer");
     /* E ela NÃO sumiu do aparelho: o item continua na fila de envio. */
     expect(mockItensDaFila).toHaveLength(1);
 

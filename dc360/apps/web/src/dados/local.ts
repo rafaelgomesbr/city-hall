@@ -4,6 +4,7 @@ import {
   correcaoDeCoordenadaSchema,
   exigirPermissao,
   exigirPostoParaGerir,
+  ROTULO_DESFECHO_DE_SAIDA,
   estadoTerminal,
   precisaReclassificar,
   transicaoPermitida,
@@ -15,6 +16,7 @@ import {
   type CorrecaoDeCoordenada,
   type Despacho,
   type Encerramento,
+  type EncerramentoDeSaida,
   type InteresseMunicipio,
   type Providencia,
   type Triagem,
@@ -29,6 +31,7 @@ import type {
   LinhaOrgao, OficioDetalhado, RespostaDeAvisos, ResultadoDeEnvio,
   AtivacaoSegundoFator, ResultadoDeEntrada, SegundoFatorLigado, SituacaoSegundoFator,
   ConfiguracaoDoPainel, DevolucaoDaOcorrencia, DevolucaoPendente,
+  QuemEstaEmCampo, SaidaEmCampo,
 } from "./tipos";
 
 /**
@@ -1415,6 +1418,44 @@ export async function avisosDesde(
     );
 
     /*
+      O AGENTE QUE NÃO CONFIRMOU O RETORNO (migração 031), espelhando a rota da
+      API palavra por palavra.
+
+      Segundo fato do sino que nenhuma escrita dispara: ele acontece pela
+      passagem do tempo. Os dois modos precisam materializá-lo igual, senão a
+      demonstração ensina um sino que o produto real não toca.
+
+      `encerrada_em IS NULL` é o que impede o alarme falso mais previsível
+      daqui: o agente perde o sinal, volta dez minutos depois do prazo e
+      confirma. Se ele confirmar antes de alguém abrir o sino, o aviso não chega
+      a existir.
+    */
+    await db.query(
+      `WITH sem_retorno AS (
+         SELECT s.organizacao_id AS org,
+                s.ocorrencia_id  AS ocorrencia,
+                s.retorno_previsto_em AS prazo,
+                'saida:' || s.id::text || ':'
+                  || trunc(extract(epoch FROM s.retorno_previsto_em))::text AS chave,
+                CASE WHEN s.sozinho THEN 'sozinho' ELSE 'acompanhado' END AS detalhe
+           FROM saidas_a_campo s
+          WHERE s.encerrada_em IS NULL
+            AND s.retorno_previsto_em <= now()
+       )
+       INSERT INTO avisos (organizacao_id, tipo, ocorrencia_id, chave_do_fato, detalhe)
+       SELECT v.org, 'retorno_nao_confirmado', v.ocorrencia, v.chave, v.detalhe
+         FROM sem_retorno v
+        WHERE NOT EXISTS (
+                SELECT 1 FROM avisos a
+                 WHERE a.organizacao_id = v.org AND a.chave_do_fato = v.chave
+              )
+        ORDER BY v.prazo ASC
+        LIMIT $1
+       ON CONFLICT ON CONSTRAINT aviso_unico_por_fato DO NOTHING`,
+      [LOTE_DE_PRAZOS],
+    );
+
+    /*
       A ORDEM É CRESCENTE, e é a única em que o corte não perde nada. Cortando
       o fim de uma lista decrescente, quem fica de fora são os mais antigos, e
       o cursor devolvido aponta para a frente deles: eles ficariam contados no
@@ -1769,4 +1810,118 @@ export async function abrirOficio(_s: Sessao, _id: string): Promise<string> {
 export async function configuracaoDoPainel(_s: Sessao): Promise<ConfiguracaoDoPainel> {
   const doBuild = import.meta.env["VITE_GOOGLE_MAPS_CHAVE"];
   return { chaveDoMapa: typeof doBuild === "string" ? doBuild.trim() : "" };
+}
+
+/* ==========================================================================
+   Saída a campo: quem está no morro agora
+   ========================================================================== */
+
+/**
+ * O mesmo SQL da rota `GET /saida-a-campo`, e a repetição é o preço da porta.
+ *
+ * O modo local roda as mesmas migrações e o mesmo RLS da API: o que muda é a
+ * origem da conexão, não a regra. `vencida` e `atraso_em_minutos` saem do
+ * Postgres nos dois modos, e não de `Date.now()`, porque o relógio do
+ * computador da recepção é o menos confiável que este produto conhece.
+ */
+export async function quemEstaEmCampo(s: Sessao): Promise<QuemEstaEmCampo> {
+  exigirPermissao(s.papel, "acompanhar_saida_a_campo");
+  return comoApp(s.organizacaoId, async (db) => {
+    const r = await db.query<SaidaEmCampo & { [k: string]: unknown }>(
+      `SELECT s.id, s.ocorrencia_id AS "ocorrenciaId", s.agente_id AS "agenteId",
+              s.sozinho, s.duracao_minutos AS "duracaoMinutos",
+              s.declarada_em AS "declaradaEm", s.registrada_em AS "registradaEm",
+              s.retorno_previsto_inicial AS "retornoPrevistoInicial",
+              s.retorno_previsto_em AS "retornoPrevistoEm",
+              s.prorrogacoes,
+              o.protocolo, o.endereco, o.severidade,
+              u.nome AS "agenteNome", e.nome AS "equipeNome",
+              (s.retorno_previsto_em < now()) AS vencida,
+              GREATEST(0, floor(extract(epoch FROM (now() - s.retorno_previsto_em)) / 60))::int
+                AS "atrasoEmMinutos"
+         FROM saidas_a_campo s
+         JOIN ocorrencias o ON o.organizacao_id = s.organizacao_id AND o.id = s.ocorrencia_id
+         JOIN usuarios u    ON u.organizacao_id = s.organizacao_id AND u.id = s.agente_id
+         LEFT JOIN equipes e ON e.organizacao_id = s.organizacao_id AND e.id = s.equipe_id
+        WHERE s.encerrada_em IS NULL
+        ORDER BY (s.retorno_previsto_em < now()) DESC,
+                 (s.retorno_previsto_em < now() AND s.sozinho) DESC,
+                 s.retorno_previsto_em ASC`,
+    );
+    const itens = r.rows as unknown as SaidaEmCampo[];
+    return {
+      itens,
+      emCampo: itens.length,
+      vencidas: itens.filter((i) => i.vencida).length,
+      limite: LIMITE_DA_SAIDA_A_CAMPO,
+    };
+  });
+}
+
+/**
+ * A frase que acompanha o número, idêntica à que a API devolve.
+ *
+ * Ela é a única promessa que este produto faz sobre a segurança de um servidor
+ * público, e uma demonstração que prometesse mais que o produto real seria a
+ * pior forma possível de errar nisto: quem assiste decide comprar ouvindo a
+ * frase, e quem trabalha descobre a diferença no morro.
+ */
+const LIMITE_DA_SAIDA_A_CAMPO =
+  "Esta lista mostra o que os agentes declararam, e nada além disso. O sistema "
+  + "não detecta queda, não sabe onde a pessoa está agora e não aciona ninguém "
+  + "sozinho.";
+
+/**
+ * A coordenação encerra uma saída, dizendo o que houve.
+ *
+ * O desfecho `retorno_confirmado` não chega aqui: o esquema compartilhado o
+ * recusa, porque quem diz "voltei" é quem voltou. Ver `DESFECHOS_DA_COORDENACAO`.
+ */
+export async function encerrarSaidaEmCampo(
+  s: Sessao, encerramento: EncerramentoDeSaida,
+): Promise<void> {
+  exigirPermissao(s.papel, "acompanhar_saida_a_campo");
+  await comoApp(s.organizacaoId, async (db) => {
+    const alvo = await db.query<{ ocorrencia_id: string; agente_id: string;
+      encerrada_em: string | null; retorno_previsto_em: string }>(
+      `SELECT ocorrencia_id, agente_id, encerrada_em, retorno_previsto_em
+         FROM saidas_a_campo WHERE id = $1`,
+      [encerramento.saidaId],
+    );
+    const saida = alvo.rows[0];
+    if (!saida) throw new Error("Essa saída não existe neste sistema.");
+    if (saida.encerrada_em) {
+      throw new Error("Essa saída já foi encerrada. Atualize a tela para ver por quem.");
+    }
+
+    const fechada = await db.query<{ encerrada_em: string }>(
+      `UPDATE saidas_a_campo
+          SET encerrada_em = now(), encerrada_por = $2, desfecho = $3, observacao = $4
+        WHERE id = $1 AND encerrada_em IS NULL
+      RETURNING encerrada_em`,
+      [encerramento.saidaId, s.usuarioId, encerramento.desfecho,
+       encerramento.observacao ?? null],
+    );
+    const fim = fechada.rows[0];
+    if (!fim) {
+      throw new Error("Essa saída já foi encerrada. Atualize a tela para ver por quem.");
+    }
+
+    /*
+      O TEXTO NÃO ENTRA NA TRILHA, pela mesma regra da devolução: ela é
+      append-only e o que entra não sai por caminho nenhum. Fica o desfecho, que
+      é de lista fechada e não é frase sobre ninguém, e o ponteiro para a linha
+      onde o texto pode ser lido por quem tem a permissão.
+    */
+    await registrarEvento(db, s, saida.ocorrencia_id, "saida_a_campo_encerrada", {
+      saidaId: encerramento.saidaId,
+      agenteId: saida.agente_id,
+      desfecho: encerramento.desfecho,
+      desfechoRotulo: ROTULO_DESFECHO_DE_SAIDA[encerramento.desfecho],
+      temObservacao: Boolean(encerramento.observacao),
+      retornoPrevistoEm: saida.retorno_previsto_em,
+      estavaVencida: new Date(fim.encerrada_em).getTime()
+        > new Date(saida.retorno_previsto_em).getTime(),
+    });
+  });
 }

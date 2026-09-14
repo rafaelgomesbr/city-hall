@@ -30,6 +30,7 @@ export const ACOES = [
   "gerenciar_usuarios",
   "consultar_trilha",
   "exportar_dados",
+  "acompanhar_saida_a_campo",
 ] as const;
 
 export type Acao = (typeof ACOES)[number];
@@ -49,12 +50,33 @@ export const ROTULO_ACAO: Record<Acao, string> = {
   gerenciar_usuarios: "gerenciar usuários",
   consultar_trilha: "consultar a trilha de auditoria",
   exportar_dados: "exportar dados",
+  acompanhar_saida_a_campo: "acompanhar quem está em campo agora",
 };
 
 const PERMISSOES: Record<Papel, readonly Acao[]> = {
-  // O operador registra a resposta porque é quem atende o telefone quando a
-  // secretaria liga de volta. Ele continua sem decidir o fluxo.
-  operador: ["abrir_ocorrencia", "responder_providencia"],
+  /*
+    O operador registra a resposta porque é quem atende o telefone quando a
+    secretaria liga de volta. Ele continua sem decidir o fluxo.
+
+    E ele ACOMPANHA QUEM ESTÁ EM CAMPO, que é a única permissão deste produto
+    concedida ao posto mais baixo por uma razão que não é de fluxo: o valor
+    inteiro desse recurso é alguém enxergar o prazo estourado, e a pessoa que
+    está na sala às três da manhã de uma noite de temporal é o operador de
+    plantão. Restringir isso à coordenação seria escolher a elegância da tabela
+    de permissões contra a finalidade da coisa, e o custo do erro é um agente
+    no morro sem ninguém olhando.
+
+    A mesma permissão também ENCERRA a saída, e ela não se divide em duas de
+    propósito. Quem chama o agente pelo rádio às três da manhã é essa mesma
+    pessoa, e deixá-la ver o alerta sem poder registrar o que fez produziria o
+    pior par possível: o fato continua aberto na tela e o ato que resolveu o
+    caso fica invisível. O encerramento leva nome e hora para a trilha, que é
+    onde ele fica auditável, e a trilha não se reescreve.
+
+    O que ele continua sem fazer é decidir o fluxo: triar, despachar, encerrar
+    a ocorrência. Saber que alguém não desceu do morro não é decisão de fluxo.
+  */
+  operador: ["abrir_ocorrencia", "responder_providencia", "acompanhar_saida_a_campo"],
   agente_campo: ["registrar_vistoria"],
   coordenador: [
     "abrir_ocorrencia",
@@ -69,6 +91,7 @@ const PERMISSOES: Record<Papel, readonly Acao[]> = {
     "gerenciar_usuarios",
     "consultar_trilha",
     "exportar_dados",
+    "acompanhar_saida_a_campo",
   ],
   administrador: [
     "gerenciar_organizacao",
@@ -84,6 +107,7 @@ const PERMISSOES: Record<Papel, readonly Acao[]> = {
     "gerenciar_usuarios",
     "consultar_trilha",
     "exportar_dados",
+    "acompanhar_saida_a_campo",
   ],
 };
 

@@ -89,7 +89,10 @@ jest.mock("../dados/sessao", () => ({
 import Tarefas from "../app/(agente)/index";
 import { movimento } from "../ui/tokens";
 
-type Cronometrada = { duration?: number; useNativeDriver?: boolean; easing?: unknown; toValue?: number };
+type Cronometrada = {
+  duration?: number; useNativeDriver?: boolean; easing?: unknown;
+  toValue?: number; delay?: number;
+};
 let animacoes: Cronometrada[] = [];
 const timingDeVerdade = Animated.timing;
 
@@ -115,6 +118,8 @@ function tarefa(sufixo: string, protocolo: string): Pendencia {
 
 const PRIMEIRA = tarefa("1", "000471/2026");
 const SEGUNDA = tarefa("2", "000472/2026");
+const TERCEIRA = tarefa("3", "000473/2026");
+const QUARTA = tarefa("4", "000474/2026");
 
 beforeEach(() => {
   mockReduzir = false;
@@ -128,6 +133,19 @@ beforeEach(() => {
 });
 
 afterEach(() => { jest.restoreAllMocks(); });
+
+/**
+ * A CONTAGEM DO CABEÇALHO, lida como um elemento só.
+ *
+ * Ela deixou de ser uma frase de um tamanho só e virou a peça `Dado` (número
+ * grande com rótulo discreto, a H2 da régua de hierarquia). Para quem ouve a
+ * tela, o par continua sendo UM elemento com UMA frase, e é justamente esse
+ * rótulo que se lê aqui: conferir os dois textos separados passaria verde com
+ * o número colado no rótulo errado.
+ */
+function aContagem(): string {
+  return screen.getByTestId("quantas-vistorias").props.accessibilityLabel as string;
+}
 
 async function abrirALista(): Promise<void> {
   await render(<Tarefas />);
@@ -222,12 +240,12 @@ describe("a tarefa que some", () => {
     mockNoDisco = [PRIMEIRA, SEGUNDA];
     mockNaRede = [PRIMEIRA, SEGUNDA];
     await abrirALista();
-    expect(screen.getByText("2 vistorias para fazer")).toBeTruthy();
+    expect(aContagem()).toBe("2, vistorias para fazer");
 
     mockNaRede = [PRIMEIRA];
     await baixarDeNovo();
 
-    expect(screen.getByText("1 vistoria para fazer")).toBeTruthy();
+    expect(aContagem()).toBe("1, vistoria para fazer");
   });
 
   /* Quem larga o cartão é o temporizador da tela, e não o fim da animação. */
@@ -273,5 +291,50 @@ describe("com redução de movimento ligada", () => {
 
     expect(screen.getByText("000472/2026")).toBeTruthy();
     expect(animacoes).toHaveLength(0);
+  });
+});
+
+describe("o despacho que chega com várias de uma vez", () => {
+  /*
+    Quando a coordenação despacha uma rua inteira, o aparelho recebe quatro,
+    seis, dez tarefas na mesma resposta. Entrando todas no mesmo instante, o
+    que o agente vê é a lista trocando de tamanho num quadro, que é o mesmo
+    nada que ele via antes de existir animação.
+
+    Em cascata ele vê CHEGAR, uma depois da outra, e o número de cartões novos
+    fica legível sem ninguém contar. `atrasoEmCascata()` nasceu para isto na
+    fundação da 2.0 e terminou a onda sem um único uso.
+  */
+  it("elas entram uma depois da outra, e não todas juntas", async () => {
+    await abrirALista();
+    animacoes = [];
+
+    mockNaRede = [PRIMEIRA, SEGUNDA, TERCEIRA, QUARTA];
+    await baixarDeNovo();
+
+    const atrasos = animacoes.filter((a) => a.toValue === 1).map((a) => a.delay ?? 0);
+    expect(atrasos).toHaveLength(3);
+    /* Crescentes e distintos: é isso que faz a cascata ser cascata. */
+    expect(new Set(atrasos).size).toBe(3);
+    expect([...atrasos].sort((a, b) => a - b)).toEqual(atrasos);
+  });
+
+  /*
+    A cascata conta entre as NOVAS, e não pela posição na lista inteira. Uma
+    tarefa só, chegando no fim de uma lista de vinte, esperaria o teto inteiro
+    antes de aparecer: o agente veria a lista parada e concluiria que não
+    chegou nada.
+  */
+  it("uma tarefa sozinha entra na hora, mesmo chegando no fim da lista", async () => {
+    mockNoDisco = [PRIMEIRA, SEGUNDA, TERCEIRA];
+    mockNaRede = [PRIMEIRA, SEGUNDA, TERCEIRA];
+    await abrirALista();
+    animacoes = [];
+
+    mockNaRede = [PRIMEIRA, SEGUNDA, TERCEIRA, QUARTA];
+    await baixarDeNovo();
+
+    const entrada = animacoes.find((a) => a.toValue === 1);
+    expect(entrada?.delay ?? 0).toBe(0);
   });
 });

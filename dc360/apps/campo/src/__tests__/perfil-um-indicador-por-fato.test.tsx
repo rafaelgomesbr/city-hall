@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
-import Equipe from "../app/(agente)/equipe";
+import Perfil from "../app/(agente)/perfil";
 import type { MeuTrabalho } from "../dados/api";
+import { ProvedorDeTema } from "../ui/componentes";
+import { ContextoDePush, type EstadoDoPush } from "../push/contexto";
 
 /**
  * O que este teste protege: um indicador por fato, e espera com porta de saída.
@@ -29,10 +31,14 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
   default: () => "dark",
 }));
 
-/* A navegação da tela é um empurrão para "minha conta", e nada mais: o
-   roteador de verdade traria o pacote inteiro do expo-router para dentro do
+/* O roteador de verdade traria o pacote inteiro do expo-router para dentro do
    teste sem nenhuma pergunta a mais respondida. */
-jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
+jest.mock("expo-router", () => ({ router: { push: jest.fn(), replace: jest.fn() } }));
+
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: { expoConfig: { version: "0.1.0" } },
+}));
 
 let mockGuardado: { dados: MeuTrabalho; baixadoEm: string } | null = null;
 /** A rede que aceita a chamada e nunca responde, que é o caso do relato. */
@@ -56,6 +62,59 @@ jest.mock("../dados/conectividade", () => ({
   useSinal: () => ({ temSinal: true, tipo: "celular" }),
 }));
 
+/*
+  As peças que a fusão trouxe para esta tela, e que não são o assunto daqui.
+
+  A tela agora responde por identidade, aparelho, tema, sino e saída, e cada uma
+  delas tem suíte própria. Dublar todas com o mínimo é o que mantém ESTE arquivo
+  falando de uma coisa só: quantos indicadores uma busca acende.
+*/
+jest.mock("../dados/api", () => ({
+  enderecoDaApi: () => "https://api.exemplo",
+  SemSinal: class SemSinal extends Error {},
+  normalizarMeuTrabalho: (bruto: unknown) => bruto,
+}));
+
+jest.mock("../dados/fila", () => ({
+  obterFila: async () => ({
+    resumo: async () => ({ pendentes: 0, enviando: 0, bloqueados: 0, confirmados: 0 }),
+  }),
+}));
+
+jest.mock("../dados/avisos", () => ({
+  AVISOS_VAZIOS: {
+    itens: [], cursor: null, naoLidos: 0, naoLidosTruncado: false,
+    lidosPendentes: [], baixadoEm: null,
+  },
+  avisosGuardados: async () => ({
+    itens: [], cursor: null, naoLidos: 0, naoLidosTruncado: false,
+    lidosPendentes: [], baixadoEm: null,
+  }),
+  sincronizarAvisos: async () => ({
+    itens: [], cursor: null, naoLidos: 0, naoLidosTruncado: false,
+    lidosPendentes: [], baixadoEm: new Date().toISOString(),
+  }),
+  marcarAvisosComoLidosNoAparelho: async () => ({
+    itens: [], cursor: null, naoLidos: 0, naoLidosTruncado: false,
+    lidosPendentes: [], baixadoEm: null,
+  }),
+  fraseDoAviso: () => "Atualização na ocorrência",
+  complementoDoAviso: () => null,
+}));
+
+jest.mock("../dados/preferencia-de-tema", () => ({
+  PREFERENCIA_PADRAO: "sistema",
+  lerPreferenciaDeTema: async () => "sistema",
+  guardarPreferenciaDeTema: async () => undefined,
+}));
+
+const PUSH: EstadoDoPush = {
+  permissao: "concedida",
+  registro: null,
+  pedirPermissao: async () => undefined,
+  abrirAjustes: async () => undefined,
+};
+
 const TRABALHO: MeuTrabalho = {
   equipe: { id: "e1", nome: "Equipe Alfa", especialidade: "Geotecnia", ativa: true },
   colegas: [
@@ -63,6 +122,8 @@ const TRABALHO: MeuTrabalho = {
     { id: "u2", nome: "Colega", papel: "agente_campo", ativo: true },
   ],
   concluidas: [],
+  totalConcluidas: 0,
+  tetoDeConcluidas: 50,
 };
 
 beforeEach(() => {
@@ -74,7 +135,13 @@ afterEach(() => { jest.useRealTimers(); });
 
 /** Monta a tela e deixa a leitura do disco e o começo da busca acontecerem. */
 async function abrirATela() {
-  const tela = await render(<Equipe />);
+  const tela = await render(
+    <ProvedorDeTema>
+      <ContextoDePush.Provider value={PUSH}>
+        <Perfil />
+      </ContextoDePush.Provider>
+    </ProvedorDeTema>,
+  );
   await act(async () => {});
   return tela;
 }
@@ -92,7 +159,7 @@ describe("a primeira abertura, sem cópia no aparelho e com a rede pendurada", (
 
     /* A tela volta a ser a tela, com o caminho de sempre à mão. */
     expect(screen.queryByTestId("espera")).toBeNull();
-    expect(screen.getByText("A sua equipe ainda não foi baixada")).toBeTruthy();
+    expect(screen.getByText("O seu trabalho ainda não foi baixado")).toBeTruthy();
 
     /*
       E a busca continua em voo: quem desistiu foi a espera, não a requisição.
@@ -108,7 +175,7 @@ describe("a primeira abertura, sem cópia no aparelho e com a rede pendurada", (
     await act(async () => { jest.advanceTimersByTime(6_000); });
     await fireEvent.press(screen.getByLabelText("Parar de esperar"));
 
-    const botao = screen.getByLabelText("Baixar minha equipe");
+    const botao = screen.getByLabelText("Baixar o meu trabalho");
     expect(botao.props.accessibilityState.disabled).toBe(true);
     /*
       `busy` no botão era o terceiro indicador do mesmo fato. O fato quem conta
@@ -116,7 +183,7 @@ describe("a primeira abertura, sem cópia no aparelho e com a rede pendurada", (
     */
     expect(botao.props.accessibilityState.busy).toBe(false);
     expect(screen.queryByTestId("botao-ocupado")).toBeNull();
-    expect(screen.getByText(/Buscando a sua equipe/i)).toBeTruthy();
+    expect(screen.getByText(/Buscando o seu trabalho/i)).toBeTruthy();
   });
 });
 
@@ -129,7 +196,7 @@ describe("a tela já aberta, com cópia no aparelho, atualizando por cima", () =
     expect(screen.getByText("Equipe Alfa")).toBeTruthy();
 
     const puxarParaAtualizar = () =>
-      screen.getByTestId("tela-da-equipe").props.refreshControl.props.refreshing;
+      screen.getByTestId("tela-do-perfil").props.refreshControl.props.refreshing;
     expect(puxarParaAtualizar()).toBe(true);
     /*
       O texto existe porque o `RefreshControl` só desenha enquanto o dedo

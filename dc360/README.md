@@ -9,11 +9,11 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 148 testes do banco passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 318 testes de fonte do painel mais 58 verificações no navegador no modo local e 103 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 700 testes da API passando |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 126 testes de unidade do motor de campo e 10 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 828 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 157 testes do banco passando |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 322 testes de fonte do painel mais 58 verificações no navegador no modo local e 103 contra a API |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 734 testes da API passando |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 136 testes de unidade do motor de campo e 10 de integração contra a API |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 1101 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios e não alcança dado de cidadão | Pronto, 39 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
@@ -799,6 +799,55 @@ sistema. E as telas de administração passaram a recusar pela rota, com uma
 frase que diz o que fazer, em vez de mostrar o formulário inteiro e negar só no
 envio.
 
+## O agente que sobe o morro sozinho
+
+O vocabulário deste produto reconhece, por escrito e desde a migração 028, que o
+agente entra em lugar que oferece risco à integridade física dele:
+`risco_para_a_equipe` é um dos seis motivos de devolução de tarefa. E não havia
+uma única linha de código para o caso de ele ter entrado. Era a maior distância
+entre o que o produto SABE e o que ele FAZ.
+
+**A pergunta que decidiu o desenho não é técnica: o que acontece quando ninguém
+responde?** Um botão de apoio que aciona alguém que não existe é pior do que
+botão nenhum, porque cria expectativa de socorro e a pessoa muda o comportamento
+dela contando com uma resposta que não vem.
+
+Então o produto promete só o que cumpre. O agente declara, **antes de subir e com
+sinal**, para onde vai, em quanto tempo volta e se vai **sozinho**. O prazo é
+carimbado pelo relógio do SERVIDOR. Se o retorno não for confirmado, a saída
+aparece como prazo estourado na tela de quem coordena e no sino, e o que a
+coordenação fez a respeito entra na trilha, com nome e hora.
+
+E ele diz em voz alta, na tela e em `docs/SEGURANCA-DO-AGENTE.md`, o que não faz:
+não é botão de pânico, não detecta queda, não sabe onde a pessoa está agora, não
+aciona ninguém sozinho, e não avisa quem não estiver com o painel aberto.
+
+### A assimetria que explica o resto
+
+**O aparelho sem sinal não consegue pedir socorro**, e nenhum software muda isso.
+A parte que funciona de verdade é a que acontece ANTES, na base, com sinal. Por
+isso declarar a saída **não entra na fila de sincronização**, ao contrário de
+tudo o mais que o aplicativo manda: a fila existe para não perder trabalho já
+feito, e aqui não há trabalho a perder, há um aviso a entregar. Aviso guardado no
+aparelho é aviso que ninguém recebeu, e ele daria ao agente a sensação de estar
+coberto exatamente quando ele não está.
+
+Confirmar o retorno exige sinal pela mesma razão, e o efeito parece defeito e é a
+definição: **você voltou quando o sistema soube que você voltou.**
+
+### Três decisões que separam isto de um alarme decorativo
+
+| Peça | Decisão | Por quê |
+| --- | --- | --- |
+| O canal | O sino, e não push | O push sai de um relógio sem ninguém logado, e relógio sem contexto de município precisa de função `SECURITY DEFINER`. O orçamento está em quinze de quinze e o portão CA-06 reprova a décima sexta. O custo (só avisa quem está com o painel aberto) está escrito no guia, não disfarçado |
+| Prorrogar | Existe, e é contado | Sem isso, todo serviço que demora mais que o previsto vira alarme falso, e alarme falso repetido é o único jeito conhecido de matar o recurso: a coordenação aprende a ignorar a tela. O novo prazo conta a partir de AGORA, senão uma saída vencida há duas horas continuaria vencida depois de prorrogada |
+| "O agente confirmou o retorno" | A coordenação **não** consegue marcar isso | Quem diz "voltei" é quem voltou. Se ela pudesse, a linha afirmaria que o agente confirmou quando outra pessoa decidiu por ele, e é essa a linha que alguém vai ler depois de um acidente |
+
+A palavra da tela é **"prazo estourado"**, nunca "em perigo": o produto sabe que
+ninguém teve notícia dele desde o prazo, e não sabe se é um talude cedendo ou uma
+bateria acabada. Afirmar perigo numa linha de prova seria afirmar o que ninguém
+verificou.
+
 ## A superfície da API se defende sozinha
 
 O erro que mais barato custa cometer e mais caro custa descobrir é banal:
@@ -832,10 +881,10 @@ de postos entrou, e ninguém percebeu porque documentação não quebra build.
 
 | Papel | Pode |
 | --- | --- |
-| Operador de plantão | registrar ocorrência, registrar a resposta de uma providência |
+| Operador de plantão | registrar ocorrência, registrar a resposta de uma providência, acompanhar quem está em campo agora |
 | Agente de campo | registrar vistoria |
-| Coordenador | registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados |
-| Administrador | alterar os dados do município, registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados |
+| Coordenador | registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados, acompanhar quem está em campo agora |
+| Administrador | alterar os dados do município, registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados, acompanhar quem está em campo agora |
 
 O administrador NÃO é um coordenador com outro nome. Ele é o único que altera
 os dados do município, e o sistema de postos impede que qualquer pessoa
@@ -851,6 +900,13 @@ muda a natureza da coisa.
 
 O operador também registra a resposta de uma providência: é ele quem atende o
 telefone quando a secretaria liga de volta. Continua sem decidir o fluxo.
+
+E ele **acompanha quem está em campo**, que é a única permissão concedida ao
+posto mais baixo por uma razão que não é de fluxo. O valor inteiro daquele
+recurso é alguém enxergar o prazo estourado, e quem está na sala às três da manhã
+de uma noite de temporal é o operador de plantão. Restringir à coordenação seria
+escolher a elegância da tabela contra a finalidade da coisa, e o custo do erro é
+um agente no morro sem ninguém olhando.
 
 ## Como rodar
 
@@ -999,11 +1055,11 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 1434 testes em seis pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 148 testes do banco
-npm run test:api            # 700 testes da API
-npm run test --workspace @dc360/campo   # 126 testes do motor de campo
-npm run test:campo          # tipos e os 828 testes do aplicativo de campo
+npm test                    # 1502 testes em seis pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 157 testes do banco
+npm run test:api            # 734 testes da API
+npm run test --workspace @dc360/campo   # 136 testes do motor de campo
+npm run test:campo          # tipos e os 1101 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
 ```
@@ -1280,7 +1336,7 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
 
-  Essa última já tem 126 testes do motor de campo cobrindo a lógica fora do
+  Essa última já tem 136 testes do motor de campo cobrindo a lógica fora do
   celular, inclusive retomada arquivo a arquivo.
   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e

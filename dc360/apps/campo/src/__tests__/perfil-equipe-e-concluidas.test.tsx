@@ -1,7 +1,9 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { StyleSheet } from "react-native";
-import Equipe from "../app/(agente)/equipe";
+import Perfil from "../app/(agente)/perfil";
 import type { MeuTrabalho } from "../dados/api";
+import { ProvedorDeTema } from "../ui/componentes";
+import { ContextoDePush, type EstadoDoPush } from "../push/contexto";
 import { contarPreenchidos } from "../ui/regua";
 import { temaEscuro } from "../ui/tokens";
 
@@ -30,7 +32,14 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
   __esModule: true, default: () => "dark",
 }));
 
-jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
+jest.mock("expo-router", () => ({
+  router: { push: jest.fn(), replace: jest.fn() },
+}));
+
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: { expoConfig: { version: "0.1.0" } },
+}));
 
 let mockGuardado: { dados: MeuTrabalho; baixadoEm: string } | null = null;
 const mockBuscar = jest.fn();
@@ -50,6 +59,52 @@ jest.mock("../dados/conectividade", () => ({
   useSinal: () => ({ temSinal: true, tipo: "celular" }),
 }));
 
+/*
+  O resto da tela fundida, dublado no mínimo.
+
+  Cada uma destas peças (endereço da API, fila, sino, tema, push) tem suíte
+  própria, e trazê-las de verdade para cá faria este arquivo reprovar por
+  motivos que não são o dele.
+*/
+const SINO_VAZIO = {
+  itens: [], cursor: null, naoLidos: 0, naoLidosTruncado: false,
+  lidosPendentes: [], baixadoEm: null,
+};
+
+jest.mock("../dados/api", () => ({
+  enderecoDaApi: () => "https://api.exemplo",
+  SemSinal: class SemSinal extends Error {},
+  normalizarMeuTrabalho: (bruto: unknown) => bruto,
+}));
+
+jest.mock("../dados/fila", () => ({
+  obterFila: async () => ({
+    resumo: async () => ({ pendentes: 0, enviando: 0, bloqueados: 0, confirmados: 0 }),
+  }),
+}));
+
+jest.mock("../dados/avisos", () => ({
+  AVISOS_VAZIOS: SINO_VAZIO,
+  avisosGuardados: async () => SINO_VAZIO,
+  sincronizarAvisos: async () => SINO_VAZIO,
+  marcarAvisosComoLidosNoAparelho: async () => SINO_VAZIO,
+  fraseDoAviso: () => "Atualização na ocorrência",
+  complementoDoAviso: () => null,
+}));
+
+jest.mock("../dados/preferencia-de-tema", () => ({
+  PREFERENCIA_PADRAO: "sistema",
+  lerPreferenciaDeTema: async () => "sistema",
+  guardarPreferenciaDeTema: async () => undefined,
+}));
+
+const PUSH: EstadoDoPush = {
+  permissao: "concedida",
+  registro: null,
+  pedirPermissao: async () => undefined,
+  abrirAjustes: async () => undefined,
+};
+
 const COLETADA_EM = "2026-09-10T13:00:00.000Z";
 
 function trabalho(por: Partial<MeuTrabalho> = {}): MeuTrabalho {
@@ -60,6 +115,8 @@ function trabalho(por: Partial<MeuTrabalho> = {}): MeuTrabalho {
       { id: "u2", nome: "Maria Souza", papel: "agente_campo", ativo: true },
     ],
     concluidas: [],
+    totalConcluidas: (por.concluidas ?? []).length,
+    tetoDeConcluidas: 50,
     ...por,
   };
 }
@@ -78,6 +135,8 @@ function concluida(atrasoEmMinutos: number) {
     sincronizada_em: new Date(
       new Date(COLETADA_EM).getTime() + atrasoEmMinutos * 60_000,
     ).toISOString(),
+    gps_precisao_metros: null,
+    assinante_nome: null,
   };
 }
 
@@ -90,7 +149,13 @@ beforeEach(() => {
 async function abrirComOsDados(dados: MeuTrabalho): Promise<void> {
   mockGuardado = { dados, baixadoEm: new Date().toISOString() };
   mockBuscar.mockImplementation(async () => dados);
-  await render(<Equipe />);
+  await render(
+    <ProvedorDeTema>
+      <ContextoDePush.Provider value={PUSH}>
+        <Perfil />
+      </ContextoDePush.Provider>
+    </ProvedorDeTema>,
+  );
   await act(async () => {});
 }
 

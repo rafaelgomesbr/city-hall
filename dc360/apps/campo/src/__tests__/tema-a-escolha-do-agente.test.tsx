@@ -103,7 +103,37 @@ jest.mock("expo-constants", () => ({
   default: { expoConfig: { version: "0.1.0" } },
 }));
 
-jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
+jest.mock("../dados/api", () => ({
+  enderecoDaApi: () => "https://api.exemplo",
+  SemSinal: class SemSinal extends Error {},
+  normalizarMeuTrabalho: (bruto: unknown) => bruto,
+}));
+/*
+  O que a fusão trouxe para esta tela, dublado no mínimo.
+
+  "Minha conta" e "Minha equipe" viraram Perfil, então a tela agora também lê o
+  trabalho concluído e o sino. Nenhum dos dois é o assunto daqui, e as suítes
+  deles são outras.
+*/
+const SINO_VAZIO = {
+  itens: [], cursor: null, naoLidos: 0, naoLidosTruncado: false,
+  lidosPendentes: [], baixadoEm: null,
+};
+
+jest.mock("../dados/pendencias", () => ({
+  meuTrabalhoGuardado: async () => null,
+  atualizarMeuTrabalho: async () => { throw new Error("sem rede nesta suite"); },
+}));
+
+jest.mock("../dados/avisos", () => ({
+  AVISOS_VAZIOS: SINO_VAZIO,
+  avisosGuardados: async () => SINO_VAZIO,
+  sincronizarAvisos: async () => SINO_VAZIO,
+  marcarAvisosComoLidosNoAparelho: async () => SINO_VAZIO,
+  fraseDoAviso: () => "Atualização na ocorrência",
+  complementoDoAviso: () => null,
+}));
+
 
 jest.mock("../dados/fila", () => ({
   obterFila: async () => ({
@@ -138,7 +168,7 @@ jest.mock("../dados/sessao", () => ({
   }),
 }));
 
-import Conta from "../app/(agente)/conta";
+import Perfil from "../app/(agente)/perfil";
 import Raiz from "../app/_layout";
 import { ContextoDePush, type EstadoDoPush } from "../push/contexto";
 import { ProvedorDeTema } from "../ui/componentes";
@@ -162,7 +192,7 @@ function Cenario() {
   return (
     <ProvedorDeTema>
       <ContextoDePush.Provider value={PUSH}>
-        <Conta />
+        <Perfil />
       </ContextoDePush.Provider>
     </ProvedorDeTema>
   );

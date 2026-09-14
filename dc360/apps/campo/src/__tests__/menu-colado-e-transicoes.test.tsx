@@ -117,6 +117,23 @@ jest.mock("../dados/conectividade", () => ({
   useSinal: () => ({ temSinal: true, tipo: "Wi-Fi" }),
 }));
 
+/*
+  O sino, lido do disco pela barra para desenhar o crachá da aba Perfil.
+
+  Dublado aqui porque este arquivo prova o que o aplicativo PEDE ao React
+  Navigation, e abrir SQLite de verdade traria uma dependência de aparelho para
+  dentro de uma pergunta sobre opções de navegação. Quantos avisos o crachá
+  mostra é assunto de `perfil-o-sino.test.tsx`.
+*/
+let mockNaoLidos = 0;
+jest.mock("../dados/avisos", () => ({
+  avisosGuardados: async () => ({
+    itens: [], cursor: null, naoLidos: mockNaoLidos, naoLidosTruncado: false,
+    lidosPendentes: [], baixadoEm: null,
+  }),
+  assinarAvisos: () => () => undefined,
+}));
+
 jest.mock("../dados/sessao", () => ({
   ProvedorDeSessao: ({ children }: { children: unknown }) => children,
   useSessao: () => ({
@@ -145,6 +162,7 @@ beforeEach(() => {
   mockNavegador.abas = null;
   mockNavegador.telas = [];
   mockNavegador.pilha = null;
+  mockNaoLidos = 0;
   reducaoLigada = false;
   jest.spyOn(AccessibilityInfo, "isReduceMotionEnabled")
     .mockImplementation(async () => reducaoLigada);
@@ -298,5 +316,94 @@ describe("a passagem de uma tela para outra", () => {
 
     const pilha = await montarARaiz();
     expect(pilha["animation"]).toBe("none");
+  });
+});
+
+/**
+ * O CRACHÁ DO SINO NA ABA PERFIL.
+ *
+ * `GET /avisos` existe no servidor desde o T8, escrita sem `exigirPermissao`
+ * expressamente para o agente de campo poder usá-la, e o aplicativo nunca a
+ * chamou. Quando ela foi ligada, a pergunta foi onde o sino mora, e a resposta
+ * está escrita no cabeçalho de `perfil.tsx`: o conteúdo dentro do Perfil, e o
+ * NÚMERO aqui, na barra.
+ *
+ * É o que compra a visibilidade de qualquer tela sem inventar uma quarta aba
+ * (que este mesmo arquivo já recusou por argumento) e sem pôr no topo um
+ * indicador que fica velho sem sinal, ao lado da `FaixaDeSincronizacao`, que
+ * nunca mente.
+ *
+ * Os casos abaixo REPROVAM antes da ligação: não existia aba `perfil`, e o sino
+ * não tinha número em lugar nenhum.
+ */
+describe("o crachá do sino na aba Perfil", () => {
+  /**
+   * As abas declaradas, pelo nome da rota, da ÚLTIMA renderização.
+   *
+   * O dublê de `Tabs.Screen` acumula uma entrada por renderização, e a barra
+   * renderiza duas vezes: o número do sino é lido do disco, que é assíncrono.
+   * Pegar a primeira ocorrência devolveria as opções do quadro em que o
+   * aplicativo ainda não sabia quantos avisos existem, e o caso passaria a
+   * medir o estado inicial em vez do estado final.
+   */
+  function ultimasOpcoes(): Map<string, Opcoes> {
+    const porNome = new Map<string, Opcoes>();
+    for (const t of mockNavegador.telas) porNome.set(t.name, t.options ?? {});
+    return porNome;
+  }
+
+  async function opcoesDaAba(nome: string): Promise<Opcoes> {
+    await montarAsAbas();
+    const achada = ultimasOpcoes().get(nome);
+    if (!achada) throw new Error(`a aba "${nome}" não foi declarada`);
+    return achada;
+  }
+
+  it("as três abas são Tarefas, Envio e Perfil: a conta deixou de ser uma tela escondida", async () => {
+    await montarAsAbas();
+    const rotulos = [...ultimasOpcoes().values()]
+      .filter((o) => o["href"] !== null)
+      .map((o) => o["tabBarLabel"]);
+
+    expect(rotulos).toEqual(["Tarefas", "Envio", "Perfil"]);
+    /* A rota `conta` saiu inteira: ela estava atrás de um botão no FIM do
+       rolamento da equipe, e quem procurava a versão do aplicativo ou o tema
+       precisava passar por dez vistorias concluídas para achá-la. */
+    expect(mockNavegador.telas.some((t) => t.name === "conta")).toBe(false);
+  });
+
+  it("sem aviso por ler, não há crachá nenhum: número zero é ruído", async () => {
+    const perfil = await opcoesDaAba("perfil");
+
+    expect(perfil["tabBarBadge"]).toBeUndefined();
+    expect(perfil["tabBarAccessibilityLabel"]).toBe("Perfil");
+  });
+
+  it("com aviso por ler, o número aparece e é falado", async () => {
+    mockNaoLidos = 3;
+    const perfil = await opcoesDaAba("perfil");
+
+    /* Número, e não pontinho colorido: o agente precisa saber QUANTOS avisos
+       esperam, e é o número que decide se vale abrir agora. */
+    expect(perfil["tabBarBadge"]).toBe("3");
+    expect(perfil["tabBarAccessibilityLabel"]).toBe("Perfil, 3 avisos por ler");
+  });
+
+  it("não usa a mesma cor do crachá da fila, que conta outra coisa", async () => {
+    mockNaoLidos = 1;
+    await montarAsAbas();
+    const abas = ultimasOpcoes();
+    const perfil = abas.get("perfil") as Opcoes;
+    const envio = abas.get("fila") as Opcoes;
+
+    const corDe = (o: Opcoes) =>
+      (o["tabBarBadgeStyle"] as Record<string, unknown>)["backgroundColor"];
+
+    /*
+      Dois crachás com a mesma cara, na mesma barra, para duas coisas opostas:
+      um é trabalho do agente que ainda não subiu, o outro é notícia do
+      município. Iguais, o agente aprende que o número não quer dizer nada.
+    */
+    expect(corDe(perfil)).not.toBe(corDe(envio));
   });
 });

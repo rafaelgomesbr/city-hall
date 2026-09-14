@@ -139,7 +139,7 @@ describe("o cartão da devolução tem as palavras dela", () => {
       devolução tem seção própria e NÃO entra no número que diz "coletas".
     */
     expect(screen.getByLabelText("Minhas devoluções, 1 item")).toBeTruthy();
-    expect(screen.getByText("1 coleta na fila")).toBeTruthy();
+    expect(screen.getByLabelText("1, coleta na fila")).toBeTruthy();
   });
 
   it("confirmada, diz que a coordenação recebeu e a ocorrência voltou", async () => {

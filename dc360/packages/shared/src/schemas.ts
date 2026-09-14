@@ -35,6 +35,33 @@ export const coordenadaSchema = z.object({
   lng: z.number().min(-180).max(180),
 });
 
+/**
+ * A coordenada COMO ELA É GRAVADA: sempre em seis casas decimais.
+ *
+ * O teto existia em dois lugares e nenhum deles era o contrato. O painel
+ * arredondava o texto colado (`apps/web/src/paginas/coordenada-colada.ts`) e o
+ * esquema da correção de coordenada arredondava a si mesmo. Toda outra porta
+ * gravava o que viesse, e o caminho do aparelho é justamente o que devolve os
+ * quinze dígitos do `Number`: o GPS do celular entrega `-22.41038299999999`,
+ * e a mesma coluna passava a guardar seis casas quando o dado veio do painel e
+ * quinze quando veio do morro.
+ *
+ * A divergência não é estética. Seis casas são cerca de dez centímetros, mais
+ * fino do que qualquer GPS de celular acerta debaixo de chuva; os nove dígitos
+ * seguintes são resto binário, e imprimi-los num laudo com brasão convida quem
+ * lê a confiar em dígito que nunca mediu nada. Duas telas mostrando o mesmo
+ * ponto com aparências de precisão diferentes é pior ainda, porque sugere que
+ * um dos dois foi medido melhor.
+ *
+ * Usado em TODA entrada que grava coordenada, e o banco cobra o mesmo teto por
+ * CHECK (migração 030): regra que só existe no esquema da aplicação é regra que
+ * a próxima rota esquece.
+ */
+export const coordenadaGravadaSchema = coordenadaSchema.transform((c) => ({
+  lat: Number(c.lat.toFixed(CASAS_DE_COORDENADA)),
+  lng: Number(c.lng.toFixed(CASAS_DE_COORDENADA)),
+}));
+
 export const organizacaoSchema = z.object({
   id: uuidSchema,
   nome: z.string().min(1).max(200),
@@ -68,7 +95,9 @@ export const aberturaOcorrenciaSchema = z.object({
   solicitanteContato: z.string().max(120).optional(),
   canalEntrada: z.enum(CANAIS_ENTRADA),
   endereco: z.string().min(1, "Informe o endereço").max(400),
-  coordenada: coordenadaSchema.optional(),
+  /* Com o teto de seis casas: ver `coordenadaGravadaSchema`. Esta é a porta
+     por onde a coordenada nasce, e era a que não tinha teto nenhum. */
+  coordenada: coordenadaGravadaSchema.optional(),
   /**
    * Como chegar, em linguagem de quem mora ali.
    *
@@ -146,9 +175,68 @@ export const evidenciaFotoSchema = z.object({
   /** Chave no storage, sempre prefixada por tenant/{orgId}/. */
   chave: z.string().min(1),
   capturadaEm: z.string().datetime(),
-  coordenada: coordenadaSchema.optional(),
+  /* O GPS do aparelho, com o teto de seis casas. Este é o caminho que trazia
+     os quinze dígitos para dentro de `evidencias.latitude`. */
+  coordenada: coordenadaGravadaSchema.optional(),
   legenda: z.string().max(300).optional(),
 });
+
+/**
+ * O papel do arquivo dentro da coleta, e por que a perda precisa distingui-los.
+ *
+ * A assinatura sobe pelo mesmo caminho das fotos, com a mesma idempotência e a
+ * mesma retomada, e o envelope a referencia noutro campo. Quando o arquivo que
+ * some é o traço da moradora, `assinaturaChave` chega nula e o laudo imprime
+ * uma LINHA DE ASSINATURA EM BRANCO, que é indistinguível de uma vistoria em
+ * que ninguém assinou. Sem esta marca, a lacuna mais grave do documento seria a
+ * única que ele não saberia nomear.
+ */
+export const PAPEIS_DE_EVIDENCIA = ["foto", "assinatura"] as const;
+export type PapelDeEvidencia = (typeof PAPEIS_DE_EVIDENCIA)[number];
+
+/**
+ * Um registro que foi CAPTURADO em campo e não pôde ser recuperado do aparelho.
+ *
+ * ## Por que este campo existe
+ *
+ * As fotos sobem ANTES do envelope, de propósito: o laudo não pode apontar para
+ * arquivo que não existe. A consequência, que é real e não hipotética: se o
+ * sistema operacional apagou um arquivo do cache, a leitura dos bytes falha e o
+ * ENVELOPE INTEIRO nunca sai. Checklist, GPS, assinatura, observações, órgãos a
+ * acionar. Uma manhã de trabalho no morro destruída porque o iOS liberou
+ * espaço.
+ *
+ * A saída não pode ser subir calado sem a foto: um laudo que parece completo e
+ * não é, é pior do que um laudo que não sai. Então a coleta sobe, e a perda sobe
+ * JUNTO, declarada, e vira linha no laudo e evento na trilha.
+ *
+ * ## A forma, campo a campo, e o que cada um prova
+ *
+ * - `idempotencyKey` é a chave que o aparelho cunhou para aquele arquivo na
+ *   captura. Ela é o NOME do que se perdeu: sem ela, dois envios da mesma coleta
+ *   contariam a mesma perda duas vezes, e nada distinguiria "perdi a foto 2" de
+ *   "perdi outra foto". Não é `uuidSchema` porque a assinatura usa
+ *   `<chave-da-coleta>-assinatura`, que é a forma que já está gravada em
+ *   aparelho hoje: exigir uuid aqui recusaria justamente a perda da assinatura.
+ * - `capturadaEm` prova que o registro EXISTIU e quando. É o que permite a quem
+ *   lê o laudo daqui a um ano dizer "havia uma fotografia das 09:42 e ela não
+ *   está aqui", em vez de supor que o agente não fotografou.
+ * - `papel` separa fotografia de assinatura. Ver `PAPEIS_DE_EVIDENCIA`.
+ * - `legenda` e `coordenada` são o metadado que SOBREVIVEU ao arquivo: eles
+ *   vivem no rascunho e na fila, não no arquivo de imagem. Mandá-los é a
+ *   diferença entre o laudo dizer "uma fotografia se perdeu" e dizer "a
+ *   fotografia da trinca na parede dos fundos, capturada naquele ponto, se
+ *   perdeu". É o que resta da prova, e jogar fora o que restou por ser pouco
+ *   seria destruir a única coisa que ainda dá para conferir em campo.
+ */
+export const evidenciaPerdidaSchema = z.object({
+  idempotencyKey: z.string().min(1).max(120),
+  capturadaEm: z.string().datetime(),
+  papel: z.enum(PAPEIS_DE_EVIDENCIA),
+  legenda: z.string().max(300).optional(),
+  coordenada: coordenadaGravadaSchema.optional(),
+});
+export type EvidenciaPerdida = z.infer<typeof evidenciaPerdidaSchema>;
 
 /**
  * Vistoria concluída em campo. `coletadaEm` é a hora do aparelho no momento
@@ -290,6 +378,44 @@ export const vistoriaSchema = z.object({
   */
   orgaosParaAcionar: z.array(orgaoIndicadoSchema).max(20).optional(),
   fotos: z.array(evidenciaFotoSchema),
+  /*
+    O que foi capturado no local e não pôde subir. Ver `evidenciaPerdidaSchema`
+    para o desenho inteiro.
+
+    OPCIONAL, pela mesma razão de `orgaosParaAcionar` e `coletadaPor`: há
+    aparelho em campo com coleta gravada antes deste campo existir, e um campo
+    obrigatório transformaria essa coleta em 422 permanente, que é a forma de
+    destruição que este campo existe para impedir. Ausente e vazio querem dizer
+    a mesma coisa: nada se perdeu.
+
+    O teto de vinte é o mesmo argumento de `orgaosParaAcionar`, e aqui ele pesa
+    mais: cada linha desta lista vira uma frase de perda num documento com
+    brasão, e um cliente adulterado poderia encher o laudo de uma família com
+    vinte mil declarações de prova ausente.
+  */
+  evidenciasPerdidas: z.array(evidenciaPerdidaSchema).max(20).optional(),
+  /*
+    ONDE O AGENTE REALMENTE ESTEVE, e ela não viajava.
+
+    O aparelho captura este ponto e guardava só para si: do envelope subia
+    apenas `gpsPrecisaoMetros`, ou seja, a QUALIDADE de uma medida cujo VALOR
+    ficava no celular. A coordenada ia junto de cada foto, como metadado de
+    imagem, e nunca como dado da vistoria.
+
+    Isso importa porque o alfinete que o operador colou com o telefone no ombro
+    e o ponto onde o imóvel está divergem o tempo todo, e o agente é a fonte
+    mais confiável dessa informação e era o único que não conseguia reportá-la.
+
+    OPCIONAL, e nunca obrigatória: vistoria em vão de morro com o céu tapado
+    fica sem leitura de GPS, e exigir o ponto faria a coleta ser recusada
+    exatamente onde ela é mais difícil de refazer.
+
+    O QUE O SERVIDOR FAZ COM ELA está decidido em `rotas/sincronizacao.ts`, e a
+    decisão é estreita de propósito: ela é gravada como dado DA VISTORIA e não
+    corrige a coordenada da ocorrência. Corrigir é outro ato, com motivo escrito
+    e evento próprio (`correcaoDeCoordenadaSchema`).
+  */
+  coordenada: coordenadaGravadaSchema.optional(),
   gpsPrecisaoMetros: z.number().positive().nullable(),
   assinanteNome: z.string().min(1, "Informe quem assinou").max(200),
   /** Traço da assinatura, como chave de storage. */
@@ -425,10 +551,7 @@ export type Desinterdicao = z.infer<typeof desinterdicaoSchema>;
  * laudo impresso diz um ponto e o sistema diz outro?". "erro" não responde
  * nada; "o agente conferiu no local, era a quadra de baixo" responde.
  */
-export const coordenadaCorrigidaSchema = coordenadaSchema.transform((c) => ({
-  lat: Number(c.lat.toFixed(CASAS_DE_COORDENADA)),
-  lng: Number(c.lng.toFixed(CASAS_DE_COORDENADA)),
-}));
+export const coordenadaCorrigidaSchema = coordenadaGravadaSchema;
 
 export const correcaoDeCoordenadaSchema = z.object({
   coordenada: coordenadaCorrigidaSchema,
@@ -633,6 +756,206 @@ export const devolucaoDeTarefaSchema = z.object({
   { message: "Com o motivo 'outro', escreva o que aconteceu", path: ["observacao"] },
 );
 export type DevolucaoDeTarefa = z.infer<typeof devolucaoDeTarefaSchema>;
+
+/* ==========================================================================
+   Saída a campo: quem subiu o morro, e quem não desceu
+   ========================================================================== */
+
+/**
+ * ## O que esta parte do vocabulário promete, e o que ela recusa prometer
+ *
+ * `MOTIVOS_DE_DEVOLUCAO` já tem `risco_para_a_equipe`, ou seja: este produto
+ * reconhece por escrito, desde a migração 028, que o agente entra em lugar que
+ * oferece risco à integridade física dele. E não havia nada para o caso de ele
+ * ter entrado.
+ *
+ * O que existe aqui é a versão mínima que é HONESTA, e a honestidade é o
+ * requisito, não um enfeite: um botão de apoio que aciona alguém que não
+ * existe é pior do que botão nenhum, porque cria expectativa de socorro. Este
+ * produto não tem central de monitoramento 24 horas, não tem contrato com
+ * serviço de emergência, não detecta queda e não faz aparelho sem sinal falar.
+ *
+ * Então ele promete só isto: o agente declara, ANTES de subir e COM SINAL,
+ * para onde vai e em quanto tempo pretende voltar; o relógio que conta é o do
+ * servidor; se o retorno não for confirmado no prazo, o fato aparece na tela
+ * de quem coordena e no sino; e o que a coordenação fez a respeito entra na
+ * trilha.
+ *
+ * O que ele NÃO promete está escrito por extenso em `db/migrations/031` e em
+ * `docs/GUIA-DO-COORDENADOR.md`, e a frase que resume: **"prazo estourado" não
+ * quer dizer "em perigo", quer dizer que ninguém teve notícia dele desde o
+ * prazo.**
+ *
+ * ## A assimetria que decide o desenho
+ *
+ * O aparelho sem sinal não consegue pedir socorro, e nenhum software muda
+ * isso. Por isso a parte que funciona de verdade é a que acontece ANTES, na
+ * base, com sinal. A declaração não entra na fila de sincronização: declaração
+ * guardada no aparelho é declaração que ninguém recebeu, e ela daria ao agente
+ * a sensação de estar coberto exatamente quando ele não está.
+ */
+
+/**
+ * Quanto tempo uma saída pode durar, em minutos.
+ *
+ * O piso existe porque abaixo de quinze minutos o aviso chegaria antes de ele
+ * terminar de estacionar, e alarme falso repetido é o único jeito conhecido de
+ * matar este recurso de vez: a coordenação aprende a ignorar a tela.
+ *
+ * O teto é um turno de trabalho. Número maior que isso é dedo escorregando na
+ * tela, não jornada, e uma saída de dois dias em aberto não informa nada a
+ * ninguém.
+ *
+ * Os mesmos dois números estão no CHECK da migração 031, e é o banco que manda:
+ * aqui eles existem para a tela recusar antes de ir ao servidor.
+ */
+export const DURACAO_MINIMA_DE_SAIDA_MINUTOS = 15;
+export const DURACAO_MAXIMA_DE_SAIDA_MINUTOS = 480;
+
+const duracaoDeSaidaSchema = z.coerce.number()
+  .int("Informe os minutos em número inteiro")
+  .min(DURACAO_MINIMA_DE_SAIDA_MINUTOS, "O mínimo é quinze minutos")
+  .max(DURACAO_MAXIMA_DE_SAIDA_MINUTOS, "O máximo é oito horas, que é um turno");
+
+/**
+ * Declarar que está indo a campo.
+ *
+ * `retornoPrevistoEm` NÃO está aqui, e a ausência é a decisão: quem calcula o
+ * prazo é o servidor, somando a duração ao relógio DELE. Relógio de aparelho é
+ * ajustável, erra sozinho e atravessa fuso, e este produto já decidiu isso três
+ * vezes (coleta tardia, devolução vencida, prazo de atendimento). Aqui o custo
+ * de errar é de outra ordem: um relógio adiantado em duas horas faria o alerta
+ * de um agente que não desceu sair duas horas depois do que deveria.
+ */
+export const saidaACampoSchema = z.object({
+  /**
+   * Gerada no aparelho, pelo mesmo motivo do envelope de vistoria: o pedido
+   * vai, o servidor grava, a resposta se perde no sinal ruim da base, e o
+   * aparelho repete. Sem a chave, o agente ficaria com duas saídas abertas e a
+   * coordenação com duas linhas para a mesma ida.
+   */
+  idempotencyKey: uuidSchema,
+  ocorrenciaId: uuidSchema,
+  /**
+   * Quem saiu, conferido pelo servidor contra o dono do token, pelo mesmo
+   * motivo de `devolvidaPor`: o aparelho de plantão é compartilhado entre
+   * turnos e portão de cliente não é controle de acesso. Aqui o erro é pior que
+   * um laudo com autor trocado: a coordenação procuraria a pessoa errada.
+   *
+   * Obrigatório desde o primeiro dia, como na devolução: este campo nasce hoje
+   * e não existe aparelho em campo com saída gravada sem autor.
+   */
+  agenteId: uuidSchema,
+  duracaoMinutos: duracaoDeSaidaSchema,
+  /**
+   * Trabalhar sozinho é a categoria inteira de risco de que isto trata, e é o
+   * que muda a leitura de quem coordena: uma saída vencida de quem foi
+   * acompanhado é um aborrecimento, e uma de quem foi sozinho é a situação que
+   * justifica largar o que se está fazendo.
+   *
+   * Sem valor padrão de propósito. Um padrão `false` faria o produto afirmar,
+   * em nome do agente, que ele estava acompanhado, que é a resposta que dá
+   * menos trabalho a todo mundo e a que ninguém deveria dar por ele.
+   */
+  sozinho: z.boolean(),
+  /** Quando o dedo tocou, no aparelho. Vai para a trilha, e NÃO decide nada. */
+  declaradaEm: z.string().datetime(),
+});
+export type SaidaACampo = z.infer<typeof saidaACampoSchema>;
+
+/**
+ * Empurrar o prazo de uma saída que já está aberta.
+ *
+ * Isto precisa existir, senão todo serviço que demora mais que o previsto vira
+ * alarme falso. E precisa ser um ato explícito e contado, senão prorrogar vira
+ * o jeito silencioso de manter uma saída aberta para sempre.
+ */
+export const prorrogacaoDeSaidaSchema = z.object({
+  idempotencyKey: uuidSchema,
+  saidaId: uuidSchema,
+  /** Quantos minutos A MAIS, contados a partir do prazo corrente no servidor. */
+  minutosAdicionais: duracaoDeSaidaSchema,
+  pedidaEm: z.string().datetime(),
+});
+export type ProrrogacaoDeSaida = z.infer<typeof prorrogacaoDeSaidaSchema>;
+
+/** Confirmar o retorno. Exige sinal, pela mesma razão que declarar exige. */
+export const retornoDeCampoSchema = z.object({
+  idempotencyKey: uuidSchema,
+  saidaId: uuidSchema,
+  confirmadoEm: z.string().datetime(),
+});
+export type RetornoDeCampo = z.infer<typeof retornoDeCampoSchema>;
+
+/**
+ * Como uma saída termina.
+ *
+ * Lista fechada porque cada desfecho descreve um ATO diferente, de uma pessoa
+ * diferente, e porque a pergunta que alguém vai fazer depois de um acidente é
+ * "o que a coordenação fez", que não sai de campo de texto.
+ *
+ * `retorno_confirmado` é o único que o agente escreve, e ele não aparece na
+ * lista da coordenação: ver `DESFECHOS_DA_COORDENACAO`.
+ */
+export const DESFECHOS_DE_SAIDA = [
+  "retorno_confirmado",
+  "contato_estabelecido",
+  "retorno_a_base",
+  "apoio_acionado",
+  "registro_indevido",
+] as const;
+export type DesfechoDeSaida = (typeof DESFECHOS_DE_SAIDA)[number];
+
+export const ROTULO_DESFECHO_DE_SAIDA: Record<DesfechoDeSaida, string> = {
+  retorno_confirmado: "O agente confirmou o retorno",
+  contato_estabelecido: "Falei com a pessoa, está bem",
+  retorno_a_base: "Voltou à base e não confirmou no aplicativo",
+  apoio_acionado: "Acionei apoio",
+  registro_indevido: "A saída foi declarada por engano",
+};
+
+/**
+ * Os desfechos que a COORDENAÇÃO pode escolher.
+ *
+ * `retorno_confirmado` fica de fora, e a ausência é a regra: quem diz "voltei"
+ * é quem voltou. Se a coordenação pudesse marcar isso, a linha passaria a
+ * afirmar que o agente confirmou o retorno quando na verdade foi outra pessoa
+ * que decidiu por ele, e essa é exatamente a linha que alguém vai ler depois de
+ * um acidente. Quando a coordenação sabe que ele voltou, o desfecho honesto é
+ * `retorno_a_base` ou `contato_estabelecido`, que dizem quem soube e como.
+ */
+export const DESFECHOS_DA_COORDENACAO = DESFECHOS_DE_SAIDA
+  .filter((d): d is Exclude<DesfechoDeSaida, "retorno_confirmado"> =>
+    d !== "retorno_confirmado");
+
+export const encerramentoDeSaidaSchema = z.object({
+  saidaId: uuidSchema,
+  desfecho: z.enum(
+    DESFECHOS_DA_COORDENACAO as unknown as [DesfechoDeSaida, ...DesfechoDeSaida[]],
+  ),
+  /**
+   * O que foi feito, e NUNCA dado do morador.
+   *
+   * O teto é curto de propósito, e a razão está por extenso na migração 031:
+   * o sujeito desta frase é agente público no exercício da função, e é isso que
+   * mantém esta coluna fora do alcance da minimização por prazo. Se ela virar
+   * o lugar onde se conta a história da família, aquela decisão deixa de valer.
+   */
+  observacao: z.string().trim().max(300).optional(),
+}).refine(
+  (e) => e.desfecho !== "apoio_acionado" || (e.observacao ?? "").length >= 3,
+  {
+    /*
+      "Acionei apoio" sem dizer qual apoio é a frase que não ajuda ninguém seis
+      meses depois, e é justamente a linha que uma apuração vai procurar. O
+      banco também recusa, por CHECK: aqui a recusa existe para a tela apontar
+      o campo certo em vez de devolver erro de restrição.
+    */
+    message: "Diga o que foi acionado (quem, e a que horas)",
+    path: ["observacao"],
+  },
+);
+export type EncerramentoDeSaida = z.infer<typeof encerramentoDeSaidaSchema>;
 
 /* ==========================================================================
    Cadastro de usuário e de equipe

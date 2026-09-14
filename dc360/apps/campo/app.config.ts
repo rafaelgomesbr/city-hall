@@ -57,6 +57,50 @@ const TEXTO_LOCALIZACAO =
 const BUILD = 1;
 
 /**
+ * A CHAVE DO GOOGLE MAPS QUE VAI DENTRO DO BINÁRIO, e por que ela precisa
+ * estar aqui apesar de existir `GET /configuracao`.
+ *
+ * O painel resolveu isto em tempo de execução, e por uma razão de conta a
+ * pagar que está escrita em `apps/web/src/paginas/mapa-de-base.ts`: lá é UM
+ * build estático servindo TODAS as prefeituras, então a chave assada seria a
+ * do fornecedor pagando o mapa de todo mundo. Aqui a razão não se transporta,
+ * e a diferença é técnica antes de ser comercial:
+ *
+ * 1. O SDK NATIVO NÃO ACEITA CHAVE EM TEMPO DE EXECUÇÃO. No Android ela é
+ *    `com.google.android.geo.API_KEY` no manifesto; no iOS ela vira
+ *    `GMSServices.provideAPIKey(...)` dentro do AppDelegate. As duas são
+ *    escritas pelo plugin do `react-native-maps` durante o `prebuild`, e não
+ *    existe chamada de JavaScript que as substitua depois.
+ * 2. NO iOS ELA DECIDE ATÉ SE O SDK ENTRA NO BINÁRIO. Sem `iosGoogleMapsApiKey`
+ *    o plugin não acrescenta o pod `react-native-maps/Google` ao Podfile, e aí
+ *    `PROVIDER_GOOGLE` cai em silêncio no Apple Maps: a tela abre, desenha um
+ *    mapa bonito, ignora o nosso estilo, e ninguém recebe erro nenhum. É o
+ *    pior desfecho possível, porque parece certo.
+ * 3. ESTE BINÁRIO JÁ É POR MUNICÍPIO. `DC360_API_URL`, logo abaixo em `extra`,
+ *    também é de tempo de build, com o comentário dizendo que "muda entre a
+ *    prefeitura A e a prefeitura B". Um aplicativo compilado para apontar para
+ *    o servidor de um município só não é o build único do painel.
+ *
+ * O QUE CONTINUA VINDO DA API, e é o que o município controla: a AUTORIZAÇÃO.
+ * `GET /configuracao` responde `chaveDoMapa`, e vazia quer dizer que aquele
+ * município não aceita mandar coordenada para o Google. O aplicativo então
+ * desenha o plano esquemático e não monta mapa nenhum, exatamente como
+ * `docs/SUBPROCESSADORES.md` seção 2.2 promete. Ver `src/dados/mapa.ts`.
+ *
+ * Sem valor padrão, pelo mesmo motivo de `DC360_API_URL`: binário que sai da
+ * fábrica gastando a chave de alguém é acidente esperando acontecer. Sem a
+ * variável, o aplicativo compila sem o SDK do Google e trabalha no plano
+ * esquemático, que é um modo inteiro e não uma degradação.
+ *
+ * Ela NÃO é segredo, e chamar de segredo seria teatro: chave de mapa viaja
+ * dentro do APK e do IPA e sai de lá com um descompactador. Quem protege a
+ * conta é a restrição da chave no console do Google (identificador do
+ * aplicativo mais impressão digital do certificado, no Android; identificador
+ * do pacote, no iOS), nunca o sigilo.
+ */
+const CHAVE_DO_MAPA = process.env["DC360_MAPS_CHAVE"]?.trim() ?? "";
+
+/**
  * A TELA DE ABERTURA, agora com os dois temas.
  *
  * O defeito, visto no aparelho: `backgroundColor` era `#101519` e mais nada.
@@ -396,6 +440,24 @@ const config: ExpoConfig = {
         mode: process.env["EAS_BUILD_PROFILE"] === "producao" ? "production" : "development",
       },
     ],
+    [
+      "react-native-maps",
+      {
+        /*
+          As duas chaves saem da MESMA constante, e passar `undefined` é o
+          caminho deliberado de quem não tem chave: o plugin remove a
+          `meta-data` do manifesto do Android e deixa o pod do Google fora do
+          Podfile do iOS, em vez de escrever uma string vazia que o SDK tentaria
+          usar e recusaria na primeira renderização.
+
+          `|| undefined` e não `?? undefined`: string vazia precisa cair no
+          mesmo caminho de "não tem", senão `DC360_MAPS_CHAVE=` no ambiente
+          produziria um binário que declara chave e não tem nenhuma.
+        */
+        androidGoogleMapsApiKey: CHAVE_DO_MAPA || undefined,
+        iosGoogleMapsApiKey: CHAVE_DO_MAPA || undefined,
+      },
+    ],
   ],
 
   experiments: { typedRoutes: true },
@@ -410,6 +472,23 @@ const config: ExpoConfig = {
       apontando para o servidor de alguém é acidente esperando acontecer.
     */
     apiUrl: process.env["DC360_API_URL"] ?? "http://localhost:3333",
+    /*
+      A MESMA chave, repetida aqui para o JavaScript conseguir PERGUNTAR se ela
+      existe. Não é duplicação por descuido: é a única forma de o aplicativo
+      saber, em tempo de execução, se o binário em que ele está rodando tem o
+      SDK do Google dentro.
+
+      Sem isto, o caso descrito no comentário de `CHAVE_DO_MAPA` acontece
+      calado: binário compilado sem chave, município com chave configurada no
+      servidor, `PROVIDER_GOOGLE` caindo no Apple Maps no iOS e em quadrado
+      cinza no Android, e nenhuma parte do produto sabendo que aconteceu.
+      `src/dados/mapa.ts` lê este campo e recusa o modo Google quando ele está
+      vazio, desenhando o plano esquemático e DIZENDO por quê.
+
+      Repetir o valor não expõe nada que o binário já não exponha: ela está no
+      Info.plist e no AndroidManifest, que qualquer descompactador lê.
+    */
+    mapaChaveDoBuild: CHAVE_DO_MAPA,
     eas: { projectId: process.env["EAS_PROJECT_ID"] ?? "" },
   },
 };

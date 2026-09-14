@@ -4,6 +4,8 @@ import {
 import { Animated, Easing, ScrollView, View } from "react-native";
 import {
   autoriaDaColeta,
+  evidenciasPerdidasDoItem,
+  CODIGO_ARQUIVO_SUMIU,
   type Autoria,
   type FilaDeSincronizacao,
   type ItemDeDevolucao,
@@ -15,7 +17,7 @@ import { obterFila } from "../../dados/fila";
 import { useSinal } from "../../dados/conectividade";
 import { useSessao } from "../../dados/sessao";
 import {
-  Aviso, Botao, Cartao, Carregando, Separador, Txt, Vazio, useTema,
+  Aviso, Botao, Cartao, Carregando, Dado, Separador, Txt, Vazio, useTema,
 } from "../../ui/componentes";
 import { Chip, type TomDoChip } from "../../ui/Chip";
 import { Dialogo } from "../../ui/Dialogo";
@@ -28,7 +30,7 @@ import {
   borda, easing, espaco, icone as tamanhoDeIcone, movimento, peso, raio,
 } from "../../ui/tokens";
 import { useReducaoDeMovimento } from "../../ui/useReducaoDeMovimento";
-import { ESCALA_NA_BORDA, ItemDeLista } from "../../ui/ItemDeLista";
+import { ItemDeLista } from "../../ui/ItemDeLista";
 import { retornoTatil } from "../../ui/retornoTatil";
 
 /**
@@ -105,6 +107,30 @@ const TENTATIVAS_ATE_AVISAR = 8;
  * confirmação de um minuto atrás vira ruído em cima de um estado que já mudou.
  */
 const RETORNO_NA_TELA_MS = 8_000;
+
+/**
+ * Quanto o emblema do clímax passa do tamanho final antes de voltar.
+ *
+ * O gesto é o mesmo da `FaixaDeSincronizacao`, e é de propósito: as duas peças
+ * respondem à MESMA pergunta ("o meu trabalho chegou?"), uma no alto de toda
+ * tela e a outra aqui, e duas comemorações com desenhos diferentes seriam duas
+ * respostas diferentes para o mesmo fato.
+ *
+ * O salto é um pouco menor que o da faixa (que vai a 1,28) porque a peça é
+ * maior: o emblema da faixa tem 28 pontos e este ocupa o círculo inteiro do
+ * estado vazio. Excesso de escala numa peça grande deixa de ler como alívio e
+ * passa a ler como sobressalto.
+ */
+const SALTO_DO_EMBLEMA = 1.18;
+
+/**
+ * Que fração do clímax é a subida do emblema. O resto é a volta.
+ *
+ * Menos da metade na subida e mais da metade na volta: é o que faz o gesto
+ * terminar assentando em vez de parar de repente. Os mesmos dois tempos da
+ * faixa, pela mesma razão de serem o mesmo gesto.
+ */
+const SUBIDA_DO_EMBLEMA = 0.4;
 
 
 /**
@@ -190,6 +216,114 @@ function descreverDevolucao(item: ItemDeDevolucao): EstadoDoItem {
         ],
       };
   }
+}
+
+/**
+ * O que se perdeu desta coleta, separado por papel.
+ *
+ * A conta de QUANTOS vem de `evidenciasPerdidasDoItem`, no pacote, e nunca de
+ * um filtro escrito aqui: é a mesma linha que o dreno usa para decidir o que
+ * pode subir sem os bytes. Duas contas para o mesmo fato divergem na primeira
+ * pressa, e a divergência aqui seria a tela perguntando "enviar sem 2
+ * registros?" para uma coleta que vai subir sem três.
+ *
+ * A ASSINATURA SAI SEPARADA DAS FOTOS, e essa separação é a parte cara. Somada
+ * ao número, ela viraria "3 registros" e a tela nunca diria a única coisa que
+ * muda o documento: quando o arquivo que sumiu é o traço de quem estava no
+ * local, o laudo imprime a linha de assinatura em branco. Em branco, ela é
+ * indistinguível de uma vistoria em que ninguém assinou, que é a lacuna mais
+ * grave que aquele documento pode ter. O laudo declara a causa (ver
+ * `blocoEvidenciasPerdidas`, na API), e quem autoriza a declaração precisa ter
+ * lido que ela vai existir.
+ */
+function perdaDeRegistro(item: ItemFila): {
+  quantas: number; fotos: number; assinatura: boolean;
+} {
+  const perdidas = evidenciasPerdidasDoItem(item);
+  return {
+    quantas: perdidas.length,
+    fotos: perdidas.filter((f) => f.papel === "foto").length,
+    assinatura: perdidas.some((f) => f.papel === "assinatura"),
+  };
+}
+
+/**
+ * "1 registro" ou "N registros", num lugar só.
+ *
+ * A contagem aparece em quatro frases desta tela (o rótulo do botão para quem
+ * ouve, a pergunta do diálogo, o texto dele e a confirmação do toque), e o
+ * plural escrito à mão em quatro lugares é o tipo de coisa que sai certa em
+ * três e errada na quarta, sempre na que ninguém abre.
+ */
+function registros(quantos: number): string {
+  return quantos === 1 ? "1 registro" : `${quantos} registros`;
+}
+
+/** Uma frase só, dizendo o que sumiu, com o nome de cada coisa. */
+function frasePerda(perda: { fotos: number; assinatura: boolean }): string {
+  const fotos = perda.fotos === 1
+    ? "1 fotografia"
+    : `${perda.fotos} fotografias`;
+  if (perda.assinatura && perda.fotos === 0) {
+    return "A assinatura de quem estava no local não está mais neste aparelho, e "
+      + "não há como recuperá-la.";
+  }
+  if (perda.assinatura) {
+    return `A assinatura de quem estava no local e ${fotos} desta vistoria não estão `
+      + "mais neste aparelho, e não há como recuperá-las.";
+  }
+  return perda.fotos === 1
+    ? "1 fotografia desta vistoria não está mais neste aparelho, e não há como "
+      + "recuperá-la."
+    : `${fotos} desta vistoria não estão mais neste aparelho, e não há como `
+      + "recuperá-las.";
+}
+
+/**
+ * A coleta travada porque um arquivo sumiu do aparelho, que é o único estado
+ * desta tela em que a decisão é da PESSOA e não do sistema.
+ *
+ * Separado do resto de "bloqueado" por três razões, e nenhuma é organização de
+ * código:
+ *
+ * 1. **O rótulo não podia continuar "Precisa de atenção".** Atenção é olhar;
+ *    aqui é decidir, e ninguém além do agente pode. Enquanto os dois estados
+ *    dividiram a mesma palavra, esta coleta ficava no meio de uma lista de
+ *    problemas de servidor esperando alguém tentar de novo, e tentar de novo
+ *    nunca vai resolver: arquivo apagado não volta.
+ * 2. **A frase do motor tinha quarenta palavras.** Ela diz a coisa certa (o
+ *    número, e que dá para enviar sem), e num nó só ela é o parágrafo que esta
+ *    tela inteira existe para não ter. Aqui ela se distribui: o número e o que
+ *    sumiu viram o POR QUÊ, a saída vira o passo, e o botão vira botão.
+ * 3. **A saída não pode ser um toque.** O laudo passa a declarar a perda e a
+ *    trilha é append-only: o que for autorizado aqui não se reescreve. Por isso
+ *    o botão abre pergunta, e a pergunta diz o número e o que o documento vai
+ *    dizer.
+ */
+function descreverPerdaDeRegistro(item: ItemFila): EstadoDoItem {
+  return {
+    rotulo: "Precisa de decisão",
+    /*
+      Símbolo e desenho continuam os de perigo, e o tom também: o cartão ainda
+      é o único da lista que pede o dedo do agente, e trocar a cor aqui tiraria
+      dele o peso que a régua de densidade reserva justamente para este caso.
+      O que muda é a PALAVRA, que é o canal que diz o que se espera de quem lê.
+    */
+    simbolo: "!",
+    tom: "perigo",
+    Icone: IconePerigo,
+    porque: frasePerda(perdaDeRegistro(item)),
+    /*
+      "Você pode", e nunca "Envie". Quem decide é o agente: o aplicativo sabe
+      que o arquivo acabou e não sabe o que aquela fotografia provava. Um passo
+      no imperativo seria o produto empurrando a perda de prova, e a perda vira
+      frase num documento com brasão assinado por quem esteve no local.
+    */
+    oQueFazer: [
+      "Você pode enviar a vistoria assim mesmo: o resto da coleta sobe inteiro, "
+      + "e o laudo declara a perda.",
+    ],
+  };
 }
 
 /** O primeiro nome, que é como o colega é chamado no plantão. */
@@ -301,6 +435,15 @@ function descreverEstado(item: ItemFila, autoria: Autoria): EstadoDoItem {
         porque: "A coordenação recebeu. Some desta lista em instantes.",
       };
     case "bloqueado":
+      /*
+        A perda de arquivo vem ANTES do bloqueio genérico, e a ordem é o
+        conteúdo: ela é o único bloqueio desta tela que tem saída pela mão do
+        agente, e a frase genérica ("repetir não resolve") mandaria esperar por
+        alguém que não existe.
+      */
+      if (item.ultimaFalha?.codigo === CODIGO_ARQUIVO_SUMIU) {
+        return descreverPerdaDeRegistro(item);
+      }
       return {
         rotulo: "Precisa de atenção",
         simbolo: "!",
@@ -471,40 +614,99 @@ function Secao({ Icone, titulo, quantos, children }: {
 */
 
 /**
- * A chegada do estado vazio, que é o clímax desta tela.
+ * A FILA ZERADA, que é o clímax desta tela e o momento assinatura do produto.
  *
  * `movimento.climax` existe, nas palavras do próprio `tokens.ts`, "para um
  * momento só: a fila esvaziando". É este. O agente subiu o morro, coletou sem
- * sinal e desceu sem saber se o trabalho chegou; a lista zerando é a resposta,
- * e ela merece ser vista acontecendo em vez de aparecer pronta.
+ * sinal e desceu sem saber se o trabalho chegou; a lista zerando é a resposta.
+ *
+ * ## Por que ele não dispara à toa, que é a metade que faltava
+ *
+ * Havia DOIS canais comemorando o mesmo fato aqui, e só um deles tinha guarda.
+ * O retorno tátil já exigia a TRANSIÇÃO (`tinhaAlgo && novos.length === 0`),
+ * pela razão escrita na própria `FaixaDeSincronizacao`: um aparelho que vibra
+ * toda vez que a pessoa entra na aba ensina depressa a ignorar a vibração. O
+ * movimento não exigia nada: ele rodava na montagem, ou seja, ABRIR a aba com a
+ * fila já vazia produzia a comemoração inteira, e DESCARTAR o último item
+ * (jogar fora trabalho feito) produzia exatamente a mesma, enquanto o aparelho
+ * ficava calado de propósito. Dois canais para um fato só, um guardado e o
+ * outro não, na tela que o `CLAUDE.md` chama de clímax da demonstração.
+ *
+ * Agora os dois saem da MESMA decisão, tomada uma vez em `recarregar`. E ela é
+ * lida UMA vez aqui dentro, como no `ItemDeLista`: enquanto o gesto roda, a
+ * tela já pode ter relido a fila e a propriedade já virou falsa, e ler o valor
+ * corrente a cada quadro interromperia a comemoração no meio dela.
+ *
+ * ## Os dois movimentos, e por que são dois
+ *
+ * O bloco CHEGA (sobe e aparece, com `easing.entrada`, que desacelera e assenta)
+ * e o emblema ASSENTA COM EXCESSO (`easing.climax`, a única curva do produto que
+ * passa do alvo e volta, e que o `tokens.ts` reserva para este momento). A
+ * diferença entre "o estado mudou" e "conseguimos" está no segundo; o primeiro
+ * é o que impede o segundo de parecer um piscar fora de contexto.
+ *
+ * Os dois rodam em paralelo, com `useNativeDriver`, sobre opacidade e
+ * transformação: a linha de JavaScript deste aplicativo pode estar ocupada
+ * drenando a fila neste exato instante, e uma comemoração travada é pior que
+ * nenhuma. Nada de confete, som ou parallax, que continuam proibidos sem
+ * exceção.
  */
-function ChegadaDoVazio({ children }: { children: ReactNode }) {
+function FilaZerada({ comemorar, children }: {
+  comemorar: boolean;
+  /*
+    O conteúdo recebe a escala do emblema, em vez de a peça montá-lo.
+
+    A razão é de faixa: o emblema mora DENTRO do círculo que o `Vazio` desenha,
+    e `Vazio` recebe o ícone como nó pronto. `src/ui/` não se toca nesta frente,
+    então quem desenha o estado vazio entrega o desenho já animado, e esta peça
+    continua sendo só o movimento.
+  */
+  children: (escalaDoEmblema: Animated.Value) => ReactNode;
+}) {
   const reduzirMovimento = useReducaoDeMovimento();
-  const entrada = useRef(new Animated.Value(reduzirMovimento ? 1 : 0)).current;
+  const animar = useRef(comemorar && !reduzirMovimento).current;
+  const chegada = useRef(new Animated.Value(animar ? 0 : 1)).current;
+  const emblema = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (reduzirMovimento) {
-      entrada.setValue(1);
-      return;
-    }
-    Animated.timing(entrada, {
-      toValue: 1,
-      duration: movimento.climax,
-      easing: Easing.bezier(...easing.climax),
-      useNativeDriver: true,
-    }).start();
-  }, [reduzirMovimento, entrada]);
+    if (!animar) return;
+    Animated.parallel([
+      Animated.timing(chegada, {
+        toValue: 1,
+        duration: movimento.climax,
+        easing: Easing.bezier(...easing.entrada),
+        useNativeDriver: true,
+      }),
+      Animated.sequence([
+        Animated.timing(emblema, {
+          toValue: SALTO_DO_EMBLEMA,
+          duration: movimento.climax * SUBIDA_DO_EMBLEMA,
+          easing: Easing.bezier(...easing.climax),
+          useNativeDriver: true,
+        }),
+        Animated.timing(emblema, {
+          toValue: 1,
+          duration: movimento.climax * (1 - SUBIDA_DO_EMBLEMA),
+          easing: Easing.bezier(...easing.entrada),
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  }, [animar, chegada, emblema]);
 
   return (
     <Animated.View
       style={{
-        opacity: entrada,
-        transform: [{
-          scale: entrada.interpolate({ inputRange: [0, 1], outputRange: [ESCALA_NA_BORDA, 1] }),
-        }],
+        opacity: chegada,
+        transform: [
+          /* Ele SOBE para o lugar, e não cresce do nada: crescer é o gesto que
+             `ItemDeLista` já usa para item entrando e saindo, e repeti-lo aqui
+             faria o momento mais importante da tela parecer mais um item. */
+          { translateY: chegada.interpolate({ inputRange: [0, 1], outputRange: [espaco.e5, 0] }) },
+        ],
       }}
     >
-      {children}
+      {children(emblema)}
     </Animated.View>
   );
 }
@@ -536,6 +738,25 @@ export default function TelaDaFila() {
   */
   const [aDescartar, setADescartar] = useState<ItemFila | null>(null);
   /*
+    Qual coleta está sendo perguntada sobre os registros que se perderam.
+
+    Mesmo desenho do descarte, e pela mesma razão: o item inteiro, e não uma
+    bandeira, porque a pergunta precisa dizer o protocolo e QUANTOS registros
+    sumiram. E, como lá, enquanto isto vale `null` nada foi autorizado: o que a
+    trilha vai guardar para sempre acontece no toque do botão do diálogo.
+  */
+  const [aAbrirMao, setAAbrirMao] = useState<ItemFila | null>(null);
+  /*
+    A FILA ACABOU DE ZERAR NESTA TELA, e não "a fila está vazia".
+
+    Uma decisão só, tomada em `recarregar`, para os DOIS canais que comemoram: a
+    vibração e o movimento. Enquanto foram duas, a vibração exigia a transição e
+    o movimento rodava na montagem, então abrir a aba com a fila já vazia
+    comemorava com a tela e ficava calado no bolso, dizendo duas coisas
+    diferentes sobre o mesmo fato.
+  */
+  const [zerouAgora, setZerouAgora] = useState(false);
+  /*
     O RETORNO DO TOQUE, por item.
 
     "Tentar de novo" e "Esta coleta é minha" executavam e recarregavam a lista
@@ -546,7 +767,19 @@ export default function TelaDaFila() {
     frase dentro do cartão.
   */
   const [emCurso, setEmCurso] = useState<{ id: string; verbo: string } | null>(null);
-  const [retorno, setRetorno] = useState<{ id: string; texto: string } | null>(null);
+  /*
+    `deuCerto` existe porque nem todo toque desta tela consegue o que pediu.
+
+    "Enviar sem os registros perdidos" passa por um portão no motor (só sai
+    coleta bloqueada, com o código certo e com arquivo marcado), e o estado pode
+    ter mudado entre a pergunta e a resposta. Sem este campo, a única saída
+    seria mostrar o mesmo "Pronto" verde nos dois casos, e uma confirmação que
+    afirma o que não aconteceu é pior que confirmação nenhuma: ela é a tela
+    mentindo na única tela que existe para não mentir.
+  */
+  const [retorno, setRetorno] = useState<
+    { id: string; texto: string; deuCerto: boolean } | null
+  >(null);
   /*
     O agente desistiu de esperar a fila abrir.
 
@@ -608,8 +841,24 @@ export default function TelaDaFila() {
       esvaziado, e um aparelho que vibra toda vez que o agente entra aqui
       ensina depressa a ignorar a vibração, levando junto os outros três
       momentos em que ela informa alguma coisa.
+
+      UMA decisão, DOIS canais. O tátil sai na hora; o movimento espera o último
+      cartão terminar de sair, e por isso precisa ficar guardado.
     */
-    if (comemorarSeZerar && tinhaAlgo && novos.length === 0) retornoTatil("concluido");
+    const zerou = comemorarSeZerar && tinhaAlgo && novos.length === 0;
+    if (zerou) retornoTatil("concluido");
+    /*
+      A marca vale enquanto a fila continuar vazia, e some quando voltar a ter
+      algo.
+
+      Ela não é apagada por uma releitura que chegue no meio do caminho, e isso
+      é o que faz o clímax existir: o estado vazio só é montado depois de o
+      último cartão terminar de sair (`movimento.mudancaDeEstado`), e a fila
+      avisa de novo a cada mudança. Apagar a marca na releitura seguinte
+      entregaria o momento mais importante da tela ao acaso do relógio.
+    */
+    if (novos.length > 0) setZerouAgora(false);
+    else if (zerou) setZerouAgora(true);
 
     /* Com redução de movimento ligada não há saída para animar: o item some na
        hora, que é exatamente o que quem ligou a opção pediu. */
@@ -655,14 +904,26 @@ export default function TelaDaFila() {
    * embaixo). O fim é uma frase dentro do cartão, que some sozinha. Sem os
    * dois, um reenvio que falha de novo é indistinguível de um toque que não
    * pegou.
+   *
+   * **A FRASE SAI DE QUEM EXECUTOU O ATO**, e não de um literal escolhido antes
+   * de ele acontecer. Enquanto ela veio de fora, ela só podia descrever a
+   * intenção: dizia "pronto" mesmo quando o motor tinha recusado, e não tinha
+   * como citar um número que só existe depois da chamada. "Enviar sem os
+   * registros perdidos" precisa das duas coisas, porque o número que a tela
+   * mostrou na pergunta e o número que o motor de fato abriu mão podem ser
+   * diferentes, e quem manda é o segundo.
    */
-  async function agir(item: ItemFila, verbo: string, oQue: () => Promise<void>, texto: string) {
+  async function agir(
+    item: ItemFila,
+    verbo: string,
+    oQue: () => Promise<{ texto: string; deuCerto: boolean }>,
+  ) {
     setEmCurso({ id: item.id, verbo });
     setRetorno(null);
     try {
-      await oQue();
+      const desfecho = await oQue();
       if (fila) await recarregar(fila);
-      setRetorno({ id: item.id, texto });
+      setRetorno({ id: item.id, ...desfecho });
       agendar(RETORNO_NA_TELA_MS, () => { setRetorno(null); });
     } finally {
       setEmCurso(null);
@@ -824,6 +1085,27 @@ export default function TelaDaFila() {
     const podeAssumir = autoria === "sem_autor";
     const podeDescartar = podeReenviar || autoria !== "propria";
     const ocupado = emCurso?.id === item.id;
+    /*
+      A SAÍDA DA COLETA TRAVADA POR ARQUIVO PERDIDO, e as três condições dela.
+
+      O código e a marca no disco vêm do motor, e não de dedução da tela: só ele
+      sabe que a leitura dos bytes falhou por ausência, e não por permissão ou
+      disco cheio, que são situações que podem melhorar. O portão de
+      `abrirMaoDasEvidenciasPerdidas` cobra as mesmas coisas do lado de lá, e
+      isto aqui é para o botão não aparecer onde ele não teria efeito.
+
+      **Só na coleta da própria pessoa.** Abrir mão da prova é um ato do autor
+      da vistoria: é o nome dele que assina o laudo onde a perda vai ficar
+      declarada para sempre. Oferecer isso a quem pegou o aparelho de plantão
+      seria a mesma assinatura trocada que o carimbo de autoria existe para
+      impedir, agora numa declaração de perda de prova.
+    */
+    const perdidos = perdaDeRegistro(item).quantas;
+    const podeAbrirMao = item.tipo === "vistoria"
+      && item.estado === "bloqueado"
+      && item.ultimaFalha?.codigo === CODIGO_ARQUIVO_SUMIU
+      && perdidos > 0
+      && autoria === "propria";
 
     return (
       <ItemDeLista key={item.id} saindo={idsSaindo.has(item.id)}>
@@ -911,13 +1193,54 @@ export default function TelaDaFila() {
                 Agora o retângulo virou filete, o verde ficou no sinal e no
                 título, e quem pinta continua sendo o estado.
               */}
-              <Aviso tom="sucesso" titulo="Pronto">{retorno.texto}</Aviso>
+              {/*
+                Quando o ato NÃO aconteceu, o aviso não é de sucesso e não se
+                chama "Pronto". `info` sai em `superficie2`, que a régua de
+                densidade não conta como bloco preenchido, então o cartão
+                continua com a pílula vermelha do estado como único preenchido:
+                um segundo bloco cheio aqui empilharia duas coisas gritando a
+                três linhas de distância, que foi defeito medido nesta tela.
+
+                DOIS AVISOS COM TOM LITERAL, e não um com o tom num ternário.
+                O portão de densidade lê a fonte, e tom decidido em tempo de
+                execução ele conta pelo PIOR caso, que aqui seria perigo. A
+                leitura dele está certa e a escrita é que estava errada: com o
+                ternário, nada mais na fonte diz que este aviso nunca pinta.
+              */}
+              {retorno.deuCerto ? (
+                <Aviso tom="sucesso" titulo="Pronto">{retorno.texto}</Aviso>
+              ) : (
+                <Aviso tom="info" titulo="Nada mudou">{retorno.texto}</Aviso>
+              )}
             </View>
           )}
 
           {(podeReenviar || podeAssumir || podeDescartar) && (
             <>
               <Separador />
+              {podeAbrirMao && (
+                /*
+                  Linha inteira, e acima das outras duas: é a única saída que
+                  resolve este estado. "Tentar de novo" fica embaixo, meio a
+                  meio com "Descartar", porque ele não vai resolver nada aqui
+                  (arquivo apagado não volta) e continua existindo só para as
+                  fotos que ainda estão inteiras no aparelho subirem.
+
+                  Secundário, e não primário: o aplicativo não empurra a perda
+                  de prova. Ele oferece, com a largura que diz "é por aqui", e a
+                  cor cheia continua reservada ao que a tela quer que aconteça.
+                */
+                <Botao
+                  titulo="Enviar sem os registros perdidos"
+                  tipo="secundario"
+                  carregando={ocupado && emCurso?.verbo === "abrirMao"}
+                  desabilitado={ocupado}
+                  testID={`abrir-mao-${item.id}`}
+                  descricao={`Enviar a vistoria do protocolo ${item.protocolo} sem `
+                    + `${registros(perdidos)} que o aparelho não tem mais`}
+                  onPress={() => { setAAbrirMao(item); }}
+                />
+              )}
               <View style={{ flexDirection: "row", gap: espaco.e2 }}>
                 {podeReenviar && (
                   <Botao
@@ -930,19 +1253,20 @@ export default function TelaDaFila() {
                       ? `Tentar enviar de novo a coleta do protocolo ${item.protocolo}, `
                         + "para o caso de a ocorrência ter sido reaberta"
                       : `Tentar enviar de novo a coleta do protocolo ${item.protocolo}`}
-                    onPress={() => void agir(
-                      item,
-                      "reenviar",
-                      async () => { await fila?.reenviar(item.id); },
-                      /*
-                        A frase não promete chegada, porque o reenvio não
-                        garante nenhuma: ele devolve o item para a espera, e
-                        quem completa o envio é o sinal. Prometer aqui seria
-                        criar a mesma dúvida que esta tela dissolve.
-                      */
-                      "O envio foi pedido de novo. Se houver sinal, ela sai agora; "
-                      + "se não, ela volta para a espera e continua tentando.",
-                    )}
+                    onPress={() => void agir(item, "reenviar", async () => {
+                      await fila?.reenviar(item.id);
+                      return {
+                        deuCerto: true,
+                        /*
+                          A frase não promete chegada, porque o reenvio não
+                          garante nenhuma: ele devolve o item para a espera, e
+                          quem completa o envio é o sinal. Prometer aqui seria
+                          criar a mesma dúvida que esta tela dissolve.
+                        */
+                        texto: "O envio foi pedido de novo. Se houver sinal, ela sai agora; "
+                          + "se não, ela volta para a espera e continua tentando.",
+                      };
+                    })}
                   />
                 )}
                 {podeAssumir && (
@@ -959,12 +1283,13 @@ export default function TelaDaFila() {
                     desabilitado={ocupado}
                     descricao={`Assumir a autoria da coleta do protocolo ${item.protocolo} `
                       + "e enviá-la com o seu nome"}
-                    onPress={() => void agir(
-                      item,
-                      "assumir",
-                      async () => { await fila?.assumir(item.id); },
-                      "A coleta é sua: ela vai subir com o seu nome no laudo.",
-                    )}
+                    onPress={() => void agir(item, "assumir", async () => {
+                      await fila?.assumir(item.id);
+                      return {
+                        deuCerto: true,
+                        texto: "A coleta é sua: ela vai subir com o seu nome no laudo.",
+                      };
+                    })}
                   />
                 )}
                 {podeDescartar && (
@@ -1011,23 +1336,58 @@ export default function TelaDaFila() {
           enviar, e um botão travado embaixo de "está tudo enviado" só produz a
           dúvida que a frase acabou de resolver.
         */
-        <ChegadaDoVazio>
-          <Vazio
-            icone={<IconeSucesso cor={tema.destaque} tamanho={tamanhoDeIcone.vazio} />}
-            titulo="Tudo o que você fez já chegou"
-            descricao={
-              "Nenhuma coleta esperando envio neste aparelho. Toda vistoria "
-              + "concluída aqui já está com a coordenação, e o envio do que vier "
-              + "depois acontece sozinho, em segundo plano."
-            }
-          />
-        </ChegadaDoVazio>
+        <FilaZerada comemorar={zerouAgora}>
+          {(escalaDoEmblema) => (
+            /*
+              O VAZIO VIRA OBJETO, e é a folga que o `CLAUDE.md` autoriza desde
+              a emenda de 2026-08-20 e que esta tela nunca usou: elevação com
+              mais liberdade em momento de confirmação, mesmo fora de modal.
+
+              Enquanto foi texto solto sobre o fundo da tela, a resposta à
+              pergunta que o agente faz no fim do turno tinha exatamente a
+              mesma presença de um "nenhum resultado para este filtro". O nível
+              sai de `Cartao`, e não de uma sombra escrita aqui, para os
+              destaques do produto inteiro continuarem consistentes entre telas.
+            */
+            <Cartao nivel="flutuante">
+              <Vazio
+                icone={(
+                  <Animated.View style={{ transform: [{ scale: escalaDoEmblema }] }}>
+                    <IconeSucesso cor={tema.destaque} tamanho={tamanhoDeIcone.vazio} />
+                  </Animated.View>
+                )}
+                titulo="Tudo o que você fez já chegou"
+                descricao={
+                  "Nenhuma coleta esperando envio neste aparelho. Toda vistoria "
+                  + "concluída aqui já está com a coordenação, e o envio do que vier "
+                  + "depois acontece sozinho, em segundo plano."
+                }
+              />
+            </Cartao>
+          )}
+        </FilaZerada>
       ) : (
         <>
           {naFila > 0 && (
-            <Txt variante="h2">
-              {naFila === 1 ? "1 coleta na fila" : `${naFila} coletas na fila`}
-            </Txt>
+            /*
+              O NÚMERO É O PROTAGONISTA DESTA TELA, e ele estava dentro de uma
+              frase, na fonte do corpo.
+
+              É a pergunta que traz o agente aqui: quanto do que eu fiz ainda
+              não chegou. `Dado` é a figura que o `CLAUDE.md` pede desde o
+              primeiro dia ("números grandes com rótulos discretos"), e ela
+              traz junto a fonte tabular, que não é estética: os números deste
+              produto são ditados por rádio, e em tipo proporcional o zero se
+              parece com a letra. O aplicativo já pagou por isso uma vez, com o
+              protocolo saindo dentro de uma frase no painel.
+
+              É o ÚNICO protagonista da tela, e por isso o estado vazio não tem
+              outro: dois números grandes não somam ênfase, dividem a que havia.
+            */
+            <Dado
+              valor={String(naFila)}
+              rotulo={naFila === 1 ? "coleta na fila" : "coletas na fila"}
+            />
           )}
 
           {minhasColetas.length > 0 && (
@@ -1188,6 +1548,88 @@ export default function TelaDaFila() {
         }}
         recusa={{ rotulo: "Manter na fila" }}
         aoFechar={() => { setADescartar(null); }}
+      />
+
+      {/*
+        A PERGUNTA SOBRE OS REGISTROS QUE SE PERDERAM.
+
+        Ela existe porque a alternativa é pior das duas maneiras. Sem saída
+        nenhuma, um arquivo que o sistema operacional apagou do cache destrói o
+        envelope inteiro (checklist, GPS, assinatura, observações, órgãos), ou
+        seja, uma manhã de trabalho no morro some por causa de um arquivo de
+        imagem. Com saída automática, uma decisão de máquina passaria a escrever
+        numa trilha append-only, em nome de quem esteve no local, que houve
+        registro fotográfico que não pôde ser recuperado.
+
+        Então a decisão é da pessoa, e a pergunta diz as três coisas que ela
+        precisa para decidir: quantos registros, o que o documento vai declarar,
+        e o que acontece com a linha de assinatura quando o que sumiu foi o
+        traço de quem estava no local.
+      */}
+      <Dialogo
+        aberto={aAbrirMao !== null}
+        titulo="Enviar sem os registros perdidos?"
+        texto={aAbrirMao
+          ? `O protocolo ${aAbrirMao.protocolo} sobe sem `
+            + `${registros(perdaDeRegistro(aAbrirMao).quantas)} desta vistoria: os `
+            + "arquivos não estão mais no aparelho."
+          : ""}
+        conteudo={aAbrirMao && (
+          <>
+            <Txt variante="corpoP">
+              O laudo vai declarar que houve registro capturado em campo e não
+              recuperado, com a hora de cada captura.
+            </Txt>
+            {/*
+              O CASO PIOR, e ele ganha bloco próprio em vez de uma oração no fim
+              de um parágrafo. Sem o traço, a linha de assinatura do laudo sai
+              vazia, e vazia ela é indistinguível de uma vistoria em que ninguém
+              assinou, que é a lacuna mais grave que aquele documento pode ter.
+              O laudo escreve a causa ao lado da linha; quem autoriza precisa
+              saber disso antes, e não descobrir na hora de imprimir.
+            */}
+            {perdaDeRegistro(aAbrirMao).assinatura && (
+              <Aviso tom="alerta" titulo="A assinatura está entre eles">
+                A linha de assinatura do laudo sai sem o traço, e o documento diz
+                que a causa foi esta perda.
+              </Aviso>
+            )}
+            <Txt variante="corpoP" discreto>
+              Não dá para desfazer: a trilha de auditoria não se reescreve.
+            </Txt>
+          </>
+        )}
+        acao={{
+          rotulo: "Enviar sem os registros perdidos",
+          destrutiva: true,
+          aoTocar: () => void (async () => {
+            const alvo = aAbrirMao;
+            if (!alvo || !fila) return;
+            await agir(alvo, "abrirMao", async () => {
+              /*
+                O NÚMERO DA CONFIRMAÇÃO É O QUE O MOTOR DEVOLVEU, e não o que a
+                tela mostrou na pergunta. Entre uma coisa e outra há uma
+                releitura do disco, e quem responde pelo que subiu é quem gravou.
+                Uma confirmação que repetisse o número da pergunta estaria
+                afirmando, com cara de recibo, algo que ela não conferiu.
+              */
+              const { liberado, perdidas } = await fila.abrirMaoDasEvidenciasPerdidas(alvo.id);
+              return liberado
+                ? {
+                    deuCerto: true,
+                    texto: `A vistoria voltou para a fila sem ${registros(perdidas)}. `
+                      + "O laudo vai declarar a perda.",
+                  }
+                : {
+                    deuCerto: false,
+                    texto: "Nada foi autorizado: esta coleta não está mais esperando "
+                      + "essa decisão. O cartão acima mostra o estado de agora.",
+                  };
+            });
+          })(),
+        }}
+        recusa={{ rotulo: "Manter na fila" }}
+        aoFechar={() => { setAAbrirMao(null); }}
       />
     </ScrollView>
   );

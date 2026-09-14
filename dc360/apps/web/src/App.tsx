@@ -15,6 +15,7 @@ import { Orgaos } from "./paginas/Orgaos";
 import { Auditoria } from "./paginas/Auditoria";
 import { Aviso } from "./componentes/comuns";
 import { MeuTrabalho } from "./paginas/MeuTrabalho";
+import { QuemEstaEmCampo } from "./paginas/QuemEstaEmCampo";
 import { MinhaConta } from "./paginas/MinhaConta";
 import { TrocaDeTela } from "./componentes/TrocaDeTela";
 import { QueroConhecer } from "./paginas/QueroConhecer";
@@ -96,6 +97,16 @@ export function App() {
         <Route path="/ocorrencias/nova" element={<NovaOcorrencia />} />
         <Route path="/ocorrencias/:id" element={<Ocorrencia />} />
         <Route path="/mapa" element={<Mapa />} />
+        {/*
+          A tela de quem esta em campo fica atras da propria permissao, e nao de
+          `despachar_equipe`: quem precisa enxergar o prazo estourado as tres da
+          manha e o operador de plantao, que e quem esta na sala. Ver a razao
+          por extenso em `packages/shared/src/permissoes.ts`.
+        */}
+        <Route
+          path="/quem-esta-em-campo"
+          element={<Exige acao="acompanhar_saida_a_campo"><QuemEstaEmCampo /></Exige>}
+        />
         <Route path="/equipes" element={<Exige acao="gerenciar_equipes"><Equipes /></Exige>} />
         {/* Mesma permissão da rota do servidor: o catálogo é cadastro da
             operação, e quem monta a operação é a coordenação. */}

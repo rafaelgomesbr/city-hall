@@ -74,6 +74,23 @@ export type FotoNaFila = FotoLocal & {
   chave: string | null;
   evidenciaId: string | null;
   enviada: boolean;
+  /**
+   * O arquivo não está mais neste aparelho.
+   *
+   * Marcado pelo dreno quando a leitura dos bytes devolve `arquivo_sumiu`, e
+   * gravado no disco na hora. Ele existe para a fila e a tela saberem QUAIS
+   * arquivos sumiram sem precisar tentar ler todos de novo: a porta `Arquivos`
+   * só sabe ler o conteúdo inteiro, e perguntar "este existe?" lendo doze
+   * megapixels de cada foto seria caro e inútil.
+   *
+   * Ausente e `false` querem dizer a mesma coisa, então item gravado por versão
+   * anterior entra sem conversão nenhuma.
+   *
+   * Marca NÃO significa "descarte esta foto". Significa "o arquivo acabou", e a
+   * coleta continua bloqueada até alguém decidir. Ver
+   * `abrirMaoDasEvidenciasPerdidas`.
+   */
+  perdida?: boolean;
 };
 
 /** De onde saem os bytes da foto. No aparelho, `expo-file-system`. */
@@ -192,6 +209,47 @@ type ItemBase = {
    * assinatura de uma vistoria que ainda não subiu.
    */
   fotos: FotoNaFila[];
+  /**
+   * O agente decidiu subir esta coleta SEM os arquivos que se perderam.
+   *
+   * ## Por que o aparelho não decide isto sozinho
+   *
+   * A saída óbvia seria o dreno desistir do arquivo depois de N tentativas. Ela
+   * está errada por duas razões, e a segunda é a que decide:
+   *
+   * 1. **N tentativas não é critério nenhum aqui.** Arquivo apagado não volta:
+   *    a falha já é permanente na primeira leitura, e repetir só adia a mesma
+   *    decisão. O número serviria apenas para dar cara de automático a uma
+   *    escolha que continua sendo escolha.
+   * 2. **A perda vira uma linha num documento com brasão.** O laudo passa a
+   *    declarar que houve registro fotográfico que não pôde ser recuperado, e a
+   *    trilha append-only guarda isso para sempre. Um aparelho que decide
+   *    sozinho produziria essa declaração sem ninguém ter escolhido nada, e a
+   *    trilha mostraria uma decisão de sistema onde quem lê espera a de uma
+   *    pessoa. Quem responde pela vistoria é o agente que esteve no local: é ele
+   *    quem diz "sobe assim mesmo, sem essa foto".
+   *
+   * ## O que a marca cobre, e por que ela nunca cobre demais
+   *
+   * Ela vale só para as perdas JÁ MARCADAS quando o agente decidiu, que são as
+   * que a tela mostrou a ele. Arquivo ausente que apareça depois cai no caminho
+   * normal, falha de novo e bloqueia o item outra vez: consentimento dado sobre
+   * duas fotos não é consentimento sobre a terceira.
+   *
+   * Na prática esse segundo bloqueio não deve acontecer, e a razão é estrutural,
+   * não sorte: quando o dreno bloqueia por perda, ele já subiu tudo o que existia
+   * e já tentou ler tudo o que não subiu. Não sobra arquivo por conferir. O
+   * caminho continua escrito porque ele é a rede de segurança da invariante, e
+   * uma invariante que depende de ninguém mexer na ordem do laço é uma
+   * invariante que a próxima edição quebra em silêncio.
+   *
+   * Isso vem de o dreno percorrer TODAS as fotos antes de desistir, em vez de
+   * parar na primeira que falta. Assim uma rodada descobre todas as ausências de
+   * uma vez, e uma pergunta só resolve o caso inteiro, em vez de o agente
+   * responder a mesma pergunta uma vez por arquivo perdido, no barranco, sem
+   * saber quantas faltam.
+   */
+  abriuMaoDasPerdidas?: boolean;
 };
 
 /**

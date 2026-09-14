@@ -1,5 +1,6 @@
 import type {
   AberturaOcorrencia, CorrecaoDeCoordenada, Despacho, Encerramento,
+  EncerramentoDeSaida,
   InteresseMunicipio, Papel, Providencia, Triagem,
 } from "@dc360/shared";
 import type {
@@ -13,6 +14,7 @@ import type {
   RespostaDeAvisos, ResultadoDeEnvio,
   AtivacaoSegundoFator, ResultadoDeEntrada, SegundoFatorLigado, SituacaoSegundoFator,
   ConfiguracaoDoPainel, DevolucaoDaOcorrencia, DevolucaoPendente,
+  QuemEstaEmCampo,
 } from "./tipos";
 
 /**
@@ -1040,4 +1042,31 @@ export async function abrirOficio(_s: Sessao, id: string): Promise<string> {
  */
 export async function configuracaoDoPainel(_s: Sessao): Promise<ConfiguracaoDoPainel> {
   return chamar<ConfiguracaoDoPainel>("/configuracao");
+}
+
+/* ==========================================================================
+   Saída a campo
+   ========================================================================== */
+
+/**
+ * Quem está em campo agora, e quem estourou o prazo.
+ *
+ * Só o que está ABERTO. Saída encerrada é história, e história mora na trilha
+ * da ocorrência: uma lista que misturasse as duas viraria um extrato que
+ * ninguém lê, e esta é uma tela que precisa ser lida de relance.
+ */
+export async function quemEstaEmCampo(_s: Sessao): Promise<QuemEstaEmCampo> {
+  return chamar<QuemEstaEmCampo>("/saida-a-campo");
+}
+
+/**
+ * Encerrar uma saída, dizendo o que houve.
+ *
+ * É o ato que este recurso existe para tornar registrável: a pergunta que uma
+ * apuração faz não é "houve alerta", é "o que fizeram quando ele apareceu".
+ */
+export async function encerrarSaidaEmCampo(
+  _s: Sessao, encerramento: EncerramentoDeSaida,
+): Promise<void> {
+  await chamar("/saida-a-campo/encerrar", { metodo: "POST", corpo: encerramento });
 }

@@ -1,5 +1,5 @@
 import { Linking, StyleSheet } from "react-native";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import { router } from "expo-router";
 import type { Pendencia } from "../dados/api";
 import { descartarRascunho, salvarRascunho } from "../dados/rascunho";
@@ -346,9 +346,18 @@ describe("abrir no mapa", () => {
 
     await fireEvent.press(screen.getByText("Abrir no mapa"));
 
-    // Dizer só "não deu" deixaria o agente sem nada. Com os números na tela
-    // ele copia para outro aplicativo ou lê por rádio para a base.
-    expect(await screen.findByText(/-27\.595378, -48\.548050/)).toBeTruthy();
+    /*
+      Dizer só "não deu" deixaria o agente sem nada. Com os números na tela
+      ele copia para outro aplicativo ou lê por rádio para a base.
+
+      A busca é DENTRO da tarja, e não na tela inteira, desde que o cartão de
+      localização passou a mostrar o ponto informado ao lado do ponto do
+      aparelho: a mesma coordenada existe em dois lugares de propósito, e uma
+      busca solta encontraria os dois e reprovaria por ambiguidade em vez de
+      por defeito.
+    */
+    const tarja = await screen.findByTestId("tarja-de-erro");
+    expect(within(tarja).getByText(/-27\.595378, -48\.548050/)).toBeTruthy();
   });
 
   it("ocorrência sem coordenada não mostra botão que não leva a lugar nenhum", async () => {

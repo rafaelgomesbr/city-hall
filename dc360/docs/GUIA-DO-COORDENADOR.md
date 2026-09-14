@@ -144,7 +144,47 @@ desativação ou o rebaixamento do último.
 
 ---
 
-## 9. Trilha de auditoria
+## 9. Quem está em campo, e o agente que não deu notícia
+
+O agente declara, **antes de subir e com sinal**, para onde vai, em quanto tempo
+pretende voltar e se vai **sozinho**. Quando volta, confirma. Se demorar mais que
+o previsto, prorroga.
+
+Se a confirmação não chegar até o prazo, a saída aparece como **prazo estourado**
+na tela "Quem está em campo", e o sino toca.
+
+**Leia isto antes de contar com o recurso:**
+
+| O que ele faz | O que ele NÃO faz |
+| --- | --- |
+| Registra para onde a pessoa disse que ia e quando deveria voltar | Não sabe onde ela está agora |
+| Mostra o prazo estourado na tela e no sino | Não é botão de pânico, e não detecta queda |
+| Registra o que você fez a respeito, na trilha | **Não aciona ninguém sozinho**: não liga para bombeiro, não manda mensagem, não acorda ninguém |
+| Ordena a lista com quem foi sozinho na frente | Não avisa quem não estiver com o painel aberto |
+
+**"Prazo estourado" não quer dizer "em perigo".** Quer dizer que ninguém teve
+notícia dele desde o prazo que ele mesmo declarou. Pode ser um talude cedendo e
+pode ser bateria acabada, e o sistema não sabe qual dos dois é.
+
+**O aparelho sem sinal não consegue pedir socorro**, e nenhum software muda isso.
+O que funciona de verdade é a parte que acontece antes, na base: saber para onde
+ele foi e quando deveria ter voltado.
+
+**Duas coisas dependem do município, e o produto não decide por ele:** quem fica
+de olho na tela, e o que fazer quando um prazo estoura. Escreva a sequência com
+nome e telefone em cada degrau, e em que ponto alguém vai ao endereço declarado.
+O procedimento completo e o que perguntar antes de ligar o recurso estão em
+`SEGURANCA-DO-AGENTE.md`.
+
+**Encerrar a saída é ato registrado.** Você escolhe o que houve (falei com a
+pessoa, voltou à base, acionei apoio, foi engano) e isso entra na trilha com seu
+nome e a hora. "Acionei apoio" exige dizer o que foi acionado: é a linha que uma
+apuração vai procurar. "O agente confirmou o retorno" não está na sua lista, de
+propósito: quem diz "voltei" é quem voltou.
+
+---
+
+## 10. Trilha de auditoria
 
 Quem fez o quê, quando. **Não se reescreve**, nem por você, nem por nós: o banco
 não tem permissão de alteração nem de remoção nessa tabela. Correção entra como
@@ -154,7 +194,7 @@ evento novo.
 
 ---
 
-## 10. Quando o sistema cair
+## 11. Quando o sistema cair
 
 **O agente em campo continua trabalhando.** A lista já está no aparelho dele e a
 vistoria fica guardada até o sinal voltar. Quem para é o painel.
@@ -164,7 +204,7 @@ Procedimento completo e contatos em `INDISPONIBILIDADE.md`.
 
 ---
 
-## 11. Cinco coisas que você não consegue fazer, e por quê
+## 12. Cinco coisas que você não consegue fazer, e por quê
 
 | O que | Por quê |
 | --- | --- |

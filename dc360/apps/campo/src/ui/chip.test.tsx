@@ -24,7 +24,7 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
 
 import { Chip, type TomDoChip } from "./Chip";
 import { ProvedorDeTema } from "./componentes";
-import { fonteMinima, temaClaro, temaEscuro } from "./tokens";
+import { fonteMinimaDeInteracao, temaClaro, temaEscuro } from "./tokens";
 
 beforeEach(() => { mockEsquema = "light"; });
 
@@ -82,13 +82,13 @@ describe("o tamanho do texto", () => {
   /*
     O selo antigo usava `legenda`, que é 12. Doze pontos é o tamanho que se lê
     sentado numa mesa, e não em pé com o aparelho molhado a meio metro do rosto.
-    `fonteMinima` é a régua do produto, e o chip é o primeiro a obedecê-la.
+    `fonteMinimaDeInteracao` é a régua do produto, e o chip é o primeiro a obedecê-la.
   */
   it("nem a palavra nem o símbolo descem abaixo da fonte mínima do produto", async () => {
     await montar(<Chip texto="Enviada" simbolo="✓" tom="ok" />);
     for (const alvo of ["Enviada", "✓"]) {
       const tamanho = StyleSheet.flatten(screen.getByText(alvo).props.style).fontSize;
-      expect(tamanho).toBeGreaterThanOrEqual(fonteMinima);
+      expect(tamanho).toBeGreaterThanOrEqual(fonteMinimaDeInteracao);
     }
   });
 });

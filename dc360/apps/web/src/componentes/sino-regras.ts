@@ -243,6 +243,17 @@ const FRASES: Record<string, string> = {
   vistoria_recebida: "Vistoria recebida do campo",
   prazo_vencido: "Prazo de atendimento vencido",
   providencia_respondida: "Órgão respondeu a providência",
+  /*
+    A FRASE DIZ O FATO, E NUNCA A INTERPRETAÇÃO DELE.
+
+    Não é "agente em perigo", porque o produto não sabe disso: ele sabe que o
+    prazo que o próprio agente declarou passou e ninguém confirmou o retorno.
+    Pode ser um talude cedendo e pode ser bateria acabada. Uma frase que
+    afirmasse perigo produziria pânico em toda saída terminada com o telefone
+    descarregado, e a coordenação aprenderia a ignorar o sino, que é a única
+    forma conhecida de quebrar este recurso de vez.
+  */
+  retorno_nao_confirmado: "Agente não confirmou o retorno de campo",
 };
 
 export function fraseDoAviso(tipo: string): string {
@@ -260,6 +271,16 @@ export function fraseDoAviso(tipo: string): string {
 export function complementoDoAviso(aviso: { tipo: string; detalhe: string | null }): string | null {
   const detalhe = aviso.detalhe?.trim();
   if (!detalhe) return null;
+  /*
+    O detalhe de uma saída sem retorno é 'sozinho' ou 'acompanhado', e ele vira
+    frase aqui. Trabalhar sozinho é a categoria inteira de risco de que aquele
+    aviso trata, e é o que decide se quem leu larga o que está fazendo.
+  */
+  if (aviso.tipo === "retorno_nao_confirmado") {
+    if (detalhe === "sozinho") return "Foi sozinho";
+    if (detalhe === "acompanhado") return "Foi acompanhado";
+    return detalhe;
+  }
   if (aviso.tipo !== "prazo_vencido") return detalhe;
   const rotulo = ROTULO_SEVERIDADE[detalhe as Severidade];
   return rotulo ? `Severidade ${rotulo.toLowerCase()}` : detalhe;

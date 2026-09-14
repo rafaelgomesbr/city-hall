@@ -143,6 +143,13 @@ const ORDEM_DO_MAPA = `
  * mapa precisa ter o que NÃO desenhar para a contagem de `semCoordenada`
  * significar alguma coisa.
  */
+/*
+  As coordenadas da semente saem arredondadas em seis casas, e isso nao e
+  cosmetica de teste: a migracao 030 passou a cobrar o teto por CHECK nas tres
+  colunas que guardam ponto. `-19.91 + (i::float / 10000)` produz o resto binario
+  do `double precision`, ou seja, exatamente o dado que o CHECK existe para
+  recusar. Semear assim tambem deixa a carga parecida com o banco de verdade.
+*/
 async function semear(org: string, quantidade: number, prefixo: number): Promise<void> {
   const esperandoTriagem = Math.round(quantidade * 0.6);
   const triadas = Math.round(quantidade * 0.2);
@@ -163,8 +170,8 @@ async function semear(org: string, quantidade: number, prefixo: number): Promise
             'Relato recebido pela central durante o temporal.',
             timestamptz '2026-09-01 22:10:00-03',
             NULL,
-            CASE WHEN i % 4 = 0 THEN NULL ELSE -19.91 + (i::float / 10000) END,
-            CASE WHEN i % 4 = 0 THEN NULL ELSE -43.94 + (i::float / 10000) END
+            CASE WHEN i % 4 = 0 THEN NULL ELSE round((-19.91 + (i::float / 10000))::numeric, 6)::double precision END,
+            CASE WHEN i % 4 = 0 THEN NULL ELSE round((-43.94 + (i::float / 10000))::numeric, 6)::double precision END
        FROM generate_series(1, $2) i`,
     [org, esperandoTriagem, prefixo],
   );
@@ -185,8 +192,8 @@ async function semear(org: string, quantidade: number, prefixo: number): Promise
             'Triada e aguardando equipe.',
             timestamptz '2026-09-01 21:00:00-03' + (i * interval '1 min'),
             now() + interval '10 hours',
-            -19.92 + (i::float / 10000),
-            -43.95 + (i::float / 10000)
+            round((-19.92 + (i::float / 10000))::numeric, 6)::double precision,
+            round((-43.95 + (i::float / 10000))::numeric, 6)::double precision
        FROM generate_series(1, $2) i`,
     [org, triadas, prefixo + esperandoTriagem],
   );
@@ -205,8 +212,8 @@ async function semear(org: string, quantidade: number, prefixo: number): Promise
             'Prazo vencido, equipe ainda em campo.',
             timestamptz '2026-09-01 19:00:00-03' + (i * interval '1 min'),
             now() - interval '3 hours',
-            -19.93 + (i::float / 10000),
-            -43.96 + (i::float / 10000)
+            round((-19.93 + (i::float / 10000))::numeric, 6)::double precision,
+            round((-43.96 + (i::float / 10000))::numeric, 6)::double precision
        FROM generate_series(1, $2) i`,
     [org, atrasadas, prefixo + esperandoTriagem + triadas],
   );
@@ -227,8 +234,8 @@ async function semear(org: string, quantidade: number, prefixo: number): Promise
             now() - interval '1 day',
             now() - interval '2 hours',
             'Risco cessou após poda da árvore.',
-            -19.94 + (i::float / 10000),
-            -43.97 + (i::float / 10000)
+            round((-19.94 + (i::float / 10000))::numeric, 6)::double precision,
+            round((-43.97 + (i::float / 10000))::numeric, 6)::double precision
        FROM generate_series(1, $2) i`,
     [org, encerradas, prefixo + esperandoTriagem + triadas + atrasadas],
   );

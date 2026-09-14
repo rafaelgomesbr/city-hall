@@ -29,10 +29,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
+import { join } from "node:path";
+
 import {
   RAIZ_DO_APP,
   TOKENS_TS,
   arquivosDeFonte,
+  arvoreJsx,
+  atributoLiteral,
+  ePeca,
+  lerTokensDoApp,
   nomeCurto,
   semComentarios,
 } from "./fonte-do-aplicativo.mjs";
@@ -105,6 +111,49 @@ const REGRAS = [
     porque:
       "duração vem de `movimento` (respostaAoToque, mudancaDeEstado, climax). "
       + "Número solto também escapa do desligamento por prefers-reduced-motion",
+  },
+  {
+    /*
+      O rastreio (`letterSpacing`) nasceu com a identidade 2.0, e nasceu com
+      portão pelo motivo que o peso de fonte ensinou: token novo sem regra é
+      token que convive com o literal dele durante uma onda inteira.
+
+      Aqui o risco é maior que no peso, porque rastreio é o ajuste que parece
+      inofensivo. Ele é correção ÓTICA das duas pontas da escala (o número
+      grande fecha, o rótulo pequeno em maiúscula abre), e um `letterSpacing:
+      1.2` escolhido no meio de uma tela vira, três telas depois, quatro
+      espaçamentos diferentes para o mesmo papel, com a diferença toda dentro de
+      um ponto: ninguém consegue ver qual é o certo, e ninguém consegue provar
+      que está errado.
+    */
+    nome: "rastreio escrito à mão",
+    padrao: /(?<![A-Za-z])letterSpacing\s*:\s*-?[\d.]/,
+    porque:
+      "rastreio vem de `rastreio` (numeroGrande, rotuloDiscreto), e quem decide qual "
+      + "papel leva qual é `hierarquia.ts`. Texto de leitura não leva nenhum: a fonte "
+      + "já foi desenhada para o tamanho dele",
+  },
+  {
+    /*
+      A catraca da dívida 9.3, e ela guarda um NOME e não um número.
+
+      `fonteMinima = 14` dizia "o texto da interface nunca encolhe abaixo
+      disto", e essa frase respondia duas perguntas ao mesmo tempo: piso de
+      redução dinâmica (e aí `legenda`, 12, continua degrau legítimo) ou piso da
+      escala (e aí 12 está proibido em todo lugar). As duas leituras eram
+      defensáveis, e o preço foi duas frentes construindo duas pílulas
+      diferentes, cada uma citando a mesma linha.
+
+      O token passou a se chamar `fonteMinimaDeInteracao`, que só admite uma
+      leitura. Esta regra existe para o nome ambíguo não voltar: ele é o defeito,
+      e não o valor.
+    */
+    nome: "o nome ambíguo do piso de fonte",
+    padrao: /(?<![A-Za-z0-9_$])fonteMinima(?![A-Za-z0-9_$])/,
+    porque:
+      "o piso se chama `fonteMinimaDeInteracao` e governa o texto que se TOCA. "
+      + "`legenda` (12) continua legítima para apoio, e quem decide entre os dois "
+      + "é o degrau `interacao` ou `apoio` de `hierarquia.ts`",
   },
   {
     nome: "peso de fonte literal",
@@ -350,6 +399,10 @@ test("a varredura pega o que deveria pegar", () => {
     ["outputRange: [1, 0.96],", "opacidade ou faixa de interpolação escrita à mão"],
     ['fontWeight: "700",', "peso de fonte literal"],
     ["fontWeight: 700,", "peso de fonte literal"],
+    ["letterSpacing: 1.2,", "rastreio escrito à mão"],
+    ["letterSpacing: -0.5,", "rastreio escrito à mão"],
+    ["import { fonteMinima } from \"./tokens\";", "o nome ambíguo do piso de fonte"],
+    ["fontSize: fonteMinima,", "o nome ambíguo do piso de fonte"],
     ["elevation: 8,", "sombra escrita à mão"],
     ["shadowOpacity: 0.18,", "sombra escrita à mão"],
     ["shadowRadius: 12,", "sombra escrita à mão"],
@@ -407,6 +460,12 @@ test("a varredura não reclama do que está certo", () => {
     "</Text>",
     "borderRadius: raio.normal + foco.folga + foco.largura,",
     "const bloqueados = fila.filter((f) => f.estado === 'bloqueado').length;",
+    "letterSpacing: espacamento,",
+    "letterSpacing: degrau(nivel).rastreio,",
+    "fontSize: fonteMinimaDeInteracao,",
+    /* O nome novo tem o velho como prefixo, e uma regra gulosa reprovaria os dois. */
+    "expect(degrau(\"interacao\").fonte).toBe(fonteMinimaDeInteracao);",
+    "delay: atrasoEmCascata(indice),",
   ];
   for (const linha of corretos) {
     const pegaram = REGRAS.filter((r) => r.padrao.test(linha)).map((r) => r.nome);
@@ -581,43 +640,33 @@ test("a varredura de espera sem saída enxerga alguma coisa", () => {
 const GRUPOS_COM_DONO = ["espaco", "raio", "fonte", "linha", "movimento", "peso", "borda", "opacidade", "icone", "foco", "easing", "papel", "visor"];
 
 /**
- * Exceção nomeada, com a razão escrita e com o caso que a mata.
+ * Exceção nomeada, com a razão escrita e com o caso que a mata. **Hoje ela está
+ * vazia**, e vale mais guardar por que ela teve três nomes.
  *
- * `elevacao(tema).folha` é o topo da escala de elevação, e `tokens.ts` diz, na
- * própria declaração, que ele existe para "o que cobre a tela e pede decisão
- * (diálogo, painel que sobe)". O único elemento dessa classe no aplicativo é a
- * folha do `Dialogo`, e ela desenha a superfície à mão: fundo `superficie`,
- * contorno só no topo, sem sombra nenhuma.
+ * Eram as três dívidas de design que a revisão adversarial declarou e não
+ * consertou, todas fechadas pela identidade 2.0 em 14/09/2026:
  *
- * Isto está declarado e NÃO corrigido nesta revisão, com a razão em
- * `apps/campo/PENDENCIAS.md`: o nível foi desenhado para uma folha que paira,
- * com a sombra descendo 12 pontos, e a única folha do produto é colada no
- * rodapé, onde essa sombra cai para fora da tela. Espalhar o nível pela metade
- * é justamente o que a declaração do token proíbe, e mudar a direção da sombra
- * no ponto de uso seria decidir a escala de elevação dentro de um componente.
- * A escolha entre acertar o nível e aposentá-lo é de quem desenha o produto, e
- * não cabe numa revisão adversarial que não pode ver a tela no aparelho.
+ * - `elevacao.folha` não tinha um único uso. O nível descia a sombra 12 pontos,
+ *   ou seja, tinha sido desenhado para uma folha que PAIRA, e a única folha do
+ *   produto é colada no rodapé, onde essa sombra cai para fora da tela. A
+ *   recusa foi desfeita pelo argumento que faltava: nenhuma folha deste
+ *   aplicativo paira, e nenhuma vai (o cabeçalho do `Dialogo` recusa a folha no
+ *   meio da tela, com o motivo, e a folha sobre o mapa é ancorada pelo mesmo
+ *   motivo). O nível foi corrigido, não aposentado, e o `Dialogo` passou a
+ *   espalhá-lo inteiro.
+ * - `fonte.corpoG` e `linha.corpoG` eram um degrau de 17 pontos que nenhuma
+ *   peça sabia pedir. A recusa dizia que apagá-lo custaria um passo que o
+ *   painel TEM (`--ds-fs-body-lg`); conferir o número desfez a recusa, porque
+ *   lá esse token vale 18 e 18 é exatamente o `h3` daqui. O passo do painel já
+ *   estava na escala com outro nome, e o que `corpoG` acrescentava era um 17
+ *   que o painel não tem em lugar nenhum, a um ponto dos dois vizinhos.
+ *
+ * A mecânica que esvaziou a lista continua montada logo abaixo, e é o que
+ * importa guardar: o caso seguinte REPROVA enquanto sobrar nome aqui cujo token
+ * já tenha dono. Sem ele, uma dívida sobreviveria ao próprio conserto, que é
+ * como uma exceção temporária vira permanente.
  */
-const SEM_DONO_DECLARADO = new Map([
-  ["elevacao.folha", "nível desenhado para folha que paira; a única folha do produto é colada no rodapé. Ver apps/campo/PENDENCIAS.md"],
-  /*
-    `corpoG` (17 pontos) é um degrau da escala tipográfica que NENHUM componente
-    sabe pedir: a união de `variante` do `Txt` tem display, h1, h2, h3, corpo,
-    corpoP e legenda, e não tem corpoG. Passá-lo devolveria `fontSize:
-    undefined`. Ou seja, a escala declara oito degraus e a única peça que a lê
-    expõe sete.
-
-    Não é corrigido aqui, e a razão é que as duas saídas são decisão de quem
-    desenha o produto e nenhuma delas é neutra: abrir a variante no `Txt` cria
-    um tamanho novo na interface, e apagar o degrau tira da escala do aplicativo
-    um passo que o painel TEM (`--ds-fs-body-lg`, que lá vale 18 e aqui valeria
-    17, e a paridade de propósito não mapeia este par). Escolher por conta
-    própria, numa revisão que não pode ver a tela no aparelho, seria mexer na
-    tipografia do produto por dedução. Registrado em `apps/campo/PENDENCIAS.md`.
-  */
-  ["fonte.corpoG", "degrau de 17 pontos que o `Txt` não expõe em `variante`. Ver apps/campo/PENDENCIAS.md"],
-  ["linha.corpoG", "a altura de linha do degrau acima, e ela some ou fica junto com ele"],
-]);
+const SEM_DONO_DECLARADO = new Map([]);
 
 /** Os membros de `export const GRUPO = { ... }`, por leitura do texto. */
 function membrosDoGrupo(fonte, grupo) {
@@ -765,4 +814,212 @@ test("a varredura de token sem dono enxerga o que deveria", () => {
   const apelidos = [...comApelido.matchAll(/(?<![A-Za-z0-9_$])icone\s+as\s+(\w+)/g)].map((m) => m[1]);
   assert.deepEqual(apelidos, ["tamanhoDeIcone"]);
   assert.equal(busca(comApelido, apelidos[0], "vazio"), true);
+});
+
+/* ============================================================
+   A RÉGUA DA HIERARQUIA, medida contra as telas
+   ============================================================ */
+
+/**
+ * A linguagem visual da identidade 2.0 mora em `src/ui/hierarquia.ts`, e este
+ * bloco é o que a torna portão em vez de parágrafo.
+ *
+ * A régua de densidade já ensinou a lição que sustenta isto: cinco frentes
+ * refizeram cinco telas em paralelo, cada uma obedecendo à regra da casa do
+ * jeito mais direto, e cada decisão estava certa sozinha. O que ninguém mediu
+ * foi a soma. Agora quatro frentes vão refazer quatro telas em cima desta
+ * identidade, e as duas regras que a soma quebra primeiro são a H1 (quantos
+ * protagonistas cabem numa peça) e a H3 (quanto o protagonista precisa ser
+ * maior que o apoio para a hierarquia existir no aparelho, e não no arquivo).
+ */
+const HIERARQUIA_TS = join(RAIZ_DO_APP, "ui", "hierarquia.ts");
+
+/** A régua é lida de onde ela mora, e nunca reescrita aqui. */
+function lerRegua() {
+  const fonte = semComentarios(readFileSync(HIERARQUIA_TS, "utf8"));
+  const protagonista = /export const PAPEL_PROTAGONISTA[^=]*=\s*"(\w+)"/.exec(fonte);
+  const salto = /export const SALTO_MINIMO_DE_ESCALA\s*=\s*([\d.]+)/.exec(fonte);
+  assert.ok(protagonista, "`hierarquia.ts` não declara mais PAPEL_PROTAGONISTA, ou a leitura quebrou");
+  assert.ok(salto, "`hierarquia.ts` não declara mais SALTO_MINIMO_DE_ESCALA, ou a leitura quebrou");
+  return { protagonista: protagonista[1], salto: Number(salto[1]), fonte };
+}
+
+/**
+ * O tamanho de fonte de um degrau, resolvido contra os tokens de verdade.
+ *
+ * Lê `numero: { ... fonte: fonte.display ... }` e troca `fonte.display` pelo
+ * número que `tokens.ts` declara. Sem a resolução, o portão compararia dois
+ * nomes e daria verde para qualquer escala.
+ */
+function tamanhoDoDegrau(fonteDaRegua, nivel, tokens) {
+  const bloco = new RegExp(`(?:^|\\s)${nivel}\\s*:\\s*\\{([\\s\\S]*?)\\n  \\}`, "m").exec(fonteDaRegua);
+  assert.ok(bloco, `o degrau "${nivel}" sumiu de hierarquia.ts, ou a leitura quebrou`);
+  const campo = /(?:^|\s)fonte\s*:\s*([\w.]+)/.exec(bloco[1]);
+  assert.ok(campo, `o degrau "${nivel}" não declara mais tamanho de fonte`);
+  const referencia = /^fonte\.(\w+)$/.exec(campo[1]);
+  if (referencia) {
+    const valor = tokens.fonte[referencia[1]];
+    assert.ok(valor, `o degrau "${nivel}" aponta para fonte.${referencia[1]}, que tokens.ts não declara`);
+    return valor;
+  }
+  if (campo[1] === "fonteMinimaDeInteracao") return tokens.fonteMinimaDeInteracao;
+  throw new Error(`tamanho de degrau que este portão não sabe resolver: ${campo[1]}`);
+}
+
+test("H3: o protagonista é pelo menos o dobro do apoio, e a conta é refeita aqui", () => {
+  /*
+    "Hierarquia forte" é frase. O dobro é número, e é o número que separa a
+    hierarquia que existe no arquivo da que existe no aparelho, com sol na tela
+    e o telefone a meio metro do rosto.
+
+    A conta é refeita contra os tokens em vez de confiar no teste que roda
+    dentro do `jest`, porque este portão é o que varre a árvore inteira: no dia
+    em que alguém achatar a escala para caber um cabeçalho, os dois precisam
+    reprovar, e não só o que a frente daquela tela roda.
+  */
+  const regua = lerRegua();
+  const tokens = lerTokensDoApp();
+  const doProtagonista = tamanhoDoDegrau(regua.fonte, regua.protagonista, tokens);
+  const doApoio = tamanhoDoDegrau(regua.fonte, "apoio", tokens);
+
+  assert.ok(
+    doProtagonista / doApoio >= regua.salto,
+    `o protagonista tem ${doProtagonista} e o apoio ${doApoio}, ou seja ${(doProtagonista / doApoio).toFixed(2)}x, `
+    + `abaixo do salto mínimo de ${regua.salto}x que a régua declara. Hierarquia que o olho não vê é hierarquia que não existe`,
+  );
+});
+
+/** Quantos protagonistas cada peça desenha, por arquivo. */
+function protagonistasPorPeca() {
+  const regua = lerRegua();
+  const medidas = [];
+
+  for (const caminho of arquivosDeFonte()) {
+    if (!/\.tsx$/.test(caminho)) continue;
+    const arquivo = nomeCurto(caminho);
+    const fonte = semComentarios(readFileSync(caminho, "utf8"));
+
+    const visitar = (filhos, peca, linha) => {
+      const achados = [];
+      const fila = [...filhos];
+      while (fila.length > 0) {
+        const no = fila.shift();
+        if (ePeca(no)) { visitar(no.filhos, no.tag, no.linha); continue; }
+        /*
+          Duas formas de ser protagonista, e as duas contam. `Dado` é a peça
+          pronta (número mais rótulo); `nivel="numero"` é quem monta a figura à
+          mão. Contar só a primeira deixaria a régua de fora justamente para
+          quem não usou a peça que a obedece.
+        */
+        const papel = atributoLiteral(no.atributos, "nivel");
+        if (no.tag === "Dado" || papel === regua.protagonista) {
+          achados.push({ linha: no.linha, tag: no.tag });
+        }
+        fila.push(...no.filhos);
+      }
+      medidas.push({ arquivo, peca, linha, achados });
+    };
+
+    visitar(arvoreJsx(fonte), "arquivo", 1);
+  }
+  return medidas;
+}
+
+test("H1: nenhuma peça desenha mais de um protagonista", () => {
+  /*
+    A mesma aritmética da R1 da densidade, com outra tinta: quando tudo é
+    grande, nada é grande, e o olho volta a começar pelo canto superior
+    esquerdo, que é onde raramente está o que importa.
+
+    `ui/componentes.tsx` fica de fora do balde do ARQUIVO pelo mesmo motivo que
+    o portão de densidade já dispensa: é ali que a figura é DEFINIDA (o `Dado`
+    desenha um `Txt nivel="numero"` dentro de si), e o balde do arquivo somaria
+    a definição com qualquer uso que morasse no mesmo arquivo.
+  */
+  const demais = protagonistasPorPeca()
+    .filter((m) => !(m.arquivo === "ui/componentes.tsx" && m.peca === "arquivo"))
+    .filter((m) => m.achados.length > 1);
+
+  assert.deepEqual(
+    demais.map((m) => `${m.arquivo}: ${m.peca} da linha ${m.linha} tem ${m.achados.length} `
+      + `protagonistas (${m.achados.map((a) => `${a.tag} na ${a.linha}`).join(", ")})`),
+    [],
+    "cada peça tem UM protagonista. Ver a H1 em `src/ui/hierarquia.ts`: o segundo número "
+    + "grande não acrescenta ênfase, ele divide a que existia",
+  );
+});
+
+test("a varredura de protagonista enxerga o que deveria", () => {
+  /*
+    A prova da própria varredura. Sem ela, um erro na leitura daria verde para
+    sempre, e o portão continuaria rodando sem medir nada: é exatamente o estado
+    em que a revisão anterior encontrou quatro casos deste repositório.
+  */
+  const regua = lerRegua();
+  const comDois = `
+    const Tela = () => (
+      <Cartao>
+        <Dado valor="12" rotulo="tarefas" />
+        <Txt nivel="${regua.protagonista}">7</Txt>
+      </Cartao>
+    );
+  `;
+  const arvore = arvoreJsx(comDois);
+  const cartao = arvore.flatMap(function achar(no) {
+    return no.tag === "Cartao" ? [no] : no.filhos.flatMap(achar);
+  })[0];
+  assert.ok(cartao, "a leitura não achou nem o cartão do exemplo");
+  const protagonistas = cartao.filhos.filter(
+    (no) => no.tag === "Dado" || atributoLiteral(no.atributos, "nivel") === regua.protagonista,
+  );
+  assert.equal(protagonistas.length, 2, "a varredura deixou de enxergar um protagonista");
+
+  /* E o apoio ao lado do número NÃO é protagonista, senão todo `Dado` reprova. */
+  const comUm = arvoreJsx(`<Cartao><Dado valor="12" rotulo="tarefas" /><Txt nivel="apoio">hoje</Txt></Cartao>`);
+  const soUm = comUm[0].filhos.filter(
+    (no) => no.tag === "Dado" || atributoLiteral(no.atributos, "nivel") === regua.protagonista,
+  );
+  assert.equal(soUm.length, 1);
+});
+
+test("o gradiente é pontual: ele não escapa de `src/ui/`", () => {
+  /*
+    `CLAUDE.md` autoriza gradiente com três condições, e a terceira é a que não
+    se prova lendo o valor: "nunca no fundo inteiro da tela: uso pontual, em
+    elementos de destaque". As duas primeiras (dois pontos que são tokens, nunca
+    cor inventada) já se provam sozinhas, porque a única forma de fazer um
+    gradiente neste aplicativo é `gradienteDeDestaque(tema)`, que não tem
+    entrada para cor, e porque cor literal reprova nas regras lá de cima.
+
+    A terceira vira portão assim: gradiente nasce em primitiva, e tela pede a
+    primitiva. Uma tela que escrevesse o dela poria, no primeiro dia em que
+    alguém quisesse impressionar, uma rampa violeta no fundo da lista de
+    tarefas, que é o papel de parede que a regra proíbe.
+  */
+  const fugas = [];
+  for (const caminho of arquivosDeFonte()) {
+    const curto = nomeCurto(caminho);
+    if (curto.startsWith("ui/")) continue;
+    const fonte = semComentarios(readFileSync(caminho, "utf8"));
+    for (const [i, linha] of fonte.split("\n").entries()) {
+      if (/(?<![A-Za-z0-9_$])(?:LinearGradient|RadialGradient|gradienteDeDestaque)\b/.test(linha)) {
+        fugas.push(`${curto}:${i + 1}`);
+      }
+    }
+  }
+
+  assert.deepEqual(
+    fugas,
+    [],
+    "gradiente escrito fora de `src/ui/`:\n  " + fugas.join("\n  ")
+    + "\n\nEle é acabamento de peça, e não papel de parede. Peça a primitiva que já o "
+    + "carrega, ou crie uma em `src/ui/` para o destaque novo",
+  );
+
+  /* Prova da varredura: um gradiente numa tela precisa aparecer aqui. */
+  const naTela = /(?<![A-Za-z0-9_$])(?:LinearGradient|RadialGradient|gradienteDeDestaque)\b/;
+  assert.equal(naTela.test("<LinearGradient colors={cores} style={StyleSheet.absoluteFill} />"), true);
+  assert.equal(naTela.test("const [inicio, fim] = gradienteDeDestaque(tema);"), true);
+  /* E um nome que só CONTÉM a palavra não é o nosso gradiente. */
+  assert.equal(naTela.test("const meuGradienteDeDestaqueFalso = 1;"), false);
 });

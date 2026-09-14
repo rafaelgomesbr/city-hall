@@ -14,7 +14,7 @@
  *    APRENDEU a aceitar um nó no mesmo turno, por outra frente, e a cópia ficou
  *    lá, com o comentário afirmando o contrário do que o código já fazia, e com
  *    o texto em `peso.forte` enquanto a peça oficial usa `peso.negrito`;
- * 3. `Selo`, a peça velha, com texto em `legenda` (12), abaixo do `fonteMinima`
+ * 3. `Selo`, a peça velha, com texto em `legenda` (12), abaixo do `fonteMinimaDeInteracao`
  *    de 14 declarado no mesmo arquivo. Duas frentes pararam de usá-la por causa
  *    disso e nenhuma a aposentou, então ela sobreviveu no lugar em que mais
  *    dói: `SeloSeveridade`, que é a única marca de gravidade do produto.
@@ -35,7 +35,7 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
 import { Chip, SeloSeveridade } from "./Chip";
 import * as primitivas from "./componentes";
 import { ProvedorDeTema } from "./componentes";
-import { fonteMinima, peso, temaClaro, temaEscuro } from "./tokens";
+import { fonteMinimaDeInteracao, peso, temaClaro, temaEscuro } from "./tokens";
 
 beforeEach(() => { mockEsquema = "light"; });
 
@@ -99,13 +99,13 @@ describe("o selo de severidade é a mesma pílula do resto do produto", () => {
     linha de uma pílula de prazo desenhada à mão, com texto de 14. A frente da
     vistoria escreveu o porquê no comentário daquela linha: "`Selo` recebe texto
     e não aceita desenho, e ele usa `legenda` de 12 pontos, dois abaixo do
-    `fonteMinima` que o próprio `tokens.ts` declara". Ela contornou; a marca de
+    `fonteMinimaDeInteracao` que o próprio `tokens.ts` declara". Ela contornou; a marca de
     gravidade continuou em 12, ao lado.
   */
   it("a palavra da gravidade não desce abaixo da fonte mínima do produto", async () => {
     await montar(<SeloSeveridade severidade="alta" />);
     const tamanho = StyleSheet.flatten(screen.getByText("Alta").props.style).fontSize;
-    expect(tamanho).toBeGreaterThanOrEqual(fonteMinima);
+    expect(tamanho).toBeGreaterThanOrEqual(fonteMinimaDeInteracao);
   });
 
   it("e tem o mesmo peso das outras pílulas, e não um peso próprio", async () => {

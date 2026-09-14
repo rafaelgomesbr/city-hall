@@ -36,11 +36,25 @@ import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
  */
 export const ESCALA_NA_BORDA = 0.96;
 
-export function ItemDeLista({ entrando = false, saindo = false, children }: {
+export function ItemDeLista({ entrando = false, saindo = false, atraso = 0, children }: {
   /** Este item ACABOU de chegar a uma lista que já estava na tela. */
   entrando?: boolean;
   /** Este item já saiu do disco e ainda está desaparecendo da tela. */
   saindo?: boolean;
+  /**
+   * Quantos milissegundos esperar antes de COMEÇAR a aparecer, para a lista
+   * chegar em cascata e não como um bloco só. O número sai de
+   * `atrasoEmCascata()` em `hierarquia.ts`, que tem teto justamente para a
+   * cascata não virar espera.
+   *
+   * Só vale para a entrada. Saída em cascata atrasaria o sumiço de um item que
+   * o disco já não tem, e a lista ficaria mostrando trabalho que acabou.
+   *
+   * O item nasce na árvore no primeiro quadro de qualquer jeito: o que espera é
+   * a PINTURA. Montar o filho depois faria a `FlatList` medir uma lista
+   * incompleta, e o leitor de tela anunciaria os cartões chegando um a um.
+   */
+  atraso?: number;
   children: ReactNode;
 }) {
   const reduzirMovimento = useReducaoDeMovimento();
@@ -56,16 +70,27 @@ export function ItemDeLista({ entrando = false, saindo = false, children }: {
   */
   const animarEntrada = useRef(entrando && !reduzirMovimento).current;
   const presenca = useRef(new Animated.Value(animarEntrada ? 0 : 1)).current;
+  const atrasoInicial = useRef(Math.max(0, atraso)).current;
 
   useEffect(() => {
     if (!animarEntrada) return;
     Animated.timing(presenca, {
       toValue: 1,
       duration: movimento.mudancaDeEstado,
+      /*
+        Lido uma vez junto com `entrando`, pelo mesmo motivo: o índice do item
+        muda quando a lista se reordena, e um atraso novo no meio da animação
+        reiniciaria a entrada de um cartão que já está na tela.
+
+        Com redução de movimento nem se chega aqui (`animarEntrada` é falso e o
+        item já nasce inteiro), então o atraso não segura nada de quem pediu
+        menos movimento: seria transformar acessibilidade em lentidão.
+      */
+      delay: atrasoInicial,
       easing: Easing.bezier(...easing.entrada),
       useNativeDriver: true,
     }).start();
-  }, [animarEntrada, presenca]);
+  }, [animarEntrada, atrasoInicial, presenca]);
 
   useEffect(() => {
     if (!saindo) return;

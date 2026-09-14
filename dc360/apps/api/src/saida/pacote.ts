@@ -54,6 +54,18 @@ export const TABELAS_DA_SAIDA = [
   "vistorias",
   "vistoria_orgaos_indicados",
   /*
+    O que foi capturado em campo e nao pode ser recuperado do aparelho
+    (migracao 030).
+
+    Sai, e a razao e a mesma que faz a linha existir: sem ela, o pacote entrega
+    um registro fotografico com tres fotos e nada dizendo que havia cinco, que e
+    exatamente o documento que parece completo e nao e. O municipio que levar os
+    proprios dados embora precisa levar junto a declaracao do que faltou, senao
+    a lacuna vira desleixo do agente aos olhos de quem abrir o arquivo daqui a
+    dez anos.
+  */
+  "vistoria_evidencias_perdidas",
+  /*
     As tarefas que venceram e voltaram para a coordenação (migração 028).
 
     Sai, e não é detalhe operacional: é a única memória de que uma equipe esteve
@@ -65,6 +77,17 @@ export const TABELAS_DA_SAIDA = [
     arquivo.
   */
   "devolucoes_de_tarefa",
+  /*
+    As saídas a campo declaradas pelos agentes (migração 031).
+
+    Sai, e por uma razão diferente da de todas as outras desta lista: ela não é
+    dado de cidadão, é o registro do que a prefeitura sabia sobre a segurança
+    física do PRÓPRIO SERVIDOR, e do que ela fez quando um prazo de retorno
+    estourou. É a prova que um município precisa ter na mão numa reclamação
+    trabalhista ou numa apuração de acidente, e ela é justamente a que ele
+    perderia sem perceber, porque a pergunta só aparece depois.
+  */
+  "saidas_a_campo",
   "evidencias",
   "providencias",
   "orgaos",

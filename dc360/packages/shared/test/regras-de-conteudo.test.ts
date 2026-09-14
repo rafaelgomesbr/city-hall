@@ -42,7 +42,24 @@ const CITACAO_DE_NORMA =
 
 const TRAVESSAO = "—";
 
-const PASTAS_IGNORADAS = new Set(["node_modules", "dist", ".git", "coverage", ".angular"]);
+/*
+  `Pods` entra na lista pela mesma razão de `node_modules`: é dependência de
+  terceiro baixada, não texto que este produto escreve.
+
+  Ela apareceu quando o aplicativo passou a depender de módulo nativo e alguém
+  rodou `npx expo prebuild`: a pasta `apps/campo/ios/` inteira é gerada e está no
+  `.gitignore`, e dentro dela o CocoaPods deixa o código-fonte das bibliotecas,
+  com os `README.md` delas. A varredura passou a reprovar por um travessão no
+  README do utilitário de mapas do Google.
+
+  Esta regra governa o que o PRODUTO afirma, e não o que a dependência dele diz
+  de si mesma, do mesmo jeito que `docs/referencia/` é isento por ser pesquisa.
+  Apagar travessão dentro de `Pods` seria editar código de terceiro que a
+  próxima instalação reescreve.
+*/
+const PASTAS_IGNORADAS = new Set([
+  "node_modules", "dist", ".git", "coverage", ".angular", "Pods",
+]);
 const EXTENSOES = [".ts", ".tsx", ".css", ".sql", ".md", ".js", ".mjs", ".html", ".txt"];
 
 /**

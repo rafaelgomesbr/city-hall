@@ -116,7 +116,41 @@ export type DadosDocumento = {
      */
     equipe_designada_nome?: string | null;
     equipe_do_agente_nome?: string | null;
+    /**
+     * ONDE O AGENTE ESTEVE, medido pelo aparelho no momento da coleta.
+     *
+     * Não é a mesma coisa que a coordenada da ocorrência, que aparece na
+     * identificação lá em cima: aquela é o alfinete que o operador colou
+     * durante a ligação, com o telefone no ombro, e as duas divergem o tempo
+     * todo. Imprimir as duas é o que permite a quem lê ver a divergência, que é
+     * exatamente a informação que fazia falta.
+     *
+     * Opcionais porque as vistorias que já estão no banco foram coletadas antes
+     * de a coordenada viajar no envelope, e o laudo delas continua sendo
+     * emitido.
+     */
+    latitude?: number | null;
+    longitude?: number | null;
   };
+  /**
+   * O que foi capturado em campo e não pôde ser recuperado do aparelho.
+   *
+   * ESTA LISTA É A RAZÃO DE A VISTORIA PODER SUBIR SEM A FOTO. Antes dela, um
+   * arquivo apagado pelo sistema operacional destruía o envelope inteiro
+   * (checklist, GPS, assinatura, observações, órgãos a acionar), porque as
+   * fotos sobem antes do envelope e a leitura dos bytes falhava.
+   *
+   * A saída alternativa, subir calado sem a foto, seria pior do que não subir:
+   * quem lê um registro fotográfico com três fotos não tem como saber que havia
+   * cinco, e o documento passaria a parecer completo sendo incompleto. Com a
+   * lista, o laudo DIZ o que faltou e quando foi capturado, e quem decide sobre
+   * a casa de alguém decide sabendo disso.
+   */
+  evidenciasPerdidas?: Array<{
+    papel: "foto" | "assinatura";
+    capturadaEm: string;
+    legenda: string | null;
+  }>;
   /**
    * As fotografias DESTA vistoria, e só delas.
    *
@@ -254,6 +288,12 @@ function blocoVistoria(d: DadosDocumento): string {
     ${campo("Matrícula", v.agente_matricula ?? "não informada", { mono: true })}
     ${campo("Precisão do GPS",
       v.gps_precisao_metros !== null ? `${v.gps_precisao_metros} metros` : "não registrada")}
+    ${campo("Coordenada capturada no local",
+      v.latitude !== null && v.latitude !== undefined
+        && v.longitude !== null && v.longitude !== undefined
+        ? `${v.latitude.toFixed(6)}, ${v.longitude.toFixed(6)}`
+        : "não registrada",
+      { mono: true })}
     ${campo("Presente no local", v.assinante_nome)}
   </div>
 
@@ -408,16 +448,76 @@ function galeria(
     .join("");
 }
 
+/**
+ * A LINHA SEM A QUAL A VISTORIA NÃO PODERIA SUBIR SEM A FOTO.
+ *
+ * O produto passou a aceitar a coleta cujo arquivo o sistema operacional apagou
+ * do aparelho antes do envio. Isso salva a manhã de trabalho do agente
+ * (checklist, GPS, assinatura, observações e órgãos a acionar deixaram de ser
+ * destruídos por uma imagem que sumiu), e cria um risco novo, que é justamente
+ * o que este bloco fecha: um laudo com três fotografias, sem nada dizendo que
+ * havia cinco, é um documento que PARECE completo e não é. Isso é pior do que
+ * não entregar documento nenhum, porque quem decide sobre a casa de uma família
+ * decide achando que viu tudo.
+ *
+ * Três escolhas de redação, e nenhuma é estilo:
+ *
+ * 1. **"Capturado em campo" e não "não anexado".** O registro existiu: o agente
+ *    fotografou, o aparelho guardou, e o arquivo se perdeu depois. A frase
+ *    precisa afirmar a existência, senão ela é lida como desleixo do agente.
+ * 2. **A hora de cada captura aparece.** É o que amarra esta declaração ao
+ *    evento da trilha, e é o que permite conferir daqui a um ano. "Uma
+ *    fotografia se perdeu" não permite conferir nada.
+ * 3. **A assinatura, quando é ela que se perdeu, é dita com todas as letras.**
+ *    Sem isso, a linha de assinatura sai em branco no fim da folha e fica
+ *    indistinguível de uma vistoria em que ninguém assinou, que é a lacuna mais
+ *    grave que este documento pode ter.
+ */
+function blocoEvidenciasPerdidas(d: DadosDocumento, fuso: string): string {
+  const perdidas = d.evidenciasPerdidas ?? [];
+  if (perdidas.length === 0) return "";
+
+  const itens = perdidas
+    .map((p) => `<li>${escapar(
+      p.papel === "assinatura"
+        ? "Assinatura de quem estava no local"
+        : `Fotografia${p.legenda?.trim() ? `: ${p.legenda.trim()}` : ""}`,
+    )}, capturada em ${escapar(formatarDataHora(p.capturadaEm, fuso))}.</li>`)
+    .join("");
+
+  const assinaturaPerdida = perdidas.some((p) => p.papel === "assinatura");
+
+  return `<h2>Registros capturados que não puderam ser recuperados</h2>
+    <p class="nota">Os registros abaixo foram capturados durante esta vistoria e não puderam ser recuperados do aparelho no momento da transmissão, então não constam deste documento. A vistoria foi recebida sem eles, por decisão do agente que a coletou, e a perda está registrada na trilha de auditoria.${
+      assinaturaPerdida
+        ? " A linha de assinatura ao final desta folha sai sem o traço por essa razão, e não por ausência de quem assinou."
+        : ""
+    }</p>
+    <ul class="nota">${itens}</ul>`;
+}
+
 function blocoFotos(d: DadosDocumento): string {
   const fuso = fusoDoEstado(d.organizacao.uf);
+  const perdidas = (d.evidenciasPerdidas ?? []).filter((p) => p.papel === "foto");
+  /*
+    "Nenhuma fotografia foi anexada" deixa de ser dito quando houve fotografia
+    perdida, e a troca não é detalhe de escrita. Aquela frase afirma que não
+    houve registro fotográfico, e nesse caso houve: ele existiu e se perdeu. A
+    frase antiga seria a única linha falsa do documento, e estaria exatamente no
+    lugar onde quem lê procura a prova.
+  */
   const daVistoria = d.fotos.length === 0
     ? `<h2>Registro fotográfico</h2>
-      <p class="nota">Nenhuma fotografia foi anexada a esta vistoria.</p>`
+      <p class="nota">${
+        perdidas.length > 0
+          ? "Nenhuma fotografia desta vistoria pôde ser incluída neste documento. Ver a seção seguinte."
+          : "Nenhuma fotografia foi anexada a esta vistoria."
+      }</p>`
     : `<h2>Registro fotográfico</h2><div class="fotos">${
         galeria(d.fotos, fuso, "Fotografia da vistoria")
       }</div>`;
 
-  return `${daVistoria}${blocoFotosAvulsas(d, fuso)}`;
+  return `${daVistoria}${blocoEvidenciasPerdidas(d, fuso)}${blocoFotosAvulsas(d, fuso)}`;
 }
 
 /**

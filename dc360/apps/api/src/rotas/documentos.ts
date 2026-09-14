@@ -89,6 +89,7 @@ async function reunirDados(
     >(
       `SELECT v.id, v.checklist, v.gps_precisao_metros, v.assinante_nome, v.observacoes,
               v.coletada_em, v.sincronizada_em, v.assinatura_chave,
+              v.latitude, v.longitude,
               v.desalojados, v.desabrigados, v.feridos, v.desaparecidos, v.obitos,
               u.nome AS agente_nome, u.matricula AS agente_matricula,
               ed.nome AS equipe_designada_nome, ea.nome AS equipe_do_agente_nome
@@ -181,12 +182,34 @@ async function reunirDados(
       [vistoria.rows[0]!.id],
     );
 
+    /*
+      O QUE FOI CAPTURADO EM CAMPO E NÃO CHEGOU, e por que ele é lido aqui.
+
+      Sem esta consulta o laudo sairia com o registro fotográfico que sobrou e
+      nada dizendo que havia mais: um documento que parece completo e não é, que
+      é pior do que documento nenhum. O produto só pode aceitar a coleta sem o
+      arquivo porque o papel declara a falta.
+
+      Da VISTORIA VIGENTE, como as fotos e os órgãos, e pelo mesmo motivo: numa
+      re-vistoria, a perda da ida anterior não é perda desta.
+    */
+    const perdidas = await c.query<{
+      papel: "foto" | "assinatura"; capturada_em: string; legenda: string | null;
+    }>(
+      `SELECT papel, capturada_em, legenda
+         FROM vistoria_evidencias_perdidas
+        WHERE vistoria_id = $1
+        ORDER BY ordem, capturada_em, id`,
+      [vistoria.rows[0]!.id],
+    );
+
     return {
       organizacao: organizacao.rows[0]!,
       ocorrencia: ocorrencia.rows[0],
       vistoria: { ...vistoria.rows[0], orgaosIndicados: orgaos.rows },
       fotos: fotos.rows,
       avulsas: avulsas.rows,
+      perdidas: perdidas.rows,
     };
   });
 
@@ -208,6 +231,11 @@ async function reunirDados(
         capturadaEm: f.capturada_em,
       })),
     ),
+    evidenciasPerdidas: bruto.perdidas.map((p) => ({
+      papel: p.papel,
+      capturadaEm: p.capturada_em,
+      legenda: p.legenda,
+    })),
     fotosAvulsas: await Promise.all(
       bruto.avulsas.map(async (f) => ({
         url: await armazenamento.urlParaLer(f.chave_storage, 30 * 60),

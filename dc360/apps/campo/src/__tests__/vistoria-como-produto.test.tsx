@@ -138,7 +138,22 @@ jest.mock("../ui/retornoTatil", () => ({
 }));
 
 jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
-jest.mock("../dados/mapa", () => ({ abrirNoMapa: jest.fn(async () => true) }));
+/*
+  O REAL, com só `abrirNoMapa` dublado.
+
+  A fábrica devolvia um objeto com uma chave só, e isso APAGAVA o módulo
+  inteiro: `MapaDoImovel` e `useMapaDoMunicipio`, que a tela de vistoria passou
+  a usar no cartão de localização, leem `chaveDoMapaDoBuild`,
+  `decidirModoDoMapa` e `PRAZO_DO_MAPA_MS` do mesmo arquivo, e a tela morria
+  com "não é uma função" longe da causa.
+
+  Dublado continua só o que abre o aplicativo de mapas do SISTEMA, que é o
+  único ponto deste módulo que sai do processo.
+*/
+jest.mock("../dados/mapa", () => ({
+  ...jest.requireActual("../dados/mapa"),
+  abrirNoMapa: jest.fn(async () => true),
+}));
 
 const OCORRENCIA: Pendencia = {
   id: "oc-1",

@@ -26,6 +26,7 @@ inventadas, e enquanto houver um `[[ ]]` o documento não vai para o ar.
 | [IMPLANTACAO.md](IMPLANTACAO.md) | Quem conduz a implantação. Traz o que precisa ser decidido ANTES de qualquer tela |
 | [CARTAO-DO-AGENTE.md](CARTAO-DO-AGENTE.md) | Uma página, para imprimir e plastificar. Vai no bolso, junto com o aparelho |
 | [GUIA-DO-COORDENADOR.md](GUIA-DO-COORDENADOR.md) | Quem manda no fluxo operacional |
+| [SEGURANCA-DO-AGENTE.md](SEGURANCA-DO-AGENTE.md) | Quem decide se o produto atende o município. O que a declaração de saída a campo faz, **o que ela não faz**, e o procedimento que a prefeitura precisa escrever antes de ligar o recurso |
 | [PAPEIS_E_RESPONSABILIDADES.md](PAPEIS_E_RESPONSABILIDADES.md) | Quem faz o quê no sistema |
 
 ## Para operar e migrar

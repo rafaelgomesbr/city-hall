@@ -4,7 +4,7 @@ import {
 } from "react-native";
 
 import { Botao, Txt, useTema } from "./componentes";
-import { borda, espaco, movimento, opacidade, raio, tinta } from "./tokens";
+import { elevacao, espaco, movimento, opacidade, raio, tinta } from "./tokens";
 import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
 
 /**
@@ -240,11 +240,25 @@ export function Dialogo({
           accessibilityViewIsModal
           accessibilityRole="alert"
           style={{
-            backgroundColor: tema.superficie,
+            /*
+              A folha usa o topo da escala de elevação, INTEIRO.
+
+              Enquanto a superfície foi desenhada à mão aqui (fundo
+              `tema.superficie`, contorno só no topo, sombra nenhuma), o nível
+              `folha` não tinha um único uso no produto, e o preço aparecia no
+              tema escuro: a peça que está por cima de tudo terminava em
+              `superficie`, que é a superfície de um cartão comum, e o que
+              separava as duas era só o véu. Agora quem separa é a camada,
+              porque no escuro quem carrega a elevação é a superfície clareando.
+
+              O nível foi corrigido junto, e a razão está em `tokens.ts`: a
+              sombra dele descia 12 pontos, ou seja, ele tinha sido desenhado
+              para uma folha que paira, e nenhuma folha deste aplicativo paira
+              (ver o motivo 4 no alto deste arquivo). Ela sobe.
+            */
+            ...elevacao(tema).folha,
             borderTopLeftRadius: raio.cartao,
             borderTopRightRadius: raio.cartao,
-            borderTopWidth: borda.fio,
-            borderColor: tema.borda,
             padding: espaco.e5,
             // A folga de baixo é maior que a de cima por causa da barra de
             // gestos do aparelho, que come o rodapé e engoliria o alvo do

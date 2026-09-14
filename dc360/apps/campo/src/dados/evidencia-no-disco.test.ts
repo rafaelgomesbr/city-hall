@@ -38,7 +38,7 @@ jest.mock("expo-file-system", () => ({
   },
 }));
 
-import { FalhaPermanente } from "@dc360/campo";
+import { CODIGO_ARQUIVO_SUMIU, FalhaPermanente } from "@dc360/campo";
 import { arquivosDoAparelho, guardarFotoNoAparelho } from "./evidencia-no-disco";
 
 beforeEach(() => {
@@ -107,9 +107,26 @@ describe("a leitura dos bytes na hora de enviar", () => {
       .rejects.toBeInstanceOf(FalhaPermanente);
   });
 
-  it("e a frase é em português e termina numa ação", async () => {
-    // O erro do `expo-file-system` chega em inglês, e ele apareceria como texto
-    // final na tela do agente, na rua.
+  it("e a frase é em português, com o código que a fila reconhece", async () => {
+    /*
+      Duas coisas, e a segunda MUDOU DE LUGAR de propósito.
+
+      A frase continua em português porque o erro do `expo-file-system` chega em
+      inglês, e ele apareceria como texto final na tela do agente, na rua.
+
+      A AÇÃO deixou de ser dita aqui. Enquanto não havia saída, esta frase
+      terminava em "Avise a coordenação e informe o protocolo desta coleta",
+      porque era tudo o que dava para oferecer. Hoje a saída existe: o agente
+      pode enviar a vistoria sem o arquivo, com a perda declarada no laudo. Quem
+      diz isso é o dreno (`packages/campo/src/fila.ts`), e só ele pode dizer,
+      porque só ele sabe QUANTOS arquivos faltam, o que ele descobre depois de
+      percorrer a coleta inteira. Repetir a frase aqui criaria duas versões da
+      mesma orientação, e elas divergiriam na primeira pressa.
+
+      O CÓDIGO é o que importa nesta ponta: ele é o contrato entre a porta, o
+      dreno e a tela, e é ele que separa "o arquivo acabou" de "a leitura falhou
+      por outro motivo, que pode melhorar". Vem do pacote, e não escrito à mão.
+    */
     let falha: FalhaPermanente | null = null;
     try {
       await arquivosDoAparelho.ler("file:///documentos/sumiu.jpg");
@@ -118,8 +135,9 @@ describe("a leitura dos bytes na hora de enviar", () => {
     }
     if (!falha) throw new Error("a leitura precisava ter falhado");
 
-    expect(falha.codigo).toBe("arquivo_sumiu");
+    expect(falha.codigo).toBe(CODIGO_ARQUIVO_SUMIU);
     expect(falha.message).toContain("não está mais neste aparelho");
-    expect(falha.message).toContain("Avise a coordenação");
+    // Sem inglês do sistema operacional vazando para a rua.
+    expect(falha.message).not.toMatch(/[A-Za-z]+ (?:file|does not exist)/i);
   });
 });

@@ -15,6 +15,7 @@ import { rotasOcorrencias } from "./rotas/ocorrencias.js";
 import { rotasAdministracao } from "./rotas/administracao.js";
 import { rotasSincronizacao } from "./rotas/sincronizacao.js";
 import { rotasCampo } from "./rotas/campo.js";
+import { rotasSaidaACampo } from "./rotas/saida-a-campo.js";
 import { rotasAparelhos } from "./rotas/aparelhos.js";
 import { rotasAvisos } from "./rotas/avisos.js";
 import { rotasOrgaos } from "./rotas/orgaos.js";
@@ -451,6 +452,13 @@ export async function construirServidor(
   await app.register(rotasAdministracao, { prefix: "/", banco });
   await app.register(rotasSincronizacao, { prefix: "/sincronizacao", banco });
   await app.register(rotasCampo, { prefix: "/campo", banco });
+  /*
+    Prefixo proprio, e nao dentro de `/campo`, porque metade destas rotas e da
+    COORDENACAO e nao do agente: `GET /saida-a-campo` e a tela de quem fica na
+    mesa. Pendurar isso em `/campo` faria o nome do prefixo mentir sobre quem
+    chama, que e a primeira coisa que alguem le ao procurar uma rota.
+  */
+  await app.register(rotasSaidaACampo, { prefix: "/saida-a-campo", banco });
   // Registro do aparelho que recebe notificação. Com `PUSH_ATIVO=nao`, que é o
   // padrão, as rotas existem e recusam, em vez de sumirem: uma rota ausente
   // responde 404, que o aplicativo leria como "versão velha do servidor".

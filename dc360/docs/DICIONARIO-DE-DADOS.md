@@ -281,6 +281,7 @@ trás para sempre. Retenção de 60 dias, dentro da própria política de remoç
 | --- | --- |
 | `protocolo_sequencias` | O último número usado por município e por ano. Garante protocolo único sem sequência global, que vazaria volume entre municípios |
 | `devolucoes_de_tarefa` | A tarefa que venceu e o agente devolveu à coordenação sem ter vistoriado, com motivo de lista fechada, observação, a equipe que estava designada e o prazo que já estava perdido. **Append-only**, como a trilha: é declaração de campo, e correção se faz com despacho novo. Não encerra a ocorrência (ela volta para `triagem`) e não zera `prazo_em`, senão o atraso sumiria do painel |
+| `saidas_a_campo` | A ida a campo que o agente declarou ANTES de subir, com o protocolo, o tempo previsto, se foi **sozinho**, e o prazo de retorno carimbado pelo relógio do **servidor**. Uma aberta por agente, imposta por índice único parcial. Não se apaga: encerra com desfecho de lista fechada e quem encerrou, e "acionei apoio" exige dizer o quê. A observação da coordenação é sobre o ATO DA PREFEITURA a respeito da segurança do próprio servidor, e por isso fica fora da minimização por prazo: ver `SEGURANCA-DO-AGENTE.md` |
 | `sessoes` | Sessões abertas. É o que permite derrubar acesso ao trocar ou redefinir senha |
 | `recuperacoes_senha` | Pedidos de recuperação, com validade e uso único |
 | `exportacoes` | Registro de quem exportou o quê e quando. Exportação de dado de cidadão é ato que fica registrado |

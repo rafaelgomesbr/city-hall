@@ -722,3 +722,57 @@ export type ConfiguracaoDoPainel = {
    */
   chaveDoMapa: string;
 };
+
+/* ==========================================================================
+   Saída a campo: quem está no morro agora
+   ========================================================================== */
+
+/**
+ * Uma saída a campo em aberto, do jeito que a coordenação a lê.
+ *
+ * `vencida` e `atrasoEmMinutos` vêm do SERVIDOR calculados, e não são
+ * recalculados aqui. O relógio do computador da recepção é o menos confiável de
+ * todos os que este produto conhece, e um relógio atrasado faria a tela mostrar
+ * "no prazo" sobre um agente que está duas horas sem dar notícia.
+ */
+export type SaidaEmCampo = {
+  id: string;
+  ocorrenciaId: string;
+  protocolo: string;
+  endereco: string;
+  severidade: Severidade | null;
+  agenteId: string;
+  agenteNome: string;
+  /** Nulo quando o agente não está lotado em equipe nenhuma, que acontece. */
+  equipeNome: string | null;
+  /**
+   * Trabalhar sozinho é a categoria inteira de risco de que isto trata, e por
+   * isso ele nunca é comunicado só por cor: a tela escreve a palavra.
+   */
+  sozinho: boolean;
+  duracaoMinutos: number;
+  declaradaEm: string;
+  registradaEm: string;
+  /** O combinado original, que a prorrogação não apaga. */
+  retornoPrevistoInicial: string;
+  /** O prazo corrente. Prorrogar empurra este, nunca o inicial. */
+  retornoPrevistoEm: string;
+  prorrogacoes: number;
+  vencida: boolean;
+  atrasoEmMinutos: number;
+};
+
+export type QuemEstaEmCampo = {
+  itens: SaidaEmCampo[];
+  emCampo: number;
+  vencidas: number;
+  /**
+   * A frase que acompanha o número, e ela vem do servidor de propósito.
+   *
+   * É a única promessa que este produto faz sobre a segurança de um servidor
+   * público, e promessa não pode ficar escrita em três telas com três redações.
+   * Ela diz o que o sistema NÃO faz, que é a parte que evita alguém confiar num
+   * alarme que não existe.
+   */
+  limite: string;
+};

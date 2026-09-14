@@ -23,8 +23,11 @@
  */
 
 import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
-import { StyleSheet } from "react-native";
-import type { AutorDaColeta, ItemDeVistoria, ItemFila } from "@dc360/campo";
+import { Animated, StyleSheet } from "react-native";
+import { CODIGO_ARQUIVO_SUMIU } from "@dc360/campo";
+import type {
+  AutorDaColeta, FotoNaFila, ItemDeVistoria, ItemFila, PapelDoArquivo,
+} from "@dc360/campo";
 
 const AGENTE: AutorDaColeta = {
   usuarioId: "u-ana", nome: "Ana Ribeiro", organizacaoId: "org-serra-alta",
@@ -38,6 +41,11 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
 }));
 
 jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
+
+/* A chave de redução de movimento é do teste: o clímax existe para ser visto, e
+   quem pede para reduzir movimento precisa receber a mesma tela sem o gesto. */
+let mockReduzir = false;
+jest.mock("./useReducaoDeMovimento", () => ({ useReducaoDeMovimento: () => mockReduzir }));
 
 /* O motor tátil não existe aqui, e não é ele que se mede: o que se cobra é
    QUANDO a tela pede vibração. A ponte com `expo-haptics` tem teste próprio em
@@ -64,6 +72,8 @@ let mockItens: ItemFila[] = [];
 const mockDescartar = jest.fn(async () => {});
 const mockReenviar = jest.fn(async () => {});
 const mockAssumir = jest.fn(async () => {});
+/** O que o motor devolve quando o agente abre mão dos registros perdidos. */
+let mockAbrirMao = jest.fn(async (_id: string) => ({ liberado: true, perdidas: 0 }));
 /** O que a fila chama quando algo muda de estado, guardado para o teste
  *  disparar a releitura da lista sem mexer no relógio do aplicativo. */
 let avisarQueMudou: (() => void) | null = null;
@@ -77,6 +87,7 @@ const mockFila = {
   descartar: mockDescartar,
   reenviar: mockReenviar,
   assumir: mockAssumir,
+  abrirMaoDasEvidenciasPerdidas: (id: string) => mockAbrirMao(id),
 };
 /* A abertura da fila é trocável pelo teste: o caso da espera precisa de uma
    que nunca responde, que é a situação real de primeira abertura sem sinal. */
@@ -109,6 +120,8 @@ function item(
 
 beforeEach(() => {
   mockItens = [];
+  mockReduzir = false;
+  mockAbrirMao = jest.fn(async (_id: string) => ({ liberado: true, perdidas: 0 }));
   mockSinal = { temSinal: true, tipo: "Wi-Fi" };
   mockObterFila = async () => mockFila;
   avisarQueMudou = null;
@@ -484,12 +497,15 @@ describe("o item que sai da fila não some num corte seco", () => {
       item({ id: "esperando", estado: "pendente", protocolo: "2026/000222" }),
     ];
     await abrirATela();
-    expect(screen.getByText("2 coletas na fila")).toBeTruthy();
+    /* O total virou `Dado`: número grande em fonte tabular com rótulo discreto,
+       e a frase inteira no rótulo de acessibilidade. O que o caso guarda não
+       mudou: o número cai no instante em que o disco larga o item. */
+    expect(screen.getByLabelText("2, coletas na fila")).toBeTruthy();
 
     mockItens = [item({ id: "esperando", estado: "pendente", protocolo: "2026/000222" })];
     await act(async () => { avisarQueMudou?.(); });
 
-    expect(screen.getByText("1 coleta na fila")).toBeTruthy();
+    expect(screen.getByLabelText("1, coleta na fila")).toBeTruthy();
     expect(screen.getByLabelText("Minhas coletas, 1 item")).toBeTruthy();
   });
 
@@ -714,6 +730,476 @@ describe("a régua do peso visual, na fila", () => {
       sinal, título e filete, dentro do mesmo cartão que já tem a pílula
       vermelha, sem disputar com ela.
     */
+    expect(screen.getByText("Pronto")).toBeTruthy();
+    expect(preenchidos()).toEqual([temaEscuro.perigoFundo, temaEscuro.perigoFundo]);
+  });
+});
+
+/* ========================================================================
+   9. O clímax: a fila zerando
+   ======================================================================== */
+
+/**
+ * O momento assinatura do produto, e a guarda que faltava nele.
+ *
+ * O `CLAUDE.md` nomeia este momento com todas as letras: "o elemento assinatura
+ * é o simulador de offline, a fila enchendo item a item, o retorno do sinal e a
+ * sincronização concluindo (...) concentre o melhor do capricho visual nesse
+ * momento; ele é o clímax". Esta tela é onde ele acontece.
+ *
+ * E ele estava disparando à toa. Havia DOIS canais comemorando o mesmo fato, e
+ * só um tinha guarda de origem: a vibração exigia a transição (a mesma regra
+ * que a `FaixaDeSincronizacao` escreveu e provou), e o movimento rodava na
+ * montagem do estado vazio. As duas consequências são medidas aqui:
+ *
+ * - **abrir a aba com a fila já vazia** produzia a comemoração visual inteira,
+ *   com o aparelho calado no bolso, ou seja, a tela dizia "conseguimos" sobre
+ *   nada ter acontecido;
+ * - **descartar o último item** (jogar fora trabalho feito no morro) produzia
+ *   exatamente a mesma comemoração, enquanto o tátil ficava em silêncio de
+ *   propósito, porque a fila zerar por descarte é o oposto de a fila zerar por
+ *   entrega.
+ *
+ * Comemoração que acontece o tempo todo deixa de significar qualquer coisa, e
+ * leva junto a única vez em que ela significaria.
+ */
+describe("o clímax da fila zerando só acontece quando a fila zera de verdade", () => {
+  type Cronometrada = { duration?: number; useNativeDriver?: boolean };
+  let animacoes: Cronometrada[] = [];
+  const timingDeVerdade = Animated.timing;
+
+  beforeEach(() => {
+    animacoes = [];
+    /*
+      A medida é do que foi PEDIDO à camada de animação, e não de um pixel. É a
+      mesma técnica de `resposta-ao-toque.test.tsx`, e ela é a única que
+      consegue cobrar as três coisas que importam aqui: que o gesto exista, que
+      a duração venha do token (e não de um número solto, que escaparia do
+      desligamento por redução de movimento) e que ele rode na camada nativa.
+    */
+    jest.spyOn(Animated, "timing").mockImplementation(((valor: never, config: Cronometrada) => {
+      animacoes.push(config);
+      return timingDeVerdade(valor, config as never);
+    }) as never);
+  });
+
+  afterEach(() => { jest.restoreAllMocks(); });
+
+  /** O gesto de chegada do bloco, que é o que gasta um clímax inteiro. */
+  const doClimax = () => animacoes.filter((a) => a.duration === movimento.climax);
+
+  /**
+   * Tudo que dura mais que uma troca de estado comum.
+   *
+   * É assim que os casos negativos cobram, e não só pela chegada: uma
+   * comemoração meia-boca (o emblema saltando sem o bloco chegar) continuaria
+   * sendo uma comemoração, e um caso que olhasse apenas a chegada daria verde
+   * para ela. Fora do clímax, nada nesta tela tem licença para durar mais que
+   * `movimento.mudancaDeEstado`.
+   */
+  const gestosLongos = () => animacoes.filter((a) => (a.duration ?? 0) > movimento.mudancaDeEstado);
+
+  /**
+   * Leva a tela até o estado vazio, esvaziando a fila item a item.
+   *
+   * A espera pela saída do último cartão não é detalhe do teste: o vazio só
+   * monta depois que o cartão termina de desaparecer, e é exatamente nessa
+   * janela que uma releitura da fila poderia apagar a marca da comemoração.
+   */
+  async function esvaziarAFila(): Promise<void> {
+    mockItens = [];
+    await act(async () => { avisarQueMudou?.(); });
+    /* A partir daqui só o clímax anima: a saída do cartão já foi pedida. */
+    animacoes = [];
+    await act(async () => { jest.advanceTimersByTime(movimento.mudancaDeEstado); });
+  }
+
+  it("abrir a aba com a fila já vazia não comemora nada, nem na tela", async () => {
+    mockItens = [];
+    await abrirATela();
+
+    expect(screen.getByText("Tudo o que você fez já chegou")).toBeTruthy();
+    /* Nem o gesto inteiro, nem um pedaço dele: numa abertura fria não há nada
+       para animar, e a tela chega pronta. */
+    expect(animacoes).toEqual([]);
+  });
+
+  it("a fila zerando por entrega roda o clímax", async () => {
+    jest.useFakeTimers();
+    mockItens = [item({ id: "chegou", estado: "confirmado", protocolo: "2026/000111" })];
+    await abrirATela();
+
+    await esvaziarAFila();
+
+    expect(screen.getByText("Tudo o que você fez já chegou")).toBeTruthy();
+    expect(doClimax()).toHaveLength(1);
+  });
+
+  it("o gesto inteiro cabe no orçamento do token, e roda na camada nativa", async () => {
+    /*
+      São dois movimentos: o bloco que chega e o emblema que assenta com
+      excesso. O que este caso trava é que a soma dos dois tempos do emblema é
+      exatamente um clímax, e não um clímax e meio: `CLAUDE.md` autoriza "até
+      por volta de 500 ms" fora da resposta ao toque, e `movimento.climax` é o
+      número que essa autorização virou. Um gesto que passasse disso seria a
+      tela segurando o agente para se exibir.
+
+      E tudo em `useNativeDriver`: a linha de JavaScript pode estar drenando a
+      fila neste exato instante, e comemoração travada é pior que nenhuma.
+    */
+    jest.useFakeTimers();
+    mockItens = [item({ id: "chegou", estado: "confirmado", protocolo: "2026/000111" })];
+    await abrirATela();
+
+    await esvaziarAFila();
+
+    expect(animacoes).toHaveLength(3);
+    expect(animacoes.every((a) => a.useNativeDriver === true)).toBe(true);
+    const doEmblema = animacoes.filter((a) => a.duration !== movimento.climax);
+    expect(doEmblema).toHaveLength(2);
+    expect(doEmblema.reduce((soma, a) => soma + (a.duration ?? 0), 0)).toBe(movimento.climax);
+  });
+
+  it("descartar o último item esvazia a fila e NÃO comemora, nem na tela", async () => {
+    /*
+      O caso irmão do tátil, que já existia e passava sozinho. A fila zerar
+      porque o agente jogou fora a última coleta é o oposto de a fila zerar
+      porque a coordenação recebeu tudo, e a tela estava dizendo "conseguimos"
+      nos dois.
+    */
+    jest.useFakeTimers();
+    mockItens = [item({ id: "1", estado: "bloqueado" })];
+    await abrirATela();
+
+    await tocar("Descartar");
+    mockDescartar.mockImplementation(async () => { mockItens = []; });
+    animacoes = [];
+    await act(async () => { fireEvent.press(screen.getByTestId("dialogo-acao")); });
+    await act(async () => { jest.advanceTimersByTime(movimento.mudancaDeEstado); });
+
+    expect(screen.getByText("Tudo o que você fez já chegou")).toBeTruthy();
+    expect(gestosLongos()).toEqual([]);
+    expect(mockRetornoTatil).not.toHaveBeenCalled();
+  });
+
+  it("quem pede para reduzir movimento recebe a mesma tela, sem o gesto", async () => {
+    jest.useFakeTimers();
+    mockReduzir = true;
+    mockItens = [item({ id: "chegou", estado: "confirmado", protocolo: "2026/000111" })];
+    await abrirATela();
+
+    await esvaziarAFila();
+
+    expect(screen.getByText("Tudo o que você fez já chegou")).toBeTruthy();
+    expect(animacoes).toEqual([]);
+  });
+});
+
+/* ========================================================================
+   10. A coleta travada porque um arquivo sumiu do aparelho
+   ======================================================================== */
+
+/**
+ * O MAIOR RISCO JURÍDICO DO PRODUTO, com a saída que o motor passou a ter e a
+ * tela ainda não oferecia.
+ *
+ * As fotos sobem antes do envelope, de propósito, para o laudo nunca apontar
+ * para arquivo que não existe. A consequência é que um arquivo que o sistema
+ * operacional apagou do cache destrói o envelope INTEIRO: checklist, GPS,
+ * assinatura, observações e os órgãos a acionar. Uma manhã de trabalho no
+ * morro, perdida por causa de um arquivo de imagem.
+ *
+ * O motor ganhou `abrirMaoDasEvidenciasPerdidas`. Quem decide, porém, é o
+ * agente, e nunca o aplicativo: a perda vira uma frase num documento com brasão
+ * e um evento numa trilha que não se reescreve, assinados por quem esteve no
+ * local. E existe um caso pior, que é o que este bloco protege com mais
+ * cuidado: quando o arquivo perdido é a ASSINATURA, o laudo imprime a linha de
+ * assinatura em branco, indistinguível de uma vistoria em que ninguém assinou.
+ */
+describe("a coleta que não sobe porque um arquivo se perdeu", () => {
+  function foto(parcial: Partial<FotoNaFila> & { idempotencyKey: string }): FotoNaFila {
+    return {
+      uriLocal: `file:///${parcial.idempotencyKey}.jpg`,
+      nomeArquivo: `${parcial.idempotencyKey}.jpg`,
+      tipoConteudo: "image/jpeg",
+      tamanhoBytes: 1024,
+      capturadaEm: "2026-09-09T09:10:00.000Z",
+      ordem: 1,
+      papel: "foto" as PapelDoArquivo,
+      chave: null,
+      evidenciaId: null,
+      enviada: false,
+      ...parcial,
+    };
+  }
+
+  /** A coleta travada, com quantos arquivos perdidos o caso pedir. */
+  function travadaPorPerda(
+    { fotosPerdidas = 1, assinaturaPerdida = false, autor = AGENTE }: {
+      fotosPerdidas?: number; assinaturaPerdida?: boolean; autor?: AutorDaColeta | null;
+    } = {},
+  ): ItemDeVistoria {
+    const fotos: FotoNaFila[] = [];
+    for (let i = 0; i < fotosPerdidas; i += 1) {
+      fotos.push(foto({ idempotencyKey: `perdida-${i}`, perdida: true }));
+    }
+    if (assinaturaPerdida) {
+      fotos.push(foto({ idempotencyKey: "assinatura", papel: "assinatura", perdida: true }));
+    }
+    /* Uma foto inteira, que já subiu: ela é o que separa "sumiu tudo" de
+       "sumiu isto", e é o que impede a contagem de olhar a lista inteira. */
+    fotos.push(foto({ idempotencyKey: "essa-subiu", enviada: true }));
+    return item({
+      id: "coleta-com-perda",
+      estado: "bloqueado",
+      protocolo: "2026/000321",
+      autor,
+      fotos,
+      ultimaFalha: {
+        codigo: CODIGO_ARQUIVO_SUMIU,
+        mensagem: "2 registros desta vistoria não estão mais neste aparelho, então ela "
+          + "não pode ser enviada inteira. Você pode enviar a vistoria sem eles: o laudo "
+          + "vai declarar que houve registro capturado em campo que não pôde ser recuperado.",
+        campos: [],
+        permanente: true,
+        em: "2026-09-09T10:00:00.000Z",
+      },
+    });
+  }
+
+  it("o cartão não repete o parágrafo de quarenta palavras que o motor escreve", async () => {
+    /*
+      A frase do motor diz as coisas certas e diz TODAS de uma vez: o número, o
+      que sumiu e a saída, num nó só de quarenta palavras. Ela existe para o
+      caso de escapar por outro caminho e nunca virar texto em inglês na rua, e
+      não para ser o cartão.
+
+      O teto é o mesmo do caso 1 deste arquivo, e a razão também: o que se
+      proíbe é o PARÁGRAFO. Aqui a mesma informação se distribui, quem, por quê
+      e o que fazer, cada um no seu lugar.
+    */
+    mockItens = [travadaPorPerda({ fotosPerdidas: 2 })];
+    await abrirATela();
+
+    const compridos = textosNaTela()
+      .map((t) => ({ texto: t, palavras: t.trim().split(/\s+/).length }))
+      .filter((t) => t.palavras > 30);
+
+    expect(compridos).toEqual([]);
+  });
+
+  it("o selo diz que falta uma DECISÃO, e não que falta atenção", async () => {
+    /*
+      "Precisa de atenção" é o selo de quem espera alguém tentar de novo. Aqui
+      tentar de novo nunca vai resolver, porque arquivo apagado não volta, e a
+      única pessoa que pode desatar isto é a que está segurando o aparelho.
+    */
+    mockItens = [travadaPorPerda()];
+    await abrirATela();
+
+    const selo = screen.getByLabelText("Protocolo 2026/000321: Precisa de decisão");
+    expect(within(selo).getByText("Precisa de decisão")).toBeTruthy();
+    expect(screen.queryByText("Precisa de atenção")).toBeNull();
+  });
+
+  it("diz quantas fotografias sumiram, e que não há como recuperá-las", async () => {
+    mockItens = [travadaPorPerda({ fotosPerdidas: 2 })];
+    await abrirATela();
+
+    expect(
+      screen.getByText("2 fotografias desta vistoria não estão mais neste aparelho, "
+        + "e não há como recuperá-las."),
+    ).toBeTruthy();
+  });
+
+  it("quando é a assinatura que sumiu, ela é dita com todas as letras", async () => {
+    /*
+      Contá-la como "mais um registro" seria esconder a única perda que muda o
+      documento. O laudo diz o nome dela, e a tela precisa dizer antes.
+    */
+    mockItens = [travadaPorPerda({ fotosPerdidas: 0, assinaturaPerdida: true })];
+    await abrirATela();
+
+    expect(
+      screen.getByText("A assinatura de quem estava no local não está mais neste "
+        + "aparelho, e não há como recuperá-la."),
+    ).toBeTruthy();
+  });
+
+  it("a saída é oferecida sem imperativo: quem decide é o agente", async () => {
+    mockItens = [travadaPorPerda()];
+    await abrirATela();
+
+    expect(screen.getByText("O que fazer")).toBeTruthy();
+    expect(
+      screen.getByText("Você pode enviar a vistoria assim mesmo: o resto da coleta "
+        + "sobe inteiro, e o laudo declara a perda."),
+    ).toBeTruthy();
+    expect(screen.getByText("Enviar sem os registros perdidos")).toBeTruthy();
+  });
+
+  it("NUNCA com um toque só: o botão pergunta antes de autorizar", async () => {
+    /*
+      A regra desta tela para o descarte vale aqui pelo mesmo motivo, e com mais
+      peso: o descarte apaga uma coleta neste aparelho, e isto escreve numa
+      trilha append-only, em nome de quem assinou o laudo.
+    */
+    mockItens = [travadaPorPerda()];
+    await abrirATela();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("abrir-mao-coleta-com-perda"));
+    });
+
+    expect(mockAbrirMao).not.toHaveBeenCalled();
+    expect(screen.getByText("Enviar sem os registros perdidos?")).toBeTruthy();
+  });
+
+  it("a pergunta diz o protocolo, o número e o que o laudo vai declarar", async () => {
+    mockItens = [travadaPorPerda({ fotosPerdidas: 2 })];
+    await abrirATela();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("abrir-mao-coleta-com-perda"));
+    });
+
+    expect(
+      screen.getByText("O protocolo 2026/000321 sobe sem 2 registros desta vistoria: "
+        + "os arquivos não estão mais no aparelho."),
+    ).toBeTruthy();
+    expect(screen.getByText(/O laudo vai declarar que houve registro capturado em campo/))
+      .toBeTruthy();
+    expect(screen.getByText(/a trilha de auditoria não se reescreve/)).toBeTruthy();
+  });
+
+  it("com a assinatura entre as perdas, a pergunta diz o que acontece com a linha do laudo", async () => {
+    /*
+      O caso pior, e ele tem bloco próprio dentro da pergunta em vez de uma
+      oração no fim do parágrafo. Sem o traço, a linha de assinatura sai vazia,
+      e vazia ela é indistinguível de "ninguém assinou": a lacuna mais grave que
+      aquele documento pode ter. O laudo escreve a causa ao lado da linha, e
+      quem autoriza precisa saber disso antes de autorizar.
+    */
+    mockItens = [travadaPorPerda({ fotosPerdidas: 1, assinaturaPerdida: true })];
+    await abrirATela();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("abrir-mao-coleta-com-perda"));
+    });
+
+    expect(screen.getByText("A assinatura está entre eles")).toBeTruthy();
+    expect(screen.getByText(/sai sem o traço, e o documento diz que a causa foi esta perda/))
+      .toBeTruthy();
+  });
+
+  it("sem a assinatura entre as perdas, a pergunta não inventa esse aviso", async () => {
+    mockItens = [travadaPorPerda({ fotosPerdidas: 2 })];
+    await abrirATela();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("abrir-mao-coleta-com-perda"));
+    });
+
+    expect(screen.queryByText("A assinatura está entre eles")).toBeNull();
+  });
+
+  it("confirmada, chama o motor e confirma com o número QUE O MOTOR devolveu", async () => {
+    /*
+      O número da confirmação não é o da pergunta. Entre uma coisa e outra há
+      uma releitura do disco, e quem responde pelo que subiu é quem gravou: uma
+      confirmação que repetisse o número da tela estaria afirmando, com cara de
+      recibo, algo que ela não conferiu. Aqui o motor devolve TRÊS para uma
+      pergunta que falava de duas, e é o três que aparece.
+    */
+    mockAbrirMao = jest.fn(async (_id: string) => ({ liberado: true, perdidas: 3 }));
+    mockItens = [travadaPorPerda({ fotosPerdidas: 2 })];
+    await abrirATela();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("abrir-mao-coleta-com-perda"));
+    });
+
+    await act(async () => { fireEvent.press(screen.getByTestId("dialogo-acao")); });
+
+    expect(mockAbrirMao).toHaveBeenCalledWith("coleta-com-perda");
+    expect(screen.getByText("Pronto")).toBeTruthy();
+    expect(
+      screen.getByText("A vistoria voltou para a fila sem 3 registros. O laudo vai "
+        + "declarar a perda."),
+    ).toBeTruthy();
+  });
+
+  it("recusada pelo motor, a tela NÃO diz 'Pronto'", async () => {
+    /*
+      O portão do motor recusa o que já não está esperando esta decisão. Uma
+      confirmação verde em cima de uma recusa seria a tela mentindo na única
+      tela do produto que existe para não mentir.
+    */
+    mockAbrirMao = jest.fn(async (_id: string) => ({ liberado: false, perdidas: 0 }));
+    mockItens = [travadaPorPerda()];
+    await abrirATela();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("abrir-mao-coleta-com-perda"));
+    });
+
+    await act(async () => { fireEvent.press(screen.getByTestId("dialogo-acao")); });
+
+    expect(screen.queryByText("Pronto")).toBeNull();
+    expect(screen.getByText("Nada mudou")).toBeTruthy();
+    expect(screen.getByText(/Nada foi autorizado/)).toBeTruthy();
+  });
+
+  it("coleta de outro agente não oferece a saída, porque a perda é assinada", async () => {
+    /*
+      Abrir mão da prova é ato do autor da vistoria: é o nome dele que vai no
+      laudo onde a perda fica declarada para sempre. Oferecer isso a quem pegou
+      o aparelho de plantão seria a assinatura trocada que o carimbo de autoria
+      existe para impedir, agora numa declaração de perda de prova.
+    */
+    mockItens = [travadaPorPerda({ autor: OUTRO_AGENTE })];
+    await abrirATela();
+
+    expect(screen.queryByTestId("abrir-mao-coleta-com-perda")).toBeNull();
+    expect(screen.queryByText("Enviar sem os registros perdidos")).toBeNull();
+  });
+
+  it("bloqueio que não é perda de arquivo continua sem a saída", async () => {
+    /*
+      A prova do portão: o botão nasce do código da última falha, e não do
+      estado. Um 409 de conflito não pode oferecer ao agente jogar fora uma
+      fotografia que está inteira no aparelho.
+    */
+    mockItens = [item({
+      id: "outro-bloqueio",
+      estado: "bloqueado",
+      protocolo: "2026/000999",
+      ultimaFalha: {
+        codigo: "conflito", mensagem: "O servidor recusou.", campos: [],
+        permanente: true, em: "2026-09-09T10:00:00.000Z",
+      },
+    })];
+    await abrirATela();
+
+    expect(screen.queryByText("Enviar sem os registros perdidos")).toBeNull();
+    expect(screen.getByText("Precisa de atenção")).toBeTruthy();
+  });
+
+  it("a régua do peso visual continua valendo neste cartão", async () => {
+    /*
+      A confirmação do toque e a pergunta não podem acender um segundo bloco em
+      cima da pílula vermelha do estado. Quem pinta continua sendo o estado, no
+      cartão, e o alerta da assinatura, dentro da pergunta, que é outra peça.
+    */
+    mockItens = [travadaPorPerda({ fotosPerdidas: 2 })];
+    await abrirATela();
+
+    const preenchidos = () =>
+      contarPreenchidos(screen.toJSON(), temaEscuro, (e) => StyleSheet.flatten(e as never))
+        .sort();
+
+    expect(preenchidos()).toEqual([temaEscuro.perigoFundo, temaEscuro.perigoFundo]);
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("abrir-mao-coleta-com-perda"));
+    });
+    await act(async () => { fireEvent.press(screen.getByTestId("dialogo-acao")); });
+
     expect(screen.getByText("Pronto")).toBeTruthy();
     expect(preenchidos()).toEqual([temaEscuro.perigoFundo, temaEscuro.perigoFundo]);
   });

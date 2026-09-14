@@ -9,9 +9,9 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { File } from "expo-file-system";
 import {
   CAMPOS_PESSOAS, CHAVE_ACIONAR_ORGAO, CHECKLIST_OBRIGATORIO, CHECKLIST_VISTORIA,
-  ROTULO_TIPO_COBRADE,
+  ROTULO_MOTIVO_DE_DEVOLUCAO, ROTULO_TIPO_COBRADE,
   montarMinuta,
-  type EnvelopeSincronizacao, type PessoasAtingidas,
+  type EnvelopeSincronizacao, type MotivoDeDevolucao, type PessoasAtingidas,
 } from "@dc360/shared";
 import type { ColetaLocal, FotoLocal } from "@dc360/campo";
 import {
@@ -23,7 +23,12 @@ import {
 import { arquivarColeta, coletaDe, marcarColetada } from "../../../dados/coletas";
 import { guardarFotoNoAparelho } from "../../../dados/evidencia-no-disco";
 import { obterFila } from "../../../dados/fila";
-import { abrirNoMapa } from "../../../dados/mapa";
+import {
+  buscarHistoricoDaCasa, historicoTemConteudo, type HistoricoDaCasa,
+} from "../../../dados/historico-da-casa";
+import {
+  PRECISAO_MINIMA_M, abrirNoMapa, distanciaEmMetros, distanciaEmTexto, type Ponto,
+} from "../../../dados/mapa";
 import {
   descartarRascunho, lerRascunho, rascunhoNovo, salvarRascunho, type Rascunho,
 } from "../../../dados/rascunho";
@@ -31,15 +36,17 @@ import { useSessao } from "../../../dados/sessao";
 import { Assinatura } from "../../../ui/Assinatura";
 import { MinutaDoLaudo } from "../../../ui/MinutaDoLaudo";
 import {
-  Aviso, Botao, Cartao, Carregando, Separador, Tocavel, Txt, Vazio, useTema,
+  Aviso, Botao, Cartao, Carregando, Dado, Separador, Tocavel, Txt, Vazio, useTema,
 } from "../../../ui/componentes";
 import { Campo, CampoDeTexto } from "../../../ui/Campo";
 import { Chip, SeloSeveridade } from "../../../ui/Chip";
 import { Dialogo } from "../../../ui/Dialogo";
 import {
   IconeAlerta, IconeAssinatura, IconeChecklist, IconeEnvio, IconeFoto, IconeGps,
-  IconeLocalizacao, IconeOrgao, IconePerigo, IconePrazoVencido, IconeSucesso,
+  IconeLocalizacao, IconeOrgao, IconePerigo, IconePrazoVencido, IconeSemSinal,
+  IconeSucesso, IconeTarefas,
 } from "../../../ui/icones";
+import { MapaDoImovel, useMapaDoMunicipio } from "../../../ui/mapa";
 import { OrgaosParaAcionar } from "../../../ui/OrgaosParaAcionar";
 import {
   borda, easing, elevacao, espaco, icone, movimento, peso, raio, toque, visor } from "../../../ui/tokens";
@@ -145,6 +152,69 @@ export function secaoDaFalta(falta: string): SecaoDaVistoria | null {
 }
 
 /**
+ * O par `{lat, lng}` do rascunho vira o `{latitude, longitude}` do mapa.
+ *
+ * Os dois nomes existem por razões diferentes e nenhum dos dois vai mudar: o
+ * curto é o que o envelope de sincronização manda ao servidor há meses, e o
+ * longo é o que o SDK de mapa entende. Uma função com nome no meio é mais
+ * barata que uma migração de formato, e muito mais barata que dois campos com
+ * sentidos trocados num objeto de coordenada.
+ */
+function comoPonto(c: { lat: number; lng: number } | null | undefined): Ponto | null {
+  if (!c) return null;
+  if (!Number.isFinite(c.lat) || !Number.isFinite(c.lng)) return null;
+  return { latitude: c.lat, longitude: c.lng };
+}
+
+/**
+ * O PINO DA COORDENAÇÃO CONTRA O GPS DO AGENTE, medido.
+ *
+ * O alfinete que o operador colou com o telefone no ombro e o lugar onde o
+ * imóvel está divergem o tempo todo, e **o agente é a fonte mais confiável
+ * disso e era o único que não conseguia reportar**: a leitura do aparelho
+ * ficava guardada só no rascunho, e do envelope subia apenas a PRECISÃO de uma
+ * medida cujo valor nunca viajava.
+ *
+ * O que esta função responde é estreito de propósito: quanto os dois pontos
+ * distam, e se essa distância é dizível. Ela **não decide nada** sobre corrigir
+ * a ocorrência, e a tela também não: a decisão da frente do servidor é que a
+ * coordenada da vistoria é gravada como dado DA VISTORIA e não corrige a
+ * coordenada da ocorrência. Corrigir exige motivo escrito e decisão de pessoa
+ * (`POST /ocorrencias/:id/coordenada`), e uma correção silenciosa disparada por
+ * uma revistoria seria a trilha registrando uma decisão que ninguém tomou.
+ *
+ * ## Por que `relevante` não é só "maior que zero"
+ *
+ * Dois pontos de GPS nunca coincidem. Anunciar "a 4 m do ponto informado"
+ * quando o próprio aparelho declara erro de cinquenta metros é o produto
+ * afirmando uma precisão que ele não tem, e é assim que se ensina o agente a
+ * ignorar o aviso no dia em que a divergência for de trezentos metros e a casa
+ * for outra.
+ *
+ * O piso é o MAIOR entre a precisão que o aparelho declarou e
+ * `PRECISAO_MINIMA_M`, que é o mesmo número que o plano esquemático já usa para
+ * decidir se desenha rumo. Precisão ausente (o aparelho não soube dizer) cai no
+ * piso fixo, e não em zero: não saber o erro não é ter erro nenhum.
+ */
+export function divergenciaDeCoordenada(estado: {
+  daCoordenacao: Ponto | null;
+  doAgente: Ponto | null;
+  precisaoMetros: number | null;
+}): { metros: number; texto: string; relevante: boolean } | null {
+  const { daCoordenacao, doAgente } = estado;
+  if (!daCoordenacao || !doAgente) return null;
+
+  const metros = distanciaEmMetros(daCoordenacao, doAgente);
+  if (!Number.isFinite(metros)) return null;
+
+  const piso = Math.max(
+    PRECISAO_MINIMA_M,
+    Number.isFinite(estado.precisaoMetros ?? NaN) ? (estado.precisaoMetros ?? 0) : 0,
+  );
+  return { metros, texto: distanciaEmTexto(metros), relevante: metros > piso };
+}
+
+/**
  * Um requisito de conclusão, do ponto de vista de QUEM ESTÁ PREENCHENDO.
  *
  * `faltaParaConcluir` responde "dá para concluir, e o que impede". Esta lista
@@ -184,6 +254,256 @@ function TituloDoCartao({ desenho, texto }: { desenho: ReactNode; texto: string 
       {desenho}
       <Txt variante="h3">{texto}</Txt>
     </View>
+  );
+}
+
+/**
+ * O MAPA DESTA TELA, e por que ele é um componente em vez de um gancho aqui.
+ *
+ * `useMapaDoMunicipio` recebe `string | null`, e `null` para ele é uma
+ * DECISÃO ("não há a quem perguntar"), não uma espera: ele responde na hora,
+ * em modo esquemático, com a legenda dizendo que nenhuma coordenada sai do
+ * aparelho. Ler o token do armazenamento seguro, porém, é assíncrono.
+ *
+ * Chamar o gancho lá em cima, com `tokenDaSessao ?? null`, produzia
+ * exatamente o defeito que o painel pagou para aprender em 13/09: a primeira
+ * passada, ainda sem token, fixava a autorização em vazio; quando o token
+ * chegava, o gancho voltava a perguntar ao servidor, mas a decisão JÁ ERA
+ * "esquemático", e ela só virava "Google" quando a resposta chegasse. Entre um
+ * instante e outro a tela afirmava em voz alta "nenhuma coordenada sai deste
+ * aparelho" e um segundo depois desenhava o mapa do Google.
+ *
+ * Isso não é piscada de interface: a legenda de modo é a promessa da seção 2.2
+ * do `SUBPROCESSADORES.md` virada tela, e é por ela que o encarregado de dados
+ * do município confere, olhando, se a coordenada das famílias está saindo
+ * dali. Uma legenda que muda sozinha já disse uma coisa falsa.
+ *
+ * Num componente próprio, MONTADO só depois de o token estar lido, a primeira
+ * passada do gancho já acontece com o token na mão: a decisão nasce `null`
+ * (que é "ainda não sei"), e `MapaDoImovel` desenha a espera com porta de
+ * saída em vez de desenhar um mapa que vai se desmentir.
+ */
+function MapaDaVistoria({ token, imovel, agente, rotulo }: {
+  /** Já lido: `null` significa sessão ausente, e nunca "ainda estou lendo". */
+  token: string | null;
+  imovel: Ponto;
+  agente: Ponto | null;
+  rotulo: string;
+}) {
+  const mapa = useMapaDoMunicipio(token);
+  return <MapaDoImovel imovel={imovel} agente={agente} rotulo={rotulo} mapa={mapa} />;
+}
+
+/**
+ * A data de um registro do passado, curta e em português.
+ *
+ * Dia e mês bastam para o que este cartão conta ("já estiveram aqui dia 3"), e
+ * a hora entra porque duas visitas no mesmo dia acontecem: uma equipe sobe de
+ * manhã, não acha ninguém, e outra volta à tarde. Data inválida vira texto
+ * vazio em vez de "Invalid Date": o corpo vem do servidor, e um campo estranho
+ * não pode escrever inglês numa tela de campo.
+ */
+function quando(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+  });
+}
+
+/**
+ * O QUE JÁ ACONTECEU NESTA CASA.
+ *
+ * `GET /ocorrencias/:id` e `GET /evidencias/ocorrencia/:id` existem desde
+ * sempre, exigem só autenticação e o aplicativo nunca chamou nenhuma das duas.
+ * Hoje o agente bate na porta sem saber que outra equipe já esteve ali, que já
+ * houve uma devolução com motivo escrito, que há providência encaminhada a um
+ * órgão, ou que o mesmo endereço já produziu outro protocolo.
+ *
+ * ## A ausência não atrapalha a coleta, e é isto que o desenho garante
+ *
+ * O cartão fica ACIMA do formulário porque a informação é de chegada: ela muda
+ * a conversa na porta, e depois de o agente começar a preencher já não serve
+ * para quase nada. E ele não bloqueia nada: quando o histórico não desce, a
+ * peça inteira vira uma linha discreta dizendo isso, sem tarja vermelha e sem
+ * botão de tentar de novo. Um "não deu, tente" no alto de uma tela cuja
+ * promessa é "nada aqui depende de sinal" ensina o agente a esperar sinal para
+ * trabalhar, que é o contrário do produto.
+ *
+ * Quando não há nada a contar, o cartão não existe. A tela passa de dois mil
+ * pontos, e um cartão que diz "nada" ocupa o lugar mais caro dela.
+ *
+ * No nível do módulo, e não dentro da tela, pela mesma razão de
+ * `TituloDoCartao`: componente declarado dentro de outro é um tipo novo a cada
+ * renderização, e o React desmonta e remonta a subárvore inteira a cada toque
+ * do checklist.
+ */
+function OQueJaAconteceuNestaCasa({ resultado }: {
+  resultado: { estado: "chegou"; historico: HistoricoDaCasa } | { estado: "nao-chegou" };
+}) {
+  const tema = useTema();
+
+  if (resultado.estado === "nao-chegou") {
+    return (
+      <Cartao>
+        <View
+          testID="historico-nao-chegou"
+          style={{ flexDirection: "row", alignItems: "center", gap: espaco.e3 }}
+        >
+          <IconeSemSinal cor={tema.textoDiscreto} tamanho={icone.rotulo} />
+          <View style={{ flex: 1 }}>
+            <Txt variante="corpoP" discreto>
+              Não deu para consultar o histórico deste endereço agora. Isso não
+              atrapalha a coleta: siga normalmente, nada aqui depende de sinal.
+            </Txt>
+          </View>
+        </View>
+      </Cartao>
+    );
+  }
+
+  const h = resultado.historico;
+  if (!historicoTemConteudo(h)) return null;
+
+  const motivo = ROTULO_MOTIVO_DE_DEVOLUCAO[h.devolucao?.motivo as MotivoDeDevolucao]
+    ?? h.devolucao?.motivo;
+
+  return (
+    <Cartao>
+      <TituloDoCartao
+        desenho={<IconeTarefas cor={tema.textoDiscreto} tamanho={icone.acao} />}
+        texto="O que já aconteceu nesta casa"
+      />
+
+      {h.vistoriaAnterior && (
+        <View
+          testID="vistoria-anterior"
+          style={{ flexDirection: "row", gap: espaco.e3 }}
+        >
+          <IconeChecklist cor={tema.textoDiscreto} tamanho={icone.rotulo} />
+          <View style={{ flex: 1, gap: espaco.e1 }}>
+            <Txt variante="corpoP" peso={peso.forte}>
+              {/*
+                O NOME de quem fez é o que muda a conversa na porta: "a Defesa
+                Civil já esteve aqui" é uma frase, "o Carlos esteve aqui dia 3"
+                é outra. Nulo quando a conta saiu do cadastro, e aí a linha
+                continua existindo sem o nome, porque o FATO da visita anterior
+                é a parte que não pode sumir.
+              */}
+              Vistoria em {quando(h.vistoriaAnterior.coletada_em)}
+              {h.vistoriaAnterior.agente_nome ? ` por ${h.vistoriaAnterior.agente_nome}` : ""}
+            </Txt>
+            {h.vistoriaAnterior.assinante_nome && (
+              <Txt variante="legenda" discreto>
+                Assinada por {h.vistoriaAnterior.assinante_nome}
+              </Txt>
+            )}
+            {h.vistoriaAnterior.observacoes && (
+              <Txt variante="corpoP" discreto>{h.vistoriaAnterior.observacoes}</Txt>
+            )}
+          </View>
+        </View>
+      )}
+
+      {h.fotosDeAntes.length > 0 && (
+        <View style={{ gap: espaco.e2 }} testID="fotos-de-antes">
+          <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e3 }}>
+            <IconeFoto cor={tema.textoDiscreto} tamanho={icone.rotulo} />
+            <Txt variante="corpoP" peso={peso.forte}>
+              {h.fotosDeAntes.length === 1
+                ? "1 fotografia de antes"
+                : `${h.fotosDeAntes.length} fotografias de antes`}
+            </Txt>
+          </View>
+          {/*
+            As miniaturas são a única parte deste cartão que depende de sinal
+            DEPOIS de o dossiê chegar: o endereço é assinado e de vida curta, e
+            os bytes vêm do armazenamento. Sem rede elas ficam vazias, e a
+            contagem acima continua dizendo quantas existem, que é a informação
+            que decide se vale procurar a mesma parede.
+          */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={{ flexDirection: "row", gap: espaco.e2 }}>
+              {h.fotosDeAntes.map((f) => (
+                <Image
+                  key={f.id}
+                  source={{ uri: f.url }}
+                  style={{ width: MINIATURA, height: MINIATURA, borderRadius: raio.normal }}
+                  accessibilityLabel={
+                    f.legenda
+                      ? `Fotografia anterior: ${f.legenda}`
+                      : `Fotografia ${f.ordem + 1} da vistoria anterior`
+                  }
+                />
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+      )}
+
+      {h.providencias.length > 0 && (
+        <View style={{ gap: espaco.e2 }} testID="providencias-anteriores">
+          <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e3 }}>
+            <IconeOrgao cor={tema.textoDiscreto} tamanho={icone.rotulo} />
+            <Txt variante="corpoP" peso={peso.forte}>Já encaminhado a órgão</Txt>
+          </View>
+          {h.providencias.map((p) => (
+            <Txt key={p.id} variante="corpoP" discreto>
+              {p.orgao_destino}: {p.descricao}
+              {p.respondida_em ? ` (respondido em ${quando(p.respondida_em)})` : " (sem resposta até agora)"}
+            </Txt>
+          ))}
+        </View>
+      )}
+
+      {h.vinculadas.length > 0 && (
+        <View style={{ gap: espaco.e2 }} testID="ocorrencias-vinculadas">
+          <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e3 }}>
+            <IconeLocalizacao cor={tema.textoDiscreto} tamanho={icone.rotulo} />
+            <Txt variante="corpoP" peso={peso.forte}>
+              Outros protocolos ligados a este endereço
+            </Txt>
+          </View>
+          {h.vinculadas.map((v) => (
+            <View key={v.id} style={{ flexDirection: "row", gap: espaco.e2, flexWrap: "wrap" }}>
+              <Txt variante="corpoP" mono negrito>{v.protocolo}</Txt>
+              <Txt variante="corpoP" discreto>{quando(v.criado_em)}</Txt>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/*
+        A DEVOLUÇÃO ANTERIOR, e ela é o item mais acionável do cartão.
+
+        "Não havia ninguém no local" ou "risco para a equipe no local" mudam o
+        que o agente faz nos próximos cinco minutos, e hoje ele chega sem saber
+        disso. Peso leve porque é histórico e não alarme da coleta em curso, e
+        porque é o único bloco com cor deste cartão.
+
+        `observacao_removida_em` preenchido significa que o texto livre foi
+        descartado pelo prazo de retenção que o município fixa, e NÃO que nunca
+        existiu. Dizer "sem observação" sobre uma frase descartada de propósito
+        é afirmar um fato falso numa tela que vira prova.
+      */}
+      {h.devolucao && (
+        <Aviso
+          tom="alerta"
+          peso="leve"
+          titulo={`Esta tarefa já voltou uma vez: ${motivo}`}
+        >
+          {h.devolucao.observacao
+            ? h.devolucao.observacao
+            : h.devolucao.observacao_removida_em
+              ? "A observação escrita pela equipe foi descartada pelo prazo de guarda do município."
+              : "A equipe não escreveu observação."}
+          {h.devolucao.devolvida_por_nome
+            ? ` Devolvida por ${h.devolucao.devolvida_por_nome}, em ${quando(h.devolucao.decidida_em)}.`
+            : ` Devolvida em ${quando(h.devolucao.decidida_em)}.`}
+        </Aviso>
+      )}
+    </Cartao>
   );
 }
 
@@ -318,6 +638,54 @@ export default function TelaDeVistoria() {
   /** Enquanto true, o ScrollView desta tela nao rola: o dedo esta assinando. */
   const [desenhando, setDesenhando] = useState(false);
   const cameraRef = useRef<CameraView>(null);
+
+  /*
+    O TOKEN DA SESSÃO, e por que ele tem TRÊS estados e não dois.
+
+    Ele serve às duas ligações com a rede que existem nesta tela e que não
+    servem à coleta: a autorização do mapa e o histórico da casa. Nenhuma das
+    duas é lida por `obterToken()` na hora do uso, porque as duas acontecem
+    dentro de renderização e `obterToken` é assíncrono.
+
+    `undefined` é "ainda lendo", `null` é "não há sessão" e a string é a
+    sessão. A diferença entre os dois primeiros não é preciosismo: `null` é uma
+    resposta, e as duas peças que dependem deste token tratam resposta e espera
+    de formas opostas. Ver o cabeçalho de `MapaDaVistoria`, logo acima, para o
+    que a confusão dos dois custava na legenda de modo do mapa.
+  */
+  const [tokenDaSessao, setTokenDaSessao] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    let vivo = true;
+    void (async () => {
+      try {
+        const t = await obterToken();
+        if (vivo) setTokenDaSessao(t ?? null);
+      } catch {
+        // Sessão ilegível é sessão ausente para efeito de mapa: não autoriza.
+        if (vivo) setTokenDaSessao(null);
+      }
+    })();
+    return () => { vivo = false; };
+  }, [obterToken]);
+
+  /*
+    O QUE JÁ ACONTECEU NESTA CASA: enriquecimento oportunista, e a palavra
+    oportunista é o contrato inteiro.
+
+    Esta tela abre do DISCO e não depende de sinal, e isso não muda aqui. O
+    histórico chega se chegar; a ausência dele não atrasa a abertura, não
+    bloqueia campo nenhum, não vai para a tarja vermelha da coleta e não impede
+    concluir. `buscarHistoricoDaCasa` não estoura em nenhum caminho, de
+    propósito, e o motivo está escrito no cabeçalho daquele arquivo.
+
+    `undefined` é "ainda não perguntei ou ainda não voltou", e por isso o cartão
+    simplesmente não existe até haver resposta: uma linha "consultando..." no
+    alto de um formulário que já está pronto para ser preenchido é ruído numa
+    tela em que o agente tem alguém esperando na porta.
+  */
+  const [historico, setHistorico] = useState<
+    { estado: "chegou"; historico: HistoricoDaCasa } | { estado: "nao-chegou" } | undefined
+  >(undefined);
 
   const reduzirMovimento = useReducaoDeMovimento();
 
@@ -571,6 +939,36 @@ export default function TelaDeVistoria() {
   }, [id, navegacao]);
 
   useEffect(() => { void carregarDoDisco(); }, [carregarDoDisco]);
+
+  /*
+    A ida à rede que o histórico pede, e as três guardas dela.
+
+    1. **Só depois de a ocorrência existir.** Antes disso a tela pode estar na
+       de "ainda não baixada" ou na de erro, e consultar o dossiê de um
+       identificador que este aparelho não conhece é gastar sinal para
+       responder a ninguém.
+    2. **Só depois de o token ter sido lido.** `undefined` é "ainda lendo", e
+       perguntar sem token devolveria "não chegou" na hora, deixando o cartão
+       de aviso na tela para sempre por causa de uma corrida com o
+       armazenamento seguro.
+    3. **`vivo`**, porque o agente sai desta tela o tempo todo (e ela vive
+       quarenta minutos). Sem a guarda, o retorno de uma consulta lenta cairia
+       num componente desmontado.
+
+    Roda UMA vez por ocorrência, e não a cada foco: o que ela traz é o passado,
+    e o passado não muda enquanto o agente está na porta. Uma releitura a cada
+    volta do segundo plano gastaria a mesma janela de sinal de que a
+    sincronização precisa, pela rede da rua, para reler o que já está na tela.
+  */
+  useEffect(() => {
+    if (!ocorrencia || tokenDaSessao === undefined) return;
+    let vivo = true;
+    void (async () => {
+      const resultado = await buscarHistoricoDaCasa(tokenDaSessao, ocorrencia.id);
+      if (vivo) setHistorico(resultado);
+    })();
+    return () => { vivo = false; };
+  }, [ocorrencia, tokenDaSessao]);
 
   /**
    * Busca a lista de tarefas e tenta abrir de novo.
@@ -848,6 +1246,26 @@ export default function TelaDeVistoria() {
               && rascunho.orgaosParaAcionar.length > 0
             ? { orgaosParaAcionar: rascunho.orgaosParaAcionar }
             : {}),
+          /*
+            A COORDENADA DA VISTORIA, e ela não viajava.
+
+            Daqui subia só `gpsPrecisaoMetros`, logo abaixo: a QUALIDADE de uma
+            medida cujo VALOR ficava no aparelho. O ponto ia junto de cada
+            FOTOGRAFIA, como metadado de imagem, e nunca como dado da vistoria,
+            então uma vistoria sem foto subia sem coordenada nenhuma e o laudo
+            imprimia o alfinete que o operador colou pelo telefone.
+
+            Opcional, e nunca obrigatória: vistoria em vão de morro com o céu
+            tapado fica sem leitura, e exigir o ponto faria a coleta ser
+            recusada exatamente onde ela é mais difícil de refazer. O esquema
+            compartilhado corta em seis casas (`coordenadaGravadaSchema`), que
+            é o mesmo teto que o banco cobra.
+
+            O que o servidor faz com ela é estreito e a tela obedece: é dado DA
+            VISTORIA, e não corrige a coordenada da ocorrência. Ver
+            `divergenciaDeCoordenada`, no alto deste arquivo.
+          */
+          ...(rascunho.coordenada ? { coordenada: rascunho.coordenada } : {}),
           gpsPrecisaoMetros: rascunho.gpsPrecisaoMetros,
           assinanteNome: rascunho.assinanteNome.trim(),
           // A chave do traço é resolvida pela fila, junto com as fotos: aqui
@@ -1220,13 +1638,19 @@ export default function TelaDeVistoria() {
           responde uma pergunta que o agente faria à fila de envio se não
           estivesse escrita aqui.
         */}
-        <View style={{
-          ...elevacao(tema).cartao,
-          borderRadius: raio.cartao,
-          padding: espaco.e4,
-          gap: espaco.e3,
-          alignSelf: "stretch",
-        }}>
+        {/*
+          O RESUMO PASSA A SER UM OBJETO, e não um retângulo com fundo.
+
+          Ele era um `View` com `elevacao(tema).cartao` copiado à mão, ou seja,
+          a superfície de um cartão comum no momento mais alto do produto. A
+          emenda de 2026-08-20 do `CLAUDE.md` autoriza elevação com mais
+          liberdade exatamente aqui ("momentos de confirmação"), e `Cartao`
+          passou a expor isso como nível em vez de deixar cada tela escrever a
+          própria sombra. Quarenta minutos de morro terminam nesta peça: ela é
+          a única que flutua nesta tela, e é a única que deve.
+        */}
+        <View style={{ alignSelf: "stretch" }}>
+        <Cartao nivel="flutuante">
           <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e3 }}>
             <IconeChecklist cor={tema.textoDiscreto} tamanho={icone.rotulo} />
             <Txt variante="corpoP">
@@ -1247,6 +1671,7 @@ export default function TelaDeVistoria() {
               </Txt>
             </View>
           </View>
+        </Cartao>
         </View>
 
         <Aviso tom="info" titulo="Ela sobe sozinha">
@@ -1515,6 +1940,35 @@ export default function TelaDeVistoria() {
 
   const temCoordenada = ocorrencia.latitude != null && ocorrencia.longitude != null;
 
+  /*
+    OS DOIS PONTOS DESTA VISTORIA, e eles são dois de verdade.
+
+    `pontoDoImovel` é onde a coordenação disse que o imóvel está: quase sempre
+    um alfinete colado por quem estava ao telefone, com o relato de outra
+    pessoa no ouvido. `pontoDoAgente` é o que o aparelho mediu com o agente em
+    pé no local.
+
+    A tela mostra os dois e não escolhe entre eles, porque escolher aqui seria
+    decidir, dentro de um formulário, um ato que exige motivo escrito e pessoa
+    responsável. Ver `divergenciaDeCoordenada`.
+  */
+  const pontoDoImovel = temCoordenada
+    ? comoPonto({ lat: ocorrencia.latitude!, lng: ocorrencia.longitude! })
+    : null;
+  const pontoDoAgente = comoPonto(rascunho.coordenada);
+  /*
+    O que o mapa centra. O ponto da coordenação quando ele existe; na ausência
+    dele, o do agente, que aí é o único ponto que alguém no mundo conhece.
+    Sem nenhum dos dois não há mapa: um mapa vazio não é menos mapa, é uma
+    afirmação falsa sobre onde a casa fica.
+  */
+  const centroDoMapa = pontoDoImovel ?? pontoDoAgente;
+  const divergencia = divergenciaDeCoordenada({
+    daCoordenacao: pontoDoImovel,
+    doAgente: pontoDoAgente,
+    precisaoMetros: rascunho.gpsPrecisaoMetros,
+  });
+
 
   return (
     <View style={{ flex: 1, backgroundColor: tema.fundo }}>
@@ -1714,6 +2168,18 @@ export default function TelaDeVistoria() {
       </Cartao>
 
       {/*
+        O histórico entra AQUI, entre o cabeçalho e o progresso, e não no fim.
+
+        Ele é informação de chegada: muda a conversa na porta e a ordem do que
+        o agente pergunta. Depois de o formulário começar a ser preenchido, ele
+        já não serve para quase nada, e no fim da rolagem ninguém o leria.
+
+        `undefined` é "ainda não voltou", e nesse instante não há peça nenhuma:
+        o formulário não espera pela rede em momento nenhum.
+      */}
+      {historico && <OQueJaAconteceuNestaCasa resultado={historico} />}
+
+      {/*
         O PROGRESSO, que era um indicador só e cobria menos da metade do que a
         conclusão exige.
 
@@ -1736,11 +2202,34 @@ export default function TelaDeVistoria() {
         testID="ancora-progresso"
       >
         <Cartao>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
-            <Txt variante="h3">Progresso da vistoria</Txt>
-            <View style={{ flex: 1 }} />
-            <Txt variante="corpoP" mono negrito>{feitos}/{requisitos.length}</Txt>
-          </View>
+          {/*
+            O PROTAGONISTA DESTA PEÇA VIRA O NÚMERO, e antes ele não existia.
+
+            A contagem saía em `corpoP` mono ao lado do título, do mesmo
+            tamanho do título e do mesmo tamanho de tudo o mais no cartão. A
+            H3 da régua de hierarquia é exatamente sobre isto: onde nada é
+            maior que nada, o olho não tem por onde começar, e a tela vira uma
+            parede de texto. A pergunta que este cartão responde é "quanto do
+            trabalho já entrou", e a resposta passa a ter o tamanho da
+            pergunta.
+
+            `Dado` e não dois `Txt` montados aqui: ele já traz o degrau de
+            número, o rótulo discreto colado nele e, para quem ouve a tela, o
+            par lido como UMA frase ("5 de 7, requisitos concluídos") em vez de
+            um número solto seguido de uma palavra sem sujeito.
+          */}
+          <Txt variante="h3">Progresso da vistoria</Txt>
+          {/*
+            Empilhado, e não o número espremido na ponta direita do título: em
+            linha, "5 de 7" no degrau de número e "Progresso da vistoria" no de
+            título disputam a mesma largura de aparelho, e o que cede é sempre
+            o título, que quebra em duas linhas para o número caber.
+          */}
+          <Dado
+            valor={`${feitos} de ${requisitos.length}`}
+            rotulo="requisitos concluídos"
+            testID="contagem-de-requisitos"
+          />
 
           {/*
             A barra é a SEGUNDA pista, nunca a única: a contagem em número
@@ -2155,30 +2644,129 @@ export default function TelaDeVistoria() {
         testID="dialogo-apagar-foto"
       />
 
+      {/*
+        A LOCALIZAÇÃO DEIXA DE SER TEXTO PURO.
+
+        Este cartão era uma coordenada com seis casas e uma frase de precisão
+        em metros. Quinze dígitos e a palavra "metros" não respondem a pergunta
+        que o agente faz aqui, que é espacial: o ponto que a coordenação passou
+        é ESTA casa? A resposta é um desenho, e o desenho é o mapa.
+
+        `MapaDoImovel` decide sozinho entre o mapa do Google e o plano
+        esquemático, desenha a legenda de modo e trata o Google que não
+        responde. Esta tela não sabe qual dos dois está no ar, e não deve: foi
+        assim que a mesma regra acabou escrita em quatro lugares no painel.
+
+        **Sem sinal ele não fica em branco.** Os ladrilhos do Google têm cache
+        oportunista, e o trecho de morro que o agente nunca abriu com sinal não
+        está nele; nesse caso, e no do município que não autorizou o mapa, o
+        plano esquemático desenha os dois pontos, a distância e o rumo, sem
+        nenhum contato com a rede. O que muda é o desenho, nunca a existência
+        da informação.
+      */}
       <Cartao>
         <TituloDoCartao
           desenho={<IconeGps cor={tema.textoDiscreto} tamanho={icone.acao} />}
           texto="Localização"
         />
-        {rascunho.coordenada ? (
-          <>
-            <Txt variante="corpoP" mono>
-              {rascunho.coordenada.lat.toFixed(6)}, {rascunho.coordenada.lng.toFixed(6)}
-            </Txt>
-            <Txt variante="legenda" discreto>
-              {rascunho.gpsPrecisaoMetros
-                ? `Precisão de ${rascunho.gpsPrecisaoMetros} metros`
-                : "Precisão não informada pelo aparelho"}
-            </Txt>
-          </>
-        ) : (
+
+        {/*
+          O mapa só é MONTADO depois de o token estar lido, e o porquê está
+          inteiro no cabeçalho de `MapaDaVistoria`: montado antes, ele decide
+          "esquemático" sem ter perguntado a ninguém e troca para o Google um
+          instante depois, tendo dito uma coisa falsa no meio.
+        */}
+        {centroDoMapa && tokenDaSessao !== undefined && (
+          <MapaDaVistoria
+            token={tokenDaSessao}
+            imovel={centroDoMapa}
+            agente={pontoDoImovel ? pontoDoAgente : null}
+            rotulo={pontoDoImovel
+              ? ocorrencia.endereco
+              : `${ocorrencia.endereco}, no ponto que você capturou`}
+          />
+        )}
+
+        {/*
+          OS DOIS PONTOS, UM SOB O OUTRO, e é isto que o agente não tinha.
+
+          Empilhados e não lado a lado: uma coordenada com seis casas ocupa
+          quase metade da largura do aparelho, e duas na mesma linha ou
+          quebram no meio do número ou obrigam a encolher a fonte de um texto
+          que é ditado por rádio.
+
+          O rótulo em caixa alta discreta e o número em fonte tabular embaixo:
+          a hierarquia é de escala e espaço, e não de cor, porque cor neste
+          produto já carrega severidade, estado de envio e gravidade de aviso.
+          Fonte tabular porque estes números são lidos por rádio, e em tipo
+          proporcional o zero se parece com a letra.
+        */}
+        <View style={{ gap: espaco.e3 }}>
+          <View style={{ gap: espaco.e1 }}>
+            <Txt nivel="rotulo">Ponto informado</Txt>
+            {pontoDoImovel ? (
+              <Txt variante="corpoP" mono>
+                {pontoDoImovel.latitude.toFixed(6)}, {pontoDoImovel.longitude.toFixed(6)}
+              </Txt>
+            ) : (
+              <Txt variante="corpoP" discreto>Não veio na abertura</Txt>
+            )}
+          </View>
+
+          <View style={{ gap: espaco.e1 }}>
+            <Txt nivel="rotulo">Leitura do aparelho</Txt>
+            {pontoDoAgente ? (
+              <>
+                <Txt variante="corpoP" mono>
+                  {pontoDoAgente.latitude.toFixed(6)}, {pontoDoAgente.longitude.toFixed(6)}
+                </Txt>
+                <Txt variante="legenda" discreto>
+                  {rascunho.gpsPrecisaoMetros
+                    ? `Precisão de ${rascunho.gpsPrecisaoMetros} metros`
+                    : "Precisão não informada pelo aparelho"}
+                </Txt>
+              </>
+            ) : (
+              <Txt variante="corpoP" discreto>Ainda não capturada</Txt>
+            )}
+          </View>
+        </View>
+
+        {!pontoDoAgente && (
           <Txt variante="corpoP" discreto>
-            Ainda não capturada. Ela é o que prova, no laudo, onde a vistoria
-            aconteceu.
+            A leitura do aparelho é o que prova, no laudo, onde a vistoria
+            aconteceu. Ela sobe junto com a coleta.
           </Txt>
         )}
+
+        {/*
+          A DIVERGÊNCIA, dita sem prometer o que esta tela não pode cumprir.
+
+          O agente é a fonte mais confiável de onde o imóvel fica, e era o
+          único que não conseguia reportar isso. Agora a leitura dele viaja no
+          envelope, e o laudo passa a ter os dois pontos.
+
+          O que a tela NÃO faz, e diz que não faz: corrigir a coordenada da
+          ocorrência. Corrigir é outro ato, com motivo escrito e decisão de
+          pessoa, e uma correção silenciosa disparada por uma revistoria seria
+          a trilha registrando uma decisão que ninguém tomou. O texto nomeia
+          quem decide, porque um aviso que aponta um problema e não diz de quem
+          é a vez ensina o agente a ignorar avisos.
+        */}
+        {divergencia?.relevante && (
+          <Aviso
+            tom="alerta"
+            peso="leve"
+            titulo={`O ponto informado está a ${divergencia.texto} de você`}
+          >
+            A sua leitura vai junto com esta vistoria e aparece no laudo. Ela
+            não corrige a coordenada da ocorrência: quem decide isso é a
+            coordenação, com motivo escrito.
+          </Aviso>
+        )}
+
         <Botao
-          titulo={rascunho.coordenada ? "Capturar de novo" : "Capturar localização"}
+          titulo={pontoDoAgente ? "Capturar de novo" : "Capturar localização"}
           tipo="secundario"
           onPress={() => void capturarGps()}
           carregando={capturandoGps}

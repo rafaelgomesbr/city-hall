@@ -179,70 +179,142 @@ iPhone na mão diz. O caminho do Android em particular (`performAndroidHapticsAs
 escolhido porque é o único que respeita a preferência de retorno tátil do
 sistema) nunca rodou em Android nenhum, porque não há aparelho Android no projeto.
 
-## 9. O que a revisão adversarial achou e NÃO consertou
+## 9. As três dívidas de design, FECHADAS em 14/09/2026
 
-Estas três ficam registradas porque são decisão de quem desenha o produto, e
-não defeito com conserto óbvio. As duas primeiras têm portão: elas estão
-declaradas como dívida em `scripts/portao-design-do-aplicativo.test.mjs`, com um
-caso irmão que REPROVA no dia em que alguém as ligar e esquecer de tirar o nome
-da lista. Dívida que não sabe morrer vira permanente.
+Esta seção listava três coisas que a revisão adversarial achou e não consertou,
+porque as três eram decisão de quem desenha o produto e nenhuma delas tinha
+saída neutra. A identidade 2.0 (frente F1 da Onda 1) fechou as três, e cada uma
+saiu junto da lista de dívida do portão de design: `SEM_DONO_DECLARADO`, em
+`scripts/portao-design-do-aplicativo.test.mjs`, está vazia de novo.
 
-### 9.1 `elevacao(tema).folha` não tem um único uso
+O registro fica porque o que importa guardar não é o conserto, é o ARGUMENTO que
+desfez cada recusa. Este repositório trata ausência como recusa argumentada, e
+desfazer uma exige argumento melhor que o escrito.
 
-O topo da escala de elevação foi escrito, na própria declaração de `tokens.ts`,
-para "o que cobre a tela e pede decisão (diálogo, painel que sobe)". A única
-peça dessa classe no aplicativo é a folha do `Dialogo`, e ela desenha a
-superfície à mão: fundo `tema.superficie`, contorno só no topo, sem sombra
-nenhuma. O nível nasceu para um componente que existe e nunca foi ligado nele,
-pelo mesmo motivo do véu: `Dialogo` era arquivo protegido no turno em que os
-tokens nasceram.
+### 9.1 `elevacao(tema).folha` não tinha um único uso. Agora tem
 
-Por que não foi ligado aqui: `folha` desce a sombra 12 pontos, ou seja, foi
-desenhado para uma folha que PAIRA. A única folha do produto é colada no rodapé,
-onde essa sombra cai para fora da tela. Espalhar o nível pela metade é
-exatamente o que a declaração do token proíbe (ela é um estilo completo porque
-no tema escuro quem carrega a elevação é a superfície, não a sombra), e inverter
-a direção da sombra no ponto de uso seria decidir a escala de elevação dentro de
-um componente.
+**O que estava escrito:** o nível descia a sombra 12 pontos, ou seja, tinha sido
+desenhado para uma folha que PAIRA, e a única folha do produto é colada no
+rodapé, onde essa sombra cai para fora da tela. Espalhar o nível pela metade era
+o que a declaração do token proíbe, e inverter a direção no ponto de uso seria
+decidir a escala de elevação dentro de um componente. A escolha entre acertar o
+nível e aposentá-lo ficou para quem desenha o produto.
 
-**Consequência visível hoje, e ela é pequena mas real:** no tema escuro a folha
-do diálogo fica em `superficie` (`t850`), que é a mesma superfície de um cartão
-comum. A peça que está por cima de tudo tem a elevação de uma peça que está no
-fundo. O véu de 0,66 é o que separa as duas, e é só ele.
+**O argumento que faltava:** nenhuma folha deste aplicativo paira, e nenhuma
+vai. O cabeçalho de `Dialogo.tsx` recusa a folha no meio da tela com o motivo
+escrito (o polegar de quem segura o telefone com uma mão só não alcança o meio
+sem regripar), e a folha arrastável sobre o mapa nasce ancorada embaixo pelo
+mesmo motivo. Um nível desenhado para uma classe de peça que o produto decidiu
+não ter é um nível ERRADO, e não um nível sem uso. Aposentá-lo custava mais: a
+folha passaria a pedir emprestado o `flutuante`, cuja declaração diz outra coisa,
+e o topo da escala viraria o nível do meio.
 
-**O que decidir:** ou `folha` ganha uma variante para folha colada (e aí a
-sombra sobe em vez de descer), ou o nível é aposentado e a escala passa a ter
-dois degraus. Precisa de olho em aparelho, nos dois temas, que é o que esta
-revisão não tem.
+**O que mudou:** `folha` passou a projetar a sombra para CIMA (`shadowOffset`
+com altura negativa), que é a única borda visível de uma folha colada no rodapé,
+e o `Dialogo` espalha o nível inteiro. O defeito visível foi junto: no tema
+escuro a folha estava em `superficie`, a mesma superfície de um cartão comum, e
+agora clareia para `superficie2`, que é como o produto separa camada no escuro.
 
-### 9.2 `fonte.corpoG` e `linha.corpoG` são um degrau que nenhuma peça sabe pedir
+### 9.2 `fonte.corpoG` era um degrau que nenhuma peça sabia pedir. Foi aposentado
 
-A escala tipográfica declara oito degraus. A união `variante` do `Txt`, que é a
-única peça que lê a escala, expõe sete: display, h1, h2, h3, corpo, corpoP e
-legenda. `corpoG` (17 pontos) não está lá, e passá-lo devolveria `fontSize:
-undefined`.
+**O que estava escrito:** a escala declarava oito degraus e o `Txt` expunha
+sete; passar `corpoG` devolvia `fontSize: undefined`. Abrir a variante criaria um
+tamanho novo na interface, e apagar o degrau tiraria da escala um passo que o
+painel TEM (`--ds-fs-body-lg`).
 
-Nenhuma das duas saídas é neutra. Abrir a variante no `Txt` cria um tamanho novo
-na interface, que alguém vai usar. Apagar o degrau tira da escala do aplicativo
-um passo que o painel TEM (`--ds-fs-body-lg`, que lá vale 18 e aqui valeria 17,
-e a paridade de propósito não mapeia este par). Escolher por dedução, sem ver a
-tela, seria mexer na tipografia do produto por conta própria.
+**O argumento que faltava, e ele é um número conferido:** `--ds-fs-body-lg` vale
+**18** no painel, e 18 é exatamente o `h3` daqui. O passo do painel não se perde,
+porque ele já estava nesta escala com outro nome. O que `corpoG` acrescentava era
+um **17** que o painel não tem em lugar nenhum, a um ponto de cada vizinho. E um
+ponto não é degrau: a identidade 2.0 é hierarquia por escala, e três tamanhos
+dentro de dois pontos, bem no meio da escala onde vive o texto que a pessoa lê,
+são a tela em que tudo tem o mesmo peso.
 
-### 9.3 `fonteMinima` quer dizer duas coisas diferentes em dois arquivos
+**O que mudou:** `fonte.corpoG` e `linha.corpoG` saíram. `hierarquia.test.ts`
+reprova qualquer degrau a menos de dois pontos do vizinho, então a escala não
+volta a se fechar em silêncio.
 
-`tokens.ts` declara `fonteMinima = 14` com a frase "o texto da interface nunca
-encolhe abaixo disto, mesmo em tela pequena". Lida assim, ela é um piso para
-redução dinâmica, e `fonte.legenda` (12) continua sendo um degrau legítimo da
-escala: o aplicativo usa `variante="legenda"` em 29 lugares.
+### 9.3 `fonteMinima` queria dizer duas coisas. Agora diz uma
 
-`ui/Chip.tsx` lê a MESMA constante como piso da escala ("o texto não desce
-abaixo de `fonteMinima`") e é por isso que o chip usa 14. `vistoria/[id].tsx`
-leu do mesmo jeito ao recusar o `Selo` de 12. Duas leituras da mesma linha, as
-duas defensáveis, e foi essa ambiguidade que fez duas frentes construírem duas
-pílulas diferentes.
+**O que estava escrito:** `tokens.ts` declarava `fonteMinima = 14` com a frase "o
+texto da interface nunca encolhe abaixo disto". Lida como piso de redução
+dinâmica, `legenda` (12) continua degrau legítimo; lida como piso da escala, 12
+está proibido. `Chip.tsx` leu do segundo jeito, a tela de vistoria também, e foi
+essa ambiguidade que fez duas frentes construírem duas pílulas diferentes. As
+saídas eram subir 29 rótulos de 12 para 14 (mudança de densidade em cinco telas
+que ninguém viu em aparelho) ou estreitar a frase.
 
-**Não corrigido de propósito.** As saídas são subir os 29 rótulos de 12 para 14
-(mudança de densidade em cinco telas que ninguém viu em aparelho) ou estreitar a
-frase do token para dizer que ela vale para texto de interação e não para
-legenda. A segunda é quase certamente a certa, e mesmo ela é decisão de produto:
-o que está escrito hoje autoriza as duas.
+**O argumento que decidiu, e ele não é empate:** o aplicativo não tem, e nunca
+teve, nenhum mecanismo de redução dinâmica de fonte. Nenhuma linha do produto
+consultava esse valor para encolher coisa alguma; a constante só aparecia em
+teste. Das duas leituras, uma descrevia um mecanismo inexistente.
+
+**O que mudou:** o token passou a se chamar `fonteMinimaDeInteracao`, que só
+admite uma leitura, e a fronteira virou DADO e não disciplina: `hierarquia.ts`
+tem o degrau `interacao` (piso de 14, para o que se toca ou nomeia o que se toca)
+e o degrau `apoio` (12, para o que ninguém toca). O nome ambíguo não volta: o
+portão de design reprova quem escrever `fonteMinima` de novo.
+
+## 10. O que a identidade 2.0 deixou aberto
+
+- **Nada disto foi visto em aparelho.** A régua de hierarquia, o gradiente do
+  botão primário e a sombra que sobe na folha foram provados por teste e por
+  portão, e nenhum deles foi olhado num iPhone. A reclamação de origem foi
+  visual, e prova visual exige o aparelho na mão.
+- **A cascata de entrada de lista não tem uso ainda.** `cascata` e
+  `atrasoEmCascata()` existem para as quatro frentes de tela usarem o MESMO
+  ritmo, que é o defeito que a régua de densidade documenta (cinco frentes,
+  cinco decisões certas sozinhas, uma tela poluída no fim). Enquanto nenhuma
+  lista a chamar, ela é vocabulário e não comportamento.
+- **A altura de linha própria para a fonte tabular NÃO foi criada**, e a
+  ausência é deliberada: a Roboto Mono tem métrica diferente da Work Sans, e um
+  protocolo ao lado de texto de corpo pode desalinhar a linha de base, mas isso
+  se mede olhando a tela, e não deduzindo. Token criado por dedução é token que
+  nasce sem dono.
+
+## 11. O agente sem equipe perde o próprio histórico, e a correção é do servidor
+
+**Achado pela frente F7 da Onda 2, em 14/09/2026, ao ligar `totalConcluidas`.**
+
+`GET /campo/meu-trabalho` tem um atalho no começo: agente sem `equipe_id`
+recebe `{ equipe: null, colegas: [], designadas: [], concluidas: [] }` e a função
+retorna ali mesmo, ANTES de contar as vistorias. Os dois números novos
+(`totalConcluidas` e `tetoDeConcluidas`) também não saem nesse ramo.
+
+O caso que isso produz é real e não é raro: o agente que foi retirado da equipe
+(mudou de setor, saiu de férias, a equipe foi desativada e recriada) abre o
+Perfil e lê **zero vistorias concluídas**, depois de ter assinado dezenas. As
+vistorias existem, estão em `vistorias` com o `agente_id` dele, e a consulta que
+as conta simplesmente não roda.
+
+O lado do aplicativo já está preparado: `normalizarMeuTrabalho`
+(`src/dados/api.ts`) dá padrão aos dois campos, então o ramo sem equipe mostra o
+tamanho da lista em vez de estourar. Só que a lista também vem vazia, e aí o
+padrão devolve zero de verdade.
+
+**O conserto é de uma linha e mora no servidor**, fora desta faixa: mover o
+`SELECT count(*)` e a consulta de concluídas para ANTES do atalho, e devolvê-los
+nos dois ramos. A equipe é o que decide o que ele tem PARA FAZER; o histórico
+é o registro do que ele JÁ FEZ, e os dois não dependem um do outro.
+
+## 12. O sino do aplicativo não sabe o que o push já entregou
+
+**Declarado pela frente F7 da Onda 2, em 14/09/2026.**
+
+O sino (`GET /avisos`, em `src/dados/avisos.ts`) e o push são dois canais
+independentes para o mesmo assunto, e nenhum dos dois conhece o outro. Duas
+consequências, e nenhuma delas quebra nada hoje:
+
+- **Os tipos não se sobrepõem, por acaso e não por projeto.** O push manda
+  `tarefa_nova` e `prazo_vencendo`; o sino carrega `vistoria_recebida`,
+  `prazo_vencido`, `providencia_respondida` e `retorno_nao_confirmado`. Se um dia
+  o push passar a mandar um tipo que o sino também tem, o agente recebe o mesmo
+  fato duas vezes, e não há nada nomeando essa relação.
+- **Tocar na notificação não marca o aviso como lido.** As duas coisas moram em
+  tabelas diferentes no servidor, e ligá-las exige decidir o que "lido"
+  significa quando a pessoa só viu o texto na tela bloqueada.
+
+O sino sincroniza quando a aba Perfil é aberta, e não em segundo plano: o crachá
+na barra de abas mostra o que o último `sincronizarAvisos` trouxe. É escolha e
+não descuido (rede em segundo plano gasta bateria e dado do agente no morro),
+mas quem olhar o crachá esperando tempo real vai se enganar.

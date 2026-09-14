@@ -29,7 +29,7 @@ import { espaco, icone, raio } from "./tokens";
  *    aparelho, verde e âmbar são a mesma mancha clara, e para quem não separa
  *    as duas cores eles nunca foram diferentes. Exigir o símbolo obriga quem
  *    escreve a tela a responder "e sem cor, como isto se distingue?".
- * 2. **O texto não desce abaixo de `fonteMinima`.** O selo antigo usava
+ * 2. **O texto não desce abaixo de `fonteMinimaDeInteracao`.** O selo antigo usava
  *    `legenda`, que é 12: é o tamanho que se lê sentado numa mesa, não em pé
  *    com o aparelho molhado a meio metro do rosto.
  *
@@ -182,7 +182,7 @@ export function Chip({
  * um chip. Enquanto foi um `Selo` próprio, herdou dele três coisas que a onda
  * inteira tratou como defeito em toda peça vizinha e deixou passar nesta:
  *
- * 1. **Texto em `legenda` (12)**, abaixo do `fonteMinima` de 14 que o produto
+ * 1. **Texto em `legenda` (12)**, abaixo do `fonteMinimaDeInteracao` de 14 que o produto
  *    declara. A tela de vistoria chegou a escrever o porquê num comentário, ao
  *    desenhar à mão uma pílula de prazo de 14 na LINHA DE BAIXO desta;
  * 2. **Fonte do sistema**, porque o `Selo` desenhava com um `<Text>` cru, sem

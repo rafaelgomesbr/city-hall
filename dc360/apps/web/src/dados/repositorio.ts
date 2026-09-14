@@ -87,6 +87,8 @@ export const {
   emitirOficio,
   enviarOficio,
   abrirOficio,
+  quemEstaEmCampo,
+  encerrarSaidaEmCampo,
 } = impl;
 
 export { ErroDaApi } from "./http";
@@ -145,4 +147,6 @@ export type {
   AtivacaoSegundoFator,
   SegundoFatorLigado,
   ConfiguracaoDoPainel,
+  QuemEstaEmCampo,
+  SaidaEmCampo,
 } from "./tipos";

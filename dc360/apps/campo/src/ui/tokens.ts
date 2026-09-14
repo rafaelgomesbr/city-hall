@@ -224,14 +224,65 @@ export const espaco = {
 
 export const raio = { normal: 8, cartao: 12, pilula: 999 } as const;
 
+/**
+ * A ESCALA TIPOGRÁFICA, e por que ela tem sete degraus e não oito.
+ *
+ * Até 14/09/2026 havia um oitavo, `corpoG`, de 17 pontos, e ele estava
+ * declarado em `PENDENCIAS.md` como dívida: a escala dizia oito e o `Txt`, que
+ * é a única peça que a lê, expunha sete. Passar `corpoG` devolvia `fontSize:
+ * undefined`, ou seja, o degrau existia no arquivo e não existia na tela.
+ *
+ * A dívida dizia que as duas saídas eram decisão de produto, e que apagar o
+ * degrau custaria um passo que o painel TEM (`--ds-fs-body-lg`). **Essa metade
+ * do argumento estava errada, e conferir o número é o que a desfaz:**
+ * `--ds-fs-body-lg` vale 18 no painel, e 18 é exatamente o `h3` daqui. O passo
+ * do painel não se perde, porque ele já está nesta escala com outro nome. O
+ * que `corpoG` acrescentava era um 17 que o painel não tem em lugar nenhum.
+ *
+ * E 17 não é um degrau: é um ponto de distância do `corpo` (16) e um ponto do
+ * `h3` (18). Hierarquia por escala precisa que o degrau seja VISTO, e três
+ * tamanhos dentro de dois pontos, bem no meio da escala onde vive o texto que
+ * a pessoa de fato lê, produzem a tela em que tudo tem o mesmo peso, que é o
+ * defeito que a identidade 2.0 existe para corrigir. Quem quiser separar dois
+ * blocos de texto separa por PESO, por ESPAÇO ou por um degrau inteiro, e não
+ * por um ponto que ninguém enxerga com o aparelho molhado a meio metro do
+ * rosto.
+ */
 export const fonte = {
   display: 32, h1: 26, h2: 21, h3: 18,
-  corpoG: 17, corpo: 16, corpoP: 14, legenda: 12,
+  corpo: 16, corpoP: 14, legenda: 12,
 } as const;
 
 export const linha = {
   display: 38, h1: 32, h2: 27, h3: 24,
-  corpoG: 25, corpo: 24, corpoP: 20, legenda: 16,
+  corpo: 24, corpoP: 20, legenda: 16,
+} as const;
+
+/**
+ * RASTREIO (o `letterSpacing`), e ele tem dois valores porque só dois papéis
+ * precisam dele.
+ *
+ * Rastreio não é ajuste fino de gosto: ele conserta um defeito ÓTICO que a
+ * escala sozinha produz nas duas pontas dela. Quanto maior o tipo, mais larga
+ * parece a distância entre as letras, e um número de 32 pontos com espaçamento
+ * normal lê como se estivesse se desmontando. Na outra ponta acontece o
+ * contrário: um rótulo de 12 pontos, em maiúsculas, com peso forte, vira uma
+ * mancha em que as letras se encostam.
+ *
+ * Os nomes são o papel na tela, como no resto deste arquivo, e não o sinal do
+ * número. Quem escreve uma tela sabe se está desenhando o número grande ou o
+ * rótulo discreto embaixo dele; ele não sabe (nem precisa saber) que um pede
+ * valor negativo e o outro positivo.
+ *
+ * Não existe aqui um `normal: 0`. Rastreio zero é a ausência do token, e um
+ * token que vale zero seria um token que ninguém consegue perceber se estiver
+ * faltando.
+ */
+export const rastreio = {
+  /** O número grande do painel do agente, que sem isto parece se desmontar. */
+  numeroGrande: -0.5,
+  /** O rótulo discreto que nomeia o número, pequeno e em peso forte. */
+  rotuloDiscreto: 0.8,
 } as const;
 
 /**
@@ -245,8 +296,41 @@ export const linha = {
  */
 export const toque = 52;
 
-/** O texto da interface nunca encolhe abaixo disto, mesmo em tela pequena. */
-export const fonteMinima = 14;
+/**
+ * O PISO DO TEXTO DE INTERAÇÃO, e o nome é comprido de propósito.
+ *
+ * Ele se chamava `fonteMinima` e dizia "o texto da interface nunca encolhe
+ * abaixo disto, mesmo em tela pequena". Essa frase autoriza duas leituras
+ * diferentes, as duas defensáveis, e `PENDENCIAS.md` registrou o preço:
+ *
+ * - lida como PISO DE REDUÇÃO DINÂMICA, ela fala de um mecanismo que reduz
+ *   texto em tela pequena, e aí `legenda` (12) continua um degrau legítimo da
+ *   escala, usado hoje em 29 lugares;
+ * - lida como PISO DA ESCALA, ela proíbe 12 em qualquer lugar, e foi assim que
+ *   o `Chip` decidiu desenhar em 14 e a tela de vistoria recusou um selo de 12.
+ *
+ * Duas frentes leram a mesma linha de dois jeitos e construíram duas pílulas
+ * diferentes. O defeito nunca foi o número: foi a linha responder duas
+ * perguntas.
+ *
+ * **A ambiguidade morre pela primeira leitura, e não por empate:** o aplicativo
+ * não tem, e nunca teve, nenhum mecanismo de redução dinâmica de fonte. Não há
+ * uma linha no produto que consulte este valor para encolher coisa alguma. Ou
+ * seja, das duas leituras, uma descrevia um mecanismo inexistente, e o piso de
+ * verdade era o outro: o texto que se TOCA, ou que nomeia o que se toca, não
+ * desce de 14.
+ *
+ * O que este piso NÃO governa, e agora está dito: texto de apoio que ninguém
+ * toca. Legenda de foto, unidade ao lado de um número, rótulo discreto embaixo
+ * de um indicador. Esses continuam podendo ser `legenda`, e a régua de quem
+ * decide isso é `hierarquia.ts`, que separa o degrau `interacao` do degrau
+ * `apoio` como dado, e não como disciplina.
+ *
+ * O nome velho não volta: `portao-design-do-aplicativo.test.mjs` reprova quem
+ * escrever `fonteMinima` de novo, justamente porque era o nome que permitia as
+ * duas leituras.
+ */
+export const fonteMinimaDeInteracao = 14;
 
 /**
  * Duração de movimento, em milissegundos.
@@ -274,6 +358,38 @@ export const movimento = {
   respostaAoToque: 120,
   mudancaDeEstado: 260,
   climax: 520,
+} as const;
+
+/**
+ * A CASCATA: o atraso entre um item de lista e o seguinte, quando a lista
+ * entra.
+ *
+ * Ela não entra em `movimento` de propósito, e a razão é a mesma que faz
+ * `movimento` ter três valores: ali é DURAÇÃO, aqui é ATRASO, e um teste deste
+ * aplicativo já cobra que existe exatamente uma curva de easing para cada
+ * duração. Enfiar um quarto membro lá dentro obrigaria a inventar uma curva
+ * para um número que não anima nada.
+ *
+ * Por que existir, já que nenhuma lista do produto usa cascata hoje: porque
+ * quatro frentes vão refazer quatro listas, e a lista de tarefas, a fila, a
+ * equipe e os avisos precisam entrar com o MESMO ritmo. Foi exatamente assim
+ * que a régua de densidade nasceu (cinco frentes, cinco decisões certas
+ * sozinhas, uma tela poluída no fim), e o atraso em cascata é o tipo de número
+ * que cada frente escolheria por gosto. Quem aplica é `atrasoEmCascata()`, em
+ * `hierarquia.ts`.
+ *
+ * `teto` é o que impede a cascata de virar espera. Sem ele, o vigésimo item de
+ * uma fila de sincronização esperaria oitocentos milissegundos para aparecer, e
+ * o agente que abriu a fila para ver se o trabalho subiu ficaria olhando para
+ * uma tela que se monta devagar. Do sexto item em diante todos entram juntos:
+ * a cascata existe para dar direção de leitura ao começo da lista, e não para
+ * cronometrar o fim dela.
+ */
+export const cascata = {
+  /** Quanto cada item espera a mais que o anterior. */
+  passo: 40,
+  /** Do enésimo item em diante, ninguém espera mais. */
+  teto: 6,
 } as const;
 
 /**
@@ -423,6 +539,35 @@ export const foco = { largura: 2, folga: 2 } as const;
  *   topo da escala, e não existe nível acima dele de propósito: se tudo pode
  *   ser o mais alto, nada é.
  *
+ * **A SOMBRA DA FOLHA SOBE, e isso é a dívida 9.1 fechada.** Até 14/09/2026
+ * este nível não tinha um único uso no produto inteiro, e a razão estava
+ * escrita: ele descia a sombra 12 pontos, ou seja, tinha sido desenhado para
+ * uma folha que PAIRA, e a única folha do aplicativo é colada no rodapé, onde
+ * essa sombra cai para fora da tela. O `Dialogo` desenhava a superfície à mão
+ * para contornar, e no tema escuro ele terminava em `superficie`: a peça que
+ * está por cima de tudo tinha a superfície de um cartão que está no fundo.
+ *
+ * O que desfaz a recusa não é gosto, é o produto ter decidido a outra metade
+ * em outro lugar: **nenhuma folha deste aplicativo paira, e nenhuma vai.** O
+ * cabeçalho de `Dialogo.tsx` recusa a folha no meio da tela com o motivo
+ * escrito (o polegar de quem segura o telefone com uma mão só não alcança o
+ * meio sem regripar, e regripar em pé num barranco é como telefone cai no
+ * barro), e a folha arrastável sobre o mapa, que é a próxima a nascer, é
+ * ancorada embaixo pelo mesmo motivo. Um nível desenhado para uma classe de
+ * peça que o produto decidiu não ter é um nível errado, não um nível sem uso.
+ *
+ * Aposentá-lo era a outra saída, e ela custava mais: a folha passaria a pedir
+ * emprestado o `flutuante`, cuja declaração diz outra coisa ("o que passa por
+ * cima do conteúdo e continua ali enquanto ele rola"), e o topo da escala
+ * viraria o nível do meio. A frase acima ("se tudo pode ser o mais alto, nada
+ * é") deixa de valer no minuto em que o mais alto é o mesmo que o do meio.
+ *
+ * Então o deslocamento é NEGATIVO: a sombra sai por cima da borda superior da
+ * folha, que é a única borda dela que aparece na tela. O resto do nível não
+ * muda, e a metade que conserta o defeito visível é a mesma de sempre: no
+ * escuro, a folha clareia para `superficie2` e deixa de se confundir com o
+ * cartão de baixo.
+ *
  * Uma conversão declarada: no CSS o terceiro número de `box-shadow` é o raio
  * de desfoque, e no React Native `shadowRadius` é cerca de metade disso. Os
  * valores abaixo já estão convertidos, então a sombra do aplicativo e a do
@@ -485,10 +630,52 @@ export function elevacao(tema: Tema): Record<NivelDeElevacao, EstiloDeElevacao> 
       shadowColor: corDaSombra,
       shadowOpacity: tema.escuro ? 0.6 : 0.16,
       shadowRadius: 14,
-      shadowOffset: { width: 0, height: 12 },
+      /* Para CIMA: é a borda de cima que aparece numa folha colada no rodapé. */
+      shadowOffset: { width: 0, height: -12 },
       elevation: 16,
     },
   };
+}
+
+/**
+ * O GRADIENTE DE DESTAQUE, e por que ele é uma função e não um par de cores.
+ *
+ * `CLAUDE.md` autoriza gradiente desde a emenda de 2026-08-20, com três
+ * condições: os dois pontos são tokens `--ds-*` já existentes, nunca cor
+ * inventada, e nunca no fundo de uma tela inteira. O aplicativo nunca usou, e é
+ * uma das coisas que separam "projeto" de "produto" nesta identidade.
+ *
+ * Isto é uma função porque uma função é o único jeito de a primeira condição
+ * ser verdade POR CONSTRUÇÃO. Um token `gradiente: ["#6D28D9", "#4C1D95"]`
+ * seria um par de cores escritas à mão, e no dia em que alguém precisasse de um
+ * segundo gradiente ele escreveria o par que achasse bonito. Aqui não existe
+ * entrada para cor: entra o tema, saem dois tokens semânticos dele.
+ *
+ * **A ORDEM É DECIDIDA AQUI, e não no ponto de uso.** O par vai do mais claro
+ * para o mais escuro nos DOIS temas, então o gradiente sempre desce, e não
+ * inverte de direção quando o agente troca de tema no meio do plantão. No tema
+ * claro `destaqueEscuro` é o violeta 800, mais escuro que o 700; no escuro é o
+ * violeta 300, mais CLARO que o 400, porque no escuro o que dá ênfase é
+ * clarear. Quem chamasse com os dois na mesma ordem teria, sem perceber, um
+ * botão sombreado para baixo num tema e para cima no outro.
+ *
+ * **O contraste não piora em ponta nenhuma**, e isso é medido e não afirmado:
+ * o texto por cima é `sobreDestaque`, e `hierarquia.test.ts` refaz a conta da
+ * WCAG contra os DOIS pontos do gradiente, nos dois temas, com a própria
+ * fórmula provada por um caso (preto sobre branco tem que dar 21:1). O ponto
+ * que este gradiente acrescenta é sempre o mais contrastante dos dois (mais
+ * escuro sob texto branco, mais claro sob texto escuro), então o pior caso do
+ * botão com gradiente é o mesmo pior caso do botão chapado, que é o que o
+ * portão de acessibilidade já mede.
+ *
+ * E "nunca no fundo de uma tela inteira" não fica por conta da boa vontade: o
+ * portão de design reprova gradiente escrito fora de `src/ui/`, para ele
+ * continuar sendo acabamento de peça e não papel de parede.
+ */
+export function gradienteDeDestaque(tema: Tema): readonly [string, string] {
+  return tema.escuro
+    ? [tema.destaqueEscuro, tema.destaque]
+    : [tema.destaque, tema.destaqueEscuro];
 }
 
 /**

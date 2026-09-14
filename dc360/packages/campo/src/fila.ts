@@ -39,6 +39,32 @@ import {
  */
 export const CODIGOS_SEM_DESTINO = ["ja_encerrada"] as const;
 
+/**
+ * O codigo que a porta `Arquivos` usa quando conferiu que o arquivo nao esta
+ * mais no aparelho, e que a fila trata como perda de prova.
+ *
+ * Mora aqui, exportado, porque ele e o contrato entre TRES lugares: a porta que
+ * le os bytes (`apps/campo/src/dados/evidencia-no-disco.ts`), o dreno que marca
+ * a foto como perdida, e a tela que oferece ao agente subir sem ela. Escrito a
+ * mao em tres arquivos, ele divergiria na primeira renomeacao e o unico sintoma
+ * seria a saida sumir da tela, deixando a coleta presa de novo.
+ */
+export const CODIGO_ARQUIVO_SUMIU = "arquivo_sumiu";
+
+/**
+ * Quantos arquivos desta coleta o aparelho ja sabe que nao existem mais.
+ *
+ * Exportada para a tela usar exatamente a mesma conta do dreno. Duas contas
+ * para o mesmo fato divergem na primeira pressa, e a divergencia aqui seria a
+ * tela perguntando "deseja subir sem 2 fotografias?" para um item que vai subir
+ * sem tres.
+ */
+export function evidenciasPerdidasDoItem(
+  item: Pick<ItemFila, "fotos">,
+): FotoNaFila[] {
+  return item.fotos.filter((f) => f.perdida && !f.enviada);
+}
+
 export function coletaSemDestino(codigo: string): boolean {
   return (CODIGOS_SEM_DESTINO as readonly string[]).includes(codigo);
 }
@@ -610,10 +636,35 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
 
     let enviadasAgora = 0;
     const atualizadas = [...item.fotos];
+    /*
+      O DRENO NAO PARA NA PRIMEIRA FOTO QUE FALTA, e essa e a diferenca entre
+      uma pergunta e uma sequencia de perguntas no barranco.
+
+      Parar na primeira ausencia faria a tela dizer "uma foto sumiu", o agente
+      consentir, a rodada seguinte descobrir a segunda, e assim por diante. Ele
+      responderia a mesma pergunta uma vez por arquivo perdido, sem saber quantas
+      faltam. Percorrendo tudo, uma rodada descobre todas as ausencias de uma vez
+      e uma pergunta so resolve o caso inteiro.
+
+      As fotos que EXISTEM sobem nesta mesma rodada, e o progresso fica gravado:
+      quando o agente consentir, o que falta e so montar o envelope.
+    */
+    let faltando = 0;
 
     for (let i = 0; i < atualizadas.length; i++) {
       const foto = atualizadas[i]!;
       if (foto.enviada && foto.chave) continue;
+
+      /*
+        Arquivo ja sabidamente ausente, com o consentimento dado: nao se tenta
+        ler de novo (nao volta), nao se pede autorizacao ao servidor (nao ha
+        bytes para mandar), e ele segue para `evidenciasPerdidas` no envelope.
+
+        Sem o consentimento, o caminho normal abaixo tenta ler, falha de novo e
+        mantem o item bloqueado, que e exatamente onde ele deve ficar ate alguem
+        decidir.
+      */
+      if (foto.perdida && item.abriuMaoDasPerdidas) continue;
 
       const autorizacao = await transporte.autorizarFoto({
         ocorrenciaId: item.ocorrenciaId,
@@ -623,7 +674,30 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       // `jaEnviada` cobre o caso de o aparelho ter enviado os bytes e perdido
       // a resposta: reenviar seria gastar rede a toa.
       if (!autorizacao.jaEnviada) {
-        const corpo = await arquivos.ler(foto.uriLocal);
+        let corpo: Uint8Array;
+        try {
+          corpo = await arquivos.ler(foto.uriLocal);
+        } catch (erro) {
+          /*
+            SO `arquivo_sumiu` vira marca de perda, e nunca qualquer falha de
+            leitura.
+
+            Um erro de permissao, um disco cheio ou um defeito da porta sao
+            situacoes que podem melhorar, e tratar qualquer uma delas como
+            "o arquivo acabou" ofereceria ao agente jogar fora uma prova que
+            ainda existe no aparelho. A porta `Arquivos` so usa este codigo
+            quando conferiu que o arquivo nao esta la.
+          */
+          if (!(erro instanceof FalhaPermanente) || erro.codigo !== CODIGO_ARQUIVO_SUMIU) {
+            throw erro;
+          }
+          atualizadas[i] = { ...foto, perdida: true };
+          faltando += 1;
+          // Grava a marca na hora: e ela que a tela le para dizer QUANTOS e
+          // QUAIS arquivos sumiram, sem tentar ler os bytes de todos de novo.
+          await deposito.salvar({ ...item, fotos: atualizadas, estado: "enviando" });
+          continue;
+        }
         await transporte.enviarBytes(autorizacao.url, autorizacao.cabecalhos, corpo);
         await transporte.confirmarFoto(autorizacao.evidenciaId);
         enviadasAgora += 1;
@@ -634,9 +708,37 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
         chave: autorizacao.chave,
         evidenciaId: autorizacao.evidenciaId,
         enviada: true,
+        perdida: false,
       };
       // Grava a cada foto: e o que torna a retomada possivel.
       await deposito.salvar({ ...item, fotos: atualizadas, estado: "enviando" });
+    }
+
+    /*
+      Alguma ausencia NOVA: o item volta a bloquear, mesmo que ja houvesse
+      consentimento para as anteriores. Consentimento dado sobre duas fotos nao
+      e consentimento sobre a terceira, e a tela precisa perguntar de novo com o
+      numero certo.
+    */
+    if (faltando > 0) {
+      throw new FalhaPermanente(
+        /*
+          A frase termina numa ACAO, e agora ela existe.
+
+          Antes desta mudanca nao havia saida nenhuma: a coleta ficava bloqueada
+          para sempre e a orientacao possivel era avisar a coordenacao. Hoje o
+          agente pode enviar a vistoria sem o arquivo, e a frase precisa dizer
+          isso, senao a saida existe no motor e nao existe para quem esta na rua.
+        */
+        (faltando === 1
+          ? "Um registro desta vistoria não está mais neste aparelho, então ela não "
+            + "pode ser enviada inteira. "
+          : `${faltando} registros desta vistoria não estão mais neste aparelho, então ela `
+            + "não pode ser enviada inteira. ")
+        + "Você pode enviar a vistoria sem eles: o laudo vai declarar que houve "
+        + "registro capturado em campo que não pôde ser recuperado.",
+        CODIGO_ARQUIVO_SUMIU,
+      );
     }
 
     /*
@@ -646,19 +748,54 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       da linha de assinatura.
     */
     const assinatura = atualizadas.find((f) => f.papel === "assinatura");
+    /*
+      O QUE FOI CAPTURADO E NAO SOBE, declarado no envelope.
+
+      Esta lista e a razao de a coleta poder subir sem o arquivo. Sem ela o
+      servidor gravaria uma vistoria com tres fotos sem nada dizendo que havia
+      cinco, e o laudo sairia parecendo completo: pior do que nao sair.
+
+      A assinatura entra aqui com o papel dela, e nao como "mais uma foto". Se o
+      arquivo perdido for o traco da moradora, `assinaturaChave` fica nula e o
+      laudo imprime uma linha de assinatura em branco, indistinguivel de uma
+      vistoria em que ninguem assinou: e a lacuna mais grave que o documento
+      pode ter, e a unica que ele nao saberia nomear sem esta marca.
+
+      O metadado viaja junto porque ele SOBREVIVEU ao arquivo: legenda e
+      coordenada vivem aqui na fila, nao dentro da imagem. E o que resta da
+      prova, e e a diferenca entre o laudo dizer "uma fotografia se perdeu" e
+      dizer qual fotografia, de onde e de que hora.
+    */
+    const perdidas = atualizadas
+      .filter((f) => f.perdida && !f.enviada)
+      .map((f) => ({
+        idempotencyKey: f.idempotencyKey,
+        capturadaEm: f.capturadaEm,
+        papel: f.papel,
+        ...(f.legenda ? { legenda: f.legenda } : {}),
+        ...(f.coordenada ? { coordenada: f.coordenada } : {}),
+      }));
+
     const envelope: EnvelopeSincronizacao = {
       ...item.envelope,
       vistoria: {
         ...item.envelope.vistoria,
         assinaturaChave: assinatura?.chave ?? item.envelope.vistoria.assinaturaChave,
         fotos: atualizadas
-          .filter((f) => f.papel !== "assinatura")
+          .filter((f) => f.papel !== "assinatura" && !f.perdida)
           .map((f) => ({
             chave: f.chave!,
             capturadaEm: f.capturadaEm,
             ...(f.legenda ? { legenda: f.legenda } : {}),
             ...(f.coordenada ? { coordenada: f.coordenada } : {}),
           })),
+        /*
+          Ausente quando nada se perdeu, e nao uma lista vazia. O campo e
+          opcional no contrato justamente para o aparelho antigo nao mandar
+          nada; mandar `[]` sempre faria toda coleta carregar a afirmacao de que
+          houve conferencia de perda, inclusive as que nunca perderam nada.
+        */
+        ...(perdidas.length > 0 ? { evidenciasPerdidas: perdidas } : {}),
       },
     };
 
@@ -794,6 +931,62 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
   }
 
   /**
+   * O agente decide subir a coleta SEM os arquivos que se perderam.
+   *
+   * ## Quem decide, e por que não é o aplicativo
+   *
+   * Este verbo existe porque a alternativa automática está errada. O dreno
+   * poderia desistir do arquivo depois de N tentativas, e isso seria uma
+   * decisão de máquina sobre o conteúdo de um documento com brasão: o laudo
+   * passa a declarar que houve registro fotográfico que não pôde ser
+   * recuperado, e a trilha guarda essa declaração para sempre, porque ela é
+   * append-only. Quem responde pela vistoria é quem esteve no local.
+   *
+   * E N tentativas não seria critério nem tecnicamente: arquivo apagado não
+   * volta, a falha já é permanente na primeira leitura, e o número só daria
+   * cara de automático a uma escolha que continua sendo escolha.
+   *
+   * O que o aplicativo faz sozinho é o que ele pode provar: descobrir QUAIS
+   * arquivos sumiram, marcá-los no disco, e parar de repetir para sempre uma
+   * leitura que nunca vai dar certo. A pergunta fica para a pessoa.
+   *
+   * ## O portão: só sai o que realmente acabou
+   *
+   * Só libera item de vistoria, bloqueado, com o código `arquivo_sumiu` na
+   * última falha e com ao menos um arquivo marcado. A restrição não é
+   * burocracia: sem ela, o mesmo botão serviria para jogar fora uma foto que
+   * está inteira no aparelho e só não subiu porque o sinal caiu, e a prova de
+   * uma interdição sairia do processo por causa de um toque num dia ruim.
+   *
+   * Devolve quantas perdas o agente assumiu, para a tela poder confirmar o
+   * número que ela mostrou antes de perguntar.
+   */
+  async function abrirMaoDasEvidenciasPerdidas(
+    id: string,
+  ): Promise<{ liberado: boolean; perdidas: number }> {
+    const item = (await deposito.listar()).find((i) => i.id === id);
+    if (!item || item.tipo !== "vistoria") return { liberado: false, perdidas: 0 };
+    if (item.estado !== "bloqueado") return { liberado: false, perdidas: 0 };
+    if (item.ultimaFalha?.codigo !== CODIGO_ARQUIVO_SUMIU) {
+      return { liberado: false, perdidas: 0 };
+    }
+
+    const perdidas = item.fotos.filter((f) => f.perdida && !f.enviada).length;
+    if (perdidas === 0) return { liberado: false, perdidas: 0 };
+
+    await deposito.salvar({
+      ...item,
+      abriuMaoDasPerdidas: true,
+      estado: "pendente",
+      tentativas: 0,
+      liberadoEm: agora().toISOString(),
+      ultimaFalha: null,
+    });
+    await avisar();
+    return { liberado: true, perdidas };
+  }
+
+  /**
    * Assume a autoria de uma coleta que nao tem autor registrado.
    *
    * Existe por causa da atualizacao do aplicativo: o aparelho que ja tinha
@@ -880,6 +1073,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
     cancelar,
     reenviar,
     assumir,
+    abrirMaoDasEvidenciasPerdidas,
     descartar,
     itens,
     resumo,

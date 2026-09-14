@@ -128,7 +128,22 @@ jest.mock("../dados/sessao", () => ({
   }),
 }));
 
-jest.mock("../dados/mapa", () => ({ abrirNoMapa: jest.fn() }));
+/*
+  O REAL, com só `abrirNoMapa` dublado.
+
+  A fábrica devolvia um objeto com uma chave só, e isso APAGAVA o módulo
+  inteiro: `MapaDoImovel` e `useMapaDoMunicipio`, que a tela de vistoria passou
+  a usar no cartão de localização, leem `chaveDoMapaDoBuild`,
+  `decidirModoDoMapa` e `PRAZO_DO_MAPA_MS` do mesmo arquivo, e a tela morria
+  com "não é uma função" longe da causa.
+
+  Dublado continua só o que abre o aplicativo de mapas do SISTEMA, que é o
+  único ponto deste módulo que sai do processo.
+*/
+jest.mock("../dados/mapa", () => ({
+  ...jest.requireActual("../dados/mapa"),
+  abrirNoMapa: jest.fn(),
+}));
 
 import TelaDeVistoria from "../app/(agente)/vistoria/[id]";
 import { bancoLocal, esquecerConexao } from "../dados/banco-local";

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, FlatList, RefreshControl, View } from "react-native";
+import { AppState, FlatList, RefreshControl, View, type LayoutChangeEvent } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import * as Crypto from "expo-crypto";
+import * as Location from "expo-location";
 import { ROTULO_TIPO_COBRADE } from "@dc360/shared";
 import { SemSinal, enderecoDaApi, type Pendencia } from "../../dados/api";
 import {
@@ -13,14 +14,19 @@ import { listarRascunhos, type Rascunho } from "../../dados/rascunho";
 import { useSinal } from "../../dados/conectividade";
 import { useSessao } from "../../dados/sessao";
 import {
-  Aviso, Botao, Cartao, Carregando, Tocavel, Txt, Vazio, useTema,
+  Aviso, Botao, Cartao, Carregando, Dado, Tocavel, Txt, Vazio, useTema,
 } from "../../ui/componentes";
+import {
+  FRACAO_DA_POSICAO, FolhaArrastavel, type PosicaoDaFolha,
+} from "../../ui/FolhaArrastavel";
+import { MapaDoImovel, useMapaDoMunicipio } from "../../ui/mapa";
 import { Chip, SeloSeveridade } from "../../ui/Chip";
 import { ItemDeLista } from "../../ui/ItemDeLista";
+import { atrasoEmCascata } from "../../ui/hierarquia";
 import { Dialogo } from "../../ui/Dialogo";
 import {
-  IconeAlerta, IconeAparelho, IconeInformacao, IconePerigo, IconePrazo, IconePrazoVencido,
-  IconeSemSinal, IconeSinal, IconeTarefas, IconeVulnerabilidade,
+  IconeAlerta, IconeAparelho, IconeInformacao, IconeLocalizacao, IconePerigo, IconePrazo,
+  IconePrazoVencido, IconeSemSinal, IconeSinal, IconeTarefas, IconeVulnerabilidade,
 } from "../../ui/icones";
 import {
   borda, elevacao, espaco, icone as tamanhoDeIcone, movimento, peso, raio, toque,
@@ -28,6 +34,8 @@ import {
 import {
   INTERVALO_PADRAO_MS, deveAtualizar, idadeEmPalavras, listaEnvelheceu,
 } from "../../dados/atualizacao";
+import { distanciaEmTexto, type Ponto } from "../../dados/mapa";
+import { ordemDoDia, pontoDaTarefa, type OrdemDoDia } from "../../dados/ordem-do-dia";
 import {
   FRASE_DO_IMPEDIMENTO,
   dataDoPrazo,
@@ -85,6 +93,46 @@ import { useReducaoDeMovimento } from "../../ui/useReducaoDeMovimento";
  *
  * Nada disto substitui a prova no aparelho, que é onde o `contentOffset`
  * existe: aqui os testes provam a ESTRUTURA que evita o pulo, não o pulo.
+ *
+ * ## DUAS LENTES, UMA TELA, e por que não há aba de mapa
+ *
+ * Decidido com o Rafa contra a aba própria: **mapa não é lugar aonde se vai, é
+ * jeito de olhar as tarefas que já se tem.** Duas telas dizendo "minhas
+ * tarefas" podem discordar, e no dia em que discordarem o agente vai acreditar
+ * na errada. Aqui a fonte é uma só (`oDia`, logo abaixo): a lente escolhe como
+ * aquela mesma lista é desenhada, e mais nada.
+ *
+ * - **Lente `lista`**: a `FlatList` de sempre, com as três medidas contra o
+ *   pulo intactas. É a lente padrão, porque é a que funciona sem GPS, sem
+ *   sinal e com o aparelho no bolso.
+ * - **Lente `mapa`**: o mapa ocupa a tela e a `FolhaArrastavel` traz a mesma
+ *   ordem por cima, no padrão do Uber. Tocar numa linha da folha **não abre a
+ *   vistoria**: ela move o mapa. Quem abre é a ação primária do rodapé, que
+ *   não se move. É por isso que a folha é CONTROLADA por esta tela: quando o
+ *   agente escolhe outra tarefa, a folha desce para `meia` sozinha, senão ele
+ *   escolheria um pino e continuaria olhando para a folha que o cobre.
+ *
+ * Trocar de lente desmonta a `FlatList` e a remonta na volta, e as três
+ * medidas contra o pulo são ESTRUTURAIS: elas vêm junto com a lista, não com o
+ * tempo que ela ficou de pé. O caso que prova isso é a ida e a volta
+ * (`hoje-lista-e-mapa.test.tsx`).
+ *
+ * ## A ORDEM DO DIA
+ *
+ * O critério mora em `src/dados/ordem-do-dia.ts`, com a razão de cada degrau
+ * escrita lá, e esta tela só o consome. Aqui ficam as duas decisões que são de
+ * TELA e não de regra:
+ *
+ * 1. **A sugestão não é um bloco acima da lista, é a PRIMEIRA da lista.** Um
+ *    cartão de "faça isto agora" nascendo e sumindo acima da rolagem seria a
+ *    causa 2 do pulo de volta, com outro nome. A ordem já é a sugestão; o que
+ *    a primeira posição ganha é um rótulo e a frase do porquê, dentro do
+ *    próprio cartão.
+ * 2. **A posição do agente é lida uma vez por foco, e não seguida em tempo
+ *    real.** Uma lista que se reordena enquanto o agente caminha é a mesma
+ *    lista que pula debaixo do dedo. E esta tela NÃO PEDE permissão de
+ *    localização: ela usa a última posição conhecida, se houver. Quem pede é a
+ *    vistoria, onde a coordenada é prova e o agente sabe por que está dando.
  */
 
 /** Altura da faixa de estado da lista. Ver `FAIXA_RESERVADA`, logo abaixo. */
@@ -170,6 +218,98 @@ function BotaoDeInformacao({ rotulo, onPress, testID }: {
   );
 }
 
+/**
+ * As duas lentes. Ver o cabeçalho: uma lista só, dois jeitos de olhar.
+ */
+type Lente = "lista" | "mapa";
+
+const NOME_DA_LENTE: Record<Lente, string> = { lista: "Lista", mapa: "Mapa" };
+
+/**
+ * O seletor de lente, no desenho da pílula que o menu inferior já usa.
+ *
+ * Fundo `superficie2` com ícone e texto em `destaque` para a lente ativa: é
+ * exatamente o par que o portão de contraste já mede para a pílula do item
+ * ativo do menu, então não entra cor nova no produto por causa deste controle.
+ *
+ * O estado NÃO é dito só pela cor: a ativa é a única com fundo, a única em
+ * peso negrito e a única que declara `selected` ao leitor de tela. Sob sol
+ * forte, com luva, é o fundo que responde primeiro.
+ */
+function BotaoDeLente({ lente, ativa, onPress }: {
+  lente: Lente;
+  ativa: boolean;
+  onPress: () => void;
+}) {
+  const tema = useTema();
+  const Icone = lente === "lista" ? IconeTarefas : IconeLocalizacao;
+  const cor = ativa ? tema.destaque : tema.textoDiscreto;
+  return (
+    <Tocavel
+      accessibilityRole="button"
+      accessibilityState={{ selected: ativa }}
+      accessibilityLabel={
+        lente === "lista"
+          ? "Ver as suas tarefas em lista"
+          : "Ver as suas tarefas no mapa"
+      }
+      testID={`lente-${lente}`}
+      onPress={onPress}
+      estilo={{
+        minHeight: toque,
+        minWidth: toque,
+        paddingHorizontal: espaco.e3,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: espaco.e2,
+        borderRadius: raio.pilula,
+        backgroundColor: ativa ? tema.superficie2 : undefined,
+      }}
+    >
+      <Icone cor={cor} tamanho={tamanhoDeIcone.rotulo} />
+      <Txt nivel="interacao" cor={cor} peso={ativa ? peso.negrito : peso.normal}>
+        {NOME_DA_LENTE[lente]}
+      </Txt>
+    </Tocavel>
+  );
+}
+
+/**
+ * O que a tela diz quando a ordem NÃO pôde considerar o caminho.
+ *
+ * Texto numa constante, e não escrito duas vezes, porque ele aparece nas duas
+ * lentes: duas cópias divergem, e a segunda é a que não recebe a correção.
+ */
+const AVISO_SEM_DISTANCIA =
+  "A ordem não considerou distância: este aparelho não sabe onde você está.";
+
+/**
+ * O RÓTULO E O PORQUÊ DA SUGESTÃO DO DIA, nas duas lentes.
+ *
+ * Uma peça e não dois blocos parecidos, pelo mesmo motivo de sempre neste
+ * aplicativo: a lista e o mapa precisam dizer exatamente a mesma coisa sobre a
+ * mesma tarefa, senão o agente tem duas respostas para "por onde eu começo" e
+ * acredita na que estiver na tela.
+ *
+ * A honestidade da ordem viaja JUNTO com a frase, e não ao lado dela: sem GPS,
+ * uma ordem por urgência se apresentaria como se também tivesse considerado o
+ * caminho, e o agente decidiria por onde subir o morro confiando nisso.
+ */
+function PorqueComecarAqui({ motivo, usouDistancia, testID }: {
+  motivo: string;
+  usouDistancia: boolean;
+  testID?: string;
+}) {
+  return (
+    <View style={{ gap: espaco.e1 }} testID={testID}>
+      <Txt nivel="rotulo">Comece por aqui</Txt>
+      <Txt nivel="apoio">{motivo}</Txt>
+      {!usouDistancia && <Txt nivel="apoio">{AVISO_SEM_DISTANCIA}</Txt>}
+    </View>
+  );
+}
+
 export default function Tarefas() {
   const tema = useTema();
   const sinal = useSinal();
@@ -192,6 +332,74 @@ export default function Tarefas() {
   const [desistiuDeAbrir, setDesistiuDeAbrir] = useState(false);
   /** O texto que o `ⓘ` abriu. Enquanto for nulo, nenhum diálogo está de pé. */
   const [explicacao, setExplicacao] = useState<Explicacao | null>(null);
+
+  /*
+    A LENTE. Ver o cabeçalho: não é outra tela, é outro jeito de olhar a mesma
+    lista. `lista` é o padrão porque é a única que funciona sem GPS, sem sinal e
+    sem o município ter autorizado mapa nenhum.
+  */
+  const [lente, setLente] = useState<Lente>("lista");
+  /*
+    A folha é CONTROLADA por esta tela, e não dona da própria posição, porque o
+    mapa atrás precisa saber quanto dele está coberto. Ela abre em `meia`: é a
+    posição em que se vê o roteiro E o pino ao mesmo tempo, que é a pergunta
+    que traz o agente para esta lente.
+  */
+  const [posicaoDaFolha, setPosicaoDaFolha] = useState<PosicaoDaFolha>("meia");
+  /** Qual tarefa o mapa está mostrando. Nulo quer dizer "a sugerida do dia". */
+  const [focadaId, setFocadaId] = useState<string | null>(null);
+  /** Altura medida da área do mapa, para a peça ocupar a tela toda e não 220. */
+  const [alturaDoMapa, setAlturaDoMapa] = useState(0);
+
+  /*
+    ONDE O AGENTE ESTÁ, e as duas coisas que esta tela NÃO faz.
+
+    **Não pede permissão.** Abrir a lista de tarefas e levar um pedido de
+    localização na cara é o jeito mais rápido de o agente negar para sempre,
+    e quem realmente precisa dela é a vistoria, onde a coordenada é prova e a
+    tela explica por quê. Aqui só se usa a permissão que já existe.
+
+    **Não liga o GPS.** `getLastKnownPositionAsync` lê a última posição que o
+    sistema já tem, sem ligar o rádio, sem esperar fixação e sem gastar
+    bateria. Ela pode ser de dez minutos atrás, e para ordenar tarefas numa
+    cidade isso é preciso o bastante. Nula é o caso COMUM, e a ordem do dia
+    sabe trabalhar sem ela.
+  */
+  const [ondeEstou, setOndeEstou] = useState<Ponto | null>(null);
+  const verOndeEstou = useCallback(async () => {
+    try {
+      const permissao = await Location.getForegroundPermissionsAsync();
+      if (!permissao.granted) return;
+      const ultima = await Location.getLastKnownPositionAsync();
+      if (!ultima) return;
+      const novo = { latitude: ultima.coords.latitude, longitude: ultima.coords.longitude };
+      /*
+        Só troca o estado quando a posição MUDOU, pela mesma razão de
+        `manterSeIgual`: um objeto novo a cada foco reordenaria a lista inteira
+        sem o agente ter saído do lugar.
+      */
+      setOndeEstou((antes) => (
+        antes && antes.latitude === novo.latitude && antes.longitude === novo.longitude
+          ? antes
+          : novo
+      ));
+    } catch {
+      /* Sem localização a ordem cai no prazo, que é o que ela sempre foi. */
+    }
+  }, []);
+
+  /*
+    O token para o mapa, e ele é lido UMA vez.
+
+    `useMapaDoMunicipio` pergunta ao servidor se o município autorizou mapa, e
+    a resposta fica guardada para a sessão inteira do aplicativo (ver
+    `buscarAutorizacaoDoMapa`). Perguntar já na abertura, e não só quando o
+    agente toca na lente do mapa, é o que evita a legenda de modo PISCAR: o
+    mapa que nasce esquemático e vira Google um segundo depois já disse ao
+    município uma coisa falsa sobre para onde a coordenada foi.
+  */
+  const [tokenDoMapa, setTokenDoMapa] = useState<string | null>(null);
+  const mapa = useMapaDoMunicipio(tokenDoMapa);
 
   /*
     Relógio da tela, só para a idade da lista não congelar em "agora há pouco"
@@ -474,7 +682,13 @@ export default function Tarefas() {
   useFocusEffect(useCallback(() => {
     void lerDoDisco();
     atualizarSeValer();
-  }, [lerDoDisco, atualizarSeValer]));
+    /*
+      A posição é relida no FOCO, e não a cada quadro. Voltar de uma vistoria é
+      o momento exato em que o agente mudou de lugar, e é o único em que
+      reordenar a lista não acontece debaixo do dedo dele.
+    */
+    void verOndeEstou();
+  }, [lerDoDisco, atualizarSeValer, verOndeEstou]));
 
   useEffect(() => {
     void (async () => {
@@ -484,6 +698,25 @@ export default function Tarefas() {
     // Só na montagem. As atualizações seguintes vêm dos três gatilhos abaixo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /*
+    O token do mapa, uma vez só. Ele não entra no caminho da lista: se esta
+    leitura falhar, `tokenDoMapa` fica nulo, `useMapaDoMunicipio` decide "não
+    mande coordenada para fora" e a lente do mapa cai no plano esquemático. A
+    lista, que é o que o agente veio buscar, não sente nada disso.
+  */
+  useEffect(() => {
+    let vivo = true;
+    void (async () => {
+      try {
+        const token = await obterToken();
+        if (vivo) setTokenDoMapa(token ?? null);
+      } catch {
+        /* Sem token não há mapa do Google, e é a resposta segura. */
+      }
+    })();
+    return () => { vivo = false; };
+  }, [obterToken]);
 
   /*
     O sinal voltou.
@@ -701,6 +934,77 @@ export default function Tarefas() {
   );
 
   /*
+    Quem este aparelho JÁ vistoriou e ainda não conseguiu enviar.
+
+    `arquivada` fica de fora pela mesma razão que já governa o impedimento de
+    devolução mais abaixo: ali o agente pediu, com confirmação, para vistoriar
+    de novo, e empurrar aquela tarefa para o fim da lista seria o aplicativo
+    desfazendo, em silêncio, uma decisão que ele mesmo pediu por escrito.
+  */
+  const jaColetadas = useMemo(
+    () => new Set(coletas.filter((c) => c.situacao !== "arquivada").map((c) => c.ocorrenciaId)),
+    [coletas],
+  );
+
+  /*
+    A ORDEM DO DIA, e a razão de ela ser ESTABILIZADA aqui.
+
+    `agora` avança de trinta em trinta segundos (é o relógio que impede a idade
+    da lista de congelar em "agora há pouco"), e a ordem depende dele. Sem a
+    comparação abaixo, cada tique produziria um vetor NOVO com exatamente as
+    mesmas tarefas na mesma ordem, a identidade trocaria, e a `FlatList`
+    reconstruiria a lista inteira duas vezes por minuto, com o dedo do agente
+    em cima dela. É a mesma aritmética de `manterSeIgual`, e ela existe pelo
+    mesmo defeito.
+
+    A comparação é por IDENTIDADE de cada tarefa, e não por texto: os itens já
+    chegam estáveis de `manterSeIgual`, então `===` responde certo e custa uma
+    passada. Comparar por `JSON.stringify` uma lista de vinte ocorrências duas
+    vezes por minuto seria pagar caro por uma resposta que já se tem.
+
+    Escrever na referência durante a renderização é a forma canônica de
+    memoização com comparação própria, e este arquivo já faz o mesmo em
+    `lerDoDiscoAgora`. O valor guardado nunca é LIDO fora deste bloco.
+  */
+  const ultimaOrdem = useRef<OrdemDoDia<Pendencia> | null>(null);
+  const oDia = useMemo(() => {
+    const nova = ordemDoDia(naLista, {
+      agora: agora.getTime(),
+      de: ondeEstou,
+      jaColetadas,
+    });
+    const antes = ultimaOrdem.current;
+    const igual = antes !== null
+      && antes.motivo === nova.motivo
+      && antes.usouDistancia === nova.usouDistancia
+      && antes.ordenadas.length === nova.ordenadas.length
+      && antes.ordenadas.every((t, i) => t === nova.ordenadas[i]);
+    const resultado = igual ? antes : nova;
+    ultimaOrdem.current = resultado;
+    return resultado;
+  }, [naLista, agora, ondeEstou, jaColetadas]);
+
+  /** Metros até cada tarefa, quando há como medir. Para o cartão não recalcular. */
+  const distancias = useMemo(
+    () => new Map(oDia.lugares.map((l) => [l.tarefa.id, l.distanciaM])),
+    [oDia],
+  );
+
+  /*
+    A TAREFA QUE O MAPA MOSTRA.
+
+    O padrão é a sugerida do dia, que é o que faz a lente do mapa abrir já
+    respondendo "para onde eu vou agora" em vez de abrir num mapa da cidade. O
+    agente troca tocando numa linha da folha.
+
+    A escolha volta a ser a sugerida quando a tarefa escolhida sai da lista (a
+    coordenação encerrou, outra equipe pegou): sem isto, o mapa ficaria
+    apontando para uma casa que não é mais da conta dele, sem nada na tela
+    dizendo por quê.
+  */
+  const focada = oDia.ordenadas.find((t) => t.id === focadaId) ?? oDia.sugerida;
+
+  /*
     ENTRADA E SAÍDA DA LISTA DE TAREFAS.
 
     Uma tarefa devolvida sumia no quadro seguinte. Isso é um corte seco no fim
@@ -844,7 +1148,9 @@ export default function Tarefas() {
   const idsNaLista = new Set(naLista.map((t) => t.id));
   const aindaSaindo = saindo.filter((t) => !idsNaLista.has(t.id));
   const idsSaindo = new Set(aindaSaindo.map((t) => t.id));
-  const visiveis = [...naLista, ...aindaSaindo];
+  /* A ordem do dia manda na lista; quem já saiu vai no fim, porque para a tela
+     aquilo já foi e ordenar o que está desaparecendo não significa nada. */
+  const visiveis = [...oDia.ordenadas, ...aindaSaindo];
 
   /*
     Quem CHEGOU depois de a lista já estar na tela.
@@ -859,6 +1165,25 @@ export default function Tarefas() {
     ? null
     : new Set(jaVistas.current.map((t) => t.id));
   const recemChegada = (id: string) => idsJaVistos !== null && !idsJaVistos.has(id);
+
+  /*
+    A ORDEM DA CASCATA, contada entre as NOVAS e não pela posição na lista.
+
+    Quando a coordenação despacha uma rua inteira, seis tarefas chegam na mesma
+    resposta: entrando todas no mesmo instante, o agente vê a lista trocar de
+    tamanho num quadro, que é o mesmo nada que ele via antes de existir
+    animação. Em cascata ele vê chegar, uma depois da outra.
+
+    Contar pela posição na lista inteira daria o efeito certo no caso fácil e
+    errado no comum: uma tarefa só, chegando no fim de uma lista de vinte,
+    esperaria o teto inteiro antes de aparecer, e a tela ficaria parada
+    justamente quando tem novidade. `atrasoEmCascata` já tem teto próprio, para
+    o despacho grande não virar espera.
+  */
+  const ordemDaCascata = new Map<string, number>();
+  visiveis.forEach((t) => {
+    if (recemChegada(t.id)) ordemDaCascata.set(t.id, ordemDaCascata.size);
+  });
 
   const notas: NotaDaLista[] = [];
   if (avisoDaDevolucao) {
@@ -980,174 +1305,141 @@ export default function Tarefas() {
     </View>
   );
 
-  return (
-    <View style={{ flex: 1 }}>
+  /*
+    A LENTE DO MAPA.
+
+    Um mapa só, do imóvel FOCADO, e não N pinos espalhados: o agente não
+    precisa de uma visão geral do município (essa é do coordenador, e o README
+    conta que ele já caiu nela uma vez por engano). Ele precisa de "onde é a
+    próxima, e quão longe está daqui". Quem oferece a visão geral é a folha,
+    que é a lista inteira, em ordem, por cima.
+
+    `MapaDoImovel` já decide sozinho entre o mapa do Google e o plano
+    esquemático, já desenha a legenda de modo e já trata o Google que não
+    responde. Esta tela não sabe qual dos dois está no ar, e não deve saber.
+  */
+  const pontoFocado = focada ? pontoDaTarefa(focada) : null;
+  /*
+    Ela só é MONTADA quando a lente é o mapa, e o `null` não é zelo: sem ele,
+    toda renderização da lente de LISTA construiria a árvore inteira da folha
+    (uma linha por tarefa, com o selo e os textos de cada uma) para jogá-la
+    fora no ternário do final. Esta é a tela que existe para não renderizar à
+    toa, e o trabalho descartado é sempre o mais caro de todos.
+  */
+  const A_LENTE_DO_MAPA = lente !== "mapa" ? null : (
+    <View
+      style={{ flex: 1 }}
+      testID="area-do-mapa"
+      onLayout={(evento: LayoutChangeEvent) => {
+        setAlturaDoMapa(evento.nativeEvent.layout.height);
+      }}
+    >
       {/*
-        CABEÇALHO FIXO: ele não rola, e nada dentro dele muda de altura. É a
-        metade estrutural da correção do pulo, junto com a faixa reservada.
+        A altura sai da MEDIDA da área, e não do padrão de 220 pontos da peça:
+        aqui o mapa é a superfície de trabalho e ocupa a tela. Enquanto a medida
+        não chegou (um quadro), nada é desenhado, porque desenhar um mapa de 220
+        pontos e esticá-lo em seguida faria a tela inteira saltar na abertura.
       */}
-      <View style={{ paddingHorizontal: espaco.e4, paddingTop: espaco.e4, gap: espaco.e2 }}>
-        <Txt variante="h2">
-          {naLista.length === 1 ? "1 vistoria para fazer" : `${naLista.length} vistorias para fazer`}
-        </Txt>
-        {FAIXA_RESERVADA}
-      </View>
-
-      <FlatList
-        testID="lista-de-tarefas"
-        data={visiveis}
-        keyExtractor={(t) => t.id}
-        /*
-          A ÂNCORA. A lista encurta sozinha (devolução confirmada apaga a linha)
-          e cresce sozinha (despacho novo entra no topo), e sem isto o item que
-          o agente está lendo escorrega debaixo do dedo dele. `minIndexForVisible: 0`
-          ancora no primeiro item visível, que é o comportamento certo para uma
-          lista em que o que muda quase sempre está ACIMA do que se está lendo.
-        */
-        maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
-        contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}
-        refreshControl={
-          <RefreshControl
-            testID="puxar-para-atualizar"
+      {alturaDoMapa > 0 && (
+        pontoFocado && focada ? (
+          <MapaDoImovel
+            imovel={pontoFocado}
+            agente={ondeEstou}
+            rotulo={focada.endereco}
+            mapa={mapa}
+            altura={alturaDoMapa}
             /*
-              SÓ O DEDO. Ver o comentário de `puxando`, lá em cima: com a roda
-              ligada por atualização automática, o iOS desloca o conteúdo para
-              revelá-la, e a lista anda sozinha uma vez por minuto.
+              O que a FOLHA está cobrindo, pela mesma fração com que ela se
+              desenha. Sem isto o pino centraliza na moldura inteira, atrás da
+              folha, e o agente que arrasta a folha para baixo para ver onde a
+              casa fica encontra o mapa olhando para outro lugar.
             */
-            refreshing={puxando}
-            onRefresh={() => void buscarNaRede(true)}
-            tintColor={tema.destaque}
+            recuoInferior={alturaDoMapa * FRACAO_DA_POSICAO[posicaoDaFolha]}
           />
-        }
-        ListEmptyComponent={
-          <Vazio
-            titulo="Nenhuma vistoria designada"
-            descricao="Quando a coordenação despachar uma ocorrência para a sua equipe, ela aparece aqui."
-            icone={<IconeTarefas cor={tema.textoDiscreto} tamanho={tamanhoDeIcone.vazio} />}
-            acao={{
-              titulo: "Procurar tarefas agora",
-              testID: "procurar-tarefas",
-              descricao: "Procurar agora se a coordenação despachou alguma tarefa",
-              onPress: () => void buscarNaRede(),
-            }}
-          />
-        }
-        ListFooterComponent={
-          <Cartao titulo="Antes de subir">
-            <Txt variante="corpoP" discreto>
-              Puxe a tela para baixo com sinal para baixar a lista mais recente. O
-              que estiver aqui funciona sem conexão nenhuma; o que não estiver, não
-              existe no aparelho.
-            </Txt>
-            <Botao
-              titulo="Baixar tarefas agora"
-              tipo="secundario"
-              onPress={() => void buscarNaRede()}
-              carregando={atualizando}
+        ) : (
+          /*
+            Sem coordenada não há mapa, e não há mapa DE VERDADE: inventar um
+            centro no meio do município mostraria um pino numa casa que não é a
+            da ocorrência, que é pior do que não mostrar nada.
+          */
+          <View style={{ flex: 1, justifyContent: "center" }}>
+            <Vazio
+              titulo={
+                oDia.ordenadas.length === 0
+                  ? "Nenhuma vistoria designada"
+                  : "Esta tarefa não tem coordenada"
+              }
+              descricao={
+                oDia.ordenadas.length === 0
+                  ? "Quando a coordenação despachar uma ocorrência para a sua equipe, ela aparece aqui."
+                  : "A coordenação não informou onde fica o imóvel. O endereço e o ponto de "
+                    + "referência estão na vistoria, e é por eles que se chega."
+              }
+              icone={<IconeLocalizacao cor={tema.textoDiscreto} tamanho={tamanhoDeIcone.vazio} />}
             />
-          </Cartao>
+          </View>
+        )
+      )}
+
+      <FolhaArrastavel
+        testID="folha-de-hoje"
+        rotulo="Suas tarefas de hoje"
+        posicao={posicaoDaFolha}
+        aoMudarPosicao={setPosicaoDaFolha}
+        cabecalho={
+          oDia.sugerida
+            ? <PorqueComecarAqui motivo={oDia.motivo} usouDistancia={oDia.usouDistancia} />
+            : undefined
         }
-        renderItem={({ item: t }) => {
+        rodape={
+          focada ? (
+            <Botao
+              titulo="Abrir a vistoria"
+              testID="abrir-a-focada"
+              descricao={`Abrir a vistoria do protocolo ${focada.protocolo}, ${focada.endereco}`}
+              onPress={() => router.push({
+                pathname: "/(agente)/vistoria/[id]",
+                params: { id: focada.id },
+              })}
+            />
+          ) : undefined
+        }
+      >
+        {oDia.ordenadas.map((t) => {
           const prazo = quantoFalta(t.prazo_em, agora.getTime());
-          const comecada = emAndamento.has(t.id);
-          /*
-            O selo da coleta ja feita.
-
-            Ele responde a pergunta que a lista nao respondia: "eu ja subi
-            nessa?". Enquanto faltava sinal, a tarefa concluida ficava aqui
-            identica as intocadas, e o agente que abrisse de novo comecava, sem
-            saber, a segunda vistoria do mesmo protocolo.
-
-            Sai da lapide, e nao da fila, porque e a lapide que sobrevive ao
-            aplicativo ser morto pelo sistema e a fila ser limpa.
-          */
-          const selo = seloDaColeta(lapides.get(t.id) ?? null);
-
-          /*
-            A DEVOLUÇÃO só aparece em tarefa VENCIDA, e o prazo aqui é o mesmo
-            que a linha acima já mostra: uma conta só, e não duas que divergem.
-            Este é um portão de tela, e a tela é a primeira barreira e não a
-            única: quem decide de verdade é o relógio do SERVIDOR, que pode
-            recusar, porque relógio de aparelho é ajustável e atravessa fuso.
-          */
-          const lapide = lapides.get(t.id) ?? null;
-          const impedimento = impedimentoParaDevolver({
-            vencida: prazo.vencido,
-            /*
-              A fila E a lápide. Só a fila deixaria uma janela: a coleta
-              confirmada sai da fila em trinta segundos, e a tarefa vencida da
-              lista antiga voltaria a oferecer devolução sobre uma vistoria que
-              já está no servidor. Lápide `arquivada` não conta: ali o agente
-              pediu, com confirmação, para vistoriar de novo.
-            */
-            coletaNoAparelho: temColetaNaFila(itensDaFila, t.id)
-              || (lapide !== null && lapide.situacao !== "arquivada"),
-          });
-          const devolucaoRecusada: DevolucaoNoAparelho | undefined =
-            devolucoes.get(t.id)?.situacao === "recusada" ? devolucoes.get(t.id) : undefined;
-
-          const IconeDoPrazo = prazo.atrasado ? IconePrazoVencido : IconePrazo;
-          const corDoPrazo = prazo.atrasado ? tema.perigoTexto : tema.textoDiscreto;
-          const resultadoDoEnvio = envio?.ocorrenciaId === t.id ? envio : null;
-
+          const metros = distancias.get(t.id) ?? null;
+          const escolhida = focada?.id === t.id;
           return (
-            <ItemDeLista entrando={recemChegada(t.id)} saindo={idsSaindo.has(t.id)}>
-            {/*
-              A CAIXA É O CARTÃO, e o toque é só do conteúdo.
-
-              Antes o `Tocavel` era a caixa, e tudo o que não cabia dentro dele
-              (avisos e botões) virava IRMÃO: aparecia solto embaixo, em largura
-              cheia, como se fosse outro bloco da tela. Foi o que o Rafa viu no
-              aparelho, com o "Enviar agora" e o `ⓘ` gigantes fora do cartão.
-
-              Agora a caixa desenha o cartão, o `Tocavel` cobre só o conteúdo
-              que navega, e o rodapé de ações mora DENTRO dela, separado por um
-              fio. Assim o botão pertence visualmente à tarefa de que fala.
-
-              E ele fica FORA do `Tocavel`, e não dentro: tocável dentro de
-              tocável disputa o gesto, e no Android o de fora costuma vencer.
-              Quem quer enviar acabaria abrindo a vistoria.
-            */}
-            <View
-              testID={`cartao-${t.id}`}
-              style={{
-                ...elevacao(tema).cartao,
-                borderColor: comecada ? tema.destaque : tema.borda,
-                borderWidth: comecada ? borda.enfase : borda.fio,
-                borderRadius: raio.cartao,
-                overflow: "hidden",
-              }}
-            >
             <Tocavel
+              key={t.id}
+              testID={`focar-${t.id}`}
               accessibilityRole="button"
-              onPress={() => router.push({ pathname: "/(agente)/vistoria/[id]", params: { id: t.id } })}
-              /* O selo entra no rotulo tambem: quem usa leitor de tela nao ve
-                 nem a borda nem o tique, e a informacao de "isso ja foi
-                 coletado" e justamente a que evita a segunda vistoria. */
+              accessibilityState={{ selected: escolhida }}
               accessibilityLabel={
-                `Abrir a vistoria do protocolo ${t.protocolo}, ${t.endereco}`
-                + (selo ? `. ${selo}` : "")
-                /* A tarja de vulnerabilidade é desenho, e o cartão inteiro é
-                   um elemento só para quem ouve a tela: sem esta linha, o
-                   cuidado prioritário simplesmente não existiria ali. */
-                + (t.vulnerabilidade_presente ? ". Vulnerabilidade social" : "")
+                `Ver no mapa o protocolo ${t.protocolo}, ${t.endereco}. ${prazo.texto}`
+                + (metros === null ? "" : `, a ${distanciaEmTexto(metros)} de você`)
               }
               /*
-                A BORDA DE DESTAQUE, que agora mora na caixa acima, ACENDE SÓ NO
-                TRABALHO COMEÇADO.
-
-                Antes ela acendia para "começada" E para "coletada", que são
-                estados OPOSTOS: um é trabalho pela metade, para onde o agente
-                precisa voltar, e o outro é trabalho pronto, de onde ele não
-                precisa voltar nunca. Com a mesma borda, a lista destacava as
-                duas coisas do mesmo jeito e não destacava nenhuma. Quem diz
-                "coletada" é o chip, que é pílula, tem símbolo e é muito mais
-                visível do que a linha de 12 pontos que havia ali.
+                Tocar aqui NÃO abre a vistoria, e isso é deliberado: nesta lente
+                a folha é o roteiro e o mapa é a resposta. Quem abre é a ação
+                primária do rodapé, que está no alcance do polegar e não se move.
               */
+              onPress={() => {
+                setFocadaId(t.id);
+                /*
+                  E a folha desce, porque escolher um pino e continuar olhando
+                  para a folha que o cobre não é escolher nada. É esta linha que
+                  justifica a folha ser controlada por esta tela.
+                */
+                setPosicaoDaFolha("meia");
+              }}
               estilo={{
                 minHeight: toque,
-                padding: espaco.e4,
-                gap: espaco.e3,
+                padding: espaco.e3,
+                gap: espaco.e1,
+                borderRadius: raio.cartao,
+                borderWidth: escolhida ? borda.enfase : borda.fio,
+                borderColor: escolhida ? tema.destaque : tema.borda,
               }}
             >
               <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
@@ -1155,235 +1447,508 @@ export default function Tarefas() {
                 <View style={{ flex: 1 }} />
                 <SeloSeveridade severidade={t.severidade} />
               </View>
-
-              <Txt variante="h3">{ROTULO_TIPO_COBRADE[t.tipo]}</Txt>
-              <Txt variante="corpoP">{t.endereco}</Txt>
-
-              {/*
-                O PRAZO GANHOU A LINHA DELE, e essa é a hierarquia que faltava.
-
-                Antes, prazo, data, vulnerabilidade e estado da coleta eram
-                quatro fragmentos de 12 pontos no mesmo `flexWrap`, com o mesmo
-                peso: "Vencido há 73h" pesava igual a "10/09, 14:00". Agora o
-                prazo é a linha, com ícone e no corpo do texto; a data fica ao
-                lado, em legenda discreta, porque ela QUALIFICA o prazo em vez
-                de competir com ele; e o que é estado virou chip embaixo.
-              */}
-              <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
-                <IconeDoPrazo cor={corDoPrazo} tamanho={tamanhoDeIcone.rotulo} />
-                <Txt
-                  variante="corpoP"
-                  peso={prazo.atrasado ? peso.negrito : peso.forte}
-                  cor={corDoPrazo}
-                >
-                  {prazo.texto}
-                </Txt>
-                {/*
-                  A DATA ao lado do relativo. "Vence em 9h" não diz ao agente se
-                  o prazo cai dentro do turno dele ou já na madrugada, e é essa
-                  distinção que decide se ele sobe hoje ou passa a tarefa.
-                */}
-                {!!dataDoPrazo(t.prazo_em) && (
-                  <Txt variante="legenda" cor={tema.textoDiscreto}>
-                    {dataDoPrazo(t.prazo_em)}
-                  </Txt>
-                )}
-              </View>
-
-              {/*
-                A VULNERABILIDADE NÃO É UM CHIP, e a diferença é deliberada.
-
-                Ela e o estado da coleta eram dois fragmentos de 12 pontos lado
-                a lado, e são coisas de naturezas diferentes: uma fala do LUGAR
-                (há quem precise de cuidado prioritário naquele endereço) e a
-                outra fala do MEU TRABALHO. Misturar as duas numa fileira de
-                pílulas faria a mais grave parecer mais uma etiqueta. Aqui ela
-                é uma tarja própria, do lado alerta do tema, com o ícone do
-                conjunto e a palavra inteira.
-
-                O nome e a descrição de quem é NÃO aparecem, e isso é decisão
-                de privacidade já registrada em `docs/PRIVACIDADE.md`: a lista
-                diz que há cuidado prioritário, e nunca quem.
-              */}
-              {/*
-                PESO LEVE, pela régua de densidade (`src/ui/regua.ts`, R1 e R2).
-
-                Esta tarja pintava fundo cheio, e a pílula de severidade logo
-                acima também. Dois blocos preenchidos no mesmo cartão, e o
-                cartão fotografado num iPhone tinha ainda um terceiro, verde, do
-                chip de coleta. Quem viu resumiu em uma frase: "essa tela tá
-                extremamente poluída com textos coloridos pra todo lado".
-
-                Cada decisão estava certa sozinha. Juntas, nada se destacava,
-                porque tudo gritava no mesmo volume.
-
-                Na disputa ganha o mais alto, e aqui é a SEVERIDADE: ela é o que
-                ordena o dia do agente, e existe em todas as tarefas. A
-                vulnerabilidade é um cuidado a mais, aparece em poucas, e
-                continua com os dois canais (ícone e palavra, na cor do tom),
-                que é o que a régua exige de quem desce para leve. O que ela
-                perde é o retângulo, não a informação.
-              */}
-              {t.vulnerabilidade_presente && (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
-                  <IconeVulnerabilidade cor={tema.alertaTexto} tamanho={tamanhoDeIcone.rotulo} />
-                  <Txt variante="corpoP" peso={peso.forte} cor={tema.alertaTexto}>
-                    Vulnerabilidade social
-                  </Txt>
-                </View>
-              )}
-
-              {/*
-                O chip do ESTADO DA COLETA, e nunca só a borda de destaque: a
-                regra do aplicativo é que nada se comunica só por cor, e o
-                `Chip` leva isso no tipo (o símbolo é obrigatório) e no tamanho
-                (`corpoP`, acima do mínimo de fonte, contra os 12 pontos de
-                antes).
-
-                O selo da coleta vem ANTES do "vistoria começada", e os dois
-                nunca aparecem juntos: quando existe lápide que barra, a tela
-                de vistoria não retoma rascunho nenhum, e convidar a
-                "continuar" seria prometer uma tela que não vai abrir.
-              */}
-              {(selo || comecada) && (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2, flexWrap: "wrap" }}>
-                  {selo ? (
-                    <Chip texto={selo} simbolo="✓" tom="ok" />
-                  ) : (
-                    /*
-                      Reticências como símbolo, e não seta: seta neste
-                      aplicativo significa ENVIO (é o símbolo da fila), e
-                      "vistoria começada" é o contrário disso, é trabalho que
-                      nem saiu do aparelho ainda.
-                    */
-                    <Chip
-                      texto="Vistoria começada"
-                      simbolo="…"
-                      tom="neutro"
-                      descricao="Vistoria começada neste aparelho, toque no cartão para continuar"
-                    />
-                  )}
-                </View>
-              )}
+              <Txt variante="corpoP" numeroDeLinhas={1}>{t.endereco}</Txt>
+              <Txt nivel="apoio">
+                {prazo.texto}
+                {metros === null ? "" : `, a ${distanciaEmTexto(metros)} de você`}
+              </Txt>
             </Tocavel>
+          );
+        })}
+      </FolhaArrastavel>
+    </View>
+  );
 
-            {/*
-              A RECUSA DO SERVIDOR, no cartão da tarefa que voltou.
+  return (
+    <View style={{ flex: 1 }}>
+      {/*
+        CABEÇALHO FIXO: ele não rola, e nada dentro dele muda de altura. É a
+        metade estrutural da correção do pulo, junto com a faixa reservada.
+      */}
+      <View style={{ paddingHorizontal: espaco.e4, paddingTop: espaco.e4, gap: espaco.e2 }}>
+        {/*
+          O NÚMERO GRANDE COM RÓTULO DISCRETO, que é a H2 da régua de
+          hierarquia. Era um `h2` com a frase inteira do mesmo tamanho, e uma
+          frase inteira do mesmo tamanho não é hierarquia: o olho não tem por
+          onde começar. O número é o protagonista desta tela, e é o único da
+          tela inteira, pela H1.
 
-              Ela fica aqui, e não só na fila de envio, porque é aqui que o
-              agente vai procurar a tarefa que ele achava resolvida. A frase é a
-              que veio do servidor, sem tradução: o aplicativo não sabe o motivo
-              e inventar um seria repetir o defeito do "Arquivada" (ver a fila
-              de envio). O caminho de saída fica na fila, onde o pedido recusado
-              continua, com os verbos de tentar de novo e descartar.
-            */}
-            {/*
-              O RODAPÉ DO CARTÃO. Tudo o que fala DESTA tarefa mora aqui dentro,
-              atrás de um fio que separa o que se lê do que se faz.
+          A altura continua CONSTANTE, que é o que a correção do pulo exige: o
+          número tem uma linha e o rótulo tem uma, com uma tarefa ou com vinte.
+        */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: espaco.e3,
+          }}
+        >
+          <Dado
+            testID="quantas-vistorias"
+            valor={String(naLista.length)}
+            rotulo={naLista.length === 1 ? "vistoria para fazer" : "vistorias para fazer"}
+          />
+          {/*
+            O seletor das duas lentes. Ele fica no cabeçalho FIXO, e não flutua
+            sobre o mapa, porque é o controle que responde "onde eu estou
+            dentro do aplicativo": um botão que some quando a folha sobe faria o
+            agente perder o caminho de volta para a lista.
+          */}
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <BotaoDeLente
+              lente="lista"
+              ativa={lente === "lista"}
+              onPress={() => { setLente("lista"); }}
+            />
+            <BotaoDeLente
+              lente="mapa"
+              ativa={lente === "mapa"}
+              onPress={() => { setLente("mapa"); }}
+            />
+          </View>
+        </View>
+        {FAIXA_RESERVADA}
+      </View>
 
-              O recuo é o mesmo do conteúdo, menos em cima, porque o fio já
-              afasta. E ele só existe quando há o que mostrar: cartão sem
-              pendência nenhuma termina no conteúdo, sem rodapé vazio.
-            */}
-            {(devolucaoRecusada || resultadoDoEnvio || (prazo.vencido && !devolucaoRecusada)) && (
+      {lente === "mapa" ? A_LENTE_DO_MAPA : (
+        <FlatList
+          testID="lista-de-tarefas"
+          data={visiveis}
+          keyExtractor={(t) => t.id}
+          /*
+            A ÂNCORA. A lista encurta sozinha (devolução confirmada apaga a linha)
+            e cresce sozinha (despacho novo entra no topo), e sem isto o item que
+            o agente está lendo escorrega debaixo do dedo dele. `minIndexForVisible: 0`
+            ancora no primeiro item visível, que é o comportamento certo para uma
+            lista em que o que muda quase sempre está ACIMA do que se está lendo.
+          */
+          maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+          contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}
+          refreshControl={
+            <RefreshControl
+              testID="puxar-para-atualizar"
+              /*
+                SÓ O DEDO. Ver o comentário de `puxando`, lá em cima: com a roda
+                ligada por atualização automática, o iOS desloca o conteúdo para
+                revelá-la, e a lista anda sozinha uma vez por minuto.
+              */
+              refreshing={puxando}
+              onRefresh={() => void buscarNaRede(true)}
+              tintColor={tema.destaque}
+            />
+          }
+          ListEmptyComponent={
+            <Vazio
+              titulo="Nenhuma vistoria designada"
+              descricao="Quando a coordenação despachar uma ocorrência para a sua equipe, ela aparece aqui."
+              icone={<IconeTarefas cor={tema.textoDiscreto} tamanho={tamanhoDeIcone.vazio} />}
+              acao={{
+                titulo: "Procurar tarefas agora",
+                testID: "procurar-tarefas",
+                descricao: "Procurar agora se a coordenação despachou alguma tarefa",
+                onPress: () => void buscarNaRede(),
+              }}
+            />
+          }
+          ListFooterComponent={
+            <Cartao titulo="Antes de subir">
+              <Txt variante="corpoP" discreto>
+                Puxe a tela para baixo com sinal para baixar a lista mais recente. O
+                que estiver aqui funciona sem conexão nenhuma; o que não estiver, não
+                existe no aparelho.
+              </Txt>
+              <Botao
+                titulo="Baixar tarefas agora"
+                tipo="secundario"
+                onPress={() => void buscarNaRede()}
+                carregando={atualizando}
+              />
+            </Cartao>
+          }
+          renderItem={({ item: t }) => {
+            const prazo = quantoFalta(t.prazo_em, agora.getTime());
+            const comecada = emAndamento.has(t.id);
+            /*
+              A SUGESTÃO DO DIA é a PRIMEIRA DA LISTA, e não um bloco acima dela.
+
+              Um cartão de "faça isto agora" nascendo e sumindo acima da rolagem
+              seria a causa 2 do pulo de volta, com outro nome: ele sumiria assim
+              que a lista esvaziasse ou assim que a tarefa saísse, e tudo debaixo
+              subiria. A ordem JÁ é a sugestão; o que a primeira posição ganha é o
+              rótulo e a frase do porquê, dentro do próprio cartão, onde nada do
+              que está acima se move.
+            */
+            const ehSugerida = oDia.sugerida?.id === t.id;
+            const metros = distancias.get(t.id) ?? null;
+            /*
+              O selo da coleta ja feita.
+
+              Ele responde a pergunta que a lista nao respondia: "eu ja subi
+              nessa?". Enquanto faltava sinal, a tarefa concluida ficava aqui
+              identica as intocadas, e o agente que abrisse de novo comecava, sem
+              saber, a segunda vistoria do mesmo protocolo.
+
+              Sai da lapide, e nao da fila, porque e a lapide que sobrevive ao
+              aplicativo ser morto pelo sistema e a fila ser limpa.
+            */
+            const selo = seloDaColeta(lapides.get(t.id) ?? null);
+
+            /*
+              A DEVOLUÇÃO só aparece em tarefa VENCIDA, e o prazo aqui é o mesmo
+              que a linha acima já mostra: uma conta só, e não duas que divergem.
+              Este é um portão de tela, e a tela é a primeira barreira e não a
+              única: quem decide de verdade é o relógio do SERVIDOR, que pode
+              recusar, porque relógio de aparelho é ajustável e atravessa fuso.
+            */
+            const lapide = lapides.get(t.id) ?? null;
+            const impedimento = impedimentoParaDevolver({
+              vencida: prazo.vencido,
+              /*
+                A fila E a lápide. Só a fila deixaria uma janela: a coleta
+                confirmada sai da fila em trinta segundos, e a tarefa vencida da
+                lista antiga voltaria a oferecer devolução sobre uma vistoria que
+                já está no servidor. Lápide `arquivada` não conta: ali o agente
+                pediu, com confirmação, para vistoriar de novo.
+              */
+              coletaNoAparelho: temColetaNaFila(itensDaFila, t.id)
+                || (lapide !== null && lapide.situacao !== "arquivada"),
+            });
+            const devolucaoRecusada: DevolucaoNoAparelho | undefined =
+              devolucoes.get(t.id)?.situacao === "recusada" ? devolucoes.get(t.id) : undefined;
+
+            const IconeDoPrazo = prazo.atrasado ? IconePrazoVencido : IconePrazo;
+            const corDoPrazo = prazo.atrasado ? tema.perigoTexto : tema.textoDiscreto;
+            const resultadoDoEnvio = envio?.ocorrenciaId === t.id ? envio : null;
+
+            return (
+              <ItemDeLista
+                entrando={recemChegada(t.id)}
+                saindo={idsSaindo.has(t.id)}
+                atraso={atrasoEmCascata(ordemDaCascata.get(t.id) ?? 0)}
+              >
+              {/*
+                A CAIXA É O CARTÃO, e o toque é só do conteúdo.
+
+                Antes o `Tocavel` era a caixa, e tudo o que não cabia dentro dele
+                (avisos e botões) virava IRMÃO: aparecia solto embaixo, em largura
+                cheia, como se fosse outro bloco da tela. Foi o que o Rafa viu no
+                aparelho, com o "Enviar agora" e o `ⓘ` gigantes fora do cartão.
+
+                Agora a caixa desenha o cartão, o `Tocavel` cobre só o conteúdo
+                que navega, e o rodapé de ações mora DENTRO dela, separado por um
+                fio. Assim o botão pertence visualmente à tarefa de que fala.
+
+                E ele fica FORA do `Tocavel`, e não dentro: tocável dentro de
+                tocável disputa o gesto, e no Android o de fora costuma vencer.
+                Quem quer enviar acabaria abrindo a vistoria.
+              */}
               <View
+                testID={`cartao-${t.id}`}
                 style={{
-                  borderTopWidth: borda.fio,
-                  borderTopColor: tema.borda,
+                  /*
+                    O CARTÃO COMO OBJETO, pela H4: a superfície sai INTEIRA do
+                    token, nos dois temas. E a sugerida do dia sobe um degrau de
+                    elevação, que é a folga que o `CLAUDE.md` autoriza desde a
+                    emenda de 2026-08-20 e que este aplicativo nunca usou.
+
+                    Um degrau, e só na primeira: três cartões flutuando na mesma
+                    tela são três cartões que não flutuam, que é a mesma
+                    aritmética da régua de densidade com outra tinta.
+                  */
+                  ...(ehSugerida ? elevacao(tema).flutuante : elevacao(tema).cartao),
+                  borderColor: comecada ? tema.destaque : tema.borda,
+                  borderWidth: comecada ? borda.enfase : borda.fio,
+                  borderRadius: raio.cartao,
+                  overflow: "hidden",
+                }}
+              >
+              <Tocavel
+                accessibilityRole="button"
+                onPress={() => router.push({ pathname: "/(agente)/vistoria/[id]", params: { id: t.id } })}
+                /* O selo entra no rotulo tambem: quem usa leitor de tela nao ve
+                   nem a borda nem o tique, e a informacao de "isso ja foi
+                   coletado" e justamente a que evita a segunda vistoria. */
+                accessibilityLabel={
+                  `Abrir a vistoria do protocolo ${t.protocolo}, ${t.endereco}`
+                  + (selo ? `. ${selo}` : "")
+                  /* A tarja de vulnerabilidade é desenho, e o cartão inteiro é
+                     um elemento só para quem ouve a tela: sem esta linha, o
+                     cuidado prioritário simplesmente não existiria ali. */
+                  + (t.vulnerabilidade_presente ? ". Vulnerabilidade social" : "")
+                }
+                /*
+                  A BORDA DE DESTAQUE, que agora mora na caixa acima, ACENDE SÓ NO
+                  TRABALHO COMEÇADO.
+
+                  Antes ela acendia para "começada" E para "coletada", que são
+                  estados OPOSTOS: um é trabalho pela metade, para onde o agente
+                  precisa voltar, e o outro é trabalho pronto, de onde ele não
+                  precisa voltar nunca. Com a mesma borda, a lista destacava as
+                  duas coisas do mesmo jeito e não destacava nenhuma. Quem diz
+                  "coletada" é o chip, que é pílula, tem símbolo e é muito mais
+                  visível do que a linha de 12 pontos que havia ali.
+                */
+                estilo={{
+                  minHeight: toque,
                   padding: espaco.e4,
-                  paddingTop: espaco.e3,
                   gap: espaco.e3,
                 }}
               >
-            {devolucaoRecusada && (
-              <Aviso tom="perigo" titulo="A coordenação não recebeu esta devolução">
-                {devolucaoRecusada.mensagem
-                  ?? "O servidor recusou o pedido, e a tarefa continua sua."}
-                {" O pedido continua na fila de envio, onde você pode tentar de novo ou descartar."}
-              </Aviso>
-            )}
-
-            {/* O que aconteceu com o último "Enviar agora" desta tarefa. */}
-            {resultadoDoEnvio && (
-              /* Leve pela mesma régua: este aviso divide o rodapé com o da
-                 devolução recusada, e dois retângulos cheios empilhados num
-                 cartão de lista é a poluição que a régua existe para impedir.
-                 O tom `perigo` não alevia sozinho, e está certo: envio recusado
-                 é algo que deu errado agora. */
-              <Aviso tom={resultadoDoEnvio.tom} peso="leve" titulo={resultadoDoEnvio.titulo}>
-                {resultadoDoEnvio.texto}
-              </Aviso>
-            )}
-
-            {/*
-              Tarefa NO PRAZO não mostra nada disto, nem o botão nem a
-              explicação: ela não tem por que falar de devolução, e uma frase a
-              mais por tarefa numa lista de vinte é ruído que ensina a não ler.
-            */}
-            {prazo.vencido && !devolucaoRecusada && (
-              impedimento === null ? (
-                <Botao
-                  titulo="Devolver para a coordenação"
-                  tipo="secundario"
-                  testID={`devolver-${t.id}`}
-                  descricao={
-                    `Devolver para a coordenação a tarefa vencida do protocolo ${t.protocolo}, `
-                    + `${t.endereco}, informando o motivo`
-                  }
-                  onPress={() => { setADevolver(t); }}
-                />
-              ) : (
-                /*
-                  A TAREFA VENCIDA COM COLETA GUARDADA PEDE SINAL, E NÃO
-                  DEVOLUÇÃO. Decidido com o Rafa.
-
-                  O parágrafo de 41 palavras que ficava aqui saiu do fluxo: ele
-                  é a resposta para "por que não dá para devolver", que é uma
-                  pergunta que quase ninguém faz, e ocupava o lugar da resposta
-                  para "e agora?", que é a pergunta de todo mundo. Agora o lugar
-                  é do verbo que resolve o caso (a vistoria existe e está presa
-                  no aparelho), e a explicação fica a um toque no `ⓘ`.
-
-                  Devolver continua bloqueado, e não é teimosia: devolver ali
-                  jogaria fora, em silêncio, o trabalho que o agente já fez no
-                  morro, e faria a coordenação receber "não deu para vistoriar"
-                  sobre uma vistoria que existe.
-                */
-                <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
-                  {impedimento === "coleta_no_aparelho" && (
-                    <View style={{ flex: 1 }}>
-                      <Botao
-                        titulo="Enviar agora"
-                        testID={`enviar-${t.id}`}
-                        carregando={enviando === t.id}
-                        descricao={
-                          `Enviar agora a vistoria guardada do protocolo ${t.protocolo}, `
-                          + `${t.endereco}`
-                        }
-                        onPress={() => void enviarAgora(t)}
-                      />
-                    </View>
-                  )}
-                  <BotaoDeInformacao
-                    testID={`por-que-${t.id}`}
-                    rotulo={`Por que não dá para devolver a tarefa do protocolo ${t.protocolo}`}
-                    onPress={() => {
-                      setExplicacao({
-                        titulo: "Esta tarefa não pode ser devolvida",
-                        texto: FRASE_DO_IMPEDIMENTO[impedimento],
-                      });
-                    }}
+                {ehSugerida && (
+                  <PorqueComecarAqui
+                    testID="comece-por-aqui"
+                    motivo={oDia.motivo}
+                    usouDistancia={oDia.usouDistancia}
                   />
+                )}
+
+                <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
+                  <Txt variante="corpoP" mono negrito>{t.protocolo}</Txt>
+                  <View style={{ flex: 1 }} />
+                  <SeloSeveridade severidade={t.severidade} />
                 </View>
-              )
-            )}
+
+                <Txt variante="h3">{ROTULO_TIPO_COBRADE[t.tipo]}</Txt>
+                <Txt variante="corpoP">{t.endereco}</Txt>
+
+                {/*
+                  O PRAZO GANHOU A LINHA DELE, e essa é a hierarquia que faltava.
+
+                  Antes, prazo, data, vulnerabilidade e estado da coleta eram
+                  quatro fragmentos de 12 pontos no mesmo `flexWrap`, com o mesmo
+                  peso: "Vencido há 73h" pesava igual a "10/09, 14:00". Agora o
+                  prazo é a linha, com ícone e no corpo do texto; a data fica ao
+                  lado, em legenda discreta, porque ela QUALIFICA o prazo em vez
+                  de competir com ele; e o que é estado virou chip embaixo.
+                */}
+                <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
+                  <IconeDoPrazo cor={corDoPrazo} tamanho={tamanhoDeIcone.rotulo} />
+                  <Txt
+                    variante="corpoP"
+                    peso={prazo.atrasado ? peso.negrito : peso.forte}
+                    cor={corDoPrazo}
+                  >
+                    {prazo.texto}
+                  </Txt>
+                  {/*
+                    A DATA ao lado do relativo. "Vence em 9h" não diz ao agente se
+                    o prazo cai dentro do turno dele ou já na madrugada, e é essa
+                    distinção que decide se ele sobe hoje ou passa a tarefa.
+                  */}
+                  {!!dataDoPrazo(t.prazo_em) && (
+                    <Txt variante="legenda" cor={tema.textoDiscreto}>
+                      {dataDoPrazo(t.prazo_em)}
+                    </Txt>
+                  )}
+                  {/*
+                    A DISTÂNCIA entra na linha do prazo, e não numa linha própria,
+                    porque ela responde à mesma pergunta: dá para fazer esta
+                    agora? Ela só existe quando foi medida de verdade (há posição
+                    no aparelho e coordenada na ocorrência), e nunca é estimada.
+                  */}
+                  {metros !== null && (
+                    <Txt variante="legenda" cor={tema.textoDiscreto}>
+                      {`a ${distanciaEmTexto(metros)}`}
+                    </Txt>
+                  )}
+                </View>
+
+                {/*
+                  A VULNERABILIDADE NÃO É UM CHIP, e a diferença é deliberada.
+
+                  Ela e o estado da coleta eram dois fragmentos de 12 pontos lado
+                  a lado, e são coisas de naturezas diferentes: uma fala do LUGAR
+                  (há quem precise de cuidado prioritário naquele endereço) e a
+                  outra fala do MEU TRABALHO. Misturar as duas numa fileira de
+                  pílulas faria a mais grave parecer mais uma etiqueta. Aqui ela
+                  é uma tarja própria, do lado alerta do tema, com o ícone do
+                  conjunto e a palavra inteira.
+
+                  O nome e a descrição de quem é NÃO aparecem, e isso é decisão
+                  de privacidade já registrada em `docs/PRIVACIDADE.md`: a lista
+                  diz que há cuidado prioritário, e nunca quem.
+                */}
+                {/*
+                  PESO LEVE, pela régua de densidade (`src/ui/regua.ts`, R1 e R2).
+
+                  Esta tarja pintava fundo cheio, e a pílula de severidade logo
+                  acima também. Dois blocos preenchidos no mesmo cartão, e o
+                  cartão fotografado num iPhone tinha ainda um terceiro, verde, do
+                  chip de coleta. Quem viu resumiu em uma frase: "essa tela tá
+                  extremamente poluída com textos coloridos pra todo lado".
+
+                  Cada decisão estava certa sozinha. Juntas, nada se destacava,
+                  porque tudo gritava no mesmo volume.
+
+                  Na disputa ganha o mais alto, e aqui é a SEVERIDADE: ela é o que
+                  ordena o dia do agente, e existe em todas as tarefas. A
+                  vulnerabilidade é um cuidado a mais, aparece em poucas, e
+                  continua com os dois canais (ícone e palavra, na cor do tom),
+                  que é o que a régua exige de quem desce para leve. O que ela
+                  perde é o retângulo, não a informação.
+                */}
+                {t.vulnerabilidade_presente && (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
+                    <IconeVulnerabilidade cor={tema.alertaTexto} tamanho={tamanhoDeIcone.rotulo} />
+                    <Txt variante="corpoP" peso={peso.forte} cor={tema.alertaTexto}>
+                      Vulnerabilidade social
+                    </Txt>
+                  </View>
+                )}
+
+                {/*
+                  O chip do ESTADO DA COLETA, e nunca só a borda de destaque: a
+                  regra do aplicativo é que nada se comunica só por cor, e o
+                  `Chip` leva isso no tipo (o símbolo é obrigatório) e no tamanho
+                  (`corpoP`, acima do mínimo de fonte, contra os 12 pontos de
+                  antes).
+
+                  O selo da coleta vem ANTES do "vistoria começada", e os dois
+                  nunca aparecem juntos: quando existe lápide que barra, a tela
+                  de vistoria não retoma rascunho nenhum, e convidar a
+                  "continuar" seria prometer uma tela que não vai abrir.
+                */}
+                {(selo || comecada) && (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2, flexWrap: "wrap" }}>
+                    {selo ? (
+                      <Chip texto={selo} simbolo="✓" tom="ok" />
+                    ) : (
+                      /*
+                        Reticências como símbolo, e não seta: seta neste
+                        aplicativo significa ENVIO (é o símbolo da fila), e
+                        "vistoria começada" é o contrário disso, é trabalho que
+                        nem saiu do aparelho ainda.
+                      */
+                      <Chip
+                        texto="Vistoria começada"
+                        simbolo="…"
+                        tom="neutro"
+                        descricao="Vistoria começada neste aparelho, toque no cartão para continuar"
+                      />
+                    )}
+                  </View>
+                )}
+              </Tocavel>
+
+              {/*
+                A RECUSA DO SERVIDOR, no cartão da tarefa que voltou.
+
+                Ela fica aqui, e não só na fila de envio, porque é aqui que o
+                agente vai procurar a tarefa que ele achava resolvida. A frase é a
+                que veio do servidor, sem tradução: o aplicativo não sabe o motivo
+                e inventar um seria repetir o defeito do "Arquivada" (ver a fila
+                de envio). O caminho de saída fica na fila, onde o pedido recusado
+                continua, com os verbos de tentar de novo e descartar.
+              */}
+              {/*
+                O RODAPÉ DO CARTÃO. Tudo o que fala DESTA tarefa mora aqui dentro,
+                atrás de um fio que separa o que se lê do que se faz.
+
+                O recuo é o mesmo do conteúdo, menos em cima, porque o fio já
+                afasta. E ele só existe quando há o que mostrar: cartão sem
+                pendência nenhuma termina no conteúdo, sem rodapé vazio.
+              */}
+              {(devolucaoRecusada || resultadoDoEnvio || (prazo.vencido && !devolucaoRecusada)) && (
+                <View
+                  style={{
+                    borderTopWidth: borda.fio,
+                    borderTopColor: tema.borda,
+                    padding: espaco.e4,
+                    paddingTop: espaco.e3,
+                    gap: espaco.e3,
+                  }}
+                >
+              {devolucaoRecusada && (
+                <Aviso tom="perigo" titulo="A coordenação não recebeu esta devolução">
+                  {devolucaoRecusada.mensagem
+                    ?? "O servidor recusou o pedido, e a tarefa continua sua."}
+                  {" O pedido continua na fila de envio, onde você pode tentar de novo ou descartar."}
+                </Aviso>
+              )}
+
+              {/* O que aconteceu com o último "Enviar agora" desta tarefa. */}
+              {resultadoDoEnvio && (
+                /* Leve pela mesma régua: este aviso divide o rodapé com o da
+                   devolução recusada, e dois retângulos cheios empilhados num
+                   cartão de lista é a poluição que a régua existe para impedir.
+                   O tom `perigo` não alevia sozinho, e está certo: envio recusado
+                   é algo que deu errado agora. */
+                <Aviso tom={resultadoDoEnvio.tom} peso="leve" titulo={resultadoDoEnvio.titulo}>
+                  {resultadoDoEnvio.texto}
+                </Aviso>
+              )}
+
+              {/*
+                Tarefa NO PRAZO não mostra nada disto, nem o botão nem a
+                explicação: ela não tem por que falar de devolução, e uma frase a
+                mais por tarefa numa lista de vinte é ruído que ensina a não ler.
+              */}
+              {prazo.vencido && !devolucaoRecusada && (
+                impedimento === null ? (
+                  <Botao
+                    titulo="Devolver para a coordenação"
+                    tipo="secundario"
+                    testID={`devolver-${t.id}`}
+                    descricao={
+                      `Devolver para a coordenação a tarefa vencida do protocolo ${t.protocolo}, `
+                      + `${t.endereco}, informando o motivo`
+                    }
+                    onPress={() => { setADevolver(t); }}
+                  />
+                ) : (
+                  /*
+                    A TAREFA VENCIDA COM COLETA GUARDADA PEDE SINAL, E NÃO
+                    DEVOLUÇÃO. Decidido com o Rafa.
+
+                    O parágrafo de 41 palavras que ficava aqui saiu do fluxo: ele
+                    é a resposta para "por que não dá para devolver", que é uma
+                    pergunta que quase ninguém faz, e ocupava o lugar da resposta
+                    para "e agora?", que é a pergunta de todo mundo. Agora o lugar
+                    é do verbo que resolve o caso (a vistoria existe e está presa
+                    no aparelho), e a explicação fica a um toque no `ⓘ`.
+
+                    Devolver continua bloqueado, e não é teimosia: devolver ali
+                    jogaria fora, em silêncio, o trabalho que o agente já fez no
+                    morro, e faria a coordenação receber "não deu para vistoriar"
+                    sobre uma vistoria que existe.
+                  */
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
+                    {impedimento === "coleta_no_aparelho" && (
+                      <View style={{ flex: 1 }}>
+                        <Botao
+                          titulo="Enviar agora"
+                          testID={`enviar-${t.id}`}
+                          carregando={enviando === t.id}
+                          descricao={
+                            `Enviar agora a vistoria guardada do protocolo ${t.protocolo}, `
+                            + `${t.endereco}`
+                          }
+                          onPress={() => void enviarAgora(t)}
+                        />
+                      </View>
+                    )}
+                    <BotaoDeInformacao
+                      testID={`por-que-${t.id}`}
+                      rotulo={`Por que não dá para devolver a tarefa do protocolo ${t.protocolo}`}
+                      onPress={() => {
+                        setExplicacao({
+                          titulo: "Esta tarefa não pode ser devolvida",
+                          texto: FRASE_DO_IMPEDIMENTO[impedimento],
+                        });
+                      }}
+                    />
+                  </View>
+                )
+              )}
+                </View>
+              )}
               </View>
-            )}
-            </View>
-            </ItemDeLista>
-          );
-        }}
-      />
+              </ItemDeLista>
+            );
+          }}
+        />
+      )}
 
       {/*
         Um diálogo só para a lista inteira, e não um por tarefa: a lista pode

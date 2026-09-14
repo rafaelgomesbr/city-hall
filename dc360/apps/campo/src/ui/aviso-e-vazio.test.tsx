@@ -175,7 +175,7 @@ describe("nenhuma chamada existente quebra", () => {
     `Selo` saiu desta lista porque foi APOSENTADO, e não porque quebrou.
 
     Ele era a pílula anterior ao `Chip` e tinha três defeitos que a onda tratou
-    como reprovação em toda peça vizinha: texto de 12 (abaixo do `fonteMinima`
+    como reprovação em toda peça vizinha: texto de 12 (abaixo do `fonteMinimaDeInteracao`
     do produto), `<Text>` cru (fora da família de fonte do produto) e cor
     escolhida no ponto de uso. O `SeloSeveridade` era o último a chamá-lo, foi
     reescrito em cima do `Chip` e mudou de módulo junto. A razão inteira está em

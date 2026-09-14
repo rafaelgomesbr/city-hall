@@ -36,12 +36,21 @@ coordenador em outro turno.
 | --- | --- |
 | Registrar ocorrência (gera o protocolo) | Classificar severidade |
 | Registrar a resposta de uma providência | Despachar equipe |
-| | Encerrar |
+| Acompanhar quem está em campo, e encerrar uma saída dizendo o que foi feito | Encerrar ocorrência |
 | | Emitir documento |
 
 **Por que a linha é essa:** classificar severidade é decisão técnica com
 consequência de prazo. Quem atende a ligação registra o que ouviu; quem tem
 competência técnica decide o que aquilo significa.
+
+**Por que ele acompanha quem está em campo:** é a única permissão deste produto
+concedida ao posto mais baixo por uma razão que não é de fluxo. O valor inteiro
+daquela tela é alguém enxergar que um agente não deu notícia, e a pessoa que está
+na sala às três da manhã de uma noite de temporal é o operador de plantão.
+Restringir à coordenação seria escolher a arrumação da tabela contra a finalidade
+da coisa, e o custo do erro é um agente no morro sem ninguém olhando. Ele também
+encerra a saída, porque é ele quem chama o agente pelo rádio: ver o alerta sem
+poder registrar o que fez deixaria o fato aberto na tela e o ato invisível.
 
 **Por que ele responde providência:** é ele quem atende o telefone quando a
 secretaria liga de volta dizendo o que fez. Fazer essa pessoa anotar num papel

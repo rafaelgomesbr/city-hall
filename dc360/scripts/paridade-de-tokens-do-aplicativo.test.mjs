@@ -311,8 +311,18 @@ test("escala: o alvo de toque do aplicativo é maior que o do painel, e não men
     `toque do aplicativo (${app.toque}) precisa ser maior que o do painel (${doPainel}): `
     + "aqui é dedo com luva na chuva, lá é ponteiro de mouse",
   );
-  assert.ok(app.fonteMinima >= pixels(resolver("--ds-fs-caption", painel.claro)),
-    "o piso de fonte do aplicativo caiu abaixo da legenda do painel");
+  /*
+    O piso de INTERAÇÃO, e o nome importa desde 14/09/2026.
+
+    Ele se chamava `fonteMinima` e dizia duas coisas ao mesmo tempo (piso de
+    redução dinâmica num arquivo, piso da escala em outro), e foi essa
+    ambiguidade que fez duas frentes construírem duas pílulas diferentes. O que
+    ele governa agora é o texto que se TOCA; `legenda` (12) continua sendo
+    degrau legítimo para apoio, e é por isso que a comparação abaixo é "maior ou
+    igual à legenda do painel" e não "igual".
+  */
+  assert.ok(app.fonteMinimaDeInteracao >= pixels(resolver("--ds-fs-caption", painel.claro)),
+    "o piso de fonte de interação do aplicativo caiu abaixo da legenda do painel");
 });
 
 test("nenhuma divergência declarada sobreviveu ao próprio conserto", () => {

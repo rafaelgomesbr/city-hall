@@ -467,13 +467,95 @@ export type VistoriaConcluida = {
   endereco: string;
   coletada_em: string;
   sincronizada_em: string;
+  /**
+   * A precisão do GPS no momento da coleta, em metros.
+   *
+   * O SQL da rota já trazia esta coluna e o tipo daqui não a declarava, então
+   * ela chegava no aparelho e era descartada na fronteira do TypeScript. Ela
+   * importa porque é o que separa "o ponto é este" de "o ponto é por aqui": uma
+   * vistoria coletada com 40 metros de erro embaixo de um talude é prova de
+   * presença, não de localização, e quem precisa saber disso é o agente que vai
+   * defender o próprio laudo.
+   *
+   * Nula quando o aparelho não soube dizer, que acontece de verdade em encosta
+   * fechada.
+   */
+  gps_precisao_metros: number | null;
+  /**
+   * Quem assinou no local, pelo nome.
+   *
+   * Mesma história da precisão: o SQL trazia, o tipo não declarava. É o que
+   * responde "quem estava na porta quando eu vistoriei aquela casa", meses
+   * depois, e é o nome que sai impresso no laudo ao lado do traço.
+   *
+   * Nula quando a vistoria foi concluída sem assinatura, que o produto permite
+   * (morador ausente, recusa de assinar).
+   */
+  assinante_nome: string | null;
 };
 
 export type MeuTrabalho = {
   equipe: Equipe | null;
   colegas: Colega[];
   concluidas: VistoriaConcluida[];
+  /**
+   * Quantas vistorias este agente assinou, ao todo. NÃO é o tamanho da lista.
+   *
+   * O servidor manda este número desde que a rota foi escrita, com o defeito
+   * dele documentado em detalhe em `apps/api/src/rotas/campo.ts`, e este tipo
+   * não o declarava: a tela imprimia o tamanho da lista como se fosse a
+   * contagem. **O agente que assinou 62 vistorias lia "50"**, e as doze mais
+   * antigas não apareciam em lugar nenhum, sem rodapé, sem aviso e sem "ver
+   * mais". Se ele precisasse mostrar que vistoriou aquele imóvel em janeiro, a
+   * tela AFIRMAVA que ele nunca vistoriou.
+   *
+   * É o registro do trabalho dele, e é o que ele leva quando o ato for
+   * questionado. Contar errado ali não é detalhe de interface.
+   */
+  totalConcluidas: number;
+  /** Quantas cabem numa resposta, para a tela poder DIZER que cortou. */
+  tetoDeConcluidas: number;
 };
+
+/**
+ * O envelope de "meu trabalho" com os campos que podem faltar já resolvidos.
+ *
+ * Existe porque o mesmo objeto chega por DOIS caminhos, e um deles é velho: a
+ * rede (que hoje manda tudo) e o disco do aparelho (que pode ter sido gravado
+ * por uma versão anterior deste aplicativo, quando os dois números nem eram
+ * lidos). Sem normalizar os dois caminhos, o tipo prometeria `number` e a tela
+ * receberia `undefined` do disco, imprimindo "NaN" ou nada para quem abriu o
+ * aplicativo sem sinal, que é o caso em que ele mais precisa funcionar.
+ *
+ * Fica exportada, e não escondida dentro de `baixarMeuTrabalho`, exatamente
+ * para a leitura do disco poder chamar a MESMA função. Duas normalizações
+ * seriam duas regras, e a segunda não recebe o campo novo.
+ *
+ * O padrão de `totalConcluidas` é o tamanho da lista: servidor antigo, que
+ * ainda não manda o campo, volta a se comportar como antes em vez de fazer a
+ * tela mentir para o outro lado.
+ *
+ * **Resíduo declarado, e ele é do SERVIDOR:** o ramo "agente sem equipe" da
+ * rota devolve `concluidas: []` e não devolve os dois números. Um agente
+ * retirado da equipe depois de assinar vistoria vê zero aqui. A correção é do
+ * lado de lá e está nomeada em `apps/campo/PENDENCIAS.md`.
+ */
+export function normalizarMeuTrabalho(bruto: {
+  equipe: Equipe | null;
+  colegas?: Colega[];
+  concluidas?: VistoriaConcluida[];
+  totalConcluidas?: number;
+  tetoDeConcluidas?: number;
+}): MeuTrabalho {
+  const concluidas = bruto.concluidas ?? [];
+  return {
+    equipe: bruto.equipe,
+    colegas: bruto.colegas ?? [],
+    concluidas,
+    totalConcluidas: bruto.totalConcluidas ?? concluidas.length,
+    tetoDeConcluidas: bruto.tetoDeConcluidas ?? concluidas.length,
+  };
+}
 
 /**
  * Quem é a minha equipe, e o que eu já concluí.
@@ -494,7 +576,133 @@ export async function baixarMeuTrabalho(token: string): Promise<MeuTrabalho> {
   // Teto curto, e a razão está em `TEMPO_LIMITE_CONFORTO_MS`: esta é a única
   // chamada do aplicativo que o agente espera olhando para uma tela parada,
   // e é a única cujo fracasso não custa nada além de mostrar a cópia antiga.
-  return chamar<MeuTrabalho>("/campo/meu-trabalho", {
+  const bruto = await chamar<Parameters<typeof normalizarMeuTrabalho>[0]>(
+    "/campo/meu-trabalho",
+    { token, tempoLimiteMs: TEMPO_LIMITE_CONFORTO_MS },
+  );
+  return normalizarMeuTrabalho(bruto);
+}
+
+/* ========================================================================
+   O sino: o que aconteceu no município, quando o push não alcança
+   ======================================================================== */
+
+/**
+ * Um aviso, como ele desce para o aparelho.
+ *
+ * O que ele NÃO carrega é a parte que importa, e está escrito na própria rota:
+ * nome, contato, endereço, relato e descrição de vulnerabilidade não passam por
+ * ali. O aviso é tipo, protocolo, instante e um complemento curto, e leva a
+ * pessoa até a ocorrência, onde as permissões de verdade valem.
+ */
+export type AvisoDoCampo = {
+  id: string;
+  tipo: string;
+  ocorrenciaId: string;
+  protocolo: string;
+  criadoEm: string;
+  detalhe: string | null;
+  lido: boolean;
+};
+
+/**
+ * O cursor do sino, e ele é um PAR.
+ *
+ * Nunca é o aplicativo que monta este valor: ele é o eco exato do que a
+ * resposta anterior devolveu em `ate` e `ateId`. A razão está escrita na rota,
+ * e ela tem duas metades:
+ *
+ * 1. **O instante sai do banco.** O relógio do aparelho do agente não é o
+ *    relógio do servidor. Adiantado, a primeira pergunta já viria de um
+ *    instante no futuro e tudo que acontecesse até o servidor alcançá-lo cairia
+ *    fora da janela para sempre.
+ * 2. **O id acompanha o instante, e não é enfeite.** Uma sincronização grava
+ *    várias vistorias na MESMA transação, e todas recebem o mesmo `now()`: o
+ *    empate de instante aqui é rotina, não exceção. A consulta do servidor
+ *    continua em `criado_em > desde OR (criado_em = desde AND id > desdeId)`;
+ *    com o instante sozinho, um corte no meio de um empate deixaria os
+ *    empatados restantes atrás do cursor, e eles não voltariam em pergunta
+ *    nenhuma.
+ *
+ * `desdeId` é nulo quando o servidor não cortou a resposta: ali o cursor é o
+ * relógio dele, e não há empate a desfazer.
+ */
+export type CursorDeAvisos = { desde: string; desdeId: string | null } | null;
+
+export type RespostaDeAvisos = {
+  /** O valor a ecoar em `desde` na próxima pergunta, sem alteração nenhuma. */
+  ate: string;
+  /** O companheiro de `ate`, preenchido só quando a resposta foi cortada. */
+  ateId: string | null;
+  itens: AvisoDoCampo[];
+  teto: number;
+  /** Há mais para buscar, e o cursor aponta para exatamente onde continuar. */
+  truncada: boolean;
+  naoLidos: number;
+  /** A contagem bateu no teto do servidor: o número é um piso, não o total. */
+  naoLidosTruncado: boolean;
+};
+
+/**
+ * O que aconteceu no município desde a última pergunta.
+ *
+ * **A rota foi escrita SEM `exigirPermissao`, expressamente para o agente de
+ * campo poder usá-la**, e o aplicativo nunca a chamou. O comentário dela diz
+ * por quê: não existe ação no pacote compartilhado que descreva "receber
+ * aviso", e emprestar uma (`consultar_trilha`, digamos) deixaria operador e
+ * agente de campo sem sino nenhum sem que ninguém tivesse decidido isso.
+ *
+ * É o único canal que funciona quando o push não alcança, e o push hoje manda
+ * dois tipos de aviso (`tarefa_nova` e `prazo_vencendo`) contra os quatro que
+ * o sino carrega.
+ *
+ * Teto de conforto no tempo: falhar aqui não perde trabalho nenhum, e o agente
+ * costuma estar olhando para a tela quando acontece.
+ */
+export async function baixarAvisos(
+  token: string,
+  cursor: CursorDeAvisos,
+): Promise<RespostaDeAvisos> {
+  /*
+    A consulta é montada à mão, e não com `URLSearchParams`.
+
+    O React Native traz um polyfill PARCIAL de `URL`, em que vários métodos de
+    `URLSearchParams` estouram com "not implemented" no aparelho e funcionam no
+    ambiente de teste, que roda sobre o Node. Um defeito que só aparece no
+    telefone é exatamente o que este produto não pode ter no único canal que
+    funciona quando o push não alcança.
+  */
+  const partes: string[] = [];
+  if (cursor) {
+    partes.push(`desde=${encodeURIComponent(cursor.desde)}`);
+    /*
+      O id só vai quando existe, e nunca como texto vazio: o esquema da rota
+      pede um UUID, e uma cadeia vazia reprovaria a consulta inteira com 422.
+      Sem o par completo o servidor não tem como desfazer o empate, então
+      omitir aqui é omitir de propósito, no único caso em que não há empate.
+    */
+    if (cursor.desdeId) partes.push(`desdeId=${encodeURIComponent(cursor.desdeId)}`);
+  }
+  const consulta = partes.join("&");
+  return chamar<RespostaDeAvisos>(`/avisos${consulta ? `?${consulta}` : ""}`, {
     token, tempoLimiteMs: TEMPO_LIMITE_CONFORTO_MS,
+  });
+}
+
+/**
+ * Marca como lidos os avisos que esta pessoa recebeu.
+ *
+ * A lista é de identificadores, e não um marco de tempo, e a ausência é
+ * decisão do servidor: com um marco, um toque em "limpar" apagaria também o
+ * que o teto cortou e ninguém viu. Só some do sino o que passou pelos olhos de
+ * alguém.
+ */
+export async function marcarAvisosLidos(
+  token: string,
+  ids: readonly string[],
+): Promise<{ marcados: number }> {
+  return chamar<{ marcados: number }>("/avisos/lidos", {
+    token, metodo: "POST", corpo: { ids: [...ids] },
+    tempoLimiteMs: TEMPO_LIMITE_CONFORTO_MS,
   });
 }

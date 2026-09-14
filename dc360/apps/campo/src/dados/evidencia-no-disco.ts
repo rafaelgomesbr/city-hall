@@ -1,5 +1,5 @@
 import { File, Paths } from "expo-file-system";
-import { FalhaPermanente, type Arquivos } from "@dc360/campo";
+import { CODIGO_ARQUIVO_SUMIU, FalhaPermanente, type Arquivos } from "@dc360/campo";
 
 /**
  * Onde a prova da vistoria fica guardada no aparelho até subir.
@@ -68,6 +68,16 @@ export function guardarFotoNoAparelho(
  * 2. **A frase precisa ser em português e terminar numa ação.** O erro do
  *    `expo-file-system` chega em inglês, e ele apareceria na tela do agente,
  *    na rua, como texto final.
+ *
+ * O CÓDIGO vem do pacote e não é escrito à mão aqui. Ele é o contrato entre
+ * esta porta, o dreno (que marca a foto como perdida) e a tela (que oferece
+ * enviar sem ela). Escrito em três lugares, ele divergiria na primeira
+ * renomeação, e o único sintoma seria a saída sumir da tela e a coleta voltar a
+ * ficar presa para sempre.
+ *
+ * A frase daqui é o sinal interno: quem o agente lê é a do dreno, que sabe
+ * QUANTOS arquivos faltam e oferece a saída. Ela continua em português porque
+ * uma falha que escape por outro caminho não pode chegar à rua em inglês.
  */
 export const arquivosDoAparelho: Arquivos = {
   async ler(uriLocal: string): Promise<Uint8Array> {
@@ -75,9 +85,8 @@ export const arquivosDoAparelho: Arquivos = {
     if (!arquivo.exists) {
       throw new FalhaPermanente(
         "Um arquivo desta vistoria não está mais neste aparelho, então ela não "
-        + "pode ser enviada inteira. Avise a coordenação e informe o protocolo "
-        + "desta coleta.",
-        "arquivo_sumiu",
+        + "pode ser enviada inteira.",
+        CODIGO_ARQUIVO_SUMIU,
       );
     }
     /*

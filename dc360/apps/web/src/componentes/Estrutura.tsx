@@ -5,7 +5,7 @@ import { useSessao, useTema } from "../estado/sessao";
 import { encerrarSessao } from "../dados/repositorio";
 import { iniciais } from "./comuns";
 import {
-  IconeBusca, IconeDocumento, IconeEquipes, IconeLua, IconeMapa,
+  IconeAlerta, IconeBusca, IconeDocumento, IconeEquipes, IconeLua, IconeMapa,
   IconeOcorrencias, IconePainel, IconePrancheta, IconePredio, IconeSair,
   IconeSol, IconeUsuarios,
 } from "./Icones";
@@ -45,6 +45,19 @@ const NAVEGACAO: ItemNav[] = [
   { para: "/ocorrencias", rotulo: "Ocorrências", icone: <IconeOcorrencias />, grupo: "Operação",
     escondeSePuder: "registrar_vistoria" },
   { para: "/mapa", rotulo: "Mapa da cidade", icone: <IconeMapa />, grupo: "Operação" },
+  /*
+    Fica em Operação e não em Administração, e fica ACIMA das telas de cadastro
+    de propósito: é a única tela do produto cujo assunto é a integridade física
+    de uma pessoa, e enterrá-la no fim de um menu de dez itens seria decidir, no
+    desenho, que ninguém vai abri-la.
+
+    Escondida de quem registra vistoria pelo mesmo princípio das outras: o
+    agente declara a própria saída pelo aplicativo, e a lista de quem está no
+    morro é trabalho de quem fica na base.
+  */
+  { para: "/quem-esta-em-campo", rotulo: "Quem está em campo", icone: <IconeAlerta />,
+    grupo: "Operação", exige: "acompanhar_saida_a_campo",
+    escondeSePuder: "registrar_vistoria" },
   { para: "/equipes", rotulo: "Equipes", icone: <IconeEquipes />, grupo: "Administração",
     exige: "gerenciar_equipes" },
   /*

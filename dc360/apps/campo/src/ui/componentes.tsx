@@ -1,14 +1,17 @@
 import {
-  createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode,
+  createContext, useCallback, useContext, useEffect, useId, useMemo, useState, type ReactNode,
 } from "react";
 import {
   ActivityIndicator, Animated, Pressable, StyleSheet, Text, View, useColorScheme,
   type StyleProp, type ViewStyle,
 } from "react-native";
+import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import {
-  borda, easing, elevacao, espaco, fonte, icone as tamanhoDeIcone, linha, movimento,
-  opacidade, peso, raio, temaClaro, temaEscuro, toque, type Peso, type Tema,
+  borda, easing, elevacao, espaco, fonte, gradienteDeDestaque, icone as tamanhoDeIcone,
+  linha, movimento, opacidade, peso, raio, temaClaro, temaEscuro, toque,
+  type Peso, type Tema,
 } from "./tokens";
+import { degrau, type NivelDeHierarquia } from "./hierarquia";
 import {
   PREFERENCIA_PADRAO, guardarPreferenciaDeTema, lerPreferenciaDeTema,
   type PreferenciaDeTema,
@@ -179,6 +182,20 @@ export function useEstadoDoTema(): EstadoDoTema {
 type PropsTexto = {
   children: ReactNode;
   variante?: "display" | "h1" | "h2" | "h3" | "corpo" | "corpoP" | "legenda";
+  /**
+   * O PAPEL do texto na peça, quando ele tem um. Ver `hierarquia.ts`.
+   *
+   * Novo e opcional, e as duas coisas são deliberadas. `variante` diz TAMANHO,
+   * e continua sendo o caminho de todo texto corrido; `nivel` diz PAPEL, e
+   * resolve tamanho, altura, peso, rastreio, caixa e discrição de uma vez, a
+   * partir da régua de hierarquia. Quem passa `nivel` deixa de escolher cinco
+   * coisas que precisam combinar entre si, que é onde cinco frentes produzem
+   * cinco combinações.
+   *
+   * Quando os dois vêm juntos, `nivel` ganha: ele é a decisão mais específica,
+   * e um texto que declara o papel dele já respondeu à pergunta do tamanho.
+   */
+  nivel?: NivelDeHierarquia;
   discreto?: boolean;
   cor?: string;
   negrito?: boolean;
@@ -195,21 +212,36 @@ type PropsTexto = {
 };
 
 export function Txt({
-  children, variante = "corpo", discreto, cor, negrito, peso: pesoPedido, mono,
+  children, variante = "corpo", nivel, discreto, cor, negrito, peso: pesoPedido, mono,
   alinhamento, numeroDeLinhas,
 }: PropsTexto) {
   const tema = useTema();
   const fontes = useFontes();
-  const tamanho = {
+  /*
+    O papel, quando declarado, resolve tudo o que precisa combinar entre si.
+    Sem papel, cai na escala por tamanho, que é o caminho de todo texto corrido
+    e continua igual ao que sempre foi.
+  */
+  const papelDoTexto = nivel ? degrau(nivel) : null;
+  const tamanho = papelDoTexto?.fonte ?? {
     display: fonte.display, h1: fonte.h1, h2: fonte.h2, h3: fonte.h3,
     corpo: fonte.corpo, corpoP: fonte.corpoP, legenda: fonte.legenda,
   }[variante];
-  const altura = {
+  const altura = papelDoTexto?.linha ?? {
     display: linha.display, h1: linha.h1, h2: linha.h2, h3: linha.h3,
     corpo: linha.corpo, corpoP: linha.corpoP, legenda: linha.legenda,
   }[variante];
   const pesoFinal: Peso = pesoPedido
+    ?? papelDoTexto?.peso
     ?? (negrito || variante.startsWith("h") || variante === "display" ? peso.negrito : peso.normal);
+  /*
+    O rastreio do papel, e mais nada. Texto corrido não leva rastreio nenhum:
+    `undefined` deixa o React Native usar a métrica da própria fonte, que é o
+    que a Work Sans foi desenhada para fazer no tamanho de leitura. Só as duas
+    pontas da escala pedem correção ótica, e a razão está em `tokens.ts`.
+  */
+  const espacamento = papelDoTexto?.rastreio;
+  const ehDiscreto = discreto ?? papelDoTexto?.discreto ?? false;
 
   return (
     /*
@@ -234,7 +266,15 @@ export function Txt({
         */
         fontWeight: fontes.prontas ? undefined : pesoFinal,
         fontFamily: familiaDoTexto({ mono, peso: pesoFinal, fontesProntas: fontes.prontas }),
-        color: cor ?? (discreto ? tema.textoDiscreto : tema.texto),
+        letterSpacing: espacamento,
+        /*
+          A caixa alta é do PAPEL e não do conteúdo, e por isso ela é desenhada
+          e não escrita. Quem escrever "TAREFAS DE HOJE" no código entrega ao
+          leitor de tela uma palavra que vira sigla soletrada; `textTransform`
+          muda o desenho e deixa o texto acessível intacto.
+        */
+        textTransform: papelDoTexto?.maiuscula ? "uppercase" : undefined,
+        color: cor ?? (ehDiscreto ? tema.textoDiscreto : tema.texto),
         textAlign: alinhamento,
       }}
     >
@@ -300,6 +340,14 @@ export function Botao({
   */
   const toqueVisual = useRespostaAoToque();
 
+  const [inicioDoGradiente, fimDoGradiente] = gradienteDeDestaque(tema);
+  /*
+    Identificador único por botão. `useId` devolve algo com dois pontos no meio
+    (`:r3:`), e dois pontos dentro de `url(#...)` não é nome válido de
+    referência, então ele sai antes de virar `id`.
+  */
+  const idDoGradiente = `dc360Primario${useId().replace(/[^A-Za-z0-9]/g, "")}`;
+
   return (
     <PressionavelAnimado
       onPress={onPress}
@@ -334,6 +382,43 @@ export function Botao({
         mesma busca não deve passar `carregando`: três desenhos para um fato só
         foi defeito relatado, e o `testID` existe para o teste poder cobrar isso.
       */}
+      {/*
+        O GRADIENTE, e ele é o único do aplicativo.
+
+        `CLAUDE.md` autoriza gradiente pontual entre dois tokens desde a emenda
+        de 2026-08-20, e nunca no fundo de uma tela inteira. O botão primário é
+        o lugar certo para o único que existe: ele é a ação que a tela quer que
+        aconteça, aparece em todas as telas e em nenhuma aparece duas vezes
+        seguidas, então o acabamento chega ao produto inteiro sem virar padrão
+        de parede.
+
+        **Ele é REFORÇO e não o fundo.** O `backgroundColor` chapado continua
+        embaixo, com a mesma cor de sempre: se o desenho vetorial não subir por
+        qualquer motivo, o botão continua sendo exatamente o botão que era. Um
+        gradiente que fosse o único fundo transformaria uma falha de desenho
+        num botão transparente com texto branco em cima.
+
+        Os dois pontos saem de `gradienteDeDestaque`, que é a única forma de
+        fazer um gradiente neste aplicativo, e por construção eles são tokens do
+        tema. O `id` é único por instância porque `Defs` com nome repetido faz
+        duas peças na mesma tela disputarem a mesma definição.
+      */}
+      {tipo === "primario" && (
+        <Svg pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <Defs>
+            <LinearGradient id={idDoGradiente} x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor={inicioDoGradiente} />
+              <Stop offset="1" stopColor={fimDoGradiente} />
+            </LinearGradient>
+          </Defs>
+          {/*
+            `rx` e não `overflow: hidden`: o Android não recorta filho por
+            borda arredondada de forma confiável, e um retângulo reto por baixo
+            de um botão arredondado aparece como quatro cantos violeta.
+          */}
+          <Rect x="0" y="0" width="100%" height="100%" rx={raio.normal} fill={`url(#${idDoGradiente})`} />
+        </Svg>
+      )}
       {carregando && <ActivityIndicator testID="botao-ocupado" color={cores.texto} />}
       <Txt cor={cores.texto} peso={peso.negrito}>{titulo}</Txt>
     </PressionavelAnimado>
@@ -426,7 +511,30 @@ export function Tocavel({
   );
 }
 
-export function Cartao({ titulo, children }: { titulo?: string; children: ReactNode }) {
+/**
+ * O cartão, que na 2.0 é um OBJETO e não um retângulo com borda.
+ *
+ * `nivel` é novo e opcional, e é a folga que `CLAUDE.md` autoriza desde a
+ * emenda de 2026-08-20 e que este aplicativo nunca usou: elevação com mais
+ * liberdade em cartão de destaque e em momento de confirmação, mesmo fora de
+ * modal, desde que seja deliberado e consistente entre telas. O "consistente
+ * entre telas" é a parte que mora aqui: quem quiser destacar um cartão pede o
+ * nível, e não escreve uma sombra própria.
+ *
+ * O padrão continua sendo `cartao`, e o destaque continua sendo escasso pela
+ * mesma aritmética da régua de densidade: três cartões flutuando na mesma tela
+ * são três cartões que não flutuam.
+ *
+ * `folha` não entra na união de propósito. Ele é o topo da escala, e existe
+ * para o que cobre a tela e pede decisão; um cartão que se declarasse folha
+ * seria um cartão com a elevação de um diálogo, e a frase "se tudo pode ser o
+ * mais alto, nada é" deixaria de valer no primeiro uso.
+ */
+export function Cartao({ titulo, nivel = "cartao", children }: {
+  titulo?: string;
+  nivel?: "cartao" | "flutuante";
+  children: ReactNode;
+}) {
   const tema = useTema();
   return (
     <View
@@ -434,14 +542,60 @@ export function Cartao({ titulo, children }: { titulo?: string; children: ReactN
         // Fundo, contorno e sombra saem juntos do token, e é o token que sabe
         // que a sombra preta do tema escuro precisa de superfície clareando
         // junto para a peça existir.
-        ...elevacao(tema).cartao,
+        ...elevacao(tema)[nivel],
         borderRadius: raio.cartao,
         padding: espaco.e4,
         gap: espaco.e3,
       }}
     >
-      {titulo && <Txt variante="h3">{titulo}</Txt>}
+      {titulo && <Txt nivel="titulo">{titulo}</Txt>}
       {children}
+    </View>
+  );
+}
+
+/**
+ * O NÚMERO GRANDE COM RÓTULO DISCRETO, que é a H2 virada peça.
+ *
+ * `CLAUDE.md` pede esta figura desde o primeiro dia ("números grandes com
+ * rótulos discretos no painel"), e o aplicativo nunca a teve: todo indicador
+ * dele saiu, até hoje, como duas linhas de texto do mesmo tamanho, uma em cima
+ * da outra. Duas linhas iguais não são hierarquia, são uma lista de dois itens.
+ *
+ * Ela é um componente, e não um par de `Txt` que cada tela monta, por causa da
+ * distância entre os dois: ela é a menor da peça (`espaco.e1`), porque
+ * proximidade é o que diz que o rótulo pertence ao número e não ao bloco de
+ * cima. Deixar isso no ponto de uso é como nascem cinco indicadores com cinco
+ * distâncias, que é literalmente a história que `regua.ts` conta.
+ *
+ * **O número sai em fonte tabular por padrão**, e isso não é estética: os
+ * números deste produto são protocolo, contagem e prazo, e são ditados por
+ * rádio e por telefone. Em tipo proporcional o zero se parece com a letra o, e
+ * o 1 com o l. O aplicativo já pagou por isso uma vez, quando o protocolo saía
+ * dentro de uma frase na fonte do corpo.
+ *
+ * Para o leitor de tela o par é UM elemento com uma frase: "12, tarefas para
+ * hoje". Lidos separados, o número vira um número solto no meio da tela e o
+ * rótulo vira uma palavra sem sujeito.
+ */
+export function Dado({ valor, rotulo, cor, mono = true, testID }: {
+  valor: string;
+  rotulo: string;
+  /** Sai do tema, como sempre. Sem cor, o número é `texto` e o rótulo é discreto. */
+  cor?: string;
+  /** Desligue só quando o "valor" não for número (uma palavra, um nome). */
+  mono?: boolean;
+  testID?: string;
+}) {
+  return (
+    <View
+      testID={testID}
+      accessible
+      accessibilityLabel={`${valor}, ${rotulo}`}
+      style={{ gap: espaco.e1 }}
+    >
+      <Txt nivel="numero" mono={mono} cor={cor}>{valor}</Txt>
+      <Txt nivel="rotulo">{rotulo}</Txt>
     </View>
   );
 }
@@ -599,7 +753,7 @@ export function Aviso({ tom, titulo, acao, peso: pesoPedido = "forte", children 
   `Selo` era a pílula anterior ao `Chip`: recebia `fundo` e `cor` decididos
   dentro da tela, desenhava com um `<Text>` cru (ou seja, fora do `Txt`, então
   sem a família de fonte do produto) e escrevia em `fonte.legenda`, que é 12,
-  dois pontos abaixo do `fonteMinima` declarado neste mesmo arquivo. Duas
+  dois pontos abaixo do `fonteMinimaDeInteracao` declarado neste mesmo arquivo. Duas
   frentes desta onda pararam de usá-lo por causa disso, cada uma à sua maneira,
   e nenhuma o aposentou: ele sobreviveu no único lugar em que ainda era chamado,
   que era também o pior, a marca de gravidade da ocorrência.

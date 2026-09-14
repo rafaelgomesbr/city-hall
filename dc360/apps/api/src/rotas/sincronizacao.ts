@@ -4,6 +4,7 @@ import {
   ROTULO_MOTIVO_DE_DEVOLUCAO,
   chaveDeStorage, devolucaoDeTarefaSchema, envelopeSincronizacaoSchema,
   transicaoPermitida,
+  type EvidenciaPerdida,
   type MotivoDeDevolucao, type OrgaoIndicado, type StatusOcorrencia,
 } from "@dc360/shared";
 import type { Banco, Consulta } from "../banco/tipos.js";
@@ -80,6 +81,62 @@ function decisaoPlausivel(iso: string): boolean {
   return Number.isFinite(instante)
     && instante > PISO_DE_DECISAO
     && instante < Date.now() + FOLGA_DE_RELOGIO_MS;
+}
+
+/**
+ * Grava o que foi capturado em campo e nao pode ser recuperado do aparelho.
+ *
+ * ## O defeito que isto acaba, e ele destruia a manha inteira
+ *
+ * As fotos sobem ANTES do envelope, de proposito: o laudo nao pode apontar para
+ * arquivo que ainda nao existe. A consequencia era que um arquivo apagado pelo
+ * sistema operacional (cache e, por definicao, o que ele apaga sozinho quando o
+ * armazenamento aperta) fazia a leitura dos bytes falhar e o ENVELOPE INTEIRO
+ * nunca sair: checklist, GPS, assinatura, observacoes, orgaos a acionar.
+ *
+ * Agora a coleta sobe, e a perda sobe declarada. O que torna isso aceitavel e
+ * exatamente esta gravacao mais a linha no laudo: subir calado sem a foto
+ * entregaria um documento que parece completo e nao e, e quem le um registro
+ * fotografico com tres fotos nao tem como saber que havia cinco.
+ *
+ * ## Roda dentro da MESMA transacao da vistoria
+ *
+ * Pelo mesmo motivo dos orgaos indicados: se esta gravacao falhar, a vistoria
+ * inteira volta atras. Meia vistoria e pior que nenhuma, porque ela parece
+ * completa. Uma coleta gravada com a declaracao de perda perdida seria
+ * literalmente o defeito que este codigo existe para impedir, agora produzido
+ * pelo proprio servidor.
+ *
+ * ## `ON CONFLICT DO NOTHING`, e nao porque sobra
+ *
+ * O reenvio da mesma coleta e rotina (o aparelho desiste por tempo esgotado e
+ * repete), e o caminho normal nem chega aqui, porque a rota devolve o recibo
+ * antigo. Isto cobre a corrida: dois envios em voo ao mesmo tempo. Sem ele, o
+ * laudo declararia a mesma fotografia perdida duas vezes.
+ */
+async function gravarEvidenciasPerdidas(
+  c: Consulta,
+  organizacaoId: string,
+  vistoriaId: string,
+  perdidas: readonly EvidenciaPerdida[],
+): Promise<void> {
+  if (perdidas.length === 0) return;
+
+  for (const [ordem, perda] of perdidas.entries()) {
+    await c.query(
+      `INSERT INTO vistoria_evidencias_perdidas
+         (organizacao_id, vistoria_id, idempotency_key, papel, capturada_em,
+          legenda, latitude, longitude, ordem)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       ON CONFLICT (organizacao_id, vistoria_id, idempotency_key) DO NOTHING`,
+      [
+        organizacaoId, vistoriaId, perda.idempotencyKey, perda.papel,
+        perda.capturadaEm, perda.legenda ?? null,
+        perda.coordenada?.lat ?? null, perda.coordenada?.lng ?? null,
+        ordem,
+      ],
+    );
+  }
 }
 
 /**
@@ -407,8 +464,8 @@ export async function rotasSincronizacao(
            (organizacao_id, ocorrencia_id, agente_id, checklist, gps_precisao_metros,
             assinante_nome, assinatura_chave, observacoes, coletada_em, idempotency_key,
             desalojados, desabrigados, feridos, desaparecidos, obitos,
-            equipe_designada_id, equipe_do_agente_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+            equipe_designada_id, equipe_do_agente_id, latitude, longitude)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
          ON CONFLICT (organizacao_id, idempotency_key) DO NOTHING
          RETURNING id`,
         [
@@ -424,6 +481,41 @@ export async function rotasSincronizacao(
           v.desalojados ?? null, v.desabrigados ?? null, v.feridos ?? null,
           v.desaparecidos ?? null, v.obitos ?? null,
           alvo.equipe_id, equipeDoAgente,
+          /*
+            ONDE O AGENTE REALMENTE ESTEVE, gravado como dado DA VISTORIA.
+
+            O envelope trazia so `gpsPrecisaoMetros`, ou seja, a qualidade de
+            uma medida cujo valor ficava no celular. O ponto agora sobe, e o que
+            o servidor faz com ele e ESTREITO de proposito.
+
+            ELE NAO CORRIGE A COORDENADA DA OCORRENCIA, e a recusa e a decisao
+            principal desta linha. Corrigir e outro ato, e o produto ja o tem
+            (`POST /ocorrencias/:id/coordenada`, evento `correcao_de_coordenada`),
+            com tres exigencias que uma sincronizacao nao consegue cumprir:
+
+            1. MOTIVO ESCRITO, minimo de quinze caracteres. Ele existe para
+               responder, meses depois, "por que o laudo impresso diz um ponto e
+               o sistema diz outro". Um envelope de sincronizacao nao tem essa
+               frase, e o servidor inventar uma ("corrigido pela vistoria") seria
+               gravar na trilha append-only uma justificativa que ninguem
+               escreveu.
+            2. UMA DECISAO DE PESSOA. Este ponto e onde o APARELHO estava, que
+               pode ser o portao, a calcada ou a laje do vizinho, com precisao de
+               quarenta metros debaixo de chuva. Ele e a melhor informacao
+               disponivel sobre o imovel e ainda assim nao e uma afirmacao de que
+               o imovel esta ali. Deixar a coleta reescrever o ponto faria o
+               alfinete do municipio mudar sozinho as 19:00, quando a fila drena,
+               sem ninguem ter decidido nada.
+            3. NAO SER SILENCIOSA NA REVISTORIA. Uma segunda ida sobrescreveria o
+               ponto da primeira, e a ocorrencia passaria a apontar para a medida
+               mais recente e nao para a melhor.
+
+            O que o produto ganha mesmo assim: a informacao FINALMENTE chega, sai
+            impressa no laudo ao lado da precisao, e a coordenacao passa a ter na
+            tela os dois pontos para decidir. O agente deixou de ser o unico que
+            nao conseguia reportar o que so ele sabe.
+          */
+          v.coordenada?.lat ?? null, v.coordenada?.lng ?? null,
         ],
       );
       /*
@@ -467,6 +559,7 @@ export async function rotasSincronizacao(
       const novaId = inserida.rows[0].id;
 
       await gravarOrgaosIndicados(c, quem.organizacaoId, novaId, v.orgaosParaAcionar ?? []);
+      await gravarEvidenciasPerdidas(c, quem.organizacaoId, novaId, v.evidenciasPerdidas ?? []);
 
       for (const [ordem, foto] of v.fotos.entries()) {
         /**
@@ -566,6 +659,47 @@ export async function rotasSincronizacao(
 
         Origem `campo` porque o ato aconteceu no aparelho, não no escritório.
       */
+      /*
+        A PERDA ENTRA NA TRILHA, e entra como evento proprio.
+
+        Mesma razao de `vistoria_fora_da_equipe`, e aqui ela e ainda mais
+        direta: a pergunta que este evento responde e uma lista ("quais
+        vistorias deste municipio entraram com prova faltando", "isto esta
+        acontecendo em qual aparelho"), e lista nao sai de dentro de JSON sem
+        alguem escrever consulta que ninguem revisa. E ela e a pergunta de quem
+        decide trocar o aparelho do plantao.
+
+        `ocorrido_em` fica com o padrao (a hora do servidor) e NAO com
+        `coletadaEm`, ao contrario do evento da vistoria. O que este evento
+        registra nao aconteceu no morro: aconteceu na hora do envio, que e
+        quando o arquivo foi procurado e nao estava mais la.
+
+        Origem `campo` porque a decisao de subir sem o arquivo foi tomada no
+        aparelho, pelo agente.
+      */
+      const perdidas = v.evidenciasPerdidas ?? [];
+      if (perdidas.length > 0) {
+        await registrarEvento(
+          c, quem, envelope.ocorrenciaId, "vistoria_com_evidencia_perdida",
+          {
+            vistoriaId: novaId,
+            quantidade: perdidas.length,
+            /*
+              Cada perda nomeada, e nao so a contagem. A trilha e a tela que
+              alguem abre para PROVAR o que aconteceu, e "uma fotografia se
+              perdeu" nao permite conferir nada: o que permite e a hora da
+              captura, que e o que amarra a declaracao do laudo a esta linha.
+            */
+            itens: perdidas.map((p) => ({
+              idempotencyKey: p.idempotencyKey,
+              papel: p.papel,
+              capturadaEm: p.capturadaEm,
+            })),
+          },
+          "campo",
+        );
+      }
+
       if (foraDaEquipe) {
         await registrarEvento(
           c, quem, envelope.ocorrenciaId, "vistoria_fora_da_equipe",

@@ -79,6 +79,18 @@ interdição responde pelo ato, e a trilha é o que permite ao próprio servidor
 provar o que fez e quando. Por isso usuário **não se apaga**: se desativa. Um
 usuário apagado deixaria laudos assinados por ninguém.
 
+Desde 14/09/2026 há mais uma categoria, e ela precisa ser dita por extenso: a
+**saída a campo declarada pelo agente**, com o protocolo para onde ele foi, o
+tempo que ele previu, se ele foi sozinho, e o prazo de retorno. É dado sobre o
+servidor, ele mesmo declara, e existe para a coordenação saber que alguém não
+deu notícia.
+
+**O que o sistema NÃO faz com isso, e é a parte que importa:** não acompanha a
+localização do agente, nem durante a saída nem depois. O que fica guardado é para
+onde ele **disse** que ia, antes de sair. Seguir o servidor pelo GPS ao longo do
+turno é vigilância de trabalhador, e essa é uma decisão que o produto não tomou
+pelo município: ele não oferece esse recurso. Ver `SEGURANCA-DO-AGENTE.md`.
+
 ### 2.3 Do aparelho de campo
 
 Identificador do aparelho e ficha de notificação, para a mensagem de prazo
@@ -127,6 +139,7 @@ sistema, de hora em hora, não por lembrete:
 | Protocolo, endereço, tipo, severidade, decisão técnica, trilha | Permanente | Nada. É o registro do ato |
 | Registro de quem acessou e de quem exportou | Permanente | Nada. É prova de acesso, e prova de acesso não se descarta junto com o dado que ela protege |
 | Conta de servidor público desativada | Permanente | Nada. Ele assina laudo e aparece na trilha |
+| Saída a campo declarada, e o que a coordenação fez a respeito | Permanente | Nada. É a prova de que o município reagiu (ou de que não reagiu) a um alerta sobre a segurança física do próprio servidor, e essa prova não vence junto com o nome de quem ligou para a central: ela responde por prazo próprio e mais longo. O texto que a coordenação escreve ali é sobre o ATO da prefeitura, e a tela pede, no rótulo, que ele nunca traga dado do morador |
 
 **Por que o endereço fica e o nome sai:** o endereço é atributo do imóvel
 vistoriado e do ato praticado sobre ele; o nome é atributo da pessoa que ligou.

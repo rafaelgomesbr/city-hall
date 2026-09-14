@@ -29,7 +29,7 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
 
 import { ProvedorDeTema } from "./componentes";
 import { Dialogo } from "./Dialogo";
-import { fonteMinima, movimento, temaClaro, temaEscuro, toque } from "./tokens";
+import { elevacao, fonteMinimaDeInteracao, movimento, temaClaro, temaEscuro, toque } from "./tokens";
 
 /*
   As animações são espionadas em vez de o valor animado ser lido. O que se quer
@@ -140,7 +140,7 @@ describe("o que o diálogo mostra", () => {
     await montarEAbrir();
     for (const alvo of ["Descartar esta coleta?", /Não dá para desfazer/] as const) {
       const tamanho = StyleSheet.flatten(screen.getByText(alvo).props.style).fontSize;
-      expect(tamanho).toBeGreaterThanOrEqual(fonteMinima);
+      expect(tamanho).toBeGreaterThanOrEqual(fonteMinimaDeInteracao);
     }
   });
 
@@ -243,7 +243,48 @@ describe("o tema, que o alerta do sistema não seguia", () => {
     await montarEAbrir();
     expect(
       StyleSheet.flatten(screen.getByTestId("dialogo").props.style).backgroundColor,
-    ).toBe(temaEscuro.superficie);
+    ).toBe(elevacao(temaEscuro).folha.backgroundColor);
+  });
+
+  /*
+    A dívida 9.1, virada caso.
+
+    Enquanto a folha desenhava a superfície à mão, ela terminava, no escuro, em
+    `superficie`, que é EXATAMENTE a superfície de um cartão comum. A peça que
+    está por cima de tudo tinha a camada de uma peça que está no fundo, e o que
+    separava as duas era só o véu. Este caso reprova no código anterior, porque
+    lá os dois valores eram o mesmo.
+
+    A afirmação é contra `elevacao(...).cartao` e não contra a constante
+    `#171E24`: o que precisa valer é que a folha está ACIMA do cartão, e não que
+    ela tem um hexadecimal específico. Travar a cor faria o caso reprovar no dia
+    em que a paleta mudasse, dizendo que a elevação quebrou.
+  */
+  it("no escuro a folha fica ACIMA do cartão, e não na mesma camada dele", async () => {
+    mockEsquema = "dark";
+    await montarEAbrir();
+    const daFolha = StyleSheet.flatten(screen.getByTestId("dialogo").props.style).backgroundColor;
+    expect(daFolha).not.toBe(elevacao(temaEscuro).cartao.backgroundColor);
+    expect(daFolha).toBe(temaEscuro.superficie2);
+  });
+
+  /*
+    E ela carrega a sombra do nível, inteira. Enquanto a superfície foi escrita
+    à mão aqui, a folha não tinha sombra NENHUMA: `elevacao(tema).folha` era o
+    topo da escala de elevação sem um único uso no produto inteiro.
+  */
+  it("a folha carrega a sombra do topo da escala, e ela sobe", async () => {
+    mockEsquema = "light";
+    await montarEAbrir();
+    const estilo = StyleSheet.flatten(screen.getByTestId("dialogo").props.style);
+    expect(estilo.shadowRadius).toBe(elevacao(temaClaro).folha.shadowRadius);
+    expect(estilo.elevation).toBe(elevacao(temaClaro).folha.elevation);
+    /*
+      Para cima, porque a única borda visível de uma folha colada no rodapé é a
+      de cima. Descendo, a sombra cai para fora da tela e o nível inteiro vira
+      decoração invisível, que foi o motivo pelo qual ele nunca foi ligado.
+    */
+    expect(estilo.shadowOffset?.height).toBeLessThan(0);
   });
 });
 

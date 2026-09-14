@@ -4,6 +4,7 @@ import { Redirect, Tabs, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { FilaDeSincronizacao, ResumoFila } from "@dc360/campo";
 import { iniciarSincronizacaoContinua, obterFila } from "../../dados/fila";
+import { assinarAvisos, avisosGuardados, type AvisosGuardados } from "../../dados/avisos";
 import { useSinal } from "../../dados/conectividade";
 import { useSessao } from "../../dados/sessao";
 import { enderecoDaApi } from "../../dados/api";
@@ -103,6 +104,15 @@ export default function LayoutDoAgente() {
   const reduzirMovimento = useReducaoDeMovimento();
 
   const [resumo, setResumo] = useState<ResumoFila | null>(null);
+  /*
+    O SINO, só o número, lido do DISCO e nunca da rede.
+
+    Quem fala com o servidor é a tela de Perfil; aqui a barra só espelha o que
+    já está guardado. É o que faz o crachá existir mesmo no morro, sem nenhuma
+    chamada, e é o que impede a barra de abas de virar o segundo lugar do
+    aplicativo que tenta rede sozinho.
+  */
+  const [sino, setSino] = useState<AvisosGuardados | null>(null);
   const filaRef = useRef<FilaDeSincronizacao | null>(null);
   const sinalRef = useRef(sinal.temSinal);
   sinalRef.current = sinal.temSinal;
@@ -134,6 +144,27 @@ export default function LayoutDoAgente() {
     };
   }, [identidade, obterToken, lerIdentidade]);
 
+  /*
+    Lê uma vez e depois só escuta. A leitura inicial é o que faz o crachá
+    existir já na primeira pintura (quem abre o aplicativo depois de um dia fora
+    precisa ver o número antes de tocar em qualquer coisa), e a escuta é o que
+    faz ele ZERAR quando o agente marca os avisos como lidos dentro do Perfil,
+    sem depender de trocar de aba para a barra se redesenhar.
+
+    LISTA DE DEPENDÊNCIAS VAZIA, e não `[identidade]`, que foi a primeira
+    versão. `useSessao()` devolve um objeto NOVO a cada renderização, então o
+    efeito reexecutava a cada quadro, gravava estado, provocava a renderização
+    seguinte e recomeçava: laço infinito que estoura a memória do processo. O
+    efeito não precisa da identidade, porque não há nada a reler quando ela
+    muda: o logout apaga `marcas`, e a barra inteira é desmontada junto.
+  */
+  useEffect(() => {
+    let vivo = true;
+    void avisosGuardados().then((lido) => { if (vivo) setSino(lido); });
+    const desassinar = assinarAvisos((novo) => { if (vivo) setSino(novo); });
+    return () => { vivo = false; desassinar(); };
+  }, []);
+
   // Sinal voltou: tenta agora, sem esperar a próxima janela do laço. É o
   // momento em que o agente está olhando para a tela esperando ver acontecer.
   useEffect(() => {
@@ -156,6 +187,14 @@ export default function LayoutDoAgente() {
   const deOutroAutor = resumo?.deOutroAutor ?? 0;
   // O que a aba de envio mostra no número: tudo que ainda não chegou lá.
   const naFila = pendentes + bloqueados + deOutroAutor;
+
+  const avisosPorLer = sino?.naoLidos ?? 0;
+  /*
+    A contagem do servidor bateu no teto dele: o número é um PISO, e não o
+    total. O "+" existe para o crachá não afirmar um total que ninguém contou,
+    que é o mesmo cuidado que o sino do painel já tem.
+  */
+  const avisosTruncados = sino?.naoLidosTruncado ?? false;
 
   /*
     A PASSAGEM DE UMA TELA PARA OUTRA, que até aqui não existia.
@@ -390,19 +429,55 @@ export default function LayoutDoAgente() {
                 + (bloqueados > 0 ? `, ${bloqueados} com problema` : ""),
           }}
         />
+        {/*
+          PERFIL, e não "Equipe" mais "Conta" em duas telas.
+
+          As duas respondiam à mesma pergunta ("quem sou eu aqui e como está o
+          meu aparelho"), e a conta estava escondida atrás de um botão no FIM do
+          rolamento da equipe: quem quisesse conferir a versão do aplicativo ou
+          trocar o tema precisava abrir a equipe, rolar dez vistorias concluídas
+          e achar um botão secundário no rodapé. A rota `conta` saiu junto, e
+          não sobrou redirecionamento: ninguém liga para ela de lugar nenhum.
+
+          O crachá aqui é o SINO (`GET /avisos`), e ele é o que compra a
+          visibilidade de qualquer tela sem inventar uma quarta aba. A razão de
+          o conteúdo morar dentro do Perfil, e não num sino fixo no topo, está
+          escrita no cabeçalho de `perfil.tsx`: o sino precisa de rede, e o topo
+          desta tela já pertence à `FaixaDeSincronizacao`, que nunca mente.
+        */}
         <Tabs.Screen
-          name="equipe"
+          name="perfil"
           options={{
-            title: "Minha equipe",
-            tabBarLabel: "Equipe",
+            title: "Meu perfil",
+            tabBarLabel: "Perfil",
             tabBarIcon: ({ color, focused }) => (
               <IconeEmPilula Icone={IconeEquipe} cor={color} ativo={focused}
                              fundoAtivo={tema.superficie2} />
             ),
+            // Número, e não pontinho: o agente precisa saber QUANTOS avisos
+            // esperam, e o número é o que decide se vale abrir agora.
+            tabBarBadge: avisosPorLer > 0
+              ? `${avisosPorLer}${avisosTruncados ? "+" : ""}`
+              : undefined,
+            tabBarBadgeStyle: {
+              /*
+                `alertaTexto` e não `destaque`: o crachá da fila já é violeta, e
+                dois crachás violetas na mesma barra seriam dois avisos com a
+                mesma cara para duas coisas opostas (uma é trabalho que ainda não
+                subiu, a outra é notícia do município). E `sobreDestaque` para o
+                número pela mesma razão do crachá da fila: branco escrito à mão
+                acerta num tema e some no outro.
+              */
+              backgroundColor: tema.alertaTexto,
+              color: tema.sobreDestaque,
+              fontSize: fonte.legenda,
+            },
+            tabBarAccessibilityLabel: avisosPorLer === 0
+              ? "Perfil"
+              : `Perfil, ${avisosTruncados ? "mais de " : ""}${avisosPorLer} `
+                + `${avisosPorLer === 1 && !avisosTruncados ? "aviso" : "avisos"} por ler`,
           }}
         />
-        {/* Fora da barra: alcançada pela tela de equipe. */}
-        <Tabs.Screen name="conta" options={{ title: "Minha conta", href: null }} />
         {/* Fora da barra, e sem barra: ver o comentário acima. */}
         <Tabs.Screen
           name="vistoria/[id]"

@@ -32,7 +32,35 @@ jest.mock("expo-constants", () => ({
   default: { expoConfig: { version: "0.1.0" } },
 }));
 
-jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
+jest.mock("../dados/api", () => ({
+  enderecoDaApi: () => "https://api.exemplo",
+  SemSinal: class SemSinal extends Error {},
+  normalizarMeuTrabalho: (bruto: unknown) => bruto,
+}));
+
+/*
+  "Minha conta" virou Perfil, fundida com "Minha equipe": a tela agora também lê
+  o trabalho concluído e o sino do município. Nenhum dos dois é o assunto deste
+  arquivo, que é o diálogo da saída.
+*/
+const SINO_VAZIO = {
+  itens: [], cursor: null, naoLidos: 0, naoLidosTruncado: false,
+  lidosPendentes: [], baixadoEm: null,
+};
+
+jest.mock("../dados/pendencias", () => ({
+  meuTrabalhoGuardado: async () => null,
+  atualizarMeuTrabalho: async () => { throw new Error("sem rede nesta suite"); },
+}));
+
+jest.mock("../dados/avisos", () => ({
+  AVISOS_VAZIOS: SINO_VAZIO,
+  avisosGuardados: async () => SINO_VAZIO,
+  sincronizarAvisos: async () => SINO_VAZIO,
+  marcarAvisosComoLidosNoAparelho: async () => SINO_VAZIO,
+  fraseDoAviso: () => "Atualização na ocorrência",
+  complementoDoAviso: () => null,
+}));
 
 /** Quantas coletas o aparelho diz ter esperando. Cada teste ajusta. */
 let mockPendentes = 0;
@@ -81,7 +109,7 @@ jest.mock("../dados/preferencia-de-tema", () => ({
   guardarPreferenciaDeTema: async () => undefined,
 }));
 
-import Conta from "../app/(agente)/conta";
+import Perfil from "../app/(agente)/perfil";
 import { ProvedorDeTema } from "./componentes";
 
 beforeEach(() => {
@@ -92,7 +120,7 @@ beforeEach(() => {
 
 /** Monta a tela e espera o resumo da fila responder. */
 async function abrirATela(): Promise<void> {
-  await render(<ProvedorDeTema><Conta /></ProvedorDeTema>);
+  await render(<ProvedorDeTema><Perfil /></ProvedorDeTema>);
   await act(async () => {});
 }
 

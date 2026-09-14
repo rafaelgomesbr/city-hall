@@ -280,7 +280,7 @@ export function lerTokensDoApp(caminho = TOKENS_TS) {
     linha: numeros("linha"),
     movimento: numeros("movimento"),
     toque: escalar("toque"),
-    fonteMinima: escalar("fonteMinima"),
+    fonteMinimaDeInteracao: escalar("fonteMinimaDeInteracao"),
   };
 }
 
@@ -517,6 +517,41 @@ export function arvoreJsx(fonte, linhaBase = 1) {
 
   while (pilha.length > 0) desfazer(pilha.pop());
   return raizes;
+}
+
+/**
+ * AS PEÇAS: cada uma é um recipiente que o olho lê como uma coisa só.
+ *
+ * Nasceu dentro do portão de densidade, para a R1 ("um bloco preenchido por
+ * peça") ter onde contar. Mora aqui desde que a régua de hierarquia passou a
+ * precisar da MESMA noção para a H1 ("um protagonista por peça"): as duas
+ * perguntas são "quantos X coexistem dentro do que o olho lê junto", e duas
+ * listas de peças para uma noção só é o defeito que o cabeçalho deste arquivo
+ * já nomeia para os parsers (duas leituras divergem, e aí dois portões passam a
+ * medir árvores diferentes).
+ *
+ * `Tocavel` está na lista porque o cartão da lista de tarefas É um `Tocavel`: o
+ * cartão inteiro é o botão. Sem ele, o que está dentro do cartão subiria para o
+ * item de lista e se misturaria ao que está fora dele.
+ */
+export const PECAS = new Set([
+  "Cartao", "ItemDeLista", "Secao", "Tocavel",
+  "ScrollView", "FlatList", "SectionList", "Modal", "Dialogo",
+]);
+
+/**
+ * Uma `View` que ocupa a tela inteira TAMBÉM é uma peça, e ela precisa ser.
+ *
+ * A tela de vistoria é o caso: a tarja de erro fica FORA da rolagem, presa no
+ * alto, porque o formulário passa de dois mil pontos e um erro desenhado no
+ * meio dele acontece onde ninguém está olhando. Sem esta regra, a tarja não
+ * teria peça nenhuma a que pertencer e cairia no balde do arquivo, junto com
+ * tudo que as OUTRAS telas daquele mesmo arquivo desenham. Balde de arquivo
+ * soma coisas que nunca aparecem juntas, e soma errado.
+ */
+export function ePeca(no) {
+  if (PECAS.has(no.tag)) return true;
+  return no.tag === "View" && /\bflex\s*:\s*1\b/.test(no.atributos);
 }
 
 /**
