@@ -333,6 +333,25 @@ export default function LayoutDoAgente() {
         screenOptions={{
           headerStyle: { backgroundColor: tema.superficie },
           headerTintColor: tema.texto,
+          /*
+            A ÁREA SEGURA É PAGA UMA VEZ SÓ, e quem paga é o `View` de fora.
+
+            O cabeçalho do React Navigation reserva a área segura por conta
+            própria quando não há cabeçalho pai, e a fonte dele diz isso sem
+            rodeio: `headerStatusBarHeight = isParentHeaderShown ? 0 :
+            insets.top`. A pilha da raiz desliga o cabeçalho dela para
+            `(agente)`, então aqui não há pai nenhum e o recuo entrava inteiro.
+
+            Só que este layout JÁ aplicou `paddingTop: margens.top` lá em cima,
+            e precisa aplicar: a faixa de sincronização mora acima do cabeçalho
+            e sem aquele recuo ela nasce embaixo do entalhe. O resultado eram
+            duas áreas seguras empilhadas, cerca de 59 pontos de nada entre a
+            faixa e a palavra "Minhas tarefas". Foi o que o Rafa viu no
+            aparelho e chamou de "muito testudo".
+
+            Zerar aqui não põe nada embaixo do entalhe: muda só quem paga.
+          */
+          headerStatusBarHeight: 0,
           /* Mesma razão do rótulo da aba, logo abaixo: o título do cabeçalho
              é texto do produto, e a pilha de fora já fazia isto. */
           headerTitleStyle: {

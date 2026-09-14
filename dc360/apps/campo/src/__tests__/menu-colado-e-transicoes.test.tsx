@@ -203,6 +203,40 @@ function estiloDaBarra(opcoes: Opcoes): Record<string, unknown> {
   return (opcoes["tabBarStyle"] ?? {}) as Record<string, unknown>;
 }
 
+describe("o topo não cobra a área segura duas vezes", () => {
+  /*
+    O RECLAME, na letra: "o header ali onde fica fila de envio, minhas tarefas
+    tá muito testudo, por que aquela distância toda?".
+
+    A distância era uma conta paga duas vezes. O `_layout` do agente aplica
+    `paddingTop: margens.top` no `View` de fora, e precisa aplicar: a faixa de
+    sincronização mora ACIMA do cabeçalho das abas, e sem esse recuo ela nasce
+    embaixo do entalhe do aparelho.
+
+    Só que o cabeçalho do React Navigation soma o MESMO recuo por conta
+    própria. A fonte dele não deixa dúvida
+    (`@react-navigation/elements/.../Header.js`):
+
+      headerStatusBarHeight = isParentHeaderShown ? 0 : insets.top
+
+    Não há cabeçalho pai (a pilha da raiz desliga o dela com `headerShown:
+    false` para `(agente)`), então o cabeçalho das abas acrescenta a área
+    segura inteira de novo. Num iPhone com entalhe isso são cerca de 59 pontos
+    de nada, entre a faixa e a palavra "Minhas tarefas", e quem olha não tem
+    como saber que aquilo é um espaço reservado para um relógio que já foi
+    desviado lá em cima.
+
+    Zerar aqui não deixa nada por baixo do entalhe: quem paga a área segura é o
+    `View` de fora, uma vez só, e é ele que tem de pagar, porque é ele que
+    desenha primeiro.
+  */
+  it("o cabeçalho não soma a área segura que o layout já pagou", async () => {
+    const opcoes = await montarAsAbas();
+
+    expect(opcoes["headerStatusBarHeight"]).toBe(0);
+  });
+});
+
 describe("a barra de abas colada na borda de baixo", () => {
   it("não flutua: sem posição absoluta, sem margem lateral e sem folga inferior", async () => {
     const barra = estiloDaBarra(await montarAsAbas());
