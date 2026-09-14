@@ -13,6 +13,9 @@
 /* Prefixo `mock`: é o que o jest permite dentro da fábrica de `jest.mock`. */
 const mockCopias: { de: string; para: string }[] = [];
 const mockTamanhos = new Map<string, number>();
+/** O sistema recusando a exclusão, que é o caso em que a limpeza não pode
+    derrubar quem a chamou. */
+let mockRecusaApagar = false;
 
 jest.mock("expo-file-system", () => ({
   Paths: { document: "file:///documentos" },
@@ -35,15 +38,22 @@ jest.mock("expo-file-system", () => ({
       mockCopias.push({ de: this.uri, para: destino.uri });
       mockTamanhos.set(destino.uri, mockTamanhos.get(this.uri) ?? 0);
     }
+    delete(): void {
+      if (mockRecusaApagar) throw new Error("EPERM: operation not permitted");
+      mockTamanhos.delete(this.uri);
+    }
   },
 }));
 
 import { CODIGO_ARQUIVO_SUMIU, FalhaPermanente } from "@dc360/campo";
-import { arquivosDoAparelho, guardarFotoNoAparelho } from "./evidencia-no-disco";
+import {
+  apagarFotoDoAparelho, arquivosDoAparelho, guardarFotoNoAparelho,
+} from "./evidencia-no-disco";
 
 beforeEach(() => {
   mockCopias.length = 0;
   mockTamanhos.clear();
+  mockRecusaApagar = false;
   jest.spyOn(Date, "now").mockReturnValue(1_757_000_000_000);
 });
 
@@ -139,5 +149,43 @@ describe("a leitura dos bytes na hora de enviar", () => {
     expect(falha.message).toContain("não está mais neste aparelho");
     // Sem inglês do sistema operacional vazando para a rua.
     expect(falha.message).not.toMatch(/[A-Za-z]+ (?:file|does not exist)/i);
+  });
+});
+
+describe("a fotografia que o agente mandou apagar", () => {
+  /*
+    O diálogo da vistoria promete, com todas as letras, que "o arquivo é
+    descartado deste aparelho". Até aqui a foto saía da lista do rascunho e o
+    JPEG ficava em `Paths.document`. O único lugar que varria esses arquivos era
+    o logout, e o agente de campo não sai da conta: ele fecha o aplicativo e
+    volta no dia seguinte, no mesmo aparelho, compartilhado entre turnos. É a
+    mesma coisa que a limpeza do logout chama pelo nome, "lixo com dado de
+    família dentro", só que de uma foto que alguém mandou apagar.
+  */
+  it("sai do disco de verdade", () => {
+    mockTamanhos.set("file:///documentos/foto-1-0.jpg", 800_000);
+
+    expect(apagarFotoDoAparelho("file:///documentos/foto-1-0.jpg")).toBe(true);
+    expect(mockTamanhos.has("file:///documentos/foto-1-0.jpg")).toBe(false);
+  });
+
+  it("arquivo que já não existe não é erro", () => {
+    /* O sistema pode ter apagado o cache antes, ou a pessoa pode ter limpado os
+       arquivos do aplicativo pelos ajustes do Android. */
+    expect(apagarFotoDoAparelho("file:///documentos/sumiu.jpg")).toBe(false);
+  });
+
+  it("o sistema que recusa apagar não derruba quem chamou", () => {
+    /*
+      O contrato inteiro desta função: quem a chama está no meio de tirar a foto
+      da vistoria, e essa parte não pode falhar por causa da limpeza. O arquivo
+      órfão volta a ser problema do logout, que é onde ele sempre esteve; a foto
+      sumir da lista é o que o agente pediu.
+    */
+    mockTamanhos.set("file:///documentos/foto-1-0.jpg", 800_000);
+    mockRecusaApagar = true;
+
+    expect(() => apagarFotoDoAparelho("file:///documentos/foto-1-0.jpg")).not.toThrow();
+    expect(apagarFotoDoAparelho("file:///documentos/foto-1-0.jpg")).toBe(false);
   });
 });

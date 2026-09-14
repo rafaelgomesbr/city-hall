@@ -145,7 +145,55 @@ describe("A tela diz em que modo está, e nunca antes de saber", () => {
   it("chave divergente: desenha, e diz que a conta cai na chave compilada", async () => {
     await desenhar(decidirModoDoMapa({ daApi: "a-nova", doBuild: "a-velha" }));
     expect(screen.getByText("Mapa do Google")).toBeTruthy();
-    expect(screen.getByText(/é diferente da que está\s+nesta versão do aplicativo/)).toBeTruthy();
+    expect(screen.getByText(/é diferente da que está nesta versão do aplicativo/)).toBeTruthy();
+  });
+
+  it("e quem OUVE a tela também fica sabendo da chave divergente", async () => {
+    /*
+      A legenda de modo é um resumo com rótulo próprio, e um resumo é lido como
+      uma coisa só: no Android o `contentDescription` do agrupamento ganha dos
+      filhos. Enquanto o aviso da chave divergente existia só como filho
+      desenhado, ele não era falado por ninguém.
+
+      Ele é dirigido ao agente ("avise a coordenação"), e é o único caminho pelo
+      qual alguém descobre que a prefeitura rotacionou `MAPS_KEY` no servidor e
+      não gerou o aplicativo de novo: o mapa continua desenhando e a conta
+      continua caindo na chave antiga, então não há nada quebrado na tela para
+      investigar. Um agente que usa leitor de tela era o único que nunca ficava
+      sabendo.
+    */
+    await desenhar(decidirModoDoMapa({ daApi: "a-nova", doBuild: "a-velha" }));
+    const resumo = screen.getByRole("summary");
+    expect(String(resumo.props.accessibilityLabel))
+      .toMatch(/Avise a coordenação para gerar o aplicativo de novo/);
+  });
+
+  it("quem OUVE a tela ouve que a coordenada vai para o Google, sem o detalhe na tela", async () => {
+    /*
+      O caso que mais importa deste bloco, e o mais fácil de perder.
+
+      No modo autorizado `MapaDoImovel` desenha a legenda SEM o parágrafo
+      (`comDetalhe={decisao.modo !== "google"}`): na tela fica só "Mapa do
+      Google", porque o mapa de ruas ao lado já é a explicação para quem vê.
+      Para quem ouve não há mapa ao lado, e a frase que diz que a coordenada
+      está saindo do aparelho só existe no rótulo do resumo. Um resumo que não é
+      elemento de acessibilidade não tem rótulo nenhum: a promessa da seção 2.2
+      do `SUBPROCESSADORES.md` deixava de ser dita para quem depende de ouvi-la.
+    */
+    await desenhar(decidirModoDoMapa({ daApi: "a-mesma", doBuild: "a-mesma" }));
+    expect(screen.queryByText(/é enviada ao Google/)).toBeNull();
+    expect(String(screen.getByRole("summary").props.accessibilityLabel))
+      .toMatch(/é enviada ao Google/);
+  });
+
+  it("e sem divergência o resumo não fala de chave nenhuma", async () => {
+    /*
+      A metade que impede a correção de virar ruído: colar o aviso em todo
+      resumo faria o caso que importa deixar de se distinguir.
+    */
+    await desenhar(decidirModoDoMapa({ daApi: "a-mesma", doBuild: "a-mesma" }));
+    expect(String(screen.getByRole("summary").props.accessibilityLabel))
+      .not.toMatch(/chave/i);
   });
 });
 

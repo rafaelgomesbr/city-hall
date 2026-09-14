@@ -21,7 +21,9 @@ import {
   atualizarPendencias, orgaosGuardados, pendenciaGuardada,
 } from "../../../dados/pendencias";
 import { arquivarColeta, coletaDe, marcarColetada } from "../../../dados/coletas";
-import { guardarFotoNoAparelho } from "../../../dados/evidencia-no-disco";
+import {
+  apagarFotoDoAparelho, guardarFotoNoAparelho,
+} from "../../../dados/evidencia-no-disco";
 import { obterFila } from "../../../dados/fila";
 import {
   buscarHistoricoDaCasa, historicoTemConteudo, type HistoricoDaCasa,
@@ -93,6 +95,41 @@ function contagensDoRascunho(pessoas: Record<string, string>): PessoasAtingidas 
 }
 
 /**
+ * O CHECKLIST QUE VIAJA, e por que ele não é o checklist inteiro.
+ *
+ * Estava escrito `CHECKLIST_VISTORIA.map(... Boolean(rascunho.checklist[chave]))`
+ * em dois lugares deste arquivo, e os dois afirmavam o mesmo fato falso: item
+ * NÃO RESPONDIDO virava `false`, e `false` sai no laudo com brasão como "NÃO"
+ * (ver `blocoVistoria`, em `documentos/laudo.ts`). Os dois itens opcionais do
+ * catálogo são "Danos estruturais visíveis" e "Acesso ao imóvel comprometido":
+ * o agente que não olhou para eles produzia um documento oficial declarando que
+ * não há dano estrutural e que o acesso está livre.
+ *
+ * É o mesmo defeito que `contagensDoRascunho` já trata trinta linhas abaixo,
+ * com a mesma frase: em branco não é zero, e não respondido não é "não". E é o
+ * mesmo motivo por que esta tela usa Sim e Não explícitos em vez de um
+ * interruptor: "não há risco iminente" e "ninguém olhou" decidem coisas
+ * diferentes, e a tela sabia distinguir os dois enquanto o envelope não sabia.
+ *
+ * `in` e não `Boolean`: a chave existe quando alguém tocou em Sim ou em Não, e
+ * é exatamente essa a pergunta. O que não foi respondido simplesmente não entra
+ * na lista, e o `checklistSchema` do pacote compartilhado aceita isso de
+ * propósito: ele exige os OBRIGATÓRIOS e recusa chave fora do catálogo, e a
+ * conclusão já não libera sem os obrigatórios.
+ *
+ * Uma função só, usada pela minuta e pelo envelope. Eram duas cópias da mesma
+ * linha, e este arquivo já pagou uma vez o preço de duas listas para o mesmo
+ * fato: as três vistorias do piloto de Florianópolis chegaram sem assinatura.
+ */
+function checklistRespondido(
+  respostas: Readonly<Record<string, boolean>>,
+): Array<{ chave: string; resposta: boolean }> {
+  return CHECKLIST_VISTORIA
+    .filter((item) => item.chave in respostas)
+    .map((item) => ({ chave: item.chave, resposta: respostas[item.chave] === true }));
+}
+
+/**
  * O lado da miniatura de fotografia, em pontos.
  *
  * Estava escrito 96 duas vezes na mesma linha. Não é token de sistema (não
@@ -149,6 +186,38 @@ const CAMINHO_DA_FALTA: ReadonlyArray<{ trecho: string; secao: SecaoDaVistoria }
 
 export function secaoDaFalta(falta: string): SecaoDaVistoria | null {
   return CAMINHO_DA_FALTA.find((c) => falta.includes(c.trecho))?.secao ?? null;
+}
+
+/**
+ * O RASCUNHO GRAVADO ONTEM, no formato de hoje.
+ *
+ * `lerRascunho` devolve o que foi gravado, e o que foi gravado pode ser de uma
+ * versão anterior do aplicativo. `JSON.parse` não reclama de formato antigo:
+ * ele devolve um objeto sem a propriedade, e a tela lê `undefined` onde espera
+ * um objeto. O desfecho é concreto e já aconteceu uma vez neste arquivo: a
+ * contagem de pessoas entrou depois (commit "O produto passa a contar pessoas"),
+ * e um rascunho começado antes dela derruba esta tela com "cannot read
+ * properties of undefined" na primeira renderização. Meia hora de barranco
+ * dentro de um rascunho que não abre mais, e nenhum caminho de volta.
+ *
+ * `rascunho.ts` já migra `orgaosParaAcionar` à mão, e essa é exatamente a
+ * fragilidade: migração campo a campo cobre o campo de que alguém lembrou. Aqui
+ * a regra é por MECANISMO e vale para o campo que for acrescentado amanhã: o
+ * rascunho novo é a BASE (ele tem todos os campos, com os valores neutros do
+ * produto) e o que estava no disco vem por cima. Nada do que o agente digitou é
+ * tocado, porque chave ausente não sobrescreve nada.
+ *
+ * A chave de idempotência do disco é reaproveitada na base, e isso não é
+ * detalhe: cunhar uma chave nova aqui seria cunhar a segunda vistoria do mesmo
+ * protocolo. Só há chave nova quando não há rascunho nenhum, que é o que sempre
+ * houve.
+ */
+export function rascunhoNoFormatoDeHoje(
+  guardado: Rascunho | null,
+  base: Rascunho,
+): Rascunho {
+  if (!guardado) return base;
+  return { ...base, ...guardado };
 }
 
 /**
@@ -430,6 +499,13 @@ function OQueJaAconteceuNestaCasa({ resultado }: {
                   key={f.id}
                   source={{ uri: f.url }}
                   style={{ width: MINIATURA, height: MINIATURA, borderRadius: raio.normal }}
+                  /*
+                    `accessible` junto com o rótulo, e sem ele o rótulo não
+                    existia: `Image` nasce com `accessible` falso no React
+                    Native, e o leitor de tela pula a imagem inteira. O texto
+                    estava escrito e nunca foi falado para ninguém.
+                  */
+                  accessible
                   accessibilityLabel={
                     f.legenda
                       ? `Fotografia anterior: ${f.legenda}`
@@ -504,6 +580,53 @@ function OQueJaAconteceuNestaCasa({ resultado }: {
         </Aviso>
       )}
     </Cartao>
+  );
+}
+
+/**
+ * A TARJA DE ERRO, e por que ela é um componente e não JSX solto no formulário.
+ *
+ * Ela desenhava só dentro do formulário, e havia uma tela em que uma falha
+ * acontece e a tarja não existia: a de "esta ocorrência já foi coletada neste
+ * aparelho". Ali o agente toca em "Fazer nova vistoria", confirma no diálogo, a
+ * gravação da lápide falha no disco, `setErro` acende, e a tela desenhada não
+ * lê `erro` em lugar nenhum. O toque simplesmente não faz nada, e o agente toca
+ * de novo, e de novo, na porta da casa.
+ *
+ * No nível do módulo, e não dentro da tela, pela mesma razão de
+ * `TituloDoCartao`: componente declarado dentro de outro é um tipo novo a cada
+ * renderização.
+ */
+function TarjaDeErro({ mensagem, aoFechar }: {
+  mensagem: string;
+  aoFechar: () => void;
+}) {
+  const tema = useTema();
+  return (
+    <View
+      testID="tarja-de-erro"
+      accessibilityLiveRegion="assertive"
+      style={{
+        ...elevacao(tema).flutuante,
+        borderWidth: 0,
+        borderBottomWidth: borda.fio,
+        borderBottomColor: tema.borda,
+        padding: espaco.e3,
+      }}
+    >
+      <Aviso
+        tom="perigo"
+        titulo="Não deu certo"
+        acao={{
+          titulo: "Fechar",
+          onPress: aoFechar,
+          descricao: "Fechar este aviso de erro",
+          testID: "fechar-erro",
+        }}
+      >
+        {mensagem}
+      </Aviso>
+    </View>
   );
 }
 
@@ -925,9 +1048,12 @@ export default function TelaDeVistoria() {
         setCarregando(false);
         return;
       }
-      setRascunho(
-        guardado ?? rascunhoNovo(id, alvo.protocolo, Crypto.randomUUID()),
-      );
+      setRascunho(rascunhoNoFormatoDeHoje(
+        guardado,
+        rascunhoNovo(
+          id, alvo.protocolo, guardado?.idempotencyKey ?? Crypto.randomUUID(),
+        ),
+      ));
       setCarregando(false);
     } catch {
       setErro(
@@ -954,6 +1080,13 @@ export default function TelaDeVistoria() {
     3. **`vivo`**, porque o agente sai desta tela o tempo todo (e ela vive
        quarenta minutos). Sem a guarda, o retorno de uma consulta lenta cairia
        num componente desmontado.
+    4. **Só quando este cartão vai existir.** A ocorrência que este aparelho já
+       coletou não desenha formulário nem histórico: ela mostra a lápide e as
+       duas saídas. Perguntar ali gasta a janela de sinal da rua por um dossiê
+       que ninguém vai ver e, pior, `GET /ocorrencias/:id` GRAVA registro de
+       consulta no banco: cada toque acidental numa lista velha escrevia, na
+       trilha de acesso a dado de cidadão, que este agente leu o dossiê desta
+       família. Leitura que não aconteceu não vira linha de registro de acesso.
 
     Roda UMA vez por ocorrência, e não a cada foco: o que ela traz é o passado,
     e o passado não muda enquanto o agente está na porta. Uma releitura a cada
@@ -961,14 +1094,14 @@ export default function TelaDeVistoria() {
     sincronização precisa, pela rede da rua, para reler o que já está na tela.
   */
   useEffect(() => {
-    if (!ocorrencia || tokenDaSessao === undefined) return;
+    if (!ocorrencia || jaColetada || tokenDaSessao === undefined) return;
     let vivo = true;
     void (async () => {
       const resultado = await buscarHistoricoDaCasa(tokenDaSessao, ocorrencia.id);
       if (vivo) setHistorico(resultado);
     })();
     return () => { vivo = false; };
-  }, [ocorrencia, tokenDaSessao]);
+  }, [ocorrencia, jaColetada, tokenDaSessao]);
 
   /**
    * Busca a lista de tarefas e tenta abrir de novo.
@@ -1011,7 +1144,32 @@ export default function TelaDeVistoria() {
     setRascunho((atual) => {
       if (!atual) return atual;
       const novo = { ...atual, ...mudanca };
-      void salvarRascunho(novo);
+      /*
+        A GRAVAÇÃO PASSA A TER CAMINHO DE FALHA, e antes não tinha.
+
+        Era `void salvarRascunho(novo)`, sem `catch`: a tela mostrava a
+        resposta, a fotografia, o nome de quem assina, e o disco podia ter
+        recusado tudo (armazenamento cheio, base ocupada pela fila, migração no
+        meio) sem que uma palavra aparecesse. É a forma mais cara de perda de
+        trabalho deste produto, porque ela é INVISÍVEL: o agente desce o morro
+        certo de que está guardado, o Android mata o aplicativo para liberar
+        memória, e a vistoria volta ao estado da última gravação que deu certo.
+
+        A promessa desta tela é "nada se perde", e ela é cumprida por esta
+        linha. Se o disco recusou, o agente precisa saber ENQUANTO ainda está
+        no local, que é o único instante em que refazer custa um toque.
+
+        Vai para a mesma tarja das outras falhas, que fica presa no alto da
+        tela e fora da rolagem: num formulário de dois mil pontos, um aviso
+        desenhado no meio é um aviso que ninguém lê.
+      */
+      void salvarRascunho(novo).catch(() => {
+        setErro(
+          "O aparelho não conseguiu guardar o que você acabou de preencher. "
+          + "Toque de novo neste campo. O que já estava guardado continua "
+          + "guardado: nada foi apagado.",
+        );
+      });
       return novo;
     });
   }, []);
@@ -1034,9 +1192,12 @@ export default function TelaDeVistoria() {
     try {
       await arquivarColeta(id);
       const guardado = await lerRascunho(id);
-      setRascunho(
-        guardado ?? rascunhoNovo(id, ocorrencia.protocolo, Crypto.randomUUID()),
-      );
+      setRascunho(rascunhoNoFormatoDeHoje(
+        guardado,
+        rascunhoNovo(
+          id, ocorrencia.protocolo, guardado?.idempotencyKey ?? Crypto.randomUUID(),
+        ),
+      ));
       setJaColetada(null);
     } catch {
       setErro(
@@ -1222,10 +1383,7 @@ export default function TelaDeVistoria() {
         ocorrenciaId: rascunho.ocorrenciaId,
         coletadaEm: rascunho.coletadaEm,
         vistoria: {
-          checklist: CHECKLIST_VISTORIA.map((item) => ({
-            chave: item.chave,
-            resposta: Boolean(rascunho.checklist[item.chave]),
-          })),
+          checklist: checklistRespondido(rascunho.checklist),
           /*
             Vazio aqui de propósito. O envelope referencia as fotos pela chave
             que o SERVIDOR devolve na autorização, e essa chave só existe
@@ -1429,7 +1587,25 @@ export default function TelaDeVistoria() {
     falha típica é o banco local ocupado por uma gravação da fila) e voltar,
     que é o que salva quem está preso aqui.
   */
-  if (erro && !ocorrencia) {
+  /*
+    A condição é "não há formulário para desenhar", e não "não há ocorrência".
+
+    Escrita como `erro && !ocorrencia`, ela deixava um buraco de tela BRANCA, e
+    ele é fácil de alcançar: `carregarDoDisco` grava a ocorrência ANTES de ler o
+    rascunho, a lápide e o catálogo, e essas três leituras vão juntas num
+    `Promise.all`. Se o SQLite estiver ocupado (a fila grava na mesma base, em
+    aparelho de entrada), o `catch` acende o erro com a ocorrência já no estado
+    e o rascunho ainda nulo. Daí em diante: não é carregando, não é
+    `faltaBaixar`, não é `erro && !ocorrencia`, não é lápide, e o último guarda
+    devolve `null`. Tela branca, sem uma palavra e sem saída, no toque em que o
+    agente chega na porta.
+
+    `!rascunho && !jaColetada` é o mesmo teste dito pelo lado certo: só desenha
+    a tela de falha quando não há formulário nem lápide para mostrar. As seis
+    falhas que acontecem DENTRO da coleta (GPS, câmera, mapa, conclusão) têm
+    rascunho de pé e continuam indo para a tarja, que é onde elas devem ir.
+  */
+  if (erro && !rascunho && !jaColetada) {
     return (
       <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}>
         <Vazio
@@ -1469,6 +1645,12 @@ export default function TelaDeVistoria() {
   if (ocorrencia && jaColetada) {
     return (
       <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}>
+        {/*
+          A falha de "fazer nova vistoria" acontece AQUI, e até agora não tinha
+          onde aparecer: `refazerVistoria` acendia `erro` e esta tela não lia
+          `erro` em lugar nenhum. Ver o cabeçalho de `TarjaDeErro`.
+        */}
+        {erro && <TarjaDeErro mensagem={erro} aoFechar={() => { setErro(null); }} />}
         <Cartao>
           <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
             <Txt variante="corpoP" mono negrito>{ocorrencia.protocolo}</Txt>
@@ -1774,10 +1956,7 @@ export default function TelaDeVistoria() {
         vulnerabilidadeDescricao: ocorrencia.vulnerabilidade_descricao,
       },
       vistoria: {
-        checklist: CHECKLIST_VISTORIA.map((item) => ({
-          chave: item.chave,
-          resposta: Boolean(rascunho.checklist[item.chave]),
-        })),
+        checklist: checklistRespondido(rascunho.checklist),
         observacoes: rascunho.observacoes,
         assinanteNome: rascunho.assinanteNome.trim(),
         gpsPrecisaoMetros: rascunho.gpsPrecisaoMetros,
@@ -1989,32 +2168,7 @@ export default function TelaDeVistoria() {
         Com botão de fechar, porque tarja que não sai é tarja que o agente
         aprende a ignorar, e a próxima que importar ele também ignora.
       */}
-      {erro && (
-        <View
-          testID="tarja-de-erro"
-          accessibilityLiveRegion="assertive"
-          style={{
-            ...elevacao(tema).flutuante,
-            borderWidth: 0,
-            borderBottomWidth: borda.fio,
-            borderBottomColor: tema.borda,
-            padding: espaco.e3,
-          }}
-        >
-          <Aviso
-            tom="perigo"
-            titulo="Não deu certo"
-            acao={{
-              titulo: "Fechar",
-              onPress: () => { setErro(null); },
-              descricao: "Fechar este aviso de erro",
-              testID: "fechar-erro",
-            }}
-          >
-            {erro}
-          </Aviso>
-        </View>
-      )}
+      {erro && <TarjaDeErro mensagem={erro} aoFechar={() => { setErro(null); }} />}
 
     <ScrollView
       ref={rolagem}
@@ -2558,6 +2712,9 @@ export default function TelaDeVistoria() {
                     style={{
                       width: MINIATURA, height: MINIATURA, borderRadius: raio.normal,
                     }}
+                    /* Ver a miniatura do histórico: sem `accessible`, `Image`
+                       não é focável e o rótulo nunca é falado. */
+                    accessible
                     accessibilityLabel={`Fotografia ${f.ordem + 1} da vistoria`}
                   />
                 </Animated.View>
@@ -2637,6 +2794,20 @@ export default function TelaDeVistoria() {
                 .filter((o) => o.idempotencyKey !== alvo.idempotencyKey)
                 .map((o, i) => ({ ...o, ordem: i })),
             });
+            /*
+              E o ARQUIVO também, que é o que o texto acima promete.
+
+              Sair da lista do rascunho não tirava o JPEG do aparelho: ele
+              ficava em `Paths.document` até alguém sair da conta, e o agente de
+              campo não sai da conta. Ver `apagarFotoDoAparelho`, que não
+              estoura em caminho nenhum: a foto sai da vistoria mesmo que a
+              limpeza não consiga.
+
+              Depois de `alterar`, e não antes: se a gravação do rascunho
+              falhar, a foto continua na coleta, e uma coleta que aponta para um
+              arquivo apagado é pior do que um arquivo a mais no disco.
+            */
+            apagarFotoDoAparelho(alvo.uriLocal);
           },
         }}
         recusa={{ rotulo: "Manter a fotografia" }}

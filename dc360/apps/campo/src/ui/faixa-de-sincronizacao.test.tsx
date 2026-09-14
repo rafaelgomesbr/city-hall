@@ -121,6 +121,28 @@ describe("o que a faixa diz", () => {
     expect(screen.getByText(/3 com problema/)).toBeTruthy();
   });
 
+  /*
+    O detalhe desenhado ganha ", N com problema" e o rótulo falado não ganhava:
+    quem ouve a tela recebia "Tudo sincronizado. Nada pendente no aparelho." com
+    uma coleta travada no aparelho.
+
+    O próprio arquivo já diz por que isso é grave: "Tudo sincronizado com uma
+    coleta parada no aparelho é a pior frase que este produto pode exibir". Ela
+    era exibida para quem enxerga e DITA para quem não enxerga, que é o mesmo
+    defeito com um agravante.
+  */
+  it("o rótulo falado também conta os que estão com problema", async () => {
+    await montar("sincronizado", 1);
+    const barra = screen.getByTestId("faixa-de-sincronizacao");
+    expect(barra.props.accessibilityLabel).toMatch(/1 com problema/);
+  });
+
+  it("sem nenhum bloqueado, o rótulo falado não inventa problema", async () => {
+    await montar("sincronizado");
+    const barra = screen.getByTestId("faixa-de-sincronizacao");
+    expect(barra.props.accessibilityLabel).not.toMatch(/problema/);
+  });
+
   it("é um botão, e o rótulo falado diz para onde leva", async () => {
     await montar("sincronizado");
     const barra = screen.getByTestId("faixa-de-sincronizacao");

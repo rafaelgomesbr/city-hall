@@ -561,9 +561,20 @@ let autorizacaoEmVoo: Promise<string> | null = null;
 export async function buscarAutorizacaoDoMapa(token: string): Promise<string> {
   if (autorizacaoEmVoo) return autorizacaoEmVoo;
 
-  autorizacaoEmVoo = (async () => {
+  /*
+    A pergunta ESTOURA quando fracassa, em vez de devolver vazio, e isso não é
+    estilo: é o que separa as duas coisas que "vazio" quer dizer.
+
+    Vazio com 200 é o município dizendo "não autorizo", e isso não muda durante
+    o dia: fica guardado. Servidor que não respondeu, que respondeu 502, que
+    respondeu 401 com o token vencido, ou portal cativo devolvendo HTML com 200,
+    é FRACASSO, e fracasso não pode ser guardado. Enquanto os dois saíam por
+    `return ""`, só o que passava pelo `catch` era esquecido, e a resposta ruim
+    do servidor ficava valendo para a sessão inteira do aplicativo.
+  */
+  const perguntar = async (): Promise<string> => {
     const base = enderecoDaApi().replace(/\/$/, "");
-    if (!base) return "";
+    if (!base) throw new Error("o aplicativo não sabe o endereço da API");
 
     const cancelador = new AbortController();
     const relogio = setTimeout(() => cancelador.abort(), PRAZO_DA_CONFIGURACAO_MS);
@@ -572,26 +583,35 @@ export async function buscarAutorizacaoDoMapa(token: string): Promise<string> {
         signal: cancelador.signal,
         headers: { accept: "application/json", authorization: `Bearer ${token}` },
       });
-      if (!resposta.ok) return "";
+      if (!resposta.ok) {
+        throw new Error(`GET /configuracao respondeu ${resposta.status}`);
+      }
       const corpo = (await resposta.json()) as { chaveDoMapa?: unknown };
       return typeof corpo.chaveDoMapa === "string" ? corpo.chaveDoMapa.trim() : "";
-    } catch {
-      /*
-        Sem sinal, tempo esgotado, corpo que não é JSON: tudo cai aqui, e a
-        memória é ESQUECIDA de propósito. Guardar o fracasso faria o aplicativo
-        nunca mais perguntar enquanto estivesse aberto, e o agente que subiu o
-        morro sem sinal de manhã continuaria no plano esquemático à tarde, de
-        volta ao escritório, com sinal cheio. É o mesmo cuidado que o `onerror`
-        do painel tomou, e pela mesma razão.
-      */
-      autorizacaoEmVoo = null;
-      return "";
     } finally {
       clearTimeout(relogio);
     }
-  })();
+  };
 
-  return autorizacaoEmVoo;
+  const tentativa: Promise<string> = perguntar().catch(() => {
+    /*
+      Sem sinal, tempo esgotado, corpo que não é JSON, resposta de erro: tudo
+      cai aqui, e a memória é ESQUECIDA de propósito. Guardar o fracasso faria
+      o aplicativo nunca mais perguntar enquanto estivesse aberto, e o agente
+      que subiu o morro sem sinal de manhã continuaria no plano esquemático à
+      tarde, de volta ao escritório, com sinal cheio, sem nada na tela
+      explicando por quê. É o mesmo cuidado que o `onerror` do painel tomou.
+
+      A comparação existe para não apagar a memória de uma pergunta NOVA: se
+      outra tela já perguntou de novo enquanto esta falhava, quem manda é a
+      dela.
+    */
+    if (autorizacaoEmVoo === tentativa) autorizacaoEmVoo = null;
+    return "";
+  });
+
+  autorizacaoEmVoo = tentativa;
+  return tentativa;
 }
 
 /** Existe para o teste conseguir provar a memória, e para ele não vazar. */

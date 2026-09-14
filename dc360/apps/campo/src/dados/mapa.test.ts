@@ -1,5 +1,22 @@
 import { Linking, Platform } from "react-native";
-import { abrirNoMapa, enderecosDoMapa } from "./mapa";
+
+/*
+  `enderecoDaApi()` lê `extra.apiUrl` no momento em que o módulo carrega, e sem
+  este dublê ele sai VAZIO no jest: `buscarAutorizacaoDoMapa` devolveria vazio
+  antes de chegar ao `fetch`, e os casos da autorização mediriam o dublê em vez
+  de medirem a função.
+*/
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: {
+    expoConfig: {
+      extra: { apiUrl: "https://api.exemplo.test", mapaChaveDoBuild: "do-binario" },
+    },
+  },
+}));
+import {
+  abrirNoMapa, buscarAutorizacaoDoMapa, enderecosDoMapa, esquecerAutorizacaoDoMapa,
+} from "./mapa";
 
 /**
  * O que estes testes protegem: o pino cair na casa certa, e o botão fazer
@@ -131,5 +148,91 @@ describe("abrirNoMapa", () => {
   it("não abre nada com coordenada faltando, para não fincar pino em lugar arbitrário", async () => {
     await expect(abrirNoMapa(Number.NaN, LNG, "Casa")).resolves.toBe(false);
     expect(abrir).not.toHaveBeenCalled();
+  });
+});
+
+/* ============================================================
+   A autorização do município, e a memória dela
+   ============================================================ */
+
+/**
+ * A MEMÓRIA DA AUTORIZAÇÃO, que ninguém provava.
+ *
+ * `buscarAutorizacaoDoMapa` guarda a resposta numa variável de módulo, para a
+ * sessão inteira do aplicativo, e `esquecerAutorizacaoDoMapa` existe, segundo o
+ * comentário dela, "para o teste conseguir provar a memória". Nenhum caso
+ * provava: a memória aparecia só como limpeza de `beforeEach` no teste do
+ * gancho, e uma memória que ninguém exercita é uma memória que ninguém sabe se
+ * guarda a coisa certa.
+ *
+ * O que importa aqui não é a economia de requisição. É o FRACASSO guardado: o
+ * comentário do `catch` diz, com todas as letras, que guardar o fracasso faria
+ * "o agente que subiu o morro sem sinal de manhã continuar no plano esquemático
+ * à tarde, de volta ao escritório, com sinal cheio". Esse esquecimento só existe
+ * no `catch`, e o servidor que RESPONDE mal não passa por ele.
+ */
+describe("a autorização do município, perguntada ao servidor", () => {
+  const respostaBoa = { ok: true, json: async () => ({ chaveDoMapa: "a-chave" }) };
+
+  beforeEach(() => { esquecerAutorizacaoDoMapa(); });
+  afterEach(() => { esquecerAutorizacaoDoMapa(); });
+
+  it("pergunta UMA vez por sessão, e não a cada tela que desenha mapa", async () => {
+    const chamada = jest.fn(async () => respostaBoa);
+    (globalThis as { fetch: unknown }).fetch = chamada;
+
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("a-chave");
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("a-chave");
+    /*
+      Quatro telas desenham mapa e a lista remonta a cada foco, a cada sinal que
+      volta e a cada 60 s. Sem a memória, cada remontagem gasta uma requisição
+      ao servidor da prefeitura, pelo 3G do morro, para reler um campo que não
+      muda durante o dia.
+    */
+    expect(chamada).toHaveBeenCalledTimes(1);
+  });
+
+  it("servidor que respondeu ERRO não fica guardado: com sinal de volta, pergunta de novo", async () => {
+    /*
+      O caso do morro. A API da prefeitura acorda fria e devolve 502, ou o token
+      expirou e ela devolve 401, ou o portal cativo do wi-fi da prefeitura
+      devolve uma página HTML com 200 que não é JSON. Nos três a resposta certa
+      no instante é a mesma (não mande coordenada nenhuma para fora), e nos três
+      a pergunta precisa poder ser refeita: o agente que desce o morro à tarde
+      não pode continuar sem o mapa de ruas por causa de uma resposta ruim de
+      manhã, sem nada na tela explicando por quê.
+    */
+    const chamada = jest.fn()
+      .mockResolvedValueOnce({ ok: false, status: 502, json: async () => ({}) })
+      .mockResolvedValueOnce(respostaBoa);
+    (globalThis as { fetch: unknown }).fetch = chamada;
+
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("");
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("a-chave");
+    expect(chamada).toHaveBeenCalledTimes(2);
+  });
+
+  it("corpo que não é JSON também não fica guardado", async () => {
+    const chamada = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => { throw new Error("<html>"); } })
+      .mockResolvedValueOnce(respostaBoa);
+    (globalThis as { fetch: unknown }).fetch = chamada;
+
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("");
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("a-chave");
+  });
+
+  it("município que respondeu vazio FICA guardado: é escolha dele, e não falha", async () => {
+    /*
+      O outro lado, e ele precisa estar escrito: vazio com 200 é o município
+      dizendo "não autorizo", e isso não muda durante o dia. Perguntar de novo a
+      cada remontagem seria gastar a janela de sinal para reouvir um "não".
+    */
+    const chamada = jest.fn(async () => ({ ok: true, json: async () => ({ chaveDoMapa: "" }) }));
+    (globalThis as { fetch: unknown }).fetch = chamada;
+
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("");
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("");
+    expect(chamada).toHaveBeenCalledTimes(1);
   });
 });

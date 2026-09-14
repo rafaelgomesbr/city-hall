@@ -1,10 +1,12 @@
 import { AccessibilityInfo, Animated, ScrollView, StyleSheet } from "react-native";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import { router } from "expo-router";
-import { CHAVE_ACIONAR_ORGAO, CHECKLIST_OBRIGATORIO } from "@dc360/shared";
+import {
+  CHAVE_ACIONAR_ORGAO, CHECKLIST_OBRIGATORIO, CHECKLIST_VISTORIA,
+} from "@dc360/shared";
 import { faltaParaConcluir } from "@dc360/campo";
 import type { Pendencia } from "../dados/api";
-import { salvarRascunho } from "../dados/rascunho";
+import { lerRascunho, salvarRascunho } from "../dados/rascunho";
 import { DEMORA_MS } from "../ui/componentes";
 import { contarPreenchidos } from "../ui/regua";
 import { temaEscuro, toque } from "../ui/tokens";
@@ -98,8 +100,10 @@ jest.mock("expo-file-system", () => ({
 }));
 
 /* O disco de verdade grava arquivo; o que esta suíte verifica é a TELA. */
+const mockApagarDoDisco = jest.fn((_uri: string) => true);
 jest.mock("../dados/evidencia-no-disco", () => ({
   guardarFotoNoAparelho: () => ({ uriLocal: "file:///vistorias/foto.jpg", tamanhoBytes: 1024 }),
+  apagarFotoDoAparelho: (uri: string) => mockApagarDoDisco(uri),
 }));
 
 /*
@@ -729,8 +733,11 @@ describe("quando a vistoria não abre", () => {
     */
     mockPendencia = async () => { throw new Error("banco local ocupado"); };
     await render(<TelaDeVistoria />);
+    await act(async () => {});
 
-    expect(await screen.findByText("Não deu para abrir esta vistoria")).toBeTruthy();
+    // A prova de que a tela ficou EM BRANCO: árvore nenhuma desenhada.
+    expect(screen.toJSON()).not.toBeNull();
+    expect(screen.getByText("Não deu para abrir esta vistoria")).toBeTruthy();
     expect(screen.getByTestId("tentar-abrir-de-novo")).toBeTruthy();
     expect(screen.getByText("Voltar para as tarefas")).toBeTruthy();
     /* E a roda não ficou pendurada por trás. */
@@ -924,5 +931,284 @@ describe("a régua do peso visual, no cabeçalho da vistoria", () => {
 
     const prazo = screen.getByText(/^Prazo vencid/);
     expect(StyleSheet.flatten(prazo.props.style).color).toBe(temaEscuro.perigoTexto);
+  });
+});
+
+/* ============================================================
+   9. O DISCO QUE RECUSA, E O RASCUNHO DE ONTEM
+   ============================================================
+
+   Três caminhos em que o trabalho do morro some sem ninguém saber, e os três
+   estavam abertos numa tela cuja promessa inteira é "nada se perde".
+*/
+
+describe("o rascunho gravado por uma versão anterior", () => {
+  it("abre, em vez de derrubar a tela", async () => {
+    /*
+      O cenário, e ele já aconteceu uma vez neste repositório: a contagem de
+      pessoas entrou depois (commit "O produto passa a contar pessoas"), e o
+      aparelho de um agente pode ter, neste minuto, uma vistoria começada antes
+      dela, com fotos, GPS, assinatura e meia hora de barranco dentro.
+
+      `JSON.parse` não reclama de formato antigo: devolve um objeto sem a
+      propriedade. A tela lia `rascunho.pessoas[chave]` e morria com "cannot
+      read properties of undefined (reading 'desalojados')" na primeira
+      renderização, e o rascunho ficava inacessível para sempre, no morro.
+
+      `rascunho.ts` migra `orgaosParaAcionar` à mão, e é justamente essa a
+      fragilidade que este caso trava: migração campo a campo cobre o campo de
+      que alguém lembrou.
+    */
+    const deOntem = rascunho({ observacoes: "Trinca no muro dos fundos." });
+    delete deOntem["pessoas"];
+    mockRascunhoGuardado = deOntem;
+
+    await render(<TelaDeVistoria />);
+
+    expect(await screen.findByText("Checklist técnico")).toBeTruthy();
+    /* E o que o agente tinha digitado continua ali: o rascunho novo é só a
+       BASE, e o que estava no disco vem por cima. */
+    expect(screen.getByTestId("observacoes-do-agente").props.value)
+      .toBe("Trinca no muro dos fundos.");
+  });
+
+  it("não cunha chave de idempotência nova ao completar o formato", async () => {
+    /*
+      A conversão não pode custar uma chave nova: chave diferente é, para o
+      servidor, a definição de uma SEGUNDA coleta do mesmo protocolo. A base
+      reaproveita a chave que está no disco.
+    */
+    const deOntem = rascunho({ idempotencyKey: "chave-da-coleta-de-ontem" });
+    delete deOntem["pessoas"];
+    mockRascunhoGuardado = deOntem;
+    mockRascunhoGuardado = { ...deOntem, ...rascunhoPronto(), pessoas: undefined };
+    delete (mockRascunhoGuardado as Record<string, unknown>)["pessoas"];
+    mockRascunhoGuardado["idempotencyKey"] = "chave-da-coleta-de-ontem";
+
+    await abrirATela();
+    await fireEvent.press(screen.getByText("Revisar e concluir"));
+    await act(async () => {});
+    await fireEvent.press(screen.getByText("Concluir vistoria"));
+    await act(async () => {});
+
+    const envelope = mockEnfileirar.mock.calls[0]?.[0] as { idempotencyKey: string };
+    expect(envelope.idempotencyKey).toBe("chave-da-coleta-de-ontem");
+  });
+});
+
+describe("a leitura do disco que falha no meio", () => {
+  it("não deixa a tela em branco quando a ocorrência já foi lida", async () => {
+    /*
+      O buraco, e ele é de UMA condição escrita pelo lado errado.
+
+      `carregarDoDisco` grava a ocorrência ANTES de ler o rascunho, a lápide e o
+      catálogo, e essas três vão juntas num `Promise.all`. Com o SQLite ocupado
+      (a fila escreve na mesma base, em aparelho de entrada), o `catch` acendia
+      o erro com a ocorrência já no estado e o rascunho ainda nulo. A tela de
+      falha só desenhava com `erro && !ocorrencia`, então nenhum dos estados
+      desenhados casava e o último guarda devolvia `null`: TELA BRANCA, sem uma
+      palavra e sem saída, no toque em que o agente chega na porta da casa.
+
+      A prova de que era branca é a primeira linha: árvore nenhuma desenhada.
+    */
+    jest.mocked(lerRascunho).mockRejectedValueOnce(new Error("database is locked"));
+
+    await render(<TelaDeVistoria />);
+    await act(async () => {});
+
+    expect(screen.toJSON()).not.toBeNull();
+    expect(screen.getByText("Não deu para abrir esta vistoria")).toBeTruthy();
+    /* As duas saídas da tela de falha, que é o que salva quem está preso aqui. */
+    expect(screen.getByTestId("tentar-abrir-de-novo")).toBeTruthy();
+    expect(screen.getByText("Voltar para as tarefas")).toBeTruthy();
+  });
+
+  it("e a falha da coleta continua indo para a tarja, com o formulário de pé", async () => {
+    /*
+      O outro lado da mesma condição: as seis falhas que acontecem DENTRO da
+      coleta (GPS, câmera, mapa, conclusão) têm rascunho de pé, e trocar o
+      formulário inteiro por uma tela de erro por causa de um GPS que não pegou
+      seria jogar fora a vistoria em andamento.
+    */
+    await abrirATela();
+
+    await fireEvent.press(screen.getByText("Capturar localização"));
+    await waitFor(() => { expect(screen.getByTestId("tarja-de-erro")).toBeTruthy(); });
+
+    expect(screen.getByText("Checklist técnico")).toBeTruthy();
+    expect(screen.queryByText("Não deu para abrir esta vistoria")).toBeNull();
+  });
+});
+
+describe("a gravação do rascunho que o disco recusa", () => {
+  it("é dita ao agente, em vez de sumir em silêncio", async () => {
+    /*
+      A forma mais cara de perder trabalho neste produto, porque ela é
+      INVISÍVEL. Era `void salvarRascunho(novo)`, sem `catch`: a tela mostrava a
+      resposta e o disco podia ter recusado tudo (armazenamento cheio, base
+      ocupada pela fila) sem uma palavra. O agente desce o morro certo de que
+      está guardado, o Android mata o aplicativo para liberar memória, e a
+      vistoria volta ao estado da última gravação que deu certo.
+
+      Precisa ser dito ENQUANTO ele ainda está no local, que é o único instante
+      em que refazer custa um toque.
+    */
+    /* `Once`, e não para sempre: `clearAllMocks` limpa chamadas e não
+       implementações, e uma rejeição permanente vazaria para o caso seguinte. */
+    jest.mocked(salvarRascunho).mockRejectedValueOnce(new Error("disk I/O error"));
+    await abrirATela();
+
+    await fireEvent.changeText(
+      screen.getByTestId("observacoes-do-agente"), "Trinca nova na parede.",
+    );
+    await act(async () => {});
+
+    const tarja = await screen.findByTestId("tarja-de-erro");
+    expect(within(tarja).getByText(/não conseguiu guardar/)).toBeTruthy();
+    /* E a frase não pode assustar mais do que o fato: o que já estava no disco
+       continua lá, e a tela diz isso. */
+    expect(within(tarja).getByText(/nada foi apagado/)).toBeTruthy();
+  });
+
+  it("gravação que dá certo não acende tarja nenhuma", async () => {
+    /* A âncora do caso acima: sem ela, uma tarja acesa o tempo todo passaria. */
+    await abrirATela();
+
+    await fireEvent.changeText(
+      screen.getByTestId("observacoes-do-agente"), "Trinca nova na parede.",
+    );
+    await act(async () => {});
+
+    expect(screen.queryByTestId("tarja-de-erro")).toBeNull();
+  });
+});
+
+/* ============================================================
+   10. O LAUDO NÃO PODE AFIRMAR O QUE NINGUÉM RESPONDEU
+   ============================================================ */
+
+describe("o checklist que viaja no envelope", () => {
+  it("item opcional não respondido não vira 'não'", async () => {
+    /*
+      O defeito sai no papel com brasão. A tela mandava
+      `CHECKLIST_VISTORIA.map(... Boolean(rascunho.checklist[chave]))`, e item
+      NÃO RESPONDIDO virava `false`. `blocoVistoria`, em `documentos/laudo.ts`,
+      imprime `false` como "NÃO". Os dois itens opcionais do catálogo são "Danos
+      estruturais visíveis" e "Acesso ao imóvel comprometido": o agente que não
+      olhou para eles produzia um laudo oficial declarando que não há dano
+      estrutural e que o acesso está livre.
+
+      É o mesmo fato que `contagensDoRascunho` já tratava ao lado, com a mesma
+      frase: em branco não é zero, e não respondido não é "não". E é o motivo de
+      esta tela usar Sim e Não explícitos em vez de um interruptor.
+    */
+    mockRascunhoGuardado = rascunhoPronto();
+    await abrirATela();
+    await fireEvent.press(screen.getByText("Revisar e concluir"));
+    await act(async () => {});
+    await fireEvent.press(screen.getByText("Concluir vistoria"));
+    await act(async () => {});
+
+    const envelope = mockEnfileirar.mock.calls[0]?.[0] as {
+      vistoria: { checklist: Array<{ chave: string; resposta: boolean }> };
+    };
+    const chaves = envelope.vistoria.checklist.map((i) => i.chave);
+
+    for (const opcional of CHECKLIST_VISTORIA.filter((i) => !i.obrigatorio)) {
+      expect([opcional.chave, chaves.includes(opcional.chave)])
+        .toEqual([opcional.chave, false]);
+    }
+    /* E os obrigatórios continuam TODOS lá: é o que o `checklistSchema` do
+       pacote compartilhado cobra, e o que a conclusão já exigia. */
+    for (const o of CHECKLIST_OBRIGATORIO) expect(chaves).toContain(o.chave);
+  });
+
+  it("item opcional RESPONDIDO 'não' viaja como não, que é um fato", async () => {
+    /*
+      A outra metade, e sem ela o conserto acima seria "nunca mande opcional",
+      que perderia informação de verdade: "olhei e não há dano estrutural" é uma
+      afirmação técnica que o laudo precisa carregar.
+    */
+    const opcional = CHECKLIST_VISTORIA.find((i) => !i.obrigatorio)!;
+    mockRascunhoGuardado = rascunho({
+      ...rascunhoPronto(),
+      checklist: { ...CHECKLIST_COMPLETO, [opcional.chave]: false },
+    });
+    await abrirATela();
+    await fireEvent.press(screen.getByText("Revisar e concluir"));
+    await act(async () => {});
+    await fireEvent.press(screen.getByText("Concluir vistoria"));
+    await act(async () => {});
+
+    const envelope = mockEnfileirar.mock.calls[0]?.[0] as {
+      vistoria: { checklist: Array<{ chave: string; resposta: boolean }> };
+    };
+    expect(envelope.vistoria.checklist)
+      .toContainEqual({ chave: opcional.chave, resposta: false });
+  });
+
+  it("a minuta lida na porta mostra o mesmo checklist do envelope", async () => {
+    /*
+      A minuta é o texto que o agente lê em voz alta para quem está no local, e
+      ela montava a mesma linha `Boolean(...)` copiada. Duas cópias do mesmo
+      fato divergem na primeira pressa, e este arquivo já pagou esse preço.
+    */
+    mockRascunhoGuardado = rascunhoPronto();
+    await abrirATela();
+    await fireEvent.press(screen.getByText("Revisar e concluir"));
+    await act(async () => {});
+
+    for (const opcional of CHECKLIST_VISTORIA.filter((i) => !i.obrigatorio)) {
+      expect([opcional.rotulo, screen.queryByText(opcional.rotulo) !== null])
+        .toEqual([opcional.rotulo, false]);
+    }
+  });
+});
+
+/* ============================================================
+   11. A FOTOGRAFIA APAGADA SAI TAMBÉM DO APARELHO
+   ============================================================ */
+
+describe("apagar a fotografia", () => {
+  it("descarta o arquivo, que é o que o diálogo promete", async () => {
+    /*
+      O texto do diálogo diz, com todas as letras, "o arquivo é descartado deste
+      aparelho". A tela tirava a foto da lista do rascunho e o JPEG ficava em
+      `Paths.document`. O único lugar que varria esses arquivos era o logout, e
+      o agente de campo não sai da conta: ele fecha o aplicativo e volta no dia
+      seguinte, no mesmo aparelho, compartilhado entre turnos.
+    */
+    mockRascunhoGuardado = rascunho({ fotos: [FOTO] });
+    await abrirATela();
+
+    await fireEvent.press(screen.getByTestId("apagar-foto-1"));
+    await fireEvent.press(screen.getByText("Apagar a fotografia"));
+    await act(async () => {});
+
+    expect(mockApagarDoDisco).toHaveBeenCalledWith(FOTO.uriLocal);
+  });
+
+  it("recusar a pergunta não toca no arquivo", async () => {
+    mockRascunhoGuardado = rascunho({ fotos: [FOTO] });
+    await abrirATela();
+
+    await fireEvent.press(screen.getByTestId("apagar-foto-1"));
+    await fireEvent.press(screen.getByText("Manter a fotografia"));
+    await act(async () => {});
+
+    expect(mockApagarDoDisco).not.toHaveBeenCalled();
+  });
+
+  it("a miniatura é alcançável pelo leitor de tela", async () => {
+    /*
+      `Image` nasce com `accessible` falso no React Native: o rótulo estava
+      escrito e nunca foi falado para ninguém. Numa tela em que a fotografia é
+      prova de interdição, a lista de fotos era silêncio para quem usa TalkBack.
+    */
+    mockRascunhoGuardado = rascunho({ fotos: [FOTO] });
+    await abrirATela();
+
+    expect(screen.getByLabelText("Fotografia 1 da vistoria").props.accessible)
+      .toBe(true);
   });
 });

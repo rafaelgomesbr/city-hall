@@ -425,6 +425,8 @@ test("as três varreduras pegam o que deveriam pegar", () => {
     '  accessibilityLabel={`Apagar a fotografia ${f.ordem + 1}`}',
     '  style={{ minHeight: 32, alignItems: "center", justifyContent: "center" }}',
     ">",
+    "  <Icone nome=\"lixeira\" />",
+    "</Pressable>",
   ].join("\n");
 
   const [el] = tocaveis(pequeno);
@@ -447,6 +449,8 @@ test("as três varreduras pegam o que deveriam pegar", () => {
     '  accessibilityLabel={`Apagar a fotografia ${f.ordem + 1}`}',
     '  estilo={{ minHeight: 32, alignItems: "center" }}',
     ">",
+    "  <Txt>Apagar</Txt>",
+    "</Tocavel>",
   ].join("\n");
   const [daPrimitiva] = tocaveis(naPrimitiva);
   assert.ok(daPrimitiva, "a varredura não enxerga <Tocavel>, e as telas migraram todas para ele");
@@ -457,6 +461,99 @@ test("as três varreduras pegam o que deveriam pegar", () => {
   assert.ok(mudo, "tag de uma linha só deixou de ser enxergada");
   assert.equal(mudo.texto.includes("accessibilityLabel"), false);
   assert.equal(mudo.texto.includes("accessibilityRole"), false);
+
+  /*
+    O CASO QUE A LEITURA POR LINHA NÃO TINHA, e que a deixava cega em treze dos
+    dezessete tocáveis do aplicativo.
+
+    A tag abaixo fecha COLADA no último atributo (`}}>`, e não `>` sozinho numa
+    linha), que é a forma mais comum de todas neste código. A leitura antiga
+    parava só em linha cujo conteúdo fosse exatamente `>` ou `/>`, ou em linha
+    terminada em `>` precedido de espaço: nenhuma das duas casa aqui, então ela
+    seguia por até sessenta linhas e engolia os FILHOS.
+
+    O efeito inverte o sentido da medida. Este `<Pressable>` é mudo, e o `<View>`
+    lá dentro é que tem papel e rótulo: lida com o filho junto, a varredura
+    absolvia o pai e o portão dizia que todo tocável se apresenta ao leitor de
+    tela. O mesmo vale para o alvo de toque, com o piso do filho cobrindo a
+    ausência do pai.
+  */
+  const engolindoOFilho = [
+    "<Pressable onPress={apagar} style={{ padding: espaco.e2 }}>",
+    '  <View accessibilityRole="image" accessibilityLabel="ícone de lixeira"',
+    "        style={{ minHeight: toque }}>",
+    "    <Txt>Apagar</Txt>",
+    "  </View>",
+    "</Pressable>",
+  ].join("\n");
+  const [pai] = tocaveis(engolindoOFilho);
+  assert.ok(pai, "a varredura deixou de enxergar o tocável que fecha colado no atributo");
+  assert.equal(
+    pai.texto.includes("accessibilityLabel"), false,
+    "a leitura passou do `>` da tag de abertura e trouxe o rótulo do FILHO: "
+    + "é a cegueira que absolvia treze dos dezessete tocáveis do aplicativo",
+  );
+  assert.equal(
+    pai.texto.includes("accessibilityRole"), false,
+    "a leitura trouxe o papel do filho, e um tocável mudo passaria a ter papel emprestado",
+  );
+  assert.deepEqual(
+    [...pai.texto.matchAll(TAMANHO)].map(([, p, v]) => `${p}=${v}`), [],
+    "a leitura trouxe o `minHeight: toque` do filho, e o tocável sem piso nenhum "
+    + "passaria a declarar piso emprestado",
+  );
+  assert.equal(
+    ESTICA.test(pai.texto), false,
+    "o tocável não estica, e a leitura precisa dizer isso para ele ser cobrado",
+  );
+
+  /*
+    E o filho continua sendo lido quando ELE é o tocável, senão o conserto de
+    cima teria trocado uma cegueira por outra: o que está dentro de outro
+    elemento não pode sumir da varredura.
+  */
+  const aninhado = [
+    "<View style={{ gap: espaco.e2 }}>",
+    "  <Tocavel onPress={abrir} style={{ minHeight: 30 }}>",
+    "    <Txt>Abrir</Txt>",
+    "  </Tocavel>",
+    "</View>",
+  ].join("\n");
+  const [dentro] = tocaveis(aninhado);
+  assert.ok(dentro, "tocável dentro de outro elemento sumiu da varredura");
+  assert.deepEqual([...dentro.texto.matchAll(TAMANHO)].map(([, p, v]) => `${p}=${v}`), ["minHeight=30"]);
+
+  /*
+    E o defeito ORIGINAL desta varredura continua travado: `onPress={() => ...}`
+    tem um `>` dentro da seta, e parar ali deixaria o estilo de fora.
+  */
+  const comSeta = tocaveis('<Tocavel onPress={() => fechar()} estilo={{ minHeight: 30 }} />')[0];
+  assert.ok(comSeta.texto.includes("minHeight: 30"), "a leitura parou no `>` da arrow function");
+
+  /*
+    Tocável que o leitor de árvore PERDEU precisa estourar, e não devolver uma
+    lista menor em silêncio: `arvoreJsx` desfaz o elemento que nunca fecha, e um
+    tocável desfeito é um tocável que nenhuma das três regras mede.
+  */
+  assert.throws(
+    () => tocaveis("<Pressable onPress={f} style={{ minHeight: 30 }}>"),
+    /achou 0 tocáveis e o texto tem 1 aberturas/,
+    "a varredura perdeu um tocável e devolveu a lista menor sem reclamar",
+  );
+
+  /*
+    E a conta-conferência não pode reprovar quem MENCIONA a tag dentro de uma
+    string: `arvoreJsx` pula texto literal, então contar a menção faria o portão
+    acusar código inocente, que é como se ensina alguém a afrouxar uma regra.
+  */
+  const comMencaoEmTexto = [
+    'const aviso = "todo <Pressable> precisa de rótulo";',
+    "<Tocavel onPress={f} estilo={{ minHeight: toque }} />",
+  ].join("\n");
+  assert.equal(
+    tocaveis(comMencaoEmTexto).length, 1,
+    "a conta-conferência contou uma tag citada dentro de uma string",
+  );
 
   // O que estica não precisa de piso, e o que não estica precisa.
   assert.equal(ESTICA.test('style={{ flex: 1 }}'), true);

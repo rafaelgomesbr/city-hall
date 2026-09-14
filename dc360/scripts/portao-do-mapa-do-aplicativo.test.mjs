@@ -191,22 +191,83 @@ test("as próprias regras pegam o que deveriam pegar", () => {
   }
 });
 
-test("a limpeza apaga comentário e texto de tela, e mais nada", () => {
+test("a limpeza apaga comentário, e o TEXTO LITERAL sobrevive inteiro", () => {
   /*
-    Sem isto o portão teria o pior incentivo possível: reprovaria o comentário
-    que EXPLICA por que geocodificação está proibida, e o jeito de deixar verde
-    seria apagar a explicação. Metade dos arquivos deste aplicativo tem
-    parágrafos contando o defeito que a linha abaixo conserta.
+    Duas metades, e a segunda faltava.
+
+    A primeira é o incentivo: sem apagar comentário, o portão reprovaria o
+    parágrafo que EXPLICA por que geocodificação está proibida, e o jeito de
+    deixar verde seria apagar a explicação. Metade dos arquivos deste aplicativo
+    tem parágrafos contando o defeito que a linha abaixo conserta.
+
+    A segunda é o contrário, e nada a defendia: texto literal PRECISA sobreviver
+    à limpeza. Duas das regras de `PROIBIDAS` só existem dentro de aspas e em
+    lugar nenhum mais, e o mesmo vale para a conferência do `app.config.ts`:
+    `"https://maps.googleapis.com/maps/api/directions/json"` é uma string, e
+    `"AIzaSy..."` é sempre uma string. Uma limpeza que esvaziasse o miolo das
+    aspas deixaria essas três conferências cegas em silêncio, e o portão
+    continuaria verde para sempre.
+
+    O caso anterior tinha o título certo pela metade ("apaga comentário e texto
+    de tela") e não olhava o texto de tela em asserção nenhuma. Ele passava com
+    a limpeza preservando o literal E com ela apagando o literal, que são
+    comportamentos opostos: um caso indiferente ao que o título dele promete.
   */
   const fonte = [
     "// nada de reverseGeocodeAsync aqui",
-    'const aviso = "não usamos Geocoder";',
     "const real = new Geocoder();",
+    'const url = "https://maps.googleapis.com/maps/api/directions/json";',
+    'const chave = "AIzaSyB1cQwErTyUiOpAsDfGhJkL";',
+    "/* AIzaSyNaoDeveriaSerVistaPorqueEComentario */",
   ].join("\n");
   const limpo = semComentarios(fonte).split("\n");
-  assert.ok(!limpo[0].includes("reverseGeocodeAsync"), "não apagou o comentário");
-  assert.ok(limpo[2].includes("new Geocoder()"), "apagou código de verdade");
-  assert.equal(limpo.length, 3, "a contagem de linhas mudou");
+
+  assert.ok(!limpo[0].includes("reverseGeocodeAsync"), "não apagou o comentário de linha");
+  assert.ok(!limpo[4].includes("AIza"), "não apagou o comentário de bloco");
+  assert.ok(limpo[1].includes("new Geocoder()"), "apagou código de verdade");
+  /*
+    As duas linhas que sustentam três conferências deste arquivo. Se alguma
+    delas sair vazia, a chave do fornecedor e a URL de serviço pago passam a
+    entrar no aplicativo sem ninguém acusar.
+  */
+  assert.ok(
+    limpo[2].includes("maps/api/directions"),
+    "a limpeza esvaziou o texto literal, e as regras de URL do Google ficaram cegas",
+  );
+  assert.ok(
+    limpo[3].includes("AIzaSyB1cQwErTyUiOpAsDfGhJkL"),
+    "a limpeza esvaziou o texto literal, e a regra da chave do Google ficou cega",
+  );
+  assert.equal(limpo.length, 5, "a contagem de linhas mudou");
+});
+
+test("as regras pegam o que deveriam pegar DEPOIS da limpeza, e não só no texto cru", () => {
+  /*
+    O caso irmão do de cima, e ele fecha o buraco pelo outro lado.
+
+    "As próprias regras pegam o que deveriam pegar" prova as expressões
+    regulares contra o texto CRU. A varredura de verdade não vê texto cru: ela
+    vê `semComentarios(arquivo)`. Entre uma coisa e outra cabe um portão que
+    prova a régua e mede outra coisa, que é o modo de falha mais caro de todos,
+    porque a régua provada dá a sensação de que está tudo coberto.
+  */
+  const casos = [
+    "const g = new google.maps.Geocoder();",
+    "const [lugar] = await Location.reverseGeocodeAsync(ponto);",
+    "const [ponto] = await Location.geocodeAsync(endereco);",
+    "new google.maps.places.PlacesService(mapa);",
+    "new google.maps.places.AutocompleteService();",
+    'const url = "https://maps.googleapis.com/maps/api/directions/json";',
+    'script.src = base + "&libraries=places";',
+    'const chave = "AIzaSyB1cQwErTyUiOpAsDfGhJkL";',
+  ];
+  for (const caso of casos) {
+    const comoAVarreduraVe = semComentarios(caso);
+    assert.ok(
+      PROIBIDAS.some((r) => r.padrao.test(comoAVarreduraVe)),
+      `a varredura não pega, depois da limpeza: ${caso}`,
+    );
+  }
 });
 
 test("todo MapView do aplicativo pede o provedor Google, explicitamente", () => {

@@ -289,7 +289,16 @@ function DesenhoDoAviso({ tipo, cor }: { tipo: string; cor: string }) {
 /** Quantas vistorias concluídas a tela lista. O total de verdade vem do servidor. */
 const CONCLUIDAS_NA_TELA = 10;
 
-/** Quantos avisos a tela lista de uma vez. O resto continua guardado. */
+/**
+ * Quantos avisos a tela lista de uma vez. O resto continua guardado, e alcançável.
+ *
+ * O corte é de ROLAGEM, e nunca de existência: enquanto ele foi só um corte, o
+ * aparelho guardava trinta avisos, a tela desenhava oito, e "Marcar como lidos"
+ * marcava os TRINTA. Os vinte e dois que ninguém viu sumiam do sino, aqui e no
+ * servidor, e não voltam em pergunta nenhuma: o `POST /avisos/lidos` é por
+ * identificador e a leitura não se desfaz. O botão abaixo da lista é o que
+ * devolve os cortados ao alcance do dedo, e é ele que torna o corte honesto.
+ */
 const AVISOS_NA_TELA = 8;
 
 export default function Perfil() {
@@ -324,6 +333,15 @@ export default function Perfil() {
     linha e o porquê fica atrás de um toque, para quem duvidar dela.
   */
   const [porQueASenha, setPorQueASenha] = useState(false);
+  /*
+    A lista de avisos abriu inteira.
+
+    Sem isto os avisos além do oitavo eram inalcançáveis: a lista sempre mostra
+    os mais NOVOS, então um aviso que caiu abaixo do corte nunca mais subiria
+    sozinho. Um aviso por ler que não tem como ser lido é o mesmo item preso
+    para sempre que a fila de envio existe para não ter.
+  */
+  const [verTodosOsAvisos, setVerTodosOsAvisos] = useState(false);
   /** Qual das duas ações do sistema está em voo agora. Nula: nenhuma. */
   const [acaoDeAviso, setAcaoDeAviso] = useState<null | "permissao" | "ajustes">(null);
   const [pediuPermissaoAgora, setPediuPermissaoAgora] = useState(false);
@@ -479,8 +497,24 @@ export default function Perfil() {
   const concluidas = dados?.concluidas ?? [];
   const naTela = concluidas.slice(0, CONCLUIDAS_NA_TELA);
   const semSinalNaLista = concluidas.filter(foiColetadaSemSinal).length;
-  const avisosNaTela = avisos.itens.slice(0, AVISOS_NA_TELA);
-  const porLer = avisos.itens.filter((a) => !a.lido).map((a) => a.id);
+  const avisosNaTela = verTodosOsAvisos
+    ? avisos.itens
+    : avisos.itens.slice(0, AVISOS_NA_TELA);
+  /*
+    O QUE O BOTÃO MARCA É O QUE ESTÁ DESENHADO, e nunca o que está guardado.
+
+    Saía de `avisos.itens`, ou seja, dos até trinta que o aparelho guarda, com
+    a tela desenhando oito. O agente descia o morro, lia os oito que cabiam,
+    tocava em "Marcar como lidos" (cujo rótulo falado ainda dizia "os 12 avisos
+    que estão nesta tela") e os outros vinte e dois eram marcados como lidos no
+    aparelho e no servidor sem nunca terem aparecido. Leitura não se desfaz: o
+    `POST /avisos/lidos` é por identificador, e aquele aviso não volta em
+    pergunta nenhuma. Era o sino apagando o que existe para mostrar.
+  */
+  const porLer = avisosNaTela.filter((a) => !a.lido).map((a) => a.id);
+  /* Quantos ficaram atrás do corte, para o botão dizer o número em vez de
+     "ver mais", que não deixa ninguém decidir se vale o toque. */
+  const cortados = avisos.itens.length - avisosNaTela.length;
 
   /*
     O estado dos avisos vira chip: símbolo mais palavra, nunca a cor sozinha. O
@@ -1052,11 +1086,30 @@ export default function Perfil() {
                   </View>
                 );
               })}
-              {avisos.itens.length > avisosNaTela.length && (
-                <Txt variante="legenda" discreto>
-                  Mostrando os {avisosNaTela.length} mais recentes de{" "}
-                  {avisos.itens.length} guardados neste aparelho.
-                </Txt>
+              {cortados > 0 && (
+                <>
+                  <Txt variante="legenda" discreto>
+                    Mostrando os {avisosNaTela.length} mais recentes de{" "}
+                    {avisos.itens.length} guardados neste aparelho.
+                  </Txt>
+                  {/*
+                    O corte precisa de saída, e ela é um botão e não um rodapé.
+                    A lista mostra sempre os mais novos: sem isto, um aviso que
+                    caiu abaixo do oitavo nunca mais volta a aparecer, e o
+                    número do crachá contaria por ler algo que não há como ler.
+                  */}
+                  <Botao
+                    titulo={cortados === 1
+                      ? "Ver o outro aviso guardado"
+                      : `Ver os outros ${cortados} avisos guardados`}
+                    tipo="secundario"
+                    testID="ver-todos-os-avisos"
+                    descricao={cortados === 1
+                      ? "Mostrar o aviso que ficou fora da lista"
+                      : `Mostrar os ${cortados} avisos que ficaram fora da lista`}
+                    onPress={() => { setVerTodosOsAvisos(true); }}
+                  />
+                </>
               )}
             </View>
           )}

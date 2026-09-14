@@ -236,6 +236,83 @@ describe("degrau 3: a distância decide entre iguais, e nunca acima deles", () =
     expect(ids(resultado)).toEqual(["medida", "zerada"]);
     expect(resultado.motivo).toContain("de você");
   });
+
+  /*
+    E A MESMA REGRA VALE PARA O PONTO DO AGENTE, que é o lado que faltava.
+
+    A coordenada zerada da tarefa já era tratada como ausência. A do AGENTE não
+    era, e é ela que aparece no aparelho de verdade: `getLastKnownPositionAsync`
+    devolve 0,0 em aparelho que ainda não fixou, em emulador e em aparelho
+    barato com o rádio recém-ligado. Dali, todas as tarefas de um município
+    brasileiro ficam a seis mil quilômetros, e o que sobra na ordenação é qual
+    delas está alguns metros mais perto do golfo da Guiné, que é o INVERSO da
+    ordem certa quando o município fica ao sul e a leste.
+
+    O caso é duplo de propósito: a ordem precisa cair no prazo (como se não
+    houvesse posição nenhuma) E a tela precisa continuar dizendo que não mediu
+    caminho. Só a primeira metade passaria verde com a distância zerada.
+  */
+  it("a posição zerada do aparelho conta como ausência, e não como a ilha nula", () => {
+    /*
+      As duas vencem no MESMO bloco de turno (10h e 11h), então a distância é
+      quem decide entre elas, e as duas coordenadas estão ao norte da base: da
+      ilha nula, quem está mais ao norte é quem está mais perto do equador, ou
+      seja, a ordem sai INVERTIDA em relação à do prazo. É essa inversão que faz
+      o caso saber reprovar em vez de concordar por acaso.
+    */
+    const entrada = () => [
+      tarefa({
+        id: "vizinha",
+        protocolo: "000100/2026",
+        prazo_em: new Date(AGORA + 10 * HORA).toISOString(),
+        ...aMetros(300),
+      }),
+      tarefa({
+        id: "ao-norte",
+        protocolo: "000900/2026",
+        prazo_em: new Date(AGORA + 11 * HORA).toISOString(),
+        ...aMetros(9_000),
+      }),
+    ];
+
+    const daIlhaNula = ordenar(entrada(), { de: { latitude: 0, longitude: 0 } });
+
+    expect(ids(ordenar(entrada()))).toEqual(["vizinha", "ao-norte"]);
+
+    /* A mesma ordem de quem não tem posição: prazo exato, e nada mais. */
+    expect(ids(daIlhaNula)).toEqual(ids(ordenar(entrada())));
+    expect(daIlhaNula.usouDistancia).toBe(false);
+    expect(daIlhaNula.motivo).not.toContain("de você");
+    expect(daIlhaNula.lugares.every((l) => l.distanciaM === null)).toBe(true);
+  });
+
+  /*
+    Posição ilegível é o mesmo caso, e o estrago é maior.
+
+    Com `NaN` nas coordenadas do agente, toda distância vira `NaN`, e aí duas
+    coisas acontecem juntas: o comparador passa a devolver `NaN` (porque
+    `NaN !== NaN` é verdadeiro, e a subtração seguinte não é número nenhum), e o
+    motor deixa a lista QUASE ordenada, de um jeito que muda com o tamanho do
+    vetor. É o mesmo defeito que `DEPOIS_DE_TODOS` existe para evitar do outro
+    lado, entrando pela porta da frente.
+
+    E a tela ainda afirmava ter medido: `usouDistancia` verdadeiro tira o aviso
+    de "não considerou distância" e a frase sai com "a distância desconhecida de
+    você", que é uma medida que ninguém fez apresentada como medida.
+  */
+  it("posição ilegível não vira distância, e não faz o comparador devolver NaN", () => {
+    const entrada = () => [
+      tarefa({ id: "a", protocolo: "000300/2026", ...aMetros(5_000) }),
+      tarefa({ id: "b", protocolo: "000100/2026", ...aMetros(800) }),
+      tarefa({ id: "c", protocolo: "000200/2026", ...aMetros(2_000) }),
+    ];
+
+    const ilegivel = ordenar(entrada(), { de: { latitude: Number.NaN, longitude: Number.NaN } });
+
+    expect(ids(ilegivel)).toEqual(ids(ordenar(entrada())));
+    expect(ilegivel.usouDistancia).toBe(false);
+    expect(ilegivel.motivo).not.toContain("desconhecida");
+  });
 });
 
 describe("o caso sem GPS, que é o comum", () => {
@@ -388,5 +465,68 @@ describe("a faixa de prazo, sozinha", () => {
 
   it("prazo ilegível não estoura: ele vai para o fim, como quem não tem prazo", () => {
     expect(faixaDePrazo("nao e uma data", AGORA)).toBe(faixaDePrazo(null, AGORA));
+  });
+
+  /*
+    A FRONTEIRA DO BLOCO NÃO PODE DESLIZAR COM O RELÓGIO, e este é o caso que o
+    arquivo prometia no comentário e não tinha.
+
+    A promessa, na letra: a fronteira "é a MESMA para todas as tarefas e não se
+    move entre duas leituras da mesma tela, senão a lista se remexeria sozinha
+    debaixo do dedo, que é exatamente o defeito que esta tela inteira existe
+    para não ter".
+
+    Contando o bloco A PARTIR DE AGORA, a fronteira desliza um segundo por
+    segundo, e o relógio da tela avança de trinta em trinta segundos. Uma tarefa
+    que estava a 4h00m10s do prazo passa para o bloco de baixo sozinha, salta na
+    frente da que estava empatada com ela e a lista se reordena com o dedo do
+    agente em cima, sem nada ter mudado no disco.
+
+    Com o bloco preso ao relógio (blocos fixos de quatro horas), a DIFERENÇA
+    entre duas tarefas não depende mais de quando alguém olhou, e é só isso que
+    o desempate precisa: quem vence no bloco anterior continua vindo antes,
+    sempre, e ninguém troca de lugar por causa do tempo passando.
+  */
+  it("a diferença de faixa entre duas tarefas não muda com o relógio andando", () => {
+    const antes = new Date(AGORA + 4 * HORA + 10_000).toISOString();
+    const depois = new Date(AGORA + 5 * HORA).toISOString();
+
+    const agora = faixaDePrazo(antes, AGORA) - faixaDePrazo(depois, AGORA);
+    const trintaSegundosDepois =
+      faixaDePrazo(antes, AGORA + 30_000) - faixaDePrazo(depois, AGORA + 30_000);
+
+    expect(trintaSegundosDepois).toBe(agora);
+  });
+
+  it("duas leituras da mesma lista com trinta segundos de diferença dão a mesma ordem", () => {
+    /*
+      As duas estão longe do turno (oito e nove horas), então o GRUPO das duas é
+      o mesmo nas duas leituras e não é ele que decide nada aqui. Isso é
+      deliberado: o grupo MUDAR com o relógio é a regra funcionando (uma tarefa
+      que entra no turno ficou mesmo mais urgente). O que não pode mudar é a
+      faixa de desempate, que não é urgência nova, é aritmética de quando alguém
+      olhou.
+    */
+    const tarefas = [
+      /* Vence uma hora antes da outra, e está oito quilômetros mais longe. */
+      tarefa({
+        id: "vence-antes",
+        protocolo: "000100/2026",
+        prazo_em: new Date(AGORA + 8 * HORA + 10_000).toISOString(),
+        ...aMetros(8_000),
+      }),
+      tarefa({
+        id: "mais-perto",
+        protocolo: "000200/2026",
+        prazo_em: new Date(AGORA + 9 * HORA).toISOString(),
+        ...aMetros(200),
+      }),
+    ];
+
+    const leitura = (agora: number) =>
+      ordemDoDia(tarefas, { agora, de: AQUI, jaColetadas: SEM_COLETA })
+        .ordenadas.map((t) => t.id);
+
+    expect(leitura(AGORA + 30_000)).toEqual(leitura(AGORA));
   });
 });

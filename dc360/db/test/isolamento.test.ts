@@ -519,6 +519,164 @@ describe("Trilha auditável é append-only", () => {
   });
 });
 
+describe("Append-only é por AUSÊNCIA de policy, e não só por ausência de GRANT", () => {
+  /**
+   * A DIFERENÇA ENTRE AS DUAS AUSÊNCIAS, e por que ela não é preciosismo.
+   *
+   * `trilha_eventos`, `avisos_lidos` e `oficio_aberturas` declaram a policy
+   * COMANDO A COMANDO (`FOR SELECT`, `FOR INSERT`). Com RLS forçada, o comando
+   * que não tem policy é negado pelo Postgres para todo mundo, inclusive para
+   * quem ganhar `GRANT DELETE` amanhã. São DUAS barreiras.
+   *
+   * `CREATE POLICY` sem cláusula `FOR` vale `FOR ALL`, ou seja, ela autoriza
+   * SELECT, INSERT, UPDATE **e DELETE**. Quando a tabela é escrita assim, a
+   * única coisa que impede o apagamento é o GRANT, e aí a barreira é UMA.
+   *
+   * As migrações 030 e 031 prometem por escrito a barreira dupla:
+   *
+   *   030: "SELECT e INSERT, e mais nada, pelo mesmo motivo da trilha (...).
+   *         Uma declaracao de prova ausente num documento oficial nao se apaga"
+   *   031: "SEM DELETE, em lugar nenhum. Nao ha policy e nao ha concessao: as
+   *         duas ausencias negam."
+   *
+   * As duas frases eram falsas: as duas tabelas nasceram com policy `ALL`.
+   *
+   * O CENÁRIO CONCRETO em que isso destrói prova: uma migração futura escreve
+   * `GRANT DELETE`, ou o mais banal de todos, `GRANT ALL ON ALL TABLES IN
+   * SCHEMA public TO dc360_app` num script de conveniência. Na trilha isso não
+   * muda nada, porque não há policy que autorize o DELETE. Em `saidas_a_campo`
+   * passa a apagar, e o que se apaga é a única linha que o produto guarda sobre
+   * a segurança de um servidor: a saída vencida de quem não desceu do morro,
+   * apagável justamente por quem teria interesse em apagá-la. Em
+   * `vistoria_evidencias_perdidas` passa a apagar a declaração de prova ausente
+   * de um laudo, e o documento volta a parecer completo sem estar.
+   *
+   * O segundo caso deste bloco não confere lista: ele ABRE o buraco, mostra o
+   * estrago, e fecha. É o que separa provar a regra de repetir o schema.
+   */
+  const APPEND_ONLY = [
+    "trilha_eventos",
+    "avisos_lidos",
+    "vistoria_evidencias_perdidas",
+    "saidas_a_campo",
+  ];
+
+  it("nenhuma tabela append-only tem policy que alcance DELETE", async () => {
+    for (const tabela of APPEND_ONLY) {
+      const r = await db.query<{ policyname: string; cmd: string }>(
+        `SELECT policyname, cmd FROM pg_policies
+          WHERE schemaname = 'public' AND tablename = $1 ORDER BY policyname`,
+        [tabela],
+      );
+      expect(r.rows.length, `${tabela} sem policy nenhuma`).toBeGreaterThan(0);
+      for (const p of r.rows) {
+        expect(
+          p.cmd,
+          `${tabela}.${p.policyname} vale para ${p.cmd}: uma policy ALL autoriza `
+          + "DELETE, e aí a única barreira contra apagar prova é o GRANT",
+        ).not.toBe("ALL");
+        expect(
+          p.cmd,
+          `${tabela}.${p.policyname} autoriza DELETE explicitamente`,
+        ).not.toBe("DELETE");
+      }
+    }
+  });
+
+  it("com um GRANT DELETE a mais, as linhas continuam lá", async () => {
+    /*
+      A NEGATIVA AQUI É SILENCIOSA, e é isso que a torna a barreira certa.
+
+      Sem GRANT, o Postgres recusa com erro (é o que o caso da trilha, logo
+      acima, mostra). COM o grant e sem policy de DELETE, ele não recusa: a
+      cláusula da policy não seleciona linha nenhuma para apagar, e o comando
+      volta dizendo que apagou zero. Quem tentar apagar prova por aqui não
+      recebe erro e não leva nada, que é exatamente o desfecho desejado.
+
+      A contagem antes e depois é o que prova isso sem depender da mensagem do
+      banco, e as linhas são semeadas de propósito: um DELETE contra tabela
+      vazia passaria por aqui sem provar coisa nenhuma.
+    */
+    const oc = await db.query<{ id: string }>(
+      "SELECT id FROM ocorrencias WHERE organizacao_id = $1 LIMIT 1",
+      [orgA],
+    );
+    const ocId = oc.rows[0]!.id;
+    const us = await db.query<{ id: string }>(
+      `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
+       VALUES ($1,'Diego Nakamura Alves','SA-9901','diego9901@serraalta.exemplo.gov.br',
+               'agente_campo')
+       RETURNING id`,
+      [orgA],
+    );
+    const usId = us.rows[0]!.id;
+
+    const vist = await db.query<{ id: string }>(
+      `INSERT INTO vistorias
+         (organizacao_id, ocorrencia_id, agente_id, checklist, assinante_nome,
+          coletada_em, idempotency_key)
+       VALUES ($1,$2,$3,'[]'::jsonb,'Marilda Souza Prado', now(), gen_random_uuid())
+       RETURNING id`,
+      [orgA, ocId, usId],
+    );
+    await db.query(
+      `INSERT INTO vistoria_evidencias_perdidas
+         (organizacao_id, vistoria_id, idempotency_key, papel, capturada_em)
+       VALUES ($1,$2,'foto-perdida-do-portao','foto', now())`,
+      [orgA, vist.rows[0]!.id],
+    );
+    await db.query(
+      `INSERT INTO saidas_a_campo
+         (organizacao_id, ocorrencia_id, agente_id, sozinho, duracao_minutos,
+          declarada_em, retorno_previsto_inicial, retorno_previsto_em, idempotency_key)
+       VALUES ($1,$2,$3,true,120, now(), now() + interval '2 hours',
+               now() + interval '2 hours', gen_random_uuid())`,
+      [orgA, ocId, usId],
+    );
+
+    await db.query(
+      `INSERT INTO trilha_eventos
+         (organizacao_id, ocorrencia_id, tipo, autor_id, autor_nome, autor_papel,
+          origem, ocorrido_em)
+       VALUES ($1,$2,'registro',$3,'Diego Nakamura Alves','agente_campo','campo', now())`,
+      [orgA, ocId, usId],
+    );
+    const aviso = await db.query<{ id: string }>(
+      `INSERT INTO avisos (organizacao_id, tipo, ocorrencia_id, chave_do_fato)
+       VALUES ($1,'vistoria_recebida',$2,'portao-do-append-only')
+       RETURNING id`,
+      [orgA, ocId],
+    );
+    await db.query(
+      `INSERT INTO avisos_lidos (organizacao_id, aviso_id, usuario_id)
+       VALUES ($1,$2,$3)`,
+      [orgA, aviso.rows[0]!.id, usId],
+    );
+
+    for (const tabela of APPEND_ONLY) {
+      const contar = async (): Promise<string> => {
+        const r = await db.query<{ n: string }>(`SELECT count(*)::text AS n FROM ${tabela}`);
+        return r.rows[0]!.n;
+      };
+      const antes = await contar();
+      expect(Number(antes), `${tabela} está vazia: o caso não provaria nada`)
+        .toBeGreaterThan(0);
+
+      await db.exec(`GRANT DELETE ON ${tabela} TO dc360_app`);
+      try {
+        await comoApp(orgA, (tx) => tx.query(`DELETE FROM ${tabela}`));
+        expect(
+          await contar(),
+          `com GRANT DELETE, ${tabela} deixou de ser append-only: a ausência de `
+          + "policy é o que precisa negar, e não a ausência de concessão",
+        ).toBe(antes);
+      } finally {
+        await db.exec(`REVOKE DELETE ON ${tabela} FROM dc360_app`);
+      }
+    }
+  });
+});
+
 describe("Regras de negócio garantidas pelo banco", () => {
   it("recusa encerrar sem motivo", async () => {
     await expect(
@@ -2781,13 +2939,21 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
       uma rota nova poderia reescrever o prazo inicial de uma saida vencida e
       fazer o atraso de um agente que nao desceu do morro desaparecer da tela
       sem deixar rastro.
+
+      A 032 traz a SETIMA, `prorrogacao_key`, pela mesma decisao: a rota de
+      prorrogar precisa gravar a chave de idempotencia do pedido para o REENVIO
+      (a resposta se perde no sinal ruim do morro e o aparelho repete) nao contar
+      a prorrogacao duas vezes nem escrever dois eventos numa trilha que nao se
+      corrige. Ela entra nomeada, e nao como GRANT UPDATE na tabela, pelo mesmo
+      motivo das seis de cima.
     */
     const colunas = doApp.filter((a) => a.especie === "coluna");
     expect(
       colunas.map((a) => `${a.relacao}.${a.detalhe}:${a.privilegio}`).sort(),
       "a varredura de privilegio de coluna nao enxergou o GRANT UPDATE por coluna que " +
-      "as migracoes 017 (desfecho, detalhe), 027 (provedor_id), 029 (observacao) e " +
-      "031 (o bloco de encerramento da saida a campo) fazem",
+      "as migracoes 017 (desfecho, detalhe), 027 (provedor_id), 029 (observacao), " +
+      "031 (o bloco de encerramento da saida a campo) e 032 (a chave da " +
+      "prorrogacao) fazem",
     ).toEqual([
       "devolucoes_de_tarefa.observacao:UPDATE",
       "devolucoes_de_tarefa.observacao_removida_em:UPDATE",
@@ -2798,6 +2964,7 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
       "saidas_a_campo.encerrada_em:UPDATE",
       "saidas_a_campo.encerrada_por:UPDATE",
       "saidas_a_campo.observacao:UPDATE",
+      "saidas_a_campo.prorrogacao_key:UPDATE",
       "saidas_a_campo.prorrogacoes:UPDATE",
       "saidas_a_campo.retorno_previsto_em:UPDATE",
     ]);

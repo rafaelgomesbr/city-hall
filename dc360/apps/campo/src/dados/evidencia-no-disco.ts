@@ -49,6 +49,38 @@ export function guardarFotoNoAparelho(
 }
 
 /**
+ * A fotografia que saiu da vistoria sai TAMBÉM do aparelho.
+ *
+ * O diálogo de apagar promete isto com todas as letras ("o arquivo é
+ * descartado deste aparelho"), e até aqui a promessa era falsa: a tela tirava
+ * a foto da lista do rascunho e o JPEG ficava em `Paths.document` para sempre.
+ * O único lugar que varria esses arquivos era o logout, e o agente de campo
+ * não sai da conta: ele fecha o aplicativo e volta no dia seguinte. O aparelho
+ * é de entrada, é compartilhado entre turnos, e o que ficava ali é a mesma
+ * coisa que a limpeza do logout chama pelo nome, "lixo com dado de família
+ * dentro", só que de uma foto que o agente mandou apagar.
+ *
+ * Não estoura NUNCA, e isso é o contrato. Quem chama está no meio de tirar a
+ * foto da vistoria, e essa parte não pode falhar por causa da limpeza: arquivo
+ * que já não existe, caminho que o sistema recusa, permissão perdida, tudo
+ * vira silêncio aqui. O arquivo órfão volta a ser problema do logout, que é
+ * onde ele sempre esteve; a foto sumir da lista é o que o agente pediu.
+ *
+ * Devolve se conseguiu, porque o teste precisa poder perguntar, e porque a
+ * diferença entre "apaguei" e "não deu" é dizível sem ser lançável.
+ */
+export function apagarFotoDoAparelho(uriLocal: string): boolean {
+  try {
+    const arquivo = new File(uriLocal);
+    if (!arquivo.exists) return false;
+    arquivo.delete();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * De onde a fila tira os bytes na hora de enviar.
  *
  * O arquivo pode não estar mais lá: aparelho que atualizou trazendo coleta

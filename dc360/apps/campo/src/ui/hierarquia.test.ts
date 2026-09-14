@@ -105,6 +105,23 @@ describe("a régua da hierarquia", () => {
     duas pílulas diferentes.
   */
   it("o piso de 14 governa a interação, e o apoio continua podendo ser legenda", () => {
+    /*
+      O 14 do título é AFIRMADO aqui, e antes não era.
+
+      A versão anterior media só "interação fica em cima do piso" e "apoio fica
+      embaixo dele". As duas continuam verdadeiras com o piso valendo 13, e o
+      título continuaria dizendo 14: medido por mutação, `fonteMinimaDeInteracao
+      = 13` passava por este caso, pela paridade com o painel (que só exige o
+      piso maior ou igual à legenda) e pelo portão de design. Um título que
+      nomeia um número que nada trava é um título que mente devagar.
+
+      O número é amarrado ao degrau da escala, e não escrito de novo aqui:
+      `corpoP` é o mesmo 14 do painel, e quem trava essa ponta é
+      `scripts/paridade-de-tokens-do-aplicativo.test.mjs`, que compara
+      `fonte.corpoP` com `--ds-fs-body-sm`. Escrever `toBe(14)` faria deste
+      arquivo o segundo lugar que decide a escala.
+    */
+    expect(fonteMinimaDeInteracao).toBe(fonte.corpoP);
     expect(degrau("interacao").fonte).toBeGreaterThanOrEqual(fonteMinimaDeInteracao);
     expect(degrau("apoio").fonte).toBeLessThan(fonteMinimaDeInteracao);
     expect(degrau("apoio").fonte).toBe(fonte.legenda);

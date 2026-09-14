@@ -423,10 +423,31 @@ export default function LayoutDoAgente() {
               color: tema.sobreDestaque,
               fontSize: fonte.legenda,
             },
+            /*
+              O RÓTULO FALADO NÃO PROMETE ENVIO, e essa é a correção.
+
+              Ele dizia "N coletas esperando" sobre um número que soma três
+              coisas com destinos diferentes: o que sai sozinho quando houver
+              sinal, o que o servidor recusou, e o que NÃO sai por esta conta
+              (a coleta do turno anterior, no aparelho de plantão, que só sobe
+              quando o autor dela entrar aqui, senão o laudo sairia com o nome
+              errado). "Esperando" é a palavra da primeira, e ela estava
+              cobrindo as três: quem ouve a tela recebia a promessa inteira,
+              sem a ressalva, e ia embora. É a mesma frase que a
+              `FaixaDeSincronizacao` já teve de corrigir, na superfície ao lado.
+
+              Agora o total diz só "na fila", que é o fato, e cada parte com
+              destino próprio se nomeia depois dele. Quem não vê a tela ouve a
+              mesma separação que o desenho da fila mostra em seções.
+            */
             tabBarAccessibilityLabel: naFila === 0
               ? "Envio, nada esperando"
-              : `Envio, ${naFila} ${naFila === 1 ? "coleta" : "coletas"} esperando`
-                + (bloqueados > 0 ? `, ${bloqueados} com problema` : ""),
+              : [
+                `Envio, ${naFila} na fila`,
+                pendentes > 0 ? `${pendentes} esperando envio` : null,
+                bloqueados > 0 ? `${bloqueados} com problema` : null,
+                deOutroAutor > 0 ? `${deOutroAutor} de outro agente` : null,
+              ].filter((parte) => parte !== null).join(", "),
           }}
         />
         {/*

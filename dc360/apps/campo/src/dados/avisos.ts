@@ -181,17 +181,32 @@ export function mesclarAvisos(
 /**
  * Quantos dos pendentes deste aparelho o servidor ainda conta como por ler.
  *
- * Só conta os que a resposta trouxe: de um pendente que não veio na janela não
- * dá para saber se ele já estava marcado no servidor, e chutar produziria um
- * número menor que a verdade, que é o erro que não se pode cometer num contador
- * de coisas por ler.
+ * SÓ OLHAVA PARA A JANELA DA RESPOSTA, e o preço disso aparecia na segunda
+ * volta de tela do agente sem sinal: ele lê os três avisos no morro (o chip cai
+ * para "nada por ler", o crachá da aba some), troca de aba, volta, a
+ * sincronização roda, o cursor já passou daqueles avisos e a resposta vem
+ * VAZIA. Sem nada na janela, nada era descontado, e o contador do servidor
+ * (que ainda não soube da leitura, porque o `POST` falha sem sinal) voltava a
+ * valer inteiro: "3 por ler" em cima de uma lista com os três desenhados como
+ * lidos, que é a tela contradizendo a si mesma na aba que existe para dizer o
+ * que aconteceu.
+ *
+ * Fora da janela o aparelho não está chutando: um identificador só entra em
+ * `lidosPendentes` quando estava POR LER no instante do toque, e só sai de lá
+ * quando o servidor confirma o `POST`. Enquanto ele está na lista, o contador
+ * do servidor conta aquele aviso, e o desconto é o que já se sabe.
+ *
+ * Dentro da janela quem manda continua sendo a resposta: um pendente que volta
+ * com `lido: true` já foi contado do lado de lá (outro aparelho, ou um `POST`
+ * que chegou e cuja resposta se perdeu), e descontá-lo de novo produziria um
+ * número menor que a verdade.
  */
 function pendentesAindaNaoLidos(
   atual: AvisosGuardados,
   resposta: RespostaDeAvisos,
 ): number {
-  const pendentes = new Set(atual.lidosPendentes);
-  return resposta.itens.filter((a) => pendentes.has(a.id) && !a.lido).length;
+  const naJanela = new Map(resposta.itens.map((a) => [a.id, a.lido] as const));
+  return atual.lidosPendentes.filter((id) => naJanela.get(id) !== true).length;
 }
 
 /**
@@ -385,10 +400,10 @@ export async function sincronizarAvisos(token: string): Promise<AvisosGuardados>
   let estado = await avisosGuardados();
 
   if (estado.lidosPendentes.length > 0) {
+    const enviados = estado.lidosPendentes;
     try {
-      await marcarAvisosLidos(token, estado.lidosPendentes);
-      estado = { ...estado, lidosPendentes: [] };
-      await guardarAvisos(estado);
+      await marcarAvisosLidos(token, enviados);
+      estado = await esquecerPendentesEnviados(enviados);
     } catch {
       /* Fica para a próxima. O aparelho continua sendo quem sabe da leitura. */
     }
@@ -396,10 +411,44 @@ export async function sincronizarAvisos(token: string): Promise<AvisosGuardados>
 
   for (let volta = 0; volta < TETO_DE_VOLTAS; volta += 1) {
     const resposta = await baixarAvisos(token, estado.cursor);
-    estado = mesclarAvisos(estado, resposta);
+    /*
+      O DISCO É RELIDO DEPOIS DA ESPERA, e essa é a linha que este laço existe
+      para não perder de vista.
+
+      Enquanto a mescla foi feita sobre o `estado` lido lá em cima, antes do
+      `await`, ela gravava uma fotografia velha por cima do presente: a tela de
+      Perfil dispara esta sincronização na ABERTURA e desenha no mesmo instante
+      a lista que veio do disco, então o agente lê os avisos e toca em "marcar
+      como lidos" enquanto a resposta ainda atravessa o 3G do morro. A leitura
+      dele sumia do aparelho e da lista de pendentes (ou seja, nunca chegaria ao
+      servidor), e os avisos reacendiam em negrito debaixo do dedo.
+    */
+    estado = mesclarAvisos(await avisosGuardados(), resposta);
     await guardarAvisos(estado);
     if (!resposta.truncada) break;
   }
 
   return estado;
+}
+
+/**
+ * Tira da lista de pendentes só o que o servidor confirmou, e mais nada.
+ *
+ * Relê o disco de propósito: entre o pedido e a resposta o agente pode ter
+ * marcado outros avisos, e zerar a lista inteira (que era o que o código fazia)
+ * esqueceria justamente esses. Eles ficariam lidos no aparelho e por ler no
+ * servidor para sempre, porque nenhuma sincronização seguinte os levaria de
+ * novo: a lista de pendentes é o único lugar onde eles estavam anotados.
+ */
+async function esquecerPendentesEnviados(
+  enviados: readonly string[],
+): Promise<AvisosGuardados> {
+  const atual = await avisosGuardados();
+  const subiram = new Set(enviados);
+  const novo = {
+    ...atual,
+    lidosPendentes: atual.lidosPendentes.filter((id) => !subiram.has(id)),
+  };
+  await guardarAvisos(novo);
+  return novo;
 }

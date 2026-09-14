@@ -35,7 +35,9 @@ import {
   INTERVALO_PADRAO_MS, deveAtualizar, idadeEmPalavras, listaEnvelheceu,
 } from "../../dados/atualizacao";
 import { distanciaEmTexto, type Ponto } from "../../dados/mapa";
-import { ordemDoDia, pontoDaTarefa, type OrdemDoDia } from "../../dados/ordem-do-dia";
+import {
+  ordemDoDia, pontoDaTarefa, pontoQueSeMede, type OrdemDoDia,
+} from "../../dados/ordem-do-dia";
 import {
   FRASE_DO_IMPEDIMENTO,
   dataDoPrazo,
@@ -372,7 +374,23 @@ export default function Tarefas() {
       if (!permissao.granted) return;
       const ultima = await Location.getLastKnownPositionAsync();
       if (!ultima) return;
-      const novo = { latitude: ultima.coords.latitude, longitude: ultima.coords.longitude };
+      /*
+        A LEITURA PASSA PELO FILTRO ANTES DE VIRAR ESTADO.
+
+        `getLastKnownPositionAsync` devolve 0,0 em aparelho que ainda não fixou,
+        em emulador e em aparelho barato com o rádio recém-ligado, e isso não é
+        "onde o agente está": é o sistema dizendo que ainda não sabe. Sem este
+        filtro, a ilha nula entra aqui como posição válida, a ordem do dia passa
+        a ordenar por latitude (quem está mais ao norte fica mais perto do golfo
+        da Guiné, o que num município ao sul sai INVERTIDO) e o mapa desenha o
+        agente a seis mil quilômetros do imóvel.
+
+        O filtro é o mesmo da coordenada da tarefa, e é a mesma função: duas
+        checagens parecidas em dois arquivos é como um dos dois lados fica sem a
+        correção, que foi exatamente o que aconteceu aqui.
+      */
+      const novo = pontoQueSeMede(ultima.coords.latitude, ultima.coords.longitude);
+      if (!novo) return;
       /*
         Só troca o estado quando a posição MUDOU, pela mesma razão de
         `manterSeIgual`: um objeto novo a cada foco reordenaria a lista inteira
@@ -399,7 +417,30 @@ export default function Tarefas() {
     município uma coisa falsa sobre para onde a coordenada foi.
   */
   const [tokenDoMapa, setTokenDoMapa] = useState<string | null>(null);
+  /*
+    LIDO é diferente de AUSENTE, e o gancho não sabe distinguir os dois.
+
+    Para `useMapaDoMunicipio`, token `null` é RESPOSTA ("sem sessão não há a
+    quem perguntar, então não mande coordenada para fora"), e não espera. Como
+    o estado nasce nulo, a primeira passada decidia plano esquemático, e a tela
+    afirmava em voz alta "o seu município optou por não enviar coordenada ao
+    Google (...) nenhuma informação sai daqui" para, um instante depois, trocar
+    pelo mapa do Google.
+
+    Isso não é piscada de interface: a legenda de modo é a promessa da seção
+    2.2 do `SUBPROCESSADORES.md` virada tela, e é por ela que o encarregado de
+    dados do município confere, olhando, se a coordenada das famílias está
+    saindo dali. Uma legenda que se desmente já disse uma coisa falsa, para
+    justamente quem tem competência para reclamar.
+
+    `MapaDaVistoria`, na tela de vistoria, evita o mesmo engano montando o mapa
+    só depois de o token estar lido. Aqui o caminho é o mesmo dito de outro
+    jeito: enquanto não lemos, a decisão que vai para a tela é `null`, que é o
+    "ainda não sei" que `MapaDoImovel` desenha como espera com porta de saída.
+  */
+  const [tokenLido, setTokenLido] = useState(false);
   const mapa = useMapaDoMunicipio(tokenDoMapa);
+  const mapaDaTela = tokenLido ? mapa : { ...mapa, decisao: null };
 
   /*
     Relógio da tela, só para a idade da lista não congelar em "agora há pouco"
@@ -713,6 +754,14 @@ export default function Tarefas() {
         if (vivo) setTokenDoMapa(token ?? null);
       } catch {
         /* Sem token não há mapa do Google, e é a resposta segura. */
+      } finally {
+        /*
+          No `finally`, e não só no caminho que deu certo: a leitura que falhou
+          TAMBÉM é uma leitura terminada, e deixar a tela esperando para sempre
+          por uma resposta que não vem é trocar uma legenda falsa por uma roda
+          eterna.
+        */
+        if (vivo) setTokenLido(true);
       }
     })();
     return () => { vivo = false; };
@@ -1346,7 +1395,7 @@ export default function Tarefas() {
             imovel={pontoFocado}
             agente={ondeEstou}
             rotulo={focada.endereco}
-            mapa={mapa}
+            mapa={mapaDaTela}
             altura={alturaDoMapa}
             /*
               O que a FOLHA está cobrindo, pela mesma fração com que ela se
@@ -1409,6 +1458,21 @@ export default function Tarefas() {
           const prazo = quantoFalta(t.prazo_em, agora.getTime());
           const metros = distancias.get(t.id) ?? null;
           const escolhida = focada?.id === t.id;
+          /*
+            O SELO DA COLETA TAMBÉM AQUI, e é a mesma fonte do cartão da lista.
+
+            A folha mostrava a tarefa já vistoriada igual às intocadas: mesmo
+            protocolo, mesmo selo de severidade, mesmo endereço. As duas lentes
+            passavam a discordar sobre o único fato que impede o agente de subir
+            duas vezes o mesmo morro, e é nesta que ele monta o roteiro. Pior:
+            escolher a linha centra o mapa na casa e deixa "Abrir a vistoria"
+            como único verbo da tela.
+
+            A ordem do dia já empurra a coletada para o fim, mas ordem não é
+            aviso: quem olha uma folha de três linhas não lê posição, lê o que
+            está escrito.
+          */
+          const seloDaLinha = seloDaColeta(lapides.get(t.id) ?? null);
           return (
             <Tocavel
               key={t.id}
@@ -1418,6 +1482,7 @@ export default function Tarefas() {
               accessibilityLabel={
                 `Ver no mapa o protocolo ${t.protocolo}, ${t.endereco}. ${prazo.texto}`
                 + (metros === null ? "" : `, a ${distanciaEmTexto(metros)} de você`)
+                + (seloDaLinha ? `. ${seloDaLinha}` : "")
               }
               /*
                 Tocar aqui NÃO abre a vistoria, e isso é deliberado: nesta lente
@@ -1452,6 +1517,13 @@ export default function Tarefas() {
                 {prazo.texto}
                 {metros === null ? "" : `, a ${distanciaEmTexto(metros)} de você`}
               </Txt>
+              {/* O mesmo `Chip` do cartão da lista, e não um texto parecido:
+                  duas peças para o mesmo fato divergem na primeira edição. */}
+              {!!seloDaLinha && (
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Chip texto={seloDaLinha} simbolo="✓" tom="ok" />
+                </View>
+              )}
             </Tocavel>
           );
         })}
@@ -1666,16 +1738,48 @@ export default function Tarefas() {
               <Tocavel
                 accessibilityRole="button"
                 onPress={() => router.push({ pathname: "/(agente)/vistoria/[id]", params: { id: t.id } })}
-                /* O selo entra no rotulo tambem: quem usa leitor de tela nao ve
-                   nem a borda nem o tique, e a informacao de "isso ja foi
-                   coletado" e justamente a que evita a segunda vistoria. */
+                /*
+                  O CARTÃO INTEIRO É UM ELEMENTO SÓ para quem ouve a tela: este
+                  `Tocavel` tem rótulo próprio, e rótulo próprio faz o leitor
+                  ler o rótulo e ignorar todo texto de dentro. Então tudo o que
+                  o cartão DESENHA e que decide alguma coisa precisa estar aqui,
+                  senão a informação existe para quem enxerga e não existe para
+                  quem não enxerga.
+
+                  O PRAZO é o caso mais caro, e faltava: ele é a linha mais
+                  forte do cartão, é o que decide se o agente sobe hoje, e é o
+                  único dado que a tela comunica também por cor (vermelho no
+                  vencido), o que `CLAUDE.md` proíbe deixar só na cor. A folha da
+                  lente do mapa já dizia o prazo no rótulo dela: sem esta linha,
+                  a mesma tarefa tinha duas verdades conforme a lente.
+
+                  A DISTÂNCIA entra pela mesma razão e só quando foi medida, e a
+                  ordem das partes segue a do desenho.
+                */
                 accessibilityLabel={
                   `Abrir a vistoria do protocolo ${t.protocolo}, ${t.endereco}`
+                  + `. ${prazo.texto}`
+                  + (metros === null ? "" : `, a ${distanciaEmTexto(metros)} de você`)
+                  /* O selo entra no rotulo tambem: quem usa leitor de tela nao ve
+                     nem a borda nem o tique, e a informacao de "isso ja foi
+                     coletado" e justamente a que evita a segunda vistoria. */
                   + (selo ? `. ${selo}` : "")
                   /* A tarja de vulnerabilidade é desenho, e o cartão inteiro é
                      um elemento só para quem ouve a tela: sem esta linha, o
                      cuidado prioritário simplesmente não existiria ali. */
                   + (t.vulnerabilidade_presente ? ". Vulnerabilidade social" : "")
+                  /*
+                    E o PORQUÊ da sugestão, no cartão que a carrega. Na lente do
+                    mapa esse texto mora no cabeçalho da folha, fora de qualquer
+                    tocável, e é lido; aqui ele mora dentro do cartão, e era
+                    engolido. O aviso de que a ordem não considerou distância vai
+                    junto, e é o que impede o agente de confiar numa ordem que
+                    não mediu caminho nenhum.
+                  */
+                  + (ehSugerida
+                    ? `. Comece por aqui: ${oDia.motivo}`
+                      + (oDia.usouDistancia ? "" : ` ${AVISO_SEM_DISTANCIA}`)
+                    : "")
                 }
                 /*
                   A BORDA DE DESTAQUE, que agora mora na caixa acima, ACENDE SÓ NO

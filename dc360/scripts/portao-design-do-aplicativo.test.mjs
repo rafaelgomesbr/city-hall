@@ -889,6 +889,21 @@ test("H3: o protagonista é pelo menos o dobro do apoio, e a conta é refeita aq
   );
 });
 
+/**
+ * Este elemento desenha um protagonista?
+ *
+ * Mora em função própria porque o caso que PROVA esta varredura precisa fazer a
+ * mesma pergunta que ela faz. Enquanto a pergunta estava escrita duas vezes, o
+ * caso-irmão podia continuar verde sobre uma versão da regra que a varredura de
+ * verdade já não usava, que é a forma mais silenciosa de um caso de prova
+ * apodrecer.
+ */
+function eProtagonista(no, protagonista) {
+  if (no.tag === "Dado") return true;
+  const papel = atributoLiteral(no.atributos, "nivel");
+  return papel === protagonista || papel === null;
+}
+
 /** Quantos protagonistas cada peça desenha, por arquivo. */
 function protagonistasPorPeca() {
   const regua = lerRegua();
@@ -906,13 +921,25 @@ function protagonistasPorPeca() {
         const no = fila.shift();
         if (ePeca(no)) { visitar(no.filhos, no.tag, no.linha); continue; }
         /*
-          Duas formas de ser protagonista, e as duas contam. `Dado` é a peça
-          pronta (número mais rótulo); `nivel="numero"` é quem monta a figura à
-          mão. Contar só a primeira deixaria a régua de fora justamente para
-          quem não usou a peça que a obedece.
+          TRÊS formas de ser protagonista, e as três contam.
+
+          `Dado` é a peça pronta (número mais rótulo); `nivel="numero"` é quem
+          monta a figura à mão. Contar só a primeira deixaria a régua de fora
+          justamente para quem não usou a peça que a obedece.
+
+          A terceira é `nivel={algumaCoisa}`, e ela entrou por mutação: com o
+          papel vindo de expressão, dois protagonistas no mesmo cartão passavam
+          verdes aqui. `atributoLiteral` devolve `null` nesse caso, e o contrato
+          escrito na declaração dela é que valor de tempo de execução conta como
+          o PIOR caso, que é o que o portão de densidade já faz com `tom` e com
+          `peso`. Este caso era o único lugar que lia `null` como "não é", ou
+          seja, como o MELHOR caso, e a diferença é toda a régua.
+
+          Peça (`Cartao`, `Tocavel`, `Secao`) nunca chega aqui: `ePeca` a desvia
+          na linha de cima. Então `nivel={...}` de um `Cartao` continua sendo o
+          nível de elevação dele, e não um protagonista.
         */
-        const papel = atributoLiteral(no.atributos, "nivel");
-        if (no.tag === "Dado" || papel === regua.protagonista) {
+        if (eProtagonista(no, regua.protagonista)) {
           achados.push({ linha: no.linha, tag: no.tag });
         }
         fila.push(...no.filhos);
@@ -969,17 +996,38 @@ test("a varredura de protagonista enxerga o que deveria", () => {
     return no.tag === "Cartao" ? [no] : no.filhos.flatMap(achar);
   })[0];
   assert.ok(cartao, "a leitura não achou nem o cartão do exemplo");
-  const protagonistas = cartao.filhos.filter(
-    (no) => no.tag === "Dado" || atributoLiteral(no.atributos, "nivel") === regua.protagonista,
-  );
-  assert.equal(protagonistas.length, 2, "a varredura deixou de enxergar um protagonista");
+  const contar = (nos) => nos.filter((no) => eProtagonista(no, regua.protagonista)).length;
+  assert.equal(contar(cartao.filhos), 2, "a varredura deixou de enxergar um protagonista");
 
   /* E o apoio ao lado do número NÃO é protagonista, senão todo `Dado` reprova. */
   const comUm = arvoreJsx(`<Cartao><Dado valor="12" rotulo="tarefas" /><Txt nivel="apoio">hoje</Txt></Cartao>`);
-  const soUm = comUm[0].filhos.filter(
-    (no) => no.tag === "Dado" || atributoLiteral(no.atributos, "nivel") === regua.protagonista,
+  assert.equal(contar(comUm[0].filhos), 1);
+
+  /*
+    O PAPEL VINDO DE EXPRESSÃO, que é o defeito que a mutação achou.
+
+    `<Txt nivel={papelDoDestaque}>` ao lado de um `Dado` são dois protagonistas
+    no mesmo cartão, e passavam verdes: `atributoLiteral` devolve `null` para
+    valor de tempo de execução, e a varredura lia `null` como "não é". Aqui o
+    pior caso conta, que é o mesmo critério que o portão de densidade já aplica a
+    `tom` e a `peso`.
+  */
+  const comExpressao = arvoreJsx(
+    `<Cartao><Dado valor="12" rotulo="tarefas" /><Txt nivel={papelDoDestaque}>9</Txt></Cartao>`,
   );
-  assert.equal(soUm.length, 1);
+  assert.equal(
+    contar(comExpressao[0].filhos), 2,
+    "papel decidido em tempo de execução voltou a ser lido como o melhor caso, e "
+    + "dois números grandes no mesmo cartão voltam a passar",
+  );
+
+  /*
+    E `nivel` de PEÇA não é papel de texto: `<Cartao nivel={n}>` escolhe elevação.
+    Peça nunca chega a `eProtagonista` na varredura de verdade, porque `ePeca` a
+    desvia antes; este par prova que é a peça que a desvia, e não a sorte.
+  */
+  assert.equal(ePeca({ tag: "Cartao", atributos: " nivel={n}", filhos: [] }), true);
+  assert.equal(ePeca({ tag: "Txt", atributos: " nivel={n}", filhos: [] }), false);
 });
 
 test("o gradiente é pontual: ele não escapa de `src/ui/`", () => {

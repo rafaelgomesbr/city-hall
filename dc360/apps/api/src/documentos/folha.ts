@@ -359,7 +359,21 @@ export function campo(rotulo: string, valor: unknown, opcoes: { largo?: boolean;
  * Sem traço, o bloco é exatamente o que sempre foi. Um documento não pode
  * ficar diferente por causa de um dado que o aparelho não mandou.
  */
-export function assinatura(nome: string, papel: string, tracoUrl?: string | null): string {
+export function assinatura(
+  nome: string,
+  papel: string,
+  tracoUrl?: string | null,
+  /**
+   * O que escrever NO LUGAR do traço quando ele não está aqui.
+   *
+   * O padrão afirma que a assinatura não foi coletada, e essa afirmação é
+   * verdadeira no caso para o qual ela foi escrita. Ela deixa de ser verdadeira
+   * quando o traço foi coletado em campo e o arquivo se perdeu antes do envio
+   * (migração 030), e aí quem passa a frase certa é quem monta o documento e
+   * sabe disso. Ver `laudo.ts`.
+   */
+  textoDaAusencia = "Assinatura não coletada",
+): string {
   /*
     Sem traço, o documento DIZ que não houve traço.
 
@@ -378,7 +392,7 @@ export function assinatura(nome: string, papel: string, tracoUrl?: string | null
   */
   const traco = tracoUrl
     ? `<img class="traco" src="${escapar(tracoUrl)}" alt="Assinatura de ${escapar(nome)}">`
-    : `<div class="traco-ausente">Assinatura não coletada</div>`;
+    : `<div class="traco-ausente">${escapar(textoDaAusencia)}</div>`;
   return `<div class="assinatura">
     ${traco}
     <div class="linha"></div>

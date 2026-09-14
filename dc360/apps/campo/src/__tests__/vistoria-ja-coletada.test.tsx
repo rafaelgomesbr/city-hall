@@ -36,6 +36,7 @@ import { DatabaseSync } from "node:sqlite";
   não seja assim nomeada.
 */
 let mockBanco: DatabaseSync | null = null;
+let mockEscritaFalha = false;
 
 function mockAbrirBanco(): DatabaseSync {
   mockBanco ??= new DatabaseSync(":memory:");
@@ -48,6 +49,7 @@ jest.mock("expo-sqlite", () => ({
     return {
       async execAsync(sql: string) { db.exec(sql); },
       async runAsync(sql: string, params: unknown[] = []) {
+        if (mockEscritaFalha) throw new Error("database is locked");
         db.prepare(sql).run(...params);
       },
       async getAllAsync(sql: string, params: unknown[] = []) {
@@ -206,6 +208,7 @@ beforeEach(() => {
   mockBanco?.close();
   mockBanco = null;
   mockChavesCunhadas.length = 0;
+  mockEscritaFalha = false;
   esquecerConexao();
   jest.restoreAllMocks();
 });
@@ -306,6 +309,50 @@ describe("a ocorrência ainda não coletada", () => {
     await abrirATela();
 
     expect(screen.getByText("Checklist técnico")).toBeTruthy();
+  });
+});
+
+/**
+ * A FALHA QUE NÃO TINHA ONDE APARECER.
+ *
+ * "Fazer nova vistoria" escreve no disco, e escrita no disco falha: o SQLite
+ * desta base é o mesmo que a fila de envio usa, em aparelho de entrada, e
+ * "database is locked" é a forma normal disso acontecer. `refazerVistoria`
+ * acendia `erro`, e a tela desenhada aqui não lia `erro` em lugar nenhum: o
+ * diálogo fechava, a tela continuava a mesma, e o toque simplesmente não fazia
+ * nada. O agente toca de novo, e de novo, na porta da casa.
+ */
+describe("a nova vistoria que o disco recusa", () => {
+  it("diz que não deu, em vez de não fazer nada", async () => {
+    await guardarATarefa();
+    await guardarALapide();
+    await abrirATela();
+
+    /* O SQLite ocupado pela fila: a partir daqui toda escrita estoura. */
+    mockEscritaFalha = true;
+
+    await act(async () => {
+      fireEvent.press(screen.getByText("Fazer nova vistoria desta ocorrência"));
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("dialogo-acao"));
+    });
+    await act(async () => {});
+
+    /* A lápide continua barrando, que é o desfecho certo: sem arquivar, abrir o
+       formulário produziria a segunda coleta que a lápide existe para impedir. */
+    expect(screen.queryByText("Checklist técnico")).toBeNull();
+    /* E agora a falha é dita, no mesmo lugar em que todas as outras são. */
+    expect(screen.getByTestId("tarja-de-erro")).toBeTruthy();
+  });
+
+  it("com o disco de pé, nenhuma tarja aparece", async () => {
+    /* A âncora do caso acima: uma tarja acesa o tempo todo passaria sem ela. */
+    await guardarATarefa();
+    await guardarALapide();
+    await abrirATela();
+
+    expect(screen.queryByTestId("tarja-de-erro")).toBeNull();
   });
 });
 

@@ -73,3 +73,33 @@ describe("dataDoPrazo", () => {
     expect(dataDoPrazo("nao e uma data")).toBe("");
   });
 });
+
+describe("o prazo que o servidor mandou e ninguém consegue ler", () => {
+  /*
+    `ordemDoDia` já trata prazo ilegível, e a tela não tratava: o texto saía
+    como "Vence em NaNh", que é pior do que não saber, porque parece um prazo.
+
+    O caminho não é hipotético. `prazo_em` desce como texto do servidor e é
+    guardado como texto no aparelho; uma linha gravada por versão anterior, um
+    campo truncado no disco ou uma data que o Postgres devolveu em formato que
+    o `Date` do JavaScript não entende produzem exatamente isto. E o número que
+    sai daqui não é só texto: `atrasado` pinta o cartão de vermelho e
+    `vencido` libera a devolução da tarefa para a coordenação.
+  */
+  it("não vira um prazo que ninguém consegue cumprir", () => {
+    const ilegivel = quantoFalta("não é data", AGORA);
+    expect(ilegivel.texto).not.toMatch(/NaN/);
+    expect(ilegivel.texto).toBe("Sem prazo definido");
+  });
+
+  /*
+    E não pode ser lido como vencido: um prazo ilegível tratado como vencido
+    ofereceria ao agente devolver para a coordenação uma tarefa cujo prazo
+    ninguém sabe qual é.
+  */
+  it("prazo ilegível não é prazo vencido", () => {
+    const ilegivel = quantoFalta("2026-13-45T99:99:99Z", AGORA);
+    expect(ilegivel.vencido).toBe(false);
+    expect(ilegivel.atrasado).toBe(false);
+  });
+});

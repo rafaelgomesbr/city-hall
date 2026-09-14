@@ -124,55 +124,118 @@ export function semComentarios(fonte) {
 }
 
 /**
+ * Esvazia todo texto literal, preservando as aspas e o número de linhas.
+ *
+ * Existe para a conta-conferência de `tocaveis` contar o que `arvoreJsx`
+ * CONTA: o leitor de árvore pula texto literal, então uma string que
+ * contivesse `"<Pressable ..."` (a mensagem de um teste, por exemplo) faria a
+ * contagem crua achar uma abertura a mais e o portão reprovar código inocente.
+ * Reprovar quem não errou ensina a afrouxar a regra, e regra afrouxada não
+ * volta a apertar sozinha.
+ */
+export function semTextoLiteral(fonte) {
+  let saida = "";
+  let aspas = null;
+  for (let i = 0; i < fonte.length; i++) {
+    const c = fonte[i];
+    if (aspas) {
+      if (c === "\\") { saida += "  "; i += 1; continue; }
+      if (c === aspas) { aspas = null; saida += c; continue; }
+      saida += c === "\n" ? "\n" : " ";
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") aspas = c;
+    saida += c;
+  }
+  return saida;
+}
+
+/**
+ * As TAGS que este arquivo considera tocáveis.
+ *
+ * `Tocavel` entra na lista, e sem ele a varredura ficou CEGA no dia em que a
+ * frente de movimento migrou os sete tocáveis das telas para a primitiva: de um
+ * dia para o outro o portão passou a enxergar seis elementos no aplicativo
+ * inteiro, e só não deu verde mudo porque a âncora de quantidade reprovou.
+ *
+ * A primitiva não dispensa nada: ela exige `accessibilityLabel` e
+ * `accessibilityRole` no TIPO, justamente para o que está escrito na fonte
+ * continuar sendo a verdade que este portão lê. Um componente que preenchesse
+ * sozinho seria um componente que apaga a varredura.
+ */
+export const TAGS_TOCAVEIS = new Set([
+  "Pressable", "TouchableOpacity", "TouchableHighlight", "TouchableWithoutFeedback", "Tocavel",
+]);
+
+/**
  * Recorta a TAG DE ABERTURA de cada elemento tocável, com o número da linha.
  *
- * Por que não a heurística do painel (juntar linhas até a primeira que tenha
- * `>`): em React Native quase todo tocável tem `onPress={() => ...}`, e uma
- * arrow function TEM `>` dentro. A heurística do painel pararia de ler na
- * primeira linha de `onPress` e nunca chegaria ao `style`, que é onde mora o
- * alvo de toque. O portão daria verde por enxergar metade do elemento.
+ * ## A leitura por LINHA que morava aqui, e por que ela era cega
  *
- * Aqui a leitura termina na linha cujo conteúdo, sem espaço, é `>` ou `/>`,
- * que é como este código fecha tag de várias linhas, ou na própria linha
- * quando a tag cabe nela. O teto de 60 linhas existe para um JSX malformado
- * não varrer o arquivo inteiro.
+ * A versão anterior juntava linhas até encontrar uma cujo conteúdo, sem espaço,
+ * fosse exatamente `>` ou `/>`, e parava na própria linha quando ela terminasse
+ * em `>` precedido de espaço. Nenhum dos dois casos cobre a forma mais comum de
+ * todas, que é a tag fechando COLADA no último atributo:
+ *
+ *     <Pressable onPress={abrir} style={{ minHeight: toque }}>
+ *
+ * O `>` ali vem depois de `}`, e não de espaço, então a leitura não parava: ela
+ * seguia por até sessenta linhas, engolindo os FILHOS do elemento. Treze dos
+ * dezessete tocáveis do aplicativo eram lidos assim. O efeito é o pior que um
+ * portão pode ter, porque ele inverte o sentido da medida: um tocável mudo
+ * passava a "ter" `accessibilityLabel` porque um ícone lá dentro tinha, e um
+ * tocável sem altura declarada passava a "ter" piso porque um `View` interno
+ * declarava `minHeight: toque`. O portão media o filho e absolvia o pai.
+ *
+ * ## O que faz agora
+ *
+ * Usa `arvoreJsx`, que é o leitor que os portões de densidade e de hierarquia
+ * já usam: ele pula chave de atributo com aspas respeitadas (então
+ * `onPress={() => ...}` não termina a tag no `>` da seta, que era o defeito
+ * ORIGINAL desta função) e para no `>` de topo, que é onde a tag de abertura de
+ * fato acaba. Cada nó devolve os próprios atributos, e só os próprios.
+ *
+ * Ter um leitor só é o que o cabeçalho deste arquivo já pedia: parser duplicado
+ * vira parser divergente, e aí dois portões passam a medir árvores diferentes.
+ *
+ * `texto` continua trazendo o nome da tag na frente porque as mensagens dos
+ * portões mostram esse trecho, e `<Pressable` sozinho num relatório é mais
+ * legível que uma lista de atributos sem dono.
  */
 export function tocaveis(fonte) {
-  /*
-    Sem caractere obrigatório depois do nome, e isso não é detalhe: a forma mais
-    comum neste código é `<Pressable` sozinho no fim da linha, com os atributos
-    embaixo. Exigir `[\s/>]` logo em seguida (que é o que a primeira versão
-    fazia) não casava com nenhum deles, e a varredura encontrava ZERO tocáveis
-    no aplicativo inteiro, verde e cega. Quem pegou foi a âncora de quantidade.
-  */
-  /*
-    `Tocavel` entra na lista, e sem ele a varredura ficou CEGA no dia em que a
-    frente de movimento migrou os sete tocáveis das telas para a primitiva: de
-    um dia para o outro o portão passou a enxergar seis elementos no aplicativo
-    inteiro, e só não deu verde mudo porque a âncora de quantidade reprovou.
-
-    A primitiva não dispensa nada: ela exige `accessibilityLabel` e
-    `accessibilityRole` no TIPO, justamente para o que está escrito na fonte
-    continuar sendo a verdade que este portão lê. Um componente que preenchesse
-    sozinho seria um componente que apaga a varredura.
-  */
-  const TAGS = /<(Pressable|TouchableOpacity|TouchableHighlight|TouchableWithoutFeedback|Tocavel)(?![A-Za-z])/;
-  const linhas = fonte.split("\n");
   const achados = [];
-
-  for (let i = 0; i < linhas.length; i++) {
-    if (!TAGS.test(linhas[i])) continue;
-    const pedacos = [linhas[i].trim()];
-    if (!/(^|\s)\/?>$/.test(linhas[i].trim())) {
-      for (let j = i + 1; j < Math.min(i + 60, linhas.length); j++) {
-        const atual = linhas[j].trim();
-        pedacos.push(atual);
-        if (atual === ">" || atual === "/>") break;
+  const visitar = (nos) => {
+    for (const no of nos) {
+      if (TAGS_TOCAVEIS.has(no.tag)) {
+        achados.push({ linha: no.linha, texto: `<${no.tag}${no.atributos}` });
       }
+      visitar(no.filhos);
     }
-    achados.push({ linha: i + 1, texto: pedacos.join(" ") });
+  };
+  visitar(arvoreJsx(fonte));
+
+  /*
+    A CONTA-CONFERÊNCIA, e ela é obrigatória: `arvoreJsx` DESFAZ o elemento que
+    nunca fecha (é o que impede um genérico mal lido de sequestrar o resto do
+    arquivo), e desfazer quer dizer sumir. Um tocável que sumisse assim ficaria
+    invisível para os três casos do portão de acessibilidade, calado e verde,
+    que é exatamente a doença que esta função acabou de sair de ter.
+
+    Aqui a divergência ESTOURA, e não devolve a lista menor. É o mesmo critério
+    que `lerEntradas` já segue neste arquivo: parser que lê metade é pior que
+    parser que explode, porque metade passa despercebida.
+  */
+  const aberturas = (semTextoLiteral(fonte).match(
+    new RegExp(`<(?:${[...TAGS_TOCAVEIS].join("|")})(?![A-Za-z])`, "g"),
+  ) ?? []).length;
+  if (aberturas !== achados.length) {
+    throw new Error(
+      `a leitura da árvore achou ${achados.length} tocáveis e o texto tem ${aberturas} `
+      + "aberturas. Algum elemento não fecha, ou o leitor de árvore o perdeu pelo "
+      + "caminho, e um tocável perdido é um tocável que nenhuma das três regras mede.",
+    );
   }
-  return achados;
+  return achados.sort((a, b) => a.linha - b.linha);
 }
 
 /* ============================================================

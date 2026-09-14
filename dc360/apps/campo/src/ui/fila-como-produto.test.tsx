@@ -366,6 +366,32 @@ describe("o toque que muda alguma coisa deixa marca", () => {
     expect(screen.getByText(/O envio foi pedido de novo/)).toBeTruthy();
   });
 
+  it("o verbo que estoura no aparelho deixa marca, em vez de sumir sem nada", async () => {
+    /*
+      O disco do telefone enche. O agente abre a fila, vê a coleta travada,
+      toca em "Tentar de novo", e a gravação no SQLite estoura antes de o
+      envio sequer começar.
+
+      A tela não tinha como saber: o `try` do verbo só tinha `finally`, então a
+      roda do botão parava, nenhuma frase aparecia, e o cartão continuava
+      exatamente igual. É a definição do que esta tela existe para não fazer,
+      escrita no próprio arquivo: "um reenvio que falha de novo é
+      indistinguível de um toque que não pegou". O aviso de "Nada mudou" já
+      existe, para o caso de o motor RECUSAR o ato; o que faltava era ele valer
+      também quando o ato estoura.
+    */
+    mockItens = [TRAVADA];
+    await abrirATela();
+    mockReenviar.mockRejectedValueOnce(new Error("disco cheio"));
+
+    await tocar("Tentar de novo");
+
+    expect(screen.getByText("Nada mudou")).toBeTruthy();
+    expect(screen.getByText(/nada foi enviado/i)).toBeTruthy();
+    /* E o botão volta: quem tocou precisa poder tocar de novo. */
+    expect(screen.getByText("Tentar de novo")).toBeTruthy();
+  });
+
   it("a confirmação não promete chegada, porque o reenvio não garante nenhuma", async () => {
     mockItens = [TRAVADA];
     await abrirATela();
@@ -490,10 +516,18 @@ describe("o item que sai da fila não some num corte seco", () => {
     /*
       O desenho pode demorar; o número não pode. Contador que mente por um
       quarto de segundo mente na única tela que existe para não mentir.
+
+      As DUAS coletas deste caso estão pendentes, e antes uma delas era
+      confirmada. A troca não é de arrumação: com a confirmada aqui, o caso
+      exigia que o número dissesse "2" sobre uma coleta que a coordenação já
+      tinha recebido, ou seja, a asserção guardava o defeito em vez do
+      comportamento. O que o caso existe para provar (o número cai no instante,
+      sem esperar o cartão terminar de sair) continua igual, e agora prova isso
+      sobre duas coletas que de fato ainda não chegaram.
     */
     jest.useFakeTimers();
     mockItens = [
-      item({ id: "chegou", estado: "confirmado", protocolo: "2026/000111" }),
+      item({ id: "chegou", estado: "pendente", protocolo: "2026/000111" }),
       item({ id: "esperando", estado: "pendente", protocolo: "2026/000222" }),
     ];
     await abrirATela();
@@ -506,7 +540,44 @@ describe("o item que sai da fila não some num corte seco", () => {
     await act(async () => { avisarQueMudou?.(); });
 
     expect(screen.getByLabelText("1, coleta na fila")).toBeTruthy();
+    /* O cartão do que saiu continua desaparecendo: dois itens desenhados, um
+       contado. É a distinção que o comentário de `contar` declara. */
     expect(screen.getByLabelText("Minhas coletas, 1 item")).toBeTruthy();
+  });
+
+  it("a coleta que JÁ CHEGOU sai do número, e continua no cartão", async () => {
+    /*
+      O número grande é a resposta à única pergunta que traz o agente aqui:
+      quanto do que eu fiz ainda NÃO chegou. Uma coleta confirmada chegou: o
+      cartão dela diz "Enviada. A coordenação recebeu", e ela fica na lista
+      mais meio minuto como lápide, de propósito.
+
+      Enquanto ela entrou na conta, a tela dizia "2 coletas na fila" com uma
+      delas já na coordenação, e o crachá da aba Envio (que soma pendentes,
+      enviando, bloqueados e as de outro autor, e nunca as confirmadas) dizia
+      "1" na mesma tela. Dois números para o mesmo fato, a um toque um do
+      outro, na tela que este produto inteiro existe para tornar confiável.
+    */
+    mockItens = [
+      item({ id: "chegou", estado: "confirmado", protocolo: "2026/000111" }),
+      item({ id: "esperando", estado: "pendente", protocolo: "2026/000222" }),
+    ];
+    await abrirATela();
+
+    expect(screen.getByLabelText("1, coleta na fila")).toBeTruthy();
+    /* E a lápide continua: ela some por desaparecimento, não por corte seco. */
+    expect(screen.getByText("2026/000111")).toBeTruthy();
+    expect(screen.getByLabelText("Minhas coletas, 2 itens")).toBeTruthy();
+  });
+
+  it("a fila só com o que já chegou não anuncia número nenhum", async () => {
+    mockItens = [item({ id: "chegou", estado: "confirmado", protocolo: "2026/000111" })];
+    await abrirATela();
+
+    /* Zero esperando. Um número grande aqui seria a tela inventando trabalho
+       pendente em cima de uma coleta que a coordenação já recebeu. */
+    expect(screen.queryByLabelText("1, coleta na fila")).toBeNull();
+    expect(screen.getByText("Enviada")).toBeTruthy();
   });
 
   it("o vazio só chega depois que o último cartão terminou de sair", async () => {

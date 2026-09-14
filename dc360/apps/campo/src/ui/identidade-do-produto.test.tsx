@@ -21,6 +21,7 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
 
 import { Botao, Cartao, Dado, ProvedorDeTema, Txt } from "./componentes";
 import { degrau } from "./hierarquia";
+import { FAMILIA_POR_PESO, PILHA_DO_SISTEMA } from "./tipografia";
 import {
   elevacao, espaco, gradienteDeDestaque, temaClaro, temaEscuro,
 } from "./tokens";
@@ -97,9 +98,31 @@ describe("o número com rótulo, que é a H2 virada peça", () => {
     dentro de uma frase na fonte do corpo.
   */
   it("o número sai em fonte tabular, e o rótulo não", async () => {
+    /*
+      A versão anterior deste caso afirmava só que as duas famílias eram
+      DIFERENTES, e o título dizia qual é qual. Medido por mutação, ele passava
+      verde com os dois papéis TROCADOS: o número em Work Sans e o rótulo em
+      Roboto Mono continuam sendo duas famílias diferentes, e o zero do
+      protocolo voltava a parecer a letra o, que é o defeito inteiro.
+
+      Agora cada lado é conferido contra a pilha a que pertence. As duas pilhas
+      entram porque a família depende de a fonte embarcada ter carregado, e o
+      que precisa valer é o mesmo nos dois estados: o número é tabular, e o
+      rótulo é texto.
+    */
+    const tabulares = new Set<unknown>([
+      ...Object.values(FAMILIA_POR_PESO.mono), PILHA_DO_SISTEMA.mono,
+    ]);
+    const deTexto = new Set<unknown>([
+      ...Object.values(FAMILIA_POR_PESO.texto), PILHA_DO_SISTEMA.texto,
+    ]);
+
     await montar(<Dado valor="000123" rotulo="protocolo" />);
     const doNumero = StyleSheet.flatten(screen.getByText("000123").props.style).fontFamily;
     const doRotulo = StyleSheet.flatten(screen.getByText("protocolo").props.style).fontFamily;
+
+    expect(tabulares.has(doNumero)).toBe(true);
+    expect(deTexto.has(doRotulo)).toBe(true);
     expect(doNumero).not.toBe(doRotulo);
   });
 });

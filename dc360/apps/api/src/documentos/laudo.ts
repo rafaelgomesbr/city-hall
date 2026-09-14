@@ -551,6 +551,31 @@ function blocoFotosAvulsas(d: DadosDocumento, fuso: string): string {
     <div class="fotos">${itens}</div>`;
 }
 
+/**
+ * O QUE A LINHA DE ASSINATURA DIZ QUANDO O TRAÇO FOI COLETADO E SE PERDEU.
+ *
+ * O bloco de perdas já dizia, num parágrafo acima, que "a linha de assinatura ao
+ * final desta folha sai sem o traço por essa razão, e não por ausência de quem
+ * assinou". E ao pé da mesma folha, EM CIMA DO NOME DA MORADORA, o documento
+ * imprimia "Assinatura não coletada".
+ *
+ * Isso não é um espaço em branco ambíguo, que é o problema que aquela frase foi
+ * escrita para resolver: é uma AFIRMAÇÃO, e a afirmação é falsa. A moradora
+ * assinou no dedo, com a minuta lida em voz alta, e o arquivo se perdeu depois.
+ *
+ * No termo de interdição o rótulo daquela mesma caixa é "Responsável pelo
+ * imóvel, ciente": o papel que tira uma família de casa passaria a declarar, com
+ * brasão, que ninguém deu ciência da interdição. Isso não é lacuna, é motivo
+ * para anular o ato, e a contradição dentro do mesmo documento leva junto a
+ * credibilidade do resto do dossiê.
+ */
+function ausenciaDaAssinatura(d: DadosDocumento): string | undefined {
+  const perdida = (d.evidenciasPerdidas ?? []).some((p) => p.papel === "assinatura");
+  return perdida
+    ? "Assinatura coletada em campo e não recuperada do aparelho"
+    : undefined;
+}
+
 export function laudoDeVistoria(d: DadosDocumento): string {
   const corpo = `
     ${blocoIdentificacao(d)}
@@ -558,7 +583,8 @@ export function laudoDeVistoria(d: DadosDocumento): string {
     ${blocoFotos(d)}
     <div class="assinaturas">
       ${assinatura(d.vistoria.agente_nome ?? "Agente de campo", "Agente de proteção e defesa civil")}
-      ${assinatura(d.vistoria.assinante_nome, "Presente no local", d.vistoria.assinaturaUrl)}
+      ${assinatura(d.vistoria.assinante_nome, "Presente no local",
+        d.vistoria.assinaturaUrl, ausenciaDaAssinatura(d))}
     </div>`;
 
   return montarFolha({
@@ -604,7 +630,8 @@ export function termoDeInterdicao(d: DadosDocumento): string {
 
     <div class="assinaturas">
       ${assinatura(d.vistoria.agente_nome ?? "Agente de campo", "Agente de proteção e defesa civil")}
-      ${assinatura(d.vistoria.assinante_nome, "Responsável pelo imóvel, ciente", d.vistoria.assinaturaUrl)}
+      ${assinatura(d.vistoria.assinante_nome, "Responsável pelo imóvel, ciente",
+        d.vistoria.assinaturaUrl, ausenciaDaAssinatura(d))}
     </div>`;
 
   return montarFolha({

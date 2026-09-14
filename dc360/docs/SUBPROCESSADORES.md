@@ -26,6 +26,7 @@ Estado em 09/09/2026, com o produto no piloto de Florianópolis.
 | **Google (Firebase Cloud Messaging)** | Notificação no Android | O mesmo do acima | Estados Unidos |
 | **Google (Maps)** | Mapa no painel do coordenador | Coordenada das ocorrências desenhadas, enviada ao carregar o mapa | Estados Unidos |
 | **Google (Maps SDK)** | Mapa dentro do aplicativo de campo | Coordenada do imóvel da tarefa, a região que o agente está olhando, e a posição do próprio agente enquanto o mapa está aberto | Estados Unidos |
+| **Apple (Mapas) e Google (Maps), por entrega** | O botão "Navegar até lá" abre a rota no aplicativo de mapas do próprio aparelho | Coordenada do imóvel, uma vez, no toque do agente. Ver a seção 2.4 | Estados Unidos |
 
 ### Ainda não contratados, e que entram nesta lista quando entrarem
 
@@ -113,6 +114,35 @@ gravada.
 3. **A tela DIZ em qual dos dois modos está**, com ícone e com palavra, no
    painel e no aplicativo. É assim que o município confere esta promessa
    olhando, em vez de acreditar.
+
+### 2.4 Navegar até lá: a entrega ao aplicativo de mapas do aparelho
+
+Esta é a terceira saída de coordenada, e ela é diferente das duas de cima
+porque **não é o nosso produto desenhando**: é o agente tocando em "Navegar até
+lá" e o sistema operacional abrindo o aplicativo de mapas dele.
+
+O que sai, e para onde:
+
+- **No Android**, o esquema `geo:` é entregue ao aplicativo de mapas instalado
+  no aparelho. Quem faz a requisição de rede a partir daí é aquele aplicativo,
+  com a conta daquele aparelho, e não nós.
+- **No iOS**, o endereço `maps.apple.com` abre o Mapas da Apple, com o mesmo
+  raciocínio.
+- **Como último recurso**, quando o aparelho não tem aplicativo de mapas que
+  atenda os dois acima, o endereço `https://www.google.com/maps/...` abre no
+  navegador, e aí a coordenada chega ao Google por essa via.
+
+**Isto NÃO é coberto pelo modo sem chave**, e a distinção precisa estar escrita
+em vez de ser descoberta: o modo sem chave governa o que o aplicativo desenha
+sozinho, na tela, sem ninguém pedir. Este caminho só acontece quando o agente
+toca no botão, uma vez, para a tarefa que ele está indo fazer, e o destino é o
+aplicativo de mapas que ele já usa todo dia para chegar em qualquer lugar.
+
+**A consequência assumida:** município que recusou o envio de coordenada ao
+Google continua com este botão funcionando, porque tirá-lo significaria o
+agente digitar a coordenada à mão no mesmo aplicativo de mapas, com o mesmo
+resultado e uma chance a mais de errar o número. Município que quiser fechar
+também essa saída precisa dizer isso, e a decisão é dele, não nossa.
 
 A escolha tem endereço operacional, e é o mesmo para as duas pontas: a chave do
 mapa é a variável `MAPS_KEY` no servidor daquele município, e os dois clientes

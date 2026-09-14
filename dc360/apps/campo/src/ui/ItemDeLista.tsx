@@ -82,9 +82,11 @@ export function ItemDeLista({ entrando = false, saindo = false, atraso = 0, chil
         muda quando a lista se reordena, e um atraso novo no meio da animação
         reiniciaria a entrada de um cartão que já está na tela.
 
-        Com redução de movimento nem se chega aqui (`animarEntrada` é falso e o
-        item já nasce inteiro), então o atraso não segura nada de quem pediu
-        menos movimento: seria transformar acessibilidade em lentidão.
+        Com a redução de movimento JÁ CONHECIDA na montagem nem se chega aqui
+        (`animarEntrada` é falso e o item nasce inteiro). Quando ela chega
+        depois, que é o caso normal, quem desfaz é o efeito logo abaixo: o
+        atraso não pode segurar a pintura de quem pediu menos movimento, porque
+        isso transforma acessibilidade em lentidão.
       */
       delay: atrasoInicial,
       easing: Easing.bezier(...easing.entrada),
@@ -92,22 +94,83 @@ export function ItemDeLista({ entrando = false, saindo = false, atraso = 0, chil
     }).start();
   }, [animarEntrada, atrasoInicial, presenca]);
 
+  /*
+    A CHAVE DE REDUÇÃO CHEGA ATRASADA, e ela chega atrasada SEMPRE.
+
+    `useReducaoDeMovimento` começa em `false` e só sabe a resposta do sistema
+    quando a promessa de `AccessibilityInfo` resolve, o que nunca é o primeiro
+    quadro. Então `animarEntrada`, que é lido na montagem, é `true` mesmo para
+    quem ligou a chave: a decisão é tomada antes de a resposta existir.
+
+    Sem esta guarda, quem pediu menos movimento recebia a animação inteira mais
+    o atraso da cascata em cima, ou seja, a opção de acessibilidade virava meio
+    segundo de espera olhando para um cartão invisível. É o contrário do que ela
+    pede, e é a pessoa que este aplicativo coloca em pé num barranco.
+
+    Parar e fixar em 1, e não deixar terminar: deixar terminar é a animação
+    acontecendo, que é justamente o que dá enjoo em quem ligou a chave.
+  */
   useEffect(() => {
-    if (!saindo) return;
+    if (!animarEntrada || !reduzirMovimento) return;
+    presenca.stopAnimation();
+    presenca.setValue(1);
+  }, [animarEntrada, reduzirMovimento, presenca]);
+
+  /*
+    A DESPEDIDA TEM VOLTA, e por isso este efeito tem as duas pontas.
+
+    Quem chama começa a despedida quando o item some do disco e larga o cartão
+    um pouco depois. Nesse intervalo o item pode VOLTAR: na lista de tarefas é a
+    devolução que o servidor recusa (a tarefa sai da lista quando o pedido entra
+    na fila, e volta quando a recusa chega), e a tela já trata esse caso tirando
+    o item da despedida para ele não aparecer duas vezes com a mesma chave.
+
+    O item nunca foi desmontado: mesma chave, mesmo componente, e esta peça o
+    tinha deixado em opacidade zero sem nenhum caminho de volta. O que sobrava
+    na tela era um buraco do tamanho do cartão, e o cartão que faltava era
+    justamente o que diz "a coordenação não recebeu esta devolução", ou seja, o
+    único aviso de que aquela tarefa continua sendo do agente.
+
+    `jaSaiu` é o que separa a VOLTA de uma renderização qualquer em que nada
+    aconteceu: sem ela, todo item da lista seria reanimado a cada leitura de
+    disco, e a lista que não pode pular passaria a piscar.
+  */
+  const jaSaiu = useRef(false);
+  useEffect(() => {
+    if (saindo) {
+      jaSaiu.current = true;
+      if (reduzirMovimento) {
+        presenca.setValue(0);
+        return;
+      }
+      Animated.timing(presenca, {
+        toValue: 0,
+        duration: movimento.mudancaDeEstado,
+        easing: Easing.bezier(...easing.saida),
+        /*
+          Opacidade e escala rodam na thread de interface: o JavaScript deste
+          aplicativo pode estar ocupado drenando a fila justamente agora. E
+          escala não muda layout, então a âncora da `FlatList` da lista de
+          tarefas, que existe para a lista não pular, não sente nada disto.
+        */
+        useNativeDriver: true,
+      }).start();
+      return;
+    }
+
+    if (!jaSaiu.current) return;
+    jaSaiu.current = false;
+    /* A saída pode estar no meio: pará-la antes é o que impede ela de continuar
+       levando a opacidade para zero por cima da volta. */
+    presenca.stopAnimation();
     if (reduzirMovimento) {
-      presenca.setValue(0);
+      presenca.setValue(1);
       return;
     }
     Animated.timing(presenca, {
-      toValue: 0,
+      toValue: 1,
       duration: movimento.mudancaDeEstado,
-      easing: Easing.bezier(...easing.saida),
-      /*
-        Opacidade e escala rodam na thread de interface: o JavaScript deste
-        aplicativo pode estar ocupado drenando a fila justamente agora. E
-        escala não muda layout, então a âncora da `FlatList` da lista de
-        tarefas, que existe para a lista não pular, não sente nada disto.
-      */
+      easing: Easing.bezier(...easing.entrada),
       useNativeDriver: true,
     }).start();
   }, [saindo, reduzirMovimento, presenca]);

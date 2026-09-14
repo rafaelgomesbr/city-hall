@@ -349,6 +349,50 @@ describe("Declarar a saída", () => {
     expect((await sair(id, { duracaoMinutos: 900 })).statusCode).toBe(422);
   });
 
+  it("não devolve a saída de um colega para quem repetiu a chave dele", async () => {
+    /*
+      O PORTÃO DE AUTORIA CONFERIA O ENVELOPE E NÃO O QUE SAIU DO BANCO.
+
+      `agenteId !== quem.usuarioId` recusa o envelope que MENTE sobre o autor, e
+      é isso que o caso acima prova. Ele não cobre o caso oposto: o envelope diz
+      a verdade sobre quem está com o aparelho, e a CHAVE é a de outra pessoa.
+
+      O aparelho de plantão é compartilhado entre turnos, e é o próprio código
+      deste produto que escreve isso: a chave nasce e fica guardada no aparelho.
+      Basta o item do turno anterior ser reenviado com o autor de agora (defeito
+      de fila, binário adulterado, ou a mesma troca de turno que já produziu o
+      laudo com autor errado) para a rota responder 200 com a saída do COLEGA.
+
+      Duas coisas quebram de uma vez, e a segunda é a grave:
+
+      1. A resposta entrega protocolo, endereço, severidade, nome do agente e
+         equipe de uma ocorrência que o portão de equipe responderia 404 para
+         este agente, dois blocos abaixo nesta mesma rota.
+      2. O aparelho recebe `duplicada: true` com uma saída aberta e mostra
+         "você está marcado como em campo". O agente sobe o morro achando que
+         declarou, e no servidor não existe saída nenhuma no nome dele: ninguém
+         vai procurá-lo quando o prazo não estourar, porque prazo dele não há.
+    */
+    const daEquipeAlfa = await despachada("Rua da Chave Alheia, 71", EQUIPE_ALFA);
+    const chave = crypto.randomUUID();
+    expect((await sair(daEquipeAlfa, { chave })).statusCode).toBe(201);
+
+    const r = await sair(daEquipeAlfa, { chave, token: tokenBruno, agenteId: BRUNO });
+
+    expect(r.statusCode, r.body).toBe(409);
+    expect(r.json().erro).toBe("autor_divergente");
+    // E nada do que é do Diego atravessa para a resposta do Bruno.
+    expect(r.body).not.toContain("Rua da Chave Alheia");
+    expect(r.body).not.toContain("Diego");
+
+    // A saída do Diego continua sendo dele, e continua sendo uma só.
+    const quantas = await mem.bruto.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM saidas_a_campo WHERE ocorrencia_id = $1",
+      [daEquipeAlfa],
+    );
+    expect(quantas.rows[0]!.n).toBe("1");
+  });
+
   it("devolve o recibo antigo no reenvio da mesma chave, sem criar segunda saída", async () => {
     const id = await despachada("Rua da Chave, 70");
     const chave = crypto.randomUUID();
@@ -414,6 +458,56 @@ describe("Prorrogar", () => {
     });
 
     expect((await linhaDaSaida(saidaId)).retorno_previsto_em).toBe(antes);
+  });
+
+  it("a mesma chave de prorrogação não conta duas vezes, nem escreve dois eventos", async () => {
+    /*
+      `prorrogacaoDeSaidaSchema` EXIGE `idempotencyKey`, e a rota nunca a lia.
+
+      Contrato que pede chave de idempotência é contrato que promete
+      deduplicação, e o aparelho manda a chave porque acredita na promessa.
+      Prorrogar é o único ato deste recurso que o agente pratica do alto do
+      morro, com o pior sinal do dia: o pedido vai, o servidor grava, a resposta
+      se perde, e o aparelho repete. É a MESMA corrida que a declaração da saída
+      trata com `ON CONFLICT`, na rota ao lado.
+
+      O que a repetição produzia:
+
+      1. `prorrogacoes` contado em dobro. A migração 031 diz por escrito que
+         este número precisa ser contado "senão prorrogar vira um jeito
+         silencioso de manter uma saída aberta para sempre": um agente que
+         empurrou o prazo uma vez aparece para a coordenação como quem empurrou
+         duas, e a leitura de "ele está demorando muito mais do que disse" sai
+         errada justo na tela que decide se alguém vai atrás dele.
+      2. DOIS eventos `saida_a_campo_prorrogada` na trilha, para um ato só. A
+         trilha é append-only: esse segundo evento não sai mais, e uma apuração
+         sobre a segurança de um servidor passa a ler dois pedidos onde houve um.
+    */
+    const id = await despachada("Rua da Chave da Prorrogação, 95");
+    const saidaId = (await sair(id)).json().saida.id;
+
+    const corpo = {
+      idempotencyKey: crypto.randomUUID(), saidaId,
+      minutosAdicionais: 30, pedidaEm: new Date().toISOString(),
+    };
+    const primeira = await app.inject({
+      method: "POST", url: "/saida-a-campo/prorrogar", headers: com(tokenDiego), payload: corpo,
+    });
+    const repetida = await app.inject({
+      method: "POST", url: "/saida-a-campo/prorrogar", headers: com(tokenDiego), payload: corpo,
+    });
+
+    expect(primeira.statusCode, primeira.body).toBe(200);
+    expect(repetida.statusCode, repetida.body).toBe(200);
+    // O reenvio devolve o mesmo recibo, como o da declaração e o da vistoria.
+    expect(repetida.json().prorrogacoes).toBe(1);
+    expect(repetida.json().duplicada).toBe(true);
+
+    expect((await linhaDaSaida(saidaId)).prorrogacoes).toBe(1);
+    expect(
+      (await eventos(id)).filter((e) => e.tipo === "saida_a_campo_prorrogada"),
+      "a trilha é append-only: um evento a mais aqui nunca mais sai",
+    ).toHaveLength(1);
   });
 
   it("responde 404 para a saída de um colega", async () => {

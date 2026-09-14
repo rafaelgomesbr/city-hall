@@ -313,6 +313,37 @@ describe("a vistoria sobe mesmo com a foto que o aparelho perdeu", () => {
       lugar onde quem lê procura a prova.
     */
     expect(html).not.toContain("Nenhuma fotografia foi anexada");
+
+    /*
+      E A LINHA DE ASSINATURA PARA DE AFIRMAR O CONTRÁRIO.
+
+      Este bloco tinha a metade certa e faltava a que o leitor olha. O parágrafo
+      da perda dizia "a linha de assinatura sai sem o traço por essa razão, e não
+      por ausência de quem assinou", e ao pé da mesma folha, EM CIMA DO NOME DA
+      MORADORA, o documento imprimia "Assinatura não coletada".
+
+      A frase não é um espaço em branco ambíguo: ela AFIRMA um fato, e o fato é
+      falso. A moradora assinou no dedo, com a minuta lida em voz alta, e o
+      arquivo se perdeu depois. No termo de interdição o rótulo daquela mesma
+      caixa é "Responsável pelo imóvel, ciente": o papel que tira uma família de
+      casa passaria a declarar, por escrito e com brasão, que ninguém deu ciência
+      da interdição. Isso não é lacuna, é motivo para anular o ato, e o
+      contraditório dentro do mesmo documento faz o resto do dossiê perder valor
+      junto.
+    */
+    const caixaDaMoradora = html
+      .slice(html.lastIndexOf('class="assinaturas"'))
+      .split('<div class="assinatura">')
+      .find((bloco) => bloco.includes("Marilda Souza Prado"));
+
+    expect(caixaDaMoradora, "o bloco de assinatura da moradora sumiu do documento")
+      .toBeDefined();
+    expect(
+      caixaDaMoradora,
+      "o documento afirma 'Assinatura não coletada' sobre uma assinatura que foi "
+      + "coletada e se perdeu, e contradiz o próprio bloco de perdas",
+    ).not.toContain("Assinatura não coletada");
+    expect(caixaDaMoradora).toContain("não recuperada");
   });
 
   it("envelope SEM perda continua igual: sem linha no laudo, sem evento, sem linha no banco", async () => {

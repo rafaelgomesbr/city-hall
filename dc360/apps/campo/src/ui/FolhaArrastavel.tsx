@@ -320,6 +320,18 @@ export function FolhaArrastavel({
   const listaNoTopo = useRef(true);
   /** Já houve uma medida? A primeira posiciona a folha com uma entrada própria. */
   const jaEntrou = useRef(false);
+  /**
+   * Com QUAL altura o deslocamento de agora foi calculado.
+   *
+   * `onLayout` não é evento de montagem: ele dispara de novo toda vez que a
+   * área muda de tamanho, e no aparelho isso acontece de verdade (tela dividida
+   * do Android, barra de navegação por gesto que aparece e some, tablet e
+   * desdobrável, onde o `orientation: "portrait"` do `app.config.ts` não segura
+   * nada). A posição da folha é um deslocamento em PONTOS calculado sobre a
+   * altura: guardar qual foi a altura é o que permite perceber que o número
+   * guardado envelheceu.
+   */
+  const alturaMedida = useRef(0);
 
   const limitar = useCallback(
     (valor: number) => {
@@ -375,6 +387,30 @@ export function FolhaArrastavel({
     [irPara],
   );
 
+  /**
+   * O que o gesto CHAMA, pela versão de agora, e não pela do primeiro quadro.
+   *
+   * A mesma armadilha que `estado` fecha para os valores, fechada aqui para as
+   * duas FUNÇÕES que o gesto usa. `PanResponder.create` roda dentro de um
+   * `useRef`: o objeto de tratadores é montado na PRIMEIRA renderização e nunca
+   * mais, então toda função capturada ali dentro fica congelada com a closure
+   * daquele instante.
+   *
+   * E naquele instante `altura` ainda é zero, porque a medida chega depois, pelo
+   * `onLayout`. Com altura zero, `deslocamentoDe` devolve zero para qualquer
+   * posição: `limitar` passava a grampear TODO quadro de arraste em zero, e o
+   * `irPara` de dentro de `mudarPara` levava a folha para zero ao soltar. Zero é
+   * a posição CHEIA. Ou seja: a folha saltava para a tela inteira no primeiro
+   * milímetro de dedo, ignorava o arraste, e ficava lá depois da soltura, tendo
+   * anunciado "recolhida" à tela e ao leitor de tela.
+   *
+   * Nenhum caso pegava porque nenhum olhava ONDE a folha ficou: os de gesto
+   * conferiam o aviso `aoMudarPosicao`, que saía certo, e os de posição usavam a
+   * alça, que é chamada do JSX e portanto nunca esteve congelada.
+   */
+  const acoes = useRef({ limitar, mudarPara });
+  acoes.current = { limitar, mudarPara };
+
   /* A tela mandou outra posição: a folha segue. */
   useEffect(() => {
     if (altura <= 0) return;
@@ -388,8 +424,27 @@ export function FolhaArrastavel({
         folha está chegando, não saindo.
       */
       deslocamento.setValue(deslocamentoDe(ordem[0] ?? maior));
+      alturaMedida.current = altura;
       irPara(posicao, true);
       return;
+    }
+    /*
+      A TELA MUDOU DE TAMANHO, e o deslocamento guardado é de outra tela.
+
+      Sem isto a folha ficava onde a medida ANTIGA mandou. Encolhendo a área (a
+      tela dividida é o caso fácil de ver), o deslocamento antigo passa a ser
+      maior que a folha inteira e ela some para baixo da borda: o agente perde a
+      lista de tarefas, o rodapé com "Abrir a vistoria" vai parar no meio do
+      mapa, e o leitor de tela continua anunciando "recolhida" para uma folha
+      que não está em lugar nenhum.
+
+      SEM ANIMAR, e de propósito: ninguém gesticulou nada. Uma folha deslizando
+      sozinha depois de a tela mudar de tamanho parece defeito, e deixa a folha
+      no lugar errado durante os 260 ms em que o dedo já está indo para ela.
+    */
+    if (altura !== alturaMedida.current) {
+      alturaMedida.current = altura;
+      irPara(posicaoDesenhada.current, false);
     }
     if (posicao === posicaoDesenhada.current) return;
     irPara(posicao, true);
@@ -442,11 +497,11 @@ export function FolhaArrastavel({
           qualquer jeito. O que o driver nativo resolve é o acomodamento depois
           da soltura, que roda sozinho.
         */
-        deslocamento.setValue(limitar(inicioDoArraste.current + g.dy));
+        deslocamento.setValue(acoes.current.limitar(inicioDoArraste.current + g.dy));
       },
 
       onPanResponderRelease: (_evento, g) => {
-        mudarPara(posicaoAoSoltar({
+        acoes.current.mudarPara(posicaoAoSoltar({
           posicao: posicaoDesenhada.current,
           deslocamento: g.dy,
           velocidade: g.vy,
@@ -462,7 +517,7 @@ export function FolhaArrastavel({
         partiria de um lugar que o componente acha que não existe.
       */
       onPanResponderTerminate: (_evento, g) => {
-        mudarPara(posicaoAoSoltar({
+        acoes.current.mudarPara(posicaoAoSoltar({
           posicao: posicaoDesenhada.current,
           deslocamento: g.dy,
           velocidade: g.vy,

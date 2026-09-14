@@ -27,7 +27,20 @@ const MINUTO = 60_000;
 export function quantoFalta(prazoEm: string | null, agora: number): Prazo {
   if (!prazoEm) return { texto: "Sem prazo definido", atrasado: false, vencido: false };
 
-  const restante = new Date(prazoEm).getTime() - agora;
+  const limite = new Date(prazoEm).getTime();
+  /*
+    Prazo que ninguém consegue ler é o mesmo que prazo que ninguém informou.
+
+    Sem isto o texto saía "Vence em NaNh", que é pior do que não saber, porque
+    parece um prazo. `dataDoPrazo`, logo abaixo, já tratava o mesmo caso, e a
+    contagem ficou de fora: a linha do cartão dizia NaN enquanto a data ao lado
+    dela dizia nada.
+  */
+  if (!Number.isFinite(limite)) {
+    return { texto: "Sem prazo definido", atrasado: false, vencido: false };
+  }
+
+  const restante = limite - agora;
 
   if (restante < 0) {
     const atraso = -restante;

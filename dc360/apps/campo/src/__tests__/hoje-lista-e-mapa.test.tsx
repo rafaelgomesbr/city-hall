@@ -231,6 +231,60 @@ describe("lista e mapa são duas lentes da mesma lista", () => {
     expect(naLista).toEqual(["critica", "vencida", "folgada"]);
   });
 
+  /*
+    E AS DUAS LENTES PRECISAM DIZER O MESMO PARA QUEM OUVE A TELA.
+
+    O cartão da lista é UM elemento só para o leitor de tela: o `Tocavel` tem
+    rótulo próprio, e rótulo próprio faz o leitor ler o rótulo e ignorar os
+    textos de dentro. O rótulo trazia protocolo e endereço, e mais nada, então o
+    PRAZO (que a tela desenha em vermelho, com ícone, na linha mais forte do
+    cartão) simplesmente não existia para quem não enxerga. Na folha do mapa o
+    rótulo sempre disse o prazo: a mesma tarefa, duas lentes, duas verdades
+    diferentes sobre quando ela vence.
+
+    Não é detalhe de conformidade: o prazo é o que decide se o agente sobe hoje
+    ou passa a tarefa adiante, e é a única coisa que o cartão comunica por cor.
+  */
+  it("quem ouve a tela ouve o prazo nas DUAS lentes", async () => {
+    mockTarefas = [
+      tarefa({ id: "vencida", severidade: "baixa", prazo_em: new Date(Date.now() - 5 * HORA).toISOString() }),
+    ];
+    await abrirALista();
+
+    const naLista = within(screen.getByTestId("cartao-vencida"))
+      .getByLabelText(/Abrir a vistoria/).props.accessibilityLabel as string;
+    expect(naLista).toContain("Vencido há 5h");
+
+    await tocar("lente-mapa");
+    await medirAsAreas();
+
+    expect(screen.getByTestId("focar-vencida").props.accessibilityLabel)
+      .toContain("Vencido há 5h");
+  });
+
+  /*
+    E o mesmo vale para a sugestão do dia. "Comece por aqui" e a frase do porquê
+    ficam DENTRO do `Tocavel` do cartão, então na lente de lista elas não eram
+    ditas; na folha do mapa elas ficam no cabeçalho, fora de qualquer tocável, e
+    eram. O agente que usa leitor de tela ouvia a ordem do dia numa lente e não
+    na outra, inclusive o aviso de que a ordem NÃO considerou distância, que é
+    justamente a frase que o impede de confiar demais na lista.
+  */
+  it("quem ouve a tela ouve o porquê da sugestão também na lista", async () => {
+    mockTarefas = [
+      tarefa({ id: "critica", severidade: "critica", prazo_em: new Date(Date.now() + 30 * HORA).toISOString() }),
+    ];
+    mockPermissaoConcedida = false;
+    await abrirALista();
+
+    const naLista = within(screen.getByTestId("cartao-critica"))
+      .getByLabelText(/Abrir a vistoria/).props.accessibilityLabel as string;
+
+    expect(naLista).toContain("Comece por aqui");
+    expect(naLista).toContain("Severidade crítica");
+    expect(naLista).toContain("não considerou distância");
+  });
+
   it("a contagem do cabeçalho é a mesma nas duas lentes, e não conta duas vezes", async () => {
     await abrirALista();
     const naLista = screen.getByTestId("quantas-vistorias").props.accessibilityLabel;
@@ -374,10 +428,50 @@ describe("a ordem do dia aparece como a primeira da lista, e não como um bloco 
       tarefa({ id: "critica", severidade: "critica", prazo_em: new Date(Date.now() + 30 * HORA).toISOString() }),
       tarefa({ id: "vencida", severidade: "media", prazo_em: new Date(Date.now() - 5 * HORA).toISOString() }),
     ];
-    mockColetas = [{ ocorrenciaId: "critica", situacao: "aguardando" }];
+    /*
+      `na_fila` e não uma palavra qualquer: `SituacaoDaColeta` tem três valores
+      (`na_fila`, `enviada`, `arquivada`) e mais nenhum. Este caso passava com
+      "aguardando", que não existe no produto, e passava por acidente: quem
+      manda na descida é `situacao !== "arquivada"`, então qualquer texto servia.
+      Um caso escrito sobre um estado impossível não sabe dizer se a regra está
+      certa para os estados que existem.
+    */
+    mockColetas = [{ ocorrenciaId: "critica", situacao: "na_fila" }];
     await abrirALista();
 
     expect(aOrdemDaLista()).toEqual(["vencida", "critica"]);
+  });
+
+  /*
+    E AS DUAS LENTES PRECISAM DIZER ISSO, não só a lista.
+
+    Na lente de lista a tarefa já vistoriada carrega o selo "Coletada,
+    aguardando envio", que é a frase que responde "eu já subi nessa?". Na folha
+    do mapa ela aparecia como qualquer outra: mesmo protocolo, mesmo selo de
+    severidade, mesmo endereço, nada. O agente que usa o mapa para montar o
+    roteiro escolhe aquela linha, o mapa centra no imóvel, e o único verbo da
+    lente é "Abrir a vistoria" de uma vistoria que ele já fez.
+  */
+  it("a tarefa já coletada diz que já foi vistoriada também na lente do mapa", async () => {
+    mockTarefas = [
+      tarefa({ id: "critica", severidade: "critica", prazo_em: new Date(Date.now() + 30 * HORA).toISOString() }),
+      tarefa({ id: "vencida", severidade: "media", prazo_em: new Date(Date.now() - 5 * HORA).toISOString() }),
+    ];
+    mockColetas = [{ ocorrenciaId: "critica", situacao: "na_fila" }];
+    await abrirALista();
+    /* A lista diz, e é contra ela que a folha é comparada. */
+    expect(screen.getByText("Coletada, aguardando envio")).toBeTruthy();
+
+    await tocar("lente-mapa");
+    await medirAsAreas();
+
+    expect(within(screen.getByTestId("focar-critica")).getByText(/Coletada, aguardando envio/))
+      .toBeTruthy();
+    /* E para quem ouve a tela, que não vê selo nenhum. */
+    expect(screen.getByTestId("focar-critica").props.accessibilityLabel)
+      .toContain("Coletada, aguardando envio");
+    /* A que ninguém tocou continua sem selo: o caso reprovaria com um selo fixo. */
+    expect(within(screen.getByTestId("focar-vencida")).queryByText(/Coletada/)).toBeNull();
   });
 });
 
@@ -440,6 +534,35 @@ describe("sem GPS a tela não inventa distância, e diz isso", () => {
 
     expect(screen.getByText(/não considerou distância/)).toBeTruthy();
     expect(screen.queryAllByText(/\d+\s?(m|km)\b/)).toHaveLength(0);
+  });
+
+  /*
+    A POSIÇÃO 0,0, que é o que o aparelho responde quando ainda não fixou.
+
+    `getLastKnownPositionAsync` devolve a ilha nula, no golfo da Guiné, em
+    aparelho recém-ligado, em emulador e em aparelho barato. Ela não é uma
+    posição ruim, é a ausência de posição com cara de posição: dali as duas
+    tarefas ficam a seis mil quilômetros, a ordem passa a ser por latitude (quem
+    está mais ao norte está mais perto do equador), e a tela escreve o número
+    como se tivesse medido e apaga o aviso de que não mediu.
+
+    Os protocolos são explícitos para o caso saber reprovar: sem posição, o
+    desempate final é o protocolo e a ordem é "perto" antes de "longe"; da ilha
+    nula, "longe" (mais ao norte) passa na frente. As duas metades da prova, a
+    ordem e a frase, precisam das duas.
+  */
+  it("a posição 0,0 de quem ainda não fixou o GPS não vira distância nenhuma", async () => {
+    mockTarefas = [
+      tarefa({ id: "longe", protocolo: "000900/2026", severidade: "media", ...daquiAMetros(12_000) }),
+      tarefa({ id: "perto", protocolo: "000100/2026", severidade: "media", ...daquiAMetros(400) }),
+    ];
+    mockPermissaoConcedida = true;
+    mockUltimaPosicao = { coords: { latitude: 0, longitude: 0 } };
+    await abrirALista();
+
+    expect(screen.getByText(/não considerou distância/)).toBeTruthy();
+    expect(screen.queryAllByText(/\d+\s?(m|km)\b/)).toHaveLength(0);
+    expect(aOrdemDaLista()).toEqual(["perto", "longe"]);
   });
 });
 

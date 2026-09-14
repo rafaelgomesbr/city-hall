@@ -97,6 +97,15 @@ let mockCursoresRecebidos: CursorDeAvisos[] = [];
 let mockLeiturasRecebidas: string[][] = [];
 /** Ligado, `POST /avisos/lidos` falha, que é o aparelho sem sinal. */
 let mockLeituraFalha = false;
+/**
+ * O que acontece ENQUANTO a resposta do servidor está em voo.
+ *
+ * Existe para poder encenar o dedo do agente no meio de uma chamada de rede, que
+ * é o caso comum e não o exótico: a tela de Perfil dispara a sincronização na
+ * abertura e o agente lê a lista (que veio do disco) antes de o 3G do morro
+ * responder. Roda uma vez só, e depois se desarma.
+ */
+let mockDuranteABusca: (() => Promise<void>) | null = null;
 
 function crescente(a: LinhaFalsa, b: LinhaFalsa): number {
   if (a.criadoEm !== b.criadoEm) return a.criadoEm < b.criadoEm ? -1 : 1;
@@ -144,7 +153,14 @@ function mockServidorDeAvisos(cursor: CursorDeAvisos): RespostaDeAvisos {
 }
 
 jest.mock("./api", () => ({
-  baixarAvisos: async (_token: string, cursor: CursorDeAvisos) => mockServidorDeAvisos(cursor),
+  baixarAvisos: async (_token: string, cursor: CursorDeAvisos) => {
+    if (mockDuranteABusca) {
+      const oQue = mockDuranteABusca;
+      mockDuranteABusca = null;
+      await oQue();
+    }
+    return mockServidorDeAvisos(cursor);
+  },
   marcarAvisosLidos: async (_token: string, ids: readonly string[]) => {
     if (mockLeituraFalha) throw new Error("sem sinal");
     mockLeiturasRecebidas.push([...ids]);
@@ -173,6 +189,7 @@ beforeEach(async () => {
   mockCursoresRecebidos = [];
   mockLeiturasRecebidas = [];
   mockLeituraFalha = false;
+  mockDuranteABusca = null;
   const db = await bancoLocal();
   await db.execAsync("DELETE FROM marcas;");
 });
@@ -262,6 +279,84 @@ describe("marcar como lido sem sinal", () => {
     const depois = await sincronizarAvisos("token");
     expect(depois.itens.find((x) => x.id === "a")?.lido).toBe(true);
     expect(depois.lidosPendentes).toEqual(["a"]);
+  });
+
+  it("a leitura feita DURANTE a busca não é apagada pela resposta que chega depois", async () => {
+    /*
+      O CASO REAL, e ele não é exótico: é a abertura do Perfil.
+
+      A tela dispara a sincronização na abertura e desenha a lista que veio do
+      disco no mesmo instante. O agente, parado no morno do 3G, lê os avisos e
+      toca em "Marcar como lidos" ANTES de a resposta chegar. A sincronização
+      tinha lido o disco lá atrás, antes do `await`, e gravava aquela fotografia
+      por cima: a leitura do agente sumia do aparelho e da lista de pendentes, ou
+      seja, ela nunca chegaria ao servidor. Os avisos reacendem em negrito
+      debaixo do dedo dele, e o crachá da aba volta a contar.
+    */
+    await sincronizarAvisos("token");
+    mockLeituraFalha = true;
+
+    mockDuranteABusca = async () => {
+      await marcarAvisosComoLidosNoAparelho(["a", "b", "c"]);
+    };
+    await sincronizarAvisos("token");
+
+    const doDisco = await avisosGuardados();
+    expect(doDisco.itens.filter((x) => x.lido).map((x) => x.id).sort())
+      .toEqual(["a", "b", "c"]);
+    expect(doDisco.lidosPendentes.sort()).toEqual(["a", "b", "c"]);
+  });
+
+  it("o pendente marcado durante o envio não é esquecido junto com os que subiram", async () => {
+    /*
+      A outra metade do mesmo defeito, do lado do `POST`. A lista de pendentes
+      era zerada inteira depois de um envio bem sucedido, inclusive o que o
+      agente marcou enquanto o envio estava em voo e que o servidor nunca
+      recebeu. Esse aviso ficava lido no aparelho e por ler no servidor, para
+      sempre: nenhuma sincronização seguinte o levaria de novo.
+    */
+    await sincronizarAvisos("token");
+    mockLeituraFalha = true;
+    await marcarAvisosComoLidosNoAparelho(["a"]);
+    mockLeituraFalha = false;
+
+    mockDuranteABusca = async () => {
+      await marcarAvisosComoLidosNoAparelho(["b"]);
+    };
+    await sincronizarAvisos("token");
+
+    const doDisco = await avisosGuardados();
+    /* "a" subiu nesta rodada; "b" foi marcado depois do envio e ainda não. */
+    expect(mockLeiturasRecebidas).toEqual([["a"]]);
+    expect(doDisco.lidosPendentes).toEqual(["b"]);
+  });
+
+  it("o contador desconta o que o aparelho leu, mesmo quando a janela não traz o aviso", async () => {
+    /*
+      O caso do morro inteiro, e ele acontece na SEGUNDA volta de tela.
+
+      O agente lê os três avisos sem sinal: o chip cai para "nada por ler" e o
+      crachá da aba some. Ele troca de aba, volta, e a sincronização roda de
+      novo. O cursor já passou daqueles avisos, então a resposta vem VAZIA, e o
+      contador do servidor (que ainda não soube da leitura, porque o `POST`
+      falha sem sinal) volta a valer inteiro: o crachá acende "3 por ler" em
+      cima de uma lista em que os três estão desenhados como lidos.
+
+      A lista de pendentes é a resposta que já existe: um identificador só entra
+      nela quando estava POR LER no momento do toque, e só sai quando o servidor
+      confirma. Enquanto ele está lá, o servidor conta aquele aviso, e a tela
+      sabe disso. O desconto só se recusava a olhar para fora da janela.
+    */
+    await sincronizarAvisos("token");
+    mockLeituraFalha = true;
+    const depoisDoToque = await marcarAvisosComoLidosNoAparelho(["a", "b", "c"]);
+    expect(depoisDoToque.naoLidos).toBe(0);
+
+    /* A volta à tela: a janela vem vazia, porque o cursor já passou. */
+    const depois = await sincronizarAvisos("token");
+
+    expect(depois.itens.every((x) => x.lido)).toBe(true);
+    expect(depois.naoLidos).toBe(0);
   });
 
   it("marcar o que já estava lido não mexe em nada, nem no objeto", () => {

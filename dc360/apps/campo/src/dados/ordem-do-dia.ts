@@ -60,6 +60,16 @@ import { distanciaEmMetros, distanciaEmTexto, type Ponto } from "./mapa";
  * mesma tela, senão a lista se remexeria sozinha debaixo do dedo, que é
  * exatamente o defeito que esta tela inteira existe para não ter.
  *
+ * Esse "não se move" é do RELÓGIO, e não do instante em que alguém olhou: o
+ * bloco sai de `Math.floor(prazo / janela)`, em blocos fixos de quatro horas, e
+ * não de `(prazo - agora)`. Contado a partir de agora, a fronteira deslizava um
+ * segundo por segundo, e como o relógio desta tela avança de trinta em trinta
+ * segundos a lista se reordenava sozinha entre duas leituras idênticas do
+ * disco. Ver `faixaDePrazo`, que carrega a conta e a razão.
+ *
+ * O que MUDA com o relógio, e deve mudar, é o GRUPO: uma tarefa que entra nas
+ * quatro horas finais ficou mesmo mais urgente, e subir é a regra funcionando.
+ *
  * **Degrau 3, a distância.** E só aqui. Proximidade nunca decide o que é mais
  * GRAVE: ela decide a ordem entre tarefas que a instituição já considera
  * igualmente urgentes. É o único uso dela que se defende numa auditoria, e é o
@@ -175,20 +185,42 @@ function grupoDe(tarefa: TarefaDoDia, contexto: ContextoDoDia): GrupoDeUrgencia 
 }
 
 /**
- * O ponto da tarefa, quando ela tem um que sirva.
+ * UM PONTO QUE SERVE PARA MEDIR, ou `null`.
  *
- * `null` e não `{0,0}`: a ilha nula, no golfo da Guiné, fica a nove mil
- * quilômetros de qualquer município brasileiro, e uma tarefa com coordenada
- * zerada apareceria como a mais LONGE de todas em vez de aparecer como o que
- * ela é, que é uma tarefa sem endereço geográfico. O aplicativo já tem o mesmo
- * cuidado no plano esquemático.
+ * `null` e não `{0,0}`: a ilha nula, no golfo da Guiné, fica a seis mil
+ * quilômetros de qualquer município brasileiro, e um ponto zerado apareceria
+ * como o mais LONGE de todos em vez de aparecer como o que ele é, que é a
+ * ausência de ponto. O aplicativo já tem o mesmo cuidado no plano esquemático.
+ *
+ * A função é uma só, e vale para os DOIS lados da medida, que foi o defeito
+ * consertado aqui: a coordenada da tarefa era filtrada e a do agente não.
+ * A do agente é justamente a que chega suja no aparelho de verdade, porque
+ * `getLastKnownPositionAsync` devolve 0,0 em aparelho que ainda não fixou, em
+ * emulador e em aparelho barato com o rádio recém-ligado. Da ilha nula, a
+ * ordenação por proximidade vira uma ordenação por latitude (quem está mais ao
+ * norte fica mais perto do equador), o que num município ao sul sai INVERTIDO,
+ * e a tela ainda escreve "a 6009,8 km de você" como se tivesse medido.
+ *
+ * Coordenada ilegível cai no mesmo lugar, e ali o estrago é pior: `NaN` na
+ * origem faz toda distância virar `NaN`, e como `NaN !== NaN` o comparador
+ * chega à subtração e devolve `NaN`. Comparador que devolve `NaN` não estoura e
+ * não avisa: ele deixa a lista quase ordenada, de um jeito que muda com o
+ * tamanho do vetor, que é a forma mais cara possível deste defeito.
  */
-export function pontoDaTarefa(tarefa: TarefaDoDia): Ponto | null {
-  const { latitude, longitude } = tarefa;
+export function pontoQueSeMede(
+  latitude: number | null | undefined,
+  longitude: number | null | undefined,
+): Ponto | null {
   if (latitude === null || longitude === null) return null;
+  if (latitude === undefined || longitude === undefined) return null;
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
   if (latitude === 0 && longitude === 0) return null;
   return { latitude, longitude };
+}
+
+/** O ponto da tarefa, quando ela tem um que sirva. Ver `pontoQueSeMede`. */
+export function pontoDaTarefa(tarefa: TarefaDoDia): Ponto | null {
+  return pontoQueSeMede(tarefa.latitude, tarefa.longitude);
 }
 
 /**
@@ -203,17 +235,39 @@ export function pontoDaTarefa(tarefa: TarefaDoDia): Ponto | null {
 const DEPOIS_DE_TODOS = Number.MAX_SAFE_INTEGER;
 
 /**
- * Em que bloco de turno o prazo cai, contado a partir de agora.
+ * Em que bloco de turno o prazo cai, contado do bloco em que estamos.
  *
  * Negativo para o que já venceu, e quanto mais negativo mais antigo é o
  * atraso, que é justamente a ordem desejada. Sem prazo vai para o fim da fila
  * do grupo: é a mesma decisão que `prazo_em IS NULL` já tomava no disco.
+ *
+ * ## A FRONTEIRA É DO RELÓGIO, e não do instante em que alguém olhou
+ *
+ * Os dois `Math.floor` separados são a correção, e a diferença entre eles e um
+ * `floor` da subtração não é cosmética.
+ *
+ * Contando `(quando - agora)` a fronteira desliza um segundo por segundo, e o
+ * relógio desta tela avança de trinta em trinta segundos. Uma tarefa a
+ * 4h00m10s do prazo cai sozinha para o bloco de baixo na leitura seguinte,
+ * passa na frente da que estava empatada com ela, e a lista se reordena com o
+ * dedo do agente em cima sem NADA ter mudado no disco. É exatamente o defeito
+ * que esta tela inteira existe para não ter, entrando pela porta do relógio.
+ *
+ * Com os blocos presos ao relógio (blocos fixos de quatro horas, sempre nos
+ * mesmos instantes), a DIFERENÇA entre duas tarefas deixa de depender de quando
+ * alguém olhou: ela só muda se um prazo mudar. Quando o relógio cruza uma
+ * fronteira, TODAS as tarefas descem um bloco juntas, e ordem não muda.
+ *
+ * O preço é o que o comentário do alto deste arquivo já aceitava por escrito:
+ * duas tarefas separadas por dois minutos podem cair em blocos diferentes.
+ * Isso vale em qualquer desenho de bloco, e é muito mais barato que uma lista
+ * que se remexe sozinha.
  */
 export function faixaDePrazo(prazoEm: string | null, agora: number): number {
   if (!prazoEm) return DEPOIS_DE_TODOS;
   const quando = new Date(prazoEm).getTime();
   if (!Number.isFinite(quando)) return DEPOIS_DE_TODOS;
-  return Math.floor((quando - agora) / JANELA_DO_TURNO_MS);
+  return Math.floor(quando / JANELA_DO_TURNO_MS) - Math.floor(agora / JANELA_DO_TURNO_MS);
 }
 
 /** O instante do prazo, para o desempate exato. Sem prazo vai para o fim. */
@@ -227,12 +281,20 @@ export function ordemDoDia<T extends TarefaDoDia>(
   tarefas: readonly T[],
   contexto: ContextoDoDia,
 ): OrdemDoDia<T> {
+  /*
+    A origem passa pelo MESMO filtro da tarefa, e antes de qualquer conta. Ver
+    `pontoQueSeMede`: uma origem zerada ou ilegível não é "onde o agente está",
+    é o aparelho dizendo que ainda não sabe, e a resposta certa para isso é a
+    mesma de não ter posição nenhuma.
+  */
+  const de = contexto.de ? pontoQueSeMede(contexto.de.latitude, contexto.de.longitude) : null;
+
   const lugares: LugarNaOrdem<T>[] = tarefas.map((tarefa) => {
     const ponto = pontoDaTarefa(tarefa);
     return {
       tarefa,
       grupo: grupoDe(tarefa, contexto),
-      distanciaM: contexto.de && ponto ? distanciaEmMetros(contexto.de, ponto) : null,
+      distanciaM: de && ponto ? distanciaEmMetros(de, ponto) : null,
     };
   });
 
@@ -284,7 +346,7 @@ export function ordemDoDia<T extends TarefaDoDia>(
       tarefa tinha coordenada. Com posição e nenhuma coordenada cadastrada, o
       degrau não decidiu nada, e dizer que decidiu seria a mesma mentira.
     */
-    usouDistancia: contexto.de !== null && ordenadas.some((l) => l.distanciaM !== null),
+    usouDistancia: de !== null && ordenadas.some((l) => l.distanciaM !== null),
   };
 }
 

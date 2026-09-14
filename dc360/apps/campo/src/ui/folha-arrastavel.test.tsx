@@ -436,6 +436,95 @@ describe("o arraste, com o dedo na folha de verdade", () => {
   });
 });
 
+describe("a folha segue o dedo, e para onde o dedo mandou", () => {
+  /**
+   * O QUE NENHUM CASO OLHAVA: onde a folha ESTÁ.
+   *
+   * Os casos de arraste acima provam que a folha toma o gesto certo e avisa a
+   * tela a posição certa. Nenhum deles olha o valor animado, que é a única
+   * coisa que o agente vê. Uma folha que decide "recolhida" e desenha "cheia"
+   * passa nos dois, e é exatamente isso que o dedo encontra no aparelho.
+   *
+   * A chave de redução de movimento fica LIGADA nestes casos, e não é por
+   * acessibilidade: com ela `irPara` usa `setValue` em vez de `Animated.timing`,
+   * e `Animated.timing` está dublado neste arquivo por um dublê que nunca
+   * aplica valor nenhum. Sem a chave, o valor lido seria o do dublê, e não o da
+   * peça.
+   */
+  const ALTURA_CHEIA = ALTURA_DA_TELA * FRACAO_DA_POSICAO.cheia;
+  const ondeFica = (p: PosicaoDaFolha) => ALTURA_CHEIA - ALTURA_DA_TELA * FRACAO_DA_POSICAO[p];
+
+  /**
+   * Pega a folha e arrasta `dy` DEPOIS de pegá-la, sem soltar.
+   *
+   * O deslocamento do primeiro movimento (o que faz a folha assumir o gesto)
+   * não conta, e não é detalhe de teste: `onPanResponderGrant` zera `dx` e `dy`
+   * no aparelho também, então o dedo só começa a mover a folha depois de a
+   * folha ser dele.
+   */
+  async function pegarEArrastar(dy: number, ms = 300): Promise<void> {
+    const dedo = criarDedo(200, 400);
+    await entregar("folha", "StartShouldSetResponderCapture", dedo.evento());
+    const assumiu = await entregar(
+      "folha", "MoveShouldSetResponderCapture", dedo.mover(0, dy > 0 ? 12 : -12, 16),
+    );
+    if (assumiu !== true) throw new Error("a folha não assumiu o gesto");
+    await entregar("folha", "ResponderGrant", dedo.evento());
+    await entregar("folha", "ResponderMove", dedo.mover(0, dy, ms));
+  }
+
+  beforeEach(() => { mockFolha.reduzir = true; });
+
+  it("cada quadro de arraste põe a folha onde o dedo está", async () => {
+    await montar({ posicao: "meia" });
+    expect(deslocamentoDe("folha")).toBeCloseTo(ondeFica("meia"));
+
+    await pegarEArrastar(60);
+    /*
+      Sessenta pontos para baixo com o dedo na tela são sessenta pontos de folha
+      descendo. Qualquer outra coisa é a folha saltando debaixo do dedo, que é o
+      defeito que quem está de luva na chuva sente primeiro e não sabe nomear.
+    */
+    expect(deslocamentoDe("folha")).toBeCloseTo(ondeFica("meia") + 60);
+  });
+
+  it("o arraste não passa do fim: nem acima da maior, nem abaixo da menor", async () => {
+    await montar({ posicao: "meia" });
+    await pegarEArrastar(-600);
+    expect(deslocamentoDe("folha")).toBeCloseTo(ondeFica("cheia"));
+
+    await montar({ posicao: "meia" });
+    await pegarEArrastar(600);
+    expect(deslocamentoDe("folha")).toBeCloseTo(ondeFica("recolhida"));
+  });
+
+  it("ao soltar, a folha para na posição que ela mesma anunciou", async () => {
+    /*
+      A metade que faltava. `aoMudarPosicao` receber "recolhida" não quer dizer
+      nada se a folha desenhada ficar em "cheia": a tela recentraliza o pino do
+      mapa pela posição anunciada, e o mapa passa a mirar uma faixa que a folha
+      está cobrindo. O agente arrasta a folha para baixo justamente para ver
+      onde a casa fica.
+    */
+    await montar({ posicao: "meia" });
+    await arrastar({ dy: 200, ms: 400 });
+    expect(aoMudarPosicao).toHaveBeenLastCalledWith("recolhida");
+    expect(deslocamentoDe("folha")).toBeCloseTo(ondeFica("recolhida"));
+
+    await montar({ posicao: "meia" });
+    await arrastar({ dy: -200, ms: 400 });
+    expect(aoMudarPosicao).toHaveBeenLastCalledWith("cheia");
+    expect(deslocamentoDe("folha")).toBeCloseTo(ondeFica("cheia"));
+  });
+
+  it("o arraste que desiste devolve a folha exatamente para onde ela estava", async () => {
+    await montar({ posicao: "meia" });
+    await arrastar({ dy: 60, ms: 400 });
+    expect(aoMudarPosicao).not.toHaveBeenCalled();
+    expect(deslocamentoDe("folha")).toBeCloseTo(ondeFica("meia"));
+  });
+});
+
 describe("arrastar não pode engasgar", () => {
   it("nenhum quadro de arraste re-renderiza o conteúdo da folha", async () => {
     await montar({ posicao: "meia", tarefas: 40 });
@@ -506,6 +595,65 @@ describe("a chave de redução de movimento", () => {
 /* ============================================================
    A geometria: o mapa atrás, a ação primária na frente
    ============================================================ */
+
+describe("a tela mudou de tamanho debaixo da folha", () => {
+  /**
+   * A folha se posiciona pela altura MEDIDA, e a medida muda mais de uma vez.
+   *
+   * `onLayout` não é um evento de montagem: ele dispara de novo a cada vez que
+   * a área muda de tamanho. No aparelho isso acontece quando o Android entra em
+   * tela dividida, quando a barra de navegação por gesto aparece ou some, no
+   * tablet que a prefeitura comprou (onde `orientation: "portrait"` do
+   * `app.config.ts` não segura nada) e no desdobrável.
+   *
+   * A folha desenha a POSIÇÃO como um deslocamento em pontos, calculado sobre a
+   * altura antiga. Sem reposicionar, o deslocamento sobrevive à medida nova, e
+   * na medida menor ele é MAIOR que a folha inteira: a folha some inteira para
+   * baixo da borda da tela, o rodapé com "Abrir a vistoria" vai parar no meio do
+   * mapa, e o leitor de tela continua anunciando "recolhida" para uma folha que
+   * não está em lugar nenhum.
+   */
+  async function medirDeNovo(altura: number): Promise<void> {
+    await entregar("folha-area", "Layout", {
+      nativeEvent: { layout: { width: 390, height: altura, x: 0, y: 0 } },
+    });
+  }
+
+  it("a folha volta para a sua posição na altura NOVA, e não fica fora da tela", async () => {
+    await montar({ posicao: "recolhida" });
+    const MENOR = 480;
+    await medirDeNovo(MENOR);
+
+    const alturaDaFolha = MENOR * FRACAO_DA_POSICAO.cheia;
+    expect(estiloDe("folha").height).toBeCloseTo(alturaDaFolha);
+    /*
+      A prova que dói: um deslocamento maior que a própria folha põe a folha
+      inteira abaixo da borda de baixo da tela.
+    */
+    expect(deslocamentoDe("folha")).toBeLessThan(alturaDaFolha);
+    expect(deslocamentoDe("folha"))
+      .toBeCloseTo(alturaDaFolha - MENOR * FRACAO_DA_POSICAO.recolhida);
+  });
+
+  it("e o rodapé continua colado no rodapé da TELA depois da medida nova", async () => {
+    await montar({ posicao: "meia" });
+    await medirDeNovo(480);
+    expect(deslocamentoDe("folha-rodape")).toBeCloseTo(-deslocamentoDe("folha"));
+  });
+
+  it("a medida nova não desliza: a folha JÁ está no lugar no primeiro quadro", async () => {
+    /*
+      Animar aqui seria a folha andando sozinha na tela por causa de uma
+      mudança que não foi gesto de ninguém. E sem o movimento a folha não fica
+      parada num lugar errado por 260 ms, que num aparelho que acabou de girar é
+      onde o dedo já está indo.
+    */
+    await montar({ posicao: "recolhida" });
+    animacoes = [];
+    await medirDeNovo(480);
+    expect(animacoes).toHaveLength(0);
+  });
+});
 
 describe("a folha convive com o mapa, e não o bloqueia", () => {
   it("a área que mede a tela deixa o toque passar", async () => {

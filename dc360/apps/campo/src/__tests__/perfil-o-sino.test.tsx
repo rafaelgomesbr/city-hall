@@ -113,6 +113,8 @@ const mockVazio: EstadoFalso = {
 
 let mockNoDisco: EstadoFalso = mockVazio;
 let mockSincronizou = 0;
+/** Os identificadores que a tela mandou marcar, na ordem dos toques. */
+let mockMarcados: string[][] = [];
 /** Ligado, a sincronização estoura, que é o aparelho sem sinal. */
 let mockRedeFalha = false;
 
@@ -133,6 +135,7 @@ jest.mock("../dados/avisos", () => ({
     return mockNoDisco;
   },
   marcarAvisosComoLidosNoAparelho: async (ids: readonly string[]) => {
+    mockMarcados.push([...ids]);
     mockNoDisco = {
       ...mockNoDisco,
       itens: mockNoDisco.itens.map((a) => (ids.includes(a.id) ? { ...a, lido: true } : a)),
@@ -175,6 +178,7 @@ function aviso(por: Partial<EstadoFalso["itens"][number]> = {}) {
 beforeEach(() => {
   mockNoDisco = mockVazio;
   mockSincronizou = 0;
+  mockMarcados = [];
   mockRedeFalha = false;
   mockTemSinal = true;
   mockToken = "token-de-teste";
@@ -329,5 +333,94 @@ describe("o sino vai junto com o resto, e não numa atualização própria", () 
     expect(mockSincronizou).toBeGreaterThan(0);
     expect(screen.getByText("Vistoria recebida do campo")).toBeTruthy();
     expect(screen.getByText("Agente de teste")).toBeTruthy();
+  });
+});
+
+describe("marcar como lidos só alcança o que passou pelos olhos", () => {
+  it("não marca o aviso que a tela nem chegou a desenhar", async () => {
+    /*
+      O aparelho guarda até trinta avisos; a tela desenha oito. O agente desce o
+      morro, abre o Perfil, lê os oito que cabem e toca em "Marcar como lidos".
+      Os outros quatro nunca apareceram na tela dele.
+    */
+    mockNoDisco = {
+      ...mockVazio,
+      itens: Array.from({ length: 12 }, (_, i) => aviso({
+        id: `av${i + 1}`,
+        protocolo: `00012${i}/2026`,
+        criadoEm: new Date(Date.now() - i * 60_000).toISOString(),
+      })),
+      naoLidos: 12,
+      baixadoEm: new Date().toISOString(),
+    };
+    mockRedeFalha = true;
+    await abrirATela();
+
+    /* O nono aviso não está na tela: é este o fato de que o resto depende. */
+    expect(screen.queryByText("000128/2026")).toBeNull();
+
+    await fireEvent.press(screen.getByTestId("marcar-avisos-lidos"));
+    await act(async () => {});
+
+    /* Só os oito desenhados. Marcar os quatro de baixo apagaria do sino, aqui e
+       no servidor, aviso que ninguém leu, e ele não volta em pergunta nenhuma. */
+    expect(mockMarcados).toHaveLength(1);
+    expect(mockMarcados[0]).toEqual(
+      ["av1", "av2", "av3", "av4", "av5", "av6", "av7", "av8"],
+    );
+  });
+
+  it("o rótulo falado promete o que o botão de fato faz", async () => {
+    mockNoDisco = {
+      ...mockVazio,
+      itens: Array.from({ length: 12 }, (_, i) => aviso({
+        id: `av${i + 1}`,
+        protocolo: `00012${i}/2026`,
+        criadoEm: new Date(Date.now() - i * 60_000).toISOString(),
+      })),
+      naoLidos: 12,
+      baixadoEm: new Date().toISOString(),
+    };
+    mockRedeFalha = true;
+    await abrirATela();
+
+    /* "os 12 avisos que estão nesta tela" seria o botão contando uma coisa e
+       fazendo outra, para quem ouve a tela e não vê que só há oito. */
+    expect(screen.getByLabelText(
+      "Marcar como lidos os 8 avisos que estão nesta tela",
+    )).toBeTruthy();
+  });
+
+  it("o que ficou abaixo do corte continua alcançável pelo dedo", async () => {
+    /*
+      A lista mostra sempre os mais NOVOS. Sem saída, um aviso por ler que caiu
+      abaixo do oitavo nunca mais sobe sozinho: o crachá contaria por ler algo
+      que não há como ler, que é o item preso para sempre da fila, no sino.
+    */
+    mockNoDisco = {
+      ...mockVazio,
+      itens: Array.from({ length: 12 }, (_, i) => aviso({
+        id: `av${i + 1}`,
+        protocolo: `00012${i}/2026`,
+        criadoEm: new Date(Date.now() - i * 60_000).toISOString(),
+      })),
+      naoLidos: 12,
+      baixadoEm: new Date().toISOString(),
+    };
+    mockRedeFalha = true;
+    await abrirATela();
+
+    expect(screen.queryByText("000128/2026")).toBeNull();
+
+    await fireEvent.press(screen.getByLabelText(
+      "Mostrar os 4 avisos que ficaram fora da lista",
+    ));
+    await act(async () => {});
+
+    expect(screen.getByText("000128/2026")).toBeTruthy();
+    /* E agora marcar alcança os doze, porque os doze estão desenhados. */
+    await fireEvent.press(screen.getByTestId("marcar-avisos-lidos"));
+    await act(async () => {});
+    expect(mockMarcados[0]).toHaveLength(12);
   });
 });

@@ -105,9 +105,20 @@ jest.mock("../ui/fontes", () => ({
 
 jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
 
+/*
+  O resumo da fila, que é de onde sai o crachá da aba Envio.
+
+  Ele era um `assinar` que nunca avisava ninguém, ou seja, o crachá da fila
+  nunca chegou a existir neste arquivo: todo caso media a barra com a fila
+  vazia. É o que deixou o rótulo falado daquela aba sem um único caso.
+*/
+let mockResumo: Record<string, unknown> | null = null;
 jest.mock("../dados/fila", () => ({
   obterFila: async () => ({
-    assinar: () => () => undefined,
+    assinar: (ouvinte: (r: unknown) => void) => {
+      if (mockResumo) ouvinte(mockResumo);
+      return () => undefined;
+    },
     drenar: async () => undefined,
   }),
   iniciarSincronizacaoContinua: () => () => undefined,
@@ -163,6 +174,7 @@ beforeEach(() => {
   mockNavegador.telas = [];
   mockNavegador.pilha = null;
   mockNaoLidos = 0;
+  mockResumo = null;
   reducaoLigada = false;
   jest.spyOn(AccessibilityInfo, "isReduceMotionEnabled")
     .mockImplementation(async () => reducaoLigada);
@@ -387,6 +399,46 @@ describe("o crachá do sino na aba Perfil", () => {
        esperam, e é o número que decide se vale abrir agora. */
     expect(perfil["tabBarBadge"]).toBe("3");
     expect(perfil["tabBarAccessibilityLabel"]).toBe("Perfil, 3 avisos por ler");
+  });
+
+  it("o crachá da fila não promete envio para o que não sai por esta conta", async () => {
+    /*
+      APARELHO DE PLANTÃO, TROCA DE TURNO. O agente da noite entra e encontra
+      no crachá da aba Envio o número da coleta que a colega da manhã fez. Ela
+      está no crachá de propósito (é vistoria feita no morro que ainda não
+      chegou à coordenação), mas ela NÃO sai: o dreno não toca em coleta de
+      outro autor, porque o servidor tira o autor de quem apresenta o token, e
+      o laudo sairia com o nome errado.
+
+      O rótulo falado dizia "1 coleta esperando", que é a mesma promessa que a
+      `FaixaDeSincronizacao` já teve de corrigir ("'Tudo sincronizado' com uma
+      coleta parada no aparelho é a pior frase que este produto pode exibir").
+      Quem ouve a tela recebia a promessa inteira, sem a ressalva, e ia embora.
+    */
+    mockResumo = {
+      pendentes: 0, enviando: 0, confirmados: 0, bloqueados: 0,
+      deOutroAutor: 1, arquivados: 0, sincronizando: false,
+    };
+    const envio = await opcoesDaAba("fila");
+
+    expect(envio["tabBarBadge"]).toBe(1);
+    expect(envio["tabBarAccessibilityLabel"]).toBe(
+      "Envio, 1 na fila, 1 de outro agente",
+    );
+  });
+
+  it("o crachá da fila separa o que espera sinal do que precisa de atenção", async () => {
+    mockResumo = {
+      pendentes: 2, enviando: 1, confirmados: 4, bloqueados: 1,
+      deOutroAutor: 0, arquivados: 0, sincronizando: false,
+    };
+    const envio = await opcoesDaAba("fila");
+
+    /* As quatro confirmadas não entram: elas já chegaram à coordenação. */
+    expect(envio["tabBarBadge"]).toBe(4);
+    expect(envio["tabBarAccessibilityLabel"]).toBe(
+      "Envio, 4 na fila, 3 esperando envio, 1 com problema",
+    );
   });
 
   it("não usa a mesma cor do crachá da fila, que conta outra coisa", async () => {

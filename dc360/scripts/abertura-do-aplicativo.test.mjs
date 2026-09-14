@@ -98,31 +98,156 @@ test("a abertura declara uma cor por tema, e são as cores do tema", () => {
   );
 });
 
+/**
+ * O corpo de um bloco `{ ... }`, por contagem de chaves a partir de uma âncora.
+ *
+ * Existe porque a versão anterior deste portão recortava o plugin por
+ * INDENTAÇÃO (`\n {6}\},`), o que amarra o portão ao formatador: um `prettier`
+ * com outra largura, ou o bloco mudando de nível, e a leitura devolve o pedaço
+ * errado ou nada.
+ */
+function corpoDoBloco(fonte, ancora) {
+  const inicio = fonte.indexOf(ancora);
+  if (inicio === -1) return null;
+  const abre = fonte.indexOf("{", inicio);
+  if (abre === -1) return null;
+  let profundidade = 0;
+  for (let i = abre; i < fonte.length; i++) {
+    if (fonte[i] === "{") profundidade += 1;
+    if (fonte[i] === "}") {
+      profundidade -= 1;
+      if (profundidade === 0) return fonte.slice(abre + 1, i);
+    }
+  }
+  return null;
+}
+
+/**
+ * Toda atribuição de `image` e `backgroundColor` de um bloco, com o valor.
+ *
+ * TODA, e o "toda" é o conserto. A versão anterior perguntava se o bloco tinha
+ * ALGUMA `backgroundColor: ABERTURA.` dentro, com `assert.match`, e o bloco
+ * `dark:` mora dentro do bloco do plugin: bastava o `dark` usar a constante
+ * para o campo de cima poder ser escrito à mão, e vice-versa. Medido por
+ * mutação, o portão passava verde com a cor clara do plugin escrita à mão, com
+ * a imagem clara do plugin escrita à mão, e com o campo legado `splash` inteiro
+ * escrito à mão, que é literalmente o defeito que o comentário do arquivo diz
+ * que este caso impede.
+ */
+function ondeAAberturaEscreveValor(corpo) {
+  return [...corpo.matchAll(/(?:^|[\s{,])(image|backgroundColor)\s*:\s*([^,\n}]+)/g)]
+    .map(([, campo, valor]) => ({ campo, valor: valor.trim() }));
+}
+
+/** Os dois lugares que dizem a mesma coisa, e por isso têm que dizer a mesma. */
+function blocosDaAbertura(fonte) {
+  const doPlugin = corpoDoBloco(fonte, '"expo-splash-screen",');
+  assert.ok(doPlugin, "o plugin expo-splash-screen sumiu de app.config.ts, ou mudou de forma");
+  const legado = corpoDoBloco(fonte, "\n  splash:");
+  assert.ok(
+    legado,
+    "o campo legado `splash` sumiu de app.config.ts. Se ele foi removido de "
+    + "propósito, tire esta leitura junto; se sumiu sozinho, o manifesto perdeu "
+    + "a abertura que as ferramentas leem sem rodar plugin.",
+  );
+  return { "o plugin expo-splash-screen": doPlugin, "o campo legado `splash`": legado };
+}
+
 test("o plugin da abertura recebe o bloco do tema escuro", () => {
   const fonte = fonteDaConfiguracao();
-  const bloco = /"expo-splash-screen",\s*\{([\s\S]*?)\n {6}\},/.exec(fonte);
-  assert.ok(bloco, "o plugin expo-splash-screen sumiu de app.config.ts, ou mudou de forma");
+  const { "o plugin expo-splash-screen": doPlugin } = blocosDaAbertura(fonte);
 
   assert.match(
-    bloco[1],
+    doPlugin,
     /dark:\s*\{/,
     "o plugin da abertura não recebe `dark`. Sem ele, o fundo declarado vale "
     + "para os dois modos e a abertura fica presa num tema só.",
   );
+});
 
+test("nenhuma cor e nenhuma arte de abertura é escrita à mão, nos DOIS lugares", () => {
   /*
-    As duas pontas saem da constante, e não de literal repetido. É o que
+    As quatro pontas saem da constante, e não de literal repetido. É o que
     impede o campo legado `splash` e o plugin de divergirem em silêncio: quem
     trocar a cor num lugar e esquecer o outro produz uma abertura que muda de
     cor conforme a ferramenta que leu a configuração.
+
+    Cada atribuição é conferida, e não "existe pelo menos uma certa". Ver o
+    comentário de `ondeAAberturaEscreveValor`: era exatamente por medir "pelo
+    menos uma" que três mutações diferentes passavam verdes aqui.
   */
-  for (const campo of ["image", "backgroundColor"]) {
-    assert.match(
-      bloco[1],
-      new RegExp(`${campo}:\\s*ABERTURA\\.`),
-      `o plugin escreve \`${campo}\` à mão em vez de usar a constante ABERTURA.`,
+  const fonte = fonteDaConfiguracao();
+  const aMao = [];
+
+  for (const [onde, corpo] of Object.entries(blocosDaAbertura(fonte))) {
+    const atribuicoes = ondeAAberturaEscreveValor(corpo);
+    assert.ok(
+      atribuicoes.length >= 4,
+      `${onde} declara só ${atribuicoes.length} valores de abertura. São quatro no `
+      + "mínimo (imagem e fundo, no claro e no escuro): a leitura quebrou, ou o "
+      + "bloco perdeu metade das decisões.",
     );
+    for (const { campo, valor } of atribuicoes) {
+      if (!/^ABERTURA\.\w+$/.test(valor)) aMao.push(`${onde}: ${campo}: ${valor}`);
+    }
   }
+
+  assert.deepEqual(
+    aMao,
+    [],
+    "valor de abertura escrito à mão em vez de sair da constante ABERTURA:\n  "
+    + aMao.join("\n  ")
+    + "\n\nEnquanto houver dois lugares dizendo a mesma coisa, eles precisam dizer a "
+    + "MESMA coisa. Um literal aqui envelhece sozinho, e o defeito só aparece no "
+    + "aparelho de alguém.",
+  );
+});
+
+test("a leitura dos dois blocos pega o valor escrito à mão", () => {
+  /*
+    O caso-irmão obrigatório, e ele existe porque o caso acima passou verde por
+    três mutações antes de ser reescrito. Sem reintroduzir o defeito, "nenhum
+    valor à mão" é indistinguível de "a leitura não achou valor nenhum".
+  */
+  const bloco = corpoDoBloco(
+    `[
+      "expo-splash-screen",
+      {
+        image: ABERTURA.imagemClara,
+        backgroundColor: "#F5F7F8",
+        imageWidth: ABERTURA.larguraDaImagem,
+        dark: {
+          image: ABERTURA.imagemEscura,
+          backgroundColor: ABERTURA.fundoEscuro,
+        },
+      },
+    ]`,
+    '"expo-splash-screen",',
+  );
+  assert.ok(bloco, "a leitura por contagem de chaves deixou de achar o bloco");
+
+  const atribuicoes = ondeAAberturaEscreveValor(bloco);
+  assert.equal(
+    atribuicoes.length, 4,
+    "a leitura precisa enxergar as QUATRO atribuições, inclusive as de dentro do "
+    + "`dark`: era por enxergar só a primeira que o portão absolvia as outras",
+  );
+  assert.deepEqual(
+    atribuicoes.filter((a) => !/^ABERTURA\.\w+$/.test(a.valor)),
+    [{ campo: "backgroundColor", valor: '"#F5F7F8"' }],
+    "a cor escrita à mão no plugin não foi acusada, e foi ela que passou verde na mutação",
+  );
+
+  /* E o bloco inteiro certo não pode produzir acusação nenhuma. */
+  const certo = corpoDoBloco(
+    `x = { splash: { image: ABERTURA.imagemClara, resizeMode: "contain",
+       backgroundColor: ABERTURA.fundoClaro,
+       dark: { image: ABERTURA.imagemEscura, backgroundColor: ABERTURA.fundoEscuro } } };`,
+    "splash:",
+  );
+  const doCerto = ondeAAberturaEscreveValor(certo);
+  assert.equal(doCerto.length, 4);
+  assert.deepEqual(doCerto.filter((a) => !/^ABERTURA\.\w+$/.test(a.valor)), []);
 });
 
 test("as duas artes de abertura existem no disco", () => {

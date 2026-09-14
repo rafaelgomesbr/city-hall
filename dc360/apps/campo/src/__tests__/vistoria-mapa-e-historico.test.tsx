@@ -122,8 +122,10 @@ jest.mock("../dados/pendencias", () => ({
   atualizarPendencias: jest.fn(async () => {}),
 }));
 
+/** A lápide da coleta que este aparelho já fez. Cada caso ajusta o que precisa. */
+let mockLapide: unknown = null;
 jest.mock("../dados/coletas", () => ({
-  coletaDe: async () => null,
+  coletaDe: async () => mockLapide,
   marcarColetada: jest.fn(async () => {}),
   arquivarColeta: jest.fn(async () => {}),
 }));
@@ -279,6 +281,7 @@ beforeEach(() => {
   mockPendencia = async () => OCORRENCIA;
   mockRascunhoGuardado = null;
   mockHistorico = async () => HISTORICO_VAZIO;
+  mockLapide = null;
   /*
     A autorização do mapa é memorizada no módulo, de propósito (a lista de
     tarefas remonta a cada foco, e sem memória cada remontagem gastaria uma
@@ -659,6 +662,37 @@ describe("o que já aconteceu nesta casa", () => {
     expect(screen.queryByTestId("historico-nao-chegou")).toBeNull();
     // E concluir continua liberado, porque nada disto é requisito de coleta.
     expect(screen.getByText("Revisar e concluir")).toBeTruthy();
+  });
+
+  it("não é consultado na tela em que ele não aparece", async () => {
+    /*
+      A ocorrência que este aparelho JÁ coletou não desenha formulário nenhum, e
+      não desenha o cartão de histórico: ela mostra a lápide e as duas saídas. O
+      efeito, porém, disparava do mesmo jeito, porque só perguntava se a
+      ocorrência existe.
+
+      Duas coisas erradas, e a segunda é a que pesa. A primeira é gastar a
+      janela de sinal da rua para trazer um dossiê que ninguém vai ver, numa
+      tela que o agente abre por engano tocando numa lista velha. A segunda é
+      que `GET /ocorrencias/:id` GRAVA registro de consulta no banco (ver
+      `registrarConsulta`, na rota): cada toque acidental escrevia, na trilha de
+      acesso a dado de cidadão que a LGPD exige, que este agente leu o dossiê
+      desta família. Leitura que não aconteceu não pode virar linha de registro
+      de acesso.
+    */
+    const consultas = jest.fn(async (): Promise<ResultadoDoHistorico> => HISTORICO_VAZIO);
+    mockHistorico = consultas;
+    mockLapide = {
+      ocorrenciaId: "oc-1", idempotencyKey: "chave-da-primeira-coleta",
+      protocolo: "2026/000123", coletadaEm: "2026-09-09T11:00:00.000Z",
+      situacao: "na_fila",
+    };
+
+    await render(<TelaDeVistoria />);
+    await act(async () => {});
+
+    expect(screen.getByText(/já foi coletada neste aparelho/)).toBeTruthy();
+    expect(consultas).not.toHaveBeenCalled();
   });
 
   it("observação descartada pelo prazo não vira 'a equipe não escreveu nada'", async () => {

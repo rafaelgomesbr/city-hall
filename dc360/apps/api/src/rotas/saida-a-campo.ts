@@ -188,6 +188,42 @@ export async function rotasSaidaACampo(
       );
     }
 
+    /*
+      A MESMA RECUSA, quando a chave repetida é de OUTRA PESSOA.
+
+      O portão acima confere o ENVELOPE, e é o caso do aparelho que mente sobre
+      quem subiu. Faltava o caso oposto: o envelope diz a verdade sobre quem
+      está com o aparelho, e a CHAVE é a de outra pessoa. O aparelho de plantão
+      é compartilhado entre turnos e a chave nasce e fica guardada nele, então
+      basta o item do turno anterior ser reenviado com o autor de agora (defeito
+      de fila, binário adulterado, ou a mesma troca de turno que já produziu o
+      laudo com autor errado) para a rota antiga responder 200 com a saída do
+      colega. Duas coisas quebravam de uma vez:
+
+      1. A resposta entregava protocolo, endereço, severidade, nome e equipe de
+         uma ocorrência que o portão de equipe, trinta linhas abaixo nesta mesma
+         rota, responderia 404 para este agente.
+      2. O aparelho recebia `duplicada: true` com uma saída aberta e mostrava
+         "você está marcado como em campo". O agente subia o morro achando que
+         tinha declarado, e no servidor não havia saída nenhuma no nome dele:
+         ninguém iria procurá-lo, porque prazo dele não existia.
+
+      A recusa é a MESMA `autor_divergente` do portão de cima, de propósito: um
+      erro novo aqui ("essa chave é de outro agente") confirmaria a existência
+      da chave para quem a apresentou.
+    */
+    const recusarSeNaoForDele = (s: LinhaDeSaida): LinhaDeSaida => {
+      if (s.agente_id !== quem.usuarioId) {
+        throw new RegraDeNegocio(
+          "autor_divergente",
+          "Esta saída foi declarada por outro agente. Entre neste aparelho com a "
+          + "conta de quem vai a campo.",
+          409,
+        );
+      }
+      return s;
+    };
+
     const feita = await banco.comTenant(quem.organizacaoId, async (c) => {
       // Chave já vista: devolve o que foi gravado antes e não toca em nada.
       const anterior = await c.query<LinhaDeSaida>(
@@ -195,7 +231,9 @@ export async function rotasSaidaACampo(
           WHERE s.organizacao_id = $1 AND s.idempotency_key = $2`,
         [quem.organizacaoId, d.idempotencyKey],
       );
-      if (anterior.rows[0]) return { saida: anterior.rows[0], jaExistia: true };
+      if (anterior.rows[0]) {
+        return { saida: recusarSeNaoForDele(anterior.rows[0]), jaExistia: true };
+      }
 
       /*
         JÁ TEM UMA SAÍDA ABERTA, e esta recusa vem ANTES da leitura da
@@ -321,7 +359,7 @@ export async function rotasSaidaACampo(
             + "no banco. Restrição de unicidade inesperada.",
           );
         }
-        return { saida: jaGravada, jaExistia: true };
+        return { saida: recusarSeNaoForDele(jaGravada), jaExistia: true };
       }
 
       const gravada = await c.query<LinhaDeSaida>(
@@ -402,8 +440,9 @@ export async function rotasSaidaACampo(
         pessoa que está no morro.
       */
       const alvo = await c.query<{ id: string; ocorrencia_id: string;
-        retorno_previsto_em: Date | string; prorrogacoes: number }>(
-        `SELECT id, ocorrencia_id, retorno_previsto_em, prorrogacoes
+        retorno_previsto_em: Date | string; prorrogacoes: number;
+        prorrogacao_key: string | null }>(
+        `SELECT id, ocorrencia_id, retorno_previsto_em, prorrogacoes, prorrogacao_key
            FROM saidas_a_campo
           WHERE id = $1 AND agente_id = $2 AND encerrada_em IS NULL`,
         [p.saidaId, quem.usuarioId],
@@ -415,6 +454,31 @@ export async function rotasSaidaACampo(
           "Essa saída não está aberta neste sistema.",
           404,
         );
+      }
+
+      /*
+        A CHAVE DE IDEMPOTÊNCIA, QUE O ESQUEMA EXIGIA E ESTA ROTA DESCARTAVA.
+
+        Prorrogar é o único ato deste recurso praticado do alto do morro, com o
+        pior sinal do dia: o pedido vai, o servidor grava, a resposta se perde, e
+        o aparelho repete. É a MESMA corrida que a declaração da saída trata com
+        `ON CONFLICT`, na rota acima. Repetida, ela contava `prorrogacoes` em
+        dobro (e esse número é o que diz à coordenação se o agente está demorando
+        muito mais do que disse) e escrevia DOIS eventos na trilha, que é
+        append-only e não desfaz nenhum dos dois.
+
+        A comparação é com a ÚLTIMA chave aceita, e o limite está dito na
+        migração 032: ela dedupe o reenvio, que é o único caso real, porque a
+        repetição chega logo em seguida e o aparelho sorteia uma chave por
+        pedido.
+      */
+      if (saida.prorrogacao_key === p.idempotencyKey) {
+        return {
+          saidaId: saida.id,
+          retornoPrevistoEm: saida.retorno_previsto_em,
+          prorrogacoes: saida.prorrogacoes,
+          duplicada: true,
+        };
       }
 
       /*
@@ -431,6 +495,17 @@ export async function rotasSaidaACampo(
         prorrogação nunca encurta o prazo de segurança de alguém que está lá
         fora. Se o prazo antigo ainda for maior que o novo, ele fica.
       */
+      /*
+        `encerrada_em IS NULL` TAMBÉM AQUI, e não só na leitura acima.
+
+        Entre a leitura e esta escrita cabe o encerramento pelo painel, e é a
+        corrida real desta rota: a coordenação fala com o agente pelo rádio e
+        encerra no mesmo segundo em que o aparelho dele reencontra sinal. Sem a
+        cláusula, o UPDATE empurrava o prazo de uma saída JÁ ENCERRADA, e uma
+        saída que foi encerrada com quarenta minutos de atraso passava a exibir
+        prazo no futuro: o atraso sumia da linha que existe justamente para
+        provar que o município demorou a reagir.
+      */
       const atualizada = await c.query<{ retorno_previsto_em: Date | string;
         prorrogacoes: number }>(
         `UPDATE saidas_a_campo
@@ -438,12 +513,26 @@ export async function rotasSaidaACampo(
                   retorno_previsto_em,
                   now() + make_interval(mins => $2::int)
                 ),
-                prorrogacoes = prorrogacoes + 1
-          WHERE id = $1
+                prorrogacoes = prorrogacoes + 1,
+                prorrogacao_key = $3
+          WHERE id = $1 AND encerrada_em IS NULL
         RETURNING retorno_previsto_em, prorrogacoes`,
-        [p.saidaId, p.minutosAdicionais],
+        [p.saidaId, p.minutosAdicionais, p.idempotencyKey],
       );
-      const nova = atualizada.rows[0]!;
+      const nova = atualizada.rows[0];
+      if (!nova) {
+        /*
+          Zero linhas significa que alguém encerrou a saída entre a leitura e
+          esta escrita. Não há prazo a empurrar numa saída encerrada, e a mesma
+          404 da leitura é a resposta: o aparelho para de insistir e a tela
+          manda atualizar.
+        */
+        throw new RegraDeNegocio(
+          "nao_encontrada",
+          "Essa saída não está mais aberta neste sistema.",
+          404,
+        );
+      }
 
       await c.query(
         `INSERT INTO trilha_eventos
@@ -472,6 +561,7 @@ export async function rotasSaidaACampo(
         saidaId: saida.id,
         retornoPrevistoEm: nova.retorno_previsto_em,
         prorrogacoes: nova.prorrogacoes,
+        duplicada: false,
       };
     });
   });

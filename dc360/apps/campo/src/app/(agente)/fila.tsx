@@ -925,6 +925,28 @@ export default function TelaDaFila() {
       if (fila) await recarregar(fila);
       setRetorno({ id: item.id, ...desfecho });
       agendar(RETORNO_NA_TELA_MS, () => { setRetorno(null); });
+    } catch {
+      /*
+        O VERBO QUE ESTOURA, e não o que é recusado.
+
+        `deuCerto: false` já cobria a recusa do motor, que é uma resposta. Isto
+        aqui é a AUSÊNCIA de resposta: a gravação no SQLite estourou (disco do
+        telefone cheio, banco corrompido) antes de o ato acontecer. Sem este
+        ramo o `finally` parava a roda do botão e mais nada mudava na tela, ou
+        seja, um toque que falhou e um toque que não pegou eram a mesma coisa,
+        que é exatamente o que esta tela existe para não produzir.
+
+        A frase não inventa motivo: o aplicativo sabe que não conseguiu, e não
+        sabe por quê. O que ela garante é a única coisa que importa aqui, e é a
+        promessa da tela inteira: a coleta continua guardada.
+      */
+      setRetorno({
+        id: item.id,
+        deuCerto: false,
+        texto: "Este aparelho não conseguiu completar a ação, e nada foi enviado. "
+          + "A coleta continua guardada aqui. Tente de novo.",
+      });
+      agendar(RETORNO_NA_TELA_MS, () => { setRetorno(null); });
     } finally {
       setEmCurso(null);
     }
@@ -1015,6 +1037,19 @@ export default function TelaDaFila() {
   const minhasColetas = [...bloqueados, ...emEspera];
 
   /*
+    A CONFIRMADA TAMBÉM FICA FORA, e essa é a outra metade da mesma regra.
+
+    Ela chegou: o cartão dela diz "Enviada. A coordenação recebeu", e ela fica
+    na lista mais meio minuto como lápide, de propósito. Enquanto ela entrou na
+    conta, este número dizia "2 coletas na fila" com uma delas já na
+    coordenação, enquanto o crachá da aba Envio (que soma pendentes, enviando,
+    bloqueados e as de outro autor, e nunca as confirmadas) dizia "1". Dois
+    números para o mesmo fato, a um toque um do outro, na tela que o produto
+    inteiro existe para tornar confiável. O contador já tinha a regra escrita,
+    para os itens que saem do disco ("um item confirmado precisa sumir do
+    número no mesmo instante em que a fila o largou"); o que faltava era ela
+    valer também enquanto a lápide está de pé.
+
     O título conta o que ainda tem destino, e a arquivada fica FORA dele.
 
     Coleta arquivada não vai ser enviada por ninguém: somá-la aqui produzia um
@@ -1022,7 +1057,7 @@ export default function TelaDaFila() {
     contador que a pessoa aprende a ignorar. Ela tem a própria seção, com o
     próprio número e com saída pelo botão.
   */
-  const naFila = contar(minhasColetas)
+  const naFila = contar(minhasColetas.filter((i) => i.estado !== "confirmado"))
     /* Devolução de outro agente existe (aparelho de plantão troca de turno) e
        continua visível na seção dela, mas não entra numa contagem que diz
        "coletas": ela afirma o contrário de uma coleta. */

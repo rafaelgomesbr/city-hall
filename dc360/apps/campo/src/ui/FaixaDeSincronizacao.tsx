@@ -193,7 +193,17 @@ export function FaixaDeSincronizacao({
     <Pressable
       onPress={aoTocar}
       accessibilityRole="button"
-      accessibilityLabel={`${estado.titulo}. ${estado.detalhe}. Toque para ver a fila de envio.`}
+      /*
+        Os bloqueados entram aqui também, e não só no texto desenhado. Sem
+        isto, quem ouve a tela recebia "Tudo sincronizado. Nada pendente no
+        aparelho." com uma coleta travada no aparelho, que é a frase que o
+        cabeçalho deste arquivo chama de a pior que este produto pode exibir.
+      */
+      accessibilityLabel={
+        `${estado.titulo}. ${estado.detalhe}`
+        + (bloqueados > 0 ? `, ${bloqueados} com problema` : "")
+        + ". Toque para ver a fila de envio."
+      }
       testID="faixa-de-sincronizacao"
       style={{
         backgroundColor: estado.fundo,
