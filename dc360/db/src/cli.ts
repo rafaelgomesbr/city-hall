@@ -1,4 +1,5 @@
 import { aplicarMigracoes, migracoesPendentes, type ExecutorSql } from "./migrar.js";
+import { urlComAncoraDeConfianca } from "./conexao.js";
 import { carregarMigracoes, carregarSemente } from "./carregar.js";
 
 /**
@@ -17,7 +18,14 @@ async function conectar(): Promise<{ bd: ExecutorSql; encerrar: () => Promise<vo
 
   if (url) {
     const { default: pg } = await import("pg");
-    const cliente = new pg.Client({ connectionString: url });
+    /*
+      A raiz do provedor entra aqui, e não na URL que a pessoa digitou.
+
+      Sem isto, migrar contra a Supabase morre com SELF_SIGNED_CERT_IN_CHAIN, e
+      o contorno que a pessoa encontra sozinha é tirar o `sslmode`, que deixa a
+      conexão cifrada e NÃO autenticada. Ver `conexao.ts`.
+    */
+    const cliente = new pg.Client({ connectionString: urlComAncoraDeConfianca(url) });
     await cliente.connect();
     return {
       bd: {

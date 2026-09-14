@@ -28,7 +28,7 @@
     "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present",
     "conferir:numeros": "node scripts/conferir-numeros.mjs",
     "verificar": "npm run typecheck && npm test && npm run test:scripts && npm run test:campo && npm run auditar && npm run conferir:numeros",
-    "migrar": "npm run migrar --workspace @dc360/db",
+    "migrar": "npm run migrar --workspace @dc360/db --",
     "provisionar": "npm run provisionar --workspace @dc360/api --",
     "test:e2e:api": "node scripts/e2e-api.mjs",
     "build:shared": "npm run build --workspace @dc360/shared && npm run build --workspace @dc360/db && npm run build --workspace @dc360/campo",
