@@ -31,8 +31,39 @@ import { fileURLToPath } from "node:url";
 export const CONTA = "dc360";
 export const COFRE = "senha-do-banco-dc360";
 
-/** O banco de produção, pela conexão DIRETA e não pelo pooler. */
-export const HOST = "db.bppklrxxwjshxvkvwirw.supabase.co";
+/** O projeto na Supabase. Aparece no endereço e no nome do papel. */
+export const PROJETO = "bppklrxxwjshxvkvwirw";
+
+/**
+ * O banco de produção, PELO POOLER, e isto foi correção e não gosto.
+ *
+ * A primeira versão apontava para a conexão direta
+ * (`db.<projeto>.supabase.co`), com o argumento de que migração é sessão longa.
+ * O argumento estava certo e o endereço estava errado: contra a rede de
+ * verdade, em 14/09/2026,
+ *
+ *   Error: getaddrinfo ENOTFOUND db.bppklrxxwjshxvkvwirw.supabase.co
+ *
+ * Não é queda nem bloqueio. O nome da conexão direta só tem registro AAAA, ou
+ * seja, só existe em IPv6:
+ *
+ *   dig +short A    db.<projeto>.supabase.co  ->  (vazio)
+ *   dig +short AAAA db.<projeto>.supabase.co  ->  2600:1f1e:c3:2702:...
+ *
+ * Numa rede sem IPv6, que é a da máquina que rodou e provavelmente a da
+ * prefeitura, aquilo é um nome que não resolve. O pooler tem IPv4.
+ */
+export const HOST = "aws-0-sa-east-1.pooler.supabase.com";
+
+/**
+ * MODO SESSÃO, e a porta é a diferença inteira.
+ *
+ * 5432 é sessão: a conexão é sua do começo ao fim. 6543 é transação, onde ela
+ * volta para o bolo ao fim de cada transação, e aí não há sessão nenhuma para
+ * segurar `SET ROLE`, trava de aviso, ou qualquer coisa que atravesse
+ * comandos. Migração precisa das duas coisas.
+ */
+export const PORTA = 5432;
 
 /**
  * A URL, com a senha codificada para caber nela.
@@ -46,8 +77,13 @@ export const HOST = "db.bppklrxxwjshxvkvwirw.supabase.co";
  * banco de pé, e é a parte que erra em silêncio.
  */
 export function montarUrl(senha, host = HOST) {
-  return `postgresql://postgres:${encodeURIComponent(senha)}@${host}:5432/postgres`
-    + "?sslmode=verify-full";
+  /*
+    Pelo pooler o papel leva o projeto colado, e isso é exigência do provedor:
+    é assim que ele sabe para qual banco encaminhar a conexão. O papel de
+    verdade continua sendo `postgres`.
+  */
+  return `postgresql://postgres.${PROJETO}:${encodeURIComponent(senha)}`
+    + `@${host}:${PORTA}/postgres?sslmode=verify-full`;
 }
 
 function senhaDoChaveiro() {
@@ -91,10 +127,38 @@ if (chamadoDiretamente) {
       : "Só conferindo: nada vai ser escrito. Para aplicar, repita com --aplicar.\n",
   );
 
+  /*
+    `--silent` porque o npm, quando o comando de dentro sai com código
+    diferente de zero, despeja oito linhas de "npm error" com caminho de
+    workspace e nome de pacote. Aqui isso é ruído puro: faltar migração é
+    resposta esperada do modo de conferência, não falha, e quem está migrando
+    pela primeira vez lê "npm error" e acha que quebrou.
+  */
   const r = spawnSync(
     "npm",
-    ["run", "migrar", "--", ...(aplicar ? [] : ["--conferir"])],
+    ["run", "--silent", "migrar", "--", ...(aplicar ? [] : ["--conferir"])],
     { cwd: raiz, stdio: "inherit", env: { ...process.env, DATABASE_URL: url } },
+  );
+
+  /*
+    A conclusão em uma frase, porque a saída do migrador é uma lista longa de
+    nomes de arquivo e a pergunta de quem rodou é outra: "e agora?".
+
+    O código de saída é preservado: 1 quando falta migração é o que faz o
+    contêiner recusar subir com esquema atrasado, e não é deste roteiro o
+    direito de apagar esse sinal.
+  */
+  const faltou = (r.status ?? 1) !== 0;
+  console.log(
+    aplicar
+      ? (faltou
+        ? "\nNão deu. Nada pela metade: cada migração roda dentro da própria transação."
+        : "\nPronto. Agora reimplante a API antes de empurrar para o GitHub: a Vercel "
+          + "publica o painel sozinho a cada push.")
+      : (faltou
+        ? "\nIsso é o esperado quando falta migração, e não é erro. Para aplicar:\n"
+          + "  node scripts/migrar-producao.mjs --aplicar"
+        : "\nO banco já está em dia. Nada a fazer."),
   );
   process.exit(r.status ?? 1);
 }

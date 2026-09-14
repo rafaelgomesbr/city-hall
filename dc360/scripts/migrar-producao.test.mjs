@@ -20,7 +20,7 @@ test("senha com caractere que parte a URL continua chegando inteira", () => {
   const senha = "aB#3/x@y?z:w";
   const url = new URL(montarUrl(senha));
 
-  assert.equal(url.username, "postgres");
+  assert.match(url.username, /^postgres\./);
   assert.equal(decodeURIComponent(url.password), senha);
   assert.equal(url.hostname, HOST, "o host mudou: a senha invadiu o endereço");
 });
@@ -41,7 +41,13 @@ test("senha comum passa sem enfeite", () => {
   está.
 */
 test("migra com o papel de setup, nunca com o da aplicação", () => {
-  assert.equal(new URL(montarUrl("x")).username, "postgres");
+  /*
+    Pelo pooler o nome do papel leva o projeto colado (`postgres.<projeto>`), e
+    isso é exigência do provedor: é assim que ele sabe para qual banco
+    encaminhar. O que importa aqui é que o papel ANTES do ponto seja `postgres`
+    e não `dc360_api`.
+  */
+  assert.match(new URL(montarUrl("x")).username, /^postgres\./);
   assert.doesNotMatch(montarUrl("x"), /dc360_api/);
 });
 
@@ -57,13 +63,38 @@ test("a URL exige verificação do certificado, e diz isso por escrito", () => {
 });
 
 /*
-  Conexão DIRETA e não o pooler. O pooler serve a aplicação, que abre e fecha
-  conexão o tempo todo; migração é uma sessão longa que altera esquema, e o
-  caminho direto é o que o provedor documenta para isso.
+  PELO POOLER, EM MODO SESSÃO, e isto foi uma correção e não uma escolha de
+  gosto.
+
+  A primeira versão apontava para a conexão direta (`db.<projeto>.supabase.co`)
+  com o argumento de que migração é sessão longa. O argumento estava certo e o
+  endereço estava errado: contra a rede de verdade, em 14/09/2026, ele deu
+
+    Error: getaddrinfo ENOTFOUND db.bppklrxxwjshxvkvwirw.supabase.co
+
+  A causa não é queda nem bloqueio. O nome da conexão direta só tem registro
+  AAAA, ou seja, só existe em IPv6:
+
+    dig +short A    db.bppklrxxwjshxvkvwirw.supabase.co  ->  (vazio)
+    dig +short AAAA db.bppklrxxwjshxvkvwirw.supabase.co  ->  2600:1f1e:c3:2702:...
+
+  Numa rede sem IPv6, que é a da maioria das prefeituras e era a da máquina que
+  rodou, aquilo é um nome que não resolve. O pooler tem IPv4.
+
+  O que NÃO pode mudar é a porta. 5432 é modo SESSÃO: a conexão é sua do começo
+  ao fim, que é o que migração precisa. 6543 é modo TRANSAÇÃO, onde a conexão é
+  devolvida ao fim de cada transação e não há sessão nenhuma para segurar
+  `SET ROLE`, trava de aviso ou qualquer coisa que atravesse comandos.
 */
-test("aponta para a conexão direta, e não para o pooler", () => {
-  assert.match(HOST, /^db\./);
-  assert.doesNotMatch(HOST, /pooler/);
+test("vai pelo pooler, porque a conexão direta não tem IPv4", () => {
+  assert.match(HOST, /pooler/);
+});
+
+test("em modo SESSÃO (5432), e nunca em modo transação (6543)", () => {
+  const url = new URL(montarUrl("x"));
+
+  assert.equal(url.port, "5432");
+  assert.notEqual(url.port, "6543");
 });
 
 test("o nome do cofre e da conta são os mesmos que a mensagem de ajuda ensina", () => {
