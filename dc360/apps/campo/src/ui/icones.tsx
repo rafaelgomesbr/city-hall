@@ -1,6 +1,8 @@
 import type { ReactElement } from "react";
 import Svg, { Circle, Path } from "react-native-svg";
 
+import { icone } from "./tokens";
+
 /**
  * Os ícones do aplicativo, desenhados à mão.
  *
@@ -57,16 +59,26 @@ type Props = PropsDeIcone;
 export type ComponenteDeIcone = (props: PropsDeIcone) => ReactElement;
 
 /**
- * O tamanho padrão, enquanto o token não existe.
+ * O tamanho padrão, agora vindo do token.
  *
- * A frente dos tokens está criando `tamanhoDeIcone` em `src/ui/tokens.ts` no
- * mesmo turno em que isto foi escrito, e importar um token que ainda não
- * existe quebraria as duas frentes ao mesmo tempo. Quando ele entrar, este 24
- * vira `tamanhoDeIcone.normal` e o valor sai daqui: tamanho de ícone é decisão
- * de sistema, não de arquivo de desenho. Quem passar por aqui depois disso e
- * encontrar o número solto, ligue.
+ * Esta constante nasceu como `24` escrito à mão, com a razão declarada: a
+ * frente dos tokens estava criando `icone` em `src/ui/tokens.ts` no MESMO
+ * turno, e importar um token que ainda não existia quebraria as duas frentes
+ * ao mesmo tempo. O comentário terminava com um convite explícito: "quando ele
+ * entrar, este 24 vira token e o valor sai daqui. Quem passar por aqui depois
+ * disso e encontrar o número solto, ligue."
+ *
+ * O token entrou no mesmo turno e o número solto ficou, porque nenhum portão
+ * enxerga um `24` sem nome de propriedade ao lado. `icone.acao` é o degrau de
+ * 24 pontos (o ícone do tamanho de uma ação, casado com a altura de `corpo`),
+ * e é ele o padrão daqui.
+ *
+ * Dito na cara: nenhum teste separa o antes do depois, porque os dois valores
+ * são o mesmo número. O que muda é o ponteiro, e é só ele que importa: no dia
+ * em que a escala de ícone mudar, este arquivo muda junto em vez de ficar para
+ * trás em silêncio.
  */
-const TAMANHO_PADRAO = 24;
+const TAMANHO_PADRAO = icone.acao;
 
 /* A espessura é uma só, para o conjunto inteiro. Ver regra 1 no topo. */
 const TRACO = 1.8;

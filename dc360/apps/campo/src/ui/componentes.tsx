@@ -3,7 +3,6 @@ import {
   ActivityIndicator, Animated, Pressable, StyleSheet, Text, View, useColorScheme,
   type StyleProp, type ViewStyle,
 } from "react-native";
-import { ROTULO_SEVERIDADE, type Severidade } from "@dc360/shared";
 import {
   borda, easing, elevacao, espaco, fonte, icone as tamanhoDeIcone, linha, movimento,
   opacidade, peso, raio, temaClaro, temaEscuro, toque, type Peso, type Tema,
@@ -87,6 +86,12 @@ export function Txt({
     ?? (negrito || variante.startsWith("h") || variante === "display" ? peso.negrito : peso.normal);
 
   return (
+    /*
+      O portão proíbe `<Text>` cru em todo o produto justamente para que exista
+      um lugar só onde a família de fonte é resolvida, e este é esse lugar. A
+      exceção abaixo é a definição da regra, e não um furo nela.
+    */
+    /* design-system: excecao */
     <Text
       numberOfLines={numeroDeLinhas}
       style={{
@@ -379,28 +384,38 @@ export function Aviso({ tom, titulo, acao, children }: {
           mesma caixa para quem não distingue as duas cores. O rótulo de
           acessibilidade diz a gravidade em palavra, porque o desenho do
           caractere não chega a quem usa leitor de tela. */}
-      <Text
+      {/*
+        O sinal e o texto saem pelo `Txt`, e não por um `<Text>` cru.
+
+        Enquanto foram `<Text>` crus, os dois ficaram DE FORA da família de
+        fonte do produto: quem resolve a família é o `Txt`, chamando
+        `familiaDoTexto`, e o React Native cai na fonte do sistema sem erro e
+        sem aviso. O `Aviso` aparece 25 vezes no aplicativo, então o cartão
+        saía em Work Sans e o aviso dentro dele em San Francisco, na mesma tela
+        e a poucos pontos de distância. Era o defeito que a tipografia foi
+        embarcada para corrigir, sobrevivendo dentro da peça que mais aparece.
+
+        A largura fixa que o sinal precisa (para o texto de todos os avisos da
+        tela começar na mesma coluna, independentemente da largura do
+        caractere) passou para o invólucro, que é onde ela deveria ter estado:
+        quem alinha é a caixa, não a letra.
+      */}
+      <View
+        accessible
         accessibilityLabel={sinal.nome}
-        style={{
-          color: cores.texto,
-          fontWeight: peso.negrito,
-          fontSize: fonte.corpo,
-          lineHeight: linha.corpo,
-          // Largura fixa para o texto de todos os avisos da tela começar na
-          // mesma coluna, independentemente da largura do caractere.
-          width: tamanhoDeIcone.rotulo,
-          textAlign: "center",
-        }}
+        style={{ width: tamanhoDeIcone.rotulo }}
       >
-        {sinal.simbolo}
-      </Text>
+        <Txt variante="corpo" peso={peso.negrito} cor={cores.texto} alinhamento="center">
+          {sinal.simbolo}
+        </Txt>
+      </View>
       <View style={{ flex: 1, gap: espaco.e2 }}>
         {titulo && (
           <Txt variante="corpoP" peso={peso.negrito} cor={cores.texto}>{titulo}</Txt>
         )}
-        <Text style={{ color: cores.texto, fontSize: fonte.corpoP, lineHeight: linha.corpoP }}>
+        <Txt variante="corpoP" cor={cores.texto}>
           {children}
-        </Text>
+        </Txt>
         {acao && (
           /*
             A ação fica DENTRO do aviso, e não numa linha solta embaixo dele.
@@ -422,34 +437,21 @@ export function Aviso({ tom, titulo, acao, children }: {
   );
 }
 
-export function Selo({ texto, fundo, cor }: { texto: string; fundo: string; cor: string }) {
-  return (
-    <View style={{
-      backgroundColor: fundo,
-      borderRadius: raio.pilula,
-      paddingHorizontal: espaco.e3,
-      paddingVertical: espaco.e1,
-      alignSelf: "flex-start",
-    }}>
-      <Text style={{ color: cor, fontSize: fonte.legenda, fontWeight: peso.negrito }}>{texto}</Text>
-    </View>
-  );
-}
+/*
+  `Selo` e `SeloSeveridade` moravam aqui, e saíram.
 
-export function SeloSeveridade({ severidade }: { severidade: Severidade | null }) {
-  const tema = useTema();
-  if (!severidade) {
-    return <Selo texto="Sem classificação" fundo={tema.superficie2} cor={tema.textoDiscreto} />;
-  }
-  const cores = {
-    baixa: { fundo: tema.sevBaixaFundo, cor: tema.sevBaixaTexto },
-    media: { fundo: tema.sevMediaFundo, cor: tema.sevMediaTexto },
-    alta: { fundo: tema.sevAltaFundo, cor: tema.sevAltaTexto },
-    critica: { fundo: tema.sevCriticaFundo, cor: tema.sevCriticaTexto },
-  }[severidade];
-  // O texto acompanha sempre: a cor sozinha não diz nada sob sol forte.
-  return <Selo texto={ROTULO_SEVERIDADE[severidade]} fundo={cores.fundo} cor={cores.cor} />;
-}
+  `Selo` era a pílula anterior ao `Chip`: recebia `fundo` e `cor` decididos
+  dentro da tela, desenhava com um `<Text>` cru (ou seja, fora do `Txt`, então
+  sem a família de fonte do produto) e escrevia em `fonte.legenda`, que é 12,
+  dois pontos abaixo do `fonteMinima` declarado neste mesmo arquivo. Duas
+  frentes desta onda pararam de usá-lo por causa disso, cada uma à sua maneira,
+  e nenhuma o aposentou: ele sobreviveu no único lugar em que ainda era chamado,
+  que era também o pior, a marca de gravidade da ocorrência.
+
+  `SeloSeveridade` foi reescrito em cima do `Chip` e mora em `ui/Chip.tsx`, com
+  a razão inteira escrita lá. Peça sem uso e ainda exportada é peça que a
+  próxima tela usa, porque quem escreve procura "selo" no autocompletar e acha.
+*/
 
 /**
  * O estado vazio, que na maioria das vezes é uma RESPOSTA e não uma ausência.

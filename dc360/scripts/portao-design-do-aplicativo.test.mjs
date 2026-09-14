@@ -75,6 +75,31 @@ const REGRAS = [
     porque: "raio vem de `raio` (normal, cartao, pilula), senão cada tela arredonda de um jeito",
   },
   {
+    /*
+      A regra que faltava, e a ausência dela era uma CONTRADIÇÃO entre dois
+      arquivos desta mesma onda, não um esquecimento.
+
+      `tokens.ts` criou `borda` com um parágrafo dizendo, com estas palavras,
+      que `borderWidth: 1` estava escrito à mão em sete lugares e que "um
+      número solto repetido sete vezes é uma decisão que ninguém tomou". No
+      mesmo turno, este portão listava `"borderWidth: 1, borderTopWidth: 0,"`
+      entre os exemplos do que está CERTO. As duas coisas não podiam valer ao
+      mesmo tempo, e quem venceu foi o portão: o token nasceu, e oito literais
+      sobreviveram a ele, um deles um `borderLeftWidth: 4` colado ao lado de um
+      token chamado `marca` que vale exatamente 4 e não tinha um único uso.
+
+      `0` continua fora da regra, pelo mesmo critério da opacidade: ausência de
+      borda não é um valor de design.
+    */
+    nome: "largura de borda escrita à mão",
+    padrao: /(?<![A-Za-z])border[A-Za-z]*Width\s*:[^,\n}]*?(?<![\w.])[1-9]\d*/,
+    porque:
+      "largura de borda vem de `borda` (fio, enfase, marca). O contorno de repouso, "
+      + "o que engrossa em foco e a faixa que classifica um cartão são três decisões "
+      + "diferentes, e escritas como número solto elas viram a mesma coisa em telas "
+      + "vizinhas sem ninguém ter decidido nada",
+  },
+  {
     nome: "duração de movimento literal",
     padrao: /(?<![A-Za-z])(?:duration|delay)\s*:\s*-?\d/,
     porque:
@@ -97,6 +122,36 @@ const REGRAS = [
       + "E são cinco propriedades irmãs: escritas à mão, uma delas fica para trás",
   },
   {
+    /*
+      A regra que a frente de movimento NÃO escreveu, e disse por quê.
+
+      Ela achou o defeito (`ui/Dialogo.tsx` pintava o véu com 0,66 enquanto
+      `opacidade.veu` valia 0,55, ou seja, o token nasceu e ninguém apontou
+      para ele), e não acrescentou a regra porque a regra reprovaria um arquivo
+      que ela não tinha permissão de tocar. Portão que não nasce para não
+      acusar é portão que nasce cego: a próxima pessoa que mexer no token vai
+      continuar não mexendo no véu.
+
+      `0` e `1` ficam de fora, e isso é deliberado: transparente e opaco não
+      são valores de design, são a ausência de um. O que precisa de nome é o
+      MEIO do caminho, que é onde alguém escolhe 0,66 por gosto e o vizinho
+      escolhe 0,55.
+
+      `outputRange` entra junto porque é lá que a opacidade animada mora: a
+      regra escrita só sobre `opacity:` teria passado ao largo exatamente da
+      linha que a motivou. E o aplicativo já escreve assim: as três faixas de
+      escala que existem hoje (`ESCALA_SOB_O_DEDO`, `ESCALA_NA_BORDA`,
+      `ESCALA_DA_FOTO_ENTRANDO`) são constantes com nome e razão escrita.
+    */
+    nome: "opacidade ou faixa de interpolação escrita à mão",
+    padrao: /(?<![A-Za-z])(?:opacity|outputRange)\s*:[^;\n]*?(?<![\w.])\d*\.\d/,
+    porque:
+      "opacidade vem de `opacidade` (inativo, aoToque, veu). Número solto no meio "
+      + "do caminho é escolha de gosto que nenhum outro lugar do produto conhece: "
+      + "foi assim que o véu do diálogo ficou em 0,66 com o token dizendo 0,55. "
+      + "Numa faixa de interpolação, dê nome à constante e escreva a razão dela",
+  },
+  {
     nome: "retorno de toque decidido dentro da tela",
     padrao: /(?<![A-Za-z])opacity\s*:\s*[^,\n]*\bpressed\b/,
     porque:
@@ -106,6 +161,55 @@ const REGRAS = [
       + "`Botao`, com duração de token, curva de token, `useNativeDriver` e a "
       + "chave de redução de movimento respeitada. Escrito na tela, nada disso "
       + "vem junto, e foi assim que cinco lugares ficaram para trás do botão",
+  },
+  {
+    /*
+      A regra que a tipografia do produto precisava e não ganhou.
+
+      Quem resolve a família de fonte neste aplicativo é o `Txt`, chamando
+      `familiaDoTexto`. Um `<Text>` cru fica de fora disso sem erro e sem
+      aviso: o React Native desenha com a fonte do sistema e ninguém percebe
+      no simulador, porque lá a fonte do sistema é bonita. Quando a identidade
+      entrou, TRÊS textos ficaram para trás, e dois deles estavam no `Aviso`,
+      que aparece 25 vezes no produto: o cartão saía em Work Sans e o aviso
+      dentro dele em San Francisco, na mesma tela.
+
+      O mesmo vale para `fontWeight`, que o `Txt` sabe omitir quando a
+      identidade está registrada (com uma família por peso, mandar peso junto
+      faz o Android desenhar o arquivo errado) e que um `<Text>` cru manda
+      sempre.
+
+      `<TextInput>` não entra: ele é controle e não texto, e quem o embrulha é
+      o `Campo`, que já resolve o estilo dele num lugar só.
+    */
+    nome: "texto desenhado fora do `Txt`",
+    padrao: /<Text(?![A-Za-z])/,
+    porque:
+      "`<Text>` cru não passa por `familiaDoTexto`, então sai na fonte do sistema "
+      + "enquanto o resto da tela sai na do produto, e manda `fontWeight` por cima "
+      + "de uma família por peso, que no Android desenha o arquivo errado. Use `Txt`",
+  },
+  {
+    /*
+      A elevação espalhada pela METADE, que é o modo de falha que a própria
+      declaração do token descreve e que nada impedia.
+
+      `elevacao()` devolve um estilo COMPLETO (fundo, contorno e sombra) porque
+      no tema escuro quem carrega a elevação é a superfície, e não a sombra
+      preta sobre fundo quase preto. Levar só a sombra deixa a peça achatada no
+      escuro; levar só o fundo a deixa sem separação no claro. `tokens.ts` diz
+      isso em duas frases e nenhum teste cobrava.
+
+      Por isso a única forma aceita é o espalhamento. `elevacao(tema).cartao` com
+      um `.` depois, ou dentro de uma atribuição a uma propriedade, é sempre
+      alguém escolhendo uma parte.
+    */
+    nome: "elevação usada pela metade",
+    padrao: /(?<!\.\.\.)\belevacao\s*\([^)]*\)\s*\.\s*\w+\s*\./,
+    porque:
+      "a elevação é um estilo completo e se espalha inteira (`...elevacao(tema).cartao`). "
+      + "Escolher uma propriedade produz o cartão achatado no escuro ou sem separação "
+      + "no claro, que é exatamente o que o token existe para evitar",
   },
   {
     nome: "diálogo nativo do sistema",
@@ -238,6 +342,12 @@ test("a varredura pega o que deveria pegar", () => {
     ["duration: 300,", "duração de movimento literal"],
     ["opacity: pressed ? 0.8 : 1,", "retorno de toque decidido dentro da tela"],
     ["opacity: pressed ? opacidade.aoToque : 1,", "retorno de toque decidido dentro da tela"],
+    ["opacity: 0.55,", "opacidade ou faixa de interpolação escrita à mão"],
+    [
+      "opacity: entrada.interpolate({ inputRange: [0, 1], outputRange: [0, 0.66] }),",
+      "opacidade ou faixa de interpolação escrita à mão",
+    ],
+    ["outputRange: [1, 0.96],", "opacidade ou faixa de interpolação escrita à mão"],
     ['fontWeight: "700",', "peso de fonte literal"],
     ["fontWeight: 700,", "peso de fonte literal"],
     ["elevation: 8,", "sombra escrita à mão"],
@@ -245,6 +355,14 @@ test("a varredura pega o que deveria pegar", () => {
     ["shadowRadius: 12,", "sombra escrita à mão"],
     ["shadowOffset: { width: 0, height: 4 },", "sombra escrita à mão"],
     ['Alert.alert("Sair da conta?", "Tem certeza?");', "diálogo nativo do sistema"],
+    ["borderWidth: 1,", "largura de borda escrita à mão"],
+    ["borderTopWidth: 1,", "largura de borda escrita à mão"],
+    ["borderLeftWidth: 4,", "largura de borda escrita à mão"],
+    ["borderWidth: marcado ? 0 : 1,", "largura de borda escrita à mão"],
+    ["shadowColor: elevacao(tema).cartao.shadowColor,", "elevação usada pela metade"],
+    ["const raio = elevacao(tema).folha.shadowRadius;", "elevação usada pela metade"],
+    ['<Text style={{ color: cores.texto, fontSize: fonte.corpoP }}>', "texto desenhado fora do `Txt`"],
+    ["<Text", "texto desenhado fora do `Txt`"],
     ['import { Alert, View } from "react-native";', "diálogo nativo do sistema"],
   ];
 
@@ -265,13 +383,29 @@ test("a varredura não reclama do que está certo", () => {
     "duration: movimento.mudancaDeEstado,",
     "opacity: inativo ? opacidade.inativo : toqueVisual.opacidadeDoToque,",
     "opacity: presenca,",
+    "opacity: desabilitado ? opacidade.inativo : 1,",
+    "outputRange: [1, opacidade.aoToque],",
+    "outputRange: [ESCALA_NA_BORDA, 1],",
+    "outputRange: [espaco.e6, 0],",
+    "opacity: entrada.interpolate({ inputRange: [0, 1], outputRange: [0, opacidade.veu] }),",
     "duration: movimento.climax * 0.4,",
     "fontWeight: peso,",
     "minHeight: toque,",
     "shadowRadius: elevacao.n2.shadowRadius,",
     "gap: espaco.e2,",
     "width: 96, height: 96,",
-    "borderWidth: 1, borderTopWidth: 0,",
+    "borderWidth: borda.fio, borderTopWidth: 0,",
+    "borderLeftWidth: borda.marca,",
+    "borderWidth: comFoco || temErro ? borda.enfase : borda.fio,",
+    "borderWidth: foco.largura,",
+    "borderWidth: 0,",
+    "...elevacao(tema).cartao,",
+    "...elevacao(tema).flutuante,",
+    "const esperado = elevacao(tema).cartao;",
+    "<TextInput {...ligacoes} style={[ligacoes.style, { flex: 1 }]} />",
+    "<Txt variante=\"corpoP\" cor={cores.texto}>{children}</Txt>",
+    "</Text>",
+    "borderRadius: raio.normal + foco.folga + foco.largura,",
     "const bloqueados = fila.filter((f) => f.estado === 'bloqueado').length;",
   ];
   for (const linha of corretos) {
@@ -419,4 +553,216 @@ test("a varredura de espera sem saída enxerga alguma coisa", () => {
     `esperado encontrar as esperas de tela cheia do aplicativo, achei ${quantas}. `
     + "A varredura ficou cega, e o caso ao lado passou a não provar nada.",
   );
+});
+
+/* ============================================================
+   TOKEN DECLARADO E SEM NINGUÉM APONTANDO PARA ELE
+   ============================================================ */
+
+/**
+ * A causa por trás do véu com dois valores, promovida a regra.
+ *
+ * O defeito do `Dialogo` não foi ter escrito `0.66`: foi `opacidade.veu` ter
+ * nascido, ficado em 0,55 e nunca ter sido usado por ninguém. Um token sem
+ * dono é uma afirmação que o produto não sustenta, e ele é pior que a ausência
+ * do token, porque a próxima pessoa lê o arquivo, acredita e não confere a
+ * tela. Foi exatamente assim que o sistema de design passou a dizer 0,55
+ * enquanto o aplicativo desenhava 0,66, com as duas coisas verdes.
+ *
+ * A varredura cobre os grupos cujo acesso é sempre `grupo.membro`. Os temas
+ * ficam de fora de propósito: `tema` chega aos componentes como parâmetro, com
+ * dez nomes diferentes, e uma varredura textual ali acusaria falso sem parar.
+ * Quem cobre os temas é o portão de acessibilidade, que MEDE cada par.
+ *
+ * O apelido é resolvido porque ele existe no código de verdade:
+ * `componentes.tsx` importa `icone as tamanhoDeIcone`, e uma varredura que não
+ * soubesse disso declararia os quatro tamanhos de ícone mortos no primeiro dia.
+ */
+const GRUPOS_COM_DONO = ["espaco", "raio", "fonte", "linha", "movimento", "peso", "borda", "opacidade", "icone", "foco", "easing", "papel", "visor"];
+
+/**
+ * Exceção nomeada, com a razão escrita e com o caso que a mata.
+ *
+ * `elevacao(tema).folha` é o topo da escala de elevação, e `tokens.ts` diz, na
+ * própria declaração, que ele existe para "o que cobre a tela e pede decisão
+ * (diálogo, painel que sobe)". O único elemento dessa classe no aplicativo é a
+ * folha do `Dialogo`, e ela desenha a superfície à mão: fundo `superficie`,
+ * contorno só no topo, sem sombra nenhuma.
+ *
+ * Isto está declarado e NÃO corrigido nesta revisão, com a razão em
+ * `apps/campo/PENDENCIAS.md`: o nível foi desenhado para uma folha que paira,
+ * com a sombra descendo 12 pontos, e a única folha do produto é colada no
+ * rodapé, onde essa sombra cai para fora da tela. Espalhar o nível pela metade
+ * é justamente o que a declaração do token proíbe, e mudar a direção da sombra
+ * no ponto de uso seria decidir a escala de elevação dentro de um componente.
+ * A escolha entre acertar o nível e aposentá-lo é de quem desenha o produto, e
+ * não cabe numa revisão adversarial que não pode ver a tela no aparelho.
+ */
+const SEM_DONO_DECLARADO = new Map([
+  ["elevacao.folha", "nível desenhado para folha que paira; a única folha do produto é colada no rodapé. Ver apps/campo/PENDENCIAS.md"],
+  /*
+    `corpoG` (17 pontos) é um degrau da escala tipográfica que NENHUM componente
+    sabe pedir: a união de `variante` do `Txt` tem display, h1, h2, h3, corpo,
+    corpoP e legenda, e não tem corpoG. Passá-lo devolveria `fontSize:
+    undefined`. Ou seja, a escala declara oito degraus e a única peça que a lê
+    expõe sete.
+
+    Não é corrigido aqui, e a razão é que as duas saídas são decisão de quem
+    desenha o produto e nenhuma delas é neutra: abrir a variante no `Txt` cria
+    um tamanho novo na interface, e apagar o degrau tira da escala do aplicativo
+    um passo que o painel TEM (`--ds-fs-body-lg`, que lá vale 18 e aqui valeria
+    17, e a paridade de propósito não mapeia este par). Escolher por conta
+    própria, numa revisão que não pode ver a tela no aparelho, seria mexer na
+    tipografia do produto por dedução. Registrado em `apps/campo/PENDENCIAS.md`.
+  */
+  ["fonte.corpoG", "degrau de 17 pontos que o `Txt` não expõe em `variante`. Ver apps/campo/PENDENCIAS.md"],
+  ["linha.corpoG", "a altura de linha do degrau acima, e ela some ou fica junto com ele"],
+]);
+
+/** Os membros de `export const GRUPO = { ... }`, por leitura do texto. */
+function membrosDoGrupo(fonte, grupo) {
+  const abertura = new RegExp(`export const ${grupo}(?:\\s*:\\s*[\\w.<>, ]+)?\\s*=\\s*\\{`);
+  const casou = abertura.exec(fonte);
+  if (!casou) return null;
+  const inicio = fonte.indexOf("{", casou.index);
+  let profundidade = 0;
+  let fim = inicio;
+  for (let i = inicio; i < fonte.length; i++) {
+    if (fonte[i] === "{") profundidade++;
+    if (fonte[i] === "}") {
+      profundidade--;
+      if (profundidade === 0) { fim = i; break; }
+    }
+  }
+  const corpo = fonte.slice(inicio + 1, fim);
+  /* Só o primeiro nível: `shadowOffset: { width, height }` não declara token. */
+  const nomes = new Set();
+  let nivel = 0;
+  for (const linha of corpo.split("\n")) {
+    const antes = nivel;
+    for (const c of linha) {
+      if (c === "{") nivel++;
+      if (c === "}") nivel--;
+    }
+    if (antes !== 0) continue;
+    for (const casouMembro of linha.matchAll(/(?:^|[{,\s])([A-Za-z_]\w*)\s*:/g)) nomes.add(casouMembro[1]);
+  }
+  return [...nomes];
+}
+
+/** Os níveis que `elevacao()` devolve, lidos do tipo `NivelDeElevacao`. */
+function niveisDeElevacao(fonte) {
+  const casou = /export type NivelDeElevacao\s*=\s*([^;]+);/.exec(fonte);
+  if (!casou) return [];
+  return [...casou[1].matchAll(/"(\w+)"/g)].map((m) => m[1]);
+}
+
+test("nenhum token declarado fica sem alguém apontando para ele", () => {
+  const tokens = semComentarios(readFileSync(TOKENS_TS, "utf8"));
+  const produto = arquivosDeFonte()
+    .filter((c) => nomeCurto(c) !== "ui/tokens.ts")
+    .map((c) => semComentarios(readFileSync(c, "utf8")))
+    .join("\n");
+
+  const orfaos = [];
+  const usado = (nomes, membro) =>
+    nomes.some((n) => new RegExp(`(?<![A-Za-z0-9_$])${n}\\s*\\.\\s*${membro}\\b`).test(produto));
+
+  for (const grupo of GRUPOS_COM_DONO) {
+    const membros = membrosDoGrupo(tokens, grupo);
+    assert.ok(membros && membros.length > 0, `tokens.ts não declara mais "export const ${grupo}", ou a leitura quebrou`);
+    /* `icone as tamanhoDeIcone` e qualquer outro apelido de importação. */
+    const apelidos = [...produto.matchAll(new RegExp(`(?<![A-Za-z0-9_$])${grupo}\\s+as\\s+(\\w+)`, "g"))].map((m) => m[1]);
+    for (const membro of membros) {
+      if (usado([grupo, ...apelidos], membro)) continue;
+      orfaos.push(`${grupo}.${membro}`);
+    }
+  }
+
+  for (const nivel of niveisDeElevacao(tokens)) {
+    if (new RegExp(`elevacao\\s*\\([^)]*\\)\\s*\\.\\s*${nivel}\\b`).test(produto)) continue;
+    orfaos.push(`elevacao.${nivel}`);
+  }
+
+  const naoDeclarados = orfaos.filter((o) => !SEM_DONO_DECLARADO.has(o));
+
+  assert.deepEqual(
+    naoDeclarados,
+    [],
+    "estes tokens existem em `src/ui/tokens.ts` e nenhuma linha do produto os usa:\n  "
+    + naoDeclarados.join("\n  ")
+    + "\n\nToken sem dono é afirmação que o produto não sustenta, e foi assim que "
+    + "`opacidade.veu` ficou em 0,55 enquanto o diálogo desenhava 0,66. Ou ligue o "
+    + "token onde ele deveria estar, ou apague-o, ou declare a dívida em "
+    + "SEM_DONO_DECLARADO com a razão e o lugar onde ela está registrada.",
+  );
+});
+
+test("a dívida de token sem dono não sobrevive ao próprio conserto", () => {
+  /*
+    O irmão obrigatório: sem ele, a lista de exceções vira permanente. No dia
+    em que alguém ligar `elevacao.folha`, o nome precisa sair daqui, senão a
+    próxima dívida entra na lista e ninguém percebe que a lista deixou de ser
+    lida.
+  */
+  const tokens = semComentarios(readFileSync(TOKENS_TS, "utf8"));
+  const produto = arquivosDeFonte()
+    .filter((c) => nomeCurto(c) !== "ui/tokens.ts")
+    .map((c) => semComentarios(readFileSync(c, "utf8")))
+    .join("\n");
+
+  const consertados = [];
+  for (const nome of SEM_DONO_DECLARADO.keys()) {
+    const [grupo, membro] = nome.split(".");
+    const achou = grupo === "elevacao"
+      ? new RegExp(`elevacao\\s*\\([^)]*\\)\\s*\\.\\s*${membro}\\b`).test(produto)
+      : new RegExp(`(?<![A-Za-z0-9_$])${grupo}\\s*\\.\\s*${membro}\\b`).test(produto);
+    if (achou) consertados.push(nome);
+  }
+
+  assert.deepEqual(
+    consertados,
+    [],
+    "estes tokens ganharam dono e continuam declarados como dívida. Tire a linha "
+    + "de SEM_DONO_DECLARADO:\n  " + consertados.join("\n  "),
+  );
+  assert.ok(tokens.includes("export const opacidade"), "a leitura de tokens.ts quebrou");
+});
+
+test("a varredura de token sem dono enxerga o que deveria", () => {
+  /*
+    A prova da própria varredura, e ela tem duas metades.
+
+    A primeira reintroduz o defeito de origem: com o uso de `opacidade.veu`
+    apagado do produto, o token precisa aparecer como órfão. Sem este caso, um
+    erro na expressão de busca daria verde para sempre, que é o estado em que o
+    aplicativo estava.
+
+    A segunda prova o apelido, porque é onde esta varredura erraria primeiro:
+    `componentes.tsx` importa `icone as tamanhoDeIcone`, e uma busca que
+    ignorasse isso declararia os quatro tamanhos de ícone mortos.
+  */
+  const tokens = semComentarios(readFileSync(TOKENS_TS, "utf8"));
+
+  const membros = membrosDoGrupo(tokens, "opacidade");
+  assert.deepEqual([...membros].sort(), ["aoToque", "inativo", "veu"]);
+  assert.deepEqual([...membrosDoGrupo(tokens, "borda")].sort(), ["enfase", "fio", "marca"]);
+  assert.deepEqual(niveisDeElevacao(tokens).sort(), ["cartao", "flutuante", "folha"]);
+
+  /* `shadowOffset: { width: 0, height: 1 }` não pode virar token `width`. */
+  assert.equal(membrosDoGrupo(tokens, "opacidade").includes("width"), false);
+
+  const busca = (produto, grupo, membro) =>
+    new RegExp(`(?<![A-Za-z0-9_$])${grupo}\\s*\\.\\s*${membro}\\b`).test(produto);
+
+  assert.equal(busca("opacity: entrada.interpolate({ outputRange: [0, opacidade.veu] })", "opacidade", "veu"), true);
+  assert.equal(busca("opacity: entrada.interpolate({ outputRange: [0, 0.66] })", "opacidade", "veu"), false);
+  /* E o sufixo não pode casar: `superopacidade.veu` não é o nosso token. */
+  assert.equal(busca("superopacidade.veu", "opacidade", "veu"), false);
+
+  const comApelido = 'import { icone as tamanhoDeIcone } from "./tokens";\nwidth: tamanhoDeIcone.vazio,';
+  assert.equal(busca(comApelido, "icone", "vazio"), false, "sem resolver o apelido, o token pareceria órfão");
+  const apelidos = [...comApelido.matchAll(/(?<![A-Za-z0-9_$])icone\s+as\s+(\w+)/g)].map((m) => m[1]);
+  assert.deepEqual(apelidos, ["tamanhoDeIcone"]);
+  assert.equal(busca(comApelido, apelidos[0], "vazio"), true);
 });

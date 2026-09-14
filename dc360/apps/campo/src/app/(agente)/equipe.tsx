@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { ROTULO_PAPEL, ROTULO_TIPO_COBRADE } from "@dc360/shared";
@@ -9,10 +9,11 @@ import { useSinal } from "../../dados/conectividade";
 import {
   Aviso, Botao, Cartao, Carregando, Separador, Txt, Vazio, useTema,
 } from "../../ui/componentes";
+import { Chip } from "../../ui/Chip";
 import {
   IconeAlerta, IconeEquipe, IconeSemSinal, IconeSucesso,
 } from "../../ui/icones";
-import { espaco, icone, peso, raio, type Tema } from "../../ui/tokens";
+import { espaco, icone, peso, raio } from "../../ui/tokens";
 import { idadeEmPalavras } from "../../dados/atualizacao";
 
 /**
@@ -57,54 +58,27 @@ import { idadeEmPalavras } from "../../dados/atualizacao";
  * botão dizendo só que apertar de novo não adianta.
  */
 
-/**
- * A pílula com ÍCONE, que o `Chip` não sabe desenhar.
- *
- * `Chip` existe e é a peça certa para estado, mas o segundo canal dele é um
- * `simbolo: string`, ou seja, um caractere tipográfico. Estas três etiquetas
- * precisam de DESENHO: "coletada sem sinal" é o momento que a frente de
- * iconografia desenhou o `IconeSemSinal` para servir, e um "↑" no lugar dele
- * seria voltar exatamente ao que fez o aplicativo parecer "só texto".
- *
- * Ela mora aqui, e não em `src/ui`, porque `src/ui` é faixa de outra frente
- * neste turno. Ensinar o `Chip` a aceitar um nó é o conserto de verdade, e
- * está anotado como pendência.
- */
-function Etiqueta({ desenho, texto, tom, tema }: {
-  desenho: (cor: string) => ReactNode;
-  texto: string;
-  tom: "neutro" | "ok" | "alerta";
-  tema: Tema;
-}) {
-  const cores = {
-    neutro: { fundo: tema.superficie2, cor: tema.textoDiscreto },
-    ok: { fundo: tema.okFundo, cor: tema.okTexto },
-    alerta: { fundo: tema.alertaFundo, cor: tema.alertaTexto },
-  }[tom];
+/*
+  A pílula com ícone desta tela era uma CÓPIA do `Chip`, chamada `Etiqueta`, e
+  ela saiu daqui.
 
-  return (
-    <View
-      /* Um elemento só para quem ouve: o desenho não tem nome, e o texto ao
-         lado já é a frase inteira. */
-      accessible
-      accessibilityRole="text"
-      accessibilityLabel={texto}
-      style={{
-        backgroundColor: cores.fundo,
-        borderRadius: raio.pilula,
-        paddingHorizontal: espaco.e3,
-        paddingVertical: espaco.e1,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: espaco.e2,
-        alignSelf: "flex-start",
-      }}
-    >
-      {desenho(cores.cor)}
-      <Txt variante="corpoP" peso={peso.forte} cor={cores.cor}>{texto}</Txt>
-    </View>
-  );
-}
+  Ela nasceu com uma razão real e escrita: o `Chip` só aceitava `simbolo:
+  string`, ou seja, caractere tipográfico, e estas três etiquetas precisam de
+  DESENHO ("coletada sem sinal" é o momento que a frente de iconografia
+  desenhou o `IconeSemSinal` para servir). O comentário dela terminava assim:
+  "ensinar o `Chip` a aceitar um nó é o conserto de verdade, e está anotado como
+  pendência".
+
+  O `Chip` aprendeu a aceitar um nó no MESMO turno, por outra frente, e ninguém
+  voltou aqui. A cópia sobreviveu com o comentário afirmando o contrário do que
+  o código já fazia, e com o texto em `peso.forte` enquanto a peça oficial usa
+  `peso.negrito`: duas pílulas idênticas em telas vizinhas, com pesos
+  diferentes, que é exatamente como uma cópia começa a divergir.
+
+  O que a cópia tinha de melhor foi para o `Chip` e não se perdeu: o símbolo
+  pode ser uma FUNÇÃO da cor, então quem passa um ícone não precisa saber com
+  que cor pintá-lo.
+*/
 
 /**
  * A inicial do colega, para a lista ter ritmo vertical em vez de ser parágrafo.
@@ -284,19 +258,17 @@ export default function Equipe() {
             dia.
           */}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: espaco.e2 }}>
-            <Etiqueta
-              tema={tema}
+            <Chip
               tom={dados.equipe.ativa ? "ok" : "alerta"}
               texto={dados.equipe.ativa ? "Equipe ativa" : "Equipe inativa"}
-              desenho={(cor) => (dados.equipe?.ativa
+              simbolo={(cor) => (dados.equipe?.ativa
                 ? <IconeSucesso cor={cor} tamanho={icone.inline} />
                 : <IconeAlerta cor={cor} tamanho={icone.inline} />)}
             />
-            <Etiqueta
-              tema={tema}
+            <Chip
               tom="neutro"
               texto={dados.equipe.especialidade ?? "Geral"}
-              desenho={(cor) => <IconeEquipe cor={cor} tamanho={icone.inline} />}
+              simbolo={(cor) => <IconeEquipe cor={cor} tamanho={icone.inline} />}
             />
           </View>
 
@@ -352,11 +324,10 @@ export default function Equipe() {
                       {c.nome}{c.id === eu ? " (você)" : ""}
                     </Txt>
                   </View>
-                  <Etiqueta
-                    tema={tema}
+                  <Chip
                     tom="neutro"
                     texto={ROTULO_PAPEL[c.papel]}
-                    desenho={(cor) => <IconeEquipe cor={cor} tamanho={icone.inline} />}
+                    simbolo={(cor) => <IconeEquipe cor={cor} tamanho={icone.inline} />}
                   />
                 </View>
               ))}
@@ -399,11 +370,10 @@ export default function Equipe() {
                   <Txt variante="corpo">{ROTULO_TIPO_COBRADE[v.tipo] ?? v.tipo}</Txt>
                   <Txt variante="legenda" discreto>{v.endereco}</Txt>
                   {semSinal && (
-                    <Etiqueta
-                      tema={tema}
+                    <Chip
                       tom="ok"
                       texto="Coletada sem sinal, enviada depois"
-                      desenho={(cor) => <IconeSemSinal cor={cor} tamanho={icone.inline} />}
+                      simbolo={(cor) => <IconeSemSinal cor={cor} tamanho={icone.inline} />}
                     />
                   )}
                 </View>

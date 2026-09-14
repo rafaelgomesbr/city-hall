@@ -25,7 +25,7 @@ jest.mock("expo-font", () => ({
 }));
 
 import { ProvedorDeFontes, decidirAbertura, useFontes, TETO_DE_ESPERA_DA_FONTE_MS } from "./fontes";
-import { Txt, ProvedorDeTema } from "./componentes";
+import { Aviso, Txt, ProvedorDeTema } from "./componentes";
 import { ARQUIVOS_DE_FONTE, FAMILIA_POR_PESO, PILHA_DO_SISTEMA, familiaDoTexto } from "./tipografia";
 import { peso } from "./tokens";
 
@@ -208,5 +208,58 @@ describe("o texto na tela", () => {
     await montar(<Txt variante="h2">Minhas tarefas</Txt>);
     const estilo = StyleSheet.flatten(screen.getByText("Minhas tarefas").props.style);
     expect(estilo.fontWeight).toBe(peso.negrito);
+  });
+});
+
+/**
+ * O BURACO QUE A IDENTIDADE DEIXOU, e ele não estava numa tela.
+ *
+ * Quem resolve a família de fonte é o `Txt`, chamando `familiaDoTexto`. Quem
+ * desenha com um `<Text>` cru fica DE FORA disso, sem erro e sem aviso: o React
+ * Native simplesmente usa a fonte do sistema. Quando a tipografia do produto
+ * entrou no aplicativo, três textos ficaram para trás, todos dentro de
+ * `componentes.tsx`, e dois deles estavam no `Aviso`.
+ *
+ * O `Aviso` aparece 25 vezes no aplicativo. O efeito não é sutil e não é de
+ * gosto: o cartão inteiro sai em Work Sans e o texto do aviso dentro dele sai
+ * em San Francisco, com outro desenho de letra, outra largura e outra altura de
+ * x, na mesma tela e a poucos pontos de distância. É o defeito que a
+ * tipografia do produto foi embarcada para corrigir, sobrevivendo dentro da
+ * peça que mais aparece.
+ *
+ * O terceiro era o `Selo`, e ele foi aposentado noutro achado desta mesma
+ * revisão.
+ */
+describe("nenhuma peça do produto desenha fora da família", () => {
+  it("o texto do aviso sai na fonte do produto, e não na do sistema", async () => {
+    mockCarregadas = true;
+    await montar(<Aviso tom="alerta">Sem sinal há duas horas</Aviso>);
+    expect(familiaDe("Sem sinal há duas horas")).toBe("WorkSans-Regular");
+  });
+
+  it("o título do aviso também, e no peso dele", async () => {
+    mockCarregadas = true;
+    await montar(<Aviso tom="perigo" titulo="Coleta presa">O servidor recusou</Aviso>);
+    expect(familiaDe("Coleta presa")).toBe("WorkSans-Bold");
+  });
+
+  /*
+    O sinal é o "×" e o "!" que separam perigo de alerta sem depender de cor.
+    Fora da família do produto ele herda o desenho do sistema, e o peso do traço
+    dele deixa de casar com o do texto ao lado, que é a única coisa que faz os
+    dois parecerem a mesma peça.
+  */
+  it("e o sinal, que é o segundo canal da gravidade", async () => {
+    mockCarregadas = true;
+    await montar(<Aviso tom="perigo">Sem sinal</Aviso>);
+    expect(familiaDe("×")).toBe("WorkSans-Bold");
+  });
+
+  it("na reserva, os três caem na pilha do sistema junto com o resto", async () => {
+    mockErro = new Error("sem fonte");
+    await montar(<Aviso tom="perigo" titulo="Coleta presa">O servidor recusou</Aviso>);
+    expect(familiaDe("O servidor recusou")).toBe(PILHA_DO_SISTEMA.texto);
+    expect(familiaDe("Coleta presa")).toBe(PILHA_DO_SISTEMA.texto);
+    expect(familiaDe("×")).toBe(PILHA_DO_SISTEMA.texto);
   });
 });

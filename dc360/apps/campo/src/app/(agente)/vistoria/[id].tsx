@@ -31,10 +31,10 @@ import { useSessao } from "../../../dados/sessao";
 import { Assinatura } from "../../../ui/Assinatura";
 import { MinutaDoLaudo } from "../../../ui/MinutaDoLaudo";
 import {
-  Aviso, Botao, Cartao, Carregando, SeloSeveridade, Separador, Tocavel, Txt, Vazio, useTema,
+  Aviso, Botao, Cartao, Carregando, Separador, Tocavel, Txt, Vazio, useTema,
 } from "../../../ui/componentes";
 import { Campo, CampoDeTexto } from "../../../ui/Campo";
-import { Chip } from "../../../ui/Chip";
+import { Chip, SeloSeveridade } from "../../../ui/Chip";
 import { Dialogo } from "../../../ui/Dialogo";
 import {
   IconeAlerta, IconeAssinatura, IconeChecklist, IconeEnvio, IconeFoto, IconeGps,
@@ -1076,12 +1076,17 @@ export default function TelaDeVistoria() {
           `Chip` passou a aceitar um nó, então o selo usa os mesmos ícones do
           resto do produto. A palavra continua ali: o desenho é a segunda
           pista, nunca a única.
+
+          A COR do desenho vem do chip, e não daqui. Enquanto vinha daqui
+          (`cor={tema.okTexto}` escrito ao lado de `tom="ok"`), esta linha era
+          uma segunda cópia do mapa de cores do `Chip`, e o dia em que o tom
+          "ok" mudasse deixaria este ícone com a cor antiga, sem nada acusar.
         */}
         <Chip
           texto={jaColetada.situacao === "enviada" ? "Enviada" : "Na fila de envio"}
-          simbolo={jaColetada.situacao === "enviada"
-            ? <IconeSucesso cor={tema.okTexto} tamanho={icone.inline} />
-            : <IconeEnvio cor={tema.textoDiscreto} tamanho={icone.inline} />}
+          simbolo={(cor) => (jaColetada.situacao === "enviada"
+            ? <IconeSucesso cor={cor} tamanho={icone.inline} />
+            : <IconeEnvio cor={cor} tamanho={icone.inline} />)}
           tom={jaColetada.situacao === "enviada" ? "ok" : "neutro"}
           descricao={
             jaColetada.situacao === "enviada"
@@ -1380,7 +1385,7 @@ export default function TelaDeVistoria() {
         <View style={{
           flexDirection: "row", gap: espaco.e3,
           padding: espaco.e4, paddingBottom: espaco.e5,
-          borderTopWidth: 1, borderTopColor: tema.borda,
+          borderTopWidth: borda.fio, borderTopColor: tema.borda,
           backgroundColor: tema.superficie,
         }}>
           <View style={{ flex: 1 }}>
@@ -1430,6 +1435,17 @@ export default function TelaDeVistoria() {
             estilo={{
               width: 84, height: 84, borderRadius: raio.pilula,
               backgroundColor: visor.obturador,
+              /*
+                O anel do obturador não é contorno de superfície. Ele tem a
+                espessura que uma câmera de telefone desenha, junto com os 84
+                pontos de diâmetro logo acima, e não a de um cartão:
+                `borda.marca` (4) é a faixa que classifica um cartão, e usá-la
+                aqui amarraria o desenho do obturador à régua de contorno do
+                produto, que muda por outra razão. Mesma família de exceção que
+                `visor`, na linha de cima: o que está desenhado aqui é uma
+                câmera, e não uma superfície deste aplicativo.
+              */
+              /* design-system: excecao */
               borderWidth: 5, borderColor: tema.destaque,
             }}
           >

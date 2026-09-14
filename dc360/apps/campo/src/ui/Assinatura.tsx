@@ -3,7 +3,7 @@ import { PanResponder, View, type LayoutChangeEvent } from "react-native";
 import Svg, { Path, Rect } from "react-native-svg";
 import { File, Paths } from "expo-file-system";
 import { Botao, Txt, useTema } from "./componentes";
-import { espaco, papel, raio } from "./tokens";
+import { borda, espaco, papel, raio } from "./tokens";
 
 /**
  * Assinatura de próprio punho, com o dedo.
@@ -258,7 +258,7 @@ export function Assinatura(
         accessibilityLabel="Quadro de assinatura. Arraste o dedo para assinar."
         style={{
           height: ALTURA,
-          borderWidth: 1,
+          borderWidth: borda.fio,
           /*
             Papel, e não `tema.superficie`. O que está aqui dentro é o que vai
             para o laudo, e o laudo é impresso em branco nos dois temas.

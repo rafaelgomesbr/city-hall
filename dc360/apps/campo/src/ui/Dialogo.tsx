@@ -4,7 +4,7 @@ import {
 } from "react-native";
 
 import { Botao, Txt, useTema } from "./componentes";
-import { espaco, movimento, raio, tinta } from "./tokens";
+import { borda, espaco, movimento, opacidade, raio, tinta } from "./tokens";
 import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
 
 /**
@@ -196,7 +196,15 @@ export function Dialogo({
             StyleSheet.absoluteFill,
             {
               backgroundColor: tinta.t950,
-              opacity: entrada.interpolate({ inputRange: [0, 1], outputRange: [0, 0.66] }),
+              /*
+                A opacidade do véu sai de `opacidade.veu`, e não de um número
+                escrito aqui. Enquanto morou nesta linha, ela valia 0,66 com o
+                token declarando 0,55, e as duas conviveram porque nada obrigava
+                uma a conhecer a outra. O token foi acertado para o valor que
+                este arquivo desenhava (ver a razão em `tokens.ts`), e o portão
+                de design reprova a volta do literal.
+              */
+              opacity: entrada.interpolate({ inputRange: [0, 1], outputRange: [0, opacidade.veu] }),
             },
           ]}
         >
@@ -235,7 +243,7 @@ export function Dialogo({
             backgroundColor: tema.superficie,
             borderTopLeftRadius: raio.cartao,
             borderTopRightRadius: raio.cartao,
-            borderTopWidth: 1,
+            borderTopWidth: borda.fio,
             borderColor: tema.borda,
             padding: espaco.e5,
             // A folga de baixo é maior que a de cima por causa da barra de

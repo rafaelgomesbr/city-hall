@@ -398,15 +398,24 @@ export default function Conta() {
         )}
 
         {/*
-          A confirmação do atalho para os ajustes precisa dizer a parte chata:
-          este aplicativo lê a permissão na abertura, e não existe escuta de
-          volta do segundo plano. Quem liga a notificação lá e volta encontra a
-          mesma frase de antes, conclui que não funcionou, e desiste.
+          A frase daqui era um contorno, e o contorno saiu junto com o defeito.
+
+          Ela dizia "feche e abra este aplicativo de novo para ele perceber", e
+          era verdade: o provedor de notificação lia a permissão na montagem e
+          na troca de sessão, e nunca na volta do segundo plano. Quem ligava a
+          notificação nos ajustes voltava para esta tela, encontrava a mesma
+          frase de antes e concluía que não tinha funcionado. Pior que a frase
+          era a ficha, que só é registrada depois da permissão concedida: o
+          aparelho ficava sem ficha no servidor, e o aviso de prazo não saía.
+
+          Hoje `ProvedorDePush` escuta `AppState` e relê a permissão ao voltar,
+          registrando a ficha que faltava. Ver
+          `src/push/volta-do-segundo-plano.test.tsx`.
         */}
         {abriuOsAjustes && (
           <Aviso tom="info" titulo="Os ajustes foram abertos">
-            Se você ligou a notificação por lá, feche e abra este aplicativo de
-            novo para ele perceber.
+            Se você ligou a notificação por lá, é só voltar para cá: o estado
+            acima se atualiza sozinho.
           </Aviso>
         )}
 

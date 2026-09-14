@@ -5,7 +5,7 @@ import type { OrgaoIndicado } from "@dc360/shared";
 import type { OrgaoDoCatalogo } from "../dados/api";
 import { Aviso, Botao, Separador, Txt, useTema } from "./componentes";
 import { Chip } from "./Chip";
-import { espaco, fonte, raio, movimento, toque } from "./tokens";
+import { borda, espaco, fonte, raio, movimento, toque } from "./tokens";
 import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
 
 /**
@@ -192,7 +192,7 @@ export function OrgaosParaAcionar({
               alignItems: "center",
               gap: espaco.e3,
               borderRadius: raio.normal,
-              borderWidth: marcado ? 0 : 1,
+              borderWidth: marcado ? 0 : borda.fio,
               borderColor: tema.borda,
               backgroundColor: marcado ? tema.destaque : "transparent",
             }}
@@ -261,7 +261,7 @@ export function OrgaosParaAcionar({
         accessibilityLabel="Nome de outro órgão, fora da lista do município"
         style={{
           minHeight: toque,
-          borderWidth: 1,
+          borderWidth: borda.fio,
           borderColor: tema.borda,
           borderRadius: raio.normal,
           backgroundColor: tema.superficie,

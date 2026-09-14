@@ -1,7 +1,7 @@
 import { ScrollView, View } from "react-native";
 import type { Minuta } from "@dc360/shared";
 import { Txt } from "./componentes";
-import { espaco, papel, raio } from "./tokens";
+import { borda, espaco, papel, raio } from "./tokens";
 
 /**
  * A minuta desenhada na tela do aparelho.
@@ -56,7 +56,14 @@ export function MinutaDoLaudo({ minuta }: { minuta: Minuta }): React.JSX.Element
           backgroundColor: papel.avisoFundo,
           borderRadius: raio.cartao,
           padding: espaco.e3,
-          borderLeftWidth: 4,
+          /*
+            A faixa que classifica a folha inteira, e ela é `borda.marca` e não
+            um 4 solto. O token nasceu com este caso escrito na declaração ("a
+            faixa lateral que classifica um cartão inteiro") e passou a onda
+            inteira sem um único uso, com este 4 escrito à mão a poucos
+            arquivos de distância.
+          */
+          borderLeftWidth: borda.marca,
           borderLeftColor: papel.avisoTinta,
         }}
       >
@@ -70,7 +77,7 @@ export function MinutaDoLaudo({ minuta }: { minuta: Minuta }): React.JSX.Element
         style={{
           backgroundColor: papel.fundo,
           borderRadius: raio.cartao,
-          borderWidth: 1,
+          borderWidth: borda.fio,
           borderColor: papel.linha,
           padding: espaco.e4,
           gap: espaco.e3,

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { AppState } from "react-native";
 import { router } from "expo-router";
 
 import { registrarAparelho } from "../dados/api";
@@ -34,6 +35,9 @@ import { registrarEsteAparelho, type DesfechoDoRegistro } from "./registro";
  * 4. **Varredura da bandeja, a cada mudança de sessão.** É o que fecha a janela
  *    do aviso que o sistema desenhou sozinho enquanto o aplicativo estava
  *    fechado.
+ * 5. **Releitura da permissão na volta do segundo plano.** É o passo que
+ *    faltava, e a ausência dele tinha texto próprio na tela de conta ("feche e
+ *    abra este aplicativo de novo para ele perceber"). Ver o bloco 6.
  */
 
 export function ProvedorDePush({
@@ -236,6 +240,59 @@ export function ProvedorDePush({
 
     return () => { vivo = false; };
   }, [porta, carregando, organizacao]);
+
+  /* ------------------------------------------------------------------
+     6. A volta do segundo plano
+     ------------------------------------------------------------------ */
+  /**
+   * Relê a permissão e registra a ficha, se agora der.
+   *
+   * Está separado do efeito 5 de propósito: aquele decide o CONVITE, que é
+   * assunto de primeira abertura e não pode voltar a aparecer porque o agente
+   * trocou de aplicativo. Aqui só se relê o que o sistema diz e se registra o
+   * que ficou por registrar.
+   */
+  const conferirPermissao = useCallback(async () => {
+    const estado = await porta.consultarPermissao();
+    setPermissao(estado);
+
+    const municipio = organizacaoRef.current;
+    if (estado !== "concedida" || !municipio) return;
+    if (registradoPara.current === municipio) return;
+    registradoPara.current = municipio;
+    await registrarFichaRef.current();
+  }, [porta]);
+
+  useEffect(() => {
+    if (carregando) return;
+
+    /*
+      O ÚNICO jeito de o aplicativo perceber que a permissão mudou por fora.
+
+      No iOS a caixa do sistema aparece uma vez por instalação: quem respondeu
+      "não" só volta atrás pelos ajustes do aparelho. A tela de "Minha conta"
+      oferece esse caminho, e até aqui ela precisava terminar com "feche e abra
+      este aplicativo de novo para ele perceber", porque a permissão só era lida
+      na montagem e na troca de sessão, que são as duas ocasiões em que ela não
+      muda por fora.
+
+      O custo de não escutar não era a frase, era a FICHA. O registro só
+      acontece depois da permissão concedida, então o aparelho de quem ligou a
+      notificação nos ajustes continuava sem ficha nenhuma no servidor, estado
+      indistinguível de "nunca instalou". O agente fazia tudo certo, a tela
+      dizia que estava desligado, e o aviso de prazo não saía para ele.
+
+      Só a VOLTA (`active`) dispara. A ida para o segundo plano é justamente o
+      momento em que a permissão com certeza não mudou, e consultar ali gastaria
+      uma chamada ao sistema a cada troca de aplicativo, que num plantão são
+      dezenas.
+    */
+    const inscricao = AppState.addEventListener("change", (estado) => {
+      if (estado !== "active") return;
+      void conferirPermissao();
+    });
+    return () => { inscricao.remove(); };
+  }, [carregando, conferirPermissao]);
 
   /** O convite foi aceito: pergunta o sistema e, se ele disser sim, registra. */
   const aceitarConvite = useCallback(async () => {

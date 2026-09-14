@@ -8,7 +8,7 @@ import {
 
 import { Txt, useTema } from "./componentes";
 import { Dialogo } from "./Dialogo";
-import { espaco, fonte, raio, toque } from "./tokens";
+import { borda, espaco, fonte, raio, toque } from "./tokens";
 
 /**
  * A pergunta que precede devolver uma tarefa vencida para a coordenação.
@@ -125,7 +125,7 @@ export function DialogoDeDevolucao({
                   alignItems: "center",
                   gap: espaco.e3,
                   borderRadius: raio.normal,
-                  borderWidth: marcado ? 0 : 1,
+                  borderWidth: marcado ? 0 : borda.fio,
                   borderColor: tema.borda,
                   backgroundColor: marcado ? tema.destaque : "transparent",
                 }}
@@ -164,7 +164,7 @@ export function DialogoDeDevolucao({
                 accessibilityLabel="Escreva o que aconteceu, para a coordenação entender o caso"
                 style={{
                   minHeight: toque,
-                  borderWidth: 1,
+                  borderWidth: borda.fio,
                   borderColor: tema.borda,
                   borderRadius: raio.normal,
                   backgroundColor: tema.superficie,

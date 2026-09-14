@@ -332,8 +332,27 @@ export const borda = { fio: 1, enfase: 2, marca: 4 } as const;
 export const opacidade = {
   inativo: 0.5,
   aoToque: 0.85,
-  /** O véu escuro por trás de uma folha (diálogo, painel que sobe). */
-  veu: 0.55,
+  /**
+   * O véu escuro por trás de uma folha (diálogo, painel que sobe).
+   *
+   * **Era 0,55, e mudou para 0,66 por conferência e não por gosto.** Quando
+   * este token nasceu, o único véu do aplicativo já existia, dentro do
+   * `Dialogo`, pintado com 0,66 escrito à mão. Ninguém comparou os dois: o
+   * token nasceu sem nenhum lugar apontando para ele, e o véu continuou sendo
+   * um número solto. O aplicativo desenhava 0,66 e o sistema de design
+   * afirmava 0,55, e as duas coisas conviveram porque nada as obrigava a se
+   * encontrar.
+   *
+   * Quem ganhou foi o 0,66, e a razão é de prova, não de estética: é o valor
+   * que foi compilado, instalado e visto num aparelho, e o 0,55 é um valor que
+   * nunca desenhou um pixel. Trocar o véu de todos os diálogos do produto para
+   * um número que ninguém olhou seria fazer, em silêncio, a mudança visual que
+   * este achado existe para impedir.
+   *
+   * O defeito de verdade aqui nunca foi o número, e sim ter dois: agora há um,
+   * e `portao-design-do-aplicativo.test.mjs` reprova quem escrever o segundo.
+   */
+  veu: 0.66,
 } as const;
 
 /**

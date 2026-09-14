@@ -720,4 +720,57 @@ describe("a recusa não cola nada na tela para sempre", () => {
     expect(screen.queryAllByText(/Devolver jogaria esse trabalho fora/)).toHaveLength(1);
     expect(screen.queryByText("A devolução não foi registrada")).toBeNull();
   });
+
+  /*
+    O CASO QUE FALTAVA, e ele é o único que exercita o conserto.
+
+    Achado numa revisão adversarial, por mutação: apagando a linha
+    `setAvisoDaDevolucao(null)` do início de `devolver`, os 779 testes deste
+    aplicativo continuavam verdes, este bloco inteiro incluído. Ou seja, o
+    conserto de um dos quatro defeitos que o Rafa apontou no aparelho não tinha
+    nenhum caso que soubesse reprovar.
+
+    Os dois casos acima não podiam pegar. O primeiro tem uma tentativa só, e a
+    frase sai dali pela dispensa na tela, que é outro caminho. O segundo também
+    tem uma tentativa só, e o desfecho dele (`coleta_na_fila`) nunca escreve
+    aviso nenhum no topo, então "não tem aviso" é verdade nos dois estados do
+    código. Antes do conserto, `avisoDaDevolucao` era zerado no caminho do
+    SUCESSO, então nem uma recusa seguida de sucesso separava as duas versões.
+
+    O que separa é uma recusa seguida de OUTRA recusa, de tipo diferente: a
+    primeira escreve a frase no topo, a segunda corrige o cartão e não escreve
+    nada. Sem a limpeza na entrada, a frase da primeira continua pendurada lá em
+    cima enquanto o cartão embaixo já mostra outra coisa. É exatamente a tela
+    que o Rafa descreveu como "aparece duas vezes", e ela é o caminho normal de
+    quem tenta de novo.
+  */
+  it("a recusa anterior não sobrevive à tentativa seguinte", async () => {
+    mockResultado = { enfileirada: false, motivo: "sem_sessao" };
+
+    await abrirALista();
+    await tocar(`devolver-${ID}`);
+    await tocar("motivo-morador_ausente");
+    await tocar("dialogo-acao");
+    expect(screen.getByText("A devolução não foi registrada")).toBeTruthy();
+
+    /*
+      Segunda tentativa, com outro desfecho: a fila descobre que existe coleta
+      guardada. Este caminho corrige o cartão e, de propósito, não escreve nada
+      no topo.
+    */
+    mockEnfileirarDevolucao.mockImplementation(async (devolucao, dados) => {
+      registrados.push({ devolucao, dados });
+      mockItensDaFila = [itemDaFila({ tipo: "vistoria", estado: "pendente" })];
+      return { enfileirada: false, motivo: "coleta_na_fila" } as const;
+    });
+
+    await tocar(`devolver-${ID}`);
+    await tocar("motivo-morador_ausente");
+    await tocar("dialogo-acao");
+
+    /* O cartão respondeu ao que acabou de acontecer. */
+    expect(screen.getByTestId(`enviar-${ID}`)).toBeTruthy();
+    /* E o topo não guarda mais a resposta da tentativa anterior. */
+    expect(screen.queryByText("A devolução não foi registrada")).toBeNull();
+  });
 });

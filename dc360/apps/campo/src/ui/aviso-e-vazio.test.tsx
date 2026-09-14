@@ -21,7 +21,8 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { View } from "react-native";
 
-import { Aviso, Botao, Cartao, ProvedorDeTema, Selo, SeloSeveridade, Txt, Vazio } from "./componentes";
+import { Aviso, Botao, Cartao, ProvedorDeTema, Txt, Vazio } from "./componentes";
+import { SeloSeveridade } from "./Chip";
 
 let mockEsquema: "light" | "dark" = "light";
 jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
@@ -169,19 +170,31 @@ describe("nenhuma chamada existente quebra", () => {
     das telas. Uma assinatura quebrada aqui derruba as duas, então a
     compatibilidade é cobrada e não lembrada.
   */
-  it("Txt, Botao, Cartao, Selo e SeloSeveridade continuam com a mesma chamada", async () => {
+  /*
+    `Selo` saiu desta lista porque foi APOSENTADO, e não porque quebrou.
+
+    Ele era a pílula anterior ao `Chip` e tinha três defeitos que a onda tratou
+    como reprovação em toda peça vizinha: texto de 12 (abaixo do `fonteMinima`
+    do produto), `<Text>` cru (fora da família de fonte do produto) e cor
+    escolhida no ponto de uso. O `SeloSeveridade` era o último a chamá-lo, foi
+    reescrito em cima do `Chip` e mudou de módulo junto. A razão inteira está em
+    `ui/Chip.tsx` e o que trava o desfecho é `ui/pilula-do-produto.test.tsx`.
+
+    O que este caso continua guardando é o que ele existia para guardar: a
+    chamada que as telas escrevem hoje não pode quebrar.
+  */
+  it("Txt, Botao, Cartao e SeloSeveridade continuam com a mesma chamada", async () => {
     await montar(
       <Cartao titulo="Ocorrência">
         <Txt variante="h3">Título</Txt>
         <Txt variante="legenda" discreto mono>000123/2026</Txt>
-        <Selo texto="Enviada" fundo="#E6F6EA" cor="#14702F" />
         <SeloSeveridade severidade="alta" />
         <Botao titulo="Concluir" onPress={() => undefined} />
       </Cartao>,
     );
     expect(screen.getByText("Ocorrência")).toBeTruthy();
     expect(screen.getByText("000123/2026")).toBeTruthy();
-    expect(screen.getByText("Enviada")).toBeTruthy();
+    expect(screen.getByText("Alta")).toBeTruthy();
     expect(screen.getByText("Concluir")).toBeTruthy();
   });
 

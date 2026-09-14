@@ -13,9 +13,9 @@ import { listarRascunhos, type Rascunho } from "../../dados/rascunho";
 import { useSinal } from "../../dados/conectividade";
 import { useSessao } from "../../dados/sessao";
 import {
-  Aviso, Botao, Cartao, Carregando, SeloSeveridade, Tocavel, Txt, Vazio, useTema,
+  Aviso, Botao, Cartao, Carregando, Tocavel, Txt, Vazio, useTema,
 } from "../../ui/componentes";
-import { Chip } from "../../ui/Chip";
+import { Chip, SeloSeveridade } from "../../ui/Chip";
 import { ItemDeLista } from "../../ui/ItemDeLista";
 import { Dialogo } from "../../ui/Dialogo";
 import {

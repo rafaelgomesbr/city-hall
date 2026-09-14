@@ -178,3 +178,71 @@ sai para qual momento e em qual plataforma; se o motor treme, e como treme, só 
 iPhone na mão diz. O caminho do Android em particular (`performAndroidHapticsAsync`,
 escolhido porque é o único que respeita a preferência de retorno tátil do
 sistema) nunca rodou em Android nenhum, porque não há aparelho Android no projeto.
+
+## 9. O que a revisão adversarial achou e NÃO consertou
+
+Estas três ficam registradas porque são decisão de quem desenha o produto, e
+não defeito com conserto óbvio. As duas primeiras têm portão: elas estão
+declaradas como dívida em `scripts/portao-design-do-aplicativo.test.mjs`, com um
+caso irmão que REPROVA no dia em que alguém as ligar e esquecer de tirar o nome
+da lista. Dívida que não sabe morrer vira permanente.
+
+### 9.1 `elevacao(tema).folha` não tem um único uso
+
+O topo da escala de elevação foi escrito, na própria declaração de `tokens.ts`,
+para "o que cobre a tela e pede decisão (diálogo, painel que sobe)". A única
+peça dessa classe no aplicativo é a folha do `Dialogo`, e ela desenha a
+superfície à mão: fundo `tema.superficie`, contorno só no topo, sem sombra
+nenhuma. O nível nasceu para um componente que existe e nunca foi ligado nele,
+pelo mesmo motivo do véu: `Dialogo` era arquivo protegido no turno em que os
+tokens nasceram.
+
+Por que não foi ligado aqui: `folha` desce a sombra 12 pontos, ou seja, foi
+desenhado para uma folha que PAIRA. A única folha do produto é colada no rodapé,
+onde essa sombra cai para fora da tela. Espalhar o nível pela metade é
+exatamente o que a declaração do token proíbe (ela é um estilo completo porque
+no tema escuro quem carrega a elevação é a superfície, não a sombra), e inverter
+a direção da sombra no ponto de uso seria decidir a escala de elevação dentro de
+um componente.
+
+**Consequência visível hoje, e ela é pequena mas real:** no tema escuro a folha
+do diálogo fica em `superficie` (`t850`), que é a mesma superfície de um cartão
+comum. A peça que está por cima de tudo tem a elevação de uma peça que está no
+fundo. O véu de 0,66 é o que separa as duas, e é só ele.
+
+**O que decidir:** ou `folha` ganha uma variante para folha colada (e aí a
+sombra sobe em vez de descer), ou o nível é aposentado e a escala passa a ter
+dois degraus. Precisa de olho em aparelho, nos dois temas, que é o que esta
+revisão não tem.
+
+### 9.2 `fonte.corpoG` e `linha.corpoG` são um degrau que nenhuma peça sabe pedir
+
+A escala tipográfica declara oito degraus. A união `variante` do `Txt`, que é a
+única peça que lê a escala, expõe sete: display, h1, h2, h3, corpo, corpoP e
+legenda. `corpoG` (17 pontos) não está lá, e passá-lo devolveria `fontSize:
+undefined`.
+
+Nenhuma das duas saídas é neutra. Abrir a variante no `Txt` cria um tamanho novo
+na interface, que alguém vai usar. Apagar o degrau tira da escala do aplicativo
+um passo que o painel TEM (`--ds-fs-body-lg`, que lá vale 18 e aqui valeria 17,
+e a paridade de propósito não mapeia este par). Escolher por dedução, sem ver a
+tela, seria mexer na tipografia do produto por conta própria.
+
+### 9.3 `fonteMinima` quer dizer duas coisas diferentes em dois arquivos
+
+`tokens.ts` declara `fonteMinima = 14` com a frase "o texto da interface nunca
+encolhe abaixo disto, mesmo em tela pequena". Lida assim, ela é um piso para
+redução dinâmica, e `fonte.legenda` (12) continua sendo um degrau legítimo da
+escala: o aplicativo usa `variante="legenda"` em 29 lugares.
+
+`ui/Chip.tsx` lê a MESMA constante como piso da escala ("o texto não desce
+abaixo de `fonteMinima`") e é por isso que o chip usa 14. `vistoria/[id].tsx`
+leu do mesmo jeito ao recusar o `Selo` de 12. Duas leituras da mesma linha, as
+duas defensáveis, e foi essa ambiguidade que fez duas frentes construírem duas
+pílulas diferentes.
+
+**Não corrigido de propósito.** As saídas são subir os 29 rótulos de 12 para 14
+(mudança de densidade em cinco telas que ninguém viu em aparelho) ou estreitar a
+frase do token para dizer que ela vale para texto de interação e não para
+legenda. A segunda é quase certamente a certa, e mesmo ela é decisão de produto:
+o que está escrito hoje autoriza as duas.

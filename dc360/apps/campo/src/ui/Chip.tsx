@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
 import { View } from "react-native";
+import { ROTULO_SEVERIDADE, type Severidade } from "@dc360/shared";
 
 import { Txt, useTema } from "./componentes";
-import { espaco, raio } from "./tokens";
+import { IconeSeveridade } from "./icones";
+import { espaco, icone, raio } from "./tokens";
 
 /**
  * O selo de estado, com símbolo obrigatório.
@@ -35,7 +37,36 @@ import { espaco, raio } from "./tokens";
  * isso o `accessible` está no invólucro e não nos dois textos.
  */
 
-export type TomDoChip = "neutro" | "ok" | "alerta" | "perigo";
+/**
+ * Os tons, e por que a severidade é um deles em vez de uma exceção.
+ *
+ * Os quatro primeiros são estado de processo: nada, deu certo, olhe isto, algo
+ * quebrou. Os quatro últimos são a escala de gravidade da ocorrência, que tem
+ * paleta PRÓPRIA no tema (`sevBaixa` a `sevCritica`) porque a regra da casa
+ * proíbe comunicar severidade com a cor de marca e porque esses quatro pares
+ * são medidos, um a um, no portão de contraste.
+ *
+ * Eles moram aqui, e não numa propriedade de cor solta, porque a alternativa é
+ * o que o aplicativo tinha: um `Selo` genérico recebendo `fundo` e `cor`
+ * decididos dentro da tela. Assim que a paleta vira parâmetro, a decisão volta
+ * para o ponto de uso e duas telas passam a pintar o mesmo estado de dois
+ * jeitos. Um tom a mais na união é mais barato que isso.
+ */
+export type TomDoChip =
+  | "neutro" | "ok" | "alerta" | "perigo"
+  | "sevBaixa" | "sevMedia" | "sevAlta" | "sevCritica";
+
+/**
+ * O símbolo, nas três formas que ele tem de verdade.
+ *
+ * A terceira é a que importa e foi a última a existir. Enquanto o símbolo só
+ * podia ser um nó PRONTO, quem passava um ícone precisava saber com que cor
+ * pintá-lo, e essa cor é do tom, ou seja, do próprio chip. O resultado é que a
+ * tela repetia o mapa de cores por fora: `vistoria/[id].tsx` escrevia
+ * `<IconeSucesso cor={tema.okTexto} />` ao lado de `tom="ok"`, duas listas para
+ * um fato só. Com a função, a cor nunca sai daqui.
+ */
+export type SimboloDoChip = string | ReactNode | ((cor: string) => ReactNode);
 
 export function Chip({
   texto,
@@ -58,7 +89,7 @@ export function Chip({
    * iguais com nomes diferentes divergem na primeira mudança, e a que ninguém
    * lembra é a que fica errada.
    */
-  simbolo: string | ReactNode;
+  simbolo: SimboloDoChip;
   tom?: TomDoChip;
   /** A frase que o leitor de tela fala, quando o texto do chip não bastar. */
   descricao?: string;
@@ -70,6 +101,10 @@ export function Chip({
     ok: { fundo: tema.okFundo, cor: tema.okTexto },
     alerta: { fundo: tema.alertaFundo, cor: tema.alertaTexto },
     perigo: { fundo: tema.perigoFundo, cor: tema.perigoTexto },
+    sevBaixa: { fundo: tema.sevBaixaFundo, cor: tema.sevBaixaTexto },
+    sevMedia: { fundo: tema.sevMediaFundo, cor: tema.sevMediaTexto },
+    sevAlta: { fundo: tema.sevAltaFundo, cor: tema.sevAltaTexto },
+    sevCritica: { fundo: tema.sevCriticaFundo, cor: tema.sevCriticaTexto },
   }[tom];
 
   return (
@@ -93,12 +128,83 @@ export function Chip({
         Caractere vai dentro de `Txt`, para herdar tamanho e cor. Desenho vai
         cru: ele já recebe tamanho e cor de quem o escolheu, e embrulhar um nó
         em `Txt` no React Native muda como ele é medido.
+
+        A função recebe a cor do tom e é chamada aqui, e não na tela. É a forma
+        que a cópia local de `equipe.tsx` tinha inventado sozinha, e trazê-la
+        para cá foi o que permitiu apagar aquela cópia.
       */}
-      {typeof simbolo === "string"
-        ? <Txt variante="corpoP" negrito cor={cores.cor}>{simbolo}</Txt>
-        : simbolo}
+      {typeof simbolo === "function"
+        ? simbolo(cores.cor)
+        : typeof simbolo === "string"
+          ? <Txt variante="corpoP" negrito cor={cores.cor}>{simbolo}</Txt>
+          : simbolo}
       <Txt variante="corpoP" negrito cor={cores.cor}>{texto}</Txt>
     </View>
   );
 }
 
+
+/**
+ * A gravidade da ocorrência, que é a pílula mais lida do produto.
+ *
+ * Ela mora aqui, junto do `Chip`, e não mais em `componentes.tsx`, porque ela É
+ * um chip. Enquanto foi um `Selo` próprio, herdou dele três coisas que a onda
+ * inteira tratou como defeito em toda peça vizinha e deixou passar nesta:
+ *
+ * 1. **Texto em `legenda` (12)**, abaixo do `fonteMinima` de 14 que o produto
+ *    declara. A tela de vistoria chegou a escrever o porquê num comentário, ao
+ *    desenhar à mão uma pílula de prazo de 14 na LINHA DE BAIXO desta;
+ * 2. **Fonte do sistema**, porque o `Selo` desenhava com um `<Text>` cru, sem
+ *    passar pelo `Txt` que resolve a família do produto. A marca de gravidade
+ *    saía em San Francisco ao lado de rótulos em Work Sans;
+ * 3. **Cor e nada mais.** Quatro pílulas coloridas com quatro palavras e nenhum
+ *    segundo canal, contra a regra escrita no topo de `componentes.tsx`. Sob
+ *    sol forte, âmbar e vermelho são a mesma mancha clara, e severidade é
+ *    justamente o que separa a casa que pode esperar da que não pode. O ícone
+ *    para isto já existia (`IconeSeveridade` foi desenhado nesta mesma onda,
+ *    com "acompanha o `SeloSeveridade`" escrito no comentário) e terminou a
+ *    onda sem um único uso.
+ *
+ * O `accessibilityLabel` diz "Severidade alta" e não só "Alta": lida sozinha no
+ * meio de um cartão, a palavra não diz de que escala ela é.
+ */
+const TOM_DA_SEVERIDADE: Record<Severidade, TomDoChip> = {
+  baixa: "sevBaixa",
+  media: "sevMedia",
+  alta: "sevAlta",
+  critica: "sevCritica",
+};
+
+export function SeloSeveridade({ severidade, testID }: {
+  severidade: Severidade | null;
+  testID?: string;
+}) {
+  const desenho = (cor: string) => <IconeSeveridade cor={cor} tamanho={icone.inline} />;
+
+  /*
+    Sem classificação é um ESTADO, e não a ausência de um: a ocorrência chegou e
+    ninguém decidiu ainda. Por isso ela também tem palavra e desenho, em vez de
+    ser a única pílula do produto que se distingue só pelo cinza.
+  */
+  if (!severidade) {
+    return (
+      <Chip
+        testID={testID}
+        texto="Sem classificação"
+        simbolo={desenho}
+        tom="neutro"
+        descricao="Severidade ainda não classificada"
+      />
+    );
+  }
+
+  return (
+    <Chip
+      testID={testID}
+      texto={ROTULO_SEVERIDADE[severidade]}
+      simbolo={desenho}
+      tom={TOM_DA_SEVERIDADE[severidade]}
+      descricao={`Severidade ${ROTULO_SEVERIDADE[severidade].toLowerCase()}`}
+    />
+  );
+}
