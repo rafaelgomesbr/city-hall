@@ -15,7 +15,8 @@ jest.mock("expo-constants", () => ({
   },
 }));
 import {
-  abrirNoMapa, buscarAutorizacaoDoMapa, enderecosDoMapa, esquecerAutorizacaoDoMapa,
+  abrirNoMapa, buscarAutorizacaoDoMapa, enderecosDoMapa, escolherChaveDoBuild,
+  esquecerAutorizacaoDoMapa,
 } from "./mapa";
 
 /**
@@ -234,5 +235,59 @@ describe("a autorização do município, perguntada ao servidor", () => {
     await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("");
     await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("");
     expect(chamada).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("a chave do build, quando iOS e Android têm chaves diferentes", () => {
+  /*
+    O console do Google pede UM tipo de restrição por chave: em "Restrições do
+    aplicativo" as opções são botão de rádio, não caixa de seleção. Quer dizer
+    que uma chave restrita a Apps iOS NÃO funciona no Android, e vice-versa.
+
+    Enquanto o aplicativo usava uma variável só para as duas plataformas, a
+    escolha real era entre "uma chave sem restrição nenhuma" (que qualquer um
+    gasta no cartão de quem publicou) e "uma das duas plataformas sem mapa". As
+    duas são ruins, e a segunda é silenciosa: sem chave o iOS ignora
+    `PROVIDER_GOOGLE` e o Apple Maps desenha no lugar.
+
+    `extra` é um objeto só, compartilhado pelas duas plataformas dentro do
+    mesmo manifesto, então quem escolhe é o aparelho, em tempo de execução.
+  */
+  it("no iPhone vale a chave do iPhone", () => {
+    expect(
+      escolherChaveDoBuild({ ios: "chave-do-iphone", android: "chave-do-android" }, "ios"),
+    ).toBe("chave-do-iphone");
+  });
+
+  it("no Android vale a chave do Android", () => {
+    expect(
+      escolherChaveDoBuild({ ios: "chave-do-iphone", android: "chave-do-android" }, "android"),
+    ).toBe("chave-do-android");
+  });
+
+  /*
+    Uma plataforma com chave e a outra sem é estado legítimo, e é exatamente o
+    de hoje: existe chave de iOS e não existe build Android. A que não tem
+    precisa responder VAZIO, que é o que faz `decidirModoDoMapa` recusar o modo
+    Google em vez de mandar o SDK tentar com uma chave que não é dele.
+  */
+  it("a plataforma sem chave responde vazio, e não a chave da outra", () => {
+    expect(escolherChaveDoBuild({ ios: "só-iphone", android: "" }, "android")).toBe("");
+  });
+
+  /*
+    Compatibilidade com o formato anterior, e ela não é cortesia: um aplicativo
+    já instalado continua lendo o `extra` que foi assado no binário dele, e
+    esse `extra` é uma string. Sem este caminho, toda instalação existente
+    passaria a achar que não tem chave.
+  */
+  it("o formato antigo, de uma chave só, continua valendo para as duas", () => {
+    expect(escolherChaveDoBuild("chave-única", "ios")).toBe("chave-única");
+    expect(escolherChaveDoBuild("chave-única", "android")).toBe("chave-única");
+  });
+
+  it("sem nada em extra, responde vazio em vez de estourar", () => {
+    expect(escolherChaveDoBuild(undefined, "ios")).toBe("");
+    expect(escolherChaveDoBuild({ ios: 7 }, "ios")).toBe("");
   });
 });

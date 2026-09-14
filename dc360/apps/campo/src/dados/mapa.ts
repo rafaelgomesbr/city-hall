@@ -213,7 +213,39 @@ export type DecisaoDoMapa = {
  */
 export function chaveDoMapaDoBuild(): string {
   const extra = Constants.expoConfig?.extra as { mapaChaveDoBuild?: unknown } | undefined;
-  return typeof extra?.mapaChaveDoBuild === "string" ? extra.mapaChaveDoBuild.trim() : "";
+  return escolherChaveDoBuild(extra?.mapaChaveDoBuild, Platform.OS);
+}
+
+/**
+ * QUAL das chaves do binário vale NESTE aparelho.
+ *
+ * O console do Google pede UM tipo de restrição por chave: em "Restrições do
+ * aplicativo" as opções são botão de rádio e não caixa de seleção. Uma chave
+ * restrita a Apps iOS não funciona no Android, e vice-versa. Enquanto o
+ * aplicativo carregava uma chave só, a escolha real era entre publicar uma
+ * chave SEM restrição nenhuma (que qualquer site ou aplicativo do mundo gasta
+ * no cartão de quem publicou) e deixar uma das duas plataformas sem mapa, em
+ * silêncio, porque no iOS a ausência de chave vira Apple Maps desenhando no
+ * lugar.
+ *
+ * `extra` é um objeto só, assado no manifesto e compartilhado pelas duas
+ * plataformas, então quem escolhe é o aparelho, em tempo de execução. Função
+ * pura e separada de `chaveDoMapaDoBuild` porque a plataforma é a única
+ * entrada que muda, e testar isso mexendo em `Platform.OS` seria dublar o
+ * React Native inteiro para medir um `if`.
+ *
+ * O formato antigo, uma string só, continua valendo para as duas plataformas.
+ * Não é cortesia: um aplicativo já instalado continua lendo o `extra` que foi
+ * assado no binário DELE, e aquele `extra` é uma string. Sem este caminho,
+ * toda instalação existente passaria a achar que não tem chave, e o mapa do
+ * Google sumiria numa atualização de código que nem toca no aparelho.
+ */
+export function escolherChaveDoBuild(bruto: unknown, plataforma: string): string {
+  if (typeof bruto === "string") return bruto.trim();
+  if (!bruto || typeof bruto !== "object") return "";
+  const porPlataforma = bruto as Record<string, unknown>;
+  const valor = plataforma === "android" ? porPlataforma["android"] : porPlataforma["ios"];
+  return typeof valor === "string" ? valor.trim() : "";
 }
 
 /**

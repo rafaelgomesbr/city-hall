@@ -101,6 +101,22 @@ const BUILD = 1;
 const CHAVE_DO_MAPA = process.env["DC360_MAPS_CHAVE"]?.trim() ?? "";
 
 /**
+ * UMA CHAVE POR PLATAFORMA, e por que não dá para ser uma só.
+ *
+ * No console do Google, "Restrições do aplicativo" é botão de rádio e não
+ * caixa de seleção: a chave é restrita a Apps iOS OU a Apps Android, nunca às
+ * duas. Com uma variável só, a escolha real era entre publicar uma chave SEM
+ * restrição nenhuma, que qualquer um gasta no cartão de quem publicou, e
+ * deixar uma plataforma sem mapa em silêncio.
+ *
+ * `DC360_MAPS_CHAVE` continua valendo como reserva das duas, e isso não é
+ * enfeite: é o que faz a máquina que já estava configurada continuar
+ * compilando igual depois desta mudança.
+ */
+const CHAVE_DO_MAPA_IOS = process.env["DC360_MAPS_CHAVE_IOS"]?.trim() || CHAVE_DO_MAPA;
+const CHAVE_DO_MAPA_ANDROID = process.env["DC360_MAPS_CHAVE_ANDROID"]?.trim() || CHAVE_DO_MAPA;
+
+/**
  * A TELA DE ABERTURA, agora com os dois temas.
  *
  * O defeito, visto no aparelho: `backgroundColor` era `#101519` e mais nada.
@@ -454,8 +470,8 @@ const config: ExpoConfig = {
           mesmo caminho de "não tem", senão `DC360_MAPS_CHAVE=` no ambiente
           produziria um binário que declara chave e não tem nenhuma.
         */
-        androidGoogleMapsApiKey: CHAVE_DO_MAPA || undefined,
-        iosGoogleMapsApiKey: CHAVE_DO_MAPA || undefined,
+        androidGoogleMapsApiKey: CHAVE_DO_MAPA_ANDROID || undefined,
+        iosGoogleMapsApiKey: CHAVE_DO_MAPA_IOS || undefined,
       },
     ],
   ],
@@ -488,7 +504,16 @@ const config: ExpoConfig = {
       Repetir o valor não expõe nada que o binário já não exponha: ela está no
       Info.plist e no AndroidManifest, que qualquer descompactador lê.
     */
-    mapaChaveDoBuild: CHAVE_DO_MAPA,
+    /*
+      As DUAS chaves, e quem escolhe é o aparelho.
+
+      `extra` é um objeto só, assado no manifesto e lido pelas duas
+      plataformas, então mandar uma string aqui obrigaria o iPhone a acreditar
+      na chave do Android. `escolherChaveDoBuild`, em `src/dados/mapa.ts`, lê
+      `Platform.OS` e responde a que vale, e continua entendendo o formato
+      antigo de string para não cegar aplicativo já instalado.
+    */
+    mapaChaveDoBuild: { ios: CHAVE_DO_MAPA_IOS, android: CHAVE_DO_MAPA_ANDROID },
     eas: { projectId: process.env["EAS_PROJECT_ID"] ?? "" },
   },
 };

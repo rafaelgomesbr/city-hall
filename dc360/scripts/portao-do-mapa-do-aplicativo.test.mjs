@@ -327,7 +327,7 @@ test("a chave do mapa vem do ambiente, e não escrita no app.config.ts", () => {
   );
 });
 
-test("a chave vai para as DUAS plataformas, e da mesma constante", () => {
+test("cada plataforma tem a SUA chave, e nenhuma delas fica sem", () => {
   /*
     O modo de falha que este caso fecha é assimétrico e silencioso.
 
@@ -337,17 +337,47 @@ test("a chave vai para as DUAS plataformas, e da mesma constante", () => {
     ignorado e o Apple Maps desenha no lugar, com o estilo gerado dos nossos
     tokens jogado fora e sem erro nenhum. Quem testa no Android vê tudo certo.
 
-    E as duas precisam sair da MESMA constante. Dois lugares dizendo a mesma
-    coisa é como um deles envelhece em silêncio, que é literalmente o defeito
-    já registrado neste arquivo com os dois textos de câmera (o longo em
-    `ios.infoPlist` e o curto na opção do plugin, com a opção sempre ganhando).
+    Até 14/09/2026 este caso exigia que as duas saíssem da MESMA constante, e a
+    razão era boa: dois lugares dizendo a mesma coisa é como um deles envelhece
+    em silêncio. O que mudou não foi a régua, foi o mundo: no console do Google
+    "Restrições do aplicativo" é botão de rádio, então uma chave restrita a
+    Apps iOS não funciona no Android. Uma constante só obrigava a escolher
+    entre chave sem restrição nenhuma e uma plataforma sem mapa.
+
+    O que continua travado é o que importava: cada plataforma sai de uma
+    constante NOMEADA, e nenhuma das duas pode sumir ou virar valor escrito à
+    mão ali dentro.
   */
   const config = semComentarios(readFileSync(APP_CONFIG, "utf8"));
-  for (const chave of ["androidGoogleMapsApiKey", "iosGoogleMapsApiKey"]) {
+  const porPlataforma = {
+    iosGoogleMapsApiKey: "CHAVE_DO_MAPA_IOS",
+    androidGoogleMapsApiKey: "CHAVE_DO_MAPA_ANDROID",
+  };
+  for (const [campo, constante] of Object.entries(porPlataforma)) {
     assert.match(
-      config, new RegExp(`${chave}:\\s*CHAVE_DO_MAPA\\b`),
-      `${chave} não sai de CHAVE_DO_MAPA no app.config.ts. Uma das duas `
+      config, new RegExp(`${campo}:\\s*${constante}\\b`),
+      `${campo} não sai de ${constante} no app.config.ts. Uma das duas `
       + "plataformas ficou sem mapa do Google, e no iOS isso vira Apple Maps em silêncio.",
+    );
+    assert.match(
+      config, new RegExp(`const ${constante}\\s*=`),
+      `${constante} não é definida no app.config.ts`,
+    );
+  }
+
+  /*
+    E as duas constantes precisam nascer do AMBIENTE, direta ou indiretamente.
+    Sem isto, `const CHAVE_DO_MAPA_IOS = "AIza..."` passaria pelo laço acima.
+    O caso da chave escrita à mão, logo acima, pega o literal do Google; este
+    pega o caminho mais chato, que é alguém amarrar a constante a outra coisa
+    qualquer que não vem de quem compila.
+  */
+  for (const constante of Object.values(porPlataforma)) {
+    assert.match(
+      config,
+      new RegExp(`const ${constante}\\s*=[^;]*(?:process\\.env|CHAVE_DO_MAPA\\b)`),
+      `${constante} não sai do ambiente: uma chave amarrada dentro do `
+      + "app.config.ts é a chave do fornecedor pagando o mapa de todas as prefeituras.",
     );
   }
 });
