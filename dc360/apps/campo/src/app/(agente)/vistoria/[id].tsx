@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  Animated, Easing, Image, Pressable, ScrollView, TextInput, View,
+  Animated, Easing, Image, ScrollView, TextInput, View,
 } from "react-native";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import * as Location from "expo-location";
@@ -31,7 +31,7 @@ import { useSessao } from "../../../dados/sessao";
 import { Assinatura } from "../../../ui/Assinatura";
 import { MinutaDoLaudo } from "../../../ui/MinutaDoLaudo";
 import {
-  Aviso, Botao, Cartao, Carregando, SeloSeveridade, Separador, Txt, Vazio, useTema,
+  Aviso, Botao, Cartao, Carregando, SeloSeveridade, Separador, Tocavel, Txt, Vazio, useTema,
 } from "../../../ui/componentes";
 import { Campo, CampoDeTexto } from "../../../ui/Campo";
 import { Chip } from "../../../ui/Chip";
@@ -42,8 +42,9 @@ import {
 } from "../../../ui/icones";
 import { OrgaosParaAcionar } from "../../../ui/OrgaosParaAcionar";
 import {
-  borda, easing, elevacao, espaco, icone, movimento, opacidade, peso, raio, toque, visor } from "../../../ui/tokens";
+  borda, easing, elevacao, espaco, icone, movimento, peso, raio, toque, visor } from "../../../ui/tokens";
 import { useReducaoDeMovimento } from "../../../ui/useReducaoDeMovimento";
+import { retornoTatil } from "../../../ui/retornoTatil";
 import {
   concluirColetaEmOrdem, dataDoPrazo, decidirAberturaDaVistoria, faltaParaConcluir, quantoFalta,
 } from "@dc360/campo";
@@ -694,7 +695,16 @@ export default function TelaDeVistoria() {
         quality: 0.6,
         skipProcessing: false,
       });
-      if (foto?.uri) await guardarFoto(foto.uri);
+      if (foto?.uri) {
+        await guardarFoto(foto.uri);
+        /*
+          O visor é preto e a câmera fecha: sem flash, sem som e sem toque, o
+          agente não sabe se a foto pegou, e a resposta natural é fotografar de
+          novo a mesma parede. A miniatura entrando já dá o retorno para quem
+          está olhando; isto é para quem está olhando o barranco.
+        */
+        retornoTatil("confirmado");
+      }
     } catch {
       setErro("O aparelho não conseguiu tirar a foto. Tente de novo.");
       setCameraAberta(false);
@@ -905,6 +915,13 @@ export default function TelaDeVistoria() {
         descartarRascunho: () => descartarRascunho(rascunho.ocorrenciaId),
       });
 
+      /*
+        Quarenta minutos de morro terminam aqui, e o aparelho pode estar no
+        bolso enquanto o agente fala com o morador. Este é o `concluido`, com a
+        forma de dois toques do sistema, e não o mesmo toque curto da foto:
+        "terminou" e "pegou" são fatos de tamanhos diferentes.
+      */
+      retornoTatil("concluido");
       setAvisandoQueGuardou(true);
     } catch (e: unknown) {
       setErro(
@@ -1398,18 +1415,26 @@ export default function TelaDeVistoria() {
             botão de tamanho normal aqui seria errado a cada duas fotos, e cada
             erro é uma foto perdida com o morador esperando.
           */}
-          <Pressable
-            onPress={() => void fotografar()}
-            disabled={fotografando}
+          <Tocavel
             accessibilityRole="button"
+            onPress={() => void fotografar()}
+            desabilitado={fotografando}
             accessibilityLabel="Tirar a fotografia"
-            style={({ pressed }) => ({
+            /*
+              As duas opacidades daqui eram números soltos, 0,5 e 0,8, escritos
+              à mão no único lugar do aplicativo onde o dedo dispara algo
+              irreversível. Agora saem de `opacidade`, pelo `Tocavel`: o
+              desabilitado é `inativo` e o toque é `aoToque`, os mesmos do botão
+              que fica logo abaixo, na mesma tela.
+            */
+            estilo={{
               width: 84, height: 84, borderRadius: raio.pilula,
               backgroundColor: visor.obturador,
               borderWidth: 5, borderColor: tema.destaque,
-              opacity: fotografando ? 0.5 : pressed ? 0.8 : 1,
-            })}
-          />
+            }}
+          >
+            <View />
+          </Tocavel>
           <Botao
             titulo="Cancelar"
             tipo="secundario"
@@ -1584,11 +1609,11 @@ export default function TelaDeVistoria() {
         */}
         <View style={{ flexDirection: "row", gap: espaco.e2 }}>
           {temCoordenada && (
-            <Pressable
-              onPress={() => void abrirRota()}
+            <Tocavel
               accessibilityRole="button"
+              onPress={() => void abrirRota()}
               accessibilityLabel={`Abrir a rota até ${ocorrencia.endereco} no aplicativo de mapas`}
-              style={({ pressed }) => ({
+              estilo={{
                 flex: 1,
                 minHeight: toque,
                 paddingHorizontal: espaco.e3,
@@ -1599,8 +1624,7 @@ export default function TelaDeVistoria() {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: espaco.e2,
-                opacity: pressed ? opacidade.aoToque : 1,
-              })}
+              }}
             >
               {/*
                 O alfinete era desenhado à mão neste arquivo, com o mesmo
@@ -1610,7 +1634,7 @@ export default function TelaDeVistoria() {
               */}
               <IconeLocalizacao cor={tema.texto} tamanho={icone.rotulo} />
               <Txt variante="corpo" negrito>Abrir no mapa</Txt>
-            </Pressable>
+            </Tocavel>
           )}
           <View style={{ flex: 1 }}>
             <Botao
@@ -1723,14 +1747,19 @@ export default function TelaDeVistoria() {
               {faltas.map((falta) => {
                 const secao = secaoDaFalta(falta);
                 return (
-                  <Pressable
+                  <Tocavel
+                    accessibilityRole="button"
                     key={falta}
                     onPress={() => { if (secao) irPara(secao); }}
-                    disabled={!secao}
-                    accessibilityRole="button"
+                    /*
+                      A linha SEM caminho não responde ao dedo, e é assim que
+                      ela diz que não leva a lugar nenhum. `Tocavel` já trata
+                      desabilitado como imóvel: a seta some e o toque também.
+                    */
+                    desabilitado={!secao}
                     accessibilityLabel={`Falta ${falta}. Toque para ir até onde isso se resolve.`}
                     testID={`falta-${secao ?? "sem-caminho"}`}
-                    style={({ pressed }) => ({
+                    estilo={{
                       minHeight: toque,
                       paddingHorizontal: espaco.e3,
                       borderRadius: raio.normal,
@@ -1740,8 +1769,7 @@ export default function TelaDeVistoria() {
                       flexDirection: "row",
                       alignItems: "center",
                       gap: espaco.e3,
-                      opacity: pressed ? opacidade.aoToque : 1,
-                    })}
+                    }}
                   >
                     <IconeAlerta cor={tema.alertaTexto} tamanho={icone.rotulo} />
                     <View style={{ flex: 1 }}>
@@ -1753,7 +1781,7 @@ export default function TelaDeVistoria() {
                       agente a desconfiar das que são.
                     */}
                     {secao && <Txt variante="corpoP" peso={peso.negrito} discreto>›</Txt>}
-                  </Pressable>
+                  </Tocavel>
                 );
               })}
             </View>
@@ -1800,7 +1828,7 @@ export default function TelaDeVistoria() {
                 ].map((opcao) => {
                   const marcada = resposta === opcao.valor;
                   return (
-                    <Pressable
+                    <Tocavel
                       key={opcao.rotulo}
                       onPress={() => {
                         /*
@@ -1826,7 +1854,14 @@ export default function TelaDeVistoria() {
                       accessibilityRole="radio"
                       accessibilityState={{ checked: marcada }}
                       accessibilityLabel={`${item.rotulo}: ${opcao.rotulo}`}
-                      style={{
+                      /*
+                        Aqui o retorno do dedo não é enfeite: a gravação da
+                        resposta passa pelo rascunho em disco, então entre o
+                        toque e o fundo mudar de cor existe uma ida ao SQLite.
+                        Sem nada acontecendo no meio, o agente de luva toca de
+                        novo, e o segundo toque cai no "Não" que ele não quis.
+                      */
+                      estilo={{
                         flex: 1,
                         minHeight: toque,
                         flexDirection: "row",
@@ -1856,7 +1891,7 @@ export default function TelaDeVistoria() {
                       >
                         {opcao.rotulo}
                       </Txt>
-                    </Pressable>
+                    </Tocavel>
                   );
                 })}
               </View>
@@ -1979,7 +2014,8 @@ export default function TelaDeVistoria() {
                     accessibilityLabel={`Fotografia ${f.ordem + 1} da vistoria`}
                   />
                 </Animated.View>
-                <Pressable
+                <Tocavel
+                  accessibilityRole="button"
                   /*
                     Apagar passa a PERGUNTAR. Era imediato e irreversível,
                     enquanto descartar item da fila de envio, que é menos grave,
@@ -1988,7 +2024,6 @@ export default function TelaDeVistoria() {
                     reenviado.
                   */
                   onPress={() => { setFotoParaApagar(f); }}
-                  accessibilityRole="button"
                   accessibilityLabel={`Apagar a fotografia ${f.ordem + 1}`}
                   testID={`apagar-foto-${f.ordem + 1}`}
                   /*
@@ -1999,10 +2034,10 @@ export default function TelaDeVistoria() {
                     apaga uma fotografia de vistoria, que é prova de uma
                     interdição e não se refaz sem subir o morro de novo.
                   */
-                  style={{ minHeight: toque, alignItems: "center", justifyContent: "center" }}
+                  estilo={{ minHeight: toque, alignItems: "center", justifyContent: "center" }}
                 >
                   <Txt variante="corpoP" cor={tema.perigoTexto}>Apagar</Txt>
-                </Pressable>
+                </Tocavel>
               </View>
               );
             })}
@@ -2125,7 +2160,16 @@ export default function TelaDeVistoria() {
 
         <Assinatura
           jaAssinada={Boolean(rascunho.assinaturaUri)}
-          aoConfirmar={(uri) => void alterar({ assinaturaUri: uri })}
+          aoConfirmar={(uri) => {
+            /*
+              O morador acabou de tirar o dedo da tela e o traço foi aceito.
+              Quem está olhando para o aparelho é ELE; quem precisa saber que
+              deu certo é o agente, que está segurando o aparelho e olhando
+              para a pessoa.
+            */
+            retornoTatil("confirmado");
+            void alterar({ assinaturaUri: uri });
+          }}
           aoLimpar={() => void alterar({ assinaturaUri: null })}
           aoComecarDesenho={() => setDesenhando(true)}
           aoTerminarDesenho={() => setDesenhando(false)}

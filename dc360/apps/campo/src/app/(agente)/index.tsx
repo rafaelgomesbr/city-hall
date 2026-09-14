@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, FlatList, Pressable, RefreshControl, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AppState, FlatList, RefreshControl, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import * as Crypto from "expo-crypto";
 import { ROTULO_TIPO_COBRADE } from "@dc360/shared";
@@ -13,16 +13,17 @@ import { listarRascunhos, type Rascunho } from "../../dados/rascunho";
 import { useSinal } from "../../dados/conectividade";
 import { useSessao } from "../../dados/sessao";
 import {
-  Aviso, Botao, Cartao, Carregando, SeloSeveridade, Txt, Vazio, useTema,
+  Aviso, Botao, Cartao, Carregando, SeloSeveridade, Tocavel, Txt, Vazio, useTema,
 } from "../../ui/componentes";
 import { Chip } from "../../ui/Chip";
+import { ItemDeLista } from "../../ui/ItemDeLista";
 import { Dialogo } from "../../ui/Dialogo";
 import {
   IconeAlerta, IconeAparelho, IconeInformacao, IconePerigo, IconePrazo, IconePrazoVencido,
   IconeSemSinal, IconeSinal, IconeTarefas, IconeVulnerabilidade,
 } from "../../ui/icones";
 import {
-  borda, elevacao, espaco, icone as tamanhoDeIcone, opacidade, peso, raio, toque,
+  borda, elevacao, espaco, icone as tamanhoDeIcone, movimento, peso, raio, toque,
 } from "../../ui/tokens";
 import {
   INTERVALO_PADRAO_MS, deveAtualizar, idadeEmPalavras, listaEnvelheceu,
@@ -41,6 +42,7 @@ import {
   type ItemFila,
 } from "@dc360/campo";
 import { DialogoDeDevolucao, type PedidoDeDevolucao } from "../../ui/DialogoDeDevolucao";
+import { useReducaoDeMovimento } from "../../ui/useReducaoDeMovimento";
 
 /**
  * As tarefas do agente.
@@ -150,22 +152,21 @@ function BotaoDeInformacao({ rotulo, onPress, testID }: {
 }) {
   const tema = useTema();
   return (
-    <Pressable
+    <Tocavel
+      accessibilityRole="button"
       testID={testID}
       onPress={onPress}
-      accessibilityRole="button"
       accessibilityLabel={rotulo}
-      style={({ pressed }) => ({
+      estilo={{
         minHeight: toque,
         minWidth: toque,
         alignItems: "center",
         justifyContent: "center",
         borderRadius: raio.normal,
-        opacity: pressed ? opacidade.aoToque : 1,
-      })}
+      }}
     >
       <IconeInformacao cor={tema.destaque} tamanho={tamanhoDeIcone.acao} />
-    </Pressable>
+    </Tocavel>
   );
 }
 
@@ -624,6 +625,115 @@ export default function Tarefas() {
   }
 
   /*
+    A LISTA QUE O AGENTE VÊ, e ela não é a lista que está no disco.
+
+    A tarefa com devolução A CAMINHO sai da lista na hora, e essa é a metade
+    visível do pedido. A outra metade é que ela continua no aparelho, visível na
+    fila de envio, até o servidor confirmar: item que some antes de o servidor
+    saber é a forma mais cara de perder informação neste produto.
+
+    A tarefa com devolução RECUSADA volta para cá, e o cartão dela diz a frase
+    que veio do servidor. Some daqui sem a coordenação ter recebido seria o pior
+    dos dois mundos: ninguém foi lá e ninguém sabe disso.
+
+    `useMemo` não é otimização de gosto aqui: `tarefas` e `itensDaFila` já são
+    estáveis quando o conteúdo não mudou (ver `manterSeIgual`), e sem ele esta
+    lista seria um array novo a cada renderização, fazendo a comparação de
+    entrada e saída, logo abaixo, rodar à toa dezenas de vezes por minuto.
+  */
+  const naLista = useMemo(
+    () => {
+      const devolvendo = devolucoesPorOcorrencia(itensDaFila);
+      return (tarefas ?? []).filter((t) => devolvendo.get(t.id)?.situacao !== "a_caminho");
+    },
+    [tarefas, itensDaFila],
+  );
+
+  /*
+    ENTRADA E SAÍDA DA LISTA DE TAREFAS.
+
+    Uma tarefa devolvida sumia no quadro seguinte. Isso é um corte seco no fim
+    de um ato institucional: o agente escolheu o motivo, confirmou no diálogo,
+    a devolução entrou na fila com o nome dele, e a resposta da tela foi um
+    cartão a menos. Quem estava olhando para a parte de baixo da lista não viu
+    nada acontecer, e uma lista que encolhe em silêncio é como um trabalho
+    parece perdido.
+
+    A mecânica é a MESMA da fila de envio, de propósito: o item que já saiu do
+    disco continua desenhado pelo tempo de `movimento.mudancaDeEstado` e só
+    então é largado. Ele não entra em contagem nenhuma, porque para a tela ele
+    já foi: o cabeçalho conta `naLista`, e a `FlatList` desenha a união.
+  */
+  const [saindo, setSaindo] = useState<Pendencia[]>([]);
+  /*
+    Quem já estava na tela, para saber quem CHEGOU e quem SUMIU.
+
+    São `ref` e não estado porque ninguém desenha a partir delas: servem só
+    para a comparação de uma leitura para a outra. Como estado, disparariam uma
+    renderização a mais a cada evento da fila, numa tela cujo defeito de origem
+    era justamente renderizar demais.
+
+    `jaVistas` começa nula, e é isso que faz a PRIMEIRA pintura não animar
+    nada. Vinte cartões entrando ao mesmo tempo seria exatamente o engasgo que o
+    `CLAUDE.md` proíbe, num aparelho que não é iPhone novo, e a chegada de
+    trabalho novo só quer dizer alguma coisa para quem já estava olhando a lista.
+  */
+  const jaVistas = useRef<Pendencia[] | null>(null);
+  const reduzirMovimento = useReducaoDeMovimento();
+  const reduzirRef = useRef(reduzirMovimento);
+  reduzirRef.current = reduzirMovimento;
+  /* Os temporizadores vivos, para o desmonte não deixar nenhum escrevendo
+     estado em componente que já saiu da tela. */
+  const relogiosDaSaida = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => {
+    for (const relogio of relogiosDaSaida.current) clearTimeout(relogio);
+    relogiosDaSaida.current = [];
+  }, []);
+
+  useEffect(() => {
+    /*
+      ENQUANTO A LISTA NÃO FOI PINTADA, ninguém chegou e ninguém saiu.
+
+      Esta guarda não é detalhe: sem ela, a primeira renderização (aquela em
+      que `tarefas` ainda é nula e a tela mostra `Carregando`) já marcava a
+      lista como "vista", vazia. Quando o disco respondia, as tarefas todas
+      apareciam como recém-chegadas e entravam animadas ao mesmo tempo, que é
+      exatamente o engasgo em aparelho fraco que o `CLAUDE.md` proíbe, e além
+      disso uma mentira: nada chegou, o aparelho é que terminou de ler.
+    */
+    if (tarefas === null) return;
+
+    const agora = new Set(naLista.map((t) => t.id));
+    const antes = jaVistas.current;
+    jaVistas.current = naLista;
+    /* Primeira pintura: ninguém chegou e ninguém saiu, por definição. */
+    if (antes === null) return;
+
+    /* Com redução de movimento ligada não há saída para animar: o item some na
+       hora, que é exatamente o que quem ligou a opção pediu. */
+    if (reduzirRef.current) return;
+
+    /*
+      O cartão que sai é desenhado a partir do que a tela TINHA, e não do disco.
+
+      Guardar a lista inteira, e não só os identificadores, é o que faz a
+      despedida funcionar nos DOIS jeitos de uma tarefa sumir. Na devolução, a
+      linha continua no disco e só é filtrada aqui. Na reconciliação (a
+      coordenação encerrou, trocou de equipe, alguém concluiu), a linha é
+      APAGADA do aparelho, e procurá-la em `tarefas` não acharia nada: a tarefa
+      sumiria em silêncio justamente no caso em que o agente mais precisa ver
+      que ela saiu.
+    */
+    const sumiram = antes.filter((t) => !agora.has(t.id));
+    if (sumiram.length === 0) return;
+    const idsQueSaem = new Set(sumiram.map((t) => t.id));
+    setSaindo((antesDaSaida) => [...antesDaSaida, ...sumiram]);
+    relogiosDaSaida.current.push(setTimeout(() => {
+      setSaindo((antesDaSaida) => antesDaSaida.filter((t) => !idsQueSaem.has(t.id)));
+    }, movimento.mudancaDeEstado));
+  }, [naLista, tarefas]);
+
+  /*
     A abertura, com hora marcada para deixar de ser silenciosa.
 
     `aoDesistir` existe no componente desde o T4 e esta tela nunca o passava, o
@@ -663,20 +773,6 @@ export default function Tarefas() {
   const devolucoes = devolucoesPorOcorrencia(itensDaFila);
 
   /*
-    A tarefa com devolução A CAMINHO sai da lista na hora, e essa é a metade
-    visível do pedido. A outra metade é que ela continua no aparelho, visível na
-    fila de envio, até o servidor confirmar: item que some antes de o servidor
-    saber é a forma mais cara de perder informação neste produto.
-
-    A tarefa com devolução RECUSADA volta para cá, e o cartão dela diz a frase
-    que veio do servidor. Some daqui sem a coordenação ter recebido seria o pior
-    dos dois mundos: ninguém foi lá e ninguém sabe disso.
-  */
-  const naLista = tarefas.filter(
-    (t) => devolucoes.get(t.id)?.situacao !== "a_caminho",
-  );
-
-  /*
     AS NOTAS DA LISTA, por ordem de urgência.
 
     Eram sete blocos condicionais empilhados acima da lista, e cada um que
@@ -684,6 +780,35 @@ export default function Tarefas() {
     reservada: a mais urgente aparece, e o `ⓘ` abre todas. Nenhum aviso se
     perdeu e nenhum deles mexe no desenho.
   */
+  /*
+    O que a tela DESENHA inclui o que já saiu da lista e ainda está saindo dela;
+    o que a tela CONTA, não. "3 vistorias para fazer" precisa cair para 2 no
+    mesmo instante em que a devolução entra na fila, senão o cabeçalho mente por
+    um quarto de segundo em cima do número que decide o dia do agente.
+
+    O disco manda: uma tarefa que voltou para a lista antes de o temporizador
+    disparar (uma devolução recusada, por exemplo) sai da despedida, senão ela
+    apareceria duas vezes na mesma tela, com a mesma chave.
+  */
+  const idsNaLista = new Set(naLista.map((t) => t.id));
+  const aindaSaindo = saindo.filter((t) => !idsNaLista.has(t.id));
+  const idsSaindo = new Set(aindaSaindo.map((t) => t.id));
+  const visiveis = [...naLista, ...aindaSaindo];
+
+  /*
+    Quem CHEGOU depois de a lista já estar na tela.
+
+    `jaVistas` só é atualizado no efeito, que roda depois da pintura: na
+    renderização em que o despacho novo aparece, ele ainda guarda a lista
+    anterior, e é exatamente por isso que a resposta sai certa no primeiro
+    quadro, sem piscar. Nula quer dizer primeira pintura, e primeira pintura não
+    anima nada.
+  */
+  const idsJaVistos = jaVistas.current === null
+    ? null
+    : new Set(jaVistas.current.map((t) => t.id));
+  const recemChegada = (id: string) => idsJaVistos !== null && !idsJaVistos.has(id);
+
   const notas: NotaDaLista[] = [];
   if (avisoDaDevolucao) {
     notas.push({
@@ -819,7 +944,7 @@ export default function Tarefas() {
 
       <FlatList
         testID="lista-de-tarefas"
-        data={naLista}
+        data={visiveis}
         keyExtractor={(t) => t.id}
         /*
           A ÂNCORA. A lista encurta sozinha (devolução confirmada apaga a linha)
@@ -915,10 +1040,11 @@ export default function Tarefas() {
           const resultadoDoEnvio = envio?.ocorrenciaId === t.id ? envio : null;
 
           return (
+            <ItemDeLista entrando={recemChegada(t.id)} saindo={idsSaindo.has(t.id)}>
             <View style={{ gap: espaco.e2 }}>
-            <Pressable
-              onPress={() => router.push({ pathname: "/(agente)/vistoria/[id]", params: { id: t.id } })}
+            <Tocavel
               accessibilityRole="button"
+              onPress={() => router.push({ pathname: "/(agente)/vistoria/[id]", params: { id: t.id } })}
               /* O selo entra no rotulo tambem: quem usa leitor de tela nao ve
                  nem a borda nem o tique, e a informacao de "isso ja foi
                  coletado" e justamente a que evita a segunda vistoria. */
@@ -930,7 +1056,7 @@ export default function Tarefas() {
                    cuidado prioritário simplesmente não existiria ali. */
                 + (t.vulnerabilidade_presente ? ". Vulnerabilidade social" : "")
               }
-              style={({ pressed }) => ({
+              estilo={{
                 minHeight: toque,
                 ...elevacao(tema).cartao,
                 /*
@@ -949,8 +1075,7 @@ export default function Tarefas() {
                 borderRadius: raio.cartao,
                 padding: espaco.e4,
                 gap: espaco.e3,
-                opacity: pressed ? opacidade.aoToque : 1,
-              })}
+              }}
             >
               <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
                 <Txt variante="corpoP" mono negrito>{t.protocolo}</Txt>
@@ -1058,7 +1183,7 @@ export default function Tarefas() {
                   )}
                 </View>
               )}
-            </Pressable>
+            </Tocavel>
 
             {/*
               A RECUSA DO SERVIDOR, no cartão da tarefa que voltou.
@@ -1148,6 +1273,7 @@ export default function Tarefas() {
               )
             )}
             </View>
+            </ItemDeLista>
           );
         }}
       />

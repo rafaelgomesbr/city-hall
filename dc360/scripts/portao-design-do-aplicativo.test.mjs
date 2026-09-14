@@ -97,6 +97,17 @@ const REGRAS = [
       + "E são cinco propriedades irmãs: escritas à mão, uma delas fica para trás",
   },
   {
+    nome: "retorno de toque decidido dentro da tela",
+    padrao: /(?<![A-Za-z])opacity\s*:\s*[^,\n]*\bpressed\b/,
+    porque:
+      "`opacity: pressed ? ... : 1` PULA de um quadro para o outro: o retorno "
+      + "aparece com o dedo e some com ele, e o agente de luva na chuva não vê. "
+      + "O retorno do toque mora em `useRespostaAoToque`, pelo `Tocavel` ou pelo "
+      + "`Botao`, com duração de token, curva de token, `useNativeDriver` e a "
+      + "chave de redução de movimento respeitada. Escrito na tela, nada disso "
+      + "vem junto, e foi assim que cinco lugares ficaram para trás do botão",
+  },
+  {
     nome: "diálogo nativo do sistema",
     padrao: /(?<![A-Za-z.])Alert\s*\.\s*(?:alert|prompt)\s*\(|(?<![A-Za-z.])Alert\s*,|,\s*Alert\s*[,}]/,
     porque:
@@ -225,6 +236,8 @@ test("a varredura pega o que deveria pegar", () => {
     ["borderRadius: 12,", "raio escrito à mão"],
     ["borderTopLeftRadius: 8,", "raio escrito à mão"],
     ["duration: 300,", "duração de movimento literal"],
+    ["opacity: pressed ? 0.8 : 1,", "retorno de toque decidido dentro da tela"],
+    ["opacity: pressed ? opacidade.aoToque : 1,", "retorno de toque decidido dentro da tela"],
     ['fontWeight: "700",', "peso de fonte literal"],
     ["fontWeight: 700,", "peso de fonte literal"],
     ["elevation: 8,", "sombra escrita à mão"],
@@ -250,6 +263,8 @@ test("a varredura não reclama do que está certo", () => {
     "borderRadius: raio.cartao,",
     "borderRadius: raio.pilula,",
     "duration: movimento.mudancaDeEstado,",
+    "opacity: inativo ? opacidade.inativo : toqueVisual.opacidadeDoToque,",
+    "opacity: presenca,",
     "duration: movimento.climax * 0.4,",
     "fontWeight: peso,",
     "minHeight: toque,",
@@ -336,5 +351,72 @@ test("a dívida de peso de fonte morre no dia em que o token nascer", () => {
     "`src/ui/tokens.ts` passou a exportar `peso`, então a dispensa de peso de fonte "
     + "perdeu a razão de existir. Troque os literais pelo token nestes arquivos e "
     + "esvazie PESO_SEM_TOKEN_AINDA:\n  " + [...PESO_SEM_TOKEN_AINDA].join("\n  "),
+  );
+});
+
+/**
+ * TODA ESPERA DE TELA CHEIA TEM SAÍDA.
+ *
+ * Este caso existe por causa de uma decisão que ele sustenta, e não por causa
+ * de um defeito que ele viu. A frente de movimento tinha o esqueleto de
+ * carregamento como opção declarada para a lista de tarefas e para a fila, e
+ * decidiu NÃO trocar. Uma das quatro razões é que `Carregando` oferece o que
+ * esqueleto nenhum oferece: aos seis segundos ele admite a demora e abre uma
+ * porta, com destino nomeado pela tela que chamou.
+ *
+ * Essa razão só continua verdadeira enquanto todas as chamadas passarem
+ * `aoDesistir`, e a propriedade é OPCIONAL no componente, de propósito (nem
+ * toda espera tem para onde ir). Sem este caso, a primeira chamada sem saída
+ * faria o argumento contra o esqueleto deixar de valer em silêncio, e o
+ * aplicativo voltaria a ter uma tela que pulsa para sempre com o agente em pé
+ * no morro achando que está quase.
+ *
+ * A leitura é do ELEMENTO inteiro, e não da linha: `<Carregando` quase sempre
+ * abre numa linha e fecha em outra, e um portão que olhasse linha a linha
+ * daria verde para sempre.
+ */
+function esperasSemSaida() {
+  const achados = [];
+  for (const caminho of arquivosDeFonte()) {
+    const fonte = semComentarios(readFileSync(caminho, "utf8"));
+    let de = fonte.indexOf("<Carregando");
+    while (de !== -1) {
+      const ate = fonte.indexOf(">", de);
+      const elemento = ate === -1 ? fonte.slice(de) : fonte.slice(de, ate);
+      if (!elemento.includes("aoDesistir")) {
+        achados.push(`${nomeCurto(caminho)}: ${elemento.replace(/\s+/g, " ").slice(0, 80)}`);
+      }
+      de = fonte.indexOf("<Carregando", de + 1);
+    }
+  }
+  return achados;
+}
+
+test("nenhuma espera de tela cheia fica sem saída", () => {
+  assert.deepEqual(
+    esperasSemSaida(),
+    [],
+    "`Carregando` sem `aoDesistir` é espera sem porta, e é ela que faz alguém "
+    + "fechar o aplicativo à força no meio de um plantão. Passe o que a tela faz "
+    + "quando o agente desiste, e um rótulo que diga para onde leva:\n  "
+    + esperasSemSaida().join("\n  "),
+  );
+});
+
+test("a varredura de espera sem saída enxerga alguma coisa", () => {
+  /*
+    O caso irmão, e sem ele o de cima daria verde num dia em que
+    `arquivosDeFonte` deixasse de achar as telas. Zero chamada encontrada e
+    zero chamada sem saída são estados indistinguíveis para uma asserção de
+    lista vazia, e o segundo é o único que significa alguma coisa.
+  */
+  let quantas = 0;
+  for (const caminho of arquivosDeFonte()) {
+    quantas += semComentarios(readFileSync(caminho, "utf8")).split("<Carregando").length - 1;
+  }
+  assert.ok(
+    quantas >= 3,
+    `esperado encontrar as esperas de tela cheia do aplicativo, achei ${quantas}. `
+    + "A varredura ficou cega, e o caso ao lado passou a não provar nada.",
   );
 });

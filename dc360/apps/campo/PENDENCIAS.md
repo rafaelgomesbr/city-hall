@@ -153,3 +153,28 @@ Continua valendo o que `LEIA-ME.md` já diz. Em especial, três coisas deste tur
 só foram exercitadas com dublê: a cópia da foto para o diretório de documentos, a
 leitura da fila durante a limpeza do logout, e a existência do arquivo no momento
 do envio. As três dependem de `expo-file-system` real.
+
+## 8. `expo-haptics` entrou, e a pasta `ios/` precisa ser gerada de novo
+
+O retorno tátil (fotografia capturada, assinatura confirmada, vistoria
+concluída, fila esvaziada) passou a depender de `expo-haptics`, que é MÓDULO
+NATIVO. Consequência prática, e ela precisa estar escrita antes da próxima
+compilação:
+
+- **O binário instalado hoje no iPhone não tem a ponte.** Ele foi compilado
+  antes desta dependência existir. `src/ui/retornoTatil.ts` engole a falha de
+  propósito (um aplicativo que quebra por não conseguir vibrar seria pior do que
+  um que não vibra), então o aplicativo continua funcionando ali: ele
+  simplesmente não vibra.
+- **Antes da próxima instalação:** `npx expo prebuild` e `pod install`. Sem
+  isso, o módulo não é ligado e o retorno tátil nunca será exercitado.
+- **E o portão do `entitlements` precisa passar depois disso.** Foi exatamente
+  uma regeneração de `ios/` que esvaziou aquele arquivo e quase matou o push, e
+  é por isso que `scripts/entitlements-do-ios.test.mjs` existe. Rode o portão
+  inteiro DEPOIS do prebuild, e não só antes.
+
+**Nada do retorno tátil foi sentido em aparelho.** Os testes provam qual chamada
+sai para qual momento e em qual plataforma; se o motor treme, e como treme, só o
+iPhone na mão diz. O caminho do Android em particular (`performAndroidHapticsAsync`,
+escolhido porque é o único que respeita a preferência de retorno tátil do
+sistema) nunca rodou em Android nenhum, porque não há aparelho Android no projeto.

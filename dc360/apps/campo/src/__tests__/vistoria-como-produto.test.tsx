@@ -101,6 +101,41 @@ jest.mock("../dados/evidencia-no-disco", () => ({
   guardarFotoNoAparelho: () => ({ uriLocal: "file:///vistorias/foto.jpg", tamanhoBytes: 1024 }),
 }));
 
+/*
+  O motor tátil não existe no ambiente de teste, e não é ele que se mede aqui:
+  o que se cobra é QUAL momento pede vibração, e quais não pedem. A ponte
+  concreta com `expo-haptics` tem teste próprio em `ui/retorno-tatil.test.ts`.
+*/
+/*
+  O quadro de assinatura vira um botão, e só nesta suíte.
+
+  Confirmar de verdade exige o dedo desenhando no SVG e o rasterizador
+  devolvendo bytes, que é o assunto de `ui/artefato-de-documento.test.tsx` e
+  tem harness própria lá. O que se pergunta AQUI é o que a TELA faz quando o
+  traço é aceito, e para essa pergunta o quadro é ruído. O contrato do dublê é
+  o mesmo do componente: chamar `aoConfirmar` com o caminho do PNG.
+*/
+jest.mock("../ui/Assinatura", () => {
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const { Pressable, Text } = require("react-native") as typeof import("react-native");
+  return {
+    Assinatura: ({ aoConfirmar }: { aoConfirmar: (uri: string) => void }) => (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Confirmar assinatura"
+        onPress={() => { aoConfirmar("file:///vistorias/assinatura.png"); }}
+      >
+        <Text>Confirmar assinatura</Text>
+      </Pressable>
+    ),
+  };
+});
+
+const mockRetornoTatil = jest.fn();
+jest.mock("../ui/retornoTatil", () => ({
+  retornoTatil: (momento: string) => mockRetornoTatil(momento),
+}));
+
 jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
 jest.mock("../dados/mapa", () => ({ abrirNoMapa: jest.fn(async () => true) }));
 
@@ -726,5 +761,80 @@ describe("a espera da abertura", () => {
     await fireEvent.press(screen.getByText("Voltar para as tarefas"));
 
     expect(router.back).toHaveBeenCalledTimes(1);
+  });
+});
+
+/* ============================================================
+   7. O retorno tátil: o que vibra, e sobretudo o que não vibra
+   ============================================================ */
+
+describe("o retorno tátil da vistoria", () => {
+  /*
+    Os três momentos desta tela têm a mesma forma: algo que o agente fez
+    terminou de dar certo, e ele pode não estar olhando para o aparelho. O
+    visor da câmera é preto e ele está olhando o barranco; o morador é quem
+    olha a tela enquanto assina; e a conclusão pode acontecer com o telefone
+    voltando para o bolso.
+  */
+  it("a fotografia capturada vibra, discreta", async () => {
+    await abrirATela();
+    await fireEvent.press(screen.getByText("Tirar foto"));
+    await act(async () => {});
+    mockRetornoTatil.mockClear();
+
+    await fireEvent.press(screen.getByLabelText("Tirar a fotografia"));
+    await act(async () => {});
+
+    expect(mockRetornoTatil).toHaveBeenCalledWith("confirmado");
+  });
+
+  it("a assinatura confirmada vibra", async () => {
+    await abrirATela();
+    mockRetornoTatil.mockClear();
+
+    await fireEvent.press(screen.getByLabelText("Confirmar assinatura"));
+    await act(async () => {});
+
+    expect(mockRetornoTatil).toHaveBeenCalledWith("confirmado");
+  });
+
+  it("a vistoria concluída vibra com a forma de 'terminou', e não com a de 'pegou'", async () => {
+    mockRetornoTatil.mockClear();
+    await concluirAVistoria();
+
+    expect(mockRetornoTatil).toHaveBeenCalledWith("concluido");
+  });
+
+  /*
+    ERRO NÃO VIBRA, SEM EXCEÇÃO.
+
+    Vibrar quando algo dá errado é punição e não informação: o aparelho pune a
+    mão de quem já está com um problema, e o que a pessoa aprende é a desligar
+    o retorno tátil inteiro, levando junto os momentos em que ele ajuda. A
+    falha do GPS é o erro mais comum desta tela, porque é a que depende do céu.
+  */
+  it("o erro de GPS não vibra", async () => {
+    await abrirATela();
+    mockRetornoTatil.mockClear();
+
+    await fireEvent.press(screen.getByText("Capturar localização"));
+    await waitFor(() => { expect(screen.getByTestId("tarja-de-erro")).toBeTruthy(); });
+
+    expect(mockRetornoTatil).not.toHaveBeenCalled();
+  });
+
+  /*
+    E nem o toque comum. Retorno tátil em tudo é retorno tátil em nada: o
+    aparelho vira um brinquedo que zumbe, o agente desliga, e os quatro
+    momentos que informam alguma coisa somem junto.
+  */
+  it("responder o checklist não vibra", async () => {
+    await abrirATela();
+    mockRetornoTatil.mockClear();
+
+    await fireEvent.press(screen.getAllByLabelText(/: Sim$/)[0]!);
+    await act(async () => {});
+
+    expect(mockRetornoTatil).not.toHaveBeenCalled();
   });
 });

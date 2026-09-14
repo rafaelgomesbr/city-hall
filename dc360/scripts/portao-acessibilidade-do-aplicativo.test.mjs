@@ -277,9 +277,19 @@ test("a varredura enxerga os elementos tocáveis de verdade", () => {
 
   const daVistoria = todos.filter((t) => t.arquivo === "app/(agente)/vistoria/[id].tsx");
   assert.ok(daVistoria.length >= 4, "os tocáveis da tela de vistoria sumiram da varredura");
+  /*
+    `style` OU `estilo`: o `Pressable` cru recebe `style`, e a primitiva
+    `Tocavel` recebe `estilo`, que é o mesmo objeto com nome em português. O
+    que se prova aqui continua sendo o mesmo: a leitura não parou na primeira
+    linha que tem `>` dentro (e `onPress={() => ...}` tem), porque parar ali
+    deixaria o alvo de toque de fora e o portão mediria o nada.
+  */
   assert.ok(
-    daVistoria.some((t) => t.texto.includes("accessibilityLabel") && t.texto.includes("style")),
-    "a leitura parou antes do style: é exatamente o defeito que a heurística do painel teria aqui",
+    daVistoria.some(
+      (t) => t.texto.includes("accessibilityLabel")
+        && (t.texto.includes("style") || t.texto.includes("estilo")),
+    ),
+    "a leitura parou antes do estilo: é exatamente o defeito que a heurística do painel teria aqui",
   );
 });
 
@@ -392,6 +402,24 @@ test("as três varreduras pegam o que deveriam pegar", () => {
   const medidas = [...el.texto.matchAll(TAMANHO)].map(([, p, v]) => `${p}=${v}`);
   assert.deepEqual(medidas, ["minHeight=32"]);
   assert.ok(Number(32) < tokens.toque, "a régua do produto caiu para 32 ou menos");
+
+  /*
+    E a primitiva, pelo mesmo caminho. Sem este caso, tirar `Tocavel` da lista
+    de tags devolveria a cegueira de sete tocáveis sem nada acusar aqui: o caso
+    da quantidade acusaria um número menor, e número menor é o tipo de aviso
+    que se explica como "mudou a tela".
+  */
+  const naPrimitiva = [
+    "<Tocavel",
+    "  onPress={() => setFotoParaApagar(f)}",
+    '  accessibilityRole="button"',
+    '  accessibilityLabel={`Apagar a fotografia ${f.ordem + 1}`}',
+    '  estilo={{ minHeight: 32, alignItems: "center" }}',
+    ">",
+  ].join("\n");
+  const [daPrimitiva] = tocaveis(naPrimitiva);
+  assert.ok(daPrimitiva, "a varredura não enxerga <Tocavel>, e as telas migraram todas para ele");
+  assert.ok(daPrimitiva.texto.includes("minHeight: 32"), "a leitura parou antes do estilo da primitiva");
 
   // Sem rótulo e sem papel: os dois precisam ser acusados, e pelo nome.
   const mudo = tocaveis('<Pressable onPress={f} style={{ minHeight: toque }} />')[0];

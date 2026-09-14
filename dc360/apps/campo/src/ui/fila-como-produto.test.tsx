@@ -38,6 +38,14 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
 
 jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
 
+/* O motor tátil não existe aqui, e não é ele que se mede: o que se cobra é
+   QUANDO a tela pede vibração. A ponte com `expo-haptics` tem teste próprio em
+   `ui/retorno-tatil.test.ts`. */
+const mockRetornoTatil = jest.fn();
+jest.mock("./retornoTatil", () => ({
+  retornoTatil: (momento: string) => mockRetornoTatil(momento),
+}));
+
 /* A sessão precisa ser o MESMO objeto a cada renderização: um objeto novo faz o
    efeito de abertura rodar de novo a cada render, e o teste entra em laço. */
 const mockSessao = {
@@ -102,6 +110,7 @@ beforeEach(() => {
   mockSinal = { temSinal: true, tipo: "Wi-Fi" };
   mockObterFila = async () => mockFila;
   avisarQueMudou = null;
+  mockRetornoTatil.mockClear();
   mockDescartar.mockClear();
   mockReenviar.mockClear();
   mockAssumir.mockClear();
@@ -572,5 +581,68 @@ describe("a hierarquia nova não apagou o que já estava certo", () => {
     const selo = screen.getByLabelText("Protocolo 2026/000555: Arquivada");
     expect(within(selo).getByText("✕")).toBeTruthy();
     expect(within(selo).getByText("Arquivada")).toBeTruthy();
+  });
+});
+
+describe("a fila zerando, que é o momento que este aplicativo existe para produzir", () => {
+  /*
+    O agente subiu o morro, coletou sem sinal e desceu sem saber se o trabalho
+    dele chegou. A fila zerar é a resposta a essa dúvida, e é o único lugar do
+    produto onde ela aparece inteira. Ele pode estar com o aparelho no bolso,
+    voltando a pé: é para isso que serve o retorno tátil aqui.
+  */
+  it("vibra quando o último item sai", async () => {
+    mockItens = [item({ id: "1", estado: "pendente" })];
+    await abrirATela();
+    mockRetornoTatil.mockClear();
+
+    mockItens = [];
+    await act(async () => { avisarQueMudou?.(); });
+
+    expect(mockRetornoTatil).toHaveBeenCalledWith("concluido");
+  });
+
+  /*
+    A GUARDA DE ORIGEM, e ela é a mesma da `FaixaDeSincronizacao`: só a
+    TRANSIÇÃO comemora. Abrir a aba com a fila já vazia não é a fila tendo
+    esvaziado, e um aparelho que vibra toda vez que o agente entra aqui ensina
+    depressa a ignorar a vibração, levando junto os outros três momentos em que
+    ela informa alguma coisa.
+  */
+  it("abrir a aba com a fila já vazia não comemora nada", async () => {
+    mockItens = [];
+    await abrirATela();
+
+    expect(mockRetornoTatil).not.toHaveBeenCalled();
+  });
+
+  /*
+    E DESCARTAR O ÚLTIMO ITEM TAMBÉM NÃO. A fila zerar porque o servidor
+    recebeu tudo é o oposto de a fila zerar porque o agente jogou fora a última
+    coleta; um retorno igual nos dois casos comemoraria trabalho apagado.
+  */
+  it("descartar o último item esvazia a fila e não comemora", async () => {
+    mockItens = [item({ id: "1", estado: "bloqueado" })];
+    await abrirATela();
+    mockRetornoTatil.mockClear();
+
+    await tocar("Descartar");
+    mockDescartar.mockImplementation(async () => { mockItens = []; });
+    await act(async () => { fireEvent.press(screen.getByTestId("dialogo-acao")); });
+    await act(async () => {});
+
+    expect(mockRetornoTatil).not.toHaveBeenCalled();
+  });
+
+  /* E a fila que encolhe sem zerar não é fim de nada. */
+  it("um item a menos, com outros na fila, não comemora", async () => {
+    mockItens = [item({ id: "1", estado: "pendente" }), item({ id: "2", estado: "pendente" })];
+    await abrirATela();
+    mockRetornoTatil.mockClear();
+
+    mockItens = [item({ id: "2", estado: "pendente" })];
+    await act(async () => { avisarQueMudou?.(); });
+
+    expect(mockRetornoTatil).not.toHaveBeenCalled();
   });
 });

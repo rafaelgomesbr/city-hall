@@ -145,7 +145,18 @@ export function tocaveis(fonte) {
     fazia) não casava com nenhum deles, e a varredura encontrava ZERO tocáveis
     no aplicativo inteiro, verde e cega. Quem pegou foi a âncora de quantidade.
   */
-  const TAGS = /<(Pressable|TouchableOpacity|TouchableHighlight|TouchableWithoutFeedback)(?![A-Za-z])/;
+  /*
+    `Tocavel` entra na lista, e sem ele a varredura ficou CEGA no dia em que a
+    frente de movimento migrou os sete tocáveis das telas para a primitiva: de
+    um dia para o outro o portão passou a enxergar seis elementos no aplicativo
+    inteiro, e só não deu verde mudo porque a âncora de quantidade reprovou.
+
+    A primitiva não dispensa nada: ela exige `accessibilityLabel` e
+    `accessibilityRole` no TIPO, justamente para o que está escrito na fonte
+    continuar sendo a verdade que este portão lê. Um componente que preenchesse
+    sozinho seria um componente que apaga a varredura.
+  */
+  const TAGS = /<(Pressable|TouchableOpacity|TouchableHighlight|TouchableWithoutFeedback|Tocavel)(?![A-Za-z])/;
   const linhas = fonte.split("\n");
   const achados = [];
 

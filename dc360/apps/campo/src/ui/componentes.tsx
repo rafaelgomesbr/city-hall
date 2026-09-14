@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import {
-  ActivityIndicator, Animated, Easing, Pressable, StyleSheet, Text, View, useColorScheme,
+  ActivityIndicator, Animated, Pressable, StyleSheet, Text, View, useColorScheme,
   type StyleProp, type ViewStyle,
 } from "react-native";
 import { ROTULO_SEVERIDADE, type Severidade } from "@dc360/shared";
@@ -11,6 +11,7 @@ import {
 import { useFontes } from "./fontes";
 import { familiaDoTexto } from "./tipografia";
 import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
+import { useRespostaAoToque } from "./useRespostaAoToque";
 
 /**
  * As peças de interface do aplicativo de campo.
@@ -142,16 +143,12 @@ type PropsBotao = {
   volta. `movimento.respostaAoToque` estava declarado em `tokens.ts` desde o
   primeiro dia e nunca tinha sido usado por ninguém.
 */
-const PressionavelAnimado = Animated.createAnimatedComponent(Pressable);
-
-/** Quanto o botão encolhe sob o dedo. */
-const ESCALA_SOB_O_DEDO = 0.97;
+export const PressionavelAnimado = Animated.createAnimatedComponent(Pressable);
 
 export function Botao({
   titulo, onPress, tipo = "primario", desabilitado, carregando, descricao, estilo, testID,
 }: PropsBotao) {
   const tema = useTema();
-  const reduzirMovimento = useReducaoDeMovimento();
   const inativo = desabilitado || carregando;
 
   const cores = {
@@ -162,38 +159,21 @@ export function Botao({
   }[tipo];
 
   /*
-    Um valor só move as duas propriedades (escala e opacidade), porque elas são
-    o mesmo gesto visto de dois jeitos e separá-las abriria a chance de ficarem
-    dessincronizadas. Zero é repouso, um é sob o dedo.
-  */
-  const toqueEmCurso = useRef(new Animated.Value(0)).current;
+    O retorno do dedo mora em `useRespostaAoToque`, e não mais aqui dentro.
 
-  function animarPara(destino: number, curva: readonly [number, number, number, number]) {
-    if (reduzirMovimento) {
-      /*
-        Com redução de movimento ligada o estado ainda MUDA, e é isso que
-        importa: quem pediu menos animação continua precisando saber que o
-        toque pegou. O que desaparece é a interpolação, não o retorno.
-      */
-      toqueEmCurso.setValue(destino);
-      return;
-    }
-    Animated.timing(toqueEmCurso, {
-      toValue: destino,
-      duration: movimento.respostaAoToque,
-      easing: Easing.bezier(...curva),
-      // Escala e opacidade rodam na thread de interface: o dedo não pode
-      // esperar o JavaScript, que neste aplicativo pode estar ocupado drenando
-      // a fila de sincronização.
-      useNativeDriver: true,
-    }).start();
-  }
+    Ele nasceu neste botão, e enquanto morou aqui foi a ÚNICA peça do
+    aplicativo com transição de toque: cartão de tarefa, "Abrir no mapa", a
+    lista do que falta e o disparador da câmera continuavam pulando a opacidade
+    num quadro só. Tirar daqui foi o que permitiu ligar os outros sem copiar
+    quatro linhas cinco vezes.
+  */
+  const toqueVisual = useRespostaAoToque();
 
   return (
     <PressionavelAnimado
       onPress={onPress}
-      onPressIn={() => { animarPara(1, easing.entrada); }}
-      onPressOut={() => { animarPara(0, easing.saida); }}
+      onPressIn={toqueVisual.aoEncostar}
+      onPressOut={toqueVisual.aoSoltar}
       disabled={inativo}
       testID={testID}
       accessibilityRole="button"
@@ -211,12 +191,8 @@ export function Botao({
           justifyContent: "center",
           flexDirection: "row",
           gap: espaco.e2,
-          opacity: inativo
-            ? opacidade.inativo
-            : toqueEmCurso.interpolate({ inputRange: [0, 1], outputRange: [1, opacidade.aoToque] }),
-          transform: [{
-            scale: toqueEmCurso.interpolate({ inputRange: [0, 1], outputRange: [1, ESCALA_SOB_O_DEDO] }),
-          }],
+          opacity: inativo ? opacidade.inativo : toqueVisual.opacidadeDoToque,
+          transform: [{ scale: toqueVisual.escalaDoToque }],
         },
         estilo,
       ]}
@@ -236,6 +212,88 @@ export function Botao({
 /* ========================================================================
    Superfícies
    ======================================================================== */
+
+type PropsTocavel = {
+  children: ReactNode;
+  onPress: () => void;
+  /**
+   * O estilo de repouso, e ele é ESTÁTICO de propósito.
+   *
+   * Quem chama não escreve mais `({ pressed }) => ({ ..., opacity: pressed ? ...
+   * : 1 })`. Era assim que o retorno do toque virava decisão de cada tela, e
+   * foi assim que cinco lugares do aplicativo acabaram com um pulo de opacidade
+   * sem transição enquanto o botão, ao lado, tinha a transição certa.
+   */
+  estilo?: StyleProp<ViewStyle>;
+  desabilitado?: boolean;
+  /**
+   * Obrigatório, e não com valor padrão.
+   *
+   * Um padrão silencioso aqui resolveria a tela e cegaria o portão: quem lê a
+   * fonte é `scripts/portao-acessibilidade-do-aplicativo.test.mjs`, e ele não
+   * tem como saber que o componente preenche sozinho. Exigir no tipo é o que
+   * mantém a varredura honesta, e é também o que obriga quem escreve uma opção
+   * de checklist a dizer "radio" em vez de herdar "button".
+   */
+  accessibilityRole: "button" | "checkbox" | "radio" | "link";
+  accessibilityLabel: string;
+  accessibilityState?: { checked?: boolean; disabled?: boolean; selected?: boolean };
+  testID?: string;
+};
+
+/**
+ * Qualquer coisa tocável que NÃO é botão.
+ *
+ * Cartão de tarefa, linha de "falta isto", "Abrir no mapa", o `ⓘ`, o
+ * disparador da câmera, a opção de um checklist: peças que respondem ao dedo e
+ * que não têm a forma nem o rótulo de um `Botao`. Todas elas usavam
+ * `Pressable` cru com a opacidade decidida na hora, e o resultado era um
+ * aplicativo em que o botão respondia com transição e o cartão ao lado
+ * respondia com um pulo.
+ *
+ * O que esta peça acrescenta é exatamente o `useRespostaAoToque` e mais nada:
+ * ela não desenha, não escolhe cor e não impõe altura. Desenho continua sendo
+ * decisão da tela, porque um cartão de lista e um disparador redondo de câmera
+ * não têm nada em comum além de responder ao dedo.
+ *
+ * `accessibilityLabel` e `accessibilityRole` são obrigatórios aqui, e não
+ * opcionais como no `Pressable`: o portão de acessibilidade do aplicativo já
+ * cobra os dois de todo tocável, e um tipo que permite esquecer é um tipo que
+ * deixa o portão ser o primeiro a lembrar, depois de o código já estar escrito.
+ */
+export function Tocavel({
+  children, onPress, estilo, desabilitado,
+  accessibilityRole, accessibilityLabel, accessibilityState, testID,
+}: PropsTocavel) {
+  const toqueVisual = useRespostaAoToque();
+
+  return (
+    <PressionavelAnimado
+      onPress={onPress}
+      onPressIn={toqueVisual.aoEncostar}
+      onPressOut={toqueVisual.aoSoltar}
+      disabled={desabilitado}
+      testID={testID}
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled: Boolean(desabilitado), ...accessibilityState }}
+      style={[
+        estilo,
+        {
+          /*
+            O desabilitado NÃO anima e fica no mesmo lugar: ele já está dizendo
+            "não toque" pela opacidade de repouso, e uma peça inerte que encolhe
+            sob o dedo estaria prometendo um efeito que não vem.
+          */
+          opacity: desabilitado ? opacidade.inativo : toqueVisual.opacidadeDoToque,
+          transform: [{ scale: desabilitado ? 1 : toqueVisual.escalaDoToque }],
+        },
+      ]}
+    >
+      {children}
+    </PressionavelAnimado>
+  );
+}
 
 export function Cartao({ titulo, children }: { titulo?: string; children: ReactNode }) {
   const tema = useTema();
@@ -485,6 +543,32 @@ export const DEMORA_MS = 6_000;
  * O papel de acessibilidade é `progressbar` com rótulo em português: para quem
  * usa leitor de tela, a roda girando não existe, e sem rótulo a tela inteira é
  * silêncio.
+ *
+ * ## POR QUE ISTO NÃO VIROU ESQUELETO DE CARREGAMENTO
+ *
+ * A frente de movimento tinha o esqueleto na lista de tarefas e na fila como
+ * opção declarada, e a decisão foi NÃO trocar. Quatro razões, e as quatro são
+ * deste aplicativo e não de gosto:
+ *
+ * 1. **A espera daqui é leitura de DISCO, não de rede.** Num aparelho saudável
+ *    ela dura dezenas de milissegundos: o esqueleto piscaria e sumiria, e um
+ *    desenho que aparece e some sem o agente conseguir ler nada é ruído que ele
+ *    lê como "a tela bugou".
+ * 2. **Quando ela demora, é porque quebrou.** E aí o que resolve é a SAÍDA, não
+ *    uma forma bonita. Esqueleto não tem porta: ele pulsa para sempre, com o
+ *    agente em pé no morro achando que está quase.
+ * 3. **A lista pode legitimamente estar VAZIA.** Três cartões falsos seguidos
+ *    de "Nenhuma vistoria designada" é o aplicativo prometendo trabalho que não
+ *    existe a quem está decidindo se sobe o morro.
+ * 4. **Trocar esqueleto por conteúdo muda alturas**, que é exatamente o que a
+ *    frente da lista de tarefas passou um turno inteiro eliminando (ver a
+ *    âncora da `FlatList` em `(agente)/index.tsx`).
+ *
+ * O que sustenta esta decisão é o item 2, e por isso ele virou portão: há um
+ * caso em `scripts/portao-design-do-aplicativo.test.mjs` que REPROVA qualquer
+ * `Carregando` de tela cheia sem `aoDesistir`. No dia em que alguém escrever um
+ * sem saída, o argumento contra o esqueleto deixaria de ser verdade em
+ * silêncio, e é isso que o portão impede.
  */
 export function Carregando({ mensagem, aoDesistir, rotuloDaSaida = "Parar de esperar" }: {
   mensagem?: string;

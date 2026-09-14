@@ -16,7 +16,7 @@
  * vira ROTA no Expo.
  */
 
-import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import type { ItemFila } from "@dc360/campo";
 import type { Pendencia } from "../dados/api";
 
@@ -383,6 +383,14 @@ describe("o que entra na fila", () => {
   /*
     O alívio que o agente quer: a tarefa sai da lista NA HORA. A garantia do
     produto: ela continua no aparelho, na fila, até o servidor confirmar.
+
+    "Na hora" é o NÚMERO, e não o desenho, e a distinção é da frente de
+    movimento: o cabeçalho cai para zero no mesmo quadro em que a devolução
+    entra na fila, porque é ele que decide o dia do agente, e o cartão fica
+    saindo por `movimento.mudancaDeEstado`. Sumir no quadro seguinte era um
+    corte seco no fim de um ato institucional: escolher o motivo, confirmar, e
+    a tela responder com um cartão a menos. Quem estava olhando para a parte de
+    baixo da lista não via nada acontecer.
   */
   it("a tarefa sai da lista assim que a devolução entra na fila", async () => {
     await abrirALista();
@@ -398,10 +406,16 @@ describe("o que entra na fila", () => {
     await tocar("motivo-morador_ausente");
     await tocar("dialogo-acao");
 
-    expect(screen.queryByText(PROTOCOLO)).toBeNull();
+    /* A CONTAGEM não espera a animação: ela é o que o agente lê para saber
+       quanto trabalho sobrou, e um número que mente por um quarto de segundo
+       mente em cima da única coisa que essa tela existe para dizer. */
     expect(screen.getByText("0 vistorias para fazer")).toBeTruthy();
     /* E ela NÃO sumiu do aparelho: o item continua na fila de envio. */
     expect(mockItensDaFila).toHaveLength(1);
+
+    /* O cartão sai de verdade, e não fica pendurado: quem o larga é o
+       temporizador da tela, e não o fim da animação. */
+    await waitFor(() => { expect(screen.queryByText(PROTOCOLO)).toBeNull(); });
   });
 
   it("enquanto a devolução está a caminho, a tarefa não volta sozinha", async () => {

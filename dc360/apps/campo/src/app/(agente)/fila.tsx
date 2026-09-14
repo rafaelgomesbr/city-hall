@@ -28,6 +28,8 @@ import {
   borda, easing, espaco, icone as tamanhoDeIcone, movimento, peso, raio,
 } from "../../ui/tokens";
 import { useReducaoDeMovimento } from "../../ui/useReducaoDeMovimento";
+import { ESCALA_NA_BORDA, ItemDeLista } from "../../ui/ItemDeLista";
+import { retornoTatil } from "../../ui/retornoTatil";
 
 /**
  * A fila de envio, item a item.
@@ -104,8 +106,6 @@ const TENTATIVAS_ATE_AVISAR = 8;
  */
 const RETORNO_NA_TELA_MS = 8_000;
 
-/** Quanto o cartão encolhe enquanto sai da lista. */
-const ESCALA_AO_SAIR = 0.96;
 
 /**
  * O que a tela sabe dizer sobre um item, separado em campos.
@@ -459,55 +459,16 @@ function Secao({ Icone, titulo, quantos, children }: {
   );
 }
 
-/**
- * O cartão que desaparece em vez de sumir.
- *
- * Um item confirmado some da lista na leitura seguinte, e até aqui isso era um
- * corte seco: o cartão dizia "Some desta lista em instantes" e, no instante,
- * a tela simplesmente tinha um cartão a menos. Quem estava olhando para outro
- * ponto da tela não via nada acontecer, e a lista parecia ter encolhido
- * sozinha, que é a forma de uma coleta parecer perdida.
- *
- * O movimento é curto e não segura nada: quem decide quando o cartão sai de
- * verdade é o temporizador da tela, e não o fim da animação. Com redução de
- * movimento ligada o cartão nem chega a entrar aqui, porque a tela o remove na
- * hora.
- */
-function CartaoQueSai({ saindo, children }: { saindo: boolean; children: ReactNode }) {
-  const reduzirMovimento = useReducaoDeMovimento();
-  const presenca = useRef(new Animated.Value(1)).current;
+/*
+  O CARTÃO QUE SAI MUDOU DE ENDEREÇO, e o porquê vale mais que a mudança.
 
-  useEffect(() => {
-    if (!saindo) return;
-    if (reduzirMovimento) {
-      presenca.setValue(0);
-      return;
-    }
-    Animated.timing(presenca, {
-      toValue: 0,
-      duration: movimento.mudancaDeEstado,
-      easing: Easing.bezier(...easing.saida),
-      // Opacidade e escala rodam na thread de interface: o JavaScript deste
-      // aplicativo pode estar ocupado drenando a fila justamente agora.
-      useNativeDriver: true,
-    }).start();
-  }, [saindo, reduzirMovimento, presenca]);
-
-  return (
-    <Animated.View
-      style={{
-        opacity: presenca,
-        transform: [{
-          scale: presenca.interpolate({
-            inputRange: [0, 1], outputRange: [ESCALA_AO_SAIR, 1],
-          }),
-        }],
-      }}
-    >
-      {children}
-    </Animated.View>
-  );
-}
+  Ele nasceu aqui, e enquanto morou aqui foi a única lista do aplicativo com
+  saída desenhada: a de tarefas continuou perdendo item no quadro seguinte, e
+  lá o item que some acabou de ser DEVOLVIDO para a coordenação. Duas listas
+  vizinhas com saídas diferentes (ou com uma saída e um corte seco) é o defeito
+  que ninguém relata e todo mundo sente. Agora as duas chamam a mesma peça, em
+  `ui/ItemDeLista.tsx`.
+*/
 
 /**
  * A chegada do estado vazio, que é o clímax desta tela.
@@ -539,7 +500,7 @@ function ChegadaDoVazio({ children }: { children: ReactNode }) {
       style={{
         opacity: entrada,
         transform: [{
-          scale: entrada.interpolate({ inputRange: [0, 1], outputRange: [ESCALA_AO_SAIR, 1] }),
+          scale: entrada.interpolate({ inputRange: [0, 1], outputRange: [ESCALA_NA_BORDA, 1] }),
         }],
       }}
     >
@@ -621,12 +582,34 @@ export default function TelaDaFila() {
     relogios.current = [];
   }, []);
 
-  const recarregar = useCallback(async (f: FilaDeSincronizacao) => {
+  /**
+   * Relê a fila inteira do disco.
+   *
+   * `comemorarSeZerar` é falso só no descarte, e a distinção é de produto: a
+   * fila zerar porque o servidor recebeu tudo é o momento que este aplicativo
+   * inteiro existe para produzir, e a fila zerar porque o agente jogou o último
+   * item fora é o oposto disso. Um retorno tátil igual nos dois casos
+   * comemoraria um trabalho apagado.
+   */
+  const recarregar = useCallback(async (
+    f: FilaDeSincronizacao,
+    { comemorarSeZerar = true }: { comemorarSeZerar?: boolean } = {},
+  ) => {
     const novos = await f.itens();
     const aindaExiste = new Set(novos.map((i) => i.id));
     const sumiram = listaAnterior.current.filter((i) => !aindaExiste.has(i.id));
+    const tinhaAlgo = listaAnterior.current.length > 0;
     listaAnterior.current = novos;
     setItens(novos);
+
+    /*
+      A GUARDA DE ORIGEM, e ela é a mesma da `FaixaDeSincronizacao`: só
+      comemora a TRANSIÇÃO. Abrir a aba com a fila já vazia não é a fila tendo
+      esvaziado, e um aparelho que vibra toda vez que o agente entra aqui
+      ensina depressa a ignorar a vibração, levando junto os outros três
+      momentos em que ela informa alguma coisa.
+    */
+    if (comemorarSeZerar && tinhaAlgo && novos.length === 0) retornoTatil("concluido");
 
     /* Com redução de movimento ligada não há saída para animar: o item some na
        hora, que é exatamente o que quem ligou a opção pediu. */
@@ -843,7 +826,7 @@ export default function TelaDaFila() {
     const ocupado = emCurso?.id === item.id;
 
     return (
-      <CartaoQueSai key={item.id} saindo={idsSaindo.has(item.id)}>
+      <ItemDeLista key={item.id} saindo={idsSaindo.has(item.id)}>
         <Cartao>
           <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
             {/*
@@ -978,7 +961,7 @@ export default function TelaDaFila() {
             </>
           )}
         </Cartao>
-      </CartaoQueSai>
+      </ItemDeLista>
     );
   }
 
@@ -1174,7 +1157,7 @@ export default function TelaDaFila() {
             const alvo = aDescartar;
             if (!alvo || !fila) return;
             await fila.descartar(alvo.id);
-            await recarregar(fila);
+            await recarregar(fila, { comemorarSeZerar: false });
           })(),
         }}
         recusa={{ rotulo: "Manter na fila" }}
