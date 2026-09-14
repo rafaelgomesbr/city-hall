@@ -4,6 +4,7 @@ import { ROTULO_SEVERIDADE, type Severidade } from "@dc360/shared";
 
 import { Txt, useTema } from "./componentes";
 import { IconeSeveridade } from "./icones";
+import { pesoEfetivo, type PesoVisual } from "./regua";
 import { espaco, icone, raio } from "./tokens";
 
 /**
@@ -72,6 +73,7 @@ export function Chip({
   texto,
   simbolo,
   tom = "neutro",
+  peso = "forte",
   descricao,
   testID,
 }: {
@@ -91,6 +93,19 @@ export function Chip({
    */
   simbolo: SimboloDoChip;
   tom?: TomDoChip;
+  /**
+   * Quanto peso esta pílula tem direito a ocupar. Ver `ui/regua.ts`.
+   *
+   * O padrão continua `forte` para que nenhuma chamada existente mude de
+   * desenho sem alguém ter decidido isso. Quem migra decide uma a uma, com a
+   * R2 da régua na mão: numa peça com mais de um candidato a fundo cheio, o
+   * mais grave fica forte e o resto desce.
+   *
+   * `forte` NÃO é garantia de fundo: `pesoEfetivo` ainda pode aleviar (é o que
+   * acontece com todo chip `ok`, pela R3). Pedir forte aqui é dizer "se este
+   * tom pudesse pintar, ele pintaria", e não "pinte".
+   */
+  peso?: PesoVisual;
   /** A frase que o leitor de tela fala, quando o texto do chip não bastar. */
   descricao?: string;
   testID?: string;
@@ -107,6 +122,15 @@ export function Chip({
     sevCritica: { fundo: tema.sevCriticaFundo, cor: tema.sevCriticaTexto },
   }[tom];
 
+  /*
+    O peso DESENHADO, e não o pedido. Ver `ui/regua.ts`.
+
+    A diferença aparece em dois lugares: todo chip `ok` desce para leve mesmo
+    pedindo forte (R3), e o chip `sevCritica` sobe para forte mesmo pedindo
+    leve (R5, porque o texto dele é branco e fora do vermelho ele some).
+  */
+  const desenho = pesoEfetivo(tom, peso);
+
   return (
     <View
       testID={testID}
@@ -114,9 +138,16 @@ export function Chip({
       accessibilityRole="text"
       accessibilityLabel={descricao ?? texto}
       style={{
-        backgroundColor: cores.fundo,
+        /*
+          Em peso leve a pílula deixa de ser pílula: sem fundo e sem recuo
+          lateral, ela vira o par ícone mais palavra, que é o segundo canal
+          inteiro e nada além dele. O recuo sai junto com o fundo de propósito:
+          mantido, ele deixaria um bloco invisível empurrando o texto para
+          longe do que vem antes, e a linha pareceria desalinhada das outras.
+        */
+        backgroundColor: desenho === "forte" ? cores.fundo : "transparent",
         borderRadius: raio.pilula,
-        paddingHorizontal: espaco.e3,
+        paddingHorizontal: desenho === "forte" ? espaco.e3 : 0,
         paddingVertical: espaco.e1,
         flexDirection: "row",
         alignItems: "center",

@@ -851,6 +851,23 @@ export default function TelaDaFila() {
                 <IconeDevolucao cor={tema.textoDiscreto} tamanho={tamanhoDeIcone.rotulo} />
               </View>
             )}
+            {/*
+              O SELO É O ÚNICO BLOCO PREENCHIDO DESTE CARTÃO, e a régua do peso
+              visual (`ui/regua.ts`) é o que garante isso sem esta tela pedir.
+
+              Dois dos quatro tons que chegam aqui são `ok` ("Enviada" e
+              "Devolvida"), e eles são o caso NORMAL de uma fila de envio: numa
+              tela em que quase tudo dá certo, uma coluna de pílulas verdes
+              cheias acende a lista inteira e deixa a coleta bloqueada, que é a
+              única que precisa do dedo do agente, com o mesmo peso das outras.
+              A R3 tira o fundo de todo tom `ok` dentro do próprio `Chip`, então
+              o verde continua com ícone e palavra e o vermelho continua sendo o
+              único que pinta.
+
+              Por isso o tom continua vindo de `estado`, e não de um cálculo
+              feito aqui: a lista de estados é uma só (a razão está no comentário
+              dela, lá em cima), e a régua é do componente.
+            */}
             <Chip
               texto={estado.rotulo}
               simbolo={estado.simbolo}
@@ -885,6 +902,15 @@ export default function TelaDaFila() {
                tela: sem ela, o leitor só leria a frase se a pessoa voltasse
                com o dedo até este ponto do cartão. */
             <View accessibilityLiveRegion="polite">
+              {/*
+                A confirmação também não pinta fundo, pela mesma R3, e aqui ela
+                empilhava de verdade: o cartão de uma coleta bloqueada mostrava
+                a pílula vermelha do estado E, logo abaixo, um retângulo verde
+                cheio confirmando o toque de "Tentar de novo", dois blocos
+                preenchidos a três linhas de distância dizendo coisas opostas.
+                Agora o retângulo virou filete, o verde ficou no sinal e no
+                título, e quem pinta continua sendo o estado.
+              */}
               <Aviso tom="sucesso" titulo="Pronto">{retorno.texto}</Aviso>
             </View>
           )}

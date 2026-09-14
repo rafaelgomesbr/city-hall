@@ -6,6 +6,7 @@ import { faltaParaConcluir } from "@dc360/campo";
 import type { Pendencia } from "../dados/api";
 import { salvarRascunho } from "../dados/rascunho";
 import { DEMORA_MS } from "../ui/componentes";
+import { contarPreenchidos } from "../ui/regua";
 import { temaEscuro, toque } from "../ui/tokens";
 import TelaDeVistoria, {
   requisitosDeConclusao, secaoDaFalta,
@@ -836,5 +837,77 @@ describe("o retorno tátil da vistoria", () => {
     await act(async () => {});
 
     expect(mockRetornoTatil).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * A DENSIDADE VISUAL do cabeçalho, medida no que foi desenhado.
+ *
+ * O cartão de cabeçalho desta tela juntava TRÊS blocos de cor em quatro linhas:
+ * a pílula de severidade, a pílula de prazo (vermelha quando vencido, âmbar
+ * quando apertado) e a tarja âmbar de vulnerabilidade social. São três fatos
+ * diferentes gritando no mesmo volume, e quem lê isso está em pé no morro
+ * decidindo o que fazer primeiro.
+ *
+ * A régua está em `ui/regua.ts`. Pela R2, o fundo cheio fica com a SEVERIDADE:
+ * ela é a gravidade do fato, é a mesma marca em todas as telas do produto e é a
+ * única das três cujo par de cores é medido, um a um, no portão de contraste. O
+ * prazo virou ícone mais palavra, que é como a lista de tarefas já o desenha, e
+ * a vulnerabilidade virou aviso de peso leve, com filete.
+ *
+ * Os dois primeiros casos REPROVAM na versão anterior desta tela.
+ */
+describe("a régua do peso visual, no cabeçalho da vistoria", () => {
+  const OCORRENCIA_DO_PIOR_CASO: Pendencia = {
+    ...OCORRENCIA,
+    prazo_em: "2026-09-08T12:00:00.000Z",
+    vulnerabilidade_presente: true,
+    vulnerabilidade_descricao: "Idosa acamada no andar de baixo.",
+  };
+
+  const preenchidos = () =>
+    contarPreenchidos(screen.toJSON(), temaEscuro, (e) => StyleSheet.flatten(e as never))
+      .sort();
+
+  it("severidade, prazo vencido e vulnerabilidade não pintam três blocos", async () => {
+    mockPendencia = async () => OCORRENCIA_DO_PIOR_CASO;
+    await abrirATela();
+
+    /*
+      Sobram dois no aplicativo inteiro, e os dois estão longe um do outro: a
+      pílula de severidade, no alto do cartão, e a tarja do fim da rolagem que
+      diz por quantos itens o botão de concluir está travado. Nenhum cartão
+      empilha mais de um, que é a R1.
+    */
+    expect(preenchidos()).toEqual([temaEscuro.alertaFundo, temaEscuro.sevAltaFundo].sort());
+  });
+
+  it("e os três fatos continuam na tela, cada um com o segundo canal dele", async () => {
+    /*
+      Tirar o peso não pode virar tirar a informação. O prazo mantém a palavra
+      "vencido" e o relógio; a vulnerabilidade mantém o sinal, o título e o
+      filete; a severidade mantém a pílula.
+    */
+    mockPendencia = async () => OCORRENCIA_DO_PIOR_CASO;
+    await abrirATela();
+
+    expect(screen.getByText(/vencid/i)).toBeTruthy();
+    expect(screen.getByText("Vulnerabilidade social registrada")).toBeTruthy();
+    expect(screen.getByText("Idosa acamada no andar de baixo.")).toBeTruthy();
+    expect(screen.getByLabelText("Severidade alta")).toBeTruthy();
+  });
+
+  it("o prazo vencido continua saindo na cor de perigo, só que sem retângulo", async () => {
+    /*
+      A cor não foi embora: ela saiu do fundo e ficou no texto, que é o peso
+      leve da régua. Sem este caso, apagar a cor do prazo junto com o fundo
+      passaria despercebido, e a tela perderia a distinção entre vencido e no
+      prazo.
+    */
+    mockPendencia = async () => OCORRENCIA_DO_PIOR_CASO;
+    await abrirATela();
+
+    const prazo = screen.getByText(/^Prazo vencid/);
+    expect(StyleSheet.flatten(prazo.props.style).color).toBe(temaEscuro.perigoTexto);
   });
 });

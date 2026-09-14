@@ -158,3 +158,86 @@ describe("O segundo canal pode ser desenho", () => {
 function Marca({ testID }: { testID?: string }) {
   return <View testID={testID} style={{ width: 12, height: 12 }} />;
 }
+
+/**
+ * A RÉGUA DO PESO VISUAL, do lado do desenho.
+ *
+ * O portão em `scripts/portao-densidade-do-aplicativo.test.mjs` lê a fonte e
+ * consegue provar que o `Chip` CHAMA `pesoEfetivo`. Ele não consegue provar que
+ * a chamada produz o desenho certo: quem sabe isso é o React Native, montando o
+ * componente. É o que estes casos fazem, e sem eles a régua teria um lado só.
+ *
+ * Todos REPROVAM na versão anterior do `Chip`, em que `backgroundColor` era
+ * `cores.fundo` e ponto final.
+ */
+describe("a régua do peso visual", () => {
+  const fundoDe = (testID: string) =>
+    StyleSheet.flatten(screen.getByTestId(testID).props.style).backgroundColor;
+
+  /*
+    R3, e é ela que resolve a maior parte da reclamação de origem: na tela de
+    equipe eram até dez destas pílulas, verdes e cheias, uma por vistoria
+    concluída, dizendo um fato do passado com o mesmo peso de uma coleta
+    bloqueada. Confirmação é o caso normal deste produto, e o caso normal não
+    pinta fundo.
+  */
+  it("o tom `ok` não pinta fundo, nem quando quem chama pede peso forte", async () => {
+    await montar(<Chip tom="ok" texto="Enviada" simbolo="✓" peso="forte" testID="selo" />);
+    expect(fundoDe("selo")).toBe("transparent");
+  });
+
+  it("mas o segundo canal continua inteiro no tom `ok`", async () => {
+    /*
+      Tirar o fundo não pode virar tirar a informação. Sem a palavra e o
+      símbolo, o chip leve seria só uma cor de texto, que é exatamente o que a
+      regra mais antiga deste aplicativo proíbe.
+    */
+    await montar(<Chip tom="ok" texto="Enviada" simbolo="✓" />);
+    expect(screen.getByText("Enviada")).toBeTruthy();
+    expect(screen.getByText("✓")).toBeTruthy();
+    expect(StyleSheet.flatten(screen.getByText("Enviada").props.style).color)
+      .toBe(temaClaro.okTexto);
+  });
+
+  it("peso leve tira o fundo de um tom que normalmente pinta", async () => {
+    await montar(<Chip tom="alerta" texto="Equipe inativa" simbolo="!" peso="leve" testID="selo" />);
+    expect(fundoDe("selo")).toBe("transparent");
+  });
+
+  /*
+    O outro lado, e ele importa tanto quanto: a régua não é "tire a cor". Sem
+    este caso, apagar o fundo de TODO chip passaria despercebido, e a tela
+    perderia a hierarquia em vez de ganhar uma.
+  */
+  it("e o peso forte continua pintando, que é o ponto de haver dois pesos", async () => {
+    await montar(<Chip tom="alerta" texto="Precisa de atenção" simbolo="!" testID="selo" />);
+    expect(fundoDe("selo")).toBe(temaClaro.alertaFundo);
+  });
+
+  /*
+    R5, e ela é aritmética. `sevCriticaTexto` é branco nos dois temas, porque
+    foi escolhido para ficar em cima de vermelho. Tirar o vermelho de baixo dele
+    deixaria 1.00:1 sobre o cartão claro, ou seja, a pílula da ocorrência mais
+    grave do produto sumiria da tela. O número é recalculado a cada execução no
+    portão de densidade; aqui se prova que o componente respeita a consequência.
+  */
+  it("severidade crítica NÃO alevia, mesmo pedindo leve: o texto dela é branco", async () => {
+    await montar(
+      <Chip tom="sevCritica" texto="Crítica" simbolo="!" peso="leve" testID="selo" />,
+    );
+    expect(fundoDe("selo")).toBe(temaClaro.sevCriticaFundo);
+  });
+
+  it("e a severidade que TEM cor de texto própria alevia normalmente", async () => {
+    await montar(<Chip tom="sevAlta" texto="Alta" simbolo="!" peso="leve" testID="selo" />);
+    expect(fundoDe("selo")).toBe("transparent");
+    expect(StyleSheet.flatten(screen.getByText("Alta").props.style).color)
+      .toBe(temaClaro.sevAltaTexto);
+  });
+
+  it("no tema escuro vale o mesmo, porque a regra é da régua e não da paleta", async () => {
+    mockEsquema = "dark";
+    await montar(<Chip tom="ok" texto="Enviada" simbolo="✓" testID="selo" />);
+    expect(fundoDe("selo")).toBe("transparent");
+  });
+});

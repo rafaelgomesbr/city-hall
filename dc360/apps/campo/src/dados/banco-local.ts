@@ -141,6 +141,27 @@ async function abrirUmaVez(): Promise<SQLite.SQLiteDatabase> {
       coletada_em     TEXT NOT NULL,
       situacao        TEXT NOT NULL
     );
+    /*
+      A preferência de quem segura o aparelho, e ela é uma tabela SEPARADA de
+      marcas por uma razão só: o logout.
+
+      As duas guardam chave e valor, e a tentação de juntá-las é grande. O que
+      as separa não é o formato, é o tempo de vida. A tabela marcas morre no
+      logout de propósito (ver apagarDadosLocais): ela guarda o que a SESSÃO
+      produziu, ou seja, dado de trabalho do turno que acabou, e no aparelho de
+      plantão que passa de mão em mão isso precisa sumir. A tabela preferencias
+      guarda o que a PESSOA escolheu sobre este telefone, e escolha de tela não
+      é dado de cidadão nem de turno: quem sai da conta no fim do plantão e
+      entra de novo na manhã seguinte não quer reescolher o tema.
+
+      Duas tabelas é o que torna essa diferença impossível de perder de vista.
+      Com uma só e uma lista de chaves poupadas no DELETE, a próxima chave
+      nasceria do lado errado em silêncio.
+    */
+    CREATE TABLE IF NOT EXISTS preferencias (
+      chave TEXT PRIMARY KEY,
+      valor TEXT NOT NULL
+    );
   `);
 
   return db;
@@ -208,6 +229,24 @@ export async function apagarDadosLocais(): Promise<void> {
       em `packages/campo/src/fila.ts`: cada item lembra de quem é, e o dreno só
       envia o que for de quem está logado. Se um dia esta linha passar a apagar a
       fila, aquele carimbo perde o sentido junto.
+    */
+    /*
+      `preferencias` também NÃO entra nesta lista, e pela razão oposta à da
+      fila: ali o que se protege é prova de um ato administrativo, aqui é uma
+      escolha de tela que nunca foi segredo de ninguém.
+
+      O tema claro ou escuro é a única coisa desta tabela hoje, e ele pertence
+      ao APARELHO e a quem o está segurando, não à sessão. Apagá-lo no logout
+      devolveria o agente ao tema do sistema toda manhã, depois de ele ter
+      escolhido o contrário exatamente porque o sistema erra: o telefone troca
+      para o modo escuro no fim da tarde e o plantão da noite é justamente
+      quando a tela precisa estar legível na mão molhada, sob a luz do
+      caminhão. Escolha que não sobrevive ao logout é escolha que ninguém faz
+      duas vezes.
+
+      Não há dado de pessoa aqui, e não pode passar a haver: o que entrar nesta
+      tabela sobrevive à troca de turno. Dado de cidadão vai para as tabelas
+      acima, que são apagadas.
     */
     await db.execAsync(
       "DELETE FROM rascunhos; DELETE FROM pendencias; DELETE FROM marcas; DELETE FROM coletas;",

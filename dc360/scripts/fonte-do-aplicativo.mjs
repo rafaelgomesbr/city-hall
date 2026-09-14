@@ -336,3 +336,202 @@ export function contraste(frente, fundo) {
   const [claro, escuro] = a > b ? [a, b] : [b, a];
   return (claro + 0.05) / (escuro + 0.05);
 }
+
+/* ============================================================
+   A árvore de elementos
+   ============================================================ */
+
+/**
+ * Recorta a ÁRVORE de elementos do arquivo, e não só as tags soltas.
+ *
+ * `tocaveis()`, logo acima, lê elemento por elemento, e isso bastou para as
+ * três perguntas que os portões faziam até agora: alvo de toque, rótulo de
+ * acessibilidade e valor escrito à mão. Nenhuma delas depende de onde o
+ * elemento está.
+ *
+ * A pergunta do portão de densidade depende, e só ela: "quantos blocos com
+ * fundo preenchido coexistem DENTRO da mesma peça". Sem aninhamento não há
+ * "dentro", e uma varredura linear responderia sempre a mesma coisa (o arquivo
+ * inteiro tem muitos), que é verde garantido e prova nenhuma.
+ *
+ * ## O que o leitor faz para não se enganar
+ *
+ * 1. **Só nome com inicial maiúscula abre elemento.** Em React Native todo
+ *    componente é assim, e isso já descarta `i < linhas.length`.
+ * 2. **`<` colado num identificador NÃO abre elemento.** É o que separa
+ *    `useState<Tema>` e `Record<Severidade, TomDoChip>` de um `<Tema>` de
+ *    verdade. Sem esta regra, um genérico do topo do arquivo empilhava uma tag
+ *    que nunca fecha, e todo elemento seguinte virava filho dela.
+ * 3. **Chave em atributo é pulada inteira, com aspas respeitadas.** É por isso
+ *    que `onPress={() => ...}` não termina a tag no `>` da seta, que é o
+ *    defeito exato que `tocaveis()` já tinha documentado.
+ * 4. **Expressão de atributo é varrida à parte e vira filha.** `renderItem={()
+ *    => <Cartao>...</Cartao>}` desenha um cartão DENTRO da lista, e um leitor
+ *    que pulasse a chave não veria o cartão nenhuma vez.
+ * 5. **Fechamento que não casa não engole o resto.** Ao fechar `</View>`, tudo
+ *    que ficou aberto por engano é desfeito e os filhos sobem para o pai. Sem
+ *    isso, um único engano deslocaria a árvore inteira do arquivo.
+ *
+ * O que ele NÃO faz, dito na cara: não é um analisador de TypeScript, não
+ * resolve componente que se monta em tempo de execução e não sabe o que um
+ * `props.children` vindo de outro arquivo desenha. É o mesmo limite dos outros
+ * portões daqui, e está escrito no cabeçalho deste arquivo.
+ */
+export function arvoreJsx(fonte, linhaBase = 1) {
+  const IDENTIFICADOR = /[A-Za-z0-9_$]/;
+  const raizes = [];
+  const pilha = [];
+
+  const filhosDe = (no) => (no ? no.filhos : raizes);
+  const linhaEm = (indice) => linhaBase + (fonte.slice(0, indice).match(/\n/g)?.length ?? 0);
+
+  /** Fim de um texto literal, com escape respeitado. */
+  function fimDoTexto(inicio) {
+    const aspas = fonte[inicio];
+    let k = inicio + 1;
+    while (k < fonte.length) {
+      if (fonte[k] === "\\") { k += 2; continue; }
+      if (fonte[k] === aspas) return k + 1;
+      k += 1;
+    }
+    return k;
+  }
+
+  /** Fim de um grupo `{...}` equilibrado, pulando texto literal por dentro. */
+  function fimDaChave(inicio) {
+    let profundidade = 0;
+    let k = inicio;
+    while (k < fonte.length) {
+      const c = fonte[k];
+      if (c === '"' || c === "'" || c === "`") { k = fimDoTexto(k); continue; }
+      if (c === "{") profundidade += 1;
+      if (c === "}") {
+        profundidade -= 1;
+        if (profundidade === 0) return k + 1;
+      }
+      k += 1;
+    }
+    return k;
+  }
+
+  /*
+    Desfaz o que ficou aberto por engano, subindo os filhos para o pai.
+
+    Um genérico que escapou da regra 2, ou uma tag que este leitor não soube
+    fechar, não pode sequestrar o resto do arquivo: o custo do engano fica no
+    elemento enganado, e não na árvore toda.
+  */
+  function desfazer(no) {
+    const pai = pilha[pilha.length - 1];
+    const irmaos = filhosDe(pai);
+    const posicao = irmaos.indexOf(no);
+    if (posicao >= 0) irmaos.splice(posicao, 1, ...no.filhos);
+  }
+
+  function fecharAte(nome) {
+    let alvo = -1;
+    for (let k = pilha.length - 1; k >= 0; k--) {
+      if (pilha[k].tag === nome) { alvo = k; break; }
+    }
+    // Fechamento sem abertura correspondente: ignorado, e a pilha fica de pé.
+    if (alvo === -1) return;
+    while (pilha.length - 1 > alvo) desfazer(pilha.pop());
+    pilha.pop();
+  }
+
+  let i = 0;
+  while (i < fonte.length) {
+    const c = fonte[i];
+
+    if (c === '"' || c === "'" || c === "`") { i = fimDoTexto(i); continue; }
+
+    if (c === "<" && fonte[i + 1] === "/") {
+      const casou = /^<\/\s*([A-Za-z][\w.$]*)\s*>/.exec(fonte.slice(i, i + 120));
+      if (casou) { fecharAte(casou[1]); i += casou[0].length; continue; }
+      i += 1;
+      continue;
+    }
+
+    if (c === "<" && /[A-Z]/.test(fonte[i + 1] ?? "")) {
+      if (IDENTIFICADOR.test(fonte[i - 1] ?? " ")) { i += 1; continue; }
+      const nome = /^<([A-Z][\w.$]*)/.exec(fonte.slice(i, i + 120))?.[1];
+      if (!nome) { i += 1; continue; }
+
+      let j = i + 1 + nome.length;
+      let atributos = "";
+      const expressoes = [];
+      let autoFechado = false;
+      let fechou = false;
+
+      while (j < fonte.length) {
+        const d = fonte[j];
+        if (d === '"' || d === "'" || d === "`") {
+          const fim = fimDoTexto(j);
+          atributos += fonte.slice(j, fim);
+          j = fim;
+          continue;
+        }
+        if (d === "{") {
+          const fim = fimDaChave(j);
+          const dentro = fonte.slice(j + 1, fim - 1);
+          const elementos = arvoreJsx(dentro, linhaEm(j));
+          expressoes.push(...elementos);
+          /*
+            Expressão que CARREGA elemento não entra no texto dos atributos, e
+            a que não carrega entra inteira.
+
+            A diferença custou um defeito de contagem. `style={{ backgroundColor:
+            ... }}` precisa entrar, senão o portão de densidade deixa de
+            enxergar todo fundo escrito à mão. Já `renderItem={() => <View
+            style={{ backgroundColor: ... }}>}` não pode entrar: o fundo mora no
+            elemento de dentro, que já vira filho aqui, e copiar o texto para os
+            atributos da lista faz o MESMO fundo ser contado duas vezes, uma na
+            lista e outra no filho. Quem pegou foi o caso que reproduz o cartão
+            da reclamação: ele esperava três blocos e a leitura devolvia quatro.
+          */
+          atributos += elementos.length > 0 ? "{}" : fonte.slice(j, fim);
+          j = fim;
+          continue;
+        }
+        if (d === ">") {
+          autoFechado = atributos.trimEnd().endsWith("/");
+          j += 1;
+          fechou = true;
+          break;
+        }
+        atributos += d;
+        j += 1;
+      }
+      // Tag que não fecha até o fim do arquivo: não é JSX, e nada nasce dela.
+      if (!fechou) { i += 1; continue; }
+
+      const no = { tag: nome, linha: linhaEm(i), atributos, filhos: [...expressoes] };
+      filhosDe(pilha[pilha.length - 1]).push(no);
+      if (!autoFechado) pilha.push(no);
+      i = j;
+      continue;
+    }
+
+    i += 1;
+  }
+
+  while (pilha.length > 0) desfazer(pilha.pop());
+  return raizes;
+}
+
+/**
+ * O valor de um atributo, quando ele é texto literal.
+ *
+ * Devolve `null` quando o atributo existe mas o valor vem de expressão
+ * (`tom={estado.tom}`), e `undefined` quando ele não existe. A diferença é o
+ * que permite ao portão ser CONSERVADOR no caso certo: valor que só existe em
+ * tempo de execução conta como o pior caso, e atributo ausente cai no padrão
+ * declarado pelo componente.
+ */
+export function atributoLiteral(atributos, nome) {
+  const literal = new RegExp(`(?:^|\\s)${nome}\\s*=\\s*"([^"]*)"`).exec(atributos);
+  if (literal) return literal[1];
+  const expressao = new RegExp(`(?:^|\\s)${nome}\\s*=\\s*\\{`).test(atributos);
+  if (expressao) return null;
+  return undefined;
+}

@@ -1498,11 +1498,20 @@ export default function TelaDeVistoria() {
       + prazo.texto.charAt(0).toLowerCase() + prazo.texto.slice(1)
       + ` (${dataDoPrazo(ocorrencia.prazo_em)})`
     : prazo.texto;
-  const coresDoPrazo = prazo.vencido
-    ? { fundo: tema.perigoFundo, cor: tema.perigoTexto }
+  /*
+    Só a COR do texto, e não mais um par de fundo e cor.
+
+    O fundo saiu junto com a pílula (ver a R1 da régua, aplicada no cabeçalho
+    logo abaixo). Deixar o par montado com uma das metades sem uso seria deixar
+    escrito, no código, que o fundo ainda é uma decisão viva: a próxima pessoa
+    que precisasse destacar o prazo acharia `coresDoPrazo.fundo` pronto e
+    devolveria a pílula sem saber que ela tinha sido tirada de propósito.
+  */
+  const corDoPrazo = prazo.vencido
+    ? tema.perigoTexto
     : prazo.atrasado
-      ? { fundo: tema.alertaFundo, cor: tema.alertaTexto }
-      : { fundo: tema.superficie2, cor: tema.textoDiscreto };
+      ? tema.alertaTexto
+      : tema.textoDiscreto;
 
   const temCoordenada = ocorrencia.latitude != null && ocorrencia.longitude != null;
 
@@ -1587,27 +1596,34 @@ export default function TelaDeVistoria() {
 
         <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2, flexWrap: "wrap" }}>
           {/*
-            A pílula é desenhada aqui, e não com `Selo`, por duas razões que se
-            somam. `Selo` recebe texto e não aceita desenho, e ele usa `legenda`
-            de 12 pontos, dois abaixo do `fonteMinima` que o próprio
-            `tokens.ts` declara: o prazo é justamente o que se lê de relance, em
-            pé, com chuva na tela.
+            O PRAZO PERDEU O FUNDO CHEIO, e passou a ser ícone mais palavra.
+
+            Ele era uma pílula vermelha (ou âmbar) a duas linhas de distância da
+            pílula de severidade, que também é vermelha ou âmbar, dentro do
+            mesmo cartão, e com um terceiro bloco âmbar de vulnerabilidade logo
+            abaixo. Três blocos de cor para três fatos diferentes, todos no
+            mesmo volume: é a R1 da régua sendo furada três vezes no cabeçalho
+            da tela mais longa do produto.
+
+            Quem fica com o único fundo cheio do cartão é a SEVERIDADE, pela R2:
+            ela é a gravidade do fato, é a mesma marca em todas as telas do
+            produto e é a única das três cujo par de cores é medido, um a um, no
+            portão de contraste. O prazo continua inteiro, com o relógio vencido
+            e a palavra "vencido" no texto, na cor do tom, que é exatamente como
+            a lista de tarefas já desenha o prazo dela. Duas telas que falam do
+            mesmo prazo passam a falar do mesmo jeito.
           */}
           <View
             style={{
-              backgroundColor: coresDoPrazo.fundo,
-              borderRadius: raio.pilula,
-              paddingHorizontal: espaco.e3,
-              paddingVertical: espaco.e1,
               flexDirection: "row",
               alignItems: "center",
               gap: espaco.e2,
             }}
           >
             {prazo.atrasado && (
-              <IconePrazoVencido cor={coresDoPrazo.cor} tamanho={icone.inline} />
+              <IconePrazoVencido cor={corDoPrazo} tamanho={icone.rotulo} />
             )}
-            <Txt variante="corpoP" peso={peso.negrito} cor={coresDoPrazo.cor}>
+            <Txt variante="corpoP" peso={peso.negrito} cor={corDoPrazo}>
               {rotuloDoPrazo}
             </Txt>
           </View>
@@ -1671,10 +1687,28 @@ export default function TelaDeVistoria() {
         <Separador />
         <Txt variante="legenda" discreto>Relato recebido</Txt>
         <Txt variante="corpoP">{ocorrencia.descricao}</Txt>
+        {/*
+          A vulnerabilidade desce para peso leve, e não some.
+
+          Ela é o TERCEIRO bloco de cor deste cartão, e o único dos três que
+          está falando do lugar e não da ocorrência. A R2 da régua manda o fundo
+          cheio para a gravidade do fato (a pílula de severidade, no topo do
+          cartão); aqui ficam o sinal, o título em âmbar e o filete lateral, que
+          é o que dá começo à peça sem acender a área inteira.
+
+          Ela ganhou TÍTULO na troca, e isso não é compensação: em peso forte a
+          tarja tinha a cor para chamar atenção e o texto podia ser corrido; em
+          peso leve quem chama é a primeira linha, e ela precisa dizer o fato
+          antes da descrição, que pode ser longa e vem do cadastro.
+        */}
         {ocorrencia.vulnerabilidade_presente && (
-          <Aviso tom="alerta">
-            Vulnerabilidade social registrada.
-            {ocorrencia.vulnerabilidade_descricao ? ` ${ocorrencia.vulnerabilidade_descricao}` : ""}
+          <Aviso tom="alerta" peso="leve" titulo="Vulnerabilidade social registrada">
+            {/* Texto vazio é tão ausente quanto nulo, e o cadastro produz os
+                dois: `??` sozinho deixaria um aviso com título e corpo em
+                branco. */}
+            {ocorrencia.vulnerabilidade_descricao
+              ? ocorrencia.vulnerabilidade_descricao
+              : "O relato não detalha quem precisa de cuidado prioritário neste endereço."}
           </Aviso>
         )}
       </Cartao>
@@ -1736,6 +1770,14 @@ export default function TelaDeVistoria() {
           </View>
 
           {podeConcluir ? (
+            /*
+              Este aviso deixou de pintar fundo, e não por pedido desta tela: a
+              R3 da régua (`ui/regua.ts`) tira o fundo de todo tom `sucesso`
+              dentro do próprio componente. Faz sentido aqui mais do que em
+              qualquer outro lugar: o que precisa saltar neste cartão é o BOTÃO
+              que leva à minuta, e um retângulo verde de quarenta palavras atrás
+              dele competia com ele em vez de conduzir até ele.
+            */
             <Aviso
               tom="sucesso"
               titulo="Tudo pronto"

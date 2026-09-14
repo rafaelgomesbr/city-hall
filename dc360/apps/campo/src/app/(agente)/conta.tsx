@@ -9,13 +9,16 @@ import { useSessao } from "../../dados/sessao";
 import { useSinal } from "../../dados/conectividade";
 import { usePush } from "../../push/contexto";
 import { frasesDoEstado, ofereceAjustes } from "../../push/permissao";
-import { Aviso, Botao, Cartao, Separador, Txt, Vazio, useTema } from "../../ui/componentes";
+import type { PreferenciaDeTema } from "../../dados/preferencia-de-tema";
+import {
+  Aviso, Botao, Cartao, Separador, Tocavel, Txt, Vazio, useEstadoDoTema, useTema,
+} from "../../ui/componentes";
 import { Chip, type TomDoChip } from "../../ui/Chip";
 import { Dialogo } from "../../ui/Dialogo";
 import {
   IconeAparelho, IconeEnvio, IconeSemSinal, IconeSinal,
 } from "../../ui/icones";
-import { espaco, icone, peso } from "../../ui/tokens";
+import { borda, espaco, icone, peso, raio, toque } from "../../ui/tokens";
 
 /**
  * A conta do agente, e a saída.
@@ -91,9 +94,85 @@ function LinhaDeEstado({ desenho, rotulo, children }: {
   );
 }
 
+/**
+ * Uma das três opções de tema.
+ *
+ * É `radio` e não `checkbox`: as três são exclusivas, e o leitor de tela
+ * anuncia "selecionado" dentro de um conjunto em vez de "marcado" numa lista de
+ * ligas e desligas. Quem escolheu aparece por TRÊS canais que não são cor: o
+ * sinal de conferido à esquerda, o rótulo em negrito, e o contorno mais grosso.
+ * Sob sol na tela, o contorno é o que sobra.
+ */
+function OpcaoDeTema({ valor, rotulo, detalhe, escolhida, aoEscolher }: {
+  valor: PreferenciaDeTema;
+  rotulo: string;
+  /** A segunda linha, quando a opção tem o que explicar de si mesma. */
+  detalhe?: string;
+  escolhida: boolean;
+  aoEscolher: (valor: PreferenciaDeTema) => void;
+}) {
+  const tema = useTema();
+
+  return (
+    <Tocavel
+      onPress={() => { aoEscolher(valor); }}
+      accessibilityRole="radio"
+      accessibilityLabel={detalhe ? `${rotulo}. ${detalhe}` : rotulo}
+      accessibilityState={{ checked: escolhida, selected: escolhida }}
+      testID={`tema-${valor}`}
+      estilo={{
+        minHeight: toque,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: espaco.e3,
+        paddingHorizontal: espaco.e3,
+        paddingVertical: espaco.e2,
+        borderRadius: raio.normal,
+        /*
+          A espessura é a MESMA nas três, e só a cor dela muda.
+
+          Engrossar a escolhida seria a segunda pista mais óbvia, e foi a
+          primeira tentativa. O problema é que borda ocupa espaço: um ponto a
+          mais de cada lado empurra as opções de baixo dois pontos, então tocar
+          numa delas faz a lista inteira andar debaixo do dedo. Quem diz qual
+          está valendo, sem depender de cor, é o sinal de conferido e o peso do
+          rótulo, e nenhum dos dois mexe no leiaute.
+        */
+        borderWidth: borda.fio,
+        borderColor: escolhida ? tema.destaque : tema.borda,
+        backgroundColor: escolhida ? tema.superficie2 : "transparent",
+      }}
+    >
+      {/*
+        Largura fixa para os três rótulos começarem na mesma coluna, com ou sem
+        sinal à esquerda. Quem alinha é a caixa, não o caractere.
+
+        E esta caixa NÃO se esconde do leitor de tela, ao contrário dos ícones
+        de `LinhaDeEstado` logo acima. A diferença é o que está por fora: lá o
+        ícone acompanha um rótulo solto, e anunciá-lo faria a tela repetir; aqui
+        o invólucro já é um `radio` com rótulo e estado próprios, então o sinal
+        não é anunciado de novo de qualquer forma. Esconder custou caro numa
+        tentativa anterior: as consultas de teste ignoram subárvore escondida, o
+        caso que jurava provar o segundo canal encontrava o ✓ de OUTRO selo da
+        mesma tela, e passava verde com o sinal arrancado daqui.
+      */}
+      <View style={{ width: icone.rotulo, alignItems: "center" }}>
+        {escolhida && (
+          <Txt variante="corpo" peso={peso.negrito} cor={tema.destaque}>✓</Txt>
+        )}
+      </View>
+      <View style={{ flex: 1, gap: espaco.e1 }}>
+        <Txt variante="corpo" peso={escolhida ? peso.negrito : peso.normal}>{rotulo}</Txt>
+        {detalhe && <Txt variante="corpoP" discreto>{detalhe}</Txt>}
+      </View>
+    </Tocavel>
+  );
+}
+
 export default function Conta() {
   const { identidade, sair, obterToken, lerIdentidade } = useSessao();
   const tema = useTema();
+  const escolhaDeTema = useEstadoDoTema();
   const sinal = useSinal();
   const push = usePush();
   const [pendentes, setPendentes] = useState<number | null>(null);
@@ -327,6 +406,81 @@ export default function Conta() {
       </Cartao>
 
       {/*
+        A APARÊNCIA, e por que ela é um cartão próprio em vez de mais uma linha
+        em "Este aparelho".
+
+        Esta tela tinha duas naturezas, e a frente F7 as separou com esse nome:
+        identidade (quem assina o laudo, não muda, não pede nada) e estado (o
+        que muda sozinho e se confere de relance). A escolha de tema não é
+        nenhuma das duas, e encaixá-la à força numa delas estragaria a separação
+        que foi cara de conseguir:
+
+        - Em IDENTIDADE ela prometeria o que não cumpre. Identidade é da pessoa
+          e viaja com ela para qualquer aparelho onde a conta abrir; o tema fica
+          neste telefone. No aparelho de plantão compartilhado a diferença é
+          concreta: quem escolheu claro aqui não escolheu claro no aparelho do
+          colega.
+        - Em "ESTE APARELHO" ela seria um controle no meio de uma coluna de
+          valores que só se leem. Aquele cartão é feito de rótulo à esquerda e
+          valor à direita, e é justamente esse alinhamento que faz três linhas
+          se conferirem de relance. Um tocável de 52 pontos no meio dele ou
+          parece mais um valor (e ninguém descobre que dá para tocar), ou
+          desmancha o alinhamento das outras linhas.
+
+        Então: cartão próprio, ao lado de "Avisos deste aparelho", que é o outro
+        lugar desta tela onde o agente DECIDE alguma coisa sobre este telefone
+        em vez de conferir. Os dois ficam juntos de propósito, e depois do que
+        se confere: quem abre esta aba no meio do plantão vem ver o estado, não
+        ajustar preferência.
+      */}
+      <Cartao titulo="Aparência">
+        <Txt variante="corpoP" discreto>
+          A tela clara se lê melhor com sol batendo nela, e a escura cansa menos
+          no plantão da noite. O sistema decide pelo horário, que nem sempre é o
+          que você está vendo.
+        </Txt>
+        {/* `radiogroup` junta as três para o leitor de tela, que passa a
+            anunciar "1 de 3" em vez de três controles soltos e sem relação. */}
+        <View
+          accessibilityRole="radiogroup"
+          accessibilityLabel="Tema da tela"
+          style={{ gap: espaco.e2 }}
+        >
+          <OpcaoDeTema
+            valor="sistema"
+            rotulo="Acompanhar o sistema"
+            /*
+              O detalhe diz no que a opção DÁ agora. Sem ele, "acompanhar o
+              sistema" é a única das três que não mostra o próprio resultado, e
+              quem está decidindo teria que sair dos ajustes do telefone para
+              descobrir o que escolheu.
+            */
+            detalhe={escolhaDeTema.doSistema === "claro"
+              ? "O sistema está no modo claro agora"
+              : "O sistema está no modo escuro agora"}
+            escolhida={escolhaDeTema.preferencia === "sistema"}
+            aoEscolher={escolhaDeTema.escolher}
+          />
+          <OpcaoDeTema
+            valor="claro"
+            rotulo="Sempre claro"
+            escolhida={escolhaDeTema.preferencia === "claro"}
+            aoEscolher={escolhaDeTema.escolher}
+          />
+          <OpcaoDeTema
+            valor="escuro"
+            rotulo="Sempre escuro"
+            escolhida={escolhaDeTema.preferencia === "escuro"}
+            aoEscolher={escolhaDeTema.escolher}
+          />
+        </View>
+        <Txt variante="corpoP" discreto>
+          A escolha vale só neste aparelho e continua valendo depois de sair da
+          conta.
+        </Txt>
+      </Cartao>
+
+      {/*
         Os avisos, e o caminho de volta para quem já recusou.
 
         Este cartão existe por causa de uma característica do iOS que não tem
@@ -345,7 +499,20 @@ export default function Conta() {
           rotulo="Notificação de tarefa e de prazo"
           desenho={<IconeAparelho cor={tema.textoDiscreto} tamanho={icone.rotulo} />}
         >
-          <Chip texto={frases.titulo} simbolo={selo.simbolo} tom={selo.tom} />
+          {/*
+            PESO LEVE, pela régua de densidade (`src/ui/regua.ts`, R1 e R2).
+
+            Este cartão empilhava três blocos preenchidos: este chip, o aviso do
+            desfecho do último pedido e o aviso de falha no registro. Pela régua,
+            na disputa ganha o mais alto, e aqui é o AVISO DE FALHA: ele é o
+            único dos três que diz que alguma coisa quebrou.
+
+            Este chip é ETIQUETA PERMANENTE: ele descreve em que estado a
+            permissão está, e vai estar na tela em toda abertura, para sempre.
+            Retângulo cheio permanente é textura, não recado, e ainda gasta o
+            destaque que o erro eventual precisa ter.
+          */}
+          <Chip texto={frases.titulo} simbolo={selo.simbolo} tom={selo.tom} peso="leve" />
         </LinhaDeEstado>
         <Txt variante="corpoP" discreto>{frases.texto}</Txt>
 
@@ -391,8 +558,11 @@ export default function Conta() {
           />
         )}
 
+        {/* Leve pela mesma régua: confirmação de um toque que acabou de
+            acontecer. O tom `perigo` não alevia sozinho, e está certo, porque
+            aí o pedido falhou de verdade. */}
         {desfechoDoPedido && (
-          <Aviso tom={desfechoDoPedido.tom} titulo={desfechoDoPedido.titulo}>
+          <Aviso tom={desfechoDoPedido.tom} peso="leve" titulo={desfechoDoPedido.titulo}>
             {desfechoDoPedido.texto}
           </Aviso>
         )}

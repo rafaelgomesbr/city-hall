@@ -23,6 +23,7 @@
  */
 
 import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
 import type { AutorDaColeta, ItemDeVistoria, ItemFila } from "@dc360/campo";
 
 const AGENTE: AutorDaColeta = {
@@ -83,7 +84,8 @@ let mockObterFila: () => Promise<typeof mockFila> = async () => mockFila;
 jest.mock("../dados/fila", () => ({ obterFila: () => mockObterFila() }));
 
 import TelaDaFila from "../app/(agente)/fila";
-import { movimento } from "./tokens";
+import { contarPreenchidos } from "./regua";
+import { movimento, temaEscuro } from "./tokens";
 import { DEMORA_MS } from "./componentes";
 
 function item(
@@ -644,5 +646,75 @@ describe("a fila zerando, que é o momento que este aplicativo existe para produ
     await act(async () => { avisarQueMudou?.(); });
 
     expect(mockRetornoTatil).not.toHaveBeenCalled();
+  });
+});
+
+/* ========================================================================
+   8. A densidade visual da lista
+   ======================================================================== */
+
+/**
+ * A régua do peso visual, medida no que a fila desenhou.
+ *
+ * Esta é a lista em que quase tudo dá certo: coleta sai, coordenação recebe, o
+ * cartão some. Enquanto o selo `ok` pintava fundo, a coluna inteira acendia em
+ * verde para contar o caso normal, e a única coleta que precisava do dedo do
+ * agente (a bloqueada, em vermelho) ficava com exatamente o mesmo peso das
+ * outras. Pior: ao tocar em "Tentar de novo", o cartão bloqueado ganhava um
+ * segundo bloco, verde e cheio, a três linhas do primeiro, os dois dizendo
+ * coisas opostas.
+ *
+ * A régua está em `ui/regua.ts`, e os dois primeiros casos REPROVAM na versão
+ * anterior.
+ */
+describe("a régua do peso visual, na fila", () => {
+  const preenchidos = () =>
+    contarPreenchidos(screen.toJSON(), temaEscuro, (e) => StyleSheet.flatten(e as never))
+      .sort();
+
+  it("uma fila inteira de coletas enviadas não acende um bloco sequer", async () => {
+    mockItens = [
+      item({ id: "a", estado: "confirmado", confirmadoEm: "2026-09-09T10:00:00.000Z" }),
+      item({ id: "b", estado: "confirmado", confirmadoEm: "2026-09-09T10:01:00.000Z" }),
+      item({ id: "c", estado: "confirmado", confirmadoEm: "2026-09-09T10:02:00.000Z" }),
+    ];
+    await abrirATela();
+
+    // A palavra continua em cada cartão: o que saiu foi o retângulo atrás dela.
+    expect(screen.getAllByText("Enviada")).toHaveLength(3);
+    expect(preenchidos()).toEqual([]);
+  });
+
+  it("a coleta bloqueada continua sendo a única que pinta, mesmo depois do toque", async () => {
+    mockItens = [
+      item({ id: "a", estado: "confirmado", confirmadoEm: "2026-09-09T10:00:00.000Z" }),
+      item({
+        id: "b",
+        estado: "bloqueado",
+        ultimaFalha: {
+          codigo: "conflito", mensagem: "O servidor recusou.", campos: [],
+          permanente: true, em: "2026-09-09T10:00:00.000Z",
+        },
+      }),
+    ];
+    await abrirATela();
+
+    /*
+      Dois preenchidos, e eles não se empilham: um é a pílula vermelha dentro do
+      cartão bloqueado, o outro é o aviso da seção, que diz quantas coletas
+      precisam de atenção. Peças diferentes, um bloco cada, que é a R1.
+    */
+    expect(preenchidos()).toEqual([temaEscuro.perigoFundo, temaEscuro.perigoFundo]);
+
+    await tocar("Tentar de novo");
+    await act(async () => {});
+
+    /*
+      E a confirmação do toque NÃO acrescenta um terceiro. Ela aparece com
+      sinal, título e filete, dentro do mesmo cartão que já tem a pílula
+      vermelha, sem disputar com ela.
+    */
+    expect(screen.getByText("Pronto")).toBeTruthy();
+    expect(preenchidos()).toEqual([temaEscuro.perigoFundo, temaEscuro.perigoFundo]);
   });
 });

@@ -2,8 +2,10 @@ import { useRef, useState } from "react";
 import { PanResponder, View, type LayoutChangeEvent } from "react-native";
 import Svg, { Path, Rect } from "react-native-svg";
 import { File, Paths } from "expo-file-system";
-import { Botao, Txt, useTema } from "./componentes";
-import { borda, espaco, papel, raio } from "./tokens";
+import { Aviso, Botao, Txt, useTema } from "./componentes";
+import { Chip } from "./Chip";
+import { IconeSucesso } from "./icones";
+import { borda, espaco, icone, papel, raio } from "./tokens";
 
 /**
  * Assinatura de próprio punho, com o dedo.
@@ -229,17 +231,20 @@ export function Assinatura(
   if (jaAssinada) {
     return (
       <View style={{ gap: espaco.e3 }}>
-        <View style={{
-          backgroundColor: tema.okFundo,
-          borderRadius: raio.normal,
-          padding: espaco.e3,
-          flexDirection: "row",
-          gap: espaco.e2,
-          alignItems: "center",
-        }}>
-          <Txt variante="corpoP" negrito cor={tema.okTexto}>✓</Txt>
-          <Txt variante="corpoP" cor={tema.okTexto}>Assinatura coletada</Txt>
-        </View>
+        {/*
+          Era uma tarja verde CHEIA montada à mão aqui dentro, com um "✓"
+          tipográfico e o texto em `okTexto`. Ela tinha os dois defeitos que a
+          régua do peso visual existe para acabar: pintava fundo para confirmar
+          o caso normal (R3), e era a quarta cópia de um desenho que o `Chip` já
+          faz, com tamanho de fonte e símbolo decididos aqui e em nenhum outro
+          lugar. O `Chip` traz junto o rótulo de acessibilidade num elemento só
+          e o símbolo obrigatório no tipo.
+        */}
+        <Chip
+          tom="ok"
+          texto="Assinatura coletada"
+          simbolo={(cor) => <IconeSucesso cor={cor} tamanho={icone.inline} />}
+        />
         <Botao titulo="Assinar de novo" tipo="secundario" onPress={limpar} />
       </View>
     );
@@ -298,18 +303,15 @@ export function Assinatura(
         </Svg>
       </View>
 
-      {erro && (
-        <View
-          accessibilityRole="alert"
-          style={{
-            backgroundColor: tema.perigoFundo,
-            borderRadius: raio.normal,
-            padding: espaco.e3,
-          }}
-        >
-          <Txt variante="corpoP" cor={tema.perigoTexto}>{erro}</Txt>
-        </View>
-      )}
+      {/*
+        Era a quinta cópia do `Aviso`, montada à mão: retângulo vermelho, texto
+        vermelho e nenhum sinal. Sem o sinal, ela furava a regra mais antiga
+        deste aplicativo (nada se comunica só por cor) no único bloco da tela
+        que fala de uma falha ao gravar a prova de uma interdição. O `Aviso`
+        traz o "×", traz a palavra "Perigo" para quem ouve a tela e traz o mesmo
+        `accessibilityRole="alert"` que estava escrito aqui.
+      */}
+      {erro && <Aviso tom="perigo">{erro}</Aviso>}
 
       <View style={{ flexDirection: "row", gap: espaco.e2 }}>
         <Botao

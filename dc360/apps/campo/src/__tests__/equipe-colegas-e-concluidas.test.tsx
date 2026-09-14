@@ -1,6 +1,9 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
 import Equipe from "../app/(agente)/equipe";
 import type { MeuTrabalho } from "../dados/api";
+import { contarPreenchidos } from "../ui/regua";
+import { temaEscuro } from "../ui/tokens";
 
 /**
  * A tela da equipe dizia as coisas certas, todas em cinza.
@@ -178,5 +181,70 @@ describe("sem equipe", () => {
       o aplicativo.
     */
     expect(mockBuscar).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * A DENSIDADE VISUAL da tela, medida no que foi desenhado.
+ *
+ * Esta tela era a campeã de pílula preenchida do aplicativo, e por acumulação e
+ * não por descuido: a situação da equipe (verde cheia em quase todo dia), a
+ * especialidade, o papel de CADA colega (dez linhas, dez pílulas iguais) e, na
+ * lista de concluídas, a prova do offline em verde cheio, até dez vezes. Cada
+ * uma dessas decisões está certa sozinha, e a soma é a frase que abriu esta
+ * frente: "extremamente poluída com textos coloridos pra todo lado".
+ *
+ * A régua está em `ui/regua.ts`, e a contagem abaixo é a mesma que
+ * `scripts/portao-densidade-do-aplicativo.test.mjs` faz lendo a fonte. As duas
+ * precisam existir: aquela varre todas as telas de uma vez e não sabe o que o
+ * React Native desenha; esta sabe, porque olha a cor decidida.
+ *
+ * Os dois primeiros casos REPROVAM na versão anterior desta tela.
+ */
+describe("a régua do peso visual, na tela da equipe", () => {
+  const preenchidos = () =>
+    contarPreenchidos(screen.toJSON(), temaEscuro, (e) => StyleSheet.flatten(e as never));
+
+  it("dez vistorias concluídas sem sinal não acendem dez blocos verdes", async () => {
+    await abrirComOsDados(trabalho({
+      concluidas: Array.from({ length: 10 }, (_, i) => ({
+        ...concluida(30), id: `v${i}`, protocolo: `00012${i}/2026`,
+      })),
+    }));
+
+    /*
+      A prova do offline continua na tela, inteira: ícone de "sem sinal" mais a
+      frase. O que saiu foi o retângulo verde atrás dela, dez vezes.
+    */
+    expect(screen.getAllByText(/Coletada sem sinal/)).toHaveLength(10);
+    expect(preenchidos()).toEqual([]);
+  });
+
+  it("com a equipe inativa, sobra UM bloco preenchido, e é o que diz a consequência", async () => {
+    await abrirComOsDados(trabalho({
+      equipe: { id: "e1", nome: "Equipe Alfa", especialidade: "Geotecnia", ativa: false },
+      concluidas: [concluida(30)],
+    }));
+
+    /*
+      Antes eram dois: a pílula âmbar "Equipe inativa" e, logo abaixo, o aviso
+      âmbar que explica o que ainda dá para fazer e manda avisar a coordenação.
+      Pela R2 da régua, o fundo cheio fica com o segundo, que é o único dos dois
+      que diz alguma coisa que o agente não sabia.
+    */
+    expect(preenchidos()).toEqual([temaEscuro.alertaFundo]);
+    // E a pílula não sumiu: ela continua com ícone e palavra, sem fundo.
+    expect(screen.getByLabelText("Equipe inativa")).toBeTruthy();
+  });
+
+  it("com tudo normal, a tela não tem bloco preenchido nenhum", async () => {
+    /*
+      O caso que dá sentido aos outros dois. O dia normal de um agente é uma
+      equipe ativa e vistorias que subiram: se a tela acende alguma coisa nesse
+      dia, o agente aprende que a cor não quer dizer nada, e no dia em que ela
+      quiser dizer, ele não vai olhar.
+    */
+    await abrirComOsDados(trabalho({ concluidas: [concluida(30)] }));
+    expect(preenchidos()).toEqual([]);
   });
 });

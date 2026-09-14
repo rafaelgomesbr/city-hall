@@ -257,8 +257,25 @@ export default function Equipe() {
             equipe é a única das duas que muda o que o agente pode esperar do
             dia.
           */}
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: espaco.e2 }}>
+          {/*
+            AS DUAS ETIQUETAS DESCEM PARA PESO LEVE, e a razão é a R1 da régua.
+
+            A situação da equipe é uma etiqueta PERMANENTE: ela está na tela em
+            todo carregamento, e na esmagadora maioria dos dias ela diz "ativa".
+            Enquanto ela foi pílula verde cheia, o cartão abria com um bloco de
+            cor aceso dizendo que estava tudo normal, e quando a equipe estava
+            inativa a mesma pílula (agora âmbar) competia, no mesmo volume, com
+            o aviso logo abaixo, que é quem explica a consequência e diz o que
+            fazer. Dois blocos preenchidos para um fato só, e o mais informativo
+            dos dois era o segundo.
+
+            Em peso leve as duas continuam com ícone e palavra, que é o segundo
+            canal inteiro, e o único fundo cheio do cartão fica com quem merece:
+            o aviso da equipe inativa, quando ele existe.
+          */}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: espaco.e4 }}>
             <Chip
+              peso="leve"
               tom={dados.equipe.ativa ? "ok" : "alerta"}
               texto={dados.equipe.ativa ? "Equipe ativa" : "Equipe inativa"}
               simbolo={(cor) => (dados.equipe?.ativa
@@ -266,6 +283,7 @@ export default function Equipe() {
                 : <IconeAlerta cor={cor} tamanho={icone.inline} />)}
             />
             <Chip
+              peso="leve"
               tom="neutro"
               texto={dados.equipe.especialidade ?? "Geral"}
               simbolo={(cor) => <IconeEquipe cor={cor} tamanho={icone.inline} />}
@@ -324,7 +342,17 @@ export default function Equipe() {
                       {c.nome}{c.id === eu ? " (você)" : ""}
                     </Txt>
                   </View>
+                  {/*
+                    O papel do colega é RÓTULO, e rótulo repetido em toda linha
+                    de uma lista deixa de ser informação e vira textura: com dez
+                    integrantes eram dez pílulas iguais numa coluna, cada uma
+                    com fundo próprio, competindo com o nome que está ao lado e
+                    que é o que alguém veio ler aqui. Em peso leve o papel
+                    continua inteiro, com ícone e palavra, e a lista volta a ter
+                    uma coisa só por linha.
+                  */}
                   <Chip
+                    peso="leve"
                     tom="neutro"
                     texto={ROTULO_PAPEL[c.papel]}
                     simbolo={(cor) => <IconeEquipe cor={cor} tamanho={icone.inline} />}
@@ -369,6 +397,15 @@ export default function Equipe() {
                   </View>
                   <Txt variante="corpo">{ROTULO_TIPO_COBRADE[v.tipo] ?? v.tipo}</Txt>
                   <Txt variante="legenda" discreto>{v.endereco}</Txt>
+                  {/*
+                    Esta era a pílula mais repetida do aplicativo: até dez
+                    delas, verdes e cheias, uma por vistoria concluída, numa
+                    lista em que o fato NORMAL é justamente ter sido coletada
+                    sem sinal. A R3 da régua tira o fundo de todo tom `ok`
+                    dentro do próprio componente, então esta linha não precisa
+                    pedir nada: a marca continua com ícone e palavra, e a lista
+                    deixa de acender inteira para contar uma coisa que é boa.
+                  */}
                   {semSinal && (
                     <Chip
                       tom="ok"

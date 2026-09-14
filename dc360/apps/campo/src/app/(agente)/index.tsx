@@ -272,6 +272,31 @@ export default function Tarefas() {
         */
         if (item.tipo === "vistoria" && item.estado === "confirmado") {
           await marcarEnviada(item.ocorrenciaId);
+          /*
+            E A TAREFA SAI DA LISTA, pelo mesmo direito que a devolução
+            confirmada tem logo abaixo.
+
+            Isto foi visto num aparelho, e a pergunta de quem viu era a certa:
+            "se a coordenação já recebeu esta vistoria, por que ela está na
+            lista de minhas tarefas?". Estava porque ninguém mandava sair. A
+            devolução confirmada chamava `esquecerPendencia`; a vistoria
+            confirmada só promovia a lápide, e a tarefa ficava, com o contador
+            dizendo "2 vistorias para fazer" sobre uma que já chegou.
+
+            Ela acabava saindo na próxima reconciliação com sinal, e "acaba
+            saindo" não é resposta para quem está no morro com o aparelho na
+            mão.
+
+            CONFIRMADO, e não "sumiu da fila": descartar também tira da fila, e
+            esquecer a tarefa por causa de um descarte faria o agente perder de
+            vista um trabalho que o servidor nunca recebeu. É a mesma linha que
+            governa a promoção da lápide, acima, e pelo mesmo motivo.
+
+            A LÁPIDE FICA. Ela é o que impede a segunda vistoria na mesma
+            ocorrência, e some por outro caminho, quando o servidor confirma que
+            não precisa mais dela.
+          */
+          await esquecerPendencia(item.ocorrenciaId);
         }
         /*
           A devolução que o servidor confirmou autoriza o aparelho a esquecer a
@@ -598,6 +623,32 @@ export default function Tarefas() {
       await lerDoDisco();
 
       if (!meu || meu.estado === "confirmado") {
+        /*
+          O DESFECHO É SABIDO AQUI, e por isso ele é aplicado aqui.
+
+          A promoção da lápide e a saída da tarefa moram em `lerAFila`, que
+          varre a fila procurando item confirmado. Esse caminho cobre o envio
+          que acontece sozinho, em segundo plano, sem ninguém tocar em nada.
+
+          Só que ele PERDE A CORRIDA no caminho do dedo: `drenar()` confirma e
+          REMOVE o item da fila, então quando a leitura chega não há item
+          confirmado para encontrar. O resultado foi fotografado num aparelho:
+          tarja verde dizendo "Enviado, a coordenação já recebeu esta vistoria"
+          logo acima de um chip dizendo "Coletada, aguardando envio", com o
+          botão de volta. Três estados contraditórios no mesmo cartão.
+
+          Quem pediu o envio e recebeu a confirmação já sabe o desfecho, e não
+          pode depender de reencontrar um item que a própria confirmação tirou
+          da fila. As duas chamadas são idempotentes, então o outro caminho
+          continua valendo sem estragar nada.
+
+          `lerDoDisco` é chamado DEPOIS, e não antes, senão a lista seria lida
+          antes de o disco saber.
+        */
+        await marcarEnviada(alvo.id);
+        await esquecerPendencia(alvo.id);
+        await lerDoDisco();
+
         setEnvio({
           ocorrenciaId: alvo.id,
           tom: "sucesso",
@@ -1041,7 +1092,32 @@ export default function Tarefas() {
 
           return (
             <ItemDeLista entrando={recemChegada(t.id)} saindo={idsSaindo.has(t.id)}>
-            <View style={{ gap: espaco.e2 }}>
+            {/*
+              A CAIXA É O CARTÃO, e o toque é só do conteúdo.
+
+              Antes o `Tocavel` era a caixa, e tudo o que não cabia dentro dele
+              (avisos e botões) virava IRMÃO: aparecia solto embaixo, em largura
+              cheia, como se fosse outro bloco da tela. Foi o que o Rafa viu no
+              aparelho, com o "Enviar agora" e o `ⓘ` gigantes fora do cartão.
+
+              Agora a caixa desenha o cartão, o `Tocavel` cobre só o conteúdo
+              que navega, e o rodapé de ações mora DENTRO dela, separado por um
+              fio. Assim o botão pertence visualmente à tarefa de que fala.
+
+              E ele fica FORA do `Tocavel`, e não dentro: tocável dentro de
+              tocável disputa o gesto, e no Android o de fora costuma vencer.
+              Quem quer enviar acabaria abrindo a vistoria.
+            */}
+            <View
+              testID={`cartao-${t.id}`}
+              style={{
+                ...elevacao(tema).cartao,
+                borderColor: comecada ? tema.destaque : tema.borda,
+                borderWidth: comecada ? borda.enfase : borda.fio,
+                borderRadius: raio.cartao,
+                overflow: "hidden",
+              }}
+            >
             <Tocavel
               accessibilityRole="button"
               onPress={() => router.push({ pathname: "/(agente)/vistoria/[id]", params: { id: t.id } })}
@@ -1056,23 +1132,20 @@ export default function Tarefas() {
                    cuidado prioritário simplesmente não existiria ali. */
                 + (t.vulnerabilidade_presente ? ". Vulnerabilidade social" : "")
               }
+              /*
+                A BORDA DE DESTAQUE, que agora mora na caixa acima, ACENDE SÓ NO
+                TRABALHO COMEÇADO.
+
+                Antes ela acendia para "começada" E para "coletada", que são
+                estados OPOSTOS: um é trabalho pela metade, para onde o agente
+                precisa voltar, e o outro é trabalho pronto, de onde ele não
+                precisa voltar nunca. Com a mesma borda, a lista destacava as
+                duas coisas do mesmo jeito e não destacava nenhuma. Quem diz
+                "coletada" é o chip, que é pílula, tem símbolo e é muito mais
+                visível do que a linha de 12 pontos que havia ali.
+              */
               estilo={{
                 minHeight: toque,
-                ...elevacao(tema).cartao,
-                /*
-                  A BORDA DE DESTAQUE ACENDE SÓ NO TRABALHO COMEÇADO.
-
-                  Antes ela acendia para "começada" E para "coletada", que são
-                  estados OPOSTOS: um é trabalho pela metade, para onde o agente
-                  precisa voltar, e o outro é trabalho pronto, de onde ele não
-                  precisa voltar nunca. Com a mesma borda, a lista destacava as
-                  duas coisas do mesmo jeito e não destacava nenhuma. Quem diz
-                  "coletada" agora é o chip, que é pílula, tem símbolo e é muito
-                  mais visível do que a linha de 12 pontos que havia ali.
-                */
-                borderColor: comecada ? tema.destaque : tema.borda,
-                borderWidth: comecada ? borda.enfase : borda.fio,
-                borderRadius: raio.cartao,
                 padding: espaco.e4,
                 gap: espaco.e3,
               }}
@@ -1132,18 +1205,27 @@ export default function Tarefas() {
                 de privacidade já registrada em `docs/PRIVACIDADE.md`: a lista
                 diz que há cuidado prioritário, e nunca quem.
               */}
+              {/*
+                PESO LEVE, pela régua de densidade (`src/ui/regua.ts`, R1 e R2).
+
+                Esta tarja pintava fundo cheio, e a pílula de severidade logo
+                acima também. Dois blocos preenchidos no mesmo cartão, e o
+                cartão fotografado num iPhone tinha ainda um terceiro, verde, do
+                chip de coleta. Quem viu resumiu em uma frase: "essa tela tá
+                extremamente poluída com textos coloridos pra todo lado".
+
+                Cada decisão estava certa sozinha. Juntas, nada se destacava,
+                porque tudo gritava no mesmo volume.
+
+                Na disputa ganha o mais alto, e aqui é a SEVERIDADE: ela é o que
+                ordena o dia do agente, e existe em todas as tarefas. A
+                vulnerabilidade é um cuidado a mais, aparece em poucas, e
+                continua com os dois canais (ícone e palavra, na cor do tom),
+                que é o que a régua exige de quem desce para leve. O que ela
+                perde é o retângulo, não a informação.
+              */}
               {t.vulnerabilidade_presente && (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: espaco.e2,
-                    backgroundColor: tema.alertaFundo,
-                    borderRadius: raio.normal,
-                    paddingHorizontal: espaco.e3,
-                    paddingVertical: espaco.e2,
-                  }}
-                >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
                   <IconeVulnerabilidade cor={tema.alertaTexto} tamanho={tamanhoDeIcone.rotulo} />
                   <Txt variante="corpoP" peso={peso.forte} cor={tema.alertaTexto}>
                     Vulnerabilidade social
@@ -1195,6 +1277,24 @@ export default function Tarefas() {
               de envio). O caminho de saída fica na fila, onde o pedido recusado
               continua, com os verbos de tentar de novo e descartar.
             */}
+            {/*
+              O RODAPÉ DO CARTÃO. Tudo o que fala DESTA tarefa mora aqui dentro,
+              atrás de um fio que separa o que se lê do que se faz.
+
+              O recuo é o mesmo do conteúdo, menos em cima, porque o fio já
+              afasta. E ele só existe quando há o que mostrar: cartão sem
+              pendência nenhuma termina no conteúdo, sem rodapé vazio.
+            */}
+            {(devolucaoRecusada || resultadoDoEnvio || (prazo.vencido && !devolucaoRecusada)) && (
+              <View
+                style={{
+                  borderTopWidth: borda.fio,
+                  borderTopColor: tema.borda,
+                  padding: espaco.e4,
+                  paddingTop: espaco.e3,
+                  gap: espaco.e3,
+                }}
+              >
             {devolucaoRecusada && (
               <Aviso tom="perigo" titulo="A coordenação não recebeu esta devolução">
                 {devolucaoRecusada.mensagem
@@ -1205,7 +1305,12 @@ export default function Tarefas() {
 
             {/* O que aconteceu com o último "Enviar agora" desta tarefa. */}
             {resultadoDoEnvio && (
-              <Aviso tom={resultadoDoEnvio.tom} titulo={resultadoDoEnvio.titulo}>
+              /* Leve pela mesma régua: este aviso divide o rodapé com o da
+                 devolução recusada, e dois retângulos cheios empilhados num
+                 cartão de lista é a poluição que a régua existe para impedir.
+                 O tom `perigo` não alevia sozinho, e está certo: envio recusado
+                 é algo que deu errado agora. */
+              <Aviso tom={resultadoDoEnvio.tom} peso="leve" titulo={resultadoDoEnvio.titulo}>
                 {resultadoDoEnvio.texto}
               </Aviso>
             )}
@@ -1271,6 +1376,8 @@ export default function Tarefas() {
                   />
                 </View>
               )
+            )}
+              </View>
             )}
             </View>
             </ItemDeLista>

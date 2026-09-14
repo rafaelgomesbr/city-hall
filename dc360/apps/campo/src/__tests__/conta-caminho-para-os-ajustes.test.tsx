@@ -41,7 +41,24 @@ jest.mock("../dados/conectividade", () => ({
   useSinal: () => ({ temSinal: true, tipo: "Wi-Fi" }),
 }));
 
+/*
+  A tela passou a oferecer a escolha de tema (claro, escuro ou acompanhar o
+  sistema), e com ela veio a exigência do `ProvedorDeTema` por cima: o alternador
+  estoura fora dele de propósito, para um alternador sem provedor aparecer em
+  quem escreve a tela e não em quem usa o aplicativo.
+
+  O depósito da preferência é dublado para esta suíte não abrir banco nenhum. O
+  caminho de verdade até o SQLite é provado em `dados/preferencia-de-tema.test.ts`,
+  e o alternador em si em `__tests__/tema-a-escolha-do-agente.test.tsx`.
+*/
+jest.mock("../dados/preferencia-de-tema", () => ({
+  PREFERENCIA_PADRAO: "sistema",
+  lerPreferenciaDeTema: async () => "sistema",
+  guardarPreferenciaDeTema: async () => undefined,
+}));
+
 import Conta from "../app/(agente)/conta";
+import { ProvedorDeTema } from "../ui/componentes";
 import { ContextoDePush, type EstadoDoPush } from "../push/contexto";
 import type { EstadoDaPermissao } from "../push/permissao";
 import type { DesfechoDoRegistro } from "../push/registro";
@@ -76,9 +93,11 @@ function abrirAConta(
   };
   return act(async () => {
     render(
-      <ContextoDePush.Provider value={valor}>
-        <Conta />
-      </ContextoDePush.Provider>,
+      <ProvedorDeTema>
+        <ContextoDePush.Provider value={valor}>
+          <Conta />
+        </ContextoDePush.Provider>
+      </ProvedorDeTema>,
     );
   });
 }

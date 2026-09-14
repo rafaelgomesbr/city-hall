@@ -64,7 +64,24 @@ jest.mock("../dados/conectividade", () => ({
 }));
 
 import { router } from "expo-router";
+/*
+  A tela passou a oferecer a escolha de tema (claro, escuro ou acompanhar o
+  sistema), e com ela veio a exigência do `ProvedorDeTema` por cima: o alternador
+  estoura fora dele de propósito, para um alternador sem provedor aparecer em
+  quem escreve a tela e não em quem usa o aplicativo.
+
+  O depósito da preferência é dublado para esta suíte não abrir banco nenhum. O
+  caminho de verdade até o SQLite é provado em `dados/preferencia-de-tema.test.ts`,
+  e o alternador em si em `__tests__/tema-a-escolha-do-agente.test.tsx`.
+*/
+jest.mock("../dados/preferencia-de-tema", () => ({
+  PREFERENCIA_PADRAO: "sistema",
+  lerPreferenciaDeTema: async () => "sistema",
+  guardarPreferenciaDeTema: async () => undefined,
+}));
+
 import Conta from "../app/(agente)/conta";
+import { ProvedorDeTema } from "../ui/componentes";
 import { ContextoDePush, type EstadoDoPush } from "../push/contexto";
 import type { EstadoDaPermissao } from "../push/permissao";
 
@@ -99,9 +116,11 @@ function Cenario({ inicial }: { inicial: EstadoDaPermissao }) {
   const [permissao, setPermissao] = useState<EstadoDaPermissao>(inicial);
   trocarPermissao = setPermissao;
   return (
-    <ContextoDePush.Provider value={push(permissao)}>
-      <Conta />
-    </ContextoDePush.Provider>
+    <ProvedorDeTema>
+      <ContextoDePush.Provider value={push(permissao)}>
+        <Conta />
+      </ContextoDePush.Provider>
+    </ProvedorDeTema>
   );
 }
 

@@ -417,6 +417,23 @@ describe("o cartão da tarefa tem hierarquia", () => {
   }
 
   /*
+    A CAIXA e o CONTEÚDO deixaram de ser o mesmo elemento, e estas duas funções
+    existem para dizer isso em voz alta.
+
+    Antes o tocável era a caixa, e tudo o que não cabia dentro dele (avisos e
+    botões) virava IRMÃO do cartão: aparecia solto embaixo, em largura cheia,
+    como se fosse outro bloco da tela. Foi o que apareceu num iPhone, com o
+    "Enviar agora" e o `ⓘ` grandes fora do cartão.
+
+    Agora a caixa desenha o cartão (borda, elevação, raio) e o tocável cobre só
+    o conteúdo que navega, para o rodapé de ações poder morar DENTRO da caixa
+    sem ser tocável dentro de tocável, que disputa o gesto.
+  */
+  function aCaixa() {
+    return screen.getByTestId(`cartao-${ID}`);
+  }
+
+  /*
     Antes, prazo, data, vulnerabilidade e estado da coleta eram quatro
     fragmentos de `legenda` (12) no mesmo `flexWrap`, com o mesmo peso:
     "Vencido há 3h" pesava igual a "10/09, 14:00".
@@ -450,14 +467,14 @@ describe("o cartão da tarefa tem hierarquia", () => {
     mockRascunhos = [{ ocorrenciaId: ID }];
     await abrirALista();
 
-    expect(oCartao().props.style.borderColor).toBe(temaEscuro.destaque);
+    expect(aCaixa().props.style.borderColor).toBe(temaEscuro.destaque);
   });
 
   it("a borda de destaque NÃO acende na tarefa já coletada", async () => {
     mockColetas = [{ ocorrenciaId: ID, situacao: "na_fila" }];
     await abrirALista();
 
-    expect(oCartao().props.style.borderColor).toBe(temaEscuro.borda);
+    expect(aCaixa().props.style.borderColor).toBe(temaEscuro.borda);
     /* E ela continua dizendo que foi coletada, agora em chip e não em 12 pontos. */
     expect(screen.getByText("Coletada, aguardando envio")).toBeTruthy();
   });

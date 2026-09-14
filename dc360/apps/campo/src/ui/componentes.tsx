@@ -1,4 +1,6 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode,
+} from "react";
 import {
   ActivityIndicator, Animated, Pressable, StyleSheet, Text, View, useColorScheme,
   type StyleProp, type ViewStyle,
@@ -7,7 +9,12 @@ import {
   borda, easing, elevacao, espaco, fonte, icone as tamanhoDeIcone, linha, movimento,
   opacidade, peso, raio, temaClaro, temaEscuro, toque, type Peso, type Tema,
 } from "./tokens";
+import {
+  PREFERENCIA_PADRAO, guardarPreferenciaDeTema, lerPreferenciaDeTema,
+  type PreferenciaDeTema,
+} from "../dados/preferencia-de-tema";
 import { useFontes } from "./fontes";
+import { pesoEfetivo, type PesoVisual } from "./regua";
 import { familiaDoTexto } from "./tipografia";
 import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
 import { useRespostaAoToque } from "./useRespostaAoToque";
@@ -24,26 +31,145 @@ import { useRespostaAoToque } from "./useRespostaAoToque";
  *    `tokens.ts`.
  */
 
+/**
+ * ## A DECISÃO SOBRE O ALTERNADOR DE TEMA, e a que ela substituiu
+ *
+ * Até 14/09/2026 este arquivo dizia o seguinte, e o aplicativo fazia isso:
+ *
+ * > O tema segue o aparelho, sem alternador próprio. No painel existe
+ * > alternador porque a pessoa passa o dia na mesma tela. No celular, o agente
+ * > já escolheu no sistema, e oferecer uma segunda chave dentro do aplicativo
+ * > só cria a chance de ficarem diferentes.
+ *
+ * O argumento não era ruim, e fica escrito porque comentário apagado leva
+ * junto a memória de que alguém já pensou o contrário. O que ele errava é a
+ * premissa: que a escolha do sistema representa a condição de leitura do
+ * agente. Ela representa a do dono do telefone sentado em casa.
+ *
+ * **A tela deste aplicativo é lida em duas situações que o sistema não
+ * conhece.** Sol forte batendo na tela, no barranco, ao meio-dia, quando o
+ * tema claro é o único legível; e o plantão noturno, com o aparelho a um palmo
+ * do rosto no escuro, quando a tela clara cega quem precisa continuar
+ * enxergando o barranco depois de olhar para ela. O sistema decide pelo
+ * RELÓGIO (ou por uma chave que a pessoa mexeu uma vez e esqueceu), e o relógio
+ * não sabe onde o agente está nem se há sol. As duas condições não batem com a
+ * hora: chove escuro às duas da tarde, e o plantão da noite começa com o
+ * telefone ainda no claro.
+ *
+ * Por isso a escolha passa a ser do agente, e a decisão é do dono do produto.
+ * O risco que o comentário antigo apontava (duas chaves divergindo) continua
+ * real, e o que o desarma são os TRÊS estados: "acompanhar o sistema" continua
+ * sendo o padrão, ninguém é empurrado para uma segunda chave, e quem mexeu tem
+ * como voltar. Um alternador de dois estados teria exatamente o defeito
+ * descrito acima, porque não tem volta.
+ */
+
 const ContextoTema = createContext<Tema>(temaEscuro);
 
-export function ProvedorDeTema({ children }: { children: ReactNode }) {
-  /*
-    O tema segue o aparelho, sem alternador próprio.
+/**
+ * O que a tela de conta precisa para oferecer a escolha, e o que `_layout.tsx`
+ * precisa para segurar a abertura até saber qual tema desenhar.
+ *
+ * Fica num contexto SEPARADO do tema resolvido de propósito. Quem só desenha
+ * (que é todo o resto do aplicativo, dezenas de componentes) continua lendo
+ * `useTema()` e recebendo um `Tema`, sem nunca ver que existe preferência,
+ * escolha ou leitura pendente. A única tela que decide é a que decide.
+ */
+export type EstadoDoTema = {
+  /** O que está guardado no aparelho: "sistema", "claro" ou "escuro". */
+  preferencia: PreferenciaDeTema;
+  /** O que o sistema diz AGORA, para "acompanhar" poder dizer no que dá. */
+  doSistema: "claro" | "escuro";
+  /** Troca a escolha. A tela muda no mesmo quadro; a escrita vai atrás. */
+  escolher(preferencia: PreferenciaDeTema): void;
+  /**
+   * A leitura do aparelho já voltou?
+   *
+   * `false` significa que o tema exibido é um chute (o padrão), e é por isso
+   * que a abertura espera: mostrar meio segundo de tela escura para quem
+   * escolheu claro é o mesmo piscar que a tela de abertura existe para evitar.
+   */
+  carregada: boolean;
+};
 
-    No painel existe alternador porque a pessoa passa o dia na mesma tela. No
-    celular, o agente já escolheu no sistema, e oferecer uma segunda chave
-    dentro do aplicativo só cria a chance de ficarem diferentes.
-  */
+const ContextoEstadoDoTema = createContext<EstadoDoTema | null>(null);
+
+export function ProvedorDeTema({ children }: { children: ReactNode }) {
   const esquema = useColorScheme();
+  const doSistema: "claro" | "escuro" = esquema === "light" ? "claro" : "escuro";
+
+  const [preferencia, setPreferencia] = useState<PreferenciaDeTema>(PREFERENCIA_PADRAO);
+  const [carregada, setCarregada] = useState(false);
+
+  useEffect(() => {
+    let vivo = true;
+    void (async () => {
+      const guardada = await lerPreferenciaDeTema();
+      /*
+        A escolha do agente ganha da leitura do disco, e não o contrário.
+
+        Sem esta guarda, um toque no alternador durante a leitura (ela é rápida,
+        mas existe) seria desfeito por um valor mais velho que o toque, e o
+        agente veria a tela voltar sozinha para o tema anterior. É o mesmo
+        cuidado do `vivo` logo abaixo, com um efeito pior: aquele só escreve
+        estado em componente desmontado, este desmente o usuário.
+      */
+      if (vivo) {
+        setPreferencia((atual) => (atual === PREFERENCIA_PADRAO ? guardada : atual));
+        setCarregada(true);
+      }
+    })();
+    return () => { vivo = false; };
+  }, []);
+
+  const escolher = useCallback((nova: PreferenciaDeTema) => {
+    /*
+      Primeiro a tela, depois o disco. O agente toca e a tela troca no mesmo
+      quadro: esperar a escrita do SQLite para redesenhar transformaria um
+      toque instantâneo num toque com atraso variável, que é como um aplicativo
+      parece quebrado sem nunca dar erro.
+    */
+    setPreferencia(nova);
+    void guardarPreferenciaDeTema(nova);
+  }, []);
+
+  const efetivo = preferencia === "sistema" ? doSistema : preferencia;
+  const tema = efetivo === "claro" ? temaClaro : temaEscuro;
+
+  const estado = useMemo<EstadoDoTema>(
+    () => ({ preferencia, doSistema, escolher, carregada }),
+    [preferencia, doSistema, escolher, carregada],
+  );
+
   return (
-    <ContextoTema.Provider value={esquema === "light" ? temaClaro : temaEscuro}>
-      {children}
-    </ContextoTema.Provider>
+    <ContextoEstadoDoTema.Provider value={estado}>
+      <ContextoTema.Provider value={tema}>
+        {children}
+      </ContextoTema.Provider>
+    </ContextoEstadoDoTema.Provider>
   );
 }
 
 export function useTema(): Tema {
   return useContext(ContextoTema);
+}
+
+/**
+ * A escolha do tema, para quem a OFERECE.
+ *
+ * Estoura fora do provedor, ao contrário de `useTema()`, e a diferença é
+ * deliberada. `useTema()` tem padrão porque é lido por dezenas de componentes,
+ * vários deles montados isolados em teste, e um tema de reserva ali é
+ * inofensivo: a peça sai desenhada. Aqui um padrão silencioso seria um
+ * alternador que ACEITA o toque, marca a opção, e não muda tela nenhuma nem
+ * guarda nada, porque o `escolher` de reserva não teria o que trocar. Falhar
+ * na montagem é o que garante que isso apareça em quem escreve a tela, e não
+ * em quem usa o aplicativo.
+ */
+export function useEstadoDoTema(): EstadoDoTema {
+  const valor = useContext(ContextoEstadoDoTema);
+  if (!valor) throw new Error("useEstadoDoTema fora do ProvedorDeTema");
+  return valor;
 }
 
 /* ========================================================================
@@ -351,12 +477,24 @@ const SINAL_DO_AVISO = {
   perigo: { simbolo: "×", nome: "Perigo" },
 } as const;
 
-export function Aviso({ tom, titulo, acao, children }: {
+export function Aviso({ tom, titulo, acao, peso: pesoPedido = "forte", children }: {
   tom: "info" | "sucesso" | "alerta" | "perigo";
   /** A frase curta que diz o que houve, acima do texto. */
   titulo?: string;
   /** O que dá para fazer a respeito, quando houver algo a fazer. */
   acao?: { titulo: string; onPress: () => void; descricao?: string; testID?: string };
+  /**
+   * Quanto peso este aviso tem direito a ocupar. Ver `ui/regua.ts`.
+   *
+   * O padrão continua `forte` para nenhuma das 25 chamadas existentes mudar de
+   * desenho sozinha. Quem migra decide uma a uma: numa peça que já tem um
+   * bloco preenchido mais grave, o aviso desce para leve (R1 e R2).
+   *
+   * Todo aviso de `sucesso` desce sozinho, peça quem pedir o que pedir: é a R3
+   * da régua, e ela mora em `pesoEfetivo` justamente para não depender de cada
+   * tela lembrar dela.
+   */
+  peso?: PesoVisual;
   children: ReactNode;
 }) {
   const tema = useTema();
@@ -367,13 +505,31 @@ export function Aviso({ tom, titulo, acao, children }: {
     perigo: { fundo: tema.perigoFundo, texto: tema.perigoTexto },
   }[tom];
   const sinal = SINAL_DO_AVISO[tom];
+  const desenho = pesoEfetivo(tom, pesoPedido);
 
   return (
     <View
       accessibilityRole={tom === "perigo" ? "alert" : "text"}
       style={{
-        backgroundColor: cores.fundo,
+        /*
+          Em peso leve o aviso troca o retângulo de cor por um FILETE lateral.
+
+          Sem nada no lugar do fundo, um aviso leve e um parágrafo comum seriam
+          a mesma coisa, e a peça deixaria de existir como peça: o olho não
+          teria onde começar a ler. O filete dá o começo sem acender a área
+          inteira, e ele usa `borda.marca`, que é justamente o token que o
+          `tokens.ts` descreve como "a faixa lateral que classifica um cartão".
+
+          A cor do tom fica no filete, no sinal e no título. O CORPO sai na cor
+          normal do texto, e essa é a metade da correção que importa: parágrafo
+          inteiro colorido é literalmente a reclamação que abriu esta frente
+          ("textos coloridos pra todo lado"), e ele ainda custa contraste, já
+          que toda cor de tom é mais fraca que a cor de texto do tema.
+        */
+        backgroundColor: desenho === "forte" ? cores.fundo : "transparent",
         borderRadius: raio.normal,
+        borderLeftWidth: desenho === "forte" ? 0 : borda.marca,
+        borderLeftColor: cores.texto,
         padding: espaco.e3,
         flexDirection: "row",
         gap: espaco.e3,
@@ -413,7 +569,7 @@ export function Aviso({ tom, titulo, acao, children }: {
         {titulo && (
           <Txt variante="corpoP" peso={peso.negrito} cor={cores.texto}>{titulo}</Txt>
         )}
-        <Txt variante="corpoP" cor={cores.texto}>
+        <Txt variante="corpoP" cor={desenho === "forte" ? cores.texto : undefined}>
           {children}
         </Txt>
         {acao && (

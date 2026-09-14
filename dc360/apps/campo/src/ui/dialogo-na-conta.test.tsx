@@ -65,7 +65,24 @@ jest.mock("../dados/conectividade", () => ({
 }));
 
 import { router } from "expo-router";
+/*
+  A tela passou a oferecer a escolha de tema (claro, escuro ou acompanhar o
+  sistema), e com ela veio a exigência do `ProvedorDeTema` por cima: o alternador
+  estoura fora dele de propósito, para um alternador sem provedor aparecer em
+  quem escreve a tela e não em quem usa o aplicativo.
+
+  O depósito da preferência é dublado para esta suíte não abrir banco nenhum. O
+  caminho de verdade até o SQLite é provado em `dados/preferencia-de-tema.test.ts`,
+  e o alternador em si em `__tests__/tema-a-escolha-do-agente.test.tsx`.
+*/
+jest.mock("../dados/preferencia-de-tema", () => ({
+  PREFERENCIA_PADRAO: "sistema",
+  lerPreferenciaDeTema: async () => "sistema",
+  guardarPreferenciaDeTema: async () => undefined,
+}));
+
 import Conta from "../app/(agente)/conta";
+import { ProvedorDeTema } from "./componentes";
 
 beforeEach(() => {
   mockPendentes = 0;
@@ -75,7 +92,7 @@ beforeEach(() => {
 
 /** Monta a tela e espera o resumo da fila responder. */
 async function abrirATela(): Promise<void> {
-  await render(<Conta />);
+  await render(<ProvedorDeTema><Conta /></ProvedorDeTema>);
   await act(async () => {});
 }
 

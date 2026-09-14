@@ -80,6 +80,37 @@ const PARES = [
   { oQue: "texto de perigo direto no cartão", frente: "perigoTexto", fundo: "superficie" },
   { oQue: "texto de perigo direto no fundo da tela", frente: "perigoTexto", fundo: "fundo" },
 
+  /*
+    O PESO LEVE da régua (`apps/campo/src/ui/regua.ts`) criou uma classe nova de
+    par, e ela precisa dos números dela.
+
+    Em peso leve o bloco perde o fundo e passa a desenhar o sinal, a palavra e o
+    filete lateral direto sobre a superfície de baixo. Antes desta frente,
+    NENHUM desses pares existia na tabela: a única cor de tom medida fora do
+    fundo dela era a de perigo, porque "Apagar" e "Remover" já saíam soltos no
+    cartão. Todo chip `ok` do aplicativo passou a desenhar assim, e um par que
+    ninguém mede é um par que ninguém sabe que reprova.
+
+    As três superfícies entram porque as três acontecem: o cartão, a superfície
+    secundária (dentro do bloco "o que fazer" da fila) e o fundo da tela.
+
+    `sevCriticaTexto` NÃO aparece aqui, e a ausência é a regra R5 da régua: ele é
+    branco nos dois temas, mede 1.00:1 sobre o cartão claro, e por isso a
+    severidade crítica é proibida de aleviar. Quem prova esse número, e quem
+    reprova se alguém tirar a proibição, é
+    `scripts/portao-densidade-do-aplicativo.test.mjs`.
+  */
+  { oQue: "chip leve de sucesso no cartão", frente: "okTexto", fundo: "superficie" },
+  { oQue: "chip leve de sucesso na superfície secundária", frente: "okTexto", fundo: "superficie2" },
+  { oQue: "chip leve de sucesso no fundo da tela", frente: "okTexto", fundo: "fundo" },
+  { oQue: "aviso leve de alerta no cartão", frente: "alertaTexto", fundo: "superficie" },
+  { oQue: "aviso leve de alerta na superfície secundária", frente: "alertaTexto", fundo: "superficie2" },
+  { oQue: "aviso leve de alerta no fundo da tela", frente: "alertaTexto", fundo: "fundo" },
+  { oQue: "aviso leve de perigo na superfície secundária", frente: "perigoTexto", fundo: "superficie2" },
+  { oQue: "selo leve de severidade baixa no cartão", frente: "sevBaixaTexto", fundo: "superficie" },
+  { oQue: "selo leve de severidade média no cartão", frente: "sevMediaTexto", fundo: "superficie" },
+  { oQue: "selo leve de severidade alta no cartão", frente: "sevAltaTexto", fundo: "superficie" },
+
   { oQue: "selo de severidade baixa", frente: "sevBaixaTexto", fundo: "sevBaixaFundo" },
   { oQue: "selo de severidade média", frente: "sevMediaTexto", fundo: "sevMediaFundo" },
   { oQue: "selo de severidade alta", frente: "sevAltaTexto", fundo: "sevAltaFundo" },

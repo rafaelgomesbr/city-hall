@@ -1,11 +1,11 @@
 import { useEffect } from "react";
 import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ProvedorDeSessao, useSessao } from "../dados/sessao";
 import { ProvedorDePush } from "../push/ProvedorDePush";
-import { ProvedorDeTema, useTema } from "../ui/componentes";
+import { BarraDeStatus } from "../ui/BarraDeStatus";
+import { ProvedorDeTema, useEstadoDoTema, useTema } from "../ui/componentes";
 import { ProvedorDeFontes, useFontes } from "../ui/fontes";
 import { familiaDoTexto } from "../ui/tipografia";
 import { useReducaoDeMovimento } from "../ui/useReducaoDeMovimento";
@@ -25,11 +25,19 @@ import { movimento, peso } from "../ui/tokens";
  * 2. **A tipografia do produto.** Sem isso, a primeira tela sai na fonte do
  *    sistema e é RETIPOGRAFADA quando os arquivos chegam. Todo texto muda de
  *    largura de uma vez, a tela reflui, e quem estava lendo perde a linha.
+ * 3. **O tema escolhido, lido do aparelho.** É o mesmo caso, na cor: sem
+ *    esperar, quem escolheu o tema claro abre o aplicativo no escuro (que é o
+ *    padrão do provedor enquanto a leitura não voltou) e vê a tela inteira
+ *    trocar de cor sozinha um instante depois. Trocar de cor sozinho é o que
+ *    todo aplicativo faz quando está com defeito.
  *
- * A diferença entre as duas está no fracasso, e ela é a razão de `fontes.tsx`
+ * A diferença entre elas está no fracasso, e ela é a razão de `fontes.tsx`
  * existir: sessão que não lê é problema de sessão, fonte que não carrega é
  * questão de estética. O aplicativo abre sem a fonte, com a reserva do
- * sistema, e NUNCA fica preso na abertura por causa dela.
+ * sistema, e NUNCA fica preso na abertura por causa dela. O tema tem a mesma
+ * garantia por outro caminho: `lerPreferenciaDeTema` não estoura e sempre
+ * responde, nem que seja o padrão, então esperar por ele não é esperar por
+ * disco que pode não vir.
  */
 
 void SplashScreen.preventAutoHideAsync();
@@ -38,8 +46,9 @@ function Navegacao() {
   const { carregando } = useSessao();
   const fontes = useFontes();
   const tema = useTema();
+  const escolhaDeTema = useEstadoDoTema();
   const reduzirMovimento = useReducaoDeMovimento();
-  const pronto = !carregando && fontes.liberado;
+  const pronto = !carregando && fontes.liberado && escolhaDeTema.carregada;
 
   useEffect(() => {
     if (pronto) void SplashScreen.hideAsync();
@@ -114,7 +123,12 @@ export default function Raiz() {
           */}
           <ProvedorDeFontes>
             <ProvedorDePush>
-              <StatusBar style="auto" />
+              {/*
+                A barra do sistema segue o TEMA, e não mais o sistema. Ela fica
+                aqui dentro porque precisa do provedor de tema por cima; a
+                razão inteira está em `ui/BarraDeStatus.tsx`.
+              */}
+              <BarraDeStatus />
               <Navegacao />
             </ProvedorDePush>
           </ProvedorDeFontes>
