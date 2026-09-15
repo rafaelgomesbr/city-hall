@@ -24,10 +24,16 @@ import { derivarSenha } from "../src/auth/senha.js";
  * - a rota existe, exige token e devolve a chave que a IMPLANTAÇÃO configurou;
  * - sem chave configurada ela devolve string vazia, que é o modo esquemático,
  *   e não um erro: município sem chave precisa subir e precisa enxergar o mapa;
- * - a resposta tem UM campo e nada mais. A configuração da API tem segredo de
- *   JWT, credencial de armazenamento e chave do segundo fator: o dia em que
- *   alguém devolver o objeto de configuração inteiro "porque é prático" é o dia
- *   em que esta rota vira vazamento;
+ * - a resposta tem DOIS campos e nada mais: a chave do painel e o booleano
+ *   `mapaAutorizado`, que é o que o APLICATIVO lê. A configuração da API tem
+ *   segredo de JWT, credencial de armazenamento e chave do segundo fator: o
+ *   dia em que alguém devolver o objeto de configuração inteiro "porque é
+ *   prático" é o dia em que esta rota vira vazamento;
+ * - `mapaAutorizado` existe porque a chave NÃO serve ao aplicativo. Ela é a do
+ *   painel, restrita a sites; o aplicativo carrega a própria chave, restrita a
+ *   Apps iOS ou Android, assada no binário. Comparar as duas dava um aviso de
+ *   "chave divergente" em toda instalação certa. O que o aplicativo precisa
+ *   saber é se o município AUTORIZOU o mapa, e isso é um booleano;
  * - a resposta é a MESMA para os dois municípios, porque o que ela devolve é
  *   configuração da implantação e não dado de tenant.
  */
@@ -163,7 +169,32 @@ describe("GET /configuracao, a chave do mapa em tempo de execução", () => {
     ).toBe(401);
   });
 
-  it("devolve UM campo, e nenhum outro pedaço da configuração", async () => {
+  it("diz ao aplicativo se o mapa está autorizado, num booleano, e não pela chave", async () => {
+    /*
+      O aplicativo não usa a chave desta resposta: ela é a do painel, restrita
+      a sites, e o SDK nativo usa a que foi assada no binário. Até 15/09/2026 o
+      aplicativo decidia "autorizado" por "chave não vazia" e ainda comparava
+      as duas, e a comparação virou um aviso falso em toda instalação. O que
+      ele precisa saber cabe num booleano, e é a API que o escreve.
+    */
+    const com = await comChave.inject({
+      method: "GET", url: "/configuracao",
+      headers: comToken("helena@serraalta.exemplo.gov.br"),
+    });
+    expect(com.json().mapaAutorizado).toBe(true);
+
+    const sem = await semChave.inject({
+      method: "GET", url: "/configuracao",
+      headers: comToken("helena@serraalta.exemplo.gov.br"),
+    });
+    expect(
+      sem.json().mapaAutorizado,
+      "sem MAPS_KEY o município não autorizou o mapa: o aplicativo precisa "
+      + "ler `false`, e não um campo ausente que ele teria que interpretar",
+    ).toBe(false);
+  });
+
+  it("devolve DOIS campos, e nenhum outro pedaço da configuração", async () => {
     const r = await comChave.inject({
       method: "GET", url: "/configuracao",
       headers: comToken("helena@serraalta.exemplo.gov.br"),
@@ -171,10 +202,13 @@ describe("GET /configuracao, a chave do mapa em tempo de execução", () => {
     expect(
       Object.keys(r.json()).sort(),
       "a resposta cresceu. A configuração desta API tem JWT_SEGREDO, "
-      + "credencial de armazenamento, SEGUNDO_FATOR_CHAVE e credencial de "
-      + "push: cada campo novo aqui precisa ser uma decisão, porque o atalho "
-      + "de devolver o objeto inteiro transforma esta rota em vazamento",
-    ).toEqual(["chaveDoMapa"]);
+      + "credencial de armazenamento, SEGUNDO_FATOR_CHAVE, credencial de "
+      + "push e ROUTES_KEY: cada campo novo aqui precisa ser uma decisão, "
+      + "porque o atalho de devolver o objeto inteiro transforma esta rota em "
+      + "vazamento. E ROUTES_KEY em particular NUNCA sai daqui: ela é chave de "
+      + "servidor, sem restrição de origem, e quem a tiver gasta a conta do "
+      + "município",
+    ).toEqual(["chaveDoMapa", "mapaAutorizado"]);
 
     const texto = r.body;
     for (const proibido of ["segredo", "SEGREDO", "senha", "hash", "jwt", "JWT"]) {

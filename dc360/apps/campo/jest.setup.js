@@ -20,3 +20,23 @@
  * lidam com tempo usam temporizador falso.
  */
 jest.setTimeout(30_000);
+
+/**
+ * A area segura do aparelho, dublada para a suite inteira.
+ *
+ * `Dialogo` passou a ler `useSafeAreaInsets` para prender a folha abaixo do
+ * relogio do aparelho, e `Dialogo` e primitiva de `src/ui`: ele esta em toda
+ * tela que pergunta antes de agir, e portanto em dezenas de suites que nunca
+ * montaram um `SafeAreaProvider`. O hook de verdade ESTOURA sem provedor, o que
+ * e o comportamento certo no aplicativo (provedor ausente e defeito) e o errado
+ * na suite (cada arquivo teria que repetir o mesmo dublê).
+ *
+ * O dublê e o que a propria biblioteca publica para isto: devolve zero em
+ * tudo quando nao ha provedor, e respeita um `SafeAreaProvider` com
+ * `initialMetrics` quando a suite monta um. A suite que precisa de margens
+ * proprias (`dialogo.test.tsx`, as do menu e da entrada) continua declarando o
+ * seu `jest.mock` do modulo, e o dela vence: o do arquivo de teste e registrado
+ * depois deste.
+ */
+jest.mock("react-native-safe-area-context", () =>
+  require("react-native-safe-area-context/jest/mock").default);

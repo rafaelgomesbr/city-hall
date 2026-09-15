@@ -38,14 +38,37 @@ const VERSAO = "0.1.0";
  */
 const TEXTO_CAMERA =
   "O aplicativo usa a câmera para fotografar o imóvel durante a vistoria "
-  + "técnica. As fotos ficam guardadas neste aparelho e são enviadas à Defesa "
-  + "Civil do município quando houver sinal.";
+  + "técnica, e, se você quiser, para a sua foto de perfil. As fotos de vistoria "
+  + "ficam guardadas neste aparelho e são enviadas à Defesa Civil do município "
+  + "quando houver sinal.";
 
+/**
+ * A galeria, e o que o texto promete: UMA foto, escolhida por você.
+ *
+ * O seletor de foto abre fora do processo do aplicativo nas duas plataformas
+ * (Photo Picker no Android, o seletor do sistema no iOS), e só a imagem tocada
+ * chega aqui. O aplicativo nunca pede a permissão de biblioteca inteira: ver
+ * `src/dados/foto-do-agente.ts`. O texto existe porque a Apple exige a chave
+ * no binário quando o seletor é usado, e ele diz exatamente o que acontece.
+ */
+const TEXTO_GALERIA =
+  "O aplicativo abre a galeria só quando você escolhe uma foto de perfil, e "
+  + "recebe apenas a imagem escolhida, recortada e reduzida. Ela aparece ao lado "
+  + "do seu nome para a sua equipe e a coordenação, e você pode trocá-la ou "
+  + "removê-la quando quiser.";
+
+/*
+  Duas leituras, e as duas nomeadas: o GPS é ligado só no toque da vistoria;
+  a lista e o mapa usam a última posição que o aparelho já tinha, sem ligar o
+  rádio, para ordenar as tarefas e traçar o caminho quando o agente pede. A
+  frase acompanha `docs/DECLARACAO-NAS-LOJAS.md` 1.1 e 1.4.
+*/
 const TEXTO_LOCALIZACAO =
   "O aplicativo lê a coordenada do local no momento em que o agente registra a "
-  + "vistoria, para que o laudo técnico prove onde ela foi feita. A leitura "
-  + "acontece com o aplicativo aberto, a pedido do agente, e nunca em segundo "
-  + "plano.";
+  + "vistoria, para que o laudo técnico prove onde ela foi feita, e usa a última "
+  + "posição conhecida do aparelho para ordenar as tarefas por distância e, se o "
+  + "agente pedir, traçar o caminho. Tudo com o aplicativo aberto, e nunca em "
+  + "segundo plano.";
 
 /**
  * Contador de build, exigido pelas duas lojas e independente da versão.
@@ -334,6 +357,13 @@ const config: ExpoConfig = {
     O que ele EXIGE, e isso não é configuração: compilação nativa nova
     (`npx expo prebuild` mais um build), porque é módulo nativo e o binário que
     já está no aparelho não o contém.
+
+    `expo-blur`, que entrou com o menu de vidro (`src/ui/BarraDeAbas.tsx`),
+    está na MESMA situação: não tem `app.plugin.js` (confira em
+    `node_modules/expo-blur/`), não pede permissão nenhuma, e o autolinking o
+    encontra pelo `expo-module.config.json`. Também é módulo nativo, também
+    exige `prebuild` e compilação nova, e o portão de `entitlements` precisa
+    rodar DEPOIS do prebuild, pela razão escrita em `PENDENCIAS.md` (item 8).
   */
   plugins: [
     "expo-router",
@@ -374,6 +404,24 @@ const config: ExpoConfig = {
           aplicativo de vistoria é pergunta certa na revisão, e a resposta
           honesta é que ele não deveria estar ali.
         */
+        microphonePermission: false,
+      },
+    ],
+    [
+      "expo-image-picker",
+      {
+        /*
+          A foto de perfil do agente (câmera da frente ou galeria). O texto da
+          câmera é o MESMO de `expo-camera`, de propósito: o Info.plist tem uma
+          chave só para a câmera, e dois plugins escrevendo textos diferentes
+          nela deixariam o último a rodar decidir o que a Apple lê.
+
+          Sem microfone, pelo mesmo motivo do `expo-camera`: o aplicativo não
+          grava som, e `false` bloqueia a permissão no Android e apaga a chave
+          no iOS.
+        */
+        photosPermission: TEXTO_GALERIA,
+        cameraPermission: TEXTO_CAMERA,
         microphonePermission: false,
       },
     ],

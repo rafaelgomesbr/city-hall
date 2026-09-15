@@ -19,6 +19,7 @@ import { useSessao } from "../../dados/sessao";
 import {
   Aviso, Botao, Cartao, Carregando, Dado, Tocavel, Txt, Vazio, useTema,
 } from "../../ui/componentes";
+import { useRecuoDoMenu } from "../../ui/BarraDeAbas";
 import { Chip, SeloSeveridade } from "../../ui/Chip";
 import { ItemDeLista } from "../../ui/ItemDeLista";
 import { atrasoEmCascata } from "../../ui/hierarquia";
@@ -275,6 +276,12 @@ function PorqueComecarAqui({ motivo, usouDistancia, testID }: {
 
 export default function Tarefas() {
   const tema = useTema();
+  /*
+    A pílula do menu PAIRA sobre a cena e não empurra nada: quem reserva o vão
+    no fim da rolagem é a tela, com a altura que a barra mediu. Sem isto o
+    último cartão morre atrás do vidro.
+  */
+  const recuoDoMenu = useRecuoDoMenu();
   const sinal = useSinal();
   const { obterToken, identidade, lerIdentidade, sair } = useSessao();
 
@@ -1304,7 +1311,7 @@ export default function Tarefas() {
           lista em que o que muda quase sempre está ACIMA do que se está lendo.
         */
         maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
-        contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}
+        contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: recuoDoMenu }}
         refreshControl={
           <RefreshControl
             testID="puxar-para-atualizar"
@@ -1350,9 +1357,16 @@ export default function Tarefas() {
               guardado no aparelho antes de subir o morro.
             */}
             {visiveis.length > 0 && (
+              /*
+                Realce: baixar é o que faz a lista ANDAR, e este é o cartão que
+                explica o que está guardado no aparelho antes de subir o morro.
+                Não é primário porque o primário desta tela é o convite da
+                sugerida, logo abaixo, e uma tela com dois preenchidos de
+                destaque não tem ação principal nenhuma.
+              */
               <Botao
                 titulo="Baixar tarefas agora"
-                tipo="secundario"
+                tipo="realce"
                 onPress={() => void buscarNaRede()}
                 carregando={atualizando}
               />
@@ -1413,6 +1427,14 @@ export default function Tarefas() {
           const IconeDoPrazo = prazo.atrasado ? IconePrazoVencido : IconePrazo;
           const corDoPrazo = prazo.atrasado ? tema.perigoTexto : tema.textoDiscreto;
           const resultadoDoEnvio = envio?.ocorrenciaId === t.id ? envio : null;
+          /*
+            UMA navegação, para o toque no cartão e para o convite. Escrita
+            duas vezes, os dois caminhos divergiriam no primeiro parâmetro
+            novo, e o agente teria dois "abrir" que abrem coisas diferentes.
+          */
+          const abrirAVistoria = () => {
+            router.push({ pathname: "/(agente)/vistoria/[id]", params: { id: t.id } });
+          };
 
           return (
             <ItemDeLista
@@ -1458,7 +1480,7 @@ export default function Tarefas() {
             >
             <Tocavel
               accessibilityRole="button"
-              onPress={() => router.push({ pathname: "/(agente)/vistoria/[id]", params: { id: t.id } })}
+              onPress={abrirAVistoria}
               /*
                 O CARTÃO INTEIRO É UM ELEMENTO SÓ para quem ouve a tela: este
                 `Tocavel` tem rótulo próprio, e rótulo próprio faz o leitor
@@ -1655,6 +1677,45 @@ export default function Tarefas() {
                 </View>
               )}
             </Tocavel>
+
+            {/*
+              O ROXO DE VOLTA, na letra de quem paga: "você apagou o botão roxo
+              que eu disse que tava bonito da aba de tarefas".
+
+              Era "Abrir a vistoria", no rodapé da folha do mapa dentro desta
+              aba, e migrou para a aba Mapa quando o mapa virou tela própria.
+              Com a lista cheia, esta tela ficou sem nenhum botão primário: o
+              cartão abre por toque, e quem não sabe que cartão se toca (que é
+              exatamente quem o relato descreve) olhava para uma lista sem
+              nenhum lugar dizendo "faça isto".
+
+              Ele volta como CONVITE, e só na sugerida do dia: um por tela,
+              pela mesma aritmética da régua de densidade, e no cartão que a
+              ordem do dia já escolheu. O cartão continua abrindo por toque, e
+              o botão faz a mesma navegação, pela mesma função.
+
+              Fica FORA do `Tocavel` pelo motivo escrito lá em cima: tocável
+              dentro de tocável disputa o gesto. E fica antes do rodapé de
+              ações, que só existe em tarefa vencida ou com recusa, porque o
+              convite é sobre a tarefa inteira e o rodapé é sobre a pendência.
+            */}
+            {ehSugerida && (
+              <View style={{ paddingHorizontal: espaco.e4, paddingBottom: espaco.e4 }}>
+                <Botao
+                  testID={`abrir-a-vistoria-${t.id}`}
+                  titulo="Abrir a vistoria"
+                  /*
+                    O rótulo de quem ouve é DIFERENTE do rótulo do cartão, de
+                    propósito: o cartão inteiro já se anuncia como "Abrir a
+                    vistoria do protocolo X", e um segundo elemento com a mesma
+                    frase, logo em seguida, soa como a tela gaguejando. Este
+                    diz que é o convite da sugerida e de qual protocolo.
+                  */
+                  descricao={`Abrir a vistoria sugerida: protocolo ${t.protocolo}, ${t.endereco}`}
+                  onPress={abrirAVistoria}
+                />
+              </View>
+            )}
 
             {/*
               A RECUSA DO SERVIDOR, no cartão da tarefa que voltou.

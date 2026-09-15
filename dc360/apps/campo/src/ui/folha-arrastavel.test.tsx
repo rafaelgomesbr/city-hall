@@ -34,10 +34,13 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
   teria ficado parado mesmo com o arraste inteiro dentro de `useState`, que é
   exatamente o defeito que ele existia para pegar.
 
-  `useReducaoDeMovimento` é chamado UMA vez por renderização da
-  `FolhaArrastavel`, e nada mais nesta árvore o chama. Trocado por este dublê,
-  ele passa a ser um contador exato de renderizações da peça, e de mais nada.
-  O gancho de verdade tem teste próprio e não é o que está sendo medido aqui.
+  `useReducaoDeMovimento` é chamado um número FIXO de vezes por renderização
+  da `FolhaArrastavel` (uma pela própria peça e uma pelo retorno ao toque da
+  alça, `useRespostaAoToque`), e nada mais nesta árvore o chama. Trocado por
+  este dublê, ele passa a ser um contador exato de renderizações da peça, e de
+  mais nada: os casos abaixo cobram "não mudou" e "cresceu", nunca um número
+  absoluto, então o múltiplo não importa. O gancho de verdade tem teste próprio
+  e não é o que está sendo medido aqui.
 */
 var mockFolha = { renderizacoes: 0, reduzir: false };
 jest.mock("./useReducaoDeMovimento", () => ({
@@ -53,7 +56,8 @@ import {
   deveOArrasteComecar, posicaoAoSoltar, posicoesOrdenadas,
   type PosicaoDaFolha,
 } from "./FolhaArrastavel";
-import { elevacao, movimento, temaClaro, temaEscuro, toque } from "./tokens";
+import { elevacao, movimento, opacidade, temaClaro, temaEscuro, toque } from "./tokens";
+import { ESCALA_SOB_O_DEDO } from "./useRespostaAoToque";
 
 /* ============================================================
    Instrumentos
@@ -723,6 +727,54 @@ describe("a ação primária fica na zona do polegar em qualquer posição", () 
     await montar();
     const rodape = estiloDe("folha-rodape");
     expect(rodape.paddingBottom as number).toBeGreaterThan(rodape.paddingTop as number);
+  });
+});
+
+/* ============================================================
+   A alça responde ao dedo
+   ============================================================ */
+
+describe("a alça responde ao dedo", () => {
+  /*
+    A alça era um `Pressable` com estilo parado: o dedo encostava e a barrinha
+    não fazia nada até a folha inteira se mover. O `Botao` do rodapé, a três
+    centímetros dali, respondia com transição. O vocabulário já existia
+    (`useRespostaAoToque`), e é ele que vale aqui: quem responde é a BARRA,
+    para o retorno ficar onde o dedo está.
+  */
+  it("encostar na alça pede a resposta ao toque, curta e na camada nativa", async () => {
+    await montar();
+    animacoes = [];
+
+    await act(async () => { fireEvent(screen.getByTestId("folha-alca"), "pressIn"); });
+
+    expect(animacoes).toHaveLength(1);
+    expect(animacoes[0]?.duracao).toBe(movimento.respostaAoToque);
+    expect(animacoes[0]?.nativo).toBe(true);
+  });
+
+  it("com a chave de redução ligada, nada anima, e a BARRA ainda responde: vai direto ao destino", async () => {
+    /*
+      Redução de movimento tira a interpolação, nunca o retorno (é a regra
+      escrita em `useRespostaAoToque`). E é este o caso que prova QUEM carrega
+      o retorno: sem animação no meio, o valor vai direto ao destino e aparece
+      resolvido no estilo da barrinha, sob o dedo, e volta quando ele sai.
+    */
+    mockFolha.reduzir = true;
+    await montar();
+    animacoes = [];
+
+    await act(async () => { fireEvent(screen.getByTestId("folha-alca"), "pressIn"); });
+
+    expect(animacoes).toHaveLength(0);
+    const sobODedo = estiloDe("folha-barra");
+    expect(sobODedo.opacity).toBe(opacidade.aoToque);
+    expect((sobODedo.transform as Array<{ scale?: unknown }>)[0]?.scale).toBe(ESCALA_SOB_O_DEDO);
+
+    await act(async () => { fireEvent(screen.getByTestId("folha-alca"), "pressOut"); });
+    const emRepouso = estiloDe("folha-barra");
+    expect(emRepouso.opacity).toBe(1);
+    expect((emRepouso.transform as Array<{ scale?: unknown }>)[0]?.scale).toBe(1);
   });
 });
 

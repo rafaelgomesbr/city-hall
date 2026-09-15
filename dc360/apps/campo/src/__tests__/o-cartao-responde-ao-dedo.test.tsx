@@ -124,6 +124,13 @@ afterEach(() => { jest.restoreAllMocks(); });
 async function abrirALista(): Promise<void> {
   await render(<Tarefas />);
   await act(async () => {});
+  /*
+    A abertura tem UMA animação própria, que não é de toque: o número grande
+    do cabeçalho conta de zero ao valor na primeira pintura (ver
+    `ui/dado-que-conta.test.tsx`). O que este arquivo mede começa no dedo, e
+    por isso a contagem sai da lista antes de o dedo encostar.
+  */
+  animacoes = [];
 }
 
 function oCartao() {

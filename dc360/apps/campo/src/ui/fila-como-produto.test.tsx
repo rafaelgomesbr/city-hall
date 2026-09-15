@@ -95,6 +95,7 @@ let mockObterFila: () => Promise<typeof mockFila> = async () => mockFila;
 jest.mock("../dados/fila", () => ({ obterFila: () => mockObterFila() }));
 
 import TelaDaFila from "../app/(agente)/fila";
+import { atrasoEmCascata } from "./hierarquia";
 import { contarPreenchidos } from "./regua";
 import { movimento, temaEscuro } from "./tokens";
 import { DEMORA_MS } from "./componentes";
@@ -399,6 +400,28 @@ describe("o toque que muda alguma coisa deixa marca", () => {
     await tocar("Tentar de novo");
 
     expect(screen.getByText(/continua tentando\.$/)).toBeTruthy();
+  });
+
+  /*
+    A régua dos tipos, aplicada ao cartão travado: "Tentar de novo" é o ato que
+    faz a fila ANDAR e sobe para `realce`. "Esta coleta é minha" fica
+    secundário porque é uma declaração sobre o laudo (o nome que vai assinar),
+    e o aplicativo não empurra ninguém a assumir uma coleta que talvez não
+    seja dele. "Descartar" continua perigo. E "Enviar sem os registros
+    perdidos" fica secundário pela razão já escrita na tela: o aplicativo não
+    empurra a perda de prova.
+  */
+  it("'Tentar de novo' é realce, e os vizinhos dele não", async () => {
+    mockItens = [
+      item({ id: "sem-autor-travada", estado: "bloqueado", protocolo: "2026/000778", autor: null }),
+    ];
+    await abrirATela();
+
+    const fundo = (rotulo: string) =>
+      StyleSheet.flatten(screen.getByText(rotulo).parent?.parent?.props.style).backgroundColor;
+    expect(fundo("Tentar de novo")).toBe(temaEscuro.destaqueFundo);
+    expect(fundo("Esta coleta é minha")).toBe("transparent");
+    expect(fundo("Descartar")).toBe(temaEscuro.perigoFundo);
   });
 
   it("'Esta coleta é minha' confirma que o nome no laudo vai ser o seu", async () => {
@@ -963,6 +986,120 @@ describe("o clímax da fila zerando só acontece quando a fila zera de verdade",
 
     expect(screen.getByText("Tudo o que você fez já chegou")).toBeTruthy();
     expect(animacoes).toEqual([]);
+  });
+});
+
+/* ========================================================================
+   9b. Os cartões que chegam entram em cascata
+   ======================================================================== */
+
+/**
+ * A ENTRADA, que esta lista não tinha.
+ *
+ * A fila ganhava item do mesmo jeito que perdia antes da despedida existir: um
+ * cartão a mais no quadro seguinte. A lista de tarefas já entra com
+ * `ItemDeLista` e `atrasoEmCascata()`, e o `tokens.ts` é explícito sobre o
+ * porquê de o atraso ser token: "a lista de tarefas, a fila, a equipe e os
+ * avisos precisam entrar com o MESMO ritmo". Duas listas vizinhas com entradas
+ * diferentes (ou uma com entrada e a outra com corte seco) é o defeito que
+ * ninguém relata e todo mundo sente.
+ *
+ * A mecânica é a mesma da lista de tarefas, de propósito: quem chega DEPOIS
+ * de a lista estar na tela entra animado, em cascata entre os que chegaram
+ * juntos; a primeira pintura chega pronta, porque nada chegou, o aparelho é
+ * que terminou de ler.
+ */
+describe("os cartões que chegam à fila entram em cascata", () => {
+  type Cronometrada = {
+    duration?: number; useNativeDriver?: boolean; toValue?: number; delay?: number;
+  };
+  let animacoes: Cronometrada[] = [];
+  const timingDeVerdade = Animated.timing;
+
+  beforeEach(() => {
+    animacoes = [];
+    jest.spyOn(Animated, "timing").mockImplementation(((valor: never, config: Cronometrada) => {
+      animacoes.push(config);
+      return timingDeVerdade(valor, config as never);
+    }) as never);
+  });
+
+  afterEach(() => { jest.restoreAllMocks(); });
+
+  const PRIMEIRA = item({ id: "primeira", estado: "pendente", protocolo: "2026/000111" });
+  const SEGUNDA = item({ id: "segunda", estado: "pendente", protocolo: "2026/000222" });
+  const TERCEIRA = item({ id: "terceira", estado: "pendente", protocolo: "2026/000333" });
+  const QUARTA = item({ id: "quarta", estado: "pendente", protocolo: "2026/000444" });
+
+  /**
+   * As entradas de cartão: o que vai a um, NA CAMADA NATIVA.
+   *
+   * A saída vai a zero e o toque nunca chega a um por aqui. E a contagem que
+   * sobe no `Dado` ("3 coletas na fila") também vai a um, mas em JavaScript
+   * de propósito (texto não interpola na thread de interface, ver
+   * `useContagemQueSobe`): ela é do número, não do cartão, e fica fora.
+   */
+  const entradas = () => animacoes.filter((a) => a.toValue === 1 && a.useNativeDriver === true);
+
+  async function chegar(novos: ItemFila[]): Promise<void> {
+    mockItens = novos;
+    await act(async () => { avisarQueMudou?.(); });
+  }
+
+  it("abrir a aba com a fila cheia não anima nada: a primeira pintura chega pronta", async () => {
+    mockItens = [PRIMEIRA, SEGUNDA, TERCEIRA];
+    await abrirATela();
+
+    expect(screen.getByText("2026/000333")).toBeTruthy();
+    expect(entradas()).toEqual([]);
+  });
+
+  it("a coleta que chega depois entra animada, com duração de token e na camada nativa", async () => {
+    mockItens = [PRIMEIRA];
+    await abrirATela();
+    animacoes = [];
+
+    await chegar([PRIMEIRA, SEGUNDA]);
+
+    expect(screen.getByText("2026/000222")).toBeTruthy();
+    expect(entradas()).toHaveLength(1);
+    expect(entradas()[0]?.duration).toBe(movimento.mudancaDeEstado);
+    expect(entradas()[0]?.useNativeDriver).toBe(true);
+    /* Sozinha, entra na hora: a cascata é entre as que chegam JUNTAS. */
+    expect(entradas()[0]?.delay ?? 0).toBe(0);
+  });
+
+  it("várias chegando juntas entram uma depois da outra, no passo do token", async () => {
+    mockItens = [PRIMEIRA];
+    await abrirATela();
+    animacoes = [];
+
+    await chegar([PRIMEIRA, SEGUNDA, TERCEIRA, QUARTA]);
+
+    const atrasos = entradas().map((a) => a.delay ?? 0);
+    expect(atrasos).toEqual([0, 1, 2].map(atrasoEmCascata));
+  });
+
+  it("quem já estava na tela não entra de novo quando outra chega", async () => {
+    mockItens = [PRIMEIRA, SEGUNDA];
+    await abrirATela();
+    animacoes = [];
+
+    await chegar([PRIMEIRA, SEGUNDA, TERCEIRA]);
+
+    expect(entradas()).toHaveLength(1);
+  });
+
+  it("com redução de movimento, a coleta que chega aparece inteira, sem cascata", async () => {
+    mockReduzir = true;
+    mockItens = [PRIMEIRA];
+    await abrirATela();
+    animacoes = [];
+
+    await chegar([PRIMEIRA, SEGUNDA, TERCEIRA]);
+
+    expect(screen.getByText("2026/000333")).toBeTruthy();
+    expect(entradas()).toEqual([]);
   });
 });
 

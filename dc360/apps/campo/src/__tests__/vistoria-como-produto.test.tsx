@@ -511,6 +511,49 @@ describe("o que falta para concluir", () => {
 });
 
 /* ============================================================
+   Os botões que fazem a vistoria ANDAR
+   ============================================================ */
+
+describe("os botões que fazem a vistoria andar", () => {
+  /*
+    Na letra de quem paga: "se puder deixar os botões mais chamativos ao invés
+    de só preto ou branco seria bom". "Tirar foto" e "Capturar localização" são
+    os dois atos centrais desta tela, e saíam como secundário: um fio de
+    1,30:1 sobre o cartão. Agora são `realce`, preenchidos com o fundo suave
+    de destaque, e com o desenho do ato ao lado da palavra.
+
+    O que continua secundário, e por quê: "Salvar e sair", "Corrigir",
+    "Voltar sem fotografar" e os dois "Voltar para as tarefas" são atos de
+    SAIR de onde se está, e a régua do `Botao` é uma pergunta só: tocar aqui
+    faz o trabalho avançar, ou faz o agente sair?
+  */
+  it("'Tirar foto' e 'Capturar localização' são realce, e não um fio que mal existe", async () => {
+    await abrirATela();
+
+    for (const rotulo of ["Tirar foto", "Capturar localização"]) {
+      const estilo = StyleSheet.flatten(screen.getByLabelText(rotulo).props.style);
+      expect(estilo.backgroundColor).toBe(temaEscuro.destaqueFundo);
+      expect(estilo.borderWidth).toBe(0);
+    }
+  });
+
+  it("'Abrir no mapa' também: chegar lá é o primeiro ato da vistoria", async () => {
+    await abrirATela();
+
+    const estilo = StyleSheet.flatten(screen.getByTestId("abrir-no-mapa").props.style);
+    expect(estilo.backgroundColor).toBe(temaEscuro.destaqueFundo);
+  });
+
+  it("'Salvar e sair' continua contornado, com a borda de controle", async () => {
+    await abrirATela();
+
+    const estilo = StyleSheet.flatten(screen.getByTestId("salvar-e-sair").props.style);
+    expect(estilo.backgroundColor).toBe("transparent");
+    expect(estilo.borderColor).toBe(temaEscuro.bordaControle);
+  });
+});
+
+/* ============================================================
    3. O erro que aparecia fora da tela
    ============================================================ */
 

@@ -1,6 +1,8 @@
+import { StyleSheet } from "react-native";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import type { Pendencia } from "../dados/api";
 import { salvarRascunho } from "../dados/rascunho";
+import { temaEscuro } from "../ui/tokens";
 import TelaDeVistoria from "../app/(agente)/vistoria/[id]";
 
 /**
@@ -370,6 +372,14 @@ describe("o aparelho que nunca sincronizou", () => {
     expect(screen.queryByText(/dizer qual órgão/)).toBeNull();
     expect(screen.getByLabelText("Revisar e concluir").props.accessibilityState.disabled)
       .toBe(false);
+  });
+
+  it("'Adicionar este órgão' é realce: é o ato que faz o item obrigatório andar", async () => {
+    await abrirATela();
+    await responderAcionarOrgao("Sim");
+
+    const estilo = StyleSheet.flatten(screen.getByLabelText("Adicionar este órgão").props.style);
+    expect(estilo.backgroundColor).toBe(temaEscuro.destaqueFundo);
   });
 
   it("nome curto demais não vira órgão", async () => {

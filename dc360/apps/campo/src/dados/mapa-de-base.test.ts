@@ -13,6 +13,15 @@ import {
  *    código é promessa que a próxima refatoração desfaz em silêncio, e quem
  *    descobre é o encarregado de dados do município, depois de assinado.
  *
+ *    A autorização é um BOOLEANO (`mapaAutorizado`, de `GET /configuracao`),
+ *    e não a chave do painel. Até 15/09/2026 a decisão comparava a chave que a
+ *    API manda (`MAPS_KEY`, a do PAINEL, restrita a sites) com a do binário
+ *    (`DC360_MAPS_CHAVE_IOS`, restrita a Apps iOS), e desde que as chaves são
+ *    por plataforma (commit `b5afd64`) elas SEMPRE diferem: a tela mandava
+ *    "avisar a coordenação para gerar o aplicativo de novo" em toda instalação
+ *    certa. O aviso saiu, e o caso "a decisão não compara chave nenhuma"
+ *    guarda a saída.
+ *
  * 2. AUTORIZAÇÃO SEM CREDENCIAL NÃO VIRA TENTATIVA. Um binário compilado sem
  *    `DC360_MAPS_CHAVE` não tem o SDK do Google dentro, e `PROVIDER_GOOGLE`
  *    cai em silêncio no Apple Maps no iOS: a tela abre, desenha um mapa bonito
@@ -38,16 +47,23 @@ const CENTRO = { latitude: -27.595378, longitude: -48.548050 };
 const NORTE_DELE = { latitude: -27.585378, longitude: -48.548050 };
 
 describe("Quem decide se a coordenada vai para o Google", () => {
-  it("município sem chave configurada é o plano esquemático, e isso é escolha", () => {
-    const decisao = decidirModoDoMapa({ daApi: "", doBuild: "chave-do-binario" });
+  it("município que não autorizou é o plano esquemático, e isso é escolha", () => {
+    const decisao = decidirModoDoMapa({ mapaAutorizado: false, doBuild: "chave-do-binario" });
     expect(decisao.modo).toBe("esquematico");
     expect(decisao.motivo).toBe("municipio-nao-autorizou");
   });
 
-  it("espaço em branco não é autorização", () => {
-    expect(decidirModoDoMapa({ daApi: "   ", doBuild: "c" }).modo).toBe("esquematico");
-    expect(decidirModoDoMapa({ daApi: undefined, doBuild: "c" }).modo).toBe("esquematico");
-    expect(decidirModoDoMapa({ daApi: null, doBuild: "c" }).modo).toBe("esquematico");
+  it("qualquer coisa que não seja `true` não é autorização", () => {
+    /*
+      A resposta do servidor é lida de JSON, e JSON traz o que quiser: `"sim"`,
+      `1`, `null`. Só o booleano verdadeiro autoriza, porque é o único valor que
+      a API escreve de propósito; todo o resto é resposta que não foi pensada
+      para esta pergunta, e o lado seguro é não mandar coordenada.
+    */
+    expect(decidirModoDoMapa({ mapaAutorizado: "sim" as never, doBuild: "c" }).modo).toBe("esquematico");
+    expect(decidirModoDoMapa({ mapaAutorizado: 1 as never, doBuild: "c" }).modo).toBe("esquematico");
+    expect(decidirModoDoMapa({ mapaAutorizado: undefined as never, doBuild: "c" }).modo).toBe("esquematico");
+    expect(decidirModoDoMapa({ mapaAutorizado: null as never, doBuild: "c" }).modo).toBe("esquematico");
   });
 
   it("município autorizou e o binário não tem o SDK: NÃO tenta o Google", () => {
@@ -57,32 +73,45 @@ describe("Quem decide se a coordenada vai para o Google", () => {
       estilo gerado dos tokens jogado fora. Ninguém descobre um defeito que
       parece certo.
     */
-    const decisao = decidirModoDoMapa({ daApi: "chave-do-municipio", doBuild: "" });
+    const decisao = decidirModoDoMapa({ mapaAutorizado: true, doBuild: "" });
     expect(decisao.modo).toBe("esquematico");
     expect(decisao.motivo).toBe("binario-sem-chave");
+    expect(decidirModoDoMapa({ mapaAutorizado: true, doBuild: "   " }).motivo).toBe("binario-sem-chave");
   });
 
   it("com autorização e com credencial, o mapa do Google pode existir", () => {
-    const decisao = decidirModoDoMapa({ daApi: "a-mesma", doBuild: "a-mesma" });
+    const decisao = decidirModoDoMapa({ mapaAutorizado: true, doBuild: "chave-ios" });
     expect(decisao.modo).toBe("google");
     expect(decisao.motivo).toBe("autorizado");
-    expect(decisao.chaveDivergente).toBe(false);
   });
 
-  it("chave do município diferente da do binário: desenha, e DIZ", () => {
+  it("a decisão NÃO compara chave nenhuma, e não existe mais aviso de chave divergente", () => {
     /*
-      Quem o SDK nativo usa é sempre a que está dentro do binário, então o mapa
-      continua funcionando e a conta continua caindo na chave antiga. Sem este
-      aviso ninguém descobre nunca: não há nada quebrado para investigar.
+      O aviso que saiu daqui dizia: "a chave de mapa configurada pelo município
+      é diferente da que está nesta versão do aplicativo (...) avise a
+      coordenação para gerar o aplicativo de novo". Ele nasceu quando a API e o
+      binário carregavam a MESMA chave, e comparar as duas descobria quem
+      rotacionou `MAPS_KEY` e esqueceu de recompilar.
+
+      Desde o commit `b5afd64` isso deixou de ser verdade por construção: o
+      console do Google aceita UM tipo de restrição por chave, então a do
+      painel é restrita a sites e a do aplicativo a Apps iOS ou Android. As
+      chaves SEMPRE diferem, e o aviso passou a aparecer em toda instalação
+      certa, mandando a coordenação refazer um aplicativo que estava certo. Um
+      aviso que dispara sempre é um aviso que ninguém lê, e o dia em que ele
+      dissesse a verdade ninguém saberia.
+
+      Por isso a decisão recebe a AUTORIZAÇÃO e a CREDENCIAL, e nunca a chave
+      do painel: não há mais o que comparar.
     */
-    const decisao = decidirModoDoMapa({ daApi: "a-nova", doBuild: "a-velha" });
-    expect(decisao.modo).toBe("google");
-    expect(decisao.chaveDivergente).toBe(true);
+    const decisao = decidirModoDoMapa({ mapaAutorizado: true, doBuild: "chave-ios" });
+    expect(decisao).not.toHaveProperty("chaveDivergente");
+    expect(Object.keys(decisao).sort()).toEqual(["modo", "motivo"]);
   });
 
   it("o Google que não desenhou ganha de tudo, e derruba para o esquemático", () => {
     const decisao = decidirModoDoMapa({
-      daApi: "a-mesma", doBuild: "a-mesma", googleRecusou: true,
+      mapaAutorizado: true, doBuild: "chave-ios", googleRecusou: true,
     });
     expect(decisao.modo).toBe("esquematico");
     expect(decisao.motivo).toBe("google-recusou");
@@ -103,24 +132,47 @@ describe("A autorização perguntada ao servidor do município", () => {
     return falso;
   }
 
-  it("pergunta a `/configuracao` com o token, e devolve a chave", async () => {
+  it("pergunta a `/configuracao` com o token, e devolve a AUTORIZAÇÃO, não a chave", async () => {
     /*
       A chave falsa NÃO começa com `AIza`, e isso não é preciosismo: é o portão
       `scripts/portao-do-mapa-do-aplicativo.test.mjs` mordendo este arquivo. Ele
       reprova qualquer coisa com o prefixo de chave do Google em qualquer fonte
       do aplicativo, teste incluído, porque uma chave de verdade escrita num
-      teste é uma chave de verdade no repositório do mesmo jeito. A primeira
-      versão desta linha usava "AIza-de-mentira" e reprovou, que é o portão
-      fazendo exatamente o que foi escrito para fazer.
+      teste é uma chave de verdade no repositório do mesmo jeito.
+
+      E a chave que vem junto é IGNORADA de propósito: ela é a do painel,
+      restrita a sites, e não serve para nada dentro do aplicativo. O que o
+      aplicativo lê é o booleano.
     */
-    const chamada = responder({ chaveDoMapa: "  chave-de-mentira  " });
-    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("chave-de-mentira");
+    const chamada = responder({ mapaAutorizado: true, chaveDoMapa: "chave-do-painel" });
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(true);
     expect(chamada).toHaveBeenCalledWith(
       "https://api.exemplo.test/configuracao",
       expect.objectContaining({
         headers: expect.objectContaining({ authorization: "Bearer tok" }),
       }),
     );
+  });
+
+  it("`mapaAutorizado: false` é não, mesmo que venha uma chave junto", async () => {
+    responder({ mapaAutorizado: false, chaveDoMapa: "chave-do-painel" });
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(false);
+  });
+
+  it("servidor mais velho, sem o booleano: a chave não vazia do painel ainda vale como sim", async () => {
+    /*
+      A API e o aplicativo não são atualizados no mesmo instante. Um aplicativo
+      novo falando com uma API que ainda responde só `chaveDoMapa` decidiria
+      "não autorizado" e derrubaria o mapa de todo município no dia da
+      atualização do aplicativo, sem nada na tela explicando. A leitura antiga
+      (chave não vazia quer dizer que o município ligou o mapa) continua sendo
+      verdade naquela API, então ela vale enquanto o booleano não vier.
+    */
+    responder({ chaveDoMapa: "chave-do-painel" });
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(true);
+    esquecerAutorizacaoDoMapa();
+    responder({ chaveDoMapa: "   " });
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(false);
   });
 
   it("pergunta UMA vez por sessão, mesmo com quatro telas pedindo", async () => {
@@ -130,16 +182,16 @@ describe("A autorização perguntada ao servidor do município", () => {
       morro para reler UM campo que não muda durante o dia, gastando bateria e
       a mesma janela de sinal de que a sincronização precisa.
     */
-    const chamada = responder({ chaveDoMapa: "uma-chave" });
+    const chamada = responder({ mapaAutorizado: true, chaveDoMapa: "uma-chave" });
     const quatro = await Promise.all([
       buscarAutorizacaoDoMapa("tok"), buscarAutorizacaoDoMapa("tok"),
       buscarAutorizacaoDoMapa("tok"), buscarAutorizacaoDoMapa("tok"),
     ]);
-    expect(quatro).toEqual(["uma-chave", "uma-chave", "uma-chave", "uma-chave"]);
+    expect(quatro).toEqual([true, true, true, true]);
     expect(chamada).toHaveBeenCalledTimes(1);
   });
 
-  it("sem sinal devolve vazio, e NÃO guarda o fracasso", async () => {
+  it("sem sinal devolve não, e NÃO guarda o fracasso", async () => {
     /*
       Guardar o fracasso faria o aplicativo nunca mais perguntar enquanto
       estivesse aberto: o agente que subiu o morro sem sinal de manhã
@@ -148,21 +200,21 @@ describe("A autorização perguntada ao servidor do município", () => {
     */
     const caiu = jest.fn(async () => { throw new Error("Network request failed"); });
     (globalThis as { fetch: unknown }).fetch = caiu;
-    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("");
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(false);
 
-    const voltou = responder({ chaveDoMapa: "agora-vai" });
-    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("agora-vai");
+    const voltou = responder({ mapaAutorizado: true, chaveDoMapa: "agora-vai" });
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(true);
     expect(voltou).toHaveBeenCalledTimes(1);
   });
 
   it("servidor que responde erro não vira autorização", async () => {
     responder({ erro: "nao_autorizado" }, false);
-    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("");
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(false);
   });
 
   it("campo ausente na resposta não vira autorização", async () => {
     responder({});
-    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("");
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(false);
   });
 });
 

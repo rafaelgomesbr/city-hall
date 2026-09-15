@@ -183,7 +183,7 @@ describe("abrirNoMapa", () => {
  * no `catch`, e o servidor que RESPONDE mal não passa por ele.
  */
 describe("a autorização do município, perguntada ao servidor", () => {
-  const respostaBoa = { ok: true, json: async () => ({ chaveDoMapa: "a-chave" }) };
+  const respostaBoa = { ok: true, json: async () => ({ mapaAutorizado: true, chaveDoMapa: "a-chave" }) };
 
   beforeEach(() => { esquecerAutorizacaoDoMapa(); });
   afterEach(() => { esquecerAutorizacaoDoMapa(); });
@@ -192,8 +192,8 @@ describe("a autorização do município, perguntada ao servidor", () => {
     const chamada = jest.fn(async () => respostaBoa);
     (globalThis as { fetch: unknown }).fetch = chamada;
 
-    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("a-chave");
-    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("a-chave");
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(true);
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(true);
     /*
       Quatro telas desenham mapa e a lista remonta a cada foco, a cada sinal que
       volta e a cada 60 s. Sem a memória, cada remontagem gasta uma requisição
@@ -218,8 +218,8 @@ describe("a autorização do município, perguntada ao servidor", () => {
       .mockResolvedValueOnce(respostaBoa);
     (globalThis as { fetch: unknown }).fetch = chamada;
 
-    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("");
-    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("a-chave");
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(false);
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(true);
     expect(chamada).toHaveBeenCalledTimes(2);
   });
 
@@ -229,21 +229,24 @@ describe("a autorização do município, perguntada ao servidor", () => {
       .mockResolvedValueOnce(respostaBoa);
     (globalThis as { fetch: unknown }).fetch = chamada;
 
-    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("");
-    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("a-chave");
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(false);
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(true);
   });
 
-  it("município que respondeu vazio FICA guardado: é escolha dele, e não falha", async () => {
+  it("município que respondeu NÃO fica guardado: é escolha dele, e não falha", async () => {
     /*
-      O outro lado, e ele precisa estar escrito: vazio com 200 é o município
-      dizendo "não autorizo", e isso não muda durante o dia. Perguntar de novo a
-      cada remontagem seria gastar a janela de sinal para reouvir um "não".
+      O outro lado, e ele precisa estar escrito: `mapaAutorizado: false` com
+      200 é o município dizendo "não autorizo", e isso não muda durante o dia.
+      Perguntar de novo a cada remontagem seria gastar a janela de sinal para
+      reouvir um "não".
     */
-    const chamada = jest.fn(async () => ({ ok: true, json: async () => ({ chaveDoMapa: "" }) }));
+    const chamada = jest.fn(async () => ({
+      ok: true, json: async () => ({ mapaAutorizado: false, chaveDoMapa: "" }),
+    }));
     (globalThis as { fetch: unknown }).fetch = chamada;
 
-    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("");
-    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe("");
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(false);
+    await expect(buscarAutorizacaoDoMapa("tok")).resolves.toBe(false);
     expect(chamada).toHaveBeenCalledTimes(1);
   });
 });

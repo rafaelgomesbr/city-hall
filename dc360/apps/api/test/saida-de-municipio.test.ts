@@ -44,9 +44,12 @@ const PROVIDENCIA = "11111111-1111-4111-8111-0000000000b2";
 const CHAVE_FOTO = `tenant/${ORG_SERRA_ALTA}/ocorrencias/${OCORRENCIA_C3}/talude-fundos.jpg`;
 const CHAVE_ASSINATURA = `tenant/${ORG_SERRA_ALTA}/ocorrencias/${OCORRENCIA_C3}/assinatura-f1.png`;
 const CHAVE_SUMIDA = `tenant/${ORG_SERRA_ALTA}/ocorrencias/${OCORRENCIA_C3}/foto-que-sumiu.jpg`;
+/** A foto de perfil da coordenadora (migração 040): dado pessoal DELA, e sai com o município. */
+const CHAVE_FOTO_DA_COORDENADORA = `tenant/${ORG_SERRA_ALTA}/usuarios/${COORDENADORA}/foto-abc.jpg`;
 
 const BYTES_DA_FOTO = Buffer.from("conteudo-fingido-de-fotografia-de-vistoria", "utf8");
 const BYTES_DA_ASSINATURA = Buffer.from("traco-fingido-de-assinatura", "utf8");
+const BYTES_DA_FOTO_DA_COORDENADORA = Buffer.from("retrato-fingido-da-coordenadora", "utf8");
 
 let mem: BancoEmMemoria;
 let app: FastifyInstance;
@@ -184,6 +187,9 @@ beforeAll(async () => {
     UPDATE vistorias SET assinatura_chave = '${CHAVE_ASSINATURA}'
      WHERE id = '${VISTORIA_F1}';
 
+    UPDATE usuarios SET foto_chave = '${CHAVE_FOTO_DA_COORDENADORA}'
+     WHERE id = '${COORDENADORA}';
+
     UPDATE ocorrencias
        SET interditada_em = now() - interval '2 days',
            interditada_por = '${COORDENADORA}',
@@ -214,6 +220,7 @@ beforeAll(async () => {
   armazenamento = armazenamentoEmMemoria({ baseUrl: "http://api.local" });
   armazenamento.guardar(CHAVE_FOTO, BYTES_DA_FOTO, "image/jpeg");
   armazenamento.guardar(CHAVE_ASSINATURA, BYTES_DA_ASSINATURA, "image/png");
+  armazenamento.guardar(CHAVE_FOTO_DA_COORDENADORA, BYTES_DA_FOTO_DA_COORDENADORA, "image/jpeg");
 
   const config = carregarConfig({
     NODE_ENV: "test",
@@ -327,6 +334,21 @@ describe("Fotografias, assinaturas e documentos", () => {
 
     const assinatura = "evidencias/000473-2026/assinatura-f1.png";
     expect(pacote.get(assinatura)!.equals(BYTES_DA_ASSINATURA)).toBe(true);
+  }, 60_000);
+
+  it("a foto de perfil do servidor sai na pasta dele, com os bytes originais", async () => {
+    /*
+      A foto é dado pessoal do SERVIDOR e pertence ao município que o cadastrou
+      (`docs/PRIVACIDADE.md`, seção 2.2). Sai em pasta própria, por matrícula,
+      e não misturada às evidências: não é prova de ocorrência nenhuma.
+    */
+    const pacote = await baixarPacote(tokenAdministradora);
+    const caminho = "usuarios/SA-1042/foto-abc.jpg";
+    expect(pacote.has(caminho)).toBe(true);
+    expect(pacote.get(caminho)!.equals(BYTES_DA_FOTO_DA_COORDENADORA)).toBe(true);
+    /* E a chave está na tabela, para o município saber de quem é cada arquivo. */
+    const usuarios = pacote.get("tabelas/usuarios.csv")!.toString("utf8");
+    expect(usuarios).toContain(CHAVE_FOTO_DA_COORDENADORA);
   }, 60_000);
 
   it("o laudo é HTML autossuficiente e aponta para o arquivo do próprio pacote", async () => {

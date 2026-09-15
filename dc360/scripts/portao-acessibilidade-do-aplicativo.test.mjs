@@ -71,6 +71,12 @@ const PARES = [
   { oQue: "ação na superfície secundária", frente: "destaque", fundo: "superficie2" },
   { oQue: "texto do botão primário", frente: "sobreDestaque", fundo: "destaque" },
   { oQue: "texto sobre o destaque escuro", frente: "sobreDestaque", fundo: "destaqueEscuro" },
+  /*
+    O botão `realce`, que é o segundo preenchido do aplicativo (ver o par
+    `destaqueFundo`/`destaqueTexto` em `tokens.ts`). Ele carrega texto, então
+    a régua é a de texto e não a de componente: 4,5:1, nos dois temas.
+  */
+  { oQue: "texto do botão de realce", frente: "destaqueTexto", fundo: "destaqueFundo" },
 
   { oQue: "aviso de sucesso", frente: "okTexto", fundo: "okFundo" },
   { oQue: "aviso de alerta", frente: "alertaTexto", fundo: "alertaFundo" },
@@ -79,6 +85,15 @@ const PARES = [
   // sobre o cartão, sem fundo de aviso: é um par próprio e precisa do seu número.
   { oQue: "texto de perigo direto no cartão", frente: "perigoTexto", fundo: "superficie" },
   { oQue: "texto de perigo direto no fundo da tela", frente: "perigoTexto", fundo: "fundo" },
+  /*
+    O NÚMERO DO CRACHÁ DO SINO, e o da aba Perfil, que é o mesmo par: o crachá
+    é âmbar (`alertaTexto` como FUNDO, porque o violeta já é o crachá da fila e
+    dois crachás iguais para duas coisas opostas seria ruído) e o número sai em
+    `sobreDestaque`. Nenhum dos dois pares acima mede isso: `alertaTexto` só
+    era medido como texto, e aqui ele é fundo. O sino desenha o número com a
+    fonte de legenda, então a régua é a de texto, nos dois temas.
+  */
+  { oQue: "número do crachá do sino", frente: "sobreDestaque", fundo: "alertaTexto" },
 
   /*
     O PESO LEVE da régua (`apps/campo/src/ui/regua.ts`) criou uma classe nova de

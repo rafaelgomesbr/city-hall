@@ -1,5 +1,6 @@
 import * as SQLite from "expo-sqlite";
 import { Directory, File, Paths } from "expo-file-system";
+import { apagarFotosLocais } from "./foto-do-agente";
 
 /**
  * A conexão única com o banco local do aparelho.
@@ -287,6 +288,14 @@ export async function apagarDadosLocais(): Promise<void> {
   } catch (erro) {
     console.warn("Falha ao apagar arquivos de prova no logout", erro);
   }
+
+  /*
+    A cópia local da foto de perfil sai junto, de quem for. Ela não está na
+    fila (não é trabalho) e não é prova (é retrato), então não há nada a
+    preservar: o aparelho é compartilhado entre turnos, e o rosto do agente da
+    manhã não pertence ao da noite. Nunca estoura: ver `apagarFotosLocais`.
+  */
+  apagarFotosLocais();
 
   esquecerConexao();
 }

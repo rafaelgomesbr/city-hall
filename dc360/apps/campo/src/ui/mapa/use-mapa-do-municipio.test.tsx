@@ -64,8 +64,14 @@ describe("O gancho do mapa do município", () => {
   });
 
   it("com sessão e com autorização, chega ao modo Google", async () => {
+    /*
+      A chave que a API manda é a do PAINEL, e é diferente da do binário de
+      propósito (uma é restrita a sites, a outra a Apps iOS). O que decide o
+      modo é o booleano `mapaAutorizado`, e o caso escreve as duas chaves
+      diferentes para provar que a diferença não pesa em nada.
+    */
     (globalThis as { fetch: unknown }).fetch = jest.fn(
-      async () => ({ ok: true, json: async () => ({ chaveDoMapa: "do-binario" }) }),
+      async () => ({ ok: true, json: async () => ({ mapaAutorizado: true, chaveDoMapa: "do-painel" }) }),
     );
     await montar("tok");
     expect(screen.getByText("google:autorizado")).toBeTruthy();

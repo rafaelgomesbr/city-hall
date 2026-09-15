@@ -109,6 +109,7 @@ const conjunto: Array<[NomeDeIcone, ComponenteDeIcone]> = [
   ["perigo", ICONES.perigo],
   ["sucesso", ICONES.sucesso],
   ["informacao", ICONES.informacao],
+  ["sino", ICONES.sino],
 ];
 
 describe("cada ícone do conjunto", () => {

@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, View } from "react-native";
 
-import { Txt } from "./componentes";
+import { useSinal } from "../dados/conectividade";
+import { contagemDaFila, useResumoDaFila } from "../dados/resumo-da-fila";
+import { Txt, useTema } from "./componentes";
 import { movimento, raio, espaco, toque, type Tema } from "./tokens";
 import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
 
@@ -242,4 +244,39 @@ export function FaixaDeSincronizacao({
       </View>
     </Pressable>
   );
+}
+
+/**
+ * A faixa LIGADA à fila e ao sinal, que é o que o layout das abas monta.
+ *
+ * A peça de cima continua pura (recebe o estado e desenha), porque é assim que
+ * `faixa-de-sincronizacao.test.tsx` prova o clímax sem montar fila nenhuma.
+ * Esta é a que assina: lê o sinal e o resumo da fila por conta própria, decide
+ * o estado com `decidirFaixa` e entrega para a de cima.
+ *
+ * Por que a assinatura mora AQUI e não no layout: o layout das abas é o pai do
+ * navegador, e um `setState` nele no meio da troca de aba reinicia a animação
+ * da cena e a deixa com opacidade zero (a causa inteira está em
+ * `app/(agente)/_layout.tsx`). A faixa é irmã do navegador, não pai: quando ela
+ * se redesenha, o navegador nem fica sabendo.
+ */
+export function FaixaDeSincronizacaoLigada({ aoTocar }: { aoTocar: () => void }) {
+  const tema = useTema();
+  const sinal = useSinal();
+  const resumo = useResumoDaFila();
+  const { pendentes, bloqueados, deOutroAutor, sincronizando } = contagemDaFila(resumo);
+
+  /*
+    A `chave` dentro de `decidirFaixa` existe para a faixa saber que houve
+    TRANSIÇÃO, e não só que o texto mudou. Sem ela, "3 esperando envio" virando
+    "2 esperando envio" seria indistinguível de "esperando" virando
+    "sincronizado", e o clímax da fila esvaziando dispararia a cada item
+    enviado, o que o esvaziaria de sentido.
+  */
+  const estado = decidirFaixa(
+    { temSinal: sinal.temSinal, pendentes, deOutroAutor, sincronizando },
+    tema,
+  );
+
+  return <FaixaDeSincronizacao estado={estado} bloqueados={bloqueados} aoTocar={aoTocar} />;
 }

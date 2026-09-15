@@ -1,6 +1,6 @@
 # Declaração de dados nas lojas de aplicativo
 
-- **Versão:** 1, de 09/09/2026
+- **Versão:** 2, de 15/09/2026 (a 1 é de 09/09/2026; a 2 acrescenta a leitura da última posição conhecida pelas telas de tarefas e de mapa, e o caminho por ruas a pedido do agente)
 - **Companheiro de:** `PRIVACIDADE.md` e `SUBPROCESSADORES.md`
 - **Para quem preenche:** os formulários "Privacy Nutrition Labels" (App Store
   Connect) e "Segurança dos dados" (Google Play Console)
@@ -30,12 +30,17 @@ arquivo e a linha do código que a sustenta. Se uma afirmação não tiver essa
 | --- | --- | --- |
 | Câmera | `apps/campo/src/app/(agente)/vistoria/[id].tsx`, `fotografar()` | Quando o agente abre a câmera dentro da vistoria |
 | Localização, primeiro plano | mesmo arquivo, `capturarGps()`, linha 326 (`requestForegroundPermissionsAsync`) | Quando o agente toca em capturar a coordenada |
+| Localização, última posição conhecida (sem pedir permissão e sem ligar o GPS) | `apps/campo/src/app/(agente)/mapa.tsx`, `verOndeEstou()`, linhas 359 a 361, e `apps/campo/src/app/(agente)/index.tsx`, linhas 316 a 318 (`getForegroundPermissionsAsync` seguido de `getLastKnownPositionAsync`) | Ao abrir a tela do mapa ou a de tarefas, só se a permissão já foi concedida na vistoria. Lê a posição que o sistema já tinha; não pede permissão e não liga o rádio |
 | Notificação | `apps/campo/src/push/permissao.ts`, `proximoPasso`, linhas 57 a 87 | Nunca antes do primeiro login, e uma vez só |
+| Câmera (da frente), para a foto de perfil | `apps/campo/src/dados/foto-do-agente.ts`, `escolherFoto("camera")` | Quando o agente toca em "Tirar foto agora" no Perfil. Mesma permissão e mesmo texto da câmera da vistoria |
+| Seletor de fotos do sistema, para a foto de perfil (desde 15/09/2026) | `apps/campo/src/dados/foto-do-agente.ts`, `escolherFoto("galeria")` | Quando o agente toca em "Escolher da galeria" no Perfil. **Não pede permissão de biblioteca**: o seletor abre fora do processo (Photo Picker no Android, seletor do sistema no iOS) e só a imagem tocada chega ao aplicativo. O binário declara `NSPhotoLibraryUsageDescription`, em português, porque a Apple exige a chave quando o seletor é usado |
 
-Não há pedido de contatos, agenda, microfone, biblioteca de fotos, telefone,
-armazenamento compartilhado nem localização em segundo plano. As chaves que o
-binário declarava por herança dos plugins foram removidas nesta mesma entrega
-(seção 5).
+Não há pedido de contatos, agenda, microfone, telefone, armazenamento
+compartilhado nem localização em segundo plano, e não há pedido de acesso à
+biblioteca de fotos inteira: a foto de perfil entra pelo seletor do sistema,
+uma imagem por vez, e `READ_EXTERNAL_STORAGE` continua bloqueado no manifesto.
+As chaves que o binário declarava por herança dos plugins foram removidas nesta
+mesma entrega (seção 5).
 
 ### 1.2 O que fica guardado no aparelho, e onde
 
@@ -106,6 +111,15 @@ em `apps/campo/google-services.json` e ligado por
 `apps/campo/app.config.ts`, linha 138. É por isso que a categoria de
 identificadores de aparelho tem de ser marcada nas duas lojas.
 
+**E a coordenada sai do país por mais duas vias, as duas só no município que
+as ligou**, e as duas descritas na seção 2 deste documento e na seção 2.2 de
+`SUBPROCESSADORES.md`:
+
+| Via | Conteúdo | Quando | Evidência |
+| --- | --- | --- | --- |
+| Mapa do Google dentro do aplicativo | Coordenada do imóvel, a região do mapa, e a posição do agente enquanto o mapa está aberto | Com a tela do mapa ou a da vistoria aberta, no município com `MAPS_KEY` | `apps/campo/src/ui/mapa/MapaDoImovel.tsx` (`PROVIDER_GOOGLE`, `showsUserLocation`); a autorização em `dados/mapa.ts`, `decidirModoDoMapa` |
+| Caminho por ruas | A posição do agente, arredondada a três casas decimais, e a coordenada do imóvel | Só no toque em "Ver o caminho", no município com `ROUTES_KEY` | `apps/campo/src/dados/rota.ts` (para a API do produto) e `apps/api/src/rotas/rota.ts` (da API para o Google) |
+
 ### 1.5 O que o aplicativo NÃO coleta
 
 Verificado por ausência, e não por promessa:
@@ -128,13 +142,19 @@ Este é o ponto que mais derruba submissão, então a frase vai inteira, pronta
 para colar, seguida do que a sustenta.
 
 > O aplicativo lê a localização **precisa**, **somente com o aplicativo aberto e
-> em primeiro plano**, e **somente quando o agente toca no botão que registra a
-> coordenada da vistoria**. A coordenada é gravada no laudo técnico para provar
-> onde a vistoria foi feita. Não há leitura contínua, não há leitura em segundo
-> plano, não há histórico de deslocamento do agente, e a localização não é usada
-> para publicidade nem para rastreamento.
+> em primeiro plano**. O GPS é ligado **somente quando o agente toca no botão
+> que registra a coordenada da vistoria**, e essa coordenada é gravada no laudo
+> técnico para provar onde a vistoria foi feita. As telas de tarefas e de mapa
+> leem a **última posição que o sistema já conhecia**, sem ligar o GPS e sem
+> pedir permissão, para dizer a distância até cada tarefa; essa leitura não é
+> gravada. Se o agente tocar em "Ver o caminho", a posição dele e a coordenada
+> do imóvel são enviadas ao servidor do município e dali ao Google, uma vez,
+> para traçar o caminho por ruas; nenhuma das duas é guardada pelo servidor.
+> Não há leitura contínua, não há leitura em segundo plano, não há histórico de
+> deslocamento do agente, e a localização não é usada para publicidade nem
+> para rastreamento.
 
-O que sustenta cada pedaço, em `apps/campo/src/app/(agente)/vistoria/[id].tsx`,
+O que sustenta cada pedaço. O GPS, em `apps/campo/src/app/(agente)/vistoria/[id].tsx`,
 função `capturarGps()`:
 
 | Afirmação | Evidência |
@@ -145,11 +165,38 @@ função `capturarGps()`:
 | Serve ao laudo | Linhas 339 a 347: a coordenada é gravada no rascunho com seis casas decimais, junto com a precisão em metros que o aparelho informou |
 | A vistoria funciona sem ela | Linhas 327 a 332: permissão negada não trava a vistoria, mostra uma frase explicando o que se perde |
 
+A última posição conhecida, nas telas de tarefas e de mapa:
+
+| Afirmação | Evidência |
+| --- | --- |
+| Não pede permissão | `apps/campo/src/app/(agente)/mapa.tsx`, linha 359, e `index.tsx`, linha 316: `getForegroundPermissionsAsync()` só CONSULTA; se não foi concedida na vistoria, a função retorna sem ler nada. `mapa-tela-dedicada.test.tsx` prova que `requestForegroundPermissionsAsync` não é chamada pela tela do mapa |
+| Não liga o GPS | Linha 361 (`mapa.tsx`) e 318 (`index.tsx`): `getLastKnownPositionAsync()`, que devolve o que o sistema já tinha, sem ligar o rádio. Nula é o caso comum, e a tela diz "sem distância" em vez de estimar |
+| Só com a tela aberta | A leitura está dentro de `useFocusEffect`: acontece ao entrar na tela, e não a cada quadro nem em segundo plano |
+| Não é gravada | A posição fica em estado de tela (`useState`) e serve para a distância e o rumo em linha reta. Não entra no rascunho, no laudo nem no banco local |
+| Vai ao mapa do Google quando o município autorizou | `MapaDoImovel`, `showsUserLocation`: o SDK do Google desenha o ponto do agente, e por isso a posição chega ao Google enquanto o mapa está aberto. Declarado em `SUBPROCESSADORES.md`, seção 2.2, e ausente no modo esquemático |
+
+O caminho por ruas, a pedido:
+
+| Afirmação | Evidência |
+| --- | --- |
+| Só no toque | `apps/campo/src/app/(agente)/mapa.tsx`, botão "Ver o caminho" (`onPress` na linha 302): é o único chamador de `verOCaminho` (`dados/rota.ts`, linha 328). `mapa-tela-dedicada.test.tsx` prova que abrir a tela não pede caminho nenhum |
+| Passa pelo servidor do município, nunca direto ao Google | `dados/rota.ts`, `pedirCaminho()`: `POST /rota` na API do produto. `scripts/portao-do-mapa-do-aplicativo.test.mjs` reprova `routes.googleapis.com` em qualquer arquivo do aplicativo |
+| O servidor não guarda | `apps/api/src/rotas/rota.ts`: nenhuma escrita no banco, nenhum log com coordenada; `apps/api/test/rota.test.ts` lê o log e o esquema do banco para provar. A posição sai arredondada a três casas decimais |
+| No aparelho, some no logout | `dados/rota.ts`, tabela `marcas` do banco local, que `apagarDadosLocais()` esvazia; `dados/rota.test.ts` prova |
+
 **Nas duas lojas, portanto: localização precisa, sim; localização aproximada,
 sim** (o Android concede as duas juntas quando `ACCESS_FINE_LOCATION` é
 concedida, e `ACCESS_COARSE_LOCATION` está declarada em `app.config.ts`, linha
 165); **localização em segundo plano, não.** Responder "segundo plano" faz a
 Google pedir vídeo demonstrando o uso, para um uso que não existe.
+
+**E compartilhada com terceiro, sim, em duas situações, as duas declaradas em
+`SUBPROCESSADORES.md`:** enquanto o mapa do Google está aberto (a posição do
+agente vai ao SDK do Google, no município que autorizou o mapa), e no toque em
+"Ver o caminho" (a posição do agente e a coordenada do imóvel vão ao servidor
+do município e dali à Routes API do Google, no município que ligou o caminho).
+No município que não ligou nenhuma das duas, a localização não sai do
+aparelho por nenhuma via do produto.
 
 ---
 
@@ -175,7 +222,7 @@ e não deve pedir.
 | Contact Info | Name | Sim | Funcionalidade do app | Sim | Não |
 | Contact Info | Phone Number | Sim | Funcionalidade do app | Sim | Não |
 | Contact Info | Physical Address | Sim | Funcionalidade do app | Sim | Não |
-| Location | Precise Location | Sim | Funcionalidade do app | Sim | Não |
+| Location | Precise Location | Sim | Funcionalidade do app | Sim | Não (vai ao Google para desenhar o mapa e traçar o caminho, e o Google não a usa para rastreamento nem para publicidade nos nossos termos; ver a seção 2) |
 | User Content | Photos or Videos | Sim | Funcionalidade do app | Sim | Não |
 | User Content | Other User Content | Sim | Funcionalidade do app | Sim | Não |
 | Identifiers | User ID | Sim | Funcionalidade do app | Sim | Não |
@@ -247,8 +294,8 @@ linha 117; o transporte com a APNs e com a FCM é HTTP/2 sobre TLS,
 | Informações pessoais > Número de telefone | Sim | Não | Obrigatório | Funcionalidade do app | Sim, pelo município |
 | Informações pessoais > Endereço | Sim | Não | Obrigatório | Funcionalidade do app | Não, ver observação |
 | Informações pessoais > Outras informações | Sim | Não | Obrigatório | Funcionalidade do app | Sim, pelo município |
-| Local > Localização precisa | Sim | Não | Opcional | Funcionalidade do app | Não, ver observação |
-| Local > Localização aproximada | Sim | Não | Opcional | Funcionalidade do app | Não, ver observação |
+| Local > Localização precisa | Sim | **Sim**, ver observação | Opcional | Funcionalidade do app | Não, ver observação |
+| Local > Localização aproximada | Sim | **Sim**, ver observação | Opcional | Funcionalidade do app | Não, ver observação |
 | Fotos e vídeos > Fotos | Sim | Não | Obrigatório | Funcionalidade do app | Não, ver observação |
 | Arquivos e documentos | Sim | Não | Obrigatório | Funcionalidade do app | Não, ver observação |
 | Saúde e fitness > Informações de saúde | Sim | Não | Opcional | Funcionalidade do app | Sim, pelo município |
@@ -270,10 +317,20 @@ Observações que precisam ir junto, e que a Google aceita no campo de texto:
 - **"Localização" é opcional** porque a vistoria pode ser concluída sem a
   coordenada quando a permissão é negada
   (`app/(agente)/vistoria/[id].tsx`, linhas 327 a 332).
-- **As duas linhas com "sim" em compartilhamento** são a ficha de push e o dado
+- **"Localização" é compartilhada** desde 14/09/2026 (mapa dentro do
+  aplicativo) e 15/09/2026 (caminho por ruas): a posição do agente vai ao SDK
+  do Google enquanto o mapa está aberto, e, no toque em "Ver o caminho", ao
+  servidor do município e dali à Routes API do Google. As duas saídas estão
+  descritas na seção 2 deste documento e na seção 2.2 de
+  `SUBPROCESSADORES.md`, as duas só existem no município que as ligou, e a
+  coordenada do imóvel vistoriado sai pelas mesmas vias. Até a versão 1 deste
+  documento a coluna dizia "não", e a frase "é o único compartilhamento do
+  produto" (abaixo) valia; hoje são três.
+- **As duas linhas de push com "sim" em compartilhamento** são a ficha e o dado
   da mensagem: eles vão para a Apple (APNs) e para o Google (FCM), que são
-  empresas distintas do fornecedor e do município, e é o único compartilhamento
-  do produto. O conteúdo exato está na seção 1.4. A categoria "Atividade no app
+  empresas distintas do fornecedor e do município. Junto com a localização
+  (acima), são os três compartilhamentos do produto. O conteúdo exato está na
+  seção 1.4. A categoria "Atividade no app
   > Outras ações" é a que mais se aproxima do dado da mensagem no vocabulário da
   Google, que não tem uma categoria para identificador de registro. A escolha da
   categoria é discutível; o que **não** é discutível é a coluna de

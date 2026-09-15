@@ -23,7 +23,7 @@
  * dentro de `src/app` em rota, e nada aqui está dentro de `src/app`.
  */
 
-import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import type { AutorDaColeta, ItemDeVistoria, ItemFila } from "@dc360/campo";
 
 /*
@@ -172,7 +172,9 @@ describe("a pergunta antes de descartar", () => {
     await act(async () => { fireEvent.press(screen.getByTestId("dialogo-recusa")); });
 
     expect(mockDescartar).not.toHaveBeenCalled();
-    expect(screen.queryByTestId("dialogo")).toBeNull();
+    /* A folha DESCE antes de sair (ver `Dialogo`): o que se cobra é que ela
+       vá embora, e não que suma no mesmo quadro do toque. */
+    await waitFor(() => { expect(screen.queryByTestId("dialogo")).toBeNull(); });
   });
 
   it("o botão que repete o verbo apaga a coleta certa", async () => {

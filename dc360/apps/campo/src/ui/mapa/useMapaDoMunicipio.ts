@@ -62,7 +62,13 @@ export type EstadoDoMapa = {
 };
 
 export function useMapaDoMunicipio(token: string | null): EstadoDoMapa {
-  const [autorizacao, setAutorizacao] = useState<string | null>(null);
+  /*
+    `null` é "ainda não sei"; `true` e `false` são resposta. O booleano é o
+    `mapaAutorizado` de `GET /configuracao`, e a chave que vem junto na mesma
+    resposta não entra aqui (ver `decidirModoDoMapa`: ela é a do painel, e não
+    há mais o que comparar com ela).
+  */
+  const [autorizacao, setAutorizacao] = useState<boolean | null>(null);
   const [recusou, setRecusou] = useState(false);
 
   useEffect(() => {
@@ -70,33 +76,33 @@ export function useMapaDoMunicipio(token: string | null): EstadoDoMapa {
       /*
         Sem sessão não há a quem perguntar, e a resposta honesta é a mesma do
         município que não autorizou: não mande coordenada nenhuma para fora.
-        Não é espera: é decisão, e por isso vira string vazia e não `null`.
+        Não é espera: é decisão, e por isso vira `false` e não `null`.
       */
-      setAutorizacao("");
+      setAutorizacao(false);
       return;
     }
     let vivo = true;
     buscarAutorizacaoDoMapa(token)
-      .then((chave) => { if (vivo) setAutorizacao(chave); })
+      .then((autorizou) => { if (vivo) setAutorizacao(autorizou); })
       /*
-        `buscarAutorizacaoDoMapa` já não rejeita: ela devolve vazio em qualquer
-        fracasso, de propósito. Este `catch` existe para o dia em que alguém
-        mudar aquilo, porque uma promessa rejeitada sem tratamento deixaria a
-        tela pendurada no estado de espera para sempre, que é o único desfecho
-        que este arquivo não pode ter.
+        `buscarAutorizacaoDoMapa` já não rejeita: ela devolve `false` em
+        qualquer fracasso, de propósito. Este `catch` existe para o dia em que
+        alguém mudar aquilo, porque uma promessa rejeitada sem tratamento
+        deixaria a tela pendurada no estado de espera para sempre, que é o
+        único desfecho que este arquivo não pode ter.
       */
-      .catch(() => { if (vivo) setAutorizacao(""); });
+      .catch(() => { if (vivo) setAutorizacao(false); });
     return () => { vivo = false; };
   }, [token]);
 
   const aoGoogleNaoDesenhar = useCallback(() => { setRecusou(true); }, []);
-  const desistirDeEsperar = useCallback(() => { setAutorizacao(""); }, []);
+  const desistirDeEsperar = useCallback(() => { setAutorizacao(false); }, []);
 
   return {
     decisao: autorizacao === null
       ? null
       : decidirModoDoMapa({
-        daApi: autorizacao,
+        mapaAutorizado: autorizacao,
         doBuild: chaveDoMapaDoBuild(),
         googleRecusou: recusou,
       }),

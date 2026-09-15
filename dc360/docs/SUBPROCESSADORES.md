@@ -1,6 +1,6 @@
 # Subprocessadores e cláusula de operador
 
-- **Versão:** 2, de 14/09/2026 (a 1 é de 09/09/2026; a 2 acrescenta o mapa dentro do aplicativo de campo)
+- **Versão:** 3, de 15/09/2026 (a 1 é de 09/09/2026; a 2, de 14/09/2026, acrescenta o mapa dentro do aplicativo de campo; a 3 acrescenta o caminho por ruas a pedido do agente, e corrige a seção 2.4 para as chaves por plataforma)
 - **Companheiro de:** `PRIVACIDADE.md`
 
 Um contrato de operador que diz "podemos usar subcontratados" sem nomear
@@ -26,6 +26,7 @@ Estado em 09/09/2026, com o produto no piloto de Florianópolis.
 | **Google (Firebase Cloud Messaging)** | Notificação no Android | O mesmo do acima | Estados Unidos |
 | **Google (Maps)** | Mapa no painel do coordenador | Coordenada das ocorrências desenhadas, enviada ao carregar o mapa | Estados Unidos |
 | **Google (Maps SDK)** | Mapa dentro do aplicativo de campo | Coordenada do imóvel da tarefa, a região que o agente está olhando, e a posição do próprio agente enquanto o mapa está aberto | Estados Unidos |
+| **Google (Routes API)** | O caminho por ruas e o tempo de carro até a tarefa, quando o agente toca em "Ver o caminho" | A posição do agente (arredondada a três casas decimais) e a coordenada do imóvel, uma vez por toque, enviadas pelo servidor do município. Ver a seção 2.2 | Estados Unidos |
 | **Apple (Mapas) e Google (Maps), por entrega** | O botão "Navegar até lá" abre a rota no aplicativo de mapas do próprio aparelho | Coordenada do imóvel, uma vez, no toque do agente. Ver a seção 2.4 | Estados Unidos |
 
 ### Ainda não contratados, e que entram nesta lista quando entrarem
@@ -92,15 +93,65 @@ Saem três coisas, e a terceira é nova em relação ao painel:
    guardado por nós, e a leitura acontece com o aplicativo aberto, a pedido do
    agente, nunca em segundo plano (ver `DECLARACAO-NAS-LOJAS.md`).
 
-**O que continua NÃO saindo, nos dois lugares:** nome, contato, endereço,
+#### O caminho por ruas, a pedido do agente
+
+Desde 15/09/2026 existe uma quarta saída, e ela é diferente das três acima
+porque **não acontece sozinha**: ela acontece quando o agente toca em "Ver o
+caminho", no cartão da tarefa escolhida, na tela do mapa. Sem o toque, nada
+disto sai.
+
+O que sai, e por onde:
+
+1. **A posição do agente**, arredondada a três casas decimais (cerca de 111
+   metros), e **a coordenada do imóvel** da tarefa. Os dois pontos vão do
+   aplicativo ao servidor do município (`POST /rota`, na API do produto), e do
+   servidor do município à Routes API do Google, com o modo de viagem "de
+   carro". Nada mais vai: nem endereço, nem protocolo, nem nome, nem
+   identificador de ocorrência. O corpo do pedido ao Google tem exatamente
+   três campos, e `apps/api/test/rota.test.ts` confere isso campo a campo.
+2. **O que volta** é a duração estimada, a distância e a linha do caminho, que
+   o aplicativo desenha sobre o mapa e resume numa frase ("cerca de 14 min de
+   carro, 4,2 km").
+3. **Quem fala com o Google é o servidor**, e não o aparelho. A chave que
+   serve para isso (`ROUTES_KEY`) é chave de servidor, é segredo, e nunca sai
+   de lá: o aplicativo não a tem e não a recebe. A chave do aplicativo, assada
+   no binário, é restrita a Apps iOS ou Android e o Google a recusa por HTTP.
+4. **O servidor não guarda nada disso.** A rota é resposta, não registro:
+   nenhuma coordenada vai para o banco, para o log ou para tabela de
+   estatística. Existe uma memória de 24 horas por par de pontos, dentro do
+   processo do servidor, para o mesmo toque não custar duas vezes; ela morre
+   no reinício, não é consultável por ninguém e não é um histórico de
+   deslocamento. O teste lê o log do servidor para provar que nenhuma
+   coordenada aparece nele, e confere que não existe tabela nem coluna de rota.
+   No aparelho, o caminho fica guardado por tarefa, e some no logout junto com
+   o resto do dado de tarefa.
+
+**As consequências assumidas desta quarta saída:**
+
+- Ela é a única saída do produto em que a posição do agente sai do país **por
+  decisão dele**, um toque por tarefa, e não por o mapa estar aberto. É por
+  isso que o pedido é um botão e não um automatismo: o aplicativo não traça o
+  caminho sozinho ao abrir a tela.
+- Ela tem um segundo interruptor, separado do mapa: `ROUTES_KEY` no servidor.
+  Município que ligou o mapa e não quer o caminho simplesmente não a
+  preenche, e o botão responde "o seu município não ligou o caminho por ruas",
+  com a distância e o rumo em linha reta continuando na tela. Município que
+  ligou o caminho e não o mapa recebe a frase e não a linha.
+- Ela custa dinheiro por toque que passa da memória, e por isso o servidor
+  limita a trinta pedidos por minuto por pessoa, além da memória de 24 horas.
+
+**O que continua NÃO saindo, em todos os lugares:** nome, contato, endereço,
 protocolo, relato, fotografia, assinatura e descrição de vulnerabilidade. O
-aplicativo não chama geocodificação nem em um sentido nem no outro, e isso é
-portão de código e não promessa: `scripts/portao-do-mapa-do-aplicativo.test.mjs`
-reprova `geocodeAsync`, `reverseGeocodeAsync`, Geocoding, Places e Directions.
-Transformar endereço em ponto mandaria o endereço da família junto, e
-transformar ponto em endereço traria de volta um endereço que o Google passou a
-conhecer. Nenhuma das duas resolve problema deste produto: a coordenada já está
-gravada.
+aplicativo não chama geocodificação nem em um sentido nem no outro, e não
+chama a Routes API nem a Directions API diretamente, e isso é portão de código
+e não promessa: `scripts/portao-do-mapa-do-aplicativo.test.mjs` reprova
+`geocodeAsync`, `reverseGeocodeAsync`, Geocoding, Places, Directions e Routes
+em qualquer arquivo do aplicativo, e reprova Directions e Routes em qualquer
+arquivo da API que não seja `apps/api/src/rotas/rota.ts`, que é o único lugar
+do produto autorizado a pedir caminho ao Google. Transformar endereço em ponto
+mandaria o endereço da família junto, e transformar ponto em endereço traria
+de volta um endereço que o Google passou a conhecer. Nenhuma das duas resolve
+problema deste produto: a coordenada já está gravada.
 
 #### As consequências assumidas, e elas valem para os dois
 
@@ -110,7 +161,9 @@ gravada.
    sobre um plano esquemático; no aplicativo, o imóvel, a posição do agente, a
    distância e o rumo, desenhados pelo próprio aparelho. Nos dois casos não há
    uma única requisição ao Google. Município que não aceitar o envio da
-   coordenada trabalha nesse modo, e o resto do produto não muda.
+   coordenada trabalha nesse modo, e o resto do produto não muda. O caminho
+   por ruas tem o próprio interruptor (`ROUTES_KEY`), e sem ele o botão
+   explica e a linha reta continua.
 3. **A tela DIZ em qual dos dois modos está**, com ícone e com palavra, no
    painel e no aplicativo. É assim que o município confere esta promessa
    olhando, em vez de acreditar.
@@ -144,24 +197,43 @@ agente digitar a coordenada à mão no mesmo aplicativo de mapas, com o mesmo
 resultado e uma chance a mais de errar o número. Município que quiser fechar
 também essa saída precisa dizer isso, e a decisão é dele, não nossa.
 
-A escolha tem endereço operacional, e é o mesmo para as duas pontas: a chave do
-mapa é a variável `MAPS_KEY` no servidor daquele município, e os dois clientes
-a pedem em tempo de execução por `GET /configuracao`. Vazia, o mapa é o plano
-esquemático. Ela fica no servidor de cada município, e não no painel, porque o
-painel é um build só servindo todos: a chave ali seria a do fornecedor, e o
-município não teria onde recusar nem onde pagar a própria conta.
+A escolha tem endereço operacional. A **autorização** do mapa é a variável
+`MAPS_KEY` no servidor daquele município: o painel a pede em tempo de execução
+por `GET /configuracao` e usa a chave; o aplicativo pede a mesma rota e lê o
+booleano `mapaAutorizado`, que o servidor deriva dela. Vazia, o mapa é o plano
+esquemático nas duas pontas. Ela fica no servidor de cada município, e não no
+painel, porque o painel é um build só servindo todos: a chave ali seria a do
+fornecedor, e o município não teria onde recusar nem onde pagar a própria
+conta.
 
 **Uma diferença técnica do aplicativo, dita porque ela muda o procedimento.** O
 SDK nativo do Google não aceita chave em tempo de execução: no Android ela é
 `com.google.android.geo.API_KEY` no manifesto, e no iOS é
 `GMSServices.provideAPIKey(...)` no AppDelegate, as duas escritas quando o
 aplicativo é gerado. Então o aplicativo daquele município precisa ser compilado
-com a chave dele (`DC360_MAPS_CHAVE`), do mesmo jeito que já é compilado com o
-endereço do servidor dele (`DC360_API_URL`). O que `GET /configuracao` decide no
-aplicativo é a **autorização**: sem ela, o mapa do Google não é montado e nada
-sai do aparelho, mesmo que o binário tenha a credencial. Um aplicativo compilado
-SEM a chave nunca desenha mapa do Google, e nesse caso a tela diz isso com todas
-as letras em vez de tentar e falhar em silêncio.
+com as chaves dele, do mesmo jeito que já é compilado com o endereço do
+servidor dele (`DC360_API_URL`). **São duas variáveis, e não uma**, porque o
+console do Google aceita um tipo de restrição por chave: `DC360_MAPS_CHAVE_IOS`
+(chave restrita a Apps iOS, com o identificador do aplicativo) e
+`DC360_MAPS_CHAVE_ANDROID` (chave restrita a Apps Android, com o pacote e a
+impressão digital do certificado). Uma chave só, sem restrição, seria uma
+chave que qualquer aplicativo do mundo gasta na conta do município. E nenhuma
+das duas é a `MAPS_KEY` do servidor, que é restrita a sites: são três chaves
+do mesmo projeto do Google, cada uma presa ao lugar de onde é usada.
+
+O que `GET /configuracao` decide no aplicativo é a **autorização**: sem ela, o
+mapa do Google não é montado e nada sai do aparelho, mesmo que o binário tenha
+a credencial. Um aplicativo compilado SEM a chave da plataforma dele nunca
+desenha mapa do Google, e nesse caso a tela diz isso com todas as letras em vez
+de tentar e falhar em silêncio. O aplicativo **não compara** a chave do
+servidor com a do binário: até 15/09/2026 ele comparava, e como as duas são
+diferentes por construção, a tela avisava "gerar o aplicativo de novo" em toda
+instalação certa.
+
+**O caminho por ruas tem a quarta variável**, e ela é de outra natureza:
+`ROUTES_KEY`, no servidor do município, é chave de servidor restrita por
+endereço IP, é segredo, e nunca é entregue a cliente nenhum. Sem ela o botão
+"Ver o caminho" responde que o município não ligou o caminho. Ver a seção 2.2.
 
 ### 2.3 Transferência internacional
 
@@ -173,10 +245,11 @@ do município, e o consentimento não é a base usada.
 O dado que efetivamente atravessa a fronteira está limitado, por decisão de
 projeto, ao mínimo listado na tabela da seção 1: identificador de aparelho, texto
 genérico de notificação, identificador de município e de ocorrência, severidade,
-prazo, coordenada de mapa, a região de mapa consultada, e a posição do agente de
-campo enquanto ele tem o mapa aberto. **Nome, contato, endereço, protocolo,
-relato, fotografia, assinatura e descrição de vulnerabilidade não saem do
-Brasil.**
+prazo, coordenada de mapa, a região de mapa consultada, a posição do agente de
+campo enquanto ele tem o mapa aberto, e, a pedido dele, a posição dele e a
+coordenada do imóvel para traçar o caminho. **Nome, contato, endereço,
+protocolo, relato, fotografia, assinatura e descrição de vulnerabilidade não
+saem do Brasil.**
 
 As três últimas entraram em 14/09/2026, com o mapa dentro do aplicativo de
 campo, e a terceira merece ser lida com atenção porque muda a natureza do que
@@ -186,6 +259,12 @@ enquanto a tela do mapa está aberta, para o mapa poder desenhar onde ele está,
 não é guardada por nós, não entra no laudo e não é lida em segundo plano. O
 município que preferir não ter esse fluxo trabalha no modo sem chave, em que
 nem ela nem a coordenada do imóvel saem do aparelho.
+
+A quarta entrou em 15/09/2026, com o caminho por ruas, e é a única que sai por
+DECISÃO do agente: um toque em "Ver o caminho", uma vez por tarefa. Ela passa
+pelo servidor do município antes de sair do país, e o servidor não a guarda.
+O município que preferir não ter esse fluxo não preenche `ROUTES_KEY`, e o
+resto do produto não muda.
 
 ---
 

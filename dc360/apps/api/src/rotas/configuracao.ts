@@ -44,12 +44,13 @@ import type { Config } from "../config.js";
  *    então o prejuízo seria pequeno; pequeno não é zero, e o custo de evitá-lo
  *    aqui é uma linha.
  *
- * O que ela devolve é UM campo. A configuração da API inteira tem segredo de
- * JWT, credencial de armazenamento, chave do segundo fator e ficha de push:
- * despejar o objeto de configuração aqui, ou qualquer recorte "prático" dele,
- * é como esta rota vira vazamento. Por isso a resposta é montada campo a
- * campo, à mão, e existe teste conferindo que ela tem exatamente as chaves
- * declaradas e nenhuma a mais.
+ * O que ela devolve são DOIS campos. A configuração da API inteira tem segredo
+ * de JWT, credencial de armazenamento, chave do segundo fator, ficha de push e
+ * a chave de servidor da Routes API (`ROUTES_KEY`, que ao contrário da do
+ * mapa É segredo): despejar o objeto de configuração aqui, ou qualquer recorte
+ * "prático" dele, é como esta rota vira vazamento. Por isso a resposta é
+ * montada campo a campo, à mão, e existe teste conferindo que ela tem
+ * exatamente as chaves declaradas e nenhuma a mais.
  */
 export type ConfiguracaoDoPainel = {
   /**
@@ -63,6 +64,23 @@ export type ConfiguracaoDoPainel = {
    * jeitos de dizer "não tem".
    */
   chaveDoMapa: string;
+  /**
+   * O município autorizou o mapa do Google. É o que o APLICATIVO lê.
+   *
+   * A chave acima não serve ao aplicativo: ela é a do painel, restrita a
+   * sites, e o SDK nativo usa a que foi assada no binário, restrita a Apps iOS
+   * ou Android. Até 15/09/2026 o aplicativo decidia "autorizado" por "chave
+   * não vazia" e ainda comparava as duas, e como elas são diferentes por
+   * construção a comparação virou um aviso de "chave divergente" em toda
+   * instalação certa. O que o aplicativo precisa saber é uma coisa só, e cabe
+   * num booleano que a API escreve de propósito: o município ligou o mapa.
+   *
+   * Derivado de `MAPS_KEY`, e não de uma variável nova, porque a decisão do
+   * município é uma: quem configurou a chave do painel aceitou a seção 2.2 de
+   * `docs/SUBPROCESSADORES.md`, e o aplicativo desenha o mesmo mapa com a
+   * mesma consequência.
+   */
+  mapaAutorizado: boolean;
 };
 
 export async function rotasConfiguracao(
@@ -84,6 +102,7 @@ export async function rotasConfiguracao(
 
     const resposta: ConfiguracaoDoPainel = {
       chaveDoMapa: config.MAPS_KEY ?? "",
+      mapaAutorizado: Boolean(config.MAPS_KEY),
     };
     return resposta;
   });

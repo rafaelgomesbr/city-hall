@@ -1,7 +1,11 @@
-import { useContext, useState, type ComponentProps } from "react";
 import {
-  Image, StyleSheet, View, type ColorValue, type StyleProp, type ViewStyle,
+  useContext, useEffect, useMemo, useRef, useState, type ComponentProps,
+} from "react";
+import {
+  Animated, Easing, Image, Platform, StyleSheet, View, useWindowDimensions,
+  type StyleProp, type ViewStyle,
 } from "react-native";
+import { BlurView } from "expo-blur";
 /*
   O contexto vem do ROTEADOR, e não de `@react-navigation/bottom-tabs`.
 
@@ -18,59 +22,80 @@ import {
   existe para impedir: dois contextos com o mesmo nome, e o nosso lendo o que a
   tela de verdade não escreve.
 */
-import { BottomTabBarHeightCallbackContext } from "expo-router/build/react-navigation/bottom-tabs";
+import {
+  BottomTabBarHeightCallbackContext, BottomTabBarHeightContext,
+} from "expo-router/build/react-navigation/bottom-tabs";
 import type { Tabs } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Dialogo } from "./Dialogo";
+import { Cracha } from "./Cracha";
 import { Tocavel, Txt, useTema } from "./componentes";
-import { lerRascunho } from "../dados/rascunho";
-import { borda, espaco, icone, peso, raio, toque } from "./tokens";
+import { useGuardaDeSaida } from "./GuardaDeSaidaDaVistoria";
+import { textoDoCracha, useContagemDeAvisos, type ContagemDeAvisos } from "../dados/avisos";
+import { contagemDaFila, fraseDaFila, useResumoDaFila } from "../dados/resumo-da-fila";
+import { useSessao } from "../dados/sessao";
+import {
+  borda, easing, elevacao, espaco, foco, icone, linha, movimento, opacidade, peso, raio, toque,
+} from "./tokens";
+import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
 
 /**
- * O MENU INFERIOR, desenhado por este aplicativo em vez de pelo React Navigation.
+ * O MENU INFERIOR: uma pílula de vidro que paira sobre o conteúdo.
  *
- * ## Por que ele deixou de ser o do sistema
+ * ## O pedido, na letra de quem paga
  *
- * O RECLAME, na letra de quem paga: "esse menu tá feio, parece que foi
- * gambiarra, ele não se encaixa ali embaixo, tem um espaço branco embaixo dos 3
- * ícones, um espaço inútil, essa desgraça deve ocupar todo o espaço abaixo sem
- * ficar com as calças curtas, tem que ser algo bem feito".
+ * "Volta pro menu flutuante, vidro e bonito, se baseia em Nubank, BB,
+ * Instagram. Bonito, animado, suave e responsivo. Capricha nesse menu, o perfil
+ * em destaque pra dar a entender que é pra clicar. Eu imaginei ele arredondado
+ * com o avatar de perfil bonito."
  *
- * A causa foi medida antes de qualquer linha ser escrita, e ela não estava em
- * propriedade nenhuma nossa. O `BottomTabBar` desenha 49 pontos de conteúdo e
- * ACRESCENTA a área segura do aparelho (uns 34 num iPhone com faixa inicial)
- * como espaço vazio DEPOIS do bloco, pintado com a cor da barra. O retângulo de
- * destaque do item aberto (`tabBarActiveBackgroundColor` mais `tabBarItemStyle`)
- * cobria os 49 e parava ali. É isso que lê como calça curta: um bloco colorido
- * que termina no meio da barra, com uma tira morta debaixo dele.
+ * ## A barra já foi flutuante uma vez, e foi reprovada. Os quatro defeitos
  *
- * Nenhuma propriedade da barra padrão cria aquela tira, e nenhuma a preenche:
- * ela sai da conta do `getTabBarHeight` mais o recuo que o próprio componente
- * aplica. Por isso a barra passou a ser nossa, ligada por
- * `tabBar={(props) => <BarraDeAbas {...props} />}`.
+ * A versão de 28/08 flutuava por cima da barra padrão do React Navigation, e
+ * cada defeito dela tinha uma causa que esta peça fecha pelo lado certo:
  *
- * ## A CONTA DA ALTURA, que é o conserto
+ * - (a) **Altura escrita à mão atropelava a conta do sistema.** Agora a barra
+ *   MEDE a própria altura (`onLayout` na moldura, que vai da borda de cima da
+ *   pílula até a borda de baixo da tela) e a informa por
+ *   `BottomTabBarHeightCallbackContext`. Nunca `height`, sempre `minHeight`:
+ *   com a fonte grande do sistema o rótulo cresce e a pílula cresce junto.
+ * - (b) **`left` e `right` eram ignorados.** Eram opções da barra padrão, que
+ *   as lia do jeito dela. A peça agora é nossa: `position: absolute` com
+ *   `bottom`, `left` e `right` são nossos e valem.
+ * - (c) **O fio estava desligado.** Flutuante não precisa de fio, precisa de
+ *   ELEVAÇÃO, e `elevacao(tema).flutuante` existe para exatamente isto: "peça
+ *   que paira e continua ali enquanto o conteúdo rola". Ver a nota sobre o
+ *   fundo transparente na pílula (`pilula-do-menu`, dentro do componente),
+ *   porque vidro e elevação puxam em direções opostas e a conciliação está
+ *   escrita lá.
+ * - (d) **`paddingBottom` na cena medido por ninguém.** A cena NÃO recebe recuo
+ *   nenhum daqui. Cada tela rolável usa `useRecuoDoMenu()` no
+ *   `contentContainerStyle.paddingBottom`, que lê a altura MEDIDA. O conteúdo
+ *   passa por baixo do vidro, que é o ponto do vidro.
  *
- * A área segura vira RECUO DE BAIXO DO ITEM, e não um vão depois dele. Cada
- * item vai da borda de cima da barra até a borda de baixo da tela, e o conteúdo
- * (ícone e palavra) fica centrado na parte útil, acima do indicador do aparelho.
- * Com isso o destaque do item aberto cobre a coluna inteira, e não sobra tira
- * morta nenhuma para ler como remendo.
+ * ## A conta da altura
  *
- *     conteúdo   = icone.acao (24) + espaco.e1 (4) + linha.legenda (16) = 44
- *     respiro    = espaco.e1 em cima + espaco.e1 embaixo                =  8
- *     parte útil = 44 + 8                                              = 52 = `toque`
- *     item       = parte útil + insets.bottom  (86 no iPhone, 52 sem gestos)
+ *     avatar do Perfil = icone.acao (24) + 2 × (borda.enfase (2) + foco.folga (2)) = 32
+ *     conteúdo do item = avatar (32) + espaco.e1 (4) + linha.legenda (16)      = 52
+ *     respiro          = espaco.e1 em cima + espaco.e1 embaixo                 =  8
+ *     item             = 52 + 8                                                = 60
+ *     pílula           = item + 2 × borda.fio (o contorno da elevação)         = 62
+ *     reserva na cena  = pílula + espaco.e3 (recuo do fundo) + área segura
  *
- * Os 52 não são coincidência nem gosto: são o alvo mínimo de toque que este
- * produto declara em `tokens.ts` (dedo, com luva, na chuva, num barranco). A
- * conta FECHA em cima dele, e é por isso que ela cabe. Quem aumentar o ícone ou
- * o rótulo sem mexer na altura reprova no portão, que refaz esta soma.
+ * O item mais alto é o do Perfil, porque o avatar é maior que os pictogramas
+ * (32 contra 24), e é ele que decide a altura da pílula: os outros três
+ * esticam junto. Nenhum item fica abaixo de `toque` (52), que é o alvo mínimo
+ * do produto, e o portão de acessibilidade refaz essa conta.
  *
- * Nada aqui tem altura FIXA: o item declara `minHeight`, então com a fonte
- * grande do sistema o rótulo quebra em duas linhas e a barra cresce junto, em
- * vez de cortar a palavra ao meio (que foi o defeito da versão anterior desta
- * barra, visto no aparelho: "os ícones do menu ficaram achatados").
+ * ## O que esta peça decide, e o que ela lê de fora
+ *
+ * O layout (`app/(agente)/_layout.tsx`) diz a PALAVRA e o ÍCONE de cada aba,
+ * pelas opções de cada `Tabs.Screen`. Os NÚMEROS (o crachá da fila, o crachá
+ * do sino), as FRASES faladas e o rosto do Perfil são lidos AQUI, por ganchos
+ * que assinam a fila e os avisos. A razão não é organização: é o defeito da
+ * aba que ficava escura. Quem guarda estado que muda com o uso não pode ser o
+ * pai do navegador, porque cada redesenho do pai reinicia a animação da cena.
+ * A barra pode se redesenhar à vontade: ela é filha do navegador, não pai.
  *
  * ## O rótulo em 12, e não em 14
  *
@@ -79,40 +104,88 @@ import { borda, espaco, icone, peso, raio, toque } from "./tokens";
  * degrau de legenda (12), e isto é exceção declarada, não descuido: nesta peça
  * a palavra é a SEGUNDA pista ao lado do ícone, dentro de um alvo de 52 pontos
  * que se anuncia inteiro pelo `accessibilityLabel`, e não o nome isolado de um
- * controle. Era 12 na barra do sistema desde sempre e continua 12: trocar agora,
- * no mesmo turno em que a barra mudou de dono, misturaria duas decisões numa
- * mudança só.
+ * controle.
  *
- * ## O que a barra padrão dava de graça e passou a ser daqui
+ * ## `react-native-reanimated` continua inerte
  *
- * Crachá numérico posicionado, rótulo falado, estado de selecionado e alvo de
- * toque. Cada um está abaixo com o seu porquê, e cada um tem caso em
- * `src/__tests__/menu-colado-e-transicoes.test.tsx`. O que continua vindo do
- * navegador é o que é dele: a transição entre telas (`animation: "shift"`, que
- * tira a direção da POSIÇÃO da aba no estado) e o roteamento.
- *
- * ## O que esta peça NÃO decide
- *
- * Nenhum número de crachá e nenhuma frase falada nascem aqui. Eles chegam pelas
- * opções de cada `Tabs.Screen`, declaradas em `app/(agente)/_layout.tsx`, que é
- * onde a fila e o sino já eram lidos. A barra desenha; o layout diz o quê.
+ * O indicador desliza com `Animated` do React Native e `useNativeDriver`, que
+ * roda na camada nativa sem atravessar a ponte quadro a quadro. A decisão de
+ * não ligar o reanimated está escrita em `app/(agente)/_layout.tsx` e vale
+ * aqui igual: ele ganha em gesto contínuo, e não existe nenhum neste menu.
  */
+
+/** As rotas que a barra trata de um jeito próprio. Quem as declara é o layout. */
+const ROTA_DA_FILA = "fila";
+const ROTA_DO_PERFIL = "perfil";
+
+/**
+ * O diâmetro do avatar do Perfil: o ícone de ação, mais o anel e a folga dele.
+ *
+ * O anel é a mesma figura do anel de foco (`foco`): uma borda de `enfase` com
+ * uma folga entre ela e a peça, porque anel colado no contorno vira um traço
+ * grosso só. Somando os dois lados, o rosto fica com 32, contra os 24 dos
+ * pictogramas, que é o "maior que os ícones" do pedido, sem inventar um degrau
+ * novo na escala de ícone.
+ */
+export const DIAMETRO_DO_AVATAR = icone.acao + 2 * (borda.enfase + foco.folga);
+
+/** O respiro de cima e de baixo de cada item, dentro da pílula. */
+const RESPIRO_DO_ITEM = espaco.e1;
+
+/** A altura da pílula com o conteúdo mínimo: é a conta do cabeçalho. */
+export const ALTURA_MINIMA_DA_PILULA =
+  DIAMETRO_DO_AVATAR + espaco.e1 + linha.legenda + 2 * RESPIRO_DO_ITEM + 2 * borda.fio;
+
+/** Quanto a pílula recua das bordas laterais da tela. */
+export const RECUO_LATERAL = espaco.e4;
+
+/** Quanto a pílula recua da área segura de baixo. */
+export const RECUO_DO_FUNDO = espaco.e3;
+
+/**
+ * A largura máxima da pílula: oito alvos de toque, dois por item.
+ *
+ * Num telefone ela nunca chega lá (390 de largura menos os dois recuos dá 358),
+ * então a conta só decide no tablet: a pílula para de crescer e centraliza,
+ * em vez de virar uma régua de 700 pontos com quatro palavras perdidas nas
+ * pontas.
+ */
+export const LARGURA_MAXIMA_DA_PILULA = toque * 8;
+
+/**
+ * Quanto o desfoque do vidro pesa, de 1 a 100.
+ *
+ * Alto o bastante para o conteúdo que passa por baixo virar mancha de cor, e
+ * não texto lido pela metade atrás de outro texto; abaixo de 100 para o vidro
+ * continuar parecendo vidro, e não uma placa. É o mesmo peso nos dois temas: o
+ * que muda por tema é a TINTA (clara ou escura), e ela é o que decide o
+ * contraste, junto com o véu.
+ */
+export const INTENSIDADE_DO_VIDRO = 75;
+
+/**
+ * ONDE O VIDRO EXISTE, e onde a reserva opaca entra no lugar.
+ *
+ * No iOS o `BlurView` é o `UIVisualEffectView` do sistema: desfoca de verdade,
+ * na camada nativa, sem custo que o aparelho sinta. No Android, o `expo-blur`
+ * só desfoca de verdade com `blurMethod` de "dimezis", que exige um
+ * `BlurTargetView` envolvendo o que está POR BAIXO do menu, e o navegador não
+ * expõe esse ponto (a barra é irmã das cenas, dentro dele). Sem o alvo, o que
+ * ele desenha no Android é uma tinta translúcida sem desfoque, ou seja, texto
+ * da lista lido pela metade atrás do texto do menu.
+ *
+ * Então no Android a pílula é a RESERVA que o pedido nomeia: o fundo opaco de
+ * `elevacao(tema).flutuante`, com a mesma forma, a mesma elevação e o mesmo
+ * indicador. Vidro de verdade no Android é trabalho declarado, não feito.
+ */
+export const VIDRO_DISPONIVEL = Platform.OS === "ios";
 
 /**
  * As iniciais de um nome, para o círculo do Perfil.
  *
- * Cópia do critério de `app/(agente)/perfil.tsx`, e a cópia é deliberada: lá a
- * função não é exportada, e o comentário dela explica por quê ("tudo dentro de
- * `src/app` é rota do Expo, e um arquivo de rota exporta a tela, não
- * utilitário"). Copiar é o menor dos males enquanto aquela tela está sendo
- * mexida por outra frente, mas a DUPLICATA é nomeada aqui para não virar
- * divergência: a casa desta regra é `src/ui`, e quem passar por `perfil.tsx`
- * apaga a de lá, exporta esta e usa uma só.
- *
- * Até isso acontecer, as duas precisam concordar, e concordam: duas letras
- * quando há sobrenome (uma equipe com dois "Carlos" viraria dois "C"
- * idênticos), uma quando não há, e interrogação quando o cadastro do município
- * veio sem nome.
+ * Duas letras quando há sobrenome (uma equipe com dois "Carlos" viraria dois
+ * "C" idênticos), uma quando não há, e interrogação quando o cadastro do
+ * município veio sem nome.
  */
 function iniciaisDe(nome: string): string {
   const partes = nome.trim().split(/\s+/).filter(Boolean);
@@ -123,19 +196,22 @@ function iniciaisDe(nome: string): string {
 }
 
 /**
- * O círculo do Perfil: a pessoa, e não um pictograma de equipe.
+ * O rosto do Perfil: o item que mais parece um botão, de propósito.
  *
- * A aba trazia `IconeEquipe`, duas pessoas em traço, e a aba não é a equipe: é
- * VOCÊ. O desenho de círculo com iniciais já existe neste produto, na lista de
- * colegas dentro do Perfil, e trazê-lo para a barra faz a aba dizer de quem é o
- * aparelho, que é a primeira pergunta de quem pega um telefone de plantão que
- * não é o dele.
+ * Um círculo com as iniciais (ou a foto), dentro de um ANEL. O anel é o que
+ * faz a peça ler como "isto se toca": aberta, ele assume a cor de destaque e o
+ * círculo se preenche de violeta com as iniciais em `sobreDestaque`; fechada,
+ * o anel é discreto (`borda`) e o círculo fica na superfície de apoio, para o
+ * violeta não competir com a aba que está aberta de verdade.
  *
- * PENDÊNCIA NOMEADA, e não esquecimento: a FOTO. A peça já a aceita e já a
- * desenha, e quem não a passa é o chamador, porque `identidade` não traz
- * fotografia nenhuma. Publicá-la depende de a API expor o campo no perfil do
- * usuário; enquanto isso não existe, o círculo cai nas iniciais. No dia em que
- * o campo entrar, muda uma propriedade no `_layout` e mais nada.
+ * Entre o anel e o círculo há a folga do anel de foco (`foco.folga`), pela
+ * razão escrita em `tokens.ts`: sem ela o anel encosta no contorno da peça e
+ * os dois viram um traço grosso só, que some para quem tem baixa visão.
+ *
+ * PENDÊNCIA NOMEADA: a FOTO. A peça já a aceita e já a desenha, e quem não a
+ * passa é a barra, porque `identidade` não traz fotografia nenhuma. Publicá-la
+ * depende de a API expor o campo no perfil do usuário; no dia em que entrar,
+ * muda uma propriedade e mais nada.
  */
 export function AvatarDoAgente({ nome, foto, ativo }: {
   nome: string;
@@ -157,106 +233,62 @@ export function AvatarDoAgente({ nome, foto, ativo }: {
       importantForAccessibility="no-hide-descendants"
       testID="avatar-do-agente"
       style={{
-        width: icone.acao,
-        height: icone.acao,
+        width: DIAMETRO_DO_AVATAR,
+        height: DIAMETRO_DO_AVATAR,
         borderRadius: raio.pilula,
-        /*
-          O círculo é a única peça da barra preenchida mesmo com a aba fechada, e
-          é isso que o faz ler como pessoa em vez de como mais um traço. Aberta,
-          ele assume a cor de destaque; fechada, a superfície de apoio, para o
-          violeta não competir com o item que está aberto de verdade.
-        */
-        backgroundColor: ativo ? tema.destaque : tema.superficie2,
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden",
+        borderWidth: borda.enfase,
+        borderColor: ativo ? tema.destaque : tema.borda,
+        padding: foco.folga,
       }}
     >
-      {foto
-        ? (
-          <Image
-            testID="foto-do-agente"
-            source={{ uri: foto }}
-            style={{ width: icone.acao, height: icone.acao }}
-          />
-        )
-        : (
-          /* O invólucro existe porque `Txt` não recebe identificador, e o portão
-             precisa ler as letras sem o resto do item junto. Mesmo precedente do
-             `testID` que a versão anterior desta barra punha em volta do ícone. */
-          <View testID="iniciais-do-agente">
-            <Txt
-              variante="legenda"
-              peso={peso.negrito}
-              cor={ativo ? tema.sobreDestaque : tema.texto}
-            >
-              {iniciaisDe(nome)}
-            </Txt>
-          </View>
-        )}
+      <View
+        testID="circulo-do-agente"
+        style={{
+          flex: 1,
+          borderRadius: raio.pilula,
+          backgroundColor: ativo ? tema.destaque : tema.superficie2,
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+        }}
+      >
+        {foto
+          ? (
+            <Image
+              testID="foto-do-agente"
+              source={{ uri: foto }}
+              style={{ width: icone.acao, height: icone.acao }}
+            />
+          )
+          : (
+            /* O invólucro existe porque `Txt` não recebe identificador, e o
+               portão precisa ler as letras sem o resto do item junto. */
+            <View testID="iniciais-do-agente">
+              <Txt
+                variante="legenda"
+                peso={peso.negrito}
+                cor={ativo ? tema.sobreDestaque : tema.texto}
+              >
+                {iniciaisDe(nome)}
+              </Txt>
+            </View>
+          )}
+      </View>
     </View>
   );
 }
 
 /**
- * O crachá numérico, que a barra padrão posicionava sozinha.
+ * A frase falada da aba Perfil, com o sino dentro dela.
  *
- * Número, e não pontinho colorido: o agente precisa saber QUANTAS coletas
- * esperam e QUANTOS avisos chegaram, porque é o número que decide se vale abrir
- * agora. A cor vem de fora, pelo `tabBarBadgeStyle` da aba, porque ela é
- * semântica e mora onde a contagem é feita: o crachá da fila muda quando há item
- * com problema, e o do sino é de outra cor porque conta outra coisa.
- *
- * Ele fica sobre o canto do ícone, e não ao lado da palavra: ao lado, empurraria
- * o rótulo e mudaria a largura da coluna toda vez que a fila passasse de um
- * dígito para dois.
+ * "Perfil" vem primeiro porque é o que a aba É; o número vem depois porque é o
+ * estado dela. O "mais de" carrega o piso do servidor: o crachá não afirma um
+ * total que ninguém contou.
  */
-function Cracha({ texto, fundo, cor, testID }: {
-  texto: string;
-  fundo: ColorValue;
-  cor: string;
-  testID: string;
-}) {
-  return (
-    <View
-      /* Ver o motivo em `AvatarDoAgente`: quem fala é o tocável inteiro, e o
-         número já está dentro da frase dele ("Envio, 4 na fila, ..."). */
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      testID={testID}
-      style={{
-        position: "absolute",
-        /*
-          A âncora é o canto de cima do bloco do ícone, deslocada por tokens: o
-          crachá encosta no ícone sem sair da coluna nem tocar a borda da barra.
-        */
-        top: -espaco.e1,
-        left: icone.acao - espaco.e2,
-        /*
-          `minHeight` e não `height`, pela mesma razão do item: com a fonte
-          grande do sistema o número cresce, e uma caixa fixa o cortaria pela
-          metade justamente para quem aumentou a fonte por precisar dela.
-        */
-        minWidth: espaco.e4,
-        minHeight: espaco.e4,
-        paddingHorizontal: espaco.e1,
-        borderRadius: raio.pilula,
-        backgroundColor: fundo,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Txt variante="legenda" peso={peso.negrito} cor={cor}>{texto}</Txt>
-    </View>
-  );
-}
-
-/** Uma cor declarada em `tabBarBadgeStyle`, sem depender da ordem do arranjo. */
-function corDoCracha(estilo: unknown, campo: "backgroundColor" | "color"): string | undefined {
-  const junto = StyleSheet.flatten(estilo as StyleProp<ViewStyle>) as
-    Record<string, unknown> | undefined;
-  const valor = junto?.[campo];
-  return typeof valor === "string" ? valor : undefined;
+export function fraseDoPerfil(contagem: ContagemDeAvisos): string {
+  if (contagem.porLer <= 0) return "Perfil";
+  const palavra = contagem.porLer === 1 && !contagem.truncado ? "aviso" : "avisos";
+  return `Perfil, ${contagem.truncado ? "mais de " : ""}${contagem.porLer} ${palavra} por ler`;
 }
 
 /**
@@ -277,8 +309,28 @@ function foraDaBarra(opcoes: { tabBarItemStyle?: unknown }): boolean {
   return estilo?.["display"] === "none";
 }
 
-/** O nome da rota da vistoria, que é a única tela com pergunta de saída. */
-const ROTA_DA_VISTORIA = "vistoria/[id]";
+/**
+ * O que a cena precisa reservar embaixo para o conteúdo não morrer atrás do
+ * vidro, sem que a barra precise dizer.
+ *
+ * A altura medida chega por `BottomTabBarHeightContext`, que o navegador
+ * preenche com o que a moldura informa no `onLayout`. Fora de uma cena do
+ * navegador (uma peça montada solta, um teste) o contexto não existe, e a
+ * reserva cai na CONTA do cabeçalho com a área segura do aparelho, que é o
+ * mesmo número antes de a primeira medição chegar.
+ *
+ * Mais `espaco.e3` de respiro, para o último item da lista parar ACIMA da
+ * pílula, e não encostado nela.
+ */
+export function alturaDeReservaDoMenu(areaSeguraDeBaixo: number): number {
+  return ALTURA_MINIMA_DA_PILULA + RECUO_DO_FUNDO + areaSeguraDeBaixo;
+}
+
+export function useRecuoDoMenu(): number {
+  const medida = useContext(BottomTabBarHeightContext);
+  const margens = useSafeAreaInsets();
+  return (medida ?? alturaDeReservaDoMenu(margens.bottom)) + espaco.e3;
+}
 
 /**
  * O que o `Tabs` entrega ao `tabBar`, tirado do próprio `Tabs`.
@@ -296,61 +348,97 @@ type RotaDaBarra = PropsDaBarra["state"]["routes"][number];
 
 export function BarraDeAbas({ state, descriptors, navigation, insets }: PropsDaBarra) {
   const tema = useTema();
+  const { identidade } = useSessao();
+  const janela = useWindowDimensions();
+  const reduzirMovimento = useReducaoDeMovimento();
+  const resumo = useResumoDaFila();
+  const contagemDeAvisos = useContagemDeAvisos();
+
   /*
-    Quem ouve a altura da barra é `useBottomTabBarHeight()`, e hoje nenhuma tela
-    deste aplicativo o chama: as cenas são dimensionadas por `flex`, porque a
-    barra é IRMÃ delas no leiaute e não paira sobre nada. Mesmo assim o número é
-    informado, porque a barra padrão informava: uma tela que perguntasse receberia
-    a conta do sistema (49 mais o inset) em vez da nossa, e erraria por uns
-    poucos pontos exatamente na borda de baixo.
+    Quem ouve a altura da barra é `useBottomTabBarHeight()`, por baixo de
+    `useRecuoDoMenu()`. A pílula paira sobre a cena, então a cena não é
+    encurtada por ninguém: o número que sai daqui é a única coisa que diz a uma
+    lista onde o conteúdo dela precisa parar.
   */
   const avisarAltura = useContext(BottomTabBarHeightCallbackContext);
 
-  /**
-   * A aba que o agente tocou enquanto havia vistoria começada.
-   *
-   * Guarda a rota inteira, e não só o nome: a resposta do diálogo chega num
-   * quadro diferente do toque, e reconstruir a rota pelo nome perderia os
-   * parâmetros que vieram junto.
-   */
-  const [perguntando, setPerguntando] = useState<
-    { rota: RotaDaBarra; rotulo: string } | null
-  >(null);
-
+  /*
+    A PERGUNTA DE SAIR DA VISTORIA mora em `GuardaDeSaidaDaVistoria`, e a
+    barra é quem diz à guarda onde o agente está: ela é a única peça que
+    recebe o estado do navegador pronto. O sino do cabeçalho pergunta pela
+    mesma guarda, com o mesmo diálogo.
+  */
+  const guarda = useGuardaDeSaida();
   const abertaAgora = state.routes[state.index];
+  useEffect(() => {
+    guarda.registrarRotaAberta(abertaAgora ?? null);
+  }, [guarda, abertaAgora]);
 
-  /**
-   * Há vistoria COMEÇADA na tela aberta?
-   *
-   * Começada e aberta são coisas diferentes, e a diferença é o que impede a
-   * pergunta de virar obstáculo: a tela de vistoria cunha o rascunho em memória
-   * na abertura e só o GRAVA no primeiro toque do agente (ver `alterar()` em
-   * `app/(agente)/vistoria/[id].tsx`). Existir linha no disco quer dizer que
-   * alguém preencheu alguma coisa, e é o mesmo critério que a lista de tarefas
-   * já usa para marcar uma tarefa como "em andamento".
-   *
-   * A leitura acontece no TOQUE, e não quando a tela abre: o rascunho nasce
-   * entre uma coisa e outra, e uma resposta guardada na abertura estaria errada
-   * exatamente no caso que importa.
-   */
-  async function haVistoriaComecada(): Promise<boolean> {
-    if (abertaAgora?.name !== ROTA_DA_VISTORIA) return false;
-    const id = (abertaAgora.params as { id?: string } | undefined)?.id;
-    if (!id) return false;
-    try {
-      return (await lerRascunho(id)) !== null;
-    } catch {
-      /*
-        Disco recusando leitura não pode PRENDER o agente na tela. O pior caso de
-        deixar passar é uma troca de aba sem pergunta, com o rascunho intacto no
-        disco; o pior caso de segurar é um menu que não responde ao dedo no meio
-        do plantão.
-      */
-      return false;
+  /* As rotas que aparecem na pílula, na ordem em que o layout as declarou. */
+  const visiveis = state.routes.flatMap((rota, indice) => {
+    const descritor = descriptors[rota.key];
+    if (!descritor || foraDaBarra(descritor.options)) return [];
+    return [{ rota, indice, descritor }];
+  });
+
+  /* Onde o item aberto está na pílula; -1 quando a tela aberta não tem item
+     (a vistoria). */
+  const posicaoAberta = visiveis.findIndex(({ indice }) => indice === state.index);
+
+  /*
+    A largura da pílula sai da JANELA, e não de uma medição: os quatro itens
+    têm `flex: 1`, então a largura de cada um é a da linha dividida por
+    quatro, e a linha é medida uma vez (`onLayout`) para o indicador saber
+    quanto deslizar. Sem medição, o número é o estimado; com ela, o real.
+  */
+  const larguraDaPilula = Math.min(janela.width - 2 * RECUO_LATERAL, LARGURA_MAXIMA_DA_PILULA);
+  const [larguraDaLinha, setLarguraDaLinha] = useState(0);
+  const larguraDoItem = visiveis.length > 0 ? larguraDaLinha / visiveis.length : 0;
+
+  /*
+    O INDICADOR QUE DESLIZA, que é a segunda pista do item aberto (a primeira é
+    a cor). Dois valores animados: onde ele está (`posicao`, em itens) e se ele
+    existe (`presenca`, porque dentro da vistoria nenhuma aba está aberta e o
+    bloco some em vez de ficar apontando para a última).
+
+    `useNativeDriver` porque translação e opacidade rodam na camada nativa: o
+    dedo não pode esperar o JavaScript, que neste aplicativo pode estar
+    drenando a fila de uma manhã inteira de vistorias.
+
+    Com redução de movimento, os dois valores vão direto ao destino. A
+    interpolação some; o indicador, que é informação, fica.
+  */
+  const posicao = useRef(new Animated.Value(Math.max(posicaoAberta, 0))).current;
+  const presenca = useRef(new Animated.Value(posicaoAberta >= 0 ? 1 : 0)).current;
+
+  useEffect(() => {
+    if (reduzirMovimento) {
+      if (posicaoAberta >= 0) posicao.setValue(posicaoAberta);
+      presenca.setValue(posicaoAberta >= 0 ? 1 : 0);
+      return;
     }
-  }
+    const configuracao = {
+      duration: movimento.mudancaDeEstado,
+      easing: Easing.bezier(...easing.entrada),
+      useNativeDriver: true,
+    };
+    const passos = [
+      Animated.timing(presenca, { ...configuracao, toValue: posicaoAberta >= 0 ? 1 : 0 }),
+    ];
+    /* Some no lugar em que estava: deslizar até um item inexistente seria
+       apontar para uma aba que não abriu. */
+    if (posicaoAberta >= 0) {
+      passos.push(Animated.timing(posicao, { ...configuracao, toValue: posicaoAberta }));
+    }
+    Animated.parallel(passos).start();
+  }, [posicaoAberta, reduzirMovimento, posicao, presenca]);
 
-  async function aoTocar(rota: RotaDaBarra, rotulo: string): Promise<void> {
+  const deslocamentoDoIndicador = useMemo(
+    () => Animated.multiply(posicao, larguraDoItem),
+    [posicao, larguraDoItem],
+  );
+
+  function aoTocar(rota: RotaDaBarra, rotulo: string): void {
     /*
       O `tabPress` é emitido mesmo na aba já aberta, e é assim que a barra padrão
       faz: é esse evento que uma tela usa para voltar a lista ao topo quando se
@@ -362,173 +450,243 @@ export function BarraDeAbas({ state, descriptors, navigation, insets }: PropsDaB
     });
     if (rota.key === abertaAgora?.key || evento.defaultPrevented) return;
 
-    if (await haVistoriaComecada()) {
-      setPerguntando({ rota, rotulo });
-      return;
-    }
-    navigation.navigate(rota.name, rota.params);
+    /* Pergunta se houver vistoria começada; senão navega na hora. */
+    guarda.antesDeSair(rotulo, () => { navigation.navigate(rota.name, rota.params); });
   }
+
+  const fila = contagemDaFila(resumo);
+  const crachaDaFila = fila.naFila > 0
+    ? {
+      texto: String(fila.naFila),
+      /*
+        A cor é SEMÂNTICA: muda com o que o número significa. Item com
+        problema pinta de perigo; o resto, de destaque. E `sobreDestaque` para
+        o número, e não branco escrito à mão: branco estava certo no tema claro
+        por acidente e errado no escuro, onde `destaque` é um lilás claro.
+      */
+      fundo: fila.bloqueados > 0 ? tema.perigoTexto : tema.destaque,
+      cor: tema.sobreDestaque,
+    }
+    : null;
+  const textoDoSino = textoDoCracha(contagemDeAvisos);
+  const crachaDoSino = textoDoSino !== null
+    ? {
+      texto: textoDoSino,
+      /*
+        `alertaTexto` e não `destaque`: o crachá da fila já é violeta, e dois
+        crachás violetas na mesma barra seriam dois avisos com a mesma cara para
+        duas coisas opostas (uma é trabalho que ainda não subiu, a outra é
+        notícia do município).
+      */
+      fundo: tema.alertaTexto,
+      cor: tema.sobreDestaque,
+    }
+    : null;
+
+  /*
+    A elevação inteira, espalhada uma vez na pílula. Ver `Pilula` para a
+    conciliação entre o fundo dela e o vidro.
+  */
+  const flutuante = elevacao(tema).flutuante;
+
+  /*
+    A COR DO INDICADOR: o degrau neutro vizinho da superfície da pílula.
+
+    A pílula veste a superfície de `flutuante`: branca no claro, `superficie2`
+    no escuro (no escuro, o que sobe clareia). O bloco do item aberto precisa
+    ser um degrau diferente dessa superfície nos DOIS temas, senão some num
+    deles: no claro é `superficie2`, um cinza leve sobre o branco; no escuro é
+    `superficie`, um recesso um tom mais fundo que a pílula. Os dois pares
+    (destaque sobre superficie2, destaque sobre superficie) são medidos pelo
+    portão de acessibilidade.
+  */
+  const corDoIndicador = tema.escuro ? tema.superficie : tema.superficie2;
 
   return (
     <View
       testID="barra-de-abas"
+      /*
+        A MOLDURA: vai da borda de cima da pílula até a borda de baixo da tela,
+        e é ela que é medida. Assim o número que a cena recebe já inclui o
+        recuo do fundo e a área segura, sem nenhuma soma escrita à mão do lado
+        de quem lê. `box-none` porque a moldura cobre uma faixa de conteúdo que
+        continua tocável embaixo do recuo.
+      */
+      pointerEvents="box-none"
       onLayout={(e) => avisarAltura?.(e.nativeEvent.layout.height)}
       style={{
-        flexDirection: "row",
-        backgroundColor: tema.superficie,
-        /*
-          O fio, e não sombra. Elevação existe para peça que paira POR CIMA do
-          conteúdo, e esta não paira: ela ocupa lugar no leiaute, e o que a separa
-          do que está acima dela é uma linha.
-        */
-        borderTopWidth: borda.fio,
-        borderTopColor: tema.borda,
-        /*
-          Nenhum recuo de baixo AQUI, e a ausência é o conserto. Era ele, dentro
-          do `BottomTabBar`, que produzia a tira morta: o bloco de itens
-          terminava e a área segura vinha depois, pintada. Agora quem a paga é
-          cada item, e por isso o item cobre a coluna inteira.
-        */
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        paddingHorizontal: RECUO_LATERAL,
+        paddingBottom: insets.bottom + RECUO_DO_FUNDO,
+        alignItems: "center",
       }}
     >
-      {state.routes.map((rota, indice) => {
-        const descritor = descriptors[rota.key];
-        if (!descritor || foraDaBarra(descritor.options)) return null;
-        const { options } = descritor;
+      <View
+        testID="pilula-do-menu"
+        style={{
+          width: larguraDaPilula,
+          /*
+            A ELEVAÇÃO INTEIRA, e o fundo dela SAI só onde há vidro.
 
-        const aberta = state.index === indice;
-        const rotulo = typeof options.tabBarLabel === "string" ? options.tabBarLabel : rota.name;
-        const cor = aberta ? tema.destaque : tema.textoDiscreto;
-        const cracha = options.tabBarBadge;
+            `elevacao()` devolve fundo, contorno e sombra juntos porque no
+            escuro quem carrega a elevação é a superfície clareando, e no claro
+            é a sombra. Aqui a metade do fundo NÃO é descartada: ela muda de
+            camada. O `BlurView` desfoca o que está atrás dele na janela, e um
+            pai opaco seria exatamente "o que está atrás": o desfoque veria a
+            superfície chapada e nenhuma lista. Por isso a pílula fica
+            transparente e o fundo de `flutuante` vai para o VÉU, sobre o
+            desfoque, com opacidade parcial. Contorno e sombra ficam aqui, na
+            pílula, que não é recortada.
 
-        return (
-          <Tocavel
-            key={rota.key}
-            testID={`aba-${rota.name}`}
-            accessibilityRole="button"
-            /*
-              O rótulo FALADO é o composto que o layout monta ("Envio, 4 na fila,
-              3 esperando envio, 1 com problema"), e não a palavra da tela. A
-              palavra sozinha não diria o que o crachá mostra, e quem ouve a tela
-              não vê crachá nenhum.
-            */
-            accessibilityLabel={options.tabBarAccessibilityLabel ?? rotulo}
-            /*
-              A pista da aba aberta para quem não vê a tela. Ela é o par do bloco
-              preenchido: duas pistas, uma por canal, e nenhuma delas é a cor
-              sozinha.
-            */
-            accessibilityState={{ selected: aberta }}
-            onPress={() => { void aoTocar(rota, rotulo); }}
-            estilo={{
-              flex: 1,
-              /*
-                A CONTA, aplicada. `toque` é a parte útil (ver o cabeçalho), e a
-                área segura entra em cima dela para o item alcançar a borda de
-                baixo da tela. `minHeight` e não `height`: com a fonte grande do
-                sistema o rótulo quebra em duas linhas e a barra cresce junto.
-              */
-              minHeight: toque + insets.bottom,
-              paddingTop: espaco.e1,
-              paddingBottom: espaco.e1 + insets.bottom,
-              alignItems: "center",
-              justifyContent: "center",
-              gap: espaco.e1,
-            }}
+            Sem vidro (ver `VIDRO_DISPONIVEL`), nada disso acontece: a pílula
+            é a elevação inteira, opaca, como o token pede.
+
+            A sombra no iOS, com fundo transparente, passa a ser calculada por
+            pixel em vez de pelo contorno (`RCTViewComponentView`, "Stage 1.
+            Shadow Path"). É uma pílula só e ela não muda de tamanho: o custo
+            é pago uma vez.
+          */
+          ...flutuante,
+          ...(VIDRO_DISPONIVEL ? { backgroundColor: "transparent" } : {}),
+          borderRadius: raio.pilula,
+        }}
+      >
+        {VIDRO_DISPONIVEL && (
+          /*
+            O RECORTE: quem tem `overflow: hidden` é esta camada, e não a
+            pílula, porque recortar a pílula recortaria a sombra dela junto.
+          */
+          <View
+            testID="recorte-do-vidro"
+            style={[StyleSheet.absoluteFill, { borderRadius: raio.pilula, overflow: "hidden" }]}
           >
-            {aberta && (
-              <View
-                testID="destaque-da-aba"
+            <BlurView
+              testID="vidro-do-menu"
+              intensity={INTENSIDADE_DO_VIDRO}
+              tint={tema.escuro ? "dark" : "light"}
+              style={StyleSheet.absoluteFill}
+            />
+            {/*
+              O VÉU: o fundo de `flutuante` em opacidade parcial, para o texto
+              ter contraste sobre qualquer conteúdo que passe por baixo. O
+              token é `veu` porque é a mesma pergunta do véu do diálogo:
+              quanto do que está atrás ainda se vê.
+            */}
+            <View
+              testID="veu-do-vidro"
+              style={[
+                StyleSheet.absoluteFill,
+                { backgroundColor: flutuante.backgroundColor, opacity: opacidade.veu },
+              ]}
+            />
+          </View>
+        )}
+
+        <View
+          testID="linha-de-itens"
+          onLayout={(e) => setLarguraDaLinha(e.nativeEvent.layout.width)}
+          style={{ flexDirection: "row" }}
+        >
+          {larguraDoItem > 0 && (
+            <Animated.View
+              testID="indicador-da-aba"
+              /*
+                Irmão dos itens e declarado ANTES deles: no React Native quem é
+                declarado primeiro é pintado primeiro, então o bloco fica atrás
+                do ícone e da palavra sem precisar de `zIndex`. Recuado de
+                `espaco.e1` em todos os lados para não encostar no vidro.
+              */
+              style={{
+                position: "absolute",
+                top: RESPIRO_DO_ITEM,
+                bottom: RESPIRO_DO_ITEM,
+                left: RESPIRO_DO_ITEM,
+                width: larguraDoItem - 2 * RESPIRO_DO_ITEM,
+                borderRadius: raio.pilula,
+                backgroundColor: corDoIndicador,
+                opacity: presenca,
+                transform: [{ translateX: deslocamentoDoIndicador }],
+              }}
+            />
+          )}
+
+          {visiveis.map(({ rota, indice, descritor }) => {
+            const { options } = descritor;
+            const aberta = state.index === indice;
+            const rotulo = typeof options.tabBarLabel === "string" ? options.tabBarLabel : rota.name;
+            const cor = aberta ? tema.destaque : tema.textoDiscreto;
+            const ehPerfil = rota.name === ROTA_DO_PERFIL;
+            const cracha = rota.name === ROTA_DA_FILA ? crachaDaFila : ehPerfil ? crachaDoSino : null;
+            /*
+              O rótulo FALADO é o composto ("Envio, 4 na fila, 3 esperando
+              envio, 1 com problema"), e não a palavra da tela. A palavra
+              sozinha não diria o que o crachá mostra, e quem ouve a tela não
+              vê crachá nenhum.
+            */
+            const falado = rota.name === ROTA_DA_FILA
+              ? fraseDaFila(resumo)
+              : ehPerfil
+                ? fraseDoPerfil(contagemDeAvisos)
+                : (options.tabBarAccessibilityLabel ?? rotulo);
+
+            return (
+              <Tocavel
+                key={rota.key}
+                testID={`aba-${rota.name}`}
+                accessibilityRole="button"
+                accessibilityLabel={falado}
                 /*
-                  O DESTAQUE, que antes tinha altura própria e parava no meio da
-                  barra. Aqui ele preenche o item, então vai da borda de cima da
-                  barra até a borda de baixo da tela.
-
-                  Arredondado só EM CIMA: embaixo ele encosta na borda da tela, e
-                  um canto redondo ali deixaria duas fatias da cor da barra
-                  aparecendo nos cantos, que é a mesma aparência de remendo que a
-                  calça curta produzia.
-
-                  Ele é irmão do conteúdo e vem ANTES dele: no React Native quem é
-                  declarado primeiro é pintado primeiro, então o bloco fica atrás
-                  do ícone e da palavra sem precisar de `zIndex`.
+                  A pista da aba aberta para quem não vê a tela. Ela é o par do
+                  bloco que desliza: duas pistas, uma por canal, e nenhuma delas
+                  é a cor sozinha.
                 */
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  right: 0,
-                  bottom: 0,
-                  left: 0,
-                  backgroundColor: tema.superficie2,
-                  borderTopLeftRadius: raio.cartao,
-                  borderTopRightRadius: raio.cartao,
+                accessibilityState={{ selected: aberta }}
+                onPress={() => { aoTocar(rota, rotulo); }}
+                estilo={{
+                  flex: 1,
+                  minHeight: toque,
+                  paddingVertical: RESPIRO_DO_ITEM,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: espaco.e1,
                 }}
-              />
-            )}
-
-            <View>
-              {options.tabBarIcon?.({ focused: aberta, color: cor, size: icone.acao })}
-              {cracha !== undefined && cracha !== "" && (
-                <Cracha
-                  testID={`cracha-${rota.name}`}
-                  texto={String(cracha)}
-                  fundo={corDoCracha(options.tabBarBadgeStyle, "backgroundColor") ?? tema.destaque}
-                  cor={corDoCracha(options.tabBarBadgeStyle, "color") ?? tema.sobreDestaque}
-                />
-              )}
-            </View>
-
-            {/* Invólucro pelo mesmo motivo das iniciais: `Txt` não recebe
-                identificador, e o portão precisa ler a palavra sem o crachá
-                junto. */}
-            <View testID={`rotulo-da-aba-${rota.name}`}>
-              <Txt
-                variante="legenda"
-                peso={aberta ? peso.negrito : peso.forte}
-                cor={cor}
-                alinhamento="center"
               >
-                {rotulo}
-              </Txt>
-            </View>
-          </Tocavel>
-        );
-      })}
+                <View>
+                  {ehPerfil
+                    ? <AvatarDoAgente nome={identidade?.nome ?? ""} ativo={aberta} />
+                    : options.tabBarIcon?.({ focused: aberta, color: cor, size: icone.acao })}
+                  {cracha && (
+                    <Cracha
+                      testID={`cracha-${rota.name}`}
+                      texto={cracha.texto}
+                      fundo={cracha.fundo}
+                      cor={cracha.cor}
+                    />
+                  )}
+                </View>
 
-      {/*
-        A PERGUNTA, que é a compensação de a barra ter passado a aparecer dentro
-        da vistoria.
+                {/* Invólucro pelo mesmo motivo das iniciais: `Txt` não recebe
+                    identificador, e o portão precisa ler a palavra sem o crachá
+                    junto. */}
+                <View testID={`rotulo-da-aba-${rota.name}`}>
+                  <Txt
+                    variante="legenda"
+                    peso={aberta ? peso.negrito : peso.forte}
+                    cor={cor}
+                    alinhamento="center"
+                  >
+                    {rotulo}
+                  </Txt>
+                </View>
+              </Tocavel>
+            );
+          })}
+        </View>
+      </View>
 
-        O argumento contra a barra ali estava escrito em três lugares deste
-        aplicativo: uma escotilha de fuga permanente embaixo do polegar, ao lado
-        do formulário mais longo do produto, é como se produz vistoria pela
-        metade. O dono desfez a decisão e pediu esta pergunta no lugar.
-
-        Ela NÃO é sobre perda, e o texto diz isso na cara: o rascunho está no
-        disco desde o primeiro toque. É sobre atenção. Por isso a ação não é
-        destrutiva, e o botão repete o DESTINO em vez de dizer "OK", que é a regra
-        de conteúdo do `Dialogo`.
-      */}
-      {perguntando && (
-        <Dialogo
-          testID="dialogo-de-sair-da-vistoria"
-          aberto
-          titulo="Sair da vistoria?"
-          texto={
-            "A vistoria está começada e o que você já preencheu está guardado "
-            + "neste aparelho. Sair agora não apaga nada: quando você voltar, ela "
-            + "continua de onde parou."
-          }
-          acao={{
-            rotulo: `Ir para ${perguntando.rotulo}`,
-            aoTocar: () => {
-              navigation.navigate(perguntando.rota.name, perguntando.rota.params);
-            },
-          }}
-          recusa={{ rotulo: "Continuar a vistoria" }}
-          aoFechar={() => { setPerguntando(null); }}
-        />
-      )}
     </View>
   );
 }

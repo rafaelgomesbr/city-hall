@@ -19,6 +19,20 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
   default: () => mockEsquema,
 }));
 
+/*
+  O número grande passou a CONTAR na primeira pintura (ver
+  `dado-que-conta.test.tsx`, que é onde a contagem é provada). O que este
+  arquivo mede no `Dado` é a tipografia do número PARADO, e para o número
+  estar parado no primeiro quadro a chave de redução de movimento fica ligada
+  aqui, por cima do hook de verdade, como em `item-de-lista.test.tsx`.
+*/
+let mockReduzir = false;
+jest.mock("./useReducaoDeMovimento", () => {
+  const real = jest.requireActual("./useReducaoDeMovimento") as
+    typeof import("./useReducaoDeMovimento");
+  return { useReducaoDeMovimento: () => real.useReducaoDeMovimento() || mockReduzir };
+});
+
 import { Botao, Cartao, Dado, ProvedorDeTema, Txt } from "./componentes";
 import { degrau } from "./hierarquia";
 import { FAMILIA_POR_PESO, PILHA_DO_SISTEMA } from "./tipografia";
@@ -26,7 +40,7 @@ import {
   elevacao, espaco, gradienteDeDestaque, temaClaro, temaEscuro,
 } from "./tokens";
 
-beforeEach(() => { mockEsquema = "light"; });
+beforeEach(() => { mockEsquema = "light"; mockReduzir = false; });
 
 async function montar(no: React.ReactNode) {
   await act(async () => { await render(<ProvedorDeTema>{no}</ProvedorDeTema>); });
@@ -48,6 +62,8 @@ function todosOsNos(no: unknown): No[] {
    ============================================================ */
 
 describe("o número com rótulo, que é a H2 virada peça", () => {
+  beforeEach(() => { mockReduzir = true; });
+
   it("o número sai no degrau do protagonista, com o rastreio dele", async () => {
     await montar(<Dado valor="12" rotulo="tarefas para hoje" />);
     const estilo = StyleSheet.flatten(screen.getByText("12").props.style);
@@ -235,8 +251,13 @@ describe("o gradiente, que é o único do aplicativo", () => {
     da tela gradiente, ele deixa de ser destaque e vira papel de parede, e a
     ação que a tela quer que aconteça perde o que a separava das outras.
   */
-  it("só o primário. Secundário, discreto e perigo continuam chapados", async () => {
-    for (const tipo of ["secundario", "discreto", "perigo"] as const) {
+  it("só o primário. Realce, secundário, discreto e perigo continuam chapados", async () => {
+    /*
+      O realce entra na lista com razão própria: ele é o SEGUNDO preenchido do
+      aplicativo, e é justamente por não ter o gradiente que ele continua lendo
+      como "faça isto" sem virar uma segunda ação principal na mesma tela.
+    */
+    for (const tipo of ["realce", "secundario", "discreto", "perigo"] as const) {
       await montar(<Botao titulo="Cancelar" tipo={tipo} onPress={() => {}} />);
       expect(paradasDesenhadas()).toEqual([]);
     }

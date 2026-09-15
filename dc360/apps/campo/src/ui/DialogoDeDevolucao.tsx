@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { useState } from "react";
+import { TextInput, View } from "react-native";
 import {
   MOTIVOS_DE_DEVOLUCAO,
   ROTULO_MOTIVO_DE_DEVOLUCAO,
   type MotivoDeDevolucao,
 } from "@dc360/shared";
 
-import { Txt, useTema } from "./componentes";
+import { Tocavel, Txt, useTema } from "./componentes";
 import { Dialogo } from "./Dialogo";
 import { borda, espaco, fonte, raio, toque } from "./tokens";
 
@@ -63,20 +63,34 @@ export function DialogoDeDevolucao({
   const [observacao, setObservacao] = useState("");
 
   /*
-    Fechar esquece o que foi escolhido, e isso é deliberado.
+    ABRIR começa em branco, e isso é deliberado.
 
     O diálogo é um por tela, e não um por tarefa (ver o comentário na fila de
     envio: uma dezena de modais montados por trás da lista o tempo todo). Sem
     esta limpeza, o motivo escolhido para uma tarefa apareceria pré-marcado na
     pergunta sobre OUTRA tarefa, e o agente confirmaria um motivo que ele não
     escolheu para aquele endereço.
+
+    É na ABERTURA, e não no fechamento, por causa da saída animada do
+    `Dialogo`: a folha continua na tela por um instante depois de `aberto`
+    virar falso. Esquecer o motivo nesse instante fazia o agente ver, enquanto
+    a folha desce, o motivo que acabou de confirmar se desmarcar, o aviso
+    "escolha um motivo" voltar e o botão apagar.
+
+    E é AJUSTE DE ESTADO DURANTE A RENDERIZAÇÃO, não um efeito: o efeito roda
+    depois da pintura, e com a redução de movimento ligada a folha chega
+    inteira no primeiro quadro, então haveria um quadro com o motivo da tarefa
+    anterior marcado. Ajustar aqui faz o React descartar esta renderização e
+    refazer com o estado limpo antes de qualquer pintura.
   */
-  useEffect(() => {
-    if (!aberto) {
+  const [abertoNaRenderizacaoAnterior, setAbertoNaRenderizacaoAnterior] = useState(aberto);
+  if (aberto !== abertoNaRenderizacaoAnterior) {
+    setAbertoNaRenderizacaoAnterior(aberto);
+    if (aberto) {
       setMotivo(null);
       setObservacao("");
     }
-  }, [aberto]);
+  }
 
   const precisaEscrever = motivo === "outro";
   const textoCurto = observacao.trim().length < MINIMO_DA_OBSERVACAO;
@@ -111,14 +125,21 @@ export function DialogoDeDevolucao({
           {MOTIVOS_DE_DEVOLUCAO.map((opcao) => {
             const marcado = motivo === opcao;
             return (
-              <Pressable
+              /*
+                `Tocavel`, e não `Pressable` cru: é o que traz o retorno do
+                dedo (`useRespostaAoToque`) com duração e curva de token, na
+                camada nativa e respeitando a redução de movimento. Enquanto
+                foi `Pressable` com estilo parado, o botão logo abaixo respondia
+                com transição e a opção logo acima, não.
+              */
+              <Tocavel
                 key={opcao}
                 testID={`motivo-${opcao}`}
                 onPress={() => { setMotivo(opcao); }}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: marcado }}
                 accessibilityLabel={ROTULO_MOTIVO_DE_DEVOLUCAO[opcao]}
-                style={{
+                estilo={{
                   minHeight: toque,
                   paddingHorizontal: espaco.e3,
                   flexDirection: "row",
@@ -147,7 +168,7 @@ export function DialogoDeDevolucao({
                     {ROTULO_MOTIVO_DE_DEVOLUCAO[opcao]}
                   </Txt>
                 </View>
-              </Pressable>
+              </Tocavel>
             );
           })}
 

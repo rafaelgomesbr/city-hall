@@ -1,6 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, View, useWindowDimensions } from "react-native";
 import { router, useFocusEffect } from "expo-router";
+/*
+  O contexto vem do ROTEADOR, e não de `@react-navigation/bottom-tabs`, pela
+  razão escrita em `ui/BarraDeAbas.tsx`: desde o SDK 56 o Expo Router traz a
+  própria cópia das abas e recusa compilar com a outra como dependência direta.
+*/
+import { BottomTabBarHeightContext } from "expo-router/build/react-navigation/bottom-tabs";
 import * as Location from "expo-location";
 import {
   quantoFalta, seloDaColeta, type ColetaLocal, type ItemFila,
@@ -10,8 +16,12 @@ import { ROTULO_SEVERIDADE, type Severidade } from "@dc360/shared";
 
 import { enderecoDaApi, type Pendencia } from "../../dados/api";
 import { listarColetas } from "../../dados/coletas";
+import { useSinal } from "../../dados/conectividade";
 import { obterFila } from "../../dados/fila";
 import { pendenciasGuardadas } from "../../dados/pendencias";
+import {
+  CaminhoIndisponivel, FRASE_DA_INDISPONIBILIDADE, fraseDoCaminho, verOCaminho, type Caminho,
+} from "../../dados/rota";
 import { useSessao } from "../../dados/sessao";
 import { distanciaEmTexto, rotaEsquematica, type Ponto } from "../../dados/mapa";
 import {
@@ -26,7 +36,7 @@ import {
   Botao, Cartao, Carregando, Dado, Tocavel, Txt, Vazio, useTema,
 } from "../../ui/componentes";
 import { Chip, SeloSeveridade } from "../../ui/Chip";
-import { MapaDoImovel, useMapaDoMunicipio, type PinoNoMapa } from "../../ui/mapa";
+import { MapaDoImovel, ladoDoMapa, useMapaDoMunicipio, type PinoNoMapa } from "../../ui/mapa";
 import { IconeLocalizacao, IconeTarefas } from "../../ui/icones";
 import {
   borda, espaco, icone as tamanhoDeIcone, raio, toque,
@@ -73,23 +83,29 @@ import {
  */
 
 /**
- * QUANTO DA TELA É MAPA, e por que isto não é `flex: 1`.
+ * A TELA INTEIRA ROLA, e o mapa é um quadrado.
  *
- * Três blocos dividem a altura: o mapa, o cartão da escolhida e a lista. Com
- * dois `flex: 1` (mapa e lista) e um cartão de altura natural no meio, num
- * aparelho pequeno os dois flexíveis dividem o que sobra do cartão e o mapa
- * fica com uma faixa de nada, que é o contrário do que esta tela existe para
- * fazer. Com fração da tela, o mapa tem presença garantida e quem se ajusta é a
- * lista, que ROLA: espremer o que rola custa um gesto, espremer o que não rola
- * custa a informação.
+ * O reclame de quem paga, na letra: "não tem scroll na tela, tá travada; a
+ * área que o mapa ocupa na tela também é pequena, eu imaginava pelo menos um
+ * quadrado perfeito". Até 15/09/2026 a tela era quatro faixas fixas (cabeçalho,
+ * mapa em 38% da altura com as legendas dentro, cartão, lista), e só a lista
+ * rolava: arrastar em cima de qualquer outra faixa não movia nada, e o mapa
+ * ficava com uns 260 pontos de altura para 400 de largura.
  *
- * O piso e o teto existem pelas duas pontas do parque de aparelhos: num
- * telefone pequeno a fração deixaria o mapa menor do que a legenda que ele
- * carrega, e num tablet ela empurraria o cartão para fora da tela.
+ * Agora é UMA `ScrollView`, com tudo dentro dela: cabeçalho, o mapa, as
+ * legendas embaixo dele, o cartão da escolhida e a lista. O arraste DENTRO do
+ * mapa move o mapa (o `MapView` nativo captura o gesto, e no Android ele pede
+ * ao pai para não interceptar); fora dele, rola a tela. O mapa mede a largura
+ * útil da tela por altura igual (`ladoDoMapa`), com teto em tablet, e as
+ * legendas não disputam mais altura com ele.
+ *
+ * O fim da rolagem reserva a altura do menu inferior: outra frente está
+ * tornando o menu flutuante, pairando sobre a tela, e sem a folga a última
+ * linha da lista ficaria escondida atrás dele para sempre. A altura vem do
+ * contexto que a barra publica (`BottomTabBarHeightContext`), lido com
+ * `useContext` e não com `useBottomTabBarHeight()`, porque este ESTOURA fora
+ * de uma aba e a tela precisa abrir igual em teste e onde não houver menu.
  */
-const FRACAO_DA_TELA_NO_MAPA = 0.38;
-const MAPA_MINIMO = 200;
-const MAPA_MAXIMO = 420;
 
 /** Só o que esta tela precisa saber de uma tarefa para desenhá-la. */
 type TarefaNoMapa = Pendencia;
@@ -184,11 +200,27 @@ function LinhaDaTarefa({ tarefa, escolhida, prazo, metros, selo, aoEscolher }: {
  * de uma segunda conta escrita aqui: duas contas para o mesmo fato divergem, e
  * a que diverge é a que manda o agente para o lado errado do morro.
  */
-function CartaoDaEscolhida({ tarefa, agente, prazo, selo }: {
+/**
+ * O que a tela sabe do caminho pedido, para UMA tarefa por vez.
+ *
+ * O caminho é da tarefa e não da tela: trocar de escolhida tira a linha e a
+ * frase, e o botão volta para a nova escolhida. Guardar por tarefa aqui seria
+ * duplicar o que `verOCaminho` já guarda no aparelho; a tela só lembra o que
+ * está mostrando.
+ */
+type EstadoDoCaminho =
+  | { ocorrenciaId: string; fase: "pedindo" }
+  | { ocorrenciaId: string; fase: "tracado"; caminho: Caminho }
+  | { ocorrenciaId: string; fase: "indisponivel"; frase: string };
+
+function CartaoDaEscolhida({ tarefa, agente, prazo, selo, caminho, aoVerOCaminho }: {
   tarefa: TarefaNoMapa;
   agente: Ponto | null;
   prazo: string;
   selo: string | null;
+  /** O estado do caminho DESTA tarefa, ou nada. */
+  caminho: EstadoDoCaminho | null;
+  aoVerOCaminho: (destino: Ponto) => void;
 }) {
   const ponto = pontoDaTarefa(tarefa);
   const rota = ponto ? rotaEsquematica(agente, ponto) : null;
@@ -200,6 +232,14 @@ function CartaoDaEscolhida({ tarefa, agente, prazo, selo }: {
       ? rota.frase
       : "Sem GPS: sem distância e sem rumo até este imóvel. O endereço e o ponto "
         + "de referência estão na vistoria.";
+
+  /*
+    O BOTÃO SÓ EXISTE quando há de onde e para onde traçar. Sem posição do
+    agente ou sem coordenada do imóvel, um botão que explicasse "não dá" seria
+    um botão a mais para o polegar errar; a frase de `ondeFica` já diz o que
+    falta.
+  */
+  const podePedirCaminho = Boolean(agente && ponto);
 
   return (
     <Cartao nivel="flutuante">
@@ -224,16 +264,41 @@ function CartaoDaEscolhida({ tarefa, agente, prazo, selo }: {
         <Txt nivel="apoio">{prazo}</Txt>
         {/*
           A frase de `rotaEsquematica` traz a distância E o rumo por extenso, e
-          é a única linha de medida do cartão. A versão em sigla e grau
-          ("1,1 km · rumo N (0°)") existe no desenho do plano, embaixo do mapa,
-          e repeti-la aqui seria dizer o mesmo número duas vezes numa tela em
-          que cada linha custa altura da lista.
+          é a linha de medida que funciona sem sinal e sem Google. O caminho
+          por ruas, quando pedido, entra ABAIXO dela e não no lugar dela: se o
+          Google errar, a reta é a segunda opinião que o agente tem na tela.
         */}
         <Txt variante="corpoP">{ondeFica}</Txt>
+        {caminho?.fase === "tracado" && (
+          <Txt variante="corpoP" negrito>{fraseDoCaminho(caminho.caminho)}</Txt>
+        )}
+        {caminho?.fase === "indisponivel" && (
+          <Txt nivel="apoio">{caminho.frase}</Txt>
+        )}
         {!!selo && (
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Chip texto={selo} simbolo="✓" tom="ok" />
           </View>
+        )}
+        {/*
+          "VER O CAMINHO" é `realce` e não `primario`: a ação principal do
+          cartão continua sendo abrir a vistoria, que é o trabalho. O caminho é
+          o ato importante que ajuda a chegar, um por cartão, e some quando já
+          foi traçado, porque tocar de novo não traria nada novo.
+
+          É um TOQUE de propósito, e não automático. Cada pedido manda a posição
+          do agente para fora do país (ver `docs/SUBPROCESSADORES.md` seção
+          2.2), e isso é uma decisão dele, uma por tarefa, nunca da tela.
+        */}
+        {podePedirCaminho && ponto && caminho?.fase !== "tracado" && (
+          <Botao
+            titulo="Ver o caminho"
+            tipo="realce"
+            testID="ver-o-caminho"
+            carregando={caminho?.fase === "pedindo"}
+            descricao={`Ver o caminho por ruas até o protocolo ${tarefa.protocolo}, com o tempo de carro`}
+            onPress={() => { aoVerOCaminho(ponto); }}
+          />
         )}
         <Botao
           titulo="Abrir a vistoria"
@@ -251,10 +316,16 @@ function CartaoDaEscolhida({ tarefa, agente, prazo, selo }: {
 
 export default function Mapa() {
   const tema = useTema();
-  const { height: alturaDaTela } = useWindowDimensions();
-  const alturaDoMapa = Math.min(
-    MAPA_MAXIMO, Math.max(MAPA_MINIMO, alturaDaTela * FRACAO_DA_TELA_NO_MAPA),
-  );
+  const { width: larguraDaTela } = useWindowDimensions();
+  const lado = ladoDoMapa(larguraDaTela);
+  /*
+    `?? 0` e não `useBottomTabBarHeight()`: aquele gancho ESTOURA fora de uma
+    aba ("Couldn't find the bottom tab bar height"), e esta tela precisa abrir
+    igual em teste e onde não houver menu. Zero é a folga certa quando não há
+    menu nenhum para cobrir a lista.
+  */
+  const alturaDoMenu = useContext(BottomTabBarHeightContext) ?? 0;
+  const { temSinal } = useSinal();
   const { obterToken, lerIdentidade } = useSessao();
 
   const [tarefas, setTarefas] = useState<TarefaNoMapa[] | null>(null);
@@ -263,6 +334,8 @@ export default function Mapa() {
   const [desistiuDeAbrir, setDesistiuDeAbrir] = useState(false);
   /** Qual tarefa o cartão está mostrando. Nulo quer dizer "a sugerida do dia". */
   const [escolhidaId, setEscolhidaId] = useState<string | null>(null);
+  /** O caminho pedido, de UMA tarefa. Ver `EstadoDoCaminho`. */
+  const [caminho, setCaminho] = useState<EstadoDoCaminho | null>(null);
 
   /*
     ONDE O AGENTE ESTÁ, e as duas coisas que esta tela NÃO faz, iguais às da
@@ -442,6 +515,44 @@ export default function Mapa() {
   const escolhida = oDia.ordenadas.find((t) => t.id === escolhidaId) ?? oDia.sugerida;
 
   /*
+    O CAMINHO É DA TAREFA: o que está na tela só vale para a escolhida. Trocar
+    de escolhida tira a linha e a frase, e o botão volta para a nova.
+  */
+  const caminhoDaEscolhida = caminho && escolhida && caminho.ocorrenciaId === escolhida.id
+    ? caminho
+    : null;
+
+  const pedirOCaminho = useCallback(async (destino: Ponto) => {
+    if (!escolhida || !ondeEstou) return;
+    const ocorrenciaId = escolhida.id;
+    /*
+      SEM SINAL, a frase sai na hora e nada é tentado. `useSinal` pode estar
+      atrasado em relação ao rádio, e por isso a tentativa também trata a
+      rejeição de rede; mas quando ele já sabe que não há sinal, gastar doze
+      segundos de espera para descobrir a mesma coisa é o que faz o agente
+      concluir que o botão não funciona.
+    */
+    if (!temSinal) {
+      setCaminho({ ocorrenciaId, fase: "indisponivel", frase: FRASE_DA_INDISPONIBILIDADE["sem-sinal"] });
+      return;
+    }
+    setCaminho({ ocorrenciaId, fase: "pedindo" });
+    try {
+      const token = await obterToken();
+      if (!token) throw new CaminhoIndisponivel("falhou");
+      const { caminho: tracado } = await verOCaminho({
+        ocorrenciaId, token, origem: ondeEstou, destino,
+      });
+      setCaminho({ ocorrenciaId, fase: "tracado", caminho: tracado });
+    } catch (erro) {
+      const frase = erro instanceof CaminhoIndisponivel
+        ? erro.message
+        : FRASE_DA_INDISPONIBILIDADE.falhou;
+      setCaminho({ ocorrenciaId, fase: "indisponivel", frase });
+    }
+  }, [escolhida, ondeEstou, temSinal, obterToken]);
+
+  /*
     OS PINOS, que são as tarefas da lista que TÊM ponto, na ordem da lista.
 
     `pontoDaTarefa` é `pontoQueSeMede` aplicado à ocorrência: coordenada nula,
@@ -503,8 +614,27 @@ export default function Mapa() {
   }
 
   return (
-    <View style={{ flex: 1 }} testID="tela-do-mapa">
-      <View style={{ paddingHorizontal: espaco.e4, paddingTop: espaco.e4, gap: espaco.e2 }}>
+    <ScrollView
+      testID="tela-do-mapa"
+      style={{ flex: 1 }}
+      /*
+        O fim da rolagem reserva a altura do menu inferior, mais o recuo da
+        tela. Ver o parágrafo "A TELA INTEIRA ROLA" no topo deste arquivo.
+      */
+      contentContainerStyle={{
+        paddingHorizontal: espaco.e4,
+        paddingTop: espaco.e4,
+        paddingBottom: alturaDoMenu + espaco.e4,
+        gap: espaco.e3,
+      }}
+      /*
+        Sem `keyboardShouldPersistTaps`, e sem `nestedScrollEnabled`: não há
+        campo de texto aqui, e o mapa não é uma rolagem aninhada. No Android o
+        `MapView` pede ao pai para não interceptar o toque no primeiro contato,
+        então o arraste dentro do mapa move o mapa e o de fora move a tela.
+      */
+    >
+      <View style={{ gap: espaco.e2 }}>
         {/*
           O NÚMERO É O MESMO DA TELA DE TAREFAS, e o rótulo também.
 
@@ -535,35 +665,30 @@ export default function Mapa() {
         )}
       </View>
 
-      <View
-        testID="area-do-mapa"
-        /*
-          A altura fixa é do MAPA. O estado vazio ocupa o que sobra, e não a
-          mesma faixa: um aviso de "nenhuma tarefa sua tem coordenada" preso
-          numa moldura do tamanho de um mapa fica com o texto espremido em cima
-          e um vão embaixo, e parece defeito de desenho em vez de resposta.
-        */
-        style={{
-          ...(pinos.length > 0 ? { height: alturaDoMapa } : { flex: 1 }),
-          paddingHorizontal: espaco.e4,
-          paddingTop: espaco.e3,
-        }}
-      >
+      <View testID="area-do-mapa">
         {pinos.length > 0 ? (
           <MapaDoImovel
             pinos={pinos}
             agente={ondeEstou}
             mapa={mapaDaTela}
             /*
-              A moldura ocupa o que sobra, e as legendas ficam FORA dela. Ver
-              `altura` em `MapaDoImovel`: a de modo não pode ser empurrada para
-              fora da tela por um mapa que cresceu, porque é ela que responde
-              para onde a coordenada das famílias está indo.
+              O QUADRADO: a largura útil por altura igual. As legendas vêm
+              embaixo, fora dele, desenhadas pela própria peça.
             */
-            altura="preencher"
+            altura={lado}
+            /*
+              A linha do caminho, só quando ele foi pedido e traçado, e só
+              para a escolhida. No plano esquemático a peça não a desenha.
+            */
+            caminho={caminhoDaEscolhida?.fase === "tracado" ? caminhoDaEscolhida.caminho.pontos : null}
           />
         ) : (
-          <View style={{ flex: 1, justifyContent: "center" }}>
+          /*
+            O estado vazio ocupa a mesma altura do quadrado, para a tela não
+            saltar quando a primeira tarefa com coordenada chegar, e centra o
+            aviso nela: um texto espremido no alto de um vão parece defeito.
+          */
+          <View style={{ minHeight: lado, justifyContent: "center" }}>
             <Vazio
               titulo={
                 naLista.length === 0
@@ -587,14 +712,14 @@ export default function Mapa() {
       </View>
 
       {escolhida && (
-        <View style={{ paddingHorizontal: espaco.e4, paddingTop: espaco.e3 }}>
-          <CartaoDaEscolhida
-            tarefa={escolhida}
-            agente={ondeEstou}
-            prazo={quantoFalta(escolhida.prazo_em, agora.getTime()).texto}
-            selo={seloDaColeta(lapides.get(escolhida.id) ?? null)}
-          />
-        </View>
+        <CartaoDaEscolhida
+          tarefa={escolhida}
+          agente={ondeEstou}
+          prazo={quantoFalta(escolhida.prazo_em, agora.getTime()).texto}
+          selo={seloDaColeta(lapides.get(escolhida.id) ?? null)}
+          caminho={caminhoDaEscolhida}
+          aoVerOCaminho={(destino) => { void pedirOCaminho(destino); }}
+        />
       )}
 
       {/*
@@ -605,12 +730,11 @@ export default function Mapa() {
         porque a tarefa sem coordenada não tem pino: sem a lista, ela
         desapareceria desta tela, que é exatamente o tipo de sumiço silencioso
         que este produto não pode ter.
+
+        Não rola sozinha: ela é parte da rolagem única da tela. Uma lista que
+        rolasse dentro da tela que rola é o defeito que o reclame descreveu.
       */}
-      <ScrollView
-        testID="lista-do-mapa"
-        style={{ flex: 1 }}
-        contentContainerStyle={{ padding: espaco.e4, gap: espaco.e3 }}
-      >
+      <View testID="lista-do-mapa" style={{ gap: espaco.e3 }}>
         {oDia.ordenadas.map((t) => (
           <LinhaDaTarefa
             key={t.id}
@@ -622,7 +746,7 @@ export default function Mapa() {
             aoEscolher={() => { setEscolhidaId(t.id); }}
           />
         ))}
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollView>
   );
 }

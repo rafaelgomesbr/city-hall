@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   baixarAvisos, marcarAvisosLidos,
   type AvisoDoCampo, type CursorDeAvisos, type RespostaDeAvisos,
@@ -364,6 +365,103 @@ export async function guardarAvisos(estado: AvisosGuardados): Promise<void> {
     que acabou de deixar de valer.
   */
   for (const ouvinte of ouvintes) ouvinte(estado);
+}
+
+/* ========================================================================
+   A contagem, para quem só precisa do número
+   ======================================================================== */
+
+/**
+ * O que o cabeçalho e a barra precisam saber do sino, e mais nada.
+ *
+ * Existe porque o dono pediu o sino no topo de toda tela E o mesmo número no
+ * avatar do menu. Dois desenhos lendo `AvisosGuardados` inteiro e cada um
+ * decidindo como escrever "500+" é como os dois passam a discordar: um escreve
+ * "500", o outro "500+", e o agente vê dois crachás com números diferentes
+ * para o mesmo fato. Aqui o número, o texto do crachá e a frase falada saem de
+ * um lugar só.
+ *
+ * `lida` separa "zero por ler" de "ainda não olhei o disco". A diferença
+ * importa para o balanço do sino (`ui/Sino.tsx`): a primeira leitura é a linha
+ * de base, e não uma chegada. Sem esta bandeira, abrir uma aba pela primeira
+ * vez com três avisos guardados faria o sino balançar como se os três tivessem
+ * acabado de chegar.
+ */
+export type ContagemDeAvisos = {
+  porLer: number;
+  /** A contagem bateu no teto do servidor: o número é um piso, não o total. */
+  truncado: boolean;
+  /** O disco já foi lido. Falso: o sino ainda não sabe. */
+  lida: boolean;
+};
+
+export function contagemDe(estado: AvisosGuardados | null): ContagemDeAvisos {
+  return {
+    porLer: estado?.naoLidos ?? 0,
+    truncado: estado?.naoLidosTruncado ?? false,
+    lida: estado !== null,
+  };
+}
+
+/**
+ * O texto do crachá. Nulo quando não há o que mostrar: crachá com "0" dentro é
+ * um crachá mentindo que há novidade.
+ *
+ * O "+" existe para o crachá não afirmar um total que ninguém contou, que é o
+ * mesmo cuidado que o sino do painel já tem.
+ */
+export function textoDoCracha(contagem: ContagemDeAvisos): string | null {
+  if (contagem.porLer <= 0) return null;
+  return `${contagem.porLer}${contagem.truncado ? "+" : ""}`;
+}
+
+/**
+ * A frase que o leitor de tela diz ao passar pelo sino.
+ *
+ * "Avisos" vem primeiro porque é o que o elemento É; o número vem depois
+ * porque é o estado dele. Quem ouve a tela não vê crachá nenhum, então a frase
+ * carrega o que o crachá desenha, inclusive o "mais de" do piso.
+ */
+export function fraseDoSino(contagem: ContagemDeAvisos): string {
+  if (contagem.porLer <= 0) return "Avisos, nenhum por ler";
+  return `Avisos, ${contagem.truncado ? "mais de " : ""}${contagem.porLer} por ler`;
+}
+
+/**
+ * A contagem do sino, lida do DISCO uma vez e depois só ouvida.
+ *
+ * Nunca da rede: quem fala com o servidor é a tela de avisos, na abertura.
+ * Este gancho é o que faz o crachá existir mesmo no morro, sem nenhuma
+ * chamada, e é o que impede o cabeçalho de virar o segundo lugar do
+ * aplicativo que tenta rede sozinho.
+ *
+ * A leitura inicial é o que faz o crachá existir já na primeira pintura, e a
+ * escuta é o que faz ele ZERAR quando o agente marca os avisos como lidos,
+ * sem depender de trocar de tela para o cabeçalho se redesenhar.
+ *
+ * A leitura que chega DEPOIS de um aviso do gravador é descartada. O disco do
+ * aparelho velho é lento, e a sincronização pode gravar entre o pedido de
+ * leitura e a resposta: a resposta, nesse caso, é uma fotografia do passado, e
+ * gravá-la no estado apagaria o presente que o ouvinte acabou de receber.
+ */
+export function useContagemDeAvisos(): ContagemDeAvisos {
+  const [estado, setEstado] = useState<AvisosGuardados | null>(null);
+
+  useEffect(() => {
+    let vivo = true;
+    let ouviuAntesDeLer = false;
+    void avisosGuardados().then((lido) => {
+      if (vivo && !ouviuAntesDeLer) setEstado(lido);
+    });
+    const desassinar = assinarAvisos((novo) => {
+      if (!vivo) return;
+      ouviuAntesDeLer = true;
+      setEstado(novo);
+    });
+    return () => { vivo = false; desassinar(); };
+  }, []);
+
+  return contagemDe(estado);
 }
 
 /**

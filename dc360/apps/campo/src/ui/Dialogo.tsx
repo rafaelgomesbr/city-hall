@@ -1,10 +1,11 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, View,
+  Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Botao, Txt, useTema } from "./componentes";
-import { elevacao, espaco, movimento, opacidade, raio, tinta } from "./tokens";
+import { easing, elevacao, espaco, movimento, opacidade, raio, tinta } from "./tokens";
 import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
 
 /**
@@ -57,6 +58,38 @@ import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
  * pergunta com uma resposta só, e a resposta única seria "apague a minha
  * vistoria".
  */
+
+/**
+ * A FAIXA DE VÉU QUE SOBRA ACIMA DA FOLHA quando ela bate no teto.
+ *
+ * Não é folga por folga. Uma folha que encostasse na área segura viraria, aos
+ * olhos de quem segura o aparelho, uma tela nova para a qual o aplicativo
+ * navegou, e o agente procuraria o botão de voltar que não existe. É a mesma
+ * razão pela qual a `FolhaArrastavel` nunca chega a 100% da altura: a faixa
+ * que sobra em cima é o que diz "isto é uma folha sobre a tela".
+ *
+ * Sai da escala de espaço, e não de um número solto, pela regra de sempre.
+ */
+export const RESPIRO_ACIMA_DA_FOLHA = espaco.e6;
+
+/**
+ * Até onde a folha pode crescer, em pontos.
+ *
+ * A conta, e a razão de ela existir: a folha crescia com o conteúdo e nada a
+ * prendia à área segura. Com seis motivos de devolução e dois botões, ela
+ * subia por cima do relógio do iPhone, e a captura de quem paga mostrou isso.
+ * O teto é a altura da janela menos o que o aparelho reserva no topo (relógio,
+ * câmera) menos o respiro. Passado o teto, o conteúdo rola por dentro e os
+ * botões continuam no rodapé da folha, ao alcance do polegar.
+ *
+ * Pura, e exportada, para a conta ser conferida como aritmética.
+ */
+export function tetoDaFolha({ alturaDaTela, margemDeCima }: {
+  alturaDaTela: number;
+  margemDeCima: number;
+}): number {
+  return alturaDaTela - margemDeCima - RESPIRO_ACIMA_DA_FOLHA;
+}
 
 export type AcaoDoDialogo = {
   /**
@@ -140,6 +173,8 @@ export function Dialogo({
 }: PropsDoDialogo) {
   const tema = useTema();
   const reduzir = useReducaoDeMovimento();
+  const margens = useSafeAreaInsets();
+  const { height: alturaDaTela } = useWindowDimensions();
 
   /*
     Um valor animado só, e não um por propriedade.
@@ -152,34 +187,94 @@ export function Dialogo({
   */
   const entrada = useRef(new Animated.Value(0)).current;
 
+  /*
+    A FOLHA CONTINUA MONTADA ENQUANTO SAI, e é por isso que `visible` não é
+    `aberto`.
+
+    Enquanto o `Modal` seguia `aberto` à risca, a folha sumia no quadro
+    seguinte ao toque: subia com transição e descia num corte seco, que é o
+    tipo de detalhe que faz um aplicativo parecer sem vida. Agora quem fecha o
+    `Modal` é o FIM da animação de saída. `montado` é o que o `Modal` obedece;
+    `aberto` é o que a tela pediu. Os dois divergem só durante a descida.
+
+    A referência existe para o efeito abaixo saber se há o que desfazer sem
+    entrar na lista de dependências: um diálogo que nasce fechado não tem
+    saída para animar, e animar uma saída de uma folha que nunca subiu seria
+    uma animação a mais em toda tela que monta um diálogo fechado, ou seja, em
+    todas.
+  */
+  const [montado, setMontado] = useState(aberto);
+  const montadoRef = useRef(aberto);
+  const fixarMontado = (valor: boolean) => {
+    montadoRef.current = valor;
+    setMontado(valor);
+  };
+
   useEffect(() => {
-    if (!aberto) {
-      // Volta ao zero fechado, senão a abertura seguinte já nasceria pronta e
-      // a folha apareceria estalada, sem subir.
-      entrada.setValue(0);
+    /*
+      Uma animação de cada vez. Se a folha é pedida de volta no meio da
+      descida, a descida para AQUI e avisa que não terminou; é essa bandeira
+      que impede a saída interrompida de fechar a folha que acabou de ser
+      pedida de novo.
+    */
+    entrada.stopAnimation();
+
+    if (aberto) {
+      fixarMontado(true);
+      if (reduzir) {
+        // Quem pediu para reduzir movimento não perde o diálogo: perde a
+        // subida. O conteúdo é o mesmo, e ele aparece inteiro de uma vez.
+        entrada.setValue(1);
+        return;
+      }
+      /*
+        Parte de onde estiver: zero numa abertura comum (a saída anterior
+        terminou em zero), ou do meio do caminho quando a folha foi pedida de
+        volta durante a descida. Zerar aqui faria a folha piscar para o fundo
+        antes de subir de novo.
+      */
+      Animated.timing(entrada, {
+        toValue: 1,
+        duration: movimento.mudancaDeEstado,
+        easing: Easing.bezier(...easing.entrada),
+        // Opacidade e deslocamento são o que a camada nativa anima sozinha.
+        // Sem isto, cada quadro atravessa a ponte e a folha sobe aos
+        // solavancos no aparelho de entrada que a prefeitura comprou.
+        useNativeDriver: true,
+      }).start();
       return;
     }
+
+    /* Nunca subiu, ou já desceu: não há o que desfazer. */
+    if (!montadoRef.current) return;
+
     if (reduzir) {
-      // Quem pediu para reduzir movimento não perde o diálogo: perde a subida.
-      // O conteúdo é o mesmo, e ele aparece inteiro de uma vez.
-      entrada.setValue(1);
+      entrada.setValue(0);
+      fixarMontado(false);
       return;
     }
-    entrada.setValue(0);
     Animated.timing(entrada, {
-      toValue: 1,
+      toValue: 0,
       duration: movimento.mudancaDeEstado,
-      easing: Easing.out(Easing.quad),
-      // Opacidade e deslocamento são o que a camada nativa anima sozinha. Sem
-      // isto, cada quadro atravessa a ponte e a folha sobe aos solavancos no
-      // aparelho de entrada que a prefeitura comprou.
+      /*
+        A curva de SAÍDA, e não a de entrada ao contrário: o que deixa a tela
+        sai andando, e o olho não precisa acompanhar o fim.
+      */
+      easing: Easing.bezier(...easing.saida),
       useNativeDriver: true,
-    }).start();
+    }).start(({ finished }) => {
+      /*
+        Só a descida que chegou ao fim desmonta. A interrompida (a folha foi
+        pedida de volta, ou a chave de redução ligou no meio) já foi tratada
+        por quem a interrompeu.
+      */
+      if (finished) fixarMontado(false);
+    });
   }, [aberto, reduzir, entrada]);
 
   return (
     <Modal
-      visible={aberto}
+      visible={montado}
       transparent
       // A animação é nossa, e ela respeita a redução de movimento. A do
       // sistema não respeitaria, e as duas juntas dariam movimento em dobro.
@@ -190,7 +285,17 @@ export function Dialogo({
       */
       onRequestClose={aoFechar}
     >
-      <View style={{ flex: 1, justifyContent: "flex-end" }}>
+      <View
+        style={{ flex: 1, justifyContent: "flex-end" }}
+        /*
+          Enquanto a folha desce, nada nela responde ao dedo. O agente tocou em
+          "Manter na fila" e o dedo desceu de novo, na folha que ainda está
+          desaparecendo: se ela continuasse viva, o segundo toque cairia em
+          "Descartar esta coleta", que estava logo acima. O "none" alcança os
+          descendentes todos, o véu incluído.
+        */
+        pointerEvents={aberto ? "auto" : "none"}
+      >
         <Animated.View
           style={[
             StyleSheet.absoluteFill,
@@ -257,6 +362,13 @@ export function Dialogo({
               (ver o motivo 4 no alto deste arquivo). Ela sobe.
             */
             ...elevacao(tema).folha,
+            /*
+              O TETO. Sem ele, a folha crescia com o conteúdo e subia por cima
+              do relógio do aparelho (ver `tetoDaFolha`). Com ele, a área de
+              perguntas cede (`flexShrink` no `ScrollView` abaixo), o conteúdo
+              rola por dentro, e os botões continuam no rodapé da folha.
+            */
+            maxHeight: tetoDaFolha({ alturaDaTela, margemDeCima: margens.top }),
             borderTopLeftRadius: raio.cartao,
             borderTopRightRadius: raio.cartao,
             padding: espaco.e5,

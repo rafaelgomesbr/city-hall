@@ -392,6 +392,31 @@ const esquema = z.object({
    * implantação de pé por uma questão de estilo.
    */
   MAPS_KEY: vazioEhAusente(z.string().min(1).optional()),
+
+  /**
+   * A chave de SERVIDOR da Routes API do Google, para o caminho por ruas que
+   * o agente pede no aplicativo de campo.
+   *
+   * É uma chave DIFERENTE de `MAPS_KEY`, e a diferença é de restrição. A
+   * chave do painel é restrita a sites; a do aplicativo, assada no binário, é
+   * restrita a Apps iOS ou Android; nenhuma das duas serve para uma chamada
+   * HTTP feita deste processo, porque o Google recusa a chave usada fora da
+   * restrição dela. A chave que serve aqui é restrita por ENDEREÇO IP do
+   * servidor (ou por API, no mínimo), e é por isso que ela NUNCA sai daqui:
+   * ao contrário de `MAPS_KEY`, esta é segredo de verdade, e quem a tiver gasta
+   * a conta do município de qualquer lugar. Ela vai no cabeçalho do pedido ao
+   * Google e em lugar nenhum mais; `GET /configuracao` não a devolve, e o
+   * aplicativo pede o caminho a `POST /rota`, nesta API.
+   *
+   * Vazia é o padrão e é escolha legítima: o botão "Ver o caminho" do
+   * aplicativo responde que o município não ligou o caminho, e a distância e o
+   * rumo em linha reta continuam. É a quarta saída de coordenada descrita em
+   * `docs/SUBPROCESSADORES.md` seção 2.2, e ela só acontece quando o agente
+   * toca no botão. Produção NÃO exige esta variável, de propósito: município
+   * que não quer pagar a Routes API, ou que não quer a posição do agente
+   * saindo do país nem a pedido, simplesmente não a preenche.
+   */
+  ROUTES_KEY: vazioEhAusente(z.string().min(1).optional()),
 });
 
 export type Config = z.infer<typeof esquema> & {

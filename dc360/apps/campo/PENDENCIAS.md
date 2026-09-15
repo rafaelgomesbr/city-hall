@@ -318,3 +318,36 @@ O sino sincroniza quando a aba Perfil é aberta, e não em segundo plano: o crac
 na barra de abas mostra o que o último `sincronizarAvisos` trouxe. É escolha e
 não descuido (rede em segundo plano gasta bateria e dado do agente no morro),
 mas quem olhar o crachá esperando tempo real vai se enganar.
+
+## 13. O menu de vidro: `expo-blur` entrou, o vidro só existe no iOS, e nada foi visto em aparelho
+
+**Frente do menu, 15/09/2026.** O menu inferior voltou a flutuar (`src/ui/BarraDeAbas.tsx`),
+agora como pílula de vidro, e junto com ele entrou a correção da aba que ficava
+escura (a causa e a regra estão no cabeçalho de `src/app/(agente)/_layout.tsx`).
+Três coisas ficam para o próximo turno saber antes de mexer:
+
+- **`expo-blur` é MÓDULO NATIVO**, na mesma situação do `expo-haptics` (item 8):
+  o binário que está no iPhone não o contém. Antes da próxima instalação,
+  `npx expo prebuild` e `pod install`, e o portão de `entitlements` DEPOIS do
+  prebuild. Sem isso o `BlurView` não é ligado e a pílula aparece sem desfoque.
+- **O vidro só existe no iOS.** No Android o `expo-blur` só desfoca de verdade
+  com `blurMethod` de "dimezis" mais um `BlurTargetView` envolvendo o que está
+  por BAIXO do menu, e o navegador não expõe esse ponto (a barra é irmã das
+  cenas, dentro dele). Sem o alvo, o que ele desenha é tinta translúcida sem
+  desfoque, ou seja, texto da lista lido pela metade atrás do texto do menu.
+  Então no Android a pílula é a reserva opaca de `elevacao(tema).flutuante`,
+  com a mesma forma, a mesma sombra e o mesmo indicador (`VIDRO_DISPONIVEL`,
+  em `BarraDeAbas.tsx`). Vidro no Android é trabalho declarado, não feito.
+- **A sombra da pílula no iOS é calculada por pixel**, porque o fundo dela é
+  transparente para o desfoque enxergar a lista (o `RCTViewComponentView` só
+  usa o contorno quando o fundo é opaco). É uma pílula só e ela não muda de
+  tamanho; se algum dia aparecer travando, o preço está aqui nomeado.
+
+E o que as telas ainda precisam ligar: **`useRecuoDoMenu()`** no
+`contentContainerStyle.paddingBottom` de toda tela rolável, porque a pílula
+paira sobre a cena e ninguém mais reserva o espaço dela. Enquanto uma tela não
+chamar, o último item dela morre atrás do vidro.
+
+Nada disto foi visto em aparelho: a pílula, o indicador deslizando, o anel do
+Perfil e o cabeçalho mais alto para o sino foram provados por teste e por
+portão, e a reclamação de origem era visual.

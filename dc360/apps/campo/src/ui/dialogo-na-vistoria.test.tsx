@@ -23,7 +23,7 @@
  * dentro de `src/app` em rota, e nada aqui está dentro de `src/app`.
  */
 
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { CHECKLIST_OBRIGATORIO } from "@dc360/shared";
 import type { ColetaLocal } from "@dc360/campo";
 import type { Pendencia } from "../dados/api";
@@ -251,7 +251,9 @@ describe("a segunda vistoria do mesmo protocolo", () => {
     await act(async () => { fireEvent.press(screen.getByTestId("dialogo-recusa")); });
 
     expect(mockArquivarColeta).not.toHaveBeenCalled();
-    expect(screen.queryByTestId("dialogo")).toBeNull();
+    /* A folha DESCE antes de sair (ver `Dialogo`): o que se cobra é que ela
+       vá embora, e não que suma no mesmo quadro do toque. */
+    await waitFor(() => { expect(screen.queryByTestId("dialogo")).toBeNull(); });
     expect(screen.queryByText("Checklist técnico")).toBeNull();
   });
 

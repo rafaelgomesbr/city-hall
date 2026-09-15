@@ -18,8 +18,9 @@
  *    sem nunca ter respondido a pergunta.
  */
 
-import { AccessibilityInfo, Animated, StyleSheet } from "react-native";
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { AccessibilityInfo, Animated, Easing, StyleSheet } from "react-native";
+import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
+import { MOTIVOS_DE_DEVOLUCAO } from "@dc360/shared";
 
 let mockEsquema: "light" | "dark" = "light";
 jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
@@ -27,33 +28,77 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
   default: () => mockEsquema,
 }));
 
+/*
+  A ÁREA SEGURA E A JANELA são do teste, porque o teto da folha é uma conta
+  sobre as duas. O aparelho de referência do defeito é um iPhone com recorte no
+  topo (47 pontos de relógio e câmera); o de tela baixa é um aparelho de 568
+  pontos de altura, que é o menor em que este aplicativo ainda roda.
+*/
+let mockMargens = { top: 0, bottom: 0, left: 0, right: 0 };
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => mockMargens,
+  SafeAreaProvider: ({ children }: { children: unknown }) => children,
+}));
+let mockJanela = { width: 390, height: 844, scale: 3, fontScale: 1 };
+jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
+  __esModule: true,
+  default: () => mockJanela,
+}));
+
 import { ProvedorDeTema } from "./componentes";
-import { Dialogo } from "./Dialogo";
-import { elevacao, fonteMinimaDeInteracao, movimento, temaClaro, temaEscuro, toque } from "./tokens";
+import { Dialogo, RESPIRO_ACIMA_DA_FOLHA, tetoDaFolha } from "./Dialogo";
+import { DialogoDeDevolucao } from "./DialogoDeDevolucao";
+import {
+  easing, elevacao, espaco, fonteMinimaDeInteracao, movimento, temaClaro, temaEscuro, toque,
+} from "./tokens";
 
 /*
   As animações são espionadas em vez de o valor animado ser lido. O que se quer
-  provar é "animou" ou "não animou", e `Animated.timing` é a única forma de
-  movimento que este componente usa.
+  provar é "animou" ou "não animou", com que curva e para onde, e
+  `Animated.timing` é a única forma de movimento que este componente usa.
+
+  `segurarOFim` existe para o caso da saída: a folha precisa continuar na tela
+  ENQUANTO desaparece, e só dá para provar isso se a animação não terminar
+  sozinha no mesmo instante em que começa.
 */
-let animacoes: Array<{ duracao: number | undefined }>;
+type Cronometrada = {
+  duracao: number | undefined;
+  destino: number | undefined;
+  curva: ((t: number) => number) | undefined;
+  nativa: boolean | undefined;
+};
+let animacoes: Cronometrada[];
 let redutorLigado: boolean;
+let segurarOFim: boolean;
+let terminar: ((r: { finished: boolean }) => void) | null;
 
 const agir = jest.fn();
 
 beforeEach(() => {
   animacoes = [];
   redutorLigado = false;
+  segurarOFim = false;
+  terminar = null;
   mockEsquema = "light";
+  mockMargens = { top: 0, bottom: 0, left: 0, right: 0 };
+  mockJanela = { width: 390, height: 844, scale: 3, fontScale: 1 };
   agir.mockClear();
   jest.spyOn(AccessibilityInfo, "isReduceMotionEnabled")
     .mockImplementation(() => Promise.resolve(redutorLigado));
   jest.spyOn(AccessibilityInfo, "addEventListener")
     .mockReturnValue({ remove: () => undefined } as never);
   jest.spyOn(Animated, "timing").mockImplementation((_valor, config) => {
-    animacoes.push({ duracao: config.duration });
+    animacoes.push({
+      duracao: config.duration,
+      destino: typeof config.toValue === "number" ? config.toValue : undefined,
+      curva: config.easing,
+      nativa: config.useNativeDriver,
+    });
     return {
-      start: (fim?: (r: { finished: boolean }) => void) => fim?.({ finished: true }),
+      start: (fim?: (r: { finished: boolean }) => void) => {
+        if (segurarOFim) { terminar = fim ?? null; return; }
+        fim?.({ finished: true });
+      },
       stop: () => undefined, reset: () => undefined,
       _startNativeLoop: () => undefined, _isUsingNativeDriver: () => true,
     } as never;
@@ -340,5 +385,266 @@ describe("redução de movimento", () => {
     expect(animacoes).toHaveLength(0);
     expect(screen.getByText("Descartar esta coleta?")).toBeTruthy();
     expect(screen.getByTestId("dialogo-acao")).toBeTruthy();
+  });
+});
+
+/**
+ * Duas curvas são a mesma curva se devolvem o mesmo valor ao longo do caminho.
+ *
+ * `Easing.bezier` devolve uma função nova a cada chamada, então comparar por
+ * identidade não prova nada. Amostrar o meio do caminho prova: a curva de
+ * entrada (0,2, 0, 0, 1) e a de saída (0, 0, 0,2, 1) divergem em qualquer
+ * ponto entre zero e um, e as duas divergem do `Easing.out(Easing.quad)` que
+ * morava escrito dentro desta peça.
+ */
+function mesmaCurva(curva: ((t: number) => number) | undefined, pontos: readonly number[]): boolean {
+  if (typeof curva !== "function") return false;
+  const [x1, y1, x2, y2] = pontos as [number, number, number, number];
+  const esperada = Easing.bezier(x1, y1, x2, y2);
+  return [0.2, 0.5, 0.8].every((t) => Math.abs(curva(t) - esperada(t)) < 0.001);
+}
+
+describe("a folha respeita o relógio do aparelho", () => {
+  /*
+    O defeito, visto numa captura de quem paga: a pergunta "Devolver esta
+    tarefa?" com seis motivos e dois botões subia POR CIMA do relógio do
+    iPhone. A folha crescia com o conteúdo e nada a prendia à área segura.
+
+    O teto é uma conta, e a conta mora numa função pura para poder ser
+    conferida como aritmética: a altura da tela, menos a área segura de cima,
+    menos um respiro. O respiro não é folga por folga: é a faixa de véu que
+    sobra acima da folha e que diz que aquilo continua sendo uma folha sobre a
+    tela, e não uma tela nova.
+  */
+  it("o teto é a altura da tela menos a área segura de cima menos o respiro", () => {
+    expect(tetoDaFolha({ alturaDaTela: 844, margemDeCima: 47 }))
+      .toBe(844 - 47 - RESPIRO_ACIMA_DA_FOLHA);
+    expect(tetoDaFolha({ alturaDaTela: 568, margemDeCima: 20 }))
+      .toBe(568 - 20 - RESPIRO_ACIMA_DA_FOLHA);
+  });
+
+  it("o respiro vem da escala de espaço, e não de um número solto", () => {
+    expect(Object.values(espaco)).toContain(RESPIRO_ACIMA_DA_FOLHA);
+  });
+
+  it("a folha nasce com o teto amarrado à área segura do aparelho", async () => {
+    mockJanela = { width: 390, height: 844, scale: 3, fontScale: 1 };
+    mockMargens = { top: 47, bottom: 34, left: 0, right: 0 };
+    await montarEAbrir();
+
+    const estilo = StyleSheet.flatten(screen.getByTestId("dialogo").props.style);
+    expect(estilo.maxHeight).toBe(844 - 47 - RESPIRO_ACIMA_DA_FOLHA);
+  });
+
+  it("seis motivos numa tela baixa: o conteúdo rola por dentro e os botões ficam no rodapé", async () => {
+    /*
+      O aparelho de 568 pontos com 20 de barra de estado. O piso do que a folha
+      desenha, contando SÓ o que vem de token (recuos da folha, os vãos entre
+      as quatro partes, seis motivos de 52 pontos com os vãos entre eles, e os
+      dois botões de 52), já passa do teto antes de contar uma linha de texto:
+      este é um caso de transbordamento de verdade, e não um que caberia de
+      qualquer jeito.
+    */
+    mockJanela = { width: 320, height: 568, scale: 2, fontScale: 1 };
+    mockMargens = { top: 20, bottom: 0, left: 0, right: 0 };
+    const teto = tetoDaFolha({ alturaDaTela: 568, margemDeCima: 20 });
+    const motivos = MOTIVOS_DE_DEVOLUCAO.length;
+    const pisoDaFolha = espaco.e5 + espaco.e7 + 3 * espaco.e4
+      + motivos * toque + (motivos - 1) * espaco.e2
+      + 2 * toque + espaco.e3;
+    expect(pisoDaFolha).toBeGreaterThan(teto);
+
+    const devolucao = (aberto: boolean) => (
+      <ProvedorDeTema>
+        <DialogoDeDevolucao
+          aberto={aberto}
+          protocolo="000471/2026"
+          endereco="Servidão do Morro, 15"
+          aoConfirmar={agir}
+          aoFechar={fechar}
+        />
+      </ProvedorDeTema>
+    );
+    let tela!: Awaited<ReturnType<typeof render>>;
+    await act(async () => { tela = await render(devolucao(false)); });
+    await act(async () => { await tela.rerender(devolucao(true)); });
+
+    const folha = screen.getByTestId("dialogo-devolucao");
+    expect(StyleSheet.flatten(folha.props.style).maxHeight).toBe(teto);
+
+    /* O que transborda mora dentro da área que rola, e ela é a que cede. */
+    const conteudo = screen.getByTestId("dialogo-conteudo");
+    expect(StyleSheet.flatten(conteudo.props.style).flexShrink).toBe(1);
+    expect(within(conteudo).getAllByRole("radio")).toHaveLength(MOTIVOS_DE_DEVOLUCAO.length);
+
+    /* Os botões ficam FORA da área que rola, como último filho da folha: é o
+       que os mantém no rodapé, ao alcance do polegar, com a lista rolando
+       acima deles. */
+    expect(within(conteudo).queryByTestId("dialogo-acao")).toBeNull();
+    expect(within(conteudo).queryByTestId("dialogo-recusa")).toBeNull();
+    const ultimoFilho = folha.children[folha.children.length - 1];
+    expect(typeof ultimoFilho).not.toBe("string");
+    expect(within(ultimoFilho as ReturnType<typeof screen.getByTestId>).getByTestId("dialogo-acao"))
+      .toBeTruthy();
+  });
+});
+
+describe("cada motivo da devolução responde ao dedo", () => {
+  /*
+    Os seis motivos eram `Pressable` cru com estilo parado: o dedo encostava e
+    nada acontecia até o motivo ficar marcado. O `Botao` logo abaixo respondia
+    com transição, e a opção logo acima, não. É a diferença que ninguém relata
+    e todo mundo sente, e o vocabulário para ela já existe: `useRespostaAoToque`,
+    pelo `Tocavel`.
+  */
+  it("encostar num motivo pede a resposta ao toque, curta e na camada nativa", async () => {
+    const devolucao = (aberto: boolean) => (
+      <ProvedorDeTema>
+        <DialogoDeDevolucao
+          aberto={aberto}
+          protocolo="000471/2026"
+          endereco="Servidão do Morro, 15"
+          aoConfirmar={agir}
+          aoFechar={fechar}
+        />
+      </ProvedorDeTema>
+    );
+    let tela!: Awaited<ReturnType<typeof render>>;
+    await act(async () => { tela = await render(devolucao(false)); });
+    await act(async () => { await tela.rerender(devolucao(true)); });
+    animacoes = [];
+
+    const primeiro = MOTIVOS_DE_DEVOLUCAO[0];
+    await act(async () => { fireEvent(screen.getByTestId(`motivo-${primeiro}`), "pressIn"); });
+
+    const resposta = animacoes.find((a) => a.duracao === movimento.respostaAoToque);
+    expect(resposta).toBeDefined();
+    expect(resposta?.nativa).toBe(true);
+  });
+});
+
+describe("o que a devolução lembra enquanto a folha desce", () => {
+  const devolucao = (aberto: boolean) => (
+    <ProvedorDeTema>
+      <DialogoDeDevolucao
+        aberto={aberto}
+        protocolo="000471/2026"
+        endereco="Servidão do Morro, 15"
+        aoConfirmar={agir}
+        aoFechar={fechar}
+      />
+    </ProvedorDeTema>
+  );
+  const primeiro = MOTIVOS_DE_DEVOLUCAO[0];
+  const marcado = () => screen.getByTestId(`motivo-${primeiro}`).props.accessibilityState?.checked;
+
+  /*
+    A folha continua na tela por um instante depois de fechada (ver a saída em
+    `Dialogo`). Se o diálogo esquecesse o motivo no instante em que `aberto`
+    vira falso, o agente veria, enquanto ela desce, o motivo que acabou de
+    confirmar se DESMARCAR, o aviso "escolha um motivo" voltar e o botão
+    apagar: a folha diria "não respondido" sobre uma resposta que já foi.
+  */
+  it("o motivo confirmado continua marcado enquanto a folha desce", async () => {
+    let tela!: Awaited<ReturnType<typeof render>>;
+    await act(async () => { tela = await render(devolucao(false)); });
+    await act(async () => { await tela.rerender(devolucao(true)); });
+    await act(async () => { fireEvent.press(screen.getByTestId(`motivo-${primeiro}`)); });
+    expect(marcado()).toBe(true);
+
+    segurarOFim = true;
+    await act(async () => { await tela.rerender(devolucao(false)); });
+
+    expect(marcado()).toBe(true);
+    expect(screen.queryByText(/Escolha um motivo/)).toBeNull();
+  });
+
+  it("a abertura seguinte nasce em branco, sem o motivo da tarefa anterior", async () => {
+    let tela!: Awaited<ReturnType<typeof render>>;
+    await act(async () => { tela = await render(devolucao(false)); });
+    await act(async () => { await tela.rerender(devolucao(true)); });
+    await act(async () => { fireEvent.press(screen.getByTestId(`motivo-${primeiro}`)); });
+
+    await act(async () => { await tela.rerender(devolucao(false)); });
+    await act(async () => { await tela.rerender(devolucao(true)); });
+
+    expect(marcado()).toBe(false);
+    expect(screen.getByText(/Escolha um motivo/)).toBeTruthy();
+  });
+});
+
+describe("a folha entra e sai com as curvas do produto", () => {
+  it("entra com a curva de entrada, na camada nativa", async () => {
+    await montarEAbrir();
+    expect(animacoes).toHaveLength(1);
+    expect(animacoes[0]?.destino).toBe(1);
+    expect(animacoes[0]?.nativa).toBe(true);
+    expect(mesmaCurva(animacoes[0]?.curva, easing.entrada)).toBe(true);
+    expect(mesmaCurva(animacoes[0]?.curva, easing.saida)).toBe(false);
+  });
+
+  it("ao fechar, sai com a curva de saída, e só deixa a tela quando terminou", async () => {
+    /*
+      A folha que some no quadro seguinte é o corte seco que faz um aplicativo
+      parecer sem vida. Ela desce e apaga, e enquanto desce continua na tela.
+    */
+    const tela = await montarEAbrir();
+    animacoes = [];
+    segurarOFim = true;
+
+    await act(async () => { await tela.rerender(dialogo(false, "destrutiva")); });
+
+    expect(animacoes).toHaveLength(1);
+    expect(animacoes[0]?.destino).toBe(0);
+    expect(animacoes[0]?.duracao).toBe(movimento.mudancaDeEstado);
+    expect(animacoes[0]?.nativa).toBe(true);
+    expect(mesmaCurva(animacoes[0]?.curva, easing.saida)).toBe(true);
+    expect(mesmaCurva(animacoes[0]?.curva, easing.entrada)).toBe(false);
+    expect(screen.getByTestId("dialogo")).toBeTruthy();
+
+    await act(async () => { terminar?.({ finished: true }); });
+    expect(screen.queryByTestId("dialogo")).toBeNull();
+  });
+
+  it("enquanto sai, a folha não responde ao dedo: o toque atrasado não age", async () => {
+    /*
+      O agente tocou em "Manter na fila" e o dedo desceu de novo, na folha que
+      ainda está desaparecendo. Se ela continuasse respondendo, o segundo
+      toque cairia em "Descartar esta coleta", que estava logo acima.
+    */
+    const tela = await montarEAbrir();
+    segurarOFim = true;
+    await act(async () => { await tela.rerender(dialogo(false, "destrutiva")); });
+
+    await act(async () => { fireEvent.press(screen.getByTestId("dialogo-acao")); });
+    expect(agir).not.toHaveBeenCalled();
+  });
+
+  it("com redução de movimento, fechar tira a folha na hora, sem animar", async () => {
+    redutorLigado = true;
+    const tela = await montarEAbrir();
+    animacoes = [];
+
+    await act(async () => { await tela.rerender(dialogo(false, "destrutiva")); });
+
+    expect(animacoes).toHaveLength(0);
+    expect(screen.queryByTestId("dialogo")).toBeNull();
+  });
+
+  it("aberta de novo no meio da saída, a folha volta a subir em vez de sumir", async () => {
+    const tela = await montarEAbrir();
+    segurarOFim = true;
+    await act(async () => { await tela.rerender(dialogo(false, "destrutiva")); });
+    const fimDaSaida = terminar;
+    segurarOFim = false;
+    animacoes = [];
+
+    await act(async () => { await tela.rerender(dialogo(true, "destrutiva")); });
+    /* A saída interrompida avisa que NÃO terminou, e isso não pode fechar a
+       folha que acabou de ser pedida de volta. */
+    await act(async () => { fimDaSaida?.({ finished: false }); });
+
+    expect(animacoes.at(-1)?.destino).toBe(1);
+    expect(screen.getByTestId("dialogo")).toBeTruthy();
   });
 });

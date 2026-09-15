@@ -271,10 +271,15 @@ export function OrgaosParaAcionar({
           fontSize: fonte.corpo,
         }}
       />
+      {/*
+        Realce: adicionar o órgão é o que faz o item obrigatório do checklist
+        andar, e é a única saída no aparelho que nunca sincronizou o catálogo.
+        Um botão que mal se via ali era um item impossível de cumprir.
+      */}
       <Botao
         testID="orgao-outro-adicionar"
         titulo="Adicionar este órgão"
-        tipo="secundario"
+        tipo="realce"
         desabilitado={digitado.trim().length < MINIMO_DO_NOME}
         onPress={adicionarDigitado}
       />

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
-import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 
 import type { Ponto } from "../../dados/mapa";
 import { PRAZO_DO_MAPA_MS } from "../../dados/mapa";
@@ -47,7 +47,7 @@ import type { EstadoDoMapa } from "./useMapaDoMunicipio";
  *
  * A armadilha, e ela é silenciosa: no iOS, `PROVIDER_GOOGLE` só faz efeito se
  * o pod do Google estiver dentro do binário, e o plugin só o acrescenta quando
- * `DC360_MAPS_CHAVE` existe no momento do `prebuild`. Sem ela, o
+ * `DC360_MAPS_CHAVE_IOS` existe no momento do `prebuild`. Sem ela, o
  * `PROVIDER_GOOGLE` é ignorado e o Apple Maps desenha no lugar, com o nosso
  * estilo jogado fora e sem erro nenhum. É por isso que `decidirModoDoMapa`
  * recusa o modo Google quando o binário não tem chave, em vez de tentar: uma
@@ -82,6 +82,19 @@ type PropsComuns = {
    * fora da tela por um mapa que cresceu.
    */
   altura?: number | "preencher";
+  /**
+   * O caminho por ruas até a tarefa escolhida, quando o agente PEDIU.
+   *
+   * Uma lista de pontos, já decodificada por `src/dados/rota.ts`, ou nada. É
+   * desenhado como linha na cor de destaque por cima dos ladrilhos, e só no
+   * mapa do Google: no plano esquemático a rota não existe, porque o plano é o
+   * mapa de quem está sem sinal, e sem sinal ninguém pede caminho. A distância
+   * e o rumo em linha reta continuam na frase do cartão nos dois modos.
+   *
+   * Nunca é buscado por esta peça. Ela desenha o que recebe, e quem decide se
+   * há algo a receber é o botão "Ver o caminho" da tela, um toque por vez.
+   */
+  caminho?: readonly Ponto[] | null;
   /**
    * Quantos pontos da BORDA DE BAIXO estão cobertos por outra coisa.
    *
@@ -150,22 +163,48 @@ const FOLGA = 2.2;
  * Ver `criticidade.ts` para o argumento inteiro de por que o pino leva
  * gravidade: cor, forma e a legenda que esta mesma peça desenha logo abaixo.
  *
- * `tracksViewChanges` é a parte que não é estética. Marcador com filho próprio
- * é redesenhado em bitmap a cada quadro enquanto essa propriedade for
- * verdadeira, e com dez ou vinte pinos isso derruba a taxa de quadros justamente
- * no aparelho barato que este produto precisa atender. Ele fica verdadeiro pelo
- * tempo de uma mudança de estado (o suficiente para o desenho ser capturado, e
- * para o anel do escolhido aparecer quando ele muda) e desliga sozinho.
+ * ## `tracksViewChanges`, e o pino que não aparecia
+ *
+ * Marcador com filho próprio é redesenhado em bitmap a cada quadro enquanto
+ * essa propriedade for verdadeira, e com dez ou vinte pinos isso derruba a
+ * taxa de quadros justamente no aparelho barato que este produto precisa
+ * atender. Por isso ela precisa DESLIGAR. A pergunta é quando.
+ *
+ * A versão anterior desligava 260 ms depois de montar (`movimento.mudancaDeEstado`),
+ * e isso produziu a captura de quem paga: a legenda dizia "Crítica" e o mapa
+ * estava vazio. `tracksViewChanges={false}` congela o marcador no bitmap do
+ * que estiver desenhado NAQUELE instante, e o desenho do pino é SVG
+ * (`react-native-svg`), que no iOS pinta de forma assíncrona, num quadro que
+ * não é o do React. Se o SVG ainda não tinha pintado quando o relógio bateu,
+ * o bitmap capturado era vazio, e ficava vazio até `severidade` ou
+ * `escolhido` mudarem, o que numa lista de uma tarefa nunca acontece. Os 260
+ * ms não bastavam porque eles contavam desde a MONTAGEM DO REACT, e o mapa do
+ * Google, os ladrilhos e o SVG do pino pintam depois disso, em ordem que o
+ * JavaScript não vê.
+ *
+ * O que decide agora é um sinal que o SDK dá: `onMapLoaded`, "quando o mapa
+ * terminou de desenhar todos os ladrilhos". Só a partir dele a peça começa a
+ * contar a transição, e desliga a captura depois dela. Uma mudança de estado
+ * inteira depois de o mapa inteiro estar pintado é folga de sobra para o SVG
+ * de um pino. E toda mudança de `severidade` ou `escolhido` religa a captura
+ * (o anel do escolhido precisa aparecer) e volta a contar.
  */
-function MarcadorDeCriticidade({ pino }: { pino: PinoNoMapa }) {
+function MarcadorDeCriticidade({ pino, mapaDesenhou }: { pino: PinoNoMapa; mapaDesenhou: boolean }) {
   const tema = useTema();
   const [capturando, setCapturando] = useState(true);
 
   useEffect(() => {
     setCapturando(true);
+    /*
+      Enquanto o mapa não disse que desenhou, não há relógio nenhum: o pino
+      continua sendo capturado a cada quadro, porque ainda não existe um
+      quadro em que se possa confiar. É o custo de alguns milissegundos de
+      redesenho durante a abertura, contra um mapa vazio para o resto do dia.
+    */
+    if (!mapaDesenhou) return;
     const relogio = setTimeout(() => { setCapturando(false); }, movimento.mudancaDeEstado);
     return () => { clearTimeout(relogio); };
-  }, [pino.severidade, pino.escolhido]);
+  }, [mapaDesenhou, pino.severidade, pino.escolhido]);
 
   return (
     <Marker
@@ -192,8 +231,18 @@ function MarcadorDeCriticidade({ pino }: { pino: PinoNoMapa }) {
   );
 }
 
+/**
+ * Quanto o traço do caminho mede, em pontos.
+ *
+ * Grosso o bastante para ser visto por cima de uma rua desenhada, e não tanto
+ * que esconda o nome dela. Não é token porque não é espaçamento, raio nem
+ * borda de peça: é espessura de traço sobre mapa, e o único outro traço do
+ * produto (o do plano esquemático) tem a própria conta em SVG.
+ */
+const ESPESSURA_DO_CAMINHO = 5;
+
 export function MapaDoImovel(props: PropsDoMapa) {
-  const { agente = null, mapa, altura = 220, recuoInferior = 0 } = props;
+  const { agente = null, mapa, altura = 220, recuoInferior = 0, caminho = null } = props;
   const { decisao, aoGoogleNaoDesenhar, desistirDeEsperar } = mapa;
   const tema = useTema();
   const [desenhou, setDesenhou] = useState(false);
@@ -243,7 +292,10 @@ export function MapaDoImovel(props: PropsDoMapa) {
   */
   if (!decisao) {
     return (
-      <View style={[moldura, { alignItems: "center", justifyContent: "center" }]}>
+      <View
+        testID="moldura-do-mapa"
+        style={[moldura, { alignItems: "center", justifyContent: "center" }]}
+      >
         <Carregando
           mensagem="Vendo como o seu município configurou o mapa"
           aoDesistir={desistirDeEsperar}
@@ -271,7 +323,14 @@ export function MapaDoImovel(props: PropsDoMapa) {
 
   return (
     <View style={{ gap: espaco.e2, ...(preenche ? { flex: 1 } : {}) }}>
-      <View style={moldura}>
+      {/*
+        A MOLDURA é o mapa, e só o mapa. As legendas vêm depois dela, como
+        irmãs: a altura pedida pela tela é a altura DO MAPA, e a legenda de
+        modo nunca pode ser empurrada para fora da tela por um mapa que
+        cresceu, porque é ela que responde para onde a coordenada das
+        famílias está indo.
+      */}
+      <View testID="moldura-do-mapa" style={moldura}>
         {!janela ? (
           /*
             Nada para enquadrar. A tela que tem a lista é quem sabe dizer por
@@ -340,8 +399,22 @@ export function MapaDoImovel(props: PropsDoMapa) {
                 : `Mapa do local: ${alvo.rotulo}`
             }
           >
+            {/*
+              O caminho vai ANTES dos marcadores, e a ordem é o que decide quem
+              fica por cima: a linha passa por baixo dos pinos, e o pino da
+              tarefa continua legível no fim dela.
+            */}
+            {caminho && caminho.length > 1 && (
+              <Polyline
+                coordinates={[...caminho]}
+                strokeColor={tema.destaque}
+                strokeWidth={ESPESSURA_DO_CAMINHO}
+              />
+            )}
             {alvo.feitio === "pinos"
-              ? alvo.pinos.map((pino) => <MarcadorDeCriticidade key={pino.id} pino={pino} />)
+              ? alvo.pinos.map((pino) => (
+                <MarcadorDeCriticidade key={pino.id} pino={pino} mapaDesenhou={desenhou} />
+              ))
               : (
                 <Marker
                   coordinate={alvo.imovel}

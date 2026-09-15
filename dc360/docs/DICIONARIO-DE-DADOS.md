@@ -72,6 +72,7 @@ trilha.
 | `papel` | `administrador`, `coordenador`, `operador` ou `agente_campo`. A hierarquia é por posto numérico: ver ADR 0006 |
 | `equipe_id` | A equipe do agente. Decide quais tarefas ele recebe. Nulo para quem não vai a campo |
 | `ativo` | `false` é o "apagado" deste sistema. O município nunca fica sem administrador ativo |
+| `foto_chave` | A foto de perfil, como chave no armazenamento (nunca URL). Opcional, escolhida pelo próprio servidor. Prefixo obrigatório `tenant/<org>/usuarios/<id>/`, por CHECK (migração 040). Dado pessoal do servidor: ver `PRIVACIDADE.md`, seção 2.2 |
 
 ---
 

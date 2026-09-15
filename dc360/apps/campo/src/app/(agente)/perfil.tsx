@@ -1,19 +1,19 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import Constants from "expo-constants";
-import { ROTULO_PAPEL, ROTULO_SEVERIDADE, ROTULO_TIPO_COBRADE, type Severidade } from "@dc360/shared";
+import { ROTULO_PAPEL, ROTULO_TIPO_COBRADE } from "@dc360/shared";
 import {
-  enderecoDaApi, normalizarMeuTrabalho, type MeuTrabalho,
+  SemSinal, enderecoDaApi, normalizarMeuTrabalho, type Colega, type MeuTrabalho,
 } from "../../dados/api";
 import {
   comoContarAFalha, motivoDaFalha, type MotivoDaFalha,
 } from "../../dados/falha-de-atualizacao";
 import {
-  AVISOS_VAZIOS, avisosGuardados, complementoDoAviso, fraseDoAviso,
-  marcarAvisosComoLidosNoAparelho, sincronizarAvisos, type AvisosGuardados,
-} from "../../dados/avisos";
-import { atualizarMeuTrabalho, meuTrabalhoGuardado } from "../../dados/pendencias";
+  atualizarMeuTrabalho, meuTrabalhoGuardado, pendenciasGuardadas,
+} from "../../dados/pendencias";
+import { listarColetas } from "../../dados/coletas";
+import { coletadasNoAparelho } from "../../dados/ordem-do-dia";
 import { obterFila } from "../../dados/fila";
 import { useSessao } from "../../dados/sessao";
 import { useSinal } from "../../dados/conectividade";
@@ -21,106 +21,88 @@ import { usePush } from "../../push/contexto";
 import { frasesDoEstado, ofereceAjustes } from "../../push/permissao";
 import type { PreferenciaDeTema } from "../../dados/preferencia-de-tema";
 import {
+  baixarFotoDoAgente, enviarFoto, escolherFoto, fotoLocalDoAgente, removerFotoDoAgente,
+  type OrigemDaFoto,
+} from "../../dados/foto-do-agente";
+import { MARCOS, conquistas, type Marco } from "../../dados/conquistas";
+import {
+  JANELA_DA_SEMANA_MS, JANELA_DO_MES_MS, concluidasNaJanela, concluidasPorDia,
+  concluidasPorMes, tempoEmPalavras, tempoMedioAteAVistoria,
+} from "../../dados/numeros-do-agente";
+import {
   Aviso, Botao, Cartao, Carregando, Dado, Separador, Tocavel, Txt, Vazio,
   useEstadoDoTema, useTema,
 } from "../../ui/componentes";
+import { useRecuoDoMenu } from "../../ui/BarraDeAbas";
+import { Avatar, TAMANHO_DO_AVATAR } from "../../ui/Avatar";
+import { GraficoDeBarras } from "../../ui/Grafico";
+import { ItemDeLista } from "../../ui/ItemDeLista";
+import { atrasoEmCascata } from "../../ui/hierarquia";
 import { Chip, type TomDoChip } from "../../ui/Chip";
 import { Dialogo } from "../../ui/Dialogo";
 import {
-  IconeAlerta, IconeAparelho, IconeAssinatura, IconeEnvio, IconeEquipe, IconeGps,
-  IconeInformacao, IconeOrgao, IconePrazoVencido, IconeSemSinal, IconeSinal,
-  IconeSucesso,
+  IconeAlerta, IconeAparelho, IconeAssinatura, IconeEnvio, IconeEquipe, IconeFoto, IconeGps,
+  IconeInformacao, IconeLocalizacao, IconeSemSinal, IconeSinal, IconeSucesso,
 } from "../../ui/icones";
 import { borda, espaco, icone, peso, raio, toque } from "../../ui/tokens";
 import { idadeEmPalavras } from "../../dados/atualizacao";
 
 /**
- * PERFIL: quem eu sou aqui, e como está o meu aparelho.
+ * PERFIL: quem eu sou aqui, o que eu já fiz, com quem, e como está o meu aparelho.
  *
- * Esta tela é a fusão de duas, "Minha equipe" e "Minha conta", e a fusão é a
- * correção. As duas respondiam à MESMA pergunta, e a segunda estava escondida
- * atrás de um botão no fim do rolamento da primeira: quem quisesse conferir a
- * versão do aplicativo ou trocar o tema precisava abrir a equipe, rolar dez
- * vistorias concluídas e achar um botão secundário no rodapé. Uma tela que só
- * se alcança pelo fim de outra é uma tela que a maioria nunca vê.
+ * ## O pedido, na letra de quem paga
  *
- * ## O que a fusão preserva, porque já estava certo
+ * "A tela de perfil totalmente morta, um app totalmente sem vida, não dá
+ * vontade de mexer. Tá muito só texto, não tem animações, infos, gráficos."
  *
- * - **Identidade não se desenha como estado.** Identidade é quem assina o
- *   laudo: não muda enquanto a sessão durar, não pede nada, e o que se precisa
- *   dela é reconhecer de relance. Ela é um bloco de TIPOGRAFIA, sem rótulo
- *   nenhum, porque ninguém precisa da palavra "Nome" para saber que aquilo é um
- *   nome. Estado é o que muda sozinho e às vezes pede ação, e ele é linha com
- *   ícone, rótulo à esquerda e valor alinhado à direita, numa coluna só: três
- *   linhas alinhadas se conferem de relance, nove blocos empilhados se leem um
- *   a um.
- * - **O alternador de tema de três estados**, com a escolha dita por três
- *   canais que não são cor.
- * - **O `aoDesistir` no `Carregando`.** Esta continua sendo a única tela do
- *   aplicativo que o passa, e por isso a única em que a saída aos seis segundos
- *   funciona de fato. O que mudou é o ALCANCE dela: a espera agora acontece
- *   dentro do cartão do trabalho, e não na tela inteira. Antes, enquanto "meu
- *   trabalho" não chegava, a aba inteira era uma roda girando, e isso significa
- *   que trocar o tema ou sair da conta dependia de uma chamada de rede que nada
- *   ali exige.
- * - **Um indicador por fato.** A busca em voo é contada pelo texto; o botão só
- *   fica desabilitado, que é a outra coisa, e a única que ele tem para dizer.
+ * E o que ele escolheu ver: a foto no topo com o nome e o cargo, com opção de
+ * adicionar ou trocar; números do agente com gráfico; equipe com cara de
+ * equipe; conquistas e histórico; ajustes bonitos.
  *
- * ## O que a identidade 2.0 trouxe
+ * ## O que a versão anterior tinha certo, e continua aqui
  *
- * O número do trabalho concluído virou `Dado`: número grande com rótulo
- * discreto, que é o que `CLAUDE.md` pede desde o primeiro dia e o aplicativo
- * ainda não fazia em lugar nenhum.
+ * - **Identidade não se desenha como estado.** O nome e o papel continuam sem
+ *   rótulo; o que muda sozinho continua em linha com ícone, rótulo à esquerda
+ *   e valor à direita.
+ * - **O `aoDesistir` no `Carregando`**, dentro do cartão do trabalho e não na
+ *   tela inteira: trocar o tema ou sair da conta nunca dependeu de rede.
+ * - **Um indicador por fato.** A busca em voo é contada pelo texto do rodapé
+ *   e pelo puxar da tela, e em mais lugar nenhum.
+ * - **O total de concluídas é o do servidor**, nunca o tamanho da lista
+ *   cortada, e o rodapé diz quando cortou.
+ * - **A prova de que o offline funciona** continua em cartão próprio, com
+ *   elevação de destaque, porque continua sendo a única coisa desta tela que o
+ *   agente não sabia antes de abrir.
  *
- * E **"coletada sem sinal e enviada depois" saiu da lista e virou peça.** O
- * comentário que a escreveu chama isso de "transformar o offline de promessa em
- * prova", e ela já tinha subido de quinta linha cinza para etiqueta com ícone.
- * Agora ela tem cartão próprio, com elevação de destaque e número grande: é a
- * única coisa nesta tela que o agente não sabia antes de abrir, e é a resposta
- * para a dúvida que este produto inteiro existe para resolver.
+ * ## O que mudou, e de onde vem cada número
  *
- * ## Onde o sino mora, e por quê
+ * - **A foto.** `dados/foto-do-agente.ts` cuida de escolher (câmera ou
+ *   galeria, sem pedir a biblioteca inteira), recortar, reduzir a 512 e enviar
+ *   pelo mesmo ciclo da evidência. A cópia fica no disco e sai no logout. Sem
+ *   sinal a troca é recusada com frase, e a razão está naquele módulo.
+ * - **Os números** saem do que já desce em `GET /campo/meu-trabalho`: as
+ *   concluídas (cinquenta mais recentes, com a data do despacho lida da
+ *   trilha), o total de verdade, e `devolvidasNoMes`, que o servidor conta
+ *   porque o aparelho só guarda a devolução enquanto ela espera envio. As
+ *   pendências de hoje vêm do disco, como na aba Tarefas. As contas estão em
+ *   `dados/numeros-do-agente.ts`, e cada uma diz quando é um piso.
+ * - **As conquistas** são leitura do total, sem tabela nova
+ *   (`dados/conquistas.ts`).
+ * - **A equipe** ganhou avatar, quem está em campo agora (a saída a campo
+ *   declarada com sinal, reduzida a um booleano por colega) e o coordenador
+ *   em destaque.
+ * - **O sino SAIU daqui.** Ele ganhou tela própria (`avisos.tsx`) e ícone na
+ *   barra (`ui/Sino.tsx`); o que fica é o atalho "Ver avisos".
  *
- * `GET /avisos` existe desde o T8, foi escrita **sem `exigirPermissao`,
- * expressamente para não deixar "operador e agente de campo sem sino nenhum"**,
- * e o aplicativo nunca a chamou. Ela mora AQUI, e não no topo de todas as
- * telas, por quatro razões:
+ * ## Uma peça, um protagonista
  *
- * 1. **O sino precisa de rede, e toda tela deste aplicativo abre do disco.** Um
- *    sino permanente no topo seria o único elemento fixo do produto que fica
- *    vazio ou velho justamente no morro, e ele ficaria ao lado da
- *    `FaixaDeSincronizacao`, que é o elemento assinatura do aplicativo e nunca
- *    mente. Dois indicadores de estado no topo, um deles desatualizado, estragam
- *    o que nunca falha para melhorar o que quase nunca importa.
- * 2. **A quarta aba já foi recusada por argumento**, em `_layout.tsx`: "Três
- *    abas, e não cinco (...) Duas abas a mais seriam duas invenções".
- * 3. **O aviso é CONTEXTO, e não trabalho.** Os quatro tipos que o sino carrega
- *    (vistoria recebida, prazo vencido, órgão respondeu, retorno não
- *    confirmado) são fatos do município escritos para o sino da coordenação. O
- *    trabalho do agente chega pela lista de tarefas, que é despachada para a
- *    equipe dele e vem do disco. Pôr contexto onde mora o trabalho é competir
- *    com o trabalho.
- * 4. **Ele pertence ao lado de "Avisos deste aparelho".** Aquele cartão diz se o
- *    CANAL funciona; o sino mostra o que passou pelo canal. É por isso que a
- *    rota existe: o push manda dois tipos de aviso e pode não alcançar. Juntos,
- *    os dois respondem "não recebi aviso nenhum" num lugar só.
- *
- * O que não se perde com isso é a visibilidade: **a contagem de não lidos vira
- * crachá na aba Perfil**, exatamente como o número da fila já faz na aba Envio.
- * O número se vê de qualquer tela, o conteúdo está a um toque, e nenhuma aba
- * nova foi inventada.
+ * Cinco números grandes num cartão só seriam cinco protagonistas, ou seja,
+ * nenhum (H1 da régua de hierarquia). Por isso cada número mora no próprio
+ * cartão, numa grade de dois por linha, e o gráfico mora no dele. O portão de
+ * design conta isso na árvore, e não no texto solto.
  */
 
-/**
- * Um agrupamento de cartões, com o nome do grupo acima deles.
- *
- * Existe porque a fusão empilhou oito cartões numa aba só, e oito cartões
- * seguidos sem nada entre eles são uma lista, não uma organização: o olho não
- * tem como saber que "Aparência" e "Avisos deste aparelho" falam do telefone
- * enquanto "A minha equipe" fala do município. O rótulo em caixa alta discreta
- * é o degrau `rotulo` da régua de hierarquia, que é justamente o papel de
- * nomear sem competir.
- */
+/** Um agrupamento de cartões, com o nome do grupo acima deles. */
 function Grupo({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
     <View style={{ gap: espaco.e3 }}>
@@ -134,11 +116,9 @@ function Grupo({ titulo, children }: { titulo: string; children: ReactNode }) {
  * Uma linha de ESTADO: ícone, rótulo à esquerda, valor à direita.
  *
  * O alinhamento à direita é o ponto. Com os valores numa coluna, "Com sinal" e
- * "3 esperando" se comparam sem o olho procurar onde cada um começa, que é o
- * que nove blocos empilhados obrigavam a fazer.
+ * "3 esperando" se comparam sem o olho procurar onde cada um começa.
  */
 function LinhaDeEstado({ desenho, rotulo, children }: {
-  /** O ícone da linha, quando ele acrescenta alguma coisa ao rótulo. */
   desenho?: ReactNode;
   rotulo: string;
   children: ReactNode;
@@ -153,8 +133,7 @@ function LinhaDeEstado({ desenho, rotulo, children }: {
       }}
     >
       {desenho && (
-        /* O ícone é a segunda pista ao lado da palavra, nunca o lugar dela: o
-           rótulo está logo à direita, e quem ouve a tela não vê desenho. */
+        /* O ícone é a segunda pista ao lado da palavra, nunca o lugar dela. */
         <View
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
@@ -172,18 +151,51 @@ function LinhaDeEstado({ desenho, rotulo, children }: {
 }
 
 /**
+ * O cabeçalho de um bloco de ajustes: um ícone numa caixa, o título e uma
+ * frase de apoio. É o que separa "ajustes bonitos" de uma lista de texto: o
+ * olho acha "Aparência" pelo desenho antes de ler a palavra, e a caixa dá ao
+ * bloco um começo que a lista não tinha.
+ */
+function CabecalhoDeAjuste({ desenho, titulo, apoio }: {
+  desenho: (cor: string) => ReactNode;
+  titulo: string;
+  apoio: string;
+}) {
+  const tema = useTema();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e3 }}>
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{
+          width: TAMANHO_DO_AVATAR.medio,
+          height: TAMANHO_DO_AVATAR.medio,
+          borderRadius: raio.normal,
+          backgroundColor: tema.superficie2,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {desenho(tema.destaque)}
+      </View>
+      <View style={{ flex: 1, gap: espaco.e1 }}>
+        <Txt nivel="titulo">{titulo}</Txt>
+        <Txt variante="corpoP" discreto>{apoio}</Txt>
+      </View>
+    </View>
+  );
+}
+
+/**
  * Uma das três opções de tema.
  *
- * É `radio` e não `checkbox`: as três são exclusivas, e o leitor de tela
- * anuncia "selecionado" dentro de um conjunto em vez de "marcado" numa lista de
- * ligas e desligas. Quem escolheu aparece por TRÊS canais que não são cor: o
- * sinal de conferido à esquerda, o rótulo em negrito, e o contorno mais grosso.
- * Sob sol na tela, o contorno é o que sobra.
+ * É `radio` e não `checkbox`: as três são exclusivas. Quem escolheu aparece por
+ * TRÊS canais que não são cor: o sinal de conferido à esquerda, o rótulo em
+ * negrito, e a cor do contorno. Sob sol na tela, o sinal é o que sobra.
  */
 function OpcaoDeTema({ valor, rotulo, detalhe, escolhida, aoEscolher }: {
   valor: PreferenciaDeTema;
   rotulo: string;
-  /** A segunda linha, quando a opção tem o que explicar de si mesma. */
   detalhe?: string;
   escolhida: boolean;
   aoEscolher: (valor: PreferenciaDeTema) => void;
@@ -205,34 +217,13 @@ function OpcaoDeTema({ valor, rotulo, detalhe, escolhida, aoEscolher }: {
         paddingHorizontal: espaco.e3,
         paddingVertical: espaco.e2,
         borderRadius: raio.normal,
-        /*
-          A espessura é a MESMA nas três, e só a cor dela muda.
-
-          Engrossar a escolhida seria a segunda pista mais óbvia, e foi a
-          primeira tentativa. O problema é que borda ocupa espaço: um ponto a
-          mais de cada lado empurra as opções de baixo dois pontos, então tocar
-          numa delas faz a lista inteira andar debaixo do dedo. Quem diz qual
-          está valendo, sem depender de cor, é o sinal de conferido e o peso do
-          rótulo, e nenhum dos dois mexe no leiaute.
-        */
+        /* A espessura é a MESMA nas três, e só a cor dela muda: engrossar a
+           escolhida empurraria as de baixo, e a lista andaria sob o dedo. */
         borderWidth: borda.fio,
         borderColor: escolhida ? tema.destaque : tema.borda,
         backgroundColor: escolhida ? tema.superficie2 : "transparent",
       }}
     >
-      {/*
-        Largura fixa para os três rótulos começarem na mesma coluna, com ou sem
-        sinal à esquerda. Quem alinha é a caixa, não o caractere.
-
-        E esta caixa NÃO se esconde do leitor de tela, ao contrário dos ícones
-        de `LinhaDeEstado` logo acima. A diferença é o que está por fora: lá o
-        ícone acompanha um rótulo solto, e anunciá-lo faria a tela repetir; aqui
-        o invólucro já é um `radio` com rótulo e estado próprios, então o sinal
-        não é anunciado de novo de qualquer forma. Esconder custou caro numa
-        tentativa anterior: as consultas de teste ignoram subárvore escondida, o
-        caso que jurava provar o segundo canal encontrava o ✓ de OUTRO selo da
-        mesma tela, e passava verde com o sinal arrancado daqui.
-      */}
       <View style={{ width: icone.rotulo, alignItems: "center" }}>
         {escolhida && (
           <Txt variante="corpo" peso={peso.negrito} cor={tema.destaque}>✓</Txt>
@@ -247,23 +238,57 @@ function OpcaoDeTema({ valor, rotulo, detalhe, escolhida, aoEscolher }: {
 }
 
 /**
- * A inicial do colega, para a lista ter ritmo vertical em vez de ser parágrafo.
+ * Um selo de conquista: o número do marco num círculo, e a palavra embaixo.
  *
- * Não é enfeite: com dez nomes empilhados, a inicial é o que permite achar o
- * colega procurado sem ler a lista inteira. Duas letras quando há sobrenome,
- * porque uma equipe com dois "Carlos" viraria dois "C" idênticos.
+ * Conquistado é círculo cheio de destaque com o sinal de conferido; por vir é
+ * círculo vazio com o número em discreto. As duas coisas (cheio e sinal) são o
+ * "nunca só cor" aplicado a um selo: sem a cor, o ✓ separa os dois.
  */
-/* Sem `export`: tudo dentro de `src/app` é rota do Expo, e um arquivo de rota
-   exporta a tela, não utilitário. Quem prova a inicial é a tela renderizada. */
-function iniciaisDe(nome: string): string {
-  const partes = nome.trim().split(/\s+/).filter(Boolean);
-  const primeira = partes[0] ?? "";
-  /* Nome vazio existe: o cadastro do município é de quem cadastrou, não nosso.
-     Um círculo em branco pareceria defeito; a interrogação diz o que houve. */
-  if (!primeira) return "?";
-  const ultima = partes.length > 1 ? (partes[partes.length - 1] ?? "") : "";
-  return ((primeira[0] ?? "") + (ultima[0] ?? "")).toUpperCase();
+function Selo({ marco, conquistado }: { marco: Marco; conquistado: boolean }) {
+  const tema = useTema();
+  return (
+    <View
+      accessible
+      accessibilityLabel={
+        `Selo ${marco.titulo}, ${marco.total} ${marco.total === 1 ? "vistoria" : "vistorias"}, `
+        + (conquistado ? "conquistado" : "ainda por vir")
+      }
+      style={{ alignItems: "center", gap: espaco.e1, flex: 1 }}
+    >
+      <View
+        style={{
+          width: TAMANHO_DO_AVATAR.medio,
+          height: TAMANHO_DO_AVATAR.medio,
+          borderRadius: raio.pilula,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: conquistado ? tema.destaque : "transparent",
+          borderWidth: borda.enfase,
+          borderColor: conquistado ? tema.destaque : tema.borda,
+        }}
+      >
+        <Txt
+          variante="corpo"
+          mono
+          peso={peso.negrito}
+          cor={conquistado ? tema.sobreDestaque : tema.textoDiscreto}
+        >
+          {String(marco.total)}
+        </Txt>
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e1 }}>
+        {conquistado && <IconeSucesso cor={tema.destaque} tamanho={icone.inline} />}
+        <Txt variante="legenda" discreto={!conquistado} numeroDeLinhas={1}>{marco.titulo}</Txt>
+      </View>
+    </View>
+  );
 }
+
+/** O ícone de cada origem de foto, para os botões do seletor. */
+const ORIGENS: Array<{ origem: OrigemDaFoto; titulo: string; descricao: string }> = [
+  { origem: "camera", titulo: "Tirar foto agora", descricao: "Abrir a câmera da frente para tirar a foto de perfil" },
+  { origem: "galeria", titulo: "Escolher da galeria", descricao: "Abrir o seletor de fotos do aparelho para escolher a foto de perfil" },
+];
 
 /**
  * Coletada e sincronizada em momentos diferentes significa sem sinal.
@@ -277,35 +302,26 @@ function foiColetadaSemSinal(v: { coletada_em: string; sincronizada_em: string }
     - new Date(v.coletada_em).getTime() > 60_000;
 }
 
-/** O ícone de cada tipo de aviso, pelo que o fato é. */
-function DesenhoDoAviso({ tipo, cor }: { tipo: string; cor: string }) {
-  const tamanho = icone.rotulo;
-  if (tipo === "prazo_vencido") return <IconePrazoVencido cor={cor} tamanho={tamanho} />;
-  if (tipo === "vistoria_recebida") return <IconeAssinatura cor={cor} tamanho={tamanho} />;
-  if (tipo === "providencia_respondida") return <IconeOrgao cor={cor} tamanho={tamanho} />;
-  if (tipo === "retorno_nao_confirmado") return <IconeAlerta cor={cor} tamanho={tamanho} />;
-  /* Tipo que este aplicativo ainda não aprendeu continua com desenho, e não com
-     um buraco: ver `fraseDoAviso`. Impreciso ainda é legível. */
-  return <IconeInformacao cor={cor} tamanho={tamanho} />;
+/**
+ * A ordem dos colegas: coordenação primeiro, depois quem está em campo, depois
+ * o resto por nome. É "coordenador em destaque" escrito como ordem, e não só
+ * como cor: numa equipe de dez, quem manda está no topo da lista.
+ */
+function ordenarColegas(colegas: readonly Colega[]): Colega[] {
+  const posto = (c: Colega) => (c.papel === "coordenador" || c.papel === "administrador" ? 0 : 1);
+  return [...colegas].sort((a, b) =>
+    posto(a) - posto(b)
+    || Number(b.emCampo) - Number(a.emCampo)
+    || a.nome.localeCompare(b.nome));
 }
 
 /** Quantas vistorias concluídas a tela lista. O total de verdade vem do servidor. */
 const CONCLUIDAS_NA_TELA = 10;
 
-/**
- * Quantos avisos a tela lista de uma vez. O resto continua guardado, e alcançável.
- *
- * O corte é de ROLAGEM, e nunca de existência: enquanto ele foi só um corte, o
- * aparelho guardava trinta avisos, a tela desenhava oito, e "Marcar como lidos"
- * marcava os TRINTA. Os vinte e dois que ninguém viu sumiam do sino, aqui e no
- * servidor, e não voltam em pergunta nenhuma: o `POST /avisos/lidos` é por
- * identificador e a leitura não se desfaz. O botão abaixo da lista é o que
- * devolve os cortados ao alcance do dedo, e é ele que torna o corte honesto.
- */
-const AVISOS_NA_TELA = 8;
-
 export default function Perfil() {
   const tema = useTema();
+  // A pílula do menu paira sobre a cena; a tela reserva o vão no fim da rolagem.
+  const recuoDoMenu = useRecuoDoMenu();
   const sinal = useSinal();
   const push = usePush();
   const escolhaDeTema = useEstadoDoTema();
@@ -314,68 +330,64 @@ export default function Perfil() {
   const [dados, setDados] = useState<MeuTrabalho | null>(null);
   const [baixadoEm, setBaixadoEm] = useState<string | null>(null);
   const [atualizando, setAtualizando] = useState(false);
-  /*
-    O agente cansou de esperar e pediu para sair da tela de espera.
-
-    Não cancela a busca, de propósito: a resposta pode chegar meio segundo
-    depois, e jogar fora uma resposta que já está a caminho gastaria o dado do
-    agente duas vezes pelo mesmo dado. O que isto muda é só quem manda na tela,
-    que volta a ser ele.
-  */
   const [desistiuDeEsperar, setDesistiuDeEsperar] = useState(false);
-  /*
-    POR QUE a última atualização não aconteceu, e não a frase pronta. A razão
-    inteira está em `dados/falha-de-atualizacao`: 401 não é sinal ruim, e ler
-    os dois como a mesma coisa manda o agente esperar por uma coisa que só um
-    ato dele resolve.
-  */
   const [falhaDeRede, setFalhaDeRede] = useState<MotivoDaFalha | null>(null);
   const [agora, setAgora] = useState(() => new Date());
 
-  const [avisos, setAvisos] = useState<AvisosGuardados>(AVISOS_VAZIOS);
   const [pendentes, setPendentes] = useState<number | null>(null);
+  /** Quantas tarefas o aparelho tem para hoje e ainda não vistoriou. Nulo: não deu para ler. */
+  const [pendentesHoje, setPendentesHoje] = useState<number | null>(null);
   const [perguntandoSaida, setPerguntandoSaida] = useState(false);
-  /*
-    O parágrafo de 48 palavras sobre a troca de senha ocupava um cartão
-    INTEIRO, sempre aberto, numa tela em que ele nunca é a resposta procurada:
-    ele explica por que uma coisa NÃO está ali. Agora a resposta curta fica na
-    linha e o porquê fica atrás de um toque, para quem duvidar dela.
-  */
   const [porQueASenha, setPorQueASenha] = useState(false);
-  /*
-    A lista de avisos abriu inteira.
-
-    Sem isto os avisos além do oitavo eram inalcançáveis: a lista sempre mostra
-    os mais NOVOS, então um aviso que caiu abaixo do corte nunca mais subiria
-    sozinho. Um aviso por ler que não tem como ser lido é o mesmo item preso
-    para sempre que a fila de envio existe para não ter.
-  */
-  const [verTodosOsAvisos, setVerTodosOsAvisos] = useState(false);
-  /** Qual das duas ações do sistema está em voo agora. Nula: nenhuma. */
   const [acaoDeAviso, setAcaoDeAviso] = useState<null | "permissao" | "ajustes">(null);
   const [pediuPermissaoAgora, setPediuPermissaoAgora] = useState(false);
   const [abriuOsAjustes, setAbriuOsAjustes] = useState(false);
+
+  /* A foto: a cópia local, lida do disco na montagem e trocada pelo envio. */
+  const [fotoUri, setFotoUri] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
+  const [escolhendoFoto, setEscolhendoFoto] = useState(false);
+  const [enviandoFoto, setEnviandoFoto] = useState(false);
+  const [perguntandoRemocao, setPerguntandoRemocao] = useState(false);
+  const [desfechoDaFoto, setDesfechoDaFoto] = useState<
+    null | { tom: "sucesso" | "perigo" | "alerta"; titulo: string; texto: string }
+  >(null);
 
   useEffect(() => {
     const t = setInterval(() => setAgora(new Date()), 30_000);
     return () => { clearInterval(t); };
   }, []);
 
+  const usuarioId = identidade?.usuarioId ?? null;
+  useEffect(() => {
+    if (!usuarioId) { setFotoUri(null); return; }
+    setFotoUri(fotoLocalDoAgente(usuarioId));
+  }, [usuarioId]);
+
   const lerDoDisco = useCallback(async () => {
     const guardado = await meuTrabalhoGuardado();
     if (guardado) {
-      /*
-        NORMALIZA O QUE VEIO DO DISCO, e não só o que veio da rede.
-
-        O registro pode ter sido gravado por uma versão anterior deste
-        aplicativo, quando `totalConcluidas` nem era lido: sem normalizar, o
-        tipo prometeria `number` e a tela receberia `undefined` exatamente no
-        caso em que ela mais precisa funcionar, que é o aparelho sem sinal.
-      */
+      /* Normaliza o que veio do disco: pode ter sido gravado por uma versão
+         anterior, sem os campos novos. */
       setDados(normalizarMeuTrabalho(guardado.dados));
       setBaixadoEm(guardado.baixadoEm);
     }
     return guardado;
+  }, []);
+
+  /*
+    As pendências de hoje, do DISCO, como na aba Tarefas: a lista guardada
+    menos o que este aparelho já vistoriou. Falha aqui vira "não sei", e o
+    cartão do número simplesmente não aparece: um zero inventado seria pior.
+  */
+  const lerPendenciasDeHoje = useCallback(async () => {
+    try {
+      const [tarefas, coletas] = await Promise.all([pendenciasGuardadas(), listarColetas()]);
+      const jaColetadas = coletadasNoAparelho(coletas);
+      setPendentesHoje(tarefas.filter((t) => !jaColetadas.has(t.id)).length);
+    } catch {
+      setPendentesHoje(null);
+    }
   }, []);
 
   const buscarNaRede = useCallback(async () => {
@@ -387,17 +399,10 @@ export default function Perfil() {
       if (!token) return;
 
       /*
-        AS DUAS BUSCAS SÃO UM TOQUE SÓ E DOIS FRACASSOS SEPARADOS.
-
-        Um toque só porque duas atualizações independentes seriam duas idas ao
-        3G do morro para montar uma tela só, e porque ninguém entende por que
-        uma metade da tela está velha e a outra não.
-
-        Dois fracassos separados porque as duas coisas valem diferente. O sino é
-        o recurso menos crítico do produto: uma falha nele não pode apagar o
-        registro do trabalho do agente da tela. E o contrário também: um
-        servidor que ainda não tem a rota de "meu trabalho" não pode deixar o
-        agente sem o único canal que funciona quando o push não alcança.
+        Duas buscas, um toque, dois fracassos separados: o trabalho é o que
+        importa, e a foto é conforto. Uma falha na foto não pode apagar o
+        registro do trabalho da tela, e um servidor sem a rota da foto não
+        pode deixar o agente sem a equipe.
       */
       try {
         setDados(await atualizarMeuTrabalho(token));
@@ -406,28 +411,28 @@ export default function Perfil() {
         setFalhaDeRede(motivoDaFalha(erro));
       }
 
-      try {
-        setAvisos(await sincronizarAvisos(token));
-      } catch {
-        /* O que já estava guardado continua na tela, com a data da última vez.
-           O rodapé do cartão de avisos é quem diz quando foi. */
+      const eu = lerIdentidade?.() ?? identidade;
+      if (eu) {
+        try {
+          const r = await baixarFotoDoAgente(token, eu.usuarioId);
+          setFotoUri(r.fotoLocal);
+          setEmail(r.email);
+        } catch {
+          /* A cópia local, se houver, continua na tela. */
+        }
       }
     } catch (erro: unknown) {
-      /* Nem o token saiu. Quase sempre é rede (renovar precisa dela), mas
-         "quase sempre" não é sempre, e quem classifica é o erro, não o palpite
-         escrito aqui. A tela continua sendo a do disco, que é a promessa. */
       setFalhaDeRede(motivoDaFalha(erro));
     } finally {
       setAtualizando(false);
     }
-  }, [obterToken]);
+  }, [obterToken, lerIdentidade, identidade]);
 
   useEffect(() => {
     void (async () => {
-      /* O disco primeiro, SEMPRE, e nas duas fontes: é o que faz esta aba abrir
-         no alto do morro em vez de existir só na base. */
-      setAvisos(await avisosGuardados());
+      /* O disco primeiro, SEMPRE: é o que faz esta aba abrir no alto do morro. */
       const guardado = await lerDoDisco();
+      void lerPendenciasDeHoje();
       // Sem cópia local, buscar é a única saída. Com cópia, buscar é conforto,
       // e conforto não justifica gastar o dado do agente sem sinal.
       if (!guardado || sinal.temSinal) await buscarNaRede();
@@ -447,25 +452,81 @@ export default function Perfil() {
     return () => { vivo = false; };
   }, [obterToken, lerIdentidade]);
 
-  /*
-    As duas frases do aviso de atualização, resolvidas uma vez só. A cauda
-    ("mostrando o que já estava") é a parte que muda de tela para tela: falhar
-    em atualizar não é falhar em mostrar.
-  */
+  /* Trocar a foto: escolher, reduzir, enviar. Tudo em português, e tudo termina
+     numa frase que diz o que aconteceu. */
+  const trocarFoto = useCallback(async (origem: OrigemDaFoto) => {
+    if (!identidade) return;
+    setDesfechoDaFoto(null);
+    try {
+      const escolha = await escolherFoto(origem);
+      if (escolha.situacao === "cancelada") return;
+      if (escolha.situacao === "sem_permissao") {
+        setDesfechoDaFoto({
+          tom: "alerta",
+          titulo: "A câmera não foi liberada",
+          texto: "Libere a câmera nos ajustes do aparelho, ou escolha uma foto da galeria.",
+        });
+        return;
+      }
+      setEnviandoFoto(true);
+      const token = await obterToken();
+      if (!token) throw new SemSinal();
+      const enviada = await enviarFoto(token, escolha.foto, identidade.usuarioId);
+      setFotoUri(enviada.uriLocal);
+      setEscolhendoFoto(false);
+      setDesfechoDaFoto({
+        tom: "sucesso",
+        titulo: "Foto atualizada",
+        texto: "A sua equipe e a coordenação passam a ver esta foto ao lado do seu nome.",
+      });
+    } catch (erro: unknown) {
+      setDesfechoDaFoto({
+        tom: "perigo",
+        titulo: "A foto não foi trocada",
+        texto: erro instanceof Error && erro.message
+          ? erro.message
+          : "Não deu para enviar a foto. Tente de novo com sinal.",
+      });
+    } finally {
+      setEnviandoFoto(false);
+    }
+  }, [identidade, obterToken]);
+
+  const removerFoto = useCallback(async () => {
+    if (!identidade) return;
+    setPerguntandoRemocao(false);
+    setDesfechoDaFoto(null);
+    setEnviandoFoto(true);
+    try {
+      const token = await obterToken();
+      if (!token) throw new SemSinal();
+      await removerFotoDoAgente(token, identidade.usuarioId);
+      setFotoUri(null);
+      setEscolhendoFoto(false);
+      setDesfechoDaFoto({
+        tom: "sucesso",
+        titulo: "Foto removida",
+        texto: "O seu nome volta a aparecer com as iniciais.",
+      });
+    } catch (erro: unknown) {
+      setDesfechoDaFoto({
+        tom: "perigo",
+        titulo: "A foto não foi removida",
+        texto: erro instanceof Error && erro.message ? erro.message : "Tente de novo com sinal.",
+      });
+    } finally {
+      setEnviandoFoto(false);
+    }
+  }, [identidade, obterToken]);
+
   const fraseDaFalha = falhaDeRede
     ? comoContarAFalha(falhaDeRede, "Mostrando o que já estava no aparelho.")
     : null;
 
   /*
-    A promessa da saída, e ela precisa ser exata.
-
-    "Continuam guardadas no aparelho" já era verdade: o logout apaga rascunho,
-    pendência e assinatura, e não toca na fila. O que faltava era a segunda
-    metade: elas só voltam a subir com a SUA conta. Num aparelho de plantão
-    compartilhado, o agente que lê isto no fim do turno precisa saber que deixar
-    a coleta para o colega enviar não é uma opção, e por quê: o nome de quem
-    apresenta o token é o nome que o laudo e a trilha registram como autor da
-    vistoria, e a trilha é append-only.
+    A promessa da saída, e ela precisa ser exata: as coletas continuam no
+    aparelho, e só voltam a subir com a SUA conta, porque o laudo e a trilha
+    registram como autor quem apresenta o token.
   */
   const avisoDaSaida = pendentes && pendentes > 0
     ? `Você tem ${pendentes} ${pendentes === 1 ? "coleta" : "coletas"} ainda não enviadas. ` +
@@ -474,17 +535,25 @@ export default function Perfil() {
       "Elas voltam a subir quando você entrar de novo, com sinal."
     : "Você vai precisar de sinal e da sua senha para entrar de novo.";
 
-  /*
-    Sem identidade a tela devolvia `return null`, ou seja, uma aba em branco.
+  /* As contas dos números, memoizadas: mudam com os dados e com o relógio. */
+  const concluidas = dados?.concluidas ?? [];
+  const numeros = useMemo(() => {
+    if (!dados) return null;
+    const teto = dados.tetoDeConcluidas;
+    const media = tempoMedioAteAVistoria(dados.concluidas);
+    return {
+      semana: concluidasNaJanela(dados.concluidas, JANELA_DA_SEMANA_MS, agora, teto),
+      mes: concluidasNaJanela(dados.concluidas, JANELA_DO_MES_MS, agora, teto),
+      porDia: concluidasPorDia(dados.concluidas, agora),
+      porMes: concluidasPorMes(dados.concluidas, agora),
+      tempoMedio: media === null ? null : tempoEmPalavras(media),
+    };
+  }, [dados, agora]);
+  const selos = useMemo(() => conquistas(dados?.totalConcluidas ?? 0), [dados]);
 
-    Acontece de verdade: a sessão expira, o agente toca em "Perfil" e encontra o
-    nada, sem saber se o aplicativo quebrou, se a conta dele foi desativada ou
-    se as coletas do turno sumiram junto. As três perguntas são respondidas
-    aqui, e a saída é a única que existe.
-  */
   if (!identidade) {
     return (
-      <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}>
+      <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: recuoDoMenu }}>
         <Vazio
           icone={<IconeAparelho cor={tema.textoDiscreto} tamanho={icone.vazio} />}
           titulo="Nenhuma conta aberta neste aparelho"
@@ -506,34 +575,11 @@ export default function Perfil() {
   const versao = Constants.expoConfig?.version ?? "desconhecida";
   const frases = frasesDoEstado(push.permissao);
   const eu = identidade.usuarioId;
-  const colegasAtivos = dados?.colegas.filter((c) => c.ativo) ?? [];
-  const concluidas = dados?.concluidas ?? [];
+  const colegasAtivos = ordenarColegas(dados?.colegas.filter((c) => c.ativo) ?? []);
+  const emCampoAgora = colegasAtivos.filter((c) => c.emCampo).length;
   const naTela = concluidas.slice(0, CONCLUIDAS_NA_TELA);
   const semSinalNaLista = concluidas.filter(foiColetadaSemSinal).length;
-  const avisosNaTela = verTodosOsAvisos
-    ? avisos.itens
-    : avisos.itens.slice(0, AVISOS_NA_TELA);
-  /*
-    O QUE O BOTÃO MARCA É O QUE ESTÁ DESENHADO, e nunca o que está guardado.
 
-    Saía de `avisos.itens`, ou seja, dos até trinta que o aparelho guarda, com
-    a tela desenhando oito. O agente descia o morro, lia os oito que cabiam,
-    tocava em "Marcar como lidos" (cujo rótulo falado ainda dizia "os 12 avisos
-    que estão nesta tela") e os outros vinte e dois eram marcados como lidos no
-    aparelho e no servidor sem nunca terem aparecido. Leitura não se desfaz: o
-    `POST /avisos/lidos` é por identificador, e aquele aviso não volta em
-    pergunta nenhuma. Era o sino apagando o que existe para mostrar.
-  */
-  const porLer = avisosNaTela.filter((a) => !a.lido).map((a) => a.id);
-  /* Quantos ficaram atrás do corte, para o botão dizer o número em vez de
-     "ver mais", que não deixa ninguém decidir se vale o toque. */
-  const cortados = avisos.itens.length - avisosNaTela.length;
-
-  /*
-    O estado dos avisos vira chip: símbolo mais palavra, nunca a cor sozinha. O
-    `?` do "ainda não perguntado" é literal: o estado dele é de fato uma
-    pergunta que ninguém fez.
-  */
   const selo: { tom: TomDoChip; simbolo: string } = {
     concedida: { tom: "ok" as const, simbolo: "✓" },
     negada: { tom: "alerta" as const, simbolo: "!" },
@@ -541,12 +587,6 @@ export default function Perfil() {
     indisponivel: { tom: "neutro" as const, simbolo: "×" },
   }[push.permissao];
 
-  /*
-    O que o pedido de permissão produziu, lido do estado ATUAL e não guardado
-    no momento do toque. O provedor atualiza a permissão depois que a caixa do
-    sistema fecha, e uma mensagem decidida dentro do `await` falaria do estado
-    anterior à resposta, que é justamente o que ninguém quer saber.
-  */
   const desfechoDoPedido = !pediuPermissaoAgora ? null : {
     concedida: {
       tom: "sucesso" as const,
@@ -577,10 +617,20 @@ export default function Perfil() {
     },
   }[push.permissao];
 
+  /*
+    A CASCATA: cada bloco da tela entra um pouco depois do anterior, na ordem
+    de leitura. O contador anda a cada bloco desenhado, e o teto de
+    `atrasoEmCascata` impede o fim da tela de virar espera.
+  */
+  let posicao = 0;
+  const bloco = (filho: ReactNode) => (
+    <ItemDeLista entrando atraso={atrasoEmCascata(posicao++)}>{filho}</ItemDeLista>
+  );
+
   return (
     <ScrollView
       testID="tela-do-perfil"
-      contentContainerStyle={{ padding: espaco.e4, gap: espaco.e5 }}
+      contentContainerStyle={{ padding: espaco.e4, gap: espaco.e5, paddingBottom: recuoDoMenu }}
       refreshControl={
         <RefreshControl
           refreshing={atualizando}
@@ -589,40 +639,11 @@ export default function Perfil() {
         />
       }
     >
-      {/*
-        PESO LEVE, pela R2 da régua de densidade, e a fusão é quem cobrou isso.
-
-        Nas duas telas separadas este aviso era o único bloco preenchido da sua.
-        Juntas, ele disputa com "espere a fila esvaziar antes de sair", que está
-        logo acima do botão de saída, e os dois podem estar na tela ao mesmo
-        tempo. Na disputa ganha o mais grave, e ele não é este: falhar em
-        atualizar é rotina num aparelho de campo e não custa nada (a tela mostra
-        o que já estava no disco), enquanto sair da conta com coleta na fila é
-        trabalho que nenhum colega consegue enviar.
-      */}
       {falhaDeRede && fraseDaFalha && (
         <Aviso
-          /*
-            Sessão encerrada sobe para PERIGO, e a régua continua respeitada: o
-            que a R2 pesa é o aviso rotineiro de "não atualizou", que não custa
-            nada porque a tela mostra o que estava no disco. Sessão encerrada
-            custa: nada novo chega, e o agente não tem como saber disso por
-            nenhum outro sinal da tela.
-          */
           tom={falhaDeRede === "sessao-encerrada" ? "perigo" : "alerta"}
           peso="leve"
           titulo={fraseDaFalha.resumo}
-          /*
-            A SAÍDA, que não existia. O aviso colava aqui até a atualização
-            seguinte dar certo, e no caso da sessão encerrada nenhuma dava, o
-            que é o relato ("não tem nem um tempo pra sumir nem um x pra
-            fechar"). Entra pelo `acao` da própria peça, e não por um `×` de
-            canto: o `Botao` do produto já traz o alvo de 52 e o rótulo de
-            leitor de tela, e um `×` desenhado à mão não traria nenhum dos dois.
-
-            Dispensar fala da ATENÇÃO do agente, não do fato: a próxima
-            tentativa que falhar traz o aviso de volta inteiro.
-          */
           acao={{
             titulo: "Dispensar",
             descricao: "Dispensar o aviso de atualização",
@@ -635,145 +656,186 @@ export default function Perfil() {
 
       <Grupo titulo="Eu">
         {/*
-          IDENTIDADE. Sem rótulo, porque a hierarquia de tipografia já diz o que
-          cada linha é, e porque nada aqui muda nem pede ação.
+          O CABEÇALHO: a foto, o nome, o cargo, a equipe. A foto é tocável
+          (com alvo de 96, muito acima dos 52) e o botão discreto abaixo diz
+          a mesma coisa em palavras, para quem não adivinha que um círculo
+          responde ao dedo.
         */}
-        <Cartao>
-          <View style={{ gap: espaco.e1 }}>
-            <Txt variante="h2">{identidade.nome}</Txt>
-            <Txt variante="corpoP" peso={peso.forte}>{ROTULO_PAPEL[identidade.papel]}</Txt>
-            <Txt variante="corpoP" discreto>
-              {identidade.organizacaoNome}, {identidade.municipio}/{identidade.uf}
-            </Txt>
-            {/*
-              A MATRÍCULA, que esta tela nunca mostrou e sai impressa em todo
-              documento que o agente assina (ver o tipo `Identidade`). Em fonte
-              tabular, como todo número deste produto que alguém dita por rádio.
-            */}
-            <Txt variante="legenda" discreto mono>Matrícula {identidade.matricula}</Txt>
-          </View>
+        {bloco(
+          <Cartao nivel="flutuante">
+            <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e4 }}>
+              <Tocavel
+                onPress={() => { setEscolhendoFoto((v) => !v); setDesfechoDaFoto(null); }}
+                accessibilityRole="button"
+                accessibilityLabel={fotoUri
+                  ? `Foto de perfil de ${identidade.nome}. Trocar a foto`
+                  : `${identidade.nome}, sem foto de perfil. Adicionar foto`}
+                accessibilityState={{ disabled: enviandoFoto }}
+                desabilitado={enviandoFoto}
+                testID="trocar-foto"
+                estilo={{ minHeight: toque, minWidth: toque, justifyContent: "center" }}
+              >
+                <Avatar nome={identidade.nome} fotoUri={fotoUri} tamanho="grande" testID="avatar-do-agente" />
+              </Tocavel>
+              <View style={{ flex: 1, gap: espaco.e1 }}>
+                <Txt variante="h2">{identidade.nome}</Txt>
+                <Txt variante="corpoP" peso={peso.forte}>{ROTULO_PAPEL[identidade.papel]}</Txt>
+                {dados?.equipe && (
+                  <Txt variante="corpoP" discreto>{dados.equipe.nome}</Txt>
+                )}
+                <Txt variante="corpoP" discreto>
+                  {identidade.organizacaoNome}, {identidade.municipio}/{identidade.uf}
+                </Txt>
+                <Txt variante="legenda" discreto mono>Matrícula {identidade.matricula}</Txt>
+              </View>
+            </View>
 
-          <Separador />
+            <Botao
+              titulo={fotoUri ? "Trocar a foto" : "Adicionar foto"}
+              tipo="discreto"
+              testID="abrir-escolha-de-foto"
+              descricao={fotoUri ? "Trocar a foto de perfil" : "Adicionar uma foto de perfil"}
+              desabilitado={enviandoFoto}
+              estilo={{ alignSelf: "flex-start", paddingHorizontal: 0 }}
+              onPress={() => { setEscolhendoFoto((v) => !v); setDesfechoDaFoto(null); }}
+            />
 
-          <LinhaDeEstado rotulo="Senha">
-            <Txt variante="corpoP" peso={peso.forte}>Trocada no painel</Txt>
-          </LinhaDeEstado>
-          <Botao
-            titulo={porQueASenha ? "Ocultar a explicação" : "Por que não aqui?"}
-            tipo="discreto"
-            testID="por-que-a-senha"
-            descricao="Por que a troca de senha não é feita no aplicativo"
-            estilo={{ alignSelf: "flex-start", paddingHorizontal: 0 }}
-            onPress={() => { setPorQueASenha((v) => !v); }}
-          />
-          {porQueASenha && (
-            <Txt variante="corpoP" discreto>
-              A troca é feita no painel da coordenação, pelo navegador, em "Minha
-              conta". Aqui no aparelho ela não é oferecida de propósito: trocar a
-              senha encerra as outras sessões, e fazer isso no meio de uma
-              vistoria deixaria a fila sem conseguir enviar.
-            </Txt>
-          )}
-        </Cartao>
+            {escolhendoFoto && (
+              <View style={{ gap: espaco.e2 }}>
+                {!sinal.temSinal ? (
+                  /*
+                    SEM SINAL, RECUSA COM FRASE, e não fila. A decisão inteira
+                    está em `dados/foto-do-agente.ts`: a fila é para trabalho
+                    do morro, e retrato se troca na base.
+                  */
+                  <Aviso tom="info" titulo="Trocar a foto precisa de sinal">
+                    A foto sobe na hora para a sua equipe ver, e não entra na fila
+                    de envio: ela não é trabalho de campo. Faça isto na base, com
+                    conexão.
+                  </Aviso>
+                ) : (
+                  <>
+                    {ORIGENS.map((o) => (
+                      <Botao
+                        key={o.origem}
+                        titulo={enviandoFoto ? "Enviando a foto" : o.titulo}
+                        tipo="realce"
+                        testID={`foto-${o.origem}`}
+                        descricao={o.descricao}
+                        icone={(cor) => <IconeFoto cor={cor} tamanho={icone.acao} />}
+                        carregando={enviandoFoto}
+                        desabilitado={enviandoFoto}
+                        onPress={() => void trocarFoto(o.origem)}
+                      />
+                    ))}
+                    {fotoUri && (
+                      <Botao
+                        titulo="Remover a foto"
+                        tipo="perigo"
+                        testID="remover-foto"
+                        descricao="Remover a foto de perfil e voltar às iniciais"
+                        desabilitado={enviandoFoto}
+                        onPress={() => { setPerguntandoRemocao(true); }}
+                      />
+                    )}
+                    <Txt variante="legenda" discreto>
+                      A foto é sua, opcional, e só a sua equipe e a coordenação
+                      veem. Ela sai recortada e reduzida antes de subir.
+                    </Txt>
+                  </>
+                )}
+                <Botao
+                  titulo="Cancelar"
+                  tipo="secundario"
+                  descricao="Fechar a escolha de foto sem mudar nada"
+                  desabilitado={enviandoFoto}
+                  onPress={() => { setEscolhendoFoto(false); }}
+                />
+              </View>
+            )}
 
-        {/*
-          O TRABALHO CONCLUÍDO, com o número que o servidor manda.
+            {desfechoDaFoto && (
+              <Aviso
+                tom={desfechoDaFoto.tom}
+                peso="leve"
+                titulo={desfechoDaFoto.titulo}
+                acao={{
+                  titulo: "Dispensar",
+                  descricao: "Dispensar o aviso sobre a foto",
+                  onPress: () => { setDesfechoDaFoto(null); },
+                }}
+              >
+                {desfechoDaFoto.texto}
+              </Aviso>
+            )}
+          </Cartao>,
+        )}
 
-          O número era o tamanho da lista, e a lista corta em cinquenta: o agente
-          que assinou 62 vistorias numa temporada de chuva lia "50", e as doze
-          mais antigas não apareciam em lugar nenhum, sem rodapé, sem aviso e sem
-          "ver mais". Se ele precisasse mostrar que vistoriou aquele imóvel em
-          janeiro, a tela AFIRMAVA que ele nunca vistoriou.
-        */}
-        <Cartao>
-          {dados === null ? (
-            atualizando && !desistiuDeEsperar ? (
-              /*
-                A espera mora DENTRO do cartão, e não na tela inteira.
-
-                Enquanto ela era a aba toda, trocar o tema ou sair da conta
-                dependia de uma chamada de rede que nenhuma das duas coisas
-                exige. O `aoDesistir` continua aqui, e esta continua sendo a
-                única espera do aplicativo que oferece a saída de verdade.
-              */
-              <Carregando
-                mensagem="Abrindo o seu trabalho"
-                aoDesistir={() => setDesistiuDeEsperar(true)}
-              />
+        {/* O TRABALHO CONCLUÍDO, com o número que o servidor manda. */}
+        {bloco(
+          <Cartao>
+            {dados === null ? (
+              atualizando && !desistiuDeEsperar ? (
+                <Carregando
+                  mensagem="Abrindo o seu trabalho"
+                  aoDesistir={() => setDesistiuDeEsperar(true)}
+                />
+              ) : (
+                <>
+                  <Vazio
+                    icone={<IconeEquipe cor={tema.textoDiscreto} tamanho={icone.vazio} />}
+                    titulo="O seu trabalho ainda não foi baixado"
+                    descricao={
+                      "Isto precisa de sinal uma vez só. Faça na base, antes de sair, "
+                      + "e depois a sua equipe e as suas vistorias aparecem aqui mesmo "
+                      + "sem conexão."
+                    }
+                  />
+                  <Botao
+                    titulo="Baixar o meu trabalho"
+                    testID="baixar-meu-trabalho"
+                    onPress={() => void buscarNaRede()}
+                    desabilitado={!sinal.temSinal || atualizando}
+                  />
+                  {atualizando && (
+                    <Txt variante="corpoP" discreto alinhamento="center">
+                      Buscando o seu trabalho. Você pode continuar usando as outras
+                      abas.
+                    </Txt>
+                  )}
+                  {!sinal.temSinal && (
+                    <Aviso tom="alerta">
+                      Sem sinal agora. Tente de novo quando a conexão voltar.
+                    </Aviso>
+                  )}
+                </>
+              )
             ) : (
               <>
-                <Vazio
-                  icone={<IconeEquipe cor={tema.textoDiscreto} tamanho={icone.vazio} />}
-                  titulo="O seu trabalho ainda não foi baixado"
-                  descricao={
-                    "Isto precisa de sinal uma vez só. Faça na base, antes de sair, "
-                    + "e depois a sua equipe e as suas vistorias aparecem aqui mesmo "
-                    + "sem conexão."
-                  }
+                <Dado
+                  testID="total-de-concluidas"
+                  valor={String(dados.totalConcluidas)}
+                  rotulo={dados.totalConcluidas === 1
+                    ? "vistoria concluída" : "vistorias concluídas"}
                 />
-                {/*
-                  Um indicador por fato, e o fato aqui é um só: existe uma busca
-                  em voo. Quem conta isso é o texto. O botão não repete a mesma
-                  notícia com uma roda girando dentro dele: ele só fica
-                  desabilitado, que é a outra coisa, e a única que ele tem para
-                  dizer.
-                */}
-                <Botao
-                  titulo="Baixar o meu trabalho"
-                  testID="baixar-meu-trabalho"
-                  onPress={() => void buscarNaRede()}
-                  desabilitado={!sinal.temSinal || atualizando}
-                />
-                {atualizando && (
-                  <Txt variante="corpoP" discreto alinhamento="center">
-                    Buscando o seu trabalho. Você pode continuar usando as outras
-                    abas.
+                {dados.totalConcluidas === 0 ? (
+                  <Txt variante="corpoP" discreto>
+                    Assim que a primeira for enviada e a coordenação receber, ela
+                    aparece aqui com a data.
+                  </Txt>
+                ) : (
+                  <Txt variante="corpoP" discreto>
+                    Todas assinadas por você, desde a primeira. É este número que
+                    vale quando alguém perguntar o que você já entregou.
                   </Txt>
                 )}
-                {!sinal.temSinal && (
-                  <Aviso tom="alerta">
-                    Sem sinal agora. Tente de novo quando a conexão voltar.
-                  </Aviso>
-                )}
               </>
-            )
-          ) : (
-            <>
-              <Dado
-                testID="total-de-concluidas"
-                valor={String(dados.totalConcluidas)}
-                rotulo={dados.totalConcluidas === 1
-                  ? "vistoria concluída" : "vistorias concluídas"}
-              />
-              {dados.totalConcluidas === 0 ? (
-                <Txt variante="corpoP" discreto>
-                  Assim que a primeira for enviada e a coordenação receber, ela
-                  aparece aqui com a data.
-                </Txt>
-              ) : (
-                <Txt variante="corpoP" discreto>
-                  Todas assinadas por você, desde a primeira. É este número que
-                  vale quando alguém perguntar o que você já entregou.
-                </Txt>
-              )}
-            </>
-          )}
-        </Cartao>
+            )}
+          </Cartao>,
+        )}
 
-        {/*
-          A PROVA DE QUE O OFFLINE FUNCIONA, e ela ganhou cartão próprio.
-
-          Esta frase já foi a quinta linha cinza de um bloco de cinco linhas
-          cinzas, e depois virou etiqueta com ícone dentro de cada item da lista.
-          O comentário que a escreveu diz o que ela é: o que "transforma o
-          offline de promessa em prova, para a pessoa que mais precisa acreditar
-          nele". Ela é a única coisa nesta tela que o agente não sabia antes de
-          abrir, e por isso é a única que recebe elevação de destaque.
-
-          Só aparece quando existe: um cartão em destaque dizendo "0 coletadas
-          sem sinal" seria a tela chamando atenção para o nada.
-        */}
-        {semSinalNaLista > 0 && (
+        {/* A PROVA DE QUE O OFFLINE FUNCIONA: só quando existe. */}
+        {semSinalNaLista > 0 && bloco(
           <Cartao nivel="flutuante">
             <Dado
               testID="coletadas-sem-sinal"
@@ -796,116 +858,212 @@ export default function Perfil() {
                 </Txt>
               </View>
             </View>
-            {/*
-              O denominador é dito, e ele não é o total. A marca de "sem sinal"
-              só existe nas vistorias que o aparelho baixou, e quem baixa corta
-              no teto do servidor: afirmar a proporção sobre o total seria
-              inventar um número que ninguém contou.
-            */}
             <Txt variante="legenda" discreto>
               Entre as {concluidas.length} mais recentes que este aparelho baixou.
             </Txt>
-          </Cartao>
-        )}
-
-        {concluidas.length > 0 && (
-          <Cartao titulo="As mais recentes">
-            <View style={{ gap: espaco.e3 }}>
-              {naTela.map((v, posicao) => (
-                <View key={v.id} style={{ gap: espaco.e2 }}>
-                  {/* O fio entre itens existe porque cinco blocos colados de
-                      três linhas cada viram um parágrafo só de longe. */}
-                  {posicao > 0 && <Separador />}
-                  <View style={{ flexDirection: "row", alignItems: "baseline", gap: espaco.e2 }}>
-                    <View style={{ flex: 1 }}>
-                      <Txt variante="corpoP" mono peso={peso.negrito}>{v.protocolo}</Txt>
-                    </View>
-                    <Txt variante="legenda" discreto numeroDeLinhas={1}>
-                      {new Date(v.coletada_em).toLocaleString("pt-BR")}
-                    </Txt>
-                  </View>
-                  <Txt variante="corpo">{ROTULO_TIPO_COBRADE[v.tipo] ?? v.tipo}</Txt>
-                  <Txt variante="legenda" discreto>{v.endereco}</Txt>
-                  {/*
-                    QUEM ASSINOU E COM QUE PRECISÃO, dois campos que o SQL da
-                    rota já trazia e o tipo do aplicativo não declarava, então
-                    eles chegavam no aparelho e eram descartados na fronteira do
-                    TypeScript.
-
-                    Os dois respondem à mesma pergunta, meses depois: o que esta
-                    vistoria prova. O nome responde quem estava na porta; a
-                    precisão separa "o ponto é este" de "o ponto é por aqui", que
-                    é a diferença entre prova de localização e prova de presença.
-                  */}
-                  {(v.assinante_nome !== null || v.gps_precisao_metros !== null) && (
-                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: espaco.e2 }}>
-                      {v.assinante_nome && (
-                        <Chip
-                          peso="leve"
-                          tom="neutro"
-                          texto={`Assinada por ${v.assinante_nome}`}
-                          simbolo={(cor) => <IconeAssinatura cor={cor} tamanho={icone.inline} />}
-                        />
-                      )}
-                      {v.gps_precisao_metros !== null && (
-                        <Chip
-                          peso="leve"
-                          tom="neutro"
-                          texto={`GPS ${Math.round(v.gps_precisao_metros)} m`}
-                          descricao={`Precisão do GPS: ${Math.round(v.gps_precisao_metros)} metros`}
-                          simbolo={(cor) => <IconeGps cor={cor} tamanho={icone.inline} />}
-                        />
-                      )}
-                    </View>
-                  )}
-                  {/*
-                    A etiqueta por item CONTINUA, e não virou redundância do
-                    cartão de destaque lá em cima: ele conta quantas, esta diz
-                    QUAIS. Sem ela, o agente que precisa mostrar aquela vistoria
-                    específica não teria como saber se foi ela que subiu depois.
-                  */}
-                  {foiColetadaSemSinal(v) && (
-                    <Chip
-                      tom="ok"
-                      texto="Coletada sem sinal, enviada depois"
-                      simbolo={(cor) => <IconeSemSinal cor={cor} tamanho={icone.inline} />}
-                    />
-                  )}
-                </View>
-              ))}
-            </View>
-            {/*
-              O RODAPÉ QUE FALTAVA, e ele tem duas frases porque são dois cortes
-              diferentes: um é da tela, o outro é do servidor. Sem o segundo, o
-              agente com 62 vistorias continuaria sem saber que este aparelho só
-              tem as 50 últimas.
-            */}
-            {dados && dados.totalConcluidas > naTela.length && (
-              <Txt variante="legenda" discreto>
-                Mostrando as {naTela.length} mais recentes de {dados.totalConcluidas}.
-                {dados.totalConcluidas > dados.tetoDeConcluidas
-                  ? ` Este aparelho baixou as ${dados.tetoDeConcluidas} últimas;`
-                    + " as anteriores estão no painel da coordenação."
-                  : ""}
-              </Txt>
-            )}
-          </Cartao>
+          </Cartao>,
         )}
       </Grupo>
 
+      {dados && numeros && (
+        <Grupo titulo="Os meus números">
+          {/*
+            UMA PEÇA, UM PROTAGONISTA: cada número no próprio cartão, dois por
+            linha. O "+" diz que o número é um piso, porque a lista que o
+            aparelho baixou é cortada em cinquenta.
+          */}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: espaco.e3 }}>
+            {[
+              {
+                chave: "semana",
+                valor: `${numeros.semana.total}${numeros.semana.piso ? "+" : ""}`,
+                rotulo: "concluídas em 7 dias",
+              },
+              {
+                chave: "mes",
+                valor: `${numeros.mes.total}${numeros.mes.piso ? "+" : ""}`,
+                rotulo: "concluídas em 30 dias",
+              },
+              ...(pendentesHoje === null ? [] : [{
+                chave: "pendentes",
+                valor: String(pendentesHoje),
+                rotulo: pendentesHoje === 1 ? "pendente hoje" : "pendentes hoje",
+              }]),
+              {
+                chave: "devolvidas",
+                valor: String(dados.devolvidasNoMes),
+                rotulo: dados.devolvidasNoMes === 1 ? "devolvida em 30 dias" : "devolvidas em 30 dias",
+              },
+              ...(numeros.tempoMedio === null ? [] : [{
+                chave: "tempo",
+                valor: numeros.tempoMedio.valor,
+                rotulo: `${numeros.tempoMedio.unidade} do despacho à vistoria`,
+              }]),
+            ].map((n) => (
+              <View key={n.chave} style={{ flexGrow: 1, flexBasis: "40%" }}>
+                {bloco(
+                  <Cartao>
+                    <Dado testID={`numero-${n.chave}`} valor={n.valor} rotulo={n.rotulo} />
+                  </Cartao>,
+                )}
+              </View>
+            ))}
+          </View>
+          {(numeros.semana.piso || numeros.mes.piso) && (
+            <Txt variante="legenda" discreto>
+              O "+" quer dizer pelo menos: a conta é feita sobre as {dados.tetoDeConcluidas} mais
+              recentes que este aparelho tem, e pode haver mais no período.
+            </Txt>
+          )}
+
+          {bloco(
+            <Cartao titulo="Últimos 7 dias">
+              <GraficoDeBarras titulo="Últimos 7 dias" barras={numeros.porDia} testID="grafico-da-semana" />
+              <Txt variante="legenda" discreto>
+                Vistorias concluídas por dia, pela data da coleta.
+              </Txt>
+            </Cartao>,
+          )}
+        </Grupo>
+      )}
+
+      {dados && numeros && (
+        <Grupo titulo="Conquistas">
+          {bloco(
+            <Cartao titulo="Selos">
+              <View style={{ flexDirection: "row", gap: espaco.e1 }}>
+                {MARCOS.map((m) => (
+                  <Selo key={m.total} marco={m} conquistado={selos.conquistadas.includes(m)} />
+                ))}
+              </View>
+              {selos.proxima ? (
+                <View style={{ gap: espaco.e2 }}>
+                  <View testID="proximo-selo">
+                    <Txt variante="corpoP" peso={peso.forte}>
+                      {selos.proxima.faltam === 1
+                        ? `Falta 1 para o selo ${selos.proxima.marco.titulo}`
+                        : `Faltam ${selos.proxima.faltam} para o selo ${selos.proxima.marco.titulo}`}
+                    </Txt>
+                  </View>
+                  {/*
+                    A barra de progresso: trilho na superfície, preenchimento
+                    de destaque. Para quem ouve, é um `progressbar` com valor.
+                  */}
+                  <View
+                    accessibilityRole="progressbar"
+                    accessibilityLabel={`Progresso para o selo ${selos.proxima.marco.titulo}`}
+                    accessibilityValue={{
+                      min: 0, max: 100, now: Math.round(selos.proxima.progresso * 100),
+                    }}
+                    style={{
+                      height: espaco.e2,
+                      borderRadius: raio.pilula,
+                      backgroundColor: tema.superficie2,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <View
+                      testID="progresso-do-selo"
+                      style={{
+                        width: `${Math.round(selos.proxima.progresso * 100)}%`,
+                        height: espaco.e2,
+                        borderRadius: raio.pilula,
+                        backgroundColor: tema.destaque,
+                      }}
+                    />
+                  </View>
+                </View>
+              ) : (
+                <Txt variante="corpoP" peso={peso.forte}>
+                  Você alcançou todos os selos. Quinhentas vistorias assinadas.
+                </Txt>
+              )}
+              <Txt variante="legenda" discreto>
+                Os selos contam as vistorias que você concluiu, desde a primeira.
+                Só você os vê.
+              </Txt>
+            </Cartao>,
+          )}
+
+          {bloco(
+            <Cartao titulo="Últimos 6 meses">
+              <GraficoDeBarras titulo="Últimos 6 meses" barras={numeros.porMes} testID="grafico-dos-meses" />
+              <Txt variante="legenda" discreto>
+                {dados.totalConcluidas > dados.tetoDeConcluidas
+                  ? `Contadas entre as ${dados.tetoDeConcluidas} mais recentes que este aparelho baixou.`
+                  : "Vistorias concluídas por mês, pela data da coleta."}
+              </Txt>
+            </Cartao>,
+          )}
+        </Grupo>
+      )}
+
+      {concluidas.length > 0 && (
+        <Grupo titulo="As mais recentes">
+          {bloco(
+            <Cartao>
+              <View style={{ gap: espaco.e3 }}>
+                {naTela.map((v, i) => (
+                  <View key={v.id} style={{ gap: espaco.e2 }}>
+                    {i > 0 && <Separador />}
+                    <View style={{ flexDirection: "row", alignItems: "baseline", gap: espaco.e2 }}>
+                      <View style={{ flex: 1 }}>
+                        <Txt variante="corpoP" mono peso={peso.negrito}>{v.protocolo}</Txt>
+                      </View>
+                      <Txt variante="legenda" discreto numeroDeLinhas={1}>
+                        {new Date(v.coletada_em).toLocaleString("pt-BR")}
+                      </Txt>
+                    </View>
+                    <Txt variante="corpo">{ROTULO_TIPO_COBRADE[v.tipo] ?? v.tipo}</Txt>
+                    <Txt variante="legenda" discreto>{v.endereco}</Txt>
+                    {(v.assinante_nome !== null || v.gps_precisao_metros !== null) && (
+                      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: espaco.e2 }}>
+                        {v.assinante_nome && (
+                          <Chip
+                            peso="leve"
+                            tom="neutro"
+                            texto={`Assinada por ${v.assinante_nome}`}
+                            simbolo={(cor) => <IconeAssinatura cor={cor} tamanho={icone.inline} />}
+                          />
+                        )}
+                        {v.gps_precisao_metros !== null && (
+                          <Chip
+                            peso="leve"
+                            tom="neutro"
+                            texto={`GPS ${Math.round(v.gps_precisao_metros)} m`}
+                            descricao={`Precisão do GPS: ${Math.round(v.gps_precisao_metros)} metros`}
+                            simbolo={(cor) => <IconeGps cor={cor} tamanho={icone.inline} />}
+                          />
+                        )}
+                      </View>
+                    )}
+                    {foiColetadaSemSinal(v) && (
+                      <Chip
+                        tom="ok"
+                        texto="Coletada sem sinal, enviada depois"
+                        simbolo={(cor) => <IconeSemSinal cor={cor} tamanho={icone.inline} />}
+                      />
+                    )}
+                  </View>
+                ))}
+              </View>
+              {dados && dados.totalConcluidas > naTela.length && (
+                <Txt variante="legenda" discreto>
+                  Mostrando as {naTela.length} mais recentes de {dados.totalConcluidas}.
+                  {dados.totalConcluidas > dados.tetoDeConcluidas
+                    ? ` Este aparelho baixou as ${dados.tetoDeConcluidas} últimas;`
+                      + " as anteriores estão no painel da coordenação."
+                    : ""}
+                </Txt>
+              )}
+            </Cartao>,
+          )}
+        </Grupo>
+      )}
+
       {dados && (
         <Grupo titulo="A minha equipe">
-          {dados.equipe === null ? (
-            /*
-              "Você não está em uma equipe" era um cartão com título e dois
-              parágrafos, e NENHUMA ação. O agente lia, concordava, e continuava
-              diante de uma tela que não oferece nada para fazer.
-
-              A ação que existe de verdade é esta: quem acabou de ser incluído
-              numa equipe pelo painel precisa BAIXAR de novo, porque esta tela
-              abre do disco. Sem o botão, o caminho era fechar e reabrir o
-              aplicativo.
-            */
+          {dados.equipe === null ? bloco(
             <Vazio
               icone={<IconeEquipe cor={tema.textoDiscreto} tamanho={icone.vazio} />}
               titulo="Você ainda não está em uma equipe"
@@ -921,23 +1079,9 @@ export default function Perfil() {
                 testID: "procurar-equipe",
                 onPress: () => void buscarNaRede(),
               }}
-            />
-          ) : (
-            // O nome já costuma trazer a palavra "Equipe" (o cadastro do
-            // município chama de "Equipe Alfa"), e prefixar produzia "Equipe
-            // Equipe Alfa".
+            />,
+          ) : bloco(
             <Cartao titulo={dados.equipe.nome}>
-              {/*
-                AS DUAS ETIQUETAS SÃO DE PESO LEVE, e a razão é a R1 da régua.
-
-                A situação da equipe é uma etiqueta PERMANENTE: ela está na tela
-                em todo carregamento, e na esmagadora maioria dos dias ela diz
-                "ativa". Enquanto ela foi pílula verde cheia, o cartão abria com
-                um bloco de cor aceso dizendo que estava tudo normal, e quando a
-                equipe estava inativa a mesma pílula (agora âmbar) competia, no
-                mesmo volume, com o aviso logo abaixo, que é quem explica a
-                consequência e diz o que fazer.
-              */}
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: espaco.e4 }}>
                 <Chip
                   peso="leve"
@@ -965,15 +1109,26 @@ export default function Perfil() {
 
               <Separador />
 
-              {/*
-                A contagem virou o TÍTULO da lista que ela conta, em vez de um
-                par rótulo/valor solto acima dela. Um número e a lista dele
-                separados por um traço horizontal eram duas informações contando
-                a mesma coisa em dois lugares.
-              */}
-              <Txt variante="corpoP" peso={peso.forte}>
-                Integrantes ativos ({colegasAtivos.length})
-              </Txt>
+              <View style={{ flexDirection: "row", alignItems: "baseline", gap: espaco.e2 }}>
+                <View style={{ flex: 1 }}>
+                  <Txt variante="corpoP" peso={peso.forte}>
+                    Integrantes ativos ({colegasAtivos.length})
+                  </Txt>
+                </View>
+                {/*
+                  QUEM ESTÁ EM CAMPO AGORA, pela saída a campo declarada com
+                  sinal. É o que a coordenação vê, reduzido ao que a equipe
+                  precisa: quantos, e quem. Na cópia do disco é "quando este
+                  aparelho baixou", e o rodapé da tela diz quando foi.
+                */}
+                <View testID="em-campo-agora">
+                  <Txt variante="legenda" discreto>
+                    {emCampoAgora === 0
+                      ? "Ninguém em campo agora"
+                      : emCampoAgora === 1 ? "1 em campo agora" : `${emCampoAgora} em campo agora`}
+                  </Txt>
+                </View>
+              </View>
 
               {colegasAtivos.length <= 1 ? (
                 <Txt variante="corpoP" discreto>
@@ -981,484 +1136,320 @@ export default function Perfil() {
                 </Txt>
               ) : (
                 <View style={{ gap: espaco.e3 }}>
-                  {colegasAtivos.map((c) => (
-                    <View
-                      key={c.id}
-                      style={{ flexDirection: "row", alignItems: "center", gap: espaco.e3 }}
-                    >
-                      {/* A inicial dá ritmo vertical à lista: com dez nomes, é o
-                          que deixa achar o colega sem ler tudo. */}
+                  {colegasAtivos.map((c) => {
+                    const coordena = c.papel === "coordenador" || c.papel === "administrador";
+                    return (
                       <View
-                        accessibilityElementsHidden
-                        importantForAccessibility="no-hide-descendants"
-                        style={{
-                          width: espaco.e6,
-                          height: espaco.e6,
-                          borderRadius: raio.pilula,
-                          backgroundColor: tema.superficie2,
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
+                        key={c.id}
+                        testID={`colega-${c.id}`}
+                        style={{ flexDirection: "row", alignItems: "center", gap: espaco.e3 }}
                       >
-                        <Txt variante="corpoP" peso={peso.negrito}>{iniciaisDe(c.nome)}</Txt>
+                        {/*
+                          O coordenador em destaque: avatar maior e nome em
+                          negrito, e primeiro na lista. Quem está em campo leva
+                          o selo, com ícone e palavra, em peso leve: é estado
+                          de agora, não alarme.
+                        */}
+                        <Avatar
+                          nome={c.nome}
+                          fotoUri={c.fotoUrl}
+                          tamanho={coordena ? "medio" : "pequeno"}
+                          testID={`avatar-${c.id}`}
+                        />
+                        <View style={{ flex: 1, gap: espaco.e1 }}>
+                          <Txt
+                            variante="corpo"
+                            peso={c.id === eu || coordena ? peso.negrito : peso.normal}
+                          >
+                            {c.nome}{c.id === eu ? " (você)" : ""}
+                          </Txt>
+                          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: espaco.e2 }}>
+                            <Chip
+                              peso="leve"
+                              tom="neutro"
+                              texto={ROTULO_PAPEL[c.papel]}
+                              simbolo={(cor) => <IconeEquipe cor={cor} tamanho={icone.inline} />}
+                            />
+                            {c.emCampo && (
+                              <Chip
+                                peso="leve"
+                                tom="ok"
+                                texto="Em campo"
+                                descricao={`${c.nome} está em campo agora`}
+                                simbolo={(cor) => <IconeLocalizacao cor={cor} tamanho={icone.inline} />}
+                              />
+                            )}
+                          </View>
+                        </View>
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Txt variante="corpo" peso={c.id === eu ? peso.negrito : peso.normal}>
-                          {c.nome}{c.id === eu ? " (você)" : ""}
-                        </Txt>
-                      </View>
-                      {/*
-                        O papel do colega é RÓTULO, e rótulo repetido em toda
-                        linha de uma lista deixa de ser informação e vira
-                        textura: com dez integrantes eram dez pílulas iguais numa
-                        coluna, cada uma com fundo próprio, competindo com o nome
-                        que está ao lado e que é o que alguém veio ler aqui.
-                      */}
-                      <Chip
-                        peso="leve"
-                        tom="neutro"
-                        texto={ROTULO_PAPEL[c.papel]}
-                        simbolo={(cor) => <IconeEquipe cor={cor} tamanho={icone.inline} />}
-                      />
-                    </View>
-                  ))}
+                    );
+                  })}
                 </View>
               )}
-            </Cartao>
+            </Cartao>,
           )}
         </Grupo>
       )}
 
-      {/*
-        O SINO. Ver o cabeçalho deste arquivo para a decisão de onde ele mora.
-      */}
       <Grupo titulo="O que aconteceu no município">
-        <Cartao titulo="Avisos">
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: espaco.e3 }}>
-            <Chip
-              testID="avisos-por-ler"
-              peso="leve"
-              tom={avisos.naoLidos > 0 ? "alerta" : "neutro"}
-              texto={avisos.naoLidos === 0
-                ? "Nada por ler"
-                : `${avisos.naoLidos}${avisos.naoLidosTruncado ? "+" : ""} por ler`}
-              descricao={avisos.naoLidos === 0
-                ? "Avisos, nenhum por ler"
-                : `Avisos, ${avisos.naoLidosTruncado ? "mais de " : ""}${avisos.naoLidos} por ler`}
-              simbolo={(cor) => (avisos.naoLidos > 0
-                ? <IconeAlerta cor={cor} tamanho={icone.inline} />
-                : <IconeSucesso cor={cor} tamanho={icone.inline} />)}
-            />
-          </View>
-
-          {avisos.itens.length === 0 ? (
-            <Txt variante="corpoP" discreto>
-              {avisos.baixadoEm === null
-                ? "Os avisos do seu município aparecem aqui depois da primeira "
-                  + "atualização com sinal. Eles são o caminho que funciona quando "
-                  + "a notificação não chega."
-                : "Nenhum aviso novo no seu município desde a última atualização."}
-            </Txt>
-          ) : (
-            <View style={{ gap: espaco.e3 }}>
-              {avisosNaTela.map((a, posicao) => {
-                const complemento = complementoDoAviso(a);
-                const severidade = a.tipo === "prazo_vencido" && complemento
-                  ? ROTULO_SEVERIDADE[complemento as Severidade]
-                  : null;
-                const frase = fraseDoAviso(a.tipo);
-                return (
-                  /*
-                    A linha NÃO é tocável, e a ausência é decisão.
-
-                    No painel o aviso leva à ocorrência. Aqui ele levaria a uma
-                    ocorrência que o aparelho pode simplesmente não ter: a lista
-                    de tarefas é despachada para a EQUIPE do agente e vem do
-                    disco, e o sino fala do município inteiro. Um toque que abre
-                    o nada, sem sinal, é pior que um toque que não existe.
-                  */
-                  <View
-                    key={a.id}
-                    accessible
-                    accessibilityLabel={
-                      `${frase}, protocolo ${a.protocolo}`
-                      + (severidade ? `, severidade ${severidade.toLowerCase()}` : "")
-                      + (!severidade && complemento ? `, ${complemento}` : "")
-                      + (a.lido ? ", lido" : ", por ler")
-                    }
-                    style={{ gap: espaco.e2 }}
-                  >
-                    {posicao > 0 && <Separador />}
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e3 }}>
-                      <View
-                        accessibilityElementsHidden
-                        importantForAccessibility="no-hide-descendants"
-                        style={{ width: icone.rotulo, alignItems: "center" }}
-                      >
-                        <DesenhoDoAviso
-                          tipo={a.tipo}
-                          cor={a.lido ? tema.textoDiscreto : tema.texto}
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        {/*
-                          O PESO é quem diz "por ler", e não a cor: a régua da
-                          casa proíbe comunicar estado só por cor, e um selo por
-                          linha em oito linhas seria textura. Para quem ouve a
-                          tela, o rótulo do invólucro diz a palavra.
-                        */}
-                        <Txt
-                          variante="corpoP"
-                          peso={a.lido ? peso.normal : peso.negrito}
-                          discreto={a.lido}
-                        >
-                          {frase}
-                        </Txt>
-                      </View>
-                      <Txt variante="legenda" discreto numeroDeLinhas={1}>
-                        {idadeEmPalavras(new Date(a.criadoEm), agora)}
-                      </Txt>
-                    </View>
-                    <View style={{ flexDirection: "row", alignItems: "baseline", gap: espaco.e2 }}>
-                      <Txt variante="legenda" discreto mono>{a.protocolo}</Txt>
-                      {(severidade !== null || complemento !== null) && (
-                        <Txt variante="legenda" discreto>
-                          {severidade ? `Severidade ${severidade.toLowerCase()}` : complemento}
-                        </Txt>
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
-              {cortados > 0 && (
-                <>
-                  <Txt variante="legenda" discreto>
-                    Mostrando os {avisosNaTela.length} mais recentes de{" "}
-                    {avisos.itens.length} guardados neste aparelho.
-                  </Txt>
-                  {/*
-                    O corte precisa de saída, e ela é um botão e não um rodapé.
-                    A lista mostra sempre os mais novos: sem isto, um aviso que
-                    caiu abaixo do oitavo nunca mais volta a aparecer, e o
-                    número do crachá contaria por ler algo que não há como ler.
-                  */}
-                  <Botao
-                    titulo={cortados === 1
-                      ? "Ver o outro aviso guardado"
-                      : `Ver os outros ${cortados} avisos guardados`}
-                    tipo="secundario"
-                    testID="ver-todos-os-avisos"
-                    descricao={cortados === 1
-                      ? "Mostrar o aviso que ficou fora da lista"
-                      : `Mostrar os ${cortados} avisos que ficaram fora da lista`}
-                    onPress={() => { setVerTodosOsAvisos(true); }}
-                  />
-                </>
-              )}
-            </View>
-          )}
-
-          {porLer.length > 0 && (
+        {/*
+          O SINO MORA EM TELA PRÓPRIA AGORA (`avisos.tsx`, com o ícone na
+          barra). O que fica aqui é o caminho até ela, para quem procura os
+          avisos no perfil, que foi onde eles moraram até hoje.
+        */}
+        {bloco(
+          <Cartao>
             <Botao
-              titulo="Marcar como lidos"
+              titulo="Ver avisos"
               tipo="secundario"
-              testID="marcar-avisos-lidos"
-              descricao={`Marcar como lidos os ${porLer.length} avisos que estão nesta tela`}
-              onPress={() => void (async () => {
-                /*
-                  Marca no APARELHO primeiro, e o envio é consequência.
-
-                  Sem isso, quem lê os avisos no morro e sai da tela encontra
-                  tudo por ler de novo na descida, e a próxima sincronização
-                  ainda apagaria a leitura com o `lido: false` do servidor. Ver
-                  `lidosPendentes` em `dados/avisos.ts`.
-                */
-                setAvisos(await marcarAvisosComoLidosNoAparelho(porLer));
-              })()}
+              testID="ver-avisos"
+              descricao="Abrir a lista de avisos do município"
+              icone={(cor) => <IconeInformacao cor={cor} tamanho={icone.acao} />}
+              onPress={() => { router.push("/(agente)/avisos"); }}
             />
-          )}
-
-          <Txt variante="legenda" discreto>
-            {avisos.baixadoEm === null
-              ? "Nunca atualizado neste aparelho."
-              : `Atualizado ${idadeEmPalavras(new Date(avisos.baixadoEm), agora)}.`}
-            {" "}O sino precisa de sinal: sem conexão ele mostra o que já estava
-            guardado aqui.
-          </Txt>
-        </Cartao>
+            <Txt variante="legenda" discreto>
+              Vistoria recebida, prazo vencido, órgão que respondeu. É o canal
+              que funciona quando a notificação não chega.
+            </Txt>
+          </Cartao>,
+        )}
       </Grupo>
 
-      <Grupo titulo="Este aparelho">
-        {/* ESTADO. O que muda sozinho, alinhado numa coluna para se conferir de
-            relance, mais a ficha técnica do binário depois do separador. */}
-        <Cartao>
-          <LinhaDeEstado
-            rotulo="Conexão agora"
-            desenho={sinal.temSinal
-              ? <IconeSinal cor={tema.textoDiscreto} tamanho={icone.rotulo} />
-              : <IconeSemSinal cor={tema.textoDiscreto} tamanho={icone.rotulo} />}
-          >
-            <Txt variante="corpoP" peso={peso.forte}>
-              {sinal.temSinal
-                ? `Com sinal${sinal.tipo ? `, por ${sinal.tipo}` : ""}`
-                : "Sem sinal"}
-            </Txt>
-          </LinhaDeEstado>
+      <Grupo titulo="Ajustes">
+        {bloco(
+          <Cartao>
+            <CabecalhoDeAjuste
+              desenho={(cor) => <IconeSinal cor={cor} tamanho={icone.acao} />}
+              titulo="Este aparelho"
+              apoio="O que muda sozinho, para conferir de relance."
+            />
+            <LinhaDeEstado
+              rotulo="Conexão agora"
+              desenho={sinal.temSinal
+                ? <IconeSinal cor={tema.textoDiscreto} tamanho={icone.rotulo} />
+                : <IconeSemSinal cor={tema.textoDiscreto} tamanho={icone.rotulo} />}
+            >
+              <Txt variante="corpoP" peso={peso.forte}>
+                {sinal.temSinal
+                  ? `Com sinal${sinal.tipo ? `, por ${sinal.tipo}` : ""}`
+                  : "Sem sinal"}
+              </Txt>
+            </LinhaDeEstado>
 
-          <LinhaDeEstado
-            rotulo="Coletas esperando envio"
-            desenho={<IconeEnvio cor={tema.textoDiscreto} tamanho={icone.rotulo} />}
-          >
-            {pendentes === null ? (
-              /*
-                O único indicador de carregamento da tela era a palavra
-                "conferindo" em corpo normal, no meio de uma coluna de valores:
-                indistinguível de um valor que fosse mesmo "conferindo". Agora
-                quem diz que há uma leitura em voo é um indicador de verdade, com
-                nome falado, e a palavra fica ao lado dele.
-              */
-              <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
-                <ActivityIndicator
-                  testID="conferindo-coletas"
-                  accessibilityRole="progressbar"
-                  accessibilityLabel="Conferindo as coletas guardadas neste aparelho"
-                  color={tema.destaque}
+            <LinhaDeEstado
+              rotulo="Coletas esperando envio"
+              desenho={<IconeEnvio cor={tema.textoDiscreto} tamanho={icone.rotulo} />}
+            >
+              {pendentes === null ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
+                  <ActivityIndicator
+                    testID="conferindo-coletas"
+                    accessibilityRole="progressbar"
+                    accessibilityLabel="Conferindo as coletas guardadas neste aparelho"
+                    color={tema.destaque}
+                  />
+                  <Txt variante="corpoP" discreto>Conferindo</Txt>
+                </View>
+              ) : pendentes === 0 ? (
+                <Txt variante="corpoP" peso={peso.forte}>Nenhuma</Txt>
+              ) : (
+                <Chip
+                  testID="coletas-esperando"
+                  texto={`${pendentes} esperando`}
+                  simbolo="↑"
+                  tom="alerta"
+                  descricao={`${pendentes} ${pendentes === 1 ? "coleta espera" : "coletas esperam"} sinal para serem enviadas`}
                 />
-                <Txt variante="corpoP" discreto>Conferindo</Txt>
-              </View>
-            ) : pendentes === 0 ? (
-              <Txt variante="corpoP" peso={peso.forte}>Nenhuma</Txt>
-            ) : (
-              <Chip
-                testID="coletas-esperando"
-                texto={`${pendentes} esperando`}
-                simbolo="↑"
-                tom="alerta"
-                descricao={`${pendentes} ${pendentes === 1 ? "coleta espera" : "coletas esperam"} sinal para serem enviadas`}
+              )}
+            </LinhaDeEstado>
+
+            <Separador />
+
+            <LinhaDeEstado rotulo="Versão do aplicativo">
+              <Txt variante="corpoP" mono>{versao}</Txt>
+            </LinhaDeEstado>
+            <LinhaDeEstado rotulo="Servidor">
+              <Txt variante="corpoP" mono>{enderecoDaApi()}</Txt>
+            </LinhaDeEstado>
+          </Cartao>,
+        )}
+
+        {bloco(
+          <Cartao>
+            <CabecalhoDeAjuste
+              desenho={(cor) => <IconeAparelho cor={cor} tamanho={icone.acao} />}
+              titulo="Aparência"
+              apoio="A tela clara se lê melhor com sol, e a escura cansa menos no plantão da noite."
+            />
+            <View
+              accessibilityRole="radiogroup"
+              accessibilityLabel="Tema da tela"
+              style={{ gap: espaco.e2 }}
+            >
+              <OpcaoDeTema
+                valor="sistema"
+                rotulo="Acompanhar o sistema"
+                detalhe={escolhaDeTema.doSistema === "claro"
+                  ? "O sistema está no modo claro agora"
+                  : "O sistema está no modo escuro agora"}
+                escolhida={escolhaDeTema.preferencia === "sistema"}
+                aoEscolher={escolhaDeTema.escolher}
+              />
+              <OpcaoDeTema
+                valor="claro"
+                rotulo="Sempre claro"
+                escolhida={escolhaDeTema.preferencia === "claro"}
+                aoEscolher={escolhaDeTema.escolher}
+              />
+              <OpcaoDeTema
+                valor="escuro"
+                rotulo="Sempre escuro"
+                escolhida={escolhaDeTema.preferencia === "escuro"}
+                aoEscolher={escolhaDeTema.escolher}
+              />
+            </View>
+            <Txt variante="corpoP" discreto>
+              A escolha vale só neste aparelho e continua valendo depois de sair da
+              conta.
+            </Txt>
+          </Cartao>,
+        )}
+
+        {bloco(
+          <Cartao>
+            <CabecalhoDeAjuste
+              desenho={(cor) => <IconeAlerta cor={cor} tamanho={icone.acao} />}
+              titulo="Notificação"
+              apoio="O aviso de tarefa nova e de prazo vencendo, na tela bloqueada."
+            />
+            <LinhaDeEstado
+              rotulo="Notificação de tarefa e de prazo"
+              desenho={<IconeAparelho cor={tema.textoDiscreto} tamanho={icone.rotulo} />}
+            >
+              <Chip texto={frases.titulo} simbolo={selo.simbolo} tom={selo.tom} peso="leve" />
+            </LinhaDeEstado>
+            <Txt variante="corpoP" discreto>{frases.texto}</Txt>
+
+            {push.permissao === "nao_perguntada" && (
+              <Botao
+                titulo={acaoDeAviso === "permissao" ? "Perguntando ao sistema" : "Ligar os avisos"}
+                tipo="secundario"
+                carregando={acaoDeAviso === "permissao"}
+                desabilitado={acaoDeAviso !== null}
+                onPress={() => void (async () => {
+                  setAcaoDeAviso("permissao");
+                  try {
+                    await push.pedirPermissao();
+                  } finally {
+                    setAcaoDeAviso(null);
+                    setPediuPermissaoAgora(true);
+                  }
+                })()}
               />
             )}
-          </LinhaDeEstado>
 
-          <Separador />
+            {ofereceAjustes(push.permissao) && (
+              <Botao
+                titulo={acaoDeAviso === "ajustes" ? "Abrindo os ajustes" : "Abrir os ajustes do aparelho"}
+                tipo="secundario"
+                descricao="Abrir os ajustes do sistema para ligar as notificações deste aplicativo"
+                carregando={acaoDeAviso === "ajustes"}
+                desabilitado={acaoDeAviso !== null}
+                onPress={() => void (async () => {
+                  setAcaoDeAviso("ajustes");
+                  try {
+                    await push.abrirAjustes();
+                  } finally {
+                    setAcaoDeAviso(null);
+                    setAbriuOsAjustes(true);
+                  }
+                })()}
+              />
+            )}
 
-          <LinhaDeEstado rotulo="Versão do aplicativo">
-            <Txt variante="corpoP" mono>{versao}</Txt>
-          </LinhaDeEstado>
-          {/* Qual servidor este binário conversa. Sem isto, descobrir que o
-              aparelho ficou em homologação exige abrir o código. */}
-          <LinhaDeEstado rotulo="Servidor">
-            <Txt variante="corpoP" mono>{enderecoDaApi()}</Txt>
-          </LinhaDeEstado>
-        </Cartao>
+            {desfechoDoPedido && (
+              <Aviso tom={desfechoDoPedido.tom} peso="leve" titulo={desfechoDoPedido.titulo}>
+                {desfechoDoPedido.texto}
+              </Aviso>
+            )}
 
-        {/*
-          A APARÊNCIA, e por que ela é um cartão próprio.
+            {abriuOsAjustes && (
+              <Aviso tom="info" titulo="Os ajustes foram abertos">
+                Se você ligou a notificação por lá, é só voltar para cá: o estado
+                acima se atualiza sozinho.
+              </Aviso>
+            )}
 
-          Esta tela tem duas naturezas: identidade (quem assina o laudo, não
-          muda, não pede nada) e estado (o que muda sozinho e se confere de
-          relance). A escolha de tema não é nenhuma das duas, e encaixá-la à
-          força numa delas estragaria a separação que foi cara de conseguir:
+            {push.registro === "push_desligado" && (
+              <Aviso tom="info">
+                A prefeitura ainda não ligou o envio de aviso neste servidor. As
+                tarefas continuam aparecendo quando você abre o aplicativo, e o
+                que aconteceu no município continua aparecendo em Avisos.
+              </Aviso>
+            )}
+            {push.registro === "falhou" && (
+              <Aviso tom="alerta">
+                Não deu para registrar este aparelho para receber aviso. Entre de
+                novo com sinal, e avise a coordenação se continuar assim.
+              </Aviso>
+            )}
+          </Cartao>,
+        )}
 
-          - Em IDENTIDADE ela prometeria o que não cumpre. Identidade é da
-            pessoa e viaja com ela para qualquer aparelho onde a conta abrir; o
-            tema fica neste telefone. No aparelho de plantão compartilhado a
-            diferença é concreta: quem escolheu claro aqui não escolheu claro no
-            aparelho do colega.
-          - No cartão de estado ela seria um controle no meio de uma coluna de
-            valores que só se leem, e é justamente aquele alinhamento que faz
-            três linhas se conferirem de relance. Um tocável de 52 pontos no meio
-            dele ou parece mais um valor (e ninguém descobre que dá para tocar),
-            ou desmancha o alinhamento das outras linhas.
-        */}
-        <Cartao titulo="Aparência">
-          <Txt variante="corpoP" discreto>
-            A tela clara se lê melhor com sol batendo nela, e a escura cansa menos
-            no plantão da noite. O sistema decide pelo horário, que nem sempre é o
-            que você está vendo.
-          </Txt>
-          {/* `radiogroup` junta as três para o leitor de tela, que passa a
-              anunciar "1 de 3" em vez de três controles soltos e sem relação. */}
-          <View
-            accessibilityRole="radiogroup"
-            accessibilityLabel="Tema da tela"
-            style={{ gap: espaco.e2 }}
-          >
-            <OpcaoDeTema
-              valor="sistema"
-              rotulo="Acompanhar o sistema"
-              /*
-                O detalhe diz no que a opção DÁ agora. Sem ele, "acompanhar o
-                sistema" é a única das três que não mostra o próprio resultado, e
-                quem está decidindo teria que sair dos ajustes do telefone para
-                descobrir o que escolheu.
-              */
-              detalhe={escolhaDeTema.doSistema === "claro"
-                ? "O sistema está no modo claro agora"
-                : "O sistema está no modo escuro agora"}
-              escolhida={escolhaDeTema.preferencia === "sistema"}
-              aoEscolher={escolhaDeTema.escolher}
+        {bloco(
+          <Cartao>
+            <CabecalhoDeAjuste
+              desenho={(cor) => <IconeAssinatura cor={cor} tamanho={icone.acao} />}
+              titulo="Conta"
+              apoio="Quem assina o laudo, e como entrar de novo."
             />
-            <OpcaoDeTema
-              valor="claro"
-              rotulo="Sempre claro"
-              escolhida={escolhaDeTema.preferencia === "claro"}
-              aoEscolher={escolhaDeTema.escolher}
-            />
-            <OpcaoDeTema
-              valor="escuro"
-              rotulo="Sempre escuro"
-              escolhida={escolhaDeTema.preferencia === "escuro"}
-              aoEscolher={escolhaDeTema.escolher}
-            />
-          </View>
-          <Txt variante="corpoP" discreto>
-            A escolha vale só neste aparelho e continua valendo depois de sair da
-            conta.
-          </Txt>
-        </Cartao>
-
-        {/*
-          Os avisos, e o caminho de volta para quem já recusou.
-
-          Este cartão existe por causa de uma característica do iOS que não tem
-          conserto pelo código: a caixa de permissão do sistema aparece UMA vez
-          por instalação, e depois de um "não" ela nunca mais abre. Quem recusou
-          fica sem aviso de prazo para sempre, e nada na tela dizia isso: nem o
-          agente, nem a coordenação, nem o servidor tinham como saber, porque a
-          entrega continua sendo bem sucedida do lado de lá.
-
-          Ele fica logo abaixo do sino de propósito: um diz o que passou pelo
-          canal, o outro diz se o canal funciona, e "não recebi aviso nenhum" se
-          responde olhando os dois.
-        */}
-        <Cartao titulo="Notificação">
-          <LinhaDeEstado
-            rotulo="Notificação de tarefa e de prazo"
-            desenho={<IconeAparelho cor={tema.textoDiscreto} tamanho={icone.rotulo} />}
-          >
-            {/*
-              PESO LEVE, pela régua de densidade (`src/ui/regua.ts`, R1 e R2).
-
-              Este cartão empilhava três blocos preenchidos: este chip, o aviso
-              do desfecho do último pedido e o aviso de falha no registro. Pela
-              régua, na disputa ganha o mais alto, e aqui é o AVISO DE FALHA: ele
-              é o único dos três que diz que alguma coisa quebrou.
-            */}
-            <Chip texto={frases.titulo} simbolo={selo.simbolo} tom={selo.tom} peso="leve" />
-          </LinhaDeEstado>
-          <Txt variante="corpoP" discreto>{frases.texto}</Txt>
-
-          {/*
-            Os dois botões chamam o SISTEMA, e a tela não mudava nada ao fazer
-            isso: nem enquanto a chamada estava em voo, nem depois que ela
-            voltou. Um toque sem consequência visível é um toque que a pessoa
-            repete.
-          */}
-          {push.permissao === "nao_perguntada" && (
+            {email && (
+              <LinhaDeEstado rotulo="Email">
+                <Txt variante="corpoP" peso={peso.forte} numeroDeLinhas={1}>{email}</Txt>
+              </LinhaDeEstado>
+            )}
+            <LinhaDeEstado rotulo="Matrícula">
+              <Txt variante="corpoP" mono peso={peso.forte}>{identidade.matricula}</Txt>
+            </LinhaDeEstado>
+            <LinhaDeEstado rotulo="Senha">
+              <Txt variante="corpoP" peso={peso.forte}>Trocada no painel</Txt>
+            </LinhaDeEstado>
             <Botao
-              titulo={acaoDeAviso === "permissao" ? "Perguntando ao sistema" : "Ligar os avisos"}
-              tipo="secundario"
-              carregando={acaoDeAviso === "permissao"}
-              desabilitado={acaoDeAviso !== null}
-              onPress={() => void (async () => {
-                setAcaoDeAviso("permissao");
-                try {
-                  await push.pedirPermissao();
-                } finally {
-                  setAcaoDeAviso(null);
-                  setPediuPermissaoAgora(true);
-                }
-              })()}
+              titulo={porQueASenha ? "Ocultar a explicação" : "Por que não aqui?"}
+              tipo="discreto"
+              testID="por-que-a-senha"
+              descricao="Por que a troca de senha não é feita no aplicativo"
+              estilo={{ alignSelf: "flex-start", paddingHorizontal: 0 }}
+              onPress={() => { setPorQueASenha((v) => !v); }}
             />
-          )}
+            {porQueASenha && (
+              <Txt variante="corpoP" discreto>
+                A troca é feita no painel da coordenação, pelo navegador, em "Minha
+                conta". Aqui no aparelho ela não é oferecida de propósito: trocar a
+                senha encerra as outras sessões, e fazer isso no meio de uma
+                vistoria deixaria a fila sem conseguir enviar.
+              </Txt>
+            )}
 
-          {ofereceAjustes(push.permissao) && (
+            <Separador />
+
+            {pendentes !== null && pendentes > 0 && (
+              <Aviso tom="alerta" titulo="Espere a fila esvaziar antes de sair">
+                Procure sinal e espere a fila esvaziar. Enquanto você estiver fora da
+                conta, estas coletas não são enviadas, nem por quem entrar depois
+                neste aparelho.
+              </Aviso>
+            )}
+
             <Botao
-              titulo={acaoDeAviso === "ajustes" ? "Abrindo os ajustes" : "Abrir os ajustes do aparelho"}
-              tipo="secundario"
-              descricao="Abrir os ajustes do sistema para ligar as notificações deste aplicativo"
-              carregando={acaoDeAviso === "ajustes"}
-              desabilitado={acaoDeAviso !== null}
-              onPress={() => void (async () => {
-                setAcaoDeAviso("ajustes");
-                try {
-                  await push.abrirAjustes();
-                } finally {
-                  setAcaoDeAviso(null);
-                  setAbriuOsAjustes(true);
-                }
-              })()}
+              titulo="Sair da conta"
+              tipo="perigo"
+              onPress={() => { setPerguntandoSaida(true); }}
             />
-          )}
-
-          {/* Leve pela mesma régua: confirmação de um toque que acabou de
-              acontecer. O tom `perigo` não alevia sozinho, e está certo, porque
-              aí o pedido falhou de verdade. */}
-          {desfechoDoPedido && (
-            <Aviso tom={desfechoDoPedido.tom} peso="leve" titulo={desfechoDoPedido.titulo}>
-              {desfechoDoPedido.texto}
-            </Aviso>
-          )}
-
-          {/*
-            A frase daqui era um contorno, e o contorno saiu junto com o defeito.
-
-            Ela dizia "feche e abra este aplicativo de novo para ele perceber", e
-            era verdade: o provedor de notificação lia a permissão na montagem e
-            na troca de sessão, e nunca na volta do segundo plano. Hoje
-            `ProvedorDePush` escuta `AppState` e relê a permissão ao voltar,
-            registrando a ficha que faltava. Ver
-            `src/push/volta-do-segundo-plano.test.tsx`.
-          */}
-          {abriuOsAjustes && (
-            <Aviso tom="info" titulo="Os ajustes foram abertos">
-              Se você ligou a notificação por lá, é só voltar para cá: o estado
-              acima se atualiza sozinho.
-            </Aviso>
-          )}
-
-          {/*
-            Push desligado no servidor não é defeito e não pode alarmar: o agente
-            não tem o que fazer a respeito. A frase existe para ele não passar a
-            semana achando que o aparelho dele está quebrado, e ela aponta para o
-            sino, que é o canal que continua funcionando.
-          */}
-          {push.registro === "push_desligado" && (
-            <Aviso tom="info">
-              A prefeitura ainda não ligou o envio de aviso neste servidor. As
-              tarefas continuam aparecendo quando você abre o aplicativo, e o
-              que aconteceu no município continua aparecendo em Avisos, acima.
-            </Aviso>
-          )}
-          {push.registro === "falhou" && (
-            <Aviso tom="alerta">
-              Não deu para registrar este aparelho para receber aviso. Entre de
-              novo com sinal, e avise a coordenação se continuar assim.
-            </Aviso>
-          )}
-        </Cartao>
+          </Cartao>,
+        )}
       </Grupo>
 
-      {pendentes !== null && pendentes > 0 && (
-        <Aviso tom="alerta" titulo="Espere a fila esvaziar antes de sair">
-          Procure sinal e espere a fila esvaziar. Enquanto você estiver fora da
-          conta, estas coletas não são enviadas, nem por quem entrar depois
-          neste aparelho.
-        </Aviso>
-      )}
-
-      <Botao
-        titulo="Sair da conta"
-        tipo="perigo"
-        onPress={() => { setPerguntandoSaida(true); }}
-      />
-
-      {/*
-        A busca em voo aparece aqui, em palavras, e no RefreshControl lá em
-        cima. O RefreshControl sozinho não bastaria: ele só desenha enquanto o
-        dedo segura a tela, e a atualização que acontece sozinha na abertura
-        não teria indicador nenhum.
-      */}
       <Txt variante="legenda" discreto alinhamento="center">
         Atualizado {idadeEmPalavras(baixadoEm ? new Date(baixadoEm) : null, agora)}
         {atualizando ? " (buscando)" : ""}
@@ -1468,11 +1459,6 @@ export default function Perfil() {
         aberto={perguntandoSaida}
         titulo="Sair da conta?"
         texto={avisoDaSaida}
-        /*
-          O rótulo repete o verbo. "OK" aqui responderia à pergunta do título
-          sem dizer o que acontece com as coletas que estão no aparelho, e é
-          exatamente essa a dúvida de quem está lendo isto no fim do plantão.
-        */
         acao={{
           rotulo: "Sair da conta",
           destrutiva: true,
@@ -1483,6 +1469,20 @@ export default function Perfil() {
         }}
         recusa={{ rotulo: "Continuar conectado" }}
         aoFechar={() => { setPerguntandoSaida(false); }}
+      />
+
+      <Dialogo
+        aberto={perguntandoRemocao}
+        titulo="Remover a foto de perfil?"
+        texto="A foto sai do servidor e deste aparelho, e o seu nome volta a aparecer com as iniciais. Você pode adicionar outra quando quiser."
+        testID="dialogo-remover-foto"
+        acao={{
+          rotulo: "Remover a foto",
+          destrutiva: true,
+          aoTocar: () => void removerFoto(),
+        }}
+        recusa={{ rotulo: "Manter a foto" }}
+        aoFechar={() => { setPerguntandoRemocao(false); }}
       />
     </ScrollView>
   );

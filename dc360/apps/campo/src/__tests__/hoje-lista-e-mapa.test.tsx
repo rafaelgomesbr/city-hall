@@ -29,9 +29,10 @@
  * vira ROTA no Expo.
  */
 
+import { StyleSheet } from "react-native";
 import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
 import type { Pendencia } from "../dados/api";
-import { toque } from "../ui/tokens";
+import { temaEscuro, toque } from "../ui/tokens";
 
 jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
   __esModule: true, default: () => "dark",
@@ -283,8 +284,10 @@ describe("a lista e o mapa são a mesma lista", () => {
     ];
     await abrirALista();
 
+    /* Ancorado no CARTÃO: a sugerida carrega também o convite, que se anuncia
+       como "Abrir a vistoria sugerida", e é o cartão que precisa dizer o prazo. */
     const naLista = within(screen.getByTestId("cartao-vencida"))
-      .getByLabelText(/Abrir a vistoria/).props.accessibilityLabel as string;
+      .getByLabelText(/^Abrir a vistoria do protocolo/).props.accessibilityLabel as string;
     expect(naLista).toContain("Vencido há 5h");
 
     await eNoMapa();
@@ -308,7 +311,7 @@ describe("a lista e o mapa são a mesma lista", () => {
     await abrirALista();
 
     const naLista = within(screen.getByTestId("cartao-critica"))
-      .getByLabelText(/Abrir a vistoria/).props.accessibilityLabel as string;
+      .getByLabelText(/^Abrir a vistoria do protocolo/).props.accessibilityLabel as string;
 
     expect(naLista).toContain("Comece por aqui");
     expect(naLista).toContain("Severidade crítica");
@@ -430,6 +433,39 @@ describe("a ordem do dia aparece como a primeira da lista, e não como um bloco 
     expect(screen.getAllByTestId("comece-por-aqui")).toHaveLength(1);
     expect(within(screen.getByTestId("cartao-critica")).getByTestId("comece-por-aqui")).toBeTruthy();
     expect(within(screen.getByTestId("cartao-vencida")).queryByTestId("comece-por-aqui")).toBeNull();
+  });
+
+  /*
+    O ROXO DE VOLTA, na letra de quem paga: "você apagou o botão roxo que eu
+    disse que tava bonito da aba de tarefas".
+
+    O botão era "Abrir a vistoria", no rodapé da folha do mapa dentro desta
+    aba, e migrou para a aba Mapa quando o mapa virou tela própria. Com a lista
+    cheia, Tarefas ficou sem nenhum botão primário. Ele volta no cartão da
+    sugerida, como CONVITE: o cartão continua abrindo por toque, e o botão faz
+    exatamente a mesma navegação, para quem não sabe que cartão se toca.
+  */
+  it("a sugerida carrega o convite em roxo: 'Abrir a vistoria', e só ela", async () => {
+    await abrirALista();
+
+    const convite = within(screen.getByTestId("cartao-critica")).getByTestId("abrir-a-vistoria-critica");
+    expect(StyleSheet.flatten(convite.props.style).backgroundColor).toBe(temaEscuro.destaque);
+    expect(within(screen.getByTestId("cartao-vencida")).queryByTestId("abrir-a-vistoria-vencida")).toBeNull();
+  });
+
+  it("o convite abre o mesmo lugar que o toque no cartão", async () => {
+    await abrirALista();
+    const cartao = screen.getByTestId("cartao-critica");
+
+    await act(async () => { fireEvent.press(within(cartao).getByTestId("abrir-a-vistoria-critica")); });
+    const peloConvite = mockEmpurrar.mock.calls.at(-1);
+    expect(peloConvite).toEqual([{ pathname: "/(agente)/vistoria/[id]", params: { id: "critica" } }]);
+
+    mockEmpurrar.mockClear();
+    await act(async () => {
+      fireEvent.press(within(cartao).getByLabelText(/^Abrir a vistoria do protocolo/));
+    });
+    expect(mockEmpurrar.mock.calls.at(-1)).toEqual(peloConvite);
   });
 
 

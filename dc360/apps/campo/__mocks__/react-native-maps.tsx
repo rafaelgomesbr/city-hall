@@ -64,12 +64,22 @@ export const mapaDublado: {
    * certos é a diferença entre o agente subir o morro certo e o errado.
    */
   marcadores: PropsDoMapaDublado[];
-} = { props: null, onMapLoaded: null, marcadores: [] };
+  /**
+   * O que cada linha desenhada recebeu, na ordem em que foi montada.
+   *
+   * Pelo mesmo motivo dos marcadores: a linha do caminho carrega DADO (os
+   * pontos que vieram da API, decodificados), e a diferença entre uma linha
+   * com os pontos certos e uma com os pontos trocados é o agente entrando na
+   * rua errada com o mapa dizendo que é a certa.
+   */
+  polilinhas: PropsDoMapaDublado[];
+} = { props: null, onMapLoaded: null, marcadores: [], polilinhas: [] };
 
 export function limparMapaDublado(): void {
   mapaDublado.props = null;
   mapaDublado.onMapLoaded = null;
   mapaDublado.marcadores = [];
+  mapaDublado.polilinhas = [];
 }
 
 function MapView(props: PropsDoMapaDublado) {
@@ -85,6 +95,7 @@ function MapView(props: PropsDoMapaDublado) {
     mediria o número de renderizações.
   */
   mapaDublado.marcadores = [];
+  mapaDublado.polilinhas = [];
   /*
     `createElement` e não `View(props)`: no ambiente do jest o `View` é uma
     CLASSE, e chamá-la como função morre com "Cannot call a class as a
@@ -99,11 +110,31 @@ function MapView(props: PropsDoMapaDublado) {
    o teste poder conferir qual tarefa está em qual ponto e o que o toque nela
    faz. Um `View` a mais na árvore só poluiria as consultas das telas. */
 export function Marker(props: PropsDoMapaDublado): null {
-  mapaDublado.marcadores.push(props);
+  /*
+    Um registro por `identifier`, e o que vale é o ÚLTIMO desenho.
+
+    O marcador re-renderiza sozinho, sem o mapa: é o que acontece quando
+    `tracksViewChanges` desliga por relógio dentro dele. O mapa só zera a lista
+    quando ELE renderiza, então sem esta troca o mesmo pino apareceria duas
+    vezes, e um caso que lê `tracksViewChanges` encontraria primeiro a versão
+    velha, ainda ligada, e daria verde para um pino que na verdade já congelou
+    (ou vermelho para um que ainda não).
+  */
+  const id = props["identifier"];
+  const posicao = id === undefined
+    ? -1
+    : mapaDublado.marcadores.findIndex((m) => m["identifier"] === id);
+  if (posicao >= 0) mapaDublado.marcadores[posicao] = props;
+  else mapaDublado.marcadores.push(props);
   return null;
 }
 export function Callout(): null { return null; }
-export function Polyline(): null { return null; }
+/* A linha do caminho, registrada como o marcador: quem desenha é o SDK, e o
+   que se confere aqui são os pontos e a cor que chegaram a ela. */
+export function Polyline(props: PropsDoMapaDublado): null {
+  mapaDublado.polilinhas.push(props);
+  return null;
+}
 export function Circle(): null { return null; }
 
 export default MapView;

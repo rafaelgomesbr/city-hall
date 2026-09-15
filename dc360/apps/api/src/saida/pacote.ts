@@ -264,6 +264,13 @@ type LinhaEvidencia = {
   ordem: number;
 };
 
+/** A foto de perfil de um servidor, como sai do cadastro. */
+type LinhaFotoDeServidor = {
+  matricula: string;
+  nome: string;
+  foto_chave: string;
+};
+
 /** Uma linha do índice: é ela que liga protocolo a pasta, documento e CSV. */
 type ItemDoIndice = {
   protocolo: string;
@@ -517,6 +524,21 @@ export async function* montarPacoteDeSaida(
         ORDER BY ocorrencia_id, ordem, capturada_em`,
     );
 
+    /*
+      A foto de perfil de cada servidor (migração 040). É dado pessoal do
+      SERVIDOR, escolhido por ele, e pertence ao município que o cadastrou:
+      `docs/PRIVACIDADE.md` (seção 2.2) promete que ela sai com a conta e entra
+      no pacote de saída, e esta consulta é a segunda metade da promessa. Sai
+      por matrícula, e não por nome, porque matrícula é o identificador
+      funcional que o município usa e nome se repete.
+    */
+    const fotosDeServidor = await c.query<LinhaFotoDeServidor>(
+      `SELECT matricula, nome, foto_chave
+         FROM usuarios
+        WHERE foto_chave IS NOT NULL
+        ORDER BY matricula`,
+    );
+
     return {
       tabelas,
       organizacao: organizacao.rows[0] ?? { nome: "", municipio: "", uf: "" },
@@ -525,6 +547,7 @@ export async function* montarPacoteDeSaida(
       indicados: indicados.rows,
       oficios: oficios.rows,
       evidencias: evidencias.rows,
+      fotosDeServidor: fotosDeServidor.rows,
     };
   });
 
@@ -787,6 +810,29 @@ export async function* montarPacoteDeSaida(
     }
   }
 
+  /*
+    As fotos de perfil dos servidores, uma por pessoa, na pasta `usuarios/`.
+
+    Separadas de `evidencias/` de propósito: não são prova de ocorrência
+    nenhuma, e misturá-las com fotografia de vistoria faria o retrato de um
+    servidor parecer registro de um imóvel. Falta de arquivo entra em
+    `PENDENCIAS-DA-EXTRACAO.txt` como qualquer outra, com a matrícula no lugar
+    do protocolo, porque é a matrícula que identifica de quem era a foto.
+  */
+  for (const servidor of dados.fotosDeServidor) {
+    const nome = nomeDoArquivo(servidor.foto_chave, "foto.jpg");
+    const objeto = await ler(armazenamento, servidor.foto_chave);
+    if (objeto.situacao !== "encontrado") {
+      registrarFalta(objeto, "Foto de perfil do servidor", `matrícula ${servidor.matricula}`, servidor.foto_chave);
+      continue;
+    }
+    yield entrada({
+      caminho: `usuarios/${pastaDoProtocolo(servidor.matricula)}/${nome}`,
+      conteudo: objeto.corpo,
+      comprimir: false,
+    });
+  }
+
   yield entrada({
     caminho: "INDICE.csv",
     conteudo: texto(montarCsv(
@@ -923,6 +969,9 @@ function leiaMe(d: {
     "                evidencias/ deste mesmo pacote.",
     "  evidencias/   as fotografias e as assinaturas originais, em pastas por",
     "                protocolo.",
+    "  usuarios/     a foto de perfil de cada servidor que escolheu ter uma,",
+    "                em pasta por matrícula. É dado pessoal do servidor, e",
+    "                não prova de ocorrência: por isso fica fora de evidencias/.",
     "  SOMAS-SHA256.txt  a soma de verificação de cada arquivo, para conferir",
     "                que o pacote chegou íntegro.",
     "  PENDENCIAS-DA-EXTRACAO.txt  o que o banco referia e não veio: separado\n"

@@ -19,6 +19,7 @@ import { useSessao } from "../../dados/sessao";
 import {
   Aviso, Botao, Cartao, Carregando, Dado, Separador, Txt, Vazio, useTema,
 } from "../../ui/componentes";
+import { useRecuoDoMenu } from "../../ui/BarraDeAbas";
 import { Chip, type TomDoChip } from "../../ui/Chip";
 import { Dialogo } from "../../ui/Dialogo";
 import {
@@ -30,6 +31,7 @@ import {
   borda, easing, espaco, icone as tamanhoDeIcone, movimento, peso, raio,
 } from "../../ui/tokens";
 import { useReducaoDeMovimento } from "../../ui/useReducaoDeMovimento";
+import { atrasoEmCascata } from "../../ui/hierarquia";
 import { ItemDeLista } from "../../ui/ItemDeLista";
 import { retornoTatil } from "../../ui/retornoTatil";
 
@@ -713,6 +715,8 @@ function FilaZerada({ comemorar, children }: {
 
 export default function TelaDaFila() {
   const sinal = useSinal();
+  // A pílula do menu paira sobre a cena; a tela reserva o vão no fim da rolagem.
+  const recuoDoMenu = useRecuoDoMenu();
   const { obterToken, lerIdentidade, identidade } = useSessao();
   const tema = useTema();
   const reduzirMovimento = useReducaoDeMovimento();
@@ -799,6 +803,22 @@ export default function TelaDaFila() {
     uma renderização a mais a cada evento da fila.
   */
   const listaAnterior = useRef<ItemFila[]>([]);
+  /*
+    Quem JÁ ESTAVA NA TELA, para saber quem chegou.
+
+    É diferente de `listaAnterior`, e a diferença é de MOMENTO: aquela é
+    atualizada dentro de `recarregar`, antes de a tela desenhar, então na
+    renderização em que a coleta nova aparece ela já contém a coleta nova. Esta
+    só é atualizada no efeito abaixo, que roda DEPOIS da pintura, e é por isso
+    que a resposta "esta é nova?" sai certa no primeiro quadro, sem piscar.
+
+    Nula até a primeira pintura, e é isso que faz a primeira pintura não animar
+    nada: abrir a aba com cinco coletas guardadas não é cinco coletas chegando,
+    é o aparelho terminando de ler o disco. É a mesma mecânica da lista de
+    tarefas, de propósito: `tokens.ts` pede que as listas do produto entrem
+    com o MESMO ritmo.
+  */
+  const jaVistos = useRef<Set<string> | null>(null);
   const reduzirRef = useRef(reduzirMovimento);
   reduzirRef.current = reduzirMovimento;
   /* Os temporizadores vivos, para o desmonte não deixar nenhum escrevendo
@@ -814,6 +834,12 @@ export default function TelaDaFila() {
     for (const relogio of relogios.current) clearTimeout(relogio);
     relogios.current = [];
   }, []);
+
+  /* Depois de cada pintura, tudo o que está no disco passa a ser "já visto". */
+  useEffect(() => {
+    if (itens === null) return;
+    jaVistos.current = new Set(itens.map((i) => i.id));
+  }, [itens]);
 
   /**
    * Relê a fila inteira do disco.
@@ -1017,6 +1043,20 @@ export default function TelaDaFila() {
   const visiveis = [...itens, ...aindaSaindo];
   const contar = (lista: ItemFila[]) => lista.filter((i) => !idsSaindo.has(i.id)).length;
 
+  /*
+    QUEM CHEGOU depois de a lista já estar na tela, e em que ORDEM entra.
+
+    A cascata conta entre os NOVOS, e não pela posição na lista inteira: uma
+    coleta só, chegando no fim de uma fila de dez, esperaria o teto inteiro
+    antes de aparecer, e a tela ficaria parada justamente quando tem novidade.
+    A ordem é a ordem em que os cartões são desenhados (minhas coletas,
+    devoluções, de outro agente, arquivadas), para a cascata descer a tela e
+    não saltar de seção em seção. `atrasoEmCascata` tem teto próprio, para a
+    manhã inteira de vistorias que sobe de uma vez não virar espera.
+  */
+  const recemChegado = (id: string) => jaVistos.current !== null
+    && !jaVistos.current.has(id) && !idsSaindo.has(id);
+
   const daSessao = visiveis.filter((i) => autoriaDaColeta(i, eu) === "propria");
   const deOutroAutor = visiveis.filter((i) => autoriaDaColeta(i, eu) !== "propria");
   /*
@@ -1035,6 +1075,11 @@ export default function TelaDaFila() {
     (i) => i.estado !== "bloqueado" && i.estado !== "arquivado",
   );
   const minhasColetas = [...bloqueados, ...emEspera];
+
+  const ordemDaCascata = new Map<string, number>();
+  for (const i of [...minhasColetas, ...devolucoes, ...deOutroAutor, ...arquivados]) {
+    if (recemChegado(i.id)) ordemDaCascata.set(i.id, ordemDaCascata.size);
+  }
 
   /*
     A CONFIRMADA TAMBÉM FICA FORA, e essa é a outra metade da mesma regra.
@@ -1143,7 +1188,12 @@ export default function TelaDaFila() {
       && autoria === "propria";
 
     return (
-      <ItemDeLista key={item.id} saindo={idsSaindo.has(item.id)}>
+      <ItemDeLista
+        key={item.id}
+        entrando={recemChegado(item.id)}
+        saindo={idsSaindo.has(item.id)}
+        atraso={atrasoEmCascata(ordemDaCascata.get(item.id) ?? 0)}
+      >
         <Cartao>
           <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
             {/*
@@ -1261,9 +1311,12 @@ export default function TelaDaFila() {
                   (arquivo apagado não volta) e continua existindo só para as
                   fotos que ainda estão inteiras no aparelho subirem.
 
-                  Secundário, e não primário: o aplicativo não empurra a perda
-                  de prova. Ele oferece, com a largura que diz "é por aqui", e a
-                  cor cheia continua reservada ao que a tela quer que aconteça.
+                  Secundário, e não primário nem realce: o aplicativo não empurra
+                  a perda de prova. Ele oferece, com a largura que diz "é por
+                  aqui", e a cor cheia continua reservada ao que a tela quer que
+                  aconteça. O realce foi considerado quando os botões ganharam
+                  cor, e recusado pela mesma razão: preenchido, ele diria "faça
+                  isto", e isto é abrir mão de fotografia de interdição.
                 */
                 <Botao
                   titulo="Enviar sem os registros perdidos"
@@ -1278,9 +1331,17 @@ export default function TelaDaFila() {
               )}
               <View style={{ flexDirection: "row", gap: espaco.e2 }}>
                 {podeReenviar && (
+                  /*
+                    Realce: é o ato que faz a fila ANDAR. "Esta coleta é minha",
+                    ao lado, fica secundário de propósito: é uma declaração
+                    sobre o laudo (o nome que vai assinar), e o aplicativo não
+                    empurra ninguém a assumir uma coleta que talvez não seja
+                    dele. Dois realces lado a lado seriam dois convites ao
+                    mesmo tempo, e o cartão deixaria de dizer por onde ir.
+                  */
                   <Botao
                     titulo="Tentar de novo"
-                    tipo="secundario"
+                    tipo="realce"
                     estilo={{ flex: 1 }}
                     carregando={ocupado && emCurso?.verbo === "reenviar"}
                     desabilitado={ocupado}
@@ -1352,7 +1413,7 @@ export default function TelaDaFila() {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}>
+    <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: recuoDoMenu }}>
       {!sinal.temSinal && (
         <Aviso tom="alerta" titulo="Sem sinal agora">
           Nada se perde: o que está aqui sai sozinho quando a conexão voltar, sem

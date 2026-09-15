@@ -17,7 +17,7 @@
  * dentro de `src/app` em rota, e nada aqui está dentro de `src/app`.
  */
 
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 
 jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
   __esModule: true, default: () => "dark",
@@ -177,7 +177,9 @@ describe("as duas respostas", () => {
 
     expect(mockSair).not.toHaveBeenCalled();
     expect(router.replace).not.toHaveBeenCalled();
-    expect(screen.queryByTestId("dialogo")).toBeNull();
+    /* A folha DESCE antes de sair (ver `Dialogo`): o que se cobra é que ela
+       vá embora, e não que suma no mesmo quadro do toque. */
+    await waitFor(() => { expect(screen.queryByTestId("dialogo")).toBeNull(); });
   });
 
   it("o botão que repete o verbo encerra a sessão e leva para a entrada", async () => {

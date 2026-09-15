@@ -2402,7 +2402,12 @@ export default function TelaDeVistoria() {
             acoes={[
               {
                 titulo: "Abrir no mapa",
-                tipo: "secundario",
+                /*
+                  Realce: chegar lá é o primeiro ato da vistoria, e o par do
+                  cabeçalho passa a dizer, pela forma, qual dos dois faz o
+                  trabalho andar e qual faz o agente sair.
+                */
+                tipo: "realce",
                 onPress: () => { setEscolhendoMapa(true); },
                 descricao: `Abrir no mapa: escolher como chegar até ${ocorrencia.endereco}`,
                 testID: "abrir-no-mapa",
@@ -2627,6 +2632,12 @@ export default function TelaDeVistoria() {
               */
               acao={{
                 titulo: "Revisar o laudo agora",
+                /*
+                  Realce, pedido daqui e não decidido pelo `Aviso`: é o ato
+                  que leva à minuta, e este aviso é de sucesso, que nunca
+                  pinta fundo (R3), então o preenchido não disputa com nada.
+                */
+                tipo: "realce",
                 onPress: () => { setMinutaAberta(true); },
                 testID: "concluir-pelo-progresso",
               }}
@@ -2968,9 +2979,17 @@ export default function TelaDeVistoria() {
             })}
           </View>
         )}
+        {/*
+          REALCE, e não secundário: tirar a foto é um dos dois atos centrais
+          desta tela, e saía com um fio de 1,30:1 sobre o cartão, que é o "só
+          preto ou branco" do relato de quem paga. O desenho da câmera vai ao
+          lado da palavra, e nunca no lugar dela: quem abre este aplicativo
+          duas vezes por semana não decora pictograma.
+        */}
         <Botao
           titulo="Tirar foto"
-          tipo="secundario"
+          tipo="realce"
+          icone={(cor) => <IconeFoto cor={cor} tamanho={icone.rotulo} />}
           onPress={() => void (async () => {
             if (!permissaoCamera?.granted) {
               const resultado = await pedirCamera();
@@ -3173,9 +3192,11 @@ export default function TelaDeVistoria() {
           </Aviso>
         )}
 
+        {/* Realce pela mesma razão de "Tirar foto": é o ato que faz a vistoria andar. */}
         <Botao
           titulo={pontoDoAgente ? "Capturar de novo" : "Capturar localização"}
-          tipo="secundario"
+          tipo="realce"
+          icone={(cor) => <IconeGps cor={cor} tamanho={icone.rotulo} />}
           onPress={() => void capturarGps()}
           carregando={capturandoGps}
           testID="capturar-localizacao"

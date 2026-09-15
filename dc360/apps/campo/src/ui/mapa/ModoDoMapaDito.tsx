@@ -28,6 +28,19 @@ import { borda, espaco, icone, raio } from "../tokens";
  * NUNCA SÓ COR. O ícone mais a palavra, sempre, porque é a regra da casa e
  * porque quem lê esta tela pode estar com o brilho no máximo sob sol, onde
  * duas tonalidades de fundo viram a mesma.
+ *
+ * ## O aviso de chave divergente MORAVA aqui, e saiu em 15/09/2026
+ *
+ * Ele dizia "a chave de mapa configurada pelo município é diferente da que
+ * está nesta versão do aplicativo (...) avise a coordenação para gerar o
+ * aplicativo de novo", e comparava a chave que `GET /configuracao` manda com a
+ * do binário. Desde que as chaves são por plataforma (commit `b5afd64`: a da
+ * API é a do painel, restrita a sites; a do binário é restrita a Apps iOS ou
+ * Android) elas SEMPRE diferem, e o aviso disparava em toda instalação certa,
+ * mandando a coordenação refazer um aplicativo que estava certo. Ver
+ * `decidirModoDoMapa` em `src/dados/mapa.ts`, que deixou de comparar chave:
+ * esta legenda fala de para onde a coordenada vai, e chave é assunto do
+ * console do Google, não do agente.
  */
 
 /**
@@ -51,18 +64,6 @@ export type PropsDoModo = {
   /** O parágrafo inteiro, para onde houver espaço. Fora dele, só o rótulo. */
   comDetalhe?: boolean;
 };
-
-/**
- * O aviso de chave divergente, escrito UMA vez.
- *
- * Ele aparece desenhado e é DITO no resumo, e as duas saídas precisam ser o
- * mesmo texto. Escrito duas vezes, a segunda envelhece: é o defeito que
- * `EXPLICACAO_DO_MODO` já existe para impedir com os outros quatro textos.
- */
-const AVISO_DE_CHAVE_DIVERGENTE =
-  "A chave de mapa configurada pelo município é diferente da que está nesta "
-  + "versão do aplicativo. O mapa usa a que foi compilada aqui dentro. "
-  + "Avise a coordenação para gerar o aplicativo de novo.";
 
 export function ModoDoMapaDito({ decisao, comDetalhe = false }: PropsDoModo) {
   const tema = useTema();
@@ -92,8 +93,8 @@ export function ModoDoMapaDito({ decisao, comDetalhe = false }: PropsDoModo) {
         de modo existe para dizer isso, e para quem ouve ela não estava dizendo.
 
         No Android acontecia o contrário e pelo mesmo motivo: o
-        `contentDescription` do agrupamento ganhava dos filhos, e o aviso de
-        chave divergente, que é filho, não era falado.
+        `contentDescription` do agrupamento ganhava dos filhos, e o que era só
+        filho desenhado não era falado.
 
         Com `accessible`, os dois lados leem a MESMA frase, e o rótulo abaixo
         passa a ser obrigado a carregar tudo que este bloco diz.
@@ -101,20 +102,13 @@ export function ModoDoMapaDito({ decisao, comDetalhe = false }: PropsDoModo) {
       accessible
       accessibilityRole="summary"
       /*
-        O rótulo carrega TUDO que este bloco diz, e o aviso de chave divergente
-        estava de fora.
-
-        Um resumo com rótulo próprio é lido como uma coisa só: no Android o
-        `contentDescription` do agrupamento ganha dos filhos, então a linha da
-        chave divergente simplesmente não era falada. Ela é dirigida ao agente
-        ("avise a coordenação"), e um agente que usa leitor de tela ficava sendo
-        o único que nunca fica sabendo que o mapa está sendo pago na chave
-        errada, sem nada quebrado na tela para investigar.
+        O rótulo carrega TUDO que este bloco diz. Um resumo com rótulo próprio
+        é lido como uma coisa só: no Android o `contentDescription` do
+        agrupamento ganha dos filhos, então qualquer linha desenhada abaixo que
+        não estiver aqui não é falada por ninguém. Foi assim que o aviso de
+        chave divergente, enquanto existiu, ficou mudo por uma versão inteira.
       */
-      accessibilityLabel={
-        `${explicacao.titulo}. ${explicacao.detalhe}`
-        + (decisao.chaveDivergente ? ` ${AVISO_DE_CHAVE_DIVERGENTE}` : "")
-      }
+      accessibilityLabel={`${explicacao.titulo}. ${explicacao.detalhe}`}
       style={{
         gap: espaco.e1,
         padding: espaco.e2,
@@ -129,19 +123,6 @@ export function ModoDoMapaDito({ decisao, comDetalhe = false }: PropsDoModo) {
         <Txt variante="corpoP" negrito>{explicacao.titulo}</Txt>
       </View>
       {comDetalhe && <Txt variante="legenda" discreto>{explicacao.detalhe}</Txt>}
-      {/*
-        A DIVERGÊNCIA DE CHAVE aparece sempre, mesmo sem detalhe, e é o único
-        caso em que a legenda fala de dinheiro.
-
-        Ela quer dizer que alguém trocou `MAPS_KEY` no servidor do município e
-        não gerou o aplicativo de novo: o mapa continua desenhando, porque quem
-        o SDK nativo usa é a chave que está dentro do binário, e a conta
-        continua caindo na chave antiga. Sem esta linha, ninguém descobre nunca,
-        porque não há nada quebrado para investigar.
-      */}
-      {decisao.chaveDivergente && (
-        <Txt variante="legenda" discreto>{AVISO_DE_CHAVE_DIVERGENTE}</Txt>
-      )}
     </View>
   );
 }

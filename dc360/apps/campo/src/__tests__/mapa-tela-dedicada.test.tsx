@@ -78,7 +78,7 @@ jest.mock("../dados/api", () => ({
 let mockChaveDoMunicipio = "";
 jest.mock("../dados/mapa", () => ({
   ...(jest.requireActual("../dados/mapa") as object),
-  buscarAutorizacaoDoMapa: async () => mockChaveDoMunicipio,
+  buscarAutorizacaoDoMapa: async () => mockChaveDoMunicipio !== "",
   chaveDoMapaDoBuild: () => mockChaveDoMunicipio,
 }));
 
@@ -123,8 +123,23 @@ const mockFila = {
 };
 jest.mock("../dados/fila", () => ({ obterFila: async () => mockFila }));
 
+let mockTemSinal = true;
 jest.mock("../dados/conectividade", () => ({
-  useSinal: () => ({ temSinal: true, tipo: "wifi" }),
+  useSinal: () => ({ temSinal: mockTemSinal, tipo: "wifi" }),
+}));
+
+/*
+  O CAMINHO POR RUAS, dublado na fronteira da tela.
+
+  O que `verOCaminho` faz por dentro (a chamada à API do produto, a
+  decodificação, o guardado por tarefa) tem arquivo próprio,
+  `dados/rota.test.ts`. O que se pergunta AQUI é o que a TELA faz com cada
+  resposta: desenha a linha e diz a frase, ou explica em uma linha por que não.
+*/
+let mockVerOCaminho: jest.Mock;
+jest.mock("../dados/rota", () => ({
+  ...(jest.requireActual("../dados/rota") as object),
+  verOCaminho: (...args: unknown[]) => mockVerOCaminho(...args),
 }));
 
 jest.mock("../dados/sessao", () => ({
@@ -135,7 +150,11 @@ jest.mock("../dados/sessao", () => ({
   }),
 }));
 
+import { BottomTabBarHeightContext } from "expo-router/build/react-navigation/bottom-tabs";
 import Mapa from "../app/(agente)/mapa";
+import { CaminhoIndisponivel } from "../dados/rota";
+import { LADO_MAXIMO_DO_MAPA, ladoDoMapa } from "../ui/mapa/lado";
+import { espaco } from "../ui/tokens";
 import { limparMapaDublado, mapaDublado } from "../../__mocks__/react-native-maps";
 
 const HORA = 3_600_000;
@@ -199,9 +218,248 @@ beforeEach(() => {
   mockPermissaoConcedida = false;
   mockUltimaPosicao = null;
   mockChaveDoMunicipio = "";
+  mockTemSinal = true;
+  mockVerOCaminho = jest.fn(async () => ({
+    caminho: { duracaoSegundos: 846, distanciaMetros: 4213, pontos: [AQUI, aoNorte(200), aoNorte(400)] },
+    guardado: false,
+  }));
   mockEmpurrar.mockClear();
   mockPedirPermissao.mockClear();
   limparMapaDublado();
+});
+
+/**
+ * As rolagens montadas, pelo elemento NATIVO que o dublê do React Native
+ * desenha (`RCTScrollView`): o renderizador de teste só expõe elementos de
+ * host, então é pelo tipo nativo que se conta quantas rolagens a tela tem.
+ */
+function rolagens() {
+  return screen.container.queryAll((no) => no.type === "RCTScrollView");
+}
+
+/** O estilo achatado de um nó, para ler uma propriedade de leiaute. */
+function estiloDe(no: { props: { style?: unknown; contentContainerStyle?: unknown } }, qual: "style" | "contentContainerStyle" = "style"): Record<string, unknown> {
+  return Object.assign({}, ...[no.props[qual]].flat(Number.POSITIVE_INFINITY).filter(Boolean));
+}
+
+/* ============================================================
+   A tela inteira rola, e o mapa é um quadrado
+   ============================================================ */
+
+describe("a tela inteira rola, numa rolagem só", () => {
+  /*
+    O RECLAME, na letra de quem paga: "não tem scroll na tela, tá travada". A
+    tela era quatro faixas fixas e só a lista rolava: arrastar em cima do mapa,
+    do cartão ou do cabeçalho não movia nada. Agora existe UMA rolagem, e tudo
+    está dentro dela.
+  */
+  beforeEach(() => {
+    mockPermissaoConcedida = true;
+    mockUltimaPosicao = { coords: AQUI };
+    mockTarefas = [
+      tarefa({ id: "a", severidade: "critica", ...aoNorte(400) }),
+      tarefa({ id: "b", severidade: "baixa", ...aoNorte(900) }),
+    ];
+  });
+
+  it("há uma ScrollView só, e cabeçalho, mapa, cartão e lista estão dentro dela", async () => {
+    await abrirOMapa();
+    const todas = rolagens();
+    /* Duas rolagens seria a lista rolando sozinha de novo. */
+    expect(todas).toHaveLength(1);
+    expect(todas[0]?.props["testID"]).toBe("tela-do-mapa");
+
+    const tela = screen.getByTestId("tela-do-mapa");
+    for (const id of ["quantas-no-mapa", "area-do-mapa", "cartao-da-escolhida", "lista-do-mapa"]) {
+      expect(within(tela).getByTestId(id)).toBeTruthy();
+    }
+  });
+
+  it("o fim da rolagem reserva a altura do menu flutuante", async () => {
+    /*
+      Outra frente está tornando o menu flutuante: ele passa a pairar sobre a
+      tela em vez de ser irmão dela no leiaute. Sem a folga, a última linha da
+      lista fica escondida atrás do menu para sempre, e é justamente a tarefa
+      mais longe, que é a que o agente menos lembra.
+    */
+    await render(
+      <BottomTabBarHeightContext.Provider value={84}>
+        <Mapa />
+      </BottomTabBarHeightContext.Provider>,
+    );
+    await act(async () => {});
+    await screen.findByTestId("lista-do-mapa");
+    const rolagem = rolagens()[0]!;
+    const folga = Number(estiloDe(rolagem, "contentContainerStyle").paddingBottom);
+    expect(folga).toBeGreaterThanOrEqual(84 + espaco.e4);
+  });
+
+  it("sem o contexto do menu, a tela abre do mesmo jeito, com a folga mínima", async () => {
+    await abrirOMapa();
+    const rolagem = rolagens()[0]!;
+    const folga = Number(estiloDe(rolagem, "contentContainerStyle").paddingBottom);
+    expect(folga).toBeGreaterThanOrEqual(espaco.e4);
+  });
+
+  it("o mapa é um quadrado: a largura útil da tela por altura igual", async () => {
+    /*
+      "A área que o mapa ocupa na tela também é pequena, eu imaginava pelo menos
+      um quadrado perfeito." Era 38% da altura da tela, com a legenda de
+      criticidade e a de modo DENTRO dessa altura. Agora o lado é a largura da
+      tela menos o recuo, e as legendas ficam embaixo, fora do quadrado.
+    */
+    await abrirOMapa();
+    const moldura = screen.getByTestId("moldura-do-mapa");
+    const estilo = estiloDe(moldura);
+    const { width } = require("react-native").Dimensions.get("window") as { width: number };
+    const lado = ladoDoMapa(width);
+    expect(estilo.height).toBe(lado);
+    expect(lado).toBe(Math.min(LADO_MAXIMO_DO_MAPA, width - 2 * espaco.e4));
+    expect(lado).toBeGreaterThan(0);
+  });
+
+  it("num tablet o quadrado tem teto, e continua quadrado", () => {
+    expect(ladoDoMapa(1024)).toBe(LADO_MAXIMO_DO_MAPA);
+    expect(ladoDoMapa(360)).toBe(360 - 2 * espaco.e4);
+  });
+
+  it("as legendas ficam FORA do quadrado, embaixo dele", async () => {
+    await abrirOMapa();
+    const moldura = screen.getByTestId("moldura-do-mapa");
+    expect(within(moldura).queryByTestId("legenda-de-criticidade")).toBeNull();
+    expect(screen.getByTestId("legenda-de-criticidade")).toBeTruthy();
+    /* A legenda de MODO também: é ela que diz para onde a coordenada vai. */
+    expect(within(moldura).queryByText("Plano esquemático")).toBeNull();
+    expect(screen.getByText("Plano esquemático")).toBeTruthy();
+  });
+});
+
+/* ============================================================
+   Ver o caminho: rota e tempo só quando o agente pedir
+   ============================================================ */
+
+describe("ver o caminho, no toque e só no toque", () => {
+  const A_FRASE = "cerca de 14 min de carro, 4,2 km";
+
+  beforeEach(() => {
+    mockPermissaoConcedida = true;
+    mockUltimaPosicao = { coords: AQUI };
+    mockChaveDoMunicipio = "a-chave-do-municipio";
+    mockTarefas = [
+      tarefa({ id: "perto", protocolo: "000100/2026", severidade: "critica", ...aoNorte(400) }),
+      tarefa({ id: "longe", protocolo: "000200/2026", severidade: "media", ...aoNorte(3_000) }),
+    ];
+  });
+
+  it("abrir a tela NÃO pede caminho nenhum: sem toque, nada sai do aparelho", async () => {
+    await abrirOMapa();
+    expect(mockVerOCaminho).not.toHaveBeenCalled();
+    expect(mapaDublado.polilinhas).toHaveLength(0);
+    expect(screen.queryByText(/de carro/)).toBeNull();
+  });
+
+  it("o toque pede o caminho da ESCOLHIDA, da posição do agente, e diz a frase", async () => {
+    await abrirOMapa();
+    await tocar("escolher-longe");
+    await tocar("ver-o-caminho");
+
+    expect(mockVerOCaminho).toHaveBeenCalledTimes(1);
+    expect(mockVerOCaminho).toHaveBeenCalledWith(expect.objectContaining({
+      ocorrenciaId: "longe",
+      token: "token-de-mentira",
+      origem: AQUI,
+      destino: aoNorte(3_000),
+    }));
+    expect(within(screen.getByTestId("cartao-da-escolhida")).getByText(A_FRASE)).toBeTruthy();
+  });
+
+  it("o caminho vira uma linha no mapa do Google, com os pontos que vieram", async () => {
+    await abrirOMapa();
+    await tocar("ver-o-caminho");
+    expect(mapaDublado.polilinhas).toHaveLength(1);
+    expect(mapaDublado.polilinhas[0]?.["coordinates"]).toEqual([AQUI, aoNorte(200), aoNorte(400)]);
+  });
+
+  it("a linha reta continua dita junto com o caminho, e não é apagada por ele", async () => {
+    /*
+      A frase de `rotaEsquematica` é o que funciona sem sinal e sem Google. O
+      caminho é um acréscimo, não um substituto: se o Google errar, a reta é a
+      segunda opinião que o agente tem na tela.
+    */
+    await abrirOMapa();
+    await tocar("ver-o-caminho");
+    const cartao = screen.getByTestId("cartao-da-escolhida");
+    expect(within(cartao).getByText(/a norte de onde você está/)).toBeTruthy();
+    expect(within(cartao).getByText(A_FRASE)).toBeTruthy();
+  });
+
+  it("trocar de escolhida tira o caminho da tela: ele é daquela tarefa, não da tela", async () => {
+    await abrirOMapa();
+    await tocar("ver-o-caminho");
+    expect(screen.getByText(A_FRASE)).toBeTruthy();
+
+    await tocar("escolher-longe");
+    expect(screen.queryByText(A_FRASE)).toBeNull();
+    expect(mapaDublado.polilinhas).toHaveLength(0);
+    /* E o botão volta, para a nova escolhida. */
+    expect(screen.getByTestId("ver-o-caminho")).toBeTruthy();
+  });
+
+  it("sem posição do agente não há botão: não há de onde traçar", async () => {
+    mockUltimaPosicao = null;
+    await abrirOMapa();
+    expect(screen.queryByTestId("ver-o-caminho")).toBeNull();
+  });
+
+  it("sem coordenada do imóvel não há botão: não há para onde traçar", async () => {
+    mockTarefas = [
+      tarefa({ id: "com", severidade: "alta", ...aoNorte(400) }),
+      tarefa({ id: "sem", severidade: "alta", latitude: null, longitude: null }),
+    ];
+    await abrirOMapa();
+    await tocar("escolher-sem");
+    expect(screen.queryByTestId("ver-o-caminho")).toBeNull();
+  });
+
+  it("sem sinal o botão explica em uma frase, sem tentar", async () => {
+    mockTemSinal = false;
+    await abrirOMapa();
+    await tocar("ver-o-caminho");
+    expect(mockVerOCaminho).not.toHaveBeenCalled();
+    expect(screen.getByText(/Sem sinal para pedir o caminho/)).toBeTruthy();
+    expect(screen.getByText(/linha reta continuam valendo/)).toBeTruthy();
+  });
+
+  it("município que não ligou: a frase diz isso, e a reta continua", async () => {
+    mockVerOCaminho = jest.fn(async () => { throw new CaminhoIndisponivel("municipio-nao-ligou"); });
+    await abrirOMapa();
+    await tocar("ver-o-caminho");
+    expect(screen.getByText(/O seu município não ligou o caminho por ruas/)).toBeTruthy();
+    expect(within(screen.getByTestId("cartao-da-escolhida")).getByText(/a norte de onde você está/))
+      .toBeTruthy();
+    expect(mapaDublado.polilinhas).toHaveLength(0);
+  });
+
+  it("servidor que caiu: a frase diz que não deu agora", async () => {
+    mockVerOCaminho = jest.fn(async () => { throw new CaminhoIndisponivel("falhou"); });
+    await abrirOMapa();
+    await tocar("ver-o-caminho");
+    expect(screen.getByText(/Não deu para traçar o caminho agora/)).toBeTruthy();
+  });
+
+  it("no plano esquemático a frase aparece, e a linha não é desenhada", async () => {
+    /*
+      O município pode ter ligado o caminho (ROUTES_KEY no servidor) e não o
+      mapa do Google (sem MAPS_KEY), ou o Google pode não ter desenhado. A
+      frase de tempo e distância continua útil; a linha não tem onde ser
+      desenhada, e o plano esquemático não a inventa.
+    */
+    mockChaveDoMunicipio = "";
+    await abrirOMapa();
+    await tocar("ver-o-caminho");
+    expect(screen.getByText(A_FRASE)).toBeTruthy();
+    expect(mapaDublado.polilinhas).toHaveLength(0);
+  });
 });
 
 /* ============================================================

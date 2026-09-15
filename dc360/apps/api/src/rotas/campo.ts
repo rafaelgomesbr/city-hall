@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { Banco } from "../banco/tipos.js";
+import type { Armazenamento } from "../armazenamento/tipos.js";
 import { autorizar } from "../servidor.js";
 
 /**
@@ -27,9 +28,17 @@ const TETO_DE_CONCLUIDAS = 50;
  * Continua valendo o de sempre: o município vem do token, e a equipe vem do
  * cadastro do próprio usuário. Nada aqui aceita parâmetro de quem chama.
  */
+/**
+ * A janela de "no mês" dos números do agente: trinta dias, e não o mês do
+ * calendário. No dia 2 o mês do calendário teria dois dias e o número diria
+ * quase nada; trinta dias para trás responde a mesma pergunta em qualquer
+ * dia. O aplicativo usa a MESMA janela para o que ele conta sozinho.
+ */
+const JANELA_DO_MES = "30 days";
+
 export async function rotasCampo(
   app: FastifyInstance,
-  { banco }: { banco: Banco },
+  { banco, armazenamento }: { banco: Banco; armazenamento: Armazenamento },
 ): Promise<void> {
   app.get("/meu-trabalho", async (req) => {
     const quem = await autorizar(app, req, "registrar_vistoria");
@@ -59,11 +68,32 @@ export async function rotasCampo(
         };
       }
 
-      const colegas = await c.query(
-        `SELECT id, nome, papel, ativo
-           FROM usuarios
-          WHERE equipe_id = $1 AND ativo = true
-          ORDER BY nome`,
+      /*
+        O colega vem com DUAS coisas a mais desde a foto de perfil (migração
+        040), e as duas são para a tela da equipe ter cara de equipe:
+
+        - `foto_chave`, que vira URL assinada ABAIXO, fora da transação. A
+          chave crua nunca sai: quem a tem monta caminho de armazenamento.
+        - `em_campo`: tem saída a campo ABERTA agora (`saidas_a_campo` com
+          `encerrada_em` nulo). É o que a coordenação já vê em
+          `GET /saida-a-campo`, que o agente não pode chamar
+          (`acompanhar_saida_a_campo` é permissão de quem fica na mesa). Aqui
+          ele recebe só o booleano dos colegas da própria equipe, sem prazo,
+          sem protocolo e sem "sozinho": o que a equipe precisa saber é quem
+          está no morro, e não o que a coordenação precisa decidir.
+      */
+      const colegas = await c.query<{
+        id: string; nome: string; papel: string; ativo: boolean;
+        foto_chave: string | null; em_campo: boolean;
+      }>(
+        `SELECT u.id, u.nome, u.papel, u.ativo, u.foto_chave,
+                EXISTS (
+                  SELECT 1 FROM saidas_a_campo s
+                   WHERE s.agente_id = u.id AND s.encerrada_em IS NULL
+                ) AS em_campo
+           FROM usuarios u
+          WHERE u.equipe_id = $1 AND u.ativo = true
+          ORDER BY u.nome`,
         [meu.equipe_id],
       );
 
@@ -106,16 +136,39 @@ export async function rotasCampo(
         [quem.usuarioId],
       );
 
+      /*
+        `despachada_em` é o ÚLTIMO despacho da ocorrência anterior à coleta,
+        lido da trilha, que é onde o despacho mora (a ocorrência não guarda a
+        hora dele). É o que deixa a tela do agente dizer "tempo médio entre o
+        despacho e a vistoria" com o dado que já desce, em vez de uma rota nova.
+        Nula quando a trilha não tem despacho antes da coleta (dado semeado
+        antes da trilha existir), e a tela pula a vistoria na média.
+      */
       const concluidas = await c.query(
         `SELECT v.id, v.coletada_em, v.sincronizada_em, v.gps_precisao_metros,
                 v.assinante_nome,
                 o.id AS ocorrencia_id, o.protocolo, o.tipo, o.severidade,
-                o.status, o.endereco
+                o.status, o.endereco,
+                (SELECT max(t.ocorrido_em) FROM trilha_eventos t
+                  WHERE t.ocorrencia_id = o.id AND t.tipo = 'despacho'
+                    AND t.ocorrido_em <= v.coletada_em) AS despachada_em
            FROM vistorias v JOIN ocorrencias o ON o.id = v.ocorrencia_id
           WHERE v.agente_id = $1
           ORDER BY v.coletada_em DESC
           LIMIT $2`,
         [quem.usuarioId, TETO_DE_CONCLUIDAS],
+      );
+
+      /*
+        Quantas tarefas ESTE agente devolveu nos últimos trinta dias. Contado
+        aqui, e não no aparelho, porque o aparelho só guarda a devolução
+        enquanto ela espera envio: confirmada, ela sai da fila, e um número
+        contado ali seria quase sempre zero.
+      */
+      const devolvidas = await c.query<{ total: number }>(
+        `SELECT count(*)::int AS total FROM devolucoes_de_tarefa
+          WHERE devolvida_por = $1 AND registrada_em >= now() - $2::interval`,
+        [quem.usuarioId, JANELA_DO_MES],
       );
 
       return {
@@ -132,7 +185,26 @@ export async function rotasCampo(
            dele. `truncada` existe para a tela poder DIZER que cortou. */
         totalConcluidas: Number(totalConcluidas.rows[0]?.total ?? 0),
         tetoDeConcluidas: TETO_DE_CONCLUIDAS,
+        devolvidasNoMes: Number(devolvidas.rows[0]?.total ?? 0),
       };
+    }).then(async (resposta) => {
+      /*
+        As URLs assinadas nascem FORA da transação, como em
+        `GET /evidencias/ocorrencia/:id`: assinar é conta local e barata, mas
+        não é motivo para segurar a conexão do município.
+      */
+      const colegas = await Promise.all(resposta.colegas.map(async (c) => {
+        const { foto_chave, em_campo, ...resto } = c as {
+          id: string; nome: string; papel: string; ativo: boolean;
+          foto_chave?: string | null; em_campo?: boolean;
+        };
+        return {
+          ...resto,
+          fotoUrl: foto_chave ? await armazenamento.urlParaLer(foto_chave) : null,
+          emCampo: Boolean(em_campo),
+        };
+      }));
+      return { ...resposta, colegas };
     });
   });
 }

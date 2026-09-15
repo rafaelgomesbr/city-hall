@@ -32,6 +32,17 @@
  * e ninguém recebe erro nenhum. Foi por isso que o provedor virou regra de
  * portão em vez de convenção.
  *
+ * ## O caminho por ruas, e o ÚNICO lugar onde ele pode ser pedido
+ *
+ * Desde 15/09/2026 o produto traça o caminho por ruas a pedido do agente
+ * ("Ver o caminho", na tela do mapa). A chamada ao Google acontece na API do
+ * produto, em `apps/api/src/rotas/rota.ts`, com uma chave de servidor que
+ * nunca sai de lá: a do aplicativo é restrita a Apps iOS ou Android e o Google
+ * a recusa por HTTP. Por isso a regra de Directions/Routes ficou com DUAS
+ * varreduras: no aplicativo ela continua proibida em qualquer arquivo, e na
+ * API ela é permitida naquele arquivo e reprovada em qualquer outro. O
+ * caso-irmão prova que o portão morde fora dele.
+ *
  * ## Por que mora em `scripts/`
  *
  * A mesma razão de `fonte-do-aplicativo.mjs` e de `entitlements-do-ios.test.mjs`:
@@ -42,13 +53,52 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { join } from "node:path";
+import { join, relative, sep } from "node:path";
 
 import {
   RAIZ_DO_APP, RAIZ_DO_REPO, arquivosDeFonte, nomeCurto, semComentarios,
 } from "./fonte-do-aplicativo.mjs";
 
 const APP_CONFIG = join(RAIZ_DO_REPO, "apps", "campo", "app.config.ts");
+
+/** As fontes da API, produto e teste. */
+const FONTES_DA_API = [
+  join(RAIZ_DO_REPO, "apps", "api", "src"),
+  join(RAIZ_DO_REPO, "apps", "api", "test"),
+];
+
+/**
+ * O único arquivo do repositório que pode citar Directions ou Routes do
+ * Google. A chave de servidor mora na configuração dele, a máscara de campos
+ * é fechada, a cache é memória e nenhuma coordenada é registrada: tudo isso
+ * é medido em `apps/api/test/rota.test.ts`, e o portão aqui só garante que
+ * não existe um SEGUNDO lugar chamando o Google sem aquelas medidas.
+ */
+export const UNICO_LUGAR_DO_CAMINHO = join(RAIZ_DO_REPO, "apps", "api", "src", "rotas", "rota.ts");
+
+/** Caminho relativo à raiz do repositório, para as mensagens da API. */
+function nomeNoRepo(caminho) {
+  return relative(RAIZ_DO_REPO, caminho).split(sep).join("/");
+}
+
+/**
+ * A regra do caminho por ruas, separada porque ela é a única com dois
+ * alcances: proibida no aplicativo inteiro, e permitida num arquivo só da API.
+ *
+ * `computeRoutes` e `routes.googleapis.com` são a Routes API (v2), e
+ * `maps/api/directions` é a Directions antiga, que o Google pôs em manutenção:
+ * as duas entram porque trocar uma pela outra não muda o que sai do país.
+ */
+export const REGRA_DO_CAMINHO = {
+  nome: "Directions ou Routes do Google",
+  padrao: /maps\/api\/directions|\bMapViewDirections\b|routes\.googleapis\.com|computeRoutes/i,
+  porque:
+    "o caminho por ruas manda a posição do agente para fora do país, e só pode "
+    + "ser pedido de um lugar: `apps/api/src/rotas/rota.ts`, com a chave de "
+    + "servidor que nunca sai de lá, a máscara de campos fechada e a cache que "
+    + "não registra coordenada. No aplicativo, a chave do binário nem serve para "
+    + "HTTP, e `abrirNoMapa` entrega ao aplicativo de mapas do aparelho",
+};
 
 /**
  * O que reprova, e por quê.
@@ -97,13 +147,7 @@ const PROIBIDAS = [
     padrao: /\bPlacesService\b|\bAutocompleteService\b|maps\/api\/place/i,
     porque: "cobrada por requisição, e o produto não procura estabelecimento nenhum",
   },
-  {
-    nome: "Directions",
-    padrao: /maps\/api\/directions|\bMapViewDirections\b/i,
-    porque:
-      "navegação própria são anos de trabalho, o aplicativo de mapas do aparelho "
-      + "faz melhor e já tem as regiões baixadas, e `abrirNoMapa` entrega a ele",
-  },
+  REGRA_DO_CAMINHO,
   {
     nome: "biblioteca extra no carregador",
     padrao: /libraries\s*[=:]/i,
@@ -157,6 +201,27 @@ test("a varredura enxerga os arquivos de verdade", () => {
   );
 });
 
+/**
+ * A varredura da API, só com a regra do caminho, e só fora do arquivo dele.
+ *
+ * Recebe a lista de arquivos e o leitor para o caso-irmão conseguir provar que
+ * ela morde: um portão que só é rodado contra a árvore de verdade nunca viu o
+ * defeito que ele proíbe, e não sabe se sabe reconhecê-lo.
+ */
+export function varrerCaminhoNaApi(arquivos, ler = (caminho) => readFileSync(caminho, "utf8")) {
+  const achados = [];
+  for (const caminho of arquivos) {
+    if (caminho === UNICO_LUGAR_DO_CAMINHO) continue;
+    const linhas = semComentarios(ler(caminho)).split("\n");
+    linhas.forEach((linha, i) => {
+      if (REGRA_DO_CAMINHO.padrao.test(linha)) {
+        achados.push(`${nomeNoRepo(caminho)}:${i + 1} [${REGRA_DO_CAMINHO.nome}] porque: ${REGRA_DO_CAMINHO.porque}`);
+      }
+    });
+  }
+  return achados;
+}
+
 test("nenhum arquivo do aplicativo chama geocodificação, Places ou Directions", () => {
   const achados = varrer();
   assert.deepEqual(
@@ -165,6 +230,59 @@ test("nenhum arquivo do aplicativo chama geocodificação, Places ou Directions"
     + "para fora do país dado que `docs/SUBPROCESSADORES.md` promete que fica aqui:\n"
     + achados.join("\n"),
   );
+});
+
+test("na API, só `rotas/rota.ts` chama a Routes API do Google, e ele de fato chama", () => {
+  /*
+    As duas metades. A primeira: nenhum OUTRO arquivo da API cita o serviço,
+    porque um segundo lugar seria um lugar sem a máscara de campos, sem a cache
+    e, cedo ou tarde, com a coordenada num log. A segunda: o arquivo permitido
+    existe e cita, senão a exceção é uma permissão pendurada esperando alguém
+    criar um arquivo com aquele nome para outra coisa.
+  */
+  const arquivos = FONTES_DA_API.flatMap((pasta) => arquivosDeFonte(pasta, { somenteProduto: false }));
+  assert.ok(arquivos.length > 30, `a varredura da API achou só ${arquivos.length} arquivos`);
+  assert.ok(arquivos.includes(UNICO_LUGAR_DO_CAMINHO), "não achou apps/api/src/rotas/rota.ts");
+
+  const achados = varrerCaminhoNaApi(arquivos);
+  assert.deepEqual(
+    achados, [],
+    "a API passou a chamar Directions ou Routes fora de `rotas/rota.ts`:\n" + achados.join("\n"),
+  );
+
+  const oPermitido = semComentarios(readFileSync(UNICO_LUGAR_DO_CAMINHO, "utf8"));
+  assert.match(
+    oPermitido, /routes\.googleapis\.com\/directions\/v2:computeRoutes/,
+    "o arquivo permitido não chama mais a Routes API: a exceção virou permissão pendurada",
+  );
+  assert.match(
+    oPermitido, /X-Goog-FieldMask/,
+    "o pedido ao Google perdeu a máscara de campos, e sem ela o Google cobra o nível mais caro",
+  );
+});
+
+test("o portão do caminho MORDE fora do arquivo permitido, e só fora dele", () => {
+  /*
+    O caso-irmão. Dois arquivos de mentira com a MESMA linha: o permitido e um
+    outro qualquer da API. A varredura precisa acusar o segundo e só o segundo.
+    Sem este caso, um `continue` escrito no lugar errado (pulando tudo em vez
+    de pular o arquivo) daria verde para sempre.
+  */
+  const outro = join(RAIZ_DO_REPO, "apps", "api", "src", "rotas", "ocorrencias.ts");
+  const linha = 'const url = "https://routes.googleapis.com/directions/v2:computeRoutes";';
+  const ler = () => `import x from "y";\n${linha}\n`;
+
+  const achados = varrerCaminhoNaApi([UNICO_LUGAR_DO_CAMINHO, outro], ler);
+  assert.equal(achados.length, 1, `esperava um achado, veio: ${JSON.stringify(achados)}`);
+  assert.match(achados[0], /^apps\/api\/src\/rotas\/ocorrencias\.ts:2 /);
+
+  /* E a Directions antiga também é pega, no mesmo lugar. */
+  const antiga = () => 'fetch("https://maps.googleapis.com/maps/api/directions/json");\n';
+  assert.equal(varrerCaminhoNaApi([outro], antiga).length, 1);
+
+  /* E um comentário citando o serviço, no arquivo errado, NÃO é achado. */
+  const soComentario = () => "// a Routes API (computeRoutes) mora em rotas/rota.ts\n";
+  assert.equal(varrerCaminhoNaApi([outro], soComentario).length, 0);
 });
 
 test("as próprias regras pegam o que deveriam pegar", () => {
@@ -180,6 +298,7 @@ test("as próprias regras pegam o que deveriam pegar", () => {
     "new google.maps.places.PlacesService(mapa);",
     "new google.maps.places.AutocompleteService();",
     'const url = "https://maps.googleapis.com/maps/api/directions/json";',
+    'await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", opcoes);',
     'script.src = base + "&libraries=places";',
     'const chave = "AIzaSyB1cQwErTyUiOpAsDfGhJkL";',
   ];

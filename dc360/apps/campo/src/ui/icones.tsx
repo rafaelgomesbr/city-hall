@@ -612,6 +612,43 @@ export function IconeInformacao({ cor, tamanho = TAMANHO_PADRAO }: Props) {
   );
 }
 
+/* =====================================================================
+   O SINO
+   ===================================================================== */
+
+/**
+ * Sino: os AVISOS do município, no canto direito do cabeçalho de toda tela.
+ *
+ * Nasceu junto com `ui/Sino.tsx`, que é o único lugar que o desenha hoje: até
+ * então o sino do agente não tinha desenho nenhum, porque morava escondido
+ * dentro do Perfil e o número aparecia só como crachá na aba. Quando o dono
+ * pediu "o sininho de notificações", a pergunta primeira foi qual sino, e a
+ * resposta é a convencional: campânula com o badalo embaixo. É o pictograma
+ * que todo aplicativo do telefone do agente já usa para a mesma coisa, e este
+ * conjunto se afasta de convenção só quando ela mente (ver `IconeAguardando`).
+ *
+ * Três traços, dentro da régua dos cinco: a campânula, o badalo e o pino de
+ * cima. O badalo é um arco SEPARADO do corpo, com vão de 3 no `viewBox`, e o
+ * vão não é enfeite: é ele que faz o desenho ler como sino em 16 pontos, em
+ * vez de como um copo virado. O pino de cima é o ponto de onde o sino balança
+ * quando chega aviso novo, e `ui/Sino.tsx` gira o desenho em torno dele.
+ */
+export function IconeSino({ cor, tamanho = TAMANHO_PADRAO }: Props) {
+  return (
+    <Svg width={tamanho} height={tamanho} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M5.6 17.2 6.8 15.4V11a5.2 5.2 0 0 1 10.4 0v4.4l1.2 1.8Z"
+        stroke={cor} strokeWidth={TRACO} strokeLinejoin="round"
+      />
+      <Path d="M12 3.6v2.2" stroke={cor} strokeWidth={TRACO} strokeLinecap="round" />
+      <Path
+        d="M10 20.2a2 2 0 0 0 4 0"
+        stroke={cor} strokeWidth={TRACO} strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 /**
  * O registro de tudo que existe, e ele não é decoração de arquivo.
  *
@@ -651,6 +688,7 @@ export const ICONES = {
   perigo: IconePerigo,
   sucesso: IconeSucesso,
   informacao: IconeInformacao,
+  sino: IconeSino,
 } as const satisfies Record<string, ComponenteDeIcone>;
 
 /** O nome de um ícone do conjunto, para quem guarda a escolha em dado. */

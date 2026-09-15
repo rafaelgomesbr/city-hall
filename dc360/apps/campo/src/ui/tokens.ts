@@ -78,6 +78,32 @@ export type Tema = {
   destaqueEscuro: string;
   sobreDestaque: string;
   /**
+   * O FUNDO SUAVE DE DESTAQUE, e o texto que vai em cima dele.
+   *
+   * O par nasceu de uma frase de quem paga, olhando os botões no aparelho:
+   * "mais chamativos ao invés de só preto ou branco, porque quem trabalha
+   * nessa área não tem afinidade com tecnologia". O aplicativo tinha um único
+   * botão preenchido, o primário, e ele só pode aparecer uma vez por tela,
+   * senão deixa de ser o primário. Tudo o mais era contorno. "Tirar foto" e
+   * "Capturar localização", que são os dois atos centrais da vistoria, saíam
+   * como um fio de 1,30:1 sobre o cartão.
+   *
+   * Este é o fundo do botão `realce`: preenchido, violeta, e DIFERENTE do
+   * primário nos dois temas, para a tela continuar tendo uma ação principal
+   * só. É a peça que o painel ainda não tem (não há `--ds-accent-soft` em
+   * `tokens.css`), e por isso o par não entra no mapa da paridade: os dois
+   * lados continuam com as mesmas primitivas, e é delas que ele sai.
+   *
+   * Sem cor nova, e a escolha é aritmética e não gosto: a violeta mais clara
+   * da paleta é a 300 e a mais escura é a 800, e são as duas únicas pontas
+   * que passam em AA uma sobre a outra (5,93:1, medido no portão de
+   * acessibilidade nos dois temas). No claro o fundo é a clara e o texto a
+   * escura; no escuro inverte, pelo mesmo motivo que o gradiente inverte: no
+   * escuro o que dá ênfase é clarear.
+   */
+  destaqueFundo: string;
+  destaqueTexto: string;
+  /**
    * A cor do anel de foco, que NÃO é `destaque`.
    *
    * No tema claro `destaque` é violeta 700 porque ele é fundo de texto branco
@@ -110,6 +136,8 @@ export const temaClaro: Tema = {
   destaque: violeta.v700,
   destaqueEscuro: violeta.v800,
   sobreDestaque: tinta.branco,
+  destaqueFundo: violeta.v300,
+  destaqueTexto: violeta.v800,
   anelDeFoco: violeta.v600,
   okTexto: "#14702F", okFundo: "#E6F6EA",
   alertaTexto: "#92400E", alertaFundo: "#FEF3C7",
@@ -132,6 +160,8 @@ export const temaEscuro: Tema = {
   destaque: violeta.v400,
   destaqueEscuro: violeta.v300,
   sobreDestaque: tinta.t950,
+  destaqueFundo: violeta.v800,
+  destaqueTexto: violeta.v300,
   anelDeFoco: violeta.v400,
   okTexto: "#69DB7C", okFundo: "#17301D",
   alertaTexto: "#FCC419", alertaFundo: "#332B10",

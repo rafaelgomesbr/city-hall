@@ -167,11 +167,19 @@ describe("a primeira pintura", () => {
     que terminou de ler o próprio disco. A guarda que impede isto é a que
     ignora a renderização em que a lista ainda não existe.
   */
-  it("não anima nada: a lista abrindo não é trabalho chegando", async () => {
+  it("não anima nenhum cartão: a lista abrindo não é trabalho chegando", async () => {
     mockNoDisco = [PRIMEIRA, SEGUNDA];
     await abrirALista();
     expect(screen.getByText("000471/2026")).toBeTruthy();
-    expect(animacoes).toHaveLength(0);
+    /*
+      O que a primeira pintura NÃO pode fazer é animar cartão. O número grande
+      do cabeçalho conta de zero ao valor na primeira pintura, de propósito (ver
+      `ui/dado-que-conta.test.tsx`), e ele é a única animação que nasce em
+      JavaScript: texto não tem como subir no driver nativo. Cartão entra na
+      thread de interface, e é isso que separa um do outro aqui.
+    */
+    expect(animacoes.filter((a) => a.useNativeDriver)).toHaveLength(0);
+    expect(animacoes.filter((a) => !a.useNativeDriver)).toHaveLength(1);
   });
 });
 

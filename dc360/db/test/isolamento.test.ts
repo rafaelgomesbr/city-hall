@@ -1185,6 +1185,55 @@ describe("Regras de negócio garantidas pelo banco", () => {
     ).rejects.toThrow(/chave_com_prefixo_do_tenant/i);
   });
 
+  it("a foto do servidor so aceita chave sob o municipio E o proprio usuario (migracao 040)", async () => {
+    /*
+      A foto de perfil e a segunda chave de armazenamento que mora numa tabela
+      de negocio, e ela ganha a MESMA barreira da evidencia (001) e da
+      assinatura (009), com um degrau a mais: o prefixo carrega o id do
+      usuario. Sem isso, um servidor poderia apontar a propria foto para o
+      objeto de outro colega, e a tela da equipe mostraria o rosto errado
+      embaixo do nome certo.
+    */
+    const [meu, colega] = await Promise.all([
+      db.query<{ id: string }>(
+        `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
+         VALUES ($1,'Servidor com foto','SA-FOTO-1','foto1@serraalta.exemplo.gov.br','agente_campo')
+         RETURNING id`,
+        [orgA],
+      ),
+      db.query<{ id: string }>(
+        `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
+         VALUES ($1,'Colega','SA-FOTO-2','foto2@serraalta.exemplo.gov.br','agente_campo')
+         RETURNING id`,
+        [orgA],
+      ),
+    ]);
+    const eu = meu.rows[0]!.id;
+    const outro = colega.rows[0]!.id;
+
+    const gravar = (chave: string) =>
+      comoApp(orgA, (tx) =>
+        tx.query("UPDATE usuarios SET foto_chave = $2 WHERE id = $1", [eu, chave]));
+
+    // Prefixo de outro municipio: a primeira barreira, a mesma da evidencia.
+    await expect(gravar(`tenant/${orgB}/usuarios/${eu}/foto.jpg`))
+      .rejects.toThrow(/foto_com_prefixo_do_tenant_e_do_usuario/i);
+    // Municipio certo, usuario errado: a barreira nova.
+    await expect(gravar(`tenant/${orgA}/usuarios/${outro}/foto.jpg`))
+      .rejects.toThrow(/foto_com_prefixo_do_tenant_e_do_usuario/i);
+    // A chave de uma evidencia do proprio municipio tambem nao serve de foto.
+    await expect(gravar(`tenant/${orgA}/ocorrencias/${eu}/foto.jpg`))
+      .rejects.toThrow(/foto_com_prefixo_do_tenant_e_do_usuario/i);
+
+    // A chave certa entra, e voltar a nulo (remover a foto) tambem.
+    await gravar(`tenant/${orgA}/usuarios/${eu}/foto-1.jpg`);
+    const lida = await comoApp(orgA, (tx) =>
+      tx.query<{ foto_chave: string | null }>("SELECT foto_chave FROM usuarios WHERE id = $1", [eu]));
+    expect(lida.rows[0]!.foto_chave).toBe(`tenant/${orgA}/usuarios/${eu}/foto-1.jpg`);
+    await comoApp(orgA, (tx) =>
+      tx.query("UPDATE usuarios SET foto_chave = NULL WHERE id = $1", [eu]));
+  });
+
   it("recusa a mesma coleta enviada duas vezes com a mesma chave de idempotência", async () => {
     const oc = await db.query<{ id: string }>(
       "SELECT id FROM ocorrencias WHERE organizacao_id = $1 LIMIT 1",

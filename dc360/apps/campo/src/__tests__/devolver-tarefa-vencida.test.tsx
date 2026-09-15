@@ -697,6 +697,10 @@ describe("a recusa não cola nada na tela para sempre", () => {
 
     expect(screen.getByText("A devolução não foi registrada")).toBeTruthy();
 
+    /* A folha da devolução DESCE antes de sair (ver `Dialogo`), e o ⓘ abre
+       outra folha: na tela real o dedo chega no ⓘ depois de a nota aparecer,
+       e aqui a suíte espera a primeira folha ir embora pela mesma razão. */
+    await waitFor(() => { expect(screen.queryByTestId("dialogo-devolucao")).toBeNull(); });
     await tocar("detalhe-da-lista");
     expect(screen.getByText(/sessão aberta neste aparelho/)).toBeTruthy();
 

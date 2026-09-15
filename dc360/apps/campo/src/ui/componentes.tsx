@@ -1,8 +1,9 @@
 import {
-  createContext, useCallback, useContext, useEffect, useId, useMemo, useState, type ReactNode,
+  createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState,
+  type ReactNode,
 } from "react";
 import {
-  ActivityIndicator, Animated, Pressable, StyleSheet, Text, View, useColorScheme,
+  ActivityIndicator, Animated, Easing, Pressable, StyleSheet, Text, View, useColorScheme,
   type StyleProp, type ViewStyle,
 } from "react-native";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
@@ -435,10 +436,44 @@ export function varianteQueCabe(
    Botão
    ======================================================================== */
 
+/**
+ * OS CINCO TIPOS, e o que separa cada um, na letra de quem paga.
+ *
+ * "Você apagou o botão roxo que eu disse que tava bonito da aba de tarefas. Se
+ * puder deixar os botões mais chamativos ao invés de só preto ou branco seria
+ * bom: geralmente pessoas que trabalham nessa área não têm afinidade muito
+ * grande com tecnologia."
+ *
+ * O diagnóstico por trás da frase era medido, e não de gosto: o aplicativo
+ * tinha UM botão preenchido (o primário, que só pode aparecer uma vez por
+ * tela) e 28 secundários desenhados com `tema.borda`, um fio de 1,30:1 sobre o
+ * cartão. Entre os 28 estavam "Tirar foto" e "Capturar localização". Para quem
+ * não decora interface, um retângulo com um fio que mal existe não parece
+ * botão: parece texto.
+ *
+ * - `primario`: A ação que a tela quer que aconteça. Preenchido de destaque,
+ *   com o único gradiente do aplicativo. Um por tela.
+ * - `realce`: o ato importante que NÃO é a ação principal, mas faz o trabalho
+ *   ANDAR (tirar a foto, capturar o GPS, adicionar o órgão, tentar de novo).
+ *   Preenchido com o fundo suave de destaque, sem gradiente, e por isso lê
+ *   como "faça isto" sem disputar com o primário. Pode haver mais de um por
+ *   tela, mas um por cartão: dois realces lado a lado são dois convites ao
+ *   mesmo tempo.
+ * - `secundario`: desistir, voltar, fechar, recusar, corrigir. Contornado,
+ *   com `bordaControle` (3:1), que é a mesma borda do campo de formulário.
+ * - `discreto`: texto de destaque sem caixa, para o ato que é quase um link.
+ * - `perigo`: o que apaga ou descarta. Preenchido de perigo, e pergunta antes.
+ *
+ * A régua para decidir entre realce e secundário é uma pergunta só: tocar aqui
+ * faz o trabalho avançar, ou faz o agente sair de onde está? A primeira é
+ * realce; a segunda é secundário.
+ */
+export type TipoDeBotao = "primario" | "realce" | "secundario" | "discreto" | "perigo";
+
 type PropsBotao = {
   titulo: string;
   onPress: () => void;
-  tipo?: "primario" | "secundario" | "discreto" | "perigo";
+  tipo?: TipoDeBotao;
   desabilitado?: boolean;
   carregando?: boolean;
   /** Descrição para leitor de tela, quando o título não bastar. */
@@ -492,9 +527,25 @@ export function Botao({
   */
   const [larguraDoTexto, setLarguraDoTexto] = useState(0);
 
+  /*
+    O SECUNDÁRIO USA `bordaControle`, E NÃO `borda`, desde a frente dos botões.
+
+    `borda` desenha cartão e separador, que são decoração. `bordaControle`
+    existe desde que o campo de formulário reprovou nos 3:1 da WCAG 1.4.11, e
+    o botão secundário, que é um controle tanto quanto o campo, continuou com o
+    fio decorativo: era a ÚNICA peça de interação do aplicativo desenhada com
+    ele. Medido, o fio dava 1,30:1 sobre o cartão, e é exatamente o que quem
+    paga viu como "só preto ou branco": um botão cujo contorno não existe é um
+    texto solto.
+
+    O realce não tem borda porque o que o separa do secundário é o
+    PREENCHIMENTO. Dois botões contornados, um violeta e um cinza, seriam o
+    mesmo botão para quem não distingue as duas cores.
+  */
   const cores = {
     primario: { fundo: tema.destaque, texto: tema.sobreDestaque, borda: "transparent" },
-    secundario: { fundo: "transparent", texto: tema.texto, borda: tema.borda },
+    realce: { fundo: tema.destaqueFundo, texto: tema.destaqueTexto, borda: "transparent" },
+    secundario: { fundo: "transparent", texto: tema.texto, borda: tema.bordaControle },
     discreto: { fundo: "transparent", texto: tema.destaque, borda: "transparent" },
     perigo: { fundo: tema.perigoFundo, texto: tema.perigoTexto, borda: "transparent" },
   }[tipo];
@@ -866,17 +917,133 @@ export function Dado({ valor, rotulo, cor, mono = true, testID }: {
   mono?: boolean;
   testID?: string;
 }) {
+  const desenhado = useContagemQueSobe(valor);
   return (
     <View
       testID={testID}
       accessible
+      /*
+        O rótulo lê o valor FINAL, sempre, mesmo enquanto o número desenhado
+        ainda está subindo. Quem ouve a tela não vê a contagem e não deve
+        ouvi-la: "7, vistorias para fazer" anunciado no meio da subida seria
+        uma informação errada dita com a voz da certeza.
+      */
       accessibilityLabel={`${valor}, ${rotulo}`}
       style={{ gap: espaco.e1 }}
     >
-      <Txt nivel="numero" mono={mono} cor={cor}>{valor}</Txt>
+      <Txt nivel="numero" mono={mono} cor={cor}>{desenhado}</Txt>
       <Txt nivel="rotulo">{rotulo}</Txt>
     </View>
   );
+}
+
+/**
+ * O que é CONTAGEM, e portanto sobe: um inteiro, sem zero à esquerda.
+ *
+ * "000123" é protocolo e "5 de 7" é fração, e nenhum dos dois sobe. Um
+ * protocolo contando de zero é, por 260 ms, um protocolo ERRADO na tela, e o
+ * dígito deste produto é ditado por rádio e por telefone: a pessoa do outro
+ * lado pode anotar o que viu no meio da subida. Contagem não tem esse risco,
+ * porque ninguém dita "12 vistorias" antes de o número parar.
+ */
+const CONTAGEM = /^(?:0|[1-9]\d*)$/;
+
+/**
+ * A CONTAGEM QUE SOBE, na primeira pintura e em mais nenhuma.
+ *
+ * O `Dado` é o protagonista de quatro telas e nascia parado. A subida é a
+ * micro-interação com propósito que `CLAUDE.md` pede: ela leva o olho ao
+ * número, que é onde a hierarquia quer que a leitura comece.
+ *
+ * ## A escolha do mecanismo, e as duas que foram recusadas
+ *
+ * Texto NÃO anima no driver nativo: o que muda é o conteúdo do `Text`, e não
+ * uma propriedade de estilo que a thread de interface saiba interpolar. Então
+ * o valor roda em JavaScript de qualquer jeito, e a pergunta é só como ele
+ * chega ao desenho.
+ *
+ * - `Animated.Value` com `addListener` espelhando no ESTADO é o que está aqui.
+ *   A duração e a curva passam pelo MESMO `Animated.timing` que toda outra
+ *   peça do aplicativo usa, com `movimento.mudancaDeEstado` e
+ *   `easing.entrada` lidos dos tokens. Não há uma segunda implementação de
+ *   curva de Bézier neste arquivo, e o portão de design lê `duration:` daqui
+ *   como lê de qualquer outro lugar. Custa uma renderização por quadro durante
+ *   260 ms, para um texto de dois dígitos: é nada.
+ * - `setNativeProps` foi recusado porque `Text` não recebe conteúdo por ele
+ *   (só `TextInput` aceita `text`), e porque passaria por cima do `Txt`, que
+ *   é o único lugar do produto que resolve a família de fonte.
+ * - `requestAnimationFrame` com a curva calculada à mão foi recusado porque
+ *   seria a segunda forma de animar no aplicativo, com o próprio relógio e a
+ *   própria curva, fora do vocabulário que `useRespostaAoToque` e
+ *   `ItemDeLista` já compartilham.
+ *
+ * ## Só na primeira pintura
+ *
+ * O alvo é lido UMA vez, na montagem, e guardado. Um valor que muda depois (a
+ * lista recarregou de 3 para 5) aparece direto, sem contar de novo: um número
+ * que rola a cada atualização vira ruído, e o agente para de acreditar no que
+ * está lendo. Se o valor mudar NO MEIO da subida, a subida para e o novo valor
+ * entra na hora, pelo mesmo motivo.
+ *
+ * ## Redução de movimento
+ *
+ * Com a chave ligada o número nasce pronto. E a chave chega sempre DEPOIS do
+ * primeiro quadro (`useReducaoDeMovimento` começa em `false` e só sabe a
+ * resposta quando a promessa do sistema volta), então há um segundo efeito
+ * que para a contagem no meio e fixa no alvo, como `ItemDeLista` faz com a
+ * entrada. Sem ele, quem pediu menos movimento receberia a animação inteira.
+ */
+function useContagemQueSobe(valor: string): string {
+  const reduzirMovimento = useReducaoDeMovimento();
+
+  /*
+    Lidos uma vez e guardados, pelo mesmo motivo de `ItemDeLista`: a decisão
+    de animar precisa estar certa no PRIMEIRO quadro, e não num efeito. Nascer
+    em 12, cair para 0 e subir de novo é um piscar, que é pior que não animar.
+  */
+  const alvoInicial = useRef(valor).current;
+  const alvo = useRef(Number(alvoInicial)).current;
+  const animar = useRef(CONTAGEM.test(alvoInicial) && alvo > 0 && !reduzirMovimento).current;
+
+  const progresso = useRef(new Animated.Value(animar ? 0 : 1)).current;
+  const [desenhado, setDesenhado] = useState(animar ? "0" : alvoInicial);
+  const [terminou, setTerminou] = useState(!animar);
+
+  useEffect(() => {
+    if (!animar) return;
+    const ouvinte = progresso.addListener(({ value }) => {
+      setDesenhado(String(Math.round(value * alvo)));
+    });
+    Animated.timing(progresso, {
+      toValue: 1,
+      duration: movimento.mudancaDeEstado,
+      easing: Easing.bezier(...easing.entrada),
+      /* Texto não tem como ser interpolado na thread de interface. */
+      useNativeDriver: false,
+    }).start(({ finished }) => { if (finished) setTerminou(true); });
+    return () => {
+      progresso.removeListener(ouvinte);
+      progresso.stopAnimation();
+    };
+  }, [animar, alvo, progresso]);
+
+  /* A chave do sistema chegando atrasada, que é como ela sempre chega. */
+  useEffect(() => {
+    if (!animar || !reduzirMovimento) return;
+    progresso.stopAnimation();
+    progresso.setValue(1);
+    setTerminou(true);
+  }, [animar, reduzirMovimento, progresso]);
+
+  /* O valor que mudou no meio da subida interrompe a subida. */
+  const mudou = valor !== alvoInicial;
+  useEffect(() => {
+    if (!animar || !mudou) return;
+    progresso.stopAnimation();
+    setTerminou(true);
+  }, [animar, mudou, progresso]);
+
+  return terminou || mudou ? valor : desenhado;
 }
 
 /**
@@ -914,8 +1081,23 @@ export function Aviso({ tom, titulo, acao, peso: pesoPedido = "forte", children 
   tom: "info" | "sucesso" | "alerta" | "perigo";
   /** A frase curta que diz o que houve, acima do texto. */
   titulo?: string;
-  /** O que dá para fazer a respeito, quando houver algo a fazer. */
-  acao?: { titulo: string; onPress: () => void; descricao?: string; testID?: string };
+  /**
+   * O que dá para fazer a respeito, quando houver algo a fazer.
+   *
+   * `tipo` é opcional e o padrão é `secundario`, e o padrão é deliberado: o
+   * aviso já carrega a cor do tom no fundo ou no filete, e um bloco violeta
+   * dentro de um bloco âmbar seriam duas cores disputando a mesma caixa. O
+   * componente não sabe se o ato faz o trabalho andar ("Revisar o laudo
+   * agora") ou faz o aviso sair ("Fechar"); quem sabe é quem chama, e sobe
+   * para `realce` uma chamada de cada vez.
+   */
+  acao?: {
+    titulo: string;
+    onPress: () => void;
+    tipo?: Extract<TipoDeBotao, "secundario" | "realce">;
+    descricao?: string;
+    testID?: string;
+  };
   /**
    * Quanto peso este aviso tem direito a ocupar. Ver `ui/regua.ts`.
    *
@@ -1038,7 +1220,7 @@ export function Aviso({ tom, titulo, acao, peso: pesoPedido = "forte", children 
           onPress={acao.onPress}
           descricao={acao.descricao}
           testID={acao.testID}
-          tipo="secundario"
+          tipo={acao.tipo ?? "secundario"}
         />
       )}
     </View>

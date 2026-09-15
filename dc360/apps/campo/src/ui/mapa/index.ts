@@ -38,5 +38,6 @@ export { caixaDosPontos, projetarNoPlano } from "./pinos";
 export type { CaixaDoMapa, PinoNoMapa } from "./pinos";
 export { estiloDoGoogle } from "./estilo-do-google";
 export type { EstiloDoMapa } from "./estilo-do-google";
+export { LADO_MAXIMO_DO_MAPA, ladoDoMapa } from "./lado";
 export { useMapaDoMunicipio } from "./useMapaDoMunicipio";
 export type { EstadoDoMapa } from "./useMapaDoMunicipio";

@@ -9,6 +9,7 @@ import {
 import { useTema } from "./componentes";
 import { easing, elevacao, espaco, movimento, raio, toque } from "./tokens";
 import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
+import { useRespostaAoToque } from "./useRespostaAoToque";
 
 /**
  * A FOLHA QUE CONVIVE COM O MAPA.
@@ -261,6 +262,18 @@ export function FolhaArrastavel({
 }: Props) {
   const tema = useTema();
   const reduzir = useReducaoDeMovimento();
+  /*
+    O retorno do dedo na alça, e quem o carrega é a BARRA, não o `Pressable`.
+
+    A alça era um tocável com estilo parado: o dedo encostava e nada acontecia
+    até a folha inteira se mover, enquanto o botão do rodapé, a três
+    centímetros dali, respondia com transição. O vocabulário é o de sempre
+    (`useRespostaAoToque`: duração e curva de token, camada nativa, redução de
+    movimento respeitada). Ele vai na barrinha, e não no `Pressable`, por dois
+    motivos: é onde o dedo está, e o `Pressable` continua sendo um `Pressable`
+    para o portão de acessibilidade continuar enxergando a alça como tocável.
+  */
+  const toqueNaAlca = useRespostaAoToque();
   const ordem = useMemo(() => posicoesOrdenadas(posicoes), [posicoes]);
 
   const [altura, setAltura] = useState(0);
@@ -649,19 +662,29 @@ export function FolhaArrastavel({
                   ? (ordem[0] ?? posicaoDesenhada.current)
                   : vizinha(1),
               )}
+              /*
+                Quando o arraste toma o gesto da alça, o sistema de responder
+                termina o toque do `Pressable`, e o `onPressOut` devolve a
+                barra ao repouso sozinho: ela escurece sob o dedo parado e
+                volta assim que a folha começa a andar.
+              */
+              onPressIn={toqueNaAlca.aoEncostar}
+              onPressOut={toqueNaAlca.aoSoltar}
               style={{
                 minHeight: toque,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <View
+              <Animated.View
                 testID={`${testID}-barra`}
                 style={{
                   width: espaco.e6,
                   height: espaco.e1,
                   borderRadius: raio.pilula,
                   backgroundColor: tema.bordaControle,
+                  opacity: toqueNaAlca.opacidadeDoToque,
+                  transform: [{ scale: toqueNaAlca.escalaDoToque }],
                 }}
               />
             </Pressable>

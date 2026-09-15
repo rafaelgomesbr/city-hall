@@ -109,10 +109,11 @@ const PUSH: EstadoDoPush = {
 
 const TRABALHO: MeuTrabalho = {
   equipe: { id: "e1", nome: "Equipe Alfa", especialidade: "Geotecnia", ativa: true },
-  colegas: [{ id: "u1", nome: "Agente", papel: "agente_campo", ativo: true }],
+  colegas: [{ id: "u1", nome: "Agente", papel: "agente_campo", ativo: true, fotoUrl: null, emCampo: false }],
   concluidas: [],
   totalConcluidas: 0,
   tetoDeConcluidas: 50,
+  devolvidasNoMes: 0,
 };
 
 beforeEach(() => {

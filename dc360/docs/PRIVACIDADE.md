@@ -91,6 +91,21 @@ onde ele **disse** que ia, antes de sair. Seguir o servidor pelo GPS ao longo do
 turno é vigilância de trabalhador, e essa é uma decisão que o produto não tomou
 pelo município: ele não oferece esse recurso. Ver `SEGURANCA-DO-AGENTE.md`.
 
+Desde 15/09/2026 há a **foto de perfil do servidor**, e ela é dado pessoal do
+servidor, não do cidadão. As regras dela, todas escolhidas para caber nesta
+frase: é **opcional**; é **escolhida pelo próprio servidor**, no aplicativo, a
+partir da câmera ou da galeria dele (só a imagem escolhida sai do aparelho,
+nunca a galeria); é **visível para a equipe dele e para a coordenação** do
+mesmo município, ao lado do nome, e para mais ninguém; **não entra em laudo,
+termo, ofício nem em nenhuma exportação de ocorrência**; e o próprio servidor a
+**troca ou remove** quando quiser. Trocar apaga a anterior do armazenamento (é
+retrato, não prova, e foi ele mesmo quem trocou), e a trilha administrativa
+guarda que houve troca e quando. A foto **sai com a conta**: ela pertence ao
+município que o cadastrou, e por isso **entra no pacote de saída** do município,
+na pasta `usuarios/`, separada das fotografias de vistoria. Fica guardada como
+chave de armazenamento, nunca como link público: quem a vê recebe um endereço
+assinado que vence em minutos, igual à fotografia de vistoria.
+
 ### 2.3 Do aparelho de campo
 
 Identificador do aparelho e ficha de notificação, para a mensagem de prazo
@@ -101,8 +116,10 @@ chegar ao agente certo. Revogados no encerramento da sessão.
 Sem rastreamento de publicidade. Sem identificador de propaganda. Sem análise de
 comportamento. Sem localização em segundo plano: a coordenada é lida no momento
 da vistoria, com o aplicativo aberto, e serve para carimbar aquela vistoria.
-Sem cookie de terceiro no painel. Sem acesso a contatos, agenda, microfone ou
-biblioteca de fotos além da fotografia que o agente tira na hora.
+Sem cookie de terceiro no painel. Sem acesso a contatos, agenda ou microfone.
+A biblioteca de fotos só é aberta quando o servidor escolhe uma foto de perfil
+na galeria, e o que sai do aparelho é aquela imagem, recortada e reduzida, e
+mais nenhuma; a fotografia de vistoria continua sendo tirada na hora.
 
 ---
 

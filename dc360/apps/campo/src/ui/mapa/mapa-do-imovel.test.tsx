@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 
 import { PRAZO_DO_MAPA_MS, decidirModoDoMapa } from "../../dados/mapa";
 import { DEMORA_MS, ProvedorDeTema } from "../componentes";
-import { espaco } from "../tokens";
+import { espaco, movimento, temaClaro } from "../tokens";
 import { MapaDoImovel, enquadrar } from "./MapaDoImovel";
 
 /**
@@ -127,7 +127,7 @@ describe("A tela diz em que modo está, e nunca antes de saber", () => {
   });
 
   it("município que não autorizou: plano esquemático, dito com a razão", async () => {
-    await desenhar(decidirModoDoMapa({ daApi: "", doBuild: "chave" }));
+    await desenhar(decidirModoDoMapa({ mapaAutorizado: false, doBuild: "chave" }));
     expect(screen.getByText("Plano esquemático")).toBeTruthy();
     expect(screen.getByText(/optou por não enviar coordenada ao Google/)).toBeTruthy();
     expect(mapaDublado.props).toBeNull();
@@ -140,42 +140,40 @@ describe("A tela diz em que modo está, e nunca antes de saber", () => {
       ficaria parecido com uma decisão de privacidade, e ninguém conserta o que
       parece intencional.
     */
-    await desenhar(decidirModoDoMapa({ daApi: "chave-do-municipio", doBuild: "" }));
+    await desenhar(decidirModoDoMapa({ mapaAutorizado: true, doBuild: "" }));
     expect(screen.getByText(/compilada sem a chave do mapa/)).toBeTruthy();
     expect(mapaDublado.props).toBeNull();
   });
 
   it("autorizado: monta o mapa, com o provedor Google e o nosso estilo", async () => {
-    await desenhar(decidirModoDoMapa({ daApi: "a-mesma", doBuild: "a-mesma" }));
+    await desenhar(decidirModoDoMapa({ mapaAutorizado: true, doBuild: "a-mesma" }));
     expect(screen.getByText("Mapa do Google")).toBeTruthy();
     expect(mapaDublado.props?.["provider"]).toBe("google");
     expect(Array.isArray(mapaDublado.props?.["customMapStyle"])).toBe(true);
   });
 
-  it("chave divergente: desenha, e diz que a conta cai na chave compilada", async () => {
-    await desenhar(decidirModoDoMapa({ daApi: "a-nova", doBuild: "a-velha" }));
-    expect(screen.getByText("Mapa do Google")).toBeTruthy();
-    expect(screen.getByText(/é diferente da que está nesta versão do aplicativo/)).toBeTruthy();
-  });
+  /*
+    O AVISO DE CHAVE DIVERGENTE SAIU, e dois casos saíram com ele.
 
-  it("e quem OUVE a tela também fica sabendo da chave divergente", async () => {
-    /*
-      A legenda de modo é um resumo com rótulo próprio, e um resumo é lido como
-      uma coisa só: no Android o `contentDescription` do agrupamento ganha dos
-      filhos. Enquanto o aviso da chave divergente existia só como filho
-      desenhado, ele não era falado por ninguém.
+    Eles se chamavam "chave divergente: desenha, e diz que a conta cai na chave
+    compilada" e "e quem OUVE a tela também fica sabendo da chave divergente".
+    Comparavam a chave que `GET /configuracao` manda com a do binário, e o aviso
+    dizia "avise a coordenação para gerar o aplicativo de novo".
 
-      Ele é dirigido ao agente ("avise a coordenação"), e é o único caminho pelo
-      qual alguém descobre que a prefeitura rotacionou `MAPS_KEY` no servidor e
-      não gerou o aplicativo de novo: o mapa continua desenhando e a conta
-      continua caindo na chave antiga, então não há nada quebrado na tela para
-      investigar. Um agente que usa leitor de tela era o único que nunca ficava
-      sabendo.
-    */
-    await desenhar(decidirModoDoMapa({ daApi: "a-nova", doBuild: "a-velha" }));
-    const resumo = screen.getByRole("summary");
-    expect(String(resumo.props.accessibilityLabel))
-      .toMatch(/Avise a coordenação para gerar o aplicativo de novo/);
+    A chave que a API manda é a do PAINEL (`MAPS_KEY`, restrita a sites), e a
+    do binário é a de Apps iOS ou de Apps Android (`DC360_MAPS_CHAVE_IOS`,
+    `DC360_MAPS_CHAVE_ANDROID`, desde o commit `b5afd64`): o console do Google
+    aceita um tipo de restrição por chave, então elas SEMPRE diferem numa
+    instalação certa. O aviso virou mentira em toda instalação, e a captura de
+    quem paga mostrava exatamente isso. O que decide o modo agora é o booleano
+    `mapaAutorizado`, e o caso abaixo guarda que a legenda não fala mais de
+    chave nenhuma.
+  */
+  it("o resumo do modo Google não fala de chave: não há mais o que comparar", async () => {
+    await desenhar(decidirModoDoMapa({ mapaAutorizado: true, doBuild: "chave-ios" }));
+    expect(screen.queryByText(/é diferente da que está nesta versão do aplicativo/)).toBeNull();
+    expect(String(screen.getByRole("summary").props.accessibilityLabel))
+      .not.toMatch(/gerar o aplicativo de novo/);
   });
 
   it("quem OUVE a tela ouve que a coordenada vai para o Google, sem o detalhe na tela", async () => {
@@ -190,18 +188,19 @@ describe("A tela diz em que modo está, e nunca antes de saber", () => {
       elemento de acessibilidade não tem rótulo nenhum: a promessa da seção 2.2
       do `SUBPROCESSADORES.md` deixava de ser dita para quem depende de ouvi-la.
     */
-    await desenhar(decidirModoDoMapa({ daApi: "a-mesma", doBuild: "a-mesma" }));
+    await desenhar(decidirModoDoMapa({ mapaAutorizado: true, doBuild: "a-mesma" }));
     expect(screen.queryByText(/é enviada ao Google/)).toBeNull();
     expect(String(screen.getByRole("summary").props.accessibilityLabel))
       .toMatch(/é enviada ao Google/);
   });
 
-  it("e sem divergência o resumo não fala de chave nenhuma", async () => {
+  it("e o resumo do modo Google não cita chave em lugar nenhum", async () => {
     /*
-      A metade que impede a correção de virar ruído: colar o aviso em todo
-      resumo faria o caso que importa deixar de se distinguir.
+      Legenda de modo é a seção 2.2 do `SUBPROCESSADORES.md` virada tela: ela
+      fala de para onde a coordenada vai, e chave é assunto do console do
+      Google, não do agente.
     */
-    await desenhar(decidirModoDoMapa({ daApi: "a-mesma", doBuild: "a-mesma" }));
+    await desenhar(decidirModoDoMapa({ mapaAutorizado: true, doBuild: "a-mesma" }));
     expect(String(screen.getByRole("summary").props.accessibilityLabel))
       .not.toMatch(/chave/i);
   });
@@ -209,7 +208,7 @@ describe("A tela diz em que modo está, e nunca antes de saber", () => {
 
 describe("O prazo, que é o `gm_authFailure` que o SDK nativo não tem", () => {
   it("passado o prazo sem o mapa desenhar, avisa quem pode trocar de modo", async () => {
-    await desenhar(decidirModoDoMapa({ daApi: "a-mesma", doBuild: "a-mesma" }));
+    await desenhar(decidirModoDoMapa({ mapaAutorizado: true, doBuild: "a-mesma" }));
     expect(naoDesenhou).not.toHaveBeenCalled();
 
     await act(async () => { jest.advanceTimersByTime(PRAZO_DO_MAPA_MS + 1); });
@@ -222,7 +221,7 @@ describe("O prazo, que é o `gm_authFailure` que o SDK nativo não tem", () => {
       esquemático doze segundos depois de aparecer, que é o defeito oposto e
       igualmente silencioso: o agente veria o mapa de ruas sumir sozinho.
     */
-    await desenhar(decidirModoDoMapa({ daApi: "a-mesma", doBuild: "a-mesma" }));
+    await desenhar(decidirModoDoMapa({ mapaAutorizado: true, doBuild: "a-mesma" }));
     await act(async () => { mapaDublado.onMapLoaded?.(); });
 
     await act(async () => { jest.advanceTimersByTime(PRAZO_DO_MAPA_MS * 3); });
@@ -236,7 +235,7 @@ describe("O prazo, que é o `gm_authFailure` que o SDK nativo não tem", () => {
       ele existir, e o motivo registrado seria "o Google recusou" quando o
       Google nem foi chamado.
     */
-    await desenhar(decidirModoDoMapa({ daApi: "", doBuild: "" }));
+    await desenhar(decidirModoDoMapa({ mapaAutorizado: false, doBuild: "" }));
     await act(async () => { jest.advanceTimersByTime(PRAZO_DO_MAPA_MS * 3); });
     expect(naoDesenhou).not.toHaveBeenCalled();
   });
@@ -345,18 +344,18 @@ describe("Com pinos, a peça desenha a criticidade E a legenda dela", () => {
     gravidade por cor sozinha, sem nenhum arquivo ficar visivelmente errado.
   */
   it("a legenda aparece no mapa do Google", async () => {
-    await comPinos(decidirModoDoMapa({ daApi: "a-mesma", doBuild: "a-mesma" }));
+    await comPinos(decidirModoDoMapa({ mapaAutorizado: true, doBuild: "a-mesma" }));
     expect(screen.getByTestId("legenda-de-criticidade")).toBeTruthy();
     expect(screen.getByText("Crítica")).toBeTruthy();
   });
 
   it("e aparece igual no plano de reserva, porque o pino é colorido nos dois", async () => {
-    await comPinos(decidirModoDoMapa({ daApi: "", doBuild: "" }));
+    await comPinos(decidirModoDoMapa({ mapaAutorizado: false, doBuild: "" }));
     expect(screen.getByTestId("legenda-de-criticidade")).toBeTruthy();
   });
 
   it("um marcador por pino, com a identidade da ocorrência", async () => {
-    await comPinos(decidirModoDoMapa({ daApi: "a-mesma", doBuild: "a-mesma" }));
+    await comPinos(decidirModoDoMapa({ mapaAutorizado: true, doBuild: "a-mesma" }));
     expect(mapaDublado.marcadores.map((m) => m["identifier"])).toEqual(["a", "b"]);
   });
 
@@ -368,8 +367,173 @@ describe("Com pinos, a peça desenha a criticidade E a legenda dela", () => {
     razão que estava escrita no código antes desta frente.
   */
   it("com um imóvel só, não há legenda de criticidade nenhuma", async () => {
-    await desenhar(decidirModoDoMapa({ daApi: "a-mesma", doBuild: "a-mesma" }));
+    await desenhar(decidirModoDoMapa({ mapaAutorizado: true, doBuild: "a-mesma" }));
     expect(screen.queryByTestId("legenda-de-criticidade")).toBeNull();
+  });
+});
+
+/* ============================================================
+   O pino que não aparecia: o bitmap congelado antes de o SVG pintar
+   ============================================================ */
+
+describe("O marcador só é congelado em bitmap depois de o mapa desenhar", () => {
+  const PINOS = [{
+    id: "a", ponto: IMOVEL, rotulo: "Servidão Boa Esperança, 148", severidade: "critica" as const,
+  }];
+
+  async function comPinos(): Promise<ReturnType<typeof render>> {
+    let tela!: ReturnType<typeof render>;
+    await act(async () => {
+      tela = render(
+        <ProvedorDeTema>
+          <MapaDoImovel
+            pinos={PINOS}
+            agente={AGENTE}
+            mapa={{
+              decisao: decidirModoDoMapa({ mapaAutorizado: true, doBuild: "chave-ios" }),
+              aoGoogleNaoDesenhar: naoDesenhou,
+              desistirDeEsperar: desistiu,
+            }}
+          />
+        </ProvedorDeTema>,
+      );
+    });
+    return tela;
+  }
+
+  const marcador = () => mapaDublado.marcadores.find((m) => m["identifier"] === "a")!;
+
+  /*
+    O DEFEITO, na captura de quem paga: a legenda dizia "Crítica" e o mapa
+    estava vazio. `tracksViewChanges={false}` congela o marcador no bitmap do
+    que estiver desenhado NAQUELE instante, e o desenho do pino é SVG
+    (`react-native-svg`), que no iOS pinta de forma assíncrona. A versão
+    anterior desligava 260 ms depois de montar: se o SVG ainda não tinha
+    pintado, o bitmap capturado era vazio, e ficava vazio até `severidade` ou
+    `escolhido` mudarem, o que numa lista de uma tarefa nunca acontece.
+  */
+  it("enquanto o mapa não carregou, o marcador continua sendo redesenhado", async () => {
+    await comPinos();
+    expect(marcador()["tracksViewChanges"]).toBe(true);
+
+    /* Muito além dos 260 ms de antes: o relógio sozinho não desliga mais nada. */
+    await act(async () => { jest.advanceTimersByTime(PRAZO_DO_MAPA_MS - 1); });
+    expect(marcador()["tracksViewChanges"]).toBe(true);
+  });
+
+  it("depois de `onMapLoaded` mais uma mudança de estado, congela", async () => {
+    await comPinos();
+    await act(async () => { mapaDublado.onMapLoaded?.(); });
+    /* Ainda não: o SDK acabou de dizer que desenhou, e o pino ganha uma
+       transição inteira para ser capturado com o SVG já pintado. */
+    expect(marcador()["tracksViewChanges"]).toBe(true);
+
+    await act(async () => { jest.advanceTimersByTime(movimento.mudancaDeEstado + 1); });
+    expect(marcador()["tracksViewChanges"]).toBe(false);
+  });
+
+  it("escolher o pino religa a captura, para o anel aparecer, e desliga de novo", async () => {
+    const tela = await comPinos();
+    await act(async () => { mapaDublado.onMapLoaded?.(); });
+    await act(async () => { jest.advanceTimersByTime(movimento.mudancaDeEstado + 1); });
+    expect(marcador()["tracksViewChanges"]).toBe(false);
+
+    await act(async () => {
+      tela.rerender(
+        <ProvedorDeTema>
+          <MapaDoImovel
+            pinos={[{ ...PINOS[0]!, escolhido: true }]}
+            agente={AGENTE}
+            mapa={{
+              decisao: decidirModoDoMapa({ mapaAutorizado: true, doBuild: "chave-ios" }),
+              aoGoogleNaoDesenhar: naoDesenhou,
+              desistirDeEsperar: desistiu,
+            }}
+          />
+        </ProvedorDeTema>,
+      );
+    });
+    expect(marcador()["tracksViewChanges"]).toBe(true);
+
+    await act(async () => { jest.advanceTimersByTime(movimento.mudancaDeEstado + 1); });
+    expect(marcador()["tracksViewChanges"]).toBe(false);
+  });
+
+  it("o dado que chega ao marcador é o da tarefa: ponto, rótulo e o que o toque faz", async () => {
+    /*
+      O dublê devolvia `null` para `Marker` sem guardar nada, então nenhum caso
+      provava o que o marcador recebia. Agora ele guarda, e este caso lê.
+    */
+    const tocou = jest.fn();
+    await act(async () => {
+      render(
+        <ProvedorDeTema>
+          <MapaDoImovel
+            pinos={[{ ...PINOS[0]!, aoTocar: tocou }]}
+            agente={AGENTE}
+            mapa={{
+              decisao: decidirModoDoMapa({ mapaAutorizado: true, doBuild: "chave-ios" }),
+              aoGoogleNaoDesenhar: naoDesenhou,
+              desistirDeEsperar: desistiu,
+            }}
+          />
+        </ProvedorDeTema>,
+      );
+    });
+    const m = marcador();
+    expect(m["coordinate"]).toEqual(IMOVEL);
+    expect(m["accessibilityLabel"]).toBe("Servidão Boa Esperança, 148");
+    /* Centrado NO ponto: é marca de lugar, não alfinete com haste. */
+    expect(m["anchor"]).toEqual({ x: 0.5, y: 0.5 });
+    (m["onPress"] as () => void)();
+    expect(tocou).toHaveBeenCalledTimes(1);
+  });
+});
+
+/* ============================================================
+   O caminho por ruas, quando o agente pediu
+   ============================================================ */
+
+describe("O caminho desenhado sobre o mapa", () => {
+  const PINOS = [{
+    id: "a", ponto: IMOVEL, rotulo: "Servidão Boa Esperança, 148", severidade: "critica" as const,
+  }];
+  const CAMINHO = [AGENTE, { latitude: -27.59, longitude: -48.549 }, IMOVEL];
+
+  async function comCaminho(caminho: readonly typeof IMOVEL[] | null): Promise<void> {
+    await act(async () => {
+      render(
+        <ProvedorDeTema>
+          <MapaDoImovel
+            pinos={PINOS}
+            agente={AGENTE}
+            caminho={caminho}
+            mapa={{
+              decisao: decidirModoDoMapa({ mapaAutorizado: true, doBuild: "chave-ios" }),
+              aoGoogleNaoDesenhar: naoDesenhou,
+              desistirDeEsperar: desistiu,
+            }}
+          />
+        </ProvedorDeTema>,
+      );
+    });
+  }
+
+  it("com o caminho, desenha UMA linha com os pontos dele, na cor de destaque", async () => {
+    await comCaminho(CAMINHO);
+    expect(mapaDublado.polilinhas).toHaveLength(1);
+    expect(mapaDublado.polilinhas[0]?.["coordinates"]).toEqual(CAMINHO);
+    /*
+      Cor de MARCA, e não de severidade: o caminho não é gravidade de nada, é
+      o traço do que o agente pediu. Pintá-lo de vermelho faria parecer que a
+      rua inteira é crítica.
+    */
+    expect(mapaDublado.polilinhas[0]?.["strokeColor"]).toBe(temaClaro.destaque);
+  });
+
+  it("sem caminho, não há linha nenhuma: a reta é dita em palavra, não desenhada", async () => {
+    await comCaminho(null);
+    expect(mapaDublado.polilinhas).toHaveLength(0);
   });
 });
 
@@ -391,7 +555,7 @@ describe("O recuo que a folha cobre", () => {
     /* Altura de tela inteira e folha em `meia`: a geometria de verdade da lente
        do mapa. Com a altura padrão de 220 da peça, 300 já passaria do teto, e o
        caso mediria o teto em vez do repasse. */
-    await desenhar(decidirModoDoMapa({ daApi: "chave-do-municipio", doBuild: "chave-do-municipio" }), {
+    await desenhar(decidirModoDoMapa({ mapaAutorizado: true, doBuild: "chave-do-municipio" }), {
       altura: 600, recuoInferior: 300,
     });
     expect(mapaDublado.props?.["mapPadding"]).toEqual({
@@ -400,7 +564,7 @@ describe("O recuo que a folha cobre", () => {
   });
 
   it("sem recuo pedido, nada é reservado", async () => {
-    await desenhar(decidirModoDoMapa({ daApi: "chave-do-municipio", doBuild: "chave-do-municipio" }));
+    await desenhar(decidirModoDoMapa({ mapaAutorizado: true, doBuild: "chave-do-municipio" }));
     expect(mapaDublado.props?.["mapPadding"]).toEqual({
       top: 0, right: 0, bottom: 0, left: 0,
     });
@@ -413,7 +577,7 @@ describe("O recuo que a folha cobre", () => {
     inteira esconde exatamente o pino do imóvel atrás da folha.
   */
   it("o plano esquemático centra na faixa que sobra, e não na moldura inteira", async () => {
-    await desenhar(decidirModoDoMapa({ daApi: null, doBuild: null }), {
+    await desenhar(decidirModoDoMapa({ mapaAutorizado: false, doBuild: null }), {
       altura: 600, recuoInferior: 300,
     });
     const area = screen.getByTestId("area-do-plano");
@@ -429,7 +593,7 @@ describe("O recuo que a folha cobre", () => {
     virar um retângulo sem centro.
   */
   it("o recuo nunca come a moldura inteira", async () => {
-    await desenhar(decidirModoDoMapa({ daApi: "chave-do-municipio", doBuild: "chave-do-municipio" }), {
+    await desenhar(decidirModoDoMapa({ mapaAutorizado: true, doBuild: "chave-do-municipio" }), {
       altura: 400, recuoInferior: 900,
     });
     const reservado = (mapaDublado.props?.["mapPadding"] as { bottom: number }).bottom;

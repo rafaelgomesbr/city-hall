@@ -111,12 +111,13 @@ function trabalho(por: Partial<MeuTrabalho> = {}): MeuTrabalho {
   return {
     equipe: { id: "e1", nome: "Equipe Alfa", especialidade: "Geotecnia", ativa: true },
     colegas: [
-      { id: "u1", nome: "Agente", papel: "agente_campo", ativo: true },
-      { id: "u2", nome: "Maria Souza", papel: "agente_campo", ativo: true },
+      { id: "u1", nome: "Agente", papel: "agente_campo", ativo: true, fotoUrl: null, emCampo: false },
+      { id: "u2", nome: "Maria Souza", papel: "agente_campo", ativo: true, fotoUrl: null, emCampo: false },
     ],
     concluidas: [],
     totalConcluidas: (por.concluidas ?? []).length,
     tetoDeConcluidas: 50,
+    devolvidasNoMes: 0,
     ...por,
   };
 }

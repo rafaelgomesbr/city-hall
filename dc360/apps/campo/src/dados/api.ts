@@ -462,6 +462,24 @@ export type Colega = {
   nome: string;
   papel: Papel;
   ativo: boolean;
+  /**
+   * A URL ASSINADA da foto de perfil, ou nula quando o colega não tem foto.
+   *
+   * Assinada e curta (minutos), como toda leitura de arquivo deste produto: a
+   * cópia de "meu trabalho" que fica no disco carrega URLs que já venceram, e
+   * o `Avatar` cai nas iniciais quando a imagem não carrega. É o preço de
+   * nunca existir link público para o rosto de um servidor.
+   */
+  fotoUrl: string | null;
+  /**
+   * Tem saída a campo ABERTA agora, declarada por ele com sinal.
+   *
+   * É o que a coordenação vê em `GET /saida-a-campo`, reduzido ao booleano
+   * dos colegas da própria equipe: quem está no morro, e nada sobre prazo,
+   * protocolo ou "sozinho". Verdadeiro na cópia do disco quer dizer "estava
+   * quando este aparelho baixou", e o rodapé da tela diz quando foi.
+   */
+  emCampo: boolean;
 };
 
 export type Equipe = {
@@ -506,6 +524,15 @@ export type VistoriaConcluida = {
    * (morador ausente, recusa de assinar).
    */
   assinante_nome: string | null;
+  /**
+   * Quando a coordenação despachou a ocorrência para a equipe, pela trilha.
+   *
+   * É o que permite à tela dizer "tempo médio entre o despacho e a vistoria"
+   * sem rota nova. Nula quando a trilha não tem despacho anterior à coleta, e
+   * ausente na cópia de disco gravada por versão anterior: os dois casos
+   * ficam de fora da média em vez de puxá-la para lugar nenhum.
+   */
+  despachada_em?: string | null;
 };
 
 export type MeuTrabalho = {
@@ -529,6 +556,14 @@ export type MeuTrabalho = {
   totalConcluidas: number;
   /** Quantas cabem numa resposta, para a tela poder DIZER que cortou. */
   tetoDeConcluidas: number;
+  /**
+   * Quantas tarefas este agente devolveu nos últimos trinta dias.
+   *
+   * Contado no servidor, e não no aparelho: o aparelho só guarda a devolução
+   * enquanto ela espera envio, e confirmada ela sai da fila. Um número contado
+   * aqui seria quase sempre zero, e zero mentiroso é pior que número nenhum.
+   */
+  devolvidasNoMes: number;
 };
 
 /**
@@ -556,18 +591,28 @@ export type MeuTrabalho = {
  */
 export function normalizarMeuTrabalho(bruto: {
   equipe: Equipe | null;
-  colegas?: Colega[];
+  colegas?: Array<Omit<Colega, "fotoUrl" | "emCampo"> & Partial<Pick<Colega, "fotoUrl" | "emCampo">>>;
   concluidas?: VistoriaConcluida[];
   totalConcluidas?: number;
   tetoDeConcluidas?: number;
+  devolvidasNoMes?: number;
 }): MeuTrabalho {
   const concluidas = bruto.concluidas ?? [];
   return {
     equipe: bruto.equipe,
-    colegas: bruto.colegas ?? [],
+    /*
+      Foto e saída a campo chegaram depois: cópia de disco antiga e servidor
+      antigo mandam o colega sem os dois, e a tela precisa de valor, não de
+      `undefined`. Sem foto vira iniciais; sem saída vira "não está em campo",
+      que é o único palpite honesto para um dado que não veio.
+    */
+    colegas: (bruto.colegas ?? []).map((c) => ({
+      ...c, fotoUrl: c.fotoUrl ?? null, emCampo: c.emCampo ?? false,
+    })),
     concluidas,
     totalConcluidas: bruto.totalConcluidas ?? concluidas.length,
     tetoDeConcluidas: bruto.tetoDeConcluidas ?? concluidas.length,
+    devolvidasNoMes: bruto.devolvidasNoMes ?? 0,
   };
 }
 
@@ -595,6 +640,67 @@ export async function baixarMeuTrabalho(token: string): Promise<MeuTrabalho> {
     { token, tempoLimiteMs: TEMPO_LIMITE_CONFORTO_MS },
   );
   return normalizarMeuTrabalho(bruto);
+}
+
+/* ========================================================================
+   Quem sou eu, e a foto que eu mesmo escolhi
+   ======================================================================== */
+
+/**
+ * O que `GET /usuarios/eu` devolve: o cadastro, e não o token.
+ *
+ * `fotoUrl` é assinada e vence em minutos, então ela não se guarda: quem quer
+ * a foto no disco baixa os bytes na hora (ver `dados/foto-do-agente.ts`).
+ */
+export type QuemSouEu = {
+  id: string;
+  nome: string;
+  matricula: string;
+  email: string;
+  papel: Papel;
+  fotoUrl: string | null;
+};
+
+export async function quemSouEu(token: string): Promise<QuemSouEu> {
+  return chamar<QuemSouEu>("/usuarios/eu", { token, tempoLimiteMs: TEMPO_LIMITE_CONFORTO_MS });
+}
+
+/** A autorização de envio da foto de perfil: onde e como subir os bytes. */
+export type AutorizacaoDaFoto = {
+  chave: string;
+  url: string;
+  cabecalhos: Record<string, string>;
+  expiraEm: string;
+};
+
+/**
+ * Pede ao servidor onde gravar a foto. O servidor decide a chave, sob o
+ * prefixo do município e do próprio usuário, e o aplicativo nunca a propõe.
+ */
+export async function autorizarEnvioDaFoto(
+  token: string,
+  foto: { tipoConteudo: string; tamanhoBytes: number },
+): Promise<AutorizacaoDaFoto> {
+  return chamar<AutorizacaoDaFoto>("/usuarios/eu/foto/autorizar-envio", {
+    token, metodo: "POST", corpo: foto, tempoLimiteMs: TEMPO_LIMITE_CONFORTO_MS,
+  });
+}
+
+/**
+ * Confirma que a foto subiu. O servidor confere que o objeto existe sob a
+ * chave dele, grava, e apaga a anterior. Devolve a URL assinada da nova.
+ */
+export async function confirmarFoto(token: string, chave: string): Promise<{ fotoUrl: string }> {
+  return chamar<{ fotoUrl: string }>("/usuarios/eu/foto", {
+    token, metodo: "PUT", corpo: { chave }, tempoLimiteMs: TEMPO_LIMITE_CONFORTO_MS,
+  });
+}
+
+/** Tira a foto de perfil. Responde 204 mesmo sem foto: remover o nada é o resultado pedido. */
+export async function removerFoto(token: string): Promise<void> {
+  await chamar("/usuarios/eu/foto", {
+    token, metodo: "DELETE", tempoLimiteMs: TEMPO_LIMITE_CONFORTO_MS,
+  });
 }
 
 /* ========================================================================

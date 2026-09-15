@@ -118,12 +118,13 @@ const PUSH: EstadoDoPush = {
 const TRABALHO: MeuTrabalho = {
   equipe: { id: "e1", nome: "Equipe Alfa", especialidade: "Geotecnia", ativa: true },
   colegas: [
-    { id: "u1", nome: "Agente", papel: "agente_campo", ativo: true },
-    { id: "u2", nome: "Colega", papel: "agente_campo", ativo: true },
+    { id: "u1", nome: "Agente", papel: "agente_campo", ativo: true, fotoUrl: null, emCampo: false },
+    { id: "u2", nome: "Colega", papel: "agente_campo", ativo: true, fotoUrl: null, emCampo: false },
   ],
   concluidas: [],
   totalConcluidas: 0,
   tetoDeConcluidas: 50,
+  devolvidasNoMes: 0,
 };
 
 beforeEach(() => {
@@ -166,7 +167,8 @@ describe("a primeira abertura, sem cópia no aparelho e com a rede pendurada", (
       Cancelar aqui gastaria o dado do agente duas vezes pelo mesmo dado.
     */
     await act(async () => { mockResolverBusca?.(TRABALHO); });
-    expect(screen.getByText("Equipe Alfa")).toBeTruthy();
+    /* O nome da equipe aparece no cabeçalho (junto do cargo) e no cartão dela. */
+    expect(screen.getAllByText("Equipe Alfa").length).toBeGreaterThan(0);
   });
 
   it("enquanto busca, o botão fica desabilitado e sem roda girando dentro dele", async () => {
@@ -193,7 +195,7 @@ describe("a tela já aberta, com cópia no aparelho, atualizando por cima", () =
     await abrirATela();
 
     /* O conteúdo é o do disco, e ele aparece antes de a rede responder. */
-    expect(screen.getByText("Equipe Alfa")).toBeTruthy();
+    expect(screen.getAllByText("Equipe Alfa").length).toBeGreaterThan(0);
 
     const puxarParaAtualizar = () =>
       screen.getByTestId("tela-do-perfil").props.refreshControl.props.refreshing;

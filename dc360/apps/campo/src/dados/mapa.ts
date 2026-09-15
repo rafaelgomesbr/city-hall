@@ -225,9 +225,9 @@ export type ModoDoMapa = "google" | "esquematico";
 export type MotivoDoModo =
   /** Município autorizou e o binário tem o SDK: os ladrilhos podem vir. */
   | "autorizado"
-  /** `GET /configuracao` respondeu `chaveDoMapa` vazia. É escolha, não falha. */
+  /** `GET /configuracao` respondeu `mapaAutorizado: false`. É escolha, não falha. */
   | "municipio-nao-autorizou"
-  /** O município autorizou e ESTE binário foi compilado sem `DC360_MAPS_CHAVE`. */
+  /** O município autorizou e ESTE binário foi compilado sem a chave da plataforma dele (`DC360_MAPS_CHAVE_IOS` ou `DC360_MAPS_CHAVE_ANDROID`). */
   | "binario-sem-chave"
   /** O mapa foi montado e não terminou de desenhar. Ver `RECUSA_DA_CHAVE`. */
   | "google-recusou";
@@ -235,16 +235,6 @@ export type MotivoDoModo =
 export type DecisaoDoMapa = {
   modo: ModoDoMapa;
   motivo: MotivoDoModo;
-  /**
-   * O município configurou uma chave e o binário carrega OUTRA.
-   *
-   * Não muda o modo: quem paga o ladrilho é sempre a chave que está dentro do
-   * binário, porque é ela que o SDK nativo usa. Muda o que a tela diz, e é o
-   * único jeito de alguém descobrir que rotacionou `MAPS_KEY` no servidor e
-   * esqueceu de recompilar o aplicativo: sem este aviso, o mapa continua
-   * funcionando e a conta continua caindo na chave antiga, para sempre.
-   */
-  chaveDivergente: boolean;
 };
 
 /**
@@ -297,18 +287,37 @@ export function escolherChaveDoBuild(bruto: unknown, plataforma: string): string
 /**
  * A decisão, e as duas metades que ela junta.
  *
- * `daApi` é a AUTORIZAÇÃO. Vem de `GET /configuracao` do servidor daquele
- * município, em tempo de execução, e vazia quer dizer que aquele município não
- * aceita mandar coordenada de imóvel vistoriado para fora do país. É o que
- * `docs/SUBPROCESSADORES.md` seção 2.2 promete por escrito, e promessa de
- * documento jurídico sem portão no código é promessa que a próxima
- * refatoração desfaz em silêncio.
+ * `mapaAutorizado` é a AUTORIZAÇÃO. Vem de `GET /configuracao` do servidor
+ * daquele município, em tempo de execução, e `false` quer dizer que aquele
+ * município não aceita mandar coordenada de imóvel vistoriado para fora do
+ * país. É o que `docs/SUBPROCESSADORES.md` seção 2.2 promete por escrito, e
+ * promessa de documento jurídico sem portão no código é promessa que a
+ * próxima refatoração desfaz em silêncio.
  *
  * `doBuild` é a CREDENCIAL. Ela decide, no iOS, se o pod do Google entra no
  * binário, e sem ela `PROVIDER_GOOGLE` cai em silêncio no Apple Maps: a tela
  * abre, desenha um mapa, ignora o nosso estilo e não devolve erro nenhum. Esse
  * é o pior desfecho de todos, porque parece certo, e é por isso que uma
  * autorização sem credencial vira plano esquemático em vez de virar tentativa.
+ *
+ * ## O que esta função NÃO faz mais: comparar chaves
+ *
+ * Até 15/09/2026 ela recebia a chave que a API manda (`chaveDoMapa`) e a
+ * comparava com a do binário, e a diferença virava um aviso na tela: "a chave
+ * de mapa configurada pelo município é diferente da que está nesta versão do
+ * aplicativo (...) avise a coordenação para gerar o aplicativo de novo". O
+ * aviso nasceu quando as duas eram a MESMA chave, e descobria quem rotacionou
+ * `MAPS_KEY` no servidor e esqueceu de recompilar.
+ *
+ * Desde o commit `b5afd64` as chaves são por plataforma, porque o console do
+ * Google aceita UM tipo de restrição por chave: a que a API manda é a do
+ * PAINEL, restrita a sites, e a do binário é restrita a Apps iOS ou a Apps
+ * Android. Elas SEMPRE diferem numa instalação certa, e o aviso passou a
+ * disparar em toda instalação, mandando a coordenação refazer um aplicativo
+ * que estava certo. Um aviso que dispara sempre é um aviso que ninguém lê, e
+ * no dia em que ele dissesse a verdade ninguém saberia. Por isso a chave do
+ * painel não entra mais aqui: quem decide é a autorização, que é um booleano
+ * que a API escreve de propósito para esta pergunta.
  *
  * `googleRecusou` ganha de tudo, e é o caminho de volta descrito em
  * `RECUSA_DA_CHAVE`.
@@ -318,27 +327,29 @@ export function escolherChaveDoBuild(bruto: unknown, plataforma: string): string
  * em que a máquina dele está configurada é um portão que nunca viu o outro
  * modo.
  */
-export function decidirModoDoMapa({ daApi, doBuild, googleRecusou = false }: {
-  daApi: unknown;
+export function decidirModoDoMapa({ mapaAutorizado, doBuild, googleRecusou = false }: {
+  mapaAutorizado: boolean;
   doBuild: unknown;
   googleRecusou?: boolean;
 }): DecisaoDoMapa {
-  const limpar = (bruta: unknown): string => (typeof bruta === "string" ? bruta.trim() : "");
-  const autorizacao = limpar(daApi);
-  const credencial = limpar(doBuild);
-  const chaveDivergente =
-    autorizacao !== "" && credencial !== "" && autorizacao !== credencial;
+  const credencial = typeof doBuild === "string" ? doBuild.trim() : "";
 
   if (googleRecusou) {
-    return { modo: "esquematico", motivo: "google-recusou", chaveDivergente };
+    return { modo: "esquematico", motivo: "google-recusou" };
   }
-  if (autorizacao === "") {
-    return { modo: "esquematico", motivo: "municipio-nao-autorizou", chaveDivergente };
+  /*
+    `=== true`, e não `Boolean(...)`: o valor vem de JSON, e JSON traz o que
+    quiser. Só o booleano verdadeiro autoriza, porque é o único valor que a API
+    escreve de propósito; `"sim"`, `1` ou `{}` são resposta que ninguém pensou
+    para esta pergunta, e o lado seguro é não mandar coordenada.
+  */
+  if (mapaAutorizado !== true) {
+    return { modo: "esquematico", motivo: "municipio-nao-autorizou" };
   }
   if (credencial === "") {
-    return { modo: "esquematico", motivo: "binario-sem-chave", chaveDivergente };
+    return { modo: "esquematico", motivo: "binario-sem-chave" };
   }
-  return { modo: "google", motivo: "autorizado", chaveDivergente };
+  return { modo: "google", motivo: "autorizado" };
 }
 
 /**
@@ -625,32 +636,59 @@ const PRAZO_DA_CONFIGURACAO_MS = 8_000;
  * para reler UM campo que não muda durante o dia, pelo 3G do morro, gastando
  * bateria e a mesma janela de sinal de que a sincronização precisa.
  */
-let autorizacaoEmVoo: Promise<string> | null = null;
+let autorizacaoEmVoo: Promise<boolean> | null = null;
 
 /**
- * A autorização do município, ou string vazia quando não deu para saber.
+ * Lê a autorização do corpo de `GET /configuracao`.
  *
- * Vazio quer dizer "não mande coordenada ao Google", e é a resposta certa nos
+ * O campo que vale é `mapaAutorizado`, booleano que a API escreve de propósito
+ * para esta pergunta. A chave que vem junto (`chaveDoMapa`) é a do PAINEL,
+ * restrita a sites, e não serve para nada dentro do aplicativo: ela é ignorada
+ * quando o booleano existe.
+ *
+ * O SERVIDOR MAIS VELHO, que ainda não manda o booleano, é lido pela regra
+ * antiga: chave não vazia quer dizer que o município ligou o mapa. A API e o
+ * aplicativo não são atualizados no mesmo instante, e sem este caminho um
+ * aplicativo novo falando com uma API de ontem decidiria "não autorizado" e
+ * derrubaria o mapa de todo município no dia da atualização, sem nada na tela
+ * explicando por quê. Este caminho morre sozinho quando a API for atualizada,
+ * porque aí o booleano sempre vem.
+ *
+ * Separada e exportada porque é ela que o teste prova com corpos de mentira,
+ * sem precisar de `fetch`.
+ */
+export function lerAutorizacaoDoMapa(corpo: unknown): boolean {
+  if (!corpo || typeof corpo !== "object") return false;
+  const { mapaAutorizado, chaveDoMapa } = corpo as { mapaAutorizado?: unknown; chaveDoMapa?: unknown };
+  if (typeof mapaAutorizado === "boolean") return mapaAutorizado;
+  return typeof chaveDoMapa === "string" && chaveDoMapa.trim() !== "";
+}
+
+/**
+ * A autorização do município, ou `false` quando não deu para saber.
+ *
+ * `false` quer dizer "não mande coordenada ao Google", e é a resposta certa nos
  * três casos em que ela aparece: município que recusou, servidor que não
  * respondeu, e aparelho sem sinal. Nenhum deles autoriza, e tratar falha de
  * rede como autorização seria mandar coordenada para fora do país por causa de
  * um erro de conexão.
  */
-export async function buscarAutorizacaoDoMapa(token: string): Promise<string> {
+export async function buscarAutorizacaoDoMapa(token: string): Promise<boolean> {
   if (autorizacaoEmVoo) return autorizacaoEmVoo;
 
   /*
-    A pergunta ESTOURA quando fracassa, em vez de devolver vazio, e isso não é
-    estilo: é o que separa as duas coisas que "vazio" quer dizer.
+    A pergunta ESTOURA quando fracassa, em vez de devolver `false`, e isso não
+    é estilo: é o que separa as duas coisas que "não" quer dizer.
 
-    Vazio com 200 é o município dizendo "não autorizo", e isso não muda durante
-    o dia: fica guardado. Servidor que não respondeu, que respondeu 502, que
-    respondeu 401 com o token vencido, ou portal cativo devolvendo HTML com 200,
-    é FRACASSO, e fracasso não pode ser guardado. Enquanto os dois saíam por
-    `return ""`, só o que passava pelo `catch` era esquecido, e a resposta ruim
-    do servidor ficava valendo para a sessão inteira do aplicativo.
+    `false` com 200 é o município dizendo "não autorizo", e isso não muda
+    durante o dia: fica guardado. Servidor que não respondeu, que respondeu
+    502, que respondeu 401 com o token vencido, ou portal cativo devolvendo
+    HTML com 200, é FRACASSO, e fracasso não pode ser guardado. Enquanto os
+    dois saíam por `return ""`, só o que passava pelo `catch` era esquecido, e
+    a resposta ruim do servidor ficava valendo para a sessão inteira do
+    aplicativo.
   */
-  const perguntar = async (): Promise<string> => {
+  const perguntar = async (): Promise<boolean> => {
     const base = enderecoDaApi().replace(/\/$/, "");
     if (!base) throw new Error("o aplicativo não sabe o endereço da API");
 
@@ -664,14 +702,13 @@ export async function buscarAutorizacaoDoMapa(token: string): Promise<string> {
       if (!resposta.ok) {
         throw new Error(`GET /configuracao respondeu ${resposta.status}`);
       }
-      const corpo = (await resposta.json()) as { chaveDoMapa?: unknown };
-      return typeof corpo.chaveDoMapa === "string" ? corpo.chaveDoMapa.trim() : "";
+      return lerAutorizacaoDoMapa(await resposta.json());
     } finally {
       clearTimeout(relogio);
     }
   };
 
-  const tentativa: Promise<string> = perguntar().catch(() => {
+  const tentativa: Promise<boolean> = perguntar().catch(() => {
     /*
       Sem sinal, tempo esgotado, corpo que não é JSON, resposta de erro: tudo
       cai aqui, e a memória é ESQUECIDA de propósito. Guardar o fracasso faria
@@ -685,7 +722,7 @@ export async function buscarAutorizacaoDoMapa(token: string): Promise<string> {
       dela.
     */
     if (autorizacaoEmVoo === tentativa) autorizacaoEmVoo = null;
-    return "";
+    return false;
   });
 
   autorizacaoEmVoo = tentativa;

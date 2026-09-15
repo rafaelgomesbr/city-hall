@@ -16,6 +16,7 @@ import { rotasOcorrencias } from "./rotas/ocorrencias.js";
 import { rotasAdministracao } from "./rotas/administracao.js";
 import { rotasSincronizacao } from "./rotas/sincronizacao.js";
 import { rotasCampo } from "./rotas/campo.js";
+import { rotasUsuariosEu } from "./rotas/usuarios-eu.js";
 import { rotasSaidaACampo } from "./rotas/saida-a-campo.js";
 import { rotasAparelhos } from "./rotas/aparelhos.js";
 import { rotasAvisos } from "./rotas/avisos.js";
@@ -30,6 +31,7 @@ import { rotasSaida } from "./rotas/saida.js";
 import { rotasSegundoFator } from "./rotas/segundo-fator.js";
 import { rotasArmazenamentoLocal } from "./rotas/armazenamento-local.js";
 import { rotasConfiguracao } from "./rotas/configuracao.js";
+import { rotasRota, type OpcoesDaRota } from "./rotas/rota.js";
 import type { Armazenamento } from "./armazenamento/tipos.js";
 import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
 import type { GeradorDePdf } from "./documentos/pdf.js";
@@ -87,6 +89,12 @@ export type Dependencias = {
    * dado pessoal, e defesa que ninguém exercita não é defesa.
    */
   destinoDeLog?: { write: (linha: string) => void };
+  /**
+   * Por onde o caminho por ruas sai para o Google, e o relógio da cache dele.
+   * Só o teste passa: em produção a rota usa o `fetch` global e `Date.now`.
+   * Ver `rotas/rota.ts`.
+   */
+  rota?: Pick<OpcoesDaRota, "buscar" | "agora">;
 };
 
 /**
@@ -167,10 +175,22 @@ export const CAMINHOS_REDIGIDOS = [
   "req.body.codigo",
   "req.body.desafio",
   "req.body.segredo",
+  /*
+    A posição do agente e o destino, de `POST /rota`. Não chegam ao log hoje
+    (o serializador de `req` não registra corpo), e estão aqui pela mesma
+    razão dos campos acima: no dia em que alguém registrar `req.body` num
+    ponto de diagnóstico, a posição de um servidor público identificável não
+    pode ir junto. `docs/DECLARACAO-NAS-LOJAS.md` promete que não há histórico
+    de deslocamento do agente, e log é histórico.
+  */
+  "req.body.origem",
+  "req.body.destino",
 ] as const;
 
 export async function construirServidor(
-  { banco, config, armazenamento, notificador = notificadorDeLog(), pdf, destinoDeLog }: Dependencias,
+  {
+    banco, config, armazenamento, notificador = notificadorDeLog(), pdf, destinoDeLog, rota,
+  }: Dependencias,
 ): Promise<FastifyInstance> {
   /*
     O logger fica LIGADO em teste, com destino silencioso por padrão.
@@ -560,7 +580,14 @@ export async function construirServidor(
   await app.register(rotasOcorrencias, { prefix: "/ocorrencias", banco });
   await app.register(rotasAdministracao, { prefix: "/", banco });
   await app.register(rotasSincronizacao, { prefix: "/sincronizacao", banco });
-  await app.register(rotasCampo, { prefix: "/campo", banco });
+  await app.register(rotasCampo, { prefix: "/campo", banco, armazenamento });
+  /*
+    Quem sou eu, lido do cadastro, e a foto que eu mesmo escolhi. Fora de
+    `/auth` porque não é login, e fora de `/usuarios/:id` porque não é gestão
+    de terceiro: é a pessoa sobre a própria conta, para qualquer papel. O
+    argumento de por que não passa por `exigirPermissao` está na rota.
+  */
+  await app.register(rotasUsuariosEu, { prefix: "/usuarios/eu", banco, armazenamento });
   /*
     Prefixo proprio, e nao dentro de `/campo`, porque metade destas rotas e da
     COORDENACAO e nao do agente: `GET /saida-a-campo` e a tela de quem fica na
@@ -584,6 +611,14 @@ export async function construirServidor(
     responde igual para todo município. Ver `rotas/configuracao.ts`.
   */
   await app.register(rotasConfiguracao, { prefix: "/configuracao", config });
+  /*
+    O caminho por ruas que o agente pede no aplicativo, traçado pelo Google a
+    partir DAQUI, porque a chave que serve para HTTP é segredo de servidor e
+    nunca sai deste processo. Sem `ROUTES_KEY` a rota existe e responde 503,
+    em vez de sumir: rota ausente o aplicativo leria como "servidor velho". Não
+    lê o banco e não registra coordenada nenhuma. Ver `rotas/rota.ts`.
+  */
+  await app.register(rotasRota, { prefix: "/rota", config, ...rota });
   // O catálogo de destinos de providência. A leitura é aberta a qualquer conta
   // autenticada porque o formulário de providência precisa da lista; escrever
   // exige `gerenciar_equipes`. Ver `rotas/orgaos.ts`.

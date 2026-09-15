@@ -167,7 +167,13 @@ describe("o agente que assinou 62 vistorias", () => {
     */
     expect(screen.getByTestId("total-de-concluidas").props.accessibilityLabel)
       .toBe("62, vistorias concluídas");
-    expect(screen.getByText("62")).toBeTruthy();
+    /*
+      `findByText`, e não `getByText`: o número grande CONTA de zero a 62 na
+      primeira pintura (ver `ui/dado-que-conta.test.tsx`), então o 62 desenhado
+      chega no fim de `movimento.mudancaDeEstado`. O rótulo de acessibilidade,
+      conferido acima, já é 62 desde o primeiro quadro.
+    */
+    expect(await screen.findByText("62")).toBeTruthy();
   });
 
   it("diz que o aparelho só tem as 50 últimas, em vez de deixar concluir que são todas", async () => {
