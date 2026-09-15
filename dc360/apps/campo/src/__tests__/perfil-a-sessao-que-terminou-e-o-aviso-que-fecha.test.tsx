@@ -144,7 +144,7 @@ describe("o servidor que não reconhece mais a sessão", () => {
     quebrarARedeCom = new ErroDaApiFalso(401, "nao_autenticado", "Token inválido ou expirado.");
     await abrirATela();
 
-    expect(screen.getByText("Sua sessão terminou neste aparelho")).toBeTruthy();
+    expect(screen.getByText("Sua sessão terminou")).toBeTruthy();
     expect(screen.queryByText(/Não deu para atualizar agora/)).toBeNull();
   });
 

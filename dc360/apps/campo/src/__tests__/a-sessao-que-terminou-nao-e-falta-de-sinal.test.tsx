@@ -26,6 +26,7 @@
 
 import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
 import { SemSinal, type Pendencia } from "../dados/api";
+import { comoContarAFalha } from "../dados/falha-de-atualizacao";
 
 jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
   __esModule: true, default: () => "dark",
@@ -182,7 +183,7 @@ describe("o servidor que não reconhece mais a sessão", () => {
     quebrarARedeCom = new ErroDaApiFalso(401, "nao_autenticado", "Token inválido ou expirado.");
     await abrirALista();
 
-    expect(aFaixa().getByText("Sua sessão terminou neste aparelho")).toBeTruthy();
+    expect(aFaixa().getByText("Sua sessão terminou")).toBeTruthy();
     expect(screen.queryByText(/Não deu para atualizar agora/)).toBeNull();
     expect(screen.queryByText(/Sem sinal para atualizar/)).toBeNull();
   });
@@ -259,5 +260,48 @@ describe("o aviso de rede tem saída", () => {
 
     expect(screen.queryByText("Não deu para atualizar agora")).toBeNull();
     expect(aFaixa().getByText(/Serra Alta, atualizada/)).toBeTruthy();
+  });
+});
+
+describe("o ato de voltar fica na cara, e não atrás do ⓘ", () => {
+  /*
+    Visto no aparelho: a faixa mostrava "Sua sessão terminou neste aparel…",
+    cortada, e o que fazer estava no texto de dentro, atrás de um toque. Num
+    aviso que interrompe TUDO o que a tela existe para fazer (nenhum despacho
+    novo desce até a pessoa entrar de novo), esconder o ato é o mesmo que não
+    ter ato.
+
+    O botão entra DENTRO da faixa, e não como bloco novo: a faixa tem altura
+    fixa de propósito, porque foi ela que resolveu uma das três causas do pulo
+    da lista. Um bloco que nasce e some acima da rolagem seria a causa 2 de
+    volta, com outro nome.
+  */
+  it("a faixa traz o botão de voltar, sem precisar abrir o detalhe", async () => {
+    quebrarARedeCom = new ErroDaApiFalso(401, "nao_autenticado", "Token inválido ou expirado.");
+    await abrirALista();
+
+    expect(screen.getByTestId("ato-do-aviso")).toBeTruthy();
+  });
+
+  it("o resumo cabe numa linha, em vez de sair cortado no meio da palavra", async () => {
+    const resumo = comoContarAFalha("sessao-encerrada", "a lista").resumo;
+    /*
+      Vinte e cinco caracteres é o que cabe ao lado do ícone, do botão e do
+      `ⓘ` num aparelho de 390 pontos. O número não é adivinhado: a versão que
+      saiu cortada no iPhone tinha 34.
+    */
+    expect(resumo.length).toBeLessThanOrEqual(25);
+  });
+
+  /*
+    Sem sinal e "não deu para atualizar" NÃO ganham botão, e isso é o ponto:
+    os dois se resolvem sozinhos quando a rede voltar, e um botão ali seria um
+    botão que não faz nada.
+  */
+  it("os fracassos que passam sozinhos não ganham botão nenhum", async () => {
+    quebrarARedeCom = new SemSinal();
+    await abrirALista();
+
+    expect(screen.queryByTestId("ato-do-aviso")).toBeNull();
   });
 });

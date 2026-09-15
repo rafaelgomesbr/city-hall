@@ -73,7 +73,13 @@ export function comoContarAFalha(
 ): { resumo: string; detalhe: string } {
   if (motivo === "sessao-encerrada") {
     return {
-      resumo: "Sua sessão terminou neste aparelho",
+      /*
+        Curto porque a faixa mostra UMA linha e corta o resto. No aparelho, a
+        versão anterior saía como "Sua sessão terminou neste aparel…", e o que
+        fazer ficava escondido atrás do toque no `ⓘ`. Em três palavras a frase
+        inteira cabe, e o botão ao lado dela diz o resto.
+      */
+      resumo: "Sua sessão terminou",
       /*
         A frase NÃO diz "entre de novo" e para por aí. Sair da conta é o ato
         que o agente mais teme no fim do plantão (é o que ele acha que apaga a

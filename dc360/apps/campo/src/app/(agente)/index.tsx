@@ -186,6 +186,20 @@ type NotaDaLista = {
    * traz o próprio ato.
    */
   aoDispensar?: () => void;
+  /**
+   * O ATO QUE RESOLVE, quando existe um e ele não é "tentar de novo".
+   *
+   * Sessão encerrada é o caso que obrigou isto. A faixa mostra uma linha só,
+   * com o resto atrás do `ⓘ`, e no aparelho o resumo saiu cortado em "Sua
+   * sessão terminou neste aparel…". O que fazer estava no texto de dentro, ou
+   * seja, escondido atrás de um toque, num aviso que interrompe TUDO o que a
+   * tela existe para fazer: nenhum despacho novo desce até a pessoa entrar de
+   * novo.
+   *
+   * Quando a nota traz um ato, ela deixa de ser faixa e vira bloco, com o
+   * botão à vista. Gravidade e tamanho passam a combinar.
+   */
+  acao?: { rotulo: string; aoTocar: () => void };
 };
 
 /** O que o `ⓘ` abre: um texto com título, e às vezes com um ato junto. */
@@ -326,7 +340,7 @@ function PorqueComecarAqui({ motivo, usouDistancia, testID }: {
 export default function Tarefas() {
   const tema = useTema();
   const sinal = useSinal();
-  const { obterToken, identidade, lerIdentidade } = useSessao();
+  const { obterToken, identidade, lerIdentidade, sair } = useSessao();
 
   const [tarefas, setTarefas] = useState<Pendencia[] | null>(null);
   const [rascunhos, setRascunhos] = useState<Rascunho[]>([]);
@@ -1298,6 +1312,22 @@ export default function Tarefas() {
         tentativa falha, então ele volta na primeira.
       */
       aoDispensar: () => { setFalhaDeRede(null); },
+      /*
+        Só a sessão encerrada traz ato, e é porque só ela tem um ato que
+        resolve. Sem sinal e "não deu para atualizar agora" se resolvem sozinhos
+        quando a rede voltar, e um botão ali seria um botão que não faz nada.
+      */
+      ...(falhaDeRede === "sessao-encerrada"
+        ? {
+          acao: {
+            rotulo: "Sair e entrar de novo",
+            aoTocar: () => void (async () => {
+              await sair();
+              router.replace("/entrar");
+            })(),
+          },
+        }
+        : {}),
     });
   }
   if (listaEnvelheceu(atualizadoEm ? new Date(atualizadoEm) : null, agora) && !!atualizadoEm) {
@@ -1371,6 +1401,25 @@ export default function Tarefas() {
             : nota.resumo}
         </Txt>
       </View>
+      {/*
+        O ATO fica na faixa, ao lado do texto, e não atrás do `ⓘ`.
+
+        A faixa tem altura FIXA, e isso não é detalhe: foi ela que resolveu uma
+        das três causas do pulo da lista. Então o botão entra aqui dentro, no
+        lugar que já existe, em vez de virar um bloco que nasce e some acima da
+        rolagem, que era exatamente a causa 2.
+      */}
+      {nota?.acao && (
+        <Botao
+          testID="ato-do-aviso"
+          titulo={nota.acao.rotulo}
+          tipo="secundario"
+          /* Sem largura própria: o `Txt` ao lado tem `flex: 1` e cede o que o
+             botão precisar, e o alvo de toque do `Botao` já é o do produto. */
+          estilo={{ paddingHorizontal: espaco.e3 }}
+          onPress={nota.acao.aoTocar}
+        />
+      )}
       {nota !== null && (
         <BotaoDeInformacao
           testID="detalhe-da-lista"
@@ -1668,12 +1717,25 @@ export default function Tarefas() {
                 que estiver aqui funciona sem conexão nenhuma; o que não estiver, não
                 existe no aparelho.
               </Txt>
-              <Botao
-                titulo="Baixar tarefas agora"
-                tipo="secundario"
-                onPress={() => void buscarNaRede()}
-                carregando={atualizando}
-              />
+              {/*
+                O botão SOME quando a lista está vazia, e some porque ali ele
+                seria o segundo botão com o mesmo verbo na mesma tela: o estado
+                vazio, dois dedos acima, já oferece "Procurar tarefas agora".
+
+                Dois botões que fazem a mesma coisa não são generosidade: eles
+                fazem a pessoa parar para descobrir a diferença entre os dois, e
+                não há diferença. O texto do cartão continua valendo nos dois
+                casos, porque ele não é sobre o botão: é sobre o que está
+                guardado no aparelho antes de subir o morro.
+              */}
+              {visiveis.length > 0 && (
+                <Botao
+                  titulo="Baixar tarefas agora"
+                  tipo="secundario"
+                  onPress={() => void buscarNaRede()}
+                  carregando={atualizando}
+                />
+              )}
             </Cartao>
           }
           renderItem={({ item: t }) => {

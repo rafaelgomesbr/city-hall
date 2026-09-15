@@ -332,6 +332,33 @@ describe("a segunda pista do item ativo", () => {
     expect(estilo["overflow"]).toBe("hidden");
   });
 
+  it("o destaque não rouba altura do item, senão o rótulo sai cortado", async () => {
+    /*
+      Cicatriz: a primeira versão pôs `marginVertical` para dar respiro ao
+      arredondamento, e o Rafa viu no aparelho que "os ícones do menu ficaram
+      achatados". A palavra saía cortada ao meio.
+
+      A conta: o sistema dá 49 pontos mais a área segura, e ali dentro precisam
+      caber o ícone (24) e o rótulo (12 mais entrelinha). São quase 40 de
+      conteúdo em 49 de caixa. Qualquer folga vertical come o que falta.
+
+      O limite que o desenho antigo escrevia como "a pílula não passa de 24 de
+      altura" não sumiu quando a pílula mudou de lugar: ele mudou de endereço.
+    */
+    const estilo = estiloDoItem(await montarAsAbas());
+
+    /* `throw` e não mensagem no `expect`: este pacote roda no jest, e lá o
+       `expect` aceita um argumento só. */
+    for (const proibida of ["marginVertical", "marginTop", "marginBottom", "height"]) {
+      if (estilo[proibida] !== undefined) {
+        throw new Error(
+          `${proibida} = ${String(estilo[proibida])} no estilo do item da aba. `
+          + "Folga vertical ali espreme o rótulo, que sai cortado ao meio.",
+        );
+      }
+    }
+  });
+
   it("a aba fechada não ganha fundo, senão a segunda pista não distingue nada", async () => {
     const opcoes = await montarAsAbas();
 

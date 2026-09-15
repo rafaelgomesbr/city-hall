@@ -82,13 +82,21 @@ const DESTAQUE_DA_ABA = {
   */
   overflow: "hidden" as const,
   /*
-    Folga pequena, e ela tem conta: o sistema dá 49 pontos mais a área segura,
-    e o item precisa caber ícone (24) mais rótulo (12 com entrelinha) dentro
-    disso. Uma folga generosa aqui espremeria a palavra, que é justamente o que
-    o desenho anterior fazia por outro caminho.
+    Folga SÓ na horizontal, e isto é cicatriz: a primeira versão tinha
+    `marginVertical: espaco.e1`, e o Rafa viu no aparelho que "os ícones do
+    menu ficaram achatados". A palavra saía cortada ao meio.
+
+    A conta explica: o sistema dá 49 pontos mais a área segura, e ali dentro
+    precisam caber o ícone (24) e o rótulo (12 mais entrelinha). São quase 40 de
+    conteúdo em 49 de caixa, e quatro pontos em cima mais quatro embaixo comem a
+    folga inteira. Na horizontal sobra espaço de sobra, e é de lá que vem o
+    formato de pílula.
+
+    Ou seja: o limite que o desenho anterior escrevia como "a pílula não passa
+    de 24 de altura" não sumiu quando a pílula mudou de lugar. Ele só mudou de
+    endereço, e mora aqui agora.
   */
   marginHorizontal: espaco.e2,
-  marginVertical: espaco.e1,
 };
 
 /**
