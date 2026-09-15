@@ -2,7 +2,23 @@ import { useContext, useState, type ComponentProps } from "react";
 import {
   Image, StyleSheet, View, type ColorValue, type StyleProp, type ViewStyle,
 } from "react-native";
-import { BottomTabBarHeightCallbackContext } from "@react-navigation/bottom-tabs";
+/*
+  O contexto vem do ROTEADOR, e não de `@react-navigation/bottom-tabs`.
+
+  Desde o SDK 56 o Expo Router traz a própria cópia das abas e RECUSA compilar
+  quando `@react-navigation/bottom-tabs` aparece como dependência direta. A
+  recusa é alta e explícita, com endereço de migração, e foi ela que derrubou o
+  primeiro build desta barra:
+
+    error: As of SDK 56, expo-router is no longer compatible with
+    react-navigation.
+
+  Existe uma variável de ambiente que desliga a checagem. Usá-la seria calar o
+  aviso e manter duas cópias das abas no mesmo binário, que é o defeito que ele
+  existe para impedir: dois contextos com o mesmo nome, e o nosso lendo o que a
+  tela de verdade não escreve.
+*/
+import { BottomTabBarHeightCallbackContext } from "expo-router/build/react-navigation/bottom-tabs";
 import type { Tabs } from "expo-router";
 
 import { Dialogo } from "./Dialogo";
