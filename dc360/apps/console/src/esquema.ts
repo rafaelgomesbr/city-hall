@@ -20,14 +20,15 @@ import type { LeituraDoConsole } from "./banco.js";
  *
  * A LISTA ABAIXO É O CONTRATO INTEIRO do console com o banco: as consultas de
  * `consultas.ts`, a escrita de `cadastro.ts`, as quatro ações de
- * `municipios.ts` e a tabela própria de `operadores.ts`, nada mais. Ela é
+ * `municipios.ts`, a tabela própria de `operadores.ts` e a tabela e as três
+ * funções da recuperação de senha, de `recuperacao.ts`, nada mais. Ela é
  * curta porque a superfície é curta, e mantê-la colada ao que o código
  * realmente lê é o que faz este portão valer alguma coisa: uma consulta nova
  * sem a linha correspondente aqui passa a subir sem conferência, e isso
  * aparece na revisão.
  *
  * O QUE ISTO PEGA que a conferência de versão não pegaria: um banco cujo
- * `schema_migracoes` diz 038 e onde alguém derrubou a função à mão, e um banco
+ * `schema_migracoes` diz 039 e onde alguém derrubou a função à mão, e um banco
  * onde as migrações rodaram mas o `GRANT` ao console não. Os dois já
  * aconteceram em produtos assim, e os dois dão o mesmo sintoma que a ADR 0008
  * descreve: tela impecável, e 500 genérico quando alguém aperta "Cadastrar".
@@ -72,6 +73,18 @@ const RELACOES: ReadonlyMap<string, Exigencia> = new Map([
     privilegios: ["SELECT", "INSERT", "UPDATE"],
   }],
 
+  /*
+    Os códigos de recuperação (migração 039): um hash scrypt por código, com
+    a data em que foi usado. O papel tem SELECT (a contagem em "Minha senha")
+    e INSERT (a policy limita às próprias linhas), e NÃO tem UPDATE nem DELETE:
+    marcar como usado é ato das funções `console_renovar_codigos` e
+    `console_consumir_recuperacao`, nunca de um UPDATE escrito aqui.
+  */
+  ["console_codigos_de_recuperacao", {
+    colunas: ["id", "operador_id", "codigo_hash", "criado_em", "usado_em"],
+    privilegios: ["SELECT", "INSERT"],
+  }],
+
   ["metricas_municipio", {
     colunas: [
       "organizacao_id", "dia",
@@ -113,9 +126,15 @@ const RELACOES: ReadonlyMap<string, Exigencia> = new Map([
  * no `GRANT`, e é o que a emenda de 14/09/2026 da ADR 0008 chama de exceção
  * NOMEADA: cada porta de escrita do console tem nome e forma.
  *
- * As quatro `console_*` são as ações perigosas por município (suspender,
- * reativar, agendar e cancelar a eliminação). Todas recusam quem não é dono
- * ativo, e o apagamento em si não está aqui: é do relógio da API.
+ * As quatro `console_*_municipio` e `console_*_eliminacao` são as ações
+ * perigosas por município (suspender, reativar, agendar e cancelar a
+ * eliminação). Todas recusam quem não é dono ativo, e o apagamento em si não
+ * está aqui: é do relógio da API.
+ *
+ * As três da recuperação de senha (migração 039): renovar o lote de códigos
+ * do operador do contexto; achar, SEM contexto, os códigos não usados de um
+ * email; e consumir um código gravando a senha e o segundo fator novos. Ver
+ * `recuperacao.ts`.
  */
 const FUNCOES: readonly string[] = [
   "provisionar_municipio(text,text,text,text,text,text,text,text)",
@@ -123,6 +142,9 @@ const FUNCOES: readonly string[] = [
   "console_reativar_municipio(uuid)",
   "console_agendar_eliminacao(uuid,text)",
   "console_cancelar_eliminacao(uuid)",
+  "console_renovar_codigos(text[])",
+  "console_recuperacao_por_email(text)",
+  "console_consumir_recuperacao(uuid,text,text)",
 ];
 
 type LinhaDeObjeto = {

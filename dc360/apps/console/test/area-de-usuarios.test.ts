@@ -54,7 +54,7 @@ function comoDono(method: "GET" | "POST", url: string, payload?: unknown) {
 }
 
 describe("O dono cria operadores, e a credencial deles aparece uma vez", () => {
-  it("criar operador devolve senha, segredo, endereco otpauth e o desenho do QR, uma vez", async () => {
+  it("criar operador devolve senha, segredo, endereco otpauth, o desenho do QR e os codigos de recuperacao, uma vez", async () => {
     const r = await comoDono("POST", "/operadores", { email: EMAIL_DO_OPERADOR });
     expect(r.statusCode, r.body).toBe(201);
     const corpo = r.json();
@@ -62,7 +62,7 @@ describe("O dono cria operadores, e a credencial deles aparece uma vez", () => {
     expect(
       Object.keys(corpo).sort(),
       "a resposta da criacao traz campo que ninguem revisou",
-    ).toEqual(["email", "endereco", "id", "qr", "segredo", "senhaInicial"]);
+    ).toEqual(["codigos", "email", "endereco", "id", "qr", "segredo", "senhaInicial"]);
 
     expect(corpo.email, "o email nao entrou normalizado").toBe("plantao@fornecedor.com.br");
     expect(corpo.senhaInicial.length).toBeGreaterThan(11);
@@ -84,6 +84,10 @@ describe("O dono cria operadores, e a credencial deles aparece uma vez", () => {
     }
     // Os tres olhos do QR: canto superior esquerdo comeca com sete escuros.
     expect((corpo.qr.linhas as string[])[0]!.slice(0, 7)).toBe("1111111");
+
+    /* Os codigos de recuperacao nascem com a conta, na mesma tela de "mostrado
+       uma vez". A forma e o que eles abrem estao em recuperacao-de-senha.test.ts. */
+    expect(corpo.codigos).toHaveLength(8);
 
     operador = corpo;
   }, 60_000);

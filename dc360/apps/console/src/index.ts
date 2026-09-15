@@ -19,15 +19,18 @@ import { faltaNoEsquema, mensagemDeEsquemaAtrasado } from "./esquema.js";
  *     tabela de negócio nenhuma.
  *   - Não tem a chave de armazenamento das evidências, nem credencial de push,
  *     nem provedor de email. Ele não envia nada e não guarda nada.
- *   - Não tem escrita em tabela de NEGÓCIO, em lugar nenhum. A única tabela
- *     que ele escreve é a própria, `console_operadores` (migração 038), onde
- *     vivem as contas de quem entra aqui, sob policy.
+ *   - Não tem escrita em tabela de NEGÓCIO, em lugar nenhum. As únicas tabelas
+ *     que ele escreve são as próprias: `console_operadores` (migração 038),
+ *     onde vivem as contas de quem entra aqui, e
+ *     `console_codigos_de_recuperacao` (migração 039), com os hashes dos
+ *     códigos de recuperação, as duas sob policy.
  *   - NÃO tem a credencial de dono do banco, e continua sem ela mesmo agora que
- *     cadastra prefeitura, suspende acesso e agenda eliminação. O que as
- *     migrações 036 e 038 concederam ao papel `dc360_console` foi o `EXECUTE`
- *     de CINCO funções nomeadas, cada uma um ato fechado e definido no banco;
- *     o console não escolhe o que elas fazem. O apagamento de um município,
- *     sete dias depois de agendado, é do relógio da API, não daqui.
+ *     cadastra prefeitura, suspende acesso, agenda eliminação e recupera senha.
+ *     O que as migrações 036, 038 e 039 concederam ao papel `dc360_console`
+ *     foi o `EXECUTE` de OITO funções nomeadas, cada uma um ato fechado e
+ *     definido no banco; o console não escolhe o que elas fazem. O apagamento
+ *     de um município, sete dias depois de agendado, é do relógio da API, não
+ *     daqui.
  *   - Não tem `DELETE` em rota nenhuma: município se suspende e se agenda,
  *     operador se desativa.
  *

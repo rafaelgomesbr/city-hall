@@ -276,6 +276,27 @@ describe("o console não sobe contra banco sem o que ele usa", () => {
     `);
   });
 
+  it("sem a tabela de codigos de recuperacao ou sem as tres funcoes da 039, recusa e nomeia cada uma", async () => {
+    /*
+      A 039 trouxe a recuperacao de senha: a tabela onde os hashes dos codigos
+      vivem e as tres funcoes (renovar, achar por email, consumir). Um banco na
+      038 subiria um console em que "Esqueci a senha" responde 500, no unico
+      dia em que alguem precisa dele.
+    */
+    await memoria.bruto.exec(`
+      DROP FUNCTION console_consumir_recuperacao(uuid, text, text);
+      REVOKE INSERT ON console_codigos_de_recuperacao FROM dc360_console;
+    `);
+    const faltas = (await faltaNoEsquema(memoria.banco)).join("\n");
+    expect(faltas).toContain("console_consumir_recuperacao");
+    expect(faltas, "faltou dizer que o INSERT em console_codigos_de_recuperacao nao esta concedido")
+      .toMatch(/console_codigos_de_recuperacao.*INSERT/);
+    await memoria.bruto.exec("GRANT INSERT ON console_codigos_de_recuperacao TO dc360_console");
+    const soAFuncao = (await faltaNoEsquema(memoria.banco)).join("\n");
+    expect(soAFuncao).not.toContain("INSERT");
+    expect(soAFuncao).toContain("console_consumir_recuperacao");
+  });
+
   /**
    * A mensagem é metade do valor deste portão: um processo que morresse
    * dizendo "erro ao consultar o banco" empurraria o diagnóstico para a rede e

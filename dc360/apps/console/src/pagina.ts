@@ -234,6 +234,16 @@ export const PAGINA_DO_CONSOLE = `<!doctype html>
           <span id="continuar-texto">Continuar</span>
           <svg class="icone" aria-hidden="true"><use href="#i-seta-direita"/></svg>
         </button>
+
+        <!--
+          A saída de emergência, à vista na porta. Ela existe para o dia em que
+          a senha se foi junto com o telefone: um código de recuperação (dos
+          oito que a pessoa guardou) redefine a senha E o segundo fator.
+        -->
+        <button type="button" id="esqueci-senha" class="botao botao-texto botao-largo">
+          <svg class="icone" aria-hidden="true"><use href="#i-chave"/></svg>
+          <span>Esqueci a senha ou perdi o autenticador</span>
+        </button>
       </form>
 
       <form id="forma-codigo" hidden autocomplete="off" novalidate>
@@ -271,6 +281,104 @@ export const PAGINA_DO_CONSOLE = `<!doctype html>
           <span>Recomeçar com a senha</span>
         </button>
       </form>
+
+      <!-- ======== Esqueci a senha: um código de recuperação, sem sessão ======== -->
+      <form id="forma-recuperar" hidden autocomplete="off" novalidate>
+        <div class="campo">
+          <label for="recuperar-email">Email</label>
+          <span class="entrada">
+            <svg class="icone entrada-icone" aria-hidden="true"><use href="#i-arroba"/></svg>
+            <input id="recuperar-email" name="email" type="email" required autocomplete="username"
+                   placeholder="voce@fornecedor.com.br" spellcheck="false">
+          </span>
+        </div>
+
+        <div class="campo">
+          <label for="recuperar-codigo">Um código de recuperação</label>
+          <span class="entrada">
+            <svg class="icone entrada-icone" aria-hidden="true"><use href="#i-chave"/></svg>
+            <input id="recuperar-codigo" name="codigo" required maxlength="64" autocomplete="off"
+                   spellcheck="false" autocapitalize="off" placeholder="xxxxx-xxxxx" class="mono">
+          </span>
+          <p class="ajuda">
+            Um dos oito que você guardou. Maiúscula, espaço e hífen não importam.
+            Ele vale uma vez só; os outros continuam valendo.
+          </p>
+        </div>
+
+        <div class="dupla">
+          <div class="campo">
+            <label for="recuperar-senha">Senha nova</label>
+            <span class="entrada">
+              <input id="recuperar-senha" name="novaSenha" type="password" required minlength="12"
+                     autocomplete="new-password">
+            </span>
+            <p class="ajuda">Pelo menos 12 caracteres.</p>
+          </div>
+          <div class="campo">
+            <label for="recuperar-senha-2">Repita a senha nova</label>
+            <span class="entrada">
+              <input id="recuperar-senha-2" name="novaSenha2" type="password" required minlength="12"
+                     autocomplete="new-password">
+            </span>
+          </div>
+        </div>
+
+        <!-- O botão repete o verbo, e o verbo diz as duas coisas que acontecem. -->
+        <button type="submit" id="recuperar" class="botao botao-forte botao-largo">
+          <span class="roda" aria-hidden="true"></span>
+          <span id="recuperar-texto">Redefinir a senha e o segundo fator</span>
+          <svg class="icone" aria-hidden="true"><use href="#i-chave"/></svg>
+        </button>
+
+        <button type="button" id="voltar-de-recuperar" class="botao botao-texto botao-largo">
+          <svg class="icone" aria-hidden="true"><use href="#i-seta-esquerda"/></svg>
+          <span>Voltar para a entrada</span>
+        </button>
+      </form>
+
+      <!-- ======== Recuperado: o segredo novo, mostrado uma vez ======== -->
+      <div id="recuperado" hidden>
+        <p class="selo-bom">
+          <svg class="icone" aria-hidden="true"><use href="#i-confere"/></svg>
+          <span>Senha e segundo fator redefinidos</span>
+        </p>
+        <h3 id="recuperado-titulo" class="entregue-municipio" tabindex="-1">Configure o autenticador de novo</h3>
+        <p class="apoio">
+          O autenticador antigo não vale mais. Leia o código abaixo com o
+          aplicativo, ou digite o segredo à mão, e entre com a senha nova.
+        </p>
+
+        <p class="rotulo-senha" id="rotulo-segredo-recuperado">Segredo novo do segundo fator</p>
+        <p class="senha mono" id="recuperado-segredo" aria-labelledby="rotulo-segredo-recuperado"></p>
+
+        <div class="qr-e-endereco">
+          <div id="recuperado-qr" class="qr-moldura" hidden></div>
+          <div class="endereco-bloco">
+            <p class="rotulo-senha" id="rotulo-endereco-recuperado">Endereço para o aplicativo de autenticação</p>
+            <p class="endereco mono" id="recuperado-endereco" aria-labelledby="rotulo-endereco-recuperado"></p>
+          </div>
+        </div>
+
+        <p class="contagem" id="recuperado-restantes-linha">
+          <svg class="icone" aria-hidden="true"><use href="#i-chave"/></svg>
+          <span id="recuperado-restantes"></span>
+        </p>
+
+        <p class="alerta">
+          <svg class="icone" aria-hidden="true"><use href="#i-alerta"/></svg>
+          <span>
+            <strong>Atenção:</strong> este segredo não fica guardado em lugar
+            nenhum e não será mostrado de novo. Configure o aplicativo antes
+            de sair desta tela.
+          </span>
+        </p>
+
+        <button type="button" id="recuperado-entrar" class="botao botao-forte botao-largo">
+          <span>Já configurei, ir para a entrada</span>
+          <svg class="icone" aria-hidden="true"><use href="#i-seta-direita"/></svg>
+        </button>
+      </div>
 
       <p id="recado" class="recado" role="status" aria-live="polite" hidden>
         <svg class="icone" aria-hidden="true"><use href="#i-alerta"/></svg>
@@ -618,12 +726,20 @@ export const PAGINA_DO_CONSOLE = `<!doctype html>
         </div>
       </div>
 
+      <p class="rotulo-senha" id="rotulo-codigos-operador">Códigos de recuperação</p>
+      <ol id="operador-codigos" class="codigos" aria-labelledby="rotulo-codigos-operador"></ol>
+      <p class="ajuda">
+        Oito, cada um vale uma vez. Com um deles a pessoa redefine a própria
+        senha e o segundo fator sem precisar de ninguém. Ela pode gerar outros
+        em "Minha senha", e gerar de novo invalida estes.
+      </p>
+
       <p class="alerta">
         <svg class="icone" aria-hidden="true"><use href="#i-alerta"/></svg>
         <span>
-          <strong>Atenção:</strong> a senha e o segredo não ficam guardados em
-          lugar nenhum e não serão mostrados de novo. Entregue por canal
-          combinado, e peça a troca da senha na primeira entrada.
+          <strong>Atenção:</strong> a senha, o segredo e os códigos não ficam
+          guardados em lugar nenhum e não serão mostrados de novo. Entregue por
+          canal combinado, e peça a troca da senha na primeira entrada.
         </span>
       </p>
 
@@ -638,10 +754,11 @@ export const PAGINA_DO_CONSOLE = `<!doctype html>
   <section id="minha-senha" class="tela" hidden>
     <div class="topo">
       <div>
-        <h2>Trocar a minha senha</h2>
+        <h2>Minha senha</h2>
         <p class="apoio">
-          Pede a senha atual e um código NOVO do aplicativo de autenticação, não
-          o da entrada. Trocar a senha derruba as outras sessões desta conta.
+          Trocar a senha pede a senha atual e um código NOVO do aplicativo de
+          autenticação, não o da entrada, e derruba as outras sessões desta
+          conta. Embaixo, os códigos de recuperação.
         </p>
       </div>
       <button id="voltar-da-senha" type="button" class="botao botao-discreto">
@@ -700,6 +817,70 @@ export const PAGINA_DO_CONSOLE = `<!doctype html>
         <span id="recado-senha-texto"></span>
       </p>
     </form>
+
+    <!-- ======== Os códigos de recuperação ======== -->
+    <div id="cartao-codigos" class="cartao cartao-forma entra">
+      <h3 class="secao">Códigos de recuperação</h3>
+      <p class="apoio">
+        Oito códigos para o dia em que a senha se for junto com o telefone: um
+        deles, na porta, em "Esqueci a senha", redefine a senha e o segundo
+        fator. Cada código vale uma vez. Guarde fora do computador.
+      </p>
+      <p class="contagem" id="codigos-restantes-linha">
+        <svg class="icone" aria-hidden="true"><use href="#i-chave"/></svg>
+        <span id="codigos-restantes"></span>
+      </p>
+
+      <form id="forma-codigos" autocomplete="off" novalidate>
+        <div class="dupla">
+          <div class="campo">
+            <label for="codigos-senha">Senha atual</label>
+            <span class="entrada">
+              <svg class="icone entrada-icone" aria-hidden="true"><use href="#i-cadeado"/></svg>
+              <input id="codigos-senha" name="senha" type="password" required autocomplete="current-password">
+            </span>
+          </div>
+          <div class="campo">
+            <label for="codigos-codigo">Código novo do aplicativo</label>
+            <span class="entrada">
+              <svg class="icone entrada-icone" aria-hidden="true"><use href="#i-digitos"/></svg>
+              <input id="codigos-codigo" name="codigo" inputmode="numeric" autocomplete="one-time-code"
+                     maxlength="6" required placeholder="000000" class="mono entrada-codigo">
+            </span>
+          </div>
+        </div>
+        <p class="ajuda">A mesma régua da troca de senha: oito códigos na mão são a conta inteira.</p>
+
+        <button type="submit" id="gerar-codigos" class="botao botao-forte botao-largo">
+          <span class="roda" aria-hidden="true"></span>
+          <span id="gerar-codigos-texto">Gerar códigos de recuperação</span>
+          <svg class="icone" aria-hidden="true"><use href="#i-chave"/></svg>
+        </button>
+        <p id="recado-codigos" class="recado" role="status" aria-live="polite" hidden>
+          <svg class="icone" aria-hidden="true"><use href="#i-alerta"/></svg>
+          <span id="recado-codigos-texto"></span>
+        </p>
+      </form>
+
+      <div id="codigos-entregues" hidden>
+        <p class="selo-bom selo-bloco">
+          <svg class="icone" aria-hidden="true"><use href="#i-confere"/></svg>
+          <span>Códigos gerados. Anote os oito agora.</span>
+        </p>
+        <ol id="lista-de-codigos" class="codigos" aria-label="Os oito códigos de recuperação"></ol>
+        <p class="alerta">
+          <svg class="icone" aria-hidden="true"><use href="#i-alerta"/></svg>
+          <span>
+            <strong>Atenção:</strong> estes códigos não ficam guardados em lugar
+            nenhum e não serão mostrados de novo. Gerar de novo invalida estes.
+          </span>
+        </p>
+        <button type="button" id="codigos-concluir" class="botao botao-forte botao-largo">
+          <span>Já guardei, concluir</span>
+          <svg class="icone" aria-hidden="true"><use href="#i-seta-direita"/></svg>
+        </button>
+      </div>
+    </div>
   </section>
 
 </main>
@@ -1865,6 +2046,69 @@ td.n .esqueleto { margin-left: auto; }
 
 .selo-bloco { display: flex; margin: var(--ds-sp-4) 0 0; padding: var(--ds-sp-3); }
 
+/* ---------------- Os códigos de recuperação ---------------- */
+
+/*
+  Oito códigos numa grade, cada um no mesmo desenho da senha inicial (fonte
+  monoespaçada, borda tracejada, um clique seleciona o código inteiro), porque
+  eles vão para o mesmo lugar: um papel. A lista é numerada para quem anota
+  conferir que anotou os oito.
+*/
+.codigos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: var(--ds-sp-2);
+  margin: 0 0 var(--ds-sp-4);
+  padding: 0;
+  list-style: none;
+  counter-reset: codigo;
+}
+.codigo {
+  position: relative;
+  padding: var(--ds-sp-3) var(--ds-sp-3) var(--ds-sp-3) var(--ds-sp-6);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-body-lg);
+  line-height: var(--ds-lh-body-lg);
+  letter-spacing: 0.06em;
+  background: var(--ds-bg);
+  border: 1px dashed var(--ds-border-controle);
+  border-radius: var(--ds-radius);
+  user-select: all;
+}
+.codigo::before {
+  counter-increment: codigo;
+  content: counter(codigo);
+  position: absolute;
+  left: var(--ds-sp-2);
+  top: var(--ds-sp-3);
+  font-family: var(--ds-font);
+  font-size: var(--ds-fs-caption);
+  line-height: var(--ds-lh-body-lg);
+  color: var(--ds-text-muted);
+  user-select: none;
+}
+
+/* A contagem "N códigos restantes": ícone mais a frase, nunca só número. */
+.contagem {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-sp-2);
+  margin: var(--ds-sp-4) 0 0;
+  padding: var(--ds-sp-2) var(--ds-sp-3);
+  font-size: var(--ds-fs-body-sm);
+  line-height: var(--ds-lh-body-sm);
+  font-weight: 600;
+  color: var(--ds-text);
+  background: var(--ds-surface-2);
+  border-radius: var(--ds-radius);
+}
+.contagem .icone { width: 16px; height: 16px; color: var(--ds-accent); }
+#recuperado-restantes-linha { margin-bottom: var(--ds-sp-4); }
+/* O segundo cartão de "Minha senha" não encosta no primeiro. */
+#cartao-codigos { margin-top: var(--ds-sp-4); }
+#cartao-codigos .secao { margin-top: 0; padding-top: 0; border-top: 0; }
+#recuperado .qr-e-endereco { margin-top: var(--ds-sp-2); }
+
 /* ---------------- Telas estreitas ---------------- */
 
 @media (max-width: 640px) {
@@ -1888,14 +2132,16 @@ td.n .esqueleto { margin-left: auto; }
  * nada e custaria isso. O ÚNICO valor que este script guarda no navegador é o
  * nome do tema ("claro" ou "escuro"), que não é segredo de ninguém.
  *
- * A SENHA INICIAL da prefeitura recém-cadastrada, e a SENHA e o SEGREDO do
- * operador recém-criado, NÃO entram em variável de módulo, não entram em
- * armazenamento do navegador e não passam pela área de transferência por nossa
- * iniciativa: vão direto para o `textContent` do elemento que os mostra, e
- * somem dali quando o operador conclui ou sai. Guardá-los em variável faria com
- * que sobrevivessem à tela que os exibiu, e a promessa dessa tela é que
- * aparecem uma vez. A senha e o código digitados no modal de eliminar e na
- * troca de senha são apagados dos campos assim que o pedido volta.
+ * A SENHA INICIAL da prefeitura recém-cadastrada, a SENHA, o SEGREDO e os
+ * CÓDIGOS DE RECUPERAÇÃO do operador recém-criado, os códigos gerados em
+ * "Minha senha" e o SEGREDO NOVO que a recuperação devolve NÃO entram em
+ * variável de módulo, não entram em armazenamento do navegador e não passam
+ * pela área de transferência por nossa iniciativa: vão direto para o
+ * `textContent` do elemento que os mostra, e somem dali quando o operador
+ * conclui ou sai. Guardá-los em variável faria com que sobrevivessem à tela
+ * que os exibiu, e a promessa dessa tela é que aparecem uma vez. A senha e o
+ * código digitados no modal de eliminar, na troca de senha e na geração de
+ * códigos são apagados dos campos assim que o pedido volta.
  *
  * TODO TEXTO VINDO DO SERVIDOR entra por `textContent`, nunca por `innerHTML`:
  * o nome do município é escrito por quem provisiona, e um console que
@@ -1932,8 +2178,12 @@ var formaCodigo = document.getElementById("forma-codigo");
 var formaCadastro = document.getElementById("forma-cadastro");
 var formaOperador = document.getElementById("forma-operador");
 var formaSenhaNova = document.getElementById("forma-senha-nova");
+var formaRecuperar = document.getElementById("forma-recuperar");
+var formaCodigos = document.getElementById("forma-codigos");
 var entregue = document.getElementById("entregue");
 var operadorEntregue = document.getElementById("operador-entregue");
+var recuperado = document.getElementById("recuperado");
+var codigosEntregues = document.getElementById("codigos-entregues");
 
 var linhas = document.getElementById("linhas");
 var linhasOperadores = document.getElementById("linhas-operadores");
@@ -1946,6 +2196,8 @@ var botaoEntrar = document.getElementById("entrar");
 var botaoCriar = document.getElementById("criar");
 var botaoCriarOperador = document.getElementById("criar-operador");
 var botaoTrocar = document.getElementById("trocar");
+var botaoRecuperar = document.getElementById("recuperar");
+var botaoGerarCodigos = document.getElementById("gerar-codigos");
 var botaoAtualizar = document.getElementById("atualizar");
 var botaoSair = document.getElementById("sair");
 var botaoTema = document.getElementById("tema");
@@ -1955,6 +2207,9 @@ var irMunicipios = document.getElementById("ir-municipios");
 var irUsuarios = document.getElementById("ir-usuarios");
 var irSenha = document.getElementById("ir-senha");
 var thAcoes = document.getElementById("th-acoes");
+
+/* O texto de apoio da porta, para voltar depois de "Esqueci a senha". */
+var APOIO_DA_PORTA = document.getElementById("porta-apoio").textContent;
 
 /* ======================================================================
    Tema
@@ -2033,6 +2288,7 @@ function dizerNoOperador(texto) { dizerEm("recado-operador", "recado-operador-te
 function dizerNaSenha(texto) { dizerEm("recado-senha", "recado-senha-texto", texto); }
 function dizerNoDialogo(texto) { dizerEm("recado-dialogo", "recado-dialogo-texto", texto); }
 function dizerNoEliminar(texto) { dizerEm("recado-eliminar", "recado-eliminar-texto", texto); }
+function dizerNosCodigos(texto) { dizerEm("recado-codigos", "recado-codigos-texto", texto); }
 
 /**
  * Trava o botão, troca o rótulo e liga a roda enquanto a chamada não volta.
@@ -2139,16 +2395,135 @@ function mostrar(tela) {
  */
 function voltarParaSenha(texto) {
   desafio = null;
+  esquecerRecuperacao();
   formaCodigo.hidden = true;
   formaSenha.hidden = false;
   document.getElementById("codigo").value = "";
   document.getElementById("porta-titulo").textContent = "Entrar no console";
+  document.getElementById("porta-apoio").textContent = APOIO_DA_PORTA;
   dizer(texto || "");
   document.getElementById("senha").focus();
 }
 
 document.getElementById("voltar-para-senha").addEventListener("click", function () {
   voltarParaSenha("");
+});
+
+/* ======================================================================
+   Esqueci a senha: um código de recuperação, sem sessão
+   ====================================================================== */
+
+/**
+ * O segredo novo que a recuperação devolve vive na tela e em mais lugar
+ * nenhum, pela mesma regra da senha inicial: some quando a pessoa vai para a
+ * entrada, ou quando qualquer caminho volta para o formulário da senha.
+ */
+function esquecerRecuperacao() {
+  document.getElementById("recuperado-segredo").textContent = "";
+  document.getElementById("recuperado-endereco").textContent = "";
+  document.getElementById("recuperado-restantes").textContent = "";
+  var qr = document.getElementById("recuperado-qr");
+  qr.textContent = "";
+  qr.hidden = true;
+  recuperado.hidden = true;
+  formaRecuperar.reset();
+  document.getElementById("recuperar-codigo").value = "";
+  document.getElementById("recuperar-senha").value = "";
+  document.getElementById("recuperar-senha-2").value = "";
+  formaRecuperar.hidden = true;
+}
+
+/** "N códigos de recuperação restantes", com a palavra, nunca só o número. */
+function fraseDeRestantes(n) {
+  n = Number(n) || 0;
+  if (n === 0) return "Nenhum código de recuperação restante.";
+  if (n === 1) return "1 código de recuperação restante.";
+  return n + " códigos de recuperação restantes.";
+}
+
+function abrirRecuperacao() {
+  dizer("");
+  desafio = null;
+  formaSenha.hidden = true;
+  formaCodigo.hidden = true;
+  recuperado.hidden = true;
+  formaRecuperar.hidden = false;
+  var email = document.getElementById("email").value;
+  document.getElementById("recuperar-email").value = email;
+  document.getElementById("porta-titulo").textContent = "Recuperar o acesso";
+  document.getElementById("porta-apoio").textContent =
+    "Um código de recuperação redefine a senha e troca o segundo fator: o "
+    + "autenticador antigo deixa de valer, e o QR novo aparece aqui. Os outros "
+    + "códigos continuam valendo.";
+  document.getElementById(email ? "recuperar-codigo" : "recuperar-email").focus();
+}
+
+document.getElementById("esqueci-senha").addEventListener("click", abrirRecuperacao);
+document.getElementById("voltar-de-recuperar").addEventListener("click", function () {
+  voltarParaSenha("");
+});
+
+formaRecuperar.addEventListener("submit", async function (evento) {
+  evento.preventDefault();
+  dizer("");
+
+  var email = document.getElementById("recuperar-email").value;
+  var codigo = document.getElementById("recuperar-codigo").value.trim();
+  var nova = document.getElementById("recuperar-senha").value;
+  var nova2 = document.getElementById("recuperar-senha-2").value;
+
+  if (!email.trim()) { dizer("Informe o email."); document.getElementById("recuperar-email").focus(); return; }
+  if (!codigo) { dizer("Informe um código de recuperação."); document.getElementById("recuperar-codigo").focus(); return; }
+  if (nova.length < 12) { dizer("A senha nova precisa ter pelo menos 12 caracteres."); return; }
+  if (nova !== nova2) {
+    dizer("As duas senhas novas não são iguais.");
+    document.getElementById("recuperar-senha-2").focus();
+    return;
+  }
+
+  /* Sem token: não há sessão, e é por isso que esta chamada não passa por
+     pedirComSessao. A credencial é o código. */
+  var devolver = esperar(botaoRecuperar, "recuperar-texto", "Redefinindo...");
+  var r;
+  try {
+    r = await pedir("/recuperar", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: email, codigo: codigo, novaSenha: nova })
+    });
+  } finally {
+    devolver();
+  }
+
+  if (r.rede) { dizer(FORA_DO_AR); return; }
+  if (!r.ok || !r.corpo || !r.corpo.segredo) {
+    dizer((r.corpo && r.corpo.mensagem) || "Não foi possível recuperar o acesso.");
+    return;
+  }
+
+  document.getElementById("recuperado-segredo").textContent = emGrupos(r.corpo.segredo);
+  document.getElementById("recuperado-endereco").textContent = r.corpo.endereco || "";
+  desenharQr(document.getElementById("recuperado-qr"), r.corpo.qr);
+  document.getElementById("recuperado-restantes").textContent =
+    fraseDeRestantes(r.corpo.restantes) + " Só o código usado foi queimado.";
+
+  /* O código e a senha nova saem dos campos: o código já não vale, e a senha
+     não fica num campo de uma tela que pode ficar aberta. O email fica, para
+     a entrada seguinte. */
+  document.getElementById("recuperar-codigo").value = "";
+  document.getElementById("recuperar-senha").value = "";
+  document.getElementById("recuperar-senha-2").value = "";
+  formaRecuperar.hidden = true;
+  recuperado.hidden = false;
+  document.getElementById("porta-titulo").textContent = "Acesso recuperado";
+  document.getElementById("recuperado-titulo").focus();
+});
+
+document.getElementById("recuperado-entrar").addEventListener("click", function () {
+  var email = document.getElementById("recuperar-email").value.trim();
+  voltarParaSenha("");
+  document.getElementById("email").value = email;
+  document.getElementById("senha").focus();
 });
 
 formaSenha.addEventListener("submit", async function (evento) {
@@ -2248,6 +2623,8 @@ function sair(recado) {
   indicadores.hidden = true;
   esquecerSenha();
   esquecerOperador();
+  esquecerCodigos();
+  document.getElementById("codigos-restantes").textContent = "";
   fecharDialogo();
   fecharEliminar();
   formaSenhaNova.reset();
@@ -2893,6 +3270,7 @@ function esquecerOperador() {
   document.getElementById("operador-senha").textContent = "";
   document.getElementById("operador-segredo").textContent = "";
   document.getElementById("operador-endereco").textContent = "";
+  document.getElementById("operador-codigos").textContent = "";
   var qr = document.getElementById("operador-qr");
   qr.textContent = "";
   qr.hidden = true;
@@ -2917,6 +3295,20 @@ document.getElementById("operador-concluir").addEventListener("click", function 
 /** Em grupos de quatro, que é como se lê e se digita uma sequência longa. */
 function emGrupos(segredo) {
   return segredo.replace(/(.{4})/g, "$1 ").trim();
+}
+
+/**
+ * Os códigos de recuperação, um item por código, por \`textContent\`. A lista
+ * é numerada pela folha, para quem anota conferir que anotou os oito.
+ */
+function listarCodigos(alvo, codigos) {
+  alvo.textContent = "";
+  (codigos || []).forEach(function (codigo) {
+    var item = document.createElement("li");
+    item.className = "codigo";
+    item.textContent = codigo;
+    alvo.appendChild(item);
+  });
 }
 
 /**
@@ -3050,6 +3442,7 @@ formaOperador.addEventListener("submit", async function (evento) {
   document.getElementById("operador-segredo").textContent = emGrupos(r.corpo.segredo || "");
   document.getElementById("operador-endereco").textContent = r.corpo.endereco || "";
   desenharQr(document.getElementById("operador-qr"), r.corpo.qr);
+  listarCodigos(document.getElementById("operador-codigos"), r.corpo.codigos);
 
   formaOperador.reset();
   formaOperador.hidden = true;
@@ -3065,12 +3458,96 @@ formaOperador.addEventListener("submit", async function (evento) {
 function abrirMinhaSenha() {
   esquecerSenha();
   esquecerOperador();
+  esquecerCodigos();
   dizerNaSenha("");
   document.getElementById("senha-trocada").hidden = true;
   formaSenhaNova.reset();
   mostrar("senha");
   document.getElementById("senha-atual").focus();
+  carregarCodigosRestantes();
 }
+
+/* ======================================================================
+   Os códigos de recuperação
+   ====================================================================== */
+
+/**
+ * Os oito códigos vivem na tela e em mais lugar nenhum, pela mesma regra da
+ * senha inicial. A senha e o código digitados para gerá-los saem dos campos
+ * assim que o pedido volta.
+ */
+function esquecerCodigos() {
+  document.getElementById("lista-de-codigos").textContent = "";
+  codigosEntregues.hidden = true;
+  formaCodigos.hidden = false;
+  document.getElementById("codigos-senha").value = "";
+  document.getElementById("codigos-codigo").value = "";
+  dizerNosCodigos("");
+}
+
+function mostrarRestantes(n) {
+  var frase = fraseDeRestantes(n);
+  document.getElementById("codigos-restantes").textContent = Number(n) > 0
+    ? frase
+    : frase + " Gere os seus abaixo: sem eles, perder a senha e o aparelho exige a credencial do banco.";
+}
+
+/**
+ * Pergunta ao servidor quantos códigos ainda valem. Só o número: os códigos
+ * em si não existem mais em texto claro em lugar nenhum.
+ */
+async function carregarCodigosRestantes() {
+  document.getElementById("codigos-restantes").textContent = "Contando os códigos...";
+  var r = await pedirComSessao("/codigos-de-recuperacao", "GET");
+  if (r.rede) { document.getElementById("codigos-restantes").textContent = FORA_DO_AR; return; }
+  if (!r.ok) {
+    if (r.corpo && r.corpo.erro === "sem_sessao") { sessaoTerminou(); return; }
+    document.getElementById("codigos-restantes").textContent =
+      mensagemDe(r, "Não foi possível contar os códigos de recuperação.");
+    return;
+  }
+  mostrarRestantes(r.corpo && r.corpo.restantes);
+}
+
+document.getElementById("codigos-concluir").addEventListener("click", function () {
+  esquecerCodigos();
+  document.getElementById("codigos-senha").focus();
+});
+
+formaCodigos.addEventListener("submit", async function (evento) {
+  evento.preventDefault();
+  dizerNosCodigos("");
+
+  var senha = document.getElementById("codigos-senha").value;
+  var codigo = document.getElementById("codigos-codigo").value;
+  if (!senha) { dizerNosCodigos("Informe a senha atual."); return; }
+  if (!codigo) { dizerNosCodigos("Informe um código novo do aplicativo de autenticação."); return; }
+
+  var devolver = esperar(botaoGerarCodigos, "gerar-codigos-texto", "Gerando os códigos...");
+  var r;
+  try {
+    r = await pedirComSessao("/codigos-de-recuperacao", "POST", { senha: senha, codigo: codigo });
+  } finally {
+    devolver();
+    /* A senha e o código saem dos campos assim que o pedido volta, tenha
+       dado certo ou não: um código recusado não serve de novo, e a senha não
+       fica num campo de uma tela que pode ficar aberta. */
+    document.getElementById("codigos-senha").value = "";
+    document.getElementById("codigos-codigo").value = "";
+  }
+
+  if (r.rede) { dizerNosCodigos(FORA_DO_AR); return; }
+  if (!r.ok || !r.corpo || !r.corpo.codigos) {
+    if (r.corpo && r.corpo.erro === "sem_sessao") { sessaoTerminou(); return; }
+    dizerNosCodigos(mensagemDe(r, "Não foi possível gerar os códigos."));
+    return;
+  }
+
+  listarCodigos(document.getElementById("lista-de-codigos"), r.corpo.codigos);
+  mostrarRestantes(r.corpo.restantes);
+  formaCodigos.hidden = true;
+  codigosEntregues.hidden = false;
+});
 
 document.getElementById("voltar-da-senha").addEventListener("click", voltarAosMunicipios);
 

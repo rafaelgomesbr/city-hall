@@ -219,10 +219,11 @@ direta), que é o mesmo usado para migrar.
 Tudo a partir de `dc360/`.
 
 **Passo 1. Conferir o esquema.** O console recusa subir contra um banco que não
-tenha o que ele usa, e o mínimo hoje é a migração 038, que cria a tabela
+tenha o que ele usa, e o mínimo hoje é a migração 039: a 038 cria a tabela
 `console_operadores` (onde vivem as contas de quem entra no console) e as
 quatro funções de suspender, reativar, agendar e cancelar a eliminação de um
-município. Sem ela a partida diz, pelo nome, o que falta.
+município; a 039 cria `console_codigos_de_recuperacao` e as três funções da
+recuperação de senha. Sem elas a partida diz, pelo nome, o que falta.
 
 ```bash
 node scripts/migrar-producao.mjs            # só confere, não aplica
@@ -320,6 +321,13 @@ pela mesma tela, e não se apaga. Cada operador, inclusive o dono, troca a
 própria senha na tela **Minha senha**, com a senha atual e um código novo do
 aplicativo; trocar a senha derruba as outras sessões daquela conta.
 
+**Na primeira entrada do dono, gere os códigos de recuperação.** A semente não
+traz nenhum: na tela **Minha senha**, com a senha e um código novo do
+aplicativo, o botão "Gerar códigos de recuperação" mostra oito códigos UMA vez.
+Guarde-os fora do computador. São a única saída do dono no dia em que a senha
+se for junto com o telefone (seção 6.4), e cada operador criado pela tela
+recebe os dele junto com a senha inicial.
+
 **Quem já tem console no ar** (um operador em `CONSOLE_OPERADORES` de antes da
 038) não precisa rodar nada: no primeiro deploy com a 038 a tabela está vazia,
 a linha da variável é importada como dono, com a mesma senha e o mesmo segundo
@@ -355,7 +363,7 @@ curl -sS https://defesa-civil-console.fly.dev/saude
 
 Se o processo não subir, o log diz qual das recusas foi: `CONSOLE_HOST` de
 loopback, hash de senha estragado pelo shell, banco sem o que o console usa
-(migração 038 faltando), tabela de operadores vazia sem `CONSOLE_OPERADORES`
+(migração 038 ou 039 faltando), tabela de operadores vazia sem `CONSOLE_OPERADORES`
 para semear, ou envelope do segundo fator do dono que não abre com a chave
 atual. Todas são de propósito, e todas nomeiam a causa.
 
@@ -380,13 +388,25 @@ rm -f segredos-do-console.env
   20 tentativas de entrada por 5 minutos são compartilhadas por todos os
   operadores. É restritivo, não permissivo, mas pode barrar quem tem direito de
   entrar num momento ruim.
-- **O dono não tem recuperação de senha pela tela.** Operador que esquece a
-  senha é atendido pelo dono (desativa a conta e cria outra). O dono que
-  esquecer a própria senha, ou perder o aparelho do segundo fator, precisa da
-  credencial de dono do banco para corrigir a linha em `console_operadores`:
-  é o único caminho, e é assim de propósito, porque uma rota de "esqueci a
-  senha" no console seria uma porta na única conta que enxerga todos os
-  municípios.
+- **A recuperação de senha é por código de recuperação, e só por ele.** Não há
+  provedor de email no console, e ninguém acima do dono redefine a senha dele.
+  O caminho é: cada operador, inclusive o dono, gera oito códigos em **Minha
+  senha** (com a senha atual e um código novo do aplicativo), guarda fora do
+  computador, e no dia em que a senha se for usa um deles em **Esqueci a
+  senha**, na porta. **Usar um código redefine a senha E troca o segundo
+  fator**, mostrando o QR novo na hora: a recuperação existe para o dia em que
+  o telefone foi perdido junto com a senha, e nesse dia o autenticador antigo
+  é inútil ou está com outra pessoa. Cada código vale uma vez; os outros
+  continuam valendo; gerar de novo invalida os anteriores. A rota está sob o
+  mesmo limite por endereço da porta, e o cálculo de por que isso basta está
+  em `apps/console/src/recuperacao.ts`.
+  O que fica declarado como NÃO coberto: **quem nunca gerou os códigos, ou
+  perdeu o papel, não tem recuperação pela tela.** Operador nessa situação é
+  atendido pelo dono (desativa a conta e cria outra, que nasce com códigos
+  novos). O dono nessa situação precisa da credencial de dono do banco para
+  corrigir a linha em `console_operadores`, e esse continua sendo o último
+  recurso, e o único: por isso o passo 5 manda gerar os códigos na primeira
+  entrada.
 - **As duas ações perigosas por município (desativar o acesso e eliminar com
   prazo de sete dias) são só do dono**, e o apagamento em si é do relógio da
   API, não do console: o console suspende e agenda, e o que vence sem ser

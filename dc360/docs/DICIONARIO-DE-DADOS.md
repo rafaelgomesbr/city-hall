@@ -1,6 +1,6 @@
 # Dicionário de dados
 
-- **Versão:** 2, de 15/09/2026 (a 1 era de 09/09/2026)
+- **Versão:** 3, de 15/09/2026 (a 2 era do mesmo dia; a 1, de 09/09/2026)
 - **Para quê:** entregar junto com a exportação de saída de município
   (`SAIDA-DE-MUNICIPIO.md`), e servir de referência para quem for auditar ou
   migrar. `status = 'em_campo'` não se explica sozinho.
@@ -303,12 +303,13 @@ trás para sempre. Retenção de 60 dias, dentro da própria política de remoç
 
 ---
 
-## As tabelas do fornecedor: `console_operadores` e `eliminacoes_de_municipio`
+## As tabelas do fornecedor: `console_operadores`, `eliminacoes_de_municipio` e `console_codigos_de_recuperacao`
 
-As duas entraram na migração 038 e **não são de município nenhum**: são do
-fornecedor, e só o papel do console (`dc360_console`) as alcança. Nenhum
-município as lê, e o papel de aplicação não tem um privilégio sequer nelas.
-Nenhuma das duas sai no pacote de saída de município.
+As duas primeiras entraram na migração 038 e a terceira na 039, e **não são de
+município nenhum**: são do fornecedor, e só o papel do console
+(`dc360_console`) as alcança. Nenhum município as lê, e o papel de aplicação
+não tem um privilégio sequer nelas. Nenhuma das três sai no pacote de saída de
+município.
 
 ### `console_operadores`
 
@@ -391,6 +392,56 @@ zero em silêncio (ver o cabeçalho da migração 037).
 Cancelar cabe até o banco ser apagado, e **não reativa o acesso**: reativar é
 ato separado.
 
+### `console_codigos_de_recuperacao`
+
+A recuperação de senha dos operadores do console, **inclusive do dono**, que
+não tem ninguém acima dele para redefini-la, num produto sem provedor de
+email. É o mesmo desenho dos códigos do segundo fator do município
+(`segundo_fator_recuperacao`): gerados uma vez, mostrados uma vez, guardados
+como hash, cada um válido uma vez. **Usar um código redefine a senha e troca o
+segundo fator**, porque a recuperação existe para o dia em que o telefone foi
+perdido junto com a senha.
+
+| Coluna | Significado |
+| --- | --- |
+| `operador_id` | De quem é o código. `ON DELETE RESTRICT`, como toda chave: operador com código não se apaga (e já não se apagava: se desativa) |
+| `codigo_hash` | O hash do código, **no mesmo formato do hash da senha** (`scrypt$...`), nunca o código. O banco recusa outra forma (`codigo_chega_derivado`). Formato igual ao da senha para o console reaproveitar a mesma conferência; a derivação cara cabe porque recuperar senha do console é ato raro |
+| `criado_em` | Quando foi gerado |
+| `usado_em` | Gasto: pela pessoa, recuperando a senha, ou em bloco, quando ela gerou códigos novos. Código gasto **fica**, marcado: sem isso ninguém distinguiria "usei três" de "alguém usou três por mim" |
+
+**Cada operador só alcança os próprios códigos.** As policies do console
+(SELECT e INSERT) são amarradas ao operador da sessão
+(`operador_id = console_operador_atual()`): operador não vê nem insere código
+de outro, nem o dono. Sem sessão a tabela é vazia e não aceita linha. **Sem
+`UPDATE` e sem `DELETE`** para o console: marcar usado é ato de função, e
+código gasto não se apaga.
+
+**As três funções**, todas só do console:
+
+- `console_renovar_codigos(hashes)`, com sessão: marca como usados todos os
+  códigos vivos do operador da sessão e grava os novos, um por hash. Exige
+  operador ativo no contexto (`42501` sem ele) e pelo menos quatro hashes
+  derivados, sem repetição (`DC361`). Devolve quantos entraram.
+- `console_recuperacao_por_email(email)`, **sem sessão**: os códigos vivos do
+  operador **ativo** com aquele email, em três colunas (id do operador, id do
+  código, hash do código) e nada mais: nem nome, nem papel, nem `senha_hash`.
+  Email inexistente e operador desativado devolvem **vazio, nunca erro**, para
+  o console não revelar quem existe.
+- `console_consumir_recuperacao(codigo_id, senha_hash, segundo_fator)`, **sem
+  sessão**: gasta o código (`DC365` se não existe, já foi usado ou é de conta
+  desativada, com a mesma mensagem para os dois primeiros), grava a senha nova
+  e o envelope novo do segundo fator em `console_operadores` e zera
+  `falhas_login`, `bloqueado_ate` e `ultimo_passo_totp`. Senha em texto claro
+  ou segredo de TOTP cru são recusados antes de qualquer escrita (`DC361`).
+  `papel`, `criado_por` e `criado_em` não são tocados. Derruba as sessões
+  sozinha: o token do console carrega um resumo do `senha_hash`, e o hash
+  muda.
+
+As três rodam com `row_security = off`: com um dono de tabelas sem
+`BYPASSRLS`, a escrita que alcançaria zero linha em silêncio vira erro
+(`DC362`) nomeando a causa, e senha e código ficam como estavam. Sem isso, o
+desfecho seria "senha redefinida" com a senha velha no lugar.
+
 ---
 
 ## O que **não** existe no banco, e é bom saber
@@ -407,7 +458,7 @@ ato separado.
   origem, que o município não leva.
 - **Não há papel de banco que enxergue dois municípios**, além do dono, que é
   quem aplica migração e provisiona. Ver ADR 0001 e ADR 0008. O papel do
-  console alcança as duas tabelas do fornecedor e nada que seja de município.
+  console alcança as três tabelas do fornecedor e nada que seja de município.
 - **Não há `DELETE` de dado de município fora de duas funções**,
   `executar_eliminacoes_vencidas` e `concluir_eliminacao`, que o relógio da
   API executa e que só agem no que o console agendou, venceu e ninguém

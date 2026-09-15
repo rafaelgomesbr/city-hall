@@ -11,12 +11,15 @@ import { montarConfiguracaoDoPool } from "../../api/src/banco/postgres.js";
  * catálogo e a conexão real tentando ler `ocorrencias`, `usuarios`,
  * `evidencias` e `trilha_eventos`).
  *
- * Desde a migração 038 o console tem UMA tabela própria, `console_operadores`,
- * onde vivem as contas de quem entra nele. Ela não é tabela de negócio: não
- * carrega cidadão, imóvel nem município, só quem opera o fornecedor. O papel
- * tem `SELECT`, `INSERT` e `UPDATE` nela, e as policies decidem linha a linha
- * (operador atualiza a própria linha; só o dono cria e desativa; o dono não se
- * desativa).
+ * Desde a migração 038 o console tem tabela própria: `console_operadores`,
+ * onde vivem as contas de quem entra nele, e, desde a 039,
+ * `console_codigos_de_recuperacao`, com os hashes dos códigos de recuperação.
+ * Nenhuma das duas é tabela de negócio: não carregam cidadão, imóvel nem
+ * município, só quem opera o fornecedor. Na primeira o papel tem `SELECT`,
+ * `INSERT` e `UPDATE`, e as policies decidem linha a linha (operador atualiza
+ * a própria linha; só o dono cria e desativa; o dono não se desativa). Na
+ * segunda tem `SELECT` e `INSERT` das próprias linhas, e marcar código como
+ * usado é ato das funções da 039, nunca de um `UPDATE` daqui.
  *
  * Este arquivo acrescenta quatro cintos por cima daquilo, e nenhum deles
  * substitui o portão do banco:
@@ -64,11 +67,13 @@ export type LeituraDoConsole = {
  *
  * Em tabela de NEGOCIO o console continua sem `INSERT`, `UPDATE` ou `DELETE`.
  * O que ele executa sao funcoes `SECURITY DEFINER` concedidas por nome (a de
- * cadastrar prefeitura, da migracao 036, e as quatro de suspender, reativar,
- * agendar e cancelar eliminacao, da 038), e o que ele escreve por conta
- * propria e `console_operadores`, que guarda as contas de quem entra AQUI e
- * nada de municipio. Se alguem escrever um `INSERT` em `organizacoes`, o banco
- * responde "permissao negada", e essa continua sendo a ordem certa das defesas.
+ * cadastrar prefeitura, da migracao 036; as quatro de suspender, reativar,
+ * agendar e cancelar eliminacao, da 038; e as tres da recuperacao de senha,
+ * da 039), e o que ele escreve por conta propria e `console_operadores` e
+ * `console_codigos_de_recuperacao`, que guardam as contas de quem entra AQUI
+ * e nada de municipio. Se alguem escrever um `INSERT` em `organizacoes`, o
+ * banco responde "permissao negada", e essa continua sendo a ordem certa das
+ * defesas.
  *
  * SEPARADA de `LeituraDoConsole`, como tipo e como parametro do servidor, e nao
  * juntada numa interface so com um metodo a mais. Assim a rota que le recebe um

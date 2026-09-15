@@ -25,6 +25,10 @@ import { FACES_DE_FONTE } from "./fontes.js";
 import { conferirSenha, derivarSenha, gerarSenhaTemporaria } from "../../api/src/auth/senha.js";
 import { gerarSegredoTotp, uriDeAtivacao } from "../../api/src/auth/totp.js";
 import { TextoLongoDemais, matrizQr } from "./qr.js";
+import {
+  CODIGO_JA_CONSUMIDO, acharCodigo, candidatosPorEmail, codigosRestantes, consumirCodigo,
+  gerarLote, renovarCodigos,
+} from "./recuperacao.js";
 
 /**
  * O console do fornecedor: processo próprio, sessão própria, plateia própria.
@@ -49,6 +53,11 @@ import { TextoLongoDemais, matrizQr } from "./qr.js";
  *   - A área de usuários e a troca de senha escrevem em `console_operadores`,
  *     a tabela PRÓPRIA do console, sob policy. Nada disso toca tabela de
  *     negócio, e é o banco quem garante.
+ *   - A recuperação de senha executa as três funções da migração 039: gerar
+ *     códigos escreve hashes em `console_codigos_de_recuperacao` (a segunda
+ *     tabela própria), e `POST /recuperar`, a ÚNICA rota de escrita sem
+ *     sessão, consome um código e grava senha e segundo fator novos na linha
+ *     de quem o apresentou. Ver `recuperacao.ts`.
  *
  * O QUE ELE NÃO TEM, e cada ausência é uma decisão:
  *
@@ -123,8 +132,36 @@ const ENTRADA = z.object({
 
 const CODIGO = z.object({
   desafio: z.string().min(1).max(4096),
-  /** Seis dígitos. O console não tem código de recuperação: ver `operadores.ts`. */
+  /**
+   * Seis dígitos, e SÓ eles. O código de recuperação não entra por aqui: ele
+   * não abre sessão, ele redefine a senha e o segundo fator, e tem rota
+   * própria (`POST /recuperar`) que nem passa pelo desafio.
+   */
   codigo: z.string().min(1).max(32),
+});
+
+/**
+ * Gerar códigos de recuperação: a mesma régua da troca de senha (a senha
+ * atual e um código NOVO do aplicativo), porque o efeito é do mesmo tamanho.
+ * Quem tem oito códigos na mão tem a conta, e quem tem a sessão aberta numa
+ * mesa não deve conseguir gerá-los.
+ */
+const GERAR_CODIGOS = z.object({
+  senha: z.string().min(1, "Informe a sua senha").max(1024),
+  codigo: z.string().min(1, "Informe o código do aplicativo").max(32),
+});
+
+/**
+ * A recuperação: email, um código de recuperação, a senha nova.
+ *
+ * O teto do código é folgado porque ele chega como a pessoa digitou (com
+ * hífen, espaço, maiúscula), e `normalizarCodigoDeRecuperacao` limpa depois.
+ * A senha nova tem o mesmo piso de doze da troca.
+ */
+const RECUPERACAO = z.object({
+  email: z.string().trim().toLowerCase().min(1, "Informe o email").max(320),
+  codigo: z.string().trim().min(1, "Informe um código de recuperação").max(64),
+  novaSenha: z.string().min(12, "A senha nova precisa ter pelo menos 12 caracteres").max(1024),
 });
 
 const NOVO_OPERADOR = z.object({
@@ -170,6 +207,15 @@ const ELIMINACAO = z.object({
  * dirigida. O tempo também é equivalente: ver `conferirEntrada`.
  */
 const RECUSA = { erro: "credenciais_invalidas", mensagem: "Email ou senha incorretos." };
+
+/**
+ * A mesma coisa para a recuperação: email inexistente, operador inativo,
+ * código errado e código já usado recebem esta resposta, e o mesmo tempo
+ * aproximado (ver `acharCodigo` em `recuperacao.ts`).
+ */
+const RECUSA_DA_RECUPERACAO = {
+  erro: "recuperacao_invalida", mensagem: "Email ou código incorretos.",
+};
 
 /** Falta sessão, ou ela já não vale. Vira 401 no tratador de erro. */
 class SemSessao extends Error {}
@@ -281,6 +327,13 @@ export async function construirConsole(
     cada tentativa de entrar gasta uma derivação `scrypt` de cerca de 128 MB,
     então marteladas nessa rota derrubam o processo antes de descobrirem senha
     nenhuma.
+
+    `POST /recuperar` entra no MESMO teto da porta, e por que vinte a cada
+    cinco minutos bastam ali (sem teto por conta, sem castigo) está escrito
+    em `recuperacao.ts`, com a conta feita: oito códigos de dez símbolos num
+    alfabeto de trinta e dois não se adivinham em vinte tentativas a cada
+    cinco minutos, nem num ano delas; o que o teto protege é o processador,
+    porque cada tentativa custa OITO derivações scrypt.
   */
   await app.register(rateLimit, {
     global: false,
@@ -321,11 +374,12 @@ export async function construirConsole(
   /**
    * O teto das ações perigosas, pela mesma lógica do cadastro.
    *
-   * Suspender, eliminar, criar operador, trocar senha: nenhuma delas acontece
-   * dez vezes numa hora num dia normal, e todas produzem efeito que alguém vai
-   * ter que desfazer à mão se uma sessão de dono for roubada. Duas delas
-   * (eliminar e trocar senha) ainda gastam uma derivação `scrypt` por
-   * tentativa, o que faz deste teto também uma defesa do processador.
+   * Suspender, eliminar, criar operador, trocar senha, gerar códigos de
+   * recuperação: nenhuma delas acontece dez vezes numa hora num dia normal, e
+   * todas produzem efeito que alguém vai ter que desfazer à mão se uma sessão
+   * de dono for roubada. Três delas (eliminar, trocar senha e gerar códigos)
+   * ainda gastam derivação `scrypt` por tentativa (gerar códigos gasta nove),
+   * o que faz deste teto também uma defesa do processador.
    */
   const LIMITE_DE_ACOES = {
     config: {
@@ -334,7 +388,7 @@ export async function construirConsole(
   };
 
   /** As rotas sob `LIMITE_DE_ACOES`, para o tratador de 429 dizer a espera certa. */
-  const ROTAS_DE_ACAO = /^\/(operadores|senha|municipios\/[^/]+\/(suspender|reativar|eliminar|eliminacao\/cancelar))/;
+  const ROTAS_DE_ACAO = /^\/(operadores|senha|codigos-de-recuperacao|municipios\/[^/]+\/(suspender|reativar|eliminar|eliminacao\/cancelar))/;
 
   /**
    * Um tratador só, e ele nunca devolve a mensagem crua do erro.
@@ -398,6 +452,16 @@ export async function construirConsole(
    */
   function recusar(email: string | undefined, motivo: string): void {
     app.log.warn({ email: email ?? "(nao informado)", motivo }, "entrada recusada no console");
+  }
+
+  /**
+   * A mesma linha para a recuperação, com a mesma regra: o email tentado e um
+   * motivo de máquina, GENÉRICO (`email_ou_codigo`) porque distinguir "não
+   * existe" de "código errado" no log entregaria a lista de quem trabalha aqui
+   * a quem lê o log. O código apresentado nunca entra.
+   */
+  function recusarRecuperacao(email: string | undefined, motivo: string): void {
+    app.log.warn({ email: email ?? "(nao informado)", motivo }, "recuperacao recusada no console");
   }
 
   /**
@@ -955,6 +1019,21 @@ export async function construirConsole(
     rastro(quem(req), "criar_operador", null, { operador_criado: id, email_criado: email });
     app.log.info({ operador: dono.email, operador_criado: id }, "operador criado pelo console");
 
+    /*
+      OS CÓDIGOS DE RECUPERAÇÃO NASCEM COM A CONTA, e saem na mesma tela de
+      "mostrado uma vez" que a senha, o segredo e o QR. O contexto da gravação
+      é o operador que acabou de nascer, e não o dono: os códigos são DELE, a
+      policy da tabela só aceita a própria linha, e é o mesmo gesto da porta,
+      que declara o id achado pelo email antes de haver sessão.
+
+      Vem DEPOIS de a linha existir, em transação própria: se esta parte
+      falhar, o operador existe sem códigos, e gera os dele em "Minha senha".
+      O contrário (códigos sem operador) não tem como acontecer, porque a
+      tabela aponta para a linha.
+    */
+    const lote = await gerarLote();
+    await renovarCodigos(escrita, id, lote.hashes);
+
     const endereco = uriDeAtivacao(segredoTotp, email, EMISSOR_DO_TOTP);
     return resposta.code(201).send({
       id,
@@ -963,6 +1042,7 @@ export async function construirConsole(
       segredo: segredoTotp,
       endereco,
       qr: desenharQr(endereco),
+      codigos: lote.codigos,
     });
   });
 
@@ -1063,6 +1143,178 @@ export async function construirConsole(
     app.log.info({ operador: operador.email }, "senha trocada pelo proprio operador");
     return resposta.send({
       token: await emitirSessao(segredo, { id: operador.id, sv: versaoDaSenha(novoHash) }),
+    });
+  });
+
+  /* ======================================================================
+     Os códigos de recuperação (qualquer operador, na própria conta)
+     ====================================================================== */
+
+  /** Quantos códigos ainda valem. A tela diz o número e nunca mostra nenhum. */
+  app.get("/codigos-de-recuperacao", async (req) => {
+    const operador = await exigirOperador(req);
+    return { restantes: await codigosRestantes(leitura, operador.id) };
+  });
+
+  /**
+   * Gera um lote novo de oito códigos, invalidando o anterior, e mostra os
+   * oito UMA vez.
+   *
+   * A SENHA E O CÓDIGO DE NOVO, com sessão válida na mão, pela mesma razão da
+   * troca de senha e da eliminação: a sessão diz que alguém entrou há menos de
+   * meia hora; a senha atual mais um código novo dizem que quem está na
+   * cadeira agora é a pessoa. Oito códigos de recuperação SÃO a conta, e um
+   * console deixado aberto numa mesa não pode entregá-los a quem passar.
+   *
+   * A CONFERÊNCIA DO CÓDIGO CONTA COMO TENTATIVA: errar cinco vezes aqui põe
+   * a conta de castigo do mesmo jeito que na porta, pela mesma linha.
+   *
+   * NADA VAI PARA O LOG além do rastro (quem, e que gerou). Os códigos
+   * existem em texto claro na resposta desta rota e em mais lugar nenhum: o
+   * que vai para o banco é um hash scrypt por código (`recuperacao.ts`).
+   */
+  app.post("/codigos-de-recuperacao", LIMITE_DE_ACOES, async (req, resposta) => {
+    const operador = await exigirOperador(req);
+
+    const corpo = GERAR_CODIGOS.safeParse(req.body);
+    if (!corpo.success) {
+      return resposta.code(400).send({
+        erro: "pedido_invalido",
+        mensagem: corpo.error.issues[0]?.message ?? "Confira os campos.",
+      });
+    }
+
+    if (!(await conferirSenha(corpo.data.senha, operador.senhaHash))) {
+      recusar(operador.email, "senha_incorreta_ao_gerar_codigos");
+      return resposta.code(401).send({ erro: "senha_incorreta", mensagem: "A senha não confere." });
+    }
+
+    const desfecho = await conferirCodigo(registro, operador, corpo.data.codigo, cofre, agora());
+    if (desfecho === "bloqueado") {
+      recusar(operador.email, "conta_de_castigo");
+      return resposta.code(429).send({
+        erro: "bloqueado", mensagem: "Códigos errados demais. Espere quinze minutos.",
+      });
+    }
+    if (desfecho !== "ok") {
+      recusar(operador.email, "codigo_incorreto_ou_ja_usado_ao_gerar_codigos");
+      return resposta.code(401).send({
+        erro: "codigo_invalido",
+        mensagem: "Código incorreto ou já usado. Use um código novo, não o da entrada.",
+      });
+    }
+
+    const lote = await gerarLote();
+    const inseridos = await renovarCodigos(escrita, operador.id, lote.hashes);
+
+    rastro(quem(req), "gerar_codigos_de_recuperacao", null, { codigos: inseridos });
+    return resposta.send({ codigos: lote.codigos, restantes: inseridos });
+  });
+
+  /* ======================================================================
+     Esqueci a senha (sem sessão, por definição)
+     ====================================================================== */
+
+  /**
+   * Um código de recuperação redefine a senha E o segundo fator, e devolve o
+   * segredo novo UMA vez. Não devolve sessão: a pessoa entra pela porta
+   * normal, com a senha nova e o autenticador novo.
+   *
+   * POR QUE TROCA O SEGUNDO FATOR, e não só a senha: a recuperação existe para
+   * o dia em que o telefone foi perdido junto com a senha, e nesse dia o
+   * autenticador antigo é inútil ou está com outra pessoa. Uma recuperação que
+   * só trocasse a senha deixaria a pessoa trancada na segunda etapa com um
+   * código na mão que já provou quem ela é. Quem só esqueceu a senha escaneia
+   * de novo em dez segundos.
+   *
+   * A ORDEM, e ela é o que faz a resposta ser a mesma para todo mundo:
+   *
+   *   1. o corpo tem forma (400, sem gastar derivação nenhuma: senha nova
+   *      curta é erro de quem digita, e dizer isso não conta nada sobre conta
+   *      nenhuma);
+   *   2. os códigos NÃO usados do email, pela função do banco, sem contexto,
+   *      que devolve lista VAZIA para email inexistente e para operador
+   *      inativo, e nunca erro;
+   *   3. `acharCodigo` confere TODOS e completa até oito derivações: email
+   *      que não existe custa o mesmo que uma conta com oito códigos;
+   *   4. só com o código achado a senha nova é derivada e o segredo novo é
+   *      sorteado e cifrado no cofre com o contexto do email, como
+   *      `provisionar-operador.ts` faz;
+   *   5. `console_consumir_recuperacao` marca o código como usado, grava
+   *      senha e envelope, zera falhas, castigo e passo do TOTP. Se o mesmo
+   *      código chegou duas vezes em corrida, o banco recusa a segunda com
+   *      `DC365`, e ela vira a mesma recusa genérica.
+   *
+   * AS SESSÕES CAEM SOZINHAS: o token carrega a versão da senha (`sv`, ver
+   * `tokens.ts`), e o hash novo muda a versão. Ninguém que tinha a sessão
+   * antiga continua lendo número nenhum.
+   *
+   * O RASTRO VAI EM `warn`, com quem e o id: redefinir a credencial de uma
+   * conta que enxerga todos os municípios é evento de segurança. Nunca o
+   * código, a senha, o segredo nem o hash.
+   */
+  app.post("/recuperar", LIMITE_DA_PORTA, async (req, resposta) => {
+    const corpo = RECUPERACAO.safeParse(req.body);
+    if (!corpo.success) {
+      recusarRecuperacao(undefined, "pedido_malformado");
+      return resposta.code(400).send({
+        erro: "pedido_invalido",
+        mensagem: corpo.error.issues[0]?.message ?? "Confira os campos.",
+      });
+    }
+    const { email, codigo, novaSenha } = corpo.data;
+
+    const candidatos = await candidatosPorEmail(leitura, email);
+    const achado = await acharCodigo(candidatos, codigo);
+    if (!achado) {
+      recusarRecuperacao(email, "email_ou_codigo");
+      return resposta.code(401).send(RECUSA_DA_RECUPERACAO);
+    }
+
+    /*
+      A linha do operador, pelo id que o código apontou e com o contexto dele:
+      o email que vai para o contexto do envelope é o GRAVADO, e não o
+      digitado, porque é o gravado que a porta vai usar para abrir o envelope
+      depois. A função do banco já garantiu que ele existe e está ativo; se
+      sumiu entre uma chamada e outra, a resposta é a genérica.
+    */
+    const operador = await registro.buscarPorId(achado.operador_id);
+    if (!operador || !operador.ativo) {
+      recusarRecuperacao(email, "email_ou_codigo");
+      return resposta.code(401).send(RECUSA_DA_RECUPERACAO);
+    }
+
+    const segredoTotp = gerarSegredoTotp();
+    try {
+      await consumirCodigo(
+        escrita,
+        achado.codigo_id,
+        await derivarSenha(novaSenha),
+        cofre.cifrar(segredoTotp, contextoDoOperador(operador.email)),
+      );
+    } catch (erro) {
+      if ((erro as { code?: string }).code === CODIGO_JA_CONSUMIDO) {
+        recusarRecuperacao(operador.email, "codigo_ja_consumido");
+        return resposta.code(401).send(RECUSA_DA_RECUPERACAO);
+      }
+      throw erro;
+    }
+
+    const restantes = candidatos.length - 1;
+    app.log.warn(
+      {
+        operador: operador.email, operador_id: operador.id,
+        acao: "recuperar_senha", codigos_restantes: restantes,
+      },
+      "senha e segundo fator redefinidos por codigo de recuperacao",
+    );
+
+    const endereco = uriDeAtivacao(segredoTotp, operador.email, EMISSOR_DO_TOTP);
+    return resposta.send({
+      segredo: segredoTotp,
+      endereco,
+      qr: desenharQr(endereco),
+      restantes,
     });
   });
 

@@ -22,10 +22,11 @@ import {
  * Nada que sirva para ENTRAR pode cair ali: nem senha, nem código de seis
  * dígitos, nem desafio, nem token de sessão, nem o segredo do segundo fator.
  * O caso que cobra isso roda uma entrada bem-sucedida inteira, cria um
- * operador, troca a senha e agenda uma eliminação, e procura cada um desses
- * valores no que o processo escreveu. As rotas novas entram na mesma busca:
- * uma senha inicial de operador ou um código de eliminação no log seriam o
- * mesmo defeito, num lugar novo.
+ * operador, troca a senha, agenda uma eliminação, gera códigos de recuperação
+ * e recupera a conta com um deles, e procura cada um desses valores no que o
+ * processo escreveu. As rotas novas entram na mesma busca: uma senha inicial
+ * de operador, um código de eliminação ou um código de recuperação no log
+ * seriam o mesmo defeito, num lugar novo.
  */
 
 const EMAIL = DONO.email;
@@ -265,6 +266,29 @@ describe("Nada que sirva para entrar cai no log", () => {
       payload: { senhaAtual: SENHA, codigo: codigoDaTroca, novaSenha: NOVA },
     });
     expect(troca.statusCode, troca.body).toBe(200);
+    const comSessaoNova = { authorization: `Bearer ${troca.json().token}` };
+
+    /*
+      A RECUPERACAO, nas duas pontas: os oito codigos que a geracao mostra uma
+      vez, e depois a senha nova e o segredo novo do segundo fator que a
+      recuperacao devolve uma vez. Nenhum dos tres pode cair no log, e o
+      codigo apresentado para recuperar tambem nao.
+    */
+    const codigoDaGeracao = codigoNovo(c.relogio, c.segredoDoDono);
+    const gerados = await app.inject({
+      method: "POST", url: "/codigos-de-recuperacao", headers: comSessaoNova,
+      payload: { senha: NOVA, codigo: codigoDaGeracao },
+    });
+    expect(gerados.statusCode, gerados.body).toBe(200);
+    const codigosDeRecuperacao: string[] = gerados.json().codigos;
+    expect(codigosDeRecuperacao).toHaveLength(8);
+
+    const RECUPERADA = "senha-recuperada-da-dona-para-o-teste-do-log";
+    const recuperado = await app.inject({
+      method: "POST", url: "/recuperar",
+      payload: { email: EMAIL, codigo: codigosDeRecuperacao[2], novaSenha: RECUPERADA },
+    });
+    expect(recuperado.statusCode, recuperado.body).toBe(200);
 
     expect(
       log.length,
@@ -284,6 +308,14 @@ describe("Nada que sirva para entrar cai no log", () => {
       ["o codigo apresentado na troca de senha", codigoDaTroca],
       ["a senha nova", NOVA],
       ["o token novo da troca", troca.json().token],
+      ["o codigo apresentado para gerar codigos de recuperacao", codigoDaGeracao],
+      ...codigosDeRecuperacao.map((codigo, i) => [`o codigo de recuperacao ${i + 1}`, codigo] as const),
+      ...codigosDeRecuperacao.map((codigo, i) =>
+        [`o codigo de recuperacao ${i + 1}, sem o hifen`, codigo.replace(/-/g, "")] as const),
+      ...(criado.json().codigos as string[]).map((codigo, i) =>
+        [`o codigo de recuperacao ${i + 1} do operador criado`, codigo] as const),
+      ["a senha nova da recuperacao", RECUPERADA],
+      ["o segredo novo do segundo fator, da recuperacao", recuperado.json().segredo],
     ] as const) {
       expect(
         logSemCarimboDoRegistrador(), `${nome} foi parar no log do console`,
@@ -298,7 +330,9 @@ describe("Nada que sirva para entrar cai no log", () => {
     expect(tudo()).toContain("criar_operador");
     expect(tudo()).toContain("agendar_eliminacao");
     expect(tudo()).toContain("senha trocada");
-  }, 180_000);
+    expect(tudo()).toContain("gerar_codigos_de_recuperacao");
+    expect(tudo(), "a recuperacao bem-sucedida nao deixou rastro").toContain("redefinid");
+  }, 240_000);
 });
 
 describe("A partida diz quantos operadores foram carregados", () => {

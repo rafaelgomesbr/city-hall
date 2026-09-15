@@ -1,9 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Browser, Page } from "playwright";
+import { base32Decodificar } from "../../api/src/auth/totp.js";
 import { DONO, cadastrarPrefeitura, codigoNovo, subirConsoleDeTeste, type ConsoleDeTeste } from "./apoio/console-de-teste.js";
 
 /**
- * O fluxo de eliminar e cancelar num NAVEGADOR DE VERDADE, com a política de
+ * O fluxo de eliminar e cancelar, e o de gerar códigos de recuperação e
+ * recuperar a conta com um deles, num NAVEGADOR DE VERDADE, com a política de
  * segurança de conteúdo valendo.
  *
  * POR QUE ESTE ARQUIVO EXISTE além de `a-tela-responde.test.ts`: o DOM de
@@ -168,4 +170,86 @@ describe("Eliminar e cancelar, no navegador, com a politica de seguranca valendo
       + "ou violacao da politica de seguranca de conteudo)",
     ).toEqual([]);
   }, 60_000);
+});
+
+describe("Gerar codigos de recuperacao e recuperar a conta com um deles, no navegador", () => {
+  let codigos: string[] = [];
+  let segredoNovo = "";
+  const SENHA_NOVA = "senha-recuperada-no-navegador-de-verdade";
+
+  it("em Minha senha, com a senha e um codigo novo, os oito codigos aparecem uma vez e a contagem muda", async () => {
+    await pagina.click("#ir-senha");
+    await pagina.waitForSelector("#minha-senha:not([hidden])");
+    await expect.poll(() => pagina.locator("#codigos-restantes").textContent(), { timeout: 30_000 })
+      .toContain("Nenhum");
+
+    await pagina.fill("#codigos-senha", DONO.senha);
+    await pagina.fill("#codigos-codigo", codigoNovo(c.relogio, c.segredoDoDono));
+    await pagina.click("#gerar-codigos");
+    await pagina.waitForSelector("#codigos-entregues:not([hidden])", { timeout: 90_000 });
+
+    codigos = await pagina.locator("#lista-de-codigos li").allTextContents();
+    expect(codigos).toHaveLength(8);
+    for (const codigo of codigos) expect(codigo).toMatch(/^[a-z0-9]{5}-[a-z0-9]{5}$/);
+    await expect.poll(() => pagina.locator("#codigos-restantes").textContent()).toContain("8");
+
+    /* O aviso de "mostrado uma vez" esta pintado com o token de perigo, e tem a palavra. */
+    const aviso = pagina.locator("#codigos-entregues .alerta");
+    expect(await aviso.textContent()).toContain("Atenção");
+    expect(await aviso.evaluate((el) => getComputedStyle(el).borderLeftWidth)).not.toBe("0px");
+
+    await pagina.click("#codigos-concluir");
+    expect(await pagina.locator("#lista-de-codigos li").count()).toBe(0);
+    expect(await pagina.locator("#forma-codigos").isVisible()).toBe(true);
+  }, 150_000);
+
+  it("sair, Esqueci a senha, um codigo e a senha nova: o QR novo aparece, e a pessoa entra pela porta com ele", async () => {
+    await pagina.click("#sair");
+    await pagina.waitForSelector("#porta:not([hidden])");
+    await pagina.fill("#email", DONO.email);
+    await pagina.click("#esqueci-senha");
+    await pagina.waitForSelector("#forma-recuperar:not([hidden])");
+    expect(await pagina.inputValue("#recuperar-email")).toBe(DONO.email);
+    expect(await pagina.locator("#forma-senha").isVisible()).toBe(false);
+
+    await pagina.fill("#recuperar-codigo", codigos[0]!);
+    await pagina.fill("#recuperar-senha", SENHA_NOVA);
+    await pagina.fill("#recuperar-senha-2", SENHA_NOVA);
+    await pagina.click("#recuperar");
+    await pagina.waitForSelector("#recuperado:not([hidden])", { timeout: 90_000 });
+
+    segredoNovo = ((await pagina.locator("#recuperado-segredo").textContent()) ?? "").replace(/\s+/g, "");
+    expect(base32Decodificar(segredoNovo), "o segredo novo na tela nao e base32").not.toBeNull();
+    expect(segredoNovo).not.toBe(c.segredoDoDono);
+    expect(await pagina.locator("#recuperado-qr svg rect.qr__modulo").count(), "o QR novo nao foi desenhado")
+      .toBeGreaterThan(100);
+    await expect.poll(() => pagina.locator("#recuperado-restantes").textContent()).toContain("7");
+
+    const noBanco = await c.mem.bruto.query<{ usados: string; livres: string }>(
+      `SELECT count(*) FILTER (WHERE usado_em IS NOT NULL)::text AS usados,
+              count(*) FILTER (WHERE usado_em IS NULL)::text AS livres
+         FROM console_codigos_de_recuperacao`,
+    );
+    expect(Number(noBanco.rows[0]!.usados)).toBe(1);
+    expect(Number(noBanco.rows[0]!.livres)).toBe(7);
+
+    await pagina.click("#recuperado-entrar");
+    await pagina.waitForSelector("#forma-senha:not([hidden])");
+    expect(await pagina.locator("#recuperado-segredo").textContent()).toBe("");
+    expect(await pagina.inputValue("#email")).toBe(DONO.email);
+
+    await pagina.fill("#senha", SENHA_NOVA);
+    await pagina.click("#continuar");
+    await pagina.waitForSelector("#forma-codigo:not([hidden])", { timeout: 30_000 });
+    await pagina.fill("#codigo", codigoNovo(c.relogio, segredoNovo));
+    await pagina.click("#entrar");
+    await pagina.waitForSelector("#painel:not([hidden])", { timeout: 30_000 });
+    await expect.poll(() => pagina.locator("#quem-email").textContent()).toBe(DONO.email);
+
+    expect(
+      problemas,
+      "o navegador reclamou durante a recuperacao (erro de console, de pagina, pedido falhado "
+      + "ou violacao da politica de seguranca de conteudo)",
+    ).toEqual([]);
+  }, 180_000);
 });

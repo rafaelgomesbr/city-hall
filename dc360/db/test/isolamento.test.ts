@@ -191,6 +191,15 @@ describe("CA-06: isolamento entre organizações", () => {
       fornecedor logo abaixo.
     */
     "console_operadores",
+    /*
+      Os CÓDIGOS DE RECUPERAÇÃO de senha desses operadores (migração 039).
+      Mesma razão: são do fornecedor, não de município nenhum. O que os
+      prende é a policy amarrada ao operador da sessão, cobrada no bloco de
+      tabelas do fornecedor logo abaixo, e o caso-irmão em
+      `db/test/recuperacao-do-console.test.ts` (operador não vê nem insere
+      código de outro).
+    */
+    "console_codigos_de_recuperacao",
   ]);
 
   /**
@@ -203,32 +212,42 @@ describe("CA-06: isolamento entre organizações", () => {
   const SEM_POLICY_DE_TENANT = new Set(["interesse_municipio"]);
 
   /**
-   * AS DUAS TABELAS DO FORNECEDOR (migração 038), e a regra própria delas.
+   * AS TABELAS DO FORNECEDOR (migrações 038 e 039), e a regra própria delas.
    *
-   * `console_operadores` e `eliminacoes_de_municipio` não têm policy do
-   * produto, e não podem ter: nenhum município lê os operadores do fornecedor
-   * nem o livro de eliminações. As policies delas são todas `TO
+   * `console_operadores`, `eliminacoes_de_municipio` e
+   * `console_codigos_de_recuperacao` não têm policy do produto, e não podem
+   * ter: nenhum município lê os operadores do fornecedor, o livro de
+   * eliminações ou os códigos de recuperação. As policies delas são todas `TO
    * dc360_console`, e a regra que este arquivo cobra nelas é OUTRA, não uma
    * mais frouxa:
    *
    *   - comando a comando, nunca `FOR ALL` e nunca DELETE (operador se
-   *     desativa e o livro não se apaga);
-   *   - toda policy que ESCREVE exige o dono do console
+   *     desativa, o livro não se apaga, código gasto fica marcado);
+   *   - toda policy que ESCREVE se apoia numa GUARDA nomeada aqui, por
+   *     tabela. Nas duas da 038 a guarda é o dono do console
    *     (`console_operador_e_dono()`), porque "eles jamais podem ter o poder
    *     sobre a primeira conta" e porque só o dono agenda eliminação. A
    *     única linha que entra sem dono é o próprio dono, semeado pelo
    *     console na partida com a tabela VAZIA (`console_sem_operadores()`),
-   *     e esse ramo fecha na primeira linha;
-   *   - a de UPDATE dos operadores se apoia no operador da sessão
-   *     (`console_operador_atual()`), que é o `app_organizacao_atual()` deste
-   *     lado da casa.
+   *     e esse ramo fecha na primeira linha. Nos códigos de recuperação
+   *     (039) a guarda é o OPERADOR DA SESSÃO (`console_operador_atual()`),
+   *     que é o `app_organizacao_atual()` deste lado da casa: gerar os
+   *     próprios códigos é ato de qualquer operador autenticado, e ver os do
+   *     outro não é ato de ninguém, nem do dono. Por isso ali a guarda vale
+   *     TAMBÉM na leitura (`naLeitura`), e uma policy de SELECT com `USING
+   *     (true)` nessa tabela reprova aqui;
+   *   - a de UPDATE dos operadores se apoia no operador da sessão, e os
+   *     códigos não têm UPDATE nenhum: marcar usado é ato de função sem
+   *     contexto (quem recupera não tem sessão).
    *
-   * O caso-irmão, com o console conectado e tentando, está em
-   * `db/test/eliminacao-de-municipio.test.ts`.
+   * Os casos-irmãos, com o console conectado e tentando, estão em
+   * `db/test/eliminacao-de-municipio.test.ts` e em
+   * `db/test/recuperacao-do-console.test.ts`.
    */
-  const DO_FORNECEDOR = new Map<string, { escreve: string[] }>([
-    ["console_operadores", { escreve: ["INSERT", "UPDATE"] }],
-    ["eliminacoes_de_municipio", { escreve: ["INSERT", "UPDATE"] }],
+  const DO_FORNECEDOR = new Map<string, { escreve: string[]; guarda: string; naLeitura: boolean }>([
+    ["console_operadores", { escreve: ["INSERT", "UPDATE"], guarda: "console_operador_e_dono", naLeitura: false }],
+    ["eliminacoes_de_municipio", { escreve: ["INSERT", "UPDATE"], guarda: "console_operador_e_dono", naLeitura: false }],
+    ["console_codigos_de_recuperacao", { escreve: ["INSERT"], guarda: "console_operador_atual", naLeitura: true }],
   ]);
 
   async function tabelasDeNegocio(): Promise<string[]> {
@@ -341,19 +360,25 @@ describe("CA-06: isolamento entre organizações", () => {
       const doConsole = r.rows.filter((linha) => linha.papeis === "dc360_console");
 
       if (DO_FORNECEDOR.has(t)) {
-        const permitidos = new Set(["SELECT", ...DO_FORNECEDOR.get(t)!.escreve]);
+        const regra = DO_FORNECEDOR.get(t)!;
+        const permitidos = new Set(["SELECT", ...regra.escreve]);
         expect(r.rows.length, `${t} tem policy de outro papel além do console`).toBe(doConsole.length);
+        expect(
+          doConsole.map((linha) => linha.cmd).sort(),
+          `${t} não tem exatamente as policies que a regra do fornecedor nomeia`,
+        ).toEqual([...permitidos].sort());
         for (const linha of doConsole) {
           expect(
             permitidos.has(linha.cmd),
             `policy ${linha.policyname} vale para ${linha.cmd} em ${t}: nas tabelas do ` +
             "fornecedor não há policy ALL nem DELETE",
           ).toBe(true);
-          if (linha.cmd !== "SELECT") {
+          if (linha.cmd !== "SELECT" || regra.naLeitura) {
             expect(
               `${linha.qual ?? ""} ${linha.with_check ?? ""}`,
-              `policy ${linha.policyname} deixa ${t} ser escrita sem exigir o dono do console`,
-            ).toContain("console_operador_e_dono");
+              `policy ${linha.policyname} deixa ${t} ser ${linha.cmd === "SELECT" ? "lida" : "escrita"} ` +
+              `sem se apoiar em ${regra.guarda}()`,
+            ).toContain(regra.guarda);
           }
         }
         continue;
@@ -437,6 +462,13 @@ describe("CA-06: isolamento entre organizações", () => {
         chave nova numa tabela nova continua reprovando aqui.
       */
       if (fk.tabela === "console_operadores" && fk.alvo === "console_operadores") continue;
+      /*
+        `console_codigos_de_recuperacao.operador_id` aponta para
+        `console_operadores` (migração 039): código de recuperação de um
+        operador do fornecedor, e nenhuma das duas tabelas tem município. A
+        segunda referência isenta, e também por nome.
+      */
+      if (fk.tabela === "console_codigos_de_recuperacao" && fk.alvo === "console_operadores") continue;
       expect(
         fk.colunas.split(",").includes("organizacao_id"),
         `${fk.tabela} -> ${fk.alvo} (${fk.nome}) não inclui organizacao_id: ` +
@@ -555,9 +587,34 @@ describe("Funções privilegiadas", () => {
       banco: sem parâmetro, devolve dois inteiros (agendadas, vencidas) e
       nenhum nome nem id. O caso "a rota de saude conta agendadas e vencidas"
       cobra a forma dela no catálogo.
+
+      Subiu de 23 para 26 em 15/09/2026, pela migração 039: recuperação de
+      senha dos operadores do console, inclusive do dono, por códigos de
+      recuperação. São três, e entram por duas razões que este arquivo já
+      conhece.
+
+      `console_renovar_codigos` entra pela razão de `provisionar_municipio`:
+      quem chama não pode ter privilégio. Gerar códigos novos marca os
+      anteriores como usados, que é um UPDATE, e o console não tem UPDATE na
+      tabela de códigos (com ele, uma sessão comprometida desmarcaria um
+      código gasto). Exige o operador da sessão, ativo, e devolve um inteiro.
+
+      `console_recuperacao_por_email` e `console_consumir_recuperacao` entram
+      pela razão de `credenciais_para_login` e `consumir_recuperacao` (002 e
+      005): quem perdeu a senha NÃO TEM SESSÃO, então não existe operador no
+      contexto e a policy de SELECT da tabela, amarrada ao operador da sessão,
+      devolveria vazio. A primeira é a única função do banco que devolve hash
+      de credencial sem sessão, e o que a mantém estreita é a forma dela: três
+      colunas (id do operador, id do código, hash do CÓDIGO), sem nome, sem
+      papel e sem `senha_hash`; email inexistente e operador inativo devolvem
+      vazio, nunca erro, para o console não revelar quem existe. A segunda
+      gasta o código e troca senha E segundo fator, escrevendo como dono das
+      tabelas com `row_security = off`: com um dono sem BYPASSRLS ela estoura
+      em vez de dizer "senha redefinida" com a senha velha no lugar. Os casos
+      estão em `db/test/recuperacao-do-console.test.ts`.
     */
     expect(lista.length, `funções SECURITY DEFINER demais: ${lista.map((f) => f.nome).join(", ")}`)
-      .toBeLessThanOrEqual(23);
+      .toBeLessThanOrEqual(26);
   });
 
   it("toda função privilegiada fixa o search_path", async () => {
@@ -3263,10 +3320,21 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
    * aqui. O caso-irmão (o operador não altera o dono, o operador não agenda, o
    * console não apaga nada, o livro escrito por fora não aciona o relógio)
    * está em `db/test/eliminacao-de-municipio.test.ts`.
+   *
+   * A QUARTA (migração 039): `console_codigos_de_recuperacao`, os códigos de
+   * recuperação de senha desses mesmos operadores, guardados como hash. O
+   * console lê e insere (só os próprios, pela policy amarrada ao operador da
+   * sessão) e NÃO tem UPDATE nem DELETE: marcar um código como usado é ato das
+   * funções da 039, e código gasto fica marcado. Os dois privilégios que
+   * faltam são cobrados como buraco nos casos 10 e 11 da varredura, mais
+   * abaixo. O caso-irmão (operador não vê nem insere código de outro, o
+   * console não marca usado nem apaga) está em
+   * `db/test/recuperacao-do-console.test.ts`.
    */
   const O_CONSOLE_ALCANCA = new Map<string, Set<string>>([
     ["console_operadores", new Set(["SELECT", "INSERT", "UPDATE"])],
     ["eliminacoes_de_municipio", new Set(["SELECT", "INSERT"])],
+    ["console_codigos_de_recuperacao", new Set(["SELECT", "INSERT"])],
   ]);
   const O_CONSOLE_ALCANCA_POR_COLUNA = new Map<string, Set<string>>([
     ["eliminacoes_de_municipio", new Set(["cancelada_em:UPDATE", "cancelada_por_email:UPDATE"])],
@@ -3309,6 +3377,19 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
     "console_reativar_municipio()",
     "console_agendar_eliminacao()",
     "console_cancelar_eliminacao()",
+    /*
+      As três da recuperação de senha do console (migração 039). Nenhuma toca
+      tabela de município: as três leem e escrevem só `console_operadores` e
+      `console_codigos_de_recuperacao`, as tabelas do fornecedor. A por email
+      é a única sem sessão que devolve hash, e devolve o do CÓDIGO, nunca o
+      da senha; a de consumir é a única que reescreve `senha_hash` e
+      `segundo_fator` de um operador sem ser ele mesmo, e só com um código
+      vivo. Ver o teto de funções privilegiadas, acima, e
+      `db/test/recuperacao-do-console.test.ts`.
+    */
+    "console_renovar_codigos()",
+    "console_recuperacao_por_email()",
+    "console_consumir_recuperacao()",
   ]);
 
   async function sobras(): Promise<Achado[]> {
@@ -3621,8 +3702,30 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
       "motivo, o prazo ou as contagens reescreveria a historia que o livro guarda.",
     );
     /*
-      Prazo folgado de proposito: este caso roda a varredura inteira dezenove
-      vezes (antes, durante e depois de cada um dos nove buracos), e a
+      10 e 11 (migracao 039): o LIMITE da excecao dos codigos de recuperacao.
+
+      O console le e insere codigos, e so isso. UPDATE direto deixaria uma
+      sessao comprometida DESMARCAR um codigo gasto e usa-lo de novo; DELETE
+      apagaria a prova de que alguem gastou tres codigos que o dono nao gastou.
+      Os dois continuam reprovando, e marcar usado segue sendo ato de funcao.
+    */
+    await comOBuraco(
+      "GRANT UPDATE ON console_codigos_de_recuperacao TO dc360_console",
+      "REVOKE UPDATE ON console_codigos_de_recuperacao FROM dc360_console",
+      /concessao direta|efetivo/,
+      "Com UPDATE direto, uma sessao do console comprometida desmarcaria um codigo " +
+      "de recuperacao ja gasto e o usaria de novo para trocar a senha do dono.",
+    );
+    await comOBuraco(
+      "GRANT DELETE ON console_codigos_de_recuperacao TO dc360_console",
+      "REVOKE DELETE ON console_codigos_de_recuperacao FROM dc360_console",
+      /concessao direta|efetivo/,
+      "Codigo gasto fica marcado para o livro contar: com DELETE, ninguem distinguiria " +
+      "'usei tres' de 'alguem usou tres por mim'.",
+    );
+    /*
+      Prazo folgado de proposito: este caso roda a varredura inteira vinte e
+      tres vezes (antes, durante e depois de cada um dos onze buracos), e a
       varredura pergunta privilegio efetivo papel a papel, tabela a tabela. O
       teto padrao de cinco segundos do vitest transformaria uma maquina lenta
       numa reprovacao que nao fala do banco.
@@ -3881,6 +3984,19 @@ describe("Metricas escritas pelo proprio municipio", () => {
           "id", "organizacao_id", "municipio_nome", "uf", "solicitada_em", "executar_em",
           "solicitada_por_email", "motivo", "cancelada_em", "cancelada_por_email",
           "banco_apagado_em", "contagens", "armazenamento_purgado_em", "concluida_em",
+        ]);
+        continue;
+      }
+      /*
+        A terceira do fornecedor (039): o hash do CÓDIGO de recuperação de um
+        operador do console, e quando foi gerado e gasto. Nada de cidadão, nada
+        de servidor municipal, e nem o hash da SENHA: a lista é fechada por
+        nome, como nas outras duas, e uma coluna nova reprova até alguém
+        escrevê-la aqui.
+      */
+      if (relacao === "console_codigos_de_recuperacao") {
+        expect((await colunas(relacao)).map((c) => c.column_name)).toEqual([
+          "id", "operador_id", "codigo_hash", "criado_em", "usado_em",
         ]);
         continue;
       }
@@ -4447,12 +4563,13 @@ describe("A porta de criar municipio, e por que ela nao serve para ler", () => {
     expect(recusouTrilha, "o console leu a trilha administrativa do municipio").toBe(true);
 
     /*
-      E o portao universal continua limpo depois do ato. Sao oito concessoes,
+      E o portao universal continua limpo depois do ato. Sao dez concessoes,
       escritas por extenso: SELECT nas duas relacoes e na visao da ADR 0008,
-      e as cinco da migracao 038 nas tabelas DO FORNECEDOR (SELECT, INSERT e
+      as cinco da migracao 038 nas tabelas DO FORNECEDOR (SELECT, INSERT e
       UPDATE em `console_operadores`; SELECT e INSERT em
       `eliminacoes_de_municipio`, cujo UPDATE e por coluna e nao aparece
-      nesta visao do catalogo). Nenhuma delas e tabela de municipio.
+      nesta visao do catalogo) e as duas da 039 (SELECT e INSERT em
+      `console_codigos_de_recuperacao`). Nenhuma delas e tabela de municipio.
     */
     expect(
       (await db.query<{ concessao: string }>(
@@ -4461,8 +4578,10 @@ describe("A porta de criar municipio, e por que ela nao serve para ler", () => {
           WHERE table_schema = 'public' AND grantee = 'dc360_console'
           ORDER BY 1`,
       )).rows.map((l) => l.concessao),
-      "o console ganhou concessao de tabela alem das que a ADR 0008 e a migracao 038 nomeiam",
+      "o console ganhou concessao de tabela alem das que a ADR 0008 e as migracoes 038 e 039 nomeiam",
     ).toEqual([
+      "console_codigos_de_recuperacao:INSERT",
+      "console_codigos_de_recuperacao:SELECT",
       "console_operadores:INSERT",
       "console_operadores:SELECT",
       "console_operadores:UPDATE",

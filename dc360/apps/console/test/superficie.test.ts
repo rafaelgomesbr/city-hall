@@ -31,6 +31,12 @@ const ABERTAS: Record<string, string> = {
   "POST /entrar/codigo":
     "A segunda etapa. É ela que emite a sessão, depois do código do aplicativo "
     + "de autenticação.",
+  "POST /recuperar":
+    "A recuperação de senha por código de recuperação. Não há sessão por "
+    + "definição: quem chega aqui perdeu a senha, e talvez o aparelho do segundo "
+    + "fator. A credencial é o código, conferido contra hash scrypt, e a resposta "
+    + "não traz sessão: traz o segredo novo do segundo fator, uma vez, e a pessoa "
+    + "entra pela porta normal. Está sob o mesmo limite por endereço da porta.",
   "GET /saude":
     "Quem pergunta é o balanceador, que não tem sessão. Responde apenas que o "
     + "processo está de pé, e nenhum número de município nenhum.",
@@ -176,6 +182,7 @@ describe("Toda rota do console exige sessao, menos as isentas por escrito", () =
       posts.sort(),
       "o console ganhou rota de POST que ninguem nomeou neste teste",
     ).toEqual([
+      "POST /codigos-de-recuperacao",
       "POST /entrar",
       "POST /entrar/codigo",
       "POST /municipios/:id/eliminacao/cancelar",
@@ -185,13 +192,20 @@ describe("Toda rota do console exige sessao, menos as isentas por escrito", () =
       "POST /operadores",
       "POST /operadores/:id/desativar",
       "POST /prefeituras",
+      "POST /recuperar",
       "POST /senha",
     ]);
 
-    // E nenhuma rota de escrita está entre as isentas: uma isenção aqui seria
-    // criar prefeitura, ou suspender município, sem entrar.
+    /*
+      E nenhuma rota de escrita está entre as isentas, com UMA exceção nomeada:
+      `POST /recuperar` escreve (a senha e o segundo fator novos, na linha de
+      quem apresentou o código) e não tem sessão por definição. A credencial
+      dela é o código de recuperação, e `recuperacao-de-senha.test.ts` cobra
+      que sem um código válido ela não escreve nada. Uma isenção além dessa
+      seria criar prefeitura, ou suspender município, sem entrar.
+    */
     for (const post of posts) {
-      if (post.startsWith("POST /entrar")) continue;
+      if (post.startsWith("POST /entrar") || post === "POST /recuperar") continue;
       expect(Object.keys(ABERTAS), `${post} entrou na lista de rotas abertas`).not.toContain(post);
     }
   });

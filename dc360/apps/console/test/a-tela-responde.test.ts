@@ -1270,3 +1270,323 @@ describe("Trocar a minha senha", () => {
     expect(tela.pegar("trocar").disabled).toBe(false);
   });
 });
+
+/* ==========================================================================
+   A recuperação de senha: os códigos em "Minha senha", e "Esqueci a senha"
+   ========================================================================== */
+
+describe("Codigos de recuperacao, em Minha senha", () => {
+  const OITO = [
+    "abcde-fghjk", "mnpqr-stuvw", "xyz23-45678", "9abcd-efghj",
+    "kmnpq-rstuv", "wxyz2-34567", "89abc-defgh", "jkmnp-qrstu",
+  ];
+
+  /** Abre a tela e responde a pergunta "quantos restam" com o numero dado. */
+  async function abrirComContagem(restantes: number) {
+    await entrar(tela, "plantao@fornecedor.com.br", "operador");
+    const abrir = tela.disparar("ir-senha", "click");
+    await tela.passo();
+    expect(tela.ultima().caminho, "abrir Minha senha nao perguntou quantos codigos restam")
+      .toBe("/codigos-de-recuperacao");
+    expect(tela.ultima().opcoes?.["method"]).toBe("GET");
+    tela.ultima().resolver(resposta({ restantes }));
+    await abrir;
+    await tela.passo();
+  }
+
+  /* Devolve a promessa EMBRULHADA: uma funcao async que devolvesse a promessa
+     crua a achataria, e o `await` esperaria o fetch que o caso ainda vai
+     resolver a mao. */
+  async function gerar(): Promise<{ promessa: Promise<unknown> }> {
+    tela.pegar("codigos-senha").value = "a-senha-atual";
+    tela.pegar("codigos-codigo").value = "123456";
+    const promessa = tela.disparar("forma-codigos", "submit");
+    await tela.passo();
+    return { promessa };
+  }
+
+  it("ao abrir, diz quantos codigos restam, sem mostrar nenhum", async () => {
+    await abrirComContagem(0);
+    expect(tela.pegar("codigos-restantes").textContent).toContain("Nenhum");
+
+    await tela.disparar("sair", "click");
+    await abrirComContagem(3);
+    expect(tela.pegar("codigos-restantes").textContent).toContain("3");
+    expect(tela.pegar("lista-de-codigos").filhos.length, "a contagem mostrou codigo").toBe(0);
+  });
+
+  it("gerar exige senha e codigo antes de mandar qualquer coisa", async () => {
+    await abrirComContagem(0);
+    const antes = tela.chamadas.length;
+    await tela.disparar("forma-codigos", "submit");
+    expect(tela.chamadas.length, "mandou gerar sem senha nem codigo").toBe(antes);
+    expect(tela.pegar("recado-codigos").hidden).toBe(false);
+  });
+
+  it("gerar manda senha e codigo, trava o botao, mostra os oito UMA vez com o aviso, e atualiza a contagem", async () => {
+    await abrirComContagem(0);
+    const botao = tela.pegar("gerar-codigos");
+    const rotulo = tela.pegar("gerar-codigos-texto");
+    const antes = rotulo.textContent;
+    const { promessa } = await gerar();
+
+    expect(tela.ultima().caminho).toBe("/codigos-de-recuperacao");
+    expect(tela.ultima().opcoes?.["method"]).toBe("POST");
+    expect(corpoDaUltima(tela)).toEqual({ senha: "a-senha-atual", codigo: "123456" });
+    expect(botao.disabled, "o botao aceita um segundo clique").toBe(true);
+    expect(botao.getAttribute("aria-busy")).toBe("true");
+    expect(rotulo.textContent).not.toBe(antes);
+
+    tela.ultima().resolver(resposta({ codigos: OITO, restantes: 8 }));
+    await promessa;
+    await tela.passo();
+
+    expect(botao.disabled).toBe(false);
+    expect(rotulo.textContent).toBe(antes);
+    expect(tela.pegar("codigos-entregues").hidden, "os codigos nao apareceram").toBe(false);
+    expect(tela.pegar("forma-codigos").hidden, "o formulario ficou junto dos codigos").toBe(true);
+    const itens = tela.pegar("lista-de-codigos").filhos;
+    expect(itens.length).toBe(8);
+    expect(itens.map((i) => i.textContent)).toEqual(OITO);
+    expect(tela.pegar("codigos-restantes").textContent).toContain("8");
+    /* A senha e o codigo digitados saem dos campos assim que o pedido volta. */
+    expect(tela.pegar("codigos-senha").value).toBe("");
+    expect(tela.pegar("codigos-codigo").value).toBe("");
+
+    /* O aviso nunca e so cor: tem a palavra, e diz que gerar de novo invalida estes. */
+    const aviso = [...PAGINA_DO_CONSOLE.matchAll(/<div id="codigos-entregues"[\s\S]*?<\/div>\s*<\/div>/g)]
+      .map((m) => m[0]!)[0] ?? "";
+    expect(aviso).toContain("<strong>Atenção:</strong>");
+    expect(aviso.toLowerCase()).toContain("gerar de novo invalida estes");
+
+    const escritos = tela.guardados.map((g) => `${g.chave}=${g.valor}`).join(" | ");
+    for (const codigo of OITO) expect(escritos).not.toContain(codigo);
+  });
+
+  it("codigo recusado mostra a mensagem do servidor, limpa o codigo e mantem o formulario", async () => {
+    await abrirComContagem(2);
+    const { promessa } = await gerar();
+    tela.ultima().resolver(resposta({
+      erro: "codigo_invalido", mensagem: "Código incorreto ou já usado. Use um código novo, não o da entrada.",
+    }, false));
+    await promessa;
+    expect(tela.pegar("recado-codigos-texto").textContent).toContain("código novo");
+    expect(tela.pegar("codigos-codigo").value).toBe("");
+    expect(tela.pegar("forma-codigos").hidden).toBe(false);
+    expect(tela.pegar("codigos-entregues").hidden).toBe(true);
+    expect(tela.pegar("gerar-codigos").disabled).toBe(false);
+    expect(tela.pegar("codigos-restantes").textContent, "a recusa mexeu na contagem").toContain("2");
+  });
+
+  it("com o servidor fora do ar, a tela diz e devolve o botao", async () => {
+    await abrirComContagem(0);
+    const { promessa } = await gerar();
+    tela.ultima().recusar(new TypeError("Failed to fetch"));
+    await promessa;
+    expect(tela.pegar("recado-codigos").hidden).toBe(false);
+    expect(tela.pegar("gerar-codigos").disabled).toBe(false);
+  });
+
+  it("concluir apaga os codigos da tela e devolve o formulario; sair tambem apaga", async () => {
+    await abrirComContagem(0);
+    const { promessa } = await gerar();
+    tela.ultima().resolver(resposta({ codigos: OITO, restantes: 8 }));
+    await promessa;
+    await tela.passo();
+    await tela.disparar("codigos-concluir", "click");
+    expect(tela.pegar("lista-de-codigos").filhos.length, "os codigos ficaram no documento").toBe(0);
+    expect(tela.pegar("codigos-entregues").hidden).toBe(true);
+    expect(tela.pegar("forma-codigos").hidden).toBe(false);
+
+    const segunda = await gerar();
+    tela.ultima().resolver(resposta({ codigos: OITO, restantes: 8 }));
+    await segunda.promessa;
+    await tela.passo();
+    expect(tela.pegar("lista-de-codigos").filhos.length).toBe(8);
+    await tela.disparar("sair", "click");
+    expect(tela.pegar("lista-de-codigos").filhos.length, "sair deixou os codigos no documento").toBe(0);
+    expect(tela.pegar("codigos-restantes").textContent).toBe("");
+  });
+
+  it("criar operador mostra os oito codigos dele junto da senha, do segredo e do QR, e concluir apaga", async () => {
+    await entrar(tela, "dona@fornecedor.com.br", "dono");
+    const abrir = tela.disparar("ir-usuarios", "click");
+    await tela.passo();
+    tela.ultima().resolver(resposta({ operadores: [] }));
+    await abrir;
+    await tela.passo();
+
+    const promessa = tela.disparar("forma-operador", "submit");
+    await tela.passo();
+    tela.ultima().resolver(resposta({
+      id: "c", email: "novo@fornecedor.com.br", senhaInicial: "s", segredo: "JBSW",
+      endereco: "otpauth://x", qr: null, codigos: OITO,
+    }));
+    await tela.passo();
+    tela.ultima().resolver(resposta({ operadores: [] }));
+    await promessa;
+    await tela.passo();
+
+    const itens = tela.pegar("operador-codigos").filhos;
+    expect(itens.length, "os codigos do operador criado nao apareceram").toBe(8);
+    expect(itens.map((i) => i.textContent)).toEqual(OITO);
+
+    await tela.disparar("operador-concluir", "click");
+    expect(tela.pegar("operador-codigos").filhos.length).toBe(0);
+  });
+});
+
+describe("Esqueci a senha, na porta, sem sessao", () => {
+  async function abrirRecuperacao(email = "dona@fornecedor.com.br") {
+    tela.pegar("email").value = email;
+    await tela.disparar("esqueci-senha", "click");
+  }
+
+  function preencher(codigo = "abcde-fghjk", senha = "uma-senha-nova-comprida", senha2 = senha) {
+    tela.pegar("recuperar-codigo").value = codigo;
+    tela.pegar("recuperar-senha").value = senha;
+    tela.pegar("recuperar-senha-2").value = senha2;
+  }
+
+  it("o link abre o formulario de recuperacao no lugar do de senha, levando o email junto", async () => {
+    await abrirRecuperacao();
+    expect(tela.pegar("forma-recuperar").hidden, "o formulario de recuperar nao abriu").toBe(false);
+    expect(tela.pegar("forma-senha").hidden, "os dois formularios ficaram na tela").toBe(true);
+    expect(tela.pegar("forma-codigo").hidden).toBe(true);
+    expect(tela.pegar("recuperar-email").value).toBe("dona@fornecedor.com.br");
+    expect(tela.pegar("porta-titulo").textContent).not.toBe("Entrar no console");
+    /* A tela diz o que vai acontecer: senha E segundo fator. */
+    expect(tela.pegar("porta-apoio").textContent.toLowerCase()).toContain("segundo fator");
+    expect(tela.pegar("recuperar-texto").textContent).toBe("Redefinir a senha e o segundo fator");
+  });
+
+  it("senha curta, senhas diferentes ou codigo em branco nao mandam nada, e dizem", async () => {
+    await abrirRecuperacao();
+    const antes = tela.chamadas.length;
+
+    preencher("", "uma-senha-nova-comprida");
+    await tela.disparar("forma-recuperar", "submit");
+    expect(tela.chamadas.length).toBe(antes);
+    expect(tela.pegar("recado").hidden).toBe(false);
+
+    preencher("abcde-fghjk", "curta");
+    await tela.disparar("forma-recuperar", "submit");
+    expect(tela.chamadas.length).toBe(antes);
+    expect(tela.pegar("recado-texto").textContent).toContain("12");
+
+    preencher("abcde-fghjk", "uma-senha-nova-comprida", "outra-senha-nova-comprida");
+    await tela.disparar("forma-recuperar", "submit");
+    expect(tela.chamadas.length, "mandou recuperar com as senhas diferentes").toBe(antes);
+    expect(tela.pegar("recuperar-senha-2").focos).toBeGreaterThan(0);
+  });
+
+  it("com tudo certo manda email, codigo e senha nova, trava o botao, e mostra o segredo e o QR novos uma vez", async () => {
+    await abrirRecuperacao(" Dona@Fornecedor.com.br ");
+    preencher();
+    const botao = tela.pegar("recuperar");
+    const rotulo = tela.pegar("recuperar-texto");
+    const antes = rotulo.textContent;
+    const promessa = tela.disparar("forma-recuperar", "submit");
+    await tela.passo();
+
+    expect(tela.ultima().caminho).toBe("/recuperar");
+    expect(corpoDaUltima(tela)).toEqual({
+      email: " Dona@Fornecedor.com.br ", codigo: "abcde-fghjk", novaSenha: "uma-senha-nova-comprida",
+    });
+    const cabecalhos = tela.ultima().opcoes?.["headers"] as Record<string, string>;
+    expect(cabecalhos["authorization"], "a recuperacao mandou um token que nao existe").toBeUndefined();
+    expect(botao.disabled).toBe(true);
+    expect(botao.getAttribute("aria-busy")).toBe("true");
+    expect(rotulo.textContent).not.toBe(antes);
+
+    tela.ultima().resolver(resposta({
+      segredo: "JBSWY3DPEHPK3PXP",
+      endereco: "otpauth://totp/DC360%20Console:dona%40fornecedor.com.br?secret=JBSWY3DPEHPK3PXP",
+      qr: { tamanho: 3, linhas: ["101", "010", "111"] },
+      restantes: 7,
+    }));
+    await promessa;
+    await tela.passo();
+
+    expect(botao.disabled).toBe(false);
+    expect(rotulo.textContent).toBe(antes);
+    expect(tela.pegar("recuperado").hidden, "a tela do segredo novo nao apareceu").toBe(false);
+    expect(tela.pegar("forma-recuperar").hidden).toBe(true);
+    expect(tela.pegar("recuperado-segredo").textContent).toContain("JBSW");
+    expect(tela.pegar("recuperado-endereco").textContent).toContain("otpauth://");
+    const svg = tela.pegar("recuperado-qr").filhos[0]!;
+    expect(svg.tag).toBe("svg");
+    expect(svg.todos("rect").filter((r) => r.getAttribute("class") === "qr__modulo").length).toBe(6);
+    /* Os codigos que sobraram continuam valendo, e a tela diz quantos. */
+    expect(tela.pegar("recuperado-restantes").textContent).toContain("7");
+    expect(tela.pegar("recuperado-titulo").focos).toBeGreaterThan(0);
+
+    /* Nada da recuperacao fica em campo nem em armazenamento. */
+    expect(tela.pegar("recuperar-codigo").value).toBe("");
+    expect(tela.pegar("recuperar-senha").value).toBe("");
+    expect(tela.pegar("recuperar-senha-2").value).toBe("");
+    const escritos = tela.guardados.map((g) => `${g.chave}=${g.valor}`).join(" | ");
+    expect(escritos).not.toContain("JBSWY3DPEHPK3PXP");
+    expect(escritos).not.toContain("uma-senha-nova-comprida");
+  });
+
+  it("a recusa generica mostra a mensagem do servidor e mantem o formulario", async () => {
+    await abrirRecuperacao();
+    preencher();
+    const promessa = tela.disparar("forma-recuperar", "submit");
+    await tela.passo();
+    tela.ultima().resolver(resposta({
+      erro: "recuperacao_invalida", mensagem: "Email ou código incorretos.",
+    }, false));
+    await promessa;
+    expect(tela.pegar("recado-texto").textContent).toBe("Email ou código incorretos.");
+    expect(tela.pegar("forma-recuperar").hidden).toBe(false);
+    expect(tela.pegar("recuperado").hidden).toBe(true);
+    expect(tela.pegar("recuperar").disabled).toBe(false);
+  });
+
+  it("com o servidor fora do ar, a tela diz e devolve o botao", async () => {
+    await abrirRecuperacao();
+    preencher();
+    const promessa = tela.disparar("forma-recuperar", "submit");
+    await tela.passo();
+    tela.ultima().recusar(new TypeError("Failed to fetch"));
+    await promessa;
+    expect(tela.pegar("recado").hidden).toBe(false);
+    expect(tela.pegar("recado-texto").textContent.length).toBeGreaterThan(0);
+    expect(tela.pegar("recuperar").disabled).toBe(false);
+  });
+
+  it("Ir para a entrada apaga o segredo da tela e volta para a senha com o email preenchido", async () => {
+    await abrirRecuperacao("dona@fornecedor.com.br");
+    preencher();
+    const promessa = tela.disparar("forma-recuperar", "submit");
+    await tela.passo();
+    tela.ultima().resolver(resposta({ segredo: "JBSW", endereco: "otpauth://x", qr: null, restantes: 7 }));
+    await promessa;
+    await tela.passo();
+    expect(tela.pegar("recuperado-qr").hidden, "sem QR, a moldura vazia ficou na tela").toBe(true);
+
+    await tela.disparar("recuperado-entrar", "click");
+    expect(tela.pegar("recuperado").hidden).toBe(true);
+    expect(tela.pegar("recuperado-segredo").textContent, "o segredo ficou no documento").toBe("");
+    expect(tela.pegar("recuperado-endereco").textContent).toBe("");
+    expect(tela.pegar("forma-senha").hidden).toBe(false);
+    expect(tela.pegar("forma-recuperar").hidden).toBe(true);
+    expect(tela.pegar("email").value).toBe("dona@fornecedor.com.br");
+    expect(tela.pegar("senha").focos).toBeGreaterThan(0);
+    expect(tela.pegar("porta-titulo").textContent).toBe("Entrar no console");
+  });
+
+  it("voltar sem recuperar devolve o formulario da senha, e a porta volta ao normal", async () => {
+    await abrirRecuperacao();
+    preencher();
+    const antes = tela.chamadas.length;
+    await tela.disparar("voltar-de-recuperar", "click");
+    expect(tela.chamadas.length).toBe(antes);
+    expect(tela.pegar("forma-senha").hidden).toBe(false);
+    expect(tela.pegar("forma-recuperar").hidden).toBe(true);
+    expect(tela.pegar("porta-titulo").textContent).toBe("Entrar no console");
+    expect(tela.pegar("recuperar-senha").value, "a senha nova digitada ficou no campo").toBe("");
+  });
+});
