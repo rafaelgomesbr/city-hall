@@ -50,6 +50,18 @@ export const CHAVE_DA_VARREDURA_DE_PRAZO = 5410360016;
 export const CHAVE_DA_MINIMIZACAO = 5410360021;
 
 /**
+ * A trava da varredura de objeto órfão (migração 035).
+ *
+ * Número próprio pela mesma razão das outras: ela roda no próprio relógio e não
+ * disputa trabalho com ninguém. E aqui a trava pesa mais do que nas demais,
+ * porque o que ela evita não é só evento duplicado: duas máquinas varrendo
+ * juntas percorrem o balde inteiro duas vezes, e listagem de objeto é chamada
+ * cobrada pelo provedor. O desperdício seria proporcional ao tamanho do maior
+ * cliente.
+ */
+export const CHAVE_DA_VARREDURA_DE_ORFAOS = 5410360035;
+
+/**
  * Trava de verdade, sobre `pg_try_advisory_lock`.
  *
  * CONEXÃO PRÓPRIA, e isso não é detalhe de implementação: a trava de aviso do

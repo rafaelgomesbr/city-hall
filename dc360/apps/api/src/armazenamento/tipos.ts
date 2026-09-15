@@ -53,7 +53,59 @@ export type Armazenamento = {
    * vistoria aberta e cai no dia de temporal.
    */
   baixar(chave: string): Promise<ResultadoDeLeitura>;
+  /**
+   * Percorre o que existe no balde, uma página por vez.
+   *
+   * Existe para UMA coisa: descobrir objeto que o banco não justifica. Ela é a
+   * única operação daqui que olha para o armazenamento em vez de olhar para um
+   * objeto conhecido, e é por isso que ela paginada: o balde de um município
+   * com três anos tem dezenas de milhares de objetos, e trazer todos de uma vez
+   * seria segurar tudo isso na memória do processo que também está servindo o
+   * agente em campo.
+   *
+   * Um erro aqui NÃO pode virar lista vazia. Lista vazia quer dizer "não há
+   * objeto", e quem recebe isso concluiria que nada existe no armazenamento,
+   * que é a conclusão mais perigosa que este produto pode tirar. Por isso a
+   * página carrega `falha` em vez de engolir, pela mesma razão que
+   * `ResultadoDeLeitura` distingue ausente de falha.
+   */
+  listar(prefixo: string, continuacao?: string): Promise<PaginaDeObjetos>;
+  /**
+   * Apaga um objeto. Irreversível, e o único caminho do produto que destrói
+   * evidência.
+   *
+   * Nenhuma rota chama isto, e nenhum relógio chama isto. Quem chama é o
+   * descarte deliberado de objeto órfão, com operador nomeado e motivo escrito.
+   * Ver `orfaos.ts` e `docs/ARMAZENAMENTO.md`.
+   */
+  apagar(chave: string): Promise<ResultadoDeExclusao>;
 };
+
+export type ObjetoListado = {
+  chave: string;
+  tamanhoBytes: number;
+  /** Quando o armazenamento diz que o objeto mudou pela última vez. */
+  modificadoEm: string | null;
+};
+
+export type PaginaDeObjetos = {
+  objetos: ObjetoListado[];
+  /** Passe de volta em `listar` para continuar. Nulo quando acabou. */
+  continuacao: string | null;
+  /**
+   * Preenchido quando a página NÃO pôde ser lida. Quem recebe isto precisa
+   * parar: uma varredura que continue depois de uma página perdida produz uma
+   * lista com buracos, e o buraco tem exatamente a forma de "estes objetos não
+   * existem".
+   */
+  falha?: string;
+};
+
+export type ResultadoDeExclusao =
+  | { situacao: "apagado" }
+  /** O armazenamento respondeu que não tem. Descartar de novo é inofensivo. */
+  | { situacao: "ausente" }
+  | { situacao: "falha"; motivo: string };
 
 /**
  * O que aconteceu ao tentar ler um objeto, e por que são TRÊS situações e não

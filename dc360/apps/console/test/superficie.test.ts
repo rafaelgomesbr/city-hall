@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { construirConsole } from "../src/servidor.js";
 import { abrirCofre, contextoDoOperador } from "../src/operadores.js";
 import type { Config } from "../src/config.js";
-import type { LeituraDoConsole } from "../src/banco.js";
+import type { EscritaDoConsole, LeituraDoConsole } from "../src/banco.js";
 import { derivarSenha } from "../../api/src/auth/senha.js";
 import { gerarSegredoTotp } from "../../api/src/auth/totp.js";
 import { carregarConfig } from "../src/config.js";
@@ -52,6 +52,21 @@ const cofre = abrirCofre(CHAVE);
 
 const LEITURA_VAZIA: LeituraDoConsole = { ler: async () => [], encerrar: async () => {} };
 
+/**
+ * A escrita que explode se alguém chamá-la.
+ *
+ * Este arquivo mede SUPERFÍCIE, não comportamento: ele pergunta quais rotas
+ * existem e se cada uma tem portão. Uma escrita que devolvesse lista vazia
+ * deixaria uma rota mal escrita "funcionar" aqui e falhar só em produção. Como
+ * nenhum caso deste arquivo chega a escrever de verdade (todos param no 401),
+ * uma chamada a isto é, por si só, o defeito.
+ */
+const ESCRITA_QUE_ACUSA: EscritaDoConsole = {
+  executar: async () => {
+    throw new Error("uma rota escreveu durante o teste de superficie");
+  },
+};
+
 let app: FastifyInstance;
 
 beforeAll(async () => {
@@ -67,7 +82,9 @@ beforeAll(async () => {
       segundoFator: cofre.cifrar(gerarSegredoTotp(), contextoDoOperador("coordenacao@fornecedor.com.br")),
     }]),
   };
-  app = await construirConsole({ config, leitura: LEITURA_VAZIA, limitePorEndereco: 500 });
+  app = await construirConsole({
+    config, leitura: LEITURA_VAZIA, escrita: ESCRITA_QUE_ACUSA, limitePorEndereco: 500,
+  });
 }, 60_000);
 
 afterAll(async () => {
@@ -150,22 +167,41 @@ describe("Toda rota do console exige sessao, menos as isentas por escrito", () =
     ).toEqual([]);
   });
 
-  it("nenhuma rota de escrita existe no console, em lugar nenhum", () => {
+  it("a superficie de escrita do console e uma rota so, e ela esta nomeada aqui", () => {
     /*
-      O console lê. A decisão 3 da ADR 0008 tira do papel de banco dele qualquer
-      INSERT, UPDATE ou DELETE, então uma rota de escrita aqui não conseguiria
-      escrever de qualquer forma: ela falharia com "permissão negada" na cara de
-      quem a usasse. Este caso existe para o defeito aparecer na revisão, e não
-      em produção, e para deixar escrito que a ausência é decisão.
+      O console lê, e a decisão 3 da ADR 0008 tira do papel de banco dele
+      qualquer INSERT, UPDATE ou DELETE. Isso não mudou: o que a emenda de
+      14/09/2026 concedeu a `dc360_console` foi `EXECUTE` em UMA função do banco
+      (migração 036), que cria município e primeiro administrador. Se alguém
+      escrever aqui uma rota com `INSERT`, o banco responde "permissão negada",
+      e essa continua sendo a ordem certa das defesas.
 
-      As duas rotas de POST que existem são as duas etapas da porta, e nenhuma
-      delas toca no banco.
+      Este caso guarda o tamanho dessa abertura pela lista de rotas, que é a
+      parte que uma revisão de diff deixa passar. PUT, PATCH e DELETE continuam
+      em ZERO: ato que altera ou apaga não existe neste processo, e município
+      não se apaga, se encerra com motivo, no painel do próprio município.
+
+      A lista de POST é conferida por extenso, e não por contagem. Duas delas
+      são as etapas da porta e não tocam no banco; a terceira é a que cadastra
+      prefeitura, e ela passa pelo portão de sessão como qualquer rota de
+      número (o caso acima cobra isso de todas, sem exceção escrita).
     */
     const escritas = rotas().filter((r) => /^(PUT|PATCH|DELETE) /.test(r));
-    expect(escritas, `o console ganhou rota de escrita: ${escritas.join(", ")}`).toEqual([]);
+    expect(escritas, `o console ganhou rota que altera ou apaga: ${escritas.join(", ")}`)
+      .toEqual([]);
 
     const posts = rotas().filter((r) => r.startsWith("POST "));
-    expect(posts.sort()).toEqual(["POST /entrar", "POST /entrar/codigo"]);
+    expect(
+      posts.sort(),
+      "o console ganhou rota de POST que ninguem nomeou neste teste",
+    ).toEqual(["POST /entrar", "POST /entrar/codigo", "POST /prefeituras"]);
+
+    // E a de cadastro NÃO está entre as isentas: ela é a única rota de escrita
+    // do processo, e uma isenção dela seria criar prefeitura sem entrar.
+    expect(
+      Object.keys(ABERTAS),
+      "a rota que cadastra prefeitura entrou na lista de rotas abertas",
+    ).not.toContain("POST /prefeituras");
   });
 });
 
@@ -201,7 +237,9 @@ describe("O limite por endereco cobre a porta, e so a porta", () => {
         segundoFator: cofre.cifrar(gerarSegredoTotp(), contextoDoOperador("outra@fornecedor.com.br")),
       }]),
     };
-    proprio = await construirConsole({ config, leitura: LEITURA_VAZIA, limitePorEndereco: 3 });
+    proprio = await construirConsole({
+      config, leitura: LEITURA_VAZIA, escrita: ESCRITA_QUE_ACUSA, limitePorEndereco: 3,
+    });
   }, 60_000);
 
   afterAll(async () => {

@@ -22,6 +22,7 @@ import { rotasOrgaos } from "./rotas/orgaos.js";
 import { rotasOficios, rotasOficioPublico } from "./rotas/oficios.js";
 import { rotasInteresse } from "./rotas/interesse.js";
 import { rotasEvidencias } from "./rotas/evidencias.js";
+import { rotasArmazenamento } from "./rotas/armazenamento.js";
 import { rotasDocumentos } from "./rotas/documentos.js";
 import { rotasPrestacaoDeContas } from "./rotas/prestacao-de-contas.js";
 import { rotasSaida } from "./rotas/saida.js";
@@ -514,6 +515,12 @@ export async function construirServidor(
     ...(config.MARCA_DAGUA ? { marcaDagua: config.MARCA_DAGUA } : {}),
   });
   await app.register(rotasEvidencias, { prefix: "/evidencias", banco, armazenamento });
+  /*
+    Quanto o município ocupa de armazenamento. Prefixo separado e não `/evidencias`
+    porque a pergunta e o público são outros: a evidência é do agente e da
+    ocorrência, e isto é do contrato e do administrador.
+  */
+  await app.register(rotasArmazenamento, { prefix: "/armazenamento", banco });
   await app.register(rotasDocumentos, {
     prefix: "/documentos", banco, armazenamento, pdf,
     // Enquanto o produto não estiver em uso oficial, todo documento sai

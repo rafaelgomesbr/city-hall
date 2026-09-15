@@ -4,7 +4,10 @@ import { router, useFocusEffect } from "expo-router";
 import * as Crypto from "expo-crypto";
 import * as Location from "expo-location";
 import { ROTULO_TIPO_COBRADE } from "@dc360/shared";
-import { SemSinal, enderecoDaApi, type Pendencia } from "../../dados/api";
+import { enderecoDaApi, type Pendencia } from "../../dados/api";
+import {
+  comoContarAFalha, motivoDaFalha, type MotivoDaFalha,
+} from "../../dados/falha-de-atualizacao";
 import {
   atualizarPendencias, baixadasEm, esquecerPendencia, pendenciasGuardadas, tetoAtingido,
 } from "../../dados/pendencias";
@@ -174,8 +177,15 @@ type NotaDaLista = {
   tom: "alerta" | "perigo";
   resumo: string;
   detalhe: string;
-  /** O agente pode fazer este aviso sair. Só o que fala de um ato dele. */
-  dispensavel?: boolean;
+  /**
+   * O que fazer quando o agente pedir para este aviso sair. Ausente: não sai.
+   *
+   * Era um booleano, e o ato de dispensar morava no diálogo, escrito na mão
+   * para o aviso da devolução. Com dois avisos dispensáveis isso viraria um
+   * `if` por aviso dentro do diálogo, longe da nota que ele apaga. Cada nota
+   * traz o próprio ato.
+   */
+  aoDispensar?: () => void;
 };
 
 /** O que o `ⓘ` abre: um texto com título, e às vezes com um ato junto. */
@@ -183,7 +193,8 @@ type Explicacao = {
   titulo: string;
   texto: string;
   extras?: NotaDaLista[];
-  dispensar?: boolean;
+  /** O ato de fazer o aviso sair, quando a nota trouxer um. */
+  dispensar?: () => void;
 };
 
 /**
@@ -466,7 +477,17 @@ export default function Tarefas() {
   */
   const [atualizando, setAtualizando] = useState(false);
   const [puxando, setPuxando] = useState(false);
-  const [avisoDeRede, setAvisoDeRede] = useState<string | null>(null);
+  /*
+    POR QUE a última atualização não aconteceu, e não a frase pronta.
+
+    Guardava a frase, e a faixa escolhia o resumo lendo o INDICADOR DE SINAL,
+    que é outra pergunta: dava para o texto por extenso dizer "sem sinal"
+    enquanto a linha da faixa dizia "não deu para atualizar agora". Pior, os
+    dois casos que exigem atos opostos (esperar o sinal, ou entrar de novo)
+    caíam na mesma frase. Guardando o motivo, quem escolhe as duas frases é o
+    fracasso, que é quem sabe o que houve. Ver `dados/falha-de-atualizacao`.
+  */
+  const [falhaDeRede, setFalhaDeRede] = useState<MotivoDaFalha | null>(null);
 
   /*
     A fila de envio, e o que ela diz sobre estas tarefas.
@@ -668,7 +689,7 @@ export default function Tarefas() {
     ultimaTentativa.current = Date.now();
     setAtualizando(true);
     if (puxada) setPuxando(true);
-    setAvisoDeRede(null);
+    setFalhaDeRede(null);
     try {
       const token = await obterToken();
       if (!token) return;
@@ -684,11 +705,7 @@ export default function Tarefas() {
         na tela, e o aviso diz que ela pode estar velha. Trocar a lista por uma
         mensagem de erro seria tirar do agente a única coisa que ele tem.
       */
-      setAvisoDeRede(
-        erro instanceof SemSinal
-          ? "Sem sinal para atualizar. Mostrando a lista que você já tinha baixado."
-          : "Não deu para atualizar agora. Mostrando a lista que você já tinha baixado.",
-      );
+      setFalhaDeRede(motivoDaFalha(erro));
     } finally {
       emVoo.current = false;
       setAtualizando(false);
@@ -1241,7 +1258,7 @@ export default function Tarefas() {
       tom: "perigo",
       resumo: "A devolução não foi registrada",
       detalhe: avisoDaDevolucao,
-      dispensavel: true,
+      aoDispensar: () => { setAvisoDaDevolucao(null); },
     });
   }
   if (!atualizadoEm) {
@@ -1254,12 +1271,33 @@ export default function Tarefas() {
         + "antes de sair, ou não haverá o que vistoriar lá fora.",
     });
   }
-  if (avisoDeRede) {
+  if (falhaDeRede) {
+    const frase = comoContarAFalha(
+      falhaDeRede,
+      "Mostrando a lista que você já tinha baixado.",
+    );
     notas.push({
       chave: "rede",
-      tom: "alerta",
-      resumo: sinal.temSinal ? "Não deu para atualizar agora" : "Sem sinal para atualizar",
-      detalhe: avisoDeRede,
+      /*
+        Sessão encerrada não é alerta: é o fim da linha para tudo o que esta
+        tela existe para fazer. Nenhum despacho novo chega, e o agente pode
+        subir o morro com uma lista de ontem achando que é a de hoje. Os outros
+        dois fracassos passam sozinhos; este só passa com um ato dele.
+      */
+      tom: falhaDeRede === "sessao-encerrada" ? "perigo" : "alerta",
+      resumo: frase.resumo,
+      detalhe: frase.detalhe,
+      /*
+        DISPENSÁVEL, inclusive o da sessão, e isso é uma decisão.
+
+        O aviso fala de um fato que continua valendo, então ele não expira por
+        tempo: sumir sozinho no relógio esconderia que a lista pode estar
+        velha. Dispensar é outra coisa, e fala da ATENÇÃO do agente, não do
+        fato: ele leu, entendeu e quer a faixa de volta. A próxima tentativa
+        que falhar o traz de volta inteiro, e no caso da sessão encerrada toda
+        tentativa falha, então ele volta na primeira.
+      */
+      aoDispensar: () => { setFalhaDeRede(null); },
     });
   }
   if (listaEnvelheceu(atualizadoEm ? new Date(atualizadoEm) : null, agora) && !!atualizadoEm) {
@@ -1346,7 +1384,7 @@ export default function Tarefas() {
               titulo: nota.resumo,
               texto: nota.detalhe,
               extras: notas.slice(1),
-              ...(nota.dispensavel ? { dispensar: true } : {}),
+              ...(nota.aoDispensar ? { dispensar: nota.aoDispensar } : {}),
             });
           }}
         />
@@ -2108,7 +2146,7 @@ export default function Tarefas() {
           explicacao?.dispensar
             ? {
                 rotulo: "Dispensar este aviso",
-                aoTocar: () => { setAvisoDaDevolucao(null); setExplicacao(null); },
+                aoTocar: () => { explicacao.dispensar?.(); setExplicacao(null); },
               }
             : { rotulo: "Entendi", aoTocar: () => { setExplicacao(null); } }
         }

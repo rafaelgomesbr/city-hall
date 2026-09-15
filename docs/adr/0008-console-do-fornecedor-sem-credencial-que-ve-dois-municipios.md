@@ -105,6 +105,45 @@ executa. O que muda é que a linha espelho na trilha passa a ser escrita **dentr
 da função de provisionamento**, na mesma transação, e não por um segundo passo
 que alguém pode esquecer de rodar.
 
+#### Emenda de 14/09/2026: o console cadastra a prefeitura, e continua sem a credencial
+
+O desenho de "registra a intenção e alguém executa" nunca foi implementado, e o
+que existiu no lugar dele foi o comando de linha rodado com a `DATABASE_URL` de
+dono na mão. É o mesmo padrão que esta ADR nomeia como o problema: a ausência de
+ferramenta não elimina a operação, ela empurra a operação para o caminho mais
+perigoso. Cadastrar o primeiro cliente de um contrato é o ato mais previsível da
+operação, e ele estava exigindo a chave mais poderosa do sistema.
+
+O console passa a ter tela para cadastrar prefeitura e o primeiro administrador
+dela, e a senha inicial é mostrada uma vez para quem cadastrou entregar à
+pessoa. **A frase "não existe credencial que leia dado de negócio de dois
+municípios" sai intacta**, e a decisão 3 também: o papel `dc360_console`
+continua sem um privilégio sequer em tabela de negócio.
+
+O que ele ganhou foi `EXECUTE` em UMA função `SECURITY DEFINER` (migração 036),
+dona = dono das tabelas, que cria organização, primeiro administrador e a linha
+espelho na trilha numa transação só, e devolve dois `uuid`. A diferença entre
+isso e a credencial que esta ADR recusa é a forma da função, e ela é cobrada em
+teste, caso a caso:
+
+- a saída são dois identificadores recém-criados, e não há como devolver linha
+  de tabela nenhuma;
+- nenhum parâmetro é filtro: todos são valor a ser gravado, e não há SQL montado
+  em texto;
+- o corpo não nomeia tabela de negócio nenhuma além das três que escreve;
+- depois de usá-la, o console continua recebendo "permissão negada" ao tentar
+  ler o administrador que acabou de criar.
+
+A asserção universal da decisão 3 passa a ter uma exceção **nomeada**: além do
+`SELECT` do console nas duas tabelas e na visão, o `EXECUTE` dele nessa função.
+A exceção é por nome, então uma segunda função concedida ao console reprova o
+teste até alguém escrever o nome dela na lista, o que aparece na revisão.
+
+A senha inicial não fica em texto claro em lugar nenhum: ela é sorteada no
+processo do console, derivada com o `scrypt` do produto, e o que chega ao banco
+é o hash (a função **recusa** o que não tiver esse formato, para o dia em que
+alguém trocar os dois). Ela não vai para o log e não vai para a trilha.
+
 ## Consequências
 
 Boas:
@@ -123,6 +162,13 @@ Ruins, e assumidas:
   município ligar dizendo "sumiu uma ocorrência", o console não vai ajudar. A
   resposta certa é atendimento com o administrador do município, e a errada é
   afrouxar a regra 2. Quem afrouxar reabre a contradição com a ADR 0001.
+- **Cadastrar prefeitura é, agora, o único ato de escrita do console**, e ele é
+  irreversível na prática: município não se apaga, se encerra com motivo, e a
+  linha de nascimento na trilha é append-only. Por isso a rota tem teto próprio
+  e baixo por endereço, e por isso ela fica atrás da sessão com segundo fator
+  como qualquer outra. Uma sessão do fornecedor comprometida cria prefeituras
+  fantasma que alguém vai ter que encerrar à mão; ela continua não lendo dado de
+  cidadão nenhum, que é o teto de dano que esta ADR estabelece.
 - **Métrica escrita pelo município pode mentir se o município estiver quebrado.**
   Se a escrita da métrica falhar, o console mostra silêncio, e silêncio é
   indistinguível de "ninguém usou hoje". Por isso a métrica carrega marca de

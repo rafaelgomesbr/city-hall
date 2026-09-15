@@ -1,4 +1,4 @@
-import { ABERTURA, type LeituraDoConsole } from "./banco.js";
+import { ABERTURA, ABERTURA_DE_ESCRITA, type BancoDoConsole } from "./banco.js";
 
 /**
  * Postgres em WebAssembly, para desenvolver o console e para testá-lo.
@@ -11,18 +11,19 @@ import { ABERTURA, type LeituraDoConsole } from "./banco.js";
  * A importação do PGlite e do pacote de migrações é DINÂMICA, e isso é
  * deliberado: os dois estão em `devDependencies`, e um `import` no topo faria a
  * imagem de produção do console precisar carregar um Postgres inteiro em
- * WebAssembly para nunca usá-lo. O caminho de produção é `leituraPostgres`, e
+ * WebAssembly para nunca usá-lo. O caminho de produção é `bancoPostgres`, e
  * ele não passa por este arquivo.
  */
 
 export type ConsoleEmMemoria = {
-  leitura: LeituraDoConsole;
+  banco: BancoDoConsole;
   /**
    * Conexão como dona das tabelas, que ignora RLS.
    *
    * Existe para o teste montar o cenário (criar município, escrever métrica) e
    * para conferir o estado real depois de uma tentativa de leitura indevida.
-   * O servidor do console NUNCA recebe isto: ele recebe apenas `leitura`.
+   * O servidor do console NUNCA recebe isto: ele recebe apenas `banco`, que
+   * fala com o Postgres pelo papel `dc360_console`.
    */
   bruto: {
     query<T = Record<string, unknown>>(
@@ -59,7 +60,7 @@ export async function consoleEmMemoria(diretorio?: string): Promise<ConsoleEmMem
     carregarMigracoes(),
   );
 
-  const leitura: LeituraDoConsole = {
+  const banco: BancoDoConsole = {
     async ler<T>(sql: string, params: readonly unknown[] = []): Promise<T[]> {
       /*
         `db.transaction()` e não BEGIN solto, pela mesma razão do painel em modo
@@ -81,11 +82,26 @@ export async function consoleEmMemoria(diretorio?: string): Promise<ConsoleEmMem
         return r.rows as T[];
       }) as Promise<T[]>;
     },
+    /*
+      A escrita, com a MESMA abertura que a conexão de produção emite, e pela
+      mesma razão que vale para a leitura: um teste que montasse a própria
+      transação (sem `SET LOCAL ROLE`, ou com outro papel) estaria atestando
+      algo que ninguém executa, e a recusa que ele mostrasse viria de graça.
+    */
+    async executar<T>(sql: string, params: readonly unknown[] = []): Promise<T[]> {
+      return db.transaction(async (tx) => {
+        for (const comando of ABERTURA_DE_ESCRITA) await tx.exec(comando);
+        const r = await tx.query<Record<string, unknown>>(
+          sql, params.length > 0 ? [...params] : undefined,
+        );
+        return r.rows as T[];
+      }) as Promise<T[]>;
+    },
     encerrar: () => db.close(),
   };
 
   return {
-    leitura,
+    banco,
     bruto: {
       query: async <T>(sql: string, params?: readonly unknown[]) => {
         const r = await db.query<Record<string, unknown>>(

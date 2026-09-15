@@ -1,5 +1,8 @@
 import { assinarUrl, type Credenciais } from "./assinatura.js";
-import type { Armazenamento, Envio, PedidoEnvio, ResultadoDeLeitura } from "./tipos.js";
+import type {
+  Armazenamento, Envio, ObjetoListado, PaginaDeObjetos, PedidoEnvio,
+  ResultadoDeExclusao, ResultadoDeLeitura,
+} from "./tipos.js";
 
 /**
  * Armazenamento S3-compatível.
@@ -87,8 +90,8 @@ export function armazenamentoS3(config: ConfigS3): Armazenamento {
     havia chegado. Ou seja, foto de vistoria e assinatura do morador nunca
     entrariam no laudo, e o laudo sairia sem a prova do ato.
   */
-  const prefixo = base.pathname.replace(/\/$/, "");
-  const caminhoDe = (chave: string) => `${prefixo}/${balde}/${chave}`;
+  const caminhoDoEndpoint = base.pathname.replace(/\/$/, "");
+  const caminhoDe = (chave: string) => `${caminhoDoEndpoint}/${balde}/${chave}`;
 
   return {
     async urlParaEnviar(pedido: PedidoEnvio): Promise<Envio> {
@@ -247,5 +250,157 @@ export function armazenamentoS3(config: ConfigS3): Armazenamento {
         tentativas: tentativasDeLeitura,
       };
     },
+
+    async listar(prefixo: string, continuacao?: string): Promise<PaginaDeObjetos> {
+      /*
+        `ListObjectsV2`, assinado como qualquer outra chamada: o caminho é o
+        BALDE (e não um objeto), e o resto vai na consulta.
+
+        `max-keys` fica no padrão de mil do provedor. Pedir mais não é possível,
+        e pedir menos multiplicaria o número de chamadas cobradas por listagem
+        sem reduzir nada que importe: o que a varredura segura na memória é uma
+        página, e mil chaves são centenas de kilobytes.
+      */
+      const consultaExtra: Record<string, string> = {
+        "list-type": "2",
+        prefix: prefixo,
+        "max-keys": "1000",
+        ...(continuacao ? { "continuation-token": continuacao } : {}),
+      };
+
+      const url = assinarUrl({
+        metodo: "GET",
+        host,
+        caminho: `${caminhoDoEndpoint}/${balde}`,
+        regiao,
+        credenciais,
+        agora: agora(),
+        expiraEmSegundos: 60,
+        consultaExtra,
+      });
+
+      let resposta: Awaited<ReturnType<typeof buscar>> | null = null;
+      try {
+        resposta = await buscar(url, {
+          method: "GET",
+          signal: AbortSignal.timeout(tempoLimiteMs),
+        });
+      } catch (erro) {
+        return {
+          objetos: [],
+          continuacao: null,
+          falha: erro instanceof Error ? erro.message : String(erro),
+        };
+      }
+
+      if (!resposta.ok) {
+        /*
+          FALHA, e nunca lista vazia.
+
+          Uma listagem que devolvesse `[]` num 403 ou num 503 diria à varredura
+          que o balde está vazio. A varredura compararia um balde vazio com um
+          banco cheio, não encontraria órfão nenhum, e escreveria no relatório
+          que está tudo certo. Silêncio com cara de conferência feita é
+          exatamente o defeito que `ResultadoDeLeitura` existe para não repetir.
+        */
+        return {
+          objetos: [],
+          continuacao: null,
+          falha: `o armazenamento respondeu ${resposta.status} ao listar`,
+        };
+      }
+
+      const xml = await resposta.text();
+      return lerListagem(xml);
+    },
+
+    async apagar(chave: string): Promise<ResultadoDeExclusao> {
+      const url = assinarUrl({
+        metodo: "DELETE",
+        host,
+        caminho: caminhoDe(chave),
+        regiao,
+        credenciais,
+        agora: agora(),
+        expiraEmSegundos: 60,
+      });
+
+      let resposta: Awaited<ReturnType<typeof buscar>> | null = null;
+      try {
+        resposta = await buscar(url, {
+          method: "DELETE",
+          signal: AbortSignal.timeout(tempoLimiteMs),
+        });
+      } catch (erro) {
+        return { situacao: "falha", motivo: erro instanceof Error ? erro.message : String(erro) };
+      }
+
+      /*
+        O S3 responde 204 tanto para "apagou" quanto para "não existia": ele não
+        distingue os dois, e não há como perguntar sem uma chamada a mais. Como
+        quem chama já conferiu a existência na varredura, os dois desfechos
+        levam ao mesmo lugar, e o que importa é NÃO chamar isto de sucesso
+        quando o provedor recusou.
+      */
+      if (resposta.status === 204 || resposta.status === 200) return { situacao: "apagado" };
+      if (resposta.status === 404) return { situacao: "ausente" };
+      return { situacao: "falha", motivo: `o armazenamento respondeu ${resposta.status}` };
+    },
   };
+}
+
+/**
+ * Lê a resposta do `ListObjectsV2`, que vem em XML.
+ *
+ * Sem biblioteca de XML, pela mesma razão que a assinatura é escrita à mão: o
+ * `npm audit` deste produto fecha em zero, e o que precisa ser lido aqui são
+ * quatro campos de uma estrutura plana e publicada.
+ *
+ * O que ela NÃO faz é fingir robustez que não tem: campo que não casar sai
+ * ausente, e objeto sem chave é ignorado em vez de virar uma entrada com chave
+ * vazia (que a varredura leria como um objeto de prefixo desconhecido).
+ */
+export function lerListagem(xml: string): PaginaDeObjetos {
+  const objetos: ObjetoListado[] = [];
+
+  for (const bloco of xml.split("<Contents>").slice(1)) {
+    const conteudo = bloco.split("</Contents>")[0] ?? "";
+    const chave = entre(conteudo, "Key");
+    if (!chave) continue;
+    objetos.push({
+      chave: semEscapeXml(chave),
+      tamanhoBytes: Number(entre(conteudo, "Size") ?? 0),
+      modificadoEm: entre(conteudo, "LastModified") ?? null,
+    });
+  }
+
+  /*
+    A continuação só vale quando o provedor diz que truncou.
+
+    Ler o token sem olhar para `IsTruncated` faria a varredura pedir mais uma
+    página depois da última em alguns provedores, e o laço só terminaria por
+    acidente.
+  */
+  const truncado = (entre(xml, "IsTruncated") ?? "false").trim() === "true";
+  const token = entre(xml, "NextContinuationToken");
+
+  return { objetos, continuacao: truncado && token ? semEscapeXml(token) : null };
+}
+
+function entre(texto: string, marca: string): string | null {
+  const inicio = texto.indexOf(`<${marca}>`);
+  if (inicio < 0) return null;
+  const fim = texto.indexOf(`</${marca}>`, inicio);
+  if (fim < 0) return null;
+  return texto.slice(inicio + marca.length + 2, fim);
+}
+
+function semEscapeXml(valor: string): string {
+  return valor
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&apos;", "'")
+    // `&amp;` por último: antes dos outros, ele reintroduziria as entidades.
+    .replaceAll("&amp;", "&");
 }

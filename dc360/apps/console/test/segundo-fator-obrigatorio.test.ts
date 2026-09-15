@@ -5,7 +5,7 @@ import { construirConsole } from "../src/servidor.js";
 import { abrirCofre, contextoDoOperador, lerRegistro } from "../src/operadores.js";
 import { verificarSessao } from "../src/tokens.js";
 import type { Config } from "../src/config.js";
-import type { LeituraDoConsole } from "../src/banco.js";
+import type { EscritaDoConsole, LeituraDoConsole } from "../src/banco.js";
 import { derivarSenha } from "../../api/src/auth/senha.js";
 import { base32Decodificar, codigoTotp, gerarSegredoTotp, passoDe } from "../../api/src/auth/totp.js";
 
@@ -49,6 +49,16 @@ const LEITURA_VAZIA: LeituraDoConsole = {
   encerrar: async () => {},
 };
 
+/**
+ * E uma escrita que acusa em vez de obedecer, pela mesma razão: este arquivo
+ * mede a porta, e nenhum caso dele deveria chegar a escrever coisa nenhuma.
+ */
+const ESCRITA_QUE_ACUSA: EscritaDoConsole = {
+  executar: async () => {
+    throw new Error("uma rota escreveu sem passar pela porta");
+  },
+};
+
 function configuracao(operadores: string): Config {
   return {
     NODE_ENV: "test",
@@ -73,6 +83,7 @@ beforeAll(async () => {
   app = await construirConsole({
     config: configuracao(registroBom),
     leitura: LEITURA_VAZIA,
+    escrita: ESCRITA_QUE_ACUSA,
     // Alto de proposito: o limite por endereco tem caso proprio mais abaixo, e
     // aqui ele so atrapalharia os casos que medem outra coisa.
     limitePorEndereco: 500,
@@ -233,6 +244,7 @@ describe("Entrar no console exige o segundo fator, sem excecao", () => {
         segundoFator: cofre.cifrar(gerarSegredoTotp(), contextoDoOperador(solitario)),
       }])),
       leitura: LEITURA_VAZIA,
+      escrita: ESCRITA_QUE_ACUSA,
       limitePorEndereco: 500,
     });
 

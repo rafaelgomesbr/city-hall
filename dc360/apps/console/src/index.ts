@@ -1,5 +1,5 @@
 import { carregarConfig } from "./config.js";
-import { leituraPostgres, type LeituraDoConsole } from "./banco.js";
+import { bancoPostgres, type BancoDoConsole } from "./banco.js";
 import { construirConsole } from "./servidor.js";
 
 /**
@@ -18,18 +18,21 @@ import { construirConsole } from "./servidor.js";
  *     tabela de negócio nenhuma.
  *   - Não tem a chave de armazenamento das evidências, nem credencial de push,
  *     nem provedor de email. Ele não envia nada e não guarda nada.
- *   - Não tem rota de escrita, em lugar nenhum.
- *   - Não provisiona município. A ADR 0008 mantém o provisionamento na linha de
- *     comando com a credencial de dono do banco (ver `apps/api/src/provisionar.ts`
- *     e a ADR 0006): o console não carrega essa credencial e não vai carregar.
+ *   - Não tem rota que escreva em tabela, em lugar nenhum.
+ *   - NÃO tem a credencial de dono do banco, e continua sem ela mesmo agora que
+ *     cadastra prefeitura. O que a emenda de 14/09/2026 da ADR 0008 concedeu ao
+ *     papel `dc360_console` foi o `EXECUTE` de UMA função do banco (migração
+ *     036), que cria município e primeiro administrador numa transação e
+ *     devolve dois identificadores. O ato é fechado e definido no banco; o
+ *     console não escolhe o que ele faz.
  */
 
 const config = carregarConfig();
 
-let leitura: LeituraDoConsole;
+let banco: BancoDoConsole;
 
 if (config.CONSOLE_DATABASE_URL) {
-  leitura = leituraPostgres(config.CONSOLE_DATABASE_URL);
+  banco = bancoPostgres(config.CONSOLE_DATABASE_URL);
 } else {
   /*
     Sem `CONSOLE_DATABASE_URL`, sobe um Postgres em WebAssembly efêmero, só para
@@ -43,7 +46,7 @@ if (config.CONSOLE_DATABASE_URL) {
   */
   const { consoleEmMemoria } = await import("./banco-em-memoria.js");
   const memoria = await consoleEmMemoria(config.CONSOLE_BANCO_LOCAL);
-  leitura = memoria.leitura;
+  banco = memoria.banco;
   console.warn(
     config.CONSOLE_BANCO_LOCAL
       ? "CONSOLE_DATABASE_URL ausente: subindo Postgres em WebAssembly sobre "
@@ -53,7 +56,7 @@ if (config.CONSOLE_DATABASE_URL) {
   );
 }
 
-const app = await construirConsole({ config, leitura });
+const app = await construirConsole({ config, leitura: banco, escrita: banco });
 
 // Encerramento ordenado: a requisição em andamento termina, e o pool fecha.
 for (const sinal of ["SIGINT", "SIGTERM"] as const) {
@@ -61,7 +64,7 @@ for (const sinal of ["SIGINT", "SIGTERM"] as const) {
     void (async () => {
       app.log.info(`recebido ${sinal}, encerrando`);
       await app.close();
-      await leitura.encerrar();
+      await banco.encerrar();
       process.exit(0);
     })();
   });

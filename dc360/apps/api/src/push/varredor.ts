@@ -89,9 +89,39 @@ const ESPERA_PADRAO_MINUTOS = 10;
 const TENTATIVAS_PADRAO = 5;
 const TETO_PADRAO = 500;
 const RETENCAO_PADRAO_DIAS = 90;
+
+/**
+ * O PISO DA RETENÇÃO, e ele existe porque a policy do banco tem um.
+ *
+ * A migração 037 dá a `notificacoes_enviadas` uma policy de DELETE com a idade
+ * escrita dentro (`enviada_em < now() - interval '30 days'`), que é o que
+ * impede a policy de virar licença para apagar notificação recente.
+ *
+ * Só que condição de idade fixa numa policy, contra um prazo que chega por
+ * parâmetro, reabre exatamente o silêncio que a 037 veio fechar: com retenção
+ * configurada abaixo do piso, as linhas entre os dois números ficam no banco,
+ * e o `DELETE` volta dizendo zero sem estourar. Ninguém descobre.
+ *
+ * Então a recusa é EXPLÍCITA e acontece antes de qualquer varredura. Melhor um
+ * processo que não sobe dizendo o número exato do que um expurgo que roda todo
+ * dia e não apaga nada.
+ */
+export const RETENCAO_MINIMA_DIAS = 30;
 const TEMPO_LIMITE_PADRAO_DA_RODADA_MS = 4 * 60_000;
 
 export async function varrerPrazos(dep: DependenciasDoVarredor): Promise<ResumoDaVarredura> {
+  const retencaoDias = dep.retencaoDias ?? RETENCAO_PADRAO_DIAS;
+  if (retencaoDias < RETENCAO_MINIMA_DIAS) {
+    throw new Error(
+      `Retenção de ${retencaoDias} dias é menor que o piso de ${RETENCAO_MINIMA_DIAS}, `
+      + "que está escrito na policy de expurgo da migração 037. Abaixo dele o "
+      + "DELETE não enxerga as linhas mais novas que o piso, volta dizendo zero "
+      + "e não estoura: o dado fica no banco e o documento afirma que saiu. "
+      + "Para reter menos que isso, baixe o piso na policy primeiro, com "
+      + "migração nova.",
+    );
+  }
+
   const resumo: ResumoDaVarredura = {
     travado: false, reivindicadas: 0, entregues: 0, falhas: 0, aparelhosRevogados: 0,
     adiadasPorTempo: 0,
@@ -118,7 +148,7 @@ export async function varrerPrazos(dep: DependenciasDoVarredor): Promise<ResumoD
           `${dep.esperaMinutos ?? ESPERA_PADRAO_MINUTOS} minutes`,
           dep.tentativasMaximas ?? TENTATIVAS_PADRAO,
           dep.teto ?? TETO_PADRAO,
-          `${dep.retencaoDias ?? RETENCAO_PADRAO_DIAS} days`,
+          `${retencaoDias} days`,
         ],
       );
       return r.rows;

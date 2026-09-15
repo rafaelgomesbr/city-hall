@@ -4,7 +4,7 @@ import { montarConfiguracaoDoPool } from "../src/banco/postgres.js";
 import type { EnvioDePush, DesfechoDoEnvio, Alvo } from "../src/push/envio.js";
 import { textoVisivel, type Notificacao } from "../src/push/mensagem.js";
 import { travaDeProcesso, type Trava } from "../src/push/trava.js";
-import { varrerPrazos } from "../src/push/varredor.js";
+import { RETENCAO_MINIMA_DIAS, varrerPrazos } from "../src/push/varredor.js";
 
 /**
  * O varredor de prazo, que é a metade do push que roda sozinha.
@@ -524,5 +524,46 @@ describe("Retenção e conexão", () => {
       { maximoConexoes: 2 },
     );
     expect(configuracao.max).toBe(2);
+  });
+});
+
+describe("o piso da retenção, que existe porque a policy do banco tem um", () => {
+  /*
+    A migração 037 dá a `notificacoes_enviadas` uma policy de DELETE com a
+    idade escrita dentro dela. Isso fecha um silêncio (expurgo que não apaga
+    nada porque não há policy) e abre a porta para outro: retenção configurada
+    ABAIXO do piso da policy faz o `DELETE` deixar de enxergar as linhas mais
+    novas que o piso. Ele não estoura. Volta dizendo zero.
+
+    O resultado seria dado pessoal guardado além do prazo, com um documento de
+    privacidade afirmando que ele foi removido, e nada em log dizendo o
+    contrário. Por isso a recusa é explícita e acontece ANTES de a varredura
+    tocar no banco.
+  */
+  it("recusa retenção menor que o piso, em vez de apagar menos em silêncio", async () => {
+    await expect(
+      varrerPrazos({
+        banco: mem.banco, trava: travaDeProcesso(), enviar: envioEspiao().enviar,
+        janelaMinutos: 60, retencaoDias: RETENCAO_MINIMA_DIAS - 1,
+      }),
+    ).rejects.toThrow(/piso/);
+  });
+
+  it("a recusa nomeia a migração, para quem lê saber onde se conserta", async () => {
+    await expect(
+      varrerPrazos({
+        banco: mem.banco, trava: travaDeProcesso(), enviar: envioEspiao().enviar,
+        janelaMinutos: 60, retencaoDias: 7,
+      }),
+    ).rejects.toThrow(/037/);
+  });
+
+  /* O piso é piso, e não faixa: exatamente o valor dele passa. */
+  it("exatamente o piso é aceito", async () => {
+    const r = await varrerPrazos({
+      banco: mem.banco, trava: travaDeProcesso(), enviar: envioEspiao().enviar,
+      janelaMinutos: 60, retencaoDias: RETENCAO_MINIMA_DIAS,
+    });
+    expect(r).toBeTruthy();
   });
 });

@@ -438,9 +438,26 @@ describe("Funções privilegiadas", () => {
       não aceita município de parâmetro, e não alcança tabela de negócio nenhuma.
       Os casos do bloco "O relogio que descobre para quem chamar o resumo", no
       fim deste arquivo, guardam esses três limites.
+
+      Subiu de 15 para 16 em 14/09/2026, por `provisionar_municipio` (migração
+      036), e desta vez a razão é OUTRA. As três anteriores entraram porque não
+      existia contexto de município a definir; esta entra porque quem chama não
+      pode ter privilégio nenhum. O console do fornecedor precisa criar a
+      prefeitura e o primeiro administrador dela, e a alternativa seria dar
+      INSERT em `organizacoes` e `usuarios` ao papel `dc360_console`, que é
+      exatamente o que a decisão 3 da ADR 0008 proíbe: privilégio de tabela não
+      se divide em "só escrever", e com ele o console criaria administrador
+      dentro de município que já existe.
+
+      Esta é a única porta deste banco aberta para um papel que não é o de
+      aplicação, e por isso ela é a mais vigiada: o bloco "A porta de criar
+      municipio, e por que ela nao serve para ler", mais abaixo, cobra a forma
+      dela (dois uuid de saída, nenhum parâmetro que vire consulta, nenhuma
+      tabela de negócio no corpo) e cobra que o console continue sem privilégio
+      em tabela nenhuma depois de usá-la.
     */
     expect(lista.length, `funções SECURITY DEFINER demais: ${lista.map((f) => f.nome).join(", ")}`)
-      .toBeLessThanOrEqual(15);
+      .toBeLessThanOrEqual(16);
   });
 
   it("toda função privilegiada fixa o search_path", async () => {
@@ -519,7 +536,7 @@ describe("Trilha auditável é append-only", () => {
   });
 });
 
-describe("Append-only é por AUSÊNCIA de policy, e não só por ausência de GRANT", () => {
+describe("Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT", () => {
   /**
    * A DIFERENÇA ENTRE AS DUAS AUSÊNCIAS, e por que ela não é preciosismo.
    *
@@ -553,6 +570,13 @@ describe("Append-only é por AUSÊNCIA de policy, e não só por ausência de GR
    *
    * O segundo caso deste bloco não confere lista: ele ABRE o buraco, mostra o
    * estrago, e fecha. É o que separa provar a regra de repetir o schema.
+   *
+   * A migração 034 trouxe para cá as dezesseis tabelas que faltavam, e elas
+   * são o meio do produto: ocorrência, vistoria, evidência, providência, o
+   * cadastro que assina isso, as sequências que numeram documento oficial e as
+   * credenciais de entrada. A diferença delas está na segunda lista, logo
+   * abaixo: elas ACEITAM UPDATE, e o que não pode existir é policy que alcance
+   * DELETE.
    */
   const APPEND_ONLY = [
     "trilha_eventos",
@@ -577,8 +601,61 @@ describe("Append-only é por AUSÊNCIA de policy, e não só por ausência de GR
     "devolucoes_de_tarefa",
   ];
 
-  it("nenhuma tabela append-only tem policy que alcance DELETE", async () => {
-    for (const tabela of APPEND_ONLY) {
+  /**
+   * AS TABELAS DO MEIO DO PRODUTO, e por que elas entram no mesmo portão sem
+   * serem append-only (migração 034).
+   *
+   * As de cima não aceitam UPDATE. Estas aceitam, e precisam aceitar: status
+   * de ocorrência muda, laudo é emitido, coordenada de GPS ruim se corrige,
+   * sessão é revogada, órgão é desativado com motivo, sequência de protocolo é
+   * incrementada. Então a correção delas não é "SELECT e INSERT": é
+   * `FOR SELECT` mais `FOR INSERT` mais `FOR UPDATE`, e nunca `FOR ALL`.
+   *
+   * O que as une às de cima é só isto, e é o que este bloco cobra: nenhuma
+   * policy delas pode alcançar DELETE. São as tabelas que guardam a prova que
+   * o município leva para uma audiência (a ocorrência, a vistoria, a foto, o
+   * encaminhamento), o cadastro que assina essa prova (organização, usuário,
+   * equipe, órgão), as sequências que numeram documento oficial e as
+   * credenciais que respondem "quem entrou, de onde e quando".
+   *
+   * Todas nasceram com policy `ALL`, vindas da 001 e das migrações que
+   * copiaram a forma dela, e até a 034 quem impedia o apagamento era só a
+   * ausência de `GRANT DELETE`.
+   */
+  const CORRIGIVEIS_QUE_NAO_SE_APAGAM = [
+    "organizacoes",
+    "equipes",
+    "usuarios",
+    "protocolo_sequencias",
+    "ocorrencias",
+    "vistorias",
+    "evidencias",
+    "providencias",
+    "sessoes",
+    "recuperacoes_senha",
+    "aparelhos",
+    "orgaos",
+    "oficio_sequencias",
+    "oficio_envios",
+    "segundo_fator",
+    "segundo_fator_recuperacao",
+    /*
+      Entrou junto com a própria tabela, na 035, e não depois: ela nasceu no
+      mesmo dia com a mesma policy `ALL` das outras vinte, e sem esta linha o
+      conserto dela não teria nada que o guardasse.
+
+      Aqui a perda dói de um jeito próprio: esta tabela é a MEMÓRIA de que um
+      arquivo foi declarado sem dono e descartado, com o nome de quem autorizou
+      e o motivo escrito. Apagar a linha apaga o registro do descarte, e sobra
+      um arquivo que sumiu sem ninguém ter respondido por isso.
+    */
+    "objetos_orfaos",
+  ];
+
+  const SEM_POLICY_DE_DELETE = [...APPEND_ONLY, ...CORRIGIVEIS_QUE_NAO_SE_APAGAM];
+
+  it("nenhuma tabela de prova tem policy que alcance DELETE", async () => {
+    for (const tabela of SEM_POLICY_DE_DELETE) {
       const r = await db.query<{ policyname: string; cmd: string }>(
         `SELECT policyname, cmd FROM pg_policies
           WHERE schemaname = 'public' AND tablename = $1 ORDER BY policyname`,
@@ -693,25 +770,190 @@ describe("Append-only é por AUSÊNCIA de policy, e não só por ausência de GR
       [orgA, aviso.rows[0]!.id, usId],
     );
 
-    for (const tabela of APPEND_ONLY) {
-      const contar = async (): Promise<string> => {
-        const r = await db.query<{ n: string }>(`SELECT count(*)::text AS n FROM ${tabela}`);
-        return r.rows[0]!.n;
-      };
-      const antes = await contar();
-      expect(Number(antes), `${tabela} está vazia: o caso não provaria nada`)
-        .toBeGreaterThan(0);
+    /*
+      AS LINHAS DAS TABELAS DO MEIO DO PRODUTO (migração 034).
 
-      await db.exec(`GRANT DELETE ON ${tabela} TO dc360_app`);
-      try {
-        await comoApp(orgA, (tx) => tx.query(`DELETE FROM ${tabela}`));
-        expect(
-          await contar(),
-          `com GRANT DELETE, ${tabela} deixou de ser append-only: a ausência de `
-          + "policy é o que precisa negar, e não a ausência de concessão",
-        ).toBe(antes);
-      } finally {
-        await db.exec(`REVOKE DELETE ON ${tabela} FROM dc360_app`);
+      `organizacoes`, `equipes`, `usuarios`, `ocorrencias` e `vistorias` já têm
+      linha aqui, semeadas acima ou no `beforeAll`. As outras onze estão vazias
+      neste ponto do arquivo, e um DELETE contra tabela vazia passaria por este
+      caso sem provar coisa nenhuma, que é exatamente o que a conferência
+      `antes > 0` do laço impede.
+
+      Elas são retiradas no fim, como dono, porque o banco é compartilhado
+      pelos blocos deste arquivo: uma linha a mais deixada para trás mudaria a
+      contagem de um teste lá embaixo, e a falha apareceria longe da causa.
+    */
+    const vistId = vist.rows[0]!.id;
+    await db.query(
+      `INSERT INTO evidencias
+         (organizacao_id, ocorrencia_id, vistoria_id, chave_storage, capturada_em)
+       VALUES ($1,$2,$3,$4, now())`,
+      [orgA, ocId, vistId, `tenant/${orgA}/prova-do-portao.jpg`],
+    );
+    /* A linha de `orgaos` não é inserida à mão: o gatilho
+       `providencia_amarra_no_catalogo` (migração 017) cria o órgão do catálogo
+       a partir do destino escrito na providência, e inserir outro com o mesmo
+       nome reprovaria na unicidade insensível a caixa. */
+    const prov = await db.query<{ id: string; orgao_id: string }>(
+      `INSERT INTO providencias
+         (organizacao_id, ocorrencia_id, orgao_destino, descricao, responsavel, prazo_em)
+       VALUES ($1,$2,'Secretaria de Obras','Escorar o talude da Rua das Acácias.',
+               'Diego Nakamura Alves', now() + interval '5 days')
+       RETURNING id, orgao_id`,
+      [orgA, ocId],
+    );
+    /* O endereço do órgão precisa existir antes do envio: a migração 017
+       recusa mandar ofício para domínio que não é de órgão ativo do município. */
+    await db.query(
+      "UPDATE orgaos SET email = 'obras@serraalta.exemplo.gov.br' WHERE id = $1",
+      [prov.rows[0]!.orgao_id],
+    );
+    await db.query(
+      "INSERT INTO protocolo_sequencias (organizacao_id, ano, ultimo) VALUES ($1, 2026, 1)",
+      [orgA],
+    );
+    await db.query(
+      `INSERT INTO sessoes (organizacao_id, usuario_id, token_hash, expira_em)
+       VALUES ($1,$2,'resumo-de-sessao-do-portao', now() + interval '8 hours')`,
+      [orgA, usId],
+    );
+    await db.query(
+      `INSERT INTO recuperacoes_senha (organizacao_id, usuario_id, token_hash, expira_em)
+       VALUES ($1,$2,'resumo-de-recuperacao-do-portao', now() + interval '1 hour')`,
+      [orgA, usId],
+    );
+    await db.query(
+      `INSERT INTO aparelhos (organizacao_id, usuario_id, plataforma, ficha)
+       VALUES ($1,$2,'ios','ficha-do-portao-append-only')`,
+      [orgA, usId],
+    );
+    await db.query(
+      "INSERT INTO oficio_sequencias (organizacao_id, ano, ultimo) VALUES ($1, 2026, 1)",
+      [orgA],
+    );
+    const oficio = await db.query<{ id: string }>(
+      `INSERT INTO oficios
+         (organizacao_id, ocorrencia_id, providencia_id, orgao_id, numero, ano,
+          emitido_por, emitido_por_nome)
+       VALUES ($1,$2,$3,$4,'000001/2026',2026,$5,'Diego Nakamura Alves')
+       RETURNING id`,
+      [orgA, ocId, prov.rows[0]!.id, prov.rows[0]!.orgao_id, usId],
+    );
+    await db.query(
+      `INSERT INTO oficio_envios
+         (organizacao_id, oficio_id, tentativa, destinatario_email, token_hash,
+          expira_em, solicitado_por, solicitado_por_nome)
+       VALUES ($1,$2,1,'obras@serraalta.exemplo.gov.br',
+               'resumo-de-envio-do-portao', now() + interval '3 days', $3,
+               'Diego Nakamura Alves')`,
+      [orgA, oficio.rows[0]!.id, usId],
+    );
+    await db.query(
+      `INSERT INTO segundo_fator (organizacao_id, usuario_id, segredo_cifrado, confirmado_em)
+       VALUES ($1,$2,'v1.vetor-do-portao.selo-do-portao.segredo-do-portao', now())`,
+      [orgA, usId],
+    );
+    await db.query(
+      `INSERT INTO segundo_fator_recuperacao (organizacao_id, usuario_id, codigo_hash)
+       VALUES ($1,$2,$3)`,
+      [orgA, usId, "c".repeat(43)],
+    );
+
+    /* A memória de um descarte autorizado: nome de quem decidiu e motivo. */
+    await db.query(
+      `INSERT INTO objetos_orfaos
+         (organizacao_id, varredura_id, chave, tamanho_bytes, especie)
+       VALUES ($1, gen_random_uuid(), $2, 1024, 'objeto_sem_linha')`,
+      [orgA, `tenant/${orgA}/evidencias/foto-sem-dono.jpg`],
+    );
+
+    /*
+      O laço junta o estrago de TODAS as tabelas antes de reprovar, em vez de
+      parar na primeira. Parando na primeira, quem revertesse a correção veria
+      um nome só e acharia que o buraco era de uma tabela.
+    */
+    const problemas: string[] = [];
+    const contar = async (tabela: string): Promise<string> => {
+      const r = await db.query<{ n: string }>(`SELECT count(*)::text AS n FROM ${tabela}`);
+      return r.rows[0]!.n;
+    };
+
+    /*
+      A contagem de partida é tirada de TODAS as tabelas antes do primeiro
+      DELETE, e não tabela a tabela dentro do laço.
+
+      O motivo apareceu na primeira vez que a correção foi revertida de
+      propósito: apagar `vistorias` leva `evidencias` junto por cascata, e a
+      conferência de "não estava vazia" da evidência passava a reprovar por
+      tabela vazia, escondendo o estrago atrás de um problema de arrumação do
+      teste. Medindo antes, a vacuidade é cobrada com o banco ainda inteiro.
+    */
+    const antesPorTabela = new Map<string, string>();
+    for (const tabela of SEM_POLICY_DE_DELETE) {
+      const n = await contar(tabela);
+      expect(Number(n), `${tabela} está vazia: o caso não provaria nada`).toBeGreaterThan(0);
+      antesPorTabela.set(tabela, n);
+    }
+
+    try {
+      for (const tabela of SEM_POLICY_DE_DELETE) {
+        const antes = antesPorTabela.get(tabela)!;
+
+        await db.exec(`GRANT DELETE ON ${tabela} TO dc360_app`);
+        try {
+          let erro: string | null = null;
+          try {
+            await comoApp(orgA, (tx) => tx.query(`DELETE FROM ${tabela}`));
+          } catch (e) {
+            erro = (e as Error).message;
+          }
+          const depois = await contar(tabela);
+          /*
+            ERRO TAMBÉM É ESTRAGO, e não alívio.
+
+            Em várias destas tabelas quem barraria o apagamento seria uma chave
+            estrangeira `ON DELETE RESTRICT`, e não a policy. Isso não é a
+            proteção funcionando: é o comando tendo CHEGADO na linha. Com a
+            policy certa, o DELETE não enxerga linha nenhuma para apagar, volta
+            dizendo que apagou zero e não viola chave de ninguém. Um erro aqui
+            significa que a linha estava visível para o comando, e portanto que
+            a barreira dependia de outra coisa.
+          */
+          if (erro !== null) {
+            problemas.push(
+              `${tabela}: o DELETE alcançou as linhas e quem recusou foi outra `
+              + `regra do banco, e não a ausência de policy (${erro})`,
+            );
+          } else if (depois !== antes) {
+            problemas.push(`${tabela}: ${antes} linha(s) antes do DELETE, ${depois} depois`);
+          }
+        } finally {
+          await db.exec(`REVOKE DELETE ON ${tabela} FROM dc360_app`);
+        }
+      }
+
+      expect(
+        problemas,
+        "com GRANT DELETE, estas tabelas deixaram de proteger a prova: a ausência "
+        + "de policy é o que precisa negar, e não a ausência de concessão",
+      ).toEqual([]);
+    } finally {
+      // Na ordem inversa da criação, por causa das chaves estrangeiras.
+      for (const limpar of [
+        "DELETE FROM segundo_fator_recuperacao WHERE organizacao_id = $1",
+        "DELETE FROM segundo_fator WHERE organizacao_id = $1",
+        "DELETE FROM oficio_envios WHERE organizacao_id = $1",
+        "DELETE FROM oficios WHERE organizacao_id = $1",
+        "DELETE FROM oficio_sequencias WHERE organizacao_id = $1",
+        "DELETE FROM aparelhos WHERE organizacao_id = $1",
+        "DELETE FROM recuperacoes_senha WHERE organizacao_id = $1",
+        "DELETE FROM sessoes WHERE organizacao_id = $1",
+        "DELETE FROM evidencias WHERE organizacao_id = $1",
+        "DELETE FROM providencias WHERE organizacao_id = $1",
+        "DELETE FROM orgaos WHERE organizacao_id = $1",
+        "DELETE FROM protocolo_sequencias WHERE organizacao_id = $1 AND ano = 2026",
+      ]) {
+        await db.query(limpar, [orgA]);
       }
     }
   });
@@ -2900,12 +3142,42 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
     "console_situacao_dos_municipios",
   ]);
 
+  /**
+   * A SEGUNDA excecao, e ela e de OUTRA natureza: uma porta de ESCRITA.
+   *
+   * A de cima (O_CONSOLE_LE) e leitura de numero agregado. Esta e o direito de
+   * EXECUTAR uma funcao, e nenhuma linha de tabela vem com ela.
+   *
+   * POR QUE ELA EXISTE. Cadastrar prefeitura so existia como comando de linha
+   * rodado com a credencial de dono do banco, a mesma que aplica migracao. A
+   * ADR 0008 ja tinha escrito o que lacuna de ferramenta produz: a operacao nao
+   * some, ela vai para o caminho mais perigoso. A alternativa seria dar INSERT
+   * em `organizacoes` e `usuarios` ao papel do console, e ai a decisao 3 da ADR
+   * 0008 cairia inteira: com INSERT em `usuarios`, o console cria um
+   * administrador dentro de um municipio que JA EXISTE e entra no painel dele.
+   *
+   * POR QUE ELA NAO REABRE O QUE A ASSERCAO FECHA. Porque a funcao nao e uma
+   * consulta com outro nome, e isso e cobrado caso a caso no bloco "A porta de
+   * criar municipio, e por que ela nao serve para ler", mais abaixo: a saida
+   * sao dois uuid recem-criados, nenhum parametro vira filtro, o corpo nao
+   * nomeia tabela de negocio nenhuma alem das tres que ele escreve, e o papel
+   * do console continua sem UM privilegio em tabela nenhuma depois de usa-la.
+   *
+   * Uma segunda funcao concedida ao console reprova aqui ate alguem escrever o
+   * nome dela nesta lista, e escrever o nome de uma funcao aqui e uma decisao
+   * que aparece na revisao. E isso que separa excecao de buraco.
+   */
+  const O_CONSOLE_EXECUTA = new Set(["provisionar_municipio()"]);
+
   async function sobras(): Promise<Achado[]> {
     const donoAtual = await dono();
     return (await varredura()).filter((a) => {
       if (a.papel === donoAtual || a.papel === "dc360_app") return false;
       if (a.papel === "dc360_console") {
-        return !(a.privilegio === "SELECT" && a.especie !== "funcao" && O_CONSOLE_LE.has(a.relacao));
+        if (a.especie === "funcao") {
+          return !(a.privilegio === "EXECUTE" && O_CONSOLE_EXECUTA.has(a.relacao));
+        }
+        return !(a.privilegio === "SELECT" && O_CONSOLE_LE.has(a.relacao));
       }
       return true;
     });
@@ -2980,7 +3252,15 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
       fazer o atraso de um agente que nao desceu do morro desaparecer da tela
       sem deixar rastro.
 
-      A 032 traz a SETIMA, `prorrogacao_key`, pela mesma decisao: a rota de
+      A 035 traz QUATRO em `objetos_orfaos`, e ali a lista de colunas separa o
+      que a varredura VIU do que uma pessoa DECIDIU. A varredura escreve a linha
+      inteira e nunca mais a toca; o unico UPDATE que existe e o bloco da
+      decisao, escrito pelo descarte deliberado, com operador nomeado e motivo.
+      Sem privilegio de coluna, um caminho novo poderia reescrever a especie ou
+      o tamanho de um objeto listado e fazer uma fotografia em uso parecer lixo
+      na lista que alguem vai autorizar a apagar.
+
+      A 032 traz a SETIMA de `saidas_a_campo`, `prorrogacao_key`, pela mesma decisao: a rota de
       prorrogar precisa gravar a chave de idempotencia do pedido para o REENVIO
       (a resposta se perde no sinal ruim do morro e o aparelho repete) nao contar
       a prorrogacao duas vezes nem escrever dois eventos numa trilha que nao se
@@ -2992,11 +3272,15 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
       colunas.map((a) => `${a.relacao}.${a.detalhe}:${a.privilegio}`).sort(),
       "a varredura de privilegio de coluna nao enxergou o GRANT UPDATE por coluna que " +
       "as migracoes 017 (desfecho, detalhe), 027 (provedor_id), 029 (observacao), " +
-      "031 (o bloco de encerramento da saida a campo) e 032 (a chave da " +
-      "prorrogacao) fazem",
+      "031 (o bloco de encerramento da saida a campo), 032 (a chave da " +
+      "prorrogacao) e 035 (a decisao sobre o objeto orfao) fazem",
     ).toEqual([
       "devolucoes_de_tarefa.observacao:UPDATE",
       "devolucoes_de_tarefa.observacao_removida_em:UPDATE",
+      "objetos_orfaos.decidido_em:UPDATE",
+      "objetos_orfaos.decidido_por:UPDATE",
+      "objetos_orfaos.decisao:UPDATE",
+      "objetos_orfaos.decisao_motivo:UPDATE",
       "oficio_envios.desfecho:UPDATE",
       "oficio_envios.detalhe:UPDATE",
       "oficio_envios.provedor_id:UPDATE",
@@ -3141,10 +3425,12 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
     /*
       6. Funcao SECURITY DEFINER que alcance tabela de negocio.
 
-      A funcao entra e sai dentro deste caso, no `finally`. O teto de funcoes
-      SECURITY DEFINER do bloco "Funcoes privilegiadas" continua em 14 e nao
-      foi tocado: nada desta entrega precisou de funcao privilegiada nova, e a
-      funcao que escreve a metrica e SECURITY INVOKER de proposito.
+      A funcao entra e sai dentro deste caso, no `finally`.
+
+      Repare que ela e concedida ao MESMO papel que hoje tem, por excecao
+      nomeada, EXECUTE em `provisionar_municipio()` (migracao 036). E isso que
+      este caso mostra: a excecao e de UMA funcao, escrita pelo nome, e a
+      segunda funcao concedida ao console continua reprovando aqui.
     */
     await comOBuraco(
       `CREATE FUNCTION espiar_do_portao() RETURNS bigint
@@ -3696,5 +3982,373 @@ describe("O relogio que descobre para quem chamar o resumo", () => {
       "o console executou a funcao privilegiada do relogio, que le organizacoes " +
       "com os privilegios do dono",
     ).toBe(true);
+  });
+});
+
+/* =====================================================================
+ * A PORTA DE CRIAR MUNICIPIO (migracao 036), E A PROVA DE QUE ELA NAO LE.
+ *
+ * A assercao universal logo acima abriu UMA excecao para um papel que nao e o
+ * de aplicacao nem o dono: `dc360_console` executa `provisionar_municipio`.
+ * Excecao sem caso-irmao e buraco com comentario bonito, entao este bloco e a
+ * contrapartida obrigatoria dela.
+ *
+ * A pergunta que ele responde nao e "a funcao funciona", e sim "a funcao serve
+ * para ler?". As respostas sao quatro, e cada uma tem caso proprio:
+ *
+ *   1. A saida sao dois uuid recem-criados, e nada mais.
+ *   2. Nenhum parametro dela vira filtro de consulta.
+ *   3. O corpo nao alcanca tabela de negocio nenhuma alem das tres que escreve.
+ *   4. Depois de usa-la, o console continua sem enxergar o que acabou de criar.
+ *
+ * O quarto e o que fecha a porta de verdade: se criar municipio desse ao
+ * console qualquer leitura a mais, seria por ali que uma conta do fornecedor
+ * comprometida viraria dado de cidadao de todas as prefeituras.
+ * ===================================================================== */
+describe("A porta de criar municipio, e por que ela nao serve para ler", () => {
+  /**
+   * Um hash no formato do produto (`scrypt$N$r$p$sal$hash`), fixo no teste.
+   *
+   * Derivar de verdade aqui custaria 128 MB e alguns segundos por caso, e este
+   * arquivo nao mede a derivacao: quem amarra a derivacao do console a
+   * conferencia da API e `apps/console/test/cadastro-de-prefeitura.test.ts`.
+   */
+  const HASH = "scrypt$131072$8$1$XenoRKJ2mWCQSO-ZnZXUvg$vO-J5ozHwGH1V29fdrVZE4F9ps_lf8oqXHLmU_6ZMrk";
+
+  const CHAMADA = "SELECT * FROM provisionar_municipio($1,$2,$3,$4,$5,$6,$7,$8)";
+
+  /**
+   * As tabelas do esquema, perguntadas ao catalogo.
+   *
+   * Copia local da mesma consulta que o bloco do CA-06 usa (aquela e privada
+   * daquele `describe`), e ela e perguntada ao banco de proposito: a tabela que
+   * alguem criar amanha entra na conferencia do corpo da funcao sozinha.
+   */
+  async function tabelasDoEsquema(): Promise<string[]> {
+    const r = await db.query<{ tablename: string }>(
+      "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename",
+    );
+    return r.rows.map((l) => l.tablename).filter((t) => t !== "schema_migracoes");
+  }
+
+  /** Como o console executa de verdade: papel dele, e nada de superusuario. */
+  async function comoConsole<T>(sql: string, params: readonly unknown[] = []): Promise<T[]> {
+    return db.transaction(async (tx) => {
+      await tx.exec("SET LOCAL ROLE dc360_console");
+      const r = await tx.query(sql, params.length > 0 ? [...params] : undefined);
+      return r.rows as T[];
+    }) as Promise<T[]>;
+  }
+
+  function pedido(municipio: string, extras: Partial<Record<number, unknown>> = {}) {
+    const base: unknown[] = [
+      `Coordenadoria Municipal de Protecao e Defesa Civil de ${municipio}`,
+      municipio, "MG",
+      "Rita Lopes", "PM-1", `rita@${municipio.toLowerCase().replace(/\s/g, "")}.mg.gov.br`,
+      HASH, "Rafael Gomes (operacao da plataforma)",
+    ];
+    for (const [i, valor] of Object.entries(extras)) base[Number(i)] = valor;
+    return base;
+  }
+
+  it("o municipio, o administrador e a linha de nascimento nascem juntos", async () => {
+    const criado = await comoConsole<{ organizacao_id: string; usuario_id: string }>(
+      CHAMADA, pedido("Pedra Branca"),
+    );
+    expect(criado, "a funcao devolveu mais de uma linha").toHaveLength(1);
+
+    const { organizacao_id: orgId, usuario_id: usuarioId } = criado[0]!;
+
+    const org = await db.query<{ nome: string; municipio: string; uf: string }>(
+      "SELECT nome, municipio, uf FROM organizacoes WHERE id = $1", [orgId],
+    );
+    expect(org.rows[0]!.municipio).toBe("Pedra Branca");
+    expect(org.rows[0]!.uf).toBe("MG");
+
+    const usuario = await db.query<{ papel: string; senha_hash: string; ativo: boolean }>(
+      "SELECT papel, senha_hash, ativo FROM usuarios WHERE id = $1", [usuarioId],
+    );
+    /*
+      Administrador, e nao parametro: o primeiro usuario de um municipio precisa
+      ser o teto dele (ADR 0006). Nascer abaixo disso deixaria o municipio sem
+      ninguem capaz de criar o proximo usuario, e a saida seria outra vez o
+      banco de producao aberto na mao.
+    */
+    expect(usuario.rows[0]!.papel).toBe("administrador");
+    expect(usuario.rows[0]!.ativo).toBe(true);
+    expect(usuario.rows[0]!.senha_hash).toBe(HASH);
+
+    /*
+      A linha espelho, pela mesma razao da migracao 025: o ato e o registro do
+      ato sao a mesma transacao, entao nao existe caminho que crie municipio sem
+      registrar. Ela e a unica resposta que o municipio tem para "quem criou
+      isto", e o municipio a le na propria trilha.
+    */
+    const trilha = await db.query<{
+      autor_nome: string; autor_papel: string; acao: string; alvo_nome: string;
+      depois: Record<string, unknown>;
+    }>(
+      `SELECT autor_nome, autor_papel, acao, alvo_nome, depois
+         FROM trilha_administrativa WHERE organizacao_id = $1`, [orgId],
+    );
+    expect(
+      trilha.rows,
+      "o municipio nasceu sem a linha que diz quem o criou",
+    ).toHaveLength(1);
+    expect(trilha.rows[0]!.acao).toBe("municipio_provisionado");
+    expect(trilha.rows[0]!.autor_papel).toBe("operador_da_plataforma");
+    expect(trilha.rows[0]!.autor_nome).toBe("Rafael Gomes (operacao da plataforma)");
+    expect(trilha.rows[0]!.alvo_nome).toBe("Pedra Branca/MG");
+
+    /*
+      E a trilha e append-only: nem o hash da senha entra nela. A migracao 010
+      escreveu essa regra e este e o unico lugar do produto onde uma senha passa
+      perto de uma escrita na trilha, entao a regra e cobrada aqui.
+    */
+    const cru = JSON.stringify(trilha.rows[0]!.depois);
+    expect(cru, "o hash da senha entrou na trilha, que nao se corrige").not.toContain("scrypt");
+  });
+
+  it("a saida sao dois identificadores, e nao ha como devolver linha de tabela", async () => {
+    /*
+      Cobrado no CATALOGO, e nao no resultado de uma chamada: uma chamada
+      mostra o que a funcao devolveu hoje, o catalogo mostra o que ela E CAPAZ
+      de devolver. Se alguem acrescentar um `OUT` amanha, este caso reprova
+      antes de existir tela que mostre o campo novo.
+    */
+    const r = await db.query<{ argumentos: string; retorno: string; conjunto: boolean }>(
+      `SELECT pg_get_function_arguments(p.oid) AS argumentos,
+              pg_get_function_result(p.oid)    AS retorno,
+              p.proretset                      AS conjunto
+         FROM pg_proc p
+         JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'provisionar_municipio'`,
+    );
+    expect(r.rows, "a funcao de provisionamento nao existe").toHaveLength(1);
+
+    const saidas = r.rows[0]!.argumentos
+      .split(", ")
+      .filter((a) => a.startsWith("OUT "));
+    expect(
+      saidas,
+      "a saida da funcao mudou: ela devolve mais que os dois identificadores do " +
+      "que acabou de ser criado",
+    ).toEqual(["OUT organizacao_id uuid", "OUT usuario_id uuid"]);
+
+    // Uma linha so: `SETOF` aqui seria a forma de devolver uma lista, e lista e
+    // o que uma consulta devolve.
+    expect(r.rows[0]!.conjunto, "a funcao passou a devolver conjunto").toBe(false);
+    expect(r.rows[0]!.retorno).toBe("record");
+  });
+
+  it("nenhum parametro dela vira consulta, e o corpo nao alcanca tabela de negocio", async () => {
+    const r = await db.query<{ argumentos: string; corpo: string }>(
+      `SELECT pg_get_function_arguments(p.oid) AS argumentos, p.prosrc AS corpo
+         FROM pg_proc p
+         JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'provisionar_municipio'`,
+    );
+    const { argumentos, corpo } = r.rows[0]!;
+
+    /*
+      Todo parametro de entrada e VALOR A SER GRAVADO. Nenhum e identificador de
+      municipio, nenhum e nome de coluna, nenhum e trecho de consulta. A lista
+      inteira e conferida por extenso, e nao por contagem: um parametro novo
+      chamado `p_organizacao_id` passaria por qualquer contagem.
+    */
+    const entradas = argumentos.split(", ").filter((a) => !a.startsWith("OUT "));
+    expect(
+      entradas,
+      "a funcao ganhou ou perdeu parametro: cada um deles e um valor gravado, e " +
+      "um parametro que escolha municipio transforma esta porta numa consulta",
+    ).toEqual([
+      "p_orgao text", "p_municipio text", "p_uf text",
+      "p_nome text", "p_matricula text", "p_email text",
+      "p_senha_hash text", "p_operador text",
+    ]);
+
+    /*
+      SQL montado com texto e o caminho pelo qual um parametro vira consulta
+      mesmo com a assinatura acima intacta: bastaria um `EXECUTE 'SELECT ... ' ||
+      p_municipio` para a funcao virar console de consulta livre, rodando com os
+      privilegios do dono.
+    */
+    expect(
+      /\bEXECUTE\b/i.test(corpo),
+      "o corpo da funcao passou a montar SQL em texto: um parametro em EXECUTE " +
+      "vira consulta livre com os privilegios do dono",
+    ).toBe(false);
+
+    // Um unico SELECT, o da recusa de duplicata. Ver a migracao 036.
+    expect(
+      (corpo.match(/\bSELECT\b/gi) ?? []).length,
+      "o corpo da funcao ganhou SELECT: ela tem um so, o que recusa municipio " +
+      "duplicado antes de escrever",
+    ).toBe(1);
+
+    /*
+      E o corpo nao NOMEIA tabela de negocio nenhuma alem das tres que ele
+      escreve. A lista vem do catalogo, e nao de memoria: uma tabela criada
+      amanha entra nesta conferencia sozinha.
+    */
+    const escreve = new Set(["organizacoes", "usuarios", "trilha_administrativa"]);
+    const alcancadas = (await tabelasDoEsquema())
+      .filter((t) => !escreve.has(t))
+      .filter((t) => new RegExp(`\\b${t}\\b`, "i").test(corpo));
+    expect(
+      alcancadas,
+      `o corpo da funcao privilegiada nomeia ${alcancadas.join(", ")}: cada uma ` +
+      "dessas e lida com os privilegios do dono, por baixo do RLS",
+    ).toEqual([]);
+  });
+
+  it("depois de criar o municipio, o console continua sem enxergar o que criou", async () => {
+    const criado = await comoConsole<{ organizacao_id: string; usuario_id: string }>(
+      CHAMADA, pedido("Serra do Meio"),
+    );
+    const { organizacao_id: orgId, usuario_id: usuarioId } = criado[0]!;
+
+    /*
+      A ANCORA: as linhas existem. Sem ela, a recusa abaixo seria indistinguivel
+      de uma consulta que nao achou nada, e o caso ficaria verde afirmando uma
+      protecao que nao existe.
+    */
+    const conferido = await db.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM usuarios WHERE id = $1", [usuarioId],
+    );
+    expect(conferido.rows[0]!.n, "o administrador nao foi criado").toBe("1");
+
+    for (const consulta of [
+      "SELECT nome, email FROM usuarios WHERE id = $1",
+      "SELECT senha_hash FROM usuarios WHERE id = $1",
+    ]) {
+      let mensagem = "";
+      try {
+        await comoConsole(consulta, [usuarioId]);
+      } catch (erro) {
+        mensagem = erro instanceof Error ? erro.message : String(erro);
+      }
+      expect(
+        mensagem.toLowerCase(),
+        `o console leu o administrador que acabou de criar: "${consulta}"`,
+      ).toMatch(/permission denied|permissão negada/);
+    }
+
+    // E a trilha do municipio recem-criado, que e onde o nome do operador esta.
+    let recusouTrilha = false;
+    try {
+      await comoConsole("SELECT * FROM trilha_administrativa WHERE organizacao_id = $1", [orgId]);
+    } catch {
+      recusouTrilha = true;
+    }
+    expect(recusouTrilha, "o console leu a trilha administrativa do municipio").toBe(true);
+
+    // E o portao universal continua limpo depois do ato.
+    expect(
+      (await db.query<{ n: string }>(
+        `SELECT count(*)::text AS n FROM information_schema.role_table_grants
+          WHERE table_schema = 'public' AND grantee = 'dc360_console'`,
+      )).rows[0]!.n,
+      "o console ganhou concessao de tabela alem das duas que a ADR 0008 nomeia",
+    ).toBe("3");
+  });
+
+  it("recusa municipio duplicado ANTES de escrever, e diz qual ja existe", async () => {
+    await comoConsole(CHAMADA, pedido("Vila Nova"));
+
+    const antes = await db.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM organizacoes",
+    );
+
+    let mensagem = "";
+    try {
+      // Caixa diferente de proposito: "vila nova" e "Vila Nova" sao a mesma
+      // prefeitura, e dois cadastros dela seriam dois bancos invisiveis um para
+      // o outro.
+      await comoConsole(CHAMADA, pedido("vila nova"));
+    } catch (erro) {
+      mensagem = erro instanceof Error ? erro.message : String(erro);
+    }
+    expect(
+      mensagem,
+      "a recusa de duplicata nao diz QUAL municipio ja existe, e manda a pessoa " +
+      "procurar sozinha numa lista",
+    ).toContain("Vila Nova/MG");
+
+    const depois = await db.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM organizacoes",
+    );
+    expect(
+      depois.rows[0]!.n,
+      "a recusa aconteceu DEPOIS de escrever: sobrou organizacao pela metade",
+    ).toBe(antes.rows[0]!.n);
+  });
+
+  it("recusa senha em texto claro, e recusa cadastro sem o nome de quem cadastrou", async () => {
+    /*
+      A ANCORA, e ela nao e formalidade neste caso em particular: sem a funcao
+      no banco, TODA chamada abaixo tambem falha, e o caso ficaria verde
+      afirmando recusas que na verdade sao ausencia. Este arquivo ja teve um
+      teste assim, e o comentario de `municipios_a_resumir` conta a historia.
+    */
+    expect(
+      (await db.query<{ n: string }>(
+        `SELECT count(*)::text AS n FROM pg_proc p
+           JOIN pg_namespace n ON n.oid = p.pronamespace
+          WHERE n.nspname = 'public' AND p.proname = 'provisionar_municipio'`,
+      )).rows[0]!.n,
+      "a funcao nao existe, entao as recusas abaixo nao provam nada",
+    ).toBe("1");
+
+    /*
+      A primeira recusa e a que impede o defeito caro: sem ela, o dia em que
+      alguem passar a senha digitada no lugar do hash termina com a senha do
+      administrador em texto claro dentro de `usuarios`, onde ela fica para
+      sempre.
+    */
+    for (const [rotulo, argumentos] of [
+      ["senha em texto claro", pedido("Agua Limpa", { 6: "senha-que-a-pessoa-digitou" })],
+      ["hash de outro formato", pedido("Agua Limpa", { 6: "bcrypt$2b$12$abcdefghijklmnop" })],
+      ["sem operador", pedido("Agua Limpa", { 7: "   " })],
+      ["uf que nao e uf", pedido("Agua Limpa", { 2: "MGG" })],
+      ["email invalido", pedido("Agua Limpa", { 5: "rita-arroba-prefeitura" })],
+    ] as const) {
+      let recusou = false;
+      try {
+        await comoConsole(CHAMADA, argumentos);
+      } catch {
+        recusou = true;
+      }
+      expect(recusou, `a funcao aceitou ${rotulo}`).toBe(true);
+    }
+
+    expect(
+      (await db.query<{ n: string }>(
+        "SELECT count(*)::text AS n FROM organizacoes WHERE municipio = 'Agua Limpa'",
+      )).rows[0]!.n,
+      "alguma das recusas aconteceu depois de escrever",
+    ).toBe("0");
+  });
+
+  it("o papel de aplicacao de um municipio nao alcanca esta porta", async () => {
+    /*
+      `dc360_app` fica de fora do GRANT de proposito: criar prefeitura nao e ato
+      de municipio nenhum. Com EXECUTE aqui, uma falha de autorizacao no painel
+      de uma prefeitura viraria a capacidade de criar outra prefeitura, com um
+      administrador escolhido por quem explorou a falha.
+    */
+    let mensagem = "";
+    try {
+      await db.transaction(async (tx) => {
+        await tx.exec("SET LOCAL ROLE dc360_app");
+        await tx.query(CHAMADA, pedido("Porto Velho do Sul"));
+      });
+    } catch (erro) {
+      mensagem = erro instanceof Error ? erro.message : String(erro);
+    }
+    expect(
+      mensagem.toLowerCase(),
+      "o papel de aplicacao executou a funcao que cria municipio",
+    ).toMatch(/permission denied|permissão negada/);
   });
 });

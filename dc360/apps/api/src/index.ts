@@ -14,11 +14,15 @@ import { lerSegredoDoDisco } from "./push/segredo.js";
 import { criarProvedorFcm, lerContaDeServico } from "./push/fcm.js";
 import { criarEnvio, type ProvedorDePush } from "./push/envio.js";
 import {
-  CHAVE_DA_MINIMIZACAO, travaDeProcesso, travaPostgres, type Trava,
+  CHAVE_DA_MINIMIZACAO, CHAVE_DA_VARREDURA_DE_ORFAOS,
+  travaDeProcesso, travaPostgres, type Trava,
 } from "./push/trava.js";
 import { agendarVarredura, type VarreduraAgendada } from "./push/varredor.js";
 import { agendarMinimizacao, type MinimizacaoAgendada } from "./privacidade/minimizacao.js";
 import { CHAVE_DO_RESUMO, agendarResumo, type ResumoAgendado } from "./metricas/resumo.js";
+import {
+  agendarVarreduraDeOrfaos, type VarreduraDeOrfaosAgendada,
+} from "./armazenamento/orfaos.js";
 
 const config = carregarConfig();
 
@@ -317,6 +321,63 @@ const resumo: ResumoAgendado = agendarResumo(
   INTERVALO_DO_RESUMO_MS,
 );
 
+/**
+ * De quanto em quanto tempo a varredura de objeto órfão roda.
+ *
+ * Um dia. O prazo que ela mede é de trinta dias, então rodar mais rápido não
+ * antecipa nada: um objeto que completa a janela às três da manhã entra na lista
+ * na rodada seguinte, e vinte e quatro horas de diferença não significam nada
+ * num prazo de um mês. E cada rodada percorre o BALDE INTEIRO, o que é chamada
+ * de listagem cobrada pelo provedor: rodar de hora em hora multiplicaria essa
+ * conta por vinte e quatro para produzir a mesma lista.
+ */
+const INTERVALO_DA_VARREDURA_DE_ORFAOS_MS = 24 * 60 * 60_000;
+
+/*
+  A VARREDURA DE ÓRFÃO SOBE ATRÁS DE UMA CHAVE, e a diferença para a minimização
+  merece estar escrita, porque as duas parecem a mesma coisa.
+
+  A minimização por prazo sobe SEMPRE porque EXECUTA uma obrigação legal: uma
+  chave para desligá-la seria uma chave para deixar de cumprir a retenção
+  prometida sem nada registrar a decisão.
+
+  Esta não executa nada. Ela escreve uma lista de candidatos que uma pessoa vai
+  ler e decidir, e nenhum arquivo muda por causa dela. O que a chave protege é
+  outra coisa: a listagem do S3 nunca falou com provedor de verdade (é conferida
+  contra XML em teste, o que prova a leitura e não o diálogo), e ligá-la por
+  padrão faria um caminho nunca exercitado começar a percorrer o balde inteiro
+  da produção sozinho no primeiro deploy. A chave morre no dia em que a
+  varredura rodar uma vez pelo comando do operador contra o provedor de verdade.
+
+  Ela NÃO recebe a lista de municípios: os donos saem do prefixo das chaves e
+  são confirmados debaixo do RLS. Assim a API continua sem nenhum privilégio
+  capaz de enumerar prefeituras, que é a regra número um daqui.
+*/
+let varreduraDeOrfaos: VarreduraDeOrfaosAgendada | null = null;
+
+if (config.VARREDURA_DE_ORFAOS_ATIVA === "sim") {
+  const bancoDaVarreduraDeOrfaos = config.DATABASE_URL
+    ? bancoPostgres(config.DATABASE_URL, { maximoConexoes: 2 })
+    : banco;
+
+  varreduraDeOrfaos = agendarVarreduraDeOrfaos(
+    {
+      banco: bancoDaVarreduraDeOrfaos,
+      armazenamento,
+      trava: config.DATABASE_URL
+        ? travaPostgres(config.DATABASE_URL, { maximoConexoes: 1 }, CHAVE_DA_VARREDURA_DE_ORFAOS)
+        : travaDeProcesso(),
+      registrar: (evento, mensagem) => app.log.info(evento, mensagem),
+    },
+    INTERVALO_DA_VARREDURA_DE_ORFAOS_MS,
+  );
+
+  app.log.info(
+    { intervaloHoras: 24 },
+    "varredura de objeto orfao ligada (so relata, nao apaga)",
+  );
+}
+
 // Encerramento ordenado: a requisição em andamento termina, e o pool fecha.
 // Sem isso, um deploy derruba transação no meio.
 for (const sinal of ["SIGINT", "SIGTERM"] as const) {
@@ -330,6 +391,7 @@ for (const sinal of ["SIGINT", "SIGTERM"] as const) {
       await varredura?.parar();
       await minimizacao.parar();
       await resumo.parar();
+      await varreduraDeOrfaos?.parar();
       await pdf.encerrar();
       await banco.encerrar();
       process.exit(0);

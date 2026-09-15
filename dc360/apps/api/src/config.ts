@@ -175,6 +175,27 @@ const esquema = z.object({
   PUSH_ATIVO: z.enum(["sim", "nao"]).default("nao"),
 
   /**
+   * Liga o relógio que LISTA objeto órfão no armazenamento (migração 035).
+   *
+   * Desligado por padrão, e a razão é estreita e tem data de validade escrita
+   * abaixo: a listagem do S3 (`ListObjectsV2` em `armazenamento/s3.ts`) nunca
+   * falou com provedor de verdade. Ela é conferida contra XML de resposta em
+   * teste, e isso prova a leitura, não o diálogo. Ligar por padrão faria um
+   * caminho nunca exercitado começar a percorrer o balde inteiro da produção
+   * sozinho, todo dia, no primeiro deploy depois desta linha.
+   *
+   * Não é a mesma classe de decisão da minimização por prazo, que sobe SEMPRE
+   * porque executa uma obrigação legal. Esta varredura não executa nada: ela
+   * escreve uma lista de candidatos que uma pessoa vai ler e decidir. Ficar
+   * desligada por um mês adia uma lista, e não descumpre promessa nenhuma.
+   *
+   * QUANDO ELA MORRE: no dia em que a varredura rodar uma vez contra o
+   * provedor de verdade e a contagem de objetos bater com o painel do
+   * armazenamento, esta variável some e o relógio passa a subir sempre.
+   */
+  VARREDURA_DE_ORFAOS_ATIVA: z.enum(["sim", "nao"]).default("nao"),
+
+  /**
    * Quantos minutos antes de o prazo vencer o aviso sai.
    *
    * Uma hora por padrão: tempo de o agente sair de onde está e chegar. Menos

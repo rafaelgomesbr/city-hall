@@ -1,5 +1,7 @@
 import { createHmac, randomBytes } from "node:crypto";
-import type { Armazenamento, Envio, PedidoEnvio } from "./tipos.js";
+import type {
+  Armazenamento, Envio, ObjetoListado, PaginaDeObjetos, PedidoEnvio,
+} from "./tipos.js";
 
 /**
  * Armazenamento para desenvolvimento e teste, servido pela própria API.
@@ -28,8 +30,14 @@ export type ConfigMemoria = {
 };
 
 export type ArmazenamentoEmMemoria = Armazenamento & {
-  /** Chamado pela rota que recebe o PUT. */
-  guardar(chave: string, corpo: Buffer, tipoConteudo: string): void;
+  /**
+   * Chamado pela rota que recebe o PUT.
+   *
+   * `modificadoEm` é opcional e existe para o teste da varredura de órfão poder
+   * ENVELHECER um objeto. A janela de graça dela é medida em dias, e um teste
+   * que precisasse esperar trinta dias não seria rodado nunca.
+   */
+  guardar(chave: string, corpo: Buffer, tipoConteudo: string, modificadoEm?: Date): void;
   /** Chamado pela rota que serve o GET. */
   ler(chave: string): { corpo: Buffer; tipoConteudo: string } | null;
   conferirAssinatura(
@@ -41,6 +49,15 @@ export type ArmazenamentoEmMemoria = Armazenamento & {
   quantidade(): number;
 };
 
+/**
+ * Quantos objetos cabem numa página da listagem.
+ *
+ * Mil, que é o mesmo teto do `ListObjectsV2` do S3. Igual de propósito: assim a
+ * varredura exercita o laço de paginação nos dois caminhos, e um defeito de
+ * continuação aparece no teste em vez de aparecer contra o provedor.
+ */
+const TAMANHO_DA_PAGINA = 1000;
+
 export function armazenamentoEmMemoria(config: ConfigMemoria): ArmazenamentoEmMemoria {
   const {
     baseUrl,
@@ -50,7 +67,10 @@ export function armazenamentoEmMemoria(config: ConfigMemoria): ArmazenamentoEmMe
     agora = () => new Date(),
   } = config;
 
-  const objetos = new Map<string, { corpo: Buffer; tipoConteudo: string }>();
+  const objetos = new Map<
+    string,
+    { corpo: Buffer; tipoConteudo: string; modificadoEm: Date }
+  >();
   const base = () => (typeof baseUrl === "function" ? baseUrl() : baseUrl).replace(/\/$/, "");
 
   function assinar(metodo: string, chave: string, expiraEm: number): string {
@@ -103,12 +123,49 @@ export function armazenamentoEmMemoria(config: ConfigMemoria): ArmazenamentoEmMe
         : { situacao: "ausente" as const };
     },
 
-    guardar(chave, corpo, tipoConteudo) {
-      objetos.set(chave, { corpo, tipoConteudo });
+    async listar(prefixo: string, continuacao?: string): Promise<PaginaDeObjetos> {
+      /*
+        Uma página só, e ordenada por chave.
+
+        A ordenação não é capricho: é o que o S3 faz, e a continuação dele é a
+        última chave devolvida. Um mapa sem ordem aqui deixaria a paginação
+        passar em teste e falhar contra o provedor, que é o pior tipo de
+        diferença entre as duas implementações desta porta.
+      */
+      const todas = [...objetos.keys()]
+        .filter((c) => c.startsWith(prefixo))
+        .filter((c) => (continuacao ? c > continuacao : true))
+        .sort();
+
+      const pagina = todas.slice(0, TAMANHO_DA_PAGINA);
+      const objetosDaPagina: ObjetoListado[] = pagina.map((chave) => {
+        const objeto = objetos.get(chave)!;
+        return {
+          chave,
+          tamanhoBytes: objeto.corpo.length,
+          modificadoEm: objeto.modificadoEm.toISOString(),
+        };
+      });
+
+      return {
+        objetos: objetosDaPagina,
+        continuacao: todas.length > pagina.length ? pagina[pagina.length - 1]! : null,
+      };
+    },
+
+    async apagar(chave: string) {
+      if (!objetos.has(chave)) return { situacao: "ausente" as const };
+      objetos.delete(chave);
+      return { situacao: "apagado" as const };
+    },
+
+    guardar(chave, corpo, tipoConteudo, modificadoEm) {
+      objetos.set(chave, { corpo, tipoConteudo, modificadoEm: modificadoEm ?? agora() });
     },
 
     ler(chave) {
-      return objetos.get(chave) ?? null;
+      const objeto = objetos.get(chave);
+      return objeto ? { corpo: objeto.corpo, tipoConteudo: objeto.tipoConteudo } : null;
     },
 
     conferirAssinatura(metodo, chave, consulta) {

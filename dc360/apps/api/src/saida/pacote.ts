@@ -124,6 +124,22 @@ export const TABELAS_DA_SAIDA = [
     do catálogo.
   */
   "metricas_municipio",
+  /*
+    A lista de objetos de armazenamento que ninguém soube justificar, e o que
+    foi decidido sobre cada um (migração 035).
+
+    Sai, e a razão é a mesma que faz `vistoria_evidencias_perdidas` sair: o
+    município precisa levar embora a explicação das LACUNAS, e não só o que
+    sobrou. Sem esta lista, o pacote entrega um conjunto de fotografias e nada
+    dizendo que houve arquivos propostos para descarte, quais, quando e por
+    decisão de quem. Daqui a dez anos, a diferença entre "esta vistoria nunca
+    teve foto" e "a foto foi descartada em tal data, por tal pessoa, com este
+    motivo escrito" é a diferença entre desleixo e procedimento.
+
+    Não carrega dado de pessoa: chave de objeto, tamanho, data, espécie e o
+    nome de quem decidiu, que é servidor do fornecedor e não cidadão.
+  */
+  "objetos_orfaos",
 ] as const;
 
 /**

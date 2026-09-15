@@ -58,7 +58,10 @@ export const PAGINA_DO_CONSOLE = `<!doctype html>
   <section id="painel" hidden>
     <div class="topo">
       <h2>Municípios</h2>
-      <button id="sair" type="button">Sair</button>
+      <div class="acoes">
+        <button id="abrir-cadastro" type="button">Cadastrar prefeitura</button>
+        <button id="sair" type="button" class="discreto">Sair</button>
+      </div>
     </div>
     <div class="rolagem">
       <table>
@@ -81,6 +84,84 @@ export const PAGINA_DO_CONSOLE = `<!doctype html>
       </table>
     </div>
     <p id="vazio" hidden>Nenhum município cadastrado ainda.</p>
+  </section>
+
+  <section id="cadastro" hidden>
+    <div class="topo">
+      <h2>Cadastrar prefeitura</h2>
+      <button id="voltar" type="button" class="discreto">Voltar aos municípios</button>
+    </div>
+
+    <form id="forma-cadastro" autocomplete="off">
+      <p class="passo">
+        Cria o município e o primeiro administrador dele. A senha inicial é
+        sorteada pelo servidor e mostrada uma única vez, aqui nesta tela.
+      </p>
+
+      <div class="dupla">
+        <div>
+          <label for="municipio">Município</label>
+          <input id="municipio" name="municipio" required maxlength="200">
+        </div>
+        <div class="estreito">
+          <label for="uf">UF</label>
+          <input id="uf" name="uf" required maxlength="2" size="2"
+                 autocapitalize="characters" spellcheck="false">
+        </div>
+      </div>
+
+      <label for="orgao">Nome do órgão (opcional)</label>
+      <input id="orgao" name="orgao" maxlength="300"
+             placeholder="Coordenadoria Municipal de Proteção e Defesa Civil de ...">
+
+      <h3>Primeiro administrador</h3>
+      <div class="dupla">
+        <div>
+          <label for="nome-admin">Nome</label>
+          <input id="nome-admin" name="nome" required maxlength="200">
+        </div>
+        <div class="estreito">
+          <label for="matricula">Matrícula</label>
+          <input id="matricula" name="matricula" required maxlength="40">
+        </div>
+      </div>
+
+      <label for="email-admin">Email</label>
+      <input id="email-admin" name="email" type="email" required maxlength="320">
+
+      <label for="operador">Quem está cadastrando</label>
+      <input id="operador" name="operador" required maxlength="200">
+      <p class="ajuda">
+        Vai para a trilha do município como o nome de quem o criou, e é a única
+        resposta que ele tem para "quem criou isto". Escreva o nome da pessoa.
+      </p>
+
+      <button type="submit" id="criar">Cadastrar</button>
+      <p id="recado-cadastro" role="status" aria-live="polite"></p>
+    </form>
+
+    <div id="entregue" hidden>
+      <h3 id="entregue-titulo">Prefeitura cadastrada</h3>
+      <p class="passo" id="entregue-municipio"></p>
+
+      <p class="rotulo-senha" id="rotulo-senha">Senha inicial</p>
+      <p class="senha" id="senha-inicial" aria-labelledby="rotulo-senha"></p>
+
+      <p class="alerta">
+        Atenção: esta senha não fica guardada em lugar nenhum e não será
+        mostrada de novo. Entregue por canal combinado e peça a troca na
+        primeira entrada.
+      </p>
+
+      <dl class="ids">
+        <dt>Identificador do município</dt>
+        <dd id="id-municipio"></dd>
+        <dt>Identificador do administrador</dt>
+        <dd id="id-admin"></dd>
+      </dl>
+
+      <button type="button" id="concluir">Já anotei, concluir</button>
+    </div>
   </section>
 </main>
 
@@ -165,7 +246,65 @@ button {
   border-radius: 6px;
   cursor: pointer;
 }
-#sair { margin: 0; background: transparent; color: var(--texto); border-color: var(--borda); }
+.discreto { background: transparent; color: var(--texto); border-color: var(--borda); }
+.acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+/* Os botões do cabeçalho não herdam o respiro de topo do botão de formulário. */
+.topo button { margin: 0; }
+h3 { font-size: 14px; margin: 24px 0 0; }
+.ajuda { margin: 6px 0 0; font-size: 12px; color: var(--fraco); }
+#cadastro { max-width: 640px; }
+#cadastro .topo { margin-bottom: 12px; }
+
+/* Dois campos lado a lado onde eles são curtos, e empilhados na tela estreita. */
+.dupla { display: flex; gap: 12px; flex-wrap: wrap; }
+.dupla > div { flex: 1 1 220px; }
+.dupla > .estreito { flex: 0 1 140px; }
+#uf { text-transform: uppercase; }
+
+/*
+  A senha inicial: o único texto grande desta página, de propósito.
+
+  Ela vai ser DITADA por telefone ou copiada num papel, e o console é aberto num
+  notebook de escritório que pode estar longe dos olhos de quem lê. Fonte
+  monoespaçada porque "l", "1" e "I" precisam se distinguir, e o alfabeto do
+  sorteio já evita os piores pares.
+*/
+.senha {
+  margin: 4px 0 12px;
+  padding: 14px 16px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 24px;
+  letter-spacing: 0.04em;
+  word-break: break-all;
+  background: var(--fundo);
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  user-select: all;
+}
+.rotulo-senha { margin: 20px 0 0; font-size: 13px; color: var(--fraco); }
+
+/*
+  O aviso de "mostrada uma vez" NUNCA é só cor: ele começa com a palavra
+  "Atenção" e tem borda de um lado, então quem não distingue a cor do texto
+  continua vendo que aquele parágrafo é diferente dos outros.
+*/
+.alerta {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--alarme);
+  background: var(--alarme-fundo);
+  border-left: 4px solid currentColor;
+  border-radius: 0 6px 6px 0;
+}
+.ids { margin: 20px 0 0; font-size: 12px; color: var(--fraco); }
+.ids dt { margin-top: 8px; }
+.ids dd {
+  margin: 2px 0 0;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  word-break: break-all;
+}
+#recado-cadastro { min-height: 20px; margin: 12px 0 0; font-size: 13px; color: var(--alarme); }
 :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .passo { margin: 0; font-size: 13px; color: var(--fraco); }
 #recado { min-height: 20px; margin: 12px 0 0; font-size: 13px; color: var(--alarme); }
@@ -193,6 +332,12 @@ thead th { font-size: 12px; color: var(--fraco); font-weight: 600; }
  * minutos e não se renova, guardar o token entre visitas não compraria quase
  * nada e custaria isso.
  *
+ * A senha inicial da prefeitura recém-cadastrada NÃO entra nessa variável nem
+ * em nenhuma outra: ela vai direto para o `textContent` do elemento que a
+ * mostra, e some dali quando o operador conclui ou sai. Guardá-la em variável
+ * de módulo faria com que ela sobrevivesse à tela que a exibiu, e a promessa
+ * desta tela é que ela aparece uma vez.
+ *
  * Todo texto vindo do servidor entra por `textContent`, nunca por `innerHTML`:
  * o nome do município é escrito por quem provisiona, e um console que
  * interpretasse HTML vindo do banco seria injeção de script na única tela que
@@ -210,6 +355,10 @@ var formaCodigo = document.getElementById("forma-codigo");
 var recado = document.getElementById("recado");
 var linhas = document.getElementById("linhas");
 var vazio = document.getElementById("vazio");
+var cadastro = document.getElementById("cadastro");
+var formaCadastro = document.getElementById("forma-cadastro");
+var entregue = document.getElementById("entregue");
+var recadoCadastro = document.getElementById("recado-cadastro");
 
 function dizer(texto) { recado.textContent = texto || ""; }
 
@@ -267,11 +416,111 @@ document.getElementById("sair").addEventListener("click", function () {
   desafio = null;
   linhas.textContent = "";
   painel.hidden = true;
+  cadastro.hidden = true;
+  esquecerSenha();
   porta.hidden = false;
   formaCodigo.hidden = true;
   formaSenha.hidden = false;
   document.getElementById("senha").value = "";
   document.getElementById("codigo").value = "";
+});
+
+/* ======================================================================
+   Cadastrar prefeitura
+   ====================================================================== */
+
+/**
+ * A senha inicial vive na tela e em mais lugar nenhum.
+ *
+ * Ela não vai para variável de módulo, não vai para localStorage e não vai
+ * para o histórico do navegador: entra por textContent no elemento que a
+ * mostra, e sai de lá quando o operador conclui ou sai do console. O servidor
+ * também não a guarda (ver cadastro.ts), então depois disto ela existe só na
+ * cabeça e no papel de quem cadastrou, que é o desenho.
+ */
+function esquecerSenha() {
+  document.getElementById("senha-inicial").textContent = "";
+  document.getElementById("id-municipio").textContent = "";
+  document.getElementById("id-admin").textContent = "";
+  document.getElementById("entregue-municipio").textContent = "";
+  entregue.hidden = true;
+  formaCadastro.hidden = false;
+}
+
+function dizerNoCadastro(texto) {
+  recadoCadastro.textContent = texto || "";
+}
+
+document.getElementById("abrir-cadastro").addEventListener("click", function () {
+  painel.hidden = true;
+  cadastro.hidden = false;
+  dizerNoCadastro("");
+  esquecerSenha();
+  document.getElementById("municipio").focus();
+});
+
+function voltarAosMunicipios() {
+  // Esquece a senha ANTES de trocar de tela: sair da tela sem limpar deixaria
+  // a senha no documento, pronta para reaparecer com um "voltar".
+  esquecerSenha();
+  formaCadastro.reset();
+  dizerNoCadastro("");
+  cadastro.hidden = true;
+  painel.hidden = false;
+  carregar();
+}
+
+document.getElementById("voltar").addEventListener("click", voltarAosMunicipios);
+document.getElementById("concluir").addEventListener("click", voltarAosMunicipios);
+
+formaCadastro.addEventListener("submit", async function (evento) {
+  evento.preventDefault();
+  dizerNoCadastro("");
+
+  var criar = document.getElementById("criar");
+  // Trava o botão durante a chamada: um duplo clique aqui tentaria criar a
+  // mesma prefeitura duas vezes, e a segunda voltaria como "já existe", com o
+  // operador sem saber qual das duas respostas é a dele.
+  criar.disabled = true;
+  try {
+    var r = await pedir("/prefeituras", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: "Bearer " + token
+      },
+      body: JSON.stringify({
+        municipio: document.getElementById("municipio").value,
+        uf: document.getElementById("uf").value,
+        orgao: document.getElementById("orgao").value,
+        nome: document.getElementById("nome-admin").value,
+        matricula: document.getElementById("matricula").value,
+        email: document.getElementById("email-admin").value,
+        operador: document.getElementById("operador").value
+      })
+    });
+  } finally {
+    criar.disabled = false;
+  }
+
+  if (!r.ok || !r.corpo || !r.corpo.senhaInicial) {
+    dizerNoCadastro(
+      (r.corpo && r.corpo.mensagem) || "Não foi possível cadastrar a prefeitura."
+    );
+    return;
+  }
+
+  document.getElementById("entregue-municipio").textContent =
+    document.getElementById("municipio").value + " ("
+    + document.getElementById("uf").value.toUpperCase() + "), administrador "
+    + document.getElementById("nome-admin").value + ".";
+  document.getElementById("senha-inicial").textContent = r.corpo.senhaInicial;
+  document.getElementById("id-municipio").textContent = r.corpo.organizacaoId;
+  document.getElementById("id-admin").textContent = r.corpo.usuarioId;
+
+  formaCadastro.hidden = true;
+  entregue.hidden = false;
+  document.getElementById("concluir").focus();
 });
 
 function celula(texto, numerica) {

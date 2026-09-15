@@ -4,8 +4,11 @@ import { router } from "expo-router";
 import Constants from "expo-constants";
 import { ROTULO_PAPEL, ROTULO_SEVERIDADE, ROTULO_TIPO_COBRADE, type Severidade } from "@dc360/shared";
 import {
-  SemSinal, enderecoDaApi, normalizarMeuTrabalho, type MeuTrabalho,
+  enderecoDaApi, normalizarMeuTrabalho, type MeuTrabalho,
 } from "../../dados/api";
+import {
+  comoContarAFalha, motivoDaFalha, type MotivoDaFalha,
+} from "../../dados/falha-de-atualizacao";
 import {
   AVISOS_VAZIOS, avisosGuardados, complementoDoAviso, fraseDoAviso,
   marcarAvisosComoLidosNoAparelho, sincronizarAvisos, type AvisosGuardados,
@@ -320,7 +323,13 @@ export default function Perfil() {
     que volta a ser ele.
   */
   const [desistiuDeEsperar, setDesistiuDeEsperar] = useState(false);
-  const [avisoDeRede, setAvisoDeRede] = useState<string | null>(null);
+  /*
+    POR QUE a última atualização não aconteceu, e não a frase pronta. A razão
+    inteira está em `dados/falha-de-atualizacao`: 401 não é sinal ruim, e ler
+    os dois como a mesma coisa manda o agente esperar por uma coisa que só um
+    ato dele resolve.
+  */
+  const [falhaDeRede, setFalhaDeRede] = useState<MotivoDaFalha | null>(null);
   const [agora, setAgora] = useState(() => new Date());
 
   const [avisos, setAvisos] = useState<AvisosGuardados>(AVISOS_VAZIOS);
@@ -372,7 +381,7 @@ export default function Perfil() {
   const buscarNaRede = useCallback(async () => {
     setAtualizando(true);
     setDesistiuDeEsperar(false);
-    setAvisoDeRede(null);
+    setFalhaDeRede(null);
     try {
       const token = await obterToken();
       if (!token) return;
@@ -394,11 +403,7 @@ export default function Perfil() {
         setDados(await atualizarMeuTrabalho(token));
         setBaixadoEm(new Date().toISOString());
       } catch (erro: unknown) {
-        setAvisoDeRede(
-          erro instanceof SemSinal
-            ? "Sem sinal para atualizar. Mostrando o que já estava no aparelho."
-            : "Não deu para atualizar agora. Mostrando o que já estava no aparelho.",
-        );
+        setFalhaDeRede(motivoDaFalha(erro));
       }
 
       try {
@@ -407,12 +412,11 @@ export default function Perfil() {
         /* O que já estava guardado continua na tela, com a data da última vez.
            O rodapé do cartão de avisos é quem diz quando foi. */
       }
-    } catch {
-      /* Nem o token saiu: renovar precisa de rede, e sem ela não há o que
-         buscar. A tela continua sendo a do disco, que é a promessa. */
-      setAvisoDeRede(
-        "Sem sinal para atualizar. Mostrando o que já estava no aparelho.",
-      );
+    } catch (erro: unknown) {
+      /* Nem o token saiu. Quase sempre é rede (renovar precisa dela), mas
+         "quase sempre" não é sempre, e quem classifica é o erro, não o palpite
+         escrito aqui. A tela continua sendo a do disco, que é a promessa. */
+      setFalhaDeRede(motivoDaFalha(erro));
     } finally {
       setAtualizando(false);
     }
@@ -442,6 +446,15 @@ export default function Perfil() {
     })();
     return () => { vivo = false; };
   }, [obterToken, lerIdentidade]);
+
+  /*
+    As duas frases do aviso de atualização, resolvidas uma vez só. A cauda
+    ("mostrando o que já estava") é a parte que muda de tela para tela: falhar
+    em atualizar não é falhar em mostrar.
+  */
+  const fraseDaFalha = falhaDeRede
+    ? comoContarAFalha(falhaDeRede, "Mostrando o que já estava no aparelho.")
+    : null;
 
   /*
     A promessa da saída, e ela precisa ser exata.
@@ -587,7 +600,38 @@ export default function Perfil() {
         o que já estava no disco), enquanto sair da conta com coleta na fila é
         trabalho que nenhum colega consegue enviar.
       */}
-      {avisoDeRede && <Aviso tom="alerta" peso="leve">{avisoDeRede}</Aviso>}
+      {falhaDeRede && fraseDaFalha && (
+        <Aviso
+          /*
+            Sessão encerrada sobe para PERIGO, e a régua continua respeitada: o
+            que a R2 pesa é o aviso rotineiro de "não atualizou", que não custa
+            nada porque a tela mostra o que estava no disco. Sessão encerrada
+            custa: nada novo chega, e o agente não tem como saber disso por
+            nenhum outro sinal da tela.
+          */
+          tom={falhaDeRede === "sessao-encerrada" ? "perigo" : "alerta"}
+          peso="leve"
+          titulo={fraseDaFalha.resumo}
+          /*
+            A SAÍDA, que não existia. O aviso colava aqui até a atualização
+            seguinte dar certo, e no caso da sessão encerrada nenhuma dava, o
+            que é o relato ("não tem nem um tempo pra sumir nem um x pra
+            fechar"). Entra pelo `acao` da própria peça, e não por um `×` de
+            canto: o `Botao` do produto já traz o alvo de 52 e o rótulo de
+            leitor de tela, e um `×` desenhado à mão não traria nenhum dos dois.
+
+            Dispensar fala da ATENÇÃO do agente, não do fato: a próxima
+            tentativa que falhar traz o aviso de volta inteiro.
+          */
+          acao={{
+            titulo: "Dispensar",
+            descricao: "Dispensar o aviso de atualização",
+            onPress: () => { setFalhaDeRede(null); },
+          }}
+        >
+          {fraseDaFalha.detalhe}
+        </Aviso>
+      )}
 
       <Grupo titulo="Eu">
         {/*

@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { construirConsole } from "../src/servidor.js";
 import { abrirCofre, contextoDoOperador } from "../src/operadores.js";
-import { ABERTURA, type LeituraDoConsole } from "../src/banco.js";
+import { ABERTURA, ABERTURA_DE_ESCRITA, type BancoDoConsole } from "../src/banco.js";
 import type { Config } from "../src/config.js";
 import { bancoEmMemoria, type BancoEmMemoria } from "../../api/src/banco/memoria.js";
 import { travaDeProcesso } from "../../api/src/push/trava.js";
@@ -45,7 +45,7 @@ const cofre = abrirCofre(CHAVE);
 const SEGREDO_TOTP = gerarSegredoTotp();
 
 let mem: BancoEmMemoria;
-let leitura: LeituraDoConsole;
+let leitura: BancoDoConsole;
 let app: FastifyInstance;
 let token: string;
 
@@ -57,11 +57,20 @@ let token: string;
  * outro papel, ou sem `SET LOCAL ROLE`) estaria atestando algo que ninguém
  * executa, e as recusas do último bloco viriam de graça.
  */
-function leituraDoConsoleSobre(bruto: BancoEmMemoria["bruto"]): LeituraDoConsole {
+function leituraDoConsoleSobre(bruto: BancoEmMemoria["bruto"]): BancoDoConsole {
   return {
     async ler<T>(sql: string, params: readonly unknown[] = []): Promise<T[]> {
       return bruto.transaction(async (tx: any) => {
         for (const comando of ABERTURA) await tx.exec(comando);
+        const r = await tx.query(sql, params.length > 0 ? [...params] : undefined);
+        return r.rows as T[];
+      }) as Promise<T[]>;
+    },
+    // A escrita, com a abertura de escrita de produção. Ver `banco.ts`: a
+    // diferença para a de leitura é uma linha, a que recusaria escrever.
+    async executar<T>(sql: string, params: readonly unknown[] = []): Promise<T[]> {
+      return bruto.transaction(async (tx: any) => {
+        for (const comando of ABERTURA_DE_ESCRITA) await tx.exec(comando);
         const r = await tx.query(sql, params.length > 0 ? [...params] : undefined);
         return r.rows as T[];
       }) as Promise<T[]>;
@@ -99,7 +108,9 @@ beforeAll(async () => {
     }]),
   };
 
-  app = await construirConsole({ config, leitura, limitePorEndereco: 500 });
+  app = await construirConsole({
+    config, leitura, escrita: leitura, limitePorEndereco: 500,
+  });
 
   // Passo 2, a porta: senha, depois o código. Não existe caminho curto.
   const primeira = await app.inject({

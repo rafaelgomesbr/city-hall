@@ -7,6 +7,9 @@ import {
   TAMANHO_MAXIMO_BYTES, TIPOS_ACEITOS, type Armazenamento,
 } from "../armazenamento/tipos.js";
 import { registrarEvento } from "../trilha.js";
+import {
+  frasePorTetoEstourado, lerUso, resumirUso, type UsoDeArmazenamento,
+} from "../armazenamento/uso.js";
 
 /**
  * Ciclo de vida de uma evidência fotográfica.
@@ -122,16 +125,38 @@ export async function rotasEvidencias(
         vencimento que justificava reemitir a URL só existe antes do envio.
       */
       if (dados.idempotencyKey) {
-        const anterior = await c.query<{ id: string; chave_storage: string; enviada_em: string | null }>(
-          "SELECT id, chave_storage, enviada_em FROM evidencias WHERE idempotency_key = $1",
+        const anterior = await c.query<{
+          id: string; chave_storage: string; enviada_em: string | null;
+          abandonada_em: string | null;
+        }>(
+          `SELECT id, chave_storage, enviada_em, abandonada_em
+             FROM evidencias WHERE idempotency_key = $1`,
           [dados.idempotencyKey],
         );
         const achada = anterior.rows[0];
         if (achada) {
+          /*
+            RESSUSCITA a autorização que a varredura de órfão deu por perdida.
+
+            A varredura marca `abandonada_em` numa autorização velha cujo arquivo
+            nunca chegou, e o efeito dessa marca é parar de consumir o teto. Se o
+            mesmo envio for retomado (o aparelho ficou meses sem sinal, a coleta
+            continua lá, e o agente finalmente encontrou rede), a reserva volta a
+            valer: sem isto, a foto subiria e o município a teria de graça, ou
+            seja, a contabilidade do teto passaria a mentir para o lado que
+            ninguém confere.
+          */
+          if (achada.abandonada_em) {
+            await c.query(
+              "UPDATE evidencias SET abandonada_em = NULL, abandono_motivo = NULL WHERE id = $1",
+              [achada.id],
+            );
+          }
           return {
             evidenciaId: achada.id,
             chave: achada.chave_storage,
             jaEnviada: achada.enviada_em !== null,
+            uso: null as UsoDeArmazenamento | null,
           };
         }
       }
@@ -149,6 +174,48 @@ export async function rotasEvidencias(
         throw new RegraDeNegocio(
           "ja_encerrada",
           "Essa ocorrência já foi encerrada e não aceita evidência nova.",
+        );
+      }
+
+      /*
+        O TETO, conferido na MESMA transação em que a linha nasce.
+
+        Numa transação própria, a conta seria de um instante e a gravação de
+        outro, e dois agentes enviando ao mesmo tempo passariam os dois por uma
+        margem que só cabia um. Aqui a leitura e o INSERT compartilham a
+        transação, e o gatilho da migração 035 é a barreira de baixo.
+
+        E a recusa acontece ANTES de a linha existir: criar a evidência para
+        depois negar a URL deixaria uma reserva consumindo teto por uma foto que
+        o servidor acabou de recusar.
+
+        DEPOIS da conferência da ocorrência, e não antes. Ocorrência de outro
+        município responde 404, e esse 404 não pode virar 507: 507 diria que o
+        município do token está cheio, o que é informação sobre ESTE município e
+        não sobre o recurso pedido, e ainda faria a fila do aparelho insistir
+        para sempre num pedido que nunca vai funcionar.
+      */
+      const uso = await lerUso(c, dados.tamanhoBytes);
+      if (uso.situacao === "recusado") {
+        /*
+          507, e a escolha do status é do tamanho do produto.
+
+          `packages/campo/src/transporte.ts` trata 5xx e 429 como falha
+          TEMPORÁRIA e 4xx como permanente, e item permanente vira `bloqueado`
+          na fila do aparelho. Não existe tela para desbloquear coleta recusada:
+          um 4xx aqui prenderia a vistoria no telefone do agente até alguém
+          apagá-la, e apagar é a única saída que o produto nunca quer oferecer
+          para trabalho de campo.
+
+          Com 507 a fila adia e insiste, sem teto de tentativas para falha
+          temporária. A coleta sobrevive no aparelho e DRENA SOZINHA no dia em
+          que a plataforma ampliar o teto, sem ninguém tocar no telefone de
+          quem está na rua.
+        */
+        throw new RegraDeNegocio(
+          "teto_de_armazenamento",
+          frasePorTetoEstourado(),
+          507,
         );
       }
 
@@ -181,7 +248,7 @@ export async function rotasEvidencias(
         ],
       );
 
-      return { evidenciaId: evidencia.rows[0]!.id, chave, jaEnviada: false };
+      return { evidenciaId: evidencia.rows[0]!.id, chave, jaEnviada: false, uso };
     });
 
     /*
@@ -214,6 +281,15 @@ export async function rotasEvidencias(
       url: envio.url,
       cabecalhos: envio.cabecalhos,
       expiraEm: envio.expiraEm,
+      /*
+        A situação viaja junto da autorização, e não numa rota à parte.
+
+        Quem precisa saber que o balde está enchendo é a coordenação, e ela não
+        vai consultar uma tela nova por conta própria. Aqui o número chega
+        carregado pelo caminho que já acontece seis vezes por vistoria, sem
+        custar consulta nenhuma a mais: ele foi lido na mesma transação.
+      */
+      ...(resultado.uso ? { armazenamento: resumirUso(resultado.uso) } : {}),
     });
   });
 

@@ -3,8 +3,12 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { z } from "zod";
 import type { Config } from "./config.js";
-import type { LeituraDoConsole } from "./banco.js";
+import type { EscritaDoConsole, LeituraDoConsole } from "./banco.js";
 import { serieDoMunicipio, situacaoDosMunicipios } from "./consultas.js";
+import {
+  EMAIL_EM_USO, MUNICIPIO_DUPLICADO, PEDIDO_INVALIDO, cadastrarPrefeitura,
+  cadastroDePrefeituraSchema,
+} from "./cadastro.js";
 import {
   abrirCofre, conferirCodigo, conferirEntrada, lerRegistro, tetoEmMemoria,
   type Registro, type TetoDeTentativas,
@@ -32,7 +36,11 @@ import { CSS_DO_CONSOLE, JS_DO_CONSOLE, PAGINA_DO_CONSOLE } from "./pagina.js";
  *   - CORS. A página é servida por este mesmo processo, então não existe
  *     origem legítima diferente da própria. Sem plugin de CORS, chamada de
  *     outra origem não passa, e não há lista para alguém alargar por engano.
- *   - Rota de escrita. Nenhuma, em lugar nenhum. O console lê.
+ *   - Rota de escrita que toque uma tabela. Nenhuma, em lugar nenhum. Existe
+ *     UMA rota de escrita, `POST /prefeituras`, e ela não escreve: ela executa
+ *     uma função do banco (migração 036) que cria o município e o primeiro
+ *     administrador dele. O papel `dc360_console` continua sem `INSERT`,
+ *     `UPDATE` ou `DELETE` em tabela nenhuma, e é o banco quem garante isso.
  *   - Renovação de sessão. Ver `tokens.ts`: não há onde guardar o hash de um
  *     token de renovação, porque o console não escreve no banco.
  */
@@ -40,6 +48,14 @@ import { CSS_DO_CONSOLE, JS_DO_CONSOLE, PAGINA_DO_CONSOLE } from "./pagina.js";
 export type DependenciasDoConsole = {
   config: Config;
   leitura: LeituraDoConsole;
+  /**
+   * A escrita, separada da leitura como parâmetro e não escondida dentro dela.
+   *
+   * Quem monta este servidor precisa entregar as duas coisas de propósito: a
+   * rota que cria prefeitura fica visível na assinatura, em vez de aparecer
+   * como um método a mais num objeto que todo mundo já passava.
+   */
+  escrita: EscritaDoConsole;
   /** Injeção de relógio, para o teste conferir a janela do TOTP sem esperar. */
   agora?: () => Date;
   /**
@@ -55,6 +71,14 @@ export type DependenciasDoConsole = {
    * O padrão é o valor de produção, e é ele que roda quando ninguém passa nada.
    */
   limitePorEndereco?: number;
+  /**
+   * Quantas prefeituras o mesmo endereço cadastra por hora.
+   *
+   * Parâmetro pela mesma razão do limite da porta: um teste que exercite o
+   * cadastro várias vezes esbarraria no teto de produção e passaria verde sem
+   * ter chegado ao que ele diz medir. O padrão é o valor de produção.
+   */
+  limiteDeCadastro?: number;
   /** Coletor de log, para o teste poder afirmar o que saiu. */
   destinoDeLog?: { write: (linha: string) => void };
 };
@@ -91,7 +115,7 @@ class SemSessao extends Error {}
 export async function construirConsole(
   dep: DependenciasDoConsole,
 ): Promise<FastifyInstance> {
-  const { config, leitura } = dep;
+  const { config, escrita, leitura } = dep;
   const agora = dep.agora ?? (() => new Date());
 
   const cofre = abrirCofre(config.CONSOLE_SEGUNDO_FATOR_CHAVE);
@@ -134,7 +158,8 @@ export async function construirConsole(
   });
 
   /*
-    Limite por endereço, e ele vale SÓ nas duas rotas que conferem credencial.
+    Limite por endereço, e ele vale nas duas rotas que conferem credencial e na
+    única que escreve.
 
     O teto por conta vive em `operadores.ts` e trata a conta martelada de muitos
     lugares; este trata o atacante que vem de um lugar só. São problemas
@@ -148,7 +173,10 @@ export async function construirConsole(
     tela três vezes seguidas seria barrado do próprio console no meio de um
     plantão.
 
-    O que sobra sem limite são rotas estáticas e rotas que já exigem sessão. O
+    O que sobra sem limite são rotas estáticas e rotas de leitura que já exigem
+    sessão. A rota que cadastra prefeitura tem teto próprio, e o porquê dele
+    está escrito em `LIMITE_DE_CADASTRO`, logo abaixo: ele não protege
+    credencial, protege contra registro que não se apaga. O
     caminho que precisa de teto é justamente o que fica de fora dele: cada
     tentativa de entrar gasta uma derivação `scrypt` de cerca de 128 MB, então
     marteladas nessa rota derrubam o processo antes de descobrirem senha nenhuma.
@@ -165,6 +193,31 @@ export async function construirConsole(
   };
 
   /**
+   * O teto do cadastro de prefeitura, e ele é BAIXO de propósito.
+   *
+   * Esta rota exige sessão, então o limite não é a defesa principal: a defesa é
+   * a senha mais o segundo fator. Ele existe para o caso em que a defesa
+   * principal já falhou, e o que ele limita ali é diferente do que o teto da
+   * porta limita.
+   *
+   * O que se perde quando alguém martela esta rota NÃO é tempo de processador.
+   * É que cada chamada bem-sucedida cria um registro que não se apaga: neste
+   * produto município não se exclui, se encerra com motivo, e a linha de
+   * nascimento na trilha é append-only. Cinco por hora não incomoda ninguém
+   * (cadastrar prefeitura é ato de algumas vezes por mês, e o operador que
+   * cadastrar duas seguidas nem percebe que existe teto) e transforma uma
+   * sessão roubada em cinco linhas para limpar à mão, em vez de mil.
+   *
+   * De quebra, cada chamada gasta uma derivação `scrypt` de cerca de 128 MB,
+   * que é o mesmo motivo pelo qual a porta tem teto.
+   */
+  const LIMITE_DE_CADASTRO = {
+    config: {
+      rateLimit: { max: dep.limiteDeCadastro ?? 5, timeWindow: "1 hour" },
+    },
+  };
+
+  /**
    * Um tratador só, e ele nunca devolve a mensagem crua do erro.
    *
    * Mensagem de erro de banco conta o nome da tabela e a coluna que faltou, e
@@ -172,14 +225,24 @@ export async function construirConsole(
    * planta entregue de graça. O log recebe o detalhe; quem chamou recebe que
    * falhou.
    */
-  app.setErrorHandler((erro, _req, resposta) => {
+  app.setErrorHandler((erro, req, resposta) => {
     if (erro instanceof SemSessao) {
       return resposta.code(401).send({ erro: "sem_sessao", mensagem: "Entre de novo." });
     }
     if ((erro as { statusCode?: number }).statusCode === 429) {
+      /*
+        A espera que a mensagem promete é a da janela que travou, e não uma
+        frase genérica. As duas janelas deste servidor são diferentes (cinco
+        minutos na porta, uma hora no cadastro), e mandar alguém esperar "alguns
+        minutos" para voltar em uma hora produz cinco tentativas frustradas e um
+        chamado.
+      */
+      const noCadastro = req.url.startsWith("/prefeituras");
       return resposta.code(429).send({
         erro: "muitas_tentativas",
-        mensagem: "Tentativas demais. Espere alguns minutos.",
+        mensagem: noCadastro
+          ? "Cadastros demais deste endereço. Espere uma hora."
+          : "Tentativas demais. Espere alguns minutos.",
       });
     }
     app.log.error(
@@ -314,6 +377,113 @@ export async function construirConsole(
       return resposta.send({ serie: await serieDoMunicipio(leitura, id.data, dias) });
     },
   );
+
+  /* ======================================================================
+     A prefeitura nova
+     ====================================================================== */
+
+  /**
+   * Cadastra a prefeitura e o primeiro administrador dela, e devolve a senha
+   * inicial UMA vez.
+   *
+   * ATRÁS DA SESSÃO, pelo mesmo gancho de todas as outras: `exigirOperador` é a
+   * primeira linha, e não há ramo que escreva antes dele. Esconder o botão na
+   * tela não é controle de acesso.
+   *
+   * A RESPOSTA É EXATAMENTE TRÊS CAMPOS: os dois identificadores do que acabou
+   * de ser criado, e a senha inicial. Nada de nome de outro município, nada de
+   * contagem, nada de lista. A função do banco já não teria como devolver mais
+   * (ela declara dois `uuid` de saída e nada além), e esta rota não acrescenta
+   * nada por cima.
+   *
+   * A SENHA INICIAL NÃO VAI PARA O LOG. O `app.log.info` do desfecho carrega
+   * quem cadastrou, qual município e qual identificador, e é isso: o log deste
+   * processo é lido por mais gente do que a tela, e uma senha que caísse ali
+   * ficaria em texto claro pelo tempo de retenção inteiro. Ela aparece uma vez
+   * na tela de quem cadastrou, e acabou.
+   */
+  app.post("/prefeituras", LIMITE_DE_CADASTRO, async (req, resposta) => {
+    const operador = await exigirOperador(req);
+
+    const corpo = cadastroDePrefeituraSchema.safeParse(req.body);
+    if (!corpo.success) {
+      /*
+        A mensagem do primeiro problema, e não a lista inteira: a tela do
+        console tem um recado só, e despejar cinco frases nele produz um
+        parágrafo que ninguém lê. O campo errado continua sendo apontado pelo
+        texto da mensagem, que vem do próprio schema.
+      */
+      return resposta.code(400).send({
+        erro: "pedido_invalido",
+        mensagem: corpo.error.issues[0]?.message ?? "Confira os campos do formulário.",
+      });
+    }
+
+    try {
+      const criado = await cadastrarPrefeitura(escrita, corpo.data);
+
+      app.log.info(
+        {
+          operador,
+          municipio: `${corpo.data.municipio}/${corpo.data.uf.toUpperCase()}`,
+          organizacao_id: criado.organizacaoId,
+          cadastrado_por: corpo.data.operador,
+        },
+        "prefeitura cadastrada pelo console",
+      );
+
+      return resposta.code(201).send(criado);
+    } catch (erro) {
+      const codigo = (erro as { code?: string }).code;
+
+      /*
+        AS TRÊS RECUSAS ABAIXO REPASSAM A MENSAGEM DO BANCO, e são as únicas
+        mensagens de banco que este servidor deixa sair.
+
+        O tratador geral não repassa nenhuma, e por uma boa razão: mensagem de
+        erro de Postgres conta nome de tabela e de coluna, e num processo que
+        fala com o banco de todas as prefeituras isso é planta entregue de
+        graça. A diferença destas três é que elas não vêm do Postgres: são
+        escritas à mão na migração 036, para serem lidas por gente. A primeira
+        diz qual município já existe, que é exatamente o que quem cadastra
+        precisa saber para não criar o segundo.
+      */
+      if (codigo === MUNICIPIO_DUPLICADO) {
+        return resposta.code(409).send({
+          erro: "municipio_duplicado",
+          mensagem: (erro as Error).message,
+        });
+      }
+
+      /*
+        O email de login é único no produto inteiro (migração 002), e não dentro
+        do município. Sem esta tradução, quem cadastra recebe "falha interna" e
+        recomeça o formulário sem saber o que mudar.
+
+        A mensagem diz que o email já tem conta e NÃO diz em qual município:
+        município quem cadastra já pode listar, mas quem trabalha em cada um é
+        dado de pessoa, e a decisão 2 da ADR 0008 fecha essa porta.
+      */
+      if (codigo === EMAIL_EM_USO) {
+        return resposta.code(409).send({
+          erro: "email_em_uso",
+          mensagem: (erro as Error).message,
+        });
+      }
+
+      if (codigo === PEDIDO_INVALIDO) {
+        return resposta.code(400).send({
+          erro: "pedido_invalido",
+          mensagem: (erro as Error).message,
+        });
+      }
+
+      // Qualquer outra falha cai no tratador geral, que registra o detalhe e
+      // responde que falhou. Nenhum município foi criado: a função do banco faz
+      // tudo numa transação só.
+      throw erro;
+    }
+  });
 
   /* ======================================================================
      A casca: saúde e a página

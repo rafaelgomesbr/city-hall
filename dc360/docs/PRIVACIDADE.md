@@ -135,7 +135,8 @@ sistema, de hora em hora, não por lembrete:
 | --- | --- | --- |
 | Nome e contato do solicitante | `[[prazo definido pelo município]]`, contado do encerramento da ocorrência | Viram marcador de "removido por prazo". Protocolo, endereço, fatos, laudo e trilha permanecem |
 | Descrição de vulnerabilidade social | `[[prazo definido pelo município]]`, nunca maior que o anterior | Idem. Quando o município fixa só o primeiro prazo, a descrição sai junto com o nome, nunca depois |
-| Fotografias | `[[prazo definido pelo município]]` | **Previsto, ainda não implantado.** Hoje elas permanecem. Ver a seção 6 |
+| Fotografias de vistoria referidas por um laudo | `[[prazo definido pelo município]]` | **Previsto, ainda não implantado.** Hoje elas permanecem. Ver a seção 6 |
+| Fotografia que nenhum registro justifica (arquivo que subiu e cujo envelope nunca chegou) | 30 dias para entrar na lista, e depois um ato humano | O sistema LISTA, com quem é, de quando e de que tamanho. Apagar é ato deliberado do operador da plataforma, com nome e motivo escritos, e nunca automático. Ver "O arquivo sem dono", abaixo |
 | Protocolo, endereço, tipo, severidade, decisão técnica, trilha | Permanente | Nada. É o registro do ato |
 | Registro de quem acessou e de quem exportou | Permanente | Nada. É prova de acesso, e prova de acesso não se descarta junto com o dado que ela protege |
 | Conta de servidor público desativada | Permanente | Nada. Ele assina laudo e aparece na trilha |
@@ -179,6 +180,42 @@ mudança fica na trilha administrativa com o valor anterior e o novo.
 
 O prazo é decisão do município, porque ele é o controlador. O fornecedor entrega
 o mecanismo, não o número.
+
+### O arquivo sem dono
+
+Existe uma fotografia que não está coberta por prazo nenhum, porque ela não está
+presa a registro nenhum: a que subiu ao armazenamento e cujo envelope de vistoria
+nunca chegou. Isso acontece sem ninguém errar, e acontece o tempo todo: o sinal
+cai entre enviar o arquivo e confirmar, o aplicativo é fechado no meio, o
+aparelho é trocado. O arquivo fica lá, invisível para o sistema inteiro (nenhuma
+tela e nenhum laudo o alcançam), e é imagem do imóvel de uma família.
+
+Guardar isso para sempre é dado pessoal sem finalidade, que é exatamente o que a
+minimização existe para impedir. Então o sistema passou a procurar esses
+arquivos, e o desenho tem duas decisões que importam ao titular:
+
+- **A janela é de trinta dias, e é generosa de propósito.** O aplicativo guarda a
+  coleta no aparelho enquanto não houver sinal, e isso pode durar dias. Um prazo
+  curto apagaria a fotografia de uma vistoria que ainda vai ser enviada.
+- **O sistema não apaga sozinho.** Ele produz uma lista, com o arquivo, a data e
+  o tamanho. Apagar exige ato de uma pessoa identificada, com motivo escrito, e
+  a decisão fica registrada. A razão é que apagar não tem volta e a fotografia de
+  uma vistoria é prova material de um ato administrativo: entre guardar um mês a
+  mais e destruir a prova de uma interdição por engano, o produto escolhe o
+  primeiro, e diz isso em voz alta em vez de fingir automatismo.
+
+O município leva essa lista embora quando sai: ela faz parte do pacote de saída,
+para que a ausência de uma fotografia daqui a dez anos tenha explicação com data
+e nome, em vez de parecer desleixo.
+
+### Quanto cada município pode ocupar
+
+O armazenamento de fotografia passou a ter teto por município, fixado no
+contrato. Ele existe para o custo não ser ilimitado, e não muda nada para o
+titular: **nenhum dado é descartado por causa do teto**. Chegando perto do
+limite, quem administra o município é avisado; passando dele, o envio continua
+funcionando; e a recusa, que só acontece bem acima do contratado, é temporária e
+nunca destrói o trabalho de campo já coletado, que continua guardado no aparelho.
 
 ---
 
@@ -266,10 +303,17 @@ O que **ainda não** está pronto, dito aqui porque omitir seria enganar:
   sistema.
 - Registro separado de evento de segurança com alerta: previsto, não implantado.
 - **Descarte de fotografia por prazo: previsto, não implantado.** Remover uma
-  foto exige apagar o arquivo no armazenamento, que é outro sistema e falha de
-  outro jeito (o arquivo some e o registro fica, ou o contrário). Até isso
-  entrar, a fotografia de vistoria permanece, e a seção 4 diz isso com todas as
-  letras em vez de descrever como se já funcionasse.
+  foto referida por um laudo exige apagar o arquivo no armazenamento, que é
+  outro sistema e falha de outro jeito (o arquivo some e o registro fica, ou o
+  contrário). Até isso entrar, a fotografia de vistoria permanece, e a seção 4
+  diz isso com todas as letras em vez de descrever como se já funcionasse.
+  **O que entrou** foi o passo anterior e mais barato: a fotografia que NENHUM
+  registro justifica é encontrada e listada, e o descarte dela é ato humano
+  registrado. Ver "O arquivo sem dono", na seção 4.
+- **A varredura de arquivo sem dono ainda não rodou contra o armazenamento de
+  verdade.** A leitura da resposta do provedor é conferida em teste, e isso prova
+  a leitura e não o diálogo. Até a primeira execução acompanhada, ela roda por
+  comando do operador da plataforma e não por relógio.
 - **A listagem da fila de ocorrências ainda não gera registro de acesso.** O
   registro cobre o dossiê e os documentos oficiais, que são onde o dado pessoal
   se concentra. A listagem do painel, recarregada o dia inteiro por todo mundo,
@@ -313,7 +357,9 @@ Controlador: o órgão municipal de proteção e defesa civil que opera o sistem
    O painel serve arquivo estático, então a rota pode sair dele.
 3. O município precisa fixar os prazos da seção 4. O mecanismo está pronto e a
    conta de administrador do município já configura os dois primeiros no
-   sistema; enquanto não configurar, nada é removido. O terceiro (fotografia)
-   depende do descarte no armazenamento, que ainda não existe.
+   sistema; enquanto não configurar, nada é removido. O prazo de fotografia
+   REFERIDA por um laudo depende do descarte no armazenamento, que ainda não
+   existe; a fotografia sem dono nenhum já tem caminho, e ele está descrito em
+   "O arquivo sem dono".
 4. Rever quando entrarem: notificação por push, envio de ofício por email,
    console do fornecedor e mapa do Google. Os quatro mudam esta política.
