@@ -290,42 +290,72 @@ describe("a segunda pista do item ativo", () => {
     `await` não é enfeite: nesta versão da biblioteca `render` devolve promessa,
     e sem ele o que volta é a promessa, sem consulta nenhuma dentro.
   */
-  async function estiloDaPilula(focado: boolean): Promise<Record<string, number | string>> {
+  /**
+   * O DESTAQUE DA ABA ABERTA, lido onde ele passou a morar.
+   *
+   * Até 14/09/2026 ele era uma pílula desenhada DENTRO do `tabBarIcon`, e por
+   * isso abraçava o ícone e deixava a palavra de fora. O Rafa viu no aparelho:
+   * "o menu marca apenas o ícone quando ativo, deveria pegar o ícone e o
+   * texto". Ícone e palavra são uma peça só, e destacar metade dela faz a
+   * outra metade parecer de outro item.
+   *
+   * Agora quem pinta é `tabBarActiveBackgroundColor`, aplicado pelo navegador
+   * ao item INTEIRO, com o canto arredondado vindo de `tabBarItemStyle`. Então
+   * é nas OPÇÕES que se lê, e não no desenho do ícone: o ícone deixou de ter
+   * peça em volta justamente para não haver pílula dentro de pílula.
+   */
+  function estiloDoItem(opcoes: Opcoes): Record<string, unknown> {
+    return (opcoes["tabBarItemStyle"] ?? {}) as Record<string, unknown>;
+  }
+
+  it("o destaque pega o item inteiro, e não só o ícone", async () => {
+    const opcoes = await montarAsAbas();
+
+    /*
+      A cor entra por `tabBarActiveBackgroundColor`, que o navegador aplica ao
+      elemento que contém ícone, crachá e rótulo. Se alguém a tirar e voltar a
+      pintar dentro do `tabBarIcon`, este caso reprova.
+    */
+    expect(opcoes["tabBarActiveBackgroundColor"]).toBeTruthy();
+    expect(opcoes["tabBarActiveBackgroundColor"]).not.toBe("transparent");
+  });
+
+  it("o destaque é pílula, e o corte existe para o arredondamento alcançar a tinta", async () => {
+    const estilo = estiloDoItem(await montarAsAbas());
+
+    expect(estilo["borderRadius"]).toBe(raio.pilula);
+    /*
+      Sem `overflow: hidden` o arredondamento fica no elemento de fora e a cor
+      é pintada no de dentro: o destaque sai QUADRADO, que foi como a primeira
+      tentativa ficou.
+    */
+    expect(estilo["overflow"]).toBe("hidden");
+  });
+
+  it("a aba fechada não ganha fundo, senão a segunda pista não distingue nada", async () => {
+    const opcoes = await montarAsAbas();
+
+    /* Não declarar é o certo: o navegador deixa transparente. Declarar cor
+       igual à da barra seria a mesma coisa com uma chance a mais de divergir
+       do tema. */
+    const inativo = opcoes["tabBarInactiveBackgroundColor"];
+    expect(inativo === undefined || inativo === "transparent").toBe(true);
+  });
+
+  it("o ícone não tem peça própria em volta, para não virar pílula dentro de pílula", async () => {
     const abas = await montarAsAbas();
     const tarefas = mockNavegador.telas.find((t) => t.name === "index");
     if (!tarefas?.options) throw new Error("a aba de tarefas sumiu do menu");
     const desenhar = tarefas.options["tabBarIcon"] as (p: {
       color: string; focused: boolean; size: number;
     }) => React.JSX.Element;
-    const cor = String(abas["tabBarActiveTintColor"]);
-    const tela = await render(desenhar({ color: cor, focused: focado, size: icone.rotulo }));
-    const peca = tela.getByTestId(focado ? "pilula-da-aba-ativa" : "pilula-da-aba");
-    return peca.props.style as Record<string, number | string>;
-  }
+    const tela = await render(
+      desenhar({ color: String(abas["tabBarActiveTintColor"]), focused: true, size: icone.rotulo }),
+    );
 
-  it("a aba aberta tem uma pílula preenchida atrás do ícone, e não só cor", async () => {
-    const estilo = await estiloDaPilula(true);
-
-    expect(estilo["backgroundColor"]).not.toBe("transparent");
-    expect(estilo["borderRadius"]).toBe(raio.pilula);
-  });
-
-  it("a aba fechada não tem pílula nenhuma, senão a pista não distingue nada", async () => {
-    const estilo = await estiloDaPilula(false);
-
-    expect(estilo["backgroundColor"]).toBe("transparent");
-  });
-
-  it("a pílula cabe na barra do sistema, com o rótulo junto", async () => {
-    const estilo = await estiloDaPilula(true);
-
-    /*
-      A conta: o sistema dá 49 pontos mais a área segura, o item gasta 5 de
-      recuo em cima e embaixo, e o rótulo de 12 ocupa uns 15 com a entrelinha.
-      Sobram 24 para a pílula. Maior que isso, ela não some: empurra o rótulo
-      para fora da barra, e o rótulo é obrigatório neste aplicativo.
-    */
-    expect(estilo["height"]).toBeLessThanOrEqual(icone.acao);
+    const peca = tela.getByTestId("icone-da-aba-ativa");
+    const estilo = (peca.props.style ?? {}) as Record<string, unknown>;
+    expect(estilo["backgroundColor"]).toBeUndefined();
   });
 });
 

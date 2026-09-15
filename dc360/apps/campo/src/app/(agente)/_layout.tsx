@@ -47,48 +47,70 @@ import { borda, easing, espaco, fonte, icone, movimento, peso, raio, toque } fro
  * e 2 de folga de cada lado. Pílula maior que isso não some: ela EMPURRA o
  * rótulo para fora da barra, e o rótulo é obrigatório aqui.
  */
-const PILULA = {
+/**
+ * O DESTAQUE DA ABA ABERTA, e por que ele deixou de ser só atrás do ícone.
+ *
+ * Até 14/09/2026 a pílula era desenhada dentro do `tabBarIcon`, então ela
+ * abraçava o ícone e deixava a palavra de fora. O Rafa viu no aparelho e disse
+ * a frase que descreve o defeito melhor que qualquer explicação: "o menu marca
+ * apenas o ícone quando ativo, deveria pegar o ícone e o texto".
+ *
+ * Ele tem razão, e a razão é a mesma que obriga o rótulo a existir: ícone e
+ * palavra são UMA peça, e destacar metade dela faz a outra metade parecer de
+ * outro item. O desenho anterior tinha um limite escrito (a pílula não podia
+ * passar de `icone.acao`, senão empurrava o rótulo para fora da barra), e esse
+ * limite era consequência de a pílula morar no lugar errado.
+ *
+ * Agora quem pinta é `tabBarActiveBackgroundColor`, que o próprio navegador
+ * aplica ao item INTEIRO (ícone, crachá e rótulo), e o canto arredondado vem
+ * de `tabBarItemStyle`. Três coisas sobrevivem de graça, e cada uma delas
+ * custaria código num botão próprio: o crachá numérico continua posicionado
+ * pelo navegador, o rótulo de acessibilidade continua o mesmo, e a área de
+ * toque continua sendo a do sistema.
+ *
+ * O que NÃO muda é o porquê da peça existir: ela é a SEGUNDA pista de qual aba
+ * está aberta, ao lado da cor do traço, para quem não distingue violeta de
+ * cinza e para quem está sob sol forte. A regra da casa é que nada se comunica
+ * só por cor, e ela vale para o menu igual.
+ */
+const DESTAQUE_DA_ABA = {
+  borderRadius: raio.pilula,
   /*
-    Mais larga que alta, senão ela lê como bolha em volta do ícone em vez de
-    pílula. A largura sai do alvo de toque menos uma folga, para o desenho
-    nunca ficar mais largo que o alvo mínimo que o item já garante.
+    `hidden` porque a cor de fundo é pintada pelo navegador no elemento de
+    DENTRO. Sem o corte, o arredondamento do lado de fora não alcança a tinta e
+    o destaque sai quadrado, que é como ele estava na primeira tentativa.
   */
-  largura: toque - espaco.e2,
-  altura: icone.acao,
-} as const;
+  overflow: "hidden" as const,
+  /*
+    Folga pequena, e ela tem conta: o sistema dá 49 pontos mais a área segura,
+    e o item precisa caber ícone (24) mais rótulo (12 com entrelinha) dentro
+    disso. Uma folga generosa aqui espremeria a palavra, que é justamente o que
+    o desenho anterior fazia por outro caminho.
+  */
+  marginHorizontal: espaco.e2,
+  marginVertical: espaco.e1,
+};
 
 /**
- * O ícone dentro da pílula arredondada.
+ * O ícone da aba, sem peça nenhuma em volta.
  *
- * A pílula só aparece no item ativo, preenchida com a cor de destaque suave.
- * Ela não é enfeite: é a SEGUNDA pista de qual aba está aberta, ao lado da
- * cor do traço, para quem não distingue violeta de cinza e para quem está sob
- * sol forte. A regra do aplicativo é que nada se comunica só por cor, e ela
- * vale para o menu igual.
+ * Ele ficou sem nada porque o destaque passou para o item inteiro, e duas
+ * peças pintadas uma dentro da outra desenhariam uma pílula dentro de outra.
  */
-function IconeEmPilula({
-  Icone, cor, ativo, fundoAtivo,
+function IconeDaAba({
+  Icone, cor, ativo,
 }: {
   /* `ColorValue` e não `string`: é o que o `tabBarIcon` entrega, e é o mesmo
      tipo que os ícones já aceitam. */
   Icone: (p: { cor: ColorValue; tamanho?: number }) => React.JSX.Element;
   cor: ColorValue;
   ativo: boolean;
-  fundoAtivo: string;
 }) {
   return (
     <View
-      /* O identificador existe para o portão conseguir provar que a segunda
-         pista continua na tela depois de a barra virar padrão. */
-      testID={ativo ? "pilula-da-aba-ativa" : "pilula-da-aba"}
-      style={{
-        width: PILULA.largura,
-        height: PILULA.altura,
-        borderRadius: raio.pilula,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: ativo ? fundoAtivo : "transparent",
-      }}
+      /* O identificador existe para o portão conseguir provar qual item está
+         aberto sem depender da cor. */
+      testID={ativo ? "icone-da-aba-ativa" : "icone-da-aba"}
     >
       <Icone cor={cor} tamanho={icone.rotulo} />
     </View>
@@ -389,6 +411,13 @@ export default function LayoutDoAgente() {
             borderTopColor: tema.borda,
           },
           /*
+            O destaque do item ABERTO, ícone e rótulo juntos. Ver
+            `DESTAQUE_DA_ABA` no topo deste arquivo para o porquê de ele ter
+            saído de dentro do ícone.
+          */
+          tabBarActiveBackgroundColor: tema.superficie2,
+          tabBarItemStyle: DESTAQUE_DA_ABA,
+          /*
             O rótulo da barra era a última superfície do aplicativo ainda
             desenhada na fonte do sistema, pelo mesmo descuido que o título do
             cabeçalho tinha em `app/_layout.tsx`. Com a fonte do produto no
@@ -412,8 +441,7 @@ export default function LayoutDoAgente() {
             title: "Minhas tarefas",
             tabBarLabel: "Tarefas",
             tabBarIcon: ({ color, focused }) => (
-              <IconeEmPilula Icone={IconeTarefas} cor={color} ativo={focused}
-                             fundoAtivo={tema.superficie2} />
+              <IconeDaAba Icone={IconeTarefas} cor={color} ativo={focused} />
             ),
           }}
         />
@@ -423,8 +451,7 @@ export default function LayoutDoAgente() {
             title: "Fila de envio",
             tabBarLabel: "Envio",
             tabBarIcon: ({ color, focused }) => (
-              <IconeEmPilula Icone={IconeEnvio} cor={color} ativo={focused}
-                             fundoAtivo={tema.superficie2} />
+              <IconeDaAba Icone={IconeEnvio} cor={color} ativo={focused} />
             ),
             // Número, e não pontinho colorido: o agente precisa saber QUANTAS
             // coletas estão esperando, não só que existe alguma.
@@ -491,8 +518,7 @@ export default function LayoutDoAgente() {
             title: "Meu perfil",
             tabBarLabel: "Perfil",
             tabBarIcon: ({ color, focused }) => (
-              <IconeEmPilula Icone={IconeEquipe} cor={color} ativo={focused}
-                             fundoAtivo={tema.superficie2} />
+              <IconeDaAba Icone={IconeEquipe} cor={color} ativo={focused} />
             ),
             // Número, e não pontinho: o agente precisa saber QUANTOS avisos
             // esperam, e o número é o que decide se vale abrir agora.
