@@ -1,4 +1,4 @@
-import { AccessibilityInfo, Animated } from "react-native";
+import { AccessibilityInfo, Animated, StyleSheet } from "react-native";
 import { act, fireEvent, render, renderHook, within } from "@testing-library/react-native";
 
 /**
@@ -69,9 +69,11 @@ const mockNavegador: {
   telas: { name: string; options?: Opcoes }[];
   pilha: Opcoes | null;
   barra: ((props: Record<string, unknown>) => React.ReactNode) | null;
+  /** O `screenLayout` entregue ao navegador: é quem faz a entrada da aba. */
+  cena: unknown;
   /** Quantas vezes o navegador foi desenhado: é o que a aba escura mede. */
   renderizacoes: number;
-} = { abas: null, telas: [], pilha: null, barra: null, renderizacoes: 0 };
+} = { abas: null, telas: [], pilha: null, barra: null, cena: null, renderizacoes: 0 };
 
 /** Qual aba está aberta quando a barra é desenhada. */
 let mockRotaAberta = "index";
@@ -150,12 +152,14 @@ jest.mock("expo-router", () => {
 
   const Tabs = (props: {
     screenOptions?: Opcoes;
+    screenLayout?: unknown;
     tabBar?: (props: Record<string, unknown>) => React.ReactNode;
     children?: unknown;
   }) => {
     mockNavegador.renderizacoes += 1;
     mockNavegador.abas = props.screenOptions ?? null;
     mockNavegador.barra = props.tabBar ?? null;
+    mockNavegador.cena = props.screenLayout ?? null;
     return reagir.createElement(
       reagir.Fragment,
       null,
@@ -293,6 +297,7 @@ function construirSessao(nome: string): Record<string, unknown> {
     obterToken: async () => "token-de-mentira",
     lerIdentidade: () => null,
     identidade: {
+      usuarioId: "u-joana",
       nome,
       papel: "agente_campo",
       matricula: "0001",
@@ -307,6 +312,36 @@ jest.mock("../dados/sessao", () => ({
   ProvedorDeSessao: ({ children }: { children: unknown }) => children,
   useSessao: () => mockSessao,
 }));
+
+/*
+  A FOTO vem do disco pela cópia local, e o disco avisa quando ela muda. O
+  gancho de verdade é o do módulo (ele só lê `fotoLocalDoAgente` e assina);
+  o que se dubla é o disco e o aviso, para o teste poder trocar a foto sem
+  gravar arquivo nenhum.
+*/
+let mockFotoLocal: string | null = null;
+const mockOuvintesDaFoto = new Set<(u: string | null) => void>();
+jest.mock("../dados/foto-do-agente", () => {
+  const reagir = require("react") as typeof import("react");
+  return {
+    fotoLocalDoAgente: () => mockFotoLocal,
+    assinarFotoDoAgente: (ouvinte: (u: string | null) => void) => {
+      mockOuvintesDaFoto.add(ouvinte);
+      return () => mockOuvintesDaFoto.delete(ouvinte);
+    },
+    useFotoDoAgente: (usuarioId: string | null | undefined) => {
+      const [uri, setUri] = reagir.useState<string | null>(usuarioId ? mockFotoLocal : null);
+      reagir.useEffect(() => {
+        if (!usuarioId) { setUri(null); return; }
+        setUri(mockFotoLocal);
+        const ouvinte = () => { setUri(mockFotoLocal); };
+        mockOuvintesDaFoto.add(ouvinte);
+        return () => { mockOuvintesDaFoto.delete(ouvinte); };
+      }, [usuarioId]);
+      return uri;
+    },
+  };
+});
 
 import { BottomTabBarHeightContext } from "expo-router/build/react-navigation/bottom-tabs";
 import LayoutDoAgente from "../app/(agente)/_layout";
@@ -328,6 +363,7 @@ beforeEach(() => {
   mockNavegador.telas = [];
   mockNavegador.pilha = null;
   mockNavegador.barra = null;
+  mockNavegador.cena = null;
   mockNavegador.renderizacoes = 0;
   mockEsquema = "light";
   mockJanela = { width: 390, height: 844, scale: 3, fontScale: 1 };
@@ -340,6 +376,8 @@ beforeEach(() => {
   mockTemRascunho = false;
   mockNome = "Joana da Silva Prado";
   mockSessao = construirSessao(mockNome);
+  mockFotoLocal = null;
+  mockOuvintesDaFoto.clear();
   reducaoLigada = false;
   mockNavegacao.emit.mockClear();
   mockNavegacao.navigate.mockClear();
@@ -470,11 +508,25 @@ describe("o topo não cobra a área segura duas vezes", () => {
 });
 
 describe("os quatro itens da pílula", () => {
-  it("são Tarefas, Mapa, Envio e Perfil, nesta ordem", async () => {
+  it("são Tarefas, Mapa, Envio e o rosto do Perfil, nesta ordem", async () => {
     const tela = await montarOAplicativo();
 
     const rotulos = tela.getAllByTestId(/^rotulo-da-aba-/).map(textoDe);
-    expect(rotulos).toEqual(["Tarefas", "Mapa", "Envio", "Perfil"]);
+    expect(rotulos).toEqual(["Tarefas", "Mapa", "Envio"]);
+    const itens = tela.getAllByTestId(/^aba-/).map((i) => i.props.testID as string);
+    expect(itens).toEqual(["aba-index", "aba-mapa", "aba-fila", "aba-perfil"]);
+  });
+
+  /*
+    "O item da aba perfil não precisa do nome perfil abaixo." O rosto é o
+    rótulo, e a palavra continua onde ela é lida: na frase falada do item.
+  */
+  it("o Perfil não tem palavra embaixo, e a frase falada continua dizendo Perfil", async () => {
+    const tela = await montarOAplicativo();
+
+    expect(talvez(tela, "rotulo-da-aba-perfil")).toBeNull();
+    expect(achar(tela, "avatar-do-agente")).toBeTruthy();
+    expect(achar(tela, "aba-perfil").props.accessibilityLabel).toBe("Perfil");
   });
 
   /*
@@ -668,16 +720,17 @@ describe("a pílula paira, e cada defeito de 28/08 tem o seu caso", () => {
   /*
     A CONTA, refeita aqui contra os tokens em vez de confiar no comentário.
 
-    O rosto do Perfil é o item mais alto (32 contra 24 do pictograma) e é ele
-    que decide a pílula. Nenhum item fica abaixo do alvo de toque, e a pílula
-    inteira cabe na conta: rosto, folga, rótulo, respiro e contorno.
+    O rosto do Perfil ocupa a altura inteira de ícone mais palavra dos
+    vizinhos, sem palavra embaixo: a fileira lê como uma linha só, e o rosto
+    é quase o dobro do pictograma. Nenhum item fica abaixo do alvo de toque,
+    e a pílula inteira cabe na conta: conteúdo, respiro e contorno.
   */
-  it("a conta da altura fecha em cima dos tokens, com o rosto do Perfil mandando", () => {
-    expect(DIAMETRO_DO_AVATAR).toBe(icone.acao + 2 * (borda.enfase + 2));
-    expect(DIAMETRO_DO_AVATAR).toBeGreaterThan(icone.acao);
+  it("a conta da altura fecha em cima dos tokens, com o rosto na altura de ícone mais palavra", () => {
+    const conteudoDoItem = icone.acao + espaco.e1 + linha.legenda;
+    expect(DIAMETRO_DO_AVATAR).toBe(conteudoDoItem);
+    expect(DIAMETRO_DO_AVATAR).toBeGreaterThan(icone.acao * 1.5);
 
-    const conteudoDoPerfil = DIAMETRO_DO_AVATAR + espaco.e1 + linha.legenda;
-    expect(ALTURA_MINIMA_DA_PILULA).toBe(conteudoDoPerfil + 2 * espaco.e1 + 2 * borda.fio);
+    expect(ALTURA_MINIMA_DA_PILULA).toBe(conteudoDoItem + 2 * espaco.e1 + 2 * borda.fio);
     /* O item, sem o contorno da pílula, nunca fica abaixo do alvo de toque. */
     expect(ALTURA_MINIMA_DA_PILULA - 2 * borda.fio).toBeGreaterThanOrEqual(toque);
   });
@@ -911,11 +964,7 @@ describe("o Perfil é a pessoa, em destaque", () => {
     expect(textoDe(achar(tela, "iniciais-do-agente"))).toBe("?");
   });
 
-  /*
-    A peça já aceita foto. O que não existe ainda é a foto: `identidade` não
-    traz nenhuma. Este caso garante que a porta continua aberta.
-  */
-  it("quando houver foto, ela entra no lugar das iniciais", async () => {
+  it("quando há foto, ela entra no lugar das iniciais e preenche o círculo inteiro", async () => {
     let tela: Tela | null = null;
     await act(async () => {
       tela = (await render(
@@ -924,9 +973,37 @@ describe("o Perfil é a pessoa, em destaque", () => {
     });
     if (!tela) throw new Error("o avatar não montou");
 
-    expect(achar(tela as Tela, "foto-do-agente").props.source)
-      .toEqual({ uri: "file:///rosto.jpg" });
+    const foto = achar(tela as Tela, "foto-do-agente");
+    expect(foto.props.source).toEqual({ uri: "file:///rosto.jpg" });
+    /* Um retrato de 24 pontos num círculo de 36 seria um selo numa moldura. */
+    const estilo = StyleSheet.flatten(foto.props.style) as Record<string, unknown>;
+    expect(estilo["position"]).toBe("absolute");
+    expect([estilo["top"], estilo["right"], estilo["bottom"], estilo["left"]]).toEqual([0, 0, 0, 0]);
     expect(talvez(tela as Tela, "iniciais-do-agente")).toBeNull();
+  });
+
+  /*
+    "Pode aparecer a foto do usuário caso ele tenha subido." A barra lê a
+    cópia local que o Perfil grava, e troca quando o disco avisa: quem tira a
+    foto no Perfil vê o menu mudar no mesmo instante, sem sair da tela.
+  */
+  it("a barra mostra a foto que está no aparelho, e troca quando o disco avisa", async () => {
+    mockFotoLocal = "file:///documentos/perfil-foto-u-joana-1.jpg";
+    const tela = await montarOAplicativo();
+
+    expect(achar(tela, "foto-do-agente").props.source)
+      .toEqual({ uri: "file:///documentos/perfil-foto-u-joana-1.jpg" });
+    expect(talvez(tela, "iniciais-do-agente")).toBeNull();
+
+    mockFotoLocal = "file:///documentos/perfil-foto-u-joana-2.jpg";
+    await act(async () => { for (const o of mockOuvintesDaFoto) o("u-joana"); });
+    expect(achar(tela, "foto-do-agente").props.source)
+      .toEqual({ uri: "file:///documentos/perfil-foto-u-joana-2.jpg" });
+
+    mockFotoLocal = null;
+    await act(async () => { for (const o of mockOuvintesDaFoto) o("u-joana"); });
+    expect(talvez(tela, "foto-do-agente")).toBeNull();
+    expect(textoDe(achar(tela, "iniciais-do-agente"))).toBe("JP");
   });
 
   it("o crachá do sino fica sobre o rosto, dentro do item do Perfil", async () => {
@@ -1190,13 +1267,27 @@ describe("sair da vistoria começada pergunta antes", () => {
 });
 
 describe("a passagem de uma tela para outra", () => {
-  it("a troca de aba desliza na direção da aba, com duração de token", async () => {
+  it("o navegador NÃO anima a cena, mesmo sem redução de movimento: é o que deixava a aba escura", async () => {
+    /*
+      A razão inteira está no cabeçalho de `ui/CenaDaAba.tsx`. Em resumo: a
+      cena animada com driver nativo é recomitada com opacidade zero quando
+      algo dentro dela faz `setState` no meio da transição, e o `Screen` da
+      biblioteca faz isso ao medir o cabeçalho na primeira montagem de toda
+      aba. Sem interpolador não existe valor nativo para ficar parado.
+    */
+    reducaoLigada = false;
     const abas = await montarAsAbas();
 
-    expect(abas["animation"]).toBe("shift");
-    const spec = abas["transitionSpec"] as { animation: string; config: { duration: number } };
-    expect(spec.animation).toBe("timing");
-    expect(spec.config.duration).toBe(movimento.respostaAoToque);
+    expect(abas["animation"]).toBe("none");
+    expect(abas["transitionSpec"]).toBeUndefined();
+    expect(abas["sceneStyleInterpolator"]).toBeUndefined();
+  });
+
+  it("a entrada da aba é nossa: o `screenLayout` é a função de módulo `desenharCena`", async () => {
+    await montarAsAbas();
+
+    const { desenharCena } = require("../ui/CenaDaAba") as typeof import("../ui/CenaDaAba");
+    expect(mockNavegador.cena).toBe(desenharCena);
   });
 
   it("entrar e sair da conta atravessam por opacidade, e não deslizando", async () => {

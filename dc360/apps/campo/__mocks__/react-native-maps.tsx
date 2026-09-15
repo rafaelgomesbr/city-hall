@@ -1,4 +1,4 @@
-import { createElement } from "react";
+import { createElement, forwardRef, useImperativeHandle } from "react";
 import { View } from "react-native";
 
 /**
@@ -73,16 +73,31 @@ export const mapaDublado: {
    * rua errada com o mapa dizendo que é a certa.
    */
   polilinhas: PropsDoMapaDublado[];
-} = { props: null, onMapLoaded: null, marcadores: [], polilinhas: [] };
+  /**
+   * Cada pedido de mover a câmera (`animateToRegion`), na ordem: a região
+   * pedida e a duração. Quem move é o SDK; o que se confere é PARA ONDE e
+   * SE a peça pediu, porque a régua é "só quando o pino está fora da vista".
+   */
+  camera: [unknown, unknown][];
+} = { props: null, onMapLoaded: null, marcadores: [], polilinhas: [], camera: [] };
 
 export function limparMapaDublado(): void {
   mapaDublado.props = null;
   mapaDublado.onMapLoaded = null;
   mapaDublado.marcadores = [];
   mapaDublado.polilinhas = [];
+  mapaDublado.camera = [];
 }
 
-function MapView(props: PropsDoMapaDublado) {
+/*
+  `forwardRef` porque a peça segura uma referência ao mapa para mover a
+  câmera. O dublê expõe só o que a peça chama.
+*/
+const MapView = forwardRef<{ animateToRegion: (r: unknown, d?: number) => void }, PropsDoMapaDublado>(
+  function MapView(props, ref) {
+  useImperativeHandle(ref, () => ({
+    animateToRegion: (regiao: unknown, duracao?: number) => { mapaDublado.camera.push([regiao, duracao]); },
+  }));
   mapaDublado.props = props;
   mapaDublado.onMapLoaded = (props["onMapLoaded"] as (() => void) | undefined) ?? null;
   /*
@@ -103,7 +118,8 @@ function MapView(props: PropsDoMapaDublado) {
     da causa.
   */
   return createElement(View, { testID: "mapa-do-google", ...props });
-}
+  },
+);
 
 /* O marcador não desenha nada, e continua não desenhando: quem o desenha é o
    SDK nativo. O que ele faz é REGISTRAR com que propriedades foi montado, para

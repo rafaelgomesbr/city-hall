@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { Directory, File, Paths } from "expo-file-system";
@@ -197,6 +198,51 @@ export function fotoLocalDoAgente(usuarioId: string): string | null {
 }
 
 /**
+ * QUEM MAIS MOSTRA O ROSTO, e como fica sabendo que ele mudou.
+ *
+ * A foto aparece em dois lugares: no topo do Perfil, que é quem a troca, e
+ * no avatar do menu, que está em toda tela. O menu não pode reler o disco a
+ * cada desenho (é uma listagem de pasta) nem pode depender de o Perfil estar
+ * montado. Então o disco AVISA: todo caminho que grava ou apaga uma cópia
+ * chama `avisarFotoMudou`, e quem desenha o rosto assina com
+ * `useFotoDoAgente`. É o mesmo desenho da fila e do sino: a fonte da verdade
+ * é o disco, e o aviso é só "releia".
+ */
+type OuvinteDaFoto = (usuarioId: string | null) => void;
+const ouvintesDaFoto = new Set<OuvinteDaFoto>();
+
+export function assinarFotoDoAgente(ouvinte: OuvinteDaFoto): () => void {
+  ouvintesDaFoto.add(ouvinte);
+  return () => { ouvintesDaFoto.delete(ouvinte); };
+}
+
+/** `null` quer dizer "todas": é o logout apagando o disco inteiro. */
+function avisarFotoMudou(usuarioId: string | null): void {
+  for (const ouvinte of ouvintesDaFoto) {
+    try { ouvinte(usuarioId); } catch { /* um ouvinte quebrado não cala os outros */ }
+  }
+}
+
+/**
+ * A cópia local da foto, viva: relê quando o disco avisa que mudou.
+ *
+ * Sem `usuarioId` (ninguém entrou) devolve nulo e não assina nada.
+ */
+export function useFotoDoAgente(usuarioId: string | null | undefined): string | null {
+  const [uri, setUri] = useState<string | null>(() => (usuarioId ? fotoLocalDoAgente(usuarioId) : null));
+
+  useEffect(() => {
+    if (!usuarioId) { setUri(null); return; }
+    setUri(fotoLocalDoAgente(usuarioId));
+    return assinarFotoDoAgente((mudou) => {
+      if (mudou === null || mudou === usuarioId) setUri(fotoLocalDoAgente(usuarioId));
+    });
+  }, [usuarioId]);
+
+  return uri;
+}
+
+/**
  * Envia a foto pelo ciclo da evidência e guarda a cópia local no fim.
  *
  * Toda falha sai em português e termina numa ação, porque quem lê está com o
@@ -241,6 +287,7 @@ export async function enviarFoto(
        próxima abertura com sinal. O envio já deu certo, e é isso que a
        tela precisa saber. */
   }
+  avisarFotoMudou(usuarioId);
   return { fotoUrl, uriLocal: destino.exists ? destino.uri : foto.uri };
 }
 
@@ -260,6 +307,7 @@ export async function baixarFotoDoAgente(
   const eu = await quemSouEu(token);
   if (!eu.fotoUrl) {
     apagarCopiasDe(usuarioId);
+    avisarFotoMudou(usuarioId);
     return { fotoLocal: null, email: eu.email };
   }
   /*
@@ -273,6 +321,7 @@ export async function baixarFotoDoAgente(
     for (const copia of copiasDe(usuarioId)) {
       if (copia.uri !== destino.uri) { try { copia.delete(); } catch { /* fica para o logout */ } }
     }
+    avisarFotoMudou(usuarioId);
     return { fotoLocal: destino.uri, email: eu.email };
   } catch {
     /* Baixar é conforto: a tela cai na cópia anterior ou nas iniciais, e
@@ -286,6 +335,7 @@ export async function baixarFotoDoAgente(
 export async function removerFotoDoAgente(token: string, usuarioId: string): Promise<void> {
   await removerFoto(token);
   apagarCopiasDe(usuarioId);
+  avisarFotoMudou(usuarioId);
 }
 
 /**
@@ -310,4 +360,5 @@ export function apagarFotosLocais(): void {
       }
     }
   } catch { /* pasta ilegível: não há o que apagar */ }
+  avisarFotoMudou(null);
 }

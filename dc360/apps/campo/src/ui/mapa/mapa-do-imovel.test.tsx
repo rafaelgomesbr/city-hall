@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { PRAZO_DO_MAPA_MS, decidirModoDoMapa } from "../../dados/mapa";
 import { DEMORA_MS, ProvedorDeTema } from "../componentes";
 import { espaco, movimento, temaClaro } from "../tokens";
-import { MapaDoImovel, enquadrar } from "./MapaDoImovel";
+import { MapaDoImovel, enquadrar, pontoNaVista } from "./MapaDoImovel";
 
 /**
  * O MAPA DENTRO DA TELA, e os três defeitos que estes casos travam.
@@ -599,5 +599,95 @@ describe("O recuo que a folha cobre", () => {
     const reservado = (mapaDublado.props?.["mapPadding"] as { bottom: number }).bottom;
     expect(reservado).toBeLessThan(400);
     expect(reservado).toBeGreaterThan(0);
+  });
+});
+
+/*
+  A CÂMERA E O PINO ABERTO, e a régua que concilia os dois argumentos.
+
+  O comentário de `initialRegion` está certo: mover o mapa a cada escolha
+  tiraria da tela o que o agente estava olhando. E "tudo conectado" também
+  está certo: expandir um item da lista e o pino dele estar FORA da vista
+  (porque o agente arrastou para a rua vizinha) é um toque sem resposta. A
+  régua: a câmera só se move quando o pino aberto não está na vista, e aí
+  ela vai até ele mantendo o zoom que o agente escolheu.
+*/
+describe("A câmera vai até o pino aberto só quando ele está fora da vista", () => {
+  const PERTO = { latitude: -27.586, longitude: -48.549 };
+  const LONGE = { latitude: -27.700, longitude: -48.700 };
+  const PINOS = [
+    { id: "perto", ponto: PERTO, rotulo: "Perto", severidade: "alta" as const },
+    { id: "longe", ponto: LONGE, rotulo: "Longe", severidade: "critica" as const },
+  ];
+
+  function peca(escolhido: string | null) {
+    return (
+      <ProvedorDeTema>
+        <MapaDoImovel
+          pinos={PINOS.map((p) => ({ ...p, escolhido: p.id === escolhido }))}
+          agente={AGENTE}
+          mapa={{
+            decisao: decidirModoDoMapa({ mapaAutorizado: true, doBuild: "chave-ios" }),
+            aoGoogleNaoDesenhar: naoDesenhou,
+            desistirDeEsperar: desistiu,
+          }}
+        />
+      </ProvedorDeTema>
+    );
+  }
+
+  type Tela = Awaited<ReturnType<typeof render>>;
+
+  async function montarDesenhadoEmVolta(centro: { latitude: number; longitude: number }): Promise<Tela> {
+    let tela!: Tela;
+    await act(async () => { tela = await render(peca(null)); });
+    await act(async () => { mapaDublado.onMapLoaded?.(); });
+    /* O agente arrastou: o mapa conta onde a câmera parou. */
+    const contar = mapaDublado.props?.["onRegionChangeComplete"] as
+      ((r: { latitude: number; longitude: number; latitudeDelta: number; longitudeDelta: number }) => void) | undefined;
+    await act(async () => {
+      contar?.({ ...centro, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+    });
+    return tela;
+  }
+
+  it("`pontoNaVista` mede contra a metade da abertura, com uma folga para o pino não nascer na borda", () => {
+    const vista = { latitude: 0, longitude: 0, latitudeDelta: 1, longitudeDelta: 1 };
+    expect(pontoNaVista({ latitude: 0.1, longitude: 0.1 }, vista)).toBe(true);
+    expect(pontoNaVista({ latitude: 0.49, longitude: 0 }, vista)).toBe(false);
+    expect(pontoNaVista({ latitude: 0, longitude: 0.6 }, vista)).toBe(false);
+  });
+
+  it("pino aberto DENTRO da vista: a câmera fica onde o agente a deixou", async () => {
+    const tela = await montarDesenhadoEmVolta(PERTO);
+    await act(async () => { await tela.rerender(peca("perto")); });
+
+    expect(mapaDublado.camera).toEqual([]);
+  });
+
+  it("pino aberto FORA da vista: a câmera vai até ele, com o mesmo zoom e duração de token", async () => {
+    const tela = await montarDesenhadoEmVolta(PERTO);
+    await act(async () => { await tela.rerender(peca("longe")); });
+
+    expect(mapaDublado.camera).toHaveLength(1);
+    const [regiao, duracao] = mapaDublado.camera[0]!;
+    expect(regiao).toEqual({ ...LONGE, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+    expect(duracao).toBe(movimento.mudancaDeEstado);
+  });
+
+  it("recolher o item (nenhum pino aberto) não move nada", async () => {
+    const tela = await montarDesenhadoEmVolta(PERTO);
+    await act(async () => { await tela.rerender(peca("longe")); });
+    await act(async () => { await tela.rerender(peca(null)); });
+
+    expect(mapaDublado.camera).toHaveLength(1);
+  });
+
+  it("antes de o mapa desenhar, escolher não move: a janela de abertura já cabe todos", async () => {
+    let tela!: Tela;
+    await act(async () => { tela = await render(peca(null)); });
+    await act(async () => { await tela.rerender(peca("longe")); });
+
+    expect(mapaDublado.camera).toEqual([]);
   });
 });

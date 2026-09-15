@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, type ComponentProps } from "react";
-import { Easing, View, type ColorValue } from "react-native";
+import { View, type ColorValue } from "react-native";
 import { Redirect, Tabs, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { FilaDeSincronizacao } from "@dc360/campo";
@@ -9,14 +9,14 @@ import { useSessao } from "../../dados/sessao";
 import { enderecoDaApi } from "../../dados/api";
 import { useTema } from "../../ui/componentes";
 import { BarraDeAbas } from "../../ui/BarraDeAbas";
+import { desenharCena } from "../../ui/CenaDaAba";
 import { FaixaDeSincronizacaoLigada } from "../../ui/FaixaDeSincronizacao";
 import { GuardaDeSaidaDaVistoria } from "../../ui/GuardaDeSaidaDaVistoria";
 import { Sino } from "../../ui/Sino";
 import { IconeEnvio, IconeMapa, IconeTarefas } from "../../ui/icones";
 import { familiaDoTexto } from "../../ui/tipografia";
 import { useFontes } from "../../ui/fontes";
-import { useReducaoDeMovimento } from "../../ui/useReducaoDeMovimento";
-import { easing, espaco, icone, movimento, peso, toque } from "../../ui/tokens";
+import { espaco, icone, movimento, peso, toque } from "../../ui/tokens";
 
 /**
  * A área autenticada: a faixa de conectividade no topo, o navegador de abas
@@ -51,8 +51,8 @@ import { easing, espaco, icone, movimento, peso, toque } from "../../ui/tokens";
  * desenha (`ui/BarraDeAbas.tsx`, `FaixaDeSincronizacaoLigada`), que são
  * filhos ou irmãos do navegador, nunca o pai dele. O laço da fila, que precisa
  * do sinal, mora num componente que não renderiza nada (`LacoDaFila`). As
- * `screenOptions` são memoizadas (com o `Easing.bezier` calculado uma vez) e o
- * `tabBar` é uma função de módulo, para que mesmo um redesenho raro deste
+ * `screenOptions` são memoizadas e o `tabBar` e o `screenLayout` são funções
+ * de módulo, para que mesmo um redesenho raro deste
  * layout (troca de tema, rotação) entregue ao navegador o mesmo objeto.
  *
  * A prova está em `src/__tests__/a-aba-nao-fica-escura.test.tsx` (o navegador
@@ -211,57 +211,43 @@ export default function LayoutDoAgente() {
   const tema = useTema();
   const margens = useSafeAreaInsets();
   const fontes = useFontes();
-  const reduzirMovimento = useReducaoDeMovimento();
 
   /*
-    As opções do navegador, calculadas uma vez por (tema, fonte, redução de
-    movimento) e mais nada. Tudo o que entra aqui é estável durante o uso:
-    tema muda quando o agente escolhe, fonte quando termina de carregar,
-    redução de movimento quando a chave do sistema muda.
+    As opções do navegador, calculadas uma vez por (tema, fonte) e mais nada.
+    Tudo o que entra aqui é estável durante o uso: tema muda quando o agente
+    escolhe, fonte quando termina de carregar. A redução de movimento não
+    entra mais: quem a lê é a entrada da aba (`ui/CenaDaAba.tsx`), fora
+    destas opções.
   */
   const screenOptions = useMemo<NonNullable<ComponentProps<typeof Tabs>["screenOptions"]>>(() => {
     /*
-      A PASSAGEM DE UMA TELA PARA OUTRA.
+      A PASSAGEM DE UMA TELA PARA OUTRA: O NAVEGADOR NÃO ANIMA A CENA.
 
-      `shift` e não `fade`: as telas deslizam 50 pontos na direção em que estão
-      na barra, cruzando a opacidade. A direção é o que carrega informação, e
-      ela é de graça aqui, porque o React Navigation a tira da POSIÇÃO da aba:
-      sair de Tarefas para Envio vem da direita, voltar vem da esquerda. A
-      vistoria é a última rota declarada neste arquivo, então ela SEMPRE entra
-      pela direita, que é como o olho lê "avancei para dentro do trabalho".
+      Esta linha já foi `animation: "shift"` com 120 ms de token, e ficou
+      bonita e errada. A cena animada pelo `BottomTabView` roda com driver
+      nativo, e na arquitetura nova um redesenho da cena no meio da transição
+      a recomita com o valor que o JavaScript conhece, que é o de partida:
+      opacidade zero. A aba ficava escura até a próxima transição. O primeiro
+      gatilho (este layout guardando estado) saiu, e a aba continuou escura
+      no aparelho: o `Screen` da biblioteca mede o cabeçalho no `onLayout` e
+      guarda a altura em ESTADO, e como o cabeçalho daqui zera a barra de
+      status, a medida sempre difere da estimativa, e toda primeira montagem
+      de aba faz `setState` dentro da cena. A história inteira, com o que
+      cada gatilho tinha de diferente, está em `ui/CenaDaAba.tsx`.
 
-      A duração é `respostaAoToque` e não `mudancaDeEstado`: isto responde ao
-      dedo do agente, não é algo que mudou sozinho. Acima de uns 150 ms uma
-      troca de aba começa a parecer que o toque não pegou.
+      `animation: "none"` SEMPRE, e não só com redução de movimento: sem
+      interpolador a cena nasce com opacidade cheia e `activityState`
+      constante, e não existe valor nativo para ficar parado. A entrada
+      suave passa a ser nossa, pelo `screenLayout` (`desenharCena`), com
+      driver JavaScript, que nunca perde o valor corrente.
 
-      E some inteiro para quem pediu redução de movimento: `animation: "none"`
-      desliga o interpolador, e sem interpolador nenhuma propriedade é animada.
-
-      SEM `react-native-reanimated`, e a decisão é deliberada. Ele está
+      SEM `react-native-reanimated`, e a decisão continua deliberada. Ele está
       instalado e inerte, só como dependência de par do `expo-router` e do
-      `react-native-screens`. Quem anima a troca de aba é o próprio
-      `BottomTabView`, com `Animated` do React Native e `useNativeDriver`
-      ligado, então o movimento já roda na camada nativa. O que custaria é o
-      plugin de Babel que o reanimated exige, e `babel.config.js` é mínimo de
-      propósito. Ligar o reanimated é decisão para quando existir gesto
-      contínuo; não existe nenhum aqui.
-
-      O `Easing.bezier` é calculado AQUI DENTRO, uma vez por memoização, e não
-      a cada renderização: uma função nova de easing a cada quadro era parte
-      do que fazia o navegador enxergar opções novas.
+      `react-native-screens`. O que custaria é o plugin de Babel que ele
+      exige, e `babel.config.js` é mínimo de propósito. Ligar o reanimated é
+      decisão para quando existir gesto contínuo; não existe nenhum aqui.
     */
-    const transicaoEntreTelas = reduzirMovimento
-      ? { animation: "none" as const }
-      : {
-        animation: "shift" as const,
-        transitionSpec: {
-          animation: "timing" as const,
-          config: {
-            duration: movimento.respostaAoToque,
-            easing: Easing.bezier(...easing.entrada),
-          },
-        },
-      };
+    const transicaoEntreTelas = { animation: "none" as const };
 
     return {
       headerStyle: {
@@ -324,7 +310,7 @@ export default function LayoutDoAgente() {
         ajustar o menu no arquivo errado. Quem desenha é `ui/BarraDeAbas.tsx`.
       */
     };
-  }, [tema, fontes.prontas, reduzirMovimento]);
+  }, [tema, fontes.prontas]);
 
   if (!identidade) return <Redirect href="/entrar" />;
 
@@ -365,7 +351,7 @@ export default function LayoutDoAgente() {
         redesenhado. Ver o cabeçalho de `GuardaDeSaidaDaVistoria`.
       */}
       <GuardaDeSaidaDaVistoria>
-        <Tabs tabBar={desenharBarra} screenOptions={screenOptions}>
+        <Tabs tabBar={desenharBarra} screenOptions={screenOptions} screenLayout={desenharCena}>
           <Tabs.Screen name="index" options={OPCOES_TAREFAS} />
           {/* O MAPA, entre as tarefas e o envio, e a posição é a ordem de uso:
               o agente abre a lista, decide por onde começar (é para isso que o

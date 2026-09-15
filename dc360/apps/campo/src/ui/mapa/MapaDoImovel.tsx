@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ComponentRef } from "react";
+import type { Region } from "react-native-maps";
 import { View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 
@@ -11,6 +12,7 @@ import { ModoDoMapaDito } from "./ModoDoMapaDito";
 import { PlanoDasTarefas } from "./PlanoDasTarefas";
 import { PlanoEsquematico } from "./PlanoEsquematico";
 import { estiloDoGoogle } from "./estilo-do-google";
+import { useReducaoDeMovimento } from "../useReducaoDeMovimento";
 import type { PinoNoMapa } from "./pinos";
 import type { EstadoDoMapa } from "./useMapaDoMunicipio";
 
@@ -247,6 +249,7 @@ export function MapaDoImovel(props: PropsDoMapa) {
   const tema = useTema();
   const [desenhou, setDesenhou] = useState(false);
   const modo = decisao?.modo ?? null;
+  const reduzirMovimento = useReducaoDeMovimento();
 
   /*
     O PRAZO, que é o `gm_authFailure` que o SDK nativo não tem.
@@ -270,6 +273,44 @@ export function MapaDoImovel(props: PropsDoMapa) {
   const preenche = altura === "preencher";
   const alturaEmPontos = preenche ? null : altura;
   /* Nunca negativo e nunca a moldura toda. Ver `TETO_DO_RECUO`. */
+  /*
+    A CÂMERA E O PINO ABERTO.
+
+    O comentário de `initialRegion`, lá embaixo, continua valendo: a câmera é
+    do agente, e escolher um pino não a move. Com uma ressalva, que é o
+    "tudo conectado" do pedido: se o agente arrastou o mapa para a rua
+    vizinha e abre na lista um item cujo pino ficou FORA da vista, o toque
+    não teria resposta nenhuma no mapa. Aí, e só aí, a câmera vai até o
+    pino, mantendo o zoom que ele escolheu (a abertura da vista não muda).
+
+    `regiaoVista` é onde a câmera parou pela última vez, pelo que o próprio
+    mapa conta em `onRegionChangeComplete`; antes de o mapa desenhar não há
+    vista para comparar, e a janela de abertura já cabe todos os pontos, então
+    nada se move.
+
+    Os ganchos moram AQUI, antes do `return` da espera pela configuração:
+    gancho depois de retorno condicional muda de número entre desenhos, e o
+    React derruba a peça inteira ("Rendered more hooks").
+  */
+  /* `ComponentRef<typeof MapView>` e não `<MapView>`: o portão do mapa varre
+     toda abertura `<MapView` do aplicativo e cobraria o provedor de um tipo. */
+  const mapaRef = useRef<ComponentRef<typeof MapView>>(null);
+  const regiaoVista = useRef<Region | null>(null);
+  const aberto = props.pinos?.find((p) => p.escolhido) ?? null;
+  const idAberto = aberto?.id ?? null;
+  const pontoAberto = aberto?.ponto ?? null;
+  useEffect(() => {
+    if (modo !== "google" || !desenhou || !pontoAberto) return;
+    const vista = regiaoVista.current;
+    if (!vista || pontoNaVista(pontoAberto, vista)) return;
+    mapaRef.current?.animateToRegion(
+      { ...vista, latitude: pontoAberto.latitude, longitude: pontoAberto.longitude },
+      reduzirMovimento ? 0 : movimento.mudancaDeEstado,
+    );
+    /* Só a IDENTIDADE do pino aberto dispara: o ponto de um mesmo pino não muda. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idAberto, modo, desenhou]);
+
   const reservado = alturaEmPontos === null
     ? 0
     : Math.min(Math.max(0, recuoInferior), alturaEmPontos * TETO_DO_RECUO);
@@ -321,6 +362,7 @@ export function MapaDoImovel(props: PropsDoMapa) {
     : [alvo.imovel];
   const janela = enquadrar(pontos, agente);
 
+
   return (
     <View style={{ gap: espaco.e2, ...(preenche ? { flex: 1 } : {}) }}>
       {/*
@@ -345,8 +387,13 @@ export function MapaDoImovel(props: PropsDoMapa) {
           <MapView
             /*
               Nos dois lados, e de propósito. Ver o cabeçalho deste arquivo.
+              Primeira propriedade, porque o portão do mapa lê a abertura da
+              peça até o primeiro `>` e precisa ver o provedor antes de
+              qualquer função com seta.
             */
             provider={PROVIDER_GOOGLE}
+            ref={mapaRef}
+            onRegionChangeComplete={(regiao) => { regiaoVista.current = regiao; }}
             style={{ flex: 1 }}
             customMapStyle={estiloDoGoogle(tema)}
             /*
@@ -363,7 +410,8 @@ export function MapaDoImovel(props: PropsDoMapa) {
               É por isso que escolher outro pino NÃO move o mapa: não precisa,
               porque o que ele escolheu já está enquadrado desde a abertura, e
               mover seria tirar da tela o que ele estava olhando para responder
-              uma pergunta que ele não fez.
+              uma pergunta que ele não fez. A única exceção é o pino aberto
+              estar FORA da vista, e ela está escrita em `regiaoVista`.
             */
             initialRegion={janela}
             /*
@@ -492,6 +540,23 @@ export function MapaDoImovel(props: PropsDoMapa) {
  * janela possível é uma janela inventada, e a que o SDK escolhe sozinho é o
  * meio do oceano Atlântico.
  */
+/**
+ * Se um ponto está dentro da vista, com folga: um pino a 1% da borda "está
+ * na vista" pela geometria e está debaixo do dedo ou do recuo pela prática.
+ * A folga de 10% de cada lado é o que faz a câmera ir até ele nesse caso.
+ */
+export const FOLGA_DA_VISTA = 0.1;
+
+export function pontoNaVista(
+  ponto: Ponto,
+  vista: { latitude: number; longitude: number; latitudeDelta: number; longitudeDelta: number },
+): boolean {
+  const meiaLat = (vista.latitudeDelta / 2) * (1 - FOLGA_DA_VISTA);
+  const meiaLng = (vista.longitudeDelta / 2) * (1 - FOLGA_DA_VISTA);
+  return Math.abs(ponto.latitude - vista.latitude) <= meiaLat
+    && Math.abs(ponto.longitude - vista.longitude) <= meiaLng;
+}
+
 export function enquadrar(pontos: readonly Ponto[], agente: Ponto | null): {
   latitude: number; longitude: number; latitudeDelta: number; longitudeDelta: number;
 } | null {

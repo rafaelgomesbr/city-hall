@@ -34,6 +34,7 @@ import { useGuardaDeSaida } from "./GuardaDeSaidaDaVistoria";
 import { textoDoCracha, useContagemDeAvisos, type ContagemDeAvisos } from "../dados/avisos";
 import { contagemDaFila, fraseDaFila, useResumoDaFila } from "../dados/resumo-da-fila";
 import { useSessao } from "../dados/sessao";
+import { useFotoDoAgente } from "../dados/foto-do-agente";
 import {
   borda, easing, elevacao, espaco, foco, icone, linha, movimento, opacidade, peso, raio, toque,
 } from "./tokens";
@@ -75,17 +76,21 @@ import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
  *
  * ## A conta da altura
  *
- *     avatar do Perfil = icone.acao (24) + 2 × (borda.enfase (2) + foco.folga (2)) = 32
- *     conteúdo do item = avatar (32) + espaco.e1 (4) + linha.legenda (16)      = 52
+ *     conteúdo do item = icone.acao (24) + espaco.e1 (4) + linha.legenda (16) = 44
+ *     avatar do Perfil = a mesma altura do conteúdo (44), sem palavra embaixo
  *     respiro          = espaco.e1 em cima + espaco.e1 embaixo                 =  8
- *     item             = 52 + 8                                                = 60
- *     pílula           = item + 2 × borda.fio (o contorno da elevação)         = 62
+ *     item             = 44 + 8                                                = 52
+ *     pílula           = item + 2 × borda.fio (o contorno da elevação)         = 54
  *     reserva na cena  = pílula + espaco.e3 (recuo do fundo) + área segura
  *
- * O item mais alto é o do Perfil, porque o avatar é maior que os pictogramas
- * (32 contra 24), e é ele que decide a altura da pílula: os outros três
- * esticam junto. Nenhum item fica abaixo de `toque` (52), que é o alvo mínimo
- * do produto, e o portão de acessibilidade refaz essa conta.
+ * O avatar do Perfil ocupa EXATAMENTE a altura de ícone mais palavra dos
+ * vizinhos, e não tem palavra embaixo: o rosto é o rótulo. Foi pedido assim
+ * ("o item da aba perfil não precisa do nome perfil abaixo, e pode aparecer
+ * a foto do usuário"), e a régua de "ícone COM palavra" continua cumprida
+ * pelo canal que importa: o `accessibilityLabel` do item diz "Perfil" e a
+ * contagem do sino, e o anel na cor de destaque é a segunda pista visual ao
+ * lado do indicador. O item fecha em `toque` (52), que é o alvo mínimo do
+ * produto, e o portão de acessibilidade refaz essa conta.
  *
  * ## O que esta peça decide, e o que ela lê de fora
  *
@@ -119,22 +124,33 @@ const ROTA_DA_FILA = "fila";
 const ROTA_DO_PERFIL = "perfil";
 
 /**
- * O diâmetro do avatar do Perfil: o ícone de ação, mais o anel e a folga dele.
+ * A altura do conteúdo de um item com ícone e palavra: é o que os três
+ * vizinhos do Perfil medem, e é a régua do avatar.
+ */
+const CONTEUDO_DO_ITEM = icone.acao + espaco.e1 + linha.legenda;
+
+/**
+ * O diâmetro do avatar do Perfil: a altura inteira de ícone mais palavra dos
+ * vizinhos (44), anel incluído.
+ *
+ * Sem palavra embaixo, o rosto cresce até a mesma linha de topo e de base
+ * dos outros itens, e a fileira lê como UMA linha com um rosto no fim, e não
+ * como três ícones e um botão de outra altura. É quase o dobro dos 24 dos
+ * pictogramas: o "em destaque" do pedido, sem inventar degrau novo na escala
+ * de ícone, porque o número sai da soma dos tokens que os vizinhos já usam.
  *
  * O anel é a mesma figura do anel de foco (`foco`): uma borda de `enfase` com
  * uma folga entre ela e a peça, porque anel colado no contorno vira um traço
- * grosso só. Somando os dois lados, o rosto fica com 32, contra os 24 dos
- * pictogramas, que é o "maior que os ícones" do pedido, sem inventar um degrau
- * novo na escala de ícone.
+ * grosso só. A foto (ou as iniciais) ocupa o que sobra dentro.
  */
-export const DIAMETRO_DO_AVATAR = icone.acao + 2 * (borda.enfase + foco.folga);
+export const DIAMETRO_DO_AVATAR = CONTEUDO_DO_ITEM;
 
 /** O respiro de cima e de baixo de cada item, dentro da pílula. */
 const RESPIRO_DO_ITEM = espaco.e1;
 
 /** A altura da pílula com o conteúdo mínimo: é a conta do cabeçalho. */
 export const ALTURA_MINIMA_DA_PILULA =
-  DIAMETRO_DO_AVATAR + espaco.e1 + linha.legenda + 2 * RESPIRO_DO_ITEM + 2 * borda.fio;
+  DIAMETRO_DO_AVATAR + 2 * RESPIRO_DO_ITEM + 2 * borda.fio;
 
 /** Quanto a pílula recua das bordas laterais da tela. */
 export const RECUO_LATERAL = espaco.e4;
@@ -208,14 +224,15 @@ function iniciaisDe(nome: string): string {
  * razão escrita em `tokens.ts`: sem ela o anel encosta no contorno da peça e
  * os dois viram um traço grosso só, que some para quem tem baixa visão.
  *
- * PENDÊNCIA NOMEADA: a FOTO. A peça já a aceita e já a desenha, e quem não a
- * passa é a barra, porque `identidade` não traz fotografia nenhuma. Publicá-la
- * depende de a API expor o campo no perfil do usuário; no dia em que entrar,
- * muda uma propriedade e mais nada.
+ * A FOTO vem do disco do aparelho, pela cópia local que o Perfil grava ao
+ * trocar (`dados/foto-do-agente.ts`), e a barra a lê por `useFotoDoAgente`,
+ * que relê quando o disco avisa. Sem foto, as iniciais. A foto preenche o
+ * círculo inteiro: um retrato de 24 pontos num círculo de 36 seria uma
+ * moldura com um selo no meio.
  */
 export function AvatarDoAgente({ nome, foto, ativo }: {
   nome: string;
-  /** Caminho local ou remoto do rosto. Ver a pendência acima. */
+  /** Caminho local (ou remoto) do rosto; nulo ou ausente desenha as iniciais. */
   foto?: string | null;
   ativo: boolean;
 }) {
@@ -257,7 +274,7 @@ export function AvatarDoAgente({ nome, foto, ativo }: {
             <Image
               testID="foto-do-agente"
               source={{ uri: foto }}
-              style={{ width: icone.acao, height: icone.acao }}
+              style={StyleSheet.absoluteFill}
             />
           )
           : (
@@ -349,6 +366,7 @@ type RotaDaBarra = PropsDaBarra["state"]["routes"][number];
 export function BarraDeAbas({ state, descriptors, navigation, insets }: PropsDaBarra) {
   const tema = useTema();
   const { identidade } = useSessao();
+  const fotoDoAgente = useFotoDoAgente(identidade?.usuarioId);
   const janela = useWindowDimensions();
   const reduzirMovimento = useReducaoDeMovimento();
   const resumo = useResumoDaFila();
@@ -656,7 +674,7 @@ export function BarraDeAbas({ state, descriptors, navigation, insets }: PropsDaB
               >
                 <View>
                   {ehPerfil
-                    ? <AvatarDoAgente nome={identidade?.nome ?? ""} ativo={aberta} />
+                    ? <AvatarDoAgente nome={identidade?.nome ?? ""} foto={fotoDoAgente} ativo={aberta} />
                     : options.tabBarIcon?.({ focused: aberta, color: cor, size: icone.acao })}
                   {cracha && (
                     <Cracha
@@ -668,19 +686,22 @@ export function BarraDeAbas({ state, descriptors, navigation, insets }: PropsDaB
                   )}
                 </View>
 
-                {/* Invólucro pelo mesmo motivo das iniciais: `Txt` não recebe
-                    identificador, e o portão precisa ler a palavra sem o crachá
-                    junto. */}
-                <View testID={`rotulo-da-aba-${rota.name}`}>
-                  <Txt
-                    variante="legenda"
-                    peso={aberta ? peso.negrito : peso.forte}
-                    cor={cor}
-                    alinhamento="center"
-                  >
-                    {rotulo}
-                  </Txt>
-                </View>
+                {/* O Perfil não tem palavra: o rosto é o rótulo (ver a conta
+                    da altura no cabeçalho). Invólucro pelo mesmo motivo das
+                    iniciais: `Txt` não recebe identificador, e o portão precisa
+                    ler a palavra sem o crachá junto. */}
+                {!ehPerfil && (
+                  <View testID={`rotulo-da-aba-${rota.name}`}>
+                    <Txt
+                      variante="legenda"
+                      peso={aberta ? peso.negrito : peso.forte}
+                      cor={cor}
+                      alinhamento="center"
+                    >
+                      {rotulo}
+                    </Txt>
+                  </View>
+                )}
               </Tocavel>
             );
           })}

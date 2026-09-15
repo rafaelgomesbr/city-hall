@@ -122,7 +122,7 @@ const mockFetch = jest.fn();
 (globalThis as { fetch: unknown }).fetch = mockFetch;
 
 import {
-  LADO_DA_FOTO, apagarFotosLocais, baixarFotoDoAgente, enviarFoto, escolherFoto,
+  LADO_DA_FOTO, apagarFotosLocais, assinarFotoDoAgente, baixarFotoDoAgente, enviarFoto, escolherFoto,
   fotoLocalDoAgente, removerFotoDoAgente,
 } from "./foto-do-agente";
 
@@ -307,5 +307,62 @@ describe("a cópia local", () => {
       "file:///documentos/perfil-foto-u1-a.jpg", "file:///documentos/perfil-foto-u2-b.jpg",
     ]);
     expect(mockArquivos.has("file:///documentos/foto-1700000000-0.jpg")).toBe(true);
+  });
+});
+
+/*
+  O ROSTO ESTÁ EM DOIS LUGARES (o topo do Perfil e o avatar do menu), e o
+  menu não pode reler o disco a cada desenho nem depender de o Perfil estar
+  montado. Todo caminho que grava ou apaga uma cópia AVISA, e o aviso diz de
+  quem é a foto (ou `null` no logout, que apaga de todo mundo).
+*/
+describe("quem mostra o rosto fica sabendo que ele mudou", () => {
+  it("remover avisa com o usuário, e quem desassinou não ouve mais", async () => {
+    mockArquivos.set("file:///documentos/perfil-foto-u1-a.jpg", { tamanho: 1, conteudo: new Uint8Array(1) });
+    mockRemover.mockResolvedValue(undefined);
+    const avisos: (string | null)[] = [];
+    const desassinar = assinarFotoDoAgente((u) => { avisos.push(u); });
+
+    await removerFotoDoAgente("token", EU);
+    expect(avisos).toEqual([EU]);
+
+    desassinar();
+    await removerFotoDoAgente("token", EU);
+    expect(avisos).toEqual([EU]);
+  });
+
+  it("baixar avisa nos dois desfechos: foto nova e foto que o servidor já não tem", async () => {
+    const avisos: (string | null)[] = [];
+    const desassinar = assinarFotoDoAgente((u) => { avisos.push(u); });
+
+    mockQuemSouEu.mockResolvedValue({ fotoUrl: "https://balde.exemplo/f?assinatura=1", email: "eu@exemplo.gov.br" });
+    await baixarFotoDoAgente("token", EU);
+    mockQuemSouEu.mockResolvedValue({ fotoUrl: null, email: "eu@exemplo.gov.br" });
+    await baixarFotoDoAgente("token", EU);
+
+    expect(avisos).toEqual([EU, EU]);
+    desassinar();
+  });
+
+  it("o logout avisa `null`, que quer dizer todo mundo", () => {
+    const avisos: (string | null)[] = [];
+    const desassinar = assinarFotoDoAgente((u) => { avisos.push(u); });
+
+    apagarFotosLocais();
+
+    expect(avisos).toEqual([null]);
+    desassinar();
+  });
+
+  it("um ouvinte que estoura não cala os outros", async () => {
+    mockRemover.mockResolvedValue(undefined);
+    const chegou: string[] = [];
+    const d1 = assinarFotoDoAgente(() => { throw new Error("quebrei"); });
+    const d2 = assinarFotoDoAgente((u) => { chegou.push(u ?? "todos"); });
+
+    await expect(removerFotoDoAgente("token", EU)).resolves.toBeUndefined();
+
+    expect(chegou).toEqual([EU]);
+    d1(); d2();
   });
 });

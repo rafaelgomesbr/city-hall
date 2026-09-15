@@ -23,12 +23,21 @@
  * 4. **Coordenada 0,0 não é ponto.** A ilha nula fica a seis mil quilômetros de
  *    qualquer município brasileiro, e `pontoQueSeMede` a recusa. Um pino ali
  *    seria o mapa afirmando um lugar que ninguém informou.
+ * 5. **A lista é a superfície, e ela pergunta antes de agir.** Segundo relato
+ *    de quem paga, com o iPhone na mão: "ao clicar em ver caminho não me leva
+ *    pro app da google maps e tem uma redundância (...) mostra o item
+ *    expandido com os btns e abaixo o mesmo item só que resumido". O cartão da
+ *    escolhida saiu; o item da lista expande no lugar, um por vez, com os dois
+ *    botões dentro; a lista mostra cinco e cresce a pedido; "Ver o caminho" e
+ *    o toque no pino abrem uma folha que pergunta o que fazer, dizendo de qual
+ *    tarefa fala.
  *
  * Mora em `__tests__` e não ao lado da tela porque tudo dentro de `src/app`
  * vira ROTA no Expo.
  */
 
 import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
+import { AccessibilityInfo, Animated, ScrollView } from "react-native";
 import type { Pendencia } from "../dados/api";
 
 jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
@@ -76,10 +85,21 @@ jest.mock("../dados/api", () => ({
   desenho de reserva.
 */
 let mockChaveDoMunicipio = "";
+/*
+  AS DUAS AÇÕES DO APARELHO, dubladas na fronteira: abrir o mapa do aparelho e
+  copiar a coordenada. O que elas fazem por dentro (a URL por plataforma, a
+  área de transferência) tem arquivo próprio, `dados/mapa.test.ts`. O que se
+  pergunta AQUI é se a resposta certa da folha chama a ação certa, com a
+  coordenada da tarefa certa.
+*/
+const mockAbrirNoMapa = jest.fn(async () => true);
+const mockCopiarCoordenada = jest.fn(async () => true);
 jest.mock("../dados/mapa", () => ({
   ...(jest.requireActual("../dados/mapa") as object),
   buscarAutorizacaoDoMapa: async () => mockChaveDoMunicipio !== "",
   chaveDoMapaDoBuild: () => mockChaveDoMunicipio,
+  abrirNoMapa: (...args: unknown[]) => mockAbrirNoMapa(...(args as [])),
+  copiarCoordenada: (...args: unknown[]) => mockCopiarCoordenada(...(args as [])),
 }));
 
 let mockTarefas: Pendencia[] = [];
@@ -154,7 +174,7 @@ import { BottomTabBarHeightContext } from "expo-router/build/react-navigation/bo
 import Mapa from "../app/(agente)/mapa";
 import { CaminhoIndisponivel } from "../dados/rota";
 import { LADO_MAXIMO_DO_MAPA, ladoDoMapa } from "../ui/mapa/lado";
-import { espaco } from "../ui/tokens";
+import { espaco, movimento } from "../ui/tokens";
 import { limparMapaDublado, mapaDublado } from "../../__mocks__/react-native-maps";
 
 const HORA = 3_600_000;
@@ -225,8 +245,70 @@ beforeEach(() => {
   }));
   mockEmpurrar.mockClear();
   mockPedirPermissao.mockClear();
+  mockAbrirNoMapa.mockClear();
+  mockAbrirNoMapa.mockImplementation(async () => true);
+  mockCopiarCoordenada.mockClear();
+  mockCopiarCoordenada.mockImplementation(async () => true);
+  aRolagemDaTela().mockClear();
   limparMapaDublado();
 });
+
+/*
+  O espião de `Animated.timing`, devolvido caso a caso e NUNCA por
+  `jest.restoreAllMocks()`: aquele também zera a implementação dos `jest.fn`
+  de módulo lá de cima (`pendenciasGuardadas`, `listarColetas`), a leitura do
+  disco passa a rejeitar, a tela fica em "Abrindo o mapa" para sempre e todos
+  os casos seguintes morrem por tempo esgotado, longe da causa.
+*/
+let espiaoDeAnimacao: jest.SpyInstance | null = null;
+function espiarAnimacao(): jest.SpyInstance {
+  espiaoDeAnimacao = jest.spyOn(Animated, "timing");
+  return espiaoDeAnimacao;
+}
+
+afterEach(() => {
+  espiaoDeAnimacao?.mockRestore();
+  espiaoDeAnimacao = null;
+  /*
+    `isReduceMotionEnabled` já nasce como `jest.fn` no dublê do React Native, e
+    `spyOn` sobre um `jest.fn` não cria espião nenhum. Sem esta linha, o caso
+    da redução de movimento deixaria a chave ligada para todos os casos
+    seguintes, e eles passariam a testar um aparelho que não anima nada.
+  */
+  (AccessibilityInfo.isReduceMotionEnabled as jest.Mock).mockImplementation(
+    () => Promise.resolve(false),
+  );
+});
+
+/** A rolagem da tela, pelo dublê: `scrollTo` mora no protótipo do `ScrollView` de teste. */
+function aRolagemDaTela(): jest.Mock {
+  return (ScrollView.prototype as unknown as { scrollTo: jest.Mock }).scrollTo;
+}
+
+/**
+ * Simula o leiaute medido de um nó, como o aparelho faria depois de desenhar.
+ *
+ * `await`, porque `fireEvent` devolve promessa nesta versão da biblioteca e
+ * abre um `act` que só fecha quando ela resolve. Disparado sem esperar, o
+ * `act` seguinte abre dentro dele ("overlapping act() calls"), o React desliga
+ * o ambiente de `act` para o ARQUIVO inteiro, e todos os casos seguintes
+ * morrem por tempo esgotado esperando uma lista que nunca monta.
+ */
+async function medir(testID: string, y: number, height = 100): Promise<void> {
+  await fireEvent(screen.getByTestId(testID), "layout", {
+    nativeEvent: { layout: { x: 0, y, width: 360, height } },
+  });
+}
+
+/** O item da lista inteiro (resumo mais o detalhe expandido), por tarefa. */
+function item(id: string) {
+  return within(screen.getByTestId(`tarefa-${id}`));
+}
+
+/** O item está expandido? Lido do estado que o leitor de tela anuncia. */
+function expandido(id: string): boolean {
+  return Boolean(screen.getByTestId(`escolher-${id}`).props.accessibilityState?.expanded);
+}
 
 /**
  * As rolagens montadas, pelo elemento NATIVO que o dublê do React Native
@@ -241,6 +323,7 @@ function rolagens() {
 function estiloDe(no: { props: { style?: unknown; contentContainerStyle?: unknown } }, qual: "style" | "contentContainerStyle" = "style"): Record<string, unknown> {
   return Object.assign({}, ...[no.props[qual]].flat(Number.POSITIVE_INFINITY).filter(Boolean));
 }
+
 
 /* ============================================================
    A tela inteira rola, e o mapa é um quadrado
@@ -262,7 +345,7 @@ describe("a tela inteira rola, numa rolagem só", () => {
     ];
   });
 
-  it("há uma ScrollView só, e cabeçalho, mapa, cartão e lista estão dentro dela", async () => {
+  it("há uma ScrollView só, e cabeçalho, mapa e lista estão dentro dela", async () => {
     await abrirOMapa();
     const todas = rolagens();
     /* Duas rolagens seria a lista rolando sozinha de novo. */
@@ -270,7 +353,7 @@ describe("a tela inteira rola, numa rolagem só", () => {
     expect(todas[0]?.props["testID"]).toBe("tela-do-mapa");
 
     const tela = screen.getByTestId("tela-do-mapa");
-    for (const id of ["quantas-no-mapa", "area-do-mapa", "cartao-da-escolhida", "lista-do-mapa"]) {
+    for (const id of ["quantas-no-mapa", "area-do-mapa", "lista-do-mapa"]) {
       expect(within(tela).getByTestId(id)).toBeTruthy();
     }
   });
@@ -335,11 +418,245 @@ describe("a tela inteira rola, numa rolagem só", () => {
 });
 
 /* ============================================================
-   Ver o caminho: rota e tempo só quando o agente pedir
+   A lista é a superfície: um item expande, e não há cartão à parte
    ============================================================ */
 
-describe("ver o caminho, no toque e só no toque", () => {
+describe("a lista é a superfície, e o item expande no lugar", () => {
+  /*
+    A REDUNDÂNCIA, na letra de quem paga: "mostra o item expandido com os btns
+    ver o caminho e abrir a vistoria, e abaixo o mesmo item só que resumido".
+    Era um cartão da escolhida separado da lista, e a lista repetia a escolhida.
+    A proposta dele, que é o que estes casos travam: "uma lista paginada com
+    itens resumidos e ao expandir mostrar os btns".
+  */
+  beforeEach(() => {
+    mockPermissaoConcedida = true;
+    mockUltimaPosicao = { coords: AQUI };
+    mockTarefas = [
+      tarefa({ id: "primeira", protocolo: "000100/2026", severidade: "critica", ...aoNorte(400) }),
+      tarefa({ id: "segunda", protocolo: "000200/2026", severidade: "media", endereco: "Rua de Cima, 9", ...aoNorte(3_000) }),
+      tarefa({ id: "terceira", protocolo: "000300/2026", severidade: "baixa", ...aoNorte(5_000) }),
+    ];
+  });
+
+  it("não existe mais um cartão da escolhida separado da lista", async () => {
+    await abrirOMapa();
+    expect(screen.queryByTestId("cartao-da-escolhida")).toBeNull();
+    /* Cada tarefa aparece UMA vez: o protocolo da sugerida não está em dois lugares. */
+    expect(screen.getAllByText("000100/2026")).toHaveLength(1);
+  });
+
+  it("a tela abre com a sugerida do dia expandida, com os dois botões dentro dela", async () => {
+    await abrirOMapa();
+    expect(expandido("primeira")).toBe(true);
+    expect(item("primeira").getByTestId("ver-o-caminho")).toBeTruthy();
+    expect(item("primeira").getByTestId("abrir-a-vistoria")).toBeTruthy();
+    /* E as outras estão resumidas: sem botão nenhum. */
+    expect(expandido("segunda")).toBe(false);
+    expect(item("segunda").queryByTestId("abrir-a-vistoria")).toBeNull();
+  });
+
+  it("tocar num item resumido expande ELE, mostra o detalhe e os botões, e recolhe o outro", async () => {
+    await abrirOMapa();
+    await tocar("escolher-segunda");
+
+    expect(expandido("segunda")).toBe(true);
+    expect(expandido("primeira")).toBe(false);
+    expect(item("segunda").getByTestId("ver-o-caminho")).toBeTruthy();
+    expect(item("segunda").getByTestId("abrir-a-vistoria")).toBeTruthy();
+    expect(item("primeira").queryByTestId("abrir-a-vistoria")).toBeNull();
+    /* Um aberto por vez, na tela inteira. */
+    expect(screen.getAllByTestId("abrir-a-vistoria")).toHaveLength(1);
+
+    /* O detalhe: prazo com data, rumo e distância, endereço inteiro. */
+    expect(item("segunda").getByText(/Vence em/)).toBeTruthy();
+    expect(item("segunda").getByText(/3,0 km a norte de onde você está/)).toBeTruthy();
+    expect(item("segunda").getByText("Rua de Cima, 9")).toBeTruthy();
+    /* E o selo, que é ícone mais palavra: é ele que cumpre a regra de nunca
+       comunicar severidade só por cor. */
+    expect(item("segunda").getByLabelText("Severidade média")).toBeTruthy();
+    /* Tocar não navega: quem navega é o botão. */
+    expect(mockEmpurrar).not.toHaveBeenCalled();
+  });
+
+  it("tocar de novo no item aberto recolhe, e nenhum pino fica escolhido", async () => {
+    await abrirOMapa();
+    await tocar("escolher-primeira");
+
+    expect(expandido("primeira")).toBe(false);
+    expect(screen.queryByTestId("abrir-a-vistoria")).toBeNull();
+    expect(screen.getByTestId("pino-primeira").props.accessibilityState.selected).toBe(false);
+  });
+
+  it("expandir um item escolhe o pino dele no mapa", async () => {
+    await abrirOMapa();
+    expect(screen.getByTestId("pino-primeira").props.accessibilityState.selected).toBe(true);
+
+    await tocar("escolher-segunda");
+    expect(screen.getByTestId("pino-segunda").props.accessibilityState.selected).toBe(true);
+    expect(screen.getByTestId("pino-primeira").props.accessibilityState.selected).toBe(false);
+  });
+
+  it("o resumo diz protocolo, severidade, endereço e distância, e o estado, a quem ouve", async () => {
+    await abrirOMapa();
+    const rotulo = String(screen.getByTestId("escolher-segunda").props.accessibilityLabel);
+    expect(rotulo).toContain("Protocolo 000200/2026");
+    expect(rotulo).toContain("severidade média");
+    expect(rotulo).toContain("Rua de Cima, 9");
+    expect(rotulo).toContain("a 3,0 km de você");
+    expect(rotulo).toMatch(/recolhido/i);
+
+    await tocar("escolher-segunda");
+    expect(String(screen.getByTestId("escolher-segunda").props.accessibilityLabel)).toMatch(/expandido/i);
+  });
+
+  it("com redução de movimento, expandir não anima nada: o detalhe aparece direto", async () => {
+    /*
+      Quem liga a chave no sistema liga porque animação dá enjoo. A entrada do
+      detalhe (opacidade e deslocamento) e o giro da seta vão direto ao destino,
+      sem `Animated.timing`. O toque em si também não interpola: é a regra de
+      `useRespostaAoToque`.
+    */
+    (AccessibilityInfo.isReduceMotionEnabled as jest.Mock).mockImplementation(
+      () => Promise.resolve(true),
+    );
+    await abrirOMapa();
+    /* A chave chega DEPOIS do primeiro quadro; deixar a promessa resolver. */
+    await act(async () => {});
+    const espiao = espiarAnimacao();
+
+    await tocar("escolher-segunda");
+
+    expect(expandido("segunda")).toBe(true);
+    expect(item("segunda").getByTestId("abrir-a-vistoria")).toBeTruthy();
+    expect(espiao).not.toHaveBeenCalled();
+  });
+
+  it("sem redução de movimento, o detalhe entra em transição de token", async () => {
+    await abrirOMapa();
+    await act(async () => {});
+    const espiao = espiarAnimacao();
+
+    await tocar("escolher-segunda");
+
+    expect(espiao).toHaveBeenCalled();
+    for (const chamada of espiao.mock.calls) {
+      const config = chamada[1] as { duration?: number; useNativeDriver?: boolean };
+      /* Toda transição do item: duração de token e driver nativo. */
+      expect([movimento.respostaAoToque, movimento.mudancaDeEstado]).toContain(config.duration);
+      expect(config.useNativeDriver).toBe(true);
+    }
+  });
+
+  it("o botão do item aberto abre a vistoria DELE", async () => {
+    await abrirOMapa();
+    await tocar("escolher-segunda");
+    await tocar("abrir-a-vistoria");
+
+    expect(mockEmpurrar).toHaveBeenCalledWith({
+      pathname: "/(agente)/vistoria/[id]",
+      params: { id: "segunda" },
+    });
+  });
+});
+
+/* ============================================================
+   A lista é paginada: cinco, e "Mostrar mais"
+   ============================================================ */
+
+describe("a lista mostra cinco, e cresce a pedido ou até o pino escolhido", () => {
+  beforeEach(() => {
+    mockPermissaoConcedida = true;
+    mockUltimaPosicao = { coords: AQUI };
+    /* Doze tarefas, todas com ponto, cada uma mais ao norte que a anterior. */
+    mockTarefas = Array.from({ length: 12 }, (_, i) => tarefa({
+      id: `t${i + 1}`,
+      protocolo: `${String(i + 1).padStart(6, "0")}/2026`,
+      severidade: "media",
+      ...aoNorte(300 * (i + 1)),
+    }));
+  });
+
+  it("abre com cinco itens, diz '5 de 12' e oferece mostrar mais", async () => {
+    await abrirOMapa();
+    expect(aOrdemDaLista()).toHaveLength(5);
+    expect(screen.getByText(/5 de 12/)).toBeTruthy();
+    expect(screen.getByTestId("mostrar-mais")).toBeTruthy();
+    expect(within(screen.getByTestId("mostrar-mais")).getByText("Mostrar mais 5")).toBeTruthy();
+  });
+
+  it("mostrar mais acrescenta cinco, e no fim o botão some", async () => {
+    await abrirOMapa();
+    await tocar("mostrar-mais");
+    expect(aOrdemDaLista()).toHaveLength(10);
+    expect(screen.getByText(/10 de 12/)).toBeTruthy();
+    /* Só sobram duas: o botão diz o número certo. */
+    expect(within(screen.getByTestId("mostrar-mais")).getByText("Mostrar mais 2")).toBeTruthy();
+
+    await tocar("mostrar-mais");
+    expect(aOrdemDaLista()).toHaveLength(12);
+    expect(screen.queryByTestId("mostrar-mais")).toBeNull();
+  });
+
+  it("o pino de uma tarefa além da página faz a página crescer até ela, e expande o item", async () => {
+    await abrirOMapa();
+    expect(screen.queryByTestId("escolher-t9")).toBeNull();
+
+    await tocar("pino-t9");
+
+    expect(aOrdemDaLista()).toHaveLength(9);
+    expect(expandido("t9")).toBe(true);
+    /* Ainda faltam três, e a tela diz. */
+    expect(screen.getByText(/9 de 12/)).toBeTruthy();
+    expect(within(screen.getByTestId("mostrar-mais")).getByText("Mostrar mais 3")).toBeTruthy();
+  });
+
+  it("o pino rola a tela até o item que ele abriu, quando o item mede o lugar dele", async () => {
+    /*
+      "Tem que ser tudo conectado." O item que o pino abre fica embaixo do
+      quadrado do mapa, fora da vista; sem rolar até ele, o toque no pino
+      parece não ter feito nada depois que a folha fecha. A posição vem do
+      leiaute medido pelo aparelho (`onLayout`) da lista e do item, e não de
+      uma conta feita à mão sobre alturas que a tela não conhece.
+    */
+    await abrirOMapa();
+    await medir("lista-do-mapa", 700, 1000);
+
+    await tocar("pino-t9");
+    await tocar("pino-continuar");
+    /* O item recém-montado mede o lugar dele, como o aparelho faria. */
+    await medir("tarefa-t9", 880, 300);
+
+    expect(aRolagemDaTela()).toHaveBeenCalledWith(expect.objectContaining({
+      y: 700 + 880 - espaco.e3,
+    }));
+  });
+
+  it("tocar no item da lista NÃO rola a tela: o dedo já está nele", async () => {
+    await abrirOMapa();
+    await medir("lista-do-mapa", 700, 1000);
+    await medir("tarefa-t2", 120, 100);
+
+    await tocar("escolher-t2");
+    await medir("tarefa-t2", 120, 300);
+
+    expect(aRolagemDaTela()).not.toHaveBeenCalled();
+  });
+
+  it("todos os pinos estão no mapa mesmo com a lista paginada", async () => {
+    /* A página é da LISTA. O mapa é do dia inteiro. */
+    await abrirOMapa();
+    expect(aOrdemDosPinos()).toHaveLength(12);
+  });
+});
+
+/* ============================================================
+   Ver o caminho: pergunta antes, e cada resposta faz uma coisa
+   ============================================================ */
+
+describe("ver o caminho pergunta o que fazer, e cada resposta faz uma coisa", () => {
   const A_FRASE = "cerca de 14 min de carro, 4,2 km";
+  const COORDENADA_DE_LONGE = /-27\.568351, -48\.548050/;
 
   beforeEach(() => {
     mockPermissaoConcedida = true;
@@ -347,7 +664,7 @@ describe("ver o caminho, no toque e só no toque", () => {
     mockChaveDoMunicipio = "a-chave-do-municipio";
     mockTarefas = [
       tarefa({ id: "perto", protocolo: "000100/2026", severidade: "critica", ...aoNorte(400) }),
-      tarefa({ id: "longe", protocolo: "000200/2026", severidade: "media", ...aoNorte(3_000) }),
+      tarefa({ id: "longe", protocolo: "000200/2026", severidade: "media", endereco: "Rua de Cima, 9", ...aoNorte(3_000) }),
     ];
   });
 
@@ -358,10 +675,70 @@ describe("ver o caminho, no toque e só no toque", () => {
     expect(screen.queryByText(/de carro/)).toBeNull();
   });
 
-  it("o toque pede o caminho da ESCOLHIDA, da posição do agente, e diz a frase", async () => {
+  it("o toque abre uma folha com três respostas, dizendo de qual tarefa fala", async () => {
+    /*
+      "Ao clicar ver o caminho perguntar o que fazer." O botão não sai do
+      aplicativo nem manda a posição para fora sem perguntar: a folha oferece
+      o mapa do aparelho, o caminho aqui dentro e a coordenada para copiar.
+    */
+    await abrirOMapa();
+    await tocar("escolher-longe");
+    expect(screen.queryByTestId("folha-do-caminho")).toBeNull();
+
+    await tocar("ver-o-caminho");
+
+    const folha = within(screen.getByTestId("folha-do-caminho"));
+    expect(folha.getByText(/000200\/2026/)).toBeTruthy();
+    expect(folha.getByText(/Rua de Cima, 9/)).toBeTruthy();
+    expect(folha.getByTestId("caminho-no-aparelho")).toBeTruthy();
+    expect(folha.getByTestId("caminho-aqui-dentro")).toBeTruthy();
+    expect(folha.getByTestId("caminho-copiar")).toBeTruthy();
+    /* Nada foi pedido só por abrir a folha. */
+    expect(mockVerOCaminho).not.toHaveBeenCalled();
+    expect(mockAbrirNoMapa).not.toHaveBeenCalled();
+  });
+
+  it("cada rótulo começa por verbo, e a saída é nomeada", async () => {
+    await abrirOMapa();
+    await tocar("ver-o-caminho");
+    for (const id of ["caminho-no-aparelho", "caminho-aqui-dentro", "caminho-copiar"]) {
+      expect(String(screen.getByTestId(id).props.accessibilityLabel)).toMatch(/^(Abrir|Traçar|Copiar) /);
+    }
+    await tocar("caminho-continuar");
+    expect(screen.queryByTestId("folha-do-caminho")).toBeNull();
+    expect(mockVerOCaminho).not.toHaveBeenCalled();
+    expect(mockAbrirNoMapa).not.toHaveBeenCalled();
+    expect(mockCopiarCoordenada).not.toHaveBeenCalled();
+  });
+
+  it("'abrir no mapa do aparelho' entrega a coordenada da tarefa ao aparelho, com rota", async () => {
     await abrirOMapa();
     await tocar("escolher-longe");
     await tocar("ver-o-caminho");
+    await tocar("caminho-no-aparelho");
+
+    const { latitude, longitude } = aoNorte(3_000);
+    expect(mockAbrirNoMapa).toHaveBeenCalledWith(latitude, longitude, "Rua de Cima, 9");
+    expect(mockVerOCaminho).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("folha-do-caminho")).toBeNull();
+  });
+
+  it("nenhum aplicativo de mapas atendeu: o item diz isso, com a coordenada em texto", async () => {
+    mockAbrirNoMapa.mockImplementation(async () => false);
+    await abrirOMapa();
+    await tocar("escolher-longe");
+    await tocar("ver-o-caminho");
+    await tocar("caminho-no-aparelho");
+
+    expect(item("longe").getByText(/Nenhum aplicativo de mapas atendeu/)).toBeTruthy();
+    expect(item("longe").getByText(COORDENADA_DE_LONGE)).toBeTruthy();
+  });
+
+  it("'traçar aqui dentro' pede o caminho da tarefa ABERTA, da posição do agente, e diz a frase", async () => {
+    await abrirOMapa();
+    await tocar("escolher-longe");
+    await tocar("ver-o-caminho");
+    await tocar("caminho-aqui-dentro");
 
     expect(mockVerOCaminho).toHaveBeenCalledTimes(1);
     expect(mockVerOCaminho).toHaveBeenCalledWith(expect.objectContaining({
@@ -370,12 +747,14 @@ describe("ver o caminho, no toque e só no toque", () => {
       origem: AQUI,
       destino: aoNorte(3_000),
     }));
-    expect(within(screen.getByTestId("cartao-da-escolhida")).getByText(A_FRASE)).toBeTruthy();
+    expect(item("longe").getByText(A_FRASE)).toBeTruthy();
+    expect(mockAbrirNoMapa).not.toHaveBeenCalled();
   });
 
   it("o caminho vira uma linha no mapa do Google, com os pontos que vieram", async () => {
     await abrirOMapa();
     await tocar("ver-o-caminho");
+    await tocar("caminho-aqui-dentro");
     expect(mapaDublado.polilinhas).toHaveLength(1);
     expect(mapaDublado.polilinhas[0]?.["coordinates"]).toEqual([AQUI, aoNorte(200), aoNorte(400)]);
   });
@@ -388,30 +767,60 @@ describe("ver o caminho, no toque e só no toque", () => {
     */
     await abrirOMapa();
     await tocar("ver-o-caminho");
-    const cartao = screen.getByTestId("cartao-da-escolhida");
-    expect(within(cartao).getByText(/a norte de onde você está/)).toBeTruthy();
-    expect(within(cartao).getByText(A_FRASE)).toBeTruthy();
+    await tocar("caminho-aqui-dentro");
+    expect(item("perto").getByText(/a norte de onde você está/)).toBeTruthy();
+    expect(item("perto").getByText(A_FRASE)).toBeTruthy();
   });
 
-  it("trocar de escolhida tira o caminho da tela: ele é daquela tarefa, não da tela", async () => {
+  it("trocar de item tira o caminho da tela: ele é daquela tarefa, não da tela", async () => {
     await abrirOMapa();
     await tocar("ver-o-caminho");
+    await tocar("caminho-aqui-dentro");
     expect(screen.getByText(A_FRASE)).toBeTruthy();
 
     await tocar("escolher-longe");
     expect(screen.queryByText(A_FRASE)).toBeNull();
     expect(mapaDublado.polilinhas).toHaveLength(0);
-    /* E o botão volta, para a nova escolhida. */
-    expect(screen.getByTestId("ver-o-caminho")).toBeTruthy();
+    /* E o botão está no item novo. */
+    expect(item("longe").getByTestId("ver-o-caminho")).toBeTruthy();
   });
 
-  it("sem posição do agente não há botão: não há de onde traçar", async () => {
+  it("'copiar a coordenada' copia a da tarefa, e o item confirma", async () => {
+    await abrirOMapa();
+    await tocar("escolher-longe");
+    await tocar("ver-o-caminho");
+    await tocar("caminho-copiar");
+
+    const { latitude, longitude } = aoNorte(3_000);
+    expect(mockCopiarCoordenada).toHaveBeenCalledWith(latitude, longitude);
+    expect(item("longe").getByText(/Coordenada copiada/)).toBeTruthy();
+    expect(mockAbrirNoMapa).not.toHaveBeenCalled();
+    expect(mockVerOCaminho).not.toHaveBeenCalled();
+  });
+
+  it("aparelho que recusa copiar: o item mostra a coordenada em texto", async () => {
+    mockCopiarCoordenada.mockImplementation(async () => false);
+    await abrirOMapa();
+    await tocar("escolher-longe");
+    await tocar("ver-o-caminho");
+    await tocar("caminho-copiar");
+
+    expect(item("longe").getByText(/não deixou copiar/)).toBeTruthy();
+    expect(item("longe").getByText(COORDENADA_DE_LONGE)).toBeTruthy();
+  });
+
+  it("sem posição do agente, a folha não oferece traçar aqui dentro: não há de onde", async () => {
     mockUltimaPosicao = null;
     await abrirOMapa();
-    expect(screen.queryByTestId("ver-o-caminho")).toBeNull();
+    await tocar("ver-o-caminho");
+    const folha = within(screen.getByTestId("folha-do-caminho"));
+    expect(folha.queryByTestId("caminho-aqui-dentro")).toBeNull();
+    /* As outras duas não precisam de posição, e continuam. */
+    expect(folha.getByTestId("caminho-no-aparelho")).toBeTruthy();
+    expect(folha.getByTestId("caminho-copiar")).toBeTruthy();
   });
 
-  it("sem coordenada do imóvel não há botão: não há para onde traçar", async () => {
+  it("sem coordenada do imóvel não há botão: não há para onde", async () => {
     mockTarefas = [
       tarefa({ id: "com", severidade: "alta", ...aoNorte(400) }),
       tarefa({ id: "sem", severidade: "alta", latitude: null, longitude: null }),
@@ -419,12 +828,16 @@ describe("ver o caminho, no toque e só no toque", () => {
     await abrirOMapa();
     await tocar("escolher-sem");
     expect(screen.queryByTestId("ver-o-caminho")).toBeNull();
+    /* A vistoria continua sendo o caminho, e o item diz por onde se chega. */
+    expect(item("sem").getByTestId("abrir-a-vistoria")).toBeTruthy();
+    expect(item("sem").getByText(/não informou onde fica/)).toBeTruthy();
   });
 
-  it("sem sinal o botão explica em uma frase, sem tentar", async () => {
+  it("sem sinal, traçar aqui dentro explica em uma frase, sem tentar", async () => {
     mockTemSinal = false;
     await abrirOMapa();
     await tocar("ver-o-caminho");
+    await tocar("caminho-aqui-dentro");
     expect(mockVerOCaminho).not.toHaveBeenCalled();
     expect(screen.getByText(/Sem sinal para pedir o caminho/)).toBeTruthy();
     expect(screen.getByText(/linha reta continuam valendo/)).toBeTruthy();
@@ -434,9 +847,9 @@ describe("ver o caminho, no toque e só no toque", () => {
     mockVerOCaminho = jest.fn(async () => { throw new CaminhoIndisponivel("municipio-nao-ligou"); });
     await abrirOMapa();
     await tocar("ver-o-caminho");
+    await tocar("caminho-aqui-dentro");
     expect(screen.getByText(/O seu município não ligou o caminho por ruas/)).toBeTruthy();
-    expect(within(screen.getByTestId("cartao-da-escolhida")).getByText(/a norte de onde você está/))
-      .toBeTruthy();
+    expect(item("perto").getByText(/a norte de onde você está/)).toBeTruthy();
     expect(mapaDublado.polilinhas).toHaveLength(0);
   });
 
@@ -444,6 +857,7 @@ describe("ver o caminho, no toque e só no toque", () => {
     mockVerOCaminho = jest.fn(async () => { throw new CaminhoIndisponivel("falhou"); });
     await abrirOMapa();
     await tocar("ver-o-caminho");
+    await tocar("caminho-aqui-dentro");
     expect(screen.getByText(/Não deu para traçar o caminho agora/)).toBeTruthy();
   });
 
@@ -457,8 +871,90 @@ describe("ver o caminho, no toque e só no toque", () => {
     mockChaveDoMunicipio = "";
     await abrirOMapa();
     await tocar("ver-o-caminho");
+    await tocar("caminho-aqui-dentro");
     expect(screen.getByText(A_FRASE)).toBeTruthy();
     expect(mapaDublado.polilinhas).toHaveLength(0);
+  });
+});
+
+/* ============================================================
+   O toque no pino pergunta, e deixa a lista coerente
+   ============================================================ */
+
+describe("tocar no pino pergunta o que fazer, e expande o item da lista", () => {
+  beforeEach(() => {
+    mockPermissaoConcedida = true;
+    mockUltimaPosicao = { coords: AQUI };
+    mockTarefas = [
+      tarefa({ id: "primeira", protocolo: "000100/2026", severidade: "critica", ...aoNorte(400) }),
+      tarefa({ id: "segunda", protocolo: "000200/2026", severidade: "media", endereco: "Rua de Cima, 9", ...aoNorte(3_000) }),
+    ];
+  });
+
+  it("o toque abre uma folha com duas respostas e o protocolo e o endereço no título", async () => {
+    /*
+      "Ao tocar nos itens do mapa perguntar se abrir o mapa naquela localização
+      ou ir na ocorrência." Duas respostas, e a saída.
+    */
+    await abrirOMapa();
+    expect(screen.queryByTestId("folha-do-pino")).toBeNull();
+
+    await tocar("pino-segunda");
+
+    const folha = within(screen.getByTestId("folha-do-pino"));
+    expect(folha.getByText(/000200\/2026/)).toBeTruthy();
+    expect(folha.getByText(/Rua de Cima, 9/)).toBeTruthy();
+    expect(folha.getByTestId("pino-no-aparelho")).toBeTruthy();
+    expect(folha.getByTestId("pino-abrir-vistoria")).toBeTruthy();
+    expect(folha.getByTestId("pino-continuar")).toBeTruthy();
+    for (const id of ["pino-no-aparelho", "pino-abrir-vistoria"]) {
+      expect(String(screen.getByTestId(id).props.accessibilityLabel)).toMatch(/^Abrir /);
+    }
+  });
+
+  it("o toque no pino também expande o item dele na lista, para a tela ficar coerente", async () => {
+    await abrirOMapa();
+    await tocar("pino-segunda");
+    await tocar("pino-continuar");
+
+    expect(screen.queryByTestId("folha-do-pino")).toBeNull();
+    expect(expandido("segunda")).toBe(true);
+    expect(expandido("primeira")).toBe(false);
+    expect(screen.getByTestId("pino-segunda").props.accessibilityState.selected).toBe(true);
+  });
+
+  it("'abrir no mapa do aparelho' leva àquela localização, e não navega", async () => {
+    await abrirOMapa();
+    await tocar("pino-segunda");
+    await tocar("pino-no-aparelho");
+
+    const { latitude, longitude } = aoNorte(3_000);
+    expect(mockAbrirNoMapa).toHaveBeenCalledWith(latitude, longitude, "Rua de Cima, 9");
+    expect(mockEmpurrar).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("folha-do-pino")).toBeNull();
+  });
+
+  it("'abrir a vistoria' vai para a vistoria daquela tarefa, sem sair do aplicativo", async () => {
+    await abrirOMapa();
+    await tocar("pino-segunda");
+    await tocar("pino-abrir-vistoria");
+
+    expect(mockEmpurrar).toHaveBeenCalledWith({
+      pathname: "/(agente)/vistoria/[id]",
+      params: { id: "segunda" },
+    });
+    expect(mockAbrirNoMapa).not.toHaveBeenCalled();
+  });
+
+  it("tocar no marcador do Google faz o mesmo que o pino do plano", async () => {
+    mockChaveDoMunicipio = "a-chave-do-municipio";
+    await abrirOMapa();
+
+    const marcador = mapaDublado.marcadores.find((m) => m["identifier"] === "segunda");
+    await act(async () => { (marcador?.["onPress"] as () => void)(); });
+
+    expect(screen.getByTestId("folha-do-pino")).toBeTruthy();
+    expect(expandido("segunda")).toBe(true);
   });
 });
 
@@ -513,65 +1009,6 @@ describe("o pino leva criticidade, e nunca só em cor", () => {
 });
 
 /* ============================================================
-   O toque no pino abre os detalhes, e o detalhe leva à vistoria
-   ============================================================ */
-
-describe("tocar no pino mostra a tarefa, e dali se vai para a vistoria", () => {
-  beforeEach(() => {
-    mockPermissaoConcedida = true;
-    mockUltimaPosicao = { coords: AQUI };
-    mockTarefas = [
-      tarefa({ id: "primeira", protocolo: "000100/2026", severidade: "critica", ...aoNorte(400) }),
-      tarefa({ id: "segunda", protocolo: "000200/2026", severidade: "media", endereco: "Rua de Cima, 9", ...aoNorte(3_000) }),
-    ];
-  });
-
-  it("a tela abre já mostrando a sugerida do dia, sem ninguém tocar em nada", async () => {
-    await abrirOMapa();
-
-    const cartao = screen.getByTestId("cartao-da-escolhida");
-    expect(within(cartao).getByText("000100/2026")).toBeTruthy();
-  });
-
-  it("tocar no pino troca a escolhida, com protocolo, endereço, prazo, distância e rumo", async () => {
-    await abrirOMapa();
-    await tocar("pino-segunda");
-
-    const cartao = screen.getByTestId("cartao-da-escolhida");
-    expect(within(cartao).getByText("000200/2026")).toBeTruthy();
-    expect(within(cartao).getByText("Rua de Cima, 9")).toBeTruthy();
-    expect(within(cartao).getByText(/Vence em/)).toBeTruthy();
-    /* A distância e o rumo saem de `rotaEsquematica`, com a frase pronta: dois
-       cálculos para o mesmo fato divergem na primeira edição. */
-    expect(within(cartao).getByText(/3,0 km a norte de onde você está/)).toBeTruthy();
-    /* E o selo, que é ícone mais palavra: é ele que cumpre a regra de nunca
-       comunicar severidade só por cor. */
-    expect(within(cartao).getByLabelText("Severidade média")).toBeTruthy();
-  });
-
-  it("o botão do cartão abre a vistoria da ESCOLHIDA", async () => {
-    await abrirOMapa();
-    await tocar("pino-segunda");
-    await tocar("abrir-a-vistoria");
-
-    expect(mockEmpurrar).toHaveBeenCalledWith({
-      pathname: "/(agente)/vistoria/[id]",
-      params: { id: "segunda" },
-    });
-  });
-
-  it("tocar numa linha da lista escolhe a mesma tarefa, e não navega", async () => {
-    await abrirOMapa();
-    await tocar("escolher-segunda");
-
-    expect(mockEmpurrar).not.toHaveBeenCalled();
-    expect(screen.getByTestId("escolher-segunda").props.accessibilityState.selected).toBe(true);
-    expect(screen.getByTestId("escolher-primeira").props.accessibilityState.selected).toBe(false);
-    expect(within(screen.getByTestId("cartao-da-escolhida")).getByText("000200/2026")).toBeTruthy();
-  });
-});
-
-/* ============================================================
    Sem GPS, e a coordenada que não é coordenada
    ============================================================ */
 
@@ -586,7 +1023,8 @@ describe("sem GPS a tela não inventa distância nem rumo, e diz isso", () => {
 
     expect(screen.queryAllByText(/\d+\s?(m|km)\b/)).toHaveLength(0);
     expect(screen.getByText(/não considerou distância/)).toBeTruthy();
-    expect(within(screen.getByTestId("cartao-da-escolhida")).getByText(/sem rumo/i)).toBeTruthy();
+    /* No item aberto, a ausência é dita em vez de virar campo vazio. */
+    expect(item("uma").getByText(/sem rumo/i)).toBeTruthy();
   });
 
   it("a tela do mapa NÃO pede permissão de localização: quem pede é a vistoria", async () => {
@@ -646,6 +1084,7 @@ describe("sem GPS a tela não inventa distância nem rumo, e diz isso", () => {
     await abrirOMapa();
 
     expect(screen.getByText("Nenhuma vistoria designada")).toBeTruthy();
+    expect(screen.queryByTestId("mostrar-mais")).toBeNull();
   });
 });
 
@@ -678,16 +1117,6 @@ describe("com autorização do município, os pinos vão para o mapa de ruas", (
     const sul = AQUI.latitude + 400 / 111_000;
     expect(janela.latitude).toBeCloseTo((norte + sul) / 2, 6);
     expect(janela.latitudeDelta).toBeGreaterThan(norte - sul);
-  });
-
-  it("tocar no marcador do Google escolhe a mesma tarefa que o pino do plano", async () => {
-    await abrirOMapa();
-
-    const marcador = mapaDublado.marcadores.find((m) => m["identifier"] === "baixa");
-    await act(async () => { (marcador?.["onPress"] as () => void)(); });
-
-    expect(within(screen.getByTestId("cartao-da-escolhida")).getByText("0004baixa/2026"))
-      .toBeTruthy();
   });
 
   /* A legenda de criticidade não é do desenho de reserva: ela vale nos DOIS

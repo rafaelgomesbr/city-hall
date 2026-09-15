@@ -10,12 +10,23 @@ import { createBottomTabNavigator } from "expo-router/build/react-navigation/bot
  * O dono: "ao trocar de aba fica tudo escuro, nada acontece, nem spinner, só
  * volta se eu sair e entrar da aba". Envio e Perfil sumiam; o Mapa funcionava.
  *
- * A causa está escrita em `app/(agente)/_layout.tsx`: o layout guardava estado
- * que muda DURANTE a transição de 120 ms (o resumo da fila chega no instante
- * em que a tela de envio monta e assina a fila), e um `setState` no PAI do
- * navegador refaz os `descriptors`, reexecuta o efeito de `BottomTabView` que
- * chama `Animated.parallel(...).start()`, e a cena que estava entrando é
- * recomitada com os props velhos (`opacity: 0`).
+ * O mecanismo: a cena animada com driver nativo é recomitada com os props
+ * velhos (`opacity: 0`) quando algo a redesenha DURANTE a transição de 120 ms.
+ * O PRIMEIRO gatilho era este layout guardar estado que muda no meio (o
+ * resumo da fila chega no instante em que a tela de envio monta e assina a
+ * fila): um `setState` no PAI do navegador refaz os `descriptors`, reexecuta
+ * o efeito de `BottomTabView` que chama `Animated.parallel(...).start()`, e
+ * a cena é recomitada. Este arquivo prova esse gatilho e a sua remoção.
+ *
+ * Só que a aba CONTINUOU escura no aparelho depois disso, porque há um
+ * SEGUNDO gatilho, dentro da biblioteca: o `Screen` da `elements` mede o
+ * cabeçalho no `onLayout` e guarda a altura em estado, e como o cabeçalho
+ * daqui zera a barra de status, toda primeira montagem de aba faz `setState`
+ * dentro da cena. Esse não sai. A decisão final está em `ui/CenaDaAba.tsx`:
+ * o navegador não anima mais a cena (`animation: "none"`, sempre), e a
+ * entrada é nossa, com driver JavaScript. Os casos abaixo usam `shift` de
+ * propósito: eles documentam o mecanismo que motivou a decisão, e continuam
+ * valendo como prova de que o layout não redesenha o navegador à toa.
  *
  * ## O que este arquivo prova, e o que ele NÃO consegue provar
  *
@@ -33,7 +44,8 @@ import { createBottomTabNavigator } from "expo-router/build/react-navigation/bot
  * 3. Com a `BarraDeAbas` DE VERDADE como `tabBar`, acordada pela fila no meio
  *    da transição (como `fila.tsx` faz ao montar), o crachá se redesenha e o
  *    navegador NÃO reinicia nada: continua uma animação por rota, e o pai não
- *    é redesenhado. É a correção, provada contra o navegador real.
+ *    é redesenhado. É a remoção do primeiro gatilho, provada contra o
+ *    navegador real.
  *
  * O que NÃO dá para medir aqui, dito na cara: a opacidade final da cena. A
  * troca de aba roda com `useNativeDriver`, e no jest o dublê nativo não move

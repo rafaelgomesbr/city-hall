@@ -783,7 +783,7 @@ type PropsTocavel = {
    */
   accessibilityRole: "button" | "checkbox" | "radio" | "link";
   accessibilityLabel: string;
-  accessibilityState?: { checked?: boolean; disabled?: boolean; selected?: boolean };
+  accessibilityState?: { checked?: boolean; disabled?: boolean; selected?: boolean; expanded?: boolean };
   testID?: string;
 };
 
