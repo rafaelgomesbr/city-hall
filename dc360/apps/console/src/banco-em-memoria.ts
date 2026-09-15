@@ -1,4 +1,4 @@
-import { ABERTURA, ABERTURA_DE_ESCRITA, type BancoDoConsole } from "./banco.js";
+import { ABERTURA, ABERTURA_DE_ESCRITA, CONTEXTO_DO_OPERADOR, type BancoDoConsole } from "./banco.js";
 
 /**
  * Postgres em WebAssembly, para desenvolver o console e para testá-lo.
@@ -61,7 +61,9 @@ export async function consoleEmMemoria(diretorio?: string): Promise<ConsoleEmMem
   );
 
   const banco: BancoDoConsole = {
-    async ler<T>(sql: string, params: readonly unknown[] = []): Promise<T[]> {
+    async ler<T>(
+      sql: string, params: readonly unknown[] = [], operador: string | null = null,
+    ): Promise<T[]> {
       /*
         `db.transaction()` e não BEGIN solto, pela mesma razão do painel em modo
         local: o Postgres em WebAssembly tem uma conexão só e solta o mutex entre
@@ -76,6 +78,7 @@ export async function consoleEmMemoria(diretorio?: string): Promise<ConsoleEmMem
       */
       return db.transaction(async (tx) => {
         for (const comando of ABERTURA) await tx.exec(comando);
+        if (operador) await tx.query(CONTEXTO_DO_OPERADOR, [operador]);
         const r = await tx.query<Record<string, unknown>>(
           sql, params.length > 0 ? [...params] : undefined,
         );
@@ -88,9 +91,12 @@ export async function consoleEmMemoria(diretorio?: string): Promise<ConsoleEmMem
       transação (sem `SET LOCAL ROLE`, ou com outro papel) estaria atestando
       algo que ninguém executa, e a recusa que ele mostrasse viria de graça.
     */
-    async executar<T>(sql: string, params: readonly unknown[] = []): Promise<T[]> {
+    async executar<T>(
+      sql: string, params: readonly unknown[] = [], operador: string | null = null,
+    ): Promise<T[]> {
       return db.transaction(async (tx) => {
         for (const comando of ABERTURA_DE_ESCRITA) await tx.exec(comando);
+        if (operador) await tx.query(CONTEXTO_DO_OPERADOR, [operador]);
         const r = await tx.query<Record<string, unknown>>(
           sql, params.length > 0 ? [...params] : undefined,
         );

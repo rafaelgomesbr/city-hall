@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { chaveDeStorage } from "@dc360/shared";
 import type { Banco } from "../banco/tipos.js";
-import { RegraDeNegocio, autorizar } from "../servidor.js";
+import { ROTA_DA_FILA_DO_CAMPO, RegraDeNegocio, autorizar } from "../servidor.js";
 import {
   TAMANHO_MAXIMO_BYTES, TIPOS_ACEITOS, type Armazenamento,
 } from "../armazenamento/tipos.js";
@@ -96,7 +96,10 @@ export async function rotasEvidencias(
    * ou sobrescrever a evidência de outra ocorrência. O nome do arquivo entra
    * só como sufixo, e higienizado.
    */
-  app.post("/autorizar-envio", async (req, resposta) => {
+  // `ROTA_DA_FILA_DO_CAMPO`: com o município suspenso, a recusa sai como 503
+  // para a fila do aparelho esperar em vez de bloquear a coleta. Ver
+  // `auth/suspensao.ts`.
+  app.post("/autorizar-envio", ROTA_DA_FILA_DO_CAMPO, async (req, resposta) => {
     const quem = await autorizar(app, req, "registrar_vistoria");
     const dados = pedidoSchema.parse(req.body);
 
@@ -300,7 +303,7 @@ export async function rotasEvidencias(
    * objeto existe e com que tamanho. Se o tamanho não bater com o que foi
    * autorizado, a confirmação é recusada.
    */
-  app.post("/confirmar-envio", async (req) => {
+  app.post("/confirmar-envio", ROTA_DA_FILA_DO_CAMPO, async (req) => {
     const quem = await autorizar(app, req, "registrar_vistoria");
     const dados = confirmacaoSchema.parse(req.body);
 

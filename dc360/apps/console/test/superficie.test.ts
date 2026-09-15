@@ -1,13 +1,9 @@
 import { randomBytes } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { construirConsole } from "../src/servidor.js";
-import { abrirCofre, contextoDoOperador } from "../src/operadores.js";
-import type { Config } from "../src/config.js";
-import type { EscritaDoConsole, LeituraDoConsole } from "../src/banco.js";
-import { derivarSenha } from "../../api/src/auth/senha.js";
-import { gerarSegredoTotp } from "../../api/src/auth/totp.js";
+import { abrirCofre } from "../src/operadores.js";
 import { carregarConfig } from "../src/config.js";
+import { DONO, subirConsoleDeTeste, type ConsoleDeTeste } from "./apoio/console-de-teste.js";
 
 /**
  * A superfície do console se defende sozinha.
@@ -54,47 +50,25 @@ const ABERTAS: Record<string, string> = {
 };
 
 const CHAVE = randomBytes(32).toString("base64");
-const cofre = abrirCofre(CHAVE);
-
-const LEITURA_VAZIA: LeituraDoConsole = { ler: async () => [], encerrar: async () => {} };
+/* A chave abre na partida (o envelope do dono e conferido contra a linha). */
+void abrirCofre(CHAVE);
 
 /**
- * A escrita que explode se alguém chamá-la.
- *
  * Este arquivo mede SUPERFÍCIE, não comportamento: ele pergunta quais rotas
- * existem e se cada uma tem portão. Uma escrita que devolvesse lista vazia
- * deixaria uma rota mal escrita "funcionar" aqui e falhar só em produção. Como
- * nenhum caso deste arquivo chega a escrever de verdade (todos param no 401),
- * uma chamada a isto é, por si só, o defeito.
+ * existem e se cada uma tem portão. Todos os casos param no 401, e o banco por
+ * baixo é o de teste, com a 038 aplicada e o dono semeado, porque desde a 038
+ * a própria partida precisa dele.
  */
-const ESCRITA_QUE_ACUSA: EscritaDoConsole = {
-  executar: async () => {
-    throw new Error("uma rota escreveu durante o teste de superficie");
-  },
-};
-
+let c: ConsoleDeTeste;
 let app: FastifyInstance;
 
 beforeAll(async () => {
-  const config: Config = {
-    NODE_ENV: "test",
-    CONSOLE_PORT: 0,
-    CONSOLE_HOST: "127.0.0.1",
-    CONSOLE_JWT_SEGREDO: "segredo-de-teste-com-mais-de-trinta-e-dois-bytes-aqui",
-    CONSOLE_SEGUNDO_FATOR_CHAVE: CHAVE,
-    CONSOLE_OPERADORES: JSON.stringify([{
-      email: "coordenacao@fornecedor.com.br",
-      senha: await derivarSenha("senha-de-teste-bem-comprida-do-operador"),
-      segundoFator: cofre.cifrar(gerarSegredoTotp(), contextoDoOperador("coordenacao@fornecedor.com.br")),
-    }]),
-  };
-  app = await construirConsole({
-    config, leitura: LEITURA_VAZIA, escrita: ESCRITA_QUE_ACUSA, limitePorEndereco: 500,
-  });
-}, 60_000);
+  c = await subirConsoleDeTeste({ chave: CHAVE });
+  app = c.app;
+}, 180_000);
 
 afterAll(async () => {
-  await app?.close();
+  await c?.encerrar();
 });
 
 /**
@@ -173,24 +147,25 @@ describe("Toda rota do console exige sessao, menos as isentas por escrito", () =
     ).toEqual([]);
   });
 
-  it("a superficie de escrita do console e uma rota so, e ela esta nomeada aqui", () => {
+  it("a superficie de escrita do console e a lista nomeada aqui, e nenhuma rota apaga", () => {
     /*
-      O console lê, e a decisão 3 da ADR 0008 tira do papel de banco dele
-      qualquer INSERT, UPDATE ou DELETE. Isso não mudou: o que a emenda de
-      14/09/2026 concedeu a `dc360_console` foi `EXECUTE` em UMA função do banco
-      (migração 036), que cria município e primeiro administrador. Se alguém
-      escrever aqui uma rota com `INSERT`, o banco responde "permissão negada",
-      e essa continua sendo a ordem certa das defesas.
+      Em tabela de NEGÓCIO o papel do console continua sem INSERT, UPDATE ou
+      DELETE (decisão 3 da ADR 0008). O que ele escreve é a tabela PRÓPRIA
+      (`console_operadores`) e o que ele executa são funções concedidas por
+      nome: a de cadastrar prefeitura (036) e as quatro de suspender,
+      reativar, agendar e cancelar a eliminação (038).
 
       Este caso guarda o tamanho dessa abertura pela lista de rotas, que é a
-      parte que uma revisão de diff deixa passar. PUT, PATCH e DELETE continuam
-      em ZERO: ato que altera ou apaga não existe neste processo, e município
-      não se apaga, se encerra com motivo, no painel do próprio município.
+      parte que uma revisão de diff deixa passar. DELETE continua em ZERO, e
+      PUT e PATCH também: cada ato é um POST com o verbo no endereço, porque
+      nenhum deles é "substituir o recurso". E nada apaga: eliminar AGENDA,
+      quem apaga sete dias depois é o relógio da API; operador se desativa.
 
       A lista de POST é conferida por extenso, e não por contagem. Duas delas
-      são as etapas da porta e não tocam no banco; a terceira é a que cadastra
-      prefeitura, e ela passa pelo portão de sessão como qualquer rota de
-      número (o caso acima cobra isso de todas, sem exceção escrita).
+      são as etapas da porta e não tocam no banco; todas as outras passam pelo
+      portão de sessão (o caso acima cobra isso de todas, sem exceção escrita),
+      e as do dono ainda pelo portão de papel, cobrado nos arquivos das
+      próprias rotas.
     */
     const escritas = rotas().filter((r) => /^(PUT|PATCH|DELETE) /.test(r));
     expect(escritas, `o console ganhou rota que altera ou apaga: ${escritas.join(", ")}`)
@@ -200,14 +175,25 @@ describe("Toda rota do console exige sessao, menos as isentas por escrito", () =
     expect(
       posts.sort(),
       "o console ganhou rota de POST que ninguem nomeou neste teste",
-    ).toEqual(["POST /entrar", "POST /entrar/codigo", "POST /prefeituras"]);
+    ).toEqual([
+      "POST /entrar",
+      "POST /entrar/codigo",
+      "POST /municipios/:id/eliminacao/cancelar",
+      "POST /municipios/:id/eliminar",
+      "POST /municipios/:id/reativar",
+      "POST /municipios/:id/suspender",
+      "POST /operadores",
+      "POST /operadores/:id/desativar",
+      "POST /prefeituras",
+      "POST /senha",
+    ]);
 
-    // E a de cadastro NÃO está entre as isentas: ela é a única rota de escrita
-    // do processo, e uma isenção dela seria criar prefeitura sem entrar.
-    expect(
-      Object.keys(ABERTAS),
-      "a rota que cadastra prefeitura entrou na lista de rotas abertas",
-    ).not.toContain("POST /prefeituras");
+    // E nenhuma rota de escrita está entre as isentas: uma isenção aqui seria
+    // criar prefeitura, ou suspender município, sem entrar.
+    for (const post of posts) {
+      if (post.startsWith("POST /entrar")) continue;
+      expect(Object.keys(ABERTAS), `${post} entrou na lista de rotas abertas`).not.toContain(post);
+    }
   });
 });
 
@@ -228,28 +214,16 @@ describe("O limite por endereco cobre a porta, e so a porta", () => {
    * derrubam o processo antes de descobrirem senha nenhuma. Por isso o teste
    * cobra as DUAS coisas: que a porta tem teto, e que o resto não tem.
    */
+  let apertado: ConsoleDeTeste;
   let proprio: FastifyInstance;
 
   beforeAll(async () => {
-    const config: Config = {
-      NODE_ENV: "test",
-      CONSOLE_PORT: 0,
-      CONSOLE_HOST: "127.0.0.1",
-      CONSOLE_JWT_SEGREDO: "segredo-de-teste-com-mais-de-trinta-e-dois-bytes-aqui",
-      CONSOLE_SEGUNDO_FATOR_CHAVE: CHAVE,
-      CONSOLE_OPERADORES: JSON.stringify([{
-        email: "outra@fornecedor.com.br",
-        senha: "scrypt$131072$8$1$XenoRKJ2mWCQSO-ZnZXUvg$vO-J5ozHwGH1V29fdrVZE4F9ps_lf8oqXHLmU_6ZMrk",
-        segundoFator: cofre.cifrar(gerarSegredoTotp(), contextoDoOperador("outra@fornecedor.com.br")),
-      }]),
-    };
-    proprio = await construirConsole({
-      config, leitura: LEITURA_VAZIA, escrita: ESCRITA_QUE_ACUSA, limitePorEndereco: 3,
-    });
-  }, 60_000);
+    apertado = await subirConsoleDeTeste({ limitePorEndereco: 3 });
+    proprio = apertado.app;
+  }, 180_000);
 
   afterAll(async () => {
-    await proprio?.close();
+    await apertado?.encerrar();
   });
 
   it("a porta trava depois do teto", async () => {
@@ -257,7 +231,7 @@ describe("O limite por endereco cobre a porta, e so a porta", () => {
     for (let i = 0; i < 5; i++) {
       const r = await proprio.inject({
         method: "POST", url: "/entrar",
-        payload: { email: "ninguem@fornecedor.com.br", senha: "chute" },
+        payload: { email: DONO.email, senha: "chute" },
       });
       desfechos.push(r.statusCode);
     }
@@ -297,8 +271,21 @@ describe("A configuracao do console recusa o que nao pode subir", () => {
   const BASE = {
     CONSOLE_JWT_SEGREDO: "segredo-de-teste-com-mais-de-trinta-e-dois-bytes-aqui",
     CONSOLE_SEGUNDO_FATOR_CHAVE: CHAVE,
-    CONSOLE_OPERADORES: "[]",
   };
+
+  it("CONSOLE_OPERADORES e opcional desde a 038, e vazia conta como ausente", () => {
+    /*
+      Ela virou a semente do dono, lida uma vez. Um console cujo dono ja esta no
+      banco sobe sem ela, e e assim que ela sai da configuracao depois do
+      primeiro deploy. `CONSOLE_OPERADORES=` num arquivo de segredos e "ainda
+      nao gerei", e nao um JSON invalido.
+    */
+    expect(carregarConfig({ ...BASE } as NodeJS.ProcessEnv).CONSOLE_OPERADORES).toBeUndefined();
+    expect(carregarConfig({ ...BASE, CONSOLE_OPERADORES: "" } as NodeJS.ProcessEnv).CONSOLE_OPERADORES)
+      .toBeUndefined();
+    expect(carregarConfig({ ...BASE, CONSOLE_OPERADORES: "[]" } as NodeJS.ProcessEnv).CONSOLE_OPERADORES)
+      .toBe("[]");
+  });
 
   it("sem segredo de token, o console nao sobe, em ambiente nenhum", () => {
     /*

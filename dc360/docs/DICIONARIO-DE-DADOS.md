@@ -1,6 +1,6 @@
 # Dicionário de dados
 
-- **Versão:** 1, de 09/09/2026
+- **Versão:** 2, de 15/09/2026 (a 1 era de 09/09/2026)
 - **Para quê:** entregar junto com a exportação de saída de município
   (`SAIDA-DE-MUNICIPIO.md`), e servir de referência para quem for auditar ou
   migrar. `status = 'em_campo'` não se explica sozinho.
@@ -44,6 +44,18 @@ O município. Uma linha por órgão de proteção e defesa civil.
 | `nome` | Nome do órgão, como sai no cabeçalho dos documentos |
 | `municipio`, `uf` | Município e unidade federativa |
 | `criado_em` | Quando foi provisionado |
+| `acesso_suspenso_em`, `suspensao_motivo` | O fornecedor suspendeu o acesso (migração 038). Enquanto preenchido, nenhuma sessão nova abre (`abrir_sessao` recusa) e todas as sessões existentes foram revogadas com o motivo "acesso suspenso pelo fornecedor". Os dois andam juntos: não há suspensão sem motivo |
+| `eliminacao_agendada_para` | O fim do prazo de arrependimento de sete dias. Preenchido junto com a linha do livro de eliminações, é o que autoriza o relógio da API a apagar. Cancelar limpa. Exige suspensão |
+| `eliminada_em` | As linhas filhas já foram apagadas. A linha da organização **fica** até o armazenamento ser purgado, para a API saber qual prefixo purgar (`tenant/<id>/`) |
+| `armazenamento_purgado_em` | Marcada por `concluir_eliminacao` um instante antes de a linha ser apagada |
+
+**Essas cinco colunas são do fornecedor.** O papel de aplicação tem `UPDATE`
+em `organizacoes`, mas o gatilho `suspensao_nao_se_altera_pela_aplicacao`
+recusa qualquer escrita nelas vinda de `dc360_app`: um município não limpa a
+própria suspensão, e não marca a si mesmo como eliminado. Só as funções do
+console (`console_suspender_municipio`, `console_reativar_municipio`,
+`console_agendar_eliminacao`, `console_cancelar_eliminacao`) e as do relógio
+(`executar_eliminacoes_vencidas`, `concluir_eliminacao`) as escrevem.
 
 ---
 
@@ -291,6 +303,96 @@ trás para sempre. Retenção de 60 dias, dentro da própria política de remoç
 
 ---
 
+## As tabelas do fornecedor: `console_operadores` e `eliminacoes_de_municipio`
+
+As duas entraram na migração 038 e **não são de município nenhum**: são do
+fornecedor, e só o papel do console (`dc360_console`) as alcança. Nenhum
+município as lê, e o papel de aplicação não tem um privilégio sequer nelas.
+Nenhuma das duas sai no pacote de saída de município.
+
+### `console_operadores`
+
+Quem entra no console do fornecedor. As contas saíram da configuração do
+processo (`CONSOLE_OPERADORES`) para o banco porque o dono pediu tela de
+usuários, troca de senha e operadores abaixo dele.
+
+| Coluna | Significado |
+| --- | --- |
+| `email` | Identidade de login, única sem distinção de caixa |
+| `senha_hash` | O hash do produto (`scrypt$...`), nunca a senha. O banco recusa outra forma (`senha_chega_derivada`) |
+| `segundo_fator` | O envelope **cifrado** do segredo do TOTP (`v1.<vetor>.<selo>.<texto>`), como em `segundo_fator`. Obrigatório: conta de console sem segundo fator não existe |
+| `papel` | `dono` ou `operador`. **Exatamente um dono**, por índice único parcial. O papel não muda depois de gravado (gatilho): promover ou rebaixar é criar outra conta |
+| `ativo` | `false` é o "apagado" desta tabela. O dono não se desativa (`dono_sempre_ativo`) |
+| `criado_por` | Quem criou. Nulo só para o dono; todo operador nasce pela mão do dono (`operador_tem_criador`) |
+| `falhas_login`, `bloqueado_ate` | O teto de tentativas, que antes vivia na memória do processo |
+| `ultimo_passo_totp` | O passo de tempo do TOTP já usado, que impede o mesmo código de valer duas vezes. Antes vivia na memória do processo e obrigava o console a rodar numa máquina só |
+
+**A regra da primeira conta, em policies.** O contexto do console é a variável
+`app.console_operador`, lida por `console_operador_atual()`. O console lê
+todas as linhas (o login acha a conta pelo email antes de haver sessão);
+insere `operador` só quando o operador do contexto é o dono, assinado por ele
+(`criado_por`), e insere `dono` **só com a tabela vazia** (é a partida do
+console semeando a primeira conta a partir de `CONSOLE_OPERADORES`, uma vez;
+esse ramo fecha na primeira linha); altera a própria linha, ou, sendo o dono,
+a linha de um operador. **Ninguém além do
+dono altera o dono**, nem por `UPDATE` nem por função: um `UPDATE` de operador
+contra a linha do dono volta dizendo que alterou zero. Sem policy e sem
+concessão de `DELETE`: operador se desativa, porque assina o livro de
+eliminações com o email.
+
+Durante o login, antes de haver sessão, o console declara `app.console_operador`
+com o id da linha que achou pelo email para gravar a tentativa nela: a policy
+de `UPDATE` só alcança a própria linha.
+
+### `eliminacoes_de_municipio`
+
+O livro de eliminações. Uma linha por pedido, com as fases. **Não tem chave
+estrangeira para `organizacoes`**, de propósito: a organização vai sumir e o
+livro fica, por isso nome e UF são copiados no agendamento.
+
+| Coluna | Significado |
+| --- | --- |
+| `organizacao_id`, `municipio_nome`, `uf` | O município, copiado no momento do pedido |
+| `solicitada_em`, `executar_em` | O pedido e o fim do prazo de arrependimento. O banco exige sete dias entre os dois (`prazo_de_arrependimento_de_sete_dias`), mesmo para quem escrever por fora da função |
+| `solicitada_por_email`, `motivo` | Quem pediu (o dono do console) e por quê. O motivo é obrigatório |
+| `cancelada_em`, `cancelada_por_email` | Cancelamento dentro do prazo. Andam juntos. Cancelada e apagada se excluem |
+| `banco_apagado_em`, `contagens` | O relógio apagou as linhas. `contagens` é `{"ocorrencias": 41, ...}`: quantas linhas de cada tabela de negócio saíram, e é a prova de que a ordem de apagamento cobriu todas |
+| `armazenamento_purgado_em`, `concluida_em` | A API purgou as fotografias (`tenant/<id>/`) e chamou `concluir_eliminacao`, que apaga a linha de `organizacoes` |
+
+**Uma eliminação ativa por município**, por índice único parcial. O console lê
+tudo, insere (só o dono, só linha recém-nascida, só com o prazo inteiro) e
+altera **só as duas colunas de cancelamento**, e só entrando no estado
+cancelado. Sem `DELETE`.
+
+A rota de saúde da API pergunta ao banco se o relógio tem trabalho por
+`eliminacoes_pendentes()`, que devolve só dois números (agendadas, vencidas),
+contados nas marcas de `organizacoes`.
+
+**O relógio não confia só no livro.** `executar_eliminacoes_vencidas()` só
+apaga quando a linha do livro está vencida e não cancelada **e** a organização
+está marcada como suspensa e agendada. A segunda marca só a função do console
+escreve, então uma linha escrita no livro por fora da função não apaga nada.
+Antes do primeiro `DELETE`, a função confere que toda tabela com
+`organizacao_id` tem lugar na ordem de apagamento (tabela nova sem lugar
+recusa, nomeando a tabela); depois de cada `DELETE`, confere que restou zero
+linha daquele município e estoura nomeando a tabela se restou. Com
+`row_security = off`, um dono de tabelas sem `BYPASSRLS` produz erro em vez de
+zero em silêncio (ver o cabeçalho da migração 037).
+
+**As fases, na ordem:**
+
+1. suspensa: sessões revogadas, sessão nova recusada;
+2. agendada: livro escrito, sete dias de prazo;
+3. banco apagado: linhas filhas fora, contagens no livro, linha de
+   `organizacoes` fica com `eliminada_em`;
+4. armazenamento purgado e concluída: linha de `organizacoes` apagada, livro
+   fica.
+
+Cancelar cabe até o banco ser apagado, e **não reativa o acesso**: reativar é
+ato separado.
+
+---
+
 ## O que **não** existe no banco, e é bom saber
 
 - **Não há tabela de senha em texto.** Senha é derivada com custo alto e guardada
@@ -304,4 +406,10 @@ trás para sempre. Retenção de 60 dias, dentro da própria política de remoç
   credencial, e o segredo delas só teria valor com a chave do servidor de
   origem, que o município não leva.
 - **Não há papel de banco que enxergue dois municípios**, além do dono, que é
-  quem aplica migração e provisiona. Ver ADR 0001 e ADR 0008.
+  quem aplica migração e provisiona. Ver ADR 0001 e ADR 0008. O papel do
+  console alcança as duas tabelas do fornecedor e nada que seja de município.
+- **Não há `DELETE` de dado de município fora de duas funções**,
+  `executar_eliminacoes_vencidas` e `concluir_eliminacao`, que o relógio da
+  API executa e que só agem no que o console agendou, venceu e ninguém
+  cancelou. O papel de aplicação continua sem `DELETE` em tabela nenhuma além
+  de `avisos`.

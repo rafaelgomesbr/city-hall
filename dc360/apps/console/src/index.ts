@@ -19,13 +19,24 @@ import { faltaNoEsquema, mensagemDeEsquemaAtrasado } from "./esquema.js";
  *     tabela de negócio nenhuma.
  *   - Não tem a chave de armazenamento das evidências, nem credencial de push,
  *     nem provedor de email. Ele não envia nada e não guarda nada.
- *   - Não tem rota que escreva em tabela, em lugar nenhum.
+ *   - Não tem escrita em tabela de NEGÓCIO, em lugar nenhum. A única tabela
+ *     que ele escreve é a própria, `console_operadores` (migração 038), onde
+ *     vivem as contas de quem entra aqui, sob policy.
  *   - NÃO tem a credencial de dono do banco, e continua sem ela mesmo agora que
- *     cadastra prefeitura. O que a emenda de 14/09/2026 da ADR 0008 concedeu ao
- *     papel `dc360_console` foi o `EXECUTE` de UMA função do banco (migração
- *     036), que cria município e primeiro administrador numa transação e
- *     devolve dois identificadores. O ato é fechado e definido no banco; o
- *     console não escolhe o que ele faz.
+ *     cadastra prefeitura, suspende acesso e agenda eliminação. O que as
+ *     migrações 036 e 038 concederam ao papel `dc360_console` foi o `EXECUTE`
+ *     de CINCO funções nomeadas, cada uma um ato fechado e definido no banco;
+ *     o console não escolhe o que elas fazem. O apagamento de um município,
+ *     sete dias depois de agendado, é do relógio da API, não daqui.
+ *   - Não tem `DELETE` em rota nenhuma: município se suspende e se agenda,
+ *     operador se desativa.
+ *
+ * A SEMENTE DO DONO acontece dentro de `construirConsole`: com a tabela de
+ * operadores vazia e `CONSOLE_OPERADORES` definida, a linha entra como dono,
+ * uma vez, pelo próprio papel do console (a policy da 038 tem um ramo para
+ * isso, que fecha na primeira linha). Se a semente falhar, `construirConsole`
+ * lança, e a partida cai aqui embaixo com a mensagem: no Fly, o release falha
+ * e a versão anterior continua atendendo.
  */
 
 const config = carregarConfig();
@@ -84,7 +95,16 @@ if (config.CONSOLE_DATABASE_URL) {
   );
 }
 
-const app = await construirConsole({ config, leitura: banco, escrita: banco });
+let app: Awaited<ReturnType<typeof construirConsole>>;
+try {
+  app = await construirConsole({ config, leitura: banco, escrita: banco });
+} catch (erro) {
+  // A semente do dono, a chave do segundo fator ou a tabela sem dono: cada
+  // uma tem mensagem própria em `operadores.ts`, e ela vai inteira para o log.
+  console.error(erro instanceof Error ? erro.message : String(erro));
+  await banco.encerrar();
+  process.exit(1);
+}
 
 // Encerramento ordenado: a requisição em andamento termina, e o pool fecha.
 for (const sinal of ["SIGINT", "SIGTERM"] as const) {

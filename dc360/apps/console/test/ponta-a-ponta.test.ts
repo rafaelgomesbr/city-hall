@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { construirConsole } from "../src/servidor.js";
 import { abrirCofre, contextoDoOperador } from "../src/operadores.js";
-import { ABERTURA, ABERTURA_DE_ESCRITA, type BancoDoConsole } from "../src/banco.js";
+import { ABERTURA, ABERTURA_DE_ESCRITA, CONTEXTO_DO_OPERADOR, type BancoDoConsole } from "../src/banco.js";
 import type { Config } from "../src/config.js";
 import { bancoEmMemoria, type BancoEmMemoria } from "../../api/src/banco/memoria.js";
 import { travaDeProcesso } from "../../api/src/push/trava.js";
@@ -59,18 +59,25 @@ let token: string;
  */
 function leituraDoConsoleSobre(bruto: BancoEmMemoria["bruto"]): BancoDoConsole {
   return {
-    async ler<T>(sql: string, params: readonly unknown[] = []): Promise<T[]> {
+    async ler<T>(
+      sql: string, params: readonly unknown[] = [], operador: string | null = null,
+    ): Promise<T[]> {
       return bruto.transaction(async (tx: any) => {
         for (const comando of ABERTURA) await tx.exec(comando);
+        if (operador) await tx.query(CONTEXTO_DO_OPERADOR, [operador]);
         const r = await tx.query(sql, params.length > 0 ? [...params] : undefined);
         return r.rows as T[];
       }) as Promise<T[]>;
     },
-    // A escrita, com a abertura de escrita de produção. Ver `banco.ts`: a
-    // diferença para a de leitura é uma linha, a que recusaria escrever.
-    async executar<T>(sql: string, params: readonly unknown[] = []): Promise<T[]> {
+    // A escrita, com a abertura de escrita de produção e o operador no
+    // contexto. Ver `banco.ts`: a diferença para a de leitura é uma linha, a
+    // que recusaria escrever.
+    async executar<T>(
+      sql: string, params: readonly unknown[] = [], operador: string | null = null,
+    ): Promise<T[]> {
       return bruto.transaction(async (tx: any) => {
         for (const comando of ABERTURA_DE_ESCRITA) await tx.exec(comando);
+        if (operador) await tx.query(CONTEXTO_DO_OPERADOR, [operador]);
         const r = await tx.query(sql, params.length > 0 ? [...params] : undefined);
         return r.rows as T[];
       }) as Promise<T[]>;
@@ -95,6 +102,7 @@ beforeAll(async () => {
 
   leitura = leituraDoConsoleSobre(mem.bruto);
 
+  // A semente do dono, pela mesma variavel que a producao usa (migracao 038).
   const config: Config = {
     NODE_ENV: "test",
     CONSOLE_PORT: 0,
@@ -175,7 +183,9 @@ describe("O console le a metrica que os municipios escreveram", () => {
 
       `nome`, `municipio` e `uf` são de ÓRGÃO, e são a exceção nomeada na decisão
       3: sem o cadastro de organizações o console teria uma lista de uuid e
-      nenhuma forma de dizer de que prefeitura está falando.
+      nenhuma forma de dizer de que prefeitura está falando. As quatro de
+      estado de acesso (migração 038) são datas e um motivo escrito pelo dono
+      do console: nada de pessoa nem de imóvel.
     */
     const lista = (await comSessao("/municipios")).json().municipios as Array<Record<string, any>>;
     const permitidas = new Set([
@@ -185,6 +195,7 @@ describe("O console le a metrica que os municipios escreveram", () => {
       "oficios_emitidos", "ocorrencias_abertas", "ocorrencias_atrasadas",
       "usuarios_ativos", "aparelhos_ativos", "aparelhos_sem_aparecer",
       "minutos_ate_vistoria_mediana",
+      "acesso_suspenso_em", "suspensao_motivo", "eliminacao_agendada_para", "eliminada_em",
     ]);
 
     for (const linha of lista) {

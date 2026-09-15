@@ -1,18 +1,26 @@
 import type { LeituraDoConsole } from "./banco.js";
 
 /**
- * As DUAS consultas que o console faz no banco, e não existe uma terceira.
+ * As DUAS consultas de NÚMERO que o console faz no banco.
  *
  * Elas estão neste arquivo e não espalhadas pelas rotas de propósito: assim dá
- * para abrir um arquivo e ver, inteira, a superfície que o console alcança no
- * banco de todos os municípios. Uma consulta nova aqui é uma decisão visível; a
- * mesma consulta escrita dentro de uma rota passaria numa revisão de diff.
+ * para abrir um arquivo e ver, inteira, a superfície de métrica que o console
+ * alcança no banco de todos os municípios. Uma consulta nova aqui é uma decisão
+ * visível; a mesma consulta escrita dentro de uma rota passaria numa revisão
+ * de diff. (A leitura de UM município pelo identificador, para as ações
+ * perigosas, mora em `municipios.ts`, junto das ações; a de operadores, em
+ * `operadores.ts`.)
  *
  * As duas leem apenas o que a ADR 0008 nomeia: a visão
  * `console_situacao_dos_municipios`, a tabela `metricas_municipio` e o cadastro
  * `organizacoes`. Qualquer junção com tabela de negócio aqui responderia
  * "permissão negada" no banco, porque o papel do console não tem concessão nela
  * e a visão é `security_invoker` (migração 023).
+ *
+ * MUNICÍPIO ELIMINADO NÃO APARECE. A linha continua no banco (o produto não
+ * apaga, e o relógio da API é quem executa a eliminação), mas um município
+ * que já foi eliminado não tem número para mostrar nem ação para receber, e
+ * uma linha dele na tela seria um convite a reativar o que não existe mais.
  */
 
 /** Uma linha da tela principal: um município, com o retrato de hoje. */
@@ -35,6 +43,16 @@ export type SituacaoDoMunicipio = {
   atualizado_em: string | null;
   sem_escrita_recente: boolean;
   horas_desde_a_escrita: number | null;
+  /*
+    O estado de ACESSO do município (migração 038). Quatro colunas de
+    `organizacoes`, todas de data ou de motivo escrito pelo dono do console:
+    nenhuma identifica pessoa nem imóvel, e é por isso que elas cabem aqui.
+    A tela mostra o estado com ícone e palavra, nunca só cor.
+  */
+  acesso_suspenso_em: string | null;
+  suspensao_motivo: string | null;
+  eliminacao_agendada_para: string | null;
+  eliminada_em: string | null;
 };
 
 /**
@@ -64,9 +82,12 @@ export function situacaoDosMunicipios(
            s.ocorrencias_abertas, s.ocorrencias_atrasadas,
            s.usuarios_ativos, s.aparelhos_ativos, s.aparelhos_sem_aparecer,
            s.minutos_ate_vistoria_mediana,
-           s.atualizado_em, s.sem_escrita_recente, s.horas_desde_a_escrita
+           s.atualizado_em, s.sem_escrita_recente, s.horas_desde_a_escrita,
+           o.acesso_suspenso_em, o.suspensao_motivo,
+           o.eliminacao_agendada_para, o.eliminada_em
       FROM console_situacao_dos_municipios s
       JOIN organizacoes o ON o.id = s.organizacao_id
+     WHERE o.eliminada_em IS NULL
      ORDER BY s.sem_escrita_recente DESC, o.municipio
   `);
 }

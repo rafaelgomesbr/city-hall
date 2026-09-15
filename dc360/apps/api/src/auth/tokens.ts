@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT, errors as ErrosJose, jwtVerify } from "jose";
 import { PAPEIS, type Papel } from "@dc360/shared";
 import { z } from "zod";
 
@@ -95,6 +95,53 @@ export async function verificarAcesso(
       da lista vai mudar isso. Continuar o laço só gastaria HMAC.
     */
     return analisado.success ? analisado.data : null;
+  }
+  return null;
+}
+
+/**
+ * A organização de um token de acesso AUTÊNTICO e VENCIDO, e nada mais.
+ *
+ * Existe para uma pergunta só, feita por `exigirAutenticacao` quando a
+ * verificação normal recusou: "este token venceu, mas foi ESTE servidor que o
+ * assinou, e de que município ele era?". A resposta decide entre o 401 de
+ * sempre e o 403 de município suspenso (ver `auth/suspensao.ts`): sem ela o
+ * aparelho de campo de uma prefeitura suspensa receberia 401 para sempre
+ * depois de a renovação falhar, e leria isso como "entre de novo", que é o
+ * ato que não resolve.
+ *
+ * A ordem em que o `jose` valida é o que torna isto seguro: a assinatura é
+ * conferida ANTES das reivindicações, e `iss` e `aud` são conferidos ANTES de
+ * `exp`. Então `JWTExpired` só é lançado para um token cuja assinatura casou
+ * com um dos segredos, cujo emissor é este produto e cuja plateia é a de
+ * acesso. Um token forjado, adulterado, de outro segredo ou de outra plateia
+ * (o desafio do segundo fator, o console do fornecedor) cai em outro erro e
+ * devolve `null` aqui, sem consultar banco nenhum.
+ *
+ * Devolve SÓ a organização, de propósito: o conteúdo de um token vencido não
+ * serve para identificar ninguém nem para autorizar nada, e a única coisa que
+ * quem chama vai fazer com ele é perguntar ao banco se aquele município está
+ * suspenso.
+ */
+export async function organizacaoDoAcessoVencido(
+  segredos: readonly Uint8Array[],
+  token: string,
+): Promise<string | null> {
+  for (const segredo of segredos) {
+    try {
+      await jwtVerify(token, segredo, {
+        issuer: EMISSOR,
+        audience: PLATEIA,
+        algorithms: ["HS256"],
+      });
+      // Válido: quem chama já deveria ter aceitado pelo caminho normal. Não é
+      // vencido, então não há organização "de token vencido" a devolver.
+      return null;
+    } catch (erro) {
+      if (!(erro instanceof ErrosJose.JWTExpired)) continue;
+      const org = z.string().uuid().safeParse(erro.payload["org"]);
+      return org.success ? org.data : null;
+    }
   }
   return null;
 }

@@ -10,12 +10,21 @@ import {
   cadastroDePrefeituraSchema,
 } from "./cadastro.js";
 import {
-  abrirCofre, conferirCodigo, conferirEntrada, lerRegistro, tetoEmMemoria,
-  type Registro, type TetoDeTentativas,
+  abrirCofre, conferirCodigo, conferirEntrada, contextoDoOperador, registroNoBanco,
+  semearDonoSePreciso, type Operador, type Papel, type Registro,
 } from "./operadores.js";
-import { emitirDesafio, emitirSessao, verificarDesafio, verificarSessao } from "./tokens.js";
+import {
+  SEM_PODER, agendarEliminacao, cancelarEliminacao, municipioPorId, reativarMunicipio,
+  recusaEscritaParaGente, suspenderMunicipio,
+} from "./municipios.js";
+import {
+  emitirDesafio, emitirSessao, verificarDesafio, verificarSessao, versaoDaSenha,
+} from "./tokens.js";
 import { CSS_DO_CONSOLE, JS_DO_CONSOLE, PAGINA_DO_CONSOLE } from "./pagina.js";
 import { FACES_DE_FONTE } from "./fontes.js";
+import { conferirSenha, derivarSenha, gerarSenhaTemporaria } from "../../api/src/auth/senha.js";
+import { gerarSegredoTotp, uriDeAtivacao } from "../../api/src/auth/totp.js";
+import { TextoLongoDemais, matrizQr } from "./qr.js";
 
 /**
  * O console do fornecedor: processo próprio, sessão própria, plateia própria.
@@ -32,18 +41,26 @@ import { FACES_DE_FONTE } from "./fontes.js";
  * é a interface; a parede é a migração 023 e o portão é
  * `db/test/isolamento.test.ts`.
  *
+ * O QUE ELE ESCREVE, e cada item é uma porta nomeada:
+ *
+ *   - `POST /prefeituras` executa `provisionar_municipio` (migração 036).
+ *   - As quatro ações perigosas por município executam as funções
+ *     `console_*_municipio` (migração 038), que recusam quem não é dono.
+ *   - A área de usuários e a troca de senha escrevem em `console_operadores`,
+ *     a tabela PRÓPRIA do console, sob policy. Nada disso toca tabela de
+ *     negócio, e é o banco quem garante.
+ *
  * O QUE ELE NÃO TEM, e cada ausência é uma decisão:
  *
  *   - CORS. A página é servida por este mesmo processo, então não existe
  *     origem legítima diferente da própria. Sem plugin de CORS, chamada de
  *     outra origem não passa, e não há lista para alguém alargar por engano.
- *   - Rota de escrita que toque uma tabela. Nenhuma, em lugar nenhum. Existe
- *     UMA rota de escrita, `POST /prefeituras`, e ela não escreve: ela executa
- *     uma função do banco (migração 036) que cria o município e o primeiro
- *     administrador dele. O papel `dc360_console` continua sem `INSERT`,
- *     `UPDATE` ou `DELETE` em tabela nenhuma, e é o banco quem garante isso.
- *   - Renovação de sessão. Ver `tokens.ts`: não há onde guardar o hash de um
- *     token de renovação, porque o console não escreve no banco.
+ *   - `DELETE` em rota nenhuma, e em tabela nenhuma. Município se suspende e
+ *     se agenda para eliminação (quem apaga, sete dias depois, é o relógio da
+ *     API); operador se desativa. Nada some por aqui.
+ *   - Renovação de sessão. Ver `tokens.ts`: a sessão dura trinta minutos e
+ *     acaba, e a troca de senha derruba as outras pela versão da senha no
+ *     token, sem tabela de sessões.
  */
 
 export type DependenciasDoConsole = {
@@ -52,8 +69,8 @@ export type DependenciasDoConsole = {
   /**
    * A escrita, separada da leitura como parâmetro e não escondida dentro dela.
    *
-   * Quem monta este servidor precisa entregar as duas coisas de propósito: a
-   * rota que cria prefeitura fica visível na assinatura, em vez de aparecer
+   * Quem monta este servidor precisa entregar as duas coisas de propósito: as
+   * rotas que escrevem ficam visíveis na assinatura, em vez de aparecerem
    * como um método a mais num objeto que todo mundo já passava.
    */
   escrita: EscritaDoConsole;
@@ -80,13 +97,22 @@ export type DependenciasDoConsole = {
    * ter chegado ao que ele diz medir. O padrão é o valor de produção.
    */
   limiteDeCadastro?: number;
+  /**
+   * Quantas ações perigosas (suspender, reativar, eliminar, cancelar, criar e
+   * desativar operador, trocar senha) o mesmo endereço faz por hora. Mesma
+   * razão dos dois de cima; o padrão é o de produção.
+   */
+  limiteDeAcoes?: number;
   /** Coletor de log, para o teste poder afirmar o que saiu. */
   destinoDeLog?: { write: (linha: string) => void };
 };
 
+/** Quem está agindo, depois do portão: o que toda rota fechada recebe. */
+export type OperadorEmSessao = { id: string; email: string; papel: Papel };
+
 declare module "fastify" {
   interface FastifyRequest {
-    operador?: string;
+    operador?: OperadorEmSessao;
   }
 }
 
@@ -101,6 +127,41 @@ const CODIGO = z.object({
   codigo: z.string().min(1).max(32),
 });
 
+const NOVO_OPERADOR = z.object({
+  email: z.string().trim().toLowerCase().min(1, "Informe o email")
+    .email("Informe um email válido").max(320),
+});
+
+/**
+ * A troca da própria senha: senha atual, código NOVO, senha nova.
+ *
+ * Doze caracteres é o piso do ASVS 4.0 (seção 2.1), o mesmo que a senha
+ * temporária do produto já cumpre. O teto alto existe porque o `scrypt` recebe
+ * a senha inteira e ninguém precisa de um limite baixo aqui.
+ */
+const TROCA_DE_SENHA = z.object({
+  senhaAtual: z.string().min(1, "Informe a senha atual").max(1024),
+  codigo: z.string().min(1, "Informe o código do aplicativo").max(32),
+  novaSenha: z.string().min(12, "A senha nova precisa ter pelo menos 12 caracteres").max(1024),
+});
+
+const MOTIVO = z.object({
+  motivo: z.string().trim().min(1, "Informe o motivo").max(2000),
+});
+
+/**
+ * O pedido de eliminação, NESTA ORDEM: senha atual, código novo, nome exato,
+ * motivo. A ordem é a da tela e a da conferência na rota, e ela é deliberada:
+ * a senha e o código provam que é a pessoa; o nome prova que ela sabe QUAL
+ * prefeitura está apagando; o motivo fica para quem ler o log daqui a um ano.
+ */
+const ELIMINACAO = z.object({
+  senha: z.string().min(1, "Informe a sua senha").max(1024),
+  codigo: z.string().min(1, "Informe o código do aplicativo").max(32),
+  nome: z.string().min(1, "Digite o nome exato da prefeitura").max(200),
+  motivo: z.string().trim().min(1, "Informe o motivo").max(2000),
+});
+
 /**
  * A mesma resposta para email desconhecido e para senha errada.
  *
@@ -113,6 +174,12 @@ const RECUSA = { erro: "credenciais_invalidas", mensagem: "Email ou senha incorr
 /** Falta sessão, ou ela já não vale. Vira 401 no tratador de erro. */
 class SemSessao extends Error {}
 
+/** Há sessão, mas o ato é do dono. Vira 403 no tratador de erro. */
+class SoODono extends Error {}
+
+/** O nome que o aplicativo de autenticação mostra ao lado do código. */
+const EMISSOR_DO_TOTP = "DC360 Console";
+
 export async function construirConsole(
   dep: DependenciasDoConsole,
 ): Promise<FastifyInstance> {
@@ -120,8 +187,7 @@ export async function construirConsole(
   const agora = dep.agora ?? (() => new Date());
 
   const cofre = abrirCofre(config.CONSOLE_SEGUNDO_FATOR_CHAVE);
-  const registro: Registro = lerRegistro(config.CONSOLE_OPERADORES, cofre);
-  const teto: TetoDeTentativas = tetoEmMemoria();
+  const registro: Registro = registroNoBanco(leitura, escrita);
   const segredo = new TextEncoder().encode(config.CONSOLE_JWT_SEGREDO);
 
   /*
@@ -131,9 +197,9 @@ export async function construirConsole(
     que a linha da partida ("console do fornecedor pronto, com N operadores")
     só existia no lugar onde ninguém a lê, e sumia justamente na máquina de quem
     está tentando descobrir por que o console não aceita a senha. Um processo que
-    serve uma página e cinco rotas não tem log volumoso para economizar: o que
-    ele tem é um operador olhando o terminal, tentando entender por que não
-    entrou.
+    serve uma página e uma dúzia de rotas não tem log volumoso para economizar:
+    o que ele tem é um operador olhando o terminal, tentando entender por que
+    não entrou.
 
     O nível sai daqui uma vez e vale para os dois destinos (o terminal e o
     coletor do teste), de propósito: com dois níveis diferentes, um teste que
@@ -148,12 +214,25 @@ export async function construirConsole(
       ...(dep.destinoDeLog ? { stream: dep.destinoDeLog } : {}),
     },
     /*
-      O corpo é minúsculo em toda rota deste servidor: email, senha e seis
-      dígitos. Um teto baixo aqui evita que alguém ocupe a memória do processo
-      mandando megabytes para uma rota que espera trinta bytes.
+      O corpo é minúsculo em toda rota deste servidor: email, senha, seis
+      dígitos, um motivo. Um teto baixo aqui evita que alguém ocupe a memória
+      do processo mandando megabytes para uma rota que espera trinta bytes.
     */
     bodyLimit: 16 * 1024,
   });
+
+  /*
+    A SEMENTE DO DONO, antes de qualquer rota existir.
+
+    Fica aqui e não em `index.ts` porque o teste monta o console por esta
+    função, e a semente é parte do que "montar o console" significa: um
+    servidor de pé sem dono no banco é um servidor em que ninguém entra. Se a
+    semente falhar (hash comido pelo shell, envelope que não abre, dois
+    operadores na variável), esta função lança, e quem chamou decide o que
+    fazer com o processo. Em `index.ts` isso é `process.exit(1)`, que no Fly
+    faz o release falhar e a versão anterior continuar atendendo.
+  */
+  await semearDonoSePreciso(registro, config.CONSOLE_OPERADORES, cofre, app.log);
 
   await app.register(helmet, {
     /*
@@ -162,6 +241,10 @@ export async function construirConsole(
       `script-src` e `style-src` são `'self'` e não `'unsafe-inline'`. Escrever o
       script dentro do HTML custaria abrir `unsafe-inline`, que é justamente a
       diretiva que faz a política de segurança de conteúdo deixar de valer.
+
+      O código QR do segundo fator de um operador novo é desenhado pelo
+      próprio script, em SVG, a partir de uma matriz que a rota devolve. Nada
+      de serviço de imagem: o endereço `otpauth://` carrega o segredo.
     */
     contentSecurityPolicy: {
       directives: {
@@ -178,12 +261,12 @@ export async function construirConsole(
   });
 
   /*
-    Limite por endereço, e ele vale nas duas rotas que conferem credencial e na
-    única que escreve.
+    Limite por endereço, e ele vale nas rotas que conferem credencial e nas
+    que escrevem.
 
-    O teto por conta vive em `operadores.ts` e trata a conta martelada de muitos
-    lugares; este trata o atacante que vem de um lugar só. São problemas
-    diferentes, e um não cobre o outro.
+    O teto por conta vive em `operadores.ts` (na linha do operador) e trata a
+    conta martelada de muitos lugares; este trata o atacante que vem de um
+    lugar só. São problemas diferentes, e um não cobre o outro.
 
     `global: false` não é economia de zelo, é correção de um defeito que a
     primeira versão tinha e que só apareceu abrindo a página de verdade: com o
@@ -194,12 +277,10 @@ export async function construirConsole(
     plantão.
 
     O que sobra sem limite são rotas estáticas e rotas de leitura que já exigem
-    sessão. A rota que cadastra prefeitura tem teto próprio, e o porquê dele
-    está escrito em `LIMITE_DE_CADASTRO`, logo abaixo: ele não protege
-    credencial, protege contra registro que não se apaga. O
-    caminho que precisa de teto é justamente o que fica de fora dele: cada
-    tentativa de entrar gasta uma derivação `scrypt` de cerca de 128 MB, então
-    marteladas nessa rota derrubam o processo antes de descobrirem senha nenhuma.
+    sessão. O caminho que precisa de teto é justamente o que fica de fora dele:
+    cada tentativa de entrar gasta uma derivação `scrypt` de cerca de 128 MB,
+    então marteladas nessa rota derrubam o processo antes de descobrirem senha
+    nenhuma.
   */
   await app.register(rateLimit, {
     global: false,
@@ -238,6 +319,24 @@ export async function construirConsole(
   };
 
   /**
+   * O teto das ações perigosas, pela mesma lógica do cadastro.
+   *
+   * Suspender, eliminar, criar operador, trocar senha: nenhuma delas acontece
+   * dez vezes numa hora num dia normal, e todas produzem efeito que alguém vai
+   * ter que desfazer à mão se uma sessão de dono for roubada. Duas delas
+   * (eliminar e trocar senha) ainda gastam uma derivação `scrypt` por
+   * tentativa, o que faz deste teto também uma defesa do processador.
+   */
+  const LIMITE_DE_ACOES = {
+    config: {
+      rateLimit: { max: dep.limiteDeAcoes ?? 10, timeWindow: "1 hour" },
+    },
+  };
+
+  /** As rotas sob `LIMITE_DE_ACOES`, para o tratador de 429 dizer a espera certa. */
+  const ROTAS_DE_ACAO = /^\/(operadores|senha|municipios\/[^/]+\/(suspender|reativar|eliminar|eliminacao\/cancelar))/;
+
+  /**
    * Um tratador só, e ele nunca devolve a mensagem crua do erro.
    *
    * Mensagem de erro de banco conta o nome da tabela e a coluna que faltou, e
@@ -249,20 +348,28 @@ export async function construirConsole(
     if (erro instanceof SemSessao) {
       return resposta.code(401).send({ erro: "sem_sessao", mensagem: "Entre de novo." });
     }
+    if (erro instanceof SoODono) {
+      return resposta.code(403).send({
+        erro: "so_o_dono", mensagem: "Só o dono do console faz isto.",
+      });
+    }
     if ((erro as { statusCode?: number }).statusCode === 429) {
       /*
         A espera que a mensagem promete é a da janela que travou, e não uma
-        frase genérica. As duas janelas deste servidor são diferentes (cinco
-        minutos na porta, uma hora no cadastro), e mandar alguém esperar "alguns
-        minutos" para voltar em uma hora produz cinco tentativas frustradas e um
-        chamado.
+        frase genérica. As janelas deste servidor são diferentes (cinco
+        minutos na porta, uma hora no cadastro e nas ações), e mandar alguém
+        esperar "alguns minutos" para voltar em uma hora produz cinco
+        tentativas frustradas e um chamado.
       */
       const noCadastro = req.url.startsWith("/prefeituras");
+      const naAcao = ROTAS_DE_ACAO.test(req.url);
       return resposta.code(429).send({
         erro: "muitas_tentativas",
         mensagem: noCadastro
           ? "Cadastros demais deste endereço. Espere uma hora."
-          : "Tentativas demais. Espere alguns minutos.",
+          : naAcao
+            ? "Ações demais deste endereço. Espere uma hora."
+            : "Tentativas demais. Espere alguns minutos.",
       });
     }
     app.log.error(
@@ -276,24 +383,11 @@ export async function construirConsole(
    * Uma linha de log por tentativa recusada, e ela é a única resposta que quem
    * opera tem para "por que eu não entrei".
    *
-   * Até aqui, credencial recusada não escrevia NADA, em nível nenhum, nem em
-   * produção. A tela diz "email ou senha incorretos" de propósito (a mesma
-   * resposta para email desconhecido e senha errada, para a rota não virar uma
-   * lista de quem trabalha no fornecedor), e o efeito colateral é que ninguém,
-   * nem quem administra o processo, conseguia distinguir "a senha está errada"
-   * de "o segundo fator expirou" de "o operador saiu da configuração". Três
-   * causas, um sintoma, zero informação.
-   *
-   * O QUE ENTRA: o email tentado e um motivo de máquina, curto. O email já
-   * entrava no log na entrada BEM-sucedida; recusa sem email é linha que não
-   * ajuda ninguém a diagnosticar nada.
-   *
-   * O QUE NUNCA ENTRA, e esta lista é o ponto desta função existir em vez de
-   * cada rota escrever a sua linha: senha, código de seis dígitos, desafio,
-   * token de sessão, segredo do segundo fator, hash. O log deste processo é
-   * lido por mais gente do que a tela, e fica guardado pelo tempo de retenção
-   * inteiro. Nada que sirva para entrar passa por aqui, e existe teste que o
-   * cobra.
+   * O QUE ENTRA: o email tentado e um motivo de máquina, curto. O QUE NUNCA
+   * ENTRA: senha, código de seis dígitos, desafio, token de sessão, segredo do
+   * segundo fator, hash. O log deste processo é lido por mais gente do que a
+   * tela, e fica guardado pelo tempo de retenção inteiro. Existe teste que o
+   * cobra, e ele roda as rotas novas também.
    *
    * O MOTIVO É GENÉRICO no primeiro passo (`email_ou_senha`) pela mesma razão
    * da resposta HTTP: distinguir ali não ajuda a operar e ajuda a enumerar. Nos
@@ -304,6 +398,30 @@ export async function construirConsole(
    */
   function recusar(email: string | undefined, motivo: string): void {
     app.log.warn({ email: email ?? "(nao informado)", motivo }, "entrada recusada no console");
+  }
+
+  /**
+   * O rastro de cada ação perigosa, em `warn`: QUEM (email e id do operador),
+   * QUAL município (por id, nunca por dado de pessoa) e o carimbo de tempo que
+   * o próprio registrador põe. Nunca senha, código, segredo, token nem hash.
+   *
+   * `warn` e não `info` de propósito: é o mesmo nível da entrada recusada.
+   * Suspender ou agendar a eliminação de uma prefeitura é evento que precisa
+   * aparecer em quem suba o processo com o log apertado.
+   */
+  function rastro(
+    quem: OperadorEmSessao, acao: string, organizacaoId: string | null, extra: Record<string, unknown> = {},
+  ): void {
+    app.log.warn(
+      { operador: quem.email, operador_id: quem.id, acao, organizacao_id: organizacaoId, ...extra },
+      `acao perigosa no console: ${acao}`,
+    );
+  }
+
+  /** Um identificador de rota conferido como UUID antes de chegar ao banco. */
+  function uuidOuNulo(valor: string): string | null {
+    const r = z.string().uuid().safeParse(valor);
+    return r.success ? r.data : null;
   }
 
   /* ======================================================================
@@ -334,7 +452,7 @@ export async function construirConsole(
 
     app.log.info({ operador: operador.email }, "senha conferida, aguardando o codigo");
     return resposta.send({
-      desafio: await emitirDesafio(segredo, operador.email),
+      desafio: await emitirDesafio(segredo, operador.id),
       // A tela precisa saber o que pedir a seguir, e a resposta é sempre a
       // mesma: o console não tem operador sem segundo fator.
       falta: "codigo",
@@ -353,9 +471,9 @@ export async function construirConsole(
     if (!desafio) {
       /*
         Sem email na linha, e não é descuido: o desafio não abriu, então não há
-        email verificado para escrever. O que o endereço do corpo da requisição
-        diria é o que quem chamou quis dizer, e um log que registra afirmação de
-        quem chamou como se fosse fato é pior que um log sem o campo.
+        operador verificado para escrever. O que o endereço do corpo da
+        requisição diria é o que quem chamou quis dizer, e um log que registra
+        afirmação de quem chamou como se fosse fato é pior que um log sem o campo.
       */
       recusar(undefined, "desafio_expirado_ou_invalido");
       return resposta.code(401).send({
@@ -364,15 +482,15 @@ export async function construirConsole(
       });
     }
 
-    const operador = registro.buscar(desafio.email);
-    if (!operador) {
-      // O operador saiu da configuração entre as duas etapas. É diagnóstico, e
-      // sem esta linha ele aparece como "código incorreto" para sempre.
-      recusar(desafio.email, "operador_fora_do_registro");
+    const operador = await registro.buscarPorId(desafio.id);
+    if (!operador || !operador.ativo) {
+      // O operador foi desativado entre as duas etapas. É diagnóstico, e sem
+      // esta linha ele aparece como "código incorreto" para sempre.
+      recusar(operador?.email, "operador_desativado_ou_inexistente");
       return resposta.code(401).send(RECUSA);
     }
 
-    const desfecho = conferirCodigo(operador, corpo.data.codigo, cofre, teto, agora());
+    const desfecho = await conferirCodigo(registro, operador, corpo.data.codigo, cofre, agora());
     if (desfecho === "bloqueado") {
       recusar(operador.email, "conta_de_castigo");
       return resposta.code(429).send({
@@ -388,37 +506,72 @@ export async function construirConsole(
       });
     }
 
-    app.log.info({ operador: operador.email }, "operador entrou no console");
+    app.log.info({ operador: operador.email, papel: operador.papel }, "operador entrou no console");
     return resposta.send({
-      token: await emitirSessao(segredo, operador.email),
+      token: await emitirSessao(segredo, { id: operador.id, sv: versaoDaSenha(operador.senhaHash) }),
       operador: operador.email,
+      papel: operador.papel,
     });
   });
 
   /* ======================================================================
-     O portão das rotas de leitura
+     O portão das rotas fechadas
      ====================================================================== */
 
   /**
-   * Toda rota de número passa por aqui, e a lista de isenções é o próprio
-   * `onRequest` das quatro rotas abertas (entrar, código, saúde e a casca da
-   * página). Isso é deliberado: o padrão é fechado, e abrir exige escrever a
-   * rota sem o gancho, o que aparece na revisão.
+   * Toda rota fechada passa por aqui, e a lista de isenções é o próprio
+   * `onRequest` das rotas abertas (entrar, código, saúde, a casca da página e
+   * os arquivos dela). Isso é deliberado: o padrão é fechado, e abrir exige
+   * escrever a rota sem o gancho, o que aparece na revisão.
+   *
+   * A CONTA É LIDA DO BANCO A CADA PEDIDO, e são três coisas conferidas na
+   * linha, além da assinatura do token:
+   *
+   *   1. a conta existe e está ATIVA: desativar precisa valer agora, e não
+   *      daqui a trinta minutos, quando o token expiraria sozinho;
+   *   2. a VERSÃO DA SENHA no token bate com a da linha: trocar a senha
+   *      derruba as outras sessões, sem tabela de sessões (ver `tokens.ts`);
+   *   3. o PAPEL vem da linha, e nunca do token: um token não carrega poder,
+   *      carrega identidade. Se o dia em que alguém rebaixar um papel chegar,
+   *      ele vale no pedido seguinte.
    */
-  async function exigirOperador(req: FastifyRequest): Promise<string> {
+  async function exigirOperador(req: FastifyRequest): Promise<Operador> {
     const cabecalho = req.headers.authorization ?? "";
     const token = cabecalho.startsWith("Bearer ") ? cabecalho.slice(7) : "";
     const sessao = token ? await verificarSessao(segredo, token) : null;
     if (!sessao) throw new SemSessao();
-    /*
-      A conta pode ter saído da configuração desde que o token foi emitido (o
-      operador deixou o fornecedor, e alguém já reimplantou sem ele). O token
-      continua com assinatura boa até expirar, e sem esta conferência ele
-      continuaria valendo por até trinta minutos.
-    */
-    if (!registro.buscar(sessao.email)) throw new SemSessao();
-    req.operador = sessao.email;
-    return sessao.email;
+
+    const operador = await registro.buscarPorId(sessao.id);
+    if (!operador || !operador.ativo) throw new SemSessao();
+    if (versaoDaSenha(operador.senhaHash) !== sessao.sv) throw new SemSessao();
+
+    req.operador = { id: operador.id, email: operador.email, papel: operador.papel };
+    return operador;
+  }
+
+  /**
+   * As rotas do dono: usuários e as duas ações perigosas por município.
+   *
+   * 403, e não 404, de propósito. A regra "recurso de outro município responde
+   * 404" é sobre não confirmar que algo existe para quem não deveria saber.
+   * Aqui não há segredo a proteger: o operador já vê o município na lista, e o
+   * que lhe falta é PODER, não conhecimento. Dizer "só o dono faz isto" é a
+   * frase certa para a pessoa certa, que é um colega do fornecedor.
+   *
+   * E este gancho NÃO é a defesa: é a cortesia. A defesa é a policy da tabela
+   * e o `insufficient_privilege` das funções do banco, que recusam o operador
+   * mesmo quando alguém escrever uma rota sem este gancho. Existe teste que
+   * chama as funções por fora da rota e mostra o banco recusando.
+   */
+  async function exigirDono(req: FastifyRequest): Promise<Operador> {
+    const operador = await exigirOperador(req);
+    if (operador.papel !== "dono") throw new SoODono();
+    return operador;
+  }
+
+  function quem(req: FastifyRequest): OperadorEmSessao {
+    // Só é chamado depois de `exigirOperador`, que sempre preenche.
+    return req.operador!;
   }
 
   /* ======================================================================
@@ -446,13 +599,13 @@ export async function construirConsole(
         para a resposta de "isso não é um município" não depender de mensagem de
         erro do Postgres.
       */
-      const id = z.string().uuid().safeParse(req.params.id);
-      if (!id.success) return resposta.code(404).send({ erro: "nao_encontrado" });
+      const id = uuidOuNulo(req.params.id);
+      if (!id) return resposta.code(404).send({ erro: "nao_encontrado" });
 
       const consulta = SERIE.safeParse(req.query);
       const dias = consulta.success ? consulta.data.dias : 30;
 
-      return resposta.send({ serie: await serieDoMunicipio(leitura, id.data, dias) });
+      return resposta.send({ serie: await serieDoMunicipio(leitura, id, dias) });
     },
   );
 
@@ -466,19 +619,12 @@ export async function construirConsole(
    *
    * ATRÁS DA SESSÃO, pelo mesmo gancho de todas as outras: `exigirOperador` é a
    * primeira linha, e não há ramo que escreva antes dele. Esconder o botão na
-   * tela não é controle de acesso.
+   * tela não é controle de acesso. Operador comum PODE cadastrar (decisão
+   * tomada com o dono: operadores veem números e cadastram prefeitura; só o
+   * dono desativa, elimina e gerencia usuários).
    *
    * A RESPOSTA É EXATAMENTE TRÊS CAMPOS: os dois identificadores do que acabou
-   * de ser criado, e a senha inicial. Nada de nome de outro município, nada de
-   * contagem, nada de lista. A função do banco já não teria como devolver mais
-   * (ela declara dois `uuid` de saída e nada além), e esta rota não acrescenta
-   * nada por cima.
-   *
-   * A SENHA INICIAL NÃO VAI PARA O LOG. O `app.log.info` do desfecho carrega
-   * quem cadastrou, qual município e qual identificador, e é isso: o log deste
-   * processo é lido por mais gente do que a tela, e uma senha que caísse ali
-   * ficaria em texto claro pelo tempo de retenção inteiro. Ela aparece uma vez
-   * na tela de quem cadastrou, e acabou.
+   * de ser criado, e a senha inicial. A SENHA INICIAL NÃO VAI PARA O LOG.
    */
   app.post("/prefeituras", LIMITE_DE_CADASTRO, async (req, resposta) => {
     const operador = await exigirOperador(req);
@@ -502,7 +648,7 @@ export async function construirConsole(
 
       app.log.info(
         {
-          operador,
+          operador: operador.email,
           municipio: `${corpo.data.municipio}/${corpo.data.uf.toUpperCase()}`,
           organizacao_id: criado.organizacaoId,
           cadastrado_por: corpo.data.operador,
@@ -515,16 +661,10 @@ export async function construirConsole(
       const codigo = (erro as { code?: string }).code;
 
       /*
-        AS TRÊS RECUSAS ABAIXO REPASSAM A MENSAGEM DO BANCO, e são as únicas
-        mensagens de banco que este servidor deixa sair.
-
-        O tratador geral não repassa nenhuma, e por uma boa razão: mensagem de
-        erro de Postgres conta nome de tabela e de coluna, e num processo que
-        fala com o banco de todas as prefeituras isso é planta entregue de
-        graça. A diferença destas três é que elas não vêm do Postgres: são
-        escritas à mão na migração 036, para serem lidas por gente. A primeira
-        diz qual município já existe, que é exatamente o que quem cadastra
-        precisa saber para não criar o segundo.
+        AS TRÊS RECUSAS ABAIXO REPASSAM A MENSAGEM DO BANCO, e são, junto das
+        `DC36x` das ações perigosas, as únicas mensagens de banco que este
+        servidor deixa sair: elas não vêm do Postgres, são escritas à mão na
+        migração, para serem lidas por gente.
       */
       if (codigo === MUNICIPIO_DUPLICADO) {
         return resposta.code(409).send({
@@ -535,12 +675,9 @@ export async function construirConsole(
 
       /*
         O email de login é único no produto inteiro (migração 002), e não dentro
-        do município. Sem esta tradução, quem cadastra recebe "falha interna" e
-        recomeça o formulário sem saber o que mudar.
-
-        A mensagem diz que o email já tem conta e NÃO diz em qual município:
-        município quem cadastra já pode listar, mas quem trabalha em cada um é
-        dado de pessoa, e a decisão 2 da ADR 0008 fecha essa porta.
+        do município. A mensagem diz que o email já tem conta e NÃO diz em qual
+        município: quem trabalha em cada um é dado de pessoa, e a decisão 2 da
+        ADR 0008 fecha essa porta.
       */
       if (codigo === EMAIL_EM_USO) {
         return resposta.code(409).send({
@@ -561,6 +698,372 @@ export async function construirConsole(
       // tudo numa transação só.
       throw erro;
     }
+  });
+
+  /* ======================================================================
+     As duas ações perigosas por município (só o dono)
+     ====================================================================== */
+
+  /**
+   * O que as quatro rotas têm em comum, e por que está numa função só.
+   *
+   * A ordem é sempre a mesma: o dono (403 antes de olhar para qualquer coisa),
+   * o identificador como UUID (404 sem ida ao banco), o município existe e não
+   * foi eliminado (404), e só então a função do banco. Uma rota que invertesse
+   * dois desses passos responderia coisa diferente para o mesmo pedido, e é
+   * esse tipo de diferença que uma revisão de diff não pega.
+   */
+  async function municipioDoDono(
+    req: FastifyRequest<{ Params: { id: string } }>,
+  ): Promise<{ operador: Operador; id: string } | null> {
+    const operador = await exigirDono(req);
+    const id = uuidOuNulo(req.params.id);
+    if (!id) return null;
+    const municipio = await municipioPorId(leitura, id, operador.id);
+    if (!municipio || municipio.eliminada_em) return null;
+    return { operador, id };
+  }
+
+  /**
+   * Traduz a recusa do banco, e só ela.
+   *
+   * `42501` (sem poder) vira 403: é o banco dizendo que quem chamou não é dono,
+   * e essa resposta precisa existir mesmo quando o gancho da rota falhar. As
+   * `DC36x` são recusas escritas à mão na migração para gente ler (motivo em
+   * branco, eliminação agendada impedindo reativar, nada a cancelar), e viram
+   * 409 com a frase. Qualquer outra coisa sobe para o tratador geral.
+   */
+  function traduzirRecusaDoBanco(erro: unknown): { status: number; corpo: unknown } | null {
+    const codigo = (erro as { code?: string }).code;
+    if (codigo === SEM_PODER) {
+      return { status: 403, corpo: { erro: "so_o_dono", mensagem: "Só o dono do console faz isto." } };
+    }
+    if (recusaEscritaParaGente(codigo)) {
+      return { status: 409, corpo: { erro: "acao_recusada", mensagem: (erro as Error).message } };
+    }
+    return null;
+  }
+
+  app.post<{ Params: { id: string } }>(
+    "/municipios/:id/suspender", LIMITE_DE_ACOES, async (req, resposta) => {
+      const alvo = await municipioDoDono(req);
+      if (!alvo) return resposta.code(404).send({ erro: "nao_encontrado" });
+
+      const corpo = MOTIVO.safeParse(req.body);
+      if (!corpo.success) {
+        return resposta.code(400).send({
+          erro: "pedido_invalido", mensagem: corpo.error.issues[0]?.message ?? "Informe o motivo.",
+        });
+      }
+
+      try {
+        await suspenderMunicipio(escrita, alvo.operador.id, alvo.id, corpo.data.motivo);
+      } catch (erro) {
+        const recusa = traduzirRecusaDoBanco(erro);
+        if (recusa) return resposta.code(recusa.status).send(recusa.corpo);
+        throw erro;
+      }
+      rastro(quem(req), "suspender", alvo.id);
+      return resposta.send({ municipio: await municipioPorId(leitura, alvo.id, alvo.operador.id) });
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    "/municipios/:id/reativar", LIMITE_DE_ACOES, async (req, resposta) => {
+      const alvo = await municipioDoDono(req);
+      if (!alvo) return resposta.code(404).send({ erro: "nao_encontrado" });
+
+      try {
+        await reativarMunicipio(escrita, alvo.operador.id, alvo.id);
+      } catch (erro) {
+        const recusa = traduzirRecusaDoBanco(erro);
+        if (recusa) return resposta.code(recusa.status).send(recusa.corpo);
+        throw erro;
+      }
+      rastro(quem(req), "reativar", alvo.id);
+      return resposta.send({ municipio: await municipioPorId(leitura, alvo.id, alvo.operador.id) });
+    },
+  );
+
+  /**
+   * Agenda a eliminação, e exige, NESTA ORDEM: a senha atual, um código NOVO
+   * do aplicativo, o nome exato da prefeitura, e o motivo.
+   *
+   * A SENHA E O CÓDIGO DE NOVO, com sessão válida na mão. A sessão prova que
+   * alguém entrou há menos de meia hora; não prova que quem está na cadeira
+   * agora é a mesma pessoa. Para o ato que apaga uma prefeitura inteira, a
+   * pessoa se identifica de novo, na hora.
+   *
+   * O CÓDIGO PRECISA SER NOVO. O que abriu a sessão está queimado na linha do
+   * dono (`ultimo_passo_totp`), e `conferirCodigo` recusa qualquer código de
+   * passo igual ou anterior. Quem viu o código na tela do aplicativo por cima
+   * do ombro na hora da entrada não elimina município com ele.
+   *
+   * O NOME EXATO, comparado com o cadastrado, sem perdoar caixa nem espaço: é
+   * a prova de que a pessoa sabe QUAL prefeitura está apagando, e não a que
+   * está na linha de cima. Vem depois da senha e do código porque uma
+   * comparação de texto é barata e uma derivação de senha não é: se a pessoa
+   * errou o nome, ela já pagou a senha, e ninguém elimina prefeitura errada
+   * por ter acertado tudo o mais.
+   *
+   * A CONFERÊNCIA DO CÓDIGO CONTA COMO TENTATIVA: errar cinco vezes aqui põe
+   * a conta de castigo do mesmo jeito que na porta, pela mesma linha da tabela.
+   */
+  app.post<{ Params: { id: string } }>(
+    "/municipios/:id/eliminar", LIMITE_DE_ACOES, async (req, resposta) => {
+      const alvo = await municipioDoDono(req);
+      if (!alvo) return resposta.code(404).send({ erro: "nao_encontrado" });
+
+      const corpo = ELIMINACAO.safeParse(req.body);
+      if (!corpo.success) {
+        return resposta.code(400).send({
+          erro: "pedido_invalido",
+          mensagem: corpo.error.issues[0]?.message ?? "Confira os campos.",
+        });
+      }
+
+      if (!(await conferirSenha(corpo.data.senha, alvo.operador.senhaHash))) {
+        rastro(quem(req), "eliminar_recusado", alvo.id, { motivo: "senha_incorreta" });
+        return resposta.code(401).send({
+          erro: "senha_incorreta", mensagem: "A senha não confere.",
+        });
+      }
+
+      const desfecho = await conferirCodigo(registro, alvo.operador, corpo.data.codigo, cofre, agora());
+      if (desfecho === "bloqueado") {
+        rastro(quem(req), "eliminar_recusado", alvo.id, { motivo: "conta_de_castigo" });
+        return resposta.code(429).send({
+          erro: "bloqueado", mensagem: "Códigos errados demais. Espere quinze minutos.",
+        });
+      }
+      if (desfecho !== "ok") {
+        rastro(quem(req), "eliminar_recusado", alvo.id, { motivo: "codigo_incorreto_ou_ja_usado" });
+        return resposta.code(401).send({
+          erro: "codigo_invalido",
+          mensagem: "Código incorreto ou já usado. Use um código novo, não o da entrada.",
+        });
+      }
+
+      const municipio = await municipioPorId(leitura, alvo.id, alvo.operador.id);
+      if (!municipio) return resposta.code(404).send({ erro: "nao_encontrado" });
+      if (corpo.data.nome !== municipio.municipio) {
+        rastro(quem(req), "eliminar_recusado", alvo.id, { motivo: "nome_nao_confere" });
+        return resposta.code(400).send({
+          erro: "nome_nao_confere",
+          mensagem: "O nome digitado não é exatamente o nome da prefeitura cadastrada.",
+        });
+      }
+
+      try {
+        await agendarEliminacao(escrita, alvo.operador.id, alvo.id, corpo.data.motivo);
+      } catch (erro) {
+        const recusa = traduzirRecusaDoBanco(erro);
+        if (recusa) return resposta.code(recusa.status).send(recusa.corpo);
+        throw erro;
+      }
+
+      const depois = await municipioPorId(leitura, alvo.id, alvo.operador.id);
+      rastro(quem(req), "agendar_eliminacao", alvo.id, {
+        eliminacao_agendada_para: depois?.eliminacao_agendada_para ?? null,
+      });
+      return resposta.send({
+        municipio: depois,
+        eliminacao_agendada_para: depois?.eliminacao_agendada_para ?? null,
+      });
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    "/municipios/:id/eliminacao/cancelar", LIMITE_DE_ACOES, async (req, resposta) => {
+      const alvo = await municipioDoDono(req);
+      if (!alvo) return resposta.code(404).send({ erro: "nao_encontrado" });
+
+      try {
+        await cancelarEliminacao(escrita, alvo.operador.id, alvo.id);
+      } catch (erro) {
+        const recusa = traduzirRecusaDoBanco(erro);
+        if (recusa) return resposta.code(recusa.status).send(recusa.corpo);
+        throw erro;
+      }
+      rastro(quem(req), "cancelar_eliminacao", alvo.id);
+      return resposta.send({ municipio: await municipioPorId(leitura, alvo.id, alvo.operador.id) });
+    },
+  );
+
+  /* ======================================================================
+     A área de usuários (só o dono)
+     ====================================================================== */
+
+  app.get("/operadores", async (req) => {
+    const dono = await exigirDono(req);
+    return { operadores: await registro.listar(dono.id) };
+  });
+
+  /**
+   * Cria um operador abaixo do dono, e mostra a credencial dele UMA vez.
+   *
+   * O MESMO DESENHO DA SENHA INICIAL DE PREFEITURA: senha sorteada pelo
+   * servidor, no formato que se dita por telefone; o que vai para o banco é o
+   * hash, e a senha em texto claro existe só na resposta desta rota. O segredo
+   * do segundo fator nasce JUNTO (a ADR 0008 não admite conta de console sem
+   * ele), vai para o banco cifrado no cofre com o contexto do email, e sai em
+   * texto claro só aqui: como segredo para digitar à mão, como endereço
+   * `otpauth://` para copiar, e como matriz de QR para a tela desenhar.
+   *
+   * NADA DISSO VAI PARA O LOG. O `warn` do rastro leva quem criou e o id de
+   * quem nasceu, e é isso.
+   */
+  app.post("/operadores", LIMITE_DE_ACOES, async (req, resposta) => {
+    const dono = await exigirDono(req);
+
+    const corpo = NOVO_OPERADOR.safeParse(req.body);
+    if (!corpo.success) {
+      return resposta.code(400).send({
+        erro: "pedido_invalido",
+        mensagem: corpo.error.issues[0]?.message ?? "Informe um email válido.",
+      });
+    }
+    const email = corpo.data.email;
+
+    const senhaInicial = gerarSenhaTemporaria();
+    const segredoTotp = gerarSegredoTotp();
+
+    let id: string;
+    try {
+      id = await registro.criar(
+        {
+          email,
+          senhaHash: await derivarSenha(senhaInicial),
+          segundoFator: cofre.cifrar(segredoTotp, contextoDoOperador(email)),
+        },
+        dono.id,
+      );
+    } catch (erro) {
+      const codigo = (erro as { code?: string }).code;
+      // 23505 é unique_violation: o email já tem conta no console.
+      if (codigo === "23505") {
+        return resposta.code(409).send({
+          erro: "email_em_uso",
+          mensagem: `Já existe operador do console com o email ${email}.`,
+        });
+      }
+      const recusa = traduzirRecusaDoBanco(erro);
+      if (recusa) return resposta.code(recusa.status).send(recusa.corpo);
+      throw erro;
+    }
+
+    rastro(quem(req), "criar_operador", null, { operador_criado: id, email_criado: email });
+    app.log.info({ operador: dono.email, operador_criado: id }, "operador criado pelo console");
+
+    const endereco = uriDeAtivacao(segredoTotp, email, EMISSOR_DO_TOTP);
+    return resposta.code(201).send({
+      id,
+      email,
+      senhaInicial,
+      segredo: segredoTotp,
+      endereco,
+      qr: desenharQr(endereco),
+    });
+  });
+
+  app.post<{ Params: { id: string } }>(
+    "/operadores/:id/desativar", LIMITE_DE_ACOES, async (req, resposta) => {
+      const dono = await exigirDono(req);
+      const id = uuidOuNulo(req.params.id);
+      if (!id) return resposta.code(404).send({ erro: "nao_encontrado" });
+
+      /*
+        Lido pelo contexto do DONO, e não pelo do alvo: o dono enxerga todas as
+        linhas, e é ele quem está agindo. A recusa de desativar o dono é dita
+        aqui com a frase certa, e garantida no banco pela policy e pelo gatilho
+        que não deixam a linha do dono mudar de `ativo`.
+      */
+      const alvo = await registro.buscarPorId(id, dono.id);
+      if (!alvo) return resposta.code(404).send({ erro: "nao_encontrado" });
+      if (alvo.papel === "dono") {
+        return resposta.code(409).send({
+          erro: "dono_nao_se_desativa",
+          mensagem: "O dono do console não se desativa: sem ele ninguém cria operador nem elimina município.",
+        });
+      }
+
+      let mudou: boolean;
+      try {
+        mudou = await registro.desativar(id, dono.id);
+      } catch (erro) {
+        const recusa = traduzirRecusaDoBanco(erro);
+        if (recusa) return resposta.code(recusa.status).send(recusa.corpo);
+        throw erro;
+      }
+      if (!mudou) return resposta.code(404).send({ erro: "nao_encontrado" });
+
+      rastro(quem(req), "desativar_operador", null, { operador_desativado: id });
+      return resposta.send({ id, ativo: false });
+    },
+  );
+
+  /* ======================================================================
+     A minha senha (qualquer operador, na própria conta)
+     ====================================================================== */
+
+  /**
+   * Troca a senha de quem está na sessão, exigindo a senha atual E um código
+   * novo do aplicativo, e devolve uma sessão nova.
+   *
+   * POR QUE O CÓDIGO, com sessão válida na mão: pela mesma razão da eliminação.
+   * A sessão diz que alguém entrou há menos de meia hora; a senha atual mais um
+   * código novo dizem que quem está na cadeira agora é a pessoa. Sem isso, um
+   * console deixado aberto numa mesa é uma conta trocada de senha por quem
+   * passou por ali.
+   *
+   * O TOKEN NOVO na resposta é o que mantém ESTA sessão de pé: a versão da
+   * senha mudou (ver `tokens.ts`), então o token antigo deixa de valer no
+   * pedido seguinte, para esta aba e para qualquer outra. É assim que "trocar
+   * a senha derruba as outras sessões" acontece sem tabela de sessões.
+   */
+  app.post("/senha", LIMITE_DE_ACOES, async (req, resposta) => {
+    const operador = await exigirOperador(req);
+
+    const corpo = TROCA_DE_SENHA.safeParse(req.body);
+    if (!corpo.success) {
+      return resposta.code(400).send({
+        erro: "pedido_invalido",
+        mensagem: corpo.error.issues[0]?.message ?? "Confira os campos.",
+      });
+    }
+    if (corpo.data.novaSenha === corpo.data.senhaAtual) {
+      return resposta.code(400).send({
+        erro: "pedido_invalido", mensagem: "A senha nova precisa ser diferente da atual.",
+      });
+    }
+
+    if (!(await conferirSenha(corpo.data.senhaAtual, operador.senhaHash))) {
+      recusar(operador.email, "senha_atual_incorreta_na_troca");
+      return resposta.code(401).send({ erro: "senha_incorreta", mensagem: "A senha atual não confere." });
+    }
+
+    const desfecho = await conferirCodigo(registro, operador, corpo.data.codigo, cofre, agora());
+    if (desfecho === "bloqueado") {
+      recusar(operador.email, "conta_de_castigo");
+      return resposta.code(429).send({
+        erro: "bloqueado", mensagem: "Códigos errados demais. Espere quinze minutos.",
+      });
+    }
+    if (desfecho !== "ok") {
+      recusar(operador.email, "codigo_incorreto_ou_ja_usado_na_troca");
+      return resposta.code(401).send({
+        erro: "codigo_invalido",
+        mensagem: "Código incorreto ou já usado. Use um código novo, não o da entrada.",
+      });
+    }
+
+    const novoHash = await derivarSenha(corpo.data.novaSenha);
+    await registro.trocarSenha(operador.id, novoHash);
+
+    app.log.info({ operador: operador.email }, "senha trocada pelo proprio operador");
+    return resposta.send({
+      token: await emitirSessao(segredo, { id: operador.id, sv: versaoDaSenha(novoHash) }),
+    });
   });
 
   /* ======================================================================
@@ -597,10 +1100,6 @@ export async function construirConsole(
     arquivos do contêiner. Aqui não há sistema de arquivos envolvido, e o
     conjunto de endereços que existem é literalmente a lista que o módulo
     exporta.
-
-    `immutable` no cache porque o conteúdo destas três rotas não muda sem que o
-    processo seja reimplantado: o operador que recarrega a tela no meio de um
-    plantão não baixa 300 KB de fonte de novo.
   */
   for (const face of FACES_DE_FONTE) {
     app.get(face.caminho, async (_req, resposta) =>
@@ -611,17 +1110,40 @@ export async function construirConsole(
   }
 
   /*
-    A linha da partida, e ela agora sai em QUALQUER ambiente (ver `nivelDeLog`).
+    A linha da partida, e ela sai em QUALQUER ambiente (ver `nivelDeLog`).
 
-    Ela existia e só aparecia em produção, o que é o contrário do útil: quem
-    precisa saber se a configuração de operadores foi lida é justamente quem
-    acabou de subir o console na própria máquina e está tentando entrar. Zero
-    operadores aqui é a explicação inteira para "a senha não funciona", e essa
-    conta nunca chegava a quem estava olhando o terminal.
+    Quem precisa saber quantos operadores há no banco é justamente quem acabou
+    de subir o console na própria máquina e está tentando entrar. Zero
+    operadores seria a explicação inteira para "a senha não funciona", e por
+    isso a partida nem chega aqui com zero: `semearDonoSePreciso` recusa antes.
   */
+  const quantos = await registro.quantos();
   app.log.info(
-    { operadores: registro.quantos() },
-    `console do fornecedor pronto, com ${registro.quantos()} operador(es) carregado(s)`,
+    { operadores: quantos },
+    `console do fornecedor pronto, com ${quantos} operador(es) no banco`,
   );
   return app;
+}
+
+/**
+ * A matriz do QR como linhas de "0" e "1", ou nulo quando o endereço não cabe.
+ *
+ * Linhas de texto em vez de matriz de booleanos porque um QR de versão 9 tem
+ * 53 x 53 módulos: 2.809 `true`/`false` em JSON são 14 KB, e 53 linhas de 53
+ * caracteres são 3 KB. A tela desenha um `<rect>` por "1".
+ *
+ * Nulo quando não cabe (email comprido demais): a tela mostra o segredo em
+ * texto grande e o endereço para copiar, que é o caminho que funciona sempre.
+ */
+function desenharQr(endereco: string): { tamanho: number; linhas: string[] } | null {
+  try {
+    const matriz = matrizQr(endereco);
+    return {
+      tamanho: matriz.tamanho,
+      linhas: matriz.modulos.map((linha) => linha.map((escuro) => (escuro ? "1" : "0")).join("")),
+    };
+  } catch (erro) {
+    if (erro instanceof TextoLongoDemais) return null;
+    throw erro;
+  }
 }

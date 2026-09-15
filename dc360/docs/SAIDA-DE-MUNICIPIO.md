@@ -1,6 +1,6 @@
 # Plano de saída de município
 
-- **Versão:** 1, de 09/09/2026
+- **Versão:** 2, de 15/09/2026 (a versão 1 é de 09/09/2026; o que mudou foi o capítulo 5, a eliminação)
 
 Um município que não consegue sair não escolheu ficar: ficou preso. Aprisionar
 cliente por dificuldade de saída é, além de indefensável, argumento de venda
@@ -110,3 +110,118 @@ O `LEIA-ME.txt` do próprio pacote diz isso a quem o recebe.
 Enquanto a declaração de eliminação não tiver modelo, o passo 6 depende de
 trabalho manual, e isso precisa ser dito ao município em vez de escondido
 atrás do procedimento bonito acima.
+
+---
+
+## 5. A eliminação: o último capítulo da saída
+
+O passo 6 deixou de ser `DELETE` à mão com a credencial de dono. Ele é um ato
+do console do fornecedor, com prazo de arrependimento, executado por um relógio
+da API e guardado pelo estado do banco. Este capítulo diz o que acontece, em que
+ordem, e o que ainda não acontece.
+
+### O que o fornecedor pode fazer, e o que cada ato significa
+
+| Ato | Quem | O que muda | Reversível |
+| --- | --- | --- | --- |
+| **Suspender o acesso** | Dono do console, com segundo fator | Ninguém do município entra; as sessões abertas caem; o aparelho de campo passa a ler "acesso suspenso pelo fornecedor" | Sim, pelo mesmo console |
+| **Agendar a eliminação** | Dono do console, com segundo fator e motivo escrito | Suspende na hora e marca a data: **sete dias** depois do pedido, no mínimo. O prazo é regra do banco, não da tela | Sim, durante os sete dias (cancelar não reativa o acesso: são dois atos) |
+| **Executar** | O relógio da API, sozinho | Ver abaixo | **Não** |
+
+Suspender é o estado de "contrato em discussão". Eliminar é o passo 6 deste
+plano, e só faz sentido depois do passo 5: **o município conferiu o pacote e
+disse que está completo**. O console não sabe se o passo 5 aconteceu; quem sabe
+é quem agenda, e o motivo escrito no livro é onde isso fica dito.
+
+### O que a suspensão faz no dia a dia
+
+- **Entrar** responde "o acesso deste município foi suspenso pelo fornecedor,
+  procure quem administra o contrato". Nunca "senha errada": a senha está certa.
+  E a frase só sai para quem provou a senha, senão a tela de entrada viraria
+  lista de quais prefeituras estão em discussão.
+- **Quem já estava dentro**: escrita (registrar ocorrência, despachar,
+  sincronizar vistoria) é recusada na hora. Leitura com token vivo dura até o
+  token vencer, quinze minutos, que é a mesma janela que o produto já aceita
+  quando um usuário é desativado. Suspensão contratual não é incidente de
+  segurança, e quinze minutos de leitura não criam registro nenhum.
+- **O aparelho de campo** recebe uma recusa própria, inclusive com o token
+  vencido, e a tela diz a frase certa sem oferecer "entrar de novo". **A coleta
+  que estava no aparelho não se perde**: a API responde à fila de sincronização
+  com um código que ela trata como temporário, então a vistoria feita no morro
+  espera no aparelho, com uma tentativa a cada cinco minutos no máximo, e sobe
+  sozinha se o acesso for reativado. O que não acontece é a coleta ser gravada
+  sob contrato suspenso.
+
+### O que o relógio faz, em três fases
+
+O console **só escreve a intenção**. Ele não tem credencial do armazenamento de
+fotografias (ADR 0008) e não tem como apagar nada. Quem executa é um relógio na
+API, a cada quinze minutos e na partida, com trava entre as duas máquinas de
+produção para as duas não purgarem o mesmo prefixo ao mesmo tempo.
+
+1. **O banco.** Uma função privilegiada apaga todas as linhas do município, na
+   ordem das chaves estrangeiras, confere que restou zero em cada tabela (um
+   apagamento pela metade e calado é o pior desfecho possível, e a função
+   estoura nomeando a tabela em vez de devolver sucesso), grava no livro
+   quantas linhas saíram de cada tabela, e marca a organização como eliminada.
+   A linha da organização **fica**, de propósito: é ela que diz "ainda há
+   fotografias por apagar".
+2. **O armazenamento.** A API percorre tudo o que existe sob o prefixo do
+   município, página a página, e apaga objeto a objeto, contando. O prefixo é
+   conferido antes da primeira listagem: só `tenant/<id do próprio
+   município>/` é aceito, para um defeito na função nunca virar purga do balde
+   inteiro.
+3. **A conclusão.** Só com a purga **completa**, a API manda o banco marcar a
+   purga, apagar a linha da organização e fechar o livro. Se uma página da
+   listagem falhou, ou um objeto não pôde ser apagado, a conclusão **não
+   acontece**: fica para a próxima rodada, e o log diz qual município, quantos
+   objetos saíram e o que falhou. Uma organização apagada do banco com
+   fotografias sobrando no armazenamento é dado pessoal sem dono, que é
+   exatamente o que a varredura de órfãos existe para achar, e o relógio não
+   pode ser quem produz isso.
+
+Não há chave de ambiente para desligar o relógio, e isso é decisão: ele é o
+único caminho de execução de uma decisão já tomada, com segundo fator e sete
+dias de espera. Uma chave desligada deixaria eliminações vencerem sem acontecer,
+em silêncio, e a saída seria o `DELETE` à mão que este capítulo existe para
+aposentar. O que protege contra o relógio agir errado é o estado do banco: sem
+eliminação vencida, cada rodada é uma chamada de função que devolve nada.
+
+### O que fica depois
+
+O que a seção 3 já dizia, agora com nome: o **livro de eliminações**
+(`eliminacoes_de_municipio`). Uma linha por pedido, com o identificador, o nome
+e a UF do município copiados (a organização some e o livro fica, sem chave
+estrangeira), quem pediu, o motivo, quando cada fase aconteceu, e quantas
+linhas saíram de cada tabela. É a resposta a uma auditoria futura, e é o que o
+console mostra depois. O livro **não sai no pacote de saída**: ele é registro do
+fornecedor, não dado do município.
+
+### Como conferir, de fora, que está acontecendo
+
+`GET /saude` da API responde, além da última migração, `eliminacoes:
+{ agendadas, vencidas }`, só números, sem nome. `vencidas` é o que já passou do
+prazo e ainda não concluiu. Uma rodada do relógio zera esse número; se ele não
+zera de uma rodada para a outra, há purga travada, e o log do relógio diz por
+quê.
+
+### O que ainda não está feito
+
+- **A retomada de uma purga interrompida depende da memória do processo.** Se a
+  listagem ou um apagamento falhar, a API lembra do município e tenta de novo
+  na rodada seguinte, conferindo antes no banco que ele continua eliminado e
+  não purgado. Se o processo reiniciar nesse meio tempo, ou se a purga tiver
+  começado na outra máquina, a lista se perde, porque a função do banco só
+  devolve cada município uma vez (na rodada em que apaga as linhas) e o papel
+  de aplicação não enumera organizações. O sinal é `vencidas` em `/saude` sem
+  zerar. A correção é do banco (a função devolver também quem está eliminado e
+  não purgado), e está pedida.
+- **A contagem de `/saude` depende de uma função de banco que a migração 038
+  ainda não traz** (`eliminacoes_pendentes()`, só números). Até ela existir, a
+  rota responde `eliminacoes: null` e avisa no log a cada sonda.
+- **A declaração de eliminação** do passo 6 continua sem modelo. O livro tem
+  tudo o que ela precisa dizer (datas, contagens, quem pediu); falta o texto.
+- **O prazo de sete dias corre a partir do pedido no console**, não da
+  confirmação do município no passo 5. Quem agenda precisa ter a confirmação em
+  mãos antes de apertar, e o motivo escrito no livro é onde isso fica
+  registrado.

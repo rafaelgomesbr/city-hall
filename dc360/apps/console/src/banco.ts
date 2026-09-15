@@ -2,17 +2,24 @@ import pg from "pg";
 import { montarConfiguracaoDoPool } from "../../api/src/banco/postgres.js";
 
 /**
- * A conexão do console, e as três coisas que a mantêm estreita.
+ * A conexão do console, e as quatro coisas que a mantêm estreita.
  *
  * A decisão 3 da ADR 0008 diz que o papel do console tem `SELECT` na tabela de
  * métricas, no cadastro de organizações e na visão que junta as duas, e **nada**
- * em nenhuma outra tabela. Quem impõe isso é o banco, e está provado em
+ * em nenhuma tabela de NEGÓCIO. Quem impõe isso é o banco, e está provado em
  * `db/test/isolamento.test.ts` por dois caminhos independentes (a varredura de
  * catálogo e a conexão real tentando ler `ocorrencias`, `usuarios`,
  * `evidencias` e `trilha_eventos`).
  *
- * Este arquivo acrescenta três cintos por cima daquilo, e nenhum deles substitui
- * o portão do banco:
+ * Desde a migração 038 o console tem UMA tabela própria, `console_operadores`,
+ * onde vivem as contas de quem entra nele. Ela não é tabela de negócio: não
+ * carrega cidadão, imóvel nem município, só quem opera o fornecedor. O papel
+ * tem `SELECT`, `INSERT` e `UPDATE` nela, e as policies decidem linha a linha
+ * (operador atualiza a própria linha; só o dono cria e desativa; o dono não se
+ * desativa).
+ *
+ * Este arquivo acrescenta quatro cintos por cima daquilo, e nenhum deles
+ * substitui o portão do banco:
  *
  *   1. `SET LOCAL ROLE dc360_console` em toda transação. Em produção o login que
  *      vai na `CONSOLE_DATABASE_URL` é um papel próprio, membro de
@@ -20,57 +27,68 @@ import { montarConfiguracaoDoPool } from "../../api/src/banco/postgres.js";
  *      README). Assumir o papel explicitamente é o que garante que os
  *      privilégios em vigor são os do console, e não os de quem quer que o
  *      operador tenha configurado por engano na string de conexão.
- *   2. Transação SOMENTE LEITURA em toda leitura. Isso é afirmado pela conexão
+ *   2. `app.console_operador` na transação, DEPOIS do papel, quando há um
+ *      operador identificado. As policies de `console_operadores` e as
+ *      funções `console_*_municipio` leem esse valor por
+ *      `console_operador_atual()`, e é ele que faz "só o dono" valer no banco
+ *      e não na tela. Ele vai por `set_config(..., true)`, que é o mesmo
+ *      `SET LOCAL` com parâmetro do driver: interpolar um identificador numa
+ *      string de `SET` seria injeção num processo que fala com o banco de todas
+ *      as prefeituras.
+ *   3. Transação SOMENTE LEITURA em toda leitura. Isso é afirmado pela conexão
  *      além de ser negado pelas concessões.
- *
- *      Existe UMA transação de escrita, e ela não afrouxa nada disto: a
- *      migração 036 concedeu a `dc360_console` o `EXECUTE` de uma função
- *      `SECURITY DEFINER` que cria município e primeiro administrador, e nada
- *      mais. O papel continua sem `INSERT`, `UPDATE` ou `DELETE` em tabela
- *      nenhuma, e continua sem `SELECT` fora das duas que a ADR 0008 nomeia. A
- *      diferença entre "o console não escreve" e "o console executa um ato
- *      fechado que o banco define" é a diferença entre esta porta e a
- *      credencial que a ADR 0008 recusa.
- *   3. Nenhuma montagem de SQL a partir de entrada do operador. Todo parâmetro
+ *   4. Nenhuma montagem de SQL a partir de entrada do operador. Todo parâmetro
  *      viaja como parâmetro do driver. O console não tem consulta livre, e não
  *      vai ter: consulta livre num processo que enxerga mais de um município é
  *      a credencial proibida esperando uma boa ideia.
  */
 
 export type LeituraDoConsole = {
+  /**
+   * `operador` é o identificador de quem está agindo, quando há um. Ele entra
+   * na transação como `app.console_operador` (ver `CONTEXTO_DO_OPERADOR`). A
+   * porta lê sem operador, porque ainda não sabe quem é; tudo depois dela lê
+   * com.
+   */
   ler<T = Record<string, unknown>>(
     sql: string,
     params?: readonly unknown[],
+    operador?: string | null,
   ): Promise<T[]>;
   encerrar(): Promise<void>;
 };
 
 /**
- * A ESCRITA, e ela e de uma forma so: chamar uma funcao do banco.
+ * A ESCRITA, e ela e de duas formas: chamar uma funcao do banco, ou escrever
+ * na tabela PROPRIA do console.
  *
- * O console continua sem `INSERT`, `UPDATE` ou `DELETE` em tabela nenhuma. O
- * que a migracao 036 concedeu a `dc360_console` foi `EXECUTE` em UMA funcao
- * `SECURITY DEFINER`, que cria municipio e primeiro administrador e devolve
- * dois identificadores. Se alguem escrever aqui um `INSERT`, o banco responde
- * "permissao negada", e essa continua sendo a ordem certa das defesas.
+ * Em tabela de NEGOCIO o console continua sem `INSERT`, `UPDATE` ou `DELETE`.
+ * O que ele executa sao funcoes `SECURITY DEFINER` concedidas por nome (a de
+ * cadastrar prefeitura, da migracao 036, e as quatro de suspender, reativar,
+ * agendar e cancelar eliminacao, da 038), e o que ele escreve por conta
+ * propria e `console_operadores`, que guarda as contas de quem entra AQUI e
+ * nada de municipio. Se alguem escrever um `INSERT` em `organizacoes`, o banco
+ * responde "permissao negada", e essa continua sendo a ordem certa das defesas.
  *
  * SEPARADA de `LeituraDoConsole`, como tipo e como parametro do servidor, e nao
  * juntada numa interface so com um metodo a mais. Assim a rota que le recebe um
- * objeto que nao tem como escrever, e a unica rota que escreve aparece na
- * assinatura de quem a monta. Um servidor montado sem `escrita` nao compila com
- * a rota de cadastro dentro.
+ * objeto que nao tem como escrever, e as rotas que escrevem aparecem na
+ * assinatura de quem as monta. Um servidor montado sem `escrita` nao compila
+ * com as rotas de escrita dentro.
  */
 export type EscritaDoConsole = {
   /**
-   * Executa a chamada de funcao do provisionamento.
+   * Executa uma escrita, com o operador na transacao quando ha um.
    *
-   * Recebe SQL em vez de expor um metodo por campo porque o unico SQL que passa
-   * por aqui esta escrito por extenso em `cadastro.ts`, junto da razao dele, e
-   * todo valor viaja como parametro do driver. Ver o comentario de la.
+   * Recebe SQL em vez de expor um metodo por campo porque todo SQL que passa
+   * por aqui esta escrito por extenso em `cadastro.ts`, `municipios.ts` e
+   * `operadores.ts`, junto da razao dele, e todo valor viaja como parametro do
+   * driver.
    */
   executar<T = Record<string, unknown>>(
     sql: string,
     params?: readonly unknown[],
+    operador?: string | null,
   ): Promise<T[]>;
 };
 
@@ -95,21 +113,33 @@ export const ABERTURA = [
 ] as const;
 
 /**
- * A abertura da UNICA transacao do console que pode escrever.
+ * A abertura das transacoes do console que podem escrever.
  *
  * Igual a `ABERTURA` menos uma linha, e a linha que falta e a razao de existir
  * uma segunda constante: `SET LOCAL transaction_read_only = on` recusaria a
- * escrita que a funcao de provisionamento faz por dentro, mesmo com o `EXECUTE`
- * concedido.
+ * escrita que as funcoes do banco fazem por dentro, mesmo com o `EXECUTE`
+ * concedido, e recusaria a linha do operador em `console_operadores`.
  *
  * O `SET LOCAL ROLE dc360_console` CONTINUA, e ele e o que importa aqui: a
  * escrita acontece com o papel pobre de sempre, que nao tem `INSERT` em tabela
- * nenhuma. O que ela alcanca e uma funcao, e o que a funcao faz esta fixado no
- * banco, nao nesta linha.
+ * de negocio nenhuma. O que ela alcanca em municipio e uma funcao, e o que a
+ * funcao faz esta fixado no banco, nao nesta linha.
  */
 export const ABERTURA_DE_ESCRITA = [
   "SET LOCAL ROLE dc360_console",
 ] as const;
+
+/**
+ * O contexto do operador, emitido DEPOIS da abertura e antes do SQL.
+ *
+ * Uma constante, e exportada, pela mesma razao das duas de cima: o teste que
+ * prova que o banco recusa o operador precisa emitir exatamente o que a
+ * conexao de producao emite. `set_config(nome, valor, true)` e `SET LOCAL`
+ * com parametro do driver: o valor morre com a transacao, e nunca e
+ * interpolado em texto.
+ */
+export const CONTEXTO_DO_OPERADOR =
+  "SELECT set_config('app.console_operador', $1, true)";
 
 /** A conexão de produção. */
 export function bancoPostgres(url: string): BancoDoConsole {
@@ -129,11 +159,14 @@ export function bancoPostgres(url: string): BancoDoConsole {
   const pool = new pg.Pool(montarConfiguracaoDoPool(url, { maximoConexoes: 2 }));
 
   return {
-    async ler<T>(sql: string, params: readonly unknown[] = []): Promise<T[]> {
+    async ler<T>(
+      sql: string, params: readonly unknown[] = [], operador: string | null = null,
+    ): Promise<T[]> {
       const cliente = await pool.connect();
       try {
         await cliente.query("BEGIN");
         for (const comando of ABERTURA) await cliente.query(comando);
+        if (operador) await cliente.query(CONTEXTO_DO_OPERADOR, [operador]);
         const r = await cliente.query(sql, [...params]);
         await cliente.query("COMMIT");
         return r.rows as T[];
@@ -146,18 +179,21 @@ export function bancoPostgres(url: string): BancoDoConsole {
         cliente.release();
       }
     },
-    async executar<T>(sql: string, params: readonly unknown[] = []): Promise<T[]> {
+    async executar<T>(
+      sql: string, params: readonly unknown[] = [], operador: string | null = null,
+    ): Promise<T[]> {
       /*
         A mesma forma de `ler`, com a abertura de escrita: transacao explicita,
-        papel do console assumido, e `ROLLBACK` em qualquer falha. A transacao
-        nao e detalhe: a funcao do banco cria municipio, administrador e a linha
-        de nascimento na trilha, e um municipio que nascesse sem administrador
-        seria pior do que nenhum.
+        papel do console assumido, operador no contexto, e `ROLLBACK` em
+        qualquer falha. A transacao nao e detalhe: a funcao do banco cria
+        municipio, administrador e a linha de nascimento na trilha, e um
+        municipio que nascesse sem administrador seria pior do que nenhum.
       */
       const cliente = await pool.connect();
       try {
         await cliente.query("BEGIN");
         for (const comando of ABERTURA_DE_ESCRITA) await cliente.query(comando);
+        if (operador) await cliente.query(CONTEXTO_DO_OPERADOR, [operador]);
         const r = await cliente.query(sql, [...params]);
         await cliente.query("COMMIT");
         return r.rows as T[];

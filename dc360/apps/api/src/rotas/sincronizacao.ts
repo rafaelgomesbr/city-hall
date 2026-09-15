@@ -8,7 +8,7 @@ import {
   type MotivoDeDevolucao, type OrgaoIndicado, type StatusOcorrencia,
 } from "@dc360/shared";
 import type { Banco, Consulta } from "../banco/tipos.js";
-import { RegraDeNegocio, autorizar, type Identidade } from "../servidor.js";
+import { ROTA_DA_FILA_DO_CAMPO, RegraDeNegocio, autorizar, type Identidade } from "../servidor.js";
 import { registrarEvento } from "../trilha.js";
 
 /**
@@ -322,7 +322,10 @@ export async function rotasSincronizacao(
   app: FastifyInstance,
   { banco }: { banco: Banco },
 ): Promise<void> {
-  app.post("/vistoria", async (req, resposta) => {
+  // `ROTA_DA_FILA_DO_CAMPO`: com o município suspenso, a recusa sai como 503
+  // para a fila do aparelho esperar em vez de bloquear a coleta. Ver
+  // `auth/suspensao.ts`.
+  app.post("/vistoria", ROTA_DA_FILA_DO_CAMPO, async (req, resposta) => {
     const quem = await autorizar(app, req, "registrar_vistoria");
     const envelope = envelopeSincronizacaoSchema.parse(req.body);
 
@@ -766,7 +769,7 @@ export async function rotasSincronizacao(
    * que é a mesma resposta de ocorrência de outro município: 403 confirmaria
    * que existe.
    */
-  app.post("/devolucao", async (req, resposta) => {
+  app.post("/devolucao", ROTA_DA_FILA_DO_CAMPO, async (req, resposta) => {
     const quem = await autorizar(app, req, "registrar_vistoria");
     const d = devolucaoDeTarefaSchema.parse(req.body);
 

@@ -4,24 +4,30 @@ import { gerarSegredoTotp, uriDeAtivacao } from "../../api/src/auth/totp.js";
 import { abrirCofre, contextoDoOperador } from "./operadores.js";
 
 /**
- * Cria a linha de configuração de um operador do console.
+ * Cria a SEMENTE do dono do console: a linha de `CONSOLE_OPERADORES` que a
+ * partida importa UMA vez, com a tabela `console_operadores` vazia.
  *
- * POR QUE ISTO É LINHA DE COMANDO, e não uma tela: pela mesma razão que
- * provisionar município é linha de comando na ADR 0006. Uma tela para criar
- * operador do console seria uma tela onde alguém que já entrou cria mais gente,
- * e o console é a única superfície do sistema que enxerga mais de um município.
- * Aqui não existe esse caminho: quem cria operador é quem tem acesso à
- * configuração do processo, e isso é ato de implantação.
+ * ISTO DEIXOU DE SER O CAMINHO NORMAL PARA CRIAR OPERADOR. Desde a migração
+ * 038 os operadores vivem no banco, e quem os cria é o DONO, na área de
+ * usuários do próprio console: a tela sorteia senha e segredo, mostra os dois
+ * uma vez, e grava a linha com quem a criou. Este comando serve para UM caso:
+ * o primeiro dono, num banco que ainda não tem nenhum. Rodar de novo com a
+ * tabela povoada não faz nada, porque a variável é ignorada pela partida (com
+ * aviso no log).
  *
- * O SEGUNDO FATOR SAI JUNTO, e não depois. No produto o administrador entra com
- * senha e ativa o segundo fator numa tela; aqui a conta NASCE com ele, porque a
+ * A produção de hoje NÃO precisa rodar isto: a linha que já está em
+ * `CONSOLE_OPERADORES` é importada como dono no primeiro deploy com a 038,
+ * com a mesma senha e o mesmo segundo fator de sempre.
+ *
+ * O SEGUNDO FATOR SAI JUNTO, e não depois. A conta NASCE com ele, porque a
  * ADR 0008 diz "sem exceção e sem 'por enquanto não'". Uma conta que existisse
  * antes do segredo do TOTP seria uma conta que entra só com senha durante a
  * janela em que ninguém está olhando.
  *
- * NADA VAI PARA O BANCO. O comando imprime, e quem provisiona copia para a
- * configuração. O console não tem escrita em lugar nenhum, e é isso que
- * mantém o papel dele tão pobre quanto a decisão 3 da ADR 0008 exige.
+ * NADA VAI PARA O BANCO POR AQUI. O comando imprime, e quem provisiona copia
+ * para a configuração; é a PARTIDA do console, com o papel dele e pela policy
+ * da 038, quem grava a linha. Este processo não precisa da credencial de dono
+ * do banco, e não deve tê-la.
  *
  * Rodar:
  *   CONSOLE_SEGUNDO_FATOR_CHAVE=... npm run provisionar --workspace @dc360/console -- --email pessoa@fornecedor
@@ -60,7 +66,8 @@ async function principal(): Promise<void> {
     A senha é SORTEADA pelo servidor, e não digitada por quem provisiona, pela
     mesma razão escrita em `auth/senha.ts`: quem digita repete a mesma senha
     para todo mundo do setor, e costuma escolher uma que já usa em outro lugar.
-    Um sorteio não tem esses dois defeitos.
+    Um sorteio não tem esses dois defeitos. O dono troca a senha na primeira
+    entrada, pela tela "Minha senha".
   */
   const senha = gerarSenhaTemporaria();
   const hash = await derivarSenha(senha);
@@ -71,7 +78,7 @@ async function principal(): Promise<void> {
   const linha = JSON.stringify([{ email, senha: hash, segundoFator: envelope }]);
 
   console.log("");
-  console.log("Operador do console criado. Nada disto foi gravado em lugar nenhum.");
+  console.log("Semente do DONO do console criada. Nada disto foi gravado em lugar nenhum.");
   console.log("");
   console.log(`  Email:  ${email}`);
   console.log(`  Senha:  ${senha}`);
@@ -80,8 +87,12 @@ async function principal(): Promise<void> {
   console.log(`  Segredo:  ${segredo}`);
   console.log(`  Endereço: ${uriDeAtivacao(segredo, email, "DC360 Console")}`);
   console.log("");
-  console.log("Ponha isto na configuração do console (junte com os operadores que já existirem):");
+  console.log("Ponha isto na configuração do console, UMA vez, com a tabela de operadores vazia:");
   console.log(`  CONSOLE_OPERADORES='${linha}'`);
+  console.log("");
+  console.log("A partida importa a linha como dono e avisa no log. Depois disso a variável é");
+  console.log("ignorada e pode sair da configuração. Os outros operadores são criados pelo dono");
+  console.log("na área de usuários do console, e não por este comando.");
   console.log("");
   if (!process.env["CONSOLE_JWT_SEGREDO"]) {
     console.log("E, se ainda não houver uma, um segredo de token para este console:");

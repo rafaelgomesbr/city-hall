@@ -1,5 +1,6 @@
 /**
- * A interface do console: uma página, três telas, nenhum passo de build.
+ * A interface do console: uma página, cinco telas, dois diálogos, nenhum
+ * passo de build.
  *
  * ENXUTA EM ROTAS E EM DADO, generosa em acabamento, e as duas coisas não
  * brigam. O console responde três perguntas de operação (o município está
@@ -9,6 +10,17 @@
  * nome, endereço ou protocolo, a pergunta é do município e se faz no painel
  * dele. Isso limita o que a tela MOSTRA, e nunca foi licença para ela parecer
  * um formulário de 1998.
+ *
+ * AS DUAS AÇÕES PERIGOSAS por município (desativar o acesso, eliminar com sete
+ * dias de arrependimento) e a ÁREA DE USUÁRIOS são só do dono, e a tela
+ * ESCONDE os botões para o operador comum. Esconder não é controle de acesso:
+ * o servidor responde 403 e o banco recusa por baixo; a tela só evita oferecer
+ * o que a pessoa não pode fazer. As duas passam pelo diálogo do produto, com
+ * as mesmas regras do aplicativo de campo: o botão que age REPETE o verbo com
+ * o nome da prefeitura ("Agendar a eliminação de Serra Alta"), a ação
+ * destrutiva tem desenho próprio e nunca só a cor, a recusa fica embaixo, e
+ * Escape fecha. O resto da página fica `inert` enquanto a pergunta está
+ * aberta.
  *
  * SEM FRAMEWORK E SEM ETAPA DE BUILD, e isso é diferente do painel do município
  * (que é React com Vite). A razão é a decisão 1 da ADR 0008: quanto menos coisa
@@ -118,9 +130,29 @@ export const PAGINA_DO_CONSOLE = `<!doctype html>
   <symbol id="i-pasta" viewBox="0 0 24 24">
     <path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4l2 2.4h8a1.5 1.5 0 0 1 1.5 1.5v7.6A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5V7.5Z"/>
   </symbol>
+  <symbol id="i-pessoas" viewBox="0 0 24 24">
+    <circle cx="9" cy="8.5" r="3.2"/>
+    <path d="M3.5 19.5v-1a5.5 5.5 0 0 1 11 0v1"/>
+    <path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.8M17.2 13.4a5.5 5.5 0 0 1 3.3 5.1v1"/>
+  </symbol>
+  <symbol id="i-chave" viewBox="0 0 24 24">
+    <circle cx="8" cy="14.5" r="4"/>
+    <path d="M10.8 11.7 19.5 3M16 6.5l2.5 2.5M13.5 9l2 2"/>
+  </symbol>
+  <symbol id="i-bloqueio" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8.5"/>
+    <path d="M6 6l12 12"/>
+  </symbol>
+  <symbol id="i-fechar" viewBox="0 0 24 24">
+    <path d="M6 6l12 12M18 6 6 18"/>
+  </symbol>
+  <symbol id="i-ampulheta" viewBox="0 0 24 24">
+    <path d="M6.5 3.5h11M6.5 20.5h11"/>
+    <path d="M8 3.5v3.3a4 4 0 0 0 1.6 3.2L12 12l-2.4 2a4 4 0 0 0-1.6 3.2v3.3M16 3.5v3.3a4 4 0 0 1-1.6 3.2L12 12l2.4 2a4 4 0 0 1 1.6 3.2v3.3"/>
+  </symbol>
 </svg>
 
-<header class="barra">
+<header class="barra" id="cabecalho">
   <div class="marca">
     <span class="marca-selo"><svg class="icone" aria-hidden="true"><use href="#i-escudo"/></svg></span>
     <span class="marca-texto">
@@ -129,10 +161,26 @@ export const PAGINA_DO_CONSOLE = `<!doctype html>
     </span>
   </div>
 
+  <nav class="nav" id="nav" aria-label="Telas do console" hidden>
+    <button id="ir-municipios" type="button" class="botao botao-texto" aria-current="page">
+      <svg class="icone" aria-hidden="true"><use href="#i-predio"/></svg>
+      <span>Municípios</span>
+    </button>
+    <button id="ir-usuarios" type="button" class="botao botao-texto" hidden>
+      <svg class="icone" aria-hidden="true"><use href="#i-pessoas"/></svg>
+      <span>Usuários</span>
+    </button>
+    <button id="ir-senha" type="button" class="botao botao-texto">
+      <svg class="icone" aria-hidden="true"><use href="#i-chave"/></svg>
+      <span>Minha senha</span>
+    </button>
+  </nav>
+
   <div class="barra-acoes">
     <p class="quem" id="quem" hidden>
       <svg class="icone" aria-hidden="true"><use href="#i-escudo"/></svg>
       <span id="quem-email" class="mono"></span>
+      <span id="quem-papel" class="quem-papel"></span>
     </p>
     <button id="tema" class="botao botao-icone" type="button" aria-pressed="false">
       <svg class="icone no-claro" aria-hidden="true"><use href="#i-lua"/></svg>
@@ -146,7 +194,7 @@ export const PAGINA_DO_CONSOLE = `<!doctype html>
   </div>
 </header>
 
-<main>
+<main id="principal">
 
   <!-- ================= A porta ================= -->
   <section id="porta" class="tela tela-porta">
@@ -298,6 +346,14 @@ export const PAGINA_DO_CONSOLE = `<!doctype html>
             <tr>
               <th scope="col">Município</th>
               <th scope="col">Sinal</th>
+              <th scope="col">Acesso</th>
+              <!--
+                As ações vêm logo depois do estado, e não no fim: com doze
+                colunas a tabela rola na horizontal, e um botão de "Cancelar
+                eliminação" que só aparece rolando é um botão que ninguém
+                vê a tempo.
+              -->
+              <th scope="col" id="th-acoes" hidden>Ações</th>
               <th scope="col" class="n">Entraram</th>
               <th scope="col" class="n">Encerradas</th>
               <th scope="col" class="n">Vistorias</th>
@@ -473,9 +529,282 @@ export const PAGINA_DO_CONSOLE = `<!doctype html>
     </div>
   </section>
 
+  <!-- ================= Usuários (só o dono) ================= -->
+  <section id="usuarios" class="tela" hidden>
+    <div class="topo">
+      <div>
+        <h2>Usuários do console</h2>
+        <p class="apoio">
+          Operadores abaixo do dono veem números e cadastram prefeitura. Só o
+          dono desativa acesso, elimina município e mexe nesta lista. Operador
+          se desativa, não se apaga.
+        </p>
+      </div>
+      <button id="voltar-de-usuarios" type="button" class="botao botao-discreto">
+        <svg class="icone" aria-hidden="true"><use href="#i-seta-esquerda"/></svg>
+        <span>Voltar aos municípios</span>
+      </button>
+    </div>
+
+    <div class="cartao cartao-tabela entra">
+      <div class="rolagem" id="rolagem-operadores" aria-busy="false">
+        <table>
+          <caption class="oculto">Operadores do console</caption>
+          <thead>
+            <tr>
+              <th scope="col">Email</th>
+              <th scope="col">Papel</th>
+              <th scope="col">Situação</th>
+              <th scope="col">Criado em</th>
+              <th scope="col">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="linhas-operadores"></tbody>
+        </table>
+      </div>
+      <p id="recado-usuarios" class="recado" role="status" aria-live="polite" hidden>
+        <svg class="icone" aria-hidden="true"><use href="#i-alerta"/></svg>
+        <span id="recado-usuarios-texto"></span>
+      </p>
+    </div>
+
+    <form id="forma-operador" class="cartao cartao-forma entra" autocomplete="off" novalidate>
+      <h3 class="secao">Criar operador</h3>
+      <div class="campo">
+        <label for="email-operador">Email do operador</label>
+        <span class="entrada">
+          <svg class="icone entrada-icone" aria-hidden="true"><use href="#i-arroba"/></svg>
+          <input id="email-operador" name="email" type="email" required maxlength="320"
+                 spellcheck="false" placeholder="plantao@fornecedor.com.br">
+        </span>
+        <p class="ajuda">
+          A senha e o segredo do segundo fator são sorteados pelo servidor e
+          mostrados uma única vez, aqui nesta tela.
+        </p>
+      </div>
+      <button type="submit" id="criar-operador" class="botao botao-forte botao-largo">
+        <span class="roda" aria-hidden="true"></span>
+        <span id="criar-operador-texto">Criar operador</span>
+        <svg class="icone" aria-hidden="true"><use href="#i-mais"/></svg>
+      </button>
+      <p id="recado-operador" class="recado" role="status" aria-live="polite" hidden>
+        <svg class="icone" aria-hidden="true"><use href="#i-alerta"/></svg>
+        <span id="recado-operador-texto"></span>
+      </p>
+    </form>
+
+    <div id="operador-entregue" class="cartao cartao-forma cartao-entregue entra" hidden>
+      <p class="selo-bom">
+        <svg class="icone" aria-hidden="true"><use href="#i-confere"/></svg>
+        <span>Operador criado</span>
+      </p>
+      <h3 id="operador-titulo" class="entregue-municipio mono" tabindex="-1"></h3>
+
+      <p class="rotulo-senha" id="rotulo-senha-operador">Senha inicial</p>
+      <p class="senha mono" id="operador-senha" aria-labelledby="rotulo-senha-operador"></p>
+
+      <p class="rotulo-senha" id="rotulo-segredo-operador">Segredo do segundo fator</p>
+      <p class="senha mono" id="operador-segredo" aria-labelledby="rotulo-segredo-operador"></p>
+
+      <div class="qr-e-endereco">
+        <div id="operador-qr" class="qr-moldura" hidden></div>
+        <div class="endereco-bloco">
+          <p class="rotulo-senha" id="rotulo-endereco-operador">Endereço para o aplicativo de autenticação</p>
+          <p class="endereco mono" id="operador-endereco" aria-labelledby="rotulo-endereco-operador"></p>
+          <p class="ajuda">
+            Leia o código com a câmera, ou digite o segredo à mão no aplicativo.
+            Os dois caminhos dão o mesmo resultado.
+          </p>
+        </div>
+      </div>
+
+      <p class="alerta">
+        <svg class="icone" aria-hidden="true"><use href="#i-alerta"/></svg>
+        <span>
+          <strong>Atenção:</strong> a senha e o segredo não ficam guardados em
+          lugar nenhum e não serão mostrados de novo. Entregue por canal
+          combinado, e peça a troca da senha na primeira entrada.
+        </span>
+      </p>
+
+      <button type="button" id="operador-concluir" class="botao botao-forte botao-largo">
+        <span>Já entreguei, concluir</span>
+        <svg class="icone" aria-hidden="true"><use href="#i-seta-direita"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ================= A minha senha ================= -->
+  <section id="minha-senha" class="tela" hidden>
+    <div class="topo">
+      <div>
+        <h2>Trocar a minha senha</h2>
+        <p class="apoio">
+          Pede a senha atual e um código NOVO do aplicativo de autenticação, não
+          o da entrada. Trocar a senha derruba as outras sessões desta conta.
+        </p>
+      </div>
+      <button id="voltar-da-senha" type="button" class="botao botao-discreto">
+        <svg class="icone" aria-hidden="true"><use href="#i-seta-esquerda"/></svg>
+        <span>Voltar aos municípios</span>
+      </button>
+    </div>
+
+    <form id="forma-senha-nova" class="cartao cartao-forma entra" autocomplete="off" novalidate>
+      <div class="campo">
+        <label for="senha-atual">Senha atual</label>
+        <span class="entrada">
+          <svg class="icone entrada-icone" aria-hidden="true"><use href="#i-cadeado"/></svg>
+          <input id="senha-atual" name="senhaAtual" type="password" required autocomplete="current-password">
+        </span>
+      </div>
+      <div class="campo">
+        <label for="codigo-troca">Código novo do aplicativo de autenticação</label>
+        <span class="entrada">
+          <svg class="icone entrada-icone" aria-hidden="true"><use href="#i-digitos"/></svg>
+          <input id="codigo-troca" name="codigo" inputmode="numeric" autocomplete="one-time-code"
+                 maxlength="6" required placeholder="000000" class="mono entrada-codigo">
+        </span>
+        <p class="ajuda">Um código novo: o que abriu esta sessão já foi usado e não vale de novo.</p>
+      </div>
+      <div class="dupla">
+        <div class="campo">
+          <label for="senha-nova">Senha nova</label>
+          <span class="entrada">
+            <input id="senha-nova" name="novaSenha" type="password" required minlength="12"
+                   autocomplete="new-password">
+          </span>
+          <p class="ajuda">Pelo menos 12 caracteres.</p>
+        </div>
+        <div class="campo">
+          <label for="senha-nova-2">Repita a senha nova</label>
+          <span class="entrada">
+            <input id="senha-nova-2" name="novaSenha2" type="password" required minlength="12"
+                   autocomplete="new-password">
+          </span>
+        </div>
+      </div>
+
+      <button type="submit" id="trocar" class="botao botao-forte botao-largo">
+        <span class="roda" aria-hidden="true"></span>
+        <span id="trocar-texto">Trocar a senha</span>
+        <svg class="icone" aria-hidden="true"><use href="#i-chave"/></svg>
+      </button>
+
+      <p id="senha-trocada" class="selo-bom selo-bloco" role="status" hidden>
+        <svg class="icone" aria-hidden="true"><use href="#i-confere"/></svg>
+        <span>Senha trocada. As outras sessões desta conta foram encerradas.</span>
+      </p>
+      <p id="recado-senha" class="recado" role="status" aria-live="polite" hidden>
+        <svg class="icone" aria-hidden="true"><use href="#i-alerta"/></svg>
+        <span id="recado-senha-texto"></span>
+      </p>
+    </form>
+  </section>
+
 </main>
 
-<footer class="rodape">
+<!--
+  O DIÁLOGO DO PRODUTO, com as regras do aplicativo de campo: o botão que age
+  repete o verbo com o nome do alvo, a ação destrutiva tem desenho próprio e
+  nunca só a cor, a recusa fica embaixo, Escape fecha, e o resto da página fica
+  \`inert\` enquanto a pergunta está aberta. Um diálogo genérico para as
+  perguntas de sim ou não (com motivo opcional), e um próprio para eliminar,
+  que é um formulário de quatro campos numa ordem que importa.
+-->
+<div id="dialogo" class="dialogo" hidden>
+  <div class="dialogo-fundo" id="dialogo-fundo"></div>
+  <div id="dialogo-cartao" class="cartao dialogo-cartao" role="dialog" aria-modal="true"
+       aria-labelledby="dialogo-titulo" aria-describedby="dialogo-texto" tabindex="-1">
+    <h2 id="dialogo-titulo"></h2>
+    <p class="apoio" id="dialogo-texto"></p>
+    <form id="forma-dialogo" novalidate>
+      <div class="campo" id="dialogo-campo-motivo" hidden>
+        <label for="dialogo-motivo">Motivo</label>
+        <span class="entrada entrada-area">
+          <textarea id="dialogo-motivo" name="motivo" rows="3" maxlength="2000"></textarea>
+        </span>
+        <p class="ajuda">Vai para a trilha do município e para a tela de quem reativar.</p>
+      </div>
+      <p id="recado-dialogo" class="recado" role="status" aria-live="polite" hidden>
+        <svg class="icone" aria-hidden="true"><use href="#i-alerta"/></svg>
+        <span id="recado-dialogo-texto"></span>
+      </p>
+      <div class="dialogo-acoes">
+        <!-- O rótulo é trocado ao abrir, pelo verbo com o nome do alvo. -->
+        <button type="submit" id="dialogo-agir" class="botao botao-forte botao-largo">
+          <span class="roda" aria-hidden="true"></span>
+          <span id="dialogo-agir-texto">Confirmar</span>
+        </button>
+        <button type="button" id="dialogo-recusar" class="botao botao-discreto botao-largo">
+          <svg class="icone" aria-hidden="true"><use href="#i-fechar"/></svg>
+          <span>Voltar sem fazer nada</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="dialogo-eliminar" class="dialogo" hidden>
+  <div class="dialogo-fundo" id="eliminar-fundo"></div>
+  <div id="eliminar-cartao" class="cartao dialogo-cartao" role="dialog" aria-modal="true"
+       aria-labelledby="eliminar-titulo" aria-describedby="eliminar-texto" tabindex="-1">
+    <span class="emblema emblema-perigo"><svg class="icone" aria-hidden="true"><use href="#i-alerta"/></svg></span>
+    <h2 id="eliminar-titulo"></h2>
+    <p class="apoio" id="eliminar-texto">
+      O acesso é suspenso agora, e o apagamento acontece daqui a sete dias.
+      Durante o prazo dá para cancelar. Depois dele, some tudo o que este
+      município tem no produto, e não há como voltar.
+    </p>
+    <form id="forma-eliminar" autocomplete="off" novalidate>
+      <div class="campo">
+        <label for="eliminar-senha">Sua senha atual</label>
+        <span class="entrada">
+          <svg class="icone entrada-icone" aria-hidden="true"><use href="#i-cadeado"/></svg>
+          <input id="eliminar-senha" name="senha" type="password" required autocomplete="current-password">
+        </span>
+      </div>
+      <div class="campo">
+        <label for="eliminar-codigo">Código novo do aplicativo de autenticação</label>
+        <span class="entrada">
+          <svg class="icone entrada-icone" aria-hidden="true"><use href="#i-digitos"/></svg>
+          <input id="eliminar-codigo" name="codigo" inputmode="numeric" autocomplete="one-time-code"
+                 maxlength="6" required placeholder="000000" class="mono entrada-codigo">
+        </span>
+        <p class="ajuda">Não o da entrada: um código já usado é recusado.</p>
+      </div>
+      <div class="campo">
+        <label for="eliminar-nome">Digite o nome exato da prefeitura</label>
+        <span class="entrada">
+          <input id="eliminar-nome" name="nome" required maxlength="200" spellcheck="false">
+        </span>
+        <p class="ajuda" id="eliminar-nome-ajuda"></p>
+      </div>
+      <div class="campo">
+        <label for="eliminar-motivo">Motivo</label>
+        <span class="entrada entrada-area">
+          <textarea id="eliminar-motivo" name="motivo" rows="3" maxlength="2000" required></textarea>
+        </span>
+      </div>
+      <p id="recado-eliminar" class="recado" role="status" aria-live="polite" hidden>
+        <svg class="icone" aria-hidden="true"><use href="#i-alerta"/></svg>
+        <span id="recado-eliminar-texto"></span>
+      </p>
+      <div class="dialogo-acoes">
+        <button type="submit" id="eliminar-agir" class="botao botao-perigo botao-largo">
+          <span class="roda" aria-hidden="true"></span>
+          <span id="eliminar-agir-texto">Agendar a eliminação</span>
+        </button>
+        <button type="button" id="eliminar-recusar" class="botao botao-discreto botao-largo">
+          <svg class="icone" aria-hidden="true"><use href="#i-fechar"/></svg>
+          <span>Voltar sem eliminar</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<footer class="rodape" id="rodape">
   <p>
     Processo separado do produto, com sessão própria e sem acesso a tabela de
     negócio nenhuma. A sessão dura trinta minutos e não se renova.
@@ -816,6 +1145,22 @@ body {
   border-radius: var(--ds-radius-pill);
 }
 .quem .icone { width: 16px; height: 16px; color: var(--ds-accent); }
+.quem-papel {
+  padding: 0 var(--ds-sp-2);
+  font-size: var(--ds-fs-caption);
+  font-weight: 600;
+  color: var(--ds-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ---------------- A navegação entre telas ---------------- */
+
+.nav { display: flex; gap: var(--ds-sp-1); flex-wrap: wrap; }
+.nav .botao[aria-current="page"] {
+  color: var(--ds-accent);
+  background: var(--ds-surface-2);
+}
 
 /* ---------------- Botões ---------------- */
 
@@ -865,9 +1210,27 @@ body {
 }
 .botao-texto:hover { color: var(--ds-text); background: var(--ds-surface-2); }
 
+/*
+  O tipo DESTRUTIVO do produto, o mesmo desenho de \`.botao--perigo\` no painel:
+  fundo de perigo, texto de perigo, borda de perigo, e no hover inverte. Nunca
+  só a cor: o rótulo dele repete o verbo com o nome do alvo, e o diálogo que o
+  contém tem o emblema de alerta.
+*/
+.botao-perigo {
+  color: var(--ds-danger-fg);
+  background: var(--ds-danger-bg);
+  border-color: var(--ds-danger-fg);
+}
+.botao-perigo:hover { color: var(--ds-surface); background: var(--ds-danger-fg); }
+.botao-perigo[disabled]:hover { color: var(--ds-danger-fg); background: var(--ds-danger-bg); }
+
 .botao-largo { width: 100%; margin-top: var(--ds-sp-4); }
 
 .botao-icone { width: var(--ds-touch); padding: 0; }
+
+/* Os botões de linha de tabela: os mesmos 44 px de toque, lado a lado. */
+.acoes-linha { display: flex; gap: var(--ds-sp-2); flex-wrap: wrap; }
+.acoes-linha .botao { font-size: var(--ds-fs-caption); padding: 0 var(--ds-sp-3); }
 
 /*
   Botão desabilitado precisa PARECER desabilitado e continuar legível: a
@@ -1061,6 +1424,22 @@ input {
 input:focus-visible { outline: none; box-shadow: none; }
 input::placeholder { color: var(--ds-text-muted); opacity: 0.8; }
 
+textarea {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: calc(var(--ds-touch) * 2);
+  padding: var(--ds-sp-3) 0;
+  font-family: inherit;
+  font-size: var(--ds-fs-body);
+  line-height: var(--ds-lh-body);
+  color: var(--ds-text);
+  background: transparent;
+  border: 0;
+  resize: vertical;
+}
+textarea:focus-visible { outline: none; box-shadow: none; }
+.entrada-area { align-items: stretch; }
+
 #uf { text-transform: uppercase; }
 
 .entrada-codigo {
@@ -1200,6 +1579,9 @@ form > .secao:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
 
 .cartao-tabela { overflow: hidden; }
 .rolagem { overflow-x: auto; }
+/* Na tela de usuários a tabela tem um cartão embaixo (o formulário, ou a
+   credencial recém-criada), e os dois não podem encostar. */
+#usuarios .cartao-tabela { margin-bottom: var(--ds-sp-4); }
 
 /*
   \`width: max-content\` com \`min-width: 100%\`, e nao \`width: 100%\`: sao dez
@@ -1250,6 +1632,18 @@ td.n { font-family: var(--ds-font-mono); }
 .marca-sinal .icone { width: 14px; height: 14px; }
 .marca-sinal.calado { color: var(--ds-danger-fg); background: var(--ds-danger-bg); }
 .marca-sinal.em-dia { color: var(--ds-success-fg); background: var(--ds-success-bg); }
+
+/*
+  O estado de ACESSO do município, e cada um tem ícone, palavra e cor, nesta
+  ordem de importância. "Ativo" é discreto; "suspenso" leva o cadeado e a
+  frase com a data e o motivo; "eliminação" leva a ampulheta e o prazo por
+  extenso, porque é a linha que alguém pode precisar cancelar a tempo.
+*/
+.marca-sinal.ativo { color: var(--ds-text-muted); background: var(--ds-surface-2); }
+.marca-sinal.suspenso { color: var(--ds-info-fg); background: var(--ds-info-bg); }
+.marca-sinal.eliminacao { color: var(--ds-danger-fg); background: var(--ds-danger-bg); }
+.marca-sinal.desativado { color: var(--ds-text-muted); background: var(--ds-surface-2); }
+td.estado { white-space: normal; max-width: 34ch; }
 
 /* ---------------- Carregamento da tabela ---------------- */
 
@@ -1398,6 +1792,79 @@ td.n .esqueleto { margin-left: auto; }
 .ids dt { margin-top: var(--ds-sp-2); font-weight: 600; }
 .ids dd { margin: var(--ds-sp-1) 0 0; word-break: break-all; color: var(--ds-text); }
 
+/* ---------------- O diálogo ---------------- */
+
+/*
+  Fundo escurecido de borda a borda, cartão centrado com a elevação 3 (a mesma
+  do cartão da porta, e a decisão de 2026-08-20 autoriza a elevação alta em
+  momento de confirmação). O cartão entra com a mesma animação das telas.
+*/
+.dialogo {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ds-sp-4);
+}
+.dialogo-fundo {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--ds-ink-950) 55%, transparent);
+}
+.dialogo-cartao {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  max-height: calc(100vh - var(--ds-sp-6));
+  overflow-y: auto;
+  padding: var(--ds-sp-6);
+  box-shadow: var(--ds-shadow-3);
+  animation: subir calc(var(--ds-dur-slow) * 1.5) var(--ds-ease) both;
+}
+.dialogo-cartao:focus-visible { box-shadow: var(--ds-shadow-3), var(--ds-focus-ring); }
+.dialogo-acoes { display: flex; flex-direction: column; gap: var(--ds-sp-2); margin-top: var(--ds-sp-4); }
+.dialogo-acoes .botao-largo { margin-top: 0; }
+
+.emblema-perigo { color: var(--ds-danger-fg); background: var(--ds-danger-bg); }
+
+/* ---------------- O operador criado: QR e endereço ---------------- */
+
+.qr-e-endereco {
+  display: flex;
+  gap: var(--ds-sp-5);
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: var(--ds-sp-4);
+}
+.qr-moldura {
+  flex: 0 0 auto;
+  width: 200px;
+  padding: var(--ds-sp-2);
+  background: var(--ds-white);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+}
+.qr { display: block; width: 100%; height: auto; }
+.qr__fundo { fill: var(--ds-white); }
+.qr__modulo { fill: var(--ds-ink-950); }
+.endereco-bloco { flex: 1 1 260px; min-width: 0; }
+.endereco-bloco .rotulo-senha { margin-top: 0; }
+.endereco {
+  margin: 0;
+  padding: var(--ds-sp-3);
+  font-size: var(--ds-fs-caption);
+  line-height: var(--ds-lh-caption);
+  word-break: break-all;
+  background: var(--ds-bg);
+  border: 1px dashed var(--ds-border-controle);
+  border-radius: var(--ds-radius);
+  user-select: all;
+}
+
+.selo-bloco { display: flex; margin: var(--ds-sp-4) 0 0; padding: var(--ds-sp-3); }
+
 /* ---------------- Telas estreitas ---------------- */
 
 @media (max-width: 640px) {
@@ -1407,6 +1874,7 @@ td.n .esqueleto { margin-left: auto; }
   .tela-porta { padding-top: var(--ds-sp-4); }
   .indicador-numero { font-size: var(--ds-fs-h1); line-height: var(--ds-lh-h1); }
   .quem { display: none; }
+  .dialogo-cartao { padding: var(--ds-sp-4); }
 }
 `;
 
@@ -1420,39 +1888,55 @@ td.n .esqueleto { margin-left: auto; }
  * nada e custaria isso. O ÚNICO valor que este script guarda no navegador é o
  * nome do tema ("claro" ou "escuro"), que não é segredo de ninguém.
  *
- * A SENHA INICIAL da prefeitura recém-cadastrada NÃO entra em variável de
- * módulo, não entra em armazenamento do navegador e não passa pela área de
- * transferência por nossa iniciativa: ela vai direto para o `textContent` do
- * elemento que a mostra, e some dali quando o operador conclui ou sai. Guardá-la
- * em variável faria com que ela sobrevivesse à tela que a exibiu, e a promessa
- * desta tela é que ela aparece uma vez.
+ * A SENHA INICIAL da prefeitura recém-cadastrada, e a SENHA e o SEGREDO do
+ * operador recém-criado, NÃO entram em variável de módulo, não entram em
+ * armazenamento do navegador e não passam pela área de transferência por nossa
+ * iniciativa: vão direto para o `textContent` do elemento que os mostra, e
+ * somem dali quando o operador conclui ou sai. Guardá-los em variável faria com
+ * que sobrevivessem à tela que os exibiu, e a promessa dessa tela é que
+ * aparecem uma vez. A senha e o código digitados no modal de eliminar e na
+ * troca de senha são apagados dos campos assim que o pedido volta.
  *
  * TODO TEXTO VINDO DO SERVIDOR entra por `textContent`, nunca por `innerHTML`:
  * o nome do município é escrito por quem provisiona, e um console que
  * interpretasse HTML vindo do banco seria injeção de script na única tela que
- * enxerga mais de um município.
+ * enxerga mais de um município. O QR é desenhado elemento a elemento, com
+ * `createElementNS`, a partir de uma matriz de "0" e "1".
  *
  * TODA CHAMADA DE REDE PASSA POR `pedir`, e ela tem `try`/`catch`. Sem isso,
  * clicar em "Continuar" com o servidor reiniciando produzia uma promessa
  * rejeitada no console do navegador e efeito visível NENHUM na tela: o operador
  * clicava, nada acontecia, e não havia o que ele pudesse fazer a respeito.
+ *
+ * O PAPEL vem da resposta da entrada e decide o que a tela OFERECE, e só isso.
+ * Esconder o botão não é controle de acesso: o servidor responde 403 e o banco
+ * recusa por baixo. A tela esconde para não oferecer o que a pessoa não pode
+ * fazer, e trata o 403 mesmo assim, porque o papel pode mudar embaixo dela.
  */
 export const JS_DO_CONSOLE = `
 "use strict";
 
 var token = null;
 var desafio = null;
+var papel = null;
+var SVG = "http://www.w3.org/2000/svg";
 
 var porta = document.getElementById("porta");
 var painel = document.getElementById("painel");
 var cadastro = document.getElementById("cadastro");
+var usuarios = document.getElementById("usuarios");
+var minhaSenha = document.getElementById("minha-senha");
 
 var formaSenha = document.getElementById("forma-senha");
 var formaCodigo = document.getElementById("forma-codigo");
 var formaCadastro = document.getElementById("forma-cadastro");
+var formaOperador = document.getElementById("forma-operador");
+var formaSenhaNova = document.getElementById("forma-senha-nova");
 var entregue = document.getElementById("entregue");
+var operadorEntregue = document.getElementById("operador-entregue");
 
 var linhas = document.getElementById("linhas");
+var linhasOperadores = document.getElementById("linhas-operadores");
 var vazio = document.getElementById("vazio");
 var rolagem = document.getElementById("rolagem");
 var indicadores = document.getElementById("indicadores");
@@ -1460,10 +1944,17 @@ var indicadores = document.getElementById("indicadores");
 var botaoContinuar = document.getElementById("continuar");
 var botaoEntrar = document.getElementById("entrar");
 var botaoCriar = document.getElementById("criar");
+var botaoCriarOperador = document.getElementById("criar-operador");
+var botaoTrocar = document.getElementById("trocar");
 var botaoAtualizar = document.getElementById("atualizar");
 var botaoSair = document.getElementById("sair");
 var botaoTema = document.getElementById("tema");
 var quem = document.getElementById("quem");
+var nav = document.getElementById("nav");
+var irMunicipios = document.getElementById("ir-municipios");
+var irUsuarios = document.getElementById("ir-usuarios");
+var irSenha = document.getElementById("ir-senha");
+var thAcoes = document.getElementById("th-acoes");
 
 /* ======================================================================
    Tema
@@ -1537,6 +2028,11 @@ function dizerEm(idRecado, idTexto, texto) {
 function dizer(texto) { dizerEm("recado", "recado-texto", texto); }
 function dizerNoPainel(texto) { dizerEm("recado-painel", "recado-painel-texto", texto); }
 function dizerNoCadastro(texto) { dizerEm("recado-cadastro", "recado-cadastro-texto", texto); }
+function dizerNosUsuarios(texto) { dizerEm("recado-usuarios", "recado-usuarios-texto", texto); }
+function dizerNoOperador(texto) { dizerEm("recado-operador", "recado-operador-texto", texto); }
+function dizerNaSenha(texto) { dizerEm("recado-senha", "recado-senha-texto", texto); }
+function dizerNoDialogo(texto) { dizerEm("recado-dialogo", "recado-dialogo-texto", texto); }
+function dizerNoEliminar(texto) { dizerEm("recado-eliminar", "recado-eliminar-texto", texto); }
 
 /**
  * Trava o botão, troca o rótulo e liga a roda enquanto a chamada não volta.
@@ -1545,9 +2041,12 @@ function dizerNoCadastro(texto) { dizerEm("recado-cadastro", "recado-cadastro-te
  * está acontecendo, o rótulo diz O QUE está acontecendo, e \`disabled\` impede
  * que o operador mande o mesmo pedido duas vezes porque o primeiro demorou. O
  * \`aria-busy\` é o mesmo recado para quem ouve a tela em vez de olhar.
+ *
+ * O rótulo pode vir por identificador (botões fixos do HTML) ou como elemento
+ * (botões montados aqui, nas linhas da tabela).
  */
-function esperar(botao, idTexto, textoOcupado) {
-  var alvo = document.getElementById(idTexto);
+function esperar(botao, rotulo, textoOcupado) {
+  var alvo = typeof rotulo === "string" ? document.getElementById(rotulo) : rotulo;
   var antes = alvo.textContent;
   botao.disabled = true;
   botao.setAttribute("aria-busy", "true");
@@ -1579,9 +2078,51 @@ async function pedir(caminho, opcoes) {
   return { ok: resposta.ok, rede: false, corpo: corpo };
 }
 
+/** Um pedido com a sessão, em JSON. */
+function pedirComSessao(caminho, metodo, corpo) {
+  var opcoes = {
+    method: metodo,
+    headers: { authorization: "Bearer " + token }
+  };
+  if (corpo !== undefined) {
+    opcoes.headers["content-type"] = "application/json";
+    opcoes.body = JSON.stringify(corpo);
+  }
+  return pedir(caminho, opcoes);
+}
+
 var FORA_DO_AR =
   "Não consegui falar com o servidor do console. Ele pode estar reiniciando. "
   + "Espere alguns segundos e tente de novo.";
+
+/** A frase certa para uma resposta recusada, com o 403 dito na letra. */
+function mensagemDe(r, padrao) {
+  if (r.rede) return FORA_DO_AR;
+  if (r.corpo && r.corpo.erro === "so_o_dono") return "Só o dono do console faz isto.";
+  return (r.corpo && r.corpo.mensagem) || padrao;
+}
+
+/* ======================================================================
+   Telas
+   ====================================================================== */
+
+/**
+ * Uma tela por vez, e a navegação diz em qual.
+ *
+ * Trocar de tela é a única coisa que este bloco faz, e é por ele que todo
+ * botão de "voltar" e todo atalho da barra passam: assim não existe um caminho
+ * que deixe duas telas visíveis ao mesmo tempo.
+ */
+function mostrar(tela) {
+  painel.hidden = tela !== "painel";
+  cadastro.hidden = tela !== "cadastro";
+  usuarios.hidden = tela !== "usuarios";
+  minhaSenha.hidden = tela !== "senha";
+  porta.hidden = tela !== "porta";
+  irMunicipios.setAttribute("aria-current", tela === "painel" || tela === "cadastro" ? "page" : "false");
+  irUsuarios.setAttribute("aria-current", tela === "usuarios" ? "page" : "false");
+  irSenha.setAttribute("aria-current", tela === "senha" ? "page" : "false");
+}
 
 /* ======================================================================
    A porta, em duas etapas
@@ -1675,31 +2216,68 @@ formaCodigo.addEventListener("submit", async function (evento) {
   }
 
   token = r.corpo.token;
+  papel = r.corpo.papel === "dono" ? "dono" : "operador";
   document.getElementById("quem-email").textContent = r.corpo.operador || "";
+  document.getElementById("quem-papel").textContent = papel === "dono" ? "dono" : "operador";
   quem.hidden = !r.corpo.operador;
   botaoSair.hidden = false;
-  porta.hidden = true;
-  painel.hidden = false;
+  nav.hidden = false;
+  /* O que a tela OFERECE depende do papel. O que ela PERMITE, o servidor decide. */
+  irUsuarios.hidden = papel !== "dono";
+  thAcoes.hidden = papel !== "dono";
+  mostrar("painel");
   document.getElementById("senha").value = "";
   document.getElementById("codigo").value = "";
   await carregar();
 });
 
-botaoSair.addEventListener("click", function () {
+/**
+ * Sair: esquece tudo o que só existe enquanto a sessão existe.
+ *
+ * Inclusive o que está DENTRO das telas que a pessoa não está vendo: a senha
+ * inicial de uma prefeitura cadastrada e não concluída, a credencial de um
+ * operador criado e não concluído, a tabela de operadores. Sair precisa deixar
+ * o documento como ele estava antes de entrar.
+ */
+function sair(recado) {
   token = null;
   desafio = null;
+  papel = null;
   linhas.textContent = "";
+  linhasOperadores.textContent = "";
   indicadores.hidden = true;
-  painel.hidden = true;
-  cadastro.hidden = true;
   esquecerSenha();
-  porta.hidden = false;
+  esquecerOperador();
+  fecharDialogo();
+  fecharEliminar();
+  formaSenhaNova.reset();
+  document.getElementById("senha-trocada").hidden = true;
+  mostrar("porta");
   quem.hidden = true;
+  nav.hidden = true;
+  irUsuarios.hidden = true;
+  thAcoes.hidden = true;
   botaoSair.hidden = true;
   document.getElementById("quem-email").textContent = "";
-  voltarParaSenha("");
+  document.getElementById("quem-papel").textContent = "";
+  voltarParaSenha(recado || "");
   document.getElementById("email").focus();
-});
+}
+
+botaoSair.addEventListener("click", function () { sair(""); });
+
+/** Sessão terminada no servidor: volta para a porta com o recado. */
+function sessaoTerminou() {
+  sair("A sessão terminou. Entre de novo.");
+}
+
+/* ======================================================================
+   Navegação
+   ====================================================================== */
+
+irMunicipios.addEventListener("click", function () { voltarAosMunicipios(); });
+irUsuarios.addEventListener("click", function () { abrirUsuarios(); });
+irSenha.addEventListener("click", function () { abrirMinhaSenha(); });
 
 /* ======================================================================
    Cadastrar prefeitura
@@ -1725,8 +2303,7 @@ function esquecerSenha() {
 }
 
 function abrirCadastro() {
-  painel.hidden = true;
-  cadastro.hidden = false;
+  mostrar("cadastro");
   dizerNoCadastro("");
   esquecerSenha();
   document.getElementById("municipio").focus();
@@ -1739,10 +2316,10 @@ function voltarAosMunicipios() {
   // Esquece a senha ANTES de trocar de tela: sair da tela sem limpar deixaria
   // a senha no documento, pronta para reaparecer com um "voltar".
   esquecerSenha();
+  esquecerOperador();
   formaCadastro.reset();
   dizerNoCadastro("");
-  cadastro.hidden = true;
-  painel.hidden = false;
+  mostrar("painel");
   carregar();
 }
 
@@ -1760,21 +2337,14 @@ formaCadastro.addEventListener("submit", async function (evento) {
   var devolver = esperar(botaoCriar, "criar-texto", "Cadastrando...");
   var r;
   try {
-    r = await pedir("/prefeituras", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: "Bearer " + token
-      },
-      body: JSON.stringify({
-        municipio: document.getElementById("municipio").value,
-        uf: document.getElementById("uf").value,
-        orgao: document.getElementById("orgao").value,
-        nome: document.getElementById("nome-admin").value,
-        matricula: document.getElementById("matricula").value,
-        email: document.getElementById("email-admin").value,
-        operador: document.getElementById("operador").value
-      })
+    r = await pedirComSessao("/prefeituras", "POST", {
+      municipio: document.getElementById("municipio").value,
+      uf: document.getElementById("uf").value,
+      orgao: document.getElementById("orgao").value,
+      nome: document.getElementById("nome-admin").value,
+      matricula: document.getElementById("matricula").value,
+      email: document.getElementById("email-admin").value,
+      operador: document.getElementById("operador").value
     });
   } finally {
     devolver();
@@ -1783,9 +2353,7 @@ formaCadastro.addEventListener("submit", async function (evento) {
   if (r.rede) { dizerNoCadastro(FORA_DO_AR); return; }
 
   if (!r.ok || !r.corpo || !r.corpo.senhaInicial) {
-    dizerNoCadastro(
-      (r.corpo && r.corpo.mensagem) || "Não foi possível cadastrar a prefeitura."
-    );
+    dizerNoCadastro(mensagemDe(r, "Não foi possível cadastrar a prefeitura."));
     return;
   }
 
@@ -1801,6 +2369,263 @@ formaCadastro.addEventListener("submit", async function (evento) {
   formaCadastro.hidden = true;
   entregue.hidden = false;
   document.getElementById("entregue-titulo").focus();
+});
+
+/* ======================================================================
+   O diálogo do produto
+   ====================================================================== */
+
+var dialogo = document.getElementById("dialogo");
+var dialogoCartao = document.getElementById("dialogo-cartao");
+var dialogoAgir = document.getElementById("dialogo-agir");
+var dialogoMotivo = document.getElementById("dialogo-motivo");
+var dialogoCampoMotivo = document.getElementById("dialogo-campo-motivo");
+var perguntaAberta = null;
+
+/**
+ * O resto da página fica \`inert\` enquanto uma pergunta está aberta.
+ *
+ * \`inert\` tira do alcance do ponteiro, do Tab e do leitor de tela, que é o
+ * que uma janela modal promete. Sem isto, o Tab sai do diálogo pela borda e
+ * continua percorrendo a página atrás, e quem navega por teclado passa a
+ * operar controles que não vê, achando que ainda está dentro da confirmação.
+ */
+function inerteAtras(sim) {
+  var partes = ["cabecalho", "principal", "rodape"];
+  for (var i = 0; i < partes.length; i++) {
+    var no = document.getElementById(partes[i]);
+    if (sim) no.setAttribute("inert", ""); else no.removeAttribute("inert");
+  }
+}
+
+/**
+ * Abre a pergunta genérica: título, texto, o rótulo do botão que age (que
+ * REPETE o verbo com o nome do alvo), se é destrutiva, se pede motivo, e a
+ * função que age. O foco entra no diálogo e volta para quem abriu ao fechar.
+ */
+function abrirDialogo(pergunta) {
+  perguntaAberta = pergunta;
+  document.getElementById("dialogo-titulo").textContent = pergunta.titulo;
+  document.getElementById("dialogo-texto").textContent = pergunta.texto;
+  document.getElementById("dialogo-agir-texto").textContent = pergunta.rotulo;
+  dialogoCampoMotivo.hidden = !pergunta.pedeMotivo;
+  dialogoMotivo.value = "";
+  dizerNoDialogo("");
+  if (pergunta.destrutiva) {
+    dialogoAgir.classList.add("botao-perigo");
+    dialogoAgir.classList.remove("botao-forte");
+  } else {
+    dialogoAgir.classList.remove("botao-perigo");
+    dialogoAgir.classList.add("botao-forte");
+  }
+  dialogo.hidden = false;
+  inerteAtras(true);
+  if (pergunta.pedeMotivo) dialogoMotivo.focus();
+  dialogoCartao.focus();
+}
+
+function fecharDialogo() {
+  if (dialogo.hidden) return;
+  dialogo.hidden = true;
+  inerteAtras(false);
+  dialogoMotivo.value = "";
+  dizerNoDialogo("");
+  var pergunta = perguntaAberta;
+  perguntaAberta = null;
+  if (pergunta && pergunta.quemAbriu) pergunta.quemAbriu.focus();
+}
+
+document.getElementById("dialogo-recusar").addEventListener("click", function () { fecharDialogo(); });
+document.getElementById("dialogo-fundo").addEventListener("click", function () {
+  /* Clique fora fecha SÓ quando a pergunta não é destrutiva: clique fora é
+     gesto acidental, e fechar por acidente a pergunta de suspender no meio da
+     leitura da consequência não é barato. */
+  if (perguntaAberta && !perguntaAberta.destrutiva) fecharDialogo();
+});
+dialogoCartao.addEventListener("keydown", function (evento) {
+  if (evento.key === "Escape") fecharDialogo();
+});
+
+document.getElementById("forma-dialogo").addEventListener("submit", async function (evento) {
+  evento.preventDefault();
+  if (!perguntaAberta) return;
+  dizerNoDialogo("");
+
+  var motivo = dialogoMotivo.value.trim();
+  if (perguntaAberta.pedeMotivo && !motivo) {
+    dizerNoDialogo("Informe o motivo. Ele vai para a trilha do município.");
+    dialogoMotivo.focus();
+    return;
+  }
+
+  var devolver = esperar(dialogoAgir, "dialogo-agir-texto", perguntaAberta.ocupado);
+  var r;
+  try {
+    r = await perguntaAberta.agir(motivo);
+  } finally {
+    devolver();
+  }
+
+  if (!r.ok) {
+    if (r.corpo && r.corpo.erro === "sem_sessao") { sessaoTerminou(); return; }
+    dizerNoDialogo(mensagemDe(r, "Não foi possível fazer isto agora."));
+    return;
+  }
+  var depois = perguntaAberta.depois;
+  fecharDialogo();
+  await depois();
+});
+
+/* ======================================================================
+   As duas ações perigosas por município
+   ====================================================================== */
+
+function nomeDe(m) { return m.municipio + " (" + m.uf + ")"; }
+
+function suspender(m, quemAbriu) {
+  abrirDialogo({
+    titulo: "Desativar o acesso de " + nomeDe(m),
+    texto: "Ninguém desta prefeitura consegue entrar enquanto o acesso estiver "
+      + "desativado, e as sessões abertas caem agora. Os dados ficam. Dá para "
+      + "reativar quando quiser.",
+    rotulo: "Desativar o acesso de " + m.municipio,
+    ocupado: "Desativando...",
+    destrutiva: true,
+    pedeMotivo: true,
+    quemAbriu: quemAbriu,
+    agir: function (motivo) {
+      return pedirComSessao("/municipios/" + m.organizacao_id + "/suspender", "POST", { motivo: motivo });
+    },
+    depois: carregar
+  });
+}
+
+function reativar(m, quemAbriu) {
+  abrirDialogo({
+    titulo: "Reativar o acesso de " + nomeDe(m),
+    texto: "A prefeitura volta a entrar no produto imediatamente. Motivo da "
+      + "suspensão: " + (m.suspensao_motivo || "(não informado)") + ".",
+    rotulo: "Reativar o acesso de " + m.municipio,
+    ocupado: "Reativando...",
+    destrutiva: false,
+    pedeMotivo: false,
+    quemAbriu: quemAbriu,
+    agir: function () {
+      return pedirComSessao("/municipios/" + m.organizacao_id + "/reativar", "POST");
+    },
+    depois: carregar
+  });
+}
+
+function cancelarEliminacao(m, quemAbriu) {
+  abrirDialogo({
+    titulo: "Cancelar a eliminação de " + nomeDe(m),
+    texto: "O apagamento agendado deixa de acontecer. O acesso CONTINUA "
+      + "desativado: reativar é um ato separado, com o botão próprio.",
+    rotulo: "Cancelar a eliminação de " + m.municipio,
+    ocupado: "Cancelando...",
+    destrutiva: false,
+    pedeMotivo: false,
+    quemAbriu: quemAbriu,
+    agir: function () {
+      return pedirComSessao("/municipios/" + m.organizacao_id + "/eliminacao/cancelar", "POST");
+    },
+    depois: carregar
+  });
+}
+
+/* ---------- O modal de eliminar, com os quatro campos em ordem ---------- */
+
+var dialogoEliminar = document.getElementById("dialogo-eliminar");
+var eliminarCartao = document.getElementById("eliminar-cartao");
+var eliminarAgir = document.getElementById("eliminar-agir");
+var alvoDaEliminacao = null;
+var quemAbriuEliminar = null;
+
+function limparEliminar() {
+  document.getElementById("eliminar-senha").value = "";
+  document.getElementById("eliminar-codigo").value = "";
+  document.getElementById("eliminar-nome").value = "";
+  document.getElementById("eliminar-motivo").value = "";
+  dizerNoEliminar("");
+}
+
+function abrirEliminar(m, quemAbriu) {
+  alvoDaEliminacao = m;
+  quemAbriuEliminar = quemAbriu;
+  limparEliminar();
+  document.getElementById("eliminar-titulo").textContent = "Eliminar " + nomeDe(m);
+  document.getElementById("eliminar-agir-texto").textContent =
+    "Agendar a eliminação de " + m.municipio;
+  document.getElementById("eliminar-nome-ajuda").textContent =
+    "Exatamente como está cadastrado, com maiúsculas e acentos: " + m.municipio;
+  dialogoEliminar.hidden = false;
+  inerteAtras(true);
+  document.getElementById("eliminar-senha").focus();
+  eliminarCartao.focus();
+}
+
+function fecharEliminar() {
+  if (dialogoEliminar.hidden) return;
+  dialogoEliminar.hidden = true;
+  inerteAtras(false);
+  limparEliminar();
+  alvoDaEliminacao = null;
+  var abriu = quemAbriuEliminar;
+  quemAbriuEliminar = null;
+  if (abriu) abriu.focus();
+}
+
+document.getElementById("eliminar-recusar").addEventListener("click", function () { fecharEliminar(); });
+eliminarCartao.addEventListener("keydown", function (evento) {
+  if (evento.key === "Escape") fecharEliminar();
+});
+/* Sem "clique fora fecha" aqui: a decisão é destrutiva, e fechar por acidente
+   no meio da leitura da consequência não é barato. */
+
+document.getElementById("forma-eliminar").addEventListener("submit", async function (evento) {
+  evento.preventDefault();
+  if (!alvoDaEliminacao) return;
+  dizerNoEliminar("");
+
+  var senha = document.getElementById("eliminar-senha").value;
+  var codigo = document.getElementById("eliminar-codigo").value;
+  var nome = document.getElementById("eliminar-nome").value;
+  var motivo = document.getElementById("eliminar-motivo").value.trim();
+
+  /* A ordem da conferência é a ordem dos campos, e a mesma do servidor. */
+  if (!senha) { dizerNoEliminar("Informe a sua senha atual."); return; }
+  if (!codigo) { dizerNoEliminar("Informe um código novo do aplicativo de autenticação."); return; }
+  if (nome !== alvoDaEliminacao.municipio) {
+    dizerNoEliminar("Digite o nome exato da prefeitura, como está cadastrado: "
+      + alvoDaEliminacao.municipio + ".");
+    document.getElementById("eliminar-nome").focus();
+    return;
+  }
+  if (!motivo) { dizerNoEliminar("Informe o motivo. Ele fica no livro de eliminações."); return; }
+
+  var devolver = esperar(eliminarAgir, "eliminar-agir-texto", "Agendando a eliminação...");
+  var r;
+  try {
+    r = await pedirComSessao("/municipios/" + alvoDaEliminacao.organizacao_id + "/eliminar", "POST", {
+      senha: senha, codigo: codigo, nome: nome, motivo: motivo
+    });
+  } finally {
+    devolver();
+    /* A senha e o código saem dos campos assim que o pedido volta, tenha dado
+       certo ou não: um código recusado não serve de novo, e a senha não fica
+       num campo de uma janela que pode ficar aberta. */
+    document.getElementById("eliminar-senha").value = "";
+    document.getElementById("eliminar-codigo").value = "";
+  }
+
+  if (!r.ok) {
+    if (r.corpo && r.corpo.erro === "sem_sessao") { sessaoTerminou(); return; }
+    dizerNoEliminar(mensagemDe(r, "Não foi possível agendar a eliminação."));
+    return;
+  }
+  fecharEliminar();
+  await carregar();
 });
 
 /* ======================================================================
@@ -1833,13 +2658,88 @@ function somar(lista, campo) {
 
 /** Um ícone do conjunto da página, para usar dentro de célula montada aqui. */
 function icone(nome) {
-  var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  var svg = document.createElementNS(SVG, "svg");
   svg.setAttribute("class", "icone");
   svg.setAttribute("aria-hidden", "true");
-  var uso = document.createElementNS("http://www.w3.org/2000/svg", "use");
+  var uso = document.createElementNS(SVG, "use");
   uso.setAttribute("href", "#" + nome);
   svg.appendChild(uso);
   return svg;
+}
+
+/** Um selo com ícone e palavra, para sinal e para estado. */
+function selo(classe, nomeDoIcone, texto) {
+  var marca = document.createElement("span");
+  marca.className = "marca-sinal " + classe;
+  marca.appendChild(icone(nomeDoIcone));
+  var palavra = document.createElement("span");
+  palavra.textContent = texto;
+  marca.appendChild(palavra);
+  return marca;
+}
+
+/** Um botão de linha, com roda, para as ações do dono. */
+function botaoDeLinha(texto, classe, aoClicar) {
+  var b = document.createElement("button");
+  b.setAttribute("type", "button");
+  b.className = "botao " + classe;
+  var roda = document.createElement("span");
+  roda.className = "roda";
+  roda.setAttribute("aria-hidden", "true");
+  b.appendChild(roda);
+  var rotulo = document.createElement("span");
+  rotulo.textContent = texto;
+  b.appendChild(rotulo);
+  b.addEventListener("click", function () { aoClicar(b); });
+  return b;
+}
+
+function doisDigitos(n) { return (n < 10 ? "0" : "") + n; }
+
+/** "22/09 às 14:03", no relógio de quem olha. */
+function diaEHora(iso) {
+  var d = new Date(iso);
+  return doisDigitos(d.getDate()) + "/" + doisDigitos(d.getMonth() + 1)
+    + " às " + doisDigitos(d.getHours()) + ":" + doisDigitos(d.getMinutes());
+}
+
+/**
+ * O estado de acesso, com ícone e palavra, e as ações que fazem sentido nele.
+ *
+ * Três estados, e cada um oferece só o que cabe: com eliminação agendada, o
+ * único botão é CANCELAR, à vista durante o prazo inteiro (reativar seria
+ * recusado pelo servidor, e eliminar de novo não existe); suspenso, reativar
+ * ou eliminar; ativo, desativar o acesso ou eliminar.
+ */
+function estadoDe(m) {
+  if (m.eliminacao_agendada_para) {
+    var quando = new Date(m.eliminacao_agendada_para);
+    var dias = Math.max(0, Math.ceil((quando.getTime() - Date.now()) / 86400000));
+    return selo("eliminacao", "i-ampulheta",
+      "eliminação em " + dias + (dias === 1 ? " dia" : " dias") + ", dia " + diaEHora(m.eliminacao_agendada_para));
+  }
+  if (m.acesso_suspenso_em) {
+    return selo("suspenso", "i-bloqueio",
+      "suspenso desde " + diaEHora(m.acesso_suspenso_em)
+      + (m.suspensao_motivo ? ": " + m.suspensao_motivo : ""));
+  }
+  return selo("ativo", "i-confere", "ativo");
+}
+
+function acoesDe(m) {
+  var grupo = document.createElement("div");
+  grupo.className = "acoes-linha";
+  if (m.eliminacao_agendada_para) {
+    grupo.appendChild(botaoDeLinha("Cancelar eliminação", "botao-forte", function (b) { cancelarEliminacao(m, b); }));
+    return grupo;
+  }
+  if (m.acesso_suspenso_em) {
+    grupo.appendChild(botaoDeLinha("Reativar", "botao-discreto", function (b) { reativar(m, b); }));
+  } else {
+    grupo.appendChild(botaoDeLinha("Desativar acesso", "botao-discreto", function (b) { suspender(m, b); }));
+  }
+  grupo.appendChild(botaoDeLinha("Eliminar", "botao-perigo", function (b) { abrirEliminar(m, b); }));
+  return grupo;
 }
 
 /**
@@ -1854,12 +2754,14 @@ function mostrarEsqueleto() {
   vazio.hidden = true;
   rolagem.setAttribute("aria-busy", "true");
 
+  var colunas = papel === "dono" ? 12 : 11;
+  var textuais = papel === "dono" ? 4 : 3;
   var larguras = ["esqueleto-longo", "esqueleto-medio", "esqueleto-curto", "esqueleto-medio"];
   for (var i = 0; i < 4; i++) {
     var tr = document.createElement("tr");
-    for (var c = 0; c < 10; c++) {
+    for (var c = 0; c < colunas; c++) {
       var td = document.createElement("td");
-      if (c > 1) td.className = "n";
+      if (c >= textuais) td.className = "n";
       var barra = document.createElement("span");
       barra.className = "esqueleto " + (c === 0 ? larguras[i] : "esqueleto-curto");
       td.appendChild(barra);
@@ -1900,7 +2802,7 @@ async function carregar() {
 
   var r;
   try {
-    r = await pedir("/municipios", { headers: { authorization: "Bearer " + token } });
+    r = await pedirComSessao("/municipios", "GET");
   } finally {
     devolver();
     rolagem.setAttribute("aria-busy", "false");
@@ -1914,14 +2816,7 @@ async function carregar() {
 
   if (!r.ok) {
     linhas.textContent = "";
-    indicadores.hidden = true;
-    painel.hidden = true;
-    cadastro.hidden = true;
-    porta.hidden = false;
-    quem.hidden = true;
-    botaoSair.hidden = true;
-    token = null;
-    voltarParaSenha("A sessão terminou. Entre de novo.");
+    sessaoTerminou();
     return;
   }
 
@@ -1939,19 +2834,31 @@ async function carregar() {
     tr.appendChild(nome);
 
     var sinal = document.createElement("td");
-    var marca = document.createElement("span");
-    marca.className = "marca-sinal " + (m.sem_escrita_recente ? "calado" : "em-dia");
-    marca.appendChild(icone(m.sem_escrita_recente ? "i-silencio" : "i-pulso"));
     var horas = m.horas_desde_a_escrita;
-    var palavra = document.createElement("span");
-    palavra.textContent = m.sem_escrita_recente
-      ? (horas === null || horas === undefined
-          ? "calado, nunca escreveu"
-          : "calado ha " + Math.round(horas) + " h")
-      : "em dia";
-    marca.appendChild(palavra);
-    sinal.appendChild(marca);
+    sinal.appendChild(selo(
+      m.sem_escrita_recente ? "calado" : "em-dia",
+      m.sem_escrita_recente ? "i-silencio" : "i-pulso",
+      m.sem_escrita_recente
+        ? (horas === null || horas === undefined
+            ? "calado, nunca escreveu"
+            : "calado ha " + Math.round(horas) + " h")
+        : "em dia"
+    ));
     tr.appendChild(sinal);
+
+    var estado = document.createElement("td");
+    estado.className = "estado";
+    estado.appendChild(estadoDe(m));
+    tr.appendChild(estado);
+
+    /* A coluna de ações existe só para o dono, e vem logo depois do estado
+       (ver o comentário no cabeçalho da tabela). Esconder não é controle de
+       acesso: é não oferecer o que o servidor recusaria. */
+    if (papel === "dono") {
+      var acoes = document.createElement("td");
+      acoes.appendChild(acoesDe(m));
+      tr.appendChild(acoes);
+    }
 
     tr.appendChild(celula(numero(m.ocorrencias_registradas), true));
     tr.appendChild(celula(numero(m.ocorrencias_encerradas), true));
@@ -1972,4 +2879,245 @@ async function carregar() {
 }
 
 botaoAtualizar.addEventListener("click", function () { carregar(); });
+
+/* ======================================================================
+   Usuários (só o dono)
+   ====================================================================== */
+
+/**
+ * A credencial do operador criado vive na tela e em mais lugar nenhum, pela
+ * mesma regra da senha inicial da prefeitura.
+ */
+function esquecerOperador() {
+  document.getElementById("operador-titulo").textContent = "";
+  document.getElementById("operador-senha").textContent = "";
+  document.getElementById("operador-segredo").textContent = "";
+  document.getElementById("operador-endereco").textContent = "";
+  var qr = document.getElementById("operador-qr");
+  qr.textContent = "";
+  qr.hidden = true;
+  operadorEntregue.hidden = true;
+  formaOperador.hidden = false;
+}
+
+function abrirUsuarios() {
+  esquecerSenha();
+  esquecerOperador();
+  dizerNoOperador("");
+  mostrar("usuarios");
+  carregarOperadores();
+}
+
+document.getElementById("voltar-de-usuarios").addEventListener("click", voltarAosMunicipios);
+document.getElementById("operador-concluir").addEventListener("click", function () {
+  esquecerOperador();
+  document.getElementById("email-operador").focus();
+});
+
+/** Em grupos de quatro, que é como se lê e se digita uma sequência longa. */
+function emGrupos(segredo) {
+  return segredo.replace(/(.{4})/g, "$1 ").trim();
+}
+
+/**
+ * O QR desenhado quadradinho a quadradinho, em SVG, a partir da matriz que a
+ * rota devolveu. Nada de imagem de fora, nada de \`innerHTML\`: um \`<rect>\`
+ * por módulo escuro, com classe, e a folha pinta.
+ */
+function desenharQr(alvo, qr) {
+  alvo.textContent = "";
+  if (!qr || !qr.linhas) { alvo.hidden = true; return; }
+  var borda = 4;
+  var lado = qr.tamanho + borda * 2;
+  var svg = document.createElementNS(SVG, "svg");
+  svg.setAttribute("class", "qr");
+  svg.setAttribute("viewBox", "0 0 " + lado + " " + lado);
+  svg.setAttribute("shape-rendering", "crispEdges");
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "Código QR com o endereço de ativação do segundo fator. O mesmo endereço está escrito ao lado, e o segredo acima, para digitar à mão.");
+  var fundo = document.createElementNS(SVG, "rect");
+  fundo.setAttribute("x", "0"); fundo.setAttribute("y", "0");
+  fundo.setAttribute("width", String(lado)); fundo.setAttribute("height", String(lado));
+  fundo.setAttribute("class", "qr__fundo");
+  svg.appendChild(fundo);
+  for (var i = 0; i < qr.linhas.length; i++) {
+    var linha = qr.linhas[i];
+    for (var j = 0; j < linha.length; j++) {
+      if (linha.charAt(j) !== "1") continue;
+      var m = document.createElementNS(SVG, "rect");
+      m.setAttribute("x", String(j + borda)); m.setAttribute("y", String(i + borda));
+      m.setAttribute("width", "1"); m.setAttribute("height", "1");
+      m.setAttribute("class", "qr__modulo");
+      svg.appendChild(m);
+    }
+  }
+  alvo.appendChild(svg);
+  alvo.hidden = false;
+}
+
+function desativarOperador(o, quemAbriu) {
+  abrirDialogo({
+    titulo: "Desativar " + o.email,
+    texto: "A conta deixa de entrar no console agora, e a sessão dela cai. Ela "
+      + "não é apagada: continua na lista, como desativada, porque assina o que "
+      + "fez.",
+    rotulo: "Desativar " + o.email,
+    ocupado: "Desativando...",
+    destrutiva: true,
+    pedeMotivo: false,
+    quemAbriu: quemAbriu,
+    agir: function () {
+      return pedirComSessao("/operadores/" + o.id + "/desativar", "POST");
+    },
+    depois: carregarOperadores
+  });
+}
+
+async function carregarOperadores() {
+  dizerNosUsuarios("");
+  linhasOperadores.textContent = "";
+  document.getElementById("rolagem-operadores").setAttribute("aria-busy", "true");
+  var r;
+  try {
+    r = await pedirComSessao("/operadores", "GET");
+  } finally {
+    document.getElementById("rolagem-operadores").setAttribute("aria-busy", "false");
+  }
+  if (r.rede) { dizerNosUsuarios(FORA_DO_AR); return; }
+  if (!r.ok) {
+    if (r.corpo && r.corpo.erro === "sem_sessao") { sessaoTerminou(); return; }
+    dizerNosUsuarios(mensagemDe(r, "Não foi possível listar os operadores."));
+    return;
+  }
+
+  var lista = (r.corpo && r.corpo.operadores) || [];
+  lista.forEach(function (o) {
+    var tr = document.createElement("tr");
+    var email = document.createElement("th");
+    email.setAttribute("scope", "row");
+    email.className = "mono";
+    email.textContent = o.email;
+    tr.appendChild(email);
+
+    tr.appendChild(celula(o.papel === "dono" ? "dono" : "operador", false));
+
+    var situacao = document.createElement("td");
+    situacao.appendChild(o.ativo
+      ? selo("em-dia", "i-confere", "ativo")
+      : selo("desativado", "i-bloqueio", "desativado"));
+    tr.appendChild(situacao);
+
+    tr.appendChild(celula(o.criado_em ? diaEHora(o.criado_em) : "-", false));
+
+    var acoes = document.createElement("td");
+    /* O dono não tem botão: não se desativa, por ninguém, nem por ele mesmo. */
+    if (o.papel !== "dono" && o.ativo) {
+      var grupo = document.createElement("div");
+      grupo.className = "acoes-linha";
+      grupo.appendChild(botaoDeLinha("Desativar", "botao-discreto", function (b) { desativarOperador(o, b); }));
+      acoes.appendChild(grupo);
+    } else {
+      acoes.textContent = o.papel === "dono" ? "não se desativa" : "";
+    }
+    tr.appendChild(acoes);
+    linhasOperadores.appendChild(tr);
+  });
+}
+
+formaOperador.addEventListener("submit", async function (evento) {
+  evento.preventDefault();
+  dizerNoOperador("");
+
+  var devolver = esperar(botaoCriarOperador, "criar-operador-texto", "Criando...");
+  var r;
+  try {
+    r = await pedirComSessao("/operadores", "POST", {
+      email: document.getElementById("email-operador").value
+    });
+  } finally {
+    devolver();
+  }
+
+  if (r.rede) { dizerNoOperador(FORA_DO_AR); return; }
+  if (!r.ok || !r.corpo || !r.corpo.senhaInicial) {
+    if (r.corpo && r.corpo.erro === "sem_sessao") { sessaoTerminou(); return; }
+    dizerNoOperador(mensagemDe(r, "Não foi possível criar o operador."));
+    return;
+  }
+
+  document.getElementById("operador-titulo").textContent = r.corpo.email || "";
+  document.getElementById("operador-senha").textContent = r.corpo.senhaInicial;
+  document.getElementById("operador-segredo").textContent = emGrupos(r.corpo.segredo || "");
+  document.getElementById("operador-endereco").textContent = r.corpo.endereco || "";
+  desenharQr(document.getElementById("operador-qr"), r.corpo.qr);
+
+  formaOperador.reset();
+  formaOperador.hidden = true;
+  operadorEntregue.hidden = false;
+  document.getElementById("operador-titulo").focus();
+  await carregarOperadores();
+});
+
+/* ======================================================================
+   A minha senha
+   ====================================================================== */
+
+function abrirMinhaSenha() {
+  esquecerSenha();
+  esquecerOperador();
+  dizerNaSenha("");
+  document.getElementById("senha-trocada").hidden = true;
+  formaSenhaNova.reset();
+  mostrar("senha");
+  document.getElementById("senha-atual").focus();
+}
+
+document.getElementById("voltar-da-senha").addEventListener("click", voltarAosMunicipios);
+
+formaSenhaNova.addEventListener("submit", async function (evento) {
+  evento.preventDefault();
+  dizerNaSenha("");
+  document.getElementById("senha-trocada").hidden = true;
+
+  var atual = document.getElementById("senha-atual").value;
+  var codigo = document.getElementById("codigo-troca").value;
+  var nova = document.getElementById("senha-nova").value;
+  var nova2 = document.getElementById("senha-nova-2").value;
+
+  if (!atual) { dizerNaSenha("Informe a senha atual."); return; }
+  if (!codigo) { dizerNaSenha("Informe um código novo do aplicativo de autenticação."); return; }
+  if (nova.length < 12) { dizerNaSenha("A senha nova precisa ter pelo menos 12 caracteres."); return; }
+  if (nova !== nova2) {
+    dizerNaSenha("As duas senhas novas não são iguais.");
+    document.getElementById("senha-nova-2").focus();
+    return;
+  }
+
+  var devolver = esperar(botaoTrocar, "trocar-texto", "Trocando a senha...");
+  var r;
+  try {
+    r = await pedirComSessao("/senha", "POST", { senhaAtual: atual, codigo: codigo, novaSenha: nova });
+  } finally {
+    devolver();
+    /* O código sai do campo assim que o pedido volta: recusado ou usado, ele
+       não serve de novo. */
+    document.getElementById("codigo-troca").value = "";
+  }
+
+  if (r.rede) { dizerNaSenha(FORA_DO_AR); return; }
+  if (!r.ok || !r.corpo || !r.corpo.token) {
+    if (r.corpo && r.corpo.erro === "sem_sessao") { sessaoTerminou(); return; }
+    dizerNaSenha(mensagemDe(r, "Não foi possível trocar a senha."));
+    return;
+  }
+
+  /* A sessão continua nesta aba com o token NOVO: o antigo já não vale, aqui
+     nem em nenhuma outra aba. */
+  token = r.corpo.token;
+  formaSenhaNova.reset();
+  document.getElementById("senha-atual").value = "";
+  document.getElementById("senha-nova").value = "";
+  document.getElementById("senha-nova-2").value = "";
+  document.getElementById("senha-trocada").hidden = false;
+});
 `;

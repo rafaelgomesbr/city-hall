@@ -1,13 +1,11 @@
 import { randomBytes } from "node:crypto";
-import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { construirConsole } from "../src/servidor.js";
-import { abrirCofre, contextoDoOperador, lerRegistro } from "../src/operadores.js";
+import { abrirCofre, contextoDoOperador, lerSemente } from "../src/operadores.js";
 import { verificarSessao } from "../src/tokens.js";
-import type { Config } from "../src/config.js";
-import type { EscritaDoConsole, LeituraDoConsole } from "../src/banco.js";
-import { derivarSenha } from "../../api/src/auth/senha.js";
-import { base32Decodificar, codigoTotp, gerarSegredoTotp, passoDe } from "../../api/src/auth/totp.js";
+import { gerarSegredoTotp } from "../../api/src/auth/totp.js";
+import {
+  DONO, JWT_SEGREDO_DE_TESTE, codigoNovo, subirConsoleDeTeste, type ConsoleDeTeste,
+} from "./apoio/console-de-teste.js";
 
 /**
  * O segundo fator no console, e a diferença que ele tem para o do produto.
@@ -34,44 +32,20 @@ import { base32Decodificar, codigoTotp, gerarSegredoTotp, passoDe } from "../../
  * `apps/api/src/auth/totp.ts`. O console não tem implementação própria de TOTP,
  * e é por isso que este teste consegue gerar um código válido chamando a mesma
  * função que o servidor confere.
+ *
+ * DESDE A MIGRAÇÃO 038 a porta lê o operador no BANCO, então este arquivo sobe
+ * um console de teste inteiro (Postgres em WebAssembly com as migrações reais
+ * e o dono semeado pela variável), em vez da leitura vazia que bastava antes:
+ * uma leitura que devolvesse lista vazia mediria um console em que ninguém
+ * entra.
  */
 
-const EMAIL = "coordenacao@fornecedor.com.br";
-const SENHA = "senha-de-teste-bem-comprida-do-operador";
+const EMAIL = DONO.email;
+const SENHA = DONO.senha;
 const CHAVE = randomBytes(32).toString("base64");
-
 const cofre = abrirCofre(CHAVE);
-const SEGREDO_TOTP = gerarSegredoTotp();
 
-/** Uma leitura que nunca é chamada: este arquivo não passa da porta. */
-const LEITURA_VAZIA: LeituraDoConsole = {
-  ler: async () => [],
-  encerrar: async () => {},
-};
-
-/**
- * E uma escrita que acusa em vez de obedecer, pela mesma razão: este arquivo
- * mede a porta, e nenhum caso dele deveria chegar a escrever coisa nenhuma.
- */
-const ESCRITA_QUE_ACUSA: EscritaDoConsole = {
-  executar: async () => {
-    throw new Error("uma rota escreveu sem passar pela porta");
-  },
-};
-
-function configuracao(operadores: string): Config {
-  return {
-    NODE_ENV: "test",
-    CONSOLE_PORT: 0,
-    CONSOLE_HOST: "127.0.0.1",
-    CONSOLE_JWT_SEGREDO: "segredo-de-teste-com-mais-de-trinta-e-dois-bytes-aqui",
-    CONSOLE_SEGUNDO_FATOR_CHAVE: CHAVE,
-    CONSOLE_OPERADORES: operadores,
-  };
-}
-
-let app: FastifyInstance;
-let registroBom: string;
+let c: ConsoleDeTeste;
 
 /*
   Prazo no GANCHO também, e não só nos casos: o padrão do vitest para
@@ -80,32 +54,20 @@ let registroBom: string;
   segundos é prazo que mede a carga da máquina.
 */
 beforeAll(async () => {
-  const hash = await derivarSenha(SENHA);
-  registroBom = JSON.stringify([{
-    email: EMAIL,
-    senha: hash,
-    segundoFator: cofre.cifrar(SEGREDO_TOTP, contextoDoOperador(EMAIL)),
-  }]);
-  app = await construirConsole({
-    config: configuracao(registroBom),
-    leitura: LEITURA_VAZIA,
-    escrita: ESCRITA_QUE_ACUSA,
-    // Alto de proposito: o limite por endereco tem caso proprio mais abaixo, e
-    // aqui ele so atrapalharia os casos que medem outra coisa.
-    limitePorEndereco: 500,
-  });
-}, 120_000);
+  c = await subirConsoleDeTeste({ chave: CHAVE });
+}, 180_000);
 
 afterAll(async () => {
-  await app?.close();
+  await c?.encerrar();
 });
 
-function codigoDeAgora(quando = new Date()): string {
-  return codigoTotp(base32Decodificar(SEGREDO_TOTP)!, passoDe(quando));
+/** Um código novo, um passo à frente no relógio de teste (ver o apoio). */
+function codigoDeAgora(): string {
+  return codigoNovo(c.relogio, c.segredoDoDono);
 }
 
 async function primeiraEtapa(): Promise<{ status: number; corpo: any }> {
-  const r = await app.inject({
+  const r = await c.app.inject({
     method: "POST", url: "/entrar",
     payload: { email: EMAIL, senha: SENHA },
   });
@@ -138,7 +100,7 @@ describe("Entrar no console exige o segundo fator, sem excecao", () => {
       E o desafio não é uma sessão disfarçada: a mesma verificação que o portão
       das rotas de leitura usa o recusa.
     */
-    const segredo = new TextEncoder().encode(configuracao(registroBom).CONSOLE_JWT_SEGREDO);
+    const segredo = new TextEncoder().encode(JWT_SEGREDO_DE_TESTE);
     expect(
       await verificarSessao(segredo, corpo.desafio),
       "o desafio da primeira etapa passa como sessao: a senha sozinha abriria o console",
@@ -147,7 +109,7 @@ describe("Entrar no console exige o segundo fator, sem excecao", () => {
 
   it("o desafio da primeira etapa e recusado pelas rotas de leitura", async () => {
     const { corpo } = await primeiraEtapa();
-    const r = await app.inject({
+    const r = await c.app.inject({
       method: "GET", url: "/municipios",
       headers: { authorization: `Bearer ${corpo.desafio}` },
     });
@@ -158,16 +120,16 @@ describe("Entrar no console exige o segundo fator, sem excecao", () => {
   }, 120_000);
 
   it("sem cabecalho nenhum, a rota de numeros recusa", async () => {
-    const r = await app.inject({ method: "GET", url: "/municipios" });
+    const r = await c.app.inject({ method: "GET", url: "/municipios" });
     expect(r.statusCode).toBe(401);
   });
 
   it("a senha errada nao passa da primeira etapa, e a resposta e igual a de email desconhecido", async () => {
-    const errada = await app.inject({
+    const errada = await c.app.inject({
       method: "POST", url: "/entrar",
       payload: { email: EMAIL, senha: "nao-e-essa" },
     });
-    const inexistente = await app.inject({
+    const inexistente = await c.app.inject({
       method: "POST", url: "/entrar",
       payload: { email: "ninguem@fornecedor.com.br", senha: SENHA },
     });
@@ -183,7 +145,7 @@ describe("Entrar no console exige o segundo fator, sem excecao", () => {
 
   it("com o codigo certo, a sessao nasce e ela vale nas rotas de leitura", async () => {
     const { corpo: primeira } = await primeiraEtapa();
-    const r = await app.inject({
+    const r = await c.app.inject({
       method: "POST", url: "/entrar/codigo",
       payload: { desafio: primeira.desafio, codigo: codigoDeAgora() },
     });
@@ -192,8 +154,9 @@ describe("Entrar no console exige o segundo fator, sem excecao", () => {
     const sessao = r.json();
     expect(sessao.token).toBeTypeOf("string");
     expect(sessao.operador).toBe(EMAIL);
+    expect(sessao.papel, "a entrada nao diz o papel, e a tela nao sabe o que mostrar").toBe("dono");
 
-    const numeros = await app.inject({
+    const numeros = await c.app.inject({
       method: "GET", url: "/municipios",
       headers: { authorization: `Bearer ${sessao.token}` },
     });
@@ -207,22 +170,21 @@ describe("Entrar no console exige o segundo fator, sem excecao", () => {
       numero enquanto a janela de trinta segundos nao virar.
     */
     /*
-      O passo do MINUTO SEGUINTE, e nao o de agora: o caso anterior deste
-      arquivo ja queimou o passo corrente, e reusa-lo aqui faria este caso
-      passar verde por causa da queima do outro, e nao da sua propria. Um passo
-      adiante continua dentro da tolerancia de um passo para cada lado.
+      Um passo ADIANTE do que o caso anterior queimou (o relogio de teste
+      avanca a cada codigo novo): reusar o passo queimado por outro caso faria
+      este passar verde por causa da queima do outro, e nao da sua propria.
     */
-    const codigo = codigoDeAgora(new Date(Date.now() + 30_000));
+    const codigo = codigoDeAgora();
 
     const primeira = await primeiraEtapa();
-    const usa = await app.inject({
+    const usa = await c.app.inject({
       method: "POST", url: "/entrar/codigo",
       payload: { desafio: primeira.corpo.desafio, codigo },
     });
     expect(usa.statusCode).toBe(200);
 
     const outra = await primeiraEtapa();
-    const reusa = await app.inject({
+    const reusa = await c.app.inject({
       method: "POST", url: "/entrar/codigo",
       payload: { desafio: outra.corpo.desafio, codigo },
     });
@@ -234,7 +196,7 @@ describe("Entrar no console exige o segundo fator, sem excecao", () => {
 
   it("desafio forjado, expirado ou de outro segredo nao vira sessao", async () => {
     for (const desafio of ["", "nao-e-um-token", "a.b.c"]) {
-      const r = await app.inject({
+      const r = await c.app.inject({
         method: "POST", url: "/entrar/codigo",
         payload: { desafio, codigo: codigoDeAgora() },
       });
@@ -251,18 +213,9 @@ describe("Entrar no console exige o segundo fator, sem excecao", () => {
       teria tentativas infinitas: bastaria refazer a primeira etapa entre as
       tentativas, que e exatamente o que este caso faz.
     */
-    const solitario = "sozinho@fornecedor.com.br";
-    const hash = await derivarSenha(SENHA);
-    const proprio = await construirConsole({
-      config: configuracao(JSON.stringify([{
-        email: solitario,
-        senha: hash,
-        segundoFator: cofre.cifrar(gerarSegredoTotp(), contextoDoOperador(solitario)),
-      }])),
-      leitura: LEITURA_VAZIA,
-      escrita: ESCRITA_QUE_ACUSA,
-      limitePorEndereco: 500,
-    });
+    // Um console proprio, sobre um banco proprio: o castigo vai para a linha do
+    // dono, e poria de castigo o dono dos outros casos deste arquivo.
+    const proprio = await subirConsoleDeTeste();
 
     try {
       const desfechos: number[] = [];
@@ -271,11 +224,11 @@ describe("Entrar no console exige o segundo fator, sem excecao", () => {
         // segundo fator NAO e o mesmo contador da senha. Com um contador so,
         // acertar a senha zeraria as tentativas e os seis digitos teriam
         // tentativas infinitas.
-        const abre = await proprio.inject({
+        const abre = await proprio.app.inject({
           method: "POST", url: "/entrar",
-          payload: { email: solitario, senha: SENHA },
+          payload: { email: EMAIL, senha: SENHA },
         });
-        const r = await proprio.inject({
+        const r = await proprio.app.inject({
           method: "POST", url: "/entrar/codigo",
           payload: { desafio: abre.json().desafio, codigo: "000000" },
         });
@@ -293,35 +246,35 @@ describe("Entrar no console exige o segundo fator, sem excecao", () => {
         "valor nenhum",
       ).toBe(429);
     } finally {
-      await proprio.close();
+      await proprio.encerrar();
     }
-  }, 60_000);
+  }, 180_000);
 });
 
-describe("O console recusa subir com operador sem segundo fator", () => {
-  it("operador sem `segundoFator` derruba a partida, e nao o login", async () => {
+describe("O console recusa subir com semente de dono sem segundo fator", () => {
+  it("dono sem `segundoFator` derruba a partida, e nao o login", async () => {
     const semSegundoFator = JSON.stringify([{
       email: EMAIL,
       senha: "scrypt$131072$8$1$sal$hash",
     }]);
     expect(
-      () => lerRegistro(semSegundoFator, cofre),
+      () => lerSemente(semSegundoFator, cofre),
       "o console aceitou um operador sem segundo fator. Ele entraria so com senha, " +
       "e a ADR 0008 fecha essa porta sem excecao",
     ).toThrow(/segundo fator não é opcional/i);
   }, 120_000);
 
-  it("operador com segundo fator vazio tambem derruba a partida", async () => {
+  it("dono com segundo fator vazio tambem derruba a partida", async () => {
     const vazio = JSON.stringify([{
       email: EMAIL, senha: "scrypt$131072$8$1$sal$hash", segundoFator: "",
     }]);
-    expect(() => lerRegistro(vazio, cofre)).toThrow();
+    expect(() => lerSemente(vazio, cofre)).toThrow();
   });
 
-  it("registro vazio derruba a partida", () => {
-    // Um console sem operador nenhum sobe, responde e nao deixa ninguem entrar.
+  it("semente vazia derruba a partida", () => {
+    // Um console sem dono nenhum sobe, responde e nao deixa ninguem entrar.
     // Falhar alto na partida e melhor que parecer pronto.
-    expect(() => lerRegistro("[]", cofre)).toThrow();
+    expect(() => lerSemente("[]", cofre)).toThrow();
   });
 
   it("envelope que nao abre com a chave atual derruba a partida", () => {
@@ -335,9 +288,9 @@ describe("O console recusa subir com operador sem segundo fator", () => {
     const registro = JSON.stringify([{
       email: EMAIL,
       senha: "scrypt$131072$8$1$sal$hash",
-      segundoFator: deOutraChave.cifrar(SEGREDO_TOTP, contextoDoOperador(EMAIL)),
+      segundoFator: deOutraChave.cifrar(gerarSegredoTotp(), contextoDoOperador(EMAIL)),
     }]);
-    expect(() => lerRegistro(registro, cofre)).toThrow(/não abre/i);
+    expect(() => lerSemente(registro, cofre)).toThrow(/não abre/i);
   });
 
   it("envelope movido da linha de um operador para a de outro nao abre", () => {
@@ -347,10 +300,10 @@ describe("O console recusa subir com operador sem segundo fator", () => {
       passaria a gerar os códigos dele com o próprio aplicativo, sem nunca
       decifrar nada.
     */
-    const doOutro = cofre.cifrar(SEGREDO_TOTP, contextoDoOperador("outra@fornecedor.com.br"));
+    const doOutro = cofre.cifrar(gerarSegredoTotp(), contextoDoOperador("outra@fornecedor.com.br"));
     const registro = JSON.stringify([{
       email: EMAIL, senha: "scrypt$131072$8$1$sal$hash", segundoFator: doOutro,
     }]);
-    expect(() => lerRegistro(registro, cofre)).toThrow(/não abre/i);
+    expect(() => lerSemente(registro, cofre)).toThrow(/não abre/i);
   });
 });

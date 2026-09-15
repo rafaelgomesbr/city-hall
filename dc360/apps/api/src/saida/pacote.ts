@@ -176,6 +176,24 @@ export const TABELAS_QUE_NAO_SAEM: Record<string, string> = {
   */
   segundo_fator: "material de credencial: segredo cifrado do segundo fator",
   segundo_fator_recuperacao: "material de credencial: resumo dos códigos de recuperação",
+  /*
+    O livro de eliminações do fornecedor (migração 038).
+
+    Não sai, e não por ser segredo: é o registro que a seção 3 de
+    `docs/SAIDA-DE-MUNICIPIO.md` diz que FICA CONOSCO depois do passo 6 ("o
+    município existiu e saiu, com as datas"). Ele não tem chave estrangeira
+    para `organizacoes` de propósito, porque a organização some e o livro fica,
+    e quem o lê é o console do fornecedor: o papel de aplicação que monta este
+    pacote não tem SELECT nele. Colocá-lo na lista de saída produziria um
+    arquivo vazio, ou um erro de permissão no meio do pacote, e os dois
+    mentiriam sobre o que o município leva.
+
+    O que o município precisa saber sobre a própria eliminação, ele lê na
+    `trilha_administrativa`, que sai inteira: a suspensão, o agendamento e o
+    cancelamento gravam linha lá, com quem e por quê.
+  */
+  eliminacoes_de_municipio:
+    "livro do fornecedor: registro de que o município existiu e saiu, que fica conosco (seção 3 do plano de saída)",
 };
 
 /**

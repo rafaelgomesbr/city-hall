@@ -1,13 +1,8 @@
-import { randomBytes } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { construirConsole } from "../src/servidor.js";
-import { abrirCofre, contextoDoOperador } from "../src/operadores.js";
 import { CSS_DO_CONSOLE, JS_DO_CONSOLE, PAGINA_DO_CONSOLE } from "../src/pagina.js";
 import { FACES_DE_FONTE } from "../src/fontes.js";
-import type { Config } from "../src/config.js";
-import type { EscritaDoConsole, LeituraDoConsole } from "../src/banco.js";
-import { gerarSegredoTotp } from "../../api/src/auth/totp.js";
+import { subirConsoleDeTeste, type ConsoleDeTeste } from "./apoio/console-de-teste.js";
 
 /**
  * O acabamento da tela tem portão, e o portão é a política de segurança de
@@ -33,29 +28,6 @@ import { gerarSegredoTotp } from "../../api/src/auth/totp.js";
  * não tem passo de build para impor nada.
  */
 
-const CHAVE = randomBytes(32).toString("base64");
-const cofre = abrirCofre(CHAVE);
-
-/**
- * Um hash de senha PRONTO, e não uma derivação.
- *
- * Nenhum caso deste arquivo entra no console: eles leem o HTML, o CSS, o script
- * e três rotas de fonte. Derivar uma senha no `beforeAll` custaria uma passagem
- * de `scrypt` de cerca de 128 MB só para preencher um campo que ninguém confere,
- * e com as suítes rodando em paralelo é esse tipo de custo que faz caso de outro
- * arquivo estourar o prazo por falta de memória. O formato continua sendo o
- * verdadeiro, que é o que a configuração exige na partida.
- */
-const HASH_QUALQUER =
-  "scrypt$131072$8$1$XenoRKJ2mWCQSO-ZnZXUvg$vO-J5ozHwGH1V29fdrVZE4F9ps_lf8oqXHLmU_6ZMrk";
-
-const LEITURA_VAZIA: LeituraDoConsole = { ler: async () => [], encerrar: async () => {} };
-const ESCRITA_QUE_ACUSA: EscritaDoConsole = {
-  executar: async () => {
-    throw new Error("uma rota escreveu durante o teste de acabamento");
-  },
-};
-
 /** O trecho da folha em que NENHUM valor pode ser escrito à mão. */
 const MARCA_DE_FIM = "/* ============ FIM DOS TOKENS ============ */";
 
@@ -71,34 +43,22 @@ function semComentarios(css: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, " ");
 }
 
+/*
+  Nenhum caso deste arquivo entra no console: eles leem o HTML, o CSS, o script
+  e três rotas de fonte. O console de teste sobe mesmo assim porque, desde a
+  migração 038, a partida precisa do banco com o dono dentro. A derivação da
+  senha do dono é feita uma vez por processo de teste (ver o apoio).
+*/
+let c: ConsoleDeTeste;
 let app: FastifyInstance;
 
 beforeAll(async () => {
-  const config: Config = {
-    NODE_ENV: "test",
-    CONSOLE_PORT: 0,
-    CONSOLE_HOST: "127.0.0.1",
-    CONSOLE_JWT_SEGREDO: "segredo-de-teste-com-mais-de-trinta-e-dois-bytes-aqui",
-    CONSOLE_SEGUNDO_FATOR_CHAVE: CHAVE,
-    CONSOLE_OPERADORES: JSON.stringify([{
-      email: "coordenacao@fornecedor.com.br",
-      senha: HASH_QUALQUER,
-      segundoFator: cofre.cifrar(
-        gerarSegredoTotp(), contextoDoOperador("coordenacao@fornecedor.com.br"),
-      ),
-    }]),
-  };
-  app = await construirConsole({
-    config, leitura: LEITURA_VAZIA, escrita: ESCRITA_QUE_ACUSA, limitePorEndereco: 500,
-    // O log deste arquivo nao interessa a nenhum caso daqui: ele vai para o ralo
-    // para a saida do teste continuar legivel. Quem confere o log e
-    // `diagnostico-da-porta.test.ts`.
-    destinoDeLog: { write: () => {} },
-  });
-});
+  c = await subirConsoleDeTeste();
+  app = c.app;
+}, 180_000);
 
 afterAll(async () => {
-  await app?.close();
+  await c?.encerrar();
 });
 
 describe("Nada na pagina depende do que a politica de seguranca bloqueia", () => {
@@ -425,5 +385,78 @@ describe("A regua de design do produto vale nesta tela", () => {
     expect(JS_DO_CONSOLE).toContain("i-silencio");
     expect(PAGINA_DO_CONSOLE, "o aviso da senha inicial perdeu a palavra Atencao")
       .toContain("<strong>Atenção:</strong>");
+  });
+});
+
+describe("O dialogo do produto, com as regras do aplicativo de campo", () => {
+  /** Os dois diálogos da página, cada um como o trecho de HTML dele. */
+  function dialogos(): string[] {
+    return [...PAGINA_DO_CONSOLE.matchAll(/<div id="[\w-]+-cartao"[\s\S]*?<\/form>\s*<\/div>/g)]
+      .map((m) => m[0]!);
+  }
+
+  it("existem dois dialogos, e cada um tem a amarracao de acessibilidade inteira", () => {
+    const lista = dialogos();
+    expect(lista.length, "a pagina perdeu um dos dois dialogos").toBe(2);
+    for (const d of lista) {
+      expect(d).toContain('role="dialog"');
+      expect(d).toContain('aria-modal="true"');
+      expect(d).toMatch(/aria-labelledby="[\w-]+-titulo"/);
+      expect(d).toMatch(/aria-describedby="[\w-]+-texto"/);
+      /* O cartão recebe o foco ao abrir, e para isso precisa poder recebê-lo. */
+      expect(d).toContain('tabindex="-1"');
+    }
+  });
+
+  it("em cada dialogo a recusa vem DEPOIS da acao, e a de eliminar e do tipo destrutivo", () => {
+    for (const d of dialogos()) {
+      const agir = d.search(/id="(dialogo|eliminar)-agir"/);
+      const recusar = d.search(/id="(dialogo|eliminar)-recusar"/);
+      expect(agir, "dialogo sem botao de agir").toBeGreaterThan(0);
+      expect(recusar, "dialogo sem botao de recusa").toBeGreaterThan(agir);
+    }
+    expect(PAGINA_DO_CONSOLE).toMatch(/id="eliminar-agir" class="botao botao-perigo/);
+    const css = semComentarios(componentes());
+    expect(css, "o tipo destrutivo nao existe na folha").toMatch(/\.botao-perigo\s*\{[^}]*--ds-danger-fg/);
+  });
+
+  it("o botao que age repete o verbo com o nome do alvo, e a pagina fica inerte atras", () => {
+    for (const verbo of [
+      '"Desativar o acesso de " + m.municipio',
+      '"Reativar o acesso de " + m.municipio',
+      '"Cancelar a eliminação de " + m.municipio',
+      '"Agendar a eliminação de " + m.municipio',
+      '"Desativar " + o.email',
+    ]) {
+      expect(JS_DO_CONSOLE, `o dialogo perdeu o rotulo ${verbo}`).toContain(verbo);
+    }
+    expect(JS_DO_CONSOLE).toContain('setAttribute("inert", "")');
+    expect(JS_DO_CONSOLE).toContain('evento.key === "Escape"');
+  });
+
+  it("o estado de acesso nunca e so cor: cada estado tem palavra e icone", () => {
+    for (const palavra of ['"ativo"', '"suspenso desde "', '"eliminação em "', '"desativado"']) {
+      expect(JS_DO_CONSOLE, `o estado perdeu a palavra ${palavra}`).toContain(palavra);
+    }
+    for (const icone of ["i-ampulheta", "i-bloqueio", "i-confere"]) {
+      expect(JS_DO_CONSOLE).toContain(icone);
+    }
+    const css = semComentarios(componentes());
+    for (const estado of ["ativo", "suspenso", "eliminacao", "desativado"]) {
+      expect(css, `sem estilo para o estado ${estado}`).toContain(`.marca-sinal.${estado}`);
+    }
+  });
+
+  it("a senha e o codigo digitados para eliminar nao ficam no campo depois do pedido", () => {
+    /* Conferido por comportamento em `a-tela-responde`; aqui, o texto que o garante. */
+    expect(JS_DO_CONSOLE).toContain('document.getElementById("eliminar-senha").value = "";');
+    expect(JS_DO_CONSOLE).toContain('document.getElementById("eliminar-codigo").value = "";');
+    expect(JS_DO_CONSOLE).toContain('document.getElementById("codigo-troca").value = "";');
+  });
+
+  it("o QR e desenhado por este script, sem imagem de fora e sem innerHTML", () => {
+    expect(JS_DO_CONSOLE).toContain('createElementNS(SVG, "rect")');
+    expect(JS_DO_CONSOLE, "o script escreve innerHTML").not.toMatch(/\.innerHTML\s*=/);
+    expect(PAGINA_DO_CONSOLE, "a pagina pede imagem de QR de fora").not.toMatch(/<img\b/);
   });
 });

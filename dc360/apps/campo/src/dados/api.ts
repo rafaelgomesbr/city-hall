@@ -38,6 +38,20 @@ export class ErroDaApi extends Error {
    * numa ação.
    */
   mensagemAmigavel(): string {
+    /*
+      Pelo CÓDIGO, e antes de todo status: a suspensão chega como 403 na
+      entrada e como 503 nas rotas da fila, e nos dois casos a pessoa que
+      resolve é a mesma. Sem isto, o 403 caía na frase do perfil ("fale com a
+      coordenação para ajustar o seu cadastro"), que manda duas pessoas
+      procurarem um defeito de cadastro que não existe.
+    */
+    if (this.codigo === "acesso_suspenso") {
+      return (
+        "O acesso da sua prefeitura ao sistema foi suspenso pelo fornecedor. "
+        + "Tentar entrar outra vez não resolve: procure quem administra o contrato "
+        + "na prefeitura. O que você já coletou continua guardado no aparelho."
+      );
+    }
     if (this.status === 401) {
       return "Email ou senha não conferem. Confira e tente de novo.";
     }

@@ -74,11 +74,19 @@ const ESQUEMA = z.object({
       + "o segundo fator dos operadores, e sem segundo fator não se entra no console.",
   }),
 
-  /** O registro de operadores. Ver `operadores.ts` para o formato e o porquê. */
-  CONSOLE_OPERADORES: z.string().min(1, {
-    message: "CONSOLE_OPERADORES é obrigatória. Gere a linha com "
-      + "`npm run provisionar --workspace @dc360/console`.",
-  }),
+  /**
+   * A SEMENTE do dono, e só isso, desde a migração 038.
+   *
+   * Os operadores vivem em `console_operadores`. Esta variável é lida UMA vez:
+   * com a tabela vazia, a partida importa a linha como dono; com a tabela
+   * povoada, ela é ignorada com aviso no log. Opcional por isso: um console
+   * que já tem dono no banco sobe sem ela, e é assim que ela sai da
+   * configuração depois do primeiro deploy. Ver `operadores.ts`.
+   *
+   * Vazia conta como ausente: `CONSOLE_OPERADORES=` num arquivo de segredos é
+   * a forma comum de "ainda não gerei", e não deve ser lida como JSON.
+   */
+  CONSOLE_OPERADORES: z.string().optional().transform((v) => (v?.trim() ? v : undefined)),
 
   /**
    * A conexão com o banco, com o papel de leitura do console.

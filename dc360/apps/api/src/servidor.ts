@@ -6,8 +6,9 @@ import { PostoInsuficiente, SemPermissao, exigirPermissao, type Acao } from "@dc
 import type { ZodError } from "zod";
 import type { Config } from "./config.js";
 import type { Banco } from "./banco/tipos.js";
-import { verificarAcesso } from "./auth/tokens.js";
+import { organizacaoDoAcessoVencido, verificarAcesso } from "./auth/tokens.js";
 import { servicoDeAutenticacao, FalhaAutenticacao } from "./auth/servico.js";
+import { AcessoSuspenso, exigirAcessoAtivo } from "./auth/suspensao.js";
 import { servicoDeSegundoFator } from "./auth/segundo-fator.js";
 import { notificadorDeLog, type Notificador } from "./auth/notificador.js";
 import { rotasAutenticacao } from "./rotas/autenticacao.js";
@@ -49,7 +50,28 @@ declare module "fastify" {
   interface FastifyInstance {
     exigirAutenticacao: (req: FastifyRequest) => Promise<Identidade>;
   }
+  interface FastifyContextConfig {
+    /**
+     * Marca as rotas que a FILA do aparelho de campo chama.
+     *
+     * Só muda uma coisa: com o município suspenso, a recusa sai como 503 em
+     * vez de 403, para a fila tratar como temporário e a coleta feita no
+     * morro sobreviver no aparelho até o acesso voltar. Ver
+     * `auth/suspensao.ts`. Não afeta permissão, não afeta isolamento.
+     */
+    filaDoCampo?: boolean;
+  }
 }
+
+/**
+ * A configuração de rota que marca "isto é chamado pela fila do aparelho".
+ *
+ * Exportada para as rotas a usarem pelo nome, e para o teste conferir que as
+ * quatro rotas da fila (`/sincronizacao/vistoria`, `/sincronizacao/devolucao`,
+ * `/evidencias/autorizar-envio`, `/evidencias/confirmar-envio`) carregam a
+ * marca: uma rota nova da fila sem ela bloquearia coleta em município suspenso.
+ */
+export const ROTA_DA_FILA_DO_CAMPO = { config: { filaDoCampo: true } } as const;
 
 export type Dependencias = {
   banco: Banco;
@@ -340,10 +362,42 @@ export async function construirServidor(
     if (!cabecalho?.startsWith("Bearer ")) {
       throw new NaoAutenticado("Informe o token de acesso.");
     }
-    const conteudo = await verificarAcesso(config.jwtSegredos, cabecalho.slice(7));
+    const token = cabecalho.slice(7);
+    /*
+      Com o município suspenso, a fila do aparelho recebe 503 e todo o resto
+      recebe 403. A marca vem da configuração da rota, e não de uma lista de
+      caminhos aqui: ver `ROTA_DA_FILA_DO_CAMPO` e `auth/suspensao.ts`.
+    */
+    const statusDaSuspensao = req.routeOptions.config.filaDoCampo ? 503 : 403;
+
+    const conteudo = await verificarAcesso(config.jwtSegredos, token);
     if (!conteudo) {
+      /*
+        Token vencido de município suspenso responde 403, e não 401.
+
+        `organizacaoDoAcessoVencido` só devolve organização de token que ESTE
+        servidor assinou, com emissor e plateia certos, e que apenas venceu.
+        É a única informação que se extrai de um token vencido, e ela serve
+        para uma pergunta só. Sem isto o aparelho de campo de uma prefeitura
+        suspensa leria 401 para sempre como "entre de novo". O custo é uma
+        consulta só quando a resposta seria 401 de qualquer forma.
+      */
+      const organizacaoVencida = await organizacaoDoAcessoVencido(config.jwtSegredos, token);
+      if (organizacaoVencida) {
+        await exigirAcessoAtivo(banco, organizacaoVencida, statusDaSuspensao);
+      }
       throw new NaoAutenticado("Token inválido ou expirado.");
     }
+
+    /*
+      ESCRITA confere a suspensão; LEITURA com token vivo não. O argumento
+      inteiro está em `auth/suspensao.ts`. `HEAD` conta como leitura porque é
+      o que ele é.
+    */
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      await exigirAcessoAtivo(banco, conteudo.org, statusDaSuspensao);
+    }
+
     const identidade: Identidade = {
       usuarioId: conteudo.sub,
       organizacaoId: conteudo.org,
@@ -371,6 +425,25 @@ export async function construirServidor(
   app.setErrorHandler((erro, req, resposta) => {
     if (erro instanceof NaoAutenticado) {
       return resposta.code(401).send({ erro: "nao_autenticado", mensagem: erro.message });
+    }
+    /*
+      403 para o painel e 503 para a fila do aparelho, com o MESMO código e a
+      MESMA mensagem: quem lê o corpo sabe o que houve, quem lê só o status
+      sabe se pode esperar. Nunca 401, porque a credencial está certa.
+    */
+    if (erro instanceof AcessoSuspenso) {
+      return resposta.code(erro.status).send({ erro: erro.codigo, mensagem: erro.message });
+    }
+    /*
+      A segunda barreira, que é do banco: `abrir_sessao` (migração 038) recusa
+      abrir sessão de município suspenso com o código `DC367`. A API confere
+      antes e o caminho comum nem chega lá; se chegar (suspensão entrando
+      entre a conferência e a abertura), a resposta precisa ser a mesma, e
+      não um 500 com "informe o código ao suporte".
+    */
+    if ((erro as { code?: unknown }).code === "DC367") {
+      const suspenso = new AcessoSuspenso(403);
+      return resposta.code(suspenso.status).send({ erro: suspenso.codigo, mensagem: suspenso.message });
     }
     if (erro instanceof SemPermissao) {
       return resposta.code(403).send({ erro: "sem_permissao", mensagem: erro.message });
@@ -423,20 +496,55 @@ export async function construirServidor(
    * espera falha de um jeito difícil de diagnosticar. Melhor o balanceador
    * saber que este processo ainda não está pronto.
    */
-  app.get("/saude", async (_req, resposta) => {
+  app.get("/saude", async (req, resposta) => {
+    let ultimaMigracao: string | null;
     try {
-      const pendentes = await banco.semTenant(async (c) => {
+      ultimaMigracao = await banco.semTenant(async (c) => {
         const r = await c.query<{ versao: string }>(
           "SELECT versao FROM schema_migracoes ORDER BY versao DESC LIMIT 1",
         );
         return r.rows[0]?.versao ?? null;
       });
-      return { status: "ok", banco: "ok", ultimaMigracao: pendentes };
     } catch {
       // Sem detalhe do erro: esta rota é pública por natureza, e mensagem de
       // banco costuma trazer nome de host e de tabela.
       return resposta.code(503).send({ status: "indisponivel", banco: "indisponivel" });
     }
+
+    /*
+      Se o relógio de eliminação tem trabalho, e quanto. SÓ NÚMEROS: nome de
+      município não sai daqui, porque esta rota responde a qualquer um.
+
+      É o único lugar fora do console em que alguém vê que há eliminação
+      agendada, e o único em que dá para conferir, de fora, que uma eliminação
+      vencida NÃO está acontecendo (`vencidas` que não zera de uma rodada para
+      a outra). `eliminacoes_pendentes()` é função privilegiada que devolve
+      duas contagens e nada mais (ver o relatório da migração 038).
+
+      Se a função não existir, a resposta diz `null` e o log avisa, e a sonda
+      continua respondendo `ok`: uma migração atrasada nesta função não pode
+      derrubar a API inteira do balanceador, e o aviso a cada sonda é alto o
+      bastante para alguém ver.
+    */
+    let eliminacoes: { agendadas: number; vencidas: number } | null = null;
+    try {
+      eliminacoes = await banco.semTenant(async (c) => {
+        const r = await c.query<{ agendadas: string | number; vencidas: string | number }>(
+          "SELECT agendadas, vencidas FROM eliminacoes_pendentes()",
+        );
+        const linha = r.rows[0];
+        return linha
+          ? { agendadas: Number(linha.agendadas), vencidas: Number(linha.vencidas) }
+          : { agendadas: 0, vencidas: 0 };
+      });
+    } catch (erro) {
+      req.log.warn(
+        { erro: erro instanceof Error ? erro.message : String(erro) },
+        "a rota de saude nao conseguiu contar as eliminacoes agendadas",
+      );
+    }
+
+    return { status: "ok", banco: "ok", ultimaMigracao, eliminacoes };
   });
 
   await app.register(rotasAutenticacao, { prefix: "/auth", autenticacao, config });

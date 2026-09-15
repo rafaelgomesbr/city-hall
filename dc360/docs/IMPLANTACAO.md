@@ -219,8 +219,10 @@ direta), que é o mesmo usado para migrar.
 Tudo a partir de `dc360/`.
 
 **Passo 1. Conferir o esquema.** O console recusa subir contra um banco que não
-tenha o que ele usa, e o mínimo hoje é a migração 036, que cria a função
-`provisionar_municipio`.
+tenha o que ele usa, e o mínimo hoje é a migração 038, que cria a tabela
+`console_operadores` (onde vivem as contas de quem entra no console) e as
+quatro funções de suspender, reativar, agendar e cancelar a eliminação de um
+município. Sem ela a partida diz, pelo nome, o que falta.
 
 ```bash
 node scripts/migrar-producao.mjs            # só confere, não aplica
@@ -285,7 +287,14 @@ dois aplicativos são uma convenção que ninguém consegue conferir depois.
 
 `CONSOLE_OPERADORES` fica vazia por enquanto: ela é o passo 5.
 
-**Passo 5. Criar o operador, com a chave lida do arquivo.**
+**Passo 5. Criar a semente do dono, com a chave lida do arquivo.**
+
+Desde a migração 038 os operadores do console vivem no **banco**, na tabela
+`console_operadores`, e não mais na configuração. `CONSOLE_OPERADORES` virou a
+**semente do dono**: a partida lê a variável UMA vez, quando a tabela está
+vazia, grava a linha como `dono` pelo próprio papel do console (a policy da 038
+tem um ramo para isso, que fecha na primeira linha), e avisa no log. Depois
+disso a variável é ignorada, com aviso, e pode sair da configuração.
 
 ```bash
 CONSOLE_SEGUNDO_FATOR_CHAVE="$(sed -n 's/^CONSOLE_SEGUNDO_FATOR_CHAVE=//p' segredos-do-console.env)" \
@@ -294,13 +303,28 @@ CONSOLE_SEGUNDO_FATOR_CHAVE="$(sed -n 's/^CONSOLE_SEGUNDO_FATOR_CHAVE=//p' segre
 
 A chave sai do arquivo e volta para o processo sem passar pela linha digitada, e
 ela precisa ser a **mesma** com que o console vai subir: o envelope do segundo
-fator é conferido na partida, e com a chave trocada o processo não sobe.
+fator do dono é conferido na partida contra a linha do banco, e com a chave
+trocada o processo não sobe.
 
 O comando imprime a senha sorteada, o segredo do segundo fator (para ler no
 aplicativo de autenticação) e a linha `CONSOLE_OPERADORES` pronta. **Nada disso
 fica guardado em lugar nenhum**, e a senha não aparece de novo. Copie a linha
 `CONSOLE_OPERADORES` para dentro do arquivo, com o editor, configure o
 aplicativo de autenticação, e só então feche o terminal.
+
+**Exatamente uma linha**, a do dono. Os demais operadores são criados pelo
+dono, depois de entrar, na tela **Usuários** do console: a tela sorteia senha e
+segredo do segundo fator, mostra os dois uma vez (com o código QR desenhado
+pelo próprio processo), e grava a conta com quem a criou. Operador se desativa
+pela mesma tela, e não se apaga. Cada operador, inclusive o dono, troca a
+própria senha na tela **Minha senha**, com a senha atual e um código novo do
+aplicativo; trocar a senha derruba as outras sessões daquela conta.
+
+**Quem já tem console no ar** (um operador em `CONSOLE_OPERADORES` de antes da
+038) não precisa rodar nada: no primeiro deploy com a 038 a tabela está vazia,
+a linha da variável é importada como dono, com a mesma senha e o mesmo segundo
+fator de sempre, e o log diz "dono do console semeado". Na implantação seguinte,
+tire a variável do arquivo de segredos (`fly secrets unset CONSOLE_OPERADORES`).
 
 **Passo 6. Criar o aplicativo, mandar os segredos, implantar.**
 
@@ -314,11 +338,12 @@ Duas coisas que não são opcionais nessa sequência:
 
 - **`-c fly.console.toml`**, senão o `fly` pega o `fly.toml` da API e implanta a
   API por cima do console.
-- **`--ha=false`**, senão o `fly` cria duas máquinas. O teto de tentativas do
-  segundo fator e o passo do TOTP já queimado vivem na **memória do processo**
-  (o papel do console não tem escrita em tabela nenhuma, de propósito), então
-  com duas máquinas o teto passa a valer por processo e cinco tentativas viram
-  dez.
+- **`--ha=false`** continua sendo o recomendado, por economia: um punhado de
+  pessoas do fornecedor olhando números não paga duas máquinas. Mas deixou de
+  ser exigência de segurança: desde a 038 o teto de tentativas do segundo fator
+  e o passo do TOTP já queimado vivem na **linha do operador no banco**, e não
+  na memória do processo, então duas máquinas contam as mesmas cinco
+  tentativas e recusam o mesmo código já usado.
 
 **Passo 7. Conferir que subiu de verdade.**
 
@@ -328,9 +353,14 @@ fly logs  -a defesa-civil-console       # procure "console do fornecedor pronto"
 curl -sS https://defesa-civil-console.fly.dev/saude
 ```
 
-Se o processo não subir, o log diz qual das três recusas foi: `CONSOLE_HOST` de
-loopback, hash de senha estragado pelo shell, ou banco sem o que o console usa.
-As três são de propósito, e as três nomeiam a causa.
+Se o processo não subir, o log diz qual das recusas foi: `CONSOLE_HOST` de
+loopback, hash de senha estragado pelo shell, banco sem o que o console usa
+(migração 038 faltando), tabela de operadores vazia sem `CONSOLE_OPERADORES`
+para semear, ou envelope do segundo fator do dono que não abre com a chave
+atual. Todas são de propósito, e todas nomeiam a causa.
+
+Na primeira partida com a 038, procure também `dono do console semeado`: é a
+linha que diz que a variável foi consumida e pode sair da configuração.
 
 **Passo 8. Apagar o arquivo de segredos.**
 
@@ -350,5 +380,15 @@ rm -f segredos-do-console.env
   20 tentativas de entrada por 5 minutos são compartilhadas por todos os
   operadores. É restritivo, não permissivo, mas pode barrar quem tem direito de
   entrar num momento ruim.
-- **Criar operador exige implantar de novo**, porque operador é configuração.
-  Para uma equipe de fornecedor isso acontece algumas vezes por ano.
+- **O dono não tem recuperação de senha pela tela.** Operador que esquece a
+  senha é atendido pelo dono (desativa a conta e cria outra). O dono que
+  esquecer a própria senha, ou perder o aparelho do segundo fator, precisa da
+  credencial de dono do banco para corrigir a linha em `console_operadores`:
+  é o único caminho, e é assim de propósito, porque uma rota de "esqueci a
+  senha" no console seria uma porta na única conta que enxerga todos os
+  municípios.
+- **As duas ações perigosas por município (desativar o acesso e eliminar com
+  prazo de sete dias) são só do dono**, e o apagamento em si é do relógio da
+  API, não do console: o console suspende e agenda, e o que vence sem ser
+  cancelado é executado pelo processo da API. Um console fora do ar não atrasa
+  nem adianta um apagamento.

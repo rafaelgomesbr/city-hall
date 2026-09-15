@@ -9,6 +9,7 @@ import {
 import type { ServicoSegundoFator } from "./segundo-fator.js";
 import { derivarSenha } from "./senha.js";
 import { encerrarSessoes } from "./sessoes.js";
+import { exigirAcessoAtivo } from "./suspensao.js";
 import { registrarAtoAdministrativo } from "../trilha.js";
 import { mensagemDeRecuperacao, type Notificador } from "./notificador.js";
 
@@ -140,6 +141,21 @@ export function servicoDeAutenticacao(
       throw new FalhaAutenticacao("credenciais", MENSAGEM_GENERICA);
     }
 
+    /*
+      A suspensão do município é conferida DEPOIS da senha e ANTES de registrar
+      o acerto, e as duas posições são deliberadas.
+
+      Depois da senha: a resposta 403 revela que o município está em discussão
+      contratual, e ela só pode sair para quem provou quem é. Antes deste ponto
+      a recusa é a genérica, igual para email inexistente e senha errada.
+
+      Antes de registrar o acerto: `registrar_tentativa_login(true)` zera o
+      contador e carimba `ultimo_acesso`, e a pessoa NÃO entrou. Um município
+      suspenso com `ultimo_acesso` de hoje apareceria no console do fornecedor
+      como município em uso. Ver `auth/suspensao.ts` para o desenho inteiro.
+    */
+    await exigirAcessoAtivo(banco, linha.organizacao_id);
+
     await banco.semTenant((c) =>
       c.query("SELECT registrar_tentativa_login($1, true, $2, $3::interval)", [
         linha.usuario_id,
@@ -253,6 +269,10 @@ export function servicoDeAutenticacao(
     if (!linha || !linha.ativo) {
       throw new FalhaAutenticacao("inativo", MENSAGEM_GENERICA);
     }
+    // O desafio foi emitido há no máximo cinco minutos, e a suspensão pode
+    // ter entrado nesse intervalo. A sessão nasce aqui, então a pergunta se
+    // faz aqui também.
+    await exigirAcessoAtivo(banco, conteudo.org);
 
     return {
       ...(await emitirPar(linha, contexto)),
@@ -283,6 +303,7 @@ export function servicoDeAutenticacao(
     if (!linha || !linha.ativo) {
       throw new FalhaAutenticacao("inativo", MENSAGEM_GENERICA);
     }
+    await exigirAcessoAtivo(banco, organizacaoId);
     return emitirPar(linha, contexto);
   }
 
@@ -404,6 +425,20 @@ export function servicoDeAutenticacao(
       );
       throw new FalhaAutenticacao("inativo", "Sessão expirada. Entre novamente.");
     }
+
+    /*
+      Município suspenso não renova, mesmo com a sessão de pé no banco.
+
+      O console revoga as sessões ao suspender, e o caminho comum nem chega
+      aqui: `sessao_por_token` já devolveu nada. Esta linha existe para o caso
+      em que a revogação não aconteceu (falhou, ou a suspensão entrou por outro
+      caminho): a sessão de renovação vive dias, e sem isto ela reemitiria
+      tokens de acesso por todo o prazo dela. O token usado NÃO é rotacionado
+      antes da recusa: rotacionar e recusar deixaria a pessoa sem token
+      nenhum, e a fila do aparelho precisa continuar apresentando o que tem
+      para receber a resposta certa (ver `auth/suspensao.ts`).
+    */
+    await exigirAcessoAtivo(banco, sessao.organizacao_id);
 
     await banco.semTenant((c) =>
       c.query("SELECT revogar_sessao($1, $2)", [hash, "rotacionada na renovacao"]),

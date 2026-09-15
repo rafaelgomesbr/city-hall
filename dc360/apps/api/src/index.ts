@@ -23,6 +23,9 @@ import { CHAVE_DO_RESUMO, agendarResumo, type ResumoAgendado } from "./metricas/
 import {
   agendarVarreduraDeOrfaos, type VarreduraDeOrfaosAgendada,
 } from "./armazenamento/orfaos.js";
+import {
+  CHAVE_DA_ELIMINACAO, agendarEliminacoes, type EliminacoesAgendadas,
+} from "./eliminacao/relogio.js";
 
 const config = carregarConfig();
 
@@ -378,6 +381,63 @@ if (config.VARREDURA_DE_ORFAOS_ATIVA === "sim") {
   );
 }
 
+/**
+ * De quanto em quanto tempo o relógio de eliminação roda.
+ *
+ * Quinze minutos. O prazo que ele executa é de SETE DIAS, então a precisão
+ * de minutos não muda nada para quem se arrependeu: o prazo de arrependimento
+ * é o que está escrito no banco, e não o tique do relógio. O que quinze
+ * minutos compram é a distância entre "venceu" e "aconteceu" ser curta o
+ * bastante para o console do fornecedor não mostrar uma eliminação vencida
+ * parada por uma hora, que é o que faria alguém achar que o relógio quebrou.
+ * O custo de cada rodada sem trabalho é uma chamada de função que devolve
+ * zero linhas.
+ */
+const INTERVALO_DA_ELIMINACAO_MS = 15 * 60_000;
+
+/*
+  A ELIMINAÇÃO SOBE SEMPRE, e não atrás de uma variável de ambiente.
+
+  É a mesma régua da minimização e do resumo, e o argumento inteiro está em
+  `eliminacao/relogio.ts`: este relógio é o ÚNICO caminho de execução de uma
+  decisão do fornecedor já tomada no console, com segundo fator e sete dias
+  de espera escritos no banco. Uma chave desligada em produção deixaria
+  eliminações vencerem sem acontecer, em silêncio, e a saída seria alguém
+  rodar `DELETE` à mão com a credencial de dono, que é o padrão que a ADR
+  0008 nomeia como o problema.
+
+  O que impede o relógio de fazer algo errado não é uma chave, é o estado do
+  banco: sem `eliminacao_agendada_para` vencida, a rodada não faz nada. E a
+  purga do armazenamento só conclui quando está COMPLETA; qualquer falha
+  deixa a organização de pé para a próxima rodada e grita no log.
+
+  Sem `DATABASE_URL` o banco é o Postgres em WebAssembly do desenvolvimento,
+  e o armazenamento é o de memória: o relógio roda igual, contra dois
+  municípios fictícios que ninguém agendou para eliminar.
+
+  Pool próprio e trava própria, como as outras rotinas: em produção são duas
+  máquinas no Fly, e sem a trava as duas purgam o mesmo prefixo ao mesmo
+  tempo. E a purga não pode consumir a conexão de quem está sincronizando
+  vistoria no meio da chuva.
+*/
+const bancoDaEliminacao = config.DATABASE_URL
+  ? bancoPostgres(config.DATABASE_URL, { maximoConexoes: 2 })
+  : banco;
+
+const eliminacoes: EliminacoesAgendadas = agendarEliminacoes(
+  {
+    banco: bancoDaEliminacao,
+    armazenamento,
+    trava: config.DATABASE_URL
+      ? travaPostgres(config.DATABASE_URL, { maximoConexoes: 1 }, CHAVE_DA_ELIMINACAO)
+      : travaDeProcesso(),
+    // `warn`, e não `info`: toda linha deste relógio é sobre destruição de
+    // dado, e nenhuma delas é rotina.
+    registrar: (evento, mensagem) => app.log.warn(evento, mensagem),
+  },
+  INTERVALO_DA_ELIMINACAO_MS,
+);
+
 // Encerramento ordenado: a requisição em andamento termina, e o pool fecha.
 // Sem isso, um deploy derruba transação no meio.
 for (const sinal of ["SIGINT", "SIGTERM"] as const) {
@@ -392,6 +452,7 @@ for (const sinal of ["SIGINT", "SIGTERM"] as const) {
       await minimizacao.parar();
       await resumo.parar();
       await varreduraDeOrfaos?.parar();
+      await eliminacoes.parar();
       await pdf.encerrar();
       await banco.encerrar();
       process.exit(0);

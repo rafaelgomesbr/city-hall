@@ -36,7 +36,14 @@ const MESMO_SEGREDO = new TextEncoder().encode(
   "o-mesmo-segredo-nos-dois-lados-de-proposito-com-mais-de-32-bytes",
 );
 
-const OPERADOR = "coordenacao@fornecedor.com.br";
+/**
+ * O operador do console e identificado pelo ID da linha dele, e o token leva
+ * junto a versao da senha (`sv`). Um uuid aqui, e nao um email: desde a
+ * migracao 038 o `sub` do console tem a mesma forma do `sub` do produto, e e
+ * exatamente por isso que o ultimo caso deste arquivo importa tanto: a forma
+ * do conteudo ja nao separa nada, so a plateia separa.
+ */
+const OPERADOR = { id: randomUUID(), sv: "versao-da-senha" };
 
 function identidadeDoProduto() {
   return {
@@ -87,7 +94,7 @@ describe("Token do console e token do produto nao atravessam", () => {
       plateias coincidissem, quem tivesse a senha de um administrador de
       município poderia levar o desafio dele para a segunda etapa do console.
     */
-    const doConsole = await emitirDesafio(MESMO_SEGREDO, OPERADOR);
+    const doConsole = await emitirDesafio(MESMO_SEGREDO, OPERADOR.id);
     const doProduto = await emitirDesafioDoProduto(MESMO_SEGREDO, {
       ...identidadeDoProduto(), pp: "segundo_fator" as const,
     });
@@ -103,7 +110,7 @@ describe("Token do console e token do produto nao atravessam", () => {
       seria uma tela a mais e nenhuma proteção a mais, porque quem tem o token
       não precisa da tela para nada.
     */
-    const desafio = await emitirDesafio(MESMO_SEGREDO, OPERADOR);
+    const desafio = await emitirDesafio(MESMO_SEGREDO, OPERADOR.id);
     expect(
       await verificarSessao(MESMO_SEGREDO, desafio),
       "o desafio do console foi aceito como sessao: a senha sozinha abriria o console",
@@ -167,7 +174,8 @@ describe("Token do console e token do produto nao atravessam", () => {
       testes assim.
     */
     const sessao = await emitirSessao(MESMO_SEGREDO, OPERADOR);
-    expect((await verificarSessao(MESMO_SEGREDO, sessao))?.email).toBe(OPERADOR);
+    expect((await verificarSessao(MESMO_SEGREDO, sessao))?.id).toBe(OPERADOR.id);
+    expect((await verificarSessao(MESMO_SEGREDO, sessao))?.sv).toBe(OPERADOR.sv);
 
     const identidade = identidadeDoProduto();
     const acesso = await emitirAcesso(MESMO_SEGREDO, identidade, 15);

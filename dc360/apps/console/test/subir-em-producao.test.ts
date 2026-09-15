@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { carregarConfig } from "../src/config.js";
-import { abrirCofre, contextoDoOperador, lerRegistro, problemaNoHashDaSenha } from "../src/operadores.js";
+import { abrirCofre, contextoDoOperador, lerSemente, problemaNoHashDaSenha } from "../src/operadores.js";
 import { faltaNoEsquema, mensagemDeEsquemaAtrasado } from "../src/esquema.js";
 import { consoleEmMemoria, type ConsoleEmMemoria } from "../src/banco-em-memoria.js";
 import { derivarSenha } from "../../api/src/auth/senha.js";
@@ -151,7 +151,7 @@ describe("a armadilha das aspas no hash da senha", () => {
 
     let erro: unknown;
     try {
-      lerRegistro(registro, cofre);
+      lerSemente(registro, cofre);
     } catch (e) {
       erro = e;
     }
@@ -176,14 +176,14 @@ describe("a armadilha das aspas no hash da senha", () => {
     expect(cofre.decifrar(envelope, contextoDoOperador(email))).toBe(segredo);
   });
 
-  it("um registro inteiro bem formado continua sendo aceito", async () => {
+  it("uma semente inteira bem formada continua sendo aceita", async () => {
     const email = "certa@fornecedor.com.br";
     const registro = JSON.stringify([{
       email,
       senha: await derivarSenha("senha-de-verdade"),
       segundoFator: cofre.cifrar(gerarSegredoTotp(), contextoDoOperador(email)),
     }]);
-    expect(lerRegistro(registro, cofre).quantos()).toBe(1);
+    expect(lerSemente(registro, cofre).email).toBe(email);
   }, TETO_DO_SCRYPT_MS);
 });
 
@@ -206,6 +206,7 @@ describe("o console não sobe contra banco sem o que ele usa", () => {
    * O caso relatado: banco sem a migração 036. A tela carrega inteira, os
    * números aparecem, e o defeito espera o "Cadastrar".
    */
+
   it("sem a função de provisionamento, recusa e diz qual função falta", async () => {
     await memoria.bruto.exec(
       "DROP FUNCTION provisionar_municipio(text,text,text,text,text,text,text,text)",
@@ -251,6 +252,28 @@ describe("o console não sobe contra banco sem o que ele usa", () => {
     await memoria.bruto.exec("DROP VIEW IF EXISTS console_situacao_dos_municipios");
     const faltas = await faltaNoEsquema(memoria.banco);
     expect(faltas.join("\n")).toContain("console_situacao_dos_municipios");
+  });
+
+  it("sem a tabela de operadores ou sem as quatro funcoes da 038, recusa e nomeia cada uma", async () => {
+    /*
+      A 038 trouxe o que o console mais usa: a tabela onde a porta le quem
+      entra, e os quatro atos por municipio. Um banco na 037 subiria um console
+      em que ninguem entra, e nada no log diria por que.
+    */
+    await memoria.bruto.exec(`
+      DROP FUNCTION console_cancelar_eliminacao(uuid);
+      ALTER TABLE console_operadores DROP COLUMN ultimo_passo_totp;
+      REVOKE UPDATE ON console_operadores FROM dc360_console;
+    `);
+    const faltas = (await faltaNoEsquema(memoria.banco)).join("\n");
+    expect(faltas).toContain("console_cancelar_eliminacao");
+    expect(faltas).toContain("ultimo_passo_totp");
+    expect(faltas, "faltou dizer que o UPDATE em console_operadores nao esta concedido")
+      .toMatch(/console_operadores.*UPDATE/);
+    await memoria.bruto.exec(`
+      GRANT UPDATE ON console_operadores TO dc360_console;
+      ALTER TABLE console_operadores ADD COLUMN ultimo_passo_totp bigint;
+    `);
   });
 
   /**

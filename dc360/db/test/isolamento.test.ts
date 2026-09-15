@@ -181,6 +181,16 @@ describe("CA-06: isolamento entre organizações", () => {
       não consegue virar uma lista de contatos de servidores públicos.
     */
     "interesse_municipio",
+    /*
+      Os operadores do CONSOLE DO FORNECEDOR (migração 038). Não são de
+      município nenhum: são as contas de quem opera a plataforma, e a tabela
+      existe fora de qualquer tenant, como `organizacoes` existe acima deles.
+      Ela é do fornecedor e só o papel do console a alcança; o que a prende
+      não é `organizacao_id`, é o par de policies amarradas ao operador da
+      sessão (`console_operador_atual()`), cobrado no bloco de tabelas do
+      fornecedor logo abaixo.
+    */
+    "console_operadores",
   ]);
 
   /**
@@ -191,6 +201,35 @@ describe("CA-06: isolamento entre organizações", () => {
    * têm a coluna e mesmo assim têm policy de contexto, e continuam checadas.
    */
   const SEM_POLICY_DE_TENANT = new Set(["interesse_municipio"]);
+
+  /**
+   * AS DUAS TABELAS DO FORNECEDOR (migração 038), e a regra própria delas.
+   *
+   * `console_operadores` e `eliminacoes_de_municipio` não têm policy do
+   * produto, e não podem ter: nenhum município lê os operadores do fornecedor
+   * nem o livro de eliminações. As policies delas são todas `TO
+   * dc360_console`, e a regra que este arquivo cobra nelas é OUTRA, não uma
+   * mais frouxa:
+   *
+   *   - comando a comando, nunca `FOR ALL` e nunca DELETE (operador se
+   *     desativa e o livro não se apaga);
+   *   - toda policy que ESCREVE exige o dono do console
+   *     (`console_operador_e_dono()`), porque "eles jamais podem ter o poder
+   *     sobre a primeira conta" e porque só o dono agenda eliminação. A
+   *     única linha que entra sem dono é o próprio dono, semeado pelo
+   *     console na partida com a tabela VAZIA (`console_sem_operadores()`),
+   *     e esse ramo fecha na primeira linha;
+   *   - a de UPDATE dos operadores se apoia no operador da sessão
+   *     (`console_operador_atual()`), que é o `app_organizacao_atual()` deste
+   *     lado da casa.
+   *
+   * O caso-irmão, com o console conectado e tentando, está em
+   * `db/test/eliminacao-de-municipio.test.ts`.
+   */
+  const DO_FORNECEDOR = new Map<string, { escreve: string[] }>([
+    ["console_operadores", { escreve: ["INSERT", "UPDATE"] }],
+    ["eliminacoes_de_municipio", { escreve: ["INSERT", "UPDATE"] }],
+  ]);
 
   async function tabelasDeNegocio(): Promise<string[]> {
     const r = await db.query<{ tablename: string }>(
@@ -300,6 +339,26 @@ describe("CA-06: isolamento entre organizações", () => {
       */
       const AUTORIZADAS_PARA_O_CONSOLE = new Set(["metricas_municipio", "organizacoes"]);
       const doConsole = r.rows.filter((linha) => linha.papeis === "dc360_console");
+
+      if (DO_FORNECEDOR.has(t)) {
+        const permitidos = new Set(["SELECT", ...DO_FORNECEDOR.get(t)!.escreve]);
+        expect(r.rows.length, `${t} tem policy de outro papel além do console`).toBe(doConsole.length);
+        for (const linha of doConsole) {
+          expect(
+            permitidos.has(linha.cmd),
+            `policy ${linha.policyname} vale para ${linha.cmd} em ${t}: nas tabelas do ` +
+            "fornecedor não há policy ALL nem DELETE",
+          ).toBe(true);
+          if (linha.cmd !== "SELECT") {
+            expect(
+              `${linha.qual ?? ""} ${linha.with_check ?? ""}`,
+              `policy ${linha.policyname} deixa ${t} ser escrita sem exigir o dono do console`,
+            ).toContain("console_operador_e_dono");
+          }
+        }
+        continue;
+      }
+
       for (const linha of doConsole) {
         expect(
           AUTORIZADAS_PARA_O_CONSOLE.has(t),
@@ -370,6 +429,14 @@ describe("CA-06: isolamento entre organizações", () => {
       // Referência para `organizacoes` é a âncora do tenant: ela não precisa
       // (nem pode) incluir organizacao_id duas vezes.
       if (fk.alvo === "organizacoes") continue;
+      /*
+        `console_operadores.criado_por` aponta para a própria tabela (quem
+        criou o operador), e a tabela não tem município: é do fornecedor
+        (migração 038, e a isenção em `SEM_TENANT`). Não há "outro município"
+        a alcançar por ela. É a única referência isenta, e por nome: uma
+        chave nova numa tabela nova continua reprovando aqui.
+      */
+      if (fk.tabela === "console_operadores" && fk.alvo === "console_operadores") continue;
       expect(
         fk.colunas.split(",").includes("organizacao_id"),
         `${fk.tabela} -> ${fk.alvo} (${fk.nome}) não inclui organizacao_id: ` +
@@ -455,9 +522,42 @@ describe("Funções privilegiadas", () => {
       dela (dois uuid de saída, nenhum parâmetro que vire consulta, nenhuma
       tabela de negócio no corpo) e cobra que o console continue sem privilégio
       em tabela nenhuma depois de usá-la.
+
+      Subiu de 16 para 22 em 15/09/2026, pela migração 038, e são seis de uma
+      vez porque a feature é uma só: suspender e eliminar município, com o
+      console escrevendo INTENÇÃO e o relógio da API executando o
+      irreversível, guardado pelo estado no banco.
+
+      Quatro são do console (`console_suspender_municipio`,
+      `console_reativar_municipio`, `console_agendar_eliminacao`,
+      `console_cancelar_eliminacao`), e entram pela razão da
+      `provisionar_municipio`: quem chama não pode ter privilégio nenhum. O
+      console não tem UPDATE em `organizacoes` nem em `sessoes`, nem INSERT
+      em `trilha_administrativa`, e não pode ter (decisão 3 da ADR 0008). As
+      quatro exigem que o operador da sessão seja o dono do console, e não
+      leem nada: devolvem inteiro, void ou uma data.
+
+      Duas são do relógio (`executar_eliminacoes_vencidas`,
+      `concluir_eliminacao`), e entram pela razão de `varrer_prazos`: rodam
+      sem ninguém logado e sem município no contexto, e apagam linha em
+      tabelas que não têm policy de DELETE para papel nenhum. São as ÚNICAS
+      funções do banco que apagam dado de município, e por isso são as mais
+      vigiadas: só agem no que está vencido, não cancelado E marcado na
+      organização (marca que só a função do console escreve), conferem que
+      restou zero linha depois de cada DELETE, e estouram nomeando a tabela
+      se o dono das tabelas for barrado pela RLS (armadilha da 037). Os casos
+      estão em `db/test/eliminacao-de-municipio.test.ts`.
+
+      Subiu de 22 para 23 no mesmo dia, por `eliminacoes_pendentes` (038),
+      pela razão de `municipios_a_resumir`: a rota de saúde da API precisa
+      dizer se o relógio tem trabalho, e o papel de aplicação não enxerga uma
+      linha de `organizacoes` sem município no contexto. É a menor porta do
+      banco: sem parâmetro, devolve dois inteiros (agendadas, vencidas) e
+      nenhum nome nem id. O caso "a rota de saude conta agendadas e vencidas"
+      cobra a forma dela no catálogo.
     */
     expect(lista.length, `funções SECURITY DEFINER demais: ${lista.map((f) => f.nome).join(", ")}`)
-      .toBeLessThanOrEqual(16);
+      .toBeLessThanOrEqual(23);
   });
 
   it("toda função privilegiada fixa o search_path", async () => {
@@ -3143,6 +3243,36 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
   ]);
 
   /**
+   * A TERCEIRA exceção (migração 038): as duas tabelas DO FORNECEDOR, onde o
+   * console também ESCREVE.
+   *
+   * Nenhuma das duas guarda dado de município. `console_operadores` são as
+   * contas de quem opera a plataforma (email, hash de senha, envelope do
+   * segundo fator, papel), e saem da configuração do processo para o banco
+   * porque o dono pediu tela de usuários e troca de senha. Ninguém além do
+   * console as lê. `eliminacoes_de_municipio` é o livro de eliminações: id,
+   * nome e UF do município (que o console já lê em `organizacoes`), o email do
+   * operador que pediu, o motivo, as datas de cada fase e as contagens do que
+   * saiu. Ele existe para SOBREVIVER ao município, e por isso não tem chave
+   * estrangeira.
+   *
+   * O que o console pode em cada uma está escrito por privilégio, e não como
+   * "tudo": SELECT e INSERT nas duas, UPDATE inteiro nos operadores (troca de
+   * senha, desativação, contador de falhas) e UPDATE só nas DUAS COLUNAS de
+   * cancelamento no livro. Um privilégio a mais reprova até alguém escrevê-lo
+   * aqui. O caso-irmão (o operador não altera o dono, o operador não agenda, o
+   * console não apaga nada, o livro escrito por fora não aciona o relógio)
+   * está em `db/test/eliminacao-de-municipio.test.ts`.
+   */
+  const O_CONSOLE_ALCANCA = new Map<string, Set<string>>([
+    ["console_operadores", new Set(["SELECT", "INSERT", "UPDATE"])],
+    ["eliminacoes_de_municipio", new Set(["SELECT", "INSERT"])],
+  ]);
+  const O_CONSOLE_ALCANCA_POR_COLUNA = new Map<string, Set<string>>([
+    ["eliminacoes_de_municipio", new Set(["cancelada_em:UPDATE", "cancelada_por_email:UPDATE"])],
+  ]);
+
+  /**
    * A SEGUNDA excecao, e ela e de OUTRA natureza: uma porta de ESCRITA.
    *
    * A de cima (O_CONSOLE_LE) e leitura de numero agregado. Esta e o direito de
@@ -3167,7 +3297,19 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
    * nome dela nesta lista, e escrever o nome de uma funcao aqui e uma decisao
    * que aparece na revisao. E isso que separa excecao de buraco.
    */
-  const O_CONSOLE_EXECUTA = new Set(["provisionar_municipio()"]);
+  const O_CONSOLE_EXECUTA = new Set([
+    "provisionar_municipio()",
+    /*
+      Os quatro atos de intenção da migração 038, e só eles. As duas funções
+      do relógio (`executar_eliminacoes_vencidas`, `concluir_eliminacao`) NÃO
+      estão aqui de propósito: o console não executa o irreversível, e uma
+      concessão delas ao console reprova neste portão.
+    */
+    "console_suspender_municipio()",
+    "console_reativar_municipio()",
+    "console_agendar_eliminacao()",
+    "console_cancelar_eliminacao()",
+  ]);
 
   async function sobras(): Promise<Achado[]> {
     const donoAtual = await dono();
@@ -3177,6 +3319,10 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
         if (a.especie === "funcao") {
           return !(a.privilegio === "EXECUTE" && O_CONSOLE_EXECUTA.has(a.relacao));
         }
+        if (a.especie === "coluna") {
+          return !O_CONSOLE_ALCANCA_POR_COLUNA.get(a.relacao)?.has(`${a.detalhe}:${a.privilegio}`);
+        }
+        if (O_CONSOLE_ALCANCA.get(a.relacao)?.has(a.privilegio)) return false;
         return !(a.privilegio === "SELECT" && O_CONSOLE_LE.has(a.relacao));
       }
       return true;
@@ -3341,7 +3487,8 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
   });
 
   /**
-   * A prova de que a varredura ACHA cada um dos seis caminhos.
+   * A prova de que a varredura ACHA cada um dos seis caminhos, e de que as
+   * excecoes da 038 tem limite.
    *
    * A ancora de cima mostra que ela ve o que existe. Este caso mostra o
    * contrario, que e o que de fato importa: que ela ACUSA o que nao deveria
@@ -3444,8 +3591,38 @@ describe("Nenhum papel alem do de aplicacao e do dono tem privilegio", () => {
       "executa-la nao precisa de privilegio nenhum na tabela que ela le.",
     );
     /*
-      Prazo folgado de proposito: este caso roda a varredura inteira treze
-      vezes (antes, durante e depois de cada um dos seis buracos), e a
+      7, 8 e 9 (migracao 038): o LIMITE das excecoes do fornecedor.
+
+      As tabelas do fornecedor entram por PRIVILEGIO nomeado e as funcoes do
+      console por NOME. Entao um DELETE no livro, o relogio nas maos do
+      console e um UPDATE numa coluna do livro fora das duas de cancelamento
+      continuam reprovando. Sem estes tres, a excecao aberta la em cima seria
+      indistinguivel de "o console pode tudo nessas duas tabelas".
+    */
+    await comOBuraco(
+      "GRANT DELETE ON eliminacoes_de_municipio TO dc360_console",
+      "REVOKE DELETE ON eliminacoes_de_municipio FROM dc360_console",
+      /concessao direta|efetivo/,
+      "O livro de eliminacoes existe para SOBREVIVER ao municipio: um DELETE nele " +
+      "apagaria a prova de que a eliminacao aconteceu, e de quem a pediu.",
+    );
+    await comOBuraco(
+      "GRANT EXECUTE ON FUNCTION executar_eliminacoes_vencidas() TO dc360_console",
+      "REVOKE EXECUTE ON FUNCTION executar_eliminacoes_vencidas() FROM dc360_console",
+      /SECURITY DEFINER/,
+      "O console so escreve intencao. Com o relogio na mao dele, uma sessao do " +
+      "fornecedor comprometida apagaria um municipio sem esperar o prazo de arrependimento.",
+    );
+    await comOBuraco(
+      "GRANT UPDATE (motivo) ON eliminacoes_de_municipio TO dc360_console",
+      "REVOKE UPDATE (motivo) ON eliminacoes_de_municipio FROM dc360_console",
+      /coluna/,
+      "O console so alcanca as duas colunas de cancelamento do livro. Reescrever o " +
+      "motivo, o prazo ou as contagens reescreveria a historia que o livro guarda.",
+    );
+    /*
+      Prazo folgado de proposito: este caso roda a varredura inteira dezenove
+      vezes (antes, durante e depois de cada um dos nove buracos), e a
       varredura pergunta privilegio efetivo papel a papel, tabela a tabela. O
       teto padrao de cinco segundos do vitest transformaria uma maquina lenta
       numa reprovacao que nao fala do banco.
@@ -3681,6 +3858,32 @@ describe("Metricas escritas pelo proprio municipio", () => {
         imovel, e e por isso que a excecao cabe.
       */
       if (relacao === "organizacoes") continue;
+
+      /*
+        As duas tabelas do fornecedor (038) nao sao de municipio, e a regra
+        de tipo nao e a delas: `console_operadores` guarda email e hash de
+        senha de quem OPERA A PLATAFORMA, nao de cidadao nem de servidor
+        municipal; `eliminacoes_de_municipio` guarda o que sobrevive ao
+        municipio. A regra delas e outra, e e mais dura que a de tipo: a lista
+        de colunas e fechada, por nome. Uma coluna nova reprova ate alguem
+        escreve-la aqui, e escreve-la aqui e o momento de perguntar se ela
+        carrega dado de cidadao.
+      */
+      if (relacao === "console_operadores") {
+        expect((await colunas(relacao)).map((c) => c.column_name)).toEqual([
+          "id", "email", "senha_hash", "segundo_fator", "papel", "ativo", "criado_em",
+          "criado_por", "falhas_login", "bloqueado_ate", "ultimo_passo_totp",
+        ]);
+        continue;
+      }
+      if (relacao === "eliminacoes_de_municipio") {
+        expect((await colunas(relacao)).map((c) => c.column_name)).toEqual([
+          "id", "organizacao_id", "municipio_nome", "uf", "solicitada_em", "executar_em",
+          "solicitada_por_email", "motivo", "cancelada_em", "cancelada_por_email",
+          "banco_apagado_em", "contagens", "armazenamento_purgado_em", "concluida_em",
+        ]);
+        continue;
+      }
 
       const problemas = (await colunas(relacao))
         .flatMap((c) => reprovacoes(c.column_name, c.data_type));
@@ -4243,14 +4446,32 @@ describe("A porta de criar municipio, e por que ela nao serve para ler", () => {
     }
     expect(recusouTrilha, "o console leu a trilha administrativa do municipio").toBe(true);
 
-    // E o portao universal continua limpo depois do ato.
+    /*
+      E o portao universal continua limpo depois do ato. Sao oito concessoes,
+      escritas por extenso: SELECT nas duas relacoes e na visao da ADR 0008,
+      e as cinco da migracao 038 nas tabelas DO FORNECEDOR (SELECT, INSERT e
+      UPDATE em `console_operadores`; SELECT e INSERT em
+      `eliminacoes_de_municipio`, cujo UPDATE e por coluna e nao aparece
+      nesta visao do catalogo). Nenhuma delas e tabela de municipio.
+    */
     expect(
-      (await db.query<{ n: string }>(
-        `SELECT count(*)::text AS n FROM information_schema.role_table_grants
-          WHERE table_schema = 'public' AND grantee = 'dc360_console'`,
-      )).rows[0]!.n,
-      "o console ganhou concessao de tabela alem das duas que a ADR 0008 nomeia",
-    ).toBe("3");
+      (await db.query<{ concessao: string }>(
+        `SELECT table_name || ':' || privilege_type AS concessao
+           FROM information_schema.role_table_grants
+          WHERE table_schema = 'public' AND grantee = 'dc360_console'
+          ORDER BY 1`,
+      )).rows.map((l) => l.concessao),
+      "o console ganhou concessao de tabela alem das que a ADR 0008 e a migracao 038 nomeiam",
+    ).toEqual([
+      "console_operadores:INSERT",
+      "console_operadores:SELECT",
+      "console_operadores:UPDATE",
+      "console_situacao_dos_municipios:SELECT",
+      "eliminacoes_de_municipio:INSERT",
+      "eliminacoes_de_municipio:SELECT",
+      "metricas_municipio:SELECT",
+      "organizacoes:SELECT",
+    ]);
   });
 
   it("recusa municipio duplicado ANTES de escrever, e diz qual ja existe", async () => {

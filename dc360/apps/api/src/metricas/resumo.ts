@@ -127,10 +127,28 @@ export async function resumirMunicipios(
         sinal que a ADR 0008 pediu para a ausência não virar linha faltando.
       */
       try {
-        await dep.banco.comTenant(organizacaoId, async (c) => {
-          await c.query("SELECT resumir_municipio()");
+        const escreveu = await dep.banco.comTenant(organizacaoId, async (c) => {
+          /*
+            MUNICÍPIO ELIMINADO NÃO ESCREVE RESUMO, e a condição fica na
+            mesma sentença, de propósito.
+
+            Entre `executar_eliminacoes_vencidas()` apagar as linhas de um
+            município e `concluir_eliminacao()` apagar a linha da organização
+            existe a purga do armazenamento, que demora e pode falhar. Nesse
+            intervalo `municipios_a_resumir` ainda devolve o município (a
+            linha existe e não tem métrica de hoje), e escrever uma métrica
+            aqui recriaria uma linha em `metricas_municipio` apontando para a
+            organização: a conclusão bateria na chave estrangeira e a
+            eliminação nunca terminaria. Debaixo do RLS `organizacoes` só tem
+            a própria linha, então zero linhas quer dizer "eliminada", e a
+            função não é chamada.
+          */
+          const r = await c.query(
+            "SELECT resumir_municipio() FROM organizacoes WHERE eliminada_em IS NULL",
+          );
+          return r.rows.length > 0;
         });
-        resultado.municipios += 1;
+        if (escreveu) resultado.municipios += 1;
       } catch (erro) {
         resultado.falhas += 1;
         /*

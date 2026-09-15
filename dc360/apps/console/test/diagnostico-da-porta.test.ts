@@ -1,12 +1,9 @@
-import { randomBytes } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { construirConsole } from "../src/servidor.js";
-import { abrirCofre, contextoDoOperador } from "../src/operadores.js";
-import type { Config } from "../src/config.js";
-import type { EscritaDoConsole, LeituraDoConsole } from "../src/banco.js";
-import { derivarSenha } from "../../api/src/auth/senha.js";
-import { base32Decodificar, codigoTotp, gerarSegredoTotp, passoDe } from "../../api/src/auth/totp.js";
+import {
+  DONO, cadastrarPrefeitura, codigoNovo, subirConsoleDeTeste, type ConsoleDeTeste,
+} from "./apoio/console-de-teste.js";
 
 /**
  * Quem opera o console precisa conseguir descobrir por que alguém não entrou.
@@ -24,69 +21,36 @@ import { base32Decodificar, codigoTotp, gerarSegredoTotp, passoDe } from "../../
  * por mais gente do que a tela e fica guardado pelo tempo de retenção inteiro.
  * Nada que sirva para ENTRAR pode cair ali: nem senha, nem código de seis
  * dígitos, nem desafio, nem token de sessão, nem o segredo do segundo fator.
- * O caso que cobra isso roda uma entrada bem-sucedida inteira e procura cada um
- * desses valores no que o processo escreveu.
+ * O caso que cobra isso roda uma entrada bem-sucedida inteira, cria um
+ * operador, troca a senha e agenda uma eliminação, e procura cada um desses
+ * valores no que o processo escreveu. As rotas novas entram na mesma busca:
+ * uma senha inicial de operador ou um código de eliminação no log seriam o
+ * mesmo defeito, num lugar novo.
  */
 
-const EMAIL = "coordenacao@fornecedor.com.br";
-const SENHA = "senha-de-teste-bem-comprida-do-operador";
-const CHAVE = randomBytes(32).toString("base64");
-const cofre = abrirCofre(CHAVE);
-const SEGREDO_TOTP = gerarSegredoTotp();
+const EMAIL = DONO.email;
+const SENHA = DONO.senha;
 
-const LEITURA_VAZIA: LeituraDoConsole = { ler: async () => [], encerrar: async () => {} };
-const ESCRITA_QUE_ACUSA: EscritaDoConsole = {
-  executar: async () => {
-    throw new Error("uma rota escreveu durante o teste de diagnostico");
-  },
-};
-
-/**
- * A senha derivada UMA vez para o arquivo inteiro.
- *
- * Cada `derivarSenha` gasta uma passagem de `scrypt` de cerca de 128 MB, e este
- * arquivo monta três consoles. Derivando em cada um deles, eram três passagens
- * do mesmo hash, e com as suítes rodando em paralelo é essa memória que faz
- * caso de OUTRO arquivo estourar o prazo. O valor é o mesmo nos três.
- */
-let hashDaSenha: Promise<string> | null = null;
-function senhaDerivada(): Promise<string> {
-  hashDaSenha ??= derivarSenha(SENHA);
-  return hashDaSenha;
-}
-
-async function configDeTeste(ambiente: Config["NODE_ENV"] = "test"): Promise<Config> {
-  return {
-    NODE_ENV: ambiente,
-    CONSOLE_PORT: 0,
-    CONSOLE_HOST: "127.0.0.1",
-    CONSOLE_JWT_SEGREDO: "segredo-de-teste-com-mais-de-trinta-e-dois-bytes-aqui",
-    CONSOLE_SEGUNDO_FATOR_CHAVE: CHAVE,
-    CONSOLE_OPERADORES: JSON.stringify([{
-      email: EMAIL,
-      senha: await senhaDerivada(),
-      segundoFator: cofre.cifrar(SEGREDO_TOTP, contextoDoOperador(EMAIL)),
-    }]),
-  };
-}
+let c: ConsoleDeTeste;
+let app: FastifyInstance;
 
 /** O que o processo escreveu. Um caso pode zerar antes de agir. */
 let log: string[] = [];
-let app: FastifyInstance;
 
 beforeAll(async () => {
-  app = await construirConsole({
-    config: await configDeTeste(),
-    leitura: LEITURA_VAZIA,
-    escrita: ESCRITA_QUE_ACUSA,
-    limitePorEndereco: 500,
-    destinoDeLog: { write: (linha: string) => { log.push(linha); } },
-  });
-}, 120_000);
+  c = await subirConsoleDeTeste();
+  app = c.app;
+  log = c.log;
+}, 180_000);
 
 afterAll(async () => {
-  await app?.close();
+  await c?.encerrar();
 });
+
+/** Zera o coletor sem trocar o array que o console escreve. */
+function zerar(): void {
+  log.length = 0;
+}
 
 function tudo(): string {
   return log.join("\n");
@@ -132,7 +96,7 @@ function ultimaRecusa(): string {
 
 describe("Toda tentativa recusada deixa rastro suficiente para diagnosticar", () => {
   it("senha errada escreve uma linha, com o email tentado e um motivo", async () => {
-    log = [];
+    zerar();
     const r = await app.inject({
       method: "POST", url: "/entrar", payload: { email: EMAIL, senha: "chute" },
     });
@@ -154,7 +118,7 @@ describe("Toda tentativa recusada deixa rastro suficiente para diagnosticar", ()
       trabalha no fornecedor. O que o log acrescenta sobre a tela é o email
       tentado e a hora, que é o que serve para diagnosticar.
     */
-    log = [];
+    zerar();
     await app.inject({
       method: "POST", url: "/entrar",
       payload: { email: "ninguem@fornecedor.com.br", senha: SENHA },
@@ -164,7 +128,7 @@ describe("Toda tentativa recusada deixa rastro suficiente para diagnosticar", ()
       .toContain("ninguem@fornecedor.com.br");
     expect(linha).toContain("email_ou_senha");
 
-    log = [];
+    zerar();
     await app.inject({
       method: "POST", url: "/entrar", payload: { email: EMAIL, senha: "chute" },
     });
@@ -176,7 +140,7 @@ describe("Toda tentativa recusada deixa rastro suficiente para diagnosticar", ()
   }, 120_000);
 
   it("nem a senha nem o corpo do pedido entram na linha da recusa", async () => {
-    log = [];
+    zerar();
     await app.inject({
       method: "POST", url: "/entrar",
       payload: { email: EMAIL, senha: "senha-secreta-que-nao-pode-vazar" },
@@ -188,7 +152,7 @@ describe("Toda tentativa recusada deixa rastro suficiente para diagnosticar", ()
   }, 120_000);
 
   it("desafio expirado ou forjado escreve, e sem email inventado por quem chamou", async () => {
-    log = [];
+    zerar();
     const r = await app.inject({
       method: "POST", url: "/entrar/codigo",
       payload: { desafio: "isto-nao-e-um-desafio", codigo: "123456" },
@@ -207,7 +171,7 @@ describe("Toda tentativa recusada deixa rastro suficiente para diagnosticar", ()
   }, 120_000);
 
   it("codigo errado escreve uma linha, e o codigo NAO entra nela", async () => {
-    log = [];
+    zerar();
     const primeira = await app.inject({
       method: "POST", url: "/entrar", payload: { email: EMAIL, senha: SENHA },
     });
@@ -235,49 +199,72 @@ describe("Toda tentativa recusada deixa rastro suficiente para diagnosticar", ()
       Com o mesmo motivo nos dois, o operador que já está bloqueado continua
       tentando e continua recebendo o mesmo silêncio.
     */
-    const proprio = await construirConsole({
-      config: await configDeTeste(),
-      leitura: LEITURA_VAZIA,
-      escrita: ESCRITA_QUE_ACUSA,
-      limitePorEndereco: 500,
-      destinoDeLog: { write: (linha: string) => { log.push(linha); } },
-    });
+    // Console proprio sobre banco proprio: o castigo vai para a linha do dono,
+    // e derrubaria os casos seguintes deste arquivo.
+    const proprio = await subirConsoleDeTeste();
     try {
-      log = [];
-      const primeira = await proprio.inject({
+      const primeira = await proprio.app.inject({
         method: "POST", url: "/entrar", payload: { email: EMAIL, senha: SENHA },
       });
       const desafio = primeira.json().desafio;
 
       let bloqueou = false;
       for (let i = 0; i < 12 && !bloqueou; i++) {
-        const r = await proprio.inject({
+        const r = await proprio.app.inject({
           method: "POST", url: "/entrar/codigo", payload: { desafio, codigo: "000002" },
         });
         bloqueou = r.statusCode === 429;
       }
       expect(bloqueou, "a conta nunca entrou de castigo").toBe(true);
-      expect(tudo()).toContain("conta_de_castigo");
+      expect(proprio.log.join("\n")).toContain("conta_de_castigo");
     } finally {
-      await proprio.close();
+      await proprio.encerrar();
     }
-  }, 120_000);
+  }, 180_000);
 });
 
 describe("Nada que sirva para entrar cai no log", () => {
-  it("uma entrada inteira, bem-sucedida, nao deixa segredo nenhum escrito", async () => {
-    log = [];
+  it("uma entrada inteira, com as rotas novas depois dela, nao deixa segredo nenhum escrito", async () => {
+    zerar();
     const primeira = await app.inject({
       method: "POST", url: "/entrar", payload: { email: EMAIL, senha: SENHA },
     });
     const desafio = primeira.json().desafio;
 
-    const codigo = codigoTotp(base32Decodificar(SEGREDO_TOTP)!, passoDe(new Date()));
+    const codigo = codigoNovo(c.relogio, c.segredoDoDono);
     const segunda = await app.inject({
       method: "POST", url: "/entrar/codigo", payload: { desafio, codigo },
     });
     expect(segunda.statusCode, `nao consegui entrar: ${segunda.body}`).toBe(200);
     const token = segunda.json().token;
+    const comSessao = { authorization: `Bearer ${token}` };
+
+    /*
+      AS ROTAS NOVAS, na mesma varredura. Cada uma recebe ou devolve um segredo
+      que nao pode cair no log: a senha inicial e o segredo do operador criado,
+      a senha e o codigo apresentados para eliminar, a senha nova da troca.
+    */
+    const criado = await app.inject({
+      method: "POST", url: "/operadores", headers: comSessao,
+      payload: { email: "novo@fornecedor.com.br" },
+    });
+    expect(criado.statusCode, criado.body).toBe(201);
+
+    const prefeitura = await cadastrarPrefeitura(app, token, "Morro Claro");
+    const codigoDaEliminacao = codigoNovo(c.relogio, c.segredoDoDono);
+    const eliminar = await app.inject({
+      method: "POST", url: `/municipios/${prefeitura.organizacaoId}/eliminar`, headers: comSessao,
+      payload: { senha: SENHA, codigo: codigoDaEliminacao, nome: "Morro Claro", motivo: "log" },
+    });
+    expect(eliminar.statusCode, eliminar.body).toBe(200);
+
+    const NOVA = "senha-nova-da-dona-para-o-teste-do-log";
+    const codigoDaTroca = codigoNovo(c.relogio, c.segredoDoDono);
+    const troca = await app.inject({
+      method: "POST", url: "/senha", headers: comSessao,
+      payload: { senhaAtual: SENHA, codigo: codigoDaTroca, novaSenha: NOVA },
+    });
+    expect(troca.statusCode, troca.body).toBe(200);
 
     expect(
       log.length,
@@ -289,18 +276,29 @@ describe("Nada que sirva para entrar cai no log", () => {
       ["o codigo do segundo fator", codigo],
       ["o desafio", desafio],
       ["o token de sessao", token],
-      ["o segredo do segundo fator", SEGREDO_TOTP],
+      ["o segredo do segundo fator", c.segredoDoDono],
+      ["a senha inicial do operador criado", criado.json().senhaInicial],
+      ["o segredo do operador criado", criado.json().segredo],
+      ["a senha inicial da prefeitura", prefeitura.senhaInicial],
+      ["o codigo apresentado para eliminar", codigoDaEliminacao],
+      ["o codigo apresentado na troca de senha", codigoDaTroca],
+      ["a senha nova", NOVA],
+      ["o token novo da troca", troca.json().token],
     ] as const) {
       expect(
         logSemCarimboDoRegistrador(), `${nome} foi parar no log do console`,
       ).not.toContain(segredo);
     }
+    expect(logSemCarimboDoRegistrador(), "um hash de senha foi parar no log").not.toContain("scrypt$");
 
-    // E a entrada BEM-sucedida continua registrada, que é o outro lado da moeda.
+    // E cada ato continua registrado, que é o outro lado da moeda.
     expect(tudo(), "entrar no console deixou de deixar rastro")
       .toContain("operador entrou no console");
     expect(tudo()).toContain(EMAIL);
-  }, 120_000);
+    expect(tudo()).toContain("criar_operador");
+    expect(tudo()).toContain("agendar_eliminacao");
+    expect(tudo()).toContain("senha trocada");
+  }, 180_000);
 });
 
 describe("A partida diz quantos operadores foram carregados", () => {
@@ -325,10 +323,11 @@ describe("A partida diz quantos operadores foram carregados", () => {
 
     let proprio: FastifyInstance | undefined;
     try {
+      // Sobre o banco que ja tem o dono: a partida conta o que ha na tabela.
       proprio = await construirConsole({
-        config: await configDeTeste("development"),
-        leitura: LEITURA_VAZIA,
-        escrita: ESCRITA_QUE_ACUSA,
+        config: { ...c.config, NODE_ENV: "development" },
+        leitura: c.mem.banco,
+        escrita: c.mem.banco,
       });
     } finally {
       process.stdout.write = original;
@@ -341,6 +340,6 @@ describe("A partida diz quantos operadores foram carregados", () => {
       "fora de producao o console sobe sem dizer quantos operadores leu: quem esta "
       + "tentando entrar na propria maquina nao tem essa conta em lugar nenhum",
     ).toContain("console do fornecedor pronto");
-    expect(saida, "a linha da partida nao traz a contagem").toContain("1 operador");
+    expect(saida, "a linha da partida nao traz a contagem").toMatch(/com \d+ operador\(es\) no banco/);
   }, 120_000);
 });

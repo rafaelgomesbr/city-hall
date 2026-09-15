@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { z } from "zod";
 
@@ -52,11 +53,11 @@ export const DESAFIO_MINUTOS = 5;
  *
  * No produto o token de acesso dura quinze minutos e existe um token de
  * renovação, guardado no banco como hash, que permite prolongar a sessão sem
- * pedir a senha de novo. Aqui não existe esse token, e a razão é a decisão 3 da
- * ADR 0008: o papel do console não tem INSERT em lugar nenhum, então não há
- * onde guardar o hash de um token de renovação. Sem lugar para guardar, não há
- * como revogar, e um token de renovação irrevogável seria uma sessão eterna
- * com nome de sessão curta.
+ * pedir a senha de novo. Aqui não existe esse token, de propósito: a única
+ * tabela que o console escreve é a de operadores, e um token de renovação
+ * exigiria mais uma tabela e mais uma coisa a revogar. Uma sessão curta que
+ * simplesmente acaba é mais fácil de raciocinar do que uma sessão longa com
+ * revogação.
  *
  * O preço é que quem passa meia hora olhando números digita a senha e o código
  * de novo. Para uma conta que é a única do sistema cujo comprometimento alcança
@@ -64,16 +65,37 @@ export const DESAFIO_MINUTOS = 5;
  */
 export const SESSAO_MINUTOS = 30;
 
-const CONTEUDO_SESSAO = z.object({ sub: z.string().min(1) });
-const CONTEUDO_DESAFIO = z.object({ sub: z.string().min(1) });
+/**
+ * O que a sessão carrega: o IDENTIFICADOR do operador e a VERSÃO da senha.
+ *
+ * O identificador, e não o email: a conta vive no banco desde a migração 038,
+ * e é pela linha dela que toda rota confere se o operador continua ativo. O
+ * email fica fora do token para o token não carregar dado de pessoa que ele
+ * não precisa carregar.
+ *
+ * A versão da senha (`sv`) é o que faz "trocar a senha derruba as outras
+ * sessões" ser verdade sem tabela de sessões: ela é um resumo do hash
+ * guardado, e o hash muda a cada troca (sal novo). Toda rota compara a versão
+ * do token com a da linha; uma sessão emitida antes da troca deixa de bater e
+ * cai. A rota que trocou devolve um token novo com a versão nova, e só ela.
+ *
+ * O resumo é de um HASH, e não da senha: quem tiver o token não tira dele nem
+ * um byte que sirva para entrar.
+ */
+const CONTEUDO_SESSAO = z.object({ sub: z.string().uuid(), sv: z.string().min(1) });
+const CONTEUDO_DESAFIO = z.object({ sub: z.string().uuid() });
 
-export type Sessao = { email: string };
-export type Desafio = { email: string };
+export type Sessao = { id: string; sv: string };
+export type Desafio = { id: string };
 
-export async function emitirSessao(segredo: Uint8Array, email: string): Promise<string> {
-  return new SignJWT({})
+export function versaoDaSenha(senhaHash: string): string {
+  return createHash("sha256").update(senhaHash, "utf8").digest("base64url").slice(0, 16);
+}
+
+export async function emitirSessao(segredo: Uint8Array, sessao: Sessao): Promise<string> {
+  return new SignJWT({ sv: sessao.sv })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
-    .setSubject(email)
+    .setSubject(sessao.id)
     .setIssuer(EMISSOR)
     .setAudience(PLATEIA_SESSAO)
     .setIssuedAt()
@@ -81,10 +103,10 @@ export async function emitirSessao(segredo: Uint8Array, email: string): Promise<
     .sign(segredo);
 }
 
-export async function emitirDesafio(segredo: Uint8Array, email: string): Promise<string> {
+export async function emitirDesafio(segredo: Uint8Array, operadorId: string): Promise<string> {
   return new SignJWT({})
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
-    .setSubject(email)
+    .setSubject(operadorId)
     .setIssuer(EMISSOR)
     .setAudience(PLATEIA_DESAFIO)
     .setIssuedAt()
@@ -102,15 +124,14 @@ async function verificar(
   segredo: Uint8Array,
   token: string,
   plateia: string,
-): Promise<{ sub: string } | null> {
+): Promise<Record<string, unknown> | null> {
   try {
     const { payload } = await jwtVerify(token, segredo, {
       issuer: EMISSOR,
       audience: plateia,
       algorithms: ["HS256"],
     });
-    const analisado = CONTEUDO_SESSAO.safeParse({ sub: payload.sub });
-    return analisado.success ? analisado.data : null;
+    return payload as Record<string, unknown>;
   } catch {
     // Assinatura de outro segredo, plateia do outro lado, token expirado ou
     // adulterado. Todos são a mesma resposta para quem chamou: não vale.
@@ -123,7 +144,9 @@ export async function verificarSessao(
   token: string,
 ): Promise<Sessao | null> {
   const conteudo = await verificar(segredo, token, PLATEIA_SESSAO);
-  return conteudo ? { email: conteudo.sub } : null;
+  if (!conteudo) return null;
+  const analisado = CONTEUDO_SESSAO.safeParse({ sub: conteudo["sub"], sv: conteudo["sv"] });
+  return analisado.success ? { id: analisado.data.sub, sv: analisado.data.sv } : null;
 }
 
 export async function verificarDesafio(
@@ -132,6 +155,6 @@ export async function verificarDesafio(
 ): Promise<Desafio | null> {
   const conteudo = await verificar(segredo, token, PLATEIA_DESAFIO);
   if (!conteudo) return null;
-  const analisado = CONTEUDO_DESAFIO.safeParse(conteudo);
-  return analisado.success ? { email: analisado.data.sub } : null;
+  const analisado = CONTEUDO_DESAFIO.safeParse({ sub: conteudo["sub"] });
+  return analisado.success ? { id: analisado.data.sub } : null;
 }

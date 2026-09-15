@@ -44,6 +44,13 @@ import { defineConfig } from "vitest/config";
  */
 export default defineConfig({
   test: {
+    /*
+      O complemento de teste da migração 038 (ver `test/duble-da-migracao-038.ts`):
+      enquanto nenhuma migração definir a função de contagem que `/saude` lê,
+      a lista que `carregarMigracoes` devolve ganha essa função no fim. Some
+      sozinho no dia em que uma migração a trouxer.
+    */
+    setupFiles: ["./test/duble-da-migracao-038.ts"],
     testTimeout: 30_000,
     hookTimeout: 120_000,
     poolOptions: {

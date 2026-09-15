@@ -13,20 +13,30 @@ import { SemSinal } from "./api";
  * sozinho, sessão encerrada não passa nunca, e as duas frases mandavam o
  * agente fazer a mesma coisa (esperar).
  *
- * São três desfechos porque são três atos diferentes:
+ * São quatro desfechos porque são quatro atos diferentes:
  *
  * | Motivo | O que o agente faz |
  * | --- | --- |
  * | `sem-sinal` | espera o sinal voltar, e continua trabalhando no que baixou |
  * | `sessao-encerrada` | entra de novo, e ATÉ LÁ nada novo desce |
+ * | `acesso-suspenso` | NADA que ele faça resolve: quem resolve é quem administra o contrato |
  * | `outro` | tenta de novo daqui a pouco |
+ *
+ * O quarto entrou com a suspensão de acesso pelo fornecedor (migração 038 e
+ * `auth/suspensao.ts` na API). Ele existe separado do segundo porque a frase
+ * do segundo manda entrar de novo, e entrar de novo num município suspenso dá
+ * 403 para sempre: o botão mandaria o agente fazer a única coisa que não
+ * resolve, e ainda apagaria do aparelho a identidade que carimba a coleta. A
+ * API responde `acesso_suspenso` inclusive ao token VENCIDO que este
+ * aplicativo continua apresentando depois que a renovação falha, e é isso
+ * que permite classificar aqui em vez de adivinhar.
  *
  * Mora fora das telas porque as duas telas que vão à rede (a lista de hoje e o
  * perfil) precisam da mesma classificação, e porque o Rafa viu a mesma frase
  * errada nas duas.
  */
 
-export type MotivoDaFalha = "sem-sinal" | "sessao-encerrada" | "outro";
+export type MotivoDaFalha = "sem-sinal" | "sessao-encerrada" | "acesso-suspenso" | "outro";
 
 /**
  * O status HTTP que veio dentro do erro, quando veio algum.
@@ -46,7 +56,24 @@ function statusDaResposta(erro: unknown): number | null {
   return typeof status === "number" ? status : null;
 }
 
+/** O código de erro que veio no corpo da resposta, pela mesma forma. */
+function codigoDaResposta(erro: unknown): string | null {
+  if (typeof erro !== "object" || erro === null) return null;
+  const codigo = (erro as { codigo?: unknown }).codigo;
+  return typeof codigo === "string" ? codigo : null;
+}
+
 export function motivoDaFalha(erro: unknown): MotivoDaFalha {
+  /*
+    A suspensão é lida pelo CÓDIGO, e não pelo status, de propósito: a API
+    responde 403 nas rotas comuns e 503 nas rotas da fila (para a fila esperar
+    em vez de bloquear a coleta). O código é o mesmo nos dois, e é ele que diz
+    o que houve. Vem antes do 401 porque um 401 nunca carrega este código, e
+    antes do `SemSinal` pela mesma razão do 401: a requisição chegou.
+  */
+  if (statusDaResposta(erro) !== null && codigoDaResposta(erro) === "acesso_suspenso") {
+    return "acesso-suspenso";
+  }
   /*
     O 401 vem na frente do `SemSinal` de propósito: um erro que carrega status
     é resposta do servidor, ou seja, a requisição CHEGOU. Não há sinal a
@@ -94,6 +121,27 @@ export function comoContarAFalha(
         + "tarefa nova desce até você entrar outra vez. Vá em Perfil, toque em "
         + "\"Sair da conta\" e entre de novo com o seu email e a sua senha. O que "
         + "você já coletou continua guardado no aparelho e sobe sozinho depois disso.",
+    };
+  }
+  if (motivo === "acesso-suspenso") {
+    return {
+      resumo: "Acesso suspenso pelo fornecedor",
+      /*
+        Três coisas, nesta ordem: quem fez (não foi a coordenação nem o
+        agente), quem resolve (o contrato, não a senha), e a promessa de que a
+        coleta continua guardada. A promessa é verdade pelos mesmos motivos da
+        sessão encerrada, e por um a mais: a API responde à fila com um código
+        que ela trata como temporário, então o item espera em vez de virar
+        bloqueado com "Descartar" embaixo. NÃO diz "entre de novo": entrar de
+        novo dá a mesma recusa, e sair da conta antes disso apagaria a
+        identidade que carimba a coleta.
+      */
+      detalhe:
+        "O fornecedor do sistema suspendeu o acesso da sua prefeitura, e por isso "
+        + "nada novo desce para este aparelho. Sair da conta ou tentar entrar outra "
+        + "vez não resolve: quem resolve é quem administra o contrato na prefeitura. "
+        + "O que você já coletou continua guardado no aparelho e sobe sozinho se o "
+        + "acesso voltar.",
     };
   }
   if (motivo === "sem-sinal") {

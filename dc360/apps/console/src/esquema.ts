@@ -18,14 +18,16 @@ import type { LeituraDoConsole } from "./banco.js";
  * Então a pergunta muda de "qual é a versão" para "o que eu uso está aqui", e a
  * resposta vem do `pg_catalog`, que não exige concessão nenhuma.
  *
- * A LISTA ABAIXO É O CONTRATO INTEIRO do console com o banco: as duas consultas
- * de `consultas.ts` e a única escrita de `cadastro.ts`, nada mais. Ela é curta
- * porque a superfície é curta, e mantê-la colada ao que o código realmente lê é
- * o que faz este portão valer alguma coisa: uma consulta nova sem a linha
- * correspondente aqui passa a subir sem conferência, e isso aparece na revisão.
+ * A LISTA ABAIXO É O CONTRATO INTEIRO do console com o banco: as consultas de
+ * `consultas.ts`, a escrita de `cadastro.ts`, as quatro ações de
+ * `municipios.ts` e a tabela própria de `operadores.ts`, nada mais. Ela é
+ * curta porque a superfície é curta, e mantê-la colada ao que o código
+ * realmente lê é o que faz este portão valer alguma coisa: uma consulta nova
+ * sem a linha correspondente aqui passa a subir sem conferência, e isso
+ * aparece na revisão.
  *
  * O QUE ISTO PEGA que a conferência de versão não pegaria: um banco cujo
- * `schema_migracoes` diz 037 e onde alguém derrubou a função à mão, e um banco
+ * `schema_migracoes` diz 038 e onde alguém derrubou a função à mão, e um banco
  * onde as migrações rodaram mas o `GRANT` ao console não. Os dois já
  * aconteceram em produtos assim, e os dois dão o mesmo sintoma que a ADR 0008
  * descreve: tela impecável, e 500 genérico quando alguém aperta "Cadastrar".
@@ -36,22 +38,50 @@ import type { LeituraDoConsole } from "./banco.js";
  * esquema inteiro é a partida da API, que tem privilégio para isso.
  */
 
-/** Relação que o console lê, com as colunas que ele nomeia nas consultas. */
-const RELACOES: ReadonlyMap<string, readonly string[]> = new Map([
-  /*
-    Só as quatro colunas que `situacaoDosMunicipios` junta. O cadastro de
-    organizações tem muito mais, e cobrá-las aqui faria este portão reprovar
-    por causa de uma migração que o console nem sente.
-  */
-  ["organizacoes", ["id", "nome", "municipio", "uf"]],
+/** O que o console precisa poder fazer numa relação. */
+type Exigencia = { colunas: readonly string[]; privilegios: readonly string[] };
 
-  ["metricas_municipio", [
-    "organizacao_id", "dia",
-    "ocorrencias_registradas", "ocorrencias_encerradas",
-    "vistorias_recebidas", "oficios_emitidos",
-    "ocorrencias_abertas", "ocorrencias_atrasadas",
-    "minutos_ate_vistoria_mediana",
-  ]],
+/** Relação que o console usa, com as colunas que ele nomeia e o que faz nelas. */
+const RELACOES: ReadonlyMap<string, Exigencia> = new Map([
+  /*
+    As quatro colunas que `situacaoDosMunicipios` junta, mais as quatro de
+    estado de acesso da migração 038, que a lista e as ações perigosas leem. O
+    cadastro de organizações tem muito mais, e cobrá-las aqui faria este portão
+    reprovar por causa de uma migração que o console nem sente.
+  */
+  ["organizacoes", {
+    colunas: [
+      "id", "nome", "municipio", "uf",
+      "acesso_suspenso_em", "suspensao_motivo", "eliminacao_agendada_para", "eliminada_em",
+    ],
+    privilegios: ["SELECT"],
+  }],
+
+  /*
+    A tabela PRÓPRIA do console (migração 038): quem entra nele. O papel
+    precisa de SELECT (a porta acha o operador pelo email), INSERT (o dono cria
+    operador, e a partida semeia o dono) e UPDATE (o operador grava na própria
+    linha as tentativas, o castigo, o passo queimado e a senha nova). Sem
+    DELETE, de propósito: operador se desativa, não some.
+  */
+  ["console_operadores", {
+    colunas: [
+      "id", "email", "senha_hash", "segundo_fator", "papel", "ativo",
+      "criado_em", "criado_por", "falhas_login", "bloqueado_ate", "ultimo_passo_totp",
+    ],
+    privilegios: ["SELECT", "INSERT", "UPDATE"],
+  }],
+
+  ["metricas_municipio", {
+    colunas: [
+      "organizacao_id", "dia",
+      "ocorrencias_registradas", "ocorrencias_encerradas",
+      "vistorias_recebidas", "oficios_emitidos",
+      "ocorrencias_abertas", "ocorrencias_atrasadas",
+      "minutos_ate_vistoria_mediana",
+    ],
+    privilegios: ["SELECT"],
+  }],
 
   /*
     A visão é a peça que faz o município calado aparecer como linha em vez de
@@ -60,33 +90,45 @@ const RELACOES: ReadonlyMap<string, readonly string[]> = new Map([
     distinguir "ninguém usou" de "a métrica parou de ser escrita", que é a
     consequência ruim que a ADR 0008 assume por escrito e resolve aqui.
   */
-  ["console_situacao_dos_municipios", [
-    "organizacao_id", "dia",
-    "ocorrencias_registradas", "ocorrencias_encerradas",
-    "vistorias_recebidas", "oficios_emitidos",
-    "ocorrencias_abertas", "ocorrencias_atrasadas",
-    "usuarios_ativos", "aparelhos_ativos", "aparelhos_sem_aparecer",
-    "minutos_ate_vistoria_mediana",
-    "atualizado_em", "sem_escrita_recente", "horas_desde_a_escrita",
-  ]],
+  ["console_situacao_dos_municipios", {
+    colunas: [
+      "organizacao_id", "dia",
+      "ocorrencias_registradas", "ocorrencias_encerradas",
+      "vistorias_recebidas", "oficios_emitidos",
+      "ocorrencias_abertas", "ocorrencias_atrasadas",
+      "usuarios_ativos", "aparelhos_ativos", "aparelhos_sem_aparecer",
+      "minutos_ate_vistoria_mediana",
+      "atualizado_em", "sem_escrita_recente", "horas_desde_a_escrita",
+    ],
+    privilegios: ["SELECT"],
+  }],
 ]);
 
 /**
- * A única função que o console executa, com a assinatura por extenso.
+ * As funções que o console executa, com a assinatura por extenso.
  *
  * COM OS TIPOS, e não só o nome: `to_regprocedure` resolve a sobrecarga, então
  * uma segunda `provisionar_municipio` com outra lista de parâmetros não
- * satisfaz esta linha. É a mesma exigência que a migração 036 escreve no
- * `GRANT`, e é o que a emenda de 14/09/2026 da ADR 0008 chama de exceção
- * NOMEADA: a porta de escrita do console é uma, e ela tem nome e forma.
+ * satisfaz esta linha. É a mesma exigência que as migrações 036 e 038 escrevem
+ * no `GRANT`, e é o que a emenda de 14/09/2026 da ADR 0008 chama de exceção
+ * NOMEADA: cada porta de escrita do console tem nome e forma.
+ *
+ * As quatro `console_*` são as ações perigosas por município (suspender,
+ * reativar, agendar e cancelar a eliminação). Todas recusam quem não é dono
+ * ativo, e o apagamento em si não está aqui: é do relógio da API.
  */
 const FUNCOES: readonly string[] = [
   "provisionar_municipio(text,text,text,text,text,text,text,text)",
+  "console_suspender_municipio(uuid,text)",
+  "console_reativar_municipio(uuid)",
+  "console_agendar_eliminacao(uuid,text)",
+  "console_cancelar_eliminacao(uuid)",
 ];
 
 type LinhaDeObjeto = {
   nome: string;
   especie: string;
+  privilegio: string;
   existe: boolean;
   pode: boolean;
 };
@@ -108,15 +150,17 @@ type LinhaDeObjeto = {
 const SQL_DOS_OBJETOS = `
   SELECT nome,
          'relação' AS especie,
+         privilegio,
          to_regclass(nome) IS NOT NULL AS existe,
-         coalesce(has_table_privilege(to_regclass(nome), 'SELECT'), false) AS pode
-    FROM unnest($1::text[]) AS nome
+         coalesce(has_table_privilege(to_regclass(nome), privilegio), false) AS pode
+    FROM unnest($1::text[], $2::text[]) AS t(nome, privilegio)
   UNION ALL
   SELECT nome,
          'função' AS especie,
+         'EXECUTE' AS privilegio,
          to_regprocedure(nome) IS NOT NULL AS existe,
          coalesce(has_function_privilege(to_regprocedure(nome), 'EXECUTE'), false) AS pode
-    FROM unnest($2::text[]) AS nome
+    FROM unnest($3::text[]) AS nome
 `;
 
 /**
@@ -150,15 +194,33 @@ const SQL_DAS_COLUNAS = `
 export async function faltaNoEsquema(leitura: LeituraDoConsole): Promise<string[]> {
   const faltas: string[] = [];
 
+  /*
+    Uma linha por (relação, privilégio): a tabela de operadores é conferida
+    três vezes (SELECT, INSERT, UPDATE), e cada falta sai com o nome do
+    privilégio que falta, porque `GRANT SELECT` sem `GRANT UPDATE` é o erro mais
+    fácil de cometer ao criar o papel à mão.
+  */
+  const nomes: string[] = [];
+  const privilegios: string[] = [];
+  for (const [nome, exigencia] of RELACOES) {
+    for (const privilegio of exigencia.privilegios) {
+      nomes.push(nome);
+      privilegios.push(privilegio);
+    }
+  }
+
   const objetos = await leitura.ler<LinhaDeObjeto>(SQL_DOS_OBJETOS, [
-    [...RELACOES.keys()],
-    [...FUNCOES],
+    nomes, privilegios, [...FUNCOES],
   ]);
 
   const presentes = new Set<string>();
+  const jaAcusadas = new Set<string>();
   for (const objeto of objetos) {
     if (!objeto.existe) {
-      faltas.push(`a ${objeto.especie} \`${objeto.nome}\` não existe neste banco`);
+      if (!jaAcusadas.has(objeto.nome)) {
+        faltas.push(`a ${objeto.especie} \`${objeto.nome}\` não existe neste banco`);
+        jaAcusadas.add(objeto.nome);
+      }
       continue;
     }
     if (!objeto.pode) {
@@ -169,7 +231,7 @@ export async function faltaNoEsquema(leitura: LeituraDoConsole): Promise<string[
       */
       faltas.push(
         `a ${objeto.especie} \`${objeto.nome}\` existe, mas o papel do console não tem `
-        + `${objeto.especie === "função" ? "EXECUTE" : "SELECT"} nela`,
+        + `${objeto.privilegio} nela`,
       );
       continue;
     }
@@ -192,7 +254,7 @@ export async function faltaNoEsquema(leitura: LeituraDoConsole): Promise<string[
 
     for (const relacao of comColunasAConferir) {
       const tem = porRelacao.get(relacao) ?? new Set<string>();
-      const ausentes = (RELACOES.get(relacao) ?? []).filter((c) => !tem.has(c));
+      const ausentes = (RELACOES.get(relacao)?.colunas ?? []).filter((c) => !tem.has(c));
       if (ausentes.length > 0) {
         faltas.push(
           `a relação \`${relacao}\` existe, mas sem as colunas ${ausentes.join(", ")}`,
