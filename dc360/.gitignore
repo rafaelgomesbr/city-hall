@@ -5,3 +5,6 @@ dist/
 # como `dist`, e já entrou no histórico uma vez por não estar aqui.
 dist-api/
 *.tsbuildinfo
+
+# Arquivo de segredos do console, usado uma vez no fly secrets import e apagado. Nunca entra.
+segredos-do-console.env
