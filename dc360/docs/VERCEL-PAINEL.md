@@ -1,9 +1,13 @@
 # Subir o painel na Vercel
 
-O projeto `dc360-painel` já existe na conta (criado em 08/09/2026, ligado ao
-repositório `rafaelgomesbr/city-hall`, branch de produção `master`). Falta
-apenas ajustar duas coisas no painel da Vercel, porque a API deles não expõe
-essas configurações para automação.
+O projeto que está NO AR é `dc360-painel-web`, em
+`https://dc360-painel-web.vercel.app`, ligado ao repositório
+`rafaelgomesbr/city-hall`, branch de produção `master`. Existe também um
+projeto `dc360-painel` mais antigo (criado em 08/09/2026) cujo último deploy
+está em erro e que não tem domínio de produção: ele pode ser apagado na conta,
+e nada aponta para ele. Conferido em 15/09/2026 pela conta da Vercel e por
+uma requisição CORS à API, que já responde
+`access-control-allow-origin: https://dc360-painel-web.vercel.app`.
 
 ## 1. Root Directory
 
@@ -49,11 +53,13 @@ Vercel, Deployments > Redeploy.
 
 ## 4. Depois de publicar, conferir o endereço
 
-O endereço final foi CHUTADO como `https://dc360-painel.vercel.app` e já está
-gravado nos segredos do Fly (`URL_PAINEL` e `ORIGENS_PERMITIDAS`). A Vercel só
-confirma o endereço no primeiro deploy. Se vier diferente, o painel não vai
-conseguir falar com a API (o navegador barra por CORS), e o conserto é um
-comando:
+O endereço real é `https://dc360-painel-web.vercel.app`, e os segredos do Fly
+(`URL_PAINEL` e `ORIGENS_PERMITIDAS`) já apontam para ele (conferido em
+15/09/2026: a API responde ao `OPTIONS` dessa origem com o cabeçalho de CORS
+certo, e não responde à origem antiga). O `index.html` do painel grava o
+mesmo endereço nas tags `og:url` e `og:image`, e o portão `test/seo.test.ts`
+exige que as duas concordem. Se o endereço mudar um dia, o painel deixa de
+falar com a API (o navegador barra por CORS), e o conserto é um comando:
 
 ```bash
 cd dc360

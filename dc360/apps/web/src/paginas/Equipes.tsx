@@ -10,6 +10,7 @@ import {
 import { Campo } from "../componentes/Campo";
 import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
 import { IconeMais } from "../componentes/Icones";
+import { useTitulo } from "../seo/titulo";
 
 /**
  * Equipes do município.
@@ -19,6 +20,7 @@ import { IconeMais } from "../componentes/Icones";
  * apontando para algo depois do fato.
  */
 export function Equipes() {
+  useTitulo("Equipes");
   const sessao = useSessaoObrigatoria();
   const [equipes, setEquipes] = useState<LinhaEquipe[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);

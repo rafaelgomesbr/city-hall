@@ -14,7 +14,7 @@ import type {
   RespostaDeAvisos, ResultadoDeEnvio,
   AtivacaoSegundoFator, ResultadoDeEntrada, SegundoFatorLigado, SituacaoSegundoFator,
   ConfiguracaoDoPainel, DevolucaoDaOcorrencia, DevolucaoPendente,
-  QuemEstaEmCampo,
+  QuemEstaEmCampo, RespostaDeBusca, PontoDoLinkDeMapa,
 } from "./tipos";
 
 /**
@@ -137,7 +137,7 @@ async function comRedeTraduzida(chamada: () => Promise<Response>): Promise<Respo
 
 async function chamar<T>(
   caminho: string,
-  opcoes: { metodo?: string; corpo?: unknown; repetiu?: boolean } = {},
+  opcoes: { metodo?: string; corpo?: unknown; repetiu?: boolean; sinal?: AbortSignal } = {},
 ): Promise<T> {
   const tokens = lerTokens();
   const cabecalhos: Record<string, string> = { accept: "application/json" };
@@ -148,6 +148,10 @@ async function chamar<T>(
     method: opcoes.metodo ?? "GET",
     headers: cabecalhos,
     body: opcoes.corpo === undefined ? undefined : JSON.stringify(opcoes.corpo),
+    // Quem chama pode desistir (a busca do topo desiste a cada tecla nova).
+    // Cancelamento chega como `AbortError`, que não é `TypeError`, então
+    // `comRedeTraduzida` o deixa passar em vez de chamá-lo de "sem conexão".
+    signal: opcoes.sinal,
   }));
 
   // 401 uma vez significa "o token de acesso venceu": renova e repete. 401 de
@@ -1069,4 +1073,50 @@ export async function encerrarSaidaEmCampo(
   _s: Sessao, encerramento: EncerramentoDeSaida,
 ): Promise<void> {
   await chamar("/saida-a-campo/encerrar", { metodo: "POST", corpo: encerramento });
+}
+
+/* ==========================================================================
+   Busca global
+   ========================================================================== */
+
+/**
+ * A caixa do topo perguntando ao servidor por registro.
+ *
+ * O servidor tolera erro de digitação, ordena e corta por grupo; a tela não
+ * reordena nada. `sinal` é o `AbortController` da caixa: cada tecla nova
+ * cancela a pergunta anterior, senão a resposta de "ocor" chega depois da de
+ * "ocorr" e a lista mostra o resultado errado com a consulta certa em cima.
+ *
+ * A consulta viaja cortada no teto do servidor (100) para não trocar uma
+ * busca legítima por um 422 quando alguém cola um endereço inteiro.
+ */
+export async function buscar(
+  _s: Sessao, consulta: string, sinal?: AbortSignal,
+): Promise<RespostaDeBusca> {
+  const q = consulta.trim().slice(0, 100);
+  return chamar<RespostaDeBusca>(`/busca?q=${encodeURIComponent(q)}`, { sinal });
+}
+
+/* ==========================================================================
+   Link encurtado do Google Maps
+   ========================================================================== */
+
+/**
+ * Pede ao servidor da prefeitura que abra um link ENCURTADO do Google Maps
+ * (`maps.app.goo.gl`, `goo.gl`) e descubra o ponto para onde ele leva.
+ *
+ * O painel continua sem abrir link nenhum a partir do navegador: a
+ * requisição sairia da rede interna da prefeitura, com os cookies e o
+ * alcance de rede dela. Quem abre é o servidor, com lista fechada de
+ * encurtador, endereço conferido a cada salto e teto de tempo (ver
+ * `apps/api/src/rotas/mapa.ts`). É o servidor contando ao Google que aquele
+ * ponto foi consultado, e por isso a tela só chama isto num botão, nunca
+ * sozinha ao colar (`docs/SUBPROCESSADORES.md`, seção 2.2).
+ *
+ * As recusas vêm com frase própria: `link_nao_aceito` (422), `sem_ponto`
+ * (422, o link abre uma busca por nome e nome não é ponto) e `nao_resolveu`
+ * (502: tempo, voltas demais, destino fora do Google). A tela mostra a frase.
+ */
+export async function resolverLinkDeMapa(url: string): Promise<PontoDoLinkDeMapa> {
+  return chamar<PontoDoLinkDeMapa>("/mapa/resolver-link", { metodo: "POST", corpo: { url } });
 }

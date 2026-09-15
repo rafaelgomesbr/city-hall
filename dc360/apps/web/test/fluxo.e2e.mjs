@@ -60,12 +60,56 @@ ok("fila mostra protocolo critico primeiro",
    (await page.locator(".tabela tbody tr").first().textContent()).includes("000471/2026"));
 
 console.log("\n== 3. Isolamento entre municipios ==");
-await page.getByPlaceholder("Buscar protocolo, endereço ou solicitante").fill("000112");
+// Enter SEM item escolhido na caixa de comando mantem o caminho antigo: a
+// lista com ?busca=. E o que este passo sempre exercitou, e continua valendo.
+await page.getByPlaceholder("Buscar registro ou função").fill("000112");
 await page.keyboard.press("Enter");
 await page.waitForURL(/busca=000112/);
 await page.waitForTimeout(800);
 const achou = await page.locator(".vazio__titulo").isVisible().catch(() => false);
 ok("protocolo de Vale Fundo NAO aparece para Serra Alta", achou);
+
+console.log("\n== 3b. Busca global: funcao com erro de digitacao, e a lupa fora do texto ==");
+const caixaDeBusca = page.getByPlaceholder("Buscar registro ou função");
+await caixaDeBusca.fill("ocorencia");
+await page.waitForSelector('#busca-global-lista [role="option"]', { timeout: 10_000 });
+const grupoIrPara = page.locator('#busca-global-lista [role="group"]', { hasText: "Ir para" });
+ok("digitar 'ocorencia' mostra Ocorrências no grupo Ir para",
+   (await grupoIrPara.locator('[role="option"]', { hasText: "Ocorrências" }).count()) > 0);
+ok("a caixa e um combobox e declara a lista aberta",
+   (await caixaDeBusca.getAttribute("role")) === "combobox"
+   && (await caixaDeBusca.getAttribute("aria-expanded")) === "true");
+ok("o trecho casado vem marcado",
+   (await page.locator('#busca-global-lista mark').count()) > 0);
+ok("o aria-live conta os resultados",
+   /\d+ resultados?/.test(await page.locator('.busca-global [aria-live="polite"]').textContent()));
+// A lupa fora do texto, medida no navegador: o recuo esquerdo do campo tem
+// que ser maior que a borda direita do icone. Era 12px contra 30px.
+const medidas = await page.evaluate(() => {
+  const campo = document.getElementById("busca-global");
+  const lupa = document.querySelector(".busca-global__lupa");
+  const recuo = parseFloat(getComputedStyle(campo).paddingLeft);
+  const direitaDaLupa = lupa.getBoundingClientRect().right - campo.getBoundingClientRect().left;
+  return { recuo, direitaDaLupa };
+});
+ok("o texto do campo comeca depois da lupa", medidas.recuo >= medidas.direitaDaLupa, JSON.stringify(medidas));
+ok("a dica do atalho esta escrita na caixa",
+   /Ctrl K|⌘ K/.test(await page.locator("#busca-global-atalho").textContent()));
+// Seta para baixo ativa o primeiro item, e a caixa aponta para ele.
+await page.keyboard.press("ArrowDown");
+const apontado = await caixaDeBusca.getAttribute("aria-activedescendant");
+ok("a seta ativa o primeiro item e a caixa aponta para ele por aria-activedescendant",
+   apontado === "busca-global-opcao-0"
+   && (await page.locator(`#${apontado}`).getAttribute("aria-selected")) === "true");
+await page.keyboard.press("Enter");
+await page.waitForURL(/\/ocorrencias$/, { timeout: 10_000 });
+ok("Enter no item escolhido abre a pagina de Ocorrências", /\/ocorrencias$/.test(page.url()));
+ok("a lista fecha depois da escolha", (await page.locator("#busca-global-lista").count()) === 0);
+// Ctrl+K de qualquer lugar leva o foco a caixa.
+await page.locator("body").click({ position: { x: 5, y: 5 } });
+await page.keyboard.press("Control+k");
+ok("Ctrl+K foca a caixa de busca",
+   await page.evaluate(() => document.activeElement?.id === "busca-global"));
 
 console.log("\n== 4. Registrar ocorrencia: protocolo gerado pelo banco ==");
 await page.goto(`${BASE}/ocorrencias/nova`);

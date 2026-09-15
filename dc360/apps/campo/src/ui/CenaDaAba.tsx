@@ -1,4 +1,7 @@
-import { useEffect, useRef, type ReactElement, type ReactNode } from "react";
+import {
+  createContext, useCallback, useContext, useEffect, useMemo, useRef,
+  type ReactElement, type ReactNode, type RefObject,
+} from "react";
 import { Animated, Easing } from "react-native";
 import { easing, espaco, movimento } from "./tokens";
 import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
@@ -57,7 +60,49 @@ import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
  *
  * A duração é `respostaAoToque`: isto responde ao dedo, não é algo que mudou
  * sozinho. Com redução de movimento o conteúdo nasce pronto.
+ *
+ * ## Toda aba começa do topo
+ *
+ * "Sempre que eu entrar em uma tela ela tem que começar do topo; às vezes
+ * entro em uma tela e tá no meio da página." As abas ficam montadas quando
+ * o agente sai delas, e a rolagem fica onde ele parou; voltar depois de meia
+ * hora no morro e cair no meio de uma lista que já mudou é ruim. Quem sabe
+ * que a aba foi FOCADA é este invólucro, e quem tem a rolagem é a tela.
+ * Então a tela entrega a referência por `useComecarDoTopo()` e o invólucro,
+ * a cada foco, leva a rolagem ao topo antes de o conteúdo entrar. Sem
+ * invólucro (uma tela montada solta num teste) o gancho não faz nada.
  */
+
+/** O que uma rolagem precisa saber fazer para começar do topo. */
+export type Rolavel =
+  | { scrollTo: (opcoes: { x?: number; y?: number; animated?: boolean }) => void }
+  | { scrollToOffset: (opcoes: { offset: number; animated?: boolean }) => void };
+
+type RegistroDaCena = {
+  registrarRolagem: (referencia: RefObject<Rolavel | null>) => () => void;
+};
+
+const ContextoDaCena = createContext<RegistroDaCena | null>(null);
+
+/**
+ * A tela chama isto uma vez e põe o retorno em `ref` da sua `ScrollView` ou
+ * `FlatList`. A cada foco da aba, a rolagem vai ao topo, sem animação: a
+ * animação é a do conteúdo entrando, não a de uma lista correndo para cima.
+ */
+export function useComecarDoTopo<T extends Rolavel>(): RefObject<T | null> {
+  const referencia = useRef<T | null>(null);
+  const cena = useContext(ContextoDaCena);
+  useEffect(() => {
+    if (!cena) return;
+    return cena.registrarRolagem(referencia as RefObject<Rolavel | null>);
+  }, [cena]);
+  return referencia;
+}
+
+export function levarAoTopo(alvo: Rolavel): void {
+  if ("scrollToOffset" in alvo) alvo.scrollToOffset({ offset: 0, animated: false });
+  else alvo.scrollTo({ x: 0, y: 0, animated: false });
+}
 
 /** O que o invólucro precisa do navegador da rota, e nada mais. */
 export type NavegacaoDaCena = {
@@ -73,8 +118,23 @@ export function CenaDaAba({ navigation, children }: { navigation: NavegacaoDaCen
   */
   const presenca = useRef(new Animated.Value(navigation.isFocused() ? 0 : 1)).current;
 
+  /*
+    As rolagens que a tela registrou. Um `Set`, e não uma só: o Perfil e a
+    vistoria têm mais de uma `ScrollView` atrás de retornos diferentes, e a
+    que estiver montada é a que vai ao topo.
+  */
+  const rolagens = useRef(new Set<RefObject<Rolavel | null>>()).current;
+  const registrarRolagem = useCallback((referencia: RefObject<Rolavel | null>) => {
+    rolagens.add(referencia);
+    return () => { rolagens.delete(referencia); };
+  }, [rolagens]);
+  const registro = useMemo(() => ({ registrarRolagem }), [registrarRolagem]);
+
   useEffect(() => {
     const entrar = () => {
+      for (const referencia of rolagens) {
+        if (referencia.current) levarAoTopo(referencia.current);
+      }
       if (reduzirMovimento) {
         presenca.setValue(1);
         return;
@@ -89,19 +149,21 @@ export function CenaDaAba({ navigation, children }: { navigation: NavegacaoDaCen
     };
     if (navigation.isFocused()) entrar();
     return navigation.addListener("focus", entrar);
-  }, [navigation, presenca, reduzirMovimento]);
+  }, [navigation, presenca, reduzirMovimento, rolagens]);
 
   return (
-    <Animated.View
-      testID="cena-da-aba"
-      style={{
-        flex: 1,
-        opacity: presenca,
-        transform: [{ translateY: presenca.interpolate({ inputRange: [0, 1], outputRange: [espaco.e2, 0] }) }],
-      }}
-    >
-      {children}
-    </Animated.View>
+    <ContextoDaCena.Provider value={registro}>
+      <Animated.View
+        testID="cena-da-aba"
+        style={{
+          flex: 1,
+          opacity: presenca,
+          transform: [{ translateY: presenca.interpolate({ inputRange: [0, 1], outputRange: [espaco.e2, 0] }) }],
+        }}
+      >
+        {children}
+      </Animated.View>
+    </ContextoDaCena.Provider>
   );
 }
 

@@ -32,6 +32,7 @@ arquivo e a linha do código que a sustenta. Se uma afirmação não tiver essa
 | Localização, primeiro plano | mesmo arquivo, `capturarGps()`, linha 326 (`requestForegroundPermissionsAsync`) | Quando o agente toca em capturar a coordenada |
 | Localização, última posição conhecida (sem pedir permissão e sem ligar o GPS) | `apps/campo/src/app/(agente)/mapa.tsx`, `verOndeEstou()`, linhas 359 a 361, e `apps/campo/src/app/(agente)/index.tsx`, linhas 316 a 318 (`getForegroundPermissionsAsync` seguido de `getLastKnownPositionAsync`) | Ao abrir a tela do mapa ou a de tarefas, só se a permissão já foi concedida na vistoria. Lê a posição que o sistema já tinha; não pede permissão e não liga o rádio |
 | Notificação | `apps/campo/src/push/permissao.ts`, `proximoPasso`, linhas 57 a 87 | Nunca antes do primeiro login, e uma vez só |
+| Notificação local, som e vibração (desde 15/09/2026) | `apps/campo/src/push/ProvedorDePush.tsx`, bloco 7, e `apps/campo/src/push/PortaExpo.ts`, `avisarLocalmente` | Quando a atualização periódica da lista traz uma ocorrência despachada que não estava lá. Usa a mesma permissão de notificação já concedida: não há pedido novo. O som (`assets/sons/despacho.wav`) é gerado por código e embarcado no binário; o aplicativo **toca** som e **não grava** som (`RECORD_AUDIO` continua bloqueado) |
 | Câmera (da frente), para a foto de perfil | `apps/campo/src/dados/foto-do-agente.ts`, `escolherFoto("camera")` | Quando o agente toca em "Tirar foto agora" no Perfil. Mesma permissão e mesmo texto da câmera da vistoria |
 | Seletor de fotos do sistema, para a foto de perfil (desde 15/09/2026) | `apps/campo/src/dados/foto-do-agente.ts`, `escolherFoto("galeria")` | Quando o agente toca em "Escolher da galeria" no Perfil. **Não pede permissão de biblioteca**: o seletor abre fora do processo (Photo Picker no Android, seletor do sistema no iOS) e só a imagem tocada chega ao aplicativo. O binário declara `NSPhotoLibraryUsageDescription`, em português, porque a Apple exige a chave quando o seletor é usado |
 
@@ -373,7 +374,7 @@ declara sozinha. Conferida com `npx expo config --type introspect`, com a pasta
 | `ACCESS_COARSE_LOCATION` | `app.config.ts`, linha 165 | Concedida junto com a acima |
 | `POST_NOTIFICATIONS` | `expo-notifications` | Aviso de tarefa nova e de prazo vencendo |
 | `RECEIVE_BOOT_COMPLETED` | `expo-notifications` | Restaurar aviso agendado depois de o aparelho reiniciar. É comportamento da biblioteca, declarado no `AndroidManifest.xml` dela |
-| `VIBRATE` | modelo base do Expo | O canal de urgência vibra (`push/PortaExpo.ts`, linha 128) |
+| `VIBRATE` | modelo base do Expo | O canal de despacho e o de urgência vibram (`push/canais.ts`, linhas 80 e 107 a 138; a tradução para o sistema está em `push/PortaExpo.ts`, linhas 133 a 135) |
 
 E as que foram **bloqueadas nesta entrega**, com o motivo, em
 `app.config.ts`, linhas 169 a 209:
@@ -463,6 +464,49 @@ curto na opção do plugin `expo-camera`. A opção do plugin sempre ganha (ver
 ao binário. Agora existe uma constante só, usada nos dois lugares
 (`app.config.ts`, linhas 39 a 48).
 
+### 6.6 O despacho passou a tocar em toda severidade, com som próprio (15/09/2026)
+
+Até esta data o aviso só tocava para severidade alta e crítica, inclusive na
+tarefa nova. A decisão, na letra de quem paga: o celular do agente deve
+obrigatoriamente ser notificado, vibrado ou sonoro, de que recebeu uma nova
+ocorrência, com som característico. O argumento anterior (um aviso de baixa
+severidade tocando de madrugada ensina a calar o aplicativo inteiro) continua
+valendo para o **prazo**, que é relógio, e deixou de valer para o **despacho**,
+que é uma pessoa decidindo agora que a equipe vai. O raciocínio inteiro está em
+`apps/campo/src/push/canais.ts`.
+
+O que muda no binário e na declaração:
+
+- **Um arquivo de som embarcado**, `apps/campo/assets/sons/despacho.wav` (PCM 16
+  bits, 44,1 kHz, mono, 1,2 s), gerado por `scripts/gerar-som-de-despacho.mjs` e
+  declarado ao plugin do `expo-notifications` em `app.config.ts` (`sounds`). O
+  aplicativo **toca** som; continua **não gravando** som, e `RECORD_AUDIO` continua
+  bloqueado (seção 5).
+- **Um canal novo no Android**, `dc360.despacho.v1`, com o som acima, vibração
+  explícita e importância máxima. Os dois canais anteriores continuam, agora só
+  para o aviso de prazo. `bypassDnd` não é ligado pelo aplicativo: furar o "Não
+  perturbe" é escolha da pessoa nos ajustes do canal.
+- **Um direito novo no iOS**, `com.apple.developer.usernotifications.time-sensitive`
+  (`app.config.ts`, `ios.entitlements`), exigido pelo `interruption-level:
+  time-sensitive` que o servidor manda no despacho. Não é o alerta crítico (que
+  fura o modo silencioso e exige aprovação caso a caso da Apple); esse continua
+  fora.
+- **Um aviso local**: com o aplicativo aberto, a atualização periódica da lista
+  descobre a ocorrência despachada e mostra a mesma notificação, com o mesmo
+  texto genérico, o mesmo som e o mesmo canal, mais o retorno tátil. Nenhum dado
+  novo sai do aparelho por causa disso: o aviso local não vai à rede.
+
+O aviso de despacho sai do **servidor** no momento do despacho: `POST
+/ocorrencias/:id/despacho` enfileira uma linha `tarefa_nova` por aparelho vivo da
+equipe, na mesma transação que grava o despacho, e a varredura de avisos (a mesma
+do prazo, a cada cinco minutos) a envia à APNs e ao FCM (migração 042).
+
+O que **não** muda: a vitrine continua genérica ("Nova tarefa", sem protocolo e
+sem endereço), com a mesma trava de tempo de execução dos dois lados
+(`apps/api/src/push/mensagem.ts` e `apps/campo/src/push/aviso-local.ts`), e o
+dado da mensagem continua sendo `tipo`, `organizacaoId`, `ocorrenciaId`,
+`severidade` e `prazoEm`.
+
 ---
 
 ## 7. O que ainda trava a submissão
@@ -493,7 +537,10 @@ Nomeado, para não virar surpresa no dia do envio.
    cabeçalho). Isso não impede submeter, mas impede afirmar que a permissão de
    notificação, a câmera e o GPS se comportam como este documento descreve. As
    afirmações daqui são sobre o que o código pede e envia, que é o que o
-   formulário pergunta.
+   formulário pergunta. O som de despacho (seção 6.6) está na mesma situação:
+   o arquivo está na régua das duas lojas e o cabeçalho é conferido por portão,
+   mas ele nunca tocou num aparelho, e só chega ao binário depois de
+   `npx expo prebuild`.
 7. **A decisão sobre a assinatura como dado biométrico** (seção 3) continua
    aberta e depende do encarregado de dados.
 

@@ -1,15 +1,16 @@
-import { useState } from "react";
+import { useCallback } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { ROTULO_PAPEL, podeExecutar, type Acao } from "@dc360/shared";
 import { useSessao, useTema } from "../estado/sessao";
 import { encerrarSessao } from "../dados/repositorio";
 import { iniciais } from "./comuns";
 import {
-  IconeAlerta, IconeBusca, IconeDocumento, IconeEquipes, IconeLua, IconeMapa,
+  IconeAlerta, IconeDocumento, IconeEquipes, IconeLua, IconeMapa,
   IconeOcorrencias, IconePainel, IconePrancheta, IconePredio, IconeSair,
   IconeSol, IconeUsuarios,
 } from "./Icones";
 import { Sino } from "./Sino";
+import { BuscaGlobal } from "./BuscaGlobal";
 
 /**
  * Estrutura fixa da aplicação: lateral de navegação, topo com busca e
@@ -22,6 +23,12 @@ import { Sino } from "./Sino";
 
 type ItemNav = {
   para: string; rotulo: string; icone: JSX.Element; grupo: string;
+  /**
+   * Outros nomes pelos quais a busca do topo acha esta página. O rótulo já
+   * conta sozinho; aqui entra o que a pessoa DIZ quando procura ("time" para
+   * equipe, "chamado" para ocorrência).
+   */
+  sinonimos?: readonly string[];
   /** Só aparece para quem pode executar esta ação. */
   exige?: Acao;
   /** Só aparece para quem NÃO pode executar esta ação. */
@@ -39,12 +46,16 @@ type ItemNav = {
 */
 const NAVEGACAO: ItemNav[] = [
   { para: "/meu-trabalho", rotulo: "Meu trabalho", icone: <IconePrancheta />,
-    grupo: "Operação", exige: "registrar_vistoria" },
+    grupo: "Operação", exige: "registrar_vistoria",
+    sinonimos: ["tarefas", "minhas vistorias", "vistoria", "campo"] },
   { para: "/painel", rotulo: "Painel", icone: <IconePainel />, grupo: "Operação",
-    escondeSePuder: "registrar_vistoria" },
+    escondeSePuder: "registrar_vistoria",
+    sinonimos: ["início", "indicadores", "resumo", "fila de hoje"] },
   { para: "/ocorrencias", rotulo: "Ocorrências", icone: <IconeOcorrencias />, grupo: "Operação",
-    escondeSePuder: "registrar_vistoria" },
-  { para: "/mapa", rotulo: "Mapa da cidade", icone: <IconeMapa />, grupo: "Operação" },
+    escondeSePuder: "registrar_vistoria",
+    sinonimos: ["chamado", "chamados", "protocolo", "fila", "lista de ocorrências"] },
+  { para: "/mapa", rotulo: "Mapa da cidade", icone: <IconeMapa />, grupo: "Operação",
+    sinonimos: ["mapa", "pinos", "localização", "geografia"] },
   /*
     Fica em Operação e não em Administração, e fica ACIMA das telas de cadastro
     de propósito: é a única tela do produto cujo assunto é a integridade física
@@ -57,9 +68,10 @@ const NAVEGACAO: ItemNav[] = [
   */
   { para: "/quem-esta-em-campo", rotulo: "Quem está em campo", icone: <IconeAlerta />,
     grupo: "Operação", exige: "acompanhar_saida_a_campo",
-    escondeSePuder: "registrar_vistoria" },
+    escondeSePuder: "registrar_vistoria",
+    sinonimos: ["saída a campo", "agentes em campo", "prazo de retorno", "quem saiu"] },
   { para: "/equipes", rotulo: "Equipes", icone: <IconeEquipes />, grupo: "Administração",
-    exige: "gerenciar_equipes" },
+    exige: "gerenciar_equipes", sinonimos: ["time", "times", "equipe de campo"] },
   /*
     O catálogo de órgãos fica atrás de `gerenciar_equipes`, e não de
     `gerenciar_organizacao`, pela mesma razão que a rota do servidor: ele é
@@ -69,54 +81,34 @@ const NAVEGACAO: ItemNav[] = [
     para cadastrar "Corpo de Bombeiros".
   */
   { para: "/orgaos", rotulo: "Órgãos de destino", icone: <IconePredio />,
-    grupo: "Administração", exige: "gerenciar_equipes" },
+    grupo: "Administração", exige: "gerenciar_equipes",
+    sinonimos: ["órgão", "órgãos", "destino", "secretaria", "bombeiros", "providência"] },
   { para: "/usuarios", rotulo: "Usuários", icone: <IconeUsuarios />, grupo: "Administração",
-    exige: "gerenciar_usuarios" },
+    exige: "gerenciar_usuarios",
+    sinonimos: ["conta", "contas", "pessoa", "pessoas", "cadastro de pessoas"] },
   { para: "/auditoria", rotulo: "Prestação de contas", icone: <IconeDocumento />,
-    grupo: "Administração", exige: "consultar_trilha" },
+    grupo: "Administração", exige: "consultar_trilha",
+    sinonimos: ["auditoria", "trilha", "relatório", "histórico", "exportar", "csv"] },
 ];
 
 export function Estrutura() {
   const { sessao, sair } = useSessao();
   const [tema, alternarTema] = useTema();
   const navegar = useNavigate();
-  const [busca, setBusca] = useState("");
+
+  // Revoga no servidor antes de esquecer localmente: sem isso, o token de
+  // renovação continuaria valendo por dias. É o mesmo caminho para o botão da
+  // lateral e para a ação "Sair" da busca do topo.
+  const encerrarESair = useCallback(() => {
+    void encerrarSessao().finally(() => { sair(); navegar("/entrar"); });
+  }, [sair, navegar]);
 
   if (!sessao) return null;
-  // Capturado aqui porque `enviarBusca` é declaração içada, e o TypeScript não
-  // leva o estreitamento do `if` acima para dentro dela.
-  const papel = sessao.papel;
 
   const visiveis = NAVEGACAO.filter((i) =>
     (!i.exige || podeExecutar(sessao.papel, i.exige)) &&
     (!i.escondeSePuder || !podeExecutar(sessao.papel, i.escondeSePuder)));
   const grupos = [...new Set(visiveis.map((i) => i.grupo))];
-
-  function enviarBusca(evento: React.FormEvent) {
-    evento.preventDefault();
-    const termo = busca.trim();
-
-    /*
-      A busca leva cada papel para o lugar dele.
-
-      O menu esconde "Ocorrências" de quem registra vistoria, de propósito: o
-      agente de campo trabalha sobre o que foi despachado para a equipe dele, e
-      não sobre a fila do município inteiro. Mas a caixa de busca aparece em
-      toda tela, para todo mundo, e mandava todos para `/ocorrencias`.
-
-      O resultado era uma contradição de produto: o controle mais visível da
-      interface alcançava a tela que o menu decidiu esconder. E o beco vinha
-      logo depois, porque abrir uma ocorrência de outra equipe renderiza a
-      página inteira sem uma única ação disponível, sem dizer por quê.
-
-      Não era vazamento: o município vem do token e o RLS continua de pé. Era
-      pior de outro jeito, porque não parecia erro nenhum.
-    */
-    const destino = podeExecutar(papel, "registrar_vistoria")
-      ? "/meu-trabalho"
-      : "/ocorrencias";
-    navegar(termo ? `${destino}?busca=${encodeURIComponent(termo)}` : destino);
-  }
 
   return (
     <div className="aplicacao">
@@ -154,12 +146,7 @@ export function Estrutura() {
             {tema === "claro" ? <IconeLua /> : <IconeSol />}
             {tema === "claro" ? "Tema escuro" : "Tema claro"}
           </button>
-          <button type="button" className="lateral__item"
-                  onClick={() => {
-                    // Revoga no servidor antes de esquecer localmente: sem
-                    // isso, o token de renovação continuaria valendo por dias.
-                    void encerrarSessao().finally(() => { sair(); navegar("/entrar"); });
-                  }}
+          <button type="button" className="lateral__item" onClick={encerrarESair}
                   style={{ border: "none", background: "transparent", cursor: "pointer", width: "100%" }}>
             <IconeSair />
             Sair
@@ -168,15 +155,32 @@ export function Estrutura() {
       </nav>
 
       <header className="topo">
-        <form className="topo__busca" role="search" onSubmit={enviarBusca}>
-          <IconeBusca />
-          <label className="oculto-visualmente" htmlFor="busca-global">
-            Buscar por protocolo, endereço ou solicitante
-          </label>
-          <input id="busca-global" type="search" value={busca}
-                 onChange={(e) => setBusca(e.target.value)}
-                 placeholder="Buscar protocolo, endereço ou solicitante" />
-        </form>
+        {/*
+          A MARCA NO TOPO. Em tela estreita a lateral vai para o rodapé e a
+          marca dela some (`.lateral__marca { display: none }`), e o painel
+          ficava sem cara nenhuma. É o mesmo `/icone.svg` do ícone do site e
+          da prévia de link: uma marca só, desenhada uma vez, em `public/`.
+          Leva ao início, com o nome dito para quem ouve a tela.
+        */}
+        <NavLink to="/painel" className="topo__marca">
+          <img src="/icone.svg" alt="" width={40} height={40} />
+          <span className="oculto-visualmente">Início, Defesa Civil 360</span>
+        </NavLink>
+
+        {/*
+          A caixa de comando: registro e função do painel numa caixa só. As
+          páginas que ela indexa são EXATAMENTE as que o menu acima mostra
+          (`visiveis`), e as ações passam pelo mesmo `podeExecutar`. O Enter
+          sem item escolhido continua levando à lista com `?busca=`; a razão
+          de produto está no próprio componente.
+        */}
+        <BuscaGlobal
+          papel={sessao.papel}
+          paginas={visiveis}
+          tema={tema}
+          aoTrocarTema={alternarTema}
+          aoSair={encerrarESair}
+        />
 
         <div className="topo__direita">
           {/*

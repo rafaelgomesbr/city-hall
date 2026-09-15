@@ -231,6 +231,20 @@ describe("Paridade entre o modo com servidor e o modo de demonstração", () => 
     ).toContain("configuracaoDoPainel");
   });
 
+  it("a busca global chegou aos dois modos", () => {
+    /*
+      A caixa do topo consulta o servidor, e a demonstração não tem servidor.
+      Se `buscar` existisse só em `http.ts`, a reunião com a prefeitura teria
+      uma caixa que promete registro e só acha função. Citada por extenso pela
+      mesma razão das rotas de senha: esquecimento simétrico passa pela regra
+      geral.
+    */
+    expect(typeof superficieApi["buscar"], "buscar em http.ts").toBe("function");
+    expect(typeof superficieLocal["buscar"], "buscar em local.ts").toBe("function");
+    expect(Object.keys(repositorio), "buscar precisa sair de dados/ para a caixa alcançar")
+      .toContain("buscar");
+  });
+
   it("as rotas de senha e sessão chegaram aos dois modos", () => {
     /*
       Âncora nominal do que este turno ligou. As três rotas existiam na API com

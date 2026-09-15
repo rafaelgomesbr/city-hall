@@ -78,3 +78,61 @@ test("a escolha do ambiente continua morando no app.config.ts, e não escrita à
     "Escrito à mão, ele erra na direção que não avisa.",
   );
 });
+
+/* ------------------------------------------------------------------------
+   O som de despacho e o direito que ele exige (15/09/2026).
+
+   Mesma classe de defeito do `aps-environment`, e o mesmo remédio: o
+   `app.config.ts` está certo, e o projeto gerado só fica certo depois do
+   `prebuild`. Estes dois casos reprovam na máquina que tem `ios/` de uma
+   versão anterior, e a mensagem diz o que rodar.
+   ------------------------------------------------------------------------ */
+const SOM_NO_PROJETO_IOS = `${PASTA_IOS}/DefesaCivil360/despacho.wav`;
+const DIREITO_SENSIVEL_AO_TEMPO = "com.apple.developer.usernotifications.time-sensitive";
+
+/*
+   O direito sensível ao tempo é OPCIONAL e depende da conta da Apple: só
+   entra com `DC360_TIME_SENSITIVE=sim` no ambiente do prebuild, depois de a
+   capacidade estar ligada no App ID (o porquê está em `app.config.ts`). O
+   portão exige que o projeto gerado CONCORDE com a variável: ligado, o
+   direito está lá; desligado, não está (um direito que o perfil não cobre
+   derruba a compilação com "doesn't include the ... capability").
+   ------------------------------------------------------------------------ */
+const SENSIVEL_LIGADO = process.env["DC360_TIME_SENSITIVE"] === "sim";
+
+test("o entitlements gerado concorda com DC360_TIME_SENSITIVE sobre o direito sensível ao tempo", { skip: !existsSync(ENTITLEMENTS) && "sem projeto iOS gerado" }, () => {
+  const texto = readFileSync(ENTITLEMENTS, "utf8");
+  const declara = new RegExp(`<key>${DIREITO_SENSIVEL_AO_TEMPO.replace(/\./g, "\\.")}</key>\\s*<true/>`).test(texto);
+  if (SENSIVEL_LIGADO) {
+    assert.ok(declara,
+      `DC360_TIME_SENSITIVE=sim e o entitlements gerado não declara ${DIREITO_SENSIVEL_AO_TEMPO}. ` +
+      "Regenere: npx expo prebuild --platform ios --clean");
+  } else {
+    assert.ok(!declara,
+      `O entitlements gerado declara ${DIREITO_SENSIVEL_AO_TEMPO} sem DC360_TIME_SENSITIVE=sim. ` +
+      "Sem a capacidade no App ID a compilação para. Ou ligue a variável (com a capacidade " +
+      "ligada no portal da Apple), ou regenere: npx expo prebuild --platform ios --clean");
+  }
+});
+
+test("o som de despacho foi copiado para o projeto iOS", { skip: !existsSync(PASTA_IOS) && "sem pasta ios/ nesta máquina" }, () => {
+  assert.ok(
+    existsSync(SOM_NO_PROJETO_IOS),
+    `${SOM_NO_PROJETO_IOS} não existe. O plugin do expo-notifications copia o ` +
+    "arquivo de `sounds` no prebuild; sem ele o `aps.sound = \"despacho.wav\"` que o " +
+    "servidor manda cai no som padrão do sistema, sem erro. " +
+    "Regenere: npx expo prebuild --platform ios",
+  );
+});
+
+test("o app.config.ts pede o direito atrás da variável, e declara o som", () => {
+  const config = readFileSync(APP_CONFIG, "utf8");
+  assert.match(
+    config, /DC360_TIME_SENSITIVE"\] === "sim"[\s\S]{0,120}"com\.apple\.developer\.usernotifications\.time-sensitive": true/,
+    "app.config.ts deixou de pedir o direito de notificação sensível ao tempo atrás de DC360_TIME_SENSITIVE.",
+  );
+  assert.match(
+    config, /sounds: \["\.\/assets\/sons\/despacho\.wav"\]/,
+    "app.config.ts deixou de declarar o som de despacho ao plugin do expo-notifications.",
+  );
+});

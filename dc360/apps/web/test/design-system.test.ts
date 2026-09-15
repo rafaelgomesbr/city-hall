@@ -181,6 +181,74 @@ describe("Nenhum valor de design escrito à mão", () => {
     ).toEqual([]);
   });
 
+  it("a lupa da busca não fica sobre o texto: quem afasta o texto vence a regra genérica de campo", () => {
+    /*
+      Defeito visto na tela: a lupa desenhada em cima do placeholder da busca.
+
+      A causa foi MEDIDA, não chutada. A regra genérica de campo é
+      `input:not([type="checkbox"]):not(...)` oito vezes, e cada `:not([type])`
+      conta como um atributo: especificidade (0,8,1). A regra que afastava o
+      texto era `.topo__busca input`, (0,1,1). O `padding` da genérica, mais
+      forte e mais abaixo no arquivo, reescrevia o `padding-left` da busca, e
+      o texto começava a 12px, debaixo de um ícone de 18px.
+
+      A régua, então: toda regra que estilize UM campo específico precisa
+      vencer (0,8,1). Este portão calcula as duas especificidades e reprova
+      quando a da busca perde, para que o próximo `.alguma-coisa input` não
+      volte a perder em silêncio.
+    */
+    const css = readFileSync(join(RAIZ, "estilos", "app.css"), "utf8");
+
+    function especificidade(seletor: string): [number, number, number] {
+      let a = 0, b = 0, c = 0;
+      // `:not(X)` vale o que X vale.
+      const semNot = seletor.replace(/:not\(([^)]*)\)/g, (_, dentro: string) => {
+        const [x, y, z] = especificidade(dentro);
+        a += x; b += y; c += z;
+        return "";
+      });
+      a += (semNot.match(/#[\w-]+/g) ?? []).length;
+      b += (semNot.match(/\.[\w-]+|\[[^\]]+\]|:(?!:)[\w-]+/g) ?? []).length;
+      c += (semNot.match(/(^|[\s>+~])[a-z][\w-]*/gi) ?? []).length;
+      return [a, b, c];
+    }
+    function vence(x: [number, number, number], y: [number, number, number]): boolean {
+      for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i]! > y[i]!;
+      return false;
+    }
+
+    const generica = css.split("\n").find((l) => l.startsWith("input:not(")) ?? "";
+    expect(generica, "âncora: a regra genérica de campo ainda existe").not.toBe("");
+    const daGenerica = especificidade(generica.replace(/,\s*$/, ""));
+    expect(daGenerica[1], "a genérica continua carregando os :not([type])").toBeGreaterThanOrEqual(8);
+
+    // A regra que afasta o texto da lupa: qualquer seletor da busca do topo que
+    // declare padding-left (ou padding-inline-start).
+    const regras = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .map((m) => ({ seletor: m[1]!.trim(), corpo: m[2]! }))
+      .filter((r) => /topo__busca|busca-global/.test(r.seletor)
+        && /padding-(left|inline-start)\s*:/.test(r.corpo));
+    expect(regras.length, "não achei a regra que afasta o texto da lupa").toBeGreaterThan(0);
+
+    const perdedoras = regras
+      .filter((r) => !vence(especificidade(r.seletor), daGenerica))
+      .map((r) => `${r.seletor} (${especificidade(r.seletor).join(",")}) perde para a genérica (${daGenerica.join(",")})`);
+    expect(
+      perdedoras,
+      "a regra que afasta o texto da lupa perde para a regra genérica de campo, "
+      + "e o `padding` dela reescreve o `padding-left`: a lupa volta para cima "
+      + "do texto. Dê à regra da busca especificidade maior que a genérica:\n"
+      + perdedoras.join("\n"),
+    ).toEqual([]);
+
+    // Prova de que o cálculo mede o que diz medir.
+    expect(especificidade(".topo__busca input")).toEqual([0, 1, 1]);
+    expect(especificidade('input:not([type="a"]):not([type="b"])')).toEqual([0, 2, 1]);
+    expect(especificidade(".topo__busca #busca-global")).toEqual([1, 1, 0]);
+    expect(vence([0, 1, 1], [0, 8, 1])).toBe(false);
+    expect(vence([1, 0, 0], [0, 8, 1])).toBe(true);
+  });
+
   it("a varredura não reclama do que está certo", () => {
     const corretos = [
       "color: var(--ds-text);",

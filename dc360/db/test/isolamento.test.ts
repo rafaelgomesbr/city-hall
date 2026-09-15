@@ -612,9 +612,18 @@ describe("Funções privilegiadas", () => {
       tabelas com `row_security = off`: com um dono sem BYPASSRLS ela estoura
       em vez de dizer "senha redefinida" com a senha velha no lugar. Os casos
       estão em `db/test/recuperacao-do-console.test.ts`.
+
+      Subiu de 26 para 27 em 15/09/2026, por `varrer_tarefas_novas` (migração
+      042), pela razão exata de `varrer_prazos`: o aviso de tarefa nova é
+      enfileirado pelo despacho, dentro do contexto do município, mas quem o
+      ENVIA é o relógio, sem ninguém logado, e sem município no contexto o
+      papel de aplicação não enxergaria uma pendente sequer. Mesma forma da
+      irmã, e mais estreita na saída: sem município de parâmetro, sem filtro
+      de quem chama, e não devolve protocolo nem endereço. O bloco "O aviso de
+      despacho nasce na aplicacao, pela porta estreita da 042" guarda a forma.
     */
     expect(lista.length, `funções SECURITY DEFINER demais: ${lista.map((f) => f.nome).join(", ")}`)
-      .toBeLessThanOrEqual(26);
+      .toBeLessThanOrEqual(27);
   });
 
   it("toda função privilegiada fixa o search_path", async () => {
@@ -1729,6 +1738,216 @@ describe("Aparelho de push e aviso de prazo", () => {
         `a varredura passou a devolver ${proibido}, e isso sai do pais na notificacao`,
       ).not.toContain(proibido);
     }
+  });
+});
+
+describe("O aviso de despacho nasce na aplicacao, pela porta estreita da 042", () => {
+  /**
+   * A migracao 016 deixou escrito que o papel de aplicacao NAO tinha INSERT em
+   * `notificacoes_enviadas`, e que quem escrevesse o aviso de tarefa nova
+   * ("ele nasce no despacho, dentro do contexto do municipio") concederia o
+   * INSERT na propria migracao, de forma deliberada. A 042 e essa migracao.
+   *
+   * O que este bloco prova e que a porta e ESTREITA em tres direcoes:
+   *
+   *   1. isolamento: a linha so entra carimbada com o municipio do contexto,
+   *      apontando para aparelho e ocorrencia desse mesmo municipio;
+   *   2. forma: a aplicacao so enfileira (`tarefa_nova`, `pendente`). Ela nao
+   *      registra entrega, nao inventa `entregue` e nao cria aviso de prazo,
+   *      que continua nascendo so dentro de `varrer_prazos`;
+   *   3. a funcao que reivindica as pendentes, `varrer_tarefas_novas`, tem a
+   *      mesma forma da `varrer_prazos`: sem municipio de parametro, sem dado
+   *      de pessoa na saida, e devolve cada pendente UMA vez.
+   */
+  let agenteDeA: string;
+  let equipeDeA: string;
+  let aparelhoDeA: string;
+  let ocorrenciaDeA: string;
+  let aparelhoDeB: string;
+  let ocorrenciaDeBDespachada: string;
+
+  beforeAll(async () => {
+    const eqA = await db.query<{ id: string }>(
+      "INSERT INTO equipes (organizacao_id, nome) VALUES ($1, 'Equipe do despacho A') RETURNING id",
+      [orgA],
+    );
+    equipeDeA = eqA.rows[0]!.id;
+    const uA = await db.query<{ id: string }>(
+      `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel, equipe_id)
+       VALUES ($1, 'Agente do despacho A', 'SA-DESP-1', 'desp.sa@exemplo.gov.br', 'agente_campo', $2)
+       RETURNING id`,
+      [orgA, equipeDeA],
+    );
+    agenteDeA = uA.rows[0]!.id;
+    const apA = await db.query<{ id: string }>(
+      `INSERT INTO aparelhos (organizacao_id, usuario_id, plataforma, ficha)
+       VALUES ($1,$2,'android','ficha-do-despacho-a') RETURNING id`,
+      [orgA, agenteDeA],
+    );
+    aparelhoDeA = apA.rows[0]!.id;
+    const ocA = await db.query<{ id: string }>(
+      `INSERT INTO ocorrencias
+         (organizacao_id, protocolo, tipo, status, severidade, endereco, solicitante_nome,
+          canal_entrada, descricao, equipe_id, prazo_em)
+       VALUES ($1,'000942/2026','deslizamento','em_campo','media','Rua do Despacho, 42','Fulano',
+               'telefone','x',$2, now() + interval '40 hours')
+       RETURNING id`,
+      [orgA, equipeDeA],
+    );
+    ocorrenciaDeA = ocA.rows[0]!.id;
+
+    const eqB = await db.query<{ id: string }>(
+      "INSERT INTO equipes (organizacao_id, nome) VALUES ($1, 'Equipe do despacho B') RETURNING id",
+      [orgB],
+    );
+    const uB = await db.query<{ id: string }>(
+      `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel, equipe_id)
+       VALUES ($1, 'Agente do despacho B', 'VF-DESP-1', 'desp.vf@exemplo.gov.br', 'agente_campo', $2)
+       RETURNING id`,
+      [orgB, eqB.rows[0]!.id],
+    );
+    const apB = await db.query<{ id: string }>(
+      `INSERT INTO aparelhos (organizacao_id, usuario_id, plataforma, ficha)
+       VALUES ($1,$2,'ios','ficha-do-despacho-b') RETURNING id`,
+      [orgB, uB.rows[0]!.id],
+    );
+    aparelhoDeB = apB.rows[0]!.id;
+    const ocB = await db.query<{ id: string }>(
+      `INSERT INTO ocorrencias
+         (organizacao_id, protocolo, tipo, status, severidade, endereco, solicitante_nome,
+          canal_entrada, descricao, equipe_id, prazo_em)
+       VALUES ($1,'000942/2026','inundacao','em_campo','alta','Avenida do Despacho, 9','Beltrano',
+               'telefone','x',$2, now() + interval '20 hours')
+       RETURNING id`,
+      [orgB, eqB.rows[0]!.id],
+    );
+    ocorrenciaDeBDespachada = ocB.rows[0]!.id;
+  });
+
+  const INSERIR = `INSERT INTO notificacoes_enviadas
+                     (organizacao_id, aparelho_id, ocorrencia_id, tipo, desfecho, tentativas)
+                   VALUES ($1,$2,$3,$4,$5,0)`;
+
+  it("nao enfileira aviso carimbado com o id de outro municipio", async () => {
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(INSERIR, [orgB, aparelhoDeB, ocorrenciaDeBDespachada, "tarefa_nova", "pendente"]),
+      ),
+    ).rejects.toThrow();
+    const conf = await db.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM notificacoes_enviadas WHERE organizacao_id = $1",
+      [orgB],
+    );
+    expect(conf.rows[0]!.n, "Serra Alta escreveu aviso no nome de Vale Fundo").toBe("0");
+  });
+
+  it("nao enfileira aviso para aparelho de outro municipio, nem carimbado com o proprio id", async () => {
+    /*
+      A policy deixa passar (o carimbo e o do contexto); quem barra e a chave
+      estrangeira composta da 016, `(organizacao_id, aparelho_id)`, que e a
+      unica coisa que fecha esta porta: RLS nao confere para onde a linha
+      aponta.
+    */
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(INSERIR, [orgA, aparelhoDeB, ocorrenciaDeA, "tarefa_nova", "pendente"]),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("a aplicacao so enfileira: nao registra entrega nem cria aviso de prazo", async () => {
+    /*
+      `entregue` escrito pela aplicacao seria a aplicacao respondendo "voce foi
+      avisado as 14h32" sem ter avisado ninguem: e a resposta que o suporte da
+      ao agente, e ela so pode vir de quem falou com a Apple ou com o Google.
+      Aviso de prazo continua nascendo so dentro de `varrer_prazos`.
+    */
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(INSERIR, [orgA, aparelhoDeA, ocorrenciaDeA, "tarefa_nova", "entregue"]),
+      ),
+    ).rejects.toThrow();
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(INSERIR, [orgA, aparelhoDeA, ocorrenciaDeA, "prazo_vencendo", "pendente"]),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("enfileira a tarefa nova pendente para aparelho e ocorrencia do proprio municipio", async () => {
+    // O caso positivo, sem o qual os tres de cima passariam por falta de GRANT.
+    await expect(
+      comoApp(orgA, (tx) =>
+        tx.query(INSERIR, [orgA, aparelhoDeA, ocorrenciaDeA, "tarefa_nova", "pendente"]),
+      ),
+    ).resolves.toBeDefined();
+
+    const deA = await comoApp(orgA, (tx) =>
+      tx.query<{ desfecho: string; tentativas: number }>(
+        "SELECT desfecho, tentativas FROM notificacoes_enviadas WHERE ocorrencia_id = $1 AND tipo = 'tarefa_nova'",
+        [ocorrenciaDeA],
+      ),
+    );
+    expect(deA.rows).toHaveLength(1);
+    expect(deA.rows[0]!.desfecho).toBe("pendente");
+    expect(deA.rows[0]!.tentativas).toBe(0);
+
+    const deB = await comoApp(orgB, (tx) =>
+      tx.query("SELECT id FROM notificacoes_enviadas WHERE ocorrencia_id = $1", [ocorrenciaDeA]),
+    );
+    expect(deB.rows, "Vale Fundo enxergou o aviso de despacho de Serra Alta").toHaveLength(0);
+  });
+
+  it("a varredura de tarefa nova nao aceita municipio de quem chama e nao devolve dado de pessoa", async () => {
+    const assinatura = await db.query<{ args: string; resultado: string }>(
+      `SELECT pg_get_function_identity_arguments(p.oid) AS args,
+              pg_get_function_result(p.oid) AS resultado
+         FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'varrer_tarefas_novas'`,
+    );
+    expect(assinatura.rows, "a funcao varrer_tarefas_novas nao existe").toHaveLength(1);
+    expect(
+      assinatura.rows[0]!.args,
+      "a varredura de tarefa nova aceita parametro de municipio, e com isso virou "
+      + "uma porta para ler dado de um municipio escolhido por quem chama",
+    ).not.toMatch(/uuid/);
+    for (const proibido of ["solicitante", "descricao", "vulnerabilidade", "contato", "nome",
+                            "protocolo", "endereco"]) {
+      expect(
+        assinatura.rows[0]!.resultado,
+        `a varredura de tarefa nova devolve ${proibido}, e isso sai do pais na notificacao`,
+      ).not.toContain(proibido);
+    }
+  });
+
+  it("a varredura reivindica a pendente uma vez so, e a devolve com a ficha do aparelho", async () => {
+    /*
+      Sem contexto de municipio, como o relogio roda: e a funcao que precisa
+      enxergar, nao o papel. A segunda chamada nao devolve nada, porque a
+      linha ja esta reivindicada (`enviando`) e a espera ainda nao passou:
+      duas maquinas do Fly nao mandam o mesmo despacho duas vezes.
+    */
+    const primeira = await comoApp(null, (tx) =>
+      tx.query<{ notificacao_id: string; organizacao_id: string; ficha: string; plataforma: string }>(
+        "SELECT * FROM varrer_tarefas_novas($1::interval, $2, $3)", ["10 minutes", 5, 500],
+      ),
+    );
+    expect(primeira.rows).toHaveLength(1);
+    expect(primeira.rows[0]!.organizacao_id).toBe(orgA);
+    expect(primeira.rows[0]!.ficha).toBe("ficha-do-despacho-a");
+    expect(primeira.rows[0]!.plataforma).toBe("android");
+
+    const estado = await db.query<{ desfecho: string; tentativas: number }>(
+      "SELECT desfecho, tentativas FROM notificacoes_enviadas WHERE id = $1",
+      [primeira.rows[0]!.notificacao_id],
+    );
+    expect(estado.rows[0]!.desfecho).toBe("enviando");
+    expect(estado.rows[0]!.tentativas).toBe(1);
+
+    const segunda = await comoApp(null, (tx) =>
+      tx.query("SELECT * FROM varrer_tarefas_novas($1::interval, $2, $3)", ["10 minutes", 5, 500]),
+    );
+    expect(segunda.rows).toHaveLength(0);
   });
 });
 

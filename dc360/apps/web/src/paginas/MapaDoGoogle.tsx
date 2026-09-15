@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
-import { ROTULO_SEVERIDADE, ROTULO_TIPO_COBRADE } from "@dc360/shared";
+import {
+  ROTULO_SEVERIDADE, ROTULO_TIPO_COBRADE, TRACO_DO_GLIFO, glifoDeSeveridade,
+} from "@dc360/shared";
 import type { PontoNoMapa } from "../dados/repositorio";
 import {
-  aoGoogleRecusarAChave, caminhoDaSeveridade, carregarGoogleMaps, corDoToken,
+  CENTRO_DO_GLIFO, aoGoogleRecusarAChave, caminhoDaSeveridade, carregarGoogleMaps, corDoToken,
   tokenDaSeveridade,
   type ApiDoGoogleMaps, type MapaDoGoogle as InstanciaDoMapa, type MarcadorDoGoogle,
 } from "./mapa-de-base";
@@ -102,12 +104,24 @@ export function MapaDoGoogle({ chave, pontos, selecionada, aoSelecionar, aoFalha
             title: `${ponto.protocolo}, ${ROTULO_TIPO_COBRADE[ponto.tipo]}, `
               + `severidade ${severidade}, ${ponto.endereco}`,
             zIndex: ponto.id === selecionada ? 3 : 1,
+            /*
+              O símbolo é o glifo compartilhado (o mesmo do selo e do
+              aplicativo), na grade de 24 e ancorado no centro dela. O
+              contorno é preenchido com a cor do pino; a marca de dentro
+              aparece pelo traço, que o Google aplica ao caminho inteiro na
+              cor da superfície. Sem classificação não preenche: é o glifo
+              tracejado, vazado, e o traço vai na cor discreta do texto para
+              continuar visível sobre o ladrilho.
+            */
             icon: {
               path: caminhoDaSeveridade(ponto.severidade),
+              anchor: new api.Point(CENTRO_DO_GLIFO, CENTRO_DO_GLIFO),
               fillColor: corDoToken(tokenDaSeveridade(ponto.severidade)),
-              fillOpacity: 1,
-              strokeColor: corDoToken("--ds-surface"),
-              strokeWeight: 2,
+              fillOpacity: glifoDeSeveridade(ponto.severidade).preenche ? 1 : 0,
+              strokeColor: glifoDeSeveridade(ponto.severidade).preenche
+                ? corDoToken("--ds-surface")
+                : corDoToken(tokenDaSeveridade(ponto.severidade)),
+              strokeWeight: TRACO_DO_GLIFO,
               scale: ponto.id === selecionada ? 1.4 : 1,
             },
           });

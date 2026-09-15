@@ -1,3 +1,4 @@
+import type { AvisoLocal } from "./aviso-local";
 import type { DefinicaoDeCanal } from "./canais";
 import type { EstadoDaPermissao } from "./permissao";
 
@@ -71,6 +72,17 @@ export type PortaDePush = {
    * Nos outros caminhos quem desenha é o sistema.
    */
   definirApresentacao(decidir: (bruto: unknown) => Apresentacao): void;
+
+  /**
+   * Mostra um aviso agora, sem passar pela Apple nem pelo Google.
+   *
+   * É o caminho da tarefa nova descoberta com o aplicativo aberto (ver
+   * `aviso-local.ts`). O sistema desenha, toca e vibra como se o aviso tivesse
+   * vindo pelo push, e o tratador de `definirApresentacao` é consultado do
+   * mesmo jeito. Nunca estoura: sem permissão, o aviso simplesmente não
+   * aparece, e o aplicativo continua.
+   */
+  avisarLocalmente(aviso: AvisoLocal): Promise<void>;
 
   /** A pessoa tocou numa notificação. Devolve a função que cancela a escuta. */
   aoTocar(ouvinte: (aviso: AvisoBruto) => void): () => void;

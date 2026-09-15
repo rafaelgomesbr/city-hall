@@ -54,12 +54,19 @@ import type { Identidade } from "../servidor.js";
  * =====================================================================
  */
 
-/** O que foi lido. Lista fechada, igual à do CHECK da migração 021. */
+/** O que foi lido. Lista fechada, igual à do CHECK da migração 021 (e da 041). */
 export type RecursoConsultado =
   | "ocorrencia_detalhe"
   | "laudo"
   | "termo_de_interdicao"
-  | "termo_de_desinterdicao";
+  | "termo_de_desinterdicao"
+  /*
+    A busca do painel, SÓ quando a ocorrência entrou no resultado porque o
+    nome do solicitante casou com o termo: é a leitura que associa uma pessoa
+    a um endereço. Casar por protocolo ou endereço não registra, pelo mesmo
+    critério da listagem acima. Ver `rotas/busca.ts`.
+  */
+  | "busca";
 
 /**
  * Para quê. Declarada pela ROTA, e nunca digitada por quem consulta.

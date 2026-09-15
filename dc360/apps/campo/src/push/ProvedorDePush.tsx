@@ -3,9 +3,12 @@ import { AppState } from "react-native";
 import { router } from "expo-router";
 
 import { registrarAparelho } from "../dados/api";
+import { aoChegarTarefaNova, marcarTarefasVistas } from "../dados/pendencias";
 import { useSessao } from "../dados/sessao";
 import { Dialogo } from "../ui/Dialogo";
+import { retornoTatil } from "../ui/retornoTatil";
 import { decidirAviso, type Aviso } from "./aviso";
+import { montarAvisoLocalDeTarefaNova } from "./aviso-local";
 import { CANAIS, deveTocarSom } from "./canais";
 import { ContextoDePush, type EstadoDoPush } from "./contexto";
 import { jaConvidou as leuConvite, marcarConvidado } from "./convite";
@@ -38,6 +41,10 @@ import { registrarEsteAparelho, type DesfechoDoRegistro } from "./registro";
  * 5. **Releitura da permissão na volta do segundo plano.** É o passo que
  *    faltava, e a ausência dele tinha texto próprio na tela de conta ("feche e
  *    abra este aplicativo de novo para ele perceber"). Ver o bloco 6.
+ * 6. **A tarefa nova descoberta com o aplicativo aberto.** A atualização da
+ *    lista (`dados/pendencias.ts`) avisa quando entra um id que não estava lá,
+ *    e este provedor transforma isso num aviso local pela mesma porta, com o
+ *    mesmo som e o mesmo canal do push, mais o retorno tátil. Ver o bloco 7.
  */
 
 export function ProvedorDePush({
@@ -78,6 +85,21 @@ export function ProvedorDePush({
   */
   const tratados = useRef(new Set<string>());
 
+  /**
+   * O push já contou esta tarefa: a atualização da lista não precisa contar
+   * de novo.
+   *
+   * Sem isto o despacho tocaria DUAS vezes com o aplicativo aberto: uma pelo
+   * push que a Apple ou o Google entregou, outra pelo aviso local da
+   * atualização seguinte, que encontra o mesmo id como novidade. Dois toques
+   * pelo mesmo fato é o que ensina alguém a calar o canal. Só a tarefa nova
+   * entra aqui: o prazo não concorre com a lista.
+   */
+  const contarComoVista = useCallback((aviso: Aviso) => {
+    if (aviso.tipo !== "tarefa_nova") return;
+    void marcarTarefasVistas([aviso.ocorrenciaId]).catch(() => undefined);
+  }, []);
+
   /* ------------------------------------------------------------------
      1. Canais e apresentação
      ------------------------------------------------------------------ */
@@ -92,9 +114,10 @@ export function ProvedorDePush({
         descartar.
       */
       if (!veredito.entregar) return { mostrar: false, som: false };
-      return { mostrar: true, som: deveTocarSom(veredito.aviso.severidade) };
+      contarComoVista(veredito.aviso);
+      return { mostrar: true, som: deveTocarSom(veredito.aviso) };
     });
-  }, [porta]);
+  }, [porta, contarComoVista]);
 
   /* ------------------------------------------------------------------
      2. O que fazer com um aviso tocado
@@ -114,13 +137,14 @@ export function ProvedorDePush({
       }
 
       await porta.removerDaBandeja(recebido.identificador);
+      contarComoVista(veredito.aviso);
       router.push({
         pathname: "/(agente)/vistoria/[id]",
         params: { id: veredito.aviso.ocorrenciaId },
       });
       return veredito.aviso;
     },
-    [porta],
+    [porta, contarComoVista],
   );
 
   useEffect(() => {
@@ -159,10 +183,47 @@ export function ProvedorDePush({
     void (async () => {
       for (const presente of await porta.listarNaBandeja()) {
         const veredito = decidirAviso(presente.bruto, organizacaoRef.current);
-        if (!veredito.entregar) await porta.removerDaBandeja(presente.identificador);
+        if (!veredito.entregar) {
+          await porta.removerDaBandeja(presente.identificador);
+          continue;
+        }
+        // O que ficou na bandeja o sistema já mostrou, com som, enquanto o
+        // aplicativo estava fechado. A lista não precisa mostrar de novo.
+        contarComoVista(veredito.aviso);
       }
     })();
-  }, [porta, carregando, organizacao]);
+  }, [porta, carregando, organizacao, contarComoVista]);
+
+  /* ------------------------------------------------------------------
+     7. A tarefa nova descoberta com o aplicativo aberto
+     ------------------------------------------------------------------ */
+  useEffect(() => {
+    return aoChegarTarefaNova((novas) => {
+      /*
+        Sem município não há aviso: o dado do aviso local é carimbado com o
+        município da sessão, e sem carimbo a terceira barreira não teria o que
+        examinar quando o aviso voltar pelo tratador de apresentação.
+      */
+      const municipio = organizacaoRef.current;
+      if (!municipio || novas.length === 0) return;
+
+      for (const nova of novas) {
+        void porta.avisarLocalmente(montarAvisoLocalDeTarefaNova({
+          organizacaoId: municipio,
+          ocorrenciaId: nova.id,
+          severidade: nova.severidade,
+        })).catch(() => undefined);
+      }
+      /*
+        Uma vibração por atualização, e não uma por tarefa: três despachos
+        que chegaram juntos depois de duas horas sem sinal são uma novidade
+        só para a mão de quem segura o aparelho. O som toca uma vez por aviso,
+        porque cada aviso é uma notificação do sistema, e tocar nele abre a
+        vistoria daquela ocorrência.
+      */
+      retornoTatil("chegou");
+    });
+  }, [porta]);
 
   /* ------------------------------------------------------------------
      5. Permissão e registro da ficha, depois do login

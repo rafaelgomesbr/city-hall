@@ -1,6 +1,6 @@
 # Dicionário de dados
 
-- **Versão:** 3, de 15/09/2026 (a 2 era do mesmo dia; a 1, de 09/09/2026)
+- **Versão:** 4, de 15/09/2026 (a 3 e a 2 eram do mesmo dia; a 1, de 09/09/2026)
 - **Para quê:** entregar junto com a exportação de saída de município
   (`SAIDA-DE-MUNICIPIO.md`), e servir de referência para quem for auditar ou
   migrar. `status = 'em_campo'` não se explica sozinho.
@@ -73,6 +73,7 @@ trilha.
 | `equipe_id` | A equipe do agente. Decide quais tarefas ele recebe. Nulo para quem não vai a campo |
 | `ativo` | `false` é o "apagado" deste sistema. O município nunca fica sem administrador ativo |
 | `foto_chave` | A foto de perfil, como chave no armazenamento (nunca URL). Opcional, escolhida pelo próprio servidor. Prefixo obrigatório `tenant/<org>/usuarios/<id>/`, por CHECK (migração 040). Dado pessoal do servidor: ver `PRIVACIDADE.md`, seção 2.2 |
+| `busca` | Chave de busca **gerada pelo banco** a partir de `nome`, `matricula` e `email`, normalizada. Ninguém escreve nela. Ver "A busca com tolerância a erro", abaixo |
 
 ---
 
@@ -83,6 +84,7 @@ trilha.
 | `nome` | Como o coordenador a chama ao despachar |
 | `especialidade` | Texto livre. Informativo |
 | `ativa` | Equipe desativada não recebe despacho e continua nos registros antigos |
+| `busca` | Chave de busca gerada a partir de `nome`. Ver "A busca com tolerância a erro" |
 
 ---
 
@@ -107,6 +109,7 @@ O centro do sistema. Uma linha por atendimento.
 | `vinculada_a` | Aponta para outra ocorrência do mesmo evento. É como duplicidade se resolve sem apagar nada |
 | `prazo_em` | Quando vence. Calculado na triagem a partir da severidade. **Despachar não mexe nele** |
 | `encerrado_em`, `motivo_encerramento` | Obrigatórios quando `status = 'encerrada'`, e o banco recusa encerrar sem motivo |
+| `busca` | Chave de busca gerada a partir de `protocolo`, `endereco`, `ponto_referencia` e `solicitante_nome`, normalizada. **Sem** `solicitante_contato`, **sem** `descricao` e **sem** `vulnerabilidade_descricao`, de propósito. Quando a minimização por prazo troca o nome por "removido por prazo", a chave acompanha na mesma instrução. Ver "A busca com tolerância a erro" |
 
 ### Estados de `status`
 
@@ -217,14 +220,23 @@ Quem foi avisado do quê, e quando.
 | Coluna | Significado |
 | --- | --- |
 | `tipo` | `tarefa_nova` ou `prazo_vencendo` |
-| `desfecho` | `enviando`, `entregue`, `falha` ou `ficha_invalida` |
-| `tentativas` | Quantas vezes se tentou |
+| `desfecho` | `pendente` (enfileirada pelo despacho, ninguém tentou ainda), `enviando` (reivindicada pela varredura, em conversa com a Apple ou o Google), `entregue`, `falha` ou `ficha_invalida` |
+| `tentativas` | Quantas vezes se tentou. Zero se, e somente se, `pendente` |
 
 A restrição de unicidade `(organizacao_id, aparelho_id, ocorrencia_id, tipo)` é o
-que impede a mesma notificação de sair duas vezes quando o varredor reinicia.
-**Não existe política de remoção nesta tabela**, então nenhuma requisição apaga
-registro de quem foi avisado: o expurgo por idade é feito pela própria função de
-varredura, com retenção de 90 dias.
+que impede a mesma notificação de sair duas vezes quando o varredor reinicia, e é
+também o que faz o redespacho para a mesma equipe não gerar segundo aviso.
+
+Quem escreve aqui, e por qual porta (migração 042): o **despacho** insere a
+`tarefa_nova` em `pendente`, uma por aparelho vivo da equipe, na mesma transação
+do despacho; a política de INSERT aceita **só** esse tipo e esse estado, com o
+carimbo do município do contexto, então a aplicação enfileira e nunca registra
+entrega. O `prazo_vencendo` continua nascendo só dentro de `varrer_prazos`. A
+varredura (`varrer_tarefas_novas` e `varrer_prazos`) é quem reivindica e grava o
+desfecho. **A única política de remoção é a do expurgo por idade** (migração 037,
+com piso de 30 dias escrito na própria política), então nenhuma requisição apaga
+registro de quem foi avisado: o expurgo é feito pela própria função de varredura,
+com retenção de 90 dias.
 
 ## `orgaos`
 
@@ -241,6 +253,7 @@ certo.
 | `nome`, `sigla` | Como o órgão é chamado, e a sigla que sai no ofício |
 | `email` | Para onde o ofício é enviado. **É a lista fechada de destinos**: não sai email para domínio que não esteja aqui |
 | `ativo`, `desativado_em`, `motivo_desativacao` | Órgão **não se apaga**, se desativa. Ele aparece em ofício já emitido |
+| `busca` | Chave de busca gerada a partir de `nome` e `sigla`. Ver "A busca com tolerância a erro" |
 
 A chave estrangeira de `providencias` para cá é **composta** com
 `organizacao_id`. Chave simples deixaria uma providência apontar para órgão de
@@ -301,6 +314,7 @@ trás para sempre. Retenção de 60 dias, dentro da própria política de remoç
 | `interesse_municipio` | Município que se cadastrou pela página pública. É a única tabela com dado que não pertence a um município do sistema |
 | `segundo_fator` | Verificação em duas etapas por pessoa: o segredo do código de seis dígitos, **cifrado** com chave que vive fora do banco, mais o último passo de tempo aceito (é ele que impede o mesmo código de valer duas vezes) e o teto de tentativas, separado do teto da senha. Desligar apaga o segredo e carimba a data, em vez de apagar a linha: "desde quando esta conta parou de exigir a segunda etapa" precisa ter resposta |
 | `segundo_fator_recuperacao` | Os códigos de recuperação, guardados só como resumo. Cada um vale uma vez; desligar a verificação invalida todos em bloco. Código gasto fica marcado como gasto, e não sai da tabela: sem isso ninguém distinguiria "eu usei três" de "alguém usou três por mim" |
+| `ocorrencia_consultas` | **Quem leu dado de cidadão**, quando, qual recurso e com que finalidade (migração 021). Registra o **acesso** e nunca o conteúdo lido: não há coluna de nome, de contato, nem de termo de busca. **Append-only**, como a trilha. `recurso` é lista fechada: `ocorrencia_detalhe` (o dossiê, `GET /ocorrencias/:id`), `laudo`, `termo_de_interdicao`, `termo_de_desinterdicao` (os documentos oficiais) e, desde a migração 041, `busca` (a caixa de busca do painel, **só** quando a ocorrência entrou no resultado porque o nome do solicitante casou com o termo; casar por protocolo ou endereço não registra, pelo mesmo critério pelo qual a lista e o mapa não registram). `finalidade` é `atendimento` ou `emissao_de_documento`, declarada pela rota e nunca digitada |
 
 ---
 
@@ -442,6 +456,41 @@ As três rodam com `row_security = off`: com um dono de tabelas sem
 `BYPASSRLS`, a escrita que alcançaria zero linha em silêncio vira erro
 (`DC362`) nomeando a causa, e senha e código ficam como estavam. Sem isso, o
 desfecho seria "senha redefinida" com a senha velha no lugar.
+
+---
+
+## A busca com tolerância a erro (migração 041)
+
+A caixa de busca do painel (`GET /busca?q=`) e o filtro de texto da lista de
+ocorrências (`GET /ocorrencias?busca=`) passam pelo banco, e a regra mora
+nele, em três funções e uma coluna por tabela buscável:
+
+| Objeto | O que é |
+| --- | --- |
+| `normalizar_busca(text)` | Caixa baixa, acento e cedilha trocados por tabela explícita (`translate`, sem depender da extensão `unaccent`), e tudo que não é letra nem dígito vira um espaço. `IMMUTABLE`, `PARALLEL SAFE`, `STRICT`, **não** é `SECURITY DEFINER`. O termo digitado e a chave gravada atravessam a mesma função |
+| `busca` (coluna gerada em `ocorrencias`, `usuarios`, `equipes` e `orgaos`) | `GENERATED ALWAYS AS (normalizar_busca(...)) STORED`. O banco normaliza uma vez, na escrita; a consulta compara texto pronto. É coluna comum de tabela com RLS ativada e forçada: a busca de um município não enxerga a chave de outro pelo mesmo mecanismo que não enxerga o resto da linha |
+| `casa_busca(chave, termo)` | O predicado: substring normalizada **ou** parecido por trigramas. Função SQL de uma expressão só, inlinada pelo planejador, para o índice enxergar os operadores |
+| `pontuar_busca(chave, termo)` | A ordem: igual 1.0, prefixo 0.9, início de palavra 0.8, substring 0.7, parecido até 0.6. Parecido nunca passa na frente de igual |
+| `cobertura_de_trigramas(termo, chave)` | A tolerância a erro em SQL puro, usada só onde `pg_trgm` não existe |
+| `ocorrencias_busca_idx`, `usuarios_busca_idx`, `equipes_busca_idx`, `orgaos_busca_idx` | GIN de trigramas (`gin_trgm_ops`) sobre a coluna `busca`, **só quando `pg_trgm` está disponível** |
+
+**Dois caminhos, e o motivo.** A migração confere `pg_available_extensions`
+ao ser aplicada. Em produção (Supabase, Postgres 15 ou mais novo) `pg_trgm`
+existe: a extensão é criada, `casa_busca` e `pontuar_busca` usam `<%` e
+`word_similarity`, e os quatro índices são criados. Onde a extensão não existe
+(o Postgres em WebAssembly do painel em modo local, no navegador, e o da API
+sem `DATABASE_URL`), as mesmas funções existem com a mesma assinatura e a
+tolerância é feita por `cobertura_de_trigramas`, sem índice. A API escreve o
+mesmo SQL nos dois casos e não sabe a diferença. O limiar de "parecido" é 0.6
+nos dois: em `pg_trgm` é o padrão de `pg_trgm.word_similarity_threshold`, que
+não é alterado.
+
+**O que fica fora da chave de ocorrência, e por quê.** O contato do
+solicitante (é o dado que a minimização remove primeiro, e buscar por ele
+transformaria a caixa num oráculo de "este número está na base?"), o relato e
+a descrição de vulnerabilidade (texto livre que nomeia terceiros e descreve
+saúde). O filtro da lista continua procurando no relato por substring, como
+sempre fez, sem o parecido.
 
 ---
 

@@ -9,6 +9,7 @@ import {
 } from "../componentes/comuns";
 import { FormaSeveridade } from "../componentes/Icones";
 import { MapaDoGoogle } from "./MapaDoGoogle";
+import { useTitulo } from "../seo/titulo";
 import {
   chaveDoGoogleMaps, modoDoMapa, tokenDaSeveridade, type ModoDoMapa,
 } from "./mapa-de-base";
@@ -48,6 +49,7 @@ import {
  * ponto, o que é o começo de uma discussão sobre qual dos dois está certo.
  */
 export function Mapa() {
+  useTitulo("Mapa da cidade");
   const sessao = useSessaoObrigatoria();
   const [dados, setDados] = useState<PontosDoMapa | null>(null);
   const [erro, setErro] = useState<string | null>(null);

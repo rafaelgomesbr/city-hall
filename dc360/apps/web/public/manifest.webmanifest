@@ -1,0 +1,19 @@
+{
+  "name": "Defesa Civil Operacional 360",
+  "short_name": "DC360",
+  "description": "Gestão operacional para Defesas Civis municipais: do chamado ao laudo, com trabalho de campo sem sinal.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F5F7F8",
+  "theme_color": "#F5F7F8",
+  "icons": [
+    { "src": "/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icone-mascaravel-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

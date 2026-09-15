@@ -776,3 +776,55 @@ export type QuemEstaEmCampo = {
    */
   limite: string;
 };
+
+/* ==========================================================================
+   Busca global
+   ========================================================================== */
+
+/** Os tipos de registro que a caixa do topo alcança. */
+export type TipoDeResultado = "ocorrencia" | "usuario" | "equipe" | "orgao";
+
+/**
+ * Um resultado da busca, do jeito que `GET /busca?q=` o devolve.
+ *
+ * `protocolo`, `severidade` e `status` só viajam quando o tipo é ocorrência:
+ * é o que permite à lista desenhar o selo de severidade só nela, sem
+ * inventar severidade para uma pessoa.
+ */
+export type ResultadoDeBusca = {
+  id: string;
+  titulo: string;
+  detalhe: string;
+  /** Entre 0 e 1. Os itens já vêm ordenados por ela; a tela não reordena. */
+  pontuacao: number;
+  protocolo?: string;
+  severidade?: Severidade | null;
+  status?: StatusOcorrencia;
+};
+
+export type GrupoDeBusca = { tipo: TipoDeResultado; itens: ResultadoDeBusca[] };
+
+/**
+ * A resposta inteira. Grupo vazio é omitido, e o `teto` é quantos itens por
+ * grupo o servidor devolve no máximo, para a tela poder dizer "e mais".
+ */
+export type RespostaDeBusca = {
+  consulta: string;
+  teto: number;
+  grupos: GrupoDeBusca[];
+};
+
+/**
+ * O ponto descoberto a partir de um link ENCURTADO do Google Maps, pelo
+ * servidor da prefeitura, a pedido do coordenador (`POST /mapa/resolver-link`).
+ *
+ * `urlFinal` é para onde o link levou, já sem os parâmetros de rastreamento:
+ * a tela a oferece como "conferir no mapa", para a pessoa ver o que o servidor
+ * viu. Nada disto é guardado por ninguém: a coordenada só entra no banco se a
+ * ocorrência for gravada com ela.
+ */
+export type PontoDoLinkDeMapa = {
+  latitude: number;
+  longitude: number;
+  urlFinal: string;
+};

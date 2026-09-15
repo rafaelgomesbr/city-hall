@@ -91,10 +91,10 @@ import { ProvedorDePush } from "./ProvedorDePush";
 const MUNICIPIO_A = "3f1c6c4e-0a1b-4c2d-8e3f-aaaaaaaaaaaa";
 const MUNICIPIO_B = "7b2d5e8a-1c3d-4e5f-9a0b-bbbbbbbbbbbb";
 
-function avisoDe(organizacaoId: string, severidade?: string) {
+function avisoDe(organizacaoId: string, severidade?: string, tipo = "tarefa_nova") {
   return {
     data: {
-      tipo: "tarefa_nova",
+      tipo,
       organizacaoId,
       ocorrenciaId: `ocorrencia-de-${organizacaoId}`,
       ...(severidade ? { severidade } : {}),
@@ -138,15 +138,28 @@ it("apresenta o aviso do município da sessão", async () => {
 });
 
 /*
-  A severidade escolhe o som também com o aplicativo aberto, e não só pelo canal
-  do Android: aqui quem apresenta é o nosso código, e uma segunda régua neste
-  ponto seria a forma clássica de as duas discordarem em três meses.
+  O despacho toca com o aplicativo aberto em QUALQUER severidade (decisão de
+  15/09/2026, ver `canais.ts`): aqui quem apresenta é o nosso código, e o
+  tratador de primeiro plano precisa da mesma régua do canal do Android, senão
+  o mesmo aviso toca fechado e cala aberto.
 */
-it("cala o aviso de severidade baixa, mesmo sendo do município certo", async () => {
+it("toca e mostra a tarefa nova de severidade baixa com o aplicativo aberto", async () => {
   const duplo = criarDuploDePorta({ permissao: "concedida" });
   await montar(duplo);
 
   expect(duplo.chegarComOAplicativoAberto(avisoDe(MUNICIPIO_A, "baixa")))
+    .toEqual({ mostrar: true, som: true });
+});
+
+/*
+  O prazo continua calado na severidade baixa: prazo é relógio, e relógio de
+  severidade baixa tocando às três da manhã é o que ensina a calar tudo.
+*/
+it("cala o prazo de severidade baixa, mesmo sendo do município certo", async () => {
+  const duplo = criarDuploDePorta({ permissao: "concedida" });
+  await montar(duplo);
+
+  expect(duplo.chegarComOAplicativoAberto(avisoDe(MUNICIPIO_A, "baixa", "prazo_vencendo")))
     .toEqual({ mostrar: true, som: false });
 });
 
@@ -298,9 +311,11 @@ it("não pede ficha ao sistema enquanto a permissão não foi concedida", async 
   expect(mockRegistrosNoServidor).toEqual([]);
 });
 
-it("cria os dois canais do Android antes de qualquer aviso chegar", async () => {
+it("cria os três canais do Android antes de qualquer aviso chegar, o de despacho primeiro", async () => {
   const duplo = criarDuploDePorta({ permissao: "concedida" });
   await montar(duplo);
 
-  expect(duplo.registro.canaisCriados).toEqual(["dc360.urgencia.v1", "dc360.comum.v1"]);
+  expect(duplo.registro.canaisCriados).toEqual([
+    "dc360.despacho.v1", "dc360.urgencia.v1", "dc360.comum.v1",
+  ]);
 });

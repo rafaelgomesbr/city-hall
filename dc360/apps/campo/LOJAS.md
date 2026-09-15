@@ -297,6 +297,15 @@ código escrito de código comprovado.
   o `expo-sqlite` sob morte de processo real é justamente o que só o aparelho
   responde.
 - **Nenhum build foi gerado.** `eas build` precisa de conta.
+- **O som de despacho nunca tocou num aparelho.** Desde 15/09/2026 a tarefa nova
+  toca um som próprio (`assets/sons/despacho.wav`, gerado por
+  `../../scripts/gerar-som-de-despacho.mjs`) e vibra em qualquer severidade, com
+  o aplicativo fechado (push) ou aberto (aviso local). O arquivo está na régua
+  das duas lojas e o cabeçalho é conferido por portão, mas ele só entra no
+  binário depois de `npx expo prebuild` (o plugin copia para `ios/` e para
+  `res/raw`), junto com o direito
+  `com.apple.developer.usernotifications.time-sensitive` do iOS. Como soa no
+  alto-falante do aparelho, só o aparelho diz.
 
 O caminho para tirar isto da lista, na ordem:
 

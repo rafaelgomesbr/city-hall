@@ -5,6 +5,9 @@
  * Regra do design system que vale para todos: ícone nunca comunica estado
  * sozinho. Ele sempre acompanha texto.
  */
+import {
+  TRACO_DO_GLIFO, VIEWBOX_DO_GLIFO, glifoDeSeveridade, type Severidade,
+} from "@dc360/shared";
 import { TIPO_EVENTO_DEVOLUCAO } from "../devolucao";
 
 type Props = { tamanho?: number; titulo?: string };
@@ -233,32 +236,42 @@ export function IconeEvento({ tipo, tamanho = 12 }: { tipo: string; tamanho?: nu
 }
 
 /**
- * Marcador do mapa. A FORMA carrega a severidade, não só a cor: quadrado,
- * losango, triângulo e círculo são distinguíveis por quem não separa as cores.
- * Cerca de 8% dos homens têm alguma deficiência na percepção de cor, e o mapa
- * é justamente a tela feita para leitura rápida no olho.
+ * Marcador do mapa: o MESMO glifo do selo, cheio.
+ *
+ * A FORMA carrega a severidade, não só a cor: cerca de 8% dos homens têm
+ * alguma deficiência na percepção de cor, e o mapa é justamente a tela feita
+ * para leitura rápida no olho. Até 15/09/2026 as formas daqui (círculo,
+ * triângulo, quadrado, losango) eram outras que as do aplicativo, e em outra
+ * ordem: o coordenador via crítica como círculo e o agente via crítica como
+ * triângulo. Agora a geometria vem de `@dc360/shared` (círculo, quadrado,
+ * triângulo, octógono, círculo tracejado), e é a mesma da pílula.
+ *
+ * Como pino, o contorno vira mancha em `currentColor` (a cor do pino, que
+ * `tokenDaSeveridade` escolhe) com borda na superfície, e a marca de dentro
+ * (ponto, traço, exclamação) vai por cima na cor da superfície. Sem
+ * classificação fica vazado, em traço: um círculo cinza cheio pareceria mais
+ * um degrau da escala.
  */
 export function FormaSeveridade({ severidade, tamanho = 16 }: {
-  severidade: string | null;
+  severidade: Severidade | null;
   tamanho?: number;
 }) {
-  const comum = {
-    width: tamanho, height: tamanho, viewBox: "0 0 20 20",
-    "aria-hidden": true as const,
-    stroke: "var(--ds-surface)", strokeWidth: 2, strokeLinejoin: "round" as const,
-  };
-  switch (severidade) {
-    case "critica":
-      return <svg {...comum}><circle cx="10" cy="10" r="8" fill="currentColor" /></svg>;
-    case "alta":
-      return <svg {...comum}><path d="M10 2 19 18H1L10 2Z" fill="currentColor" /></svg>;
-    case "media":
-      return <svg {...comum}><rect x="3" y="3" width="14" height="14" rx="1.5" fill="currentColor" /></svg>;
-    case "baixa":
-      return <svg {...comum}><path d="M10 2 18 10l-8 8-8-8 8-8Z" fill="currentColor" /></svg>;
-    default:
-      return <svg {...comum}><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" strokeWidth="3" /></svg>;
-  }
+  const glifo = glifoDeSeveridade(severidade);
+  return (
+    <svg
+      width={tamanho} height={tamanho} viewBox={VIEWBOX_DO_GLIFO}
+      aria-hidden="true"
+      fill="none"
+      strokeWidth={TRACO_DO_GLIFO} strokeLinecap="round" strokeLinejoin="round"
+    >
+      {glifo.preenche
+        ? <path d={glifo.contorno} fill="currentColor" stroke="var(--ds-surface)" />
+        : <path d={glifo.contorno} stroke="currentColor" />}
+      {glifo.marca.map((d) => (
+        <path key={d} className="forma-severidade__marca" d={d} stroke="var(--ds-surface)" />
+      ))}
+    </svg>
+  );
 }
 
 /** Ícone por situação da ocorrência: selo nunca comunica só por cor. */

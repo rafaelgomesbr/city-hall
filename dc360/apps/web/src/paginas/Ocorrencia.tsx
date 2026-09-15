@@ -27,6 +27,7 @@ import {
   TipoDaOcorrencia, Vazio, formatarDataHora,
 } from "../componentes/comuns";
 import { Campo } from "../componentes/Campo";
+import { DescobrirPonto } from "../componentes/DescobrirPonto";
 import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
 import { Modal } from "../componentes/Modal";
 import { DURACAO_PARA_DITAR, Toast } from "../componentes/Toast";
@@ -38,6 +39,8 @@ import {
   avisoDaCorrecao, mensagemDaLeitura, podeCorrigirCoordenada, proximoPassoDaCorrecao,
 } from "./coordenada-corrigida";
 import { lerLocalizacaoColada } from "./coordenada-colada";
+import { origemDoPonto, textoDoPontoDescoberto } from "./link-encurtado";
+import { useTitulo } from "../seo/titulo";
 import {
   ANCORA_DA_COORDENADA, ANCORA_DO_DESPACHO, TIPO_EVENTO_DEVOLUCAO, devolucaoEmAberto,
   lerDevolucao, proximoPasso, rotuloDoMotivo,
@@ -107,6 +110,7 @@ export function Ocorrencia() {
   const navegar = useNavigate();
   const local = useLocation();
   const [dados, setDados] = useState<Conjunto | null>(null);
+  useTitulo(dados ? `Ocorrência ${dados.ocorrencia.protocolo}` : "Ocorrência");
   const [erro, setErro] = useState<string | null>(null);
   /*
     A falha que tem um caminho de saída, separada das que não têm.
@@ -2139,6 +2143,9 @@ function BlocoCorrigirCoordenada({
   const [texto, setTexto] = useState("");
   const [motivo, setMotivo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
+  // De onde veio o ponto quando foi o servidor que o descobriu a partir de um
+  // link encurtado, como na abertura. Some quando a pessoa mexe no campo.
+  const [origemDoLink, setOrigemDoLink] = useState<{ frase: string; link: string } | null>(null);
 
   // A cada tecla, como na abertura: quem cola precisa ver na hora se o sistema
   // entendeu, e não descobrir no envio.
@@ -2196,13 +2203,28 @@ function BlocoCorrigirCoordenada({
                 <span className="leitura leitura--ok">
                   <span aria-hidden="true">✓</span> Ponto reconhecido:{" "}
                   <span className="mono">{coordenadaEmTexto(leitura.coordenada)}</span>.{" "}
+                  {origemDoLink && <>{origemDoLink.frase}{" "}</>}
                   <a
-                    href={linkParaMapa(leitura.coordenada)}
+                    href={origemDoLink ? origemDoLink.link : linkParaMapa(leitura.coordenada)}
                     target="_blank" rel="noreferrer noopener"
                   >
                     Conferir no mapa
                   </a>
                 </span>
+              ) : leitura.tipo === "encurtado" ? (
+                /*
+                  O MESMO componente da abertura: o servidor da prefeitura abre
+                  o link encurtado quando a pessoa aperta o botão, e o ponto
+                  entra no campo como texto, com a origem dita ao lado.
+                */
+                <DescobrirPonto
+                  url={texto}
+                  onPonto={(descoberta) => {
+                    setErro(null);
+                    setOrigemDoLink(origemDoPonto(texto, descoberta.urlFinal));
+                    setTexto(textoDoPontoDescoberto(descoberta));
+                  }}
+                />
               ) : (
                 <span
                   className={leitura.tipo === "vazio" ? "leitura leitura--nota" : "leitura leitura--erro"}
@@ -2238,7 +2260,7 @@ function BlocoCorrigirCoordenada({
             {(campo) => (
               <input
                 {...campo} value={texto}
-                onChange={(e) => { setErro(null); setTexto(e.target.value); }}
+                onChange={(e) => { setErro(null); setOrigemDoLink(null); setTexto(e.target.value); }}
                 placeholder="Cole o link do Google Maps, ou a coordenada"
                 autoComplete="off"
               />

@@ -165,8 +165,9 @@ describe("o selo da coleta na lista", () => {
 
     await abrirALista();
 
+    /* O resumo do item é o elemento que o leitor anuncia, e o selo vai nele. */
     expect(
-      screen.getByLabelText(/Abrir a vistoria do protocolo 2026\/000123.*Coletada, aguardando envio/),
+      screen.getByLabelText(/^Protocolo 2026\/000123.*Coletada, aguardando envio/),
     ).toBeTruthy();
   });
 

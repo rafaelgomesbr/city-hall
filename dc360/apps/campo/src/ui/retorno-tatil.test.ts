@@ -28,7 +28,9 @@ jest.mock("expo-haptics", () => ({
   performAndroidHapticsAsync: (tipo: string) => mockAndroid(tipo),
   ImpactFeedbackStyle: { Light: "light", Medium: "medium", Heavy: "heavy" },
   NotificationFeedbackType: { Success: "success", Warning: "warning", Error: "error" },
-  AndroidHaptics: { Confirm: "confirm", Reject: "reject", Context_Click: "context-click" },
+  AndroidHaptics: {
+    Confirm: "confirm", Reject: "reject", Context_Click: "context-click", Long_Press: "long-press",
+  },
 }));
 
 import { retornoTatil } from "./retornoTatil";
@@ -71,6 +73,19 @@ describe("no iPhone", () => {
     expect(mockNotificacao).toHaveBeenCalledWith("success");
     expect(mockImpacto).not.toHaveBeenCalled();
   });
+
+  /*
+    O que CHEGOU DE FORA (a coordenação despachou uma tarefa) é o único momento
+    em que a discrição não é o pedido: o pedido é ser sentido no bolso. Um
+    toque pesado, e não a forma de aviso do sistema, porque "warning" é a
+    forma que o iOS usa para "algo deu errado", e despacho não é erro.
+  */
+  it("o que chegou é um toque pesado, distinto do que pegou e do que terminou", async () => {
+    retornoTatil("chegou");
+    await Promise.resolve();
+    expect(mockImpacto).toHaveBeenCalledWith("heavy");
+    expect(mockNotificacao).not.toHaveBeenCalled();
+  });
 });
 
 describe("no Android", () => {
@@ -93,18 +108,29 @@ describe("no Android", () => {
     await Promise.resolve();
     expect(mockAndroid).toHaveBeenCalledWith("context-click");
   });
+
+  it("o que chegou é o pulso longo do vocabulário do sistema, ainda pelo caminho que respeita o ajuste", async () => {
+    comPlataforma("android");
+    retornoTatil("chegou");
+    await Promise.resolve();
+    expect(mockAndroid).toHaveBeenCalledWith("long-press");
+    expect(mockImpacto).not.toHaveBeenCalled();
+    expect(mockNotificacao).not.toHaveBeenCalled();
+  });
 });
 
 describe("o que nunca sai daqui", () => {
   /*
-    Não existe momento de erro nesta porta, e é de propósito: o tipo tem dois
-    valores, e nenhum dos dois é "deu errado". Vibrar em erro é punir a mão de
+    Não existe momento de erro nesta porta, e é de propósito: o tipo tem três
+    valores, e nenhum deles é "deu errado". Vibrar em erro é punir a mão de
     quem já está com um problema, e o que a pessoa aprende com isso é a
-    desligar o retorno tátil inteiro. Este caso morre no dia em que alguém
-    acrescentar um terceiro momento sem pensar nisso.
+    desligar o retorno tátil inteiro. O terceiro momento ("chegou", o despacho
+    de 15/09/2026) entrou pensando nisso: é um toque pesado, e não a forma de
+    aviso ("warning") do sistema. Este caso morre no dia em que alguém
+    acrescentar um quarto momento sem pensar nisso.
   */
   it("nenhum momento produz a forma de erro nem a de recusa", async () => {
-    for (const momento of ["confirmado", "concluido"] as const) {
+    for (const momento of ["confirmado", "concluido", "chegou"] as const) {
       retornoTatil(momento);
     }
     await Promise.resolve();

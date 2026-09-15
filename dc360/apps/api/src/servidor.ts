@@ -32,6 +32,8 @@ import { rotasSegundoFator } from "./rotas/segundo-fator.js";
 import { rotasArmazenamentoLocal } from "./rotas/armazenamento-local.js";
 import { rotasConfiguracao } from "./rotas/configuracao.js";
 import { rotasRota, type OpcoesDaRota } from "./rotas/rota.js";
+import { rotasMapa, type OpcoesDoMapa } from "./rotas/mapa.js";
+import { rotasBusca } from "./rotas/busca.js";
 import type { Armazenamento } from "./armazenamento/tipos.js";
 import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
 import type { GeradorDePdf } from "./documentos/pdf.js";
@@ -95,6 +97,8 @@ export type Dependencias = {
    * Ver `rotas/rota.ts`.
    */
   rota?: Pick<OpcoesDaRota, "buscar" | "agora">;
+  /** A rede e o DNS de `POST /mapa/resolver-link`. Só o teste passa. Ver `rotas/mapa.ts`. */
+  mapa?: OpcoesDoMapa;
 };
 
 /**
@@ -189,7 +193,7 @@ export const CAMINHOS_REDIGIDOS = [
 
 export async function construirServidor(
   {
-    banco, config, armazenamento, notificador = notificadorDeLog(), pdf, destinoDeLog, rota,
+    banco, config, armazenamento, notificador = notificadorDeLog(), pdf, destinoDeLog, rota, mapa,
   }: Dependencias,
 ): Promise<FastifyInstance> {
   /*
@@ -619,10 +623,14 @@ export async function construirServidor(
     lê o banco e não registra coordenada nenhuma. Ver `rotas/rota.ts`.
   */
   await app.register(rotasRota, { prefix: "/rota", config, ...rota });
+  // O link curto do Google Maps, aberto pelo servidor a pedido do coordenador. Ver `rotas/mapa.ts`.
+  await app.register(rotasMapa, { prefix: "/mapa", ...mapa });
   // O catálogo de destinos de providência. A leitura é aberta a qualquer conta
   // autenticada porque o formulário de providência precisa da lista; escrever
   // exige `gerenciar_equipes`. Ver `rotas/orgaos.ts`.
   await app.register(rotasOrgaos, { prefix: "/orgaos", banco });
+  // A caixa de busca do painel: registros dos quatro tipos, com tolerância a erro. Ver `rotas/busca.ts`.
+  await app.register(rotasBusca, { prefix: "/busca", banco });
   /*
     O ofício numerado e o envio por email. O envio recusa com `EMAIL_ATIVO=nao`,
     que é o padrão, em vez de a rota sumir: rota ausente responde 404, e o

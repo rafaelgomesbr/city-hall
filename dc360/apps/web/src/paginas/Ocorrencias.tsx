@@ -15,6 +15,7 @@ import {
   Vazio, formatarDataHora,
 } from "../componentes/comuns";
 import { IconeMais, IconeVoltar } from "../componentes/Icones";
+import { useTitulo } from "../seo/titulo";
 
 const POR_PAGINA = 10;
 
@@ -37,6 +38,7 @@ const FILTROS_STATUS: Array<{ chave: string; rotulo: string }> = [
  * de uma visão específica para outra pessoa da equipe.
  */
 export function Ocorrencias() {
+  useTitulo("Ocorrências");
   const sessao = useSessaoObrigatoria();
   const [params, setParams] = useSearchParams();
   const [dados, setDados] = useState<PaginaDeOcorrencias | null>(null);

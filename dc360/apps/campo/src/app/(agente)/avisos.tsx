@@ -16,6 +16,7 @@ import {
   Botao, Cartao, Carregando, Dado, Tocavel, Txt, Vazio, useTema,
 } from "../../ui/componentes";
 import { ItemDeLista } from "../../ui/ItemDeLista";
+import { useComecarDoTopo } from "../../ui/CenaDaAba";
 import { atrasoEmCascata } from "../../ui/hierarquia";
 import {
   IconeAlerta, IconeAssinatura, IconeInformacao, IconeOrgao, IconePrazoVencido, IconeSino,
@@ -197,6 +198,8 @@ export default function Avisos() {
   const tema = useTema();
   const sinal = useSinal();
   const { obterToken } = useSessao();
+  // Toda tela começa do topo a cada foco (ver `ui/CenaDaAba.tsx`).
+  const rolagem = useComecarDoTopo<ScrollView>();
 
   /** Nulo até o disco responder: é o que separa "vazio" de "ainda não olhei". */
   const [avisos, setAvisos] = useState<AvisosGuardados | null>(null);
@@ -299,6 +302,7 @@ export default function Avisos() {
 
   return (
     <ScrollView
+      ref={rolagem}
       contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}
       refreshControl={
         <RefreshControl

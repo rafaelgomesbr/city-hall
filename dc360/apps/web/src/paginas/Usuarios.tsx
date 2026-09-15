@@ -13,6 +13,7 @@ import {
 import { Campo } from "../componentes/Campo";
 import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
 import { IconeMais } from "../componentes/Icones";
+import { useTitulo } from "../seo/titulo";
 
 /**
  * Usuários do município.
@@ -23,6 +24,7 @@ import { IconeMais } from "../componentes/Icones";
  * banco, expresso na camada de gente.
  */
 export function Usuarios() {
+  useTitulo("Usuários");
   const sessao = useSessaoObrigatoria();
   const [usuarios, setUsuarios] = useState<LinhaUsuario[] | null>(null);
   const [equipes, setEquipes] = useState<LinhaEquipe[]>([]);

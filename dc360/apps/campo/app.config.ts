@@ -251,6 +251,44 @@ const config: ExpoConfig = {
       },
       ITSAppUsesNonExemptEncryption: false,
     },
+    /*
+      Os direitos (entitlements) do binário. `aps-environment` NÃO está aqui:
+      quem o escreve é o plugin do `expo-notifications`, a partir do `mode`
+      mais abaixo, e `scripts/entitlements-do-ios.test.mjs` confere o projeto
+      gerado.
+
+      `com.apple.developer.usernotifications.time-sensitive` é o direito que
+      a Apple exige para o `interruption-level: time-sensitive` que o servidor
+      manda no despacho (`apps/api/src/push/apns.ts`) e que o aviso local usa
+      (`src/push/PortaExpo.ts`). Sem ele o iOS rebaixa a notificação para
+      `active` EM SILÊNCIO: o servidor manda, a Apple entrega, e o Foco do
+      agente no plantão noturno engole o despacho. É o mesmo direito que o
+      Xcode chama de "Time Sensitive Notifications", e ele não pede aprovação
+      caso a caso da Apple (diferente do alerta crítico, que pede e fura o
+      modo silencioso; esse continua fora, ver `pedirPermissao` em
+      `src/push/PortaExpo.ts`).
+
+      Entrou em 15/09/2026 com o som de despacho. Como todo direito, só chega
+      ao aparelho depois de `npx expo prebuild` e uma compilação nova.
+
+      DESLIGADO POR PADRÃO, e o motivo é de conta, não de código. O direito
+      só entra no binário se o PERFIL de provisionamento o incluir, e o perfil
+      só o inclui depois que a capacidade "Time Sensitive Notifications" é
+      ligada no App ID `com.solerte.dc360.campo`, no portal da Apple, pela
+      conta do dono. Sem isso a compilação PARA com "Provisioning profile
+      doesn't include the Time Sensitive Notifications capability" (aconteceu
+      em 15/09/2026, e sem conta da Apple na máquina o `xcodebuild` não
+      regenera o perfil). Sem o direito nada quebra: o iOS entrega o despacho
+      como `active`, com o som e a vibração; só o Foco não é atravessado.
+
+      Para ligar: capacidade no portal, `DC360_TIME_SENSITIVE=sim` no `.env`,
+      `npx expo prebuild --platform ios --clean`, compilar.
+    */
+    entitlements: {
+      ...(process.env["DC360_TIME_SENSITIVE"] === "sim"
+        ? { "com.apple.developer.usernotifications.time-sensitive": true }
+        : {}),
+    },
   },
 
   android: {
@@ -503,6 +541,27 @@ const config: ExpoConfig = {
           TypeScript nosso, então importar a constante daqui não é possível.
         */
         defaultChannel: "dc360.comum.v1",
+
+        /*
+          O SOM DE DESPACHO, o "som característico" do pedido de 15/09/2026.
+
+          O plugin copia cada arquivo daqui para os dois projetos nativos no
+          `prebuild`: `ios/<projeto>/despacho.wav`, adicionado ao Xcode como
+          recurso, e `android/app/src/main/res/raw/despacho.wav`. É isso que
+          faz `aps.sound = "despacho.wav"` (servidor) e `sound: "despacho.wav"`
+          no canal de despacho (`src/push/canais.ts`) encontrarem o arquivo. Sem
+          esta linha os dois caem no som padrão do sistema, sem erro nenhum.
+
+          O arquivo é gerado, não gravado: `scripts/gerar-som-de-despacho.mjs`
+          na raiz do `dc360`, com portão que confere formato, duração e que o
+          arquivo versionado é o que o roteiro produz. PCM 16 bits, 44,1 kHz,
+          mono, 1,2 s: o que o iOS aceita como som de notificação e o que o
+          Android aceita em `res/raw`.
+
+          O nome do arquivo precisa ser nome válido de recurso do Android
+          (minúsculas, sem hífen): o plugin reprova no `prebuild` se não for.
+        */
+        sounds: ["./assets/sons/despacho.wav"],
 
         /*
           O `aps-environment` do iOS, decidido pelo perfil do build e não à mão.

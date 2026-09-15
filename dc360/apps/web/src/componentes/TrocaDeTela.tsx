@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
+import { ehTelaInterna, marcarComoInterna } from "../seo/indexacao";
+import { PRODUTO, tituloDaAba } from "../seo/titulo";
 
 /**
  * O que acontece quando a tela muda, para quem não enxerga a tela.
@@ -41,14 +43,12 @@ const TITULOS: Record<string, string> = {
   "/quero-conhecer": "Quero conhecer",
 };
 
-const PRODUTO = "Defesa Civil 360";
-
 /** O nome da tela, para o título e para o anúncio. */
 export function nomeDaTela(caminho: string): string {
   if (TITULOS[caminho]) return TITULOS[caminho]!;
-  // Detalhe de ocorrência: `/ocorrencias/<uuid>`. O protocolo seria melhor,
-  // mas ele só existe depois que os dados chegam, e o título precisa mudar
-  // no instante da navegação.
+  // Detalhe de ocorrência: `/ocorrencias/<uuid>`. O protocolo só existe
+  // depois que os dados chegam, e o título precisa mudar no instante da
+  // navegação; quando ele chega, a própria tela troca por `useTitulo`.
   if (/^\/ocorrencias\/[0-9a-f-]{36}$/.test(caminho)) return "Ocorrência";
   return PRODUTO;
 }
@@ -58,8 +58,12 @@ export function TrocaDeTela() {
   const primeira = useRef(true);
 
   useEffect(() => {
-    const tela = nomeDaTela(pathname);
-    document.title = tela === PRODUTO ? PRODUTO : `${tela}, ${PRODUTO}`;
+    // Rede de segurança do título: a tela grava o seu por `useTitulo` (e
+    // vence, porque o efeito dela roda depois deste), mas este garante que
+    // toda rota tem nome no instante da navegação. Formato em src/seo/titulo.
+    document.title = tituloDaAba(nomeDaTela(pathname));
+    // Depois do login é uso interno da prefeitura: nenhum buscador guarda.
+    marcarComoInterna(ehTelaInterna(pathname));
 
     if (primeira.current) {
       primeira.current = false;

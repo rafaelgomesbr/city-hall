@@ -46,42 +46,71 @@ par com vírgula decimal e grau/minuto/segundo, aplica o teto de seis casas e
 recusa o texto ambíguo. A tela de correção é o mesmo campo da abertura mais uma
 chamada; falta só a chamada.
 
-## 2. Rota da API: resolver link encurtado, se um dia for resolvido
+## 2. Rota da API: resolver link encurtado. Feita em 15/09/2026
 
-Hoje o painel **não resolve** link encurtado, e diz isso ao coordenador em vez
-de falhar calado: "este link é encurtado, e o painel não abre link nenhum para
-descobrir o que tem dentro". `maps.app.goo.gl` e companhia não carregam a
-coordenada no próprio endereço; ela só aparece depois que alguém segue o
-redirecionamento.
+Até 15/09/2026 o painel **não resolvia** link encurtado, e dizia isso ao
+coordenador em vez de falhar calado. O reclame de quem paga, na letra: "o campo
+localização do mapa ao abrir a ocorrência tem que aceitar link curto do gmaps,
+hoje não tá aceitando". A especificação que esta seção guardava para "o dia em
+que a rota fosse feita" virou a rota, item a item. O que ficou, e onde:
 
-**Por que não foi resolvido no painel.** Seguir o link a partir do navegador do
-coordenador expõe a máquina dele: a requisição sai da rede interna da
-prefeitura, com os cookies e o alcance de rede dela.
+**A rota: `POST /mapa/resolver-link { url }`**, em `apps/api/src/rotas/mapa.ts`,
+registrada em `apps/api/src/servidor.ts` sob o prefixo `/mapa`. Autenticada,
+com `exigirPermissao(..., "abrir_ocorrencia")` (a mesma competência de quem
+informa a localização ao registrar). Responde 200 `{ latitude, longitude,
+urlFinal }` (a URL final sem os parâmetros de rastreamento), 422
+`link_nao_aceito` (host fora da lista), 422 `sem_ponto` (destino sem
+coordenada legível), 502 `nao_resolveu` (tempo, saltos, destino recusado),
+cada recusa com a frase que a tela mostra. Teto de trinta pedidos por minuto
+por pessoa. Nada de link nem de coordenada no log, e nada no banco: a rota é
+resposta, não registro.
 
-**Por que a rota de servidor é perigosa.** Uma rota que aceita URL do usuário e
-vai buscar é uma ferramenta de requisição forjada do lado servidor. Se ela for
-feita, precisa, no mínimo:
+**As defesas, cada uma com teste em `apps/api/test/resolver-link.test.ts`:**
 
-- **Recusar destino privado, de retorno local e de metadados de nuvem DEPOIS de
-  resolver o nome**, e não antes. Conferir só o texto da URL não protege: o
-  nome resolve para outro endereço na hora da conexão, e é o endereço que
-  importa. Entram na recusa as faixas privadas, o retorno local, o link-local
-  (que é onde mora o serviço de metadados de nuvem, o alvo clássico) e o
-  endereço não roteável.
-- **Repetir a conferência a CADA SALTO do redirecionamento.** O primeiro salto
-  vai para um destino público e o segundo aponta para dentro: é assim que a
-  defesa que só olha a primeira URL é contornada.
-- **Teto de redirecionamentos** (poucos, três ou quatro), teto de tempo e teto
-  de tamanho de resposta, para o encurtador não virar laço infinito nem
-  download.
-- **Lista de domínios de encurtador aceitos**, em vez de aceitar qualquer URL:
-  o produto precisa de `maps.app.goo.gl` e `goo.gl`, e de mais nada.
-- Vale registrar que resolver o link é o servidor da prefeitura contando ao
-  Google que aquele ponto foi consultado, o que é a mesma preocupação da seção
-  2.2 de `docs/SUBPROCESSADORES.md`.
+- **Lista fechada de encurtador**: `maps.app.goo.gl` e `goo.gl`, mais nada,
+  conferida no texto da URL ANTES de consultar nome ou conectar. Só `https:`,
+  sem usuário na URL, sem porta.
+- **Endereço conferido DEPOIS de resolver o nome, a CADA salto**, e a conexão
+  feita NESSE endereço, por um `lookup` fixo entregue ao `https.request`, sem
+  uma segunda consulta ao DNS. Recusa faixa privada, retorno local, link-local
+  (o serviço de metadados de nuvem), o espaço partilhado de operadora,
+  multicast, reservado e não roteável, em IPv4 e em IPv6 (inclusive o IPv4
+  embutido em `::ffff:`, NAT64 e 6to4). O teste prova a recusa no primeiro e
+  no SEGUNDO salto, e prova com um servidor local que a camada de rede de
+  produção conecta no endereço conferido e não no nome.
+- **Tetos**: quatro saltos, cinco segundos para a cadeia inteira, e nenhum
+  corpo lido: a conexão é derrubada assim que os cabeçalhos chegam.
+- **O destino final** só pode ser `www.google.com`, `google.com`,
+  `maps.google.com`, `www.google.com.br` ou `google.com.br`; os encurtadores
+  valem só como salto intermediário. A coordenada é lida da URL final pelo
+  MESMO leitor do painel (`lerLocalizacao`, em `packages/shared`), que ganhou
+  `destination=` para o link de "como chegar". URL final sem coordenada
+  legível responde `sem_ponto`: nome não é ponto, e transformar um no outro
+  seria geocodificação.
 
-Enquanto a rota não existir, o comportamento atual (dizer que não resolve, e
-pedir que a pessoa abra o link e cole o endereço da barra) é o certo.
+**O painel** (`src/componentes/DescobrirPonto.tsx`, com as decisões puras em
+`src/paginas/link-encurtado.ts`): ao ler `encurtado`, a dica do campo diz que
+o servidor da prefeitura pode abrir o link e oferece o botão "Descobrir o
+ponto". É um ato explícito, nunca automático ao colar, porque abrir o link é o
+servidor contando ao Google que o ponto foi consultado. Enquanto espera, a
+tela diz "Abrindo o link no servidor da prefeitura para descobrir o ponto"; no
+sucesso, o campo recebe a coordenada e a dica diz de onde ela veio, com o link
+final para conferir; na falha, a frase da API. Vale na abertura da ocorrência
+(`NovaOcorrencia.tsx`) e na correção da coordenada (`Ocorrencia.tsx`), que
+usam o mesmo componente, e o teste `test/link-encurtado.test.ts` reprova se
+uma das duas deixar de usá-lo. `resolverLinkDeMapa` existe nos dois modos do
+repositório: no modo de demonstração ela recusa dizendo que não há servidor
+para abrir link nenhum.
+
+**O que continua sem prova, e está dito:** a rota nunca resolveu um link de
+verdade contra o Google. Todos os testes usam dublê de rede e de DNS. O que a
+prova real pode revelar: o Google respondendo ao servidor com uma página de
+consentimento (`consent.google.com`, que a lista recusa de propósito), com
+uma busca por nome em vez de um ponto (`sem_ponto`), ou com um formato de URL
+que o leitor compartilhado ainda não conhece.
+
+A saída de dado correspondente está declarada em `docs/SUBPROCESSADORES.md`,
+seção 2.2 ("O link encurtado, a pedido do coordenador").
 
 ## 3. O README ficou desatualizado sobre o mapa de base
 

@@ -4,7 +4,7 @@ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { criarProvedorFcm } from "../src/push/fcm.js";
 import { montarAviso } from "../src/push/mensagem.js";
 import type { Trava } from "../src/push/trava.js";
-import { agendarVarredura, varrerPrazos } from "../src/push/varredor.js";
+import { agendarVarredura, varrerAvisos } from "../src/push/varredor.js";
 
 /**
  * O servidor que aceita a conexão e nunca responde.
@@ -176,7 +176,7 @@ describe("A rodada inteira tem teto, e a trava nao fica presa", () => {
     const trava = travaEspia();
     const tentadas: string[] = [];
 
-    const resumo = await varrerPrazos({
+    const resumo = await varrerAvisos({
       banco: mem.banco,
       trava,
       janelaMinutos: 60,
@@ -206,7 +206,7 @@ describe("A rodada inteira tem teto, e a trava nao fica presa", () => {
     const trava = travaEspia();
     const tentadas: string[] = [];
 
-    return varrerPrazos({
+    return varrerAvisos({
       banco: mem.banco,
       trava,
       janelaMinutos: 60,
@@ -228,7 +228,7 @@ describe("A rodada inteira tem teto, e a trava nao fica presa", () => {
     /*
       Este é o caso que nem o teto por chamada nem o teto por rodada cobrem:
       os dois são cooperativos e dependem de o laço continuar rodando. Aqui o
-      envio nunca resolve nem rejeita, então o `finally` do `varrerPrazos` NÃO
+      envio nunca resolve nem rejeita, então o `finally` do `varrerAvisos` NÃO
       executa, e sem o vigia a trava ficaria presa até o processo morrer,
       calando o aviso de prazo nas duas máquinas do Fly.
     */

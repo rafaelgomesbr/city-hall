@@ -23,9 +23,10 @@
 import { processColor } from "react-native";
 import { act, render, screen } from "@testing-library/react-native";
 import Svg, { Path } from "react-native-svg";
+import { caminhosDoGlifo, glifoDeSeveridade, type Severidade } from "@dc360/shared";
 
 import * as modulo from "./icones";
-import { ICONES, type ComponenteDeIcone, type NomeDeIcone } from "./icones";
+import { ICONES, IconeSeveridade, type ComponenteDeIcone, type NomeDeIcone } from "./icones";
 
 const COR = "#123456";
 
@@ -216,6 +217,56 @@ describe("o registro", () => {
   */
   it("é coberto, ícone por ícone, pela tabela de casos deste arquivo", () => {
     expect(conjunto.map(([nome]) => nome).sort()).toEqual(Object.keys(ICONES).sort());
+  });
+});
+
+/**
+ * A SEVERIDADE tem um glifo por nível, e ele vem do pacote compartilhado.
+ *
+ * O `IconeSeveridade` nasceu como um medidor com ponteiro, o mesmo desenho
+ * para os quatro níveis, mudando só a cor: era o segundo canal prometido pelo
+ * `SeloSeveridade` sem ser um segundo canal de verdade, porque forma igual
+ * com cor diferente é cor sozinha. E o painel desenhava outra coisa. Agora o
+ * glifo (círculo, quadrado, triângulo, octógono, círculo tracejado) vem de
+ * `@dc360/shared`, e este arquivo cobra que o aplicativo desenhe EXATAMENTE
+ * aquele caminho, e não uma cópia local que divergiria na primeira mudança.
+ */
+describe("o ícone de severidade desenha o glifo do nível, vindo do compartilhado", () => {
+  const niveis: Array<[string, Severidade | null]> = [
+    ["baixa", "baixa"],
+    ["media", "media"],
+    ["alta", "alta"],
+    ["critica", "critica"],
+    ["sem classificação", null],
+  ];
+
+  it.each(niveis)("%s: cada traço é um caminho do glifo compartilhado, na ordem", async (_nome, severidade) => {
+    await act(async () => {
+      await render(<IconeSeveridade cor={COR} severidade={severidade} />);
+    });
+    const desenhados = nosDesenhados(todosOsNos(screen.toJSON()));
+    expect(desenhados.map((n) => n.props.d)).toEqual(caminhosDoGlifo(glifoDeSeveridade(severidade)));
+  });
+
+  it("os quatro níveis não compartilham desenho: a forma é o segundo canal", async () => {
+    const vistos = new Set<string>();
+    for (const [, severidade] of niveis) {
+      await act(async () => {
+        await render(<IconeSeveridade cor={COR} severidade={severidade} />);
+      });
+      vistos.add(JSON.stringify(nosDesenhados(todosOsNos(screen.toJSON())).map((n) => n.props.d)));
+    }
+    expect(vistos.size).toBe(niveis.length);
+  });
+
+  /*
+    Sem nível é sem classificação, e não um medidor genérico: o registro
+    `ICONES` chama todo ícone só com cor e tamanho, e o que sai daí tem de ser
+    um estado que existe no produto.
+  */
+  it("sem nível, desenha sem classificação", async () => {
+    const { desenhados } = await desenhar(ICONES.severidade);
+    expect(desenhados.map((n) => n.props.d)).toEqual(caminhosDoGlifo(glifoDeSeveridade(null)));
   });
 });
 

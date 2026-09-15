@@ -20,6 +20,7 @@ import {
   Aviso, Botao, Cartao, Carregando, Dado, Separador, Txt, Vazio, useTema,
 } from "../../ui/componentes";
 import { useRecuoDoMenu } from "../../ui/BarraDeAbas";
+import { useComecarDoTopo } from "../../ui/CenaDaAba";
 import { Chip, type TomDoChip } from "../../ui/Chip";
 import { Dialogo } from "../../ui/Dialogo";
 import {
@@ -717,6 +718,8 @@ export default function TelaDaFila() {
   const sinal = useSinal();
   // A pílula do menu paira sobre a cena; a tela reserva o vão no fim da rolagem.
   const recuoDoMenu = useRecuoDoMenu();
+  // Toda aba começa do topo a cada foco (ver `ui/CenaDaAba.tsx`).
+  const rolagem = useComecarDoTopo<ScrollView>();
   const { obterToken, lerIdentidade, identidade } = useSessao();
   const tema = useTema();
   const reduzirMovimento = useReducaoDeMovimento();
@@ -1413,7 +1416,7 @@ export default function TelaDaFila() {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: recuoDoMenu }}>
+    <ScrollView ref={rolagem} contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: recuoDoMenu }}>
       {!sinal.temSinal && (
         <Aviso tom="alerta" titulo="Sem sinal agora">
           Nada se perde: o que está aqui sai sozinho quando a conexão voltar, sem

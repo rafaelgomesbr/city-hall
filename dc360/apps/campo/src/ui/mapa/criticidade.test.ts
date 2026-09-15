@@ -1,4 +1,4 @@
-import { SEVERIDADES } from "@dc360/shared";
+import { SEVERIDADES, glifoDeSeveridade } from "@dc360/shared";
 
 import { temaClaro, temaEscuro } from "../tokens";
 import {
@@ -40,6 +40,23 @@ describe("cada criticidade tem forma própria, e nenhuma se confunde com outra",
   it("a palavra é a mesma que o selo de severidade mostra", () => {
     expect(aparenciaDaCriticidade(temaClaro, "critica").palavra).toBe("Crítica");
     expect(aparenciaDaCriticidade(temaClaro, "baixa").palavra).toBe("Baixa");
+  });
+
+  /*
+    E o DESENHO é o mesmo que o selo mostra, e o mesmo que o painel mostra: o
+    glifo vem de `@dc360/shared`, e a forma é o nome da silhueta dele. Até
+    15/09/2026 o pino era triângulo, losango, quadrado, círculo e anel, numa
+    ordem que não era a do painel (lá crítica era círculo): o coordenador e o
+    agente liam o mesmo mapa com duas legendas.
+  */
+  it("o glifo do pino é o glifo compartilhado do nível, e a forma é a silhueta dele", () => {
+    for (const severidade of [...SEVERIDADES, null]) {
+      const aparencia = aparenciaDaCriticidade(temaClaro, severidade);
+      expect(aparencia.glifo).toBe(glifoDeSeveridade(severidade));
+      expect(aparencia.forma).toBe(glifoDeSeveridade(severidade).silhueta);
+    }
+    expect(aparenciaDaCriticidade(temaClaro, "critica").forma).toBe("octogono");
+    expect(aparenciaDaCriticidade(temaClaro, null).forma).toBe("circulo_tracejado");
   });
 });
 

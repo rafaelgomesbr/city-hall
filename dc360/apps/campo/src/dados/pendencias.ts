@@ -1,3 +1,5 @@
+import type { Severidade } from "@dc360/shared";
+
 import {
   baixarMeuTrabalho, baixarPendencias, reconciliarPendencias,
   TETO_DE_RECONCILIACAO, type MeuTrabalho, type OrgaoDoCatalogo, type Pendencia,
@@ -48,6 +50,106 @@ const MARCA_LISTA_TRUNCADA = "pendencias.teto_atingido";
  * entre municípios diferentes, e catálogo é cadastro de um município só.
  */
 const MARCA_CATALOGO_ORGAOS = "orgaos.catalogo";
+
+/**
+ * Os ids da última lista que este aparelho viu, para saber o que é NOVIDADE.
+ *
+ * A decisão de 15/09/2026: com o aplicativo aberto, quem descobre que a
+ * coordenação despachou uma ocorrência é esta atualização, e descobrir precisa
+ * virar aviso (som, faixa e vibração, ver `push/ProvedorDePush.tsx`). Para
+ * avisar só o que é novo, o aparelho compara a lista que chegou com a que ele
+ * viu por último, por id.
+ *
+ * Mora em `marcas`, e não numa variável, por causa da regra "id já visto não
+ * avisa de novo": memória só de processo avisaria o mesmo despacho a cada
+ * abertura do aplicativo. E some no logout junto com o resto de `marcas`, o
+ * que é o comportamento certo no aparelho de plantão: o próximo agente começa
+ * sem memória, e a primeira carga dele é calada.
+ *
+ * Guarda a ÚLTIMA lista, e não tudo o que já passou por aqui. Duas razões: a
+ * marca não cresce pelo tempo de vida do aparelho, e a tarefa que saiu da
+ * lista (outra equipe, devolvida, encerrada) e VOLTOU é um despacho novo da
+ * coordenação, que merece avisar de novo.
+ *
+ * A ausência da marca significa "nunca baixou": é o que distingue a primeira
+ * carga (calada) de uma lista que estava vazia e recebeu tarefa (avisa).
+ */
+const MARCA_IDS_VISTOS = "pendencias.ids_vistos";
+
+/** O mínimo que o aviso local precisa. Nem endereço nem protocolo saem daqui. */
+export type TarefaNova = { id: string; severidade: Severidade | null };
+
+type OuvinteDeTarefaNova = (novas: readonly TarefaNova[]) => void;
+const ouvintesDeTarefaNova = new Set<OuvinteDeTarefaNova>();
+
+/**
+ * Quem quer saber quando a atualização da lista traz tarefa que não estava lá.
+ *
+ * Devolve a função que cancela a escuta. É um gancho de módulo, e não uma
+ * propriedade de `atualizarPendencias`, porque quem chama a atualização (a
+ * tela de tarefas, a vistoria que baixa a lista para abrir uma tarefa) não é
+ * quem sabe avisar; quem sabe é o provedor de push, que está montado na raiz
+ * do aplicativo e tem a porta para o sistema.
+ */
+export function aoChegarTarefaNova(ouvinte: OuvinteDeTarefaNova): () => void {
+  ouvintesDeTarefaNova.add(ouvinte);
+  return () => { ouvintesDeTarefaNova.delete(ouvinte); };
+}
+
+async function idsVistos(): Promise<Set<string> | null> {
+  const db = await bancoLocal();
+  const linha = await db.getFirstAsync<{ valor: string }>(
+    "SELECT valor FROM marcas WHERE chave = ?", [MARCA_IDS_VISTOS],
+  );
+  if (!linha) return null;
+  try {
+    const lido = JSON.parse(linha.valor) as unknown;
+    return new Set(Array.isArray(lido) ? lido.filter((v): v is string => typeof v === "string") : []);
+  } catch {
+    // Marca ilegível é o mesmo que marca ausente: melhor uma primeira carga
+    // calada do que o dia inteiro tocando.
+    return null;
+  }
+}
+
+/**
+ * O push já contou estas: a próxima atualização não conta de novo.
+ *
+ * Chamado pelo provedor de push quando um aviso de tarefa nova chega pela
+ * Apple ou pelo Google (aberto, tocado ou encontrado na bandeja). Sem isto o
+ * despacho toca duas vezes com o aplicativo aberto, e dois toques pelo mesmo
+ * fato é o que ensina alguém a calar o canal.
+ *
+ * NÃO cria a marca quando ela não existe. Aparelho recém-entrado que recebe um
+ * push antes da primeira carga: se a marca nascesse aqui com um id só, a
+ * primeira carga acharia memória e avisaria todas as outras tarefas do dia,
+ * que é exatamente o que a regra da primeira carga proíbe.
+ */
+export async function marcarTarefasVistas(ids: readonly string[]): Promise<void> {
+  const vistos = await idsVistos();
+  if (vistos === null) return;
+  for (const id of ids) vistos.add(id);
+  const db = await bancoLocal();
+  await db.runAsync(
+    `INSERT INTO marcas (chave, valor) VALUES (?, ?)
+     ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor`,
+    [MARCA_IDS_VISTOS, JSON.stringify([...vistos])],
+  );
+}
+
+/** Conta a novidade a quem estiver ouvindo. Um ouvinte que estoura não cala os outros. */
+function anunciarTarefasNovas(novas: readonly TarefaNova[]): void {
+  if (novas.length === 0) return;
+  for (const ouvinte of [...ouvintesDeTarefaNova]) {
+    try {
+      ouvinte(novas);
+    } catch (erro) {
+      // O aviso é conforto em cima da lista, que já está em disco. Falhar em
+      // avisar não pode virar falha em atualizar.
+      console.warn("Um ouvinte de tarefa nova estourou", erro);
+    }
+  }
+}
 
 export async function pendenciasGuardadas(): Promise<Pendencia[]> {
   const db = await bancoLocal();
@@ -132,6 +234,11 @@ export async function atualizarPendencias(token: string): Promise<Pendencia[]> {
     antes é o que permite descobrir, logo em seguida, por que cada uma saiu.
   */
   const conhecidas = await idsConhecidos();
+  /*
+    A última lista vista também é lida ANTES: a transação abaixo a substitui
+    pela lista que chegou, e é a diferença entre as duas que diz o que é novo.
+  */
+  const vistasAntes = await idsVistos();
   const lista = await baixarPendencias(token);
   const recebidas = lista.itens;
   const db = await bancoLocal();
@@ -194,7 +301,35 @@ export async function atualizarPendencias(token: string): Promise<Pendencia[]> {
         [MARCA_CATALOGO_ORGAOS, JSON.stringify(lista.orgaos)],
       );
     }
+    /*
+      Os ids vistos entram na MESMA transação, porque descrevem a lista que
+      acabou de entrar. Fora dela, uma falha no meio deixaria a memória
+      apontando para uma lista que não está no disco, e o próximo aviso
+      mentiria sobre o que é novo.
+    */
+    await db.runAsync(
+      `INSERT INTO marcas (chave, valor) VALUES (?, ?)
+       ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor`,
+      [MARCA_IDS_VISTOS, JSON.stringify(recebidas.map((p) => p.id))],
+    );
   });
+
+  /*
+    A novidade é anunciada DEPOIS de a transação fechar, e ANTES da
+    reconciliação. Depois da transação porque uma lista que não entrou no
+    disco não é novidade nenhuma; antes da reconciliação porque ela vai à
+    rede, e o aviso de despacho não pode esperar uma segunda requisição.
+
+    `vistasAntes === null` é a primeira carga deste aparelho (ou deste
+    agente, depois do logout): o dia inteiro chegando não é novidade.
+  */
+  if (vistasAntes !== null) {
+    anunciarTarefasNovas(
+      recebidas
+        .filter((p) => !vistasAntes.has(p.id))
+        .map((p) => ({ id: p.id, severidade: p.severidade ?? null })),
+    );
+  }
 
   /*
     A reconciliação vem DEPOIS, e o que ela devolve não pode derrubar a

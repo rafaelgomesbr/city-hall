@@ -32,6 +32,8 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
   default: () => mockEsquema,
 }));
 
+import { caminhosDoGlifo, glifoDeSeveridade } from "@dc360/shared";
+
 import { Chip, SeloSeveridade } from "./Chip";
 import * as primitivas from "./componentes";
 import { ProvedorDeTema } from "./componentes";
@@ -155,6 +157,26 @@ describe("o selo de severidade é a mesma pílula do resto do produto", () => {
     await montar(<SeloSeveridade severidade="media" testID="gravidade" />);
     expect(screen.getByTestId("gravidade").props.accessibilityLabel)
       .toBe("Severidade média");
+  });
+
+  /*
+    O desenho é o glifo DO NÍVEL, e o mesmo do painel. O medidor antigo era
+    igual para os quatro níveis, mudando só a cor, o que fazia do "segundo
+    canal" uma promessa: forma igual com cor diferente é cor sozinha. O
+    caminho é conferido contra o pacote compartilhado, e não contra uma cópia
+    local, porque cópia diverge na primeira mudança.
+  */
+  it("cada nível desenha o seu glifo, vindo do pacote compartilhado", async () => {
+    const vistos = new Set<string>();
+    for (const severidade of ["baixa", "media", "alta", "critica", null] as const) {
+      await montar(<SeloSeveridade severidade={severidade} />);
+      const caminhos = todosOsNos(screen.toJSON())
+        .filter((n) => n.type === "RNSVGPath")
+        .map((n) => n.props.d);
+      expect(caminhos).toEqual(caminhosDoGlifo(glifoDeSeveridade(severidade)));
+      vistos.add(JSON.stringify(caminhos));
+    }
+    expect(vistos.size).toBe(5);
   });
 });
 

@@ -11,6 +11,7 @@ import {
 } from "../componentes/comuns";
 import { Campo } from "../componentes/Campo";
 import { AtivarSegundoFator } from "../componentes/SegundoFator";
+import { useTitulo } from "../seo/titulo";
 
 /**
  * Entrada da aplicação, em duas formas conforme o painel esteja ligado à API
@@ -28,6 +29,7 @@ import { AtivarSegundoFator } from "../componentes/SegundoFator";
  * chega ao `SET LOCAL` do RLS.
  */
 export function Entrar() {
+  useTitulo("Entrar");
   return (
     <div className="entrada">
       <div className="entrada__painel">

@@ -1,6 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Easing, ScrollView, View, useWindowDimensions } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import { ScrollView, View, useWindowDimensions } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 /*
   O contexto vem do ROTEADOR, e não de `@react-navigation/bottom-tabs`, pela
@@ -9,11 +8,7 @@ import { router, useFocusEffect } from "expo-router";
 */
 import { BottomTabBarHeightContext } from "expo-router/build/react-navigation/bottom-tabs";
 import * as Location from "expo-location";
-import {
-  dataDoPrazo, quantoFalta, seloDaColeta, type ColetaLocal, type ItemFila,
-} from "@dc360/campo";
-
-import { ROTULO_SEVERIDADE, type Severidade } from "@dc360/shared";
+import { quantoFalta, seloDaColeta, type ColetaLocal, type ItemFila } from "@dc360/campo";
 
 import { enderecoDaApi, type Pendencia } from "../../dados/api";
 import { listarColetas } from "../../dados/coletas";
@@ -25,7 +20,7 @@ import {
 } from "../../dados/rota";
 import { useSessao } from "../../dados/sessao";
 import {
-  abrirNoMapa, coordenadaEmTexto, copiarCoordenada, distanciaEmTexto, rotaEsquematica, type Ponto,
+  abrirNoMapa, coordenadaEmTexto, copiarCoordenada, distanciaEmTexto, type Ponto,
 } from "../../dados/mapa";
 import {
   AVISO_SEM_DISTANCIA,
@@ -36,18 +31,21 @@ import {
   tarefasDoDia,
 } from "../../dados/ordem-do-dia";
 import {
-  Botao, Carregando, Dado, LinhaDeAcoes, Tocavel, Txt, Vazio, useTema,
+  Botao, Carregando, Dado, LinhaDeAcoes, Txt, Vazio, useTema,
 } from "../../ui/componentes";
-import { Chip, SeloSeveridade } from "../../ui/Chip";
+import { useComecarDoTopo } from "../../ui/CenaDaAba";
+import { Chip } from "../../ui/Chip";
 import { FolhaDeEscolha, type OpcaoDaFolha } from "../../ui/FolhaDeEscolha";
+import {
+  ItemDeTarefa, RodapeDaPagina, TAMANHO_DA_PAGINA, alternarEscolha, gravidadeEmPalavra,
+  itemAberto, quantasMostrar, type Escolha,
+} from "../../ui/ItemDeTarefa";
 import { MapaDoImovel, ladoDoMapa, useMapaDoMunicipio, type PinoNoMapa } from "../../ui/mapa";
 import {
-  IconeAparelho, IconeGps, IconeLocalizacao, IconePrazo, IconePrazoVencido, IconeTarefas,
+  IconeAparelho, IconeGps, IconeLocalizacao, IconeTarefas,
 } from "../../ui/icones";
 import { retornoTatil } from "../../ui/retornoTatil";
-import {
-  borda, easing, espaco, icone as tamanhoDeIcone, movimento, peso, raio, toque,
-} from "../../ui/tokens";
+import { espaco, icone as tamanhoDeIcone, movimento } from "../../ui/tokens";
 import { useReducaoDeMovimento } from "../../ui/useReducaoDeMovimento";
 
 /**
@@ -147,34 +145,15 @@ import { useReducaoDeMovimento } from "../../ui/useReducaoDeMovimento";
 /** Só o que esta tela precisa saber de uma tarefa para desenhá-la. */
 type TarefaNoMapa = Pendencia;
 
-/**
- * QUANTOS ITENS A LISTA MOSTRA de cada vez.
- *
- * Cinco cabe numa tela de aparelho pequeno abaixo do quadrado do mapa sem que
- * a lista pareça infinita, e é mais do que o agente resolve num turno sem
- * voltar aqui. Quem quer ver o resto pede ("Mostrar mais"), e o pino de uma
- * tarefa além da página faz a página crescer até ela, porque um pino que abre
- * um item que não está na tela é um toque que parece não ter feito nada.
- *
- * A página é da LISTA. O mapa é do dia inteiro, sempre: esconder pino seria
- * esconder trabalho.
- */
-export const TAMANHO_DA_PAGINA = 5;
+/*
+  O ITEM EM SANFONA, A PÁGINA E A ESCOLHA MORAM EM `ui/ItemDeTarefa.tsx`.
 
-/**
- * A GRAVIDADE EM PALAVRA, para o rótulo do pino.
- *
- * Quem ouve a tela não vê nem a cor nem a forma do pino: sem esta frase, o mapa
- * dele é um punhado de botões sem gravidade nenhuma. As palavras são as MESMAS
- * do `SeloSeveridade` ("Severidade crítica", "Severidade ainda não
- * classificada"), e não uma segunda redação: a mesma tarefa lida no pino e no
- * item precisa soar igual, senão parecem duas coisas diferentes.
- */
-function gravidadeEmPalavra(severidade: Severidade | null): string {
-  return severidade
-    ? `Severidade ${ROTULO_SEVERIDADE[severidade].toLowerCase()}`
-    : "Severidade ainda não classificada";
-}
+  Nasceram aqui em 15/09/2026 e saíram no mesmo dia, quando quem paga aprovou o
+  desenho e pediu o mesmo na tela de tarefas. O que ficou nesta tela é o que só
+  o mapa tem: o caminho por ruas, as duas folhas, e o pino que abre o item. O
+  tamanho da página continua exportado daqui para quem o importava pelo mapa.
+*/
+export { TAMANHO_DA_PAGINA };
 
 /**
  * O que a tela sabe do caminho pedido, para UMA tarefa por vez.
@@ -202,19 +181,6 @@ type RespostaDoPino = "aplicativo" | "vistoria";
 type FolhaAberta = { tipo: "caminho" | "pino"; ocorrenciaId: string };
 
 /**
- * QUAL ITEM ESTÁ ABERTO.
- *
- * Três estados e não dois, porque "nenhum" e "ainda não escolhi" são coisas
- * diferentes. A tela abre com a sugerida do dia aberta sem ninguém tocar em
- * nada, e a sugerida só é conhecida depois da leitura do disco: `"sugerida"` é
- * o estado que resolve para ela no momento em que ela existir. Tocar no item
- * aberto recolhe (`"nenhuma"`), e aí nenhum pino fica escolhido. Um `id` que
- * saiu da lista (a coordenação encerrou, outra equipe pegou) volta para a
- * sugerida, para a tela não falar de uma casa que não é mais da conta dele.
- */
-type Escolha = "sugerida" | "nenhuma" | { id: string };
-
-/**
  * O recado de UMA resposta da folha, dentro do item que a pediu.
  *
  * "Coordenada copiada" quando copiou; a coordenada em texto quando o aparelho
@@ -225,319 +191,95 @@ type Escolha = "sugerida" | "nenhuma" | { id: string };
 type AvisoDoItem = { ocorrenciaId: string; texto: string; tom: "ok" | "alerta" };
 
 /**
- * A SETA DO ITEM, que diz "isto abre" e vira quando abriu.
- *
- * É o sinal visual da sanfona. Sem ele, um item resumido é um cartão que
- * parece completo, e o agente não descobre que tocar mostra os botões. Vira de
- * ponta-cabeça quando o item está aberto, em transformação com driver nativo,
- * e sem interpolação quando o sistema pediu menos movimento.
- *
- * Desenhada aqui, e não em `icones.tsx`, porque aquele arquivo está com outra
- * frente neste turno. Segue as regras do conjunto (grade de 24, traço de 1,8,
- * sem preenchimento) para o dia em que for morar lá.
- */
-const TRACO_DA_SETA = 1.8;
-const ROTACAO_DA_SETA_ABERTA = "180deg";
-
-function SetaDoItem({ aberto, cor, reduzir }: { aberto: boolean; cor: string; reduzir: boolean }) {
-  const giro = useRef(new Animated.Value(aberto ? 1 : 0)).current;
-
-  useEffect(() => {
-    if (reduzir) { giro.setValue(aberto ? 1 : 0); return; }
-    Animated.timing(giro, {
-      toValue: aberto ? 1 : 0,
-      duration: movimento.mudancaDeEstado,
-      easing: Easing.bezier(...easing.entrada),
-      useNativeDriver: true,
-    }).start();
-  }, [aberto, reduzir, giro]);
-
-  return (
-    <Animated.View
-      style={{
-        transform: [{
-          rotate: giro.interpolate({ inputRange: [0, 1], outputRange: ["0deg", ROTACAO_DA_SETA_ABERTA] }),
-        }],
-      }}
-    >
-      <Svg width={tamanhoDeIcone.rotulo} height={tamanhoDeIcone.rotulo} viewBox="0 0 24 24" fill="none">
-        <Path
-          d="M6 9.5l6 6 6-6"
-          stroke={cor} strokeWidth={TRACO_DA_SETA} strokeLinecap="round" strokeLinejoin="round"
-        />
-      </Svg>
-    </Animated.View>
-  );
-}
-
-/**
- * O DETALHE DO ITEM ABERTO, que aparece com opacidade e deslocamento.
- *
- * A altura NÃO é animada, e isso é deliberado: altura não roda no driver
- * nativo, e animá-la no JavaScript é o que engasga numa lista de doze itens
- * num aparelho de entrada. O bloco entra inteiro no leiaute e PINTA em
- * transição (opacidade de 0 a 1, um deslocamento curto para cima), com driver
- * nativo. Com redução de movimento, sem interpolação: o valor vai direto a 1.
- *
- * A chave de redução vem da TELA, por propriedade, e não de um
- * `useReducaoDeMovimento()` próprio: cada instância do gancho nasce em `false`
- * e só sabe a resposta quando a promessa do sistema resolve, o que nunca é o
- * primeiro quadro. Um gancho aqui dentro faria o detalhe animar UMA vez para
- * quem pediu menos movimento, a cada item aberto. A tela já resolveu a chave
- * muito antes de qualquer item ser tocado.
- */
-function DetalheDoItem({ children, reduzir }: { children: React.ReactNode; reduzir: boolean }) {
-  const presenca = useRef(new Animated.Value(reduzir ? 1 : 0)).current;
-
-  useEffect(() => {
-    if (reduzir) { presenca.stopAnimation(); presenca.setValue(1); return; }
-    Animated.timing(presenca, {
-      toValue: 1,
-      duration: movimento.mudancaDeEstado,
-      easing: Easing.bezier(...easing.entrada),
-      useNativeDriver: true,
-    }).start();
-  }, [reduzir, presenca]);
-
-  return (
-    <Animated.View
-      style={{
-        gap: espaco.e2,
-        opacity: presenca,
-        transform: [{
-          translateY: presenca.interpolate({ inputRange: [0, 1], outputRange: [-espaco.e2, 0] }),
-        }],
-      }}
-    >
-      {children}
-    </Animated.View>
-  );
-}
-
-/**
- * O ITEM DA LISTA: resumo que se toca, e detalhe que aparece embaixo.
- *
- * O resumo é um `Tocavel` e o detalhe é IRMÃO dele, fora do tocável, e isso
- * não é detalhe de leiaute: um `Pressable` com rótulo é um elemento só para o
- * leitor de tela, e botões dentro dele ficam inalcançáveis por voz. Os dois
- * botões precisam ser botões de verdade, cada um com o rótulo dele.
- *
- * É ele que cumpre a outra metade da regra de severidade. O pino leva cor e
- * forma, a legenda embaixo do mapa diz a palavra de cada forma, e aqui a
- * gravidade aparece por extenso, no `SeloSeveridade`, com ícone e nome. Nenhum
- * dos três canais depende de enxergar cor.
- *
- * A distância e o rumo saem de `rotaEsquematica`, com a frase já pronta, e não
- * de uma segunda conta escrita aqui: duas contas para o mesmo fato divergem, e
- * a que diverge é a que manda o agente para o lado errado do morro.
+ * O QUE O MAPA PÕE DENTRO DO ITEM ABERTO, depois do que a peça já desenha
+ * (prazo com data, referência, distância e rumo): a frase do caminho por
+ * ruas, o recado da última resposta da folha, e os dois botões.
  *
  * No nível do módulo, e não dentro da tela, porque componente declarado dentro
  * de outro é um tipo novo a cada renderização: o React desmonta e remonta a
  * subárvore inteira a cada toque.
  */
-function ItemDaTarefa({
-  tarefa, aberto, agente, agora, metros, selo, caminho, aviso, reduzir,
-  aoAlternar, aoVerOCaminho, aoAbrirVistoria, aoMedir,
-}: {
+function DetalheNoMapa({ tarefa, caminho, aviso, aoVerOCaminho, aoAbrirVistoria }: {
   tarefa: TarefaNoMapa;
-  aberto: boolean;
-  agente: Ponto | null;
-  agora: number;
-  metros: number | null;
-  selo: string | null;
   /** O estado do caminho DESTA tarefa, ou nada. */
   caminho: EstadoDoCaminho | null;
   /** O recado da última resposta da folha, se foi para esta tarefa. */
   aviso: AvisoDoItem | null;
-  /** A chave de redução de movimento, resolvida pela tela. Ver `DetalheDoItem`. */
-  reduzir: boolean;
-  aoAlternar: () => void;
   aoVerOCaminho: () => void;
   aoAbrirVistoria: () => void;
-  /** Onde o item ficou, em pontos, a partir do topo da lista. Ver `rolarAteOItem`. */
-  aoMedir: (y: number) => void;
 }) {
   const tema = useTema();
-  const prazo = quantoFalta(tarefa.prazo_em, agora);
-  const data = dataDoPrazo(tarefa.prazo_em);
   const ponto = pontoDaTarefa(tarefa);
-  const rota = ponto ? rotaEsquematica(agente, ponto) : null;
-  const IconeDoPrazo = prazo.atrasado ? IconePrazoVencido : IconePrazo;
-  const corDoPrazo = prazo.atrasado ? tema.perigoTexto : tema.textoDiscreto;
-
-  const ondeFica = !ponto
-    ? "A coordenação não informou onde fica este imóvel. O endereço e o ponto de "
-      + "referência estão na vistoria, e é por eles que se chega."
-    : rota
-      ? rota.frase
-      : "Sem GPS: sem distância e sem rumo até este imóvel. O endereço e o ponto "
-        + "de referência estão na vistoria.";
-
-  /*
-    O ESTADO que o leitor de tela anuncia. `expanded` é o que a sanfona é;
-    `selected` vai junto porque é o que o iOS anuncia em versões que ainda não
-    leem `expanded`.
-  */
-  const estadoDoItem = { selected: aberto, expanded: aberto };
-
-  /*
-    O RÓTULO composto, na ordem em que se decide: qual, quão grave, onde, a
-    que distância, quando vence, se já foi feita, e se está aberto. Tudo numa
-    frase, porque quem ouve não pode passar o olho pela linha de baixo.
-  */
-  const rotulo =
-    `Protocolo ${tarefa.protocolo}, ${gravidadeEmPalavra(tarefa.severidade).toLowerCase()}, `
-    + `${tarefa.endereco}`
-    + (metros === null ? "" : `, a ${distanciaEmTexto(metros)} de você`)
-    + `. ${prazo.texto}`
-    + (selo ? `. ${selo}` : "")
-    + (aberto ? ". Expandido, mostrando as ações" : ". Recolhido, toque para ver as ações");
 
   return (
-    <View
-      testID={`tarefa-${tarefa.id}`}
-      onLayout={(e) => { aoMedir(e.nativeEvent.layout.y); }}
-      style={{
-        borderRadius: raio.cartao,
-        borderWidth: aberto ? borda.enfase : borda.fio,
-        borderColor: aberto ? tema.destaque : tema.borda,
-        backgroundColor: tema.superficie,
-        overflow: "hidden",
-      }}
-    >
-      <Tocavel
-        testID={`escolher-${tarefa.id}`}
-        accessibilityRole="button"
-        accessibilityState={estadoDoItem}
-        accessibilityLabel={rotulo}
-        onPress={aoAlternar}
-        estilo={{
-          minHeight: toque,
-          padding: espaco.e3,
-          gap: espaco.e1,
-        }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
-          <Txt variante="corpoP" mono negrito>{tarefa.protocolo}</Txt>
-          <View style={{ flex: 1 }} />
-          <SeloSeveridade severidade={tarefa.severidade} />
-          <SetaDoItem aberto={aberto} cor={tema.textoDiscreto} reduzir={reduzir} />
-        </View>
-        {/*
-          Endereço em UMA linha no resumo. Aberto, a linha se solta e mostra o
-          endereço inteiro, e o ponto de referência vem no detalhe: é lá que se
-          lê para achar a casa.
-        */}
-        <Txt variante="corpoP" numeroDeLinhas={aberto ? undefined : 1}>{tarefa.endereco}</Txt>
-        {(metros !== null || selo) && (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2, flexWrap: "wrap" }}>
-            {metros !== null && (
-              <Txt nivel="apoio">{`a ${distanciaEmTexto(metros)} de você`}</Txt>
-            )}
-            {/* O mesmo `Chip` do cartão da lista de tarefas, e não um texto parecido:
-                duas peças para o mesmo fato divergem na primeira edição. */}
-            {!!selo && <Chip texto={selo} simbolo="✓" tom="ok" />}
-          </View>
-        )}
-      </Tocavel>
-
-      {aberto && (
-        <View style={{ paddingHorizontal: espaco.e3, paddingBottom: espaco.e3 }}>
-          <DetalheDoItem reduzir={reduzir}>
-            {/*
-              O PRAZO COM A DATA. "Vence em 9h" não diz ao agente se o prazo
-              cai dentro do turno dele ou já na madrugada, e é essa distinção
-              que decide se ele sobe hoje ou passa a tarefa. É a mesma linha da
-              tela de tarefas, com o mesmo ícone e a mesma cor de atraso.
-            */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2, flexWrap: "wrap" }}>
-              <IconeDoPrazo cor={corDoPrazo} tamanho={tamanhoDeIcone.rotulo} />
-              <Txt variante="corpoP" peso={prazo.atrasado ? peso.negrito : peso.forte} cor={corDoPrazo}>
-                {prazo.texto}
-              </Txt>
-              {!!data && <Txt variante="legenda" cor={tema.textoDiscreto}>{data}</Txt>}
-            </View>
-            {/*
-              O PONTO DE REFERÊNCIA é o que faz achar a casa: endereço de morro
-              raramente tem placa, e "a casa azul depois da padaria" é o que
-              resolve a chegada.
-            */}
-            {!!tarefa.ponto_referencia && (
-              <Txt nivel="apoio">{`Referência: ${tarefa.ponto_referencia}`}</Txt>
-            )}
-            {/*
-              A frase de `rotaEsquematica` traz a distância E o rumo por extenso,
-              e é a linha de medida que funciona sem sinal e sem Google. O
-              caminho por ruas, quando pedido, entra ABAIXO dela e não no lugar
-              dela: se o Google errar, a reta é a segunda opinião que o agente
-              tem na tela.
-            */}
-            <Txt variante="corpoP">{ondeFica}</Txt>
-            {caminho?.fase === "tracado" && (
-              <Txt variante="corpoP" negrito>{fraseDoCaminho(caminho.caminho)}</Txt>
-            )}
-            {caminho?.fase === "indisponivel" && (
-              <Txt nivel="apoio">{caminho.frase}</Txt>
-            )}
-            {aviso && (
-              aviso.tom === "ok"
-                ? (
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Chip texto={aviso.texto} simbolo="✓" tom="ok" testID="aviso-do-item" />
-                  </View>
-                )
-                : (
-                  <View testID="aviso-do-item">
-                    <Txt variante="corpoP" cor={tema.alertaTexto}>{aviso.texto}</Txt>
-                  </View>
-                )
-            )}
-            {/*
-              "VER O CAMINHO" é `realce` e não `primario`: a ação principal do
-              item continua sendo abrir a vistoria, que é o trabalho. O caminho
-              é o ato importante que ajuda a chegar. Ele só existe quando há
-              para onde: sem coordenada do imóvel, nenhuma das três respostas da
-              folha teria o que fazer, e a frase de `ondeFica` já diz por onde
-              se chega. A posição do agente NÃO é condição: duas das três
-              respostas (mapa do aparelho, copiar) não precisam dela, e a que
-              precisa some da folha quando ela falta.
-
-              É um TOQUE de propósito, e depois dele uma PERGUNTA. Cada pedido
-              de caminho aqui dentro manda a posição do agente para fora do
-              país (ver `docs/SUBPROCESSADORES.md` seção 2.2), e isso é uma
-              decisão dele, uma por tarefa, nunca da tela.
-            */}
-            {ponto ? (
-              <LinhaDeAcoes
-                acoes={[
-                  {
-                    titulo: "Ver o caminho",
-                    tipo: "realce",
-                    testID: "ver-o-caminho",
-                    carregando: caminho?.fase === "pedindo",
-                    descricao: `Ver o caminho até o protocolo ${tarefa.protocolo}: abre uma escolha entre o mapa do aparelho, o caminho aqui dentro e copiar a coordenada`,
-                    onPress: aoVerOCaminho,
-                  },
-                  {
-                    titulo: "Abrir a vistoria",
-                    testID: "abrir-a-vistoria",
-                    descricao: `Abrir a vistoria do protocolo ${tarefa.protocolo}, ${tarefa.endereco}`,
-                    onPress: aoAbrirVistoria,
-                  },
-                ]}
-              />
-            ) : (
-              <Botao
-                titulo="Abrir a vistoria"
-                testID="abrir-a-vistoria"
-                descricao={`Abrir a vistoria do protocolo ${tarefa.protocolo}, ${tarefa.endereco}`}
-                onPress={aoAbrirVistoria}
-              />
-            )}
-          </DetalheDoItem>
-        </View>
+    <>
+      {/*
+        A frase do caminho por ruas entra ABAIXO da linha reta que a peça já
+        disse, e não no lugar dela: se o Google errar, a reta é a segunda
+        opinião que o agente tem na tela.
+      */}
+      {caminho?.fase === "tracado" && (
+        <Txt variante="corpoP" negrito>{fraseDoCaminho(caminho.caminho)}</Txt>
       )}
-    </View>
+      {caminho?.fase === "indisponivel" && (
+        <Txt nivel="apoio">{caminho.frase}</Txt>
+      )}
+      {aviso && (
+        aviso.tom === "ok"
+          ? (
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Chip texto={aviso.texto} simbolo="✓" tom="ok" testID="aviso-do-item" />
+            </View>
+          )
+          : (
+            <View testID="aviso-do-item">
+              <Txt variante="corpoP" cor={tema.alertaTexto}>{aviso.texto}</Txt>
+            </View>
+          )
+      )}
+      {/*
+        "VER O CAMINHO" é `realce` e não `primario`: a ação principal do
+        item continua sendo abrir a vistoria, que é o trabalho. O caminho
+        é o ato importante que ajuda a chegar. Ele só existe quando há
+        para onde: sem coordenada do imóvel, nenhuma das três respostas da
+        folha teria o que fazer, e a frase da peça já diz por onde se
+        chega. A posição do agente NÃO é condição: duas das três respostas
+        (mapa do aparelho, copiar) não precisam dela, e a que precisa some
+        da folha quando ela falta.
+
+        É um TOQUE de propósito, e depois dele uma PERGUNTA. Cada pedido
+        de caminho aqui dentro manda a posição do agente para fora do
+        país (ver `docs/SUBPROCESSADORES.md` seção 2.2), e isso é uma
+        decisão dele, uma por tarefa, nunca da tela.
+      */}
+      {ponto ? (
+        <LinhaDeAcoes
+          acoes={[
+            {
+              titulo: "Ver o caminho",
+              tipo: "realce",
+              testID: "ver-o-caminho",
+              carregando: caminho?.fase === "pedindo",
+              descricao: `Ver o caminho até o protocolo ${tarefa.protocolo}: abre uma escolha entre o mapa do aparelho, o caminho aqui dentro e copiar a coordenada`,
+              onPress: aoVerOCaminho,
+            },
+            {
+              titulo: "Abrir a vistoria",
+              testID: "abrir-a-vistoria",
+              descricao: `Abrir a vistoria do protocolo ${tarefa.protocolo}, ${tarefa.endereco}`,
+              onPress: aoAbrirVistoria,
+            },
+          ]}
+        />
+      ) : (
+        <Botao
+          titulo="Abrir a vistoria"
+          testID="abrir-a-vistoria"
+          descricao={`Abrir a vistoria do protocolo ${tarefa.protocolo}, ${tarefa.endereco}`}
+          onPress={aoAbrirVistoria}
+        />
+      )}
+    </>
   );
 }
 
@@ -596,7 +338,8 @@ export default function Mapa() {
     altura (o detalhe monta), então ele SEMPRE mede de novo, já no lugar
     final. Tocar no próprio item não rola: o dedo já está nele.
   */
-  const rolagem = useRef<ScrollView>(null);
+  /* Toda aba começa do topo a cada foco (ver `ui/CenaDaAba.tsx`). */
+  const rolagem = useComecarDoTopo<ScrollView>();
   const posicaoDaLista = useRef(0);
   const posicaoDosItens = useRef(new Map<string, number>());
   const [rolarAte, setRolarAte] = useState<string | null>(null);
@@ -790,11 +533,7 @@ export default function Mapa() {
     quando ninguém tocou em nada ou quando a escolhida saiu da lista; nenhum
     quando o agente recolheu.
   */
-  const aberta = escolha === "nenhuma"
-    ? null
-    : escolha === "sugerida"
-      ? oDia.sugerida
-      : (oDia.ordenadas.find((t) => t.id === escolha.id) ?? oDia.sugerida);
+  const aberta = itemAberto(escolha, oDia.ordenadas, oDia.sugerida);
 
   /*
     A PÁGINA cresce até o item aberto. Um pino tocado além da página abre um
@@ -802,9 +541,8 @@ export default function Mapa() {
     continua contando o que falta a partir dele.
   */
   const indiceDaAberta = aberta ? oDia.ordenadas.findIndex((t) => t.id === aberta.id) : -1;
-  const visiveis = Math.min(oDia.ordenadas.length, Math.max(pagina, indiceDaAberta + 1));
+  const visiveis = quantasMostrar(oDia.ordenadas.length, pagina, indiceDaAberta);
   const mostradas = oDia.ordenadas.slice(0, visiveis);
-  const restantes = oDia.ordenadas.length - visiveis;
 
   /*
     O CAMINHO É DA TAREFA: o que está na tela só vale para o item aberto.
@@ -816,13 +554,8 @@ export default function Mapa() {
 
   /** Abre ou recolhe um item, e escolhe o pino dele. */
   const alternar = useCallback((id: string) => {
-    setEscolha((antes) => {
-      const abertaAgora = antes === "nenhuma"
-        ? null
-        : antes === "sugerida" ? oDia.sugerida?.id ?? null : antes.id;
-      return abertaAgora === id ? "nenhuma" : { id };
-    });
-  }, [oDia.sugerida]);
+    setEscolha((antes) => alternarEscolha(antes, id, oDia.ordenadas, oDia.sugerida));
+  }, [oDia.ordenadas, oDia.sugerida]);
 
   const abrirVistoria = useCallback((id: string) => {
     router.push({ pathname: "/(agente)/vistoria/[id]", params: { id } });
@@ -1170,39 +903,32 @@ export default function Mapa() {
           style={{ gap: espaco.e3 }}
         >
           {mostradas.map((t) => (
-            <ItemDaTarefa
+            <ItemDeTarefa
               key={t.id}
               tarefa={t}
               aberto={aberta?.id === t.id}
-              agente={ondeEstou}
               agora={agora.getTime()}
+              agente={ondeEstou}
               metros={distancias.get(t.id) ?? null}
               selo={seloDaColeta(lapides.get(t.id) ?? null)}
-              caminho={aberta?.id === t.id ? caminhoDaAberta : null}
-              aviso={aviso?.ocorrenciaId === t.id ? aviso : null}
               reduzir={reduzirMovimento}
               aoMedir={(y) => { aoMedirItem(t.id, y); }}
               aoAlternar={() => { alternar(t.id); }}
-              aoVerOCaminho={() => { setFolha({ tipo: "caminho", ocorrenciaId: t.id }); }}
-              aoAbrirVistoria={() => { abrirVistoria(t.id); }}
-            />
-          ))}
-          {restantes > 0 && (
-            <View style={{ gap: espaco.e2 }}>
-              <View testID="quantas-na-pagina">
-                <Txt nivel="apoio" alinhamento="center">
-                  {`${visiveis} de ${oDia.ordenadas.length} vistorias na lista`}
-                </Txt>
-              </View>
-              <Botao
-                titulo={`Mostrar mais ${Math.min(restantes, TAMANHO_DA_PAGINA)}`}
-                tipo="secundario"
-                testID="mostrar-mais"
-                descricao={`Mostrar mais ${Math.min(restantes, TAMANHO_DA_PAGINA)} vistorias na lista, que tem ${oDia.ordenadas.length}`}
-                onPress={() => { setPagina(visiveis + TAMANHO_DA_PAGINA); }}
+            >
+              <DetalheNoMapa
+                tarefa={t}
+                caminho={aberta?.id === t.id ? caminhoDaAberta : null}
+                aviso={aviso?.ocorrenciaId === t.id ? aviso : null}
+                aoVerOCaminho={() => { setFolha({ tipo: "caminho", ocorrenciaId: t.id }); }}
+                aoAbrirVistoria={() => { abrirVistoria(t.id); }}
               />
-            </View>
-          )}
+            </ItemDeTarefa>
+          ))}
+          <RodapeDaPagina
+            visiveis={visiveis}
+            total={oDia.ordenadas.length}
+            aoMostrarMais={() => { setPagina(visiveis + TAMANHO_DA_PAGINA); }}
+          />
         </View>
       </ScrollView>
 

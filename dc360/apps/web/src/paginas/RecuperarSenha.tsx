@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { MODO, pedirRecuperacao, redefinirSenha } from "../dados/repositorio";
 import { Aviso, AvisoDeObrigatorios } from "../componentes/comuns";
 import { Campo } from "../componentes/Campo";
+import { useTitulo } from "../seo/titulo";
 
 /**
  * Recuperação de senha, em duas telas que compartilham a mesma moldura.
@@ -44,6 +45,7 @@ function Moldura({ titulo, subtitulo, children }: {
 }
 
 export function RecuperarSenha() {
+  useTitulo("Recuperar senha");
   const [email, setEmail] = useState("");
   const [aviso, setAviso] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -99,6 +101,7 @@ export function RecuperarSenha() {
 const ESPERA_ATE_A_ENTRADA_MS = 2500;
 
 export function DefinirNovaSenha() {
+  useTitulo("Definir nova senha");
   const [params] = useSearchParams();
   const token = params.get("token") ?? "";
   const [senha, setSenha] = useState("");

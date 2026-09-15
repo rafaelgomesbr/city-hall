@@ -1,3 +1,4 @@
+import type { AvisoLocal } from "./aviso-local";
 import type { DefinicaoDeCanal } from "./canais";
 import type { EstadoDaPermissao } from "./permissao";
 import type { Apresentacao, AvisoBruto, PortaDePush } from "./porta";
@@ -35,6 +36,8 @@ export function criarDuploDePorta(inicio: {
     perguntasAoSistema: 0,
     removidosDaBandeja: [] as string[],
     fichasPedidas: 0,
+    /** Os avisos que o aplicativo mostrou por conta própria, na ordem. */
+    avisosLocais: [] as AvisoLocal[],
   };
 
   const porta: PortaDePush = {
@@ -59,6 +62,10 @@ export function criarDuploDePorta(inicio: {
     },
 
     definirApresentacao(fn) { decidir = fn; },
+
+    async avisarLocalmente(aviso: AvisoLocal) {
+      registro.avisosLocais.push(aviso);
+    },
 
     aoTocar(ouvinte) {
       ouvintesDeToque.push(ouvinte);

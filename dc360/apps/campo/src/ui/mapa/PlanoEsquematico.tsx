@@ -274,9 +274,11 @@ export function PlanoEsquematico({ imovel, agente, tamanho = 200, severidade }: 
           Ele é o mesmo `DesenhoDaCriticidade` que o mapa do Google e a legenda
           usam, e `react-native-svg` não aceita um `<Svg>` dentro de outro. Um
           `<Path>` com a mesma geometria copiada para cá seria a segunda cópia
-          de um vocabulário que existe justamente para não ter duas: a primeira
-          vez que alguém trocasse o losango da severidade alta, a legenda passaria
-          a descrever um pino que não está no desenho.
+          de um vocabulário que existe justamente para não ter duas (e que hoje
+          mora em `@dc360/shared`, junto com o painel): a primeira vez que
+          alguém trocasse o triângulo da severidade alta, a legenda passaria a
+          descrever um pino que não está no desenho. O portão de paridade em
+          `scripts/paridade-de-severidade.test.mjs` reprova a cópia.
 
           A conversão é de unidade de `viewBox` para PONTO, que é onde o estilo
           do React Native vive: o desenho é quadrado, então a mesma razão vale

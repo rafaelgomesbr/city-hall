@@ -89,6 +89,8 @@ export const {
   abrirOficio,
   quemEstaEmCampo,
   encerrarSaidaEmCampo,
+  buscar,
+  resolverLinkDeMapa,
 } = impl;
 
 export { ErroDaApi } from "./http";
@@ -149,4 +151,9 @@ export type {
   ConfiguracaoDoPainel,
   QuemEstaEmCampo,
   SaidaEmCampo,
+  GrupoDeBusca,
+  RespostaDeBusca,
+  ResultadoDeBusca,
+  TipoDeResultado,
+  PontoDoLinkDeMapa,
 } from "./tipos";

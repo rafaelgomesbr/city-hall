@@ -20,6 +20,7 @@ import {
   formatarDataHora,
 } from "../componentes/comuns";
 import { IconeMais, IconeVoltar } from "../componentes/Icones";
+import { useTitulo } from "../seo/titulo";
 
 /**
  * Quantas linhas cada cartao de apoio do painel desenha.
@@ -50,6 +51,7 @@ const INTERVALO_DE_ATUALIZACAO_MS = 60_000;
  * que não leva a lugar nenhum é enfeite.
  */
 export function Painel() {
+  useTitulo("Painel");
   const sessao = useSessaoObrigatoria();
   const navegar = useNavigate();
   const [dados, setDados] = useState<{

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ROTULO_PAPEL, ROTULO_TIPO_COBRADE } from "@dc360/shared";
 import { MODO, meuTrabalhoDeCampo, type MeuTrabalho as Trabalho } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
+import { useTitulo } from "../seo/titulo";
 import {
   Aviso, Carregando, Cartao, Prazo, SeloSeveridade, SeloStatus, Vazio, formatarDataHora,
 } from "../componentes/comuns";
@@ -30,6 +31,7 @@ import {
  * barranco, sem sinal, que o navegador não guarda nada.
  */
 export function MeuTrabalho() {
+  useTitulo("Meu trabalho");
   const sessao = useSessaoObrigatoria();
   const [dados, setDados] = useState<Trabalho | null>(null);
   const [erro, setErro] = useState<string | null>(null);

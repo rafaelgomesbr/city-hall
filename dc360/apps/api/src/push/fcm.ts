@@ -1,6 +1,6 @@
 import { SignJWT, importPKCS8 } from "jose";
 import type { DesfechoDoEnvio, ProvedorDePush } from "./envio.js";
-import type { Notificacao } from "./mensagem.js";
+import { semExtensao, toqueDoAviso, type Notificacao } from "./mensagem.js";
 
 /**
  * Envio direto para a FCM, a notificação do Google.
@@ -212,6 +212,13 @@ export function criarProvedorFcm(
     async enviar(ficha: string, notificacao: Notificacao): Promise<DesfechoDoEnvio> {
       const autorizacao = await tokenDeAcesso();
 
+      /*
+        DESPACHO TOCA SEMPRE, NO CANAL DE DESPACHO; PRAZO VAI POR SEVERIDADE.
+        A regra mora em `toqueDoAviso` (`mensagem.ts`), junto com o porquê, e
+        é a mesma da APNs. Aqui só se traduz para o vocabulário do Google.
+      */
+      const toque = toqueDoAviso(notificacao);
+
       const resposta = await buscar(`${ENVIO_BASE}/${conta.project_id}/messages:send`, {
         method: "POST",
         headers: {
@@ -225,17 +232,23 @@ export function criarProvedorFcm(
             // aplicativo lê. Ver `mensagem.ts`.
             notification: { title: notificacao.titulo, body: notificacao.corpo },
             /*
-              `channelId` VAI NO DADO, e sem ele os dois canais do Android não
-              servem para nada.
+              O CANAL VAI EM DOIS LUGARES, e os dois são necessários.
 
-              O aplicativo declara dois canais: um de urgência, com som e
-              vibração, e um comum, silencioso. Quem escolhe entre eles é a
-              MENSAGEM, não o aplicativo: o `expo-notifications` lê
-              `remoteMessage.notification?.channelId ?: remoteMessage.data["channelId"]`
-              e, na ausência dos dois, joga tudo no canal padrão. Ou seja, sem
-              esta linha o agente recebe prazo de severidade baixa com som às
-              três da manhã, e a resposta dele é silenciar o aplicativo inteiro
-              nos ajustes, para sempre, inclusive o aviso crítico.
+              O aplicativo declara três canais (despacho, urgência e comum), e
+              quem escolhe entre eles é a MENSAGEM, não o aplicativo. Só que
+              quem DESENHA a notificação no Android muda conforme o estado do
+              aplicativo, e cada desenhista lê o canal de um lugar:
+
+              - Aplicativo aberto: o `expo-notifications` desenha, e lê
+                `remoteMessage.notification?.channelId ?: remoteMessage.data["channelId"]`.
+              - Aplicativo fechado ou em segundo plano: o SDK do Firebase
+                desenha, antes de qualquer código nosso rodar, e lê
+                `android.notification.channel_id`.
+
+              Na ausência do que cada um lê, os dois jogam tudo no canal
+              padrão do manifesto, que é o silencioso. Ou seja, sem QUALQUER
+              uma das duas linhas o despacho chega mudo em metade dos casos, e
+              ninguém vê erro em lugar nenhum.
 
               Os nomes casam com os declarados em apps/campo. Se um dia
               divergirem, o Android cai no canal padrão em silêncio, então
@@ -243,12 +256,33 @@ export function criarProvedorFcm(
             */
             data: {
               ...notificacao.dados,
-              channelId: notificacao.dados.severidade === "alta"
-                || notificacao.dados.severidade === "critica"
-                ? "dc360.urgencia.v1"
-                : "dc360.comum.v1",
+              channelId: toque.canal,
             },
-            android: { priority: "high" },
+            android: {
+              /*
+                `priority: high` é a prioridade de ENTREGA: acorda o aparelho
+                em economia de bateria para a mensagem chegar agora. Vale para
+                todo aviso, como já valia.
+              */
+              priority: "high",
+              notification: {
+                channel_id: toque.canal,
+                /*
+                  `sound` e `notification_priority` só no despacho. No
+                  Android 8 em diante o canal decide som e importância, e
+                  estes dois campos são o que vale em aparelho anterior ao 8
+                  e o que documenta a intenção na própria mensagem. O som é
+                  o nome do recurso em `res/raw`, sem extensão: o Firebase
+                  procura `despacho`, não `despacho.wav`.
+                */
+                ...(toque.som && toque.som !== "default"
+                  ? { sound: semExtensao(toque.som) }
+                  : {}),
+                ...(toque.canal === "dc360.despacho.v1"
+                  ? { notification_priority: "PRIORITY_MAX" }
+                  : {}),
+              },
+            },
           },
         }),
       });

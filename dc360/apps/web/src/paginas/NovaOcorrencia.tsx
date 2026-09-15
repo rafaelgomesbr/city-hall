@@ -10,13 +10,16 @@ import {
   ErroDaApi, abrirOcorrencia, possiveisDuplicidades, type LinhaOcorrencia,
 } from "../dados/repositorio";
 import { lerLocalizacaoColada } from "./coordenada-colada";
+import { origemDoPonto, textoDoPontoDescoberto } from "./link-encurtado";
 import { descricaoDoTipoNaAbertura } from "./ocorrencia-regras";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
   Aviso, AvisoDeObrigatorios, Cartao, ErrosDoServidor, formatarDataHora,
 } from "../componentes/comuns";
 import { Campo } from "../componentes/Campo";
+import { DescobrirPonto } from "../componentes/DescobrirPonto";
 import { IconeVoltar } from "../componentes/Icones";
+import { useTitulo } from "../seo/titulo";
 
 /**
  * Abertura de ocorrência: a tela que o operador de plantão usa com o telefone
@@ -30,6 +33,7 @@ import { IconeVoltar } from "../componentes/Icones";
  * evento é a pessoa, não o sistema.
  */
 export function NovaOcorrencia() {
+  useTitulo("Registrar ocorrência");
   const sessao = useSessaoObrigatoria();
   const navegar = useNavigate();
 
@@ -66,6 +70,17 @@ export function NovaOcorrencia() {
     quando o mesmo texto admite dois pontos diferentes.
   */
   const leitura = lerLocalizacaoColada(localizacao);
+
+  /*
+    De onde veio o ponto, quando não foi a pessoa que o colou.
+
+    O link ENCURTADO não carrega a coordenada: quem a descobre é o servidor da
+    prefeitura, no botão "Descobrir o ponto", e o resultado entra no campo
+    como texto. Sem esta memória, o campo mostraria uma coordenada que
+    ninguém digitou e a tela não diria de onde ela veio. Some assim que a
+    pessoa mexe no campo, porque aí o ponto voltou a ser dela.
+  */
+  const [origemDoLink, setOrigemDoLink] = useState<{ frase: string; link: string } | null>(null);
 
   const [erros, setErros] = useState<Record<string, string>>({});
   const [duplicidades, setDuplicidades] = useState<LinhaOcorrencia[] | null>(null);
@@ -419,7 +434,11 @@ export function NovaOcorrencia() {
                   <span className="leitura leitura--ok">
                     <span aria-hidden="true">✓</span> Localização reconhecida:{" "}
                     <span className="mono">{coordenadaEmTexto(leitura.coordenada)}</span>.{" "}
-                    <a href={linkParaMapa(leitura.coordenada)} target="_blank" rel="noreferrer noopener">
+                    {origemDoLink && <>{origemDoLink.frase}{" "}</>}
+                    <a
+                      href={origemDoLink ? origemDoLink.link : linkParaMapa(leitura.coordenada)}
+                      target="_blank" rel="noreferrer noopener"
+                    >
                       Conferir no mapa
                     </a>
                   </span>
@@ -453,13 +472,22 @@ export function NovaOcorrencia() {
                     ))}
                   </span>
                 )}
+                {/*
+                  O link encurtado é o único caso em que o painel não lê
+                  sozinho: quem abre o link é o servidor da prefeitura, e só
+                  quando a pessoa aperta o botão, porque abrir o link é o
+                  servidor contando ao Google que o ponto foi consultado. O
+                  sucesso troca o texto do campo pela coordenada e guarda de
+                  onde ela veio; a falha mostra a frase do servidor.
+                */}
                 {leitura.tipo === "encurtado" && (
-                  <span className="leitura leitura--nota">
-                    <span aria-hidden="true">!</span> Este link é encurtado, e o
-                    painel não abre link nenhum para descobrir o que tem dentro.
-                    Abra ele no seu navegador e cole aqui o endereço que aparecer
-                    na barra, ou a coordenada que a página mostrar.
-                  </span>
+                  <DescobrirPonto
+                    url={localizacao}
+                    onPonto={(descoberta) => {
+                      setOrigemDoLink(origemDoPonto(localizacao, descoberta.urlFinal));
+                      setLocalizacao(textoDoPontoDescoberto(descoberta));
+                    }}
+                  />
                 )}
                 {leitura.tipo === "nao_reconhecido" && (
                   <span className="leitura leitura--nota">
@@ -473,7 +501,7 @@ export function NovaOcorrencia() {
               {(campo) => (
                 <input
                   {...campo} value={localizacao}
-                  onChange={(e) => setLocalizacao(e.target.value)}
+                  onChange={(e) => { setOrigemDoLink(null); setLocalizacao(e.target.value); }}
                   placeholder="Cole o link do Google Maps que o solicitante mandou"
                   autoComplete="off"
                 />

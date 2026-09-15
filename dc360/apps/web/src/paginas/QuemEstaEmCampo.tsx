@@ -14,6 +14,7 @@ import {
   Aviso, Carregando, Cartao, SeloSeveridade, Vazio, formatarDataHora,
 } from "../componentes/comuns";
 import { Campo } from "../componentes/Campo";
+import { useTitulo } from "../seo/titulo";
 
 /**
  * Quem está em campo agora, e quem estourou o prazo.
@@ -86,6 +87,7 @@ function comoAtraso(minutos: number): string {
 }
 
 export function QuemEstaEmCampo() {
+  useTitulo("Quem está em campo");
   const sessao = useSessaoObrigatoria();
   const [situacao, setSituacao] = useState<Situacao | null>(null);
   const [erro, setErro] = useState<string | null>(null);

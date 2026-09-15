@@ -8,6 +8,7 @@ import { useSessaoObrigatoria } from "../estado/sessao";
 import { Aviso, AvisoDeObrigatorios, Carregando, Cartao } from "../componentes/comuns";
 import { Campo } from "../componentes/Campo";
 import { AtivarSegundoFator } from "../componentes/SegundoFator";
+import { useTitulo } from "../seo/titulo";
 
 /**
  * A conta de quem está usando o sistema, e a troca da própria senha.
@@ -24,6 +25,7 @@ import { AtivarSegundoFator } from "../componentes/SegundoFator";
  * tela.
  */
 export function MinhaConta() {
+  useTitulo("Minha conta");
   const sessao = useSessaoObrigatoria();
 
   const [atual, setAtual] = useState("");

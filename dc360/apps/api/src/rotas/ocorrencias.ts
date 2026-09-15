@@ -242,14 +242,46 @@ export async function rotasOcorrencias(
     return banco.comTenant(quem.organizacaoId, async (c) => {
       const condicoes: string[] = [];
       const params: unknown[] = [];
+      let ordemDeRelevancia = "";
 
+      /*
+        O filtro de texto usa a MESMA normalização e a MESMA tolerância a erro
+        da caixa de busca do painel (`GET /busca`, migração 041): o termo e a
+        chave de busca da linha atravessam `normalizar_busca`, e `casa_busca`
+        aceita substring e parecido por trigramas. "Servidao Boa Esperansa"
+        acha "Servidão Boa Esperança" aqui também. Antes era `LIKE` em caixa
+        baixa, que não tolerava acento nem letra trocada.
+
+        A chave de busca não carrega o relato (`descricao`), de propósito: ele
+        nomeia terceiros e descreve saúde, e não entra no índice de trigramas.
+        Como a lista sempre procurou nele, ele continua entrando aqui, por
+        substring normalizada, sem o parecido: parecido num relato de trezentas
+        palavras é ruído.
+
+        O termo é normalizado uma vez, no banco, e vai pronto como parâmetro:
+        a chave de cada linha já está normalizada na coluna gerada.
+      */
       if (f.busca?.trim()) {
-        params.push(`%${f.busca.trim().toLowerCase()}%`);
-        const p = `$${params.length}`;
-        condicoes.push(
-          `(lower(o.protocolo) LIKE ${p} OR lower(o.endereco) LIKE ${p}
-            OR lower(o.solicitante_nome) LIKE ${p} OR lower(o.descricao) LIKE ${p})`,
+        const n = await c.query<{ termo: string }>(
+          "SELECT normalizar_busca($1) AS termo", [f.busca.trim()],
         );
+        const termo = n.rows[0]!.termo;
+        if (termo.length > 0) {
+          params.push(termo);
+          const p = `$${params.length}`;
+          condicoes.push(
+            `(casa_busca(o.busca, ${p})
+              OR normalizar_busca(o.descricao) LIKE ('%' || ${p} || '%'))`,
+          );
+          /*
+            Com filtro de texto, a relevância manda primeiro: quem digitou o
+            protocolo inteiro quer aquela linha no topo, e não os protocolos
+            vizinhos que se parecem com ele (que a tolerância traz de
+            propósito) espalhados pela ordem de severidade. Sem filtro, a
+            ordem continua a de sempre.
+          */
+          ordemDeRelevancia = `pontuar_busca(o.busca, ${p}) DESC,`;
+        }
       }
       if (f.status === "ativas") {
         condicoes.push("o.status NOT IN ('encerrada','rascunho')");
@@ -283,6 +315,7 @@ export async function rotasOcorrencias(
            LEFT JOIN equipes e ON e.id = o.equipe_id
            ${onde}
           ORDER BY
+            ${ordemDeRelevancia}
             CASE WHEN o.status IN ('encerrada','rascunho') THEN 1 ELSE 0 END,
             CASE o.severidade WHEN 'critica' THEN 0 WHEN 'alta' THEN 1
                               WHEN 'media' THEN 2 WHEN 'baixa' THEN 3 ELSE 4 END,
@@ -658,7 +691,7 @@ export async function rotasOcorrencias(
     const { id } = idSchema.parse(req.params);
     const d = despachoSchema.parse(req.body);
 
-    await banco.comTenant(quem.organizacaoId, async (c) => {
+    const aparelhosAvisados = await banco.comTenant(quem.organizacaoId, async (c) => {
       await exigirTransicao(c, id, "em_campo");
 
       /*
@@ -730,7 +763,71 @@ export async function rotasOcorrencias(
         prazoHoras: d.prazoHoras,
         instrucoes: d.instrucoes ?? null,
       });
+
+      /*
+        O AVISO DE TAREFA NOVA NASCE AQUI, na mesma transacao do despacho.
+
+        O pedido, na letra de quem paga (15/09/2026): o celular do agente de
+        campo deve obrigatoriamente ser notificado, vibrado ou sonoro, de que
+        recebeu uma nova ocorrencia, com som caracteristico. O som e a carga ja
+        existiam (`push/mensagem.ts`); o que faltava era ALGUEM produzir o
+        aviso, e o unico lugar em que ele pode nascer e o despacho, porque e o
+        despacho que decide qual equipe vai.
+
+        ENFILEIRA, NAO ENVIA. Esta rota responde ao coordenador em
+        milissegundos e a Apple e o Google respondem quando querem: provedor
+        fora do ar nao pode segurar o despacho, e o processo caindo entre o
+        despacho e o envio nao pode perder o aviso. Uma linha `tarefa_nova` em
+        estado `pendente` por aparelho vivo de cada usuario ativo da equipe,
+        dentro da MESMA transacao: ou o despacho e o aviso entram juntos, ou
+        nenhum entra. Quem envia e a varredura de avisos (`push/varredor.ts`),
+        na rodada seguinte, com a trava, a idempotencia e o tratamento de
+        ficha morta que o prazo ja tinha.
+
+        REDESPACHO: a unicidade `notificacao_unica_por_aparelho` (migracao
+        016) faz o `ON CONFLICT DO NOTHING`. Mesma equipe de novo (clique
+        duplo, F5, segunda aba) nao gera segunda linha; outra equipe gera
+        linha para os aparelhos dela, que sao outros. A equipe responsavel e
+        conferida DE NOVO na hora do envio (migracao 042): se a tarefa mudar
+        de equipe antes da rodada, a equipe antiga nao recebe.
+
+        Tudo sob RLS: `usuarios` e `aparelhos` so mostram os deste municipio,
+        e a policy de INSERT da 042 so aceita o carimbo do municipio do
+        contexto, `tarefa_nova` e `pendente`. A organizacao vem do token, por
+        `comTenant`, e de mais lugar nenhum.
+
+        Equipe sem aparelho registrado: zero linhas, e o despacho segue. O
+        aviso e consequencia do despacho, nao condicao dele.
+      */
+      const enfileirados = await c.query<{ id: string }>(
+        `INSERT INTO notificacoes_enviadas
+           (organizacao_id, aparelho_id, ocorrencia_id, tipo, desfecho, tentativas)
+         SELECT ap.organizacao_id, ap.id, $1, 'tarefa_nova', 'pendente', 0
+           FROM usuarios u
+           JOIN aparelhos ap
+             ON ap.organizacao_id = u.organizacao_id
+            AND ap.usuario_id = u.id
+            AND ap.revogado_em IS NULL
+          WHERE u.equipe_id = $2 AND u.ativo
+         ON CONFLICT ON CONSTRAINT notificacao_unica_por_aparelho DO NOTHING
+         RETURNING id`,
+        [id, d.equipeId],
+      );
+      return enfileirados.rows.length;
     });
+
+    /*
+      Quantos aparelhos o despacho alcancou, e so isso. Sem ficha, sem nome de
+      agente, sem endereco: e o numero que o suporte precisa quando o
+      coordenador diz "despachei e ninguem foi avisado", e ele e zero
+      exatamente quando a equipe nao tem aparelho registrado, que e a causa
+      mais comum dessa frase. Fica fora da transacao para nao registrar um
+      numero que um ROLLBACK desfaria.
+    */
+    req.log.info(
+      { ocorrencia: id, aparelhos: aparelhosAvisados },
+      "despacho enfileirou o aviso de tarefa nova",
+    );
 
     return { status: "em_campo" };
   });

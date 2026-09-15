@@ -52,6 +52,19 @@ describe("Os formatos que chegam de verdade", () => {
     expect(coord("https://maps.google.com/?q=-22.4187%2C-45.4523"))
       .toEqual({ lat: -22.4187, lng: -45.4523 });
   });
+
+  it("lê o link de rota, que carrega o destino em `destination=` ou `daddr=`", () => {
+    /*
+      É o que o encurtador do Google devolve quando o solicitante compartilhou
+      "como chegar" em vez de o lugar. O servidor lê a URL final com ESTE mesmo
+      leitor (`apps/api/src/rotas/mapa.ts`), então o formato precisa ser
+      entendido aqui, e não numa cópia do lado de lá.
+    */
+    expect(coord("https://www.google.com/maps/dir/?api=1&destination=-22.4187,-45.4523"))
+      .toEqual({ lat: -22.4187, lng: -45.4523 });
+    expect(coord("https://www.google.com/maps?daddr=-22.4187,-45.4523"))
+      .toEqual({ lat: -22.4187, lng: -45.4523 });
+  });
 });
 
 describe("O que o campo recusa, e como", () => {

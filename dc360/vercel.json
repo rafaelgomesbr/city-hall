@@ -15,5 +15,16 @@
       "source": "/((?!assets/).*)",
       "destination": "/index.html"
     }
+  ],
+  "headers": [
+    {
+      "source": "/(icone\\.svg|icone-192\\.png|icone-512\\.png|icone-mascaravel-512\\.png|apple-touch-icon\\.png|favicon\\.ico|og\\.png)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
   ]
 }

@@ -196,6 +196,12 @@ export function Chip({
  *    com "acompanha o `SeloSeveridade`" escrito no comentário) e terminou a
  *    onda sem um único uso.
  *
+ * O desenho é o glifo DO NÍVEL (círculo, quadrado, triângulo, octógono,
+ * círculo tracejado), e vem de `@dc360/shared` por `IconeSeveridade`: é o
+ * mesmo que o painel põe na pílula dele e o mesmo que o pino do mapa desenha.
+ * O medidor que ficava aqui era igual para os quatro níveis, e forma igual
+ * com cor diferente é cor sozinha.
+ *
  * O `accessibilityLabel` diz "Severidade alta" e não só "Alta": lida sozinha no
  * meio de um cartão, a palavra não diz de que escala ela é.
  */
@@ -210,7 +216,9 @@ export function SeloSeveridade({ severidade, testID }: {
   severidade: Severidade | null;
   testID?: string;
 }) {
-  const desenho = (cor: string) => <IconeSeveridade cor={cor} tamanho={icone.inline} />;
+  const desenho = (cor: string) => (
+    <IconeSeveridade cor={cor} tamanho={icone.inline} severidade={severidade} />
+  );
 
   /*
     Sem classificação é um ESTADO, e não a ausência de um: a ocorrência chegou e

@@ -188,12 +188,121 @@ body {
   position: sticky; top: 0; z-index: var(--ds-z-sticky);
 }
 
-.topo__busca { flex: 1 1 auto; max-width: 480px; position: relative; }
-.topo__busca svg {
-  position: absolute; left: var(--ds-sp-3); top: 50%; transform: translateY(-50%);
-  color: var(--ds-text-muted); pointer-events: none;
+/* A marca no topo: o mesmo `/icone.svg` do ícone do site. Alvo de toque
+   inteiro, e o canto do emblema é o raio do produto. */
+.topo__marca {
+  display: flex; align-items: center; flex: 0 0 auto;
+  min-height: var(--ds-touch); border-radius: var(--ds-radius);
 }
-.topo__busca input { padding-left: var(--ds-sp-7); }
+.topo__marca img { width: var(--emblema-md); height: var(--emblema-md); border-radius: var(--ds-radius); display: block; }
+
+/* ---------- Busca global (a caixa de comando do topo) ---------- */
+
+.topo__busca { flex: 1 1 auto; max-width: 480px; position: relative; }
+.busca-global__caixa { position: relative; }
+.busca-global__lupa {
+  position: absolute; left: var(--ds-sp-3); top: 50%; transform: translateY(-50%);
+  display: inline-flex; color: var(--ds-text-muted); pointer-events: none;
+}
+/*
+  RÉGUA, medida e não chutada: a regra genérica de campo (`input:not(...)`
+  oito vezes, mais abaixo) tem especificidade (0,8,1), porque cada
+  `:not([type])` conta como um atributo. `.topo__busca input` era (0,1,1) e
+  PERDIA: o `padding` da genérica reescrevia o `padding-left` daqui, o texto
+  começava a 12px e a lupa de 18px ficava em cima do placeholder. Toda regra
+  que estilize UM campo específico precisa vencer (0,8,1), e o `id` que o
+  rótulo já aponta vence por construção: (1,1,0). `test/design-system.test.ts`
+  calcula as duas e reprova a volta.
+
+  O recuo da direita reserva o lugar da dica do atalho ("Ctrl K").
+*/
+.busca-global__caixa #busca-global {
+  padding-left: var(--ds-sp-7);
+  padding-right: calc(var(--ds-sp-8) + var(--ds-sp-3));
+}
+/* O "x" nativo do campo de busca cairia debaixo da dica; Escape já limpa. */
+.busca-global__caixa #busca-global::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+
+.busca-global__atalho {
+  position: absolute; right: var(--ds-sp-2); top: 50%; transform: translateY(-50%);
+  padding: 0 var(--ds-sp-2); min-height: var(--ds-sp-5);
+  display: inline-flex; align-items: center;
+  font-family: var(--ds-font); font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted);
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border); border-radius: var(--ds-radius);
+  pointer-events: none; white-space: nowrap;
+}
+
+.busca-global__lista {
+  position: absolute; left: 0; right: 0; top: calc(100% + var(--ds-sp-2));
+  max-height: min(70vh, 520px); overflow-y: auto;
+  background: var(--ds-surface); color: var(--ds-text);
+  border: 1px solid var(--ds-border); border-radius: var(--ds-radius-card);
+  box-shadow: var(--ds-shadow-3);
+  z-index: var(--ds-z-dropdown);
+  padding: var(--ds-sp-2);
+  animation: busca-global-entrar var(--ds-dur-base) var(--ds-ease);
+}
+@keyframes busca-global-entrar {
+  from { opacity: 0; transform: translateY(calc(var(--ds-sp-1) * -1)); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .busca-global__lista { animation: none; }
+}
+
+.busca-global__grupo + .busca-global__grupo { margin-top: var(--ds-sp-2); }
+.busca-global__titulo-do-grupo {
+  padding: var(--ds-sp-2) var(--ds-sp-3) var(--ds-sp-1);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ds-text-muted);
+}
+
+.busca-global__opcao {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  min-height: var(--ds-touch);
+  padding: var(--ds-sp-2) var(--ds-sp-3);
+  border-radius: var(--ds-radius);
+  cursor: pointer;
+  transition: background-color var(--ds-dur-fast) var(--ds-ease);
+}
+.busca-global__opcao:hover { background: var(--ds-surface-2); }
+/*
+  A opção ativa é a que o teclado aponta. Ela não recebe foco (o foco fica na
+  caixa), então o anel de foco é desenhado aqui, com o mesmo token, para quem
+  navega por seta enxergar onde está. Nunca só por cor: o fundo muda E o anel
+  aparece.
+*/
+.busca-global__opcao--ativa,
+.busca-global__opcao--ativa:hover {
+  background: var(--ds-surface-2);
+  box-shadow: var(--ds-focus-ring);
+}
+.busca-global__icone { display: inline-flex; flex: 0 0 auto; color: var(--ds-text-muted); }
+.busca-global__opcao--ativa .busca-global__icone { color: var(--ds-accent); }
+.busca-global__texto { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.busca-global__rotulo {
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.busca-global__protocolo { margin-right: var(--ds-sp-2); color: var(--ds-text-muted); }
+.busca-global__detalhe {
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* O trecho que casou: cor de destaque sobre o fundo de sempre, sem marca-texto
+   amarelo, que não acompanha o tema. */
+.busca-global__marca { background: transparent; color: var(--ds-accent); font-weight: 700; }
+.busca-global__opcao .selo { flex: 0 0 auto; }
+
+.busca-global__estado {
+  padding: var(--ds-sp-3);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+  color: var(--ds-text-muted);
+}
+.busca-global__estado--falha { color: var(--ds-danger-fg); }
 
 .topo__direita { margin-left: auto; display: flex; align-items: center; gap: var(--ds-sp-3); }
 
@@ -297,8 +406,22 @@ body {
 .selo--perigo  { color: var(--ds-danger-fg);      background: var(--ds-danger-bg); }
 .selo--neutro  { color: var(--ds-text-muted);     background: var(--ds-surface-2); }
 
+/*
+  O ponto continua existindo para os selos de estado de processo ("Dentro do
+  prazo", "Prazo estourado"); o selo de SEVERIDADE não o usa mais. Ali entra
+  o glifo compartilhado com o aplicativo (`.selo__glifo`), na altura da linha
+  da legenda, e a pulsação da crítica passou do ponto para ele.
+*/
 .selo__ponto { width: 6px; height: 6px; border-radius: var(--ds-radius-pill); background: currentColor; }
-.selo--critica .selo__ponto { animation: pulso calc(var(--ds-dur-slow) * 5) var(--ds-ease) infinite; }
+.selo__glifo { width: var(--ds-fs-caption); height: var(--ds-fs-caption); flex: none; }
+.selo--critica .selo__glifo { animation: pulso calc(var(--ds-dur-slow) * 5) var(--ds-ease) infinite; }
+/*
+  Na legenda do mapa a crítica é pino branco sobre pílula vermelha, e a marca
+  de dentro, que é da cor da superfície, sumiria no branco: ali ela vai na cor
+  da própria pílula. Só a crítica precisa disso, porque é o único selo cujo
+  texto é branco.
+*/
+.selo--critica .forma-severidade__marca { stroke: var(--ds-sev-critica-bg); }
 @keyframes pulso { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
 /* ---------- Tabela ---------- */

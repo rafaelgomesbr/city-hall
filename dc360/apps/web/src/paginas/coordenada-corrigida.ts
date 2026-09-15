@@ -3,6 +3,7 @@ import {
   type Coordenada, type CorrecaoDeCoordenada, type Papel, type StatusOcorrencia,
 } from "@dc360/shared";
 import { lerLocalizacaoColada } from "./coordenada-colada";
+import { ROTULO_DO_BOTAO } from "./link-encurtado";
 
 /**
  * As decisões da correção de coordenada que não dependem de React.
@@ -113,9 +114,15 @@ export function mensagemDaLeitura(tipo: string): string {
       + "por você. Aponte qual é o ponto.";
   }
   if (tipo === "encurtado") {
-    return "Esse link é encurtado, e o painel não abre link nenhum para "
-      + "descobrir o que tem dentro. Abra ele no seu navegador e cole aqui o "
-      + "endereço que aparecer na barra.";
+    /*
+      O painel continua sem abrir link nenhum a partir do navegador. Quem abre
+      é o servidor da prefeitura, e só no botão (`componentes/DescobrirPonto`),
+      porque abrir o link é o servidor contando ao Google que o ponto foi
+      consultado. A frase cita o botão pelo rótulo, que é o que a pessoa vê.
+    */
+    return "Esse link é encurtado e não carrega a coordenada dentro dele. Use "
+      + `"${ROTULO_DO_BOTAO}" para o servidor da prefeitura abrir o link, ou `
+      + "abra ele no seu navegador e cole aqui o endereço que aparecer na barra.";
   }
   return "Não reconheci coordenada nisso. Cole o link do mapa, ou o par de "
     + "números com vírgula ou com ponto.";

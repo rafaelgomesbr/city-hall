@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import Svg, { Circle, Path } from "react-native-svg";
+import { caminhosDoGlifo, glifoDeSeveridade, type Severidade } from "@dc360/shared";
 
 import { icone } from "./tokens";
 
@@ -166,26 +167,43 @@ export function IconeEquipe({ cor, tamanho = TAMANHO_PADRAO }: Props) {
    ===================================================================== */
 
 /**
- * Medidor com ponteiro: a SEVERIDADE da ocorrência.
+ * O glifo do NÍVEL de severidade, vindo do pacote compartilhado.
  *
- * Acompanha o `SeloSeveridade` (baixa, média, alta, crítica), que hoje é uma
- * pílula colorida com a palavra dentro. A cor daquela pílula já é a do painel e
- * não muda; o ícone entra como terceiro canal, porque sob sol forte âmbar e
- * vermelho viram a mesma mancha clara e o que sobra é a forma mais a palavra.
+ * Acompanha o `SeloSeveridade` (baixa, média, alta, crítica, sem
+ * classificação). A cor da pílula já é a do painel e não muda; o ícone é o
+ * segundo canal, porque sob sol forte âmbar e vermelho viram a mesma mancha
+ * clara e o que sobra é a forma mais a palavra.
  *
- * Medidor, e não triângulo de alerta: alerta é um aviso pontual, severidade é
- * uma ESCALA com quatro degraus. Reusar o triângulo aqui faria a ocorrência de
- * severidade baixa parecer um alerta.
+ * Ele nasceu como um MEDIDOR com ponteiro, o mesmo desenho para os quatro
+ * níveis, com o argumento de que severidade é uma escala e não um alerta. O
+ * argumento estava certo e o desenho, errado: forma igual com cor diferente
+ * é cor sozinha, e o "segundo canal" era promessa. E o painel desenhava
+ * outra coisa na mesma pílula. Quem paga viu os dois e pediu o mesmo ícone
+ * nos dois canais.
+ *
+ * Agora a geometria vem de `@dc360/shared` (`glifos-de-severidade.ts`, com o
+ * argumento de cada forma escrito lá): círculo com ponto, quadrado com traço,
+ * triângulo com exclamação, octógono com exclamação, círculo tracejado. A
+ * escala continua sendo uma escala, lida pela silhueta que sobe. Este arquivo
+ * não desenha nada por conta própria, e o portão
+ * `scripts/paridade-de-severidade.test.mjs` reprova se voltar a desenhar.
+ *
+ * Sem `severidade`, desenha sem classificação: é um estado que existe no
+ * produto (a triagem que ainda não aconteceu), e não um medidor genérico. É
+ * o que o registro `ICONES` desenha, porque ele só passa cor e tamanho.
  */
-export function IconeSeveridade({ cor, tamanho = TAMANHO_PADRAO }: Props) {
+export function IconeSeveridade({ cor, tamanho = TAMANHO_PADRAO, severidade = null }: Props & {
+  severidade?: Severidade | null;
+}) {
   return (
     <Svg width={tamanho} height={tamanho} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M2.8 20v-1.8a9.2 9.2 0 0 1 18.4 0V20Z"
-        stroke={cor} strokeWidth={TRACO} strokeLinejoin="round"
-      />
-      <Path d="M12 18.2 17.6 12.6" stroke={cor} strokeWidth={TRACO} strokeLinecap="round" />
-      <Circle cx={12} cy={18.2} r={0.9} stroke={cor} strokeWidth={TRACO} />
+      {caminhosDoGlifo(glifoDeSeveridade(severidade)).map((d) => (
+        <Path
+          key={d}
+          d={d}
+          stroke={cor} strokeWidth={TRACO} strokeLinecap="round" strokeLinejoin="round"
+        />
+      ))}
     </Svg>
   );
 }

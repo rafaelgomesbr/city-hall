@@ -3,7 +3,58 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!--
+      O que este arquivo diz de si para quem chega de fora: a aba do navegador,
+      o resultado de busca, a prévia no WhatsApp e no Teams, a tela inicial do
+      celular. Por dentro, o título muda por tela (src/seo/titulo.ts) e as
+      telas depois do login recebem "noindex" por código (src/seo/indexacao.ts).
+      O portão é test/seo.test.ts: tag que sumir daqui reprova lá.
+    -->
     <title>Defesa Civil Operacional 360</title>
+    <meta name="description" content="Gestão operacional para Defesas Civis municipais: do chamado ao laudo, com trabalho de campo sem sinal." />
+    <meta name="application-name" content="DC360" />
+    <meta name="apple-mobile-web-app-title" content="DC360" />
+
+    <!--
+      Cor da moldura do navegador, uma por esquema. Arquivo estático não lê
+      CSS, então o valor está escrito: é --ds-bg de cada tema em
+      src/estilos/tokens.css (ink-50 no claro, ink-950 no escuro). Se mudar
+      lá, mude aqui e em public/manifest.webmanifest.
+    -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F5F7F8" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101519" />
+
+    <!--
+      Ícones. A marca é desenhada uma vez em public/icone.svg; o .ico e os PNG
+      saem dela por scripts/gerar-marca.mjs, nunca à mão.
+    -->
+    <link rel="icon" type="image/svg+xml" href="/icone.svg" />
+    <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!--
+      ENDEREÇO DO PAINEL EM PRODUÇÃO: https://dc360-painel-web.vercel.app
+      É a única constante deste arquivo, e aparece nas duas linhas de og:url e
+      og:image logo abaixo (a prévia de link exige imagem com endereço
+      absoluto, porque quem monta a prévia é outro servidor). Quando o domínio
+      próprio chegar (docs/COLOCAR-DE-PE.md), troque nas duas; o portão
+      test/seo.test.ts confere que as duas continuam com a mesma origem.
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Defesa Civil Operacional 360" />
+    <meta property="og:title" content="Defesa Civil Operacional 360" />
+    <meta property="og:description" content="Gestão operacional para Defesas Civis municipais: do chamado ao laudo, com trabalho de campo sem sinal." />
+    <meta property="og:url" content="https://dc360-painel-web.vercel.app/" />
+    <meta property="og:image" content="https://dc360-painel-web.vercel.app/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="A marca DC sobre violeta e o nome Defesa Civil Operacional 360, com a frase: gestão operacional para Defesas Civis municipais, do chamado ao laudo, com trabalho de campo sem sinal." />
+    <meta property="og:locale" content="pt_BR" />
+    <!-- O Twitter e o que copia dele leem os og:* acima para título, descrição e imagem. -->
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
     <div id="root"></div>

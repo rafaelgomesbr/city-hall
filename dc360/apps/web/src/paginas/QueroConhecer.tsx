@@ -5,6 +5,7 @@ import { registrarInteresse } from "../dados/repositorio";
 import { Aviso, AvisoDeObrigatorios } from "../componentes/comuns";
 import { Campo } from "../componentes/Campo";
 import { digitosDoTelefone, mascararTelefone } from "@dc360/shared";
+import { useTitulo } from "../seo/titulo";
 
 /**
  * A porta de entrada de quem ainda não é cliente.
@@ -29,6 +30,7 @@ const CAMPOS_VAZIOS = {
 };
 
 export function QueroConhecer() {
+  useTitulo("Quero conhecer");
   const [campos, setCampos] = useState(CAMPOS_VAZIOS);
   const [erros, setErros] = useState<Record<string, string>>({});
   const [falha, setFalha] = useState<string | null>(null);

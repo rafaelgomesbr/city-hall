@@ -7,3 +7,4 @@ export * from "./localizacao.js";
 export * from "./minuta.js";
 export * from "./campos.js";
 export * from "./telefone.js";
+export * from "./glifos-de-severidade.js";

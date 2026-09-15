@@ -133,14 +133,26 @@ async function abrirALista(): Promise<void> {
   animacoes = [];
 }
 
-function oCartao() {
-  return screen.getByLabelText(/^Abrir a vistoria do protocolo/);
+/**
+ * O RESUMO do item em sanfona, que é o que o dedo toca na lista.
+ *
+ * Pelo `testID`, e não pelo rótulo: o rótulo do resumo começa por "Protocolo"
+ * e o do botão de dentro por "Abrir a vistoria", e um regex sobre o segundo
+ * acharia o BOTÃO, que responde ao dedo pelo próprio `Botao` e faria este
+ * arquivo passar verde sem nunca ter tocado no cartão.
+ */
+function oResumo() {
+  return screen.getByTestId(`escolher-${ID}`);
+}
+
+function oBotao() {
+  return screen.getByTestId(`abrir-a-vistoria-${ID}`);
 }
 
 describe("o cartão de tarefa sob o dedo", () => {
   it("anima ao encostar, com a duração do token e não com um número solto", async () => {
     await abrirALista();
-    await act(async () => { fireEvent(oCartao(), "pressIn"); });
+    await act(async () => { fireEvent(oResumo(), "pressIn"); });
     expect(animacoes).toHaveLength(1);
     expect(animacoes[0]?.duration).toBe(movimento.respostaAoToque);
   });
@@ -151,33 +163,52 @@ describe("o cartão de tarefa sob o dedo", () => {
   */
   it("roda na thread de interface, e não na do JavaScript", async () => {
     await abrirALista();
-    await act(async () => { fireEvent(oCartao(), "pressIn"); });
+    await act(async () => { fireEvent(oResumo(), "pressIn"); });
     expect(animacoes[0]?.useNativeDriver).toBe(true);
   });
 
   it("a curva sai do token, e não é escolhida dentro da tela", async () => {
     await abrirALista();
-    await act(async () => { fireEvent(oCartao(), "pressIn"); });
+    await act(async () => { fireEvent(oResumo(), "pressIn"); });
     expect(typeof animacoes[0]?.easing).toBe("function");
   });
 
   it("anima de volta ao soltar", async () => {
     await abrirALista();
-    await act(async () => { fireEvent(oCartao(), "pressIn"); });
-    await act(async () => { fireEvent(oCartao(), "pressOut"); });
+    await act(async () => { fireEvent(oResumo(), "pressIn"); });
+    await act(async () => { fireEvent(oResumo(), "pressOut"); });
     expect(animacoes).toHaveLength(2);
   });
 
   /*
-    O toque continua abrindo a vistoria: animar não pode custar o clique. Este
-    é o caso que pega o dia em que alguém trocar o tocável e esquecer de passar
-    o `onPress` adiante, que é como se perde uma tela inteira em silêncio.
+    ERA "o toque continua levando para a vistoria", quando o cartão inteiro
+    navegava. Com a lista em sanfona o toque no resumo EXPANDE e RECOLHE, e
+    quem navega é o botão de dentro. Os dois lados ficam fixados: o dia em que
+    alguém trocar o tocável e esquecer de passar o `onPress` adiante, o
+    resumo deixa de recolher; o dia em que o resumo voltar a navegar, ninguém
+    consegue abrir um item para ler sem sair da tela.
   */
-  it("o toque continua levando para a vistoria", async () => {
+  it("o toque no resumo recolhe e expande, e não navega", async () => {
     const { router } = require("expo-router") as { router: { push: jest.Mock } };
     router.push.mockClear();
     await abrirALista();
-    await act(async () => { fireEvent.press(oCartao()); });
+    /* A única tarefa é a sugerida, e ela entra aberta. */
+    expect(oResumo().props.accessibilityState.expanded).toBe(true);
+
+    await act(async () => { fireEvent.press(oResumo()); });
+    expect(oResumo().props.accessibilityState.expanded).toBe(false);
+    expect(screen.queryByTestId(`abrir-a-vistoria-${ID}`)).toBeNull();
+
+    await act(async () => { fireEvent.press(oResumo()); });
+    expect(oResumo().props.accessibilityState.expanded).toBe(true);
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("o botão de dentro é quem leva para a vistoria", async () => {
+    const { router } = require("expo-router") as { router: { push: jest.Mock } };
+    router.push.mockClear();
+    await abrirALista();
+    await act(async () => { fireEvent.press(oBotao()); });
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({ params: { id: ID } }),
     );
@@ -209,17 +240,27 @@ describe("com redução de movimento ligada", () => {
   it("o cartão não anima, e mesmo assim responde ao dedo", async () => {
     mockReduzir = true;
     await abrirALista();
-    await act(async () => { fireEvent(oCartao(), "pressIn"); });
+    await act(async () => { fireEvent(oResumo(), "pressIn"); });
     expect(animacoes).toHaveLength(0);
-    expect(oCartao()).toBeTruthy();
+    expect(oResumo()).toBeTruthy();
   });
 
-  it("e o toque continua abrindo a vistoria", async () => {
+  it("e o toque continua recolhendo e expandindo, sem animar a sanfona", async () => {
+    mockReduzir = true;
+    await abrirALista();
+    await act(async () => { fireEvent.press(oResumo()); });
+    expect(oResumo().props.accessibilityState.expanded).toBe(false);
+    await act(async () => { fireEvent.press(oResumo()); });
+    expect(oResumo().props.accessibilityState.expanded).toBe(true);
+    expect(animacoes).toHaveLength(0);
+  });
+
+  it("e o botão continua abrindo a vistoria", async () => {
     mockReduzir = true;
     const { router } = require("expo-router") as { router: { push: jest.Mock } };
     router.push.mockClear();
     await abrirALista();
-    await act(async () => { fireEvent.press(oCartao()); });
+    await act(async () => { fireEvent.press(oBotao()); });
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({ params: { id: ID } }),
     );

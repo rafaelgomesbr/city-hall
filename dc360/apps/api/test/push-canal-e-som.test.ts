@@ -6,21 +6,28 @@ import { criarProvedorApns } from "../src/push/apns.js";
 import { criarProvedorFcm } from "../src/push/fcm.js";
 
 /*
-  Som e canal SAEM DA SEVERIDADE, e nao sao conforto.
+  DESPACHO TOCA SEMPRE; PRAZO TOCA POR SEVERIDADE. Nenhum dos dois e conforto.
 
-  Prazo de severidade baixa tocando as tres da manha e como se ensina um agente
-  a silenciar o aplicativo inteiro nos ajustes do sistema. A partir dai o aviso
-  de severidade CRITICA tambem nao toca, e o silencio de um aviso que nao
-  importava passa a custar o silencio de todos.
+  A decisao de 15/09/2026, na letra de quem paga: o celular do agente de campo
+  deve obrigatoriamente ser notificado, vibrado ou sonoro, de que recebeu uma
+  nova ocorrencia, com som caracteristico. Isso vale para TODA severidade do
+  aviso de tarefa nova: despacho e uma pessoa decidindo agora que esta equipe
+  vai, e quem despacha as tres da manha precisa da equipe as tres da manha.
 
-  Dois defeitos que estes testes travam, os dois encontrados na revisao do turno
-  T8, depois que a metade aplicativo ficou pronta:
+  O prazo continua na regra anterior, pelo argumento anterior: prazo e relogio,
+  e prazo de severidade baixa tocando as tres da manha e como se ensina um
+  agente a silenciar o aplicativo inteiro nos ajustes do sistema. A partir dai
+  o aviso de severidade CRITICA tambem nao toca.
+
+  Dois defeitos que estes testes travam desde a revisao do turno T8:
 
   1. No iOS o servidor mandava `aps.sound = "default"` sem olhar a severidade.
-  2. No Android o servidor nao mandava `channelId` nenhum, entao os dois canais
-     que o aplicativo declara nao roteavam nada: tudo caia no canal padrao.
+  2. No Android o servidor nao mandava `channelId` nenhum, entao os canais que
+     o aplicativo declara nao roteavam nada: tudo caia no canal padrao.
      A regra e do proprio expo-notifications, que le
      `remoteMessage.notification?.channelId ?: remoteMessage.data["channelId"]`.
+     E o SDK do Firebase, que desenha a notificacao com o aplicativo fechado,
+     le `android.notification.channel_id`. Os dois precisam ir.
 */
 
 function chaveEc(): string {
@@ -75,7 +82,7 @@ const DETALHE = {
   prazoEm: "2026-09-10T12:00:00.000Z",
 };
 
-describe("os nomes de canal batem entre servidor e aplicativo", () => {
+describe("os nomes de canal e de som batem entre servidor e aplicativo", () => {
   it("o servidor manda exatamente os canais que o aplicativo declara", () => {
     /*
       Se um lado renomear o canal, o Android NAO reclama: ele joga a
@@ -85,15 +92,51 @@ describe("os nomes de canal batem entre servidor e aplicativo", () => {
     const doAplicativo = readFileSync(
       new URL("../../campo/src/push/canais.ts", import.meta.url), "utf8",
     );
-    const doServidor = readFileSync(new URL("../src/push/fcm.ts", import.meta.url), "utf8");
-    for (const canal of ["dc360.urgencia.v1", "dc360.comum.v1"]) {
+    const doServidor = readFileSync(new URL("../src/push/mensagem.ts", import.meta.url), "utf8");
+    for (const canal of ["dc360.despacho.v1", "dc360.urgencia.v1", "dc360.comum.v1"]) {
       expect(doAplicativo, `o aplicativo nao declara ${canal}`).toContain(canal);
       expect(doServidor, `o servidor nao manda ${canal}`).toContain(canal);
     }
   });
+
+  it("o som de despacho que o servidor pede e o arquivo que o aplicativo declara", () => {
+    /*
+      O iOS procura `aps.sound` pelo nome do arquivo no bundle; se o nome nao
+      existir la, toca o som padrao sem avisar. O aplicativo declara o arquivo
+      em `app.config.ts` (`sounds`) e o nome em `canais.ts`.
+    */
+    const doAplicativo = readFileSync(
+      new URL("../../campo/src/push/canais.ts", import.meta.url), "utf8",
+    );
+    const configDoAplicativo = readFileSync(
+      new URL("../../campo/app.config.ts", import.meta.url), "utf8",
+    );
+    const doServidor = readFileSync(new URL("../src/push/mensagem.ts", import.meta.url), "utf8");
+    expect(doServidor).toContain('"despacho.wav"');
+    expect(doAplicativo).toContain('"despacho.wav"');
+    expect(configDoAplicativo).toContain("./assets/sons/despacho.wav");
+  });
 });
 
-describe("Android: o canal sai da severidade", () => {
+describe("Android: a tarefa nova vai para o canal de despacho em toda severidade", () => {
+  for (const severidade of ["critica", "alta", "media", "baixa", null] as const) {
+    it(`severidade ${severidade ?? "ausente"}: canal de despacho, som, prioridade alta`, async () => {
+      const { provedor, enviados } = capturarFcm();
+      await provedor.enviar("ficha-de-teste", montarAviso("tarefa_nova", { ...DETALHE, severidade }));
+      const mensagem = JSON.parse(enviados[0]!).message;
+      // Para o expo-notifications, que desenha com o aplicativo aberto.
+      expect(mensagem.data.channelId).toBe("dc360.despacho.v1");
+      // Para o SDK do Firebase, que desenha com o aplicativo fechado.
+      expect(mensagem.android.notification.channel_id).toBe("dc360.despacho.v1");
+      // Nome de recurso em res/raw: sem extensao, e o mesmo arquivo do iOS.
+      expect(mensagem.android.notification.sound).toBe("despacho");
+      expect(mensagem.android.notification.notification_priority).toBe("PRIORITY_MAX");
+      expect(mensagem.android.priority).toBe("high");
+    });
+  }
+});
+
+describe("Android: o prazo continua saindo da severidade", () => {
   for (const [severidade, esperado] of [
     ["critica", "dc360.urgencia.v1"],
     ["alta", "dc360.urgencia.v1"],
@@ -104,12 +147,29 @@ describe("Android: o canal sai da severidade", () => {
     it(`severidade ${severidade ?? "ausente"} vai para ${esperado}`, async () => {
       const { provedor, enviados } = capturarFcm();
       await provedor.enviar("ficha-de-teste", montarAviso("prazo_vencendo", { ...DETALHE, severidade }));
-      expect(JSON.parse(enviados[0]!).message.data.channelId).toBe(esperado);
+      const mensagem = JSON.parse(enviados[0]!).message;
+      expect(mensagem.data.channelId).toBe(esperado);
+      expect(mensagem.android.notification.channel_id).toBe(esperado);
+      // O prazo nao leva o som de despacho: o canal dele decide (som do
+      // sistema na urgencia, silencio no comum).
+      expect(mensagem.android.notification.sound).toBeUndefined();
     });
   }
 });
 
-describe("iOS: o som sai da severidade", () => {
+describe("iOS: a tarefa nova toca o som de despacho em toda severidade, e fura o Foco", () => {
+  for (const severidade of ["critica", "alta", "media", "baixa", null] as const) {
+    it(`severidade ${severidade ?? "ausente"} toca despacho.wav como sensivel ao tempo`, async () => {
+      const { provedor, enviados } = capturarApns();
+      await provedor.enviar("ficha", montarAviso("tarefa_nova", { ...DETALHE, severidade }));
+      const aps = JSON.parse(enviados[0]!).aps;
+      expect(aps.sound).toBe("despacho.wav");
+      expect(aps["interruption-level"]).toBe("time-sensitive");
+    });
+  }
+});
+
+describe("iOS: o prazo continua saindo da severidade", () => {
   it("severidade critica toca, e fura o Foco do sistema", async () => {
     const { provedor, enviados } = capturarApns();
     await provedor.enviar("ficha", montarAviso("prazo_vencendo", { ...DETALHE, severidade: "critica" }));
@@ -128,9 +188,13 @@ describe("iOS: o som sai da severidade", () => {
 
   it("severidade ausente cai no silencio, e nao no som", async () => {
     // Errar para o lado do som e o erro que nao tem volta: o agente silencia o
-    // aplicativo inteiro e nunca mais desfaz.
+    // aplicativo inteiro e nunca mais desfaz. (Era `tarefa_nova` ate
+    // 15/09/2026; a tarefa nova agora toca sempre, e o caso passou a ser o
+    // prazo, que e o unico que continua nesta regra.)
     const { provedor, enviados } = capturarApns();
-    await provedor.enviar("ficha", montarAviso("tarefa_nova", { ...DETALHE, severidade: null }));
-    expect(JSON.parse(enviados[0]!).aps.sound).toBeUndefined();
+    await provedor.enviar("ficha", montarAviso("prazo_vencendo", { ...DETALHE, severidade: null }));
+    const aps = JSON.parse(enviados[0]!).aps;
+    expect(aps.sound).toBeUndefined();
+    expect(aps["interruption-level"]).toBe("active");
   });
 });

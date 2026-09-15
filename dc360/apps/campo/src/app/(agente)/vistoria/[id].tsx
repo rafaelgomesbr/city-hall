@@ -686,8 +686,22 @@ export function requisitosDeConclusao(estado: {
   ];
 }
 
+/**
+ * UMA MONTAGEM POR OCORRÊNCIA.
+ *
+ * `vistoria/[id]` é UMA rota do navegador de abas: abrir outra ocorrência
+ * troca o parâmetro na MESMA montagem, e tudo o que é estado da tela (as
+ * seções abertas, o erro no topo, a rolagem) atravessa de uma ocorrência
+ * para a outra. Foi assim que "entro numa tela e tá no meio da página"
+ * aconteceu aqui. A `key` pelo id faz o React desmontar e montar de novo:
+ * estado limpo, rolagem no topo, e nenhum efeito precisa "limpar ao trocar".
+ */
 export default function TelaDeVistoria() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  return <VistoriaDaOcorrencia key={id} id={id} />;
+}
+
+function VistoriaDaOcorrencia({ id }: { id: string }) {
   const navegacao = useNavigation();
   const tema = useTema();
   const { obterToken, identidade, lerIdentidade } = useSessao();

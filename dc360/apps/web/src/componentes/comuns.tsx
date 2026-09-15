@@ -3,6 +3,10 @@ import {
   ROTULO_SEVERIDADE,
   ROTULO_STATUS,
   ROTULO_TIPO_COBRADE,
+  TRACO_DO_GLIFO,
+  VIEWBOX_DO_GLIFO,
+  caminhosDoGlifo,
+  glifoDeSeveridade,
   precisaReclassificar,
   type Severidade,
   type StatusOcorrencia,
@@ -18,13 +22,40 @@ import { rotuloDoCampo } from "@dc360/shared";
  * para severidade.
  */
 
+/**
+ * O selo de severidade, com o glifo compartilhado ao lado da palavra.
+ *
+ * Até 15/09/2026 o segundo canal aqui era um PONTO na cor do selo, ou seja,
+ * cor de novo: para quem não separa âmbar de vermelho, "Média" e "Alta" eram
+ * duas pílulas iguais com palavras diferentes. E o aplicativo desenhava outra
+ * coisa na mesma pílula. O glifo (círculo, quadrado, triângulo, octógono,
+ * círculo tracejado) vem de `@dc360/shared`, em traço na cor do texto do
+ * selo, e é o mesmo que o pino do mapa e o aplicativo desenham.
+ *
+ * Sem classificação é um estado, e não a ausência de um: leva glifo e palavra
+ * como os outros quatro, em vez de ser o único selo que se distingue só pelo
+ * cinza.
+ */
 export function SeloSeveridade({ severidade }: { severidade: Severidade | null }) {
+  const glifo = glifoDeSeveridade(severidade);
+  const desenho = (
+    <svg
+      className="selo__glifo"
+      viewBox={VIEWBOX_DO_GLIFO}
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={TRACO_DO_GLIFO} strokeLinecap="round" strokeLinejoin="round"
+    >
+      {caminhosDoGlifo(glifo).map((d) => <path key={d} d={d} />)}
+    </svg>
+  );
   if (!severidade) {
-    return <span className="selo selo--neutro">Sem classificação</span>;
+    return <span className="selo selo--neutro">{desenho}Sem classificação</span>;
   }
   return (
     <span className={`selo selo--${severidade}`}>
-      <span className="selo__ponto" aria-hidden="true" />
+      {desenho}
       {ROTULO_SEVERIDADE[severidade]}
     </span>
   );

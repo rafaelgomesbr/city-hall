@@ -412,8 +412,9 @@ describe("quem desiste de esperar a abertura tem caminho de volta", () => {
    ============================================================ */
 
 describe("o cartão da tarefa tem hierarquia", () => {
-  function oCartao() {
-    return screen.getByLabelText(/Abrir a vistoria do protocolo/);
+  /** O RESUMO tocável do item, que é o elemento que o leitor de tela anuncia. */
+  function oResumo() {
+    return screen.getByTestId(`escolher-${ID}`);
   }
 
   /*
@@ -425,12 +426,13 @@ describe("o cartão da tarefa tem hierarquia", () => {
     como se fosse outro bloco da tela. Foi o que apareceu num iPhone, com o
     "Enviar agora" e o `ⓘ` grandes fora do cartão.
 
-    Agora a caixa desenha o cartão (borda, elevação, raio) e o tocável cobre só
-    o conteúdo que navega, para o rodapé de ações poder morar DENTRO da caixa
-    sem ser tocável dentro de tocável, que disputa o gesto.
+    Hoje a caixa é o item em sanfona (`ui/ItemDeTarefa.tsx`): ela desenha o
+    cartão (borda, elevação, raio), o tocável cobre só o resumo, e o detalhe
+    com os botões mora DENTRO da caixa, como irmão do tocável, sem ser tocável
+    dentro de tocável, que disputa o gesto.
   */
   function aCaixa() {
-    return screen.getByTestId(`cartao-${ID}`);
+    return screen.getByTestId(`tarefa-${ID}`);
   }
 
   /*
@@ -459,23 +461,40 @@ describe("o cartão da tarefa tem hierarquia", () => {
   });
 
   /*
-    A borda de destaque acendia para "começada" E para "coletada", que são
-    estados OPOSTOS: um é trabalho pela metade, para onde o agente precisa
-    voltar, e o outro é trabalho pronto.
+    A BORDA ACESA TEM UM SIGNIFICADO SÓ: o item está ABERTO.
+
+    Ela já acendeu para "começada" E para "coletada", que são estados opostos
+    (trabalho pela metade e trabalho pronto), e depois só para "começada".
+    Com a lista em sanfona, o contorno que engrossa e acende é o do item
+    expandido, e "vistoria começada" fala pelo chip dele: uma borda que
+    acendesse para duas coisas não diria nenhuma. Os dois casos abaixo
+    fixam isso pelos dois lados.
   */
-  it("a borda de destaque acende na vistoria começada", async () => {
+  it("a borda de destaque acende no item aberto, e a vistoria começada fala pelo chip", async () => {
     mockRascunhos = [{ ocorrenciaId: ID }];
     await abrirALista();
 
+    /* A única tarefa é a sugerida, e a sugerida entra aberta. */
     expect(aCaixa().props.style.borderColor).toBe(temaEscuro.destaque);
+    expect(screen.getByText("Vistoria começada")).toBeTruthy();
+
+    /* Recolhida, a borda apaga, e o chip continua dizendo que começou. */
+    await act(async () => { fireEvent.press(oResumo()); });
+    expect(aCaixa().props.style.borderColor).toBe(temaEscuro.borda);
+    expect(screen.getByText("Vistoria começada")).toBeTruthy();
   });
 
-  it("a borda de destaque NÃO acende na tarefa já coletada", async () => {
-    mockColetas = [{ ocorrenciaId: ID, situacao: "na_fila" }];
+  it("a borda de destaque NÃO acende na tarefa já coletada só por estar coletada", async () => {
+    /*
+      Duas tarefas, e a coletada vai para o fim da ordem do dia (fechada): se
+      a borda dela acender, é por outro motivo que não o item aberto.
+    */
+    mockTarefas = [tarefa({ prazo_em: VENCIDA }), tarefa({ id: OUTRO, protocolo: "000472/2026" })];
+    mockColetas = [{ ocorrenciaId: OUTRO, situacao: "na_fila" }];
     await abrirALista();
 
-    expect(aCaixa().props.style.borderColor).toBe(temaEscuro.borda);
-    /* E ela continua dizendo que foi coletada, agora em chip e não em 12 pontos. */
+    expect(screen.getByTestId(`tarefa-${OUTRO}`).props.style.borderColor).toBe(temaEscuro.borda);
+    /* E ela continua dizendo que foi coletada, em chip e não em 12 pontos. */
     expect(screen.getByText("Coletada, aguardando envio")).toBeTruthy();
   });
 
@@ -484,7 +503,7 @@ describe("o cartão da tarefa tem hierarquia", () => {
     await abrirALista();
 
     expect(screen.getByText("Vulnerabilidade social")).toBeTruthy();
-    expect(oCartao().props.accessibilityLabel).toContain("Vulnerabilidade social");
+    expect(oResumo().props.accessibilityLabel).toContain("Vulnerabilidade social");
   });
 
   /*

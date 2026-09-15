@@ -1,6 +1,6 @@
 import { View } from "react-native";
-import Svg, { Circle, Path, Rect } from "react-native-svg";
-import type { Severidade } from "@dc360/shared";
+import Svg, { Path } from "react-native-svg";
+import { TRACO_DO_GLIFO, VIEWBOX_DO_GLIFO, type Severidade } from "@dc360/shared";
 
 import { Txt, useTema } from "../componentes";
 import { borda, espaco, icone, raio } from "../tokens";
@@ -27,40 +27,32 @@ import { aparenciaDaCriticidade, criticidadesNoMapa } from "./criticidade";
  * claro de um galpão. A cor que garantidamente contrasta com o resto da tela é
  * a tinta de texto do tema (escura no claro, clara no escuro), e é ela que
  * separa a silhueta do fundo em qualquer dos três casos. O par medido no portão
- * de contraste (`fundo` com `tinta` da severidade) continua valendo para o que
- * é TEXTO sobre o fundo dela, que é o `SeloSeveridade`, e não para uma
- * silhueta sobre ladrilho.
- */
-/**
- * O lado do desenho, em unidades de `viewBox`. Só relação, nunca ponto: o
- * tamanho em pontos é o que a chamada pede, e tudo aqui dentro escala junto.
- */
-const LADO = 24;
-
-/**
- * O canto do quadrado, derivado do raio do produto e não escolhido aqui.
+ * de contraste (`fundo` com `tinta` da severidade) vale para o que vai POR
+ * CIMA do fundo: no `SeloSeveridade` é o texto, e aqui é a marca de dentro do
+ * glifo (o ponto, o traço, a exclamação).
  *
- * `raio.normal` é 8 PONTOS, e aqui a unidade é a do `viewBox` de 24: aplicado
- * cru, ele arredondaria o quadrado até virar um círculo, e as duas formas
- * deixariam de se distinguir, que é justamente o canal que este desenho existe
- * para acrescentar. A razão mantém a decisão amarrada ao token: se o produto
- * ficar mais arredondado, esta figura acompanha.
+ * A GEOMETRIA não mora aqui. Até 15/09/2026 este arquivo desenhava triângulo,
+ * losango, quadrado, círculo e anel com números próprios, e o selo do mesmo
+ * aplicativo desenhava um medidor, e o painel desenhava uma terceira coisa. O
+ * glifo vem de `@dc360/shared`, e é o mesmo nos três lugares; o que este
+ * arquivo decide é só como PREENCHER: o contorno vira mancha no fundo da
+ * severidade, contornada na tinta de texto, e a marca vai por cima na tinta
+ * da severidade. O traço é o dos ícones do conjunto (1,8 na grade de 24),
+ * para que o pino tenha o mesmo peso de linha do selo ao lado dele.
  */
-const CANTO_DO_QUADRADO = raio.normal / 4;
-
 export function DesenhoDaCriticidade({ severidade, tamanho = icone.rotulo }: {
   severidade: Severidade | null;
   tamanho?: number;
 }) {
   const tema = useTema();
   const aparencia = aparenciaDaCriticidade(tema, severidade);
-  const traco = borda.enfase;
+  const { glifo } = aparencia;
 
   return (
     <Svg
       width={tamanho}
       height={tamanho}
-      viewBox={`0 0 ${LADO} ${LADO}`}
+      viewBox={VIEWBOX_DO_GLIFO}
       /*
         O desenho é DECORAÇÃO para o leitor de tela, e não um segundo anúncio.
         Quem carrega a palavra é o texto ao lado dele, na legenda, e o rótulo do
@@ -70,54 +62,42 @@ export function DesenhoDaCriticidade({ severidade, tamanho = icone.rotulo }: {
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
-      {aparencia.forma === "triangulo" && (
-        <Path
-          d="M 12 3 L 22 20 L 2 20 Z"
-          fill={aparencia.fundo}
-          stroke={tema.texto}
-          strokeWidth={traco}
-          strokeLinejoin="round"
-        />
-      )}
-      {aparencia.forma === "losango" && (
-        <Path
-          d="M 12 2 L 22 12 L 12 22 L 2 12 Z"
-          fill={aparencia.fundo}
-          stroke={tema.texto}
-          strokeWidth={traco}
-          strokeLinejoin="round"
-        />
-      )}
-      {aparencia.forma === "quadrado" && (
-        <Rect
-          x="4" y="4" width="16" height="16"
-          rx={CANTO_DO_QUADRADO}
-          fill={aparencia.fundo}
-          stroke={tema.texto}
-          strokeWidth={traco}
-        />
-      )}
-      {aparencia.forma === "circulo" && (
-        <Circle
-          cx="12" cy="12" r="9"
-          fill={aparencia.fundo}
-          stroke={tema.texto}
-          strokeWidth={traco}
-        />
-      )}
       {/*
-        O ANEL é vazado, e é o único que não preenche: a ocorrência que ninguém
-        classificou ainda é um lugar no mapa sem gravidade atribuída, e um
-        círculo cheio de cinza pareceria uma gravidade a mais na escala.
+        Sem classificação é o único que NÃO preenche (`glifo.preenche`): a
+        ocorrência que ninguém classificou ainda é um lugar no mapa sem
+        gravidade atribuída, e um círculo cheio de cinza pareceria uma
+        gravidade a mais na escala. O tracejado fica em tinta de texto, e não
+        na discreta, pela mesma razão do contorno dos outros: sobre ladrilho, é
+        a tinta de texto que garante ser vista.
       */}
-      {aparencia.forma === "anel" && (
-        <Circle
-          cx="12" cy="12" r="8"
-          fill="none"
-          stroke={tema.textoDiscreto}
-          strokeWidth={traco}
+      {glifo.preenche ? (
+        <Path
+          d={glifo.contorno}
+          fill={aparencia.fundo}
+          stroke={tema.texto}
+          strokeWidth={TRACO_DO_GLIFO}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ) : (
+        <Path
+          d={glifo.contorno}
+          stroke={tema.texto}
+          strokeWidth={TRACO_DO_GLIFO}
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
       )}
+      {glifo.marca.map((d) => (
+        <Path
+          key={d}
+          d={d}
+          stroke={aparencia.tinta}
+          strokeWidth={TRACO_DO_GLIFO}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ))}
     </Svg>
   );
 }

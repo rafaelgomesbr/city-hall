@@ -89,10 +89,10 @@ export function montarAviso(tipo: TipoDeAviso, detalhe: DetalheDoAviso): Notific
       baixou, a tela diz isso e oferece atualizar, que e melhor do que mandar o
       endereco da familia para fora para economizar um toque.
 
-      A severidade fica porque ela escolhe o canal de notificacao no Android
-      (som so para alta e critica) e precisa ser conhecida ANTES de o aplicativo
-      abrir. Ela e uma palavra de quatro valores possiveis e nao diz nada sobre
-      pessoa nenhuma.
+      A severidade fica porque ela escolhe o canal do aviso de PRAZO no Android
+      (som so para alta e critica; o despacho toca sempre, ver `toqueDoAviso`)
+      e precisa ser conhecida ANTES de o aplicativo abrir. Ela e uma palavra de
+      quatro valores possiveis e nao diz nada sobre pessoa nenhuma.
     */
     ...(detalhe.severidade ? { severidade: detalhe.severidade } : {}),
     ...(detalhe.prazoEm ? { prazoEm: detalhe.prazoEm } : {}),
@@ -127,4 +127,87 @@ export function montarAviso(tipo: TipoDeAviso, detalhe: DetalheDoAviso): Notific
   }
 
   return notificacao;
+}
+
+/* ------------------------------------------------------------------------
+   O TOQUE: canal, som e urgência de cada aviso, decididos num lugar só.
+   ------------------------------------------------------------------------ */
+
+/**
+ * Os canais do Android, cópia literal dos declarados em
+ * `apps/campo/src/push/canais.ts`. Existe teste comparando os dois lados: se
+ * divergirem, o Android roteia para um canal que o aplicativo nunca criou e
+ * inventa um genérico, em silêncio.
+ */
+export const CANAL_DESPACHO = "dc360.despacho.v1";
+export const CANAL_URGENCIA = "dc360.urgencia.v1";
+export const CANAL_COMUM = "dc360.comum.v1";
+
+/**
+ * O som característico do despacho, com extensão: é assim que o iOS o procura
+ * no bundle. O Android resolve o recurso em `res/raw` pelo nome sem extensão
+ * (ver `semExtensao` abaixo). O arquivo é gerado por
+ * `scripts/gerar-som-de-despacho.mjs` e declarado em `apps/campo/app.config.ts`.
+ */
+export const SOM_DE_DESPACHO = "despacho.wav";
+
+export type ToqueDoAviso = {
+  /** O canal do Android. */
+  canal: string;
+  /**
+   * O som, no vocabulário de cada loja. `null` é silêncio. `"default"` é o
+   * som do sistema. Outro nome é arquivo dentro do aplicativo.
+   */
+  som: string | null;
+  /**
+   * Se fura o Foco do iOS (`time-sensitive`) e pede prioridade máxima no
+   * Android. Verdadeiro para todo despacho e para o prazo alto ou crítico.
+   */
+  urgente: boolean;
+};
+
+/**
+ * DESPACHO TOCA SEMPRE; PRAZO TOCA POR SEVERIDADE.
+ *
+ * A decisão de 15/09/2026, na letra de quem paga: "o celular do usuário
+ * agente de campo deve obrigatoriamente ser notificado, vibrado ou sonoro, que
+ * ele recebeu uma nova ocorrência, com som característico". Até esta data o
+ * som só saía para severidade alta e crítica, inclusive na tarefa nova, pelo
+ * argumento de disponibilidade: um aviso de severidade baixa tocando às três
+ * da manhã ensina o agente a silenciar o aplicativo inteiro nos ajustes do
+ * sistema, e a partir daí o aviso crítico também não toca.
+ *
+ * O argumento continua valendo, mas ele descreve o PRAZO, não o despacho.
+ * Prazo é relógio: dispara sozinho, de madrugada, para uma ocorrência que já
+ * estava na lista. Despacho é uma pessoa decidindo agora que esta equipe vai:
+ * quem despacha às três da manhã precisa da equipe às três da manhã, e o
+ * despacho que não é ouvido é a razão inteira do aplicativo deixando de
+ * acontecer. Por isso a tarefa nova toca o som de despacho em toda
+ * severidade, inclusive quando a severidade não veio, e fura o Foco. O prazo
+ * continua exatamente como estava.
+ *
+ * O que devolve a escolha para quem trabalha é o canal do Android: quem não
+ * quiser o som do despacho cala o canal de despacho nos ajustes e mantém os
+ * outros. No iOS não há canal, e é por isso que a decisão precisa estar
+ * certa aqui, no servidor, que é quem escolhe o `aps.sound`.
+ */
+export function toqueDoAviso(notificacao: Pick<Notificacao, "dados">): ToqueDoAviso {
+  if (notificacao.dados.tipo === "tarefa_nova") {
+    return { canal: CANAL_DESPACHO, som: SOM_DE_DESPACHO, urgente: true };
+  }
+  /*
+    Ausência de severidade no prazo cai no silencioso de propósito: errar para
+    o lado do som é o erro que não tem volta.
+  */
+  const urgente = notificacao.dados.severidade === "alta"
+    || notificacao.dados.severidade === "critica";
+  return urgente
+    ? { canal: CANAL_URGENCIA, som: "default", urgente: true }
+    : { canal: CANAL_COMUM, som: null, urgente: false };
+}
+
+/** `despacho.wav` vira `despacho`: nome de recurso do Android não tem extensão. */
+export function semExtensao(nomeDeArquivo: string): string {
+  const ponto = nomeDeArquivo.lastIndexOf(".");
+  return ponto > 0 ? nomeDeArquivo.slice(0, ponto) : nomeDeArquivo;
 }

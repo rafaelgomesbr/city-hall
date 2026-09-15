@@ -50,7 +50,7 @@ jest.mock("expo-router", () => {
       replace: jest.fn(),
       canGoBack: jest.fn(() => true),
     },
-    useLocalSearchParams: () => ({ id: "oc-1" }),
+    useLocalSearchParams: () => ({ id: mockIdDaRota }),
     useNavigation: () => navegacao,
   };
 });
@@ -88,6 +88,8 @@ jest.mock("expo-file-system", () => ({
 
 /** A ocorrência que está guardada no aparelho. Cada teste ajusta o que precisa. */
 let mockOcorrencia: Pendencia;
+/** O id que a rota entrega; muda no caso que abre OUTRA ocorrência. */
+let mockIdDaRota = "oc-1";
 
 jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
 
@@ -190,6 +192,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(AGORA);
   mockOcorrencia = ocorrenciaDeTeste();
+  mockIdDaRota = "oc-1";
   mockCatalogoDeOrgaos = [];
 
   abrirUrl = jest.spyOn(Linking, "openURL");
@@ -457,5 +460,38 @@ describe("abrir no mapa", () => {
     expect(screen.getByText(/chegou sem coordenada/)).toBeTruthy();
     /* E a saída nomeada continua de pé, sozinha, sem o par que não existe. */
     expect(screen.getByText("Salvar e sair")).toBeTruthy();
+  });
+});
+
+/*
+  UMA MONTAGEM POR OCORRÊNCIA. `vistoria/[id]` é uma rota só do navegador de
+  abas: sem a `key` pelo id, abrir outra ocorrência trocava o parâmetro na
+  mesma montagem, e o que o agente tinha digitado numa aparecia na outra (e a
+  rolagem ficava onde estava: "entro numa tela e tá no meio da página").
+*/
+describe("abrir outra ocorrência remonta a tela", () => {
+  it("a tela da segunda ocorrência é OUTRA montagem, e nada digitado atravessa", async () => {
+    const tela = await render(<TelaDeVistoria />);
+    await screen.findByText("Checklist técnico");
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId("observacoes-do-agente"), "muro trincado na lateral");
+    });
+    /*
+      A instância do campo é a prova da remontagem: o test renderer devolve o
+      MESMO objeto para a mesma fibra entre redesenhos, e um objeto novo só
+      quando a peça foi desmontada e montada de novo. Sem a `key`, a troca de
+      id redesenha a mesma montagem, e o objeto é o mesmo.
+    */
+    const campoAntes = screen.getByTestId("observacoes-do-agente");
+    expect(campoAntes.props.value).toBe("muro trincado na lateral");
+
+    mockIdDaRota = "oc-2";
+    mockOcorrencia = ocorrenciaDeTeste({ id: "oc-2", protocolo: "000002/2026" });
+    await act(async () => { await tela.rerender(<TelaDeVistoria />); });
+    await screen.findByText("Checklist técnico");
+
+    const campoDepois = screen.getByTestId("observacoes-do-agente");
+    expect(campoDepois).not.toBe(campoAntes);
+    expect(campoDepois.props.value ?? "").toBe("");
   });
 });

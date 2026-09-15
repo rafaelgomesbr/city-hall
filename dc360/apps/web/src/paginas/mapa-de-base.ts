@@ -30,6 +30,10 @@
  * já se sabe, mandando o endereço junto.
  */
 
+import {
+  GRADE_DO_GLIFO, caminhosDoGlifo, glifoDeSeveridade, type Severidade,
+} from "@dc360/shared";
+
 export type ModoDoMapa = "google" | "esquematico";
 
 /**
@@ -127,6 +131,8 @@ export type ApiDoGoogleMaps = {
   Map: new (elemento: HTMLElement, opcoes: Record<string, unknown>) => MapaDoGoogle;
   Marker: new (opcoes: Record<string, unknown>) => MarcadorDoGoogle;
   LatLngBounds: new () => LimitesDoGoogle;
+  /** A âncora do símbolo do marcador: o glifo é desenhado na grade de 24 e ancora no centro dela. */
+  Point: new (x: number, y: number) => unknown;
 };
 
 type JanelaComGoogle = {
@@ -300,19 +306,28 @@ export function tokenDaSeveridade(severidade: string | null): string {
 }
 
 /**
+ * O centro da grade do glifo, onde o símbolo do Google é ancorado.
+ *
+ * O símbolo do Google ancora na origem do traçado, e o glifo compartilhado é
+ * desenhado na grade de 24 com o centro em 12. Ancorar em (12, 12) é o que
+ * põe a figura em cima da coordenada, e não com o canto nela.
+ */
+export const CENTRO_DO_GLIFO = GRADE_DO_GLIFO / 2;
+
+/**
  * A forma de cada severidade, no traçado que o marcador do Google entende.
  *
- * É a mesma família de formas de `FormaSeveridade`, centrada na origem porque
- * o símbolo do Google ancora ali: círculo, triângulo, quadrado e losango.
+ * É o MESMO glifo do selo e do pino do plano esquemático (`FormaSeveridade`),
+ * vindo de `@dc360/shared`: contorno mais marca, num traçado só, porque o
+ * símbolo do Google aceita um caminho por marcador. O contorno é preenchido
+ * com a cor do pino e a marca de dentro (ponto, traço, exclamação) aparece
+ * pelo traço na cor da superfície, que o Google aplica ao caminho inteiro.
+ * Sem classificação não preenche (`glifoDeSeveridade(...).preenche`), senão
+ * os quatro dentes do tracejado virariam quatro gomos cinza.
+ *
  * Sobrevive ao daltonismo e ao sol na tela do notebook dentro do carro, que é
  * onde este mapa é lido de verdade.
  */
-export function caminhoDaSeveridade(severidade: string | null): string {
-  switch (severidade) {
-    case "critica": return "M 8 0 A 8 8 0 1 1 -8 0 A 8 8 0 1 1 8 0 Z";
-    case "alta": return "M 0 -9 L 9 8 L -9 8 Z";
-    case "media": return "M -7 -7 H 7 V 7 H -7 Z";
-    case "baixa": return "M 0 -8 L 8 0 L 0 8 L -8 0 Z";
-    default: return "M 0 -6 A 6 6 0 1 1 0 6 A 6 6 0 1 1 0 -6 Z";
-  }
+export function caminhoDaSeveridade(severidade: Severidade | null): string {
+  return caminhosDoGlifo(glifoDeSeveridade(severidade)).join(" ");
 }

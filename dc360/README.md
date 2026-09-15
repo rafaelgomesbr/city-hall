@@ -9,11 +9,11 @@ build) valem lá, não aqui.
 | Pacote | O que é | Situação |
 | --- | --- | --- |
 | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 242 testes do banco passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 322 testes de fonte do painel mais 58 verificações no navegador no modo local e 103 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 842 testes da API passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 285 testes do banco passando |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 454 testes de fonte do painel mais 68 verificações no navegador no modo local e 103 contra a API |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 962 testes da API passando |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 138 testes de unidade do motor de campo e 10 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 1591 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 1708 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios e não alcança dado de cidadão | Pronto, 250 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
@@ -1055,11 +1055,11 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 1908 testes em seis pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 242 testes do banco
-npm run test:api            # 842 testes da API
+npm test                    # 2219 testes em seis pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 285 testes do banco
+npm run test:api            # 962 testes da API
 npm run test --workspace @dc360/campo   # 138 testes do motor de campo
-npm run test:campo          # tipos e os 1591 testes do aplicativo de campo
+npm run test:campo          # tipos e os 1708 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
 npm audit                   # precisa fechar em zero
 ```
@@ -1212,7 +1212,7 @@ o CORS da API não permitia `PUT`, então o envio de bytes nem saía do
 navegador; e o `Cross-Origin-Resource-Policy` do helmet bloqueava a imagem
 quando painel e API ficam em origens diferentes, que é o arranjo de produção.
 
-São 58 verificações: entrada, isolamento entre municípios visto dos dois lados,
+São 68 verificações: entrada, a busca global tolerante a erro, isolamento entre municípios visto dos dois lados,
 geração de protocolo em sequência, triagem, despacho, encerramento com motivo
 obrigatório, indicadores do painel reagindo às mudanças, cadastro de equipes e
 usuários com recusa de duplicata, mapa, restrição de menu por papel, tema

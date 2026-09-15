@@ -163,11 +163,17 @@ async function tocar(id: string): Promise<void> {
   await act(async () => { fireEvent.press(screen.getByTestId(id)); });
 }
 
-/** A ordem dos cartões da tela de tarefas, por identificador de ocorrência. */
+/**
+ * A ordem dos itens da tela de tarefas, por identificador de ocorrência.
+ *
+ * `tarefa-<id>` é a caixa do item em sanfona, a MESMA peça que a tela do mapa
+ * desenha (`ui/ItemDeTarefa.tsx`): as duas listas passaram a ser a mesma peça
+ * sobre a mesma regra, e é isso que este arquivo mede.
+ */
 function aOrdemDaLista(): string[] {
   return screen
-    .getAllByTestId(/^cartao-/)
-    .map((no) => String(no.props.testID).replace("cartao-", ""));
+    .getAllByTestId(/^tarefa-/)
+    .map((no) => String(no.props.testID).replace("tarefa-", ""));
 }
 
 /** A ordem das linhas da lista da TELA DO MAPA. */
@@ -267,41 +273,47 @@ describe("a lista e o mapa são a mesma lista", () => {
   /*
     E AS DUAS TELAS PRECISAM DIZER O MESMO PARA QUEM OUVE.
 
-    O cartão da lista é UM elemento só para o leitor de tela: o `Tocavel` tem
+    O resumo do item é UM elemento só para o leitor de tela: o `Tocavel` tem
     rótulo próprio, e rótulo próprio faz o leitor ler o rótulo e ignorar os
-    textos de dentro. O rótulo trazia protocolo e endereço, e mais nada, então o
-    PRAZO (que a tela desenha em vermelho, com ícone, na linha mais forte do
-    cartão) simplesmente não existia para quem não enxerga. Na tela do mapa a
-    linha sempre disse o prazo: a mesma tarefa, duas telas, duas verdades
-    diferentes sobre quando ela vence.
+    textos de dentro. Houve um tempo em que o rótulo da lista trazia protocolo
+    e endereço, e mais nada, então o PRAZO (que a tela desenha em vermelho,
+    com ícone) simplesmente não existia para quem não enxerga, enquanto a tela
+    do mapa sempre o disse: a mesma tarefa, duas telas, duas verdades sobre
+    quando ela vence. Hoje as duas telas usam a mesma peça, e este caso é o
+    que impede a lista de ganhar um rótulo próprio de novo.
 
     Não é detalhe de conformidade: o prazo é o que decide se o agente sobe hoje
-    ou passa a tarefa adiante, e é a única coisa que o cartão comunica por cor.
+    ou passa a tarefa adiante, e é a única coisa que o item comunica por cor.
   */
-  it("quem ouve a tela ouve o prazo nas DUAS telas", async () => {
+  it("quem ouve a tela ouve o prazo nas DUAS telas, com a mesma frase", async () => {
     mockTarefas = [
       tarefa({ id: "vencida", severidade: "baixa", prazo_em: new Date(Date.now() - 5 * HORA).toISOString(), ...daquiAMetros(200) }),
     ];
     await abrirALista();
 
-    /* Ancorado no CARTÃO: a sugerida carrega também o convite, que se anuncia
-       como "Abrir a vistoria sugerida", e é o cartão que precisa dizer o prazo. */
-    const naLista = within(screen.getByTestId("cartao-vencida"))
-      .getByLabelText(/^Abrir a vistoria do protocolo/).props.accessibilityLabel as string;
+    const naLista = screen.getByTestId("escolher-vencida").props.accessibilityLabel as string;
     expect(naLista).toContain("Vencido há 5h");
 
     await eNoMapa();
 
-    expect(screen.getByTestId("escolher-vencida").props.accessibilityLabel)
-      .toContain("Vencido há 5h");
+    const noMapa = screen.getByTestId("escolher-vencida").props.accessibilityLabel as string;
+    expect(noMapa).toContain("Vencido há 5h");
+    /*
+      A MESMA frase até o prazo, palavra por palavra: é a mesma peça. O que a
+      lista acrescenta depois ("Comece por aqui" e o porquê) é o cabeçalho
+      dela, e o mapa não o tem.
+    */
+    const ateOPrazo = (rotulo: string) => rotulo.slice(0, rotulo.indexOf("Vencido há 5h"));
+    expect(ateOPrazo(noMapa)).toBe(ateOPrazo(naLista));
+    expect(ateOPrazo(naLista).length).toBeGreaterThan("Protocolo ".length);
   });
 
   /*
     E o mesmo vale para a sugestão do dia. "Comece por aqui" e a frase do porquê
-    ficam DENTRO do `Tocavel` do cartão, então na lista elas não eram ditas. O
-    agente que usa leitor de tela ouvia a ordem do dia numa tela e não na outra,
-    inclusive o aviso de que a ordem NÃO considerou distância, que é justamente
-    a frase que o impede de confiar demais na lista.
+    ficam DENTRO do resumo tocável, então precisam entrar no rótulo dele. O
+    agente que usa leitor de tela ouviria a ordem do dia numa tela e não na
+    outra, inclusive o aviso de que a ordem NÃO considerou distância, que é
+    justamente a frase que o impede de confiar demais na lista.
   */
   it("quem ouve a tela ouve o porquê da sugestão também na lista", async () => {
     mockTarefas = [
@@ -310,8 +322,7 @@ describe("a lista e o mapa são a mesma lista", () => {
     mockPermissaoConcedida = false;
     await abrirALista();
 
-    const naLista = within(screen.getByTestId("cartao-critica"))
-      .getByLabelText(/^Abrir a vistoria do protocolo/).props.accessibilityLabel as string;
+    const naLista = screen.getByTestId("escolher-critica").props.accessibilityLabel as string;
 
     expect(naLista).toContain("Comece por aqui");
     expect(naLista).toContain("Severidade crítica");
@@ -431,8 +442,8 @@ describe("a ordem do dia aparece como a primeira da lista, e não como um bloco 
     */
     expect(aOrdemDaLista()[0]).toBe("critica");
     expect(screen.getAllByTestId("comece-por-aqui")).toHaveLength(1);
-    expect(within(screen.getByTestId("cartao-critica")).getByTestId("comece-por-aqui")).toBeTruthy();
-    expect(within(screen.getByTestId("cartao-vencida")).queryByTestId("comece-por-aqui")).toBeNull();
+    expect(within(screen.getByTestId("tarefa-critica")).getByTestId("comece-por-aqui")).toBeTruthy();
+    expect(within(screen.getByTestId("tarefa-vencida")).queryByTestId("comece-por-aqui")).toBeNull();
   });
 
   /*
@@ -441,31 +452,42 @@ describe("a ordem do dia aparece como a primeira da lista, e não como um bloco 
 
     O botão era "Abrir a vistoria", no rodapé da folha do mapa dentro desta
     aba, e migrou para a aba Mapa quando o mapa virou tela própria. Com a lista
-    cheia, Tarefas ficou sem nenhum botão primário. Ele volta no cartão da
-    sugerida, como CONVITE: o cartão continua abrindo por toque, e o botão faz
-    exatamente a mesma navegação, para quem não sabe que cartão se toca.
+    cheia, Tarefas ficou sem nenhum botão primário. Ele voltou no cartão da
+    sugerida, e com a lista em sanfona mora DENTRO do item aberto: a sugerida
+    entra aberta, então o roxo continua sendo a primeira coisa da tela, e a
+    fechada não tem botão nenhum até ser tocada.
   */
-  it("a sugerida carrega o convite em roxo: 'Abrir a vistoria', e só ela", async () => {
+  it("a sugerida entra aberta com o convite em roxo, e a fechada não tem botão", async () => {
     await abrirALista();
 
-    const convite = within(screen.getByTestId("cartao-critica")).getByTestId("abrir-a-vistoria-critica");
+    const convite = within(screen.getByTestId("tarefa-critica")).getByTestId("abrir-a-vistoria-critica");
     expect(StyleSheet.flatten(convite.props.style).backgroundColor).toBe(temaEscuro.destaque);
-    expect(within(screen.getByTestId("cartao-vencida")).queryByTestId("abrir-a-vistoria-vencida")).toBeNull();
+    expect(within(screen.getByTestId("tarefa-vencida")).queryByTestId("abrir-a-vistoria-vencida")).toBeNull();
+
+    /* Abrir a outra leva o roxo para ela, e um só continua na tela. */
+    await tocar("escolher-vencida");
+    expect(within(screen.getByTestId("tarefa-vencida")).getByTestId("abrir-a-vistoria-vencida")).toBeTruthy();
+    expect(within(screen.getByTestId("tarefa-critica")).queryByTestId("abrir-a-vistoria-critica")).toBeNull();
   });
 
-  it("o convite abre o mesmo lugar que o toque no cartão", async () => {
+  /*
+    ERA "o convite abre o mesmo lugar que o toque no cartão", quando o cartão
+    inteiro navegava. Com a sanfona, o toque no resumo EXPANDE, e quem navega
+    é só o botão: se o resumo voltasse a navegar, ninguém conseguiria abrir um
+    item para ler o detalhe sem sair da tela.
+  */
+  it("o botão abre a vistoria, e o toque no resumo só expande", async () => {
     await abrirALista();
-    const cartao = screen.getByTestId("cartao-critica");
+    const item = screen.getByTestId("tarefa-critica");
 
-    await act(async () => { fireEvent.press(within(cartao).getByTestId("abrir-a-vistoria-critica")); });
-    const peloConvite = mockEmpurrar.mock.calls.at(-1);
-    expect(peloConvite).toEqual([{ pathname: "/(agente)/vistoria/[id]", params: { id: "critica" } }]);
+    await act(async () => { fireEvent.press(within(item).getByTestId("abrir-a-vistoria-critica")); });
+    expect(mockEmpurrar.mock.calls.at(-1))
+      .toEqual([{ pathname: "/(agente)/vistoria/[id]", params: { id: "critica" } }]);
 
     mockEmpurrar.mockClear();
-    await act(async () => {
-      fireEvent.press(within(cartao).getByLabelText(/^Abrir a vistoria do protocolo/));
-    });
-    expect(mockEmpurrar.mock.calls.at(-1)).toEqual(peloConvite);
+    await tocar("escolher-critica");
+    expect(mockEmpurrar).not.toHaveBeenCalled();
+    expect(screen.getByTestId("escolher-critica").props.accessibilityState.expanded).toBe(false);
   });
 
 
@@ -566,7 +588,7 @@ describe("sem GPS a tela não inventa distância, e diz isso", () => {
     await abrirALista();
 
     expect(screen.queryByText(/não considerou distância/)).toBeNull();
-    expect(screen.getByText("a 401 m")).toBeTruthy();
+    expect(screen.getByText("a 401 m de você")).toBeTruthy();
     expect(aOrdemDaLista()).toEqual(["perto", "longe"]);
   });
 

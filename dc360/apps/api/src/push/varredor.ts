@@ -1,13 +1,25 @@
 import type { Banco } from "../banco/tipos.js";
 import type { EnvioDePush, Plataforma } from "./envio.js";
-import { montarAviso } from "./mensagem.js";
+import { montarAviso, type TipoDeAviso } from "./mensagem.js";
 import type { Trava } from "./trava.js";
 
 /**
- * O laço que descobre prazo vencendo e avisa a equipe responsável.
+ * O laço que envia os avisos de push: a tarefa nova que o despacho enfileirou
+ * e o prazo que está vencendo.
  *
  * Sem ele, o prazo de uma vistoria vence e ninguém fica sabendo: o coordenador
- * só descobre quando abre a tela, e quem está na rua não abre tela nenhuma.
+ * só descobre quando abre a tela, e quem está na rua não abre tela nenhuma. E,
+ * desde 15/09/2026, sem ele o despacho fica mudo: a rota
+ * `POST /ocorrencias/:id/despacho` enfileira uma linha `tarefa_nova` em
+ * `notificacoes_enviadas` por aparelho da equipe (migração 042), e é esta
+ * rodada que a tira da fila e a manda para a Apple e para o Google, com o som
+ * de despacho (ver `toqueDoAviso` em `mensagem.ts`). A rota não fala com
+ * provedor nenhum: ela responde ao coordenador em milissegundos, e provedor
+ * responde quando quer.
+ *
+ * A TAREFA NOVA SAI PRIMEIRO na rodada, antes do prazo. Despacho é uma pessoa
+ * decidindo agora que esta equipe vai; prazo é relógio, e pode esperar a
+ * próxima rodada se o teto de tempo bater.
  *
  * TRÊS GARANTIAS SUSTENTAM ESTE LAÇO, e cada uma cobre uma falha diferente:
  *
@@ -17,11 +29,11 @@ import type { Trava } from "./trava.js";
  *      e não é o das requisições. Uma varredura lenta não pode consumir as
  *      conexões que o agente em campo precisa para sincronizar a vistoria,
  *      que é a operação que não pode esperar.
- *   3. IDEMPOTÊNCIA NO BANCO. A função `varrer_prazos` (migração 016)
- *      reivindica a notificação ANTES de qualquer conversa com a Apple, e só
- *      devolve o que ela conseguiu reivindicar. Reiniciar o processo não
- *      remanda o que já foi mandado, porque quem lembra é a tabela e não a
- *      memória do processo.
+ *   3. IDEMPOTÊNCIA NO BANCO. As funções `varrer_prazos` (migração 016) e
+ *      `varrer_tarefas_novas` (migração 042) reivindicam a notificação ANTES
+ *      de qualquer conversa com a Apple, e só devolvem o que conseguiram
+ *      reivindicar. Reiniciar o processo não remanda o que já foi mandado,
+ *      porque quem lembra é a tabela e não a memória do processo.
  */
 
 export type ResumoDaVarredura = {
@@ -39,6 +51,11 @@ export type ResumoDaVarredura = {
   adiadasPorTempo: number;
 };
 
+/*
+  O que a rodada precisa de cada alvo, e nada mais. Protocolo e endereço não
+  entram aqui de propósito: a notificação não os leva (ver `mensagem.ts`), e o
+  que o processo não lê não tem como parar em log nem em corpo de push.
+*/
 type LinhaDeAlvo = {
   notificacao_id: string;
   organizacao_id: string;
@@ -46,11 +63,14 @@ type LinhaDeAlvo = {
   ficha: string;
   plataforma: Plataforma;
   ocorrencia_id: string;
-  protocolo: string;
-  endereco: string;
   severidade: string | null;
   prazo_em: string | Date | null;
 };
+
+type Alvo = LinhaDeAlvo & { tipo: TipoDeAviso };
+
+const COLUNAS_DO_ALVO =
+  "notificacao_id, organizacao_id, aparelho_id, ficha, plataforma, ocorrencia_id, severidade, prazo_em";
 
 export type DependenciasDoVarredor = {
   /** Pool próprio, separado do das requisições. */
@@ -109,7 +129,7 @@ const RETENCAO_PADRAO_DIAS = 90;
 export const RETENCAO_MINIMA_DIAS = 30;
 const TEMPO_LIMITE_PADRAO_DA_RODADA_MS = 4 * 60_000;
 
-export async function varrerPrazos(dep: DependenciasDoVarredor): Promise<ResumoDaVarredura> {
+export async function varrerAvisos(dep: DependenciasDoVarredor): Promise<ResumoDaVarredura> {
   const retencaoDias = dep.retencaoDias ?? RETENCAO_PADRAO_DIAS;
   if (retencaoDias < RETENCAO_MINIMA_DIAS) {
     throw new Error(
@@ -140,18 +160,31 @@ export async function varrerPrazos(dep: DependenciasDoVarredor): Promise<ResumoD
   }
 
   try {
-    const alvos = await dep.banco.semTenant(async (c) => {
-      const r = await c.query<LinhaDeAlvo>(
-        "SELECT * FROM varrer_prazos($1::interval, $2::interval, $3, $4, $5::interval)",
-        [
-          `${dep.janelaMinutos} minutes`,
-          `${dep.esperaMinutos ?? ESPERA_PADRAO_MINUTOS} minutes`,
-          dep.tentativasMaximas ?? TENTATIVAS_PADRAO,
-          dep.teto ?? TETO_PADRAO,
-          `${retencaoDias} days`,
-        ],
+    const espera = `${dep.esperaMinutos ?? ESPERA_PADRAO_MINUTOS} minutes`;
+    const tentativasMaximas = dep.tentativasMaximas ?? TENTATIVAS_PADRAO;
+    const teto = dep.teto ?? TETO_PADRAO;
+
+    /*
+      As duas reivindicações na MESMA transação, e a tarefa nova antes do
+      prazo. Uma transação só porque, se a segunda função estourar, a
+      reivindicação da primeira volta atrás em vez de ficar `enviando` sem
+      ninguém para enviar. O teto vale para cada função: no pior caso a rodada
+      tem o dobro do teto, e o teto de tempo abaixo continua mandando.
+    */
+    const alvos = await dep.banco.semTenant(async (c): Promise<Alvo[]> => {
+      const tarefas = await c.query<LinhaDeAlvo>(
+        `SELECT ${COLUNAS_DO_ALVO} FROM varrer_tarefas_novas($1::interval, $2, $3)`,
+        [espera, tentativasMaximas, teto],
       );
-      return r.rows;
+      const prazos = await c.query<LinhaDeAlvo>(
+        `SELECT ${COLUNAS_DO_ALVO}
+           FROM varrer_prazos($1::interval, $2::interval, $3, $4, $5::interval)`,
+        [`${dep.janelaMinutos} minutes`, espera, tentativasMaximas, teto, `${retencaoDias} days`],
+      );
+      return [
+        ...tarefas.rows.map((linha): Alvo => ({ ...linha, tipo: "tarefa_nova" })),
+        ...prazos.rows.map((linha): Alvo => ({ ...linha, tipo: "prazo_vencendo" })),
+      ];
     });
 
     resumo.reivindicadas = alvos.length;
@@ -171,7 +204,7 @@ export async function varrerPrazos(dep: DependenciasDoVarredor): Promise<ResumoD
         resumo.adiadasPorTempo = alvos.length - (resumo.entregues + resumo.falhas);
         registrar(
           { reivindicadas: alvos.length, adiadas: resumo.adiadasPorTempo },
-          "varredura de prazo interrompida pelo teto de tempo da rodada",
+          "varredura de avisos interrompida pelo teto de tempo da rodada",
         );
         break;
       }
@@ -185,7 +218,7 @@ export async function varrerPrazos(dep: DependenciasDoVarredor): Promise<ResumoD
         não pode virar notificação que ninguém recebe.
       */
       try {
-        const notificacao = montarAviso("prazo_vencendo", {
+        const notificacao = montarAviso(alvo.tipo, {
           organizacaoId: alvo.organizacao_id,
           ocorrenciaId: alvo.ocorrencia_id,
           severidade: alvo.severidade,
@@ -241,9 +274,10 @@ export async function varrerPrazos(dep: DependenciasDoVarredor): Promise<ResumoD
         registrar(
           {
             notificacao: alvo.notificacao_id,
+            tipo: alvo.tipo,
             erro: erro instanceof Error ? erro.message : String(erro),
           },
-          "falha ao tratar uma notificacao de prazo",
+          "falha ao tratar uma notificacao de push",
         );
       }
     }
@@ -286,7 +320,7 @@ export function agendarVarredura(
     dois dependem de o laço continuar rodando. Este aqui cobre a hipótese que
     eles não cobrem, e que é a que prende a trava de verdade: uma promessa que
     nunca resolve nem rejeita, por um `await` pendurado em qualquer biblioteca
-    que não respeite sinal de aborto. Ali o `finally` do `varrerPrazos` nunca
+    que não respeite sinal de aborto. Ali o `finally` do `varrerAvisos` nunca
     executa, `dep.trava.soltar()` nunca é chamado, e a trava de aviso do
     Postgres fica presa à conexão exclusiva da trava até o processo morrer. A
     consequência é a pior possível para um sistema de emergência: a outra
@@ -316,7 +350,7 @@ export function agendarVarredura(
       if (!rodadaViva) return;
       registrar(
         { tetoMs: tetoDaRodada * 2 },
-        "varredura de prazo nao terminou no teto: a trava foi solta por fora",
+        "varredura de avisos nao terminou no teto: a trava foi solta por fora",
       );
       void dep.trava.soltar().catch(() => undefined);
       // `emAndamento` volta a `false` aqui de propósito: a rodada presa não
@@ -325,13 +359,13 @@ export function agendarVarredura(
     }, tetoDaRodada * 2);
     if (typeof vigia.unref === "function") vigia.unref();
 
-    void varrerPrazos(dep)
+    void varrerAvisos(dep)
       .catch((erro: unknown) => {
         // A varredura inteira falhando não pode derrubar a API. Ela volta no
         // próximo tique.
         registrar(
           { erro: erro instanceof Error ? erro.message : String(erro) },
-          "varredura de prazo falhou inteira",
+          "varredura de avisos falhou inteira",
         );
       })
       .finally(() => {

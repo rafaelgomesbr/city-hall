@@ -11,6 +11,7 @@ import { Campo } from "../componentes/Campo";
 import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
 import { IconeMais } from "../componentes/Icones";
 import { FORMULARIO_VAZIO, conferirMotivo, conferirOrgao } from "./orgaos-regras";
+import { useTitulo } from "../seo/titulo";
 
 /**
  * O catálogo de órgãos de destino do município.
@@ -37,6 +38,7 @@ function mensagemDoErro(erro: unknown): string {
 }
 
 export function Orgaos() {
+  useTitulo("Órgãos de destino");
   const sessao = useSessaoObrigatoria();
   const [orgaos, setOrgaos] = useState<LinhaOrgao[] | null>(null);
   const [incluirInativos, setIncluirInativos] = useState(false);

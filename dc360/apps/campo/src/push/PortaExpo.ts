@@ -1,6 +1,7 @@
 import { Linking, Platform } from "react-native";
 import * as Notificacoes from "expo-notifications";
 
+import type { AvisoLocal } from "./aviso-local";
 import { type DefinicaoDeCanal } from "./canais";
 import type { EstadoDaPermissao } from "./permissao";
 import type { Apresentacao, AvisoBruto, PortaDePush } from "./porta";
@@ -60,21 +61,25 @@ function traduzirPermissao(r: Notificacoes.NotificationPermissionsStatus): Estad
   return "negada";
 }
 
-const IMPORTANCIA: Record<DefinicaoDeCanal["peso"], Notificacoes.AndroidImportance> = {
+const IMPORTANCIA: Record<DefinicaoDeCanal["importancia"], Notificacoes.AndroidImportance> = {
   /*
-    HIGH e não MAX: HIGH toca, vibra e mostra o aviso por cima da tela, que é o
-    comportamento pedido. MAX acrescenta a mesma insistência de uma chamada
-    telefônica, e ela é reservada, na régua do próprio Android, ao que exige
-    resposta imediata da pessoa. Um prazo de vistoria não é isso.
+    MAX para o despacho, e só para ele: é a insistência de uma chamada
+    telefônica, que a régua do próprio Android reserva ao que exige resposta
+    imediata da pessoa. Uma equipe sendo mandada a campo é isso. O prazo não é.
   */
-  urgente: Notificacoes.AndroidImportance.HIGH,
+  maxima: Notificacoes.AndroidImportance.MAX,
+  /*
+    HIGH para o prazo urgente: toca, vibra e mostra o aviso por cima da tela,
+    sem a insistência de chamada.
+  */
+  alta: Notificacoes.AndroidImportance.HIGH,
   /*
     LOW e não DEFAULT. DEFAULT toca. LOW é o degrau que entrega a notificação na
     aba, sem som e sem interromper, que é exatamente o que "canal comum" quer
     dizer. Escrever DEFAULT aqui faria a severidade baixa tocar de madrugada, que
-    é o defeito inteiro que a separação em dois canais existe para evitar.
+    é o defeito inteiro que a separação em canais existe para evitar.
   */
-  comum: Notificacoes.AndroidImportance.LOW,
+  baixa: Notificacoes.AndroidImportance.LOW,
 };
 
 export const portaExpo: PortaDePush = {
@@ -115,17 +120,24 @@ export const portaExpo: PortaDePush = {
   async prepararCanais(canais: readonly DefinicaoDeCanal[]): Promise<void> {
     if (Platform.OS !== "android") return;
     for (const canal of canais) {
-      const urgente = canal.peso === "urgente";
       await Notificacoes.setNotificationChannelAsync(canal.id, {
         name: canal.nome,
         description: canal.descricao,
-        importance: IMPORTANCIA[canal.peso],
-        // `null` é silêncio de verdade no Android; `"default"` é o som do
-        // sistema. Os dois canais precisam divergir aqui, senão a separação
-        // vira só dois nomes na tela de ajustes.
-        sound: urgente ? "default" : null,
-        enableVibrate: urgente,
-        vibrationPattern: urgente ? [0, 250, 250, 250] : null,
+        importance: IMPORTANCIA[canal.importancia],
+        /*
+          `null` é silêncio de verdade no Android; `"default"` é o som do
+          sistema; um nome de arquivo é resolvido em `res/raw` pelo próprio
+          `expo-notifications` (ele tira a extensão). Quem decide é
+          `canais.ts`; aqui só se traduz.
+        */
+        sound: canal.som,
+        enableVibrate: canal.vibracao !== null,
+        vibrationPattern: canal.vibracao ? [...canal.vibracao] : null,
+        /*
+          `bypassDnd` NÃO é passado, e a ausência é decisão: furar o "Não
+          perturbe" é escolha da pessoa, nos ajustes do canal, e não do
+          aplicativo. Ver `canais.ts`.
+        */
         /*
           A vitrine já é genérica (ver `push/mensagem.ts` na API), então mostrar
           na tela bloqueada não entrega endereço de família nenhuma. Deixar
@@ -171,6 +183,38 @@ export const portaExpo: PortaDePush = {
         };
       },
     });
+  },
+
+  async avisarLocalmente(aviso: AvisoLocal): Promise<void> {
+    await Notificacoes.scheduleNotificationAsync({
+      content: {
+        title: aviso.titulo,
+        body: aviso.corpo,
+        data: aviso.dados,
+        /*
+          No iOS o som é o arquivo do bundle (o mesmo que o servidor pede no
+          `aps`). No Android 8 em diante este campo é ignorado: quem decide o
+          som é o canal, e o canal vai no gatilho abaixo. `vibrate` e
+          `priority` são o mesmo caso: valem só em Android anterior ao 8, onde
+          não existe canal, e no resto é o canal que manda.
+        */
+        sound: aviso.som,
+        vibrate: [...aviso.vibracao],
+        priority: Notificacoes.AndroidNotificationPriority.MAX,
+        /*
+          Sensível ao tempo, como o push de despacho. Só tem efeito com o
+          direito `com.apple.developer.usernotifications.time-sensitive` no
+          binário (ver `app.config.ts`); sem ele o iOS rebaixa para `active`.
+        */
+        interruptionLevel: "timeSensitive",
+      },
+      /*
+        Gatilho nulo é "agora". No Android o gatilho carrega o canal, porque é
+        assim que o `expo-notifications` escolhe em qual canal a notificação
+        local entra; no iOS não existe canal e o objeto seria ignorado.
+      */
+      trigger: Platform.OS === "android" ? { channelId: aviso.canal } : null,
+    }).catch(() => undefined);
   },
 
   aoTocar(ouvinte: (aviso: AvisoBruto) => void): () => void {

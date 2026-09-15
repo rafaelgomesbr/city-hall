@@ -28,6 +28,7 @@ Estado em 09/09/2026, com o produto no piloto de Florianópolis.
 | **Google (Maps SDK)** | Mapa dentro do aplicativo de campo | Coordenada do imóvel da tarefa, a região que o agente está olhando, e a posição do próprio agente enquanto o mapa está aberto | Estados Unidos |
 | **Google (Routes API)** | O caminho por ruas e o tempo de carro até a tarefa, quando o agente toca em "Ver o caminho" | A posição do agente (arredondada a três casas decimais) e a coordenada do imóvel, uma vez por toque, enviadas pelo servidor do município. Ver a seção 2.2 | Estados Unidos |
 | **Apple (Mapas) e Google (Maps), por entrega** | O botão "Navegar até lá" abre a rota no aplicativo de mapas do próprio aparelho | Coordenada do imóvel, uma vez, no toque do agente. Ver a seção 2.4 | Estados Unidos |
+| **Google (encurtador `maps.app.goo.gl` e Maps), por link** | Descobrir o ponto de um link curto do Google Maps, quando o coordenador toca em "Descobrir o ponto" | O link, uma vez por toque, enviado pelo servidor do município; volta a coordenada. O servidor não guarda o link. Ver a seção 2.2 | Estados Unidos |
 
 ### Ainda não contratados, e que entram nesta lista quando entrarem
 
@@ -71,7 +72,9 @@ o resto.
 do painel. Desde 14/09/2026 o aplicativo de campo também desenha mapa, e ele é
 um segundo caminho de coordenada saindo do país, com dado que o painel não
 manda. Os dois estão descritos abaixo, separados, porque o que sai de cada um é
-diferente.
+diferente. Depois deles vêm as duas saídas que só acontecem por um toque: o
+caminho por ruas, pedido pelo agente, e o link encurtado, aberto a pedido do
+coordenador.
 
 #### No painel do coordenador
 
@@ -152,6 +155,63 @@ do produto autorizado a pedir caminho ao Google. Transformar endereço em ponto
 mandaria o endereço da família junto, e transformar ponto em endereço traria
 de volta um endereço que o Google passou a conhecer. Nenhuma das duas resolve
 problema deste produto: a coordenada já está gravada.
+
+#### O link encurtado, a pedido do coordenador
+
+Desde 15/09/2026 existe uma quinta saída, e ela é a única em que o que sai
+**não é coordenada**: é um link. O solicitante manda pelo WhatsApp um link
+curto do Google Maps (`maps.app.goo.gl/...`), que não carrega a coordenada
+dentro dele; ela só aparece depois que alguém segue o redirecionamento. O
+painel não segue link nenhum a partir do navegador do coordenador (a
+requisição sairia da rede interna da prefeitura, com os cookies e o alcance de
+rede dela). Quem segue é o servidor do município, e só quando o coordenador
+aperta "Descobrir o ponto" no campo de localização, na abertura da ocorrência
+ou na correção da coordenada. Sem o toque, nada sai.
+
+O que sai, e por onde:
+
+1. **O link, e só ele.** Vai do painel ao servidor do município (`POST
+   /mapa/resolver-link`, na API do produto), e do servidor ao encurtador do
+   Google e ao Google Maps, que são os únicos destinos que o servidor aceita
+   seguir (`maps.app.goo.gl` e `goo.gl` como encurtador; `www.google.com`,
+   `google.com`, `maps.google.com`, `www.google.com.br` e `google.com.br`
+   como destino). Nem endereço, nem protocolo, nem nome, nem identificador de
+   ocorrência: o servidor pede os cabeçalhos da página e derruba a conexão
+   antes do corpo.
+2. **O que volta** é a coordenada lida da URL final, e a própria URL final sem
+   os parâmetros de rastreamento, para o coordenador conferir no mapa o que o
+   servidor viu. Se a URL final não tiver coordenada (o Google às vezes
+   redireciona para uma busca por nome), a resposta diz que o link não aponta
+   para um ponto: nome não é ponto, e transformar um no outro seria
+   geocodificação, que este produto não faz.
+3. **O que o Google fica sabendo** é que o servidor daquele município abriu
+   aquele link naquela hora, ou seja, que aquele ponto foi consultado por
+   aquela prefeitura. É a mesma natureza do que o mapa já conta ao desenhar,
+   e por isso a saída mora nesta seção. O link não leva chave nenhuma: é uma
+   requisição comum, sem `MAPS_KEY` e sem `ROUTES_KEY`.
+4. **O servidor não guarda o link.** Nem no banco, nem no log (o teste lê o
+   log para provar que nem o link nem a coordenada aparecem nele), nem em
+   memória: cada toque é uma consulta, e a coordenada que volta só entra no
+   banco se a ocorrência for gravada com ela, pelo caminho normal da abertura
+   ou da correção.
+
+**As consequências assumidas desta quinta saída:**
+
+- Ela é a única saída em que uma URL vinda de fora entra no servidor e o
+  servidor sai para buscá-la, o que é a forma de uma requisição forjada do
+  lado servidor. As defesas estão em `apps/api/src/rotas/mapa.ts` e cada uma
+  tem teste em `apps/api/test/resolver-link.test.ts`: lista fechada de
+  encurtador, endereço conferido depois de resolver o nome e a cada salto
+  (privado, retorno local, link-local e não roteável são recusados), conexão
+  feita no endereço conferido e não numa segunda consulta ao DNS, quatro
+  saltos, cinco segundos, nenhum corpo lido, e destino final só no Google
+  Maps.
+- Município que não quer o servidor falando com o Google nem por link tem o
+  caminho de sempre: o coordenador abre o link no próprio navegador e cola o
+  endereço da barra, que o painel lê sem sair para a rede. O botão é opcional
+  por construção; o campo continua aceitando o link longo e a coordenada.
+- O servidor limita a trinta pedidos por minuto por pessoa, para um cliente
+  com defeito não virar um laço de consultas ao Google.
 
 #### As consequências assumidas, e elas valem para os dois
 

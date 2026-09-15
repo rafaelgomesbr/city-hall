@@ -4,7 +4,7 @@ import { montarConfiguracaoDoPool } from "../src/banco/postgres.js";
 import type { EnvioDePush, DesfechoDoEnvio, Alvo } from "../src/push/envio.js";
 import { textoVisivel, type Notificacao } from "../src/push/mensagem.js";
 import { travaDeProcesso, type Trava } from "../src/push/trava.js";
-import { RETENCAO_MINIMA_DIAS, varrerPrazos } from "../src/push/varredor.js";
+import { RETENCAO_MINIMA_DIAS, varrerAvisos } from "../src/push/varredor.js";
 
 /**
  * O varredor de prazo, que é a metade do push que roda sozinha.
@@ -47,7 +47,7 @@ function envioEspiao(
 }
 
 function varrer(enviar: EnvioDePush, trava: Trava = travaDeProcesso(), janelaMinutos = 60) {
-  return varrerPrazos({ banco: mem.banco, trava, enviar, janelaMinutos });
+  return varrerAvisos({ banco: mem.banco, trava, enviar, janelaMinutos });
 }
 
 async function registrarAparelho(
@@ -375,7 +375,7 @@ describe("A trava impede duas máquinas de varrerem o mesmo prazo", () => {
     };
 
     await expect(
-      varrerPrazos({
+      varrerAvisos({
         banco: bancoQuebrado as never,
         trava,
         enviar: envioEspiao().enviar,
@@ -496,7 +496,7 @@ describe("Retenção e conexão", () => {
     await mem.bruto.query(
       "UPDATE notificacoes_enviadas SET enviada_em = now() - interval '120 days'",
     );
-    await varrerPrazos({
+    await varrerAvisos({
       banco: mem.banco,
       trava: travaDeProcesso(),
       enviar: envioEspiao().enviar,
@@ -542,7 +542,7 @@ describe("o piso da retenção, que existe porque a policy do banco tem um", () 
   */
   it("recusa retenção menor que o piso, em vez de apagar menos em silêncio", async () => {
     await expect(
-      varrerPrazos({
+      varrerAvisos({
         banco: mem.banco, trava: travaDeProcesso(), enviar: envioEspiao().enviar,
         janelaMinutos: 60, retencaoDias: RETENCAO_MINIMA_DIAS - 1,
       }),
@@ -551,7 +551,7 @@ describe("o piso da retenção, que existe porque a policy do banco tem um", () 
 
   it("a recusa nomeia a migração, para quem lê saber onde se conserta", async () => {
     await expect(
-      varrerPrazos({
+      varrerAvisos({
         banco: mem.banco, trava: travaDeProcesso(), enviar: envioEspiao().enviar,
         janelaMinutos: 60, retencaoDias: 7,
       }),
@@ -560,7 +560,7 @@ describe("o piso da retenção, que existe porque a policy do banco tem um", () 
 
   /* O piso é piso, e não faixa: exatamente o valor dele passa. */
   it("exatamente o piso é aceito", async () => {
-    const r = await varrerPrazos({
+    const r = await varrerAvisos({
       banco: mem.banco, trava: travaDeProcesso(), enviar: envioEspiao().enviar,
       janelaMinutos: 60, retencaoDias: RETENCAO_MINIMA_DIAS,
     });

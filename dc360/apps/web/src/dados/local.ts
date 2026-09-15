@@ -5,6 +5,9 @@ import {
   exigirPermissao,
   exigirPostoParaGerir,
   ROTULO_DESFECHO_DE_SAIDA,
+  ROTULO_PAPEL,
+  ROTULO_STATUS,
+  ROTULO_TIPO_COBRADE,
   estadoTerminal,
   precisaReclassificar,
   transicaoPermitida,
@@ -31,8 +34,10 @@ import type {
   LinhaOrgao, OficioDetalhado, RespostaDeAvisos, ResultadoDeEnvio,
   AtivacaoSegundoFator, ResultadoDeEntrada, SegundoFatorLigado, SituacaoSegundoFator,
   ConfiguracaoDoPainel, DevolucaoDaOcorrencia, DevolucaoPendente,
-  QuemEstaEmCampo, SaidaEmCampo,
+  QuemEstaEmCampo, SaidaEmCampo, RespostaDeBusca, PontoDoLinkDeMapa,
 } from "./tipos";
+import { classificarRegistros, TETO_POR_GRUPO, type RegistroPesquisavel } from "../busca/registros";
+import { normalizar } from "../busca/pontuador";
 
 /**
  * Camada de acesso a dado. Toda função aqui recebe a sessão e nunca a
@@ -1924,4 +1929,106 @@ export async function encerrarSaidaEmCampo(
         > new Date(saida.retorno_previsto_em).getTime(),
     });
   });
+}
+
+/* ==========================================================================
+   Busca global
+   ========================================================================== */
+
+/**
+ * A mesma caixa do topo, respondida pelo banco da própria aba.
+ *
+ * O servidor tem a rota `GET /busca?q=` com tolerância a erro própria. Aqui
+ * não há servidor, então os registros do município saem do banco (sob o mesmo
+ * RLS de sempre: `comoApp` põe a organização no `SET LOCAL`) e passam pelo
+ * classificador de `src/busca/registros.ts`, que devolve a forma exata do
+ * contrato. A tela não sabe qual dos dois respondeu, e é isso que o portão
+ * de paridade cobra.
+ *
+ * `_sinal` existe para a assinatura ser a mesma da ponta HTTP. O banco da aba
+ * responde em milissegundos e não tem o que cancelar.
+ */
+export async function buscar(
+  s: Sessao, consulta: string, _sinal?: AbortSignal,
+): Promise<RespostaDeBusca> {
+  const q = consulta.trim().slice(0, 100);
+  if (normalizar(q).length < 2) return { consulta: normalizar(q), teto: TETO_POR_GRUPO, grupos: [] };
+
+  return comoApp(s.organizacaoId, async (db) => {
+    const ocorrencias = await db.query<{
+      id: string; protocolo: string; endereco: string; solicitante_nome: string;
+      tipo: TipoDeEntrada; status: StatusOcorrencia; severidade: LinhaOcorrencia["severidade"];
+    }>(
+      `SELECT o.id, o.protocolo, o.endereco, o.solicitante_nome, o.tipo, o.status, o.severidade
+         FROM ocorrencias o
+        WHERE o.status <> 'rascunho'
+        ORDER BY o.criado_em DESC
+        LIMIT 500`,
+    );
+    const usuarios = await db.query<{
+      id: string; nome: string; matricula: string; email: string; papel: Papel; ativo: boolean;
+    }>("SELECT u.id, u.nome, u.matricula, u.email, u.papel, u.ativo FROM usuarios u ORDER BY u.nome");
+    const equipes = await db.query<{
+      id: string; nome: string; especialidade: string | null; ativa: boolean; pessoas: number;
+    }>(
+      `SELECT e.id, e.nome, e.especialidade, e.ativa,
+              (SELECT count(*) FROM usuarios u WHERE u.equipe_id = e.id AND u.ativo)::int AS pessoas
+         FROM equipes e ORDER BY e.nome`,
+    );
+    const orgaos = await db.query<{ id: string; nome: string; sigla: string | null; ativo: boolean }>(
+      "SELECT o.id, o.nome, o.sigla, o.ativo FROM orgaos o ORDER BY o.nome",
+    );
+
+    const registros: RegistroPesquisavel[] = [
+      ...ocorrencias.rows.map((o): RegistroPesquisavel => ({
+        tipo: "ocorrencia", id: o.id, titulo: o.endereco,
+        detalhe: `${ROTULO_TIPO_COBRADE[o.tipo]}, ${ROTULO_STATUS[o.status].toLowerCase()}`,
+        protocolo: o.protocolo, severidade: o.severidade, status: o.status,
+        termos: [o.protocolo, o.endereco, o.solicitante_nome, ROTULO_TIPO_COBRADE[o.tipo], ROTULO_STATUS[o.status]],
+      })),
+      ...usuarios.rows.map((u): RegistroPesquisavel => ({
+        tipo: "usuario", id: u.id, titulo: u.nome,
+        detalhe: `${ROTULO_PAPEL[u.papel]}, matrícula ${u.matricula}${u.ativo ? "" : ", desativado"}`,
+        termos: [u.nome, u.matricula, u.email, ROTULO_PAPEL[u.papel]],
+      })),
+      ...equipes.rows.map((e): RegistroPesquisavel => ({
+        tipo: "equipe", id: e.id, titulo: e.nome,
+        detalhe: [
+          e.especialidade,
+          `${e.pessoas} ${e.pessoas === 1 ? "pessoa" : "pessoas"}`,
+          e.ativa ? null : "desativada",
+        ].filter(Boolean).join(", "),
+        termos: [e.nome, e.especialidade ?? ""],
+      })),
+      ...orgaos.rows.map((o): RegistroPesquisavel => ({
+        tipo: "orgao", id: o.id, titulo: o.nome,
+        detalhe: [o.sigla ?? "Sem sigla", o.ativo ? null : "desativado"].filter(Boolean).join(", "),
+        termos: [o.nome, o.sigla ?? ""],
+      })),
+    ];
+    return classificarRegistros(q, registros);
+  });
+}
+
+/* ==========================================================================
+   Link encurtado do Google Maps
+   ========================================================================== */
+
+/**
+ * O modo de demonstração NÃO abre link, e diz isso.
+ *
+ * Quem abre o link encurtado no modo real é o servidor da prefeitura, com as
+ * defesas de `apps/api/src/rotas/mapa.ts`. Aqui não há servidor: o banco mora
+ * na própria aba. Abrir o link a partir do navegador seria exatamente o que o
+ * painel se recusa a fazer (a requisição sairia da rede da prefeitura, com os
+ * cookies dela), e fingir uma coordenada seria pior, porque a demonstração
+ * mostraria um recurso diferente do que a prefeitura vai receber. O degrau
+ * declara o mesmo parâmetro da ponta HTTP, pelo portão de paridade.
+ */
+export async function resolverLinkDeMapa(_url: string): Promise<PontoDoLinkDeMapa> {
+  throw new Error(
+    "O modo de demonstração não abre link nenhum: não há servidor da prefeitura "
+    + "para abrir. Abra o link no seu navegador e cole aqui o endereço que "
+    + "aparecer na barra, ou a coordenada que a página mostrar.",
+  );
 }

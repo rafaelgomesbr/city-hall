@@ -1,4 +1,7 @@
-import { ROTULO_SEVERIDADE, SEVERIDADES, type Severidade } from "@dc360/shared";
+import {
+  ROTULO_SEVERIDADE, SEVERIDADES, glifoDeSeveridade,
+  type GlifoDeSeveridade, type Severidade, type SilhuetaDoGlifo,
+} from "@dc360/shared";
 
 import type { Tema } from "../tokens";
 
@@ -21,8 +24,12 @@ import type { Tema } from "../tokens";
  *    já é medida par a par no portão de contraste e é a única paleta que o
  *    produto autoriza para gravidade (nunca a cor de marca);
  * 2. **Forma**, e é ela que faz o pino funcionar sob sol forte e para quem não
- *    separa âmbar de vermelho: triângulo, losango, quadrado, círculo e anel são
- *    distinguíveis de relance, em preto e branco, com a tela molhada;
+ *    separa âmbar de vermelho: círculo, quadrado, triângulo, octógono e círculo
+ *    tracejado são distinguíveis de relance, em preto e branco, com a tela
+ *    molhada. A geometria vem de `@dc360/shared` (`glifos-de-severidade.ts`),
+ *    e é a MESMA do selo e do painel: até 15/09/2026 este arquivo tinha as
+ *    suas próprias formas (triângulo, losango, quadrado, círculo, anel), numa
+ *    ordem que não era a do painel, onde crítica era círculo;
  * 3. **Palavra**, em dois lugares: na legenda que fica VISÍVEL na tela ao lado
  *    do mapa, e no `SeloSeveridade` que o toque no pino abre, com ícone e nome
  *    por extenso.
@@ -44,15 +51,17 @@ import type { Tema } from "../tokens";
  */
 
 /**
- * A forma de cada criticidade.
+ * A forma de cada criticidade: o nome da silhueta do glifo compartilhado.
  *
- * Cinco formas para cinco estados, e a escala é lida também pela SILHUETA: o
- * triângulo aponta (é o sinal de alerta que todo mundo já reconhece), o losango
- * é a mesma figura girada e mais fechada, o quadrado é estável, o círculo é
- * neutro e o anel é o vazio de quem ainda não foi classificado. De relance, sem
- * cor, elas não se confundem.
+ * Cinco formas para cinco estados, e a escala é lida também pela SILHUETA, que
+ * sobe: o círculo com ponto é calmo, o quadrado com traço é o meio da escala,
+ * o triângulo com exclamação é a placa de alerta que todo mundo reconhece, o
+ * octógono com exclamação é a placa de pare, e o círculo tracejado é o vazio
+ * de quem ainda não foi classificado. De relance, sem cor, elas não se
+ * confundem. O argumento de cada forma está escrito onde ela mora, em
+ * `@dc360/shared`.
  */
-export type FormaDaCriticidade = "triangulo" | "losango" | "quadrado" | "circulo" | "anel";
+export type FormaDaCriticidade = SilhuetaDoGlifo;
 
 export type AparenciaDaCriticidade = {
   /** A cor de preenchimento, da paleta de severidade do tema. */
@@ -60,6 +69,8 @@ export type AparenciaDaCriticidade = {
   /** A tinta que vai POR CIMA do fundo, com contraste já medido no portão. */
   tinta: string;
   forma: FormaDaCriticidade;
+  /** O glifo compartilhado: contorno, marca e se preenche. É ele que se desenha. */
+  glifo: GlifoDeSeveridade;
   /** A palavra, que é o canal que não depende de enxergar cor nem forma. */
   palavra: string;
 };
@@ -81,17 +92,11 @@ export const CRITICIDADES_DA_LEGENDA: readonly (Severidade | null)[] = [
   null,
 ];
 
-const FORMA: Record<Severidade, FormaDaCriticidade> = {
-  critica: "triangulo",
-  alta: "losango",
-  media: "quadrado",
-  baixa: "circulo",
-};
-
 export function aparenciaDaCriticidade(
   tema: Tema,
   severidade: Severidade | null,
 ): AparenciaDaCriticidade {
+  const glifo = glifoDeSeveridade(severidade);
   if (!severidade) {
     /*
       Sem classificação é um ESTADO, e não a ausência de um: a ocorrência
@@ -102,7 +107,8 @@ export function aparenciaDaCriticidade(
     return {
       fundo: tema.superficie2,
       tinta: tema.textoDiscreto,
-      forma: "anel",
+      forma: glifo.silhueta,
+      glifo,
       palavra: "Sem classificação",
     };
   }
@@ -114,7 +120,8 @@ export function aparenciaDaCriticidade(
   };
   return {
     ...paleta[severidade],
-    forma: FORMA[severidade],
+    forma: glifo.silhueta,
+    glifo,
     palavra: ROTULO_SEVERIDADE[severidade],
   };
 }

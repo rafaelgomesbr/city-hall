@@ -11,10 +11,15 @@
  * endereço da barra do Google Maps que ela abriu para achar a rua. Este módulo
  * lê esses formatos.
  *
- * TUDO LOCAL, sem uma única chamada de rede. Duas razões, e a segunda é a que
- * decide: resolver link no servidor seria dependência de rede no meio de uma
- * ligação, e seria o servidor da prefeitura contando ao Google onde mora uma
- * família em situação de risco.
+ * TUDO LOCAL, sem uma única chamada de rede, e o teste deste módulo é um
+ * portão contra isso. O link ENCURTADO (`maps.app.goo.gl`), que não carrega a
+ * coordenada dentro dele, é a única exceção do produto, e ela não mora aqui:
+ * quem o abre é o servidor do município, em `apps/api/src/rotas/mapa.ts`, a
+ * pedido explícito do coordenador (um botão, nunca automático), porque abrir
+ * o link é o servidor da prefeitura contando ao Google que aquele ponto foi
+ * consultado (`docs/SUBPROCESSADORES.md`, seção 2.2). O servidor lê a URL
+ * final com ESTE leitor, e é por isso que os formatos abaixo são a lista
+ * completa para os dois lados.
  */
 
 export type Coordenada = { lat: number; lng: number };
@@ -55,13 +60,16 @@ const ENCURTADORES = [
   Os formatos que aparecem de verdade, em ordem de frequência:
 
   - `?q=lat,lng` e `&query=lat,lng`: o que o compartilhamento do Google gera.
+  - `ll=`, `daddr=` e `destination=`: o centro do mapa e o destino de um link
+    de "como chegar", que é o que o encurtador devolve quando o solicitante
+    compartilhou a rota em vez do lugar.
   - `/@lat,lng,17z`: o que está na barra de endereço quando alguém navega.
   - `!3dlat!4dlng`: o formato interno que aparece em link de lugar.
   - `geo:lat,lng`: o que o Android gera ao compartilhar localização.
   - `lat, lng` cru: quem já sabe a coordenada e cola direto.
 */
 const PADROES: RegExp[] = [
-  /[?&](?:q|query|ll|sll|daddr)=(-?\d{1,3}\.\d+)[,%2C\s]+(-?\d{1,3}\.\d+)/i,
+  /[?&](?:q|query|ll|sll|daddr|destination)=(-?\d{1,3}\.\d+)[,%2C\s]+(-?\d{1,3}\.\d+)/i,
   /\/@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/,
   /!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)/,
   /^geo:(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/i,

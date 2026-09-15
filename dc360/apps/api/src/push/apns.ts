@@ -1,7 +1,7 @@
 import { connect, constants, type ClientHttp2Session } from "node:http2";
 import { SignJWT, importPKCS8 } from "jose";
 import type { DesfechoDoEnvio, ProvedorDePush } from "./envio.js";
-import type { Notificacao } from "./mensagem.js";
+import { toqueDoAviso, type Notificacao } from "./mensagem.js";
 
 /**
  * Envio direto para a APNs, a notificação da Apple.
@@ -132,31 +132,33 @@ export function criarProvedorApns(
         aplicativo lê. Ver `mensagem.ts` para por que a separação existe.
       */
       /*
-        SOM SÓ PARA ALTA E CRÍTICA, e isso não é conforto.
+        DESPACHO TOCA SEMPRE, COM O SOM DE DESPACHO; PRAZO TOCA POR SEVERIDADE.
 
-        Antes o som saía em toda notificação. Prazo de severidade baixa tocando
-        às três da manhã é como se ensina um agente a silenciar o aplicativo
-        inteiro nos ajustes do sistema, e a partir daí o aviso de severidade
-        crítica também não toca. O silêncio de uma notificação que não importa
-        custa atraso; o silêncio de todas custa a evacuação.
-
-        Ausência de severidade cai no silencioso de propósito: errar para o lado
-        do som é o erro que não tem volta.
+        A regra mora em `toqueDoAviso` (`mensagem.ts`), junto com o porquê, e
+        é a mesma que o FCM aplica. Aqui só se traduz para o vocabulário da
+        Apple: `aps.sound` é o nome do arquivo no bundle do aplicativo
+        (declarado em `apps/campo/app.config.ts`), `"default"` é o som do
+        sistema, e a ausência da chave é silêncio.
       */
-      const urgente = notificacao.dados.severidade === "alta"
-        || notificacao.dados.severidade === "critica";
+      const toque = toqueDoAviso(notificacao);
 
       const corpo = JSON.stringify({
         aps: {
           alert: { title: notificacao.titulo, body: notificacao.corpo },
-          ...(urgente ? { sound: "default" } : {}),
+          ...(toque.som ? { sound: toque.som } : {}),
           /*
             `interruption-level` é o que faz a notificação furar o Foco e o Não
-            Perturbe do iOS. `time-sensitive` para o que é urgente, e o padrão
-            `active` para o resto. Sem isso, o agente com Foco ligado no plantão
-            noturno não vê o aviso de prazo crítico.
+            Perturbe do iOS. `time-sensitive` para o que é urgente (todo
+            despacho, e o prazo alto ou crítico), e o padrão `active` para o
+            resto. Sem isso, o agente com Foco ligado no plantão noturno não vê
+            o aviso.
+
+            `time-sensitive` só vale com o direito
+            `com.apple.developer.usernotifications.time-sensitive` no binário
+            (`apps/campo/app.config.ts`, `ios.entitlements`). Sem o direito a
+            Apple entrega e o iOS rebaixa para `active` em silêncio.
           */
-          "interruption-level": urgente ? "time-sensitive" : "active",
+          "interruption-level": toque.urgente ? "time-sensitive" : "active",
         },
         ...notificacao.dados,
       });

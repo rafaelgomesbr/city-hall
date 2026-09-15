@@ -8,6 +8,7 @@ import {
 import { useSessaoObrigatoria } from "../estado/sessao";
 import { Aviso, Carregando, Cartao, Vazio, formatarDataHora } from "../componentes/comuns";
 import { IconeDocumento, IconeEvento } from "../componentes/Icones";
+import { useTitulo } from "../seo/titulo";
 
 /**
  * Prestação de contas.
@@ -24,6 +25,7 @@ import { IconeDocumento, IconeEvento } from "../componentes/Icones";
 const POR_PAGINA = 25;
 
 export function Auditoria() {
+  useTitulo("Auditoria");
   const sessao = useSessaoObrigatoria();
   const [trilha, setTrilha] = useState<LinhaTrilha[] | null>(null);
   const [total, setTotal] = useState(0);

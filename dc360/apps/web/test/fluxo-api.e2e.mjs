@@ -155,7 +155,7 @@ ok("a senha nao fica guardada em lugar nenhum", !tudo.includes("defesa-civil-202
 ok("nem o hash da senha chega ao navegador", !tudo.includes("scrypt$"));
 
 console.log("\n== 4. Isolamento imposto pelo servidor ==");
-await page.getByPlaceholder("Buscar protocolo, endereço ou solicitante").fill("000112");
+await page.getByPlaceholder("Buscar registro ou função").fill("000112");
 await page.keyboard.press("Enter");
 await page.waitForURL(/busca=000112/);
 await page.waitForTimeout(1200);

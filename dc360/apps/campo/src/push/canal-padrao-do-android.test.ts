@@ -1,4 +1,4 @@
-import { CANAL_COMUM, CANAL_URGENCIA } from "./canais";
+import { CANAL_COMUM, CANAL_URGENCIA, SOM_DE_DESPACHO } from "./canais";
 
 /**
  * O canal padrão declarado para as lojas precisa ser um canal que existe.
@@ -66,4 +66,71 @@ it("deixa o ambiente do iOS ser decidido pelo perfil do build", () => {
   expect(opcoesDoPluginDeNotificacao()["mode"]).toBe(
     process.env["EAS_BUILD_PROFILE"] === "producao" ? "production" : "development",
   );
+});
+
+/* ========================================================================
+   O som de despacho, declarado às duas lojas
+   ======================================================================== */
+
+/**
+ * O `ios.entitlements` resolvido, pela mesma leitura de `app.config.ts`.
+ *
+ * Só o que está escrito no arquivo: o plugin do `expo-notifications` acrescenta
+ * `aps-environment` depois, no `prebuild`, e isso é conferido por
+ * `scripts/entitlements-do-ios.test.mjs` no projeto gerado.
+ */
+function entitlementsDoIos(): Record<string, unknown> {
+  const config = jest.requireActual<{ default: { ios?: { entitlements?: Record<string, unknown> } } }>(
+    "../../app.config",
+  ).default;
+  return config.ios?.entitlements ?? {};
+}
+
+/*
+  Sem esta linha o `prebuild` não copia o arquivo para o projeto nativo, e o
+  som que o servidor pede (`aps.sound = "despacho.wav"`) e o que o canal do
+  Android declara caem no som padrão do sistema. Ninguém vê erro: o aviso
+  chega, com o toque de sempre, e o pedido de "som característico" morre
+  calado. O nome bate com `SOM_DE_DESPACHO` em `canais.ts` porque o Android
+  resolve o recurso pelo nome do arquivo e o iOS pelo nome no bundle.
+*/
+it("declara o som de despacho ao plugin, com o mesmo nome que os canais usam", () => {
+  const sons = opcoesDoPluginDeNotificacao()["sounds"];
+  expect(Array.isArray(sons)).toBe(true);
+  expect(sons).toContain(`./assets/sons/${SOM_DE_DESPACHO}`);
+});
+
+/*
+  `interruption-level: time-sensitive` só vale com este direito no binário.
+  Sem ele o iOS rebaixa a notificação para `active` em silêncio: o servidor
+  manda, a Apple entrega, e o Foco do agente no plantão noturno engole o
+  despacho. A Apple documenta o direito como
+  `com.apple.developer.usernotifications.time-sensitive`, e ele entra no
+  entitlements ao lado do `aps-environment`, que o plugin escreve.
+
+  O direito fica atrás de `DC360_TIME_SENSITIVE=sim`, e o porquê está em
+  `app.config.ts`: ele só compila depois que a capacidade é ligada no App ID,
+  na conta da Apple do dono, e o padrão desligado é o que mantém o binário
+  compilando enquanto isso. O que se prova aqui é a chave nas duas posições.
+*/
+describe("o direito de notificação sensível ao tempo", () => {
+  const CHAVE = "com.apple.developer.usernotifications.time-sensitive";
+  const anterior = process.env["DC360_TIME_SENSITIVE"];
+  afterEach(() => {
+    if (anterior === undefined) delete process.env["DC360_TIME_SENSITIVE"];
+    else process.env["DC360_TIME_SENSITIVE"] = anterior;
+    jest.resetModules();
+  });
+
+  it("com DC360_TIME_SENSITIVE=sim, o app.config.ts pede o direito", () => {
+    process.env["DC360_TIME_SENSITIVE"] = "sim";
+    jest.resetModules();
+    expect(entitlementsDoIos()[CHAVE]).toBe(true);
+  });
+
+  it("sem a variável, o direito fica de fora, e a compilação não depende do perfil ter a capacidade", () => {
+    delete process.env["DC360_TIME_SENSITIVE"];
+    jest.resetModules();
+    expect(entitlementsDoIos()[CHAVE]).toBeUndefined();
+  });
 });

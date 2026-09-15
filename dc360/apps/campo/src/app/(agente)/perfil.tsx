@@ -34,6 +34,7 @@ import {
   useEstadoDoTema, useTema,
 } from "../../ui/componentes";
 import { useRecuoDoMenu } from "../../ui/BarraDeAbas";
+import { useComecarDoTopo } from "../../ui/CenaDaAba";
 import { Avatar, TAMANHO_DO_AVATAR } from "../../ui/Avatar";
 import { GraficoDeBarras } from "../../ui/Grafico";
 import { ItemDeLista } from "../../ui/ItemDeLista";
@@ -322,6 +323,8 @@ export default function Perfil() {
   const tema = useTema();
   // A pílula do menu paira sobre a cena; a tela reserva o vão no fim da rolagem.
   const recuoDoMenu = useRecuoDoMenu();
+  // Toda aba começa do topo a cada foco (ver `ui/CenaDaAba.tsx`).
+  const rolagem = useComecarDoTopo<ScrollView>();
   const sinal = useSinal();
   const push = usePush();
   const escolhaDeTema = useEstadoDoTema();
@@ -629,6 +632,7 @@ export default function Perfil() {
 
   return (
     <ScrollView
+      ref={rolagem}
       testID="tela-do-perfil"
       contentContainerStyle={{ padding: espaco.e4, gap: espaco.e5, paddingBottom: recuoDoMenu }}
       refreshControl={

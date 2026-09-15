@@ -13,7 +13,7 @@ import { act, render, screen } from "@testing-library/react-native";
 let mockReduzir = false;
 jest.mock("./useReducaoDeMovimento", () => ({ useReducaoDeMovimento: () => mockReduzir }));
 
-import { CenaDaAba, desenharCena, type NavegacaoDaCena } from "./CenaDaAba";
+import { CenaDaAba, desenharCena, levarAoTopo, useComecarDoTopo, type NavegacaoDaCena } from "./CenaDaAba";
 import { easing, movimento } from "./tokens";
 
 /** Um navegador de rota de mentira, com o foco sob controle do teste. */
@@ -127,5 +127,69 @@ describe("a entrada de uma aba", () => {
     expect((primeira as { type: unknown }).type).toBe((segunda as { type: unknown }).type);
     await render(<>{primeira}</>);
     expect(screen.getByText("filho")).toBeTruthy();
+  });
+});
+
+/*
+  TODA ABA COMEÇA DO TOPO. As abas ficam montadas, a rolagem fica onde o
+  agente parou, e "entro numa tela e tá no meio da página" é exatamente isso.
+  A tela entrega a rolagem pelo gancho; o invólucro a leva ao topo a cada
+  foco; sem invólucro, o gancho não faz nada.
+*/
+describe("toda aba começa do topo", () => {
+  function Lista({ rolagem }: { rolagem: { scrollTo: jest.Mock } | { scrollToOffset: jest.Mock } }) {
+    const ref = useComecarDoTopo<typeof rolagem>();
+    // Uma "ScrollView" de mentira: o que importa é o método que o invólucro chama.
+    (ref as { current: unknown }).current = rolagem;
+    return <Text>lista</Text>;
+  }
+
+  it("ao focar a aba, a ScrollView registrada vai ao topo sem animação", async () => {
+    const nav = navegacaoDeMentira(false);
+    const rolagem = { scrollTo: jest.fn() };
+    await render(<CenaDaAba navigation={nav}><Lista rolagem={rolagem} /></CenaDaAba>);
+    expect(rolagem.scrollTo).not.toHaveBeenCalled();
+
+    await act(async () => { nav.focar(); });
+
+    expect(rolagem.scrollTo).toHaveBeenCalledWith({ x: 0, y: 0, animated: false });
+  });
+
+  it("uma FlatList registrada vai ao topo pelo método dela", async () => {
+    const nav = navegacaoDeMentira(false);
+    const rolagem = { scrollToOffset: jest.fn() };
+    await render(<CenaDaAba navigation={nav}><Lista rolagem={rolagem} /></CenaDaAba>);
+
+    await act(async () => { nav.focar(); });
+
+    expect(rolagem.scrollToOffset).toHaveBeenCalledWith({ offset: 0, animated: false });
+  });
+
+  it("a cada foco de novo, e não só no primeiro", async () => {
+    const nav = navegacaoDeMentira(false);
+    const rolagem = { scrollTo: jest.fn() };
+    await render(<CenaDaAba navigation={nav}><Lista rolagem={rolagem} /></CenaDaAba>);
+
+    await act(async () => { nav.focar(); });
+    await act(async () => { nav.focar(); });
+
+    expect(rolagem.scrollTo).toHaveBeenCalledTimes(2);
+  });
+
+  it("sem invólucro (tela montada solta), o gancho não estoura e não rola nada", async () => {
+    const rolagem = { scrollTo: jest.fn() };
+    await render(<Lista rolagem={rolagem} />);
+
+    expect(screen.getByText("lista")).toBeTruthy();
+    expect(rolagem.scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("`levarAoTopo` escolhe o método pela forma do alvo", () => {
+    const sv = { scrollTo: jest.fn() };
+    const fl = { scrollToOffset: jest.fn() };
+    levarAoTopo(sv);
+    levarAoTopo(fl);
+    expect(sv.scrollTo).toHaveBeenCalledWith({ x: 0, y: 0, animated: false });
+    expect(fl.scrollToOffset).toHaveBeenCalledWith({ offset: 0, animated: false });
   });
 });
