@@ -1,0 +1,136 @@
+# =====================================================================
+# Implantação do CONSOLE DO FORNECEDOR no Fly.
+#
+# APLICATIVO PRÓPRIO, separado de `defesa-civil`, porque a decisão 1 da ADR 0008
+# pede outro processo com outro segredo e outra conexão. Dois processos no mesmo
+# aplicativo do Fly compartilhariam a mesma lista de segredos, e aí bastaria um
+# `fly secrets set DATABASE_URL=...` no lugar certo para o console passar a ter a
+# credencial do produto. Com dois aplicativos, o console só alcança o que foi
+# escrito no aplicativo do console.
+#
+# Este arquivo mora em `dc360/` pela mesma razão que o `fly.toml` da API: o
+# contexto de build do Fly é a pasta do arquivo de configuração, e o
+# `Dockerfile.console` faz `COPY package.json package-lock.json ./` na primeira
+# etapa. Da raiz do `city-hall` esse COPY não acha nada e o build morre ali.
+#
+# O deploy roda daqui, e SEMPRE com `-c`, senão o `fly` pega o `fly.toml` da API
+# e implanta a API por cima do console:
+#   cd dc360 && fly deploy -c fly.console.toml
+#
+# ANTES DO PRIMEIRO DEPLOY, nesta ordem (o passo a passo com os comandos por
+# extenso está em docs/IMPLANTACAO.md, seção 6):
+#
+#   1. `npm run migrar` com o papel dono do banco. O console recusa subir
+#      contra um esquema que não tenha o que ele usa (`src/esquema.ts`), e hoje
+#      isso significa pelo menos a migração 036.
+#   2. CRIAR O PAPEL DE LOGIN DO CONSOLE. Este é o passo que não existe em
+#      nenhum outro roteiro e que trava o deploy se ficar para depois:
+#      `dc360_console` foi criado NOLOGIN na migração 023, de propósito, então
+#      ele NÃO serve de usuário de string de conexão. A `CONSOLE_DATABASE_URL`
+#      aponta para outro papel, com LOGIN, membro dele:
+#
+#        CREATE ROLE dc360_console_login LOGIN PASSWORD '...' NOSUPERUSER;
+#        GRANT dc360_console TO dc360_console_login WITH SET TRUE;
+#
+#      O `WITH SET TRUE` não é enfeite: toda transação do console emite
+#      `SET LOCAL ROLE dc360_console` (ver `apps/console/src/banco.ts`), e sem
+#      ele o `SET ROLE` é recusado e TODA consulta falha. É o mesmo desenho de
+#      `dc360_api` para `dc360_app`.
+#   3. `fly secrets import` com o arquivo descrito abaixo. NUNCA
+#      `fly secrets set` com aspas duplas; a razão está em SEGREDOS.
+#
+# SEGREDOS, e eles entram POR ARQUIVO:
+#
+#   fly secrets import -a defesa-civil-console < segredos-do-console.env
+#
+#   Com `fly secrets set CONSOLE_OPERADORES="..."`, quem lê o valor primeiro é o
+#   SHELL, e ele expande `$131072`, `$8` e `$1` do hash de senha para vazio
+#   antes de o `fly` receber qualquer coisa. O JSON continua válido, o esquema
+#   continua passando, o envelope do segundo fator continua abrindo (ele é
+#   base64 e não tem `$`), o processo SOBE normal, e a senha certa é recusada
+#   para sempre, sem uma linha de log. `CONSOLE_JWT_SEGREDO` e
+#   `CONSOLE_SEGUNDO_FATOR_CHAVE` correm o mesmo risco por serem base64 com
+#   `+`, `/` e `=`. O `import` lê o arquivo linha a linha, sem shell no meio.
+#
+#   Desde 15/09/2026 a partida também RECUSA hash de senha que não tenha as seis
+#   partes de `scrypt$N$r$p$sal$hash`, dizendo que a causa provável foram as
+#   aspas. Com isso, um deploy feito pelo caminho errado FALHA em vez de subir
+#   quebrado, e o release anterior continua atendendo.
+#
+#   CONSOLE_DATABASE_URL          papel de LOGIN do passo 2, nunca `dc360_app`
+#                                 nem o `postgres` do Supabase, e ela PRECISA
+#                                 terminar em `?sslmode=verify-full`. Exemplo:
+#                                 postgres://dc360_console_login:SENHA@HOST:5432/postgres?sslmode=verify-full
+#   CONSOLE_JWT_SEGREDO           >= 32 bytes, e DIFERENTE do JWT_SEGREDO da
+#                                 API. A separação de verdade é a plateia do
+#                                 token, mas dois valores iguais em dois
+#                                 aplicativos é uma convenção que ninguém
+#                                 confere.
+#   CONSOLE_SEGUNDO_FATOR_CHAVE   32 bytes em base64, SEPARADA da
+#                                 SEGUNDO_FATOR_CHAVE do produto
+#   CONSOLE_OPERADORES            a linha que sai de
+#                                 `npm run provisionar --workspace @dc360/console`
+# =====================================================================
+
+app = "defesa-civil-console"
+primary_region = "gru"
+
+[build]
+  dockerfile = "Dockerfile.console"
+
+# Só o que NÃO é segredo.
+[env]
+  NODE_ENV = "production"
+  # 0.0.0.0 porque num contêiner a porta publicada não atende em 127.0.0.1, e o
+  # sintoma é um aplicativo de pé que não responde, sem erro em lugar nenhum.
+  # Desde 15/09/2026 a partida em produção RECUSA um endereço de loopback, para
+  # o defeito não voltar calado se alguém apagar esta linha.
+  CONSOLE_HOST = "0.0.0.0"
+  CONSOLE_PORT = "3344"
+
+[http_service]
+  internal_port = 3344
+  force_https = true
+  # O console NÃO hiberna, e a razão aqui é diferente da da API.
+  #
+  # Na API é porque sistema de emergência não pode esperar a partida. Aqui é
+  # porque o teto de tentativas do segundo fator e o passo do TOTP já queimado
+  # vivem NA MEMÓRIA DO PROCESSO, de propósito: o papel do console não tem
+  # escrita em tabela nenhuma, e é isso que mantém o dano de um vazamento no
+  # teto que a ADR 0008 promete. Máquina que para e volta esquece os dois, e
+  # cada reinício devolve ao atacante cinco tentativas novas e a chance de
+  # reusar um código de seis dígitos dentro da janela de trinta segundos. Ver o
+  # cabeçalho de `apps/console/src/operadores.ts`.
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+  # UMA MÁQUINA, e este número não é folga de custo: com duas, o teto de
+  # tentativas passa a valer POR PROCESSO, e cinco tentativas viram dez. Se um
+  # dia o console precisar de mais de uma máquina, o teto precisa sair da
+  # memória antes, e aí ele precisa de um lugar para morar que não seja o banco.
+  min_machines_running = 1
+  processes = ["app"]
+
+  # `/saude` do console responde apenas que o PROCESSO está de pé, e isto é uma
+  # diferença real em relação ao `/saude` da API, que também confere o banco e o
+  # esquema. Está escrito aqui para ninguém ler mais garantia do que existe:
+  #
+  #   - banco ausente ou esquema atrasado NA PARTIDA: o processo não sobe, a
+  #     verificação falha por ausência de resposta, e o release é revertido.
+  #     Este caso está coberto.
+  #   - banco que cai DEPOIS de o processo estar de pé: a verificação continua
+  #     verde e a tela passa a dar erro. Este caso NÃO está coberto, e cobri-lo
+  #     é mudança em `apps/console/src/servidor.ts`.
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "5s"
+    # Trinta segundos cobrem a conferência de esquema, que é uma ida ao banco
+    # antes de o servidor começar a atender.
+    grace_period = "30s"
+    method = "GET"
+    path = "/saude"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  # 512 MB, e não o 1 GB da API: aqui não há Chromium. O que roda é um Fastify
+  # com cinco rotas e um pool de duas conexões.
+  memory = "512mb"

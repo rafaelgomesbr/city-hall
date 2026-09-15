@@ -30,6 +30,12 @@
 export { MapaDoImovel, enquadrar } from "./MapaDoImovel";
 export { ModoDoMapaDito } from "./ModoDoMapaDito";
 export { PlanoEsquematico } from "./PlanoEsquematico";
+export { PlanoDasTarefas } from "./PlanoDasTarefas";
+export { DesenhoDaCriticidade, LegendaDeCriticidade } from "./DesenhoDaCriticidade";
+export { aparenciaDaCriticidade, criticidadesNoMapa, CRITICIDADES_DA_LEGENDA } from "./criticidade";
+export type { AparenciaDaCriticidade, FormaDaCriticidade } from "./criticidade";
+export { caixaDosPontos, projetarNoPlano } from "./pinos";
+export type { CaixaDoMapa, PinoNoMapa } from "./pinos";
 export { estiloDoGoogle } from "./estilo-do-google";
 export type { EstiloDoMapa } from "./estilo-do-google";
 export { useMapaDoMunicipio } from "./useMapaDoMunicipio";

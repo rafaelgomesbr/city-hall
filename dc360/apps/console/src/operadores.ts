@@ -63,6 +63,105 @@ export function contextoDoOperador(email: string): string {
   return `console:${email.toLowerCase()}`;
 }
 
+/* ==========================================================================
+   A ARMADILHA DAS ASPAS, e por que ela merece um portão só dela
+   ========================================================================== */
+
+/**
+ * As partes que o hash de senha do produto tem, e o que significa faltar uma.
+ *
+ * O formato é `scrypt$N$r$p$sal$hash` (ver `api/src/auth/senha.ts`), com N, r e
+ * p em decimal e sal e hash em base64url. Com os parâmetros de hoje, um hash
+ * real começa por `scrypt$131072$8$1$`.
+ *
+ * ESTE PORTÃO EXISTE POR UM DEFEITO CONCRETO, e ele é do pior tipo que há:
+ *
+ *   fly secrets set CONSOLE_OPERADORES="[... \"senha\":\"scrypt$131072$8$1$SAL$HASH\" ...]"
+ *
+ * Com aspas DUPLAS, quem lê `$131072`, `$8` e `$1` é o SHELL, antes de o `fly`
+ * existir. Os três viram string vazia (ou, dentro de um script, `$1` vira o
+ * primeiro argumento dele), e o que sobe para o provedor é
+ * `scrypt$$$SAL$HASH`. Depois disso, TUDO continua parecendo certo:
+ *
+ *   - o JSON continua válido, porque só mudou o conteúdo de um campo de texto;
+ *   - o esquema de `CONSOLE_OPERADORES` continua passando, porque `senha` só
+ *     precisava ser texto não vazio;
+ *   - o envelope do segundo fator continua abrindo, porque ele não tem `$`;
+ *   - o processo SOBE, atende, mostra a tela de entrada e responde rápido.
+ *
+ * E a senha certa nunca mais confere, para sempre, porque `conferirSenha`
+ * devolve `false` para qualquer hash que não tenha seis partes. Sem exceção,
+ * sem log, sem nada em tela além de "email ou senha inválidos". A pessoa
+ * conclui que errou a senha, pede outra, o provisionamento é refeito, e o
+ * próximo `fly secrets set` com aspas duplas repete o mesmo resultado.
+ *
+ * O mesmo risco vale para `CONSOLE_JWT_SEGREDO` e para
+ * `CONSOLE_SEGUNDO_FATOR_CHAVE`, e as duas já têm quem as denuncie: a segunda é
+ * conferida logo abaixo, quando o envelope de cada operador precisa abrir na
+ * partida. A primeira não tem como ser conferida (todo texto de 32 caracteres é
+ * um segredo válido), e por isso o roteiro de implantação manda escrever os
+ * três num ARQUIVO e usar `fly secrets import`, que não passa por shell nenhum.
+ *
+ * Então a regra aqui é falhar ALTO E CEDO: o processo não sobe, e a mensagem
+ * nomeia a causa em vez de descrever o sintoma.
+ */
+const PARTES_DO_HASH = 6;
+const PREFIXO_DO_HASH = "scrypt";
+
+/**
+ * O que há de errado com este hash, ou `null` quando ele está bem formado.
+ *
+ * NÃO DEVOLVE O VALOR RECEBIDO em hipótese nenhuma, e essa é a mesma regra do
+ * resto deste arquivo: a mensagem sai na partida, e partida em produção escreve
+ * no log do provedor de hospedagem. O que ela devolve é a FORMA (quantas partes
+ * vieram, quais chegaram vazias), que descreve o defeito sem carregar segredo
+ * nenhum: parte vazia não tem conteúdo para vazar, e a contagem também não.
+ */
+export function problemaNoHashDaSenha(hash: string): string | null {
+  const partes = hash.split("$");
+
+  if (partes[0] !== PREFIXO_DO_HASH) {
+    return `não começa por "${PREFIXO_DO_HASH}$", então não é um hash deste produto`;
+  }
+
+  /*
+    Posição zero fora da conta: ela é o prefixo, e já foi conferida acima.
+  */
+  const vazias = partes
+    .map((parte, i) => (parte === "" ? i : -1))
+    .filter((i) => i > 0);
+
+  if (partes.length !== PARTES_DO_HASH) {
+    return `tem ${partes.length} partes em vez de ${PARTES_DO_HASH}`
+      + (vazias.length > 0 ? `, e as posições ${vazias.join(", ")} chegaram vazias` : "");
+  }
+
+  if (vazias.length > 0) {
+    return `tem as ${PARTES_DO_HASH} partes, mas as posições ${vazias.join(", ")} `
+      + "chegaram vazias";
+  }
+
+  /*
+    N, r e p precisam ser inteiros POSITIVOS, e não só "inteiros".
+
+    `Number("")` é zero e `Number.isInteger(0)` é verdadeiro, então uma
+    checagem de inteiro sozinha deixaria passar `scrypt$0$8$1$sal$hash`, que é
+    o que sobra quando o shell come SÓ o `$131072`. Com N zerado o processo
+    subiria, e a primeira tentativa de entrar morreria dentro do `scrypt` com
+    "Invalid scrypt params": um 500 na tela de login, e nenhuma pista de que o
+    defeito está na configuração.
+  */
+  const rotulos = ["N", "r", "p"];
+  for (let i = 0; i < rotulos.length; i += 1) {
+    const valor = Number(partes[i + 1]);
+    if (!Number.isInteger(valor) || valor <= 0) {
+      return `o parâmetro ${rotulos[i]} do scrypt não é um inteiro positivo`;
+    }
+  }
+
+  return null;
+}
+
 export type Registro = {
   /** `null` quando não existe operador com aquele email. */
   buscar(email: string): Operador | null;
@@ -115,6 +214,32 @@ export function lerRegistro(cru: string, cofre: Cofre): Registro {
         `CONSOLE_OPERADORES traz ${chave} duas vezes. Com duas linhas para o mesmo `
         + "email, qual delas vale depende da ordem, e a resposta certa para "
         + "credencial nunca depende de ordem.",
+      );
+    }
+
+    /*
+      O HASH DA SENHA precisa ter forma de hash, e esta é a única conferência
+      possível: não dá para saber se ele é o hash da senha certa, mas dá para
+      saber que ele não é hash nenhum. Ver `problemaNoHashDaSenha` acima para o
+      defeito que isto fecha, que é o `fly secrets set` com aspas duplas.
+
+      Vem ANTES do envelope de propósito: os dois sobem juntos na mesma
+      variável, e quem colou a linha pelo caminho errado quebrou a senha sem
+      quebrar o envelope. Sem esta ordem, o operador leria a mensagem do
+      segundo fator e trocaria a chave, que está certa.
+    */
+    const problema = problemaNoHashDaSenha(operador.senha);
+    if (problema !== null) {
+      throw new Error(
+        `A senha de ${chave} em CONSOLE_OPERADORES ${problema}. `
+        + "A causa quase certa é o valor ter passado por um shell entre aspas "
+        + "DUPLAS: em `fly secrets set VAR=\"...\"` o shell expande `$131072`, "
+        + "`$8` e `$1` do hash para vazio, antes de o `fly` receber qualquer "
+        + "coisa, e o que chega ao servidor é `scrypt$$$sal$hash`. O JSON "
+        + "continua válido e o processo subiria normal, com a senha certa "
+        + "recusada para sempre e nenhuma linha de log dizendo por quê. "
+        + "Escreva os segredos num ARQUIVO e use `fly secrets import < arquivo`, "
+        + "que não passa por shell nenhum; ver docs/IMPLANTACAO.md.",
       );
     }
 

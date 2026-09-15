@@ -1,5 +1,6 @@
 /**
- * A LEGENDA DE MODO NÃO PODE MENTIR NEM POR UM INSTANTE, NEM NESTA TELA.
+ * A LEGENDA DE MODO NÃO PODE MENTIR NEM POR UM INSTANTE, E A TELA DO MAPA É
+ * ONDE ELA MAIS APARECE.
  *
  * A tela de vistoria pagou por isto primeiro e escreveu vinte e cinco linhas
  * explicando: `useMapaDoMunicipio` trata token `null` como RESPOSTA ("sem
@@ -15,16 +16,19 @@
  * enganou é justamente a que tem competência para reclamar.
  *
  * A tela de vistoria evita isso montando o mapa só depois de o token estar
- * lido. A tela "Hoje" fazia o contrário, e este arquivo é o que trava a
- * correção.
+ * lido. A lente de mapa da tela "Hoje" fazia o contrário, e este arquivo foi o
+ * que travou a correção lá. A lente virou TELA (`app/(agente)/mapa.tsx`), e o
+ * subsistema do token migrou com ela: o par `tokenDoMapa`/`tokenLido` agora
+ * mora na tela do mapa, e este arquivo migrou junto, porque o que ele guarda
+ * não é a tela, é a promessa.
  *
- * Mora em arquivo próprio, e não junto do resto da lente do mapa, porque aqui
+ * Mora em arquivo próprio, e não junto do resto dos casos do mapa, porque aqui
  * a leitura do token precisa ficar PENDURADA de propósito: é o único jeito de
  * observar o quadro em que a tela ainda não sabe a resposta, e um dublê que
  * pendura afetaria todos os outros casos daquele arquivo.
  */
 
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { act, render, screen } from "@testing-library/react-native";
 import type { Pendencia } from "../dados/api";
 
 jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
@@ -109,7 +113,7 @@ const mockSessao = {
 };
 jest.mock("../dados/sessao", () => ({ useSessao: () => mockSessao }));
 
-import Tarefas from "../app/(agente)/index";
+import Mapa from "../app/(agente)/mapa";
 
 const AQUI = { latitude: -27.595378, longitude: -48.548050 };
 
@@ -137,17 +141,8 @@ function tarefa(): Pendencia {
 const A_PROMESSA = /optou por não enviar coordenada ao Google/;
 
 async function abrirNoMapa(): Promise<void> {
-  await render(<Tarefas />);
+  await render(<Mapa />);
   await act(async () => {});
-  await act(async () => { fireEvent.press(screen.getByTestId("lente-mapa")); });
-  await act(async () => {
-    fireEvent(screen.getByTestId("area-do-mapa"), "layout", {
-      nativeEvent: { layout: { height: 800, width: 400, x: 0, y: 0 } },
-    });
-    fireEvent(screen.getByTestId("folha-de-hoje-area"), "layout", {
-      nativeEvent: { layout: { height: 800, width: 400, x: 0, y: 0 } },
-    });
-  });
 }
 
 beforeEach(() => {
@@ -167,14 +162,15 @@ describe("enquanto a sessão não respondeu", () => {
   });
 
   /*
-    E a espera não pode prender ninguém: `MapaDoImovel` já tem porta de saída
-    para quem não quer esperar o mapa, e ela precisa continuar alcançável por
-    este caminho. Um agente parado olhando uma roda no morro conclui que o
-    aplicativo travou.
+    E a espera é SÓ DO MAPA: a lista de tarefas da tela continua desenhada, com
+    protocolo, prazo e o caminho para a vistoria. Uma tela inteira parada
+    esperando a resposta de um servidor seria o oposto do produto, que abre do
+    disco e não depende de sinal.
   */
-  it("a lista continua sendo a lista, e a espera é só do mapa", async () => {
+  it("a lista da tela continua de pé, e a espera é só do mapa", async () => {
     await abrirNoMapa();
-    expect(screen.getByTestId("folha-de-hoje-area")).toBeTruthy();
+    expect(screen.getByTestId("lista-do-mapa")).toBeTruthy();
+    expect(screen.getByTestId("escolher-1")).toBeTruthy();
   });
 });
 

@@ -1,0 +1,128 @@
+# =====================================================================
+# Imagem do CONSOLE DO FORNECEDOR (ADR 0008).
+#
+# IMAGEM SEPARADA DA API, e não um segundo processo dentro da mesma, porque a
+# decisão 1 da ADR 0008 pede exatamente isso: "outro processo, com outro
+# domínio, outro segredo de token e outra conexão". Dois processos na mesma
+# imagem compartilhariam ambiente, e um `fly secrets set` feito no lugar errado
+# passaria a `DATABASE_URL` do produto para o console sem ninguém notar. Com
+# duas imagens e dois aplicativos, o console só tem acesso ao que foi escrito
+# no aplicativo do console.
+#
+# NÃO FOI CONSTRUÍDA NEM EXECUTADA AQUI: esta máquina não tem Docker. O que foi
+# provado à mão foi o `npm run build --workspace @dc360/console` fora de
+# contêiner, que é a etapa que os quatro pontos abaixo tornam possível dentro
+# dele. Construir a imagem uma vez antes do primeiro deploy continua
+# obrigatório; ver docs/IMPLANTACAO.md.
+#
+# QUATRO ESCOLHAS que valem explicação, e a primeira é a razão de este arquivo
+# existir em vez de reusar o `Dockerfile` da API:
+#
+# 1. AS DUAS ÁRVORES ENTRAM. O `Dockerfile` da API não copia
+#    `apps/console/package.json`, então o `npm ci --workspaces` dele nem conhece
+#    o workspace do console. E o console importa de `apps/api/src` em quatro
+#    pontos (o cofre do segundo fator, a derivação de senha, o TOTP e a montagem
+#    do pool do banco), de propósito: reimplementar qualquer um deles criaria um
+#    segundo lugar onde a decisão de segurança pode envelhecer sozinha. Por isso
+#    a etapa de construção precisa de `apps/api` inteiro mesmo produzindo uma
+#    imagem que não roda a API.
+#
+# 2. O `outDir` TEM DOIS RAMOS, e o `CMD` tem que saber disso. Como o
+#    `tsconfig.json` do console alcança `apps/api/src`, o `rootDir` que o
+#    TypeScript deduz é `apps/`, e a saída fica em `dist/console/src/...` e
+#    `dist/api/src/...`. Daí o `apps/console/dist/console/src/index.js` do
+#    `CMD`, que é o mesmo caminho do `start` em `apps/console/package.json`. Um
+#    `dist/index.js` escrito de memória aqui daria "Cannot find module" no
+#    primeiro deploy.
+#
+# 3. O CERTIFICADO DO PROVEDOR DE BANCO ENTRA (`COPY db/provedores`), pela mesma
+#    razão da imagem da API: a conexão do console é verificada
+#    (`sslmode=verify-full`, cobrado na partida por `config.ts` e de novo na
+#    montagem do pool), e verificar sem âncora é não conectar. O console reusa
+#    `montarConfiguracaoDoPool` da API, que procura o arquivo subindo diretório
+#    por diretório a partir do módulo e do diretório de trabalho: de
+#    `/app/apps/console/dist/api/src/banco` até `/app` são seis níveis, dentro
+#    dos oito que a busca percorre.
+#
+# 4. NÃO ENTRA CHROMIUM, e não entram as migrações. O console não gera PDF (a
+#    imagem da API carrega o navegador por causa do laudo, e algumas centenas de
+#    megabytes junto), e não aplica nem confere migração lendo arquivo: ele
+#    pergunta ao catálogo do Postgres se o que ele usa está lá, e o porquê de
+#    não poder ler `schema_migracoes` está escrito em `apps/console/src/esquema.ts`.
+#    A imagem fica pequena, e a partida não depende de `db/migrations` estar
+#    sincronizado com o que rodou no banco.
+# =====================================================================
+FROM node:22-bookworm-slim AS base
+ENV NODE_ENV=production
+WORKDIR /app
+
+FROM base AS dependencias
+COPY package.json package-lock.json ./
+# Os `package.json` de TODOS os workspaces que o lockfile conhece e que esta
+# imagem usa. `apps/console` é a linha que falta no Dockerfile da API, e sem ela
+# o `npm ci` instala tudo menos o que este contêiner precisa rodar.
+COPY packages/shared/package.json packages/shared/
+COPY packages/campo/package.json packages/campo/
+COPY db/package.json db/
+COPY apps/api/package.json apps/api/
+COPY apps/console/package.json apps/console/
+# `npm ci` e não `npm install`: o lockfile manda, e uma versão diferente
+# entrando em produção sem ninguém pedir é como uma dependência vulnerável
+# aparece sozinha.
+#
+# `--omit=dev` deixa de fora o PGlite e o `@dc360/db`, que são as duas peças do
+# Postgres em WebAssembly do desenvolvimento. O caminho que os usaria
+# (`banco-em-memoria.ts`) só roda sem `CONSOLE_DATABASE_URL`, e `config.ts`
+# recusa essa combinação em produção: o `import` dele é dinâmico justamente para
+# esta imagem não precisar carregar um Postgres inteiro para nunca usá-lo.
+RUN npm ci --workspaces --include-workspace-root --omit=dev
+
+FROM base AS construcao
+COPY package.json package-lock.json ./
+COPY packages packages
+COPY db db
+# `apps/api` INTEIRO, e não só os quatro arquivos importados: o TypeScript segue
+# os `import` de cada um deles, e uma lista escrita à mão aqui quebraria o build
+# no dia em que um desses arquivos passasse a importar um vizinho.
+COPY apps/api apps/api
+COPY apps/console apps/console
+# `--include=dev` não é redundante: a etapa `base` define NODE_ENV=production, e
+# com isso o npm omite devDependencies sozinho, mesmo sem `--omit=dev`. O
+# TypeScript é devDependency, então sem esta flag o build morre em
+# `sh: 1: tsc: not found`, que é uma mensagem que não aponta para a causa.
+#
+# `@dc360/shared` e `@dc360/db` são construídos antes do console mesmo o
+# resultado deles não indo para a imagem final: o console importa `@dc360/db` de
+# forma dinâmica em `banco-em-memoria.ts`, e a CONFERÊNCIA DE TIPOS resolve esse
+# import, então sem `db/dist/index.d.ts` o `tsc` do console para em "Cannot find
+# module". E `@dc360/db` só constrói depois de `@dc360/shared`.
+RUN npm ci --workspaces --include-workspace-root --include=dev \
+ && npm run build --workspace @dc360/shared \
+ && npm run build --workspace @dc360/db \
+ && npm run build --workspace @dc360/console
+
+FROM base AS runtime
+# O `node_modules` traz os atalhos de workspace que o npm cria
+# (`@dc360/shared`, `@dc360/db`, `@dc360/campo`, `@dc360/api`), e nesta imagem
+# eles apontam para pastas que não existem. São inertes de propósito: nenhuma
+# linha do console os resolve em produção, e a única que poderia
+# (`banco-em-memoria.ts`, com o `import` dinâmico de `@dc360/db`) só roda sem
+# `CONSOLE_DATABASE_URL`, que `config.ts` recusa em produção. Trazer as árvores
+# inteiras só para os atalhos não ficarem pendurados engordaria a imagem para
+# resolver um problema que ninguém tem.
+COPY --from=dependencias /app/node_modules ./node_modules
+# A âncora de confiança do banco. É certificado público, não segredo, e vem do
+# repositório de propósito: baixar a CA na partida colocaria a rede no meio de
+# uma decisão de segurança. Sem este arquivo o console não sobe, porque a
+# conexão está em modo verificado; ver apps/api/src/banco/postgres.ts.
+COPY db/provedores db/provedores
+COPY --from=construcao /app/apps/console/dist apps/console/dist
+COPY --from=construcao /app/apps/console/package.json apps/console/
+
+# Processo sem privilégio: o usuário `node` já existe na imagem base.
+USER node
+EXPOSE 3344
+# O contêiner recusa subir com CONSOLE_HOST de loopback, com hash de senha
+# estragado pelo shell e com banco sem o que o console usa. Ver
+# apps/console/src/config.ts, src/operadores.ts e src/esquema.ts.
+CMD ["node", "apps/console/dist/console/src/index.js"]

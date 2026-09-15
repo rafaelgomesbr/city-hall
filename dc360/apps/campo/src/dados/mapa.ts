@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import * as Clipboard from "expo-clipboard";
 import { Linking, Platform } from "react-native";
 
 import { enderecoDaApi } from "./api";
@@ -131,6 +132,51 @@ export async function abrirNoMapa(
     }
   }
   return false;
+}
+
+/**
+ * A coordenada em texto, do jeito que se cola e do jeito que se dita.
+ *
+ * Um formato só para os dois usos, e é isso que ele resolve. A tarja de erro da
+ * vistoria já imprimia "lat, lng" com seis casas quando nenhum aplicativo de
+ * mapas atendia, e é também o que o Google Maps, o Apple Maps e o Waze aceitam
+ * colado no campo de busca. Dois formatos para a mesma coordenada, na mesma
+ * tela, seria o agente ditando um por rádio e colando o outro, e quem confere
+ * do outro lado não tem como saber que são o mesmo ponto.
+ *
+ * Usa o mesmo `emTexto` da URL, então herda as duas defesas dele: nada de
+ * notação científica e nada de dezesseis casas de lixo de ponto flutuante.
+ */
+export function coordenadaEmTexto(lat: number, lng: number): string {
+  return `${emTexto(lat)}, ${emTexto(lng)}`;
+}
+
+/**
+ * Põe a coordenada na área de transferência do aparelho.
+ *
+ * É a terceira resposta da escolha de mapa, e a única que não depende de mais
+ * nada existir no aparelho: o agente cola no aplicativo que ele quiser, manda
+ * por mensagem para a equipe que está subindo atrás, ou lê por rádio para a
+ * base. Num morro sem sinal, num telefone sem aplicativo de mapas instalado,
+ * ela é a única das três respostas que ainda funciona.
+ *
+ * Devolve `false` em vez de estourar nos dois casos em que não dá:
+ *
+ * 1. Coordenada que não é número, pela mesma razão de `abrirNoMapa`: "NaN, NaN"
+ *    colado num aplicativo de mapas abre em algum lugar arbitrário, e o agente
+ *    acredita naquele ponto.
+ * 2. Recusa do próprio aparelho, que acontece em telefone gerenciado por
+ *    política da prefeitura. A tela precisa poder dizer que não deu, em vez de
+ *    fingir que deu e mandar o agente colar o nada.
+ */
+export async function copiarCoordenada(lat: number, lng: number): Promise<boolean> {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  try {
+    await Clipboard.setStringAsync(coordenadaEmTexto(lat, lng));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /* ========================================================================

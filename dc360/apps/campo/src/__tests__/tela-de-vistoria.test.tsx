@@ -70,6 +70,15 @@ jest.mock("expo-crypto", () => ({
   randomUUID: () => "11111111-1111-1111-1111-111111111111",
 }));
 
+/*
+  A área de transferência é módulo NATIVO, e no jest não existe nada por trás
+  dela. O dublê guarda o que foi copiado, que é o que a folha promete ao agente.
+*/
+const mockCopiarCoordenada = jest.fn<Promise<boolean>, [string]>();
+jest.mock("expo-clipboard", () => ({
+  setStringAsync: (texto: string) => mockCopiarCoordenada(texto),
+}));
+
 jest.mock("expo-file-system", () => ({
   File: class {
     size = 0;
@@ -186,6 +195,8 @@ beforeEach(() => {
   abrirUrl = jest.spyOn(Linking, "openURL");
   abrirUrl.mockReset();
   abrirUrl.mockResolvedValue(true);
+  mockCopiarCoordenada.mockReset();
+  mockCopiarCoordenada.mockResolvedValue(true);
 
   jest.mocked(router.canGoBack).mockReturnValue(true);
 });
@@ -324,15 +335,39 @@ describe("o prazo dentro da vistoria", () => {
    ============================================================ */
 
 describe("abrir no mapa", () => {
+  /**
+   * Toca em "Abrir no mapa" e escolhe uma das três respostas da folha.
+   *
+   * O botão deixou de abrir o aplicativo de mapas direto. Ele abre a folha, e
+   * a razão é a reclamação de quem paga: uma resposta só, e ela levava o agente
+   * para fora do DC360 no meio de uma coleta de quarenta minutos, sem perguntar.
+   */
+  async function escolherNoMapa(opcao: string): Promise<void> {
+    await fireEvent.press(screen.getByText("Abrir no mapa"));
+    await fireEvent.press(await screen.findByTestId(opcao));
+  }
+
   it("o botão tem rótulo visível, e não só um ícone", async () => {
     await abrirATela();
     expect(screen.getByText("Abrir no mapa")).toBeTruthy();
   });
 
-  it("entrega ao aparelho a coordenada da OCORRÊNCIA", async () => {
+  it("o toque PERGUNTA em vez de sair do aplicativo", async () => {
     await abrirATela();
 
     await fireEvent.press(screen.getByText("Abrir no mapa"));
+
+    expect(await screen.findByTestId("mapa-no-aparelho")).toBeTruthy();
+    expect(screen.getByTestId("mapa-aqui-dentro")).toBeTruthy();
+    expect(screen.getByTestId("mapa-copiar")).toBeTruthy();
+    /* Nada saiu do aplicativo enquanto a pergunta não foi respondida. */
+    expect(abrirUrl).not.toHaveBeenCalled();
+  });
+
+  it("entrega ao aparelho a coordenada da OCORRÊNCIA", async () => {
+    await abrirATela();
+
+    await escolherNoMapa("mapa-no-aparelho");
 
     await waitFor(() => { expect(abrirUrl).toHaveBeenCalledTimes(1); });
     // A coordenada é a de onde o agente precisa chegar, e não a do GPS dele,
@@ -344,7 +379,7 @@ describe("abrir no mapa", () => {
     abrirUrl.mockRejectedValue(new Error("sem quem atenda"));
     await abrirATela();
 
-    await fireEvent.press(screen.getByText("Abrir no mapa"));
+    await escolherNoMapa("mapa-no-aparelho");
 
     /*
       Dizer só "não deu" deixaria o agente sem nada. Com os números na tela
@@ -360,11 +395,67 @@ describe("abrir no mapa", () => {
     expect(within(tarja).getByText(/-27\.595378, -48\.548050/)).toBeTruthy();
   });
 
+  /*
+    A resposta que o Rafa pediu com estas palavras: "abrir o mapa dentro do app
+    com a rota". O mapa dentro do aplicativo já existia, no cartão de
+    localização, e ninguém era levado até ele.
+  */
+  it("'ver aqui dentro' rola até o cartão de localização, sem sair do aplicativo", async () => {
+    await abrirATela();
+
+    await escolherNoMapa("mapa-aqui-dentro");
+
+    expect(abrirUrl).not.toHaveBeenCalled();
+    expect(screen.getByTestId("ancora-localizacao")).toBeTruthy();
+    /* O mapa daquele cartão é o que desenha a legenda de modo, e ele está lá. */
+    expect(screen.getByText("Localização")).toBeTruthy();
+  });
+
+  it("copiar a coordenada diz que copiou, e não sai do aplicativo", async () => {
+    await abrirATela();
+
+    await escolherNoMapa("mapa-copiar");
+
+    expect(await screen.findByTestId("coordenada-copiada")).toBeTruthy();
+    expect(mockCopiarCoordenada).toHaveBeenCalledWith("-27.595378, -48.548050");
+    expect(abrirUrl).not.toHaveBeenCalled();
+  });
+
+  /*
+    Recusa da área de transferência acontece em telefone gerenciado por política
+    da prefeitura. Dizer só "não deu" deixaria o agente sem nada, então a
+    coordenada vai no texto do aviso, igual ao caminho do mapa que ninguém
+    atendeu.
+  */
+  it("aparelho que recusa copiar mostra a coordenada em texto", async () => {
+    mockCopiarCoordenada.mockRejectedValue(new Error("bloqueado por política"));
+    await abrirATela();
+
+    await escolherNoMapa("mapa-copiar");
+
+    const tarja = await screen.findByTestId("tarja-de-erro");
+    expect(within(tarja).getByText(/-27\.595378, -48\.548050/)).toBeTruthy();
+    expect(screen.queryByTestId("coordenada-copiada")).toBeNull();
+  });
+
+  it("dá para fechar a folha sem escolher nenhuma das três", async () => {
+    await abrirATela();
+
+    await fireEvent.press(screen.getByText("Abrir no mapa"));
+    await fireEvent.press(await screen.findByTestId("mapa-continuar"));
+
+    await waitFor(() => { expect(screen.queryByTestId("mapa-no-aparelho")).toBeNull(); });
+    expect(abrirUrl).not.toHaveBeenCalled();
+    expect(mockCopiarCoordenada).not.toHaveBeenCalled();
+  });
+
   it("ocorrência sem coordenada não mostra botão que não leva a lugar nenhum", async () => {
     mockOcorrencia = ocorrenciaDeTeste({ latitude: null, longitude: null });
     await abrirATela();
 
     expect(screen.queryByText("Abrir no mapa")).toBeNull();
     expect(screen.getByText(/chegou sem coordenada/)).toBeTruthy();
+    /* E a saída nomeada continua de pé, sozinha, sem o par que não existe. */
+    expect(screen.getByText("Salvar e sair")).toBeTruthy();
   });
 });

@@ -15,6 +15,7 @@ import {
 } from "./operadores.js";
 import { emitirDesafio, emitirSessao, verificarDesafio, verificarSessao } from "./tokens.js";
 import { CSS_DO_CONSOLE, JS_DO_CONSOLE, PAGINA_DO_CONSOLE } from "./pagina.js";
+import { FACES_DE_FONTE } from "./fontes.js";
 
 /**
  * O console do fornecedor: processo próprio, sessão própria, plateia própria.
@@ -123,10 +124,29 @@ export async function construirConsole(
   const teto: TetoDeTentativas = tetoEmMemoria();
   const segredo = new TextEncoder().encode(config.CONSOLE_JWT_SEGREDO);
 
+  /*
+    O log fala em `info` em TODO ambiente, e isso é uma correção.
+
+    Até aqui o nível era `info` em produção e `warn` fora dela, e o efeito era
+    que a linha da partida ("console do fornecedor pronto, com N operadores")
+    só existia no lugar onde ninguém a lê, e sumia justamente na máquina de quem
+    está tentando descobrir por que o console não aceita a senha. Um processo que
+    serve uma página e cinco rotas não tem log volumoso para economizar: o que
+    ele tem é um operador olhando o terminal, tentando entender por que não
+    entrou.
+
+    O nível sai daqui uma vez e vale para os dois destinos (o terminal e o
+    coletor do teste), de propósito: com dois níveis diferentes, um teste que
+    afirma "esta linha sai" passaria verde sem dizer nada sobre o que sai no
+    terminal de verdade.
+  */
+  const nivelDeLog = "info";
+
   const app = Fastify({
-    ...(dep.destinoDeLog
-      ? { logger: { level: "info", stream: dep.destinoDeLog } }
-      : { logger: { level: config.NODE_ENV === "production" ? "info" : "warn" } }),
+    logger: {
+      level: nivelDeLog,
+      ...(dep.destinoDeLog ? { stream: dep.destinoDeLog } : {}),
+    },
     /*
       O corpo é minúsculo em toda rota deste servidor: email, senha e seis
       dígitos. Um teto baixo aqui evita que alguém ocupe a memória do processo
@@ -252,6 +272,40 @@ export async function construirConsole(
     return resposta.code(500).send({ erro: "falha_interna" });
   });
 
+  /**
+   * Uma linha de log por tentativa recusada, e ela é a única resposta que quem
+   * opera tem para "por que eu não entrei".
+   *
+   * Até aqui, credencial recusada não escrevia NADA, em nível nenhum, nem em
+   * produção. A tela diz "email ou senha incorretos" de propósito (a mesma
+   * resposta para email desconhecido e senha errada, para a rota não virar uma
+   * lista de quem trabalha no fornecedor), e o efeito colateral é que ninguém,
+   * nem quem administra o processo, conseguia distinguir "a senha está errada"
+   * de "o segundo fator expirou" de "o operador saiu da configuração". Três
+   * causas, um sintoma, zero informação.
+   *
+   * O QUE ENTRA: o email tentado e um motivo de máquina, curto. O email já
+   * entrava no log na entrada BEM-sucedida; recusa sem email é linha que não
+   * ajuda ninguém a diagnosticar nada.
+   *
+   * O QUE NUNCA ENTRA, e esta lista é o ponto desta função existir em vez de
+   * cada rota escrever a sua linha: senha, código de seis dígitos, desafio,
+   * token de sessão, segredo do segundo fator, hash. O log deste processo é
+   * lido por mais gente do que a tela, e fica guardado pelo tempo de retenção
+   * inteiro. Nada que sirva para entrar passa por aqui, e existe teste que o
+   * cobra.
+   *
+   * O MOTIVO É GENÉRICO no primeiro passo (`email_ou_senha`) pela mesma razão
+   * da resposta HTTP: distinguir ali não ajuda a operar e ajuda a enumerar. Nos
+   * passos seguintes ele é específico, porque aí a conta já se identificou.
+   *
+   * Nível `warn`: tentativa recusada é evento de segurança, e ela precisa
+   * aparecer mesmo em quem suba este processo com o log apertado.
+   */
+  function recusar(email: string | undefined, motivo: string): void {
+    app.log.warn({ email: email ?? "(nao informado)", motivo }, "entrada recusada no console");
+  }
+
   /* ======================================================================
      A porta, em duas etapas, e a primeira NUNCA entrega sessão
      ====================================================================== */
@@ -267,11 +321,18 @@ export async function construirConsole(
    */
   app.post("/entrar", LIMITE_DA_PORTA, async (req, resposta) => {
     const corpo = ENTRADA.safeParse(req.body);
-    if (!corpo.success) return resposta.code(400).send(RECUSA);
+    if (!corpo.success) {
+      recusar(undefined, "pedido_malformado");
+      return resposta.code(400).send(RECUSA);
+    }
 
     const operador = await conferirEntrada(registro, corpo.data.email, corpo.data.senha);
-    if (!operador) return resposta.code(401).send(RECUSA);
+    if (!operador) {
+      recusar(corpo.data.email, "email_ou_senha");
+      return resposta.code(401).send(RECUSA);
+    }
 
+    app.log.info({ operador: operador.email }, "senha conferida, aguardando o codigo");
     return resposta.send({
       desafio: await emitirDesafio(segredo, operador.email),
       // A tela precisa saber o que pedir a seguir, e a resposta é sempre a
@@ -283,10 +344,20 @@ export async function construirConsole(
   /** A segunda etapa: os seis dígitos do aplicativo de autenticação. */
   app.post("/entrar/codigo", LIMITE_DA_PORTA, async (req, resposta) => {
     const corpo = CODIGO.safeParse(req.body);
-    if (!corpo.success) return resposta.code(400).send(RECUSA);
+    if (!corpo.success) {
+      recusar(undefined, "pedido_malformado");
+      return resposta.code(400).send(RECUSA);
+    }
 
     const desafio = await verificarDesafio(segredo, corpo.data.desafio);
     if (!desafio) {
+      /*
+        Sem email na linha, e não é descuido: o desafio não abriu, então não há
+        email verificado para escrever. O que o endereço do corpo da requisição
+        diria é o que quem chamou quis dizer, e um log que registra afirmação de
+        quem chamou como se fosse fato é pior que um log sem o campo.
+      */
+      recusar(undefined, "desafio_expirado_ou_invalido");
       return resposta.code(401).send({
         erro: "desafio_invalido",
         mensagem: "A tentativa de entrada expirou. Comece de novo.",
@@ -294,16 +365,23 @@ export async function construirConsole(
     }
 
     const operador = registro.buscar(desafio.email);
-    if (!operador) return resposta.code(401).send(RECUSA);
+    if (!operador) {
+      // O operador saiu da configuração entre as duas etapas. É diagnóstico, e
+      // sem esta linha ele aparece como "código incorreto" para sempre.
+      recusar(desafio.email, "operador_fora_do_registro");
+      return resposta.code(401).send(RECUSA);
+    }
 
     const desfecho = conferirCodigo(operador, corpo.data.codigo, cofre, teto, agora());
     if (desfecho === "bloqueado") {
+      recusar(operador.email, "conta_de_castigo");
       return resposta.code(429).send({
         erro: "bloqueado",
         mensagem: "Códigos errados demais. Espere quinze minutos.",
       });
     }
     if (desfecho !== "ok") {
+      recusar(operador.email, "codigo_incorreto_ou_ja_usado");
       return resposta.code(401).send({
         erro: "codigo_invalido",
         mensagem: "Código incorreto ou já usado.",
@@ -505,6 +583,45 @@ export async function construirConsole(
   app.get("/console.js", async (_req, resposta) =>
     resposta.type("text/javascript; charset=utf-8").send(JS_DO_CONSOLE));
 
-  app.log.info({ operadores: registro.quantos() }, "console do fornecedor pronto");
+  /*
+    AS FONTES DO PRODUTO, servidas por este processo e por mais ninguém.
+
+    O painel web pega Work Sans e Roboto Mono do Google Fonts. Aqui isso não
+    passa: `style-src 'self'` bloqueia a folha de fonts.googleapis.com antes de
+    ela carregar, e alargar a diretiva para um domínio de terceiro é abrir a
+    política que este console tem de bom. Então os bytes viajam dentro do
+    processo (ver `fontes.ts`, com procedência e licença) e saem por aqui.
+
+    Uma rota por face, e não uma rota com parâmetro: com `/fontes/:arquivo`,
+    quem escrevesse `../` no parâmetro estaria brincando com o sistema de
+    arquivos do contêiner. Aqui não há sistema de arquivos envolvido, e o
+    conjunto de endereços que existem é literalmente a lista que o módulo
+    exporta.
+
+    `immutable` no cache porque o conteúdo destas três rotas não muda sem que o
+    processo seja reimplantado: o operador que recarrega a tela no meio de um
+    plantão não baixa 300 KB de fonte de novo.
+  */
+  for (const face of FACES_DE_FONTE) {
+    app.get(face.caminho, async (_req, resposta) =>
+      resposta
+        .type(face.tipo)
+        .header("cache-control", "public, max-age=31536000, immutable")
+        .send(face.bytes));
+  }
+
+  /*
+    A linha da partida, e ela agora sai em QUALQUER ambiente (ver `nivelDeLog`).
+
+    Ela existia e só aparecia em produção, o que é o contrário do útil: quem
+    precisa saber se a configuração de operadores foi lida é justamente quem
+    acabou de subir o console na própria máquina e está tentando entrar. Zero
+    operadores aqui é a explicação inteira para "a senha não funciona", e essa
+    conta nunca chegava a quem estava olhando o terminal.
+  */
+  app.log.info(
+    { operadores: registro.quantos() },
+    `console do fornecedor pronto, com ${registro.quantos()} operador(es) carregado(s)`,
+  );
   return app;
 }

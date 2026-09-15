@@ -319,6 +319,22 @@ const config: ExpoConfig = {
     allowBackup: false,
   },
 
+  /*
+    OS PLUGINS DE CONFIGURAÇÃO, e o que NÃO está aqui.
+
+    A lista traz só os módulos nativos que precisam escrever no manifesto do
+    Android ou no Info.plist do iOS. `expo-clipboard`, que entrou com a escolha
+    de mapa da tela de vistoria ("copiar a coordenada"), fica DE FORA de
+    propósito: ele não tem `app.plugin.js` (confira em
+    `node_modules/expo-clipboard/`), não pede permissão em nenhuma das duas
+    plataformas, e o autolinking do Expo o encontra sozinho pelo
+    `expo-module.config.json`. Uma entrada aqui para ele seria uma linha que o
+    Expo tentaria carregar e não acharia.
+
+    O que ele EXIGE, e isso não é configuração: compilação nativa nova
+    (`npx expo prebuild` mais um build), porque é módulo nativo e o binário que
+    já está no aparelho não o contém.
+  */
   plugins: [
     "expo-router",
     [

@@ -284,6 +284,154 @@ export function Txt({
 }
 
 /* ========================================================================
+   Quanto um rótulo OCUPA, e as duas decisões que dependem disso
+   ======================================================================== */
+
+/**
+ * A RÉGUA DE LARGURA DE TEXTO, e por que ela precisa existir aqui.
+ *
+ * O React Native não mede texto de forma síncrona. Quem escreve a tela só
+ * descobre que "Confirmar assinatura" não cabe no botão depois de o aparelho
+ * desenhar, e o desenho errado é justamente o que o agente vê: o rótulo quebra
+ * em duas linhas, o botão cresce em altura (ele usa `minHeight`, não `height`)
+ * e fica mais alto que o vizinho. Foi a reclamação literal de quem paga.
+ *
+ * Então a largura é ESTIMADA, por tabela de avanço por caractere. A tabela é
+ * grosseira de propósito: quatro classes, e não uma métrica por glifo, porque
+ * as duas decisões que ela alimenta são binárias e nenhuma delas precisa do
+ * ponto exato. Medida contra a Work Sans SemiBold nos rótulos que o produto de
+ * fato usa, ela erra em até uns 8% para os dois lados.
+ *
+ * ## As duas decisões, e por que cada uma erra para um lado
+ *
+ * - **`cabemLadoALado`** decide LAYOUT (dois botões numa linha, ou empilhados).
+ *   Erra para o lado de empilhar: uma linha que não coube é o defeito relatado,
+ *   e uma coluna a mais é só uma coluna a mais.
+ * - **`varianteQueCabe`** decide TIPOGRAFIA (encolher o rótulo um degrau). Erra
+ *   para o lado de NÃO encolher, com a folga abaixo, porque encolher por engano
+ *   apaga texto de interação em botão que estava perfeitamente bem. O botão que
+ *   dimensiona pela própria palavra (o "Por que não aqui?" do perfil, o ato do
+ *   aviso da lista) é exatamente o caso em que a estimativa encosta no real.
+ *
+ * O que nenhuma das duas precisa acertar: o caso extremo. Ele tem rede embaixo,
+ * que é o `numberOfLines={1}` do botão mais as reticências, e o rótulo inteiro
+ * continuando no leitor de tela.
+ */
+const AVANCO_DO_CARACTERE = {
+  /** `i j l t f r` e a pontuação fina. */
+  estreito: 0.36,
+  /** `m w M W`, que valem quase uma caixa alta e meia. */
+  largo: 0.95,
+  /** Caixa alta e dígito. */
+  alto: 0.66,
+  /** O espaço, que é o mais estreito de todos e o mais frequente. */
+  espaco: 0.28,
+  /** Caixa baixa comum. */
+  comum: 0.58,
+} as const;
+
+const CARACTERES_ESTREITOS = new Set([..."ijltfrIJ.,:;!|'\"()[]"]);
+const CARACTERES_LARGOS = new Set([..."mwMW@"]);
+
+/**
+ * A folga que a régua se dá antes de mandar encolher um rótulo.
+ *
+ * É o erro dela mesma, dito como número: a estimativa pode passar do real em
+ * até uns 8%, e sem esta folga todo botão que tem a largura da própria palavra
+ * encolheria para 14 sem precisar, porque ali a medida disponível É a medida do
+ * texto. Só encolhe o rótulo que não cabe com sobra maior que o erro da régua.
+ */
+const FOLGA_DA_REGUA = 0.92;
+
+/**
+ * Quanto um rótulo ocupa, em pontos, num dado tamanho de fonte.
+ *
+ * Exportada para ser provada com os rótulos reais do produto, e não só usada.
+ */
+export function larguraDoRotulo(texto: string, tamanhoDaFonte: number): number {
+  let avancos = 0;
+  for (const letra of texto) {
+    if (letra === " ") avancos += AVANCO_DO_CARACTERE.espaco;
+    else if (CARACTERES_LARGOS.has(letra)) avancos += AVANCO_DO_CARACTERE.largo;
+    else if (CARACTERES_ESTREITOS.has(letra)) avancos += AVANCO_DO_CARACTERE.estreito;
+    else if (/[0-9]/.test(letra) || (letra !== letra.toLowerCase() && letra === letra.toUpperCase())) {
+      avancos += AVANCO_DO_CARACTERE.alto;
+    } else avancos += AVANCO_DO_CARACTERE.comum;
+  }
+  return avancos * tamanhoDaFonte;
+}
+
+/** O que a linha de ações precisa saber de um botão para decidir se ele cabe. */
+export type MedidaDoBotao = {
+  titulo: string;
+  /** O ícone come `icone.rotulo` mais o `gap`, e some da largura do rótulo. */
+  comIcone?: boolean;
+};
+
+/** Quanto um botão inteiro precisa, do contorno esquerdo ao direito. */
+export function larguraNecessariaDoBotao(
+  { titulo, comIcone }: MedidaDoBotao,
+  tamanhoDaFonte: number,
+): number {
+  return espaco.e4 * 2
+    + (comIcone ? tamanhoDeIcone.rotulo + espaco.e2 : 0)
+    + larguraDoRotulo(titulo, tamanhoDaFonte);
+}
+
+/**
+ * A REGRA DA LINHA DE AÇÕES, escrita num lugar só: **dois botões dividem uma
+ * linha só quando OS DOIS rótulos cabem inteiros, no tamanho de corpo.**
+ *
+ * Duas coisas que a regra não faz, e as duas são deliberadas:
+ *
+ * - Ela não conta com a redução de fonte do `Botao`. A redução é rede de
+ *   segurança para o rótulo que estourou, e não licença para planejar uma linha
+ *   que só funciona encolhida: dois botões lado a lado com o texto menor que o
+ *   resto da tela é exatamente o "bagunçado" da reclamação.
+ * - Ela não dá meia largura para um e uma largura e meia para o outro. Os dois
+ *   levam `flex: 1`, então a pergunta é sempre sobre a METADE. Foi a assimetria
+ *   (`flex: 2` contra `flex: 1`) que produziu o par de alturas diferentes na
+ *   assinatura.
+ *
+ * Largura ainda não medida é zero, e zero empilha: uma linha que nasce em pé e
+ * vira coluna mostra, por um quadro, dois rótulos partidos ao meio; uma coluna
+ * que vira linha mostra, por um quadro, dois botões inteiros.
+ */
+export function cabemLadoALado(
+  primeiro: MedidaDoBotao,
+  segundo: MedidaDoBotao,
+  larguraDisponivel: number,
+): boolean {
+  if (larguraDisponivel <= 0) return false;
+  const metade = (larguraDisponivel - espaco.e2) / 2;
+  return larguraNecessariaDoBotao(primeiro, fonte.corpo) <= metade
+    && larguraNecessariaDoBotao(segundo, fonte.corpo) <= metade;
+}
+
+/**
+ * O degrau em que o rótulo cabe, dado o espaço que o texto REALMENTE recebeu.
+ *
+ * Dois degraus e não uma escala contínua, e o argumento é o mesmo que
+ * `tokens.ts` usa para recusar um 17 entre o 16 e o 18: hierarquia por escala
+ * precisa que o degrau seja VISTO, e um tamanho intermediário inventado aqui
+ * seria um número que não existe em lugar nenhum do produto.
+ *
+ * O piso é `corpoP` (14), que é `fonteMinimaDeInteracao`: o texto que se TOCA,
+ * ou que nomeia o que se toca, não desce disso, e rótulo de botão é o texto que
+ * mais se toca no aplicativo. Abaixo do piso não há terceiro degrau: o rótulo
+ * que não couber nem em 14 é cortado com reticências, e continua inteiro para
+ * quem ouve a tela.
+ */
+export function varianteQueCabe(
+  titulo: string,
+  larguraDisponivel: number,
+): "corpo" | "corpoP" {
+  if (larguraDisponivel <= 0) return "corpo";
+  const precisa = larguraDoRotulo(titulo, fonte.corpo) * FOLGA_DA_REGUA;
+  return precisa > larguraDisponivel ? "corpoP" : "corpo";
+}
+
+/* ========================================================================
    Botão
    ======================================================================== */
 
@@ -295,6 +443,15 @@ type PropsBotao = {
   carregando?: boolean;
   /** Descrição para leitor de tela, quando o título não bastar. */
   descricao?: string;
+  /**
+   * O desenho que acompanha o rótulo, à esquerda dele.
+   *
+   * Recebe a cor do texto do botão, como o `simbolo` do `Chip`, para não haver
+   * uma segunda cópia do mapa de cores fora daqui. Ele ACOMPANHA a palavra e
+   * nunca a substitui: quem usa este aplicativo o abre duas vezes por semana e
+   * não decora pictograma.
+   */
+  icone?: (cor: string) => ReactNode;
   estilo?: StyleProp<ViewStyle>;
   /*
     Só para teste alcançar o botão pelo papel que ele exerce, e não pelo texto.
@@ -317,10 +474,23 @@ type PropsBotao = {
 export const PressionavelAnimado = Animated.createAnimatedComponent(Pressable);
 
 export function Botao({
-  titulo, onPress, tipo = "primario", desabilitado, carregando, descricao, estilo, testID,
+  titulo, onPress, tipo = "primario", desabilitado, carregando, descricao, icone,
+  estilo, testID,
 }: PropsBotao) {
   const tema = useTema();
   const inativo = desabilitado || carregando;
+
+  /*
+    A MEDIDA É DO RÓTULO, e não do botão.
+
+    Medir o botão e descontar o recuo parecia o caminho curto, e ele erra em
+    todo botão que sobrescreve o recuo (o "Por que não aqui?" do perfil escreve
+    `paddingHorizontal: 0`): a conta descontaria 32 pontos que não existem e o
+    rótulo encolheria sem precisar. O invólucro do texto recebe exatamente o
+    espaço que sobrou para o texto, seja ele decidido pelo pai ou pela própria
+    palavra, e é essa a medida de que a decisão precisa.
+  */
+  const [larguraDoTexto, setLarguraDoTexto] = useState(0);
 
   const cores = {
     primario: { fundo: tema.destaque, texto: tema.sobreDestaque, borda: "transparent" },
@@ -420,8 +590,117 @@ export function Botao({
         </Svg>
       )}
       {carregando && <ActivityIndicator testID="botao-ocupado" color={cores.texto} />}
-      <Txt cor={cores.texto} peso={peso.negrito}>{titulo}</Txt>
+      {icone?.(cores.texto)}
+      {/*
+        O RÓTULO NÃO QUEBRA MAIS, e o invólucro é o que torna isso possível.
+
+        `flexShrink: 1` é a linha que faz o texto CEDER quando o botão é
+        estreito, em vez de empurrar a própria caixa e quebrar em duas linhas.
+        Sem ela, o React Native mantém a largura natural do texto e o `Text`
+        quebra: era esse o "btn com o texto quebrado dentro" do relato.
+
+        Com o texto cedendo, `numeroDeLinhas={1}` corta com reticências em vez
+        de crescer em altura, e a `accessibilityLabel` lá em cima continua com o
+        rótulo INTEIRO, porque o que foi cortado foi o desenho e não o conteúdo.
+      */}
+      <View
+        testID={testID ? `${testID}-rotulo` : undefined}
+        onLayout={(e) => { setLarguraDoTexto(Math.round(e.nativeEvent.layout.width)); }}
+        style={{ flexShrink: 1 }}
+      >
+        <Txt
+          cor={cores.texto}
+          peso={peso.negrito}
+          variante={varianteQueCabe(titulo, larguraDoTexto)}
+          numeroDeLinhas={1}
+        >
+          {titulo}
+        </Txt>
+      </View>
     </PressionavelAnimado>
+  );
+}
+
+/* ========================================================================
+   A linha de ações
+   ======================================================================== */
+
+/** Uma das duas ações da linha. É um `Botao`, dito como dado. */
+export type AcaoDaLinha = {
+  titulo: string;
+  onPress: () => void;
+  tipo?: PropsBotao["tipo"];
+  icone?: (cor: string) => ReactNode;
+  desabilitado?: boolean;
+  carregando?: boolean;
+  descricao?: string;
+  testID?: string;
+};
+
+/**
+ * DOIS BOTÕES QUE DIVIDEM UMA LINHA, ou empilham quando não cabem.
+ *
+ * Esta peça existe para acabar com TRÊS convenções que conviviam no produto
+ * para a mesma coisa: `View` com `flex:1` em volta de cada botão (a minuta e o
+ * cabeçalho da vistoria), `estilo={{flex:1}}` no próprio botão (a assinatura e
+ * a fila), e `flex` escrito dentro de um `Tocavel` desenhado à mão ("Abrir no
+ * mapa"). Três convenções é como um par de botões acabou com `flex: 2` contra
+ * `flex: 1` e alturas diferentes, sem nada reclamar.
+ *
+ * **A regra mora em `cabemLadoALado`**, e ela é sobre os dois rótulos, não
+ * sobre um. A largura chega por `onLayout`, porque a mesma dupla cabe num
+ * aparelho de 6,9 polegadas e não cabe num de 5,4, e uma decisão escrita à mão
+ * na tela só pode estar certa num dos dois.
+ *
+ * São exatamente DUAS ações, cobrado pelo tipo. Com uma não há o que decidir, e
+ * três botões numa linha de aparelho não cabem em rótulo nenhum deste produto.
+ */
+export function LinhaDeAcoes({ acoes, testID }: {
+  acoes: readonly [AcaoDaLinha, AcaoDaLinha];
+  testID?: string;
+}) {
+  const [largura, setLargura] = useState(0);
+  const emLinha = cabemLadoALado(
+    { titulo: acoes[0].titulo, comIcone: Boolean(acoes[0].icone) },
+    { titulo: acoes[1].titulo, comIcone: Boolean(acoes[1].icone) },
+    largura,
+  );
+
+  return (
+    <View
+      testID={testID}
+      onLayout={(e) => { setLargura(Math.round(e.nativeEvent.layout.width)); }}
+      style={{
+        flexDirection: emLinha ? "row" : "column",
+        /*
+          O mesmo vão nas duas direções, e um só. Empilhados, os dois continuam
+          lendo como UM grupo de ações, e não como dois blocos que por acaso
+          ficaram um embaixo do outro.
+        */
+        gap: espaco.e2,
+      }}
+    >
+      {acoes.map((acao, indice) => (
+        <Botao
+          key={acao.testID ?? `${indice}-${acao.titulo}`}
+          titulo={acao.titulo}
+          onPress={acao.onPress}
+          tipo={acao.tipo}
+          icone={acao.icone}
+          desabilitado={acao.desabilitado}
+          carregando={acao.carregando}
+          descricao={acao.descricao}
+          testID={acao.testID}
+          /*
+            Empilhado, NENHUM estilo: a coluna já estica os dois à largura
+            inteira, e é isso que faz as quatro bordas coincidirem. Botão
+            empilhado com a largura da própria palavra é o desalinhamento que
+            esta peça existe para acabar.
+          */
+          estilo={emLinha ? { flex: 1 } : undefined}
+        />
+      ))}
+    </View>
   );
 }
 
@@ -685,11 +964,20 @@ export function Aviso({ tom, titulo, acao, peso: pesoPedido = "forte", children 
         borderLeftWidth: desenho === "forte" ? 0 : borda.marca,
         borderLeftColor: cores.texto,
         padding: espaco.e3,
-        flexDirection: "row",
+        /*
+          O AVISO PASSA A SER UMA COLUNA, e a linha com o sinal é só o primeiro
+          andar dela.
+
+          Enquanto o aviso inteiro era uma linha, a ação não tinha onde ficar a
+          não ser dentro da coluna de texto, que começa depois do sinal de
+          largura fixa mais o `gap`. O botão nascia 32 pontos para dentro de
+          tudo, e era esse o "torto" do relato: ele não se alinhava com a borda
+          do aviso, nem com a do cartão, nem com a da tela.
+        */
         gap: espaco.e3,
-        alignItems: "flex-start",
       }}
     >
+      <View style={{ flexDirection: "row", gap: espaco.e3, alignItems: "flex-start" }}>
       {/* O sinal é o "nunca só por cor": sem ele, alerta e perigo seriam a
           mesma caixa para quem não distingue as duas cores. O rótulo de
           acessibilidade diz a gravidade em palavra, porque o desenho do
@@ -726,23 +1014,33 @@ export function Aviso({ tom, titulo, acao, peso: pesoPedido = "forte", children 
         <Txt variante="corpoP" cor={desenho === "forte" ? cores.texto : undefined}>
           {children}
         </Txt>
-        {acao && (
-          /*
-            A ação fica DENTRO do aviso, e não numa linha solta embaixo dele.
-            O aviso diz o que houve; separar o que fazer a respeito foi o que
-            produziu, em mais de uma tela deste aplicativo, um parágrafo de
-            explicação no lugar onde deveria estar um botão.
-          */
-          <Botao
-            titulo={acao.titulo}
-            onPress={acao.onPress}
-            descricao={acao.descricao}
-            testID={acao.testID}
-            tipo="secundario"
-            estilo={{ alignSelf: "flex-start", paddingHorizontal: espaco.e3 }}
-          />
-        )}
       </View>
+      </View>
+      {acao && (
+        /*
+          A ação continua DENTRO do aviso, e agora ocupa a largura dele.
+
+          Continuar dentro é a decisão antiga e ela não mudou: o aviso diz o que
+          houve, e separar o que fazer a respeito foi o que produziu, em mais de
+          uma tela deste aplicativo, um parágrafo de explicação no lugar onde
+          deveria estar um botão.
+
+          O que mudou é o alinhamento, e ele deixou de ser decisão desta peça.
+          Sem `alignSelf` e sem recuo próprio, o botão encosta nas duas bordas
+          internas do aviso e passa a ser desenhado como todo outro botão do
+          produto ("Tirar foto", "Capturar localização", "Revisar e concluir",
+          os dois do `Dialogo`): largura inteira do que o contém. O botão que
+          encolhia até a própria palavra era o ÚNICO deste formato no aplicativo,
+          e era por isso que ele parecia solto na tela.
+        */
+        <Botao
+          titulo={acao.titulo}
+          onPress={acao.onPress}
+          descricao={acao.descricao}
+          testID={acao.testID}
+          tipo="secundario"
+        />
+      )}
     </View>
   );
 }

@@ -1,4 +1,4 @@
-import { quantoFalta } from "@dc360/campo";
+import { devolucoesPorOcorrencia, quantoFalta, type ColetaLocal, type ItemFila } from "@dc360/campo";
 import type { Severidade } from "@dc360/shared";
 
 import { distanciaEmMetros, distanciaEmTexto, type Ponto } from "./mapa";
@@ -403,4 +403,66 @@ function motivoDaSugerida<T extends TarefaDoDia>(
 
   const frase = partes.join(", ");
   return `${frase.charAt(0).toUpperCase()}${frase.slice(1)}.`;
+}
+
+/* ========================================================================
+   A MESMA LISTA, EM DUAS TELAS
+   ======================================================================== */
+
+/**
+ * O QUE A TELA DIZ QUANDO A ORDEM NÃO PÔDE CONSIDERAR O CAMINHO.
+ *
+ * Mora aqui, junto de `usouDistancia`, e não dentro de uma das telas, porque
+ * duas telas dizem esta frase: a lista de tarefas e o mapa. Escrita duas vezes,
+ * a segunda envelhece, e a que envelhece é sempre a que ninguém lembra de
+ * abrir. É a mesma razão pela qual o critério da ordem já morava neste arquivo
+ * e não no formulário.
+ */
+export const AVISO_SEM_DISTANCIA =
+  "A ordem não considerou distância: este aparelho não sabe onde você está.";
+
+/**
+ * A LISTA QUE O AGENTE VÊ, que não é a lista que está no disco.
+ *
+ * A tarefa com devolução A CAMINHO sai da lista na hora, e continua no
+ * aparelho, visível na fila de envio, até o servidor confirmar: item que some
+ * antes de o servidor saber é a forma mais cara de perder informação neste
+ * produto. A tarefa com devolução RECUSADA volta para cá, porque sumir sem a
+ * coordenação ter recebido seria o pior dos dois mundos (ninguém foi lá, e
+ * ninguém sabe disso).
+ *
+ * ## Por que isto virou função, e não ficou dentro da tela de tarefas
+ *
+ * Porque agora são DUAS telas perguntando "quais são as minhas tarefas de
+ * hoje": a lista e o mapa. O argumento que segurou a lente de mapa dentro da
+ * tela de tarefas até 15/09/2026 estava certo no medo e errado na forma: duas
+ * telas dizendo "minhas tarefas" podem discordar, e no dia em que discordarem o
+ * agente vai acreditar na errada. O que impedia a discordância não era estarem
+ * na mesma tela, era consumirem a MESMA regra. Aqui está a regra, escrita uma
+ * vez, e `src/__tests__/mapa-tela-dedicada.test.tsx` compara as duas telas item
+ * a item, como o caso das duas lentes comparava antes.
+ */
+export function tarefasDoDia<T extends { id: string }>(
+  guardadas: readonly T[],
+  itensDaFila: readonly ItemFila[],
+): T[] {
+  const devolvendo = devolucoesPorOcorrencia(itensDaFila);
+  return guardadas.filter((t) => devolvendo.get(t.id)?.situacao !== "a_caminho");
+}
+
+/**
+ * Quem este aparelho JÁ vistoriou e ainda não conseguiu enviar.
+ *
+ * `arquivada` fica de fora porque ali o agente pediu, com confirmação, para
+ * vistoriar de novo, e empurrar aquela tarefa para o fim da lista seria o
+ * aplicativo desfazendo em silêncio uma decisão que ele mesmo pediu por escrito.
+ *
+ * Mora aqui pela mesma razão de `tarefasDoDia`: é entrada de `ordemDoDia`, e
+ * entrada calculada de dois jeitos produz duas ordens diferentes para o mesmo
+ * aparelho.
+ */
+export function coletadasNoAparelho(coletas: readonly ColetaLocal[]): Set<string> {
+  return new Set(
+    coletas.filter((c) => c.situacao !== "arquivada").map((c) => c.ocorrenciaId),
+  );
 }

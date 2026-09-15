@@ -55,9 +55,19 @@ const AGENTE = { latitude: -27.595378, longitude: -48.548050 };
 const naoDesenhou = jest.fn();
 const desistiu = jest.fn();
 
+/**
+ * As sobras aceitas aqui são só as COMUNS aos dois feitios da peça.
+ *
+ * `PropsDoMapa` virou união (um imóvel, ou N pinos), e `Partial` de uma união
+ * não se espalha dentro de um JSX que já escolheu um dos lados: o TypeScript
+ * passa a não saber qual dos dois está sendo montado. O que estes casos variam
+ * é altura e recuo, que valem para os dois.
+ */
+type SobrasDoMapa = { altura?: number | "preencher"; recuoInferior?: number };
+
 async function desenhar(
   decisao: ReturnType<typeof decidirModoDoMapa> | null,
-  extras: Partial<React.ComponentProps<typeof MapaDoImovel>> = {},
+  extras: SobrasDoMapa = {},
 ): Promise<void> {
   await act(async () => {
     await render(
@@ -232,9 +242,9 @@ describe("O prazo, que é o `gm_authFailure` que o SDK nativo não tem", () => {
   });
 });
 
-describe("O enquadramento cabe os dois pontos", () => {
+describe("O enquadramento cabe TODOS os pontos", () => {
   it("sem o agente, abre em volta do imóvel", () => {
-    const janela = enquadrar(IMOVEL, null);
+    const janela = enquadrar([IMOVEL], null)!;
     expect(janela.latitude).toBe(IMOVEL.latitude);
     expect(janela.longitude).toBe(IMOVEL.longitude);
     expect(janela.latitudeDelta).toBeGreaterThan(0);
@@ -246,7 +256,7 @@ describe("O enquadramento cabe os dois pontos", () => {
       agente não está por perto, que é o oposto do que este mapa existe para
       responder.
     */
-    const janela = enquadrar(IMOVEL, AGENTE);
+    const janela = enquadrar([IMOVEL], AGENTE)!;
     expect(janela.latitude).toBeCloseTo((IMOVEL.latitude + AGENTE.latitude) / 2, 6);
     expect(janela.latitudeDelta).toBeGreaterThan(
       Math.abs(IMOVEL.latitude - AGENTE.latitude),
@@ -259,9 +269,107 @@ describe("O enquadramento cabe os dois pontos", () => {
       mostrando dois pinos e nenhuma rua, que não orienta ninguém.
     */
     const coladinho = { latitude: IMOVEL.latitude + 0.00001, longitude: IMOVEL.longitude };
-    const janela = enquadrar(IMOVEL, coladinho);
+    const janela = enquadrar([IMOVEL], coladinho)!;
     expect(janela.latitudeDelta).toBeGreaterThan(0.001);
     expect(janela.longitudeDelta).toBeGreaterThan(0.001);
+  });
+
+  /*
+    COM N TAREFAS, a aritmética de dois pontos vira mínimo e máximo com folga.
+    Enquadrar pela primeira deixaria as outras fora da tela, e um mapa que
+    mostra uma tarefa quando existem cinco não é um mapa incompleto: ele é um
+    mapa que afirma que só existe uma.
+  */
+  it("com N pontos, a janela contém o mais ao norte e o mais ao sul", () => {
+    const norte = { latitude: -27.560000, longitude: -48.548050 };
+    const sul = { latitude: -27.610000, longitude: -48.548050 };
+    const meio = { latitude: -27.590000, longitude: -48.500000 };
+
+    const janela = enquadrar([meio, norte, sul], null)!;
+
+    expect(janela.latitude).toBeCloseTo((norte.latitude + sul.latitude) / 2, 6);
+    expect(janela.latitudeDelta).toBeGreaterThan(norte.latitude - sul.latitude);
+    /* E o eixo leste-oeste sai do ponto que está mais a leste, e não da média:
+       sem isso, o `meio` cairia fora pela lateral. */
+    expect(janela.longitudeDelta).toBeGreaterThan(meio.longitude - norte.longitude);
+  });
+
+  /*
+    Sem ponto nenhum não há janela possível, e inventar uma é pior do que não
+    desenhar: a que o SDK escolhe sozinho fica no meio do oceano Atlântico.
+  */
+  it("sem ponto nenhum, não há janela", () => {
+    expect(enquadrar([], null)).toBeNull();
+  });
+});
+
+/* ============================================================
+   N pinos, a legenda que vem com eles, e o imóvel só
+   ============================================================ */
+
+describe("Com pinos, a peça desenha a criticidade E a legenda dela", () => {
+  const PINOS = [
+    {
+      id: "a", ponto: IMOVEL, rotulo: "Servidão Boa Esperança, 148", severidade: "critica" as const,
+    },
+    {
+      id: "b",
+      ponto: { latitude: -27.58, longitude: -48.54 },
+      rotulo: "Rua de Cima, 9",
+      severidade: "baixa" as const,
+    },
+  ];
+
+  async function comPinos(decisao: ReturnType<typeof decidirModoDoMapa>): Promise<void> {
+    await act(async () => {
+      await render(
+        <ProvedorDeTema>
+          <MapaDoImovel
+            pinos={PINOS}
+            agente={AGENTE}
+            mapa={{
+              decisao,
+              aoGoogleNaoDesenhar: naoDesenhou,
+              desistirDeEsperar: desistiu,
+            }}
+          />
+        </ProvedorDeTema>,
+      );
+    });
+  }
+
+  /*
+    A LEGENDA VEM COM OS PINOS, no mesmo componente, e não é responsabilidade
+    da tela. `CLAUDE.md` proíbe comunicar estado só por cor: se a legenda fosse
+    da tela, bastaria uma tela nova esquecê-la para o produto passar a comunicar
+    gravidade por cor sozinha, sem nenhum arquivo ficar visivelmente errado.
+  */
+  it("a legenda aparece no mapa do Google", async () => {
+    await comPinos(decidirModoDoMapa({ daApi: "a-mesma", doBuild: "a-mesma" }));
+    expect(screen.getByTestId("legenda-de-criticidade")).toBeTruthy();
+    expect(screen.getByText("Crítica")).toBeTruthy();
+  });
+
+  it("e aparece igual no plano de reserva, porque o pino é colorido nos dois", async () => {
+    await comPinos(decidirModoDoMapa({ daApi: "", doBuild: "" }));
+    expect(screen.getByTestId("legenda-de-criticidade")).toBeTruthy();
+  });
+
+  it("um marcador por pino, com a identidade da ocorrência", async () => {
+    await comPinos(decidirModoDoMapa({ daApi: "a-mesma", doBuild: "a-mesma" }));
+    expect(mapaDublado.marcadores.map((m) => m["identifier"])).toEqual(["a", "b"]);
+  });
+
+  /*
+    E O IMÓVEL SOZINHO CONTINUA SEM LEGENDA E SEM COR DE GRAVIDADE.
+
+    É a tela de vistoria: uma casa só, nenhuma escala de comparação e nenhuma
+    legenda. Pintar o marcador ali seria exatamente o que a regra proíbe, e é a
+    razão que estava escrita no código antes desta frente.
+  */
+  it("com um imóvel só, não há legenda de criticidade nenhuma", async () => {
+    await desenhar(decidirModoDoMapa({ daApi: "a-mesma", doBuild: "a-mesma" }));
+    expect(screen.queryByTestId("legenda-de-criticidade")).toBeNull();
   });
 });
 

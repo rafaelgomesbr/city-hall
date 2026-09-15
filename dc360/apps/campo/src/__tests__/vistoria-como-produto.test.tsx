@@ -632,6 +632,38 @@ describe("as fotografias", () => {
       StyleSheet.flatten(screen.getByTestId("apagar-foto-1").props.style).minHeight,
     ).toBe(toque);
   });
+
+  /*
+    A régua vale nos DOIS eixos, e só a altura estava cobrada.
+
+    O alvo tinha 52 de altura e a largura da palavra "Apagar", que dá uns 50: o
+    portão de acessibilidade mede altura, passava, e o dedo com luva errava na
+    horizontal, no único botão desta tela que apaga prova de uma interdição.
+    Agora ele tem pelo menos a largura da miniatura que ele apaga, o que também
+    acaba com o texto mais estreito que a imagem logo acima dele.
+  */
+  it("e o alvo de apagar tem largura, e não só altura", async () => {
+    mockRascunhoGuardado = rascunho({ fotos: [FOTO] });
+    await abrirATela();
+
+    const estilo = StyleSheet.flatten(screen.getByTestId("apagar-foto-1").props.style);
+    expect(estilo.minWidth).toBeGreaterThanOrEqual(toque);
+  });
+
+  /*
+    "Cancelar" é o rótulo que este produto recusa em toda outra tela, e ele
+    tinha sobrevivido aqui: num aplicativo de campo ele é ambíguo do jeito caro
+    (cancelar a foto, ou cancelar a vistoria?).
+  */
+  it("a saída da câmera diz o que faz, e não 'Cancelar'", async () => {
+    mockRascunhoGuardado = rascunho();
+    await abrirATela();
+    await fireEvent.press(screen.getByText("Tirar foto"));
+
+    expect(await screen.findByTestId("fechar-a-camera")).toBeTruthy();
+    expect(screen.getByText("Voltar sem fotografar")).toBeTruthy();
+    expect(screen.queryByText("Cancelar")).toBeNull();
+  });
 });
 
 /* ============================================================

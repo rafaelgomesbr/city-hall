@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { mensagemDeUrlSemVerificacao, urlDoBancoVerifica } from "../../api/src/banco/tls.js";
 
 /**
  * A configuração do console, e o que ela recusa.
@@ -26,6 +27,23 @@ const ESQUEMA = z.object({
   NODE_ENV: z.string().default("development"),
 
   CONSOLE_PORT: z.coerce.number().int().positive().default(3344),
+
+  /**
+   * Em que endereço o processo atende.
+   *
+   * O PADRÃO CONTINUA SENDO `127.0.0.1`, e isso é deliberado: na máquina de
+   * quem desenvolve, o certo é não aceitar conexão de fora. Dentro de um
+   * contêiner o certo é o oposto, e quem declara isso é o ambiente
+   * (`CONSOLE_HOST` em `fly.console.toml`), como a API já faz com `HOST`.
+   *
+   * O que este arquivo acrescenta é a RECUSA em produção, na validação lá
+   * embaixo, porque o defeito que o padrão produz é mudo: dentro do contêiner,
+   * `127.0.0.1` é o loopback DO CONTÊINER, então o processo sobe inteiro,
+   * escreve "servidor no ar" no log, e o balanceador do provedor bate na porta
+   * publicada sem ninguém atender. Não há erro em lugar nenhum: há um
+   * aplicativo de pé que não responde, e o diagnóstico começa pelo lugar errado
+   * (rede, certificado, porta) justamente porque o log diz que subiu.
+   */
   CONSOLE_HOST: z.string().default("127.0.0.1"),
 
   /**
@@ -96,6 +114,26 @@ const ESQUEMA = z.object({
 
 export type Config = z.infer<typeof ESQUEMA>;
 
+/**
+ * Os endereços que só a própria máquina alcança.
+ *
+ * Lista de NOMES, e não expressão regular sobre a faixa `127.0.0.0/8`, porque o
+ * que se quer recusar aqui é o que uma pessoa realmente digita ou deixa como
+ * padrão. Um endereço de loopback exótico (`127.0.0.2`) não é o defeito que
+ * este portão existe para pegar, e tentar cobri-lo faria a regra recusar
+ * também endereços legítimos no dia em que alguém colocar o console atrás de
+ * um proxy na mesma máquina.
+ *
+ * `::` e `0.0.0.0` NÃO entram: os dois atendem em todas as interfaces, que é
+ * exatamente o que se pede em contêiner.
+ */
+const ENDERECOS_DE_LOOPBACK: ReadonlySet<string> = new Set([
+  "127.0.0.1",
+  "localhost",
+  "::1",
+  "[::1]",
+]);
+
 export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Config {
   const resultado = ESQUEMA.safeParse(ambiente);
   if (!resultado.success) {
@@ -114,6 +152,41 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
       + "contra um Postgres em WebAssembly efêmero, sem métrica nenhuma dentro, e "
       + "mostraria todos os municípios como calados: o alarme que ele existe para "
       + "dar, disparado por ele mesmo.",
+    );
+  }
+
+  /*
+    A verificação do certificado do banco, conferida AQUI além de em
+    `montarConfiguracaoDoPool`.
+
+    É a mesma duplicação deliberada que a API faz com `DATABASE_URL`, e a razão
+    está escrita em `api/src/banco/tls.js`: a partida precisa recusar antes de
+    qualquer conexão nascer, e a montagem do pool precisa recusar porque nem
+    toda conexão passa por este arquivo. A diferença aqui é só a mensagem, que
+    nomeia `CONSOLE_DATABASE_URL`: um operador que lesse "DATABASE_URL" iria
+    procurar o defeito no segredo da API, que está certo.
+  */
+  if (producao && config.CONSOLE_DATABASE_URL
+      && !urlDoBancoVerifica(config.CONSOLE_DATABASE_URL)) {
+    throw new Error(
+      mensagemDeUrlSemVerificacao("CONSOLE_DATABASE_URL", config.CONSOLE_DATABASE_URL),
+    );
+  }
+
+  /*
+    O endereço de escuta vem POR ÚLTIMO entre as recusas de produção, e a ordem
+    é deliberada: um console apontado para o banco errado é um problema pior que
+    um console que atende no endereço errado, e quem implanta deve ler primeiro
+    a mensagem do problema pior. As duas derrubam a partida do mesmo jeito.
+  */
+  if (producao && ENDERECOS_DE_LOOPBACK.has(config.CONSOLE_HOST.trim().toLowerCase())) {
+    throw new Error(
+      `Em produção o console recusa CONSOLE_HOST=${config.CONSOLE_HOST}. Dentro de um `
+      + "contêiner o loopback é o do próprio contêiner, então o processo subiria "
+      + "inteiro, diria no log que está no ar, e o balanceador bateria na porta "
+      + "publicada sem ninguém atender: um aplicativo de pé que não responde, e "
+      + "nenhuma linha de erro apontando para a causa. Use CONSOLE_HOST=0.0.0.0, "
+      + "que é o que `fly.console.toml` declara.",
     );
   }
 

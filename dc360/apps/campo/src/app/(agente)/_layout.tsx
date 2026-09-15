@@ -8,13 +8,14 @@ import { assinarAvisos, avisosGuardados, type AvisosGuardados } from "../../dado
 import { useSinal } from "../../dados/conectividade";
 import { useSessao } from "../../dados/sessao";
 import { enderecoDaApi } from "../../dados/api";
-import { Txt, useTema } from "../../ui/componentes";
+import { useTema } from "../../ui/componentes";
+import { AvatarDoAgente, BarraDeAbas } from "../../ui/BarraDeAbas";
 import { FaixaDeSincronizacao, decidirFaixa, type EstadoDaFaixa } from "../../ui/FaixaDeSincronizacao";
-import { IconeEnvio, IconeEquipe, IconeTarefas } from "../../ui/icones";
+import { IconeEnvio, IconeMapa, IconeTarefas } from "../../ui/icones";
 import { familiaDoTexto } from "../../ui/tipografia";
 import { useFontes } from "../../ui/fontes";
 import { useReducaoDeMovimento } from "../../ui/useReducaoDeMovimento";
-import { borda, easing, espaco, fonte, icone, movimento, peso, raio, toque } from "../../ui/tokens";
+import { easing, icone, movimento, peso } from "../../ui/tokens";
 
 /**
  * A área autenticada, e a faixa de conectividade que fica no topo dela.
@@ -27,102 +28,46 @@ import { borda, easing, espaco, fonte, icone, movimento, peso, raio, toque } fro
  */
 
 /**
- * A pílula do item ativo, e a conta que decide o tamanho dela.
+ * QUEM DESENHA A BARRA DEIXOU DE SER O REACT NAVIGATION.
  *
- * A pílula SOBREVIVEU à troca da barra flutuante pela barra padrão, e a razão
- * é a regra da casa: nada neste aplicativo se comunica só por cor. Sem ela, a
- * única diferença entre a aba aberta e as outras duas seria o violeta do traço
- * e do rótulo, porque a palavra embaixo do ícone é a mesma nos dois estados.
- * Quem não distingue violeta de cinza, ou está com sol forte na tela, ficaria
- * sem saber onde está. Um retângulo preenchido atrás do ícone é uma pista de
- * FORMA, e forma não depende de enxergar cor.
+ * O RECLAME, na letra: "esse menu tá feio, parece que foi gambiarra, ele não se
+ * encaixa ali embaixo, tem um espaço branco embaixo dos 3 ícones, um espaço
+ * inútil, essa desgraça deve ocupar todo o espaço abaixo sem ficar com as
+ * calças curtas".
  *
- * O que mudou foi o tamanho, e ele agora sai de uma conta em vez de gosto. A
- * barra flutuante tinha altura própria (60) e podia acomodar o que quisesse;
- * a barra padrão recebe do sistema 49 pontos mais a área segura, e o item
- * dentro dela gasta 5 de recuo em cima e embaixo. Sobram 39 para o ícone e o
- * rótulo juntos. O rótulo é `fonte.legenda` (12), que ocupa cerca de 15 com a
- * entrelinha que o React Native calcula sozinho. O que sobra para a pílula são
- * 24, que é exatamente `icone.acao`, com o ícone de `icone.rotulo` (20) dentro
- * e 2 de folga de cada lado. Pílula maior que isso não some: ela EMPURRA o
- * rótulo para fora da barra, e o rótulo é obrigatório aqui.
+ * A causa foi medida: o `BottomTabBar` desenha 49 pontos de conteúdo e
+ * ACRESCENTA a área segura do aparelho como espaço vazio depois do bloco. O
+ * destaque do item aberto (`tabBarActiveBackgroundColor` mais `tabBarItemStyle`)
+ * cobria os 49 e parava ali, deixando uma tira morta debaixo dele. Nenhuma
+ * propriedade nossa criava aquilo e nenhuma preenchia.
+ *
+ * Por isso a barra passou a ser `ui/BarraDeAbas.tsx`, com a conta da altura
+ * escrita lá. A divisão de trabalho é esta, e ela é o que mantém este arquivo
+ * pequeno: **o layout diz O QUE cada aba mostra** (a palavra, o ícone, o número
+ * do crachá, a frase falada, a cor semântica do crachá), porque é aqui que a
+ * fila e o sino são lidos; **a barra diz COMO isso é desenhado.**
+ *
+ * O que saiu daqui junto com a barra padrão: `tabBarStyle`, `tabBarItemStyle`,
+ * `tabBarActiveBackgroundColor`, `tabBarLabelStyle` e o par de `tintColor`.
+ * Nenhuma delas é lida por um `tabBar` próprio, e opção que ninguém lê é opção
+ * que faz a próxima pessoa ajustar o menu no arquivo errado.
  */
-/**
- * O DESTAQUE DA ABA ABERTA, e por que ele deixou de ser só atrás do ícone.
- *
- * Até 14/09/2026 a pílula era desenhada dentro do `tabBarIcon`, então ela
- * abraçava o ícone e deixava a palavra de fora. O Rafa viu no aparelho e disse
- * a frase que descreve o defeito melhor que qualquer explicação: "o menu marca
- * apenas o ícone quando ativo, deveria pegar o ícone e o texto".
- *
- * Ele tem razão, e a razão é a mesma que obriga o rótulo a existir: ícone e
- * palavra são UMA peça, e destacar metade dela faz a outra metade parecer de
- * outro item. O desenho anterior tinha um limite escrito (a pílula não podia
- * passar de `icone.acao`, senão empurrava o rótulo para fora da barra), e esse
- * limite era consequência de a pílula morar no lugar errado.
- *
- * Agora quem pinta é `tabBarActiveBackgroundColor`, que o próprio navegador
- * aplica ao item INTEIRO (ícone, crachá e rótulo), e o canto arredondado vem
- * de `tabBarItemStyle`. Três coisas sobrevivem de graça, e cada uma delas
- * custaria código num botão próprio: o crachá numérico continua posicionado
- * pelo navegador, o rótulo de acessibilidade continua o mesmo, e a área de
- * toque continua sendo a do sistema.
- *
- * O que NÃO muda é o porquê da peça existir: ela é a SEGUNDA pista de qual aba
- * está aberta, ao lado da cor do traço, para quem não distingue violeta de
- * cinza e para quem está sob sol forte. A regra da casa é que nada se comunica
- * só por cor, e ela vale para o menu igual.
- */
-const DESTAQUE_DA_ABA = {
-  borderRadius: raio.pilula,
-  /*
-    `hidden` porque a cor de fundo é pintada pelo navegador no elemento de
-    DENTRO. Sem o corte, o arredondamento do lado de fora não alcança a tinta e
-    o destaque sai quadrado, que é como ele estava na primeira tentativa.
-  */
-  overflow: "hidden" as const,
-  /*
-    Folga SÓ na horizontal, e isto é cicatriz: a primeira versão tinha
-    `marginVertical: espaco.e1`, e o Rafa viu no aparelho que "os ícones do
-    menu ficaram achatados". A palavra saía cortada ao meio.
-
-    A conta explica: o sistema dá 49 pontos mais a área segura, e ali dentro
-    precisam caber o ícone (24) e o rótulo (12 mais entrelinha). São quase 40 de
-    conteúdo em 49 de caixa, e quatro pontos em cima mais quatro embaixo comem a
-    folga inteira. Na horizontal sobra espaço de sobra, e é de lá que vem o
-    formato de pílula.
-
-    Ou seja: o limite que o desenho anterior escrevia como "a pílula não passa
-    de 24 de altura" não sumiu quando a pílula mudou de lugar. Ele só mudou de
-    endereço, e mora aqui agora.
-  */
-  marginHorizontal: espaco.e2,
-};
 
 /**
- * O ícone da aba, sem peça nenhuma em volta.
+ * O ícone de uma aba, no tamanho que a conta da barra reserva.
  *
- * Ele ficou sem nada porque o destaque passou para o item inteiro, e duas
- * peças pintadas uma dentro da outra desenhariam uma pílula dentro de outra.
+ * `icone.acao` (24) e não `icone.rotulo` (20): a conta de altura de
+ * `BarraDeAbas` reserva 24 para o ícone, e o desenho anterior gastava 20 dentro
+ * de uma pílula de 24. Sem a pílula, o que sobrava eram quatro pontos de nada
+ * em volta de um pictograma que o agente olha de relance, com sol na tela.
  */
-function IconeDaAba({
-  Icone, cor, ativo,
-}: {
+function IconeDaAba({ Icone, cor }: {
   /* `ColorValue` e não `string`: é o que o `tabBarIcon` entrega, e é o mesmo
      tipo que os ícones já aceitam. */
   Icone: (p: { cor: ColorValue; tamanho?: number }) => React.JSX.Element;
   cor: ColorValue;
-  ativo: boolean;
 }) {
-  return (
-    <View
-      /* O identificador existe para o portão conseguir provar qual item está
-         aberto sem depender da cor. */
-      testID={ativo ? "icone-da-aba-ativa" : "icone-da-aba"}
-    >
-      <Icone cor={cor} tamanho={icone.rotulo} />
-    </View>
-  );
+  return <Icone cor={cor} tamanho={icone.acao} />;
 }
 
 export default function LayoutDoAgente() {
@@ -301,65 +246,37 @@ export default function LayoutDoAgente() {
       />
 
       {/*
-        Barra PADRÃO, colada na borda de baixo.
+        A barra, colada na borda de baixo e desenhada por nós.
 
-        O motivo primeiro de existir uma barra é alcance, não estética. Antes
-        de existir barra nenhuma, o único caminho para a fila era tocar a faixa
-        lá em cima, e "Minha conta" ficava no FIM do rolamento das tarefas. Num
-        aparelho de 6,7 polegadas segurado com uma mão, no alto de um barranco,
-        o topo da tela é o ponto mais distante do polegar que existe.
+        O motivo primeiro de existir uma barra é alcance, não estética. Antes de
+        existir barra nenhuma, o único caminho para a fila era tocar a faixa lá
+        em cima, e "Minha conta" ficava no FIM do rolamento das tarefas. Num
+        aparelho de 6,7 polegadas segurado com uma mão, no alto de um barranco, o
+        topo da tela é o ponto mais distante do polegar que existe.
 
-        Ela FLUTUAVA, e o Rafa reprovou na primeira tela que abriu no iPhone:
-        "esse aplicativo não combina com menu flutuante, deixa um menu padrão
-        inferior". Ele tem razão, e a razão é maior que gosto. Menu flutuante é
-        gramática de aplicativo de consumo, onde o conteúdo é uma esteira
-        infinita que passa por baixo do cromo. Aqui o conteúdo são tarefas e
-        formulários com começo e fim, o aplicativo é ferramenta de trabalho, e
-        ferramenta de trabalho usa o desenho que o sistema operacional já
-        ensinou para todo mundo. O agente não deve gastar um segundo aprendendo
-        o nosso menu.
-
-        O que a troca traz de concreto, e cada item era um defeito da versão
-        flutuante:
-
-        - a ALTURA deixa de ser nossa. Some `height`, e com ela some o
-          conflito com a área segura: `getTabBarHeight` do React Navigation
-          devolve a altura declarada no estilo quando ela existe, então o
-          número escrito à mão ATROPELAVA a conta do sistema (49 mais o
-          inset), e o resultado dependia do aparelho;
-        - some `position: absolute` com `bottom` e `marginHorizontal`, e a
-          barra volta a ocupar lugar no leiaute em vez de pairar sobre ele;
-        - volta a `borderTopWidth`, que é o fio que separa a barra do conteúdo
-          agora que não há mais sombra em volta de uma pílula;
-        - o `paddingBottom` do `sceneStyle` PERDE a razão de existir, e é a
-          parte mais fácil de esquecer. Ele reservava, no fim de toda rolagem,
-          a altura da barra flutuante mais a folga. Com a barra ocupando lugar
-          no leiaute, o React Navigation já encurta a cena e aplica o inset, e
-          manter o recuo deixaria um vão morto no fim de toda lista do
-          aplicativo: o oposto exato do defeito que ele existia para consertar.
-
-        Três abas, e não cinco. O Instagram tem cinco destinos de peso igual;
-        este aplicativo tem um destino (Tarefas) e uma tarefa (Vistoria). Duas
-        abas a mais seriam duas invenções.
+        QUATRO abas, e não três nem cinco. O Mapa entrou porque ele responde uma
+        pergunta que a lista não responde ("o que está perto de mim agora"), e
+        porque o agente com quatro tarefas no dia decide a ORDEM delas por
+        distância, não por prazo. Continuam sendo destinos de peso igual, que é a
+        régua para uma aba existir: a vistoria não é aba porque não é destino, é
+        tarefa.
 
         Ícone COM palavra, sempre, e aqui o produto se afasta do Instagram de
-        propósito. Lá o ícone sozinho funciona porque a pessoa abre o
-        aplicativo várias vezes por dia e decorou os pictogramas. O agente
-        abre este duas vezes por semana, com sol na tela e luva no dedo. A
-        regra da casa é que nada se comunica só por cor; ícone sozinho falha
-        pela mesma razão.
+        propósito. Lá o ícone sozinho funciona porque a pessoa abre o aplicativo
+        várias vezes por dia e decorou os pictogramas. O agente abre este duas
+        vezes por semana, com sol na tela e luva no dedo. A regra da casa é que
+        nada se comunica só por cor; ícone sozinho falha pela mesma razão.
 
-        O item ativo continua ganhando uma pílula preenchida atrás do ícone,
-        agora do tamanho que cabe na barra do sistema (ver `PILULA`). Ela
-        sobreviveu à troca porque é funcional e não decorativa: soma uma
-        segunda pista à cor, para quem não distingue violeta de cinza.
-
-        E a barra SOME dentro da vistoria. Aquela tela é uma tarefa com fim
-        irreversível, tem o formulário mais longo do produto, e uma escotilha
-        de fuga permanente embaixo do polegar, ao lado de um rolamento longo, é
-        como se produz vistoria pela metade.
+        E A BARRA PASSOU A APARECER DENTRO DA VISTORIA. Isto desfaz uma decisão
+        que este aplicativo defendia em três lugares: escotilha de fuga
+        permanente embaixo do polegar, ao lado do formulário mais longo do
+        produto, é como se produz vistoria pela metade. O dono desfez COM
+        compensação, e a compensação mora em `BarraDeAbas`: tocar em outra aba
+        com vistoria começada pergunta antes. O rascunho é gravado no disco a
+        cada toque, então a pergunta é sobre ATENÇÃO, e não sobre perda.
       */}
       <Tabs
+        tabBar={(props) => <BarraDeAbas {...props} />}
         screenOptions={{
           headerStyle: { backgroundColor: tema.superficie },
           headerTintColor: tema.texto,
@@ -389,58 +306,21 @@ export default function LayoutDoAgente() {
             ...(fontes.prontas ? {} : { fontWeight: peso.negrito }),
           },
           /*
-            Só a cor. O recuo no fim da rolagem SAIU junto com a barra
-            flutuante: ele reservava a altura do menu mais a folga, e agora que
-            a barra ocupa lugar no leiaute ele viraria um vão morto no fim de
-            toda lista do aplicativo.
+            Só a cor. O recuo no fim da rolagem não existe: a barra é IRMÃ da
+            cena no leiaute, então o navegador já encurta a cena pela altura
+            dela, e um recuo aqui viraria um vão morto no fim de toda lista do
+            aplicativo.
           */
           sceneStyle: { backgroundColor: tema.fundo },
           ...transicaoEntreTelas,
-          tabBarActiveTintColor: tema.destaque,
-          tabBarInactiveTintColor: tema.textoDiscreto,
           /*
-            Três propriedades, e nenhuma delas é de posição.
-
-            Posição, altura e recuo inferior são do sistema agora: sem `height`
-            no estilo, `getTabBarHeight` devolve 49 mais a área segura que o
-            aparelho informa, que é o único número que acerta no iPhone com
-            faixa inicial, no iPhone com botão e no Android com barra de
-            gestos. Nenhum dos três sobreviveria a um valor escrito aqui.
-
-            `superficie` e não `elevacao(tema).flutuante`: a elevação existe
-            para peça que paira POR CIMA do conteúdo, e esta não paira mais.
-            Quem separa a barra do que está em cima dela agora é o fio, que é
-            justamente o que a barra flutuante tinha desligado com
-            `borderTopWidth: 0` para não cortar a pílula ao meio.
+            Nenhuma opção de desenho da barra daqui para baixo, e a ausência é
+            deliberada: `tabBarStyle`, `tabBarItemStyle`,
+            `tabBarActiveBackgroundColor`, `tabBarLabelStyle` e o par de
+            `tintColor` são lidos pelo `BottomTabBar` PADRÃO, e só por ele. Com
+            `tabBar` próprio, elas viram texto morto que faz a próxima pessoa
+            ajustar o menu no arquivo errado. Quem desenha é `ui/BarraDeAbas.tsx`.
           */
-          tabBarStyle: {
-            backgroundColor: tema.superficie,
-            borderTopWidth: borda.fio,
-            borderTopColor: tema.borda,
-          },
-          /*
-            O destaque do item ABERTO, ícone e rótulo juntos. Ver
-            `DESTAQUE_DA_ABA` no topo deste arquivo para o porquê de ele ter
-            saído de dentro do ícone.
-          */
-          tabBarActiveBackgroundColor: tema.superficie2,
-          tabBarItemStyle: DESTAQUE_DA_ABA,
-          /*
-            O rótulo da barra era a última superfície do aplicativo ainda
-            desenhada na fonte do sistema, pelo mesmo descuido que o título do
-            cabeçalho tinha em `app/_layout.tsx`. Com a fonte do produto no
-            resto da tela, a palavra embaixo do ícone saía com outro desenho e
-            outra largura, e é a primeira coisa que o olho compara.
-
-            O peso só é declarado quando a fonte NÃO carregou: cada peso tem um
-            arquivo próprio, e pedir `fontWeight` por cima da família certa faz
-            o Android sintetizar em cima de um arquivo que já é o peso pedido.
-          */
-          tabBarLabelStyle: {
-            fontSize: fonte.legenda,
-            fontFamily: familiaDoTexto({ peso: peso.forte, fontesProntas: fontes.prontas }),
-            ...(fontes.prontas ? {} : { fontWeight: peso.forte }),
-          },
         }}
       >
         <Tabs.Screen
@@ -448,9 +328,20 @@ export default function LayoutDoAgente() {
           options={{
             title: "Minhas tarefas",
             tabBarLabel: "Tarefas",
-            tabBarIcon: ({ color, focused }) => (
-              <IconeDaAba Icone={IconeTarefas} cor={color} ativo={focused} />
-            ),
+            tabBarIcon: ({ color }) => <IconeDaAba Icone={IconeTarefas} cor={color} />,
+          }}
+        />
+        {/*
+          O MAPA, entre as tarefas e o envio, e a posição é a ordem de uso: o
+          agente abre a lista, decide por onde começar (é para isso que o mapa
+          serve) e só volta ao envio no fim do dia, quando desce o morro.
+        */}
+        <Tabs.Screen
+          name="mapa"
+          options={{
+            title: "Mapa",
+            tabBarLabel: "Mapa",
+            tabBarIcon: ({ color }) => <IconeDaAba Icone={IconeMapa} cor={color} />,
           }}
         />
         <Tabs.Screen
@@ -458,12 +349,16 @@ export default function LayoutDoAgente() {
           options={{
             title: "Fila de envio",
             tabBarLabel: "Envio",
-            tabBarIcon: ({ color, focused }) => (
-              <IconeDaAba Icone={IconeEnvio} cor={color} ativo={focused} />
-            ),
+            tabBarIcon: ({ color }) => <IconeDaAba Icone={IconeEnvio} cor={color} />,
             // Número, e não pontinho colorido: o agente precisa saber QUANTAS
             // coletas estão esperando, não só que existe alguma.
             tabBarBadge: naFila > 0 ? naFila : undefined,
+            /*
+              SÓ AS DUAS CORES, e o tamanho saiu junto com a barra padrão: quem
+              desenha o crachá agora é `BarraDeAbas`, e o degrau tipográfico dele
+              é decisão de desenho, não de contagem. O que continua morando aqui
+              é o que é SEMÂNTICO: a cor muda com o que o número significa.
+            */
             tabBarBadgeStyle: {
               backgroundColor: bloqueados > 0 ? tema.perigoTexto : tema.destaque,
               /*
@@ -475,7 +370,6 @@ export default function LayoutDoAgente() {
                 tema que se usa à noite e debaixo de capa de chuva.
               */
               color: tema.sobreDestaque,
-              fontSize: fonte.legenda,
             },
             /*
               O RÓTULO FALADO NÃO PROMETE ENVIO, e essa é a correção.
@@ -514,19 +408,27 @@ export default function LayoutDoAgente() {
           e achar um botão secundário no rodapé. A rota `conta` saiu junto, e
           não sobrou redirecionamento: ninguém liga para ela de lugar nenhum.
 
-          O crachá aqui é o SINO (`GET /avisos`), e ele é o que compra a
-          visibilidade de qualquer tela sem inventar uma quarta aba. A razão de
-          o conteúdo morar dentro do Perfil, e não num sino fixo no topo, está
-          escrita no cabeçalho de `perfil.tsx`: o sino precisa de rede, e o topo
-          desta tela já pertence à `FaixaDeSincronizacao`, que nunca mente.
+          O crachá aqui é o SINO (`GET /avisos`). A razão de o conteúdo morar
+          dentro do Perfil, e não num sino fixo no topo, está escrita no
+          cabeçalho de `perfil.tsx`: o sino precisa de rede, e o topo desta tela
+          já pertence à `FaixaDeSincronizacao`, que nunca mente.
+
+          O ícone desta aba deixou de ser o de equipe e passou a ser A PESSOA: um
+          círculo com as iniciais de quem está com o aparelho. `IconeEquipe`
+          dizia "equipe", e esta aba não é a equipe (ela está DENTRO do perfil):
+          é você. Num aparelho de plantão, que troca de mão a cada turno, saber
+          de quem é a sessão aberta é a primeira pergunta de quem pega o
+          telefone.
         */}
         <Tabs.Screen
           name="perfil"
           options={{
             title: "Meu perfil",
             tabBarLabel: "Perfil",
-            tabBarIcon: ({ color, focused }) => (
-              <IconeDaAba Icone={IconeEquipe} cor={color} ativo={focused} />
+            /* A foto é pendência nomeada, e não esquecimento: ver
+               `AvatarDoAgente`. `identidade` não traz rosto nenhum hoje. */
+            tabBarIcon: ({ focused }) => (
+              <AvatarDoAgente nome={identidade.nome} ativo={focused} />
             ),
             // Número, e não pontinho: o agente precisa saber QUANTOS avisos
             // esperam, e o número é o que decide se vale abrir agora.
@@ -544,7 +446,6 @@ export default function LayoutDoAgente() {
               */
               backgroundColor: tema.alertaTexto,
               color: tema.sobreDestaque,
-              fontSize: fonte.legenda,
             },
             tabBarAccessibilityLabel: avisosPorLer === 0
               ? "Perfil"
@@ -552,10 +453,28 @@ export default function LayoutDoAgente() {
                 + `${avisosPorLer === 1 && !avisosTruncados ? "aviso" : "avisos"} por ler`,
           }}
         />
-        {/* Fora da barra, e sem barra: ver o comentário acima. */}
+        {/*
+          FORA DA BARRA, e ÚLTIMA. As duas coisas são decisões, e a segunda é a
+          que some da vista mais fácil.
+
+          `href: null` a tira da barra sem tirá-la das rotas: ela continua sendo
+          empurrada pela lista de tarefas, com parâmetro. Ela não é destino, é
+          tarefa, e tarefa não vira aba.
+
+          ÚLTIMA porque a transição entre telas é `shift`, e o `shift` tira a
+          DIREÇÃO da deslizada da POSIÇÃO da rota neste estado. Declarada por
+          último, a vistoria sempre entra pela direita, que é como o olho lê
+          "avancei para dentro do trabalho"; declarada no meio, ela entraria pela
+          esquerda quando aberta a partir do Perfil, e o mesmo toque produziria
+          movimentos opostos dependendo de onde o agente estava.
+
+          O que SAIU daqui: `tabBarStyle: { display: "none" }`. A barra passa a
+          aparecer nesta tela, com a pergunta de saída como compensação (ver o
+          comentário acima e `ui/BarraDeAbas.tsx`).
+        */}
         <Tabs.Screen
           name="vistoria/[id]"
-          options={{ title: "Vistoria", href: null, tabBarStyle: { display: "none" } }}
+          options={{ title: "Vistoria", href: null }}
         />
       </Tabs>
     </View>

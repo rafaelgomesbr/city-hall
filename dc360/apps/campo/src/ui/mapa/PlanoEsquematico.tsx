@@ -1,10 +1,12 @@
 import { View } from "react-native";
 import Svg, { Circle, G, Line, Path, Rect } from "react-native-svg";
+import type { Severidade } from "@dc360/shared";
 
 import type { Ponto, RotaEsquematica } from "../../dados/mapa";
 import { rotaEsquematica } from "../../dados/mapa";
 import { Txt, useTema } from "../componentes";
-import { borda, espaco, opacidade, raio } from "../tokens";
+import { borda, espaco, icone, opacidade, raio } from "../tokens";
+import { DesenhoDaCriticidade } from "./DesenhoDaCriticidade";
 
 /**
  * O MAPA DE QUANDO NÃO HÁ SINAL, e ele não é um consolo.
@@ -103,6 +105,21 @@ export type PropsDoPlano = {
   agente: Ponto | null;
   /** Quanto o desenho ocupa na tela, em pontos. */
   tamanho?: number;
+  /**
+   * A gravidade da ocorrência, quando a TELA que mostra este desenho também
+   * mostra a legenda de criticidade. Ver o parágrafo do marcador, mais abaixo.
+   *
+   * Os três valores querem dizer três coisas diferentes, e a distinção é o que
+   * mantém a regra de pé:
+   *
+   * - **ausente** (`undefined`): esta tela não fala de gravidade. É o caso da
+   *   vistoria, que mostra UM imóvel e não tem legenda: ali o pino sai em tinta
+   *   de texto, como sempre saiu.
+   * - **`null`**: a ocorrência existe e ninguém classificou ainda. Tem forma e
+   *   palavra próprias, como no `SeloSeveridade`.
+   * - **uma severidade**: cor e forma da escala, com a legenda na mesma tela.
+   */
+  severidade?: Severidade | null;
 };
 
 /**
@@ -113,9 +130,15 @@ export type PropsDoPlano = {
  * vezes: no traço, para quem olha de relance, e em `accessibilityLabel` mais o
  * texto abaixo, para quem lê e para quem ouve.
  */
-export function PlanoEsquematico({ imovel, agente, tamanho = 200 }: PropsDoPlano) {
+export function PlanoEsquematico({ imovel, agente, tamanho = 200, severidade }: PropsDoPlano) {
   const tema = useTema();
   const rota: RotaEsquematica | null = rotaEsquematica(agente, imovel);
+  /*
+    Ver o comentário do MARCADOR, mais abaixo: quem manda aqui é a AUSÊNCIA da
+    propriedade, e não o valor dela. `null` é uma ocorrência sem classificação,
+    que tem forma e palavra; ausente é uma tela que não fala de gravidade.
+  */
+  const comCriticidade = severidade !== undefined;
 
   /*
     Sem GPS o desenho não inventa direção nenhuma. Desenhar a seta para cima
@@ -184,23 +207,38 @@ export function PlanoEsquematico({ imovel, agente, tamanho = 200 }: PropsDoPlano
           )}
 
           {/*
-            O IMÓVEL, em tinta de texto e não em cor de severidade.
+            O IMÓVEL, EM TINTA DE TEXTO enquanto esta tela não tiver legenda.
 
-            A severidade é dita pelo selo da tarefa, com ícone e palavra. Pintar
-            o pino do plano esquemático com ela repetiria o mesmo fato numa
-            linguagem que não tem legenda aqui dentro, e a regra da casa é que
-            severidade nunca viaja só em cor.
+            Até 15/09/2026 estava escrito aqui que o marcador NÃO leva cor de
+            severidade, porque "a severidade é dita pelo selo da tarefa, com
+            ícone e palavra, e pintar o pino com ela repetiria o mesmo fato numa
+            linguagem que não tem legenda aqui dentro".
+
+            A regra continua igual, e a frase também: o que mudou é que agora
+            existe uma tela onde a legenda ESTÁ aqui dentro. Na tela do mapa do
+            agente, `MapaDoImovel` desenha a legenda de criticidade junto com os
+            pinos, no mesmo componente, e o toque no pino abre o `SeloSeveridade`
+            com ícone e palavra. Lá a gravidade chega por três canais (cor, forma
+            e palavra), e por isso o pino pode carregá-la.
+
+            Na tela de vistoria nada disso existe: um imóvel só, nenhuma escala
+            de comparação e nenhuma legenda. Ali `severidade` não é passada, e
+            este desenho continua exatamente o que era.
           */}
-          <Circle
-            testID="plano-imovel"
-            cx={posicaoDoImovel.x}
-            cy={posicaoDoImovel.y}
-            r={9}
-            fill={tema.superficie}
-            stroke={tema.texto}
-            strokeWidth={borda.enfase}
-          />
-          <Circle cx={posicaoDoImovel.x} cy={posicaoDoImovel.y} r={3} fill={tema.texto} />
+          {!comCriticidade && (
+            <>
+              <Circle
+                testID="plano-imovel"
+                cx={posicaoDoImovel.x}
+                cy={posicaoDoImovel.y}
+                r={9}
+                fill={tema.superficie}
+                stroke={tema.texto}
+                strokeWidth={borda.enfase}
+              />
+              <Circle cx={posicaoDoImovel.x} cy={posicaoDoImovel.y} r={3} fill={tema.texto} />
+            </>
+          )}
 
           {/*
             O AGENTE, no centro, quando o aparelho sabe onde ele está.
@@ -229,6 +267,33 @@ export function PlanoEsquematico({ imovel, agente, tamanho = 200 }: PropsDoPlano
             </G>
           )}
         </Svg>
+
+        {/*
+          O PINO DE CRITICIDADE fica POR CIMA do desenho, e não dentro dele.
+
+          Ele é o mesmo `DesenhoDaCriticidade` que o mapa do Google e a legenda
+          usam, e `react-native-svg` não aceita um `<Svg>` dentro de outro. Um
+          `<Path>` com a mesma geometria copiada para cá seria a segunda cópia
+          de um vocabulário que existe justamente para não ter duas: a primeira
+          vez que alguém trocasse o losango da severidade alta, a legenda passaria
+          a descrever um pino que não está no desenho.
+
+          A conversão é de unidade de `viewBox` para PONTO, que é onde o estilo
+          do React Native vive: o desenho é quadrado, então a mesma razão vale
+          nos dois eixos.
+        */}
+        {comCriticidade && (
+          <View
+            testID="plano-imovel"
+            style={{
+              position: "absolute",
+              left: (posicaoDoImovel.x / LADO) * tamanho - icone.acao / 2,
+              top: (posicaoDoImovel.y / LADO) * tamanho - icone.acao / 2,
+            }}
+          >
+            <DesenhoDaCriticidade severidade={severidade ?? null} tamanho={icone.acao} />
+          </View>
+        )}
       </View>
 
       {/*

@@ -37,7 +37,7 @@ D-U-N-S e a revisão não forem gargalo.
 - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
   compartilhados.
-- **2747 testes verdes somando o aplicativo, e `npm audit` em zero.**
+- **2943 testes verdes somando o aplicativo, e `npm audit` em zero.**
 - **A API sobe contra PostgreSQL real** (provado contra o Postgres 18, à mão) e
   serve o ciclo inteiro: login, isolamento entre municípios, ocorrência,
   vistoria offline, laudo, termo de interdição e desinterdição, contagem de
@@ -225,6 +225,58 @@ DATABASE_URL=postgres://SETUP:...@host/dc360 npm run provisionar --   --municipi
 Anote a senha impressa: ela não é guardada em texto claro e não aparece de novo.
 Na primeira entrada, o coordenador troca a senha em **Minha conta**.
 
+Desde 14/09/2026 existe um segundo caminho para este mesmo ato, e ele é o
+preferido: a tela de cadastro do **console do fornecedor** (item 8). Ela faz o
+mesmo, dentro de uma função do banco, **sem** a credencial de dono na mão de
+ninguém. A linha de comando acima continua valendo como saída de emergência.
+
+### 8. Console do fornecedor (não é do município)
+
+Nada nesta seção é entregue à prefeitura. O console da ADR 0008 é a ferramenta
+do **fornecedor**: ele responde "o município está usando?", "alguém está com
+problema?" e "quantos contratos existem", e é ele que cadastra a prefeitura. Ele
+existe para essas perguntas saírem do `psql` em produção, que é a credencial de
+dono do banco, aquela que ignora RLS.
+
+O que ele **não** responde, de propósito e para sempre: "o que houve na
+ocorrência 000123". Ele lê métrica agregada e o cadastro de organizações, e o
+papel de banco dele não tem privilégio em tabela de negócio nenhuma. Para a
+pergunta específica existe telefone com quem administra o município.
+
+- **Aplicativo próprio no Fly**, separado da API (`Dockerfile.console` e
+  `fly.console.toml`, os dois em `dc360/`). Não é rota do painel e não é um
+  segundo processo dentro da imagem da API: dois processos no mesmo aplicativo
+  compartilhariam a mesma lista de segredos, e a separação viraria convenção.
+- **Segundo fator obrigatório**, sem exceção. A conta do fornecedor é a única do
+  sistema cujo comprometimento alcança mais de um município.
+- **O passo de banco que não existe em nenhum outro roteiro:** `dc360_console`
+  foi criado `NOLOGIN` na migração 023, então ele não serve de usuário de
+  conexão. A `CONSOLE_DATABASE_URL` aponta para outro papel, com LOGIN, membro
+  dele, no mesmo desenho de `dc360_api` para `dc360_app`:
+
+  ```sql
+  CREATE ROLE dc360_console_login LOGIN PASSWORD '...' NOSUPERUSER;
+  GRANT dc360_console TO dc360_console_login WITH SET TRUE;
+  ```
+
+  O `WITH SET TRUE` não é enfeite: toda transação do console emite
+  `SET LOCAL ROLE dc360_console`, e sem ele **toda** consulta falha.
+- **Os segredos entram por arquivo, nunca por linha de comando.**
+  `fly secrets set CONSOLE_OPERADORES="..."` com aspas duplas faz o shell
+  expandir `$131072`, `$8` e `$1` do hash de senha para vazio antes de o `fly`
+  receber qualquer coisa. O JSON continua válido, o processo sobe normal, e a
+  senha certa é recusada para sempre, sem uma linha de log. Use
+  `fly secrets import < arquivo`. Desde 15/09/2026 a partida também recusa hash
+  fora do formato, então o deploy errado falha em vez de subir quebrado.
+- **Uma máquina só** (`fly deploy --ha=false`): o teto de tentativas do segundo
+  fator vive na memória do processo, porque o papel do console não tem escrita
+  em lugar nenhum. Com duas máquinas, cinco tentativas viram dez.
+
+**O passo a passo completo, com os comandos na ordem, está em
+`docs/IMPLANTACAO.md`, seção 6**, junto com o que fica declarado como não
+coberto (o `/saude` do console não confere o banco, e o limite por endereço
+conta todos os operadores juntos atrás do balanceador do Fly).
+
 ---
 
 ## Parte 4: no Mac, na ordem
@@ -233,7 +285,7 @@ Na primeira entrada, o coordenador troca a senha em **Minha conta**.
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 2747 testes com o aplicativo, npm audit, números
+npm run verificar          # typecheck, 2943 testes com o aplicativo, npm audit, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo

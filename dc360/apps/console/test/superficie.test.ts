@@ -45,6 +45,12 @@ const ABERTAS: Record<string, string> = {
   "GET /console.js":
     "O comportamento da página. Sem dado dentro: ele PEDE os números, com o "
     + "token que a segunda etapa devolveu.",
+  "GET /fontes/work-sans-400.ttf":
+    "Bytes de fonte. Estão aqui porque `style-src 'self'` bloqueia a folha do "
+    + "Google Fonts, então o processo serve a própria tipografia. Pedir uma "
+    + "fonte atrás de sessão faria a tela de LOGIN abrir sem fonte nenhuma.",
+  "GET /fontes/work-sans-600.ttf": "Bytes de fonte, pela mesma razão da de cima.",
+  "GET /fontes/roboto-mono-400.ttf": "Bytes de fonte, pela mesma razão da de cima.",
 };
 
 const CHAVE = randomBytes(32).toString("base64");
@@ -263,7 +269,10 @@ describe("O limite por endereco cobre a porta, e so a porta", () => {
   }, 60_000);
 
   it("as rotas que nao conferem credencial nao tem teto", async () => {
-    for (const caminho of ["/", "/console.css", "/console.js", "/saude"]) {
+    for (const caminho of [
+      "/", "/console.css", "/console.js", "/saude",
+      "/fontes/work-sans-400.ttf", "/fontes/work-sans-600.ttf", "/fontes/roboto-mono-400.ttf",
+    ]) {
       for (let i = 0; i < 10; i++) {
         const r = await proprio.inject({ method: "GET", url: caminho });
         expect(

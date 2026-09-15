@@ -116,6 +116,33 @@ export function IconeEnvio({ cor, tamanho = TAMANHO_PADRAO }: Props) {
   );
 }
 
+/**
+ * Mapa dobrado: a ABA do mapa, e ele não é o alfinete.
+ *
+ * A diferença importa e já está escrita em `IconeLocalizacao`, logo abaixo: o
+ * alfinete aponta um LUGAR (o endereço daquela ocorrência, o botão "Abrir no
+ * mapa"), e a mira de `IconeGps` CAPTURA a posição do aparelho. Nenhum dos dois
+ * serve de aba, porque aba não é um lugar nem uma captura: é a superfície
+ * inteira, com todas as tarefas do dia sobre ela. Um alfinete ali prometeria
+ * "veja este ponto" quando o que se abre é "veja tudo".
+ *
+ * Três traços, dentro da régua dos cinco: o contorno dobrado e as duas
+ * dobras. As dobras são o que faz o desenho ler como MAPA em 16 pontos, e não
+ * como um retângulo qualquer.
+ */
+export function IconeMapa({ cor, tamanho = TAMANHO_PADRAO }: Props) {
+  return (
+    <Svg width={tamanho} height={tamanho} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M9 4.2 3.6 6.3a.9.9 0 0 0-.6.85v11.7a.6.6 0 0 0 .82.56L9 17.3l6 2.5 5.4-2.1a.9.9 0 0 0 .6-.85V5.15a.6.6 0 0 0-.82-.56L15 6.7Z"
+        stroke={cor} strokeWidth={TRACO} strokeLinejoin="round"
+      />
+      <Path d="M9 4.2v13.1" stroke={cor} strokeWidth={TRACO} strokeLinecap="round" />
+      <Path d="M15 6.7v13.1" stroke={cor} strokeWidth={TRACO} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 /** Duas pessoas: a equipe. */
 export function IconeEquipe({ cor, tamanho = TAMANHO_PADRAO }: Props) {
   return (
@@ -600,6 +627,7 @@ export function IconeInformacao({ cor, tamanho = TAMANHO_PADRAO }: Props) {
  */
 export const ICONES = {
   tarefas: IconeTarefas,
+  mapa: IconeMapa,
   envio: IconeEnvio,
   equipe: IconeEquipe,
   severidade: IconeSeveridade,

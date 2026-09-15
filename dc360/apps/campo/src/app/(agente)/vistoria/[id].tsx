@@ -29,7 +29,8 @@ import {
   buscarHistoricoDaCasa, historicoTemConteudo, type HistoricoDaCasa,
 } from "../../../dados/historico-da-casa";
 import {
-  PRECISAO_MINIMA_M, abrirNoMapa, distanciaEmMetros, distanciaEmTexto, type Ponto,
+  PRECISAO_MINIMA_M, abrirNoMapa, coordenadaEmTexto, copiarCoordenada, distanciaEmMetros,
+  distanciaEmTexto, type Ponto,
 } from "../../../dados/mapa";
 import {
   descartarRascunho, lerRascunho, rascunhoNovo, salvarRascunho, type Rascunho,
@@ -38,11 +39,12 @@ import { useSessao } from "../../../dados/sessao";
 import { Assinatura } from "../../../ui/Assinatura";
 import { MinutaDoLaudo } from "../../../ui/MinutaDoLaudo";
 import {
-  Aviso, Botao, Cartao, Carregando, Dado, Separador, Tocavel, Txt, Vazio, useTema,
+  Aviso, Botao, Cartao, Carregando, Dado, LinhaDeAcoes, Separador, Tocavel, Txt, Vazio, useTema,
 } from "../../../ui/componentes";
 import { Campo, CampoDeTexto } from "../../../ui/Campo";
 import { Chip, SeloSeveridade } from "../../../ui/Chip";
 import { Dialogo } from "../../../ui/Dialogo";
+import { EscolhaDeMapa, type RespostaDoMapa } from "../../../ui/EscolhaDeMapa";
 import {
   IconeAlerta, IconeAssinatura, IconeChecklist, IconeEnvio, IconeFoto, IconeGps,
   IconeLocalizacao, IconeOrgao, IconePerigo, IconePrazoVencido, IconeSemSinal,
@@ -151,12 +153,18 @@ const ESCALA_DA_FOTO_ENTRANDO = 0.8;
  * agente que a lia subia a tela procurando onde. Agora cada pendência tem um
  * caminho: um toque leva ao cartão que a resolve.
  *
- * São três e não sete porque só existem três lugares onde uma pendência de
- * conclusão se resolve. `checklist` recebe também a indicação de órgão, que é o
+ * Quatro delas são pendência de conclusão, e só existem quatro lugares onde uma
+ * pendência se resolve. `checklist` recebe também a indicação de órgão, que é o
  * desdobramento de um item dele e mora dentro do mesmo cartão, colado na
  * pergunta que o abriu.
+ *
+ * `localizacao` é de outra natureza, e entrou com a escolha de mapa: ela não é
+ * pendência de nada, é o DESTINO de "ver o mapa aqui dentro". A âncora é a
+ * mesma máquina (medir o `y` do cartão e rolar até ele), e duplicá-la com outro
+ * nome só porque a razão é outra produziria dois jeitos de rolar até um cartão
+ * na mesma tela.
  */
-type SecaoDaVistoria = "progresso" | "checklist" | "fotos" | "assinatura";
+type SecaoDaVistoria = "progresso" | "checklist" | "fotos" | "assinatura" | "localizacao";
 
 /**
  * De qual pendência o texto fala, e para onde ela leva.
@@ -723,6 +731,28 @@ export default function TelaDeVistoria() {
   const [capturandoGps, setCapturandoGps] = useState(false);
   const [minutaAberta, setMinutaAberta] = useState(false);
   /*
+    A ESCOLHA DE COMO CHEGAR, e por que ela é estado desta tela.
+
+    "Abrir no mapa" tinha uma resposta só, e ela levava o agente para fora do
+    aplicativo no meio de uma coleta de quarenta minutos, sem perguntar. A folha
+    oferece as três (o mapa do aparelho, o mapa aqui dentro, a coordenada
+    copiada), e quem AGE é esta tela: duas das três respostas mexem em coisas
+    que só existem aqui (a tarja de erro e a rolagem até o cartão de
+    localização), e uma folha que soubesse disso seria uma folha que só serve
+    para uma tela.
+  */
+  const [escolhendoMapa, setEscolhendoMapa] = useState(false);
+  /*
+    A confirmação de que a coordenada foi copiada, com hora.
+
+    Copiar não muda nada na tela, e sem um retorno o agente toca de novo, e de
+    novo, sem saber se pegou. É o mesmo desenho que a fotografia recém guardada
+    já usa neste arquivo, pela mesma razão: quem está com o aparelho na mão
+    precisa saber que o toque valeu. O valor é o instante, e não `true`, para
+    duas cópias seguidas acenderem o retorno duas vezes em vez de uma só.
+  */
+  const [coordenadaCopiadaEm, setCoordenadaCopiadaEm] = useState<number | null>(null);
+  /*
     As duas perguntas desta tela são ESTADO, e não efeito colateral do toque.
 
     Enquanto elas valem `false`, nada aconteceu: a tela não voltou para a lista
@@ -949,6 +979,18 @@ export default function TelaDeVistoria() {
     const relogio = setTimeout(() => { setSecaoEmDestaque(null); }, movimento.climax * 6);
     return () => { clearTimeout(relogio); };
   }, [secaoEmDestaque]);
+
+  /*
+    A confirmação de "copiado" some sozinha, pela mesma razão da fotografia
+    logo acima: ela é retorno de um ato que acabou de acontecer, e não estado da
+    vistoria. Deixada na tela, vira mais uma linha permanente num formulário que
+    já passa de dois mil pontos.
+  */
+  useEffect(() => {
+    if (coordenadaCopiadaEm === null) return;
+    const relogio = setTimeout(() => { setCoordenadaCopiadaEm(null); }, movimento.climax * 8);
+    return () => { clearTimeout(relogio); };
+  }, [coordenadaCopiadaEm]);
 
   const irPara = useCallback((secao: SecaoDaVistoria) => {
     setSecaoEmDestaque(secao === "progresso" ? null : secao);
@@ -1365,12 +1407,57 @@ export default function TelaDeVistoria() {
         Se nenhum aplicativo de mapas atendeu, dizer "não deu" deixaria o
         agente sem nada. Com os números na tela ele copia para onde quiser, ou
         lê por rádio para a base.
+
+        O texto sai de `coordenadaEmTexto`, que é o MESMO formato que a folha
+        oferece para copiar. Enquanto era um `toFixed` escrito aqui, existiam
+        dois lugares no produto montando a mesma frase, e o dia em que um dos
+        dois mudasse de formato seria o dia em que o agente ditaria por rádio um
+        número diferente do que colou.
       */
       setErro(
         "Nenhum aplicativo de mapas atendeu neste aparelho. A coordenada da " +
-        `ocorrência é ${ocorrencia.latitude.toFixed(6)}, ${ocorrencia.longitude.toFixed(6)}.`,
+        `ocorrência é ${coordenadaEmTexto(ocorrencia.latitude, ocorrencia.longitude)}.`,
       );
     }
+  }
+
+  /**
+   * O que cada uma das três respostas da folha de mapa faz.
+   *
+   * Quem escolhe é `EscolhaDeMapa`; quem AGE é esta tela, porque duas das três
+   * mexem em coisas que só existem aqui: a tarja de erro e a rolagem até o
+   * cartão de localização.
+   *
+   * "Ver aqui dentro" não decide modo de mapa nenhum, e isso é deliberado. Ele
+   * rola até o cartão, e o cartão é quem monta `MapaDaVistoria`, que decide
+   * entre o mapa do Google e o plano esquemático conforme a autorização do
+   * município e desenha a legenda de modo. Sem chave, o agente vê o plano
+   * esquemático, com a legenda dizendo que nenhuma coordenada saiu daqui: é a
+   * seção 2.2 do `docs/SUBPROCESSADORES.md` virada tela, e ela continua tendo
+   * um dono só.
+   */
+  async function responderEscolhaDeMapa(resposta: RespostaDoMapa): Promise<void> {
+    if (resposta === "aqui-dentro") { irPara("localizacao"); return; }
+    if (resposta === "aplicativo") { await abrirRota(); return; }
+
+    if (ocorrencia?.latitude == null || ocorrencia.longitude == null) return;
+    setErro(null);
+    const copiou = await copiarCoordenada(ocorrencia.latitude, ocorrencia.longitude);
+    if (copiou) {
+      retornoTatil("confirmado");
+      setCoordenadaCopiadaEm(Date.now());
+      return;
+    }
+    /*
+      Recusa da área de transferência acontece em telefone gerenciado por
+      política da prefeitura. Dizer só "não deu" deixaria o agente sem nada, e
+      por isso a coordenada vai no texto do aviso, igual ao caminho do mapa que
+      ninguém atendeu: ele continua conseguindo ditar por rádio.
+    */
+    setErro(
+      "Este aparelho não deixou copiar. A coordenada da ocorrência é "
+      + `${coordenadaEmTexto(ocorrencia.latitude, ocorrencia.longitude)}.`,
+    );
   }
 
   async function concluir(): Promise<void> {
@@ -1555,16 +1642,22 @@ export default function TelaDeVistoria() {
           }
         />
         {erro && <Aviso tom="alerta">{erro}</Aviso>}
-        <Botao
-          titulo="Baixar tarefas agora"
-          onPress={() => void baixarEAbrir()}
-          carregando={baixando}
-          testID="baixar-para-abrir"
-        />
-        <Botao
-          titulo="Voltar para as tarefas"
-          tipo="secundario"
-          onPress={() => { router.back(); }}
+        <LinhaDeAcoes
+          testID="acoes-de-baixar"
+          acoes={[
+            {
+              titulo: "Baixar tarefas agora",
+              onPress: () => void baixarEAbrir(),
+              carregando: baixando,
+              testID: "baixar-para-abrir",
+            },
+            {
+              titulo: "Voltar para as tarefas",
+              tipo: "secundario",
+              onPress: () => { router.back(); },
+              testID: "voltar-das-tarefas",
+            },
+          ]}
         />
       </ScrollView>
     );
@@ -1613,15 +1706,21 @@ export default function TelaDeVistoria() {
           descricao={erro}
           icone={<IconePerigo cor={tema.perigoTexto} tamanho={icone.vazio} />}
         />
-        <Botao
-          titulo="Tentar de novo"
-          onPress={() => { setCarregando(true); void carregarDoDisco(); }}
-          testID="tentar-abrir-de-novo"
-        />
-        <Botao
-          titulo="Voltar para as tarefas"
-          tipo="secundario"
-          onPress={salvarESair}
+        <LinhaDeAcoes
+          testID="acoes-de-falha-ao-abrir"
+          acoes={[
+            {
+              titulo: "Tentar de novo",
+              onPress: () => { setCarregando(true); void carregarDoDisco(); },
+              testID: "tentar-abrir-de-novo",
+            },
+            {
+              titulo: "Voltar para as tarefas",
+              tipo: "secundario",
+              onPress: salvarESair,
+              testID: "voltar-da-falha",
+            },
+          ]}
         />
       </ScrollView>
     );
@@ -1856,21 +1955,38 @@ export default function TelaDeVistoria() {
         </Cartao>
         </View>
 
-        <Aviso tom="info" titulo="Ela sobe sozinha">
-          Nada depende de sinal agora. A coleta está na fila de envio deste
-          aparelho e sobe assim que houver rede, mesmo com o aplicativo fechado.
-        </Aviso>
+        {/*
+          O invólucro que estica, e ele não é enfeite.
 
-        <View style={{ alignSelf: "stretch", gap: espaco.e3 }}>
-          <Botao
-            titulo="Voltar para a lista de tarefas"
-            testID="voltar-depois-de-guardar"
-            onPress={() => { setAvisandoQueGuardou(false); salvarESair(); }}
-          />
-          <Botao
-            titulo="Ver na fila de envio"
-            tipo="secundario"
-            onPress={() => { setAvisandoQueGuardou(false); router.push("/(agente)/fila"); }}
+          Esta tela centraliza tudo (`alignItems: "center"`), e nesse arranjo
+          quem não estica fica com a largura do próprio texto. O cartão do
+          resumo e a linha de ações já pediam `alignSelf: "stretch"`; este aviso
+          não pedia, e por isso era o único bloco da tela com outra largura,
+          entre dois que iam de borda a borda.
+        */}
+        <View style={{ alignSelf: "stretch" }}>
+          <Aviso tom="info" titulo="Ela sobe sozinha">
+            Nada depende de sinal agora. A coleta está na fila de envio deste
+            aparelho e sobe assim que houver rede, mesmo com o aplicativo fechado.
+          </Aviso>
+        </View>
+
+        <View style={{ alignSelf: "stretch" }}>
+          <LinhaDeAcoes
+            testID="acoes-depois-de-guardar"
+            acoes={[
+              {
+                titulo: "Voltar para a lista de tarefas",
+                testID: "voltar-depois-de-guardar",
+                onPress: () => { setAvisandoQueGuardou(false); salvarESair(); },
+              },
+              {
+                titulo: "Ver na fila de envio",
+                tipo: "secundario",
+                testID: "ver-na-fila-depois-de-guardar",
+                onPress: () => { setAvisandoQueGuardou(false); router.push("/(agente)/fila"); },
+              },
+            ]}
           />
         </View>
       </ScrollView>
@@ -1987,25 +2103,28 @@ export default function TelaDeVistoria() {
           a linha. Voltar vem primeiro porque é a ação reversível.
         */}
         <View style={{
-          flexDirection: "row", gap: espaco.e3,
           padding: espaco.e4, paddingBottom: espaco.e5,
           borderTopWidth: borda.fio, borderTopColor: tema.borda,
           backgroundColor: tema.superficie,
         }}>
-          <View style={{ flex: 1 }}>
-            <Botao
-              titulo="Corrigir"
-              tipo="secundario"
-              onPress={() => setMinutaAberta(false)}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Botao
-              titulo="Concluir vistoria"
-              onPress={() => void concluir()}
-              carregando={concluindo}
-            />
-          </View>
+          <LinhaDeAcoes
+            testID="acoes-da-minuta"
+            acoes={[
+              {
+                titulo: "Corrigir",
+                tipo: "secundario",
+                onPress: () => setMinutaAberta(false),
+                descricao: "Corrigir a vistoria, voltando ao formulário",
+                testID: "corrigir-a-minuta",
+              },
+              {
+                titulo: "Concluir vistoria",
+                onPress: () => void concluir(),
+                carregando: concluindo,
+                testID: "concluir-vistoria",
+              },
+            ]}
+          />
         </View>
       </View>
     );
@@ -2055,10 +2174,20 @@ export default function TelaDeVistoria() {
           >
             <View />
           </Tocavel>
+          {/*
+            "Cancelar" saiu, e o rótulo passa a dizer o que acontece.
+
+            É a mesma regra que o `Dialogo` deste produto já escreve e que esta
+            mesma tela já aplicou duas vezes ("Manter só a vistoria que já fiz",
+            "Manter a fotografia"): quem lê em pé, na chuva, lê o botão e não o
+            título, e "Cancelar" aqui é ambíguo do jeito caro (cancelar a foto,
+            ou cancelar a vistoria?).
+          */}
           <Botao
-            titulo="Cancelar"
+            titulo="Voltar sem fotografar"
             tipo="secundario"
             onPress={() => setCameraAberta(false)}
+            testID="fechar-a-camera"
             estilo={{ alignSelf: "stretch" }}
           />
         </View>
@@ -2202,7 +2331,7 @@ export default function TelaDeVistoria() {
           </Txt>
         )}
 
-        <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2, flexWrap: "wrap" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
           {/*
             O PRAZO PERDEU O FUNDO CHEIO, e passou a ser ícone mais palavra.
 
@@ -2221,16 +2350,21 @@ export default function TelaDeVistoria() {
             a lista de tarefas já desenha o prazo dela. Duas telas que falam do
             mesmo prazo passam a falar do mesmo jeito.
           */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: espaco.e2,
-            }}
-          >
-            {prazo.atrasado && (
-              <IconePrazoVencido cor={corDoPrazo} tamanho={icone.rotulo} />
-            )}
+          {prazo.atrasado && (
+            <IconePrazoVencido cor={corDoPrazo} tamanho={icone.rotulo} />
+          )}
+          {/*
+            O TEXTO DO PRAZO GANHOU ONDE QUEBRAR, e antes não tinha.
+
+            Ele morava numa linha interna sem `flex`, dentro de outra linha com
+            `flexWrap` que embrulhava um filho só, ou seja, o `flexWrap` não
+            tinha o que embrulhar e o texto não tinha o que ceder. O rótulo
+            inteiro ("Prazo vence em 1h30 (10/09, 12:30)") com o relógio vencido
+            ao lado passa da largura do cartão em aparelho estreito, e o que
+            acontecia era o texto transbordar para fora do cartão em vez de
+            quebrar dentro dele.
+          */}
+          <View style={{ flex: 1 }}>
             <Txt variante="corpoP" peso={peso.negrito} cor={corDoPrazo}>
               {rotuloDoPrazo}
             </Txt>
@@ -2247,44 +2381,81 @@ export default function TelaDeVistoria() {
           ele exige um gesto deliberado, enquanto uma barra fixa embaixo do
           polegar é a escotilha de fuga que produz vistoria pela metade.
         */}
-        <View style={{ flexDirection: "row", gap: espaco.e2 }}>
-          {temCoordenada && (
-            <Tocavel
-              accessibilityRole="button"
-              onPress={() => void abrirRota()}
-              accessibilityLabel={`Abrir a rota até ${ocorrencia.endereco} no aplicativo de mapas`}
-              estilo={{
-                flex: 1,
-                minHeight: toque,
-                paddingHorizontal: espaco.e3,
-                borderRadius: raio.normal,
-                borderWidth: borda.fio,
-                borderColor: tema.borda,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: espaco.e2,
-              }}
-            >
-              {/*
-                O alfinete era desenhado à mão neste arquivo, com o mesmo
-                traçado que `ui/icones.tsx` já tinha. Dois desenhos iguais em
-                dois lugares é como o produto inteiro acabou com três ícones:
-                quem precisa de um não acha o que existe e desenha o seu.
-              */}
-              <IconeLocalizacao cor={tema.texto} tamanho={icone.rotulo} />
-              <Txt variante="corpo" negrito>Abrir no mapa</Txt>
-            </Tocavel>
-          )}
-          <View style={{ flex: 1 }}>
-            <Botao
-              titulo="Salvar e sair"
-              tipo="secundario"
-              onPress={salvarESair}
-              descricao="Salvar e sair, voltando para a lista de tarefas sem perder o que já foi preenchido"
-            />
+        {/*
+          "ABRIR NO MAPA" DEIXOU DE SER UM BOTÃO DESENHADO À MÃO.
+
+          Era um `Tocavel` com `flex`, `minHeight`, recuo, raio e contorno
+          escritos aqui, ou seja, um botão secundário copiado linha a linha ao
+          lado de um `Botao tipo="secundario"` de verdade. Os dois pareciam
+          iguais por coincidência, e divergiam no recuo (`espaco.e3` contra
+          `espaco.e4`) e em toda decisão futura que o `Botao` tomasse sozinho.
+          Agora ele é um `Botao` com `icone`, e o par inteiro é uma
+          `LinhaDeAcoes`, que decide se eles cabem lado a lado em vez de este
+          arquivo apostar que sim.
+
+          E o toque deixou de sair do aplicativo direto: ele abre a folha com as
+          três respostas. Ver `EscolhaDeMapa`.
+        */}
+        {temCoordenada ? (
+          <LinhaDeAcoes
+            testID="acoes-do-cabecalho"
+            acoes={[
+              {
+                titulo: "Abrir no mapa",
+                tipo: "secundario",
+                onPress: () => { setEscolhendoMapa(true); },
+                descricao: `Abrir no mapa: escolher como chegar até ${ocorrencia.endereco}`,
+                testID: "abrir-no-mapa",
+                /*
+                  O alfinete era desenhado à mão neste arquivo, com o mesmo
+                  traçado que `ui/icones.tsx` já tinha. Dois desenhos iguais em
+                  dois lugares é como o produto inteiro acabou com três ícones:
+                  quem precisa de um não acha o que existe e desenha o seu.
+                */
+                icone: (cor) => <IconeLocalizacao cor={cor} tamanho={icone.rotulo} />,
+              },
+              {
+                titulo: "Salvar e sair",
+                tipo: "secundario",
+                onPress: salvarESair,
+                descricao: "Salvar e sair, voltando para a lista de tarefas sem perder o que já foi preenchido",
+                testID: "salvar-e-sair",
+              },
+            ]}
+          />
+        ) : (
+          <Botao
+            titulo="Salvar e sair"
+            tipo="secundario"
+            onPress={salvarESair}
+            descricao="Salvar e sair, voltando para a lista de tarefas sem perder o que já foi preenchido"
+            testID="salvar-e-sair"
+          />
+        )}
+
+        {/*
+          O RETORNO DE "COPIADO", em palavra e não só na vibração.
+
+          Copiar não muda nada na tela, e sem isto o agente toca de novo, e de
+          novo, sem saber se pegou. Região viva porque ela aparece sem ninguém
+          ter mudado de tela, e o mesmo desenho da fotografia recém guardada
+          mais abaixo: duas confirmações do mesmo tipo, na mesma tela, precisam
+          ser lidas como a mesma coisa.
+        */}
+        {coordenadaCopiadaEm !== null && (
+          <View
+            accessibilityLiveRegion="polite"
+            testID="coordenada-copiada"
+            style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}
+          >
+            <IconeSucesso cor={tema.okTexto} tamanho={icone.rotulo} />
+            <View style={{ flex: 1 }}>
+              <Txt variante="corpoP" peso={peso.forte} cor={tema.okTexto}>
+                Coordenada copiada
+              </Txt>
+            </View>
           </View>
-        </View>
+        )}
 
         {!temCoordenada && (
           <Txt variante="legenda" discreto>
@@ -2320,6 +2491,29 @@ export default function TelaDeVistoria() {
           </Aviso>
         )}
       </Cartao>
+
+      {/*
+        A FOLHA DAS TRÊS RESPOSTAS, montada fora do cartão de propósito.
+
+        Ela é modal e cobre a tela: aninhada dentro do cartão do cabeçalho, ela
+        continuaria funcionando (o `Modal` do React Native monta na raiz de
+        qualquer jeito) e ficaria escondida no meio de um cartão de conteúdo,
+        que é onde ninguém procura por uma sobreposição. Fica junto dos outros
+        `Dialogo` desta tela, pelo mesmo motivo que eles ficam soltos no fluxo.
+
+        Ela só existe quando existe coordenada. Uma folha que oferecesse "copiar
+        a coordenada" numa ocorrência que chegou sem coordenada estaria
+        oferecendo copiar o nada.
+      */}
+      {temCoordenada && (
+        <EscolhaDeMapa
+          aberto={escolhendoMapa}
+          endereco={ocorrencia.endereco}
+          coordenada={coordenadaEmTexto(ocorrencia.latitude!, ocorrencia.longitude!)}
+          aoEscolher={(resposta) => { void responderEscolhaDeMapa(resposta); }}
+          aoFechar={() => { setEscolhendoMapa(false); }}
+        />
+      )}
 
       {/*
         O histórico entra AQUI, entre o cabeçalho e o progresso, e não no fim.
@@ -2508,8 +2702,17 @@ export default function TelaDeVistoria() {
           {CHECKLIST_OBRIGATORIO.filter((i) => i.chave in rascunho.checklist).length}
           {" de "}{CHECKLIST_OBRIGATORIO.length} itens obrigatórios respondidos
         </Txt>
-        {CHECKLIST_VISTORIA.map((item) => {
+        {CHECKLIST_VISTORIA.map((item, posicao) => {
           const resposta = rascunho.checklist[item.chave];
+          /*
+            O traço separa DOIS itens, então o último não leva nenhum.
+
+            Ele era desenhado no fim de cada item, o último inclusive, e o
+            resultado era um fio solto flutuando sobre o recuo inferior do
+            cartão, sem nada embaixo para separar. É pouco, e é o tipo de pouco
+            que faz uma tela parecer inacabada sem ninguém saber dizer por quê.
+          */
+          const ultimo = posicao === CHECKLIST_VISTORIA.length - 1;
           return (
             <View key={item.chave} style={{ gap: espaco.e2 }}>
               <Txt variante="corpoP">
@@ -2620,7 +2823,7 @@ export default function TelaDeVistoria() {
                 />
                 </>
               )}
-              <Separador />
+              {!ultimo && <Separador />}
             </View>
           );
         })}
@@ -2738,7 +2941,25 @@ export default function TelaDeVistoria() {
                     apaga uma fotografia de vistoria, que é prova de uma
                     interdição e não se refaz sem subir o morro de novo.
                   */
-                  estilo={{ minHeight: toque, alignItems: "center", justifyContent: "center" }}
+                  /*
+                    `minWidth` além do `minHeight`, e ele vale a largura da
+                    MINIATURA de propósito.
+
+                    O alvo tinha 52 pontos de altura e a largura da palavra
+                    "Apagar", que dá uns 50: o portão de acessibilidade mede
+                    altura e passava, e o dedo com luva errava na horizontal, no
+                    único botão desta tela que apaga prova de uma interdição.
+                    Casando com a miniatura, o alvo fica com a largura do que
+                    ele apaga, e a coluna de fotografias para de ter um texto
+                    mais estreito que a imagem logo acima dele.
+                  */
+                  estilo={{
+                    minHeight: toque,
+                    minWidth: MINIATURA,
+                    paddingHorizontal: espaco.e2,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
                   <Txt variante="corpoP" cor={tema.perigoTexto}>Apagar</Txt>
                 </Tocavel>
@@ -2835,6 +3056,22 @@ export default function TelaDeVistoria() {
         nenhum contato com a rede. O que muda é o desenho, nunca a existência
         da informação.
       */}
+      {/*
+        O cartão de localização ganhou ÂNCORA, e ela é o destino de "ver o mapa
+        aqui dentro" da folha de escolha. Mesmo invólucro dos outros três
+        (medir o `y`, acender o contorno por alguns segundos), porque rolar
+        sozinho até um cartão sem dizer que rolou é a reclamação que a lista de
+        tarefas já recebeu.
+      */}
+      <View
+        onLayout={(e) => { alturaDaSecao.current.localizacao = e.nativeEvent.layout.y; }}
+        testID="ancora-localizacao"
+        style={{
+          borderRadius: raio.cartao,
+          borderWidth: borda.enfase,
+          borderColor: secaoEmDestaque === "localizacao" ? tema.anelDeFoco : "transparent",
+        }}
+      >
       <Cartao>
         <TituloDoCartao
           desenho={<IconeGps cor={tema.textoDiscreto} tamanho={icone.acao} />}
@@ -2941,8 +3178,10 @@ export default function TelaDeVistoria() {
           tipo="secundario"
           onPress={() => void capturarGps()}
           carregando={capturandoGps}
+          testID="capturar-localizacao"
         />
       </Cartao>
+      </View>
 
       <View
         onLayout={(e) => { alturaDaSecao.current.assinatura = e.nativeEvent.layout.y; }}

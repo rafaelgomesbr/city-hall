@@ -4,20 +4,39 @@ import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 
 import type { Ponto } from "../../dados/mapa";
 import { PRAZO_DO_MAPA_MS } from "../../dados/mapa";
-import { Carregando, useTema } from "../componentes";
-import { borda, espaco, raio } from "../tokens";
+import { Carregando, Txt, useTema } from "../componentes";
+import { borda, espaco, icone, movimento, raio } from "../tokens";
+import { DesenhoDaCriticidade, LegendaDeCriticidade } from "./DesenhoDaCriticidade";
 import { ModoDoMapaDito } from "./ModoDoMapaDito";
+import { PlanoDasTarefas } from "./PlanoDasTarefas";
 import { PlanoEsquematico } from "./PlanoEsquematico";
 import { estiloDoGoogle } from "./estilo-do-google";
+import type { PinoNoMapa } from "./pinos";
 import type { EstadoDoMapa } from "./useMapaDoMunicipio";
 
 /**
- * O MAPA DO IMÓVEL, a peça que as telas consomem.
+ * O MAPA, a peça que as telas consomem, em dois feitios.
  *
- * Ela junta as três decisões que já moram em outros arquivos e não toma
- * nenhuma nova: o modo (`decidirModoDoMapa`), o estilo (`estiloDoGoogle`) e o
- * desenho de reserva (`PlanoEsquematico`). O que ela acrescenta é o prazo, que
- * é a parte que só existe aqui porque só aqui há um mapa montado para observar.
+ * Ela junta as decisões que já moram em outros arquivos e não toma nenhuma
+ * nova: o modo (`decidirModoDoMapa`), o estilo (`estiloDoGoogle`) e o desenho
+ * de reserva (`PlanoEsquematico` para um imóvel, `PlanoDasTarefas` para N). O
+ * que ela acrescenta é o prazo, que é a parte que só existe aqui porque só aqui
+ * há um mapa montado para observar.
+ *
+ * ## Um imóvel, ou N pinos, e por que a peça é a mesma
+ *
+ * Até 15/09/2026 ela desenhava um imóvel só, e isso estava escrito como
+ * decisão: "um mapa só, do imóvel FOCADO, e não N pinos espalhados: o agente
+ * não precisa de uma visão geral do município (essa é do coordenador)". O medo
+ * era o agente cair na tela do coordenador, e ele continua de pé: o que a tela
+ * do agente desenha são as TAREFAS DELE, na mesma ordem da lista dele, e nunca
+ * a ocorrência de outra equipe. Nada aqui busca ocorrência nenhuma: os pinos
+ * chegam prontos de quem já tem a lista.
+ *
+ * O que caiu foi a parte de "um só". Quem paga pediu, com a tela na mão, o mapa
+ * das tarefas do dia com o ponto de cada uma, e a razão dele é a mesma do
+ * roteiro: com um pino por vez, escolher em que ordem subir o morro exige
+ * trocar de tarefa e olhar de novo, uma por uma.
  *
  * ## Provedor Google nos DOIS lados
  *
@@ -35,46 +54,77 @@ import type { EstadoDoMapa } from "./useMapaDoMunicipio";
  * tela que parece certa e está errada não é descoberta por ninguém.
  */
 
-export type PropsDoMapa = {
-  /** Onde a coordenação disse que o imóvel está. */
-  imovel: Ponto;
+type PropsComuns = {
   /** Onde o aparelho diz que o agente está, ou `null` se o GPS ainda não veio. */
   agente?: Ponto | null;
-  /** O que o marcador anuncia a quem lê a tela em voz alta. */
-  rotulo: string;
   /**
    * O que `useMapaDoMunicipio` devolveu, INTEIRO, e não desmontado em três
    * propriedades.
    *
    * A tela chama o gancho e repassa o resultado. Desmontar obrigaria cada uma
-   * das quatro telas a ligar três fios à mão, e o dia em que aparecesse um
-   * quarto fio (foi o que aconteceu com `desistirDeEsperar`, que o portão de
-   * design cobrou depois da primeira versão) as quatro precisariam ser
-   * lembradas, uma a uma. Quem esquecesse teria uma tela que compila e que se
-   * comporta diferente das outras três.
+   * das telas a ligar três fios à mão, e o dia em que aparecesse um quarto fio
+   * (foi o que aconteceu com `desistirDeEsperar`, que o portão de design cobrou
+   * depois da primeira versão) todas precisariam ser lembradas, uma a uma. Quem
+   * esquecesse teria uma tela que compila e que se comporta diferente das outras.
    */
   mapa: EstadoDoMapa;
-  altura?: number;
   /**
-   * Quantos pontos da BORDA DE BAIXO estão cobertos por outra coisa, hoje a
-   * folha arrastável do padrão Uber.
+   * A altura da moldura, em pontos, ou `"preencher"`.
+   *
+   * `"preencher"` existe para a tela do mapa, onde o mapa é a superfície de
+   * trabalho e não uma ilustração dentro de um formulário. Ali a altura é o que
+   * sobra depois do cabeçalho, do cartão e da lista, e o número só existe em
+   * tempo de layout: medir com `onLayout` para devolver o número obrigaria a
+   * tela a não desenhar nada no primeiro quadro e a saltar no segundo.
+   *
+   * As legendas (a de modo e a de criticidade) ficam FORA da altura preenchida,
+   * e isso é a razão de a opção existir: elas nunca podem ser empurradas para
+   * fora da tela por um mapa que cresceu.
+   */
+  altura?: number | "preencher";
+  /**
+   * Quantos pontos da BORDA DE BAIXO estão cobertos por outra coisa.
    *
    * Não encolhe o desenho: encolhe a área ÚTIL. Os ladrilhos continuam
-   * preenchendo a moldura inteira por baixo da folha (encolher o mapa deixaria
-   * uma tarja vazia aparecendo na borda no meio do arraste), e o que passa a
-   * considerar só a faixa visível é o centro, o enquadramento e os controles.
+   * preenchendo a moldura inteira por baixo do que a cobre (encolher o mapa
+   * deixaria uma tarja vazia aparecendo na borda no meio de um arraste), e o
+   * que passa a considerar só a faixa visível é o centro, o enquadramento e os
+   * controles.
    *
-   * Sem isto o pino é centralizado na moldura inteira, ou seja, ATRÁS da
-   * folha: o agente arrasta a folha para baixo justamente para ver onde a casa
-   * fica, e encontra o mapa olhando para outro lugar.
+   * Só faz sentido com altura em NÚMERO: o teto que impede a área útil de zerar
+   * é uma fração dela. Com `"preencher"` nada cobre o mapa, porque a tela que
+   * preenche é justamente a que deixou de empilhar folha sobre folha.
    */
   recuoInferior?: number;
 };
 
+export type PropsDoMapa = PropsComuns & (
+  | {
+    /** Onde a coordenação disse que o imóvel está. */
+    imovel: Ponto;
+    /** O que o marcador anuncia a quem lê a tela em voz alta. */
+    rotulo: string;
+    pinos?: undefined;
+  }
+  | {
+    /**
+     * As tarefas do dia, na ordem da lista, e pelo menos uma.
+     *
+     * Vazio não é desenhável: um mapa sem ponto nenhum abriria centrado na ilha
+     * nula, no golfo da Guiné. Quem tem a lista é quem sabe dizer se ela está
+     * vazia e por quê (nenhuma tarefa, ou nenhuma com coordenada), e as duas
+     * frases são diferentes na tela.
+     */
+    pinos: readonly PinoNoMapa[];
+    imovel?: undefined;
+    rotulo?: undefined;
+  }
+);
+
 /**
  * Quanto da moldura o recuo pode comer, no máximo.
  *
- * A folha em `cheia` pede 92%, e o dia em que alguém pedir a moldura inteira o
+ * Uma folha em `cheia` pede 92%, e o dia em que alguém pedir a moldura inteira o
  * mapa ficaria com área útil zero ou negativa: o SDK responde a isso deslocando
  * o centro para fora do mundo desenhado, e ninguém associa o sintoma à folha.
  * Oitenta e cinco por cento deixa sempre uma faixa onde o pino cabe.
@@ -82,21 +132,68 @@ export type PropsDoMapa = {
 const TETO_DO_RECUO = 0.85;
 
 /**
- * Quanto do mundo cabe na tela, em graus, quando só o imóvel é conhecido.
+ * Quanto do mundo cabe na tela, em graus, quando só há um ponto conhecido.
  *
  * Cerca de 400 metros de lado na latitude de Florianópolis: perto o bastante
  * para a rua ter nome legível e largo o bastante para o quarteirão inteiro
- * caber. Quando o agente também é conhecido, este valor não é usado: o
- * enquadramento passa a ser calculado para os dois pontos caberem.
+ * caber. Quando há mais de um ponto, este valor vira o PISO: o enquadramento
+ * passa a ser calculado para todos caberem.
  */
 const ABERTURA_PADRAO = 0.004;
 
-/** Folga em volta dos dois pontos, para nenhum deles encostar na moldura. */
+/** Folga em volta dos pontos, para nenhum deles encostar na moldura. */
 const FOLGA = 2.2;
 
-export function MapaDoImovel({
-  imovel, agente = null, rotulo, mapa, altura = 220, recuoInferior = 0,
-}: PropsDoMapa) {
+/**
+ * O MARCADOR DE CRITICIDADE, no mapa de ruas.
+ *
+ * Ver `criticidade.ts` para o argumento inteiro de por que o pino leva
+ * gravidade: cor, forma e a legenda que esta mesma peça desenha logo abaixo.
+ *
+ * `tracksViewChanges` é a parte que não é estética. Marcador com filho próprio
+ * é redesenhado em bitmap a cada quadro enquanto essa propriedade for
+ * verdadeira, e com dez ou vinte pinos isso derruba a taxa de quadros justamente
+ * no aparelho barato que este produto precisa atender. Ele fica verdadeiro pelo
+ * tempo de uma mudança de estado (o suficiente para o desenho ser capturado, e
+ * para o anel do escolhido aparecer quando ele muda) e desliga sozinho.
+ */
+function MarcadorDeCriticidade({ pino }: { pino: PinoNoMapa }) {
+  const tema = useTema();
+  const [capturando, setCapturando] = useState(true);
+
+  useEffect(() => {
+    setCapturando(true);
+    const relogio = setTimeout(() => { setCapturando(false); }, movimento.mudancaDeEstado);
+    return () => { clearTimeout(relogio); };
+  }, [pino.severidade, pino.escolhido]);
+
+  return (
+    <Marker
+      identifier={pino.id}
+      coordinate={pino.ponto}
+      onPress={pino.aoTocar}
+      tracksViewChanges={capturando}
+      /* O desenho é centrado NO ponto, e não pendurado acima dele: a figura é
+         uma marca de lugar, e não um alfinete com haste. */
+      anchor={{ x: 0.5, y: 0.5 }}
+      accessibilityLabel={pino.rotulo}
+    >
+      <View
+        style={{
+          padding: espaco.e1,
+          borderRadius: raio.pilula,
+          borderWidth: pino.escolhido ? borda.enfase : 0,
+          borderColor: tema.destaque,
+        }}
+      >
+        <DesenhoDaCriticidade severidade={pino.severidade} tamanho={icone.acao} />
+      </View>
+    </Marker>
+  );
+}
+
+export function MapaDoImovel(props: PropsDoMapa) {
+  const { agente = null, mapa, altura = 220, recuoInferior = 0 } = props;
   const { decisao, aoGoogleNaoDesenhar, desistirDeEsperar } = mapa;
   const tema = useTema();
   const [desenhou, setDesenhou] = useState(false);
@@ -121,11 +218,15 @@ export function MapaDoImovel({
     };
   }, [modo, desenhou, aoGoogleNaoDesenhar]);
 
+  const preenche = altura === "preencher";
+  const alturaEmPontos = preenche ? null : altura;
   /* Nunca negativo e nunca a moldura toda. Ver `TETO_DO_RECUO`. */
-  const reservado = Math.min(Math.max(0, recuoInferior), altura * TETO_DO_RECUO);
+  const reservado = alturaEmPontos === null
+    ? 0
+    : Math.min(Math.max(0, recuoInferior), alturaEmPontos * TETO_DO_RECUO);
 
   const moldura = {
-    height: altura,
+    ...(alturaEmPontos === null ? { flex: 1 } : { height: alturaEmPontos }),
     borderRadius: raio.cartao,
     borderWidth: borda.fio,
     borderColor: tema.borda,
@@ -152,10 +253,36 @@ export function MapaDoImovel({
     );
   }
 
+  /*
+    UM feitio ou o outro, resolvido aqui e uma vez só.
+
+    O imóvel sozinho vira um pino SEM criticidade (`severidade` fica ausente, e
+    a ausência é o que diz "esta tela não fala de gravidade"): é a tela de
+    vistoria, onde há uma casa só e nenhuma legenda. Ver o comentário do
+    marcador em `PlanoEsquematico`.
+  */
+  const alvo = props.pinos !== undefined
+    ? { feitio: "pinos" as const, pinos: props.pinos }
+    : { feitio: "imovel" as const, imovel: props.imovel, rotulo: props.rotulo };
+  const pontos = alvo.feitio === "pinos"
+    ? alvo.pinos.map((p) => p.ponto)
+    : [alvo.imovel];
+  const janela = enquadrar(pontos, agente);
+
   return (
-    <View style={{ gap: espaco.e2 }}>
+    <View style={{ gap: espaco.e2, ...(preenche ? { flex: 1 } : {}) }}>
       <View style={moldura}>
-        {decisao.modo === "google" ? (
+        {!janela ? (
+          /*
+            Nada para enquadrar. A tela que tem a lista é quem sabe dizer por
+            quê, e ela diz: aqui fica só o desenho que não mente, que é nenhum.
+          */
+          <View testID="mapa-sem-ponto" style={{ flex: 1, justifyContent: "center", padding: espaco.e3 }}>
+            <Txt variante="corpoP" discreto alinhamento="center">
+              Não há ponto para desenhar no mapa.
+            </Txt>
+          </View>
+        ) : decisao.modo === "google" ? (
           <MapView
             /*
               Nos dois lados, e de propósito. Ver o cabeçalho deste arquivo.
@@ -163,14 +290,30 @@ export function MapaDoImovel({
             provider={PROVIDER_GOOGLE}
             style={{ flex: 1 }}
             customMapStyle={estiloDoGoogle(tema)}
-            initialRegion={enquadrar(imovel, agente)}
             /*
-              A faixa coberta pela folha. Ver `recuoInferior` em `PropsDoMapa`.
+              `initialRegion` e não `region`, e a diferença é de quem manda na
+              câmera.
+
+              Com `region`, o mapa é CONTROLADO: toda renderização da tela
+              devolve a câmera para onde a propriedade diz, e o agente que
+              arrasta para ver a rua vizinha vê o mapa voltar sozinho enquanto o
+              dedo ainda está na tela. Com `initialRegion`, o enquadramento é
+              feito uma vez, com todos os pontos dentro (ver `enquadrar`), e
+              depois a câmera é dele.
+
+              É por isso que escolher outro pino NÃO move o mapa: não precisa,
+              porque o que ele escolheu já está enquadrado desde a abertura, e
+              mover seria tirar da tela o que ele estava olhando para responder
+              uma pergunta que ele não fez.
+            */
+            initialRegion={janela}
+            /*
+              A faixa coberta por outra peça. Ver `recuoInferior` em `PropsComuns`.
             */
             mapPadding={{ top: 0, right: 0, bottom: reservado, left: 0 }}
             /*
-              O mapa é para OLHAR e não para explorar: a informação é onde a
-              casa fica em relação a onde o agente está. Rotação e inclinação
+              O mapa é para OLHAR e não para explorar: a informação é onde as
+              casas ficam em relação a onde o agente está. Rotação e inclinação
               transformam um relance em três gestos para voltar ao norte, e
               quem está de luva na chuva não volta.
             */
@@ -191,19 +334,27 @@ export function MapaDoImovel({
               com a chave recusada do mesmo jeito, porque a vista foi criada.
             */
             onMapLoaded={() => { setDesenhou(true); }}
-            accessibilityLabel={`Mapa do local: ${rotulo}`}
+            accessibilityLabel={
+              alvo.feitio === "pinos"
+                ? `Mapa com ${alvo.pinos.length} tarefas suas`
+                : `Mapa do local: ${alvo.rotulo}`
+            }
           >
-            <Marker
-              coordinate={imovel}
-              title={rotulo}
-              /*
-                O marcador NÃO leva cor de severidade, e a razão é a mesma do
-                pino do plano esquemático: severidade tem selo com ícone e
-                palavra na própria tela, e repeti-la só em cor, num desenho sem
-                legenda, é comunicar estado por cor sozinha.
-              */
-              pinColor={tema.texto}
-            />
+            {alvo.feitio === "pinos"
+              ? alvo.pinos.map((pino) => <MarcadorDeCriticidade key={pino.id} pino={pino} />)
+              : (
+                <Marker
+                  coordinate={alvo.imovel}
+                  title={alvo.rotulo}
+                  /*
+                    SEM cor de severidade, e a razão está inteira no comentário
+                    do marcador em `PlanoEsquematico`: aqui é a tela de vistoria,
+                    com um imóvel só e sem legenda de criticidade na tela. Onde a
+                    legenda existe, quem desenha é `MarcadorDeCriticidade`.
+                  */
+                  pinColor={tema.texto}
+                />
+              )}
           </MapView>
         ) : (
           <View
@@ -211,7 +362,7 @@ export function MapaDoImovel({
             /*
               O mesmo recuo, e aqui ele importa mais: este é o mapa de quem
               está SEM SINAL, que é quando o mapa mais faz falta. O desenho
-              centra os dois pontos na área que sobra, e não na moldura inteira.
+              centra os pontos na área que sobra, e não na moldura inteira.
             */
             style={{
               flex: 1,
@@ -220,10 +371,27 @@ export function MapaDoImovel({
               paddingBottom: reservado + espaco.e3,
             }}
           >
-            <PlanoEsquematico imovel={imovel} agente={agente} />
+            {alvo.feitio === "pinos"
+              ? <PlanoDasTarefas pinos={alvo.pinos} agente={agente} />
+              : <PlanoEsquematico imovel={alvo.imovel} agente={agente} />}
           </View>
         )}
       </View>
+
+      {/*
+        A LEGENDA DE CRITICIDADE mora AQUI, e não na tela, e isso é a regra
+        virada estrutura.
+
+        `CLAUDE.md` proíbe comunicar estado só por cor. O pino leva a gravidade
+        em cor e em forma, e as duas só viram informação com a legenda à vista.
+        Se a legenda fosse responsabilidade da tela, bastaria uma tela nova
+        esquecê-la para o produto passar a comunicar gravidade por cor sozinha,
+        sem nenhum arquivo ficar visivelmente errado. Desenhada aqui, ela chega
+        junto com os pinos, sempre, nos dois modos de mapa.
+      */}
+      {alvo.feitio === "pinos" && (
+        <LegendaDeCriticidade severidades={alvo.pinos.map((p) => p.severidade)} />
+      )}
 
       <ModoDoMapaDito decisao={decisao} comDetalhe={decisao.modo !== "google"} />
     </View>
@@ -231,39 +399,43 @@ export function MapaDoImovel({
 }
 
 /**
- * O enquadramento inicial, e o caso que ele resolve.
+ * O enquadramento inicial, e os dois casos que ele resolve.
  *
- * Com os dois pontos conhecidos, a janela precisa caber os dois: um mapa
- * centrado no imóvel com o agente fora da tela é pior que nenhum mapa, porque
- * ele parece dizer que o agente não está por perto. Com só o imóvel, usa a
- * abertura padrão.
+ * Com mais de um ponto conhecido, a janela precisa caber TODOS: um mapa
+ * centrado na primeira tarefa com as outras fora da tela é pior que nenhum
+ * mapa, porque ele parece dizer que só existe uma. O mesmo valia quando os
+ * pontos eram sempre dois (o imóvel e o agente), e a conta é a mesma: o centro
+ * é o meio da caixa que contém todo mundo, e a abertura é o lado dela com folga.
  *
- * O piso de `ABERTURA_PADRAO` existe para o caso em que os dois estão quase no
+ * O piso de `ABERTURA_PADRAO` existe para o caso em que os pontos estão quase no
  * mesmo lugar: sem ele, a janela calculada teria alguns metros de lado e o
- * mapa abriria com o zoom no chão, mostrando dois pinos e nenhuma rua.
- * A conta é feita em GRAUS e não em metros, de propósito: grau é o
- * que o SDK entende, e passar por metro para voltar a grau seria arredondar
- * duas vezes o mesmo número.
+ * mapa abriria com o zoom no chão, mostrando pinos e nenhuma rua.
+ *
+ * A conta é feita em GRAUS e não em metros, de propósito: grau é o que o SDK
+ * entende, e passar por metro para voltar a grau seria arredondar duas vezes o
+ * mesmo número.
+ *
+ * `null` quando não há ponto NENHUM, e é o único jeito honesto: sem ponto, toda
+ * janela possível é uma janela inventada, e a que o SDK escolhe sozinho é o
+ * meio do oceano Atlântico.
  */
-export function enquadrar(imovel: Ponto, agente: Ponto | null): {
+export function enquadrar(pontos: readonly Ponto[], agente: Ponto | null): {
   latitude: number; longitude: number; latitudeDelta: number; longitudeDelta: number;
-} {
-  if (!agente) {
-    return {
-      latitude: imovel.latitude,
-      longitude: imovel.longitude,
-      latitudeDelta: ABERTURA_PADRAO,
-      longitudeDelta: ABERTURA_PADRAO,
-    };
-  }
+} | null {
+  const todos = agente ? [...pontos, agente] : [...pontos];
+  if (todos.length === 0) return null;
+
+  const lats = todos.map((p) => p.latitude);
+  const lngs = todos.map((p) => p.longitude);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+
   return {
-    latitude: (imovel.latitude + agente.latitude) / 2,
-    longitude: (imovel.longitude + agente.longitude) / 2,
-    latitudeDelta: Math.max(
-      ABERTURA_PADRAO, Math.abs(imovel.latitude - agente.latitude) * FOLGA,
-    ),
-    longitudeDelta: Math.max(
-      ABERTURA_PADRAO, Math.abs(imovel.longitude - agente.longitude) * FOLGA,
-    ),
+    latitude: (minLat + maxLat) / 2,
+    longitude: (minLng + maxLng) / 2,
+    latitudeDelta: Math.max(ABERTURA_PADRAO, (maxLat - minLat) * FOLGA),
+    longitudeDelta: Math.max(ABERTURA_PADRAO, (maxLng - minLng) * FOLGA),
   };
 }

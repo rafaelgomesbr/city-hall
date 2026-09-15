@@ -54,16 +54,37 @@ export type PropsDoMapaDublado = Record<string, unknown>;
 export const mapaDublado: {
   props: PropsDoMapaDublado | null;
   onMapLoaded: (() => void) | null;
-} = { props: null, onMapLoaded: null };
+  /**
+   * O que cada marcador recebeu, na ordem em que foi montado.
+   *
+   * Existe porque o marcador é a única parte do mapa que carrega DADO do
+   * produto: qual tarefa é, onde ela fica, e o que acontece ao tocar nela. O
+   * desenho dele ninguém prova aqui (quem desenha é o SDK nativo, e a prova é o
+   * aparelho na mão), mas o dado precisa ser conferível: um mapa com os pinos
+   * certos é a diferença entre o agente subir o morro certo e o errado.
+   */
+  marcadores: PropsDoMapaDublado[];
+} = { props: null, onMapLoaded: null, marcadores: [] };
 
 export function limparMapaDublado(): void {
   mapaDublado.props = null;
   mapaDublado.onMapLoaded = null;
+  mapaDublado.marcadores = [];
 }
 
 function MapView(props: PropsDoMapaDublado) {
   mapaDublado.props = props;
   mapaDublado.onMapLoaded = (props["onMapLoaded"] as (() => void) | undefined) ?? null;
+  /*
+    A lista de marcadores é zerada pelo MAPA, e não pelo marcador.
+
+    O React monta o pai antes dos filhos, então quando os marcadores se
+    registram, logo abaixo, a lista já está vazia daquela renderização. Sem
+    isto, uma tela que renderiza duas vezes (e toda tela deste aplicativo
+    renderiza) deixaria dois marcadores por tarefa, e um caso que conta pinos
+    mediria o número de renderizações.
+  */
+  mapaDublado.marcadores = [];
   /*
     `createElement` e não `View(props)`: no ambiente do jest o `View` é uma
     CLASSE, e chamá-la como função morre com "Cannot call a class as a
@@ -73,9 +94,14 @@ function MapView(props: PropsDoMapaDublado) {
   return createElement(View, { testID: "mapa-do-google", ...props });
 }
 
-/* O marcador não desenha nada: quem o confere é o teste do componente, pelas
-   propriedades que o mapa recebeu, e um `View` a mais só polui a árvore. */
-export function Marker(): null { return null; }
+/* O marcador não desenha nada, e continua não desenhando: quem o desenha é o
+   SDK nativo. O que ele faz é REGISTRAR com que propriedades foi montado, para
+   o teste poder conferir qual tarefa está em qual ponto e o que o toque nela
+   faz. Um `View` a mais na árvore só poluiria as consultas das telas. */
+export function Marker(props: PropsDoMapaDublado): null {
+  mapaDublado.marcadores.push(props);
+  return null;
+}
 export function Callout(): null { return null; }
 export function Polyline(): null { return null; }
 export function Circle(): null { return null; }

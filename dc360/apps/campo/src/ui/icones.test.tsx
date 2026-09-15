@@ -85,6 +85,7 @@ async function desenhar(Icone: ComponenteDeIcone, tamanho?: number) {
  */
 const conjunto: Array<[NomeDeIcone, ComponenteDeIcone]> = [
   ["tarefas", ICONES.tarefas],
+  ["mapa", ICONES.mapa],
   ["envio", ICONES.envio],
   ["equipe", ICONES.equipe],
   ["severidade", ICONES.severidade],

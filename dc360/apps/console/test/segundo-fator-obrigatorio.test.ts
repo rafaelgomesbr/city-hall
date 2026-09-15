@@ -73,6 +73,12 @@ function configuracao(operadores: string): Config {
 let app: FastifyInstance;
 let registroBom: string;
 
+/*
+  Prazo no GANCHO também, e não só nos casos: o padrão do vitest para
+  `beforeAll` é dez segundos, e este gancho deriva a senha (cerca de 128 MB de
+  `scrypt`) antes de montar o console. Com as outras suítes em paralelo, dez
+  segundos é prazo que mede a carga da máquina.
+*/
 beforeAll(async () => {
   const hash = await derivarSenha(SENHA);
   registroBom = JSON.stringify([{
@@ -88,7 +94,7 @@ beforeAll(async () => {
     // aqui ele so atrapalharia os casos que medem outra coisa.
     limitePorEndereco: 500,
   });
-});
+}, 120_000);
 
 afterAll(async () => {
   await app?.close();
@@ -106,6 +112,16 @@ async function primeiraEtapa(): Promise<{ status: number; corpo: any }> {
   return { status: r.statusCode, corpo: r.json() };
 }
 
+/**
+ * Entrar no console custa uma derivação `scrypt` de cerca de 128 MB, e é por
+ * isso que os casos deste arquivo declaram prazo.
+ *
+ * O prazo padrão do vitest é cinco segundos. Um caso que faz a primeira etapa
+ * duas vezes gasta duas derivações, e numa máquina com as outras suítes rodando
+ * em paralelo isso passa de cinco segundos sozinho: a suíte reprovava de vez em
+ * quando, sempre em caso diferente, sem nada de errado no produto. Prazo curto
+ * em teste de senha forte não mede segurança, mede a carga da máquina.
+ */
 describe("Entrar no console exige o segundo fator, sem excecao", () => {
   it("a senha certa NAO devolve sessao, devolve desafio", async () => {
     const { status, corpo } = await primeiraEtapa();
@@ -127,7 +143,7 @@ describe("Entrar no console exige o segundo fator, sem excecao", () => {
       await verificarSessao(segredo, corpo.desafio),
       "o desafio da primeira etapa passa como sessao: a senha sozinha abriria o console",
     ).toBeNull();
-  });
+  }, 120_000);
 
   it("o desafio da primeira etapa e recusado pelas rotas de leitura", async () => {
     const { corpo } = await primeiraEtapa();
@@ -139,7 +155,7 @@ describe("Entrar no console exige o segundo fator, sem excecao", () => {
       r.statusCode,
       "o console entregou numero de municipio para quem so digitou a senha",
     ).toBe(401);
-  });
+  }, 120_000);
 
   it("sem cabecalho nenhum, a rota de numeros recusa", async () => {
     const r = await app.inject({ method: "GET", url: "/municipios" });
@@ -163,7 +179,7 @@ describe("Entrar no console exige o segundo fator, sem excecao", () => {
       "a resposta para senha errada difere da de email desconhecido, e a diferenca " +
       "transforma a rota de entrar numa lista de quem trabalha no fornecedor",
     ).toEqual(inexistente.json());
-  });
+  }, 120_000);
 
   it("com o codigo certo, a sessao nasce e ela vale nas rotas de leitura", async () => {
     const { corpo: primeira } = await primeiraEtapa();
@@ -182,7 +198,7 @@ describe("Entrar no console exige o segundo fator, sem excecao", () => {
       headers: { authorization: `Bearer ${sessao.token}` },
     });
     expect(numeros.statusCode).toBe(200);
-  });
+  }, 120_000);
 
   it("o mesmo codigo nao serve duas vezes", async () => {
     /*
@@ -214,7 +230,7 @@ describe("Entrar no console exige o segundo fator, sem excecao", () => {
       reusa.statusCode,
       "o mesmo codigo de seis digitos entrou duas vezes",
     ).toBe(401);
-  });
+  }, 120_000);
 
   it("desafio forjado, expirado ou de outro segredo nao vira sessao", async () => {
     for (const desafio of ["", "nao-e-um-token", "a.b.c"]) {
@@ -293,7 +309,7 @@ describe("O console recusa subir com operador sem segundo fator", () => {
       "o console aceitou um operador sem segundo fator. Ele entraria so com senha, " +
       "e a ADR 0008 fecha essa porta sem excecao",
     ).toThrow(/segundo fator não é opcional/i);
-  });
+  }, 120_000);
 
   it("operador com segundo fator vazio tambem derruba a partida", async () => {
     const vazio = JSON.stringify([{

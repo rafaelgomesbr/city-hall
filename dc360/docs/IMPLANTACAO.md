@@ -1,6 +1,6 @@
 # Roteiro de implantação e treinamento
 
-- **Versão:** 1, de 09/09/2026
+- **Versão:** 2, de 15/09/2026 (a seção 6, do console do fornecedor, é nova)
 
 O produto pode estar certo e a implantação fracassar, e o motivo quase nunca é
 técnico: é o agente que não confia no aplicativo depois que ele engoliu uma
@@ -148,3 +148,207 @@ Medido na terceira semana, já depois do corte:
 **Esses números precisam sair do próprio sistema**, e não de pergunta ao
 coordenador. Hoje eles saem de consulta ao banco. É exatamente para isso que
 serve a tabela de métricas da ADR 0008.
+
+---
+
+## 6. Colocar o console do fornecedor no ar
+
+As cinco seções acima são sobre implantar num MUNICÍPIO. Esta é sobre a
+infraestrutura do FORNECEDOR, e ela acontece uma vez, antes do primeiro
+município: o console da ADR 0008 é o que responde "o município está usando?" sem
+ninguém abrir `psql` na produção com a credencial de dono.
+
+O console é **aplicativo próprio no Fly**, separado da API, porque a decisão 1
+da ADR 0008 pede outro processo com outro segredo e outra conexão. Dois
+processos no mesmo aplicativo do Fly compartilhariam a mesma lista de segredos.
+
+Arquivos que mandam aqui: `dc360/Dockerfile.console` e `dc360/fly.console.toml`.
+
+### 6.1 A armadilha das aspas, antes de qualquer comando
+
+Esta é a única parte deste documento que precisa ser lida antes de ser
+executada, porque o erro que ela descreve **não dá erro**.
+
+```bash
+fly secrets set CONSOLE_OPERADORES="[...]"     # NÃO faça isto
+```
+
+Com aspas duplas, quem lê o valor primeiro é o **shell**, e ele expande
+`$131072`, `$8` e `$1` do hash de senha (formato `scrypt$N$r$p$sal$hash`) para
+string vazia, antes de o `fly` receber qualquer coisa. O que sobe para o
+provedor é `scrypt$$$sal$hash`. E aí:
+
+- o JSON continua válido, porque só mudou o conteúdo de um campo de texto;
+- o esquema da variável continua passando, porque `senha` só precisava ser texto;
+- o envelope do segundo fator continua abrindo, porque ele é base64 e não tem `$`;
+- **o processo sobe normal**, atende, e mostra a tela de entrada;
+- a senha certa é recusada para sempre, sem uma linha de log.
+
+`CONSOLE_JWT_SEGREDO` e `CONSOLE_SEGUNDO_FATOR_CHAVE` correm risco parecido, por
+serem base64 com `+`, `/` e `=`.
+
+**As duas defesas, e as duas estão em vigor:**
+
+1. O roteiro abaixo põe os segredos num **arquivo** e usa `fly secrets import`,
+   que lê linha a linha sem shell no meio.
+2. Desde 15/09/2026 a partida **recusa** hash que não tenha as seis partes do
+   formato, dizendo que a causa provável foram as aspas. Um deploy feito pelo
+   caminho errado falha, e o release anterior continua atendendo.
+
+### 6.2 O passo que falta no banco, e que não está em nenhum outro roteiro
+
+`dc360_console` foi criado **NOLOGIN** na migração 023, de propósito. Ele não
+serve de usuário de string de conexão: é o papel de privilégio, não o de
+entrada. A `CONSOLE_DATABASE_URL` aponta para **outro** papel, com LOGIN, membro
+dele. É o mesmo desenho de `dc360_api` para `dc360_app`.
+
+```sql
+CREATE ROLE dc360_console_login LOGIN PASSWORD 'SENHA-SORTEADA' NOSUPERUSER;
+GRANT dc360_console TO dc360_console_login WITH SET TRUE;
+```
+
+O `WITH SET TRUE` não é enfeite: toda transação do console emite
+`SET LOCAL ROLE dc360_console` (ver `apps/console/src/banco.ts`), e sem ele o
+`SET ROLE` é recusado e **toda** consulta falha.
+
+Rode isto com o papel de setup (no Supabase, o usuário `postgres` da conexão
+direta), que é o mesmo usado para migrar.
+
+### 6.3 O roteiro, na ordem
+
+Tudo a partir de `dc360/`.
+
+**Passo 1. Conferir o esquema.** O console recusa subir contra um banco que não
+tenha o que ele usa, e o mínimo hoje é a migração 036, que cria a função
+`provisionar_municipio`.
+
+```bash
+node scripts/migrar-producao.mjs            # só confere, não aplica
+node scripts/migrar-producao.mjs --aplicar  # só se faltar alguma
+```
+
+**Passo 2. Criar o papel de login** (seção 6.2), com o papel de setup.
+
+**Passo 3. Provar a conexão antes de ela virar segredo.** Este passo existe para
+o erro aparecer aqui, e não dentro de um contêiner que não sobe.
+
+```bash
+CA="$(pwd)/db/provedores/supabase-prod-ca-2021.crt"
+psql "postgresql://dc360_console_login.bppklrxxwjshxvkvwirw:SENHA@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full&sslrootcert=${CA}" \
+  -c "SET ROLE dc360_console; SELECT count(*) FROM console_situacao_dos_municipios;"
+```
+
+Três detalhes que fazem esta linha funcionar ou não:
+
+- **Pelo pooler, o papel leva o projeto colado** (`dc360_console_login.bppklrxxwjshxvkvwirw`).
+  É exigência do provedor, e é assim que ele sabe para qual banco encaminhar.
+  O papel de verdade continua sendo `dc360_console_login`.
+- **Porta 5432, modo sessão.** 6543 é modo transação, onde a conexão volta para
+  o bolo ao fim de cada transação.
+- **`sslmode=verify-full`**, sem exceção: sem verificação do certificado a
+  conexão com o banco de **todos** os municípios sobe cifrada e não autenticada,
+  e o SCRAM não acusa nada, porque o intermediário só retransmite o desafio.
+
+Se o `SET ROLE` falhar, o que falta é o `WITH SET TRUE` do passo 2. Se o
+`SELECT` falhar com permissão negada, o que falta é o `GRANT` do passo 2.
+
+**Passo 4. Abrir o arquivo de segredos e gerar as duas chaves.**
+
+O arquivo vem ANTES do operador, e a ordem é o ponto: assim a chave do segundo
+fator nunca aparece numa linha de comando, e portanto nunca entra no histórico
+do terminal.
+
+```bash
+node -e "console.log('CONSOLE_JWT_SEGREDO=' + require('node:crypto').randomBytes(48).toString('base64url'))"
+node -e "console.log('CONSOLE_SEGUNDO_FATOR_CHAVE=' + require('node:crypto').randomBytes(32).toString('base64'))"
+
+nano segredos-do-console.env      # cole as duas linhas acima e as outras duas
+chmod 600 segredos-do-console.env
+```
+
+Use um **editor**, e não `echo` nem heredoc: o conteúdo de um heredoc entra no
+histórico do shell, em texto puro, para sempre. Uma variável por linha, sem
+aspas em volta do valor:
+
+```
+NODE_ENV=production
+CONSOLE_DATABASE_URL=postgresql://dc360_console_login.bppklrxxwjshxvkvwirw:SENHA@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full
+CONSOLE_JWT_SEGREDO=...
+CONSOLE_SEGUNDO_FATOR_CHAVE=...
+CONSOLE_OPERADORES=
+```
+
+`CONSOLE_JWT_SEGREDO` precisa ser **diferente** do `JWT_SEGREDO` da API. A
+separação de verdade é a plateia do token (`aud=dc360-console`), que recusa o
+token do produto mesmo com os dois segredos iguais, mas dois valores iguais em
+dois aplicativos são uma convenção que ninguém consegue conferir depois.
+
+`CONSOLE_OPERADORES` fica vazia por enquanto: ela é o passo 5.
+
+**Passo 5. Criar o operador, com a chave lida do arquivo.**
+
+```bash
+CONSOLE_SEGUNDO_FATOR_CHAVE="$(sed -n 's/^CONSOLE_SEGUNDO_FATOR_CHAVE=//p' segredos-do-console.env)" \
+  npm run provisionar --workspace @dc360/console -- --email pessoa@fornecedor.com.br
+```
+
+A chave sai do arquivo e volta para o processo sem passar pela linha digitada, e
+ela precisa ser a **mesma** com que o console vai subir: o envelope do segundo
+fator é conferido na partida, e com a chave trocada o processo não sobe.
+
+O comando imprime a senha sorteada, o segredo do segundo fator (para ler no
+aplicativo de autenticação) e a linha `CONSOLE_OPERADORES` pronta. **Nada disso
+fica guardado em lugar nenhum**, e a senha não aparece de novo. Copie a linha
+`CONSOLE_OPERADORES` para dentro do arquivo, com o editor, configure o
+aplicativo de autenticação, e só então feche o terminal.
+
+**Passo 6. Criar o aplicativo, mandar os segredos, implantar.**
+
+```bash
+fly apps create defesa-civil-console
+fly secrets import -a defesa-civil-console < segredos-do-console.env
+fly deploy -c fly.console.toml --ha=false
+```
+
+Duas coisas que não são opcionais nessa sequência:
+
+- **`-c fly.console.toml`**, senão o `fly` pega o `fly.toml` da API e implanta a
+  API por cima do console.
+- **`--ha=false`**, senão o `fly` cria duas máquinas. O teto de tentativas do
+  segundo fator e o passo do TOTP já queimado vivem na **memória do processo**
+  (o papel do console não tem escrita em tabela nenhuma, de propósito), então
+  com duas máquinas o teto passa a valer por processo e cinco tentativas viram
+  dez.
+
+**Passo 7. Conferir que subiu de verdade.**
+
+```bash
+fly status -a defesa-civil-console      # precisa mostrar UMA máquina
+fly logs  -a defesa-civil-console       # procure "console do fornecedor pronto"
+curl -sS https://defesa-civil-console.fly.dev/saude
+```
+
+Se o processo não subir, o log diz qual das três recusas foi: `CONSOLE_HOST` de
+loopback, hash de senha estragado pelo shell, ou banco sem o que o console usa.
+As três são de propósito, e as três nomeiam a causa.
+
+**Passo 8. Apagar o arquivo de segredos.**
+
+```bash
+rm -f segredos-do-console.env
+```
+
+### 6.4 O que fica declarado como NÃO coberto
+
+- **O `/saude` do console só diz que o processo está de pé.** Ele não confere o
+  banco, ao contrário do `/saude` da API. Banco ausente ou esquema atrasado na
+  partida derrubam o processo e o release é revertido; banco que cai **depois**
+  de o processo estar de pé mantém a verificação verde e dá erro na tela.
+- **O limite por endereço conta todo mundo junto.** O servidor do console não
+  declara de quem aceita cabeçalho de origem (não existe ali o `PROXY_DE_BORDA`
+  que a API tem), então atrás do Fly o endereço visto é o do balanceador, e as
+  20 tentativas de entrada por 5 minutos são compartilhadas por todos os
+  operadores. É restritivo, não permissivo, mas pode barrar quem tem direito de
+  entrar num momento ruim.
+- **Criar operador exige implantar de novo**, porque operador é configuração.
+  Para uma equipe de fornecedor isso acontece algumas vezes por ano.

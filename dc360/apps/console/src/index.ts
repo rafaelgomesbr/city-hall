@@ -1,6 +1,7 @@
 import { carregarConfig } from "./config.js";
 import { bancoPostgres, type BancoDoConsole } from "./banco.js";
 import { construirConsole } from "./servidor.js";
+import { faltaNoEsquema, mensagemDeEsquemaAtrasado } from "./esquema.js";
 
 /**
  * A partida do console do fornecedor.
@@ -33,6 +34,33 @@ let banco: BancoDoConsole;
 
 if (config.CONSOLE_DATABASE_URL) {
   banco = bancoPostgres(config.CONSOLE_DATABASE_URL);
+
+  /*
+    RECUSA SUBIR CONTRA UM BANCO QUE NÃO TEM O QUE ELE USA.
+
+    A API já fazia isso e o console não fazia, e a diferença aparecia do pior
+    jeito possível: o console subia contra um banco sem a migração 036, a tela
+    carregava inteira, os números apareciam, e o defeito só se revelava quando
+    alguém apertava "Cadastrar" e recebia um 500 genérico. Ou seja, o erro
+    esperava justamente o momento em que há uma prefeitura do outro lado da
+    linha esperando o primeiro acesso.
+
+    A conferência NÃO é a da API, e `esquema.ts` explica por quê em detalhe: a
+    API lê `schema_migracoes`, e dar essa leitura ao papel do console reprovaria
+    o portão CA-06. Aqui a pergunta é feita ao `pg_catalog`, que não exige
+    concessão, e ela é sobre o que o console realmente usa.
+
+    Fica AQUI e não dentro de `construirConsole` porque a resposta certa é
+    derrubar o processo, e um servidor não deve decidir se o processo vive. No
+    Fly isso faz o release falhar e a versão anterior continuar atendendo, que é
+    o desfecho certo: melhor o console velho de pé do que o novo quebrado.
+  */
+  const faltas = await faltaNoEsquema(banco);
+  if (faltas.length > 0) {
+    console.error(mensagemDeEsquemaAtrasado(faltas));
+    await banco.encerrar();
+    process.exit(1);
+  }
 } else {
   /*
     Sem `CONSOLE_DATABASE_URL`, sobe um Postgres em WebAssembly efêmero, só para

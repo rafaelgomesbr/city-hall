@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { PanResponder, View, type LayoutChangeEvent } from "react-native";
 import Svg, { Path, Rect } from "react-native-svg";
 import { File, Paths } from "expo-file-system";
-import { Aviso, Botao, Txt, useTema } from "./componentes";
+import { Aviso, Botao, LinhaDeAcoes, Txt, useTema } from "./componentes";
 import { Chip } from "./Chip";
 import { IconeSucesso } from "./icones";
 import { borda, espaco, icone, papel, raio } from "./tokens";
@@ -313,22 +313,50 @@ export function Assinatura(
       */}
       {erro && <Aviso tom="perigo">{erro}</Aviso>}
 
-      <View style={{ flexDirection: "row", gap: espaco.e2 }}>
-        <Botao
-          titulo="Limpar"
-          tipo="secundario"
-          onPress={limpar}
-          desabilitado={vazia}
-          estilo={{ flex: 1 }}
-        />
-        <Botao
-          titulo="Confirmar assinatura"
-          onPress={() => void confirmar()}
-          desabilitado={vazia}
-          carregando={gravando}
-          estilo={{ flex: 2 }}
-        />
-      </View>
+      {/*
+        O PAR DE BOTÕES QUE QUEBRAVA, e a conta que explica por quê.
+
+        Era uma linha escrita à mão com `flex: 1` no "Limpar" e `flex: 2` no
+        "Confirmar assinatura". Num aparelho de 390 pontos, dentro de um
+        `Cartao` que come 32 de recuo, dentro de um `ScrollView` que come outros
+        32, sobravam 326: o "Confirmar assinatura" ficava com uns 209 e, tirando
+        o recuo dele, uns 177 para vinte e um caracteres que pedem perto de 163
+        no tamanho de corpo. A margem era pequena demais, e em aparelho mais
+        estreito ela virava negativa: o rótulo quebrava em duas linhas e, como o
+        `Botao` usa `minHeight` e não `height`, o botão CRESCIA e ficava mais
+        alto que o vizinho. Foi a reclamação literal de quem paga.
+
+        `LinhaDeAcoes` decide isto medindo, em vez de o arquivo apostar: aqui os
+        dois rótulos não cabem lado a lado em aparelho nenhum que a prefeitura
+        compra, então eles empilham, e "Confirmar assinatura" passa a ter a
+        largura inteira do cartão, onde ele cabe com folga e em uma linha.
+      */}
+      <LinhaDeAcoes
+        testID="acoes-da-assinatura"
+        acoes={[
+          {
+            titulo: "Limpar",
+            tipo: "secundario",
+            onPress: limpar,
+            desabilitado: vazia,
+            descricao: "Limpar a assinatura: apagar o traço e começar de novo",
+            testID: "limpar-assinatura",
+          },
+          {
+            titulo: "Confirmar assinatura",
+            onPress: () => void confirmar(),
+            desabilitado: vazia,
+            carregando: gravando,
+            /*
+              SEM `descricao`, e isso é decisão e não esquecimento. O rótulo
+              visível já diz exatamente o que o botão faz, e um rótulo falado
+              diferente do escrito quebra o Controle por Voz: quem diz "tocar em
+              Confirmar assinatura" deixa de acertar o botão que está lendo.
+            */
+            testID: "confirmar-assinatura",
+          },
+        ]}
+      />
     </View>
   );
 }

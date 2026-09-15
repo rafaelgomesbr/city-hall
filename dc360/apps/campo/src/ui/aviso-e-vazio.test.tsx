@@ -37,6 +37,25 @@ async function montar(no: React.ReactNode) {
   await act(async () => { await render(<ProvedorDeTema>{no}</ProvedorDeTema>); });
 }
 
+/**
+ * A CAIXA do aviso, alcançada pelo que ela DECLARA e não por contar camadas.
+ *
+ * A caixa não tem `testID` próprio, e não vai ganhar um só para o teste:
+ * acrescentar identificador para conseguir medir é o começo do componente que
+ * existe em duas versões, a real e a testável.
+ *
+ * Ela era alcançada subindo DUAS camadas a partir do texto, e isso quebrou no
+ * dia em que o aviso deixou de ser uma linha e virou uma coluna (a ação saiu de
+ * dentro da coluna de texto, onde nascia 32 pontos deslocada de tudo). Contar
+ * camadas mede a árvore de hoje; o que não muda é que a caixa é o ancestral que
+ * se ANUNCIA ao leitor de tela, porque é ela quem carrega a gravidade do aviso.
+ */
+function caixaDoAviso(texto: string) {
+  let no = screen.getByText(texto).parent;
+  while (no && no.props.accessibilityRole === undefined) no = no.parent;
+  return no;
+}
+
 describe("o sinal do aviso", () => {
   /*
     O caso que reprova antes da correção. Com os dois tons usando `!`, procurar
@@ -79,10 +98,7 @@ describe("o sinal do aviso", () => {
 
   it("o perigo continua sendo anunciado como alerta pelo sistema", async () => {
     await montar(<Aviso tom="perigo">Sem sinal</Aviso>);
-    // O papel fica na caixa, duas camadas acima do texto: sinal e conteúdo são
-    // irmãos dentro dela.
-    const caixa = screen.getByText("Sem sinal").parent?.parent;
-    expect(caixa?.props.accessibilityRole).toBe("alert");
+    expect(caixaDoAviso("Sem sinal")?.props.accessibilityRole).toBe("alert");
   });
 });
 
@@ -218,17 +234,9 @@ describe("nenhuma chamada existente quebra", () => {
  * sem condição nenhuma e o corpo saía sempre em `cores.texto`.
  */
 describe("a régua do peso visual, no aviso", () => {
-  /*
-    A caixa do aviso não tem `testID` próprio, e não vai ganhar um só para o
-    teste: acrescentar identificador para conseguir medir é o começo do
-    componente que existe em duas versões, a real e a testável.
-
-    Ela é alcançada a partir do TEXTO, subindo duas camadas, que é o mesmo
-    caminho que o caso do papel de acessibilidade deste arquivo já usava: o
-    sinal e o conteúdo são irmãos dentro da caixa.
-  */
+  /* Ver `caixaDoAviso`, no alto: a caixa é achada pelo que ela declara. */
   const caixaDe = (texto: string) =>
-    StyleSheet.flatten(screen.getByText(texto).parent?.parent?.props.style);
+    StyleSheet.flatten(caixaDoAviso(texto)?.props.style);
 
   it("o tom `sucesso` não pinta fundo, mesmo pedindo peso forte", async () => {
     await montar(<Aviso tom="sucesso" titulo="Pronto" peso="forte">O pedido saiu.</Aviso>);
@@ -280,8 +288,7 @@ describe("a régua do peso visual, no aviso", () => {
       fundo por um filete não pode rebaixar um perigo a texto comum.
     */
     await montar(<Aviso tom="perigo" peso="leve">O servidor recusou.</Aviso>);
-    expect(screen.getByText("O servidor recusou.").parent?.parent?.props.accessibilityRole)
-      .toBe("alert");
+    expect(caixaDoAviso("O servidor recusou.")?.props.accessibilityRole).toBe("alert");
     expect(screen.getByLabelText("Perigo")).toBeTruthy();
   });
 

@@ -14,9 +14,19 @@ jest.mock("expo-constants", () => ({
     },
   },
 }));
+/*
+  A área de transferência é módulo NATIVO: no jest não existe nada por trás
+  dela. O dublê devolve a promessa que o módulo devolve, para os casos poderem
+  medir o que foi copiado e o que acontece quando o aparelho recusa.
+*/
+const mockCopiar = jest.fn<Promise<boolean>, [string]>();
+jest.mock("expo-clipboard", () => ({
+  setStringAsync: (texto: string) => mockCopiar(texto),
+}));
+
 import {
-  abrirNoMapa, buscarAutorizacaoDoMapa, enderecosDoMapa, escolherChaveDoBuild,
-  esquecerAutorizacaoDoMapa,
+  abrirNoMapa, buscarAutorizacaoDoMapa, coordenadaEmTexto, copiarCoordenada,
+  enderecosDoMapa, escolherChaveDoBuild, esquecerAutorizacaoDoMapa,
 } from "./mapa";
 
 /**
@@ -289,5 +299,54 @@ describe("a chave do build, quando iOS e Android têm chaves diferentes", () => 
   it("sem nada em extra, responde vazio em vez de estourar", () => {
     expect(escolherChaveDoBuild(undefined, "ios")).toBe("");
     expect(escolherChaveDoBuild({ ios: 7 }, "ios")).toBe("");
+  });
+});
+
+/* ============================================================
+   Copiar a coordenada
+   ============================================================ */
+
+describe("copiar a coordenada", () => {
+  beforeEach(() => { mockCopiar.mockClear(); mockCopiar.mockResolvedValue(true); });
+
+  /*
+    O formato é o MESMO que a tarja de erro já imprime quando nenhum aplicativo
+    de mapas atende, e é o que o Google Maps, o Apple Maps e o Waze aceitam
+    quando alguém cola no campo de busca: latitude, vírgula, espaço, longitude,
+    seis casas em cada. Dois formatos para a mesma coordenada, na mesma tela,
+    seria o agente ditando um por rádio e colando o outro.
+  */
+  it("o texto tem seis casas, vírgula e espaço", () => {
+    expect(coordenadaEmTexto(-27.595378, -48.54805)).toBe("-27.595378, -48.548050");
+  });
+
+  it("nada de notação científica nem de lixo de ponto flutuante", () => {
+    expect(coordenadaEmTexto(0.0000001, 3.3000000000000003))
+      .toBe("0.000000, 3.300000");
+  });
+
+  it("copia exatamente esse texto para a área de transferência", async () => {
+    expect(await copiarCoordenada(-27.595378, -48.54805)).toBe(true);
+    expect(mockCopiar).toHaveBeenCalledWith("-27.595378, -48.548050");
+  });
+
+  /*
+    Coordenada ausente não vira texto. Sem esta guarda o agente copiaria
+    "NaN, NaN", colaria no aplicativo de mapas, e o mapa abriria em algum lugar
+    arbitrário: o mesmo desfecho que `abrirNoMapa` já recusa na entrada.
+  */
+  it("coordenada inválida não copia nada", async () => {
+    expect(await copiarCoordenada(Number.NaN, -48.5)).toBe(false);
+    expect(mockCopiar).not.toHaveBeenCalled();
+  });
+
+  /*
+    O módulo nativo pode recusar (área de transferência bloqueada por política
+    de aparelho gerenciado, por exemplo). A tela precisa poder dizer que não
+    deu, e não fingir que deu.
+  */
+  it("recusa do aparelho vira `false`, e não exceção solta", async () => {
+    mockCopiar.mockRejectedValue(new Error("sem área de transferência"));
+    expect(await copiarCoordenada(-27.595378, -48.54805)).toBe(false);
   });
 });
