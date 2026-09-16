@@ -38,6 +38,13 @@ export type Autenticado = {
    */
   codigosDeRecuperacaoRestantes?: number;
   entrouComCodigoDeRecuperacao?: boolean;
+  /**
+   * A sessão nasceu de uma senha provisória (migração 046): sorteada por quem
+   * administra ou pelo console e ainda não trocada. O token de acesso carrega
+   * a marca, e só abre `/auth/trocar-senha`. O painel lê isto e leva à troca
+   * antes de qualquer tela.
+   */
+  trocaDeSenhaObrigatoria?: boolean;
 };
 
 /**
@@ -57,13 +64,15 @@ export type DesafioDeEntrada = {
 
 export type ResultadoDeEntrada = Autenticado | DesafioDeEntrada;
 
-/** Discrimina os dois desfechos sem depender da ausência de campo. */
-export function pedeSegundoFator(r: ResultadoDeEntrada): r is DesafioDeEntrada {
-  return "segundoFator" in r;
-}
-
 export class FalhaAutenticacao extends Error {
-  readonly codigo: "credenciais" | "bloqueado" | "inativo" | "sessao";
+  readonly codigo:
+    | "credenciais" | "bloqueado" | "inativo" | "sessao"
+    /*
+      A senha provisória venceu sem ser trocada. Só sai para quem apresentou a
+      senha provisória CERTA (a errada recebe a recusa genérica), então não
+      conta nada a quem não a tinha, e diz o que resolve: pedir outra.
+    */
+    | "senha_provisoria_vencida";
   constructor(codigo: FalhaAutenticacao["codigo"], mensagem: string) {
     super(mensagem);
     this.name = "FalhaAutenticacao";
@@ -79,6 +88,8 @@ type LinhaCredencial = {
   senha_hash: string | null;
   ativo: boolean;
   bloqueado_ate: string | null;
+  /** Migração 046. NULL para senha escolhida pela própria pessoa. */
+  senha_provisoria_ate: string | null;
   matricula: string;
   organizacao_nome: string;
   municipio: string;
@@ -95,6 +106,45 @@ type LinhaCredencial = {
  * primeiro caso.
  */
 const MENSAGEM_GENERICA = "Email ou senha inválidos.";
+
+/**
+ * O contador de falhas dos emails que NÃO EXISTEM, em memória, com teto.
+ *
+ * O DEFEITO QUE ISTO FECHA: cinco senhas erradas num email cadastrado
+ * respondiam 429 `bloqueado`; cinco num email inexistente respondiam 401,
+ * cinco vezes. A diferença era um oráculo de quais emails existem, que a
+ * resposta genérica acima se dava ao trabalho de esconder.
+ *
+ * A resposta passou a ser 401 `credenciais` nos dois casos, sempre, e o
+ * bloqueio da conta cadastrada continua valendo em silêncio (a senha certa
+ * é recusada durante o bloqueio). Este contador existe para o lado
+ * inexistente ter o MESMO comportamento interno: conta falhas, "bloqueia"
+ * pelo mesmo prazo, e o tempo gasto é o de uma verificação real. Em memória
+ * (uma linha por email não existe no banco, e criá-la seria gravar o email
+ * que alguém digitou), com teto de entradas para uma varredura de lista não
+ * virar consumo de memória sem fim: passado o teto, a entrada mais antiga
+ * sai. Por processo, e por isso é higiene e não a defesa: a defesa contra
+ * força bruta é o limite por endereço da rota (`LOGIN_POR_IP`).
+ */
+const TETO_DE_EMAILS_INEXISTENTES = 10_000;
+const falhasDeEmailInexistente = new Map<string, { falhas: number; bloqueadoAte: number }>();
+
+function registrarFalhaDeEmailInexistente(email: string, maxFalhas: number, bloqueioMinutos: number): void {
+  const chave = email.trim().toLowerCase();
+  const agora = Date.now();
+  const atual = falhasDeEmailInexistente.get(chave) ?? { falhas: 0, bloqueadoAte: 0 };
+  if (atual.bloqueadoAte > agora) return;
+  const falhas = atual.falhas + 1;
+  falhasDeEmailInexistente.delete(chave);
+  falhasDeEmailInexistente.set(chave, {
+    falhas: falhas >= maxFalhas ? 0 : falhas,
+    bloqueadoAte: falhas >= maxFalhas ? agora + bloqueioMinutos * 60_000 : 0,
+  });
+  if (falhasDeEmailInexistente.size > TETO_DE_EMAILS_INEXISTENTES) {
+    const maisAntigo = falhasDeEmailInexistente.keys().next().value;
+    if (maisAntigo !== undefined) falhasDeEmailInexistente.delete(maisAntigo);
+  }
+}
 
 export function servicoDeAutenticacao(
   banco: Banco,
@@ -116,16 +166,25 @@ export function servicoDeAutenticacao(
 
     if (!linha) {
       // Gasta o mesmo tempo de uma verificação real: sem isso, a resposta
-      // rápida denuncia que o email não existe.
+      // rápida denuncia que o email não existe. E conta a falha como se a
+      // conta existisse, pela razão escrita em `registrarFalhaDeEmailInexistente`.
+      registrarFalhaDeEmailInexistente(
+        credenciais.email, config.MAX_FALHAS_LOGIN, config.BLOQUEIO_MINUTOS,
+      );
       await gastarTempoEquivalente();
       throw new FalhaAutenticacao("credenciais", MENSAGEM_GENERICA);
     }
 
     if (linha.bloqueado_ate && new Date(linha.bloqueado_ate) > new Date()) {
-      throw new FalhaAutenticacao(
-        "bloqueado",
-        "Conta temporariamente bloqueada por tentativas seguidas. Tente novamente em alguns minutos.",
-      );
+      /*
+        BLOQUEADA EM SILÊNCIO: a mesma resposta, e o mesmo tempo, de senha
+        errada. Dizer "bloqueada" (429) só para conta que existe era o oráculo
+        de quais emails estão cadastrados. O bloqueio continua valendo: a senha
+        certa é recusada até o prazo passar, e a tentativa durante o bloqueio
+        não o estende.
+      */
+      await gastarTempoEquivalente();
+      throw new FalhaAutenticacao("credenciais", MENSAGEM_GENERICA);
     }
 
     const senhaConfere = await conferirSenha(credenciais.senha, linha.senha_hash);
@@ -155,6 +214,19 @@ export function servicoDeAutenticacao(
       como município em uso. Ver `auth/suspensao.ts` para o desenho inteiro.
     */
     await exigirAcessoAtivo(banco, linha.organizacao_id);
+
+    /*
+      A SENHA PROVISÓRIA VENCIDA não entra (migração 046). Depois da senha
+      conferir, porque só quem tem a senha certa pode saber que ela venceu;
+      antes de registrar o acerto, porque a pessoa NÃO entrou.
+    */
+    if (senhaProvisoriaVencida(linha)) {
+      throw new FalhaAutenticacao(
+        "senha_provisoria_vencida",
+        "A senha provisória venceu sem ser trocada. Peça uma nova a quem administra "
+        + "o município.",
+      );
+    }
 
     await banco.semTenant((c) =>
       c.query("SELECT registrar_tentativa_login($1, true, $2, $3::interval)", [
@@ -323,7 +395,8 @@ export function servicoDeAutenticacao(
     return banco.comTenant(organizacaoId, async (c) => {
       const r = await c.query<LinhaCredencial>(
         `SELECT u.id AS usuario_id, u.organizacao_id, u.nome, u.papel,
-                NULL::text AS senha_hash, u.ativo, u.bloqueado_ate, u.matricula,
+                NULL::text AS senha_hash, u.ativo, u.bloqueado_ate,
+                u.senha_provisoria_ate, u.matricula,
                 o.nome AS organizacao_nome, o.municipio, o.uf
            FROM usuarios u
            JOIN organizacoes o ON o.id = u.organizacao_id
@@ -355,6 +428,10 @@ export function servicoDeAutenticacao(
       return r.rows[0]!.abrir_sessao;
     });
 
+    // Vencida não chega aqui: `entrar` e `renovar` recusam antes. O que sobra
+    // é "provisória e no prazo", que vira a marca no token.
+    const provisoria = linha.senha_provisoria_ate !== null;
+
     const acesso = await emitirAcesso(
       // O PRIMEIRO da lista assina. Os demais existem só para verificar, e
       // assinar com um deles ressuscitaria o segredo que está saindo.
@@ -365,6 +442,7 @@ export function servicoDeAutenticacao(
         papel: linha.papel,
         nome: linha.nome,
         sid: sessaoId,
+        ...(provisoria ? { sp: true as const } : {}),
       },
       config.ACESSO_MINUTOS,
     );
@@ -373,6 +451,7 @@ export function servicoDeAutenticacao(
       acesso,
       renovacao,
       expiraEm: config.ACESSO_MINUTOS * 60,
+      ...(provisoria ? { trocaDeSenhaObrigatoria: true } : {}),
       usuario: {
         id: linha.usuario_id,
         nome: linha.nome,
@@ -406,6 +485,7 @@ export function servicoDeAutenticacao(
       const r = await c.query<{
         sessao_id: string; organizacao_id: string; usuario_id: string;
         nome: string; papel: Papel; ativo: boolean;
+        senha_provisoria_ate: string | null;
         matricula: string;
         organizacao_nome: string; municipio: string; uf: string;
       }>("SELECT * FROM sessao_por_token($1)", [hash]);
@@ -440,9 +520,28 @@ export function servicoDeAutenticacao(
     */
     await exigirAcessoAtivo(banco, sessao.organizacao_id);
 
-    await banco.semTenant((c) =>
-      c.query("SELECT revogar_sessao($1, $2)", [hash, "rotacionada na renovacao"]),
-    );
+    // A senha provisória venceu no meio da sessão: não renova (migração 046).
+    if (senhaProvisoriaVencida(sessao)) {
+      throw new FalhaAutenticacao("sessao", "Sessão expirada. Entre novamente.");
+    }
+
+    /*
+      H1: DOIS PEDIDOS COM O MESMO TOKEN, ao mesmo tempo. Os dois leem a sessão
+      de pé acima; só um consegue revogá-la. `revogar_sessao` devolve quantas
+      linhas mudou, e ZERO significa que outro pedido acabou de rotacionar
+      este token. O perdedor ABORTA aqui, sem emitir par nenhum: emitir seria
+      entregar duas sessões vivas para um token só, e a segunda para quem
+      chegou depois, que é exatamente o cenário do token roubado.
+    */
+    const revogadas = await banco.semTenant(async (c) => {
+      const r = await c.query<{ revogar_sessao: number }>(
+        "SELECT revogar_sessao($1, $2) AS revogar_sessao", [hash, "rotacionada na renovacao"],
+      );
+      return Number(r.rows[0]?.revogar_sessao ?? 0);
+    });
+    if (revogadas === 0) {
+      throw new FalhaAutenticacao("sessao", "Sessão expirada. Entre novamente.");
+    }
 
     return emitirPar(
       {
@@ -454,6 +553,7 @@ export function servicoDeAutenticacao(
         senha_hash: null,
         ativo: true,
         bloqueado_ate: null,
+        senha_provisoria_ate: sessao.senha_provisoria_ate,
         organizacao_nome: sessao.organizacao_nome,
         municipio: sessao.municipio,
         uf: sessao.uf,
@@ -462,26 +562,41 @@ export function servicoDeAutenticacao(
     );
   }
 
+  /** Migração 046: provisória e já no passado. */
+  function senhaProvisoriaVencida(linha: { senha_provisoria_ate: string | null }): boolean {
+    return linha.senha_provisoria_ate !== null && new Date(linha.senha_provisoria_ate) < new Date();
+  }
+
   /**
-   * Um token de renovação que já foi rotacionado continua existindo no banco,
-   * revogado. Se ele reaparecer, é reúso, e aí a família inteira cai.
+   * Um token de renovação que já foi ROTACIONADO continua existindo no banco,
+   * revogado com o motivo `rotacionada na renovacao`. Se ele reaparecer, é
+   * reúso (o legítimo e o atacante passaram a alternar), e aí a família
+   * inteira cai.
+   *
+   * SÓ ESSE CASO. Até 15/09/2026 `dono_do_token` devolvia o dono "mesmo que
+   * revogada ou expirada", e esta função derrubava tudo por um token que só
+   * VENCEU (o aparelho que ficou quinze dias sem sinal) ou que a própria
+   * pessoa encerrou em "Minha conta" e um aparelho antigo reapresentou. O
+   * painel da coordenação caía por um token que ninguém roubou. A migração
+   * 046 faz a função devolver o motivo e o vencimento, e o que não é
+   * rotação responde 401 e nada mais.
    */
   async function derrubarSePossivelReuso(hash: string): Promise<void> {
     // `sessoes` está sob RLS e não é legível sem contexto de tenant, que é
     // exatamente o que ainda não temos aqui. A pergunta passa pela função
-    // nomeada da migração 002.
+    // nomeada da migração 002 (redefinida na 046).
     const dono = await banco.semTenant(async (c) => {
-      const r = await c.query<{ dono_do_token: string | null }>(
-        "SELECT dono_do_token($1) AS dono_do_token",
-        [hash],
-      );
-      return r.rows[0]?.dono_do_token ?? null;
+      const r = await c.query<{
+        usuario_id: string; revogada_em: string | null;
+        motivo_revogacao: string | null; expira_em: string;
+      }>("SELECT * FROM dono_do_token($1)", [hash]);
+      return r.rows[0] ?? null;
     }).catch(() => null);
 
-    if (dono) {
+    if (dono && dono.revogada_em !== null && dono.motivo_revogacao === "rotacionada na renovacao") {
       await banco.semTenant((c) =>
         c.query("SELECT revogar_sessoes_do_usuario($1, $2)", [
-          dono, "reuso de token de renovacao",
+          dono.usuario_id, "reuso de token de renovacao",
         ]),
       );
     }
@@ -550,10 +665,10 @@ export function servicoDeAutenticacao(
    * vira uma conta sequestrada em dois cliques.
    */
   async function trocarSenha(
-    identidade: { usuarioId: string; sessaoId: string; organizacaoId: string },
+    identidade: Identidade,
     senhaAtual: string,
     senhaNova: string,
-  ): Promise<void> {
+  ): Promise<{ acesso: string; expiraEm: number }> {
     const atual = await banco.comTenant(identidade.organizacaoId, async (c) => {
       const r = await c.query<{ senha_hash: string | null }>(
         "SELECT senha_hash FROM usuarios WHERE id = $1",
@@ -567,11 +682,39 @@ export function servicoDeAutenticacao(
     }
 
     const hash = await derivarSenha(senhaNova);
+    /*
+      `trocar_senha` grava o hash e derruba as outras sessões. A senha deixa
+      de ser provisória no MESMO UPDATE, por gatilho do banco (migração 046):
+      a regra "senha escolhida pela pessoa não é provisória" mora lá, e vale
+      para este caminho e para o link de recuperação.
+    */
     await banco.semTenant((c) =>
       c.query("SELECT trocar_senha($1,$2,$3)", [
         identidade.usuarioId, hash, identidade.sessaoId,
       ]),
     );
+
+    /*
+      UM TOKEN DE ACESSO NOVO PARA A MESMA SESSÃO, e sempre, não só quando a
+      senha era provisória. A sessão de onde a pessoa trocou é preservada;
+      o token que ela tem na mão foi emitido antes da troca e, se a senha era
+      provisória, carrega a marca que tranca todo o resto. Sem isto, quem
+      acabou de definir a própria senha continuaria trancado por até quinze
+      minutos. Sempre, porque devolver o token só às vezes obrigaria o
+      painel a tratar dois formatos de resposta.
+    */
+    const acesso = await emitirAcesso(
+      config.jwtSegredos[0],
+      {
+        sub: identidade.usuarioId,
+        org: identidade.organizacaoId,
+        papel: identidade.papel,
+        nome: identidade.nome,
+        sid: identidade.sessaoId,
+      },
+      config.ACESSO_MINUTOS,
+    );
+    return { acesso, expiraEm: config.ACESSO_MINUTOS * 60 };
   }
 
   /**
@@ -664,14 +807,13 @@ export function servicoDeAutenticacao(
    * a trilha e o unico lugar que responde se foi a propria pessoa, quem
    * administra, ou uma sessao roubada apertando o botao.
    *
-   * ATE ONDE A PRESERVACAO VAI, e isto e limitacao conhecida, nao promessa: se
-   * um dos aparelhos derrubados tentar renovar sozinho com o token que acabou
-   * de cair, `derrubarSePossivelReuso` acima le isso como reuso de token
-   * roubado e derruba a familia inteira, inclusive esta sessao. Nao da para
-   * distinguir os dois casos hoje porque `dono_do_token` (migracao 002)
-   * devolve o dono e nao o motivo da revogacao. O lado seguro da troca e o
-   * atual: na duvida entre "foi o proprio usuario" e "e um token roubado", cai
-   * tudo. Ver a pendencia registrada no teste.
+   * A PRESERVACAO VALE DE VERDADE desde a migracao 046: se um dos aparelhos
+   * derrubados tentar renovar sozinho com o token que acabou de cair,
+   * `derrubarSePossivelReuso` le o MOTIVO da revogacao ("encerradas pelo
+   * proprio usuario"), ve que nao e rotacao, e responde 401 sem derrubar mais
+   * nada. Antes disso `dono_do_token` (migracao 002) devolvia so o dono, e a
+   * duvida entre "foi o proprio usuario" e "e um token roubado" caia para o
+   * lado de derrubar tudo, inclusive esta sessao.
    */
   async function encerrarMinhasSessoes(identidade: Identidade): Promise<number> {
     return banco.comTenant(identidade.organizacaoId, async (c) => {

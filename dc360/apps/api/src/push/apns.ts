@@ -1,7 +1,7 @@
 import { connect, constants, type ClientHttp2Session } from "node:http2";
 import { SignJWT, importPKCS8 } from "jose";
 import type { DesfechoDoEnvio, ProvedorDePush } from "./envio.js";
-import { toqueDoAviso, type Notificacao } from "./mensagem.js";
+import { toqueDoAviso, validadeDoAviso, type Notificacao } from "./mensagem.js";
 
 /**
  * Envio direto para a APNs, a notificação da Apple.
@@ -90,39 +90,57 @@ export function criarProvedorApns(
   let token: string | null = null;
   let tokenEmitidoEm = 0;
 
+  /**
+   * Importa a chave uma vez. É o que `validar()` chama na partida e o que o
+   * primeiro envio chamaria se a partida não tivesse chamado.
+   */
+  async function chave(): Promise<Awaited<ReturnType<typeof importPKCS8>>> {
+    if (chaveImportada) return chaveImportada;
+    try {
+      chaveImportada = await importPKCS8(credenciais.chavePem, "ES256");
+    } catch {
+      /*
+        A exceção original é engolida de propósito. Ela vem de biblioteca de
+        terceiro, e biblioteca de terceiro que tropeça em material
+        criptográfico às vezes cita o material na mensagem. O que este erro
+        diz é o que se pode fazer a respeito.
+
+        ATÉ 15/09/2026 O COMENTÁRIO AQUI AFIRMAVA QUE O ERRO "SOBE NA PARTIDA",
+        e não subia: a importação só acontecia no primeiro envio, minutos ou
+        horas depois do deploy, e o erro virava desfecho `falha` numa linha do
+        banco. O processo subia, `/saude` dizia `ok`, e o push não funcionava
+        por causa de um `.p8` colado pela metade. Agora `index.ts` chama
+        `validar()` antes de `listen`, e é isso que faz a frase ser verdade.
+      */
+      throw new Error(
+        "A chave de push da Apple (APNS_CHAVE) não é uma chave ES256 válida. " +
+        "Confira se o arquivo é o `.p8` baixado do portal da Apple, inteiro, " +
+        "com as linhas BEGIN e END PRIVATE KEY.",
+      );
+    }
+    return chaveImportada;
+  }
+
   async function tokenDeProvedor(): Promise<string> {
     const segundos = Math.floor(agora() / 1000);
     if (token && segundos - tokenEmitidoEm < RENOVAR_APOS_SEGUNDOS) return token;
 
-    if (!chaveImportada) {
-      try {
-        chaveImportada = await importPKCS8(credenciais.chavePem, "ES256");
-      } catch {
-        /*
-          A exceção original é engolida de propósito. Ela vem de biblioteca de
-          terceiro, e biblioteca de terceiro que tropeça em material
-          criptográfico às vezes cita o material na mensagem. Este erro sobe
-          na partida, para o arranque falhar alto, e o que ele diz é o que se
-          pode fazer a respeito.
-        */
-        throw new Error(
-          "A chave de push da Apple (APNS_CHAVE) não é uma chave ES256 válida. " +
-          "Confira se o arquivo é o `.p8` baixado do portal da Apple, inteiro, " +
-          "com as linhas BEGIN e END PRIVATE KEY.",
-        );
-      }
-    }
+    const chaveImportadaAgora = await chave();
 
     token = await new SignJWT({})
       .setProtectedHeader({ alg: "ES256", kid: credenciais.keyId })
       .setIssuer(credenciais.teamId)
       .setIssuedAt(segundos)
-      .sign(chaveImportada);
+      .sign(chaveImportadaAgora);
     tokenEmitidoEm = segundos;
     return token;
   }
 
   return {
+    async validar() {
+      await chave();
+    },
+
     async enviar(ficha: string, notificacao: Notificacao): Promise<DesfechoDoEnvio> {
       const autorizacao = await tokenDeProvedor();
 
@@ -172,6 +190,15 @@ export function criarProvedorApns(
           // Prioridade 10 entrega na hora. Aviso de prazo de vistoria é o caso
           // em que isso se justifica: chegar meia hora depois é não chegar.
           "apns-priority": "10",
+          /*
+            Até quando a Apple guarda a notificação para um aparelho que está
+            fora do ar, em segundos desde a época. Sem isto ela guarda por um
+            tempo que ela escolhe, e um "prazo vencendo" entregue no dia
+            seguinte, com o prazo já vencido, ensina o agente a não confiar
+            no aviso. A regra (quatro horas para o despacho, o próprio prazo
+            para o prazo) mora em `validadeDoAviso`, junto com o Google.
+          */
+          "apns-expiration": String(validadeDoAviso(notificacao, agora())),
           "content-type": "application/json",
         },
         corpo,
@@ -211,11 +238,15 @@ function razaoDaApple(corpo: string): string | null {
  * envios: abrir conexão nova por notificação é o que faz o envio em rajada,
  * numa noite de temporal, virar centenas de negociações de TLS seguidas.
  *
- * ESTE CAMINHO NÃO FOI EXERCITADO CONTRA A APPLE, e a limitação é deliberada:
- * enquanto a metade aplicativo não existir, mandar notificação de verdade para
- * um telefone seria barulho sem valor. Os testes usam duplo de teste, e o que
- * está provado é a montagem do token, o reaproveitamento dele e a leitura da
- * resposta.
+ * ESTE CAMINHO FOI EXERCITADO CONTRA A APPLE em 13/09/2026, por
+ * `scripts/conferir-push.mjs`: com a chave `.p8` de verdade e uma ficha de
+ * aparelho deliberadamente falsa, a APNs respondeu `400 BadDeviceToken` nos
+ * dois ambientes (produção e sandbox), que é a resposta de quem aceitou o
+ * token de provedor, conferiu time e tópico, e não achou o aparelho. O que
+ * continua sem prova é a metade que exige um telefone: a notificação chegando
+ * à tela de um aparelho registrado. Os testes usam duplo de teste, e o que
+ * está provado por eles é a montagem do token, o reaproveitamento dele e a
+ * leitura da resposta.
  */
 export function transporteApnsHttp2(
   urlBase: string,

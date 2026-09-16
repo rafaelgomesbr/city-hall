@@ -165,6 +165,7 @@ describe("abrir um rascunho gravado antes do desdobramento", () => {
     const novo = {
       ...RASCUNHO_ANTIGO,
       orgaosParaAcionar: [{ orgaoId: null, nome: "Concessionária de energia" }],
+      assinaturaIdempotencyKey: null,
     };
     await salvarRascunho(novo);
 

@@ -304,12 +304,3 @@ export async function semTenant<T>(execucao: (tx: Contexto) => Promise<T>): Prom
   const db = await banco();
   return db.transaction(async (tx) => execucao(tx)) as Promise<T>;
 }
-
-export async function recriarBanco(): Promise<void> {
-  const db = await banco();
-  await db.close();
-  instancia = null;
-  iniciando = null;
-  localStorage.removeItem(MARCA_SEMENTE);
-  indexedDB.deleteDatabase("/pglite/dc360");
-}

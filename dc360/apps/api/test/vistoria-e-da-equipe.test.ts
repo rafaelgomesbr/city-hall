@@ -225,19 +225,22 @@ describe("A coleta da equipe designada não muda de comportamento", () => {
     expect(laudo.body).not.toContain("estava designada à");
   }, 60_000);
 
-  it("ocorrência sem despacho não produz aviso: não há designação a violar", async () => {
+  it("ocorrência sem despacho não produz o aviso de EQUIPE: não há designação a violar", async () => {
     /*
-      Avisar aqui treinaria quem lê o documento a ignorar o aviso, justamente
-      no dia em que ele importa.
+      Não havia equipe para divergir, então o evento da equipe divergente não
+      aparece. O que aparece é a OUTRA marca, a de vistoria sem despacho, que
+      tem evento próprio e teste próprio em `coleta-nao-reescreve-prova.test.ts`:
+      até 15/09/2026 esta coleta entrava sem marca nenhuma e o termo de
+      interdição saía em cima dela.
     */
     const id = await ocorrencia("Rua da Equipe, 6", null);
     const r = await sincronizar(id);
 
     expect(r.statusCode).toBe(201);
-    expect(r.json().foraDaEquipeDesignada).toBe(false);
-    expect((await detalhe(id)).trilha.some(
-      (e) => e.tipo === "vistoria_fora_da_equipe",
-    )).toBe(false);
+    expect(r.json().foraDaEquipeDesignada).toBe(true);
+    const trilha = (await detalhe(id)).trilha;
+    expect(trilha.some((e) => e.tipo === "vistoria_fora_da_equipe")).toBe(false);
+    expect(trilha.some((e) => e.tipo === "vistoria_sem_despacho")).toBe(true);
   }, 60_000);
 });
 

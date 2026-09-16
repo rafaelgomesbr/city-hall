@@ -1394,7 +1394,16 @@ describe("Fotos da coleta", () => {
     const r = await fila.drenar();
     expect(r.enviados).toBe(1);
     expect(r.fotosEnviadas).toBe(0);
-    expect(arquivos.lidos, "nem chegou a abrir o arquivo no aparelho").toEqual([]);
+    /*
+      O arquivo E lido, uma vez, e nao e enviado. Ate 15/09/2026 este caso
+      cobrava "nem chegou a abrir o arquivo", e a ordem mudou de proposito: o
+      dreno mede os bytes ANTES de pedir autorizacao, porque o tamanho da
+      autorizacao precisa ser o do arquivo de verdade (a vistoria 000009/2026
+      levou `tamanhoBytes: 0` ao servidor e parou na fila com 422). Ver
+      `correcao-da-coleta.test.ts`. O que continua proibido e gastar rede: os
+      bytes nao sobem de novo.
+    */
+    expect(arquivos.lidos).toEqual(["file:///fotos/0.jpg"]);
   });
 
   it("URL de envio vencida e temporaria: pede outra na proxima tentativa", async () => {

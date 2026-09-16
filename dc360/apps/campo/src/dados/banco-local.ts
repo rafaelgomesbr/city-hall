@@ -187,14 +187,94 @@ export function esquecerConexao(): void {
 }
 
 /**
+ * DE QUEM É o que está gravado neste aparelho: a marca `dono_dos_dados_locais`.
+ *
+ * Existe por causa da sessão que VENCE no meio do plantão. Até 15/09/2026 a
+ * lista de tarefas oferecia "Sair e entrar de novo" quando o servidor respondia
+ * 401, e o botão chamava o mesmo `sair()` do fim do turno: apagava rascunho,
+ * fotos e assinatura da vistoria COMEÇADA, sem aviso, para a mesma pessoa
+ * entrar de novo dois minutos depois e reencontrar a tela em branco. A sessão
+ * vencida deixou de apagar o disco (`encerrarSessaoVencida`, em `sessao.tsx`),
+ * e esta marca é o que torna isso seguro num aparelho de plantão compartilhado:
+ * quem entra depois é conferido contra quem deixou o dado.
+ *
+ * A regra, conferida no login (`acolherNoAparelho`):
+ *
+ * - a MESMA pessoa entra de novo: nada é apagado, ela reencontra rascunhos,
+ *   fotos, lápides, fila e a lista de tarefas como deixou;
+ * - OUTRA pessoa entra: tudo é apagado antes de a sessão abrir, exatamente
+ *   como na saída explícita, porque dado de família não atravessa pessoas;
+ * - sem marca nenhuma (aparelho recém-limpo ou primeira entrada): não há dado
+ *   de ninguém a proteger, e a marca nasce com quem entrou.
+ *
+ * Mora em `marcas`, e não em `preferencias`, de propósito: ela descreve o dado
+ * do turno, e morre junto com ele em `apagarDadosLocais`. Sem dado, sem dono.
+ */
+const CHAVE_DO_DONO = "dono_dos_dados_locais";
+
+export async function donoDosDadosLocais(): Promise<string | null> {
+  try {
+    const db = await bancoLocal();
+    const linha = await db.getFirstAsync<{ valor: string }>(
+      "SELECT valor FROM marcas WHERE chave = ?", [CHAVE_DO_DONO],
+    );
+    return linha?.valor ?? null;
+  } catch (erro) {
+    console.warn("Não deu para ler de quem é o dado local", erro);
+    return null;
+  }
+}
+
+export async function marcarDonoDosDadosLocais(usuarioId: string): Promise<void> {
+  try {
+    const db = await bancoLocal();
+    await db.runAsync(
+      `INSERT INTO marcas (chave, valor) VALUES (?, ?)
+       ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor`,
+      [CHAVE_DO_DONO, usuarioId],
+    );
+  } catch (erro) {
+    console.warn("Não deu para marcar de quem é o dado local", erro);
+  }
+}
+
+/**
+ * Prepara o aparelho para quem acabou de entrar, e é o único lugar em que a
+ * troca de pessoa apaga dado.
+ *
+ * Apaga tudo SÓ quando o disco tem dono e o dono é outra pessoa. Marca sem
+ * dono não apaga: apagar por via das dúvidas destruiria a vistoria começada de
+ * quem deixou o dado num aparelho atualizado de uma versão sem a marca, e a
+ * marca passa a existir no primeiro login ou na primeira sessão restaurada
+ * desta versão (ver `ProvedorDeSessao`), então a janela é a de uma
+ * atualização. Devolve se apagou, para a tela poder dizer.
+ */
+export async function acolherNoAparelho(usuarioId: string): Promise<{ apagou: boolean }> {
+  const dono = await donoDosDadosLocais();
+  const apagou = dono !== null && dono !== usuarioId;
+  if (apagou) await apagarDadosLocais();
+  await marcarDonoDosDadosLocais(usuarioId);
+  return { apagou };
+}
+
+/**
  * Apaga TODO dado local do aparelho: o banco e as assinaturas em disco.
  *
- * Chamado no logout. O aparelho de Defesa Civil de município pequeno é
- * compartilhado entre turnos, e o `sair()` limpava só as credenciais: o banco
- * seguia com o JSON integral das ocorrências (endereço, contato do cidadão,
- * descrição da vulnerabilidade de saúde da família) e os PNGs de assinatura
- * ficavam no disco para sempre, sem nada que os apagasse. O agente da noite
- * entrava com a própria conta e via o dado do turno do dia.
+ * Chamado na SAÍDA EXPLÍCITA ("Sair da conta", no Perfil) e na entrada de
+ * OUTRA pessoa num aparelho com dado de alguém (`acolherNoAparelho`). A sessão
+ * que VENCE não chama isto: ela só derruba a credencial e a mesma pessoa
+ * reencontra o que deixou ao entrar de novo. O aparelho de Defesa Civil de
+ * município pequeno é compartilhado entre turnos, e o `sair()` limpava só as
+ * credenciais: o banco seguia com o JSON integral das ocorrências (endereço,
+ * contato do cidadão, descrição da vulnerabilidade de saúde da família) e os
+ * PNGs de assinatura ficavam no disco para sempre, sem nada que os apagasse. O
+ * agente da noite entrava com a própria conta e via o dado do turno do dia.
+ *
+ * O que ISTO apaga que a fila não protege, e que a tela precisa dizer antes de
+ * alguém confirmar a saída: a vistoria COMEÇADA e ainda não concluída. O
+ * rascunho vai em `rascunhos`, e as fotos e a assinatura dela estão no disco
+ * sem nenhum item da fila apontando para elas, então caem na limpeza abaixo.
+ * É por isso que o diálogo de saída conta os rascunhos e avisa.
  *
  * Zera as tabelas em vez de derrubar o arquivo: o esquema fica de pé para o
  * próximo login, e o WAL não precisa recriar nada. Depois esquece a conexão,

@@ -1,6 +1,8 @@
 # Política de privacidade do Defesa Civil Operacional 360
 
-- **Versão:** 1, de 09/09/2026
+- **Versão:** 1, de 09/09/2026. Revisão de 15/09/2026 na seção 4: o relato do
+  chamado e as observações do agente na vistoria passaram a ser minimizados, e
+  o nome de quem assinou a ciência deixou de ser guardado na trilha.
 - **Situação:** redigida, **ainda não publicada**. Publicar é requisito das duas
   lojas de aplicativo e do contrato com o município.
 
@@ -58,15 +60,27 @@ mantém o próprio encarregado, que é o interlocutor primeiro do cidadão.
 sempre que revelar condição de saúde ou deficiência. Ela é tratada com três
 restrições próprias, e as três já estão no produto ou entram nesta onda:
 
-1. Não aparece em nenhuma lista, nenhum resumo, nenhum cartão de apoio e nenhum
-   documento que não seja o laudo da própria ocorrência.
+1. Não aparece na lista de ocorrências do painel, no mapa, no resumo nem em
+   nenhum cartão de apoio, e em nenhum documento que não seja o laudo da
+   própria ocorrência. **Até 15/09/2026 a lista do painel a entregava** junto
+   com o contato e o relato, para qualquer conta do município e sem registro;
+   foi corrigido. A única lista que continua a levar é a **lista de tarefas do
+   aparelho do agente de campo**, recortada às ocorrências da equipe dele: o
+   agente precisa saber o que vai encontrar na casa, e precisa saber sem sinal.
+   Esse dado fica no aparelho enquanto a tarefa está com a equipe e é apagado
+   ao sair da conta (ver `DECLARACAO-NAS-LOJAS.md`).
 2. Não sai por exportação de nível básico, que é o padrão. O nível que a leva
    exige a conta de administrador do município, justificativa escrita, um teto
    de linhas, e deixa registro em dois lugares.
-3. Todo acesso a ela é registrado: abrir o dossiê da ocorrência e emitir o laudo
-   gravam quem leu, quando e com que finalidade. O registro guarda o acesso e
-   nunca o conteúdo lido, porque um registro que copiasse o dado sensível seria
-   uma segunda cópia dele, com a mesma exposição e sem a mesma retenção.
+3. Todo acesso a ela **pelo painel** é registrado: abrir o dossiê da ocorrência
+   e emitir o laudo gravam quem leu, quando e com que finalidade. O registro
+   guarda o acesso e nunca o conteúdo lido, porque um registro que copiasse o
+   dado sensível seria uma segunda cópia dele, com a mesma exposição e sem a
+   mesma retenção. A lista de tarefas do aparelho, do item 1, não registra
+   cada descida: ela é recortada à equipe do agente, e a conta do agente só
+   alcança essas ocorrências, em toda leitura da API. Desde 15/09/2026 a conta
+   de agente de campo não abre dossiê, mapa nem lista de ocorrência fora da
+   equipe dela.
 
 ### 2.2 Do servidor público que usa o sistema
 
@@ -150,11 +164,13 @@ sistema, de hora em hora, não por lembrete:
 
 | O que | Prazo | O que acontece no fim |
 | --- | --- | --- |
-| Nome e contato do solicitante | `[[prazo definido pelo município]]`, contado do encerramento da ocorrência | Viram marcador de "removido por prazo". Protocolo, endereço, fatos, laudo e trilha permanecem |
+| Nome e contato do solicitante | `[[prazo definido pelo município]]`, contado do encerramento da ocorrência | Viram marcador de "removido por prazo". Protocolo, endereço, tipo, severidade, decisão técnica, laudo e trilha permanecem |
 | Descrição de vulnerabilidade social | `[[prazo definido pelo município]]`, nunca maior que o anterior | Idem. Quando o município fixa só o primeiro prazo, a descrição sai junto com o nome, nunca depois |
+| Relato do chamado (o que a pessoa contou ao telefone) e observações em texto livre escritas pelo agente na vistoria e na devolução de tarefa | O mais curto dos dois prazos acima | Viram o mesmo marcador, e a data do descarte fica gravada. São texto livre: na prática nomeiam quem ligou, quem mora na casa e o que essa pessoa tem. **Até 15/09/2026 o relato e a observação da vistoria ficavam**, e o laudo reimpresso depois do prazo trazia nome e condição de saúde da família. Foi corrigido, e a correção alcança o que já estava no banco na primeira varredura seguinte |
+| Nome de quem assinou a ciência, quando guardado **dentro da trilha** (evento de vistoria gravado até 15/09/2026) | O prazo do solicitante | Redigido para o marcador pela própria varredura, na mesma passada, e a trilha registra que redigiu e quantos eventos. A trilha não grava mais esse nome desde 15/09/2026. Ver "A trilha e o nome do assinante", abaixo |
 | Fotografias de vistoria referidas por um laudo | `[[prazo definido pelo município]]` | **Previsto, ainda não implantado.** Hoje elas permanecem. Ver a seção 6 |
 | Fotografia que nenhum registro justifica (arquivo que subiu e cujo envelope nunca chegou) | 30 dias para entrar na lista, e depois um ato humano | O sistema LISTA, com quem é, de quando e de que tamanho. Apagar é ato deliberado do operador da plataforma, com nome e motivo escritos, e nunca automático. Ver "O arquivo sem dono", abaixo |
-| Protocolo, endereço, tipo, severidade, decisão técnica, trilha | Permanente | Nada. É o registro do ato |
+| Protocolo, endereço, tipo, severidade, decisão técnica (checklist, contagens, órgãos indicados), nome de quem assinou a ciência na vistoria, trilha | Permanente | Nada. É o registro do ato. A trilha tem um único retoque possível, o da linha acima, feito pelo sistema e registrado por ele |
 | Registro de quem acessou e de quem exportou | Permanente | Nada. É prova de acesso, e prova de acesso não se descarta junto com o dado que ela protege |
 | Conta de servidor público desativada | Permanente | Nada. Ele assina laudo e aparece na trilha |
 | Saída a campo declarada, e o que a coordenação fez a respeito | Permanente | Nada. É a prova de que o município reagiu (ou de que não reagiu) a um alerta sobre a segurança física do próprio servidor, e essa prova não vence junto com o nome de quem ligou para a central: ela responde por prazo próprio e mais longo. O texto que a coordenação escreve ali é sobre o ATO da prefeitura, e a tela pede, no rótulo, que ele nunca traga dado do morador |
@@ -192,8 +208,40 @@ mudança fica na trilha administrativa com o valor anterior e o novo.
   nosso lado não alteraria o dele: faria as duas versões divergirem. Por isso
   vale a orientação operacional: **não escrever nome de cidadão no campo de
   observações do ofício**, porque ali ele é permanente.
-- **Nome de quem assinou a ciência da interdição.** É a prova de que a pessoa
-  foi cientificada do ato administrativo, e faz parte do ato.
+- **Nome de quem assinou a ciência da interdição** (o campo `assinante_nome`
+  da vistoria). É a prova de que a pessoa foi cientificada do ato
+  administrativo, e faz parte do ato: um termo de interdição sem o nome de quem
+  foi cientificado é um ato sem ciência comprovada. Por isso ele **não é
+  minimizado**, sai impresso no laudo e no termo mesmo depois do prazo, e vive
+  **em um único lugar**, a vistoria. Não entra em lista, resumo nem exportação
+  básica, e desde 15/09/2026 não entra mais na trilha.
+- **Legenda de fotografia e texto de providência encaminhada a outro órgão
+  (pedido e resposta).** São texto livre e não têm prazo de descarte hoje. Vale
+  a mesma orientação operacional do ofício: **não escrever nome de cidadão nem
+  condição de saúde nesses campos**. A decisão sobre eles ainda não foi tomada,
+  e este documento diz isso em vez de prometer.
+
+### A trilha e o nome do assinante
+
+A trilha de auditoria de cada ocorrência é gravada e nunca reescrita pelo
+sistema em uso: o banco não tem permissão de alteração nem de remoção para a
+aplicação, e correção entra como evento novo. Isso continua verdade.
+
+Até 15/09/2026, porém, o evento de vistoria gravado na trilha carregava o nome
+de quem assinou a ciência no local. Era uma **segunda cópia** de um dado que já
+vive na vistoria pela exceção declarada acima, sem finalidade própria, lida na
+tela de auditoria por todo servidor do município, e permanente. A partir dessa
+data a trilha deixou de receber esse nome. Para os eventos já gravados, a
+decisão foi **redigir, e não manter**: o texto do nome é trocado pelo marcador
+"removido por prazo" nos eventos de vistoria das ocorrências que a varredura
+minimiza, na mesma passada e na mesma transação, e o evento de minimização da
+própria ocorrência diz quantos eventos foram redigidos. Nada mais do evento
+muda: autor, data, origem, número de fotos e precisão do GPS ficam.
+
+Essa é a única escrita que existe sobre a trilha, e ela é feita exclusivamente
+pela função de minimização do banco, rodando como dono das tabelas, com a
+guarda de estourar (e desfazer tudo) se alcançar menos eventos do que devia.
+Nenhuma conta do município, nem a de administrador, consegue fazê-la.
 
 O prazo é decisão do município, porque ele é o controlador. O fornecedor entrega
 o mecanismo, não o número.

@@ -38,17 +38,21 @@ const RESPOSTA_DO_SERVIDOR: RespostaDeBusca = {
   ],
 };
 
-/** Os mesmos registros, como o banco da demonstração os entregaria ao classificador. */
+/**
+ * Os mesmos registros, como o banco da demonstração os entregaria ao
+ * classificador. O protocolo NÃO entra em `termos`: ele casa só por prefixo
+ * do número, pelo campo próprio (ver "O ruído da busca", abaixo).
+ */
 const REGISTROS: RegistroPesquisavel[] = [
   {
     tipo: "ocorrencia", id: "oc-1", titulo: "Servidão Boa Esperança, 148",
     detalhe: "Deslizamento, em campo", protocolo: "000123/2026", severidade: "alta", status: "em_campo",
-    termos: ["000123/2026", "Servidão Boa Esperança, 148", "Maria Aparecida Lins", "Deslizamento", "Em campo"],
+    termos: ["Servidão Boa Esperança, 148", "Maria Aparecida Lins", "Deslizamento", "Em campo"],
   },
   {
     tipo: "ocorrencia", id: "oc-2", titulo: "Rua Sete de Setembro, 410",
     detalhe: "Vendaval, encerrada", protocolo: "000098/2026", severidade: "baixa", status: "encerrada",
-    termos: ["000098/2026", "Rua Sete de Setembro, 410", "Benedito Alcântara", "Vendaval", "Encerrada"],
+    termos: ["Rua Sete de Setembro, 410", "Benedito Alcântara", "Vendaval", "Encerrada"],
   },
   {
     tipo: "usuario", id: "us-1", titulo: "Joana da Silva Prado",
@@ -134,6 +138,67 @@ describe("A demonstração acha o que o servidor acharia", () => {
     const resposta = classificarRegistros("zzzzzz", REGISTROS);
     expect(resposta.grupos).toEqual([]);
     expect(resposta.consulta).toBe("zzzzzz");
+  });
+});
+
+describe("O ruído da busca, provado pelo revisor no Chromium", () => {
+  /*
+    Três achados, na demonstração: "000471" listava os oito protocolos do
+    município (todos parecidos em "0004"); "sair" trazia 000478, porque
+    "sair" está a uma letra de "bair" de "Bairro"; e "Marilda" achava a
+    ocorrência sem nada marcado na linha, porque casou no nome do
+    solicitante, que a linha não mostra.
+
+    A régua passa a ser a do servidor (migração 041, sabor sem `pg_trgm`):
+    igual, prefixo, início de palavra, substring e, por último, parecido por
+    cobertura de trigramas. O protocolo é a exceção: número casa só por
+    prefixo, porque quem digita "000471" quer aquele e nenhum vizinho.
+  */
+  const PROTOCOLOS: RegistroPesquisavel[] = Array.from({ length: 8 }, (_, i) => ({
+    tipo: "ocorrencia", id: `oc-${i}`, titulo: `Rua ${i}, ${i}00`,
+    detalhe: "Vendaval, em campo", protocolo: `00047${i}/2026`, severidade: "alta", status: "em_campo",
+    termos: [`Rua ${i}, ${i}00`, `Solicitante ${i}`, "Vendaval", "Em campo"],
+  }));
+
+  it("'000471' acha só 000471, e não os oito vizinhos", () => {
+    expect(ids(classificarRegistros("000471", PROTOCOLOS), "ocorrencia")).toEqual(["oc-1"]);
+    // O prefixo continua valendo: "00047" acha os oito, que é o esperado.
+    expect(ids(classificarRegistros("00047", PROTOCOLOS), "ocorrencia")).toHaveLength(8);
+    // E o número inteiro, com o ano.
+    expect(ids(classificarRegistros("000471/2026", PROTOCOLOS), "ocorrencia")).toEqual(["oc-1"]);
+  });
+
+  it("'sair' não acha 'Bairro Nossa Senhora'", () => {
+    const registros: RegistroPesquisavel[] = [{
+      tipo: "ocorrencia", id: "oc-8", titulo: "Rua Ribeirão Fundo, 402, Bairro Nossa Senhora",
+      detalhe: "Inundação, em campo", protocolo: "000478/2026", severidade: "alta", status: "em_campo",
+      termos: ["Rua Ribeirão Fundo, 402, Bairro Nossa Senhora", "Wanderley Pinto de Sá", "Inundação", "Em campo"],
+    }];
+    expect(classificarRegistros("sair", registros).grupos).toEqual([]);
+    // O parecido de verdade continua achando: é a régua do servidor.
+    expect(ids(classificarRegistros("ribeirao fumdo", registros), "ocorrencia")).toEqual(["oc-8"]);
+  });
+
+  it("quando casou fora do título, o detalhe mostra o trecho que casou", () => {
+    const r = classificarRegistros("aparecida", REGISTROS);
+    const item = r.grupos.find((g) => g.tipo === "ocorrencia")!.itens[0]!;
+    expect(item.detalhe).toContain("Maria Aparecida Lins");
+    expect(item.detalhe).toContain("Deslizamento, em campo");
+
+    // Casou no título: o detalhe fica como está.
+    const porTitulo = classificarRegistros("boa esperanca", REGISTROS);
+    expect(porTitulo.grupos.find((g) => g.tipo === "ocorrencia")!.itens[0]!.detalhe)
+      .toBe("Deslizamento, em campo");
+
+    // Casou no protocolo, que a linha já mostra: o detalhe também fica.
+    const porProtocolo = classificarRegistros("000123", REGISTROS);
+    expect(porProtocolo.grupos.find((g) => g.tipo === "ocorrencia")!.itens[0]!.detalhe)
+      .toBe("Deslizamento, em campo");
+
+    // E o termo que já está no detalhe não é repetido.
+    const porMatricula = classificarRegistros("SA-1042", REGISTROS);
+    expect(porMatricula.grupos.find((g) => g.tipo === "usuario")!.itens[0]!.detalhe)
+      .toBe("Coordenador, matrícula SA-1042");
   });
 });
 

@@ -10,6 +10,7 @@ import {
   mensagemDeOficio, oficioDeEncaminhamento, type DadosDoOficio,
 } from "../oficios/documento.js";
 import { escapar } from "../documentos/folha.js";
+import { registrarEvento } from "../trilha.js";
 
 /**
  * O ofício de encaminhamento: emitir, enviar e abrir.
@@ -254,13 +255,18 @@ export async function rotasOficios(
 
     try {
       const criado = await banco.comTenant(quem.organizacaoId, async (c) => {
-        const providencia = await c.query<{ ocorrencia_id: string; orgao_id: string }>(
-          "SELECT ocorrencia_id, orgao_id FROM providencias WHERE id = $1",
+        const providencia = await c.query<{
+          ocorrencia_id: string; orgao_id: string; orgao_nome: string;
+        }>(
+          `SELECT p.ocorrencia_id, p.orgao_id, g.nome AS orgao_nome
+             FROM providencias p JOIN orgaos g ON g.id = p.orgao_id
+            WHERE p.id = $1`,
           [dados.providenciaId],
         );
         if (!providencia.rows[0]) {
           throw new RegraDeNegocio("nao_encontrada", "Providência não encontrada.", 404);
         }
+        const ocorrenciaId = providencia.rows[0].ocorrencia_id;
 
         /*
           O ano vem do relógio do BANCO, e não do processo.
@@ -286,11 +292,28 @@ export async function rotasOficios(
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
            RETURNING id, numero`,
           [
-            quem.organizacaoId, providencia.rows[0].ocorrencia_id, dados.providenciaId,
+            quem.organizacaoId, ocorrenciaId, dados.providenciaId,
             providencia.rows[0].orgao_id, numero.rows[0]!.numero, ano.rows[0]!.ano,
             dados.observacoes || null, quem.usuarioId, `${quem.nome} (${quem.papel})`,
           ],
         );
+
+        /*
+          O ofício entra na TRILHA DA OCORRÊNCIA, na mesma transação que queima
+          o número. Até aqui não entrava: o produto emitia um documento oficial
+          numerado, com o cabeçalho da prefeitura, e a tela que alguém abre para
+          provar o que aconteceu não sabia que ele existia. "A prefeitura não
+          fez nada" ficava sem a resposta que o ofício é. Reproduzido pelo
+          revisor de integridade.
+
+          Número e órgão, que é o que identifica o ato. O texto do ofício não
+          vai: ele é o dossiê, e a trilha não é lugar de dossiê.
+        */
+        await registrarEvento(c, quem, ocorrenciaId, "oficio_emitido", {
+          numero: r.rows[0]!.numero,
+          orgao: providencia.rows[0].orgao_nome,
+          providenciaId: dados.providenciaId,
+        });
         return r.rows[0]!;
       });
 
@@ -447,6 +470,7 @@ export async function rotasOficios(
         destino,
         numero: f.numero,
         orgaoNome: f.orgao_nome,
+        ocorrenciaId: f.ocorrencia_id,
         contexto: contexto.rows[0]!,
       };
     }).catch((erro: unknown) => {
@@ -514,6 +538,25 @@ export async function rotasOficios(
           idNoProvedor,
         ],
       );
+
+      /*
+        O envio ACEITO entra na trilha da ocorrência, junto do desfecho. Só o
+        aceito: um evento "ofício enviado" para uma mensagem que o provedor
+        recusou seria a trilha afirmando um envio que não aconteceu. A tentativa
+        que falhou continua na ficha do ofício, com o que o provedor respondeu.
+
+        O destinatário é institucional por construção (o banco só aceita
+        domínio de órgão ativo do catálogo), e a tentativa diz qual dos envios
+        foi este quando o órgão disser que não recebeu.
+      */
+      if (!falha) {
+        await registrarEvento(c, quem, preparado.ocorrenciaId, "oficio_enviado", {
+          numero: preparado.numero,
+          orgao: preparado.orgaoNome,
+          destinatario: preparado.destino,
+          tentativa: preparado.tentativa,
+        });
+      }
     });
 
     if (falha) {

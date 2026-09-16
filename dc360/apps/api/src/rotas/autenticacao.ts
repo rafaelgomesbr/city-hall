@@ -198,9 +198,17 @@ export async function rotasAutenticacao(app: FastifyInstance, opcoes: Opcoes): P
   app.post("/trocar-senha", async (req, resposta) => {
     const identidade = await app.exigirAutenticacao(req);
     const dados = trocaSchema.parse(req.body);
-    await autenticacao.trocarSenha(identidade, dados.senhaAtual, dados.senha);
+    const novo = await autenticacao.trocarSenha(identidade, dados.senhaAtual, dados.senha);
+    /*
+      O token de acesso NOVO para a mesma sessao, que o painel passa a usar. E
+      o que solta quem entrou com senha provisoria (migracao 046): o token
+      antigo carrega a marca que tranca todo o resto, e valeria por ate quinze
+      minutos. Ver `auth/servico.ts#trocarSenha`.
+    */
     return resposta.code(200).send({
       mensagem: "Senha trocada. As outras sessoes foram encerradas.",
+      acesso: novo.acesso,
+      expiraEm: novo.expiraEm,
     });
   });
 

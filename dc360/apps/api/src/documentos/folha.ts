@@ -235,6 +235,15 @@ const ESTILO = `
     height: 46px; display: flex; align-items: flex-end; justify-content: center;
     font-size: 9pt; font-style: italic; color: #8A5A00;
   }
+  /*
+    O espaço de quem assina à caneta. Mesma altura do traço, para as duas
+    colunas alinharem, e SEM a cor de aviso: não falta nada aqui, a assinatura
+    é colhida no papel, em cima da linha.
+  */
+  .assinatura .proprio-punho {
+    height: 46px; display: flex; align-items: flex-end; justify-content: center;
+    font-size: 8pt; color: var(--tinta-fraca);
+  }
   .assinatura .linha { border-top: 1px solid var(--tinta); margin-bottom: 5px; }
   .assinatura .nome { font-size: 11pt; font-weight: 600; }
   .assinatura .papel { font-size: 9pt; color: var(--tinta-fraca); }
@@ -243,8 +252,8 @@ const ESTILO = `
     display: flex; justify-content: space-between; align-items: flex-end;
     font-size: 8.5pt; color: var(--tinta-fraca);
   }
-  .validacao { display: flex; gap: 10px; align-items: center; }
-  .selo-validacao {
+  .identificador { display: flex; gap: 10px; align-items: center; }
+  .selo-identificador {
     width: 56px; height: 56px; flex: 0 0 56px;
     border: 1px solid var(--linha); display: grid; place-items: center;
     font-family: "Roboto Mono", ui-monospace, Consolas, monospace;
@@ -288,8 +297,14 @@ export type OpcoesFolha = {
   protocolo: string;
   cabecalho: Cabecalho;
   corpo: string;
-  /** Código curto que identifica a versão emitida deste documento. */
-  validacao: string;
+  /**
+   * Identificador da emissão, impresso no rodapé.
+   *
+   * O rodapé dizia "Código de validação" e não existia onde validar. Agora
+   * diz o que o número é, e `GET /documentos/validar/:codigo` responde a que
+   * emissão ele corresponde. Ver `codigoDeEmissao` em `laudo.ts`.
+   */
+  identificador: string;
   emitidoEm: Date;
   emitidoPor: string;
   /** Texto da marca d'água. Vazio remove a marca. */
@@ -331,9 +346,9 @@ ${marca ? `<p class="aviso-prototipo">${escapar(marca)}</p>` : ""}
       ))}<br>
       por ${escapar(o.emitidoPor)}
     </div>
-    <div class="validacao">
-      <div class="selo-validacao" aria-hidden="true">${escapar(o.validacao)}</div>
-      <div>Código de validação<br><strong>${escapar(o.validacao)}</strong></div>
+    <div class="identificador">
+      <div class="selo-identificador" aria-hidden="true">${escapar(o.identificador)}</div>
+      <div>Identificador da emissão<br><strong>${escapar(o.identificador)}</strong></div>
     </div>
   </footer>
 </article>
@@ -395,6 +410,29 @@ export function assinatura(
     : `<div class="traco-ausente">${escapar(textoDaAusencia)}</div>`;
   return `<div class="assinatura">
     ${traco}
+    <div class="linha"></div>
+    <div class="nome">${escapar(nome)}</div>
+    <div class="papel">${escapar(papel)}</div>
+  </div>`;
+}
+
+/**
+ * Bloco de assinatura de quem assina À CANETA, em cima da linha.
+ *
+ * Existe porque `assinatura()` sem traço afirma "Assinatura não coletada", e
+ * essa frase só é verdadeira onde havia coleta eletrônica prevista: a pessoa
+ * presente no local, que assina no aparelho durante a vistoria. O agente que
+ * assina o laudo, a coordenação que assina o levantamento e o responsável que
+ * dá ciência da desinterdição nunca tiveram coleta eletrônica, e o documento
+ * dizia sobre os três que a assinatura "não foi coletada". É uma afirmação
+ * falsa com brasão, e no termo de desinterdição ela aparecia duas vezes.
+ *
+ * Aqui não falta nada: o espaço é o lugar da assinatura de próprio punho, e o
+ * papel diz isso sem cor de aviso.
+ */
+export function assinaturaDeProprioPunho(nome: string, papel: string): string {
+  return `<div class="assinatura">
+    <div class="proprio-punho">Assinatura de próprio punho</div>
     <div class="linha"></div>
     <div class="nome">${escapar(nome)}</div>
     <div class="papel">${escapar(papel)}</div>

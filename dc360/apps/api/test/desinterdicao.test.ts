@@ -77,7 +77,7 @@ async function comVistoria(
     payload: { equipeId: EQUIPE_ALFA, prazoHoras: 4 },
   });
 
-  const coletadaEm = new Date(Date.now() - 5_000).toISOString();
+  const coletadaEm = new Date().toISOString();
   const s = await app.inject({
     method: "POST", url: "/sincronizacao/vistoria", headers: com(tokenAgente),
     payload: {
@@ -104,8 +104,14 @@ async function comVistoria(
   return { id, protocolo };
 }
 
-/** Sincroniza uma nova vistoria na mesma ocorrência: é o que a re-vistoria faz. */
-async function novaVistoria(ocorrenciaId: string): Promise<void> {
+/**
+ * Sincroniza uma nova vistoria na mesma ocorrência: é o que a re-vistoria faz.
+ *
+ * `interdicao` decide o que a re-vistoria conclui. A que diz NÃO é a
+ * re-vistoria de rotina de todo levantamento: o agente volta ao local e atesta
+ * que o risco cessou. Ela era o caso que este arquivo não cobria.
+ */
+async function novaVistoria(ocorrenciaId: string, interdicao = true): Promise<void> {
   const coletadaEm = new Date().toISOString();
   const s = await app.inject({
     method: "POST", url: "/sincronizacao/vistoria", headers: com(tokenAgente),
@@ -115,14 +121,17 @@ async function novaVistoria(ocorrenciaId: string): Promise<void> {
       coletadaEm,
       vistoria: {
         checklist: [
-          { chave: "risco_iminente", resposta: true },
-          { chave: "evacuacao_necessaria", resposta: true },
-          { chave: "interdicao_indicada", resposta: true },
+          { chave: "risco_iminente", resposta: interdicao },
+          { chave: "evacuacao_necessaria", resposta: interdicao },
+          { chave: "interdicao_indicada", resposta: interdicao },
           { chave: "acionar_outro_orgao", resposta: false },
         ],
         fotos: [], gpsPrecisaoMetros: 6.2,
         assinanteNome: "Marilda Souza Prado", assinaturaChave: null,
-        coletadaEm, observacoes: "Re-vistoria: risco voltou.",
+        coletadaEm,
+        observacoes: interdicao
+          ? "Re-vistoria: risco voltou."
+          : "Re-vistoria: contenção executada, sem trincas ativas, risco cessado.",
       },
     },
   });
@@ -466,5 +475,136 @@ describe("O termo de desinterdição", () => {
       headers: com(tokenAgente),
     });
     expect(r.statusCode).toBe(403);
+  });
+});
+
+describe("A re-vistoria que atesta a cessação do risco", () => {
+  /*
+    O FLUXO REAL de todo levantamento, que este arquivo não cobria: a vistoria
+    diz SIM, o termo sai (interdita), o agente volta ao local e a re-vistoria
+    diz NÃO, porque a contenção foi feita. Só então a coordenação levanta a
+    interdição com motivo.
+
+    Reproduzido pelo revisor de integridade contra a API real: depois desse
+    fluxo, o termo de desinterdição respondia 409 `interdicao_nao_indicada`,
+    porque a rota preparava os dados como se fosse emitir um termo de
+    INTERDIÇÃO e exigia que a vistoria VIGENTE (a re-vistoria, que diz NÃO)
+    indicasse interdição. A família cuja casa foi liberada não conseguia o
+    papel que a autoriza a voltar, e a mensagem mandava "registrar uma
+    vistoria nova antes de interditar", que é o oposto do que estava
+    acontecendo.
+
+    A segunda via do termo de interdição caía no mesmo 409: o processo pede a
+    cópia do ato, e o ato foi sustentado pela vistoria que disse SIM, não pela
+    que veio depois.
+  */
+  const MOTIVO_DO_LEVANTAMENTO =
+    "Contenção do talude executada pela Secretaria de Obras e conferida em nova "
+    + "vistoria técnica. Sem trincas ativas.";
+
+  async function cicloCompleto(endereco: string): Promise<{ id: string; protocolo: string }> {
+    const alvo = await comVistoria(endereco);
+    await interditar(alvo.id);
+    await new Promise((r) => setTimeout(r, 20));
+    await novaVistoria(alvo.id, false);
+    const lev = await app.inject({
+      method: "POST", url: `/ocorrencias/${alvo.id}/desinterdicao`,
+      headers: com(tokenCoordenador), payload: { motivo: MOTIVO_DO_LEVANTAMENTO },
+    });
+    if (lev.statusCode !== 200) throw new Error(`levantamento falhou: ${lev.body}`);
+    return alvo;
+  }
+
+  it("o termo de desinterdição sai depois da re-vistoria que diz NÃO", async () => {
+    const alvo = await cicloCompleto("Rua da Cessação, 10");
+
+    const r = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/termo-de-desinterdicao`,
+      headers: com(tokenCoordenador),
+    });
+    expect(r.statusCode, r.body).toBe(200);
+    expect(r.body).toContain("Termo de desinterdição");
+    expect(r.body).toContain("Contenção do talude executada");
+  });
+
+  it("a segunda via do termo de interdição sai da vistoria que sustentou o ato", async () => {
+    const alvo = await cicloCompleto("Rua da Cessação, 20");
+
+    const r = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/termo-de-interdicao`,
+      headers: com(tokenCoordenador),
+    });
+    expect(r.statusCode, r.body).toBe(200);
+    /*
+      A cópia é do documento que saiu: a vistoria que disse SIM. Imprimir a
+      re-vistoria (que diz NÃO) embaixo de "Fica INTERDITADO" seria um papel
+      que se contradiz, e usar a vigente era exatamente o que produzia o 409.
+    */
+    expect(r.body).toContain("Vistoria realizada com a moradora presente.");
+    expect(r.body).not.toContain("risco cessado");
+
+    // E continua sendo segunda via: não reinterdita.
+    const lista = await interditados(tokenCoordenador);
+    expect(lista.json().itens.some((i: { id: string }) => i.id === alvo.id)).toBe(false);
+  });
+
+  it("o termo de desinterdição imprime a re-vistoria que motivou o levantamento", async () => {
+    /*
+      O termo imprimia a vistoria vigente com "Interdição indicada: SIM" (quando
+      a vigente ainda era a original) embaixo de "Fica LEVANTADA a interdição".
+      Com a re-vistoria, a vistoria impressa é a que atestou a cessação, e o
+      checklist dela diz NÃO.
+    */
+    const alvo = await cicloCompleto("Rua da Cessação, 30");
+    const r = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/termo-de-desinterdicao`,
+      headers: com(tokenCoordenador),
+    });
+    expect(r.statusCode, r.body).toBe(200);
+    expect(r.body).toContain("risco cessado");
+    expect(r.body).not.toContain("Vistoria realizada com a moradora presente.");
+    expect(r.body).toContain("Vistoria que motivou o levantamento");
+  });
+
+  it("sem re-vistoria, o termo de desinterdição DIZ que o levantamento foi sem nova vistoria", async () => {
+    /*
+      A rota de levantamento aceita, de propósito, levantar sem vistoria nova
+      (a equipe afogada no dia da chuva), e o comentário dela promete: "o termo
+      imprime o motivo por extenso, e 'sem nova vistoria' fica escrito nele se
+      for o caso". A promessa não estava cumprida: o termo imprimia o checklist
+      da vistoria que INTERDITOU, com "Interdição indicada: SIM", como se fosse
+      o fundamento do levantamento.
+    */
+    const alvo = await comVistoria("Rua da Cessação, 40");
+    await interditar(alvo.id);
+    const lev = await app.inject({
+      method: "POST", url: `/ocorrencias/${alvo.id}/desinterdicao`,
+      headers: com(tokenCoordenador), payload: { motivo: MOTIVO_DO_LEVANTAMENTO },
+    });
+    expect(lev.statusCode).toBe(200);
+
+    const r = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/termo-de-desinterdicao`,
+      headers: com(tokenCoordenador),
+    });
+    expect(r.statusCode, r.body).toBe(200);
+    expect(r.body.replace(/\s+/g, " ")).toContain("sem nova vistoria técnica");
+    expect(r.body).not.toContain("Checklist técnico");
+  });
+
+  it("o termo de desinterdição não afirma 'Assinatura não coletada' sobre quem assina de próprio punho", async () => {
+    /*
+      Ninguém coleta eletronicamente a assinatura da coordenação nem a ciência
+      do responsável no levantamento: esse papel é assinado à caneta, em cima
+      da linha. "Assinatura não coletada" ali é uma afirmação falsa com brasão.
+    */
+    const alvo = await cicloCompleto("Rua da Cessação, 50");
+    const r = await app.inject({
+      method: "GET", url: `/documentos/${alvo.id}/termo-de-desinterdicao`,
+      headers: com(tokenCoordenador),
+    });
+    expect(r.statusCode, r.body).toBe(200);
+    expect(r.body).not.toContain("Assinatura não coletada");
+    expect(r.body).toContain("Assinatura de próprio punho");
   });
 });

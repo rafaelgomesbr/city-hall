@@ -162,9 +162,19 @@ export function semTextoLiteral(fonte) {
  * `accessibilityRole` no TIPO, justamente para o que está escrito na fonte
  * continuar sendo a verdade que este portão lê. Um componente que preenchesse
  * sozinho seria um componente que apaga a varredura.
+ *
+ * `PressionavelAnimado` entra pela mesma razão, e a cegueira que ele tapava
+ * era maior: é o `Pressable` de verdade por baixo de `Botao` e de `Tocavel`
+ * (`Animated.createAnimatedComponent(Pressable)`), e por ele passam os
+ * quarenta e tantos `<Botao>` do aplicativo. Sem ele na lista, o próprio
+ * `Botao` podia perder o `accessibilityRole` ou cair para `minHeight: 32` sem
+ * que nenhuma das três regras reclamasse, porque nenhuma delas enxergava o
+ * elemento que o botão desenha. Um revisor provou as duas mutações em 15/09 e
+ * as duas passaram verdes.
  */
 export const TAGS_TOCAVEIS = new Set([
   "Pressable", "TouchableOpacity", "TouchableHighlight", "TouchableWithoutFeedback", "Tocavel",
+  "PressionavelAnimado",
 ]);
 
 /**

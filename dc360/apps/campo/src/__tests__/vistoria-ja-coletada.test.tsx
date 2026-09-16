@@ -89,11 +89,15 @@ jest.mock("expo-crypto", () => ({
    carrega a ocorrência depende dela, e um objeto novo a cada quadro o faria
    rodar de novo para sempre. */
 jest.mock("expo-router", () => {
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const { useEffect } = require("react") as typeof import("react");
   const navegacao = { setOptions: jest.fn() };
   return {
     router: { push: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) },
     useLocalSearchParams: () => ({ id: "11111111-1111-4111-8111-111111111111" }),
     useNavigation: () => navegacao,
+    /* A tela relê o disco a cada foco; aqui o foco é a montagem, e só ela. */
+    useFocusEffect: (retorno: () => void) => { useEffect(retorno, [retorno]); },
   };
 });
 

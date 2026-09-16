@@ -1125,6 +1125,203 @@ describe("Apagar prova é negado por AUSÊNCIA de policy, e não só por ausênc
   });
 });
 
+describe("O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado", () => {
+  /**
+   * POR QUE O BLOCO DE CIMA NAO BASTAVA, provado por um revisor em 15/09/2026.
+   *
+   * As duas listas do bloco anterior (`APPEND_ONLY` e
+   * `CORRIGIVEIS_QUE_NAO_SE_APAGAM`) sao EXPLICITAS: uma tabela nova que nasca
+   * com `CREATE POLICY` sem clausula `FOR` (que vale `FOR ALL`, e autoriza
+   * DELETE) e com `GRANT DELETE` ao papel de aplicacao nao esta em lista
+   * nenhuma, e passa. E `GRANT DELETE ON ocorrencias TO dc360_app` tambem
+   * passa: o portao de privilegio la embaixo IGNORA o que `dc360_app` tem (ele
+   * existe para achar OUTROS papeis), e o caso "com um GRANT DELETE a mais"
+   * concede e revoga por conta propria, entao nao ve um GRANT que ja estava
+   * la. A prova do revisor foi uma copia do banco com exatamente esses dois
+   * defeitos, e nenhuma reprovacao.
+   *
+   * A resposta e a mesma forma do portao de privilegio: uma varredura sobre
+   * TODA tabela de `public`, sem lista de tabelas, com lista so de EXCECOES,
+   * cada uma narrada. Tabela nova entra sozinha; excecao nova exige escrever o
+   * nome aqui, o que aparece na revisao.
+   *
+   * Tres cobrancas:
+   *
+   *   1. NENHUMA policy `ALL`, em tabela nenhuma. Policy `ALL` e a que autoriza
+   *      DELETE sem ninguem ter escrito a palavra, e foi assim que as vinte e
+   *      duas tabelas da 034 nasceram apagaveis por um GRANT.
+   *   2. Policy `DELETE` so nas duas tabelas em que o produto APAGA de
+   *      proposito e por idade, e a condicao de idade esta escrita na propria
+   *      policy: `avisos` (018, sessenta dias) e `notificacoes_enviadas` (037,
+   *      trinta dias de piso, o expurgo dentro de `varrer_prazos`).
+   *   3. Privilegio EFETIVO de DELETE (`has_table_privilege`, que soma
+   *      concessao direta, heranca e PUBLIC) so onde esta nomeado: `dc360_app`
+   *      em `avisos`, e mais nada; `dc360_console` em lugar nenhum.
+   *
+   * E os dois casos-irmaos reintroduzem os defeitos da prova do revisor, no
+   * mesmo banco, e veem a varredura morder. Sem eles, uma consulta de catalogo
+   * com nome de coluna errado devolveria vazio e o portao passaria verde sem
+   * verificar nada, que e o defeito que a ancora do bloco de privilegio ja
+   * descreve.
+   */
+  const COM_POLICY_DE_DELETE = new Map<string, string>([
+    ["avisos", "018: expurgo por idade, com os sessenta dias escritos na policy avisos_expurgo"],
+    ["notificacoes_enviadas", "037: expurgo por retencao dentro de varrer_prazos, com o piso de trinta dias na policy notificacoes_expurgo"],
+  ]);
+  const APAGA_EM = new Map<string, Set<string>>([
+    ["dc360_app", new Set(["avisos"])],
+    ["dc360_console", new Set()],
+  ]);
+
+  type SobraDeDelete = { tabela: string; problema: string };
+
+  /** Tudo que alcanca DELETE, em qualquer tabela de `public`, sem filtro de lista. */
+  async function tudoQueAlcancaDelete(): Promise<{
+    policiesAll: Array<{ tabela: string; policy: string }>;
+    policiesDelete: Array<{ tabela: string; policy: string }>;
+    privilegios: Array<{ tabela: string; papel: string }>;
+  }> {
+    const policies = await db.query<{ tabela: string; policy: string; cmd: string }>(
+      `SELECT tablename AS tabela, policyname AS policy, cmd
+         FROM pg_policies
+        WHERE schemaname = 'public' AND cmd IN ('ALL', 'DELETE')
+        ORDER BY tablename, policyname`,
+    );
+    const privilegios = await db.query<{ tabela: string; papel: string }>(
+      `SELECT c.relname AS tabela, r.rolname AS papel
+         FROM pg_class c
+         CROSS JOIN pg_roles r
+        WHERE c.relnamespace = 'public'::regnamespace
+          AND c.relkind IN ('r', 'p', 'v', 'm')
+          AND r.rolname IN ('dc360_app', 'dc360_console')
+          AND has_table_privilege(r.oid, c.oid, 'DELETE')
+        ORDER BY c.relname, r.rolname`,
+    );
+    return {
+      policiesAll: policies.rows.filter((p) => p.cmd === "ALL"),
+      policiesDelete: policies.rows.filter((p) => p.cmd === "DELETE"),
+      privilegios: privilegios.rows,
+    };
+  }
+
+  async function sobrasDeDelete(): Promise<SobraDeDelete[]> {
+    const tudo = await tudoQueAlcancaDelete();
+    const sobras: SobraDeDelete[] = [];
+    for (const p of tudo.policiesAll) {
+      sobras.push({
+        tabela: p.tabela,
+        problema: `policy ${p.policy} vale para ALL: autoriza DELETE sem ninguem ter escrito a palavra`,
+      });
+    }
+    for (const p of tudo.policiesDelete) {
+      if (!COM_POLICY_DE_DELETE.has(p.tabela)) {
+        sobras.push({ tabela: p.tabela, problema: `policy ${p.policy} autoriza DELETE, e a tabela nao esta na lista nomeada` });
+      }
+    }
+    for (const g of tudo.privilegios) {
+      if (!APAGA_EM.get(g.papel)?.has(g.tabela)) {
+        sobras.push({ tabela: g.tabela, problema: `${g.papel} tem privilegio efetivo de DELETE` });
+      }
+    }
+    return sobras;
+  }
+
+  function descreverSobras(sobras: SobraDeDelete[]): string {
+    return sobras.map((s) => `${s.tabela}: ${s.problema}`).join("; ");
+  }
+
+  it("a ancora: a varredura enxerga as duas excecoes nomeadas, entao ela le o catalogo de verdade", async () => {
+    const tudo = await tudoQueAlcancaDelete();
+    expect(tudo.policiesDelete.map((p) => p.tabela).sort()).toEqual([...COM_POLICY_DE_DELETE.keys()].sort());
+    expect(tudo.privilegios).toEqual([{ tabela: "avisos", papel: "dc360_app" }]);
+    /* E a lista de excecoes so nomeia tabela que existe: excecao para tabela
+       renomeada seria uma excecao aberta esperando dono. */
+    for (const tabela of [...COM_POLICY_DE_DELETE.keys(), ...APAGA_EM.get("dc360_app")!]) {
+      const existe = await db.query<{ n: string }>(
+        "SELECT count(*)::text AS n FROM pg_tables WHERE schemaname = 'public' AND tablename = $1",
+        [tabela],
+      );
+      expect(existe.rows[0]!.n, `a excecao nomeia ${tabela}, que nao existe`).toBe("1");
+    }
+  });
+
+  it("em TODA tabela de public: nenhuma policy ALL, e policy DELETE e privilegio de DELETE so na lista nomeada", async () => {
+    const sobras = await sobrasDeDelete();
+    expect(
+      sobras,
+      "alguma coisa alcanca DELETE fora do que esta nomeado neste bloco: "
+      + descreverSobras(sobras),
+    ).toEqual([]);
+  });
+
+  it("caso-irmao: tabela nova com policy sem FOR e GRANT DELETE e mordida, mesmo sem estar em lista nenhuma", async () => {
+    /*
+      Exatamente a copia do revisor: `CREATE POLICY` sem `FOR` (vale ALL) e
+      `GRANT SELECT, INSERT, UPDATE, DELETE`, que e a forma que um `GRANT ALL`
+      de conveniencia produz. A tabela tem `organizacao_id` e RLS forcada, entao
+      ela passa em TODOS os outros portoes deste arquivo: o unico que a barra e
+      este.
+    */
+    await db.exec(`
+      CREATE TABLE prova_do_portao_universal (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        organizacao_id uuid NOT NULL REFERENCES organizacoes(id) ON DELETE RESTRICT
+      );
+      ALTER TABLE prova_do_portao_universal ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE prova_do_portao_universal FORCE ROW LEVEL SECURITY;
+      CREATE POLICY prova_isolamento ON prova_do_portao_universal
+        USING (organizacao_id = app_organizacao_atual())
+        WITH CHECK (organizacao_id = app_organizacao_atual());
+      GRANT SELECT, INSERT, UPDATE, DELETE ON prova_do_portao_universal TO dc360_app;
+    `);
+    try {
+      const sobras = await sobrasDeDelete();
+      const daProva = sobras.filter((s) => s.tabela === "prova_do_portao_universal");
+      expect(daProva.map((s) => s.problema).join(" | ")).toMatch(/vale para ALL/);
+      expect(daProva.map((s) => s.problema).join(" | ")).toMatch(/dc360_app tem privilegio efetivo de DELETE/);
+      // E so ela: o resto do banco continua limpo, para a mordida ser atribuivel.
+      expect(sobras.filter((s) => s.tabela !== "prova_do_portao_universal")).toEqual([]);
+    } finally {
+      await db.exec("DROP TABLE prova_do_portao_universal");
+    }
+  });
+
+  it("caso-irmao: GRANT DELETE ON ocorrencias TO dc360_app e mordido, sem ninguem precisar lista-lo", async () => {
+    await db.exec("GRANT DELETE ON ocorrencias TO dc360_app");
+    try {
+      const sobras = await sobrasDeDelete();
+      expect(sobras).toEqual([{ tabela: "ocorrencias", problema: "dc360_app tem privilegio efetivo de DELETE" }]);
+    } finally {
+      await db.exec("REVOKE DELETE ON ocorrencias FROM dc360_app");
+    }
+    expect(await sobrasDeDelete(), "a limpeza do caso-irmao deixou rastro").toEqual([]);
+  });
+
+  it("caso-irmao: privilegio por HERANCA tambem e mordido, porque a pergunta e feita ao banco e nao ao GRANT", async () => {
+    /*
+      `has_table_privilege` responde pelo que o papel PODE, venha de onde vier.
+      Um papel intermediario com DELETE, do qual `dc360_app` vira membro, nao
+      aparece em `role_table_grants` de `dc360_app`, e aparece aqui.
+    */
+    await db.exec(`
+      CREATE ROLE papel_intermediario_do_portao NOLOGIN;
+      GRANT DELETE ON vistorias TO papel_intermediario_do_portao;
+      GRANT papel_intermediario_do_portao TO dc360_app;
+    `);
+    try {
+      const sobras = await sobrasDeDelete();
+      expect(sobras).toEqual([{ tabela: "vistorias", problema: "dc360_app tem privilegio efetivo de DELETE" }]);
+    } finally {
+      await db.exec(`
+        REVOKE papel_intermediario_do_portao FROM dc360_app;
+        REVOKE DELETE ON vistorias FROM papel_intermediario_do_portao;
+        DROP ROLE papel_intermediario_do_portao;
+      `);
+    }
+    expect(await sobrasDeDelete(), "a limpeza do caso-irmao deixou rastro").toEqual([]);
+  });
+});
+
 describe("Regras de negócio garantidas pelo banco", () => {
   it("recusa encerrar sem motivo", async () => {
     await expect(

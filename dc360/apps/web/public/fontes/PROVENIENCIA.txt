@@ -1,0 +1,17 @@
+De onde vieram estes arquivos, e por que eles estao aqui.
+
+O painel web carregava Work Sans e Roboto Mono do Google Fonts. Cada abertura
+do painel mandava ao Google, fora do pais, o endereco IP, o agente do navegador
+e a pagina de quem estava usando, e docs/SUBPROCESSADORES.md dizia que nenhum
+dado sai do painel estatico. Desde 15/09/2026 as fontes sao servidas daqui.
+
+Os arquivos .woff sao gerados por scripts/gerar-fontes-do-painel.mjs a partir
+dos .ttf de apps/campo/assets/fontes (Work Sans v24 e Roboto Mono v31,
+baixados do servico oficial de fontes do Google em 13/09/2026; ver
+PROVENIENCIA.txt la). WOFF 1.0: o mesmo .ttf, tabela a tabela, comprimido com
+zlib. Nao se editam a mao; o teste scripts/fontes-do-painel.test.mjs confere
+que sao exatamente o que o roteiro produz.
+
+Licenca: SIL Open Font License 1.1, texto integral em OFL-WorkSans.txt e
+OFL-RobotoMono.txt, nesta mesma pasta. A OFL permite embarcar e redistribuir
+com o produto; ela proibe vender a fonte sozinha, o que nao e o caso aqui.

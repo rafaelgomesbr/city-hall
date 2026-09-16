@@ -193,6 +193,21 @@ export function transicaoPermitida(de: StatusOcorrencia, para: StatusOcorrencia)
 }
 
 /**
+ * De onde a TRIAGEM parte: classificar a registrada, reclassificar a que já
+ * está em triagem. E de mais lugar nenhum.
+ *
+ * A tabela acima diz que `em_campo -> triagem` existe, e existe: é a aresta da
+ * devolução de tarefa, que limpa a equipe, grava o motivo e avisa o aparelho.
+ * A rota de triagem conferia a transição contra a tabela inteira e, por isso,
+ * aceitava classificar uma ocorrência em campo: o status voltava para
+ * `triagem` com a equipe ainda gravada, sem devolução registrada, e o agente
+ * lia no aparelho que a tarefa tinha sido "devolvida" por alguém que nunca a
+ * devolveu. A aresta para trás é exclusiva da devolução, e esta lista é o que
+ * a rota de triagem confere.
+ */
+export const ORIGENS_DA_TRIAGEM: readonly StatusOcorrencia[] = ["registrada", "triagem"];
+
+/**
  * Estado do qual não se sai.
  *
  * Serve para separar dois casos que parecem o mesmo: repetir um passo e
@@ -356,6 +371,15 @@ export const ROTULO_EVENTO_TRILHA: Record<string, string> = {
   */
   vistoria_fora_da_equipe: "Vistoria coletada fora da equipe designada",
   /*
+    A coleta entrou numa ocorrência que NUNCA foi despachada (`registrada` ou
+    `triagem`): não havia tarefa em campo, não havia equipe designada, e ainda
+    assim um agente registrou vistoria nela. Aceita e marcada pela mesma razão
+    da equipe divergente (recusar destruiria trabalho de campo verdadeiro), e
+    tipo PRÓPRIO porque o rótulo daquele afirma que havia equipe designada, e
+    aqui não havia. Ver `rotas/sincronizacao.ts`.
+  */
+  vistoria_sem_despacho: "Vistoria coletada em ocorrência sem despacho",
+  /*
     O envelope disse que a coleta é de um agente, e quem apresentou o token era
     outro. A vistoria NÃO entra, e a tentativa fica: ela é exatamente o que
     alguém vai querer auditar depois, porque o desfecho alternativo (aceitar)
@@ -427,6 +451,17 @@ export const ROTULO_EVENTO_TRILHA: Record<string, string> = {
   */
   evidencia_anexada: "Evidência fotográfica anexada",
   documento_emitido: "Documento oficial emitido",
+  /*
+    O ofício é documento oficial numerado que sai do prédio, e não entrava na
+    trilha: a tela de prova não sabia que ele existia. Dois eventos, e não um
+    campo dentro de `providencia`, porque emitir e enviar são atos diferentes,
+    de permissões diferentes, e o segundo pode acontecer várias vezes.
+    Só o envio ACEITO pelo provedor vira evento: o que falhou fica na ficha do
+    ofício, e um "enviado" sobre mensagem recusada seria frase falsa numa
+    linha de prova. Ver `rotas/oficios.ts`.
+  */
+  oficio_emitido: "Ofício de encaminhamento emitido",
+  oficio_enviado: "Ofício enviado ao órgão por email",
   providencia: "Providência encaminhada",
   resposta_providencia: "Resposta do órgão registrada",
   desinterdicao: "Interdição levantada",
@@ -451,7 +486,12 @@ export const ROTULO_EVENTO_TRILHA: Record<string, string> = {
     Sem a linha aqui, a tela de auditoria imprimiria a chave crua do banco para
     justamente o evento que o cidadão tem mais razão de querer ler.
   */
-  minimizacao_por_prazo: "Dado do solicitante removido por prazo",
+  /*
+    "Dado pessoal", e não "dado do solicitante", desde a migração 043: o mesmo
+    evento passou a cobrir o relato, a observação da vistoria e o nome que a
+    trilha guardava no evento de vistoria. O `detalhe.campos` diz quais.
+  */
+  minimizacao_por_prazo: "Dado pessoal removido por prazo",
 };
 
 /** O rótulo, ou a própria chave quando o evento é mais novo que esta versão. */

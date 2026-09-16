@@ -151,7 +151,7 @@ describe("a tarefa nova que a atualização da lista trouxe", () => {
     expect(aviso.vibracao.length).toBeGreaterThan(0);
   });
 
-  it("carrega o dado no formato do push, carimbado com o município da sessão", async () => {
+  it("carrega o dado no formato do push, carimbado com o município da sessão e com a origem", async () => {
     const duplo = criarDuploDePorta({ permissao: "concedida" });
     await montar(duplo);
 
@@ -162,6 +162,9 @@ describe("a tarefa nova que a atualização da lista trouxe", () => {
       organizacaoId: MUNICIPIO_A,
       ocorrenciaId: OCORRENCIA,
       severidade: "critica",
+      // O carimbo que diz ao tratador que este é o PRIMEIRO anúncio do
+      // despacho. Ver `despacho-toca-uma-vez.test.tsx`.
+      origem: "aplicativo",
     });
   });
 

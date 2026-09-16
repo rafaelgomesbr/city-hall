@@ -50,6 +50,16 @@ const ESTADOS: Record<EstadoDaFaixa["chave"], EstadoDaFaixa> = {
     titulo: "Coleta de outro agente no aparelho",
     detalhe: "1 coleta espera quem a fez entrar",
   },
+  /*
+    A coleta que o servidor recusou e espera o dedo do agente. Existe pelo
+    mesmo motivo do estado acima: em 15/09/2026 a vistoria 000009/2026 parou
+    na fila por 422 e a faixa do topo ficou verde, "Tudo sincronizado, nada
+    pendente no aparelho", com a coleta parada a um toque dali.
+  */
+  precisa_de_correcao: {
+    chave: "precisa_de_correcao", fundo: "#FDEBEB", cor: "#C92A2A", sinalTexto: "!",
+    titulo: "Precisa de correção", detalhe: "1 coleta precisa de correção",
+  },
   sincronizado: {
     chave: "sincronizado", fundo: "#DCFCE7", cor: "#14532D", sinalTexto: "✓",
     titulo: "Tudo sincronizado", detalhe: "Nada pendente no aparelho",
@@ -71,7 +81,7 @@ beforeEach(() => {
     .mockImplementation(() => Promise.resolve(redutorLigado));
   jest.spyOn(AccessibilityInfo, "addEventListener")
     .mockReturnValue({ remove: () => undefined } as never);
-  jest.spyOn(Animated, "sequence").mockImplementation((animacoes) => {
+  jest.spyOn(Animated, "sequence").mockImplementation(() => {
     sequencias += 1;
     return { start: (fim?: (r: { finished: boolean }) => void) => fim?.({ finished: true }),
       stop: () => undefined, reset: () => undefined,
@@ -223,7 +233,9 @@ describe("o que a faixa promete", () => {
       (o laudo sairia com o nome errado). Antes, com nada de próprio na fila, a
       faixa ficava verde dizendo "Nada pendente no aparelho".
     */
-    const r = faixa({ temSinal: true, pendentes: 0, deOutroAutor: 1, sincronizando: false });
+    const r = faixa({
+      temSinal: true, pendentes: 0, bloqueados: 0, deOutroAutor: 1, sincronizando: false,
+    });
 
     expect(r.chave).not.toBe("sincronizado");
     expect(r.titulo).toBe("Coleta de outro agente no aparelho");
@@ -233,12 +245,64 @@ describe("o que a faixa promete", () => {
   });
 
   it("com a fila realmente vazia, continua dizendo que está tudo certo", async () => {
-    const r = faixa({ temSinal: true, pendentes: 0, deOutroAutor: 0, sincronizando: false });
+    const r = faixa({
+      temSinal: true, pendentes: 0, bloqueados: 0, deOutroAutor: 0, sincronizando: false,
+    });
     expect(r.chave).toBe("sincronizado");
   });
 
   it("sem sinal, a falta de sinal vem antes de qualquer outra coisa", async () => {
-    const r = faixa({ temSinal: false, pendentes: 0, deOutroAutor: 3, sincronizando: false });
+    const r = faixa({
+      temSinal: false, pendentes: 0, bloqueados: 0, deOutroAutor: 3, sincronizando: false,
+    });
     expect(r.chave).toBe("sem_sinal");
+  });
+
+  it("NÃO diz 'Tudo sincronizado' com uma coleta parada por recusa do servidor", async () => {
+    /*
+      15/09/2026, com as capturas do dono: a vistoria 000009/2026 parou na
+      fila por 422 ("Precisa de atenção") e a faixa do topo dizia, ao mesmo
+      tempo, "Tudo sincronizado, nada pendente no aparelho". As duas frases
+      estavam a um toque de distância, e a segunda era falsa.
+    */
+    const r = faixa({
+      temSinal: true, pendentes: 0, bloqueados: 1, deOutroAutor: 0, sincronizando: false,
+    });
+
+    expect(r.chave).toBe("precisa_de_correcao");
+    expect(r.titulo).toBe("Precisa de correção");
+    expect(r.detalhe).toBe("1 coleta precisa de correção");
+    expect(r.sinalTexto).not.toBe("✓");
+    // O tom é o de perigo: é o único estado da faixa que pede o dedo do agente.
+    expect(r.fundo).toBe(temaEscuro.perigoFundo);
+    expect(r.cor).toBe(temaEscuro.perigoTexto);
+  });
+
+  it("no plural, a frase conta as coletas", async () => {
+    const r = faixa({
+      temSinal: true, pendentes: 0, bloqueados: 3, deOutroAutor: 0, sincronizando: false,
+    });
+    expect(r.detalhe).toBe("3 coletas precisam de correção");
+  });
+
+  it("com coleta esperando envio E coleta parada, a espera fala primeiro e a parada vai no sufixo", async () => {
+    // A frase de espera continua a promessa que ela sempre foi; o sufixo
+    // ", 1 com problema" já é o que a faixa desenhada acrescenta pelo número.
+    const r = faixa({
+      temSinal: true, pendentes: 2, bloqueados: 1, deOutroAutor: 0, sincronizando: false,
+    });
+    expect(r.chave).toBe("esperando");
+  });
+});
+
+describe("a faixa desenhada com uma coleta parada", () => {
+  it("não repete 'com problema' quando o estado já é o da correção", async () => {
+    await montar("precisa_de_correcao", 1);
+    expect(screen.getByText("1 coleta precisa de correção")).toBeTruthy();
+    expect(screen.queryByText(/com problema/)).toBeNull();
+    // E quem ouve a tela ouve a coleta parada e para onde o toque leva.
+    const faixa = screen.getByTestId("faixa-de-sincronizacao");
+    expect(faixa.props.accessibilityLabel).toContain("1 coleta precisa de correção");
+    expect(faixa.props.accessibilityLabel).toContain("Toque para ver a fila de envio");
   });
 });

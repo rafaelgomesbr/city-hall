@@ -19,6 +19,21 @@
 app = "defesa-civil"
 primary_region = "gru"
 
+# Quanto o Fly espera entre o SIGTERM e o SIGKILL. O padrão é 5 s, e o
+# encerramento desta API não cabe nisso com folga (ver os tratadores de sinal
+# em apps/api/src/index.ts): `app.close()` espera a requisição em andamento
+# terminar, os cinco relógios param um a um (varredura de push, minimização,
+# resumo, órfão, eliminação, cada um esperando a rodada em curso), o Chromium
+# do PDF é fechado e só então o pool do banco. Um laudo sendo renderizado no
+# instante do deploy é um Chromium que leva segundos para sair. Com 5 s o Fly
+# mata o processo no meio disso, e o que sobra é transação derrubada e um
+# navegador zumbi que a máquina nova não sabe que existe. Trinta segundos é
+# folga, e não custa nada quando o encerramento é rápido: o processo sai
+# sozinho e o Fly só espera o tempo inteiro quando algo demora, que é
+# exatamente o caso do Chromium. Não foi medido contra a produção; é teto de
+# espera, não promessa de duração.
+kill_timeout = 30
+
 [build]
   dockerfile = "Dockerfile"
 
@@ -64,6 +79,23 @@ primary_region = "gru"
   # exportação da base de cidadãos era escolhido por quem exportava.
   # Trocar de PaaS (Railway, Render) significa VOLTAR isto para `nenhum`.
   PROXY_DE_BORDA = "fly"
+  # O PUSH. As três linhas abaixo NÃO são segredo e podem viver aqui; os
+  # três segredos (APNS_KEY_ID, APNS_TEAM_ID, APNS_CHAVE) vão por
+  # `fly secrets set`. Roteiro inteiro em docs/IMPLANTACAO.md, "Ligar o push".
+  #
+  # PUSH_ATIVO fica COMENTADO até os segredos existirem: com `sim` e sem as
+  # APNS_* a partida cai, de propósito, e o release anterior continua no ar.
+  # A ordem é: (1) `fly secrets set` com os três, (2) descomentar a linha,
+  # (3) `fly deploy`. Nunca o contrário.
+  # PUSH_ATIVO = "sim"
+  # `producao` é o padrão de quem registra sem dizer o ambiente (aplicativo
+  # antigo). O binário do Xcode e o da loja convivem: cada aparelho diz o
+  # seu no registro (migração 044).
+  APNS_AMBIENTE = "producao"
+  # O bundle do aplicativo, o mesmo de `apps/campo/app.config.ts`
+  # (`ios.bundleIdentifier`). Vira o `apns-topic`; errado, a Apple responde
+  # TopicDisallowed em toda notificação.
+  APNS_BUNDLE = "com.solerte.dc360.campo"
 
 [http_service]
   internal_port = 3333

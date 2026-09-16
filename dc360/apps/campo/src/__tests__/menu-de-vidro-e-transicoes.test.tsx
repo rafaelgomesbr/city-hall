@@ -348,9 +348,9 @@ import LayoutDoAgente from "../app/(agente)/_layout";
 import Raiz from "../app/_layout";
 import { ProvedorDeTema } from "../ui/componentes";
 import {
-  ALTURA_MINIMA_DA_PILULA, AvatarDoAgente, DIAMETRO_DO_AVATAR, INTENSIDADE_DO_VIDRO,
+  ALTURA_MINIMA_DA_PILULA, AvatarDoAgente, BarraDeAbas, DIAMETRO_DO_AVATAR, INTENSIDADE_DO_VIDRO,
   LARGURA_MAXIMA_DA_PILULA, RECUO_DO_FUNDO, RECUO_LATERAL, VIDRO_DISPONIVEL,
-  alturaDeReservaDoMenu, useRecuoDoMenu,
+  alturaDeReservaDoMenu, barraEscondida, useRecuoDoMenu,
 } from "../ui/BarraDeAbas";
 import {
   borda, elevacao, espaco, icone, linha, movimento, opacidade, raio, temaClaro, temaEscuro, toque,
@@ -1306,5 +1306,73 @@ describe("a passagem de uma tela para outra", () => {
 
     const pilha = await montarARaiz();
     expect(pilha["animation"]).toBe("none");
+  });
+});
+
+/*
+  TELA CHEIA DE VERDADE ESCONDE O MENU. A câmera da vistoria é um visor com o
+  obturador embaixo, e a pílula em cima do obturador é uma foto errada com o
+  morador esperando. A tela pede pela opção padrão do navegador
+  (`tabBarStyle: { display: "none" }`), a barra some, e informa altura ZERO
+  para a cena não reservar um vão de nada. O resto das telas NÃO some o menu:
+  reserva o vão ou sobe as barras fixas acima da pílula.
+*/
+describe("a tela em tela cheia esconde a barra inteira", () => {
+  function propsDaBarra(opcoesDaAberta: Opcoes) {
+    const routes = [
+      { key: "chave-index", name: "index" },
+      { key: "chave-vistoria", name: "vistoria/[id]", params: { id: ID_DA_VISTORIA } },
+    ];
+    return {
+      state: {
+        key: "abas", index: 1, routeNames: routes.map((r) => r.name), routes,
+        type: "tab" as const, stale: false as const, history: [], preloadedRouteKeys: [],
+      },
+      descriptors: {
+        "chave-index": { options: { title: "Tarefas" } },
+        "chave-vistoria": { options: { tabBarItemStyle: { display: "none" }, ...opcoesDaAberta } },
+      },
+      navigation: mockNavegacao,
+      insets: mockMargens,
+    } as unknown as Parameters<typeof BarraDeAbas>[0];
+  }
+
+  async function montarABarra(opcoesDaAberta: Opcoes): Promise<Tela> {
+    const { BottomTabBarHeightCallbackContext } = require(
+      "expo-router/build/react-navigation/bottom-tabs",
+    ) as typeof import("expo-router/build/react-navigation/bottom-tabs");
+    let tela!: Tela;
+    await act(async () => {
+      tela = (await render(
+        <ProvedorDeTema>
+          <BottomTabBarHeightCallbackContext.Provider value={mockAvisarAltura}>
+            <BarraDeAbas {...propsDaBarra(opcoesDaAberta)} />
+          </BottomTabBarHeightCallbackContext.Provider>
+        </ProvedorDeTema>,
+      )) as Tela;
+    });
+    return tela;
+  }
+
+  it("`barraEscondida` lê a opção padrão do navegador", () => {
+    expect(barraEscondida({ tabBarStyle: { display: "none" } })).toBe(true);
+    expect(barraEscondida({ tabBarStyle: [{ display: "none" }] })).toBe(true);
+    expect(barraEscondida({ tabBarStyle: { display: "flex" } })).toBe(false);
+    expect(barraEscondida({})).toBe(false);
+    expect(barraEscondida(undefined)).toBe(false);
+  });
+
+  it("com a tela aberta pedindo tela cheia, a barra não desenha nada e informa altura zero", async () => {
+    const tela = await montarABarra({ tabBarStyle: { display: "none" } });
+
+    expect(talvez(tela, "barra-de-abas")).toBeNull();
+    expect(mockAvisarAltura).toHaveBeenCalledWith(0);
+  });
+
+  it("sem o pedido, a vistoria continua com a barra (a decisão da PARTE 4)", async () => {
+    const tela = await montarABarra({});
+
+    expect(achar(tela, "barra-de-abas")).toBeTruthy();
+    expect(mockAvisarAltura).not.toHaveBeenCalledWith(0);
   });
 });

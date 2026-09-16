@@ -36,12 +36,22 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
 /* A navegação precisa ser o MESMO objeto a cada renderização: o efeito que
    carrega a ocorrência depende dela, e um objeto novo a cada quadro o faria
    rodar de novo para sempre, até o Node ficar sem memória. */
+/*
+  UUIDs de verdade nas chaves e na ocorrência, desde 15/09/2026: a tela passou
+  a conferir a coleta com o MESMO esquema do servidor antes de enfileirar, e o
+  esquema exige UUID. "oc-1" e "chave-fixa" eram de mentira e passavam porque
+  ninguém conferia, que é exatamente o defeito que a conferência fecha.
+*/
 jest.mock("expo-router", () => {
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const { useEffect } = require("react") as typeof import("react");
   const navegacao = { setOptions: jest.fn() };
   return {
     router: { back: jest.fn(), push: jest.fn(), replace: jest.fn(), canGoBack: () => true },
-    useLocalSearchParams: () => ({ id: "oc-1" }),
+    useLocalSearchParams: () => ({ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" }),
     useNavigation: () => navegacao,
+    /* A tela relê o disco a cada foco; aqui o foco é a montagem, e só ela. */
+    useFocusEffect: (retorno: () => void) => { useEffect(retorno, [retorno]); },
   };
 });
 
@@ -56,10 +66,15 @@ jest.mock("expo-location", () => ({
   getCurrentPositionAsync: jest.fn(),
 }));
 
-jest.mock("expo-crypto", () => ({ randomUUID: () => "chave-de-mentira" }));
+jest.mock("expo-crypto", () => ({ randomUUID: () => "cccccccc-cccc-4ccc-8ccc-000000000001" }));
 
 jest.mock("expo-file-system", () => ({
-  File: class { size = 1024; constructor(_uri: string) {} },
+  /* `bytesSync` é a medida de verdade desde 15/09/2026 (`medirArquivoNoAparelho`). */
+  File: class {
+    size = 1024;
+    constructor(_uri: string) {}
+    bytesSync(): Uint8Array { return new Uint8Array(1024); }
+  },
 }));
 
 jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
@@ -144,7 +159,7 @@ import { router } from "expo-router";
 import TelaDeVistoria from "../app/(agente)/vistoria/[id]";
 
 const OCORRENCIA: Pendencia = {
-  id: "oc-1",
+  id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
   protocolo: "2026/000123",
   tipo: "deslizamento",
   severidade: "alta",
@@ -166,9 +181,9 @@ function rascunhoPronto(): Rascunho {
   const checklist: Record<string, boolean> = {};
   for (const item of CHECKLIST_OBRIGATORIO) checklist[item.chave] = true;
   return {
-    ocorrenciaId: "oc-1",
+    ocorrenciaId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
     protocolo: "2026/000123",
-    idempotencyKey: "chave-da-coleta",
+    idempotencyKey: "11111111-1111-4111-8111-000000000123",
     checklist,
     /*
       O checklist acima responde SIM a tudo, inclusive a "necessário acionar
@@ -177,8 +192,9 @@ function rascunhoPronto(): Rascunho {
       estes casos passariam a provar outra coisa.
     */
     orgaosParaAcionar: [{ orgaoId: null, nome: "Concessionária de energia" }],
+    assinaturaIdempotencyKey: null,
     fotos: [{
-      idempotencyKey: "foto-1",
+      idempotencyKey: "ffffffff-1111-4111-8111-000000000001",
       uriLocal: "file:///foto-1.jpg",
       nomeArquivo: "vistoria-2026-000123-1.jpg",
       tipoConteudo: "image/jpeg",
@@ -198,7 +214,7 @@ function rascunhoPronto(): Rascunho {
 }
 
 const LAPIDE: ColetaLocal = {
-  ocorrenciaId: "oc-1",
+  ocorrenciaId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
   idempotencyKey: "chave-da-primeira-coleta",
   protocolo: "2026/000123",
   coletadaEm: "2026-09-09T13:00:00.000Z",

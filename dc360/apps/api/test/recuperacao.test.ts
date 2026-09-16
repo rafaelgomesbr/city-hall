@@ -238,7 +238,9 @@ describe("Redefinição pelo link", () => {
     for (let i = 0; i < 6; i++) {
       await entrar(email, "errada-de-proposito");
     }
-    expect((await entrar(email, SENHA)).statusCode, "bloqueada").toBe(429);
+    // Bloqueada em silêncio: 401 genérico, e nunca 429 (o 429 só para conta
+    // que existe denunciava quais emails estão cadastrados).
+    expect((await entrar(email, SENHA)).statusCode, "bloqueada").toBe(401);
 
     await app.inject({ method: "POST", url: "/auth/recuperar", payload: { email } });
     await app.inject({

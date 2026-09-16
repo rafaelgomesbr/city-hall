@@ -211,3 +211,35 @@ export function semExtensao(nomeDeArquivo: string): string {
   const ponto = nomeDeArquivo.lastIndexOf(".");
   return ponto > 0 ? nomeDeArquivo.slice(0, ponto) : nomeDeArquivo;
 }
+
+/* ------------------------------------------------------------------------
+   A VALIDADE: até quando o provedor deve guardar o aviso para um aparelho
+   fora do ar, decidida num lugar só para as duas lojas.
+   ------------------------------------------------------------------------ */
+
+/**
+ * Quatro horas para o despacho: é o tempo de um plantão sem sinal no morro.
+ * Depois disso, a tarefa que ainda for da equipe aparece quando o aplicativo
+ * abrir, e um aviso de despacho entregue no dia seguinte só confunde.
+ */
+export const VALIDADE_DO_DESPACHO_SEGUNDOS = 4 * 3600;
+
+/**
+ * O instante, em segundos desde a época, depois do qual o aviso não deve mais
+ * ser entregue.
+ *
+ * Despacho: agora mais quatro horas. Prazo: o próprio prazo, porque depois
+ * dele o aviso "prazo vencendo" mente. Prazo já passado (relógio fora de
+ * sincronia entre o banco e este processo) vale "agora": entrega já ou
+ * descarta, nunca uma validade no passado, que a Apple recusa com 400.
+ * Prazo ausente num aviso de prazo não deveria acontecer (`varrer_prazos`
+ * exige `prazo_em`), e cai na regra do despacho em vez de estourar.
+ */
+export function validadeDoAviso(notificacao: Pick<Notificacao, "dados">, agoraMs: number): number {
+  const agora = Math.floor(agoraMs / 1000);
+  if (notificacao.dados.tipo === "prazo_vencendo" && notificacao.dados.prazoEm) {
+    const prazo = Date.parse(notificacao.dados.prazoEm);
+    if (Number.isFinite(prazo)) return Math.max(agora, Math.floor(prazo / 1000));
+  }
+  return agora + VALIDADE_DO_DESPACHO_SEGUNDOS;
+}

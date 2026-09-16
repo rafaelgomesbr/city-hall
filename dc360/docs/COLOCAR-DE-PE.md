@@ -268,9 +268,9 @@ pergunta específica existe telefone com quem administra o município.
   senha certa é recusada para sempre, sem uma linha de log. Use
   `fly secrets import < arquivo`. Desde 15/09/2026 a partida também recusa hash
   fora do formato, então o deploy errado falha em vez de subir quebrado.
-- **Uma máquina só** (`fly deploy --ha=false`): o teto de tentativas do segundo
-  fator vive na memória do processo, porque o papel do console não tem escrita
-  em lugar nenhum. Com duas máquinas, cinco tentativas viram dez.
+- **Uma máquina só** (`fly deploy --ha=false`), por economia, e não mais por segurança: desde a migração 038 o teto de
+  tentativas do segundo fator e o passo do TOTP já usado vivem na linha do operador em `console_operadores`
+  (`apps/console/src/operadores.ts`), então duas máquinas contam as mesmas cinco tentativas. Antes da 038 viviam na memória do processo.
 
 **O passo a passo completo, com os comandos na ordem, está em
 `docs/IMPLANTACAO.md`, seção 6**, junto com o que fica declarado como não

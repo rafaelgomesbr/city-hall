@@ -184,7 +184,9 @@ beforeAll(async () => {
        '${CHAVE_SUMIDA}', 'Trinca na parede', now() - interval '25 hours', 1,
        'image/jpeg', 1234, now() - interval '22 hours');
 
-    UPDATE vistorias SET assinatura_chave = '${CHAVE_ASSINATURA}'
+    UPDATE vistorias SET assinatura_chave = '${CHAVE_ASSINATURA}',
+           equipe_designada_id = '11111111-1111-4111-8111-0000000000e1',
+           equipe_do_agente_id = '11111111-1111-4111-8111-0000000000e2'
      WHERE id = '${VISTORIA_F1}';
 
     UPDATE usuarios SET foto_chave = '${CHAVE_FOTO_DA_COORDENADORA}'
@@ -350,6 +352,21 @@ describe("Fotografias, assinaturas e documentos", () => {
     const usuarios = pacote.get("tabelas/usuarios.csv")!.toString("utf8");
     expect(usuarios).toContain(CHAVE_FOTO_DA_COORDENADORA);
   }, 60_000);
+
+  /*
+    O laudo do pacote precisa dizer o que o laudo emitido pela rota diz. A
+    consulta do pacote não juntava as duas equipes da vistoria, então uma
+    coleta feita por agente de OUTRA equipe saía no pacote como papel limpo,
+    enquanto o laudo impresso na prefeitura carregava o aviso de divergência.
+    A vistoria F1 do cenário está designada à Alfa e foi coletada por agente
+    lotado na Bravo, de propósito.
+  */
+  it("o laudo do pacote imprime o aviso de equipe divergente, como o laudo emitido", async () => {
+    const pacote = await gerarPacote();
+    const laudo = pacote.get("documentos/000473-2026/laudo-de-vistoria.html")!.toString("utf8");
+    expect(laudo).toContain("estava designada à Equipe Alfa");
+    expect(laudo).toContain("lotado na Equipe Bravo");
+  });
 
   it("o laudo é HTML autossuficiente e aponta para o arquivo do próprio pacote", async () => {
     const pacote = await baixarPacote(tokenAdministradora);

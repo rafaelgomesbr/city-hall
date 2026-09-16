@@ -62,14 +62,6 @@ export const coordenadaGravadaSchema = coordenadaSchema.transform((c) => ({
   lng: Number(c.lng.toFixed(CASAS_DE_COORDENADA)),
 }));
 
-export const organizacaoSchema = z.object({
-  id: uuidSchema,
-  nome: z.string().min(1).max(200),
-  municipio: z.string().min(1).max(200),
-  uf: z.string().length(2),
-  criadoEm: z.string().datetime(),
-});
-
 export const usuarioSchema = z.object({
   id: uuidSchema,
   organizacaoId: uuidSchema,

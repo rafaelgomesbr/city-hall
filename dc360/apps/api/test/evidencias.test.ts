@@ -7,6 +7,7 @@ import {
   armazenamentoEmMemoria, type ArmazenamentoEmMemoria,
 } from "../src/armazenamento/memoria.js";
 import { assinarUrl, codificarRfc3986 } from "../src/armazenamento/assinatura.js";
+import { pedidoDeEvidenciaSchema } from "@dc360/shared";
 
 /**
  * Evidência fotográfica, do pedido de autorização à leitura.
@@ -78,6 +79,27 @@ async function autorizar(ocorrenciaId: string, extras: Record<string, unknown> =
       ...extras,
     },
   });
+}
+
+/**
+ * A frase que o ESQUEMA COMPARTILHADO dá para um pedido com este defeito.
+ *
+ * A rota precisa responder com a mesma frase, e é isso que prova que ela usa
+ * o mesmo esquema que o aparelho, e não uma cópia que diverge na primeira
+ * pressa.
+ */
+function mensagemDoEsquema(defeito: Record<string, unknown>): string {
+  const r = pedidoDeEvidenciaSchema.safeParse({
+    ocorrenciaId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    nomeArquivo: "IMG_0001.jpg",
+    tipoConteudo: "image/png",
+    tamanhoBytes: PIXEL_PNG.length,
+    capturadaEm: new Date().toISOString(),
+    ordem: 0,
+    ...defeito,
+  });
+  if (r.success) throw new Error("o esquema compartilhado aceitou o defeito");
+  return r.error.issues[0]!.message;
 }
 
 /** Envia os bytes pela URL assinada, como o aparelho faria. */
@@ -165,6 +187,50 @@ describe("Autorização de envio", () => {
 
     const grandeDemais = await autorizar(ocorrencia, { tamanhoBytes: 20 * 1024 * 1024 });
     expect(grandeDemais.statusCode).toBe(422);
+  }, 60_000);
+
+  /**
+   * A VISTORIA 000009/2026 DE 15/09/2026, reproduzida contra a rota de verdade.
+   *
+   * O aparelho pediu a autorização da fotografia com `tamanhoBytes: 0` (o
+   * `size` do `expo-file-system` veio zerado e `?? 0` mandou o zero adiante) e
+   * teria pedido a da assinatura com `idempotencyKey: "<uuid>-assinatura"`.
+   * As duas recusas são de contrato, e o contrato agora é o do pacote
+   * compartilhado: a resposta precisa continuar 422 com `campos`, e a frase de
+   * cada campo precisa ser EXATAMENTE a que o aparelho mostra antes de
+   * enfileirar, porque é o mesmo esquema nas duas pontas.
+   */
+  it("recusa tamanho zero e chave fora de UUID com os campos e as frases do esquema compartilhado", async () => {
+    const ocorrencia = await ocorrenciaEmCampo("Rua da Foto Vazia, 9");
+
+    const vazia = await autorizar(ocorrencia, { tamanhoBytes: 0 });
+    expect(vazia.statusCode, vazia.body).toBe(422);
+    expect(vazia.json().erro).toBe("dados_invalidos");
+    expect(vazia.json().campos).toEqual([
+      { campo: "tamanhoBytes", mensagem: mensagemDoEsquema({ tamanhoBytes: 0 }) },
+    ]);
+    // Em português, e não a frase padrão do Zod.
+    expect(vazia.json().campos[0].mensagem).not.toMatch(/greater than/i);
+
+    const assinatura = await autorizar(ocorrencia, {
+      idempotencyKey: "dddddddd-0000-4000-8000-000000000009-assinatura",
+    });
+    expect(assinatura.statusCode, assinatura.body).toBe(422);
+    expect(assinatura.json().campos).toEqual([
+      {
+        campo: "idempotencyKey",
+        mensagem: mensagemDoEsquema({
+          idempotencyKey: "dddddddd-0000-4000-8000-000000000009-assinatura",
+        }),
+      },
+    ]);
+    expect(assinatura.json().campos[0].mensagem).not.toMatch(/invalid/i);
+
+    // E nada ficou reservado no banco por causa de pedido recusado.
+    const nada = await mem.bruto.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM evidencias WHERE ocorrencia_id = $1", [ocorrencia],
+    );
+    expect(nada.rows[0]!.n).toBe("0");
   }, 60_000);
 
   it("coordenador não autoriza envio: quem coleta em campo é o agente", async () => {

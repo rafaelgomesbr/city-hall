@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ROTULO_SEVERIDADE,
   ROTULO_STATUS,
@@ -12,7 +12,7 @@ import {
   type StatusOcorrencia,
   type TipoDeEntrada,
 } from "@dc360/shared";
-import { IconeAlerta, IconeCheck, IconeStatus } from "./Icones";
+import { IconeAlerta, IconeCheck, IconeInfo, IconeStatus } from "./Icones";
 import { rotuloDoCampo } from "@dc360/shared";
 
 /**
@@ -180,12 +180,88 @@ export function formatarDataHora(iso: string): string {
   });
 }
 
+/** O ícone de cada tom: o símbolo diz o mesmo que a cor, para quem não vê a cor. */
+const ICONE_DO_AVISO = {
+  info: <IconeInfo tamanho={20} />,
+  sucesso: <IconeCheck tamanho={20} />,
+  alerta: <IconeAlerta tamanho={20} />,
+  perigo: <IconeAlerta tamanho={20} />,
+} as const;
+
 export function Aviso({ tom, children }: { tom: "info" | "perigo" | "sucesso" | "alerta"; children: ReactNode }) {
   return (
     <div className={`aviso aviso--${tom}`} role={tom === "perigo" ? "alert" : "status"}>
-      {tom === "sucesso" ? <IconeCheck tamanho={20} /> : <IconeAlerta tamanho={20} />}
+      {ICONE_DO_AVISO[tom]}
       <div>{children}</div>
     </div>
+  );
+}
+
+/**
+ * Onde a rolagem horizontal de uma tabela está, decidido fora do React.
+ *
+ * `esquerda` é "há coluna escondida à esquerda", `direita` é "há coluna
+ * escondida à direita". A folga de um pixel absorve o arredondamento de
+ * zoom do navegador, que deixa `scrollWidth` um pixel maior que
+ * `clientWidth` numa tabela que não rola.
+ */
+export function bordasDaRolagem({ scrollLeft, scrollWidth, clientWidth }: {
+  scrollLeft: number; scrollWidth: number; clientWidth: number;
+}): { esquerda: boolean; direita: boolean } {
+  const sobra = scrollWidth - clientWidth;
+  if (sobra <= 1) return { esquerda: false, direita: false };
+  return {
+    esquerda: scrollLeft > 1,
+    direita: scrollLeft < sobra - 1,
+  };
+}
+
+/**
+ * O envoltório de tabela que avisa quando há coluna fora da vista.
+ *
+ * O ACHADO (revisão de 15/09/2026): a lista de usuários tinha 854px num
+ * cartão de 569 a 771 (viewport de 1280 a 1680), e a barra de rolagem do
+ * macOS some quando ninguém está rolando. Equipe, Situação e os botões de
+ * ação simplesmente não existiam para quem olhava. A sombra na borda é o
+ * sinal para o olho; a frase é o mesmo sinal em palavras, porque um
+ * degradê sozinho é cor sozinha.
+ */
+export function TabelaEnvolucro({ children }: { children: ReactNode }) {
+  const envolucro = useRef<HTMLDivElement>(null);
+  const [bordas, setBordas] = useState({ esquerda: false, direita: false });
+
+  useEffect(() => {
+    const no = envolucro.current;
+    if (!no) return;
+    const medir = () => setBordas(bordasDaRolagem(no));
+    medir();
+    no.addEventListener("scroll", medir, { passive: true });
+    window.addEventListener("resize", medir);
+    const observador = typeof ResizeObserver === "function" ? new ResizeObserver(medir) : null;
+    observador?.observe(no);
+    return () => {
+      no.removeEventListener("scroll", medir);
+      window.removeEventListener("resize", medir);
+      observador?.disconnect();
+    };
+  }, []);
+
+  const classes = ["tabela-rolavel"];
+  if (bordas.esquerda) classes.push("tabela-rolavel--esquerda");
+  if (bordas.direita) classes.push("tabela-rolavel--direita");
+
+  return (
+    <>
+      <div className={classes.join(" ")}>
+        <div className="tabela-envolucro" ref={envolucro}>{children}</div>
+      </div>
+      {(bordas.direita || bordas.esquerda) && (
+        <p className="tabela-rolavel__dica">
+          <span aria-hidden="true">↔</span>
+          A tabela continua para {bordas.direita && bordas.esquerda ? "os dois lados" : bordas.direita ? "a direita" : "a esquerda"}: role para ver as outras colunas.
+        </p>
+      )}
+    </>
   );
 }
 

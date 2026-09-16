@@ -86,6 +86,11 @@ INSERT INTO ocorrencias (
    'Bueiro entupido, água entrando em três estabelecimentos comerciais. Nível cerca de 30 cm na calçada.',
    NULL, now() - interval '6 hours' + interval '24 hours', now() - interval '6 hours', NULL, NULL),
 
+  -- Aberta há um mês, de propósito: o imóvel dela está interditado há 27
+  -- dias (ver o UPDATE mais abaixo), e a linha do tempo precisa contar a
+  -- história na ordem: chamado, triagem, despacho, vistoria, termo. Com o
+  -- chamado a 28 horas e o termo a 27 dias, a demonstração abria com
+  -- "Documento oficial emitido" antes de "Chamado registrado".
   ('11111111-1111-4111-8111-0000000000c3', '11111111-1111-4111-8111-000000000001',
    '000473/2026', 'colapso_edificacao', 'vistoria_concluida', 'alta',
    false, NULL,
@@ -93,7 +98,7 @@ INSERT INTO ocorrencias (
    'Cleuza Ramos de Andrade', '(35) 98844-2019', 'presencial',
    'Muro de arrimo de três metros com barriga aparente, encostado na área de serviço do vizinho.',
    '11111111-1111-4111-8111-0000000000e2',
-   now() - interval '28 hours' + interval '24 hours', now() - interval '28 hours', NULL, NULL),
+   now() - interval '30 days' + interval '24 hours', now() - interval '30 days', NULL, NULL),
 
   ('11111111-1111-4111-8111-0000000000c4', '11111111-1111-4111-8111-000000000001',
    '000474/2026', 'vendaval', 'providencia_pendente', 'media',
@@ -173,7 +178,9 @@ INSERT INTO vistorias (
      {"chave":"acionar_outro_orgao","resposta":true}]'::jsonb,
    6.2, 'Cleuza Ramos de Andrade',
    'Vistoria realizada com a moradora presente. Registro fotográfico anexado.',
-   now() - interval '25 hours', now() - interval '22 hours',
+   -- Coletada no dia seguinte ao chamado e sincronizada três horas depois (a
+   -- coleta foi sem sinal), um dia antes do termo de interdição.
+   now() - interval '28 days', now() - interval '28 days' + interval '3 hours',
    '11111111-1111-4111-8111-0000000000a1'),
 
   ('11111111-1111-4111-8111-0000000000f2', '11111111-1111-4111-8111-000000000001',

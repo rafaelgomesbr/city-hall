@@ -36,7 +36,10 @@ const TITULOS: Record<string, string> = {
   "/equipes": "Equipes",
   "/orgaos": "Órgãos de destino",
   "/usuarios": "Usuários",
-  "/auditoria": "Auditoria",
+  /* O mesmo nome do menu e do H1: a aba dizia "Auditoria" sobre uma tela
+     cujo título é "Prestação de contas", e quem alterna janelas procura a
+     palavra que leu na tela. */
+  "/auditoria": "Prestação de contas",
   "/entrar": "Entrar",
   "/recuperar-senha": "Recuperar senha",
   "/redefinir-senha": "Definir nova senha",

@@ -5,7 +5,7 @@ import type { OrgaoIndicado } from "@dc360/shared";
 import type { OrgaoDoCatalogo } from "../dados/api";
 import { Aviso, Botao, Separador, Txt, useTema } from "./componentes";
 import { Chip } from "./Chip";
-import { borda, espaco, fonte, raio, movimento, toque } from "./tokens";
+import { borda, easing, espaco, fonte, raio, movimento, toque } from "./tokens";
 import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
 
 /**
@@ -77,7 +77,7 @@ export function OrgaosParaAcionar({
     Animated.timing(entrada, {
       toValue: 1,
       duration: movimento.mudancaDeEstado,
-      easing: Easing.out(Easing.quad),
+      easing: Easing.bezier(...easing.entrada),
       useNativeDriver: true,
     }).start();
   }, [entrada, reduzir]);

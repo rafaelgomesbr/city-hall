@@ -1,5 +1,5 @@
-import type { FotoLocal } from "@dc360/campo";
-import type { OrgaoIndicado } from "@dc360/shared";
+import type { CampoRecusado, ColetaParaCorrecao, FotoLocal } from "@dc360/campo";
+import { CAMPOS_PESSOAS, uuidSchema, type OrgaoIndicado } from "@dc360/shared";
 import { bancoLocal } from "./banco-local";
 
 /**
@@ -47,6 +47,21 @@ export type Rascunho = {
   assinanteNome: string;
   /** Caminho local do traço da assinatura, ainda no aparelho. */
   assinaturaUri: string | null;
+  /**
+   * A chave de idempotência do ARQUIVO da assinatura, UUID, cunhada uma vez e
+   * guardada aqui.
+   *
+   * Até 15/09/2026 ela era montada na conclusão como `${chave}-assinatura`, que
+   * não é UUID, e o servidor recusa chave fora de UUID por contrato
+   * (`pedidoDeEvidenciaSchema`). A assinatura da vistoria 000009/2026 nunca
+   * chegou a ser pedida só porque a fotografia parou antes. Cunhada uma vez e
+   * guardada, ela sobrevive a concluir, corrigir e concluir de novo, e o
+   * servidor reconhece o mesmo arquivo em vez de criar outra linha.
+   *
+   * `null` enquanto não há assinatura, e também no rascunho gravado por versão
+   * anterior: a conclusão cunha e guarda antes de enfileirar.
+   */
+  assinaturaIdempotencyKey: string | null;
   observacoes: string;
   /*
     Guardadas como TEXTO, e não como número.
@@ -64,6 +79,28 @@ export type Rascunho = {
   /** Quando a coleta começou. É a data que vale no laudo, não a do envio. */
   coletadaEm: string;
   atualizadoEm: string;
+  /**
+   * O que o servidor (ou a conferência de antes de enfileirar) apontou como
+   * errado na última tentativa de concluir.
+   *
+   * Opcional porque nasce depois dos rascunhos que já estão em aparelho.
+   * Preenchido quando a coleta volta da fila para correção
+   * (`rascunhoDaColeta`) e quando a conferência reprova; a tela mostra a lista
+   * com o caminho até a seção. Some junto com o rascunho, quando a coleta
+   * finalmente entra na fila.
+   */
+  camposRecusados?: ReadonlyArray<CampoRecusado>;
+  /**
+   * As chaves das fotografias que o servidor JÁ CONFIRMOU numa tentativa
+   * anterior de envio desta mesma coleta.
+   *
+   * Só existe no rascunho que voltou da fila para correção. A tela não deixa
+   * apagar essas fotografias: o evento `evidencia_anexada` já está na trilha,
+   * e uma coleta corrigida sem a referência faria o laudo imprimi-las como
+   * "anexadas fora do fluxo de vistoria, sem agente responsável", que é falso.
+   * Ausente ou vazio: nenhuma subiu ainda, tudo pode ser apagado.
+   */
+  fotosJaEnviadas?: ReadonlyArray<string>;
 };
 
 /**
@@ -172,9 +209,89 @@ export function rascunhoNovo(
     coordenada: null,
     assinanteNome: "",
     assinaturaUri: null,
+    assinaturaIdempotencyKey: null,
     observacoes: "",
     pessoas: {},
     coletadaEm: agora,
     atualizadoEm: agora,
+  };
+}
+
+/**
+ * A COLETA QUE VOLTA DA FILA, reconstruída como rascunho.
+ *
+ * É a metade "reconstruir" de "Corrigir a vistoria": o motor devolve o
+ * envelope e os arquivos (`retirarParaCorrecao`), e daqui sai o rascunho que a
+ * tela de vistoria já sabe abrir, com tudo preenchido, para o agente ajustar só
+ * o que o servidor apontou e concluir de novo.
+ *
+ * Três decisões que valem explicação:
+ *
+ * 1. **A chave de idempotência é a MESMA do envelope.** Chave nova seria, para
+ *    o servidor, a segunda coleta do mesmo protocolo. Com a mesma chave, os
+ *    arquivos que já subiram não sobem de novo e o envelope reenviado é
+ *    reconhecido.
+ * 2. **As contagens voltam como texto**, porque é assim que o campo de
+ *    digitação as guarda: "0" é contado e deu zero, e o que não foi contado
+ *    fica ausente. Converter aqui para número seria repetir, ao contrário, o
+ *    defeito que `contagensDoRascunho` evita na ida.
+ * 3. **A chave da assinatura só volta se for UUID.** A que não é (o formato
+ *    `<chave>-assinatura` de antes de 15/09/2026) é exatamente o defeito que
+ *    parou a coleta; devolvê-la faria a conclusão seguinte reprovar de novo.
+ *    Nula, a conclusão cunha uma UUID e a guarda.
+ *
+ * A marca `perdida` das fotos não volta: no rascunho o arquivo é medido de novo
+ * na conclusão, e a conferência é quem diz se ele ainda existe.
+ */
+export function rascunhoDaColeta(coleta: ColetaParaCorrecao): Rascunho {
+  const { envelope, fotos } = coleta;
+  const v = envelope.vistoria;
+
+  const checklist: RespostaChecklist = {};
+  for (const item of v.checklist) checklist[item.chave] = item.resposta;
+
+  const pessoas: Record<string, string> = {};
+  for (const campo of CAMPOS_PESSOAS) {
+    const n = v[campo.chave];
+    if (typeof n === "number") pessoas[campo.chave] = String(n);
+  }
+
+  const assinatura = fotos.find((f) => f.papel === "assinatura") ?? null;
+  const chaveDaAssinatura = assinatura && uuidSchema.safeParse(assinatura.idempotencyKey).success
+    ? assinatura.idempotencyKey
+    : null;
+
+  return {
+    ocorrenciaId: coleta.ocorrenciaId,
+    protocolo: coleta.protocolo,
+    idempotencyKey: envelope.idempotencyKey,
+    checklist,
+    orgaosParaAcionar: v.orgaosParaAcionar ?? [],
+    fotos: fotos
+      .filter((f) => f.papel === "foto")
+      .map((f): FotoLocal => ({
+        idempotencyKey: f.idempotencyKey,
+        uriLocal: f.uriLocal,
+        nomeArquivo: f.nomeArquivo,
+        tipoConteudo: f.tipoConteudo,
+        tamanhoBytes: f.tamanhoBytes,
+        capturadaEm: f.capturadaEm,
+        ...(f.legenda !== undefined ? { legenda: f.legenda } : {}),
+        ...(f.coordenada !== undefined ? { coordenada: f.coordenada } : {}),
+        ordem: f.ordem,
+      })),
+    gpsPrecisaoMetros: v.gpsPrecisaoMetros,
+    coordenada: v.coordenada ?? null,
+    assinanteNome: v.assinanteNome,
+    assinaturaUri: assinatura?.uriLocal ?? null,
+    assinaturaIdempotencyKey: chaveDaAssinatura,
+    observacoes: v.observacoes ?? "",
+    pessoas,
+    coletadaEm: envelope.coletadaEm,
+    atualizadoEm: new Date().toISOString(),
+    camposRecusados: coleta.ultimaFalha?.campos ?? [],
+    fotosJaEnviadas: fotos
+      .filter((f) => f.papel === "foto" && f.enviada)
+      .map((f) => f.idempotencyKey),
   };
 }

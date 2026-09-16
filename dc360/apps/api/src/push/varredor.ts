@@ -1,5 +1,5 @@
 import type { Banco } from "../banco/tipos.js";
-import type { EnvioDePush, Plataforma } from "./envio.js";
+import { semAFicha, type AmbienteApns, type EnvioDePush, type Plataforma } from "./envio.js";
 import { montarAviso, type TipoDeAviso } from "./mensagem.js";
 import type { Trava } from "./trava.js";
 
@@ -49,6 +49,30 @@ export type ResumoDaVarredura = {
    * banco, e a rodada seguinte as pega de novo depois da espera.
    */
   adiadasPorTempo: number;
+  /**
+   * Os motivos das falhas, agregados: `{ "apns 403 InvalidProviderToken": 12 }`.
+   *
+   * É o que vai para o log no fim da rodada, e é o que distingue "a Apple
+   * recusou a credencial" de "o provedor está fora do ar" sem abrir o banco.
+   * Nunca leva ficha: o `detalhe` já chega sem ela (`envio.ts`), e ainda
+   * assim passa por `semAFicha` aqui, porque log é copiado para mais lugares
+   * que o banco.
+   */
+  detalhesDasFalhas: Record<string, number>;
+};
+
+/**
+ * O que a última rodada concluída deixou no quadro, para `/saude` ler.
+ *
+ * Só contadores. Nem ficha, nem município, nem identificador de notificação:
+ * `/saude` responde a qualquer um.
+ */
+export type UltimaRodada = {
+  rodadaEm: string;
+  reivindicadas: number;
+  entregues: number;
+  falhas: number;
+  revogados: number;
 };
 
 /*
@@ -102,7 +126,16 @@ export type DependenciasDoVarredor = {
   tempoLimiteDaRodadaMs?: number;
   /** Injeção de relógio, para o teste medir o teto sem esperar de verdade. */
   agora?: () => number;
-  registrar?: (evento: Record<string, unknown>, mensagem: string) => void;
+  /**
+   * Para onde vai o que a rodada tem a dizer. `nivel` ausente é `warn`, que é
+   * o que toda linha daqui era até 15/09/2026; o resumo de rodada bem-sucedida
+   * sai como `info`, para o log de produção não gritar quando está tudo certo.
+   */
+  registrar?: (
+    evento: Record<string, unknown>,
+    mensagem: string,
+    nivel?: "info" | "warn",
+  ) => void;
 };
 
 const ESPERA_PADRAO_MINUTOS = 10;
@@ -144,7 +177,12 @@ export async function varrerAvisos(dep: DependenciasDoVarredor): Promise<ResumoD
 
   const resumo: ResumoDaVarredura = {
     travado: false, reivindicadas: 0, entregues: 0, falhas: 0, aparelhosRevogados: 0,
-    adiadasPorTempo: 0,
+    adiadasPorTempo: 0, detalhesDasFalhas: {},
+  };
+  const contarFalha = (detalhe: string | null) => {
+    resumo.falhas += 1;
+    const motivo = detalhe ?? "(sem detalhe)";
+    resumo.detalhesDasFalhas[motivo] = (resumo.detalhesDasFalhas[motivo] ?? 0) + 1;
   };
   const registrar = dep.registrar ?? (() => {});
   const agora = dep.agora ?? (() => Date.now());
@@ -189,6 +227,25 @@ export async function varrerAvisos(dep: DependenciasDoVarredor): Promise<ResumoD
 
     resumo.reivindicadas = alvos.length;
 
+    /*
+      O AMBIENTE DA APNs DE CADA APARELHO, lido depois da reivindicação.
+
+      `varrer_prazos` (016) e `varrer_tarefas_novas` (042) não devolvem a
+      coluna `ambiente` (044), e redefinir duas funções SECURITY DEFINER para
+      acrescentar uma coluna seria copiar cem linhas de SQL para dentro de uma
+      migração nova. Uma consulta por município por rodada, debaixo do RLS,
+      resolve o mesmo: só os aparelhos iOS entram, porque o Google não tem
+      sandbox separado.
+
+      Se esta leitura falhar, a rodada inteira falha e a trava é solta pelo
+      `finally`: as linhas já reivindicadas voltam depois da espera. Cair em
+      silêncio no padrão `producao` seria mandar a ficha do sandbox para a
+      APNs de produção, que responde `BadDeviceToken`, e o varredor revogaria
+      o aparelho de quem está em campo. É exatamente o defeito que a coluna
+      existe para fechar.
+    */
+    const ambientes = await ambientesDosAparelhos(dep.banco, alvos);
+
     for (const alvo of alvos) {
       /*
         O teto de tempo da rodada é conferido ANTES de cada envio, e não
@@ -227,8 +284,13 @@ export async function varrerAvisos(dep: DependenciasDoVarredor): Promise<ResumoD
             : alvo.prazo_em,
         });
 
+        const ambiente = ambientes.get(alvo.aparelho_id);
         const resultado = await dep.enviar(
-          { ficha: alvo.ficha, plataforma: alvo.plataforma },
+          {
+            ficha: alvo.ficha,
+            plataforma: alvo.plataforma,
+            ...(ambiente ? { ambiente } : {}),
+          },
           notificacao,
         );
 
@@ -262,9 +324,10 @@ export async function varrerAvisos(dep: DependenciasDoVarredor): Promise<ResumoD
         });
 
         if (resultado.desfecho === "entregue") resumo.entregues += 1;
-        else resumo.falhas += 1;
+        else contarFalha(resultado.detalhe ? semAFicha(resultado.detalhe, alvo.ficha) : null);
       } catch (erro) {
-        resumo.falhas += 1;
+        const mensagem = erro instanceof Error ? erro.message : String(erro);
+        contarFalha(`excecao: ${semAFicha(mensagem, alvo.ficha)}`);
         /*
           O log NÃO leva a ficha, nem o endereço, nem o protocolo. Leva o
           identificador da linha, que é o que permite ao suporte achar o
@@ -275,7 +338,7 @@ export async function varrerAvisos(dep: DependenciasDoVarredor): Promise<ResumoD
           {
             notificacao: alvo.notificacao_id,
             tipo: alvo.tipo,
-            erro: erro instanceof Error ? erro.message : String(erro),
+            erro: semAFicha(mensagem, alvo.ficha),
           },
           "falha ao tratar uma notificacao de push",
         );
@@ -288,13 +351,96 @@ export async function varrerAvisos(dep: DependenciasDoVarredor): Promise<ResumoD
     await dep.trava.soltar();
   }
 
+  /*
+    A RODADA DIZ O QUE FEZ, e é a única linha de log que uma rodada normal
+    produz.
+
+    Até 15/09/2026 só exceção chegava ao log. O desfecho `falha` (a Apple
+    recusando a credencial com `InvalidProviderToken`, o bundle errado com
+    `TopicDisallowed`, o Google com `SENDER_ID_MISMATCH`) ia para a coluna
+    `detalhe` e para lugar nenhum mais: cem por cento de recusa com o log
+    limpo e `/saude` verde, e o único jeito de descobrir era abrir o banco.
+
+    `warn` quando houve falha, com os motivos agregados; `info` quando
+    entregou tudo; NADA quando não havia o que fazer, porque uma linha a cada
+    cinco minutos dizendo "zero" ensina a equipe a ignorar log. Sem ficha,
+    sem município, sem identificador de notificação: é resumo, não trilha.
+  */
+  if (resumo.reivindicadas > 0) {
+    const evento = {
+      reivindicadas: resumo.reivindicadas,
+      entregues: resumo.entregues,
+      falhas: resumo.falhas,
+      revogados: resumo.aparelhosRevogados,
+      adiadas: resumo.adiadasPorTempo,
+      ...(resumo.falhas > 0 ? { detalhes: resumo.detalhesDasFalhas } : {}),
+    };
+    if (resumo.falhas > 0) {
+      registrar(evento, "varredura de avisos terminou com falha de envio", "warn");
+    } else {
+      registrar(evento, "varredura de avisos concluida", "info");
+    }
+  }
+
   return resumo;
 }
 
-export type VarreduraAgendada = { parar(): Promise<void> };
+/**
+ * Em qual APNs cada aparelho iOS da rodada fala. Ver o comentário no ponto
+ * de uso, em `varrerAvisos`. Uma consulta por município, debaixo do RLS.
+ */
+async function ambientesDosAparelhos(
+  banco: Banco,
+  alvos: readonly LinhaDeAlvo[],
+): Promise<Map<string, AmbienteApns>> {
+  const porMunicipio = new Map<string, string[]>();
+  for (const alvo of alvos) {
+    if (alvo.plataforma !== "ios") continue;
+    const lista = porMunicipio.get(alvo.organizacao_id) ?? [];
+    lista.push(alvo.aparelho_id);
+    porMunicipio.set(alvo.organizacao_id, lista);
+  }
+
+  const ambientes = new Map<string, AmbienteApns>();
+  for (const [organizacaoId, ids] of porMunicipio) {
+    const linhas = await banco.comTenant(organizacaoId, (c) =>
+      c.query<{ id: string; ambiente: AmbienteApns }>(
+        "SELECT id, ambiente FROM aparelhos WHERE id = ANY($1::uuid[])",
+        [ids],
+      ),
+    );
+    for (const linha of linhas.rows) ambientes.set(linha.id, linha.ambiente);
+  }
+  return ambientes;
+}
+
+export type VarreduraAgendada = {
+  parar(): Promise<void>;
+  /**
+   * Pede uma rodada AGORA. É o que a rota de despacho chama depois do commit.
+   *
+   * Coalesce: com uma rodada em voo, o pedido fica anotado e vira UMA rodada
+   * a mais quando a atual terminar, por mais despachos que cheguem nesse
+   * meio tempo. Nunca abre rodada por cima de outra: a trava do banco e o
+   * `SKIP LOCKED` aguentariam, mas seriam idas ao banco a troco de nada.
+   */
+  despertar(): void;
+  /** O que a última rodada concluída (e não travada) deixou. `null` antes da primeira. */
+  ultimaRodada(): UltimaRodada | null;
+};
 
 /**
- * Põe a varredura num relógio.
+ * Põe a varredura num relógio, e a acorda fora de hora quando alguém pede.
+ *
+ * A PRIMEIRA RODADA SAI NA PARTIDA, e não no primeiro tique. Com só
+ * `setInterval`, todo deploy somava o intervalo inteiro (cinco minutos) ao
+ * despacho que caiu nele: a rota enfileirava, o processo novo subia, e o
+ * aviso esperava um relógio que ainda não tinha batido. E o próprio despacho,
+ * que é uma pessoa decidindo agora que esta equipe vai, esperava até cinco
+ * minutos para virar push. Agora a rota chama `despertar()` depois do commit
+ * e a rodada sai em segundos; o intervalo continua como rede de segurança,
+ * para o prazo (que é relógio) e para o despacho cujo `despertar()` se
+ * perdeu com o processo.
  *
  * Três defesas pequenas e necessárias:
  *
@@ -304,7 +450,8 @@ export type VarreduraAgendada = { parar(): Promise<void> };
  *   2. Trava de sobreposição no próprio processo: se uma varredura demorar
  *      mais que o intervalo, a seguinte não começa por cima dela. A trava do
  *      banco resolveria isso também, mas ela custa uma ida ao banco, e a
- *      resposta certa para "ainda estou varrendo" é não ir.
+ *      resposta certa para "ainda estou varrendo" é não ir. `despertar()`
+ *      respeita a mesma trava, anotando o pedido para depois.
  *   3. VIGIA da rodada, abaixo, para o caso em que a rodada não termina.
  */
 export function agendarVarredura(
@@ -312,6 +459,10 @@ export function agendarVarredura(
   intervaloMs: number,
 ): VarreduraAgendada {
   let emAndamento = false;
+  /** Alguém pediu rodada enquanto uma estava em voo. Vale por uma, só. */
+  let pedidoPendente = false;
+  let parado = false;
+  let ultima: UltimaRodada | null = null;
   const registrar = dep.registrar ?? (() => {});
   /*
     O vigia solta a trava quando a rodada NÃO TERMINA.
@@ -341,9 +492,14 @@ export function agendarVarredura(
   */
   const tetoDaRodada = dep.tempoLimiteDaRodadaMs ?? TEMPO_LIMITE_PADRAO_DA_RODADA_MS;
 
-  const relogio = setInterval(() => {
-    if (emAndamento) return;
+  function rodar(): void {
+    if (parado) return;
+    if (emAndamento) {
+      pedidoPendente = true;
+      return;
+    }
     emAndamento = true;
+    pedidoPendente = false;
 
     let rodadaViva = true;
     const vigia = setTimeout(() => {
@@ -360,6 +516,21 @@ export function agendarVarredura(
     if (typeof vigia.unref === "function") vigia.unref();
 
     void varrerAvisos(dep)
+      .then((resumo) => {
+        /*
+          A rodada que perdeu a trava para a outra máquina NÃO entra no
+          quadro: zeros de uma rodada que nem rodou pareceriam "não havia
+          nada a enviar". O quadro é o que ESTA máquina fez.
+        */
+        if (resumo.travado) return;
+        ultima = {
+          rodadaEm: new Date().toISOString(),
+          reivindicadas: resumo.reivindicadas,
+          entregues: resumo.entregues,
+          falhas: resumo.falhas,
+          revogados: resumo.aparelhosRevogados,
+        };
+      })
       .catch((erro: unknown) => {
         // A varredura inteira falhando não pode derrubar a API. Ela volta no
         // próximo tique.
@@ -372,13 +543,23 @@ export function agendarVarredura(
         rodadaViva = false;
         clearTimeout(vigia);
         emAndamento = false;
+        // O despacho que chegou durante a rodada, depois da reivindicação,
+        // não pode esperar o relógio: uma rodada a mais, e só uma.
+        if (pedidoPendente) rodar();
       });
-  }, intervaloMs);
+  }
 
+  const relogio = setInterval(rodar, intervaloMs);
   relogio.unref();
 
+  // A rodada da partida, pelo mesmo caminho do relógio.
+  rodar();
+
   return {
+    despertar: rodar,
+    ultimaRodada: () => ultima,
     async parar() {
+      parado = true;
       clearInterval(relogio);
       await dep.trava.encerrar();
     },

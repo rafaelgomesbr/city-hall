@@ -118,13 +118,26 @@ recém-registrada, relate: era um defeito, corrigido em 09/09/2026.
 ## 7. Documentos
 
 Laudo, termo de interdição e termo de desinterdição saem prontos, com o
-cabeçalho do órgão, o protocolo e um **código de validação** no rodapé. O código
-é derivado do protocolo mais a vistoria: o mesmo laudo tem sempre o mesmo
-código, e é o que permite conferir, ao receber um papel, que ele corresponde ao
-registro no sistema.
+cabeçalho do órgão, o protocolo e um **identificador da emissão** no rodapé. O
+identificador nasce na primeira emissão de cada documento (por vistoria) e fica
+gravado na trilha: a segunda via carrega o mesmo, porque é o mesmo ato, e uma
+vistoria nova produz outro. Com o papel na mão, `GET /documentos/validar/<código>`
+(com sessão no painel) responde a que emissão ele corresponde: protocolo,
+documento, vistoria, instante e quem emitiu. Ele identifica a emissão; não
+certifica o conteúdo, porque o documento é gerado sob demanda e uma foto
+anexada depois muda o papel sem mudar a emissão.
 
 **Não é assinatura digital e não pretende ser.** Documento que vai para processo
-continua sendo impresso e assinado.
+continua sendo impresso e assinado à caneta, em cima da linha: o agente no
+laudo, a coordenação e o responsável pelo imóvel no termo de desinterdição. O
+único traço colhido eletronicamente é o da pessoa presente no local, no
+aparelho, durante a vistoria; só nesse bloco o documento diz "assinatura não
+coletada" quando o traço não existe.
+
+O termo de desinterdição imprime a re-vistoria que atestou a cessação do risco.
+Quando o levantamento foi autorizado sem vistoria nova, o termo diz isso por
+escrito e identifica a vistoria que sustentou a interdição, em vez de repetir o
+checklist que mandou interditar.
 
 Nenhum documento cita artigo de lei. Isso é deliberado: artigo errado em termo
 de interdição é motivo para anular o ato.

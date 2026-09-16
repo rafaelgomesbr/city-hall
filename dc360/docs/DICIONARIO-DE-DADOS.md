@@ -24,7 +24,11 @@ uma remoção acidental esbarre no banco.
 
 **A trilha não se reescreve.** `trilha_eventos` e `trilha_administrativa` não
 têm política de alteração nem de remoção: o banco simplesmente não permite.
-Correção entra como evento novo.
+Correção entra como evento novo. A única exceção é feita pelo próprio banco,
+não pela aplicação: a função de minimização por prazo (migração 043), rodando
+como dono das tabelas, troca pelo marcador o nome do assinante que o evento
+`vistoria` carregava em `detalhe->>'assinante'` até 15/09/2026, e registra no
+evento `minimizacao_por_prazo` quantos eventos redigiu. Ver `trilha_eventos`.
 
 **Tempo é sempre `timestamptz`**, gravado em UTC e exibido no fuso de quem lê.
 
@@ -73,6 +77,7 @@ trilha.
 | `equipe_id` | A equipe do agente. Decide quais tarefas ele recebe. Nulo para quem não vai a campo |
 | `ativo` | `false` é o "apagado" deste sistema. O município nunca fica sem administrador ativo |
 | `foto_chave` | A foto de perfil, como chave no armazenamento (nunca URL). Opcional, escolhida pelo próprio servidor. Prefixo obrigatório `tenant/<org>/usuarios/<id>/`, por CHECK (migração 040). Dado pessoal do servidor: ver `PRIVACIDADE.md`, seção 2.2 |
+| `foto_bytes` | O tamanho da foto no armazenamento, lido do próprio armazenamento na confirmação (migração 045). Conta no teto do município (`situacao_de_armazenamento`). Nulo com chave é foto confirmada antes da 045, que conta zero até a pessoa trocar de foto; bytes sem chave é proibido por CHECK |
 | `busca` | Chave de busca **gerada pelo banco** a partir de `nome`, `matricula` e `email`, normalizada. Ninguém escreve nela. Ver "A busca com tolerância a erro", abaixo |
 
 ---
@@ -104,7 +109,8 @@ O centro do sistema. Uma linha por atendimento.
 | `latitude`, `longitude` | Coordenada. Nula quando não foi registrada. Existe porque no morro numeração muitas vezes não existe |
 | `solicitante_nome`, `solicitante_contato` | Quem acionou. **São os campos que a retenção por minimização remove no fim do prazo** |
 | `canal_entrada` | `telefone`, `whatsapp`, `presencial`, `oficio` ou `outro` |
-| `descricao` | O relato, nas palavras de quem ligou |
+| `descricao` | O relato, nas palavras de quem ligou. **Texto livre, e por isso entra na minimização por prazo** (migração 043): vence o mais curto dos dois prazos e vira "removido por prazo". O que o ato precisa guardar do relato já está em coluna própria (tipo, severidade, endereço, marca de vulnerabilidade) |
+| `descricao_removida_em` | Quando o relato virou marcador. Nulo significa que o relato na linha é o de verdade. A restrição `marcador_de_relato_e_coerente` amarra a data ao marcador |
 | `equipe_id` | Para quem foi despachada |
 | `vinculada_a` | Aponta para outra ocorrência do mesmo evento. É como duplicidade se resolve sem apagar nada |
 | `prazo_em` | Quando vence. Calculado na triagem a partir da severidade. **Despachar não mexe nele** |
@@ -134,9 +140,10 @@ O que o agente registrou no local. Uma por visita.
 | `agente_id` | Quem foi. Nulo só se o usuário foi removido, o que não acontece |
 | `checklist` | `JSONB`, lista de `{chave, resposta}`. As chaves são `risco_iminente`, `evacuacao_necessaria`, `interdicao_indicada`, `acionar_outro_orgao`, `danos_estruturais`, `acesso_comprometido` |
 | `gps_precisao_metros` | Precisão da leitura no momento da coleta. Número alto significa leitura ruim, e o laudo mostra para quem for julgar |
-| `assinante_nome` | Quem estava no local e assinou |
+| `assinante_nome` | Quem estava no local e deu ciência do ato. **Fica depois da minimização por prazo**, de propósito: a ciência é parte do ato de interdição, e o ato é permanente. Exceção declarada em `PRIVACIDADE.md`. Vive só aqui: desde 15/09/2026 a trilha não o grava, e o que ela gravou antes é redigido pela varredura |
 | `assinatura_chave` | Endereço do traço de assinatura no armazenamento. **Nulo significa que não foi coletada**, e o laudo declara isso em vez de deixar espaço em branco |
-| `observacoes` | Texto livre do agente |
+| `observacoes` | Texto livre do agente. **Entra na minimização por prazo** (migração 043), no mais curto dos dois prazos, porque na rua ele diz "moradora presente, filho acamado": vira "removido por prazo". Vistoria que nunca teve observação continua nula, sem marcador |
+| `observacoes_removidas_em` | Quando a observação virou marcador. Nulo significa que nunca foi descartada, e não que nunca existiu. A restrição `marcador_de_observacoes_e_coerente` amarra a data ao marcador |
 | `coletada_em` | **Quando a vistoria aconteceu de verdade**, no relógio do aparelho. É a data de referência do ato |
 | `sincronizada_em` | Quando chegou ao servidor. Diferente da anterior sempre que a coleta foi sem sinal, e o laudo mostra as duas |
 | `idempotency_key` | Cunhada pelo aparelho ao abrir a vistoria. É o que impede a mesma coleta de virar duas vistorias quando a rede repete o envio |
@@ -184,7 +191,7 @@ Trilha operacional. **Append-only.**
 | `origem` | `campo` ou `escritorio` |
 | `ocorrido_em` | Quando o ato aconteceu |
 | `registrado_em` | Quando o sistema soube. Diferente do anterior em coleta offline |
-| `detalhe` | `JSONB` com o que é próprio daquele tipo de evento |
+| `detalhe` | `JSONB` com o que é próprio daquele tipo de evento. **Não carrega texto livre nem nome de cidadão**: é a regra que mantém a trilha permanente sem virar cópia do dado que a minimização descarta. O evento `vistoria` a descumpriu até 15/09/2026 (`assinante`), e a varredura de minimização redige esse valor para "removido por prazo" nas ocorrências que ela minimiza, preservando o resto do objeto. O evento `minimizacao_por_prazo` traz `campos` (quais colunas saíram, entre `solicitante_nome`, `solicitante_contato`, `vulnerabilidade_descricao`, `descricao`, `devolucao_observacao`, `vistoria_observacoes`, `trilha_vistoria_assinante`) e `trilha_eventos_redigidos` (quantos eventos foram redigidos), e nunca o que os campos continham |
 
 ## `trilha_administrativa`
 

@@ -5,8 +5,10 @@ import {
   type CanalEntrada, type Severidade, type TipoDeEntrada,
 } from "@dc360/shared";
 import {
-  assinatura, campo, escapar, formatarDataHora, fusoDoEstado, montarFolha,
+  assinatura, assinaturaDeProprioPunho, campo, escapar, formatarDataHora, fusoDoEstado,
+  montarFolha,
 } from "./folha.js";
+import { MARCADOR_REMOVIDO_POR_PRAZO } from "../privacidade/minimizacao.js";
 
 /**
  * Laudo de vistoria e termo de interdição.
@@ -117,6 +119,22 @@ export type DadosDocumento = {
     equipe_designada_nome?: string | null;
     equipe_do_agente_nome?: string | null;
     /**
+     * A coleta chegou em ocorrência que NINGUÉM tinha despachado.
+     *
+     * É a outra marca da mesma família: ali as duas equipes não batem, aqui
+     * não havia equipe nenhuma. Até 15/09/2026 a rota de sincronização não
+     * marcava, e depois disso o papel continuava calado ("sem despacho não
+     * produz aviso"): o laudo saía limpo e o termo de interdição saía como ATO
+     * em cima de uma ocorrência em `registrada` ou `triagem`.
+     *
+     * Vem do evento `vistoria_sem_despacho` da trilha apontando para ESTA
+     * vistoria, e não de `equipe_designada_id IS NULL`: toda vistoria anterior
+     * à migração 024 tem a coluna nula, e a marca lida dali imprimiria nota
+     * falsa em cada laudo antigo. Opcional pela mesma razão das equipes:
+     * ausente e falso são a mesma coisa para o papel.
+     */
+    sem_despacho?: boolean;
+    /**
      * ONDE O AGENTE ESTEVE, medido pelo aparelho no momento da coleta.
      *
      * Não é a mesma coisa que a coordenada da ocorrência, que aparece na
@@ -193,25 +211,65 @@ export type DadosDocumento = {
     motivo: string;
     porNome: string;
     interditadaEm: string;
+    /**
+     * Se `vistoria` é uma RE-VISTORIA feita depois da interdição (a que atesta
+     * a cessação do risco) ou a vistoria que sustentou a interdição, porque o
+     * levantamento foi autorizado sem vistoria nova.
+     *
+     * A diferença decide o que o termo imprime. Com re-vistoria, o checklist
+     * dela é o fundamento do levantamento e sai inteiro. Sem, o termo não pode
+     * imprimir "Interdição indicada: SIM" embaixo de "Fica LEVANTADA": ele diz
+     * que o levantamento foi sem nova vistoria, identifica a vistoria que
+     * interditou, e não reproduz um checklist que afirma o contrário do ato.
+     * A rota de levantamento prometia isso por escrito ("'sem nova vistoria'
+     * fica escrito nele se for o caso") e o termo não cumpria.
+     */
+    comNovaVistoria: boolean;
   };
+  /**
+   * A emissão registrada na trilha, quando o documento sai pela rota.
+   *
+   * Ausente quando o documento é renderizado fora dela (o roteiro de
+   * conferência visual), e aí o identificador é calculado do próprio
+   * `emitidoEm`, que é exatamente o que a primeira emissão gravaria.
+   */
+  emissao?: { emitidoEm: Date };
   /** Marca d'água. Vazio em ambiente definitivo. */
   marcaDagua?: string;
 };
 
 /**
- * Identificador curto e estável do documento emitido.
+ * Identificador da emissão, impresso no rodapé.
  *
- * Deriva do protocolo mais a vistoria, então o mesmo laudo tem sempre o mesmo
- * código, e dois laudos diferentes nunca compartilham um. Não é assinatura
- * digital e não pretende ser: é o que permite conferir, ao receber um papel,
- * que ele corresponde ao registro no sistema.
+ * Deriva do documento, do protocolo, da vistoria E do instante da primeira
+ * emissão do par (documento, vistoria), que é o que `registrarEmissao` grava
+ * na trilha. A segunda via carrega o mesmo identificador, porque é o mesmo
+ * ato; uma vistoria nova produz outro.
+ *
+ * O que ele NÃO é, e o rodapé não promete mais: não é código de validação do
+ * conteúdo. O laudo é gerado sob demanda, e uma foto anexada depois muda o
+ * papel sem mudar a emissão. Ele identifica a emissão, e
+ * `GET /documentos/validar/:codigo` responde a que emissão ele corresponde:
+ * protocolo, documento, vistoria, instante e quem emitiu. Antes daqui o código
+ * era `sha256(protocolo|vistoria)`, o rodapé o chamava de "validação" e não
+ * existia lugar nenhum onde validá-lo.
  */
-export function codigoDeValidacao(protocolo: string, vistoriaId: string): string {
+export function codigoDeEmissao(
+  documento: string, protocolo: string, referencia: string, emitidoEm: Date,
+): string {
   return createHash("sha256")
-    .update(`${protocolo}|${vistoriaId}`)
+    .update(`${documento}|${protocolo}|${referencia}|${emitidoEm.toISOString()}`)
     .digest("hex")
     .slice(0, 12)
     .toUpperCase();
+}
+
+/** O identificador deste documento: da emissão registrada, ou da que seria. */
+function identificador(d: DadosDocumento, documento: string): string {
+  return codigoDeEmissao(
+    documento, d.ocorrencia.protocolo, d.vistoria.id,
+    d.emissao?.emitidoEm ?? d.emitidoEm,
+  );
 }
 
 function blocoIdentificacao(d: DadosDocumento): string {
@@ -258,11 +316,28 @@ function blocoIdentificacao(d: DadosDocumento): string {
 
   ${o.vulnerabilidade_presente
     ? `<h2>Vulnerabilidade social identificada</h2>
-       <p class="relato">${escapar(o.vulnerabilidade_descricao ?? "")}</p>`
+       <p class="relato">${escapar(o.vulnerabilidade_descricao ?? MARCADOR_REMOVIDO_POR_PRAZO)}</p>`
     : ""}`;
 }
 
-function blocoVistoria(d: DadosDocumento): string {
+/*
+  O MARCADOR DA MINIMIZAÇÃO, e por que o documento o imprime tal como vem.
+
+  Depois do prazo do município (migrações 021, 029 e 043), o nome do
+  solicitante, o relato e a observação do agente chegam do banco como o texto
+  "removido por prazo", e o laudo os imprime assim, nos três lugares: é o
+  mesmo marcador que a trilha e a exportação mostram, e um leitor que veja
+  "Relato recebido: removido por prazo" sabe que o texto existiu e foi
+  descartado por decisão do controlador, e não que o chamado entrou sem
+  relato. A descrição de vulnerabilidade é a única que chega NULA depois do
+  descarte (a marca de vulnerabilidade fica, a descrição sai), e por isso o
+  marcador dela é posto aqui: sem isto a folha saía com o título e um
+  parágrafo em branco embaixo, que é o "espaço em branco" que este documento
+  nunca deixa. O nome de quem deu ciência no local NÃO é minimizado, de
+  propósito: faz parte do ato, e `docs/PRIVACIDADE.md` declara a exceção.
+*/
+
+function blocoVistoria(d: DadosDocumento, titulo = "Vistoria realizada"): string {
   const v = d.vistoria;
   const fuso = fusoDoEstado(d.organizacao.uf);
   const coleta = new Date(v.coletada_em).getTime();
@@ -278,7 +353,7 @@ function blocoVistoria(d: DadosDocumento): string {
       </tr>`)
     .join("");
 
-  return `<h2>Vistoria realizada</h2>
+  return `<h2>${escapar(titulo)}</h2>
   <div class="campos">
     ${campo("Data e hora da vistoria em campo", formatarDataHora(v.coletada_em, fuso))}
     ${offline
@@ -409,15 +484,27 @@ function blocoPessoas(v: DadosDocumento["vistoria"]): string {
  * vistoria que o sustenta veio de agente de outra equipe antes de assinar, e
  * não depois, numa consulta de auditoria que ninguém faz por conta própria.
  *
- * Só aparece quando houve designação: coleta em ocorrência que nunca foi
- * despachada não viola designação nenhuma, e imprimir aviso ali seria treinar
- * o leitor a ignorar o aviso.
+ * A coleta SEM DESPACHO recebe nota própria, na mesma posição e com a mesma
+ * classe. Isto reverte uma decisão anterior ("sem despacho não viola
+ * designação nenhuma, e aviso ali treinaria o leitor a ignorar o aviso"), e
+ * a reversão tem sondagem atrás: a vistoria entrava em ocorrência `registrada`
+ * ou `triagem`, o laudo saía limpo e o termo saía como ato, e nada no papel
+ * dizia que a coordenação nunca tinha mandado ninguém àquele endereço. A
+ * marca é `sem_despacho`, que vem do evento da trilha (ver o tipo), e não da
+ * ausência do nome da equipe: essa ausência é o normal de toda vistoria
+ * anterior à migração 024.
  *
  * O texto NÃO acusa ninguém, de propósito. Trocar de equipe entre a coleta e o
  * envio é rotina, e o caso legítimo é mais comum que o outro. O que o papel
- * precisa dizer é que os dois nomes não batem e que alguém tem que olhar.
+ * precisa dizer é que os dois nomes não batem e que alguém tem que olhar. O
+ * mesmo vale para a coleta sem despacho: o agente na rua durante o temporal,
+ * com a coordenação ainda abrindo o chamado, é o caso comum.
  */
 function avisoDeEquipe(v: DadosDocumento["vistoria"]): string {
+  if (v.sem_despacho) {
+    return `<p class="nota">Esta ocorrência não tinha equipe despachada quando a vistoria foi recebida. O sistema registrou a coleta, e a divergência precisa ser conferida pela coordenação antes de o ato ser praticado.</p>`;
+  }
+
   const designada = v.equipe_designada_nome?.trim();
   if (!designada) return "";
   const doAgente = v.equipe_do_agente_nome?.trim() ?? "";
@@ -582,7 +669,7 @@ export function laudoDeVistoria(d: DadosDocumento): string {
     ${blocoVistoria(d)}
     ${blocoFotos(d)}
     <div class="assinaturas">
-      ${assinatura(d.vistoria.agente_nome ?? "Agente de campo", "Agente de proteção e defesa civil")}
+      ${assinaturaDeProprioPunho(d.vistoria.agente_nome ?? "Agente de campo", "Agente de proteção e defesa civil")}
       ${assinatura(d.vistoria.assinante_nome, "Presente no local",
         d.vistoria.assinaturaUrl, ausenciaDaAssinatura(d))}
     </div>`;
@@ -596,7 +683,7 @@ export function laudoDeVistoria(d: DadosDocumento): string {
       uf: d.organizacao.uf,
     },
     corpo,
-    validacao: codigoDeValidacao(d.ocorrencia.protocolo, d.vistoria.id),
+    identificador: identificador(d, "laudo"),
     emitidoEm: d.emitidoEm,
     emitidoPor: d.emitidoPor,
     ...(d.marcaDagua ? { marcaDagua: d.marcaDagua } : {}),
@@ -629,7 +716,7 @@ export function termoDeInterdicao(d: DadosDocumento): string {
     ${blocoFotos(d)}
 
     <div class="assinaturas">
-      ${assinatura(d.vistoria.agente_nome ?? "Agente de campo", "Agente de proteção e defesa civil")}
+      ${assinaturaDeProprioPunho(d.vistoria.agente_nome ?? "Agente de campo", "Agente de proteção e defesa civil")}
       ${assinatura(d.vistoria.assinante_nome, "Responsável pelo imóvel, ciente",
         d.vistoria.assinaturaUrl, ausenciaDaAssinatura(d))}
     </div>`;
@@ -643,11 +730,31 @@ export function termoDeInterdicao(d: DadosDocumento): string {
       uf: d.organizacao.uf,
     },
     corpo,
-    validacao: codigoDeValidacao(`INT-${o.protocolo}`, d.vistoria.id),
+    identificador: identificador(d, "termo_de_interdicao"),
     emitidoEm: d.emitidoEm,
     emitidoPor: d.emitidoPor,
     ...(d.marcaDagua ? { marcaDagua: d.marcaDagua } : {}),
   });
+}
+
+/**
+ * O que o termo de desinterdição imprime no lugar da vistoria quando o
+ * levantamento foi autorizado SEM vistoria nova.
+ *
+ * A rota de levantamento aceita isso de propósito (equipe afogada no dia da
+ * chuva) e prometia: "o termo imprime o motivo por extenso, e 'sem nova
+ * vistoria' fica escrito nele se for o caso". O termo não cumpria: imprimia o
+ * checklist da vistoria que INTERDITOU, com "Interdição indicada: SIM", como
+ * se fosse o fundamento do levantamento. Um papel que se contradiz sozinho.
+ *
+ * Aqui o documento diz o fato e identifica a vistoria que sustentou a
+ * interdição (data, agente), sem reproduzir um checklist que afirma o contrário
+ * da decisão de duas seções acima.
+ */
+function blocoLevantamentoSemVistoria(d: DadosDocumento, fuso: string): string {
+  const v = d.vistoria;
+  return `<h2>Vistoria</h2>
+    <p class="nota">Este levantamento foi autorizado sem nova vistoria técnica. A interdição foi sustentada pela vistoria realizada em ${escapar(formatarDataHora(v.coletada_em, fuso))} por ${escapar(v.agente_nome ?? "agente não identificado")}${v.agente_matricula ? `, matrícula ${escapar(v.agente_matricula)}` : ""}, e o fundamento do levantamento é o motivo transcrito acima.</p>`;
 }
 
 /**
@@ -701,11 +808,13 @@ export function termoDeDesinterdicao(d: DadosDocumento): string {
     <h2>Decisão</h2>
     <p class="nota">Fica LEVANTADA a interdição do imóvel situado em ${escapar(o.endereco)}, restabelecida a permanência de pessoas no local. O levantamento alcança exclusivamente o risco descrito neste processo e não afasta a obrigação de comunicar ao órgão municipal de proteção e defesa civil qualquer alteração nas condições do imóvel ou do terreno.</p>
 
-    ${blocoVistoria(d)}
+    ${dez.comNovaVistoria
+      ? blocoVistoria(d, "Vistoria que motivou o levantamento")
+      : blocoLevantamentoSemVistoria(d, fuso)}
 
     <div class="assinaturas">
-      ${assinatura(dez.porNome, "Coordenação de proteção e defesa civil")}
-      ${assinatura(d.vistoria.assinante_nome, "Responsável pelo imóvel, ciente")}
+      ${assinaturaDeProprioPunho(dez.porNome, "Coordenação de proteção e defesa civil")}
+      ${assinaturaDeProprioPunho(d.vistoria.assinante_nome, "Responsável pelo imóvel, ciente")}
     </div>`;
 
   return montarFolha({
@@ -717,7 +826,7 @@ export function termoDeDesinterdicao(d: DadosDocumento): string {
       uf: d.organizacao.uf,
     },
     corpo,
-    validacao: codigoDeValidacao(`DES-${o.protocolo}`, d.vistoria.id),
+    identificador: identificador(d, "termo_de_desinterdicao"),
     emitidoEm: d.emitidoEm,
     emitidoPor: d.emitidoPor,
     ...(d.marcaDagua ? { marcaDagua: d.marcaDagua } : {}),

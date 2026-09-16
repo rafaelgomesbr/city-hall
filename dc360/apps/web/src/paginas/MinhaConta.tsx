@@ -111,7 +111,7 @@ export function MinhaConta() {
               <Aviso tom="info">
                 Neste painel a entrada é por escolha de perfil, sem senha, então
                 não há o que trocar. A troca existe quando o painel está ligado
-                à API, que é o caminho de produção.
+                ao servidor da prefeitura, que é o caminho de produção.
               </Aviso>
             ) : (
               <>
@@ -246,7 +246,7 @@ function VerificacaoEmDuasEtapas() {
           {MODO === "local"
             ? "Neste painel a entrada é por escolha de perfil, sem senha, então "
               + "não há segunda etapa a ligar. Ela existe quando o painel está "
-              + "ligado à API, que é o caminho de produção."
+              + "ligado ao servidor da prefeitura, que é o caminho de produção."
             : "Este servidor está com a verificação em duas etapas desligada. "
               + "Quem cuida da instalação do sistema pode ligá-la."}
         </Aviso>

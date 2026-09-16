@@ -1,4 +1,5 @@
 import type { DevolucaoDeTarefa, EnvelopeSincronizacao } from "@dc360/shared";
+import { pedidoDeEvidenciaDaFoto } from "./conferencia.js";
 import {
   FalhaPermanente, FalhaTemporaria,
   type AutorizacaoFoto, type Recibo, type ReciboDeDevolucao, type Transporte,
@@ -109,20 +110,16 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
 
   return {
     async autorizarFoto({ ocorrenciaId, foto }): Promise<AutorizacaoFoto> {
+      /*
+        O corpo é montado por `pedidoDeEvidenciaDaFoto`, a MESMA função que a
+        conferência de antes de enfileirar valida com o esquema do servidor.
+        Montado aqui à mão, a conferência aprovaria um pedido e o fio levaria
+        outro, e a vistoria 000009/2026 voltaria a parar na fila com 422.
+      */
       const r = await chamar<{
         evidenciaId: string; chave: string; url: string;
         cabecalhos: Record<string, string>; jaEnviada: boolean;
-      }>("/evidencias/autorizar-envio", {
-        ocorrenciaId,
-        idempotencyKey: foto.idempotencyKey,
-        nomeArquivo: foto.nomeArquivo,
-        tipoConteudo: foto.tipoConteudo,
-        tamanhoBytes: foto.tamanhoBytes,
-        capturadaEm: foto.capturadaEm,
-        legenda: foto.legenda,
-        coordenada: foto.coordenada,
-        ordem: foto.ordem,
-      });
+      }>("/evidencias/autorizar-envio", pedidoDeEvidenciaDaFoto(ocorrenciaId, foto));
       return r;
     },
 
@@ -226,11 +223,12 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
         throw new FalhaTemporaria(`Servidor indisponível (${resposta.status}).`);
       }
 
-      const corpo = await lerCorpo(resposta);
-      throw new FalhaPermanente(
-        String(corpo["mensagem"] ?? `O servidor recusou o envio (${resposta.status}).`),
-        String(corpo["erro"] ?? `http_${resposta.status}`),
-      );
+      /*
+        Pela MESMA tradução das outras rotas, e não por uma cópia: esta era a
+        cópia que ainda lia só `mensagem` e `erro`, e o 422 do envelope chegava
+        ao cartão da fila sem a lista de campos que o servidor mandou.
+      */
+      throw falhaDaResposta(resposta.status, await lerCorpo(resposta));
     },
   };
 }

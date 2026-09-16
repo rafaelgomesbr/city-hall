@@ -213,11 +213,15 @@ const esquema = z.object({
    * proteção de dados, porque a ficha do aparelho e o texto da notificação
    * deixam de passar por mais um servidor estrangeiro.
    *
-   * `APNS_CHAVE` é o CAMINHO do arquivo `.p8`, e o arquivo nunca entra no
-   * repositório. O conteúdo dele é lido uma vez, na partida, e vive só na
-   * memória do processo: ele assina notificação para QUALQUER aplicativo do
-   * time, então quem o obtém escreve na tela bloqueada de um agente de Defesa
-   * Civil, e uma ordem falsa de evacuação escrita ali é dano na rua.
+   * `APNS_CHAVE` é o CONTEÚDO do arquivo `.p8` (é assim que ele chega em
+   * produção: `fly secrets set APNS_CHAVE="$(cat AuthKey_XXXX.p8)"`), ou o
+   * CAMINHO dele na máquina de desenvolvimento; `push/segredo.ts` distingue
+   * pelo próprio valor. O arquivo nunca entra no repositório nem na imagem.
+   * O conteúdo vive só na memória do processo: ele assina notificação para
+   * QUALQUER aplicativo do time, então quem o obtém escreve na tela bloqueada
+   * de um agente de Defesa Civil, e uma ordem falsa de evacuação escrita ali
+   * é dano na rua. A chave é conferida NA PARTIDA (`validar()` em
+   * `index.ts`): colada pela metade, o processo não sobe.
    */
   APNS_KEY_ID: vazioEhAusente(z.string().min(1).optional()),
   APNS_TEAM_ID: vazioEhAusente(z.string().min(1).optional()),
@@ -248,6 +252,14 @@ const esquema = z.object({
    * Valor fora dos dois DERRUBA a partida, em vez de cair no padrão: cair no
    * padrão diante de `sandbox`, `dev` ou `produção` com acento devolveria
    * exatamente este defeito, agora com alguém convencido de ter configurado.
+   *
+   * DESDE 15/09/2026 ISTO É SÓ O PADRÃO, e não a escolha do servidor inteiro.
+   * O aplicativo diz no registro em qual ambiente foi compilado, a linha de
+   * `aparelhos` guarda (coluna `ambiente`, migração 044), e o servidor mantém
+   * os DOIS provedores da Apple, roteando pela coluna. Um agente no binário
+   * do Xcode e outro no do TestFlight passam a conviver. Esta variável vale
+   * para quem registra sem o campo (aplicativo antigo) e para as linhas que
+   * já existiam quando a coluna nasceu.
    */
   APNS_AMBIENTE: z.enum(["producao", "teste"]).default("producao"),
 
@@ -510,6 +522,20 @@ function separarSegredos(bruto: string): [string, ...string[]] {
   return [primeiro, ...lista.slice(1)];
 }
 
+/**
+ * A porta de uma URL de banco, ou `null` quando a string não analisa.
+ *
+ * Só para a recusa da porta 6543 acima: quem não analisa como URL cai no erro
+ * do próprio `pg`, que é mais preciso do que qualquer um inventado aqui.
+ */
+function portaDaUrl(url: string): string | null {
+  try {
+    return new URL(url).port || null;
+  } catch {
+    return null;
+  }
+}
+
 export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Config {
   const analisado = esquema.safeParse(ambiente);
   if (!analisado.success) {
@@ -638,6 +664,28 @@ export function carregarConfig(ambiente: NodeJS.ProcessEnv = process.env): Confi
     */
     if (!urlDoBancoVerifica(c.DATABASE_URL)) {
       throw new Error(mensagemDeUrlSemVerificacao("DATABASE_URL", c.DATABASE_URL));
+    }
+    /*
+      E a porta precisa ser a de SESSÃO. 6543 é o modo transação do pooler da
+      Supabase: a conexão volta para o bolo ao fim de cada transação, e o
+      comando seguinte pode cair em outra. Tudo que esta API faz com o banco
+      que atravessa comandos depende de sessão: a trava de aviso
+      (`pg_try_advisory_lock`, em `push/trava.ts`) que segura a varredura de
+      push e a de órfão numa máquina só ficaria presa numa conexão que ninguém
+      mais tem, ou seria conferida numa que nunca a pegou, sem erro nenhum.
+      `scripts/migrar-producao.mjs` já explicava isso para a migração; a
+      partida aceitava a porta em silêncio (achado de revisão, 15/09/2026).
+
+      A mensagem não repete a URL: a senha está nela.
+    */
+    if (portaDaUrl(c.DATABASE_URL) === "6543") {
+      throw new Error(
+        "DATABASE_URL aponta para a porta 6543, que é o modo transação do pooler: "
+        + "a conexão volta para o bolo a cada transação e a trava de aviso das "
+        + "varreduras (sessão) deixa de valer, sem erro nenhum. Use a porta 5432 "
+        + "do mesmo host, que é o modo sessão, como scripts/migrar-producao.mjs "
+        + "e docs/COLOCAR-DE-PE.md ensinam.",
+      );
     }
     if (!c.JWT_SEGREDO) throw new Error("JWT_SEGREDO é obrigatória em produção");
     if (c.NOTIFICADOR_ARQUIVO) {

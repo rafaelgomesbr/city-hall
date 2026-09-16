@@ -421,3 +421,102 @@ describe("O descarte fecha a conta do teto", () => {
     expect(Number(conta)).toBe(0);
   }, 120_000);
 });
+
+describe("A foto de perfil (migracao 040) tem dono, e a varredura sabe disso", () => {
+  /**
+   * O ACHADO (revisao de 15/09/2026): a varredura so conhecia `evidencias`.
+   * Passados trinta dias, TODA foto de perfil virava candidata
+   * `objeto_sem_linha`, e um descarte autorizado sobre essa lista apagaria o
+   * rosto de cada agente do municipio, com a chave ainda gravada em
+   * `usuarios.foto_chave` apontando para um objeto que nao existe mais.
+   *
+   * A linha justificadora da foto e `usuarios.foto_chave`, e ela e conferida
+   * dentro do mesmo `comTenant`, debaixo do RLS: a foto de um municipio so e
+   * justificada por um usuario DO MESMO municipio.
+   */
+  async function criarAgenteComFoto(org: string, nome: string, matricula: string): Promise<{ id: string; chave: string }> {
+    const r = await mem.bruto.query<{ id: string }>(
+      `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel)
+       VALUES ($1, $2, $3, $4, 'agente_campo') RETURNING id`,
+      [org, nome, matricula, `${matricula.toLowerCase()}@exemplo.gov.br`],
+    );
+    const id = r.rows[0]!.id;
+    const chave = `tenant/${org}/usuarios/${id}/foto-atual.jpg`;
+    await mem.bruto.query("UPDATE usuarios SET foto_chave = $2 WHERE id = $1", [id, chave]);
+    return { id, chave };
+  }
+
+  it("a foto de perfil viva NUNCA e candidata, por mais velha que seja", async () => {
+    const { chave } = await criarAgenteComFoto(orgA, "Diego Nakamura Alves", "SA-0451");
+    guardar(chave, 400);
+
+    const resumo = await varrerOrfaos({ banco: mem.banco, armazenamento, municipios: [orgA, orgB] });
+
+    expect(resumo.objetos).toBe(1);
+    expect(resumo.candidatos, "a foto de perfil foi listada como orfa").toBe(0);
+    expect(resumo.naoAtribuidos).toEqual([]);
+    const listados = await mem.banco.comTenant(orgA, (c) => c.query("SELECT chave FROM objetos_orfaos"));
+    expect(listados.rows).toEqual([]);
+  }, 120_000);
+
+  it("a foto de perfil de OUTRO municipio nao justifica a chave: o dono e quem esta no prefixo", async () => {
+    /*
+      Uma chave sob o prefixo de A que a linha de um usuario de B afirmasse ser
+      dela. O CHECK da 040 impede isso no banco; aqui o caso e conferido pelo
+      lado da varredura, que consulta `usuarios` dentro do contexto de A e por
+      isso nao enxerga B.
+    */
+    const chaveEmA = `tenant/${orgA}/usuarios/00000000-0000-4000-8000-000000000001/foto-sem-dono.jpg`;
+    guardar(chaveEmA, 400);
+    const resumo = await varrerOrfaos({ banco: mem.banco, armazenamento, municipios: [orgA, orgB] });
+    expect(resumo.candidatos).toBe(1);
+    const linha = await mem.banco.comTenant(orgA, (c) =>
+      c.query<{ especie: string }>("SELECT especie FROM objetos_orfaos WHERE chave = $1", [chaveEmA]));
+    expect(linha.rows[0]?.especie).toBe("objeto_sem_linha");
+  }, 120_000);
+
+  it("a foto ANTERIOR, cujo apagamento falhou na troca, continua sendo orfa de verdade", async () => {
+    /*
+      A rota de troca apaga a anterior fora da transacao, e se o apagamento
+      falhar o objeto sobra: e exatamente o que a varredura existe para achar.
+      Sem este caso, a correcao poderia ter ido longe demais e isentado o
+      prefixo `usuarios/` inteiro.
+    */
+    const agente = await criarAgenteComFoto(orgA, "Marina Costa", "SA-7001");
+    guardar(agente.chave, 400);
+    const anterior = `tenant/${orgA}/usuarios/${agente.id}/foto-anterior.jpg`;
+    guardar(anterior, 400);
+
+    const resumo = await varrerOrfaos({ banco: mem.banco, armazenamento, municipios: [orgA, orgB] });
+
+    expect(resumo.objetos).toBe(2);
+    expect(resumo.candidatos).toBe(1);
+    const listados = await mem.banco.comTenant(orgA, (c) =>
+      c.query<{ chave: string; especie: string }>("SELECT chave, especie FROM objetos_orfaos"));
+    expect(listados.rows).toEqual([{ chave: anterior, especie: "objeto_sem_linha" }]);
+  }, 120_000);
+
+  it("no descarte, a foto que virou perfil entre a varredura e a decisao e MANTIDA", async () => {
+    const agente = await criarAgenteComFoto(orgA, "Rita Lopes", "SA-0001");
+    const chave = `tenant/${orgA}/usuarios/${agente.id}/foto-nova.jpg`;
+    guardar(chave, 400);
+    const varredura = await varrerOrfaos({ banco: mem.banco, armazenamento, municipios: [orgA, orgB] });
+    expect(varredura.candidatos).toBe(1);
+
+    // A pessoa trocou de foto para exatamente esta chave no intervalo.
+    await mem.bruto.query("UPDATE usuarios SET foto_chave = $2 WHERE id = $1", [agente.id, chave]);
+
+    const desfecho = await descartarOrfaos({
+      banco: mem.banco,
+      armazenamento,
+      varreduraId: varredura.varreduraId,
+      municipios: [orgA, orgB],
+      operador: "Fulana, operação da plataforma",
+      motivo: "Lista aprovada pelo município.",
+    });
+
+    expect(desfecho.apagados).toBe(0);
+    expect(desfecho.mantidos).toBe(1);
+    expect(armazenamento.ler(chave), "apagou a foto de perfil de um agente").not.toBeNull();
+  }, 120_000);
+});

@@ -327,6 +327,27 @@ function foraDaBarra(opcoes: { tabBarItemStyle?: unknown }): boolean {
 }
 
 /**
+ * A tela aberta pediu para a barra INTEIRA sumir?
+ *
+ * É a opção padrão do React Navigation para isso (`tabBarStyle: { display:
+ * "none" }`, via `navigation.setOptions` da própria tela), lida da rota que
+ * está aberta. O único uso hoje é a câmera da vistoria: um visor de tela
+ * cheia com o obturador embaixo, e a pílula de vidro em cima do obturador é
+ * uma foto errada com o morador esperando. "Somente nesses momentos onde tem
+ * elementos em tela cheia sumir o menu", nas palavras do dono. O resto das
+ * telas NÃO some o menu: elas reservam o vão (`useRecuoDoMenu`) ou sobem as
+ * barras fixas de botões acima da pílula.
+ *
+ * Escondida, a barra informa altura ZERO pelo contexto, para a cena que
+ * reserva o vão não reservar um vão de nada.
+ */
+export function barraEscondida(opcoes: { tabBarStyle?: unknown } | undefined): boolean {
+  const estilo = StyleSheet.flatten(opcoes?.tabBarStyle as StyleProp<ViewStyle>) as
+    Record<string, unknown> | undefined;
+  return estilo?.["display"] === "none";
+}
+
+/**
  * O que a cena precisa reservar embaixo para o conteúdo não morrer atrás do
  * vidro, sem que a barra precise dizer.
  *
@@ -391,6 +412,12 @@ export function BarraDeAbas({ state, descriptors, navigation, insets }: PropsDaB
   useEffect(() => {
     guarda.registrarRotaAberta(abertaAgora ?? null);
   }, [guarda, abertaAgora]);
+
+  /* A tela aberta pediu tela cheia? Ver `barraEscondida`. */
+  const escondida = barraEscondida(abertaAgora ? descriptors[abertaAgora.key]?.options : undefined);
+  useEffect(() => {
+    if (escondida) avisarAltura?.(0);
+  }, [escondida, avisarAltura]);
 
   /* As rotas que aparecem na pílula, na ordem em que o layout as declarou. */
   const visiveis = state.routes.flatMap((rota, indice) => {
@@ -519,6 +546,8 @@ export function BarraDeAbas({ state, descriptors, navigation, insets }: PropsDaB
     portão de acessibilidade.
   */
   const corDoIndicador = tema.escuro ? tema.superficie : tema.superficie2;
+
+  if (escondida) return null;
 
   return (
     <View

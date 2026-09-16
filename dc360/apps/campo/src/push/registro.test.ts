@@ -5,7 +5,9 @@ jest.mock("expo-constants", () => ({
 
 import { ErroDaApi, SemSinal } from "../dados/api";
 import { criarDuploDePorta } from "./duplo-de-porta";
-import { classificarFalha, mereceContar, registrarEsteAparelho } from "./registro";
+import {
+  classificarFalha, lerAmbienteDoBuild, mereceContar, registrarEsteAparelho,
+} from "./registro";
 
 /**
  * Registrar a ficha depois do login, e não alarmar com o que não tem conserto.
@@ -141,4 +143,31 @@ it("não tenta registrar de uma plataforma que a rota não conhece", async () =>
   expect(desfecho).toBe("sem_ficha");
   expect(falouComOServidor).toBe(false);
   expect(duplo.registro.fichasPedidas).toBe(0);
+});
+
+/*
+  O AMBIENTE DA APNs, lido do `extra` que `app.config.ts` assou no build.
+
+  Vem da MESMA constante que decide o `aps-environment` no plugin do
+  `expo-notifications`, então os dois não têm como divergir. O que este bloco
+  tranca é a leitura: os dois valores conhecidos passam, e QUALQUER outra
+  coisa (campo ausente num binário anterior ao campo, valor que ninguém
+  reconhece, `extra` nulo) vira "não sei", e "não sei" NÃO vira chute. Mandar
+  `producao` para um binário do sandbox é o defeito que a coluna do servidor
+  existe para fechar.
+*/
+describe("o ambiente da APNs deste binário", () => {
+  it("lê producao e teste do extra", () => {
+    expect(lerAmbienteDoBuild({ pushAmbiente: "producao" })).toBe("producao");
+    expect(lerAmbienteDoBuild({ pushAmbiente: "teste" })).toBe("teste");
+  });
+
+  it("qualquer outra coisa é 'não sei', e não um chute", () => {
+    expect(lerAmbienteDoBuild({})).toBeNull();
+    expect(lerAmbienteDoBuild(undefined)).toBeNull();
+    expect(lerAmbienteDoBuild(null)).toBeNull();
+    // A palavra da Apple, que alguém vai tentar um dia.
+    expect(lerAmbienteDoBuild({ pushAmbiente: "sandbox" })).toBeNull();
+    expect(lerAmbienteDoBuild({ pushAmbiente: "" })).toBeNull();
+  });
 });

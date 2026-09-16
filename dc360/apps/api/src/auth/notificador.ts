@@ -130,27 +130,6 @@ export function mensagemDeRecuperacao(
 }
 
 /**
- * O notificador de produção enquanto não existe provedor: recusa, alto.
- *
- * Deliberadamente pior de usar que o de log, e melhor de ter. Sem provedor, a
- * alternativa honesta não é escrever o link em algum lugar: é a recuperação
- * dizer que não está disponível e mandar procurar quem administra o município,
- * que consegue redefinir a senha de qualquer jeito.
- */
-export function notificadorIndisponivel(): Notificador {
-  return {
-    async enviar() {
-      throw new Error(
-        "Não há provedor de notificação configurado: nenhuma mensagem foi "
-        + "enviada. Defina NOTIFICADOR_URL, NOTIFICADOR_CHAVE e "
-        + "EMAIL_REMETENTE, e ligue com EMAIL_ATIVO=sim. O passo a passo está "
-        + "em docs/LIGAR-O-EMAIL.md.",
-      );
-    },
-  };
-}
-
-/**
  * Tira de um texto qualquer endereço que apareça no corpo da mensagem.
  *
  * O corpo carrega o link de uso único, e link de uso único é credencial. Um

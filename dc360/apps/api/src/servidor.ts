@@ -9,6 +9,7 @@ import type { Banco } from "./banco/tipos.js";
 import { organizacaoDoAcessoVencido, verificarAcesso } from "./auth/tokens.js";
 import { servicoDeAutenticacao, FalhaAutenticacao } from "./auth/servico.js";
 import { AcessoSuspenso, exigirAcessoAtivo } from "./auth/suspensao.js";
+import { exigirVigencia, lerVigencia } from "./auth/vigencia.js";
 import { servicoDeSegundoFator } from "./auth/segundo-fator.js";
 import { notificadorDeLog, type Notificador } from "./auth/notificador.js";
 import { rotasAutenticacao } from "./rotas/autenticacao.js";
@@ -37,6 +38,7 @@ import { rotasBusca } from "./rotas/busca.js";
 import type { Armazenamento } from "./armazenamento/tipos.js";
 import type { ArmazenamentoEmMemoria } from "./armazenamento/memoria.js";
 import type { GeradorDePdf } from "./documentos/pdf.js";
+import type { UltimaRodada } from "./push/varredor.js";
 import { chaveDoLimitador, declararProxyDeBorda, enderecoDoCliente } from "./rede.js";
 
 export type Identidade = {
@@ -99,6 +101,29 @@ export type Dependencias = {
   rota?: Pick<OpcoesDaRota, "buscar" | "agora">;
   /** A rede e o DNS de `POST /mapa/resolver-link`. Só o teste passa. Ver `rotas/mapa.ts`. */
   mapa?: OpcoesDoMapa;
+  /**
+   * A varredura de push, quando ela existe (`PUSH_ATIVO=sim`).
+   *
+   * Duas coisas passam por aqui, e as duas fecham um silêncio:
+   *
+   *   `despertar()`  a rota de despacho chama DEPOIS do commit, e o aviso de
+   *                  tarefa nova sai em segundos em vez de esperar o relógio
+   *                  de cinco minutos.
+   *   `ultimaRodada` o que `/saude` mostra: os contadores da última rodada
+   *                  desta máquina, que é a única janela do operador sem
+   *                  abrir o banco.
+   *
+   * Ausente com o push desligado, e `/saude` responde `push: null`, que é
+   * a diferença entre "não está mandando" e "não existe".
+   *
+   * Em `index.ts` a varredura é criada DEPOIS do servidor (ela escreve no log
+   * dele), então o que chega aqui é um par de fechamentos que só resolvem a
+   * varredura quando chamados.
+   */
+  push?: {
+    despertar(): void;
+    ultimaRodada(): UltimaRodada | null;
+  };
 };
 
 /**
@@ -189,11 +214,20 @@ export const CAMINHOS_REDIGIDOS = [
   */
   "req.body.origem",
   "req.body.destino",
+  /*
+    A ficha de push, de `POST /aparelhos` e `POST /aparelhos/revogar`. Não é
+    credencial de acesso, e mesmo assim quem a tem escreve na tela bloqueada
+    de um agente de Defesa Civil; a rota já a mantém fora da resposta e do
+    `detalhe` de notificação, e esta linha a mantém fora do log no dia do
+    ponto de diagnóstico.
+  */
+  "req.body.ficha",
 ] as const;
 
 export async function construirServidor(
   {
     banco, config, armazenamento, notificador = notificadorDeLog(), pdf, destinoDeLog, rota, mapa,
+    push,
   }: Dependencias,
 ): Promise<FastifyInstance> {
   /*
@@ -414,12 +448,32 @@ export async function construirServidor(
     }
 
     /*
-      ESCRITA confere a suspensão; LEITURA com token vivo não. O argumento
-      inteiro está em `auth/suspensao.ts`. `HEAD` conta como leitura porque é
+      ESCRITA confere, numa ida só ao banco, a suspensão do município E a
+      vigência de quem escreve: conta ativa, papel igual ao do token, sessão
+      não encerrada, senha provisória dentro do prazo. LEITURA com token vivo
+      não vai ao banco. O argumento da suspensão está em `auth/suspensao.ts`;
+      o da vigência, em `auth/vigencia.ts`. `HEAD` conta como leitura porque é
       o que ele é.
     */
-    if (req.method !== "GET" && req.method !== "HEAD") {
-      await exigirAcessoAtivo(banco, conteudo.org, statusDaSuspensao);
+    const escrita = req.method !== "GET" && req.method !== "HEAD";
+    let senhaProvisoria = conteudo.sp === true;
+    if (escrita) {
+      const vigencia = await lerVigencia(banco, conteudo);
+      exigirVigencia(vigencia, conteudo, statusDaSuspensao);
+      // O banco manda: uma marca no token que o banco já não confirma não
+      // tranca ninguém, e um prazo que o banco tem e o token não também vale.
+      senhaProvisoria = vigencia.senhaProvisoriaAte !== null;
+    }
+
+    /*
+      SENHA PROVISÓRIA (migração 046): enquanto a senha for a sorteada por
+      quem administra ou pelo console, a sessão só serve para trocá-la. Toda
+      outra rota responde 403 `troca_de_senha_obrigatoria`, e o painel leva à
+      troca. Sair não passa por aqui (não exige token de acesso). Na leitura
+      vale a marca do token, como vale o papel; na escrita vale o banco.
+    */
+    if (senhaProvisoria && !ROTAS_ABERTAS_COM_SENHA_PROVISORIA.has(req.routeOptions.url ?? "")) {
+      throw new TrocaDeSenhaObrigatoria();
     }
 
     const identidade: Identidade = {
@@ -473,6 +527,14 @@ export async function construirServidor(
       return resposta.code(403).send({ erro: "sem_permissao", mensagem: erro.message });
     }
     /*
+      403 nomeado, e não 401: a credencial está certa e a sessão existe. O que
+      falta é um ato da própria pessoa, e a mensagem diz qual. O painel lê o
+      código e abre a troca de senha (`apps/web/src/paginas/Entrar.tsx`).
+    */
+    if (erro instanceof TrocaDeSenhaObrigatoria) {
+      return resposta.code(403).send({ erro: erro.codigo, mensagem: erro.message });
+    }
+    /*
       403 e não 404: aqui a pessoa administra usuários, ela só não administra
       AQUELE usuário. O 404 existe para não revelar que um recurso de outro
       município existe, e esse não é o caso: a conta é do município dela.
@@ -485,7 +547,18 @@ export async function construirServidor(
       return resposta.code(status).send({ erro: erro.codigo, mensagem: erro.message });
     }
     if (erro instanceof RegraDeNegocio) {
-      return resposta.code(erro.status).send({ erro: erro.codigo, mensagem: erro.message });
+      return resposta.code(erro.status).send({
+        erro: erro.codigo,
+        mensagem: erro.message,
+        /*
+          `campos` sai quando a regra apontou campos, e só então: e a MESMA
+          forma do 422 do Zod logo abaixo, e é a lista que o cartão da fila do
+          aparelho lê para oferecer "corrigir a vistoria" em vez de "tentar de
+          novo". Sem ela, uma recusa nomeada com status 422 chegaria ao agente
+          sem dizer qual campo está errado.
+        */
+        ...(erro.campos ? { campos: erro.campos } : {}),
+      });
     }
     // `instanceof` falharia quando o schema vem de outra cópia do zod (o
     // pacote compartilhado tem a sua). A checagem é por forma, que é o que
@@ -568,7 +641,24 @@ export async function construirServidor(
       );
     }
 
-    return { status: "ok", banco: "ok", ultimaMigracao, eliminacoes };
+    /*
+      O que o push fez, nesta máquina, na última rodada. SÓ NÚMEROS, pela
+      mesma razão das eliminações: esta rota responde a qualquer um.
+
+      `null` é push desligado. Ligado e sem rodada concluída ainda (a partida
+      acabou de acontecer, ou esta máquina nunca ganhou a trava) sai com
+      `rodadaEm: null` e zeros, que é diferente de mentir com uma rodada que
+      não houve. `falhas` que não zera de uma sonda para a outra, com
+      `entregues` parado, é a Apple ou o Google recusando: o motivo está no
+      log do varredor, agregado, sem ficha.
+    */
+    const push_ = push
+      ? (push.ultimaRodada() ?? {
+          rodadaEm: null, reivindicadas: 0, entregues: 0, falhas: 0, revogados: 0,
+        })
+      : null;
+
+    return { status: "ok", banco: "ok", ultimaMigracao, eliminacoes, push: push_ };
   });
 
   await app.register(rotasAutenticacao, { prefix: "/auth", autenticacao, config });
@@ -581,7 +671,11 @@ export async function construirServidor(
   await app.register(rotasSegundoFator, {
     prefix: "/segundo-fator", banco, config, autenticacao, segundoFator,
   });
-  await app.register(rotasOcorrencias, { prefix: "/ocorrencias", banco });
+  await app.register(rotasOcorrencias, {
+    prefix: "/ocorrencias", banco,
+    // O despacho acorda o varredor depois do commit. Sem push, não há quem acordar.
+    ...(push ? { despertarPush: push.despertar } : {}),
+  });
   await app.register(rotasAdministracao, { prefix: "/", banco });
   await app.register(rotasSincronizacao, { prefix: "/sincronizacao", banco });
   await app.register(rotasCampo, { prefix: "/campo", banco, armazenamento });
@@ -704,14 +798,51 @@ function ehErroDeValidacao(erro: unknown): erro is ZodError {
 
 export class NaoAutenticado extends Error {}
 
+/**
+ * As rotas que um token de senha provisória abre. Só a troca: `/auth/sair`
+ * não exige token de acesso e continua funcionando por isso. Comparado com
+ * `req.routeOptions.url`, que é o PADRÃO da rota registrada, e não a URL
+ * pedida: não há como forjar um caminho que case.
+ */
+export const ROTAS_ABERTAS_COM_SENHA_PROVISORIA: ReadonlySet<string> = new Set([
+  "/auth/trocar-senha",
+]);
+
+/** A sessão nasceu de senha provisória e só serve para trocá-la. Vira 403. */
+export class TrocaDeSenhaObrigatoria extends Error {
+  readonly codigo = "troca_de_senha_obrigatoria" as const;
+  constructor() {
+    super(
+      "Você entrou com uma senha provisória. Defina a sua senha em Minha conta "
+      + "antes de continuar.",
+    );
+    this.name = "TrocaDeSenhaObrigatoria";
+  }
+}
+
 /** Erro previsto de domínio: o cliente pode entender e corrigir. */
 export class RegraDeNegocio extends Error {
   readonly codigo: string;
   readonly status: number;
-  constructor(codigo: string, mensagem: string, status = 409) {
+  /**
+   * Os campos recusados, no formato do 422 de validação (`campo` pontuado como
+   * o Zod o devolve, `mensagem` em português). Opcional: a maioria das regras
+   * recusa o ato inteiro, não um campo. Existe para a recusa que a rota só
+   * consegue fazer depois de ler o banco (ex.: data anterior à abertura da
+   * ocorrência) sair com a mesma forma que a recusa do esquema, porque o
+   * aparelho decide pelo `campos` se oferece corrigir ou repetir.
+   */
+  readonly campos?: ReadonlyArray<{ campo: string; mensagem: string }>;
+  constructor(
+    codigo: string,
+    mensagem: string,
+    status = 409,
+    campos?: ReadonlyArray<{ campo: string; mensagem: string }>,
+  ) {
     super(mensagem);
     this.codigo = codigo;
     this.status = status;
+    if (campos && campos.length > 0) this.campos = campos;
   }
 }
 

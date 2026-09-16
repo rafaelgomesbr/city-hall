@@ -424,3 +424,31 @@ describe("O segredo que viaja no caminho da URL", () => {
     }
   });
 });
+
+/*
+  A FICHA DE PUSH. Ela entra pelo corpo de `POST /aparelhos` e de
+  `POST /aparelhos/revogar`, e quem a tem escreve na tela bloqueada de um
+  agente de Defesa Civil: uma ordem falsa de evacuação escrita ali tira gente
+  de casa de madrugada. A rota já a mantém fora da resposta e do `detalhe` de
+  notificação; a lista de redação é o que a mantém fora do log no dia em que
+  alguém registrar `req.body` num ponto de diagnóstico.
+*/
+describe("A ficha do aparelho no log", () => {
+  it("a lista de redação cobre req.body.ficha", () => {
+    expect(
+      CAMINHOS_REDIGIDOS as readonly string[],
+      "req.body.ficha saiu da lista de redação: a ficha de push escreve na tela "
+      + "bloqueada do agente, e o log é copiado para mais lugares que o banco",
+    ).toContain("req.body.ficha");
+  });
+
+  it("e a lista redige a ficha de verdade quando o corpo chega ao log", () => {
+    linhas = [];
+    const ficha = "aabbccdd11223344556677889900ffeeFICHAPECULIAR";
+    const diagnostico = app.log.child({}, {
+      serializers: { req: (r: { body?: unknown }) => ({ body: r.body }) },
+    });
+    diagnostico.info({ req: { body: { plataforma: "ios", ficha } } }, "diagnostico do registro");
+    expect(tudo(), "a ficha de push saiu no log").not.toContain(ficha);
+  });
+});

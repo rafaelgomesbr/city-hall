@@ -1,18 +1,64 @@
-@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600&display=swap');
-
 /* ============================================================
    Design System DC360 v0.2 - tokens.css
-   Fonte única de tokens para o protótipo (Fase 0).
+   Fonte única de tokens do painel.
    Componentes usam SOMENTE variáveis --ds-*. Valor fora daqui é bug.
    Espelha design-system/DESIGN_SYSTEM.md e _tokens.scss.
 
    Decisão de 2026-08-20: identidade trocada de laranja para violeta,
-   com Work Sans e Roboto Mono via Google Fonts. Isso é uma exceção
-   explícita e pontual à regra de zero rede do CLAUDE.md, pedida e
-   confirmada pelo Rafa: a única chamada de rede permitida no protótipo
-   inteiro é este @import de fonte. Nenhuma outra chamada de rede,
-   nenhum outro CDN. Ver CLAUDE.md e docs/ROADMAP_FASE0.md.
+   com Work Sans e Roboto Mono.
+
+   AS FONTES SÃO SERVIDAS PELO PRÓPRIO PAINEL (15/09/2026). Até esta data
+   este arquivo abria com um @import de fonts.googleapis.com, e cada
+   abertura do painel mandava ao Google, fora do país, o endereço IP, o
+   agente do navegador e a página de quem estava usando, enquanto
+   docs/SUBPROCESSADORES.md dizia que nenhum dado sai do painel estático.
+   Os arquivos em /fontes/ são gerados por scripts/gerar-fontes-do-painel.mjs
+   a partir dos .ttf embarcados no aplicativo de campo (Work Sans v24 e
+   Roboto Mono v31, licença OFL 1.1 ao lado deles), e o portão
+   test/design-system.test.ts reprova qualquer fonte vinda de rede.
+
+   Cada arquivo declara uma FAIXA de peso, para o navegador escolher o
+   arquivo certo sem sintetizar negrito: o CSS pede 500 e 800 de Work Sans
+   e 500 e 600 de Roboto Mono, que caem no Regular, no Bold e no Bold.
+   font-display: swap, para a tela abrir com a pilha do sistema e trocar
+   quando a fonte chegar, em vez de ficar em branco.
    ============================================================ */
+
+@font-face {
+  font-family: "Work Sans";
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url("/fontes/work-sans-v24-400.woff") format("woff");
+}
+@font-face {
+  font-family: "Work Sans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/work-sans-v24-600.woff") format("woff");
+}
+@font-face {
+  font-family: "Work Sans";
+  font-style: normal;
+  font-weight: 700 900;
+  font-display: swap;
+  src: url("/fontes/work-sans-v24-700.woff") format("woff");
+}
+@font-face {
+  font-family: "Roboto Mono";
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url("/fontes/roboto-mono-v31-400.woff") format("woff");
+}
+@font-face {
+  font-family: "Roboto Mono";
+  font-style: normal;
+  font-weight: 600 900;
+  font-display: swap;
+  src: url("/fontes/roboto-mono-v31-700.woff") format("woff");
+}
 
 :root {
   /* ---------- Primitivas: violeta (marca, decisão de 2026-08-20) ----------
@@ -119,6 +165,11 @@
   --ds-fs-body: 16px;    --ds-lh-body: 24px;
   --ds-fs-body-sm: 14px; --ds-lh-body-sm: 20px;
   --ds-fs-caption: 12px; --ds-lh-caption: 16px;
+  /* Peso de fonte. O painel escrevia 500, 600, 700 e 800 à mão em 38 lugares
+     e o portão de design não via peso nenhum; o aplicativo já tem `peso`
+     (normal, forte, negrito) em tokens.ts. Quatro degraus, porque quatro é o
+     que a Work Sans carrega e o que as telas usam. */
+  --ds-fw-medium: 500; --ds-fw-semibold: 600; --ds-fw-bold: 700; --ds-fw-extrabold: 800;
 
   /* Espaçamento, raio, toque */
   --ds-sp-1: 4px;  --ds-sp-2: 8px;  --ds-sp-3: 12px; --ds-sp-4: 16px;

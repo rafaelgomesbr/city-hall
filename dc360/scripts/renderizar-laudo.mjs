@@ -9,13 +9,20 @@
  * na trilha por um motivo que não é atendimento.
  *
  * Uso:
- *   node scripts/renderizar-laudo.mjs <dados.json> <pasta-de-saida> [assinatura.png]
+ *   node scripts/renderizar-laudo.mjs <dados.json> <pasta-de-saida> [assinatura.png] [--documento=laudo]
  *
  * O JSON é um `DadosDocumento` de apps/api/src/documentos/laudo.ts, com
  * `emitidoEm` em texto ISO. O terceiro argumento, quando dado, é o traço de
  * assinatura, e o roteiro gera as DUAS versões, com e sem, porque a ausência da
  * assinatura tem aparência própria no documento e ela também precisa ser
  * conferida.
+ *
+ * `--documento` escolhe qual dos três documentos renderizar: `laudo` (padrão),
+ * `termo_de_interdicao` ou `termo_de_desinterdicao`. Os termos saem da mesma
+ * `DadosDocumento`; o de desinterdição exige o bloco `desinterdicao` no JSON.
+ * Existe porque o termo de desinterdição imprimia "Interdição indicada: SIM" e
+ * "Assinatura não coletada" sobre quem assina à caneta, e ninguém tinha olhado
+ * o papel.
  *
  * NÃO guarde o JSON dentro do repositório: ele carrega nome, contato e relato
  * de pessoa real. A pasta de trabalho da sessão é o lugar dele.
@@ -26,9 +33,21 @@ import { fileURLToPath } from "node:url";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 
-const [caminhoDosDados, pastaDeSaida, caminhoDaAssinatura] = process.argv.slice(2);
-if (!caminhoDosDados || !pastaDeSaida) {
-  console.error("uso: node scripts/renderizar-laudo.mjs <dados.json> <pasta-de-saida> [assinatura.png]");
+const argumentos = process.argv.slice(2);
+const opcaoDocumento = argumentos.find((a) => a.startsWith("--documento="));
+const DOCUMENTOS = {
+  laudo: "laudoDeVistoria",
+  termo_de_interdicao: "termoDeInterdicao",
+  termo_de_desinterdicao: "termoDeDesinterdicao",
+};
+const documento = opcaoDocumento ? opcaoDocumento.slice("--documento=".length) : "laudo";
+const [caminhoDosDados, pastaDeSaida, caminhoDaAssinatura] =
+  argumentos.filter((a) => !a.startsWith("--"));
+if (!caminhoDosDados || !pastaDeSaida || !DOCUMENTOS[documento]) {
+  console.error(
+    "uso: node scripts/renderizar-laudo.mjs <dados.json> <pasta-de-saida> [assinatura.png] "
+    + "[--documento=laudo|termo_de_interdicao|termo_de_desinterdicao]",
+  );
   process.exit(2);
 }
 
@@ -55,7 +74,7 @@ const maisNovo = (pasta) => {
 const FONTE = resolve(AQUI, "../apps/api/src/documentos");
 const COMPILADO = resolve(AQUI, "../apps/api/dist/documentos");
 
-let laudoDeVistoria;
+let gerarDocumento;
 try {
   if (maisNovo(FONTE) > maisNovo(COMPILADO)) {
     console.error(
@@ -64,7 +83,7 @@ try {
     );
     process.exit(1);
   }
-  ({ laudoDeVistoria } = await import(resolve(COMPILADO, "laudo.js")));
+  gerarDocumento = (await import(resolve(COMPILADO, "laudo.js")))[DOCUMENTOS[documento]];
 } catch (erro) {
   if (erro?.code !== "ENOENT") throw erro;
   console.error("apps/api/dist não existe. Rode: npm run build --prefix apps/api");
@@ -86,8 +105,8 @@ const variantes = assinaturaUrl
 
 const paginas = [];
 for (const [nome, url] of variantes) {
-  const html = laudoDeVistoria({ ...dados, vistoria: { ...dados.vistoria, assinaturaUrl: url } });
-  const arquivo = resolve(pastaDeSaida, `laudo-${nome}.html`);
+  const html = gerarDocumento({ ...dados, vistoria: { ...dados.vistoria, assinaturaUrl: url } });
+  const arquivo = resolve(pastaDeSaida, `${documento.replace(/_/g, "-")}-${nome}.html`);
   writeFileSync(arquivo, html);
   paginas.push([nome, arquivo, html.length]);
 }
@@ -103,7 +122,9 @@ try {
   const pagina = await navegador.newPage({ viewport: { width: 900, height: 1400 } });
   for (const [nome, arquivo] of paginas) {
     await pagina.goto("file://" + arquivo);
-    await pagina.screenshot({ path: resolve(pastaDeSaida, `laudo-${nome}.png`), fullPage: true });
+    await pagina.screenshot({
+      path: resolve(pastaDeSaida, `${documento.replace(/_/g, "-")}-${nome}.png`), fullPage: true,
+    });
   }
   await navegador.close();
   for (const [nome, , bytes] of paginas) console.log(`${nome}: ${bytes} bytes de HTML, mais o PNG`);

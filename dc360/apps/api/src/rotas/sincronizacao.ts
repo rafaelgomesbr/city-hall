@@ -2,10 +2,11 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   ROTULO_MOTIVO_DE_DEVOLUCAO,
+  capturaPlausivel,
   chaveDeStorage, devolucaoDeTarefaSchema, envelopeSincronizacaoSchema,
   transicaoPermitida,
   type EvidenciaPerdida,
-  type MotivoDeDevolucao, type OrgaoIndicado, type StatusOcorrencia,
+  type MotivoDeDevolucao, type OrgaoIndicado, type StatusOcorrencia, type Vistoria,
 } from "@dc360/shared";
 import type { Banco, Consulta } from "../banco/tipos.js";
 import { ROTA_DA_FILA_DO_CAMPO, RegraDeNegocio, autorizar, type Identidade } from "../servidor.js";
@@ -82,6 +83,103 @@ function decisaoPlausivel(iso: string): boolean {
     && instante > PISO_DE_DECISAO
     && instante < Date.now() + FOLGA_DE_RELOGIO_MS;
 }
+
+/**
+ * As datas que a coleta declara, conferidas ANTES de tocar no banco.
+ *
+ * ## O que era, provado por sondagem
+ *
+ * `coletadaEm` ia direto para o INSERT. Treze horas no futuro batia no CHECK
+ * `coletada_em_plausivel` (migração 009) e virava 500, ou seja, "erro
+ * inesperado, informe o código ao suporte" para a fila do aparelho, que trata
+ * 5xx como falha temporária e REPETE PARA SEMPRE um envio que nunca vai
+ * passar. Ano de 2021 passava pelo CHECK e entrava: o laudo imprimia a
+ * vistoria com data anterior à do próprio chamado. A data da foto em 2019
+ * batia em `capturada_em_plausivel` (migração 024) e virava 500 do mesmo jeito.
+ *
+ * ## A régua, e de onde ela vem
+ *
+ * Três regras, e as três são as que já valem para o campo irmão:
+ *
+ * 1. Posterior a 2020 e no máximo doze horas no futuro: `capturaPlausivel`,
+ *    a MESMA função que `pedidoDeEvidenciaSchema` aplica à foto avulsa e que
+ *    a devolução aplica a `decididaEm`. A folga cobre fuso trocado e relógio
+ *    adiantado, que são rotina em campo.
+ * 2. NÃO anterior à abertura da ocorrência. A migração 009 deixou escrito que
+ *    o CHECK não enxerga outra tabela e que "a regra 'não antes de a
+ *    ocorrência existir' é da aplicação, e o teste dela mora junto da rota".
+ *    Até aqui ela morava em lugar nenhum. O aparelho só consegue coletar numa
+ *    ocorrência que já baixou, então uma coleta datada de antes do chamado
+ *    existir só tem duas origens: relógio atrasado ou envelope inventado, e
+ *    nenhuma das duas pode virar data de ato num documento com brasão.
+ * 3. Vale para as fotos e para os registros perdidos também: os três saem
+ *    impressos no mesmo laudo, um como data do ato e os outros como data do
+ *    registro fotográfico.
+ *
+ * ## Por que 422 COM `campos`, e não 409 nem 500
+ *
+ * `packages/campo/src/transporte.ts` transforma todo 4xx em falha permanente,
+ * e a fila do aparelho decide pelo `campos` (`recusaEstaNoDado`) se oferece
+ * "corrigir a vistoria" ou só "tentar de novo". Um 409 seco deixaria a coleta
+ * bloqueada com "repetir não resolve" e sem botão de editar; o 500 a deixaria
+ * repetindo. O 422 com o campo apontado é o que leva o agente à tela de
+ * coleta com o campo marcado, que é a única saída real para um relógio errado.
+ *
+ * A comparação com a abertura usa a abertura ARREDONDADA para baixo ao
+ * milissegundo: o banco guarda microssegundos e o aparelho manda
+ * milissegundos, e sem isso uma coleta feita no mesmo milissegundo do
+ * registro seria recusada por meio microssegundo.
+ */
+const FRASE_DE_DATA_IMPLAUSIVEL =
+  "A data não é plausível: precisa ser posterior a 2020 e não pode estar a "
+  + "mais de doze horas no futuro. Acerte a data e a hora do aparelho e "
+  + "conclua a vistoria de novo.";
+const FRASE_DE_DATA_ANTERIOR_AO_CHAMADO =
+  "A data é anterior à abertura deste chamado no sistema, e a vistoria não "
+  + "pode ter acontecido antes de o chamado existir. Confira a data e a hora "
+  + "do aparelho e conclua a vistoria de novo.";
+
+function datasImplausiveisDaColeta(
+  v: Vistoria,
+  aberturaMs: number,
+): Array<{ campo: string; mensagem: string }> {
+  const campos: Array<{ campo: string; mensagem: string }> = [];
+  const conferir = (campo: string, iso: string) => {
+    if (!capturaPlausivel(iso)) {
+      campos.push({ campo, mensagem: FRASE_DE_DATA_IMPLAUSIVEL });
+    } else if (Date.parse(iso) < aberturaMs) {
+      campos.push({ campo, mensagem: FRASE_DE_DATA_ANTERIOR_AO_CHAMADO });
+    }
+  };
+  conferir("vistoria.coletadaEm", v.coletadaEm);
+  v.fotos.forEach((f, i) => conferir(`vistoria.fotos.${i}.capturadaEm`, f.capturadaEm));
+  (v.evidenciasPerdidas ?? []).forEach((p, i) =>
+    conferir(`vistoria.evidenciasPerdidas.${i}.capturadaEm`, p.capturadaEm));
+  return campos;
+}
+
+/**
+ * A recusa de uma fotografia do envelope, nomeada e apontando a foto.
+ *
+ * 409 com código, que é o que a fila do aparelho guarda, e `campos` apontando
+ * `vistoria.fotos.N`, que é o que faz o cartão da fila oferecer "corrigir a
+ * vistoria" (tirar a foto de novo, ou removê-la da coleta) em vez de só
+ * "tentar de novo", que repetiria a mesma recusa para sempre.
+ */
+function recusarFoto(codigo: string, indice: number, mensagem: string): RegraDeNegocio {
+  return new RegraDeNegocio(codigo, mensagem, 409, [
+    { campo: `vistoria.fotos.${indice}`, mensagem },
+  ]);
+}
+
+const FRASE_DE_FOTO_JA_VINCULADA =
+  "Esta fotografia já faz parte de outra vistoria registrada, e uma fotografia "
+  + "não pode pertencer a duas vistorias. Tire a foto de novo ou remova esta "
+  + "foto da coleta antes de enviar.";
+const FRASE_DE_FOTO_DE_OUTRO_AGENTE =
+  "Esta fotografia foi enviada por outra pessoa, e só quem enviou a foto pode "
+  + "incluí-la na própria vistoria. Tire a foto de novo ou remova esta foto da "
+  + "coleta antes de enviar.";
 
 /**
  * Grava o que foi capturado em campo e nao pode ser recuperado do aparelho.
@@ -379,8 +477,12 @@ export async function rotasSincronizacao(
         return { vistoriaId: anterior.rows[0].id, jaExistia: true, foraDaEquipe: false };
       }
 
-      const ocorrencia = await c.query<{ id: string; status: string; equipe_id: string | null }>(
-        "SELECT id, status, equipe_id FROM ocorrencias WHERE id = $1",
+      const ocorrencia = await c.query<{
+        id: string; status: string; equipe_id: string | null; abertura_ms: number;
+      }>(
+        `SELECT id, status, equipe_id,
+                floor(extract(epoch FROM criado_em) * 1000)::float8 AS abertura_ms
+           FROM ocorrencias WHERE id = $1`,
         [envelope.ocorrenciaId],
       );
       const alvo = ocorrencia.rows[0];
@@ -391,6 +493,23 @@ export async function rotasSincronizacao(
         throw new RegraDeNegocio(
           "ja_encerrada",
           "Essa ocorrência já foi encerrada e não aceita vistoria nova.",
+        );
+      }
+
+      /*
+        As datas, conferidas DEPOIS de saber que a ocorrência existe (a recusa
+        não pode virar oráculo: ocorrência de outro município responde 404
+        antes de qualquer outra coisa) e ANTES de qualquer escrita. Ver
+        `datasImplausiveisDaColeta`.
+      */
+      const datasRecusadas = datasImplausiveisDaColeta(envelope.vistoria, alvo.abertura_ms);
+      if (datasRecusadas.length > 0) {
+        throw new RegraDeNegocio(
+          "data_implausivel",
+          "A vistoria traz data que não pode ser verdade. Confira a data e a hora "
+          + "do aparelho e conclua a vistoria de novo.",
+          422,
+          datasRecusadas,
         );
       }
 
@@ -430,10 +549,31 @@ export async function rotasSincronizacao(
       );
       const equipeDoAgente = lotacao.rows[0]?.equipe_id ?? null;
       /*
-        Só há designação a violar quando houve despacho. Ocorrência sem equipe
-        designada não produz aviso, senão o documento treinaria quem lê a
-        ignorar o aviso justamente quando ele importa.
+        Só há designação a VIOLAR quando houve despacho: `foraDaEquipe` exige
+        equipe designada e diferente da do agente.
+
+        Ocorrência SEM despacho é a outra marca, e até 15/09/2026 não era marca
+        nenhuma. Sondagem: agente registra vistoria em ocorrência `triagem` e
+        `registrada`, a rota responde 201 com `foraDaEquipeDesignada: false`, e
+        em seguida o laudo e o termo de interdição saem em cima dela. Ninguém
+        despachou ninguém àquele endereço, e o documento com brasão não dizia
+        isso a quem ia assinar.
+
+        A decisão é a mesma da equipe divergente, e pela mesma razão: ACEITA E
+        MARCA. Recusar seria 4xx, que o aparelho trata como falha permanente, e
+        o trabalho de campo (checklist, fotos, assinatura da moradora) morreria
+        na fila do aparelho. O caso legítimo existe: o agente estava na rua no
+        temporal, a coordenação abriu o chamado pelo telefone e ainda não tinha
+        despachado quando ele já estava no barranco. Então a coleta entra, com
+        evento PRÓPRIO na trilha (não é o da equipe divergente, porque não
+        havia equipe para divergir) e sinalizada na resposta, para a tela do
+        aparelho poder dizer que entrou e foi marcada.
+
+        O que a marca NÃO faz: não avança o status. `registrada` e `triagem`
+        continuam onde estão, porque não havia tarefa em campo a concluir, e
+        quem decide o que fazer com a coleta é a coordenação, que tem tela.
       */
+      const semDespacho = alvo.equipe_id === null;
       const foraDaEquipe = alvo.equipe_id !== null && alvo.equipe_id !== equipeDoAgente;
 
       const v = envelope.vistoria;
@@ -579,13 +719,74 @@ export async function rotasSincronizacao(
         const jaEnviada = foto.chave.startsWith(prefixoEsperado);
 
         if (jaEnviada) {
-          const vinculada = await c.query<{ id: string }>(
-            `UPDATE evidencias SET vistoria_id = $1, ordem = $2, legenda = COALESCE($3, legenda)
-              WHERE ocorrencia_id = $4 AND chave_storage = $5
-              RETURNING id`,
-            [novaId, ordem, foto.legenda ?? null, envelope.ocorrenciaId, foto.chave],
+          /*
+            A AMARRAÇÃO ACONTECE UMA VEZ, e só quem enviou a foto amarra.
+
+            Isto era um `UPDATE ... WHERE ocorrencia_id = $4 AND chave_storage
+            = $5`, sem mais nada, e a sondagem fez o que o WHERE permitia: foto
+            confirmada e amarrada à vistoria A; um envelope novo (vistoria B),
+            do mesmo agente, referenciando a mesma chave com legenda nova. A
+            foto MUDAVA de vistoria e de legenda, a trilha não dizia nada, o
+            laudo de A perdia a foto e o laudo vigente (B) saía com a legenda
+            nova embaixo da mesma imagem. Prova material realocada e relegendada
+            por uma escrita que ninguém registrou.
+
+            Três portões agora, e a ordem importa:
+
+            1. `vistoria_id IS NULL`: a foto já amarrada a uma vistoria não se
+               amarra a outra, e a legenda dela não se reescreve mais por esta
+               rota. A legenda só é gravada no ato que a põe num documento, e
+               depois disso ela é parte do documento.
+            2. `anexada_por = quem.usuarioId`: quem pediu a autorização de
+               envio (o dono do token daquela hora, migração 024) é o único
+               que pode amarrá-la. Uma foto que outro agente subiu não vira
+               registro fotográfico da vistoria de quem não a fez.
+            3. Recusa NOMEADA, e não desvio silencioso para o INSERT de baixo:
+               o INSERT faria `ON CONFLICT DO NOTHING` na mesma chave e a foto
+               simplesmente sumiria do envelope sem ninguém saber. A recusa
+               derruba a transação inteira (meia vistoria é pior que nenhuma) e
+               chega ao aparelho como 409 com código e com a foto apontada em
+               `campos` (ver `recusarFoto`). Nenhum fluxo legítimo do aparelho
+               referencia chave de vistoria já gravada: a chave da foto nasce
+               na captura, e o reenvio da mesma coleta responde pela
+               idempotência antes de chegar aqui.
+          */
+          const existente = await c.query<{
+            id: string; vistoria_id: string | null; anexada_por: string | null;
+          }>(
+            `SELECT id, vistoria_id, anexada_por FROM evidencias
+              WHERE ocorrencia_id = $1 AND chave_storage = $2`,
+            [envelope.ocorrenciaId, foto.chave],
           );
-          if (vinculada.rows[0]) continue;
+          const linha = existente.rows[0];
+          if (linha) {
+            if (linha.vistoria_id !== null) {
+              req.log.warn(
+                { evidenciaId: linha.id, vistoriaId: linha.vistoria_id, usuarioId: quem.usuarioId },
+                "envelope referencia fotografia que ja pertence a outra vistoria",
+              );
+              throw recusarFoto("evidencia_ja_vinculada", ordem, FRASE_DE_FOTO_JA_VINCULADA);
+            }
+            if (linha.anexada_por !== quem.usuarioId) {
+              req.log.warn(
+                { evidenciaId: linha.id, anexadaPor: linha.anexada_por, usuarioId: quem.usuarioId },
+                "envelope referencia fotografia enviada por outra pessoa",
+              );
+              throw recusarFoto("evidencia_de_outro_agente", ordem, FRASE_DE_FOTO_DE_OUTRO_AGENTE);
+            }
+            const vinculada = await c.query<{ id: string }>(
+              `UPDATE evidencias SET vistoria_id = $1, ordem = $2, legenda = COALESCE($3, legenda)
+                WHERE id = $4 AND vistoria_id IS NULL AND anexada_por = $5
+                RETURNING id`,
+              [novaId, ordem, foto.legenda ?? null, linha.id, quem.usuarioId],
+            );
+            if (vinculada.rows[0]) continue;
+            /*
+              Corrida: alguém amarrou entre a leitura e o UPDATE. Mesma recusa
+              da leitura, porque é o mesmo fato.
+            */
+            throw recusarFoto("evidencia_ja_vinculada", ordem, FRASE_DE_FOTO_JA_VINCULADA);
+          }
           // Chave com o prefixo certo mas sem linha correspondente: o aparelho
           // inventou. Cai no caminho de baixo, que remonta uma chave nova.
         }
@@ -646,10 +847,28 @@ export async function rotasSincronizacao(
         [
           quem.organizacaoId, envelope.ocorrenciaId, quem.usuarioId, quem.nome, quem.papel,
           v.coletadaEm,
+          /*
+            `vistoriaId` e `idempotencyKey`, e NÃO o nome de quem assinou.
+
+            Sem o identificador, o evento dizia "houve vistoria" e não dizia
+            qual: numa ocorrência com re-vistoria, a trilha tinha duas linhas
+            iguais e nenhuma apontava para a linha de `vistorias` que a
+            sustenta. A chave de idempotência amarra a linha ao envio do
+            aparelho, que é o que uma auditoria de "este envelope entrou?"
+            procura.
+
+            O nome do assinante SAI. A trilha é append-only por projeto (sem
+            policy de UPDATE nem de DELETE), e nome de pessoa não entra em
+            registro que nunca pode ser descartado: é a mesma decisão da
+            devolução de tarefa e da migração 029. O nome continua em
+            `vistorias.assinante_nome`, que é de onde o laudo o lê, e quem
+            precisa dele segue o `vistoriaId`.
+          */
           JSON.stringify({
+            vistoriaId: novaId,
+            idempotencyKey: envelope.idempotencyKey,
             fotos: v.fotos.length,
             gpsPrecisaoMetros: v.gpsPrecisaoMetros,
-            assinante: v.assinanteNome,
           }),
         ],
       );
@@ -715,7 +934,27 @@ export async function rotasSincronizacao(
         );
       }
 
-      return { vistoriaId: novaId, jaExistia: false, foraDaEquipe };
+      /*
+        Evento PRÓPRIO, separado do da equipe divergente, pela mesma razão que
+        separa a devolução recusada da vistoria recusada: o rótulo daquele
+        afirma que havia equipe designada, e aqui não havia. O status da
+        ocorrência no momento do recebimento vai no detalhe porque é a
+        pergunta que a coordenação faz ao ler a linha: "estava em triagem, ou
+        nem isso?".
+      */
+      if (semDespacho) {
+        await registrarEvento(
+          c, quem, envelope.ocorrenciaId, "vistoria_sem_despacho",
+          {
+            vistoriaId: novaId,
+            statusDaOcorrencia: alvo.status,
+            equipeDoAgenteId: equipeDoAgente,
+          },
+          "campo",
+        );
+      }
+
+      return { vistoriaId: novaId, jaExistia: false, foraDaEquipe: foraDaEquipe || semDespacho };
     });
 
     return resposta.code(recebida.jaExistia ? 200 : 201).send({
@@ -727,6 +966,11 @@ export async function rotasSincronizacao(
         ela é fresca, e a tela do aplicativo vai poder dizer a ela que a coleta
         entrou e foi sinalizada. Enquanto isso não existe, o campo é inerte e
         não muda o desfecho do envio, que continua sendo sucesso.
+
+        Verdadeiro nas DUAS marcas: equipe designada diferente da do agente, e
+        ocorrência sem despacho nenhum. Nos dois casos a coleta não veio de
+        uma tarefa que a coordenação entregou a este agente, e é isso que a
+        tela precisa dizer. Qual das duas foi, a trilha diz, em evento próprio.
       */
       foraDaEquipeDesignada: recebida.foraDaEquipe,
     });

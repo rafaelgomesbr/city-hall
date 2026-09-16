@@ -51,6 +51,9 @@ export function Ocorrencias() {
    */
   const [devolvidas, setDevolvidas] = useState<DevolucaoPendente[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  /* "Tentar de novo" sem F5: o contador reinicia o efeito de carga. Ver o
+     mesmo em `Painel.tsx`. */
+  const [tentativa, setTentativa] = useState(0);
 
   const busca = params.get("busca") ?? "";
   const status = params.get("status") ?? "ativas";
@@ -89,7 +92,7 @@ export function Ocorrencias() {
       .then((r) => { if (vivo) setDados(r); })
       .catch((e: unknown) => { if (vivo) setErro(e instanceof Error ? e.message : String(e)); });
     return () => { vivo = false; };
-  }, [sessao, busca, status, severidade, soAtrasadas, pagina]);
+  }, [sessao, busca, status, severidade, soAtrasadas, pagina, tentativa]);
 
   /*
     A marcação vem de uma consulta própria, e o fracasso dela não derruba a
@@ -149,7 +152,17 @@ export function Ocorrencias() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dados, pagina, paginas]);
 
-  if (erro) return <Aviso tom="perigo">Falha ao carregar as ocorrências: {erro}</Aviso>;
+  if (erro) {
+    return (
+      <Aviso tom="perigo">
+        Falha ao carregar as ocorrências: {erro}{" "}
+        <button type="button" className="botao botao--secundario"
+                onClick={() => { setErro(null); setTentativa((t) => t + 1); }}>
+          Tentar de novo
+        </button>
+      </Aviso>
+    );
+  }
 
   const visiveis = dados?.itens ?? [];
 
@@ -288,8 +301,14 @@ export function Ocorrencias() {
                         <div className="tabela__secundario">{o.endereco}</div>
                       </td>
                       <td>
+                        {/*
+                          Só o nome. O contato não desce na lista desde
+                          15/09/2026 (`LinhaDaListaDeOcorrencias`): a tabela
+                          nunca precisou dele para nada, e listá-lo era ler
+                          o telefone de cada família do município, página a
+                          página, sem registro. Ele está na ocorrência.
+                        */}
                         <div>{o.solicitante_nome}</div>
-                        <div className="tabela__secundario">{o.solicitante_contato ?? "Sem contato"}</div>
                       </td>
                       <td><SeloSeveridade severidade={o.severidade} /></td>
                       <td>

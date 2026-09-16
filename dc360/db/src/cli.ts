@@ -65,6 +65,20 @@ async function conectar(): Promise<{ bd: ExecutorSql; encerrar: () => Promise<vo
 const { bd, encerrar } = await conectar();
 const migracoes = carregarMigracoes();
 
+/*
+  O `APNS_AMBIENTE` de quem migra vai para a sessão, e é a migração 044 que o
+  lê: as linhas de `aparelhos` que já existem recebem o ambiente que o
+  servidor usava até então, em vez do padrão. SQL puro não lê variável de
+  ambiente; a configuração de sessão é a ponte, e ela sobrevive às transações
+  que o aplicador abre por migração. Só os dois valores válidos entram; outro
+  qualquer é ignorado, e a migração cai em `producao`, que é o padrão da
+  própria variável. Depois da 044 aplicada isto não faz mais nada.
+*/
+const apnsAmbiente = process.env["APNS_AMBIENTE"];
+if (apnsAmbiente === "producao" || apnsAmbiente === "teste") {
+  await bd.exec(`SET dc360.apns_ambiente = '${apnsAmbiente}'`);
+}
+
 try {
   if (process.argv.includes("--conferir")) {
     const pendentes = await migracoesPendentes(bd, migracoes);

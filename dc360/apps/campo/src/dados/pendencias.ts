@@ -52,13 +52,13 @@ const MARCA_LISTA_TRUNCADA = "pendencias.teto_atingido";
 const MARCA_CATALOGO_ORGAOS = "orgaos.catalogo";
 
 /**
- * Os ids da última lista que este aparelho viu, para saber o que é NOVIDADE.
+ * Os ids que este aparelho JÁ VIU na lista, para saber o que é NOVIDADE.
  *
  * A decisão de 15/09/2026: com o aplicativo aberto, quem descobre que a
  * coordenação despachou uma ocorrência é esta atualização, e descobrir precisa
  * virar aviso (som, faixa e vibração, ver `push/ProvedorDePush.tsx`). Para
- * avisar só o que é novo, o aparelho compara a lista que chegou com a que ele
- * viu por último, por id.
+ * avisar só o que é novo, o aparelho compara a lista que chegou com o que ele
+ * já viu, por id.
  *
  * Mora em `marcas`, e não numa variável, por causa da regra "id já visto não
  * avisa de novo": memória só de processo avisaria o mesmo despacho a cada
@@ -66,15 +66,38 @@ const MARCA_CATALOGO_ORGAOS = "orgaos.catalogo";
  * que é o comportamento certo no aparelho de plantão: o próximo agente começa
  * sem memória, e a primeira carga dele é calada.
  *
- * Guarda a ÚLTIMA lista, e não tudo o que já passou por aqui. Duas razões: a
- * marca não cresce pelo tempo de vida do aparelho, e a tarefa que saiu da
- * lista (outra equipe, devolvida, encerrada) e VOLTOU é um despacho novo da
- * coordenação, que merece avisar de novo.
+ * ACUMULA, e não guarda só a última lista. A REGRA É A DO SERVIDOR, e ela
+ * está escrita na migração 042: um aparelho recebe o push de tarefa nova de
+ * uma ocorrência UMA vez, porque a unicidade em `notificacoes_enviadas` é por
+ * aparelho e ocorrência. A tarefa que vai da equipe Alfa para a Bravo e VOLTA
+ * para a Alfa, ou que a Alfa devolveu e foi redespachada para a Alfa, não
+ * gera push de novo. Até 15/09/2026 esta memória guardava só a última lista e
+ * a tarefa que voltava era novidade: com o aplicativo aberto tocava, fechado
+ * não tocava. Dois comportamentos para o mesmo fato, decididos por onde o
+ * telefone estava, é pior do que qualquer um dos dois. Alinhar aqui é barato;
+ * alinhar o servidor exigiria trocar a chave de unicidade por uma que conte
+ * despachos, com coluna nova. Fica a barata, e a LIMITAÇÃO DECLARADA nos dois
+ * lugares: a tarefa que sai e volta para a MESMA equipe não avisa de novo em
+ * canal nenhum. Ela continua na lista, e o agente a vê ao abrir.
+ *
+ * O teto (`TETO_DE_IDS_VISTOS`) é o que impede a marca de crescer pelo tempo
+ * de vida do aparelho, e ele corta o mais antigo do que JÁ SAIU da lista,
+ * nunca o que está nela: uma tarefa na tela que caísse da memória voltaria
+ * como "novidade" na atualização seguinte, sem despacho nenhum.
  *
  * A ausência da marca significa "nunca baixou": é o que distingue a primeira
  * carga (calada) de uma lista que estava vazia e recebeu tarefa (avisa).
  */
 const MARCA_IDS_VISTOS = "pendencias.ids_vistos";
+
+/**
+ * Quantos ids de tarefas que já saíram da lista a memória guarda. Dois mil
+ * UUIDs são uns 80 KB numa linha de `marcas`, lidos uma vez por atualização;
+ * e dois mil despachos que passaram por um aparelho desde o último logout é
+ * mais do que qualquer plantão vê em meses. O que cai do teto e volta
+ * avisa de novo, e é o custo aceito de a memória ter tamanho.
+ */
+export const TETO_DE_IDS_VISTOS = 2000;
 
 /** O mínimo que o aviso local precisa. Nem endereço nem protocolo saem daqui. */
 export type TarefaNova = { id: string; severidade: Severidade | null };
@@ -135,6 +158,21 @@ export async function marcarTarefasVistas(ids: readonly string[]): Promise<void>
      ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor`,
     [MARCA_IDS_VISTOS, JSON.stringify([...vistos])],
   );
+}
+
+/**
+ * A memória de vistos depois desta lista: o que já estava (menos o mais
+ * antigo do que saiu da lista, se passou do teto), e a lista atual inteira.
+ * Pura, para o teste conseguir cobrar o corte sem simular dois mil despachos.
+ */
+export function idsVistosAtualizados(
+  antes: ReadonlySet<string> | null,
+  listaAtual: readonly string[],
+): string[] {
+  const naLista = new Set(listaAtual);
+  const foraDaLista = [...(antes ?? [])].filter((id) => !naLista.has(id));
+  const vagas = Math.max(0, TETO_DE_IDS_VISTOS - listaAtual.length);
+  return [...foraDaLista.slice(-vagas), ...listaAtual];
 }
 
 /** Conta a novidade a quem estiver ouvindo. Um ouvinte que estoura não cala os outros. */
@@ -306,11 +344,15 @@ export async function atualizarPendencias(token: string): Promise<Pendencia[]> {
       acabou de entrar. Fora dela, uma falha no meio deixaria a memória
       apontando para uma lista que não está no disco, e o próximo aviso
       mentiria sobre o que é novo.
+
+      O que já se viu ANTES continua na memória (a regra da 042, ver a
+      marca), com o teto cortando o mais antigo do que não está mais na
+      lista; a lista atual entra inteira, sempre, no fim.
     */
     await db.runAsync(
       `INSERT INTO marcas (chave, valor) VALUES (?, ?)
        ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor`,
-      [MARCA_IDS_VISTOS, JSON.stringify(recebidas.map((p) => p.id))],
+      [MARCA_IDS_VISTOS, JSON.stringify(idsVistosAtualizados(vistasAntes, recebidas.map((p) => p.id)))],
     );
   });
 

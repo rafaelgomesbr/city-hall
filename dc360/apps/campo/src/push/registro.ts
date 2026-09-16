@@ -1,4 +1,6 @@
-import { ErroDaApi, SemSinal, type PlataformaDoAparelho } from "../dados/api";
+import Constants from "expo-constants";
+
+import { ErroDaApi, SemSinal, type AmbienteDoPush, type PlataformaDoAparelho } from "../dados/api";
 import type { PortaDePush } from "./porta";
 
 /**
@@ -123,4 +125,34 @@ export async function registrarEsteAparelho(
   } catch (erro: unknown) {
     return classificarFalha(erro);
   }
+}
+
+/**
+ * Com qual APNs ESTE BINÁRIO fala, lido do `extra` que `app.config.ts` assou
+ * no build.
+ *
+ * A Apple tem dois serviços de push que não se falam, e qual vale é decidido
+ * pelo `aps-environment` com que o binário foi assinado: o que sai do Xcode
+ * fala com o sandbox, o que sai do TestFlight e da loja fala com produção.
+ * O servidor precisa saber qual, POR APARELHO, para não mandar a ficha do
+ * sandbox para a APNs de produção, que responde `BadDeviceToken` e faz o
+ * varredor revogar o aparelho de quem está em campo.
+ *
+ * O valor vem da MESMA expressão que escreve o `aps-environment`
+ * (`PERFIL_DE_PRODUCAO` em `app.config.ts`), então os dois não têm como
+ * divergir. Lido por função pura para o teste conseguir cobrar cada forma.
+ *
+ * Nulo quando o `extra` não tem o campo (binário anterior a 15/09/2026, ou
+ * valor que ninguém reconhece): o registro vai sem o campo, e o servidor usa
+ * o `APNS_AMBIENTE` dele, que é o que valia antes da coluna. Um valor
+ * desconhecido NÃO vira chute: mandar `producao` para um binário do sandbox
+ * é o defeito que isto existe para fechar.
+ */
+export function lerAmbienteDoBuild(extra: unknown): AmbienteDoPush | null {
+  const valor = (extra as { pushAmbiente?: unknown } | null | undefined)?.pushAmbiente;
+  return valor === "producao" || valor === "teste" ? valor : null;
+}
+
+export function ambienteDoBuild(): AmbienteDoPush | null {
+  return lerAmbienteDoBuild(Constants.expoConfig?.extra);
 }

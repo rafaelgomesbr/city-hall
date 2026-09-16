@@ -100,7 +100,7 @@ export function MinutaDoLaudo({ minuta }: { minuta: Minuta }): React.JSX.Element
             <Txt variante="legenda" cor={papel.tintaDiscreta}>{secao.titulo.toUpperCase()}</Txt>
 
             {secao.tipo === "campos" && secao.linhas.map((linha) => (
-              <View key={linha.rotulo} style={{ gap: 2 }}>
+              <View key={linha.rotulo} style={{ gap: espaco.e1 / 2 }}>
                 <Txt variante="legenda" cor={papel.tintaDiscreta}>{linha.rotulo}</Txt>
                 <Txt variante="corpoP" mono={linha.mono} cor={papel.tinta}>{linha.valor}</Txt>
               </View>

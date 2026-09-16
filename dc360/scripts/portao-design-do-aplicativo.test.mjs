@@ -76,6 +76,38 @@ const REGRAS = [
     porque: "mesma razão da cor em hexadecimal",
   },
   {
+    /*
+      A terceira forma de escrever cor à mão, e a única que as duas regras
+      acima não viam: `backgroundColor: "white"`. Um revisor provou em 15/09
+      que ela passava calada, e "white" é exatamente a cor que some no tema
+      escuro. `transparent` fica de fora porque não é cor, é a ausência de
+      uma; `none` e `currentColor` ficam de fora porque são as palavras do SVG
+      para "não pinte" e "a cor do texto", e nenhuma das três escolhe tom.
+    */
+    nome: "cor nomeada",
+    padrao: /(?<![\w-])(?:[A-Za-z]*[cC]olor|fill|stroke)\s*[:=]\s*\{?["'](?!(?:transparent|none|currentColor)["'])[A-Za-z]+["']/,
+    porque: "cor por nome (\"white\", \"black\") é literal como o hexadecimal: não troca com o tema",
+  },
+  {
+    /*
+      Tamanho de fonte e espaçamento nasceram sem regra, e o portão media só
+      cor, raio, borda, sombra, duração, peso e rastreio. `fontSize: 13` e
+      `padding: 13, gap: 7` passavam, e havia um `gap: 2` vivo em
+      `ui/MinutaDoLaudo.tsx`. `0` continua fora, como na borda e na opacidade:
+      ausência de espaço não é valor de design. Dividir um token por um número
+      (`-toque / 2` para centrar o marcador do mapa) também fica fora, porque
+      metade de um token é derivação e não escolha nova.
+    */
+    nome: "tamanho de fonte escrito à mão",
+    padrao: /(?<![A-Za-z])fontSize\s*:\s*-?\d/,
+    porque: "tamanho vem de `fonte` (legenda, corpoP, corpo, titulo...), e quem decide o degrau é `hierarquia.ts`",
+  },
+  {
+    nome: "espaçamento escrito à mão",
+    padrao: /(?<![A-Za-z])(?:padding|margin|gap|rowGap|columnGap)[A-Za-z]*\s*:[^,\n}]*?(?<![\w.]|\/\s*)(?:[1-9]\d*|0?\.\d+)/,
+    porque: "espaçamento vem de `espaco` (e1 a e8). Número solto é uma distância que nenhuma outra tela conhece",
+  },
+  {
     nome: "raio escrito à mão",
     padrao: /(?<![A-Za-z])border[A-Za-z]*Radius\s*:\s*-?\d/,
     porque: "raio vem de `raio` (normal, cartao, pilula), senão cada tela arredonda de um jeito",
@@ -104,6 +136,37 @@ const REGRAS = [
       + "o que engrossa em foco e a faixa que classifica um cartão são três decisões "
       + "diferentes, e escritas como número solto elas viram a mesma coisa em telas "
       + "vizinhas sem ninguém ter decidido nada",
+  },
+  {
+    /*
+      A curva é a outra metade da duração, e o portão media só a metade.
+
+      `tokens.ts` declara `easing` (entrada, saida, climax) com um parágrafo
+      dizendo que as curvas escolhidas dentro dos componentes eram o defeito,
+      e sete `Easing.out(Easing.quad)`, `Easing.out(Easing.cubic)` e
+      `Easing.out(Easing.back(2))` continuavam vivos em quatro arquivos, sem
+      nada reclamar. A única forma aceita é `Easing.bezier(...alguma coisa)`:
+      espalhar uma tupla é como se lê um token de curva, seja `easing.entrada`
+      direto, seja uma variável tipada `CurvaDeEasing` que veio dele.
+    */
+    nome: "curva de movimento escrita à mão",
+    padrao: /(?<![A-Za-z])Easing\.(?!bezier\(\.\.\.)/,
+    porque:
+      "curva vem de `easing` (entrada, saida, climax), por `Easing.bezier(...easing.entrada)`. "
+      + "Escolhida na peça, cada tela ganha um ritmo, e o clímax deixa de ser o único que passa do alvo",
+  },
+  {
+    /*
+      A escala de uma animação também é valor de design, e as três que
+      existiam com nome (`ESCALA_SOB_O_DEDO`, `ESCALA_NA_BORDA`,
+      `ESCALA_DA_FOTO_ENTRANDO`) conviviam com `toValue: 1.28` na faixa de
+      sincronização e `toValue: 1.12` no emblema da conclusão. Fração solta em
+      `toValue` é escala escolhida por gosto; inteiro (`toValue: 1`, `0`) é
+      repouso e continua permitido.
+    */
+    nome: "escala de animação escrita à mão",
+    padrao: /(?<![A-Za-z])toValue\s*:\s*-?\d*\.\d/,
+    porque: "dê nome à constante (`ESCALA_...`) e escreva a razão dela, como as três que já existem",
   },
   {
     nome: "duração de movimento literal",
@@ -386,9 +449,31 @@ test("a varredura pega o que deveria pegar", () => {
     ['shadowColor: "#000000",', "cor em hexadecimal"],
     ['<View style={{ flex: 1, backgroundColor: "#000" }}>', "cor em hexadecimal"],
     ["backgroundColor: rgba(0, 0, 0, 0.5),", "cor em rgb ou hsl"],
+    ['backgroundColor: "white",', "cor nomeada"],
+    ['<View style={{ flex: 1, backgroundColor: "black" }}>', "cor nomeada"],
+    ['color: "red",', "cor nomeada"],
+    ['<Path fill="white" />', "cor nomeada"],
+    ['<Path stroke="black" />', "cor nomeada"],
+    ["fontSize: 13,", "tamanho de fonte escrito à mão"],
+    ["fontSize: 12.5,", "tamanho de fonte escrito à mão"],
+    ["padding: 13,", "espaçamento escrito à mão"],
+    ["gap: 7,", "espaçamento escrito à mão"],
+    ["gap: 2 }}>", "espaçamento escrito à mão"],
+    ["paddingHorizontal: 16,", "espaçamento escrito à mão"],
+    ["marginTop: -4,", "espaçamento escrito à mão"],
+    ["padding: espaco.e4 * 2,", "espaçamento escrito à mão"],
+    ["gap: 0.5,", "espaçamento escrito à mão"],
     ["borderRadius: 12,", "raio escrito à mão"],
     ["borderTopLeftRadius: 8,", "raio escrito à mão"],
     ["duration: 300,", "duração de movimento literal"],
+    ["easing: Easing.out(Easing.quad),", "curva de movimento escrita à mão"],
+    ["easing: Easing.out(Easing.back(2)),", "curva de movimento escrita à mão"],
+    ["easing: Easing.bezier(0.2, 0, 0, 1),", "curva de movimento escrita à mão"],
+    ["easing: Easing.linear,", "curva de movimento escrita à mão"],
+    ["toValue: 1.28,", "escala de animação escrita à mão"],
+    ["toValue: 1.12,", "escala de animação escrita à mão"],
+    ["toValue: 0.5,", "escala de animação escrita à mão"],
+    ["toValue: .96,", "escala de animação escrita à mão"],
     ["opacity: pressed ? 0.8 : 1,", "retorno de toque decidido dentro da tela"],
     ["opacity: pressed ? opacidade.aoToque : 1,", "retorno de toque decidido dentro da tela"],
     ["opacity: 0.55,", "opacidade ou faixa de interpolação escrita à mão"],
@@ -442,10 +527,30 @@ test("a varredura não reclama do que está certo", () => {
     "outputRange: [espaco.e6, 0],",
     "opacity: entrada.interpolate({ inputRange: [0, 1], outputRange: [0, opacidade.veu] }),",
     "duration: movimento.climax * 0.4,",
+    "easing: Easing.bezier(...easing.entrada),",
+    "easing: Easing.bezier(...curva),",
+    "easing: Easing.bezier(...perna.curva),",
+    'import { Animated, Easing } from "react-native";',
+    "toValue: 1,",
+    "toValue: 0,",
+    "toValue: ESCALA_DO_CLIMAX,",
+    "toValue: aberto ? 1 : 0,",
     "fontWeight: peso,",
     "minHeight: toque,",
     "shadowRadius: elevacao.n2.shadowRadius,",
     "gap: espaco.e2,",
+    "gap: 0,",
+    "padding: 0,",
+    "paddingTop: insets.top + espaco.e2,",
+    "marginLeft: -toque / 2,",
+    "gap: espaco.e1 / 2,",
+    'backgroundColor: "transparent",',
+    'borderColor: "transparent",',
+    '<Path fill="none" stroke={cor} />',
+    '<Path fill="currentColor" />',
+    "backgroundColor: cores.fundo,",
+    "fontSize: fonte.corpoP,",
+    "fontSize: degrau(nivel).fonte,",
     "width: 96, height: 96,",
     "borderWidth: borda.fio, borderTopWidth: 0,",
     "borderLeftWidth: borda.marca,",

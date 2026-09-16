@@ -575,6 +575,14 @@ export async function construirConsole(
       token: await emitirSessao(segredo, { id: operador.id, sv: versaoDaSenha(operador.senhaHash) }),
       operador: operador.email,
       papel: operador.papel,
+      /*
+        Quantos códigos de recuperação a conta tem, para a tela avisar na
+        entrada quem não tem nenhum. Só o número: os códigos não existem mais
+        em texto claro em lugar nenhum. O dono semeado de `CONSOLE_OPERADORES`
+        nasce sem código, e sem ele perder a senha e o aparelho exige a
+        credencial de dono do banco (docs/IMPLANTACAO.md, seção 6.4).
+      */
+      codigosDeRecuperacao: await codigosRestantes(leitura, operador.id),
     });
   });
 
@@ -1374,6 +1382,26 @@ export async function construirConsole(
     { operadores: quantos },
     `console do fornecedor pronto, com ${quantos} operador(es) no banco`,
   );
+
+  /*
+    O DONO SEM CÓDIGOS DE RECUPERAÇÃO, avisado na partida.
+
+    O dono semeado de `CONSOLE_OPERADORES` nasce sem código, e ninguém acima
+    dele redefine a senha: no dia em que a senha se for junto com o telefone,
+    a única saída é a credencial de dono do banco (docs/IMPLANTACAO.md, 6.4).
+    O passo 5 do roteiro manda gerar na primeira entrada, e um roteiro é
+    exatamente o tipo de coisa que se pula. Então o processo diz, em `warn`,
+    a cada partida, enquanto for verdade. Sem segredo nenhum na linha: o email
+    do dono já sai na linha de entrada, e o resto não existe em texto claro.
+  */
+  const donoAtual = await registro.dono();
+  if (donoAtual && (await codigosRestantes(leitura, donoAtual.id)) === 0) {
+    app.log.warn(
+      { operador: donoAtual.email, papel: "dono" },
+      `operador ${donoAtual.email} é dono e não tem códigos de recuperação; gere em Minha senha. `
+      + "Sem eles, perder a senha e o aparelho exige a credencial de dono do banco.",
+    );
+  }
   return app;
 }
 

@@ -1,15 +1,17 @@
+import { createHash } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { chaveDeStorage } from "@dc360/shared";
+import { chaveDeStorage, pedidoDeEvidenciaSchema } from "@dc360/shared";
 import type { Banco } from "../banco/tipos.js";
-import { ROTA_DA_FILA_DO_CAMPO, RegraDeNegocio, autorizar } from "../servidor.js";
 import {
-  TAMANHO_MAXIMO_BYTES, TIPOS_ACEITOS, type Armazenamento,
-} from "../armazenamento/tipos.js";
+  ROTA_DA_FILA_DO_CAMPO, RegraDeNegocio, autorizar, type Identidade,
+} from "../servidor.js";
+import type { Armazenamento } from "../armazenamento/tipos.js";
 import { registrarEvento } from "../trilha.js";
 import {
   frasePorTetoEstourado, lerUso, resumirUso, type UsoDeArmazenamento,
 } from "../armazenamento/uso.js";
+import { eRecorteDoAgente } from "./recorte-do-agente.js";
 
 /**
  * Ciclo de vida de uma evidência fotográfica.
@@ -18,76 +20,182 @@ import {
  *   2. O servidor confere permissão e dono da ocorrência, DECIDE a chave e
  *      devolve uma URL pré-assinada de vida curta.
  *   3. O aparelho envia os bytes direto para o armazenamento.
- *   4. O aparelho confirma; o servidor verifica que o objeto existe e com que
- *      tamanho, e só então marca a evidência como enviada.
+ *   4. O aparelho confirma; o servidor LÊ o objeto que chegou, confere o
+ *      tamanho, calcula a soma SHA-256 ele mesmo, e só então marca a
+ *      evidência como enviada, com a soma que ele mediu.
  *
  * O passo 4 não é burocracia. Sem ele, um metadado fica no banco apontando
  * para arquivo que nunca chegou, e a falta só aparece meses depois, quando
  * alguém abre o laudo numa audiência.
+ *
+ * E o objeto é ESCRITO UMA VEZ SÓ: a autorização do passo 2 carrega
+ * `if-none-match: *` assinado, então o armazenamento recusa qualquer PUT
+ * numa chave que já tem objeto. É o que fecha a janela entre a confirmação e
+ * o vencimento da URL de escrita (ver `armazenamento/tipos.ts`).
  */
 
 /**
- * A folga de relógio, em milissegundos, e o piso de datas.
+ * O esquema do pedido MUDOU DE ENDEREÇO em 15/09/2026, e o motivo é a vistoria
+ * 000009/2026: o aparelho concluiu a coleta, a fila pediu a autorização da
+ * fotografia três vezes e esta rota respondeu 422 três vezes (`tamanhoBytes:
+ * 0`, porque o `size` do `expo-file-system` veio zerado e o aplicativo mandou
+ * o zero adiante). O agente viu "Alguns campos precisam ser corrigidos" numa
+ * fila sem botão de corrigir, porque a regra só existia aqui.
  *
- * Cópia deliberada de `coletada_em_plausivel` (migração 009), que instalou
- * exatamente esta regra no campo IRMÃO desta foto. `vistorias.coletada_em` e
- * `evidencias.capturada_em` saem impressos no MESMO documento, um como data do
- * ato e outro como data do registro fotográfico, e só o primeiro era conferido.
- *
- * Sem limite nenhum, o posto mais baixo do sistema data uma foto para 2019 e
- * ela sai no laudo como "Capturada em 05/01/2019" embaixo da imagem, ou some
- * de qualquer recorte por período da auditoria sem nunca ter sido apagada. Data
- * no futuro passava igual.
- *
- * As doze horas para frente não são desleixo: relógio trocado, fuso errado e
- * aparelho sem sinal por horas são rotina em campo, e recusar uma evidência
- * legítima em dia de temporal é pior do que aceitar uma hora imprecisa. Quem
- * resolve a precisão é `enviada_em`, que é do servidor e ninguém escolhe.
- *
- * A mesma regra está no banco (migração 024). Aqui ela existe para a resposta
- * ser 422 com explicação, e não 500 vindo de uma restrição de CHECK.
+ * Agora ela mora em `@dc360/shared` (`pedidoDeEvidenciaSchema`), com a folga
+ * de relógio, o piso de datas, a lista de tipos e o teto por arquivo, e o
+ * aparelho confere o MESMO esquema antes de enfileirar. As mensagens são em
+ * português nas duas pontas. Esta rota continua respondendo 422 com `campos`
+ * pelo tratador de `servidor.ts`, como sempre respondeu.
  */
-const FOLGA_DE_RELOGIO_MS = 12 * 60 * 60 * 1000;
-const PISO_DE_CAPTURA = Date.parse("2020-01-01T00:00:00Z");
-
-function capturaPlausivel(iso: string): boolean {
-  const instante = Date.parse(iso);
-  return Number.isFinite(instante)
-    && instante > PISO_DE_CAPTURA
-    && instante < Date.now() + FOLGA_DE_RELOGIO_MS;
-}
-
-const pedidoSchema = z.object({
-  ocorrenciaId: z.string().uuid(),
-  /**
-   * Gerada no aparelho no momento da captura. Pedir autorização duas vezes
-   * para a mesma foto é o caso comum, não a exceção: o sinal cai entre
-   * autorizar e enviar, a URL vence esperando a rede, o aplicativo é fechado
-   * no meio. Sem a chave, cada tentativa deixaria uma linha órfã.
-   */
-  idempotencyKey: z.string().uuid().optional(),
-  nomeArquivo: z.string().min(1).max(200),
-  tipoConteudo: z.enum(TIPOS_ACEITOS),
-  tamanhoBytes: z.number().int().positive().max(TAMANHO_MAXIMO_BYTES),
-  legenda: z.string().max(300).optional(),
-  capturadaEm: z.string().datetime().refine(capturaPlausivel, {
-    message:
-      "A data de captura não é plausível: precisa ser posterior a 2020 e não "
-      + "pode estar a mais de doze horas no futuro.",
-  }),
-  coordenada: z.object({ lat: z.number(), lng: z.number() }).optional(),
-  ordem: z.number().int().min(0).max(200).default(0),
-});
+const pedidoSchema = pedidoDeEvidenciaSchema;
 
 const confirmacaoSchema = z.object({
   evidenciaId: z.string().uuid(),
+  /**
+   * Opcional, e NUNCA gravado como veio. Quando o aparelho declara a soma,
+   * ela é comparada com a que o servidor calculou dos bytes que chegaram, e
+   * divergência recusa a confirmação. O que vai para o banco e para a trilha
+   * é sempre a soma medida aqui.
+   */
   sha256: z.string().regex(/^[0-9a-f]{64}$/, "Informe o sha256 em hexadecimal").optional(),
 });
+
+/** A linha de `evidencias` que ainda espera os bytes. */
+type EvidenciaPendente = {
+  id: string; ocorrencia_id: string; chave_storage: string; tamanho_bytes: string | null;
+};
 
 export async function rotasEvidencias(
   app: FastifyInstance,
   { banco, armazenamento }: { banco: Banco; armazenamento: Armazenamento },
 ): Promise<void> {
+  /**
+   * A confirmação de verdade: lê os bytes, mede, marca e registra.
+   *
+   * ## Por que o servidor LÊ o objeto, em vez de perguntar o tamanho
+   *
+   * `sha256` era palavra do cliente. A rota gravava `COALESCE($2, sha256)`
+   * com o que viesse no corpo, sem calcular nada, e a sondagem confirmou
+   * sessenta e quatro zeros entrando no banco e na trilha como soma da
+   * fotografia. Uma soma que ninguém conferiu não prova nada, e a coluna
+   * existe para provar que os bytes do laudo são os bytes confirmados.
+   *
+   * As saídas eram três, e esta é a única que fecha hoje: (a) exigir a soma
+   * na autorização e assiná-la no PUT (`x-amz-checksum-sha256`), que depende
+   * de o aparelho calcular a soma antes de enfileirar, e ele ainda não faz;
+   * (b) usar o ETag do HEAD, que num PUT simples é o MD5 do objeto, mas a
+   * coluna é `sha256` e guardar MD5 nela seria mentir sobre o algoritmo; (c)
+   * ler os bytes uma vez, aqui, e calcular. O custo de (c) é uma leitura por
+   * foto na hora da confirmação (até 15 MB, nunca repetida, porque a
+   * confirmação é idempotente), e no R2 a saída de dados não é cobrada. É a
+   * segunda exceção documentada à regra "o arquivo nunca passa pelo servidor"
+   * (`armazenamento/tipos.ts`), e sai no dia em que (a) existir.
+   *
+   * A leitura também substitui o HEAD: o tamanho conferido passa a ser o dos
+   * bytes lidos, e não o `content-length` que o provedor pode omitir.
+   *
+   * ## De onde ela é chamada, e por que de dois lugares
+   *
+   * De `POST /confirmar-envio`, que é o caminho normal, e da REAUTORIZAÇÃO da
+   * mesma chave em `POST /autorizar-envio`. O segundo existe por causa da
+   * escrita única: com `if-none-match: *` assinado, o reenvio dos bytes
+   * depois de a resposta do primeiro PUT se perder (rotina no 3G) responde
+   * 412, e o aparelho trata 412 como falha permanente. Então, quando o
+   * aparelho volta a pedir autorização para uma chave cujos bytes já estão no
+   * armazenamento, o servidor confirma aqui e responde `jaEnviada`, que o
+   * aparelho já sabe pular. Nenhum item para na fila por um reenvio de rotina.
+   *
+   * `falha` do armazenamento vira 503, e não 409: o aparelho trata 5xx como
+   * temporário e tenta de novo, que é o certo para um provedor fora do ar. O
+   * 409 de "arquivo ausente" que existia aqui para QUALQUER erro do HEAD
+   * bloqueava a coleta por um 503 do provedor.
+   */
+  async function confirmarBytes(
+    quem: Identidade,
+    evidencia: EvidenciaPendente,
+    sha256Declarado: string | null,
+  ): Promise<"confirmada" | "ausente"> {
+    const leitura = await armazenamento.baixar(evidencia.chave_storage);
+    if (leitura.situacao === "ausente") return "ausente";
+    if (leitura.situacao === "falha") {
+      throw new RegraDeNegocio(
+        "armazenamento_indisponivel",
+        "Não foi possível conferir o arquivo no armazenamento agora. Tente de novo em instantes.",
+        503,
+      );
+    }
+
+    const esperado = Number(evidencia.tamanho_bytes);
+    if (leitura.corpo.byteLength !== esperado) {
+      throw new RegraDeNegocio(
+        "tamanho_divergente",
+        "O arquivo enviado não corresponde ao que foi autorizado.",
+        409,
+      );
+    }
+
+    const sha256 = createHash("sha256").update(leitura.corpo).digest("hex");
+    if (sha256Declarado !== null && sha256Declarado !== sha256) {
+      throw new RegraDeNegocio(
+        "hash_divergente",
+        "A soma de verificação informada não corresponde ao arquivo que chegou ao "
+        + "armazenamento. Envie a foto de novo.",
+        409,
+      );
+    }
+
+    await banco.comTenant(quem.organizacaoId, async (c) => {
+      /*
+        O `WHERE enviada_em IS NULL` e o `RETURNING` não são zelo: eles são o
+        que garante UM evento por evidência. A checagem de `enviada_em` antes
+        de chegar aqui resolve o reenvio comum, e não resolve a corrida (o
+        aparelho desiste por tempo esgotado e repete a confirmação enquanto a
+        primeira ainda roda). As duas passariam pela leitura sem achar
+        `enviada_em`, e a trilha, que não tem policy de DELETE, ficaria com
+        duas linhas dizendo que a mesma foto foi anexada duas vezes.
+      */
+      const marcada = await c.query<{ id: string }>(
+        `UPDATE evidencias
+            SET enviada_em = now(), sha256 = $2
+          WHERE id = $1 AND enviada_em IS NULL
+        RETURNING id`,
+        [evidencia.id, sha256],
+      );
+      if (!marcada.rows[0]) return;
+
+      /*
+        ANEXAR PROVA ENTRA NA TRILHA, e até aqui não entrava.
+
+        Esta rota e a de autorização eram as duas únicas escritas do produto
+        que não chamavam `registrarEvento`. O sistema registrava quem ABRIU um
+        laudo e não registrava quem acrescentou uma FOTO a ele, que é a peça
+        que sai impressa no documento oficial. Era a escrita mais barata para
+        introduzir prova num dossiê alheio sem deixar rastro.
+
+        O evento nasce AQUI, e não na autorização, porque é aqui que a foto
+        passa a existir para o resto do sistema: laudo, termo e tela de detalhe
+        filtram por `enviada_em IS NOT NULL`. Uma autorização sem bytes não
+        anexa nada, e um evento para ela treinaria quem lê a trilha a ignorar
+        linhas que não significam nada.
+
+        Na MESMA transação do UPDATE: ou a foto entra e o rastro entra, ou não
+        entra nenhum dos dois. A soma no detalhe é a MEDIDA, nunca a declarada.
+      */
+      await registrarEvento(
+        c, quem, evidencia.ocorrencia_id, "evidencia_anexada",
+        {
+          evidenciaId: evidencia.id,
+          tamanhoBytes: esperado,
+          sha256,
+        },
+        quem.papel === "agente_campo" ? "campo" : "escritorio",
+      );
+    });
+
+    return "confirmada";
+  }
+
   /**
    * Autoriza um envio.
    *
@@ -129,10 +237,10 @@ export async function rotasEvidencias(
       */
       if (dados.idempotencyKey) {
         const anterior = await c.query<{
-          id: string; chave_storage: string; enviada_em: string | null;
-          abandonada_em: string | null;
+          id: string; ocorrencia_id: string; chave_storage: string; tamanho_bytes: string | null;
+          enviada_em: string | null; abandonada_em: string | null;
         }>(
-          `SELECT id, chave_storage, enviada_em, abandonada_em
+          `SELECT id, ocorrencia_id, chave_storage, tamanho_bytes, enviada_em, abandonada_em
              FROM evidencias WHERE idempotency_key = $1`,
           [dados.idempotencyKey],
         );
@@ -160,13 +268,27 @@ export async function rotasEvidencias(
             chave: achada.chave_storage,
             jaEnviada: achada.enviada_em !== null,
             uso: null as UsoDeArmazenamento | null,
+            /*
+              Ainda sem `enviada_em`: os bytes PODEM já estar no armazenamento
+              (a resposta do PUT se perdeu antes de o aparelho confirmar). A
+              decisão fica para fora da transação, porque ela pede uma leitura
+              de rede e transação não segura conexão esperando o provedor.
+            */
+            pendente: achada.enviada_em === null
+              ? {
+                id: achada.id, ocorrencia_id: achada.ocorrencia_id,
+                chave_storage: achada.chave_storage, tamanho_bytes: achada.tamanho_bytes,
+              } satisfies EvidenciaPendente
+              : null,
           };
         }
       }
 
       // Sob RLS: ocorrência de outro município simplesmente não existe daqui.
-      const ocorrencia = await c.query<{ id: string; status: string }>(
-        "SELECT id, status FROM ocorrencias WHERE id = $1",
+      const ocorrencia = await c.query<{ id: string; status: string; abertura_ms: number }>(
+        `SELECT id, status,
+                floor(extract(epoch FROM criado_em) * 1000)::float8 AS abertura_ms
+           FROM ocorrencias WHERE id = $1`,
         [dados.ocorrenciaId],
       );
       const alvo = ocorrencia.rows[0];
@@ -177,6 +299,36 @@ export async function rotasEvidencias(
         throw new RegraDeNegocio(
           "ja_encerrada",
           "Essa ocorrência já foi encerrada e não aceita evidência nova.",
+        );
+      }
+
+      /*
+        A DATA DA CAPTURA NÃO PODE SER ANTERIOR À ABERTURA DO CHAMADO.
+
+        O esquema compartilhado confere o piso de 2020 e a folga de doze horas,
+        e não tem como conferir isto: a abertura está no banco. A mesma regra
+        vale para a coleta em `rotas/sincronizacao.ts`
+        (`datasImplausiveisDaColeta`), e sem ela aqui uma foto datada de ontem
+        entrava numa ocorrência aberta hoje, nunca se amarrava a vistoria
+        nenhuma, e saía impressa no laudo na seção de fotografias anexadas ao
+        protocolo com data anterior ao próprio chamado. Depois da conferência
+        da ocorrência (o 404 de outro município sai antes) e antes da reserva
+        do teto, porque foto recusada não reserva nada. Mesmo código e mesma
+        forma (422 com `campos`) da coleta, para o aparelho tratar as duas
+        recusas do mesmo jeito: corrigir, e não repetir.
+      */
+      if (Date.parse(dados.capturadaEm) < alvo.abertura_ms) {
+        throw new RegraDeNegocio(
+          "data_implausivel",
+          "A data de captura é anterior à abertura deste chamado no sistema. Confira "
+          + "a data e a hora do aparelho.",
+          422,
+          [{
+            campo: "capturadaEm",
+            mensagem: "A data de captura é anterior à abertura deste chamado no sistema, "
+              + "e a fotografia não pode ter sido feita antes de o chamado existir. "
+              + "Confira a data e a hora do aparelho.",
+          }],
         );
       }
 
@@ -251,7 +403,10 @@ export async function rotasEvidencias(
         ],
       );
 
-      return { evidenciaId: evidencia.rows[0]!.id, chave, jaEnviada: false, uso };
+      return {
+        evidenciaId: evidencia.rows[0]!.id, chave, jaEnviada: false, uso,
+        pendente: null as EvidenciaPendente | null,
+      };
     });
 
     /*
@@ -269,6 +424,28 @@ export async function rotasEvidencias(
         chave: resultado.chave,
         jaEnviada: true,
       });
+    }
+
+    /*
+      REAUTORIZAÇÃO com os bytes já no armazenamento: o servidor confirma aqui
+      e responde como responde para foto já enviada.
+
+      É o par da escrita única (ver `confirmarBytes`). Sem isto, o aparelho
+      que perdeu a resposta do PUT pediria URL nova, faria o PUT de novo,
+      receberia 412 do armazenamento e bloquearia a coleta por um reenvio de
+      rotina. Com isto, o ciclo fecha no servidor, que é quem sabe se os bytes
+      chegaram, e a URL de escrita nunca é reemitida para uma chave que já tem
+      objeto. Se os bytes não estão lá, cai no caminho normal e a URL sai.
+    */
+    if (resultado.pendente) {
+      const desfecho = await confirmarBytes(quem, resultado.pendente, null);
+      if (desfecho === "confirmada") {
+        return resposta.code(201).send({
+          evidenciaId: resultado.evidenciaId,
+          chave: resultado.chave,
+          jaEnviada: true,
+        });
+      }
     }
 
     const envio = await armazenamento.urlParaEnviar({
@@ -299,19 +476,16 @@ export async function rotasEvidencias(
   /**
    * Confirma que o arquivo chegou.
    *
-   * O servidor não acredita no cliente: ele pergunta ao armazenamento se o
-   * objeto existe e com que tamanho. Se o tamanho não bater com o que foi
-   * autorizado, a confirmação é recusada.
+   * O servidor não acredita no cliente: ele lê o objeto do armazenamento,
+   * confere o tamanho contra o autorizado e calcula a soma ele mesmo. Uma
+   * soma declarada no corpo só serve para ser comparada. Ver `confirmarBytes`.
    */
   app.post("/confirmar-envio", ROTA_DA_FILA_DO_CAMPO, async (req) => {
     const quem = await autorizar(app, req, "registrar_vistoria");
     const dados = confirmacaoSchema.parse(req.body);
 
     const evidencia = await banco.comTenant(quem.organizacaoId, async (c) => {
-      const r = await c.query<{
-        id: string; ocorrencia_id: string; chave_storage: string;
-        tamanho_bytes: string; enviada_em: string | null;
-      }>(
+      const r = await c.query<EvidenciaPendente & { enviada_em: string | null }>(
         `SELECT id, ocorrencia_id, chave_storage, tamanho_bytes, enviada_em
            FROM evidencias WHERE id = $1`,
         [dados.evidenciaId],
@@ -327,71 +501,14 @@ export async function rotasEvidencias(
       return { evidenciaId: evidencia.id, confirmada: true, jaEstava: true };
     }
 
-    const objeto = await armazenamento.descrever(evidencia.chave_storage);
-    if (!objeto.existe) {
+    const desfecho = await confirmarBytes(quem, evidencia, dados.sha256 ?? null);
+    if (desfecho === "ausente") {
       throw new RegraDeNegocio(
         "arquivo_ausente",
         "O arquivo não chegou ao armazenamento. Tente enviar de novo.",
         409,
       );
     }
-
-    const esperado = Number(evidencia.tamanho_bytes);
-    if (objeto.tamanhoBytes !== null && objeto.tamanhoBytes !== esperado) {
-      throw new RegraDeNegocio(
-        "tamanho_divergente",
-        "O arquivo enviado não corresponde ao que foi autorizado.",
-        409,
-      );
-    }
-
-    await banco.comTenant(quem.organizacaoId, async (c) => {
-      /*
-        O `WHERE enviada_em IS NULL` e o `RETURNING` não são zelo: eles são o
-        que garante UM evento por evidência. A checagem lá em cima resolve o
-        reenvio comum, e não resolve a corrida (o aparelho desiste por tempo
-        esgotado e repete a confirmação enquanto a primeira ainda roda). As
-        duas passariam pela leitura sem achar `enviada_em`, e a trilha, que não
-        tem policy de DELETE, ficaria com duas linhas dizendo que a mesma foto
-        foi anexada duas vezes.
-      */
-      const marcada = await c.query<{ id: string }>(
-        `UPDATE evidencias
-            SET enviada_em = now(), sha256 = COALESCE($2, sha256)
-          WHERE id = $1 AND enviada_em IS NULL
-        RETURNING id`,
-        [dados.evidenciaId, dados.sha256 ?? null],
-      );
-      if (!marcada.rows[0]) return;
-
-      /*
-        ANEXAR PROVA ENTRA NA TRILHA, e até aqui não entrava.
-
-        Esta rota e a de autorização eram as duas únicas escritas do produto
-        que não chamavam `registrarEvento`. O sistema registrava quem ABRIU um
-        laudo e não registrava quem acrescentou uma FOTO a ele, que é a peça
-        que sai impressa no documento oficial. Era a escrita mais barata para
-        introduzir prova num dossiê alheio sem deixar rastro.
-
-        O evento nasce AQUI, e não na autorização, porque é aqui que a foto
-        passa a existir para o resto do sistema: laudo, termo e tela de detalhe
-        filtram por `enviada_em IS NOT NULL`. Uma autorização sem bytes não
-        anexa nada, e um evento para ela treinaria quem lê a trilha a ignorar
-        linhas que não significam nada.
-
-        Na MESMA transação do UPDATE: ou a foto entra e o rastro entra, ou não
-        entra nenhum dos dois.
-      */
-      await registrarEvento(
-        c, quem, evidencia.ocorrencia_id, "evidencia_anexada",
-        {
-          evidenciaId: evidencia.id,
-          tamanhoBytes: Number(evidencia.tamanho_bytes),
-          sha256: dados.sha256 ?? null,
-        },
-        quem.papel === "agente_campo" ? "campo" : "escritorio",
-      );
-    });
 
     return { evidenciaId: evidencia.id, confirmada: true, jaEstava: false };
   });
@@ -408,9 +525,19 @@ export async function rotasEvidencias(
     const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
 
     const evidencia = await banco.comTenant(quem.organizacaoId, async (c) => {
+      /*
+        Para o agente de campo, a foto de uma ocorrência de outra equipe NÃO
+        EXISTE: 404 igual ao de identificador inventado. A foto mostra a casa
+        e a rua de uma família, e o token do agente é o que anda pelo morro.
+        Ver `recorte-do-agente.ts`.
+      */
+      const params: unknown[] = [id];
+      const recorte = eRecorteDoAgente(quem, "o", params);
       const r = await c.query<{ chave_storage: string; enviada_em: string | null }>(
-        "SELECT chave_storage, enviada_em FROM evidencias WHERE id = $1",
-        [id],
+        `SELECT ev.chave_storage, ev.enviada_em
+           FROM evidencias ev JOIN ocorrencias o ON o.id = ev.ocorrencia_id
+          WHERE ev.id = $1${recorte}`,
+        params,
       );
       return r.rows[0] ?? null;
     });
@@ -435,15 +562,21 @@ export async function rotasEvidencias(
     const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
 
     const linhas = await banco.comTenant(quem.organizacaoId, async (c) => {
+      // O agente vê as fotos da equipe dele. Ocorrência de outra equipe
+      // devolve a mesma lista vazia de ocorrência inexistente. Ver
+      // `recorte-do-agente.ts`.
+      const params: unknown[] = [id];
+      const recorte = eRecorteDoAgente(quem, "o", params);
       const r = await c.query<{
         id: string; chave_storage: string; legenda: string | null;
         capturada_em: string; ordem: number; tipo_conteudo: string; tamanho_bytes: string;
       }>(
-        `SELECT id, chave_storage, legenda, capturada_em, ordem, tipo_conteudo, tamanho_bytes
-           FROM evidencias
-          WHERE ocorrencia_id = $1 AND enviada_em IS NOT NULL
-          ORDER BY ordem, capturada_em`,
-        [id],
+        `SELECT ev.id, ev.chave_storage, ev.legenda, ev.capturada_em, ev.ordem,
+                ev.tipo_conteudo, ev.tamanho_bytes
+           FROM evidencias ev JOIN ocorrencias o ON o.id = ev.ocorrencia_id
+          WHERE ev.ocorrencia_id = $1 AND ev.enviada_em IS NOT NULL${recorte}
+          ORDER BY ev.ordem, ev.capturada_em`,
+        params,
       );
       return r.rows;
     });

@@ -6,6 +6,7 @@ import { Aviso, AvisoDeObrigatorios } from "../componentes/comuns";
 import { Campo } from "../componentes/Campo";
 import { digitosDoTelefone, mascararTelefone } from "@dc360/shared";
 import { useTitulo } from "../seo/titulo";
+import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
 
 /**
  * A porta de entrada de quem ainda não é cliente.
@@ -44,6 +45,7 @@ export function QueroConhecer() {
   async function enviar(evento: React.FormEvent) {
     evento.preventDefault();
     if (enviando) return;
+    const formulario = evento.currentTarget as HTMLFormElement;
 
     const resultado = interesseMunicipioSchema.safeParse({
       nome: campos.nome,
@@ -71,6 +73,7 @@ export function QueroConhecer() {
       if (!mapa["nome"] && !mapa["email"] && !mapa["municipio"] && !mapa["uf"]) {
         setFalha(resultado.error.issues[0]?.message ?? "Confira os campos.");
       }
+      depoisDePintar(() => focarPrimeiroInvalido(formulario));
       return;
     }
 

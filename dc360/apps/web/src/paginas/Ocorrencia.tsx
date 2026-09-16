@@ -28,6 +28,7 @@ import {
 } from "../componentes/comuns";
 import { Campo } from "../componentes/Campo";
 import { DescobrirPonto } from "../componentes/DescobrirPonto";
+import { depoisDePintar, focarPrimeiroCampo, focarPrimeiroInvalido } from "../componentes/foco";
 import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
 import { Modal } from "../componentes/Modal";
 import { DURACAO_PARA_DITAR, Toast } from "../componentes/Toast";
@@ -41,6 +42,8 @@ import {
 import { lerLocalizacaoColada } from "./coordenada-colada";
 import { origemDoPonto, textoDoPontoDescoberto } from "./link-encurtado";
 import { useTitulo } from "../seo/titulo";
+import { NaoEncontrada, ehIdentificadorValido } from "./NaoEncontrada";
+import { paresDoDetalhe } from "./trilha-detalhe";
 import {
   ANCORA_DA_COORDENADA, ANCORA_DO_DESPACHO, TIPO_EVENTO_DEVOLUCAO, devolucaoEmAberto,
   lerDevolucao, proximoPasso, rotuloDoMotivo,
@@ -263,6 +266,21 @@ export function Ocorrencia() {
     }
   }
 
+  /*
+    Identificador que não é UUID nem chega ao banco: a resposta dele para
+    `/ocorrencias/abc` era "invalid input syntax for type uuid", em inglês, na
+    faixa vermelha. O endereço errado é dito como endereço errado.
+  */
+  if (!ehIdentificadorValido(id)) {
+    return (
+      <NaoEncontrada
+        titulo="Ocorrência não encontrada"
+        explicacao="O endereço não aponta para uma ocorrência deste município. Confira o link ou procure pelo protocolo na lista."
+        voltarPara="/ocorrencias"
+        rotuloDoVoltar="Ir para a lista de ocorrências"
+      />
+    );
+  }
   if (erro && !dados) return <Aviso tom="perigo">{erro}</Aviso>;
   if (!dados) return <Carregando />;
 
@@ -861,15 +879,16 @@ export function Ocorrencia() {
                     {e.origem === "campo" ? " em campo" : " no escritório"}
                   </div>
                   {/*
-                    A devolução tem leitura própria porque `descreverDetalhe`
-                    imprime a chave crua do banco (`motivo: risco_para_a_equipe`),
-                    e este é o evento que a coordenação vai reler meses depois
-                    para entender por que a casa ficou sem vistoria.
+                    A devolução tem leitura própria (motivo por extenso e a
+                    nota sobre a observação, em `../devolucao`): é o evento que
+                    a coordenação vai reler meses depois para entender por que
+                    a casa ficou sem vistoria. Os demais passam por
+                    `trilha-detalhe`, que traduz chave e valor e esconde os ids.
                   */}
                   {e.tipo === TIPO_EVENTO_DEVOLUCAO ? (
                     <DetalheDaDevolucao detalhe={e.detalhe} />
-                  ) : e.detalhe && Object.keys(e.detalhe).length > 0 && (
-                    <div className="trilha__detalhe">{descreverDetalhe(e.detalhe)}</div>
+                  ) : e.detalhe && (
+                    <DetalheDoEvento detalhe={e.detalhe} />
                   )}
                 </li>
               ))}
@@ -963,11 +982,20 @@ function DetalheDaDevolucao({ detalhe }: { detalhe: Record<string, unknown> | nu
   );
 }
 
-function descreverDetalhe(detalhe: Record<string, unknown>): string {
-  return Object.entries(detalhe)
-    .filter(([, v]) => v !== null && v !== undefined && v !== "")
-    .map(([k, v]) => `${k}: ${String(v)}`)
-    .join(" · ");
+/** O detalhe de um evento comum, em pares "Rótulo: valor", sem JSON cru. */
+function DetalheDoEvento({ detalhe }: { detalhe: Record<string, unknown> }) {
+  const pares = paresDoDetalhe(detalhe);
+  if (pares.length === 0) return null;
+  return (
+    <div className="trilha__detalhe">
+      {pares.map((par, i) => (
+        <span key={par.rotulo + String(i)}>
+          {i > 0 && " · "}
+          <strong>{par.rotulo}:</strong> {par.valor}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 const GRUPOS_VER_TAMBEM: ReadonlyArray<{ relacao: RelacaoVerTambem; rotulo: string }> = [
@@ -1511,7 +1539,7 @@ export function BlocoEncerramento({ protocolo, onEnviar, gravando }: {
           id="encerrar-motivo"
           rotulo="Motivo do encerramento"
           erro={erro}
-          dica="O banco recusa encerramento sem motivo: a regra não é da tela."
+          dica="O motivo é obrigatório. Ele fica gravado com o encerramento e sai na prestação de contas."
         >
           {(campo) => (
             <textarea {...campo} value={motivo}
@@ -1681,6 +1709,14 @@ function CartaoOficios({ providencias, oficios, podeEmitir, podeEnviar, aoMudar 
   const [aEnviar, setAEnviar] = useState<LinhaOficio | null>(null);
   const [detalhe, setDetalhe] = useState<OficioDetalhado | null>(null);
   const [abrindo, setAbrindo] = useState<string | null>(null);
+  /*
+    Para onde o foco vai depois de emitir: o botão "Emitir ofício para X" sai
+    da lista no instante em que o ofício nasce, e o foco de quem clicou caía
+    no `<body>`. A faixa de resultado (recibo ou erro) é o que a pessoa
+    precisa ler em seguida, e é para ela que o foco vai, como a página faz
+    com a própria faixa de aviso.
+  */
+  const faixaDoOficio = useRef<HTMLDivElement>(null);
 
   const semOficio = providenciasSemOficio(providencias, oficios);
 
@@ -1701,6 +1737,7 @@ function CartaoOficios({ providencias, oficios, podeEmitir, podeEnviar, aoMudar 
       setErro(e instanceof Error ? e.message : String(e));
     } finally {
       setGravando(false);
+      depoisDePintar(() => faixaDoOficio.current?.focus());
     }
   }
 
@@ -1749,8 +1786,10 @@ function CartaoOficios({ providencias, oficios, podeEmitir, podeEnviar, aoMudar 
 
   return (
     <Cartao titulo="Ofícios de encaminhamento">
-      {erro && <Aviso tom="perigo">{erro}</Aviso>}
-      {recibo && <Aviso tom="sucesso">{recibo}</Aviso>}
+      <div ref={faixaDoOficio} tabIndex={-1}>
+        {erro && <Aviso tom="perigo">{erro}</Aviso>}
+        {recibo && <Aviso tom="sucesso">{recibo}</Aviso>}
+      </div>
 
       {oficios.length === 0 && semOficio.length === 0 && (
         <Vazio titulo="Nenhum ofício emitido">
@@ -2143,6 +2182,15 @@ function BlocoCorrigirCoordenada({
   const [texto, setTexto] = useState("");
   const [motivo, setMotivo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
+  /*
+    O botão "Corrigir a coordenada" some quando o formulário aparece, e o
+    foco de quem o apertou caía no `<body>`. Ao abrir, o foco vai para o
+    primeiro campo; ao recusar, para o campo marcado como inválido.
+  */
+  const formulario = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (aberto) focarPrimeiroCampo(formulario.current);
+  }, [aberto]);
   // De onde veio o ponto quando foi o servidor que o descobriu a partir de um
   // link encurtado, como na abertura. Some quando a pessoa mexe no campo.
   const [origemDoLink, setOrigemDoLink] = useState<{ frase: string; link: string } | null>(null);
@@ -2150,11 +2198,22 @@ function BlocoCorrigirCoordenada({
   // A cada tecla, como na abertura: quem cola precisa ver na hora se o sistema
   // entendeu, e não descobrir no envio.
   const leitura = lerLocalizacaoColada(texto);
+  /*
+    De qual campo é a recusa. `proximoPassoDaCorrecao` recusa primeiro pelo
+    ponto (não lido, ou igual ao gravado) e só depois pelo motivo; o erro vai
+    para o campo que o causou, senão o foco e o `aria-invalid` cairiam no
+    motivo por uma coordenada que não foi entendida.
+  */
+  const pontoAceito = leitura.tipo === "coordenada"
+    && !(atual && atual.lat === leitura.coordenada.lat && atual.lng === leitura.coordenada.lng);
+  const erroDoPonto = erro && !pontoAceito ? erro : null;
+  const erroDoMotivo = erro && pontoAceito ? erro : null;
 
   function enviar(): void {
     const decisao = proximoPassoDaCorrecao(texto, motivo, atual);
     if (decisao.tipo === "erro") {
       setErro(decisao.mensagem);
+      depoisDePintar(() => focarPrimeiroInvalido(formulario.current));
       return;
     }
     setErro(null);
@@ -2187,7 +2246,7 @@ function BlocoCorrigirCoordenada({
           </p>
         </>
       ) : (
-        <form onSubmit={(evento) => { evento.preventDefault(); enviar(); }} noValidate>
+        <form ref={formulario} onSubmit={(evento) => { evento.preventDefault(); enviar(); }} noValidate>
           {/*
             Os dois campos são obrigatórios aqui, e o motivo é o que mais
             surpreende: na abertura a coordenada é opcional, e nesta tela não,
@@ -2198,6 +2257,7 @@ function BlocoCorrigirCoordenada({
           <Campo
             id="corrigir-coordenada-ponto"
             rotulo="Ponto correto"
+            erro={erroDoPonto}
             dica={<span role="status">
               {leitura.tipo === "coordenada" ? (
                 <span className="leitura leitura--ok">
@@ -2270,7 +2330,7 @@ function BlocoCorrigirCoordenada({
           <Campo
             id="corrigir-coordenada-motivo"
             rotulo="Motivo da correção"
-            erro={erro}
+            erro={erroDoMotivo}
             dica={"Obrigatório, porque é obrigatório na trilha. É o que responde, "
               + "meses depois, por que o laudo impresso aponta para um ponto e o "
               + "sistema aponta para outro."}

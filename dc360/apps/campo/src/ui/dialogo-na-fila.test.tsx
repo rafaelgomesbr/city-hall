@@ -47,6 +47,16 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
 jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
 
 /*
+  A tela da fila passou a abrir a vistoria ("Corrigir a vistoria", 15/09/2026),
+  e o roteador é módulo nativo: sem o dublê, importá-la derruba a suíte. A
+  correção em si tem teste próprio em `corrigir-na-fila.test.tsx`.
+*/
+jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
+jest.mock("../dados/correcao-da-coleta", () => ({
+  devolverParaCorrecao: jest.fn(async () => ({ retirada: false, motivo: "nao_encontrada" })),
+}));
+
+/*
   A sessão precisa ser o MESMO objeto a cada renderização.
 
   O efeito que abre a fila depende de `obterToken`. Devolver um objeto novo a
@@ -202,6 +212,21 @@ describe("a pergunta antes de descartar", () => {
     confirmar sem ler.
   */
   it("'Tentar de novo' continua sem perguntar, porque não destrói nada", async () => {
+    /*
+      Numa recusa que NÃO é do dado. Desde 15/09/2026 o item recusado por 422
+      (o `BLOQUEADO` deste arquivo) não oferece mais "Tentar de novo": repetir
+      a mesma coleta recebe a mesma recusa, e o botão principal dele passou a
+      ser "Corrigir a vistoria" (ver `corrigir-na-fila.test.tsx`). Aqui a
+      ocorrência não foi encontrada, e repetir depois de a coordenação mexer
+      pode dar certo sem mudar uma vírgula.
+    */
+    mockItens = [item({
+      ...BLOQUEADO,
+      ultimaFalha: {
+        codigo: "nao_encontrada", mensagem: "Ocorrência não encontrada.", campos: [],
+        permanente: true, em: "2026-09-09T10:00:00.000Z",
+      },
+    })];
     await abrirATela();
 
     await tocar("Tentar de novo");
@@ -257,8 +282,10 @@ describe("o selo de estado de cada item", () => {
 
   it("o leitor de tela ouve o protocolo junto com o estado", async () => {
     await abrirATela();
+    // `BLOQUEADO` é uma recusa por 422: desde 15/09/2026 o selo diz "correção",
+    // porque o que se espera de quem lê é editar, e não olhar.
     expect(
-      screen.getByLabelText("Protocolo 2026/000777: Precisa de atenção"),
+      screen.getByLabelText("Protocolo 2026/000777: Precisa de correção"),
     ).toBeTruthy();
   });
 });

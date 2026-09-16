@@ -35,14 +35,24 @@ import TelaDeVistoria from "../app/(agente)/vistoria/[id]";
    O aparelho, de mentira
    ============================================================ */
 
+/*
+  UUIDs de verdade nas chaves e na ocorrência, desde 15/09/2026: a tela passou
+  a conferir a coleta com o MESMO esquema do servidor antes de enfileirar, e o
+  esquema exige UUID. "oc-1" e "chave-fixa" eram de mentira e passavam porque
+  ninguém conferia, que é exatamente o defeito que a conferência fecha.
+*/
 jest.mock("expo-router", () => {
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const { useEffect } = require("react") as typeof import("react");
   const navegacao = { setOptions: jest.fn() };
   return {
     router: {
       back: jest.fn(), push: jest.fn(), replace: jest.fn(), canGoBack: () => true,
     },
-    useLocalSearchParams: () => ({ id: "oc-1" }),
+    useLocalSearchParams: () => ({ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" }),
     useNavigation: () => navegacao,
+    /* A tela relê o disco a cada foco; aqui o foco é a montagem, e só ela. */
+    useFocusEffect: (retorno: () => void) => { useEffect(retorno, [retorno]); },
   };
 });
 
@@ -62,7 +72,12 @@ jest.mock("expo-crypto", () => ({
 }));
 
 jest.mock("expo-file-system", () => ({
-  File: class { size = 1024; constructor(_uri: string) {} },
+  /* `bytesSync` é a medida de verdade desde 15/09/2026 (`medirArquivoNoAparelho`). */
+  File: class {
+    size = 1024;
+    constructor(_uri: string) {}
+    bytesSync(): Uint8Array { return new Uint8Array(1024); }
+  },
 }));
 
 jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
@@ -84,7 +99,7 @@ jest.mock("../dados/mapa", () => ({
 }));
 
 const OCORRENCIA: Pendencia = {
-  id: "oc-1",
+  id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
   protocolo: "2026/000123",
   tipo: "deslizamento",
   severidade: "alta",
@@ -101,8 +116,10 @@ const OCORRENCIA: Pendencia = {
   criado_em: "2026-09-09T09:00:00.000Z",
 };
 
-const BOMBEIROS = { id: "org-1", nome: "Corpo de Bombeiros", sigla: "CBM" };
-const ENERGIA = { id: "org-2", nome: "Concessionária de energia", sigla: null };
+/* Ids de órgão em UUID: `orgaoIndicadoSchema` exige, e a conferência de antes
+   de enfileirar passou a cobrar o esquema inteiro (15/09/2026). */
+const BOMBEIROS = { id: "0000000b-0000-4000-8000-000000000001", nome: "Corpo de Bombeiros", sigla: "CBM" };
+const ENERGIA = { id: "0000000e-0000-4000-8000-000000000002", nome: "Concessionária de energia", sigla: null };
 
 /** O catálogo que este aparelho tem no disco. Cada caso ajusta o que precisa. */
 let mockCatalogo: Array<{ id: string; nome: string; sigla: string | null }> = [];
@@ -190,9 +207,9 @@ async function responderAcionarOrgao(resposta: "Sim" | "Não"): Promise<void> {
 /** Responde todo o resto do que a conclusão exige, menos os órgãos. */
 async function preencherORestoDaVistoria(): Promise<void> {
   mockRascunhoGuardado = {
-    ocorrenciaId: "oc-1",
+    ocorrenciaId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
     protocolo: "2026/000123",
-    idempotencyKey: "chave-da-coleta",
+    idempotencyKey: "11111111-1111-4111-8111-000000000123",
     checklist: {
       risco_iminente: true,
       evacuacao_necessaria: true,
@@ -201,7 +218,7 @@ async function preencherORestoDaVistoria(): Promise<void> {
     },
     orgaosParaAcionar: [],
     fotos: [{
-      idempotencyKey: "foto-1",
+      idempotencyKey: "ffffffff-1111-4111-8111-000000000001",
       uriLocal: "file:///foto-1.jpg",
       nomeArquivo: "vistoria-2026-000123-1.jpg",
       tipoConteudo: "image/jpeg",
@@ -288,11 +305,11 @@ describe("o catálogo do município", () => {
     await abrirATela();
     await responderAcionarOrgao("Sim");
 
-    await fireEvent.press(screen.getByTestId("orgao-org-1"));
+    await fireEvent.press(screen.getByTestId("orgao-0000000b-0000-4000-8000-000000000001"));
     await act(async () => {});
 
     expect(ultimoGravado()["orgaosParaAcionar"]).toEqual([
-      { orgaoId: "org-1", nome: "Corpo de Bombeiros" },
+      { orgaoId: "0000000b-0000-4000-8000-000000000001", nome: "Corpo de Bombeiros" },
     ]);
   });
 
@@ -301,9 +318,9 @@ describe("o catálogo do município", () => {
     await abrirATela();
     await responderAcionarOrgao("Sim");
 
-    await fireEvent.press(screen.getByTestId("orgao-org-1"));
+    await fireEvent.press(screen.getByTestId("orgao-0000000b-0000-4000-8000-000000000001"));
     await act(async () => {});
-    await fireEvent.press(screen.getByTestId("orgao-org-1"));
+    await fireEvent.press(screen.getByTestId("orgao-0000000b-0000-4000-8000-000000000001"));
     await act(async () => {});
 
     expect(ultimoGravado()["orgaosParaAcionar"]).toEqual([]);
@@ -325,7 +342,7 @@ describe("o catálogo do município", () => {
     await tocar("Adicionar este órgão");
 
     expect(ultimoGravado()["orgaosParaAcionar"]).toEqual([
-      { orgaoId: "org-1", nome: "Corpo de Bombeiros" },
+      { orgaoId: "0000000b-0000-4000-8000-000000000001", nome: "Corpo de Bombeiros" },
     ]);
   });
 });
@@ -439,7 +456,7 @@ describe("concluir a vistoria", () => {
     mockCatalogo = [ENERGIA];
     await abrirATela();
 
-    await fireEvent.press(screen.getByTestId("orgao-org-2"));
+    await fireEvent.press(screen.getByTestId("orgao-0000000e-0000-4000-8000-000000000002"));
     await act(async () => {});
     await tocar("Revisar e concluir");
 
@@ -455,7 +472,7 @@ describe("concluir a vistoria", () => {
     mockCatalogo = [ENERGIA];
     await abrirATela();
 
-    await fireEvent.press(screen.getByTestId("orgao-org-2"));
+    await fireEvent.press(screen.getByTestId("orgao-0000000e-0000-4000-8000-000000000002"));
     await act(async () => {});
     await tocar("Revisar e concluir");
     await tocar("Concluir vistoria");
@@ -464,7 +481,7 @@ describe("concluir a vistoria", () => {
       vistoria: { orgaosParaAcionar?: unknown };
     };
     expect(envelope.vistoria.orgaosParaAcionar).toEqual([
-      { orgaoId: "org-2", nome: "Concessionária de energia" },
+      { orgaoId: "0000000e-0000-4000-8000-000000000002", nome: "Concessionária de energia" },
     ]);
   });
 });
@@ -478,7 +495,7 @@ describe("responder não depois de ter indicado órgãos", () => {
     mockCatalogo = [BOMBEIROS];
     await abrirATela();
     await responderAcionarOrgao("Sim");
-    await fireEvent.press(screen.getByTestId("orgao-org-1"));
+    await fireEvent.press(screen.getByTestId("orgao-0000000b-0000-4000-8000-000000000001"));
     await act(async () => {});
   }
 
@@ -512,7 +529,7 @@ describe("responder não depois de ter indicado órgãos", () => {
     await act(async () => {});
 
     expect(ultimoGravado()["orgaosParaAcionar"]).toEqual([
-      { orgaoId: "org-1", nome: "Corpo de Bombeiros" },
+      { orgaoId: "0000000b-0000-4000-8000-000000000001", nome: "Corpo de Bombeiros" },
     ]);
   });
 

@@ -40,6 +40,25 @@ export async function rotasArmazenamentoLocal(
       return resposta.code(400).send({ erro: "corpo_vazio", mensagem: "Nenhum conteúdo recebido." });
     }
 
+    /*
+      ESCRITA ÚNICA, como o provedor de verdade faz com `if-none-match: *`
+      assinado (ver `armazenamento/s3.ts`). Sem isto, o teste que prova que a
+      prova confirmada não se troca passaria aqui e falharia contra o R2, ou o
+      contrário, que é o pior tipo de diferença entre as duas implementações
+      desta porta. 412 é o status do provedor para a mesma recusa.
+
+      Incondicional, e não "só se o cabeçalho vier": no S3 o cabeçalho é
+      obrigatório porque está assinado, então a única forma de o aparelho
+      chegar sem ele é adulterar a URL, que lá responde 403. Aqui, exigir o
+      cabeçalho abriria a sobrescrita para quem o omitisse.
+    */
+    if (armazenamento.ler(chave)) {
+      return resposta.code(412).send({
+        erro: "objeto_ja_existe",
+        mensagem: "Já existe um arquivo nesta chave, e ele não pode ser sobrescrito.",
+      });
+    }
+
     armazenamento.guardar(chave, corpo, tipo);
     return resposta.code(200).send();
   });

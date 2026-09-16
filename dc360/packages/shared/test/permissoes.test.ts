@@ -73,11 +73,21 @@ describe("Posto: quem manda em quem", () => {
     expect(POSTO["administrador"]).toBeGreaterThan(POSTO["coordenador"]);
   });
 
-  it("o coordenador não administra o administrador", () => {
+  it("o coordenador administra só quem está ABAIXO dele: nem administrador, nem outro coordenador", () => {
     expect(podeGerirPapel("coordenador", "administrador")).toBe(false);
-    expect(podeGerirPapel("coordenador", "coordenador")).toBe(true);
+    /*
+      A ADR 0006 diz "administra equipes e usuários abaixo dele", e o
+      administrador "é o único que administra outro administrador". Com `>=`
+      o coordenador criava, rebaixava e desativava outro coordenador, e um
+      desativava o outro em cadeia: dois nomes para o mesmo poder de novo, um
+      degrau abaixo. Só o teto do município administra o próprio posto.
+    */
+    expect(podeGerirPapel("coordenador", "coordenador")).toBe(false);
     expect(podeGerirPapel("coordenador", "operador")).toBe(true);
     expect(podeGerirPapel("coordenador", "agente_campo")).toBe(true);
+    // E o posto 1 não administra ninguém, nem a si mesmo.
+    expect(podeGerirPapel("operador", "operador")).toBe(false);
+    expect(podeGerirPapel("agente_campo", "agente_campo")).toBe(false);
   });
 
   it("o administrador administra todo mundo, inclusive outro administrador", () => {

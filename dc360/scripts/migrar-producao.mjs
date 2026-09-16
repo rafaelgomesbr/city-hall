@@ -22,108 +22,107 @@
  * Sem argumento, ele só pergunta o que falta. Aplicar exige `--aplicar`
  * escrito à mão, porque migração é irreversível e o comando que aplica não
  * pode ser o que sai por engano de uma seta para cima.
+ *
+ * ## E aplicar exige CÓPIA RECENTE (15/09/2026)
+ *
+ * `--aplicar` recusa sem uma cópia feita por `scripts/copiar-producao.mjs`
+ * nos últimos trinta minutos. O único restore testado deste projeto é o de
+ * 09/09/2026, sobre uma cópia tirada à mão naquele dia; entre uma migração e
+ * outra ninguém tirava cópia, e migração irreversível sem cópia é aposta. A
+ * saída de escape é `--sem-copia`, escrito à mão, e ela fica registrada na
+ * conclusão que este roteiro imprime: quem pulou, pulou por decisão, e a
+ * decisão aparece no terminal e no que for colado no relatório.
+ *
+ * O que a cópia NÃO garante: que a migração seja reversível. O que ela
+ * garante é o ponto de volta. Migração só entra em produção se for aditiva ou
+ * compatível com a versão da API que está no ar (`docs/IMPLANTACAO.md`).
  */
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** Onde a senha mora no chaveiro. Ver `--ajuda`. */
-export const CONTA = "dc360";
-export const COFRE = "senha-do-banco-dc360";
+import { montarUrl, senhaDoChaveiro } from "./producao.mjs";
+import { JANELA_DA_COPIA_MS, PASTA_DE_COPIAS, copiaRecente } from "./copiar-producao.mjs";
 
-/** O projeto na Supabase. Aparece no endereço e no nome do papel. */
-export const PROJETO = "bppklrxxwjshxvkvwirw";
+export { COFRE, CONTA, HOST, PORTA, PROJETO, montarUrl, senhaDoChaveiro } from "./producao.mjs";
 
 /**
- * O banco de produção, PELO POOLER, e isto foi correção e não gosto.
+ * O que fazer com a cópia antes de aplicar. Função pura, para o teste medir
+ * as três saídas sem chaveiro, sem banco e sem `~/dc360-copias` de verdade.
  *
- * A primeira versão apontava para a conexão direta
- * (`db.<projeto>.supabase.co`), com o argumento de que migração é sessão longa.
- * O argumento estava certo e o endereço estava errado: contra a rede de
- * verdade, em 14/09/2026,
- *
- *   Error: getaddrinfo ENOTFOUND db.bppklrxxwjshxvkvwirw.supabase.co
- *
- * Não é queda nem bloqueio. O nome da conexão direta só tem registro AAAA, ou
- * seja, só existe em IPv6:
- *
- *   dig +short A    db.<projeto>.supabase.co  ->  (vazio)
- *   dig +short AAAA db.<projeto>.supabase.co  ->  2600:1f1e:c3:2702:...
- *
- * Numa rede sem IPv6, que é a da máquina que rodou e provavelmente a da
- * prefeitura, aquilo é um nome que não resolve. O pooler tem IPv4.
+ *   - `conferir`: não é `--aplicar`, então cópia não entra na conversa;
+ *   - `com_copia`: há cópia dentro da janela, e ela é nomeada;
+ *   - `pulada`: `--sem-copia` escrito à mão, registrado na conclusão;
+ *   - `recusado`: `--aplicar` sem cópia recente e sem `--sem-copia`.
  */
-export const HOST = "aws-0-sa-east-1.pooler.supabase.com";
-
-/**
- * MODO SESSÃO, e a porta é a diferença inteira.
- *
- * 5432 é sessão: a conexão é sua do começo ao fim. 6543 é transação, onde ela
- * volta para o bolo ao fim de cada transação, e aí não há sessão nenhuma para
- * segurar `SET ROLE`, trava de aviso, ou qualquer coisa que atravesse
- * comandos. Migração precisa das duas coisas.
- */
-export const PORTA = 5432;
-
-/**
- * A URL, com a senha codificada para caber nela.
- *
- * `encodeURIComponent` e não interpolação crua: uma senha com `@` faz o
- * analisador de URL achar que o host começa ali, e o erro que sai fala de um
- * host que não existe. Quem lê aquilo vai conferir DNS, e o problema é um
- * caractere da senha.
- *
- * Função separada e exportada porque é a única parte que dá para provar sem um
- * banco de pé, e é a parte que erra em silêncio.
- */
-export function montarUrl(senha, host = HOST) {
-  /*
-    Pelo pooler o papel leva o projeto colado, e isso é exigência do provedor:
-    é assim que ele sabe para qual banco encaminhar a conexão. O papel de
-    verdade continua sendo `postgres`.
-  */
-  return `postgresql://postgres.${PROJETO}:${encodeURIComponent(senha)}`
-    + `@${host}:${PORTA}/postgres?sslmode=verify-full`;
+export function decidirSobreACopia({
+  argv,
+  pasta = PASTA_DE_COPIAS,
+  agora = new Date(),
+  janelaMs = JANELA_DA_COPIA_MS,
+  procurar = copiaRecente,
+}) {
+  if (!argv.includes("--aplicar")) return { situacao: "conferir" };
+  const copia = procurar({ pasta, agora, janelaMs });
+  if (copia) return { situacao: "com_copia", copia };
+  if (argv.includes("--sem-copia")) return { situacao: "pulada" };
+  return { situacao: "recusado", pasta, janelaMinutos: Math.round(janelaMs / 60_000) };
 }
 
-function senhaDoChaveiro() {
-  try {
-    return execFileSync(
-      "security",
-      ["find-generic-password", "-a", CONTA, "-s", COFRE, "-w"],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
-    ).replace(/\n$/, "");
-  } catch {
-    console.error(
-      `\nNão achei a senha do banco no chaveiro do Mac.\n\n`
-      + `Guarde ela primeiro com o comando abaixo. Ele vai PERGUNTAR a senha e\n`
-      + `pedir de novo para conferir, e ela não aparece na tela nem fica no\n`
-      + `histórico do terminal:\n\n`
-      + `  security add-generic-password -a ${CONTA} -s ${COFRE} -w\n\n`
-      + `A senha é a do banco, que se gera no painel da Supabase em\n`
-      + `Database > Settings > Reset database password.\n`,
-    );
-    process.exit(1);
+/** A linha da conclusão que diz o que foi feito com a cópia. */
+export function fraseDaCopia(decisao) {
+  switch (decisao.situacao) {
+    case "com_copia":
+      return `Cópia usada como ponto de volta: ${decisao.copia.caminho} `
+        + `(${Math.round(decisao.copia.idadeMs / 60_000)} min antes de aplicar).`;
+    case "pulada":
+      return "CÓPIA PULADA por --sem-copia: esta migração foi aplicada sem ponto de volta, por decisão de quem rodou.";
+    default:
+      return "";
   }
+}
+
+export function mensagemDeRecusaSemCopia(decisao) {
+  return (
+    `Nenhuma cópia da produção nos últimos ${decisao.janelaMinutos} minutos em ${decisao.pasta}.\n\n`
+    + "Migração é irreversível, e o único restore testado é sobre cópia tirada antes.\n"
+    + "Tire a cópia e aplique em seguida:\n\n"
+    + "  node scripts/copiar-producao.mjs\n"
+    + "  node scripts/migrar-producao.mjs --aplicar\n\n"
+    + "Para aplicar SEM cópia, escreva --sem-copia junto de --aplicar. Isso fica\n"
+    + "registrado na conclusão, e é decisão sua."
+  );
 }
 
 /*
   Só executa quando é CHAMADO, e não quando é importado.
 
-  O teste importa este arquivo para provar `montarUrl`, que é a parte que erra
-  em silêncio. Sem esta guarda, importar dispararia a leitura do chaveiro e o
-  teste morreria pedindo uma senha de produção para medir uma função pura.
+  O teste importa este arquivo para provar `montarUrl` e a decisão sobre a
+  cópia, que são as partes que erram em silêncio. Sem esta guarda, importar
+  dispararia a leitura do chaveiro e o teste morreria pedindo uma senha de
+  produção para medir uma função pura.
 */
 const chamadoDiretamente = process.argv[1]?.endsWith("migrar-producao.mjs") ?? false;
 
 if (chamadoDiretamente) {
   const aplicar = process.argv.includes("--aplicar");
+
+  /*
+    A cópia é decidida ANTES de ler o chaveiro e antes de qualquer conexão:
+    quem vai ser recusado não precisa nem da senha.
+  */
+  const decisao = decidirSobreACopia({ argv: process.argv });
+  if (decisao.situacao === "recusado") {
+    console.error(mensagemDeRecusaSemCopia(decisao));
+    process.exit(2);
+  }
+
   const url = montarUrl(senhaDoChaveiro());
   const raiz = dirname(dirname(fileURLToPath(import.meta.url)));
 
   console.log(
     aplicar
-      ? "APLICANDO as migrações que faltam na produção.\n"
+      ? `APLICANDO as migrações que faltam na produção.\n${fraseDaCopia(decisao)}\n`
       : "Só conferindo: nada vai ser escrito. Para aplicar, repita com --aplicar.\n",
   );
 
@@ -156,9 +155,13 @@ if (chamadoDiretamente) {
         : "\nPronto. Agora reimplante a API antes de empurrar para o GitHub: a Vercel "
           + "publica o painel sozinho a cada push.")
       : (faltou
-        ? "\nIsso é o esperado quando falta migração, e não é erro. Para aplicar:\n"
+        ? "\nIsso é o esperado quando falta migração, e não é erro. Para aplicar,\n"
+          + "tire a cópia e aplique em seguida:\n"
+          + "  node scripts/copiar-producao.mjs\n"
           + "  node scripts/migrar-producao.mjs --aplicar"
         : "\nO banco já está em dia. Nada a fazer."),
   );
+  /* A cópia, repetida no fim: é a linha que vai para o relatório de quem migrou. */
+  if (aplicar) console.log(fraseDaCopia(decisao));
   process.exit(r.status ?? 1);
 }

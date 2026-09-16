@@ -711,11 +711,19 @@ export function gradienteDeDestaque(tema: Tema): readonly [string, string] {
 /**
  * EASING, nomeado pela intenção.
  *
- * Quatro curvas estavam escolhidas DENTRO dos componentes
- * (`Easing.out(Easing.quad)`, `Easing.out(Easing.cubic)`,
- * `Easing.out(Easing.back(2))`), o que quer dizer que cada peça nova escolhia
- * de novo, por gosto, e o aplicativo passou a ter ritmos diferentes em telas
- * vizinhas.
+ * As curvas eram escolhidas DENTRO dos componentes (`Easing.out(Easing.quad)`,
+ * `Easing.out(Easing.cubic)`, `Easing.out(Easing.back(2))`), o que quer dizer
+ * que cada peça nova escolhia de novo, por gosto, e o aplicativo passou a ter
+ * ritmos diferentes em telas vizinhas. Este token nasceu para isso e, mesmo
+ * assim, sete curvas à mão sobreviveram a ele em quatro arquivos até
+ * 15/09/2026, porque o portão de design media a duração e não a curva. Desde
+ * então `scripts/portao-design-do-aplicativo.test.mjs` reprova qualquer
+ * `Easing.` que não seja `Easing.bezier(...)` espalhando um destes.
+ *
+ * O clímax é a única curva que passa do alvo, e a VOLTA dele (a segunda perna
+ * da sequência, na faixa de sincronização e no emblema da conclusão) usa
+ * `entrada`: ela chega no lugar em vez de bater. Não existe um quarto token
+ * para a volta de propósito: três curvas para três durações é a régua inteira.
  *
  * São três, pareadas com as três durações de `movimento`, porque duração e
  * curva são a mesma decisão partida em dois números. O nome diz o que a peça

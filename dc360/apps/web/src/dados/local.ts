@@ -4,6 +4,7 @@ import {
   correcaoDeCoordenadaSchema,
   exigirPermissao,
   exigirPostoParaGerir,
+  ORIGENS_DA_TRIAGEM,
   ROTULO_DESFECHO_DE_SAIDA,
   ROTULO_PAPEL,
   ROTULO_STATUS,
@@ -27,7 +28,8 @@ import {
 import { comoApp, semTenant, type Contexto } from "./banco";
 import type {
   ColegaDeEquipe, ContaDisponivel, CorrecaoAplicada, FiltroOcorrencias, FiltroTrilha, Indicadores,
-  LinhaEquipe, LinhaEvento, LinhaOcorrencia, LinhaProvidencia, LinhaUsuario,
+  LinhaDaListaDeOcorrencias, LinhaEquipe, LinhaEvento, LinhaOcorrencia, LinhaProvidencia,
+  LinhaUsuario,
   LinhaVistoria, MeuTrabalho, PaginaDeOcorrencias, PontoNoMapa, PontosDoMapa,
   Sessao, TarefaDesignada, TipoDeDocumento, VistoriaConcluida,
   AberturaDeOficio, CursorDeAvisos, DadosDoOrgao, EnvioDeOficio, LinhaOficio,
@@ -37,6 +39,7 @@ import type {
   QuemEstaEmCampo, SaidaEmCampo, RespostaDeBusca, PontoDoLinkDeMapa,
 } from "./tipos";
 import { classificarRegistros, TETO_POR_GRUPO, type RegistroPesquisavel } from "../busca/registros";
+import { CONSULTA_MAXIMA } from "../busca/combobox";
 import { normalizar } from "../busca/pontuador";
 
 /**
@@ -479,6 +482,15 @@ export async function encerrarMinhasSessoes(): Promise<never> {
 }
 
 /**
+ * No modo de demonstração a sessão não expira: não há token, e a escolha de
+ * perfil vale enquanto a aba viver. O ouvinte é aceito e nunca chamado, para
+ * o provedor de sessão se inscrever sem saber em que modo está.
+ */
+export function aoExpirar(_ouvinte: (() => void) | null): void {
+  /* nada expira aqui */
+}
+
+/**
  * A trilha e os relatórios existem no banco local, mas a tela de auditoria
  * consulta a API porque é lá que a consulta filtrada vive. No modo local a
  * página avisa em vez de mostrar meia funcionalidade.
@@ -651,14 +663,35 @@ export async function listarPaginaDeOcorrencias(
   return comoApp(s.organizacaoId, async (db) => {
     const condicoes: string[] = [];
     const params: unknown[] = [];
+    let ordemDeRelevancia = "";
 
+    /*
+      A MESMA busca da API (`rotas/ocorrencias.ts`): o termo e a chave de
+      busca da linha atravessam `normalizar_busca`, e `casa_busca` aceita
+      substring e parecido por trigramas (migração 041, que o Postgres da aba
+      também roda). Antes era `lower() LIKE`, e o revisor provou o custo:
+      "acacias" não achava "Rua das Acácias, 245" e "Acácias" achava. A
+      demonstração não pode ser mais burra que o produto que ela demonstra.
+
+      O relato (`descricao`) não está na chave, de propósito, e continua
+      entrando por substring normalizada, como na API.
+    */
     if (filtro.busca?.trim()) {
-      params.push(`%${filtro.busca.trim().toLowerCase()}%`);
-      const p = `$${params.length}`;
-      condicoes.push(
-        `(lower(o.protocolo) LIKE ${p} OR lower(o.endereco) LIKE ${p}
-          OR lower(o.solicitante_nome) LIKE ${p} OR lower(o.descricao) LIKE ${p})`,
+      const n = await db.query<{ termo: string }>(
+        "SELECT normalizar_busca($1) AS termo", [filtro.busca.trim()],
       );
+      const termo = n.rows[0]?.termo ?? "";
+      if (termo.length > 0) {
+        params.push(termo);
+        const p = `$${params.length}`;
+        condicoes.push(
+          `(casa_busca(o.busca, ${p})
+            OR normalizar_busca(o.descricao) LIKE ('%' || ${p} || '%'))`,
+        );
+        // Com texto, a relevância manda primeiro: o protocolo digitado
+        // inteiro vem no topo, e não os parecidos espalhados pela severidade.
+        ordemDeRelevancia = `pontuar_busca(o.busca, ${p}) DESC,`;
+      }
     }
     if (filtro.status && filtro.status !== "todas") {
       if (filtro.status === "ativas") {
@@ -688,6 +721,7 @@ export async function listarPaginaDeOcorrencias(
          LEFT JOIN equipes e ON e.id = o.equipe_id
          ${onde}
         ORDER BY
+          ${ordemDeRelevancia}
           CASE WHEN o.status IN ('encerrada','rascunho') THEN 1 ELSE 0 END,
           CASE o.severidade WHEN 'critica' THEN 0 WHEN 'alta' THEN 1
                             WHEN 'media' THEN 2 WHEN 'baixa' THEN 3 ELSE 4 END,
@@ -696,8 +730,17 @@ export async function listarPaginaDeOcorrencias(
         LIMIT $${params.length - 1} OFFSET $${params.length}`,
       params,
     );
+    /*
+      A MESMA forma da API: a lista não traz contato, relato nem descrição de
+      vulnerabilidade (`LinhaDaListaDeOcorrencias`). O modo de demonstração
+      precisa devolver o que a API devolve, senão a tela demonstrada mostra
+      um campo que o produto real não entrega.
+    */
     return {
-      itens: r.rows,
+      itens: r.rows.map(({
+        solicitante_contato: _contato, descricao: _relato,
+        vulnerabilidade_descricao: _vulnerabilidade, ...linha
+      }) => linha),
       total: Number(contagem.rows[0]!.total),
       pagina,
       porPagina,
@@ -712,7 +755,7 @@ export async function listarPaginaDeOcorrencias(
 export async function listarOcorrencias(
   s: Sessao,
   filtro: FiltroOcorrencias = {},
-): Promise<LinhaOcorrencia[]> {
+): Promise<LinhaDaListaDeOcorrencias[]> {
   const r = await listarPaginaDeOcorrencias(s, filtro);
   return r.itens;
 }
@@ -912,6 +955,7 @@ async function exigirTransicao(
   db: Contexto,
   id: string,
   para: StatusOcorrencia,
+  origens?: readonly StatusOcorrencia[],
 ): Promise<StatusOcorrencia> {
   const atual = await db.query<{ status: StatusOcorrencia }>(
     "SELECT status FROM ocorrencias WHERE id = $1",
@@ -919,6 +963,11 @@ async function exigirTransicao(
   );
   const de = atual.rows[0]?.status;
   if (!de) throw new Error("Ocorrência não encontrada nesta organização");
+  // Mesma regra da API: a triagem só parte de `registrada` e de `triagem`.
+  // `em_campo -> triagem` existe na tabela, e é da devolução de tarefa.
+  if (origens && !origens.includes(de)) {
+    throw new Error(`Não é possível ir de "${de}" para "${para}" por aqui.`);
+  }
   if (de === para) {
     // Mesma regra da API, palavra por palavra: repetir um passo é legítimo,
     // repetir um desfecho é clique duplicado, e o segundo evento fica gravado
@@ -938,7 +987,7 @@ async function exigirTransicao(
 export async function classificarNaTriagem(s: Sessao, id: string, t: Triagem): Promise<void> {
   exigirPermissao(s.papel, "classificar_triagem");
   await comoApp(s.organizacaoId, async (db) => {
-    await exigirTransicao(db, id, "triagem");
+    await exigirTransicao(db, id, "triagem", ORIGENS_DA_TRIAGEM);
 
     /*
       A RECLASSIFICACAO, que este modo coletava e jogava fora.
@@ -1270,12 +1319,22 @@ export async function atualizarUsuario(
   exigirPermissao(s.papel, "gerenciar_usuarios");
   exigirPostoParaGerir(s.papel, dados.papel);
   await comoApp(s.organizacaoId, async (db) => {
-    const alvo = await db.query<{ papel: Papel; ativo: boolean }>(
-      "SELECT papel, ativo FROM usuarios WHERE id = $1", [id],
+    const alvo = await db.query<{ papel: Papel; ativo: boolean; email: string }>(
+      "SELECT papel, ativo, email FROM usuarios WHERE id = $1", [id],
     );
     const atual = alvo.rows[0];
     if (!atual) throw new Error("Usuário não encontrado neste município");
     exigirPostoParaGerir(s.papel, atual.papel);
+    // A mesma recusa da API (`email_so_por_administrador`): trocar o email de
+    // terceiro é ato do administrador. Ver `paginas/usuarios-regras.ts`.
+    if (
+      s.papel !== "administrador"
+      && dados.email.trim().toLowerCase() !== atual.email.trim().toLowerCase()
+    ) {
+      throw new Error(
+        "Trocar o email de outra pessoa é ato de quem administra o município. Peça ao administrador.",
+      );
+    }
     await exigirQueSobreAdministrador(db, id, atual, dados.papel !== "administrador");
 
     await db.query(
@@ -1951,19 +2010,43 @@ export async function encerrarSaidaEmCampo(
 export async function buscar(
   s: Sessao, consulta: string, _sinal?: AbortSignal,
 ): Promise<RespostaDeBusca> {
-  const q = consulta.trim().slice(0, 100);
+  const q = consulta.trim().slice(0, CONSULTA_MAXIMA);
   if (normalizar(q).length < 2) return { consulta: normalizar(q), teto: TETO_POR_GRUPO, grupos: [] };
 
   return comoApp(s.organizacaoId, async (db) => {
-    const ocorrencias = await db.query<{
+    /*
+      O MESMO recorte de `GET /busca` (`rotas/busca.ts`): o agente de campo só
+      acha o que `/campo/meu-trabalho` devolve, as ocorrências da equipe dele
+      que estão em campo, com a equipe vinda do CADASTRO dele e nunca de
+      parâmetro. Sem isto a demonstração mostrava ao agente as ocorrências
+      das outras equipes, e ao abrir uma ele caía numa página só com "Voltar".
+      Agente sem equipe não recebe o grupo, como o servidor.
+    */
+    const recorte: string[] = [];
+    const paramsDeOcorrencia: unknown[] = [];
+    let semGrupoDeOcorrencia = false;
+    if (s.papel === "agente_campo") {
+      const eu = await db.query<{ equipe_id: string | null }>(
+        "SELECT equipe_id FROM usuarios WHERE id = $1", [s.usuarioId],
+      );
+      const equipeId = eu.rows[0]?.equipe_id;
+      if (!equipeId) semGrupoDeOcorrencia = true;
+      else {
+        paramsDeOcorrencia.push(equipeId);
+        recorte.push(`AND o.status = 'em_campo' AND o.equipe_id = $${paramsDeOcorrencia.length}`);
+      }
+    }
+
+    const ocorrencias = semGrupoDeOcorrencia ? { rows: [] } : await db.query<{
       id: string; protocolo: string; endereco: string; solicitante_nome: string;
       tipo: TipoDeEntrada; status: StatusOcorrencia; severidade: LinhaOcorrencia["severidade"];
     }>(
       `SELECT o.id, o.protocolo, o.endereco, o.solicitante_nome, o.tipo, o.status, o.severidade
          FROM ocorrencias o
-        WHERE o.status <> 'rascunho'
+        WHERE o.status <> 'rascunho' ${recorte.join(" ")}
         ORDER BY o.criado_em DESC
         LIMIT 500`,
+      paramsDeOcorrencia,
     );
     const usuarios = await db.query<{
       id: string; nome: string; matricula: string; email: string; papel: Papel; ativo: boolean;
@@ -1975,21 +2058,30 @@ export async function buscar(
               (SELECT count(*) FROM usuarios u WHERE u.equipe_id = e.id AND u.ativo)::int AS pessoas
          FROM equipes e ORDER BY e.nome`,
     );
+    // Só os ativos, como `GET /busca` e a lista padrão de `/orgaos`.
     const orgaos = await db.query<{ id: string; nome: string; sigla: string | null; ativo: boolean }>(
-      "SELECT o.id, o.nome, o.sigla, o.ativo FROM orgaos o ORDER BY o.nome",
+      "SELECT o.id, o.nome, o.sigla, o.ativo FROM orgaos o WHERE o.ativo ORDER BY o.nome",
     );
 
+    /*
+      Os termos são os da CHAVE DE BUSCA de cada tabela na migração 041, e
+      nada além: ocorrência por endereço e solicitante (o protocolo casa à
+      parte, por prefixo); usuário por nome, matrícula e email; equipe pelo
+      nome; órgão por nome e sigla. Tipo e situação ficaram de fora porque o
+      servidor também não os procura, e a demonstração não pode achar por
+      "vendaval" o que o produto não acha.
+    */
     const registros: RegistroPesquisavel[] = [
       ...ocorrencias.rows.map((o): RegistroPesquisavel => ({
         tipo: "ocorrencia", id: o.id, titulo: o.endereco,
         detalhe: `${ROTULO_TIPO_COBRADE[o.tipo]}, ${ROTULO_STATUS[o.status].toLowerCase()}`,
         protocolo: o.protocolo, severidade: o.severidade, status: o.status,
-        termos: [o.protocolo, o.endereco, o.solicitante_nome, ROTULO_TIPO_COBRADE[o.tipo], ROTULO_STATUS[o.status]],
+        termos: [o.solicitante_nome],
       })),
       ...usuarios.rows.map((u): RegistroPesquisavel => ({
         tipo: "usuario", id: u.id, titulo: u.nome,
         detalhe: `${ROTULO_PAPEL[u.papel]}, matrícula ${u.matricula}${u.ativo ? "" : ", desativado"}`,
-        termos: [u.nome, u.matricula, u.email, ROTULO_PAPEL[u.papel]],
+        termos: [u.matricula, u.email],
       })),
       ...equipes.rows.map((e): RegistroPesquisavel => ({
         tipo: "equipe", id: e.id, titulo: e.nome,
@@ -1998,12 +2090,12 @@ export async function buscar(
           `${e.pessoas} ${e.pessoas === 1 ? "pessoa" : "pessoas"}`,
           e.ativa ? null : "desativada",
         ].filter(Boolean).join(", "),
-        termos: [e.nome, e.especialidade ?? ""],
+        termos: [],
       })),
       ...orgaos.rows.map((o): RegistroPesquisavel => ({
         tipo: "orgao", id: o.id, titulo: o.nome,
         detalhe: [o.sigla ?? "Sem sigla", o.ativo ? null : "desativado"].filter(Boolean).join(", "),
-        termos: [o.nome, o.sigla ?? ""],
+        termos: o.sigla ? [o.sigla] : [],
       })),
     ];
     return classificarRegistros(q, registros);

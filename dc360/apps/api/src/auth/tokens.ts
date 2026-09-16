@@ -21,6 +21,18 @@ export const CONTEUDO_ACESSO = z.object({
   papel: z.enum(PAPEIS),
   nome: z.string(),
   sid: z.string().uuid(),
+  /**
+   * SENHA PROVISÓRIA (migração 046): a sessão nasceu de uma senha sorteada
+   * por quem administra ou pelo console, e ainda não trocada. Com esta marca
+   * o token só abre `/auth/trocar-senha`; todo o resto responde 403
+   * `troca_de_senha_obrigatoria` (ver `exigirAutenticacao`).
+   *
+   * É uma MARCA e não o prazo: a leitura confia no token pelos quinze minutos
+   * dele, como faz com o papel; a escrita relê `senha_provisoria_ate` no
+   * banco. Ausente na esmagadora maioria dos tokens, e ausente do token que
+   * a troca de senha emite de volta para a mesma sessão.
+   */
+  sp: z.literal(true).optional(),
 });
 
 export type ConteudoAcesso = z.infer<typeof CONTEUDO_ACESSO>;
@@ -33,7 +45,10 @@ export async function emitirAcesso(
   dados: ConteudoAcesso,
   minutos: number,
 ): Promise<string> {
-  return new SignJWT({ org: dados.org, papel: dados.papel, nome: dados.nome, sid: dados.sid })
+  return new SignJWT({
+    org: dados.org, papel: dados.papel, nome: dados.nome, sid: dados.sid,
+    ...(dados.sp ? { sp: true } : {}),
+  })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setSubject(dados.sub)
     .setIssuer(EMISSOR)
@@ -87,6 +102,7 @@ export async function verificarAcesso(
       papel: payload["papel"],
       nome: payload["nome"],
       sid: payload["sid"],
+      ...(payload["sp"] === true ? { sp: true } : {}),
     });
     /*
       Assinatura boa e conteúdo torto para AQUI, e não segue para o próximo

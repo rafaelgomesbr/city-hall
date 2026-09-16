@@ -4,7 +4,6 @@ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
-import { codigoDeValidacao } from "../src/documentos/laudo.js";
 
 /**
  * Laudo de vistoria e termo de interdição.
@@ -85,9 +84,29 @@ async function comVistoria(
     method: "POST", url: `/ocorrencias/${id}/despacho`, headers: com(tokenCoordenador),
     payload: { equipeId: EQUIPE_ALFA, prazoHoras: 4 },
   });
+  /*
+    O chamado nasce com um dia de idade. A coleta desta suíte é datada de
+    antes do envio, para o laudo ter as duas marcas de tempo, e a rota recusa
+    coleta anterior à abertura do chamado (`data_implausivel`): a vistoria não
+    pode ter acontecido antes de o chamado existir.
+  */
+  await mem.bruto.query(
+    "UPDATE ocorrencias SET criado_em = now() - interval '1 day' WHERE id = $1", [id],
+  );
 
-  // Coleta há três horas: sincronizada agora, a diferença caracteriza offline.
-  const coletadaEm = new Date(Date.now() - (opcoes.offline ? 3 * 3_600_000 : 5_000)).toISOString();
+  /*
+    Coleta há três horas: sincronizada agora, a diferença caracteriza offline.
+    A rota recusa coleta anterior à abertura do chamado, então o chamado
+    precisa ter sido aberto antes disso: o registro é recuado no banco, que é
+    o que aconteceria com um chamado aberto de manhã e vistoriado sem sinal.
+  */
+  if (opcoes.offline) {
+    await mem.bruto.query(
+      "UPDATE ocorrencias SET criado_em = now() - interval '4 hours' WHERE id = $1",
+      [id],
+    );
+  }
+  const coletadaEm = new Date(Date.now() - (opcoes.offline ? 3 * 3_600_000 : 0)).toISOString();
   const sincronizacao = await app.inject({
     method: "POST", url: "/sincronizacao/vistoria", headers: com(tokenAgente),
     payload: {
@@ -179,8 +198,10 @@ describe("Laudo de vistoria", () => {
     expect(html).toContain("Agente de proteção e defesa civil");
     expect(html).toContain("Marilda Souza Prado");
 
-    // Código de validação estável.
-    expect(html).toContain(codigoDeValidacao(alvo.protocolo, alvo.vistoriaId));
+    // O identificador da emissão, e o que ele é: a validação que o rodapé
+    // prometia e não existia virou rota (ver identificador-da-emissao.test.ts).
+    expect(html).toContain("Identificador da emissão");
+    expect(html).not.toContain("Código de validação");
   }, 120_000);
 
   it("mostra as DUAS marcas de tempo quando a coleta foi offline", async () => {
@@ -360,7 +381,7 @@ describe("Termo de interdição", () => {
     expect(corrido(r.body)).toContain("nova vistoria ateste a cessação do risco");
   }, 120_000);
 
-  it("tem código de validação diferente do laudo da mesma vistoria", async () => {
+  it("tem identificador de emissão diferente do laudo da mesma vistoria", async () => {
     const alvo = await comVistoria({ offline: false, endereco: "Rua Dois Documentos, 90" });
     const laudo = await app.inject({
       method: "GET", url: `/documentos/${alvo.id}/laudo`, headers: com(tokenCoordenador),
@@ -369,13 +390,15 @@ describe("Termo de interdição", () => {
       method: "GET", url: `/documentos/${alvo.id}/termo-de-interdicao`, headers: com(tokenCoordenador),
     });
 
-    const codigoLaudo = codigoDeValidacao(alvo.protocolo, alvo.vistoriaId);
-    const codigoTermo = codigoDeValidacao(`INT-${alvo.protocolo}`, alvo.vistoriaId);
+    const identificador = (html: string) =>
+      /Identificador da emissão<br><strong>([0-9A-F]+)<\/strong>/.exec(html)?.[1];
+    const codigoLaudo = identificador(laudo.body);
+    const codigoTermo = identificador(termo.body);
 
+    expect(codigoLaudo).toBeDefined();
+    expect(codigoTermo).toBeDefined();
+    // Dois documentos distintos não podem compartilhar identificador.
     expect(codigoLaudo).not.toBe(codigoTermo);
-    expect(laudo.body).toContain(codigoLaudo);
-    expect(termo.body).toContain(codigoTermo);
-    // Dois documentos distintos não podem compartilhar código de conferência.
     expect(laudo.body).not.toContain(codigoTermo);
   }, 120_000);
 });

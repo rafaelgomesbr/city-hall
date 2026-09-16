@@ -1,0 +1,931 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Defesa Civil 360, 15/09/2026</title>
+<meta name="description" content="Apresentação do Defesa Civil Operacional 360 para o Alyson: o que está feito, o que funciona, o que falta, custos, prazo e a comparação com a especificação de 18/08/2026.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --papel: #FFFFFF;
+    --mesa: #EEF1F4;
+    --tinta: #14191D;
+    --tinta-fraca: #4A5763;
+    --linha: #D6DDE3;
+    --marca: #5B21B6;
+    --marca-clara: #7C3AED;
+    --marca-tenue: #F3EEFF;
+    --alerta: #92400E;
+    --alerta-fundo: #FEF3C7;
+    --ok: #15803D;
+    --ok-fundo: #DCFCE7;
+    --perigo: #9F1239;
+    --perigo-fundo: #FFE4E6;
+    --neutro: #4A5763;
+    --neutro-fundo: #E6EAEE;
+    --sombra: 0 1px 2px rgba(16,21,25,.06), 0 8px 24px rgba(16,21,25,.06);
+    --corpo: "Work Sans", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --mono: "Roboto Mono", ui-monospace, Consolas, "Courier New", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --papel: #171B20;
+      --mesa: #0E1114;
+      --tinta: #E8EDF2;
+      --tinta-fraca: #9AA7B4;
+      --linha: #2C333B;
+      --marca: #A78BFA;
+      --marca-clara: #C4B5FD;
+      --marca-tenue: #221A3A;
+      --alerta: #FCD34D;
+      --alerta-fundo: #2E2410;
+      --ok: #86EFAC;
+      --ok-fundo: #12281A;
+      --perigo: #FDA4AF;
+      --perigo-fundo: #3A1420;
+      --neutro: #9AA7B4;
+      --neutro-fundo: #242A31;
+      --sombra: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --papel: #171B20;
+    --mesa: #0E1114;
+    --tinta: #E8EDF2;
+    --tinta-fraca: #9AA7B4;
+    --linha: #2C333B;
+    --marca: #A78BFA;
+    --marca-clara: #C4B5FD;
+    --marca-tenue: #221A3A;
+    --alerta: #FCD34D;
+    --alerta-fundo: #2E2410;
+    --ok: #86EFAC;
+    --ok-fundo: #12281A;
+    --perigo: #FDA4AF;
+    --perigo-fundo: #3A1420;
+    --neutro: #9AA7B4;
+    --neutro-fundo: #242A31;
+    --sombra: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    padding: 28px 16px 48px;
+    background: var(--mesa);
+    color: var(--tinta);
+    font-family: var(--corpo);
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .folha {
+    max-width: 900px;
+    margin: 0 auto;
+    background: var(--papel);
+    box-shadow: var(--sombra);
+  }
+  section { padding: 44px 56px; border-bottom: 1px solid var(--linha); }
+  section:last-of-type { border-bottom: 0; }
+  @media (max-width: 640px) {
+    body { padding: 0 0 32px; font-size: 16px; }
+    section { padding: 32px 20px; }
+  }
+
+  h1, h2, h3, h4 { text-wrap: balance; margin: 0; }
+  h1 { font-size: 2.5rem; line-height: 1.1; font-weight: 800; letter-spacing: -.022em; }
+  h2 { font-size: 1.45rem; font-weight: 700; letter-spacing: -.012em; margin-bottom: 6px; }
+  h3 { font-size: 1.05rem; font-weight: 700; margin: 26px 0 4px; }
+  h3:first-of-type { margin-top: 18px; }
+  h4 { font-size: .95rem; font-weight: 700; margin: 18px 0 4px; }
+  p { margin: 0 0 14px; max-width: 68ch; }
+  p:last-child { margin-bottom: 0; }
+  strong { font-weight: 600; }
+  em { font-style: italic; }
+  a { color: var(--marca); }
+  .eyebrow {
+    font-size: .72rem; font-weight: 700; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--marca); margin-bottom: 14px;
+  }
+  .sub { color: var(--tinta-fraca); }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: .92em; }
+  .num { font-variant-numeric: tabular-nums; }
+  .pequeno { font-size: .86rem; color: var(--tinta-fraca); }
+
+  /* Capa */
+  .capa { padding-top: 54px; padding-bottom: 40px; }
+  .marca-topo { display: flex; align-items: center; gap: 13px; margin-bottom: 30px; }
+  .brasao {
+    width: 46px; height: 46px; flex: 0 0 46px; border-radius: 50%;
+    border: 2px solid var(--marca); color: var(--marca);
+    display: grid; place-items: center; font-weight: 800; font-size: .95rem;
+  }
+  .marca-topo div { line-height: 1.25; }
+  .marca-topo .n { font-weight: 700; font-size: .95rem; }
+  .marca-topo .u { color: var(--tinta-fraca); font-size: .8rem; }
+  .capa h1 { margin-bottom: 16px; }
+  .capa .linha-fina { font-size: 1.16rem; color: var(--tinta-fraca); max-width: 60ch; }
+  .capa .data { margin-top: 30px; color: var(--tinta-fraca); font-size: .92rem; }
+  .capa .data b { color: var(--tinta); font-weight: 600; }
+  .selos { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+  .selo {
+    display: inline-flex; align-items: center; gap: 9px;
+    background: var(--ok-fundo); color: var(--ok);
+    border-radius: 999px; padding: 7px 15px 7px 12px;
+    font-size: .82rem; font-weight: 600;
+  }
+  .selo::before { content: "\2713"; font-weight: 800; }
+  .selo.neutro { background: var(--marca-tenue); color: var(--marca); }
+  .selo.neutro::before { content: "\2192"; }
+
+  /* Números */
+  .numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--linha); border: 1px solid var(--linha); }
+  .numeros > div { background: var(--papel); padding: 20px 18px; }
+  .numeros .v { font-family: var(--mono); font-size: 1.85rem; font-weight: 500; line-height: 1.1; color: var(--marca); }
+  .numeros .r { font-size: .76rem; color: var(--tinta-fraca); margin-top: 6px; line-height: 1.35; }
+  @media (max-width: 640px) { .numeros { grid-template-columns: repeat(2, 1fr); } }
+
+  /* Blocos */
+  .destaque {
+    border-left: 3px solid var(--marca); background: var(--marca-tenue);
+    padding: 16px 20px; margin: 20px 0; border-radius: 0 6px 6px 0;
+  }
+  .destaque p { margin: 0 0 10px; max-width: none; }
+  .destaque p:last-child { margin-bottom: 0; }
+  .aviso {
+    border-left: 3px solid var(--alerta); background: var(--alerta-fundo);
+    padding: 14px 18px; margin: 18px 0; border-radius: 0 6px 6px 0; color: var(--tinta);
+  }
+  .aviso p { margin: 0; max-width: none; }
+  .cita {
+    border-left: 3px solid var(--linha); padding-left: 18px;
+    color: var(--tinta-fraca); font-style: italic; margin: 18px 0; max-width: 66ch;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; margin: 14px 0 0; }
+  .rolavel { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  th, td { text-align: left; padding: 9px 12px 9px 0; border-bottom: 1px solid var(--linha); vertical-align: top; }
+  th { font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; color: var(--tinta-fraca); font-weight: 700; }
+  td:first-child { font-weight: 600; padding-right: 16px; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.id { font-family: var(--mono); font-size: .82rem; font-weight: 500; white-space: nowrap; }
+  tr.total td { font-weight: 700; border-top: 2px solid var(--tinta-fraca); }
+  tr.sub td { color: var(--tinta-fraca); font-weight: 400; }
+  .rolavel table { min-width: 560px; }
+
+  .pilula {
+    display: inline-block; padding: 2px 9px; border-radius: 999px;
+    font-size: .68rem; font-weight: 700; letter-spacing: .03em; white-space: nowrap;
+  }
+  .p-ok { background: var(--ok-fundo); color: var(--ok); }
+  .p-pronto { background: var(--marca-tenue); color: var(--marca); }
+  .p-parcial { background: var(--alerta-fundo); color: var(--alerta); }
+  .p-falta { background: var(--perigo-fundo); color: var(--perigo); }
+  .p-dif { background: var(--marca-tenue); color: var(--marca); border: 1px solid var(--marca); }
+  .p-na { background: var(--neutro-fundo); color: var(--neutro); }
+
+  ul.limpa { list-style: none; padding: 0; margin: 14px 0 0; }
+  ul.limpa li { padding: 12px 0 12px 30px; border-bottom: 1px solid var(--linha); position: relative; }
+  ul.limpa li:last-child { border-bottom: 0; }
+  ul.limpa li::before {
+    content: ""; position: absolute; left: 4px; top: 20px;
+    width: 7px; height: 7px; border-radius: 50%; background: var(--marca);
+  }
+  ul.limpa .t { font-weight: 600; }
+  ul.limpa .d { color: var(--tinta-fraca); font-size: .92rem; }
+  ul.compacta { margin: 8px 0 0; padding-left: 20px; }
+  ul.compacta li { margin-bottom: 6px; }
+
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 18px; }
+  @media (max-width: 640px) { .duas { grid-template-columns: 1fr; gap: 20px; } }
+
+  .legenda { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 12px 0 4px; font-size: .82rem; color: var(--tinta-fraca); align-items: center; }
+
+  .rodape { padding: 30px 56px 44px; color: var(--tinta-fraca); font-size: .84rem; }
+  .rodape p { max-width: none; }
+  @media (max-width: 640px) { .rodape { padding: 26px 20px 36px; } }
+
+  /* Impressão: folha branca, sem mesa, sem sombra, uma seção por página */
+  @media print {
+    :root, :root[data-theme="dark"], :root:not([data-theme="light"]) {
+      color-scheme: light;
+      --papel: #FFFFFF; --mesa: #FFFFFF; --tinta: #14191D; --tinta-fraca: #4A5763;
+      --linha: #D6DDE3; --marca: #5B21B6; --marca-clara: #7C3AED; --marca-tenue: #F3EEFF;
+      --alerta: #92400E; --alerta-fundo: #FEF3C7; --ok: #15803D; --ok-fundo: #DCFCE7;
+      --perigo: #9F1239; --perigo-fundo: #FFE4E6; --neutro: #4A5763; --neutro-fundo: #E6EAEE;
+      --sombra: none;
+    }
+    @page { size: A4; margin: 14mm 12mm; }
+    body { background: #fff; padding: 0; font-size: 11.5pt; line-height: 1.45; }
+    .folha { max-width: none; box-shadow: none; }
+    section { padding: 0 0 18pt; border-bottom: 0; break-before: page; page-break-before: always; }
+    section.capa { break-before: auto; page-break-before: auto; padding-top: 30pt; }
+    section.pagina-dupla { break-before: auto; page-break-before: auto; padding-top: 14pt; }
+    .rodape { padding: 12pt 0 0; break-before: auto; }
+    .capa h1 { font-size: 26pt; }
+    h2 { font-size: 15pt; }
+    h3 { font-size: 11.5pt; margin-top: 14pt; }
+    p { max-width: none; }
+    table { font-size: 8.6pt; }
+    th, td { padding: 4pt 8pt 4pt 0; }
+    .aviso, .destaque { margin: 10pt 0; padding: 9pt 12pt; }
+    ul.limpa li { padding: 7pt 0 7pt 22pt; }
+    ul.limpa li::before { top: 12pt; }
+    .rolavel { overflow: visible; }
+    .rolavel table { min-width: 0; }
+    tr, .destaque { break-inside: avoid; page-break-inside: avoid; }
+    thead { display: table-header-group; }
+    .numeros { grid-template-columns: repeat(4, 1fr); }
+    .numeros .v { font-size: 20pt; }
+    a { color: inherit; text-decoration: none; }
+    .pilula { border: 1px solid currentColor; }
+  }
+</style>
+</head>
+<body>
+<div class="folha">
+
+  <!-- 1. CAPA -->
+  <section class="capa">
+    <div class="marca-topo">
+      <div class="brasao">DC</div>
+      <div>
+        <div class="n">Defesa Civil Operacional 360</div>
+        <div class="u">Sistema de gestão para Defesas Civis municipais</div>
+      </div>
+    </div>
+
+    <h1>O chamado entra por telefone. O laudo tem que aguentar uma audiência.</h1>
+    <p class="linha-fina">
+      Entre uma coisa e outra existem uma equipe subindo um morro sem sinal, uma
+      família esperando resposta e um ato administrativo que alguém vai
+      contestar depois. É esse pedaço que este sistema resolve.
+    </p>
+
+    <div class="selos">
+      <span class="selo">Em uso real em Florianópolis desde 08/09/2026</span>
+      <span class="selo neutro">Substitui a apresentação de 09/09/2026</span>
+    </div>
+
+    <p class="data">
+      <b>15 de setembro de 2026.</b> Documento do Rafael para o Alyson: o que já
+      está feito e funciona, o que ainda vamos fazer, quanto custa hoje, quanto
+      deve custar em escala, quanto tempo falta, e a comparação, requisito a
+      requisito, com a especificação de 18/08/2026.
+    </p>
+  </section>
+
+  <!-- 2. NÚMEROS -->
+  <section class="pagina-dupla">
+    <div class="eyebrow">Números de hoje, conferidos por portão</div>
+    <div class="numeros">
+      <div>
+        <div class="v">3.927</div>
+        <div class="r">testes automatizados, todos verdes: banco 285, API 962, console 250, painel 454, aplicativo 1.708, roteiros 131</div>
+      </div>
+      <div>
+        <div class="v">132</div>
+        <div class="r">testes só de isolamento entre municípios (critério CA-06). Roda primeiro na integração contínua: se quebrar, nada entra</div>
+      </div>
+      <div>
+        <div class="v">0</div>
+        <div class="r">vulnerabilidades conhecidas nas dependências de produção (npm audit de runtime em zero, nos dois lockfiles)</div>
+      </div>
+      <div>
+        <div class="v">171</div>
+        <div class="r">verificações no navegador, de ponta a ponta: 68 no modo local e 103 contra a API de verdade, zero erro de console</div>
+      </div>
+      <div>
+        <div class="v">42</div>
+        <div class="r">migrações de banco, todas aplicadas na produção: a API responde a última, 042</div>
+      </div>
+      <div>
+        <div class="v">98</div>
+        <div class="r">entregas no repositório do produto em 25 dias, de 21/08 a 15/09, cada uma com a suíte inteira verde</div>
+      </div>
+      <div>
+        <div class="v">4</div>
+        <div class="r">peças em produção: API e console no Fly (São Paulo), painel na Vercel, banco na Supabase (São Paulo)</div>
+      </div>
+      <div>
+        <div class="v">1</div>
+        <div class="r">iPhone com o aplicativo instalado por compilação nativa, com vistorias reais coletadas em Florianópolis</div>
+      </div>
+    </div>
+    <p class="pequeno" style="margin-top:14px">
+      Os números de teste não são digitados: um verificador reprova a entrega
+      quando a documentação e o código discordam. Os da apresentação anterior
+      eram 1.531 testes, 112 de isolamento e 161 no navegador.
+    </p>
+  </section>
+
+  <!-- 3. O QUE JÁ ESTÁ FEITO E FUNCIONA -->
+  <section>
+    <div class="eyebrow">Onde está</div>
+    <h2>O que já está feito e funciona, e o que ainda não</h2>
+    <p class="sub">
+      Esta tabela existe porque a alternativa é vender promessa. "Em uso" é o que
+      está de pé na produção e sendo usado. "Pronto" está no código e na
+      produção, provado por teste, à espera de uma chave, de uma conta ou do
+      olho humano. "Pronto, desligado" depende de credencial de terceiro que
+      ainda não foi posta no servidor. "Falta" está faltando mesmo.
+    </p>
+    <div class="legenda">
+      <span class="pilula p-ok">Em uso</span>
+      <span class="pilula p-ok">Pronto</span>
+      <span class="pilula p-pronto">Pronto, desligado</span>
+      <span class="pilula p-parcial">Parcial</span>
+      <span class="pilula p-falta">Falta</span>
+    </div>
+
+    <div class="destaque">
+      <p>
+        <strong>O método, que é o que faz esta tabela valer alguma coisa.</strong>
+        Nenhum item recebe "pronto" quando o código existe: recebe quando existe
+        um teste que reprova sem a correção, a suíte inteira está verde, e há
+        uma prova de ponta a ponta executada (requisição contra a produção,
+        captura do aparelho ou consulta ao banco). Duas rodadas de revisão
+        adversarial, com um cético contra cada achado, devolveram 42 e depois 28
+        defeitos reproduzidos, e todos os confirmados foram corrigidos no mesmo
+        turno.
+      </p>
+    </div>
+
+    <h3>O caminho da ocorrência, no painel e no servidor</h3>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>Peça</th><th>Estado</th><th>Observação</th></tr></thead>
+        <tbody>
+          <tr><td>Painel do coordenador</td><td><span class="pilula p-ok">Em uso</span></td><td>Chamado com protocolo na hora e aviso de duplicidade, triagem pela COBRADE, despacho, laudo, interdição e desinterdição, providência com resposta, ofício numerado, encerramento com motivo, trilha, exportação, indicadores com mediana. Paginação e filtro de atrasadas no servidor, para aguentar o dia de temporal</td></tr>
+          <tr><td>Busca com tolerância a erro</td><td><span class="pilula p-ok">Em uso</span></td><td>Entrou em 15/09: "ocorencia" acha ocorrência, "servidao boa esperansa" acha Servidão Boa Esperança no banco real (migração 041, medido entre 1 e 9 ms). Caixa de comando com Ctrl K e "Ir para" no painel</td></tr>
+          <tr><td>Link curto do Google Maps</td><td><span class="pilula p-ok">Pronto</span></td><td>O botão "Descobrir o ponto" abre o link no servidor da prefeitura, nunca no navegador do coordenador, com lista fechada de destinos e defesa contra requisição forjada (37 casos). Nunca resolveu um link de verdade contra o Google: falta a primeira tentativa real</td></tr>
+          <tr><td>Correção de coordenada</td><td><span class="pilula p-ok">Em uso</span></td><td>Ocorrência aberta com o ponto na quadra errada se corrige com motivo, e o evento guarda o ponto anterior e o novo. Vale depois da vistoria e do laudo, de propósito: a reimpressão sai com o ponto certo e o evento anota que já havia documento</td></tr>
+          <tr><td>Ícones de criticidade</td><td><span class="pilula p-ok">Em uso</span></td><td>Uma forma por severidade (círculo, quadrado, triângulo, octógono), desenhada uma vez no pacote compartilhado e lida pelos dois canais. Severidade nunca viaja só em cor</td></tr>
+          <tr><td>Documentos oficiais</td><td><span class="pilula p-ok">Em uso</span></td><td>Laudo, termo de interdição, termo de desinterdição e ofício, gerados no servidor a partir de um modelo só, em HTML para impressão e em PDF do mesmo HTML, com as duas datas (vistoria em campo, recebimento pelo sistema) e código de validação. Marca d'água enquanto o município não homologar</td></tr>
+          <tr><td>Sino do painel</td><td><span class="pilula p-ok">Em uso</span></td><td>Vistoria recebida, prazo vencido, providência respondida e agente com retorno não confirmado, sem ficar atualizando a tela</td></tr>
+          <tr><td>Ofício para outro órgão por email</td><td><span class="pilula p-pronto">Pronto, desligado</span></td><td>Numerado por município e por ano; o email leva só o número e um link que abre uma vez, e o uso único é do banco. O cliente fala o contrato do Resend, conferido contra a documentação. Falta a conta e a chave: nunca falou com o Resend de verdade</td></tr>
+          <tr><td>Recuperação de senha por email</td><td><span class="pilula p-pronto">Pronto, desligado</span></td><td>Mesmo motivo do item acima. No piloto quem esquece a senha pede à coordenação, que redefine por dentro e derruba as sessões da pessoa</td></tr>
+          <tr><td>SEO e identidade do painel</td><td><span class="pilula p-ok">Em uso</span></td><td>Marca em SVG, favicon, manifesto, imagem de compartilhamento, título por tela e as telas internas fora dos buscadores. O endereço real é dc360-painel-web.vercel.app</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>O aplicativo do agente de campo</h3>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>Peça</th><th>Estado</th><th>Observação</th></tr></thead>
+        <tbody>
+          <tr><td>Aplicativo instalado e usado</td><td><span class="pilula p-ok">Em uso</span></td><td>Compilação nativa pelo Xcode, assinada, instalada num iPhone 16 em 08/09; vistorias reais coletadas desde então. O binário de 15/09 já está no aparelho, com o som de despacho dentro</td></tr>
+          <tr><td>Coleta sem sinal e fila de envio</td><td><span class="pilula p-ok">Em uso</span></td><td>Checklist, foto, GPS, contagem de pessoas, órgãos a acionar, assinatura no dedo e minuta do laudo, tudo sem rede. A fila reenvia com a mesma chave e o servidor não duplica, provado inclusive sob corrida forçada. O ciclo com modo avião, com captura de cada etapa, ainda pede dedo humano (ver a comparação, CA-02)</td></tr>
+          <tr><td>Identidade 2.0 e "vida" no aplicativo</td><td><span class="pilula p-ok">Em uso</span></td><td>Refeito em 14/09 e 15/09, depois de duas rodadas no aparelho: tokens, Work Sans e Roboto Mono embarcadas, 24 ícones próprios, hierarquia, movimento e retorno tátil. Portões de design, contraste e alvo de toque iguais aos do painel. Na rodada de 15/09 no aparelho, a reação foi "o app ficou show de bola"</td></tr>
+          <tr><td>Menu flutuante de vidro com avatar</td><td><span class="pilula p-ok">Pronto</span></td><td>Pílula recuada das bordas, indicador que desliza entre as abas, avatar do Perfil com a foto e o crachá do sino. O vidro só existe no iOS; no Android a pílula é opaca com a mesma forma, e isso está declarado</td></tr>
+          <tr><td>Mapa dentro do aplicativo</td><td><span class="pilula p-ok">Pronto</span></td><td>Aba própria, quadrado, com os pinos por criticidade e a lista de tarefas em sanfona embaixo. Google Maps nativo (sem custo por uso) quando o município autoriza; sem autorização, plano esquemático desenhado pelo próprio aparelho, sem contato com o Google. O modo Google nunca rodou no aparelho: falta a chave da plataforma no binário</td></tr>
+          <tr><td>Rota até o imóvel ("Ver o caminho")</td><td><span class="pilula p-pronto">Pronto, desligado</span></td><td>Só quando o agente pede. A API do produto chama a Routes API do Google com chave de servidor, guarda por 24 h por par de pontos e limita a 30 por minuto por pessoa. Falta a chave no servidor; a Routes API nunca foi chamada de verdade. "Navegar até lá" no mapa do aparelho funciona desde 10/09</td></tr>
+          <tr><td>Perfil com foto e números</td><td><span class="pilula p-ok">Pronto</span></td><td>Foto do agente (migração 040, na produção), concluídas na semana e no mês, gráfico dos últimos 7 dias em SVG próprio, equipe com quem está em campo agora, conquistas por marco. Tudo lido do servidor</td></tr>
+          <tr><td>Sino em toda tela</td><td><span class="pilula p-ok">Pronto</span></td><td>Balança uma vez quando chega aviso, com a tela de avisos fora da barra. O crachá é o mesmo do avatar no menu</td></tr>
+          <tr><td>Notificação de despacho com som</td><td><span class="pilula p-pronto">Pronto, desligado</span></td><td>Som próprio de duas notas, vibração, canal de urgência no Android, APNs e FCM direto, sem serviço de terceiro no meio. Em 13/09 a Apple e o Google aceitaram as credenciais numa chamada real. Falta pôr a chave no servidor do Fly e ligar a capacidade "Time Sensitive" no App ID da conta da Apple, que foi o que parou a compilação em 15/09</td></tr>
+          <tr><td>Segurança do agente sozinho</td><td><span class="pilula p-ok">Pronto</span></td><td>Saída a campo declarada antes de subir, com sinal; prazo carimbado pelo servidor; prazo estourado aparece no sino e no painel de plantão; prorrogação contada. Não é botão de pânico, e a tela diz isso</td></tr>
+          <tr><td>Foto perdida não destrói a vistoria</td><td><span class="pilula p-ok">Pronto</span></td><td>Se o sistema apagou o arquivo do cache, a vistoria sobe com a perda registrada na trilha e no laudo, em vez de ficar presa para sempre no aparelho</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Operação, segurança e conformidade</h3>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>Peça</th><th>Estado</th><th>Observação</th></tr></thead>
+        <tbody>
+          <tr><td>Isolamento por município</td><td><span class="pilula p-ok">Em uso</span></td><td>Banco único, RLS ativada e forçada em toda tabela, papel de aplicação sem privilégio de dono, chave estrangeira composta, chave de arquivo por município. Verificado por 132 testes que descobrem as tabelas em vez de conferir uma lista</td></tr>
+          <tr><td>Cópia de segurança</td><td><span class="pilula p-ok">Testada</span></td><td>Restauração executada em 09/09 num Postgres 17.6 real: 80 linhas, estrutura idêntica e o isolamento sobrevivendo ao restore. As fotos ficam fora do dump, e a cópia do balde é procedimento ainda não escrito</td></tr>
+          <tr><td>Console do fornecedor</td><td><span class="pilula p-ok">Em uso</span></td><td>No ar desde 14/09 em defesa-civil-console.fly.dev, aplicativo separado da API. Cadastra prefeitura e primeiro administrador sem a credencial de dono na mão de ninguém, suspende e agenda eliminação com sete dias de arrependimento, operadores no banco, códigos de recuperação de uso único, segundo fator obrigatório na partida. O papel de banco dele não lê tabela de negócio nenhuma, por asserção universal</td></tr>
+          <tr><td>Segundo fator para o administrador do município</td><td><span class="pilula p-ok">Pronto</span></td><td>Código de seis dígitos do aplicativo de autenticação (não SMS), segredo cifrado com chave fora do banco, oito códigos de recuperação. Falta: administrador ainda não desliga o segundo fator de outra pessoa</td></tr>
+          <tr><td>Retenção por prazo</td><td><span class="pilula p-ok">Pronta</span></td><td>O município fixa o prazo (ele é o controlador); vencido, nome e contato viram marcador de "removido por prazo"; protocolo, laudo e trilha ficam. Município sem prazo não perde dado. Fotografias ainda não entram no prazo</td></tr>
+          <tr><td>Registro de consulta a dado de cidadão</td><td><span class="pilula p-parcial">Parcial</span></td><td>As rotas que devolvem dado de cidadão registram o acesso (não o dado). Resíduo declarado: a listagem de ocorrências ainda devolve nome e contato sem registrar</td></tr>
+          <tr><td>Plano de saída de município</td><td><span class="pilula p-ok">Executável</span></td><td>Um pacote com CSV e JSON de toda tabela, fotografias por protocolo, documentos em HTML autossuficiente, índice e soma SHA-256. Hoje só por requisição autenticada de administrador: o botão no painel não existe</td></tr>
+          <tr><td>Política de privacidade</td><td><span class="pilula p-parcial">Escrita, não publicada</span></td><td>Redigida com o município como controlador. Os campos que só eu posso preencher (razão social, CNPJ, encarregado, endereço de publicação) estão marcados e vazios. Enquanto houver um, não vai ao ar, e sem ela nenhuma loja aceita o aplicativo</td></tr>
+          <tr><td>Lista de subprocessadores e cláusula de operador</td><td><span class="pilula p-ok">Pronta</span></td><td>Versão 3, de 15/09, nomeando cada empresa que toca dado e o que sai do país. Revisão jurídica pendente</td></tr>
+          <tr><td>Procedimento de indisponibilidade</td><td><span class="pilula p-ok">Pronto</span></td><td>O que continua funcionando quando cada peça cai, escala de gravidade, ordem de conserto e contingência no papel. A página de status não existe</td></tr>
+          <tr><td>Roteiro de implantação e treinamento</td><td><span class="pilula p-ok">Pronto</span></td><td>Reunião única de decisões, seis etapas com duração, treinamento por perfil (agente em 40 minutos, com o modo avião ligado de verdade), cartão de bolso e guia do coordenador</td></tr>
+          <tr><td>Publicação nas lojas</td><td><span class="pilula p-falta">Falta</span></td><td>Textos da ficha, formulário de dados e configuração do binário prontos. Trava na política publicada, na conta de demonstração para a revisão da Apple, no D-U-N-S e na verificação de identidade da Google. Ver "O que vamos fazer ainda"</td></tr>
+          <tr><td>Página de status</td><td><span class="pilula p-falta">Falta</span></td><td>Especificada (fora da infraestrutura que monitora, alimentada por sonda), não construída</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </section>
+
+  <!-- 4. COMPARAÇÃO COM A ESPECIFICAÇÃO -->
+  <section>
+    <div class="eyebrow">A régua</div>
+    <h2>Comparação com a sua especificação de 18/08/2026</h2>
+    <p>
+      Requisito a requisito, seção a seção do documento original. Cada linha diz
+      o estado e onde está, ou por que foi feito de outro jeito. Dois desvios
+      grandes merecem argumento antes das tabelas, porque são decisões e não
+      atrasos.
+    </p>
+    <div class="legenda">
+      <span class="pilula p-ok">Feito</span>
+      <span class="pilula p-parcial">Parcial</span>
+      <span class="pilula p-dif">Feito diferente</span>
+      <span class="pilula p-falta">Não feito</span>
+      <span class="pilula p-na">Fase futura, de propósito</span>
+    </div>
+
+    <h3>Desvio 1: aplicativo nativo, e não PWA</h3>
+    <p>
+      A especificação recomendava PWA instalável e dizia que aplicativo nativo
+      não era necessário no MVP. O produto tem aplicativo nativo, em React Native
+      com Expo, o mesmo código para iOS e Android. A decisão foi tomada no
+      levantamento técnico de 19/08, antes de qualquer linha de código, e o
+      próprio documento pedia que eu recalculasse depois de escolher a
+      profundidade do offline. O que a escolha comprou, com o que está no
+      produto e não com hipótese:
+    </p>
+    <ul class="limpa">
+      <li><span class="t">Fila offline em SQLite de verdade</span><div class="d">O motor de sincronização guarda a coleta em banco do aparelho, reenvia com a mesma chave depois de o aplicativo morrer no meio do envio, e o servidor devolve o recibo antigo em vez de gravar outro laudo. O levantamento registra o motivo: SQLite real para a fila é superior ao IndexedDB dentro de WebView. Medimos o outro lado no painel: no motor do Safari, o banco local em IndexedDB levou 163 segundos para abrir.</div></li>
+      <li><span class="t">Câmera, GPS e a foto fora da galeria</span><div class="d">Permissão nativa com texto em português, só em primeiro plano; a foto é copiada para o diretório do aplicativo e apagada no logout, sem passar pela galeria do aparelho. É a resposta ao item da seção 13 ("evitar fotos em aparelhos pessoais fora da área controlada"), e uma PWA no iOS não controla isso.</div></li>
+      <li><span class="t">Notificação com som próprio e canal de urgência</span><div class="d">Despacho toca som e vibra com o aplicativo fechado, por APNs e FCM diretos, com "Time Sensitive" no iOS. Push de PWA no iOS exige instalação na tela inicial e não tem som próprio nem canal por severidade.</div></li>
+      <li><span class="t">Mapa nativo sem custo por uso</span><div class="d">O SDK nativo do Google não cobra por carregamento; o de JavaScript cobra. O mapa dentro do aplicativo, com pinos por criticidade e rota, custa zero em dinheiro, e o custo real (privacidade) está escrito na lista de subprocessadores.</div></li>
+      <li><span class="t">Assinatura no dedo, retorno tátil e acabamento de produto</span><div class="d">Traço capturado sem o scroll do pai interferir, vibração ao fotografar e ao concluir, menu de vidro. Isso é o que separa "projeto" de "produto" na mão do agente, e foi o que ainda faltava nas rodadas de 13/09 e de 15/09 no aparelho.</div></li>
+    </ul>
+    <p style="margin-top:14px">
+      <strong>O preço, dito com clareza:</strong> a loja. Conta da Apple com
+      D-U-N-S, revisão com recusa provável na primeira rodada (aplicativo só
+      para servidor numa loja pública), formulário de dados assinado, e cada
+      módulo nativo novo exige recompilar. É por isso que a publicação está em
+      "falta" e o roteiro das lojas recomenda começar pela distribuição interna.
+      O painel continua web, e nada impede uma PWA do painel depois.
+    </p>
+
+    <h3>Desvio 2: as fases 2 e 3 não foram feitas, de propósito</h3>
+    <div class="cita">
+      "Construir primeiro um sistema operacional de registro de ocorrências,
+      despacho, vistoria de campo offline, evidências, documentos e
+      acompanhamento. Preparar a arquitetura para o modo emergência e a
+      logística humanitária, mas não tentar entregar tudo no primeiro MVP."
+      (Decisão recomendada, na abertura da sua especificação.)
+    </div>
+    <p>
+      Foi o que se fez. Modo incidente, quadro de situação, turnos, abrigos,
+      estoques, doações, distribuição e prova de entrega (seções 5.2, 5.3 e 7)
+      não têm uma linha de código. Portal do cidadão, formulários configuráveis,
+      BI e integrações municipais (MVP 2) também não, com uma ressalva: checklist
+      configurável foi <em>recusado</em> por escrito, porque o laudo com brasão
+      não pode ser um lugar onde o aparelho escreve texto livre, e configurável
+      mata a comparabilidade entre municípios que a COBRADE existe para dar. O
+      que ficou preparado para as fases seguintes é o que importa: isolamento
+      multi-município provado, trilha append-only, protocolo por município e
+      ano, e o registro que nunca se apaga (RN-08 fica fácil quando nada é
+      reescrito). Estão no roadmap futuro, sem data, na seção "O que vamos fazer
+      ainda".
+    </p>
+
+    <h3>Seção 3: usuários e permissões</h3>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>Perfil</th><th>Estado</th><th>Onde está, ou por que diferente</th></tr></thead>
+        <tbody>
+          <tr><td>Administrador da organização</td><td><span class="pilula p-ok">Feito</span></td><td>Papel "administrador", posto 3, teto do município: altera os dados do órgão, gerencia equipes e usuários, e é o único que administra outro administrador. Nunca enxerga outro ente (RLS). Não configura formulários nem modelos: são fixos, por decisão</td></tr>
+          <tr><td>Coordenador da Defesa Civil</td><td><span class="pilula p-ok">Feito</span></td><td>Posto 2: triagem, despacho, providência, encerramento, laudo e termo, trilha e exportação. "Ativa incidente" é fase 3; "aprova documentos" virou "emite": não há fluxo rascunho, revisão, aprovado</td></tr>
+          <tr><td>Operador / plantonista</td><td><span class="pilula p-parcial">Parcial</span></td><td>Registra chamado com a pessoa na linha, vê a duplicidade, registra resposta de providência e acompanha quem está em campo. Classificar e despachar ficaram com o coordenador, pelo sistema de postos: quem despacha responde pelo despacho</td></tr>
+          <tr><td>Agente / vistoriador</td><td><span class="pilula p-ok">Feito</span></td><td>Só as tarefas da equipe dele, offline, com o histórico do imóvel ("o que já aconteceu nesta casa"). Não cai no painel do coordenador: tem tela própria no painel e o aplicativo</td></tr>
+          <tr><td>Técnico responsável</td><td><span class="pilula p-falta">Não feito</span></td><td>Não existe papel próprio nem fluxo de validação de laudo. Quem emite é coordenador ou administrador, e a autoria fica na trilha. Entra junto com DOC-04</td></tr>
+          <tr><td>Órgão parceiro</td><td><span class="pilula p-dif">Feito diferente</span></td><td>Sem login para o órgão: ele recebe ofício numerado por email com link de uso único, e a resposta (atendida, parcial, recusada) é registrada pelo operador ou pelo coordenador, sem edição depois. Login de terceiro no sistema do município é superfície de ataque que o piloto não precisa</td></tr>
+          <tr><td>Gestor / controle / auditor</td><td><span class="pilula p-parcial">Parcial</span></td><td>Trilha filtrável e exportação existem, com quem exportou registrado. Não há papel só de leitura: hoje é o coordenador ou o administrador que consulta</td></tr>
+          <tr><td>Cidadão</td><td><span class="pilula p-na">MVP 2, não feito</span></td><td>Sem portal externo. O único formulário público é o de interesse de município, para prefeitura que quer conhecer o produto</td></tr>
+          <tr><td>Regra estrutural: por organização, unidade, perfil e sigilo</td><td><span class="pilula p-parcial">Parcial</span></td><td>Por organização (RLS) e por perfil com posto: feito. "Unidade" não existe: organização e equipe. Sigilo: o laudo (que concentra nome, contato, endereço, vulnerabilidade e fotos) é restrito à coordenação; a descrição de vulnerabilidade não aparece em lista; exportação completa exige justificativa escrita na trilha</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Seção 4: escopo por fases</h3>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>Fase</th><th>Estado</th><th>Onde está, ou por que diferente</th></tr></thead>
+        <tbody>
+          <tr><td>Descoberta</td><td><span class="pilula p-ok">Feito</span></td><td>Protótipo navegável em HTML puro (mockup/, 19 e 20/08), levantamento técnico e jurídico que fixou stack e régua de segurança (19/08). Entrevistas de campo (seção 17): não feitas como programa; o que houve foi uso real em Florianópolis</td></tr>
+          <tr><td>MVP 1</td><td><span class="pilula p-ok">Feito</span></td><td>Ocorrências, triagem, despacho, campo offline, evidências, documentos, providências, mapa, painel e auditoria. Com o desvio 1: aplicativo nativo em vez de PWA</td></tr>
+          <tr><td>MVP 2</td><td><span class="pilula p-parcial">Parcial</span></td><td>Regras de prazo por severidade e "atrasada" no painel: feito. Assinatura: a de quem estava no local, no dedo, com prova de ciência; não é assinatura digital e não pretende ser. Portal do cidadão, formulários configuráveis, integrações municipais e BI: não. O console do fornecedor lê métricas agregadas por município, que é o começo de um BI de operação</td></tr>
+          <tr><td>Fase 3: emergência e logística</td><td><span class="pilula p-na">Não feito, de propósito</span></td><td>Ver o desvio 2. Nenhuma linha de código</td></tr>
+          <tr><td>Fase 4: escala regional</td><td><span class="pilula p-na">Não feito</span></td><td>O que já existe é a base: multi-município provado e provisionamento pelo console. API pública documentada e apoio mútuo não existem</td></tr>
+          <tr><td>4.1 Fora do MVP</td><td><span class="pilula p-ok">Respeitado</span></td><td>Sem previsão meteorológica, sem sensores, sem substituir S2ID ou Defesa Civil Alerta, sem WhatsApp, sem microserviços. A única inversão é o aplicativo nativo</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Seção 6.1: organização, usuários e acesso</h3>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>ID</th><th>Requisito</th><th>Estado</th><th>Onde está, ou por que diferente</th></tr></thead>
+        <tbody>
+          <tr><td class="id">AUT-01</td><td>Organizações, unidades e equipes em multi-tenant</td><td><span class="pilula p-ok">Feito</span></td><td>Organização e equipe; sem o nível "unidade". Usuário de um município não consulta nem altera dado de outro: é o portão CA-06</td></tr>
+          <tr><td class="id">AUT-02</td><td>Email e senha com recuperação segura</td><td><span class="pilula p-ok">Feito</span></td><td>scrypt, token curto com renovação rotativa, bloqueio por conta e por endereço, resposta idêntica para email inexistente. Recuperação por link de uso único pronta e desligada no piloto (sem provedor de email); redefinição por administrador derruba as sessões. Tudo na trilha</td></tr>
+          <tr><td class="id">AUT-03</td><td>Controle de acesso por perfil e unidade</td><td><span class="pilula p-ok">Feito</span></td><td>Uma tabela de permissões no pacote compartilhado, consultada pela tela e imposta pela API antes de tocar no banco. Um teste lê a árvore de rotas do servidor e exige token de todas. Por unidade: não existe unidade</td></tr>
+          <tr><td class="id">AUT-04</td><td>MFA para administradores e perfis críticos</td><td><span class="pilula p-ok">Feito</span></td><td>TOTP obrigatório para o administrador quando o município liga, opcional para os demais, obrigatório sem exceção no console do fornecedor</td></tr>
+          <tr><td class="id">AUT-05</td><td>Aceite de termos e ciência de uso</td><td><span class="pilula p-falta">Não feito</span></td><td>Não há registro de aceite por versão. Entra com a política publicada</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Seção 6.2: ocorrências, protocolo e triagem</h3>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>ID</th><th>Requisito</th><th>Estado</th><th>Onde está, ou por que diferente</th></tr></thead>
+        <tbody>
+          <tr><td class="id">OCO-01</td><td>Protocolo único por organização e ano</td><td><span class="pilula p-ok">Feito</span></td><td>Gerado no banco, dentro da transação, com a linha da sequência travada: dois operadores ao mesmo tempo não recebem o mesmo número, e dois municípios podem ter 000001/2026 sem colidir</td></tr>
+          <tr><td class="id">OCO-02</td><td>Solicitante, contato, endereço, coordenada, descrição e anexos</td><td><span class="pilula p-ok">Feito</span></td><td>Coordenada aceita par, vírgula decimal, grau/minuto/segundo, link do Google e link curto. Evidência avulsa anexada pelo painel com trilha. Regras por tipo: "outro" exige descrição e não passa do despacho; o resto do checklist é fixo por catálogo</td></tr>
+          <tr><td class="id">OCO-03</td><td>Tipo, prioridade, risco, vulnerabilidade e prazo</td><td><span class="pilula p-ok">Feito</span></td><td>Tipo pela COBRADE, severidade, vulnerabilidade social com descrição obrigatória (CHECK no banco), prazo por severidade configurado pelo município. Fila ordenada por prazo e histórico na trilha</td></tr>
+          <tr><td class="id">OCO-04</td><td>Sugerir duplicidade</td><td><span class="pilula p-parcial">Parcial</span></td><td>Por endereço, na hora do registro, com vínculo nos dois sentidos e a frase "encerrar um não encerra o outro". Por coordenada, contato e período: não</td></tr>
+          <tr><td class="id">OCO-05</td><td>Relacionar ao mesmo imóvel, área ou evento</td><td><span class="pilula p-parcial">Parcial</span></td><td>Vínculo entre ocorrências e "ver também" por mesmo endereço, sem mesclar. Área de risco e evento: não existem como entidade</td></tr>
+          <tr><td class="id">OCO-06</td><td>Atribuir equipe, responsável, prazo e instruções</td><td><span class="pilula p-ok">Feito</span></td><td>Despacho para equipe com prazo; a tarefa aparece no aparelho e a coordenação vê o andamento e a devolução com motivo. "Aceite" explícito do agente não existe: quem baixou a lista está ciente</td></tr>
+          <tr><td class="id">OCO-07</td><td>Linha do tempo imutável</td><td><span class="pilula p-ok">Feito</span></td><td>Trilha gravada na mesma transação de cada mudança, sem policy de UPDATE e DELETE no banco: nem a aplicação reescreve. Criação, triagem, despacho, vistoria, documento, correção e encerramento, com autor e hora</td></tr>
+          <tr><td class="id">OCO-08</td><td>Importar lote por CSV</td><td><span class="pilula p-falta">Não feito</span></td><td>Prioridade C na sua lista. Fica para quando um município chegar com base antiga</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Seção 6.3: campo e vistoria offline</h3>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>ID</th><th>Requisito</th><th>Estado</th><th>Onde está, ou por que diferente</th></tr></thead>
+        <tbody>
+          <tr><td class="id">VIS-01</td><td>PWA responsiva e instalável</td><td><span class="pilula p-dif">Feito diferente</span></td><td>Aplicativo nativo (desvio 1). Estado de sincronização visível o tempo todo na faixa do aplicativo</td></tr>
+          <tr><td class="id">VIS-02</td><td>Baixar tarefas e formulários para uso sem conexão</td><td><span class="pilula p-ok">Feito</span></td><td>A lista e o catálogo de órgãos descem com sinal e ficam no aparelho; a vistoria conclui com o catálogo vazio. A prova em modo avião no aparelho, com captura, está pendente de mão humana (CA-02)</td></tr>
+          <tr><td class="id">VIS-03</td><td>GPS, precisão, data/hora e autoria</td><td><span class="pilula p-ok">Feito</span></td><td>Coordenada da vistoria com a precisão do aparelho viaja no envelope; duas marcas de tempo (campo e recebimento); autor carimbado no item e conferido pelo servidor contra o token, com a divergência recusada e registrada</td></tr>
+          <tr><td class="id">VIS-04</td><td>Fotos, legendas e ordem, comprimidas, upload retomável</td><td><span class="pilula p-parcial">Parcial</span></td><td>Envio direto ao armazenamento por URL de vida curta, conferência de bytes e SHA-256, retomada foto a foto, compressão fixa em 0,6. Legenda existe no esquema; qualidade configurável por organização e miniatura: não</td></tr>
+          <tr><td class="id">VIS-05</td><td>Checklist por tipo de ocorrência</td><td><span class="pilula p-dif">Feito diferente</span></td><td>Checklist fixo do catálogo compartilhado, com obrigatórios e opcionais, e os órgãos a acionar. Não configurável por município, por decisão escrita (comparabilidade e laudo sem texto livre). Item opcional não respondido não sai como "não" no papel</td></tr>
+          <tr><td class="id">VIS-06</td><td>Assinatura na tela</td><td><span class="pilula p-ok">Feito</span></td><td>Traço no dedo com nome de quem assinou, finalidade e data no laudo e no termo. Paleta fixa de documento: o defeito do traço branco em papel branco foi achado no primeiro uso real e corrigido com teste</td></tr>
+          <tr><td class="id">VIS-07</td><td>Rascunhos, pendências e conflitos visíveis</td><td><span class="pilula p-ok">Feito</span></td><td>Fila com estado por item, "salvar e sair", lápide de coleta para não vistoriar duas vezes por acidente, reconciliação que explica por que uma tarefa sumiu. Nada é descartado sem toque e confirmação</td></tr>
+          <tr><td class="id">VIS-08</td><td>Complemento posterior sem apagar o original</td><td><span class="pilula p-parcial">Parcial</span></td><td>Evidência anexada depois com trilha; foto confirmada não pode ser trocada sem rastro; correção de coordenada por evento. Aditamento de checklist com justificativa: não</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Seção 6.4: documentos, providências e acompanhamento</h3>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>ID</th><th>Requisito</th><th>Estado</th><th>Onde está, ou por que diferente</th></tr></thead>
+        <tbody>
+          <tr><td class="id">DOC-01</td><td>Relatório de vistoria em PDF a partir de modelo</td><td><span class="pilula p-ok">Feito</span></td><td>Laudo com protocolo, dados, checklist, fotos da vistoria certa, autoria, as duas datas e o órgão indicado; HTML para impressão e PDF do mesmo HTML. Regerado com dado real da produção e conferido a olho</td></tr>
+          <tr><td class="id">DOC-02</td><td>Notificação, encaminhamento, termo e relatório fotográfico</td><td><span class="pilula p-ok">Feito</span></td><td>Termo de interdição, termo de desinterdição, ofício de encaminhamento; o relatório fotográfico vive dentro do laudo. Modelos habilitados por organização: não, é um modelo por documento</td></tr>
+          <tr><td class="id">DOC-03</td><td>Versionar modelos e documentos emitidos</td><td><span class="pilula p-dif">Feito diferente</span></td><td>O modelo é versionado com o código. O documento é gerado sob demanda e não guardado: se uma foto entra depois, a reimpressão sai atual e o evento anota que já havia documento emitido. Guardar o PDF seria guardar a versão errada com cara de definitiva. Reimprimir não altera nada (o defeito de reinterditar na reimpressão foi achado e corrigido)</td></tr>
+          <tr><td class="id">DOC-04</td><td>Revisão e aprovação por responsável técnico</td><td><span class="pilula p-falta">Não feito</span></td><td>Sem estados rascunho, em revisão, aprovado. Prioridade S na sua lista</td></tr>
+          <tr><td class="id">FLU-01</td><td>Providência com responsável, prazo, prioridade e órgão</td><td><span class="pilula p-ok">Feito</span></td><td>Providência ligada a órgão cadastrado pelo município, com ofício numerado por município e ano, na fila e na trilha</td></tr>
+          <tr><td class="id">FLU-02</td><td>Resposta e evidência de cumprimento</td><td><span class="pilula p-dif">Feito diferente</span></td><td>Resposta com desfecho fechado, texto e quem respondeu, não editável. Encerrar com providência sem resposta é permitido, e o encerramento registra na trilha quais ficaram abertas: a secretaria às vezes nunca responde, e travar o encerramento faria a fila crescer para sempre</td></tr>
+          <tr><td class="id">FLU-03</td><td>Notificar prazos próximos e vencidos</td><td><span class="pilula p-ok">Feito</span></td><td>Sino do painel para prazo vencido; push de "prazo vencendo" para o agente pronto e desligado; providências vencidas com cartão próprio abaixo da fila</td></tr>
+          <tr><td class="id">FLU-04</td><td>Encerrar e reabrir com motivo obrigatório</td><td><span class="pilula p-parcial">Parcial</span></td><td>Encerrar exige motivo por CHECK no banco, com confirmação em dois toques. Reabrir não existe: registro encerrado é peça de processo e se corrige por ocorrência nova vinculada. Voltar de "em campo" para triagem existe, para a tarefa vencida sem vistoria</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Seção 6.5: mapa, painel, relatórios e auditoria</h3>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>ID</th><th>Requisito</th><th>Estado</th><th>Onde está, ou por que diferente</th></tr></thead>
+        <tbody>
+          <tr><td class="id">GEO-01</td><td>Mapa por coordenada, status, tipo e prioridade</td><td><span class="pilula p-ok">Feito</span></td><td>Google Maps com chave do município (rodou contra o Google em 13/09) ou plano esquemático sem contato com o Google; marcador com forma e palavra por severidade; a tela diz em que modo está. Filtros alterando mapa e lista juntos: parcial</td></tr>
+          <tr><td class="id">GEO-02</td><td>Histórico por imóvel, raio ou área de risco</td><td><span class="pilula p-parcial">Parcial</span></td><td>Por mesmo endereço e por vínculo. Raio e área: não, e a extensão PostGIS ainda não é criada porque nada faz consulta espacial</td></tr>
+          <tr><td class="id">PAI-01</td><td>Fila, prazos, volume, tipos e tempo de atendimento</td><td><span class="pilula p-ok">Feito</span></td><td>Indicadores do painel com mediana (não média), atrasadas contadas no servidor com a mesma expressão do filtro, paginação com o teto dito na tela</td></tr>
+          <tr><td class="id">REL-01</td><td>Exportar relatórios PDF e CSV</td><td><span class="pilula p-ok">Feito</span></td><td>CSV em dois níveis (o completo exige justificativa), com quem exportou, recorte e quantidade registrados, e a planilha neutralizada contra injeção de fórmula. PDF por documento; relatório agregado em PDF: não</td></tr>
+          <tr><td class="id">AUD-01</td><td>Registrar criação, alteração, consulta sensível e exportação</td><td><span class="pilula p-ok">Feito</span></td><td>Trilha de eventos, registro de consulta nas rotas de dado de cidadão (com o resíduo da listagem declarado), tabela de exportações append-only</td></tr>
+          <tr><td class="id">AUD-02</td><td>Auditoria só a perfis autorizados, logs inalteráveis</td><td><span class="pilula p-ok">Feito</span></td><td>Coordenador e administrador consultam; o banco não tem policy de alteração nem de remoção na trilha</td></tr>
+          <tr><td class="id">CFG-01</td><td>Configurar tipos, prioridades, prazos e modelos</td><td><span class="pilula p-parcial">Parcial</span></td><td>Prazos por severidade e lista de órgãos, por município. Tipos são a COBRADE, fixos por decisão; modelos são um por documento</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Seção 8: regras de negócio</h3>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>ID</th><th>Regra</th><th>Estado</th><th>Onde está, ou por que diferente</th></tr></thead>
+        <tbody>
+          <tr><td class="id">RN-01</td><td>Isolamento por tenant</td><td><span class="pilula p-ok">Feito</span></td><td>Toda tabela tem organização e RLS forçada; a chave de arquivo no armazenamento precisa começar com o prefixo do município (CHECK); chave estrangeira composta para o banco não aceitar vínculo cruzado. Recurso de outro município responde 404, nunca 403</td></tr>
+          <tr><td class="id">RN-02</td><td>Protocolo único, não reutilizável</td><td><span class="pilula p-ok">Feito</span></td><td>Sequência por município e ano. Cancelamento não existe: registro se encerra com motivo, então nenhum número é liberado</td></tr>
+          <tr><td class="id">RN-03</td><td>Evidência em documento não se substitui</td><td><span class="pilula p-ok">Feito</span></td><td>Foto confirmada não pode ser trocada; anexar deixa trilha; correção é evento novo</td></tr>
+          <tr><td class="id">RN-04</td><td>Coordenada com precisão, data, origem e ajuste justificado</td><td><span class="pilula p-ok">Feito</span></td><td>Precisão do aparelho na vistoria; ajuste manual exige motivo (mínimo de 15 caracteres, pelo esquema compartilhado) e grava anterior e novo. A coordenada da vistoria nunca é tocada pela correção: é outro autor e outro momento</td></tr>
+          <tr><td class="id">RN-05</td><td>Encerramento com motivo, responsável e providências</td><td><span class="pilula p-dif">Feito diferente</span></td><td>Motivo e responsável obrigatórios. Providência aberta não trava, fica registrada no evento de encerramento (ver FLU-02)</td></tr>
+          <tr><td class="id">RN-06</td><td>Conflito offline sem escolha silenciosa</td><td><span class="pilula p-ok">Feito</span></td><td>Vistoria e foto são append-only e combinam por chave de idempotência; a vistoria é do agente que a coletou e ninguém edita por cima; a correção de coordenada trava a linha (SELECT FOR UPDATE) para duas correções simultâneas não gravarem o mesmo "anterior"</td></tr>
+          <tr><td class="id">RN-07</td><td>Sigilo em painel público e exportação ampla</td><td><span class="pilula p-ok">Feito</span></td><td>Não há painel público. Exportação completa exige justificativa; o console do fornecedor lê só contagens e datas, e o portão reprova coluna de texto na visão dele</td></tr>
+          <tr><td class="id">RN-08</td><td>Incidente não altera a ocorrência</td><td><span class="pilula p-na">Fase 3</span></td><td>Preparado pela natureza da trilha: nada é reescrito. Sem código</td></tr>
+          <tr><td class="id">RN-09</td><td>Saldo de estoque por movimentos</td><td><span class="pilula p-na">Fase 3</span></td><td>Sem código</td></tr>
+          <tr><td class="id">RN-10</td><td>Configuração versionada</td><td><span class="pilula p-dif">Feito diferente</span></td><td>Checklist e modelos são versionados com o código e não configuráveis pela tela; prazo por severidade e órgãos são configuração do município, com a mudança na trilha administrativa</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Seção 9: requisitos não funcionais</h3>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>ID</th><th>Requisito</th><th>Estado</th><th>Onde está, ou por que diferente</th></tr></thead>
+        <tbody>
+          <tr><td class="id">RNF-01</td><td>Disponibilidade 99,5% mensal</td><td><span class="pilula p-parcial">Não medido</span></td><td>API e console não hibernam no Fly, com verificação de saúde que confere banco e esquema. Não há página de status nem métrica de disponibilidade publicada: sem medição, o número não pode ser afirmado</td></tr>
+          <tr><td class="id">RNF-02</td><td>95% das operações em até 2 s</td><td><span class="pilula p-parcial">Não medido em produção</span></td><td>Teste de carga com 200 ocorrências e 5 aparelhos mede correção e forma de consulta, não latência (roda em Postgres embutido). A busca foi medida no banco real: 1 a 9 ms</td></tr>
+          <tr><td class="id">RNF-03</td><td>Offline com fila visível e retomável</td><td><span class="pilula p-ok">Feito</span></td><td>É o projeto do aplicativo, e a parte com mais teste</td></tr>
+          <tr><td class="id">RNF-04</td><td>TLS, senha forte, segredo fora do código, RBAC, validação no backend</td><td><span class="pilula p-ok">Feito</span></td><td>TLS com certificado do banco validado (a partida recusa subir sem), scrypt, segredos no cofre do Fly, tabela de permissões imposta pela API, esquemas Zod compartilhados. Régua: OWASP ASVS 4.0 nível 2 como alvo, CIS Controls v8 IG1 como piso</td></tr>
+          <tr><td class="id">RNF-05</td><td>Logs protegidos, com retenção e pesquisa</td><td><span class="pilula p-ok">Feito</span></td><td>Trilha append-only e filtrável; retenção configurável para dado pessoal, não para a trilha (que fica)</td></tr>
+          <tr><td class="id">RNF-06</td><td>Backup, RPO 24 h e RTO 8 h</td><td><span class="pilula p-parcial">Parcial</span></td><td>Restauração testada em 09/09 (menos de 10 s de comando; o tempo humano é ter o cliente instalado antes). O backup automático e o PITR do provedor dependem do plano da Supabase, que hoje é o gratuito, e não foram conferidos. As fotos ficam fora do dump</td></tr>
+          <tr><td class="id">RNF-07</td><td>Escala horizontal dos componentes críticos</td><td><span class="pilula p-ok">Feito</span></td><td>API sem estado, varredores com trava no banco para duas máquinas não duplicarem, teto de tentativas do console no banco desde a migração 038</td></tr>
+          <tr><td class="id">RNF-08</td><td>Mídia: compressão, miniatura, retomada, retenção</td><td><span class="pilula p-parcial">Parcial</span></td><td>Compressão fixa, retomada por arquivo, conferência de bytes, teto de armazenamento por município. Miniatura e retenção de foto por prazo: previstos, não feitos</td></tr>
+          <tr><td class="id">RNF-09</td><td>WCAG 2.1 AA nos fluxos principais</td><td><span class="pilula p-ok">Feito</span></td><td>Contraste calculado por máquina nos dois temas, no painel e no aplicativo; teclado no painel provado no navegador; alvo de toque de 52 pontos no aplicativo. Não substitui teste com leitor de tela e pessoa real</td></tr>
+          <tr><td class="id">RNF-10</td><td>Chrome/Edge, Android e iOS via PWA</td><td><span class="pilula p-dif">Feito diferente</span></td><td>Painel provado em Chromium e Firefox; no Safari, usar o modo com API (o modo local é lento). Aplicativo nativo: usado em iPhone real; Android verificado só em emulador, nunca em aparelho</td></tr>
+          <tr><td class="id">RNF-11</td><td>Métricas, logs estruturados, alertas, rastreio de jobs</td><td><span class="pilula p-parcial">Parcial</span></td><td>Logs estruturados sem segredo nem coordenada, verificação de saúde, métricas por município no console. Alerta de erro automático e rastreio de sincronizações: não</td></tr>
+          <tr><td class="id">RNF-12</td><td>Portabilidade em formato documentado</td><td><span class="pilula p-ok">Feito</span></td><td>Pacote de saída com dicionário de dados à parte</td></tr>
+          <tr><td class="id">RNF-13</td><td>Testes, migrações versionadas, CI/CD, ambientes separados</td><td><span class="pilula p-ok">Feito</span></td><td>3.927 testes, 42 migrações com hash conferido, integração contínua em cinco trabalhos. Ambiente de homologação: não existe, e o perfil de build aponta para um endereço que não existe de propósito</td></tr>
+          <tr><td class="id">RNF-14</td><td>Português do Brasil, datas e fusos</td><td><span class="pilula p-ok">Feito</span></td><td>Tudo em português, inclusive o código. A data do documento saía no fuso do servidor (UTC): achado e corrigido em 13/09</td></tr>
+          <tr><td class="id">RNF-15</td><td>Contingência e operação degradada</td><td><span class="pilula p-ok">Feito</span></td><td>Procedimento escrito, com o papel como plano B e a entrada retroativa com a data real do atendimento. Página de status: falta</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Seção 13: segurança, privacidade e LGPD</h3>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>Item da sua lista</th><th>Estado</th><th>Onde está</th></tr></thead>
+        <tbody>
+          <tr><td>Controlador, operador, finalidades e bases legais</td><td><span class="pilula p-parcial">Escrito, não publicado</span></td><td>Política de privacidade com o município como controlador e cláusula de operador para o contrato, ambas à espera dos campos que só eu preencho e de revisão jurídica</td></tr>
+          <tr><td>Minimização: o agente recebe só o necessário</td><td><span class="pilula p-ok">Feito</span></td><td>O aparelho recebe a tarefa, não o município. A descrição de vulnerabilidade desce com a lista por causa do trabalho sem sinal, e isso está escrito para o município não descobrir numa conferência</td></tr>
+          <tr><td>Criptografar tráfego e armazenamento; segredos fora do repositório</td><td><span class="pilula p-ok">Feito</span></td><td>HTTPS obrigatório no aplicativo, TLS validado com o banco, segredos no Fly, segredo do segundo fator cifrado com chave fora do banco, chave de push aceita por conteúdo para nunca entrar na imagem</td></tr>
+          <tr><td>Separar dado pessoal de painel público</td><td><span class="pilula p-ok">Feito</span></td><td>Não há painel público; o console do fornecedor só alcança contagens</td></tr>
+          <tr><td>Registrar acesso e exportação, não só alteração</td><td><span class="pilula p-parcial">Parcial</span></td><td>Registro de consulta nas rotas de dado de cidadão e tabela de exportações; a listagem de ocorrências ainda não registra</td></tr>
+          <tr><td>Retenção por tipo de dado e descarte controlado</td><td><span class="pilula p-ok">Feito</span></td><td>Prazo por município, marcador de "removido por prazo" demonstrável em auditoria; fotos ainda fora</td></tr>
+          <tr><td>Testes de isolamento entre tenants em cada versão</td><td><span class="pilula p-ok">Feito</span></td><td>132 testes, primeiro trabalho da integração contínua, mais o restore conferindo que o isolamento sobrevive ao backup</td></tr>
+          <tr><td>Resposta a incidente, backup, restauração, revogação de sessões</td><td><span class="pilula p-ok">Feito</span></td><td>Procedimento de indisponibilidade com o relógio de 24 h para suspeita de vazamento; restore testado; encerrar todas as sessões de uma pessoa ou de todos; rotação do segredo de sessão sem derrubar ninguém</td></tr>
+          <tr><td>Fotos fora de aparelho pessoal e limpeza local</td><td><span class="pilula p-ok">Feito</span></td><td>Foto no diretório do aplicativo, não na galeria; tudo apagado no logout; sem microfone, sem localização em segundo plano, e cinco chaves de permissão que mentiam saíram do binário</td></tr>
+          <tr><td>Avaliação de impacto antes de abrigos e vulnerabilidade</td><td><span class="pilula p-parcial">Pendente</span></td><td>Abrigos são fase 3. Sobre o traço da assinatura ser declarado dado biométrico nas lojas, a decisão é do encarregado, e está aberta</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Seção 14: critérios de aceite do MVP, um a um</h3>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>ID</th><th>Cenário</th><th>Estado</th><th>A prova</th></tr></thead>
+        <tbody>
+          <tr><td class="id">CA-01</td><td>Ocorrência completa: operador cria, coordenação classifica e atribui, agente recebe, encerra com histórico</td><td><span class="pilula p-ok">Feito</span></td><td>Roteiro de navegador com 103 verificações contra a API de verdade, do login ao CSV; e ocorrências reais em Florianópolis passando pelo ciclo inteiro desde 08/09</td></tr>
+          <tr><td class="id">CA-02</td><td>Vistoria offline em modo avião, GPS e cinco fotos, sincroniza sem duplicar nem perder</td><td><span class="pilula p-parcial">Parcial</span></td><td>O motor e o aplicativo provam por teste a fila, a retomada foto a foto, a idempotência sob corrida forçada e as lápides de coleta. Vistorias reais subiram do aparelho. O que falta é o ciclo com o modo avião ligado, no aparelho, com captura de cada etapa: pede dedo humano (senha, traço, modo avião) e está nomeado como pendente no plano, sem check</td></tr>
+          <tr><td class="id">CA-03</td><td>PDF padronizado com protocolo, respostas, evidências, autoria, data e versão</td><td><span class="pilula p-ok">Feito</span></td><td>Laudo regerado com os dados reais da ocorrência 000001/2026 e conferido a olho em 09/09; dois defeitos de diagramação achados nessa conferência e corrigidos com teste. PDF renderizado do mesmo HTML</td></tr>
+          <tr><td class="id">CA-04</td><td>Providência atribuída, notificada, respondida, comprovada; atraso no painel</td><td><span class="pilula p-ok">Feito</span></td><td>Providência com órgão, ofício numerado (email pronto, desligado), resposta não editável, cartão de vencidas abaixo da fila e sino de providência respondida</td></tr>
+          <tr><td class="id">CA-05</td><td>Duas alterações concorrentes sem descarte silencioso</td><td><span class="pilula p-ok">Feito</span></td><td>Reenvio da mesma coleta em voo ao mesmo tempo: o teste força a corrida e o servidor grava uma vez (ON CONFLICT DO NOTHING mais releitura); antes disso o segundo envio dava 500 e prendia a vistoria no aparelho para sempre. Correção de coordenada com trava de linha</td></tr>
+          <tr><td class="id">CA-06</td><td>Usuário do município A não acessa dado nem arquivo do município B</td><td><span class="pilula p-ok">Feito</span></td><td>db/test/isolamento.test.ts, 132 casos: RLS ativa e forçada em toda tabela descoberta no catálogo, policy citando a organização, chave estrangeira composta, funções privilegiadas com search_path fixo, nenhum papel além do de aplicação com privilégio em tabela de negócio (por concessão, coluna, herança, PUBLIC, visão ou função). Verificado que reprova com migração descuidada de propósito. Prefixo de município na chave de arquivo, por CHECK</td></tr>
+          <tr><td class="id">CA-07</td><td>Criação, status, aprovação, consulta sensível e exportação rastreáveis</td><td><span class="pilula p-ok">Feito</span></td><td>Trilha append-only, registro de consulta, exportações com quem e quanto, trilha administrativa (inclusive o provisionamento pelo fornecedor, na mesma transação)</td></tr>
+          <tr><td class="id">CA-08</td><td>Backup de teste restaurado e procedimento documentado</td><td><span class="pilula p-ok">Feito</span></td><td>COLOCAR-DE-PE.md, parte 6: dump de 6,2 s, restore de 0,4 s num Postgres 17.6 criado para isso, 80 linhas em 15 tabelas iguais, 18 policies iguais, hash das migrações igual, e o papel de aplicação vendo só o município certo no banco restaurado. Dois erros de restore que só aparecem restaurando, documentados. Ressalva: fotos fora do dump</td></tr>
+          <tr><td class="id">CA-09</td><td>Agentes do piloto concluem o roteiro sem assistência constante</td><td><span class="pilula p-parcial">Parcial</span></td><td>Vistorias reais coletadas pelo nosso próprio time; roteiro de treinamento de 40 minutos escrito. Não houve ainda piloto assistido com agentes do município usando o aplicativo por duas semanas, que é a etapa 5 da implantação</td></tr>
+          <tr><td class="id">CA-10</td><td>Cliente baixa dados e documentos em formato legível e documentado</td><td><span class="pilula p-ok">Feito</span></td><td>Pacote de saída com CSV, JSON, fotos por protocolo, documentos em HTML autossuficiente, índice e somas de verificação; um teste compara a lista de tabelas com o banco. Falta o botão no painel</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 5. O QUE VAMOS FAZER AINDA -->
+  <section>
+    <div class="eyebrow">Para a frente</div>
+    <h2>O que vamos fazer ainda</h2>
+    <p class="sub">
+      Duas listas. A primeira é o que separa o produto de hoje de um segundo
+      município com o aplicativo distribuído pela loja. A segunda é o que a sua
+      especificação chama de fases 2 e 3, como roadmap, sem data.
+    </p>
+
+    <h3>(a) O que falta para o segundo município</h3>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>Item</th><th>De quem depende</th><th>O que é</th></tr></thead>
+        <tbody>
+          <tr><td>Política de privacidade publicada</td><td>Eu, depois o município</td><td>Preencher razão social, CNPJ, encarregado, endereço de publicação e prazos de retenção; publicar num endereço estável (domínio próprio). É o item de caminho crítico: trava as duas lojas e o contrato</td></tr>
+          <tr><td>Conta de demonstração para a revisão da Apple</td><td>Desenvolvimento</td><td>Município de demonstração provisionado pelo console, com dados fictícios e uma ocorrência despachada, mais a nota de que o aplicativo funciona sem conexão por desenho. Serve também para demonstrar a prefeituras sem expor dado real</td></tr>
+          <tr><td>D-U-N-S e verificação de identidade</td><td>Terceiros (Apple, Google)</td><td>A conta de organização da Apple exige o número; a Google exige comprovação da empresa. Dias a semanas, e nada de código destrava</td></tr>
+          <tr><td>Chaves de push no servidor</td><td>Eu</td><td>Conteúdo da chave da Apple, credencial do Firebase, ambiente de APNs e a variável que liga o push, no cofre do Fly. Minutos, com o roteiro pronto</td></tr>
+          <tr><td>Capacidade "Time Sensitive" no App ID</td><td>Eu, na conta da Apple</td><td>Sem ela o perfil de provisionamento não cobre o direito e a compilação para. Minutos</td></tr>
+          <tr><td>Chaves de mapa e de rota por município</td><td>Eu e cada município</td><td>Chave do painel no servidor do município (restrita ao endereço do painel), chaves da plataforma no binário (restritas ao aplicativo), chave de servidor para o caminho por ruas. O município decide antes se aceita o envio de coordenada ao Google</td></tr>
+          <tr><td>Botão do plano de saída no painel</td><td>Desenvolvimento</td><td>A rota existe; falta a tela para o administrador do município gerar o pacote sem chamar ninguém</td></tr>
+          <tr><td>Administrador desliga o segundo fator de outra pessoa</td><td>Desenvolvimento</td><td>Para quem perdeu o telefone e os códigos. É uma porta para retirar proteção de conta alheia e merece turno próprio</td></tr>
+          <tr><td>Registro de consulta na listagem de ocorrências</td><td>Desenvolvimento</td><td>Fechar o resíduo declarado, estreitando as colunas que a lista devolve</td></tr>
+          <tr><td>Ambiente de homologação</td><td>Desenvolvimento</td><td>Hoje o perfil de build de homologação aponta para um endereço que não existe, de propósito. Um segundo município pede um lugar para testar versão nova sem tocar na produção</td></tr>
+          <tr><td>O ciclo offline no aparelho, com captura</td><td>Desenvolvimento, com o aparelho na mão</td><td>Fechar o CA-02 com o modo avião ligado, etapa por etapa. Um dia</td></tr>
+          <tr><td>Conta no provedor de email</td><td>Eu</td><td>Criar a conta no Resend, verificar o domínio e pôr a chave: liga a recuperação de senha e o ofício por email. Roteiro pronto</td></tr>
+          <tr><td>Planos pagos onde o uso comercial exige</td><td>Eu</td><td>Supabase Pro (backup diário e sem pausa por inatividade) e Vercel Pro (o Hobby não permite uso comercial). Ver custos</td></tr>
+          <tr><td>Página de status</td><td>Desenvolvimento</td><td>Fora da infraestrutura que monitora, alimentada por sonda, com histórico</td></tr>
+          <tr><td>Cópia das fotografias</td><td>Desenvolvimento</td><td>Procedimento de backup do balde, conferido pelo SHA-256 que já está gravado por evidência</td></tr>
+          <tr><td>Revisão jurídica</td><td>Advogado, a contratar</td><td>Cláusula de operador, política e o modelo de declaração de eliminação</td></tr>
+          <tr><td>Aceite de termos (AUT-05), aprovação técnica (DOC-04), importação por CSV (OCO-08)</td><td>Desenvolvimento, quando um município pedir</td><td>Os três itens da sua lista que continuam abertos e não travam o segundo município</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>(b) Fases 2 e 3 da sua especificação, como roadmap, sem data</h3>
+    <ul class="limpa">
+      <li><span class="t">Modo incidente (INC-01 a INC-04)</span><div class="d">Incidente com nível, período, área e comando, agrupando ocorrências sem tocar na autonomia delas; quadro de situação com autoria e versão; equipes, turnos e check-in; relatório de situação por período. A trilha append-only e o registro que não se apaga já dão a RN-08 de graça.</div></li>
+      <li><span class="t">Abrigos (ABR-01)</span><div class="d">Capacidade, ocupação e necessidades, com dado de família tratado como sensível. Exige a avaliação de impacto que a sua seção 13 pede antes de qualquer tela.</div></li>
+      <li><span class="t">Logística humanitária (LOG-01 a LOG-07)</span><div class="d">Depósitos, pontos de coleta, itens com lote e validade, saldo derivado de movimentos auditados (RN-09), comparação entre necessidade, estoque e promessa de doação, carga, rota e comprovante de entrega, estoque permanente de kits fora da calamidade.</div></li>
+      <li><span class="t">Voluntários e donativos</span><div class="d">Cadastro, escala e prova de entrega, ligados ao incidente e aos abrigos.</div></li>
+      <li><span class="t">Portal do cidadão e formulários configuráveis (MVP 2)</span><div class="d">Acompanhamento por protocolo sem dado sigiloso. Sobre formulário configurável, a recusa escrita continua valendo até aparecer argumento melhor.</div></li>
+      <li><span class="t">Escala regional (fase 4)</span><div class="d">Consórcio com visão regional, apoio mútuo e API pública documentada. A base multi-município já está provada.</div></li>
+    </ul>
+    <div class="aviso">
+      <p><strong>Sem data, de propósito.</strong> Cada um desses módulos começa desenhando e perguntando a um município que opera emergência de verdade, não codificando. O produto de hoje se paga com a rotina diária; a fase 3 se justifica com um cliente que a peça.</p>
+    </div>
+  </section>
+
+  <!-- 6. CUSTOS QUE TEMOS HOJE -->
+  <section>
+    <div class="eyebrow">Dinheiro</div>
+    <h2>Custos que temos hoje</h2>
+    <p>
+      Mensais, em reais, com a cotação declarada. Cada valor diz de onde veio:
+      <strong>conferido na conta</strong> (olhado hoje no painel do provedor),
+      <strong>tabela pública</strong> (o preço publicado pelo provedor, a
+      conferir na fatura) ou <strong>estimativa</strong>. Cotação de referência
+      adotada neste documento: <span class="mono">US$ 1 = R$ 5,50</span>, uma
+      premissa, a ajustar no dia do pagamento.
+    </p>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>Item</th><th>Provedor e plano</th><th class="n">Hoje, R$/mês</th><th>Origem do número</th></tr></thead>
+        <tbody>
+          <tr><td>API do produto</td><td>Fly.io, São Paulo, máquinas shared-cpu-1x com 1 GB (o gigabyte é para o Chromium que gera o PDF), sem hibernar. O padrão do Fly ao implantar são duas máquinas</td><td class="n">63</td><td>Tabela pública: cerca de US$ 5,70 por máquina por mês, duas máquinas. Conferir o número de máquinas e a fatura</td></tr>
+          <tr><td>Console do fornecedor</td><td>Fly.io, São Paulo, uma máquina shared-cpu-1x com 512 MB</td><td class="n">18</td><td>Tabela pública: cerca de US$ 3,19 por mês</td></tr>
+          <tr><td>Banco de dados e armazenamento de fotos</td><td>Supabase, São Paulo, organização "Solerte", plano gratuito. Fotos no Storage do próprio projeto (7 objetos, 6,8 MB em 09/09)</td><td class="n">0</td><td>Conferido na conta em 15/09. O plano Pro custa US$ 25/mês (R$ 138) na tabela pública, e é o que traz backup diário e projeto sem pausa por inatividade</td></tr>
+          <tr><td>Painel do coordenador</td><td>Vercel, plano Hobby</td><td class="n">0</td><td>Conferido na conta em 15/09. O Hobby não permite uso comercial: o Pro custa US$ 20 por membro por mês (R$ 110) na tabela pública</td></tr>
+          <tr><td>Mapa no painel</td><td>Google Maps JavaScript, chave por município, cobrada por carregamento</td><td class="n">0</td><td>Tabela pública: faixa gratuita mensal por produto, e cobrança por mil carregamentos depois. O crédito mensal de US$ 200 acabou em 01/03/2025 (registrado no levantamento). Faturamento ligado; a confirmar se a chave está no servidor de produção</td></tr>
+          <tr><td>Mapa no aplicativo</td><td>Google Maps SDK nativo (iOS e Android)</td><td class="n">0</td><td>Documentação do Google: uso mobile do SDK sem cobrança. Hoje o binário nem tem a chave</td></tr>
+          <tr><td>Caminho por ruas</td><td>Google Routes API, chamada pelo servidor, com memória de 24 h</td><td class="n">0</td><td>Tabela pública: faixa gratuita mensal, depois cerca de US$ 5 por mil rotas. A chave ainda não existe: nunca foi chamada</td></tr>
+          <tr><td>Notificação</td><td>Apple APNs e Google Firebase Cloud Messaging, diretos</td><td class="n">0</td><td>Sem cobrança por uso nos dois. Projeto do Firebase criado</td></tr>
+          <tr><td>Conta de desenvolvedor Apple</td><td>Apple Developer Program, conta já paga (time 8DVJ2U5ZKX)</td><td class="n">45</td><td>Tabela pública: US$ 99 por ano (R$ 545), aqui diluído por mês</td></tr>
+          <tr><td>Conta Google Play</td><td>Taxa única de US$ 25 (R$ 138)</td><td class="n">0</td><td>Tabela pública. A confirmar se já foi paga</td></tr>
+          <tr><td>Email transacional</td><td>Resend, escolhido, sem conta</td><td class="n">0</td><td>Tabela pública: faixa gratuita de 3.000 emails por mês. Nada contratado ainda</td></tr>
+          <tr><td>Domínio</td><td>Nenhum: o painel está em vercel.app e a API em fly.dev</td><td class="n">0</td><td>Registro.br, cerca de R$ 40 por ano quando for comprado</td></tr>
+          <tr><td>Compilação do aplicativo e integração contínua</td><td>Xcode, no meu Mac; GitHub Actions</td><td class="n">0</td><td>Builds locais, sem o serviço de build da Expo. Minutos do GitHub dentro do plano gratuito, a confirmar</td></tr>
+          <tr class="total"><td>Total hoje</td><td>O que está sendo cobrado de fato</td><td class="n">≈ 126</td><td>Fly mais a conta da Apple diluída. Estimativa sobre tabela pública</td></tr>
+          <tr class="sub"><td>Total com os planos que o uso comercial pede</td><td>Supabase Pro e Vercel Pro</td><td class="n">≈ 374</td><td>Estimativa. É o número a usar antes de cobrar o primeiro município</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="aviso">
+      <p><strong>O que esta conta não tem, e o levantamento manda pôr na planilha:</strong> gente (implantação, treinamento, suporte, plantão em temporal), revisão jurídica, encarregado de dados, teste de intrusão anual, seguro, contador. São os itens que ficam fora da conta de servidor e destroem a margem. O meu tempo também não está aqui.</p>
+    </div>
+  </section>
+
+  <!-- 7. CUSTOS ESTIMADOS -->
+  <section>
+    <div class="eyebrow">Dinheiro, em escala</div>
+    <h2>Custos estimados por cenário</h2>
+    <p>
+      <strong>É estimativa</strong>, com as premissas escritas, sobre tabela
+      pública dos provedores e a cotação de referência de R$ 5,50. Serve para
+      discutir preço, não para fechar orçamento.
+    </p>
+    <h4>Premissas por município</h4>
+    <ul class="compacta">
+      <li>1.500 ocorrências por ano (125 por mês), uma vistoria por ocorrência, 8 fotos de 800 KB por vistoria: cerca de 10 GB por ano por município, retidos por cinco anos. São os números de referência do levantamento técnico, não medição do piloto</li>
+      <li>5 agentes com o aplicativo e um pedido de caminho por tarefa (125 rotas por mês; a memória de 24 h evita repetir)</li>
+      <li>1.000 carregamentos de mapa no painel por mês (a coordenação abrindo o mapa várias vezes ao dia)</li>
+      <li>60 ofícios por email por mês</li>
+    </ul>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>Item</th><th class="n">1 município (piloto)</th><th class="n">5 municípios</th><th class="n">20 municípios</th><th>O que faz crescer</th></tr></thead>
+        <tbody>
+          <tr><td>API (Fly)</td><td class="n">R$ 63</td><td class="n">R$ 63</td><td class="n">R$ 140 a 170</td><td>Máquinas: as duas de hoje aguentam cinco municípios; em vinte, máquinas maiores. Cresce em degraus, não por município</td></tr>
+          <tr><td>Console (Fly)</td><td class="n">R$ 18</td><td class="n">R$ 18</td><td class="n">R$ 18</td><td>Não cresce: uma máquina lendo contagens</td></tr>
+          <tr><td>Banco (Supabase)</td><td class="n">R$ 0 ou 138</td><td class="n">R$ 138</td><td class="n">R$ 138 a 470</td><td>Plano Pro desde o primeiro município pago; em vinte, provavelmente um degrau de computação a mais. Um município cabe em menos de 100 KiB de dump hoje</td></tr>
+          <tr><td>Armazenamento de fotos</td><td class="n">R$ 0</td><td class="n">R$ 0 a 17</td><td class="n">R$ 12 a 110</td><td>Linear com ocorrências e anos de retenção: 100 GB vêm no plano Pro; além disso, cerca de US$ 0,021 por GB por mês. Cinco municípios passam de 100 GB no terceiro ano; vinte chegam a 1 TB no quinto. Cloudflare R2 (US$ 0,015 por GB, sem custo de saída) é a alternativa já apontada</td></tr>
+          <tr><td>Mapa no painel (Google)</td><td class="n">R$ 0</td><td class="n">R$ 0</td><td class="n">R$ 0 a 385</td><td>Cresce com o uso do painel: dentro da faixa gratuita mensal até uns dez mil carregamentos; depois, cerca de US$ 7 por mil (tabela pública). Cada município paga a própria chave, ou usa o plano esquemático sem custo</td></tr>
+          <tr><td>Caminho por ruas (Google)</td><td class="n">R$ 0</td><td class="n">R$ 0</td><td class="n">R$ 0</td><td>2.500 rotas por mês em vinte municípios ficam dentro da faixa gratuita. Cresce só se o agente pedir muito mais que uma rota por tarefa</td></tr>
+          <tr><td>Email (Resend)</td><td class="n">R$ 0</td><td class="n">R$ 0</td><td class="n">R$ 0</td><td>1.200 emails por mês ficam na faixa gratuita de 3.000; o plano pago custa US$ 20 por mês quando passar</td></tr>
+          <tr><td>Painel (Vercel Pro)</td><td class="n">R$ 110</td><td class="n">R$ 110</td><td class="n">R$ 110</td><td>Não cresce: um build estático serve todos os municípios</td></tr>
+          <tr><td>Contas e domínio</td><td class="n">R$ 49</td><td class="n">R$ 49</td><td class="n">R$ 49</td><td>Apple por ano, Google uma vez, domínio por ano. Não crescem</td></tr>
+          <tr class="total"><td>Total por mês</td><td class="n">R$ 240 a 380</td><td class="n">R$ 380 a 400</td><td class="n">R$ 470 a 1.300</td><td>Estimativa</td></tr>
+          <tr class="sub"><td>Por município por mês</td><td class="n">R$ 240 a 380</td><td class="n">≈ R$ 78</td><td class="n">R$ 24 a 65</td><td>O custo de infraestrutura por município cai com a escala; o que não cai é gente</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="duas">
+      <div>
+        <h3>O que cresce</h3>
+        <p class="sub">Fotos (com o volume e os anos de retenção), o mapa do painel (com o uso da coordenação), o caminho por ruas (com os toques do agente), e as máquinas da API em degraus. Todos com interruptor por município: quem não liga o mapa, não paga o mapa.</p>
+      </div>
+      <div>
+        <h3>O que não cresce</h3>
+        <p class="sub">O painel (um build só), o console (uma máquina), as contas das lojas, o domínio, e o custo de push. O código é o mesmo para um e para vinte: vender o segundo município é provisionar, não reescrever.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. PRAZO -->
+  <section>
+    <div class="eyebrow">Tempo</div>
+    <h2>Prazo de entrega: o que você estimou, o que aconteceu, o que falta</h2>
+    <p>
+      A sua seção 15 estimava, para um desenvolvedor sênior, de 20 a 30 semanas
+      até o fim de um piloto robusto, e pedia que não fosse usada como
+      compromisso comercial. O levantamento de 19/08, calibrado para dez horas
+      por semana, falava em 18 a 24 meses. A tabela compara etapa a etapa com o
+      que aconteceu, com a premissa que mudou tudo: um desenvolvedor em tempo
+      integral, trabalhando com agentes.
+    </p>
+    <div class="destaque">
+      <p>
+        <strong>Em uma frase:</strong> o código do segundo município fica pronto
+        em duas a três semanas; a loja e a prefeitura decidem o resto, e o
+        relógio delas começa quando a política de privacidade for publicada e o
+        D-U-N-S emitido. Contando tudo, a faixa honesta para "segundo município
+        operando com o aplicativo vindo da loja" é de 6 a 10 semanas a partir de
+        hoje, se as dependências externas andarem em paralelo.
+      </p>
+    </div>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th>Etapa da sua estimativa</th><th class="n">Faixa</th><th>O que aconteceu</th><th class="n">Levou</th></tr></thead>
+        <tbody>
+          <tr><td>0. Descoberta</td><td class="n">2 a 3 semanas</td><td>Especificação em 18/08; levantamento técnico e jurídico em 19/08; protótipo navegável em HTML puro em 19 e 20/08 (quatro checkpoints)</td><td class="n">3 dias</td></tr>
+          <tr><td>1. Fundação</td><td class="n">2 a 3 semanas</td><td>Autorização em 21/08. No mesmo dia: banco com RLS forçada, teste de isolamento, API com autenticação própria e sincronização idempotente, painel falando com a API</td><td class="n">1 dia</td></tr>
+          <tr><td>2. Núcleo operacional</td><td class="n">5 a 7 semanas</td><td rowspan="3" style="vertical-align:top">De 21/08 a 08/09: ocorrências, triagem, despacho, providências, painel, aplicativo com fila offline, documentos oficiais, mapa esquemático e exportação. Produção no ar (Fly, Supabase, Vercel) e o binário instalado no iPhone em 08/09, com vistorias reais no mesmo dia</td><td class="n" rowspan="3" style="vertical-align:top">2,5 semanas</td></tr>
+          <tr><td>3. Campo offline</td><td class="n">4 a 6 semanas</td></tr>
+          <tr><td>4. Documentos e mapa</td><td class="n">3 a 5 semanas</td></tr>
+          <tr><td>Fora da sua lista: acabamento e conformidade</td><td class="n">(não previsto)</td><td>De 09/09 a 15/09: os quarenta pontos do primeiro uso em campo, duas revisões adversariais, push conferido contra Apple e Google, restore testado, privacidade, subprocessadores, saída, indisponibilidade, retenção, segundo fator, identidade 2.0 do aplicativo, console em produção (14/09), busca, som de despacho, link curto, SEO</td><td class="n">1 semana</td></tr>
+          <tr><td>5. Piloto assistido</td><td class="n">4 a 6 semanas</td><td>Não começou. O produto está em uso pelo nosso time em Florianópolis, não por agentes do município em operação assistida de duas semanas</td><td class="n">0</td></tr>
+          <tr class="total"><td>Total</td><td class="n">20 a 30 semanas</td><td>De 18/08 a 15/09, com a etapa 5 por fazer</td><td class="n">4 semanas</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>O que falta, em semanas, com a premissa escrita</h3>
+    <p>
+      Premissa: um desenvolvedor com agentes, no ritmo das últimas quatro
+      semanas, comigo cuidando das contas externas e do aparelho.
+      Sem promessa cega: faixa, e o que depende de terceiro fica em coluna
+      própria porque não obedece ao nosso calendário.
+    </p>
+    <div class="rolavel">
+      <table>
+        <thead><tr><th style="width:20%">Marco</th><th style="width:20%">Nosso trabalho</th><th style="width:40%">Depende de terceiros</th><th style="width:20%">Faixa até o marco</th></tr></thead>
+        <tbody>
+          <tr><td>Pronto para o segundo município (código)</td><td>2 a 3 semanas</td><td>Nada. Botão de saída, segundo fator de terceiro, registro de consulta na lista, homologação, página de status, cópia das fotos, ciclo offline com captura</td><td>2 a 3 semanas</td></tr>
+          <tr><td>Aplicativo distribuído por loja, caminho interno (TestFlight e teste fechado)</td><td>2 a 3 dias</td><td>Política publicada (preencho em horas, publico em dias com o domínio); D-U-N-S e verificação da Google (dias a semanas); chaves de push e "Time Sensitive" (minutos)</td><td>1 a 2 semanas depois de política e contas prontas</td></tr>
+          <tr><td>Loja aberta (App Store e Play públicas)</td><td>1 semana (conta de demonstração, capturas, formulários)</td><td>Revisão da Apple: 1 a 3 dias úteis por rodada, com recusa provável na primeira (aplicativo só para servidor público, login sem conta pública); revisão da Google</td><td>2 a 4 semanas depois do caminho interno</td></tr>
+          <tr><td>Segundo município operando</td><td>Implantação: cerca de um dia de trabalho, mais treinamento</td><td>Prefeitura: encarregado, prazos de retenção, ata da reunião única, assinatura do contrato e da cláusula de operador (semanas, depende do jurídico dela); operação assistida de duas semanas com os dois sistemas em paralelo</td><td>4 a 8 semanas a partir da assinatura</td></tr>
+          <tr><td>Fases 2 e 3</td><td>Sem estimativa</td><td>Um município que opere emergência e queira desenhar junto</td><td>Sem data</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 9. CONVERSA -->
+  <section>
+    <div class="eyebrow">Conversa</div>
+    <h2>O que é decisão sua, e eu preciso de você</h2>
+    <ul class="limpa">
+      <li>
+        <span class="t">Preço</span>
+        <div class="d">Assinatura anual por município, com implantação e treinamento cobrados à parte, como você e o levantamento propuseram. O que a estimativa acrescenta: a infraestrutura por município fica entre R$ 25 e R$ 400 por mês conforme a escala, então o preço é decidido por gente (implantação, suporte, plantão) e por valor, não por servidor. A decisão é de mercado, não de produto.</div>
+      </li>
+      <li>
+        <span class="t">Caminho de contratação</span>
+        <div class="d">Contrato de solução inovadora com fase de teste (Lei Complementar 182/2021), dispensa por valor (Lei 14.133/2021) para um piloto pago pequeno, ou consórcio de municípios com uma contratação para vários. Qual primeiro, e com quem.</div>
+      </li>
+      <li>
+        <span class="t">Segundo município</span>
+        <div class="d">Quem é a pessoa que decide, o que ela precisa ver na primeira reunião, e se entramos com o aplicativo por distribuição interna (recomendado no roteiro das lojas para poucos municípios) ou esperamos a loja aberta.</div>
+      </li>
+      <li>
+        <span class="t">A empresa por trás</span>
+        <div class="d">Razão social, CNPJ, encarregado de dados e domínio são o que trava a política de privacidade, as lojas e o contrato. Os identificadores do aplicativo (com.solerte.dc360.campo) são definitivos depois de publicados. As contas de Supabase, Vercel, Apple e Google precisam sair da pessoa física e virar da empresa, com os planos pagos onde o uso comercial exige.</div>
+      </li>
+      <li>
+        <span class="t">Fases 2 e 3</span>
+        <div class="d">Quando começar o modo emergência e a logística, e com qual município como parceiro de desenho. Sem cliente pedindo, não começam.</div>
+      </li>
+      <li>
+        <span class="t">O que fica escrito no contrato</span>
+        <div class="d">Suporte em melhor esforço enquanto não houver plantão contratado; 24 horas para comunicar incidente; 30 dias para avisar subprocessador novo; saída com pacote em formato aberto. Está tudo redigido e precisa de advogado antes de ser assinado.</div>
+      </li>
+    </ul>
+  </section>
+
+  <div class="rodape">
+    <p>
+      Defesa Civil Operacional 360. Documento de apresentação de 15/09/2026,
+      que substitui o de 09/09/2026. Os números de teste vêm da suíte
+      automatizada e são conferidos por um verificador que reprova a entrega
+      quando a documentação e o código discordam (3.927 testes, 132 de
+      isolamento, 171 verificações no navegador, npm audit de runtime em zero,
+      todos em 15/09/2026). Os estados de cada peça vêm do plano de execução,
+      onde nenhum item recebe check sem prova executada. Os custos marcados como
+      tabela pública são preços publicados pelos provedores e devem ser
+      conferidos na fatura; os marcados como estimativa são estimativa. Os dados
+      de exemplo citados são fictícios; as vistorias do piloto são reais e não
+      aparecem aqui.
+    </p>
+  </div>
+
+</div>
+</body>
+</html>

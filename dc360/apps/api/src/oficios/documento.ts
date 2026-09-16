@@ -4,7 +4,7 @@ import {
 import {
   campo, escapar, formatarDataHora, fusoDoEstado, montarFolha,
 } from "../documentos/folha.js";
-import { codigoDeValidacao } from "../documentos/laudo.js";
+import { codigoDeEmissao } from "../documentos/laudo.js";
 import type { Mensagem } from "../auth/notificador.js";
 
 /**
@@ -60,6 +60,19 @@ export type DadosDoOficio = {
   /** Texto da marca d'água. Vazio remove a marca. */
   marcaDagua?: string;
 };
+
+/**
+ * O identificador impresso no rodapé do ofício, e refeito na conferência.
+ *
+ * `emitido_em` vem da coluna, então segunda via e primeira via carregam o
+ * mesmo número, e a rota de conferência consegue recalculá-lo a partir da
+ * linha sem guardar nada a mais.
+ */
+export function identificadorDoOficio(
+  oficio: { id: string; numero: string; emitido_em: string },
+): string {
+  return codigoDeEmissao("oficio", oficio.numero, oficio.id, new Date(oficio.emitido_em));
+}
 
 export function oficioDeEncaminhamento(d: DadosDoOficio): string {
   /*
@@ -137,11 +150,11 @@ export function oficioDeEncaminhamento(d: DadosDoOficio): string {
       uf: d.organizacao.uf,
     },
     corpo,
-    // O código de validação é da DUPLA ofício e ocorrência, e não do ofício
-    // sozinho: é o mesmo par que a folha imprime no rodapé, e é ele que
-    // permite conferir, com o papel na mão, que aquele número pertence àquele
-    // protocolo.
-    validacao: codigoDeValidacao(`OFI-${d.oficio.numero}`, d.oficio.id),
+    // O identificador é da emissão do ofício: número, registro e instante em
+    // que ele foi emitido, que é o que `oficios.emitido_em` guarda. É o mesmo
+    // cálculo que `GET /documentos/validar/:codigo` refaz para reencontrar o
+    // ofício com o papel na mão.
+    identificador: identificadorDoOficio(d.oficio),
     emitidoEm: new Date(d.oficio.emitido_em),
     emitidoPor: d.oficio.emitido_por_nome,
     ...(d.marcaDagua ? { marcaDagua: d.marcaDagua } : {}),

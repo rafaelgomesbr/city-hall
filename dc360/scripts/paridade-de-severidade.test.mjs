@@ -32,8 +32,10 @@
  *    mão, um por canal e por lugar (pílula, pino do plano, marcador do Google),
  *    porque "não desenha nada" também é o que faz um sítio que ninguém ligou.
  *
- * 4. **O compartilhado tem os cinco glifos, na grade de 24.** Quatro níveis e
- *    sem classificação, cada um com contorno e marca, sem número fora da grade.
+ * 4. **O compartilhado tem os cinco glifos, na grade de 24.** Os quatro níveis
+ *    com contorno e marca NÃO VAZIOS (ponto, traço, exclamação, exclamação), e
+ *    sem classificação com contorno e `marca: []` de propósito (o círculo
+ *    tracejado é vazio por desenho). Nenhum número fora da grade.
  *
  * O que ele NÃO faz, dito na cara: lê TEXTO, não árvore de sintaxe, como os
  * outros portões desta pasta. Geometria montada em tempo de execução a partir
@@ -341,8 +343,26 @@ test("o compartilhado declara os cinco glifos com contorno, marca e preenchiment
   for (const chave of CHAVES) {
     const bloco = blocoDaChave(fonte, chave);
     if (!bloco) { problemas.push(`${chave}: não está no registro`); continue; }
-    if (!/contorno\s*:/.test(bloco)) problemas.push(`${chave}: sem contorno`);
-    if (!/marca\s*:/.test(bloco)) problemas.push(`${chave}: sem marca`);
+    /*
+      Contorno e marca NÃO VAZIOS, e não só presentes: `marca: []` num nível
+      passava por "tem marca" até 15/09/2026, e um nível sem marca é o defeito
+      que o cabeçalho descreve (a marca de dentro é o que sobe com a escala).
+      O contorno precisa de um `M` de verdade dentro das aspas, ou de uma
+      expressão; a marca dos quatro níveis precisa de pelo menos um elemento.
+      Sem classificação é o contrário, de propósito: círculo tracejado VAZIO,
+      então a marca dele tem de ser `[]`.
+    */
+    const contorno = /contorno\s*:\s*([\s\S]*?),\s*\n/.exec(bloco)?.[1]?.trim() ?? "";
+    if (!contorno) problemas.push(`${chave}: sem contorno`);
+    else if (/^["'`]\s*["'`]$/.test(contorno)) problemas.push(`${chave}: contorno vazio`);
+
+    const marca = /marca\s*:\s*\[([\s\S]*?)\]/.exec(bloco)?.[1];
+    if (marca === undefined) problemas.push(`${chave}: sem marca`);
+    else if (chave === "sem_classificacao") {
+      if (marca.trim() !== "") problemas.push(`${chave}: ganhou marca, e o círculo tracejado é vazio por desenho`);
+    } else if (marca.trim() === "") {
+      problemas.push(`${chave}: marca vazia (\`marca: []\`), e a marca de dentro é o que sobe com a escala`);
+    }
     if (!/preenche\s*:\s*(?:true|false)/.test(bloco)) problemas.push(`${chave}: sem preenche`);
     /*
       Todo número dentro de uma string de caminho cabe na grade. Coordenada

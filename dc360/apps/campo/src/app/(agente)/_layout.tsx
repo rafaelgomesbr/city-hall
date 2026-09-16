@@ -16,7 +16,7 @@ import { Sino } from "../../ui/Sino";
 import { IconeEnvio, IconeMapa, IconeTarefas } from "../../ui/icones";
 import { familiaDoTexto } from "../../ui/tipografia";
 import { useFontes } from "../../ui/fontes";
-import { espaco, icone, movimento, peso, toque } from "../../ui/tokens";
+import { espaco, icone, peso, toque } from "../../ui/tokens";
 
 /**
  * A área autenticada: a faixa de conectividade no topo, o navegador de abas

@@ -40,3 +40,24 @@ jest.setTimeout(30_000);
  */
 jest.mock("react-native-safe-area-context", () =>
   require("react-native-safe-area-context/jest/mock").default);
+
+/**
+ * O SINAL do aparelho, dublado para a suite inteira.
+ *
+ * `useSinal` (`dados/conectividade.ts`) passou a ser lido pela tela de
+ * vistoria, para ela nao perguntar o historico da casa sem sinal. O modulo
+ * nativo `expo-network` nao existe no ambiente de teste: `addNetworkStateListener`
+ * devolve `undefined`, e o `remove()` da limpeza do efeito estoura na
+ * desmontagem de TODA suite que monta a tela sem dublar o modulo (a sonda de
+ * 15/09/2026 caiu com "inscricao.remove is not a function").
+ *
+ * O dublê e o aparelho com sinal e sem nenhum evento: e o estado em que as
+ * suites de tela sempre rodaram, porque `useSinal` nasce dizendo "tem sinal"
+ * ate a primeira resposta. A suite que precisa de OUTRO estado continua
+ * dublando `../dados/conectividade` no proprio arquivo, e o dela vence.
+ */
+jest.mock("expo-network", () => ({
+  NetworkStateType: { WIFI: "WIFI", CELLULAR: "CELLULAR", NONE: "NONE", UNKNOWN: "UNKNOWN" },
+  getNetworkStateAsync: async () => ({ isConnected: true, isInternetReachable: true, type: "WIFI" }),
+  addNetworkStateListener: () => ({ remove() {} }),
+}));

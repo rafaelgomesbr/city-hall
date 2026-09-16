@@ -11,7 +11,24 @@ import type { Notificacao } from "./mensagem.js";
 
 export type Plataforma = "ios" | "android";
 
-export type Alvo = { ficha: string; plataforma: Plataforma };
+/**
+ * Com qual das duas APNs o aparelho fala. O vocabulário é o de
+ * `APNS_AMBIENTE` (`config.ts`), e não o da Apple (`sandbox`/`production`),
+ * para a coluna do banco, a variável do servidor e o campo do aplicativo
+ * dizerem a mesma palavra. Ver a migração 044.
+ */
+export type AmbienteApns = "producao" | "teste";
+export const AMBIENTES_APNS = ["producao", "teste"] as const;
+
+export type Alvo = {
+  ficha: string;
+  plataforma: Plataforma;
+  /**
+   * Só faz diferença no iOS. Ausente vale `producao`, que é o padrão da
+   * coluna e o ambiente do binário de loja.
+   */
+  ambiente?: AmbienteApns;
+};
 
 /**
  * Os três desfechos possíveis, e cada um leva a uma ação diferente:
@@ -31,7 +48,26 @@ export type DesfechoDoEnvio = {
 
 export type ProvedorDePush = {
   enviar(ficha: string, notificacao: Notificacao): Promise<DesfechoDoEnvio>;
+  /**
+   * Confere a credencial SEM enviar nada. A partida chama isto para falhar
+   * alto com um `.p8` colado pela metade, em vez de subir e descobrir horas
+   * depois, na primeira rodada com alvo, que cem por cento das notificações
+   * caem em `falha`. Opcional porque um duplo de teste não tem o que conferir.
+   */
+  validar?(): Promise<void>;
 };
+
+/**
+ * Os provedores da Apple, um por ambiente.
+ *
+ * A Apple tem dois serviços de push que não se falam, e qual vale é decidido
+ * pelo `aps-environment` com que o BINÁRIO foi assinado: o que sai do Xcode
+ * fala com o sandbox, o que sai do TestFlight e da loja fala com produção.
+ * Com um provedor só, o aparelho do ambiente errado recebe `BadDeviceToken`,
+ * que significa "este aparelho não existe mais", e o varredor o REVOGA.
+ * Dois provedores, e a linha de `aparelhos` diz qual (migração 044).
+ */
+export type ProvedoresApns = Partial<Record<AmbienteApns, ProvedorDePush>>;
 
 export type EnvioDePush = (alvo: Alvo, notificacao: Notificacao) => Promise<DesfechoDoEnvio>;
 
@@ -63,15 +99,26 @@ const TETO_DO_DETALHE = 300;
  * vira linha no banco, e a varredura seguinte tenta de novo.
  */
 export function criarEnvio(
-  provedores: { apple?: ProvedorDePush; google?: ProvedorDePush },
+  provedores: {
+    /**
+     * Um provedor só vale para todo aparelho iOS, seja qual for o ambiente
+     * dele (é como os testes montam, e como um servidor de um ambiente só
+     * pode montar). O par roteia pela coluna.
+     */
+    apple?: ProvedorDePush | ProvedoresApns;
+    google?: ProvedorDePush;
+  },
 ): EnvioDePush {
   return async (alvo, notificacao) => {
-    const provedor = alvo.plataforma === "ios" ? provedores.apple : provedores.google;
+    const provedor = alvo.plataforma === "ios"
+      ? provedorDaApple(provedores.apple, alvo.ambiente ?? "producao")
+      : provedores.google;
 
     if (!provedor) {
+      const qual = alvo.plataforma === "ios" ? `ios (${alvo.ambiente ?? "producao"})` : alvo.plataforma;
       return {
         desfecho: "falha",
-        detalhe: `provedor de ${alvo.plataforma} nao esta configurado neste servidor`,
+        detalhe: `provedor de ${qual} nao esta configurado neste servidor`,
       };
     }
 
@@ -91,4 +138,13 @@ export function criarEnvio(
       };
     }
   };
+}
+
+function provedorDaApple(
+  apple: ProvedorDePush | ProvedoresApns | undefined,
+  ambiente: AmbienteApns,
+): ProvedorDePush | undefined {
+  if (!apple) return undefined;
+  if ("enviar" in apple && typeof apple.enviar === "function") return apple as ProvedorDePush;
+  return (apple as ProvedoresApns)[ambiente];
 }

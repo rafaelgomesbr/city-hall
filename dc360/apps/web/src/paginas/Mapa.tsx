@@ -169,10 +169,14 @@ export function Mapa() {
           aparecem em desenho nenhum. Elas continuam na lista de ocorrências.
         </Aviso>
       )}
+      {/*
+        A frase da falha já diz que a tela voltou ao plano esquemático (as
+        duas vêm de `mapa-de-base.ts`); a faixa só acrescenta o que a pessoa
+        precisa saber agora, sem repetir a frase de trás para a frente.
+      */}
       {falhaDoGoogle && (
         <Aviso tom="alerta">
-          O mapa do Google não carregou, e o painel voltou ao plano esquemático com as mesmas
-          ocorrências. Motivo relatado pelo navegador: {falhaDoGoogle}
+          {falhaDoGoogle} As mesmas ocorrências continuam no desenho abaixo.
         </Aviso>
       )}
 
@@ -260,7 +264,7 @@ export function Mapa() {
                           <button type="button" className="tabela__protocolo"
                                   style={{ background: "none", border: "none", padding: 0,
                                            cursor: "pointer", font: "inherit",
-                                           fontFamily: "var(--ds-font-mono)", fontWeight: 600 }}
+                                           fontFamily: "var(--ds-font-mono)", fontWeight: "var(--ds-fw-semibold)" }}
                                   onClick={() => setSelecionada(o.id)}>
                             {o.protocolo}
                           </button>
@@ -303,6 +307,12 @@ export function Mapa() {
               </div>
             )}
 
+            {/*
+              "Sem classificação" é um pino do mapa como os outros quatro
+              (círculo tracejado, vazado), então é um item da legenda como os
+              outros quatro: a legenda que o omitia deixava o quinto símbolo
+              sem nome.
+            */}
             <ul className="legenda-mapa">
               {(["critica", "alta", "media", "baixa"] as const).map((sev) => (
                 <li key={sev} className={`legenda-mapa__item selo selo--${sev}`}>
@@ -310,6 +320,10 @@ export function Mapa() {
                   {ROTULO_SEVERIDADE[sev]}
                 </li>
               ))}
+              <li className="legenda-mapa__item selo selo--neutro">
+                <FormaSeveridade severidade={null} tamanho={14} />
+                Sem classificação
+              </li>
             </ul>
           </Cartao>
         </div>
@@ -364,8 +378,8 @@ export function Mapa() {
             <p className="texto-apoio">
               Nos dois modos, o painel nunca pergunta ao Google o endereço de um ponto nem o ponto
               de um endereço: a coordenada já veio do aparelho do agente ou do link que o
-              solicitante mandou. A escolha do modo está descrita em docs/SUBPROCESSADORES.md,
-              seção 2.2, para o município decidir antes de assinar.
+              solicitante mandou. A escolha do modo está descrita na seção 2.2 do documento de
+              subprocessadores, que o município recebe para decidir antes de assinar.
             </p>
           </Cartao>
         </div>
@@ -389,7 +403,8 @@ export function ModoDoMapaDito({ modo }: { modo: ModoDoMapa }) {
         <span aria-hidden="true">!</span>{" "}
         <strong>Mapa do Google.</strong> A coordenada de cada ocorrência desenhada é enviada ao
         Google a cada carregamento desta tela, e cada carregamento é cobrado. Para desenhar sem
-        nenhum contato com o Google, deixe MAPS_KEY vazia no servidor deste município.
+        nenhum contato com o Google, peça ao suporte para retirar a chave do mapa do servidor
+        deste município.
       </p>
     );
   }
@@ -398,8 +413,8 @@ export function ModoDoMapaDito({ modo }: { modo: ModoDoMapa }) {
       <span aria-hidden="true">✓</span>{" "}
       <strong>Plano esquemático, sem chave do Google.</strong> As coordenadas são reais e estão em
       escala entre si, mas não há camada de ruas: nenhuma coordenada de ocorrência sai deste
-      navegador. Para ver as ruas, o município precisa configurar MAPS_KEY no servidor dele e
-      aceitar o envio descrito em docs/SUBPROCESSADORES.md, seção 2.2.
+      navegador. Para ver as ruas, peça ao suporte para configurar a chave do mapa no servidor
+      deste município; o que muda com isso está na seção 2.2 do documento de subprocessadores.
     </p>
   );
 }

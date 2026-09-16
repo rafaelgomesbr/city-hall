@@ -813,6 +813,16 @@ export function Tocavel({
 }: PropsTocavel) {
   const toqueVisual = useRespostaAoToque();
 
+  /*
+    O piso de 52 pontos é de QUEM CHAMA, e não desta peça: ela não impõe altura
+    (ver o cabeçalho logo acima), porque um cartão de lista e um disparador
+    redondo de câmera não têm a mesma altura. O portão cobra o `minHeight:
+    toque` em cada `<Tocavel>` das telas, que é onde o número mora. Papel e
+    rótulo NÃO entram na exceção: os dois vêm do tipo, obrigatórios, e o portão
+    confere que continuam escritos aqui.
+
+    acessibilidade: excecao (só o piso; ver o parágrafo acima).
+  */
   return (
     <PressionavelAnimado
       onPress={onPress}

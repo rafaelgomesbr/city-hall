@@ -44,13 +44,25 @@ import type { Identidade } from "../servidor.js";
  *      sobre nenhuma: ela é a fila de trabalho do município. Uma linha
  *      dizendo "fulano abriu a fila às 8h" não ajuda a responder nada.
  *
- * O RESÍDUO, dito em voz alta porque ele existe: a listagem hoje devolve as
- * colunas do solicitante junto (ela seleciona a ocorrência inteira), então é
- * possível ler nome e contato em lote sem deixar linha aqui. Estreitar as
- * colunas da listagem é a correção certa e ela mexe no painel, que é de outra
- * frente; está anotada como pendência. Enquanto isso, o que a listagem NÃO
- * entrega é o que só o detalhe entrega: a descrição de vulnerabilidade social,
- * o contato e a trilha, e esses três são o que faz o dossiê ser dossiê.
+ * O QUE SUSTENTA ESSE CRITÉRIO, e que até 15/09/2026 não era verdade: a
+ * listagem NÃO entrega o que faz o dossiê ser dossiê. `GET /ocorrencias`
+ * selecionava a ocorrência inteira, então contato, relato e descrição de
+ * vulnerabilidade saíam em lote, página a página, sem linha aqui. Desde
+ * 15/09/2026 as três colunas são retiradas da lista para todo papel
+ * (`privacidade/lista.ts`), e o token do agente de campo só alcança as
+ * ocorrências da equipe dele em toda leitura (`rotas/recorte-do-agente.ts`).
+ * O que a lista entrega é protocolo, tipo, endereço, nome do solicitante,
+ * severidade, situação e prazo: o suficiente para reconhecer o chamado e
+ * abrir o dossiê, que registra.
+ *
+ * AS DUAS LISTAS QUE CONTINUAM ENTREGANDO OS TRÊS, e por quê: `GET
+ * /campo/meu-trabalho` e `GET /sincronizacao/pendencias`. São a lista de
+ * tarefas do aparelho do agente, recortada à equipe dele, e ele precisa do
+ * contato (para achar a família), do relato e da vulnerabilidade (para saber
+ * o que vai encontrar) SEM SINAL, no morro. Não há dossiê a abrir ali. O dado
+ * fica no aparelho enquanto a tarefa está com a equipe e é apagado ao sair da
+ * conta (`docs/DECLARACAO-NAS-LOJAS.md`, "Sair da conta apaga o dado do
+ * cidadão do aparelho").
  * =====================================================================
  */
 

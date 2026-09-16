@@ -1,5 +1,5 @@
 import {
-  VitrineIndiscreta, montarAvisoLocalDeTarefaNova, textoVisivel,
+  ORIGEM_LOCAL, VitrineIndiscreta, montarAvisoLocalDeTarefaNova, textoVisivel,
 } from "./aviso-local";
 import { CANAL_DESPACHO, SOM_DE_DESPACHO, VIBRACAO_DE_DESPACHO } from "./canais";
 
@@ -81,19 +81,28 @@ describe("o dado do aviso local", () => {
     `decidirAviso` e abrir a vistoria certa, e o que faz o tratador de
     primeiro plano reconhecê-lo como tarefa nova deste município.
   */
-  it("leva tipo, município, ocorrência e severidade, e nada além disso", () => {
+  /*
+    `origem: "aplicativo"` é a única coisa além do formato do push, e é
+    constante: é o carimbo que diz ao tratador de apresentação que este aviso
+    foi pedido pelo próprio aplicativo, e não entregue pela Apple ou pelo
+    Google. Sem ele, o push do mesmo despacho chegando depois tocaria de novo
+    (ver `despacho-toca-uma-vez.test.tsx`). Não é detalhe de ninguém.
+  */
+  it("leva tipo, município, ocorrência, severidade e o carimbo de origem, e nada além disso", () => {
     const aviso = montarAvisoLocalDeTarefaNova(DETALHE);
     expect(aviso.dados).toEqual({
       tipo: "tarefa_nova",
       organizacaoId: DETALHE.organizacaoId,
       ocorrenciaId: DETALHE.ocorrenciaId,
       severidade: "critica",
+      origem: ORIGEM_LOCAL,
     });
   });
 
   it("omite a severidade quando a ocorrência não tem", () => {
     const aviso = montarAvisoLocalDeTarefaNova({ ...DETALHE, severidade: null });
-    expect(Object.keys(aviso.dados).sort()).toEqual(["ocorrenciaId", "organizacaoId", "tipo"]);
+    expect(Object.keys(aviso.dados).sort())
+      .toEqual(["ocorrenciaId", "organizacaoId", "origem", "tipo"]);
   });
 });
 

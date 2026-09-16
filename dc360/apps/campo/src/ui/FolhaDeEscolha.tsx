@@ -3,7 +3,7 @@ import { Animated, Easing, Modal, Pressable, StyleSheet, View } from "react-nati
 
 import { Botao, Tocavel, Txt, useTema } from "./componentes";
 import {
-  borda, elevacao, espaco, movimento, opacidade, raio, tinta, toque,
+  borda, easing, elevacao, espaco, movimento, opacidade, raio, tinta, toque,
 } from "./tokens";
 import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
 
@@ -92,7 +92,7 @@ export function FolhaDeEscolha<Chave extends string>({
     Animated.timing(entrada, {
       toValue: 1,
       duration: movimento.mudancaDeEstado,
-      easing: Easing.out(Easing.quad),
+      easing: Easing.bezier(...easing.entrada),
       useNativeDriver: true,
     }).start();
   }, [aberto, reduzir, entrada]);

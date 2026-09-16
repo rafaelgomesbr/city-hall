@@ -135,6 +135,67 @@ function pngFalso(largura: number, altura: number): Buffer {
 }
 
 /* ------------------------------------------------------------------ */
+/* XML bem formado                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * As faltas de boa formação que fazem um parser XML descartar o documento.
+ *
+ * Não é um parser de XML: é o conjunto de regras que um SVG escrito à mão
+ * costuma quebrar (e uma delas quebrou em produção). Cada falta diz a linha.
+ * `@xmldom/xmldom` faria o mesmo, e não é dependência deste painel; esta
+ * verificação tem quarenta linhas e nenhuma instalação.
+ */
+function faltasDeXml(texto: string): string[] {
+  const faltas: string[] = [];
+  const pilha: string[] = [];
+  const linha = (posicao: number) => texto.slice(0, posicao).split("\n").length;
+  const entidade = /&(?:[a-zA-Z][a-zA-Z0-9]*|#\d+|#x[0-9a-fA-F]+);/y;
+
+  let i = 0;
+  while (i < texto.length) {
+    const abre = texto.indexOf("<", i);
+    const trecho = texto.slice(i, abre === -1 ? texto.length : abre);
+    for (let k = trecho.indexOf("&"); k !== -1; k = trecho.indexOf("&", k + 1)) {
+      entidade.lastIndex = k;
+      if (!entidade.test(trecho)) faltas.push(`linha ${linha(i + k)}: "&" solto fora de entidade`);
+    }
+    if (abre === -1) break;
+
+    if (texto.startsWith("<!--", abre)) {
+      const fecha = texto.indexOf("-->", abre + 4);
+      if (fecha === -1) { faltas.push(`linha ${linha(abre)}: comentário sem fechamento`); break; }
+      const dentro = texto.slice(abre + 4, fecha);
+      if (dentro.includes("--")) faltas.push(`linha ${linha(abre)}: "--" dentro de comentário`);
+      else if (dentro.endsWith("-")) faltas.push(`linha ${linha(abre)}: comentário terminando em "-" (fecha com "--->")`);
+      i = fecha + 3;
+      continue;
+    }
+    if (texto.startsWith("<?", abre) || texto.startsWith("<!", abre)) {
+      const fim = texto.startsWith("<![CDATA[", abre) ? "]]>" : texto.startsWith("<?", abre) ? "?>" : ">";
+      const fecha = texto.indexOf(fim, abre);
+      if (fecha === -1) { faltas.push(`linha ${linha(abre)}: declaração sem fechamento`); break; }
+      i = fecha + fim.length;
+      continue;
+    }
+
+    const fecha = texto.indexOf(">", abre);
+    if (fecha === -1) { faltas.push(`linha ${linha(abre)}: tag sem ">"`); break; }
+    const tag = texto.slice(abre + 1, fecha).trim();
+    if (tag.startsWith("/")) {
+      const nome = tag.slice(1).trim();
+      const esperado = pilha.pop();
+      if (esperado !== nome) faltas.push(`</${nome}> fecha <${esperado ?? "nada"}>`);
+    } else if (!tag.endsWith("/")) {
+      pilha.push(/^[^\s/>]+/.exec(tag)?.[0] ?? "");
+    }
+    i = fecha + 1;
+  }
+  if (pilha.length > 0) faltas.push(`sem fechar: ${pilha.join(", ")}`);
+  return faltas;
+}
+
+/* ------------------------------------------------------------------ */
 /* Tokens                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -301,9 +362,46 @@ describe("os arquivos de marca existem no tamanho que o HTML e o manifesto decla
     for (const nome of ["icone.svg", "og.svg"]) {
       const svg = readFileSync(join(PUBLICO, nome), "utf8");
       const linhas = svg.split("\n");
-      const semToken = linhas.filter((l) => /#[0-9A-Fa-f]{6}/.test(l) && !/--ds-/.test(l));
+      /* O nome vai sem os dois hifens da frente (`ds-accent`), pela regra de
+         comentário XML provada logo abaixo. `\b` casa nas duas grafias. */
+      const semToken = linhas.filter((l) => /#[0-9A-Fa-f]{6}/.test(l) && !/\bds-[a-z]/.test(l));
       expect(semToken, `${nome}: cor sem o nome do token na mesma linha:\n${semToken.join("\n")}`).toEqual([]);
     }
+  });
+
+  it("os SVG de origem são XML bem formado: um só `--` em comentário e o navegador recusa o arquivo inteiro", () => {
+    /*
+      O ACHADO (revisão de 15/09/2026): `icone.svg` e `og.svg` anotavam cada
+      cor com o nome do token CSS ao lado, dentro de comentário: `<!--
+      --ds-accent -->`. Em HTML isso passa. Em XML, `--` dentro de comentário
+      é proibido (XML 1.0, seção 2.5), e SVG servido como `image/svg+xml`,
+      seja por `<img src>` ou por `<link rel="icon">`, passa pelo parser XML
+      estrito, que não recupera: o documento inteiro é descartado. Resultado
+      em produção: o emblema quebrado no topo de toda tela autenticada
+      (`img.naturalWidth === 0`) e a aba sem ícone. Os PNG continuavam bons
+      porque `scripts/gerar-marca.mjs` injeta o SVG em HTML, que é tolerante,
+      e foi isso que escondeu o defeito de quem só olhou o PNG.
+    */
+    for (const nome of ["icone.svg", "og.svg"]) {
+      const svg = readFileSync(join(PUBLICO, nome), "utf8");
+      expect(faltasDeXml(svg), `public/${nome} não é XML bem formado`).toEqual([]);
+    }
+  });
+
+  it("o verificador de XML morde: `--` em comentário, comentário terminando em `-`, tag aberta e `&` solto", () => {
+    expect(faltasDeXml('<svg><!-- ds-accent --><g/></svg>')).toEqual([]);
+    expect(faltasDeXml('<svg><!-- --ds-accent --><g/></svg>')).toEqual([
+      'linha 1: "--" dentro de comentário',
+    ]);
+    expect(faltasDeXml('<svg>\n  <!-- termina em hífen--->\n</svg>')).toEqual([
+      'linha 2: comentário terminando em "-" (fecha com "--->")',
+    ]);
+    expect(faltasDeXml('<svg><g><path d="M0 0"/></svg>')).toEqual(['</svg> fecha <g>', 'sem fechar: svg']);
+    expect(faltasDeXml('<svg><g>&</g></svg>')).toEqual(['linha 1: "&" solto fora de entidade']);
+    expect(faltasDeXml('<svg><g>&amp;&#38;&#x26;</g></svg>')).toEqual([]);
+    /* O que estava em produção, reduzido à linha que reprovava. */
+    expect(faltasDeXml('<svg xmlns="http://www.w3.org/2000/svg">\n  <defs>\n    <!-- --ds-accent-gradient: linear-gradient(135deg, --ds-accent, --ds-accent-hover) -->\n  </defs>\n</svg>'))
+      .toEqual(['linha 3: "--" dentro de comentário']);
   });
 
   it("o leitor de PNG morde: cabeçalho com outro tamanho reprova, e o que não é PNG também", () => {

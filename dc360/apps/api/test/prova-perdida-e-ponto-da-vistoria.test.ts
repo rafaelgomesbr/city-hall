@@ -127,6 +127,15 @@ async function despachada(endereco: string, coordenada?: { lat: number; lng: num
     method: "POST", url: `/ocorrencias/${id}/despacho`, headers: comCoord(),
     payload: { equipeId: equipeAlfa, prazoHoras: 24 },
   });
+  /*
+    O chamado nasce com um dia de idade. A coleta desta suíte é datada de
+    antes do envio, para o laudo ter as duas marcas de tempo, e a rota recusa
+    coleta anterior à abertura do chamado (`data_implausivel`): a vistoria não
+    pode ter acontecido antes de o chamado existir.
+  */
+  await mem.bruto.query(
+    "UPDATE ocorrencias SET criado_em = now() - interval '1 day' WHERE id = $1", [id],
+  );
   return id;
 }
 
@@ -186,8 +195,13 @@ async function eventosDe(ocorrenciaId: string) {
   return r.rows;
 }
 
-const CAPTURA_UM = "2026-09-14T12:42:00.000Z";
-const CAPTURA_DOIS = "2026-09-14T12:47:00.000Z";
+/*
+  Relativas a agora, e não fixas: a rota recusa captura anterior à abertura do
+  chamado, e o chamado destas suítes nasce com um dia de idade. Uma data fixa
+  envelheceria para trás dele. Cinco minutos entre as duas, como antes.
+*/
+const CAPTURA_UM = new Date(Date.now() - 65 * 60_000).toISOString();
+const CAPTURA_DOIS = new Date(Date.now() - 60 * 60_000).toISOString();
 
 describe("a vistoria sobe mesmo com a foto que o aparelho perdeu", () => {
   it("aceita o envelope, grava a vistoria e grava a perda", async () => {

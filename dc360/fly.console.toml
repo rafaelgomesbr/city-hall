@@ -75,6 +75,14 @@
 app = "defesa-civil-console"
 primary_region = "gru"
 
+# Quanto o Fly espera entre o SIGTERM e o SIGKILL, como no `fly.toml` da API.
+# Aqui não há Chromium nem relógio: o encerramento é `app.close()` mais o pool
+# de duas conexões (apps/console/src/index.ts). Mesmo assim 5 s é pouco para
+# uma troca de senha no meio (uma passagem de scrypt de 128 MB numa máquina
+# compartilhada leva perto de um segundo, e a requisição precisa terminar
+# antes de o pool fechar). Quinze segundos cobrem isso com folga.
+kill_timeout = 15
+
 [build]
   dockerfile = "Dockerfile.console"
 
@@ -94,19 +102,23 @@ primary_region = "gru"
   # O console NÃO hiberna, e a razão aqui é diferente da da API.
   #
   # Na API é porque sistema de emergência não pode esperar a partida. Aqui é
-  # porque o teto de tentativas do segundo fator e o passo do TOTP já queimado
-  # vivem NA MEMÓRIA DO PROCESSO, de propósito: o papel do console não tem
-  # escrita em tabela nenhuma, e é isso que mantém o dano de um vazamento no
-  # teto que a ADR 0008 promete. Máquina que para e volta esquece os dois, e
-  # cada reinício devolve ao atacante cinco tentativas novas e a chance de
-  # reusar um código de seis dígitos dentro da janela de trinta segundos. Ver o
-  # cabeçalho de `apps/console/src/operadores.ts`.
+  # porque a partida do console não é instantânea (ela confere o esquema e o
+  # envelope do dono no banco) e quem o abre é o dono do produto no meio de um
+  # atendimento: esperar a máquina acordar para descobrir se um município está
+  # usando o sistema não vale os centavos que a hibernação economiza.
+  #
+  # ATÉ A MIGRAÇÃO 038 havia uma segunda razão, de segurança: o teto de
+  # tentativas do segundo fator e o passo do TOTP já queimado viviam na memória
+  # do processo, e reiniciar devolvia ao atacante cinco tentativas novas. Desde
+  # a 038 os dois vivem na LINHA do operador em `console_operadores`
+  # (`falhas_login`, `bloqueado_ate`, `ultimo_passo_totp`; ver o cabeçalho de
+  # `apps/console/src/operadores.ts`), e reiniciar não esquece nada.
   auto_stop_machines = 'off'
   auto_start_machines = true
-  # UMA MÁQUINA, e este número não é folga de custo: com duas, o teto de
-  # tentativas passa a valer POR PROCESSO, e cinco tentativas viram dez. Se um
-  # dia o console precisar de mais de uma máquina, o teto precisa sair da
-  # memória antes, e aí ele precisa de um lugar para morar que não seja o banco.
+  # UMA MÁQUINA, por economia, e não mais por segurança: com o teto e o passo
+  # no banco, duas máquinas contam as mesmas cinco tentativas e recusam o mesmo
+  # código já usado. Um punhado de pessoas do fornecedor olhando números não
+  # paga duas máquinas.
   min_machines_running = 1
   processes = ["app"]
 

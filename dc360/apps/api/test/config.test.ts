@@ -145,6 +145,41 @@ describe("Configuração de produção", () => {
     expect(c.NODE_ENV).toBe("development");
     expect(c.jwtSegredos[0]!.length).toBeGreaterThan(31);
   });
+
+  it("recusa DATABASE_URL na porta 6543 do pooler (modo transação), e ensina a 5432", () => {
+    /*
+      O achado (revisão de 15/09/2026): 6543 é o modo TRANSAÇÃO do pooler da
+      Supabase, em que a conexão volta para o bolo ao fim de cada transação.
+      O `SET LOCAL ROLE dc360_app` de cada transação passa, mas a trava de
+      aviso (`pg_try_advisory_lock`, que segura a varredura de push e a de
+      órfão numa máquina só) é de SESSÃO: no modo transação o comando seguinte
+      pode cair em outra conexão, a trava fica presa numa que ninguém mais tem
+      ou é conferida numa que nunca a pegou, sem erro nenhum.
+      `scripts/migrar-producao.mjs` já explicava isso para a migração; a
+      partida da API aceitava a porta em silêncio.
+    */
+    const url = "postgres://dc360_api:senha@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=verify-full";
+    expect(() => carregarConfig(producao({ DATABASE_URL: url })))
+      .toThrow(/6543[\s\S]*modo transa[çc][ãa]o[\s\S]*5432/);
+
+    // A porta de sessão do mesmo pooler continua passando: a recusa é da porta, não do host.
+    expect(() => carregarConfig(producao({
+      DATABASE_URL: "postgres://dc360_api:senha@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full",
+    }))).not.toThrow();
+
+    // E a mensagem não repete a senha: ela é a única parte da URL que não pode ir para o log.
+    let mensagem = "";
+    try { carregarConfig(producao({ DATABASE_URL: url })); } catch (e) { mensagem = (e as Error).message; }
+    expect(mensagem).not.toContain("senha");
+  });
+
+  it("fora de produção, a porta 6543 passa: é decisão de quem está experimentando na própria máquina", () => {
+    const c = carregarConfig({
+      NODE_ENV: "development",
+      DATABASE_URL: "postgres://dc360_api:senha@localhost:6543/dc360",
+    } as NodeJS.ProcessEnv);
+    expect(c.DATABASE_URL).toContain(":6543/");
+  });
 });
 
 describe("O modelo de ambiente acompanha o esquema", () => {

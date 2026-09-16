@@ -5,7 +5,8 @@ import type {
 } from "@dc360/shared";
 import type {
   ContaDisponivel, CorrecaoAplicada, FiltroOcorrencias, Indicadores, LinhaEquipe, LinhaEvento,
-  FiltroTrilha, LinhaEvidencia, LinhaOcorrencia, LinhaProvidencia, LinhaTrilha,
+  FiltroTrilha, LinhaDaListaDeOcorrencias, LinhaEvidencia, LinhaOcorrencia, LinhaProvidencia,
+  LinhaTrilha,
   ImovelInterditado, LinhaUsuario, LinhaVistoria, MeuTrabalho, MinhasSessoes,
   PaginaDeOcorrencias, PontosDoMapa, ProvidenciaPendente,
   ResumoPeriodo, SenhaRedefinida, SessoesDeOutrem,
@@ -16,6 +17,7 @@ import type {
   ConfiguracaoDoPainel, DevolucaoDaOcorrencia, DevolucaoPendente,
   QuemEstaEmCampo, RespostaDeBusca, PontoDoLinkDeMapa,
 } from "./tipos";
+import { CONSULTA_MAXIMA } from "../busca/combobox";
 
 /**
  * A mesma porta da camada local, agora falando HTTP com a API.
@@ -113,26 +115,69 @@ async function renovar(): Promise<boolean> {
  * tela. Para um agente numa área de risco, onde o sinal cai, é justamente a
  * mensagem que mais aparece, e ela precisa dizer duas coisas: que o problema é
  * a conexão e não o dado que ele digitou, e que nada foi gravado.
+ *
+ * DUAS FRASES, e não uma. A de escrita ("o que você preencheu não foi
+ * enviado") era a única, e aparecia também ao abrir o painel, a lista e o
+ * mapa com o servidor fora, onde ninguém preencheu nada: a pessoa lia que
+ * algo não foi enviado e procurava o formulário que não existia. Leitura diz
+ * que nada foi carregado; escrita continua dizendo que nada foi gravado.
  */
 export class SemConexao extends Error {
-  constructor() {
+  constructor(leitura = false) {
     super(
-      "Sem conexão com o servidor. O que você preencheu não foi enviado. " +
-      "Verifique o sinal e tente de novo.",
+      leitura
+        ? "Sem conexão com o servidor. Não foi possível carregar esta tela. " +
+          "Verifique o sinal e tente de novo."
+        : "Sem conexão com o servidor. O que você preencheu não foi enviado. " +
+          "Verifique o sinal e tente de novo.",
     );
     this.name = "SemConexao";
   }
 }
 
-async function comRedeTraduzida(chamada: () => Promise<Response>): Promise<Response> {
+async function comRedeTraduzida(
+  chamada: () => Promise<Response>,
+  leitura = false,
+): Promise<Response> {
   try {
     return await chamada();
   } catch (erro) {
     // `TypeError` é o que todo navegador lança quando a requisição não sai:
     // sem rede, DNS falhando, servidor fora, CORS barrando.
-    if (erro instanceof TypeError) throw new SemConexao();
+    if (erro instanceof TypeError) throw new SemConexao(leitura);
     throw erro;
   }
+}
+
+/**
+ * Quem quer saber que a sessão acabou.
+ *
+ * O DEFEITO: quando a renovação falhava, este arquivo apagava os tokens e
+ * mais nada. A sessão da tela continuava em `sessionStorage`, a rota
+ * protegida deixava passar, e cada tela mostrava "Falha ao carregar: Token
+ * inválido ou expirado" para sempre. Como o token de acesso vive quinze
+ * minutos e o de renovação, dias, isso ia acontecer toda manhã.
+ *
+ * Este módulo não navega e não conhece a sessão da tela: ele só avisa. Quem
+ * se inscreve é o provedor de sessão, que derruba a sessão e manda para a
+ * entrada com o motivo e o caminho de volta.
+ */
+let ouvinteDeExpiracao: (() => void) | null = null;
+
+export function aoExpirar(ouvinte: (() => void) | null): void {
+  ouvinteDeExpiracao = ouvinte;
+}
+
+/**
+ * O 401 que significa "sessão morta", e só ele.
+ *
+ * `nao_autenticado` é o código que SÓ a verificação de token do servidor
+ * emite (`exigirAutenticacao` em `servidor.ts`). Senha errada na entrada e
+ * senha atual errada na troca também são 401, com o código `credenciais`, e
+ * não podem derrubar a tela de quem só digitou errado.
+ */
+function sessaoMorta(status: number, corpo: Record<string, unknown>): boolean {
+  return status === 401 && corpo["erro"] === "nao_autenticado";
 }
 
 async function chamar<T>(
@@ -140,19 +185,20 @@ async function chamar<T>(
   opcoes: { metodo?: string; corpo?: unknown; repetiu?: boolean; sinal?: AbortSignal } = {},
 ): Promise<T> {
   const tokens = lerTokens();
+  const metodo = opcoes.metodo ?? "GET";
   const cabecalhos: Record<string, string> = { accept: "application/json" };
   if (opcoes.corpo !== undefined) cabecalhos["content-type"] = "application/json";
   if (tokens) cabecalhos["authorization"] = `Bearer ${tokens.acesso}`;
 
   const resposta = await comRedeTraduzida(() => fetch(`${BASE}${caminho}`, {
-    method: opcoes.metodo ?? "GET",
+    method: metodo,
     headers: cabecalhos,
     body: opcoes.corpo === undefined ? undefined : JSON.stringify(opcoes.corpo),
     // Quem chama pode desistir (a busca do topo desiste a cada tecla nova).
     // Cancelamento chega como `AbortError`, que não é `TypeError`, então
     // `comRedeTraduzida` o deixa passar em vez de chamá-lo de "sem conexão".
     signal: opcoes.sinal,
-  }));
+  }), metodo === "GET");
 
   // 401 uma vez significa "o token de acesso venceu": renova e repete. 401 de
   // novo significa que a sessão acabou de verdade, e aí não adianta insistir.
@@ -165,6 +211,13 @@ async function chamar<T>(
   if (resposta.status === 204) return undefined as T;
 
   const corpo = await resposta.json().catch(() => ({}));
+  if (sessaoMorta(resposta.status, corpo)) {
+    // Token morto não fica guardado, e a tela é avisada UMA vez por chamada:
+    // o provedor de sessão é quem decide o que fazer, e ele ignora avisos
+    // repetidos das outras chamadas da mesma tela.
+    guardarTokens(null);
+    ouvinteDeExpiracao?.();
+  }
   if (!resposta.ok) throw new ErroDaApi(resposta.status, corpo);
   return corpo as T;
 }
@@ -192,6 +245,7 @@ type RespostaDeEntrada = {
   };
   codigosDeRecuperacaoRestantes?: number;
   entrouComCodigoDeRecuperacao?: boolean;
+  trocaDeSenhaObrigatoria?: boolean;
   segundoFator?: "codigo" | "ativacao";
   desafio?: string;
   expiraEm?: number;
@@ -237,6 +291,7 @@ function lerEntrada(r: RespostaDeEntrada): ResultadoDeEntrada {
     ...(r.entrouComCodigoDeRecuperacao !== undefined
       ? { entrouComCodigoDeRecuperacao: r.entrouComCodigoDeRecuperacao }
       : {}),
+    ...(r.trocaDeSenhaObrigatoria ? { trocaDeSenhaObrigatoria: true } : {}),
   };
 }
 
@@ -378,7 +433,7 @@ export async function listarPaginaDeOcorrencias(
 export async function listarOcorrencias(
   _s: Sessao,
   filtro: FiltroOcorrencias = {},
-): Promise<LinhaOcorrencia[]> {
+): Promise<LinhaDaListaDeOcorrencias[]> {
   const r = await listarPaginaDeOcorrencias(_s, filtro);
   return r.itens;
 }
@@ -724,7 +779,7 @@ export async function abrirDocumento(
   const resposta = await comRedeTraduzida(() =>
     fetch(`${BASE}/documentos/${ocorrenciaId}/${tipo}`, {
       headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
-    }));
+    }), true);
   if (!resposta.ok) {
     const corpo = await resposta.json().catch(() => ({}));
     throw new ErroDaApi(resposta.status, corpo);
@@ -772,9 +827,17 @@ export async function pedirRecuperacao(email: string): Promise<string> {
  * quem esqueceu, não de quem quer trocar.
  */
 export async function trocarSenha(senhaAtual: string, senha: string): Promise<string> {
-  const r = await chamar<{ mensagem: string }>("/auth/trocar-senha", {
+  const r = await chamar<{ mensagem: string; acesso?: string }>("/auth/trocar-senha", {
     metodo: "POST", corpo: { senhaAtual, senha },
   });
+  /*
+    O servidor devolve um token de acesso NOVO para a mesma sessão, e ele
+    substitui o guardado. É o que solta quem entrou com senha provisória: o
+    token antigo carrega a marca que tranca todo o resto e valeria por até
+    quinze minutos. O de renovação continua o mesmo (a sessão é a mesma).
+  */
+  const tokens = lerTokens();
+  if (r.acesso && tokens) guardarTokens({ acesso: r.acesso, renovacao: tokens.renovacao });
   return r.mensagem;
 }
 
@@ -851,7 +914,7 @@ export async function baixarCsvDeOcorrencias(
   const resposta = await comRedeTraduzida(() =>
     fetch(`${BASE}/relatorios/ocorrencias.csv?${p.toString()}`, {
       headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
-    }));
+    }), true);
   if (!resposta.ok) {
     throw new ErroDaApi(resposta.status, await resposta.json().catch(() => ({})));
   }
@@ -1022,7 +1085,7 @@ export async function abrirOficio(_s: Sessao, id: string): Promise<string> {
   const resposta = await comRedeTraduzida(() =>
     fetch(`${BASE}/oficios/${id}/documento`, {
       headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
-    }));
+    }), true);
   if (!resposta.ok) {
     throw new ErroDaApi(resposta.status, await resposta.json().catch(() => ({})));
   }
@@ -1087,13 +1150,13 @@ export async function encerrarSaidaEmCampo(
  * cancela a pergunta anterior, senão a resposta de "ocor" chega depois da de
  * "ocorr" e a lista mostra o resultado errado com a consulta certa em cima.
  *
- * A consulta viaja cortada no teto do servidor (100) para não trocar uma
- * busca legítima por um 422 quando alguém cola um endereço inteiro.
+ * A consulta viaja cortada no teto do servidor (`CONSULTA_MAXIMA`) para não
+ * trocar uma busca legítima por um 422 quando alguém cola um endereço inteiro.
  */
 export async function buscar(
   _s: Sessao, consulta: string, sinal?: AbortSignal,
 ): Promise<RespostaDeBusca> {
-  const q = consulta.trim().slice(0, 100);
+  const q = consulta.trim().slice(0, CONSULTA_MAXIMA);
   return chamar<RespostaDeBusca>(`/busca?q=${encodeURIComponent(q)}`, { sinal });
 }
 

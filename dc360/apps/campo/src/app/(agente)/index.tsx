@@ -313,7 +313,7 @@ export default function Tarefas() {
   */
   const recuoDoMenu = useRecuoDoMenu();
   const sinal = useSinal();
-  const { obterToken, identidade, lerIdentidade, sair } = useSessao();
+  const { obterToken, identidade, lerIdentidade, encerrarSessaoVencida } = useSessao();
 
   const [tarefas, setTarefas] = useState<Pendencia[] | null>(null);
   const [rascunhos, setRascunhos] = useState<Rascunho[]>([]);
@@ -1218,13 +1218,21 @@ export default function Tarefas() {
         Só a sessão encerrada traz ato, e é porque só ela tem um ato que
         resolve. Sem sinal e "não deu para atualizar agora" se resolvem sozinhos
         quando a rede voltar, e um botão ali seria um botão que não faz nada.
+
+        O ato é "Entrar de novo", e NÃO "Sair e entrar de novo". Até
+        15/09/2026 este botão chamava `sair()`, o mesmo verbo do fim do turno,
+        e `sair()` apaga o dado local: a vistoria COMEÇADA (rascunho, fotos,
+        assinatura) ia embora sem aviso para uma pessoa que só precisava
+        renovar a credencial. `encerrarSessaoVencida` derruba a sessão e deixa
+        o disco como está; quem confere se a pessoa que entra depois é a mesma
+        é o login (ver `acolherNoAparelho`, em `dados/banco-local.ts`).
       */
       ...(falhaDeRede === "sessao-encerrada"
         ? {
           acao: {
-            rotulo: "Sair e entrar de novo",
+            rotulo: "Entrar de novo",
             aoTocar: () => void (async () => {
-              await sair();
+              await encerrarSessaoVencida();
               router.replace("/entrar");
             })(),
           },

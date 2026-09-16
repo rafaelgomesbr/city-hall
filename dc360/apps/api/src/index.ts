@@ -1,6 +1,5 @@
 import { carregarConfig } from "./config.js";
 import { bancoPostgres } from "./banco/postgres.js";
-import { bancoEmMemoria } from "./banco/memoria.js";
 import { construirServidor } from "./servidor.js";
 import { notificadorDeArquivo, notificadorHttp } from "./auth/notificador.js";
 import type { Banco } from "./banco/tipos.js";
@@ -12,7 +11,7 @@ import type { Armazenamento } from "./armazenamento/tipos.js";
 import { APNS_PRODUCAO, APNS_TESTE, criarProvedorApns } from "./push/apns.js";
 import { lerSegredoDoDisco } from "./push/segredo.js";
 import { criarProvedorFcm, lerContaDeServico } from "./push/fcm.js";
-import { criarEnvio, type ProvedorDePush } from "./push/envio.js";
+import { criarEnvio, type ProvedoresApns } from "./push/envio.js";
 import {
   CHAVE_DA_MINIMIZACAO, CHAVE_DA_VARREDURA_DE_ORFAOS,
   travaDeProcesso, travaPostgres, type Trava,
@@ -56,9 +55,19 @@ if (config.DATABASE_URL) {
     process.exit(1);
   }
 } else {
-  // Sem DATABASE_URL, sobe um Postgres em WebAssembly no próprio processo.
-  // Serve para desenvolver sem instalar nada; em produção a configuração
-  // recusa essa combinação e o processo nem chega aqui.
+  /*
+    Sem DATABASE_URL, sobe um Postgres em WebAssembly no próprio processo.
+    Serve para desenvolver sem instalar nada; em produção a configuração
+    recusa essa combinação e o processo nem chega aqui.
+
+    O import é DINÂMICO, e só aqui, porque `@electric-sql/pglite` é
+    devDependency e não existe na imagem de produção: um `import` estático de
+    `./banco/memoria.js` no topo deste arquivo arrastava o pacote para o grafo
+    de toda partida, inclusive a que tem DATABASE_URL, e cairia com
+    `ERR_MODULE_NOT_FOUND` antes da primeira linha rodar. O console já fazia
+    assim, e `test/partida-nao-carrega-pglite.test.ts` cobra isto pelo grafo.
+  */
+  const { bancoEmMemoria } = await import("./banco/memoria.js");
   const memoria = await bancoEmMemoria({ semear: true });
   banco = memoria.banco;
   console.warn(
@@ -123,13 +132,30 @@ const notificador = config.NOTIFICADOR_ARQUIVO
       })
     : undefined;
 
+/*
+  A VARREDURA DE PUSH E O SERVIDOR PRECISAM UM DO OUTRO, e a ordem é esta:
+  o servidor sobe primeiro (a varredura escreve no log dele), então o que o
+  servidor recebe agora é um par de fechamentos sobre `varredura`, que só é
+  atribuída logo abaixo. Até lá, `ultimaRodada()` responde nulo (que `/saude`
+  mostra como "ligado, sem rodada ainda") e `despertar()` não faz nada. Com o
+  push desligado o par nem existe, e `/saude` responde `push: null`.
+*/
+let varredura: VarreduraAgendada | null = null;
+const push = config.PUSH_ATIVO === "sim"
+  ? {
+      despertar: () => varredura?.despertar(),
+      ultimaRodada: () => varredura?.ultimaRodada() ?? null,
+    }
+  : undefined;
+
 const app = await construirServidor({
   banco, config, armazenamento, pdf,
   ...(notificador ? { notificador } : {}),
+  ...(push ? { push } : {}),
 });
 
 /**
- * De quanto em quanto tempo a varredura de prazo roda.
+ * De quanto em quanto tempo a varredura de avisos roda POR RELÓGIO.
  *
  * Cinco minutos, e o número é o resultado de uma conta: a janela de aviso é de
  * uma hora por padrão, então cinco minutos dão doze oportunidades de pegar cada
@@ -137,6 +163,11 @@ const app = await construirServidor({
  * na maior parte do dia; muito mais faria o aviso chegar perto demais do
  * vencimento nos casos em que o prazo entra na janela logo depois de uma
  * varredura.
+ *
+ * O DESPACHO NÃO ESPERA ESTE RELÓGIO: a rota chama `despertar()` depois do
+ * commit e a rodada sai em segundos (ver `push/varredor.ts`). E a primeira
+ * rodada sai na partida. O intervalo é a rede de segurança: o prazo, que é
+ * relógio, e o despacho cujo `despertar()` se perdeu com o processo.
  */
 const INTERVALO_DA_VARREDURA_MS = 5 * 60_000;
 
@@ -149,20 +180,26 @@ const INTERVALO_DA_VARREDURA_MS = 5 * 60_000;
   nenhum é ida ao banco a cada cinco minutos para não fazer nada, e é ruído no
   log que ensina a equipe a ignorar log.
 */
-let varredura: VarreduraAgendada | null = null;
-
 if (config.PUSH_ATIVO === "sim") {
-  const apple: ProvedorDePush = criarProvedorApns(
-    {
-      keyId: config.APNS_KEY_ID!,
-      teamId: config.APNS_TEAM_ID!,
-      bundle: config.APNS_BUNDLE!,
-      chavePem: lerSegredoDoDisco(config.APNS_CHAVE!, "a chave de push da Apple"),
-    },
-    // Ver `APNS_AMBIENTE` em config.ts: falar com a APNs errada faz o varredor
-    // revogar o aparelho de quem está em campo, sem erro em lugar nenhum.
-    { urlBase: config.APNS_AMBIENTE === "teste" ? APNS_TESTE : APNS_PRODUCAO },
-  );
+  /*
+    OS DOIS PROVEDORES DA APPLE, sempre. A mesma chave `.p8` assina para os
+    dois ambientes; o que muda é o endereço. Quem escolhe entre eles é a
+    coluna `aparelhos.ambiente` (migração 044), preenchida pelo aplicativo no
+    registro, e `APNS_AMBIENTE` é só o padrão de quem não mandou o campo. Ver
+    `push/envio.ts`: falar com a APNs errada faz o varredor revogar o
+    aparelho de quem está em campo, sem erro em lugar nenhum. A sessão HTTP/2
+    de cada um só abre no primeiro envio, então o que não é usado não custa.
+  */
+  const credenciaisApns = {
+    keyId: config.APNS_KEY_ID!,
+    teamId: config.APNS_TEAM_ID!,
+    bundle: config.APNS_BUNDLE!,
+    chavePem: lerSegredoDoDisco(config.APNS_CHAVE!, "a chave de push da Apple"),
+  };
+  const apple: ProvedoresApns = {
+    producao: criarProvedorApns(credenciaisApns, { urlBase: APNS_PRODUCAO }),
+    teste: criarProvedorApns(credenciaisApns, { urlBase: APNS_TESTE }),
+  };
 
   const google = config.FCM_CONTA_SERVICO
     ? criarProvedorFcm(
@@ -202,20 +239,38 @@ if (config.PUSH_ATIVO === "sim") {
     ? travaPostgres(config.DATABASE_URL)
     : travaDeProcesso();
 
+  /*
+    A CREDENCIAL É CONFERIDA AQUI, ANTES DE `listen`, E A PARTIDA CAI SE ELA
+    NÃO PRESTAR. Até 15/09/2026 a chave só era importada no primeiro envio,
+    minutos ou horas depois do deploy, e o erro virava desfecho `falha` numa
+    linha do banco: o processo subia, `/saude` dizia `ok`, e o push não
+    funcionava por causa de um `.p8` colado pela metade. A mensagem nomeia a
+    variável e o que fazer; nunca o material. O Google confere só a chave:
+    a troca pelo token de acesso é rede, e partida não depende de rede.
+  */
+  await apple.producao!.validar!();
+  if (google?.validar) await google.validar();
+
   varredura = agendarVarredura(
     {
       banco: bancoDaVarredura,
       trava,
       enviar: criarEnvio({ apple, ...(google ? { google } : {}) }),
       janelaMinutos: config.PUSH_JANELA_MINUTOS,
-      registrar: (evento, mensagem) => app.log.warn(evento, mensagem),
+      // `warn` é o nível de tudo o que era registrado até aqui; o resumo de
+      // rodada bem-sucedida chega como `info`. Ver `registrar` em varredor.ts.
+      registrar: (evento, mensagem, nivel = "warn") => app.log[nivel](evento, mensagem),
     },
     INTERVALO_DA_VARREDURA_MS,
   );
 
   app.log.info(
-    { janelaMinutos: config.PUSH_JANELA_MINUTOS, android: Boolean(google) },
-    "varredura de prazo ligada",
+    {
+      janelaMinutos: config.PUSH_JANELA_MINUTOS,
+      android: Boolean(google),
+      ambientePadrao: config.APNS_AMBIENTE,
+    },
+    "varredura de avisos ligada: primeira rodada agora, depois a cada intervalo e a cada despacho",
   );
 }
 

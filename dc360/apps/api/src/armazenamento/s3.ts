@@ -95,12 +95,30 @@ export function armazenamentoS3(config: ConfigS3): Armazenamento {
 
   return {
     async urlParaEnviar(pedido: PedidoEnvio): Promise<Envio> {
-      // Tipo e tamanho entram na assinatura: mandar diferente invalida a
-      // assinatura e o armazenamento recusa. O limite deixa de depender da
-      // boa vontade do cliente.
+      /*
+        Tipo e tamanho entram na assinatura: mandar diferente invalida a
+        assinatura e o armazenamento recusa. O limite deixa de depender da
+        boa vontade do cliente.
+
+        `if-none-match: *` entra pelo mesmo mecanismo, e é o que torna a
+        chave ESCRITA UMA VEZ: o PutObject condicional recusa com 412 quando
+        já existe objeto na chave. Assinado, o cabeçalho é obrigatório (o
+        aparelho não pode omiti-lo para sobrescrever), e vale para qualquer
+        URL de escrita desta chave, não só para esta. É o que fecha a janela
+        entre a confirmação e o vencimento da URL, que era de catorze minutos.
+
+        Provedores: o Cloudflare R2 (o escolhido) e o S3 da AWS conferem
+        cabeçalho condicional no PutObject. Um provedor S3-compatível que
+        IGNORE o cabeçalho continua funcionando e perde só esta proteção (o
+        hash conferido na confirmação e a soma do pacote de saída ainda
+        denunciam uma troca); um que RECUSE cabeçalho desconhecido derruba o
+        envio, e aí este cabeçalho precisa sair daqui junto com a troca de
+        provedor, deliberadamente.
+      */
       const cabecalhos = {
         "content-type": pedido.tipoConteudo,
         "content-length": String(pedido.tamanhoBytes),
+        "if-none-match": "*",
       };
       const instante = agora();
       const url = assinarUrl({

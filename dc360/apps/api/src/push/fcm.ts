@@ -1,6 +1,6 @@
 import { SignJWT, importPKCS8 } from "jose";
 import type { DesfechoDoEnvio, ProvedorDePush } from "./envio.js";
-import { semExtensao, toqueDoAviso, type Notificacao } from "./mensagem.js";
+import { semExtensao, toqueDoAviso, validadeDoAviso, type Notificacao } from "./mensagem.js";
 
 /**
  * Envio direto para a FCM, a notificação do Google.
@@ -16,10 +16,14 @@ import { semExtensao, toqueDoAviso, type Notificacao } from "./mensagem.js";
  * reaproveitado, pela mesma razão de sempre: uma troca por notificação
  * transformaria uma rajada de avisos numa rajada de autenticações.
  *
- * ESTE CAMINHO NÃO FOI EXERCITADO CONTRA O GOOGLE. Enquanto a metade
- * aplicativo não existir, mandar notificação de verdade seria barulho sem
- * valor. O que os testes cobrem é a montagem, o reaproveitamento do token e a
- * leitura da resposta, com duplo de teste no lugar da rede.
+ * ESTE CAMINHO FOI EXERCITADO CONTRA O GOOGLE em 13/09/2026, por
+ * `scripts/conferir-push.mjs`: com a conta de serviço de verdade e uma ficha
+ * de aparelho deliberadamente falsa, a FCM respondeu `404 UNREGISTERED`, que
+ * é a resposta de quem aceitou a credencial e não achou o aparelho. O que
+ * continua sem prova é a metade que exige um telefone: a notificação chegando
+ * à tela de um aparelho registrado. O que os testes cobrem é a montagem, o
+ * reaproveitamento do token e a leitura da resposta, com duplo de teste no
+ * lugar da rede.
  */
 
 export type ContaDeServico = {
@@ -159,22 +163,27 @@ export function criarProvedorFcm(
   let acesso: string | null = null;
   let acessoExpiraEm = 0;
 
+  /** Importa a chave uma vez. `validar()` chama na partida; o envio, se ela não tiver chamado. */
+  async function chave(): Promise<Awaited<ReturnType<typeof importPKCS8>>> {
+    if (chaveImportada) return chaveImportada;
+    try {
+      chaveImportada = await importPKCS8(conta.private_key, "RS256");
+    } catch {
+      // A exceção original é engolida pela mesma razão que na APNs: ela vem
+      // de biblioteca de terceiro e pode citar o material da chave.
+      throw new Error(
+        "A chave privada da conta de serviço do Firebase (FCM_CONTA_SERVICO) não é válida. " +
+        "Gere outra em Configurações do projeto, Contas de serviço.",
+      );
+    }
+    return chaveImportada;
+  }
+
   async function tokenDeAcesso(): Promise<string> {
     const segundos = Math.floor(agora() / 1000);
     if (acesso && segundos < acessoExpiraEm - FOLGA_SEGUNDOS) return acesso;
 
-    if (!chaveImportada) {
-      try {
-        chaveImportada = await importPKCS8(conta.private_key, "RS256");
-      } catch {
-        // A exceção original é engolida pela mesma razão que na APNs: ela vem
-        // de biblioteca de terceiro e pode citar o material da chave.
-        throw new Error(
-          "A chave privada da conta de serviço do Firebase (FCM_CONTA_SERVICO) não é válida. " +
-          "Gere outra em Configurações do projeto, Contas de serviço.",
-        );
-      }
-    }
+    const chaveImportadaAgora = await chave();
 
     const afirmacao = await new SignJWT({ scope: ESCOPO })
       .setProtectedHeader({ alg: "RS256", typ: "JWT" })
@@ -182,7 +191,7 @@ export function criarProvedorFcm(
       .setAudience(tokenUri)
       .setIssuedAt(segundos)
       .setExpirationTime(segundos + 3600)
-      .sign(chaveImportada);
+      .sign(chaveImportadaAgora);
 
     const resposta = await buscar(tokenUri, {
       method: "POST",
@@ -209,6 +218,12 @@ export function criarProvedorFcm(
   }
 
   return {
+    // Só a chave. A troca pelo token de acesso fica para o primeiro envio,
+    // porque ela é uma chamada de rede, e partida não pode depender de rede.
+    async validar() {
+      await chave();
+    },
+
     async enviar(ficha: string, notificacao: Notificacao): Promise<DesfechoDoEnvio> {
       const autorizacao = await tokenDeAcesso();
 
@@ -265,6 +280,15 @@ export function criarProvedorFcm(
                 todo aviso, como já valia.
               */
               priority: "high",
+              /*
+                Por quanto tempo o Google guarda a mensagem para um aparelho
+                fora do ar. Sem declarar, são quatro semanas: um despacho de
+                segunda entregue na quarta seguinte, sobre uma tarefa que já
+                foi feita por outro, é o que ensina o agente a ignorar o
+                canal. A regra é a mesma da Apple e mora em `validadeDoAviso`;
+                o formato é o do Google, segundos com o sufixo.
+              */
+              ttl: `${Math.max(0, validadeDoAviso(notificacao, agora()) - Math.floor(agora() / 1000))}s`,
               notification: {
                 channel_id: toque.canal,
                 /*

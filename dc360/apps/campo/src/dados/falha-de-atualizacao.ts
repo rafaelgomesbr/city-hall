@@ -110,17 +110,21 @@ export function comoContarAFalha(
       /*
         A frase NÃO diz "entre de novo" e para por aí. Sair da conta é o ato
         que o agente mais teme no fim do plantão (é o que ele acha que apaga a
-        vistoria que ele fez no morro), então a promessa de que a fila
-        sobrevive vem junto, no mesmo parágrafo. Ela é verdade e está provada:
-        `apagarDadosLocais` deixa `fila_sincronizacao` de fora de propósito, e
-        o item da fila carimba o autor, então a coleta sobe no nome de quem a
-        fez quando ele entrar de novo.
+        vistoria que ele fez no morro), então a promessa de que nada se perde
+        vem junto, no mesmo parágrafo. Ela é verdade e está provada, e por DOIS
+        caminhos: a fila fica fora de `apagarDadosLocais` de propósito e cada
+        item dela carimba o autor; e o botão "Entrar de novo" chama
+        `encerrarSessaoVencida`, que não apaga nada, então a vistoria COMEÇADA
+        (rascunho, fotos, assinatura) também fica. A frase NÃO manda a pessoa a
+        "Sair da conta": esse é o verbo do fim do turno, e ele apaga a vistoria
+        começada. Era o que a versão anterior mandava fazer.
       */
       detalhe:
         "O servidor não reconhece mais a sua entrada neste aparelho, então nenhuma "
-        + "tarefa nova desce até você entrar outra vez. Vá em Perfil, toque em "
-        + "\"Sair da conta\" e entre de novo com o seu email e a sua senha. O que "
-        + "você já coletou continua guardado no aparelho e sobe sozinho depois disso.",
+        + "tarefa nova desce até você entrar outra vez. Toque em \"Entrar de novo\" "
+        + "e entre com o seu email e a sua senha. Nada é apagado: a vistoria começada, "
+        + "as fotos e o que você já coletou continuam neste aparelho e voltam para "
+        + "você assim que entrar com a sua conta.",
     };
   }
   if (motivo === "acesso-suspenso") {

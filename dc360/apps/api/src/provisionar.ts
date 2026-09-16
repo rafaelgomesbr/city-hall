@@ -106,9 +106,17 @@ export async function provisionarMunicipio(
   const organizacaoId = org.rows[0]!.id;
 
   const hash = await derivarSenha(pedido.senha);
+  /*
+    A senha inicial é PROVISÓRIA (migração 046): vale 72 horas para entrar, e
+    a primeira sessão só alcança a troca de senha. É o mesmo carimbo que
+    `provisionar_municipio` (o caminho do console) dá ao administrador que
+    nasce por lá; sem ele, "quem recebe deve trocá-la na primeira entrada" era
+    orientação, e orientação não é regra.
+  */
   const usuario = await bd.query<{ id: string }>(
-    `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel, senha_hash)
-     VALUES ($1,$2,$3,$4,'administrador',$5) RETURNING id`,
+    `INSERT INTO usuarios
+       (organizacao_id, nome, matricula, email, papel, senha_hash, senha_provisoria_ate)
+     VALUES ($1,$2,$3,$4,'administrador',$5, now() + interval '72 hours') RETURNING id`,
     [organizacaoId, pedido.nome, pedido.matricula, pedido.email, hash],
   );
 

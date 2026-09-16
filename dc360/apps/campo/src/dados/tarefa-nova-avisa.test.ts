@@ -76,7 +76,8 @@ jest.mock("./api", () => ({
 
 import { apagarDadosLocais, esquecerConexao } from "./banco-local";
 import {
-  aoChegarTarefaNova, atualizarPendencias, marcarTarefasVistas, type TarefaNova,
+  TETO_DE_IDS_VISTOS, aoChegarTarefaNova, atualizarPendencias, marcarTarefasVistas,
+  type TarefaNova,
 } from "./pendencias";
 
 const A = "11111111-1111-4111-8111-111111111111";
@@ -279,13 +280,23 @@ describe("quando NÃO avisa de novo", () => {
 
 describe("o que sai e volta", () => {
   /*
-    Decisão deliberada: a tarefa que saiu da lista (foi para outra equipe, foi
-    devolvida, foi encerrada) e depois VOLTA avisa de novo, porque voltar é um
-    despacho novo da coordenação. A memória guarda a última lista vista, e não
-    tudo o que já passou por este aparelho, o que também impede a marca de
-    crescer pelo tempo de vida do aparelho.
+    A REGRA É A DO SERVIDOR, e está escrita na migração 042: um aparelho
+    recebe o aviso de tarefa nova de uma ocorrência UMA vez. A tarefa que vai
+    da equipe Alfa para a Bravo e VOLTA para a Alfa, ou que a Alfa devolveu e
+    a coordenação redespachou para a Alfa, não gera push de novo, porque a
+    unicidade em `notificacoes_enviadas` é por aparelho e ocorrência.
+
+    Até 15/09/2026 o aplicativo decidia o contrário (a memória guardava só a
+    ÚLTIMA lista, e a tarefa que voltava era novidade): com o aplicativo
+    aberto tocava, fechado não tocava. Dois comportamentos para o mesmo fato,
+    decididos por onde o telefone estava, é pior do que qualquer um dos dois.
+    Alinhar o aplicativo é barato (a memória passa a acumular, com teto);
+    alinhar o servidor exigiria trocar a chave de unicidade por uma que conte
+    despachos, com coluna nova. Fica a barata, e a limitação declarada nos
+    dois lugares: a tarefa que sai e volta para a MESMA equipe não avisa de
+    novo em canal nenhum. Ela continua na lista, e o agente a vê ao abrir.
   */
-  it("a tarefa que saiu e voltou avisa outra vez", async () => {
+  it("a tarefa que saiu e voltou NÃO avisa outra vez: a memória acumula, como a do servidor", async () => {
     const { chamadas, parar } = ouvir();
     desligar = parar;
     servidorDevolve([A, B]);
@@ -295,7 +306,52 @@ describe("o que sai e volta", () => {
     servidorDevolve([A, B]);
     await atualizarPendencias(TOKEN);
 
-    expect(chamadas).toEqual([[{ id: B, severidade: "media" }]]);
+    expect(chamadas).toEqual([]);
+  });
+
+  it("e uma tarefa que nunca passou por aqui continua avisando", async () => {
+    const { chamadas, parar } = ouvir();
+    desligar = parar;
+    servidorDevolve([A, B]);
+    await atualizarPendencias(TOKEN);
+    servidorDevolve([A]);
+    await atualizarPendencias(TOKEN);
+    servidorDevolve([A, B, C]);
+    await atualizarPendencias(TOKEN);
+
+    expect(chamadas).toEqual([[{ id: C, severidade: "media" }]]);
+  });
+
+  /*
+    A memória acumula, então precisa de teto, e o teto NUNCA pode cortar a
+    lista atual: uma tarefa que está na tela e sai da memória voltaria como
+    "novidade" na atualização seguinte, sem despacho nenhum. O que cai é o
+    mais antigo do que já saiu da lista.
+  */
+  it("o teto da memória corta o que já saiu da lista, nunca o que está nela", async () => {
+    const { chamadas, parar } = ouvir();
+    desligar = parar;
+    const muitas = Array.from({ length: TETO_DE_IDS_VISTOS + 5 }, (_, i) =>
+      `44444444-4444-4444-8444-${String(i).padStart(12, "0")}`);
+
+    servidorDevolve([A]);
+    await atualizarPendencias(TOKEN);
+    // A passa por muitas listas diferentes e some; a memória enche.
+    for (let i = 0; i < muitas.length; i += 100) {
+      servidorDevolve(muitas.slice(i, i + 100));
+      await atualizarPendencias(TOKEN);
+    }
+    const antes = chamadas.length;
+
+    // A lista atual, repetida: nada é novidade, mesmo com a memória cheia.
+    servidorDevolve(muitas.slice(-100));
+    await atualizarPendencias(TOKEN);
+    expect(chamadas.length).toBe(antes);
+
+    // A, que saiu há muito e caiu do teto, volta: avisa, e é o custo do teto.
+    servidorDevolve([...muitas.slice(-100), A]);
+    await atualizarPendencias(TOKEN);
+    expect(chamadas.at(-1)).toEqual([{ id: A, severidade: "media" }]);
   });
 });
 

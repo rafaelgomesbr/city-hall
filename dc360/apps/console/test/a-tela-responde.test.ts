@@ -1590,3 +1590,93 @@ describe("Esqueci a senha, na porta, sem sessao", () => {
     expect(tela.pegar("recuperar-senha").value, "a senha nova digitada ficou no campo").toBe("");
   });
 });
+
+describe("A conta sem codigos de recuperacao e avisada na entrada, ate gerar", () => {
+  /*
+    O achado (revisao de 15/09/2026): o dono semeado de CONSOLE_OPERADORES
+    nasce sem codigo, e o unico aviso era um paragrafo do roteiro. A entrada
+    passa a trazer `codigosDeRecuperacao`, e a tela mostra o aviso na primeira
+    coisa que a pessoa ve, com o caminho para resolver na mesma linha.
+  */
+  const OITO = [
+    "abcde-fghjk", "mnpqr-stuvw", "xyz23-45678", "9abcd-efghj",
+    "kmnpq-rstuv", "wxyz2-34567", "89abc-defgh", "jkmnp-qrstu",
+  ];
+
+  /** A porta inteira, com a resposta da segunda etapa dizendo quantos códigos há. */
+  async function entrarCom(codigos: number | undefined, papel: "dono" | "operador" = "dono") {
+    tela.pegar("email").value = "dona@fornecedor.com.br";
+    tela.pegar("senha").value = "uma senha qualquer";
+    const primeira = tela.disparar("forma-senha", "submit");
+    await tela.passo();
+    tela.ultima().resolver(resposta({ desafio: "desafio-de-teste", falta: "codigo" }));
+    await primeira;
+
+    tela.pegar("codigo").value = "123456";
+    const segunda = tela.disparar("forma-codigo", "submit");
+    await tela.passo();
+    tela.ultima().resolver(resposta({
+      token: "token-de-teste", operador: "dona@fornecedor.com.br", papel,
+      ...(codigos === undefined ? {} : { codigosDeRecuperacao: codigos }),
+    }));
+    await tela.passo();
+    tela.ultima().resolver(resposta({ municipios: [] }));
+    await segunda;
+  }
+
+  it("o dono com zero codigos ve o aviso no painel, dizendo que e o dono e o que esta em jogo", async () => {
+    await entrarCom(0, "dono");
+    const aviso = tela.pegar("aviso-sem-codigos");
+    expect(aviso.hidden, "o aviso nao apareceu").toBe(false);
+    const texto = tela.pegar("aviso-sem-codigos-texto").textContent;
+    expect(texto).toContain("dono");
+    expect(texto).toContain("códigos de recuperação");
+    expect(texto).toContain("credencial de dono do banco");
+  });
+
+  it("o operador comum com zero codigos tambem ve, com a saida dele (o dono desativa e cria outra)", async () => {
+    await entrarCom(0, "operador");
+    expect(tela.pegar("aviso-sem-codigos").hidden).toBe(false);
+    const texto = tela.pegar("aviso-sem-codigos-texto").textContent;
+    expect(texto).not.toContain("Você é o dono");
+    expect(texto).toContain("desative a conta");
+  });
+
+  it("com codigos, nada aparece; e sem o numero (servidor antigo), a tela nao afirma nada", async () => {
+    await entrarCom(8);
+    expect(tela.pegar("aviso-sem-codigos").hidden).toBe(true);
+    await tela.disparar("sair", "click");
+
+    await entrarCom(undefined);
+    expect(tela.pegar("aviso-sem-codigos").hidden, "afirmou zero sem o servidor ter dito").toBe(true);
+  });
+
+  it("o botao do aviso leva a Minha senha, e gerar o lote esconde o aviso", async () => {
+    await entrarCom(0);
+    const abrir = tela.disparar("aviso-sem-codigos-ir", "click");
+    await tela.passo();
+    expect(tela.ultima().caminho).toBe("/codigos-de-recuperacao");
+    tela.ultima().resolver(resposta({ restantes: 0 }));
+    await abrir;
+    await tela.passo();
+    expect(tela.pegar("minha-senha").hidden).toBe(false);
+    expect(tela.pegar("painel").hidden).toBe(true);
+    expect(tela.pegar("aviso-sem-codigos").hidden, "o aviso sumiu antes de o lote existir").toBe(false);
+
+    tela.pegar("codigos-senha").value = "a-senha-atual";
+    tela.pegar("codigos-codigo").value = "123456";
+    const gerar = tela.disparar("forma-codigos", "submit");
+    await tela.passo();
+    tela.ultima().resolver(resposta({ codigos: OITO, restantes: 8 }));
+    await gerar;
+    await tela.passo();
+    expect(tela.pegar("aviso-sem-codigos").hidden, "o aviso ficou depois de gerar").toBe(true);
+  });
+
+  it("sair esconde o aviso, para a proxima pessoa nao herdar o recado da anterior", async () => {
+    await entrarCom(0);
+    expect(tela.pegar("aviso-sem-codigos").hidden).toBe(false);
+    await tela.disparar("sair", "click");
+    expect(tela.pegar("aviso-sem-codigos").hidden).toBe(true);
+  });
+});

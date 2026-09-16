@@ -52,6 +52,24 @@ export class ErroDaApi extends Error {
         + "na prefeitura. O que você já coletou continua guardado no aparelho."
       );
     }
+    /*
+      A senha provisória (migração 046): quem entrou com a senha sorteada por
+      quem administra recebe 403 em toda rota até definir a própria senha, e
+      o aplicativo não tem tela para isso. Sem esta frase, o 403 caía na do
+      perfil, mandando "ajustar o cadastro" de um cadastro que está certo.
+    */
+    if (this.codigo === "troca_de_senha_obrigatoria") {
+      return (
+        "Você entrou com uma senha provisória. Defina a sua senha no painel, "
+        + "no computador (a tela de entrada pede isso), e depois entre aqui de novo."
+      );
+    }
+    if (this.codigo === "senha_provisoria_vencida") {
+      return (
+        "A senha provisória que você recebeu venceu sem ser trocada. Peça uma "
+        + "nova a quem administra o município."
+      );
+    }
     if (this.status === 401) {
       return "Email ou senha não conferem. Confira e tente de novo.";
     }
@@ -264,6 +282,14 @@ export async function sair(renovacao: string, ficha?: string | null): Promise<vo
 export type PlataformaDoAparelho = "ios" | "android";
 
 /**
+ * Com qual APNs este binário fala. O vocabulário é o do servidor
+ * (`APNS_AMBIENTE`: `producao` | `teste`), e não o da Apple, para a coluna
+ * do banco, a variável e este campo dizerem a mesma palavra. Ver
+ * `push/registro.ts`, `ambienteDoBuild`.
+ */
+export type AmbienteDoPush = "producao" | "teste";
+
+/**
  * Registra, ou atualiza, a ficha de push deste aparelho.
  *
  * Reenviar a mesma ficha ATUALIZA e não duplica (a rota tem `ON CONFLICT`), e é
@@ -279,28 +305,30 @@ export async function registrarAparelho(
   token: string,
   plataforma: PlataformaDoAparelho,
   ficha: string,
+  /**
+   * Em qual APNs este binário fala, decidido no build. Nulo quando o binário
+   * não sabe (versão anterior ao campo): vai sem ele, e o servidor usa o
+   * padrão dele. Nunca um chute.
+   */
+  ambiente: AmbienteDoPush | null = null,
 ): Promise<void> {
   // Teto de conforto: falhar aqui não perde trabalho nenhum, só adia o aviso
   // até a próxima entrada. Ver `TEMPO_LIMITE_CONFORTO_MS`.
   await chamar<{ id: string; registrado: boolean }>("/aparelhos", {
-    token, metodo: "POST", corpo: { plataforma, ficha },
+    token, metodo: "POST",
+    corpo: { plataforma, ficha, ...(ambiente ? { ambiente } : {}) },
     tempoLimiteMs: TEMPO_LIMITE_CONFORTO_MS,
   });
 }
 
-/**
- * Para de receber neste aparelho, sem encerrar a sessão.
- *
- * Serve ao caso em que a pessoa desliga os avisos por escolha, e não por sair
- * da conta. Responde 204 mesmo quando não havia nada registrado, de propósito:
- * ver o comentário da rota.
- */
-export async function revogarAparelho(token: string, ficha: string): Promise<void> {
-  await chamar("/aparelhos/revogar", {
-    token, metodo: "POST", corpo: { ficha },
-    tempoLimiteMs: TEMPO_LIMITE_CONFORTO_MS,
-  });
-}
+/*
+  `revogarAparelho` (a metade cliente de `POST /aparelhos/revogar`, "parar de
+  receber sem sair da conta") morou aqui até 15/09/2026 sem nenhuma tela que
+  a chamasse e sem plano escrito em `PENDENCIAS.md`. A rota continua na API,
+  testada, para o dia em que a tela de Perfil ganhar a chave de desligar os
+  avisos; a chamada se escreve em cinco linhas quando a tela existir, e
+  função exportada sem uso é código que ninguém revisa.
+*/
 
 /* ========================================================================
    O que baixar para trabalhar offline

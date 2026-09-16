@@ -8,7 +8,7 @@ import {
   devolucoesPendentes,
   imoveisInterditados,
   type Indicadores,
-  type LinhaOcorrencia,
+  type LinhaDaListaDeOcorrencias,
   type ImovelInterditado,
   type ProvidenciaPendente,
   type DevolucaoPendente,
@@ -56,7 +56,7 @@ export function Painel() {
   const navegar = useNavigate();
   const [dados, setDados] = useState<{
     ind: Indicadores;
-    fila: LinhaOcorrencia[];
+    fila: LinhaDaListaDeOcorrencias[];
     providencias: ProvidenciaPendente[];
     interditados: ImovelInterditado[];
     /**
@@ -70,6 +70,13 @@ export function Painel() {
   } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [carregadoEm, setCarregadoEm] = useState<Date | null>(null);
+  /*
+    "Tentar de novo" sem recarregar a página. Com o servidor fora, a tela
+    ficava numa faixa vermelha sem saída: o relógio de um minuto só corre
+    depois de a primeira busca dar certo, e a única ação era o F5, que
+    ninguém sabe que resolve. O contador reinicia o efeito de carga.
+  */
+  const [tentativa, setTentativa] = useState(0);
 
   /*
     O PAINEL SE ATUALIZA, e DIZ de quando sao os numeros.
@@ -150,9 +157,19 @@ export function Painel() {
       clearInterval(relogio);
       document.removeEventListener("visibilitychange", aoVoltar);
     };
-  }, [sessao]);
+  }, [sessao, tentativa]);
 
-  if (erro) return <Aviso tom="perigo">Falha ao carregar o painel: {erro}</Aviso>;
+  if (erro) {
+    return (
+      <Aviso tom="perigo">
+        Falha ao carregar o painel: {erro}{" "}
+        <button type="button" className="botao botao--secundario"
+                onClick={() => { setErro(null); setTentativa((t) => t + 1); }}>
+          Tentar de novo
+        </button>
+      </Aviso>
+    );
+  }
   if (!dados) return <Carregando />;
 
   const { ind, fila, providencias, interditados, devolvidas } = dados;

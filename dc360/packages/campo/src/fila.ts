@@ -4,12 +4,14 @@ import {
   FalhaTemporaria,
   type Arquivos,
   type AutorDaColeta,
+  type ColetaParaCorrecao,
   type Deposito,
   type DevolucaoSemAutor,
   type FotoLocal,
   type FotoNaFila,
   type ItemDeVistoria,
   type ItemFila,
+  type ResultadoDaRetirada,
   type ResultadoDreno,
   type ResumoFila,
   type Transporte,
@@ -309,8 +311,54 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       assinatura?: FotoLocal;
     },
   ): Promise<ItemFila> {
+    const arquivos = [
+      ...(dados.fotos ?? []).map((f): FotoNaFila => ({
+        ...f, papel: "foto", chave: null, evidenciaId: null, enviada: false,
+      })),
+      ...(dados.assinatura
+        ? [{
+            ...dados.assinatura,
+            papel: "assinatura" as const,
+            chave: null, evidenciaId: null, enviada: false,
+          }]
+        : []),
+    ];
+
     const existente = (await deposito.listar()).find((i) => i.id === envelope.idempotencyKey);
-    if (existente) return existente;
+    if (existente) {
+      /*
+        A MESMA CHAVE COM CONTEÚDO DIFERENTE É RECUSADA, com nome, e não
+        devolvida em silêncio.
+
+        Até 15/09/2026 este `if` devolvia o item antigo e jogava fora o
+        envelope novo sem uma palavra. A sondagem do revisor de integridade
+        provou o caminho: `refazerVistoria` na tela reusa a chave do rascunho
+        preso, a segunda conclusão chegava aqui com a versão corrigida, a fila
+        ficava com a antiga e a tela dizia "Vistoria guardada" sobre a que não
+        foi guardada.
+
+        O toque repetido (mesmo conteúdo) continua devolvendo o item: é o caso
+        comum do aparelho velho que demora a responder. Conteúdo é o envelope E
+        a lista de arquivos, porque uma foto a mais é conteúdo.
+
+        Não substitui, e a razão é a prova: o item antigo pode ter fotos que
+        já subiram e foram confirmadas no servidor. Trocar o envelope por baixo
+        delas produziria um laudo apontando para arquivo que a nova versão não
+        declara. A saída certa para quem quer mudar o conteúdo é a fila:
+        "Corrigir a vistoria" tira o item antes de reabrir, e não passa por
+        aqui.
+      */
+      const mesmoConteudo = existente.tipo === "vistoria"
+        && JSON.stringify(existente.envelope) === JSON.stringify(envelope)
+        && JSON.stringify(existente.fotos.map((f) => [f.papel, f.idempotencyKey]))
+          === JSON.stringify(arquivos.map((f) => [f.papel, f.idempotencyKey]));
+      if (mesmoConteudo) return existente;
+      throw new FalhaPermanente(
+        `A coleta do protocolo ${existente.protocolo} já está na fila de envio com outro `
+        + "conteúdo. Para mudar o que vai ser enviado, corrija-a pela fila.",
+        "chave_em_uso",
+      );
+    }
 
     const instante = agora().toISOString();
     const item: ItemFila = {
@@ -333,18 +381,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       liberadoEm: instante,
       ultimaFalha: null,
       confirmadoEm: null,
-      fotos: [
-        ...(dados.fotos ?? []).map((f): FotoNaFila => ({
-          ...f, papel: "foto", chave: null, evidenciaId: null, enviada: false,
-        })),
-        ...(dados.assinatura
-          ? [{
-              ...dados.assinatura,
-              papel: "assinatura" as const,
-              chave: null, evidenciaId: null, enviada: false,
-            }]
-          : []),
-      ],
+      fotos: arquivos,
     };
     await deposito.salvar(item);
     await avisar();
@@ -666,45 +703,105 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       */
       if (foto.perdida && item.abriuMaoDasPerdidas) continue;
 
+      /*
+        OS BYTES SAO LIDOS ANTES DE PEDIR AUTORIZACAO, e o tamanho que vai ao
+        servidor e o dos bytes lidos, nunca o que a coleta gravou.
+
+        Ate 15/09/2026 a ordem era a inversa: autorizava com `foto.tamanhoBytes`
+        e so depois lia o arquivo. A vistoria 000009/2026 foi gravada com
+        `tamanhoBytes: 0` (o `size` do aparelho veio zerado), a autorizacao
+        levou o zero, o servidor recusou com 422 tres vezes, e o arquivo de
+        812 KB estava inteiro no aparelho o tempo todo. O numero da autorizacao
+        e conferido pelo servidor contra o objeto que chega, entao o unico
+        numero que pode bater e o que sai da leitura que alimenta o PUT.
+
+        Custa ler o arquivo mesmo quando o servidor responder `jaEnviada` (a
+        resposta da confirmacao anterior se perdeu). E uma leitura de disco a
+        mais num caso raro, contra uma vistoria presa na fila no caso comum.
+      */
+      let corpo: Uint8Array | null;
+      try {
+        corpo = await arquivos.ler(foto.uriLocal);
+      } catch (erro) {
+        /*
+          SO `arquivo_sumiu` vira marca de perda, e nunca qualquer falha de
+          leitura.
+
+          Um erro de permissao, um disco cheio ou um defeito da porta sao
+          situacoes que podem melhorar, e tratar qualquer uma delas como
+          "o arquivo acabou" ofereceria ao agente jogar fora uma prova que
+          ainda existe no aparelho. A porta `Arquivos` so usa este codigo
+          quando conferiu que o arquivo nao esta la.
+        */
+        if (!(erro instanceof FalhaPermanente) || erro.codigo !== CODIGO_ARQUIVO_SUMIU) {
+          throw erro;
+        }
+        corpo = null;
+      }
+
+      /*
+        ZERO BYTES E ARQUIVO PERDIDO, e cai no mesmo caminho da ausencia.
+
+        Um arquivo vazio nao e fotografia nem assinatura, e o servidor o recusa
+        por contrato (`pedidoDeEvidenciaSchema`). Pedir autorizacao para ele
+        seria pedir o 422; marca-lo como perdido e a leitura honesta, e abre a
+        saida que ja existe: o agente decide enviar sem ele, ou corrige a
+        vistoria e tira a foto de novo.
+      */
+      if (corpo !== null && corpo.length === 0) corpo = null;
+
+      if (corpo === null) {
+        /*
+          ANTES DE DECLARAR PERDA, O SERVIDOR E CONSULTADO pela mesma chave.
+
+          Ler antes de autorizar nao pode custar a foto que ja subiu: ela foi
+          confirmada numa tentativa anterior, o envelope falhou depois, e o
+          arquivo local se foi. O servidor responde `jaEnviada` para a chave, e
+          nao ha o que perder. So quando ele tambem nao tem e que a marca de
+          perda entra.
+
+          O tamanho gravado vai como esta: sem arquivo nao ha o que medir. Se
+          for zero, o servidor recusa por contrato e a recusa e a resposta
+          honesta para um arquivo que nao existe em lugar nenhum.
+        */
+        const talvez = foto.tamanhoBytes > 0
+          ? await transporte.autorizarFoto({ ocorrenciaId: item.ocorrenciaId, foto })
+          : null;
+        if (talvez?.jaEnviada) {
+          atualizadas[i] = {
+            ...foto,
+            chave: talvez.chave,
+            evidenciaId: talvez.evidenciaId,
+            enviada: true,
+            perdida: false,
+          };
+          await deposito.salvar({ ...item, fotos: atualizadas, estado: "enviando" });
+          continue;
+        }
+        atualizadas[i] = { ...foto, perdida: true };
+        faltando += 1;
+        // Grava a marca na hora: e ela que a tela le para dizer QUANTOS e
+        // QUAIS arquivos sumiram, sem tentar ler os bytes de todos de novo.
+        await deposito.salvar({ ...item, fotos: atualizadas, estado: "enviando" });
+        continue;
+      }
+
+      const medida: FotoNaFila = { ...foto, tamanhoBytes: corpo.length };
       const autorizacao = await transporte.autorizarFoto({
         ocorrenciaId: item.ocorrenciaId,
-        foto,
+        foto: medida,
       });
 
       // `jaEnviada` cobre o caso de o aparelho ter enviado os bytes e perdido
       // a resposta: reenviar seria gastar rede a toa.
       if (!autorizacao.jaEnviada) {
-        let corpo: Uint8Array;
-        try {
-          corpo = await arquivos.ler(foto.uriLocal);
-        } catch (erro) {
-          /*
-            SO `arquivo_sumiu` vira marca de perda, e nunca qualquer falha de
-            leitura.
-
-            Um erro de permissao, um disco cheio ou um defeito da porta sao
-            situacoes que podem melhorar, e tratar qualquer uma delas como
-            "o arquivo acabou" ofereceria ao agente jogar fora uma prova que
-            ainda existe no aparelho. A porta `Arquivos` so usa este codigo
-            quando conferiu que o arquivo nao esta la.
-          */
-          if (!(erro instanceof FalhaPermanente) || erro.codigo !== CODIGO_ARQUIVO_SUMIU) {
-            throw erro;
-          }
-          atualizadas[i] = { ...foto, perdida: true };
-          faltando += 1;
-          // Grava a marca na hora: e ela que a tela le para dizer QUANTOS e
-          // QUAIS arquivos sumiram, sem tentar ler os bytes de todos de novo.
-          await deposito.salvar({ ...item, fotos: atualizadas, estado: "enviando" });
-          continue;
-        }
         await transporte.enviarBytes(autorizacao.url, autorizacao.cabecalhos, corpo);
         await transporte.confirmarFoto(autorizacao.evidenciaId);
         enviadasAgora += 1;
       }
 
       atualizadas[i] = {
-        ...foto,
+        ...medida,
         chave: autorizacao.chave,
         evidenciaId: autorizacao.evidenciaId,
         enviada: true,
@@ -1020,6 +1117,67 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
   }
 
   /**
+   * Devolve uma coleta PARADA para virar rascunho de novo, para a pessoa
+   * corrigir o que o servidor recusou e concluir outra vez.
+   *
+   * ## Por que existe
+   *
+   * Um item `bloqueado` e uma coleta que o servidor recusou por um motivo que
+   * repetir nao resolve. Ate 15/09/2026 as saidas da tela eram "Tentar de novo"
+   * (que repete) e "Descartar" (que apaga). A vistoria 000009/2026 parou por
+   * 422 e o dono do produto, com o aparelho na mao, perguntou: "cade o botao de
+   * editar? so tem de descartar". Este e o botao de editar.
+   *
+   * ## A ordem, e por que ela mora aqui
+   *
+   * `guardar` recebe a coleta ANTES de o item sair da fila, e o item so sai se
+   * `guardar` voltar sem erro. Na ordem inversa, uma gravacao de rascunho que
+   * falhasse (disco cheio, banco ocupado) deixaria a coleta em lugar nenhum:
+   * fora da fila e fora do rascunho, que e a unica perda que este pacote
+   * inteiro existe para impedir. A ordem fica no motor, com teste, pela mesma
+   * razao de `concluirColetaEmOrdem`: ordem que so existe em tres linhas de
+   * uma tela e ordem que a proxima edicao inverte.
+   *
+   * ## O portao
+   *
+   * So sai coleta de vistoria, parada (`bloqueado` ou `arquivado`), e da
+   * PROPRIA sessao. A ultima condicao nao e zelo: o rascunho reconstruido vai
+   * ser concluido de novo por quem esta no aparelho, e o autor carimbado nessa
+   * conclusao seria o da sessao aberta. Devolver a coleta de outro agente para
+   * rascunho e trocar o nome de quem assina o laudo com um toque.
+   *
+   * A chave de idempotencia viaja dentro do envelope devolvido, e a tela a
+   * reusa na conclusao seguinte: o servidor reconhece a mesma chave, entao os
+   * arquivos que ja subiram nao sobem de novo e nada duplica.
+   */
+  async function retirarParaCorrecao(
+    id: string,
+    guardar: (coleta: ColetaParaCorrecao) => Promise<void>,
+  ): Promise<ResultadoDaRetirada> {
+    const item = (await deposito.listar()).find((i) => i.id === id);
+    if (!item) return { retirada: false, motivo: "nao_encontrada" };
+    if (item.tipo !== "vistoria") return { retirada: false, motivo: "nao_e_vistoria" };
+    if (item.estado !== "bloqueado" && item.estado !== "arquivado") {
+      return { retirada: false, motivo: "nao_esta_parada" };
+    }
+    if (autoriaDaColeta(item, sessaoAtual()) !== "propria") {
+      return { retirada: false, motivo: "de_outro_autor" };
+    }
+
+    const coleta: ColetaParaCorrecao = {
+      envelope: item.envelope,
+      protocolo: item.protocolo,
+      ocorrenciaId: item.ocorrenciaId,
+      fotos: item.fotos,
+      ultimaFalha: item.ultimaFalha,
+    };
+    await guardar(coleta);
+    await deposito.remover(id);
+    await avisar();
+    return { retirada: true, coleta };
+  }
+
+  /**
    * Descarta um item bloqueado. Exige confirmação de quem chama, porque
    * descartar coleta de campo é perder trabalho já feito no morro.
    */
@@ -1074,6 +1232,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
     reenviar,
     assumir,
     abrirMaoDasEvidenciasPerdidas,
+    retirarParaCorrecao,
     descartar,
     itens,
     resumo,

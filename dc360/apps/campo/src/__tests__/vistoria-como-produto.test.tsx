@@ -49,14 +49,24 @@ import TelaDeVistoria, {
    O aparelho, de mentira
    ============================================================ */
 
+/*
+  UUIDs de verdade nas chaves e na ocorrência, desde 15/09/2026: a tela passou
+  a conferir a coleta com o MESMO esquema do servidor antes de enfileirar, e o
+  esquema exige UUID. "oc-1" e "chave-fixa" eram de mentira e passavam porque
+  ninguém conferia, que é exatamente o defeito que a conferência fecha.
+*/
 jest.mock("expo-router", () => {
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const { useEffect } = require("react") as typeof import("react");
   const navegacao = { setOptions: jest.fn() };
   return {
     router: {
       back: jest.fn(), push: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true),
     },
-    useLocalSearchParams: () => ({ id: "oc-1" }),
+    useLocalSearchParams: () => ({ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" }),
     useNavigation: () => navegacao,
+    /* A tela relê o disco a cada foco; aqui o foco é a montagem, e só ela. */
+    useFocusEffect: (retorno: () => void) => { useEffect(retorno, [retorno]); },
   };
 });
 
@@ -92,7 +102,10 @@ jest.mock("expo-location", () => ({
    uma, e o caso das duas fotos deixaria de provar o que se propõe. */
 let mockContadorDeChaves = 0;
 jest.mock("expo-crypto", () => ({
-  randomUUID: () => `chave-${++mockContadorDeChaves}`,
+  randomUUID: () => {
+    mockContadorDeChaves += 1;
+    return `cccccccc-cccc-4ccc-8ccc-${String(mockContadorDeChaves).padStart(12, "0")}`;
+  },
 }));
 
 jest.mock("expo-file-system", () => ({
@@ -104,6 +117,7 @@ const mockApagarDoDisco = jest.fn((_uri: string) => true);
 jest.mock("../dados/evidencia-no-disco", () => ({
   guardarFotoNoAparelho: () => ({ uriLocal: "file:///vistorias/foto.jpg", tamanhoBytes: 1024 }),
   apagarFotoDoAparelho: (uri: string) => mockApagarDoDisco(uri),
+  medirArquivoNoAparelho: () => 1024,
 }));
 
 /*
@@ -160,7 +174,7 @@ jest.mock("../dados/mapa", () => ({
 }));
 
 const OCORRENCIA: Pendencia = {
-  id: "oc-1",
+  id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
   protocolo: "2026/000123",
   tipo: "deslizamento",
   severidade: "alta",
@@ -230,9 +244,9 @@ jest.mock("../dados/rascunho", () => ({
 
 function rascunho(mudanca: RascunhoDeTeste = {}): RascunhoDeTeste {
   return {
-    ocorrenciaId: "oc-1",
+    ocorrenciaId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
     protocolo: "2026/000123",
-    idempotencyKey: "chave-fixa",
+    idempotencyKey: "11111111-1111-4111-8111-000000000123",
     checklist: {}, orgaosParaAcionar: [], fotos: [],
     gpsPrecisaoMetros: null, coordenada: null,
     assinanteNome: "", assinaturaUri: null, observacoes: "", pessoas: {},
@@ -248,7 +262,7 @@ const CHECKLIST_COMPLETO = Object.fromEntries(
 );
 
 const FOTO = {
-  idempotencyKey: "foto-1",
+  idempotencyKey: "ffffffff-1111-4111-8111-000000000001",
   uriLocal: "file:///vistorias/foto.jpg",
   nomeArquivo: "vistoria-1.jpg",
   tipoConteudo: "image/jpeg",
@@ -318,6 +332,16 @@ beforeEach(() => {
 afterEach(() => {
   jest.useRealTimers();
   jest.restoreAllMocks();
+  /*
+    `isReduceMotionEnabled` já nasce como `jest.fn` no dublê do React Native, e
+    `spyOn` sobre um `jest.fn` não cria espião nenhum: `restoreAllMocks` não o
+    devolve ao que era. Sem esta linha, o caso "com redução de movimento" deixava
+    a redução ligada para os vinte casos seguintes (uma sonda no fim do arquivo
+    lia `true`), e eles passavam a testar um aparelho que não anima nada.
+  */
+  (AccessibilityInfo.isReduceMotionEnabled as jest.Mock).mockImplementation(
+    () => Promise.resolve(false),
+  );
 });
 
 /* ============================================================
@@ -652,7 +676,7 @@ describe("as fotografias", () => {
 
   it("confirmar apaga, e renumera as que sobraram", async () => {
     mockRascunhoGuardado = rascunho({
-      fotos: [FOTO, { ...FOTO, idempotencyKey: "foto-2", ordem: 1 }],
+      fotos: [FOTO, { ...FOTO, idempotencyKey: "ffffffff-2222-4222-8222-000000000002", ordem: 1 }],
     });
     await abrirATela();
 
@@ -662,7 +686,7 @@ describe("as fotografias", () => {
 
     const fotos = ultimoGravado().fotos as Array<{ idempotencyKey: string; ordem: number }>;
     expect(fotos).toHaveLength(1);
-    expect(fotos[0]).toEqual(expect.objectContaining({ idempotencyKey: "foto-2", ordem: 0 }));
+    expect(fotos[0]).toEqual(expect.objectContaining({ idempotencyKey: "ffffffff-2222-4222-8222-000000000002", ordem: 0 }));
   });
 
   it("o alvo de apagar continua na régua de 52 do produto", async () => {
@@ -1053,12 +1077,12 @@ describe("o rascunho gravado por uma versão anterior", () => {
       servidor, a definição de uma SEGUNDA coleta do mesmo protocolo. A base
       reaproveita a chave que está no disco.
     */
-    const deOntem = rascunho({ idempotencyKey: "chave-da-coleta-de-ontem" });
+    const deOntem = rascunho({ idempotencyKey: "11111111-1111-4111-8111-00000000ffff" });
     delete deOntem["pessoas"];
     mockRascunhoGuardado = deOntem;
     mockRascunhoGuardado = { ...deOntem, ...rascunhoPronto(), pessoas: undefined };
     delete (mockRascunhoGuardado as Record<string, unknown>)["pessoas"];
-    mockRascunhoGuardado["idempotencyKey"] = "chave-da-coleta-de-ontem";
+    mockRascunhoGuardado["idempotencyKey"] = "11111111-1111-4111-8111-00000000ffff";
 
     await abrirATela();
     await fireEvent.press(screen.getByText("Revisar e concluir"));
@@ -1067,7 +1091,7 @@ describe("o rascunho gravado por uma versão anterior", () => {
     await act(async () => {});
 
     const envelope = mockEnfileirar.mock.calls[0]?.[0] as { idempotencyKey: string };
-    expect(envelope.idempotencyKey).toBe("chave-da-coleta-de-ontem");
+    expect(envelope.idempotencyKey).toBe("11111111-1111-4111-8111-00000000ffff");
   });
 });
 
@@ -1285,5 +1309,67 @@ describe("apagar a fotografia", () => {
 
     expect(screen.getByLabelText("Fotografia 1 da vistoria").props.accessible)
       .toBe(true);
+  });
+});
+
+/* ============================================================
+   O menu flutuante e as cinco telas da vistoria
+   ============================================================ */
+
+/*
+  O dono, com o aparelho na mão: "Concluir vistoria" e "Ver na fila de envio"
+  escondidos atrás do menu de vidro. A pílula paira sobre a cena e não empurra
+  nada, então cada tela reserva o vão que a barra mede (`useRecuoDoMenu`), e
+  as barras FIXAS de botões sobem acima da pílula. A câmera é a exceção: tela
+  cheia esconde o menu pela opção padrão do navegador.
+*/
+describe("o menu flutuante e as telas da vistoria", () => {
+  const { alturaDeReservaDoMenu } = require("../ui/BarraDeAbas") as typeof import("../ui/BarraDeAbas");
+  const { espaco } = require("../ui/tokens") as typeof import("../ui/tokens");
+  /* Sem navegador em volta, o gancho cai na conta do cabeçalho mais a área segura do dublê. */
+  const RECUO_MINIMO = alturaDeReservaDoMenu(0) + espaco.e3;
+
+  function recuoDe(estilo: unknown): number {
+    return Number((StyleSheet.flatten(estilo as never) as { paddingBottom?: number }).paddingBottom ?? 0);
+  }
+
+  it("o formulário reserva o vão do menu no fim da rolagem", async () => {
+    await abrirATela();
+    const folha = screen.getByTestId("formulario-da-vistoria");
+    expect(recuoDe(folha.props.contentContainerStyle)).toBeGreaterThanOrEqual(RECUO_MINIMO);
+  });
+
+  it("a barra da minuta sobe acima da pílula: reserva o vão medido, e não só a área segura", async () => {
+    mockRascunhoGuardado = rascunhoPronto();
+    await abrirATela();
+    await fireEvent.press(screen.getByText("Revisar e concluir"));
+    await act(async () => {});
+
+    const barra = await screen.findByTestId("barra-da-minuta");
+    expect(recuoDe(barra.props.style)).toBeGreaterThanOrEqual(RECUO_MINIMO);
+    expect(screen.getByText("Concluir vistoria")).toBeTruthy();
+  });
+
+  it("a tela de vistoria guardada reserva o vão, para 'Ver na fila de envio' não morrer atrás do vidro", async () => {
+    await concluirAVistoria();
+    const guardada = await screen.findByTestId("vistoria-guardada");
+    expect(recuoDe(guardada.props.contentContainerStyle)).toBeGreaterThanOrEqual(RECUO_MINIMO);
+  });
+
+  it("a câmera pede tela cheia ao navegador, e devolve o menu ao fechar", async () => {
+    const { useNavigation } = require("expo-router") as { useNavigation: () => { setOptions: jest.Mock } };
+    const navegacao = useNavigation();
+    navegacao.setOptions.mockClear();
+    mockRascunhoGuardado = rascunho();
+    await abrirATela();
+
+    await fireEvent.press(screen.getByText("Tirar foto"));
+    await act(async () => {});
+    expect(navegacao.setOptions).toHaveBeenCalledWith({ tabBarStyle: { display: "none" } });
+
+    await fireEvent.press(screen.getByTestId("fechar-a-camera"));
+    await act(async () => {});
+    const ultima = navegacao.setOptions.mock.calls.at(-1)?.[0] as { tabBarStyle?: unknown };
+    expect(ultima).toEqual({ tabBarStyle: undefined });
   });
 });

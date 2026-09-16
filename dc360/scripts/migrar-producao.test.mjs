@@ -104,7 +104,9 @@ test("o nome do cofre e da conta são os mesmos que a mensagem de ajuda ensina",
     pessoa guarda a senha num lugar e o roteiro procura no outro, e a mensagem
     de erro diz exatamente o comando que ela acabou de rodar.
   */
-  const fonte = readFileSync(new URL("./migrar-producao.mjs", import.meta.url), "utf8");
+  /* A leitura do chaveiro mora em `producao.mjs` desde 15/09/2026, compartilhada
+     com `copiar-producao.mjs`; a mensagem de ajuda está lá. */
+  const fonte = readFileSync(new URL("./producao.mjs", import.meta.url), "utf8");
   assert.match(fonte, new RegExp(`add-generic-password -a \\$\\{CONTA\\}`));
   assert.match(fonte, new RegExp(`-s \\$\\{COFRE\\}`));
   assert.equal(typeof CONTA, "string");

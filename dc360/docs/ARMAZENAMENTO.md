@@ -87,6 +87,27 @@ permitiria autorizar mil envios e passar do teto antes de qualquer confirmação
 preço é que autorização perdida segura teto, e é a varredura da parte 2 que a
 solta.
 
+**Mais a foto de perfil de cada servidor** (`usuarios.foto_bytes`, migração
+045). Ela ocupa o mesmo balde e, até 15/09/2026, não entrava na conta nem a rota
+de foto perguntava ao teto: uma equipe inteira trocando de foto num município no
+limite passava por cima dele sem aviso. Hoje a rota `POST
+/usuarios/eu/foto/autorizar-envio` consulta o teto antes de emitir a URL, e a
+confirmação (`PUT /usuarios/eu/foto`) grava o tamanho lido do próprio
+armazenamento, na mesma transação em que confere o teto de novo (o gatilho
+`foto_dentro_do_teto` cobra a mesma conta por baixo). A recusa é 507 com uma
+frase própria da foto, que diz que a anterior continua como estava.
+
+Duas coisas a saber sobre essa parcela:
+
+- **A foto confirmada antes da migração 045 conta zero.** O banco guardava só a
+  chave, e o tamanho de um objeto só o armazenamento sabe. Inventar um número
+  seria contar errado; ela passa a contar no dia em que a pessoa trocar de
+  foto. São dezenas de kilobytes por servidor, então a diferença não move a
+  situação de município nenhum.
+- **Ela nunca é grande.** O aparelho redimensiona a 512 pontos antes de enviar,
+  e o teto por foto é de 2 MB (contra 15 MB por fotografia de vistoria). Ela
+  entra na conta por coerência, não por peso.
+
 ---
 
 ## 2. Varredura de objeto órfão
@@ -136,6 +157,18 @@ município nenhum (sem prefixo de tenant, ou com prefixo de organização
 inexistente). Ela é relatada e nunca proposta para descarte: só dá para dizer que
 um objeto é órfão comparando com as linhas do município dono dele, e afirmar sem
 saber o dono é afirmar o que ninguém verificou.
+
+**A foto de perfil tem outra linha justificadora.** A varredura reconhece
+`usuarios.foto_chave` (migração 040) como registro vivo, conferido dentro do
+contexto do mesmo município: a foto atual de um servidor **nunca** entra na
+lista, por mais velha que seja, e no descarte a chave é reconferida contra
+`usuarios` também, para a foto que virou perfil entre a varredura e a decisão
+ser mantida. Até 15/09/2026 a varredura só conhecia `evidencias`, e passados
+trinta dias todo retrato virava `objeto_sem_linha`: um descarte autorizado sobre
+essa lista apagaria o rosto de cada agente com a chave ainda gravada na linha.
+O que continua órfão de verdade, e de propósito, é a foto **anterior** de uma
+troca cujo apagamento falhou: nenhuma linha aponta para ela, e ela é exatamente
+o objeto que a rota de troca deixa para a varredura encontrar.
 
 ### A decisão que governa tudo: a varredura NÃO apaga
 

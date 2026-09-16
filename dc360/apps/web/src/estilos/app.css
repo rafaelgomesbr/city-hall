@@ -37,6 +37,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Links na cor de destaque do sistema, nos dois temas. Sem isto, todo `<a>`
+   sem classe saía no azul do navegador, que no tema escuro é ilegível. */
+a { color: var(--ds-accent); }
+a:hover { color: var(--ds-accent-hover); }
+
 :focus-visible { outline: none; box-shadow: var(--ds-focus-ring); border-radius: var(--ds-radius); }
 
 /*
@@ -97,16 +102,23 @@ body {
   display: inline-flex; align-items: center; min-height: var(--ds-touch);
   padding: 0 var(--ds-sp-4); border-radius: var(--ds-radius);
   background: var(--ds-accent); color: var(--ds-on-accent);
-  font-weight: 600; text-decoration: none;
+  font-weight: var(--ds-fw-semibold); text-decoration: none;
   transition: top var(--ds-dur-fast) var(--ds-ease);
 }
 .pular-para-conteudo:focus { top: var(--ds-sp-3); }
 
 /* ---------- Estrutura ---------- */
 
+/*
+  `minmax(0, 1fr)`, e não `1fr`: na grade, `1fr` é `minmax(auto, 1fr)`, e o
+  mínimo `auto` deixa a coluna crescer até a linha mais larga da tabela. O
+  `overflow-x: auto` do envoltório da tabela nunca chegava a agir, e em 1280px
+  a tela inteira rolava para o lado com o sino e a conta fora da vista.
+  `min-width: 0` no topo e no conteúdo fecha o mesmo buraco pelo lado do filho.
+*/
 .aplicacao {
   display: grid;
-  grid-template-columns: 264px 1fr;
+  grid-template-columns: 264px minmax(0, 1fr);
   grid-template-rows: auto 1fr;
   grid-template-areas: "lateral topo" "lateral conteudo";
   min-height: 100%;
@@ -144,12 +156,14 @@ body {
   /* on-accent, nunca branco fixo: no tema escuro o gradiente vai para violeta
      claro, e branco por cima dava 2,72:1. O token acompanha o tema. */
   color: var(--ds-on-accent);
-  font-weight: 700; font-size: var(--ds-fs-body-sm);
+  font-weight: var(--ds-fw-bold); font-size: var(--ds-fs-body-sm);
   letter-spacing: var(--tracking-sigla);
 }
 
-.lateral__nome { font-weight: 700; font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
-.lateral__org { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-ink-400); }
+/* `display: block` nos dois: são `span` dentro de `span`, e em linha o nome
+   e o município saíam colados ("Defesa Civil 360Serra Alta, MG"). */
+.lateral__nome { display: block; font-weight: var(--ds-fw-bold); font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
+.lateral__org { display: block; font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-ink-400); }
 
 .lateral__grupo { display: flex; flex-direction: column; gap: var(--ds-sp-1); }
 .lateral__rotulo {
@@ -167,7 +181,7 @@ body {
   color: var(--ds-ink-400);
   text-decoration: none;
   font-size: var(--ds-fs-body-sm);
-  font-weight: 500;
+  font-weight: var(--ds-fw-medium);
   transition: background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease);
 }
 .lateral__item:hover { background: var(--ds-ink-850); color: var(--ds-ice); }
@@ -180,8 +194,8 @@ body {
 .lateral__rodape { margin-top: auto; display: flex; flex-direction: column; gap: var(--ds-sp-2); }
 
 .topo {
-  grid-area: topo;
-  display: flex; align-items: center; gap: var(--ds-sp-4);
+  grid-area: topo; min-width: 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-4);
   padding: var(--ds-sp-3) var(--ds-sp-6);
   background: var(--ds-surface);
   border-bottom: 1px solid var(--ds-border);
@@ -256,7 +270,7 @@ body {
 .busca-global__titulo-do-grupo {
   padding: var(--ds-sp-2) var(--ds-sp-3) var(--ds-sp-1);
   font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
-  font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  font-weight: var(--ds-fw-semibold); letter-spacing: 0.04em; text-transform: uppercase;
   color: var(--ds-text-muted);
 }
 
@@ -284,7 +298,7 @@ body {
 .busca-global__opcao--ativa .busca-global__icone { color: var(--ds-accent); }
 .busca-global__texto { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
 .busca-global__rotulo {
-  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); font-weight: 500;
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); font-weight: var(--ds-fw-medium);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .busca-global__protocolo { margin-right: var(--ds-sp-2); color: var(--ds-text-muted); }
@@ -294,7 +308,7 @@ body {
 }
 /* O trecho que casou: cor de destaque sobre o fundo de sempre, sem marca-texto
    amarelo, que não acompanha o tema. */
-.busca-global__marca { background: transparent; color: var(--ds-accent); font-weight: 700; }
+.busca-global__marca { background: transparent; color: var(--ds-accent); font-weight: var(--ds-fw-bold); }
 .busca-global__opcao .selo { flex: 0 0 auto; }
 
 .busca-global__estado {
@@ -322,16 +336,16 @@ body {
      tema, que foi exatamente o defeito de contraste já corrigido na sigla. */
   width: var(--emblema-md); height: var(--emblema-md); border-radius: var(--ds-radius-pill);
   background: var(--ds-accent-gradient); color: var(--ds-on-accent);
-  display: grid; place-items: center; font-weight: 600; font-size: var(--ds-fs-body-sm);
+  display: grid; place-items: center; font-weight: var(--ds-fw-semibold); font-size: var(--ds-fs-body-sm);
   flex: 0 0 var(--emblema-md);
 }
-.identidade__nome { font-size: var(--ds-fs-body-sm); font-weight: 600; line-height: var(--ds-lh-caption); }
+.identidade__nome { font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); line-height: var(--ds-lh-caption); }
 .identidade__papel { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); line-height: var(--ds-lh-caption); }
 
 /* `margin-inline: auto` centraliza o conteudo. Sem ele, o teto de 1320px
    deixava o painel colado a esquerda e uma faixa vazia permanente a direita
    em qualquer monitor largo: em 2560px sobravam quase mil pixels de fundo. */
-.conteudo { grid-area: conteudo; padding: var(--ds-sp-6); max-width: 1320px; width: 100%; margin-inline: auto; }
+.conteudo { grid-area: conteudo; min-width: 0; padding: var(--ds-sp-6); max-width: 1320px; width: 100%; margin-inline: auto; }
 
 .cabecalho-pagina {
   display: flex; align-items: flex-end; gap: var(--ds-sp-4);
@@ -339,7 +353,7 @@ body {
 }
 .cabecalho-pagina h1 {
   margin: 0; font-size: var(--ds-fs-h1); line-height: var(--ds-lh-h1);
-  font-weight: 700; letter-spacing: -0.02em; text-wrap: balance;
+  font-weight: var(--ds-fw-bold); letter-spacing: -0.02em; text-wrap: balance;
 }
 .cabecalho-pagina p { margin: var(--ds-sp-1) 0 0; color: var(--ds-text-muted); font-size: var(--ds-fs-body-sm); }
 .cabecalho-pagina__acoes { margin-left: auto; display: flex; gap: var(--ds-sp-2); }
@@ -355,7 +369,7 @@ body {
 .cartao__corpo { padding: var(--ds-sp-5); }
 .cartao__titulo {
   margin: 0 0 var(--ds-sp-4);
-  font-size: var(--ds-fs-h3); line-height: var(--ds-lh-h3); font-weight: 600;
+  font-size: var(--ds-fs-h3); line-height: var(--ds-lh-h3); font-weight: var(--ds-fw-semibold);
 }
 
 .grade-indicadores {
@@ -380,11 +394,11 @@ body {
 .indicador:hover { transform: translateY(-2px); box-shadow: var(--ds-shadow-2); border-color: var(--ds-accent-graphic); }
 .indicador__valor {
   font-size: var(--ds-fs-display); line-height: var(--ds-lh-display);
-  font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.03em;
+  font-weight: var(--ds-fw-bold); font-variant-numeric: tabular-nums; letter-spacing: -0.03em;
 }
 .indicador__rotulo {
   font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
-  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); color: var(--ds-text-muted); font-weight: 600;
+  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); color: var(--ds-text-muted); font-weight: var(--ds-fw-semibold);
 }
 .indicador--alerta .indicador__valor { color: var(--ds-danger-fg); }
 
@@ -395,7 +409,7 @@ body {
   padding: var(--ds-sp-1) var(--ds-sp-2);
   border-radius: var(--ds-radius-pill);
   font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
-  font-weight: 600; white-space: nowrap;
+  font-weight: var(--ds-fw-semibold); white-space: nowrap;
 }
 .selo--baixa   { color: var(--ds-sev-baixa-fg);   background: var(--ds-sev-baixa-bg); }
 .selo--media   { color: var(--ds-sev-media-fg);   background: var(--ds-sev-media-bg); }
@@ -427,11 +441,43 @@ body {
 /* ---------- Tabela ---------- */
 
 .tabela-envolucro { overflow-x: auto; border-radius: var(--ds-radius-card); }
+/*
+  A tabela que rola para o lado avisa que rola.
+
+  Em 1280 a 1680px a lista de usuários tinha 854px num cartão de 569 a 771, e
+  a barra de rolagem do macOS some quando ninguém está rolando: as colunas de
+  Equipe, Situação e Ação simplesmente não existiam para quem olhava. O
+  componente `TabelaEnvolucro` mede a rolagem e liga as classes; a sombra na
+  borda é o sinal visual e a frase embaixo é o mesmo sinal em palavras, para
+  ninguém depender de perceber um degradê. A sombra é a tinta do lightbox
+  (ink-950 esmaecido), sem cor nova.
+*/
+.tabela-rolavel { position: relative; }
+.tabela-rolavel::before, .tabela-rolavel::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: var(--ds-sp-6);
+  pointer-events: none; opacity: 0;
+  transition: opacity var(--ds-dur-fast) var(--ds-ease);
+}
+.tabela-rolavel::before {
+  left: 0;
+  background: linear-gradient(to right, color-mix(in srgb, var(--ds-ink-950) 18%, transparent), transparent);
+}
+.tabela-rolavel::after {
+  right: 0;
+  background: linear-gradient(to left, color-mix(in srgb, var(--ds-ink-950) 18%, transparent), transparent);
+}
+.tabela-rolavel--esquerda::before, .tabela-rolavel--direita::after { opacity: 1; }
+.tabela-rolavel__dica {
+  margin: var(--ds-sp-2) 0 0;
+  display: flex; align-items: center; gap: var(--ds-sp-1);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted);
+}
 .tabela { width: 100%; border-collapse: collapse; font-size: var(--ds-fs-body-sm); }
 .tabela th {
   text-align: left; padding: var(--ds-sp-3) var(--ds-sp-4);
   font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
-  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); font-weight: 700;
+  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); font-weight: var(--ds-fw-bold);
   color: var(--ds-text-muted); border-bottom: 1px solid var(--ds-border);
   background: var(--ds-surface-2); white-space: nowrap;
 }
@@ -439,12 +485,15 @@ body {
 .tabela tbody tr { transition: background var(--ds-dur-fast) var(--ds-ease); }
 .tabela tbody tr:hover { background: var(--ds-surface-2); }
 .tabela__protocolo {
-  font-family: var(--ds-font-mono); font-weight: 600;
+  font-family: var(--ds-font-mono); font-weight: var(--ds-fw-semibold);
   color: var(--ds-accent); text-decoration: none;
 }
 .tabela__protocolo:hover { text-decoration: underline; }
-.tabela__principal { font-weight: 600; }
-.tabela__secundario { color: var(--ds-text-muted); font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); }
+.tabela__principal { font-weight: var(--ds-fw-semibold); }
+/* `overflow-wrap: anywhere` deixa um email comprido quebrar em vez de fixar a
+   largura mínima da coluna: é a linha secundária, e quebrar custa menos que
+   empurrar as três últimas colunas para fora do cartão. */
+.tabela__secundario { color: var(--ds-text-muted); font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); overflow-wrap: anywhere; }
 
 .lista-papeis { margin: 0; font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
 .lista-papeis__descricao { color: var(--ds-text-muted); margin: 0 0 var(--ds-sp-3); }
@@ -453,7 +502,7 @@ body {
 /* ---------- Formulários ---------- */
 
 .campo { display: flex; flex-direction: column; gap: var(--ds-sp-2); margin-bottom: var(--ds-sp-4); }
-.campo > label { font-size: var(--ds-fs-body-sm); font-weight: 600; }
+.campo > label { font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); }
 .campo__dica { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
 /* A frase que abre o formulário. Como é um <p>, sem isto o navegador aplica a
    margem própria dele e a distância até o primeiro rótulo fica maior que a
@@ -479,7 +528,7 @@ body {
   conseguiu ler um campo OPCIONAL, e pintá-los de vermelho ensinaria o
   operador a ignorar vermelho.
 */
-.leitura--erro { color: var(--ds-danger-fg); font-weight: 600; }
+.leitura--erro { color: var(--ds-danger-fg); font-weight: var(--ds-fw-semibold); }
 .leitura--nota { color: var(--ds-text); }
 .leitura .mono { color: inherit; }
 
@@ -501,7 +550,7 @@ body {
 
 .campo__erro {
   font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
-  color: var(--ds-danger-fg); font-weight: 600;
+  color: var(--ds-danger-fg); font-weight: var(--ds-fw-semibold);
   display: flex; align-items: center; gap: var(--ds-sp-1);
 }
 
@@ -538,10 +587,23 @@ textarea {
   transition: border-color var(--ds-dur-fast) var(--ds-ease);
 }
 textarea { min-height: calc(var(--ds-touch) * 2); resize: vertical; line-height: var(--ds-lh-body-sm); }
-input:hover, select:hover, textarea:hover { border-color: var(--ds-text-muted); }
-input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="true"] {
+/*
+  As regras de ESTADO do `input` repetem a lista de `:not([type])` da genérica
+  de propósito. A genérica pesa (0,8,1) e escreve `border` por atalho; um
+  `input[aria-invalid="true"]` de (0,1,1) perdia para ela, e o campo inválido
+  ficava cinza enquanto o `textarea` do lado ficava vermelho. Com a lista, o
+  estado pesa (0,9,1) e vence. `test/design-system.test.ts` mede as duas.
+*/
+input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]):hover,
+select:hover, textarea:hover { border-color: var(--ds-text-muted); }
+input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"])[aria-invalid="true"],
+textarea[aria-invalid="true"], select[aria-invalid="true"] {
   border-color: var(--ds-danger-fg);
 }
+/* O texto de exemplo na cor do sistema, e não na do navegador: o cinza padrão
+   do Chromium mede 3,65:1 sobre a superfície escura, abaixo de AA. `opacity: 1`
+   porque o Firefox esmaece o placeholder por conta própria. */
+::placeholder { color: var(--ds-text-muted); opacity: 1; }
 
 /* Larguras de campo por intenção, não por número solto na tela. Antes eram
    três `style={{ maxWidth: "240px" }}` espalhados por duas páginas. */
@@ -564,7 +626,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
   display: inline-flex; align-items: center; justify-content: center; gap: var(--ds-sp-2);
   min-height: var(--ds-touch); padding: 0 var(--ds-sp-4);
   border-radius: var(--ds-radius); border: 1px solid transparent;
-  font-family: inherit; font-size: var(--ds-fs-body-sm); font-weight: 600;
+  font-family: inherit; font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold);
   cursor: pointer; text-decoration: none; white-space: nowrap;
   transition: background var(--ds-dur-fast) var(--ds-ease),
               transform var(--ds-dur-fast) var(--ds-ease),
@@ -598,7 +660,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
   border-radius: var(--ds-radius-pill);
   border: 1px solid var(--ds-border); background: var(--ds-surface);
   color: var(--ds-text-muted); font-family: inherit;
-  font-size: var(--ds-fs-body-sm); font-weight: 600; cursor: pointer;
+  font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); cursor: pointer;
   transition: all var(--ds-dur-fast) var(--ds-ease);
 }
 .filtros__pilula:hover { border-color: var(--ds-accent-graphic); color: var(--ds-text); }
@@ -619,14 +681,17 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
 /* ---------- Detalhe ---------- */
 
 .detalhe { display: grid; gap: var(--ds-sp-5); grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); align-items: start; }
-@media (max-width: 1080px) { .detalhe { grid-template-columns: 1fr; } }
+@media (max-width: 1080px) { .detalhe { grid-template-columns: minmax(0, 1fr); } }
+/* O bloco que atravessa as duas colunas: a tabela larga demais para a coluna
+   da esquerda (lista de usuários) vai por baixo, na largura inteira. */
+.detalhe__larga { grid-column: 1 / -1; min-width: 0; }
 
 .coluna { display: flex; flex-direction: column; gap: var(--ds-sp-5); }
 
 .par { display: flex; flex-direction: column; gap: var(--ds-sp-1); margin-bottom: var(--ds-sp-4); }
 .par__rotulo {
   font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
-  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); font-weight: 700; color: var(--ds-text-muted);
+  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); font-weight: var(--ds-fw-bold); color: var(--ds-text-muted);
 }
 .par__valor { font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
 
@@ -635,7 +700,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
 .relacionados__grupo + .relacionados__grupo { margin-top: var(--ds-sp-4); }
 .relacionados__rotulo {
   font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
-  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); font-weight: 700;
+  text-transform: uppercase; letter-spacing: var(--tracking-rotulo); font-weight: var(--ds-fw-bold);
   color: var(--ds-text-muted); margin: 0 0 var(--ds-sp-2);
 }
 .relacionados { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ds-sp-2); }
@@ -671,7 +736,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
   background: var(--ds-surface); border: 2px solid var(--ds-accent-graphic);
   color: var(--ds-accent);
 }
-.trilha__titulo { font-size: var(--ds-fs-body-sm); font-weight: 600; }
+.trilha__titulo { font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); }
 .trilha__autoria {
   font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
   color: var(--ds-text-muted); margin-top: var(--ds-sp-1);
@@ -699,12 +764,12 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
   width: var(--emblema-lg); height: var(--emblema-lg); display: grid; place-items: center;
   border-radius: var(--ds-radius-card);
   background: var(--ds-accent-gradient); color: var(--ds-on-accent);
-  font-weight: 800; font-size: var(--ds-fs-body);
+  font-weight: var(--ds-fw-extrabold); font-size: var(--ds-fs-body);
   box-shadow: var(--ds-accent-glow);
 }
 .entrada__titulo {
   margin: 0; font-size: var(--ds-fs-h2); line-height: var(--ds-lh-h2);
-  font-weight: 700; letter-spacing: -0.02em;
+  font-weight: var(--ds-fw-bold); letter-spacing: -0.02em;
 }
 .entrada__subtitulo { margin: 0; color: var(--ds-text-muted); font-size: var(--ds-fs-body-sm); }
 
@@ -724,9 +789,9 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
   width: var(--emblema-md); height: var(--emblema-md); flex: 0 0 var(--emblema-md);
   border-radius: var(--ds-radius-pill);
   background: var(--ds-surface-2); color: var(--ds-accent);
-  display: grid; place-items: center; font-weight: 700; font-size: var(--ds-fs-body-sm);
+  display: grid; place-items: center; font-weight: var(--ds-fw-bold); font-size: var(--ds-fs-body-sm);
 }
-.conta__nome { font-weight: 600; font-size: var(--ds-fs-body-sm); }
+.conta__nome { font-weight: var(--ds-fw-semibold); font-size: var(--ds-fs-body-sm); }
 .conta__meta { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
 
 .conta__avatar--pequeno {
@@ -741,7 +806,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
 
 .lista-contas { display: flex; flex-direction: column; gap: var(--ds-sp-2); }
 .lista-contas__grupo { font-size: var(--ds-fs-caption); text-transform: uppercase; letter-spacing: var(--tracking-rotulo);
-  font-weight: 700; color: var(--ds-text-muted); margin: var(--ds-sp-4) 0 var(--ds-sp-1); }
+  font-weight: var(--ds-fw-bold); color: var(--ds-text-muted); margin: var(--ds-sp-4) 0 var(--ds-sp-1); }
 .lista-contas__grupo:first-child { margin-top: 0; }
 
 /* ---------- Avisos ---------- */
@@ -757,13 +822,13 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
 .aviso--perigo  { background: var(--ds-danger-bg);  color: var(--ds-danger-fg); }
 .aviso--sucesso { background: var(--ds-success-bg); color: var(--ds-success-fg); }
 .aviso--alerta  { background: var(--ds-sev-media-bg); color: var(--ds-sev-media-fg); }
-.aviso svg { flex: 0 0 20px; margin-top: 2px; }
+.aviso svg { flex: 0 0 20px; margin-top: calc(var(--ds-sp-1) / 2); }
 
 .vazio {
   padding: var(--ds-sp-8) var(--ds-sp-5);
   text-align: center; color: var(--ds-text-muted);
 }
-.vazio__titulo { font-size: var(--ds-fs-h3); font-weight: 600; color: var(--ds-text); margin-bottom: var(--ds-sp-2); }
+.vazio__titulo { font-size: var(--ds-fs-h3); font-weight: var(--ds-fw-semibold); color: var(--ds-text); margin-bottom: var(--ds-sp-2); }
 
 /* ---------- Carregando ---------- */
 
@@ -785,18 +850,41 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
 .prazo__preenchido { height: 100%; border-radius: var(--ds-radius-pill); background: var(--ds-accent-graphic); }
 .prazo--estourado .prazo__preenchido { background: var(--ds-danger-fg); }
 .prazo__texto { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
-.prazo--estourado .prazo__texto { color: var(--ds-danger-fg); font-weight: 600; }
+.prazo--estourado .prazo__texto { color: var(--ds-danger-fg); font-weight: var(--ds-fw-semibold); }
 
 /* ---------- Responsivo ---------- */
 
 @media (max-width: 900px) {
-  .aplicacao { grid-template-columns: 1fr; grid-template-areas: "topo" "conteudo" "lateral"; }
+  .aplicacao { grid-template-columns: minmax(0, 1fr); grid-template-areas: "topo" "conteudo" "lateral"; }
   .lateral { flex-direction: row; overflow-x: auto; gap: var(--ds-sp-2); align-items: center;
              border-right: none; border-top: 1px solid var(--ds-ink-800);
              position: sticky; bottom: 0; z-index: var(--ds-z-sticky); }
-  .lateral__marca, .lateral__rotulo, .lateral__rodape { display: none; }
+  .lateral__marca, .lateral__rotulo { display: none; }
   .lateral__grupo { flex-direction: row; }
+  /*
+    "Tema" e "Sair" continuam na barra, no fim dela. Antes o rodapé sumia
+    junto com a marca, e no celular não havia como sair nem trocar o tema fora
+    da caixa de busca, que é o único lugar onde ninguém procura isso.
+  */
+  .lateral__rodape { flex-direction: row; margin-top: 0; margin-left: auto; }
+  .lateral__item { white-space: nowrap; }
   .conteudo { padding: var(--ds-sp-4); }
+}
+
+/*
+  Celular: o topo em duas linhas.
+
+  A marca e a conta ficam na primeira linha, a busca ganha a segunda inteira.
+  `order` só reordena o desenho: o Tab continua na ordem do HTML (marca,
+  busca, sino, conta). Abaixo de 600px o nome e o papel da conta somem e fica
+  o avatar, que continua sendo o link para "Minha conta": nome inteiro numa
+  linha de 400px era o que empurrava o sino para fora da tela.
+*/
+@media (max-width: 600px) {
+  .topo { padding: var(--ds-sp-3) var(--ds-sp-4); gap: var(--ds-sp-3); }
+  .topo__busca { order: 2; flex: 1 1 100%; max-width: none; }
+  .identidade__nome, .identidade__papel, .identidade br { display: none; }
+  .identidade--acionavel { padding: var(--ds-sp-1); }
 }
 
 /* ---------- O desenho do mapa, nos dois modos ---------- */
@@ -916,7 +1004,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
      comunica quantidade a quem não enxerga bem. */
   min-width: 3px;
 }
-.barras__valor { font-weight: 600; font-variant-numeric: tabular-nums; }
+.barras__valor { font-weight: var(--ds-fw-semibold); font-variant-numeric: tabular-nums; }
 
 /*
   A tela pública de interesse.
@@ -949,7 +1037,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
   color: var(--ds-text-muted); font-size: var(--ds-fs-body-sm);
   line-height: var(--ds-lh-body-sm);
 }
-.lista-valor strong { color: var(--ds-text); font-weight: 600; }
+.lista-valor strong { color: var(--ds-text); font-weight: var(--ds-fw-semibold); }
 
 /* Lista de campos recusados pelo servidor, dentro de um Aviso de perigo. */
 .erros-do-servidor { margin: var(--ds-sp-2) 0 0; padding-left: var(--ds-sp-5); display: grid; gap: var(--ds-sp-1); }
@@ -989,7 +1077,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
   min-width: 18px; padding: 0 var(--ds-sp-1);
   border-radius: var(--ds-radius-pill);
   background: var(--ds-accent); color: var(--ds-on-accent);
-  font-size: var(--ds-fs-caption); line-height: 18px; font-weight: 600;
+  font-size: var(--ds-fs-caption); line-height: 18px; font-weight: var(--ds-fw-semibold);
   text-align: center;
 }
 
@@ -1032,7 +1120,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
   min-height: var(--ds-touch); align-content: center;
 }
 .sino__link:hover .sino__frase { color: var(--ds-accent-hover); }
-.sino__frase { font-size: var(--ds-fs-body-sm); font-weight: 600; line-height: var(--ds-lh-caption); }
+.sino__frase { font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); line-height: var(--ds-lh-caption); }
 .sino__protocolo { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); }
 .sino__complemento { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); }
 .sino__instante { font-size: var(--ds-fs-caption); color: var(--ds-text-muted); }
@@ -1049,7 +1137,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="
    --------------------------------------------------------------------------- */
 .oficio { display: grid; gap: var(--ds-sp-2); padding: var(--ds-sp-3) 0; }
 .oficio + .oficio { border-top: 1px solid var(--ds-border); }
-.oficio__numero { font-size: var(--ds-fs-body-lg); font-weight: 600; }
+.oficio__numero { font-size: var(--ds-fs-body-lg); font-weight: var(--ds-fw-semibold); }
 .oficio__linha {
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-2);
   font-size: var(--ds-fs-body-sm); color: var(--ds-text-muted);

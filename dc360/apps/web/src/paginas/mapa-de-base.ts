@@ -206,11 +206,6 @@ export function carregarGoogleMaps(chave: string): Promise<ApiDoGoogleMaps> {
   return carregamento;
 }
 
-/** Existe para o teste conseguir provar a memória, e para ele não vazar. */
-export function esquecerCarregamentoDoGoogleMaps(): void {
-  carregamento = null;
-}
-
 /**
  * A mensagem da recusa, escrita para quem tem o console do Google na mão.
  *

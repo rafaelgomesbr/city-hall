@@ -36,14 +36,24 @@ import TelaDeVistoria, { divergenciaDeCoordenada } from "../app/(agente)/vistori
    O aparelho, de mentira
    ============================================================ */
 
+/*
+  UUIDs de verdade nas chaves e na ocorrência, desde 15/09/2026: a tela passou
+  a conferir a coleta com o MESMO esquema do servidor antes de enfileirar, e o
+  esquema exige UUID. "oc-1" e "chave-fixa" eram de mentira e passavam porque
+  ninguém conferia, que é exatamente o defeito que a conferência fecha.
+*/
 jest.mock("expo-router", () => {
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const { useEffect } = require("react") as typeof import("react");
   const navegacao = { setOptions: jest.fn() };
   return {
     router: {
       back: jest.fn(), push: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true),
     },
-    useLocalSearchParams: () => ({ id: "oc-1" }),
+    useLocalSearchParams: () => ({ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" }),
     useNavigation: () => navegacao,
+    /* A tela relê o disco a cada foco; aqui o foco é a montagem, e só ela. */
+    useFocusEffect: (retorno: () => void) => { useEffect(retorno, [retorno]); },
   };
 });
 
@@ -98,7 +108,7 @@ jest.mock("../dados/historico-da-casa", () => ({
 }));
 
 const OCORRENCIA: Pendencia = {
-  id: "oc-1",
+  id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
   protocolo: "2026/000123",
   tipo: "deslizamento",
   severidade: "alta",
@@ -169,8 +179,34 @@ jest.mock("../ui/Assinatura", () => {
 
 jest.mock("../ui/retornoTatil", () => ({ retornoTatil: jest.fn() }));
 
+/**
+ * O SINAL, com o teste segurando a chave.
+ *
+ * Um dublê que devolvesse um valor fixo não serviria ao caso "o sinal volta
+ * com a tela aberta": `useSinal` é um gancho, e a tela precisa REDESENHAR
+ * quando ele muda. Por isso o dublê é um gancho de verdade, com estado, e
+ * `mudarSinal()` avisa todas as telas montadas, como o ouvinte de rede faria.
+ */
+let mockSinal = { temSinal: true, tipo: "Wi-Fi" as string | null };
+const mockOuvintesDeSinal = new Set<(s: typeof mockSinal) => void>();
+jest.mock("../dados/conectividade", () => {
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const { useEffect, useState } = require("react") as typeof import("react");
+  return {
+    useSinal: () => {
+      const [sinal, setSinal] = useState(mockSinal);
+      useEffect(() => {
+        mockOuvintesDeSinal.add(setSinal);
+        return () => { mockOuvintesDeSinal.delete(setSinal); };
+      }, []);
+      return sinal;
+    },
+  };
+});
+
 jest.mock("../dados/evidencia-no-disco", () => ({
   guardarFotoNoAparelho: () => ({ uriLocal: "file:///vistorias/foto.jpg", tamanhoBytes: 1024 }),
+  medirArquivoNoAparelho: () => 1024,
 }));
 
 /* ============================================================
@@ -179,9 +215,9 @@ jest.mock("../dados/evidencia-no-disco", () => ({
 
 function rascunho(mudanca: RascunhoDeTeste = {}): RascunhoDeTeste {
   return {
-    ocorrenciaId: "oc-1",
+    ocorrenciaId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
     protocolo: "2026/000123",
-    idempotencyKey: "chave-fixa",
+    idempotencyKey: "11111111-1111-4111-8111-000000000123",
     checklist: {}, orgaosParaAcionar: [], fotos: [],
     gpsPrecisaoMetros: null, coordenada: null,
     assinanteNome: "", assinaturaUri: null, observacoes: "", pessoas: {},
@@ -201,7 +237,7 @@ function rascunhoPronto(mudanca: RascunhoDeTeste = {}): RascunhoDeTeste {
       CHECKLIST_OBRIGATORIO.map((i) => [i.chave, i.chave !== CHAVE_ACIONAR_ORGAO]),
     ),
     fotos: [{
-      idempotencyKey: "foto-1",
+      idempotencyKey: "ffffffff-1111-4111-8111-000000000001",
       uriLocal: "file:///vistorias/foto.jpg",
       nomeArquivo: "vistoria-1.jpg",
       tipoConteudo: "image/jpeg",
@@ -282,6 +318,7 @@ beforeEach(() => {
   mockRascunhoGuardado = null;
   mockHistorico = async () => HISTORICO_VAZIO;
   mockLapide = null;
+  mockSinal = { temSinal: true, tipo: "Wi-Fi" };
   /*
     A autorização do mapa é memorizada no módulo, de propósito (a lista de
     tarefas remonta a cada foco, e sem memória cada remontagem gastaria uma
@@ -607,7 +644,7 @@ describe("o que já aconteceu nesta casa", () => {
     expect(screen.queryByTestId("historico-nao-chegou")).toBeNull();
   });
 
-  it("sem sinal, o histórico falta e a coleta não é atrapalhada", async () => {
+  it("com sinal e o servidor fora do ar, a falta é dita e a coleta não é atrapalhada", async () => {
     mockHistorico = async () => ({ estado: "nao-chegou" });
 
     await abrirATela();
@@ -626,6 +663,55 @@ describe("o que já aconteceu nesta casa", () => {
     expect(screen.getByText("Checklist técnico")).toBeTruthy();
     expect(screen.getByTestId("nome-de-quem-assina")).toBeTruthy();
     expect(screen.getByText("Localização")).toBeTruthy();
+  });
+
+  /*
+    SEM SINAL NÃO SE PERGUNTA, e não se desenha nada.
+
+    O efeito perguntava assim que a ocorrência e o token existiam, sem olhar o
+    sinal. No morro, onde não há sinal, TODA vistoria abria com a linha "Não
+    deu para consultar o histórico deste endereço agora" no alto do
+    formulário, dita como se fosse uma falha, numa tela cuja promessa é "nada
+    aqui depende de sinal". A ausência de sinal não é falha de consulta: é o
+    estado normal de trabalho, e a linha ensinava o agente a ler "não deu"
+    como ruído.
+  */
+  it("sem sinal, não pergunta e não desenha linha nenhuma", async () => {
+    const consultas = jest.fn(async (): Promise<ResultadoDoHistorico> => HISTORICO_CHEIO);
+    mockHistorico = consultas;
+    mockSinal = { temSinal: false, tipo: null };
+
+    await abrirATela();
+    await act(async () => {});
+
+    expect(consultas).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("historico-nao-chegou")).toBeNull();
+    expect(screen.queryByText("O que já aconteceu nesta casa")).toBeNull();
+    /* E o formulário está inteiro, como sempre esteve. */
+    expect(screen.getByText("Checklist técnico")).toBeTruthy();
+  });
+
+  it("o sinal que volta com a tela aberta traz o histórico, uma vez só", async () => {
+    const consultas = jest.fn(async (): Promise<ResultadoDoHistorico> => HISTORICO_CHEIO);
+    mockHistorico = consultas;
+    mockSinal = { temSinal: false, tipo: null };
+    await abrirATela();
+    expect(consultas).not.toHaveBeenCalled();
+
+    mockSinal = { temSinal: true, tipo: "dados móveis" };
+    await act(async () => { mockOuvintesDeSinal.forEach((avisar) => { avisar(mockSinal); }); });
+    await act(async () => {});
+
+    expect(await screen.findByText("O que já aconteceu nesta casa")).toBeTruthy();
+    expect(consultas).toHaveBeenCalledTimes(1);
+
+    /* O sinal piscando não repete a consulta: o passado não muda na porta. */
+    mockSinal = { temSinal: false, tipo: null };
+    await act(async () => { mockOuvintesDeSinal.forEach((avisar) => { avisar(mockSinal); }); });
+    mockSinal = { temSinal: true, tipo: "dados móveis" };
+    await act(async () => { mockOuvintesDeSinal.forEach((avisar) => { avisar(mockSinal); }); });
+    await act(async () => {});
+    expect(consultas).toHaveBeenCalledTimes(1);
   });
 
   it("a coleta conclui do mesmo jeito com o histórico fora do ar", async () => {
@@ -683,7 +769,7 @@ describe("o que já aconteceu nesta casa", () => {
     const consultas = jest.fn(async (): Promise<ResultadoDoHistorico> => HISTORICO_VAZIO);
     mockHistorico = consultas;
     mockLapide = {
-      ocorrenciaId: "oc-1", idempotencyKey: "chave-da-primeira-coleta",
+      ocorrenciaId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1", idempotencyKey: "chave-da-primeira-coleta",
       protocolo: "2026/000123", coletadaEm: "2026-09-09T11:00:00.000Z",
       situacao: "na_fila",
     };

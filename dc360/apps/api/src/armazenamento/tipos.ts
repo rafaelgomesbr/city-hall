@@ -26,6 +26,16 @@ export type Envio = {
    * Cabeçalhos que o aparelho é OBRIGADO a repetir. Eles entram na
    * assinatura, então o armazenamento recusa o envio se vierem diferentes: é
    * assim que o limite de tamanho é imposto, e não só pedido.
+   *
+   * Entre eles vai `if-none-match: *`, e ele é o que torna o objeto ESCRITO
+   * UMA VEZ SÓ. A URL de escrita vive quinze minutos e a confirmação acontece
+   * no primeiro; sem isto, o mesmo PUT com bytes diferentes respondia 200
+   * catorze minutos depois de a prova estar confirmada, com o mesmo tamanho,
+   * o mesmo `enviada_em` e nenhum evento novo. Com o cabeçalho assinado, o
+   * armazenamento recusa (412) qualquer PUT numa chave que já tem objeto,
+   * venha pela mesma URL ou por outra. O reenvio legítimo (a resposta do PUT
+   * se perdeu no 3G) é fechado pelo servidor na reautorização, que descobre
+   * os bytes já lá e confirma: ver `rotas/evidencias.ts`.
    */
   cabecalhos: Record<string, string>;
   expiraEm: string;
@@ -41,16 +51,28 @@ export type Armazenamento = {
   /**
    * Traz os bytes PARA DENTRO do servidor.
    *
-   * Isto contraria a regra 1 lá de cima de propósito, e o lugar onde a exceção
-   * vale é um só: a exportação de saída de município. Ali o destino do arquivo
-   * não é um navegador (que poderia buscar direto, com URL assinada), é um
-   * pacote único que o município leva embora, e não existe como montar esse
-   * pacote sem os bytes passarem por aqui.
+   * Isto contraria a regra 1 lá de cima de propósito, e os lugares onde a
+   * exceção vale são DOIS, e só dois:
    *
-   * A exceção é aceitável porque o ato é raro (uma vez na vida do contrato),
-   * exige administrador e deixa trilha. Não use isto para servir foto na tela:
-   * lá continua valendo a URL assinada, senão o servidor paga a banda de toda
-   * vistoria aberta e cai no dia de temporal.
+   * 1. A exportação de saída de município. Ali o destino do arquivo não é um
+   *    navegador (que poderia buscar direto, com URL assinada), é um pacote
+   *    único que o município leva embora, e não existe como montar esse
+   *    pacote sem os bytes passarem por aqui. Aceitável porque o ato é raro
+   *    (uma vez na vida do contrato), exige administrador e deixa trilha.
+   * 2. A CONFIRMAÇÃO de uma evidência (`rotas/evidencias.ts`), uma vez por
+   *    arquivo. O `sha256` gravado era palavra do cliente: a rota guardava o
+   *    que viesse no corpo, sem medir nada, e sessenta e quatro zeros entravam
+   *    como soma da fotografia. A única forma de o servidor gravar uma soma
+   *    que ELE conferiu, sem exigir do aparelho um cálculo que ele ainda não
+   *    faz, é ler os bytes uma vez e calcular. O custo é uma leitura por foto,
+   *    na hora da confirmação (até 15 MB, nunca repetida: a confirmação é
+   *    idempotente), e no R2 a saída de dados não é cobrada. Quando o aparelho
+   *    passar a declarar a soma na autorização e ela for assinada no PUT
+   *    (`x-amz-checksum-sha256`), esta leitura sai.
+   *
+   * Não use isto para servir foto na tela: lá continua valendo a URL
+   * assinada, senão o servidor paga a banda de toda vistoria aberta e cai no
+   * dia de temporal.
    */
   baixar(chave: string): Promise<ResultadoDeLeitura>;
   /**
@@ -138,23 +160,12 @@ export type ResultadoDeLeitura =
    */
   | { situacao: "falha"; motivo: string; tentativas: number };
 
-/** Tipos aceitos. Lista fechada: o que não está aqui não sobe. */
-export const TIPOS_ACEITOS = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/heic",
-] as const;
-
-export type TipoAceito = (typeof TIPOS_ACEITOS)[number];
-
-/**
- * Teto por arquivo. Foto de celular moderno passa dos 5 MB com facilidade, e
- * 15 MB cobre o caso de câmera boa sem abrir espaço para alguém usar o balde
- * do município como disco pessoal.
- */
-export const TAMANHO_MAXIMO_BYTES = 15 * 1024 * 1024;
-
-export function tipoAceito(tipo: string): tipo is TipoAceito {
-  return (TIPOS_ACEITOS as readonly string[]).includes(tipo);
-}
+/*
+  A lista de tipos aceitos, o teto por arquivo e `tipoAceito` MUDARAM DE
+  ENDEREÇO em 15/09/2026: moram em `@dc360/shared` (`evidencia.ts`), porque o
+  aparelho passou a conferir o arquivo com o MESMO esquema da rota antes de
+  enfileirar. Reexportados aqui para nenhum importador da API mudar.
+*/
+export {
+  TAMANHO_MAXIMO_BYTES, TIPOS_ACEITOS, tipoAceito, type TipoAceito,
+} from "@dc360/shared";

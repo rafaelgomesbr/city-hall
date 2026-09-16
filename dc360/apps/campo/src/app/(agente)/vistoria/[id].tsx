@@ -2,27 +2,27 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import {
   Animated, Easing, Image, ScrollView, TextInput, View,
 } from "react-native";
-import { router, useLocalSearchParams, useNavigation } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams, useNavigation } from "expo-router";
 import * as Location from "expo-location";
 import * as Crypto from "expo-crypto";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { File } from "expo-file-system";
 import {
   CAMPOS_PESSOAS, CHAVE_ACIONAR_ORGAO, CHECKLIST_OBRIGATORIO, CHECKLIST_VISTORIA,
   ROTULO_MOTIVO_DE_DEVOLUCAO, ROTULO_TIPO_COBRADE,
-  montarMinuta,
+  montarMinuta, rotuloDoCampo,
   type EnvelopeSincronizacao, type MotivoDeDevolucao, type PessoasAtingidas,
 } from "@dc360/shared";
-import type { ColetaLocal, FotoLocal } from "@dc360/campo";
+import type { CampoRecusado, ColetaLocal, FotoLocal } from "@dc360/campo";
+import { enderecoDaApi, type OrgaoDoCatalogo, type Pendencia } from "../../../dados/api";
 import {
-  SemSinal, enderecoDaApi, type OrgaoDoCatalogo, type Pendencia,
-} from "../../../dados/api";
+  comoContarAFalha, motivoDaFalha, type MotivoDaFalha,
+} from "../../../dados/falha-de-atualizacao";
 import {
   atualizarPendencias, orgaosGuardados, pendenciaGuardada,
 } from "../../../dados/pendencias";
 import { arquivarColeta, coletaDe, marcarColetada } from "../../../dados/coletas";
 import {
-  apagarFotoDoAparelho, guardarFotoNoAparelho,
+  apagarFotoDoAparelho, guardarFotoNoAparelho, medirArquivoNoAparelho,
 } from "../../../dados/evidencia-no-disco";
 import { obterFila } from "../../../dados/fila";
 import {
@@ -36,11 +36,13 @@ import {
   descartarRascunho, lerRascunho, rascunhoNovo, salvarRascunho, type Rascunho,
 } from "../../../dados/rascunho";
 import { useSessao } from "../../../dados/sessao";
+import { useSinal } from "../../../dados/conectividade";
 import { Assinatura } from "../../../ui/Assinatura";
 import { MinutaDoLaudo } from "../../../ui/MinutaDoLaudo";
 import {
   Aviso, Botao, Cartao, Carregando, Dado, LinhaDeAcoes, Separador, Tocavel, Txt, Vazio, useTema,
 } from "../../../ui/componentes";
+import { useRecuoDoMenu } from "../../../ui/BarraDeAbas";
 import { Campo, CampoDeTexto } from "../../../ui/Campo";
 import { Chip, SeloSeveridade } from "../../../ui/Chip";
 import { Dialogo } from "../../../ui/Dialogo";
@@ -57,7 +59,8 @@ import {
 import { useReducaoDeMovimento } from "../../../ui/useReducaoDeMovimento";
 import { retornoTatil } from "../../../ui/retornoTatil";
 import {
-  concluirColetaEmOrdem, dataDoPrazo, decidirAberturaDaVistoria, faltaParaConcluir, quantoFalta,
+  concluirColetaEmOrdem, conferirColeta, dataDoPrazo, decidirAberturaDaVistoria,
+  faltaParaConcluir, quantoFalta,
 } from "@dc360/campo";
 
 /**
@@ -146,6 +149,13 @@ const MINIATURA = 96;
 const ESCALA_DA_FOTO_ENTRANDO = 0.8;
 
 /**
+ * Até onde o emblema da conclusão cresce antes de voltar. Menor que o clímax
+ * da faixa de sincronização (1,28), porque o emblema já é grande e passa do
+ * alvo num cartão, não numa faixa; o que importa é passar, não quanto.
+ */
+const ESCALA_DO_EMBLEMA_NA_CONCLUSAO = 1.12;
+
+/**
  * As âncoras de rolagem desta tela, e por que elas existem.
  *
  * O formulário da vistoria passa de dois mil pontos de altura no aparelho. A
@@ -194,6 +204,30 @@ const CAMINHO_DA_FALTA: ReadonlyArray<{ trecho: string; secao: SecaoDaVistoria }
 
 export function secaoDaFalta(falta: string): SecaoDaVistoria | null {
   return CAMINHO_DA_FALTA.find((c) => falta.includes(c.trecho))?.secao ?? null;
+}
+
+/**
+ * Para onde leva um CAMPO RECUSADO pelo esquema do servidor.
+ *
+ * É a segunda lista de caminhos desta tela, e não uma cópia da primeira: ali a
+ * entrada é a frase de `faltaParaConcluir` ("o agente terminou?"), aqui é o
+ * caminho pontuado do esquema compartilhado ("o servidor vai aceitar?"), o
+ * mesmo que o 422 devolve e que `conferirColeta` produz antes de enfileirar:
+ * `fotos.0.tamanhoBytes`, `assinatura.idempotencyKey`, `vistoria.assinanteNome`.
+ *
+ * Nulo quando não há seção para onde ir (a chave da coleta, a ocorrência): a
+ * linha fica sem seta e sem toque, como a de `secaoDaFalta`.
+ */
+export function secaoDoCampoRecusado(campo: string): SecaoDaVistoria | null {
+  const partes = campo.split(".").filter((p) => !/^\d+$/.test(p) && p !== "vistoria");
+  const cabeca = partes[0] ?? "";
+  if (cabeca === "fotos") return "fotos";
+  if (cabeca === "assinatura" || cabeca === "assinanteNome" || cabeca === "assinaturaChave") {
+    return "assinatura";
+  }
+  if (cabeca === "checklist" || cabeca === "orgaosParaAcionar") return "checklist";
+  if (cabeca === "coordenada" || cabeca === "gpsPrecisaoMetros") return "localizacao";
+  return null;
 }
 
 /**
@@ -703,8 +737,18 @@ export default function TelaDeVistoria() {
 
 function VistoriaDaOcorrencia({ id }: { id: string }) {
   const navegacao = useNavigation();
+  /*
+    O MENU FLUTUANTE E ESTA TELA. A pílula paira sobre a cena e não empurra
+    nada, então cada uma das cinco telas daqui reserva o vão no fim da
+    rolagem, e as barras FIXAS de botões (a minuta, a "vistoria guardada")
+    sobem acima da pílula em vez de ficarem embaixo dela. Foi o que o dono
+    viu: "Concluir vistoria" e "Ver na fila de envio" escondidos atrás do
+    vidro. A única tela que ESCONDE o menu é a câmera, porque é tela cheia
+    de verdade (ver `barraEscondida` em `ui/BarraDeAbas.tsx`).
+  */
+  const recuoDoMenu = useRecuoDoMenu();
   const tema = useTema();
-  const { obterToken, identidade, lerIdentidade } = useSessao();
+  const { obterToken, identidade, lerIdentidade, sair } = useSessao();
 
   const [ocorrencia, setOcorrencia] = useState<Pendencia | null>(null);
   const [rascunho, setRascunho] = useState<Rascunho | null>(null);
@@ -737,10 +781,26 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
    */
   const [faltaBaixar, setFaltaBaixar] = useState(false);
   const [baixando, setBaixando] = useState(false);
+  /*
+    POR QUE a baixa não aconteceu, na divisão que muda o que o agente faz, e
+    não uma frase. Era `erro` com "Tente de novo em alguns minutos" para tudo
+    que não fosse `SemSinal`, e o 401 de sessão revogada caía nisso: tentar de
+    novo dá 401 de novo, para sempre. A lista de tarefas já classifica com
+    `motivoDaFalha` e oferece "Sair e entrar de novo"; esta tela usa a mesma
+    régua, porque é o mesmo agente lendo as duas.
+  */
+  const [falhaAoBaixar, setFalhaAoBaixar] = useState<MotivoDaFalha | null>(null);
   const [concluindo, setConcluindo] = useState(false);
 
   const [permissaoCamera, pedirCamera] = useCameraPermissions();
   const [cameraAberta, setCameraAberta] = useState(false);
+  /*
+    A câmera é tela cheia: o menu some enquanto ela está aberta, e volta ao
+    fechar. É a opção padrão do navegador, lida pela nossa barra.
+  */
+  useEffect(() => {
+    navegacao.setOptions({ tabBarStyle: cameraAberta ? { display: "none" } : undefined });
+  }, [navegacao, cameraAberta]);
   const [fotografando, setFotografando] = useState(false);
   const [capturandoGps, setCapturandoGps] = useState(false);
   const [minutaAberta, setMinutaAberta] = useState(false);
@@ -775,6 +835,13 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
     fez", que era invisível enquanto isto era `Alert.alert`.
   */
   const [avisandoQueGuardou, setAvisandoQueGuardou] = useState(false);
+  /*
+    O que o servidor, ou a conferência de antes de enfileirar, recusou na
+    última tentativa de concluir. Vem do rascunho ao abrir (a coleta que voltou
+    da fila para correção chega com a lista do 422) e é substituído a cada
+    tentativa. Vazio quando não há nada a corrigir.
+  */
+  const [camposRecusados, setCamposRecusados] = useState<ReadonlyArray<CampoRecusado>>([]);
   const [perguntandoNovaVistoria, setPerguntandoNovaVistoria] = useState(false);
   /*
     Trocar a resposta para "não" APAGA os órgãos que o agente já indicou, e por
@@ -883,10 +950,11 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
     toa.
 
     O vocabulário é o da `FaixaDeSincronizacao`, que já acertou isto uma vez:
-    `movimento.climax` partido em 40% de ida e 60% de volta, `Easing.out(
-    Easing.back(2))` só na ida (a curva que passa do alvo é o que separa "o
-    estado mudou" de "conseguimos", e por isso ela não é emprestada para mais
-    nada nesta tela), e `useNativeDriver` porque escala é propriedade que a
+    `movimento.climax` partido em 40% de ida e 60% de volta, `easing.climax`
+    só na ida (a curva que passa do alvo é o que separa "o estado mudou" de
+    "conseguimos", e por isso ela não é emprestada para mais nada nesta tela;
+    a volta é `easing.entrada`, que chega no lugar em vez de bater), e
+    `useNativeDriver` porque escala é propriedade que a
     camada nativa anima sozinha. Sem isso cada quadro atravessa a ponte, e num
     aparelho fraco de prefeitura a comemoração sai travada, que é pior do que
     não ter comemoração nenhuma.
@@ -930,15 +998,15 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
     emblemaDaConclusao.setValue(0.6);
     Animated.sequence([
       Animated.timing(emblemaDaConclusao, {
-        toValue: 1.12,
+        toValue: ESCALA_DO_EMBLEMA_NA_CONCLUSAO,
         duration: movimento.climax * 0.4,
-        easing: Easing.out(Easing.back(2)),
+        easing: Easing.bezier(...easing.climax),
         useNativeDriver: true,
       }),
       Animated.timing(emblemaDaConclusao, {
         toValue: 1,
         duration: movimento.climax * 0.6,
-        easing: Easing.out(Easing.cubic),
+        easing: Easing.bezier(...easing.entrada),
         useNativeDriver: true,
       }),
     ]).start();
@@ -1099,17 +1167,35 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
       ]);
       setCatalogoDeOrgaos(orgaos);
       const decisao = decidirAberturaDaVistoria({ rascunho: guardado, coleta: lapide });
+      /*
+        Os DOIS estados sao escritos nos dois ramos, e nao so o que o ramo
+        acende. Esta leitura roda a cada FOCO da tela (ver o efeito logo
+        abaixo), e a tela pode chegar aqui com o rascunho da conclusao
+        anterior ainda em memoria: se o disco agora diz "ja coletada", o
+        rascunho em memoria precisa sair, senao um toque no formulario o
+        gravaria de volta por cima da lapide. O inverso vale igual: a coleta
+        que voltou da fila para correcao tem rascunho e nao tem mais lapide.
+      */
       if (decisao === "ja_coletada") {
         setJaColetada(lapide);
+        setRascunho(null);
         setCarregando(false);
         return;
       }
+      setJaColetada(null);
       setRascunho(rascunhoNoFormatoDeHoje(
         guardado,
         rascunhoNovo(
           id, alvo.protocolo, guardado?.idempotencyKey ?? Crypto.randomUUID(),
         ),
       ));
+      /*
+        A coleta que voltou da fila para correção chega com a lista do que o
+        servidor recusou (`rascunhoDaColeta`). Ela é a primeira coisa que o
+        agente precisa ver: sem ela, a tela abre com tudo preenchido e sem
+        dizer por que a coleta voltou.
+      */
+      setCamposRecusados(guardado?.camposRecusados ?? []);
       setCarregando(false);
     } catch {
       setErro(
@@ -1120,7 +1206,45 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
     }
   }, [id, navegacao]);
 
-  useEffect(() => { void carregarDoDisco(); }, [carregarDoDisco]);
+  /*
+    A LEITURA DO DISCO ACONTECE A CADA FOCO, e nao so na montagem.
+
+    `vistoria/[id]` e UMA rota do navegador de abas, e o navegador NAO desmonta
+    a tela quando o agente sai dela: `navigate(A) → lista → navigate(A)` e uma
+    montagem so. A `key` pelo id, la em cima, cobre a TROCA de ocorrencia; ela
+    nao cobre a volta a mesma. Com a leitura presa a `useEffect` de montagem,
+    a tela reaparecia como tinha ficado, e "como tinha ficado" era a minuta
+    com "Concluir vistoria" liberado em cima de uma coleta que ja estava na
+    fila (a lapide estava no disco e ninguem a lia). O caminho da fila para
+    correcao era pior: "Corrigir a vistoria" grava o rascunho corrigido e faz
+    `router.push` para ca; a minuta velha reenfileirava a coleta IGUAL, a
+    conclusao apagava o rascunho corrigido, e o 422 voltava. Laco sem saida.
+
+    `useFocusEffect`, e nao `key` com um contador por foco: remontar a tela
+    inteira a cada foco perderia a rolagem e reanimaria tudo o que entra, e o
+    que precisa voltar a valer e o DISCO, nao o componente. A leitura ja e
+    idempotente (ela grava os dois estados nos dois ramos, ver acima), entao
+    chama-la de novo e seguro por construcao.
+
+    As sobreposicoes fecham ANTES da leitura, de proposito: a minuta, a camera
+    e a tela de "vistoria guardada" sao estado de UMA visita, e o que esta
+    embaixo delas e o que o disco disser. `carregando` volta a `true` para nao
+    haver um quadro em que o formulario anterior, interativo, fique na tela
+    entre o foco e a resposta do disco: um toque nessa janela gravaria o
+    rascunho da conclusao anterior por cima da lapide.
+
+    Na montagem ele roda uma vez, como o efeito de montagem rodava: a tela so
+    monta quando ganha foco.
+  */
+  useFocusEffect(useCallback(() => {
+    setMinutaAberta(false);
+    setCameraAberta(false);
+    setAvisandoQueGuardou(false);
+    setCamposRecusados([]);
+    setErro(null);
+    setCarregando(true);
+    void carregarDoDisco();
+  }, [carregarDoDisco]));
 
   /*
     A ida à rede que o histórico pede, e as três guardas dela.
@@ -1144,20 +1268,47 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
        trilha de acesso a dado de cidadão, que este agente leu o dossiê desta
        família. Leitura que não aconteceu não vira linha de registro de acesso.
 
+    5. **Só com sinal.** Sem sinal a consulta não é feita e NADA é desenhado.
+       Ela perguntava sem olhar o sinal, e no morro, onde não há sinal, toda
+       vistoria abria com "Não deu para consultar o histórico deste endereço
+       agora" no alto do formulário, dita como falha, numa tela cuja promessa
+       é "nada aqui depende de sinal". Falta de sinal é o estado normal de
+       trabalho, não uma consulta que falhou; a linha existe para a consulta
+       que FOI feita e não voltou (servidor fora do ar, tempo esgotado), que é
+       a única situação em que "não deu" é informação. Se o sinal chegar com a
+       tela aberta, a consulta acontece aí, uma vez.
+
     Roda UMA vez por ocorrência, e não a cada foco: o que ela traz é o passado,
     e o passado não muda enquanto o agente está na porta. Uma releitura a cada
     volta do segundo plano gastaria a mesma janela de sinal de que a
     sincronização precisa, pela rede da rua, para reler o que já está na tela.
+    A `ref` é o que torna isso verdade por construção: o sinal piscando e a
+    releitura do disco a cada foco (que troca o objeto `ocorrencia`) não
+    perguntam de novo.
   */
+  const sinal = useSinal();
+  const historicoJaPedido = useRef(false);
+  /*
+    A guarda de "ainda montada" é da TELA, e não desta rodada do efeito. Como
+    a consulta acontece uma vez só, cancelá-la quando o arranjo de
+    dependências muda (o sinal pisca no meio dos sete segundos de espera)
+    jogaria fora a única resposta que vai chegar, e o cartão nunca apareceria.
+    O que precisa ser evitado é só escrever estado numa tela que já saiu.
+  */
+  const telaMontada = useRef(true);
+  useEffect(() => {
+    telaMontada.current = true;
+    return () => { telaMontada.current = false; };
+  }, []);
   useEffect(() => {
     if (!ocorrencia || jaColetada || tokenDaSessao === undefined) return;
-    let vivo = true;
+    if (historicoJaPedido.current || !sinal.temSinal) return;
+    historicoJaPedido.current = true;
     void (async () => {
       const resultado = await buscarHistoricoDaCasa(tokenDaSessao, ocorrencia.id);
-      if (vivo) setHistorico(resultado);
+      if (telaMontada.current) setHistorico(resultado);
     })();
-    return () => { vivo = false; };
-  }, [ocorrencia, jaColetada, tokenDaSessao]);
+  }, [ocorrencia, jaColetada, tokenDaSessao, sinal.temSinal]);
 
   /**
    * Busca a lista de tarefas e tenta abrir de novo.
@@ -1169,25 +1320,33 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
    */
   const baixarEAbrir = useCallback(async () => {
     setBaixando(true);
-    setErro(null);
+    setFalhaAoBaixar(null);
     try {
       const token = await obterToken();
       if (!token) {
-        setErro("A sua sessão expirou. Entre de novo para baixar as tarefas.");
+        /* Sem ficha nenhuma no aparelho é sessão encerrada: o ato que resolve
+           é o mesmo do 401, entrar de novo. */
+        setFalhaAoBaixar("sessao-encerrada");
         return;
       }
       await atualizarPendencias(token);
       await carregarDoDisco();
     } catch (e: unknown) {
-      setErro(
-        e instanceof SemSinal
-          ? "Sem sinal para baixar a lista agora. Procure sinal e tente de novo."
-          : "Não deu para baixar a lista agora. Tente de novo em alguns minutos.",
-      );
+      setFalhaAoBaixar(motivoDaFalha(e));
     } finally {
       setBaixando(false);
     }
   }, [obterToken, carregarDoDisco]);
+
+  /**
+   * Sair da conta e voltar à entrada: o único ato que resolve a sessão
+   * encerrada. É o mesmo par de linhas da lista de tarefas, e a promessa de
+   * que a fila sobrevive ao logout está escrita em `comoContarAFalha`.
+   */
+  async function sairEEntrarDeNovo(): Promise<void> {
+    await sair();
+    router.replace("/entrar");
+  }
 
   /**
    * Toda mudança passa por aqui, e toda mudança grava.
@@ -1536,7 +1695,35 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
         },
       };
 
-      const fila = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
+      /*
+        OS ARQUIVOS SAO MEDIDOS AGORA, pelos bytes, e nao pelo numero gravado
+        na captura.
+
+        A vistoria 000009/2026 (15/09/2026) entrou na fila com a fotografia em
+        `tamanhoBytes: 0`: o `size` do aparelho veio zerado na hora da copia e
+        o zero foi adiante. Medir de novo aqui, no toque de concluir, e o que
+        garante que o numero conferido abaixo e o mesmo que o dreno vai ler.
+        Zero continua sendo o sinal de "o arquivo nao esta aqui", e e a
+        conferencia quem o recusa, com frase propria e caminho ate a secao.
+      */
+      const fotos: FotoLocal[] = rascunho.fotos.map((f) => ({
+        ...f, tamanhoBytes: medirArquivoNoAparelho(f.uriLocal),
+      }));
+
+      /*
+        A CHAVE DA ASSINATURA E UUID, cunhada uma vez e guardada no rascunho.
+
+        Era `${chave}-assinatura`, que nao e UUID, e o servidor recusa chave
+        fora de UUID por contrato (`pedidoDeEvidenciaSchema`). Guardada, ela
+        sobrevive a concluir, corrigir e concluir de novo, e o servidor
+        reconhece o mesmo arquivo em vez de criar outra linha. O rascunho e
+        gravado ANTES de enfileirar: se a fila recusar, a chave ja esta no
+        disco para a proxima tentativa ser a mesma.
+      */
+      const chaveDaAssinatura = rascunho.assinaturaIdempotencyKey ?? Crypto.randomUUID();
+      if (rascunho.assinaturaUri && chaveDaAssinatura !== rascunho.assinaturaIdempotencyKey) {
+        await alterar({ assinaturaIdempotencyKey: chaveDaAssinatura });
+      }
 
       /*
         A assinatura vai por fora da lista de fotos. Ela sobe pelo mesmo
@@ -1546,16 +1733,37 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
       */
       const assinatura: FotoLocal | undefined = rascunho.assinaturaUri
         ? {
-            idempotencyKey: `${rascunho.idempotencyKey}-assinatura`,
+            idempotencyKey: chaveDaAssinatura,
             uriLocal: rascunho.assinaturaUri,
             nomeArquivo: `assinatura-${rascunho.protocolo.replace("/", "-")}.png`,
             tipoConteudo: "image/png",
-            tamanhoBytes: new File(rascunho.assinaturaUri).size ?? 0,
+            tamanhoBytes: medirArquivoNoAparelho(rascunho.assinaturaUri),
             capturadaEm: new Date().toISOString(),
             legenda: "Assinatura de quem estava no local",
             ordem: rascunho.fotos.length,
           }
         : undefined;
+
+      /*
+        A CONFERENCIA COM O ESQUEMA DO SERVIDOR, antes de enfileirar.
+
+        "Ver o que falta" responde se o agente terminou de preencher. Isto
+        responde se o servidor vai aceitar, e pergunta ao MESMO esquema que a
+        rota usa. Se reprovar, a vistoria NAO conclui: a lista dos campos vai
+        para o cartao de progresso, com caminho ate a secao, e fica gravada no
+        rascunho para sobreviver ao Android matar o aplicativo. Nada sai do
+        aparelho para ser recusado na fila, onde a unica saida era descartar.
+      */
+      const conferencia = conferirColeta({ envelope, fotos, ...(assinatura ? { assinatura } : {}) });
+      if (!conferencia.aprovada) {
+        setCamposRecusados(conferencia.campos);
+        await alterar({ camposRecusados: conferencia.campos });
+        setMinutaAberta(false);
+        irPara("progresso");
+        return;
+      }
+
+      const fila = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
 
       /*
         A ORDEM DOS TRES PASSOS E OBRIGATORIA: enfileirar, gravar a lapide,
@@ -1580,7 +1788,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
       await concluirColetaEmOrdem({
         enfileirar: () => fila.enfileirar(envelope, {
           protocolo: rascunho.protocolo,
-          fotos: rascunho.fotos,
+          fotos,
           ...(assinatura ? { assinatura } : {}),
         }),
         registrarColeta: () => marcarColetada({
@@ -1599,6 +1807,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
         "terminou" e "pegou" são fatos de tamanhos diferentes.
       */
       retornoTatil("concluido");
+      setCamposRecusados([]);
       setAvisandoQueGuardou(true);
     } catch (e: unknown) {
       setErro(
@@ -1647,7 +1856,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
   */
   if (faltaBaixar) {
     return (
-      <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}>
+      <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: recuoDoMenu }}>
         <Vazio
           titulo="Esta tarefa ainda não está neste aparelho"
           descricao={
@@ -1655,7 +1864,41 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
             + "Com sinal, baixe agora e ela abre em seguida."
           }
         />
-        {erro && <Aviso tom="alerta">{erro}</Aviso>}
+        {falhaAoBaixar && (() => {
+          const frase = comoContarAFalha(
+            falhaAoBaixar,
+            falhaAoBaixar === "sem-sinal"
+              ? "Procure sinal e tente de novo."
+              : "Tente de novo em alguns minutos.",
+          );
+          return (
+            <Aviso
+              /* Sessão encerrada é fim de linha, e não alerta: nada desce até
+                 o agente agir. Os outros três passam sozinhos ou com o tempo. */
+              tom={falhaAoBaixar === "sessao-encerrada" ? "perigo" : "alerta"}
+              /* O título só quando ele diz algo que o corpo não começa dizendo:
+                 "Sem sinal para atualizar" em cima de "Sem sinal para
+                 atualizar. Procure sinal..." é a mesma frase duas vezes. */
+              {...(frase.detalhe.startsWith(frase.resumo) ? {} : { titulo: frase.resumo })}
+              /* Só a sessão encerrada traz ato, porque só ela tem um ato que
+                 resolve. O acesso suspenso NÃO manda entrar de novo: entrar de
+                 novo dá a mesma recusa, e sair apagaria a identidade que
+                 carimba a coleta. */
+              {...(falhaAoBaixar === "sessao-encerrada"
+                ? {
+                  acao: {
+                    titulo: "Sair e entrar de novo",
+                    onPress: () => void sairEEntrarDeNovo(),
+                    descricao: "Sair da conta e entrar de novo com o seu email e a sua senha",
+                    testID: "sair-e-entrar-de-novo",
+                  },
+                }
+                : {})}
+            >
+              {frase.detalhe}
+            </Aviso>
+          );
+        })()}
         <LinhaDeAcoes
           testID="acoes-de-baixar"
           acoes={[
@@ -1668,7 +1911,12 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
             {
               titulo: "Voltar para as tarefas",
               tipo: "secundario",
-              onPress: () => { router.back(); },
+              /*
+                `salvarESair`, e não `router.back()` cru: quem chega aqui pela
+                notificação chega sem pilha atrás, e `back()` sem histórico
+                não faz nada, no botão que existe para provar que dá para sair.
+              */
+              onPress: salvarESair,
               testID: "voltar-das-tarefas",
             },
           ]}
@@ -1714,7 +1962,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
   */
   if (erro && !rascunho && !jaColetada) {
     return (
-      <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}>
+      <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: recuoDoMenu }}>
         <Vazio
           titulo="Não deu para abrir esta vistoria"
           descricao={erro}
@@ -1757,7 +2005,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
   */
   if (ocorrencia && jaColetada) {
     return (
-      <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4 }}>
+      <ScrollView contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: recuoDoMenu }}>
         {/*
           A falha de "fazer nova vistoria" acontece AQUI, e até agora não tinha
           onde aparecer: `refazerVistoria` acendia `erro` e esta tela não lia
@@ -1898,6 +2146,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
         contentContainerStyle={{
           flexGrow: 1,
           padding: espaco.e5,
+          paddingBottom: recuoDoMenu,
           gap: espaco.e4,
           alignItems: "center",
           justifyContent: "center",
@@ -2116,11 +2365,16 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
           inteiro de novo só para achá-lo, e quem está lendo em voz alta perde
           a linha. Voltar vem primeiro porque é a ação reversível.
         */}
-        <View style={{
-          padding: espaco.e4, paddingBottom: espaco.e5,
-          borderTopWidth: borda.fio, borderTopColor: tema.borda,
-          backgroundColor: tema.superficie,
-        }}>
+        <View
+          testID="barra-da-minuta"
+          style={{
+            padding: espaco.e4,
+            /* Acima da pílula: o vão medido do menu, e não a área segura. */
+            paddingBottom: recuoDoMenu,
+            borderTopWidth: borda.fio, borderTopColor: tema.borda,
+            backgroundColor: tema.superficie,
+          }}
+        >
           <LinhaDeAcoes
             testID="acoes-da-minuta"
             acoes={[
@@ -2322,7 +2576,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
         disputa. So vira duas vezes por traco, no inicio e no fim.
       */
       scrollEnabled={!desenhando}
-      contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: espaco.e8 }}
+      contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: recuoDoMenu + espaco.e4 }}
     >
       <Cartao>
         <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
@@ -2706,6 +2960,71 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
               })}
             </View>
           )}
+
+          {camposRecusados.length > 0 && (
+            /*
+              O QUE PRECISA SER CORRIGIDO, e não só o que falta.
+
+              A lista de cima responde "o agente terminou de preencher?". Esta
+              responde "o servidor vai aceitar?", e vem de duas fontes com a
+              mesma forma: a conferência com o esquema do servidor feita no
+              toque de concluir, e o 422 que trouxe a coleta de volta da fila
+              para correção. Antes de 15/09/2026 nenhuma das duas chegava a esta
+              tela: a vistoria 000009/2026 concluiu "com tudo pronto" e parou na
+              fila, onde a única saída era descartar.
+
+              A mesma peça da lista de cima, de propósito: rótulo do campo (o
+              mesmo do painel, pelo pacote compartilhado), a frase do servidor,
+              e a seta quando há seção para onde ir.
+            */
+            <View
+              style={{ gap: espaco.e2 }}
+              testID="lista-do-que-corrigir"
+              accessibilityLiveRegion="polite"
+            >
+              <Txt variante="corpoP" peso={peso.forte} cor={tema.perigoTexto}>
+                {camposRecusados.length === 1
+                  ? "Corrija 1 item antes de concluir:"
+                  : `Corrija ${camposRecusados.length} itens antes de concluir:`}
+              </Txt>
+              {camposRecusados.map((campo) => {
+                const secao = secaoDoCampoRecusado(campo.campo);
+                const rotulo = rotuloDoCampo(campo.campo);
+                return (
+                  <Tocavel
+                    accessibilityRole="button"
+                    key={campo.campo}
+                    onPress={() => { if (secao) irPara(secao); }}
+                    desabilitado={!secao}
+                    accessibilityLabel={
+                      `${rotulo}: ${campo.mensagem}`
+                      + (secao ? " Toque para ir até onde isso se resolve." : "")
+                    }
+                    testID={`corrigir-${secao ?? "sem-caminho"}`}
+                    estilo={{
+                      minHeight: toque,
+                      paddingHorizontal: espaco.e3,
+                      paddingVertical: espaco.e2,
+                      borderRadius: raio.normal,
+                      borderWidth: borda.fio,
+                      borderColor: tema.borda,
+                      backgroundColor: tema.superficie2,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: espaco.e3,
+                    }}
+                  >
+                    <IconeAlerta cor={tema.perigoTexto} tamanho={icone.rotulo} />
+                    <View style={{ flex: 1, gap: espaco.e1 }}>
+                      <Txt variante="corpoP" peso={peso.forte}>{rotulo}</Txt>
+                      <Txt variante="corpoP" discreto>{campo.mensagem}</Txt>
+                    </View>
+                    {secao && <Txt variante="corpoP" peso={peso.negrito} discreto>›</Txt>}
+                  </Tocavel>
+                );
+              })}
+            </View>
+          )}
         </Cartao>
       </View>
 
@@ -2921,6 +3240,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: espaco.e2 }}>
             {rascunho.fotos.map((f) => {
               const recemGuardada = f.idempotencyKey === fotoRecemGuardada;
+              const jaEnviada = rascunho.fotosJaEnviadas?.includes(f.idempotencyKey) ?? false;
               return (
               <View key={f.idempotencyKey} style={{ gap: espaco.e1 }}>
                 {/*
@@ -2946,6 +3266,39 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
                     accessibilityLabel={`Fotografia ${f.ordem + 1} da vistoria`}
                   />
                 </Animated.View>
+                {jaEnviada ? (
+                  /*
+                    A FOTOGRAFIA QUE O SERVIDOR JÁ CONFIRMOU NÃO SE APAGA DAQUI.
+
+                    Achado do revisor de integridade da prova, na coleta que
+                    volta da fila para correção: a foto subiu e foi confirmada
+                    numa tentativa anterior (o evento `evidencia_anexada` já
+                    está na trilha), e o envelope falhou depois. Apagá-la aqui
+                    tiraria a referência da vistoria corrigida, e o laudo
+                    passaria a imprimi-la como "anexada fora do fluxo de
+                    vistoria, sem agente responsável", que é falso. A rota de
+                    sincronização não tem como receber uma lista de removidas,
+                    então a correção não deixa remover: mostra que já subiu.
+
+                    O selo `ok` não pinta fundo (R3 da régua), e a miniatura
+                    continua sendo a única coisa desta coluna com peso.
+                  */
+                  <View
+                    accessible
+                    accessibilityLabel={`Fotografia ${f.ordem + 1} já enviada à coordenação. `
+                      + "Ela não pode ser apagada daqui."}
+                    testID={`foto-ja-enviada-${f.ordem + 1}`}
+                    style={{
+                      minHeight: toque,
+                      minWidth: MINIATURA,
+                      paddingHorizontal: espaco.e2,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Chip texto="Já enviada" simbolo="✓" tom="ok" />
+                  </View>
+                ) : (
                 <Tocavel
                   accessibilityRole="button"
                   /*
@@ -2988,6 +3341,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
                 >
                   <Txt variante="corpoP" cor={tema.perigoTexto}>Apagar</Txt>
                 </Tocavel>
+                )}
               </View>
               );
             })}

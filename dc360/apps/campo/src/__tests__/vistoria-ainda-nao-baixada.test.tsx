@@ -22,11 +22,15 @@ import TelaDeVistoria from "../app/(agente)/vistoria/[id]";
  */
 
 jest.mock("expo-router", () => {
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const { useEffect } = require("react") as typeof import("react");
   const navegacao = { setOptions: jest.fn() };
   return {
     router: { back: jest.fn(), push: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true) },
     useLocalSearchParams: () => ({ id: "oc-recem-despachada" }),
     useNavigation: () => navegacao,
+    /* A tela relê o disco a cada foco; aqui o foco é a montagem, e só ela. */
+    useFocusEffect: (retorno: () => void) => { useEffect(retorno, [retorno]); },
   };
 });
 
@@ -88,9 +92,11 @@ jest.mock("../dados/fila", () => ({
   obterFila: jest.fn(async () => ({ enfileirar: jest.fn(async () => {}) })),
 }));
 
+const mockSair = jest.fn(async () => undefined);
 jest.mock("../dados/sessao", () => ({
   useSessao: () => ({
     obterToken: async () => mockToken,
+    sair: () => mockSair(),
     identidade: {
       nome: "Agente de teste", matricula: "0001",
       organizacaoNome: "Defesa Civil de Teste", municipio: "Teste", uf: "SC",
@@ -186,7 +192,7 @@ it("mantém o botão de tentar de novo quando a rede falha", async () => {
   });
   await act(async () => {});
 
-  expect(screen.getByText(/Sem sinal para baixar a lista agora/)).toBeTruthy();
+  expect(screen.getByText(/Sem sinal para atualizar/)).toBeTruthy();
   expect(screen.getByTestId("baixar-para-abrir")).toBeTruthy();
 });
 
@@ -204,6 +210,91 @@ it("nomeia a sessão vencida em vez de culpar o sinal", async () => {
   });
   await act(async () => {});
 
-  expect(screen.getByText(/sessão expirou/)).toBeTruthy();
+  expect(screen.getByText("Sua sessão terminou")).toBeTruthy();
   expect(mockBaixas).not.toHaveBeenCalled();
+});
+
+/*
+  O 401 DE VERDADE, e ele não é "tente de novo em alguns minutos".
+
+  A sessão revogada pelo servidor chega aqui como resposta com status 401, e
+  a tela a tratava como qualquer outra falha: "Não deu para baixar a lista
+  agora. Tente de novo em alguns minutos." Tentar de novo dá 401 de novo, para
+  sempre. A lista de tarefas já sabe classificar isso (`motivoDaFalha`) e
+  oferece o ato que resolve; esta tela precisa dizer a mesma coisa, pela mesma
+  régua, porque é o mesmo agente lendo as duas.
+*/
+it("o 401 nomeia a sessão encerrada e oferece sair e entrar de novo", async () => {
+  await abrirATela();
+  mockAoBaixar = () => { throw { status: 401, codigo: "nao_autenticado" }; };
+
+  await act(async () => {
+    fireEvent.press(screen.getByTestId("baixar-para-abrir"));
+  });
+  await act(async () => {});
+
+  expect(screen.getByText("Sua sessão terminou")).toBeTruthy();
+  expect(screen.queryByText(/Tente de novo em alguns minutos/)).toBeNull();
+
+  await act(async () => {
+    fireEvent.press(screen.getByText("Sair e entrar de novo"));
+  });
+  await act(async () => {});
+
+  expect(mockSair).toHaveBeenCalledTimes(1);
+  const { router } = jest.requireMock("expo-router") as { router: { replace: jest.Mock } };
+  expect(router.replace).toHaveBeenCalledWith("/entrar");
+});
+
+it("o acesso suspenso pelo fornecedor não manda entrar de novo", async () => {
+  await abrirATela();
+  mockAoBaixar = () => { throw { status: 403, codigo: "acesso_suspenso" }; };
+
+  await act(async () => {
+    fireEvent.press(screen.getByTestId("baixar-para-abrir"));
+  });
+  await act(async () => {});
+
+  expect(screen.getByText("Acesso suspenso pelo fornecedor")).toBeTruthy();
+  /* Entrar de novo dá a mesma recusa, e sair apagaria a identidade que
+     carimba a coleta: o botão não existe aqui de propósito. */
+  expect(screen.queryByText("Sair e entrar de novo")).toBeNull();
+});
+
+it("a falha sem nome continua pedindo para tentar daqui a pouco", async () => {
+  await abrirATela();
+  mockAoBaixar = () => { throw new Error("500"); };
+
+  await act(async () => {
+    fireEvent.press(screen.getByTestId("baixar-para-abrir"));
+  });
+  await act(async () => {});
+
+  expect(screen.getByText(/Não deu para atualizar agora/)).toBeTruthy();
+  expect(screen.queryByText("Sair e entrar de novo")).toBeNull();
+  expect(screen.getByTestId("baixar-para-abrir")).toBeTruthy();
+});
+
+/*
+  "VOLTAR PARA AS TAREFAS" precisa levar a algum lugar mesmo sem histórico.
+
+  Quem chega aqui pela notificação chega SEM pilha de navegação atrás: a
+  vistoria é a primeira tela. `router.back()` cru não tem para onde voltar e
+  o botão não faz nada, que é o pior comportamento possível para o botão que
+  existe justamente para provar que dá para sair. `salvarESair` já trata isso
+  no formulário; esta tela usava o `back()` cru.
+*/
+it("'Voltar para as tarefas' sem histórico vai para a lista, em vez de não fazer nada", async () => {
+  const { router } = jest.requireMock("expo-router") as {
+    router: { back: jest.Mock; replace: jest.Mock; canGoBack: jest.Mock };
+  };
+  router.canGoBack.mockReturnValue(false);
+  await abrirATela();
+
+  await act(async () => {
+    fireEvent.press(screen.getByTestId("voltar-das-tarefas"));
+  });
+
+  expect(router.back).not.toHaveBeenCalled();
+  expect(router.replace).toHaveBeenCalledWith("/(agente)");
 });

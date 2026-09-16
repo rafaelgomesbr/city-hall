@@ -25,7 +25,7 @@ import { useTitulo } from "../seo/titulo";
 const POR_PAGINA = 25;
 
 export function Auditoria() {
-  useTitulo("Auditoria");
+  useTitulo("Prestação de contas");
   const sessao = useSessaoObrigatoria();
   const [trilha, setTrilha] = useState<LinhaTrilha[] | null>(null);
   const [total, setTotal] = useState(0);
@@ -48,7 +48,10 @@ export function Auditoria() {
 
   useEffect(() => {
     if (MODO === "local") {
-      setErro("A auditoria consolidada exige a API. Este painel está em modo local.");
+      setErro(
+        "A prestação de contas consolidada fica disponível quando o painel está ligado "
+        + "ao servidor da prefeitura. Este painel está em modo de demonstração, sem servidor.",
+      );
       return;
     }
     carregar().catch((e: unknown) => setErro(e instanceof Error ? e.message : String(e)));

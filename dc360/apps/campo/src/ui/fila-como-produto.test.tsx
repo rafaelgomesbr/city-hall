@@ -42,6 +42,16 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
 
 jest.mock("../dados/api", () => ({ enderecoDaApi: () => "https://api.exemplo" }));
 
+/*
+  A tela da fila passou a abrir a vistoria ("Corrigir a vistoria", 15/09/2026),
+  e o roteador é módulo nativo: sem o dublê, importá-la derruba a suíte. A
+  correção em si tem teste próprio em `corrigir-na-fila.test.tsx`.
+*/
+jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
+jest.mock("../dados/correcao-da-coleta", () => ({
+  devolverParaCorrecao: jest.fn(async () => ({ retirada: false, motivo: "nao_encontrada" })),
+}));
+
 /* A chave de redução de movimento é do teste: o clímax existe para ser visto, e
    quem pede para reduzir movimento precisa receber a mesma tela sem o gesto. */
 let mockReduzir = false;

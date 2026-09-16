@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
@@ -215,18 +216,25 @@ describe("A foto confirmada não se troca", () => {
 });
 
 describe("Quem anexou a prova", () => {
-  it("a confirmação grava evento na trilha, com autor e origem", async () => {
+  it("a confirmação grava evento na trilha, com autor, origem e a soma MEDIDA", async () => {
     const id = await ocorrenciaEmCampo("Rua do Autor, 10");
     const autorizacao = (await autorizar(id)).json();
     await enviarBytes(autorizacao.url, autorizacao.cabecalhos);
-    await confirmar(autorizacao.evidenciaId, "a".repeat(64));
+    /*
+      A soma declarada precisa bater com os bytes que chegaram: uma soma
+      inventada era aceita e gravada (sessenta e quatro zeros entravam como
+      soma da fotografia), e agora é recusada. Ver
+      `bytes-confirmados-nao-se-trocam.test.ts`.
+    */
+    const somaDoPixel = createHash("sha256").update(PIXEL_PNG).digest("hex");
+    expect((await confirmar(autorizacao.evidenciaId, somaDoPixel)).statusCode).toBe(200);
 
     const eventos = (await trilha(id)).filter((e) => e.tipo === "evidencia_anexada");
     expect(eventos, "anexar prova não deixou evento na trilha").toHaveLength(1);
     expect(eventos[0]!.autor_nome).toBe("Diego Nakamura Alves");
     expect(eventos[0]!.origem).toBe("campo");
     expect(eventos[0]!.detalhe["evidenciaId"]).toBe(autorizacao.evidenciaId);
-    expect(eventos[0]!.detalhe["sha256"]).toBe("a".repeat(64));
+    expect(eventos[0]!.detalhe["sha256"]).toBe(somaDoPixel);
   }, 60_000);
 
   it("o banco guarda quem anexou, e é o do token", async () => {

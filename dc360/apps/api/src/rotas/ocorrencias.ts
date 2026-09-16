@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   MOTIVO_RECLASSIFICAR,
+  ORIGENS_DA_TRIAGEM,
   PRAZO_PADRAO_HORAS,
   SEVERIDADES,
   STATUS_OCORRENCIA,
@@ -21,7 +22,9 @@ import type { Banco, Consulta } from "../banco/tipos.js";
 import { RegraDeNegocio, autorizar } from "../servidor.js";
 import { registrarEvento } from "../trilha.js";
 import { registrarConsulta } from "../privacidade/consulta.js";
+import { semOQueSoODossieEntrega } from "../privacidade/lista.js";
 import { enderecoDoCliente } from "../rede.js";
+import { eRecorteDoAgente, recorteDoAgente } from "./recorte-do-agente.js";
 
 const idSchema = z.object({ id: z.string().uuid("Identificador inválido") });
 
@@ -88,18 +91,42 @@ const consultaMapaSchema = z.object({
  * identificador for de outro município, nenhuma linha volta, e a resposta é a
  * mesma que para um identificador inexistente. Não existe forma de descobrir
  * que um protocolo existe em outra prefeitura.
+ *
+ * `FOR UPDATE`, e o UPDATE que vem depois confere o estado de partida (ver
+ * `mudarStatus`). Sem os dois, duas abas encerrando ao mesmo tempo liam
+ * `em_campo` as duas, gravavam `encerrada` as duas e a trilha ganhava DOIS
+ * eventos de encerramento, numa tabela sem policy de UPDATE nem de DELETE. A
+ * trava faz a segunda aba esperar a primeira e ler `encerrada`, que
+ * `estadoTerminal` recusa com 409. O `AND status = $de` do UPDATE é a segunda
+ * camada, para o dia em que alguém escrever uma leitura sem a trava.
+ *
+ * `origens`, quando vem, estreita a tabela: a rota só aceita partir dali. A
+ * triagem usa isto, porque a tabela inteira inclui `em_campo -> triagem`, que
+ * é a aresta da devolução de tarefa e não pode ser percorrida por quem
+ * classifica (ver `ORIGENS_DA_TRIAGEM` no pacote compartilhado).
  */
 async function exigirTransicao(
   c: Consulta,
   id: string,
   para: StatusOcorrencia,
+  origens?: readonly StatusOcorrencia[],
 ): Promise<StatusOcorrencia> {
   const r = await c.query<{ status: StatusOcorrencia }>(
-    "SELECT status FROM ocorrencias WHERE id = $1",
+    "SELECT status FROM ocorrencias WHERE id = $1 FOR UPDATE",
     [id],
   );
   const de = r.rows[0]?.status;
   if (!de) throw new RegraDeNegocio("nao_encontrada", "Ocorrência não encontrada.", 404);
+  if (origens && !origens.includes(de)) {
+    throw new RegraDeNegocio(
+      "transicao_invalida",
+      `Não é possível ir de "${de}" para "${para}" por aqui.`
+      + (de === "em_campo" && para === "triagem"
+        ? " Uma ocorrência em campo só volta para a triagem pela devolução de "
+          + "tarefa, feita pela equipe, com motivo."
+        : ""),
+    );
+  }
   if (de === para) {
     /*
       Repetir um passo é diferente de repetir um desfecho.
@@ -130,6 +157,42 @@ async function exigirTransicao(
 }
 
 /**
+ * O UPDATE de status, condicionado ao estado que `exigirTransicao` leu.
+ *
+ * Cada rota escreve as suas colunas (`extra` é o resto do SET, com os
+ * parâmetros a partir de `$4`), e esta função põe o que todas precisam e
+ * nenhuma tinha: `AND status = $2` no WHERE, e a conferência de que UMA linha
+ * mudou. Zero linhas significa que o estado mudou entre a leitura e a
+ * escrita, e a resposta é 409 em vez de gravar um evento sobre um estado que
+ * já não existe.
+ *
+ * Com o `FOR UPDATE` da leitura isto não acontece na mesma transação; a
+ * conferência é a segunda camada, e custa uma comparação.
+ */
+async function mudarStatus(
+  c: Consulta,
+  id: string,
+  de: StatusOcorrencia,
+  para: StatusOcorrencia,
+  extra: { set: string; params: readonly unknown[] } = { set: "", params: [] },
+): Promise<void> {
+  const r = await c.query<{ id: string }>(
+    `UPDATE ocorrencias SET status = $3${extra.set}
+      WHERE id = $1 AND status = $2
+      RETURNING id`,
+    [id, de, para, ...extra.params],
+  );
+  if (r.rows.length === 0) {
+    throw new RegraDeNegocio(
+      "estado_mudou",
+      `A ocorrência deixou de estar em "${de}" enquanto este pedido era processado. `
+      + "Recarregue a tela e confira o estado atual.",
+      409,
+    );
+  }
+}
+
+/**
  * Uma linha de `GET /ocorrencias/devolvidas`.
  *
  * SEM a observação, de propósito: ela é texto livre escrito pelo agente na rua
@@ -154,7 +217,14 @@ type DevolvidaEsperandoDecisao = {
 
 export async function rotasOcorrencias(
   app: FastifyInstance,
-  { banco }: { banco: Banco },
+  { banco, despertarPush }: {
+    banco: Banco;
+    /**
+     * Acorda a varredura de push. Ausente com `PUSH_ATIVO=nao`. Só o
+     * despacho chama, e só depois do commit: ver o comentário lá.
+     */
+    despertarPush?: () => void;
+  },
 ): Promise<void> {
   /**
    * As ocorrências que voltaram do campo sem vistoria e ainda esperam decisão.
@@ -245,6 +315,14 @@ export async function rotasOcorrencias(
       let ordemDeRelevancia = "";
 
       /*
+        O agente de campo vê a equipe dele, e mais nada. O recorte entra ANTES
+        de qualquer filtro e vale para a contagem e para a página, que saem do
+        mesmo `onde`: ver `recorte-do-agente.ts`.
+      */
+      const recorte = recorteDoAgente(quem, "o", params);
+      if (recorte) condicoes.push(recorte);
+
+      /*
         O filtro de texto usa a MESMA normalização e a MESMA tolerância a erro
         da caixa de busca do painel (`GET /busca`, migração 041): o termo e a
         chave de busca da linha atravessam `normalizar_busca`, e `casa_busca`
@@ -330,8 +408,15 @@ export async function rotasOcorrencias(
         params,
       );
 
+      /*
+        Contato, relato e descrição de vulnerabilidade NÃO saem na lista, para
+        papel nenhum. A tabela do painel não os desenha, e devolvê-los em lote
+        era ler dado de pessoa do município inteiro sem registro de consulta.
+        Quem precisa deles abre o dossiê (`GET /:id`), que registra. Ver
+        `privacidade/lista.ts`.
+      */
       return {
-        itens: itens.rows,
+        itens: itens.rows.map(semOQueSoODossieEntrega),
         total: Number(total.rows[0]!.total),
         pagina: f.pagina,
         porPagina: f.porPagina,
@@ -366,25 +451,34 @@ export async function rotasOcorrencias(
     const f = consultaMapaSchema.parse(req.query);
 
     return banco.comTenant(quem.organizacaoId, async (c) => {
+      // O agente vê o mapa da equipe dele, e os três números contam só ela.
+      // Ver `recorte-do-agente.ts`.
+      const paramsDaContagem: unknown[] = [];
+      const recorteDaContagem = eRecorteDoAgente(quem, "o", paramsDaContagem);
       const contagem = await c.query<{ com: string; sem: string }>(
         `SELECT
-           count(*) FILTER (WHERE latitude IS NOT NULL AND longitude IS NOT NULL)::text AS com,
-           count(*) FILTER (WHERE latitude IS NULL OR longitude IS NULL)::text AS sem
-           FROM ocorrencias WHERE status NOT IN ('encerrada','rascunho')`,
+           count(*) FILTER (WHERE o.latitude IS NOT NULL AND o.longitude IS NOT NULL)::text AS com,
+           count(*) FILTER (WHERE o.latitude IS NULL OR o.longitude IS NULL)::text AS sem
+           FROM ocorrencias o
+          WHERE o.status NOT IN ('encerrada','rascunho')${recorteDaContagem}`,
+        paramsDaContagem,
       );
 
+      const params: unknown[] = [f.porPagina, (f.pagina - 1) * f.porPagina];
+      const recorte = eRecorteDoAgente(quem, "o", params);
       const itens = await c.query(
-        `SELECT id, protocolo, tipo, status, severidade, endereco, latitude, longitude
-           FROM ocorrencias
-          WHERE status NOT IN ('encerrada','rascunho')
-            AND latitude IS NOT NULL AND longitude IS NOT NULL
+        `SELECT o.id, o.protocolo, o.tipo, o.status, o.severidade, o.endereco,
+                o.latitude, o.longitude
+           FROM ocorrencias o
+          WHERE o.status NOT IN ('encerrada','rascunho')
+            AND o.latitude IS NOT NULL AND o.longitude IS NOT NULL${recorte}
           ORDER BY
-            CASE severidade WHEN 'critica' THEN 0 WHEN 'alta' THEN 1
-                            WHEN 'media' THEN 2 WHEN 'baixa' THEN 3 ELSE 4 END,
-            criado_em DESC,
-            id
+            CASE o.severidade WHEN 'critica' THEN 0 WHEN 'alta' THEN 1
+                              WHEN 'media' THEN 2 WHEN 'baixa' THEN 3 ELSE 4 END,
+            o.criado_em DESC,
+            o.id
           LIMIT $1 OFFSET $2`,
-        [f.porPagina, (f.pagina - 1) * f.porPagina],
+        params,
       );
 
       return {
@@ -402,11 +496,18 @@ export async function rotasOcorrencias(
     const { id } = idSchema.parse(req.params);
 
     return banco.comTenant(quem.organizacaoId, async (c) => {
+      /*
+        Para o agente de campo, o dossiê de outra equipe NÃO EXISTE: mesmo 404
+        de identificador inventado ou de outro município, e sem registro de
+        consulta, porque a consulta não aconteceu. Ver `recorte-do-agente.ts`.
+      */
+      const params: unknown[] = [id];
+      const recorte = eRecorteDoAgente(quem, "o", params);
       const ocorrencia = await c.query(
         `SELECT o.*, e.nome AS equipe_nome
            FROM ocorrencias o LEFT JOIN equipes e ON e.id = o.equipe_id
-          WHERE o.id = $1`,
-        [id],
+          WHERE o.id = $1${recorte}`,
+        params,
       );
       if (!ocorrencia.rows[0]) {
         throw new RegraDeNegocio("nao_encontrada", "Ocorrência não encontrada.", 404);
@@ -602,13 +703,17 @@ export async function rotasOcorrencias(
     if (termo.length < 4) return { itens: [] };
 
     return banco.comTenant(quem.organizacaoId, async (c) => {
+      // O agente não abre ocorrência, e esta consulta também não lhe mostra
+      // endereço de fora da equipe dele. Ver `recorte-do-agente.ts`.
+      const params: unknown[] = [q.tipo, `%${termo}%`];
+      const recorte = eRecorteDoAgente(quem, "o", params);
       const r = await c.query(
-        `SELECT id, protocolo, endereco, criado_em, status FROM ocorrencias
-          WHERE tipo = $1 AND status NOT IN ('encerrada','rascunho')
-            AND criado_em > now() - interval '48 hours'
-            AND lower(endereco) LIKE $2
-          ORDER BY criado_em DESC LIMIT 10`,
-        [q.tipo, `%${termo}%`],
+        `SELECT o.id, o.protocolo, o.endereco, o.criado_em, o.status FROM ocorrencias o
+          WHERE o.tipo = $1 AND o.status NOT IN ('encerrada','rascunho')
+            AND o.criado_em > now() - interval '48 hours'
+            AND lower(o.endereco) LIKE $2${recorte}
+          ORDER BY o.criado_em DESC LIMIT 10`,
+        params,
       );
       return { itens: r.rows };
     });
@@ -620,7 +725,14 @@ export async function rotasOcorrencias(
     const t = triagemSchema.parse(req.body);
 
     await banco.comTenant(quem.organizacaoId, async (c) => {
-      await exigirTransicao(c, id, "triagem");
+      /*
+        SÓ de `registrada` e de `triagem`. A tabela inteira de transições
+        inclui `em_campo -> triagem`, que é a aresta da devolução de tarefa, e
+        esta rota a percorria: classificava uma ocorrência em campo, o status
+        voltava sem limpar a equipe nem registrar devolução, e o aparelho dizia
+        ao agente que a tarefa tinha sido "devolvida". Reproduzido pelo revisor.
+      */
+      const de = await exigirTransicao(c, id, "triagem", ORIGENS_DA_TRIAGEM);
 
       /*
         A RECLASSIFICACAO, que era coletada e jogada fora.
@@ -651,18 +763,18 @@ export async function rotasOcorrencias(
         existir e um campo livre pendurado num registro ja classificado, que
         vira lixeira de anotacao paralela justamente porque ninguem mais o le.
       */
-      await c.query(
-        `UPDATE ocorrencias
-            SET status = 'triagem', severidade = $2,
-                vulnerabilidade_presente = $3, vulnerabilidade_descricao = $4,
-                prazo_em = criado_em + ($5 || ' hours')::interval,
-                tipo = $6,
-                tipo_descricao = CASE WHEN $6 = 'outro' THEN tipo_descricao ELSE NULL END
-          WHERE id = $1`,
-        [id, t.severidade, t.vulnerabilidadePresente,
-         t.vulnerabilidadeDescricao ?? null, String(PRAZO_PADRAO_HORAS[t.severidade]),
-         tipoNovo],
-      );
+      await mudarStatus(c, id, de, "triagem", {
+        set: `, severidade = $4,
+                vulnerabilidade_presente = $5, vulnerabilidade_descricao = $6,
+                prazo_em = criado_em + ($7 || ' hours')::interval,
+                tipo = $8,
+                tipo_descricao = CASE WHEN $8 = 'outro' THEN tipo_descricao ELSE NULL END`,
+        params: [
+          t.severidade, t.vulnerabilidadePresente,
+          t.vulnerabilidadeDescricao ?? null, String(PRAZO_PADRAO_HORAS[t.severidade]),
+          tipoNovo,
+        ],
+      });
       await registrarEvento(c, quem, id, "triagem", {
         severidade: t.severidade,
         prazoHoras: PRAZO_PADRAO_HORAS[t.severidade],
@@ -692,7 +804,7 @@ export async function rotasOcorrencias(
     const d = despachoSchema.parse(req.body);
 
     const aparelhosAvisados = await banco.comTenant(quem.organizacaoId, async (c) => {
-      await exigirTransicao(c, id, "em_campo");
+      const de = await exigirTransicao(c, id, "em_campo");
 
       /*
         O PORTAO DA RECLASSIFICACAO. "outro" nao sobrevive ao despacho.
@@ -754,10 +866,7 @@ export async function rotasOcorrencias(
         Dar coluna propria a ele e trabalho da onda C do plano; o que nao podia
         continuar era um sobrescrever o outro.
       */
-      await c.query(
-        "UPDATE ocorrencias SET status = 'em_campo', equipe_id = $2 WHERE id = $1",
-        [id, d.equipeId],
-      );
+      await mudarStatus(c, id, de, "em_campo", { set: ", equipe_id = $4", params: [d.equipeId] });
       await registrarEvento(c, quem, id, "despacho", {
         equipe: encontrada.nome,
         prazoHoras: d.prazoHoras,
@@ -829,6 +938,17 @@ export async function rotasOcorrencias(
       "despacho enfileirou o aviso de tarefa nova",
     );
 
+    /*
+      ACORDA O VARREDOR, DEPOIS DO COMMIT. Antes daqui o aviso esperava o
+      relogio de cinco minutos (`push/varredor.ts`), e cinco minutos entre
+      "a coordenacao decidiu" e "o telefone tocou" e o tempo em que a equipe
+      sai da base sem saber. Depois do commit, e nao dentro da transacao:
+      uma rodada acordada antes nao enxergaria a linha ainda, e voltaria a
+      esperar o relogio. A varredura coalesce pedidos e nunca roda em
+      paralelo consigo mesma. Sem aparelho na equipe nao ha o que acordar.
+    */
+    if (aparelhosAvisados > 0) despertarPush?.();
+
     return { status: "em_campo" };
   });
 
@@ -859,7 +979,7 @@ export async function rotasOcorrencias(
     const p = providenciaComOrgaoSchema.parse(req.body);
 
     const destino = await banco.comTenant(quem.organizacaoId, async (c) => {
-      await exigirTransicao(c, id, "providencia_pendente");
+      const de = await exigirTransicao(c, id, "providencia_pendente");
 
       let orgaoId: string | null = null;
       let nomeDoDestino = p.orgaoDestino;
@@ -895,7 +1015,7 @@ export async function rotasOcorrencias(
           p.descricao, p.responsavel, String(p.prazoHoras),
         ],
       );
-      await c.query("UPDATE ocorrencias SET status = 'providencia_pendente' WHERE id = $1", [id]);
+      await mudarStatus(c, id, de, "providencia_pendente");
       await registrarEvento(c, quem, id, "providencia", {
         orgao: nomeDoDestino,
         responsavel: p.responsavel,
@@ -963,8 +1083,8 @@ export async function rotasOcorrencias(
     const { id } = idSchema.parse(req.params);
     const e = encerramentoSchema.parse(req.body);
 
-    const pendentes = await banco.comTenant(quem.organizacaoId, async (c) => {
-      await exigirTransicao(c, id, "encerrada");
+    const desfecho = await banco.comTenant(quem.organizacaoId, async (c) => {
+      const de = await exigirTransicao(c, id, "encerrada");
 
       /*
         Providência sem resposta não impede encerrar: a realidade da rua é que
@@ -978,20 +1098,39 @@ export async function rotasOcorrencias(
         [id],
       );
 
-      await c.query(
-        `UPDATE ocorrencias SET status = 'encerrada', encerrado_em = now(),
-                motivo_encerramento = $2 WHERE id = $1`,
-        [id, e.motivo],
+      /*
+        Interdição ainda de pé é o mesmo caso, e mais grave: encerrar com a
+        casa interditada é fechar o processo com uma família fora de casa e
+        sem ninguém obrigado a levantar a interdição um dia. Não impede, pela
+        mesma razão da providência (a rua fecha caso assim), mas a resposta e a
+        trilha dizem que foi assim. Depois de encerrada, a ocorrência não
+        recebe mais ato: o levantamento precisa vir ANTES, e este aviso é o
+        que faz o coordenador saber disso no clique, e não meses depois.
+      */
+      const interdicao = await c.query<{ ativa: boolean }>(
+        `SELECT (interditada_em IS NOT NULL AND desinterditada_em IS NULL) AS ativa
+           FROM ocorrencias WHERE id = $1`,
+        [id],
       );
+      const interdicaoAtiva = interdicao.rows[0]?.ativa === true;
+
+      await mudarStatus(c, id, de, "encerrada", {
+        set: ", encerrado_em = now(), motivo_encerramento = $4",
+        params: [e.motivo],
+      });
       await registrarEvento(c, quem, id, "encerramento", {
         motivo: e.motivo,
         providenciasSemResposta: abertas.rows.map((p) => p.orgao_destino),
+        interdicaoAtiva,
       });
 
-      return abertas.rows.map((p) => p.orgao_destino);
+      return {
+        providenciasSemResposta: abertas.rows.map((p) => p.orgao_destino),
+        interdicaoAtiva,
+      };
     });
 
-    return { status: "encerrada", providenciasSemResposta: pendentes };
+    return { status: "encerrada", ...desfecho };
   });
 
   /**
@@ -1033,15 +1172,33 @@ export async function rotasOcorrencias(
         ganha dois levantamentos do mesmo imóvel.
       */
       const atual = await c.query<{
+        status: StatusOcorrencia;
         interditada_em: string | null; desinterditada_em: string | null;
       }>(
-        `SELECT interditada_em, desinterditada_em FROM ocorrencias
+        `SELECT status, interditada_em, desinterditada_em FROM ocorrencias
           WHERE id = $1 FOR UPDATE`,
         [id],
       );
       const alvo = atual.rows[0];
       // 404, e não 403: recurso de outro município não se confirma.
       if (!alvo) throw new RegraDeNegocio("nao_encontrada", "Ocorrência não encontrada.", 404);
+
+      /*
+        Encerrada não recebe ato, e levantar interdição é ato: muda o estado
+        do imóvel e entra na trilha como fato novo. A correção de coordenada já
+        recusava o estado terminal e esta rota não, então o processo fechado
+        continuava recebendo levantamento. O encerramento avisa quando a
+        interdição ainda está de pé (`interdicaoAtiva` na resposta e no
+        evento) justamente para o levantamento vir antes de fechar.
+      */
+      if (estadoTerminal(alvo.status)) {
+        throw new RegraDeNegocio(
+          "ocorrencia_encerrada",
+          "Esta ocorrência está encerrada e não recebe ato novo. A interdição "
+          + "precisa ser levantada antes do encerramento.",
+          409,
+        );
+      }
 
       if (!alvo.interditada_em) {
         throw new RegraDeNegocio(
@@ -1220,14 +1377,18 @@ export async function rotasOcorrencias(
   app.get("/interditados", async (req) => {
     const quem = await app.exigirAutenticacao(req);
     return banco.comTenant(quem.organizacaoId, async (c) => {
+      // Para o agente, só os imóveis da equipe dele. Ver `recorte-do-agente.ts`.
+      const params: unknown[] = [];
+      const recorte = eRecorteDoAgente(quem, "o", params);
       const r = await c.query(
         `SELECT o.id, o.protocolo, o.tipo, o.severidade, o.status, o.endereco,
                 o.ponto_referencia, o.interditada_em,
                 u.nome AS interditada_por_nome
            FROM ocorrencias o
            LEFT JOIN usuarios u ON u.id = o.interditada_por
-          WHERE o.interditada_em IS NOT NULL AND o.desinterditada_em IS NULL
+          WHERE o.interditada_em IS NOT NULL AND o.desinterditada_em IS NULL${recorte}
           ORDER BY o.interditada_em`,
+        params,
       );
       return { itens: r.rows };
     });
@@ -1244,13 +1405,18 @@ export async function rotasOcorrencias(
   app.get("/providencias/pendentes", async (req) => {
     const quem = await app.exigirAutenticacao(req);
     return banco.comTenant(quem.organizacaoId, async (c) => {
+      // O agente não encaminha providência e não vê as do município: só as
+      // das ocorrências da equipe dele. Ver `recorte-do-agente.ts`.
+      const params: unknown[] = [];
+      const recorte = eRecorteDoAgente(quem, "o", params);
       const r = await c.query(
         `SELECT p.id, p.orgao_destino, p.descricao, p.responsavel,
                 p.prazo_em, p.encaminhada_em,
                 o.id AS ocorrencia_id, o.protocolo, o.endereco, o.status
            FROM providencias p JOIN ocorrencias o ON o.id = p.ocorrencia_id
-          WHERE p.respondida_em IS NULL
+          WHERE p.respondida_em IS NULL${recorte}
           ORDER BY p.prazo_em`,
+        params,
       );
       return { itens: r.rows };
     });
@@ -1259,6 +1425,18 @@ export async function rotasOcorrencias(
   app.get("/indicadores/painel", async (req) => {
     const quem = await app.exigirAutenticacao(req);
     return banco.comTenant(quem.organizacaoId, async (c) => {
+      /*
+        Os números do agente são os da equipe dele: o recorte vale para as
+        ocorrências e para as providências, que são contadas pela ocorrência a
+        que pertencem. O mesmo `recorte-do-agente.ts` da lista, para o
+        indicador clicado levar a uma lista que conte a mesma coisa.
+      */
+      const params: unknown[] = [];
+      const recorte = recorteDoAgente(quem, "o", params);
+      const onde = recorte ? `WHERE ${recorte}` : "";
+      // O mesmo recorte, com o alias da subconsulta das providências.
+      const recorteDasProvidencias = recorteDoAgente(quem, "o2", params);
+      const ondeDasProvidencias = recorteDasProvidencias ? `WHERE ${recorteDasProvidencias}` : "";
       const r = await c.query(
         // O `atrasadas` daqui é a MESMA expressão que a lista usa quando o
         // filtro está ligado. Clicar no indicador precisa levar a uma lista
@@ -1271,12 +1449,16 @@ export async function rotasOcorrencias(
                               AND o.encerrado_em > now() - interval '7 days')::int AS encerradas_7d,
            count(*) FILTER (WHERE o.status NOT IN ('encerrada','rascunho')
                               AND o.severidade = 'critica')::int AS criticas,
-           (SELECT count(*) FROM providencias
-             WHERE respondida_em IS NULL)::int AS providencias_abertas,
-           (SELECT count(*) FROM providencias
-             WHERE respondida_em IS NULL AND prazo_em < now())::int
+           (SELECT count(*) FROM providencias p
+             WHERE p.respondida_em IS NULL
+               AND p.ocorrencia_id IN (SELECT o2.id FROM ocorrencias o2 ${ondeDasProvidencias}))::int
+             AS providencias_abertas,
+           (SELECT count(*) FROM providencias p
+             WHERE p.respondida_em IS NULL AND p.prazo_em < now()
+               AND p.ocorrencia_id IN (SELECT o2.id FROM ocorrencias o2 ${ondeDasProvidencias}))::int
              AS providencias_vencidas
-         FROM ocorrencias o`,
+         FROM ocorrencias o ${onde}`,
+        params,
       );
       return r.rows[0];
     });

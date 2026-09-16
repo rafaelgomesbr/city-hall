@@ -4,6 +4,7 @@ import { avisosDesde, marcarAvisosLidos, type CursorDeAvisos } from "../dados/re
 import { useSessaoObrigatoria } from "../estado/sessao";
 import { formatarDataHora } from "./comuns";
 import { IconeSino } from "./Icones";
+import { depoisDePintar, proximoPendente } from "./foco";
 import {
   ESTADO_INICIAL, INTERVALO_MS, TETO_NA_TELA,
   complementoDoAviso, deveConsultar, fraseDoAviso, marcarLidosNoEstado,
@@ -73,7 +74,8 @@ export function PainelDeAvisos({
     <div className="sino__painel" id="sino-painel">
       <div className="sino__cabecalho">
         <h2 className="sino__titulo">Avisos</h2>
-        <button type="button" className="botao botao--discreto" onClick={aoFechar}>
+        {/* `id` porque é o reserva do foco depois de marcar como lido, ver `marcar`. */}
+        <button type="button" className="botao botao--discreto" id="sino-fechar" onClick={aoFechar}>
           Fechar
         </button>
       </div>
@@ -127,6 +129,7 @@ export function PainelDeAvisos({
                     <button
                       type="button"
                       className="botao botao--discreto"
+                      data-aviso-id={aviso.id}
                       disabled={marcando}
                       onClick={() => aoMarcar([aviso.id])}
                     >
@@ -289,9 +292,26 @@ export function Sino() {
   async function marcar(ids: readonly string[]): Promise<void> {
     if (ids.length === 0 || marcando) return;
     setMarcando(true);
+    /*
+      Para onde o foco vai DEPOIS: o botão que tinha o foco vira a palavra
+      "Lido" e some. Sem isto o foco caía no `<body>`, e como o Escape é ouvido
+      no envoltório do sino, com o foco fora dele o Escape deixava de fechar o
+      painel. O próximo por ler continua a leitura de cima para baixo; sem
+      próximo, o Fechar, que está dentro do envoltório.
+    */
+    const proximo = proximoPendente(
+      estado.itens.map((a) => ({ id: a.id, pendente: !a.lido })),
+      ids,
+    );
     try {
       await marcarAvisosLidos(sessao, ids);
       setEstado((anterior) => marcarLidosNoEstado(anterior, ids));
+      depoisDePintar(() => {
+        const alvo = proximo
+          ? envoltorio.current?.querySelector<HTMLElement>(`[data-aviso-id="${proximo}"]`)
+          : null;
+        (alvo ?? document.getElementById("sino-fechar"))?.focus();
+      });
     } catch {
       /*
         O selo continua contando, e a consulta seguinte traz o que o servidor

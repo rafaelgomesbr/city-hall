@@ -43,9 +43,63 @@ export function guardarFotoNoAparelho(
     original faria a conferência bater por acaso, e deixaria de bater no dia em
     que a cópia falhasse pela metade, que é o dia em que ela precisa ser
     percebida.
+
+    E o zero do `size` nunca é aceito como medida. Esta linha era
+    `gravado.size ?? 0`, e o `size` da API nova do `expo-file-system` é
+    documentado como "0 se o arquivo não existe ou não pôde ser lido": em
+    15/09/2026, no iPhone, a vistoria 000009/2026 entrou na fila com
+    `tamanhoBytes: 0`, o servidor recusou a fotografia três vezes com 422, e a
+    foto de 812 KB estava inteira no aparelho. `medirArquivoNoAparelho` cai
+    para os bytes de verdade quando o `size` vem zerado ou nulo; o zero que
+    sobrevive a isso é arquivo perdido, nunca um número que se envia.
   */
-  const gravado = new File(destino.uri);
-  return { uriLocal: destino.uri, tamanhoBytes: gravado.size ?? 0 };
+  const tamanhoBytes = medirArquivoNoAparelho(destino.uri);
+  if (tamanhoBytes === 0) {
+    throw new Error(
+      "A foto não ficou guardada neste aparelho (o arquivo saiu vazio). "
+      + "Tire a foto de novo.",
+    );
+  }
+  return { uriLocal: destino.uri, tamanhoBytes };
+}
+
+/**
+ * Quantos bytes o arquivo tem: o que o sistema informa, e os bytes de verdade
+ * como régua de desempate.
+ *
+ * Zero quando o arquivo não existe ou não pôde ser lido: é o mesmo zero que
+ * `size` devolveria, só que aqui ele nunca é confundido com tamanho. Quem chama
+ * trata zero como arquivo perdido, e a conferência com o esquema do servidor
+ * (`conferirColeta`) recusa com a frase própria antes de a coleta enfileirar.
+ *
+ * ## Por que `size` primeiro, se foi o `size` que mentiu em 15/09/2026
+ *
+ * A primeira versão desta função media SÓ pelos bytes (`bytesSync().length`),
+ * pela razão certa: o `size` do iPhone veio zerado com a foto de 812 KB
+ * inteira no aparelho. O que ela pagava por isso é o custo de ler o arquivo
+ * INTEIRO, de forma síncrona, uma fotografia atrás da outra, no toque de
+ * concluir: seis fotos de 800 KB são cinco megabytes passando pela memória com
+ * a tela travada, num aparelho de entrada, para produzir seis números.
+ *
+ * O `size` responde sem abrir o arquivo, e quando ele responde um número
+ * positivo esse número é o do sistema de arquivos, que é o mesmo que a leitura
+ * daria. O caso em que ele mente é exatamente o caso do zero (a documentação
+ * diz "0 se o arquivo não existe ou não pôde ser lido", e o iPhone provou que
+ * "não pôde ser lido" acontece com arquivo são): AÍ os bytes são lidos, e só
+ * aí. Nulo cai no mesmo caminho, porque não saber o tamanho não é ter tamanho
+ * zero. O zero que sobrevive aos dois é arquivo perdido de verdade.
+ */
+export function medirArquivoNoAparelho(uriLocal: string): number {
+  try {
+    const arquivo = new File(uriLocal);
+    const informado = arquivo.size;
+    if (typeof informado === "number" && Number.isFinite(informado) && informado > 0) {
+      return informado;
+    }
+    return arquivo.bytesSync().length;
+  } catch {
+    return 0;
+  }
 }
 
 /**

@@ -59,10 +59,9 @@ jest.mock("./api", () => ({
   baixarMeuTrabalho: jest.fn(),
 }));
 
-import { bancoLocal, esquecerConexao } from "./banco-local";
+import { esquecerConexao } from "./banco-local";
 import { atualizarPendencias, tetoAtingido } from "./pendencias";
 
-const SUMIDA = "11111111-1111-4111-8111-111111111111";
 const CONTINUA = "22222222-2222-4222-8222-222222222222";
 const TOKEN = "token-de-teste";
 
@@ -77,16 +76,6 @@ function devolveLista(itens: unknown[]) {
 
 function tarefa(id: string) {
   return { id, protocolo: "2026/000123", tipo: "deslizamento", prazo_em: null };
-}
-
-async function gravarTarefas(ids: string[]) {
-  const db = await bancoLocal();
-  for (const id of ids) {
-    await db.runAsync(
-      "INSERT INTO pendencias (id, conteudo, prazo_em) VALUES (?, ?, ?)",
-      [id, JSON.stringify(tarefa(id)), null],
-    );
-  }
 }
 
 beforeEach(() => {

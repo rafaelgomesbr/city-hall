@@ -48,25 +48,67 @@ export async function registrarEvento(
  * O efeito colateral é a propriedade que interessa para medir o piloto: uma
  * segunda linha só aparece quando existe vistoria nova, que é exatamente a
  * definição de retrabalho documental.
+ *
+ * Devolve a EMISSÃO QUE VALE: a primeira do par, com o instante em que ela
+ * aconteceu. É esse instante que entra no identificador impresso no rodapé
+ * (ver `codigoDeEmissao` em `documentos/laudo.ts`), então a segunda via
+ * carrega o mesmo identificador da primeira, porque é o mesmo ato, e a rota
+ * `GET /documentos/validar/:codigo` consegue reencontrar a linha.
+ *
+ * `ocorrido_em` recebe o instante que a rota escolheu, e não `now()`, por uma
+ * razão só: o caminho em PDF precisa imprimir o identificador ANTES de gravar
+ * a emissão (gravar antes de saber se o PDF sai foi o defeito que interditava
+ * ao falhar). Com o instante vindo de fora, o identificador impresso e o
+ * gravado são o mesmo número por construção. `registrado_em` continua sendo o
+ * relógio do banco.
  */
+export type DocumentoEmitido = "laudo" | "termo_de_interdicao" | "termo_de_desinterdicao";
+
+export type EmissaoRegistrada = {
+  /** Instante da PRIMEIRA emissão do par (documento, vistoria). */
+  emitidoEm: Date;
+};
+
 export async function registrarEmissao(
   c: Consulta,
   quem: Identidade,
   ocorrenciaId: string,
-  documento: "laudo" | "termo_de_interdicao" | "termo_de_desinterdicao",
+  documento: DocumentoEmitido,
   vistoriaId: string,
   formato: "html" | "pdf",
-): Promise<void> {
+  emitidoEm: Date,
+): Promise<EmissaoRegistrada> {
   await c.query(
     `INSERT INTO trilha_eventos
        (organizacao_id, ocorrencia_id, tipo, autor_id, autor_nome, autor_papel, origem, ocorrido_em, detalhe)
-     VALUES ($1,$2,'documento_emitido',$3,$4,$5,'escritorio', now(), $6)
+     VALUES ($1,$2,'documento_emitido',$3,$4,$5,'escritorio', $6, $7)
      ON CONFLICT DO NOTHING`,
     [
       quem.organizacaoId, ocorrenciaId, quem.usuarioId, quem.nome, quem.papel,
+      emitidoEm.toISOString(),
       JSON.stringify({ documento, vistoriaId, formato }),
     ],
   );
+  const vale = await lerEmissao(c, ocorrenciaId, documento, vistoriaId);
+  // A linha acabou de ser gravada ou já existia: um dos dois, sempre.
+  return vale ?? { emitidoEm };
+}
+
+/** A emissão que vale para um par (documento, vistoria), se já houve uma. */
+export async function lerEmissao(
+  c: Consulta,
+  ocorrenciaId: string,
+  documento: DocumentoEmitido,
+  vistoriaId: string,
+): Promise<EmissaoRegistrada | null> {
+  const r = await c.query<{ ocorrido_em: string }>(
+    `SELECT ocorrido_em FROM trilha_eventos
+      WHERE ocorrencia_id = $1 AND tipo = 'documento_emitido'
+        AND detalhe ->> 'documento' = $2 AND detalhe ->> 'vistoriaId' = $3`,
+    [ocorrenciaId, documento, vistoriaId],
+  );
+  const linha = r.rows[0];
+  return linha ? { emitidoEm: new Date(linha.ocorrido_em) } : null;
 }
 
 /**

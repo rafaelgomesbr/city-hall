@@ -201,6 +201,23 @@ export function IconePredio({ tamanho = 18, titulo }: Props) {
   );
 }
 
+/**
+ * Informação: o "i" dentro do círculo. Existe porque o `Aviso` de tom "info"
+ * saía com o TRIÂNGULO de alerta, e um triângulo em cima de "mais 3
+ * ocorrências estão sem coordenada" é lido como problema, quando é contexto.
+ * Alerta e perigo continuam com o triângulo; sucesso com a marca; informação
+ * com este.
+ */
+export function IconeInfo({ tamanho = 18, titulo }: Props) {
+  return (
+    <svg {...base(tamanho, titulo)}>
+      {titulo && <title>{titulo}</title>}
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 11v5M12 7.7v.2" />
+    </svg>
+  );
+}
+
 export function IconeEscudo({ tamanho = 18, titulo }: Props) {
   return (
     <svg {...base(tamanho, titulo)}>

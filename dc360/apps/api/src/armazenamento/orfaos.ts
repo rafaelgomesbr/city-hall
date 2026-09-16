@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Banco } from "../banco/tipos.js";
+import type { Banco, Consulta } from "../banco/tipos.js";
 import type { Armazenamento, ObjetoListado } from "./tipos.js";
 
 /**
@@ -154,12 +154,32 @@ type LinhaDeEvidencia = {
 };
 
 /**
+ * Das chaves dadas, as que são foto de perfil VIVA de um usuário do município
+ * do contexto (`usuarios.foto_chave`, migração 040).
+ *
+ * Consultada dentro do mesmo `comTenant` da varredura, debaixo do RLS: a
+ * linha de um usuário de outro município não justifica objeto nenhum aqui,
+ * mesmo que a chave batesse. Usuário desativado continua justificando a
+ * própria foto, porque a linha dele fica (ele assina laudo e aparece na
+ * trilha) e a foto some pelo caminho da própria pessoa, não pelo descarte.
+ */
+async function chavesDeFotoDePerfil(c: Consulta, chaves: readonly string[]): Promise<Set<string>> {
+  if (chaves.length === 0) return new Set();
+  const r = await c.query<{ foto_chave: string }>(
+    "SELECT foto_chave FROM usuarios WHERE foto_chave = ANY($1::text[])",
+    [chaves],
+  );
+  return new Set(r.rows.map((l) => l.foto_chave));
+}
+
+/**
  * Percorre o armazenamento e escreve a lista de candidatos.
  *
  * O desenho tem uma propriedade que vale dizer em voz alta: ela NUNCA consulta
  * o banco sem contexto de município. Toda consulta daqui acontece dentro do
  * `comTenant` de um município, debaixo do RLS, inclusive a que confirma que o
- * município existe. Não há caminho em que a linha de uma prefeitura responda
+ * município existe e a que reconhece a foto de perfil (`usuarios.foto_chave`,
+ * migração 040) como linha justificadora. Não há caminho em que a linha de uma prefeitura responda
  * pelo objeto de outra, e por isso não existe função privilegiada nova: o
  * orçamento de `SECURITY DEFINER` deste produto está em quinze de quinze, e o
  * portão CA-06 reprova a décima sexta.
@@ -332,8 +352,22 @@ async function conferirMunicipio(
       [chaves],
     );
     const porChave = new Map(linhas.rows.map((l) => [l.chave_storage, l]));
+    const fotosDePerfil = await chavesDeFotoDePerfil(c, chaves);
 
     for (const objeto of objetos) {
+      /*
+        A FOTO DE PERFIL (migração 040) É JUSTIFICADA POR `usuarios.foto_chave`,
+        e não por `evidencias`. Sem esta linha, passados trinta dias, o rosto
+        de cada agente do município entrava na lista como `objeto_sem_linha`,
+        e um descarte autorizado sobre essa lista apagava a foto com a chave
+        ainda gravada na linha do usuário (achado de revisão, 15/09/2026).
+
+        A foto ANTERIOR de uma troca cujo apagamento falhou continua órfã de
+        verdade: ela não está em `foto_chave` de ninguém, e é exatamente o
+        objeto que a rota de troca deixa para esta varredura encontrar.
+      */
+      if (fotosDePerfil.has(objeto.chave)) continue;
+
       const linha = porChave.get(objeto.chave);
 
       // Prova entregue: aparece no laudo, e não se discute.
@@ -471,8 +505,11 @@ export async function descartarOrfaos(
             WHERE chave_storage = $1 AND abandonada_em IS NULL AND enviada_em IS NOT NULL`,
           [candidato.chave],
         );
+        /* A mesma reconferência para a foto de perfil: a pessoa pode ter
+           trocado de foto para esta chave entre a varredura e a decisão. */
+        const virouPerfil = (await chavesDeFotoDePerfil(c, [candidato.chave])).size > 0;
 
-        if (viva.rows[0]) {
+        if (viva.rows[0] || virouPerfil) {
           await c.query(
             `UPDATE objetos_orfaos
                 SET decidido_em = now(), decidido_por = $2, decisao = 'mantido',
@@ -480,8 +517,11 @@ export async function descartarOrfaos(
               WHERE id = $1`,
             [
               candidato.id, dep.operador,
-              "Reconferencia antes do descarte: o objeto voltou a ser referido "
-              + "por uma evidencia confirmada.",
+              virouPerfil
+                ? "Reconferencia antes do descarte: o objeto passou a ser a foto de "
+                  + "perfil de um usuario."
+                : "Reconferencia antes do descarte: o objeto voltou a ser referido "
+                  + "por uma evidencia confirmada.",
             ],
           );
           resultado.mantidos += 1;

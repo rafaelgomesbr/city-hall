@@ -631,6 +631,52 @@ describe("Ofício numerado", () => {
       expect(r.json().mensagem).toMatch(/imprima|cadastre/i);
     });
   });
+
+  describe("O ofício na trilha da ocorrência", () => {
+    /*
+      O revisor de integridade provou que nem a emissão nem o envio do ofício
+      escreviam em `trilha_eventos`. O ofício é um documento oficial numerado
+      que sai do prédio com o cabeçalho da prefeitura, e a trilha da ocorrência
+      (a tela que alguém abre para provar o que aconteceu) não dizia que ele
+      existia. "A prefeitura não fez nada" ficava sem a resposta que o ofício
+      é.
+
+      A ficha do ofício (`oficio_envios`) continua sendo o registro técnico de
+      cada tentativa. A trilha guarda o ATO: emitido, com número e órgão;
+      enviado, com destinatário institucional e número da tentativa.
+    */
+    async function eventos(tipo: string) {
+      const r = await mem.bruto.query<{ detalhe: Record<string, unknown>; autor_nome: string }>(
+        `SELECT detalhe, autor_nome FROM trilha_eventos
+          WHERE ocorrencia_id = $1 AND tipo = $2 ORDER BY ocorrido_em`,
+        [ocorrenciaA, tipo],
+      );
+      return r.rows;
+    }
+
+    it("a emissão entra como `oficio_emitido`, com número e órgão", async () => {
+      // Outros casos deste arquivo emitem ofícios na mesma ocorrência: o que
+      // se procura é o evento DESTE número, e ele existe uma vez só.
+      const deste = (await eventos("oficio_emitido"))
+        .filter((e) => e.detalhe.numero === numero);
+      expect(deste, "o ofício foi emitido e a trilha não sabe").toHaveLength(1);
+      expect(deste[0]!.detalhe.orgao).toBe("Corpo de Bombeiros");
+      expect(deste[0]!.autor_nome).toBe("Helena Coutinho");
+    });
+
+    it("o envio entregue entra como `oficio_enviado`, com destinatário e tentativa", async () => {
+      /*
+        Um só, e não dois: a segunda tentativa FALHOU no provedor. Um evento
+        "ofício enviado" para uma mensagem que o provedor recusou seria a
+        trilha afirmando um envio que não aconteceu. A falha continua na ficha.
+      */
+      const enviados = await eventos("oficio_enviado");
+      expect(enviados, "o ofício foi enviado e a trilha não sabe").toHaveLength(1);
+      expect(enviados[0]!.detalhe.numero).toBe(numero);
+      expect(enviados[0]!.detalhe.tentativa).toBe(1);
+      expect(enviados[0]!.detalhe.destinatario).toBe("sinistros@bombeiros.exemplo.gov.br");
+    });
+  });
 });
 
 describe("Link de uso único expirado", () => {

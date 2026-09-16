@@ -7,6 +7,7 @@ import {
   armazenamentoEmMemoria, type ArmazenamentoEmMemoria,
 } from "../src/armazenamento/memoria.js";
 import { TAMANHO_MAXIMO_DA_FOTO_DE_PERFIL } from "../src/rotas/usuarios-eu.js";
+import { lerUso } from "../src/armazenamento/uso.js";
 
 /**
  * A foto de perfil do servidor, do pedido de autorização à tela da equipe.
@@ -352,5 +353,149 @@ describe("A equipe vê a foto e quem está em campo", () => {
     expect(concluidas.length).toBeGreaterThan(0);
     for (const v of concluidas) expect("despachada_em" in v).toBe(true);
     expect(typeof r.json().devolvidasNoMes).toBe("number");
+  });
+});
+
+describe("A foto conta no teto de armazenamento (migracao 045)", () => {
+  /**
+   * O ACHADO (revisao de 15/09/2026): a foto de perfil ocupa o mesmo balde do
+   * municipio e nao entrava na soma do teto (`situacao_de_armazenamento`
+   * somava so `evidencias`), e a autorizacao de envio da foto nao perguntava
+   * ao teto. Um municipio no limite continuava recebendo retrato sem aviso.
+   */
+  const MB = 1024 * 1024;
+  const GB = 1024 * MB;
+  const PEDACO = 15 * MB;
+
+  async function usoDoMunicipio(): Promise<number> {
+    return mem.banco.comTenant(ORG_SERRA_ALTA, async (c) => (await lerUso(c)).bytesUsados);
+  }
+
+  async function fotoBytesNoBanco(usuarioId: string): Promise<number | null> {
+    const r = await mem.banco.comTenant(ORG_SERRA_ALTA, (c) =>
+      c.query<{ foto_bytes: string | null }>(
+        "SELECT foto_bytes::text AS foto_bytes FROM usuarios WHERE id = $1", [usuarioId],
+      ));
+    const v = r.rows[0]?.foto_bytes ?? null;
+    return v === null ? null : Number(v);
+  }
+
+  it("confirmar a foto grava o tamanho lido do armazenamento, e a soma do teto sobe por ele", async () => {
+    await app.inject({ method: "DELETE", url: "/usuarios/eu/foto", headers: com(tokenDiego) });
+    const antes = await usoDoMunicipio();
+
+    await trocarFoto(tokenDiego, OUTRO_PNG);
+
+    expect(await fotoBytesNoBanco(DIEGO)).toBe(OUTRO_PNG.length);
+    expect(await usoDoMunicipio()).toBe(antes + OUTRO_PNG.length);
+  });
+
+  it("trocar a foto troca o tamanho: a anterior sai da conta junto com o objeto", async () => {
+    await trocarFoto(tokenDiego, OUTRO_PNG);
+    const comAOutra = await usoDoMunicipio();
+
+    await trocarFoto(tokenDiego, PIXEL_PNG);
+
+    expect(await fotoBytesNoBanco(DIEGO)).toBe(PIXEL_PNG.length);
+    expect(await usoDoMunicipio()).toBe(comAOutra - OUTRO_PNG.length + PIXEL_PNG.length);
+  });
+
+  it("remover a foto zera o tamanho, e a conta desce", async () => {
+    await trocarFoto(tokenDiego, OUTRO_PNG);
+    const comFoto = await usoDoMunicipio();
+
+    const r = await app.inject({ method: "DELETE", url: "/usuarios/eu/foto", headers: com(tokenDiego) });
+    expect(r.statusCode).toBe(204);
+
+    expect(await fotoBytesNoBanco(DIEGO)).toBeNull();
+    expect(await usoDoMunicipio()).toBe(comFoto - OUTRO_PNG.length);
+  });
+
+  it("com o municipio alem da margem do teto, a autorizacao de envio da foto responde 507 e nada e gravado", async () => {
+    /*
+      O balde e enchido por fora da rota, com metadado (o que consome o teto e
+      `tamanho_bytes`), ate passar da margem de 50% sobre o menor teto que o
+      banco aceita (1 GB, migracao 035). A partir dai `situacao_de_armazenamento`
+      responde `recusado`, e e isso que a rota precisa consultar ANTES de
+      autorizar, como a rota de evidencia faz.
+    */
+    const ocorrencia = await mem.bruto.query<{ id: string }>(
+      "SELECT id FROM ocorrencias WHERE organizacao_id = $1 LIMIT 1", [ORG_SERRA_ALTA],
+    );
+    const pedacos = Math.ceil((1.6 * GB) / PEDACO);
+    await mem.bruto.query(
+      `INSERT INTO evidencias
+         (organizacao_id, ocorrencia_id, chave_storage, capturada_em, tipo_conteudo,
+          tamanho_bytes, enviada_em)
+       SELECT $1::uuid, $2::uuid,
+              'tenant/' || $1::text || '/ocorrencias/' || $2::text || '/enchimento-'
+              || n::text || '-' || gen_random_uuid()::text || '.jpg',
+              now(), 'image/jpeg', $4::bigint, now()
+         FROM generate_series(1, $3::int) AS n`,
+      [ORG_SERRA_ALTA, ocorrencia.rows[0]!.id, pedacos, PEDACO],
+    );
+    await mem.bruto.query(
+      "UPDATE organizacoes SET teto_armazenamento_bytes = $2 WHERE id = $1",
+      [ORG_SERRA_ALTA, 1 * GB],
+    );
+    try {
+      const chaveAntes = await fotoChaveNoBanco(DIEGO);
+
+      const r = await autorizar(tokenDiego);
+      expect(r.statusCode, r.body).toBe(507);
+      expect(r.json().erro).toBe("teto_de_armazenamento");
+      /* A frase e da foto, nao a da coleta de campo: aqui nao ha fila
+         guardando nada, e dizer "o envio vai ser tentado sozinho" seria
+         mentira para quem esta olhando a tela de perfil. */
+      expect(r.json().mensagem).toMatch(/foto/i);
+      expect(r.json().mensagem).not.toMatch(/coleta/i);
+
+      /* E a confirmacao tambem recusa, para uma URL autorizada antes de o
+         balde encher nao virar porta: o objeto e apagado e nada e gravado. */
+      const chaveNova = `tenant/${ORG_SERRA_ALTA}/usuarios/${DIEGO}/foto-tarde-demais.png`;
+      armazenamento.guardar(chaveNova, PIXEL_PNG, "image/png");
+      const confirmada = await app.inject({
+        method: "PUT", url: "/usuarios/eu/foto", headers: com(tokenDiego), payload: { chave: chaveNova },
+      });
+      expect(confirmada.statusCode, confirmada.body).toBe(507);
+      expect(await fotoChaveNoBanco(DIEGO)).toBe(chaveAntes);
+      expect(armazenamento.ler(chaveNova), "a foto recusada ficou no balde").toBeNull();
+    } finally {
+      await mem.bruto.query(
+        "UPDATE organizacoes SET teto_armazenamento_bytes = NULL WHERE id = $1", [ORG_SERRA_ALTA],
+      );
+      await mem.bruto.query(
+        "DELETE FROM evidencias WHERE organizacao_id = $1 AND chave_storage LIKE '%/enchimento-%'",
+        [ORG_SERRA_ALTA],
+      );
+    }
+  }, 120_000);
+
+  it("o gatilho do banco e a segunda barreira: foto_bytes nao passa por cima do teto nem por fora da rota", async () => {
+    await mem.bruto.query(
+      "UPDATE organizacoes SET teto_armazenamento_bytes = $2 WHERE id = $1",
+      [ORG_SERRA_ALTA, 1 * GB],
+    );
+    try {
+      await trocarFoto(tokenDiego, PIXEL_PNG);
+      const chave = await fotoChaveNoBanco(DIEGO);
+      await expect(
+        mem.banco.comTenant(ORG_SERRA_ALTA, (c) =>
+          c.query("UPDATE usuarios SET foto_bytes = $2 WHERE id = $1", [DIEGO, 2 * GB])),
+      ).rejects.toThrow(/teto/);
+      expect(await fotoChaveNoBanco(DIEGO)).toBe(chave);
+      expect(await fotoBytesNoBanco(DIEGO)).toBe(PIXEL_PNG.length);
+    } finally {
+      await mem.bruto.query(
+        "UPDATE organizacoes SET teto_armazenamento_bytes = NULL WHERE id = $1", [ORG_SERRA_ALTA],
+      );
+    }
+  });
+
+  it("tamanho sem chave e proibido pelo banco: nao existe tamanho de foto que nao existe", async () => {
+    await app.inject({ method: "DELETE", url: "/usuarios/eu/foto", headers: com(tokenDiego) });
+    await expect(
+      mem.bruto.query("UPDATE usuarios SET foto_bytes = 10 WHERE id = $1", [DIEGO]),
+    ).rejects.toThrow(/foto_bytes_so_com_foto/);
   });
 });

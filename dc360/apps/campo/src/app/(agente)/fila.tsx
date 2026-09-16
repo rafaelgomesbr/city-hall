@@ -2,17 +2,20 @@ import {
   useCallback, useEffect, useRef, useState, type ReactNode,
 } from "react";
 import { Animated, Easing, ScrollView, View } from "react-native";
+import { router } from "expo-router";
 import {
   autoriaDaColeta,
   evidenciasPerdidasDoItem,
+  recusaEstaNoDado,
   CODIGO_ARQUIVO_SUMIU,
   type Autoria,
   type FilaDeSincronizacao,
   type ItemDeDevolucao,
   type ItemFila,
 } from "@dc360/campo";
-import { ROTULO_MOTIVO_DE_DEVOLUCAO } from "@dc360/shared";
+import { ROTULO_MOTIVO_DE_DEVOLUCAO, rotuloDoCampo } from "@dc360/shared";
 import { enderecoDaApi } from "../../dados/api";
+import { devolverParaCorrecao } from "../../dados/correcao-da-coleta";
 import { obterFila } from "../../dados/fila";
 import { useSinal } from "../../dados/conectividade";
 import { useSessao } from "../../dados/sessao";
@@ -158,6 +161,15 @@ type EstadoDoItem = {
   porque: string;
   /** O que dá para fazer, em passos. Ausente quando não há nada a fazer. */
   oQueFazer?: readonly string[];
+  /**
+   * Os campos que o servidor apontou no 422, cada um com a frase dele.
+   *
+   * Existe porque o cartão dizia "Alguns campos precisam ser corrigidos." e
+   * mais nada, com a lista exata do que corrigir chegando no mesmo corpo e
+   * sendo guardada na fila desde 09/09/2026. O agente lia a frase seca, em pé,
+   * sem ter como agir. O rótulo é o do pacote compartilhado, o mesmo do painel.
+   */
+  campos?: ReadonlyArray<{ rotulo: string; mensagem: string }>;
 };
 
 /**
@@ -447,6 +459,41 @@ function descreverEstado(item: ItemFila, autoria: Autoria): EstadoDoItem {
       if (item.ultimaFalha?.codigo === CODIGO_ARQUIVO_SUMIU) {
         return descreverPerdaDeRegistro(item);
       }
+      /*
+        A RECUSA DO DADO, com os campos, e o botão de editar como saída.
+
+        Vistoria 000009/2026, 15/09/2026, nas capturas do dono: o servidor
+        recusou a fotografia com 422 três vezes, e o cartão mostrava "Precisa
+        de atenção", "Alguns campos precisam ser corrigidos.", "Tentar de novo"
+        e "Descartar". Nenhum campo, nenhum jeito de editar. A lista de campos
+        chegava no corpo do 422 e estava guardada em `ultimaFalha.campos` desde
+        09/09/2026, e ninguém a desenhava.
+
+        "Correção", e não "atenção": atenção é olhar, e aqui é editar. O passo
+        diz o que o botão faz e o que NÃO acontece (nada duplica, porque a
+        chave é a mesma), que é a dúvida de quem já viu esta fila criar laudo
+        duplo uma vez.
+      */
+      if (item.ultimaFalha && recusaEstaNoDado(item.ultimaFalha)) {
+        const campos = item.ultimaFalha.campos;
+        return {
+          rotulo: "Precisa de correção",
+          simbolo: "!",
+          tom: "perigo",
+          Icone: IconePerigo,
+          porque: campos.length === 0
+            ? item.ultimaFalha.mensagem
+            : campos.length === 1
+              ? "O servidor recusou 1 campo desta vistoria. Ele está listado abaixo."
+              : `O servidor recusou ${campos.length} campos desta vistoria. Eles estão listados abaixo.`,
+          campos: campos.map((c) => ({ rotulo: rotuloDoCampo(c.campo), mensagem: c.mensagem })),
+          oQueFazer: [
+            "Toque em \"Corrigir a vistoria\": ela volta para a tela de coleta com tudo "
+            + "preenchido, para ajustar só o que está marcado.",
+            "Ao concluir de novo, o envio usa a mesma chave: nada duplica no servidor.",
+          ],
+        };
+      }
       return {
         rotulo: "Precisa de atenção",
         simbolo: "!",
@@ -514,10 +561,11 @@ function descreverEstado(item: ItemFila, autoria: Autoria): EstadoDoItem {
  * passos sem número viram um parágrafo de novo, que é justamente o que se está
  * desfazendo aqui.
  */
-function OQueFazer({ passos }: { passos: readonly string[] }) {
+function OQueFazer({ passos, testID }: { passos: readonly string[]; testID?: string }) {
   const tema = useTema();
   return (
     <View
+      testID={testID}
       style={{
         backgroundColor: tema.superficie2,
         borderRadius: raio.normal,
@@ -540,6 +588,49 @@ function OQueFazer({ passos }: { passos: readonly string[] }) {
           )}
           <View style={{ flex: 1 }}>
             <Txt variante="corpoP">{passo}</Txt>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * A lista do que o servidor recusou, um campo por linha.
+ *
+ * Sem fundo semântico de propósito: o cartão da coleta parada já tem o selo
+ * vermelho como único bloco preenchido (R1 da régua em `ui/regua.ts`), e uma
+ * segunda mancha pintada a três linhas dele foi defeito medido nesta tela. O
+ * que marca cada linha é o desenho de alerta em cor discreta, e a hierarquia
+ * vem do peso: o rótulo forte, a frase do servidor logo abaixo.
+ */
+function CamposRecusados({ campos }: {
+  campos: ReadonlyArray<{ rotulo: string; mensagem: string }>;
+}) {
+  const tema = useTema();
+  return (
+    <View
+      accessibilityRole="list"
+      style={{
+        backgroundColor: tema.superficie2,
+        borderRadius: raio.normal,
+        padding: espaco.e3,
+        gap: espaco.e2,
+      }}
+    >
+      {campos.map((c, i) => (
+        <View
+          key={`${c.rotulo}-${i}`}
+          accessible
+          accessibilityLabel={`${c.rotulo}: ${c.mensagem}`}
+          style={{ flexDirection: "row", gap: espaco.e2, alignItems: "flex-start" }}
+        >
+          <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <IconeAlerta cor={tema.textoDiscreto} tamanho={tamanhoDeIcone.rotulo} />
+          </View>
+          <View style={{ flex: 1, gap: espaco.e1 }}>
+            <Txt variante="corpoP" peso={peso.forte}>{c.rotulo}</Txt>
+            <Txt variante="corpoP" discreto>{c.mensagem}</Txt>
           </View>
         </View>
       ))}
@@ -981,6 +1072,45 @@ export default function TelaDaFila() {
     }
   }
 
+  /**
+   * "Corrigir a vistoria": a coleta parada volta a ser rascunho e a tela de
+   * vistoria abre.
+   *
+   * Passa por `agir` para ter começo e fim visíveis como os outros verbos, e a
+   * frase de "nada mudou" sai do motivo que o motor devolveu, e não de um
+   * literal: a recusa do motor é resposta, e a resposta precisa chegar a quem
+   * tocou. Quando dá certo, a confirmação é a própria tela de vistoria abrindo
+   * com tudo preenchido; ainda assim a frase fica gravada no cartão, para o
+   * caso de a navegação demorar num aparelho fraco.
+   *
+   * Sem pergunta antes, de propósito: corrigir não destrói nada (a coleta vira
+   * rascunho, com a mesma chave), e transformar em pergunta o que não perde
+   * nada ensina a confirmar sem ler, o que o descarte, que perde, não pode
+   * pagar.
+   */
+  async function corrigir(item: ItemFila): Promise<void> {
+    await agir(item, "corrigir", async () => {
+      if (!fila) return { deuCerto: false, texto: "A fila ainda não abriu. Tente de novo." };
+      const r = await devolverParaCorrecao(fila, item.id);
+      if (!r.retirada) {
+        return {
+          deuCerto: false,
+          texto: r.motivo === "de_outro_autor"
+            ? "Só quem fez a vistoria pode corrigi-la: o nome que vai para o laudo é o dela."
+            : r.motivo === "nao_esta_parada"
+              ? "Esta coleta voltou a esperar envio e não precisa de correção agora."
+              : "Esta coleta não está mais na fila. O cartão acima mostra o estado de agora.",
+        };
+      }
+      router.push(`/(agente)/vistoria/${r.coleta.ocorrenciaId}`);
+      return {
+        deuCerto: true,
+        texto: "A vistoria voltou para a tela de coleta, com tudo preenchido. Ao concluir "
+          + "de novo, o envio usa a mesma chave.",
+      };
+    });
+  }
+
   if (!itens) {
     if (desistiu) {
       return (
@@ -1164,9 +1294,33 @@ export default function TelaDaFila() {
       não saem porque o dreno não os pega; coleta de outro autor não sai porque
       a credencial é de outra pessoa.
     */
-    const podeReenviar = item.estado === "bloqueado" || item.estado === "arquivado";
+    const parada = item.estado === "bloqueado" || item.estado === "arquivado";
+    /*
+      O BOTÃO DE EDITAR, e quando ele é o principal.
+
+      15/09/2026, vistoria 000009/2026 parada por 422, nas palavras do dono com
+      o aparelho na mão: "cadê o botão de editar? só tem de descartar"; "o
+      tentar novamente ali não faz sentido algum". Corrigir devolve a coleta
+      para rascunho, com tudo preenchido e com a mesma chave, e abre a tela de
+      vistoria.
+
+      Só na coleta da PRÓPRIA pessoa, pela mesma razão de "enviar sem os
+      registros perdidos": o rascunho reconstruído vai ser concluído de novo
+      por quem está no aparelho, e o autor carimbado seria o da sessão aberta.
+      O motor cobra o mesmo portão do lado de lá (`retirarParaCorrecao`).
+
+      "Tentar de novo" SOME quando a recusa é do dado: repetir a mesma coleta
+      recebe a mesma recusa, e um botão que promete o que não vai acontecer
+      ensina a desconfiar dos que prometem certo. Ele continua para a recusa que
+      não é do dado (sessão encerrada, ocorrência não encontrada, coleta
+      arquivada por ocorrência encerrada), onde repetir pode dar certo sem mudar
+      uma vírgula; nesses casos corrigir é a segunda saída, e não a primeira.
+    */
+    const recusaDoDado = item.estado === "bloqueado" && recusaEstaNoDado(item.ultimaFalha);
+    const podeCorrigir = item.tipo === "vistoria" && parada && autoria === "propria";
+    const podeReenviar = parada && !recusaDoDado;
     const podeAssumir = autoria === "sem_autor";
-    const podeDescartar = podeReenviar || autoria !== "propria";
+    const podeDescartar = parada || autoria !== "propria";
     const ocupado = emCurso?.id === item.id;
     /*
       A SAÍDA DA COLETA TRAVADA POR ARQUIVO PERDIDO, e as três condições dela.
@@ -1254,7 +1408,13 @@ export default function TelaDaFila() {
           <Txt variante="corpoP" discreto>{estado.porque}</Txt>
 
           {/* O QUE FAZER. */}
-          {estado.oQueFazer && <OQueFazer passos={estado.oQueFazer} />}
+          {estado.campos && estado.campos.length > 0 && (
+            <CamposRecusados campos={estado.campos} />
+          )}
+
+          {estado.oQueFazer && (
+            <OQueFazer passos={estado.oQueFazer} testID={`o-que-fazer-${item.id}`} />
+          )}
 
           {item.fotos.length > 0 && (
             <Txt variante="legenda" discreto>
@@ -1303,7 +1463,7 @@ export default function TelaDaFila() {
             </View>
           )}
 
-          {(podeReenviar || podeAssumir || podeDescartar) && (
+          {(podeCorrigir || podeReenviar || podeAssumir || podeDescartar) && (
             <>
               <Separador />
               {podeAbrirMao && (
@@ -1332,7 +1492,43 @@ export default function TelaDaFila() {
                   onPress={() => { setAAbrirMao(item); }}
                 />
               )}
+              {podeCorrigir && !recusaDoDado && (
+                /*
+                  Corrigir como SEGUNDA saída, linha inteira, acima da linha em
+                  que "Tentar de novo" continua sendo o principal: a recusa não
+                  foi do dado, então repetir vem primeiro, e editar existe para
+                  quem quer rever o que mandou antes de repetir.
+                */
+                <Botao
+                  titulo="Corrigir a vistoria"
+                  tipo="secundario"
+                  carregando={ocupado && emCurso?.verbo === "corrigir"}
+                  desabilitado={ocupado}
+                  testID={`corrigir-${item.id}`}
+                  descricao={`Corrigir a vistoria do protocolo ${item.protocolo}: ela volta `
+                    + "para a tela de coleta, com tudo preenchido"}
+                  onPress={() => void corrigir(item)}
+                />
+              )}
               <View style={{ flexDirection: "row", gap: espaco.e2 }}>
+                {podeCorrigir && recusaDoDado && (
+                  /*
+                    Realce: é o único ato que resolve uma recusa do dado. Fica
+                    onde "Tentar de novo" ficava, porque é a resposta à mesma
+                    pergunta ("e agora?") com a saída que de fato existe.
+                  */
+                  <Botao
+                    titulo="Corrigir a vistoria"
+                    tipo="realce"
+                    estilo={{ flex: 1 }}
+                    carregando={ocupado && emCurso?.verbo === "corrigir"}
+                    desabilitado={ocupado}
+                    testID={`corrigir-${item.id}`}
+                    descricao={`Corrigir a vistoria do protocolo ${item.protocolo}: ela volta `
+                      + "para a tela de coleta, com tudo preenchido"}
+                    onPress={() => void corrigir(item)}
+                  />
+                )}
                 {podeReenviar && (
                   /*
                     Realce: é o ato que faz a fila ANDAR. "Esta coleta é minha",

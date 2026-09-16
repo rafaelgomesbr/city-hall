@@ -34,6 +34,16 @@ import { CANAL_DESPACHO, SOM_DE_DESPACHO, VIBRACAO_DE_DESPACHO } from "./canais"
  * Servidão Boa Esperança, 148" está a um `${}` de distância.
  */
 
+/**
+ * O carimbo que distingue o aviso que o APLICATIVO pediu do que veio pela
+ * Apple ou pelo Google. Vai no dado, ao lado do resto, e só o tratador de
+ * apresentação o lê (`ProvedorDePush.tsx`): o aviso local é o PRIMEIRO
+ * anúncio de um despacho e toca; o push do mesmo despacho que chegar depois
+ * é o segundo e fica calado. Sem o carimbo o tratador não teria como saber
+ * qual dos dois está na mão dele.
+ */
+export const ORIGEM_LOCAL = "aplicativo";
+
 export type AvisoLocal = {
   /** Vitrine: o que fica legível na tela bloqueada. */
   titulo: string;
@@ -78,6 +88,7 @@ export function montarAvisoLocalDeTarefaNova(detalhe: DetalheDaTarefaNova): Avis
     organizacaoId: detalhe.organizacaoId,
     ocorrenciaId: detalhe.ocorrenciaId,
     ...(detalhe.severidade ? { severidade: detalhe.severidade } : {}),
+    origem: ORIGEM_LOCAL,
   };
 
   const aviso: AvisoLocal = {
@@ -96,7 +107,9 @@ export function montarAvisoLocalDeTarefaNova(detalhe: DetalheDaTarefaNova): Avis
   */
   const visivel = textoVisivel(aviso).toLowerCase();
   for (const [campo, valor] of Object.entries(dados)) {
-    if (campo === "tipo") continue;
+    // `tipo` e `origem` são constantes do próprio aviso, não detalhe de
+    // ninguém: "aplicativo" aparece na vitrine de propósito.
+    if (campo === "tipo" || campo === "origem") continue;
     if (valor.length < 3) continue;
     if (visivel.includes(valor.toLowerCase())) {
       throw new VitrineIndiscreta(

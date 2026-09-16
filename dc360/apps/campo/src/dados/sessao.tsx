@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as SecureStore from "expo-secure-store";
 import { entrar as entrarNaApi, renovar, sair as sairDaApi, type Credenciais, type Identidade } from "./api";
-import { apagarDadosLocais } from "./banco-local";
+import { acolherNoAparelho, apagarDadosLocais, marcarDonoDosDadosLocais } from "./banco-local";
 import { esquecerFicha, fichaGuardada } from "../push/ficha-do-aparelho";
 import { criarObtentorDeToken } from "./token";
 
@@ -29,7 +29,24 @@ type EstadoSessao = {
   carregando: boolean;
   identidade: Identidade | null;
   entrar(email: string, senha: string): Promise<void>;
+  /**
+   * A saída EXPLÍCITA, no fim do turno: derruba a credencial E apaga o dado
+   * local (rascunho, fotos, assinatura, lápides, lista de tarefas). A fila
+   * fica, porque cada item dela carrega o autor.
+   */
   sair(): Promise<void>;
+  /**
+   * A saída pela SESSÃO VENCIDA: derruba a credencial e NÃO apaga nada.
+   *
+   * Existe porque o botão da lista de tarefas ("Sair e entrar de novo", até
+   * 15/09/2026) chamava `sair()`, e `sair()` apaga a vistoria começada: a
+   * pessoa que só precisava entrar de novo perdia rascunho, fotos e assinatura
+   * do morro. Aqui o disco fica como está, com a marca de quem o deixou, e
+   * quem entrar em seguida é conferido contra ela: a mesma pessoa reencontra
+   * tudo; outra pessoa faz o aparelho ser limpo antes de abrir
+   * (`acolherNoAparelho`, em `banco-local.ts`).
+   */
+  encerrarSessaoVencida(): Promise<void>;
   /** Devolve um token de acesso válido, renovando só se estiver perto de vencer. */
   obterToken(): Promise<string | null>;
   /**
@@ -124,6 +141,13 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
         credenciais.current = c;
         identidadeViva.current = i;
         setIdentidade(i);
+        /*
+          A sessão restaurada carimba o dono do dado local. É o que fecha a
+          janela da atualização: um aparelho que já tinha sessão aberta antes
+          desta marca existir nunca passou pelo login desta versão, e sem esta
+          linha a primeira sessão vencida dele deixaria o disco sem dono.
+        */
+        void marcarDonoDosDadosLocais(i.usuarioId);
       }
       setCarregando(false);
     })();
@@ -147,6 +171,13 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
 
   const entrar = useCallback(async (email: string, senha: string) => {
     const r = await entrarNaApi(email.trim().toLowerCase(), senha);
+    /*
+      ANTES de a sessão abrir, o aparelho é conferido contra quem deixou dado
+      nele. A mesma pessoa voltando de uma sessão vencida reencontra a vistoria
+      começada; outra pessoa faz o aparelho ser limpo aqui, e não depois de a
+      tela de tarefas já ter mostrado a lista do turno anterior.
+    */
+    await acolherNoAparelho(r.identidade.usuarioId);
     credenciais.current = r.credenciais;
     identidadeViva.current = r.identidade;
     await Promise.all([
@@ -202,9 +233,36 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
     await esquecerFicha();
   }, []);
 
+  const encerrarSessaoVencida = useCallback(async () => {
+    /*
+      A mesma ordem de `sair()`, menos o apagamento: o dado local fica, com a
+      marca de quem o deixou, e a credencial é esquecida aqui antes de o
+      servidor ser avisado, para a saída não depender de sinal. Avisar o
+      servidor continua valendo pela ficha do push: `/auth/sair` cala a
+      notificação deste aparelho quando a recebe, e a sessão vencida do lado
+      de lá só faz a chamada falhar em silêncio, que é o que `sairDaApi` já
+      engole.
+    */
+    const eu = identidadeViva.current;
+    if (eu) await marcarDonoDosDadosLocais(eu.usuarioId);
+    const atual = credenciais.current;
+    const ficha = await fichaGuardada();
+    credenciais.current = null;
+    identidadeViva.current = null;
+    setIdentidade(null);
+    await Promise.all([
+      guardar(CHAVE_CREDENCIAIS, null),
+      guardar(CHAVE_IDENTIDADE, null),
+    ]);
+    if (atual) await sairDaApi(atual.renovacao, ficha);
+    await esquecerFicha();
+  }, []);
+
   const valor = useMemo<EstadoSessao>(
-    () => ({ carregando, identidade, entrar, sair, obterToken, lerIdentidade }),
-    [carregando, identidade, entrar, sair, obterToken, lerIdentidade],
+    () => ({
+      carregando, identidade, entrar, sair, encerrarSessaoVencida, obterToken, lerIdentidade,
+    }),
+    [carregando, identidade, entrar, sair, encerrarSessaoVencida, obterToken, lerIdentidade],
   );
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;

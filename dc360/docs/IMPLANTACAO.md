@@ -227,7 +227,8 @@ recuperação de senha. Sem elas a partida diz, pelo nome, o que falta.
 
 ```bash
 node scripts/migrar-producao.mjs            # só confere, não aplica
-node scripts/migrar-producao.mjs --aplicar  # só se faltar alguma
+node scripts/copiar-producao.mjs            # a cópia, antes de aplicar (seção 8)
+node scripts/migrar-producao.mjs --aplicar  # só se faltar alguma; recusa sem cópia recente
 ```
 
 **Passo 2. Criar o papel de login** (seção 6.2), com o papel de setup.
@@ -328,6 +329,13 @@ Guarde-os fora do computador. São a única saída do dono no dia em que a senha
 se for junto com o telefone (seção 6.4), e cada operador criado pela tela
 recebe os dele junto com a senha inicial.
 
+Desde 15/09/2026 o console **cobra isso sozinho**, enquanto for verdade: a
+partida escreve uma linha de `warn` no log ("operador X é dono e não tem
+códigos de recuperação; gere em Minha senha", sem segredo nenhum), e a primeira
+tela depois da entrada mostra o mesmo aviso, com o botão que leva a Minha
+senha. Os dois somem no instante em que o lote é gerado. Se o aviso continuar
+aparecendo em `fly logs` depois da primeira semana, ninguém gerou.
+
 **Quem já tem console no ar** (um operador em `CONSOLE_OPERADORES` de antes da
 038) não precisa rodar nada: no primeiro deploy com a 038 a tabela está vazia,
 a linha da variável é importada como dono, com a mesma senha e o mesmo segundo
@@ -406,9 +414,264 @@ rm -f segredos-do-console.env
   novos). O dono nessa situação precisa da credencial de dono do banco para
   corrigir a linha em `console_operadores`, e esse continua sendo o último
   recurso, e o único: por isso o passo 5 manda gerar os códigos na primeira
-  entrada.
+  entrada, e por isso a partida e a tela avisam enquanto o dono não tiver
+  nenhum (passo 5). O aviso não cobre o papel perdido: código gerado e
+  perdido é, para o console, código que existe.
 - **As duas ações perigosas por município (desativar o acesso e eliminar com
   prazo de sete dias) são só do dono**, e o apagamento em si é do relógio da
   API, não do console: o console suspende e agenda, e o que vence sem ser
   cancelado é executado pelo processo da API. Um console fora do ar não atrasa
   nem adianta um apagamento.
+
+---
+
+## 7. Ligar o push
+
+O aviso no telefone do agente (tarefa nova no despacho, prazo vencendo) sai
+direto do servidor para a Apple e para o Google, sem intermediário. O código
+está pronto e coberto por teste com dublês; o que falta é a credencial da
+Apple no Fly. Esta seção é o passo a passo, e depois dele o roteiro de prova,
+porque **a única evidência de que o push funciona é uma notificação aparecendo
+num telefone que está no bolso de outra pessoa**.
+
+O que já está versionado em `fly.toml` e NÃO é segredo: `APNS_AMBIENTE`
+(o padrão de quem registra sem dizer o ambiente) e `APNS_BUNDLE` (o
+identificador do aplicativo, que vira o `apns-topic`). O que é segredo e vai
+por `fly secrets`: `APNS_KEY_ID`, `APNS_TEAM_ID` e `APNS_CHAVE`.
+
+### 7.1 O que pegar no portal da Apple
+
+Em **Certificates, Identifiers & Profiles**, **Keys**, crie uma chave com
+**Apple Push Notifications service (APNs)** marcado. A Apple entrega **uma vez**
+o arquivo `AuthKey_XXXXXXXXXX.p8`; os dez caracteres no nome são o
+`APNS_KEY_ID`. O `APNS_TEAM_ID` está no canto superior direito do portal
+(Membership details).
+
+Essa chave assina notificação para **qualquer** aplicativo do time, e não só
+para este. Quem a obtém escreve na tela bloqueada de um agente de Defesa Civil.
+Ela não entra no repositório, não entra na imagem, não vai por email.
+
+### 7.2 O comando de um passo só
+
+A partir da pasta onde o `.p8` foi salvo:
+
+```bash
+fly secrets set -a defesa-civil \
+  APNS_KEY_ID=XXXXXXXXXX \
+  APNS_TEAM_ID=YYYYYYYYYY \
+  APNS_CHAVE="$(cat AuthKey_XXXXXXXXXX.p8)"
+```
+
+`APNS_CHAVE` é o **conteúdo** do arquivo, com as linhas `BEGIN PRIVATE KEY` e
+`END PRIVATE KEY`, e não o caminho: dentro do contêiner não existe caminho
+nenhum para ele (`apps/campo` está no `.dockerignore`, de propósito). As aspas
+duplas são seguras **aqui**, ao contrário da armadilha da seção 6.1: o PEM é
+base64 entre duas linhas de cabeçalho e não tem `$`, então o shell não expande
+nada. A quebra de linha dentro do valor é preservada pelo `fly secrets set`.
+
+Depois, e só depois, em `fly.toml`, descomente a linha `PUSH_ATIVO = "sim"` e
+faça `fly deploy`. A ordem importa: com `PUSH_ATIVO=sim` e sem as três
+variáveis a partida **cai**, de propósito, e o release anterior continua no
+ar. Se a chave estiver colada pela metade, a partida também cai, com a mensagem
+`A chave de push da Apple (APNS_CHAVE) não é uma chave ES256 válida`, sem citar
+o material. Confira o log com `fly logs -a defesa-civil`: a linha que se quer
+ver é `varredura de avisos ligada: primeira rodada agora, depois a cada
+intervalo e a cada despacho`.
+
+Android fica para depois: sem `FCM_CONTA_SERVICO` o servidor **recusa** registrar
+aparelho Android (503 `push_android_desligado`) em vez de guardar um destino que
+nunca receberia nada. O aplicativo entende essa recusa e fica quieto.
+
+### 7.3 A migração que este passo exige
+
+A coluna `aparelhos.ambiente` (migração 044) precisa estar aplicada antes do
+deploy com `PUSH_ATIVO=sim`; a API recusa subir com esquema atrasado e diz qual
+migração falta. Se já existirem aparelhos registrados de um piloto anterior
+feito com o binário do Xcode, informe o ambiente em que eles estavam ao migrar,
+para as linhas existentes receberem o valor certo:
+
+```bash
+APNS_AMBIENTE=teste node scripts/migrar-producao.mjs --aplicar
+```
+
+Sem a variável, as linhas existentes ficam `producao`. Vale pouco na prática,
+porque o aplicativo registra a ficha de novo a cada abertura, agora dizendo o
+próprio ambiente, e a linha se corrige sozinha na primeira abertura depois do
+deploy.
+
+### 7.4 Roteiro de prova
+
+Precisa de dois telefones, ou de um telefone e a paciência de trocar de conta.
+O agente com o aplicativo instalado, logado, com a permissão de notificação
+concedida (ele viu a folha "Quer ser avisado de tarefa nova?" e tocou em
+"Ligar os avisos"), e **de equipe**: o aviso sai para a equipe despachada.
+
+1. No painel, abra uma ocorrência, faça a triagem e **despache** para a equipe
+   do agente.
+2. O log do servidor mostra `despacho enfileirou o aviso de tarefa nova` com
+   `aparelhos: N`. **Se N for zero**, a equipe não tem aparelho registrado: o
+   agente não está na equipe, não concedeu a permissão, ou entrou antes de o
+   push ser ligado (a rota respondia 503 e o aplicativo ficou quieto; ele tenta
+   de novo na primeira volta do segundo plano depois de cinco minutos, ou
+   feche e abra o aplicativo).
+3. Segundos depois (o despacho acorda o varredor; não espera mais o relógio de
+   cinco minutos), o telefone toca com o som de despacho e a vitrine "Nova
+   tarefa". Tocar abre a vistoria.
+4. `GET /saude` mostra `push.entregues` maior que zero. Com o push desligado
+   `push` é `null`; ligado e sem rodada ainda, `rodadaEm` é `null`.
+
+Se o telefone não tocar, a resposta está em um de dois lugares: a coluna
+`detalhe` de `notificacoes_enviadas` (o suporte lê pelo id da linha) e o log do
+varredor (`varredura de avisos terminou com falha de envio`, com os motivos
+agregados e sem ficha). O que cada motivo significa:
+
+| O que aparece | O que é | O que fazer |
+| --- | --- | --- |
+| `apns 400 BadDeviceToken` | A ficha é de um ambiente e o servidor falou com o outro. O varredor **revogou** o aparelho. | O aplicativo diz o ambiente no registro (migração 044). Se aparecer, o binário instalado é anterior ao campo: abra o aplicativo de novo depois de atualizar, ou ajuste `APNS_AMBIENTE` para o binário em uso (`teste` para Xcode, `producao` para TestFlight e loja). |
+| `apns 403 InvalidProviderToken` | `APNS_KEY_ID`, `APNS_TEAM_ID` ou `APNS_CHAVE` não casam entre si. | Confira os três no portal. A chave pode ter sido revogada lá. |
+| `apns 400 TopicDisallowed` ou `MissingTopic` | `APNS_BUNDLE` não é o bundle do aplicativo, ou a chave não tem APNs habilitado. | `APNS_BUNDLE` precisa ser `com.solerte.dc360.campo` (`ios.bundleIdentifier` em `apps/campo/app.config.ts`). |
+| `apns 410 Unregistered` | O aplicativo foi desinstalado deste telefone. O aparelho foi revogado, e é isso mesmo. | Nada. Reinstalar registra ficha nova. |
+| Linha `pendente` para sempre, sem `detalhe` | A rodada não reivindicou a linha: o usuário saiu da equipe, foi desativado, a equipe perdeu a tarefa ou a ocorrência encerrou antes da rodada. | Confira a equipe do agente e da ocorrência. A regra está na migração 042. |
+| `entregue` e nada na tela | A Apple aceitou. Ou a permissão foi retirada nos ajustes do telefone, ou o aparelho está logado em **outro município** e descartou o aviso em silêncio (a terceira barreira, `apps/campo/src/push/aviso.ts`). | "Minha conta" no aplicativo mostra o estado da permissão. Confira em qual prefeitura o agente está logado. |
+| `provedor de ios (teste) nao esta configurado` | Não acontece em produção: os dois provedores da Apple sobem juntos. Se aparecer, é servidor montado à mão com um provedor só. | Ver `apps/api/src/index.ts`. |
+| `a APNs nao respondeu no tempo limite` | Rede entre o Fly e a Apple. | A linha volta a ser tentada depois de dez minutos, até cinco vezes. Se persistir, é rede. |
+
+### 7.5 O que fica declarado como NÃO coberto
+
+- **O binário do Xcode e o do TestFlight convivem, mas o de `homologacao` em
+  `eas.json` é `distribution: internal` (ad hoc)**, e o `aps-environment` que o
+  `app.config.ts` escreve para ele é `development`, pela regra "só o perfil
+  `producao` é produção". Se a Apple assinar esse build com perfil ad hoc de
+  produção, a ficha será de produção e o aplicativo dirá `teste`. Ninguém
+  distribui por `homologacao` hoje; no dia em que distribuir, a regra do
+  `PERFIL_DE_PRODUCAO` em `app.config.ts` precisa incluir esse perfil.
+- **`/saude` mostra a última rodada DESTA máquina.** Com mais de uma máquina no
+  Fly, cada uma responde pelo que ela fez; a que nunca ganha a trava mostra
+  `rodadaEm: null`. Hoje `min_machines_running = 1`.
+- **A redespacho para a MESMA equipe não avisa de novo**, em canal nenhum: nem
+  push (unicidade da migração 042), nem o aviso local do aplicativo aberto
+  (alinhado em 15/09/2026, `apps/campo/src/dados/pendencias.ts`). A tarefa
+  continua na lista, e o agente a vê ao abrir.
+
+---
+
+## 8. Migrar a produção, na ordem que não perde dado
+
+Vale para toda migração de banco depois do primeiro município no ar, e vale
+para a API e para o console, porque os dois recusam subir com esquema atrasado.
+Tudo a partir de `dc360/`, com a senha do banco no chaveiro do Mac (a mensagem
+de ajuda de `scripts/migrar-producao.mjs` ensina a guardar).
+
+### 8.1 A regra que vem antes do comando: só migração aditiva ou compatível
+
+A API que está no ar continua atendendo enquanto a migração roda e por alguns
+minutos depois, até o deploy seguinte. Uma migração que renomeia coluna, apaga
+coluna, muda tipo ou aperta uma restrição que a versão no ar ainda escreve faz
+a API de hoje falhar contra o banco de amanhã, no meio de um atendimento, e o
+deploy que a consertaria ainda não subiu.
+
+Então **migração em produção é aditiva ou compatível com a versão que está no
+ar**: coluna nova (nula ou com padrão), tabela nova, função nova, policy nova,
+índice novo. O que não cabe nessa lista se faz em duas entregas: primeiro a
+migração que acrescenta e a API que passa a escrever nos dois lugares, depois,
+com a versão nova no ar, a migração que tira o velho. O aplicador
+(`db/src/migrar.ts`) roda cada arquivo na própria transação e recusa histórico
+reescrito, mas não tem como saber o que a API de ontem ainda usa: isso é
+leitura de gente, na revisão da migração.
+
+### 8.2 O roteiro
+
+**Passo 1. Conferir o que falta**, sem escrever nada:
+
+```bash
+node scripts/migrar-producao.mjs
+```
+
+**Passo 2. Tirar a cópia.** Desde 15/09/2026 o passo 3 **recusa** sem uma cópia
+feita nos últimos trinta minutos, porque o único restore testado deste projeto
+(`docs/COLOCAR-DE-PE.md`, Parte 6) foi sobre uma cópia tirada antes, e migração
+irreversível sem cópia é aposta.
+
+```bash
+node scripts/copiar-producao.mjs --conferir   # diz o que falta na máquina, sem tocar no banco
+node scripts/copiar-producao.mjs              # tira a cópia
+```
+
+O que o roteiro faz, e o que ele cobra:
+
+- precisa de `pg_dump` da mesma versão maior do servidor ou mais novo (o
+  servidor é 17.x). Sem ele, a saída diz o que instalar (`brew install libpq` e
+  o `PATH`); com um mais velho, recusa. A versão do servidor é lida antes de
+  pedir o dump, e o cliente é conferido contra ela;
+- grava em `~/dc360-copias/<data>.dump`, com permissão 0600, no formato do
+  restore testado (`pg_dump --format=custom --schema=public`, que volta com
+  `pg_restore --exit-on-error`);
+- **recusa** gravar dentro do repositório, em pasta sincronizada com nuvem de
+  arquivos (iCloud, Dropbox, Google Drive, OneDrive) e na Área de Trabalho. O
+  dump traz dado real de cidadão: endereço, coordenada, nome e contato do
+  solicitante, descrição de vulnerabilidade. Ele **nunca** entra em pasta
+  versionada (viraria histórico de git para sempre) nem em nuvem de arquivos
+  (a máquina de quem opera não é subprocessador, e passaria a ser).
+
+**Passo 3. Aplicar**, dentro dos trinta minutos:
+
+```bash
+node scripts/migrar-producao.mjs --aplicar
+```
+
+A conclusão nomeia a cópia usada como ponto de volta e a idade dela. Sem cópia
+recente o comando para antes de ler a senha, com a mensagem que ensina o passo
+2. A saída de escape é `--sem-copia` escrito à mão junto de `--aplicar`: ela
+existe para o dia em que a máquina não tem `pg_dump` e a migração não pode
+esperar, e **fica registrada na conclusão** ("CÓPIA PULADA por --sem-copia").
+Quem pula, pula por decisão, e a decisão vai para o relatório.
+
+**Passo 4. Endurecer o Supabase, de novo.** Este passo é explícito porque é
+idempotente e porque **toda tabela nova nasce concedida** aos papéis do
+provedor (`anon`, `authenticated`, `service_role`, este último com BYPASSRLS)
+pelo privilégio padrão do schema `public`. Uma migração que cria tabela reabre
+o que o endurecimento anterior fechou, e nada quebra para avisar. O arquivo
+`db/provedores/supabase-endurecer.sql` revoga tudo isso, inclusive o privilégio
+padrão, e pode rodar quantas vezes for preciso:
+
+```bash
+CA="$(pwd)/db/provedores/supabase-prod-ca-2021.crt"
+psql "postgresql://postgres.bppklrxxwjshxvkvwirw:SENHA@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full&sslrootcert=${CA}" \
+  -v ON_ERROR_STOP=1 -f db/provedores/supabase-endurecer.sql
+```
+
+(com a senha do chaveiro: `security find-generic-password -a dc360 -s senha-do-banco-dc360 -w`,
+e nunca colada no histórico). O que confere que deu certo é esta consulta
+voltar **vazia**:
+
+```sql
+SELECT grantee, table_name
+  FROM information_schema.role_table_grants
+ WHERE table_schema = 'public'
+   AND grantee IN ('anon', 'authenticated', 'service_role');
+```
+
+Uma linha que seja é uma porta de entrada que o produto não projetou. O próprio
+arquivo imprime, no fim, a contagem por papel e a confirmação de que
+`dc360_app` continua enxergando o que precisa.
+
+**Passo 5. Reimplantar a API** (`fly deploy -a defesa-civil`, de `dc360/`) e,
+se a migração for uma que o console lê (`apps/console/src/esquema.ts`), o
+console (`fly deploy -c fly.console.toml`). Só depois empurrar para o GitHub: a
+Vercel publica o painel sozinha a cada push, e o painel novo não pode chegar
+antes da API nova.
+
+**Passo 6. Apagar a cópia** quando a migração tiver sido conferida no ar
+(`rm ~/dc360-copias/<data>.dump`). Cópia velha é dado pessoal sem finalidade.
+
+### 8.3 O que fica declarado como NÃO coberto
+
+- **A cópia não é testada por restore a cada migração.** O roteiro grava e
+  confere que o `pg_dump` saiu com zero; ele não sobe um cluster descartável
+  para restaurar. O procedimento de restore continua sendo o da Parte 6 do
+  `COLOCAR-DE-PE.md`, e a periodicidade dele continua por definir
+  (`docs/INDISPONIBILIDADE.md`, 3.4).
+- **O endurecimento não roda sozinho depois da migração.** Ele é um passo do
+  roteiro, e roteiro se pula; o que não deixa passar despercebido é a consulta
+  do passo 4, que a pessoa precisa rodar. Automatizar exige a credencial de
+  dono dentro de um processo, que é o que a ADR 0008 recusa.

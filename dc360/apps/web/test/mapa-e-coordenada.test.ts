@@ -374,7 +374,7 @@ describe("O modo sem chave existe, funciona e é dito na tela", () => {
       + "é lido como produto quebrado, e produto quebrado é desligado",
     ).toContain("sem chave do Google");
     expect(semChave).toContain("nenhuma coordenada de ocorrência sai deste navegador");
-    expect(semChave, "a razão precisa levar a quem decide").toContain("SUBPROCESSADORES");
+    expect(semChave, "a razão precisa levar a quem decide").toMatch(/documento de subprocessadores/i);
 
     const comChave = renderToStaticMarkup(createElement(ModoDoMapaDito, { modo: "google" }));
     expect(
@@ -383,6 +383,20 @@ describe("O modo sem chave existe, funciona e é dito na tela", () => {
       + "município assinou saber",
     ).toContain("enviada ao Google");
     expect(comChave, "e que cada carregamento é cobrado").toContain("cobrado");
+
+    /*
+      Sem jargão de repositório (revisão de 15/09/2026): a legenda mandava o
+      coordenador "configurar MAPS_KEY no servidor dele e aceitar o envio
+      descrito em docs/SUBPROCESSADORES.md, seção 2.2". Variável de ambiente e
+      caminho de arquivo são instrução para quem instala; quem lê a legenda
+      pede ao suporte, e o documento é citado pelo nome que ele tem no
+      contrato.
+    */
+    for (const html of [semChave, comChave]) {
+      expect(html, "nome de variável de ambiente na tela").not.toMatch(/MAPS_KEY/);
+      expect(html, "caminho de arquivo do repositório na tela").not.toMatch(/docs\/|\.md\b/);
+    }
+    expect(semChave, "a legenda diz a quem pedir").toMatch(/peça ao suporte/i);
 
     expect(semChave, "os dois modos estão dizendo a mesma coisa").not.toBe(comChave);
   });

@@ -312,6 +312,28 @@ export async function rotasAdministracao(
         }
         exigirPostoParaGerir(quem.papel, alvo.papel);
 
+        /*
+          TROCAR O EMAIL DE OUTRA CONTA É ATO DO ADMINISTRADOR, mesmo sobre
+          conta de posto inferior. O email é a identidade de login, e trocá-lo
+          é o primeiro passo da tomada de conta (trocar, pedir recuperação,
+          entrar como a pessoa, devolver). O coordenador corrige nome,
+          matrícula, papel e equipe de quem está abaixo dele; a identidade de
+          login de terceiro fica com o teto do município. Comparação sem caixa,
+          porque o esquema já baixa o email e o cadastro pode ter sido gravado
+          de outra forma: mandar o mesmo email de volta não é troca.
+        */
+        if (
+          quem.papel !== "administrador"
+          && dados.email.trim().toLowerCase() !== alvo.email.trim().toLowerCase()
+        ) {
+          throw new RegraDeNegocio(
+            "email_so_por_administrador",
+            "Trocar o email de outra pessoa é ato de quem administra o município. "
+            + "Peça ao administrador.",
+            403,
+          );
+        }
+
         // Rebaixar o último administrador tranca o município igual a desativar.
         if (alvo.papel === "administrador" && alvo.ativo && dados.papel !== "administrador") {
           const restantes = await c.query<{ quantos: string }>(
@@ -395,15 +417,12 @@ export async function rotasAdministracao(
    * em lugar nenhum em claro (o banco guarda só o hash scrypt) e a resposta sai
    * com `no-store` pelo hook global.
    *
-   * O QUE FICOU FALTANDO, e é honesto dizer: a senha temporária deveria valer
-   * UMA VEZ e obrigar a troca no primeiro acesso. Não dá para marcar isso hoje:
-   * `usuarios` não tem coluna para "precisa trocar a senha" (ver migração 002),
-   * e inventar coluna às pressas dentro desta frente, com outras migrações em
-   * voo, é como se cria conflito de numeração e tabela sem RLS. Enquanto a
-   * coluna não existir, a senha temporária é uma senha comum: quem recebe é
-   * ORIENTADO a trocar em Minha conta, e nada o obriga. A pendência é uma
-   * migração com `usuarios.trocar_senha_no_proximo_acesso boolean NOT NULL
-   * DEFAULT false`, ligada aqui e conferida no login.
+   * A SENHA TEMPORÁRIA É PROVISÓRIA (migração 046), desde 15/09/2026: vale
+   * 72 horas para entrar, e a sessão que nasce dela só alcança a troca de
+   * senha (`troca_de_senha_obrigatoria` em todo o resto). Trocada, deixa de
+   * ser provisória por gatilho do banco. Vencida sem troca, não entra mais, e
+   * quem administra sorteia outra por esta mesma rota. Antes disso ela era
+   * uma senha comum, ditada por telefone e válida para sempre.
    *
    * QUEM NÃO PODE: a própria pessoa. Para trocar a própria senha existe
    * `/auth/trocar-senha`, que exige a senha atual. Se esta rota aceitasse o
@@ -456,9 +475,16 @@ export async function rotasAdministracao(
       */
       exigirPostoParaGerir(quem.papel, alvo.papel);
 
+      /*
+        O prazo de 72 horas entra no MESMO UPDATE que o hash: o gatilho da
+        migração 046 zera `senha_provisoria_ate` em toda troca de hash que
+        não carimbe um prazo junto, e é assim que a senha escolhida pela
+        pessoa deixa de ser provisória sem esta rota precisar saber.
+      */
       await c.query(
         `UPDATE usuarios
-            SET senha_hash = $2, falhas_login = 0, bloqueado_ate = NULL
+            SET senha_hash = $2, falhas_login = 0, bloqueado_ate = NULL,
+                senha_provisoria_ate = now() + interval '72 hours'
           WHERE id = $1`,
         [id, hash],
       );
@@ -496,8 +522,8 @@ export async function rotasAdministracao(
       sessoesEncerradas: efeito.encerradas,
       mensagem:
         `Senha temporária de ${efeito.nome}. Ela aparece uma única vez: ` +
-        "entregue em mãos ou dite por telefone, e peça a troca em Minha conta " +
-        "na primeira entrada." +
+        "entregue em mãos ou dite por telefone. Vale 72 horas para entrar, e a " +
+        "primeira entrada exige definir uma senha nova antes de qualquer tela." +
         (efeito.ativo
           ? ""
           : " Atenção: esta conta está desativada e não entra enquanto assim estiver."),

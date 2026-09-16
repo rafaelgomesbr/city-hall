@@ -1,8 +1,9 @@
-import { Navigate, Route, Routes } from "react-router-dom";
-import { podeExecutar, type Acao, type Papel } from "@dc360/shared";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { podeExecutar, type Acao } from "@dc360/shared";
 import { Estrutura } from "./componentes/Estrutura";
 import { useSessao, useTema } from "./estado/sessao";
 import { Entrar } from "./paginas/Entrar";
+import { destinoDepoisDeEntrar, telaInicial } from "./paginas/entrar-regras";
 import { DefinirNovaSenha, RecuperarSenha } from "./paginas/RecuperarSenha";
 import { Equipes } from "./paginas/Equipes";
 import { Mapa } from "./paginas/Mapa";
@@ -19,15 +20,34 @@ import { QuemEstaEmCampo } from "./paginas/QuemEstaEmCampo";
 import { MinhaConta } from "./paginas/MinhaConta";
 import { TrocaDeTela } from "./componentes/TrocaDeTela";
 import { QueroConhecer } from "./paginas/QueroConhecer";
+import { NaoEncontrada } from "./paginas/NaoEncontrada";
 
 /**
  * Rotas privadas ficam todas atrás da mesma checagem. Isso é conveniência de
  * navegação, não segurança: a barreira que importa é a policy de RLS no
  * banco, que nega mesmo se a rota for aberta na mão pela URL.
+ *
+ * O caminho de onde a pessoa veio vai junto para a entrada, e por dois
+ * motivos que eram dois defeitos: o link profundo (`/ocorrencias/<id>` sem
+ * sessão) morria no painel depois do login, e a sessão expirada no meio de
+ * uma tela derrubava a pessoa sem dizer por quê e sem trazê-la de volta. O
+ * motivo vem do provedor de sessão; o caminho, daqui. A tela de entrada lê
+ * os dois de `location.state` (ver `paginas/entrar-regras.ts`).
  */
 function Protegida({ children }: { children: JSX.Element }) {
-  const { sessao } = useSessao();
-  return sessao ? children : <Navigate to="/entrar" replace />;
+  const { sessao, motivoDaSaida } = useSessao();
+  const location = useLocation();
+  if (sessao) return children;
+  return (
+    <Navigate
+      to="/entrar"
+      replace
+      state={{
+        motivo: motivoDaSaida,
+        voltarPara: `${location.pathname}${location.search}${location.hash}`,
+      }}
+    />
+  );
 }
 
 /**
@@ -51,22 +71,23 @@ function Exige({ acao, children }: { acao: Acao; children: JSX.Element }) {
   );
 }
 
-/**
- * Onde cada papel cai ao entrar.
- *
- * O agente de campo não tem uma ação sequer no painel do coordenador: ele não
- * tria, não despacha, não encaminha e não encerra. Mandá-lo para lá era
- * mostrar a fila do município inteiro para quem só precisa saber o que é da
- * equipe dele hoje.
- */
-function telaInicial(papel: Papel | undefined): string {
-  if (!papel) return "/entrar";
-  return podeExecutar(papel, "registrar_vistoria") ? "/meu-trabalho" : "/painel";
-}
-
 export function App() {
   const { sessao } = useSessao();
+  const location = useLocation();
+  // Onde cada papel cai ao entrar: a regra mora em `paginas/entrar-regras.ts`,
+  // e a tela de entrada usa a mesma, para os dois não divergirem.
   const inicio = telaInicial(sessao?.papel);
+  /*
+    `/entrar` com sessão redireciona para o MESMO lugar que a tela de entrada
+    escolheria: o caminho de volta guardado no estado, ou a tela do papel. A
+    tela navega sozinha ao entrar, mas a navegação e a sessão nova podem
+    chegar em renderizações diferentes, e se este redirecionamento apontasse
+    para outro lugar ele ganharia a corrida e o link profundo morreria no
+    painel de novo.
+  */
+  const depoisDeEntrar = sessao
+    ? destinoDepoisDeEntrar(location.state as { voltarPara?: unknown } | null, sessao.papel)
+    : inicio;
 
   // O tema é aplicado aqui, e não dentro da estrutura autenticada: antes, a
   // tela de entrada nunca recebia `data-theme`, então abria clara mesmo com o
@@ -80,7 +101,7 @@ export function App() {
           usa leitor de tela navega em silêncio absoluto. */}
       <TrocaDeTela />
     <Routes>
-      <Route path="/entrar" element={sessao ? <Navigate to={inicio} replace /> : <Entrar />} />
+      <Route path="/entrar" element={sessao ? <Navigate to={depoisDeEntrar} replace /> : <Entrar />} />
       <Route path="/recuperar-senha" element={<RecuperarSenha />} />
       {/* Pública, e alcançável mesmo com sessão ativa: quem já usa pode
           querer indicar o sistema para o município vizinho. */}
@@ -113,9 +134,14 @@ export function App() {
         <Route path="/orgaos" element={<Exige acao="gerenciar_equipes"><Orgaos /></Exige>} />
         <Route path="/usuarios" element={<Exige acao="gerenciar_usuarios"><Usuarios /></Exige>} />
         <Route path="/auditoria" element={<Exige acao="consultar_trilha"><Auditoria /></Exige>} />
+        {/*
+          Endereço desconhecido é dito, e não redirecionado em silêncio: quem
+          abriu um link errado precisa saber que o link estava errado. Fica
+          dentro da proteção para que, sem sessão, o caminho continue sendo
+          a tela de entrada, sem confirmar a quem não entrou o que existe.
+        */}
+        <Route path="*" element={<NaoEncontrada voltarPara={inicio} rotuloDoVoltar="Voltar ao início" />} />
       </Route>
-
-      <Route path="*" element={<Navigate to={inicio} replace />} />
     </Routes>
     </>
   );

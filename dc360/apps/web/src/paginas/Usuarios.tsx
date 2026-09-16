@@ -8,12 +8,16 @@ import {
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
-  Aviso, AvisoDeObrigatorios, Carregando, Cartao, Vazio, iniciais,
+  DICA_DO_EMAIL_TRAVADO, motivoParaNaoAdministrar, podeTrocarEmail,
+} from "./usuarios-regras";
+import {
+  Aviso, AvisoDeObrigatorios, Carregando, Cartao, TabelaEnvolucro, Vazio, iniciais,
 } from "../componentes/comuns";
 import { Campo } from "../componentes/Campo";
 import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
 import { IconeMais } from "../componentes/Icones";
 import { useTitulo } from "../seo/titulo";
+import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
 
 /**
  * Usuários do município.
@@ -63,6 +67,7 @@ export function Usuarios() {
 
   async function submeter(evento: React.FormEvent) {
     evento.preventDefault();
+    const formulario = evento.currentTarget as HTMLFormElement;
 
     /*
       Validação pelo mesmo schema que o servidor usa, e o erro vai para o
@@ -96,6 +101,7 @@ export function Usuarios() {
       }
       setErrosDeCampo(porCampo);
       setErro(null);
+      depoisDePintar(() => focarPrimeiroInvalido(formulario));
       return;
     }
 
@@ -190,9 +196,19 @@ export function Usuarios() {
                 </Campo>
               </div>
               <div className="linha-campos">
-                <Campo id="usuario-email" rotulo="Email funcional" erro={errosDeCampo["email"]}>
+                <Campo id="usuario-email" rotulo="Email funcional" erro={errosDeCampo["email"]}
+                       dica={podeTrocarEmail(sessao.papel, editando !== null)
+                         ? undefined : DICA_DO_EMAIL_TRAVADO}>
                   {(campo) => (
                     <input {...campo} type="email" value={email}
+                           /*
+                             Ao corrigir, só o administrador troca o email de
+                             outra pessoa: é a identidade de login, e a API
+                             recusa (`email_so_por_administrador`). O campo
+                             continua visível, travado, com a dica dizendo a
+                             quem pedir. Ver `usuarios-regras.ts`.
+                           */
+                           disabled={!podeTrocarEmail(sessao.papel, editando !== null)}
                            onChange={(e) => setEmail(e.target.value)} />
                   )}
                 </Campo>
@@ -257,7 +273,46 @@ export function Usuarios() {
               </div>
             </form>
           </Cartao>
+        </div>
 
+        <div className="coluna">
+          <Cartao titulo="O que cada papel pode fazer">
+            <dl className="lista-papeis">
+              <dt className="par__rotulo">Operador de plantão</dt>
+              <dd className="par__valor lista-papeis__descricao">
+                Registra chamado e consulta. Não classifica, não despacha, não encerra.
+              </dd>
+              <dt className="par__rotulo">Coordenador</dt>
+              <dd className="par__valor lista-papeis__descricao">
+                Faz triagem, despacha equipe, encaminha providência e encerra com motivo.
+              </dd>
+              <dt className="par__rotulo">Agente de campo</dt>
+              <dd className="par__valor lista-papeis__descricao">
+                Recebe a ocorrência no aplicativo, coleta a vistoria e assina. Trabalha offline.
+              </dd>
+              <dt className="par__rotulo">Administrador da organização</dt>
+              <dd className="par__valor lista-papeis__descricao lista-papeis__descricao--ultima">
+                Gerencia equipes e usuários do próprio município, e mais nada de outro município.
+              </dd>
+            </dl>
+          </Cartao>
+
+          <Cartao titulo="Por que não existe excluir">
+            <p style={{ margin: 0, fontSize: "var(--ds-fs-body-sm)", lineHeight: "var(--ds-lh-body-sm)" }}>
+              Usuário assina laudo e aparece na trilha de auditoria. Desativar tira o acesso e
+              some das listas; apagar deixaria registros oficiais sem autor identificado.
+            </p>
+          </Cartao>
+        </div>
+
+        {/*
+          A lista ocupa a largura toda da grade, e não a coluna estreita: com
+          seis colunas (pessoa, matrícula, papel, equipe, situação, ação) ela
+          precisava de 854px, o cartão tinha 569 a 771 entre 1280 e 1680px de
+          tela, e a barra de rolagem do macOS some quando ninguém rola.
+          Equipe, Situação e os botões simplesmente não apareciam.
+        */}
+        <div className="detalhe__larga">
           <Cartao titulo="Usuários do município">
             {usuarios && usuarios.length === 0 ? (
               <Vazio titulo="Nenhum usuário cadastrado">
@@ -265,7 +320,7 @@ export function Usuarios() {
                   registrar chamado, ir a campo e assinar laudo.</p>
               </Vazio>
             ) : (
-              <div className="tabela-envolucro">
+              <TabelaEnvolucro>
                 <table className="tabela">
                   <thead>
                     <tr>
@@ -300,7 +355,17 @@ export function Usuarios() {
                           </span>
                         </td>
                         <td>
+                          {/*
+                            Os dois botões seguem o POSTO (ADR 0006): o
+                            coordenador administra quem está abaixo dele, e só o
+                            administrador administra o próprio posto. A API
+                            recusa com 403 de qualquer jeito; aqui o botão fica
+                            travado com o motivo no `title`, em vez de oferecer
+                            o que vai ser negado. Ver `usuarios-regras.ts`.
+                          */}
                           <button type="button" className="botao botao--discreto"
+                                  disabled={motivoParaNaoAdministrar(sessao.papel, u) !== null}
+                                  title={motivoParaNaoAdministrar(sessao.papel, u) ?? undefined}
                                   onClick={() => editar(u)}>
                             Corrigir
                           </button>
@@ -311,10 +376,11 @@ export function Usuarios() {
                             e a pergunta que importa perderia o efeito.
                           */}
                           <button type="button" className="botao botao--discreto"
-                                  disabled={u.id === sessao.usuarioId}
+                                  disabled={u.id === sessao.usuarioId
+                                    || motivoParaNaoAdministrar(sessao.papel, u) !== null}
                                   title={u.id === sessao.usuarioId
                                     ? "Você não pode desativar a própria conta"
-                                    : undefined}
+                                    : motivoParaNaoAdministrar(sessao.papel, u) ?? undefined}
                                   onClick={() => {
                                     if (u.ativo) setADesativar(u);
                                     else void alternarAtivo(u);
@@ -326,38 +392,8 @@ export function Usuarios() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TabelaEnvolucro>
             )}
-          </Cartao>
-        </div>
-
-        <div className="coluna">
-          <Cartao titulo="O que cada papel pode fazer">
-            <dl className="lista-papeis">
-              <dt className="par__rotulo">Operador de plantão</dt>
-              <dd className="par__valor lista-papeis__descricao">
-                Registra chamado e consulta. Não classifica, não despacha, não encerra.
-              </dd>
-              <dt className="par__rotulo">Coordenador</dt>
-              <dd className="par__valor lista-papeis__descricao">
-                Faz triagem, despacha equipe, encaminha providência e encerra com motivo.
-              </dd>
-              <dt className="par__rotulo">Agente de campo</dt>
-              <dd className="par__valor lista-papeis__descricao">
-                Recebe a ocorrência no aplicativo, coleta a vistoria e assina. Trabalha offline.
-              </dd>
-              <dt className="par__rotulo">Administrador da organização</dt>
-              <dd className="par__valor lista-papeis__descricao lista-papeis__descricao--ultima">
-                Gerencia equipes e usuários do próprio município, e mais nada de outro município.
-              </dd>
-            </dl>
-          </Cartao>
-
-          <Cartao titulo="Por que não existe excluir">
-            <p style={{ margin: 0, fontSize: "var(--ds-fs-body-sm)", lineHeight: "var(--ds-lh-body-sm)" }}>
-              Usuário assina laudo e aparece na trilha de auditoria. Desativar tira o acesso e
-              some das listas; apagar deixaria registros oficiais sem autor identificado.
-            </p>
           </Cartao>
         </div>
       </div>

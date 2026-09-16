@@ -10,6 +10,7 @@ import {
   ErroDaApi, abrirOcorrencia, possiveisDuplicidades, type LinhaOcorrencia,
 } from "../dados/repositorio";
 import { lerLocalizacaoColada } from "./coordenada-colada";
+import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
 import { origemDoPonto, textoDoPontoDescoberto } from "./link-encurtado";
 import { descricaoDoTipoNaAbertura } from "./ocorrencia-regras";
 import { useSessaoObrigatoria } from "../estado/sessao";
@@ -125,6 +126,7 @@ export function NovaOcorrencia() {
 
   async function verificar(evento: React.FormEvent) {
     evento.preventDefault();
+    const formulario = evento.currentTarget as HTMLFormElement;
     const resultado = aberturaOcorrenciaSchema.safeParse(montar());
     if (!resultado.success) {
       const mapa: Record<string, string> = {};
@@ -134,6 +136,9 @@ export function NovaOcorrencia() {
       }
       setErros(mapa);
       setDuplicidades(null);
+      // O foco vai ao primeiro campo recusado, e não fica no botão de enviar
+      // com o erro dois campos acima, fora da vista de quem usa teclado.
+      depoisDePintar(() => focarPrimeiroInvalido(formulario));
       return;
     }
     setErros({});
@@ -377,7 +382,7 @@ export function NovaOcorrencia() {
                   <input {...campo} type="tel" inputMode="tel" autoComplete="tel"
                          value={contato}
                          onChange={(e) => setContato(mascararTelefone(e.target.value))}
-                         placeholder="(48) 9 9999-0000" />
+                         placeholder="(DDD) 9 0000-0000" />
                 )}
               </Campo>
             </div>

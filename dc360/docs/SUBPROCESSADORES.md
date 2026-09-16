@@ -30,11 +30,21 @@ Estado em 09/09/2026, com o produto no piloto de Florianópolis.
 | **Apple (Mapas) e Google (Maps), por entrega** | O botão "Navegar até lá" abre a rota no aplicativo de mapas do próprio aparelho | Coordenada do imóvel, uma vez, no toque do agente. Ver a seção 2.4 | Estados Unidos |
 | **Google (encurtador `maps.app.goo.gl` e Maps), por link** | Descobrir o ponto de um link curto do Google Maps, quando o coordenador toca em "Descobrir o ponto" | O link, uma vez por toque, enviado pelo servidor do município; volta a coordenada. O servidor não guarda o link. Ver a seção 2.2 | Estados Unidos |
 
+**O que NÃO está nesta lista, e por que isso precisou ser dito.** Até
+15/09/2026 o painel do coordenador carregava as fontes Work Sans e Roboto Mono
+de `fonts.googleapis.com`: cada abertura do painel mandava ao Google, fora do
+país, o endereço IP, o agente do navegador e a página de quem estava usando, e
+a linha da Vercel acima dizia que nenhum dado sai do painel estático. Era um
+destino ausente desta lista. Desde essa data o painel serve as fontes de si
+mesmo (`apps/web/public/fontes/`, com a licença ao lado), como o console do
+fornecedor já fazia, e o portão `apps/web/test/design-system.test.ts` reprova
+qualquer fonte vinda de rede. A linha da Vercel voltou a ser verdadeira.
+
 ### Ainda não contratados, e que entram nesta lista quando entrarem
 
 | Empresa | Para quê | Quando |
 | --- | --- | --- |
-| `[[provedor de email]]` | Recuperação de senha e ofício com endereço de uso único | Turno T9 |
+| **Resend** (escolhido, ainda não ligado) | Recuperação de senha e ofício com endereço de uso único. O cliente já fala o contrato publicado dele (`docs/LIGAR-O-EMAIL.md`), e o processo sobe com `EMAIL_ATIVO=nao` | Quando `EMAIL_ATIVO=sim` entrar em produção. Nesse dia esta linha sobe para a tabela nominal, com o que ele alcança (endereço de email do servidor público e o texto do ofício) e onde ficam os servidores |
 
 ---
 

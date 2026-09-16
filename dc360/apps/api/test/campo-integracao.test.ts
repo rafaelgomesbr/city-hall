@@ -113,6 +113,15 @@ async function prepararOcorrenciaEmCampo(
     payload: { equipeId: EQUIPE_ALFA, prazoHoras: 24 },
   });
   if (despacho.statusCode !== 200) throw new Error(`despacho falhou: ${despacho.body}`);
+  /*
+    O chamado nasce com um dia de idade. A coleta desta suíte é datada de
+    antes do envio, para o laudo ter as duas marcas de tempo, e a rota recusa
+    coleta anterior à abertura do chamado (`data_implausivel`): a vistoria não
+    pode ter acontecido antes de o chamado existir.
+  */
+  await mem.bruto.query(
+    "UPDATE ocorrencias SET criado_em = now() - interval '1 day' WHERE id = $1", [id],
+  );
 
   return { id, protocolo };
 }
@@ -243,14 +252,17 @@ describe("Fila de campo contra a API", () => {
     );
     expect(laudos.rows[0]!.n).toBe("1");
 
+    // Pela chave de idempotência, que é o que o evento carrega desde que o
+    // nome do assinante saiu do detalhe (nome de pessoa não entra em registro
+    // append-only).
     const eventos = await mem.bruto.query<{ n: string }>(
       `SELECT count(*)::text AS n FROM trilha_eventos
         WHERE ocorrencia_id = $1 AND tipo = 'vistoria'
-          AND detalhe->>'assinante' = 'Marilda Souza Prado'`,
-      [alvo.id],
+          AND detalhe->>'idempotencyKey' = $2`,
+      [alvo.id, chave],
     );
     // A trilha também não pode ganhar dez eventos de vistoria.
-    expect(Number(eventos.rows[0]!.n)).toBeLessThanOrEqual(2);
+    expect(Number(eventos.rows[0]!.n)).toBe(1);
   }, 120_000);
 
   it("as fotos entram com a chave de storage prefixada pelo município", async () => {

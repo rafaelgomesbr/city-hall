@@ -150,6 +150,19 @@ const VERDADE = {
  */
 const NAO_E_CONTAGEM = "<!-- numeros: nao sao contagem -->";
 
+/**
+ * Marcador para a linha que afirma contagem SEM nomear a grandeza, de
+ * propósito, e quer ser conferida só pelo valor.
+ *
+ * Vale só na própria linha. Existe porque a conferência só por valor deixou
+ * de ser aceita em silêncio (ver o bloco ASSUNTO): "58 verificações passam no
+ * Chromium" dava verde com o 58 da fila de sincronização enquanto o navegador
+ * tinha 68, e o portão dizia "conferido". Quem precisar de uma frase que não
+ * diz de que fala escreve o marcador ao lado, e o relatório mostra a linha
+ * pelo nome em vez de passá-la calada.
+ */
+const CONFERE_SO_POR_VALOR = "<!-- numeros: confere so por valor -->";
+
 /* ---------- Varredura da documentação ---------- */
 
 const PASTAS_IGNORADAS = new Set(["node_modules", "dist", ".git", "coverage"]);
@@ -194,12 +207,41 @@ const AFIRMACAO = /(\d+)\s+(?:teste|verificaç|de\s+(?:integraç|unidade))/gi;
  * as duas para a fraqueza restante ficar visível em vez de virar verde mudo.
  */
 const ASSUNTO = [
+  /*
+    "em seis pacotes" é como o README nomeia o total de `npm test`: sem o
+    termo, "2219 testes em seis pacotes" era uma frase sem grandeza, e trocar
+    o número pelo de qualquer outra linha da tabela passava por valor.
+  */
+  ["pacotes", ["total de testes automatizados"]],
   ["banco", ["testes do banco"]],
   ["isolamento", ["testes de isolamento (CA-06)"]],
   ["CA-06", ["testes de isolamento (CA-06)"]],
   ["migraç", ["testes do aplicador de migrações"]],
   ["aplicador", ["testes do aplicador de migrações"]],
   ["navegador", [
+    "verificações no navegador, modo local",
+    "verificações no navegador, contra a API",
+    "verificações no navegador, somadas",
+  ]],
+  /*
+    O README fala das verificações de navegador pelo NOME do motor ("as 58
+    verificações passam no Chromium ... e no Firefox"), e foi exatamente essa
+    frase que mentiu por valor: 58 é a fila de sincronização, o navegador
+    local tem 68. "motor" sozinho também é navegador, e não colide com "motor
+    de campo" porque o termo mais longo que casa suprime o mais curto que ele
+    contém (ver `contagensAutorizadas`).
+  */
+  ["chromium", [
+    "verificações no navegador, modo local",
+    "verificações no navegador, contra a API",
+    "verificações no navegador, somadas",
+  ]],
+  ["firefox", [
+    "verificações no navegador, modo local",
+    "verificações no navegador, contra a API",
+    "verificações no navegador, somadas",
+  ]],
+  ["motor", [
     "verificações no navegador, modo local",
     "verificações no navegador, contra a API",
     "verificações no navegador, somadas",
@@ -212,6 +254,8 @@ const ASSUNTO = [
   ["console", ["testes do console do fornecedor"]],
   ["compartilhado", ["testes do pacote compartilhado"]],
   ["motor de campo", ["testes do motor de campo"]],
+  // "138 testes de unidade" no LEIA-ME do aplicativo fala do motor de campo.
+  ["de unidade", ["testes do motor de campo"]],
   /*
     O termo precisa ser a frase INTEIRA, e não "integraç": os 256 da API também
     são testes de integração no sentido comum da palavra, e o termo curto
@@ -255,14 +299,24 @@ function contagensAutorizadas(linha, inicio, proximaAfirmacao) {
   if (corte >= 0) fim = inicio + corte;
 
   const janela = linha.slice(inicio, fim).toLowerCase();
+  const casados = ASSUNTO.filter(([termo]) => janela.includes(termo.toLowerCase()));
+  /*
+    Termo mais longo suprime o mais curto que ele CONTÉM: "motor de campo"
+    apaga "motor", e "de integração contra a API" apaga "API". Sem isso, a
+    união dos dois deixaria "138 testes do motor de campo" passar com o
+    número do navegador, e "10 de integração contra a API" com os 991 da API.
+  */
   const permitidas = new Set();
-  let achou = false;
-  for (const [termo, rotulos] of ASSUNTO) {
-    if (!janela.includes(termo.toLowerCase())) continue;
-    achou = true;
+  for (const [termo, rotulos] of casados) {
+    const t = termo.toLowerCase();
+    const engolido = casados.some(([outro]) => {
+      const o = outro.toLowerCase();
+      return o !== t && o.includes(t);
+    });
+    if (engolido) continue;
     for (const r of rotulos) permitidas.add(VERDADE[r]);
   }
-  return achou ? permitidas : null;
+  return casados.length > 0 ? permitidas : null;
 }
 
 const problemas = [];
@@ -306,9 +360,23 @@ for (const caminho of markdowns(RAIZ)) {
               : ""),
           );
         }
-      } else if (bate.length > 0) {
+      } else if (bate.length > 0 && linha.includes(CONFERE_SO_POR_VALOR)) {
         soPorValor.push(`${local}  ${numero} = ${bate[0][0]}`);
         conferidos.push(`${local}  ${numero} = ${bate[0][0]}`);
+      } else if (bate.length > 0) {
+        /*
+          O número existe na tabela, mas a frase não diz de que grandeza fala.
+          Isso REPROVA desde 15/09/2026: aceitar por valor foi como "58
+          verificações passam no Chromium" sobreviveu com o 58 da fila enquanto
+          o navegador tinha 68. Ou a frase nomeia a grandeza (um termo de
+          ASSUNTO perto do número), ou carrega o marcador na própria linha.
+        */
+        problemas.push(
+          `${local}\n    afirma: ${linha.trim().slice(0, 110)}\n` +
+          `    o ${numero} existe (${bate.map(([r]) => r).join(", ")}), mas a frase não diz ` +
+          `de que grandeza fala. Nomeie a grandeza perto do número, ou escreva ` +
+          `${CONFERE_SO_POR_VALOR} na linha`,
+        );
       } else {
         problemas.push(
           `${local}\n    afirma: ${linha.trim().slice(0, 110)}\n` +
@@ -328,12 +396,13 @@ console.log(`\nAfirmações conferidas: ${conferidos.length}`);
 if (soPorValor.length > 0) {
   /*
     Fraqueza declarada em voz alta, em vez de verde mudo. Estas passaram só
-    porque o número existe em algum lugar da tabela: a frase não diz de que
-    grandeza fala, então o portão não tem como saber se ela fala da certa. Foi
-    exatamente assim que "46 testes do banco" sobreviveu.
+    porque o número existe em algum lugar da tabela E a linha pediu isso pelo
+    marcador: a frase não diz de que grandeza fala, então o portão não tem
+    como saber se ela fala da certa. Foi exatamente assim que "46 testes do
+    banco" sobreviveu, e hoje sem o marcador isso reprova.
   */
   console.log(
-    `  destas, ${soPorValor.length} passaram SÓ por valor, sem dizer de que grandeza falam:`,
+    `  destas, ${soPorValor.length} passaram SÓ por valor, com o marcador na linha:`,
   );
   for (const s of soPorValor) console.log(`    ${s}`);
 }

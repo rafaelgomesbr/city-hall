@@ -1,6 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import type { Sessao } from "../dados/repositorio";
+import { aoExpirar, type Sessao } from "../dados/repositorio";
 import { esquecerConfiguracaoDoPainel } from "./configuracao";
 
 /**
@@ -13,10 +13,22 @@ import { esquecerConfiguracaoDoPainel } from "./configuracao";
 
 const CHAVE = "dc360:sessao";
 
+/**
+ * Por que a sessão da tela acabou sem a pessoa pedir.
+ *
+ * `"expirou"` é a única razão hoje: a camada HTTP recebeu o 401 de sessão
+ * morta depois de a renovação falhar. A rota protegida lê isto para mandar a
+ * pessoa à entrada com o motivo escrito e o caminho de volta, em vez de
+ * deixá-la numa tela que só diz "falha ao carregar" para sempre.
+ */
+export type MotivoDaSaida = "expirou";
+
 type ContextoSessao = {
   sessao: Sessao | null;
   entrar: (s: Sessao) => void;
   sair: () => void;
+  /** Preenchido só quando a sessão caiu sozinha; `entrar` limpa. */
+  motivoDaSaida: MotivoDaSaida | null;
 };
 
 const Contexto = createContext<ContextoSessao | null>(null);
@@ -31,8 +43,13 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
     }
   });
 
+  const [motivoDaSaida, setMotivoDaSaida] = useState<MotivoDaSaida | null>(null);
+
   const entrar = useCallback((s: Sessao) => {
     setSessao(s);
+    // Entrar de novo apaga o motivo: senão a próxima saída comum ainda diria
+    // "sua sessão expirou".
+    setMotivoDaSaida(null);
     try {
       sessionStorage.setItem(CHAVE, JSON.stringify(s));
     } catch {
@@ -42,6 +59,7 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
 
   const sair = useCallback(() => {
     setSessao(null);
+    setMotivoDaSaida(null);
     /*
       A configuração do ambiente é da IMPLANTAÇÃO e não da pessoa, então trocar
       de conta não muda o valor. Ela é esquecida aqui assim mesmo: guardar
@@ -56,7 +74,38 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const valor = useMemo(() => ({ sessao, entrar, sair }), [sessao, entrar, sair]);
+  /*
+    A expiração vem da camada de dados, que não conhece esta sessão nem
+    navega: ela só avisa. Aqui a sessão da tela cai junto com os tokens, e o
+    motivo fica guardado para a rota protegida levar à entrada.
+
+    O `ref` é o que torna o aviso idempotente: uma tela abre cinco chamadas de
+    uma vez e todas recebem o mesmo 401. Só a primeira encontra sessão para
+    derrubar; as outras chegam com a sessão já nula e não fazem nada, em vez
+    de ficarem reescrevendo o mesmo estado.
+  */
+  const sessaoAtual = useRef(sessao);
+  sessaoAtual.current = sessao;
+
+  useEffect(() => {
+    aoExpirar(() => {
+      if (!sessaoAtual.current) return;
+      setSessao(null);
+      setMotivoDaSaida("expirou");
+      esquecerConfiguracaoDoPainel();
+      try {
+        sessionStorage.removeItem(CHAVE);
+      } catch {
+        /* idem */
+      }
+    });
+    return () => aoExpirar(null);
+  }, []);
+
+  const valor = useMemo(
+    () => ({ sessao, entrar, sair, motivoDaSaida }),
+    [sessao, entrar, sair, motivoDaSaida],
+  );
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }
 

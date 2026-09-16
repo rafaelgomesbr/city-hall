@@ -128,6 +128,15 @@ async function comVistoriaEDocumento(endereco: string): Promise<string> {
     method: "POST", url: `/ocorrencias/${id}/despacho`, headers: com(tokenCoordenador),
     payload: { equipeId: EQUIPE_ALFA, prazoHoras: 4 },
   });
+  /*
+    O chamado nasce com um dia de idade. A coleta desta suíte é datada de
+    antes do envio, para o laudo ter as duas marcas de tempo, e a rota recusa
+    coleta anterior à abertura do chamado (`data_implausivel`): a vistoria não
+    pode ter acontecido antes de o chamado existir.
+  */
+  await mem.bruto.query(
+    "UPDATE ocorrencias SET criado_em = now() - interval '1 day' WHERE id = $1", [id],
+  );
 
   const coletadaEm = new Date(Date.now() - 5_000).toISOString();
   const s = await app.inject({

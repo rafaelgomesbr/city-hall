@@ -166,6 +166,22 @@ export type FiltroOcorrencias = {
 };
 
 /**
+ * Uma linha da LISTA de ocorrências: a ocorrência SEM o que só o dossiê traz.
+ *
+ * Contato do solicitante, relato e descrição de vulnerabilidade social não
+ * descem na lista, para papel nenhum, desde 15/09/2026. A tabela nunca os
+ * desenhou, e devolvê-los em lote era ler dado de pessoa do município inteiro,
+ * página a página, sem registro de consulta. Quem precisa deles abre a
+ * ocorrência (`buscarOcorrencia`), que é a leitura registrada. O tipo é
+ * estreito de propósito: uma tela que tentar desenhar `o.solicitante_contato`
+ * a partir da lista não compila, em vez de desenhar "undefined".
+ */
+export type LinhaDaListaDeOcorrencias = Omit<
+  LinhaOcorrencia,
+  "solicitante_contato" | "descricao" | "vulnerabilidade_descricao"
+>;
+
+/**
  * Uma página da lista com o total de verdade ao lado.
  *
  * O total é o que separa "estas são as ocorrências" de "estas são as
@@ -173,7 +189,7 @@ export type FiltroOcorrencias = {
  * para poder dizer na cara do usuário quantas ficaram de fora.
  */
 export type PaginaDeOcorrencias = {
-  itens: LinhaOcorrencia[];
+  itens: LinhaDaListaDeOcorrencias[];
   total: number;
   pagina: number;
   porPagina: number;
@@ -513,7 +529,14 @@ export type DesafioDeEntrada = {
 
 export type ResultadoDeEntrada =
   | { tipo: "sessao"; sessao: Sessao; codigosDeRecuperacaoRestantes?: number;
-      entrouComCodigoDeRecuperacao?: boolean }
+      entrouComCodigoDeRecuperacao?: boolean;
+      /**
+       * A sessão nasceu de uma senha provisória (sorteada por quem administra
+       * ou pelo console) e só abre a troca de senha: toda outra rota responde
+       * 403 `troca_de_senha_obrigatoria`. A tela de entrada NÃO segue para o
+       * painel enquanto isto for verdade: ela pede a senha nova ali mesmo.
+       */
+      trocaDeSenhaObrigatoria?: boolean }
   | { tipo: "segundo-fator"; desafio: DesafioDeEntrada };
 
 /** Como está a verificação em duas etapas da conta de quem está usando. */

@@ -148,9 +148,23 @@ export const POSTO: Record<Papel, number> = {
   administrador: 3,
 };
 
-/** Se `quem` pode criar, editar, ativar ou desativar uma conta de `alvo`. */
+/**
+ * Se `quem` pode criar, editar, ativar ou desativar uma conta de `alvo`.
+ *
+ * ABAIXO, e não "abaixo ou igual", para quem não é o teto. A ADR 0006 diz que
+ * o coordenador "administra equipes e usuários abaixo dele" e que o
+ * administrador "é o único que administra outro administrador". Até
+ * 15/09/2026 a comparação era `>=`, e com ela um coordenador criava outro
+ * coordenador, rebaixava o colega a operador e o desativava: dois nomes para
+ * o mesmo poder de novo, um degrau abaixo do problema que a ADR resolveu.
+ *
+ * O administrador administra o próprio posto porque alguém precisa poder
+ * criar o segundo administrador, e porque a regra do "último administrador"
+ * (em `rotas/administracao.ts`) já impede que ele derrube o município.
+ */
 export function podeGerirPapel(quem: Papel, alvo: Papel): boolean {
-  return POSTO[quem] >= POSTO[alvo];
+  if (quem === "administrador") return POSTO[quem] >= POSTO[alvo];
+  return POSTO[quem] > POSTO[alvo];
 }
 
 /** Erro de posto, distinguível de "não tem a permissão". */

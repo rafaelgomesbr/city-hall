@@ -375,6 +375,31 @@ export class FalhaPermanente extends Error {
   }
 }
 
+/**
+ * A coleta como ela SAI da fila para virar rascunho de novo.
+ *
+ * É o que `retirarParaCorrecao` devolve, e o que a tela de vistoria precisa
+ * para reconstruir o formulário com tudo preenchido: o envelope (checklist,
+ * órgãos, coordenada, nomes, contagens, observações), os arquivos com as URIs
+ * locais que a fila guardou (a foto continua no aparelho; o que mudou foi só o
+ * que o servidor disse sobre ela), o protocolo, e a última recusa, para a tela
+ * apontar os campos que o servidor apontou.
+ */
+export type ColetaParaCorrecao = {
+  envelope: EnvelopeSincronizacao;
+  protocolo: string;
+  ocorrenciaId: string;
+  fotos: FotoNaFila[];
+  ultimaFalha: FalhaRegistrada | null;
+};
+
+export type ResultadoDaRetirada =
+  | { retirada: true; coleta: ColetaParaCorrecao }
+  | {
+    retirada: false;
+    motivo: "nao_encontrada" | "nao_e_vistoria" | "nao_esta_parada" | "de_outro_autor";
+  };
+
 export type ResumoFila = {
   pendentes: number;
   enviando: number;

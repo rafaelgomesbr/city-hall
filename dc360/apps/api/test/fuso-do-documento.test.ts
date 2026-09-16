@@ -147,6 +147,11 @@ describe("O laudo inteiro, gerado pelo servidor em UTC", () => {
       method: "POST", url: `/ocorrencias/${id}/despacho`, headers: com(tokenCoordenador),
       payload: { equipeId: EQUIPE_ALFA, prazoHoras: 4 },
     });
+    // A coleta é de ontem, e a rota recusa coleta anterior à abertura do
+    // chamado: o chamado precisa ser mais velho que ela.
+    await mem.bruto.query(
+      "UPDATE ocorrencias SET criado_em = now() - interval '3 days' WHERE id = $1", [id],
+    );
 
     const coletadaEm = COLETA.toISOString();
     const s = await app.inject({

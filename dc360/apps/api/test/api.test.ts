@@ -187,12 +187,19 @@ describe("Autenticação", () => {
     }
 
     // Agora nem a senha correta passa: o bloqueio é por conta, não por senha.
+    // E ele é SILENCIOSO (401 genérico, nunca 429): anunciar o bloqueio só
+    // para conta que existe era um oráculo de quais emails estão cadastrados.
+    // Ver `test/enumeracao-pelo-bloqueio.test.ts`.
     const comSenhaCerta = await app.inject({
       method: "POST", url: "/auth/entrar",
       payload: { email: "alvo@serraalta.exemplo.gov.br", senha: "senha-do-alvo-longa" },
     });
-    expect(comSenhaCerta.statusCode).toBe(429);
-    expect(comSenhaCerta.json().erro).toBe("bloqueado");
+    expect(comSenhaCerta.statusCode).toBe(401);
+    expect(comSenhaCerta.json().erro).toBe("credenciais");
+    const travada = await mem.bruto.query<{ bloqueado_ate: string | null }>(
+      "SELECT bloqueado_ate FROM usuarios WHERE email = 'alvo@serraalta.exemplo.gov.br'",
+    );
+    expect(travada.rows[0]!.bloqueado_ate).not.toBeNull();
   }, 60_000);
 
   it("recusa requisição sem token e com token adulterado", async () => {
@@ -509,6 +516,11 @@ describe("Sincronização do aplicativo de campo", () => {
       headers: comToken(tokens["coordA"]!.acesso),
       payload: { equipeId: equipeA, prazoHoras: 24 },
     });
+    // A coleta abaixo é de uma hora atrás, e a rota recusa coleta anterior à
+    // abertura do chamado: o chamado precisa ser mais velho que a coleta.
+    await mem.bruto.query(
+      "UPDATE ocorrencias SET criado_em = now() - interval '1 day' WHERE id = $1", [id],
+    );
 
     const envelope = {
       idempotencyKey: "22222222-2222-4222-8222-222222222222",

@@ -104,8 +104,20 @@ const NUNCA_ALEVIAM = new Set(lerListaDaRegua(fonteDaRegua, "TONS_QUE_NUNCA_ALEV
    2. O que conta como bloco preenchido
    ============================================================ */
 
-/** Os tokens de fundo que são RECADO, e não superfície do tema. */
-const FUNDO_SEMANTICO = /tema\.(ok|alerta|perigo|sevBaixa|sevMedia|sevAlta|sevCritica)Fundo\b/;
+/**
+ * Os tokens de fundo que são RECADO, e não superfície do tema.
+ *
+ * Qualquer identificador terminado em `Fundo`, e não só `tema.xFundo`: até
+ * 15/09/2026 a expressão exigia o prefixo `tema.`, e `papel.avisoFundo` (a
+ * tarja de "documento de validação" na minuta do laudo), `paleta.perigoFundo`
+ * ou um `perigoFundo` desestruturado passavam invisíveis. A convenção de
+ * `tokens.ts` é que todo token que termina em `Fundo` é um preenchimento com
+ * recado (`okFundo`, `alertaFundo`, `perigoFundo`, `sev*Fundo`,
+ * `destaqueFundo`, `avisoFundo`), e é a convenção, não o prefixo, que o
+ * portão lê. `fundo` em minúscula (`tema.fundo`, `visor.fundo`) é superfície
+ * e continua de fora.
+ */
+const FUNDO_SEMANTICO = /\b(?:[A-Za-z_$][\w$]*\.)?[a-z][A-Za-z0-9]*Fundo\b/;
 
 /*
   As peças e `ePeca` moram em `fonte-do-aplicativo.mjs` desde 14/09/2026.
@@ -383,6 +395,9 @@ test("a varredura pega o cartão da reclamação, bloco a bloco", () => {
               <View style={{ backgroundColor: tema.alertaFundo }}>
                 <Txt>Vulnerabilidade social</Txt>
               </View>
+              <View style={{ backgroundColor: papel.avisoFundo }}>
+                <Txt>Documento de validação</Txt>
+              </View>
               <Chip texto="Coletada" simbolo="v" tom="ok" />
               <Aviso tom="perigo">O servidor recusou.</Aviso>
             </Tocavel>
@@ -412,13 +427,20 @@ test("a varredura pega o cartão da reclamação, bloco a bloco", () => {
   );
 
   /*
-    Três e não quatro, e a diferença É a régua funcionando: o chip verde deixou
-    de contar porque a R3 tirou o fundo dele dentro do componente. Os três que
+    Quatro e não cinco, e a diferença É a régua funcionando: o chip verde deixou
+    de contar porque a R3 tirou o fundo dele dentro do componente. Os que
     sobram são exatamente os que a R2 manda hierarquizar.
+
+    `papel.avisoFundo` está aqui porque era invisível: a expressão de fundo
+    semântico exigia o prefixo `tema.`, e um revisor provou em 15/09/2026 que
+    um fundo de recado lido de outro objeto passava calado.
   */
   assert.deepEqual(
     achados.sort(),
-    ["Aviso tom=\"perigo\"", "fundo tema.alertaFundo", "selo de severidade"].sort(),
+    [
+      "Aviso tom=\"perigo\"", "fundo tema.alertaFundo", "fundo papel.avisoFundo",
+      "selo de severidade",
+    ].sort(),
     "a varredura não enxergou os blocos preenchidos do cartão do relato",
   );
 
@@ -426,7 +448,8 @@ test("a varredura pega o cartão da reclamação, bloco a bloco", () => {
   const corrigido = cartaoDoRelato
     .replace('tom="ok"', 'tom="ok" peso="leve"')
     .replace('<Aviso tom="perigo">', '<Aviso tom="perigo" peso="leve">')
-    .replace("backgroundColor: tema.alertaFundo", "borderLeftColor: tema.alertaTexto");
+    .replace("backgroundColor: tema.alertaFundo", "borderLeftColor: tema.alertaTexto")
+    .replace("backgroundColor: papel.avisoFundo", "borderLeftColor: papel.avisoTexto");
   const depois = [];
   const outraFila = [...arvoreJsx(corrigido)];
   while (outraFila.length > 0) {

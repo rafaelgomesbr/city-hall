@@ -20,6 +20,10 @@ import {
  * cliques não virarem dois pedidos) e falha (a frase da API e o botão de
  * novo). O sucesso não é estado daqui: ele sai por `onPonto`, e quem desenha
  * o campo troca o texto e diz de onde o ponto veio.
+ *
+ * Como o botão SOME enquanto abre, o que volta na falha é outro elemento, e
+ * o foco de quem clicou tinha caído no `<body>`. O efeito abaixo devolve o
+ * foco ao botão novo, que é onde a pessoa vai apertar "de novo".
  */
 export type EstadoDaDescoberta =
   | { tipo: "parado" }
@@ -49,6 +53,11 @@ export function DescobrirPonto({
     montado.current = true;
     return () => { montado.current = false; };
   }, []);
+
+  const botao = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (estado.tipo === "falha") botao.current?.focus();
+  }, [estado]);
 
   async function pedir(): Promise<void> {
     setEstado({ tipo: "abrindo" });
@@ -80,7 +89,7 @@ export function DescobrirPonto({
     <span className="leitura leitura--nota">
       <span aria-hidden="true">!</span>{" "}
       {estado.tipo === "falha" ? estado.mensagem : FRASE_ANTES}{" "}
-      <button type="button" className="botao-texto" onClick={() => void pedir()}>
+      <button type="button" className="botao-texto" ref={botao} onClick={() => void pedir()}>
         {estado.tipo === "falha" ? `${ROTULO_DO_BOTAO} de novo` : ROTULO_DO_BOTAO}
       </button>
     </span>

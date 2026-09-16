@@ -411,6 +411,21 @@ export const PAGINA_DO_CONSOLE = `<!doctype html>
       </div>
     </div>
 
+    <!--
+      A conta sem códigos de recuperação, avisada enquanto for verdade. O dono
+      semeado de CONSOLE_OPERADORES nasce sem código, e sem ele perder a senha
+      e o aparelho exige a credencial de dono do banco (docs/IMPLANTACAO.md,
+      6.4). O número vem na resposta da entrada; some quando o lote é gerado.
+    -->
+    <div id="aviso-sem-codigos" class="recado recado-fixo" role="status" hidden>
+      <svg class="icone" aria-hidden="true"><use href="#i-alerta"/></svg>
+      <span id="aviso-sem-codigos-texto"></span>
+      <button id="aviso-sem-codigos-ir" type="button" class="botao botao-texto">
+        <svg class="icone" aria-hidden="true"><use href="#i-chave"/></svg>
+        <span>Gerar em Minha senha</span>
+      </button>
+    </div>
+
     <div class="indicadores entra" id="indicadores" hidden>
       <div class="cartao indicador">
         <p class="indicador-rotulo">
@@ -1690,6 +1705,12 @@ form > .secao:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
   animation: subir var(--ds-dur-base) var(--ds-ease) both;
 }
 .recado .icone { width: 18px; height: 18px; margin-top: 1px; }
+/* O aviso que fica: alinhado com o botão de ação na mesma linha, quebrando
+   quando a tela é estreita. O botão herda a cor do recado, para não parecer
+   um botão de outra tela colado ali. */
+.recado-fixo { align-items: center; flex-wrap: wrap; }
+.recado-fixo > span { flex: 1 1 24ch; }
+.recado-fixo .botao { color: inherit; }
 
 /* ---------------- O painel ---------------- */
 
@@ -2206,6 +2227,7 @@ var nav = document.getElementById("nav");
 var irMunicipios = document.getElementById("ir-municipios");
 var irUsuarios = document.getElementById("ir-usuarios");
 var irSenha = document.getElementById("ir-senha");
+var avisoSemCodigos = document.getElementById("aviso-sem-codigos");
 var thAcoes = document.getElementById("th-acoes");
 
 /* O texto de apoio da porta, para voltar depois de "Esqueci a senha". */
@@ -2594,6 +2616,7 @@ formaCodigo.addEventListener("submit", async function (evento) {
   papel = r.corpo.papel === "dono" ? "dono" : "operador";
   document.getElementById("quem-email").textContent = r.corpo.operador || "";
   document.getElementById("quem-papel").textContent = papel === "dono" ? "dono" : "operador";
+  mostrarAvisoDeCodigos(r.corpo.codigosDeRecuperacao);
   quem.hidden = !r.corpo.operador;
   botaoSair.hidden = false;
   nav.hidden = false;
@@ -2618,6 +2641,7 @@ function sair(recado) {
   token = null;
   desafio = null;
   papel = null;
+  avisoSemCodigos.hidden = true;
   linhas.textContent = "";
   linhasOperadores.textContent = "";
   indicadores.hidden = true;
@@ -3455,6 +3479,27 @@ formaOperador.addEventListener("submit", async function (evento) {
    A minha senha
    ====================================================================== */
 
+/**
+ * A conta sem código de recuperação é avisada na entrada, e o aviso fica até
+ * o lote ser gerado. Só quando o servidor disse ZERO: sem o número (servidor
+ * antigo) a tela não afirma nada.
+ */
+function mostrarAvisoDeCodigos(quantos) {
+  var semCodigos = quantos === 0;
+  avisoSemCodigos.hidden = !semCodigos;
+  if (!semCodigos) return;
+  document.getElementById("aviso-sem-codigos-texto").textContent = papel === "dono"
+    ? "Você é o dono deste console e não tem códigos de recuperação. Ninguém acima de "
+      + "você redefine a sua senha: sem os códigos, perder a senha e o aparelho exige "
+      + "a credencial de dono do banco."
+    : "Esta conta não tem códigos de recuperação. Sem eles, perder a senha e o "
+      + "aparelho exige que o dono desative a conta e crie outra.";
+}
+
+document.getElementById("aviso-sem-codigos-ir").addEventListener("click", function () {
+  abrirMinhaSenha();
+});
+
 function abrirMinhaSenha() {
   esquecerSenha();
   esquecerOperador();
@@ -3545,6 +3590,7 @@ formaCodigos.addEventListener("submit", async function (evento) {
 
   listarCodigos(document.getElementById("lista-de-codigos"), r.corpo.codigos);
   mostrarRestantes(r.corpo.restantes);
+  mostrarAvisoDeCodigos(r.corpo.restantes);
   formaCodigos.hidden = true;
   codigosEntregues.hidden = false;
 });

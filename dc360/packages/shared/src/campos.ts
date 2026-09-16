@@ -60,6 +60,31 @@ export const ROTULO_CAMPO: Record<string, string> = {
   capturadaEm: "Hora da fotografia",
   legenda: "Legenda da fotografia",
   chave: "Item do checklist",
+  orgaosParaAcionar: "Órgãos a acionar",
+  evidenciasPerdidas: "Registros perdidos",
+  coletadaPor: "Quem coletou",
+  idempotencyKey: "Chave de envio",
+  ocorrenciaId: "Ocorrência",
+  desalojados: "Desalojados",
+  desabrigados: "Desabrigados",
+  feridos: "Feridos",
+  desaparecidos: "Desaparecidos",
+  obitos: "Óbitos",
+
+  // O arquivo da evidência (fotografia ou assinatura), como o pedido de
+  // autorização de envio o descreve. Ver `pedidoDeEvidenciaSchema`.
+  tamanhoBytes: "Tamanho do arquivo",
+  nomeArquivo: "Nome do arquivo",
+  tipoConteudo: "Tipo do arquivo",
+  ordem: "Ordem da fotografia",
+  // A assinatura não é "mais uma foto": ela tem caminho próprio na conferência
+  // que o aparelho faz antes de enfileirar (`assinatura.<campo>`), e rótulo
+  // próprio, senão "Tamanho do arquivo" não diria QUAL arquivo.
+  "assinatura.tamanhoBytes": "Arquivo da assinatura",
+  "assinatura.idempotencyKey": "Chave da assinatura",
+  "assinatura.capturadaEm": "Hora da assinatura",
+  "assinatura.nomeArquivo": "Nome do arquivo da assinatura",
+  "assinatura.tipoConteudo": "Tipo do arquivo da assinatura",
 
   // Cadastro de pessoa e de equipe
   nome: "Nome",
@@ -84,20 +109,24 @@ export function rotuloDoCampo(caminho: string): string {
 
   const partes = caminho.split(".");
   const semIndice = partes.filter((p) => !/^\d+$/.test(p));
+  /*
+    `vistoria.fotos.2.capturadaEm` vira "Hora da fotografia (item 3)", e
+    `fotos.0.tamanhoBytes` vira "Tamanho do arquivo (item 1)": sem o numero,
+    tres fotos com o mesmo problema viram tres linhas identicas e o agente nao
+    sabe qual abrir. O sufixo vale para os dois casamentos abaixo. So o do
+    caminho sem prefixo o perdia, e era exatamente o caminho que a conferencia
+    do aparelho produz para cada fotografia.
+  */
+  const indice = partes.find((p) => /^\d+$/.test(p));
+  const numerado = (rotulo: string) =>
+    indice === undefined ? rotulo : `${rotulo} (item ${Number(indice) + 1})`;
 
   // `vistoria.assinanteNome` cai aqui e vira "Quem assinou".
   const semPrefixo = semIndice.slice(1).join(".");
-  if (semPrefixo && ROTULO_CAMPO[semPrefixo]) return ROTULO_CAMPO[semPrefixo];
+  if (semPrefixo && ROTULO_CAMPO[semPrefixo]) return numerado(ROTULO_CAMPO[semPrefixo]);
 
   const ultima = semIndice[semIndice.length - 1];
-  if (ultima && ROTULO_CAMPO[ultima]) {
-    // `vistoria.fotos.2.capturadaEm` vira "Hora da fotografia (item 3)": sem o
-    // numero, tres fotos com o mesmo problema viram tres linhas identicas e o
-    // agente nao sabe qual abrir.
-    const indice = partes.find((p) => /^\d+$/.test(p));
-    const rotulo = ROTULO_CAMPO[ultima];
-    return indice === undefined ? rotulo : `${rotulo} (item ${Number(indice) + 1})`;
-  }
+  if (ultima && ROTULO_CAMPO[ultima]) return numerado(ROTULO_CAMPO[ultima]);
 
   return caminho;
 }

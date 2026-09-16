@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ROTULO_PAPEL, ROTULO_TIPO_COBRADE } from "@dc360/shared";
 import { MODO, meuTrabalhoDeCampo, type MeuTrabalho as Trabalho } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
@@ -7,6 +7,7 @@ import { useTitulo } from "../seo/titulo";
 import {
   Aviso, Carregando, Cartao, Prazo, SeloSeveridade, SeloStatus, Vazio, formatarDataHora,
 } from "../componentes/comuns";
+import { filtrarTarefas } from "./meu-trabalho-regras";
 
 /**
  * A tela do agente de campo.
@@ -35,6 +36,16 @@ export function MeuTrabalho() {
   const sessao = useSessaoObrigatoria();
   const [dados, setDados] = useState<Trabalho | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  /*
+    O `?busca=` que a caixa do topo manda ao dar Enter. A tela o ignorava, e
+    quem digitava o protocolo chegava na lista inteira sem sinal de que a
+    busca existiu. O filtro é sobre o que a tela já tem, sem consulta nova:
+    a lista da equipe dele é curta por definição.
+  */
+  const [params, setParams] = useSearchParams();
+  const busca = params.get("busca") ?? "";
+  const [rascunhoBusca, setRascunhoBusca] = useState(busca);
+  useEffect(() => { setRascunhoBusca(busca); }, [busca]);
 
   useEffect(() => {
     meuTrabalhoDeCampo(sessao)
@@ -42,10 +53,19 @@ export function MeuTrabalho() {
       .catch((e: unknown) => setErro(e instanceof Error ? e.message : String(e)));
   }, [sessao]);
 
+  function trocarBusca(valor: string | null): void {
+    const proximos = new URLSearchParams(params);
+    if (!valor) proximos.delete("busca");
+    else proximos.set("busca", valor);
+    setParams(proximos, { replace: true });
+  }
+
   if (erro) return <Aviso tom="perigo">{erro}</Aviso>;
   if (!dados) return <Carregando />;
 
-  const { equipe, colegas, designadas, concluidas, totalConcluidas, tetoDeConcluidas } = dados;
+  const { equipe, colegas, concluidas, totalConcluidas, tetoDeConcluidas } = dados;
+  const designadas = filtrarTarefas(busca, dados.designadas);
+  const escondidas = dados.designadas.length - designadas.length;
 
   return (
     <>
@@ -87,7 +107,45 @@ export function MeuTrabalho() {
       )}
 
       <Cartao titulo="Vistorias designadas para a minha equipe">
-        {designadas.length === 0 ? (
+        <form
+          className="filtros"
+          role="search"
+          onSubmit={(e) => { e.preventDefault(); trocarBusca(rascunhoBusca.trim() || null); }}
+        >
+          <label className="oculto-visualmente" htmlFor="meu-trabalho-busca">
+            Buscar entre as minhas vistorias
+          </label>
+          <input id="meu-trabalho-busca" type="search" value={rascunhoBusca}
+                 onChange={(e) => setRascunhoBusca(e.target.value)}
+                 placeholder="Protocolo ou endereço"
+                 className="campo--longo" />
+          <button type="submit" className="botao botao--secundario">Buscar</button>
+          {busca && (
+            <button type="button" className="botao botao--discreto"
+                    onClick={() => trocarBusca(null)}>
+              Limpar
+            </button>
+          )}
+        </form>
+        {/*
+          O filtro é dito em voz alta, com o que ficou de fora: uma lista
+          curta por causa de um `?busca=` que a pessoa não vê é lida como
+          "só tenho uma vistoria", que é a conclusão errada.
+        */}
+        {busca && (
+          <p className="tabela__secundario" style={{ marginTop: 0 }} aria-live="polite">
+            {`Filtrando por “${busca}”`}
+            {escondidas > 0
+              ? `: ${escondidas} ${escondidas === 1 ? "vistoria escondida" : "vistorias escondidas"}.`
+              : "."}
+          </p>
+        )}
+        {designadas.length === 0 && busca ? (
+          <Vazio titulo={`Nenhuma vistoria sua casa com “${busca}”`}>
+            A busca olha protocolo e endereço das vistorias designadas para a
+            sua equipe. Limpe o filtro para ver todas.
+          </Vazio>
+        ) : designadas.length === 0 ? (
           <Vazio titulo="Nenhuma vistoria em campo agora">
             Quando a coordenação despachar uma ocorrência para a sua equipe,
             ela aparece aqui com o prazo correndo.

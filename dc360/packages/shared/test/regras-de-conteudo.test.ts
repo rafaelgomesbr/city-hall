@@ -60,7 +60,18 @@ const TRAVESSAO = "—";
 const PASTAS_IGNORADAS = new Set([
   "node_modules", "dist", ".git", "coverage", ".angular", "Pods",
 ]);
-const EXTENSOES = [".ts", ".tsx", ".css", ".sql", ".md", ".js", ".mjs", ".html", ".txt"];
+/*
+  `.json`, `.webmanifest`, `.svg`, `.yaml`, `.yml` e `.toml` entraram em
+  15/09/2026, depois de um revisor provar que um travessão no
+  `apps/web/public/manifest.webmanifest` (o nome do produto na tela inicial
+  do celular) passava calado. São superfícies que o produto mostra ou entrega:
+  o manifesto aparece na instalação, o SVG é o ícone, o `eas.json` do Expo é
+  o perfil de envio para a loja, e o YAML e o TOML são o que o deploy lê.
+*/
+const EXTENSOES = [
+  ".ts", ".tsx", ".css", ".sql", ".md", ".js", ".mjs", ".html", ".txt",
+  ".json", ".webmanifest", ".svg", ".yaml", ".yml", ".toml",
+];
 
 /**
  * `docs/referencia/` fica de fora, e a razão importa.
@@ -119,6 +130,11 @@ describe("Regras de conteúdo", () => {
     expect(lista.some((a) => a.startsWith("dc360/apps/api/src"))).toBe(true);
     expect(lista.some((a) => a.startsWith("mockup/"))).toBe(true);
     expect(lista.some((a) => a.startsWith("docs/"))).toBe(true);
+    // As superfícies que não são código também entram: o manifesto do painel,
+    // o `eas.json` do Expo e o `fly.toml` do deploy.
+    expect(lista.some((a) => a.endsWith("apps/web/public/manifest.webmanifest"))).toBe(true);
+    expect(lista.some((a) => a.endsWith("apps/campo/eas.json"))).toBe(true);
+    expect(lista.some((a) => a.endsWith("dc360/fly.toml"))).toBe(true);
     // E a isenção da pesquisa está de fato valendo.
     expect(lista.some((a) => a.startsWith("docs/referencia"))).toBe(false);
   });

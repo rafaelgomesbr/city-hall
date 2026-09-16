@@ -7,7 +7,7 @@ import { aoChegarTarefaNova, marcarTarefasVistas } from "../dados/pendencias";
 import { useSessao } from "../dados/sessao";
 import { Dialogo } from "../ui/Dialogo";
 import { retornoTatil } from "../ui/retornoTatil";
-import { decidirAviso, type Aviso } from "./aviso";
+import { decidirAviso, veioDoAplicativo, type Aviso } from "./aviso";
 import { montarAvisoLocalDeTarefaNova } from "./aviso-local";
 import { CANAIS, deveTocarSom } from "./canais";
 import { ContextoDePush, type EstadoDoPush } from "./contexto";
@@ -16,7 +16,7 @@ import { guardarFicha } from "./ficha-do-aparelho";
 import { proximoPasso, type EstadoDaPermissao } from "./permissao";
 import { portaExpo } from "./PortaExpo";
 import type { AvisoBruto, PortaDePush } from "./porta";
-import { registrarEsteAparelho, type DesfechoDoRegistro } from "./registro";
+import { ambienteDoBuild, registrarEsteAparelho, type DesfechoDoRegistro } from "./registro";
 
 /**
  * A ligação entre o sistema operacional, a sessão e a tela.
@@ -45,7 +45,20 @@ import { registrarEsteAparelho, type DesfechoDoRegistro } from "./registro";
  *    lista (`dados/pendencias.ts`) avisa quando entra um id que não estava lá,
  *    e este provedor transforma isso num aviso local pela mesma porta, com o
  *    mesmo som e o mesmo canal do push, mais o retorno tátil. Ver o bloco 7.
+ * 7. **O mesmo despacho toca UMA vez, venha por onde vier.** Com o aplicativo
+ *    aberto o mesmo fato chega por dois caminhos (a lista e o push), em
+ *    qualquer ordem, e a memória de `anunciadas` é o que faz o segundo ficar
+ *    calado. Ver o bloco 1 e o bloco 7.
  */
+
+/**
+ * Quanto esperar para perguntar de novo a um servidor que disse
+ * `push_desligado`. Cinco minutos: é o intervalo do relógio do varredor no
+ * servidor, e é curto o bastante para o aplicativo aberto durante o deploy
+ * que liga o push registrar a ficha na primeira volta do segundo plano
+ * depois disso, sem virar uma requisição a cada troca de aplicativo.
+ */
+const REAVALIAR_PUSH_DESLIGADO_MS = 5 * 60_000;
 
 export function ProvedorDePush({
   porta = portaExpo,
@@ -86,17 +99,38 @@ export function ProvedorDePush({
   const tratados = useRef(new Set<string>());
 
   /**
-   * O push já contou esta tarefa: a atualização da lista não precisa contar
-   * de novo.
+   * As ocorrências cujo despacho este processo JÁ ANUNCIOU, por qualquer
+   * caminho: aviso local da lista, push apresentado com o aplicativo aberto,
+   * push tocado, push encontrado na bandeja.
    *
-   * Sem isto o despacho tocaria DUAS vezes com o aplicativo aberto: uma pelo
-   * push que a Apple ou o Google entregou, outra pelo aviso local da
-   * atualização seguinte, que encontra o mesmo id como novidade. Dois toques
-   * pelo mesmo fato é o que ensina alguém a calar o canal. Só a tarefa nova
-   * entra aqui: o prazo não concorre com a lista.
+   * É a memória que faz o mesmo despacho tocar UMA vez. Com o aplicativo
+   * aberto o mesmo fato chega por dois caminhos e em qualquer ordem: a lista
+   * descobre a tarefa e mostra o aviso local, e a Apple ou o Google entregam
+   * o push do mesmo despacho segundos ou minutos depois (ou antes). O caminho
+   * "push primeiro" já era coberto por `marcarTarefasVistas`, no disco; o
+   * caminho "lista primeiro" não era: o tratador de apresentação dizia
+   * "mostra e toca" para o push de uma ocorrência que o aplicativo tinha
+   * acabado de anunciar. Dois toques pelo mesmo fato é o que ensina alguém a
+   * calar o canal de despacho, e a partir daí o crítico das três da manhã
+   * também não toca.
+   *
+   * Memória de processo, e não de disco, de propósito: ela responde "este
+   * processo já tocou por isto?", e o disco (`ids_vistos`) responde "esta
+   * lista já mostrou isto?", que é outra pergunta. Ids são UUIDs, únicos
+   * entre municípios, então uma entrada velha nunca cala uma ocorrência de
+   * outra prefeitura. Só a tarefa nova entra: o prazo é outro fato.
+   */
+  const anunciadas = useRef(new Set<string>());
+
+  /**
+   * O despacho desta ocorrência já foi anunciado por este processo, e o disco
+   * fica sabendo: a atualização da lista não precisa contar de novo.
+   *
+   * Só a tarefa nova entra aqui: o prazo não concorre com a lista.
    */
   const contarComoVista = useCallback((aviso: Aviso) => {
     if (aviso.tipo !== "tarefa_nova") return;
+    anunciadas.current.add(aviso.ocorrenciaId);
     void marcarTarefasVistas([aviso.ocorrenciaId]).catch(() => undefined);
   }, []);
 
@@ -114,7 +148,26 @@ export function ProvedorDePush({
         descartar.
       */
       if (!veredito.entregar) return { mostrar: false, som: false };
-      contarComoVista(veredito.aviso);
+
+      /*
+        O SEGUNDO ANÚNCIO DO MESMO DESPACHO FICA CALADO E ESCONDIDO.
+
+        O aviso LOCAL que o próprio aplicativo pediu (bloco 7) também passa
+        por aqui, porque o sistema consulta este tratador para tudo que chega
+        com o aplicativo na frente. Ele carrega `origem: "aplicativo"` no dado
+        e é sempre o primeiro anúncio: o bloco 7 já o pôs em `anunciadas`
+        antes de pedir, então sem o carimbo ele seria calado por si mesmo.
+
+        O push remoto de uma tarefa nova já anunciada é o segundo: some. Não
+        "mostra sem som", porque o aviso local já está na bandeja e uma
+        segunda linha ali para o mesmo fato é só ruído.
+      */
+      if (veredito.aviso.tipo === "tarefa_nova" && !veioDoAplicativo(bruto)) {
+        if (anunciadas.current.has(veredito.aviso.ocorrenciaId)) {
+          return { mostrar: false, som: false };
+        }
+        contarComoVista(veredito.aviso);
+      }
       return { mostrar: true, som: deveTocarSom(veredito.aviso) };
     });
   }, [porta, contarComoVista]);
@@ -205,9 +258,22 @@ export function ProvedorDePush({
         examinar quando o aviso voltar pelo tratador de apresentação.
       */
       const municipio = organizacaoRef.current;
-      if (!municipio || novas.length === 0) return;
+      if (!municipio) return;
 
-      for (const nova of novas) {
+      /*
+        O que o push já anunciou neste processo não é anunciado de novo. No
+        aparelho `marcarTarefasVistas` já segura a maioria destes no disco;
+        esta memória cobre a corrida entre o push e a atualização que já
+        estava em voo, e não depende de o disco ter respondido a tempo.
+      */
+      const ineditas = novas.filter((nova) => !anunciadas.current.has(nova.id));
+      if (ineditas.length === 0) return;
+
+      for (const nova of ineditas) {
+        // Anunciada ANTES de pedir: o tratador de apresentação é consultado
+        // pelo sistema no meio do pedido, e reconhece o aviso local pelo
+        // carimbo de origem, não por esta memória.
+        anunciadas.current.add(nova.id);
         void porta.avisarLocalmente(montarAvisoLocalDeTarefaNova({
           organizacaoId: municipio,
           ocorrenciaId: nova.id,
@@ -245,6 +311,19 @@ export function ProvedorDePush({
   */
   const registradoPara = useRef<string | null>(null);
 
+  /**
+   * Quando o servidor disse `push_desligado`, para reavaliar depois de um
+   * tempo. Nulo quando o último desfecho foi outro.
+   *
+   * É o que TODO aplicativo aberto recebe no instante em que o servidor está
+   * com `PUSH_ATIVO=nao`, e o servidor vai virar `sim` num deploy. Tentar a
+   * cada volta do segundo plano seria martelar um servidor que disse "não"
+   * (o agente sai do aplicativo dezenas de vezes por plantão); nunca mais
+   * tentar deixaria todo mundo que estava aberto na hora do deploy sem ficha
+   * até matar e reabrir o aplicativo, que ninguém faz.
+   */
+  const desligadoEm = useRef<number | null>(null);
+
   const registrarFicha = useCallback(async () => {
     const desfecho = await registrarEsteAparelho({
       porta,
@@ -253,11 +332,36 @@ export function ProvedorDePush({
         // Sem token não há registro possível, e insistir sem ele produziria um
         // 401 que a classificação leria como falha de verdade.
         if (!token) throw new Error("sem token para registrar o aparelho");
-        await registrarAparelho(token, plataforma, ficha);
+        await registrarAparelho(token, plataforma, ficha, ambienteDoBuild());
       },
       guardarFicha,
     });
     setRegistro(desfecho);
+
+    /*
+      A MEMÓRIA DE "JÁ REGISTREI" SÓ VALE PARA O QUE NÃO VAI MUDAR SOZINHO.
+
+      Ela é gravada ANTES da tentativa (para duas tentativas simultâneas não
+      dobrarem a requisição) e desfeita AQUI conforme o desfecho. Até
+      15/09/2026 ela nunca era desfeita: o agente entrava na base com sinal
+      ruim, o registro falhava, e o aplicativo tratava o município como
+      registrado até ser morto e reaberto. Um plantão inteiro sem ficha no
+      servidor, indistinguível de "nunca instalou", e o despacho não chegava.
+
+      `sem_sinal` e `falhou` são do momento: a próxima volta do segundo plano
+      tenta de novo. `push_desligado` reavalia depois de alguns minutos (ver
+      `desligadoEm`). `registrado` e `sem_ficha` ficam: o primeiro está feito,
+      o segundo é do aparelho (permissão negada, emulador) e a permissão já é
+      relida em toda volta pelo caminho normal.
+    */
+    if (desfecho === "sem_sinal" || desfecho === "falhou") {
+      registradoPara.current = null;
+      desligadoEm.current = null;
+    } else if (desfecho === "push_desligado") {
+      desligadoEm.current = Date.now();
+    } else {
+      desligadoEm.current = null;
+    }
   }, [porta, obterToken]);
 
   /*
@@ -319,7 +423,12 @@ export function ProvedorDePush({
 
     const municipio = organizacaoRef.current;
     if (estado !== "concedida" || !municipio) return;
-    if (registradoPara.current === municipio) return;
+    if (registradoPara.current === municipio) {
+      // Já registrado, ou registrado e recusado por `push_desligado` há
+      // pouco: só volta a perguntar depois do intervalo.
+      const desligadoHa = desligadoEm.current === null ? null : Date.now() - desligadoEm.current;
+      if (desligadoHa === null || desligadoHa < REAVALIAR_PUSH_DESLIGADO_MS) return;
+    }
     registradoPara.current = municipio;
     await registrarFichaRef.current();
   }, [porta]);

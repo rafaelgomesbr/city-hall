@@ -1,5 +1,6 @@
 import {
-  MOTIVO_RECLASSIFICAR, ROTULO_TIPO_COBRADE, TIPOS_COBRADE, TIPO_A_CLASSIFICAR,
+  MOTIVO_RECLASSIFICAR, ORIGENS_DA_TRIAGEM, ROTULO_TIPO_COBRADE, TIPOS_COBRADE,
+  TIPO_A_CLASSIFICAR,
   encerramentoSchema, estadoTerminal, podeExecutar, precisaReclassificar,
   type Papel, type StatusOcorrencia, type TipoCobrade, type TipoDeEntrada,
 } from "@dc360/shared";
@@ -294,6 +295,9 @@ export function ofereceTriagem(
 ): boolean {
   if (!podeExecutar(papel, "classificar_triagem")) return false;
   if (estadoTerminal(status)) return false;
+  // De onde a triagem parte é regra do domínio, e a mesma que a rota confere:
+  // oferecer o cartão fora dessas origens terminaria num 409.
+  if (!ORIGENS_DA_TRIAGEM.includes(status)) return false;
   if (status === "registrada") return true;
   return status === "triagem" && precisaReclassificar(tipo);
 }

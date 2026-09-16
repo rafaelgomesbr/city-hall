@@ -24,7 +24,7 @@ jest.mock("expo-font", () => ({
   useFonts: () => [mockCarregadas, mockErro],
 }));
 
-import { ProvedorDeFontes, decidirAbertura, useFontes, TETO_DE_ESPERA_DA_FONTE_MS } from "./fontes";
+import { ProvedorDeFontes, decidirAbertura, TETO_DE_ESPERA_DA_FONTE_MS } from "./fontes";
 import { Aviso, Txt, ProvedorDeTema } from "./componentes";
 import { ARQUIVOS_DE_FONTE, FAMILIA_POR_PESO, PILHA_DO_SISTEMA, familiaDoTexto } from "./tipografia";
 import { peso } from "./tokens";

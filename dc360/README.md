@@ -377,7 +377,7 @@ Duas regras de conteúdo que não são estéticas:
 - **Nenhuma norma além das autorizadas, e nenhum número de artigo.** Artigo
   errado num termo de interdição é motivo para anular o ato. Um teste varre o
   HTML procurando qualquer citação de lei ou decreto e reprova se aparecer
-  algo fora da lista de `docs/CONTEXTO.md`; outro reprova se aparecer a
+  algo fora da lista de `../docs/CONTEXTO.md`; outro reprova se aparecer a
   palavra "artigo" seguida de número.
 
 Os dois saem também em PDF (`/documentos/:id/laudo.pdf`), renderizados do
@@ -943,8 +943,9 @@ isolamento: nenhum protocolo, equipe ou usuário de Serra Alta aparece, e buscar
 por um protocolo do outro município não devolve nada.
 
 Para começar do zero no modo local, limpe o site nas ferramentas do navegador
-(isso apaga o IndexedDB) ou chame `recriarBanco()` de `src/dados/banco.ts`. No
-modo API, basta reiniciar o servidor: o banco efêmero nasce semeado de novo.
+(isso apaga o IndexedDB, onde o PGlite guarda o banco, e a marca da semente no
+`localStorage`). No modo API, basta reiniciar o servidor: o banco efêmero
+nasce semeado de novo.
 
 ## Implantação
 
@@ -1138,7 +1139,7 @@ MOTOR=firefox npm run test:e2e                              # e no Gecko
 ```
 
 A variável `MOTOR` troca o motor do navegador (`chromium`, `firefox`,
-`webkit`). As 58 verificações passam no Chromium, que é o motor do Chrome e do
+`webkit`). As 68 verificações passam no Chromium, que é o motor do Chrome e do
 Edge, e no Firefox. Sobre o WebKit, leia a seção seguinte antes de tentar.
 
 ### O modo local não serve para o Safari
@@ -1196,7 +1197,7 @@ LOG_API=/caminho/do/log-da-api npm run test:e2e:api --workspace @dc360/web
 email: em desenvolvimento o link sai no log do servidor, e é de lá que a suíte
 o lê.
 
-São 103 verificações que só existem neste caminho: entrada por senha, senha
+São 103 verificações no navegador que só existem neste caminho: entrada por senha, senha
 errada recusada, token guardado sem a senha nem o hash, isolamento imposto
 pelo servidor (inclusive abrindo a URL de outro município na mão), fluxo
 gravando de verdade, dado criado numa sessão aparecendo em outro navegador,
@@ -1212,7 +1213,7 @@ o CORS da API não permitia `PUT`, então o envio de bytes nem saía do
 navegador; e o `Cross-Origin-Resource-Policy` do helmet bloqueava a imagem
 quando painel e API ficam em origens diferentes, que é o arranjo de produção.
 
-São 68 verificações: entrada, a busca global tolerante a erro, isolamento entre municípios visto dos dois lados,
+São 68 verificações no navegador: entrada, a busca global tolerante a erro, isolamento entre municípios visto dos dois lados,
 geração de protocolo em sequência, triagem, despacho, encerramento com motivo
 obrigatório, indicadores do painel reagindo às mudanças, cadastro de equipes e
 usuários com recusa de duplicata, mapa, restrição de menu por papel, tema
@@ -1336,7 +1337,7 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
 
-  Essa última já tem 138 testes do motor de campo cobrindo a lógica fora do
+  Essa última já tem 159 testes do motor de campo cobrindo a lógica fora do
   celular, inclusive retomada arquivo a arquivo.
   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e

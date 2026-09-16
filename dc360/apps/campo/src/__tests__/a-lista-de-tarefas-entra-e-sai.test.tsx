@@ -28,7 +28,7 @@
  * vira ROTA no Expo.
  */
 
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { Animated } from "react-native";
 import type { Pendencia } from "../dados/api";
 
@@ -132,7 +132,7 @@ beforeEach(() => {
   }) as never);
 });
 
-afterEach(() => { jest.restoreAllMocks(); });
+afterEach(() => { jest.restoreAllMocks(); jest.useRealTimers(); });
 
 /**
  * A CONTAGEM DO CABEÇALHO, lida como um elemento só.
@@ -217,6 +217,29 @@ describe("a tarefa que chega", () => {
 
 describe("a tarefa que some", () => {
   /*
+    RELÓGIO FALSO nos três casos deste bloco, e o motivo é uma reprovação que
+    só acontecia com a máquina ocupada.
+
+    O cartão que sai é largado por um `setTimeout` de `movimento.mudancaDeEstado`
+    (260 ms), e o primeiro caso abaixo afirma que ele AINDA está desenhado logo
+    depois do toque. Com o relógio de verdade isso é uma corrida: o `act` do
+    toque renderiza a lista inteira, e num portão que roda seis pacotes ao mesmo
+    tempo (carga média de 66 em 8 núcleos, medida em 15/09/2026) essa
+    renderização levou de 1,6 a 6,5 segundos, ou seja, o temporizador disparava
+    e o cartão já tinha ido embora quando a asserção chegava. Três reprovações
+    em três, isolado, e nenhuma delas era defeito da tela: a tela larga o cartão
+    em 260 ms de propósito.
+
+    A regra da casa em `jest.setup.js` já dizia: caso que lida com tempo usa
+    temporizador falso. A fila de envio prova a MESMA saída assim
+    (`ui/fila-como-produto.test.tsx`), e foi a instrumentação (contar os
+    `setTimeout` agendados dentro do `act`: sete a dez, só um a quatro deles de
+    quadro de animação) que descartou a outra suspeita, a de que uma animação em
+    JavaScript estivesse prendendo o `act`. O que prendia era a CPU.
+  */
+  beforeEach(() => { jest.useFakeTimers(); });
+
+  /*
     Este é o caso da reconciliação: a coordenação encerrou, trocou de equipe ou
     outro agente concluiu, e a linha é APAGADA do aparelho. O cartão que sai
     precisa ser desenhado a partir do que a tela tinha, porque no disco ele não
@@ -237,6 +260,10 @@ describe("a tarefa que some", () => {
     expect(saida?.duration).toBe(movimento.mudancaDeEstado);
     expect(saida?.useNativeDriver).toBe(true);
     expect(typeof saida?.easing).toBe("function");
+
+    /* E um instante antes do prazo ela continua lá: quem a larga é o prazo. */
+    await act(async () => { jest.advanceTimersByTime(movimento.mudancaDeEstado - 1); });
+    expect(screen.getByText("000472/2026")).toBeTruthy();
   });
 
   /*
@@ -264,8 +291,10 @@ describe("a tarefa que some", () => {
 
     mockNaRede = [PRIMEIRA];
     await baixarDeNovo();
+    expect(screen.getByText("000472/2026")).toBeTruthy();
 
-    await waitFor(() => { expect(screen.queryByText("000472/2026")).toBeNull(); });
+    await act(async () => { jest.advanceTimersByTime(movimento.mudancaDeEstado); });
+    expect(screen.queryByText("000472/2026")).toBeNull();
   });
 });
 

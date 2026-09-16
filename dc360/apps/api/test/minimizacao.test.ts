@@ -142,13 +142,23 @@ describe("Minimização por prazo", () => {
 
     /*
       O que NÃO pode sair junto. O endereço é atributo do imóvel vistoriado e
-      do ato praticado sobre ele; o protocolo e o relato são o registro do que
-      aconteceu. Apagar isso apagaria o próprio ato administrativo, que é
-      permanente e do qual o município presta contas.
+      do ato praticado sobre ele, e o protocolo é o número do ato. Apagar isso
+      apagaria o próprio ato administrativo, que é permanente e do qual o
+      município presta contas.
+
+      O RELATO SAI, desde a migração 043. Este caso afirmava o contrário
+      ("o relato é o registro do que aconteceu") e estava errado: o relato é
+      texto livre ditado por telefone, e na prática nomeia quem ligou, quem
+      mora na casa e o que essa pessoa tem. O que o ato precisa guardar dele
+      já está em coluna própria (tipo, severidade, endereço, marca de
+      vulnerabilidade). O caso completo, com a vistoria e a trilha, está em
+      `db/test/minimizacao-do-relato-e-da-trilha.test.ts`; aqui fica o
+      sintoma que a sondagem viu pela API.
     */
     expect(depois.protocolo).toBe("000001/2026");
     expect(depois.endereco).toContain("Rua das Acacias");
-    expect(depois.descricao).toContain("Talude com trinca");
+    expect(depois.descricao, "o relato continua nomeando a família depois do prazo").not.toContain("Talude com trinca");
+    expect(depois.descricao).toBe(MARCADOR_REMOVIDO_POR_PRAZO);
   }, 60_000);
 
   it("é marcador e não nulo, senão descarte e ausência ficam iguais", async () => {
@@ -180,8 +190,9 @@ describe("Minimização por prazo", () => {
       "sem evento na trilha, minimizacao e perda de dado sao indistinguiveis",
     ).toHaveLength(1);
 
+    // `descricao` entrou na lista com a migração 043: o relato sai junto.
     expect(minimizacao[0]!.detalhe.campos).toEqual([
-      "solicitante_nome", "solicitante_contato", "vulnerabilidade_descricao",
+      "solicitante_nome", "solicitante_contato", "vulnerabilidade_descricao", "descricao",
     ]);
     // Não houve sessão de ninguém: o autor é o sistema, dito por extenso, e
     // sem identificador de pessoa.

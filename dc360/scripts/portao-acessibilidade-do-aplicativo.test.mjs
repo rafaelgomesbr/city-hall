@@ -596,12 +596,29 @@ test("o escape nomeado dispensa quem foi declarado, e ninguém mais", () => {
   assert.equal(dispensado(linhas, 2), true, "o marcador não vale na própria linha");
   assert.equal(dispensado(["<Pressable />"], 1), false, "elemento sem marcador nenhum saiu dispensado");
 
+  /*
+    A ÚNICA exceção viva é o `PressionavelAnimado` dentro de `Tocavel`, e ela
+    é só do piso: a primitiva não impõe altura, porque o cartão de lista e o
+    disparador de câmera não têm a mesma, e o `minHeight: toque` é cobrado em
+    cada `<Tocavel>` das telas. Papel e rótulo continuam sendo cobrados AQUI,
+    pelo texto, porque o marcador dispensa das duas regras e uma exceção que
+    apagasse o rótulo da primitiva apagaria o rótulo de todo tocável do
+    aplicativo. Qualquer outro tocável dispensado precisa aparecer no
+    relatório do turno em vez de passar calado.
+  */
   const comMarcador = tocaveisDoApp().filter((t) => t.dispensado);
   assert.deepEqual(
-    comMarcador.map((t) => `${t.arquivo}:${t.linha}`),
-    [],
-    "hoje não deveria existir nenhum tocável dispensado; se um entrou, ele precisa "
-    + "aparecer no relatório do turno em vez de passar calado:\n"
+    comMarcador.map((t) => t.arquivo),
+    ["ui/componentes.tsx"],
+    "só a primitiva `Tocavel` pode estar dispensada, e só do piso:\n"
     + comMarcador.map((t) => `${t.arquivo}:${t.linha}`).join("\n"),
+  );
+  const [primitiva] = comMarcador;
+  assert.ok(primitiva.texto.startsWith("<PressionavelAnimado"), "a exceção de `Tocavel` mudou de elemento");
+  assert.ok(
+    primitiva.texto.includes("accessibilityRole={accessibilityRole}")
+      && primitiva.texto.includes("accessibilityLabel={accessibilityLabel}"),
+    "a primitiva `Tocavel` parou de repassar papel e rótulo ao elemento de verdade, "
+    + "e a exceção do piso não cobre isso",
   );
 });

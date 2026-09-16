@@ -1,51 +1,14 @@
-import type { Severidade, StatusOcorrencia } from "./dominio.js";
-import { PRAZO_PADRAO_HORAS, ocorrenciaAtiva } from "./dominio.js";
-
-/**
- * Protocolo é único por organização e por ano, no formato NNNNNN/AAAA.
- *
- * A geração real acontece no banco, dentro da transação, com uma sequência
- * por (organizacao, ano) e restrição de unicidade: gerar na aplicação abriria
- * corrida entre dois operadores registrando ao mesmo tempo. Esta função existe
- * só para formatar o número que o banco devolveu.
- */
-export function formatarProtocolo(sequencial: number, ano: number): string {
-  if (!Number.isInteger(sequencial) || sequencial < 1) {
-    throw new Error("Sequencial de protocolo deve ser inteiro positivo");
-  }
-  if (sequencial > 999999) {
-    throw new Error("Sequencial de protocolo estourou seis dígitos no ano");
-  }
-  return `${String(sequencial).padStart(6, "0")}/${ano}`;
-}
-
-export function partesDoProtocolo(protocolo: string): { sequencial: number; ano: number } {
-  const casou = /^(\d{6})\/(\d{4})$/.exec(protocolo);
-  if (!casou) {
-    throw new Error(`Protocolo fora do formato esperado: ${protocolo}`);
-  }
-  return { sequencial: Number(casou[1]), ano: Number(casou[2]) };
-}
-
-/** Prazo de atendimento a partir da severidade definida na triagem. */
-export function prazoAPartirDaSeveridade(severidade: Severidade, base: Date): Date {
-  return new Date(base.getTime() + PRAZO_PADRAO_HORAS[severidade] * 3_600_000);
-}
-
-/**
- * Atrasada é a ocorrência ainda ativa cujo prazo já venceu. Ocorrência
- * encerrada nunca conta como atrasada, mesmo que tenha vencido antes de
- * encerrar: o indicador serve para dirigir atenção ao que ainda dá para agir.
- */
-export function estaAtrasada(
-  status: StatusOcorrencia,
-  prazoEm: Date | null,
-  agora: Date,
-): boolean {
-  if (!ocorrenciaAtiva(status)) return false;
-  if (!prazoEm) return false;
-  return prazoEm.getTime() < agora.getTime();
-}
+/*
+  Até 15/09/2026 este arquivo também exportava `formatarProtocolo`,
+  `partesDoProtocolo`, `prazoAPartirDaSeveridade` e `estaAtrasada`, e nenhum
+  dos quatro tinha um único uso nas quatro árvores: o protocolo nasce e se
+  formata NO BANCO (`proximo_protocolo`, em `db/migrations/001_base.sql`, com
+  `lpad`), o prazo é calculado pela mesma função SQL a partir de
+  `PRAZO_PADRAO_HORAS`, e "atrasada" é uma expressão SQL escrita uma vez em
+  `apps/web/src/dados/local.ts` e nas rotas da API. Regra que mora no banco
+  não ganha uma cópia em TypeScript que ninguém chama: cópia sem uso é cópia
+  que diverge sem ninguém perceber.
+*/
 
 /**
  * Chave de storage sempre prefixada por tenant. É a segunda barreira de

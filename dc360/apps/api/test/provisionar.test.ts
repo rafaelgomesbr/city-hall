@@ -24,6 +24,11 @@ let mem: BancoEmMemoria;
 let app: FastifyInstance;
 
 const SENHA = "senha-inicial-sorteada-de-teste";
+/**
+ * A senha que a administradora DEFINE na primeira entrada. A inicial é
+ * provisória (migração 046): entra, e só abre a troca de senha.
+ */
+const SENHA_DEFINIDA = "senha-definida-pela-vania-2026";
 /** Quem, do lado do fornecedor, executou o provisionamento. */
 const OPERADOR = "Rafael Gomes (operação da plataforma)";
 
@@ -81,7 +86,7 @@ describe("Provisionar município", () => {
     expect(org.rows[0]!.municipio).toBe("Pedra Branca");
   }, 120_000);
 
-  it("o administrador recém-criado consegue entrar", async () => {
+  it("o administrador recém-criado consegue entrar, e a primeira entrada exige definir a senha", async () => {
     // Provisionar que não deixa ninguém entrar não provisionou nada.
     const r = await app.inject({
       method: "POST", url: "/auth/entrar",
@@ -90,6 +95,15 @@ describe("Provisionar município", () => {
     expect(r.statusCode, r.body).toBe(200);
     expect(r.json().usuario.papel).toBe("administrador");
     expect(r.json().usuario.municipio).toBe("Pedra Branca");
+    // A senha inicial é provisória (migração 046): a sessão nasce trancada.
+    expect(r.json().trocaDeSenhaObrigatoria).toBe(true);
+
+    const troca = await app.inject({
+      method: "POST", url: "/auth/trocar-senha",
+      headers: { authorization: `Bearer ${r.json().acesso}` },
+      payload: { senhaAtual: SENHA, senha: SENHA_DEFINIDA },
+    });
+    expect(troca.statusCode, troca.body).toBe(200);
   }, 120_000);
 
   it("o município nasce funcionando: dá para abrir ocorrência e sai protocolo", async () => {
@@ -101,7 +115,7 @@ describe("Provisionar município", () => {
     */
     const entrada = await app.inject({
       method: "POST", url: "/auth/entrar",
-      payload: { email: "vania.nogueira@pedrabranca.exemplo.gov.br", senha: SENHA },
+      payload: { email: "vania.nogueira@pedrabranca.exemplo.gov.br", senha: SENHA_DEFINIDA },
     });
     const token = entrada.json().acesso;
 
@@ -127,7 +141,7 @@ describe("Provisionar município", () => {
     // número um. Aqui o município novo entra e a fila dele tem só o que é dele.
     const entrada = await app.inject({
       method: "POST", url: "/auth/entrar",
-      payload: { email: "vania.nogueira@pedrabranca.exemplo.gov.br", senha: SENHA },
+      payload: { email: "vania.nogueira@pedrabranca.exemplo.gov.br", senha: SENHA_DEFINIDA },
     });
     const token = entrada.json().acesso;
 

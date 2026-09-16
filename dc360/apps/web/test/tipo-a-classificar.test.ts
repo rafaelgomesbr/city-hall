@@ -92,6 +92,19 @@ describe("As regras do tipo a classificar", () => {
     expect(ofereceTriagem("operador", "registrada", "outro")).toBe(false);
   });
 
+  it("em campo não recebe o cartão de triagem: a volta é pela devolução, não por aqui", () => {
+    /*
+      O servidor passou a recusar `em_campo -> triagem` pela rota de triagem
+      (a aresta é da devolução de tarefa). O painel já não oferecia o cartão
+      nesse estado; esta linha prende isso, para o cartão não voltar a aparecer
+      e terminar num 409.
+    */
+    for (const status of ["em_campo", "vistoria_concluida", "providencia_pendente"] as const) {
+      expect(ofereceTriagem("coordenador", status, "outro"), status).toBe(false);
+      expect(ofereceTriagem("coordenador", status, "deslizamento"), status).toBe(false);
+    }
+  });
+
   it("o despacho é recusado antes de o formulário ser preenchido", () => {
     expect(despachoEsperaClassificacao("triagem", "outro")).toBe(true);
     expect(despachoEsperaClassificacao("triagem", "granizo")).toBe(false);

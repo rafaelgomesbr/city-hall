@@ -36,13 +36,17 @@ import type { Banco } from "../banco/tipos.js";
  *   - ESCRITA com token vivo confere sempre (qualquer método que não seja
  *     GET ou HEAD). Escrever cria registro (protocolo, laudo, evento de
  *     trilha) sob um contrato que o fornecedor suspendeu, e o custo é uma
- *     consulta por escrita, que é a parte pequena do tráfego.
+ *     consulta por escrita, que é a parte pequena do tráfego. Desde
+ *     15/09/2026 essa MESMA consulta confere também a vigência de quem
+ *     escreve (conta ativa, papel do token, sessão de pé, senha provisória
+ *     no prazo): ver `auth/vigencia.ts`.
  *   - LEITURA com token vivo NÃO confere. O token expira em quinze minutos, e
- *     essa é exatamente a janela que o produto já aceita quando um usuário é
- *     desativado ou expulso pelo administrador: a sessão cai, o token vivo
- *     termina o prazo. Suspensão contratual não é incidente de segurança, e
- *     quinze minutos de leitura não produzem registro nenhum. O que se compra
- *     é nenhuma ida ao banco a mais em nenhuma leitura.
+ *     essa é a janela que o produto aceita, para LEITURA, quando um usuário é
+ *     desativado ou expulso pelo administrador: a sessão cai, a escrita para
+ *     no pedido seguinte, e o token vivo termina o prazo lendo. Suspensão
+ *     contratual não é incidente de segurança, e quinze minutos de leitura
+ *     não produzem registro nenhum. O que se compra é nenhuma ida ao banco a
+ *     mais em nenhuma leitura.
  *   - TOKEN VENCIDO mas AUTÊNTICO confere. Este é o caso do aplicativo de
  *     campo: depois que a renovação falha, o aparelho segue apresentando o
  *     token vencido, e sem esta conferência ele receberia 401 para sempre, que

@@ -40,14 +40,16 @@ import { fileURLToPath } from "node:url";
 /**
  * Advisories do aplicativo de campo que hoje NÃO dá para fechar, com o motivo.
  *
- * Nenhuma delas vem de dependência escolhida por este projeto: as duas chegam
- * por dentro do Expo, e `npm audit fix --force` quebraria a compilação nativa.
+ * Nenhuma delas vem de dependência escolhida por este projeto: chegam por
+ * dentro do Expo, e `npm audit fix --force` quebraria a compilação nativa.
  * A lista tem nome e razão de propósito, para envelhecer em público.
+ *
+ * `js-yaml` (por `@expo/xcpretty`) esteve aqui até 15/09/2026 com a razão
+ * "sai quando o Expo atualizar", e a razão era falsa: o `npm audit` já dizia
+ * `fixAvailable: true`, e um `npm audit fix` a fechou. É o caso que fez este
+ * portão passar a reprovar aceita com correção disponível (ver abaixo).
  */
 const ACEITAS_NO_APLICATIVO = {
-  "js-yaml": "Chega por expo > @expo/cli > @expo/xcpretty, que é FERRAMENTA DE "
-    + "COMPILAÇÃO: formata a saída do Xcode e não entra no pacote instalado no "
-    + "telefone. Sai quando o Expo atualizar o xcpretty.",
   "decode-uri-component": "Chega por expo-router > query-string, e esta vai "
     + "junto com o aplicativo. O ataque é negação de serviço por percentual mal "
     + "formado numa URL, e a única URL que o aplicativo analisa é o próprio link "
@@ -127,6 +129,22 @@ const pacotesDoApp = Object.entries(relatorioDoApp.vulnerabilities ?? {})
   .sort();
 const naoAceitas = pacotesDoApp.filter((nome) => !(nome in ACEITAS_NO_APLICATIVO));
 
+/*
+  Aceita QUE JÁ TEM CORREÇÃO é uma linha que virou desculpa.
+
+  A lista existe para o que "hoje NÃO dá para fechar", e `npm audit` diz, por
+  advisory, se dá: `fixAvailable: true` é correção dentro da faixa de versão
+  declarada, sem salto maior, e `npm audit fix` a aplica sozinho. Um revisor
+  achou `js-yaml` aceita com `fixAvailable: true` em 15/09/2026, e o motivo
+  escrito na lista ("sai quando o Expo atualizar") já era falso: a correção
+  estava a um comando de distância. Correção que exige salto maior vem como
+  objeto (`{ name, version, isSemVerMajor: true }`), e essa continua sendo
+  decisão de gente, não deste portão.
+*/
+const aceitasComCorrecao = pacotesDoApp.filter(
+  (nome) => nome in ACEITAS_NO_APLICATIVO && relatorioDoApp.vulnerabilities[nome].fixAvailable === true,
+);
+
 console.log(`\nAplicativo de campo (vai para o telefone): ${doApp.total} vulnerabilidade(s)`);
 for (const nome of pacotesDoApp) {
   const razao = ACEITAS_NO_APLICATIVO[nome];
@@ -141,6 +159,18 @@ if (naoAceitas.length > 0) {
   console.error(
     "Isto vai instalado no telefone do agente. Corrija, ou acrescente a "
     + "ACEITAS_NO_APLICATIVO em scripts/auditar.mjs COM O MOTIVO escrito.",
+  );
+  process.exit(1);
+}
+
+if (aceitasComCorrecao.length > 0) {
+  console.error(
+    `\nREPROVADO: ${aceitasComCorrecao.join(", ")} está em ACEITAS_NO_APLICATIVO, `
+    + "mas o npm audit diz que a correção já existe e não exige salto maior.",
+  );
+  console.error(
+    "Rode `npm audit fix` em apps/campo, confira o package-lock.json e a suíte, "
+    + "e apague a linha da lista.",
   );
   process.exit(1);
 }

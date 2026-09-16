@@ -140,6 +140,24 @@ const CHAVE_DO_MAPA_IOS = process.env["DC360_MAPS_CHAVE_IOS"]?.trim() || CHAVE_D
 const CHAVE_DO_MAPA_ANDROID = process.env["DC360_MAPS_CHAVE_ANDROID"]?.trim() || CHAVE_DO_MAPA;
 
 /**
+ * Se este build é o de LOJA, e portanto fala com a APNs de produção.
+ *
+ * `EAS_BUILD_PROFILE` é posto pelo próprio EAS durante o build, então o
+ * perfil `producao` de `eas.json` responde por isto sem ninguém precisar
+ * lembrar. Fora do EAS (Xcode local, `expo run:ios`) a variável não existe e
+ * o binário é de desenvolvimento, que fala com o sandbox.
+ *
+ * UMA constante, lida em DOIS lugares: o `mode` do `expo-notifications`
+ * (que escreve o `aps-environment` no binário) e o `extra.pushAmbiente` (que
+ * o aplicativo manda ao servidor no registro do aparelho). É a mesma
+ * expressão de propósito: se fossem duas, o dia em que uma mudasse sem a
+ * outra produziria um binário dizendo ao servidor que fala com um ambiente e
+ * assinado para o outro, e o varredor revogaria o aparelho de quem está em
+ * campo, sem erro em lugar nenhum.
+ */
+const PERFIL_DE_PRODUCAO = process.env["EAS_BUILD_PROFILE"] === "producao";
+
+/**
  * A TELA DE ABERTURA, agora com os dois temas.
  *
  * O defeito, visto no aparelho: `backgroundColor` era `#101519` e mais nada.
@@ -576,7 +594,7 @@ const config: ExpoConfig = {
           perfil `producao` de `eas.json` já responde por isto sem ninguém
           precisar lembrar.
         */
-        mode: process.env["EAS_BUILD_PROFILE"] === "producao" ? "production" : "development",
+        mode: PERFIL_DE_PRODUCAO ? "production" : "development",
       },
     ],
     [
@@ -611,6 +629,17 @@ const config: ExpoConfig = {
       apontando para o servidor de alguém é acidente esperando acontecer.
     */
     apiUrl: process.env["DC360_API_URL"] ?? "http://localhost:3333",
+    /*
+      Com qual APNs ESTE binário fala, no vocabulário do servidor
+      (`APNS_AMBIENTE`: `producao` | `teste`). O aplicativo manda isto no
+      registro do aparelho (`src/push/registro.ts`), e o servidor guarda por
+      aparelho (migração 044) para rotear cada ficha para a APNs certa. Sai
+      da MESMA constante que decide o `aps-environment` no plugin acima, e é
+      isso que impede os dois de divergirem: um binário que dissesse "sou de
+      produção" com ficha do sandbox seria revogado pelo varredor na primeira
+      rodada, sem erro em lugar nenhum.
+    */
+    pushAmbiente: PERFIL_DE_PRODUCAO ? "producao" : "teste",
     /*
       A MESMA chave, repetida aqui para o JavaScript conseguir PERGUNTAR se ela
       existe. Não é duplicação por descuido: é a única forma de o aplicativo

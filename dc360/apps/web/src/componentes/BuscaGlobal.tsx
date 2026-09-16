@@ -3,7 +3,7 @@ import {
   type KeyboardEvent, type RefObject,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import { podeExecutar, type Papel } from "@dc360/shared";
+import type { Papel } from "@dc360/shared";
 import { buscar, type GrupoDeBusca } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
@@ -15,7 +15,7 @@ import {
 } from "../busca/indice";
 import { destacar, normalizar } from "../busca/pontuador";
 import {
-  achatar, destinoDoResultado, gruposVisiveis, type OpcaoDaLista,
+  achatar, destinoDoEnter, destinoDoResultado, gruposVisiveis, type OpcaoDaLista,
 } from "../busca/registros";
 import { SeloSeveridade } from "./comuns";
 import {
@@ -56,6 +56,12 @@ export type PropsCorpoDaBusca = {
   situacao: SituacaoDoServidor;
   /** A dica escrita na caixa: "Ctrl K" ou "⌘ K". */
   atalho: string;
+  /**
+   * O que o Enter sem item escolhido faz, dito no estado vazio. Vem de
+   * `destinoDoEnter`, a mesma regra que decide para onde ele leva: a caixa
+   * do agente de campo abre "Meu trabalho", e não a lista de ocorrências.
+   */
+  fraseDoEnter?: string;
   iconeDe: (opcao: OpcaoDaLista) => JSX.Element;
   aoMudar: (valor: string) => void;
   aoTeclar: (evento: KeyboardEvent<HTMLInputElement>) => void;
@@ -82,6 +88,7 @@ function agrupar(opcoes: readonly OpcaoDaLista[]): Array<{ grupo: string; itens:
 
 export function CorpoDaBusca({
   consulta, aberta, ativo, opcoes, situacao, atalho, iconeDe,
+  fraseDoEnter = "Enter abre a lista de ocorrências filtrada por esse texto.",
   aoMudar, aoTeclar, aoEscolher, aoEnviar, aoFocar, refDaCaixa, refDoEnvoltorio,
 }: PropsCorpoDaBusca) {
   const frase = fraseDeEstado({ consulta: consulta.trim(), total: opcoes.length, situacao });
@@ -166,7 +173,19 @@ export function CorpoDaBusca({
                           ? <mark key={i} className="busca-global__marca">{s.texto}</mark>
                           : <Fragment key={i}>{s.texto}</Fragment>)}
                       </span>
-                      {opcao.detalhe && <span className="busca-global__detalhe">{opcao.detalhe}</span>}
+                      {/*
+                        O detalhe também é marcado: quando o casamento foi
+                        pelo nome do solicitante ou pela matrícula, é lá que
+                        o trecho digitado está, e uma linha sem marca nenhuma
+                        não explica por que apareceu.
+                      */}
+                      {opcao.detalhe && (
+                        <span className="busca-global__detalhe">
+                          {destacar(opcao.detalhe, consulta).map((s, i) => s.marcado
+                            ? <mark key={i} className="busca-global__marca">{s.texto}</mark>
+                            : <Fragment key={i}>{s.texto}</Fragment>)}
+                        </span>
+                      )}
                     </span>
                     {ocorrencia && <SeloSeveridade severidade={ocorrencia.severidade ?? null} />}
                   </div>
@@ -185,7 +204,7 @@ export function CorpoDaBusca({
           )}
           {nadaAchado && (
             <div className="busca-global__estado" role="presentation">
-              Nada encontrado para “{consulta.trim()}”. Enter abre a lista de ocorrências filtrada por esse texto.
+              Nada encontrado para “{consulta.trim()}”. {fraseDoEnter}
             </div>
           )}
         </div>
@@ -306,23 +325,13 @@ export function BuscaGlobal({ papel, paginas, tema, aoTrocarTema, aoSair }: Prop
     const termo = consulta.trim();
     fechar();
     /*
-      A busca leva cada papel para o lugar dele.
-
-      O menu esconde "Ocorrências" de quem registra vistoria, de propósito: o
-      agente de campo trabalha sobre o que foi despachado para a equipe dele, e
-      não sobre a fila do município inteiro. Mas a caixa de busca aparece em
-      toda tela, para todo mundo, e mandava todos para `/ocorrencias`.
-
-      O resultado era uma contradição de produto: o controle mais visível da
-      interface alcançava a tela que o menu decidiu esconder. E o beco vinha
-      logo depois, porque abrir uma ocorrência de outra equipe renderiza a
-      página inteira sem uma única ação disponível, sem dizer por quê.
-
-      Não era vazamento: o município vem do token e o RLS continua de pé. Era
-      pior de outro jeito, porque não parecia erro nenhum.
+      A busca leva cada papel para o lugar dele: o agente de campo para "Meu
+      trabalho", que aplica o `?busca=`, e os outros para a lista. A regra e
+      a frase do estado vazio saem de `destinoDoEnter`, para a caixa não
+      prometer uma tela e abrir outra. O porquê está lá.
     */
-    const destino = podeExecutar(papel, "registrar_vistoria") ? "/meu-trabalho" : "/ocorrencias";
-    navegar(termo ? `${destino}?busca=${encodeURIComponent(termo)}` : destino);
+    const { para } = destinoDoEnter(papel);
+    navegar(termo ? `${para}?busca=${encodeURIComponent(termo)}` : para);
   }
 
   function escolher(indice: number): void {
@@ -398,6 +407,7 @@ export function BuscaGlobal({ papel, paginas, tema, aoTrocarTema, aoSair }: Prop
       opcoes={opcoes}
       situacao={servidor.situacao}
       atalho={atalho}
+      fraseDoEnter={destinoDoEnter(papel).frase}
       iconeDe={iconeDe}
       aoMudar={mudar}
       aoTeclar={teclar}

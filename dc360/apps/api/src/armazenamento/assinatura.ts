@@ -177,10 +177,3 @@ export function assinarUrl(pedido: PedidoAssinatura): string {
 
   return `https://${pedido.host}${caminhoCanonico}?${consultaCanonica}&X-Amz-Signature=${assinatura}`;
 }
-
-/** Exposto para o teste conferir os passos intermediários contra o vetor oficial. */
-export const internos = {
-  codificarCaminho,
-  sha256Hex,
-  chaveDeAssinatura,
-};

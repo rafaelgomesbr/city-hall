@@ -162,6 +162,15 @@ async function despachada(endereco: string): Promise<string> {
     method: "POST", url: `/ocorrencias/${id}/despacho`, headers: comCoord(),
     payload: { equipeId: equipeAlfa, prazoHoras: 24 },
   });
+  /*
+    O chamado nasce com um dia de idade. A coleta desta suíte é datada de
+    antes do envio, para o laudo ter as duas marcas de tempo, e a rota recusa
+    coleta anterior à abertura do chamado (`data_implausivel`): a vistoria não
+    pode ter acontecido antes de o chamado existir.
+  */
+  await mem.bruto.query(
+    "UPDATE ocorrencias SET criado_em = now() - interval '1 day' WHERE id = $1", [id],
+  );
   return id;
 }
 

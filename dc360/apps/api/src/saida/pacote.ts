@@ -482,10 +482,24 @@ export async function* montarPacoteDeSaida(
               v.assinante_nome, v.observacoes, v.coletada_em, v.sincronizada_em,
               v.assinatura_chave, v.desalojados, v.desabrigados, v.feridos,
               v.desaparecidos, v.obitos,
-              u.nome AS agente_nome, u.matricula AS agente_matricula
+              u.nome AS agente_nome, u.matricula AS agente_matricula,
+              EXISTS (
+                SELECT 1 FROM trilha_eventos t
+                 WHERE t.ocorrencia_id = v.ocorrencia_id
+                   AND t.tipo = 'vistoria_sem_despacho'
+                   AND t.detalhe ->> 'vistoriaId' = v.id::text
+              ) AS sem_despacho
          FROM vistorias v LEFT JOIN usuarios u ON u.id = v.agente_id
         ORDER BY v.ocorrencia_id, v.sincronizada_em DESC, v.coletada_em DESC`,
     );
+    /*
+      `sem_despacho` é a mesma marca, lida do mesmo lugar que a rota de
+      documentos lê (o evento da trilha apontando para esta vistoria, e não a
+      coluna nula, que é o normal de toda vistoria anterior à migração 024).
+      O laudo do pacote precisa dizer o que o laudo emitido diz: uma coleta que
+      chegou sem despacho não pode virar um papel limpo só porque saiu na
+      exportação.
+    */
 
     const indicados = await c.query<{ vistoria_id: string; nome: string; sigla: string | null }>(
       `SELECT i.vistoria_id, i.nome, g.sigla
@@ -708,6 +722,15 @@ export async function* montarPacoteDeSaida(
             motivo: ocorrencia.desinterdicao_motivo ?? "",
             porNome: ocorrencia.desinterditada_por_nome ?? "Coordenação",
             interditadaEm: ocorrencia.interditada_em,
+            /*
+              A vistoria do pacote é a vigente. Ela é a re-vistoria que
+              motivou o levantamento quando foi recebida DEPOIS da interdição;
+              senão, o levantamento foi sem vistoria nova e o termo diz isso
+              em vez de imprimir o checklist que interditou.
+            */
+            comNovaVistoria:
+              new Date(vistoria.sincronizada_em).getTime()
+                > new Date(ocorrencia.interditada_em).getTime(),
           },
         })),
       });

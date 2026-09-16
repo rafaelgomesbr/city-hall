@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { PanResponder, View, type LayoutChangeEvent } from "react-native";
 import Svg, { Path, Rect } from "react-native-svg";
 import { File, Paths } from "expo-file-system";
-import { Aviso, Botao, LinhaDeAcoes, Txt, useTema } from "./componentes";
+import { Aviso, Botao, LinhaDeAcoes, Txt } from "./componentes";
 import { Chip } from "./Chip";
 import { IconeSucesso } from "./icones";
 import { borda, espaco, icone, papel, raio } from "./tokens";
@@ -64,7 +64,6 @@ const LIMITE_DE_GRAVACAO_MS = 8000;
 export function Assinatura(
   { aoConfirmar, aoLimpar, jaAssinada, aoComecarDesenho, aoTerminarDesenho }: Props,
 ) {
-  const tema = useTema();
   const [tracos, setTracos] = useState<string[]>([]);
   const [tracoAtual, setTracoAtual] = useState<string>("");
   const [gravando, setGravando] = useState(false);

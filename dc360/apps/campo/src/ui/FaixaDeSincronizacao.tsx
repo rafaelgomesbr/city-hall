@@ -4,7 +4,7 @@ import { Animated, Easing, Pressable, View } from "react-native";
 import { useSinal } from "../dados/conectividade";
 import { contagemDaFila, useResumoDaFila } from "../dados/resumo-da-fila";
 import { Txt, useTema } from "./componentes";
-import { movimento, raio, espaco, toque, type Tema } from "./tokens";
+import { easing, movimento, raio, espaco, toque, type Tema } from "./tokens";
 import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
 
 /**
@@ -38,7 +38,13 @@ import { useReducaoDeMovimento } from "./useReducaoDeMovimento";
 
 export type EstadoDaFaixa = {
   /** Identidade do estado. Trocou, houve transição. */
-  chave: "sem_sinal" | "enviando" | "esperando" | "aguardando_autor" | "sincronizado";
+  chave:
+    | "sem_sinal"
+    | "enviando"
+    | "esperando"
+    | "precisa_de_correcao"
+    | "aguardando_autor"
+    | "sincronizado";
   fundo: string;
   cor: string;
   sinalTexto: string;
@@ -56,15 +62,26 @@ export type EstadoDaFaixa = {
  * morro, e promessa central precisa de teste próprio.
  *
  * A ORDEM DOS CASOS É O CONTEÚDO, e ela vai do mais concreto ao mais otimista:
- * sem sinal, enviando agora, esperando sinal, esperando o autor, e só então
- * tudo certo. "Tudo sincronizado" é o último, e só sobra quando nada mais
- * sobrou.
+ * sem sinal, enviando agora, esperando sinal, parada por recusa do servidor,
+ * esperando o autor, e só então tudo certo. "Tudo sincronizado" é o último, e
+ * só sobra quando nada mais sobrou.
  */
 export function decidirFaixa(
   entrada: {
     temSinal: boolean;
     /** Coletas próprias que ainda vão sair (pendente mais enviando). */
     pendentes: number;
+    /**
+     * Coletas próprias que o servidor recusou e que só saem pela mão do agente.
+     *
+     * Entrou em 15/09/2026, com as capturas do dono: a vistoria 000009/2026
+     * parou na fila por 422 e esta função, que só olhava pendentes e as de
+     * outro autor, respondia "sincronizado". A faixa do topo ficou verde,
+     * "Tudo sincronizado, nada pendente no aparelho", com a coleta parada a um
+     * toque dali. O número já chegava ao componente (`bloqueados`), só que como
+     * sufixo do detalhe, e sufixo de uma frase falsa não a conserta.
+     */
+    bloqueados: number;
     /** Coletas de outro agente, ou sem autor: não saem com esta sessão. */
     deOutroAutor: number;
     sincronizando: boolean;
@@ -93,6 +110,22 @@ export function decidirFaixa(
     };
   }
   /*
+    A COLETA QUE O SERVIDOR RECUSOU vem antes da de outro autor: as duas estão
+    paradas, mas esta espera o dedo de quem está com o aparelho na mão agora, e
+    a outra espera alguém que não está. O tom é o de perigo, o mesmo do cartão
+    dela na fila, e o toque leva à fila, onde está o botão de corrigir.
+  */
+  if (entrada.bloqueados > 0) {
+    return {
+      chave: "precisa_de_correcao",
+      fundo: tema.perigoFundo, cor: tema.perigoTexto, sinalTexto: "!",
+      titulo: "Precisa de correção",
+      detalhe: entrada.bloqueados === 1
+        ? "1 coleta precisa de correção"
+        : `${entrada.bloqueados} coletas precisam de correção`,
+    };
+  }
+  /*
     "Tudo sincronizado" com uma coleta parada no aparelho é a pior frase que
     este produto pode exibir, e era o que acontecia no aparelho de plantão
     compartilhado: o agente da noite entrava, a coleta do turno da manhã não
@@ -115,6 +148,13 @@ export function decidirFaixa(
   };
 }
 
+/**
+ * Quanto a faixa cresce no clímax, antes de voltar. É a maior escala do
+ * aplicativo, e é de propósito: este é o único momento em que o movimento é o
+ * conteúdo, e um pulo tímido aqui seria "o estado mudou", não "conseguimos".
+ */
+export const ESCALA_DO_CLIMAX = 1.28;
+
 export function FaixaDeSincronizacao({
   estado,
   bloqueados,
@@ -125,6 +165,15 @@ export function FaixaDeSincronizacao({
   aoTocar: () => void;
 }) {
   const reduzir = useReducaoDeMovimento();
+  /*
+    O sufixo ", N com problema" existe para os estados em que a coleta parada
+    NÃO é o assunto da frase (esperando envio, enviando). Quando o estado já é
+    o da correção, a frase inteira é sobre ela, e o sufixo diria a mesma coisa
+    duas vezes na mesma linha.
+  */
+  const sufixoDeProblema = bloqueados > 0 && estado.chave !== "precisa_de_correcao"
+    ? `, ${bloqueados} com problema`
+    : "";
 
   /*
     O estado anterior mora numa `ref`, e não em `useState`.
@@ -165,15 +214,16 @@ export function FaixaDeSincronizacao({
       escala.setValue(1);
       Animated.sequence([
         Animated.timing(escala, {
-          toValue: 1.28,
+          toValue: ESCALA_DO_CLIMAX,
           duration: movimento.climax * 0.4,
-          easing: Easing.out(Easing.back(2)),
+          easing: Easing.bezier(...easing.climax),
           useNativeDriver: true,
         }),
+        // A volta chega no lugar em vez de bater: é a curva de `entrada`.
         Animated.timing(escala, {
           toValue: 1,
           duration: movimento.climax * 0.6,
-          easing: Easing.out(Easing.cubic),
+          easing: Easing.bezier(...easing.entrada),
           useNativeDriver: true,
         }),
       ]).start();
@@ -186,7 +236,7 @@ export function FaixaDeSincronizacao({
     Animated.timing(entrada, {
       toValue: 1,
       duration: movimento.mudancaDeEstado,
-      easing: Easing.out(Easing.quad),
+      easing: Easing.bezier(...easing.entrada),
       useNativeDriver: true,
     }).start();
   }, [estado.chave, reduzir, escala, entrada]);
@@ -202,9 +252,7 @@ export function FaixaDeSincronizacao({
         cabeçalho deste arquivo chama de a pior que este produto pode exibir.
       */
       accessibilityLabel={
-        `${estado.titulo}. ${estado.detalhe}`
-        + (bloqueados > 0 ? `, ${bloqueados} com problema` : "")
-        + ". Toque para ver a fila de envio."
+        `${estado.titulo}. ${estado.detalhe}${sufixoDeProblema}. Toque para ver a fila de envio.`
       }
       testID="faixa-de-sincronizacao"
       style={{
@@ -236,7 +284,7 @@ export function FaixaDeSincronizacao({
         <Txt variante="corpoP" negrito cor={estado.cor}>{estado.titulo}</Txt>
         <Txt variante="legenda" cor={estado.cor}>
           {estado.detalhe}
-          {bloqueados > 0 && `, ${bloqueados} com problema`}
+          {sufixoDeProblema}
         </Txt>
       </Animated.View>
       <View>
@@ -274,7 +322,7 @@ export function FaixaDeSincronizacaoLigada({ aoTocar }: { aoTocar: () => void })
     enviado, o que o esvaziaria de sentido.
   */
   const estado = decidirFaixa(
-    { temSinal: sinal.temSinal, pendentes, deOutroAutor, sincronizando },
+    { temSinal: sinal.temSinal, pendentes, bloqueados, deOutroAutor, sincronizando },
     tema,
   );
 

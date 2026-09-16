@@ -210,3 +210,18 @@ export function decidirAviso(
 
   return { entregar: true, aviso };
 }
+
+/**
+ * Se o aviso foi pedido pelo PRÓPRIO aplicativo (`aviso-local.ts`), e não
+ * entregue pela Apple ou pelo Google.
+ *
+ * Lê o mesmo dado que `lerAviso`, pelas mesmas formas. Não entra em `Aviso`
+ * porque não é informação do fato (o despacho), é informação do caminho por
+ * onde o fato chegou, e só o tratador de apresentação precisa dela.
+ */
+export function veioDoAplicativo(bruto: unknown): boolean {
+  for (const fonte of candidatos(bruto)) {
+    if (texto(fonte["origem"]) === "aplicativo") return true;
+  }
+  return false;
+}

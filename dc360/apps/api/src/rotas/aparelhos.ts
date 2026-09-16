@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { Banco } from "../banco/tipos.js";
 import type { Config } from "../config.js";
+import { AMBIENTES_APNS } from "../push/envio.js";
 
 /**
  * Registro e revogação do aparelho que recebe notificação.
@@ -28,6 +29,18 @@ const registroSchema = z.object({
    * prometido em contrato, então o limite é folgado de propósito.
    */
   ficha: z.string().min(1, "Informe a ficha do aparelho").max(4096),
+  /**
+   * Com qual APNs este binário fala, decidido no BUILD do aplicativo pela
+   * mesma expressão que escreve o `aps-environment` (`apps/campo/app.config.ts`).
+   * Opcional por compatibilidade: aplicativo instalado antes de 15/09/2026
+   * não manda, e cai no `APNS_AMBIENTE` do servidor. Valor fora dos dois é
+   * 422, e não o padrão calado: cair no padrão diante de `sandbox` seria
+   * mandar a ficha para a APNs errada, que responde `BadDeviceToken`, e o
+   * varredor revogaria o aparelho de quem está em campo.
+   */
+  ambiente: z.enum(AMBIENTES_APNS, {
+    errorMap: () => ({ message: "Ambiente precisa ser producao ou teste" }),
+  }).optional(),
 });
 
 const revogacaoSchema = z.object({
@@ -127,17 +140,27 @@ export async function rotasAparelhos(
 
           A revogação é desfeita pelo mesmo motivo: quem sai e entra de novo no
           aplicativo está pedindo para voltar a receber.
+
+          `ambiente` também é atualizado: a mesma ficha registrada de novo com
+          outro ambiente é o mesmo telefone que trocou o binário do Xcode pelo
+          do TestFlight, e a partir daí a APNs certa é a outra.
         */
-        `INSERT INTO aparelhos (organizacao_id, usuario_id, plataforma, ficha)
-         VALUES ($1, $2, $3, $4)
+        `INSERT INTO aparelhos (organizacao_id, usuario_id, plataforma, ficha, ambiente)
+         VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT ON CONSTRAINT aparelhos_ficha_unica_no_municipio DO UPDATE
             SET usuario_id       = EXCLUDED.usuario_id,
                 plataforma       = EXCLUDED.plataforma,
+                ambiente         = EXCLUDED.ambiente,
                 visto_em         = now(),
                 revogado_em      = NULL,
                 motivo_revogacao = NULL
          RETURNING id`,
-        [quem.organizacaoId, quem.usuarioId, dados.plataforma, dados.ficha],
+        [
+          quem.organizacaoId, quem.usuarioId, dados.plataforma, dados.ficha,
+          // Sem o campo, o padrão do servidor: é o aplicativo antigo, e é a
+          // única escolha que existia antes da coluna.
+          dados.ambiente ?? config.APNS_AMBIENTE,
+        ],
       );
       return r.rows[0]!.id;
     });

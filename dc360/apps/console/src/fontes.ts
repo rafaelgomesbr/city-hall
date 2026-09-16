@@ -1,8 +1,9 @@
 /**
  * As fontes do produto, dentro do proprio processo.
  *
- * POR QUE ELAS ESTAO AQUI DENTRO, e nao vindo do Google Fonts como no painel
- * web: a politica de seguranca de conteudo deste console e
+ * POR QUE ELAS ESTAO AQUI DENTRO, e nao vindo do Google Fonts (como o painel
+ * web fazia ate 15/09/2026; hoje ele tambem serve as suas, de
+ * `apps/web/public/fontes`): a politica de seguranca de conteudo deste console e
  * `style-src 'self'`, entao a folha do Google (fonts.googleapis.com) e
  * bloqueada antes de carregar. Abrir `unsafe-inline` ou soltar `style-src`
  * para um dominio de terceiro e justamente a diretiva que faz a politica

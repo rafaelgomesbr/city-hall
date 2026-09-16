@@ -64,7 +64,19 @@ function visibilidade(testID: string): { opacidade: unknown; escala: unknown } {
 }
 
 beforeEach(() => { mockReduzir = false; });
-afterEach(() => { jest.restoreAllMocks(); });
+afterEach(() => {
+  jest.restoreAllMocks();
+  /*
+    `isReduceMotionEnabled` já nasce como `jest.fn` no dublê do React Native, e
+    `spyOn` sobre um `jest.fn` não cria espião nenhum: `restoreAllMocks` não o
+    devolve ao que era. Sem esta linha, o caso da chave chegando atrasada
+    deixava a redução ligada para todo caso seguinte deste arquivo (uma sonda
+    no fim lia `true`), e eles passavam a testar um aparelho que não anima.
+  */
+  (AccessibilityInfo.isReduceMotionEnabled as jest.Mock).mockImplementation(
+    () => Promise.resolve(false),
+  );
+});
 
 describe("a entrada em cascata", () => {
   it("espera o atraso pedido antes de começar a aparecer", async () => {

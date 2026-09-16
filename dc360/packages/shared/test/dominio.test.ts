@@ -3,7 +3,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  CHECKLIST_OBRIGATORIO, CHECKLIST_VISTORIA, ROTULO_CHECKLIST,
+  CHECKLIST_OBRIGATORIO, CHECKLIST_VISTORIA, ORIGENS_DA_TRIAGEM, ROTULO_CHECKLIST,
   STATUS_INICIAL, STATUS_OCORRENCIA, STATUS_RESERVADOS, TRANSICOES_PERMITIDAS,
   ocorrenciaAtiva, transicaoPermitida, type StatusOcorrencia,
 } from "../src/index.js";
@@ -114,6 +114,21 @@ describe("Máquina de estados da ocorrência", () => {
     expect(chegam.has("providencia_pendente")).toBe(true);
     expect(chegam.size).toBeGreaterThan(4);
   });
+
+  it("a triagem parte só de registrada e de triagem: a volta de em_campo é da devolução", () => {
+    /*
+      `em_campo -> triagem` está na tabela, e é a aresta da devolução de
+      tarefa. A rota de triagem conferia contra a tabela inteira e devolvia
+      pela porta errada: sem limpar equipe, sem motivo, sem avisar o aparelho.
+    */
+    expect([...ORIGENS_DA_TRIAGEM].sort()).toEqual(["registrada", "triagem"]);
+    expect(ORIGENS_DA_TRIAGEM).not.toContain("em_campo");
+    // E toda origem declarada é uma transição que a máquina de fato permite,
+    // senão a lista prometeria um caminho que a rota recusaria por outro motivo.
+    for (const de of ORIGENS_DA_TRIAGEM) {
+      expect(de === "triagem" || transicaoPermitida(de, "triagem"), de).toBe(true);
+    }
+  });
 });
 
 describe("Checklist da vistoria", () => {
@@ -171,7 +186,12 @@ describe("Checklist da vistoria", () => {
       for (const nome of readdirSync(pasta)) {
         if (IGNORADAS.has(nome)) continue;
         const caminho = join(pasta, nome);
-        if (statSync(caminho).isDirectory()) achados.push(...fontes(caminho));
+        // Link simbólico pendurado (os Pods do iOS apontam para dentro de
+        // `node_modules`, e uma reinstalação os deixa sem alvo) não é fonte
+        // do produto: some da varredura em vez de derrubá-la.
+        const info = statSync(caminho, { throwIfNoEntry: false });
+        if (!info) continue;
+        if (info.isDirectory()) achados.push(...fontes(caminho));
         else if (/\.(ts|tsx)$/.test(nome)) achados.push(caminho);
       }
       return achados;

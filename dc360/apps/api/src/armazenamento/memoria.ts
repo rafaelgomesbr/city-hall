@@ -94,9 +94,18 @@ export function armazenamentoEmMemoria(config: ConfigMemoria): ArmazenamentoEmMe
       const instante = agora();
       return {
         url: montar("PUT", pedido.chave, segundosEnvio),
+        /*
+          Os MESMOS cabeçalhos do adaptador S3, inclusive `if-none-match: *`.
+          Aqui a assinatura não os cobre (é HMAC sobre método, chave e
+          validade), então quem impõe a escrita única é a rota que recebe o
+          PUT (`rotas/armazenamento-local.ts`), incondicionalmente. O cabeçalho
+          viaja assim mesmo para o aparelho exercitar em teste exatamente o
+          que ele repete em produção.
+        */
         cabecalhos: {
           "content-type": pedido.tipoConteudo,
           "content-length": String(pedido.tamanhoBytes),
+          "if-none-match": "*",
         },
         expiraEm: new Date(instante.getTime() + segundosEnvio * 1000).toISOString(),
       };

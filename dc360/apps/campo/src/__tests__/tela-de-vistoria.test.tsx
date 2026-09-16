@@ -42,6 +42,8 @@ import TelaDeVistoria from "../app/(agente)/vistoria/[id]";
  * seria culpa da tela.
  */
 jest.mock("expo-router", () => {
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const { useEffect } = require("react") as typeof import("react");
   const navegacao = { setOptions: jest.fn() };
   return {
     router: {
@@ -52,6 +54,8 @@ jest.mock("expo-router", () => {
     },
     useLocalSearchParams: () => ({ id: mockIdDaRota }),
     useNavigation: () => navegacao,
+    /* A tela relê o disco a cada foco; aqui o foco é a montagem, e só ela. */
+    useFocusEffect: (retorno: () => void) => { useEffect(retorno, [retorno]); },
   };
 });
 

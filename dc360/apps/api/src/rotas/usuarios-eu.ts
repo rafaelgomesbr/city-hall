@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Banco } from "../banco/tipos.js";
 import { RegraDeNegocio, type Identidade } from "../servidor.js";
 import { TIPOS_ACEITOS, type Armazenamento } from "../armazenamento/tipos.js";
+import { lerUso } from "../armazenamento/uso.js";
 import { registrarAtoAdministrativo } from "../trilha.js";
 
 /**
@@ -67,6 +68,23 @@ import { registrarAtoAdministrativo } from "../trilha.js";
  * apagamento falhar, o pior desfecho é um objeto a mais no balde, que a
  * varredura de órfão encontra. O oposto (apagar e depois falhar em gravar)
  * deixaria a pessoa sem foto nenhuma.
+ *
+ * ## A foto conta no teto do município (migração 045)
+ *
+ * Ela ocupa o mesmo balde das fotografias de vistoria, então entra na mesma
+ * conta: `situacao_de_armazenamento` soma `usuarios.foto_bytes` junto com
+ * `evidencias.tamanho_bytes`, e esta rota pergunta ao teto nos dois momentos
+ * em que a rota de evidência pergunta. Na AUTORIZAÇÃO, com o tamanho que o
+ * aparelho declarou, para não emitir URL de escrita num município que já
+ * passou da margem. Na CONFIRMAÇÃO, com o tamanho lido do PRÓPRIO
+ * armazenamento (nunca o declarado) menos o da foto que está saindo, na mesma
+ * transação do UPDATE, e o gatilho `foto_dentro_do_teto` é a barreira de
+ * baixo para qualquer caminho que escreva `foto_bytes` por fora daqui.
+ *
+ * A recusa é 507, como na evidência, e a frase é OUTRA: aqui não há fila
+ * guardando coleta, e dizer "o envio vai ser tentado sozinho" seria mentira
+ * para quem está olhando a tela de perfil. Uma foto recusada na confirmação é
+ * apagada do balde na hora, porque ninguém mais vai apontar para ela.
  */
 
 /**
@@ -78,6 +96,21 @@ import { registrarAtoAdministrativo } from "../trilha.js";
  * megabytes deixam folga para um aparelho que não conseguiu redimensionar.
  */
 export const TAMANHO_MAXIMO_DA_FOTO_DE_PERFIL = 2 * 1024 * 1024;
+
+/**
+ * A frase da recusa por teto, para a foto de perfil.
+ *
+ * Diz que a foto NÃO foi guardada e que a foto anterior continua: é o que a
+ * pessoa precisa saber na tela de perfil. Quem age é a coordenação, junto à
+ * plataforma, e a frase manda para lá em vez de mandar tentar de novo.
+ */
+export function frasePorTetoEstouradoNaFoto(): string {
+  return (
+    "O armazenamento deste município passou do limite contratado, e a foto de "
+    + "perfil não foi guardada. A sua foto anterior continua como estava. Avise "
+    + "a coordenação, que precisa falar com a plataforma para ampliar o limite."
+  );
+}
 
 const pedidoSchema = z.object({
   tipoConteudo: z.enum(TIPOS_ACEITOS),
@@ -137,6 +170,18 @@ export async function rotasUsuariosEu(
     const dados = pedidoSchema.parse(req.body);
 
     /*
+      O TETO, antes de emitir qualquer URL de escrita. A conta soma o tamanho
+      declarado ao que o município já ocupa (evidências vivas mais fotos de
+      perfil vivas), debaixo do RLS do próprio município. `recusado` é só
+      além da margem: acima do teto contratado a foto ainda passa, pela mesma
+      régua da evidência.
+    */
+    const uso = await banco.comTenant(quem.organizacaoId, (c) => lerUso(c, dados.tamanhoBytes));
+    if (uso.situacao === "recusado") {
+      throw new RegraDeNegocio("teto_de_armazenamento", frasePorTetoEstouradoNaFoto(), 507);
+    }
+
+    /*
       A chave nasce AQUI, com sufixo único por envio. Sufixo, e não um nome
       fixo como `foto.jpg`: com nome fixo a troca sobrescreveria o objeto no
       lugar, e a URL assinada da foto anterior, ainda viva por alguns minutos
@@ -190,17 +235,34 @@ export async function rotasUsuariosEu(
       );
     }
 
+    /*
+      O tamanho que conta é o que o ARMAZENAMENTO diz, nunca o que o aparelho
+      declarou na autorização. Sem ele (provedor que não informa), a foto
+      conta zero, e isso está escrito na coluna (migração 045).
+    */
+    const bytes = objeto.tamanhoBytes;
+
     const anterior = await banco.comTenant(quem.organizacaoId, async (c) => {
-      const antes = await c.query<{ foto_chave: string | null }>(
-        "SELECT foto_chave FROM usuarios WHERE id = $1",
+      const antes = await c.query<{ foto_chave: string | null; foto_bytes: string | null }>(
+        "SELECT foto_chave, foto_bytes::text AS foto_bytes FROM usuarios WHERE id = $1",
         [quem.usuarioId],
       );
       const chaveAnterior = antes.rows[0]?.foto_chave ?? null;
-      if (chaveAnterior === chave) return null;
+      const bytesAnteriores = Number(antes.rows[0]?.foto_bytes ?? 0);
+      if (chaveAnterior === chave) return { chaveAnterior: null, recusada: false };
+
+      /*
+        O TETO, na MESMA transação do UPDATE, com o que entra menos o que sai:
+        a foto anterior vai ser apagada do balde logo abaixo. Uma URL
+        autorizada antes de o balde encher não pode virar porta na confirmação,
+        e o gatilho `foto_dentro_do_teto` cobra a mesma conta por baixo.
+      */
+      const uso = await lerUso(c, Math.max((bytes ?? 0) - bytesAnteriores, 0));
+      if (uso.situacao === "recusado") return { chaveAnterior: null, recusada: true };
 
       await c.query(
-        "UPDATE usuarios SET foto_chave = $2 WHERE id = $1",
-        [quem.usuarioId, chave],
+        "UPDATE usuarios SET foto_chave = $2, foto_bytes = $3 WHERE id = $1",
+        [quem.usuarioId, chave, bytes],
       );
       await registrarAtoAdministrativo(c, quem, {
         acao: "foto_trocada",
@@ -210,15 +272,25 @@ export async function rotasUsuariosEu(
         antes: { fotoChave: chaveAnterior },
         depois: { fotoChave: chave },
       });
-      return chaveAnterior;
+      return { chaveAnterior, recusada: false };
     });
+
+    if (anterior.recusada) {
+      /*
+        A foto recusada sai do balde AGORA: nenhuma linha aponta para ela, e
+        deixá-la seria um objeto órfão nascido de propósito. Falha no
+        apagamento não muda a resposta: a varredura de órfão a encontra.
+      */
+      await armazenamento.apagar(chave);
+      throw new RegraDeNegocio("teto_de_armazenamento", frasePorTetoEstouradoNaFoto(), 507);
+    }
 
     /*
       Apaga a anterior DEPOIS de gravar, fora da transação. Falha aqui não
       derruba a troca: o objeto que sobra é exatamente o que a varredura de
       órfão existe para encontrar, e a trilha já registrou qual era.
     */
-    if (anterior) await armazenamento.apagar(anterior);
+    if (anterior.chaveAnterior) await armazenamento.apagar(anterior.chaveAnterior);
 
     return { fotoUrl: await armazenamento.urlParaLer(chave) };
   });
@@ -229,7 +301,10 @@ export async function rotasUsuariosEu(
 
     if (anterior) {
       await banco.comTenant(quem.organizacaoId, async (c) => {
-        await c.query("UPDATE usuarios SET foto_chave = NULL WHERE id = $1", [quem.usuarioId]);
+        await c.query(
+          "UPDATE usuarios SET foto_chave = NULL, foto_bytes = NULL WHERE id = $1",
+          [quem.usuarioId],
+        );
         await registrarAtoAdministrativo(c, quem, {
           acao: "foto_removida",
           alvoTipo: "usuario",
