@@ -5,7 +5,7 @@ import { useSessao, useTema } from "../estado/sessao";
 import { encerrarSessao } from "../dados/repositorio";
 import { iniciais } from "./comuns";
 import {
-  IconeAlerta, IconeDocumento, IconeEquipes, IconeLua, IconeMapa,
+  IconeAlerta, IconeDocumento, IconeEquipes, IconeEscudo, IconeLua, IconeMapa,
   IconeOcorrencias, IconePainel, IconePrancheta, IconePredio, IconeSair,
   IconeSol, IconeUsuarios,
 } from "./Icones";
@@ -121,7 +121,7 @@ export function Estrutura() {
 
       <nav className="lateral" aria-label="Navegação principal">
         <div className="lateral__marca">
-          <span className="lateral__sigla" aria-hidden="true">DC</span>
+          <img src="/icone.svg" alt="" width={40} height={40} style={{ borderRadius: "8px" }} />
           <span>
             <span className="lateral__nome">Defesa Civil 360</span>
             <span className="lateral__org">{sessao.municipio}, {sessao.uf}</span>

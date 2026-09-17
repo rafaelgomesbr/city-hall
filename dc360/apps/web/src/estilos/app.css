@@ -148,17 +148,6 @@ a:hover { color: var(--ds-accent-hover); }
   padding: 0 var(--ds-sp-2);
 }
 
-.lateral__sigla {
-  width: var(--emblema-md); height: var(--emblema-md); flex: 0 0 var(--emblema-md);
-  display: grid; place-items: center;
-  border-radius: var(--ds-radius);
-  background: var(--ds-accent-gradient);
-  /* on-accent, nunca branco fixo: no tema escuro o gradiente vai para violeta
-     claro, e branco por cima dava 2,72:1. O token acompanha o tema. */
-  color: var(--ds-on-accent);
-  font-weight: var(--ds-fw-bold); font-size: var(--ds-fs-body-sm);
-  letter-spacing: var(--tracking-sigla);
-}
 
 /* `display: block` nos dois: são `span` dentro de `span`, e em linha o nome
    e o município saíam colados ("Defesa Civil 360Serra Alta, MG"). */
