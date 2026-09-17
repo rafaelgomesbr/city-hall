@@ -1,0 +1,504 @@
+<title>Defesa Civil 360</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600&display=swap');
+
+  :root{
+    --bg:#F6F4FB; --surface:#FFFFFF; --surface-2:#F0EBFA;
+    --border:#E1D9F5; --text:#1C1430; --text-muted:#5D5474;
+    --accent:#5B21B6; --accent-2:#7C3AED; --accent-soft:#EDE4FC;
+    --on-accent:#FFFFFF;
+    --ink-950:#14101F;
+    --ok-fg:#14702F; --ok-bg:#E6F6EA;
+    --warn-fg:#92400E; --warn-bg:#FEF3C7;
+    --no-fg:#C92A2A; --no-bg:#FDEBEB;
+    --font:"Work Sans",-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --font-mono:"Roboto Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#14101F; --surface:#1C1730; --surface-2:#241D3C;
+      --border:#382E58; --text:#EFE9FB; --text-muted:#AFA4CC;
+      --accent:#C4B5FD; --accent-2:#A78BFA; --accent-soft:#2A2248;
+      --on-accent:#1C1430;
+      --ok-fg:#69DB7C; --ok-bg:rgba(105,219,124,.12);
+      --warn-fg:#FCC419; --warn-bg:rgba(252,196,25,.12);
+      --no-fg:#FF8787; --no-bg:rgba(255,135,135,.12);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14101F; --surface:#1C1730; --surface-2:#241D3C;
+    --border:#382E58; --text:#EFE9FB; --text-muted:#AFA4CC;
+    --accent:#C4B5FD; --accent-2:#A78BFA; --accent-soft:#2A2248;
+    --on-accent:#1C1430;
+    --ok-fg:#69DB7C; --ok-bg:rgba(105,219,124,.12);
+    --warn-fg:#FCC419; --warn-bg:rgba(252,196,25,.12);
+    --no-fg:#FF8787; --no-bg:rgba(255,135,135,.12);
+  }
+
+  *{box-sizing:border-box;}
+  html{ scroll-behavior:smooth; }
+  @media (prefers-reduced-motion:reduce){ html{ scroll-behavior:auto; } }
+  body{
+    background:var(--bg); color:var(--text); font-family:var(--font);
+    margin:0; padding:0 16px; padding-block:40px;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  .sheet{ max-width:840px; margin:0 auto; display:flex; flex-direction:column; gap:36px; }
+
+  /* ---------- Barra superior (somente tela) ---------- */
+  .topbar{
+    max-width:840px; margin:0 auto 4px; display:flex; align-items:center; justify-content:space-between;
+    gap:12px; flex-wrap:wrap;
+  }
+  .topbar nav{ display:flex; gap:6px; flex-wrap:wrap; }
+  .topbar nav a{
+    font-size:12.5px; font-weight:600; color:var(--text-muted); text-decoration:none;
+    padding:7px 12px; border-radius:999px; border:1px solid var(--border); background:var(--surface);
+    transition:color .15s ease, border-color .15s ease;
+  }
+  .topbar nav a:hover,.topbar nav a:focus-visible{ color:var(--accent); border-color:var(--accent); }
+  .theme-toggle{
+    display:inline-flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:11.5px;
+    font-weight:600; color:var(--text-muted); background:var(--surface); border:1px solid var(--border);
+    border-radius:999px; padding:7px 12px; cursor:pointer;
+  }
+  .theme-toggle:hover{ color:var(--accent); border-color:var(--accent); }
+  @media print{ .screen-only{ display:none !important; } }
+
+  h1,h2,h3{ text-wrap:balance; margin:0; font-weight:700; }
+  p{ margin:0; line-height:1.55; }
+  .eyebrow{
+    font-family:var(--font-mono); font-size:12px; font-weight:600;
+    letter-spacing:.09em; text-transform:uppercase; color:var(--accent);
+  }
+
+  /* ---------- Capa ---------- */
+  .cover{
+    background:linear-gradient(150deg,var(--accent),var(--accent-2));
+    color:var(--on-accent); border-radius:20px; padding:44px 40px;
+    display:flex; flex-direction:column; gap:18px; position:relative; overflow:hidden;
+  }
+  .cover::after{
+    content:""; position:absolute; right:-60px; top:-60px; width:260px; height:260px;
+    border-radius:50%; background:rgba(255,255,255,.14);
+  }
+  .cover .eyebrow{ color:rgba(255,255,255,.85); position:relative; z-index:1; }
+  .cover h1{ font-size:40px; line-height:1.12; position:relative; z-index:1; max-width:520px; }
+  .cover .lede{ font-size:17px; max-width:520px; opacity:.94; position:relative; z-index:1; }
+  .cover .tagline{
+    font-family:var(--font-mono); font-size:13px; opacity:.85; position:relative; z-index:1;
+    border-top:1px solid rgba(255,255,255,.3); padding-top:14px; margin-top:6px;
+  }
+  .status-pill{
+    display:inline-flex; align-items:center; gap:8px; width:fit-content;
+    background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.35);
+    border-radius:999px; padding:6px 14px; font-size:13px; font-weight:600;
+    position:relative; z-index:1;
+  }
+  .status-pill .dot{ width:8px; height:8px; border-radius:50%; background:#FCC419; }
+
+  /* ---------- Secoes genericas ---------- */
+  section{ display:flex; flex-direction:column; gap:16px; break-inside:avoid; page-break-inside:avoid; }
+  .section-head{ display:flex; flex-direction:column; gap:6px; }
+  .section-head h2{ font-size:24px; }
+  .section-head p{ color:var(--text-muted); font-size:15px; max-width:600px; }
+
+  /* ---------- Problema ---------- */
+  .problem-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .problem-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:18px; display:flex; flex-direction:column; gap:10px;
+  }
+  .problem-card .num{
+    font-family:var(--font-mono); font-size:13px; font-weight:600; color:var(--accent);
+  }
+  .problem-card p{ font-size:14px; color:var(--text-muted); }
+  .problem-card strong{ color:var(--text); font-size:15px; font-weight:600; }
+  .agravante{
+    background:var(--warn-bg); color:var(--warn-fg); border-radius:12px; padding:14px 16px;
+    font-size:14px; font-weight:500; display:flex; gap:10px; align-items:flex-start;
+  }
+
+  /* ---------- Ciclo / solucao ---------- */
+  .cycle{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .cycle-step{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:14px; display:flex; flex-direction:column; gap:6px; position:relative;
+  }
+  .cycle-step .n{
+    font-family:var(--font-mono); font-size:11px; color:var(--accent); font-weight:600;
+  }
+  .cycle-step h3{ font-size:14px; font-weight:700; }
+  .cycle-step p{ font-size:12.5px; color:var(--text-muted); line-height:1.4; }
+  .cycle-step.offline{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+
+  /* ---------- Diferenciais ---------- */
+  .diff-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .diff-card{
+    background:var(--surface-2); border-radius:14px; padding:18px;
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .diff-card h3{ font-size:15.5px; }
+  .diff-card p{ font-size:13.5px; color:var(--text-muted); }
+
+  /* ---------- Papeis ---------- */
+  .roles-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .role-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:16px; display:flex; flex-direction:column; gap:10px;
+    transition:transform .18s var(--ease-card,ease), box-shadow .18s ease, border-color .18s ease;
+  }
+  .role-card:hover{
+    transform:translateY(-3px); border-color:var(--accent);
+    box-shadow:0 10px 24px rgba(91,33,182,.14);
+  }
+  @media (prefers-reduced-motion:reduce){ .role-card{ transition:none; } .role-card:hover{ transform:none; } }
+  .role-card .tag{
+    font-family:var(--font-mono); font-size:10.5px; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--accent); font-weight:600;
+  }
+  .role-card h3{ font-size:16px; }
+  .role-card p{ font-size:13px; color:var(--text-muted); }
+  .role-card .acesso{
+    margin-top:auto; font-size:11.5px; color:var(--text-muted); border-top:1px solid var(--border);
+    padding-top:8px;
+  }
+  .role-card .acesso b{ color:var(--text); font-weight:600; }
+
+  /* ---------- Funcionalidades ---------- */
+  .feat-cols{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .feat-block{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; }
+  .feat-block h3{ font-size:14px; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+  .feat-block ul{ margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px; }
+  .feat-block li{ font-size:13.5px; display:flex; gap:8px; align-items:flex-start; color:var(--text); }
+  .feat-block li::before{ content:"—"; color:var(--accent); flex-shrink:0; }
+  .badge{ font-size:10px; font-family:var(--font-mono); padding:2px 7px; border-radius:999px; font-weight:600; }
+  .badge.mvp{ background:var(--ok-bg); color:var(--ok-fg); }
+  .badge.fut{ background:var(--surface-2); color:var(--accent); }
+
+  /* ---------- Esclarecimento (callout) ---------- */
+  .callout{
+    background:var(--accent-soft); border:1px solid var(--border); border-radius:14px;
+    padding:18px 20px; display:flex; gap:14px; align-items:flex-start;
+  }
+  .callout .icone{ font-size:22px; line-height:1; }
+  .callout h3{ font-size:14.5px; margin-bottom:5px; }
+  .callout p{ font-size:13.5px; color:var(--text); }
+  .callout strong{ color:var(--accent); }
+
+  /* ---------- Hierarquia de contas ---------- */
+  .escada{
+    display:flex; align-items:stretch; gap:10px; background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:18px;
+  }
+  .degrau{
+    flex:1; display:flex; flex-direction:column; gap:6px; padding:14px; border-radius:10px;
+    background:var(--surface-2);
+  }
+  .degrau[data-nivel="3"]{ background:var(--accent-soft); }
+  .degrau .posto{ font-family:var(--font-mono); font-size:10.5px; color:var(--accent); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+  .degrau h4{ font-size:14px; margin:0; }
+  .degrau p{ font-size:12px; color:var(--text-muted); }
+  .seta{ align-self:center; color:var(--text-muted); font-size:18px; }
+
+  /* ---------- Matriz de permissoes ---------- */
+  .matrix-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:14px; }
+  table.matrix{ width:100%; border-collapse:collapse; font-size:12.5px; min-width:560px; }
+  table.matrix th,table.matrix td{ padding:10px 12px; text-align:center; border-bottom:1px solid var(--border); }
+  table.matrix th{ font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted); font-weight:600; }
+  table.matrix thead th{ background:var(--surface-2); }
+  table.matrix td:first-child,table.matrix th:first-child{ text-align:left; color:var(--text); font-weight:500; font-family:var(--font); text-transform:none; letter-spacing:0; font-size:13px; }
+  table.matrix tbody tr:last-child td{ border-bottom:none; }
+  table.matrix .sim{ color:var(--ok-fg); font-weight:700; }
+  table.matrix .nao{ color:var(--text-muted); opacity:.4; }
+  .matrix-nota{ font-size:12px; color:var(--text-muted); }
+
+  /* ---------- Nao e ---------- */
+  .naoe{ background:var(--no-bg); border-radius:14px; padding:18px 20px; }
+  .naoe h3{ color:var(--no-fg); font-size:14px; margin-bottom:10px; }
+  .naoe ul{ margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:6px; }
+  .naoe li{ font-size:13px; color:var(--text); }
+  .naoe li b{ color:var(--no-fg); }
+
+  /* ---------- Rodape ---------- */
+  footer{
+    border-top:1px solid var(--border); padding-top:18px; display:flex;
+    justify-content:space-between; align-items:flex-end; gap:20px; flex-wrap:wrap;
+  }
+  footer .next{ font-size:13px; color:var(--text-muted); max-width:480px; }
+  footer .meta{ font-family:var(--font-mono); font-size:11px; color:var(--text-muted); text-align:right; }
+
+  /* ---------- Responsivo ---------- */
+  @media (max-width:720px){
+    .problem-grid,.cycle,.diff-grid,.roles-grid,.feat-cols{ grid-template-columns:1fr; }
+    .cover h1{ font-size:30px; }
+    .escada{ flex-direction:column; }
+    .seta{ transform:rotate(90deg); }
+  }
+
+  /* ---------- Impressao ---------- */
+  @media print{
+    @page{ size:A4; margin:14mm; }
+    body{ padding:0; background:#fff; }
+    .sheet{ gap:22px; max-width:none; }
+    .cover{ border-radius:10px; }
+    section{ break-inside:avoid; page-break-inside:avoid; }
+    .problem-grid,.diff-grid,.roles-grid,.feat-cols,.escada,.matrix-wrap,.callout{ break-inside:avoid; }
+    .topbar{ display:none; }
+  }
+</style>
+
+<div class="topbar screen-only">
+  <nav aria-label="Seções da apresentação">
+    <a href="#problema">Problema</a>
+    <a href="#solucao">Solução</a>
+    <a href="#diferenciais">Diferenciais</a>
+    <a href="#papeis">Papéis</a>
+    <a href="#funcionalidades">Funcionalidades</a>
+  </nav>
+  <button type="button" class="theme-toggle" id="botao-tema" aria-pressed="false">🌗 Alternar tema</button>
+</div>
+
+<div class="sheet">
+
+  <div class="cover">
+    <span class="eyebrow">Apresentação de produto · Fase 0</span>
+    <h1>Defesa Civil Operacional 360</h1>
+    <p class="lede">Um sistema único para receber, vistoriar, documentar e comprovar a resposta da Defesa Civil municipal, do primeiro telefonema ao encerramento auditável, funcionando mesmo sem sinal de internet em campo.</p>
+    <span class="status-pill"><span class="dot"></span> Protótipo de validação de conceito, não sistema em operação</span>
+    <p class="tagline">Preparado para Alyson · responsável pela visão de negócio</p>
+  </div>
+
+  <section id="problema">
+    <div class="section-head">
+      <span class="eyebrow">O problema</span>
+      <h2>Hoje, a operação se perde entre o telefone, a rua e a planilha</h2>
+      <p>Na maior parte dos municípios brasileiros, a Defesa Civil trabalha com caderno, planilha, WhatsApp e fotos soltas no celular do agente. Isso custa caro de três formas concretas.</p>
+    </div>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <span class="num">01</span>
+        <strong>O chamado se perde entre o telefone e a rua</strong>
+        <p>Não existe um número único que amarre a solicitação, a vistoria e o desfecho.</p>
+      </div>
+      <div class="problem-card">
+        <span class="num">02</span>
+        <strong>A vistoria não vira documento sozinha</strong>
+        <p>O agente volta com fotos no celular e papel; alguém no escritório redigita tudo, e a informação se degrada no caminho.</p>
+      </div>
+      <div class="problem-card">
+        <span class="num">03</span>
+        <strong>Não há como provar o que foi feito</strong>
+        <p>Quando o Ministério Público, o Tribunal de Contas ou o morador perguntam, a resposta depende da memória de quem estava lá.</p>
+      </div>
+    </div>
+    <div class="agravante">⚠️ E é justamente no dia em que mais importa (chuva forte, muitas ocorrências ao mesmo tempo) que o sinal de celular falha e a equipe inteira está na rua.</div>
+  </section>
+
+  <section id="solucao">
+    <div class="section-head">
+      <span class="eyebrow">A solução</span>
+      <h2>Um ciclo único, do chamado ao encerramento</h2>
+      <p>Com uma exigência inegociável: a vistoria em campo funciona sem internet.</p>
+    </div>
+    <div class="cycle">
+      <div class="cycle-step"><span class="n">1</span><h3>Entrada</h3><p>Chamado registrado com protocolo único. Sistema avisa se já existe caso no mesmo endereço.</p></div>
+      <div class="cycle-step"><span class="n">2</span><h3>Triagem</h3><p>Gravidade e vulnerabilidade (idoso, criança, mobilidade reduzida) definem a prioridade.</p></div>
+      <div class="cycle-step"><span class="n">3</span><h3>Despacho</h3><p>Coordenador atribui a uma equipe com prazo; a ocorrência entra na fila do agente.</p></div>
+      <div class="cycle-step offline"><span class="n">4</span><h3>Vistoria offline</h3><p>Checklist, fotos, GPS e assinatura do morador. Funciona 100% sem sinal.</p></div>
+      <div class="cycle-step"><span class="n">5</span><h3>Sincronização</h3><p>Ao voltar o sinal, a fila esvazia item a item. Nada se perde, nada duplica.</p></div>
+      <div class="cycle-step"><span class="n">6</span><h3>Documento</h3><p>Relatório de vistoria e termo de interdição saem prontos, com autoria e evidências.</p></div>
+      <div class="cycle-step"><span class="n">7</span><h3>Providência</h3><p>Encaminhamento a outra secretaria com prazo e responsável, visível no painel.</p></div>
+      <div class="cycle-step"><span class="n">8</span><h3>Encerramento</h3><p>Sempre com motivo obrigatório. A linha do tempo fica completa e auditável.</p></div>
+    </div>
+  </section>
+
+  <section id="diferenciais">
+    <div class="section-head">
+      <span class="eyebrow">Por que este projeto é diferente</span>
+      <h2>Os quatro pontos que foram desenhados com mais cuidado</h2>
+    </div>
+    <div class="diff-grid">
+      <div class="diff-card">
+        <h3>📡 O offline é real, não é enfeite</h3>
+        <p>A vistoria inteira acontece sem sinal, e a sincronização prova, item a item, que nada se perde nem duplica. É o problema mais difícil deste tipo de produto.</p>
+      </div>
+      <div class="diff-card">
+        <h3>🏷️ A taxonomia é da área, não inventada</h3>
+        <p>Os tipos de ocorrência usam os nomes da COBRADE (deslizamento, inundação, alagamento, vendaval...), a linguagem que a Defesa Civil já usa e que o governo federal exige.</p>
+      </div>
+      <div class="diff-card">
+        <h3>📄 O documento é o produto</h3>
+        <p>Relatório de vistoria e termo de interdição saem com aparência de documento oficial, com autoria, matrícula, data e evidências. O servidor julga o software pelo papel que sai dele.</p>
+      </div>
+      <div class="diff-card">
+        <h3>🔍 A trilha é auditável por construção</h3>
+        <p>Cada evento registra autor, papel, data, hora e origem (campo ou escritório). Não é log técnico: é a resposta pronta para quando alguém perguntar o que foi feito.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="papeis">
+    <div class="section-head">
+      <span class="eyebrow">Quem usa o sistema</span>
+      <h2>Quatro papéis, um só princípio: cada um vê o que precisa</h2>
+      <p>Coordenador e administrador usam o mesmo painel operacional de propósito. A diferença real entre os dois não está na tela do dia a dia: está em quem administra a conta de quem.</p>
+    </div>
+    <div class="roles-grid">
+      <div class="role-card">
+        <span class="tag">Coordenador</span>
+        <h3>Comanda a operação</h3>
+        <p>Prioriza a fila, classifica na triagem, despacha equipe, emite documento, encaminha providência e encerra ocorrência.</p>
+        <div class="acesso"><b>Administra:</b> as contas de operador e agente de campo, não as de outro coordenador.</div>
+      </div>
+      <div class="role-card">
+        <span class="tag">Administrador</span>
+        <h3>É o teto do município</h3>
+        <p>Faz tudo que o coordenador faz, e é o único com poder sobre o município inteiro: prazo de retenção de dado pessoal e extração completa da base, hoje só por API.</p>
+        <div class="acesso"><b>Administra:</b> qualquer conta do município, inclusive outro administrador.</div>
+      </div>
+      <div class="role-card">
+        <span class="tag">Operador</span>
+        <h3>Atende o telefone</h3>
+        <p>Registra o chamado, responde providência quando outra secretaria retorna e acompanha quem está em campo, inclusive de madrugada.</p>
+        <div class="acesso"><b>Não decide o fluxo:</b> não tria, não despacha, não encerra ocorrência.</div>
+      </div>
+      <div class="role-card">
+        <span class="tag">Agente de campo</span>
+        <h3>Vistoria no local</h3>
+        <p>Recebe a tarefa no celular, preenche o checklist, fotografa, marca GPS e colhe assinatura, mesmo sem sinal.</p>
+        <div class="acesso"><b>Só enxerga:</b> as próprias tarefas e o histórico necessário para atendê-las.</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="icone">💡</span>
+      <div>
+        <h3>Por que coordenador e administrador parecem iguais na tela</h3>
+        <p>Quem comanda uma coordenadoria precisa do poder operacional completo, por isso os dois enxergam quase o mesmo painel. A diferença que separa um do outro não é o que aparece na tela: é a <strong>hierarquia de conta</strong>. O administrador é o teto do município: o único com poder sobre o município inteiro (hoje isso existe como regra e API, ainda sem tela própria) e o único que cria ou administra outro administrador. O coordenador administra as contas abaixo do seu posto (operador e agente de campo), mas não mexe em conta de outro coordenador nem de administrador.</p>
+      </div>
+    </div>
+
+    <div class="escada">
+      <div class="degrau" data-nivel="1">
+        <span class="posto">Posto 1</span>
+        <h4>Operador · Agente de campo</h4>
+        <p>Executam a operação, um no telefone e outro em campo. Mesmo posto de conta, trabalhos diferentes.</p>
+      </div>
+      <span class="seta">→</span>
+      <div class="degrau" data-nivel="2">
+        <span class="posto">Posto 2</span>
+        <h4>Coordenador</h4>
+        <p>Comanda a operação inteira e administra as contas de operador e agente de campo.</p>
+      </div>
+      <span class="seta">→</span>
+      <div class="degrau" data-nivel="3">
+        <span class="posto">Posto 3 · teto</span>
+        <h4>Administrador</h4>
+        <p>Configura o município e é o único que administra outro administrador ou coordenador.</p>
+      </div>
+    </div>
+
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <thead>
+          <tr><th>O que cada papel faz</th><th>Operador</th><th>Agente de campo</th><th>Coordenador</th><th>Administrador</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Registrar chamado</td><td class="sim">✓</td><td class="nao">—</td><td class="sim">✓</td><td class="sim">✓</td></tr>
+          <tr><td>Classificar e despachar equipe</td><td class="nao">—</td><td class="nao">—</td><td class="sim">✓</td><td class="sim">✓</td></tr>
+          <tr><td>Vistoriar em campo, offline</td><td class="nao">—</td><td class="sim">✓</td><td class="nao">—</td><td class="nao">—</td></tr>
+          <tr><td>Emitir documento oficial</td><td class="nao">—</td><td class="nao">—</td><td class="sim">✓</td><td class="sim">✓</td></tr>
+          <tr><td>Encaminhar providência</td><td class="nao">—</td><td class="nao">—</td><td class="sim">✓</td><td class="sim">✓</td></tr>
+          <tr><td>Responder providência</td><td class="sim">✓</td><td class="nao">—</td><td class="sim">✓</td><td class="sim">✓</td></tr>
+          <tr><td>Encerrar ocorrência</td><td class="nao">—</td><td class="nao">—</td><td class="sim">✓</td><td class="sim">✓</td></tr>
+          <tr><td>Acompanhar quem está em campo</td><td class="sim">✓</td><td class="nao">—</td><td class="sim">✓</td><td class="sim">✓</td></tr>
+          <tr><td>Gerenciar equipes, usuários e auditoria</td><td class="nao">—</td><td class="nao">—</td><td class="sim">✓</td><td class="sim">✓</td></tr>
+          <tr><td>Retenção de dados e extração completa</td><td class="nao">—</td><td class="nao">—</td><td class="nao">—</td><td class="sim">✓ *</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="matrix-nota">* Existe como regra e como rota de servidor, mas ainda sem tela própria no painel. As demais linhas vêm da hierarquia de conta, não da tela: coordenador e administrador enxergam o mesmo painel do dia a dia.</p>
+  </section>
+
+  <section id="funcionalidades">
+    <div class="section-head">
+      <span class="eyebrow">O que o sistema entrega</span>
+      <h2>Funcionalidades e possibilidades</h2>
+    </div>
+    <div class="feat-cols">
+      <div class="feat-block">
+        <h3><span class="badge mvp">Primeira entrega</span> Rotina diária ponta a ponta</h3>
+        <ul>
+          <li>Protocolo único e triagem por gravidade e vulnerabilidade</li>
+          <li>Despacho de equipe com prazo e acompanhamento</li>
+          <li>Vistoria offline: checklist, fotos, GPS e assinatura</li>
+          <li>Sincronização sem perda nem duplicação</li>
+          <li>Geração automática de relatório e termo oficial</li>
+          <li>Providências e encaminhamentos entre secretarias</li>
+          <li>Mapa e painel com indicadores de prazo e volume</li>
+          <li>Trilha de auditoria completa</li>
+        </ul>
+      </div>
+      <div class="feat-block">
+        <h3><span class="badge fut">Possibilidades futuras</span> Quando o município crescer</h3>
+        <ul>
+          <li>Portal para o cidadão abrir e acompanhar solicitação</li>
+          <li>Formulários e modelos configuráveis por município</li>
+          <li>Modo emergência: incidente, equipes, turnos e abrigos</li>
+          <li>Logística humanitária: doações, estoque e entregas</li>
+          <li>Visão regional para consórcios de municípios</li>
+          <li>Integrações oficiais (mapas, processo eletrônico, assinatura digital)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="naoe">
+      <h3>O que este produto explicitamente não é</h3>
+      <ul>
+        <li><b>Não substitui o S2ID</b>: aqui organiza a operação diária; nada é enviado ao governo federal por conta própria.</li>
+        <li><b>Não é alerta meteorológico</b>: não substitui Defesa Civil Alerta nem Cemaden, e não manda aviso ao cidadão.</li>
+        <li><b>Não substitui 190, 192 e 193</b>: emergência com risco imediato continua pelos canais oficiais.</li>
+        <li><b>Não decide sozinho</b>: a gravidade é sempre definida por quem tem competência técnica para isso.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <p class="next">Este é um protótipo de validação de conceito. O próximo passo depende de uma pergunta: o fluxo mostrado corresponde ao trabalho real de uma Defesa Civil municipal? Se sim, o caminho é um piloto assistido com um município parceiro.</p>
+    <span class="meta">DC360 · Especificação técnica preliminar v0.1<br>18 ago 2026</span>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    "use strict";
+    var raiz = document.documentElement;
+    var botao = document.getElementById("botao-tema");
+    if (!botao) return;
+
+    function ler() { try { return localStorage.getItem("dc360-apresentacao-tema"); } catch (e) { return null; } }
+    function salvar(v) { try { localStorage.setItem("dc360-apresentacao-tema", v); } catch (e) {} }
+
+    var atual = ler();
+    if (atual === "dark" || atual === "light") {
+      raiz.setAttribute("data-theme", atual);
+      botao.setAttribute("aria-pressed", String(atual === "dark"));
+    }
+
+    botao.addEventListener("click", function () {
+      var escuro = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      var ativoEscuro = raiz.getAttribute("data-theme")
+        ? raiz.getAttribute("data-theme") === "dark"
+        : escuro;
+      var proximo = ativoEscuro ? "light" : "dark";
+      raiz.setAttribute("data-theme", proximo);
+      botao.setAttribute("aria-pressed", String(proximo === "dark"));
+      salvar(proximo);
+    });
+  })();
+</script>
