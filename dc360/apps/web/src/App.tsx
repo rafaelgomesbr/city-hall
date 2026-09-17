@@ -14,6 +14,7 @@ import { Painel } from "./paginas/Painel";
 import { Usuarios } from "./paginas/Usuarios";
 import { Orgaos } from "./paginas/Orgaos";
 import { Auditoria } from "./paginas/Auditoria";
+import { Organizacao } from "./paginas/Organizacao";
 import { Aviso } from "./componentes/comuns";
 import { MeuTrabalho } from "./paginas/MeuTrabalho";
 import { QuemEstaEmCampo } from "./paginas/QuemEstaEmCampo";
@@ -134,6 +135,7 @@ export function App() {
         <Route path="/orgaos" element={<Exige acao="gerenciar_equipes"><Orgaos /></Exige>} />
         <Route path="/usuarios" element={<Exige acao="gerenciar_usuarios"><Usuarios /></Exige>} />
         <Route path="/auditoria" element={<Exige acao="consultar_trilha"><Auditoria /></Exige>} />
+        <Route path="/organizacao" element={<Exige acao="gerenciar_organizacao"><Organizacao /></Exige>} />
         {/*
           Endereço desconhecido é dito, e não redirecionado em silêncio: quem
           abriu um link errado precisa saber que o link estava errado. Fica

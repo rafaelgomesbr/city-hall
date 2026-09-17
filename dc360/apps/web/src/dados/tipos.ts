@@ -398,6 +398,19 @@ export type FiltroTrilha = {
   pagina?: number;
 };
 
+/**
+ * Prazo de retenção de dado pessoal, em dias, por município.
+ *
+ * `null` é valor, não campo esquecido: significa "o município ainda não
+ * decidiu". Ver a mesma regra em `apps/api/src/rotas/administracao.ts`.
+ */
+export type PrazosDeRetencao = {
+  solicitanteDias: number | null;
+  vulnerabilidadeDias: number | null;
+};
+
+export type RetencaoDoMunicipio = PrazosDeRetencao & { nome: string };
+
 /* ==========================================================================
    O trabalho do agente de campo
    ========================================================================== */

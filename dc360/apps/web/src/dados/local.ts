@@ -37,6 +37,7 @@ import type {
   AtivacaoSegundoFator, ResultadoDeEntrada, SegundoFatorLigado, SituacaoSegundoFator,
   ConfiguracaoDoPainel, DevolucaoDaOcorrencia, DevolucaoPendente,
   QuemEstaEmCampo, SaidaEmCampo, RespostaDeBusca, PontoDoLinkDeMapa,
+  PrazosDeRetencao,
 } from "./tipos";
 import { classificarRegistros, TETO_POR_GRUPO, type RegistroPesquisavel } from "../busca/registros";
 import { CONSULTA_MAXIMA } from "../busca/combobox";
@@ -518,6 +519,21 @@ export async function baixarCsvDeOcorrencias(
   _periodo: { de?: string; ate?: string; status?: string } = {},
 ): Promise<never> {
   throw new Error("A exportação exige a API. Este painel está em modo local.");
+}
+
+export async function lerRetencaoDoMunicipio(_s: Sessao): Promise<never> {
+  throw new Error("A retenção de dados exige a API. Este painel está em modo local.");
+}
+
+export async function salvarRetencaoDoMunicipio(
+  _s: Sessao,
+  _dados: PrazosDeRetencao,
+): Promise<never> {
+  throw new Error("A retenção de dados exige a API. Este painel está em modo local.");
+}
+
+export async function baixarPacoteDeSaida(_s: Sessao): Promise<never> {
+  throw new Error("A extração do município exige a API. Este painel está em modo local.");
 }
 
 /**

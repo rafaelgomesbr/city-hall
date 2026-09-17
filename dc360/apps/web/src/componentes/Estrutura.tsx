@@ -89,6 +89,14 @@ const NAVEGACAO: ItemNav[] = [
   { para: "/auditoria", rotulo: "Prestação de contas", icone: <IconeDocumento />,
     grupo: "Administração", exige: "consultar_trilha",
     sinonimos: ["auditoria", "trilha", "relatório", "histórico", "exportar", "csv"] },
+  /*
+    A única tela atrás de `gerenciar_organizacao`, a permissão que só o
+    administrador tem. Coordenador não vê este item, do mesmo jeito que não vê
+    conta de outro coordenador: é o teto do município, não a operação dele.
+  */
+  { para: "/organizacao", rotulo: "Organização", icone: <IconeEscudo />,
+    grupo: "Administração", exige: "gerenciar_organizacao",
+    sinonimos: ["retenção", "lgpd", "saída de município", "extração", "dados pessoais"] },
 ];
 
 export function Estrutura() {

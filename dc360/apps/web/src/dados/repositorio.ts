@@ -92,6 +92,9 @@ export const {
   encerrarSaidaEmCampo,
   buscar,
   resolverLinkDeMapa,
+  lerRetencaoDoMunicipio,
+  salvarRetencaoDoMunicipio,
+  baixarPacoteDeSaida,
 } = impl;
 
 export { ErroDaApi } from "./http";
@@ -158,4 +161,6 @@ export type {
   ResultadoDeBusca,
   TipoDeResultado,
   PontoDoLinkDeMapa,
+  PrazosDeRetencao,
+  RetencaoDoMunicipio,
 } from "./tipos";

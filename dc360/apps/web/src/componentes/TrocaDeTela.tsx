@@ -40,6 +40,7 @@ const TITULOS: Record<string, string> = {
      cujo título é "Prestação de contas", e quem alterna janelas procura a
      palavra que leu na tela. */
   "/auditoria": "Prestação de contas",
+  "/organizacao": "Organização",
   "/entrar": "Entrar",
   "/recuperar-senha": "Recuperar senha",
   "/redefinir-senha": "Definir nova senha",

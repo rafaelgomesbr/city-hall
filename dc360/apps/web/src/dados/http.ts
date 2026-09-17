@@ -16,6 +16,7 @@ import type {
   AtivacaoSegundoFator, ResultadoDeEntrada, SegundoFatorLigado, SituacaoSegundoFator,
   ConfiguracaoDoPainel, DevolucaoDaOcorrencia, DevolucaoPendente,
   QuemEstaEmCampo, RespostaDeBusca, PontoDoLinkDeMapa,
+  PrazosDeRetencao, RetencaoDoMunicipio,
 } from "./tipos";
 import { CONSULTA_MAXIMA } from "../busca/combobox";
 
@@ -921,6 +922,41 @@ export async function baixarCsvDeOcorrencias(
   return {
     url: URL.createObjectURL(await resposta.blob()),
     nome: `ocorrencias-${new Date().toISOString().slice(0, 10)}.csv`,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Organização
+// ---------------------------------------------------------------------------
+
+export async function lerRetencaoDoMunicipio(_s: Sessao): Promise<RetencaoDoMunicipio> {
+  return chamar<RetencaoDoMunicipio>("/organizacao/retencao");
+}
+
+export async function salvarRetencaoDoMunicipio(
+  _s: Sessao,
+  dados: PrazosDeRetencao,
+): Promise<PrazosDeRetencao> {
+  return chamar<PrazosDeRetencao>("/organizacao/retencao", { metodo: "PATCH", corpo: dados });
+}
+
+/**
+ * Baixa o pacote de saída do município, o mesmo caminho da exportação de CSV:
+ * o token vai no cabeçalho, então a rota não pode ser um link direto.
+ */
+export async function baixarPacoteDeSaida(_s: Sessao): Promise<{ url: string; nome: string }> {
+  const tokens = lerTokens();
+  const resposta = await comRedeTraduzida(() =>
+    fetch(`${BASE}/pacote.zip`, {
+      method: "POST",
+      headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
+    }));
+  if (!resposta.ok) {
+    throw new ErroDaApi(resposta.status, await resposta.json().catch(() => ({})));
+  }
+  return {
+    url: URL.createObjectURL(await resposta.blob()),
+    nome: `dc360-pacote-de-saida-${new Date().toISOString().slice(0, 10)}.zip`,
   };
 }
 
