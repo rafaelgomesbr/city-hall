@@ -85,9 +85,13 @@ export function Organizacao() {
               ) : (
                 <>
                   <p className="campo__dica" style={{ marginTop: 0 }}>
-                    Por quantos dias {nome || "o município"} guarda o nome e o contato
-                    de quem aciona a Defesa Civil, e a descrição de vulnerabilidade
-                    social. Deixe em branco para não definir prazo.
+                    Enquanto uma ocorrência está aberta, nada é apagado: é assim que a
+                    equipe continua avisando a família da vistoria e da interdição.
+                    Depois que {nome || "o município"} <strong>encerra</strong> a
+                    ocorrência, os prazos abaixo contam a partir do encerramento e
+                    apagam só o dado pessoal sensível, um pedaço de cada vez: o
+                    protocolo, o endereço, o tipo e as datas continuam no histórico
+                    para sempre. Deixe em branco para nunca apagar nada.
                   </p>
                   {erro && <Aviso tom="perigo">{erro}</Aviso>}
                   {sucesso && <Aviso tom="sucesso">{sucesso}</Aviso>}
@@ -95,21 +99,22 @@ export function Organizacao() {
                   <form onSubmit={salvar} noValidate>
                     <AvisoDeObrigatorios />
                     <Campo id="org-retencao-solicitante" opcional
-                           rotulo="Nome e contato do solicitante, em dias">
+                           rotulo="Nome e telefone de quem chamou, em dias após o encerramento"
+                           dica="Ex.: 365 para um ano. É o nome e o contato de quem acionou a Defesa Civil.">
                       {(campo) => (
-                        <input {...campo} type="number" min={1} max={36500}
+                        <input {...campo} type="text" inputMode="numeric" placeholder="Ex.: 365"
                                value={solicitanteDias}
-                               onChange={(e) => setSolicitanteDias(e.target.value)} />
+                               onChange={(e) => setSolicitanteDias(e.target.value.replace(/\D/g, "").slice(0, 5))} />
                       )}
                     </Campo>
 
                     <Campo id="org-retencao-vulnerabilidade" opcional
-                           rotulo="Descrição de vulnerabilidade social, em dias"
-                           dica="Não pode ser maior que o prazo do nome do solicitante.">
+                           rotulo="Descrição de vulnerabilidade social, em dias após o encerramento"
+                           dica="Ex.: 'mora com idoso acamado'. Nunca fica guardada por mais tempo que o nome do solicitante.">
                       {(campo) => (
-                        <input {...campo} type="number" min={1} max={36500}
+                        <input {...campo} type="text" inputMode="numeric" placeholder="Ex.: 365"
                                value={vulnerabilidadeDias}
-                               onChange={(e) => setVulnerabilidadeDias(e.target.value)} />
+                               onChange={(e) => setVulnerabilidadeDias(e.target.value.replace(/\D/g, "").slice(0, 5))} />
                       )}
                     </Campo>
 
