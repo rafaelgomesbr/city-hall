@@ -1206,8 +1206,14 @@ describe("Trilha dos atos administrativos", () => {
     expect(criado.statusCode).toBe(201);
     const alvoId = criado.json().id;
 
+    /*
+      Promover para "coordenador" é ato de quem administra o município, não de
+      quem já é coordenador: `podeGerirPapel` (revisão de segurança de
+      15/09/2026, ADR 0006) exige POSTO estritamente maior, e coordenador não
+      é maior que coordenador. Por isso o token aqui é `adminA`, e não `cab`.
+    */
     const promovido = await app.inject({
-      method: "PATCH", url: `/usuarios/${alvoId}`, headers: cab,
+      method: "PATCH", url: `/usuarios/${alvoId}`, headers: comToken(tokens["adminA"]!.acesso),
       payload: {
         nome: "Conta Descartavel de Teste",
         matricula: "M-DESC-1",
@@ -1217,8 +1223,10 @@ describe("Trilha dos atos administrativos", () => {
     });
     expect(promovido.statusCode).toBe(200);
 
+    // Idem: a conta já é coordenadora, e cab (coordA) não administra peer.
     const desativado = await app.inject({
-      method: "PATCH", url: `/usuarios/${alvoId}/situacao`, headers: cab,
+      method: "PATCH", url: `/usuarios/${alvoId}/situacao`,
+      headers: comToken(tokens["adminA"]!.acesso),
       payload: { ativo: false },
     });
     expect(desativado.statusCode).toBe(200);

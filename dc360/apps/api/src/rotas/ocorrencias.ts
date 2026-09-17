@@ -1099,13 +1099,15 @@ export async function rotasOcorrencias(
       );
 
       /*
-        Interdição ainda de pé é o mesmo caso, e mais grave: encerrar com a
-        casa interditada é fechar o processo com uma família fora de casa e
-        sem ninguém obrigado a levantar a interdição um dia. Não impede, pela
-        mesma razão da providência (a rua fecha caso assim), mas a resposta e a
-        trilha dizem que foi assim. Depois de encerrada, a ocorrência não
-        recebe mais ato: o levantamento precisa vir ANTES, e este aviso é o
-        que faz o coordenador saber disso no clique, e não meses depois.
+        Interdição ainda de pé é RECUSADA, e não só avisada: encerrar com a
+        casa interditada fecharia o processo com uma família fora de casa e
+        sem ninguém obrigado a levantar a interdição um dia (depois de
+        encerrada, a ocorrência não recebe mais ato: `POST /:id/desinterdicao`
+        e o termo de interdição como ATO já recusam `estadoTerminal`). A
+        providência sem resposta continua só avisando, porque a secretaria às
+        vezes nunca responde e travar o encerramento faria a fila do
+        coordenador crescer para sempre; a interdição é diferente, porque quem
+        pode levantá-la é a própria coordenação, agora, num ato de segundos.
       */
       const interdicao = await c.query<{ ativa: boolean }>(
         `SELECT (interditada_em IS NOT NULL AND desinterditada_em IS NULL) AS ativa
@@ -1113,6 +1115,13 @@ export async function rotasOcorrencias(
         [id],
       );
       const interdicaoAtiva = interdicao.rows[0]?.ativa === true;
+      if (interdicaoAtiva) {
+        throw new RegraDeNegocio(
+          "interdicao_ativa",
+          "Esta ocorrência está interditada. Levante a interdição antes de encerrar.",
+          409,
+        );
+      }
 
       await mudarStatus(c, id, de, "encerrada", {
         set: ", encerrado_em = now(), motivo_encerramento = $4",

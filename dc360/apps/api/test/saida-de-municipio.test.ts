@@ -362,7 +362,7 @@ describe("Fotografias, assinaturas e documentos", () => {
     lotado na Bravo, de propósito.
   */
   it("o laudo do pacote imprime o aviso de equipe divergente, como o laudo emitido", async () => {
-    const pacote = await gerarPacote();
+    const pacote = await baixarPacote(tokenAdministradora);
     const laudo = pacote.get("documentos/000473-2026/laudo-de-vistoria.html")!.toString("utf8");
     expect(laudo).toContain("estava designada à Equipe Alfa");
     expect(laudo).toContain("lotado na Equipe Bravo");

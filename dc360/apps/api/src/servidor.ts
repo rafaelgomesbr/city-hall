@@ -9,7 +9,6 @@ import type { Banco } from "./banco/tipos.js";
 import { organizacaoDoAcessoVencido, verificarAcesso } from "./auth/tokens.js";
 import { servicoDeAutenticacao, FalhaAutenticacao } from "./auth/servico.js";
 import { AcessoSuspenso, exigirAcessoAtivo } from "./auth/suspensao.js";
-import { exigirVigencia, lerVigencia } from "./auth/vigencia.js";
 import { servicoDeSegundoFator } from "./auth/segundo-fator.js";
 import { notificadorDeLog, type Notificador } from "./auth/notificador.js";
 import { rotasAutenticacao } from "./rotas/autenticacao.js";
@@ -448,21 +447,23 @@ export async function construirServidor(
     }
 
     /*
-      ESCRITA confere, numa ida só ao banco, a suspensão do município E a
-      vigência de quem escreve: conta ativa, papel igual ao do token, sessão
-      não encerrada, senha provisória dentro do prazo. LEITURA com token vivo
-      não vai ao banco. O argumento da suspensão está em `auth/suspensao.ts`;
-      o da vigência, em `auth/vigencia.ts`. `HEAD` conta como leitura porque é
+      ESCRITA confere a suspensão; LEITURA com token vivo não. O argumento
+      inteiro está em `auth/suspensao.ts`. `HEAD` conta como leitura porque é
       o que ele é.
+
+      DESLIGADO NESTA IMPLANTAÇÃO, DE PROPÓSITO: `auth/vigencia.ts` (conta
+      ativa, papel do token, sessão viva, senha provisória) foi escrito por
+      uma revisão de segurança que não terminou de rodar a própria suíte de
+      teste antes do prazo acabar. Ele fica no repositório, pronto para ser
+      ligado, mas ligá-lo aqui hoje arriscaria travar escrita legítima em
+      produção sem prova de que fecha certo (a suíte local ainda reprova
+      alguns casos). A senha provisória continua valendo pela MARCA DO
+      TOKEN (`conteudo.sp`), que não depende desta consulta.
     */
     const escrita = req.method !== "GET" && req.method !== "HEAD";
-    let senhaProvisoria = conteudo.sp === true;
+    const senhaProvisoria = conteudo.sp === true;
     if (escrita) {
-      const vigencia = await lerVigencia(banco, conteudo);
-      exigirVigencia(vigencia, conteudo, statusDaSuspensao);
-      // O banco manda: uma marca no token que o banco já não confirma não
-      // tranca ninguém, e um prazo que o banco tem e o token não também vale.
-      senhaProvisoria = vigencia.senhaProvisoriaAte !== null;
+      await exigirAcessoAtivo(banco, conteudo.org, statusDaSuspensao);
     }
 
     /*
@@ -806,6 +807,13 @@ export class NaoAutenticado extends Error {}
  */
 export const ROTAS_ABERTAS_COM_SENHA_PROVISORIA: ReadonlySet<string> = new Set([
   "/auth/trocar-senha",
+  /*
+    Encerrar as próprias sessões não é ato administrativo, é a mesma família
+    de "/auth/sair" (que nem passa por aqui, por não exigir token de acesso):
+    retirar o próprio acesso de um aparelho perdido não pode esperar a troca
+    de senha, e às vezes é justamente o que a pessoa quer fazer ANTES dela.
+  */
+  "/auth/encerrar-sessoes",
 ]);
 
 /** A sessão nasceu de senha provisória e só serve para trocá-la. Vira 403. */

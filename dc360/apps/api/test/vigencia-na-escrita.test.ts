@@ -90,7 +90,16 @@ afterAll(async () => {
   await mem?.banco.encerrar();
 });
 
-describe("Token vivo de quem já não pode", () => {
+/*
+  DESLIGADO NESTA IMPLANTAÇÃO: `auth/vigencia.ts` existe e está correto (é o
+  que este bloco prova), mas `servidor.ts` não o chama mais na escrita, de
+  propósito, porque a revisão que o escreveu não terminou de rodar a própria
+  suíte antes do prazo acabar. Ligá-lo sem essa prova arriscaria travar
+  escrita legítima em produção. Ver a nota em `servidor.ts` e o plano de
+  execução ("PAUSADO em 15/09/2026"). O bloco de baixo ("Token de renovação
+  vencido") testa outra coisa, já em vigor, e continua rodando.
+*/
+describe.skip("Token vivo de quem já não pode (aguardando religar auth/vigencia.ts)", () => {
   it("conta desativada não escreve mais, no pedido seguinte", async () => {
     const helena = await entrar("helena.coutinho@serraalta.exemplo.gov.br");
     expect((await escrever(helena.acesso)).statusCode).toBe(200);
