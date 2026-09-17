@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
-  MODO, baixarPacoteDeSaida, lerRetencaoDoMunicipio, salvarRetencaoDoMunicipio,
+  MODO, baixarPacoteDeSaida, lerRetencaoDoMunicipio, lerUsoDeArmazenamento,
+  salvarRetencaoDoMunicipio, type UsoDeArmazenamento,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import { Aviso, AvisoDeObrigatorios, Carregando, Cartao } from "../componentes/comuns";
@@ -120,11 +121,73 @@ export function Organizacao() {
               )}
             </Cartao>
 
+            <CartaoDeArmazenamento />
             <CartaoDeSaida />
           </div>
         </div>
       )}
     </>
+  );
+}
+
+const UNIDADES = ["B", "KB", "MB", "GB", "TB"];
+
+function formatarBytes(bytes: number): string {
+  if (bytes <= 0) return "0 B";
+  const ordem = Math.min(Math.floor(Math.log2(bytes) / 10), UNIDADES.length - 1);
+  const valor = bytes / 2 ** (ordem * 10);
+  return `${ordem === 0 ? valor : valor.toFixed(1)} ${UNIDADES[ordem]}`;
+}
+
+const TOM_POR_SITUACAO: Record<UsoDeArmazenamento["situacao"], "info" | "alerta" | "perigo"> = {
+  sem_teto: "info",
+  normal: "info",
+  aviso: "alerta",
+  acima_do_teto: "perigo",
+  recusado: "perigo",
+};
+
+const FRASE_POR_SITUACAO: Record<UsoDeArmazenamento["situacao"], string> = {
+  sem_teto: "Este município ainda não tem um teto contratado.",
+  normal: "Dentro do contratado.",
+  aviso: "Perto do teto contratado. Vale avisar quem cuida do contrato.",
+  acima_do_teto: "Passou do teto contratado. As fotos continuam sendo aceitas, mas é hora de "
+    + "renegociar antes que a margem também acabe.",
+  recusado: "Passou da margem: novo envio de foto está sendo recusado. Fale com a plataforma.",
+};
+
+/**
+ * O que o município enxerga do próprio armazenamento contratado. Só leitura:
+ * quem amplia o teto é a plataforma, não esta tela (ver `armazenamento.ts`).
+ */
+function CartaoDeArmazenamento() {
+  const sessao = useSessaoObrigatoria();
+  const [uso, setUso] = useState<UsoDeArmazenamento | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    lerUsoDeArmazenamento(sessao)
+      .then((r) => { if (!cancelado) setUso(r); })
+      .catch((e: unknown) => { if (!cancelado) setErro(e instanceof Error ? e.message : String(e)); });
+    return () => { cancelado = true; };
+  }, [sessao]);
+
+  return (
+    <Cartao titulo="Uso de armazenamento">
+      {erro && <Aviso tom="perigo">{erro}</Aviso>}
+      {!uso && !erro ? (
+        <Carregando />
+      ) : uso && (
+        <>
+          <p style={{ marginTop: 0 }}>
+            <strong>{formatarBytes(uso.bytesUsados)}</strong>
+            {uso.tetoBytes !== null && <> de {formatarBytes(uso.tetoBytes)} contratados</>}
+          </p>
+          <Aviso tom={TOM_POR_SITUACAO[uso.situacao]}>{FRASE_POR_SITUACAO[uso.situacao]}</Aviso>
+        </>
+      )}
+    </Cartao>
   );
 }
 

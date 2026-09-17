@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ROTULO_PAPEL, rotuloEventoTrilha } from "@dc360/shared";
 import {
-  MODO, baixarCsvDeOcorrencias, consultarTrilha, resumoDoPeriodo, tiposDeEvento,
-  type LinhaTrilha, type ResumoPeriodo,
+  MODO, baixarCsvDeOcorrencias, consultarAcessos, consultarTrilha, listarExportacoes,
+  resumoDoPeriodo, tiposDeEvento,
+  type LinhaConsulta, type LinhaExportacao, type LinhaTrilha, type ResumoPeriodo,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import { Aviso, Carregando, Cartao, Vazio, formatarDataHora } from "../componentes/comuns";
@@ -90,6 +91,8 @@ export function Auditoria() {
       {resumo && <ResumoDoPeriodo resumo={resumo} />}
 
       <CartaoExportacao />
+      <CartaoDeExportacoes />
+      <CartaoDeConsultas />
 
       <Cartao titulo={`Trilha de auditoria (${total})`}>
         <form
@@ -237,6 +240,143 @@ export function Auditoria() {
         )}
       </Cartao>
     </>
+  );
+}
+
+/**
+ * Quem exportou o quê, e quando. O registro que a LGPD chama de "registro
+ * de operações", com as 200 exportações mais recentes.
+ */
+function CartaoDeExportacoes() {
+  const sessao = useSessaoObrigatoria();
+  const [itens, setItens] = useState<LinhaExportacao[] | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    listarExportacoes(sessao)
+      .then((r) => { if (!cancelado) setItens(r.itens); })
+      .catch((e: unknown) => { if (!cancelado) setErro(e instanceof Error ? e.message : String(e)); });
+    return () => { cancelado = true; };
+  }, [sessao]);
+
+  return (
+    <Cartao titulo="Quem exportou o quê">
+      {erro && <Aviso tom="perigo">{erro}</Aviso>}
+      {!itens && !erro ? (
+        <Carregando />
+      ) : itens && itens.length === 0 ? (
+        <Vazio titulo="Nenhuma exportação ainda" />
+      ) : itens && (
+        <div className="tabela-envolucro">
+          <table className="tabela">
+            <caption className="oculto-visualmente">
+              Exportações, da mais recente para a mais antiga
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Quando</th>
+                <th scope="col">Quem</th>
+                <th scope="col">O quê</th>
+                <th scope="col">Registros</th>
+              </tr>
+            </thead>
+            <tbody>
+              {itens.map((e) => (
+                <tr key={e.id}>
+                  <td>{formatarDataHora(e.criada_em)}</td>
+                  <td>{e.usuario_nome}</td>
+                  <td>{e.tipo}</td>
+                  <td className="mono">{e.total_registros}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Cartao>
+  );
+}
+
+const POR_PAGINA_CONSULTAS = 25;
+
+/**
+ * Quem consultou dado de cidadão, e sobre qual ocorrência. Responde "quem viu
+ * os dados dessa família", pergunta do titular e da autoridade de dados.
+ */
+function CartaoDeConsultas() {
+  const sessao = useSessaoObrigatoria();
+  const [pagina, setPagina] = useState(1);
+  const [dados, setDados] = useState<{ itens: LinhaConsulta[]; total: number } | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    consultarAcessos(sessao, { pagina })
+      .then((r) => { if (!cancelado) setDados({ itens: r.itens, total: r.total }); })
+      .catch((e: unknown) => { if (!cancelado) setErro(e instanceof Error ? e.message : String(e)); });
+    return () => { cancelado = true; };
+  }, [sessao, pagina]);
+
+  const paginas = dados ? Math.max(1, Math.ceil(dados.total / POR_PAGINA_CONSULTAS)) : 1;
+
+  return (
+    <Cartao titulo={`Quem consultou dado de cidadão${dados ? ` (${dados.total})` : ""}`}>
+      {erro && <Aviso tom="perigo">{erro}</Aviso>}
+      {!dados && !erro ? (
+        <Carregando />
+      ) : dados && dados.itens.length === 0 ? (
+        <Vazio titulo="Nenhuma consulta registrada ainda" />
+      ) : dados && (
+        <>
+          <div className="tabela-envolucro">
+            <table className="tabela">
+              <caption className="oculto-visualmente">
+                Consultas a dado de cidadão, da mais recente para a mais antiga
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Quando</th>
+                  <th scope="col">Quem</th>
+                  <th scope="col">O quê</th>
+                  <th scope="col">Ocorrência</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dados.itens.map((k) => (
+                  <tr key={k.id}>
+                    <td>{formatarDataHora(k.consultada_em)}</td>
+                    <td>
+                      <div className="tabela__principal">{k.usuario_nome}</div>
+                      <div className="tabela__secundario">{ROTULO_PAPEL[k.usuario_papel]}</div>
+                    </td>
+                    <td>{k.finalidade.replace(/_/g, " ")}</td>
+                    <td>
+                      <Link className="tabela__protocolo" to={`/ocorrencias/${k.ocorrencia_id}`}>
+                        {k.protocolo}
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="paginacao">
+            <span>Página {pagina} de {paginas}</span>
+            <div className="paginacao__controles">
+              <button type="button" className="botao botao--secundario"
+                      disabled={pagina === 1} onClick={() => setPagina((p) => p - 1)}>
+                Anterior
+              </button>
+              <button type="button" className="botao botao--secundario"
+                      disabled={pagina >= paginas} onClick={() => setPagina((p) => p + 1)}>
+                Próxima
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </Cartao>
   );
 }
 

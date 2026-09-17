@@ -16,7 +16,8 @@ import type {
   AtivacaoSegundoFator, ResultadoDeEntrada, SegundoFatorLigado, SituacaoSegundoFator,
   ConfiguracaoDoPainel, DevolucaoDaOcorrencia, DevolucaoPendente,
   QuemEstaEmCampo, RespostaDeBusca, PontoDoLinkDeMapa,
-  PrazosDeRetencao, RetencaoDoMunicipio,
+  PrazosDeRetencao, RetencaoDoMunicipio, UsoDeArmazenamento,
+  LinhaExportacao, FiltroConsultas, PaginaDeConsultas,
 } from "./tipos";
 import { CONSULTA_MAXIMA } from "../busca/combobox";
 
@@ -958,6 +959,29 @@ export async function baixarPacoteDeSaida(_s: Sessao): Promise<{ url: string; no
     url: URL.createObjectURL(await resposta.blob()),
     nome: `dc360-pacote-de-saida-${new Date().toISOString().slice(0, 10)}.zip`,
   };
+}
+
+export async function lerUsoDeArmazenamento(_s: Sessao): Promise<UsoDeArmazenamento> {
+  return chamar<UsoDeArmazenamento>("/armazenamento/uso");
+}
+
+// ---------------------------------------------------------------------------
+// Relatórios de LGPD: quem exportou o quê, quem consultou o quê
+// ---------------------------------------------------------------------------
+
+export async function listarExportacoes(_s: Sessao): Promise<{ itens: LinhaExportacao[] }> {
+  return chamar<{ itens: LinhaExportacao[] }>("/relatorios/exportacoes");
+}
+
+export async function consultarAcessos(
+  _s: Sessao,
+  filtro: FiltroConsultas = {},
+): Promise<PaginaDeConsultas> {
+  const p = new URLSearchParams();
+  if (filtro.ocorrencia) p.set("ocorrencia", filtro.ocorrencia);
+  if (filtro.usuario) p.set("usuario", filtro.usuario);
+  p.set("pagina", String(filtro.pagina ?? 1));
+  return chamar<PaginaDeConsultas>(`/relatorios/consultas?${p.toString()}`);
 }
 
 // ---------------------------------------------------------------------------

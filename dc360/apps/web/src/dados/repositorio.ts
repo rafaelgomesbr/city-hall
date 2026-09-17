@@ -95,6 +95,9 @@ export const {
   lerRetencaoDoMunicipio,
   salvarRetencaoDoMunicipio,
   baixarPacoteDeSaida,
+  lerUsoDeArmazenamento,
+  listarExportacoes,
+  consultarAcessos,
 } = impl;
 
 export { ErroDaApi } from "./http";
@@ -163,4 +166,9 @@ export type {
   PontoDoLinkDeMapa,
   PrazosDeRetencao,
   RetencaoDoMunicipio,
+  UsoDeArmazenamento,
+  LinhaExportacao,
+  LinhaConsulta,
+  FiltroConsultas,
+  PaginaDeConsultas,
 } from "./tipos";

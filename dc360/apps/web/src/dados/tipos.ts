@@ -411,6 +411,49 @@ export type PrazosDeRetencao = {
 
 export type RetencaoDoMunicipio = PrazosDeRetencao & { nome: string };
 
+/** O que o município enxerga do próprio armazenamento contratado. */
+export type UsoDeArmazenamento = {
+  bytesUsados: number;
+  tetoBytes: number | null;
+  margemBytes: number | null;
+  situacao: "sem_teto" | "normal" | "aviso" | "acima_do_teto" | "recusado";
+};
+
+/** Uma linha de "quem exportou o quê, e quando". */
+export type LinhaExportacao = {
+  id: string;
+  usuario_nome: string;
+  tipo: string;
+  filtros: Record<string, unknown>;
+  total_registros: number;
+  criada_em: string;
+};
+
+/** Uma linha de "quem consultou dado de cidadão, e sobre qual ocorrência". */
+export type LinhaConsulta = {
+  id: string;
+  usuario_nome: string;
+  usuario_papel: Papel;
+  recurso: string;
+  finalidade: string;
+  consultada_em: string;
+  ocorrencia_id: string;
+  protocolo: string;
+};
+
+export type FiltroConsultas = {
+  ocorrencia?: string;
+  usuario?: string;
+  pagina?: number;
+};
+
+export type PaginaDeConsultas = {
+  itens: LinhaConsulta[];
+  total: number;
+  pagina: number;
+  porPagina: number;
+};
+
 /* ==========================================================================
    O trabalho do agente de campo
    ========================================================================== */
