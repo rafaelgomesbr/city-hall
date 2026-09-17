@@ -85,13 +85,13 @@ export function Organizacao() {
               ) : (
                 <>
                   <p className="campo__dica" style={{ marginTop: 0 }}>
-                    Enquanto uma ocorrência está aberta, nada é apagado: é assim que a
-                    equipe continua avisando a família da vistoria e da interdição.
-                    Depois que {nome || "o município"} <strong>encerra</strong> a
-                    ocorrência, os prazos abaixo contam a partir do encerramento e
-                    apagam só o dado pessoal sensível, um pedaço de cada vez: o
-                    protocolo, o endereço, o tipo e as datas continuam no histórico
-                    para sempre. Deixe em branco para nunca apagar nada.
+                    Os dois campos abaixo não são pra descrever nada: são só um número
+                    de dias. Enquanto a ocorrência está aberta, nada é apagado. Depois
+                    que {nome || "o município"} <strong>encerra</strong> a ocorrência, o
+                    número de dias que você puser aqui começa a contar, e quando ele
+                    vence o sistema apaga aquele pedaço específico do dado pessoal
+                    sozinho. O resto (protocolo, endereço, tipo, datas) continua no
+                    histórico para sempre. Deixe em branco para nunca apagar.
                   </p>
                   {erro && <Aviso tom="perigo">{erro}</Aviso>}
                   {sucesso && <Aviso tom="sucesso">{sucesso}</Aviso>}
@@ -99,8 +99,8 @@ export function Organizacao() {
                   <form onSubmit={salvar} noValidate>
                     <AvisoDeObrigatorios />
                     <Campo id="org-retencao-solicitante" opcional
-                           rotulo="Nome e telefone de quem chamou, em dias após o encerramento"
-                           dica="Ex.: 365 para um ano. É o nome e o contato de quem acionou a Defesa Civil.">
+                           rotulo="Depois de quantos dias apagar o nome e o telefone de quem chamou"
+                           dica="Conta a partir do encerramento da ocorrência. Ex.: 365, para um ano.">
                       {(campo) => (
                         <input {...campo} type="text" inputMode="numeric" placeholder="Ex.: 365"
                                value={solicitanteDias}
@@ -109,10 +109,10 @@ export function Organizacao() {
                     </Campo>
 
                     <Campo id="org-retencao-vulnerabilidade" opcional
-                           rotulo="Descrição de vulnerabilidade social, em dias após o encerramento"
-                           dica="Ex.: 'mora com idoso acamado'. Nunca fica guardada por mais tempo que o nome do solicitante.">
+                           rotulo="Depois de quantos dias apagar a descrição de vulnerabilidade social"
+                           dica="Não pode passar do prazo do campo acima. Ex.: 180, para seis meses.">
                       {(campo) => (
-                        <input {...campo} type="text" inputMode="numeric" placeholder="Ex.: 365"
+                        <input {...campo} type="text" inputMode="numeric" placeholder="Ex.: 180"
                                value={vulnerabilidadeDias}
                                onChange={(e) => setVulnerabilidadeDias(e.target.value.replace(/\D/g, "").slice(0, 5))} />
                       )}
