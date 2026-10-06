@@ -1,0 +1,19 @@
+### CMD: npx vitest run (cwd=/c/Projetos/city-hall/dc360/packages/campo) inicio=2026-09-30T16:17:40-03:00
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/packages/campo
+
+ ✓ test/prazo.test.ts (12 tests) 38ms
+ ✓ test/conclusao.test.ts (11 tests) 10ms
+ ✓ test/coleta.test.ts (14 tests) 13ms
+ ✓ test/devolucao.test.ts (24 tests) 33ms
+ ✓ test/prova-perdida.test.ts (10 tests) 32ms
+ ✓ test/deposito-sqlite.test.ts (9 tests) 37ms
+ ✓ test/correcao-da-coleta.test.ts (21 tests) 47ms
+ ✓ test/fila.test.ts (58 tests) 148ms
+
+ Test Files  8 passed (8)
+      Tests  159 passed (159)
+   Start at  16:17:44
+   Duration  2.42s (transform 2.76s, setup 0ms, collect 7.28s, tests 359ms, environment 3ms, prepare 3.37s)
+
+### EXIT=0 DURACAO=7s fim=2026-09-30T16:17:47-03:00

@@ -1,0 +1,15 @@
+DATABASE_URL ausente: subindo Postgres em WebAssembly, efêmero e só para desenvolvimento.
+Semeado com dois municípios fictícios. Senha de todas as contas: defesa-civil-2026
+Armazenamento de evidência em memória: as fotos somem ao reiniciar.
+{"level":30,"time":1790797143887,"pid":49688,"hostname":"Rafa_Laptop","municipios":2,"falhas":0,"msg":"resumo dos municipios escrito"}
+{"level":30,"time":1790797143898,"pid":49688,"hostname":"Rafa_Laptop","msg":"Server listening at http://127.0.0.1:3777"}
+{"level":30,"time":1790797144351,"pid":49688,"hostname":"Rafa_Laptop","reqId":"85ed7895-ba96-4bca-a60c-773d1667925b","req":{"method":"GET","url":"/saude","host":"127.0.0.1:3777","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1790797144373,"pid":49688,"hostname":"Rafa_Laptop","reqId":"85ed7895-ba96-4bca-a60c-773d1667925b","res":{"statusCode":200},"responseTime":20.39390000000003,"msg":"request completed"}
+{"level":30,"time":1790797144436,"pid":49688,"hostname":"Rafa_Laptop","reqId":"104f8721-6b34-4adc-9eab-1d9e5028d368","req":{"method":"OPTIONS","url":"/armazenamento/objeto","query":"[removido]","host":"127.0.0.1:3777","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1790797144438,"pid":49688,"hostname":"Rafa_Laptop","reqId":"104f8721-6b34-4adc-9eab-1d9e5028d368","res":{"statusCode":204},"responseTime":1.008100000000013,"msg":"request completed"}
+{"level":30,"time":1790797144515,"pid":49688,"hostname":"Rafa_Laptop","reqId":"0f32ce49-e125-46d6-bfd2-067f81389049","req":{"method":"OPTIONS","url":"/armazenamento/objeto","query":"[removido]","host":"127.0.0.1:3777","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1790797144516,"pid":49688,"hostname":"Rafa_Laptop","reqId":"0f32ce49-e125-46d6-bfd2-067f81389049","res":{"statusCode":204},"responseTime":1.0615999999999985,"msg":"request completed"}
+{"level":30,"time":1790797149120,"pid":49688,"hostname":"Rafa_Laptop","reqId":"14f4f6ef-35ba-466b-8472-132c62d904fb","req":{"method":"OPTIONS","url":"/armazenamento/objeto","query":"[removido]","host":"127.0.0.1:3777","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1790797149121,"pid":49688,"hostname":"Rafa_Laptop","reqId":"14f4f6ef-35ba-466b-8472-132c62d904fb","res":{"statusCode":204},"responseTime":0.8366000000005442,"msg":"request completed"}
+{"level":30,"time":1790797149212,"pid":49688,"hostname":"Rafa_Laptop","reqId":"6a43052d-d346-4a3d-858c-a6b3eb2409a9","req":{"method":"OPTIONS","url":"/armazenamento/objeto","query":"[removido]","host":"127.0.0.1:3777","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1790797149214,"pid":49688,"hostname":"Rafa_Laptop","reqId":"6a43052d-d346-4a3d-858c-a6b3eb2409a9","res":{"statusCode":204},"responseTime":0.9742000000005646,"msg":"request completed"}

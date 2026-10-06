@@ -1,0 +1,5 @@
+{
+  "extends": "C:/Projetos/city-hall/dc360/apps/campo/tsconfig.json",
+  "compilerOptions": { "typeRoots": ["C:/Projetos/city-hall/dc360/apps/campo/node_modules/@types"], "rootDir": "C:/Projetos/city-hall/dc360" },
+  "include": ["C:/Projetos/city-hall/dc360/apps/campo/src", "C:/Projetos/city-hall/dc360/apps/campo/expo-env.d.ts"]
+}

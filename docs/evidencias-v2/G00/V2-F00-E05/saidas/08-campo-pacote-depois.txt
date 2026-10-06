@@ -1,0 +1,21 @@
+
+> @dc360/campo@0.1.0 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/dc360/packages/campo[39m
+
+ [32m✓[39m test/prazo.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+ [32m✓[39m test/conclusao.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m test/coleta.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m test/devolucao.test.ts [2m([22m[2m24 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m test/prova-perdida.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m test/deposito-sqlite.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+ [32m✓[39m test/correcao-da-coleta.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+ [32m✓[39m test/fila.test.ts [2m([22m[2m58 tests[22m[2m)[22m[32m 95[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m8 passed[39m[22m[90m (8)[39m
+[2m      Tests [22m [1m[32m159 passed[39m[22m[90m (159)[39m
+[2m   Start at [22m 10:46:39
+[2m   Duration [22m 1.45s[2m (transform 767ms, setup 0ms, collect 4.66s, tests 252ms, environment 3ms, prepare 2.11s)[22m
+

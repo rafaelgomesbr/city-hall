@@ -1,0 +1,882 @@
+diff --git a/dc360/apps/api/src/rotas/avisos.ts b/dc360/apps/api/src/rotas/avisos.ts
+index dc32402..5dc16cf 100644
+--- a/dc360/apps/api/src/rotas/avisos.ts
++++ b/dc360/apps/api/src/rotas/avisos.ts
+@@ -1,6 +1,7 @@
+ import type { FastifyInstance } from "fastify";
+ import { z } from "zod";
+ import type { Banco } from "../banco/tipos.js";
++import { eRecorteDoAgente } from "./recorte-do-agente.js";
+ 
+ /**
+  * O sino de avisos do painel, do lado servidor.
+@@ -211,6 +212,17 @@ export async function rotasAvisos(
+       O que substitui a permissão é o que o aviso carrega: tipo, protocolo,
+       instante e um complemento curto. Nome, contato, endereço, relato e
+       descrição de vulnerabilidade não passam por aqui.
++
++      MAS O PROTOCOLO E O TIPO DE FATO TAMBÉM SÃO DADO, e por isso o sino do
++      AGENTE DE CAMPO é recortado à equipe dele (V2-F00-E08, AUT-13): o aparelho
++      do agente cai e é emprestado, e o sino dele entregava o protocolo e o tipo
++      de fato de ocorrência de toda equipe do município, enquanto a lista de
++      ocorrências do mesmo token já respondia 404 a elas. O recorte é o MESMO
++      de `recorte-do-agente.ts` (a equipe vem do cadastro do usuário, nunca do
++      token), aplicado à lista E à contagem: um número de não lidos maior que a
++      lista denunciaria os avisos que ela esconde. Coordenação, operador e
++      administração seguem vendo o município inteiro: o sino é a fila de
++      trabalho deles.
+     */
+     const quem = await app.exigirAutenticacao(req);
+     const pedido = consultaSchema.parse(req.query ?? {});
+@@ -383,6 +395,10 @@ export async function rotasAvisos(
+         indefinida, e com teto isso vira sorteio: o aviso que caiu fora agora
+         pode ser outro na consulta seguinte, e algum deles não aparece nunca.
+       */
++      const paramsDaLista: unknown[] = [
++        quem.usuarioId, ate, desde ?? null, desdeId ?? null, TETO_DE_AVISOS + 1,
++      ];
++      const recorteDaLista = eRecorteDoAgente(quem, "o", paramsDaLista);
+       const lista = await c.query<LinhaDeAviso>(
+         /*
+           A ORDEM É CRESCENTE, e essa é a única em que o corte não perde nada.
+@@ -419,9 +435,10 @@ export async function rotasAvisos(
+             AND ($3::timestamptz IS NULL OR a.criado_em > $3::timestamptz
+                  OR ($4::uuid IS NOT NULL
+                      AND a.criado_em = $3::timestamptz AND a.id > $4::uuid))
++            ${recorteDaLista}
+           ORDER BY a.criado_em, a.id
+           LIMIT $5`,
+-        [quem.usuarioId, ate, desde ?? null, desdeId ?? null, TETO_DE_AVISOS + 1],
++        paramsDaLista,
+       );
+ 
+       const truncada = lista.rows.length > TETO_DE_AVISOS;
+@@ -461,21 +478,31 @@ export async function rotasAvisos(
+         acabou de cortar e o que veio antes da última pergunta. É o número que
+         sobrevive ao corte: a lista pode estar truncada, e o sino continua
+         dizendo a verdade sobre quanto falta.
++
++        Passa pelo MESMO recorte da lista, e junta `ocorrencias` como ela faz:
++        sem isso, o número do sino do agente incluiria os avisos de outras
++        equipes que a lista não mostra, e a diferença entre os dois números
++        seria um oráculo (quantos avisos existem fora do recorte dele).
+       */
++      const paramsDaContagem: unknown[] = [quem.usuarioId, ate, TETO_DA_CONTAGEM + 1];
++      const recorteDaContagem = eRecorteDoAgente(quem, "o", paramsDaContagem);
+       const contagem = await c.query<{ n: number }>(
+         `SELECT count(*)::int AS n
+            FROM (
+              SELECT 1
+                FROM avisos a
++               JOIN ocorrencias o
++                 ON o.organizacao_id = a.organizacao_id AND o.id = a.ocorrencia_id
+                LEFT JOIN avisos_lidos l
+                  ON l.organizacao_id = a.organizacao_id
+                 AND l.aviso_id = a.id
+                 AND l.usuario_id = $1
+               WHERE l.usuario_id IS NULL
+                 AND a.criado_em <= $2::timestamptz
++                ${recorteDaContagem}
+               LIMIT $3
+            ) AS amostra`,
+-        [quem.usuarioId, ate, TETO_DA_CONTAGEM + 1],
++        paramsDaContagem,
+       );
+       const contados = contagem.rows[0]!.n;
+       const naoLidosTruncado = contados > TETO_DA_CONTAGEM;
+@@ -532,6 +559,14 @@ export async function rotasAvisos(
+     const { ids } = leituraSchema.parse(req.body);
+ 
+     return banco.comTenant(quem.organizacaoId, async (c) => {
++      /*
++        O agente só marca o que ele PODE VER (o mesmo recorte do sino). Fora do
++        recorte o aviso se comporta como se não existisse: `marcados: 0`, igual
++        ao identificador de outro município. Sem isso, o "marcados: 1" confirmava
++        ao agente que um aviso de outra equipe existe.
++      */
++      const paramsDeLidos: unknown[] = [quem.usuarioId, ids];
++      const recorteDeLidos = eRecorteDoAgente(quem, "o", paramsDeLidos);
+       /*
+         A inserção passa POR DENTRO de `avisos`, e não direto pela lista de
+         identificadores recebida. Dois motivos, e os dois importam:
+@@ -548,10 +583,13 @@ export async function rotasAvisos(
+         `INSERT INTO avisos_lidos (organizacao_id, usuario_id, aviso_id)
+          SELECT a.organizacao_id, $1, a.id
+            FROM avisos a
++           JOIN ocorrencias o
++             ON o.organizacao_id = a.organizacao_id AND o.id = a.ocorrencia_id
+           WHERE a.id = ANY($2::uuid[])
++            ${recorteDeLidos}
+          ON CONFLICT DO NOTHING
+          RETURNING aviso_id`,
+-        [quem.usuarioId, ids],
++        paramsDeLidos,
+       );
+ 
+       // Quantos passaram a contar como lidos AGORA. O que já estava marcado
+diff --git a/dc360/apps/api/src/rotas/oficios.ts b/dc360/apps/api/src/rotas/oficios.ts
+index eeee5f4..464c989 100644
+--- a/dc360/apps/api/src/rotas/oficios.ts
++++ b/dc360/apps/api/src/rotas/oficios.ts
+@@ -174,8 +174,19 @@ export async function rotasOficios(
+     marcaDagua?: string;
+   },
+ ): Promise<void> {
++  /**
++   * A lista de ofícios do município (ou de uma ocorrência).
++   *
++   * `consultar_oficio` ANTES de abrir transação, e não só `exigirAutenticacao`:
++   * a rota já foi autenticada-e-nada-mais, e com o token de um agente de campo
++   * (o papel cujo aparelho cai e é emprestado) devolvia número, órgão e
++   * observações de ofício de ocorrência de QUALQUER equipe. O 403 aqui é da
++   * AÇÃO, igual para qualquer ofício que exista ou não, e por isso não
++   * confirma nada: o agente nem chega a perguntar por um registro. Recurso de
++   * outro município continua 404, porque o RLS não o mostra a ninguém.
++   */
+   app.get("/", async (req) => {
+-    const quem = await app.exigirAutenticacao(req);
++    const quem = await autorizar(app, req, "consultar_oficio");
+     const { ocorrenciaId } = z.object({
+       ocorrenciaId: z.string().uuid().optional(),
+     }).parse(req.query);
+@@ -209,7 +220,10 @@ export async function rotasOficios(
+    * pública, que é onde o uso único é cobrado.
+    */
+   app.get("/:id", async (req) => {
+-    const quem = await app.exigirAutenticacao(req);
++    // A permissão vem ANTES do `idSchema`: com a ordem inversa, um id malformado
++    // responderia 422 ao agente e um bem formado 403, e a diferença diria que o
++    // agente chegou a ler o corpo do pedido. O 403 é a primeira e única resposta.
++    const quem = await autorizar(app, req, "consultar_oficio");
+     const { id } = idSchema.parse(req.params);
+ 
+     return banco.comTenant(quem.organizacaoId, async (c) => {
+diff --git a/dc360/apps/api/test/sino-de-avisos.test.ts b/dc360/apps/api/test/sino-de-avisos.test.ts
+index 4283ee7..f16ee09 100644
+--- a/dc360/apps/api/test/sino-de-avisos.test.ts
++++ b/dc360/apps/api/test/sino-de-avisos.test.ts
+@@ -35,7 +35,9 @@ import { TETO_DE_AVISOS, RETENCAO_DE_AVISOS_DIAS } from "../src/rotas/avisos.js"
+      consultada do produto fica mais lenta a cada mês.
+ 
+   PENDÊNCIA REGISTRADA: nenhuma das duas rotas passa por `exigirPermissao`, e a
+-  razão está escrita em `src/rotas/avisos.ts`. Não existe ação no pacote
++  razão está escrita em `src/rotas/avisos.ts`. (Desde a V2-F00-E08 o sino do
++  AGENTE DE CAMPO é recortado à equipe dele, e quem prova isso é
++  `leitura-do-agente-oficios-e-avisos.test.ts`.) Não existe ação no pacote
+   compartilhado que descreva "receber aviso", e o pacote está fora da faixa
+   deste turno. Se a casa preferir uma ação explícita, ela precisa nascer em
+   `packages/shared/src/permissoes.ts` e entrar nas duas rotas de uma vez.
+diff --git a/dc360/apps/web/src/dados/local.ts b/dc360/apps/web/src/dados/local.ts
+index bff65e8..43e8fdb 100644
+--- a/dc360/apps/web/src/dados/local.ts
++++ b/dc360/apps/web/src/dados/local.ts
+@@ -37,7 +37,7 @@ import type {
+   AtivacaoSegundoFator, ResultadoDeEntrada, SegundoFatorLigado, SituacaoSegundoFator,
+   ConfiguracaoDoPainel, DevolucaoDaOcorrencia, DevolucaoPendente,
+   QuemEstaEmCampo, SaidaEmCampo, RespostaDeBusca, PontoDoLinkDeMapa,
+-  PrazosDeRetencao, FiltroConsultas,
++  PrazosDeRetencao, FiltroConsultas, MotivoDaSessaoMorta, UsuarioRenovado,
+ } from "./tipos";
+ import { classificarRegistros, TETO_POR_GRUPO, type RegistroPesquisavel } from "../busca/registros";
+ import { CONSULTA_MAXIMA } from "../busca/combobox";
+@@ -487,10 +487,15 @@ export async function encerrarMinhasSessoes(): Promise<never> {
+  * perfil vale enquanto a aba viver. O ouvinte é aceito e nunca chamado, para
+  * o provedor de sessão se inscrever sem saber em que modo está.
+  */
+-export function aoExpirar(_ouvinte: (() => void) | null): void {
++export function aoExpirar(_ouvinte: ((motivo: MotivoDaSessaoMorta) => void) | null): void {
+   /* nada expira aqui */
+ }
+ 
++/** Idem: no modo de demonstração não há renovação, e portanto nada a avisar. */
++export function aoRenovar(_ouvinte: ((usuario: UsuarioRenovado) => void) | null): void {
++  /* nada renova aqui */
++}
++
+ /**
+  * A trilha e os relatórios existem no banco local, mas a tela de auditoria
+  * consulta a API porque é lá que a consulta filtrada vive. No modo local a
+@@ -1757,7 +1762,10 @@ export async function reativarOrgao(s: Sessao, id: string): Promise<void> {
+ // Ofício
+ // ---------------------------------------------------------------------------
+ 
++// Leitura de ofício também é recusada por papel, como na API (V2-F00-E08): o
++// modo local espelha o servidor, e a tela esconde o cartão por cima disso.
+ export async function listarOficios(s: Sessao, ocorrenciaId: string): Promise<LinhaOficio[]> {
++  exigirPermissao(s.papel, "consultar_oficio");
+   return comoApp(s.organizacaoId, async (db) => {
+     const r = await db.query<LinhaOficio>(
+       `SELECT f.id, f.numero, f.emitido_em::text AS emitido_em, f.emitido_por_nome,
+@@ -1778,6 +1786,7 @@ export async function listarOficios(s: Sessao, ocorrenciaId: string): Promise<Li
+ }
+ 
+ export async function detalharOficio(s: Sessao, id: string): Promise<OficioDetalhado> {
++  exigirPermissao(s.papel, "consultar_oficio");
+   return comoApp(s.organizacaoId, async (db) => {
+     const oficio = await db.query<Omit<OficioDetalhado, "envios" | "aberturas">>(
+       `SELECT f.id, f.numero, f.observacoes, f.emitido_em::text AS emitido_em,
+diff --git a/dc360/apps/web/src/paginas/Ocorrencia.tsx b/dc360/apps/web/src/paginas/Ocorrencia.tsx
+index 6de2abd..85ac757 100644
+--- a/dc360/apps/web/src/paginas/Ocorrencia.tsx
++++ b/dc360/apps/web/src/paginas/Ocorrencia.tsx
+@@ -155,6 +155,14 @@ export function Ocorrencia() {
+     navegar(`${local.pathname}${local.search}`, { replace: true, state: null });
+   }, [chegouDoRegistro, navegar, local.pathname, local.search]);
+ 
++  /*
++    Ofício é leitura da coordenação (`consultar_oficio`, V2-F00-E08). O servidor
++    responde 403 ao agente de campo, e uma chamada que falha derrubaria a tela
++    inteira do dossiê (o `Promise.all` abaixo rejeita junto). Quem não tem a ação
++    nem pergunta, e o cartão de ofícios nem é desenhado.
++  */
++  const podeConsultarOficio = podeExecutar(sessao.papel, "consultar_oficio");
++
+   const recarregar = useCallback(async () => {
+     const [
+       ocorrencia, trilha, vistoria, providencias, equipes, evidencias, vinculos,
+@@ -168,7 +176,7 @@ export function Ocorrencia() {
+       listarEvidencias(sessao, id),
+       vinculosDaOcorrencia(sessao, id),
+       listarOrgaos(sessao),
+-      listarOficios(sessao, id),
++      podeConsultarOficio ? listarOficios(sessao, id) : Promise.resolve<LinhaOficio[]>([]),
+       devolucaoDaOcorrencia(sessao, id),
+     ]);
+     if (!ocorrencia) throw new Error("Ocorrência não encontrada nesta organização");
+@@ -187,7 +195,7 @@ export function Ocorrencia() {
+       vinculadaA: vinculos.vinculadaA as VinculoOcorrencia | null,
+       vinculadas: vinculos.vinculadas as VinculoOcorrencia[],
+     });
+-  }, [sessao, id]);
++  }, [sessao, id, podeConsultarOficio]);
+ 
+   useEffect(() => {
+     setDados(null);
+@@ -796,7 +804,7 @@ export function Ocorrencia() {
+             diferentes da tela faria o coordenador responder "encaminhei" sem
+             saber que nada saiu do prédio.
+           */}
+-          {providencias.length > 0 && (
++          {providencias.length > 0 && podeConsultarOficio && (
+             <CartaoOficios
+               providencias={providencias}
+               oficios={oficios}
+diff --git a/dc360/packages/shared/src/permissoes.ts b/dc360/packages/shared/src/permissoes.ts
+index 609e72c..90e8a15 100644
+--- a/dc360/packages/shared/src/permissoes.ts
++++ b/dc360/packages/shared/src/permissoes.ts
+@@ -24,6 +24,7 @@ export const ACOES = [
+   "responder_providencia",
+   "encerrar_ocorrencia",
+   "emitir_documento",
++  "consultar_oficio",
+   "levantar_interdicao",
+   "registrar_vistoria",
+   "gerenciar_equipes",
+@@ -44,6 +45,7 @@ export const ROTULO_ACAO: Record<Acao, string> = {
+   responder_providencia: "registrar a resposta de uma providência",
+   encerrar_ocorrencia: "encerrar ocorrência",
+   emitir_documento: "emitir laudo ou termo de interdição",
++  consultar_oficio: "consultar os ofícios de encaminhamento",
+   levantar_interdicao: "levantar a interdição de um imóvel",
+   registrar_vistoria: "registrar vistoria",
+   gerenciar_equipes: "gerenciar equipes",
+@@ -76,7 +78,21 @@ const PERMISSOES: Record<Papel, readonly Acao[]> = {
+     O que ele continua sem fazer é decidir o fluxo: triar, despachar, encerrar
+     a ocorrência. Saber que alguém não desceu do morro não é decisão de fluxo.
+   */
+-  operador: ["abrir_ocorrencia", "responder_providencia", "acompanhar_saida_a_campo"],
++  /*
++    CONSULTAR OFÍCIO (V2-F00-E08) é leitura, e não emissão: a tela da ocorrência
++    lista os ofícios dela ("o que já saiu para o órgão"), para ninguém responder
++    "encaminhei" por cima de um papel que não saiu. O operador continua sem
++    emitir (`emitir_documento`) e sem enviar (`encaminhar_providencia`). O
++    agente de campo NÃO tem a ação: a ficha do ofício traz o e-mail do órgão,
++    as observações da coordenação e o IP de quem abriu o link, e o aparelho
++    dele não usa ofício.
++  */
++  operador: [
++    "abrir_ocorrencia",
++    "responder_providencia",
++    "consultar_oficio",
++    "acompanhar_saida_a_campo",
++  ],
+   agente_campo: ["registrar_vistoria"],
+   coordenador: [
+     "abrir_ocorrencia",
+@@ -86,6 +102,7 @@ const PERMISSOES: Record<Papel, readonly Acao[]> = {
+     "responder_providencia",
+     "encerrar_ocorrencia",
+     "emitir_documento",
++    "consultar_oficio",
+     "levantar_interdicao",
+     "gerenciar_equipes",
+     "gerenciar_usuarios",
+@@ -102,6 +119,7 @@ const PERMISSOES: Record<Papel, readonly Acao[]> = {
+     "responder_providencia",
+     "encerrar_ocorrencia",
+     "emitir_documento",
++    "consultar_oficio",
+     "levantar_interdicao",
+     "gerenciar_equipes",
+     "gerenciar_usuarios",
+diff --git a/dc360/packages/shared/test/permissoes.test.ts b/dc360/packages/shared/test/permissoes.test.ts
+index 07866cd..4007c55 100644
+--- a/dc360/packages/shared/test/permissoes.test.ts
++++ b/dc360/packages/shared/test/permissoes.test.ts
+@@ -54,6 +54,32 @@ describe("Permissões por papel", () => {
+     }
+   });
+ 
++  it("consultar ofício é de operador, coordenador e administrador, e NUNCA do agente de campo (V2-F00-E08)", () => {
++    // O agente recebe 403 em `GET /oficios`: a ficha traz o e-mail do órgão, as
++    // observações da coordenação e o IP de quem abriu o link.
++    expect(podeExecutar("operador", "consultar_oficio")).toBe(true);
++    expect(podeExecutar("coordenador", "consultar_oficio")).toBe(true);
++    expect(podeExecutar("administrador", "consultar_oficio")).toBe(true);
++    expect(podeExecutar("agente_campo", "consultar_oficio")).toBe(false);
++    expect(acoesDoPapel("agente_campo")).not.toContain("consultar_oficio");
++  });
++
++  it("consultar ofício é leitura: o operador a tem e continua sem emitir nem enviar ofício", () => {
++    expect(podeExecutar("operador", "emitir_documento")).toBe(false);
++    expect(podeExecutar("operador", "encaminhar_providencia")).toBe(false);
++  });
++
++  it("a recusa de consultar ofício diz o que a pessoa não pode fazer", () => {
++    try {
++      exigirPermissao("agente_campo", "consultar_oficio");
++      throw new Error("devia ter lançado");
++    } catch (e) {
++      expect(e).toBeInstanceOf(SemPermissao);
++      expect((e as SemPermissao).acao).toBe("consultar_oficio");
++      expect((e as SemPermissao).message).toContain("consultar os ofícios de encaminhamento");
++    }
++  });
++
+   it("toda ação declarada é permitida a pelo menos um papel", () => {
+     // Ação que ninguém pode executar é ação morta, ou papel esquecido.
+     for (const acao of ACOES) {
+diff --git a/dc360/apps/api/test/leitura-do-agente-oficios-e-avisos.test.ts b/dc360/apps/api/test/leitura-do-agente-oficios-e-avisos.test.ts
+new file mode 100644
+index 0000000..2ace179
+--- /dev/null
++++ b/dc360/apps/api/test/leitura-do-agente-oficios-e-avisos.test.ts
+@@ -0,0 +1,430 @@
++import type { FastifyInstance } from "fastify";
++import { afterAll, beforeAll, describe, expect, it } from "vitest";
++import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
++import { carregarConfig } from "../src/config.js";
++import { construirServidor } from "../src/servidor.js";
++import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
++
++/**
++ * V2-F00-E08: o token do agente de campo NÃO lê ofício e NÃO lê o sino de
++ * outra equipe.
++ *
++ * O QUE O REVISOR PROVOU contra a API real (AUT-12 e AUT-13): `GET /oficios` e
++ * `GET /oficios/:id` exigiam só autenticação e devolviam, ao token de um
++ * agente, número, órgão, `orgao_email`, `observacoes` e, na ficha, o IP de
++ * quem abriu o link, de ofício de ocorrência de QUALQUER equipe. `GET /avisos`
++ * entregava protocolo e tipo de fato do município inteiro a qualquer papel, e
++ * a contagem `naoLidos` não passava por recorte nenhum (o número do sino
++ * denunciava avisos que a lista não mostrava).
++ *
++ * A REGRA: ofício é ato da coordenação (ação `consultar_oficio`, que o agente
++ * não tem), e o sino do agente é o da EQUIPE dele, com o mesmo recorte das
++ * leituras de ocorrência. Recurso de outro município responde 404, nunca 403.
++ *
++ * Os dados são os da semente: Diego é agente da Equipe Alfa (c1 e c4); c3 e c8
++ * são da Bravo; Tarcísio é agente de Vale Fundo. O agente da Bravo e a
++ * administradora ficam por conta deste arquivo.
++ */
++
++const SENHA = "defesa-civil-2026";
++const ORG_A = "11111111-1111-4111-8111-000000000001";
++const ORG_B = "22222222-2222-4222-8222-000000000002";
++const OC_ALFA_1 = "11111111-1111-4111-8111-0000000000c1";
++const OC_BRAVO_8 = "11111111-1111-4111-8111-0000000000c8";
++const OC_SEM_EQUIPE_2 = "11111111-1111-4111-8111-0000000000c2";
++const EQUIPE_BRAVO = "11111111-1111-4111-8111-0000000000e2";
++const AGENTE_DIEGO = "11111111-1111-4111-8111-0000000000d3";
++const AGENTE_BRAVO = "11111111-1111-4111-8111-0000000000d9";
++const OC_B_1 = "22222222-2222-4222-8222-0000000000c1";
++const EMAIL_DO_ORGAO = "plantao@bombeiros.exemplo.gov.br";
++const IP_DE_QUEM_ABRIU = "203.0.113.77";
++
++let mem: BancoEmMemoria;
++let app: FastifyInstance;
++const tokens: Record<string, string> = {};
++let oficioAlfa = "";
++let oficioBravo = "";
++let oficioDeB = "";
++
++const com = (t: string) => ({ authorization: `Bearer ${t}` });
++
++async function entrar(email: string): Promise<string> {
++  const r = await app.inject({
++    method: "POST", url: "/auth/entrar", payload: { email, senha: SENHA },
++  });
++  if (r.statusCode !== 200) throw new Error(`login falhou (${email}): ${r.body}`);
++  return r.json().acesso;
++}
++
++/** Orgao, providencia e oficio (com uma abertura que guardou IP), como dono das tabelas. */
++async function emitirPorFora(
++  org: string, ocorrencia: string, numero: string, sigla: string,
++): Promise<string> {
++  const db = mem.bruto;
++  const orgao = await db.query<{ id: string }>(
++    `INSERT INTO orgaos (organizacao_id, nome, sigla, email)
++     VALUES ($1, $2, $3, $4) RETURNING id`,
++    [org, `Corpo de Bombeiros ${sigla}`, sigla, EMAIL_DO_ORGAO],
++  );
++  const providencia = await db.query<{ id: string }>(
++    `INSERT INTO providencias
++       (organizacao_id, ocorrencia_id, orgao_id, orgao_destino, descricao,
++        responsavel, prazo_em, encaminhada_em)
++     VALUES ($1, $2, $3, $4, 'Avaliacao de risco imediato.', 'Chefe de plantao',
++             now() + interval '24 hours', now())
++     RETURNING id`,
++    [org, ocorrencia, orgao.rows[0]!.id, `Corpo de Bombeiros ${sigla}`],
++  );
++  const oficio = await db.query<{ id: string }>(
++    `INSERT INTO oficios
++       (organizacao_id, ocorrencia_id, providencia_id, orgao_id, numero, ano,
++        observacoes, emitido_por_nome)
++     VALUES ($1, $2, $3, $4, $5, 2026, 'Observacao reservada da coordenacao.', 'Helena (coordenador)')
++     RETURNING id`,
++    [org, ocorrencia, providencia.rows[0]!.id, orgao.rows[0]!.id, numero],
++  );
++  const envio = await db.query<{ id: string }>(
++    `INSERT INTO oficio_envios
++       (organizacao_id, oficio_id, tentativa, destinatario_email, token_hash,
++        expira_em, solicitado_por_nome, desfecho)
++     VALUES ($1, $2, 1, $3, $4, now() + interval '72 hours', 'Helena (coordenador)', 'entregue')
++     RETURNING id`,
++    [org, oficio.rows[0]!.id, EMAIL_DO_ORGAO, `hash-${sigla}-${numero}`],
++  );
++  await db.query(
++    `INSERT INTO oficio_aberturas (organizacao_id, oficio_id, envio_id, resultado, ip)
++     VALUES ($1, $2, $3, 'entregue', $4)`,
++    [org, oficio.rows[0]!.id, envio.rows[0]!.id, IP_DE_QUEM_ABRIU],
++  );
++  return oficio.rows[0]!.id;
++}
++
++/** Aviso gravado como dono das tabelas, com idade que ja passou da margem de commit. */
++async function semearAviso(org: string, ocorrencia: string, chave: string): Promise<string> {
++  const r = await mem.bruto.query<{ id: string }>(
++    `INSERT INTO avisos (organizacao_id, tipo, ocorrencia_id, chave_do_fato, criado_em)
++     VALUES ($1, 'vistoria_recebida', $2, $3, now() - interval '1 hour')
++     RETURNING id`,
++    [org, ocorrencia, chave],
++  );
++  return r.rows[0]!.id;
++}
++
++type Sino = {
++  itens: Array<{ id: string; ocorrenciaId: string; protocolo: string; lido: boolean }>;
++  naoLidos: number;
++};
++
++async function sino(token: string): Promise<Sino> {
++  const r = await app.inject({ method: "GET", url: "/avisos", headers: com(token) });
++  expect(r.statusCode, r.body).toBe(200);
++  return r.json() as Sino;
++}
++
++/**
++ * A verdade, calculada fora da rota: os avisos do município que pertencem a
++ * ocorrências da equipe, e quantos deles a pessoa ainda não leu. É o oráculo
++ * contra o qual a rota é medida, para o teste não depender de quantos avisos
++ * a própria semente gera.
++ */
++async function avisosDaEquipe(
++  equipe: string | null, usuario: string,
++): Promise<{ ids: string[]; naoLidos: number }> {
++  const r = await mem.bruto.query<{ id: string; lido: boolean }>(
++    `SELECT a.id, (l.usuario_id IS NOT NULL) AS lido
++       FROM avisos a
++       JOIN ocorrencias o ON o.organizacao_id = a.organizacao_id AND o.id = a.ocorrencia_id
++       LEFT JOIN avisos_lidos l ON l.aviso_id = a.id AND l.usuario_id = $3
++      WHERE a.organizacao_id = $1 AND o.equipe_id IS NOT DISTINCT FROM $2
++        AND $2::uuid IS NOT NULL
++      ORDER BY a.id`,
++    [ORG_A, equipe, usuario],
++  );
++  return {
++    ids: r.rows.map((l) => l.id),
++    naoLidos: r.rows.filter((l) => !l.lido).length,
++  };
++}
++
++beforeAll(async () => {
++  mem = await bancoEmMemoria({ semear: true });
++  const config = carregarConfig({
++    NODE_ENV: "test",
++    JWT_SEGREDO: "segredo-da-leitura-do-agente-com-mais-de-32-bytes",
++    LOGIN_POR_IP: "10000",
++  } as NodeJS.ProcessEnv);
++  app = await construirServidor({
++    banco: mem.banco, config,
++    armazenamento: armazenamentoEmMemoria({ baseUrl: "http://api.local" }),
++  });
++  await app.ready();
++
++  // Um agente da Equipe Bravo, com a mesma senha da semente, para o caso "a
++  // equipe do lado nao ve o que e da Alfa". A semente so tem agente na Alfa.
++  await mem.bruto.query(
++    `INSERT INTO usuarios (id, organizacao_id, nome, matricula, email, papel, equipe_id, senha_hash)
++     SELECT $1, organizacao_id, 'Bruno Bravo', 'SA-3392', 'bruno.bravo@serraalta.exemplo.gov.br',
++            'agente_campo', $2, senha_hash
++       FROM usuarios WHERE id = $3`,
++    [AGENTE_BRAVO, EQUIPE_BRAVO, AGENTE_DIEGO],
++  );
++
++  oficioAlfa = await emitirPorFora(ORG_A, OC_ALFA_1, "000901/2026", "CBA");
++  oficioBravo = await emitirPorFora(ORG_A, OC_BRAVO_8, "000902/2026", "CBB");
++  oficioDeB = await emitirPorFora(ORG_B, OC_B_1, "000901/2026", "CBV");
++
++  tokens["diego"] = await entrar("diego.alves@serraalta.exemplo.gov.br");
++  tokens["bruno"] = await entrar("bruno.bravo@serraalta.exemplo.gov.br");
++  tokens["helena"] = await entrar("helena.coutinho@serraalta.exemplo.gov.br");
++  tokens["jonas"] = await entrar("jonas.ferreira@serraalta.exemplo.gov.br");
++  tokens["rita"] = await entrar("rita.lopes@serraalta.exemplo.gov.br");
++  tokens["aurelio"] = await entrar("aurelio.machado@valefundo.exemplo.gov.br");
++  tokens["tarcisio"] = await entrar("tarcisio.ramos@valefundo.exemplo.gov.br");
++}, 240_000);
++
++afterAll(async () => {
++  await app?.close();
++  await mem?.banco.encerrar();
++});
++
++describe("Ofício: o agente de campo não lê", () => {
++  it("GET /oficios responde 403 sem_permissao ao agente, com ou sem filtro, e não entrega nada", async () => {
++    for (const url of ["/oficios", `/oficios?ocorrenciaId=${OC_ALFA_1}`, `/oficios?ocorrenciaId=${OC_BRAVO_8}`]) {
++      const r = await app.inject({ method: "GET", url, headers: com(tokens["diego"]!) });
++      expect(r.statusCode, `${url}: ${r.body}`).toBe(403);
++      expect(r.json().erro).toBe("sem_permissao");
++      expect(r.body).not.toContain(EMAIL_DO_ORGAO);
++      expect(r.body).not.toContain("000901/2026");
++      expect(r.body).not.toContain("000902/2026");
++    }
++  });
++
++  it("GET /oficios/:id responde 403 ao agente, do ofício da equipe dele, de outra equipe e de um id que não existe: a resposta não revela qual existe", async () => {
++    const inexistente = "99999999-9999-4999-8999-999999999999";
++    for (const id of [oficioAlfa, oficioBravo, oficioDeB, inexistente]) {
++      const r = await app.inject({
++        method: "GET", url: `/oficios/${id}`, headers: com(tokens["diego"]!),
++      });
++      expect(r.statusCode, id).toBe(403);
++      expect(r.json().erro, id).toBe("sem_permissao");
++      // O que o revisor encontrou: e-mail do órgão, observações e IP de quem abriu o link.
++      expect(r.body, id).not.toContain(EMAIL_DO_ORGAO);
++      expect(r.body, id).not.toContain("Observacao reservada");
++      expect(r.body, id).not.toContain(IP_DE_QUEM_ABRIU);
++    }
++  });
++
++  it("o agente de outro município também recebe 403, e a 403 não muda com o município do ofício", async () => {
++    for (const id of [oficioAlfa, oficioDeB]) {
++      const r = await app.inject({
++        method: "GET", url: `/oficios/${id}`, headers: com(tokens["tarcisio"]!),
++      });
++      expect(r.statusCode, id).toBe(403);
++      expect(r.json().erro, id).toBe("sem_permissao");
++    }
++    const lista = await app.inject({ method: "GET", url: "/oficios", headers: com(tokens["tarcisio"]!) });
++    expect(lista.statusCode).toBe(403);
++  });
++
++  it("sem token continua sendo 401, e não 403", async () => {
++    expect((await app.inject({ method: "GET", url: "/oficios" })).statusCode).toBe(401);
++    expect((await app.inject({ method: "GET", url: `/oficios/${oficioAlfa}` })).statusCode).toBe(401);
++  });
++});
++
++describe("Ofício: quem tem a ação consulta, e o município vizinho não alcança", () => {
++  it("operador, coordenador e administrador listam e abrem (200), com o conteúdo de sempre", async () => {
++    for (const quem of ["jonas", "helena", "rita"]) {
++      const lista = await app.inject({
++        method: "GET", url: "/oficios", headers: com(tokens[quem]!),
++      });
++      expect(lista.statusCode, `${quem}: ${lista.body}`).toBe(200);
++      const numeros = (lista.json().itens as Array<{ numero: string }>).map((i) => i.numero);
++      expect(numeros, quem).toEqual(expect.arrayContaining(["000901/2026", "000902/2026"]));
++
++      const filtrada = await app.inject({
++        method: "GET", url: `/oficios?ocorrenciaId=${OC_ALFA_1}`, headers: com(tokens[quem]!),
++      });
++      expect(filtrada.statusCode, quem).toBe(200);
++      expect((filtrada.json().itens as unknown[]).length, quem).toBe(1);
++
++      const ficha = await app.inject({
++        method: "GET", url: `/oficios/${oficioBravo}`, headers: com(tokens[quem]!),
++      });
++      expect(ficha.statusCode, `${quem}: ${ficha.body}`).toBe(200);
++      expect(ficha.json().orgao_email, quem).toBe(EMAIL_DO_ORGAO);
++      expect(ficha.json().aberturas[0].ip, quem).toBe(IP_DE_QUEM_ABRIU);
++    }
++  });
++
++  it("coordenador de outro município responde 404 no ofício de Serra Alta, e a lista dele não o traz", async () => {
++    const r = await app.inject({
++      method: "GET", url: `/oficios/${oficioAlfa}`, headers: com(tokens["aurelio"]!),
++    });
++    expect(r.statusCode).toBe(404);
++    expect(r.body).not.toContain(EMAIL_DO_ORGAO);
++
++    const lista = await app.inject({ method: "GET", url: "/oficios", headers: com(tokens["aurelio"]!) });
++    expect(lista.statusCode).toBe(200);
++    const itens = lista.json().itens as Array<{ id: string }>;
++    expect(itens.map((i) => i.id)).toEqual([oficioDeB]);
++  });
++});
++
++describe("Sino: o agente vê e conta só os avisos da equipe dele", () => {
++  let avisoAlfa = "";
++  let avisoBravo = "";
++  let avisoSemEquipe = "";
++  let avisoDeB = "";
++
++  beforeAll(async () => {
++    avisoAlfa = await semearAviso(ORG_A, OC_ALFA_1, "e08:alfa");
++    avisoBravo = await semearAviso(ORG_A, OC_BRAVO_8, "e08:bravo");
++    avisoSemEquipe = await semearAviso(ORG_A, OC_SEM_EQUIPE_2, "e08:sem-equipe");
++    avisoDeB = await semearAviso(ORG_B, OC_B_1, "e08:vizinha");
++
++    // A primeira consulta do sino materializa os prazos vencidos da semente
++    // (a rota escreve), e o aviso novo carimba `now()`, que ainda esta dentro
++    // da margem de commit de dez segundos e nao entraria na lista. Envelhece
++    // tudo para o oraculo e a lista medirem o mesmo conjunto.
++    await sino(tokens["helena"]!);
++    await mem.bruto.query(
++      "UPDATE avisos SET criado_em = now() - interval '1 hour' WHERE criado_em > now() - interval '1 hour'",
++    );
++  });
++
++  it("o agente da Alfa recebe o aviso da Alfa, e não o da Bravo, o da ocorrência sem equipe nem o do vizinho", async () => {
++    const r = await sino(tokens["diego"]!);
++    const ids = r.itens.map((i) => i.id);
++    expect(ids).toContain(avisoAlfa);
++    expect(ids).not.toContain(avisoBravo);
++    expect(ids).not.toContain(avisoSemEquipe);
++    expect(ids).not.toContain(avisoDeB);
++    // A lista inteira é exatamente a da equipe: nenhuma outra ocorrência passa.
++    const esperado = await avisosDaEquipe("11111111-1111-4111-8111-0000000000e1", AGENTE_DIEGO);
++    expect([...ids].sort()).toEqual(esperado.ids);
++  });
++
++  it("e o agente da Bravo, o contrário", async () => {
++    const r = await sino(tokens["bruno"]!);
++    const ids = r.itens.map((i) => i.id);
++    expect(ids).toContain(avisoBravo);
++    expect(ids).not.toContain(avisoAlfa);
++    expect(ids).not.toContain(avisoSemEquipe);
++    const esperado = await avisosDaEquipe(EQUIPE_BRAVO, AGENTE_BRAVO);
++    expect([...ids].sort()).toEqual(esperado.ids);
++  });
++
++  it("a contagem de não lidos é a do recorte: o número não denuncia o aviso de outra equipe", async () => {
++    const alfa = await sino(tokens["diego"]!);
++    const bravo = await sino(tokens["bruno"]!);
++    expect(alfa.naoLidos).toBe(
++      (await avisosDaEquipe("11111111-1111-4111-8111-0000000000e1", AGENTE_DIEGO)).naoLidos,
++    );
++    expect(bravo.naoLidos).toBe(
++      (await avisosDaEquipe(EQUIPE_BRAVO, AGENTE_BRAVO)).naoLidos,
++    );
++    // E o número é o da LISTA: com a lista inteira lida na mão, os dois fecham.
++    expect(alfa.naoLidos).toBe(alfa.itens.filter((i) => !i.lido).length);
++    expect(bravo.naoLidos).toBe(bravo.itens.filter((i) => !i.lido).length);
++  });
++
++  it("agente sem equipe: lista vazia e naoLidos 0, mesmo com avisos no município", async () => {
++    await mem.bruto.query("UPDATE usuarios SET equipe_id = NULL WHERE id = $1", [AGENTE_DIEGO]);
++    try {
++      const r = await sino(tokens["diego"]!);
++      expect(r.itens).toEqual([]);
++      expect(r.naoLidos).toBe(0);
++    } finally {
++      await mem.bruto.query(
++        "UPDATE usuarios SET equipe_id = '11111111-1111-4111-8111-0000000000e1' WHERE id = $1",
++        [AGENTE_DIEGO],
++      );
++    }
++    expect((await sino(tokens["diego"]!)).itens.map((i) => i.id)).toContain(avisoAlfa);
++  });
++
++  it("coordenação, operador e administração seguem vendo o município inteiro, com a contagem de sempre", async () => {
++    const total = await mem.bruto.query<{ n: number }>(
++      "SELECT count(*)::int AS n FROM avisos WHERE organizacao_id = $1", [ORG_A],
++    );
++    for (const quem of ["helena", "jonas", "rita"]) {
++      const r = await sino(tokens[quem]!);
++      const ids = r.itens.map((i) => i.id);
++      expect(ids, quem).toEqual(expect.arrayContaining([avisoAlfa, avisoBravo, avisoSemEquipe]));
++      expect(ids, quem).not.toContain(avisoDeB);
++      expect(r.itens.length, quem).toBe(total.rows[0]!.n);
++      expect(r.naoLidos, quem).toBe(total.rows[0]!.n);
++    }
++  });
++
++  it("o aviso de outro município nunca aparece, em papel nenhum", async () => {
++    for (const quem of ["helena", "diego", "bruno", "rita"]) {
++      expect((await sino(tokens[quem]!)).itens.map((i) => i.id), quem).not.toContain(avisoDeB);
++    }
++    const doVizinho = await sino(tokens["aurelio"]!);
++    expect(doVizinho.itens.map((i) => i.id)).toEqual([avisoDeB]);
++    const doAgenteVizinho = await sino(tokens["tarcisio"]!);
++    expect(doAgenteVizinho.itens.map((i) => i.id)).not.toContain(avisoAlfa);
++  });
++
++  it("marcar como lido não funciona como oráculo: o aviso de outra equipe responde 'marcados: 0' e nada é gravado", async () => {
++    const antes = await mem.bruto.query<{ n: number }>(
++      "SELECT count(*)::int AS n FROM avisos_lidos WHERE usuario_id = $1", [AGENTE_DIEGO],
++    );
++    const r = await app.inject({
++      method: "POST", url: "/avisos/lidos", headers: com(tokens["diego"]!),
++      payload: { ids: [avisoBravo, avisoSemEquipe, avisoDeB] },
++    });
++    expect(r.statusCode, r.body).toBe(200);
++    expect(r.json().marcados).toBe(0);
++    const depois = await mem.bruto.query<{ n: number }>(
++      "SELECT count(*)::int AS n FROM avisos_lidos WHERE usuario_id = $1", [AGENTE_DIEGO],
++    );
++    expect(depois.rows[0]!.n).toBe(antes.rows[0]!.n);
++
++    // O da própria equipe marca, e o número do sino acompanha.
++    const antesDoSino = (await sino(tokens["diego"]!)).naoLidos;
++    const dele = await app.inject({
++      method: "POST", url: "/avisos/lidos", headers: com(tokens["diego"]!),
++      payload: { ids: [avisoAlfa] },
++    });
++    expect(dele.json().marcados).toBe(1);
++    expect((await sino(tokens["diego"]!)).naoLidos).toBe(antesDoSino - 1);
++
++    // E a coordenação continua marcando qualquer aviso do município.
++    const daCoord = await app.inject({
++      method: "POST", url: "/avisos/lidos", headers: com(tokens["helena"]!),
++      payload: { ids: [avisoBravo] },
++    });
++    expect(daCoord.json().marcados).toBe(1);
++  });
++});
++
++describe("A escrita dentro do GET /avisos segue como era (pendência registrada, F07-E03 e F04-E11)", () => {
++  it("o token do agente também materializa o prazo vencido do município, uma vez só e sem repetir", async () => {
++    const vencida = await mem.bruto.query<{ id: string }>(
++      `UPDATE ocorrencias SET prazo_em = now() - interval '2 hours'
++        WHERE id = $1 RETURNING id`, [OC_BRAVO_8],
++    );
++    expect(vencida.rows.length).toBe(1);
++    const contar = async () => (await mem.bruto.query<{ n: number }>(
++      `SELECT count(*)::int AS n FROM avisos
++        WHERE organizacao_id = $1 AND tipo = 'prazo_vencido' AND ocorrencia_id = $2`,
++      [ORG_A, OC_BRAVO_8],
++    )).rows[0]!.n;
++
++    // O agente da Alfa consulta o sino: a escrita acontece (é do município),
++    // mas o aviso que nasceu é da Bravo e ele não o recebe.
++    const antes = await contar();
++    const r = await sino(tokens["diego"]!);
++    const depois = await contar();
++    expect(depois).toBe(antes === 0 ? 1 : antes);
++    expect(r.itens.map((i) => i.ocorrenciaId)).not.toContain(OC_BRAVO_8);
++
++    // Idempotente: consultar de novo, por qualquer papel, não duplica.
++    await sino(tokens["diego"]!);
++    await sino(tokens["helena"]!);
++    expect(await contar()).toBe(depois);
++  });
++});
+diff --git a/dc360/apps/web/test/oficio-so-para-quem-consulta.test.ts b/dc360/apps/web/test/oficio-so-para-quem-consulta.test.ts
+new file mode 100644
+index 0000000..14727fe
+--- /dev/null
++++ b/dc360/apps/web/test/oficio-so-para-quem-consulta.test.ts
+@@ -0,0 +1,81 @@
++import { readFileSync } from "node:fs";
++import { dirname, join } from "node:path";
++import { fileURLToPath } from "node:url";
++import { beforeAll, describe, expect, it } from "vitest";
++import { SemPermissao } from "@dc360/shared";
++import * as local from "../src/dados/local";
++import type { Sessao } from "../src/dados/tipos";
++
++/**
++ * V2-F00-E08: ofício é leitura de quem tem `consultar_oficio`, e o agente de
++ * campo não tem.
++ *
++ * Dois pontos, e cada um já seria defeito sozinho:
++ *
++ * 1. O MODO LOCAL espelha o servidor. A API responde 403 ao agente, e a
++ *    demonstração que lhe entregasse a lista mostraria o que o produto real
++ *    recusa.
++ * 2. A TELA não pergunta o que o servidor recusa. O dossiê da ocorrência junta
++ *    onze leituras num `Promise.all`; uma delas devolvendo 403 derrubaria a
++ *    página inteira do agente, que abre as ocorrências da equipe dele. Quem não
++ *    tem a ação nem chama, e o cartão de ofícios nem é desenhado.
++ */
++
++const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
++const DETALHE = readFileSync(join(RAIZ, "paginas", "Ocorrencia.tsx"), "utf8");
++
++describe("Ofício no modo de demonstração segue a mesma regra da API", () => {
++  let sessoes: Record<string, Sessao>;
++
++  beforeAll(async () => {
++    const contas = await local.contasDisponiveis();
++    const monta = (papel: string): Sessao => {
++      const c = contas.find((x) => x.papel === papel);
++      if (!c) throw new Error(`a semente não tem ${papel}`);
++      return {
++        organizacaoId: c.organizacao_id,
++        organizacaoNome: c.organizacao_nome,
++        municipio: c.municipio,
++        uf: c.uf,
++        usuarioId: c.usuario_id,
++        usuarioNome: c.usuario_nome,
++        papel: c.papel,
++      };
++    };
++    sessoes = {
++      agente: monta("agente_campo"),
++      operador: monta("operador"),
++      coordenador: monta("coordenador"),
++    };
++  }, 120_000);
++
++  it("o agente de campo é recusado na lista e na ficha, com a recusa que diz o que ele não pode", async () => {
++    await expect(local.listarOficios(sessoes["agente"]!, "qualquer-id")).rejects.toBeInstanceOf(SemPermissao);
++    await expect(local.detalharOficio(sessoes["agente"]!, "qualquer-id")).rejects.toBeInstanceOf(SemPermissao);
++    await expect(local.listarOficios(sessoes["agente"]!, "qualquer-id"))
++      .rejects.toThrow(/consultar os ofícios de encaminhamento/);
++  });
++
++  it("operador e coordenador listam sem a recusa", async () => {
++    const id = "11111111-1111-4111-8111-0000000000c4";
++    for (const quem of ["operador", "coordenador"]) {
++      const lista = await local.listarOficios(sessoes[quem]!, id);
++      expect(Array.isArray(lista), quem).toBe(true);
++    }
++  });
++});
++
++describe("A tela do dossiê não pergunta o que o servidor recusa", () => {
++  it("só chama listarOficios quando o papel tem consultar_oficio", () => {
++    expect(DETALHE).toMatch(/podeExecutar\(sessao\.papel, "consultar_oficio"\)/);
++    // A chamada vem atrás da condição, e a alternativa é uma lista vazia.
++    expect(DETALHE).toMatch(/podeConsultarOficio \? listarOficios\(sessao, id\) : Promise\.resolve<LinhaOficio\[\]>\(\[\]\)/);
++    // Nenhuma outra chamada solta de listarOficios na tela.
++    const chamadas = DETALHE.match(/listarOficios\(/g) ?? [];
++    expect(chamadas.length).toBe(1);
++  });
++
++  it("o cartão de ofícios só é desenhado para quem consulta", () => {
++    expect(DETALHE).toMatch(/providencias\.length > 0 && podeConsultarOficio && \(\s*<CartaoOficios/);
++  });
++});

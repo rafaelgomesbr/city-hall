@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/superficie.test.ts (9 tests) 2532ms
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  10:47:59
+   Duration  5.37s (transform 517ms, setup 70ms, collect 2.18s, tests 2.53s, environment 0ms, prepare 214ms)
+

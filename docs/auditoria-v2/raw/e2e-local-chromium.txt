@@ -1,0 +1,38 @@
+### CMD: npm run test:e2e (cwd=/c/Projetos/city-hall/dc360) inicio=2026-09-30T16:34:34-03:00
+
+> dc360@0.1.0 test:e2e
+> npm run test:e2e --workspace @dc360/web
+
+
+> @dc360/web@0.1.0 test:e2e
+> node test/fluxo.e2e.mjs
+
+
+== 1. Entrada e preparo do banco ==
+  OK   lista de contas carregou dos dois municipios
+  OK   Serra Alta aparece
+  OK   Vale Fundo aparece
+
+== 2. Painel do coordenador de Serra Alta ==
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.waitForSelector: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator('.indicador') to be visible
+
+    at C:\Projetos\city-hall\dc360\apps\web\test\fluxo.e2e.mjs:54:12 {
+  log: [ "  - waiting for locator('.indicador') to be visible" ],
+  name: 'TimeoutError'
+}
+
+Node.js v22.17.0
+npm error Lifecycle script `test:e2e` failed with error:
+npm error code 1
+npm error path C:\Projetos\city-hall\dc360\apps\web
+npm error workspace @dc360/web@0.1.0
+npm error location C:\Projetos\city-hall\dc360\apps\web
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c node test/fluxo.e2e.mjs
+### EXIT=1 DURACAO=45s fim=2026-09-30T16:35:19-03:00

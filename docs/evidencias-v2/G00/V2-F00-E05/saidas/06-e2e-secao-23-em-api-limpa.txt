@@ -1,0 +1,24 @@
+
+== 9. Cadastro com senha, e a conta nova entra ==
+  OK   modo API pede senha inicial no cadastro
+  OK   recusa senha curta
+  OK   e marca o campo como invalido para o leitor de tela
+  OK   usuario criado aparece na tabela
+  OK   a conta recem-criada entra com a senha definida
+
+== 23. Sessão encerrada e conta desativada: a frase certa na tela de entrada (V2-F00-E05) ==
+  OK   a coordenacao encerra as sessoes do Marcos
+  OK   sessao encerrada leva a tela de entrada
+  OK   e diz que a sessao foi encerrada, sem dizer que expirou
+  OK   e manda entrar de novo
+  OK   o token morto nao fica guardado
+  OK   a coordenacao desativa o Marcos pelo painel
+  OK   conta desativada leva a tela de entrada
+  OK   e diz que a conta foi desativada
+  OK   e manda procurar a coordenacao, e nao entrar de novo
+  OK   com aviso de perigo, e nao o de sessao expirada
+  OK   a entrada continua com a recusa generica
+
+====================================================
+Passou: 16   Falhou: 0
+Zero erro de console.

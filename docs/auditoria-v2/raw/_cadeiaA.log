@@ -1,0 +1,7 @@
+teste-db exit=0 dur=72s
+teste-shared exit=1 dur=12s
+teste-packages-campo exit=0 dur=7s
+teste-console exit=0 dur=155s
+teste-web exit=1 dur=16s
+teste-api exit=1 dur=206s
+CADEIA_A_FIM

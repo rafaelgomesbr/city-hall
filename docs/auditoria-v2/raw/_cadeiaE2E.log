@@ -1,0 +1,5 @@
+build-web-local exit=0 dur=23s
+e2e-local-chromium exit=1 dur=45s
+e2e-local-firefox exit=1 dur=54s
+e2e-api-chromium exit=1 dur=71s
+CADEIA_E2E_FIM

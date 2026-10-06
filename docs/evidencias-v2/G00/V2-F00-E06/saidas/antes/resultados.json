@@ -1,0 +1,22 @@
+[
+  {
+    "id": "teste-campo-pacote",
+    "cmd": "npm run test --workspace @dc360/campo",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 2682,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "01-teste-campo-pacote.txt"
+  },
+  {
+    "id": "teste-campo-app",
+    "cmd": "npx jest --silent",
+    "cwd": "apps/campo",
+    "codigo": 1,
+    "duracaoMs": 64112,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "02-teste-campo-app.txt"
+  }
+]

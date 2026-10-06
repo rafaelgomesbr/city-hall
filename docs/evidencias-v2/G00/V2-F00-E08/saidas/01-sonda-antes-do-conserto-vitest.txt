@@ -1,0 +1,241 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ❯ test/leitura-do-agente-oficios-e-avisos.test.ts (14 tests | 9 failed) 4500ms
+   × Ofício: o agente de campo não lê > GET /oficios responde 403 sem_permissao ao agente, com ou sem filtro, e não entrega nada 15ms
+     → /oficios: {"itens":[{"id":"f1c02cbc-5a97-4a43-8ccf-ebb370cefd1d","numero":"000902/2026","emitido_em":"2026-10-06T15:45:42.988Z","emitido_por_nome":"Helena (coordenador)","ocorrencia_id":"11111111-1111-4111-8111-0000000000c8","providencia_id":"8565925a-7101-4910-8b68-6039d5255c21","orgao_nome":"Corpo de Bombeiros CBB","orgao_sigla":"CBB","envios":1,"ultimo_envio":"2026-10-06T15:45:42.988Z","aberto_em":"2026-10-06T15:45:42.989Z"},{"id":"8a74cdf0-44fc-431f-a72c-ae5685bb262a","numero":"000901/2026","emitido_em":"2026-10-06T15:45:42.980Z","emitido_por_nome":"Helena (coordenador)","ocorrencia_id":"11111111-1111-4111-8111-0000000000c1","providencia_id":"2b3e8633-bf63-44db-8c65-0886f79a9449","orgao_nome":"Corpo de Bombeiros CBA","orgao_sigla":"CBA","envios":1,"ultimo_envio":"2026-10-06T15:45:42.981Z","aberto_em":"2026-10-06T15:45:42.984Z"}]}: expected 200 to be 403 // Object.is equality
+   × Ofício: o agente de campo não lê > GET /oficios/:id responde 403 ao agente, do ofício da equipe dele, de outra equipe e de um id que não existe: a resposta não revela qual existe 7ms
+     → 8a74cdf0-44fc-431f-a72c-ae5685bb262a: expected 200 to be 403 // Object.is equality
+   × Ofício: o agente de campo não lê > o agente de outro município também recebe 403, e a 403 não muda com o município do ofício 6ms
+     → 8a74cdf0-44fc-431f-a72c-ae5685bb262a: expected 404 to be 403 // Object.is equality
+   ✓ Ofício: o agente de campo não lê > sem token continua sendo 401, e não 403 2ms
+   ✓ Ofício: quem tem a ação consulta, e o município vizinho não alcança > operador, coordenador e administrador listam e abrem (200), com o conteúdo de sempre 38ms
+   ✓ Ofício: quem tem a ação consulta, e o município vizinho não alcança > coordenador de outro município responde 404 no ofício de Serra Alta, e a lista dele não o traz 6ms
+   × Sino: o agente vê e conta só os avisos da equipe dele > o agente da Alfa recebe o aviso da Alfa, e não o da Bravo, o da ocorrência sem equipe nem o do vizinho 13ms
+     → expected [ …(6) ] to not include 'b37a472f-b129-4985-84c7-3eeb2c00816a'
+   × Sino: o agente vê e conta só os avisos da equipe dele > e o agente da Bravo, o contrário 9ms
+     → expected [ …(6) ] to not include '0129aaaf-1a5e-4af0-a665-484c84652e54'
+   × Sino: o agente vê e conta só os avisos da equipe dele > a contagem de não lidos é a do recorte: o número não denuncia o aviso de outra equipe 15ms
+     → expected 6 to be 3 // Object.is equality
+   × Sino: o agente vê e conta só os avisos da equipe dele > agente sem equipe: lista vazia e naoLidos 0, mesmo com avisos no município 11ms
+     → expected [ { …(7) }, { …(7) }, { …(7) }, …(3) ] to deeply equal []
+   ✓ Sino: o agente vê e conta só os avisos da equipe dele > coordenação, operador e administração seguem vendo o município inteiro, com a contagem de sempre 24ms
+   ✓ Sino: o agente vê e conta só os avisos da equipe dele > o aviso de outro município nunca aparece, em papel nenhum 43ms
+   × Sino: o agente vê e conta só os avisos da equipe dele > marcar como lido não funciona como oráculo: o aviso de outra equipe responde 'marcados: 0' e nada é gravado 7ms
+     → expected 2 to be +0 // Object.is equality
+   × A escrita dentro do GET /avisos segue como era (pendência registrada, F07-E03 e F04-E11) > o token do agente também materializa o prazo vencido do município, uma vez só e sem repetir 10ms
+     → expected [ …(6) ] to not include '11111111-1111-4111-8111-0000000000c8'
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/leitura-do-agente-oficios-e-avisos.test.ts > Ofício: o agente de campo não lê > GET /oficios responde 403 sem_permissao ao agente, com ou sem filtro, e não entrega nada
+AssertionError: /oficios: {"itens":[{"id":"f1c02cbc-5a97-4a43-8ccf-ebb370cefd1d","numero":"000902/2026","emitido_em":"2026-10-06T15:45:42.988Z","emitido_por_nome":"Helena (coordenador)","ocorrencia_id":"11111111-1111-4111-8111-0000000000c8","providencia_id":"8565925a-7101-4910-8b68-6039d5255c21","orgao_nome":"Corpo de Bombeiros CBB","orgao_sigla":"CBB","envios":1,"ultimo_envio":"2026-10-06T15:45:42.988Z","aberto_em":"2026-10-06T15:45:42.989Z"},{"id":"8a74cdf0-44fc-431f-a72c-ae5685bb262a","numero":"000901/2026","emitido_em":"2026-10-06T15:45:42.980Z","emitido_por_nome":"Helena (coordenador)","ocorrencia_id":"11111111-1111-4111-8111-0000000000c1","providencia_id":"2b3e8633-bf63-44db-8c65-0886f79a9449","orgao_nome":"Corpo de Bombeiros CBA","orgao_sigla":"CBA","envios":1,"ultimo_envio":"2026-10-06T15:45:42.981Z","aberto_em":"2026-10-06T15:45:42.984Z"}]}: expected 200 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 200
+
+ ❯ test/leitura-do-agente-oficios-e-avisos.test.ts:194:49
+    192|     for (const url of ["/oficios", `/oficios?ocorrenciaId=${OC_ALFA_1}…
+    193|       const r = await app.inject({ method: "GET", url, headers: com(to…
+    194|       expect(r.statusCode, `${url}: ${r.body}`).toBe(403);
+       |                                                 ^
+    195|       expect(r.json().erro).toBe("sem_permissao");
+    196|       expect(r.body).not.toContain(EMAIL_DO_ORGAO);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  test/leitura-do-agente-oficios-e-avisos.test.ts > Ofício: o agente de campo não lê > GET /oficios/:id responde 403 ao agente, do ofício da equipe dele, de outra equipe e de um id que não existe: a resposta não revela qual existe
+AssertionError: 8a74cdf0-44fc-431f-a72c-ae5685bb262a: expected 200 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 200
+
+ ❯ test/leitura-do-agente-oficios-e-avisos.test.ts:208:32
+    206|         method: "GET", url: `/oficios/${id}`, headers: com(tokens["die…
+    207|       });
+    208|       expect(r.statusCode, id).toBe(403);
+       |                                ^
+    209|       expect(r.json().erro, id).toBe("sem_permissao");
+    210|       // O que o revisor encontrou: e-mail do órgão, observações e IP …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  test/leitura-do-agente-oficios-e-avisos.test.ts > Ofício: o agente de campo não lê > o agente de outro município também recebe 403, e a 403 não muda com o município do ofício
+AssertionError: 8a74cdf0-44fc-431f-a72c-ae5685bb262a: expected 404 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 404
+
+ ❯ test/leitura-do-agente-oficios-e-avisos.test.ts:222:32
+    220|         method: "GET", url: `/oficios/${id}`, headers: com(tokens["tar…
+    221|       });
+    222|       expect(r.statusCode, id).toBe(403);
+       |                                ^
+    223|       expect(r.json().erro, id).toBe("sem_permissao");
+    224|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  test/leitura-do-agente-oficios-e-avisos.test.ts > Sino: o agente vê e conta só os avisos da equipe dele > o agente da Alfa recebe o aviso da Alfa, e não o da Bravo, o da ocorrência sem equipe nem o do vizinho
+AssertionError: expected [ …(6) ] to not include 'b37a472f-b129-4985-84c7-3eeb2c00816a'
+ ❯ test/leitura-do-agente-oficios-e-avisos.test.ts:300:21
+    298|     const ids = r.itens.map((i) => i.id);
+    299|     expect(ids).toContain(avisoAlfa);
+    300|     expect(ids).not.toContain(avisoBravo);
+       |                     ^
+    301|     expect(ids).not.toContain(avisoSemEquipe);
+    302|     expect(ids).not.toContain(avisoDeB);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  test/leitura-do-agente-oficios-e-avisos.test.ts > Sino: o agente vê e conta só os avisos da equipe dele > e o agente da Bravo, o contrário
+AssertionError: expected [ …(6) ] to not include '0129aaaf-1a5e-4af0-a665-484c84652e54'
+ ❯ test/leitura-do-agente-oficios-e-avisos.test.ts:312:21
+    310|     const ids = r.itens.map((i) => i.id);
+    311|     expect(ids).toContain(avisoBravo);
+    312|     expect(ids).not.toContain(avisoAlfa);
+       |                     ^
+    313|     expect(ids).not.toContain(avisoSemEquipe);
+    314|     const esperado = await avisosDaEquipe(EQUIPE_BRAVO, AGENTE_BRAVO);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  test/leitura-do-agente-oficios-e-avisos.test.ts > Sino: o agente vê e conta só os avisos da equipe dele > a contagem de não lidos é a do recorte: o número não denuncia o aviso de outra equipe
+AssertionError: expected 6 to be 3 // Object.is equality
+
+- Expected
++ Received
+
+- 3
++ 6
+
+ ❯ test/leitura-do-agente-oficios-e-avisos.test.ts:321:27
+    319|     const alfa = await sino(tokens["diego"]!);
+    320|     const bravo = await sino(tokens["bruno"]!);
+    321|     expect(alfa.naoLidos).toBe(
+       |                           ^
+    322|       (await avisosDaEquipe("11111111-1111-4111-8111-0000000000e1", AG…
+    323|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  test/leitura-do-agente-oficios-e-avisos.test.ts > Sino: o agente vê e conta só os avisos da equipe dele > agente sem equipe: lista vazia e naoLidos 0, mesmo com avisos no município
+AssertionError: expected [ { …(7) }, { …(7) }, { …(7) }, …(3) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "criadoEm": "2026-10-06T14:45:45.916Z",
++     "detalhe": null,
++     "id": "0129aaaf-1a5e-4af0-a665-484c84652e54",
++     "lido": false,
++     "ocorrenciaId": "11111111-1111-4111-8111-0000000000c1",
++     "protocolo": "000471/2026",
++     "tipo": "vistoria_recebida",
++   },
++   {
++     "criadoEm": "2026-10-06T14:45:45.916Z",
++     "detalhe": null,
++     "id": "b37a472f-b129-4985-84c7-3eeb2c00816a",
++     "lido": false,
++     "ocorrenciaId": "11111111-1111-4111-8111-0000000000c8",
++     "protocolo": "000478/2026",
++     "tipo": "vistoria_recebida",
++   },
++   {
++     "criadoEm": "2026-10-06T14:45:45.918Z",
++     "detalhe": null,
++     "id": "7d46a411-516b-4d06-99aa-ee227cf6ea19",
++     "lido": false,
++     "ocorrenciaId": "11111111-1111-4111-8111-0000000000c2",
++     "protocolo": "000472/2026",
++     "tipo": "vistoria_recebida",
++   },
++   {
++     "criadoEm": "2026-10-06T14:45:45.931Z",
++     "detalhe": null,
++     "id": "1dbe8e78-266f-43be-8f6d-46bf95444553",
++     "lido": false,
++     "ocorrenciaId": "11111111-1111-4111-8111-0000000000c4",
++     "protocolo": "000474/2026",
++     "tipo": "vistoria_recebida",
++   },
++   {
++     "criadoEm": "2026-10-06T14:45:45.931Z",
++     "detalhe": "media",
++     "id": "705c2611-60d7-4fc7-8fd4-95cf27cb78e0",
++     "lido": false,
++     "ocorrenciaId": "11111111-1111-4111-8111-0000000000c4",
++     "protocolo": "000474/2026",
++     "tipo": "prazo_vencido",
++   },
++   {
++     "criadoEm": "2026-10-06T14:45:45.931Z",
++     "detalhe": null,
++     "id": "7c25a419-d6ae-4034-8ddb-2ef6c69d7b9e",
++     "lido": false,
++     "ocorrenciaId": "11111111-1111-4111-8111-0000000000c3",
++     "protocolo": "000473/2026",
++     "tipo": "vistoria_recebida",
++   },
++ ]
+
+ ❯ test/leitura-do-agente-oficios-e-avisos.test.ts:336:23
+    334|     try {
+    335|       const r = await sino(tokens["diego"]!);
+    336|       expect(r.itens).toEqual([]);
+       |                       ^
+    337|       expect(r.naoLidos).toBe(0);
+    338|     } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  test/leitura-do-agente-oficios-e-avisos.test.ts > Sino: o agente vê e conta só os avisos da equipe dele > marcar como lido não funciona como oráculo: o aviso de outra equipe responde 'marcados: 0' e nada é gravado
+AssertionError: expected 2 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 2
+
+ ❯ test/leitura-do-agente-oficios-e-avisos.test.ts:380:31
+    378|     });
+    379|     expect(r.statusCode, r.body).toBe(200);
+    380|     expect(r.json().marcados).toBe(0);
+       |                               ^
+    381|     const depois = await mem.bruto.query<{ n: number }>(
+    382|       "SELECT count(*)::int AS n FROM avisos_lidos WHERE usuario_id = …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  test/leitura-do-agente-oficios-e-avisos.test.ts > A escrita dentro do GET /avisos segue como era (pendência registrada, F07-E03 e F04-E11) > o token do agente também materializa o prazo vencido do município, uma vez só e sem repetir
+AssertionError: expected [ …(6) ] to not include '11111111-1111-4111-8111-0000000000c8'
+ ❯ test/leitura-do-agente-oficios-e-avisos.test.ts:423:52
+    421|     const depois = await contar();
+    422|     expect(depois).toBe(antes === 0 ? 1 : antes);
+    423|     expect(r.itens.map((i) => i.ocorrenciaId)).not.toContain(OC_BRAVO_…
+       |                                                    ^
+    424| 
+    425|     // Idempotente: consultar de novo, por qualquer papel, não duplica.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 5 passed (14)
+   Start at  12:45:38
+   Duration  7.27s (transform 423ms, setup 63ms, collect 2.23s, tests 4.50s, environment 0ms, prepare 160ms)
+

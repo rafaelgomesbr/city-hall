@@ -1,0 +1,1118 @@
+# Fase 10: Consolidação do painel da prefeitura
+
+**Gate da fase:** G10 PAINEL CONSOLIDADO | **Depende dos gates:** G04, G08, G09, G32 (cumulativo na ordem de execução de `STATUS.md`, seção 5: G00 a G09 e G32) | **Superfícies tocadas:** `apps/web` (principal), `apps/api` e `packages/shared` (pontos pequenos), `db` (migrations pequenas), `vercel.json` | **Checkpoints da fase:** CP-17, CP-18 (decidido: construir), CP-21, CP-22, CP-30, CP-54, CP-52, CP-55, CP-56
+
+Esta fase fecha os gaps do painel sem reconstruí-lo. Dá à Defesa Civil o lado dela do encaminhamento (criar, compor o dossiê, sugerir o destino por competência, acompanhar, receber a resposta, reencaminhar com um clique, cobrar e escalar pela cadeia do município), a gestão de órgãos, inclusive externos, e de pessoas com vínculo por município e órgão, sem item órfão (D-08, D-18), os indicadores por órgão sem ranking (D-19), as telas de documentos emitidos, de assinatura por provedor externo, de modelos, de notificação e de relatório fotográfico (F09), o painel instalável na tela inicial (D-22), a foto de perfil (D-26), a liberação do suporte assistido (D-10) e as lacunas do MVP do Alyson: L1 (E23), L2 (E29), L3 (E24), L9 (E20), L10 (E25), L11 (E30), L12 (E31), L14 (E26), L18 (E27) e L22 (E28). A pessoa é global e a conta é por município (F03-E15): as telas de usuário e de vínculo falam em conta no município e só criam pessoa pelo convite. Entram também ErrorBoundary, estados padrão, acessibilidade dinâmica, a dívida de estilo (E22) e o build de produção sem PGlite. A secretaria NÃO transfere: devolve e sugere destino; quem reencaminha é a Defesa Civil.
+
+REGRA INEGOCIÁVEL (Rafael, 2026-10-02): toda etapa de interface só fecha com prova, isto é, saída do E2E e capturas de tela reais (desktop e celular, tema claro e escuro, estados normal, vazio, erro e carregando), conferidas no portão visual de `19-definicao-de-pronto.md`, seção 0 (nada desalinhado, grudado ou fora do lugar; texto bem escrito). Está escrito em "Validação humana" e "Evidência a produzir" de cada etapa de tela.
+
+Preserva (MANTER): as páginas atuais e o que fazem (`Painel`, `Ocorrencias`, `Ocorrencia`, `Orgaos`, `Usuarios`, `MinhaConta`, `Organizacao`, `Auditoria`, `Entrar`), os componentes `Estrutura`, `TrocaDeTela`, `Modal`, `ConfirmarAcao`, `Toast` e `Sino`, os portões estáticos do painel e o modo de demonstração em PGlite (ADR 0003). Regra dos dois modos: toda etapa que cria tela ou chamada diz como fica na API (`dados/http.ts`) e no modo local (`dados/local.ts`), mantém `apps/web/test/paridade-dos-modos.test.ts` verde e, onde o modo local não oferece o recurso (portal, documentos, e-mail, suporte, sessão), recusa com explicação e a mesma aridade, sem fingir.
+
+NÃO faz: portal das secretarias (F11), regra de reinspeção (F13: aqui só o ponto de entrada na tela), upload do órgão (F11-E13), axe-core e leitor de tela real (F23), entidade imóvel e histórico territorial (lacuna L4, da F32), transferência direta entre secretarias e unidade administrativa dentro do órgão (itens de `docs/roadmap-v2/21-fora-da-v2.md`), o lado do console do suporte assistido (F20-E11, que roda depois desta fase) e os dados e regras de competência, cadeia de escalonamento, sigilo e eventos de sessão no banco e na API (F03-E17, E20 e E21 e F04-E14 a E16), que esta fase só consome em tela.
+
+Ordem de execução: F09 e F32 executam antes desta fase (`STATUS.md`, seção 5). Ordem interna sugerida: E12 reestrutura `repositorio.ts`, que E01, E04 e E08 estendem: fazer antes de todas ou depois de todas, nunca no meio. E01 antes de E03, E09 e E30; E02 antes de E03 e E17; E03 antes de E18 e E34; E04 antes de E05, E06, E19 e E20; E07 antes de E32, E33, E35 e E36 (E32 antes de E35; E33 antes de E36); E08 antes de E25; E10 e E11 valem para as telas novas e a E22 fecha por último. E13 a E16, E21, E23, E24, E26 a E29 e E31 entram sem decisão, com o comportamento atual preservado.
+
+## Etapas
+
+### V2-F10-E01 - Telas de conta e segurança consolidadas (usuários, sessões, reset de MFA)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E03 e E09 editam os mesmos arquivos)
+- **Objetivo:** a lista de contas no município (usuários) mostra o estado de acesso e concentra as ações de acesso; `MinhaConta` mostra o da própria pessoa.
+- **Problema que resolve:** F00-E09, F03-E10 e F03-E11 entregam rotas e botões soltos; a lista não mostra convite parado nem conta sem MFA.
+- **Origem:** REL:06; DP:T37; BZ-D:PRF-05; BZ-D:IDN-16.
+- **Estado atual:** EXPANDIR: `Usuarios.tsx`, `MinhaConta.tsx` e `SegundoFator.tsx`.
+- **Dependências de entrada:** G09; F00-E09.
+- **O que deve ser implementado:**
+  - Frontend: coluna "Acesso" com selos de ícone e texto; por linha, com `ConfirmarAcao`: reenviar convite, redefinir senha, encerrar sessões, redefinir verificação em duas etapas (motivo obrigatório, nunca na própria conta).
+  - API: `GET /v1/usuarios` devolve `segundoFator` e `convitePendente`.
+  - Dados: `redefinirSegundoFatorDeUsuario` e `reenviarConvite` em `http.ts`; `local.ts` recusa com explicação; âncora em `paridade-dos-modos.test.ts`.
+- **O que NÃO deve ser implementado nesta etapa:** rotas de convite e reset (F03-E10, F03-E11); listar sessões (F00-E09); vínculo de órgão (E03); foto (E09).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Usuarios.tsx`, `apps/web/src/paginas/MinhaConta.tsx`, `apps/web/src/dados/http.ts`, `apps/web/src/dados/local.ts`; a criar: `apps/web/test/acesso-das-contas.test.ts`.
+- **Risco de segurança:** reset de MFA de terceiro: botão só para posto superior e a API reconfere (F03-E11).
+- **Impacto LGPD:** Não se aplica.
+- **Migração necessária:** Não.
+- **Compatibilidade:** dois campos aditivos.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** administradora reenvia convite e reseta o TOTP de um coordenador; o selo vira "pendente".
+- **Testes negativos:** reset sem motivo: 422; sem botão na própria linha; pessoa com conta em outro município: 409 `pessoa_em_varios_municipios` (F03-E11) e a tela explica; modo local explica.
+- **Testes de autorização e isolamento:** coordenador de A resetando TOTP de usuário de B: 404; agente abrindo `/usuarios` pela URL: 403.
+- **Regressão obrigatória:** `npm test --workspace @dc360/web`, `npm run test:api`, G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api` (convite, reset) e `npm run test:e2e`.
+- **Validação humana:** Rafael, com dois usuários de teste; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E01/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** estado de acesso visível; reset e convite pelo painel.
+- **Checkpoint:** Não.
+
+### V2-F10-E02 - Gestão de órgãos: cadastro com tipo e abrangência, órgão externo e desativação com regra de itens abertos
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E03 e E17 partem desta)
+- **Objetivo:** cadastrar órgão com tipo e abrangência, inclusive o externo, e desativar só sem encaminhamento em aberto.
+- **Problema que resolve:** `rotas/orgaos.ts:207` desativa com itens abertos, que ficam órfãos (BZ-D:SEC-08; REL:05 D12); órgão estadual não cabe no catálogo (D-08).
+- **Origem:** PR:D-08; REL:05; DP:T37; BZ-D:SEC-08.
+- **Estado atual:** EXPANDIR: `Orgaos.tsx` cadastra e desativa com motivo, sem tipo nem abrangência.
+- **Dependências de entrada:** G04; F03-E17 (`tipo`, `externo`, `abrangencia`); F04-E02.
+- **O que deve ser implementado:**
+  - Migration: gatilho `orgao_desativa_sem_abertos` recusa `ativo = false` com `providencias` em `enviado`, `aceito`, `aguardando_dc`, `respondido` ou `devolvido` e encerra os `orgao_vinculos` vigentes; as colunas `tipo`, `externo` e `abrangencia` (`local` ou `regional`) são da F03-E17.
+  - API: 409 `orgao_com_encaminhamentos_abertos` com contagem por estado; `GET /v1/orgaos` devolve `tipo`, `abrangencia`, `externo`, `abertas` e `gestor`; `POST` e `PATCH` aceitam os três primeiros.
+  - Frontend: seletores com ajuda, selo "Externo", coluna "Gestor" ("Sem gestor"); desativar lista os itens, com link para `/encaminhamentos?orgao=<id>`, e trava o botão. Dados: nos dois modos.
+- **O que NÃO deve ser implementado nesta etapa:** reencaminhar itens (E04, E05); pessoas (E03); competência (E17).
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/orgaos.ts`, `apps/web/src/paginas/Orgaos.tsx`; migration nova.
+- **Risco de segurança:** regra só na rota seria contornável.
+- **Impacto LGPD:** Não se aplica: sem dado de pessoa.
+- **Migração necessária:** Sim (`NNN_orgao_desativa_sem_abertos.sql`).
+- **Compatibilidade:** só o gatilho é novo.
+- **Rollback:** migration nova remove o gatilho.
+- **Testes positivos:** órgão externo listado com selo; órgão só com itens `concluido` desativa.
+- **Testes negativos:** órgão com um `aceito`: 409, inclusive por SQL direto; abrangência inválida: 422.
+- **Testes de autorização e isolamento:** coordenador de A desativa órgão de B: 404; `usuario_orgao`: negado.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `test:api`, `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: bloqueio e desativação; Playwright captura.
+- **Validação humana:** Alyson confere a frase do bloqueio; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E02/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** bloqueio no banco e na tela; externo cadastrável.
+- **Checkpoint:** Não.
+
+### V2-F10-E03 - Gestão de pessoas do órgão e vínculos: convidar pessoa nova ou já existente, papel no órgão e encerramento
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (parte de E02)
+- **Objetivo:** convidar por e-mail pessoa nova ou já cadastrada, definir o papel no órgão e encerrar o vínculo.
+- **Problema que resolve:** `orgao_vinculos` (F03-E05) não tem tela e a pessoa externa pode já ter conta em outro município (D-08).
+- **Origem:** PR:D-08; DP:T37; DP:T03; BZ-M:V2-SEC-11; REL:05.
+- **Estado atual:** CRIAR tela e rotas sobre os vínculos e o convite de F03-E10.
+- **Dependências de entrada:** G03; E02; F03-E05, E10 e E17.
+- **O que deve ser implementado:**
+  - API: `GET` e `POST /v1/orgaos/:orgaoId/vinculos` `{email, nome, papelNoOrgao}`: e-mail novo gera convite de uso único (F03-E10); e-mail já cadastrado gera pedido de vínculo aceito ao entrar; a resposta é a mesma (202) e nunca diz se a pessoa existe; `POST .../vinculos/:id/encerramento` e `.../papel`.
+  - Autorização: `gerir_vinculos` via `exigirPermissao`: administrador e coordenador; gestor só executor e leitor do próprio órgão; nomear gestor só administrador.
+  - Frontend: `PessoasDoOrgao.tsx` em `/orgaos/:id/pessoas`, situação com ícone e texto; o local lista e recusa criar.
+- **O que NÃO deve ser implementado nesta etapa:** reatribuir item e proteger quem responde por item aberto (E34); portal do gestor (F11-E19); login (F11-E04).
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/orgaos.ts`, `packages/shared/src/permissoes.ts`; a criar: `apps/web/src/paginas/PessoasDoOrgao.tsx`.
+- **Risco de segurança:** enumeração de e-mail pelo convite; gestor concedendo acima do posto.
+- **Impacto LGPD:** e-mail e papel na trilha administrativa.
+- **Migração necessária:** Não.
+- **Compatibilidade:** aditiva.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** e-mail novo e o de pessoa de outro município: ambos viram "Convite enviado".
+- **Testes negativos:** gestor criando gestor: 403; corpo igual nos dois casos.
+- **Testes de autorização e isolamento:** gestor da Saúde em órgão da Obras: 404; encerrar vínculo em A mantém o de B.
+- **Regressão obrigatória:** `npm run test:api`, `test:isolamento`, matriz de F03-E13; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: convidar, mudar papel, encerrar; Playwright captura.
+- **Validação humana:** Rafael, com usuários de Obras e Saúde; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E03/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** vínculos pelo painel; convite sem enumeração.
+- **Checkpoint:** Não.
+
+### V2-F10-E04 - Encaminhamentos do lado da Defesa Civil: criar, compor dossiê, acompanhar
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E05 e E06 partem destas telas)
+- **Objetivo:** criar encaminhamentos (vários por ocorrência), escolher o que o órgão verá e acompanhá-los em tela própria.
+- **Problema que resolve:** `Ocorrencia.tsx:676` só encaminha em `vistoria_concluida`, aceita órgão em texto livre e não há acompanhamento (BZ-D:PRF-18, PRF-57).
+- **Origem:** DP:T13; DP:T07; BZ-M:V2-SEC-03; BZ-D:PRF-18.
+- **Estado atual:** EXPANDIR: `BlocoProvidencia`, `CartaoOficios` e pendentes do `Painel`.
+- **Dependências de entrada:** G04.
+- **O que deve ser implementado:**
+  - Frontend: `BlocoProvidencia` em `vistoria_concluida` e `providencia_pendente`, órgão só do catálogo; "O que o órgão vai ver" com `CAMPOS_DO_DOSSIE` (F04-E04): padrão conservador marcado, sensível exige justificativa de 20 caracteres; prévia por `montarDossie`.
+  - Frontend: `Encaminhamentos.tsx` (`/encaminhamentos`, com filtros) e `Encaminhamento.tsx` (dossiê e versões, prazo efetivo, linha do tempo); cartão na ocorrência; menu atrás de `ler_encaminhamentos`.
+  - Dados: `criarEncaminhamento`, `listarEncaminhamentos`, `detalharEncaminhamento` sobre as rotas de F04-E08; no local, mesma SQL com o ator do perfil (F03-E06).
+- **O que NÃO deve ser implementado nesta etapa:** decisões sobre a resposta (E05); cobrar e escalar (E06); sugestão por competência (E19); prioridade (E20); anexos do órgão (F11-E13); reinspeção (F13).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Ocorrencia.tsx`, `apps/web/src/App.tsx`, `apps/web/src/componentes/Estrutura.tsx`, `apps/web/src/dados/http.ts`, `apps/web/src/dados/local.ts`; a criar: `apps/web/src/paginas/Encaminhamentos.tsx`, `apps/web/src/paginas/Encaminhamento.tsx`.
+- **Risco de segurança:** sensível sem justificativa recusado também no servidor.
+- **Impacto LGPD:** lista de inclusão; sensível só com justificativa (CP-10).
+- **Migração necessária:** Não.
+- **Compatibilidade:** rota legada segue.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** encaminhar a segundo órgão em `providencia_pendente`; dossiê padrão: protocolo, tipo, endereço.
+- **Testes negativos:** sensível sem justificativa: 422; órgão em texto livre: 422; `chaveDeCriacao` repetida não duplica.
+- **Testes de autorização e isolamento:** operador criando: 403; coordenador de B abre encaminhamento de A: 404.
+- **Regressão obrigatória:** `npm test --workspace @dc360/web`, `npm run test:api`, `test:isolamento`, G00 a G09 e G32.
+- **E2E:** `fluxo-api.e2e.mjs` e `fluxo.e2e.mjs`: seção nova (encaminhar, achar, abrir).
+- **Validação humana:** Rafael e Alyson, com ocorrência sintética (CP-09); capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E04/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** encaminhar, escolher dossiê e acompanhar nos dois modos.
+- **Checkpoint:** Não.
+
+### V2-F10-E05 - Resposta do órgão: aceitar, pedir complemento, devolver e reencaminhar com um clique
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (edita `Encaminhamento.tsx` da E04)
+- **Objetivo:** decidir sobre a resposta do órgão: aceitar, pedir complemento, reenviar, cancelar ou reencaminhar a outro órgão com um clique.
+- **Problema que resolve:** a resposta é digitada pela Defesa Civil, sem aceite, complemento nem devolução (BZ-D:PRF-20).
+- **Origem:** DP:T11; DP:T13; BZ-M:V2-SEC-07; BZ-D:PRF-20.
+- **Estado atual:** EXPANDIR: `BlocoRespostaProvidencia` (`Ocorrencia.tsx:2005`) fica para resposta em nome do órgão.
+- **Dependências de entrada:** E04.
+- **O que deve ser implementado:**
+  - Frontend: `respondido`: aceitar ou pedir complemento (motivo, novo prazo); `aguardando_dc`: responder o esclarecimento; `devolvido`: motivo e destino sugerido, "Reencaminhar para" o destino (um clique e a confirmação do ato, dossiê padrão pronto, sem digitar), reenviar ou cancelar com motivo.
+  - Frontend: sensível do dossiê anterior nunca herdado; anexos só em leitura; ponto de entrada da reinspeção (F13-E04) na lista de ações, sem botão.
+  - Dados: as rotas de decisão de F04-E08; no local igual, com `respondido` e `devolvido` em `semente-da-demonstracao.sql`.
+- **O que NÃO deve ser implementado nesta etapa:** regra de reinspeção (F13); upload do órgão (F11-E13); cobrar (E06); transferência entre órgãos.
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Encaminhamento.tsx`, `apps/web/src/dados/http.ts`, `apps/web/src/dados/local.ts`, `apps/web/src/dados/semente-da-demonstracao.sql`; a criar: `apps/web/src/paginas/encaminhamento-regras.ts`.
+- **Risco de segurança:** reencaminhar leva dado de família a outro órgão: confirmação nomeia o destino.
+- **Impacto LGPD:** um dossiê por encaminhamento; o órgão B não vê a resposta do A.
+- **Migração necessária:** Não.
+- **Compatibilidade:** rotas legadas seguem.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** do `devolvido` ao novo `enviado` com um clique e a confirmação, sem digitar.
+- **Testes negativos:** complemento sem motivo: 422; aceitar `concluido`: 409; duplo clique não duplica.
+- **Testes de autorização e isolamento:** executor da Obras chamando `.../conclusao`: negado; coordenador de B em encaminhamento de A: 404.
+- **Regressão obrigatória:** `npm test --workspace @dc360/web`, `npm run test:api`, `test:isolamento`, G00 a G09 e G32.
+- **E2E:** `npm run test:e2e` (semente) e `test:e2e:api`: fluxo D.
+- **Validação humana:** Alyson reencaminha na semente; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E05/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** reencaminhar sem digitar nos dois modos.
+- **Checkpoint:** Não.
+
+### V2-F10-E06 - Caixa de pendências e escalonamento (cobrar, escalar pela cadeia do município)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (mesmas telas da E04)
+- **Objetivo:** uma caixa mostra o que espera a Defesa Civil e o que está parado no órgão, com cobrar e escalar pela cadeia (E18).
+- **Problema que resolve:** providência vencida não gera aviso e, sem cadeia acima do gestor, o item parado não sobe (BZ-D:PRF-21; PR:D-18).
+- **Origem:** DP:T12; PR:D-18; BZ-M:V2-SEC-04; BZ-D:PRF-21; REL:05.
+- **Estado atual:** EXPANDIR: cartão `Painel.tsx:393`, `Sino.tsx` e `sino-regras.ts`.
+- **Dependências de entrada:** E04; E18; F04-E10; F04-E16.
+- **O que deve ser implementado:**
+  - Frontend: aba "Pendências" em `/encaminhamentos`: com a Defesa Civil (`respondido`, `aguardando_dc`, `devolvido`) e com o órgão (`sem_aceite`, `vencido`); por linha, "Cobrar" e "Escalar" com `ConfirmarAcao` que nomeia o destino; `Painel` aponta para ela.
+  - API: `POST /v1/encaminhamentos/:id/cobranca` e `.../escalonamento` (F04-E08): lê o próximo degrau da cadeia (E18) e grava `escalonado`; 409 `orgao_sem_gestor` e `cadeia_esgotada` viram frases que dizem o que fazer.
+  - Frontend: `FRASES` de `sino-regras.ts` ganha os tipos de F04-E11. Dados: nos dois modos.
+- **O que NÃO deve ser implementado nesta etapa:** lembretes e e-mail (F04-E10, F11-E17); configurar a cadeia (E18).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Encaminhamentos.tsx`, `apps/web/src/paginas/Painel.tsx`, `apps/web/src/componentes/sino-regras.ts`.
+- **Risco de segurança:** escalar fora da cadeia é recusado no servidor.
+- **Impacto LGPD:** mensagem opcional de até 200 caracteres.
+- **Migração necessária:** Não.
+- **Compatibilidade:** aviso desconhecido segue genérico.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** item sem aceite aparece "com o órgão"; o segundo escalonamento notifica o nível 2.
+- **Testes negativos:** órgão sem gestor: 409; além do último nível: 409.
+- **Testes de autorização e isolamento:** operador cobrando: 403; coordenador de B escalando item de A: 404.
+- **Regressão obrigatória:** `npm run test:api`, `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: cobrar e escalar duas vezes; Playwright captura.
+- **Validação humana:** Alyson, com três casos sintéticos; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E06/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** caixa e ações nos dois modos; escalonamento pela cadeia.
+- **Checkpoint:** Não.
+
+### V2-F10-E07 - Documentos emitidos: lista, versões, aprovar, substituir e cancelar
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E08 compartilha `http.ts` e `local.ts`)
+- **Objetivo:** listar os documentos emitidos com a cadeia de versões e aprovar, substituir e cancelar sobre o PDF guardado.
+- **Problema que resolve:** o painel só gera laudo e termo na hora: sem lista, versão, aprovação nem cancelamento (BZ-D:PRF-27).
+- **Origem:** PR:D-05; PR:D-06; BZ-D:PRF-27; REL:09.
+- **Estado atual:** CRIAR lista e detalhe; EXPANDIR `CartaoDocumentos` em `Ocorrencia.tsx`.
+- **Dependências de entrada:** G09.
+- **O que deve ser implementado:**
+  - Frontend: `Documentos.tsx` (`/documentos`: lista com filtros) e `/documentos/:id` (cadeia de versões, PDF guardado por URL curta, ações); `CartaoDocumentos` lista as versões da ocorrência.
+  - Frontend: aprovar é APROVAÇÃO AUTENTICADA (F09-E07): com versão, hash e segundo fator onde F09-E08 exigir; substituir e cancelar exigem motivo; marca d'água até CP-14.
+  - API: consome as rotas de F09-E06 a E09 e cria só as leituras de lista e versões que faltarem.
+  - Dados: `local.ts` recusa com explicação (documentos são do servidor).
+- **O que NÃO deve ser implementado nesta etapa:** montador e estados (F09); assinatura por provedor e consumo (E32); modelos, notificação e relatório fotográfico (E33); QR e PDF acessível (F09-E13, F09-E15).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Ocorrencia.tsx`, `apps/web/src/dados/http.ts`, `apps/web/src/dados/local.ts`; a criar: `apps/web/src/paginas/Documentos.tsx`.
+- **Risco de segurança:** aprovar versão substituída: o servidor recusa.
+- **Impacto LGPD:** a lista mostra protocolo, nunca nome.
+- **Migração necessária:** Não.
+- **Compatibilidade:** botões de gerar seguem.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** lista com duas versões; abrir a 1 serve o PDF guardado; aprovar a 2 grava o ato.
+- **Testes negativos:** aprovar versão `substituido`: 409; substituir sem motivo: 422.
+- **Testes de autorização e isolamento:** operador sem permissão: 403; documento de B aberto por A: 404.
+- **Regressão obrigatória:** `npm test --workspace @dc360/web`, `npm run test:api`, `test:isolamento`, G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: emitir, substituir, aprovar (fluxos I e J).
+- **Validação humana:** Rafael confere que nenhuma tela chama a aprovação de assinatura; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E07/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** lista, versões e ações pelo painel.
+- **Checkpoint:** Não.
+
+### V2-F10-E08 - Pacote de saída e exportação: telas e estados
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E07 compartilha `http.ts` e `local.ts`)
+- **Objetivo:** o administrador pede e baixa o pacote de saída por estados claros e baixa o CSV completo com justificativa.
+- **Problema que resolve:** com o pacote em segundo plano (F07-E06, resposta 202) `CartaoDeSaida` só tem "Gerando"; o CSV completo não tem tela e o histórico não mostra nível (BZ-D:PRF-43, PRF-39, LGP-20).
+- **Origem:** ALY:CA-10; REL:02; BZ-D:PRF-43; BZ-D:LGP-20.
+- **Estado atual:** EXPANDIR: `CartaoDeSaida` (`Organizacao.tsx`), `baixarCsvDeOcorrencias` e `Auditoria.tsx`.
+- **Dependências de entrada:** G09.
+- **O que deve ser implementado:**
+  - Frontend: `CartaoDeSaida` com pedindo, em preparação (consulta `GET /v1/saida/pacote/:id`, anunciada em região polite), pronto (validade), expirado, falhou (código de suporte) e sem permissão.
+  - Frontend: `Auditoria.tsx` com CSV por nível; "completo" só administrador, com justificativa de 20 caracteres.
+  - API: `GET /v1/relatorios/exportacoes` devolve `nivel` e `justificativa` (migration 021), só leitura.
+  - Dados: no local, recusa com explicação.
+- **O que NÃO deve ser implementado nesta etapa:** montar o pacote fora da API (F07-E06); conteúdo (F09-E11); relatório em PDF e cabeçalho do CSV (E25); eliminação (F20-E04).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Organizacao.tsx`, `apps/web/src/paginas/Auditoria.tsx`, `apps/web/src/dados/http.ts`, `apps/web/src/dados/local.ts`, `apps/api/src/rotas/prestacao-de-contas.ts`.
+- **Risco de segurança:** o pacote é o arquivo mais sensível: só administrador, reconferido na API.
+- **Impacto LGPD:** a justificativa fica no registro de quem exportou.
+- **Migração necessária:** Não.
+- **Compatibilidade:** respostas 200 e 202 tratadas.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** o pedido vira "em preparação" e "pronto"; o CSV completo aparece no histórico com nível.
+- **Testes negativos:** justificativa com 19 caracteres: 422; pacote expirado: 404 e tela "expirado".
+- **Testes de autorização e isolamento:** coordenador pedindo o pacote: 403; administrador de A baixando pacote de B: 404.
+- **Regressão obrigatória:** `npm test --workspace @dc360/web`, `npm run test:api` (`saida-de-municipio`), G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: pedir, acompanhar e baixar o pacote e o CSV completo.
+- **Validação humana:** Rafael, com município sintético; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E08/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/SAIDA-DE-MUNICIPIO.md`.
+- **Definition of Done:** estados do pacote e CSV completo; local explica.
+- **Checkpoint:** Não.
+
+### V2-F10-E09 - Foto de perfil no painel: enviar, remover e mostrar (CP-18 decidido: construir)
+- **Prioridade:** P2
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** baixo  |  **Paralelizável:** não (edita `MinhaConta.tsx` depois de E01)
+- **Objetivo:** o painel envia, remove e mostra a foto de perfil; a frase de `perfil.tsx:483` ("a coordenação vê esta foto") passa a ser verdadeira.
+- **Problema que resolve:** o painel não tem interface de foto e `ColegaDeEquipe` (`dados/tipos.ts:468`) descarta `fotoUrl` (BZ-N:N.8; REL:02).
+- **Origem:** PR:D-26; BZ-N:N.8; BZ-D:PRF-08; REL:02.
+- **Estado atual:** CRIAR a interface; as rotas de `usuarios-eu.ts` (`/foto`) e o aplicativo já existem.
+- **Dependências de entrada:** E01; CP-18 decidido (construir).
+- **O que deve ser implementado:**
+  - Frontend: `MinhaConta.tsx` ganha "Enviar foto" (JPEG ou PNG), pré-visualização e "Remover foto" com `ConfirmarAcao`; o avatar de `Estrutura.tsx` e `Usuarios.tsx` mostra a imagem, com iniciais de reserva.
+  - API: `GET /v1/usuarios` devolve `fotoUrl` (URL assinada curta) só com `gerenciar_usuarios`; `ColegaDeEquipe` mantém `fotoUrl`.
+  - Dados: `enviarMinhaFoto` e `removerMinhaFoto`; o local recusa. Mobile: a frase de `perfil.tsx:483` fica, com teste de texto.
+- **O que NÃO deve ser implementado nesta etapa:** retirar a coleta; reconhecimento facial; foto de cidadão (F16).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/MinhaConta.tsx`, `apps/web/src/componentes/Estrutura.tsx`, `apps/web/src/dados/tipos.ts`.
+- **Risco de segurança:** `fotoUrl` de servidor a quem não gerencia usuários.
+- **Impacto LGPD:** foto é dado pessoal do servidor; a remoção usa a rota existente.
+- **Migração necessária:** Não.
+- **Compatibilidade:** `fotoUrl` é aditivo.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** enviar JPEG e ver o avatar no topo e na lista; remover volta às iniciais.
+- **Testes negativos:** arquivo que não é imagem recusado com frase que diz o que fazer.
+- **Testes de autorização e isolamento:** coordenador de A pedindo foto de usuário de B: 404; operador não recebe `fotoUrl` de terceiros.
+- **Regressão obrigatória:** `npm run test:api`, `test:campo`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: enviar e remover; Playwright captura.
+- **Validação humana:** Rafael confere o texto; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E09/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/apps/web/PENDENCIAS.md`.
+- **Definition of Done:** foto enviada, removida e vista.
+- **Checkpoint:** CP-18 decidido (construir, D-26); se Rafael desfizer a premissa, vira só a correção da frase do aplicativo.
+
+### V2-F10-E10 - ErrorBoundary, estados vazios e de erro padrão
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (varre as páginas de E01 a E08)
+- **Objetivo:** nenhuma falha deixa tela branca: ErrorBoundary com o menu de pé e estados padrão de erro e vazio.
+- **Problema que resolve:** o painel não tem ErrorBoundary, cada página mostra o erro à sua maneira e `NaoEncontrada.tsx` não tem `<h1>` (BZ-D:UXD-27; REL:11).
+- **Origem:** REL:02; REL:11; BZ-D:UXD-27.
+- **Estado atual:** CRIAR o ErrorBoundary; EXPANDIR `Carregando`, `Vazio` e `Aviso` de `comuns.tsx`.
+- **Dependências de entrada:** G08.
+- **O que deve ser implementado:**
+  - Frontend: `ErroDeTela.tsx` (classe) na raiz e em `Estrutura.tsx` ao redor do `<Outlet>`, reiniciada a cada rota: título com foco e `role="alert"`, frase honesta, código de suporte (F01-E14), "Tentar de novo" e "Ir para o início".
+  - Frontend: `ErroDaTela` para falha de carregamento (sem conexão, sessão encerrada, conta desativada, 5xx) e `Vazio` com a próxima ação nas listas e telas novas; `<h1>` em `NaoEncontrada.tsx`.
+- **O que NÃO deve ser implementado nesta etapa:** crash dos apps móveis (F14-E07); destino do erro (F01-E14); axe (F23-E01).
+- **Arquivos e módulos prováveis:** `apps/web/src/componentes/Estrutura.tsx`, `apps/web/src/componentes/comuns.tsx`; a criar: `apps/web/src/componentes/ErroDeTela.tsx`, `apps/web/test/estados-da-tela.test.ts`.
+- **Risco de segurança:** tela sem stack; relatório pelo filtro de F01-E14.
+- **Impacto LGPD:** relatório sem dado de pessoa.
+- **Migração necessária:** Não.
+- **Compatibilidade:** nenhuma.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** o erro é guardado; a tela traz título, código e botões; toda lista usa `Carregando`, `Vazio` e `ErroDaTela` (portão estático).
+- **Testes negativos:** erro numa página não derruba o menu; trocar de rota reinicia a barreira; sem stack no HTML.
+- **Testes de autorização e isolamento:** sessão encerrada leva à entrada sem dado anterior; recurso de outro município: 404, nunca 403.
+- **Regressão obrigatória:** `npm test --workspace @dc360/web`, `npm run test:e2e`, G00 a G09 e G32.
+- **E2E:** `fluxo-api.e2e.mjs`: `page.route` devolve corpo malformado; a tela de erro aparece com o menu e "Tentar de novo" recupera.
+- **Validação humana:** Rafael derruba a API com a tela aberta; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E10/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/DESIGN-SYSTEM.md`.
+- **Definition of Done:** nenhuma tela branca.
+- **Checkpoint:** Não.
+
+### V2-F10-E11 - Acessibilidade dinâmica (aria-live, foco em troca de rota, forced-colors)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (altera `TrocaDeTela.tsx`, `Estrutura.tsx` e `app.css`)
+- **Objetivo:** quem usa leitor de tela, teclado, Alto Contraste ou movimento reduzido acompanha a troca de tela e as mudanças automáticas.
+- **Problema que resolve:** `TrocaDeTela.tsx` foca o `<main>`, não o título; regiões `aria-live` dispersas; `forced-colors` só cobre foco e quatro classes (REL:11; BZ-D:A11-05).
+- **Origem:** DP:T29; REL:11; BZ-D:A11-05.
+- **Estado atual:** EXPANDIR: `TrocaDeTela.tsx`, `Toast`, `Sino` e o bloco `forced-colors` de `app.css`.
+- **Dependências de entrada:** G08.
+- **O que deve ser implementado:**
+  - Frontend: `TrocaDeTela.tsx` foca o `<h1>` (`tabIndex={-1}`) só quando o caminho muda, nunca por filtro; `Estrutura.tsx` ganha região `aria-live="polite"` e `useAnunciar()` (Toast, Sino, estado do encaminhamento, estados do pacote); o `Painel` (60 s) só anuncia mudança de contagem relevante.
+  - Estilo: `app.css` amplia `forced-colors` (selos, botões, toast, contador do sino, links) e `prefers-reduced-motion` nas transições novas.
+  - Testes: `acessibilidade.test.ts` ganha o caso do foco no `<h1>`; e2e com `forcedColors: 'active'` e `reducedMotion: 'reduce'` no Chromium.
+- **O que NÃO deve ser implementado nesta etapa:** axe, leitor de tela real, fonte a 200% e alvo de 44 px (F23).
+- **Arquivos e módulos prováveis:** `apps/web/src/componentes/TrocaDeTela.tsx`, `apps/web/src/componentes/Estrutura.tsx`, `apps/web/src/estilos/app.css`, `apps/web/test/acessibilidade.test.ts`, `apps/web/test/fluxo.e2e.mjs`.
+- **Risco de segurança:** foco mal colocado prende o teclado.
+- **Impacto LGPD:** Não se aplica: anúncio sem nome nem endereço.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem mudança de API.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** após clicar no menu, o `<h1>` tem o foco; mudança de estado vira frase na região.
+- **Testes negativos:** mudar filtro não move o foco; polling sem mudança não anuncia; `outline: none` sem anel reprova o portão.
+- **Testes de autorização e isolamento:** Não se aplica: sem dado novo.
+- **Regressão obrigatória:** `npm test --workspace @dc360/web`, `npm run test:e2e`, G00 a G09 e G32.
+- **E2E:** `fluxo.e2e.mjs`: foco no `<h1>` e mídias forçadas.
+- **Validação humana:** Rafael, com NVDA ou VoiceOver; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E11/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0)), incluindo Alto Contraste.
+- **Documentação a atualizar:** `dc360/docs/DESIGN-SYSTEM.md`.
+- **Definition of Done:** foco no título, região única e mídias forçadas testadas.
+- **Checkpoint:** Não.
+
+### V2-F10-E12 - Build de produção sem PGlite, migrações e semente
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (reestrutura `repositorio.ts`, que E01, E04 e E08 estendem)
+- **Objetivo:** o bundle de produção não leva PGlite, migrações nem semente de desenvolvimento, e a demonstração local fica igual.
+- **Problema que resolve:** `repositorio.ts` importa `local` e `http` por `import *`: com `VITE_API_URL` o bundle (1,6 MB) ainda leva PGlite, migrações, `CREATE POLICY` e uma conta de exemplo (REL:02).
+- **Origem:** REL:02; DP:T15.
+- **Estado atual:** REFATORAR: `repositorio.ts`; `local.ts` e `banco.ts` não mudam de conteúdo.
+- **Dependências de entrada:** G08.
+- **O que deve ser implementado:**
+  - Frontend: `repositorio.ts` escolhe o modo por `import.meta.env.VITE_API_URL` (forma pontuada) com `import()` dinâmico e `await` de topo, para o ramo morto sair do bundle; `bancoSemPersistencia` passa a vir de `http.ts` (falso) e `local.ts`, mesma aridade.
+  - Testes: `scripts/bundle-do-painel.test.mjs` roda `vite build` com e sem a variável em pasta temporária: com ela, sem `CREATE POLICY`, `.wasm` nem conta da semente; sem ela, o PGlite existe.
+  - Demonstração NÃO muda: `local.ts`, `banco.ts` (`idb://dc360-v4`, teto de 20 s, aviso do Safari), semente, `npm run dev` e `build` sem variável.
+- **O que NÃO deve ser implementado nesta etapa:** remover o modo local (ADR 0003).
+- **Arquivos e módulos prováveis:** `apps/web/src/dados/repositorio.ts`, `apps/web/src/dados/http.ts`, `apps/web/src/dados/local.ts`, `apps/web/src/dados/banco.ts`, `apps/web/src/paginas/Entrar.tsx`; a criar: `scripts/bundle-do-painel.test.mjs`.
+- **Risco de segurança:** hoje esquema e semente chegam a qualquer visitante; migration nova exige subir `idb://dc360-v4`.
+- **Impacto LGPD:** Não se aplica: a semente é fictícia.
+- **Migração necessária:** Não.
+- **Compatibilidade:** ambos os builds seguem.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** com a variável, zero `CREATE POLICY` e `.wasm`; sem ela, o PGlite existe e `npm run test:e2e` passa.
+- **Testes negativos:** página importando `local.ts` ou `banco.ts` reprova; `bancoSemPersistencia` numa ponta só reprova a paridade.
+- **Testes de autorização e isolamento:** no modo API nenhum código de Postgres chega ao navegador.
+- **Regressão obrigatória:** `npm test --workspace @dc360/web`, `npm run test:scripts`, `npm run test:e2e`, `npm run test:e2e:api`, G00 a G09 e G32.
+- **E2E:** `test:e2e` no build local e `test:e2e:api` no de produção.
+- **Validação humana:** Rafael compara os tamanhos.
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E12/`: tamanhos.
+- **Documentação a atualizar:** `dc360/docs/VERCEL-PAINEL.md`, `docs/adr/0003-painel-em-dois-modos.md`.
+- **Definition of Done:** bundle sem PGlite, migrações e semente; demonstração intacta.
+- **Checkpoint:** Não.
+
+### V2-F10-E13 - Encerramento com providência obrigatória em aberto
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (edita `Ocorrencia.tsx`)
+- **Objetivo:** encerrar ocorrência com encaminhamento em aberto segue CP-17: avisar, exigir justificativa ou bloquear.
+- **Problema que resolve:** `POST /ocorrencias/:id/encerramento` (`rotas/ocorrencias.ts:1081`) só anota `providenciasSemResposta`; ALY:RN-05 pede verificação (REL:05).
+- **Origem:** DP:K5; ALY:RN-05; ALY:FLU-02; REL:05.
+- **Estado atual:** EXPANDIR: encerramento com motivo e `BlocoEncerramento`.
+- **Dependências de entrada:** G04; CP-17.
+- **O que deve ser implementado:**
+  - Domínio: `REGRA_DE_ENCERRAMENTO` (`avisar` até CP-17) e `conferirEncerramento` em `packages/shared/src/encaminhamento.ts`; "aberto" é todo estado fora de `concluido` e `cancelado`.
+  - API: em `justificar` exige `dispensas` (motivo por item) e leva cada um a `cancelado` (`concluido` se `respondido`) na mesma transação, com eventos; em `bloquear` responde 409 `encaminhamentos_em_aberto`.
+  - Frontend: `BlocoEncerramento` lista os abertos e, em `justificar`, pede o motivo de cada um; `local.ts` usa a mesma função.
+- **O que NÃO deve ser implementado nesta etapa:** reabrir ocorrência encerrada (F13-E06); motivo mínimo e lista de motivos (E27); regra no portal; trava de interdição.
+- **Arquivos e módulos prováveis:** `packages/shared/src/encaminhamento.ts` (F04-E02), `apps/api/src/rotas/ocorrencias.ts`, `apps/web/src/paginas/Ocorrencia.tsx`, `apps/web/src/dados/local.ts`; a criar: `apps/web/test/encerramento-com-abertos.test.ts`.
+- **Risco de segurança:** dispensa vazia finge controle: motivo mínimo de 20 caracteres.
+- **Impacto LGPD:** motivo é texto livre em evento imutável.
+- **Migração necessária:** Não.
+- **Compatibilidade:** em `avisar`, igual a hoje.
+- **Rollback:** a constante volta a `avisar`.
+- **Testes positivos:** em `justificar`, encerrar com um `aceito` e um `respondido` exige dois motivos e fecha os dois.
+- **Testes negativos:** `justificar` sem motivo: 422; `bloquear` com item aberto: 409 e a ocorrência segue aberta.
+- **Testes de autorização e isolamento:** operador encerrando: 403; coordenador de B encerrando ocorrência de A: 404.
+- **Regressão obrigatória:** `npm test --workspace @dc360/web`, `npm run test:api`, `npm test --workspace @dc360/shared`, G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api` e `npm run test:e2e`: encerrar com item aberto.
+- **Validação humana:** Alyson escolhe a regra vendo as três telas; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E13/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** três regras testadas; CP-17 decidido ou `avisar`.
+- **Checkpoint:** CP-17 (avisar, justificar ou bloquear; sem decisão vale `avisar`).
+
+### V2-F10-E14 - Ofício por link x portal: decisão de transição
+- **Prioridade:** P2
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** médio  |  **Paralelizável:** não (edita `Ocorrencia.tsx` como E13)
+- **Objetivo:** deixar pronta a transição do ofício por link para o portal: um interruptor que CP-22 aciona, sem tocar no link enviado.
+- **Problema que resolve:** o link de uso único (`/publico/oficio/:token`) é o único canal sem conta e não há como desligar o envio (REL:05 D13).
+- **Origem:** REL:05; BZ-D:SEC-19.
+- **Estado atual:** EXPANDIR: `rotas/oficios.ts` e `CartaoOficios`; MANTER hash, expiração e uso único.
+- **Dependências de entrada:** nenhuma etapa (CP-22).
+- **O que deve ser implementado:**
+  - API: `OFICIO_LINK_MODO` (`ativo` padrão, `desligado`) em `config.ts`; `desligado` recusa novo envio (409) e deixa abrir link já enviado até expirar; `GET /configuracao` ganha `oficioPorLink`.
+  - Frontend: `CartaoOficios` esconde "Enviar" quando falso e aponta o encaminhamento ao órgão; o local devolve verdadeiro.
+  - Documentação: plano de transição (ativo até a secretaria piloto usar o portal, depois desligado) em `GUIA-DO-COORDENADOR.md`.
+- **O que NÃO deve ser implementado nesta etapa:** remover `/publico/oficio/:token` (F28-E11); resposta pelo link (nunca); e-mail só com aviso (F11-E17); decisão com a secretaria (F12-E06).
+- **Arquivos e módulos prováveis:** `apps/api/src/config.ts`, `apps/api/src/rotas/configuracao.ts`, `apps/api/src/rotas/oficios.ts`, `apps/web/src/paginas/Ocorrencia.tsx`, `apps/web/src/dados/local.ts`, `apps/api/test/configuracao-do-painel.test.ts`.
+- **Risco de segurança:** desligar sem plano deixa o órgão sem canal: só com vínculo no portal.
+- **Impacto LGPD:** menos links com dossiê fora do portal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** `ativo` não muda nada.
+- **Rollback:** voltar a `ativo`.
+- **Testes positivos:** `ativo` como hoje; `desligado` esconde o botão e responde 409 ao envio novo.
+- **Testes negativos:** `desligado`: link já usado ou expirado: 410; token inventado: 404.
+- **Testes de autorização e isolamento:** link de A não abre ofício de B; `usuario_orgao` enviando ofício: negado.
+- **Regressão obrigatória:** `npm run test:api` (`orgaos-e-oficio`, `configuracao-do-painel`), `npm run test:e2e:api`, G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: com `desligado`, o botão some.
+- **Validação humana:** Alyson decide CP-22 com o plano à vista; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E14/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** interruptor testado nos dois valores; plano escrito.
+- **Checkpoint:** CP-22 (continuar, desligar ou só aviso; sem decisão vale `ativo`).
+
+### V2-F10-E15 - Painel instalável na tela inicial (PWA): manifesto, ícones, tela de instalação e service worker mínimo
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E23)
+- **Objetivo:** o painel é instalável na tela inicial, com ícone e janela própria, sem funcionar offline e sem guardar dado.
+- **Problema que resolve:** há manifesto e ícones, mas não há service worker nem tela de instalação (D-22).
+- **Origem:** PR:D-22; ALY:VIS-01; ALY:RNF-10; REL:02.
+- **Estado atual:** EXPANDIR: `public/manifest.webmanifest` (`display: standalone`) e `test/seo.test.ts`; nenhum service worker.
+- **Dependências de entrada:** G08.
+- **O que deve ser implementado:**
+  - Arquivos: `public/sw.js` só com `install`, `activate` e `fetch` que não intercepta (sem Cache API nem IndexedDB); manifesto ganha `id` e `shortcuts`; `vercel.json` serve `/sw.js` com `Cache-Control: no-cache`.
+  - Frontend: `main.tsx` registra o service worker só com `VITE_API_URL` e HTTPS, nunca no modo local; `InstalarPainel.tsx` em `MinhaConta.tsx`: botão "Instalar o painel", passos para iPhone, "Instalado" e o motivo sem suporte.
+- **O que NÃO deve ser implementado nesta etapa:** cache de dado ou tela; uso offline; push; instalação do portal (F11).
+- **Arquivos e módulos prováveis:** `apps/web/public/manifest.webmanifest`, `apps/web/src/main.tsx`, `vercel.json`; a criar: `apps/web/public/sw.js`, `apps/web/src/componentes/InstalarPainel.tsx`.
+- **Risco de segurança:** service worker que guardasse resposta deixaria dado de município em disco.
+- **Impacto LGPD:** nenhum dado pessoal em cache.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem suporte, segue como site.
+- **Rollback:** publicar `sw.js` que chama `unregister()`.
+- **Testes positivos:** Chromium vê manifesto válido, service worker ativo e `beforeinstallprompt` simulado.
+- **Testes negativos:** `sw.js` com `caches.` ou `indexedDB` reprova `apps/web/test/instalavel.test.ts` (a criar); sem rede, a tela mostra o erro da E10.
+- **Testes de autorização e isolamento:** depois de sair da conta, `caches.keys()` vem vazio.
+- **Regressão obrigatória:** `npm test --workspace @dc360/web`, `npm run test:e2e`; G00 a G09 e G32.
+- **E2E:** `fluxo-api.e2e.mjs` no build de produção; Playwright captura o cartão.
+- **Validação humana:** Rafael instala no Chrome, Android e iPhone; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E15/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/VERCEL-PAINEL.md`.
+- **Definition of Done:** instalável nos três; sem cache.
+- **Checkpoint:** Não.
+
+### V2-F10-E16 - Liberação do suporte assistido do fornecedor pelo administrador do município
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não (o console da F20 consome)
+- **Objetivo:** o administrador libera acesso temporário, nominal e somente leitura a uma pessoa do fornecedor e revoga quando quiser.
+- **Problema que resolve:** sem liberação o suporte pede senha ou captura de tela; impersonation completa não entra.
+- **Origem:** PR:D-10; DP:T38; DP:J10; REL:04.
+- **Estado atual:** CRIAR: não há tabela de concessão e `apps/console` não lê dado de município.
+- **Dependências de entrada:** G03; CP-30; CP-54 (o console, F20-E11, roda depois).
+- **O que deve ser implementado:**
+  - Migration: `suporte_concessoes` (`operador_id`, `motivo`, `concedida_por`, `expira_em`, `revogada_em`), RLS forçada, sem DELETE e UPDATE só de `revogada_em`; CHECK limita `expira_em` ao teto do CP.
+  - API: `POST /v1/suporte/concessoes` `{operadorId, motivo, horas}` (padrão 2; só administrador, TOTP no ato), `GET` e `POST .../revogacao`; cada ato em `trilha_administrativa`.
+  - Frontend: `SuporteAssistido.tsx` em `/organizacao/suporte`: pessoa, prazo, motivo, aviso "Somente leitura", lista (Vigente, Expirado, Revogado) e "Revogar agora"; o local recusa.
+- **O que NÃO deve ser implementado nesta etapa:** impersonation; sessão de leitura do console (F20-E11); prorrogação automática.
+- **Arquivos e módulos prováveis:** `packages/shared/src/permissoes.ts`, `apps/web/src/paginas/Organizacao.tsx`; a criar: `apps/api/src/rotas/suporte.ts`, `apps/web/src/paginas/SuporteAssistido.tsx`.
+- **Risco de segurança:** único caminho de leitura do fornecedor: prazo e revogação valem no banco.
+- **Impacto LGPD:** leitura pelo fornecedor é tratamento por operador (CP-30).
+- **Migração necessária:** Sim (`NNN_suporte_concessoes.sql`).
+- **Compatibilidade:** sem concessão, nada muda.
+- **Rollback:** migration nova.
+- **Testes positivos:** liberar 2 horas mostra "Vigente"; revogar mostra "Revogado".
+- **Testes negativos:** prazo acima do teto: 422; TOTP errado: 401; UPDATE de `expira_em` negado.
+- **Testes de autorização e isolamento:** coordenador liberando: 403; administrador de A não lê concessão de B.
+- **Regressão obrigatória:** `npm run test:api`, `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api` com `SEGUNDO_FATOR_ATIVO=sim`; Playwright captura; prova do console: F20-E11.
+- **Validação humana:** Rafael e o jurídico leem o aviso; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E16/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `docs/adr/` (ADR 0018).
+- **Definition of Done:** concessão nominal, curta, revogável e auditada.
+- **Checkpoint:** CP-30 e CP-54 (sem eles a tela fica desligada em produção).
+
+### V2-F10-E17 - Competência do órgão: tipos COBRADE e território como dado
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E18)
+- **Objetivo:** a coordenação registra, por órgão, os tipos COBRADE e o território de que ele cuida, para a sugestão de destino (E19).
+- **Problema que resolve:** qual secretaria cuida de deslizamento em qual bairro depende da memória do operador (D-18).
+- **Origem:** PR:D-18; DP:T10; DP:T11.
+- **Estado atual:** CRIAR a tela sobre `Orgaos.tsx`; tabela e rotas são da F04-E15 e as áreas da F32-E05.
+- **Dependências de entrada:** E02; F04-E15; G32.
+- **O que deve ser implementado:**
+  - Frontend: `CompetenciaDoOrgao.tsx` em `/orgaos/:id/competencia`: tipos entre os oito de `TIPOS_COBRADE` e áreas da F32 (`area_id` da F32-E10; "Todo o município" é o padrão; território em texto só sem área); resumo "Este órgão será sugerido para: deslizamento, Bairro X"; vazio: "Nenhuma competência definida".
+  - API: consome `GET` e `PUT /v1/orgaos/:id/competencias` da F04-E15 (`gerenciar_equipes`); antes e depois em `trilha_administrativa`. Dados: nos dois modos.
+- **O que NÃO deve ser implementado nesta etapa:** sugerir destino (E19); desenhar território (F32); competência por pessoa.
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Orgaos.tsx`, `apps/web/src/dados/http.ts`; a criar: `apps/web/src/paginas/CompetenciaDoOrgao.tsx`.
+- **Risco de segurança:** competência só sugere; quem decide é a Defesa Civil.
+- **Impacto LGPD:** Não se aplica: sem dado pessoal.
+- **Migração necessária:** Não (tabela da F04).
+- **Compatibilidade:** vazia por padrão.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** marcar deslizamento e um bairro, recarregar e ver o mesmo.
+- **Testes negativos:** tipo fora dos oito: 422; área de outro município: 404.
+- **Testes de autorização e isolamento:** operador salvando: 403; coordenador de A em órgão de B: 404.
+- **Regressão obrigatória:** `npm run test:api`, `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: cadastrar e reler; Playwright captura.
+- **Validação humana:** Alyson preenche três secretarias; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E17/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** competência editável e relida nos dois modos.
+- **Checkpoint:** Não.
+
+### V2-F10-E18 - Cadeia de escalonamento acima do gestor do órgão, por município
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E17)
+- **Objetivo:** o administrador define a cadeia que o escalonamento percorre depois do gestor do órgão, em níveis ordenados.
+- **Problema que resolve:** o escalonamento para no gestor do órgão; sem cadeia o item parado não sobe (DP:T12; CP-21).
+- **Origem:** PR:D-18; DP:T12.
+- **Estado atual:** CRIAR a tela; tabela e rotas da cadeia são da F04-E16 e a E06 consome.
+- **Dependências de entrada:** E03; F04-E16; CP-21.
+- **O que deve ser implementado:**
+  - Frontend: `CadeiaDeEscalonamento.tsx` em `/organizacao/escalonamento` (`gerenciar_organizacao`): "Gestor do órgão" é o primeiro degrau, fixo; níveis 1 a 4 acima dele, por órgão destinatário; espera em horas depois do vencimento (`apos_horas`; percentuais de lembrete: CP-21); "Subir" e "Descer" por botão; prévia em frase.
+  - API: consome `GET` e `PUT /v1/organizacao/escalonamento` da F04-E16; antes e depois em `trilha_administrativa`. Dados: nos dois modos.
+- **O que NÃO deve ser implementado nesta etapa:** executar o escalonamento (E06, F04-E10); cadeia por órgão.
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Organizacao.tsx`, `apps/web/src/dados/http.ts`; a criar: `apps/web/src/paginas/CadeiaDeEscalonamento.tsx`.
+- **Risco de segurança:** cadeia com órgão desativado trava o escalonamento: o servidor recusa.
+- **Impacto LGPD:** nome e papel de servidor na configuração.
+- **Migração necessária:** Não (tabela da F04).
+- **Compatibilidade:** sem cadeia, só o gestor do órgão.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** salvar três níveis, recarregar e ver a ordem.
+- **Testes negativos:** órgão desativado: 422; nível repetido: 422; mais de quatro níveis: 422.
+- **Testes de autorização e isolamento:** coordenador salvando: 403; cadeia de A invisível em B.
+- **Regressão obrigatória:** `npm run test:api`, `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: salvar a cadeia e escalar pela E06; Playwright captura.
+- **Validação humana:** Alyson e o município definem a cadeia; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E18/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** cadeia configurável e usada pelo escalonamento.
+- **Checkpoint:** CP-21 (sem decisão vale só o gestor do órgão).
+
+### V2-F10-E19 - Sugestão de destino por competência no envio do encaminhamento
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (edita `BlocoProvidencia`, da E04)
+- **Objetivo:** ao criar o encaminhamento, a tela sugere os órgãos competentes pelo tipo e pelo território; a Defesa Civil continua decidindo.
+- **Problema que resolve:** escolher o órgão errado vira devolução (E05) e a competência da E17 sem uso não evita nada.
+- **Origem:** PR:D-18; DP:T10; DP:T11.
+- **Estado atual:** EXPANDIR: `BlocoProvidencia` (`Ocorrencia.tsx:1364`).
+- **Dependências de entrada:** E04; E17; F04-E15; F32-E10.
+- **O que deve ser implementado:**
+  - API: usa `GET /v1/ocorrencias/:id/orgaos-competentes` (F04-E15), que a F32-E10 liga às áreas do ponto: órgãos ativos cuja competência cobre o tipo e o ponto, primeiro tipo e território, depois só tipo; nunca devolve dado do dossiê; sem rota nova de sugestão.
+  - Frontend: faixa "Sugerido para este tipo e este bairro" com "Usar"; escolher outro não exige justificativa; o `detalhe` do evento `enviado` guarda `sugeridos` e `seguiu`. Dados: nos dois modos.
+- **O que NÃO deve ser implementado nesta etapa:** enviar sozinho; aprendizado de máquina; competência sem cadastro (E17).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Ocorrencia.tsx`, `apps/web/src/dados/http.ts`.
+- **Risco de segurança:** sugestão não é autorização: o envio reconfere permissão e órgão ativo.
+- **Impacto LGPD:** Não se aplica: usa tipo e ponto.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem competência, a tela fica como na E04.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** deslizamento no Bairro X sugere Obras; seguir a sugestão grava `seguiu` verdadeiro.
+- **Testes negativos:** órgão desativado nunca é sugerido; escolher outro envia e grava `seguiu` falso.
+- **Testes de autorização e isolamento:** a sugestão de A nunca traz órgão de B; operador: 403.
+- **Regressão obrigatória:** `npm run test:api`, `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: ver a sugestão e enviar; Playwright captura.
+- **Validação humana:** Alyson testa três ocorrências; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E19/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** sugestão por competência, decisão humana preservada.
+- **Checkpoint:** Não.
+
+### V2-F10-E20 - Prioridade da providência na tela (lacuna L9)
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (edita `BlocoProvidencia` e a caixa da E06)
+- **Objetivo:** a Defesa Civil define a prioridade (baixa, normal, alta, urgente) ao encaminhar e a vê, filtra e ordena.
+- **Problema que resolve:** ALY:FLU-01 pede prioridade e `providencias` só tem prazo (GAP-P1P-42).
+- **Origem:** ALY:FLU-01; BZ-F:GAP-P1P-42; BZ-D:REQ-026; PR:D-20.
+- **Estado atual:** EXPANDIR: coluna e rota são da F04-E14; aqui entram a tela, o filtro e o selo.
+- **Dependências de entrada:** E04; E06; F04-E14.
+- **O que deve ser implementado:**
+  - Migration: nenhuma, pois a F04-E14 cria `providencias.prioridade` e o tipo `prioridade_alterada`; só se ela não os tiver criado, esta etapa os cria.
+  - API: consome o envio com `prioridade` e `POST /v1/encaminhamentos/:id/prioridade` `{prioridade, motivo}` da F04-E14; as listas já ordenam urgente primeiro, e a tela acrescenta o filtro.
+  - Frontend: seletor em `BlocoProvidencia`; selo com ícone e texto nas listas e na caixa. Dados: nos dois modos.
+- **O que NÃO deve ser implementado nesta etapa:** prazo por prioridade (CP-21); exibir no portal (F11).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Ocorrencia.tsx`, `apps/web/src/paginas/Encaminhamentos.tsx`; migration nova.
+- **Risco de segurança:** só a Defesa Civil muda a prioridade.
+- **Impacto LGPD:** Não se aplica: sem dado de pessoa.
+- **Migração necessária:** Condicional (`NNN_prioridade_da_providencia.sql`, só se a F04-E14 não a criou).
+- **Compatibilidade:** padrão `normal`.
+- **Rollback:** migration nova.
+- **Testes positivos:** enviar urgente lista no topo da caixa; mudar para alta grava antes e depois.
+- **Testes negativos:** prioridade inválida: 422; mudar sem motivo: 422.
+- **Testes de autorização e isolamento:** `usuario_orgao` mudando: negado; coordenador de B em item de A: 404.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `test:api`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: enviar urgente; Playwright captura a caixa.
+- **Validação humana:** Alyson confere os quatro níveis; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E20/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** prioridade gravada, vista, filtrada e auditada.
+- **Checkpoint:** Não.
+
+### V2-F10-E21 - Indicadores por órgão no painel da Defesa Civil, sem ranking
+- **Prioridade:** P2
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E22)
+- **Objetivo:** a coordenação vê, por órgão e período, a taxa de atendimento e o tempo de resposta, sem ranking nem publicação.
+- **Problema que resolve:** o painel só mostra totais; F11-E08 e F20-E07 excluíam o indicador por órgão (GAP-P2-09; D-19).
+- **Origem:** PR:D-19; BZ-F:GAP-P2-09; REL:05.
+- **Estado atual:** CRIAR: `indicadores/painel` e `/relatorios/resumo` só agregam o município.
+- **Dependências de entrada:** E04; F04-E03; CP-56.
+- **O que deve ser implementado:**
+  - API: `GET /v1/relatorios/orgaos` `{periodo}` (30, 90 ou 365 dias; coordenador e administrador): taxa de atendimento (concluídos no prazo sobre encerrados mais vencidos) e mediana de `enviado` a `aceito` e a `respondido`, sem a pausa, de `encaminhamento_eventos`; menos de 5 casos devolve "poucos casos".
+  - Frontend: `IndicadoresPorOrgao.tsx` em `/orgaos/indicadores`: tabela em ordem alfabética fixa, sem cor de bom ou ruim nem posição. Dados: nos dois modos.
+- **O que NÃO deve ser implementado nesta etapa:** ranking ou meta; indicador por pessoa; exposição ao órgão.
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/prestacao-de-contas.ts`, `apps/web/src/paginas/Painel.tsx`; a criar: `apps/web/src/paginas/IndicadoresPorOrgao.tsx`.
+- **Risco de segurança:** número por órgão vira pressão: ordem alfabética e "poucos casos".
+- **Impacto LGPD:** agregados sem dado de pessoa.
+- **Migração necessária:** Não.
+- **Compatibilidade:** rota nova.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** três órgãos semeados: taxa e mediana batem; a pausa não entra.
+- **Testes negativos:** 4 encaminhamentos mostram "poucos casos"; trocar valores não muda a ordem.
+- **Testes de autorização e isolamento:** operador: 403; órgão de B não aparece para A.
+- **Regressão obrigatória:** `npm run test:api`, `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: semear e ler; Playwright captura com dados e vazia.
+- **Validação humana:** Alyson confere as definições; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E21/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** indicadores corretos, sem ranking.
+- **Checkpoint:** CP-56 (sem decisão valem as definições desta etapa).
+
+### V2-F10-E22 - Dívida de estilo: estilo inline, letter-spacing literal e HTML da API com cores literais, com portão de tokens
+- **Prioridade:** P2
+- **Tamanho:** L  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (varre as telas de E01 a E21)
+- **Objetivo:** tirar o estilo inline, o `letter-spacing` literal e as cores literais do HTML da API, com portão que reprova a reincidência.
+- **Problema que resolve:** 89 `style={{` em 18 arquivos; `letter-spacing` numérico em `app.css`; cor literal em `documentos/folha.ts`, `rotas/oficios.ts:149` e `saida/pacote.ts:1087` (BZ-D:UXD-14, UXD-48).
+- **Origem:** PR:D-19; BZ-D:UXD-14; BZ-D:UXD-48; BZ-F:GAP-P2-21; BZ-F:GAP-P2-22.
+- **Estado atual:** REFATORAR: `design-system.test.ts` não barra o `style={{`.
+- **Dependências de entrada:** E10; E11; F08-E01; F08-E02; F09-E04.
+- **O que deve ser implementado:**
+  - Frontend: cada `style={{` vira classe de `app.css` com tokens `--ds-*`; só se permite `style` que define propriedade `--*`; `--tracking-rotulo` e os `letter-spacing` migram para `--ds-tracking-*` em `tokens.css`.
+  - API: ofício público, índice do pacote e `folha.ts` leem as cores de um bloco `:root` gerado dos tokens (F08-E02); a mudança em `folha.ts` sobe a versão do modelo (F09-E04) e os emitidos seguem pelo PDF guardado.
+  - Testes: `design-system.test.ts` reprova `style={{` sem `--`, `letter-spacing` numérico e `#hex` no HTML da API.
+- **O que NÃO deve ser implementado nesta etapa:** redesenhar tela; tema por município (F35).
+- **Arquivos e módulos prováveis:** `apps/web/src/estilos/app.css`, `apps/web/test/design-system.test.ts`, `apps/api/src/documentos/folha.ts`.
+- **Risco de segurança:** regressão visual silenciosa.
+- **Impacto LGPD:** Não se aplica: só estilo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** emitidos idênticos (PDF guardado).
+- **Rollback:** reverter o commit.
+- **Testes positivos:** zero `style={{` comum e zero `letter-spacing` numérico.
+- **Testes negativos:** `style={{ color: "red" }}` reprova; `folha.ts` sem subir a versão reprova `modelo-versionado.test.ts`.
+- **Testes de autorização e isolamento:** Não se aplica: sem dado novo.
+- **Regressão obrigatória:** `npm test --workspace @dc360/web`, `npm run test:api`, `npm run test:e2e`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e` e `test:e2e:api`: Playwright captura dez telas antes e depois, nos dois temas, com comparação de pixels.
+- **Validação humana:** Rafael vê as capturas lado a lado, aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E22/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/DESIGN-SYSTEM.md`.
+- **Definition of Done:** portão cobre inline, letter-spacing e HTML da API; sem diferença visual.
+- **Checkpoint:** Não.
+
+### V2-F10-E23 - Filtros do mapa e da lista por tipo, estado e severidade (lacuna L1)
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** baixo  |  **Paralelizável:** sim (com E15)
+- **Objetivo:** o mapa filtra por tipo COBRADE, estado e severidade, e a lista ganha o filtro por tipo.
+- **Problema que resolve:** `Mapa.tsx` não tem filtro e `GET /ocorrencias` não filtra por tipo (`consultaSchema`, `ocorrencias.ts:43`) (ALY:GEO-01; GAP-P1P-40).
+- **Origem:** ALY:GEO-01; BZ-F:GAP-P1P-40; PR:D-20.
+- **Estado atual:** EXPANDIR: a lista tem filtros na URL; o mapa, nenhum.
+- **Dependências de entrada:** G08.
+- **O que deve ser implementado:**
+  - API: `consultaMapaSchema` e `consultaSchema` aceitam `tipo` (dos oito de `TIPOS_COBRADE`); o mapa aceita também `status` e `severidade`; `total` acompanha o filtro; o recorte do agente vem antes.
+  - Frontend: filtros no mapa (`filtros__pilula`, `aria-pressed`) na URL, "Limpar filtros" e "N de M ocorrências" em região polite; no teto de 200, "Mostrando 200 de N: refine"; a lista ganha "Filtrar por tipo". Dados: nos dois modos.
+- **O que NÃO deve ser implementado nesta etapa:** filtro por período ou bairro (F32); camadas externas (F31).
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/ocorrencias.ts`, `apps/web/src/paginas/Mapa.tsx`, `apps/web/src/paginas/Ocorrencias.tsx`.
+- **Risco de segurança:** filtro nunca amplia o recorte do agente.
+- **Impacto LGPD:** Não se aplica: o mapa segue sem dado de pessoa.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem filtro, a resposta é a de hoje.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** `tipo=deslizamento` no mapa traz só deslizamento e o `total` bate com a lista.
+- **Testes negativos:** tipo inválido: 422; filtro sem resultado mostra `Vazio`.
+- **Testes de autorização e isolamento:** agente filtrando vê só a equipe dele; A nunca recebe ponto de B.
+- **Regressão obrigatória:** `npm run test:api` (`pico-lista-e-mapa`), `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `fluxo.e2e.mjs` e `fluxo-api.e2e.mjs`: filtrar; Playwright captura.
+- **Validação humana:** Alyson usa os filtros; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E23/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** filtros na URL, com total honesto.
+- **Checkpoint:** Não.
+
+### V2-F10-E24 - Duplicidade manual por coordenada, contato e janela configurável, com o LIKE do endereço corrigido (lacuna L3)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (edita `NovaOcorrencia.tsx` e `Organizacao.tsx`)
+- **Objetivo:** ao abrir o chamado, achar ocorrências por endereço normalizado, coordenada próxima e contato igual, numa janela configurável.
+- **Problema que resolve:** `ocorrencias.ts:695` compara tipo, `lower(endereco) LIKE` e 48 horas fixas: `%` e `_` viram curinga e acento não casa (ALY:OCO-04).
+- **Origem:** ALY:OCO-04; PR:D-20; REL:09.
+- **Estado atual:** CORRIGIR e EXPANDIR a consulta e `NovaOcorrencia.tsx:151`.
+- **Dependências de entrada:** G08; F32-E08.
+- **O que deve ser implementado:**
+  - Migration: `organizacoes.janela_duplicidade_horas` (1 a 720, padrão 48), alterada por `gerenciar_organizacao`.
+  - API: a consulta aceita `latitude`, `longitude` e `contato`; sinais: endereço por `normalizar_busca` com curinga escapado; até 100 m por `ocorrencias_no_raio` (F32-E08, com `p_de` pela janela; no modo local, sem PostGIS, Haversine); contato normalizado; cada item traz `motivos`, nunca o contato; teto de 10; recorte do agente mantido.
+  - Frontend: `NovaOcorrencia.tsx` mostra os motivos e "É a mesma: vincular" (`vinculada_a`); `Organizacao.tsx` ganha "Janela para considerar chamados repetidos (em horas)". Dados: nos dois modos.
+- **O que NÃO deve ser implementado nesta etapa:** fusão automática; entidade imóvel (F32-E07); relato do cidadão (F16-E07).
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/ocorrencias.ts`, `apps/web/src/paginas/NovaOcorrencia.tsx`; migration nova.
+- **Risco de segurança:** o contato só compara, nunca volta nem entra em log.
+- **Impacto LGPD:** contato usado só para comparar.
+- **Migração necessária:** Sim (`NNN_janela_de_duplicidade.sql`).
+- **Compatibilidade:** padrão 48 horas.
+- **Rollback:** migration nova.
+- **Testes positivos:** dois chamados a 40 m geram "a 40 m"; `(11) 99999-0000` casa com `11999990000`.
+- **Testes negativos:** endereço `%%%%` não casa tudo; janela 0 ou 721: 422.
+- **Testes de autorização e isolamento:** chamado de B na mesma coordenada não aparece em A; agente só vê a equipe dele.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `test:api`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: abrir dois chamados próximos; Playwright captura.
+- **Validação humana:** Alyson abre chamados repetidos; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E24/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** três sinais, janela configurável, curinga corrigido.
+- **Checkpoint:** Não.
+
+### V2-F10-E25 - Relatório de ocorrências em PDF e CSV com cabeçalho de filtros, município, data, responsável e fuso (lacuna L10)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E08 compartilha `http.ts`)
+- **Objetivo:** baixar o relatório de ocorrências em PDF e CSV, ambos com cabeçalho de filtros, município, data, responsável e fuso.
+- **Problema que resolve:** `GET /relatorios/ocorrencias.csv` (`prestacao-de-contas.ts:310`) não imprime filtros nem responsável e usa `toISOString` (UTC); não há PDF.
+- **Origem:** ALY:REL-01; BZ-F:GAP-P1P-38; BZ-D:REQ-033; PR:D-20.
+- **Estado atual:** EXPANDIR o CSV e CRIAR o PDF; fuso da UF do município por `packages/shared/src/fuso.ts` (F02-E09), sem coluna de fuso.
+- **Dependências de entrada:** E08; E23; F02-E09; G07.
+- **O que deve ser implementado:**
+  - API: `GET /v1/relatorios/ocorrencias.pdf` e `.csv` com `de`, `ate`, `status`, `tipo` e `severidade`; cabeçalho com município e UF, filtros por extenso, "Emitido em 2026-10-01 14:32 (America/Sao_Paulo)" no fuso do município, quem emitiu e o total; no CSV as linhas começam com `#` e `cabecalho=nao` devolve o CSV puro.
+  - PDF: gerador de `documentos/pdf.ts`, só nível básico, rodapé "Relatório gerencial, não é documento oficial"; cada baixa grava em `exportacoes`.
+  - Frontend: botões "Baixar PDF" e "Baixar CSV" na tela da E08.
+- **O que NÃO deve ser implementado nesta etapa:** documento oficial (F09); agendamento e e-mail; PDF de nível completo.
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/prestacao-de-contas.ts`, `apps/api/src/documentos/pdf.ts`, `apps/web/src/paginas/Auditoria.tsx`.
+- **Risco de segurança:** o PDF não leva pessoa; CSV completo só para administrador.
+- **Impacto LGPD:** nível básico sem dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** o CSV atual segue com `cabecalho=nao`.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** o PDF traz filtros e o fuso certo para uma ocorrência às 23:30 de Brasília.
+- **Testes negativos:** PDF com `nivel=completo`: 422; célula `=cmd` neutralizada.
+- **Testes de autorização e isolamento:** sem `exportar_dados`: 403; o relatório de A não contém ocorrência de B.
+- **Regressão obrigatória:** `npm run test:api` (`exportacao-em-dois-niveis`, `fuso-do-documento`), `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: baixar PDF e CSV; Playwright captura.
+- **Validação humana:** Alyson lê o PDF; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E25/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** PDF e CSV com cabeçalho completo e fuso do município.
+- **Checkpoint:** Não.
+
+### V2-F10-E26 - Precisão da coordenada da ocorrência guardada, com teto (lacuna L14)
+- **Prioridade:** P2
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** baixo  |  **Paralelizável:** sim (com E27)
+- **Objetivo:** guardar e mostrar a precisão, em metros, da coordenada da ocorrência, com teto, sem prometer exatidão que o ponto não tem.
+- **Problema que resolve:** `ocorrencias` guarda `latitude` e `longitude` sem precisão: ponto de GPS e ponto marcado no mapa parecem iguais (ALY:RN-04).
+- **Origem:** ALY:RN-04; PR:D-20; REL:09.
+- **Estado atual:** EXPANDIR: `db/test/teto-de-coordenada.test.ts` limita as casas decimais; a precisão só existe na vistoria.
+- **Dependências de entrada:** G08; a F19-E02 acrescenta a origem ao lado desta coluna.
+- **O que deve ser implementado:**
+  - Migration: `ocorrencias.coordenada_precisao_m` (inteiro, CHECK de 1 a 5000, nulo se não informada).
+  - API: o esquema do shared normaliza `Math.max(1, Math.round(valor))` e recusa mais de 5000; `POST /ocorrencias` e `POST /:id/coordenada` aceitam `precisaoMetros`; o evento grava antes e depois.
+  - Frontend: `NovaOcorrencia.tsx` e a correção ganham "Precisão aproximada do ponto (em metros)"; a ocorrência mostra "Ponto com precisão de cerca de 30 m" ou "Precisão não informada".
+- **O que NÃO deve ser implementado nesta etapa:** origem da coordenada (F19-E02); círculo no mapa; precisão da vistoria (F00-E15).
+- **Arquivos e módulos prováveis:** `packages/shared/src/schemas.ts`, `apps/api/src/rotas/ocorrencias.ts`, `apps/web/src/paginas/NovaOcorrencia.tsx`; migration nova.
+- **Risco de segurança:** valor absurdo viraria precisão falsa: o teto está no banco.
+- **Impacto LGPD:** a precisão não acrescenta identificação.
+- **Migração necessária:** Sim (`NNN_precisao_da_coordenada.sql`).
+- **Compatibilidade:** coluna nula para o que existe.
+- **Rollback:** migration nova.
+- **Testes positivos:** informar 30 m grava 30; 0,3 vira 1.
+- **Testes negativos:** 5001: 422; SQL direto com 6000: recusado.
+- **Testes de autorização e isolamento:** correção em ocorrência de B: 404; agente de campo: 403.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `test:isolamento`, `test:api`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: abrir com precisão e corrigir; Playwright captura.
+- **Validação humana:** Alyson confere a frase; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E26/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** precisão gravada com teto no banco e mostrada.
+- **Checkpoint:** Não.
+
+### V2-F10-E27 - Motivo mínimo do encerramento e lista de motivos (lacuna L18)
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** médio  |  **Paralelizável:** não (edita `BlocoEncerramento`, como a E13)
+- **Objetivo:** encerrar exige um motivo de uma lista e uma explicação de pelo menos 20 caracteres.
+- **Problema que resolve:** `encerramentoSchema` aceita 1 caractere (`schemas.ts:496`) e o banco só exige `length(trim) > 0` (GAP-P1O-07).
+- **Origem:** BZ-F:GAP-P1O-07; REL:05; PR:D-20.
+- **Estado atual:** CORRIGIR o mínimo e EXPANDIR com a lista.
+- **Dependências de entrada:** E13; CP-55.
+- **O que deve ser implementado:**
+  - Domínio: `MOTIVOS_DE_ENCERRAMENTO` em `packages/shared/src/dominio.ts` (`resolvida`, `sem_fundamento`, `duplicada`, `encaminhada_a_outro_orgao`, `falso_alarme`, `outro`); `encerramentoSchema` ganha `categoria` e exige `motivo` de 20 a 2000 caracteres.
+  - Migration: `ocorrencias.motivo_encerramento_categoria` e CHECK de 20 caracteres `NOT VALID`, só para linhas novas.
+  - Frontend: `BlocoEncerramento` ganha a lista e "Explique em uma ou duas frases", com contador; a API grava a categoria no evento.
+- **O que NÃO deve ser implementado nesta etapa:** relatório por motivo; regra de encaminhamento em aberto (E13); reabrir (F13-E06).
+- **Arquivos e módulos prováveis:** `packages/shared/src/schemas.ts`, `apps/api/src/rotas/ocorrencias.ts`, `apps/web/src/paginas/Ocorrencia.tsx`; migration nova.
+- **Risco de segurança:** motivo curto finge auditoria: o mínimo vale no banco.
+- **Impacto LGPD:** a tela pede para não escrever nome nem contato.
+- **Migração necessária:** Sim (`NNN_motivo_de_encerramento.sql`).
+- **Compatibilidade:** legado intocado.
+- **Rollback:** migration nova relaxa o CHECK.
+- **Testes positivos:** `resolvida` com 25 caracteres encerra e o evento grava a categoria.
+- **Testes negativos:** motivo de 5 caracteres: 422; SQL direto com 5 em linha nova: recusado.
+- **Testes de autorização e isolamento:** operador encerrando: 403; coordenador de B em ocorrência de A: 404.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `test:api`, `npm test --workspace @dc360/web`, `npm test --workspace @dc360/shared`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: encerrar com e sem motivo; Playwright captura o erro.
+- **Validação humana:** Alyson confirma a lista; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E27/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** categoria e explicação mínima impostas no banco e no shared.
+- **Checkpoint:** CP-55 (sem decisão vale a lista proposta).
+
+### V2-F10-E28 - Edição dos dados do chamado com motivo e histórico (lacuna L22)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (edita `Ocorrencia.tsx`, como E13 e E27)
+- **Objetivo:** a coordenação corrige descrição, solicitante, contato, endereço e canal de um chamado aberto, com motivo e antes e depois na trilha.
+- **Problema que resolve:** depois do registro só a coordenada se corrige (`ocorrencias.ts:1299`); erro de digitação obriga abrir outro protocolo (GAP-P1P-04).
+- **Origem:** BZ-F:GAP-P1P-04; BZ-D:PRF-24; PR:D-20.
+- **Estado atual:** CRIAR, no molde da rota de coordenada.
+- **Dependências de entrada:** E26; G09.
+- **O que deve ser implementado:**
+  - API: `PATCH /v1/ocorrencias/:id/dados` com `abrir_ocorrencia`: corpo estrito `{descricao?, solicitanteNome?, solicitanteContato?, endereco?, canalEntrada?, motivo}` (motivo de 20 caracteres); `FOR UPDATE`; encerrada recusada por `estaEncerrada` (F13-E06; reabrir antes); tipo, severidade, status e protocolo ficam fora.
+  - Trilha: evento `dados_corrigidos` com antes e depois (minimização da migração 043) e a anotação de que documento oficial já saiu com o dado anterior.
+  - Frontend: "Corrigir dados do chamado" abre `Modal` com motivo e "Antes e depois" na confirmação; `trilha-detalhe.ts` mostra o evento. Dados: nos dois modos.
+- **O que NÃO deve ser implementado nesta etapa:** editar tipo ou severidade (triagem); vistoria e evidência (imutáveis); encerrada (F13).
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/ocorrencias.ts`, `apps/web/src/paginas/Ocorrencia.tsx`, `apps/web/src/paginas/trilha-detalhe.ts`.
+- **Risco de segurança:** reescrever histórico com outro nome: só evento novo; campo fora da lista é recusado.
+- **Impacto LGPD:** antes e depois levam nome e contato: entram na minimização por prazo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** rota nova.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** corrigir o nome e ver antes e depois na trilha.
+- **Testes negativos:** sem motivo: 422; encerrada: 409; corpo com `tipo`: 422.
+- **Testes de autorização e isolamento:** agente de campo: 403; coordenador de B em chamado de A: 404.
+- **Regressão obrigatória:** `npm run test:api` (`coordenada-de-ocorrencia-aberta`), `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: editar e ler a trilha; Playwright captura.
+- **Validação humana:** Alyson corrige um chamado de teste; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E28/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** edição com motivo e histórico nos dois modos.
+- **Checkpoint:** Não.
+
+### V2-F10-E29 - Operador anexa arquivo à ocorrência no painel (lacuna L2, lado do painel)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (edita `Ocorrencia.tsx`)
+- **Objetivo:** o operador anexa foto ou PDF à ocorrência pelo painel, e a tela separa o anexo da prefeitura da evidência de campo.
+- **Problema que resolve:** `Ocorrencia.tsx` só lista evidências (`CartaoEvidencias`); o upload existente é o da fila do campo (`evidencias.ts:210`) (ALY:OCO-02).
+- **Origem:** ALY:OCO-02; PR:D-20; REL:09.
+- **Estado atual:** CRIAR a tela; API e classe `anexo_prefeitura` são da F06-E17.
+- **Dependências de entrada:** G06; G07; F06-E17; E10.
+- **O que deve ser implementado:**
+  - Frontend: `CartaoAnexos` em `Ocorrencia.tsx`: "Anexar arquivo", legenda de até 200 caracteres, progresso, estados (Enviando, Verificando, Disponível, Recusado com o motivo em português), miniatura e "Remover" com motivo (F06-E13); "Promover a evidência" só para a coordenação (F06-E12).
+  - Dados: funções sobre as rotas da F06; o local recusa. Acessibilidade: estado em região polite.
+- **O que NÃO deve ser implementado nesta etapa:** rota, cadeia e cota (F06); foto de vistoria; anexo de órgão (F11-E13) e de cidadão (F16-E12).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Ocorrencia.tsx`, `apps/web/src/dados/http.ts`; a criar: `apps/web/src/componentes/CartaoAnexos.tsx`.
+- **Risco de segurança:** arquivo não confiável: a tela só reflete o veredito da cadeia.
+- **Impacto LGPD:** o anexo pode mostrar pessoas: retenção da F05.
+- **Migração necessária:** Não.
+- **Compatibilidade:** `CartaoEvidencias` segue.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** anexar JPEG de teste vira "Disponível" com miniatura.
+- **Testes negativos:** executável renomeado `.jpg`: "Recusado: o arquivo não é uma imagem válida".
+- **Testes de autorização e isolamento:** agente de campo: sem botão e 403; anexo de B aberto por A: 404.
+- **Regressão obrigatória:** `npm run test:api` (`evidencias`), `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: anexar e remover; Playwright captura os estados.
+- **Validação humana:** Rafael anexa foto e PDF de teste; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E29/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** anexo do operador pela cadeia segura, separado da prova.
+- **Checkpoint:** Não.
+
+### V2-F10-E30 - Minha atividade: cada pessoa consulta a própria trilha (lacuna L11, lado do painel)
+- **Prioridade:** P2
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (edita `MinhaConta.tsx`, como E09 e E15)
+- **Objetivo:** cada pessoa vê as próprias entradas, saídas, falhas de entrada e atos, para reconhecer acesso que não foi dela.
+- **Problema que resolve:** login, saída e falha não entram na trilha e não há consulta própria; `Auditoria.tsx` exige `consultar_trilha` (ALY:AUD-01; GAP-P1O-33, GAP-DEF-02).
+- **Origem:** ALY:AUD-01; ALY:AUT-02; BZ-D:IDN-28; BZ-F:GAP-DEF-02; PR:D-20.
+- **Estado atual:** CRIAR; os eventos de autenticação são o lado API da lacuna L11, na F03-E20.
+- **Dependências de entrada:** E01; F03-E20.
+- **O que deve ser implementado:**
+  - API: `GET /v1/usuarios/eu/atividade` (autenticado): a pessoa vem do token; 30 dias, paginado; junta eventos de sessão (F03-E20), atos de `trilha_eventos` com o próprio `autor_id` e de `trilha_administrativa`; cada linha traz data no fuso do município, ato em português, IP sem o último bloco e aparelho resumido.
+  - Frontend: seção "Minha atividade" em `MinhaConta.tsx`, com "Não foi você? Troque a senha e encerre as sessões" (F00-E09). Dados: no local só os atos.
+- **O que NÃO deve ser implementado nesta etapa:** atividade de terceiros (`Auditoria.tsx`); alerta de acesso estranho; IP completo na tela.
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/usuarios-eu.ts`, `apps/web/src/paginas/MinhaConta.tsx`, `apps/web/src/dados/http.ts`.
+- **Risco de segurança:** ler atividade alheia: filtra por `autor_id` do token.
+- **Impacto LGPD:** a pessoa lê os próprios dados; IP truncado na tela.
+- **Migração necessária:** Não.
+- **Compatibilidade:** rota nova.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** entrar e sair da própria conta aparece com a hora.
+- **Testes negativos:** `?usuarioId=` de outra pessoa: 422; sem token: 401.
+- **Testes de autorização e isolamento:** coordenador não lê atividade de colega; atividade de B nunca aparece em A.
+- **Regressão obrigatória:** `npm run test:api` (`senha-e-sessoes`), `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: entrar, sair e ler a atividade; Playwright captura.
+- **Validação humana:** Rafael confere com a própria conta; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E30/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/PRIVACIDADE.md`.
+- **Definition of Done:** cada pessoa vê só a própria atividade.
+- **Checkpoint:** Não.
+
+### V2-F10-E31 - Nível de sigilo da ocorrência na tela (lacuna L12, lado do painel)
+- **Prioridade:** P2
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (edita `Ocorrencia.tsx`)
+- **Objetivo:** a coordenação marca o nível de sigilo da ocorrência e as telas respeitam quem pode ver cada nível.
+- **Problema que resolve:** o controle é por papel e, no agente, por equipe; não há sigilo por ocorrência (ALY:AUT-03).
+- **Origem:** ALY:AUT-03; PR:D-20; REL:06.
+- **Estado atual:** CRIAR a tela; coluna e regra são da F03-E21.
+- **Dependências de entrada:** E04; F03-E21; CP-52.
+- **O que deve ser implementado:**
+  - Frontend: `Ocorrencia.tsx` ganha "Nível de sigilo" (ordinário por padrão; os outros vêm do CP) com a frase de quem vê cada um; mudar exige motivo; selo com ícone e texto.
+  - Frontend: lista, busca, mapa e números do `Painel` mostram só o que o perfil vê, sem contagem do oculto; link sem acesso vira "Ocorrência não encontrada". API e dados: consome a rota e o recorte da F03-E21; o local aplica o mesmo recorte.
+- **O que NÃO deve ser implementado nesta etapa:** definir níveis e recorte no banco (F03-E21); sigilo no portal (F11).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Ocorrencia.tsx`, `apps/web/src/paginas/Painel.tsx`.
+- **Risco de segurança:** esconder só na tela vazaria por URL e contagem: o servidor decide.
+- **Impacto LGPD:** reduz acesso a casos sensíveis.
+- **Migração necessária:** Não (coluna da F03).
+- **Compatibilidade:** tudo ordinário por padrão.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** coordenador marca restrito: o operador sem acesso não vê na lista, busca, mapa nem `Painel`.
+- **Testes negativos:** sem motivo: 422; link sem acesso: 404.
+- **Testes de autorização e isolamento:** operador marcando sigilo: 403; restrita de B nunca aparece em A.
+- **Regressão obrigatória:** `npm run test:api`, `test:isolamento`, `npm test --workspace @dc360/web`, matriz de F03-E13; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: marcar e conferir com dois perfis; Playwright captura.
+- **Validação humana:** Alyson confere a frase de cada nível; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E31/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** sigilo respeitado em todas as telas.
+- **Checkpoint:** CP-52 (sem decisão a tela fica desligada).
+
+### V2-F10-E32 - Assinatura por provedor externo: pedir e acompanhar pela tela
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (edita o detalhe de `Documentos.tsx`, da E07)
+- **Objetivo:** o painel pede a assinatura de documento aprovado e acompanha o estado, com reenvio e cancelamento.
+- **Problema que resolve:** F09-E22 e E26 entregam as rotas e deixam as telas para a F10-E07; sem tela ninguém pede a assinatura.
+- **Origem:** PR:D-09; PR:D-06; PR:D-20.
+- **Estado atual:** CRIAR sobre o detalhe `/documentos/:id` da E07.
+- **Dependências de entrada:** E07; F09-E21 a E28; CP-41; CP-14.
+- **O que deve ser implementado:**
+  - Frontend: "Pedir assinatura" só com documento aprovado e vigente e política que a exija (`assinatura_exigida`): signatário (nome e cargo), tipo da política e código do segundo fator (`SegundoFator.tsx`); linha do tempo de `assinaturas_eventos` com ícone e texto; "Reenviar" (motivo, até 3 tentativas) e "Cancelar".
+  - Texto: rótulos de `rotulos-de-assinatura.ts` (F09-E28); segue "aprovação autenticada" até o parecer J8.
+- **O que NÃO deve ser implementado nesta etapa:** baixar assinado, validar e consumo (E35); provedor, fila e cota (F09); texto jurídico (CP-14).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Documentos.tsx`, `apps/web/src/dados/http.ts`, `apps/web/src/componentes/SegundoFator.tsx`.
+- **Risco de segurança:** o servidor reconfere tudo; o código nunca vai a log.
+- **Impacto LGPD:** a tela mostra nome e cargo do signatário.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem política, nenhuma ação nova.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** laudo aprovado com política avançada: pedir e ver "Enviada" e "Concluída" (provedor em memória).
+- **Testes negativos:** código errado: "Código inválido, tente de novo"; quarta tentativa: botão some com explicação.
+- **Testes de autorização e isolamento:** operador: sem botão e 403; documento de B: 404.
+- **Regressão obrigatória:** `npm run test:api` (documentos, segundo-fator), `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api` com `SEGUNDO_FATOR_ATIVO=sim` e provedor em memória; Playwright captura.
+- **Validação humana:** Rafael pede a assinatura de um laudo sintético em HML; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E32/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** pedido e acompanhamento testados com provedor em memória.
+- **Checkpoint:** CP-41 (sem a escolha só existe o provedor em memória).
+
+### V2-F10-E33 - Modelos de documento: habilitação por município e tipo de ocorrência
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E32)
+- **Objetivo:** a administração liga e desliga modelos de documento por tipo de ocorrência.
+- **Problema que resolve:** F09-E16 entrega o catálogo de modelos sem tela (ALY:DOC-02).
+- **Origem:** PR:D-20; ALY:DOC-02; REL:09.
+- **Estado atual:** CRIAR sobre `Organizacao.tsx` e `CartaoDocumentos` (`Ocorrencia.tsx:1596`).
+- **Dependências de entrada:** E07; F09-E16.
+- **O que deve ser implementado:**
+  - Frontend: `Organizacao.tsx` ganha "Modelos de documento": modelo por tipo de ocorrência, obrigatórios com cadeado e "Obrigatório", ligar e desligar com `ConfirmarAcao`; `CartaoDocumentos` oferece só os habilitados para o tipo.
+  - Dados: funções sobre as rotas da F09; o local recusa com explicação.
+- **O que NÃO deve ser implementado nesta etapa:** emitir notificação e relatório fotográfico (E36); editar o texto do modelo (F33).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Organizacao.tsx`, `apps/web/src/paginas/Ocorrencia.tsx`, `apps/web/src/dados/http.ts`.
+- **Risco de segurança:** botão sem permissão induz erro: o servidor devolve 409 `modelo_desabilitado` e 403.
+- **Impacto LGPD:** Não se aplica: configuração sem dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** padrão: quatro modelos ligados, os novos desligados.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** ligar `notificacao` só para deslizamento: o cartão a oferece só nele.
+- **Testes negativos:** desligar `laudo`: a tela não oferece e a API devolve 422.
+- **Testes de autorização e isolamento:** operador ligando modelo: 403; modelo de B invisível em A.
+- **Regressão obrigatória:** `npm run test:api` (documentos), `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: ligar, emitir, desligar; Playwright captura.
+- **Validação humana:** Rafael liga e desliga um modelo em município de teste; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E33/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** habilitação pela tela, padrão preservado.
+- **Checkpoint:** Não.
+
+### V2-F10-E34 - Reatribuição de encaminhamento e proteção de quem responde por item aberto
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (parte de E03)
+- **Objetivo:** reatribuir o destinatário nominal de um item e impedir encerrar o vínculo ou desativar quem responde por item aberto.
+- **Problema que resolve:** desvincular ou desativar o `destinatario_id` de item aberto deixa o item sem responsável (REL:05 D9, D12).
+- **Origem:** PR:D-08; DP:T37; REL:05.
+- **Estado atual:** CRIAR; `destinatario_id` vem de F04-E02.
+- **Dependências de entrada:** E03; G04.
+- **O que deve ser implementado:**
+  - Banco: gatilho recusa encerrar vínculo ou desativar usuário que é `destinatario_id` de item aberto; `encaminhamento_eventos.tipo` ganha `atribuido`.
+  - API: `POST /v1/orgaos/:orgaoId/encaminhamentos/:id/atribuicao` `{destinatarioId}` (destino com vínculo vigente); 409 `usuario_com_encaminhamentos_abertos` lista os itens.
+  - Frontend: em `PessoasDoOrgao.tsx`, "Reatribuir" por item e o bloqueio com a lista. Dados: nos dois modos.
+- **O que NÃO deve ser implementado nesta etapa:** reencaminhar a outro órgão (E05); portal do gestor (F11-E19).
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/orgaos.ts`, `apps/web/src/paginas/PessoasDoOrgao.tsx`; migration nova.
+- **Risco de segurança:** regra só na rota seria contornável: o gatilho vale para SQL direto.
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Sim (`NNN_vinculo_sem_itens_abertos.sql`).
+- **Compatibilidade:** aditiva.
+- **Rollback:** migration nova.
+- **Testes positivos:** reatribuir o item e encerrar o vínculo da pessoa em seguida.
+- **Testes negativos:** encerrar vínculo de quem responde por item aberto: 409, inclusive por SQL direto; destino sem vínculo: 422.
+- **Testes de autorização e isolamento:** gestor da Saúde reatribuindo item da Obras: 404; operador: 403.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `test:api`, `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: bloqueio, reatribuição e encerramento; Playwright captura.
+- **Validação humana:** Rafael, com usuários de Obras e Saúde; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E34/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** nenhum item sem responsável.
+- **Checkpoint:** Não.
+
+### V2-F10-E35 - Assinatura por provedor externo: baixar o assinado, validar depois e consumo da cota
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (edita o detalhe de `Documentos.tsx`, depois da E32)
+- **Objetivo:** baixar o PDF assinado e a prova, validar a assinatura depois e ver o consumo e o custo da cota.
+- **Problema que resolve:** F09-E24, E25 e E27 entregam as rotas sem tela; sem ela ninguém vê o assinado nem o custo.
+- **Origem:** PR:D-09; PR:D-20.
+- **Estado atual:** CRIAR sobre o detalhe da E07 e `Organizacao.tsx`.
+- **Dependências de entrada:** E32; F09-E24, E25 e E27.
+- **O que deve ser implementado:**
+  - Frontend: depois de assinado, "Baixar PDF assinado", "Baixar prova" e "Validar agora" com o último resultado (válida, inválida, inconclusiva).
+  - Frontend: `Organizacao.tsx` ganha "Consumo de assinaturas" ("Usadas 3 de 10 neste mês", custo estimado); limite 0: "Assinatura não liberada; fale com o fornecedor". Dados: o local recusa.
+- **O que NÃO deve ser implementado nesta etapa:** guarda, validação e cota no servidor (F09); alterar o limite (F20).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Documentos.tsx`, `apps/web/src/paginas/Organizacao.tsx`, `apps/web/src/dados/http.ts`.
+- **Risco de segurança:** o município não eleva o próprio limite: a tela só lê.
+- **Impacto LGPD:** a prova pode trazer dado do signatário: acesso nominal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem assinatura, nada aparece.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** assinado baixa com hash conferido; consumo mostra 1 de 2 após um pedido.
+- **Testes negativos:** provedor fora do ar mostra "inconclusiva", nunca "inválida"; limite 0: aviso e botão desabilitado.
+- **Testes de autorização e isolamento:** operador: 403; consumo de A não aparece em B.
+- **Regressão obrigatória:** `npm run test:api` (documentos), `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: assinar, baixar e validar; Playwright captura.
+- **Validação humana:** Rafael valida um assinado e um adulterado em HML; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E35/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** assinado, validação e consumo visíveis.
+- **Checkpoint:** CP-41 (sem a escolha só existe o provedor em memória).
+
+### V2-F10-E36 - Notificação ao responsável pelo imóvel e relatório fotográfico avulso: telas de emissão
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (edita `CartaoDocumentos`, depois da E33)
+- **Objetivo:** a coordenação emite notificação e relatório fotográfico avulso pelo mesmo fluxo do laudo.
+- **Problema que resolve:** F09-E17 e E18 entregam os modelos sem tela (ALY:DOC-02).
+- **Origem:** PR:D-20; ALY:DOC-02; REL:09.
+- **Estado atual:** CRIAR sobre `CartaoDocumentos` (`Ocorrencia.tsx:1596`).
+- **Dependências de entrada:** E07; E33; F09-E17 e E18; CP-42.
+- **O que deve ser implementado:**
+  - Frontend: "Nova notificação" (destinatário, endereço, providência exigida com contador de 1000 caracteres, prazo de 1 a 365 dias) e "Novo relatório fotográfico" (até 24 fotos confirmadas, legenda de até 200 caracteres) criam o rascunho do fluxo da E07.
+  - Texto: aviso "Em produção, a notificação fica desligada até o município aprovar o texto"; o formulário pede para não digitar CPF. Dados: o local recusa.
+- **O que NÃO deve ser implementado nesta etapa:** texto jurídico da notificação; regras e rotas (F09); editar o modelo (F33).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Ocorrencia.tsx`, `apps/web/src/dados/http.ts`; a criar: `apps/web/src/componentes/FormularioDeNotificacao.tsx`.
+- **Risco de segurança:** o servidor reconfere modelo habilitado e foto da ocorrência.
+- **Impacto LGPD:** a notificação leva nome e endereço do destinatário.
+- **Migração necessária:** Não.
+- **Compatibilidade:** modelos desligados não aparecem.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** notificação e relatório de 3 fotos criam o rascunho e seguem o fluxo.
+- **Testes negativos:** 25 fotos: 422; prazo 0: 422; modelo desligado: 409.
+- **Testes de autorização e isolamento:** foto de B no relatório de A: 404; agente de campo: 403.
+- **Regressão obrigatória:** `npm run test:api` (documentos), `test:isolamento`, `npm test --workspace @dc360/web`; G00 a G09 e G32.
+- **E2E:** `npm run test:e2e:api`: criar, aprovar e emitir; Playwright captura os formulários.
+- **Validação humana:** Rafael abre os dois documentos de um caso sintético; capturas aprovadas no portão visual (nada desalinhado, grudado ou fora do lugar; texto bem escrito).
+- **Evidência a produzir:** `docs/evidencias-v2/G10/V2-F10-E36/`: testes, E2E e capturas com `INDEX.md` (`19-definicao-de-pronto.md`, seção 0).
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** os dois documentos emitidos pelas telas.
+- **Checkpoint:** CP-42 (sem a decisão a notificação fica desligada em produção).
+
+# GATE G10 - PAINEL CONSOLIDADO
+Só passa se:
+- [ ] V2-F10-E01: a lista de usuários mostra o estado de acesso; reenviar convite, redefinir senha, encerrar sessões e redefinir MFA funcionam pelo painel (o modo local explica); `seguranca-da-conta.test.ts` verde. Evidência: `docs/evidencias-v2/G10/V2-F10-E01/`.
+- [ ] V2-F10-E02: órgão com encaminhamento em aberto não desativa, no banco (inclusive por SQL direto) e na tela; órgão externo cadastrável com tipo e abrangência; vínculos encerrados juntos. Evidência: E02.
+- [ ] V2-F10-E03 e E34: pessoa nova ou já cadastrada convidada pelo mesmo caminho, sem revelar se existe nem onde atua; papel no órgão geridos pelo painel; gestor só abaixo do posto; encerrar o vínculo aqui não toca outros municípios; reatribuição de item e bloqueio, no banco, de encerrar vínculo ou desativar quem responde por item aberto; matriz papel x rota reexecutada. Evidência: E03 e E34.
+- [ ] V2-F10-E04 (P0): a Defesa Civil cria encaminhamentos (vários por ocorrência) com dossiê conservador, justifica o campo sensível e acompanha estado, prazo e linha do tempo, nos dois modos. Evidência: E04.
+- [ ] V2-F10-E05 (P0): a Defesa Civil recebe a resposta, aceita, pede complemento ou reencaminha do `devolvido` ao novo `enviado` com um clique no destino sugerido e a confirmação do ato, sem digitar; o órgão B não vê a resposta do A; a reinspeção é só ponto de entrada. Evidência: E05.
+- [ ] V2-F10-E06: caixa de pendências com cobrar e escalar pela cadeia como eventos; órgão sem gestor e cadeia esgotada tratados (409); sino com as frases novas. Evidência: E06.
+- [ ] V2-F10-E07: documentos emitidos listados com versões; aprovar (aprovação autenticada), substituir e cancelar pelo painel; nenhuma tela diz "assinado" por conta própria. Evidência: E07.
+- [ ] V2-F10-E08: pacote de saída com todos os estados e CSV completo com justificativa; histórico com nível e justificativa. Evidência: E08.
+- [ ] V2-F10-E09 e CP-18 (decidido: construir): foto de perfil enviada, removida e vista no painel; a frase de `perfil.tsx:483` é verdadeira. Evidência: E09.
+- [ ] V2-F10-E10: ErrorBoundary na raiz e na estrutura, estados padrão nas listas e nas telas novas; `estados-da-tela.test.ts` e o e2e de falha verdes. Evidência: E10.
+- [ ] V2-F10-E11: foco no título, região anunciante única e mídias forçadas testadas em Chromium. Evidência: E11.
+- [ ] V2-F10-E12: o bundle de produção não tem `CREATE POLICY`, `.wasm` nem a conta da semente; a demonstração local segue igual (`npm run test:e2e` verde). Evidência: E12.
+- [ ] V2-F10-E13 e CP-17: regra de encerramento decidida e testada nas três opções, ou adiada com a constante em `avisar` e o bloqueio declarado. Evidência: E13.
+- [ ] V2-F10-E14 e CP-22: interruptor do ofício por link testado e plano de transição escrito; CP-22 decidido ou adiado com `ativo` e o bloqueio (desativar o link público) declarado. Evidência: E14.
+- [ ] V2-F10-E15: painel instalável em Chrome, Android e iPhone, com service worker que não guarda dado (`caches.keys()` vazio depois de sair da conta) e sem uso offline. Evidência: E15.
+- [ ] V2-F10-E16 e CP-30: concessão de suporte nominal, curta, somente leitura, revogável e auditada; prazo e revogação impostos no banco; CP-30 e CP-54 decididos, ou a tela fica desligada em produção e o bloqueio é declarado; a prova com API e E2E é desta etapa e a do lado do console fica no G20 (F20-E11). Evidência: E16.
+- [ ] V2-F10-E17, E18 e E19: competência por COBRADE e território, cadeia de escalonamento e sugestão de destino funcionando de ponta a ponta, com a Defesa Civil decidindo; CP-21 decidido ou adiado com só o gestor do órgão como cadeia. Evidência: E17 a E19.
+- [ ] V2-F10-E20 e E21: prioridade da providência gravada, vista e filtrada; indicadores por órgão corretos, em ordem alfabética, sem ranking; CP-56 decidido ou valendo as definições da E21. Evidência: E20 e E21.
+- [ ] V2-F10-E22: zero `style={{` com propriedade comum, zero `letter-spacing` numérico e zero `#hex` no HTML servido pela API, com o portão de tokens reprovando a reincidência e sem diferença visual (comparação de capturas). Evidência: E22.
+- [ ] V2-F10-E23, E24 e E26: filtros do mapa e da lista por tipo, estado e severidade; duplicidade por coordenada, contato e janela configurável com o LIKE corrigido; precisão da coordenada guardada com teto no banco. Evidência: E23, E24 e E26.
+- [ ] V2-F10-E25: relatório em PDF e CSV com cabeçalho de filtros, município, data, responsável e fuso do município. Evidência: E25.
+- [ ] V2-F10-E27 e E28: motivo do encerramento com lista e mínimo de 20 caracteres no banco para linhas novas (CP-55 decidido ou valendo a lista proposta); edição dos dados do chamado com motivo e antes e depois na trilha. Evidência: E27 e E28.
+- [ ] V2-F10-E29, E30 e E31: anexo do operador pela cadeia segura; cada pessoa lê só a própria atividade; sigilo respeitado em lista, busca, mapa, indicadores e link direto (CP-52 decidido, ou a tela fica desligada). Evidência: E29 a E31.
+- [ ] V2-F10-E32, E35, E33 e E36: telas de pedido e acompanhamento de assinatura, de assinado, validação e consumo (provedor em memória; real só após CP-41), de habilitação de modelos e de notificação e relatório fotográfico (notificação desligada em produção sem CP-42). Evidência: E32, E33, E35 e E36.
+- [ ] PORTÃO VISUAL: toda etapa de tela (E01 a E11 e E13 a E36, exceto E12) tem capturas reais arquivadas em `capturas/` com `INDEX.md`, em desktop e celular, claro e escuro, nos estados normal, vazio, erro e carregando, com o checklist de `19-definicao-de-pronto.md`, seção 0, preenchido e aprovado por Rafael: nada desalinhado, grudado ou fora do lugar; texto bem escrito. Defeito visual reprova a etapa. Evidência: `INDEX.md` de cada etapa.
+- [ ] os dois modos em paridade: `paridade-dos-modos.test.ts` sem exceção nova sem motivo; `npm run test:e2e` e `npm run test:e2e:api` verdes. Evidência: saída dos dois.
+- [ ] `npm run test:isolamento`, `npm run test:api`, `npm run test:scripts`, `npm run test:campo`, `npm run typecheck` e `npm run conferir:numeros` verdes. Evidência: saída arquivada.
+- [ ] nenhuma regressão: gates G00 a G09 e G32 continuam verdes (se um quebrar, ESTE gate volta a REPROVADO).
+- [ ] documentação atualizada e evidências arquivadas em `docs/evidencias-v2/G10/`.
+
+**Reabre se:** o painel regredir em acessibilidade (portões, foco, mídias forçadas), em estados (tela branca, erro cru) ou nos dois modos (paridade ou e2e vermelhos); o bundle de produção voltar a levar PGlite, migrações ou semente; reencaminhar passar a exigir digitação ou órgão com item aberto puder ser desativado; o service worker passar a guardar resposta; a concessão de suporte permitir escrita, passar do prazo ou valer em outro município; o convite revelar se uma pessoa já tem conta ou onde atua; o indicador por órgão virar ranking; ocorrência de sigilo aparecer a quem não pode vê-la; ou voltar a existir `style={{` comum, `letter-spacing` numérico ou cor literal no HTML da API.
+**Este Gate libera:** F11 (portal das secretarias): o lado da Defesa Civil dos fluxos C e D pronto (criar, sugerir o destino, receber a resposta e reencaminhar), a gestão de órgãos, de pessoas e de vínculos que F11-E19 reutiliza, a competência e a cadeia de escalonamento que o portal exibe, os estados e a acessibilidade dinâmica como padrão e o ponto de entrada da reinspeção para F13-E04; e, para a F20 (F20-E11), a liberação do suporte assistido que o console consome.

@@ -1,0 +1,6 @@
+
+  README.md:1189
+    afirma: npm run test:campo          # tipos e os 1708 testes do aplicativo de campo
+    a frase fala de uma grandeza cujo valor real é 1836 ou 4502, e não 1708
+
+Corrija o texto, ou registre o número em VERDADE se ele mede algo novo.

@@ -1,0 +1,347 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/dc360/packages/campo[39m
+
+ [31m❯[39m test/pausa-de-sessao.test.ts [2m([22m[2m28 tests[22m[2m | [22m[31m14 failed[39m[2m)[22m[32m 51[2mms[22m[39m
+[31m   [31m×[31m Transporte HTTP: os três códigos[2m > [22m401 nao_autenticado: pede token novo UMA vez, repete o pedido e envia[39m[32m 8[2mms[22m[39m
+[31m     → Token inválido ou expirado.[39m
+[31m   [31m×[31m Transporte HTTP: os três códigos[2m > [22mo pedido repetido leva a MESMA chave de idempotência[39m[32m 1[2mms[22m[39m
+[31m     → Token inválido ou expirado.[39m
+[31m   [31m×[31m Transporte HTTP: os três códigos[2m > [22m401 nao_autenticado de novo depois da renovação vira sessao_encerrada, sem laço[39m[32m 5[2mms[22m[39m
+[31m     → expected FalhaPermanente: Token inválido ou expira… { …(2) } to be an instance of FalhaDeSessao[39m
+[31m   [31m×[31m Transporte HTTP: os três códigos[2m > [22mse a renovação devolve o MESMO token (piso, renovação recusada), nem repete o pedido[39m[32m 1[2mms[22m[39m
+[31m     → expected FalhaPermanente: Token inválido ou expira… { …(2) } to be an instance of FalhaDeSessao[39m
+[31m   [31m×[31m Transporte HTTP: os três códigos[2m > [22m401 sem código nenhum (servidor antigo, corpo vazio) segue o caminho do nao_autenticado[39m[32m 2[2mms[22m[39m
+[31m     → promise rejected "FalhaPermanente: O servidor recusou o env… { …(2) }" instead of resolving[39m
+[31m   [31m×[31m Transporte HTTP: os três códigos[2m > [22m401 sessao_encerrada: não gasta a renovação, que o servidor já encerrou[39m[32m 1[2mms[22m[39m
+[31m     → expected FalhaPermanente: Sua sessão foi encerrada. { …(2) } to be an instance of FalhaDeSessao[39m
+[31m   [31m×[31m Transporte HTTP: os três códigos[2m > [22m403 conta_desativada vira FalhaDeSessao, com a frase do servidor[39m[32m 1[2mms[22m[39m
+[31m     → expected FalhaPermanente: Sua conta foi desativada. { …(2) } to be an instance of FalhaDeSessao[39m
+[31m   [31m×[31m Transporte HTTP: os três códigos[2m > [22ma falha de sessão NÃO é permanente nem temporária: a fila decide por isso[39m[32m 1[2mms[22m[39m
+[31m     → expected FalhaPermanente: Sua conta foi desativada. { …(2) } to not be an instance of FalhaPermanente[39m
+   [32m✓[39m Transporte HTTP: os três códigos[2m > [22m403 sem_permissao continua sendo recusa permanente[32m 1[2mms[22m[39m
+   [32m✓[39m Transporte HTTP: os três códigos[2m > [22m403 sem código também continua permanente (só o código desativa a conta)[32m 1[2mms[22m[39m
+[31m   [31m×[31m Transporte HTTP: os três códigos[2m > [22msem token vira FalhaDeSessao e não FalhaPermanente, e nem sai pela rede[39m[32m 1[2mms[22m[39m
+[31m     → expected FalhaPermanente: Sessão encerrada. Entre … { …(2) } to be an instance of FalhaDeSessao[39m
+[31m   [31m×[31m Transporte HTTP: os três códigos[2m > [22mas outras rotas da API (foto, devolução) leem os três códigos igual[39m[32m 1[2mms[22m[39m
+[31m     → expected FalhaPermanente: Sua conta foi desativada. { …(2) } to be an instance of FalhaDeSessao[39m
+   [32m✓[39m Transporte HTTP: os três códigos[2m > [22m5xx e 429 continuam temporários, e a rede fora também[32m 1[2mms[22m[39m
+   [32m✓[39m A fila para e guarda: nenhum item perdido[2m > [22msessao_encerrada: todos os itens ficam pendentes, zero bloqueados, tentativas inalteradas[32m 15[2mms[22m[39m
+   [32m✓[39m A fila para e guarda: nenhum item perdido[2m > [22mconta_desativada: todos os itens ficam pendentes, zero bloqueados, tentativas inalteradas[32m 1[2mms[22m[39m
+   [32m✓[39m A fila para e guarda: nenhum item perdido[2m > [22mquem tinha tentativas de falha temporária mantém a contagem, sem somar a da pausa[32m 1[2mms[22m[39m
+   [32m✓[39m A fila para e guarda: nenhum item perdido[2m > [22mdepois de entrar de novo, os itens sobem em ordem e sem duplicar (mesma chave)[32m 1[2mms[22m[39m
+   [32m✓[39m A fila para e guarda: nenhum item perdido[2m > [22mconta reativada: a coleta guardada sobe depois da nova entrada[32m 0[2mms[22m[39m
+   [32m✓[39m A fila para e guarda: nenhum item perdido[2m > [22mo progresso das fotos que já subiram fica guardado quando a sessão cai no meio[32m 1[2mms[22m[39m
+   [32m✓[39m A fila para e guarda: nenhum item perdido[2m > [22ma devolução de tarefa também espera, em vez de bloquear[32m 0[2mms[22m[39m
+   [32m✓[39m A fila para e guarda: nenhum item perdido[2m > [22mrecusa do dado continua bloqueando: só a sessão é poupada[32m 0[2mms[22m[39m
+   [32m✓[39m Autoria: a pausa de um agente não vale para outro[2m > [22mo agente B desativado: A entra no aparelho e os itens do B esperam o autor[32m 1[2mms[22m[39m
+   [32m✓[39m Autoria: a pausa de um agente não vale para outro[2m > [22mo B volta: a pausa não fica velha, e uma tentativa só a redescobre[32m 1[2mms[22m[39m
+[31m   [31m×[31m Fila e transporte juntos: renovar e repetir sem perder item[2m > [22m401 nao_autenticado renova uma vez e o item sobe, sem duplicar[39m[32m 3[2mms[22m[39m
+[31m     → expected +0 to be 1 // Object.is equality[39m
+[31m   [31m×[31m Fila e transporte juntos: renovar e repetir sem perder item[2m > [22mtoken recusado e renovação que não muda nada: a fila pausa e o item fica[39m[32m 1[2mms[22m[39m
+[31m     → expected undefined to be 'sessao_encerrada' // Object.is equality[39m
+[31m   [31m×[31m Fila e transporte juntos: renovar e repetir sem perder item[2m > [22msem token nenhum: pausa por sessão encerrada, item pendente (antes era bloqueado)[39m[32m 1[2mms[22m[39m
+[31m     → expected undefined to be 'sessao_encerrada' // Object.is equality[39m
+[31m   [31m×[31m Fila e transporte juntos: renovar e repetir sem perder item[2m > [22m403 conta_desativada pelo fio: pausa por conta desativada, item pendente[39m[32m 2[2mms[22m[39m
+[31m     → expected undefined to be 'conta_desativada' // Object.is equality[39m
+   [32m✓[39m Fila e transporte juntos: renovar e repetir sem perder item[2m > [22m403 sem_permissao pelo fio: o item BLOQUEIA, como sempre[32m 1[2mms[22m[39m
+ [31m❯[39m test/fila.test.ts [2m([22m[2m58 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 84[2mms[22m[39m
+   [32m✓[39m Enfileirar[2m > [22mguarda a coleta e a fila sobrevive ao aplicativo fechar[32m 2[2mms[22m[39m
+   [32m✓[39m Enfileirar[2m > [22mtocar duas vezes no botão de concluir não cria duas coletas[32m 0[2mms[22m[39m
+   [32m✓[39m Enfileirar[2m > [22mreenfileirar não apaga o progresso de um item que já tentou subir[32m 1[2mms[22m[39m
+   [32m✓[39m Dreno com a rede funcionando[2m > [22menvia na ordem em que as coletas foram feitas[32m 12[2mms[22m[39m
+   [32m✓[39m Dreno com a rede funcionando[2m > [22mreconhece o que o servidor marcou como duplicado[32m 1[2mms[22m[39m
+   [32m✓[39m Dreno com a rede funcionando[2m > [22msome da fila depois de um tempo confirmado[32m 1[2mms[22m[39m
+   [32m✓[39m Sinal caindo[2m > [22mmantém a coleta na fila e agenda nova tentativa[32m 1[2mms[22m[39m
+   [32m✓[39m Sinal caindo[2m > [22mnão tenta de novo antes da hora, e tenta quando chega a hora[32m 1[2mms[22m[39m
+   [32m✓[39m Sinal caindo[2m > [22mpara no primeiro erro de rede em vez de varrer a fila inteira[32m 2[2mms[22m[39m
+   [32m✓[39m Servidor recusando[2m > [22mbloqueia na hora quando repetir não resolve e o dado está errado[32m 1[2mms[22m[39m
+   [32m✓[39m Servidor recusando[2m > [22marquiva, em vez de bloquear, quando a ocorrência foi encerrada no painel[32m 1[2mms[22m[39m
+   [32m✓[39m Servidor recusando[2m > [22mo item arquivado não é tentado de novo no dreno seguinte[32m 0[2mms[22m[39m
+   [32m✓[39m Servidor recusando[2m > [22marquivado ainda aceita reenviar, para o caso de a ocorrência ser reaberta[32m 0[2mms[22m[39m
+   [32m✓[39m Servidor recusando[2m > [22msegue para o próximo item depois de bloquear um[32m 1[2mms[22m[39m
+   [32m✓[39m Servidor recusando[2m > [22mrede ruim por muito tempo nao aposenta a coleta: ela continua tentando[32m 2[2mms[22m[39m
+   [32m✓[39m Servidor recusando[2m > [22m404 nao vira 'Arquivada': ninguem no aparelho sabe por que a ocorrencia sumiu[32m 0[2mms[22m[39m
+   [32m✓[39m Servidor recusando[2m > [22ma pessoa pode mandar tentar de novo, e aí funciona[32m 0[2mms[22m[39m
+   [32m✓[39m Aparelho de plantao compartilhado[2m > [22ma coleta de um agente NAO sobe com o token do agente do turno seguinte[32m 0[2mms[22m[39m
+   [32m✓[39m Aparelho de plantao compartilhado[2m > [22mquando o autor entra de novo no aparelho, a coleta dele sobe[32m 0[2mms[22m[39m
+   [32m✓[39m Aparelho de plantao compartilhado[2m > [22mo 404 de outro municipio nem chega a acontecer: o envelope nao sai[32m 0[2mms[22m[39m
+   [32m✓[39m Aparelho de plantao compartilhado[2m > [22ma coleta de outro agente pode ser descartada, para o cracha poder zerar[32m 0[2mms[22m[39m
+   [32m✓[39m Aparelho de plantao compartilhado[2m > [22mcoleta propria em espera continua protegida do descarte acidental[32m 0[2mms[22m[39m
+   [32m✓[39m Coleta sem autor registrado (aparelho que atualizou o aplicativo)[2m > [22mnao sobe sozinha: nao da para saber de quem ela e[32m 0[2mms[22m[39m
+   [32m✓[39m Coleta sem autor registrado (aparelho que atualizou o aplicativo)[2m > [22msobe depois que alguem assume a autoria com o dedo[32m 0[2mms[22m[39m
+   [32m✓[39m Coleta sem autor registrado (aparelho que atualizou o aplicativo)[2m > [22massumir NUNCA reescreve o autor de uma coleta que ja tem um[32m 0[2mms[22m[39m
+   [32m✓[39m O envelope diz ao servidor quem coletou[2m > [22mmanda o autor carimbado na coleta[32m 0[2mms[22m[39m
+   [32m✓[39m O envelope diz ao servidor quem coletou[2m > [22mmanda quem assumiu a coleta antiga, e nao o que estava gravado no envelope[32m 0[2mms[22m[39m
+   [32m✓[39m Aparelho que atualizou com item aposentado pelo teto antigo[2m > [22m`tentativas_esgotadas` gravado no disco volta a ser tentado[32m 0[2mms[22m[39m
+   [32m✓[39m Cancelamento no meio do dreno[2m > [22mpara depois do item em andamento, sem reenviar o que já subiu[32m 1[2mms[22m[39m
+   [32m✓[39m Cancelamento no meio do dreno[2m > [22mdois drenos ao mesmo tempo não enviam o mesmo item duas vezes[32m 1[2mms[22m[39m
+   [32m✓[39m Cancelamento no meio do dreno[2m > [22mapp morto durante o envio: reenvia com a mesma chave, e o servidor deduplica[32m 1[2mms[22m[39m
+   [32m✓[39m Espera entre tentativas[2m > [22mcresce a cada falha e tem teto[32m 0[2mms[22m[39m
+   [32m✓[39m Espera entre tentativas[2m > [22mespalha as tentativas em vez de sincronizar todos os aparelhos[32m 0[2mms[22m[39m
+   [32m✓[39m Dreno preguiçoso[2m > [22mcom a fila vazia, não avisa a tela nenhuma vez[32m 8[2mms[22m[39m
+   [32m✓[39m Dreno preguiçoso[2m > [22mcom a fila vazia, não chama o transporte[32m 0[2mms[22m[39m
+   [32m✓[39m Dreno preguiçoso[2m > [22mcom item pronto, volta a avisar normalmente[32m 16[2mms[22m[39m
+   [32m✓[39m Resumo para a tela[2m > [22mconta cada estado e avisa quem está ouvindo[32m 1[2mms[22m[39m
+   [32m✓[39m Formato antigo gravado no aparelho[2m > [22mconverte `ultimoErro` em `ultimaFalha` na leitura, sem perder o item[32m 0[2mms[22m[39m
+   [32m✓[39m Formato antigo gravado no aparelho[2m > [22mitem no formato novo passa intacto[32m 0[2mms[22m[39m
+   [32m✓[39m Formato antigo gravado no aparelho[2m > [22mregistro que nao e JSON continua saindo de circulacao[32m 0[2mms[22m[39m
+   [32m✓[39m Depósito[2m > [22mum registro corrompido não derruba o resto da coleta do dia[32m 0[2mms[22m[39m
+   [32m✓[39m Depósito[2m > [22mignora chaves de outras coisas guardadas no mesmo armazenamento[32m 0[2mms[22m[39m
+   [32m✓[39m Transporte HTTP[2m > [22mmanda o token e o envelope, e devolve o recibo[32m 2[2mms[22m[39m
+   [32m✓[39m Transporte HTTP[2m > [22mrede fora vira falha temporária[32m 1[2mms[22m[39m
+   [32m✓[39m Transporte HTTP[2m > [22m5xx e 429 viram falha temporária[32m 1[2mms[22m[39m
+   [32m✓[39m Transporte HTTP[2m > [22mrecusa do servidor vira falha permanente, com a mensagem dele[32m 2[2mms[22m[39m
+[31m   [31m×[31m Transporte HTTP[2m > [22m401 não é mais permanente: vira falha de SESSÃO, e a fila guarda a coleta[39m[32m 8[2mms[22m[39m
+[31m     → expected FalhaPermanente: O servidor recusou o env… { …(2) } to be an instance of FalhaDeSessao[39m
+[31m   [31m×[31m Transporte HTTP[2m > [22msem token nem tenta a chamada, e é falha de sessão (a coleta não foi recusada)[39m[32m 4[2mms[22m[39m
+[31m     → expected FalhaPermanente: Sessão encerrada. Entre … { …(2) } to be an instance of FalhaDeSessao[39m
+   [32m✓[39m O dia inteiro de um agente[2m > [22mtrês coletas offline, sinal intermitente, nada perdido e nada duplicado[32m 2[2mms[22m[39m
+   [32m✓[39m Fotos da coleta[2m > [22mas fotos sobem antes do envelope, e o envelope leva as chaves do servidor[32m 2[2mms[22m[39m
+   [32m✓[39m Fotos da coleta[2m > [22mretoma da foto que faltou, sem reenviar as que ja subiram[32m 1[2mms[22m[39m
+   [32m✓[39m Fotos da coleta[2m > [22mfoto que o servidor ja tem nao e enviada de novo[32m 0[2mms[22m[39m
+   [32m✓[39m Fotos da coleta[2m > [22mURL de envio vencida e temporaria: pede outra na proxima tentativa[32m 0[2mms[22m[39m
+   [32m✓[39m Fotos da coleta[2m > [22mrecusa permanente do armazenamento bloqueia sem gastar bateria[32m 0[2mms[22m[39m
+   [32m✓[39m Fotos da coleta[2m > [22mcoleta com foto numa fila sem acesso a arquivos bloqueia, e diz por que[32m 0[2mms[22m[39m
+   [32m✓[39m Assinatura de quem estava no local[2m > [22msobe junto com as fotos e vai para o campo dela no envelope[32m 0[2mms[22m[39m
+   [32m✓[39m Assinatura de quem estava no local[2m > [22msem assinatura, o campo continua sendo o que a coleta declarou[32m 0[2mms[22m[39m
+   [32m✓[39m Assinatura de quem estava no local[2m > [22mo envio da assinatura retoma de onde parou, como o das fotos[32m 1[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 16 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/fila.test.ts[2m > [22mTransporte HTTP[2m > [22m401 não é mais permanente: vira falha de SESSÃO, e a fila guarda a coleta
+[31m[1mAssertionError[22m: expected FalhaPermanente: O servidor recusou o env… { …(2) } to be an instance of FalhaDeSessao[39m
+[36m [2m❯[22m test/fila.test.ts:[2m1171:5[22m[39m
+    [90m1169| [39m    */[39m
+    [90m1170| [39m    const { transporte } = transporteCom({ ok: false, status: 401, jso…
+    [90m1171| [39m    await expect(transporte.enviar(envelopeBase)).rejects.toBeInstance…
+    [90m   | [39m    [31m^[39m
+    [90m1172| [39m  })[33m;[39m
+    [90m1173| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/16]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/fila.test.ts[2m > [22mTransporte HTTP[2m > [22msem token nem tenta a chamada, e é falha de sessão (a coleta não foi recusada)
+[31m[1mAssertionError[22m: expected FalhaPermanente: Sessão encerrada. Entre … { …(2) } to be an instance of FalhaDeSessao[39m
+[36m [2m❯[22m test/fila.test.ts:[2m1181:5[22m[39m
+    [90m1179| [39m      buscar[33m:[39m buscar [35mas[39m unknown [35mas[39m [35mtypeof[39m fetch[33m,[39m
+    [90m1180| [39m    })[33m;[39m
+    [90m1181| [39m    await expect(transporte.enviar(envelopeBase)).rejects.toBeInstance…
+    [90m   | [39m    [31m^[39m
+    [90m1182| [39m    [34mexpect[39m(buscar)[33m.[39mnot[33m.[39m[34mtoHaveBeenCalled[39m()[33m;[39m
+    [90m1183| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/16]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mTransporte HTTP: os três códigos[2m > [22m401 nao_autenticado: pede token novo UMA vez, repete o pedido e envia
+[31m[1mFalhaPermanente[22m: Token inválido ou expirado.[39m
+[36m [2m❯[22m falhaDaResposta src/transporte.ts:[2m59:10[22m[39m
+    [90m 57| [39m    [33m.[39m[34mmap[39m((c) [33m=>[39m ({ campo[33m:[39m c[33m.[39mcampo[33m,[39m mensagem[33m:[39m c[33m.[39mmensagem }))[33m;[39m
+    [90m 58| [39m
+    [90m 59| [39m  [35mreturn[39m [35mnew[39m [33mFalhaPermanente[39m(
+    [90m   | [39m         [31m^[39m
+    [90m 60| [39m    String(corpo["mensagem"] ?? `O servidor recusou o envio (${status}…
+    [90m 61| [39m    [33mString[39m(corpo[[32m"erro"[39m] [33m??[39m [32m`http_[39m[36m${[39mstatus[36m}[39m[32m`[39m)[33m,[39m
+[90m [2m❯[22m Object.enviar src/transporte.ts:[2m231:13[22m[39m
+[90m [2m❯[22m test/pausa-de-sessao.test.ts:[2m141:20[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/16]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mTransporte HTTP: os três códigos[2m > [22mo pedido repetido leva a MESMA chave de idempotência
+[31m[1mFalhaPermanente[22m: Token inválido ou expirado.[39m
+[36m [2m❯[22m falhaDaResposta src/transporte.ts:[2m59:10[22m[39m
+    [90m 57| [39m    [33m.[39m[34mmap[39m((c) [33m=>[39m ({ campo[33m:[39m c[33m.[39mcampo[33m,[39m mensagem[33m:[39m c[33m.[39mmensagem }))[33m;[39m
+    [90m 58| [39m
+    [90m 59| [39m  [35mreturn[39m [35mnew[39m [33mFalhaPermanente[39m(
+    [90m   | [39m         [31m^[39m
+    [90m 60| [39m    String(corpo["mensagem"] ?? `O servidor recusou o envio (${status}…
+    [90m 61| [39m    [33mString[39m(corpo[[32m"erro"[39m] [33m??[39m [32m`http_[39m[36m${[39mstatus[36m}[39m[32m`[39m)[33m,[39m
+[90m [2m❯[22m Object.enviar src/transporte.ts:[2m231:13[22m[39m
+[90m [2m❯[22m test/pausa-de-sessao.test.ts:[2m155:5[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/16]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mTransporte HTTP: os três códigos[2m > [22m401 nao_autenticado de novo depois da renovação vira sessao_encerrada, sem laço
+[31m[1mAssertionError[22m: expected FalhaPermanente: Token inválido ou expira… { …(2) } to be an instance of FalhaDeSessao[39m
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m170:18[22m[39m
+    [90m168| [39m    const erro = await transporte.enviar(envelope(CHAVE_A)).catch((e: …
+    [90m169| [39m
+    [90m170| [39m    [34mexpect[39m(erro)[33m.[39m[34mtoBeInstanceOf[39m([33mFalhaDeSessao[39m)[33m;[39m
+    [90m   | [39m                 [31m^[39m
+    [90m171| [39m    [34mexpect[39m((erro [35mas[39m [33mFalhaDeSessao[39m)[33m.[39mmotivo)[33m.[39m[34mtoBe[39m([32m"sessao_encerrada"[39m)[33m;[39m
+    [90m172| [39m    [90m// Duas idas ao servidor e uma renovação: nunca uma terceira.[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/16]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mTransporte HTTP: os três códigos[2m > [22mse a renovação devolve o MESMO token (piso, renovação recusada), nem repete o pedido
+[31m[1mAssertionError[22m: expected FalhaPermanente: Token inválido ou expira… { …(2) } to be an instance of FalhaDeSessao[39m
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m185:18[22m[39m
+    [90m183| [39m    const erro = await transporte.enviar(envelope(CHAVE_A)).catch((e: …
+    [90m184| [39m
+    [90m185| [39m    [34mexpect[39m(erro)[33m.[39m[34mtoBeInstanceOf[39m([33mFalhaDeSessao[39m)[33m;[39m
+    [90m   | [39m                 [31m^[39m
+    [90m186| [39m    [34mexpect[39m(buscar)[33m.[39m[34mtoHaveBeenCalledTimes[39m([34m1[39m)[33m;[39m
+    [90m187| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/16]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mTransporte HTTP: os três códigos[2m > [22m401 sem código nenhum (servidor antigo, corpo vazio) segue o caminho do nao_autenticado
+[31m[1mAssertionError[22m: promise rejected "FalhaPermanente: O servidor recusou o env… { …(2) }" instead of resolving[39m
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m195:54[22m[39m
+    [90m193| [39m    ])[33m;[39m
+    [90m194| [39m
+    [90m195| [39m    await expect(transporte.enviar(envelope(CHAVE_A))).resolves.toMatc…
+    [90m   | [39m                                                     [31m^[39m
+    [90m196| [39m    [34mexpect[39m(buscar)[33m.[39m[34mtoHaveBeenCalledTimes[39m([34m2[39m)[33m;[39m
+    [90m197| [39m  })[33m;[39m
+
+[31m[1mCaused by: FalhaPermanente[22m: O servidor recusou o envio (401).[39m
+[36m [2m❯[22m falhaDaResposta src/transporte.ts:[2m59:10[22m[39m
+[90m [2m❯[22m Object.enviar src/transporte.ts:[2m231:13[22m[39m
+[90m [2m❯[22m test/pausa-de-sessao.test.ts:[2m195:5[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22m[39m
+[31m[1mSerialized Error:[22m[39m [90m{ codigo: 'http_401', campos: [] }[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/16]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mTransporte HTTP: os três códigos[2m > [22m401 sessao_encerrada: não gasta a renovação, que o servidor já encerrou
+[31m[1mAssertionError[22m: expected FalhaPermanente: Sua sessão foi encerrada. { …(2) } to be an instance of FalhaDeSessao[39m
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m204:18[22m[39m
+    [90m202| [39m    const erro = await transporte.enviar(envelope(CHAVE_A)).catch((e: …
+    [90m203| [39m
+    [90m204| [39m    [34mexpect[39m(erro)[33m.[39m[34mtoBeInstanceOf[39m([33mFalhaDeSessao[39m)[33m;[39m
+    [90m   | [39m                 [31m^[39m
+    [90m205| [39m    [34mexpect[39m((erro [35mas[39m [33mFalhaDeSessao[39m)[33m.[39mmotivo)[33m.[39m[34mtoBe[39m([32m"sessao_encerrada"[39m)[33m;[39m
+    [90m206| [39m    [34mexpect[39m(buscar)[33m.[39m[34mtoHaveBeenCalledTimes[39m([34m1[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/16]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mTransporte HTTP: os três códigos[2m > [22m403 conta_desativada vira FalhaDeSessao, com a frase do servidor
+[31m[1mAssertionError[22m: expected FalhaPermanente: Sua conta foi desativada. { …(2) } to be an instance of FalhaDeSessao[39m
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m215:18[22m[39m
+    [90m213| [39m    const erro = await transporte.enviar(envelope(CHAVE_A)).catch((e: …
+    [90m214| [39m
+    [90m215| [39m    [34mexpect[39m(erro)[33m.[39m[34mtoBeInstanceOf[39m([33mFalhaDeSessao[39m)[33m;[39m
+    [90m   | [39m                 [31m^[39m
+    [90m216| [39m    [34mexpect[39m((erro [35mas[39m [33mFalhaDeSessao[39m)[33m.[39mmotivo)[33m.[39m[34mtoBe[39m([32m"conta_desativada"[39m)[33m;[39m
+    [90m217| [39m    expect((erro as FalhaDeSessao).message).toBe("Sua conta foi desati…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/16]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mTransporte HTTP: os três códigos[2m > [22ma falha de sessão NÃO é permanente nem temporária: a fila decide por isso
+[31m[1mAssertionError[22m: expected FalhaPermanente: Sua conta foi desativada. { …(2) } to not be an instance of FalhaPermanente[39m
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m226:22[22m[39m
+    [90m224| [39m    const erro = await transporte.enviar(envelope(CHAVE_A)).catch((e: …
+    [90m225| [39m
+    [90m226| [39m    [34mexpect[39m(erro)[33m.[39mnot[33m.[39m[34mtoBeInstanceOf[39m([33mFalhaPermanente[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m227| [39m    [34mexpect[39m(erro)[33m.[39mnot[33m.[39m[34mtoBeInstanceOf[39m([33mFalhaTemporaria[39m)[33m;[39m
+    [90m228| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/16]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mTransporte HTTP: os três códigos[2m > [22msem token vira FalhaDeSessao e não FalhaPermanente, e nem sai pela rede
+[31m[1mAssertionError[22m: expected FalhaPermanente: Sessão encerrada. Entre … { …(2) } to be an instance of FalhaDeSessao[39m
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m251:18[22m[39m
+    [90m249| [39m    const erro = await transporte.enviar(envelope(CHAVE_A)).catch((e: …
+    [90m250| [39m
+    [90m251| [39m    [34mexpect[39m(erro)[33m.[39m[34mtoBeInstanceOf[39m([33mFalhaDeSessao[39m)[33m;[39m
+    [90m   | [39m                 [31m^[39m
+    [90m252| [39m    [34mexpect[39m(erro)[33m.[39mnot[33m.[39m[34mtoBeInstanceOf[39m([33mFalhaPermanente[39m)[33m;[39m
+    [90m253| [39m    [34mexpect[39m((erro [35mas[39m [33mFalhaDeSessao[39m)[33m.[39mmotivo)[33m.[39m[34mtoBe[39m([32m"sessao_encerrada"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/16]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mTransporte HTTP: os três códigos[2m > [22mas outras rotas da API (foto, devolução) leem os três códigos igual
+[31m[1mAssertionError[22m: expected FalhaPermanente: Sua conta foi desativada. { …(2) } to be an instance of FalhaDeSessao[39m
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m270:15[22m[39m
+    [90m268| [39m    const b = await transporte.confirmarFoto("ev-1").catch((e: unknown…
+    [90m269| [39m
+    [90m270| [39m    [34mexpect[39m(a)[33m.[39m[34mtoBeInstanceOf[39m([33mFalhaDeSessao[39m)[33m;[39m
+    [90m   | [39m              [31m^[39m
+    [90m271| [39m    [34mexpect[39m((a [35mas[39m [33mFalhaDeSessao[39m)[33m.[39mmotivo)[33m.[39m[34mtoBe[39m([32m"conta_desativada"[39m)[33m;[39m
+    [90m272| [39m    [34mexpect[39m(b)[33m.[39m[34mtoBeInstanceOf[39m([33mFalhaDeSessao[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/16]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mFila e transporte juntos: renovar e repetir sem perder item[2m > [22m401 nao_autenticado renova uma vez e o item sobe, sem duplicar
+[31m[1mAssertionError[22m: expected +0 to be 1 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 0[39m
+
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m549:24[22m[39m
+    [90m547| [39m    [35mconst[39m r [33m=[39m [35mawait[39m fila[33m.[39m[34mdrenar[39m()[33m;[39m
+    [90m548| [39m
+    [90m549| [39m    [34mexpect[39m(r[33m.[39menviados)[33m.[39m[34mtoBe[39m([34m1[39m)[33m;[39m
+    [90m   | [39m                       [31m^[39m
+    [90m550| [39m    [34mexpect[39m(r[33m.[39mparadaPor)[33m.[39m[34mtoBeUndefined[39m()[33m;[39m
+    [90m551| [39m    [34mexpect[39m(pedidosDeRenovacao)[33m.[39m[34mtoHaveBeenCalledTimes[39m([34m1[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/16]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mFila e transporte juntos: renovar e repetir sem perder item[2m > [22mtoken recusado e renovação que não muda nada: a fila pausa e o item fica
+[31m[1mAssertionError[22m: expected undefined to be 'sessao_encerrada' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"sessao_encerrada"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m568:25[22m[39m
+    [90m566| [39m    [35mconst[39m r [33m=[39m [35mawait[39m fila[33m.[39m[34mdrenar[39m()[33m;[39m
+    [90m567| [39m
+    [90m568| [39m    [34mexpect[39m(r[33m.[39mparadaPor)[33m.[39m[34mtoBe[39m([32m"sessao_encerrada"[39m)[33m;[39m
+    [90m   | [39m                        [31m^[39m
+    [90m569| [39m    [34mexpect[39m(r[33m.[39mbloqueados)[33m.[39m[34mtoBe[39m([34m0[39m)[33m;[39m
+    [90m570| [39m    [34mexpect[39m(buscar)[33m.[39m[34mtoHaveBeenCalledTimes[39m([34m1[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/16]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mFila e transporte juntos: renovar e repetir sem perder item[2m > [22msem token nenhum: pausa por sessão encerrada, item pendente (antes era bloqueado)
+[31m[1mAssertionError[22m: expected undefined to be 'sessao_encerrada' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"sessao_encerrada"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m589:25[22m[39m
+    [90m587| [39m    [35mconst[39m r [33m=[39m [35mawait[39m fila[33m.[39m[34mdrenar[39m()[33m;[39m
+    [90m588| [39m
+    [90m589| [39m    [34mexpect[39m(r[33m.[39mparadaPor)[33m.[39m[34mtoBe[39m([32m"sessao_encerrada"[39m)[33m;[39m
+    [90m   | [39m                        [31m^[39m
+    [90m590| [39m    [34mexpect[39m(buscar)[33m.[39mnot[33m.[39m[34mtoHaveBeenCalled[39m()[33m;[39m
+    [90m591| [39m    [34mexpect[39m(([35mawait[39m fila[33m.[39m[34mitens[39m())[[34m0[39m][33m![39m[33m.[39mestado)[33m.[39m[34mtoBe[39m([32m"pendente"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/16]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mFila e transporte juntos: renovar e repetir sem perder item[2m > [22m403 conta_desativada pelo fio: pausa por conta desativada, item pendente
+[31m[1mAssertionError[22m: expected undefined to be 'conta_desativada' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"conta_desativada"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m607:25[22m[39m
+    [90m605| [39m    [35mconst[39m r [33m=[39m [35mawait[39m fila[33m.[39m[34mdrenar[39m()[33m;[39m
+    [90m606| [39m
+    [90m607| [39m    [34mexpect[39m(r[33m.[39mparadaPor)[33m.[39m[34mtoBe[39m([32m"conta_desativada"[39m)[33m;[39m
+    [90m   | [39m                        [31m^[39m
+    [90m608| [39m    [34mexpect[39m(([35mawait[39m fila[33m.[39m[34mitens[39m())[[34m0[39m][33m![39m[33m.[39mestado)[33m.[39m[34mtoBe[39m([32m"pendente"[39m)[33m;[39m
+    [90m609| [39m    [34mexpect[39m(([35mawait[39m fila[33m.[39m[34mresumo[39m())[33m.[39mbloqueados)[33m.[39m[34mtoBe[39m([34m0[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/16]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[31m16 failed[39m[22m[2m | [22m[1m[32m70 passed[39m[22m[90m (86)[39m
+[2m   Start at [22m 11:09:08
+[2m   Duration [22m 1.36s[2m (transform 307ms, setup 0ms, collect 1.47s, tests 135ms, environment 0ms, prepare 475ms)[22m
+

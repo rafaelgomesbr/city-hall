@@ -1,0 +1,2 @@
+### CMD: npx tsc -p C:\Users\Rfasg\AppData\Local\Temp\claude\c--Projetos-city-hall\2efdae76-a927-4d87-ad22-11b077ee6191\scratchpad\v2\raw\tsconfig-sem-cache-expo.json --noEmit (cwd=.) inicio=2026-09-30T16:25:47-03:00
+### EXIT=0 DURACAO=21s fim=2026-09-30T16:26:08-03:00

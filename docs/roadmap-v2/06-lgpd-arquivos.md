@@ -1,0 +1,1640 @@
+# Fase 05: Manifesto de dados e LGPD técnica
+
+**Gate da fase:** G05 MANIFESTO DE DADOS ATIVO | **Depende dos gates:** G04 (E01 a E05 podem começar após G03, desde que toda migration de F03 e F04 já nasça com a sua entrada no manifesto) | **Superfícies tocadas:** banco, API, painel da prefeitura (`apps/web`) e console do fornecedor (só a publicação de texto legal, E07) | **Checkpoints da fase:** CP-10, CP-11, CP-29, CP-46
+
+Esta fase transforma "tabela nova com dado pessoal" em falha de teste e entrega os MECANISMOS genéricos de privacidade: manifesto de dados, aceite versionado, política versionada, pedidos de titular, retenção configurável com padrão vazio, redação de texto livre em tabela imutável, registro de acesso, expurgo de rastro de acesso e de aparelho revogado, e a proteção do CPF obrigatório do cidadão (D-07). Ela NÃO decide base legal, texto de política, prazo, encarregado, o que se preserva de município eliminado nem a base legal e a finalidade do CPF (CP-46): J1 a J5, J12 e J13 são checkpoints jurídicos (J4 em CP-10; J1, J2, J3, J5 e J13 em CP-11; J12 em CP-29; J6 a J11 pertencem a outras fases) e cada etapa diz o que eles bloqueiam.
+
+Estado confirmado no código: o catálogo tem 35 tabelas (35 `CREATE TABLE` nas migrações 001 a 046, fora `schema_migracoes`, que o aplicador cria), todas com RLS ativada e forçada (`db/test/isolamento.test.ts`, caso "toda tabela do esquema tem RLS ativada E forçada"). O número 35 do relatório 02 está correto. São 30 tabelas com `organizacao_id` (todas na ordem de `ordem_de_apagamento_por_municipio()`, migração 038), mais `organizacoes`, o livro `eliminacoes_de_municipio` (tem a coluna, sem chave estrangeira) e três de plataforma sem a coluna: `interesse_municipio`, `console_operadores` e `console_codigos_de_recuperacao`. Hoje 27 tabelas saem no pacote e 6 não saem (`apps/api/src/saida/pacote.ts`); o teste `saida-de-municipio.test.ts:276` só olha tabelas com `organizacao_id` e só num sentido, então as duas tabelas do console não estão em lista nenhuma.
+
+O que se PRESERVA (MANTER): os dois portões parciais de saída e eliminação (viram casos do portão mais amplo), a função `minimizar_por_prazo` (migrações 021, 029 e 043) e o seu relógio, o registro de consulta de dossiê e laudo (migração 021), a trilha append-only e a regra "registro não se apaga, se encerra com motivo". A fase NÃO faz: redigir política ou termos, fixar prazo padrão, nomear encarregado, relatório de impacto (CP-11); o relato anônimo continua fora da V2 (`21-fora-da-v2.md`); a coluna de CPF nasce na F15 e na F16 e usa o mecanismo da E13 e da E14; o expurgo de `interesse_municipio` está na E12 e o de aparelho revogado, na E15. Onde uma etapa desta fase falar em "teto de 27 funções privilegiadas", vale a lista nominal `FUNCOES_PRIVILEGIADAS` da F03-E08: a função nova entra nela com nome, motivo e a forma como confere o tenant.
+
+Ordem sugerida: E01, E02 e E03 em sequência (E02 e E03 entram juntas na master, porque o teste sem classificação ficaria vermelho e `skip` é proibido pela política T42); depois E04 e E05; E06 antes de E07; E08 e E09 antes de E12; E10 e E11 são independentes entre si e podem andar em paralelo (banco e trilha de um lado, rotas de leitura do outro). Edições em `packages/shared/src/permissoes.ts` e no manifesto serializam. CP-29 trava só a regra final da E05 (a derivação em si anda); CP-11 trava texto, base legal e abertura pública (E06 a E08 andam com mecanismo e dados sintéticos); CP-10 trava ativar prazos reais (E09, E12 e E15 andam com padrão vazio); CP-46 trava coletar CPF real (E13 e E14 andam com dado sintético). E13 depende da E03; E14, da E13, E08, E09 e E11; E15, da E09 e da E12.
+
+## Etapas
+
+### V2-F05-E01 - Manifesto declarativo de tabelas (formato e local)
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E02 a E12 consomem o formato)
+- **Objetivo:** criar a fonte única que declara, por tabela, se ela sai no pacote, se a eliminação a apaga, que dado pessoal carrega e qual retenção tem.
+- **Problema que resolve:** o destino de uma tabela é decidido em três listas escritas à mão: `TABELAS_DA_SAIDA` e `TABELAS_QUE_NAO_SAEM` (`apps/api/src/saida/pacote.ts:49` e `:149`) e `ordem_de_apagamento_por_municipio()` (migração 038). Nenhuma diz "pessoal" nem "retenção", e o inventário por coluna só existe em prosa (BZ-D:LGP-01): foi assim que `tipoDescricao` entrou na trilha sem prazo (BZ-F:P0-LGPD).
+- **Origem:** DP:T41; REL:08 15.8; BZ-D:LGP-01; BZ-F:P0-LGPD.
+- **Estado atual:** CRIAR (as três listas existem e seguem como estão até a E05; o manifesto ainda não existe).
+- **Dependências de entrada:** G04 (ou G03, na antecipação descrita no cabeçalho da fase).
+- **O que deve ser implementado:**
+  - Domínio: tipo `EntradaDoManifesto` em `db/src/manifesto.ts`, exportado por `db/src/index.ts` (o pacote `@dc360/db` já é importado pela API): `tabela`; `escopo` (`raiz` para `organizacoes`, `tenant` ou `plataforma`, esta com `politica` obrigatória); `saida` (`sai`, ou `nao_sai` com `motivo`); `colunasQueNuncaSaem`; `eliminacao` (`apaga`, ou `fica` com `motivo`); `pessoal` (`nao`, ou `sim` com `titulares`, `colunas`, `textoLivre` e `chavesDeBusca`); `retencao` (`mecanismo` e `classe`; o mecanismo `a_decidir` exige `checkpoint`); `backup` sempre `total`.
+  - Domínio: função pura `validarManifesto(entradas)` com as invariantes (nome único, motivo presente, checkpoint presente, classe de retenção conhecida).
+  - Arquivos: a lista nasce vazia e é preenchida na E03.
+- **O que NÃO deve ser implementado nesta etapa:** o teste de catálogo (E02), o preenchimento das 35 entradas (E03), a troca das listas de saída e eliminação (E05), qualquer decisão de prazo ou base legal (CP-10, CP-11).
+- **Arquivos e módulos prováveis:** `db/src/manifesto.ts` e `db/test/manifesto-formato.test.ts` (a criar em `db/src/` e `db/test/`), `db/src/index.ts`.
+- **Risco de segurança:** baixo; o risco é de modelagem, se o formato não comportar tabela de plataforma ou coluna JSON com texto livre.
+- **Impacto LGPD:** habilita o inventário por coluna que falta (LGP-01); não coleta nem expõe dado.
+- **Migração necessária:** Não.
+- **Compatibilidade:** nenhum consumidor existente muda.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** `validarManifesto` aceita uma entrada completa de uma tabela sintética de cada escopo.
+- **Testes negativos:** `nao_sai` sem `motivo`, `a_decidir` sem `checkpoint`, `pessoal: sim` sem `colunas` e nome repetido são recusados, cada um com mensagem que cita a tabela.
+- **Testes de autorização e isolamento:** Não se aplica: metadado de build, sem rota nem dado; `npm run test:isolamento` segue verde.
+- **Regressão obrigatória:** `npm run typecheck`, `npm run test:isolamento`, `npm run test:api`; gates G00 a G04.
+- **E2E:** Não se aplica: sem fluxo de usuário.
+- **Validação humana:** Rafael lê a lista de campos e confirma que "pessoal" e "retenção" cabem no que o DPO vai precisar, sem decidir conteúdo.
+- **Evidência a produzir:** `docs/evidencias-v2/G05/V2-F05-E01/` com a saída do teste do validador e o arquivo de formato.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md` (nota de que o manifesto é a fonte), `db/PENDENCIAS.md`.
+- **Definition of Done:** formato exportado e validado por teste; nenhum consumidor ainda; suíte verde com o manifesto vazio.
+- **Checkpoint:** Não.
+
+### V2-F05-E02 - Teste de catálogo nos dois sentidos (tabela sem classificação reprova)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (fecha junto com a E03, sem `skip`)
+- **Objetivo:** reprovar a migration que cria tabela sem classificação e a classificação que aponta tabela que não existe mais.
+- **Problema que resolve:** `apps/api/test/saida-de-municipio.test.ts:276` só vê tabelas com `organizacao_id` (ou `organizacoes`) e só num sentido; `console_operadores` e `console_codigos_de_recuperacao` estão em lista nenhuma; nada cobra `pessoal` nem `retencao`; a eliminação só recusa em tempo de execução (erro DC366, `db/test/eliminacao-de-municipio.test.ts:1288`).
+- **Origem:** DP:T41; REL:08 Riscos arquiteturais 2; BZ-F:P0-LGPD.
+- **Estado atual:** EXPANDIR (os dois portões existentes continuam; nasce um terceiro, no banco, mais amplo).
+- **Dependências de entrada:** E01 (formato do manifesto e validador).
+- **O que deve ser implementado:**
+  - Banco: `db/test/manifesto-de-tabelas.test.ts` (PGlite com TODAS as migrações, como `isolamento.test.ts`) com cinco regras: (1) toda tabela de `public` (menos `schema_migracoes`) tem entrada; (2) toda entrada existe no catálogo; (3) tabela com a coluna `organizacao_id` é `tenant`, `organizacoes` é `raiz`, e as sem a coluna, mais o livro `eliminacoes_de_municipio` (que a tem sem chave), são `plataforma` com `politica`; (4) toda entrada passa em `validarManifesto`; (5) guarda de nomes suspeitos: coluna chamada `nome`, `email`, `telefone`, `contato`, `ip`, `user_agent`, `endereco`, `descricao`, `legenda`, `observacoes`, `motivo`, `ficha` ou `busca` em tabela `pessoal: nao` reprova, com lista de exceções nomeadas e justificadas.
+  - Observabilidade: a mensagem de falha diz a tabela, o arquivo `db/src/manifesto.ts` e o que acrescentar.
+- **O que NÃO deve ser implementado nesta etapa:** o preenchimento completo (E03), a troca das listas de saída e eliminação (E05), a regra de órgão por tabela (F04-E06 é outro teste).
+- **Arquivos e módulos prováveis:** `db/test/manifesto-de-tabelas.test.ts` (a criar em `db/test/`), `db/src/manifesto.ts`; `db/test/isolamento.test.ts` só para leitura.
+- **Risco de segurança:** baixo; falso negativo se o nome da coluna não estiver na lista da regra 5.
+- **Impacto LGPD:** reduz o risco de dado pessoal sem classe de retenção nas próximas fases.
+- **Migração necessária:** Não.
+- **Compatibilidade:** toda migration futura passa a exigir a entrada no mesmo commit.
+- **Rollback:** reverter o teste (a E05 passa a depender dele).
+- **Testes positivos:** com as 35 entradas da E03 a suíte passa; uma tabela de prova criada no teste com entrada completa passa.
+- **Testes negativos:** `CREATE TABLE tabela_sem_classe (id int, organizacao_id uuid)` reprova citando a tabela; entrada para tabela inexistente reprova; coluna `email` em tabela `pessoal: nao` reprova; tabela com `organizacao_id` declarada `plataforma` reprova.
+- **Testes de autorização e isolamento:** `npm run test:isolamento` (suíte inteira de `db/`) segue verde com o novo arquivo dentro dela; caso espelho: tabela de tenant sem RLS forçada continua reprovada pelo portão CA-06.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api` (`saida-de-municipio.test.ts`, `eliminacao-de-municipio.test.ts`), `npm run typecheck`; G04.
+- **E2E:** Não se aplica: teste de catálogo, sem fluxo de usuário.
+- **Validação humana:** Rafael cria uma tabela de prova numa branch e vê o teste reprovar com mensagem legível.
+- **Evidência a produzir:** `docs/evidencias-v2/G05/V2-F05-E02/` com a saída verde e a captura do vermelho provocado.
+- **Documentação a atualizar:** `db/PENDENCIAS.md`; `docs/DICIONARIO-DE-DADOS.md` (como acrescentar tabela).
+- **Definition of Done:** teste sem `skip`, reprova nos dois sentidos, roda dentro de `npm run test:isolamento`, E03 fechada junto.
+- **Checkpoint:** Não.
+
+### V2-F05-E03 - Classificar as tabelas atuais e novas (saída, eliminação, pessoal, retenção)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (fecha junto com a E02)
+- **Objetivo:** preencher o manifesto das 35 tabelas atuais e fixar o hábito de classificar cada tabela nova na própria migration.
+- **Problema que resolve:** nenhuma coluna de dado pessoal está inventariada no repositório (BZ-D:LGP-01); a retenção mora em prosa (`docs/PRIVACIDADE.md`, seção 4) e em funções SQL; o texto livre sem prazo não tem lista (BZ-D:LGP-08).
+- **Origem:** DP:T41; REL:08 15.2 e 15.4.3; BZ-D:LGP-01; BZ-D:LGP-08.
+- **Estado atual:** CRIAR (o conteúdo; "sai" e "apaga" já estão decididos nas listas de `pacote.ts` e na ordem da migração 038 para 33 das 35).
+- **Dependências de entrada:** E02 (teste de catálogo, que fecha junto).
+- **O que deve ser implementado:**
+  - Domínio: as 35 entradas em `db/src/manifesto.ts`. `saida` e `eliminacao` copiados das listas atuais (27 saem; `sessoes`, `recuperacoes_senha`, `segundo_fator`, `segundo_fator_recuperacao`, `eliminacoes_de_municipio` e `interesse_municipio` não saem, com o motivo já escrito em `pacote.ts`); `console_operadores` e `console_codigos_de_recuperacao` entram como `plataforma`, `nao_sai`, `fica`.
+  - Domínio: `pessoal` por coluna a partir do inventário 15.2 do relatório 08 (`ocorrencias`: solicitante, relato, vulnerabilidade, endereço, coordenadas; `trilha_eventos`: `autor_nome` e as chaves de `detalhe` com texto livre; `sessoes` e `oficio_aberturas`: IP e agente do navegador; `usuarios`, `aparelhos` e as demais).
+  - Domínio: `retencao` por tabela: `funcao_de_minimizacao` (021, 029, 043), `append_only_sem_prazo_por_decisao` (021:24-28 e 511-518), `expurgo_proprio` (avisos, notificações) e `a_decidir` com `checkpoint: "CP-10"` (sessões, recuperações, fotos, leads).
+  - Arquivos: seção "Dado pessoal e retenção por tabela" no dicionário, conferida pelo teste da E02 (cada tabela aparece).
+- **O que NÃO deve ser implementado nesta etapa:** prazos para as classes `a_decidir` (CP-10), mudança de comportamento da saída ou da eliminação (E05), classificação das tabelas das fases seguintes (cada fase classifica as suas na própria migration).
+- **Arquivos e módulos prováveis:** `db/src/manifesto.ts`, `docs/DICIONARIO-DE-DADOS.md`, `docs/PRIVACIDADE.md` (referência cruzada).
+- **Risco de segurança:** baixo; classificar `nao_sai` uma tabela que o município precisa levar, o que a E05 prova por teste.
+- **Impacto LGPD:** primeiro inventário por coluna verificável por máquina; não decide base legal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem mudança de comportamento.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** as 35 entradas validam; toda coluna citada em `pessoal.colunas` existe em `information_schema.columns`.
+- **Testes negativos:** coluna citada que não existe reprova; `a_decidir` sem `checkpoint` reprova; tabela `pessoal: sim` sem `retencao` reprova.
+- **Testes de autorização e isolamento:** Não se aplica a rota; `npm run test:isolamento` verde e o portão CA-06 inalterado.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`, `npm test`; G04.
+- **E2E:** Não se aplica: classificação estática.
+- **Validação humana:** Rafael lê a tabela gerada e marca divergência com o que o produto realmente guarda; a leitura não decide base legal.
+- **Evidência a produzir:** `docs/evidencias-v2/G05/V2-F05-E03/` com o manifesto, a seção do dicionário e a saída do teste.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`, `docs/PRIVACIDADE.md` (apontar o manifesto como inventário).
+- **Definition of Done:** 35 entradas, teste da E02 verde, todo `a_decidir` com CP-10, dicionário conferido.
+- **Checkpoint:** Não.
+
+### V2-F05-E04 - Lista de tabelas de plataforma fora de tenant e sua política
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** médio  |  **Paralelizável:** sim (com F05-E11, arquivos disjuntos)
+- **Objetivo:** tornar a lista de tabelas sem tenant, e a política de cada uma, dado do manifesto, para `isolamento.test.ts` e o pacote de saída pararem de carregar listas próprias.
+- **Problema que resolve:** as isenções moram em três conjuntos de `db/test/isolamento.test.ts` (`SEM_TENANT` na linha 163, `SEM_POLICY_DE_TENANT` na 212, `DO_FORNECEDOR` na 247) e em `TABELAS_QUE_NAO_SAEM`; a F15 acrescentará tabelas do cidadão fora do tenant (DP:T02, "segunda exceção nomeada") e precisa de um lugar único.
+- **Origem:** DP:T41; DP:T02; REL:04.
+- **Estado atual:** REFATORAR (as isenções funcionam; passam a derivar de uma lista).
+- **Dependências de entrada:** E02 (teste de catálogo e escopo `plataforma`).
+- **O que deve ser implementado:**
+  - Domínio: `escopo: "plataforma"` exige `politica` (`somente_insercao` para `interesse_municipio`: a aplicação insere e não lê; `fornecedor` para as três do console, comando a comando com guarda nomeada) e `papelDeBanco`.
+  - Banco: `isolamento.test.ts` passa a montar `SEM_POLICY_DE_TENANT`, `DO_FORNECEDOR` e a parte de plataforma de `SEM_TENANT` a partir do manifesto; as demais entradas de `SEM_TENANT` (`schema_migracoes`, `organizacoes`, `protocolo_sequencias`) ganham motivo escrito no manifesto; na primeira rodada um caso compara o conjunto derivado com o literal antigo (igualdade) para provar que nada foi afrouxado, e depois o literal sai.
+  - Arquivos: tabela de plataforma nova exige `politica` e um parágrafo no cabeçalho da migration (F15-E02 será a primeira a usar).
+- **O que NÃO deve ser implementado nesta etapa:** tabelas do cidadão (F15-E02), mudança de grant ou policy existente, papel de banco novo (CP-25, F15-E01).
+- **Arquivos e módulos prováveis:** `db/src/manifesto.ts`, `db/test/isolamento.test.ts`, `apps/api/src/saida/pacote.ts` (só leitura até a E05).
+- **Risco de segurança:** médio; derivar a isenção de um arquivo editável afrouxa o portão se alguém marcar tabela de tenant como `plataforma`; a regra 3 da E02 cobre.
+- **Impacto LGPD:** mantém visível a única exceção sem tenant que recebe dado de pessoa (`interesse_municipio`).
+- **Migração necessária:** Não.
+- **Compatibilidade:** os testes de isolamento passam a ler o manifesto, sem mudar o que provam.
+- **Rollback:** reverter o commit; o literal antigo volta.
+- **Testes positivos:** conjuntos derivados idênticos aos literais antigos.
+- **Testes negativos:** marcar `ocorrencias` como `plataforma` reprova pela regra 3 da E02; `plataforma` sem `politica` reprova.
+- **Testes de autorização e isolamento:** o caso "o formulário público escreve e NÃO lê" (`isolamento.test.ts:275`) e o bloco do fornecedor seguem verdes; nenhum papel além do de aplicação e do dono ganha privilégio.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:console`, `npm run test:api`; G04.
+- **E2E:** Não se aplica: sem fluxo de usuário.
+- **Validação humana:** Rafael confere a lista de plataforma contra o que sabe do console e do formulário público.
+- **Evidência a produzir:** `docs/evidencias-v2/G05/V2-F05-E04/` com a comparação derivado x literal e a saída do teste.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`; `docs/adr/0008-console-do-fornecedor-sem-credencial-que-ve-dois-municipios.md` (nota).
+- **Definition of Done:** os três conjuntos derivam do manifesto, sem literal, e a suíte de isolamento passa.
+- **Checkpoint:** Não.
+
+### V2-F05-E05 - Saída e eliminação derivam do manifesto (fim das listas paralelas)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (toca `pacote.ts` e a ordem da migração 038)
+- **Objetivo:** fazer `TABELAS_DA_SAIDA`, `TABELAS_QUE_NAO_SAEM` e `COLUNAS_QUE_NUNCA_SAEM` serem calculadas do manifesto e provar que a ordem de apagamento é igual ao conjunto `apaga` do manifesto, sem mudar o que sai nem o que se apaga hoje.
+- **Problema que resolve:** três listas à mão (`apps/api/src/saida/pacote.ts:49`, `:149` e `:206`, e `ordem_de_apagamento_por_municipio()` na migração 038) que só falham em runtime ou num teste de um lado; um manifesto sem consumidor viraria a quarta lista. A eliminação hoje apaga a trilha do município (J12).
+- **Origem:** DP:T41; DP:J12; REL:04 D3; REL:08 15.6.
+- **Estado atual:** REFATORAR (comportamento mantido; a fonte muda de lugar).
+- **Dependências de entrada:** E03; CP-29 para a regra final.
+- **O que deve ser implementado:**
+  - API: `pacote.ts` importa o manifesto de `@dc360/db` e deriva as três estruturas, mantendo os nomes exportados que os testes importam.
+  - Banco: caso novo em `db/test/eliminacao-de-municipio.test.ts`: o conjunto de `ordem_de_apagamento_por_municipio()` é igual às entradas `tenant` com `eliminacao: apaga`, e a ordem respeita a topologia das chaves estrangeiras lida do catálogo (filho antes de pai). A função SQL continua constante escrita à mão: toda tabela nova que apaga redefine a função em migration, como o DC366 já exige.
+  - Arquivos: `eliminacao: fica` só com `motivo` (hoje, o livro).
+- **O que NÃO deve ser implementado nesta etapa:** o que se preserva de município eliminado e o extrato sob custódia (CP-29); aviso ao município antes de suspender (F20-E04); paginar o pacote (F07-E06).
+- **Arquivos e módulos prováveis:** `apps/api/src/saida/pacote.ts`, `db/src/manifesto.ts`, `db/test/eliminacao-de-municipio.test.ts`, `apps/api/test/saida-de-municipio.test.ts`, `apps/api/test/eliminacao-de-municipio.test.ts`.
+- **Risco de segurança:** alto; erro aqui entrega segredo no pacote (`senha_hash`, `ficha`, `token_hash`) ou deixa tabela de município fora da eliminação.
+- **Impacto LGPD:** a eliminação e a portabilidade do município passam a seguir a classificação por tabela.
+- **Migração necessária:** Não (só se o caso novo achar divergência; então `NNN_ordem_de_apagamento.sql`, hoje 047).
+- **Compatibilidade:** o pacote e a eliminação entregam exatamente o que entregam hoje.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** o pacote traz as 27 tabelas em CSV e JSON (as asserções atuais de `saida-de-municipio.test.ts`); a eliminação de um município sintético apaga as 30 tabelas com `organizacao_id` e deixa o livro.
+- **Testes negativos:** tabela `apaga` fora da ordem reprova; tabela na ordem e `fica` no manifesto reprova; `senha_hash`, `ficha` e `token_hash` continuam ausentes do pacote byte a byte.
+- **Testes de autorização e isolamento:** coordenador pede o pacote: negado (falta `gerenciar_organizacao`); administrador do município B não recebe linha do A; a eliminação de A não toca linha de B.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run test:console`, `npm run test:e2e:api`; G04.
+- **E2E:** `npm run test:e2e:api` baixa o pacote real contra a API (caminho consertado na F00-E11).
+- **Validação humana:** Rafael abre o pacote de um município sintético e confere o índice contra o manifesto.
+- **Evidência a produzir:** `docs/evidencias-v2/G05/V2-F05-E05/` com a lista derivada x lista antiga, a saída dos testes e o índice do pacote.
+- **Documentação a atualizar:** `docs/SAIDA-DE-MUNICIPIO.md` (seção 4), `apps/api/PENDENCIAS.md`.
+- **Definition of Done:** nenhuma lista paralela no código; testes de saída e eliminação verdes; comportamento idêntico provado.
+- **Checkpoint:** CP-29 (decide o que se preserva de município eliminado e por quanto tempo; bloqueia a regra final de eliminação e qualquer mudança no que o DELETE alcança; a derivação e os testes andam antes).
+
+### V2-F05-E06 - Aceite versionado (tabela, API, revogação), sem texto jurídico
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F05-E09)
+- **Objetivo:** registrar versão, data, usuário e IP de cada aceite de texto legal e permitir a revogação, sem conter texto jurídico, de modo que o parecer entre depois sem reescrever código.
+- **Problema que resolve:** nenhuma tabela, rota ou tela guarda aceite (BZ-F:P0-LGPD; BZ-D:LGP-29 a LGP-31); ALY:AUT-05 pede versão, data, usuário e IP disponíveis para auditoria.
+- **Origem:** ALY:AUT-05; BZ-M:V2-TRV-01; DP:J1; DP:J2; REL:08 15.3.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E03; CP-11 para o conteúdo.
+- **O que deve ser implementado:**
+  - Banco: migration `NNN_aceite_versionado.sql` (hoje 047): `versoes_de_texto_legal` (plataforma: tipo, versão por tipo, conteúdo, hash, `publicada_em`, `vigente_ate`, `exige_aceite` padrão falso); `aceites_de_texto_legal` (tenant: usuário, versão, `aceito_em`, IP, `faixa_etaria_declarada` opcional, sem verificação); `revogacoes_de_aceite` (append-only). RLS forçada, FK composta, sem policy de UPDATE e DELETE nas de tenant; INSERT em `versoes_de_texto_legal` só para o papel do console (E07), leitura para a aplicação; entradas no manifesto.
+  - API: `POST /v1/aceites` (do próprio usuário, idempotente por usuário e versão), `POST /v1/aceites/:id/revogar`, `GET /v1/usuarios/eu/aceites`, `GET /v1/aceites` (`consultar_trilha`).
+  - Frontend: aviso de aceite no painel só quando houver versão vigente com `exige_aceite`; sem versão publicada nada aparece.
+- **O que NÃO deve ser implementado nesta etapa:** texto, base legal e obrigatoriedade (J1 e J2, CP-11); aceite do cidadão (F15-E15) e do usuário de órgão (F11); consentimento por finalidade; publicação (E07).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/rotas/` (nova rota), `packages/shared/src/schemas.ts`, `apps/web/src/paginas/Entrar.tsx`, `db/src/manifesto.ts`.
+- **Risco de segurança:** médio; aceite forjado por outro usuário (a rota usa só o usuário do token) e IP vindo de cabeçalho (usa `enderecoDoCliente`).
+- **Impacto LGPD:** guarda IP e usuário de quem aceita, classificados no manifesto; revogação como evento, nunca apagamento.
+- **Migração necessária:** Sim (nome sugerido `NNN_aceite_versionado.sql`, onde NNN é a próxima livre na execução, hoje 047).
+- **Compatibilidade:** mecanismo desligado por padrão; ninguém é bloqueado no login.
+- **Rollback:** migration inversa que remove as três tabelas, se ainda sem dado; com dado, desligar pelo `exige_aceite`.
+- **Testes positivos:** aceitar a versão vigente grava uma linha; segunda tentativa do mesmo usuário e versão devolve a mesma; revogar grava evento.
+- **Testes negativos:** aceitar versão inexistente ou encerrada: 404; `UPDATE` ou `DELETE` em aceite pelo papel de aplicação: negado; revogar aceite de outro usuário: 404.
+- **Testes de autorização e isolamento:** o administrador do município B não lê aceite do A; usuário sem `consultar_trilha` não lista aceites do município (negado).
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run test:e2e`, `npm run typecheck`; G04.
+- **E2E:** painel com versão sintética vigente: o aviso aparece, o aceite grava, a revogação aparece na listagem.
+- **Validação humana:** Rafael aceita e revoga uma versão sintética e confere a linha de auditoria.
+- **Evidência a produzir:** `docs/evidencias-v2/G05/V2-F05-E06/` com saída dos testes e captura do aviso.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md` (mecanismo existe, texto não), `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** tabelas, rotas e aviso funcionando com dado sintético, desligados por padrão, aceite e revogação auditáveis.
+- **Checkpoint:** CP-11 (decide base legal, texto, quando exigir aceite e como tratar menores; bloqueia exigir aceite em produção e abrir o canal do cidadão; o mecanismo e o HML sintético andam).
+
+### V2-F05-E07 - Política de privacidade versionada (publicação, versão, URL estável)
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (depende da E06)
+- **Objetivo:** servir cada versão publicada da política e dos termos em URL estável, com versão e hash, e recusar publicar texto com campo em aberto.
+- **Problema que resolve:** `docs/PRIVACIDADE.md` está redigida e não publicada, com dez campos de preenchimento em aberto; nenhuma rota a serve (`apps/web/public` só tem ícones, manifest, fontes e robots.txt); sem encarregado nem canal (BZ-F:P0-LGPD; BZ-D:LGP-32).
+- **Origem:** BZ-F:P0-LGPD; DP:J2; DP:J13; BZ-D:LGP-32.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E06 (tabela de versões de texto legal).
+- **O que deve ser implementado:**
+  - API: `GET /v1/publico/textos-legais/:tipo` (versão vigente) e `GET /v1/publico/textos-legais/:tipo/versoes/:versao`, HTML sem JavaScript, sem autenticação, com `ETag` do hash e cabeçalhos de segurança.
+  - Autorização: a escrita só pelo console, guarda de dono (`console_operador_e_dono`), no molde das tabelas do fornecedor da migração 038.
+  - Infraestrutura: rota de publicação em `apps/console/src/` (a criar) que calcula o hash no servidor, fecha a versão anterior (`vigente_ate`), recusa texto vazio ou com marcador de campo aberto (colchetes duplos) e nunca edita versão publicada: correção é versão nova.
+  - Frontend: link "Política de privacidade" em `Entrar.tsx` e `QueroConhecer.tsx`, só quando existir versão vigente.
+- **O que NÃO deve ser implementado nesta etapa:** redigir ou preencher a política, nomear encarregado, definir canal do titular (J2 e J13, CP-11); `docs/PRIVACIDADE.md` segue como rascunho no repositório.
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/` (nova rota pública), `apps/console/src/` (nova rota), `apps/web/src/paginas/Entrar.tsx`, `apps/web/src/paginas/QueroConhecer.tsx`, `apps/console/test/superficie.test.ts`.
+- **Risco de segurança:** médio; XSS no texto servido (o texto é escapado e entregue como documento estático) e publicação por quem não é dono.
+- **Impacto LGPD:** dá URL estável e versão auditável à política que a própria documentação diz não estar publicada.
+- **Migração necessária:** Não (usa as tabelas da E06; a grant de INSERT ao papel do console entra na migration da E06).
+- **Compatibilidade:** rotas novas; nada existente muda.
+- **Rollback:** reverter o commit; as versões gravadas ficam.
+- **Testes positivos:** publicar versão sintética e abrir pela URL estável devolve o mesmo hash; publicar a seguinte fecha a anterior.
+- **Testes negativos:** texto com colchetes duplos recusado; republicar a mesma versão recusado; operador que não é dono do console: recusado.
+- **Testes de autorização e isolamento:** a rota pública não lê nada de município (só `versoes_de_texto_legal`); o console continua sem SELECT em tabela de município (portão do fornecedor em `isolamento.test.ts`).
+- **Regressão obrigatória:** `npm run test:console`, `npm run test:isolamento`, `npm run test:api`, `apps/api/test/superficie.test.ts`; G04.
+- **E2E:** publicar pelo console em HML sintético e abrir a URL estável pelo painel.
+- **Validação humana:** Rafael confere que a URL e o hash permanecem iguais depois de nova publicação da versão seguinte.
+- **Evidência a produzir:** `docs/evidencias-v2/G05/V2-F05-E07/` com saída dos testes e captura da página servida.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md`, `docs/DECLARACAO-NAS-LOJAS.md` (URL estável como pré-requisito), `apps/console` (README de rotas).
+- **Definition of Done:** versão publicada servida por URL estável com hash, publicação só pelo dono do console, texto com campo aberto recusado.
+- **Checkpoint:** CP-11 (decide o texto, o encarregado e o canal; bloqueia publicar texto real em produção e abrir o canal do cidadão; a publicação em HML sintético anda).
+
+### V2-F05-E08 - Pedidos de titular: fila, estados e exportação por titular
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com F05-E11)
+- **Objetivo:** dar ao município uma fila de pedidos de titular, com estados, trilha e exportação por titular derivada do manifesto, sem decidir prazo nem quem atende.
+- **Problema que resolve:** nenhum mecanismo existe; atender um pedido seria operação manual com credencial de dono no banco e deixaria o nome antigo na trilha e nos registros append-only (BZ-D:LGP-24 a LGP-27; REL:08 15.7).
+- **Origem:** BZ-M:V2-TRV-02; DP:J5; DP:T37; REL:08 15.7.
+- **Estado atual:** CRIAR (o mais próximo é `GET /relatorios/consultas`, por ocorrência e só para coordenador e administrador).
+- **Dependências de entrada:** E03; CP-11 para prazo e responsável.
+- **O que deve ser implementado:**
+  - Banco: migration `NNN_pedidos_de_titular.sql`: `pedidos_de_titular` (protocolo próprio por município e ano, tipo, `titular_nome`, `titular_contato`, estado `recebido`, `em_analise`, `aguardando_titular`, `atendido`, `negado`, `encerrado`, `prazo_em` nulo) e `pedidos_de_titular_eventos` (append-only). RLS forçada, FK composta, sem DELETE; nome e contato entram no manifesto como pessoal.
+  - API: `POST /v1/pedidos-de-titular`, `GET /v1/pedidos-de-titular`, `GET /v1/pedidos-de-titular/:id`, `POST /v1/pedidos-de-titular/:id/eventos` e `POST /v1/pedidos-de-titular/:id/exportacao`: JSON e CSV com as linhas das tabelas `pessoal: sim` casadas pelas `chavesDeBusca` do manifesto (contato normalizado exato; nome só como sugestão para revisão humana), teto de 5000 linhas por tabela, registrada em `exportacoes` (tipo `pedido_de_titular`, nível completo, justificativa com o protocolo e um resumo do pedido, mínimo de 20 caracteres exigido pelo CHECK da migração 021).
+  - Autorização: ações `atender_pedido_de_titular` (administrador) e registrar pedido (coordenador e administrador) em `packages/shared/src/permissoes.ts`, rotas no manifesto rota x ação (F03-E12).
+  - Frontend: `apps/web/src/paginas/PedidosDeTitular.tsx` (a criar), lista por estado, detalhe e estado vazio, nos dois modos de dados.
+- **O que NÃO deve ser implementado nesta etapa:** prazo, quem atende e a resposta ao titular (J5, CP-11); executar correção ou redação por pedido (a E10 entrega a primitiva; a chamada por pedido fica atrás de CP-11); autoatendimento no app (F15 e F17 reutilizam esta fila).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/privacidade/` e `apps/api/src/rotas/` (novos módulos), `packages/shared/src/permissoes.ts`, `apps/web/src/paginas/`, `db/src/manifesto.ts`.
+- **Risco de segurança:** alto; a exportação concentra dado de uma pessoa: só o administrador, registrada em `exportacoes`, sem `senha_hash`, `ficha` nem `token_hash`.
+- **Impacto LGPD:** cria o canal operacional dos direitos do titular; a retenção do próprio pedido fica `a_decidir` com CP-11.
+- **Migração necessária:** Sim (nome sugerido `NNN_pedidos_de_titular.sql`, onde NNN é a próxima livre na execução, hoje 047).
+- **Compatibilidade:** funcionalidade nova, sem efeito sobre o que existe.
+- **Rollback:** migration inversa enquanto as tabelas estiverem vazias.
+- **Testes positivos:** pedido de acesso pelo contato de um solicitante sintético exporta as ocorrências dele e grava `exportacoes`; as transições seguem a tabela.
+- **Testes negativos:** operador tenta atender: negado; `atendido` para `recebido`: recusado; exportar pedido ainda `recebido`: 409; `UPDATE` em evento pelo papel de aplicação: negado; o pacote nunca contém `senha_hash` nem `ficha`.
+- **Testes de autorização e isolamento:** administrador do município B pede a exportação de um pedido do A: 404; o mesmo contato existe nos dois municípios sintéticos e a exportação do A não traz linha do B.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run test:e2e`, `npm run typecheck`, `npm run test:scripts`; G04.
+- **E2E:** abrir pedido, exportar e encerrar, no painel e pela API.
+- **Validação humana:** Rafael abre um pedido com contato sintético e confere o pacote do titular contra as ocorrências.
+- **Evidência a produzir:** `docs/evidencias-v2/G05/V2-F05-E08/` com saída dos testes e pacote sintético.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md` (seção 5), `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** fila, estados e exportação funcionando com dado sintético, isolados por município, prazo e responsável ainda vazios.
+- **Checkpoint:** CP-11 (decide prazo, quem atende, canal e exclusão de conta x "registro não se apaga"; bloqueia atender pedido real e abrir o canal do cidadão; o mecanismo e o HML sintético andam).
+
+### V2-F05-E09 - Retenção configurável por município e classe (padrão vazio, jobs)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F05-E11)
+- **Objetivo:** configurar retenção por município e classe, com padrão vazio, cobrindo as duas colunas existentes e deixando pronto o gancho das classes novas, com jobs que relatam antes de executar.
+- **Problema que resolve:** só `retencao_solicitante_dias` e `retencao_vulnerabilidade_dias` existem (migração 021); relato não convertido, anexos, rastro de acesso e documento emitido não têm onde ser configurados (BZ-M:V2-TRV-03); `agendarMinimizacao` não tem teste (`apps/api/src/privacidade/minimizacao.ts:146-174`, BZ-D:LGP-11).
+- **Origem:** BZ-M:V2-TRV-03; DP:K6; DP:J4; REL:08 15.4.
+- **Estado atual:** EXPANDIR (as duas colunas e a função de minimização ficam; ganha tabela de classes e framework de jobs).
+- **Dependências de entrada:** E03; CP-10 para valores e execução.
+- **O que deve ser implementado:**
+  - Banco: migration `NNN_retencao_por_classe.sql`: `retencao_por_classe` (município, classe, `dias` nulo, `acao` `redigir`, `eliminar` ou `relatar`) e `retencao_execucoes` (append-only: classe, modo, itens, aprovado por); `retencao_efetiva(classe)` lê as colunas antigas para `ocorrencia_solicitante` e `ocorrencia_vulnerabilidade` e a tabela nova para as demais, sem migrar dado.
+  - API: `GET` e `PATCH /v1/organizacao/retencao` compatíveis com os campos atuais, com antes e depois na trilha administrativa como em `rotas/administracao.ts`; jobs em `apps/api/src/privacidade/retencao.ts` (a criar) com `RETENCAO_MODO` `relatar` (padrão) ou `executar`; classe nova só executa depois de aprovação humana do relatório; a minimização das duas classes atuais segue automática, agora com teste do agendador, rodada na partida e falha em nível `error`.
+  - Frontend: seção de classes em `apps/web/src/paginas/Organizacao.tsx`, campo de texto com rótulo que diz o que digitar (dias inteiros; vazio significa "nunca expira").
+- **O que NÃO deve ser implementado nesta etapa:** valores padrão (padrão vazio, CP-10); retenção de foto e anexo (F06 registra a classe) e de documento emitido (F09-E12); expurgo de IP (a E12 usa este mecanismo); mover relógios para o worker (F07-E03).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/privacidade/minimizacao.ts`, `apps/api/src/privacidade/retencao.ts` (a criar), `apps/api/src/rotas/administracao.ts`, `apps/web/src/paginas/Organizacao.tsx`, `apps/api/src/index.ts`.
+- **Risco de segurança:** médio; só `gerenciar_organizacao` altera; a execução nunca recebe município de parâmetro.
+- **Impacto LGPD:** transforma "padrão vazio" em decisão registrada por município e por classe.
+- **Migração necessária:** Sim (nome sugerido `NNN_retencao_por_classe.sql`, onde NNN é a próxima livre na execução, hoje 047).
+- **Compatibilidade:** a rota atual de retenção responde igual; nenhum município muda de comportamento.
+- **Rollback:** migration inversa; as colunas antigas seguem como fonte.
+- **Testes positivos:** município com prazo de 30 dias nas colunas antigas continua minimizando; classe nova em `relatar` grava relatório com contagem; relógio de minimização com teste de agendador.
+- **Testes negativos:** município sem prazo não perde nada em nenhuma classe; `dias` zero ou negativo recusado; classe nova não executa sem aprovação do relatório; administrador de outro município não altera.
+- **Testes de autorização e isolamento:** coordenador tenta `PATCH` de retenção: negado; município B não lê nem altera o prazo do A (`isolamento.test.ts`, caso "nao le nem altera o prazo de retencao do municipio vizinho").
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api` (`minimizacao.test.ts`, `retencao-do-municipio.test.ts`, `laudo-depois-da-minimizacao.test.ts`), `npm run typecheck`, `npm run test:scripts`; G04.
+- **E2E:** painel: configurar uma classe, ver o relatório sintético e aprovar.
+- **Validação humana:** Rafael configura um prazo sintético e confere o relatório antes da execução.
+- **Evidência a produzir:** `docs/evidencias-v2/G05/V2-F05-E09/` com saída dos testes e relatório sintético.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md` (seção 4), `apps/api/.env.example`.
+- **Definition of Done:** padrão vazio provado, modo `relatar` provado, agendador testado, nenhuma classe executa sem aprovação.
+- **Checkpoint:** CP-10 (decide prazos por classe e a relação do backup com a eliminação; bloqueia executar com prazo real em classe nova; mecanismo, relatório e padrão vazio andam).
+
+### V2-F05-E10 - Minimização e redação: tipoDescricao na trilha, mecanismo de anonimização
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com F05-E11)
+- **Objetivo:** trazer a cópia do relato na trilha para dentro da minimização e entregar uma primitiva única de redação de texto livre em tabela imutável.
+- **Problema que resolve:** `apps/api/src/rotas/ocorrencias.ts:684` (evento `registro`, `tipoDescricao`) e `:792` (evento `triagem`, `tipoDescricaoAnterior`) copiam o relato de até 300 caracteres para `trilha_eventos.detalhe`, e nenhuma migração o alcança; a 043 diz que `tipo_descricao` "FICA" (BZ-F:P0-LGPD; BZ-D:LGP-07).
+- **Origem:** BZ-F:P0-LGPD; REL:08 15.4.3 e 15.8 item 4; BZ-D:LGP-07; DP:J4.
+- **Estado atual:** CORRIGIR (a função `minimizar_por_prazo` e o padrão de redação do `assinante` existem; falta esta chave e a generalização).
+- **Dependências de entrada:** E03 (manifesto classificado, com a lista de texto livre da trilha).
+- **O que deve ser implementado:**
+  - Banco: migration `NNN_redacao_do_relato_na_trilha.sql` com `CREATE OR REPLACE` de `minimizar_por_prazo(integer)` (mesma assinatura e grants): quando o texto vence (critério de `descricao`, o mais curto dos dois prazos), `tipo_descricao` e as chaves `tipoDescricao` e `tipoDescricaoAnterior` do `detalhe` viram "removido por prazo", com a conferência de contagem (DC368).
+  - Banco: primitiva privilegiada `redigir_texto_da_trilha(ocorrencia, chaves, motivo)`, só com chaves declaradas no manifesto (`trilha_eventos.pessoal.textoLivre`), que recusa ocorrência de outro município pelo contexto do tenant; chamada só pela função de prazo (a chamada por pedido de titular fica atrás de CP-11, J5).
+  - API: teste que roda criação, triagem, vistoria e encerramento e compara toda chave de texto do `detalhe` com a lista do manifesto.
+- **O que NÃO deve ser implementado nesta etapa:** fixar prazo (usa o já configurado; padrão vazio segue sem expurgo); legenda de foto, providência e observação de ofício (BZ-D:LGP-08, `a_decidir` com CP-10); chamar a primitiva por pedido de titular (E08 e CP-11).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/rotas/ocorrencias.ts`, `db/test/minimizacao-do-relato-e-da-trilha.test.ts`, `db/src/manifesto.ts`.
+- **Risco de segurança:** alto; segunda exceção ao append-only, só por função privilegiada, com contagem e abortamento.
+- **Impacto LGPD:** fecha o P0 de texto livre fora do prazo.
+- **Migração necessária:** Sim (nome sugerido `NNN_redacao_do_relato_na_trilha.sql`, onde NNN é a próxima livre na execução, hoje 047).
+- **Compatibilidade:** o evento de minimização lista o campo novo; a trilha mantém o formato.
+- **Rollback:** restaurar a versão da 043 por migration nova; o texto já redigido não volta, de propósito.
+- **Testes positivos:** município com prazo de 30 dias, ocorrência `outro` encerrada há 31 dias: coluna e as duas chaves viram o marcador.
+- **Testes negativos:** município sem prazo: nada muda; ocorrência aberta: nada muda; redação que alcança menos eventos que o esperado aborta e desfaz tudo; `UPDATE` direto em `trilha_eventos` pelo papel de aplicação segue negado; chave fora do manifesto é recusada.
+- **Testes de autorização e isolamento:** a minimização não alcança município vizinho e a primitiva recusa ocorrência de outro município (casos do bloco de minimização em `isolamento.test.ts`); o teto de 27 funções privilegiadas só sobe com justificativa nomeada.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api` (`minimizacao.test.ts`, `laudo-depois-da-minimizacao.test.ts`), `npm run typecheck`; G04.
+- **E2E:** Não se aplica: rotina de banco sem tela.
+- **Validação humana:** Rafael vê a trilha de uma ocorrência sintética antes e depois da rodada.
+- **Evidência a produzir:** `docs/evidencias-v2/G05/V2-F05-E10/` com a trilha antes e depois e a saída do teste de banco.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md`, `docs/DICIONARIO-DE-DADOS.md` (exceção ao append-only), `db/PENDENCIAS.md`.
+- **Definition of Done:** relato redigido na trilha no prazo, primitiva com guardas provadas, nenhum texto novo fora do manifesto.
+- **Checkpoint:** Não.
+
+### V2-F05-E11 - Auditoria de acesso: ofício, fotos e dossiê geram consulta nominal
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F05-E10)
+- **Objetivo:** fazer a leitura de ofício, de fotos e da busca por nome gerar registro de consulta nominal, na mesma transação.
+- **Problema que resolve:** `GET /oficios/:id/documento` (`apps/api/src/rotas/oficios.ts:345`) imprime nome, relato e vulnerabilidade, e `GET /evidencias/:id/url` e `GET /evidencias/ocorrencia/:id` (`rotas/evidencias.ts:523` e `:560`) entregam a foto da casa, tudo sem `registrarConsulta`; a lista `?busca=` associa nome a endereço sem rastro (`rotas/ocorrencias.ts:342-352`), enquanto laudo, termos e dossiê registram.
+- **Origem:** BZ-F:P0-LGPD; BZ-D:LGP-19; BZ-D:DOC-30; ALY:CA-07; REL:08 15.5.
+- **Estado atual:** EXPANDIR (`registrarConsulta` e `ocorrencia_consultas` existem; faltam chamadores e valores).
+- **Dependências de entrada:** E03 (manifesto classificado).
+- **O que deve ser implementado:**
+  - Banco: migration `NNN_consultas_de_oficio_e_foto.sql` altera os CHECKs de `ocorrencia_consultas`: `recurso` ganha `oficio_documento`, `evidencia_foto` e `evidencia_lista`; `usuario_papel` passa a usar o domínio de papel da F03-E04 (inclui `usuario_orgao`). Nenhuma coluna de conteúdo: registra o acesso, nunca o dado.
+  - API: `registrarConsulta` (`apps/api/src/privacidade/consulta.ts`) chamada dentro da transação nas três rotas e na lista `?busca=` só quando o nome do solicitante casou (mesmo critério de `/busca`); uma linha por chamada, sem deduplicação; a URL assinada só sai depois do INSERT.
+  - Autorização: o registro grava o usuário nominal do token; ocorrência de outro município responde 404 sem registrar nada, como hoje.
+  - Frontend: `apps/web/src/paginas/Auditoria.tsx` mostra os recursos novos com rótulo em português.
+- **O que NÃO deve ser implementado nesta etapa:** registrar listagem sem busca por nome (decisão de `consulta.ts`: volume e granularidade), `/campo/meu-trabalho` e `/sincronizacao/pendencias` (o aparelho precisa do dado sem sinal), ofício por link público (F04-E12), leituras do portal (F11).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/privacidade/consulta.ts`, `apps/api/src/rotas/oficios.ts`, `apps/api/src/rotas/evidencias.ts`, `apps/api/src/rotas/ocorrencias.ts`, `apps/web/src/paginas/Auditoria.tsx`.
+- **Risco de segurança:** médio; volume de linhas em `GET /evidencias/ocorrencia/:id`, mitigado por registrar uma linha por chamada de lista e não por foto.
+- **Impacto LGPD:** responde "quem viu a foto e o ofício desta família", pergunta que hoje não tem resposta.
+- **Migração necessária:** Sim (nome sugerido `NNN_consultas_de_oficio_e_foto.sql`, onde NNN é a próxima livre na execução, hoje 047).
+- **Compatibilidade:** `GET /relatorios/consultas` passa a devolver recursos novos; os antigos seguem iguais.
+- **Rollback:** migration que restaura os CHECKs, se nenhuma linha nova existir.
+- **Testes positivos:** abrir o documento do ofício, uma foto e a lista de fotos grava uma linha cada, com usuário, recurso e finalidade; busca por nome que casa grava `busca`.
+- **Testes negativos:** foto de ocorrência de outro município: 404 e nenhuma linha; busca por protocolo não grava; nenhuma coluna carrega conteúdo lido.
+- **Testes de autorização e isolamento:** agente de outra equipe lê a foto de ocorrência alheia: 404 sem registro; a auditoria do município B não mostra consulta do A (`apps/api/test/registro-de-consulta.test.ts`).
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api` (`registro-de-consulta.test.ts`, `evidencias.test.ts`, `orgaos-e-oficio.test.ts`), `npm run test:e2e`; G04.
+- **E2E:** abrir o ofício e uma foto no painel e ver as duas linhas na tela de auditoria.
+- **Validação humana:** Rafael abre uma foto e um ofício sintéticos e confere o registro.
+- **Evidência a produzir:** `docs/evidencias-v2/G05/V2-F05-E11/` com saída dos testes e captura da auditoria.
+- **Documentação a atualizar:** `apps/api/src/privacidade/consulta.ts` (critério), `docs/PRIVACIDADE.md`, `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** as três leituras e a busca por nome registram consulta nominal na transação, sem conteúdo.
+- **Checkpoint:** Não.
+
+### V2-F05-E12 - Expurgo de IP e user-agent (sessões, recuperações, aberturas de ofício)
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com F05-E10)
+- **Objetivo:** zerar IP e user-agent de sessões, recuperações de senha e aberturas de ofício depois do prazo da classe `rastro_de_acesso`, sem apagar a linha.
+- **Problema que resolve:** `sessoes.ip`, `sessoes.user_agent`, `recuperacoes_senha.ip`, `oficio_aberturas.ip` e `agente_do_navegador` acumulam sem expurgo, e o comentário da migração 011 (linhas 66 a 68) diz que o IP "entra na purga" junto com o de `sessoes` e `recuperacoes_senha`, e essa purga não existe (BZ-D:IDN-29; REL:08 15.8 item 3).
+- **Origem:** BZ-D:IDN-29; BZ-F:P0-LGPD; DP:J4; REL:08 15.8.
+- **Estado atual:** CRIAR (as colunas já são nuláveis; não há função nem relógio).
+- **Dependências de entrada:** E09; CP-10 para o prazo.
+- **O que deve ser implementado:**
+  - Banco: migration `NNN_expurgo_de_rastro_de_acesso.sql` com a função privilegiada `expurgar_rastros_de_acesso(teto)`, `SET search_path`, `row_security = off`, sem município nem prazo de parâmetro: lê `retencao_efetiva('rastro_de_acesso')` por município e faz `UPDATE ... SET ip = NULL, user_agent = NULL` nas três tabelas, com conferência de contagem (DC368) e linha na trilha administrativa com quantidades. `oficio_aberturas` é append-only: esta função é a exceção controlada. O teto de 27 funções privilegiadas sobe com justificativa nomeada.
+  - Banco (interesse_municipio): a mesma função, ou função irmã na mesma migration, expurga também `interesse_municipio` (BZ-D:LGP-15: nome, cargo, e-mail, telefone e IP de servidor de município interessado; tabela de plataforma sem prazo, em que o papel de aplicação hoje não tem SELECT nem DELETE), com o prazo da classe decidida em CP-10 e aviso de coleta no formulário público (`apps/api/src/rotas/interesse.ts`).
+  - API: relógio em `apps/api/src/privacidade/expurgo-de-rastro.ts` (a criar), pool e trava próprios como a minimização (chave nova em `push/trava.ts`), modo `relatar` por padrão (E09).
+  - Observabilidade: falha da rodada em nível `error`.
+- **O que NÃO deve ser implementado nesta etapa:** IP de `exportacoes` e de `ocorrencia_consultas` (permanência declarada, revisável em CP-10); mover o relógio para o worker (F07-E03); apagar linha de sessão.
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/privacidade/expurgo-de-rastro.ts` (a criar em `apps/api/src/privacidade/`), `apps/api/src/push/trava.ts`, `apps/api/src/index.ts`.
+- **Risco de segurança:** alto; função privilegiada sobre tabela de prova de acesso; limitada por teto, contagem e sem parâmetro de município.
+- **Impacto LGPD:** fecha o rastro de IP e agente do navegador sem prazo, que a política não menciona.
+- **Migração necessária:** Sim (nome sugerido `NNN_expurgo_de_rastro_de_acesso.sql`, onde NNN é a próxima livre na execução, hoje 047).
+- **Compatibilidade:** padrão vazio: nada é expurgado até o município fixar prazo.
+- **Rollback:** remover a função e o relógio; o dado já zerado não volta.
+- **Testes positivos:** com prazo sintético de 30 dias, sessão e abertura de 31 dias ficam sem IP e sem agente e continuam com `criada_em` e resultado.
+- **Testes negativos:** sem prazo, nada muda; sessão mais nova que o prazo não muda; contagem divergente aborta a rodada; `PUBLIC` não executa a função.
+- **Testes de autorização e isolamento:** a função não aceita município de quem chama e não devolve dado de pessoa (mesmo molde dos casos de `minimizar_por_prazo`); o município B não é alcançado pelo prazo do A.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api` (`senha-e-sessoes.test.ts`, `recuperacao.test.ts`, `orgaos-e-oficio.test.ts`), `npm run typecheck`; G04.
+- **E2E:** Não se aplica: rotina de banco sem tela.
+- **Validação humana:** Rafael vê o relatório da rodada em modo `relatar` com contagens sintéticas.
+- **Evidência a produzir:** `docs/evidencias-v2/G05/V2-F05-E12/` com saída dos testes e o relatório da rodada.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md` (rastro de acesso), `docs/DICIONARIO-DE-DADOS.md`, `apps/api/.env.example`.
+- **Definition of Done:** expurgo provado nas três tabelas, com padrão vazio e modo `relatar`, e a promessa da migração 011 deixa de ser falsa.
+- **Checkpoint:** CP-10 (decide prazo de IP e user-agent; bloqueia executar com prazo real; o padrão vazio e o modo `relatar` andam).
+
+### V2-F05-E13 - CPF do cidadão: dado de alto valor (validação, cifra, hash, máscara, classificação)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com F05-E10)
+- **Objetivo:** guardar o CPF obrigatório cifrado, com hash e máscara, sem decidir a base legal.
+- **Problema que resolve:** D-07 reverte DP:T19; faltam validação, cifra, hash e regra de catálogo.
+- **Origem:** PR:D-07; DP:T19; BZ-D:LGP-01.
+- **Estado atual:** CRIAR (a coluna nasce em F15-E02 ou F16-E02).
+- **Dependências de entrada:** E03; CP-46 para dado real.
+- **O que deve ser implementado:**
+  - Domínio: `packages/shared/src/cpf.ts` (a criar): `cpfValido` e `mascararCpf`.
+  - API: `apps/api/src/privacidade/cpf.ts` (a criar): AES-256-GCM sobre `auth/cofre.ts` com `CPF_CHAVE`; `hashDeCpf(cpf, escopo)` HMAC-SHA-256 com `CPF_HASH_CHAVE`: escopo `global` na conta do cidadão (um CPF por conta, F15-E02) e `organizacao_id` no relato do município; `config.ts` exige as duas.
+  - Banco: `altoValor` por coluna no manifesto (E03); regra 6 em `db/test/manifesto-de-tabelas.test.ts`: exige envelope cifrado, coluna de hash e retenção `cpf`; a regra 5 barra `cpf` em `pessoal: nao`.
+  - API: listas devolvem só a máscara; `redact` de `cpf` no log.
+- **O que NÃO deve ser implementado nesta etapa:** a coluna (F15-E02, F16-E02); revelar e retenção (E14); base legal.
+- **Arquivos e módulos prováveis:** `packages/shared/src/cpf.ts`, `apps/api/src/privacidade/cpf.ts`, `apps/api/src/config.ts`, `db/src/manifesto.ts`.
+- **Risco de segurança:** alto; duas chaves distintas, fora do banco.
+- **Impacto LGPD:** dado de alto valor inventariado por coluna.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só itens novos.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** CPF sintético cifra, decifra e casa pelo hash; lista mostra a máscara.
+- **Testes negativos:** CPF inválido recusado; envelope copiado para outra linha não abre; coluna sem hash reprova; chave ausente derruba a partida.
+- **Testes de autorização e isolamento:** o mesmo CPF gera hashes diferentes nos relatos de A e B e um só hash global na conta.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`; G04.
+- **E2E:** Não se aplica: sem fluxo de usuário.
+- **Validação humana:** Rafael vê o catálogo reprovar `cpf` sem hash.
+- **Evidência a produzir:** `docs/evidencias-v2/G05/V2-F05-E13/` com testes, sem CPF real.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** cifra, hash e máscara provados; catálogo reprova CPF sem hash.
+- **Checkpoint:** CP-46 (base legal, finalidade, CPF único por conta global e cópia ao relato; ⚖️ jurídico, DPO, Rafael; bloqueia CPF real e abertura pública; o mecanismo anda).
+
+### V2-F05-E14 - CPF: acesso auditado, retenção própria e saída por titular
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (depende da E13)
+- **Objetivo:** controlar quem vê o CPF completo e fechar retenção, saída por titular e eliminação.
+- **Problema que resolve:** a máscara da E13 não impede abuso de quem revela o valor; sem registro nominal, retenção e saída, o CPF obrigatório (D-07) fica sem dono.
+- **Origem:** PR:D-07; DP:J4; DP:J5; REL:08 15.7.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E13, E08, E09, E11; CP-46.
+- **O que deve ser implementado:**
+  - Banco: migration com `acessos_a_cpf` (tenant, append-only: usuário, alvo, finalidade, instante); classe `cpf` em `retencao_por_classe` (padrão vazio).
+  - API: `POST /v1/cpf/revelar`, ação `ver_cpf` (administrador e coordenador), finalidade escrita de 20 caracteres ou mais, acesso gravado antes da resposta, sem lote.
+  - API: exportação do titular (E08) casa pelo hash e traz só o CPF dele; `saida/pacote.ts` traz a máscara no nível padrão e o valor no nível completo, registrado; a eliminação o apaga.
+  - Frontend: `apps/web/src/paginas/Auditoria.tsx` lista os acessos.
+- **O que NÃO deve ser implementado nesta etapa:** prazo e texto de finalidade (CP-46, CP-10); tela do relato (F18).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `apps/api/src/privacidade/cpf.ts`, `apps/api/src/saida/pacote.ts`, `packages/shared/src/permissoes.ts`, `apps/web/src/paginas/Auditoria.tsx`.
+- **Risco de segurança:** alto; revelar concentra o dado: só dois papéis, sempre registrado.
+- **Impacto LGPD:** responde "quem viu o CPF desta pessoa".
+- **Migração necessária:** Sim (`NNN_acesso_a_cpf.sql`, hoje 047).
+- **Compatibilidade:** só itens novos.
+- **Rollback:** migration inversa com a tabela vazia.
+- **Testes positivos:** revelar grava uma linha; exportação do titular traz o CPF dele; pacote padrão traz a máscara.
+- **Testes negativos:** revelar sem finalidade: 422; `UPDATE` em `acessos_a_cpf`: negado; CPF em claro fora do nível completo nunca sai.
+- **Testes de autorização e isolamento:** operador revela: negado; administrador de B revela CPF de A: 404.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api` (`saida-de-municipio.test.ts`); G04.
+- **E2E:** Não se aplica: sem tela de relato nesta fase.
+- **Validação humana:** Rafael revela CPF sintético e confere o registro.
+- **Evidência a produzir:** `docs/evidencias-v2/G05/V2-F05-E14/` com testes e o acesso gravado.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md`, `docs/SAIDA-DE-MUNICIPIO.md`.
+- **Definition of Done:** acesso nominal, retenção, saída por titular e eliminação provados.
+- **Checkpoint:** CP-46 (prazo, finalidade e quem revela; bloqueia CPF real; o mecanismo anda).
+
+### V2-F05-E15 - Expurgo de aparelho revogado (ficha de push)
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F05-E13)
+- **Objetivo:** zerar a ficha de push de aparelho revogado ou sumido depois do prazo, sem apagar a linha.
+- **Problema que resolve:** `aparelhos.ficha` (migração 016) fica para sempre; revogar só preenche `revogado_em`, e a seção 2.3 de `docs/PRIVACIDADE.md` não diz que a ficha permanece.
+- **Origem:** BZ-D:LGP-43; GAP-P1O-42; GAP-P1O-43; PR:D-20 (L19).
+- **Estado atual:** CRIAR (as colunas `visto_em` e `revogado_em` existem; faltam função e relógio).
+- **Dependências de entrada:** E09, E12; CP-10 para o prazo.
+- **O que deve ser implementado:**
+  - Banco: migration com `expurgar_aparelhos(teto)` (privilegiada, sem município de parâmetro): lê `retencao_efetiva('ficha_de_aparelho')`; vivo sem `visto_em` além do prazo é revogado por `inatividade`; revogado além do prazo troca `ficha` por `expurgada:<id>` e mantém o resto (`notificacoes` aponta para a linha); função na lista nominal `FUNCOES_PRIVILEGIADAS` (F03-E08).
+  - API: relógio de `apps/api/src/privacidade/expurgo-de-rastro.ts` (E12), modo `relatar` por padrão; `push/varredor.ts` ignora ficha expurgada.
+  - Arquivos: `docs/PRIVACIDADE.md` seções 2.3 e 6 corrigidas.
+- **O que NÃO deve ser implementado nesta etapa:** prazo (CP-10); apagar a linha; `cidadao_aparelhos` (F15-E17: prazo `CIDADAO_APARELHO_RETENCAO_DIAS` da plataforma, fora da retenção por município).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `apps/api/src/privacidade/expurgo-de-rastro.ts`, `apps/api/src/push/varredor.ts`, `db/src/manifesto.ts`.
+- **Risco de segurança:** médio; função privilegiada limitada por lista nominal e contagem.
+- **Impacto LGPD:** fecha o token de push sem prazo.
+- **Migração necessária:** Sim (`NNN_expurgo_de_aparelho_revogado.sql`, hoje 047).
+- **Compatibilidade:** padrão vazio: nada muda sem prazo.
+- **Rollback:** remover função e chamada.
+- **Testes positivos:** prazo de 30 dias: revogado há 31 vira `expurgada:<id>` e mantém `revogado_em`; vivo sem `visto_em` há 31 dias é revogado e expurgado.
+- **Testes negativos:** sem prazo nada muda; ficha expurgada não recebe push; contagem divergente aborta; `PUBLIC` não executa.
+- **Testes de autorização e isolamento:** prazo do município A não alcança o B; função sem município de parâmetro.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api` (`push-aparelhos.test.ts`, `push-varredor.test.ts`); G04.
+- **E2E:** Não se aplica: rotina de banco.
+- **Validação humana:** Rafael lê o relatório da rodada em `relatar`.
+- **Evidência a produzir:** `docs/evidencias-v2/G05/V2-F05-E15/` com testes e relatório.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md`, `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** ficha zerada no prazo, linha preservada, política correta.
+- **Checkpoint:** CP-10 (prazo da ficha; bloqueia executar com prazo real; padrão vazio e `relatar` andam).
+
+# GATE G05 - MANIFESTO DE DADOS ATIVO
+Só passa se:
+- [ ] O manifesto declara as 35 tabelas atuais (saída, eliminação, pessoal, retenção) e toda tabela criada em F03 e F04 (V2-F05-E01 e E03; evidência: `db/src/manifesto.ts` e a saída de `db/test/manifesto-de-tabelas.test.ts`).
+- [ ] Tabela sem entrada, entrada sem tabela e coluna de nome suspeito em tabela `pessoal: nao` reprovam, sem `skip` (V2-F05-E02; evidência: captura do vermelho provocado e do verde).
+- [ ] As isenções de plataforma de `isolamento.test.ts` derivam do manifesto e o conjunto derivado é idêntico ao antigo (V2-F05-E04; evidência: comparação arquivada).
+- [ ] Pacote de saída e ordem de eliminação derivam do manifesto, com comportamento idêntico, e nenhuma lista paralela resta no código (V2-F05-E05; evidência: testes de saída e eliminação, índice do pacote sintético).
+- [ ] Aceite versionado, política versionada e fila de pedidos de titular funcionam em HML com dado sintético, isolados por município, desligados por padrão (V2-F05-E06, E07 e E08; evidência: testes e capturas).
+- [ ] Retenção por classe tem padrão vazio provado (município sem prazo não perde nada), modo `relatar` provado e agendador de minimização testado (V2-F05-E09; evidência: saída dos testes e relatório sintético).
+- [ ] O relato copiado para a trilha (`registro` e `triagem`) é redigido no prazo e a primitiva de redação recusa chave fora do manifesto e município alheio (V2-F05-E10; evidência: trilha antes e depois, teste de banco).
+- [ ] Ofício, fotos e busca por nome geram consulta nominal na mesma transação, sem conteúdo (V2-F05-E11; evidência: testes e captura da auditoria).
+- [ ] IP e user-agent de sessões, recuperações e aberturas de ofício são zerados pela função de expurgo no prazo da classe, e a função nova entrou na lista nominal `FUNCOES_PRIVILEGIADAS` (F03-E08) com justificativa (V2-F05-E12; evidência: testes e relatório da rodada).
+- [ ] O CPF do cidadão tem validação, cifra com chave própria, hash que não correlaciona municípios, máscara em listas, acesso nominal em `acessos_a_cpf`, retenção própria e saída por titular provados com dado sintético, e o catálogo reprova coluna de CPF fora do padrão (V2-F05-E13 e E14; evidência: testes e acesso gravado, sem CPF real).
+- [ ] A ficha de push de aparelho revogado ou sumido é zerada no prazo da classe, a linha permanece e `docs/PRIVACIDADE.md` está corrigida (V2-F05-E15; evidência: testes e relatório da rodada).
+- [ ] CP-10, CP-11, CP-29 e CP-46 estão decididos ou explicitamente adiados, com o que fica bloqueado registrado em `GATE.md`: texto e base legal, abertura pública do canal do cidadão e beta externo (CP-11); prazos reais e execução de classes novas (CP-10); regra final de eliminação (CP-29); coleta de CPF real (CP-46, que também decide: um CPF por conta global, em que o conflito de CPF vira oráculo de existência e fica sob cota; e se copiar o CPF ao relato do município é aceitável).
+- [ ] Nenhuma regressão: gates G00 a G04 continuam verdes (se um quebrar, ESTE gate volta a REPROVADO), com `npm run test:isolamento`, `npm run test:api`, `npm run test:console`, `npm run test:scripts` e `npm run typecheck` verdes.
+- [ ] Documentação atualizada (`docs/PRIVACIDADE.md`, `docs/DICIONARIO-DE-DADOS.md`, `docs/SAIDA-DE-MUNICIPIO.md`, `db/PENDENCIAS.md`, `apps/api/PENDENCIAS.md`) e evidências arquivadas em `docs/evidencias-v2/G05/`.
+
+**Reabre se:** uma migration criar tabela sem classificação, ou a saída ou a eliminação divergirem do manifesto, ou aparecer texto livre de cidadão em tabela imutável fora da lista do manifesto, ou leitura de ofício ou foto voltar a não registrar consulta, ou coluna de CPF existir sem cifra e sem hash, ou CPF aparecer em log ou em trilha.
+**Este Gate libera:** F06 (cadeia de arquivos), F09 (documentos imutáveis, junto de G07) e F15 (fundação do canal do cidadão, junto de G12 e G07). O que o parecer jurídico decide continua atrás de CP-10, CP-11 e CP-29 e não é liberado por este gate.
+
+# Fase 06: Cadeia segura de arquivos
+
+**Gate da fase:** G06 CADEIA DE ARQUIVOS PROVADA | **Depende dos gates:** G05 | **Superfícies tocadas:** API, banco, painel da prefeitura (laudo e marca de inclusão), app do agente (transporte de foto e perfil de captura, E21 e E22; a prova em aparelho é da F14) e infraestrutura (bucket de HML e `ffmpeg` no CI) | **Checkpoints da fase:** CP-12, CP-13, CP-48
+
+Esta fase constrói o modelo de arquivos e a cadeia autorizar, PUT, confirmar, verificar, ativar ou rejeitar como MÓDULO INDEPENDENTE DO EXECUTOR (`apps/api/src/arquivos/`, a criar), prova a cadeia com um executor local e fecha os dois P0 de integridade da prova: conteúdo de arquivo nunca validado (BZ-D:UPL-08 e UPL-10) e `evidencias` com UPDATE irrestrito para o papel de aplicação (BZ-D:UPL-18 e UPL-27), além da foto avulsa que entra sozinha no laudo. Por D-07 e D-20 a fase também entrega o vídeo do cidadão (E18 a E20), o anexo da prefeitura (E17) e, para a foto de vistoria, o envio retomável, a compressão configurável no aparelho e o antivírus sem recodificar (E21 a E23).
+
+REGRA DE ORDEM: a cadeia nasce aqui, provada com executor local; a F07 a isola num worker; NENHUM upload externo (portal ou cidadão) antes do G07. O mecanismo é a variável `ARQUIVOS_EXTERNOS_ATIVO` (padrão `nao`), criada na E04, que a configuração recusa ligar em produção com executor local. O `ffmpeg` roda aqui só no executor local; a transcodificação isolada é da F07-E10 e nenhum upload externo de vídeo precede o G07. O G06 sozinho NÃO libera upload externo.
+
+O que se PRESERVA (MANTER): `evidencias` e o fluxo do agente (autorizar, PUT com `if-none-match: *`, confirmar com SHA-256 medido no servidor), o prefixo por tenant com CHECK no banco, o teto 80/100/150 % (`situacao_de_armazenamento`, migração 035), o SigV4 escrito à mão (ADR 0005), a varredura de órfãos, o motor offline em `packages/campo` e o pacote de saída com os originais. REGRA DE PROVA: a foto original de VISTORIA é prova e NUNCA é recodificada pelo servidor; só é validada por bytes e varrida sem alteração (E23), e a única compressão é a do aparelho, em uma passagem, antes do primeiro hash (E22). A lista de classes é aberta a emenda da ADR 0011 (E01): a F30 acrescenta `comprovante_de_entrega` (foto e assinatura de entrega) por migration própria, com linha em `limites_de_arquivo` (E06), e essa classe é prova como a foto de vistoria, então o `recodificar` da E07 também a recusa (a F30 estende a guarda). ENVIO RETOMÁVEL: a E21 entrega o servidor (partes no `Armazenamento` e rotas) e a lógica de cliente em `packages/campo` (`transporte.ts` e `fila.ts`, testada em Node), e a F14-E22 entrega só a tela de progresso do app e a prova em Android e iPhone físicos. A fase NÃO faz: áudio avulso, vídeo fora da classe `video_cidadao` (nenhum vídeo de secretaria, prefeitura ou vistoria), transcodificação (F07-E10), tela de anexos do portal e do cidadão (F11-E13, F16-E12, F17, F34), documento emitido imutável (F09), worker (F07). Nenhum anexo de cidadão, secretaria ou prefeitura entra em laudo automaticamente, e vídeo nunca entra.
+
+Ordem sugerida: E01, E02, E03, E04, E05; depois E06, E07 e E08 (mesmo módulo `verificador.ts`: serializar a edição) e E16; E09 e E10 após E02 e E03; E11 só depende do G05 e pode andar em paralelo a tudo; E12 após E02 e E11; E13 após E03; E14 após E05 (P2); E15 assim que o HML existir (F01-E11), antes de qualquer upload externo; E17 após E04, E06 e E09; E18 após E05 e E06, E19 após E07 e E18, E20 após E12, E13 e E19; E21 e E22 após E11, e E23 após E11 e E14. CP-13 trava cotas em produção (mecanismo, testes e valores da T24 em HML andam); CP-12 trava PDF no portal (até lá só imagem).
+
+## Etapas
+
+### V2-F06-E01 - ADR 0011: modelo de arquivos, classes, promoção e imutabilidade de prova
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F06-E11)
+- **Objetivo:** fixar por escrito, antes de qualquer código, classes, estados, promoção, regra de prova e vídeo.
+- **Problema que resolve:** `evidencias` exige ocorrência, agente autor, tipo e teto fixos; sem ADR, portal, cidadão e vídeo (D-07) decidiriam cada um o seu modelo.
+- **Origem:** DP:T23; DP:T25; BZ-F:P0-INT; REL:08 16.4; PR:D-07; PR:D-20.
+- **Estado atual:** CRIAR (ADRs 0001 a 0008 existem).
+- **Dependências de entrada:** G05 (manifesto de dados ativo).
+- **O que deve ser implementado:**
+  - Arquivos: ADR `docs/adr/0011-modelo-de-arquivos-classes-promocao-e-prova.md` com: (1) sete classes iniciais, lista aberta a emenda (classe nova, como `comprovante_de_entrega` da F30, entra por migration em `arquivos.classe` e `limites_de_arquivo`): `anexo_cidadao`, `video_cidadao`, `anexo_secretaria`, `anexo_prefeitura` e `documento_oficial` em `arquivos`; `evidencia_vistoria` e `evidencia_promovida` em `evidencias`; (2) estados `quarentena`, `em_verificacao`, `ativo`, `rejeitado`, nada servido fora de `ativo`; (3) prefixos `tenant/<org>/quarentena/` e `tenant/<org>/ativo/`, sem nome do usuário; (4) foto de vistoria nunca é recodificada pelo servidor; (5) promoção é ato humano; (6) `incluir_no_laudo`; (7) vínculo por domínio com FK composta.
+  - Arquivos: vídeo: só `video_cidadao`, 1 por relato, 30 segundos e 50 MB; só o derivado sem metadados e o poster são servidos; nunca é promovido, nem entra em laudo, nem desce ao app do agente.
+  - Arquivos: critério da biblioteca de imagem e do `ffmpeg` (`npm audit` em zero, licença registrada, só em processo isolado).
+- **O que NÃO deve ser implementado nesta etapa:** código, tabelas e rotas (E02 em diante); valores de cota (CP-13).
+- **Arquivos e módulos prováveis:** a ADR 0011.
+- **Risco de segurança:** baixo; erro de modelo é caro de desfazer.
+- **Impacto LGPD:** define a retenção por classe.
+- **Migração necessária:** Não.
+- **Compatibilidade:** não altera nada existente.
+- **Rollback:** substituir a ADR.
+- **Testes positivos:** `npm test` aceita o arquivo (`regras-de-conteudo.test.ts`).
+- **Testes negativos:** a ADR sem marcador de campo aberto nem norma fora da lista.
+- **Testes de autorização e isolamento:** Não se aplica: documento.
+- **Regressão obrigatória:** `npm test`; G05.
+- **E2E:** Não se aplica: documento.
+- **Validação humana:** Rafael aprova a ADR antes da E02.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E01/` com hash e aprovação.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`.
+- **Definition of Done:** ADR aprovada e citada de E02 a E23.
+- **Checkpoint:** Não.
+
+### V2-F06-E02 - Tabela arquivos e vínculos (migration) com RLS e FK composta
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E03, E09, E10, E12 e E13 dependem)
+- **Objetivo:** criar `arquivos`, `arquivo_eventos` e `encaminhamento_anexos`, com RLS forçada e FK composta, e classificá-las no manifesto.
+- **Problema que resolve:** `evidencias` não serve a anexo: `ocorrencia_id` é NOT NULL, `anexada_por` aponta para `usuarios`, o CHECK fixa quatro tipos e 15 MB, e `situacao_de_armazenamento` soma só `evidencias` (migração 035, linhas 282 a 284) (BZ-D:UPL-32, UPL-33; BZ-M:V2-SEC-06, V2-CID-07).
+- **Origem:** DP:T23; BZ-M:V2-CID-07; BZ-M:V2-SEC-06; REL:08 16.4.
+- **Estado atual:** CRIAR (as tabelas; `evidencias` fica como está).
+- **Dependências de entrada:** E01 (ADR 0011 aprovada).
+- **O que deve ser implementado:**
+  - Migration: `NNN_arquivos.sql` (hoje 047): `arquivos` (`organizacao_id`, `id`, `classe`, `estado`, `autor_usuario_id` com FK composta para `usuarios` e `autor_cidadao_id` sem FK até a F15-E02, com CHECK de exatamente um; `chave_quarentena`, `chave_ativa`, tipo declarado e detectado, tamanhos, largura, altura, `sha256_original`, `sha256_armazenado`, `nome_exibicao` sanitizado, `rejeicao_codigo`, datas), `UNIQUE (organizacao_id, id)` e `UNIQUE (organizacao_id, chave_quarentena)`; `arquivo_eventos` (append-only); `encaminhamento_anexos` com FK composta para `providencias (organizacao_id, id)` (constraint `providencias_org_id_unico`, migração 017) e para `arquivos`.
+  - Banco: RLS ativada e forçada, policies por comando, GRANT só de SELECT e INSERT (a E03 libera o UPDATE restrito), sem DELETE.
+  - Arquivos: entradas no manifesto (`nome_exibicao` pessoal; retenção `a_decidir` com CP-10).
+- **O que NÃO deve ser implementado nesta etapa:** `relato_anexos` (depende de `relatos`, F16-E02, mesmo molde), `promocoes_de_anexo` (E12), estados e transições (E03), rotas (E04), `documentos_emitidos` (F09-E03).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `db/test/arquivos.test.ts` (a criar em `db/test/`), `db/src/manifesto.ts`.
+- **Risco de segurança:** alto; tabela nova de conteúdo de terceiros; FK sem organização permitiria vínculo entre municípios.
+- **Impacto LGPD:** entra classificada no manifesto; o nome do arquivo pode citar pessoa e fica como `nome_exibicao` sanitizado.
+- **Migração necessária:** Sim (nome sugerido `NNN_arquivos.sql`, onde NNN é a próxima livre na execução, hoje 047).
+- **Compatibilidade:** só tabelas novas; nenhuma rota ou tela existente muda.
+- **Rollback:** migration inversa enquanto as tabelas estiverem vazias (nenhum upload externo existe antes do G07).
+- **Testes positivos:** inserir arquivo e vínculo no próprio município funciona; o evento nasce na criação.
+- **Testes negativos:** vínculo de `encaminhamento_anexos` para providência de outro município recusado pela FK composta; `autor_usuario_id` de outro município recusado; `organizacao_id` alheio no INSERT recusado; `UPDATE` e `DELETE` negados ao papel de aplicação.
+- **Testes de autorização e isolamento:** o município B não enxerga arquivo do A, nem pelo identificador exato; sem contexto de organização nada aparece (molde de `isolamento.test.ts`).
+- **Regressão obrigatória:** `npm run test:isolamento` (portões "RLS ativada E forçada", "toda referência entre tabelas de negócio inclui a organização" e o do manifesto), `npm run test:api`, `npm run typecheck`; G05.
+- **E2E:** Não se aplica: sem rota nesta etapa.
+- **Validação humana:** Rafael aplica a migração num banco limpo e num banco com as 46 anteriores (`npm run migrar -- --conferir`).
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E02/` com saída da migração, do teste de isolamento e do portão do manifesto.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`, `docs/ARMAZENAMENTO.md`.
+- **Definition of Done:** tabelas criadas, isoladas, classificadas no manifesto, com FK composta provada.
+- **Checkpoint:** Não.
+
+### V2-F06-E03 - Máquina de estados do arquivo e prefixos de quarentena e ativo
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E04 a E08 dependem)
+- **Objetivo:** impor no banco as transições `quarentena`, `em_verificacao`, `ativo` ou `rejeitado`, registrar cada uma em evento append-only e fixar as chaves por prefixo.
+- **Problema que resolve:** `enviada_em IS NULL` não é quarentena (BZ-D:UPL-20): uma linha autorizada já existe para o resto do sistema e nada separa "bytes recebidos" de "bytes aprovados".
+- **Origem:** DP:T25; BZ-D:UPL-20; REL:08 16.1.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E02 (tabelas de arquivos).
+- **O que deve ser implementado:**
+  - Domínio: `packages/shared/src/arquivos.ts` (a criar em `packages/shared/src/`) com `ESTADOS_DE_ARQUIVO`, `TRANSICOES_DE_ARQUIVO`, `transicaoDeArquivoPermitida` (no padrão de `TRANSICOES_PERMITIDAS` em `dominio.ts`) e as funções de chave `chaveDeQuarentena` e `chaveAtiva` (prefixo por tenant, sem nome enviado pelo usuário).
+  - Banco: migration `NNN_estado_do_arquivo.sql` com gatilho `BEFORE UPDATE` que recusa transição fora da tabela e recusa alterar classe, autor, `sha256_original` e `chave_quarentena` depois de `confirmado_em`; UPDATE restrito por coluna; cada transição grava `arquivo_eventos` (quem, de, para, código); função `arquivo_servivel(id)` que só admite `ativo` (a E13 acrescenta a recusa de removido).
+  - API: nenhuma rota nova (a E04 usa a máquina).
+- **O que NÃO deve ser implementado nesta etapa:** URL assinada e rotas (E04), verificação de conteúdo (E05), moderação (E13).
+- **Arquivos e módulos prováveis:** `packages/shared/src/arquivos.ts` (a criar), `packages/shared/src/index.ts`, `db/migrations/` (nova), `db/test/arquivos.test.ts`.
+- **Risco de segurança:** alto; transição mal imposta serve arquivo não verificado.
+- **Impacto LGPD:** Não se aplica: sem dado novo; os eventos guardam códigos e identificadores, nunca conteúdo.
+- **Migração necessária:** Sim (nome sugerido `NNN_estado_do_arquivo.sql`, onde NNN é a próxima livre na execução, hoje 047).
+- **Compatibilidade:** só tabelas novas.
+- **Rollback:** migration que remove o gatilho e o grant, com tabelas vazias.
+- **Testes positivos:** percorrer `quarentena`, `em_verificacao` e `ativo` grava três eventos; `rejeitado` grava o código.
+- **Testes negativos:** pular de `quarentena` para `ativo` recusado; `ativo` para `quarentena` recusado; `rejeitado` para `ativo` recusado; alterar `sha256_original` depois de confirmado recusado; evento não se edita nem se apaga.
+- **Testes de autorização e isolamento:** usuário do município A transiciona arquivo do B: 0 linhas afetadas e nenhum evento; `arquivo_servivel` devolve falso fora de `ativo`.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`, `npm run build:shared`; G05.
+- **E2E:** Não se aplica: sem rota.
+- **Validação humana:** Rafael vê o diagrama de estados da ADR confrontado com o gatilho.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E03/` com saída dos testes e a tabela de transições.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`, ADR 0011 (diagrama final).
+- **Definition of Done:** transições impostas no banco, eventos append-only, `arquivo_servivel` só verdadeiro em `ativo`.
+- **Checkpoint:** Não.
+
+### V2-F06-E04 - Autorizar e confirmar: URL assinada com tamanho e tipo presos, validade curta, HEAD
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E05 a E08 dependem)
+- **Objetivo:** criar `POST /v1/arquivos/autorizar` e `POST /v1/arquivos/:id/confirmar` com URL assinada de tipo e tamanho presos, validade curta e conferência por HEAD, atrás da trava `ARQUIVOS_EXTERNOS_ATIVO`.
+- **Problema que resolve:** `confirmarBytes` baixa o objeto inteiro na memória (`apps/api/src/rotas/evidencias.ts:119-136`) e depende de o provedor impor o `content-length` assinado (NÃO CONFIRMADO); a URL de escrita vive 15 minutos (`armazenamento/s3.ts:62`); não existe chave de quarentena (BZ-D:UPL-06, UPL-31).
+- **Origem:** DP:T25; BZ-D:UPL-06; BZ-D:UPL-31; REL:08 16.3.
+- **Estado atual:** CRIAR (para anexos; `POST /evidencias/autorizar-envio` e `/confirmar-envio` do agente são MANTIDOS).
+- **Dependências de entrada:** E03 (máquina de estados e chaves de prefixo).
+- **O que deve ser implementado:**
+  - API: módulo `apps/api/src/arquivos/` (a criar em `apps/api/src/`) com `autorizar.ts`, `confirmar.ts` e `verificador.ts` (esqueleto, preenchido na E05) e rotas em `apps/api/src/rotas/arquivos.ts` (a criar). `autorizar` valida classe do ator, tipo e tamanho, monta `chaveDeQuarentena` e devolve URL PUT de cinco minutos (configurável) com `content-type`, `content-length` e `if-none-match: *` assinados; `confirmar` faz HEAD (`armazenamento.descrever`), exige o tamanho exato, grava `em_verificacao` e chama o executor local, de forma idempotente.
+  - Infraestrutura: `ARQUIVOS_EXTERNOS_ATIVO` (padrão `nao`) e `EXECUTOR_DE_ARQUIVOS` (`local` até a F07) em `config.ts`; a configuração recusa `sim` em produção com executor `local`; classe externa com a trava desligada responde 404; `.env.example` atualizado.
+  - Arquivos: `armazenamento/memoria.ts` e `rotas/armazenamento-local.ts` recusam PUT de tipo ou tamanho diferente do assinado (hoje o local só confere o `content-type`).
+  - Autorização: ação por classe em `permissoes.ts`; `usuario_orgao` só com vínculo vivo ao órgão do encaminhamento (F03-E05, F04-E08), no manifesto rota x ação.
+- **O que NÃO deve ser implementado nesta etapa:** validação de conteúdo (E05), limites de dimensão (E06), recodificação (E07), tela de upload do portal (F11-E13), app do cidadão (F17), upload externo real (só depois do G07).
+- **Arquivos e módulos prováveis:** `apps/api/src/arquivos/` e `apps/api/src/rotas/arquivos.ts` (a criar), `apps/api/src/armazenamento/memoria.ts`, `apps/api/src/rotas/armazenamento-local.ts`, `apps/api/src/config.ts`, `apps/api/.env.example`.
+- **Risco de segurança:** alto; rota que aceita arquivo de terceiros; mitigada por trava desligada, URL curta e tipo e tamanho assinados.
+- **Impacto LGPD:** nenhum dado de terceiro nasce antes da trava ligada; `nome_exibicao` já classificado no manifesto.
+- **Migração necessária:** Não.
+- **Compatibilidade:** rotas novas; o fluxo do agente segue igual.
+- **Rollback:** manter a trava desligada (padrão) ou reverter o commit.
+- **Testes positivos:** autorizar, PUT e confirmar leva a `em_verificacao`; confirmar duas vezes devolve o mesmo estado.
+- **Testes negativos:** PUT com `content-length` diferente do assinado recusado (memória e local); segundo PUT na mesma chave: 412; confirmar sem objeto: 409 `arquivo_ausente`; tamanho divergente: 409 `tamanho_divergente`; classe externa com trava desligada: 404; produção com `sim` e executor `local`: a partida cai.
+- **Testes de autorização e isolamento:** usuário da Saúde autoriza anexo no encaminhamento da Obras: 404; usuário do município B confirma arquivo do A: 404; a URL assinada do A não resolve chave do B.
+- **Regressão obrigatória:** `npm run test:api` (`evidencias.test.ts`, `teto-de-armazenamento.test.ts`), `npm run test:isolamento`, `npm run test:scripts`, `npm run test:e2e:api`, `npm run typecheck`; G05.
+- **E2E:** autorizar, enviar e confirmar um arquivo sintético pela API (`npm run test:e2e:api`).
+- **Validação humana:** Rafael sobe um arquivo sintético pela API local e confere a linha, o evento e a chave de quarentena.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E04/` com saída dos testes e o log da subida sintética (sem URL assinada).
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`, `apps/api/.env.example`, OpenAPI das rotas novas (F02-E04).
+- **Definition of Done:** rotas funcionando com a trava desligada por padrão, URL presa a tipo e tamanho, configuração que recusa o par proibido.
+- **Checkpoint:** Não.
+
+### V2-F06-E05 - Validação por bytes: magic bytes e MIME real; tipos permitidos (imagem e vídeo)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E06 a E08 e E18 reusam)
+- **Objetivo:** validar o tipo REAL por bytes e levar o arquivo a `ativo` ou `rejeitado`; o detector, só leitura, protege também a vistoria e a foto de perfil.
+- **Problema que resolve:** só o tipo declarado é conferido: `evidencias.test.ts:296-310` grava `Buffer.alloc(9999, 1)` sob `image/png`; o vídeo (D-07) repete o risco (BZ-D:UPL-08, UPL-10).
+- **Origem:** DP:T24; DP:T25; BZ-D:UPL-08; BZ-D:UPL-10; PR:D-07.
+- **Estado atual:** CRIAR (o detector); CORRIGIR `confirmarBytes`.
+- **Dependências de entrada:** E04.
+- **O que deve ser implementado:**
+  - Domínio: `apps/api/src/arquivos/bytes.ts` (a criar): detector por assinatura, sem decodificar: JPEG, PNG, WebP, HEIC, PDF (E14) e vídeo por `ftyp` (`isom`, `mp41`, `mp42`: MP4; `qt  `: MOV, com HEVC do iPhone; codec na E18).
+  - API: `verificarArquivo` exige tipo real igual ao declarado, dentro da lista da classe (cidadão e secretaria: JPEG e PNG; só `video_cidadao` aceita MP4 e MOV); divergência leva a `rejeitado` (`tipo_nao_confere`, `tipo_nao_permitido`).
+  - API: `confirmarBytes` (`rotas/evidencias.ts`) e `PUT /usuarios/eu/foto` usam o MESMO detector e recusam com 422 `conteudo_nao_confere`; a vistoria recusa vídeo.
+- **O que NÃO deve ser implementado nesta etapa:** recodificar (E07), dimensões e duração (E06), codec e metadados do vídeo (E18, E19), PDF (E14).
+- **Arquivos e módulos prováveis:** `apps/api/src/arquivos/bytes.ts` (a criar), `verificador.ts`, `apps/api/src/rotas/evidencias.ts`.
+- **Risco de segurança:** alto; falso positivo recusa foto legítima do agente.
+- **Impacto LGPD:** menos bytes arbitrários em laudo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** JPEG do app segue passando.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** JPEG, PNG, WebP e HEIC sintéticos passam; MP4 `isom` e MOV `qt  ` mínimos passam como `video_cidadao`.
+- **Testes negativos:** PDF sob `image/jpeg`: rejeitado; `Buffer.alloc(9999, 1)`: 422; `.png` com bytes JPEG: `tipo_nao_confere`; ZIP sob `video/mp4`: rejeitado; MP4 em `anexo_cidadao`: recusado.
+- **Testes de autorização e isolamento:** arquivo rejeitado de A não é servido em A nem em B (404).
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:campo`; G05.
+- **E2E:** `npm run test:e2e:api` com evidência falsa.
+- **Validação humana:** Rafael sobe um PDF renomeado.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E05/` com testes e tabela de assinaturas.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`.
+- **Definition of Done:** conteúdo diferente do tipo nunca chega a `ativo`.
+- **Checkpoint:** Não.
+
+### V2-F06-E06 - Limites de tamanho, dimensões, megapixels e duração; bombas de descompressão
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (mesmo `verificador.ts`)
+- **Objetivo:** impor tamanho, megapixels, duração e quantidade por classe, lidos do cabeçalho antes de decodificar.
+- **Problema que resolve:** só o teto de 15 MB existe; imagem pequena declara bilhões de pixels e vídeo declara horas em poucos MB (BZ-D:UPL-11, UPL-12).
+- **Origem:** DP:T24; BZ-D:UPL-11; BZ-D:UPL-12; PR:D-07.
+- **Estado atual:** EXPANDIR (o teto de 15 MB fica).
+- **Dependências de entrada:** E05.
+- **O que deve ser implementado:**
+  - Banco: migration `NNN_limites_de_arquivo.sql`: `limites_de_arquivo` (plataforma, semeada): cidadão 10 MB, 25 megapixels, 5 por relato; secretaria 15 MB, 10 por encaminhamento; `video_cidadao` 50 MB, 30 segundos, 1 por relato; PDF desligado até a E14; CHECK duro em `arquivos` de 1 byte a 50 MB; gatilho de contagem por dono.
+  - Domínio: `LIMITES_DE_ARQUIVO` em `packages/shared/src/arquivos.ts` espelha a semente.
+  - API: `apps/api/src/arquivos/limites.ts` (a criar) lê dimensões do cabeçalho e a duração do átomo `mvhd`, sem decodificar, e rejeita com `dimensoes_excessivas`, `razao_suspeita` ou `duracao_excessiva` (a E18 reconfere).
+- **O que NÃO deve ser implementado nesta etapa:** valores finais (CP-13), redimensionar (E07), contagem por relato (F16-E12, também para vídeo).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `packages/shared/src/arquivos.ts`, `apps/api/src/arquivos/limites.ts` (a criar), `verificador.ts`.
+- **Risco de segurança:** alto; bomba de pixels ou de duração derruba a máquina de 1 GB.
+- **Impacto LGPD:** Não se aplica: sem dado pessoal.
+- **Migração necessária:** Sim (`NNN_limites_de_arquivo.sql`, hoje 047).
+- **Compatibilidade:** só `arquivos`; a vistoria mantém 15 MB.
+- **Rollback:** migration inversa.
+- **Testes positivos:** 25 megapixels, 10 MB e o décimo anexo passam; MP4 de 30,0 s e 50 MB passa.
+- **Testes negativos:** limite mais um recusado em cada caso; PNG de poucos KB declarando 30000 por 30000 rejeitado sem decodificar; MP4 de 31 s: `duracao_excessiva`; `mvhd` de 3 horas em 2 MB rejeitado.
+- **Testes de autorização e isolamento:** B não consome o limite de A.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G05.
+- **E2E:** Não se aplica: E16 e E18 cobrem o fluxo.
+- **Validação humana:** Rafael envia um vídeo acima do limite.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E06/` com testes e a memória da bomba.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`.
+- **Definition of Done:** nada acima dos limites chega a `ativo`.
+- **Checkpoint:** Não.
+
+### V2-F06-E07 - Recodificação JPEG sem EXIF e miniatura (anexos; nunca em prova de vistoria)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (mesmo `verificador.ts`)
+- **Objetivo:** gerar o derivado JPEG sem EXIF e a miniatura dos anexos, sem tocar a foto original de vistoria.
+- **Problema que resolve:** nada recodifica nem remove EXIF: o EXIF de aparelho pessoal revela endereço e modelo, e o original sai assim no laudo e no pacote (BZ-D:UPL-14, UPL-16, UPL-17; DH-04 do relatório 08).
+- **Origem:** DP:T25; BZ-D:UPL-14; BZ-D:UPL-16; BZ-D:UPL-17; REL:08 16.1.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E05 (detector de bytes e verificador).
+- **O que deve ser implementado:**
+  - Arquivos: `Armazenamento` ganha `gravar(chave, corpo, tipo)` (PUT assinado pelo servidor, `if-none-match: *`) em `armazenamento/tipos.ts`, `s3.ts` e `memoria.ts`, sem SDK (ADR 0005).
+  - API: `recodificar.ts` em `apps/api/src/arquivos/` decodifica com limite de pixels e de tempo, aplica a orientação, descarta EXIF, XMP, ICC e comentários, grava JPEG (qualidade configurável, valor inicial na ADR 0011) em `chaveAtiva` e a miniatura (lado maior configurável, inicial 320 pixels) ao lado; só então marca `ativo`; PNG vira JPEG. Guarda de classe: chamar `recodificar` para `evidencia_vistoria` lança `ProvaNaoSeRecodifica`.
+  - Infraestrutura: biblioteca de imagem decidida na ADR 0011 (`npm audit` em zero) e instalada na imagem do `Dockerfile`.
+- **O que NÃO deve ser implementado nesta etapa:** tocar `evidencias` do agente; HEIC (o app do cidadão converte no aparelho); PDF (E14); apagar o original da quarentena (E10).
+- **Arquivos e módulos prováveis:** `apps/api/src/arquivos/recodificar.ts` (a criar), `apps/api/src/armazenamento/tipos.ts`, `apps/api/src/armazenamento/s3.ts`, `apps/api/src/armazenamento/memoria.ts`, `apps/api/package.json`, `Dockerfile`.
+- **Risco de segurança:** alto; o decodificador processa bytes hostis; por isso só roda depois de bytes e limites e, na F07, só no worker.
+- **Impacto LGPD:** remove localização e modelo do aparelho do cidadão do que o município serve.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só anexos; a prova de vistoria não muda.
+- **Rollback:** desligar a classe externa (trava) ou reverter o commit; sem migração.
+- **Testes positivos:** JPEG sintético com EXIF de GPS e número de série gera derivado sem os marcadores (verificados por leitura dos segmentos), com as dimensões esperadas; miniatura no máximo no lado configurado; PNG vira JPEG; orientação 6 aplicada.
+- **Testes negativos:** `recodificar` com classe `evidencia_vistoria` lança erro; imagem truncada: `rejeitado` com `imagem_corrompida`; a foto de vistoria subida pelo agente segue byte a byte igual (hash antes e depois, caso novo em `prova-fotografica.test.ts`).
+- **Testes de autorização e isolamento:** derivado e miniatura nascem sob o prefixo do tenant e a chave de um município não serve ao outro (404).
+- **Regressão obrigatória:** `npm run test:api` (`prova-fotografica.test.ts`, `fotos-do-documento.test.ts`), `npm run test:isolamento`, `npm audit` na raiz, `npm run typecheck`; G05.
+- **E2E:** anexo sintético com EXIF percorre autorizar, PUT, confirmar e `ativo` no executor local.
+- **Validação humana:** Rafael abre o derivado numa ferramenta de metadados e confirma que o EXIF sumiu.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E07/` com a leitura de metadados antes e depois e a saída do `npm audit`.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`, ADR 0011, `docs/PRIVACIDADE.md` (EXIF).
+- **Definition of Done:** derivado sem EXIF e miniatura para todo anexo ativo; prova de vistoria provadamente intacta; audit em zero.
+- **Checkpoint:** Não.
+
+### V2-F06-E08 - Hashes do original e do armazenado; reverificação na emissão
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (mesmo `verificador.ts`; mexe em `documentos.ts`)
+- **Objetivo:** gravar o hash do que chegou e do que é servido, impor o formato no banco e reverificar o hash das fotos na emissão de laudo e termo.
+- **Problema que resolve:** `evidencias.sha256` é texto livre sem CHECK (migração 003, linha 16); o hash não é reverificado na emissão (`rotas/documentos.ts:295-320` só confere a existência da assinatura) e o pacote recalcula sem comparar com a coluna (BZ-F:P0-INT; BZ-D:UPL-18; BZ-D:DOC-13).
+- **Origem:** BZ-F:P0-INT; BZ-D:UPL-18; BZ-D:DOC-13; REL:09; REL:08 16.1.
+- **Estado atual:** EXPANDIR (o hash medido na confirmação do agente é MANTIDO; ganham CHECK e reverificação).
+- **Dependências de entrada:** E05 (detector de bytes e verificador).
+- **O que deve ser implementado:**
+  - Banco: migration `NNN_formato_do_sha256.sql`: CHECK `^[0-9a-f]{64}$` em `evidencias.sha256` (criado `NOT VALID` e validado em seguida) e em `arquivos.sha256_original` e `sha256_armazenado`, obrigatórios quando `ativo`.
+  - API: `armazenamento.hashear(chave)` em `armazenamento/tipos.ts` e `s3.ts`: leitura em fluxo com SHA-256 incremental, sem carregar o objeto; `verificador.ts` grava os dois hashes; `reverificarProva` em `apps/api/src/arquivos/` roda em `rotas/documentos.ts` antes de emitir laudo ou termo e responde 409 `prova_divergente` com evento `prova_divergente` na trilha (rótulo em `ROTULO_EVENTO_TRILHA`); concorrência de 4 leituras e teto de 30 segundos por documento.
+- **O que NÃO deve ser implementado nesta etapa:** hash declarado pelo aparelho e `x-amz-checksum-sha256` no PUT (F14), hash do PDF e documento imutável (F09-E04), object lock (avaliado na E15).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/armazenamento/tipos.ts`, `apps/api/src/armazenamento/s3.ts`, `apps/api/src/armazenamento/memoria.ts`, `apps/api/src/rotas/documentos.ts`, `apps/api/src/arquivos/verificador.ts`, `packages/shared/src/dominio.ts`.
+- **Risco de segurança:** alto; reverificar lê objetos na máquina de 1 GB, por isso o hash é em fluxo, com concorrência limitada; a F07 move o trabalho.
+- **Impacto LGPD:** Não se aplica: hashes não identificam pessoa.
+- **Migração necessária:** Sim (nome sugerido `NNN_formato_do_sha256.sql`, onde NNN é a próxima livre na execução, hoje 047).
+- **Compatibilidade:** linhas existentes já têm hash medido pelo servidor; a validação do CHECK reprova só dado fora do formato.
+- **Rollback:** migration que remove os CHECKs; a rota volta a não reverificar por reversão do commit.
+- **Testes positivos:** laudo com três fotos reverificadas sai normalmente; os dois hashes de um anexo ativo estão gravados.
+- **Testes negativos:** objeto trocado no armazenamento (memória) com o mesmo tamanho: emissão responde 409 `prova_divergente` e grava o evento; `sha256` de 63 caracteres recusado pelo CHECK; hash em fluxo bate com o hash do objeto inteiro.
+- **Testes de autorização e isolamento:** a reverificação lê só chaves do tenant do documento (prefixo conferido); usuário do município B não emite o laudo do A (404).
+- **Regressão obrigatória:** `npm run test:api` (`bytes-confirmados-nao-se-trocam.test.ts`, `documentos.test.ts`, `fotos-do-documento.test.ts`, `eventos-tem-rotulo.test.ts`), `npm run test:isolamento`, `npm run typecheck`; G05.
+- **E2E:** emitir um laudo sintético com fotos pelo painel (`npm run test:e2e`).
+- **Validação humana:** Rafael troca um objeto no armazenamento local de teste e vê o laudo recusado.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E08/` com saída dos testes e o log do caso de troca.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`, `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** hashes gravados e validados no banco; emissão recusa prova divergente e deixa rastro.
+- **Checkpoint:** Não.
+
+### V2-F06-E09 - Cota por classe de origem (inclui video_cidadao) separada do teto de evidência de campo
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com F06-E10)
+- **Objetivo:** criar cota por classe em `arquivos`, com `video_cidadao` em cota própria, separada do teto da evidência do campo.
+- **Problema que resolve:** `situacao_de_armazenamento` soma só `evidencias` (migração 035); anexo e vídeo de cidadão no mesmo balde deixariam o abuso travar a evidência do agente (BZ-M:V2-CID-07).
+- **Origem:** DP:T23; DP:K10; BZ-M:V2-CID-07; PR:D-07.
+- **Estado atual:** EXPANDIR (o teto da evidência fica).
+- **Dependências de entrada:** E02; CP-13 para os valores.
+- **O que deve ser implementado:**
+  - Banco: migration `NNN_cota_por_classe.sql`: `cotas_de_arquivo` (município, classe, limites nulos por padrão); `situacao_da_classe(classe, bytes_novos)` com os limiares de 80, 100 e 150 por cento da 035, somando `arquivos` fora de `rejeitado` (em vídeo: original, derivado e poster); gatilho `BEFORE INSERT` com o código 53100.
+  - API: `autorizar` consulta a classe antes da URL e responde 507 como a evidência; `GET /v1/armazenamento/uso` traz o uso por classe.
+  - Arquivos: valores iniciais da T24 como hipótese; o de vídeo sai da estimativa da F07-E11.
+- **O que NÃO deve ser implementado nesta etapa:** valores em produção (CP-13); cota por conta, IP e ação (F15-E10).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `apps/api/src/armazenamento/uso.ts`, `apps/api/src/rotas/armazenamento.ts`, `apps/api/src/arquivos/autorizar.ts`.
+- **Risco de segurança:** alto; erro deixa anexo externo consumir o balde do campo.
+- **Impacto LGPD:** limita o dado de terceiro guardado.
+- **Migração necessária:** Sim (`NNN_cota_por_classe.sql`, hoje 047).
+- **Compatibilidade:** `GET /armazenamento/uso` mantém os campos.
+- **Rollback:** migration inversa.
+- **Testes positivos:** classe abaixo de 80 por cento: `normal`; entre 80 e 100: `aviso`.
+- **Testes negativos:** `video_cidadao` acima de 150 por cento: 507 enquanto `anexo_cidadao` e a evidência do agente seguem aceitando; `rejeitado` não consome cota.
+- **Testes de autorização e isolamento:** a cota de A não afeta B.
+- **Regressão obrigatória:** `npm run test:api` (`teto-de-armazenamento.test.ts`), `npm run test:isolamento`; G05.
+- **E2E:** Não se aplica: sem tela.
+- **Validação humana:** Rafael enche a cota de vídeo e vê o agente enviar foto.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E09/` com testes.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`.
+- **Definition of Done:** cota por classe imposta, separada do teto do campo.
+- **Checkpoint:** CP-13 (valores; bloqueia cotas em produção; mecanismo e HML andam).
+
+### V2-F06-E10 - Órfãos e limpeza de quarentena
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F06-E09)
+- **Objetivo:** ensinar a varredura de órfãos a reconhecer `arquivos` e limpar a quarentena sem apagar registro.
+- **Problema que resolve:** `armazenamento/orfaos.ts` só justifica uma chave por `evidencias.chave_storage` e `usuarios.foto_chave`, então todo objeto de `arquivos` seria listado como `objeto_sem_linha`; a varredura (`VARREDURA_DE_ORFAOS_ATIVA`, `config.ts:196`) nunca rodou contra o provedor real e não existe limpeza de quarentena (BZ-D:UPL-21).
+- **Origem:** DP:T25; BZ-D:UPL-21; REL:08 16.1.
+- **Estado atual:** EXPANDIR (a varredura, a janela de 30 dias e o descarte manual são MANTIDOS).
+- **Dependências de entrada:** E03 (estados e prefixos de quarentena e ativo).
+- **O que deve ser implementado:**
+  - Banco: migration `NNN_orfaos_de_arquivos.sql` amplia o CHECK de `objetos_orfaos.especie` (hoje só `envio_nunca_confirmado` e `objeto_sem_linha`, migração 035) e acrescenta `arquivo_id` com FK composta para `arquivos`.
+  - API: `orfaos.ts` reconhece `chave_quarentena`, `chave_ativa` e a miniatura de `arquivos`; novas espécies `quarentena_vencida` (autorizado e nunca confirmado depois da janela, padrão 24 horas), `original_apos_ativo` e `rejeitado_vencido` (apagar os bytes depois da janela; a linha fica, "registro não se apaga").
+  - Arquivos: limpeza com relatório (dry-run), operador e motivo, no molde de `armazenamento/cli.ts`; reserva de cota liberada; objeto `ativo` nunca é candidato.
+  - Observabilidade: falha de listagem parcial continua impedindo descarte (regra existente).
+- **O que NÃO deve ser implementado nesta etapa:** moderação e remoção por motivo (E13); retenção por prazo de arquivo ativo (classes do manifesto, CP-10); ligar a varredura em produção (depende da E15 e do worker, F07-E03).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/armazenamento/orfaos.ts`, `apps/api/src/armazenamento/cli.ts`, `apps/api/test/objeto-orfao.test.ts`, `apps/api/test/listagem-do-armazenamento.test.ts`.
+- **Risco de segurança:** médio; apagar objeto errado; mitigado pela reconferência no descarte e pela regra de nunca tocar `ativo`.
+- **Impacto LGPD:** o original com EXIF do anexo deixa de existir depois da ativação, com o hash gravado.
+- **Migração necessária:** Sim (nome sugerido `NNN_orfaos_de_arquivos.sql`, onde NNN é a próxima livre na execução, hoje 047).
+- **Compatibilidade:** relatório da varredura ganha espécies; o formato antigo continua.
+- **Rollback:** migration que restaura o CHECK da 035, se nenhuma linha nova existir; a varredura segue desligada por padrão.
+- **Testes positivos:** objeto `ativo` e miniatura não aparecem como órfãos; quarentena de 25 horas sem confirmação é listada; original de anexo ativo é candidato.
+- **Testes negativos:** objeto `ativo` jamais é candidato; listagem com falha parcial não autoriza descarte; descarte sem operador e motivo é recusado.
+- **Testes de autorização e isolamento:** a varredura não recebe lista de municípios e confirma o dono do prefixo sob RLS (regra existente); objeto do município A nunca é descartado em nome do B.
+- **Regressão obrigatória:** `npm run test:api` (`objeto-orfao.test.ts`, `listagem-do-armazenamento.test.ts`, `teto-de-armazenamento.test.ts`), `npm run test:isolamento`; G05.
+- **E2E:** Não se aplica: rotina e comando de operador.
+- **Validação humana:** Rafael roda o comando em modo relatório e confere a lista de candidatos.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E10/` com o relatório da varredura sintética e a saída dos testes.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md` (seção 2).
+- **Definition of Done:** varredura reconhece `arquivos`, limpa quarentena e original sem apagar linha, com testes dos dois sentidos.
+- **Checkpoint:** Não.
+
+### V2-F06-E11 - evidencias imutável no banco após confirmação (UPDATE restrito)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com F06-E01, depende só do G05)
+- **Objetivo:** depois de `enviada_em`, o banco recusa alterar o que prova a foto: hash, chave, tamanho, tipo, captura, autor, ocorrência e coordenadas.
+- **Problema que resolve:** a policy `evidencias_atualizacao` (migração 034, linhas 241 a 244) e o GRANT da 001 deixam o papel de aplicação alterar qualquer coluna; só o código das rotas protege a prova (BZ-F:P0-INT; BZ-D:UPL-18, UPL-27; REL:08 Riscos arquiteturais 5).
+- **Origem:** BZ-F:P0-INT; BZ-D:UPL-27; REL:08 16.1; REL:08 Gaps 4.
+- **Estado atual:** CORRIGIR (a tabela e as rotas ficam; a imutabilidade passa a ser do banco).
+- **Dependências de entrada:** G05 (manifesto de dados ativo); a etapa não depende das demais da fase.
+- **O que deve ser implementado:**
+  - Migration: `NNN_evidencia_imutavel.sql`: `REVOKE UPDATE` e `GRANT UPDATE` apenas nas colunas `enviada_em`, `sha256`, `vistoria_id`, `ordem`, `legenda`, `abandonada_em` e `abandono_motivo`; gatilho `BEFORE UPDATE` (vale também para o dono) que, com `enviada_em` preenchido, recusa mudar `sha256`, `chave_storage`, `tamanho_bytes`, `tipo_conteudo`, `capturada_em`, `anexada_por`, `ocorrencia_id`, `organizacao_id` e coordenadas, recusa reabrir `enviada_em`, e só admite `vistoria_id` de nulo para valor uma vez, com `ordem` e `legenda` apenas nessa mesma transição; `abandonada_em` e `abandono_motivo` só com `enviada_em` nulo.
+  - Banco: preservar os quatro caminhos legítimos: confirmação (`rotas/evidencias.ts:159`), vínculo à vistoria na sincronização (`rotas/sincronizacao.ts:778`), abandono e retomada de órfã (`armazenamento/orfaos.ts:432` e `:567`, `rotas/evidencias.ts:262`).
+- **O que NÃO deve ser implementado nesta etapa:** hash declarado pelo aparelho, object lock (avaliado na E15), `incluir_no_laudo` (E12), mover evidência para `arquivos`.
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `db/test/evidencia-imutavel.test.ts` (a criar em `db/test/`), `apps/api/test/bytes-confirmados-nao-se-trocam.test.ts`.
+- **Risco de segurança:** alto; migration em tabela de prova com quatro escritores; erro bloqueia a coleta do campo.
+- **Impacto LGPD:** Não se aplica: restringe alteração, sem dado novo.
+- **Migração necessária:** Sim (nome sugerido `NNN_evidencia_imutavel.sql`, onde NNN é a próxima livre na execução, hoje 047).
+- **Compatibilidade:** clientes e rotas inalterados; a migration não reescreve dado.
+- **Rollback:** migration inversa que devolve o GRANT e remove o gatilho, sem perda.
+- **Testes positivos:** confirmação, vínculo à vistoria e abandono de órfã seguem funcionando como hoje.
+- **Testes negativos:** `UPDATE evidencias SET sha256` depois de confirmada: recusado; `chave_storage`, `tamanho_bytes` e `capturada_em`: recusados; `legenda` depois do vínculo: recusada; `vistoria_id` de uma vistoria para outra: recusado; `enviada_em` voltando a nulo: recusado; o dono das tabelas também é barrado pelo gatilho.
+- **Testes de autorização e isolamento:** usuário do município A atualiza evidência do B: 0 linhas (RLS); o portão "nenhuma tabela de prova tem policy que alcance DELETE" segue verde.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api` (`bytes-confirmados-nao-se-trocam.test.ts`, `prova-fotografica.test.ts`, `campo-integracao.test.ts`, `evidencias.test.ts`), `npm run test:campo`, `npm run test:e2e:api`; G05.
+- **E2E:** vistoria sintética completa com fotos, sincronizada e emitida em laudo, sem recusa (`npm run test:e2e:api`).
+- **Validação humana:** Rafael tenta alterar o hash de uma foto confirmada pelo cliente SQL do papel de aplicação e vê a recusa.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E11/` com saída dos testes e o log da tentativa recusada.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md` (tabela `evidencias`), `docs/ARMAZENAMENTO.md`, `db/PENDENCIAS.md`.
+- **Definition of Done:** nenhuma coluna de prova muda depois da confirmação, nem pelo dono; os quatro caminhos legítimos verdes.
+- **Checkpoint:** Não.
+
+### V2-F06-E12 - Promoção anexo -> evidência e incluir_no_laudo (foto avulsa não entra no laudo)
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (mexe em `evidencias`, `documentos.ts` e `pacote.ts`)
+- **Objetivo:** criar a promoção humana de anexo a evidência e o campo `evidencias.incluir_no_laudo`, de modo que nenhuma foto avulsa nova e nenhum anexo entrem no laudo sozinhos.
+- **Problema que resolve:** `apps/api/src/rotas/documentos.ts:156-191` põe no laudo toda linha de `evidencias` com `enviada_em`, inclusive as avulsas (`vistoria_id` nulo), e `saida/pacote.ts:534-539` repete a consulta; um anexo de cidadão ou secretaria numa tabela de prova viraria prova com brasão (BZ-F:P0-INT; BZ-M:V2-CID-07).
+- **Origem:** DP:T23; BZ-F:P0-INT; BZ-M:V2-CID-07; REL:07; REL:08.
+- **Estado atual:** EXPANDIR (`evidencias` ganha coluna e origem; o laudo e o pacote ganham filtro).
+- **Dependências de entrada:** E02, E11.
+- **O que deve ser implementado:**
+  - Banco: migration `NNN_promocao_e_laudo.sql`: `evidencias.incluir_no_laudo` (nasce falso; linhas existentes recebem verdadeiro e o vínculo à vistoria (`rotas/sincronizacao.ts:778` e o INSERT logo abaixo) grava verdadeiro; CHECK de que evidência com `vistoria_id` é sempre verdadeira); `evidencias.origem_anexo_id` com FK composta para `arquivos`; `promocoes_de_anexo` (append-only: arquivo, evidência, quem, quando, motivo, hashes); a coluna entra no UPDATE restrito da E11.
+  - API: `POST /v1/arquivos/:id/promover` copia o derivado ativo para chave de evidência sob a ocorrência do encaminhamento, com motivo obrigatório e evento `anexo_promovido`; `PATCH /v1/evidencias/:id/laudo` liga ou desliga o campo com motivo e evento. `documentos.ts` e `pacote.ts` filtram pelo campo (o pacote segue exportando todos os arquivos); a promovida aparece em seção própria do laudo, sem número de foto da vistoria.
+  - Autorização: ação `promover_anexo` (coordenador e administrador); rótulos dos eventos em `ROTULO_EVENTO_TRILHA`.
+  - Frontend: marca "incluir no laudo" em `apps/web/src/paginas/Ocorrencia.tsx`, com confirmação.
+- **O que NÃO deve ser implementado nesta etapa:** tela de anexos de secretaria e de cidadão (F10-E04, F11-E13, F18); documento emitido imutável (F09); recodificar a promovida (já vem do derivado); promoção de anexo de relato (F16 e F18).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/rotas/documentos.ts`, `apps/api/src/saida/pacote.ts`, `apps/api/src/rotas/sincronizacao.ts`, `apps/api/src/rotas/arquivos.ts`, `packages/shared/src/permissoes.ts`, `apps/web/src/paginas/Ocorrencia.tsx`.
+- **Risco de segurança:** alto; promover é o ato que transforma conteúdo de terceiro em prova; exige pessoa nominal, motivo e anexo `ativo`.
+- **Impacto LGPD:** a foto de terceiro só chega a um documento oficial por decisão humana registrada.
+- **Migração necessária:** Sim (nome sugerido `NNN_promocao_e_laudo.sql`, onde NNN é a próxima livre na execução, hoje 047).
+- **Compatibilidade:** laudo de ocorrência antiga sai idêntico (backfill verdadeiro); o app de campo não muda.
+- **Rollback:** migration que remove o filtro e a coluna, sem perda; as linhas de promoção ficam.
+- **Testes positivos:** anexo ativo promovido vira evidência com `incluir_no_laudo` falso e não aparece no laudo; depois do `PATCH` com motivo aparece na seção própria; golden do laudo antigo reimpresso idêntico.
+- **Testes negativos:** foto avulsa nova (`autorizar-envio` sem coleta) não aparece no laudo; anexo em `quarentena`, `em_verificacao` ou `rejeitado` não promove (409); promover duas vezes o mesmo anexo recusado; desligar o campo de evidência ligada a vistoria recusado.
+- **Testes de autorização e isolamento:** coordenador do município A promove arquivo do B: 404; `usuario_orgao` promove o próprio anexo: negado (falta `promover_anexo`).
+- **Regressão obrigatória:** `npm run test:api` (`documentos.test.ts`, `fotos-do-documento.test.ts`, `saida-de-municipio.test.ts`, `eventos-tem-rotulo.test.ts`), `npm run test:isolamento`, `npm run test:e2e`, `npm run test:campo`; G05.
+- **E2E:** promover um anexo sintético, ligar no laudo e conferir o PDF sintético; foto avulsa nova fica fora.
+- **Validação humana:** Rafael confere dois laudos sintéticos, antes e depois de ligar o campo.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E12/` com os dois laudos sintéticos, o diff do golden e a saída dos testes.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`, `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** nenhuma foto avulsa nova nem anexo entra no laudo sem decisão registrada; laudos antigos idênticos; promoção auditada.
+- **Checkpoint:** Não.
+
+### V2-F06-E13 - Moderação e remoção com motivo (append-only)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F06-E14)
+- **Objetivo:** permitir tornar um arquivo não servível por pessoa nominal, com motivo estruturado e registro append-only, apagando os bytes depois de uma janela.
+- **Problema que resolve:** não existe caminho de remoção por moderação para conteúdo de terceiro, inclusive imagem com dado de terceiro, menor ou conteúdo ilícito (BZ-D:UPL-36; DP:T25 item 8).
+- **Origem:** DP:T25; DP:J11; BZ-D:UPL-36.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E03 (estados e eventos do arquivo).
+- **O que deve ser implementado:**
+  - Banco: migration `NNN_remocao_de_arquivo.sql`: `removido_em`, `removido_por` e `motivo_da_remocao` (código: `conteudo_ilicito`, `dado_de_terceiro`, `fora_do_escopo`, `pedido_do_titular`, `outro`) em `arquivos`, só por função com evento em `arquivo_eventos`; `arquivo_servivel` passa a recusar removido.
+  - API: `POST /v1/arquivos/:id/remover` com permissão `moderar_arquivo` (coordenador e administrador), nota livre opcional de até 300 caracteres (pessoal no manifesto); depois da remoção a leitura responde 404; a E10 apaga os bytes após a janela (padrão sete dias, configurável); anexo já promovido: a evidência é cópia separada e permanece, e a rota exige confirmação explícita que informa isso.
+  - Autorização: a rota no manifesto rota x ação; rótulo do evento no catálogo.
+- **O que NÃO deve ser implementado nesta etapa:** política de consequência ao autor, bloqueio de conta e termos (F15-E11, F18-E09, CP-26); detecção automática de conteúdo; tela de moderação (F18).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/rotas/arquivos.ts`, `apps/api/src/armazenamento/orfaos.ts`, `packages/shared/src/permissoes.ts`.
+- **Risco de segurança:** médio; remover o arquivo errado; mitigado por motivo, nome de quem removeu e janela antes de apagar bytes.
+- **Impacto LGPD:** dá meio técnico de retirar dado de terceiro; a nota livre é classificada como pessoal.
+- **Migração necessária:** Sim (nome sugerido `NNN_remocao_de_arquivo.sql`, onde NNN é a próxima livre na execução, hoje 047).
+- **Compatibilidade:** só classes novas.
+- **Rollback:** reverter o commit e a migration enquanto nenhuma remoção existir.
+- **Testes positivos:** remover um anexo ativo grava evento e passa a responder 404; a janela vence e os bytes saem da quarentena e do ativo.
+- **Testes negativos:** remover sem motivo recusado; remover arquivo de outro município: 404; `usuario_orgao` remove: negado; remover duas vezes é idempotente e não duplica evento.
+- **Testes de autorização e isolamento:** o coordenador do município B não remove arquivo do A; a linha removida continua visível à auditoria do próprio município.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`; G05.
+- **E2E:** Não se aplica: sem tela nesta etapa.
+- **Validação humana:** Rafael remove um anexo sintético e confere o 404 e a linha de auditoria.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E13/` com saída dos testes e o evento gravado.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`, `docs/PRIVACIDADE.md`.
+- **Definition of Done:** arquivo removido nunca é servido, deixa evento e tem os bytes apagados depois da janela, sem apagar a linha.
+- **Checkpoint:** Não.
+
+### V2-F06-E14 - PDF do órgão: scanner antivírus e validação estrutural
+- **Prioridade:** P2
+- **Tamanho:** L  |  **Complexidade:** crítica  |  **Risco:** alto  |  **Paralelizável:** sim (com F06-E13)
+- **Objetivo:** aceitar PDF de secretaria só depois de antivírus em contêiner separado e validação estrutural, com falha fechada.
+- **Problema que resolve:** secretaria costuma responder com documento, mas PDF é a superfície de ataque mais perigosa dos tipos permitidos e hoje nenhum antivírus existe (BZ-D:UPL-19; DP:K11).
+- **Origem:** DP:T24; DP:K11; BZ-D:UPL-19; REL:08 16.1.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E05; CP-12 para liberar o tipo.
+- **O que deve ser implementado:**
+  - API: interface `Antivirus` em `apps/api/src/arquivos/antivirus.ts` (a criar) com adaptador de socket para um serviço de varredura (`ANTIVIRUS_URL`) e um adaptador de teste; `indisponivel` mantém `em_verificacao` e reprocessa, nunca `ativo`; `infectado` leva a `rejeitado` com `antivirus`.
+  - API: `pdf-estrutura.ts` valida cabeçalho e fim, limite de páginas e de objetos, e recusa PDF criptografado, com JavaScript, ação de lançamento, arquivo embutido ou formulário XFA.
+  - Infraestrutura: `Dockerfile.antivirus` (a criar em `dc360/`), contêiner sem acesso ao banco nem ao bucket, que recebe os bytes por fluxo e atualiza as assinaturas.
+  - Arquivos: o PDF nunca é renderizado nem recodificado; é baixado como anexo (`content-disposition: attachment`, `x-content-type-options: nosniff`) e sem pré-visualização no Chromium; 20 MB e 10 por encaminhamento pela tabela de limites (E06).
+- **O que NÃO deve ser implementado nesta etapa:** PDF acessível ou assinado (F09), pré-visualização de PDF de terceiro, vídeo e outros documentos, ligar o tipo em produção (CP-12).
+- **Arquivos e módulos prováveis:** `apps/api/src/arquivos/antivirus.ts` e `pdf-estrutura.ts` (a criar em `apps/api/src/arquivos/`), `Dockerfile.antivirus` (a criar em `dc360/`), `apps/api/src/arquivos/bytes.ts`, `apps/api/src/config.ts`.
+- **Risco de segurança:** alto; parser de PDF e scanner processam bytes hostis; por isso o tipo nasce desligado e o scanner roda isolado.
+- **Impacto LGPD:** Não se aplica: sem dado novo; o conteúdo do PDF pode ter dado de cidadão e herda a classe de retenção do anexo.
+- **Migração necessária:** Não (o tipo `application/pdf` entra na semente de `limites_de_arquivo` pela E06, desligado).
+- **Compatibilidade:** tipo desligado por padrão.
+- **Rollback:** manter o tipo desligado ou reverter o commit.
+- **Testes positivos:** PDF sintético limpo atravessa antivírus de teste e estrutura e chega a `ativo`.
+- **Testes negativos:** a cadeia de teste EICAR (inofensiva, usada por todo antivírus) leva a `rejeitado` com `antivirus`; PDF com JavaScript, criptografado ou com arquivo embutido é rejeitado; scanner indisponível mantém `em_verificacao` e gera alerta; com o tipo desligado a autorização recusa `tipo_nao_permitido`.
+- **Testes de autorização e isolamento:** o contêiner do scanner não tem credencial de banco nem de bucket (teste de configuração); PDF do município A não é lido na fila do B.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm audit`, `npm run typecheck`; G05.
+- **E2E:** PDF sintético percorre a cadeia no executor local com o antivírus de teste.
+- **Validação humana:** Rafael sobe a cadeia EICAR e um PDF com JavaScript e vê as duas recusas.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E14/` com saída dos testes e a configuração do contêiner sem segredo.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`, `docs/SUBPROCESSADORES.md` (se o scanner usar serviço externo).
+- **Definition of Done:** PDF só ativo depois de antivírus e estrutura, falha fechada, tipo desligado até a decisão.
+- **Checkpoint:** CP-12 (decide se o portal aceita PDF antes do scanner completo; bloqueia PDF no portal; interface, adaptador de teste e validação estrutural andam).
+
+### V2-F06-E15 - S3 real provado em HML: versionamento, SigV4, CORS do PUT
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com F06-E02, depende só de F01-E11)
+- **Objetivo:** provar contra o armazenamento real de HML cada operação que o produto usa, a privacidade do bucket, o versionamento e o CORS do PUT, e arquivar a prova que resolve as versões conflitantes.
+- **Problema que resolve:** o `README.md` (linhas 1353 a 1355) diz que o código nunca falou com R2 ou S3; o `fly.toml` aponta o Storage do Supabase (`S3_REGIAO = "sa-east-1"`) e `docs/COLOCAR-DE-PE.md:586-593` conta sete objetos no balde `dc360-evidencias`; `docs/ARMAZENAMENTO.md:262-270` diz que o `ListObjectsV2` nunca falou com provedor; o relatório 08 marca bucket privado e versionamento como NÃO CONFIRMADO (BZ-D:UPL-02, UPL-21).
+- **Origem:** REL:08 16.1; REL:10; BZ-D:UPL-02; BZ-D:UPL-21.
+- **Estado atual:** CRIAR (a prova; `s3.ts` e `assinatura.ts` existem e passam contra o vetor oficial de SigV4 e contra XML de resposta em teste).
+- **Dependências de entrada:** F01-E11 (HML de pé, com bucket e credencial próprios).
+- **O que deve ser implementado:**
+  - Infraestrutura: `scripts/provar-armazenamento.mjs` (a criar em `dc360/scripts/`) lê as variáveis `S3_*` de HML, recusa `NODE_ENV=production` e o balde `dc360-evidencias` (o de produção) e, com objetos sintéticos, prova: PUT com os cabeçalhos assinados; PUT com `content-length` ou `content-type` diferente recusado; segundo PUT com `if-none-match: *` recusado (412); HEAD; GET por URL de 60 segundos, também depois de expirar; GET sem assinatura recusado (bucket privado); `ListObjectsV2` paginado com mais de mil objetos; DELETE; versionamento e seu efeito no segundo PUT; preflight CORS do PUT da origem do painel de HML.
+  - Arquivos: relatório operação x provedor x resultado e correção de `README.md` e `docs/ARMAZENAMENTO.md`; se a listagem passar, ligar a varredura de órfãos em HML; limitação encontrada (sem `if-none-match`, sem versionamento) registrada como limitação, não como sucesso.
+- **O que NÃO deve ser implementado nesta etapa:** prova contra produção com dado real; cópia fora da conta e backup do balde (F22-E02); object lock (avaliado e registrado, sem implementar); mudar o provedor.
+- **Arquivos e módulos prováveis:** `scripts/provar-armazenamento.mjs` (a criar em `dc360/scripts/`), `apps/api/src/armazenamento/s3.ts`, `README.md`, `docs/ARMAZENAMENTO.md`, `docs/COLOCAR-DE-PE.md`.
+- **Risco de segurança:** alto; credencial de HML separada de produção e nunca arquivada; o script recusa o balde de produção.
+- **Impacto LGPD:** usa só dado sintético; nenhum dado de município real sai do banco ou do balde.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só prova e documentação.
+- **Rollback:** Não se aplica: sem mudança de produto; o script pode ser removido.
+- **Testes positivos:** relatório com cada operação em "ok" ou com limitação nomeada.
+- **Testes negativos:** PUT com tamanho divergente recusado; GET sem assinatura recusado; o script recusa o balde de produção e `NODE_ENV=production` (teste do próprio script em `scripts/*.test.mjs`).
+- **Testes de autorização e isolamento:** URL assinada para `tenant/<A>/` não lê objeto sintético de `tenant/<B>/`; o prefixo é parte da assinatura.
+- **Regressão obrigatória:** `npm run test:scripts`, `npm run test:api` (`listagem-do-armazenamento.test.ts`, `objeto-orfao.test.ts`), `npm run auditar`; G05.
+- **E2E:** subir e ler uma foto sintética pelo painel de HML contra o bucket real.
+- **Validação humana:** Rafael roda o script em HML, lê o relatório e decide, para cada limitação, se aceita ou se muda de provedor.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E15/` com o relatório e a saída do script, sem credencial nem URL assinada.
+- **Documentação a atualizar:** `README.md`, `docs/ARMAZENAMENTO.md`, `docs/COLOCAR-DE-PE.md`, `docs/IMPLANTACAO.md`.
+- **Definition of Done:** operações provadas em HML, três documentos reconciliados, limitações registradas, varredura exercitada contra o provedor.
+- **Checkpoint:** Não.
+
+### V2-F06-E16 - Suíte de arquivos maliciosos (polyglot, bomba, tipo falso, EXIF)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (depende de E05, E06, E07 e E08)
+- **Objetivo:** reunir uma suíte de imagens hostis sintéticas, executável na memória e em HML, que a F25-E08 reexecuta.
+- **Problema que resolve:** nenhum teste cobre conteúdo hostil (BZ-D:UPL-08; DP:T25).
+- **Origem:** DP:T25; BZ-D:UPL-08; BZ-D:UPL-19; REL:08 16.2.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E05, E06, E07, E08.
+- **O que deve ser implementado:**
+  - Arquivos: `apps/api/test/arquivos-maliciosos.test.ts` (a criar em `apps/api/test/`) com fixtures geradas por código: polyglot JPEG com HTML e com ZIP; tipo falso; bomba de pixels de 30000 por 30000; PNG com blocos em excesso; truncado; EXIF com GPS, modelo e número de série; XMP; nome com `../` e dupla extensão; tamanho diferente do declarado; PUT duplicado; SVG com script sob `image/png`; animada com muitos quadros; HEIC para o cidadão; zero byte; limite mais um.
+  - Infraestrutura: `ARQUIVOS_HML_URL` com credencial sintética roda contra HML; o padrão é o executor local; casos de PDF ficam `pendente_de_E14` com data e dono.
+- **O que NÃO deve ser implementado nesta etapa:** vídeo (E18 e E19 têm a suíte), pentest (F25), correção dos achados.
+- **Arquivos e módulos prováveis:** `apps/api/test/arquivos-maliciosos.test.ts` e `apps/api/test/fixtures/arquivos/` (a criar), `apps/api/src/arquivos/`.
+- **Risco de segurança:** alto; fixtures hostis geradas por código, sem executável.
+- **Impacto LGPD:** Não se aplica: bytes sintéticos.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só teste.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** JPEG e PNG legítimos chegam a `ativo` com derivado sem EXIF.
+- **Testes negativos:** cada carga termina em `rejeitado` ou em derivado sem a carga; marcadores do polyglot e coordenadas do EXIF não aparecem em byte servido.
+- **Testes de autorização e isolamento:** `ativo` de A pedido por B: 404; usuário da Saúde lê anexo da Obras: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:e2e:api`, `npm run auditar`; G05.
+- **E2E:** autorizar, PUT, confirmar e `ativo` ou `rejeitado` pela API, com tabela por caso.
+- **Validação humana:** Rafael repete duas cargas à mão.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E16/` com a tabela e a saída da suíte.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`.
+- **Definition of Done:** suíte verde e reexecutável em HML; nenhum caso hostil ativo.
+- **Checkpoint:** Não.
+
+### V2-F06-E17 - Classe de anexo da prefeitura: operador anexa arquivo à ocorrência no painel
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com F06-E18)
+- **Objetivo:** permitir que a prefeitura anexe arquivo à ocorrência no painel, na classe `anexo_prefeitura`, sobre a cadeia da F06.
+- **Problema que resolve:** ALY:OCO-02 pede anexos, mas o painel só lista evidências e `autorizar-envio` exige o agente (BZ-D:PRF-15); a F06 não tem classe da prefeitura.
+- **Origem:** ALY:OCO-02; BZ-D:PRF-15; PR:D-20 (L2); DP:T23.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E04, E06, E09.
+- **O que deve ser implementado:**
+  - Banco: migration `NNN_anexos_da_prefeitura.sql` (hoje 047): `ocorrencia_anexos` (FK composta para `ocorrencias` e `arquivos`; sem UPDATE e DELETE); classe `anexo_prefeitura` na semente de `limites_de_arquivo` (JPEG e PNG; PDF desligado até a E14).
+  - API: `POST /v1/ocorrencias/:id/anexos/autorizar` e `/confirmar` sobre `apps/api/src/arquivos/`; ação `anexar_arquivo` (operador, coordenador, administrador); ocorrência encerrada: 409; a trava de executor da E04 vale aqui.
+  - Frontend: `apps/web/src/paginas/Ocorrencia.tsx` envia o arquivo e mostra a verificação; o anexo só entra no laudo pela promoção da E12.
+- **O que NÃO deve ser implementado nesta etapa:** promoção (E12), vídeo (E18), anexo de secretaria (F11-E13).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `apps/api/src/rotas/arquivos.ts`, `packages/shared/src/permissoes.ts`, `apps/web/src/paginas/Ocorrencia.tsx`.
+- **Risco de segurança:** alto; bytes de terceiros entram pelo operador: mesma cadeia e limites.
+- **Impacto LGPD:** o anexo herda a retenção da classe.
+- **Migração necessária:** Sim (`NNN_anexos_da_prefeitura.sql`, hoje 047).
+- **Compatibilidade:** rotas novas.
+- **Rollback:** migration inversa com a tabela vazia.
+- **Testes positivos:** operador anexa JPEG sintético: `ativo` e listado na ocorrência.
+- **Testes negativos:** `agente_campo` anexa: negado; ocorrência encerrada: 409; PDF desligado e MP4: recusados.
+- **Testes de autorização e isolamento:** operador do município B anexa à ocorrência do A: 404; agente de outra equipe lê o anexo: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:e2e`, `npm run test:isolamento`; G05.
+- **E2E:** painel: anexar, ver a verificação e abrir o arquivo.
+- **Validação humana:** Rafael anexa uma imagem.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E17/` com testes.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`, `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** operador anexa pela cadeia; nenhum anexo entra no laudo sozinho.
+- **Checkpoint:** Não.
+
+### V2-F06-E18 - Vídeo do cidadão: inspeção segura do contêiner (MP4, MOV e HEVC)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** crítica  |  **Risco:** alto  |  **Paralelizável:** não (mesmo `verificador.ts`)
+- **Objetivo:** inspecionar o vídeo do cidadão (MP4 e MOV, inclusive HEVC do iPhone) por `ffprobe` e rejeitar o que sai da lista.
+- **Problema que resolve:** nada lê vídeo, e o `ffmpeg` com arquivo malicioso lê arquivo local por referência externa ou playlist.
+- **Origem:** PR:D-07; DP:T24; DP:T25; DP:K12.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E05, E06.
+- **O que deve ser implementado:**
+  - API: `apps/api/src/arquivos/video.ts` (a criar) e interface `ExecutorDeMidia`, com adaptador local (processo filho, timeout, ambiente vazio, stdin) e adaptador de teste.
+  - API: `ffprobe` com demuxer forçado (`-f mov`) e só `pipe` como protocolo; exige 1 trilha de vídeo, no máximo 1 de áudio, codecs `h264`, `hevc` e `aac`, contêiner sem referência externa e duração dentro de `limites_de_arquivo`.
+  - Banco: códigos `codec_nao_permitido`, `trilhas_demais`, `referencia_externa` e `video_corrompido`; manifesto: vídeo `sai`, retenção `a_decidir` (CP-10).
+- **O que NÃO deve ser implementado nesta etapa:** derivado e poster (E19), transcodificação (F07-E10), leitura e moderação (E20), câmera do app (F34).
+- **Arquivos e módulos prováveis:** `apps/api/src/arquivos/video.ts` (a criar), `apps/api/src/arquivos/verificador.ts`, `apps/api/test/video-malicioso.test.ts` (a criar), `db/src/manifesto.ts`.
+- **Risco de segurança:** alto; `ffprobe` processa bytes hostis: sem rede, por pipe, com tempo limitado, no worker depois do G07.
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só classe nova.
+- **Rollback:** desligar `video_cidadao` na semente de limites.
+- **Testes positivos:** MP4 H.264 e MOV HEVC sintéticos de 5 s passam.
+- **Testes negativos:** `dref` externo: `referencia_externa`; playlist `.m3u8` sob `video/mp4`: rejeitada; duas trilhas de vídeo: `trilhas_demais`; `vp9`: `codec_nao_permitido`; truncado: `video_corrompido`; `ffprobe` além do tempo: processo morto.
+- **Testes de autorização e isolamento:** vídeo de A pedido por B: 404; `agente_campo` não vê `video_cidadao`.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run typecheck`; G05.
+- **E2E:** vídeo sintético pela API no executor local.
+- **Validação humana:** Rafael sobe uma playlist renomeada e vê a recusa.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E18/` com a tabela de casos.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`.
+- **Definition of Done:** nenhum vídeo fora da lista passa da inspeção; `ffmpeg` no CI.
+- **Checkpoint:** Não.
+
+### V2-F06-E19 - Vídeo do cidadão: derivado sem metadados (GPS) e poster
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (depende da E18)
+- **Objetivo:** gerar o derivado sem GPS nem trilhas de dados e o poster, e só então marcar o vídeo `ativo`.
+- **Problema que resolve:** o MP4 do iPhone traz localização em átomos (`©xyz`, ISO6709) e em trilhas de metadados, e o original sairia assim.
+- **Origem:** PR:D-07; DP:T25; BZ-D:UPL-14; BZ-D:UPL-16.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E07, E18.
+- **O que deve ser implementado:**
+  - API: derivado por remux sem recodificar (`-map 0:v:0 -map 0:a:0? -map_metadata -1 -c copy -movflags +faststart`) pela `ExecutorDeMidia` da E18; só ele vira `chave_ativa`.
+  - API: poster JPEG do quadro de 1 s, lado maior de 320 px, por `recodificar.ts` da E07.
+  - API: hashes gravados (E08); o original sai da quarentena depois de ativar (`original_apos_ativo`, E10).
+  - Arquivos: HEVC para H.264 é da F07-E10; até lá o derivado mantém o codec e nenhum upload externo é permitido.
+- **O que NÃO deve ser implementado nesta etapa:** transcodificação (F07-E10), leitura e moderação (E20).
+- **Arquivos e módulos prováveis:** `apps/api/src/arquivos/video.ts`, `apps/api/src/arquivos/recodificar.ts`, `apps/api/test/video-malicioso.test.ts`.
+- **Risco de segurança:** alto; falha silenciosa deixaria o GPS no derivado servido.
+- **Impacto LGPD:** tira a localização do aparelho do que o município serve.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só classe nova.
+- **Rollback:** desligar `video_cidadao` na semente de limites.
+- **Testes positivos:** MP4 sintético com GPS e trilha `mebx` gera derivado sem esses átomos (leitura dos bytes) e poster; MOV HEVC chega a `ativo`.
+- **Testes negativos:** derivado com `©xyz` vai a `rejeitado`; vídeo truncado: `video_corrompido`; o original nunca é servido.
+- **Testes de autorização e isolamento:** derivado e poster sob o prefixo do tenant; chave de A não serve a B (404).
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm audit`; G05.
+- **E2E:** vídeo sintético com GPS até `ativo` no executor local.
+- **Validação humana:** Rafael confere que o GPS sumiu do derivado.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E19/` com a leitura de metadados antes e depois.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`, `docs/PRIVACIDADE.md`.
+- **Definition of Done:** nenhum vídeo ativo carrega localização; poster gerado.
+- **Checkpoint:** Não.
+
+### V2-F06-E20 - Vídeo do cidadão: leitura assinada, moderação, remoção e barreiras (laudo e agente)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (depende de E13 e E19)
+- **Objetivo:** servir o vídeo ativo por URL assinada com acesso auditado e provar que vídeo nunca entra em laudo, nunca é promovido e nunca desce ao app do agente.
+- **Problema que resolve:** sem barreira explícita, laudo, promoção e recorte do agente poderiam incluir vídeo, que expõe rosto e voz de terceiros (D-07).
+- **Origem:** PR:D-07; DP:T25; DP:J11; BZ-D:UPL-36.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E12, E13, E19.
+- **O que deve ser implementado:**
+  - API: `GET /v1/arquivos/:id/leitura` (`apps/api/src/rotas/arquivos.ts`): só `arquivo_servivel`, URL assinada de `VIDEO_LEITURA_SEGUNDOS` (padrão 900), `video/mp4`, `nosniff`, Range pelo provedor; ação `ver_video_de_relato` (coordenador e administrador); grava `arquivo_acessos` antes de assinar.
+  - Banco: migration com `arquivo_acessos` (tenant, append-only: arquivo, usuário, finalidade, instante), no manifesto.
+  - API: `remover` (E13) apaga derivado e poster na janela da E10; `promover` recusa `video_cidadao` (409); `documentos.ts` e as rotas do agente (`/campo/meu-trabalho`, `/sincronizacao/pendencias`) nunca selecionam a classe; o pacote de saída inclui derivado e poster.
+- **O que NÃO deve ser implementado nesta etapa:** tela do relato (F18, F34), bloqueio de conta (F15-E11).
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/arquivos.ts`, `rotas/documentos.ts`, `rotas/campo.ts`, `saida/pacote.ts`, `packages/shared/src/permissoes.ts`.
+- **Risco de segurança:** alto; URL de 15 minutos de vídeo de terceiro: dois papéis, sempre registrada.
+- **Impacto LGPD:** responde "quem viu este vídeo".
+- **Migração necessária:** Sim (`NNN_acesso_a_arquivo.sql`, hoje 047).
+- **Compatibilidade:** só classe nova.
+- **Rollback:** migration inversa com a tabela vazia.
+- **Testes positivos:** coordenador abre vídeo `ativo`: URL e uma linha em `arquivo_acessos`; remover leva a 404.
+- **Testes negativos:** vídeo em `quarentena`: 404; `promover`: 409; laudo não o inclui; `UPDATE` em `arquivo_acessos`: negado.
+- **Testes de autorização e isolamento:** `agente_campo` pede o vídeo: 404 e ele não aparece em `/campo/meu-trabalho`; coordenador de B pede o de A: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:campo`, `npm run test:isolamento`; G05.
+- **E2E:** Não se aplica: sem tela nesta fase.
+- **Validação humana:** Rafael abre e remove um vídeo sintético.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E20/` com testes e o acesso gravado.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`, `docs/PRIVACIDADE.md`.
+- **Definition of Done:** vídeo servido só a quem pode, auditado; barreiras provadas.
+- **Checkpoint:** Não.
+
+### V2-F06-E21 - Upload retomável por parte (foto de vistoria e vídeo)
+- **Prioridade:** P1
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (mexe em `s3.ts`, `evidencias.ts` e `packages/campo`)
+- **Objetivo:** retomar o envio de foto ou vídeo grande de onde parou, sem o servidor recodificar a prova.
+- **Problema que resolve:** `enviarBytes` (`packages/campo/src/transporte.ts`) faz PUT único e recomeça do zero, e a URL de 5 minutos da E04 não cobre vídeo em 3G.
+- **Origem:** ALY:VIS-04; ALY:RNF-08; BZ-D:CMP-39; PR:D-20 (L6); PR:D-07.
+- **Estado atual:** EXPANDIR (PUT único abaixo de 5 MiB).
+- **Dependências de entrada:** E04, E11.
+- **O que deve ser implementado:**
+  - Arquivos: `Armazenamento` ganha envio em partes assinado à mão (iniciar, URL de parte, listar, concluir, abortar) em `tipos.ts`, `s3.ts` e `memoria.ts`; partes de 5 MiB, o mínimo do S3; a F07-E06 reutiliza.
+  - API: `autorizar-envio` e `POST /v1/arquivos/autorizar` (E04, o vídeo de 50 MB) devolvem URLs de partes acima de 5 MiB; `GET /v1/evidencias/:id/partes` lista as recebidas; `confirmar-envio` conclui e mede o SHA-256 como hoje; `if-none-match: *` na conclusão se o provedor aceitar.
+  - Campo: `packages/campo/src/transporte.ts` e `fila.ts` reenviam só as partes que faltam depois de queda (lógica testada em Node; tela na F14-E22).
+- **O que NÃO deve ser implementado nesta etapa:** compressão (E22), antivírus (E23), tela e prova em aparelho (F14-E22). Retomada por parte de 5 MiB, não por byte: limitação registrada.
+- **Arquivos e módulos prováveis:** `apps/api/src/armazenamento/s3.ts`, `rotas/evidencias.ts`, `packages/campo/src/transporte.ts`, `fila.ts`.
+- **Risco de segurança:** alto; caminho da prova: o hash gravado segue sendo o medido no servidor.
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** app antigo segue com PUT.
+- **Rollback:** desligar as partes.
+- **Testes positivos:** foto de 12 MB em 3 partes, queda após a segunda: retoma só a terceira, SHA-256 esperado.
+- **Testes negativos:** parte com tamanho diferente recusada; concluir com parte faltando: 409; envio abandonado abortado (E10).
+- **Testes de autorização e isolamento:** agente de outra equipe lista `partes`: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:campo`, `npm run test:isolamento`; G05.
+- **E2E:** `npm run test:e2e:api` com foto de 12 MB retomada.
+- **Validação humana:** Rafael corta a rede no envio.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E21/` com testes.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`.
+- **Definition of Done:** retomada por parte provada.
+- **Checkpoint:** Não.
+
+### V2-F06-E22 - Foto de vistoria: compressão configurável no aparelho, sem recodificar a prova
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F06-E21)
+- **Objetivo:** deixar o município configurar a qualidade da foto feita no aparelho, mantendo que o servidor nunca a recodifica.
+- **Problema que resolve:** a qualidade é fixa em 0,6 em `apps/campo/src/app/(agente)/vistoria/[id].tsx`; ALY:VIS-04 pede "qualidade configurada" (BZ-D:UPL-13).
+- **Origem:** ALY:VIS-04; ALY:RNF-08; BZ-D:UPL-13; PR:D-20 (L6).
+- **Estado atual:** EXPANDIR (o 0,6 vira padrão).
+- **Dependências de entrada:** E11.
+- **O que deve ser implementado:**
+  - Banco: migration com `configuracao_de_captura` (tenant: `qualidade_jpeg` de 0,5 a 0,9, padrão 0,6) e `evidencias.perfil_de_captura`, preenchido só no INSERT (fora do UPDATE da E11).
+  - API: `GET /v1/campo/perfil-de-captura` com ETag e `PATCH` por `gerenciar_organizacao`, com antes e depois na trilha administrativa; o pedido de evidência traz a qualidade aplicada.
+  - Campo: o app guarda o último perfil para uso offline e aplica só o parâmetro `quality` da câmera, uma passagem, antes do primeiro hash; nenhum `ImageManipulator` na foto de vistoria.
+- **O que NÃO deve ser implementado nesta etapa:** recodificar no servidor (E07 vale só para anexos), foto de perfil (já comprime), upload retomável (E21).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `apps/api/src/rotas/campo.ts`, `apps/api/src/rotas/administracao.ts`, `packages/shared/src/evidencia.ts`, `apps/campo/src/app/(agente)/vistoria/[id].tsx`.
+- **Risco de segurança:** médio; qualidade baixa demais degrada a prova: o piso é 0,5.
+- **Impacto LGPD:** Não se aplica: sem dado pessoal.
+- **Migração necessária:** Sim (`NNN_configuracao_de_captura.sql`, hoje 047).
+- **Compatibilidade:** perfil ausente vale 0,6; app antigo ignora o perfil.
+- **Rollback:** migration inversa; volta o 0,6 fixo.
+- **Testes positivos:** qualidade 0,7 chega à câmera e a `evidencias.perfil_de_captura`; sem rede o app usa o último perfil.
+- **Testes negativos:** qualidade 0,3: 422; `UPDATE` de `perfil_de_captura` depois de confirmada: negado; o servidor entrega bytes idênticos aos recebidos.
+- **Testes de autorização e isolamento:** coordenador tenta o `PATCH`: negado; o perfil de A não vale em B.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:campo`, `npm run test:isolamento`; G05.
+- **E2E:** Não se aplica: a captura real é da prova em aparelho (F14-E12).
+- **Validação humana:** Rafael muda a qualidade sintética e confere o valor gravado na foto.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E22/` com testes.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`, `apps/campo/LEIA-ME.md`.
+- **Definition of Done:** qualidade configurável por município, aplicada no aparelho, servidor sem recodificar.
+- **Checkpoint:** Não.
+
+### V2-F06-E23 - Antivírus da foto de vistoria sem recodificar
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (usa a interface da E14)
+- **Objetivo:** varrer a foto de vistoria depois da confirmação, sem alterar um byte, e impedir que a sinalizada seja servida ou entre no laudo.
+- **Problema que resolve:** nenhum antivírus existe; a foto é prova imutável (E11) que o Chromium decodifica no laudo, e a E14 cobre só PDF (BZ-D:UPL-19).
+- **Origem:** ALY:VIS-04; ALY:RNF-08; BZ-D:UPL-19; PR:D-20 (L6).
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E11, E14 (interface `Antivirus` e contêiner).
+- **O que deve ser implementado:**
+  - Banco: migration com `evidencia_varreduras` (tenant, append-only: evidência, resultado `limpa`, `alerta` ou `indisponivel`, instante) e `evidencia_servivel(id)`; `evidencias` não muda.
+  - API: handler `varrer_evidencia` lê o objeto em fluxo e chama `Antivirus` (E14), sem gravar; `confirmar-envio` nunca espera; `indisponivel` mantém a foto servível e gera alerta; `alerta` bloqueia URL assinada e laudo, preserva objeto e linha e grava evento na trilha.
+- **O que NÃO deve ser implementado nesta etapa:** recodificar ou apagar a foto, PDF (E14), a decisão sobre a sinalizada (CP-48).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `apps/api/src/arquivos/antivirus.ts`, `rotas/evidencias.ts`, `rotas/documentos.ts`.
+- **Risco de segurança:** alto; falso positivo esconde prova: nada é apagado e a decisão é humana.
+- **Impacto LGPD:** Não se aplica: sem dado.
+- **Migração necessária:** Sim (`NNN_varredura_de_evidencia.sql`, hoje 047).
+- **Compatibilidade:** sem varredura a foto segue servível.
+- **Rollback:** desligar o handler.
+- **Testes positivos:** JPEG limpo: `limpa`; EICAR em JPEG sintético: `alerta`, hash do objeto igual antes e depois.
+- **Testes negativos:** foto em `alerta` sem URL nem laudo; scanner fora do ar: foto servível e alerta; `UPDATE` em `evidencia_varreduras`: negado.
+- **Testes de autorização e isolamento:** agente de outra equipe pede foto em `alerta`: 404; B não lê varredura de A.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:campo`; G05.
+- **E2E:** vistoria com foto EICAR: o laudo a omite com aviso.
+- **Validação humana:** Rafael vê a foto fora do laudo.
+- **Evidência a produzir:** `docs/evidencias-v2/G06/V2-F06-E23/` com testes e hashes.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`, `docs/SUBPROCESSADORES.md`.
+- **Definition of Done:** foto varrida sem alteração; sinalizada fora do laudo.
+- **Checkpoint:** CP-48 (destino da foto sinalizada; Alyson e ⚖️ jurídico; bloqueia ligar em produção; mecanismo e HML andam).
+
+# GATE G06 - CADEIA DE ARQUIVOS PROVADA
+Só passa se:
+- [ ] ADR 0011 aprovada e citada pelas etapas da fase (V2-F06-E01; evidência: hash da ADR e registro de aprovação).
+- [ ] `arquivos`, `arquivo_eventos` e `encaminhamento_anexos` existem com RLS forçada, FK composta, classificadas no manifesto, e `npm run test:isolamento` está verde (V2-F06-E02).
+- [ ] As transições `quarentena`, `em_verificacao`, `ativo` e `rejeitado` são impostas no banco e nada é servido fora de `ativo` (V2-F06-E03; evidência: testes de transição).
+- [ ] Autorizar e confirmar usam URL assinada com tipo e tamanho presos, `ARQUIVOS_EXTERNOS_ATIVO` é `nao` por padrão e a configuração recusa produção com executor local (V2-F06-E04).
+- [ ] Validação por bytes (imagem, MP4 e MOV), limites de tamanho, pixels e duração, bomba de pixels, recodificação sem EXIF só para anexos, e hashes com reverificação na emissão estão provados (V2-F06-E05, E06, E07 e E08; evidência: saídas e leitura de metadados).
+- [ ] A foto original de vistoria segue byte a byte igual depois de confirmar, sincronizar e emitir, e `recodificar` lança erro para a classe de prova, que a F30 estende com `comprovante_de_entrega` (V2-F06-E07 e E11; evidência: hash antes e depois).
+- [ ] `evidencias` é imutável depois da confirmação, inclusive para o dono das tabelas, e os quatro caminhos legítimos seguem verdes, com `npm run test:campo` e `npm run test:e2e:api` verdes (V2-F06-E11).
+- [ ] Cota por classe, inclusive `video_cidadao`, imposta e separada do teto do campo, com o caso em que o abuso de uma classe não trava a evidência do agente (V2-F06-E09); CP-13 decidido ou adiado, com cotas em produção bloqueadas.
+- [ ] A varredura de órfãos reconhece `arquivos` e limpa a quarentena sem apagar linha (V2-F06-E10).
+- [ ] Nenhuma foto avulsa nova nem anexo entra no laudo sem decisão registrada, e laudos antigos saem idênticos (V2-F06-E12; evidência: golden e diff).
+- [ ] Remoção com motivo funciona e deixa evento (V2-F06-E13).
+- [ ] PDF do órgão está provado (E14) ou está desligado e documentado, com CP-12 decidido ou adiado e PDF no portal bloqueado (V2-F06-E14).
+- [ ] S3 real provado em HML, README, `ARMAZENAMENTO.md` e `COLOCAR-DE-PE.md` reconciliados (V2-F06-E15; evidência: relatório do script sem credencial).
+- [ ] Suíte de arquivos maliciosos verde no executor local e reexecutável em HML (V2-F06-E16; evidência: tabela caso x resultado).
+- [ ] O operador anexa arquivo à ocorrência pela cadeia, na classe `anexo_prefeitura`, e o anexo só entra no laudo pela promoção (V2-F06-E17; evidência: testes e captura).
+- [ ] O vídeo do cidadão é inspecionado (contêiner, codec, trilhas, referência externa e duração), servido só como derivado sem GPS e com poster, por URL assinada com acesso auditado, e nunca entra em laudo, nunca é promovido e nunca desce ao app do agente (V2-F06-E18, E19 e E20; evidência: leitura de metadados antes e depois, tabela da suíte de vídeo e testes de barreira).
+- [ ] A foto de vistoria sobe por partes e retoma depois de queda com o mesmo hash, a qualidade da câmera vem do perfil do município sem recodificação no servidor, e a varredura de antivírus não altera um byte nem trava a coleta (V2-F06-E21, E22 e E23; evidência: testes e hashes antes e depois; a tela de progresso e a prova em aparelho são da F14-E22); CP-48 decidido ou adiado, com a varredura em produção bloqueada.
+- [ ] Nenhuma regressão: gates G00 a G05 continuam verdes (se um quebrar, ESTE gate volta a REPROVADO), com `npm run typecheck`, `npm run test:isolamento`, `npm run test:api`, `npm run test:campo`, `npm run test:scripts` e `npm audit` verdes.
+- [ ] Documentação atualizada (`docs/ARMAZENAMENTO.md`, `docs/DICIONARIO-DE-DADOS.md`, `README.md`, ADR 0011) e evidências arquivadas em `docs/evidencias-v2/G06/`.
+
+**Reabre se:** a foto de vistoria ou outra classe de prova passar a ser recodificada, `evidencias` voltar a aceitar UPDATE de coluna de prova, algum anexo entrar no laudo sem decisão registrada, um arquivo cujo conteúdo não confere com o tipo chegar a `ativo`, ou `ARQUIVOS_EXTERNOS_ATIVO` puder ser ligado em produção com executor local, ou um vídeo entrar em laudo, for promovido ou descer ao app do agente, ou o derivado de vídeo servido carregar localização.
+**Este Gate libera:** F07 (workers e topologia) e F09 (documentos imutáveis, junto de G07 e G05). NÃO libera upload externo: nenhum upload de portal ou cidadão antes do G07.
+
+# Fase 07: Workers e topologia operacional
+
+**Gate da fase:** G07 WORKERS E TOPOLOGIA OPERACIONAL | **Depende dos gates:** G06 | **Superfícies tocadas:** API, banco e infraestrutura (Fly e Docker) | **Checkpoints da fase:** CP-31 (E12 e E13) e CP-47 (E11); a escolha do papel de banco da API pública é o CP-25, na F15-E01, e esta fase só deixa a configuração pronta
+
+Esta fase tira do processo da API tudo que não é atender requisição: os relógios, o pipeline de arquivos, o Chromium e o pacote de saída. Uma imagem Docker e três modos de serviço (`api`, `worker`, `publica`), uma fila de trabalho com lease no Postgres, a configuração da API pública (apenas preparada) e, por D-07 e D-19, a transcodificação de vídeo em processo isolado com a imagem `Dockerfile.video` (E10 e E11) e duas máquinas por serviço com deploy rolante (E12 e E13). Hoje `apps/api/src/index.ts` liga a API, os relógios de push, minimização, resumo, órfãos e eliminação (com travas de aviso em `push/trava.ts`), o Chromium de `documentos/pdf.ts` e a montagem do pacote em memória numa única máquina `shared-cpu-1x` de 1 GB (`fly.toml`).
+
+O que se PRESERVA (MANTER): o código e os testes dos cinco relógios e das travas de aviso, os pools próprios, o `kill_timeout`, o contrato das rotas de documentos e de saída para os clientes, o PGlite em desenvolvimento (o modo `tudo` mantém desenvolvimento e testes iguais, e é recusado em produção) e `/saude` da API. A fase NÃO faz: fila fora do Postgres, tracing e SLO (F21), publicar a API pública (F15-E08), observabilidade completa (F21), desempenho sob carga (F24), várias regiões (F22). Os relógios que a F05 acrescentou (retenção, expurgo de rastro e de aparelho revogado) entram na mesma lista da E03. Onde uma etapa desta fase falar em "teto de funções privilegiadas", vale a lista nominal `FUNCOES_PRIVILEGIADAS` da F03-E08: a função nova entra nela com nome, motivo e a forma como confere o tenant.
+
+REGRA DE ORDEM: a cadeia de arquivos nasceu na F06 como módulo independente do executor e foi provada com executor local; aqui ela passa a rodar no worker (E04). NENHUM upload externo (portal ou cidadão) antes do G07. O G07 só passa se o pipeline de arquivos, o `ffmpeg` e o Chromium não estiverem mais no processo da API; upload externo de vídeo só com a transcodificação isolada da E10.
+
+Ordem sugerida: E01 e E02 em sequência; E03 em seguida (reestrutura `index.ts`, de que as demais dependem); depois E04, E05 e E06, que podem andar em paralelo (cada uma é um tipo de trabalho do worker, com arquivos disjuntos fora de `index.ts` e `config.ts`); E07 depois da E03; E08 e E09 só dependem da E01; E10 depois de E04 e de F06-E19 (paralela a E05 e E06); E11 depois de E10 e E08; E12 depois de E03, E07 e E08; E13 depois da E12.
+
+## Etapas
+
+### V2-F07-E01 - ADR 0012: modo de serviço (api, worker, publica) em uma imagem
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (todas as etapas da fase dependem)
+- **Objetivo:** decidir por escrito o modo de serviço e a ordem de implantação antes de reestruturar `index.ts`.
+- **Problema que resolve:** `apps/api/src/index.ts` (518 linhas) junta API, relógios, Chromium e pacote na mesma máquina; nada diz qual processo faz o quê quando houver mais de um, nem como a API pública se separa (REL:02 riscos 1 e 7; REL:10 OPS-105).
+- **Origem:** DP:T43; REL:02; REL:10 OPS-105.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** G06 (cadeia de arquivos provada).
+- **O que deve ser implementado:**
+  - Arquivos: ADR `docs/adr/0012-modo-de-servico-api-worker-publica.md` (a criar em `C:/Projetos/city-hall/docs/adr/`) com: (1) variável `MODO_DE_SERVICO` com `api`, `worker`, `publica` e `tudo` (só fora de produção), com a forma final de escolha por grupo de processos do Fly; (2) uma imagem (`Dockerfile`), dois grupos de processos no `fly.toml` e a API pública em app próprio; (3) o que cada modo monta (rotas, relógios, Chromium, pool); (4) fila no Postgres com lease e `FOR UPDATE SKIP LOCKED`, e a nota de que as travas de aviso dos relógios exigem pooler em modo sessão; (5) ordem de implantação (migração antes, worker antes de ligar `ARQUIVOS_EXTERNOS_ATIVO`); (6) a regra de que nenhum upload externo precede o G07 e como a configuração a impõe; (7) o que fica como evolução.
+- **O que NÃO deve ser implementado nesta etapa:** código; escolher o papel de banco da API pública (CP-25, F15-E01); fila fora do Postgres (fora da V2).
+- **Arquivos e módulos prováveis:** `docs/adr/0012-modo-de-servico-api-worker-publica.md` (a criar em `C:/Projetos/city-hall/docs/adr/`).
+- **Risco de segurança:** médio; a decisão define onde bytes hostis são decodificados.
+- **Impacto LGPD:** Não se aplica: decisão de topologia, sem dado.
+- **Migração necessária:** Não.
+- **Compatibilidade:** não altera nada existente.
+- **Rollback:** substituir a ADR por outra; nenhum código depende dela antes da E02.
+- **Testes positivos:** `npm test` aceita o arquivo (`regras-de-conteudo.test.ts`).
+- **Testes negativos:** a ADR não pode conter marcador de campo aberto nem norma fora da lista autorizada.
+- **Testes de autorização e isolamento:** Não se aplica: documento.
+- **Regressão obrigatória:** `npm test`; G06.
+- **E2E:** Não se aplica: documento.
+- **Validação humana:** Rafael lê e aprova a ADR antes da E02.
+- **Evidência a produzir:** `docs/evidencias-v2/G07/V2-F07-E01/` com o hash da ADR e o registro da aprovação.
+- **Documentação a atualizar:** `docs/IMPLANTACAO.md` (apontar a ADR), `fly.toml` (comentário de topologia).
+- **Definition of Done:** ADR aprovada e citada por E02 a E09.
+- **Checkpoint:** Não.
+
+### V2-F07-E02 - Fila de trabalho com lease no Postgres (SKIP LOCKED)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E03 a E06 consomem a fila)
+- **Objetivo:** criar a tabela `fila_de_trabalho` e as funções de lease com `FOR UPDATE SKIP LOCKED`, num módulo reutilizável por todo tipo de trabalho.
+- **Problema que resolve:** os relógios coordenam por `pg_try_advisory_lock` de sessão (`push/trava.ts`), que só diz "alguém roda" e depende de pooler em modo sessão; o pipeline de arquivos, o PDF e o pacote precisam de trabalho enfileirado, retomável e com tentativas (REL:10 itens 1 e 2).
+- **Origem:** DP:T43; REL:02; REL:10.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E01 (ADR 0012 aprovada).
+- **O que deve ser implementado:**
+  - Migration: `NNN_fila_de_trabalho.sql` (hoje 047): `fila_de_trabalho` (município, tipo, chave de deduplicação, `payload` só de identificadores com CHECK de tamanho e de forma, estado `pendente`, `em_execucao`, `concluido`, `falhou`, `morto`, tentativas, `proxima_tentativa_em`, `lease_ate`, instância, último erro curto sem payload, datas); índice único parcial por tipo e deduplicação entre ativos; RLS forçada, INSERT pela API sob o tenant.
+  - Banco: três funções privilegiadas, `reivindicar_trabalho(instancia, tipos, lease)`, `encerrar_trabalho(id, resultado)` e o expurgo de concluídos com mais de 30 dias (DELETE só nesta tabela, na lista nomeada do portão), com `SET search_path`, `row_security = off` e sem município de parâmetro de quem chama; o teto de 27 funções privilegiadas em `db/test/isolamento.test.ts` sobe com justificativa nomeada.
+  - API: módulo `apps/api/src/trabalho/` (a criar em `apps/api/src/`): enfileirar, reivindicar, renovar lease, concluir, falhar com recuo exponencial e jitter, `morto` depois do máximo de tentativas, retomada de lease vencido.
+- **O que NÃO deve ser implementado nesta etapa:** broker ou fila fora do Postgres (fora da V2), mover relógios (E03), pipeline (E04), PDF (E05), pacote (E06).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/trabalho/` (a criar em `apps/api/src/`), `db/test/fila-de-trabalho.test.ts` (a criar em `db/test/`), `db/src/manifesto.ts`.
+- **Risco de segurança:** alto; função privilegiada que enxerga trabalho de todos os municípios; devolve só identificadores e abre `comTenant` para executar.
+- **Impacto LGPD:** payload sem dado pessoal por CHECK; erro curto sem conteúdo.
+- **Migração necessária:** Sim (nome sugerido `NNN_fila_de_trabalho.sql`, onde NNN é a próxima livre na execução, hoje 047).
+- **Compatibilidade:** tabela e funções novas; nenhum relógio muda ainda.
+- **Rollback:** migration inversa com a fila vazia.
+- **Testes positivos:** dois workers concorrentes reivindicam 100 trabalhos sem duplicar; lease vencido é reassumido; trabalho concluído sai da fila ativa.
+- **Testes negativos:** renovar lease depois de perdê-lo recusado; payload com texto livre recusado pelo CHECK; trabalho `morto` depois do máximo de tentativas; a função não aceita município de parâmetro; `PUBLIC` sem EXECUTE.
+- **Testes de autorização e isolamento:** trabalho do município A executado abre `comTenant(A)` e não enxerga B; o município B não lê a fila do A.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`; G06.
+- **E2E:** Não se aplica: infraestrutura sem fluxo de usuário.
+- **Validação humana:** Rafael roda dois processos de teste concorrentes e confere a contagem.
+- **Evidência a produzir:** `docs/evidencias-v2/G07/V2-F07-E02/` com saída dos testes de concorrência e a justificativa do teto.
+- **Documentação a atualizar:** ADR 0012, `docs/DICIONARIO-DE-DADOS.md`, `db/PENDENCIAS.md`.
+- **Definition of Done:** fila com lease provada sob concorrência, funções privilegiadas justificadas, nada de dado pessoal no payload.
+- **Checkpoint:** Não.
+
+### V2-F07-E03 - Mover os cinco relógios para o worker
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (reestrutura `index.ts` e `config.ts`, de que E04 a E07 dependem)
+- **Objetivo:** fazer `index.ts` escolher o serviço por `MODO_DE_SERVICO` e subir os relógios (push, minimização, resumo, órfãos, eliminação e os da F05) só no worker.
+- **Problema que resolve:** `apps/api/src/index.ts:183-494` liga os relógios dentro do processo que atende o agente em campo, com o Chromium e o pacote; falha de minimização, resumo e órfãos é registrada em `info` (`index.ts:314`, `:377` e `:428`) (REL:10 OPS-41; REL:02).
+- **Origem:** DP:T43; REL:02; REL:10 OPS-41.
+- **Estado atual:** REFATORAR (código e testes dos relógios ficam; muda quem os sobe).
+- **Dependências de entrada:** E02 (fila de trabalho).
+- **O que deve ser implementado:**
+  - Infraestrutura: `apps/api/src/servicos/api.ts`, `worker.ts` e `publica.ts` (a criar em `apps/api/src/`) e `index.ts` reduzido a despachante; o worker mantém os pools próprios e `push/trava.ts`; a partida do worker recusa pooler em modo transação (porta 6543), porque a trava de aviso é de sessão; encerramento ordenado por serviço; `fly.toml` ganha os grupos `app` e `worker` com uma seção `vm` por grupo.
+  - Observabilidade: falha de rodada em `warn` ou `error` (corrige o `info`), e `ultimo_sucesso_em` por relógio, base da E07.
+  - Arquivos: lista fechada dos relógios por teste, incluindo os da F05.
+- **O que NÃO deve ser implementado nesta etapa:** converter os relógios em trabalhos da fila (evolução; as travas de aviso ficam), métricas por serviço (E07), mudar intervalos.
+- **Arquivos e módulos prováveis:** `apps/api/src/index.ts`, `apps/api/src/servicos/` (a criar em `apps/api/src/`), `apps/api/src/config.ts`, `fly.toml`, `apps/api/test/partida-nao-carrega-pglite.test.ts`.
+- **Risco de segurança:** alto; um relógio esquecido sem dono deixa de executar retenção e eliminação.
+- **Impacto LGPD:** a minimização e a eliminação continuam rodando; o teste prova que nenhuma parou.
+- **Migração necessária:** Não.
+- **Compatibilidade:** o modo `tudo` mantém desenvolvimento e testes; em produção os dois grupos sobem juntos no deploy.
+- **Rollback:** voltar o comando de processo único no `fly.toml` e reverter o commit.
+- **Testes positivos:** modo `worker` liga os relógios esperados; modo `api` atende as rotas.
+- **Testes negativos:** em modo `api` nenhum `agendar*` é chamado e nenhum Chromium é aberto (`apps/api/test/modos-de-servico.test.ts`, a criar); `MODO_DE_SERVICO=tudo` com `NODE_ENV=production` recusa subir; duas instâncias de worker: a segunda desiste da rodada pela trava.
+- **Testes de autorização e isolamento:** os relógios continuam usando só as funções privilegiadas existentes, sem município de parâmetro (casos de minimização e de eliminação em `isolamento.test.ts`).
+- **Regressão obrigatória:** `npm run test:api` (`push-varredor.test.ts`, `minimizacao.test.ts`, `eliminacao-de-municipio.test.ts`, `partida-nao-carrega-pglite.test.ts`), `npm run test:isolamento`, `npm run test:scripts`, `npm run typecheck`; G06.
+- **E2E:** `npm run test:e2e:api` no modo `tudo`; subida dos dois modos em HML.
+- **Validação humana:** Rafael sobe API e worker em HML e confere nos logs quem roda cada relógio.
+- **Evidência a produzir:** `docs/evidencias-v2/G07/V2-F07-E03/` com saída dos testes e o log de subida dos dois grupos.
+- **Documentação a atualizar:** `docs/IMPLANTACAO.md`, `fly.toml` (comentários), `apps/api/.env.example`, `README.md`.
+- **Definition of Done:** nenhum relógio sobe no modo `api`; o worker sobe todos; falhas visíveis em `warn` ou `error`.
+- **Checkpoint:** Não.
+
+### V2-F07-E04 - Pipeline de arquivos executado pelo worker
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** crítica  |  **Risco:** alto  |  **Paralelizável:** sim (com F07-E05 e E06, arquivos disjuntos fora de `index.ts` e `config.ts`)
+- **Objetivo:** fazer `confirmar` enfileirar `verificar_arquivo` e o worker executar o mesmo `verificarArquivo` provado na F06, de modo que nenhum byte hostil seja decodificado no processo da API ou da API pública.
+- **Problema que resolve:** na F06 o executor é local, dentro do processo que roda `confirmar`; imagem de terceiro seria decodificada na máquina que serve o painel e o campo, junto do Chromium e de um pool de 10 conexões (REL:08 Riscos arquiteturais 4; DP:T25).
+- **Origem:** DP:T25; DP:T43; REL:08 Riscos arquiteturais 4; BZ-D:UPL-31.
+- **Estado atual:** EXPANDIR (a função `verificarArquivo`, o detector, os limites e a recodificação da F06 são MANTIDOS; muda onde rodam).
+- **Dependências de entrada:** E02; F06-E05.
+- **O que deve ser implementado:**
+  - API: handler `apps/api/src/trabalho/verificar-arquivo.ts` (a criar) que chama `verificarArquivo` sem alterar a lógica; `confirmar` enfileira com deduplicação por `arquivo_id` e responde 202 com `em_verificacao`; `EXECUTOR_DE_ARQUIVOS=fila` é o padrão em produção e `local` fica para desenvolvimento e teste; `autorizar` externo responde 503 `verificacao_indisponivel` se o batimento do worker (E07) estiver velho.
+  - Infraestrutura: o módulo de decodificação e a biblioteca de imagem só são importados pelo modo `worker` (importação dinâmica); limite de memória e de pixels; lease renovada durante decodificação longa.
+  - Banco: reaper que reenfileira `em_verificacao` sem trabalho ativo depois da janela; idempotência: as chaves derivam de `arquivo_id`, reprocessar não duplica objeto nem evento.
+- **O que NÃO deve ser implementado nesta etapa:** antivírus e PDF (F06-E14 usa este mesmo handler), tela de acompanhamento do arquivo (F11-E13, F17), moderação (F06-E13), upload externo em produção (só depois do G07 inteiro).
+- **Arquivos e módulos prováveis:** `apps/api/src/trabalho/verificar-arquivo.ts` (a criar), `apps/api/src/arquivos/confirmar.ts`, `apps/api/src/arquivos/verificador.ts`, `apps/api/src/servicos/worker.ts`, `apps/api/src/config.ts`.
+- **Risco de segurança:** alto; o worker passa a ser o único lugar com decodificador de imagem, então precisa de limites de memória, de tempo e sem credencial além do necessário.
+- **Impacto LGPD:** o payload da fila carrega só identificadores; nenhum conteúdo de arquivo passa por log.
+- **Migração necessária:** Não (a fila vem da E02; se o reaper exigir função nova, `NNN_reaper_de_verificacao.sql`, hoje 047).
+- **Compatibilidade:** o fluxo do agente não muda; os anexos passam a responder 202.
+- **Rollback:** `EXECUTOR_DE_ARQUIVOS=local` em HML, e a trava `ARQUIVOS_EXTERNOS_ATIVO=nao` em qualquer ambiente.
+- **Testes positivos:** anexo sintético percorre autorizar, PUT, confirmar e `ativo` pela fila; reprocessar o mesmo arquivo mantém um derivado e um conjunto de eventos.
+- **Testes negativos:** worker morto no meio do trabalho: outro o reassume e conclui uma vez; arquivo hostil da suíte E16 termina `rejeitado` pela fila; em modo `api` o módulo de decodificação nunca é importado; trabalho duplicado é ignorado; worker parado: `autorizar` externo recusado.
+- **Testes de autorização e isolamento:** o handler confere que a chave do trabalho está sob o prefixo do município do trabalho; trabalho do município A nunca lê objeto do B; a suíte E16 roda em modo fila.
+- **Regressão obrigatória:** `npm run test:api` (incluindo `arquivos-maliciosos.test.ts`), `npm run test:isolamento`, `npm run test:e2e:api`, `npm run test:scripts`, `npm run typecheck`; G06.
+- **E2E:** fluxo do anexo sintético em HML com API e worker em processos separados.
+- **Validação humana:** Rafael mata o worker durante uma verificação em HML e vê o trabalho terminar depois que ele volta.
+- **Evidência a produzir:** `docs/evidencias-v2/G07/V2-F07-E04/` com saída dos testes, o log do worker morto e retomado e a tabela da suíte E16.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`, `docs/IMPLANTACAO.md`, ADR 0012.
+- **Definition of Done:** nenhuma imagem de terceiro decodificada fora do worker, retomada provada, suíte maliciosa verde em modo fila.
+- **Checkpoint:** Não.
+
+### V2-F07-E05 - PDF e Chromium isolados (sandbox, sem JS no laudo)
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** crítica  |  **Risco:** alto  |  **Paralelizável:** sim (com F07-E04 e E06)
+- **Objetivo:** rodar o Chromium só no worker, endurecido: sem JavaScript, sem rede além do necessário, com CSP, contexto novo por trabalho e limites de memória e tempo.
+- **Problema que resolve:** `apps/api/src/documentos/pdf.ts:70` abre o Chromium com `--no-sandbox`, `newContext()` não desabilita JavaScript (linha 94) e `waitUntil: "networkidle"` busca fotos por URL assinada de 30 minutos; o HTML do laudo tem `onclick="window.print()"` (`documentos/folha.ts:326`) e dado de cidadão, tudo no processo que fala com o banco (REL:02 ARQ-26; REL:10 G-17).
+- **Origem:** DP:T43; REL:08; REL:02 ARQ-26.
+- **Estado atual:** REFATORAR (o gerador e a interface `GeradorDePdf` ficam; muda onde roda e como é endurecido).
+- **Dependências de entrada:** E02 (fila de trabalho).
+- **O que deve ser implementado:**
+  - API: `geradorPorFila` implementa `GeradorDePdf` enfileirando `gerar_pdf` e aguardando o resultado (objeto temporário sob `tenant/<org>/tmp/`, espera de até 30 segundos, mesmo 503 `pdf_indisponivel` de hoje); o worker executa `geradorPlaywright`.
+  - Infraestrutura: contexto com `javaScriptEnabled: false`; `page.route` bloqueia tudo que não seja `data:` (o worker embute as fotos lidas do armazenamento); CSP restritiva; `folha.ts` sem o botão de imprimir no modo PDF; um contexto por trabalho e reinício do navegador a cada N trabalhos; `--no-sandbox` removido com prova em HML (Fly Machine) ou, se o sandbox não subir, `--disable-gpu`, `--disable-dev-shm-usage`, usuário `node` e sem saída de rede, com a limitação registrada como resultado.
+  - Arquivos: a imagem única mantém o Chromium e só o modo `worker` o lança (`pdf-na-imagem.test.ts` ajustado).
+- **O que NÃO deve ser implementado nesta etapa:** PDF guardado como objeto de escrita única e hash (F09-E04 e E05), PDF acessível (F09-E15), recodificar fotos de vistoria para o PDF, pacote de saída (E06).
+- **Arquivos e módulos prováveis:** `apps/api/src/documentos/pdf.ts`, `apps/api/src/documentos/folha.ts`, `apps/api/src/servicos/worker.ts`, `apps/api/src/rotas/documentos.ts`, `apps/api/test/pdf-na-imagem.test.ts`, `Dockerfile`.
+- **Risco de segurança:** alto; navegador renderizando HTML com texto de terceiro; mitigado por JavaScript desligado, rede bloqueada e processo separado.
+- **Impacto LGPD:** o PDF temporário vive pouco e sob o prefixo do município; sem dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** as duas rotas de PDF mantêm o contrato; a resposta pode levar alguns segundos a mais.
+- **Rollback:** `MODO_DE_SERVICO=tudo` em HML, ou o gerador direto por configuração enquanto o G07 não passa.
+- **Testes positivos:** laudo gerado pelo worker tem o mesmo texto e as mesmas páginas do gerado hoje (golden de texto com `scripts/renderizar-laudo.mjs`).
+- **Testes negativos:** legenda com `<script>` não executa (marca em `window` ausente); requisição a host externo é bloqueada e registrada; em modo `api` `gerar` nunca abre Chromium; Chromium indisponível devolve 503 `pdf_indisponivel`.
+- **Testes de autorização e isolamento:** o trabalho do município A não lê objeto do B; usuário do município B pede o PDF do laudo do A: 404.
+- **Regressão obrigatória:** `npm run test:api` (`pdf-na-imagem.test.ts`, `documentos.test.ts`, `fotos-do-documento.test.ts`), `npm run test:isolamento`, `npm run test:e2e`, `npm run typecheck`; G06.
+- **E2E:** gerar o PDF de um laudo sintético pelo painel de HML com o worker separado.
+- **Validação humana:** Rafael compara o PDF de antes e o de depois e confere o log de bloqueio de rede.
+- **Evidência a produzir:** `docs/evidencias-v2/G07/V2-F07-E05/` com o golden, o log do bloqueio, o resultado do sandbox em HML (sucesso ou limitação nomeada).
+- **Documentação a atualizar:** `docs/IMPLANTACAO.md`, `Dockerfile` (comentário), ADR 0012.
+- **Definition of Done:** Chromium só no worker, sem JavaScript e sem rede, sandbox provado ou limitação registrada, PDF equivalente ao atual.
+- **Checkpoint:** Não.
+
+### V2-F07-E06 - Pacote de saída fora do processo da API (streaming)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com F07-E04 e E05)
+- **Objetivo:** montar o pacote de saída no worker, lendo as tabelas por cursor e enviando o ZIP ao armazenamento em partes, deixando a API só com o pedido e a URL assinada.
+- **Problema que resolve:** `montarPacoteDeSaida` lê todas as tabelas sem `LIMIT` e guarda as linhas em memória antes do primeiro byte (`apps/api/src/saida/pacote.ts:430-450`; `apps/api/PENDENCIAS.md`), numa máquina de 1 GB com Chromium; um município com três anos derruba o processo no dia da saída (REL:02; REL:10 OPS-23).
+- **Origem:** DP:T43; REL:02; REL:10 OPS-23.
+- **Estado atual:** REFATORAR (o conteúdo do pacote, `saida/zip.ts` e os registros de exportação são MANTIDOS; muda onde e como monta).
+- **Dependências de entrada:** E02 (fila de trabalho).
+- **O que deve ser implementado:**
+  - API: `POST /v1/saida/pacote` (permissões `exportar_dados` e `gerenciar_organizacao`, como hoje) registra `exportacoes` ANTES, como já faz, e enfileira `montar_pacote_de_saida`; `GET /v1/saida/pacote/:id` informa o estado; `GET /v1/saida/pacote/:id/arquivo` devolve URL assinada curta do objeto `tenant/<org>/saida/<id>.zip`; em desenvolvimento (`tudo`) o fluxo direto continua.
+  - Arquivos: worker lê cada tabela por cursor (`WHERE id > $ultimo ORDER BY id LIMIT n`, mesma ordem estável), escreve CSV e JSON em fluxo, baixa as fotos uma a uma e envia o ZIP em partes (iniciar, enviar parte, concluir e abortar, assinados à mão como o resto do armazenamento), com memória de duas partes; o objeto só existe ao concluir; expira depois de N dias configurável; as listas vêm do manifesto (F05-E05).
+- **O que NÃO deve ser implementado nesta etapa:** telas e estados do painel (F10-E08), mudar o conteúdo do pacote (F09-E11), eliminação (F20-E04).
+- **Arquivos e módulos prováveis:** `apps/api/src/saida/pacote.ts`, `apps/api/src/saida/zip.ts`, `apps/api/src/rotas/saida.ts`, `apps/api/src/armazenamento/s3.ts`, `apps/api/src/trabalho/`, `apps/web/src/dados/http.ts`.
+- **Risco de segurança:** alto; o pacote concentra a base do município; URL curta, objeto sob o prefixo do tenant e acesso só do administrador.
+- **Impacto LGPD:** o ZIP temporário contém dado pessoal e expira; o pedido continua registrado em `exportacoes` com justificativa.
+- **Migração necessária:** Não (estado do pacote vive em `fila_de_trabalho`; se faltar tabela de pedido, `NNN_pedidos_de_pacote.sql`, hoje 047).
+- **Compatibilidade:** o painel precisa tratar o 202 (ajuste mínimo em `dados/http.ts`; telas na F10-E08).
+- **Rollback:** voltar ao fluxo direto por configuração em HML.
+- **Testes positivos:** município sintético grande gera o pacote com pico de memória do worker abaixo do limite configurado (medido e registrado, não prometido); a ordem das tabelas é a mesma da extração anterior.
+- **Testes negativos:** worker reiniciado no meio refaz sem expor pacote parcial; coordenador pede: negado; pacote expirado devolve 404.
+- **Testes de autorização e isolamento:** administrador do município B baixa pacote do A: 404; o objeto está sob `tenant/<A>/saida/` e a URL do A não lê chave do B.
+- **Regressão obrigatória:** `npm run test:api` (`saida-de-municipio.test.ts`), `npm run test:isolamento`, `npm run test:e2e:api`, `npm run typecheck`; G06.
+- **E2E:** `npm run test:e2e:api` baixa o pacote real pelo caminho novo (e valida o caminho consertado na F00-E11).
+- **Validação humana:** Rafael pede o pacote de um município sintético grande e vê o estado evoluir até o download.
+- **Evidência a produzir:** `docs/evidencias-v2/G07/V2-F07-E06/` com a medição de memória, o índice do pacote e a saída dos testes.
+- **Documentação a atualizar:** `apps/api/PENDENCIAS.md` (o item sai), `docs/SAIDA-DE-MUNICIPIO.md`, `docs/IMPLANTACAO.md`.
+- **Definition of Done:** pacote montado fora da API, sem acumular tabelas em memória, entrega por URL assinada, memória medida.
+- **Checkpoint:** Não.
+
+### V2-F07-E07 - /saude e métricas por serviço (semântica)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F07-E08 e E09)
+- **Objetivo:** separar liveness de readiness e dar a cada serviço a sua saúde: API, worker (batimento, fila, relógios) e API pública.
+- **Problema que resolve:** `/saude` (`apps/api/src/servidor.ts:597-663`) mistura liveness e readiness, o 503 por esquema atrasado não tem teste e a falha dos relógios só vai ao log (REL:10).
+- **Origem:** DP:T33; DP:T43; REL:10; PR:D-13.
+- **Estado atual:** REFATORAR (`/saude` mantém o contrato).
+- **Dependências de entrada:** E03 (relógios no worker).
+- **O que deve ser implementado:**
+  - API: `GET /saude` barato (liveness) e `GET /pronto` (banco e esquema, 503 se atrasado); servidor interno do worker, em porta própria, com batimento, idade da fila por tipo, mortos e `ultimo_sucesso_em` por relógio.
+  - Banco: migration com `batimentos_de_servico` (plataforma, sem dado pessoal, sem DELETE), escrita pelo worker e lida pela API para a trava de `autorizar` (E04); entrada no manifesto.
+  - Infraestrutura: checks do `fly.toml` por grupo; a resposta pública não lista município nem versão.
+  - Observabilidade: falha de relógio em `error`.
+- **O que NÃO deve ser implementado nesta etapa:** painel de status, alertas, SLO e tracing (F21), saúde do console.
+- **Arquivos e módulos prováveis:** `apps/api/src/servidor.ts`, `apps/api/src/servicos/worker.ts`, `db/migrations/`, `fly.toml`.
+- **Risco de segurança:** médio; o `/saude` público não vaza município; o servidor do worker não é exposto.
+- **Impacto LGPD:** Não se aplica: batimento sem dado pessoal.
+- **Migração necessária:** Sim (`NNN_batimento_de_servico.sql`, hoje 047).
+- **Compatibilidade:** `/saude` responde como hoje.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** worker em dia: `/saude` 200; API em dia: `/pronto` 200.
+- **Testes negativos:** esquema atrasado: `/pronto` 503; batimento antigo: `/saude` do worker 503; resposta pública sem município.
+- **Testes de autorização e isolamento:** `batimentos_de_servico` sem dado de tenant; o worker não expõe rota de negócio.
+- **Regressão obrigatória:** `npm run test:api` (`push-saude-e-despertar.test.ts`), `npm run test:isolamento`; G06.
+- **E2E:** `npm run test:e2e:api` consulta `/pronto`.
+- **Validação humana:** Rafael derruba o worker em HML e vê só o dele mudar.
+- **Evidência a produzir:** `docs/evidencias-v2/G07/V2-F07-E07/` com as respostas e os testes.
+- **Documentação a atualizar:** `docs/INDISPONIBILIDADE.md`.
+- **Definition of Done:** liveness e readiness separados, saúde do worker, 503 por esquema provado.
+- **Checkpoint:** Não.
+
+### V2-F07-E08 - Limites de recurso: pool, statement_timeout, memória e timeouts
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F07-E07 e E09)
+- **Objetivo:** fixar limites explícitos de conexões, tempo de consulta, memória e requisição por serviço.
+- **Problema que resolve:** o pool é de 10, a conexão ociosa de 30 segundos e não há `statement_timeout` (`apps/api/src/banco/postgres.ts:152-155`); a vigência lida em toda requisição (DP:T09) aumenta o uso do banco sob pico, e nenhum processo tem limite de memória declarado (REL:10 OPS-49).
+- **Origem:** DP:T09; DP:T43; REL:10 OPS-49.
+- **Estado atual:** EXPANDIR (o pool e os pools próprios dos relógios ficam; ganham limites declarados).
+- **Dependências de entrada:** E01 (ADR 0012 aprovada).
+- **O que deve ser implementado:**
+  - Banco: `comTenant` aplica `SET LOCAL statement_timeout` e `idle_in_transaction_session_timeout` (padrões em `config.ts`, 15 e 30 segundos; o worker sobrescreve para o pacote); `SET LOCAL`, nunca de sessão, por causa do pooler.
+  - Infraestrutura: pools por modo (`api` 10, `worker` 4 mais as conexões exclusivas das travas, `publica` por configuração); `connectionTimeout`, `requestTimeout` e `bodyLimit` do Fastify; `NODE_OPTIONS=--max-old-space-size` por grupo no `fly.toml`.
+  - Arquivos: toda variável nova em `apps/api/.env.example`; linha de base medida e registrada como ponto de partida, não meta (a F24 mede).
+- **O que NÃO deve ser implementado nesta etapa:** ajuste de índice, teste de carga (F24), cache.
+- **Arquivos e módulos prováveis:** `apps/api/src/banco/postgres.ts`, `apps/api/src/config.ts`, `apps/api/src/servidor.ts`, `fly.toml`, `apps/api/.env.example`.
+- **Risco de segurança:** médio; timeout curto demais cancela trabalho legítimo (o pacote e a recodificação usam limites próprios).
+- **Impacto LGPD:** Não se aplica: limites sem dado.
+- **Migração necessária:** Não.
+- **Compatibilidade:** requisições legítimas abaixo dos limites seguem iguais.
+- **Rollback:** variáveis de ambiente com os valores antigos, sem migração.
+- **Testes positivos:** consulta dentro do limite responde normalmente nos três modos.
+- **Testes negativos:** `pg_sleep(20)` numa rota com limite de 15 segundos é cancelada e responde 503 com o identificador da requisição, e o pool volta ao normal; transação ociosa por 40 segundos é encerrada; a consulta do pacote no worker não herda os 15 segundos.
+- **Testes de autorização e isolamento:** o `SET LOCAL` não vaza entre requisições (caso "duas leituras concorrentes de municípios diferentes não trocam de contexto" em `isolamento.test.ts`).
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run test:scripts`, `npm run typecheck`; G06.
+- **E2E:** `npm run test:e2e:api` com os limites padrão.
+- **Validação humana:** Rafael provoca a consulta lenta em HML e lê a resposta e o log.
+- **Evidência a produzir:** `docs/evidencias-v2/G07/V2-F07-E08/` com saída dos testes e a linha de base medida.
+- **Documentação a atualizar:** `apps/api/.env.example`, `docs/IMPLANTACAO.md`, `fly.toml`.
+- **Definition of Done:** limites declarados e testados em cada modo, `statement_timeout` por transação, memória por grupo.
+- **Checkpoint:** Não.
+
+### V2-F07-E09 - Configuração do app Fly da API pública (sem publicar)
+- **Prioridade:** P2
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** médio  |  **Paralelizável:** sim (com F07-E07 e E08)
+- **Objetivo:** deixar pronto, testado e sem publicar, o arquivo de implantação da API pública e o modo `publica`.
+- **Problema que resolve:** o Decision Pack exige a API do cidadão como app separado antes do lançamento público; hoje existem `fly.toml` (API) e `fly.console.toml` (console), e nada para a pública (DP:T43; REL:10 OPS-105).
+- **Origem:** DP:T43; REL:10 OPS-105; PR:A-02.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E01 (ADR 0012 aprovada).
+- **O que deve ser implementado:**
+  - Infraestrutura: `fly.publica.toml` (a criar em `dc360/`, no molde de `fly.console.toml`) com nome de app em marcador a preencher, região `gru`, checks de `/saude`, `kill_timeout`, sem segredo e sem `[env]` sensível; `DATABASE_URL` própria, para o papel de banco poder ser decidido depois.
+  - API: modo `publica` monta só `/saude`, `/pronto` e o ponto de extensão das rotas do cidadão (F15), com CORS fechado, sem rota de equipe, sem relógio e sem Chromium; `apps/api/test/superficie.test.ts` ganha a lista de rotas do modo `publica`.
+  - Arquivos: seção "API pública (preparada, não publicada)" em `docs/IMPLANTACAO.md`.
+- **O que NÃO deve ser implementado nesta etapa:** criar o app no Fly, apontar domínio (F01-E10, F15-E08), limite de taxa (F15-E09 e E10), rotas do cidadão (F15 e F16), escolher o papel de banco (CP-25).
+- **Arquivos e módulos prováveis:** `fly.publica.toml` (a criar em `dc360/`), `apps/api/src/servicos/publica.ts`, `apps/api/test/superficie.test.ts`, `docs/IMPLANTACAO.md`.
+- **Risco de segurança:** médio; superfície pública mal recortada exporia rota de equipe; o teste de superfície fixa a lista.
+- **Impacto LGPD:** Não se aplica: sem dado; a API pública só terá dado do cidadão a partir da F15.
+- **Migração necessária:** Não.
+- **Compatibilidade:** arquivo novo; nada existente muda.
+- **Rollback:** remover o arquivo e o modo.
+- **Testes positivos:** modo `publica` sobe e responde `/saude` e `/pronto`.
+- **Testes negativos:** `GET /ocorrencias` no modo `publica`: 404; nenhum relógio sobe; `fly.publica.toml` sem segredo (`npm run auditar` e varredura de segredos); `variaveis-de-ambiente.test.mjs` verde.
+- **Testes de autorização e isolamento:** o modo `publica` não registra autenticação de equipe e não alcança funções privilegiadas de relógio.
+- **Regressão obrigatória:** `npm run test:api` (`superficie.test.ts`), `npm run test:scripts`, `npm run auditar`, `npm run typecheck`; G06.
+- **E2E:** Não se aplica: nada é publicado.
+- **Validação humana:** Rafael lê o arquivo e confere que nenhum app novo foi criado no Fly.
+- **Evidência a produzir:** `docs/evidencias-v2/G07/V2-F07-E09/` com saída dos testes e o arquivo, sem segredo.
+- **Documentação a atualizar:** `docs/IMPLANTACAO.md`, ADR 0012.
+- **Definition of Done:** modo `publica` e arquivo de implantação prontos e testados, nada publicado.
+- **Checkpoint:** Não.
+
+### V2-F07-E10 - Transcodificação de vídeo em worker isolado (ffmpeg sem rede)
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** crítica  |  **Risco:** alto  |  **Paralelizável:** não (depende de E02, E04 e F06-E19)
+- **Objetivo:** transcodificar o vídeo do cidadão para MP4 H.264 em processo isolado, com limites e retomada.
+- **Problema que resolve:** o HEVC do iPhone não toca no painel; transcodificar na máquina da API (1 GB, com Chromium) derrubaria o atendimento.
+- **Origem:** PR:D-07; DP:T25; DP:T43; REL:02.
+- **Estado atual:** EXPANDIR (F06-E18 e E19 ficam; muda onde rodam).
+- **Dependências de entrada:** E02, E04; F06-E19.
+- **O que deve ser implementado:**
+  - Infraestrutura: `Dockerfile.video` (a criar em `dc360/`) com `ffmpeg` e usuário sem privilégio; o worker o lança por pipe, sem credencial e sem rede (`--network none` no CI; em HML `unshare --net` ou o que o Fly permitir, provado por conexão que falha, ou limitação registrada); limites de CPU, memória e tempo (120 s).
+  - API: handler `transcodificar_video` na fila: H.264 e AAC, até 720p, sem metadados, em chave nova; falha, tempo esgotado ou saída maior que a entrada leva a `rejeitado` (`transcodificacao_falhou`); o reaper da E04 reprocessa sem duplicar.
+- **O que NÃO deve ser implementado nesta etapa:** outra classe, streaming adaptativo, recursos e custo (E11).
+- **Arquivos e módulos prováveis:** `Dockerfile.video` (a criar em `dc360/`), `apps/api/src/trabalho/transcodificar-video.ts` (a criar).
+- **Risco de segurança:** alto; decodificador de bytes hostis, sem rede nem segredo.
+- **Impacto LGPD:** fila só com identificadores.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só classe nova.
+- **Rollback:** desligar `video_cidadao`.
+- **Testes positivos:** MOV HEVC de 10 s vira MP4 H.264 (`ffprobe`), sem GPS, em `ativo`; reprocessar não duplica.
+- **Testes negativos:** vídeo que trava o `ffmpeg`: morto e `rejeitado`; worker morto no meio: outro conclui uma vez; conexão de saída falha; em modo `api` o `ffmpeg` nunca é lançado.
+- **Testes de autorização e isolamento:** prefixo do município conferido; o processo não recebe `DATABASE_URL` nem chave do bucket.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm audit`; G06.
+- **E2E:** vídeo sintético em HML, API e worker separados.
+- **Validação humana:** Rafael mata o worker no meio.
+- **Evidência a produzir:** `docs/evidencias-v2/G07/V2-F07-E10/` com testes e prova de rede bloqueada.
+- **Documentação a atualizar:** ADR 0012.
+- **Definition of Done:** vídeo só decodificado no processo isolado.
+- **Checkpoint:** Não.
+
+### V2-F07-E11 - Capacidade do worker de vídeo e custo de armazenamento por município
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F07-E12)
+- **Objetivo:** medir se a máquina de 1 GB aguenta a transcodificação e estimar o custo de armazenamento de vídeo por município.
+- **Problema que resolve:** a VM de `fly.toml` tem 1 GB e já carrega o Chromium; o consumo do `ffmpeg` é desconhecido e o custo do vídeo por município também.
+- **Origem:** PR:D-07; DP:T43; REL:10.
+- **Estado atual:** CRIAR (a cota é da F06-E09).
+- **Dependências de entrada:** E10, E08; F06-E09.
+- **O que deve ser implementado:**
+  - Infraestrutura: em HML, com vídeo de 30 s e 50 MB, medir pico de memória e tempo do `ffmpeg` na máquina de 1 GB; o resultado fixa `TRANSCODIFICACAO_CONCORRENCIA` (padrão 1) e decide se `fly.toml` ganha grupo próprio.
+  - Arquivos: `scripts/estimar-custo-de-video.mjs` (a criar em `dc360/scripts/`): vídeos por mês, tamanho médio medido, retenção e preço por GB informado; devolve GB e custo mensal.
+  - API: `GET /v1/armazenamento/uso` traz `diasAteEncher` por classe (média de 14 dias); alerta em `warn` abaixo de 30 dias.
+- **O que NÃO deve ser implementado nesta etapa:** preço real (CP-47), cobrança (F20).
+- **Arquivos e módulos prováveis:** `fly.toml`, `scripts/estimar-custo-de-video.mjs` (a criar), `apps/api/src/armazenamento/uso.ts`.
+- **Risco de segurança:** médio; subdimensionar derruba o worker.
+- **Impacto LGPD:** Não se aplica: dado sintético.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só um campo novo.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** o script devolve GB e custo para a entrada de exemplo; `diasAteEncher` sai de série sintética.
+- **Testes negativos:** preço ausente ou zero: o script recusa; série curta: `diasAteEncher` nulo.
+- **Testes de autorização e isolamento:** o uso de A não traz classe de B.
+- **Regressão obrigatória:** `npm run test:api` (`teto-de-armazenamento.test.ts`), `npm run test:scripts`; G06.
+- **E2E:** Não se aplica: medição e script.
+- **Validação humana:** Rafael lê o pico e decide a máquina.
+- **Evidência a produzir:** `docs/evidencias-v2/G07/V2-F07-E11/` com a medição e a saída do script.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`.
+- **Definition of Done:** pico medido, concorrência fixada, estimativa e alerta funcionando.
+- **Checkpoint:** CP-47 (custo de armazenamento e de máquina; Rafael; bloqueia `video_cidadao` em produção; HML anda).
+
+### V2-F07-E12 - Redundância de máquinas: duas por serviço e API sem estado de sessão em memória
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com F07-E11)
+- **Objetivo:** rodar API, worker e console em duas máquinas, sem estado em memória que divirja.
+- **Problema que resolve:** `min_machines_running = 1` em `fly.toml` e `fly.console.toml`: uma máquina parada derruba o plantão; o limitador de taxa (`servidor.ts`) e o contador de `auth/servico.ts:130` vivem em memória, por máquina (GAP-P1O-06, GAP-P1C-04).
+- **Origem:** PR:D-19; GAP-P1O-06; GAP-P1C-04; REL:10; REL:04.
+- **Estado atual:** EXPANDIR (serviços, travas de aviso e lease ficam).
+- **Dependências de entrada:** E03, E07, E08; CP-31 para o número em produção.
+- **O que deve ser implementado:**
+  - Infraestrutura: `min_machines_running = 2` nos grupos `app` e `worker` e no console, em zonas diferentes.
+  - API: inventário do estado em memória (`new Map`, `rate-limit`) com decisão por item; o limite por máquina é dividido pelo número de máquinas (`LIMITE_DIVIDIDO_POR`), como aproximação; cotas persistentes são a L13, fora desta etapa.
+  - Banco: `(máquinas) x pool` cabe no limite de conexões do provedor, conferido em teste (E08).
+- **O que NÃO deve ser implementado nesta etapa:** deploy rolante (E13), várias regiões (F22), Redis.
+- **Arquivos e módulos prováveis:** `fly.toml`, `fly.console.toml`, `apps/api/src/servidor.ts`, `apps/api/src/auth/servico.ts`.
+- **Risco de segurança:** alto; sem o divisor, mais máquinas multiplicam o teto de login.
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** o modo `tudo` segue com uma instância.
+- **Rollback:** `min_machines_running = 1`.
+- **Testes positivos:** duas instâncias respondem `/pronto`; login e sincronização passam por qualquer uma.
+- **Testes negativos:** derrubar uma instância não perde item da fila nem duplica relógio; login em duas instâncias recusa perto do teto, não no dobro.
+- **Testes de autorização e isolamento:** o token de A não vê dado de B em nenhuma instância.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G06.
+- **E2E:** derrubar uma máquina em HML durante sincronização.
+- **Validação humana:** Rafael derruba uma máquina em HML.
+- **Evidência a produzir:** `docs/evidencias-v2/G07/V2-F07-E12/` com o inventário de estado e os testes.
+- **Documentação a atualizar:** `docs/INDISPONIBILIDADE.md`.
+- **Definition of Done:** duas máquinas por serviço em HML e estado em memória inventariado e tratado.
+- **Checkpoint:** CP-31 (disponibilidade e custo da segunda máquina; Rafael, Alyson; bloqueia o número em produção; HML anda).
+
+### V2-F07-E13 - Deploy sem indisponibilidade (rolante, migration compatível)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (depende da E12)
+- **Objetivo:** fazer o deploy da API, do worker e do console sem janela de erro, com as duas versões convivendo.
+- **Problema que resolve:** com uma máquina, todo deploy reinicia o único processo; com duas, uma migration que quebra a versão anterior derruba o plantão no meio do deploy (GAP-P1O-06; BZ-D:OPS-80).
+- **Origem:** PR:D-19; GAP-P1O-06; GAP-P1C-04; BZ-D:OPS-80.
+- **Estado atual:** EXPANDIR (a migração antes do deploy fica).
+- **Dependências de entrada:** E07, E12.
+- **O que deve ser implementado:**
+  - Infraestrutura: `strategy = "rolling"` nos dois `fly.toml`, com `/pronto` (E07) como check antes de receber tráfego.
+  - Banco: regra em `db/PENDENCIAS.md` conferida por teste: migration só aditiva ou compatível com a versão anterior; a que remove coluna ou muda tipo só entra em release posterior.
+  - Arquivos: roteiro de deploy e de reversão em `docs/IMPLANTACAO.md`.
+- **O que NÃO deve ser implementado nesta etapa:** blue-green, canário, várias regiões (F22).
+- **Arquivos e módulos prováveis:** `fly.toml`, `fly.console.toml`, `db/PENDENCIAS.md`, `scripts/`.
+- **Risco de segurança:** alto; as duas versões convivem: a nova não pode relaxar autorização.
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** uma máquina reinicia como hoje.
+- **Rollback:** `strategy = "immediate"`.
+- **Testes positivos:** deploy rolante em HML com sondagem a cada 1 s sem erro; a versão antiga atende durante a migration aditiva.
+- **Testes negativos:** migration que remove coluna usada pela versão anterior reprova o teste; instância que falha `/pronto` não recebe tráfego.
+- **Testes de autorização e isolamento:** durante o deploy o token de A não vê dado de B em nenhuma versão.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run test:scripts`; G06.
+- **E2E:** deploy rolante em HML com sincronização em andamento.
+- **Validação humana:** Rafael faz um deploy em HML.
+- **Evidência a produzir:** `docs/evidencias-v2/G07/V2-F07-E13/` com a sondagem e o roteiro.
+- **Documentação a atualizar:** `docs/IMPLANTACAO.md`.
+- **Definition of Done:** deploy rolante sem erro medido; regra de migration testada.
+- **Checkpoint:** CP-31 (se entra na promessa de disponibilidade; HML anda).
+
+# GATE G07 - WORKERS E TOPOLOGIA OPERACIONAL
+Só passa se:
+- [ ] ADR 0012 aprovada e citada pelas etapas da fase (V2-F07-E01; evidência: hash e registro de aprovação).
+- [ ] A fila de trabalho com lease funciona sob concorrência: dois workers sem duplicar, lease vencido reassumido, payload sem dado pessoal, e as funções novas na lista nominal `FUNCOES_PRIVILEGIADAS` (F03-E08) com justificativa (V2-F07-E02; evidência: saída dos testes).
+- [ ] Nenhum relógio sobe no modo `api`, o worker sobe todos (inclusive os da F05), a falha de rodada aparece em `warn` ou `error` e `tudo` é recusado em produção (V2-F07-E03; evidência: `modos-de-servico.test.ts` e log de subida em HML).
+- [ ] O pipeline de arquivos roda no worker, o módulo de decodificação não é importado fora dele, o trabalho interrompido é retomado uma vez, e a suíte de arquivos maliciosos passa em modo fila (V2-F07-E04; evidência: log do worker morto e tabela da suíte).
+- [ ] O Chromium só roda no worker, sem JavaScript e sem rede, com sandbox provado em HML ou limitação nomeada, e o PDF é equivalente ao atual (V2-F07-E05; evidência: golden, log de bloqueio e resultado do sandbox).
+- [ ] O pacote de saída é montado fora da API, sem acumular tabelas em memória, com memória medida (V2-F07-E06; evidência: medição e índice do pacote).
+- [ ] `/saude` e `/pronto` têm semântica por serviço e o 503 por esquema atrasado está provado por teste (V2-F07-E07; evidência: respostas nos três estados).
+- [ ] Limites de pool, `statement_timeout`, memória e requisição estão declarados e testados em cada modo (V2-F07-E08; evidência: saída dos testes e linha de base).
+- [ ] O modo `publica` e `fly.publica.toml` estão prontos e testados, e nada foi publicado no Fly (V2-F07-E09; evidência: saída dos testes e o arquivo).
+- [ ] O vídeo do cidadão é transcodificado para H.264 em processo isolado, sem rede, sem credencial e com limites de CPU, memória e tempo, e falha vira `rejeitado` (V2-F07-E10; evidência: testes, prova de rede bloqueada ou limitação nomeada e log do worker retomado).
+- [ ] Pico de memória e tempo do `ffmpeg` medidos na máquina de 1 GB, concorrência fixada e estimativa de custo de armazenamento por município com alerta funcionando; CP-47 decidido ou adiado, com `video_cidadao` em produção bloqueado (V2-F07-E11; evidência: medição e saída do script).
+- [ ] API, worker e console têm duas máquinas em HML, o estado em memória está inventariado e tratado, e o deploy rolante não registra erro sob sondagem contínua; CP-31 decidido ou adiado, com o número em produção bloqueado (V2-F07-E12 e E13; evidência: inventário, sondagem e teste de migration compatível).
+- [ ] `ARQUIVOS_EXTERNOS_ATIVO` continua `nao` por padrão e só pode ser `sim` com executor `fila` e worker com batimento em dia; o pipeline e o Chromium não estão no processo da API (evidência: teste de configuração e `modos-de-servico.test.ts`).
+- [ ] Nenhuma regressão: gates G00 a G06 continuam verdes (se um quebrar, ESTE gate volta a REPROVADO), com `npm run typecheck`, `npm run test:isolamento`, `npm run test:api`, `npm run test:e2e:api`, `npm run test:scripts` e `npm run auditar` verdes.
+- [ ] Documentação atualizada (`docs/IMPLANTACAO.md`, `docs/ARMAZENAMENTO.md`, `fly.toml`, `apps/api/.env.example`, `apps/api/PENDENCIAS.md`, ADR 0012) e evidências arquivadas em `docs/evidencias-v2/G07/`.
+
+**Reabre se:** o pipeline de arquivos ou o Chromium voltarem ao processo da API, um relógio subir no modo `api`, o worker ficar sem batimento sem alerta, ou o pacote de saída voltar a acumular tabelas em memória na API, ou o `ffmpeg` voltar ao processo da API, ou uma máquina única voltar a ser ponto de falha sem decisão registrada em CP-31, ou um deploy deixar de ser compatível com a versão anterior.
+**Este Gate libera:** F09 (junto de G05), F11 (uploads da secretaria pela cadeia segura), a API pública (F15-E08 publica o que a E09 deixou pronto) e o vídeo do cidadão (F34). Upload externo de portal ou cidadão só passa a ser permitido depois deste gate e da F11 ou F15.

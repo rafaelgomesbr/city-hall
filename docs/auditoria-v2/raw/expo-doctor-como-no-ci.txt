@@ -1,0 +1,5 @@
+### CMD: npx expo-doctor (cwd=.) inicio=2026-09-30T16:31:40-03:00
+Checking dependencies for compatibility with the installed Expo SDK version is disabled. Unset the EXPO_DOCTOR_SKIP_DEPENDENCY_VERSION_CHECK environment variable to re-enable this check.
+Running 20 checks on your project...
+20/20 checks passed. No issues detected!
+### EXIT=0 DURACAO=10s fim=2026-09-30T16:31:50-03:00

@@ -1,0 +1,71 @@
+== Postgres
+                                 version                                 
+-------------------------------------------------------------------------
+ PostgreSQL 18.3 on x86_64-windows, compiled by msvc-19.44.35223, 64-bit
+(1 linha)
+
+== backfill: toda sessao antiga tem familia_id = id (esperado: 3 linhas, todas iguais = t)
+     token_hash     | familia_eh_o_proprio_id | revogada 
+--------------------+-------------------------+----------
+ antiga-de-b        | t                       | f
+ antiga-rotacionada | t                       | t
+ antiga-viva        | t                       | f
+(3 linhas)
+
+== coluna
+ column_name | is_nullable |  column_default   
+-------------+-------------+-------------------
+ familia_id  | NO          | gen_random_uuid()
+(1 linha)
+
+== indice parcial
+                                                   indexdef                                                   
+--------------------------------------------------------------------------------------------------------------
+ CREATE INDEX sessoes_familia_viva_idx ON public.sessoes USING btree (familia_id) WHERE (revogada_em IS NULL)
+(1 linha)
+
+== so existe UMA abrir_sessao
+                                                            argumentos                                                            
+----------------------------------------------------------------------------------------------------------------------------------
+ p_organizacao_id uuid, p_usuario_id uuid, p_token_hash text, p_duracao interval, p_user_agent text, p_ip text, p_familia_id uuid
+(1 linha)
+
+== teto de funcoes SECURITY DEFINER (esperado <= 27)
+ definers 
+----------
+       27
+(1 linha)
+
+== permissoes (dc360_app sim, dc360_console nao, PUBLIC nao)
+ app | console 
+-----+---------
+ t   | f
+(1 linha)
+
+== como dc360_app: login (seis argumentos) abre familia nova
+SET
+-- renovacao herda a familia
+RESET
+ token_hash | na_familia_da_raiz 
+------------+--------------------
+ login-novo | t
+ renovacao  | t
+(2 linhas)
+
+== recusa: familia do OUTRO municipio e de OUTRO usuario e inexistente (esperado: erro DC369 nas tres, nada gravado)
+SET
+-- familia do municipio B pedida por usuario do municipio A
+ERROR:  A familia de sessao informada nao existe para este usuario.
+CONTEXTO:  PL/pgSQL function abrir_sessao(uuid,uuid,text,interval,text,text,uuid) line 22 at RAISE
+-- familia do usuario A1 pedida em nome do usuario B (outro usuario, outro municipio)
+ERROR:  A familia de sessao informada nao existe para este usuario.
+CONTEXTO:  PL/pgSQL function abrir_sessao(uuid,uuid,text,interval,text,text,uuid) line 22 at RAISE
+-- familia que nao existe
+ERROR:  A familia de sessao informada nao existe para este usuario.
+CONTEXTO:  PL/pgSQL function abrir_sessao(uuid,uuid,text,interval,text,text,uuid) line 22 at RAISE
+RESET
+ invasoras_gravadas 
+--------------------
+                  0
+(1 linha)
+

@@ -1,0 +1,290 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/dc360/packages/campo[39m
+
+ [31m❯[39m test/pausa-de-sessao.test.ts [2m([22m[2m28 tests[22m[2m | [22m[31m13 failed[39m[2m)[22m[32m 52[2mms[22m[39m
+   [32m✓[39m Transporte HTTP: os três códigos[2m > [22m401 nao_autenticado: pede token novo UMA vez, repete o pedido e envia[32m 5[2mms[22m[39m
+   [32m✓[39m Transporte HTTP: os três códigos[2m > [22mo pedido repetido leva a MESMA chave de idempotência[32m 1[2mms[22m[39m
+   [32m✓[39m Transporte HTTP: os três códigos[2m > [22m401 nao_autenticado de novo depois da renovação vira sessao_encerrada, sem laço[32m 1[2mms[22m[39m
+   [32m✓[39m Transporte HTTP: os três códigos[2m > [22mse a renovação devolve o MESMO token (piso, renovação recusada), nem repete o pedido[32m 0[2mms[22m[39m
+   [32m✓[39m Transporte HTTP: os três códigos[2m > [22m401 sem código nenhum (servidor antigo, corpo vazio) segue o caminho do nao_autenticado[32m 1[2mms[22m[39m
+   [32m✓[39m Transporte HTTP: os três códigos[2m > [22m401 sessao_encerrada: não gasta a renovação, que o servidor já encerrou[32m 0[2mms[22m[39m
+   [32m✓[39m Transporte HTTP: os três códigos[2m > [22m403 conta_desativada vira FalhaDeSessao, com a frase do servidor[32m 0[2mms[22m[39m
+   [32m✓[39m Transporte HTTP: os três códigos[2m > [22ma falha de sessão NÃO é permanente nem temporária: a fila decide por isso[32m 0[2mms[22m[39m
+   [32m✓[39m Transporte HTTP: os três códigos[2m > [22m403 sem_permissao continua sendo recusa permanente[32m 1[2mms[22m[39m
+   [32m✓[39m Transporte HTTP: os três códigos[2m > [22m403 sem código também continua permanente (só o código desativa a conta)[32m 1[2mms[22m[39m
+   [32m✓[39m Transporte HTTP: os três códigos[2m > [22msem token vira FalhaDeSessao e não FalhaPermanente, e nem sai pela rede[32m 0[2mms[22m[39m
+   [32m✓[39m Transporte HTTP: os três códigos[2m > [22mas outras rotas da API (foto, devolução) leem os três códigos igual[32m 0[2mms[22m[39m
+   [32m✓[39m Transporte HTTP: os três códigos[2m > [22m5xx e 429 continuam temporários, e a rede fora também[32m 0[2mms[22m[39m
+[31m   [31m×[31m A fila para e guarda: nenhum item perdido[2m > [22msessao_encerrada: todos os itens ficam pendentes, zero bloqueados, tentativas inalteradas[39m[32m 24[2mms[22m[39m
+[31m     → expected [ 1, 1, 1 ] to deeply equal [ +0, +0, +0 ][39m
+[31m   [31m×[31m A fila para e guarda: nenhum item perdido[2m > [22mconta_desativada: todos os itens ficam pendentes, zero bloqueados, tentativas inalteradas[39m[32m 2[2mms[22m[39m
+[31m     → expected [ 1, 1, 1 ] to deeply equal [ +0, +0, +0 ][39m
+[31m   [31m×[31m A fila para e guarda: nenhum item perdido[2m > [22mquem tinha tentativas de falha temporária mantém a contagem, sem somar a da pausa[39m[32m 2[2mms[22m[39m
+[31m     → expected 3 to be 2 // Object.is equality[39m
+[31m   [31m×[31m A fila para e guarda: nenhum item perdido[2m > [22mdepois de entrar de novo, os itens sobem em ordem e sem duplicar (mesma chave)[39m[32m 1[2mms[22m[39m
+[31m     → expected undefined to be 'sessao_encerrada' // Object.is equality[39m
+[31m   [31m×[31m A fila para e guarda: nenhum item perdido[2m > [22mconta reativada: a coleta guardada sobe depois da nova entrada[39m[32m 1[2mms[22m[39m
+[31m     → expected undefined to be 'conta_desativada' // Object.is equality[39m
+[31m   [31m×[31m A fila para e guarda: nenhum item perdido[2m > [22mo progresso das fotos que já subiram fica guardado quando a sessão cai no meio[39m[32m 1[2mms[22m[39m
+[31m     → expected undefined to be 'sessao_encerrada' // Object.is equality[39m
+[31m   [31m×[31m A fila para e guarda: nenhum item perdido[2m > [22ma devolução de tarefa também espera, em vez de bloquear[39m[32m 1[2mms[22m[39m
+[31m     → expected undefined to be 'conta_desativada' // Object.is equality[39m
+[31m   [31m×[31m A fila para e guarda: nenhum item perdido[2m > [22mrecusa do dado continua bloqueando: só a sessão é poupada[39m[32m 1[2mms[22m[39m
+[31m     → expected undefined to be null[39m
+[31m   [31m×[31m Autoria: a pausa de um agente não vale para outro[2m > [22mo agente B desativado: A entra no aparelho e os itens do B esperam o autor[39m[32m 1[2mms[22m[39m
+[31m     → expected undefined to be 'conta_desativada' // Object.is equality[39m
+[31m   [31m×[31m Autoria: a pausa de um agente não vale para outro[2m > [22mo B volta: a pausa não fica velha, e uma tentativa só a redescobre[39m[32m 1[2mms[22m[39m
+[31m     → expected undefined to be null[39m
+   [32m✓[39m Fila e transporte juntos: renovar e repetir sem perder item[2m > [22m401 nao_autenticado renova uma vez e o item sobe, sem duplicar[32m 1[2mms[22m[39m
+[31m   [31m×[31m Fila e transporte juntos: renovar e repetir sem perder item[2m > [22mtoken recusado e renovação que não muda nada: a fila pausa e o item fica[39m[32m 1[2mms[22m[39m
+[31m     → expected undefined to be 'sessao_encerrada' // Object.is equality[39m
+[31m   [31m×[31m Fila e transporte juntos: renovar e repetir sem perder item[2m > [22msem token nenhum: pausa por sessão encerrada, item pendente (antes era bloqueado)[39m[32m 1[2mms[22m[39m
+[31m     → expected undefined to be 'sessao_encerrada' // Object.is equality[39m
+[31m   [31m×[31m Fila e transporte juntos: renovar e repetir sem perder item[2m > [22m403 conta_desativada pelo fio: pausa por conta desativada, item pendente[39m[32m 1[2mms[22m[39m
+[31m     → expected undefined to be 'conta_desativada' // Object.is equality[39m
+   [32m✓[39m Fila e transporte juntos: renovar e repetir sem perder item[2m > [22m403 sem_permissao pelo fio: o item BLOQUEIA, como sempre[32m 0[2mms[22m[39m
+ [32m✓[39m test/fila.test.ts [2m([22m[2m58 tests[22m[2m)[22m[32m 62[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 13 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mA fila para e guarda: nenhum item perdido[2m > [22msessao_encerrada: todos os itens ficam pendentes, zero bloqueados, tentativas inalteradas
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mA fila para e guarda: nenhum item perdido[2m > [22mconta_desativada: todos os itens ficam pendentes, zero bloqueados, tentativas inalteradas
+[31m[1mAssertionError[22m: expected [ 1, 1, 1 ] to deeply equal [ +0, +0, +0 ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[32m-   0,[39m
+[32m-   0,[39m
+[32m-   0,[39m
+[31m+   1,[39m
+[31m+   1,[39m
+[31m+   1,[39m
+[2m  ][22m
+
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m306:47[22m[39m
+    [90m304| [39m      [34mexpect[39m(depois)[33m.[39m[34mtoHaveLength[39m([34m3[39m)[33m;[39m
+    [90m305| [39m      [34mexpect[39m(depois[33m.[39m[34mevery[39m((i) [33m=>[39m i[33m.[39mestado [33m===[39m [32m"pendente"[39m))[33m.[39m[34mtoBe[39m([35mtrue[39m)[33m;[39m
+    [90m306| [39m      expect(depois.map((i) => i.tentativas)).toEqual(antes.map((i) =>…
+    [90m   | [39m                                              [31m^[39m
+    [90m307| [39m      expect(depois.map((i) => i.liberadoEm)).toEqual(antes.map((i) =>…
+    [90m308| [39m      [34mexpect[39m(depois[33m.[39m[34mevery[39m((i) [33m=>[39m i[33m.[39multimaFalha [33m===[39m [35mnull[39m))[33m.[39m[34mtoBe[39m([35mtrue[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mA fila para e guarda: nenhum item perdido[2m > [22mquem tinha tentativas de falha temporária mantém a contagem, sem somar a da pausa
+[31m[1mAssertionError[22m: expected 3 to be 2 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 2[39m
+[31m+ 3[39m
+
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m339:32[22m[39m
+    [90m337| [39m    [35mconst[39m [depois] [33m=[39m [35mawait[39m fila[33m.[39m[34mitens[39m()[33m;[39m
+    [90m338| [39m    [34mexpect[39m(depois[33m![39m[33m.[39mestado)[33m.[39m[34mtoBe[39m([32m"pendente"[39m)[33m;[39m
+    [90m339| [39m    [34mexpect[39m(depois[33m![39m[33m.[39mtentativas)[33m.[39m[34mtoBe[39m([34m2[39m)[33m;[39m
+    [90m   | [39m                               [31m^[39m
+    [90m340| [39m    [34mexpect[39m(depois[33m![39m[33m.[39mliberadoEm)[33m.[39m[34mtoBe[39m(antes[33m![39m[33m.[39mliberadoEm)[33m;[39m
+    [90m341| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mA fila para e guarda: nenhum item perdido[2m > [22mdepois de entrar de novo, os itens sobem em ordem e sem duplicar (mesma chave)
+[31m[1mAssertionError[22m: expected undefined to be 'sessao_encerrada' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"sessao_encerrada"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m356:30[22m[39m
+    [90m354| [39m
+    [90m355| [39m    [35mconst[39m parada [33m=[39m [35mawait[39m fila[33m.[39m[34mdrenar[39m()[33m;[39m
+    [90m356| [39m    [34mexpect[39m(parada[33m.[39mparadaPor)[33m.[39m[34mtoBe[39m([32m"sessao_encerrada"[39m)[33m;[39m
+    [90m   | [39m                             [31m^[39m
+    [90m357| [39m    [34mexpect[39m(recebidas)[33m.[39m[34mtoEqual[39m([])[33m;[39m
+    [90m358| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mA fila para e guarda: nenhum item perdido[2m > [22mconta reativada: a coleta guardada sobe depois da nova entrada
+[31m[1mAssertionError[22m: expected undefined to be 'conta_desativada' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"conta_desativada"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m380:45[22m[39m
+    [90m378| [39m    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026…
+    [90m379| [39m
+    [90m380| [39m    [34mexpect[39m(([35mawait[39m fila[33m.[39m[34mdrenar[39m())[33m.[39mparadaPor)[33m.[39m[34mtoBe[39m([32m"conta_desativada"[39m)[33m;[39m
+    [90m   | [39m                                            [31m^[39m
+    [90m381| [39m    [34mexpect[39m(([35mawait[39m fila[33m.[39m[34mitens[39m())[[34m0[39m][33m![39m[33m.[39mestado)[33m.[39m[34mtoBe[39m([32m"pendente"[39m)[33m;[39m
+    [90m382| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mA fila para e guarda: nenhum item perdido[2m > [22mo progresso das fotos que já subiram fica guardado quando a sessão cai no meio
+[31m[1mAssertionError[22m: expected undefined to be 'sessao_encerrada' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"sessao_encerrada"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m418:25[22m[39m
+    [90m416| [39m    [35mconst[39m r [33m=[39m [35mawait[39m fila[33m.[39m[34mdrenar[39m()[33m;[39m
+    [90m417| [39m
+    [90m418| [39m    [34mexpect[39m(r[33m.[39mparadaPor)[33m.[39m[34mtoBe[39m([32m"sessao_encerrada"[39m)[33m;[39m
+    [90m   | [39m                        [31m^[39m
+    [90m419| [39m    [35mconst[39m [item] [33m=[39m [35mawait[39m fila[33m.[39m[34mitens[39m()[33m;[39m
+    [90m420| [39m    [34mexpect[39m(item[33m![39m[33m.[39mestado)[33m.[39m[34mtoBe[39m([32m"pendente"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mA fila para e guarda: nenhum item perdido[2m > [22ma devolução de tarefa também espera, em vez de bloquear
+[31m[1mAssertionError[22m: expected undefined to be 'conta_desativada' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"conta_desativada"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m443:25[22m[39m
+    [90m441| [39m    [35mconst[39m r [33m=[39m [35mawait[39m fila[33m.[39m[34mdrenar[39m()[33m;[39m
+    [90m442| [39m
+    [90m443| [39m    [34mexpect[39m(r[33m.[39mparadaPor)[33m.[39m[34mtoBe[39m([32m"conta_desativada"[39m)[33m;[39m
+    [90m   | [39m                        [31m^[39m
+    [90m444| [39m    [35mconst[39m [item] [33m=[39m [35mawait[39m fila[33m.[39m[34mitens[39m()[33m;[39m
+    [90m445| [39m    [34mexpect[39m(item[33m![39m[33m.[39mestado)[33m.[39m[34mtoBe[39m([32m"pendente"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mA fila para e guarda: nenhum item perdido[2m > [22mrecusa do dado continua bloqueando: só a sessão é poupada
+[31m[1mAssertionError[22m: expected undefined to be null[39m
+
+[32m- Expected:[39m 
+null
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m460:46[22m[39m
+    [90m458| [39m    [34mexpect[39m(r[33m.[39mparadaPor)[33m.[39m[34mtoBeUndefined[39m()[33m;[39m
+    [90m459| [39m    [34mexpect[39m(([35mawait[39m fila[33m.[39m[34mitens[39m())[[34m0[39m][33m![39m[33m.[39mestado)[33m.[39m[34mtoBe[39m([32m"bloqueado"[39m)[33m;[39m
+    [90m460| [39m    [34mexpect[39m(([35mawait[39m fila[33m.[39m[34mresumo[39m())[33m.[39mpausadaPor)[33m.[39m[34mtoBeNull[39m()[33m;[39m
+    [90m   | [39m                                             [31m^[39m
+    [90m461| [39m  })[33m;[39m
+    [90m462| [39m})[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mAutoria: a pausa de um agente não vale para outro[2m > [22mo agente B desativado: A entra no aparelho e os itens do B esperam o autor
+[31m[1mAssertionError[22m: expected undefined to be 'conta_desativada' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"conta_desativada"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m475:45[22m[39m
+    [90m473| [39m    sessao[33m.[39matual [33m=[39m [33mAGENTE_B[39m[33m;[39m
+    [90m474| [39m    await fila.enfileirar(envelope(CHAVE_A), { protocolo: "000471/2026…
+    [90m475| [39m    [34mexpect[39m(([35mawait[39m fila[33m.[39m[34mdrenar[39m())[33m.[39mparadaPor)[33m.[39m[34mtoBe[39m([32m"conta_desativada"[39m)[33m;[39m
+    [90m   | [39m                                            [31m^[39m
+    [90m476| [39m    [34mexpect[39m(([35mawait[39m fila[33m.[39m[34mresumo[39m())[33m.[39mpausadaPor)[33m.[39m[34mtoBe[39m([32m"conta_desativada"[39m)[33m;[39m
+    [90m477| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mAutoria: a pausa de um agente não vale para outro[2m > [22mo B volta: a pausa não fica velha, e uma tentativa só a redescobre
+[31m[1mAssertionError[22m: expected undefined to be null[39m
+
+[32m- Expected:[39m 
+null
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m512:46[22m[39m
+    [90m510| [39m    [90m// falha: o aparelho só descobre de novo com UMA requisição.[39m
+    [90m511| [39m    sessao[33m.[39matual [33m=[39m [33mAGENTE_B[39m[33m;[39m
+    [90m512| [39m    [34mexpect[39m(([35mawait[39m fila[33m.[39m[34mresumo[39m())[33m.[39mpausadaPor)[33m.[39m[34mtoBeNull[39m()[33m;[39m
+    [90m   | [39m                                             [31m^[39m
+    [90m513| [39m    [35mconst[39m chamadasAntes [33m=[39m enviar[33m.[39mmock[33m.[39mcalls[33m.[39mlength[33m;[39m
+    [90m514| [39m    [34mexpect[39m(([35mawait[39m fila[33m.[39m[34mdrenar[39m())[33m.[39mparadaPor)[33m.[39m[34mtoBe[39m([32m"conta_desativada"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mFila e transporte juntos: renovar e repetir sem perder item[2m > [22mtoken recusado e renovação que não muda nada: a fila pausa e o item fica
+[31m[1mAssertionError[22m: expected undefined to be 'sessao_encerrada' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"sessao_encerrada"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m568:25[22m[39m
+    [90m566| [39m    [35mconst[39m r [33m=[39m [35mawait[39m fila[33m.[39m[34mdrenar[39m()[33m;[39m
+    [90m567| [39m
+    [90m568| [39m    [34mexpect[39m(r[33m.[39mparadaPor)[33m.[39m[34mtoBe[39m([32m"sessao_encerrada"[39m)[33m;[39m
+    [90m   | [39m                        [31m^[39m
+    [90m569| [39m    [34mexpect[39m(r[33m.[39mbloqueados)[33m.[39m[34mtoBe[39m([34m0[39m)[33m;[39m
+    [90m570| [39m    [34mexpect[39m(buscar)[33m.[39m[34mtoHaveBeenCalledTimes[39m([34m1[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mFila e transporte juntos: renovar e repetir sem perder item[2m > [22msem token nenhum: pausa por sessão encerrada, item pendente (antes era bloqueado)
+[31m[1mAssertionError[22m: expected undefined to be 'sessao_encerrada' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"sessao_encerrada"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m589:25[22m[39m
+    [90m587| [39m    [35mconst[39m r [33m=[39m [35mawait[39m fila[33m.[39m[34mdrenar[39m()[33m;[39m
+    [90m588| [39m
+    [90m589| [39m    [34mexpect[39m(r[33m.[39mparadaPor)[33m.[39m[34mtoBe[39m([32m"sessao_encerrada"[39m)[33m;[39m
+    [90m   | [39m                        [31m^[39m
+    [90m590| [39m    [34mexpect[39m(buscar)[33m.[39mnot[33m.[39m[34mtoHaveBeenCalled[39m()[33m;[39m
+    [90m591| [39m    [34mexpect[39m(([35mawait[39m fila[33m.[39m[34mitens[39m())[[34m0[39m][33m![39m[33m.[39mestado)[33m.[39m[34mtoBe[39m([32m"pendente"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/13]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pausa-de-sessao.test.ts[2m > [22mFila e transporte juntos: renovar e repetir sem perder item[2m > [22m403 conta_desativada pelo fio: pausa por conta desativada, item pendente
+[31m[1mAssertionError[22m: expected undefined to be 'conta_desativada' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"conta_desativada"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m test/pausa-de-sessao.test.ts:[2m607:25[22m[39m
+    [90m605| [39m    [35mconst[39m r [33m=[39m [35mawait[39m fila[33m.[39m[34mdrenar[39m()[33m;[39m
+    [90m606| [39m
+    [90m607| [39m    [34mexpect[39m(r[33m.[39mparadaPor)[33m.[39m[34mtoBe[39m([32m"conta_desativada"[39m)[33m;[39m
+    [90m   | [39m                        [31m^[39m
+    [90m608| [39m    [34mexpect[39m(([35mawait[39m fila[33m.[39m[34mitens[39m())[[34m0[39m][33m![39m[33m.[39mestado)[33m.[39m[34mtoBe[39m([32m"pendente"[39m)[33m;[39m
+    [90m609| [39m    [34mexpect[39m(([35mawait[39m fila[33m.[39m[34mresumo[39m())[33m.[39mbloqueados)[33m.[39m[34mtoBe[39m([34m0[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/13]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[31m13 failed[39m[22m[2m | [22m[1m[32m73 passed[39m[22m[90m (86)[39m
+[2m   Start at [22m 11:09:11
+[2m   Duration [22m 1.36s[2m (transform 321ms, setup 0ms, collect 1.45s, tests 113ms, environment 0ms, prepare 451ms)[22m
+

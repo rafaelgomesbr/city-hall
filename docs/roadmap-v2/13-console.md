@@ -1,0 +1,603 @@
+# Fase 20: Console DC360 V2
+
+**Gate da fase:** G20 CONSOLE V2 | **Depende dos gates:** todos os anteriores NA ORDEM DE EXECUÇÃO de `STATUS.md` (G00 a G19, G29 a G31 e G35; o imediato é G35; D-29) | **Superfícies tocadas:** `apps/console` (processo Fastify separado, SPA em `apps/console/src/pagina.ts`), `db`, `apps/api` (aviso por e-mail, rotas de leitura do município e leitura de suporte), `apps/web` (aviso do fornecedor, contato, trilha do fornecedor), `packages/shared` | **Checkpoints da fase:** CP-29, CP-30, CP-54, CP-50, CP-61
+
+O console é produto REAL, MANTIDO e EXPANDIDO, não refeito: login em duas etapas (senha e TOTP, audiência `dc360-console`), tabelas `console_operadores` e `console_codigos_de_recuperacao`, 12 rotas POST (lista fixa em `apps/console/test/superficie.test.ts`), provisionamento, suspender, reativar, eliminar com atraso de 7 dias e métricas por município escritas por `resumir_municipio()`, chamada pelo agendador da API (`apps/api/src/index.ts:370`; passa ao worker na F07-E03). O papel `dc360_console` segue sem concessão em tabela de negócio (ADR 0008), e a leitura de suporte (E11) NÃO muda isso: ela passa por função nomeada que só responde com concessão vigente.
+
+Responsabilidades (ADR 0018, E01): o console (fornecedor) provisiona município e primeiro administrador (criando pessoa e vínculo, E18), suspende, elimina, reemite acesso, mantém o cadastro, o contrato e o consumo, e vê agregados e saúde. SEM acesso operacional silencioso e SEM impersonation completa, que continua FORA da V2 (D-10). A única leitura de dado operacional pelo fornecedor é o SUPORTE ASSISTIDO (D-10): o administrador do município libera (F10-E16, que executa antes e prova a liberação só com API e E2E; o lado do console da concessão é a E11), por tempo curto, a uma pessoa nominal, com MFA, somente leitura, e cada leitura fica na trilha do município e na auditoria do console (E11). A prefeitura cadastra órgãos, gestores e usuários, habilita o canal do cidadão e vê os dados operacionais pelo painel e pelo portal.
+
+Gaps que a fase fecha (REL:04): suspensão imediata ao agendar a eliminação, sem aviso (E04); sem auditoria própria (E05); banco que confia no id de operador declarado (E06); sem reemissão de acesso (E02); sem contato institucional (E03); ciclo de vida do operador (E12), edição cadastral pelo fornecedor (E13), contrato, plano e consumo (E14), rotinas com credencial de dono (E15), trilha do fornecedor lida pela prefeitura (E16), livro de eliminações (E17). NÃO faz SSO do console nem impersonation completa (`docs/roadmap-v2/21-fora-da-v2.md`); o que se preserva de município eliminado fica atrás de CP-29. O prazo padrão e o teto do suporte são de CP-54 e o parecer jurídico é CP-30 (J10).
+
+Todas as etapas com tela (E02 a E05, E07, E08 e E11 a E19) passam pelo portão visual de `docs/roadmap-v2/19-definicao-de-pronto.md`, seção 0, e pelo comando da F08-E13: capturas em 320, 768 e 1280 px, claro e escuro, estados normal, vazio, erro e carregando, E2E arquivado e `INDEX.md`. Sem a prova a etapa não fecha.
+
+Já existe quando esta fase executa: a restauração da identidade do município na ficha (F35-E13, F35 executa antes), que a F20 só consome. Ordem sugerida: E01; E05 em seguida (as demais registram nela); E02, E03 e E04 em sequência (cada uma cria migration e mexe em `servidor.ts` e `pagina.ts` do console); E06 depois da E05; E07 depois da E03; E08 por último dos originais; depois E18, E12, E13, E15, E14, E16 e E17, e a E11 só depois de E05, E06 e F10-E16 (E10 antes, para o IP gravado).
+
+## Etapas
+
+### V2-F20-E01 - ADR 0018: fornecedor x prefeitura; suporte assistido, sem impersonation
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (todas citam a ADR)
+- **Objetivo:** fixar por escrito as responsabilidades, com o suporte assistido (D-10) como única leitura de dado operacional pelo fornecedor.
+- **Problema que resolve:** a ADR 0008 ("teto de dano = números agregados") não descreve o console atual (REL:04 Resumo 4); D-10 a emendou.
+- **Origem:** PR:D-10; DP:T37; DP:T38; DP:J10; DP:J5; REL:04 (D4, D5, D9).
+- **Estado atual:** CRIAR (ADR) e EXPANDIR (emenda à 0008).
+- **Dependências de entrada:** G35 (imediato na ordem de execução); F10-E16.
+- **O que deve ser implementado:**
+  - Arquivos: ADR `docs/adr/0018-responsabilidade-fornecedor-x-prefeitura.md`: (1) fornecedor: provisiona (pessoa e vínculo, E18), suspende, elimina, reemite acesso, cadastro e contrato; prefeitura: órgãos, usuários, canal, dados e liberação do suporte; (2) nenhuma credencial do fornecedor lê `ocorrencias`, `vistorias` nem `usuarios`, EXCETO a função de suporte (E11): concessão vigente, nominal, MFA, somente leitura, prazo curto; (3) impersonation é proibida; (4) todo ato grava `console_auditoria` (E05) e toda leitura de suporte grava a trilha do município; (5) pedido de titular executado SOB INSTRUÇÃO (E09); (6) emenda à 0008.
+- **O que NÃO deve ser implementado nesta etapa:** código; leitura (E11) e liberação (F10-E16); impersonation completa (fora da V2).
+- **Arquivos e módulos prováveis:** ADR 0018 (a criar em `C:/Projetos/city-hall/docs/adr/`), ADR 0008, `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Risco de segurança:** ADR frouxa abre acesso silencioso; declara a exceção que `plateia-nao-atravessa.test.ts` prova.
+- **Impacto LGPD:** fornecedor é operador sob instrução; leitura de suporte é autorizada pelo município (CP-30).
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: documento.
+- **Rollback:** substituir a ADR.
+- **Testes positivos:** `npm test` aceita o arquivo.
+- **Testes negativos:** sem travessão nem norma fora da lista; `impersona` segue ausente do código.
+- **Testes de autorização e isolamento:** Não se aplica: documento (prova na E11).
+- **Regressão obrigatória:** `npm test`; gates anteriores.
+- **E2E:** Não se aplica: documento, sem interface.
+- **Validação humana:** Rafael aprova; o jurídico lê (2) e (5).
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E01/` (hash da ADR).
+- **Documentação a atualizar:** `PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** ADR aprovada e citada por E05, E08 e E11.
+- **Checkpoint:** CP-30 (J10: bloqueia o suporte em produção) e CP-54 (prazo e teto).
+
+### V2-F20-E02 - Reemissão de acesso do único administrador (com trilha)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E03 e E04 mexem em `servidor.ts` e `pagina.ts`)
+- **Objetivo:** reemitir o acesso do único administrador (senha vencida ou TOTP perdido), com motivo, confirmação e trilha, na credencial da pessoa (D-08).
+- **Problema que resolve:** `BZ-D:CON-39`: a senha provisória de 72 h (046) vence e a saída é SQL de dono, sem conferir quem pede. Com pessoa global, reiniciar a credencial afetaria outros municípios.
+- **Origem:** DP:T37; PR:D-08; REL:04 (D12, Gap 3).
+- **Estado atual:** CRIAR, no molde de `console_agendar_eliminacao`.
+- **Dependências de entrada:** E01; F03-E15 e E16.
+- **O que deve ser implementado:**
+  - Migration: função SECURITY DEFINER `console_reemitir_acesso(p_org, p_usuario, p_senha_hash, p_motivo, p_confirmacao)`, só dono e `dc360_console`: recusa alvo que não é `administrador` ativo de `p_org`; grava `senha_hash` e `senha_provisoria_ate` (72 h) da pessoa, revoga `sessoes` e `segundo_fator`, grava `trilha_administrativa`; pessoa com conta em OUTRO município: 409.
+  - API: `POST /v1/municipios/:id/administradores/:usuarioId/reemitir-acesso` (dono; `confirmacao`: `oficio`, `contato_institucional` ou `reuniao`, com `referencia`); senha devolvida uma vez.
+  - Frontend: ação "Reemitir acesso" em `pagina.ts`.
+- **O que NÃO deve ser implementado nesta etapa:** reset de pessoa em vários municípios; correção cadastral (E13).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/console/src/municipios.ts`, `servidor.ts`, `pagina.ts`, `acoes-perigosas.test.ts`.
+- **Risco de segurança:** engenharia social: só dono, confirmação registrada.
+- **Impacto LGPD:** a trilha leva e-mail; senha nunca em log.
+- **Migração necessária:** Sim (`NNN_reemissao_de_acesso.sql`).
+- **Compatibilidade:** 13º POST.
+- **Rollback:** migration corretiva.
+- **Testes positivos:** senha vencida: a reemitida entra e o TOTP volta ao enrolamento.
+- **Testes negativos:** operador não dono: 403; alvo não administrador: 404; sem código novo: 401; pessoa em outro município: 409.
+- **Testes de autorização e isolamento:** `:id` de A com administrador de B: 404; `dc360_console` sem SELECT em `pessoas`.
+- **Regressão obrigatória:** `npm run test:console`, `npm run test:isolamento`; gates anteriores.
+- **E2E:** HML: vencer a senha, reemitir, entrar no painel; Playwright captura.
+- **Validação humana:** Rafael reemite em HML; capturas aprovadas no portão visual (19, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E02/`: testes, E2E e `capturas/INDEX.md`.
+- **Documentação a atualizar:** `IMPLANTACAO.md`.
+- **Definition of Done:** acesso volta ao painel, com trilha e capturas.
+- **Checkpoint:** CP-50 (bloqueia o reset de pessoa em vários municípios).
+
+### V2-F20-E03 - Contato institucional por município (coluna, grants, teste de colunas)
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (migration em `organizacoes` e `provisionar_municipio`, como E04 e E06)
+- **Objetivo:** cada município tem contato institucional (caixa funcional e telefone), lido pelo console por colunas nomeadas e coberto por teste de colunas fechado.
+- **Problema que resolve:** sem contato o aviso não tem destino (REL:04 8.2). O console lê `organizacoes` INTEIRA (023) e o portão a isenta do teste de colunas (`db/test/isolamento.test.ts:4428`) (`BZ-D:CON-17`).
+- **Origem:** DP:T37; REL:04 (D2, Gap 19); BZ-D:CON-17.
+- **Estado atual:** EXPANDIR (`organizacoes`, grants e portão).
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Migration: `organizacoes.contato_institucional_email` e `contato_institucional_telefone` (nuláveis); `REVOKE SELECT` da tabela e `GRANT SELECT` por coluna nomeada ao `dc360_console`; `provisionar_municipio` ganha os dois parâmetros (recriada com REVOKE e GRANT).
+  - API: `PATCH /v1/organizacao/contato` em `rotas/administracao.ts`, (`gerenciar_organizacao`, ato em `trilha_administrativa`); `Organizacao.tsx` edita; `cadastro.ts` do console exige o contato.
+  - Testes: o `continue` de `organizacoes` em `isolamento.test.ts` vira lista fechada de colunas, como em `console_operadores`.
+- **O que NÃO deve ser implementado nesta etapa:** o aviso (E04); `codigo_ibge` e `canal_cidadao_habilitado` (F15-E13).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `db/test/isolamento.test.ts`, `apps/console/src/cadastro.ts`, `esquema.ts`, `apps/api/src/rotas/administracao.ts`, `apps/web/src/paginas/Organizacao.tsx`.
+- **Risco de segurança:** grant por coluna errado quebra a partida ou amplia a leitura.
+- **Impacto LGPD:** caixa institucional; e-mail pessoal vira dado de servidor (F05-E03).
+- **Migração necessária:** Sim (`NNN_contato_institucional.sql`).
+- **Compatibilidade:** colunas nuláveis; município antigo usa os administradores.
+- **Rollback:** migration corretiva.
+- **Testes positivos:** cadastro grava o contato; o console o lista; a prefeitura o altera.
+- **Testes negativos:** cadastro sem contato: 422; coluna fora da lista: negada ao `dc360_console`; coluna nova sem entrada reprova o portão.
+- **Testes de autorização e isolamento:** coordenador no `PATCH`: 403; administrador de B no município A: 404.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:console`; gates anteriores.
+- **E2E:** HML: editar no painel, ler no console.
+- **Validação humana:** Rafael lê o contato nos dois lados; capturas aprovadas no portão visual (19, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E03/`: testes, E2E e `capturas/INDEX.md`.
+- **Documentação a atualizar:** `DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** contato obrigatório e editável; colunas de `organizacoes` fechadas no portão.
+- **Checkpoint:** Não.
+
+### V2-F20-E04 - Suspensão com aviso ao município; eliminação agendada não suspende na hora
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não (funções da 038, como E05 e E06)
+- **Objetivo:** agendar não suspende; suspender e eliminar exigem aviso ao município, que exporta antes de ser apagado.
+- **Problema que resolve:** `BZ-F:P0-INT` (CON-47 a 50): agendar chama `console_suspender_municipio` (038, linha 712); suspenso não escreve (`apps/api/src/servidor.ts:463-466`), então `POST /saida/pacote.zip` falha; ninguém é avisado.
+- **Origem:** BZ-F:P0-INT; DP:J12; REL:04 (D1 a D3).
+- **Estado atual:** CORRIGIR funções da 038; MANTER livro e cancelamento.
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Migration: `console_agendar_eliminacao` sem suspender; exige município ativo e saída conferida (`exportacoes` `saida_de_municipio` em 30 dias) ou `p_sem_pacote_motivo` no livro; `console_suspender_municipio` recusa eliminação agendada e, salvo `seguranca`, exige aviso `suspensao_prevista` enviado.
+  - Banco: `avisos_do_fornecedor` (tenant, RLS forçada, INSERT só pelas funções, que enfileiram `enviar_aviso_do_fornecedor`, F07-E02).
+  - API: o worker envia pelo `Notificador` ao contato (E03) e aos administradores, com lembretes 72 h e 24 h antes da eliminação; `GET /v1/avisos-do-fornecedor`, faixa no painel (estados vazio, erro e carregando) e `POST /v1/municipios/:id/suspensao/avisar` no console.
+- **O que NÃO deve ser implementado nesta etapa:** o que se preserva do eliminado (CP-29); e-mail real (CP-19).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/console/src/municipios.ts`, `apps/api/src/auth/suspensao.ts`, `eliminacao/relogio.ts`.
+- **Risco de segurança:** o fim apaga o município: o escape é registrado.
+- **Impacto LGPD:** o aviso leva só motivo e datas.
+- **Migração necessária:** Sim (`NNN_eliminacao_sem_suspensao.sql`).
+- **Compatibilidade:** agendar suspenso: 409.
+- **Rollback:** migration corretiva.
+- **Testes positivos:** agendar não suspende; o administrador exporta (200); o aviso sai.
+- **Testes negativos:** agendar suspenso ou sem saída; suspender com eliminação agendada ou sem aviso: recusados.
+- **Testes de autorização e isolamento:** aviso de A invisível a B; coordenador: 403.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:console`, `npm run test:api`; gates anteriores.
+- **E2E:** HML: agendar, exportar, cancelar; Playwright captura a faixa.
+- **Validação humana:** Rafael confirma a exportação; capturas aprovadas no portão visual (19, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E04/`: testes, E2E e `capturas/INDEX.md`.
+- **Documentação a atualizar:** `SAIDA-DE-MUNICIPIO.md`.
+- **Definition of Done:** agendar não suspende; saída e aviso funcionam.
+- **Checkpoint:** CP-29 (J12: bloqueia a regra final e a eliminação real).
+
+### V2-F20-E05 - Auditoria própria do console (tabela append-only)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** médio  |  **Paralelizável:** não (E06 depende dela)
+- **Objetivo:** o console grava no banco quem fez o quê, append-only, com autor da sessão, e o dono o lê.
+- **Problema que resolve:** `BZ-D:CON-56`, `CON-57`: a auditoria é só `rastro()` e `recusar()` em `warn` (`apps/console/src/servidor.ts:453-483`); no banco não ficam login, operador criado ou desativado (`operadores.ts:305-306`) nem troca de senha.
+- **Origem:** DP:T37; REL:04 (8.5, Gap 5); BZ-D:CON-56.
+- **Estado atual:** CRIAR; MANTER `trilha_administrativa`.
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Migration: `console_auditoria` (`ocorrida_em`, `operador_id`, `operador_email` copiado, `acao` com CHECK de lista fechada (com `operacao_tecnica_sob_instrucao`, `diagnostico_conferido`), `alvo_municipio_id`, `endereco_ip`, `detalhe` jsonb de chaves permitidas); RLS forçada, só INSERT e SELECT ao `dc360_console` (append-only por ausência de UPDATE e DELETE); dono lê tudo, operador só as próprias.
+  - Migration: as `console_*` da 038 e a da E02 inserem a linha na transação; `console_operadores` ganha `desativado_em` e `desativado_por`; colunas fechadas em `isolamento.test.ts`.
+  - API: `GET /v1/auditoria` (dono, paginada); login, recusa e troca de senha gravam pela rota; aba "Registro de atos" em `pagina.ts`.
+- **O que NÃO deve ser implementado nesta etapa:** SIEM; retenção (CP-10); alerta (F21-E05); operação técnica (E09).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `db/test/isolamento.test.ts`, `apps/console/src/operadores.ts`, `servidor.ts`, `consultas.ts`, `pagina.ts`.
+- **Risco de segurança:** senha, código ou segredo em `detalhe` (varredura de teste).
+- **Impacto LGPD:** IP e e-mail de operadores: plataforma (F05-E04); retenção em CP-10.
+- **Migração necessária:** Sim (`NNN_auditoria_do_console.sql`).
+- **Compatibilidade:** assinaturas e ACL iguais.
+- **Rollback:** migration corretiva.
+- **Testes positivos:** login aceito e recusado geram linha com IP; desativar grava `desativado_por`.
+- **Testes negativos:** `UPDATE` e `DELETE` como `dc360_console`: negados; `acao` fora da lista: CHECK.
+- **Testes de autorização e isolamento:** operador comum só vê as próprias linhas; `dc360_app` sem privilégio.
+- **Regressão obrigatória:** `npm run test:console`, `npm run test:isolamento`; gates anteriores.
+- **E2E:** HML: login recusado e provisionamento viram duas linhas na aba; Playwright captura.
+- **Validação humana:** Rafael lê a aba; capturas aprovadas no portão visual (19, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E05/`: testes, E2E e `capturas/INDEX.md`.
+- **Documentação a atualizar:** `DICIONARIO-DE-DADOS.md`, `PRIVACIDADE.md`.
+- **Definition of Done:** todo ato deixa linha, sem UPDATE nem DELETE.
+- **Checkpoint:** Não.
+
+### V2-F20-E06 - Operador do console: endurecer a confiança em app.console_operador
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (recria funções de E02 e E04)
+- **Objetivo:** ação perigosa exige sessão registrada no banco, não só um id declarado, e o autor de provisionar deixa de ser texto digitado.
+- **Problema que resolve:** `CON-19`, `CON-36`: as funções da 038 confiam em `app.console_operador`, variável declarada pelo processo (`apps/console/src/banco.ts`); a policy `USING (true)` expõe o id do dono; `municipio_provisionado` grava autor digitado (`cadastro.ts:73`).
+- **Origem:** DP:T37; REL:04 (Gap 18); BZ-D:CON-19; BZ-D:CON-36.
+- **Estado atual:** CORRIGIR.
+- **Dependências de entrada:** E05.
+- **O que deve ser implementado:**
+  - Migration: `console_sessoes` (jti do JWT, `operador_id`, `expira_em`, `encerrada_em`); `console_abrir_sessao` só abre com `ultimo_passo_totp` gravado há menos de 60 s; `console_operador_atual()` resolve por `app.console_sessao` e dá NULL com sessão vencida, encerrada ou operador desativado; as `console_*` e `provisionar_municipio` (recriada) derivam o autor da sessão; SELECT de `console_operadores` só da própria linha (o dono vê todas).
+  - API: `banco.ts` declara `app.console_sessao`, encerrada em troca de senha, recuperação e desativação; a partida (`esquema.ts`) confere que `dc360_console_login` não é superusuário nem dono.
+- **O que NÃO deve ser implementado nesta etapa:** SSO, papéis extras, reativar operador (E12). Residual: a DSN segue equivalente ao processo; reduz-se a janela e fica rastro (E05).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/console/src/banco.ts`, `operadores.ts`, `servidor.ts`, `esquema.ts`, `cadastro.ts`, `db/test/isolamento.test.ts`.
+- **Risco de segurança:** sessão mal desenhada tranca o dono fora (`dono-sem-codigos.test.ts`).
+- **Impacto LGPD:** IP e e-mail em `console_sessoes`: plataforma, retenção `a_decidir` (CP-10).
+- **Migração necessária:** Sim (`NNN_sessao_do_console_no_banco.sql`).
+- **Compatibilidade:** sessões abertas caem no deploy.
+- **Rollback:** migration devolve `console_operador_atual()` por variável.
+- **Testes positivos:** ação perigosa com sessão registrada funciona; `provisionar` grava o e-mail da sessão.
+- **Testes negativos:** id do dono forjado sem sessão: `console_agendar_eliminacao` falha; jti vencido: recusa.
+- **Testes de autorização e isolamento:** operador comum lê a linha do dono: 0 linhas; portão universal verde.
+- **Regressão obrigatória:** `npm run test:console`, `npm run test:isolamento`; gates anteriores.
+- **E2E:** HML: o forjamento por SQL falha.
+- **Validação humana:** Rafael tenta o forjamento em HML.
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E06/`.
+- **Documentação a atualizar:** ADR 0008, `IMPLANTACAO.md`.
+- **Definition of Done:** ação sem sessão falha no banco; autor nunca digitado.
+- **Checkpoint:** Não.
+
+### V2-F20-E07 - Métricas agregadas incluindo portal e cidadão; habilitação do canal visível
+- **Prioridade:** P2
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (`pagina.ts` e `consultas.ts`, como E06 e E08)
+- **Objetivo:** o console vê, por município, números do portal e do canal do cidadão, último acesso real e habilitação do canal, sem dado pessoal.
+- **Problema que resolve:** `resumir_municipio()` (migração 023) só conta ocorrências, vistorias, ofícios, usuários e aparelhos; "calado" mede o relógio da API (`BZ-D:CON-27`); sem encaminhamentos nem relatos (`CON-62`); `GET /municipios/:id/serie` sem tela (`CON-29`).
+- **Origem:** DP:T37; REL:04 (D8, Gap 11); BZ-D:CON-27; BZ-D:CON-29; BZ-D:CON-62.
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** E03.
+- **O que deve ser implementado:**
+  - Migration: colunas numéricas em `metricas_municipio`: `orgaos_ativos`, `usuarios_de_orgao_ativos`, `encaminhamentos_abertos`, `encaminhamentos_vencidos` (de `providencias.estado`, F04-E02), `canal_recebidas`, `canal_em_triagem`, `canal_convertidas` (de `relatos`, F16-E02), `ultimo_acesso_em` (de `sessoes`), e contagens dos módulos novos (`incidentes_ativos`, `abrigos_ativos`, `itens_em_alerta_de_estoque`, `integracoes_ativas`); nomes sem `relato`, `nome` nem `contato` (`NOMES_PROIBIDOS`); `CREATE OR REPLACE resumir_municipio(date)` e a visão `console_situacao_dos_municipios`.
+  - API: `consultas.ts` devolve `canal_cidadao_habilitado` (F15-E13, grant por coluna) e os indicadores; "calado" se divide em `relogio_parado` (36 h sem `atualizado_em`) e `sem_uso` (7 dias sem `ultimo_acesso_em`, a calibrar no piloto); colunas e série diária por município.
+- **O que NÃO deve ser implementado nesta etapa:** métrica por órgão (vive no painel, F10); alertas (F21-E05); consumo e faturamento (E14).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/console/src/consultas.ts`, `pagina.ts`, `apps/api/src/metricas/resumo.ts`.
+- **Risco de segurança:** nome ou tipo proibido de coluna: o portão reprova.
+- **Impacto LGPD:** só contagens, datas e booleanos (F05-E03).
+- **Migração necessária:** Sim (`NNN_metricas_do_portal_e_do_canal.sql`).
+- **Compatibilidade:** colunas nuláveis.
+- **Rollback:** migration corretiva (função da 023).
+- **Testes positivos:** 3 encaminhamentos vencidos e 5 relatos em triagem sintéticos aparecem; `sem_uso` acende com 8 dias sem acesso.
+- **Testes negativos:** coluna `relatos_recebidos` ou tipo `text` reprova o portão; `dc360_console` lendo `providencias`: negado.
+- **Testes de autorização e isolamento:** `resumir_municipio` como A não escreve linha de B.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:console`; gates anteriores.
+- **E2E:** HML: dados sintéticos, esperar 15 min, ler no console; Playwright captura.
+- **Validação humana:** Rafael confere os números; capturas aprovadas no portão visual (19, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E07/`: testes, E2E e `capturas/INDEX.md`.
+- **Documentação a atualizar:** `DICIONARIO-DE-DADOS.md`, `PRIVACIDADE.md`.
+- **Definition of Done:** console mostra portal, canal e uso; "calado" separa relógio.
+- **Checkpoint:** Não.
+
+### V2-F20-E08 - Pacote de diagnóstico sem dado pessoal
+- **Prioridade:** P2
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (rota em `servidor.ts` e tela de `pagina.ts`, como E06 e E07)
+- **Objetivo:** painel e apps geram diagnóstico sem dado pessoal, e o console o confere contra lista fechada.
+- **Problema que resolve:** o suporte é telefone e o chamado volta como "deu erro" (REL:04 8.6); o usuário não entrega o código de requisição (F01-E14) nem o crash report. 
+- **Origem:** DP:T38; DP:J10; REL:04 (D5 c; 8.6).
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Domínio: `packages/shared/src/diagnostico.ts`: `diagnosticoSchema` Zod `.strict()` por inclusão: `gerado_em`, `aplicativo`, `versao`, `build`, `plataforma`, `ambiente`, `municipio_id`, `sessao`, `fila` (`pendentes`, `falhas`, `idade_do_mais_antigo_s`), `ultimos_erros` (até 20: `requisicao`, `codigo` de F02-E03, `rota` sem query nem id, `quando`). 
+  - Frontend e Mobile: "Gerar diagnóstico" em `MinhaConta.tsx`, no `perfil.tsx` do campo e no perfil do `apps/cidadao`; mostra o conteúdo antes de compartilhar.
+  - API: `POST /v1/diagnostico/conferir` no console: valida o texto colado, recusa chave fora da lista (422), devolve a leitura e os `requisicao` para o log (F21-E08); não guarda o pacote; grava `diagnostico_conferido` (E05).
+- **O que NÃO deve ser implementado nesta etapa:** envio automático ou upload; anexar log; leitura de dado de município (E11).
+- **Arquivos e módulos prováveis:** `packages/shared/src/diagnostico.ts` (a criar), `apps/console/src/servidor.ts`, `pagina.ts`, `apps/web/src/paginas/MinhaConta.tsx`, `apps/campo/src/app/(agente)/perfil.tsx`.
+- **Risco de segurança:** campo livre vaza dado: esquema estrito e teste de propriedade.
+- **Impacto LGPD:** sem dado pessoal por desenho.
+- **Migração necessária:** Não.
+- **Compatibilidade:** rota e botões novos.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** o pacote do painel e do campo passa em `diagnosticoSchema`; o console lista as requisições.
+- **Testes negativos:** e-mail, nome, matrícula, coordenada e relato injetados: ausentes do pacote; chave extra: 422.
+- **Testes de autorização e isolamento:** sem sessão do console: 401; token do painel: 401.
+- **Regressão obrigatória:** `npm run test:console`, `npm run test:campo`; gates anteriores.
+- **E2E:** HML: provocar erro, gerar, colar no console; Playwright captura.
+- **Validação humana:** Rafael lê um pacote; capturas (19, seção 0), nos apps por aparelho.
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E08/`: testes, E2E e `capturas/INDEX.md`.
+- **Documentação a atualizar:** `GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** pacote gerado nos três apps e conferido.
+- **Checkpoint:** Não.
+
+### V2-F20-E09 - Operação técnica por pedido de titular pelo console, sob instrução do município
+- **Prioridade:** P2
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (como E06 a E08)
+- **Objetivo:** o fornecedor executa redação e exportação por titular só com instrução registrada do município, com trilha própria, sem ler dado operacional.
+- **Problema que resolve:** a ADR 0018 manda executar a operação do titular sob instrução; sem rota, volta o SQL de dono (REL:04 D11).
+- **Origem:** DP:J5; DP:T37; REL:04 (D9, D11).
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** F20-E01; F20-E05; F05-E08; F05-E10.
+- **O que deve ser implementado:**
+  - Migration: `instrucoes_ao_fornecedor` (RLS forçada, FK composta a `pedidos_de_titular`; `operacao`, `ocorrencias_ids` e `chaves` do município; `valida_ate` (7 dias), `consumida_em`); função SECURITY DEFINER `console_executar_operacao_titular(p_org, p_pedido, p_instrucao)`, só dono: recusa instrução inexistente, vencida, consumida ou de outro pedido; enfileira `executar_operacao_titular`, consome a instrução e grava `trilha_administrativa` e `console_auditoria` (`operacao_tecnica_sob_instrucao`).
+  - API: `POST /v1/pedidos-de-titular/:id/instrucao-ao-fornecedor` (administrador); o worker executa sob `comTenant` e o console recebe só contagem. Console: `POST /v1/municipios/:id/pedidos-de-titular/:pedidoId/executar` (dono, código novo); `OPERACAO_TECNICA_ATIVA` padrão `nao`.
+- **O que NÃO deve ser implementado nesta etapa:** prazo e resposta ao titular (CP-11); ler o resultado no console; leitura de dado de município (E11).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/console/src/servidor.ts`, `apps/api/src/privacidade/`.
+- **Risco de segurança:** redação é irreversível: instrução vigente, de uso único, do município.
+- **Impacto LGPD:** fornecedor é operador sob instrução do controlador (J5); base legal: CP-11.
+- **Migração necessária:** Sim (`NNN_instrucoes_ao_fornecedor.sql`).
+- **Compatibilidade:** desligada por padrão.
+- **Rollback:** `OPERACAO_TECNICA_ATIVA=nao`.
+- **Testes positivos:** redação instruída de 2 ocorrências: só as chaves instruídas são redigidas; contagem 2 no console.
+- **Testes negativos:** sem instrução, vencida ou consumida: recusa; operador não dono: 403; `OPERACAO_TECNICA_ATIVA=nao`: 503.
+- **Testes de autorização e isolamento:** instrução de A usada contra B: 404; `dc360_console` sem SELECT nas duas tabelas.
+- **Regressão obrigatória:** `npm run test:console`, `npm run test:isolamento`; gates anteriores.
+- **E2E:** HML: pedido sintético, instrução no painel, execução no console.
+- **Validação humana:** Rafael confere as duas trilhas; capturas aprovadas (19, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E09/`: testes, E2E e `capturas/INDEX.md`.
+- **Documentação a atualizar:** ADR 0018.
+- **Definition of Done:** só executa com instrução; trilha nos dois lados.
+- **Checkpoint:** CP-11 (J5: bloqueia a execução em produção até o parecer).
+
+### V2-F20-E10 - Limite de taxa da porta do console por IP de borda
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E06 grava o IP)
+- **Objetivo:** os limites da porta do console contam o IP real, para que um anônimo não tranque o dono.
+- **Problema que resolve:** `BZ-D:CON-07`: o `Fastify` do console (`apps/console/src/servidor.ts:257`) não tem `trustProxy` e o `rateLimit` usa `req.ip`; atrás do Fly todos dividem o balde.
+- **Origem:** REL:04 (Gap 2); BZ-D:CON-07.
+- **Estado atual:** CORRIGIR (o padrão existe na API, em `apps/api/src/rede.ts`).
+- **Dependências de entrada:** F20-E01.
+- **O que deve ser implementado:**
+  - API do console: `PROXY_DE_BORDA` (`nenhum` ou `fly`, padrão `nenhum`) em `config.ts` e `fly.console.toml`; `trustProxy` por salto e `declararProxyDeBorda` como a API (`servidor.ts:322`); `LIMITE_DA_PORTA`, `LIMITE_DE_CADASTRO` e `LIMITE_DE_ACOES` ganham `keyGenerator` por `enderecoDoCliente`; o IP gravado (E05, E06) sai da mesma função. Contador em memória, sem Redis.
+- **O que NÃO deve ser implementado nesta etapa:** limite persistente; mudar os valores; CAPTCHA.
+- **Arquivos e módulos prováveis:** `apps/console/src/servidor.ts`, `config.ts`, `fly.console.toml`, `apps/api/src/rede.ts`, `apps/console/test/limite-por-endereco-de-borda.test.ts` (a criar).
+- **Risco de segurança:** ler `Fly-Client-IP` fora do Fly deixa o atacante escolher o balde: por isso o padrão é `nenhum`.
+- **Impacto LGPD:** o IP segue só em limite e auditoria (E05).
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem a variável, conta `req.ip` como hoje.
+- **Rollback:** `PROXY_DE_BORDA=nenhum`.
+- **Testes positivos:** com `fly`, 21 `POST /entrar` do IP A recebem 429 e o IP B ainda entra.
+- **Testes negativos:** com `nenhum`, `Fly-Client-IP` forjado não troca o balde; abuso em `/entrar/codigo` e `/recuperar` de um IP não afeta outro.
+- **Testes de autorização e isolamento:** o 429 não revela se o e-mail existe; rotas fechadas seguem 401 sem sessão.
+- **Regressão obrigatória:** `npm run test:console`; gates anteriores.
+- **E2E:** HML: martelar `/entrar` de um IP e entrar como dono de outro.
+- **Validação humana:** Rafael repete o abuso em HML.
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E10/`.
+- **Documentação a atualizar:** `IMPLANTACAO.md`.
+- **Definition of Done:** limites contam o IP real; abuso de um IP não tranca outro.
+- **Checkpoint:** Não.
+
+### V2-F20-E11 - Suporte assistido no console: leitura só com concessão vigente
+- **Prioridade:** P1
+- **Tamanho:** L  |  **Complexidade:** crítica  |  **Risco:** crítico  |  **Paralelizável:** não (`servidor.ts` e `pagina.ts`, como E06)
+- **Objetivo:** o operador nomeado lê dados do município SÓ com concessão vigente (D-10), com faixa permanente e leitura na trilha do município e do console.
+- **Problema que resolve:** o suporte pede senha ou captura de tela; a ADR 0018 (E01) admite esta exceção.
+- **Origem:** PR:D-10; DP:T38; DP:J10.
+- **Estado atual:** CRIAR; `dc360_console` não lê tabela de negócio.
+- **Dependências de entrada:** E01; E05; E06; F10-E16; CP-30; CP-54.
+- **O que deve ser implementado:**
+  - Migration: funções SECURITY DEFINER `console_suporte_listar(p_org, p_concessao)` e `console_suporte_ler(...)`, só ao `dc360_console`: exigem `suporte_concessoes` (F10-E16) vigente, do `console_operador_atual()`, com TOTP de menos de 15 min; devolvem projeção FIXA, sem contato de cidadão, relato nem arquivo; gravam `trilha_administrativa` (`operador_da_plataforma`, `leitura_de_suporte`) e `console_auditoria` (`suporte_leitura`, novo no CHECK) juntas.
+  - API: `GET /v1/municipios/:id/suporte/ocorrencias` e `.../:ocorrenciaId`; nenhuma rota de escrita.
+  - Frontend: modo de suporte em `pagina.ts` com faixa fixa "Suporte assistido, somente leitura" (município, tempo restante); expirada ou revogada, a leitura recusa.
+- **O que NÃO deve ser implementado nesta etapa:** impersonation (fora da V2); escrita; arquivos e relatos; prorrogação; a liberação (F10-E16).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/console/src/servidor.ts`, `consultas.ts`, `pagina.ts`, `apps/console/test/suporte-assistido.test.ts` (a criar).
+- **Risco de segurança:** prazo e revogação valem no banco, não na tela.
+- **Impacto LGPD:** leitura autorizada e visível ao município (CP-30).
+- **Migração necessária:** Sim (`NNN_leitura_de_suporte.sql`).
+- **Compatibilidade:** sem concessão nada muda.
+- **Rollback:** `SUPORTE_ASSISTIDO_ATIVO=nao`.
+- **Testes positivos:** concessão de 2 h: a leitura volta e a trilha de A a mostra.
+- **Testes negativos:** expirada, revogada ou TOTP vencido: recusa.
+- **Testes de autorização e isolamento:** concessão de A em B: 404; outro operador: 403; `dc360_console` sem SELECT em `ocorrencias`.
+- **Regressão obrigatória:** `npm run test:console`, `npm run test:isolamento`; gates anteriores.
+- **E2E:** HML: liberar, ler, revogar, ver a recusa; Playwright captura.
+- **Validação humana:** Rafael e o jurídico leem a faixa; capturas aprovadas (19, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E11/`: testes, E2E e `capturas/INDEX.md`.
+- **Documentação a atualizar:** ADR 0018.
+- **Definition of Done:** leitura só com concessão, auditada, com faixa.
+- **Checkpoint:** CP-30 e CP-54 (bloqueiam ligar em produção).
+
+### V2-F20-E12 - Ciclo de vida do operador do console: reativar, reutilizar e-mail, transferir o dono
+- **Prioridade:** P2
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (`operadores.ts`, `servidor.ts` e `pagina.ts`)
+- **Objetivo:** o dono reativa operador desativado, reutiliza o e-mail de quem saiu e transfere o papel de dono, sempre com um único dono ativo e trilha.
+- **Problema que resolve:** `desativar` é sem volta (`operadores.ts:305`), o índice `console_operadores_email_idx` trava o e-mail para sempre e o dono não se transfere (REL:04 Gap 7).
+- **Origem:** PR:D-19; REL:04 (Gap 7); item 36 de `21-fora-da-v2.md`.
+- **Estado atual:** EXPANDIR (`desativar` e o índice `console_operadores_um_dono_idx` ficam).
+- **Dependências de entrada:** E05; E06.
+- **O que deve ser implementado:**
+  - Migration: `console_operadores_email_idx` vira parcial (`WHERE ativo`); funções `console_reativar_operador(p_id)` (recusa se o e-mail já tem operador ativo) e `console_transferir_dono(p_novo)` (troca os papéis numa transação, revoga as `console_sessoes` dos dois e exige TOTP do dono atual de menos de 60 s); ambas gravam `console_auditoria`.
+  - API: `POST /v1/operadores/:id/reativar` e `POST /v1/operadores/:id/tornar-dono` (só dono).
+  - Frontend: ações em `pagina.ts` com confirmação que repete o e-mail; novo dono recebe código de recuperação.
+- **O que NÃO deve ser implementado nesta etapa:** SSO e papéis extras; dois donos; reativar sem trilha.
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/console/src/operadores.ts`, `servidor.ts`, `pagina.ts`, `apps/console/test/operadores-no-banco.test.ts`.
+- **Risco de segurança:** transferência errada tranca o console (`dono-sem-codigos.test.ts`).
+- **Impacto LGPD:** e-mail e IP de operadores na auditoria (CP-10).
+- **Migração necessária:** Sim (`NNN_ciclo_de_vida_do_operador.sql`).
+- **Compatibilidade:** operadores atuais intactos.
+- **Rollback:** migration corretiva.
+- **Testes positivos:** reativar volta a entrar; e-mail de desativado cria operador novo; a transferência passa o papel.
+- **Testes negativos:** reativar com e-mail já ativo: 409; segundo dono: recusado pelo banco; TOTP vencido: 401.
+- **Testes de autorização e isolamento:** operador comum nas duas rotas: 403; `dc360_app` sem acesso às tabelas.
+- **Regressão obrigatória:** `npm run test:console`, `npm run test:isolamento`; gates anteriores.
+- **E2E:** HML: desativar, reativar, transferir e entrar como o novo dono; Playwright captura.
+- **Validação humana:** Rafael transfere e volta; capturas aprovadas (19, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E12/`: testes, E2E e `capturas/INDEX.md`.
+- **Documentação a atualizar:** `IMPLANTACAO.md`.
+- **Definition of Done:** reativar, reutilizar e transferir provados, com um dono.
+- **Checkpoint:** Não.
+
+### V2-F20-E13 - Correção dos dados cadastrais da prefeitura pelo fornecedor
+- **Prioridade:** P2
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (migration em `organizacoes`)
+- **Objetivo:** o dono do console corrige nome, município, UF e contato institucional de uma prefeitura, com motivo, antes e depois na trilha do município.
+- **Problema que resolve:** erro de digitação no provisionamento só se corrige por SQL de dono (REL:04 Gap 13).
+- **Origem:** PR:D-19; REL:04 (Gap 13); item 36 de `21-fora-da-v2.md`.
+- **Estado atual:** CRIAR; `organizacoes` é lida pelo console, nunca escrita.
+- **Dependências de entrada:** E03; E05; E06.
+- **O que deve ser implementado:**
+  - Migration: função `console_corrigir_cadastro(p_org, p_campos, p_motivo)`, só dono, com lista fechada (`nome`, `municipio`, `uf`, `contato_institucional_email`, `contato_institucional_telefone`); grava `trilha_administrativa` (`antes` e `depois`) e `console_auditoria`; recusa município eliminado.
+  - API: `PATCH /v1/municipios/:id/cadastro` (dono, motivo obrigatório).
+  - Frontend: formulário em `pagina.ts` com os valores atuais e aviso de que a prefeitura vê a alteração.
+- **O que NÃO deve ser implementado nesta etapa:** dados de usuário, órgão ou ocorrência; `codigo_ibge` (F15-E13); a leitura da trilha pela prefeitura (E16).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/console/src/municipios.ts`, `servidor.ts`, `pagina.ts`, `apps/console/test/acoes-perigosas.test.ts`.
+- **Risco de segurança:** coluna fora da lista seria escrita sem rastro: lista fechada no banco.
+- **Impacto LGPD:** o contato é caixa institucional; antes e depois ficam na trilha.
+- **Migração necessária:** Sim (`NNN_correcao_cadastral.sql`).
+- **Compatibilidade:** aditiva.
+- **Rollback:** migration corretiva.
+- **Testes positivos:** corrigir a UF grava antes e depois e a prefeitura a vê.
+- **Testes negativos:** coluna fora da lista: 422; sem motivo: 422; município eliminado: 404; operador comum: 403.
+- **Testes de autorização e isolamento:** `:id` de A não toca B; `dc360_console` sem UPDATE direto em `organizacoes`.
+- **Regressão obrigatória:** `npm run test:console`, `npm run test:isolamento`; gates anteriores.
+- **E2E:** HML: corrigir e ler o resultado no painel; Playwright captura.
+- **Validação humana:** Rafael corrige em HML; capturas aprovadas (19, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E13/`: testes, E2E e `capturas/INDEX.md`.
+- **Documentação a atualizar:** `DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** correção só pela lista fechada, com antes e depois.
+- **Checkpoint:** Não.
+
+### V2-F20-E14 - Contrato, plano, vigência e demonstrativo de faturamento no console
+- **Prioridade:** P2
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** médio  |  **Paralelizável:** não (`pagina.ts` e migration, como E12 e E13)
+- **Objetivo:** o dono registra contrato, plano e vigência por município e gera o demonstrativo mensal, sem emitir cobrança.
+- **Problema que resolve:** `BZ-D:CON-43`: `organizacoes` não tem contrato; a pergunta 3 da ADR 0008 está sem tela.
+- **Origem:** PR:D-19; BZ-D:CON-43; BZ-D:CON-44; item 44 de `21-fora-da-v2.md`.
+- **Estado atual:** CRIAR; o teto de armazenamento existe (035) e o consumo vem da E15.
+- **Dependências de entrada:** E05; E06; E15; CP-61.
+- **O que deve ser implementado:**
+  - Migration: `contratos_de_municipio` (plataforma, só `dc360_console`; `plano`, `vigencia_inicio`, `vigencia_fim`, `valor_mensal_centavos`; sem UPDATE) e `faturas_de_municipio` (`competencia`, `valor_centavos`, `bytes_no_mes`, `estado`); funções do dono gravam `console_auditoria`.
+  - API: `GET` e `POST /v1/municipios/:id/contrato`; `GET /v1/municipios/:id/faturas`; `POST .../faturas/:competencia/baixa`.
+  - Frontend: aba "Contrato" em `pagina.ts`: vigência (Vigente, A vencer em 60 dias, Vencida: ícone e texto), consumo e faturas.
+- **O que NÃO deve ser implementado nesta etapa:** nota fiscal e cobrança por gateway (CP-61 decide); suspensão automática por vencimento (E04).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/console/src/municipios.ts`, `consultas.ts`, `pagina.ts`, `db/test/isolamento.test.ts`.
+- **Risco de segurança:** tabela de plataforma: a prefeitura não a lê.
+- **Impacto LGPD:** dado contratual de pessoa jurídica.
+- **Migração necessária:** Sim (`NNN_contrato_e_demonstrativo.sql`).
+- **Compatibilidade:** sem contrato mostra "Sem contrato".
+- **Rollback:** migration corretiva.
+- **Testes positivos:** contrato que vence em 40 dias mostra "A vencer"; a fatura de maio usa 12 GB.
+- **Testes negativos:** `vigencia_fim` antes do início: 422; `UPDATE` no contrato: negado; valor negativo: CHECK.
+- **Testes de autorização e isolamento:** `dc360_app` sem acesso; administrador de A não lê contrato nenhum; operador comum não grava: 403.
+- **Regressão obrigatória:** `npm run test:console`, `npm run test:isolamento`; gates anteriores.
+- **E2E:** HML: registrar contrato, gerar a fatura, dar baixa; Playwright captura.
+- **Validação humana:** Rafael confere os valores; capturas aprovadas (19, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E14/`: testes, E2E e `capturas/INDEX.md`.
+- **Documentação a atualizar:** `DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** contrato, consumo e demonstrativo no console, com capturas.
+- **Checkpoint:** CP-61 (planos, valores e excedente: bloqueia valor real e cobrança).
+
+### V2-F20-E15 - Rotinas do fornecedor sem credencial de dono do banco: teto, consumo e órfãos
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (`servidor.ts`, `consultas.ts` e migration)
+- **Objetivo:** fixar o teto, ler o consumo e descartar órfãos sem DSN de dono: funções nomeadas no console e worker.
+- **Problema que resolve:** o teto e o consumo só andam por `apps/api/src/armazenamento/cli.ts` com credencial de dono, sem 2FA nem trilha (REL:04 D11; `BZ-D:CON-30`).
+- **Origem:** PR:D-19; REL:04 (D11); BZ-D:CON-30; BZ-D:CON-44; item 37 de `21-fora-da-v2.md`.
+- **Estado atual:** REFATORAR (a CLI e `varrerOrfaos` ficam como emergência).
+- **Dependências de entrada:** E05; E06; F07-E03.
+- **O que deve ser implementado:**
+  - Migration: `console_fixar_teto(p_org, p_bytes, p_motivo)` (só dono; recusa teto abaixo do uso) e `console_uso_dos_municipios()` (bytes e teto), ambas com `console_auditoria` e `trilha_administrativa`; `bytes_armazenados` em `metricas_municipio` por `resumir_municipio`.
+  - API: `GET /v1/municipios/:id/consumo` e `PUT /v1/municipios/:id/teto` no console; o descarte de órfãos roda no worker (F07-E03), sem `DATABASE_URL` de dono.
+  - Infraestrutura: a CLI recusa `--teto` e `--uso`, aponta o console e exige `CREDENCIAL_DE_DONO_AUTORIZADA=sim` nas demais ações.
+- **O que NÃO deve ser implementado nesta etapa:** contrato e faturamento (E14); cobrança por excedente.
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/armazenamento/cli.ts`, `orfaos.ts`, `apps/console/src/servidor.ts`, `consultas.ts`, `apps/console/test/teto-pelo-console.test.ts` (a criar).
+- **Risco de segurança:** duas portas de poder máximo: a CLI vira exceção.
+- **Impacto LGPD:** só bytes e contagens.
+- **Migração necessária:** Sim (`NNN_teto_e_consumo_pelo_console.sql`).
+- **Compatibilidade:** a CLI segue para emergência.
+- **Rollback:** migration corretiva.
+- **Testes positivos:** teto de 200 GB fixado no console aparece em `/armazenamento` do município.
+- **Testes negativos:** teto abaixo do uso: 409; sem motivo: 422; CLI `--teto`: falha com instrução.
+- **Testes de autorização e isolamento:** operador comum: 403; `:id` de A não toca B; `dc360_app` não executa as funções.
+- **Regressão obrigatória:** `npm run test:console`, `npm run test:isolamento`, `npm run test:api`; gates anteriores.
+- **E2E:** HML: fixar o teto e subir arquivo até o limite; Playwright captura.
+- **Validação humana:** Rafael fixa o teto em HML; capturas aprovadas (19, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E15/`: testes, E2E e `capturas/INDEX.md`.
+- **Documentação a atualizar:** `ARMAZENAMENTO.md`.
+- **Definition of Done:** teto e consumo pelo console, com trilha.
+- **Checkpoint:** Não.
+
+### V2-F20-E16 - A prefeitura lê os atos do fornecedor na própria trilha (L20)
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E17)
+- **Objetivo:** o administrador vê, no painel, cada ato do fornecedor sobre o município: suspensão, reemissão, correção cadastral e leitura de suporte.
+- **Problema que resolve:** `BZ-D:CON-52`: `trilha_administrativa` registra os atos do fornecedor, mas nenhuma rota ou tela a lê; "o município lê quem o criou" vale só no banco.
+- **Origem:** PR:D-19; PR:D-20 (L20); REL:04 (CON-52).
+- **Estado atual:** CRIAR (rota e tela); MANTER a trilha.
+- **Dependências de entrada:** E02; E04; E11; E13.
+- **O que deve ser implementado:**
+  - API: `GET /v1/organizacao/atos-do-fornecedor` em `apps/api/src/rotas/administracao.ts`, com `consultar_trilha`, paginada: linhas de `trilha_administrativa` com `autor_papel` igual a `operador_da_plataforma`; devolve ação, data, motivo e e-mail do operador, nunca IP nem `console_auditoria`.
+  - Frontend: seção "Atos do fornecedor" em `Auditoria.tsx`, filtro por ação, estado vazio "Nenhum ato do fornecedor" e leitura de suporte destacada com ícone e texto.
+- **O que NÃO deve ser implementado nesta etapa:** edição ou exclusão de ato; a tela de liberação do suporte (F10-E16); alerta por e-mail.
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/administracao.ts`, `apps/web/src/paginas/Auditoria.tsx`, `apps/web/src/dados/http.ts`, `apps/api/test/atos-do-fornecedor.test.ts` (a criar).
+- **Risco de segurança:** a rota não pode ler a trilha de outro município nem a auditoria interna do console.
+- **Impacto LGPD:** e-mail do operador do fornecedor visível ao controlador (F05-E03).
+- **Migração necessária:** Não.
+- **Compatibilidade:** rota e seção novas.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** após suspender e reemitir acesso em A, o administrador de A vê os dois atos.
+- **Testes negativos:** página fora do limite: 422; o corpo não traz `endereco_ip`.
+- **Testes de autorização e isolamento:** administrador de B não vê os atos de A; usuário sem `consultar_trilha`: 403.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm test --workspace @dc360/web`; gates anteriores.
+- **E2E:** `npm run test:e2e:api` e Playwright: ato no console, leitura no painel.
+- **Validação humana:** Rafael lê os atos; capturas aprovadas (19, seção 0, e F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E16/`: testes, E2E e `capturas/INDEX.md`.
+- **Documentação a atualizar:** `GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** a prefeitura lê os atos do fornecedor na própria tela.
+- **Checkpoint:** Não.
+
+### V2-F20-E17 - Livro de eliminações no console e município eliminado na lista (L24)
+- **Prioridade:** P2
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E16)
+- **Objetivo:** o console lê o livro `eliminacoes_de_municipio` e mostra cada eliminação, agendada, cancelada ou concluída, mesmo depois de o município sumir da lista.
+- **Problema que resolve:** `BZ-D:CON-54`: o livro sobrevive ao apagamento e o console tem o GRANT, mas nenhuma consulta o lê; o município eliminado some sem registro visível.
+- **Origem:** PR:D-19; PR:D-20 (L24); REL:04 (CON-54).
+- **Estado atual:** EXPANDIR; MANTER o livro.
+- **Dependências de entrada:** E04; E05.
+- **O que deve ser implementado:**
+  - API: `GET /v1/eliminacoes` no console (`consultas.ts`), só leitura e por colunas nomeadas: id, nome e UF do município, fases com datas, motivo e autor.
+  - Frontend: aba "Livro de eliminações" em `pagina.ts`, com estado vazio, ordem por data e selo de fase (ícone e texto); o município agendado aponta para o livro.
+- **O que NÃO deve ser implementado nesta etapa:** apagar ou corrigir linha do livro; o que se preserva do município eliminado (CP-29); retenção do livro (CP-10).
+- **Arquivos e módulos prováveis:** `apps/console/src/consultas.ts`, `servidor.ts`, `pagina.ts`, `apps/console/test/livro-de-eliminacoes.test.ts` (a criar).
+- **Risco de segurança:** o livro guarda nome de município, não dado de pessoa.
+- **Impacto LGPD:** sem dado pessoal; o autor é e-mail de operador (CP-10).
+- **Migração necessária:** Não.
+- **Compatibilidade:** rota nova; o grant da 038 basta.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** município sintético eliminado aparece no livro com as datas.
+- **Testes negativos:** `UPDATE` e `DELETE` no livro como `dc360_console`: negados; token do painel: 401.
+- **Testes de autorização e isolamento:** operador comum lê; `dc360_app` sem acesso ao livro.
+- **Regressão obrigatória:** `npm run test:console`, `npm run test:isolamento`; gates anteriores.
+- **E2E:** HML: agendar, eliminar município sintético e ler o livro; Playwright captura.
+- **Validação humana:** Rafael lê o livro; capturas aprovadas (19, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E17/`: testes, E2E e `capturas/INDEX.md`.
+- **Documentação a atualizar:** `SAIDA-DE-MUNICIPIO.md`.
+- **Definition of Done:** o livro é lido no console e sobrevive ao município.
+- **Checkpoint:** Não.
+
+### V2-F20-E18 - Provisão de município e do primeiro administrador cria pessoa e vínculo
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não (recria `provisionar_municipio`, como E03)
+- **Objetivo:** o console provisiona o município e o primeiro administrador criando a pessoa e a conta no município (D-08), sem sobrescrever credencial existente.
+- **Problema que resolve:** `provisionar_municipio` cria `usuarios` com senha própria; com `pessoas` (F03-E15), o mesmo e-mail em outro município reiniciaria a senha de quem já opera.
+- **Origem:** PR:D-08; DP:T01; DP:T05.
+- **Estado atual:** CORRIGIR `provisionar_municipio` (036), `cadastro.ts` e `apps/api/src/provisionar.ts`.
+- **Dependências de entrada:** E03; F03-E15; F03-E16; CP-49.
+- **O que deve ser implementado:**
+  - Migration: `provisionar_municipio` recriada : e-mail novo cria `pessoas` (senha provisória de 72 h) e a conta; e-mail existente cria só a conta (`usuarios.pessoa_id`), sem tocar em senha nem MFA, e devolve `pessoa_existente`; grava `trilha_administrativa`.
+  - API: `cadastro.ts` e o CLI `provisionar.ts` leem `pessoa_existente` e então não exibem senha.
+  - Frontend: o cadastro em `pagina.ts` diz "Pessoa já cadastrada: entra com a senha dela".
+- **O que NÃO deve ser implementado nesta etapa:** reset de pessoa em vários municípios (CP-50); vínculo com órgão (F03-E05).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/console/src/cadastro.ts`, `pagina.ts`, `apps/api/src/provisionar.ts`, `cadastro-de-prefeitura.test.ts`.
+- **Risco de segurança:** sobrescrever senha existente é tomada de conta.
+- **Impacto LGPD:** a pessoa terá conta em dois municípios, por parecer (CP-49).
+- **Migração necessária:** Sim (`NNN_provisao_cria_pessoa_e_vinculo.sql`).
+- **Compatibilidade:** e-mail novo: como hoje.
+- **Rollback:** migration corretiva.
+- **Testes positivos:** provisionar A e B com o mesmo e-mail: uma `pessoas`, duas contas, senha de A intacta.
+- **Testes negativos:** segunda conta no mesmo município: `UNIQUE`; e-mail inválido: 422; sem senha em `pessoa_existente`.
+- **Testes de autorização e isolamento:** `dc360_console` sem SELECT em `pessoas`; administrador de B não vê a conta de A.
+- **Regressão obrigatória:** `npm run test:console`, `npm run test:isolamento`, `npm run test:api`; gates anteriores.
+- **E2E:** HML: provisionar dois municípios com a mesma pessoa e entrar escolhendo; Playwright captura.
+- **Validação humana:** Rafael repete em HML; capturas aprovadas (19, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E18/`: testes, E2E e `capturas/INDEX.md`.
+- **Documentação a atualizar:** `IMPLANTACAO.md`.
+- **Definition of Done:** provisão cria pessoa e conta sem sobrescrever.
+- **Checkpoint:** CP-49 (bloqueia a mesma pessoa em dois municípios em produção).
+
+### V2-F20-E19 - Troca obrigatória da credencial inicial do operador do console
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (mexe em `operadores.ts` e na porta de login, como a E12)
+- **Objetivo:** a senha entregue a um operador novo vale por prazo curto e obriga a troca no primeiro acesso, como já vale no painel.
+- **Problema que resolve:** `BZ-F:GAP-DEF-13` (CON-10; REL:04): a credencial inicial é conhecida por quem a criou e não vence.
+- **Origem:** PR:D-19; PR:D-20; BZ-F:GAP-DEF-13; REL:04.
+- **Estado atual:** CRIAR (a migração 046 criou `usuarios.senha_provisoria_ate` no painel; `console_operadores` não tem equivalente).
+- **Dependências de entrada:** E06; E12; F03-E15.
+- **O que deve ser implementado:**
+  - Migration: `console_operadores.senha_provisoria_ate` (nulo quando a senha é própria); criar ou reativar (E12) dá 48 horas; trocar a senha zera o prazo.
+  - API: a porta aceita a provisória só até o prazo, com "troca obrigatória"; `POST /v1/operadores/eu/senha` grava o hash novo e revoga as outras `console_sessoes`; vencida, só o dono reemite (E12).
+  - Frontend: tela de primeira troca em `pagina.ts`; troca, emissão e vencimento vão para `console_auditoria`.
+- **O que NÃO deve ser implementado nesta etapa:** SSO; troca periódica; mudança do segundo fator.
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/console/src/operadores.ts`, `servidor.ts`, `pagina.ts`, `apps/console/test/operadores-no-banco.test.ts`.
+- **Risco de segurança:** operador que nunca troca a senha; prazo e revogação das sessões fecham o caso.
+- **Impacto LGPD:** Não se aplica: só um prazo.
+- **Migração necessária:** Sim (`NNN_senha_provisoria_do_operador.sql`, a numerar na execução).
+- **Compatibilidade:** operadores atuais ficam com prazo nulo.
+- **Rollback:** migration corretiva; a coluna nula não muda o login.
+- **Testes positivos:** operador novo entra, troca a senha e entra de novo.
+- **Testes negativos:** provisória vencida: 401; sem troca nenhuma rota abre; senha fraca: 422.
+- **Testes de autorização e isolamento:** operador comum não reemite a de outro: 403; `dc360_app` sem acesso à tabela.
+- **Regressão obrigatória:** `npm run test:console`, `npm run test:isolamento`; gates anteriores.
+- **E2E:** HML: criar operador, entrar, trocar, entrar de novo; Playwright captura.
+- **Validação humana:** Rafael cria um operador de teste e troca a senha; capturas aprovadas (19, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G20/V2-F20-E19/`: testes, E2E e `capturas/INDEX.md`.
+- **Documentação a atualizar:** `IMPLANTACAO.md`.
+- **Definition of Done:** a provisória vence, a troca é obrigatória e as outras sessões caem.
+- **Checkpoint:** Não.
+
+# GATE G20 - CONSOLE V2
+Só passa se:
+- [ ] (E01, CP-30 e CP-54) a ADR 0018 está aprovada, a emenda da 0008 publicada, a regra de operação técnica sob instrução escrita e a exceção do suporte assistido (somente leitura, com concessão) declarada; a busca por `impersona` em `apps/console/src` e `apps/api/src` segue vazia. CP-30 e o prazo decididos, ou o suporte fica desligado em produção e o bloqueio é declarado. Evidência: `docs/evidencias-v2/G20/V2-F20-E01/`.
+- [ ] (E02 e CP-50) o administrador único de um município sintético com senha vencida volta ao painel pelo console, com linha na trilha do município e sem SQL de dono; os negativos (operador, alvo errado, outro município, pessoa com conta em outro município) passam; capturas no portão visual. Evidência: E02.
+- [ ] (E03) o contato institucional é obrigatório no cadastro, editável pela prefeitura, e `organizacoes` tem lista fechada de colunas no portão de `db/test/isolamento.test.ts`; capturas. Evidência: E03.
+- [ ] (E04 e CP-29) P0: agendar a eliminação NÃO suspende; o município agendado exporta o pacote nos 7 dias; suspensão e agendamento sem aviso enviado, ou sem a saída conferida (salvo escape registrado), são recusados; `SAIDA-DE-MUNICIPIO.md` e o código dizem o mesmo; capturas da faixa. CP-29 decidido; se adiado por escrito, ficam bloqueados a regra final de eliminação e a eliminação de município real (F28-E10). Evidência: E04.
+- [ ] (E05) toda ação do console deixa linha em `console_auditoria`, sem UPDATE nem DELETE, com autor da sessão e a aba do dono lendo o registro; capturas. Evidência: E05.
+- [ ] (E06) com `app.console_operador` forjado e sem sessão registrada, `console_agendar_eliminacao` falha; o id do dono não é legível por operador; o autor de `municipio_provisionado` vem da sessão. Evidência: E06.
+- [ ] (E07) o console mostra portal, canal do cidadão, último acesso e habilitação do canal, e o portão de colunas aceita só tipos numéricos e de data; capturas. Evidência: E07.
+- [ ] (E08) o pacote de diagnóstico é gerado no painel, no campo e no cidadão, conferido no console, e o teste de propriedade com dado pessoal injetado passa; capturas e fotos de aparelho. Evidência: E08.
+- [ ] (E09 e CP-11) P2: a operação técnica por pedido de titular só executa com instrução registrada do município e CP-11 decidido, com trilha própria; sem o parecer a etapa fica fechada como não aplicável e o pedido fica na fila de F05-E08. Evidência: E09.
+- [ ] (E10) P1: a porta de login do console limita por IP de borda e o teste de abuso reprova a repetição. Evidência: E10.
+- [ ] (E11) P1: o suporte assistido lê só com concessão vigente, nominal, com MFA e somente leitura; expirada, revogada ou de outro município, a leitura é recusada; cada leitura está na trilha do município e na `console_auditoria`; a faixa "Suporte assistido, somente leitura" aparece em toda tela do modo; `impersona` segue ausente. Evidência: E11 com capturas.
+- [ ] (E12) P2: reativar operador, reutilizar o e-mail de quem saiu e transferir o dono funcionam com um único dono ativo e trilha. Evidência: E12.
+- [ ] (E13) P2: o dono corrige nome, município, UF e contato só pela lista fechada, com antes e depois na trilha do município. Evidência: E13.
+- [ ] (E14 e CP-61) P2: contrato, plano, vigência e demonstrativo mensal estão no console, a prefeitura não os lê, e nota fiscal e cobrança por gateway ficam fora até o CP; valores reais bloqueados até a decisão. Evidência: E14.
+- [ ] (E15) P1: teto e consumo andam pelo console, com trilha; a CLI de armazenamento recusa `--teto` e `--uso`; o descarte de órfãos roda no worker sem credencial de dono. Evidência: E15.
+- [ ] (E16 e E17) P1 e P2: a prefeitura lê os atos do fornecedor (L20) e o console lê o livro de eliminações (L24), nos dois casos sem IP nem auditoria interna na resposta; capturas. Evidência: E16 e E17.
+- [ ] (E18 e CP-49) P0: provisionar dois municípios com o mesmo e-mail cria uma pessoa e duas contas, sem sobrescrever a senha; sem o parecer, a mesma pessoa em dois municípios fica bloqueada em produção. Evidência: E18.
+- [ ] (E19) P1: o operador novo só entra com a senha provisória até o prazo, é obrigado a trocá-la no primeiro acesso e a troca derruba as outras sessões. Evidência: E19.
+- [ ] toda etapa de tela da fase (E02 a E05, E07, E08 e E11 a E18) tem capturas em 320, 768 e 1280 px, claro e escuro, nos quatro estados, com `INDEX.md` e checklist do portão visual de `19-definicao-de-pronto.md`, seção 0, rodado pelo comando da F08-E13 e aprovado por Rafael. Evidência: `capturas/` de cada etapa.
+- [ ] nenhuma regressão: todos os gates anteriores na ordem de execução (G00 a G19, G29 a G31 e G35) continuam verdes (se um quebrar, ESTE gate volta a REPROVADO), com `npm run test:console`, `npm run test:isolamento`, `npm run test:api`, `npm run typecheck` e `npm audit` verdes.
+- [ ] documentação atualizada (ADR 0008 e 0018, `SAIDA-DE-MUNICIPIO.md`, `IMPLANTACAO.md`, `DICIONARIO-DE-DADOS.md`, `ARMAZENAMENTO.md`) e evidências arquivadas em `docs/evidencias-v2/G20/`.
+
+**Reabre se:** o console passar a operar pedido de titular sem instrução do município; o console ganhar rota que leia dado operacional sem concessão vigente, escreva em dado do município pelo suporte ou faça impersonation; leitura de suporte sem linha na trilha do município; função `console_*` sem linha de auditoria; agendar a eliminação voltar a suspender o município; `app.console_operador` voltar a ser autoridade sem sessão; coluna pessoal entrar em tabela lida pelo console sem teste; o pacote de diagnóstico ganhar campo livre; rotina do fornecedor voltar a exigir credencial de dono sem declarar a exceção; provisão sobrescrever a senha de pessoa existente; etapa de tela fechada sem capturas.
+**Este Gate libera:** F21-E05 (painel por município no console) e F21-E10 a F21-E14 (SLO e painel de SLO); a POC (F26) e o piloto (F27) com provisionamento, suspensão com aviso, eliminação, suporte assistido e contrato; F28-E10 (eliminação e saída provadas com município real, ainda atrás de CP-29).

@@ -1,0 +1,4 @@
+> tsx src/cli.ts
+
+aplicando 047_familia_da_sessao.sql
+Aplicadas: 047_familia_da_sessao.sql

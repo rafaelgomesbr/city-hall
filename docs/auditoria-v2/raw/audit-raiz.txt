@@ -1,0 +1,31 @@
+### CMD: npm audit (cwd=.) inicio=2026-09-30T16:16:16-03:00
+# npm audit report
+
+@vitest/mocker  2.1.0 - 4.1.10
+Severity: moderate
+Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock - https://github.com/advisories/GHSA-82fw-gwwq-j7x9
+fix available via `npm audit fix --force`
+Will install vitest@5.0.3, which is a breaking change
+node_modules/@vitest/mocker
+  vitest  2.1.0-beta.1 - 4.1.10
+  Depends on vulnerable versions of @vitest/mocker
+  node_modules/vitest
+
+fast-uri  3.0.0 - 3.1.7 || 4.0.0 - 4.1.4
+Severity: moderate
+fast-uri vulnerable to inconsistent host case normalization via percent-encoded octets - https://github.com/advisories/GHSA-hrr3-gc8f-f4qj
+fast-uri vulnerable to inconsistent host case normalization via percent-encoded octets - https://github.com/advisories/GHSA-hrr3-gc8f-f4qj
+fast-uri vulnerable to mailto header injection via percent-encoded field-name desynchronization - https://github.com/advisories/GHSA-jvvf-x445-j334
+fix available via `npm audit fix`
+node_modules/ajv/node_modules/fast-uri
+node_modules/fast-uri
+
+
+3 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+### EXIT=1 DURACAO=4s fim=2026-09-30T16:16:20-03:00

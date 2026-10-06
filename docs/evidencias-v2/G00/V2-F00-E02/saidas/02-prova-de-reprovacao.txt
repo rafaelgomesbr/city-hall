@@ -1,0 +1,26 @@
+ANTES da marca (arquivo de HEAD): [{"linha":102,"motivo":"skip incondicional: sem a marca `// T42 dono=<nome> issue=<ref> ate=AAAA-MM-DD` na linha acima","trecho":"describe.skip(\"Token vivo de quem já não pode (aguardando religar auth/vigencia.ts)\", () => {"}]
+DEPOIS da marca: {"problemas":[],"marcados":[{"linha":103,"tipo":"skip incondicional","dono":"rafael","issue":"V2-F00-E04","ate":"2026-11-05"}]}
+
+---
+it.skip("sem marca", () => {});
+=> REPROVA: skip incondicional: sem a marca `// T42 dono=<nome> issue=<ref> ate=AAAA-MM-DD` na linha acima
+
+---
+// T42 issue=X ate=2026-11-01
+it.skip("marca sem dono", () => {});
+=> REPROVA: skip incondicional: marca T42 sem `dono=`
+
+---
+// T42 dono=rafael issue=X ate=2026-10-01
+it.skip("marca vencida", () => {});
+=> REPROVA: skip incondicional: marca T42 vencida em 2026-10-01 (hoje é 2026-10-05)
+
+---
+// T42 dono=rafael issue=X ate=2026-11-01
+it.only("so", () => {});
+=> REPROVA: `.only` esquecido: o resto da suíte some e o resultado continua verde
+
+---
+// T42 dono=rafael issue=X ate=2026-11-01
+describe.skip("dentro do prazo", () => {});
+=> passa

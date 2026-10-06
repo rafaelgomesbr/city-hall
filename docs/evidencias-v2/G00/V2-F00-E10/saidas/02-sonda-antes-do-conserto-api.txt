@@ -1,0 +1,197 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ❯ test/recuperacao-sem-oraculo.test.ts (15 tests | 9 failed) 15664ms
+   × O pedido não deixa o relógio nem o status contarem quem tem conta > provedor fora do ar: o pedido de quem tem conta continua 202, igual ao de quem não tem 77ms
+     → expected 500 to be 202 // Object.is equality
+   × O pedido não deixa o relógio nem o status contarem quem tem conta > a falha do provedor vai para o log, sem o link e sem o email de quem pediu 68ms
+     → expected '{"level":30,"time":1791308009964,"pid…' not to contain 'redefinir-senha'
+   × O pedido não deixa o relógio nem o status contarem quem tem conta > provedor lento: o pedido não espera o envio terminar 8010ms
+     → expected 'esperou' not to be 'esperou' // Object.is equality
+   × Teto de pedidos por email (quem enche a caixa de entrada dos outros) > só 5 mensagens por hora para o mesmo email, e o corpo do 202 não muda 45ms
+     → expected [ { …(4) }, { …(4) }, { …(4) }, …(5) ] to have a length of 5 but got 8
+   ✓ Teto de pedidos por email (quem enche a caixa de entrada dos outros) > o teto conta email que não existe do mesmo jeito, para não virar oráculo 36ms
+   × Teto de pedidos por email (quem enche a caixa de entrada dos outros) > maiúscula e minúscula são o mesmo email para o teto 22ms
+     → expected [ { …(4) }, { …(4) }, { …(4) }, …(4) ] to have a length of 5 but got 7
+   ✓ Teto de pedidos por email (quem enche a caixa de entrada dos outros) > o teto de um email não afeta o de outro 3ms
+   ✓ Nada que venha do pedido escolhe o município > campos de município no corpo e nos cabeçalhos são ignorados: resposta idêntica à de email inexistente 12ms
+   ✓ Nada que venha do pedido escolhe o município > o token de uma conta troca a senha dela e de mais ninguém  1950ms
+   × O link: uso único, vencimento e guarda só como hash > o banco guarda o hash do token e nunca o token 7ms
+     → expected '0EUx2C3rn3ShvV_SN3HrY6Rp91CSA8MJgbDAf…' to be 'd04531d82deb9f74a1bd5fd23771eb63a469f…' // Object.is equality
+   ✓ O link: uso único, vencimento e guarda só como hash > o link vence: passado o prazo, a mesma resposta de link que não vale mais  1491ms
+   × O link: uso único, vencimento e guarda só como hash > a mensagem de link que não vale mais está em português, com acento 492ms
+     → expected 'Este link de redefinicao nao vale mai…' to be 'Este link de redefinição não vale mai…' // Object.is equality
+   × O link: uso único, vencimento e guarda só como hash > o 202 e o 503 estão em português, com acento 6ms
+     → expected 'Se existir conta com esse email, envi…' to be 'Se existir conta com esse email, envi…' // Object.is equality
+   × A tela pode saber se a recuperação está ligada antes de pedir o email > GET /auth/recuperacao diz só se está ativa, sem token e sem dado de município 3ms
+     → expected 404 to be 200 // Object.is equality
+   ✓ Limite por endereço no pedido de recuperação > o quarto pedido do mesmo endereço em cinco minutos leva 429, e trocar o cabeçalho não ajuda  1232ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/recuperacao-sem-oraculo.test.ts > O pedido não deixa o relógio nem o status contarem quem tem conta > provedor fora do ar: o pedido de quem tem conta continua 202, igual ao de quem não tem
+AssertionError: expected 500 to be 202 // Object.is equality
+
+- Expected
++ Received
+
+- 202
++ 500
+
+ ❯ test/recuperacao-sem-oraculo.test.ts:115:31
+    113| 
+    114|     // Antes do conserto: 500 só no primeiro, e o 500 diz "esse email …
+    115|     expect(existe.statusCode).toBe(202);
+       |                               ^
+    116|     expect(naoExiste.statusCode).toBe(202);
+    117|     expect(existe.json()).toEqual(naoExiste.json());
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  test/recuperacao-sem-oraculo.test.ts > O pedido não deixa o relógio nem o status contarem quem tem conta > a falha do provedor vai para o log, sem o link e sem o email de quem pediu
+AssertionError: expected '{"level":30,"time":1791308009964,"pid…' not to contain 'redefinir-senha'
+
+- Expected
++ Received
+
+- redefinir-senha
++ {"level":30,"time":1791308009964,"pid":106092,"hostname":"Rafa_Laptop","reqId":"bfe8d433-e39c-4c27-b1f2-ecc53246e8cd","req":{"method":"POST","url":"/auth/recuperar","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
++
++ {"level":50,"time":1791308009967,"pid":106092,"hostname":"Rafa_Laptop","reqId":"bfe8d433-e39c-4c27-b1f2-ecc53246e8cd","err":{"type":"Error","message":"campo text invalido: https://painel.exemplo.gov.br/redefinir-senha?token=dzW5Th2aE4ckDpyM0uKwWtY2ji9Zp0REoex5CEPIWck para diego.alves@serraalta.exemplo.gov.br","stack":"Error: campo text invalido: https://painel.exemplo.gov.br/redefinir-senha?token=dzW5Th2aE4ckDpyM0uKwWtY2ji9Zp0REoex5CEPIWck para diego.alves@serraalta.exemplo.gov.br\n    at comportamento (C:\\Projetos\\city-hall\\dc360\\apps\\api\\test\\recuperacao-sem-oraculo.test.ts:124:13)\n    at Object.enviar (C:\\Projetos\\city-hall\\dc360\\apps\\api\\test\\recuperacao-sem-oraculo.test.ts:53:11)\n    at Object.pedirRecuperacao (C:\\Projetos\\city-hall\\dc360\\apps\\api\\src\\auth\\servico.ts:681:23)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at Object.<anonymous> (C:\\Projetos\\city-hall\\dc360\\apps\\api\\src\\rotas\\autenticacao.ts:179:5)"},"msg":"erro nao tratado"}
++
++ {"level":30,"time":1791308009968,"pid":106092,"hostname":"Rafa_Laptop","reqId":"bfe8d433-e39c-4c27-b1f2-ecc53246e8cd","res":{"statusCode":500},"responseTime":3.8734000000004016,"msg":"request completed"}
++
+
+ ❯ test/recuperacao-sem-oraculo.test.ts:133:21
+    131|     const log = linhasDeLog.join("\n");
+    132|     expect(log).toContain("recuperacao");
+    133|     expect(log).not.toContain("redefinir-senha");
+       |                     ^
+    134|     expect(log).not.toContain(tokenDaUltima());
+    135|     expect(log).not.toContain(DIEGO);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  test/recuperacao-sem-oraculo.test.ts > O pedido não deixa o relógio nem o status contarem quem tem conta > provedor lento: o pedido não espera o envio terminar
+AssertionError: expected 'esperou' not to be 'esperou' // Object.is equality
+ ❯ test/recuperacao-sem-oraculo.test.ts:147:26
+    145|     ]);
+    146|     // Antes do conserto o pedido ficava pendurado até o provedor resp…
+    147|     expect(resposta).not.toBe("esperou");
+       |                          ^
+    148|     expect((resposta as { statusCode: number }).statusCode).toBe(202);
+    149|     expect(enviadas).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  test/recuperacao-sem-oraculo.test.ts > Teto de pedidos por email (quem enche a caixa de entrada dos outros) > só 5 mensagens por hora para o mesmo email, e o corpo do 202 não muda
+AssertionError: expected [ { …(4) }, { …(4) }, { …(4) }, …(5) ] to have a length of 5 but got 8
+
+- Expected
++ Received
+
+- 5
++ 8
+
+ ❯ test/recuperacao-sem-oraculo.test.ts:162:22
+    160|     expect(new Set(respostas.map((r) => r.body)).size).toBe(1);
+    161|     // Antes do conserto: oito mensagens para a mesma pessoa.
+    162|     expect(enviadas).toHaveLength(TETO_POR_EMAIL);
+       |                      ^
+    163|   }, 180_000);
+    164| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  test/recuperacao-sem-oraculo.test.ts > Teto de pedidos por email (quem enche a caixa de entrada dos outros) > maiúscula e minúscula são o mesmo email para o teto
+AssertionError: expected [ { …(4) }, { …(4) }, { …(4) }, …(4) ] to have a length of 5 but got 7
+
+- Expected
++ Received
+
+- 5
++ 7
+
+ ❯ test/recuperacao-sem-oraculo.test.ts:180:22
+    178|       await pedir(i % 2 === 0 ? SIMONE : maiusculo);
+    179|     }
+    180|     expect(enviadas).toHaveLength(TETO_POR_EMAIL);
+       |                      ^
+    181|   }, 180_000);
+    182| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  test/recuperacao-sem-oraculo.test.ts > O link: uso único, vencimento e guarda só como hash > o banco guarda o hash do token e nunca o token
+AssertionError: expected '0EUx2C3rn3ShvV_SN3HrY6Rp91CSA8MJgbDAf…' to be 'd04531d82deb9f74a1bd5fd23771eb63a469f…' // Object.is equality
+
+Expected: "d04531d82deb9f74a1bd5fd23771eb63a469f7509203c30981b0c07c78fcd614"
+Received: "0EUx2C3rn3ShvV_SN3HrY6Rp91CSA8MJgbDAfHj81hQ"
+
+ ❯ test/recuperacao-sem-oraculo.test.ts:249:35
+    247|     expect(linhas).toHaveLength(1);
+    248|     expect(linhas[0]!.token_hash).not.toBe(token);
+    249|     expect(linhas[0]!.token_hash).toBe(createHash("sha256").update(tok…
+       |                                   ^
+    250|     // Nenhuma coluna da tabela carrega o token em claro.
+    251|     const tudo = JSON.stringify((await mem.bruto.query("SELECT * FROM …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  test/recuperacao-sem-oraculo.test.ts > O link: uso único, vencimento e guarda só como hash > a mensagem de link que não vale mais está em português, com acento
+AssertionError: expected 'Este link de redefinicao nao vale mai…' to be 'Este link de redefinição não vale mai…' // Object.is equality
+
+Expected: "Este link de redefinição não vale mais. Peça um novo."
+Received: "Este link de redefinicao nao vale mais. Peca um novo."
+
+ ❯ test/recuperacao-sem-oraculo.test.ts:275:31
+    273|     const r = await redefinir("token-completamente-inventado-aqui", "u…
+    274|     expect(r.statusCode).toBe(401);
+    275|     expect(r.json().mensagem).toBe("Este link de redefinição não vale …
+       |                               ^
+    276|   }, 60_000);
+    277| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  test/recuperacao-sem-oraculo.test.ts > O link: uso único, vencimento e guarda só como hash > o 202 e o 503 estão em português, com acento
+AssertionError: expected 'Se existir conta com esse email, envi…' to be 'Se existir conta com esse email, envi…' // Object.is equality
+
+Expected: "Se existir conta com esse email, enviamos um link de redefinição. Confira sua caixa de entrada."
+Received: "Se existir conta com esse email, enviamos um link de redefinicao. Confira sua caixa de entrada."
+
+ ❯ test/recuperacao-sem-oraculo.test.ts:280:31
+    278|   it("o 202 e o 503 estão em português, com acento", async () => {
+    279|     const r = await pedir("alguem-qualquer@exemplo.gov.br");
+    280|     expect(r.json().mensagem).toBe(
+       |                               ^
+    281|       "Se existir conta com esse email, enviamos um link de redefiniçã…
+    282|       + "Confira sua caixa de entrada.",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  test/recuperacao-sem-oraculo.test.ts > A tela pode saber se a recuperação está ligada antes de pedir o email > GET /auth/recuperacao diz só se está ativa, sem token e sem dado de município
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ test/recuperacao-sem-oraculo.test.ts:290:26
+    288|   it("GET /auth/recuperacao diz só se está ativa, sem token e sem dado…
+    289|     const r = await app.inject({ method: "GET", url: "/auth/recuperaca…
+    290|     expect(r.statusCode).toBe(200);
+       |                          ^
+    291|     expect(r.json()).toEqual({ ativa: true });
+    292|   }, 60_000);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 6 passed (15)
+   Start at  14:33:24
+   Duration  19.27s (transform 681ms, setup 55ms, collect 2.98s, tests 15.66s, environment 0ms, prepare 196ms)
+

@@ -1,0 +1,43 @@
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360
+ ❯ packages/shared/test/regras-de-conteudo.test.ts (5 tests | 1 failed) 5089ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação  489ms
+   × Regras de conteúdo > nenhum travessão em texto nenhum 2366ms
+     → travessão encontrado; use vírgula, dois pontos ou parênteses:
+dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe
+docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");": expected [ …(5) ] to deeply equal []
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  2223ms
+   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 4ms
+   ✓ Regras de conteúdo > as próprias expressões funcionam 2ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  packages/shared/test/regras-de-conteudo.test.ts > Regras de conteúdo > nenhum travessão em texto nenhum
+AssertionError: travessão encontrado; use vírgula, dois pontos ou parênteses:
+dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe
+docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");": expected [ …(5) ] to deeply equal []
+- Expected
++ Received
+- []
++ [
++   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",
++   "docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe",
++   "docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",
++   "docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",
++   "docs/auditoria-v2/raw/teste-shared.txt:41  +   \"dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\\\"[travessao]\\\");\"",
++ ]
+ ❯ packages/shared/test/regras-de-conteudo.test.ts:158:7
+    156|         ? ""
+    157|         : `travessão encontrado; use vírgula, dois pontos ou parêntese…
+    158|     ).toEqual([]);
+       |       ^
+    159|   });
+    160| 
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  14:21:18
+   Duration  7.99s (transform 132ms, setup 0ms, collect 161ms, tests 5.09s, environment 0ms, prepare 393ms)

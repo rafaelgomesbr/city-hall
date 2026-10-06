@@ -1,0 +1,83 @@
+
+== Subindo API na 3693 ==
+API de pé.
+
+== Construindo o painel apontado para http://127.0.0.1:3693 ==
+
+> @dc360/web@0.1.0 build
+> tsc -b && vite build
+
+[36mvite v7.3.6 [32mbuilding client environment for production...[36m[39m
+transforming...
+[33m../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:198): "resolve" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".[39m
+[33m../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:211): "existsSync" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".[39m
+[33m../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:224): "join" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".[39m
+[33m../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:247): "mkdirSync" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".[39m
+[32m✓[39m 183 modules transformed.
+[33m../../node_modules/@electric-sql/pglite/dist/index.js (1:90333): Use of eval in "../../node_modules/@electric-sql/pglite/dist/index.js" is strongly discouraged as it poses security risks and may cause issues with minification.[39m
+[33m../../node_modules/@electric-sql/pglite/dist/index.js (1:90814): Use of eval in "../../node_modules/@electric-sql/pglite/dist/index.js" is strongly discouraged as it poses security risks and may cause issues with minification.[39m
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                                  [39m[1m[2m    3.67 kB[22m[1m[22m[2m │ gzip:     1.50 kB[22m
+[2mdist/[22m[32massets/postgres-CkP7QCDB.data               [39m[1m[2m5,401.75 kB[22m[1m[22m
+[2mdist/[22m[32massets/postgres-CyuUVpXN.wasm               [39m[1m[2m8,090.73 kB[22m[1m[22m[2m │ gzip: 2,782.95 kB[22m
+[2mdist/[22m[35massets/index-naBOzO6Q.css                   [39m[1m[2m   40.24 kB[22m[1m[22m[2m │ gzip:     7.47 kB[22m
+[2mdist/[22m[36massets/__vite-browser-external-BIHI7g3E.js  [39m[1m[2m    0.03 kB[22m[1m[22m[2m │ gzip:     0.05 kB[22m
+[2mdist/[22m[36massets/nodefs-DyGOUXqQ.js                   [39m[1m[2m    0.42 kB[22m[1m[22m[2m │ gzip:     0.29 kB[22m
+[2mdist/[22m[36massets/opfs-ahp-B6YsdRJQ.js                 [39m[1m[2m   10.01 kB[22m[1m[22m[2m │ gzip:     3.04 kB[22m
+[2mdist/[22m[36massets/index-DCWEG0aP.js                    [39m[1m[33m1,633.38 kB[39m[22m[2m │ gzip:   427.34 kB[22m
+[33m
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32m✓ built in 14.01s[39m
+
+== Servindo o painel na 4693 ==
+Painel de pé.
+
+== Verificações do caminho de produção, em chromium ==
+
+== 28. Baixar o pacote de saida pelo painel, contra a API real (V2-F00-E11) ==
+  OK   a administradora entra pela API
+  OK   a coordenadora entra pela API
+  OK   POST /pacote.zip na raiz e 404 (o defeito era o prefixo)
+  OK   GET /saida/pacote.zip tambem nao baixa nada
+  OK   a coordenadora recebe 403 sem_permissao da API
+  OK   a administradora ve o botao Baixar pacote de saida em Organizacao
+  OK   o navegador recebe o download com o nome combinado
+  OK   o arquivo baixado comeca com a assinatura PK e nao esta vazio
+  OK   o download nao falhou no meio
+  OK   o ZIP abre pelo diretorio central, com mais de uma dezena de arquivos
+  OK   traz tabelas/ocorrencias.csv
+  OK   traz um laudo de vistoria em documentos/
+  OK   traz o indice, o LEIA-ME, as pendencias e as somas
+  OK   SOMAS-SHA256.txt cobre todos os arquivos
+  OK   cada soma SHA-256 e a do arquivo de verdade
+  OK   toda linha de toda tabela e de Serra Alta (nenhuma de outro municipio)
+  OK   o cadastro de organizacoes do pacote e so o de Serra Alta
+  OK   nenhum arquivo de dado cita Vale Fundo nem o id dele
+  OK   o CSV de ocorrencias tem o cabecalho e uma linha por ocorrencia do JSON
+  OK   o indice lista o protocolo de Serra Alta e nao o de Vale Fundo
+  OK   nenhuma coluna proibida (senha_hash, ficha, token_hash) em CSV ou JSON
+  OK   nenhum arquivo traz hash de senha (scrypt$)
+  OK   nenhuma tabela de credencial nem do fornecedor no pacote
+  OK   com 401 no primeiro pedido o painel renova UMA vez e baixa o ZIP
+  OK   e a pessoa continua no painel, sem ser mandada para a entrada
+  OK   enquanto gera, o botao diz Gerando e fica desabilitado
+  OK   terminado o download, o botao volta a dizer Baixar pacote de saida
+  OK   a tela mostra a frase do servidor: Seu perfil não tem permissão para alterar os dad...
+  OK   e o botao volta a poder ser usado
+  OK   a tela mostra a frase do servidor: O acesso deste município ao sistema foi suspenso...
+  OK   e o botao volta a poder ser usado
+  OK   a recusa nao derruba a sessao: a administradora continua em Organizacao
+  OK   sem rede: a frase diz que o arquivo nao foi baixado, e nao que algo preenchido nao foi enviado
+  OK   1280px: sem rolagem horizontal e o botao cabe na tela
+  OK   390px: sem rolagem horizontal e o botao cabe na tela
+  OK   390px: o botao tem pelo menos 44px de altura
+
+====================================================
+Passou: 36   Falhou: 0
+Zero erro de console.
+
+TUDO CERTO: o caminho de produção passou de ponta a ponta.

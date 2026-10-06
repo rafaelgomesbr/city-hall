@@ -1,0 +1,119 @@
+$ npm run test --workspace @dc360/shared   (em .)
+codigo=1 duracao=4s situacao=confere
+
+
+> @dc360/shared@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/packages/shared
+
+ ✓ src/localizacao.test.ts (16 tests) 19ms
+ ✓ test/campos.test.ts (7 tests) 8ms
+ ✓ test/telefone.test.ts (10 tests) 8ms
+ ✓ src/pessoas.test.ts (11 tests) 16ms
+ ✓ test/csv.test.ts (8 tests) 8ms
+ ✓ test/codigos-de-erro.test.ts (10 tests) 13ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 16ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 17ms
+ ✓ test/permissoes.test.ts (16 tests) 14ms
+ ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 22ms
+ ✓ test/mensagens-em-portugues.test.ts (8 tests) 22ms
+ ✓ test/evidencia.test.ts (10 tests) 20ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 22ms
+ ✓ test/dominio.test.ts (14 tests) 578ms
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  563ms
+ ❯ test/regras-de-conteudo.test.ts (5 tests | 1 failed) 2109ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação  510ms
+   × Regras de conteúdo > nenhum travessão em texto nenhum 910ms
+     → travessão encontrado; use vírgula, dois pontos ou parênteses:
+dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe
+docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");"
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:27  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:29  docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181 
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:30  docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181 
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:31  docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detalhe.test.ts
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:40  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:42  docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181 
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:43  docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181 
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:44  docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detalhe.test.ts
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:51  +   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");"
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:53  +   "docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:54  +   "docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:55  +   "docs/auditoria-v2/raw/teste-shared.txt:41  +   \"dc360/apps/web/test/trilha-detalhe.t: expected [ …(17) ] to deeply equal []
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  679ms
+   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 2ms
+   ✓ Regras de conteúdo > as próprias expressões funcionam 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/regras-de-conteudo.test.ts > Regras de conteúdo > nenhum travessão em texto nenhum
+AssertionError: travessão encontrado; use vírgula, dois pontos ou parênteses:
+dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe
+docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");"
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:27  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:29  docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181 
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:30  docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181 
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:31  docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detalhe.test.ts
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:40  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:42  docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181 
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:43  docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181 
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:44  docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detalhe.test.ts
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:51  +   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");"
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:53  +   "docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:54  +   "docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts
+docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:55  +   "docs/auditoria-v2/raw/teste-shared.txt:41  +   \"dc360/apps/web/test/trilha-detalhe.t: expected [ …(17) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",
++   "docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe",
++   "docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",
++   "docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",
++   "docs/auditoria-v2/raw/teste-shared.txt:41  +   \"dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\\\"[travessao]\\\");\"",
++   "docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:27  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",
++   "docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:29  docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181 ",
++   "docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:30  docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181 ",
++   "docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:31  docs/auditoria-v2/raw/teste-shared.txt:41  +   \"dc360/apps/web/test/trilha-detalhe.test.ts",
++   "docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:40  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",
++   "docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:42  docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181 ",
++   "docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:43  docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181 ",
++   "docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:44  docs/auditoria-v2/raw/teste-shared.txt:41  +   \"dc360/apps/web/test/trilha-detalhe.test.ts",
++   "docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:51  +   \"dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\\\"[travessao]\\\");\"",
++   "docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:53  +   \"docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts",
++   "docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:54  +   \"docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts",
++   "docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt:55  +   \"docs/auditoria-v2/raw/teste-shared.txt:41  +   \\\"dc360/apps/web/test/trilha-detalhe.t",
++ ]
+
+ ❯ test/regras-de-conteudo.test.ts:158:7
+    156|         ? ""
+    157|         : `travessão encontrado; use vírgula, dois pontos ou parêntese…
+    158|     ).toEqual([]);
+       |       ^
+    159|   });
+    160| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 14 passed (15)
+      Tests  1 failed | 161 passed (162)
+   Start at  15:03:56
+   Duration  3.19s (transform 2.18s, setup 0ms, collect 7.32s, tests 2.89s, environment 5ms, prepare 5.38s)
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Projetos\city-hall\dc360\packages\shared
+npm error workspace @dc360/shared@0.1.0
+npm error location C:\Projetos\city-hall\dc360\packages\shared
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vitest run

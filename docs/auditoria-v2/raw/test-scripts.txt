@@ -1,0 +1,1728 @@
+### CMD: npm run test:scripts (cwd=.) inicio=2026-09-30T16:31:57-03:00
+
+> dc360@0.1.0 test:scripts
+> node --test "scripts/*.test.mjs"
+
+TAP version 13
+# Subtest: a abertura declara uma cor por tema, e são as cores do tema
+ok 1 - a abertura declara uma cor por tema, e são as cores do tema
+  ---
+  duration_ms: 11.1144
+  type: 'test'
+  ...
+# Subtest: o plugin da abertura recebe o bloco do tema escuro
+ok 2 - o plugin da abertura recebe o bloco do tema escuro
+  ---
+  duration_ms: 2.4475
+  type: 'test'
+  ...
+# Subtest: nenhuma cor e nenhuma arte de abertura é escrita à mão, nos DOIS lugares
+ok 3 - nenhuma cor e nenhuma arte de abertura é escrita à mão, nos DOIS lugares
+  ---
+  duration_ms: 4.6899
+  type: 'test'
+  ...
+# Subtest: a leitura dos dois blocos pega o valor escrito à mão
+ok 4 - a leitura dos dois blocos pega o valor escrito à mão
+  ---
+  duration_ms: 0.8067
+  type: 'test'
+  ...
+# Subtest: as duas artes de abertura existem no disco
+ok 5 - as duas artes de abertura existem no disco
+  ---
+  duration_ms: 3.0757
+  type: 'test'
+  ...
+# Subtest: a leitura da constante enxerga mesmo o arquivo
+ok 6 - a leitura da constante enxerga mesmo o arquivo
+  ---
+  duration_ms: 1.9788
+  type: 'test'
+  ...
+# Subtest: o documento de verdade passa: todo arquivo citado existe, todo simbolo esta la, nenhum numero de linha
+ok 7 - o documento de verdade passa: todo arquivo citado existe, todo simbolo esta la, nenhum numero de linha
+  ---
+  duration_ms: 475.6016
+  type: 'test'
+  ...
+# Subtest: a ancora: o documento tem dezenas de ancoras por simbolo, senao o portao esta lendo o arquivo errado
+ok 8 - a ancora: o documento tem dezenas de ancoras por simbolo, senao o portao esta lendo o arquivo errado
+  ---
+  duration_ms: 1.315
+  type: 'test'
+  ...
+# Subtest: caso-irmao: simbolo que nao existe no arquivo e mordido
+ok 9 - caso-irmao: simbolo que nao existe no arquivo e mordido
+  ---
+  duration_ms: 342.6312
+  type: 'test'
+  ...
+# Subtest: caso-irmao: arquivo que nao existe e mordido, com e sem ancora
+ok 10 - caso-irmao: arquivo que nao existe e mordido, com e sem ancora
+  ---
+  duration_ms: 266.9785
+  type: 'test'
+  ...
+# Subtest: caso-irmao: a ancora por numero de linha, que era a forma antiga, e mordida em todas as suas grafias
+ok 11 - caso-irmao: a ancora por numero de linha, que era a forma antiga, e mordida em todas as suas grafias
+  ---
+  duration_ms: 824.1114
+  type: 'test'
+  ...
+# Subtest: caso-irmao: a ancora de ausencia morde quando o simbolo EXISTE
+ok 12 - caso-irmao: a ancora de ausencia morde quando o simbolo EXISTE
+  ---
+  duration_ms: 187.7564
+  type: 'test'
+  ...
+# Subtest: caso-irmao: ausencia em pasta varre a pasta inteira
+ok 13 - caso-irmao: ausencia em pasta varre a pasta inteira
+  ---
+  duration_ms: 441.8825
+  type: 'test'
+  ...
+# Subtest: presenca em pasta nao vale como ancora: ela nao diz onde olhar
+ok 14 - presenca em pasta nao vale como ancora: ela nao diz onde olhar
+  ---
+  duration_ms: 184.1297
+  type: 'test'
+  ...
+# Subtest: o simbolo e palavra inteira: foto nao casa em foto_chave, e um nome com ponto casa literal
+ok 15 - o simbolo e palavra inteira: foto nao casa em foto_chave, e um nome com ponto casa literal
+  ---
+  duration_ms: 0.5849
+  type: 'test'
+  ...
+# Subtest: o caminho resolve da raiz, de apps/campo, de apps/campo/src e de docs, nessa ordem
+ok 16 - o caminho resolve da raiz, de apps/campo, de apps/campo/src e de docs, nessa ordem
+  ---
+  duration_ms: 1.416
+  type: 'test'
+  ...
+# Subtest: as seis ancoras que o revisor provou erradas na versao 2 estao por simbolo, e resolvem
+ok 17 - as seis ancoras que o revisor provou erradas na versao 2 estao por simbolo, e resolvem
+  ---
+  duration_ms: 0.7917
+  type: 'test'
+  ...
+# Subtest: o script da raiz repassa as opções para o migrador
+ok 18 - o script da raiz repassa as opções para o migrador
+  ---
+  duration_ms: 3.0781
+  type: 'test'
+  ...
+# Subtest: rodando da raiz, --conferir confere e NÃO aplica
+not ok 19 - rodando da raiz, --conferir confere e NÃO aplica
+  ---
+  duration_ms: 6.1747
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\dc360\\scripts\\comando-de-migracao.test.mjs:52:1'
+  failureType: 'testCodeFailure'
+  error: 'o comando não chegou a CONFERIR nada: nenhuma das duas respostas do modo de conferência apareceu na saída.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: ''
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/dc360/scripts/comando-de-migracao.test.mjs:78:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: o nome da copia traz a data, ordena por nome e nao tem dois-pontos
+ok 20 - o nome da copia traz a data, ordena por nome e nao tem dois-pontos
+  ---
+  duration_ms: 4.9861
+  type: 'test'
+  ...
+# Subtest: a copia mora fora do repositorio, e a pasta e a da casa de quem roda
+ok 21 - a copia mora fora do repositorio, e a pasta e a da casa de quem roda
+  ---
+  duration_ms: 0.613
+  type: 'test'
+  ...
+# Subtest: a pasta de copias recusa o repositorio, a nuvem de arquivos e a Area de Trabalho
+not ok 22 - a pasta de copias recusa o repositorio, a nuvem de arquivos e a Area de Trabalho
+  ---
+  duration_ms: 1.1376
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\dc360\\scripts\\copiar-producao.test.mjs:48:1'
+  failureType: 'testCodeFailure'
+  error: 'The "string" argument must be of type string. Received type object (null)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: ~
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/dc360/scripts/copiar-producao.test.mjs:51:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a URL do pg_dump e a mesma do migrador, com a raiz do provedor apontada para o libpq verificar a cadeia
+ok 23 - a URL do pg_dump e a mesma do migrador, com a raiz do provedor apontada para o libpq verificar a cadeia
+  ---
+  duration_ms: 0.7197
+  type: 'test'
+  ...
+# Subtest: a versao do pg_dump e lida da saida dele, e o cliente serve quando a maior e a do servidor ou mais nova
+ok 24 - a versao do pg_dump e lida da saida dele, e o cliente serve quando a maior e a do servidor ou mais nova
+  ---
+  duration_ms: 0.6372
+  type: 'test'
+  ...
+# Subtest: localizar o pg_dump tenta o PATH e os caminhos do Homebrew, e diz o que instalar quando nao acha
+ok 25 - localizar o pg_dump tenta o PATH e os caminhos do Homebrew, e diz o que instalar quando nao acha
+  ---
+  duration_ms: 1.431
+  type: 'test'
+  ...
+# Subtest: a copia recente e a mais nova dentro da janela; fora dela, ou vazia, nao conta
+ok 26 - a copia recente e a mais nova dentro da janela; fora dela, ou vazia, nao conta
+  ---
+  duration_ms: 33.0736
+  type: 'test'
+  ...
+# Subtest: conferir nao pergunta por copia
+ok 27 - conferir nao pergunta por copia
+  ---
+  duration_ms: 0.385
+  type: 'test'
+  ...
+# Subtest: aplicar sem copia recente e RECUSADO, e a recusa ensina a tirar a copia e o escape
+ok 28 - aplicar sem copia recente e RECUSADO, e a recusa ensina a tirar a copia e o escape
+  ---
+  duration_ms: 0.6618
+  type: 'test'
+  ...
+# Subtest: aplicar com copia recente passa, e a conclusao nomeia a copia e a idade dela
+ok 29 - aplicar com copia recente passa, e a conclusao nomeia a copia e a idade dela
+  ---
+  duration_ms: 0.8481
+  type: 'test'
+  ...
+# Subtest: aplicar com --sem-copia passa, e a conclusao diz por extenso que a copia foi PULADA
+ok 30 - aplicar com --sem-copia passa, e a conclusao diz por extenso que a copia foi PULADA
+  ---
+  duration_ms: 0.3969
+  type: 'test'
+  ...
+# Subtest: com copia recente, --sem-copia nao apaga o registro: a copia que existe e a que vale
+ok 31 - com copia recente, --sem-copia nao apaga o registro: a copia que existe e a que vale
+  ---
+  duration_ms: 0.2176
+  type: 'test'
+  ...
+# Subtest: a decisao usa a pasta e a janela de verdade quando ninguem as passa
+ok 32 - a decisao usa a pasta e a janela de verdade quando ninguem as passa
+  ---
+  duration_ms: 6.5272
+  type: 'test'
+  ...
+# Subtest: recusa subir com a porta da API ocupada, em vez de falar com a instância velha
+ok 33 - recusa subir com a porta da API ocupada, em vez de falar com a instância velha
+  ---
+  duration_ms: 389.4885
+  type: 'test'
+  ...
+# Subtest: a porta conferida é a mesma que o roteiro usa
+ok 34 - a porta conferida é a mesma que o roteiro usa
+  ---
+  duration_ms: 1.3944
+  type: 'test'
+  ...
+# Subtest: o entitlements do iOS declara aps-environment
+ok 35 - o entitlements do iOS declara aps-environment # SKIP sem pasta ios/ nesta máquina
+  ---
+  duration_ms: 2.4686
+  type: 'test'
+  ...
+# Subtest: o valor do aps-environment é um dos dois que a Apple aceita
+ok 36 - o valor do aps-environment é um dos dois que a Apple aceita # SKIP sem projeto iOS gerado
+  ---
+  duration_ms: 0.23
+  type: 'test'
+  ...
+# Subtest: a escolha do ambiente continua morando no app.config.ts, e não escrita à mão
+not ok 37 - a escolha do ambiente continua morando no app.config.ts, e não escrita à mão
+  ---
+  duration_ms: 1.5514
+  type: 'test'
+  location: 'C:\\Projetos\\city-hall\\dc360\\scripts\\entitlements-do-ios.test.mjs:73:1'
+  failureType: 'testCodeFailure'
+  error: 'app.config.ts deixou de decidir o aps-environment pelo perfil do build. Escrito à mão, ele erra na direção que não avisa.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    import type { ExpoConfig } from "expo/config";
+    
+    /**
+     * Configuração do aplicativo de campo.
+     *
+     * Este arquivo é o que as duas lojas leem. Cada bloco abaixo corresponde a
+     * uma pergunta que a Google ou a Apple faz na revisão, e a resposta está aqui
+     * em vez de num campo de formulário que alguém preenche na pressa.
+     *
+     * **Distribuição.** O aplicativo é de uso interno do agente de campo, não do
+     * cidadão. Na Apple isso significa uma escolha explícita entre a App Store
+     * pública e o Apple Business Manager (distribuição privada, sem loja aberta);
+     * na Google, entre publicação aberta e teste fechado ou interno. A decisão é
+     * comercial e está registrada em LOJAS.md, não aqui.
+     *
+     * **Permissões.** Câmera e localização precisam de texto de justificativa em
+     * português, e a Apple recusa binário sem eles. Os textos abaixo dizem o que
+     * o aplicativo faz com cada permissão, e não "para melhorar sua experiência".
+     */
+    
+    /** Versão do que o usuário vê. Muda quando a funcionalidade muda. */
+    const VERSAO = "0.1.0";
+    
+    /**
+     * Os textos de permissão do iOS ficam AQUI, num lugar só, e são passados às
+     * opções dos plugins.
+     *
+     * O motivo é um defeito real que estava neste arquivo. `createPermissionsPlugin`
+     * do `@expo/config-plugins` resolve cada chave como
+     * `opção do plugin || ios.infoPlist || texto padrão em inglês`, então a opção do
+     * plugin SEMPRE ganha de `ios.infoPlist`. O texto longo de câmera escrito em
+     * `ios.infoPlist` nunca chegava ao binário: o que ia era a frase curta passada
+     * ao `expo-camera`. Com uma constante só, os dois lados não têm como divergir.
+     *
+     * A régua destes textos: dizem O QUE o aplicativo faz com a permissão, para que
+     * serve o dado e para onde ele vai. Nada de "para melhorar sua experiência", que
+     * a Apple recusa, e nada que o código não faça, que é declaração falsa.
+     */
+    const TEXTO_CAMERA =
+      "O aplicativo usa a câmera para fotografar o imóvel durante a vistoria "
+      + "técnica, e, se você quiser, para a sua foto de perfil. As fotos de vistoria "
+      + "ficam guardadas neste aparelho e são enviadas à Defesa Civil do município "
+      + "quando houver sinal.";
+    
+    /**
+     * A galeria, e o que o texto promete: UMA foto, escolhida por você.
+     *
+     * O seletor de foto abre fora do processo do aplicativo nas duas plataformas
+     * (Photo Picker no Android, o seletor do sistema no iOS), e só a imagem tocada
+     * chega aqui. O aplicativo nunca pede a permissão de biblioteca inteira: ver
+     * `src/dados/foto-do-agente.ts`. O texto existe porque a Apple exige a chave
+     * no binário quando o seletor é usado, e ele diz exatamente o que acontece.
+     */
+    const TEXTO_GALERIA =
+      "O aplicativo abre a galeria só quando você escolhe uma foto de perfil, e "
+      + "recebe apenas a imagem escolhida, recortada e reduzida. Ela aparece ao lado "
+      + "do seu nome para a sua equipe e a coordenação, e você pode trocá-la ou "
+      + "removê-la quando quiser.";
+    
+    /*
+      Duas leituras, e as duas nomeadas: o GPS é ligado só no toque da vistoria;
+      a lista e o mapa usam a última posição que o aparelho já tinha, sem ligar o
+      rádio, para ordenar as tarefas e traçar o caminho quando o agente pede. A
+      frase acompanha `docs/DECLARACAO-NAS-LOJAS.md` 1.1 e 1.4.
+    */
+    const TEXTO_LOCALIZACAO =
+      "O aplicativo lê a coordenada do local no momento em que o agente registra a "
+      + "vistoria, para que o laudo técnico prove onde ela foi feita, e usa a última "
+      + "posição conhecida do aparelho para ordenar as tarefas por distância e, se o "
+      + "agente pedir, traçar o caminho. Tudo com o aplicativo aberto, e nunca em "
+      + "segundo plano.";
+    
+    /**
+     * Contador de build, exigido pelas duas lojas e independente da versão.
+     *
+     * Sobe a cada envio, mesmo que a versão não mude, porque as lojas recusam
+     * receber duas vezes o mesmo número. O EAS pode cuidar disso sozinho
+     * (`autoIncrement` em eas.json), e é assim que está configurado.
+     */
+    const BUILD = 1;
+    
+    /**
+     * A CHAVE DO GOOGLE MAPS QUE VAI DENTRO DO BINÁRIO, e por que ela precisa
+     * estar aqui apesar de existir `GET /configuracao`.
+     *
+     * O painel resolveu isto em tempo de execução, e por uma razão de conta a
+     * pagar que está escrita em `apps/web/src/paginas/mapa-de-base.ts`: lá é UM
+     * build estático servindo TODAS as prefeituras, então a chave assada seria a
+     * do fornecedor pagando o mapa de todo mundo. Aqui a razão não se transporta,
+     * e a diferença é técnica antes de ser comercial:
+     *
+     * 1. O SDK NATIVO NÃO ACEITA CHAVE EM TEMPO DE EXECUÇÃO. No Android ela é
+     *    `com.google.android.geo.API_KEY` no manifesto; no iOS ela vira
+     *    `GMSServices.provideAPIKey(...)` dentro do AppDelegate. As duas são
+     *    escritas pelo plugin do `react-native-maps` durante o `prebuild`, e não
+     *    existe chamada de JavaScript que as substitua depois.
+     * 2. NO iOS ELA DECIDE ATÉ SE O SDK ENTRA NO BINÁRIO. Sem `iosGoogleMapsApiKey`
+     *    o plugin não acrescenta o pod `react-native-maps/Google` ao Podfile, e aí
+     *    `PROVIDER_GOOGLE` cai em silêncio no Apple Maps: a tela abre, desenha um
+     *    mapa bonito, ignora o nosso estilo, e ninguém recebe erro nenhum. É o
+     *    pior desfecho possível, porque parece certo.
+     * 3. ESTE BINÁRIO JÁ É POR MUNICÍPIO. `DC360_API_URL`, logo abaixo em `extra`,
+     *    também é de tempo de build, com o comentário dizendo que "muda entre a
+     *    prefeitura A e a prefeitura B". Um aplicativo compilado para apontar para
+     *    o servidor de um município só não é o build único do painel.
+     *
+     * O QUE CONTINUA VINDO DA API, e é o que o município controla: a AUTORIZAÇÃO.
+     * `GET /configuracao` responde `chaveDoMapa`, e vazia quer dizer que aquele
+     * município não aceita mandar coordenada para o Google. O aplicativo então
+     * desenha o plano esquemático e não monta mapa nenhum, exatamente como
+     * `docs/SUBPROCESSADORES.md` seção 2.2 promete. Ver `src/dados/mapa.ts`.
+     *
+     * Sem valor padrão, pelo mesmo motivo de `DC360_API_URL`: binário que sai da
+     * fábrica gastando a chave de alguém é acidente esperando acontecer. Sem a
+     * variável, o aplicativo compila sem o SDK do Google e trabalha no plano
+     * esquemático, que é um modo inteiro e não uma degradação.
+     *
+     * Ela NÃO é segredo, e chamar de segredo seria teatro: chave de mapa viaja
+     * dentro do APK e do IPA e sai de lá com um descompactador. Quem protege a
+     * conta é a restrição da chave no console do Google (identificador do
+     * aplicativo mais impressão digital do certificado, no Android; identificador
+     * do pacote, no iOS), nunca o sigilo.
+     */
+    const CHAVE_DO_MAPA = process.env["DC360_MAPS_CHAVE"]?.trim() ?? "";
+    
+    /**
+     * UMA CHAVE POR PLATAFORMA, e por que não dá para ser uma só.
+     *
+     * No console do Google, "Restrições do aplicativo" é botão de rádio e não
+     * caixa de seleção: a chave é restrita a Apps iOS OU a Apps Android, nunca às
+     * duas. Com uma variável só, a escolha real era entre publicar uma chave SEM
+     * restrição nenhuma, que qualquer um gasta no cartão de quem publicou, e
+     * deixar uma plataforma sem mapa em silêncio.
+     *
+     * `DC360_MAPS_CHAVE` continua valendo como reserva das duas, e isso não é
+     * enfeite: é o que faz a máquina que já estava configurada continuar
+     * compilando igual depois desta mudança.
+     */
+    const CHAVE_DO_MAPA_IOS = process.env["DC360_MAPS_CHAVE_IOS"]?.trim() || CHAVE_DO_MAPA;
+    const CHAVE_DO_MAPA_ANDROID = process.env["DC360_MAPS_CHAVE_ANDROID"]?.trim() || CHAVE_DO_MAPA;
+    
+    /**
+     * Se este build é o de LOJA, e portanto fala com a APNs de produção.
+     *
+     * `EAS_BUILD_PROFILE` é posto pelo próprio EAS durante o build, então o
+     * perfil `producao` de `eas.json` responde por isto sem ninguém precisar
+     * lembrar. Fora do EAS (Xcode local, `expo run:ios`) a variável não existe e
+     * o binário é de desenvolvimento, que fala com o sandbox.
+     *
+     * UMA constante, lida em DOIS lugares: o `mode` do `expo-notifications`
+     * (que escreve o `aps-environment` no binário) e o `extra.pushAmbiente` (que
+     * o aplicativo manda ao servidor no registro do aparelho). É a mesma
+     * expressão de propósito: se fossem duas, o dia em que uma mudasse sem a
+     * outra produziria um binário dizendo ao servidor que fala com um ambiente e
+     * assinado para o outro, e o varredor revogaria o aparelho de quem está em
+     * campo, sem erro em lugar nenhum.
+     */
+    const PERFIL_DE_PRODUCAO = process.env["EAS_BUILD_PROFILE"] === "producao";
+    
+    /**
+     * A TELA DE ABERTURA, agora com os dois temas.
+     *
+     * O defeito, visto no aparelho: `backgroundColor` era `#101519` e mais nada.
+     * Quem usa o telefone em modo claro, que é a maioria de quem trabalha na rua
+     * com sol na tela, abria o aplicativo e via meio segundo de tela quase preta
+     * antes de a interface clara aparecer. Não é detalhe de gosto: abertura que
+     * não combina com o que vem depois parece defeito de carregamento, e é a
+     * primeira coisa que o aplicativo mostra.
+     *
+     * Ele ficou mais visível depois que a abertura passou a segurar também o
+     * carregamento das fontes (ver `src/app/_layout.tsx`): a tela que piscava
+     * agora fica de pé o tempo suficiente para ser lida.
+     *
+     * As cores são as MESMAS de `src/ui/tokens.ts` (`temaClaro.fundo` é
+     * `tinta.t50`, `temaEscuro.fundo` é `tinta.t950`), escritas aqui porque este
+     * arquivo é lido pelo Expo antes de qualquer TypeScript nosso e não pode
+     * importar o módulo de tokens. É a mesma razão já registrada no
+     * `defaultChannel` do `expo-notifications`, mais abaixo.
+     *
+     * E as duas artes vêm SEM fundo, com o desenho recortado no conteúdo. A arte
+     * antiga era uma tela inteira com o fundo escuro pintado dentro dela, o que
+     * teria desenhado um retângulo escuro por cima do fundo claro declarado aqui,
+     * e ainda encolhia o emblema a uns 40 pontos porque `imageWidth` vale para a
+     * imagem toda. Ver `scripts/gerar-icones.mjs`.
+     */
+    const ABERTURA = {
+      imagemClara: "./assets/splash.png",
+      imagemEscura: "./assets/splash-escuro.png",
+      fundoClaro: "#F5F7F8",
+      fundoEscuro: "#101519",
+      /** Largura do emblema em pontos, agora que a arte é só o emblema. */
+      larguraDaImagem: 180,
+    } as const;
+    
+    const config: ExpoConfig = {
+      name: "Defesa Civil 360",
+      slug: "dc360-campo",
+      scheme: "dc360",
+      version: VERSAO,
+      orientation: "portrait",
+      userInterfaceStyle: "automatic",
+      primaryColor: "#5B21B6",
+    
+      icon: "./assets/icone.png",
+      /*
+        Quem manda na abertura NATIVA é o plugin `expo-splash-screen`, lá embaixo.
+        Este bloco é o campo legado, que sobrevive no manifesto e em ferramenta que
+        lê a configuração sem rodar plugin. Os dois saem da mesma constante de
+        propósito: enquanto existirem dois lugares dizendo a mesma coisa, eles
+        precisam dizer a MESMA coisa, senão um deles envelhece em silêncio e o
+        defeito só aparece no aparelho de alguém.
+      */
+      splash: {
+        image: ABERTURA.imagemClara,
+        resizeMode: "contain",
+        backgroundColor: ABERTURA.fundoClaro,
+        dark: {
+          image: ABERTURA.imagemEscura,
+          backgroundColor: ABERTURA.fundoEscuro,
+        },
+      },
+    
+      assetBundlePatterns: ["**/*"],
+    
+      ios: {
+        // Identificador definitivo. Trocar depois de publicar significa outro
+        // aplicativo na loja, sem herdar avaliações nem instalações.
+        bundleIdentifier: "com.solerte.dc360.campo",
+        buildNumber: String(BUILD),
+        supportsTablet: true,
+        // O agente trabalha na rua, quase sempre em pé, com uma mão. Deitado não
+        // acrescenta nada e complica a captura de assinatura.
+        requireFullScreen: false,
+        infoPlist: {
+          /*
+            Os textos de câmera e de localização NÃO ficam aqui: ficam nas opções
+            dos plugins, porque é a opção do plugin que ganha na hora de escrever o
+            Info.plist. Ver o comentário de `TEXTO_CAMERA` no topo.
+    
+            `NSPhotoLibraryAddUsageDescription` foi REMOVIDO. Ele prometia salvar a
+            foto da vistoria na galeria do aparelho, e o aplicativo não faz isso:
+            `expo-camera` devolve um caminho no cache e `evidencia-no-disco.ts`
+            copia o arquivo para o diretório privado do aplicativo
+            (`Paths.document`). Não existe `expo-media-library` no projeto e nada
+            escreve na galeria. Chave de permissão para coisa que o aplicativo não
+            faz é declaração falsa na revisão, e a Apple pergunta onde está o
+            recurso que a justifica.
+          */
+          /*
+            Sem exceção de transporte: tudo trafega por https.
+    
+            A única folga é para desenvolvimento em rede local, e ela precisa ser
+            pedida de propósito (DC360_DEV_LOCAL=1). Serve para o caso de instalar
+            o aplicativo num aparelho pelo cabo e falar com a API rodando no Mac,
+            que atende em http num endereço 10.x ou 192.168.x. Sem isso a tela de
+            entrada gira e não explica, porque o sistema corta a conexão antes de
+            ela sair do aparelho.
+    
+            NSAllowsLocalNetworking libera SOMENTE nome .local e IP de faixa
+            privada. Endereço público continua exigindo https, então um build
+            gerado com esta folga ligada por engano não passa a aceitar servidor
+            qualquer na internet. Ainda assim, build de loja sai sem a variável.
+          */
+          NSAppTransportSecurity: {
+            NSAllowsArbitraryLoads: false,
+            ...(process.env["DC360_DEV_LOCAL"] === "1"
+              ? { NSAllowsLocalNetworking: true }
+              : {}),
+          },
+          ITSAppUsesNonExemptEncryption: false,
+        },
+        /*
+          Os direitos (entitlements) do binário. `aps-environment` NÃO está aqui:
+          quem o escreve é o plugin do `expo-notifications`, a partir do `mode`
+          mais abaixo, e `scripts/entitlements-do-ios.test.mjs` confere o projeto
+          gerado.
+    
+          `com.apple.developer.usernotifications.time-sensitive` é o direito que
+          a Apple exige para o `interruption-level: time-sensitive` que o servidor
+          manda no despacho (`apps/api/src/push/apns.ts`) e que o aviso local usa
+          (`src/push/PortaExpo.ts`). Sem ele o iOS rebaixa a notificação para
+          `active` EM SILÊNCIO: o servidor manda, a Apple entrega, e o Foco do
+          agente no plantão noturno engole o despacho. É o mesmo direito que o
+          Xcode chama de "Time Sensitive Notifications", e ele não pede aprovação
+          caso a caso da Apple (diferente do alerta crítico, que pede e fura o
+          modo silencioso; esse continua fora, ver `pedirPermissao` em
+          `src/push/PortaExpo.ts`).
+    
+          Entrou em 15/09/2026 com o som de despacho. Como todo direito, só chega
+          ao aparelho depois de `npx expo prebuild` e uma compilação nova.
+    
+          DESLIGADO POR PADRÃO, e o motivo é de conta, não de código. O direito
+          só entra no binário se o PERFIL de provisionamento o incluir, e o perfil
+          só o inclui depois que a capacidade "Time Sensitive Notifications" é
+          ligada no App ID `com.solerte.dc360.campo`, no portal da Apple, pela
+          conta do dono. Sem isso a compilação PARA com "Provisioning profile
+          doesn't include the Time Sensitive Notifications capability" (aconteceu
+          em 15/09/2026, e sem conta da Apple na máquina o `xcodebuild` não
+          regenera o perfil). Sem o direito nada quebra: o iOS entrega o despacho
+          como `active`, com o som e a vibração; só o Foco não é atravessado.
+    
+          Para ligar: capacidade no portal, `DC360_TIME_SENSITIVE=sim` no `.env`,
+          `npx expo prebuild --platform ios --clean`, compilar.
+        */
+        entitlements: {
+          ...(process.env["DC360_TIME_SENSITIVE"] === "sim"
+            ? { "com.apple.developer.usernotifications.time-sensitive": true }
+            : {}),
+        },
+      },
+    
+      android: {
+        package: "com.solerte.dc360.campo",
+    
+        /*
+          Arquivo do Firebase, exigido pelo FCM para a notificação chegar no
+          Android. Projeto `defesa-civil-360`, criado em 09/09/2026.
+    
+          Fica rastreado no git de propósito: o EAS constrói a partir do
+          repositório, e arquivo ignorado não chega no worker. Ele não é segredo,
+          todo o conteúdo sai de um APK publicado com um descompactador. Ver a
+          justificativa inteira em `.gitignore`.
+        */
+        googleServicesFile: "./google-services.json",
+        versionCode: BUILD,
+        adaptiveIcon: {
+          foregroundImage: "./assets/icone-adaptativo.png",
+          backgroundColor: "#101519",
+        },
+        /*
+          Lista curta. Toda permissão a mais é uma pergunta a mais na revisão da
+          Play Store e uma razão a mais para o servidor público desconfiar. Não
+          pedimos contatos, telefone nem localização em segundo plano.
+    
+          ESTA LISTA NÃO É O MANIFESTO INTEIRO, e a diferença já enganou este
+          arquivo uma vez. O manifesto final é a soma desta lista com o que cada
+          biblioteca declara sozinha, e o que sobra depois de `blockedPermissions`.
+          O manifesto que o aparelho recebe pede também:
+    
+          - `POST_NOTIFICATIONS` e `RECEIVE_BOOT_COMPLETED`, do `expo-notifications`
+            (`node_modules/expo-notifications/android/src/main/AndroidManifest.xml`);
+          - `VIBRATE`, do modelo base do Expo, e ela é usada pelo canal de urgência.
+    
+          O conjunto conferido, e a maneira de conferir de novo depois de mexer
+          aqui: `npx expo config --type introspect`, com a pasta `android/` ausente.
+          A declaração das lojas fica em `../../docs/DECLARACAO-NAS-LOJAS.md`.
+        */
+        permissions: [
+          "android.permission.CAMERA",
+          "android.permission.ACCESS_FINE_LOCATION",
+          "android.permission.ACCESS_COARSE_LOCATION",
+          "android.permission.INTERNET",
+          "android.permission.ACCESS_NETWORK_STATE",
+        ],
+        blockedPermissions: [
+          // O expo-camera pede gravação de áudio por padrão. O aplicativo não
+          // grava som, e pedir microfone num app de vistoria é o tipo de coisa
+          // que trava uma revisão.
+          "android.permission.RECORD_AUDIO",
+          /*
+            Armazenamento externo, pedido pelo `expo-file-system`, e que este
+            aplicativo não usa.
+    
+            O plugin dele acrescenta as duas por conta própria (ver
+            `node_modules/expo-file-system/plugin/build/withFileSystem.js` e o
+            `AndroidManifest.xml` da própria biblioteca, onde elas vêm com
+            `maxSdkVersion="32"`). Sem estas linhas, o manifesto final pedia leitura
+            e escrita no armazenamento compartilhado, e a ficha da Play Store
+            mostrava isso para quem fosse instalar, embora o comentário logo acima
+            prometesse o contrário.
+    
+            A prova de que não são necessárias: tudo o que este aplicativo grava vai
+            para o diretório PRIVADO dele (`Paths.document`, em
+            `dados/evidencia-no-disco.ts` e em `ui/Assinatura.tsx`) ou para o banco
+            local do `expo-sqlite`. Diretório privado de aplicativo nunca exigiu
+            permissão de armazenamento, em nenhuma versão do Android.
+          */
+          "android.permission.READ_EXTERNAL_STORAGE",
+          "android.permission.WRITE_EXTERNAL_STORAGE",
+          /*
+            "Aparecer sobre outros aplicativos", que vem do modelo de projeto do
+            próprio Expo (o manifesto base em
+            `@expo/config-plugins/build/plugins/withAndroidBaseMods.js` a traz sob
+            um comentário que diz "OPTIONAL PERMISSIONS, REMOVE WHATEVER YOU DO NOT
+            NEED"). Nenhuma tela deste aplicativo desenha por cima de outro, e esta
+            é uma das permissões especiais que a Play Store destaca na ficha e
+            questiona na revisão.
+    
+            `android.permission.VIBRATE`, que vem do mesmo modelo, FICA: o canal de
+            urgência vibra de propósito (`vibrationPattern` em `push/PortaExpo.ts`),
+            e é o que faz o aviso de severidade crítica ser percebido com o telefone
+            no bolso, na chuva.
+          */
+          "android.permission.SYSTEM_ALERT_WINDOW",
+        ],
+        // Backup automático do Android copiaria o banco local, com vistoria ainda
+        // não sincronizada, para a conta Google do agente.
+        allowBackup: false,
+      },
+    
+      /*
+        OS PLUGINS DE CONFIGURAÇÃO, e o que NÃO está aqui.
+    
+        A lista traz só os módulos nativos que precisam escrever no manifesto do
+        Android ou no Info.plist do iOS. `expo-clipboard`, que entrou com a escolha
+        de mapa da tela de vistoria ("copiar a coordenada"), fica DE FORA de
+        propósito: ele não tem `app.plugin.js` (confira em
+        `node_modules/expo-clipboard/`), não pede permissão em nenhuma das duas
+        plataformas, e o autolinking do Expo o encontra sozinho pelo
+        `expo-module.config.json`. Uma entrada aqui para ele seria uma linha que o
+        Expo tentaria carregar e não acharia.
+    
+        O que ele EXIGE, e isso não é configuração: compilação nativa nova
+        (`npx expo prebuild` mais um build), porque é módulo nativo e o binário que
+        já está no aparelho não o contém.
+    
+        `expo-blur`, que entrou com o menu de vidro (`src/ui/BarraDeAbas.tsx`),
+        está na MESMA situação: não tem `app.plugin.js` (confira em
+        `node_modules/expo-blur/`), não pede permissão nenhuma, e o autolinking o
+        encontra pelo `expo-module.config.json`. Também é módulo nativo, também
+        exige `prebuild` e compilação nova, e o portão de `entitlements` precisa
+        rodar DEPOIS do prebuild, pela razão escrita em `PENDENCIAS.md` (item 8).
+      */
+      plugins: [
+        "expo-router",
+        [
+          "expo-secure-store",
+          {
+            /*
+              Sem texto de Face ID, porque o aplicativo não usa Face ID.
+    
+              O plugin escreve `NSFaceIDUsageDescription` com um texto padrão em
+              inglês quando ninguém diz nada, e ele aparecia no Info.plist gerado:
+              "Allow $(PRODUCT_NAME) to access your Face ID biometric data." Isso é
+              duas coisas ruins de uma vez: está em inglês numa ficha em português,
+              e promete leitura de biometria que não existe. O cofre é usado com
+              `keychainAccessible` apenas (ver `dados/sessao.tsx` e
+              `push/ficha-do-aparelho.ts`), nunca com `requireAuthentication`, então
+              o sistema jamais pede Face ID por nossa causa.
+    
+              `false` REMOVE a chave do Info.plist. Ver `applyPermissions` em
+              `@expo/config-plugins`.
+            */
+            faceIDPermission: false,
+          },
+        ],
+        "expo-sqlite",
+        [
+          "expo-camera",
+          {
+            cameraPermission: TEXTO_CAMERA,
+            recordAudioAndroid: false,
+            /*
+              Sem texto de microfone, porque o aplicativo não grava som.
+    
+              No Android isso já estava resolvido (`recordAudioAndroid: false` mais
+              `blockedPermissions`), mas no iOS o plugin continuava escrevendo
+              `NSMicrophoneUsageDescription` com o padrão em inglês. O revisor da
+              Apple lê a lista de permissões do binário: microfone declarado num
+              aplicativo de vistoria é pergunta certa na revisão, e a resposta
+              honesta é que ele não deveria estar ali.
+            */
+            microphonePermission: false,
+          },
+        ],
+        [
+          "expo-image-picker",
+          {
+            /*
+              A foto de perfil do agente (câmera da frente ou galeria). O texto da
+              câmera é o MESMO de `expo-camera`, de propósito: o Info.plist tem uma
+              chave só para a câmera, e dois plugins escrevendo textos diferentes
+              nela deixariam o último a rodar decidir o que a Apple lê.
+    
+              Sem microfone, pelo mesmo motivo do `expo-camera`: o aplicativo não
+              grava som, e `false` bloqueia a permissão no Android e apaga a chave
+              no iOS.
+            */
+            photosPermission: TEXTO_GALERIA,
+            cameraPermission: TEXTO_CAMERA,
+            microphonePermission: false,
+          },
+        ],
+        [
+          "expo-location",
+          {
+            locationWhenInUsePermission: TEXTO_LOCALIZACAO,
+            /*
+              As três chaves abaixo saem do Info.plist, e essa é a correção mais
+              importante deste arquivo.
+    
+              O aplicativo chama `requestForegroundPermissionsAsync` e nada mais
+              (`src/app/(agente)/vistoria/[id].tsx`, na função `capturarGps`). Ele
+              nunca pede autorização permanente e não tem nenhuma tarefa em segundo
+              plano. Mesmo assim o plugin escrevia as duas chaves de "Always" e a de
+              movimento, uma delas com o texto padrão em inglês.
+    
+              O custo disso não é cosmético. Chave de "Always" no binário é o que
+              faz a Apple tratar o aplicativo como candidato a localização em
+              segundo plano e o que faz o sistema oferecer "Sempre" na caixa de
+              permissão, e a Google pede vídeo demonstrando o uso de quem declara
+              segundo plano. Declarar o que não se usa é justamente a divergência
+              entre o binário e o formulário que derruba submissão.
+    
+              `NSMotionUsageDescription` sai pelo mesmo motivo: nenhum código lê
+              sensor de movimento.
+            */
+            locationAlwaysAndWhenInUsePermission: false,
+            locationAlwaysPermission: false,
+            motionUsagePermission: false,
+            isAndroidBackgroundLocationEnabled: false,
+          },
+        ],
+        [
+          "expo-splash-screen",
+          {
+            image: ABERTURA.imagemClara,
+            backgroundColor: ABERTURA.fundoClaro,
+            imageWidth: ABERTURA.larguraDaImagem,
+            /*
+              O bloco do tema escuro. Sem ele, `backgroundColor` vale para os dois
+              e a abertura fica presa num modo só, que era exatamente o defeito:
+              antes ela era escura sempre, agora seria clara sempre, o que é a
+              mesma falha com a cor trocada.
+    
+              O aplicativo declara `userInterfaceStyle: "automatic"`, então o
+              sistema escolhe qual dos dois mostrar, e a abertura passa a combinar
+              com a primeira tela que vem depois dela.
+            */
+            dark: {
+              image: ABERTURA.imagemEscura,
+              backgroundColor: ABERTURA.fundoEscuro,
+            },
+          },
+        ],
+        [
+          "expo-notifications",
+          {
+            /*
+              A cor do aviso na bandeja do Android. Mesma violeta da marca, e ela
+              NÃO comunica severidade: quem faz isso é o canal (som ou silêncio) e o
+              texto. A regra da casa vale aqui igual, e cor de marca nunca diz risco.
+            */
+            color: "#5B21B6",
+    
+            /*
+              O canal em que cai o aviso que chega SEM `channelId` no dado da
+              mensagem, e a escolha do silencioso é deliberada.
+    
+              O Android roteia por `data["channelId"]`; enquanto o servidor não o
+              enviar, tudo cai neste padrão. Das duas maneiras de errar, esta é a
+              barata: um aviso que espera o agente abrir o aplicativo custa atraso,
+              e um aviso de severidade baixa tocando às três da manhã custa o
+              aplicativo inteiro silenciado nos ajustes, para sempre, inclusive o de
+              severidade crítica. O raciocínio completo está em `src/push/canais.ts`.
+    
+              O valor é cópia literal de `CANAL_COMUM`, e existe teste que reprova
+              se os dois divergirem: este arquivo é lido pelo Expo antes de qualquer
+              TypeScript nosso, então importar a constante daqui não é possível.
+            */
+            defaultChannel: "dc360.comum.v1",
+    
+            /*
+              O SOM DE DESPACHO, o "som característico" do pedido de 15/09/2026.
+    
+              O plugin copia cada arquivo daqui para os dois projetos nativos no
+              `prebuild`: `ios/<projeto>/despacho.wav`, adicionado ao Xcode como
+              recurso, e `android/app/src/main/res/raw/despacho.wav`. É isso que
+              faz `aps.sound = "despacho.wav"` (servidor) e `sound: "despacho.wav"`
+              no canal de despacho (`src/push/canais.ts`) encontrarem o arquivo. Sem
+              esta linha os dois caem no som padrão do sistema, sem erro nenhum.
+    
+              O arquivo é gerado, não gravado: `scripts/gerar-som-de-despacho.mjs`
+              na raiz do `dc360`, com portão que confere formato, duração e que o
+              arquivo versionado é o que o roteiro produz. PCM 16 bits, 44,1 kHz,
+              mono, 1,2 s: o que o iOS aceita como som de notificação e o que o
+              Android aceita em `res/raw`.
+    
+              O nome do arquivo precisa ser nome válido de recurso do Android
+              (minúsculas, sem hífen): o plugin reprova no `prebuild` se não for.
+            */
+            sounds: ["./assets/sons/despacho.wav"],
+    
+            /*
+              O `aps-environment` do iOS, decidido pelo perfil do build e não à mão.
+    
+              Escrito à mão, ele erra na direção que não avisa: um binário de loja
+              assinado com `development` é aceito pela App Store, instala, registra
+              a ficha, e simplesmente nunca recebe notificação nenhuma, porque a
+              ficha é de um ambiente e o servidor fala com o outro. Ninguém descobre
+              pelo aplicativo: o agente conclui que o produto não avisa.
+    
+              `EAS_BUILD_PROFILE` é posto pelo próprio EAS durante o build, então o
+              perfil `producao` de `eas.json` já responde por isto sem ninguém
+              precisar lembrar.
+            */
+            mode: PERFIL_DE_PRODUCAO ? "production" : "development",
+          },
+        ],
+        [
+          "react-native-maps",
+          {
+            /*
+              As duas chaves saem da MESMA constante, e passar `undefined` é o
+              caminho deliberado de quem não tem chave: o plugin remove a
+              `meta-data` do manifesto do Android e deixa o pod do Google fora do
+              Podfile do iOS, em vez de escrever uma string vazia que o SDK tentaria
+              usar e recusaria na primeira renderização.
+    
+              `|| undefined` e não `?? undefined`: string vazia precisa cair no
+              mesmo caminho de "não tem", senão `DC360_MAPS_CHAVE=` no ambiente
+              produziria um binário que declara chave e não tem nenhuma.
+            */
+            androidGoogleMapsApiKey: CHAVE_DO_MAPA_ANDROID || undefined,
+            iosGoogleMapsApiKey: CHAVE_DO_MAPA_IOS || undefined,
+          },
+        ],
+      ],
+    
+      experiments: { typedRoutes: true },
+    
+      extra: {
+        /*
+          Endereço da API, por ambiente de build. Fica em `extra` e não numa
+          constante no código porque muda entre a prefeitura A e a prefeitura B, e
+          trocar endereço não pode exigir recompilar à mão.
+    
+          Sem valor padrão de produção de propósito: um binário que sai da fábrica
+          apontando para o servidor de alguém é acidente esperando acontecer.
+        */
+        apiUrl: process.env["DC360_API_URL"] ?? "http://localhost:3333",
+        /*
+          Com qual APNs ESTE binário fala, no vocabulário do servidor
+          (`APNS_AMBIENTE`: `producao` | `teste`). O aplicativo manda isto no
+          registro do aparelho (`src/push/registro.ts`), e o servidor guarda por
+          aparelho (migração 044) para rotear cada ficha para a APNs certa. Sai
+          da MESMA constante que decide o `aps-environment` no plugin acima, e é
+          isso que impede os dois de divergirem: um binário que dissesse "sou de
+          produção" com ficha do sandbox seria revogado pelo varredor na primeira
+          rodada, sem erro em lugar nenhum.
+        */
+        pushAmbiente: PERFIL_DE_PRODUCAO ? "producao" : "teste",
+        /*
+          A MESMA chave, repetida aqui para o JavaScript conseguir PERGUNTAR se ela
+          existe. Não é duplicação por descuido: é a única forma de o aplicativo
+          saber, em tempo de execução, se o binário em que ele está rodando tem o
+          SDK do Google dentro.
+    
+          Sem isto, o caso descrito no comentário de `CHAVE_DO_MAPA` acontece
+          calado: binário compilado sem chave, município com chave configurada no
+          servidor, `PROVIDER_GOOGLE` caindo no Apple Maps no iOS e em quadrado
+          cinza no Android, e nenhuma parte do produto sabendo que aconteceu.
+          `src/dados/mapa.ts` lê este campo e recusa o modo Google quando ele está
+          vazio, desenhando o plano esquemático e DIZENDO por quê.
+    
+          Repetir o valor não expõe nada que o binário já não exponha: ela está no
+          Info.plist e no AndroidManifest, que qualquer descompactador lê.
+        */
+        /*
+          As DUAS chaves, e quem escolhe é o aparelho.
+    
+          `extra` é um objeto só, assado no manifesto e lido pelas duas
+          plataformas, então mandar uma string aqui obrigaria o iPhone a acreditar
+          na chave do Android. `escolherChaveDoBuild`, em `src/dados/mapa.ts`, lê
+          `Platform.OS` e responde a que vale, e continua entendendo o formato
+          antigo de string para não cegar aplicativo já instalado.
+        */
+        mapaChaveDoBuild: { ios: CHAVE_DO_MAPA_IOS, android: CHAVE_DO_MAPA_ANDROID },
+        eas: { projectId: process.env["EAS_PROJECT_ID"] ?? "" },
+      },
+    };
+    
+    export default config;
+    
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Projetos/city-hall/dc360/scripts/entitlements-do-ios.test.mjs:75:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: o entitlements gerado concorda com DC360_TIME_SENSITIVE sobre o direito sensível ao tempo
+ok 38 - o entitlements gerado concorda com DC360_TIME_SENSITIVE sobre o direito sensível ao tempo # SKIP sem projeto iOS gerado
+  ---
+  duration_ms: 0.1876
+  type: 'test'
+  ...
+# Subtest: o som de despacho foi copiado para o projeto iOS
+ok 39 - o som de despacho foi copiado para o projeto iOS # SKIP sem pasta ios/ nesta máquina
+  ---
+  duration_ms: 0.244
+  type: 'test'
+  ...
+# Subtest: o app.config.ts pede o direito atrás da variável, e declara o som
+ok 40 - o app.config.ts pede o direito atrás da variável, e declara o som
+  ---
+  duration_ms: 0.7774
+  type: 'test'
+  ...
+# Subtest: cada .woff do repositorio e exatamente o que o roteiro gera dos .ttf do aplicativo
+ok 41 - cada .woff do repositorio e exatamente o que o roteiro gera dos .ttf do aplicativo
+  ---
+  duration_ms: 57.4763
+  type: 'test'
+  ...
+# Subtest: a licenca OFL acompanha as fontes, igual a de origem
+ok 42 - a licenca OFL acompanha as fontes, igual a de origem
+  ---
+  duration_ms: 29.3515
+  type: 'test'
+  ...
+# Subtest: o WOFF e o TTF tabela a tabela, e o cabecalho diz a verdade sobre os tamanhos
+ok 43 - o WOFF e o TTF tabela a tabela, e o cabecalho diz a verdade sobre os tamanhos
+  ---
+  duration_ms: 68.8297
+  type: 'test'
+  ...
+# Subtest: o tokens.css do painel declara exatamente as faces geradas, e nenhuma outra
+ok 44 - o tokens.css do painel declara exatamente as faces geradas, e nenhuma outra
+  ---
+  duration_ms: 1.9207
+  type: 'test'
+  ...
+# Subtest: o codificador e determinista: duas passadas, os mesmos bytes
+ok 45 - o codificador e determinista: duas passadas, os mesmos bytes
+  ---
+  duration_ms: 34.4407
+  type: 'test'
+  ...
+# Subtest: senha com caractere que parte a URL continua chegando inteira
+ok 46 - senha com caractere que parte a URL continua chegando inteira
+  ---
+  duration_ms: 1.6978
+  type: 'test'
+  ...
+# Subtest: senha comum passa sem enfeite
+ok 47 - senha comum passa sem enfeite
+  ---
+  duration_ms: 0.3376
+  type: 'test'
+  ...
+# Subtest: migra com o papel de setup, nunca com o da aplicação
+ok 48 - migra com o papel de setup, nunca com o da aplicação
+  ---
+  duration_ms: 15.8067
+  type: 'test'
+  ...
+# Subtest: a URL exige verificação do certificado, e diz isso por escrito
+ok 49 - a URL exige verificação do certificado, e diz isso por escrito
+  ---
+  duration_ms: 0.4414
+  type: 'test'
+  ...
+# Subtest: vai pelo pooler, porque a conexão direta não tem IPv4
+ok 50 - vai pelo pooler, porque a conexão direta não tem IPv4
+  ---
+  duration_ms: 0.3812
+  type: 'test'
+  ...
+# Subtest: em modo SESSÃO (5432), e nunca em modo transação (6543)
+ok 51 - em modo SESSÃO (5432), e nunca em modo transação (6543)
+  ---
+  duration_ms: 2.5527
+  type: 'test'
+  ...
+# Subtest: o nome do cofre e da conta são os mesmos que a mensagem de ajuda ensina
+ok 52 - o nome do cofre e da conta são os mesmos que a mensagem de ajuda ensina
+  ---
+  duration_ms: 1.876
+  type: 'test'
+  ...
+# Subtest: a varredura enxerga os dois canais de verdade
+ok 53 - a varredura enxerga os dois canais de verdade
+  ---
+  duration_ms: 43.8834
+  type: 'test'
+  ...
+# Subtest: o painel não desenha severidade com forma própria
+ok 54 - o painel não desenha severidade com forma própria
+  ---
+  duration_ms: 92.644
+  type: 'test'
+  ...
+# Subtest: o aplicativo não desenha severidade com forma própria
+ok 55 - o aplicativo não desenha severidade com forma própria
+  ---
+  duration_ms: 112.7505
+  type: 'test'
+  ...
+# Subtest: cada sítio canônico existe e lê o glifo do pacote compartilhado
+ok 56 - cada sítio canônico existe e lê o glifo do pacote compartilhado
+  ---
+  duration_ms: 6.0051
+  type: 'test'
+  ...
+# Subtest: o compartilhado declara os cinco glifos com contorno, marca e preenchimento
+ok 57 - o compartilhado declara os cinco glifos com contorno, marca e preenchimento
+  ---
+  duration_ms: 2.352
+  type: 'test'
+  ...
+# Subtest: a varredura acusa um caminho local reintroduzido no selo do painel
+ok 58 - a varredura acusa um caminho local reintroduzido no selo do painel
+  ---
+  duration_ms: 2.1087
+  type: 'test'
+  ...
+# Subtest: a varredura acusa um mapa de severidade para caminho reintroduzido no marcador do Google
+ok 59 - a varredura acusa um mapa de severidade para caminho reintroduzido no marcador do Google
+  ---
+  duration_ms: 15.5712
+  type: 'test'
+  ...
+# Subtest: a varredura acusa o medidor antigo do aplicativo, e um objeto com forma por nível
+ok 60 - a varredura acusa o medidor antigo do aplicativo, e um objeto com forma por nível
+  ---
+  duration_ms: 5.0541
+  type: 'test'
+  ...
+# Subtest: a varredura não reclama do que está certo
+ok 61 - a varredura não reclama do que está certo
+  ---
+  duration_ms: 0.9853
+  type: 'test'
+  ...
+# Subtest: o leitor de sítio pula o parâmetro desestruturado e pega o corpo de verdade
+ok 62 - o leitor de sítio pula o parâmetro desestruturado e pega o corpo de verdade
+  ---
+  duration_ms: 0.9831
+  type: 'test'
+  ...
+# Subtest: o leitor de valor para na vírgula do mesmo nível, e não dentro de um objeto
+ok 63 - o leitor de valor para na vírgula do mesmo nível, e não dentro de um objeto
+  ---
+  duration_ms: 0.3775
+  type: 'test'
+  ...
+# Subtest: primitiva: as duas paletas são a mesma paleta
+ok 64 - primitiva: as duas paletas são a mesma paleta
+  ---
+  duration_ms: 2.9571
+  type: 'test'
+  ...
+# Subtest: primitiva: nenhum dos dois lados tem cor que o outro não tem
+ok 65 - primitiva: nenhum dos dois lados tem cor que o outro não tem
+  ---
+  duration_ms: 1.056
+  type: 'test'
+  ...
+# Subtest: semântico: temaClaro concorda com o painel, par a par
+ok 66 - semântico: temaClaro concorda com o painel, par a par
+  ---
+  duration_ms: 0.5555
+  type: 'test'
+  ...
+# Subtest: semântico: temaEscuro concorda com o painel, par a par
+ok 67 - semântico: temaEscuro concorda com o painel, par a par
+  ---
+  duration_ms: 0.9881
+  type: 'test'
+  ...
+# Subtest: escala: espaçamento e raio são idênticos aos do painel
+ok 68 - escala: espaçamento e raio são idênticos aos do painel
+  ---
+  duration_ms: 0.6234
+  type: 'test'
+  ...
+# Subtest: escala: do corpo do texto para baixo, as duas tipografias são a mesma
+ok 69 - escala: do corpo do texto para baixo, as duas tipografias são a mesma
+  ---
+  duration_ms: 0.3439
+  type: 'test'
+  ...
+# Subtest: escala: o alvo de toque do aplicativo é maior que o do painel, e não menor
+ok 70 - escala: o alvo de toque do aplicativo é maior que o do painel, e não menor
+  ---
+  duration_ms: 0.2896
+  type: 'test'
+  ...
+# Subtest: nenhuma divergência declarada sobreviveu ao próprio conserto
+ok 71 - nenhuma divergência declarada sobreviveu ao próprio conserto
+  ---
+  duration_ms: 22.3458
+  type: 'test'
+  ...
+# Subtest: a paridade pega o que deveria pegar
+ok 72 - a paridade pega o que deveria pegar
+  ---
+  duration_ms: 2.872
+  type: 'test'
+  ...
+# Subtest: os tokens de papel são os mesmos da folha impressa
+ok 73 - os tokens de papel são os mesmos da folha impressa
+  ---
+  duration_ms: 2.3097
+  type: 'test'
+  ...
+# Subtest: contraste calculado: temaClaro passa no mínimo exigido em todo par
+ok 74 - contraste calculado: temaClaro passa no mínimo exigido em todo par
+  ---
+  duration_ms: 3.2522
+  type: 'test'
+  ...
+# Subtest: contraste calculado: temaEscuro passa no mínimo exigido em todo par
+ok 75 - contraste calculado: temaEscuro passa no mínimo exigido em todo par
+  ---
+  duration_ms: 0.3816
+  type: 'test'
+  ...
+# Subtest: o cálculo confere com valores conhecidos
+ok 76 - o cálculo confere com valores conhecidos
+  ---
+  duration_ms: 0.7105
+  type: 'test'
+  ...
+# Subtest: os dois temas são de fato dois, e a leitura resolve as primitivas
+ok 77 - os dois temas são de fato dois, e a leitura resolve as primitivas
+  ---
+  duration_ms: 0.4741
+  type: 'test'
+  ...
+# Subtest: nenhuma pendência de contraste sobreviveu ao próprio conserto
+ok 78 - nenhuma pendência de contraste sobreviveu ao próprio conserto
+  ---
+  duration_ms: 0.2661
+  type: 'test'
+  ...
+# Subtest: a varredura enxerga os elementos tocáveis de verdade
+ok 79 - a varredura enxerga os elementos tocáveis de verdade
+  ---
+  duration_ms: 492.2905
+  type: 'test'
+  ...
+# Subtest: nenhum alvo de toque abaixo de 52
+ok 80 - nenhum alvo de toque abaixo de 52
+  ---
+  duration_ms: 262.2121
+  type: 'test'
+  ...
+# Subtest: todo elemento tocável se apresenta ao leitor de tela
+ok 81 - todo elemento tocável se apresenta ao leitor de tela
+  ---
+  duration_ms: 240.1649
+  type: 'test'
+  ...
+# Subtest: as três varreduras pegam o que deveriam pegar
+ok 82 - as três varreduras pegam o que deveriam pegar
+  ---
+  duration_ms: 1.4387
+  type: 'test'
+  ...
+# Subtest: o escape nomeado dispensa quem foi declarado, e ninguém mais
+ok 83 - o escape nomeado dispensa quem foi declarado, e ninguém mais
+  ---
+  duration_ms: 208.6683
+  type: 'test'
+  ...
+# Subtest: R1: nenhuma peça empilha mais de um bloco preenchido
+ok 84 - R1: nenhuma peça empilha mais de um bloco preenchido
+  ---
+  duration_ms: 2.4712
+  type: 'test'
+  ...
+# Subtest: a varredura enxerga o aplicativo de verdade
+ok 85 - a varredura enxerga o aplicativo de verdade
+  ---
+  duration_ms: 0.5039
+  type: 'test'
+  ...
+# Subtest: a varredura pega o cartão da reclamação, bloco a bloco
+ok 86 - a varredura pega o cartão da reclamação, bloco a bloco
+  ---
+  duration_ms: 0.8253
+  type: 'test'
+  ...
+# Subtest: a varredura não confunde o que está calmo com o que grita
+ok 87 - a varredura não confunde o que está calmo com o que grita
+  ---
+  duration_ms: 0.8361
+  type: 'test'
+  ...
+# Subtest: R3 e R5 continuam ligadas, e o Chip e o Aviso continuam obedecendo
+ok 88 - R3 e R5 continuam ligadas, e o Chip e o Aviso continuam obedecendo
+  ---
+  duration_ms: 4.2074
+  type: 'test'
+  ...
+# Subtest: R5 é aritmética, e o portão refaz a conta
+ok 89 - R5 é aritmética, e o portão refaz a conta
+  ---
+  duration_ms: 1.4452
+  type: 'test'
+  ...
+# Subtest: nenhuma pendência de densidade sobreviveu ao próprio conserto
+ok 90 - nenhuma pendência de densidade sobreviveu ao próprio conserto
+  ---
+  duration_ms: 0.4244
+  type: 'test'
+  ...
+# Subtest: a varredura enxerga os arquivos do aplicativo de verdade
+ok 91 - a varredura enxerga os arquivos do aplicativo de verdade
+  ---
+  duration_ms: 28.6266
+  type: 'test'
+  ...
+# Subtest: nenhum valor de design escrito à mão no aplicativo
+ok 92 - nenhum valor de design escrito à mão no aplicativo
+  ---
+  duration_ms: 206.1104
+  type: 'test'
+  ...
+# Subtest: a varredura pega o que deveria pegar
+ok 93 - a varredura pega o que deveria pegar
+  ---
+  duration_ms: 0.8263
+  type: 'test'
+  ...
+# Subtest: a varredura não reclama do que está certo
+ok 94 - a varredura não reclama do que está certo
+  ---
+  duration_ms: 0.9968
+  type: 'test'
+  ...
+# Subtest: o marcador de exceção dispensa o que declarou, e só isso
+ok 95 - o marcador de exceção dispensa o que declarou, e só isso
+  ---
+  duration_ms: 0.2904
+  type: 'test'
+  ...
+# Subtest: os comentários são apagados antes da varredura, e o código da mesma linha não
+ok 96 - os comentários são apagados antes da varredura, e o código da mesma linha não
+  ---
+  duration_ms: 0.2709
+  type: 'test'
+  ...
+# Subtest: a dívida de peso de fonte morre no dia em que o token nascer
+ok 97 - a dívida de peso de fonte morre no dia em que o token nascer
+  ---
+  duration_ms: 0.8583
+  type: 'test'
+  ...
+# Subtest: nenhuma espera de tela cheia fica sem saída
+ok 98 - nenhuma espera de tela cheia fica sem saída
+  ---
+  duration_ms: 169.664
+  type: 'test'
+  ...
+# Subtest: a varredura de espera sem saída enxerga alguma coisa
+ok 99 - a varredura de espera sem saída enxerga alguma coisa
+  ---
+  duration_ms: 75.0554
+  type: 'test'
+  ...
+# Subtest: nenhum token declarado fica sem alguém apontando para ele
+ok 100 - nenhum token declarado fica sem alguém apontando para ele
+  ---
+  duration_ms: 128.7115
+  type: 'test'
+  ...
+# Subtest: a dívida de token sem dono não sobrevive ao próprio conserto
+ok 101 - a dívida de token sem dono não sobrevive ao próprio conserto
+  ---
+  duration_ms: 92.1171
+  type: 'test'
+  ...
+# Subtest: a varredura de token sem dono enxerga o que deveria
+ok 102 - a varredura de token sem dono enxerga o que deveria
+  ---
+  duration_ms: 1.9011
+  type: 'test'
+  ...
+# Subtest: H3: o protagonista é pelo menos o dobro do apoio, e a conta é refeita aqui
+ok 103 - H3: o protagonista é pelo menos o dobro do apoio, e a conta é refeita aqui
+  ---
+  duration_ms: 3.7279
+  type: 'test'
+  ...
+# Subtest: H1: nenhuma peça desenha mais de um protagonista
+ok 104 - H1: nenhuma peça desenha mais de um protagonista
+  ---
+  duration_ms: 230.3498
+  type: 'test'
+  ...
+# Subtest: a varredura de protagonista enxerga o que deveria
+ok 105 - a varredura de protagonista enxerga o que deveria
+  ---
+  duration_ms: 0.8074
+  type: 'test'
+  ...
+# Subtest: o gradiente é pontual: ele não escapa de `src/ui/`
+ok 106 - o gradiente é pontual: ele não escapa de `src/ui/`
+  ---
+  duration_ms: 46.0346
+  type: 'test'
+  ...
+# Subtest: a varredura enxerga os arquivos de verdade
+ok 107 - a varredura enxerga os arquivos de verdade
+  ---
+  duration_ms: 25.0464
+  type: 'test'
+  ...
+# Subtest: nenhum arquivo do aplicativo chama geocodificação, Places ou Directions
+ok 108 - nenhum arquivo do aplicativo chama geocodificação, Places ou Directions
+  ---
+  duration_ms: 283.7933
+  type: 'test'
+  ...
+# Subtest: na API, só `rotas/rota.ts` chama a Routes API do Google, e ele de fato chama
+ok 109 - na API, só `rotas/rota.ts` chama a Routes API do Google, e ele de fato chama
+  ---
+  duration_ms: 138.0105
+  type: 'test'
+  ...
+# Subtest: o portão do caminho MORDE fora do arquivo permitido, e só fora dele
+ok 110 - o portão do caminho MORDE fora do arquivo permitido, e só fora dele
+  ---
+  duration_ms: 0.9848
+  type: 'test'
+  ...
+# Subtest: as próprias regras pegam o que deveriam pegar
+ok 111 - as próprias regras pegam o que deveriam pegar
+  ---
+  duration_ms: 0.7117
+  type: 'test'
+  ...
+# Subtest: a limpeza apaga comentário, e o TEXTO LITERAL sobrevive inteiro
+ok 112 - a limpeza apaga comentário, e o TEXTO LITERAL sobrevive inteiro
+  ---
+  duration_ms: 0.3039
+  type: 'test'
+  ...
+# Subtest: as regras pegam o que deveriam pegar DEPOIS da limpeza, e não só no texto cru
+ok 113 - as regras pegam o que deveriam pegar DEPOIS da limpeza, e não só no texto cru
+  ---
+  duration_ms: 0.4521
+  type: 'test'
+  ...
+# Subtest: todo MapView do aplicativo pede o provedor Google, explicitamente
+ok 114 - todo MapView do aplicativo pede o provedor Google, explicitamente
+  ---
+  duration_ms: 71.3299
+  type: 'test'
+  ...
+# Subtest: a regra do provedor pega um MapView sem ele
+ok 115 - a regra do provedor pega um MapView sem ele
+  ---
+  duration_ms: 0.7973
+  type: 'test'
+  ...
+# Subtest: a chave do mapa vem do ambiente, e não escrita no app.config.ts
+ok 116 - a chave do mapa vem do ambiente, e não escrita no app.config.ts
+  ---
+  duration_ms: 2.63
+  type: 'test'
+  ...
+# Subtest: cada plataforma tem a SUA chave, e nenhuma delas fica sem
+ok 117 - cada plataforma tem a SUA chave, e nenhuma delas fica sem
+  ---
+  duration_ms: 2.1741
+  type: 'test'
+  ...
+# Subtest: o plugin de configuração do react-native-maps carrega
+ok 118 - o plugin de configuração do react-native-maps carrega
+  ---
+  duration_ms: 151.209
+  type: 'test'
+  ...
+# Subtest: react-native-maps está fixado numa versão e é transformado pelo jest
+ok 119 - react-native-maps está fixado numa versão e é transformado pelo jest
+  ---
+  duration_ms: 0.7046
+  type: 'test'
+  ...
+# Subtest: o dublê comum de react-native-maps está no lugar em que o jest o acha sozinho
+ok 120 - o dublê comum de react-native-maps está no lugar em que o jest o acha sozinho
+  ---
+  duration_ms: 0.9561
+  type: 'test'
+  ...
+# Subtest: o segredo gerado passa no mínimo que a API exige e não parte a lista
+ok 121 - o segredo gerado passa no mínimo que a API exige e não parte a lista
+  ---
+  duration_ms: 1.887
+  type: 'test'
+  ...
+# Subtest: rotação: o novo entra na frente e o antigo continua aceito
+ok 122 - rotação: o novo entra na frente e o antigo continua aceito
+  ---
+  duration_ms: 3.6637
+  type: 'test'
+  ...
+# Subtest: rotação: o passo 2 aposenta o antigo, senão a troca ficou pela metade
+ok 123 - rotação: o passo 2 aposenta o antigo, senão a troca ficou pela metade
+  ---
+  duration_ms: 0.3855
+  type: 'test'
+  ...
+# Subtest: rotação: recusa quando a lista passaria do teto
+ok 124 - rotação: recusa quando a lista passaria do teto
+  ---
+  duration_ms: 1.0726
+  type: 'test'
+  ...
+# Subtest: revogação: o segredo vazado SAI DA LISTA, e é aqui que os dois planos divergem
+ok 125 - revogação: o segredo vazado SAI DA LISTA, e é aqui que os dois planos divergem
+  ---
+  duration_ms: 1.0439
+  type: 'test'
+  ...
+# Subtest: revogação: recusa quando o valor apontado não está na lista
+ok 126 - revogação: recusa quando o valor apontado não está na lista
+  ---
+  duration_ms: 0.6684
+  type: 'test'
+  ...
+# Subtest: o som de despacho existe no repositório
+ok 127 - o som de despacho existe no repositório
+  ---
+  duration_ms: 1.992
+  type: 'test'
+  ...
+# Subtest: o cabeçalho do som está dentro da régua das duas lojas
+ok 128 - o cabeçalho do som está dentro da régua das duas lojas
+  ---
+  duration_ms: 2.2523
+  type: 'test'
+  ...
+# Subtest: o arquivo versionado é exatamente o que o roteiro gera hoje
+ok 129 - o arquivo versionado é exatamente o que o roteiro gera hoje
+  ---
+  duration_ms: 98.1464
+  type: 'test'
+  ...
+# Subtest: o som não estala nem estoura: começa e termina em silêncio, e o pico fica abaixo do teto
+ok 130 - o som não estala nem estoura: começa e termina em silêncio, e o pico fica abaixo do teto
+  ---
+  duration_ms: 9.6854
+  type: 'test'
+  ...
+# Subtest: a régua aceita um WAV forjado dentro dela (senão os casos abaixo não provam nada)
+ok 131 - a régua aceita um WAV forjado dentro dela (senão os casos abaixo não provam nada)
+  ---
+  duration_ms: 0.6509
+  type: 'test'
+  ...
+# Subtest: a régua reprova estéreo
+ok 132 - a régua reprova estéreo
+  ---
+  duration_ms: 0.6149
+  type: 'test'
+  ...
+# Subtest: a régua reprova 22 kHz
+ok 133 - a régua reprova 22 kHz
+  ---
+  duration_ms: 0.2759
+  type: 'test'
+  ...
+# Subtest: a régua reprova 8 bits
+ok 134 - a régua reprova 8 bits
+  ---
+  duration_ms: 0.2136
+  type: 'test'
+  ...
+# Subtest: a régua reprova formato comprimido
+ok 135 - a régua reprova formato comprimido
+  ---
+  duration_ms: 0.705
+  type: 'test'
+  ...
+# Subtest: a régua reprova o toque curto demais
+ok 136 - a régua reprova o toque curto demais
+  ---
+  duration_ms: 0.8175
+  type: 'test'
+  ...
+# Subtest: a régua reprova o toque longo demais
+ok 137 - a régua reprova o toque longo demais
+  ---
+  duration_ms: 0.4402
+  type: 'test'
+  ...
+# Subtest: a régua reprova cabeçalho que mente sobre o tamanho
+ok 138 - a régua reprova cabeçalho que mente sobre o tamanho
+  ---
+  duration_ms: 0.3661
+  type: 'test'
+  ...
+# Subtest: o leitor recusa o que não é WAV
+ok 139 - o leitor recusa o que não é WAV
+  ---
+  duration_ms: 0.9369
+  type: 'test'
+  ...
+# Subtest: sem as dependências do aplicativo, falha e diz o comando exato
+ok 140 - sem as dependências do aplicativo, falha e diz o comando exato
+  ---
+  duration_ms: 2.2047
+  type: 'test'
+  ...
+# Subtest: a falha por dependência ausente aponta o escape, em vez de deixar a pessoa presa
+ok 141 - a falha por dependência ausente aponta o escape, em vez de deixar a pessoa presa
+  ---
+  duration_ms: 0.3212
+  type: 'test'
+  ...
+# Subtest: o escape só vale ligado em 1: variável presente com outro valor não pula
+ok 142 - o escape só vale ligado em 1: variável presente com outro valor não pula
+  ---
+  duration_ms: 15.4391
+  type: 'test'
+  ...
+# Subtest: DC360_SEM_APP=1 pula mesmo com as dependências instaladas
+ok 143 - DC360_SEM_APP=1 pula mesmo com as dependências instaladas
+  ---
+  duration_ms: 0.3659
+  type: 'test'
+  ...
+# Subtest: com tudo no lugar, roda sem mandar compilar nada
+ok 144 - com tudo no lugar, roda sem mandar compilar nada
+  ---
+  duration_ms: 1.257
+  type: 'test'
+  ...
+# Subtest: dist ausente entra na lista de compilação, e shared vem antes de campo
+ok 145 - dist ausente entra na lista de compilação, e shared vem antes de campo
+  ---
+  duration_ms: 0.7453
+  type: 'test'
+  ...
+# Subtest: dist que já existe não é recompilado
+ok 146 - dist que já existe não é recompilado
+  ---
+  duration_ms: 2.2872
+  type: 'test'
+  ...
+# Subtest: conta it e test abrindo a linha, com ou sem sufixo
+ok 147 - conta it e test abrindo a linha, com ou sem sufixo
+  ---
+  duration_ms: 0.6653
+  type: 'test'
+  ...
+# Subtest: não conta describe, comentário, nem palavra terminada em it ou test
+ok 148 - não conta describe, comentário, nem palavra terminada em it ou test
+  ---
+  duration_ms: 0.8004
+  type: 'test'
+  ...
+# Subtest: it.each com tabela literal vale uma vez por linha, e não uma vez só
+ok 149 - it.each com tabela literal vale uma vez por linha, e não uma vez só
+  ---
+  duration_ms: 1.2846
+  type: 'test'
+  ...
+# Subtest: it.each resolve tabela declarada como constante no mesmo arquivo
+ok 150 - it.each resolve tabela declarada como constante no mesmo arquivo
+  ---
+  duration_ms: 0.6002
+  type: 'test'
+  ...
+# Subtest: vírgula sobrando no fim da tabela não inventa um caso
+ok 151 - vírgula sobrando no fim da tabela não inventa um caso
+  ---
+  duration_ms: 0.2163
+  type: 'test'
+  ...
+# Subtest: it.each com tabela em template conta as linhas, menos o cabeçalho
+ok 152 - it.each com tabela em template conta as linhas, menos o cabeçalho
+  ---
+  duration_ms: 0.2541
+  type: 'test'
+  ...
+# Subtest: each que a leitura não sabe resolver estoura, e diz onde
+ok 153 - each que a leitura não sabe resolver estoura, e diz onde
+  ---
+  duration_ms: 1.6871
+  type: 'test'
+  ...
+# Subtest: describe.each estoura, porque multiplica tudo que está dentro do bloco
+ok 154 - describe.each estoura, porque multiplica tudo que está dentro do bloco
+  ---
+  duration_ms: 1.598
+  type: 'test'
+  ...
+# Subtest: a varredura ignora node_modules e dist, que só guardam cópia
+ok 155 - a varredura ignora node_modules e dist, que só guardam cópia
+  ---
+  duration_ms: 20.1524
+  type: 'test'
+  ...
+# Subtest: o aplicativo de campo tem casos de teste, e cada arquivo achado tem pelo menos um
+ok 156 - o aplicativo de campo tem casos de teste, e cada arquivo achado tem pelo menos um
+  ---
+  duration_ms: 62.8384
+  type: 'test'
+  ...
+# Subtest: a varredura do aplicativo não sai de apps/campo
+ok 157 - a varredura do aplicativo não sai de apps/campo
+  ---
+  duration_ms: 16.6632
+  type: 'test'
+  ...
+# Subtest: existe o comando test:campo, e ele chama este script
+ok 158 - existe o comando test:campo, e ele chama este script
+  ---
+  duration_ms: 0.2902
+  type: 'test'
+  ...
+# Subtest: npm run verificar alcança o aplicativo de campo
+ok 159 - npm run verificar alcança o aplicativo de campo
+  ---
+  duration_ms: 0.2084
+  type: 'test'
+  ...
+# Subtest: o conferidor de números pergunta pelo aplicativo
+ok 160 - o conferidor de números pergunta pelo aplicativo
+  ---
+  duration_ms: 0.5178
+  type: 'test'
+  ...
+# Subtest: apps/api: toda variável lida está no .env.example, e vice-versa
+ok 161 - apps/api: toda variável lida está no .env.example, e vice-versa
+  ---
+  duration_ms: 16.1267
+  type: 'test'
+  ...
+# Subtest: apps/console: toda variável lida está no .env.example, e vice-versa
+ok 162 - apps/console: toda variável lida está no .env.example, e vice-versa
+  ---
+  duration_ms: 2.7127
+  type: 'test'
+  ...
+# Subtest: apps/campo: toda variável lida está no .env.example, e vice-versa
+ok 163 - apps/campo: toda variável lida está no .env.example, e vice-versa
+  ---
+  duration_ms: 2.3118
+  type: 'test'
+  ...
+# Subtest: a leitura pega o que deveria pegar, e o portão morde na variável que falta
+ok 164 - a leitura pega o que deveria pegar, e o portão morde na variável que falta
+  ---
+  duration_ms: 0.9904
+  type: 'test'
+  ...
+# Subtest: a leitura enxerga os arquivos de verdade
+ok 165 - a leitura enxerga os arquivos de verdade
+  ---
+  duration_ms: 5.8055
+  type: 'test'
+  ...
+1..165
+# tests 165
+# suites 0
+# pass 158
+# fail 3
+# cancelled 0
+# skipped 4
+# todo 0
+# duration_ms 2893.0945
+### EXIT=1 DURACAO=4s fim=2026-09-30T16:32:01-03:00

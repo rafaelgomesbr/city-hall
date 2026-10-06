@@ -1,0 +1,35 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/config.test.ts (19 tests) 33ms
+ ✓ test/recuperacao-em-producao.test.ts (10 tests) 19ms
+ ✓ test/superficie.test.ts (9 tests) 5193ms
+ ✓ test/notificador-http.test.ts (14 tests) 5532ms
+ ✓ test/log.test.ts (16 tests) 5693ms
+   ✓ O que nunca pode aparecer no log > a senha de quem entra  660ms
+ ✓ test/recuperacao-desligada.test.ts (3 tests) 8148ms
+   ✓ recuperacao de senha desligada > recusa o pedido em vez de prometer um email que nao sai  4878ms
+   ✓ recuperacao de senha desligada > recusa tambem a redefinicao, para token aberto antes do desligamento  1613ms
+   ✓ recuperacao de senha desligada > com a recuperacao ligada, a rota volta a responder 202 sem revelar se a conta existe  1654ms
+ ✓ test/recuperacao-sem-oraculo.test.ts (15 tests) 11562ms
+   ✓ Nada que venha do pedido escolhe o município > o token de uma conta troca a senha dela e de mais ninguém  2468ms
+   ✓ O link: uso único, vencimento e guarda só como hash > o link vence: passado o prazo, a mesma resposta de link que não vale mais  1665ms
+   ✓ O link: uso único, vencimento e guarda só como hash > a mensagem de link que não vale mais está em português, com acento  589ms
+   ✓ Limite por endereço no pedido de recuperação > o quarto pedido do mesmo endereço em cinco minutos leva 429, e trocar o cabeçalho não ajuda  1643ms
+ ✓ test/recuperacao.test.ts (14 tests) 21889ms
+   ✓ Pedido de recuperação > pedir de novo invalida o link anterior  637ms
+   ✓ Pedido de recuperação > conta desativada não recebe link  1204ms
+   ✓ Redefinição pelo link > troca a senha, e a nova funciona enquanto a antiga não  1779ms
+   ✓ Redefinição pelo link > o mesmo link não serve duas vezes  1720ms
+   ✓ Redefinição pelo link > redefinir derruba as sessões abertas  1145ms
+   ✓ Redefinição pelo link > token inventado é recusado, e a mensagem não confirma nada  542ms
+   ✓ Redefinição pelo link > recusa senha curta antes de tocar no banco  552ms
+   ✓ Redefinição pelo link > desbloqueia a conta que estava travada por tentativas  4615ms
+   ✓ Troca de senha por quem já está dentro > exige a senha atual  1388ms
+   ✓ Troca de senha por quem já está dentro > troca e encerra as outras sessões, preservando a atual  3262ms
+
+ Test Files  8 passed (8)
+      Tests  100 passed (100)
+   Start at  15:07:42
+   Duration  24.89s (transform 927ms, setup 496ms, collect 14.13s, tests 58.07s, environment 2ms, prepare 1.90s)
+

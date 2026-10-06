@@ -1,0 +1,633 @@
+# Fase 31: Integrações externas oficiais
+
+**Gate da fase:** G31 INTEGRAÇÕES EXTERNAS OFICIAIS | **Depende dos gates:** todos os que a precedem na ordem de execução (G00 a G08, G32, G09 a G14, G33, G15 a G19, G34, G29 e G30), em especial G07 (fila e worker), G09 (documento imutável), G10 (painel), G15 (modo `publica` e cotas) e G32 (tipo geométrico e índice espacial) | **Superfícies tocadas:** `apps/api`, `db`, `packages/shared`, `apps/web`, `apps/portal` (só o consentimento), `apps/console` (liberação e leitura), `docs` | **Checkpoints da fase:** CP-06 (subprocessadores) e os novos CP-77, CP-78, CP-79, CP-80, CP-81, CP-82, CP-83 e CP-84
+
+Objetivo: o DC360 fala com o exterior por portas e adaptadores, sem acoplar o núcleo a fornecedor (ALY:12.2). Entram conectores REAIS onde há API ou formato público (WhatsApp oficial, camadas GeoJSON, KML e WMS, dados do Cemaden a confirmar) e adaptador com sandbox PRONTOS para S2ID, SEI e Defesa Civil Alerta, ativados só com credenciamento: cada ativação real é um checkpoint novo, e nada aqui promete integração sem API ou autorização (ALY:4.1). Bloco comum primeiro (E01 a E06: ADR, núcleo, configuração por município com segredo cifrado, trilha, fila e webhook assinado), depois WhatsApp (E07 a E10), camadas (E11 a E13), Cemaden (E14), S2ID, SEI e alerta (E15 a E17), tela e console (E18), LGPD (E19) e a suíte de contrato (E20).
+
+O que se PRESERVA (MANTER): o e-mail transacional (`auth/notificador.ts`) e o push (`push/envio.ts`), que seguem como canais padrão; o mapa do painel e o resolvedor de link curto (`rotas/mapa.ts`, só refatorado por baixo); o ofício por link de uso único (`abrir_oficio`, molde da entrada sem token); `abrirCofre`, `consumir_cota` (F03-E19), `trilha_administrativa`, o documento emitido imutável e o pacote de saída (G09), a fila com lease (F07-E02).
+
+O que a fase NÃO faz: previsão meteorológica própria, sensores e sirenes, substituir S2ID, Defesa Civil Alerta ou Cemaden (item 28 de `21-fora-da-v2.md` e ALY:4.1); integração com 190, 192 e 193 (o item 16 de `21-fora-da-v2.md` passa a cobrir só elas); WFS e catálogos por jurisdição (evolução de ALY:12.1 fora de D-14); camada de GIS no app do agente (mapa offline é da F14-E21); WhatsApp NÃO oficial, em qualquer hipótese; relato aberto por WhatsApp (conta e CPF obrigatórios, F15-E16 e F16-E05, e CP-79; esta fase NÃO cria relato); SMS e login (F34-E12 a E16); assinatura (F09); broker fora do Postgres.
+
+Ordem sugerida: E01, E02, depois E03 e E04 em sequência (duas migrations), E05 e E06. Passada a E06, três trilhas andam lado a lado em diretórios próprios: WhatsApp (E07 a E10), camadas (E11 a E13) e conectores federais (E14 a E17, só dependem de E05). E18 fecha as telas, E19 a documentação de dados e E20 a prova. O que não depende de contratação (portas, memória, sandbox simulado, telas) é feito antes dos checkpoints; cada etapa diz o que o checkpoint bloqueia.
+
+## Etapas
+
+### V2-F31-E01 - ADR das integrações externas: porta única, adaptadores, segredo, entrada assinada e rede segura
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (E02 a E20 seguem as cláusulas)
+- **Objetivo:** registrar em ADR, antes de código, as regras que toda integração externa cumpre.
+- **Problema que resolve:** notificador, push e armazenamento são portas soltas, cada uma com tratamento próprio de segredo e erro; seis integrações novas multiplicariam o desvio.
+- **Origem:** PR:D-14; ALY:12.1; ALY:13; DP:T27; DP:T43.
+- **Estado atual:** CRIAR (próximo número livre de ADR no dia).
+- **Dependências de entrada:** G07, G09 e G15; V2-F09-E19 (molde).
+- **O que deve ser implementado:**
+  - Arquivos: ADR com as cláusulas: (1) uma porta por integração, com adaptador real, em memória e sandbox; (2) modos `desligado` (padrão), `sandbox` (só DEV e HML) e `real`, com dupla chave: o município liga, o fornecedor libera; (3) segredo cifrado por `abrirCofre` (`INTEGRACOES_CHAVE`), nunca em repositório, log, trilha ou resposta; (4) saída só pela fila da F07; (5) entrada só por webhook assinado, em modo `api`; (6) host em lista do município e endereço público conferido a cada salto; (7) trilha append-only sem corpo; (8) cada ativação real é um CP-NOVO e uma linha em `docs/SUBPROCESSADORES.md`; (9) nenhuma tela diz "oficial" ou "homologado" antes do CP.
+- **O que NÃO deve ser implementado nesta etapa:** código, migration, tela; escolher provedor.
+- **Arquivos e módulos prováveis:** `docs/adr/` (a criar), `docs/roadmap-v2/01-decisoes-e-principios.md`.
+- **Risco de segurança:** ADR vaga deixaria uma etapa guardar segredo aberto ou aceitar callback sem verificação.
+- **Impacto LGPD:** registra quem recebe dado e em que papel.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: texto.
+- **Rollback:** reverter o arquivo.
+- **Testes positivos:** `regras-de-conteudo.test.ts` passa sobre o ADR.
+- **Testes negativos:** travessão ou norma fora da lista no ADR reprova a varredura.
+- **Testes de autorização e isolamento:** Não se aplica: sem código.
+- **Regressão obrigatória:** `npm run test --workspace @dc360/shared`; G00 a G15.
+- **E2E:** Não se aplica: sem fluxo.
+- **Validação humana:** Rafael aprova o ADR.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E01/` com o ADR.
+- **Documentação a atualizar:** `docs/roadmap-v2/01-decisoes-e-principios.md`.
+- **Definition of Done:** ADR aprovado, cada cláusula com etapa e teste.
+- **Checkpoint:** CP-77 (onde mora a chave mestra e se a cifra por município basta; sem ele só HML).
+
+### V2-F31-E02 - Núcleo comum: resultado tipado, tempo limite, circuit breaker e rede segura
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E03 a E20 usam)
+- **Objetivo:** módulo único que toda porta externa atravessa: resultado tipado, tempo limite, breaker e rede segura.
+- **Problema que resolve:** a defesa contra requisição forjada (`enderecoPublico`, `lookupFixo`, `TETO_DE_SALTOS`) está presa a `rotas/mapa.ts`; sem núcleo cada conector a reescreveria.
+- **Origem:** PR:D-14; DP:T43; DP:T09; REL:08.
+- **Estado atual:** REFATORAR (a rede segura sai de `rotas/mapa.ts` sem mudar comportamento; `resolver-link.test.ts` guarda).
+- **Dependências de entrada:** E01; F07-E08.
+- **O que deve ser implementado:**
+  - Domínio: `packages/shared/src/integracoes.ts` (a criar): `INTEGRACOES` (`whatsapp`, `camada_gis`, `cemaden`, `s2id`, `sei`, `alerta_publico`) e `ResultadoDeIntegracao` (`ok`, `indisponivel`, `recusado`, `limite`, `invalido`).
+  - API: `apps/api/src/integracoes/nucleo.ts` (a criar): tempo limite de 10 s; até 2 repetições só para erro transitório (rede, 5xx, 429), com recuo; breaker por (município, integração): abre após 5 falhas e retenta após 60 s (valores propostos); `ArmazemDoCircuito` injetável.
+  - API: `apps/api/src/integracoes/rede-segura.ts` (a criar): recebe de `rotas/mapa.ts` a conferência de endereço e o cliente: lista de hosts do município, sem redirecionamento para fora dela, teto de corpo, `semSegredos`.
+- **O que NÃO deve ser implementado nesta etapa:** tabelas (E03, E04), fila (E05), conector; mudar o link curto.
+- **Arquivos e módulos prováveis:** `apps/api/src/integracoes/` (a criar em `apps/api/src/`), `apps/api/src/rotas/mapa.ts`, `apps/api/test/integracoes/nucleo.test.ts` (a criar).
+- **Risco de segurança:** requisição forjada para rede interna; segredo no erro; breaker escondendo falha.
+- **Impacto LGPD:** Não se aplica: sem dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** o link curto se comporta como hoje.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** duas falhas transitórias e um sucesso devolvem `ok`; o breaker fecha com um sucesso.
+- **Testes negativos:** 400 não repete; nome resolvendo para 10.0.0.5 e redirecionamento para fora da lista recusados; segredo no erro vira `[segredo removido]`; sexta chamada após cinco falhas nem sai.
+- **Testes de autorização e isolamento:** breaker aberto do município A não afeta o B.
+- **Regressão obrigatória:** `npm run test:api` (`resolver-link.test.ts`), `npm run typecheck`; G00 a G15.
+- **E2E:** Não se aplica: sem fluxo.
+- **Validação humana:** Rafael vê o breaker abrir e fechar no teste.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E02/`: testes.
+- **Documentação a atualizar:** `apps/api/PENDENCIAS.md`.
+- **Definition of Done:** núcleo em uso, testes verdes.
+- **Checkpoint:** Não.
+
+### V2-F31-E03 - Configuração por município e segredo cifrado (migration)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não (E04 e E05 usam)
+- **Objetivo:** guardar por município o modo, os hosts permitidos e o segredo de cada integração, com RLS forçada, segredo sem retorno e a dupla chave.
+- **Problema que resolve:** nada guarda configuração de integração; segredo global entre municípios derrubaria o isolamento.
+- **Origem:** PR:D-14; DP:T41; BZ-F:P0-SEG.
+- **Estado atual:** CRIAR (molde: `auth/cofre.ts`).
+- **Dependências de entrada:** E02; F03-E08; F03-E12; F05-E01.
+- **O que deve ser implementado:**
+  - Migration: `integracoes_municipio` (PK `organizacao_id, integracao`; `modo` `desligado|sandbox|real`; `liberada_pelo_fornecedor`; `hosts_permitidos` https sem curinga; `segredo_cifrado` com CHECK de prefixo `v1.`; `segredo_versao`; `circuito`; `config` jsonb; sem DELETE); CHECK: `real` exige liberação; RLS forçada; `dc360_app` sem UPDATE na liberação.
+  - API: `GET /v1/integracoes`, `PUT /v1/integracoes/:integracao`, `POST .../testar` em `rotas/integracoes.ts` (a criar); ação `configurar_integracoes` (só administrador); resposta com `segredo_configurado_em`, nunca o valor; ato em `registrarAtoAdministrativo`, sem segredo.
+  - Infraestrutura: `INTEGRACOES_CHAVE` e `INTEGRACOES_ATIVAS` em `config.ts`; produção recusa ligado sem chave.
+- **O que NÃO deve ser implementado nesta etapa:** chamada externa (E09 em diante), tela e função do console (E18).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/rotas/integracoes.ts`, `apps/api/src/config.ts`, `packages/shared/src/permissoes.ts`.
+- **Risco de segurança:** envelope copiado entre linhas; segredo em log; `real` sem credenciamento.
+- **Impacto LGPD:** sem dado pessoal; `segredo_cifrado` nunca sai no pacote de saída.
+- **Migração necessária:** Sim (`NNN_integracoes_municipio.sql`, hoje 047).
+- **Compatibilidade:** aditiva; tudo nasce `desligado`.
+- **Rollback:** migration inversa, tabela vazia.
+- **Testes positivos:** administrador grava segredo; a resposta traz só `segredo_configurado_em`.
+- **Testes negativos:** `real` sem liberação: 23514 e 422; host `http://` ou com curinga recusado; texto puro recusado pelo CHECK; envelope do A não abre no B; ativa sem chave: partida recusada.
+- **Testes de autorização e isolamento:** coordenador no PUT: 403; município B lê configuração do A: 404; `dc360_app` com UPDATE na liberação: 42501.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`; G00 a G15.
+- **E2E:** `npm run test:e2e:api`: configurar sem ver o segredo.
+- **Validação humana:** Rafael confere que nenhuma resposta mostra o segredo.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E03/`: testes e catálogo.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`, `apps/api/.env.example`.
+- **Definition of Done:** RLS forçada, segredo sem retorno, dupla chave provada no banco.
+- **Checkpoint:** CP-77 (produção só depois dele).
+
+### V2-F31-E04 - Trilha append-only de toda chamada de saída e de entrada (migration)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (E05 e E06 gravam nela)
+- **Objetivo:** registrar cada tentativa de saída e cada entrada em tabela append-only, sem segredo, corpo nem dado pessoal desnecessário.
+- **Problema que resolve:** o município precisa responder "foi enviado?" com fato; `trilha_eventos` é por ocorrência e o `Recibo` do notificador não é guardado.
+- **Origem:** PR:D-14; ALY:CA-07; DP:T41; REL:08.
+- **Estado atual:** CRIAR (molde: `trilha_eventos`, sem policy de UPDATE e DELETE).
+- **Dependências de entrada:** E03.
+- **O que deve ser implementado:**
+  - Migration: `integracoes_chamadas` (`organizacao_id`, `integracao`, `direcao` `saida|entrada`, `operacao`, `envio_id`, `chave_idempotencia`, `resultado`, `http_status`, `duracao_ms`, `tentativa`, `id_no_provedor`, `erro_curto` CHECK 300 caracteres, `corpo_sha256`, `corpo_bytes`, `ator_tipo`, `ator_id`, `ocorrido_em`); só SELECT e INSERT; RLS forçada; estado novo é linha nova.
+  - API: `apps/api/src/integracoes/trilha.ts` (a criar): `registrarChamada` passa o erro por `semSegredos` e nunca recebe corpo nem URL com parâmetro; `GET /v1/integracoes/:integracao/chamadas` paginado (ação `consultar_trilha`).
+  - Arquivos: classificação no manifesto (sai no pacote, `apaga`, retenção `a_decidir`).
+- **O que NÃO deve ser implementado nesta etapa:** guardar corpo, cabeçalho ou telefone; tela (E18); métricas (F21).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/integracoes/trilha.ts` (a criar), `db/src/manifesto.ts`, `db/test/integracoes-chamadas.test.ts` (a criar).
+- **Risco de segurança:** erro do provedor ecoando segredo ou e-mail em `erro_curto`.
+- **Impacto LGPD:** minimização: só hash e tamanho do corpo.
+- **Migração necessária:** Sim (`NNN_integracoes_chamadas.sql`).
+- **Compatibilidade:** aditiva.
+- **Rollback:** migration inversa, tabela vazia.
+- **Testes positivos:** uma saída e uma entrada geram duas linhas na consulta paginada.
+- **Testes negativos:** UPDATE e DELETE pelo papel da aplicação: 42501; `erro_curto` de 301 caracteres recusado; erro contendo o segredo grava `[segredo removido]`.
+- **Testes de autorização e isolamento:** município B lista as chamadas do A: vazio; operador na trilha: 403.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`; G05 e G15.
+- **E2E:** Não se aplica: a E20 prova o fluxo.
+- **Validação humana:** Rafael lê as linhas de um envio de teste.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E04/`: testes e amostra sintética.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** trilha append-only, sem corpo, com consulta nominal.
+- **Checkpoint:** CP-10 (a retenção desta tabela fica `a_decidir`; não bloqueia a etapa).
+
+### V2-F31-E05 - Fila de saída, idempotência e reenvio com limite (migration e worker)
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E09 e E15 a E17 dependem)
+- **Objetivo:** toda saída vira solicitação idempotente executada pelo worker, com tentativas e reenvios limitados.
+- **Problema que resolve:** chamar o provedor na requisição trava o coordenador no dia de temporal; sem idempotência o reenvio duplica mensagem ou documento.
+- **Origem:** PR:D-14; DP:T43; DP:T22; ALY:12.2.
+- **Estado atual:** CRIAR (usa `fila_de_trabalho`, F07-E02, e o worker, F07-E03).
+- **Dependências de entrada:** E02; E04; F07-E02; F07-E03.
+- **O que deve ser implementado:**
+  - Migration: `integracoes_envios` INSERT-only (`integracao`, `referencia_tipo`, `referencia_id`, `chave_idempotencia`, `solicitado_por`), UNIQUE (`organizacao_id`, `integracao`, `chave_idempotencia`); `integracoes_envio_eventos` INSERT-only (`solicitado`, `aprovado`, `enviado`, `confirmado`, `falhou`, `desistiu`, `cancelado`) com gatilho de transição (molde F09-E22).
+  - API: `apps/api/src/integracoes/trabalho.ts` (a criar): tipo `integracao.enviar`, payload só de identificadores; tentativas máximas por integração no shared (padrão 5; `alerta_publico` 1); breaker aberto reagenda sem gastar tentativa; esgotado vira `desistiu` e avisa o administrador (sino).
+  - API: `POST /v1/integracoes/envios/:id/reenviar` (ação `configurar_integracoes`), no máximo 3 reenvios manuais.
+- **O que NÃO deve ser implementado nesta etapa:** conector específico (E09, E15 a E17); broker externo; métricas (F21).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/integracoes/trabalho.ts` (a criar), `apps/api/src/servicos/worker.ts` (F07-E03), `apps/api/test/integracoes/envio.test.ts` (a criar).
+- **Risco de segurança:** reenvio duplicando aviso público; payload com dado pessoal.
+- **Impacto LGPD:** payload só de identificadores, por CHECK da F07-E02.
+- **Migração necessária:** Sim (`NNN_integracoes_envios.sql`).
+- **Compatibilidade:** aditiva; sem adaptador ligado nada sai.
+- **Rollback:** migration inversa, tabelas vazias.
+- **Testes positivos:** mesma chave duas vezes gera um envio; duas falhas e sucesso gravam `falhou`, `falhou`, `enviado`.
+- **Testes negativos:** sexta tentativa não ocorre e vira `desistiu`; quarto reenvio manual: 409; `confirmado` para `falhou`: gatilho recusa; criar ocorrência com o provedor fora do ar: 201 sem chamada externa.
+- **Testes de autorização e isolamento:** coordenador reenvia: 403; município B reenvia envio do A: 404 sem tocar o provedor.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`; G07.
+- **E2E:** Não se aplica: a E20 prova o fluxo.
+- **Validação humana:** Rafael derruba o adaptador de teste e vê o envio desistir.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E05/`: testes.
+- **Documentação a atualizar:** `docs/IMPLANTACAO.md`.
+- **Definition of Done:** nenhuma saída no caminho do pedido; idempotência e tetos provados.
+- **Checkpoint:** Não.
+
+### V2-F31-E06 - Webhook de entrada assinado, com verificação e resposta uniforme (migration)
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não (E09 e E10 dependem)
+- **Objetivo:** receber chamadas de provedores sem login, com selo HMAC verificado e repetição absorvida.
+- **Problema que resolve:** o provedor não tem token; sem desenho próprio a entrada seria rota aberta ou o município viria de parâmetro.
+- **Origem:** PR:D-14; DP:T22; BZ-F:P0-SEG.
+- **Estado atual:** CRIAR (molde: `abrir_oficio`).
+- **Dependências de entrada:** E03; E04; E05; F03-E08; F03-E19.
+- **O que deve ser implementado:**
+  - Migration: `entrada_hash` (SHA-256 de identificador aleatório, UNIQUE) em `integracoes_municipio`; função `resolver_entrada_integracao(p_hash)` devolve só `organizacao_id` e `integracao`, na lista nominal `FUNCOES_PRIVILEGIADAS`, sem EXECUTE para `PUBLIC`.
+  - API: `POST /v1/integracoes/entrada/:identificador` (`rotas/integracoes-entrada.ts`, a criar), modo `api`, sem token: corpo bruto preservado; selo conferido em tempo constante; repetição por `id_no_provedor` responde 200 sem reprocessar; corpo até 64 KiB; `consumir_cota` por identificador; grava a chamada, enfileira e responde 200. Identificador desconhecido, selo inválido e `desligado`: o mesmo 404.
+  - Domínio: cada adaptador declara `verificarEntrada`; formato e validade do selo são do provedor (NÃO CONFIRMADOS).
+- **O que NÃO deve ser implementado nesta etapa:** tratar o conteúdo (E09, E10); modo `publica`; município no corpo.
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/rotas/integracoes-entrada.ts` (a criar), `apps/api/test/integracoes/entrada.test.ts` (a criar).
+- **Risco de segurança:** repetição, corpo reescrito antes do selo, fila inundada.
+- **Impacto LGPD:** corpo não guardado, só hash e tamanho.
+- **Migração necessária:** Sim (`NNN_entrada_de_integracao.sql`).
+- **Compatibilidade:** aditiva; sem identificador até configurar.
+- **Rollback:** migration inversa; remover a rota.
+- **Testes positivos:** selo válido: uma linha `entrada` e um trabalho; repetição: 200 sem segundo trabalho.
+- **Testes negativos:** selo adulterado, identificador inventado e `desligado`: o mesmo 404; corpo de 65 KiB: 413; excesso da cota: 429.
+- **Testes de autorização e isolamento:** identificador do A com segredo do B: 404; função fora da lista nominal reprova `isolamento.test.ts`.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`; G03, G07, G15.
+- **E2E:** `npm run test:e2e:api` com selo calculado pelo teste.
+- **Validação humana:** Rafael dispara chamada válida, adulterada e repetida.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E06/`: testes.
+- **Documentação a atualizar:** `docs/IMPLANTACAO.md`.
+- **Definition of Done:** selo, repetição e município do banco provados.
+- **Checkpoint:** Não.
+
+### V2-F31-E07 - WhatsApp: porta de mensagem, modelos de conteúdo mínimo e adaptadores de teste
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com E11)
+- **Objetivo:** porta `CanalDeMensagem` com catálogo fechado de modelos e adaptadores em memória e de log.
+- **Problema que resolve:** ALY:12.1 prevê WhatsApp oficial com consentimento e custo controlado; texto livre com nome e endereço sairia do controle do município.
+- **Origem:** PR:D-14; ALY:12.1; DP:T31.
+- **Estado atual:** CRIAR (molde: `Notificador` e `Recibo` em `auth/notificador.ts`).
+- **Dependências de entrada:** E02; E05.
+- **O que deve ser implementado:**
+  - Domínio: `packages/shared/src/mensagens-whatsapp.ts` (a criar): modelos versionados (`aviso_de_prazo`, `aviso_de_escalonamento`, `atualizacao_de_relato`, `confirmacao_de_contato`, `resposta_de_orientacao`), parâmetros de lista fechada (`protocolo`, `estado`, `prazo`, `codigo`), texto neutro ("Há uma atualização no protocolo X. Abra o aplicativo ou o painel."), nunca nome, endereço, descrição, foto ou localização; pt-BR, en e es pelo catálogo da F08-E08.
+  - API: `apps/api/src/integracoes/whatsapp/porta.ts` (a criar): `enviar({modelo, parametros, destinatarioRef, chaveIdempotencia})` devolve `Recibo`; `em-memoria.ts` com falha injetável e `de-log.ts`; produção recusa os dois (molde F09-E20).
+  - API: lembretes da F04-E10 usam WhatsApp só com consentimento e integração ativa, com queda para e-mail.
+- **O que NÃO deve ser implementado nesta etapa:** adaptador oficial (E09), consentimento (E08), recebimento (E10), SMS (F34-E15), texto livre.
+- **Arquivos e módulos prováveis:** `apps/api/src/integracoes/whatsapp/` (a criar), `packages/shared/src/mensagens-whatsapp.ts`, `apps/api/test/integracoes/whatsapp-porta.test.ts` (a criar).
+- **Risco de segurança:** dado de caso saindo do controle do município.
+- **Impacto LGPD:** o modelo não tem onde carregar dado de caso.
+- **Migração necessária:** Não.
+- **Compatibilidade:** desligado: e-mail e push seguem.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** modelo válido devolve recibo na memória; integração desligada cai para e-mail.
+- **Testes negativos:** parâmetro `endereco` e texto livre rejeitados antes de enfileirar; modelo desconhecido: `invalido`; `em-memoria` em produção recusa a partida.
+- **Testes de autorização e isolamento:** o envio do município A decifra só o segredo do A (o teste espia o cofre).
+- **Regressão obrigatória:** `npm run test:api` (`notificador-http.test.ts`, `push-varredor.test.ts`), `npm run typecheck`; G04.
+- **E2E:** Não se aplica: a E20 prova o fluxo.
+- **Validação humana:** Rafael lê os cinco textos nos três idiomas.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E07/`: testes e catálogo.
+- **Documentação a atualizar:** `docs/IMPLANTACAO.md`.
+- **Definition of Done:** porta e catálogo prontos; nada sai por canal real.
+- **Checkpoint:** Não.
+
+### V2-F31-E08 - WhatsApp: consentimento, telefone cifrado e revogação (migration e telas)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E09 e E10 usam)
+- **Objetivo:** só recebe WhatsApp quem consentiu: telefone cifrado, aceite versionado, confirmação por código e revogação, no painel e no portal.
+- **Problema que resolve:** sem registro de consentimento o sistema mandaria mensagem a número digitado por outra pessoa e não saberia parar.
+- **Origem:** PR:D-14; ALY:12.1; ALY:13; DP:J1.
+- **Estado atual:** CRIAR (molde: CPF cifrado, F05-E13; aceite versionado, F05-E06).
+- **Dependências de entrada:** E07; F05-E06; F05-E13; F03-E15; F08-E08.
+- **O que deve ser implementado:**
+  - Migration: `contatos_mensageria` (`organizacao_id`, `conta_id`, `telefone_cifrado` por `abrirCofre`, `telefone_hash` HMAC, `estado` `pendente|ativo|revogado|invalido`, `aceite_id`); RLS forçada, "só o meu".
+  - API: `PUT` e `DELETE /v1/eu/mensageria` (a própria pessoa); código de confirmação enviado ao número pelo modelo `confirmacao_de_contato` antes de `ativo`; telefone validado por `packages/shared/src/telefone.ts`; resposta mascarada.
+  - Frontend: `MinhaConta.tsx` e a conta do portal: interruptor "Receber avisos por WhatsApp", finalidade, estados, erro claro, `aria-live`; portão visual (`19-definicao-de-pronto.md` seção 0).
+- **O que NÃO deve ser implementado nesta etapa:** envio real (E09), parada por mensagem (E10), consentimento do cidadão (F34).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/rotas/usuarios-eu.ts`, `apps/api/src/integracoes/whatsapp/consentimento.ts` (a criar), `apps/web/src/paginas/MinhaConta.tsx`.
+- **Risco de segurança:** telefone alheio cadastrado; enumeração por telefone; código em log.
+- **Impacto LGPD:** dado pessoal novo, finalidade única, revogável, `pessoal: sim` no manifesto.
+- **Migração necessária:** Sim (`NNN_consentimento_de_mensagem.sql`).
+- **Compatibilidade:** aditiva.
+- **Rollback:** migration inversa; ocultar a tela.
+- **Testes positivos:** código certo ativa; revogar e reativar pede novo código.
+- **Testes negativos:** cinco códigos errados bloqueiam; telefone com 8 dígitos: 422; telefone ativo em outra conta: conflito genérico; resposta sem o número inteiro.
+- **Testes de autorização e isolamento:** pessoa A lê o contato da B: 404; município B não vê contato do A.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run test --workspace @dc360/web`, `npm run typecheck`; G03, G05.
+- **E2E:** `apps/web/test/fluxo-api.e2e.mjs`: ativar com adaptador de memória e revogar.
+- **Validação humana:** Rafael cadastra o próprio número em HML e revoga.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E08/`: testes e capturas.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md`.
+- **Definition of Done:** consentimento, revogação e máscara provados; tela aprovada no portão visual.
+- **Checkpoint:** CP-11 (texto e base legal do consentimento; sem ele só HML sintético).
+
+### V2-F31-E09 - WhatsApp: adaptador oficial, modelos aprovados e estado de entrega
+- **Prioridade:** P1
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não (E10 usa)
+- **Objetivo:** conector REAL do WhatsApp oficial atrás da porta da E07, com estado de entrega e teto de custo.
+- **Problema que resolve:** sem conector a integração é só interface; sem estado de entrega o "entregue" seria palavra do sistema.
+- **Origem:** PR:D-14; ALY:12.1; DP:T31.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E06; E07; E08; CP-78 (só real e sandbox).
+- **O que deve ser implementado:**
+  - API: `integracoes/whatsapp/adaptador-oficial.ts` (a criar): envia modelo aprovado; endereço base, versão da API e caminhos NÃO CONFIRMADOS: vêm da documentação do provedor escolhido no CP, por configuração, nunca no código antes; token pelo cofre.
+  - API: `enviada`, `entregue`, `lida` e `falhou` chegam pela E06 e viram linhas novas na trilha e em `integracoes_envio_eventos`; número inválido marca o contato `invalido`; recusa por janela de conversa (regra NÃO CONFIRMADA) cai para modelo.
+  - API: cota mensal por município (`consumir_cota`), e-mail ao estourar.
+- **O que NÃO deve ser implementado nesta etapa:** recebimento (E10), relato (F16-E05), cliente NÃO oficial.
+- **Arquivos e módulos prováveis:** `apps/api/src/integracoes/whatsapp/adaptador-oficial.ts`, `docs/LIGAR-O-WHATSAPP.md` (a criar).
+- **Risco de segurança:** token do provedor; número errado; custo sem teto.
+- **Impacto LGPD:** o provedor vira suboperador: linha em `docs/SUBPROCESSADORES.md` e contrato antes do `real`.
+- **Migração necessária:** Não.
+- **Compatibilidade:** `desligado` por padrão.
+- **Rollback:** `modo=desligado`; reverter o commit.
+- **Testes positivos:** modelo no sandbox devolve `idNoProvedor`; webhook `entregue` gera evento; mesmo contrato da memória.
+- **Testes negativos:** sem consentimento: nada sai; token ausente com `real`: recusa sem imprimir; cota estourada: e-mail; `entregue` com selo inválido: 404.
+- **Testes de autorização e isolamento:** o envio do A usa o segredo do A; webhook do identificador B não altera envio do A.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run typecheck`; G07, G15.
+- **E2E:** HML: enviar, receber `entregue` e ver na trilha.
+- **Validação humana:** Rafael recebe um aviso de teste em HML.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E09/`: trilha e captura, sem número real.
+- **Documentação a atualizar:** `docs/SUBPROCESSADORES.md`, `docs/LIGAR-O-WHATSAPP.md`.
+- **Definition of Done:** contrato passa no sandbox; produção atrás do CP.
+- **Checkpoint:** CP-78 (provedor oficial, conta, número, modelos, tarifa e contrato de tratamento; sem ele só a memória).
+
+### V2-F31-E10 - WhatsApp: recebimento, verificação do provedor, parada e orientação (sem relato)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (fecha a trilha do WhatsApp)
+- **Objetivo:** tratar o que chega: verificação do provedor, parada que revoga o consentimento e resposta fixa, sem relato.
+- **Problema que resolve:** o titular precisa poder parar; D-03 e D-07 exigem conta e CPF no relato, e um telefone não é isso.
+- **Origem:** PR:D-14; PR:D-03; PR:D-07; ALY:12.1.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E06; E09; F15-E16; F16-E05; CP-79 (só a ligação ao relato).
+- **O que deve ser implementado:**
+  - API: `integracoes/whatsapp/entrada.ts` (a criar): verificação do endereço no adaptador (forma NÃO CONFIRMADA); palavra de parada (catálogo pt-BR, en, es) revoga o contato pelo `telefone_hash`; outro texto recebe `resposta_de_orientacao`, igual com ou sem contato; mídia ignorada; corpo descartado, ficam tipo, hash e resultado.
+  - API: a ligação ao relato (conta e CPF: F15-E16; criação: F16-E05) só existe se o CP-79 for decidido; esta fase NÃO cria relato.
+- **O que NÃO deve ser implementado nesta etapa:** relato, atendente, chatbot, guarda de mensagem.
+- **Arquivos e módulos prováveis:** `apps/api/src/integracoes/whatsapp/entrada.ts`, `apps/api/test/integracoes/whatsapp-entrada.test.ts` (a criar).
+- **Risco de segurança:** parada que não vale; resposta como oráculo de contato.
+- **Impacto LGPD:** revogação simples e imediata; corpo descartado; telefone só em hash.
+- **Migração necessária:** Não.
+- **Compatibilidade:** aditiva.
+- **Rollback:** remover o tratador; a rota só grava a chamada.
+- **Testes positivos:** "SAIR" revoga e o envio seguinte é recusado `sem_consentimento`.
+- **Testes negativos:** texto de número sem contato recebe resposta idêntica; mensagem repetida tratada uma vez; número novo não cria pessoa, contato nem relato.
+- **Testes de autorização e isolamento:** parada pelo identificador do A não revoga o contato do B, mesmo com o mesmo telefone.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run typecheck`; G15, G34.
+- **E2E:** HML: enviar "SAIR" do aparelho de teste e ver a revogação.
+- **Validação humana:** Rafael manda "SAIR" e confere que o aviso seguinte não chega.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E10/`: testes.
+- **Documentação a atualizar:** `docs/LIGAR-O-WHATSAPP.md`.
+- **Definition of Done:** parada provada; nenhuma entidade nasce de mensagem recebida.
+- **Checkpoint:** CP-79 (se mensagem pode originar relato apesar de conta e CPF obrigatórios; sem ele não existe).
+
+### V2-F31-E11 - Camadas GIS: importação de GeoJSON e KML pela cadeia de arquivos (migration e worker)
+- **Prioridade:** P1
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E07)
+- **Objetivo:** importar camadas GeoJSON e KML pela cadeia da F06, validadas no worker.
+- **Problema que resolve:** KML é XML e admite entidade externa; arquivo grande ou polígono inválido derruba o mapa (ALY:12.1).
+- **Origem:** PR:D-14; ALY:12.1; DP:T24.
+- **Estado atual:** CRIAR (cadeia da F06, worker da F07, leitor da F32-E06).
+- **Dependências de entrada:** E05; F06-E05; F07-E04; F32-E06; CP-80.
+- **O que deve ser implementado:**
+  - Migration: `camadas_gis` (`organizacao_id`, `nome`, `origem` `arquivo|wms`, `estado`, `arquivo_id`, `wms_url_base`, `atribuicao`, `licenca`) e `camadas_gis_feicoes` (`geography` da F32-E02, `propriedades` jsonb); FK composta; RLS forçada; sem DELETE.
+  - API: `POST /v1/camadas` (ação `gerenciar_camadas`, coordenador e administrador) autoriza o upload na classe `camada_gis`; job `camada.importar`: teto proposto de 10 MB e 50 000 feições; leitura de GeoJSON e KML pelo leitor da F32-E06 (`territorio/kml.ts`, `geojson.ts`), sem reescrevê-lo, com `NetworkLink` ignorado; KMZ só com um `.kml`, aberto aqui; fora de faixa, polígono inválido e outro sistema de coordenadas vão ao relatório de rejeição; só as chaves de propriedade marcadas ficam.
+- **O que NÃO deve ser implementado nesta etapa:** WMS (E12), tela (E13), reprojeção, WFS, consulta por área (F32-E09).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/integracoes/camadas/importar.ts` (a criar), `apps/api/src/rotas/camadas.ts` (a criar).
+- **Risco de segurança:** entidade externa em XML, bomba em KMZ, geometria hostil.
+- **Impacto LGPD:** propriedades de cadastro podem ter nome de proprietário: só as chaves marcadas ficam.
+- **Migração necessária:** Sim (`NNN_camadas_gis.sql`).
+- **Compatibilidade:** aditiva.
+- **Rollback:** migration inversa, tabelas vazias.
+- **Testes positivos:** GeoJSON e KML equivalentes geram o mesmo conjunto; versão nova arquiva a anterior.
+- **Testes negativos:** KML com entidade externa rejeitado sem ler arquivo local; KMZ com descompressão absurda e 60 000 feições rejeitados.
+- **Testes de autorização e isolamento:** operador importa: 403; município B lista a camada do A: 404.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`; G06, G07, G32.
+- **E2E:** HML: importar GeoJSON sintético e ver `ativa`.
+- **Validação humana:** Rafael importa um GeoJSON e um KML.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E11/`: testes e relatório.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`.
+- **Definition of Done:** importação segura provada.
+- **Checkpoint:** CP-80 (fontes, licença e atribuição; sem ele só dado sintético).
+
+### V2-F31-E12 - Camadas GIS: WMS por referência, com imagem buscada pelo servidor
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E13 usa)
+- **Objetivo:** referenciar WMS de fonte permitida e servir a imagem pelo servidor.
+- **Problema que resolve:** o navegador falando com o terceiro vaza IP e área vista; o servidor buscando URL sem lista é requisição forjada.
+- **Origem:** PR:D-14; ALY:12.1; REL:08.
+- **Estado atual:** CRIAR (usa `rede-segura.ts` da E02 e as camadas da E11).
+- **Dependências de entrada:** E02; E11; CP-80 (só fonte real).
+- **O que deve ser implementado:**
+  - API: `POST /v1/camadas` com `origem: wms`: `url_base` conferida contra `hosts_permitidos` antes de conectar; `GetCapabilities` lido sem DTD; versões de WMS aceitas NÃO CONFIRMADAS; `atribuicao` e `licenca` obrigatórias.
+  - API: `GET /v1/camadas/:id/imagem?bbox=&largura=&altura=` busca o `GetMap` no servidor, sem cookie, cabeçalho nem IP do usuário; só `image/png`, `jpeg` ou `webp` até 2 MB; cache privado de 5 minutos (proposto); `consumir_cota` por pessoa; falha da fonte: 502 e breaker.
+- **O que NÃO deve ser implementado nesta etapa:** WFS, catálogo por jurisdição, fonte com credencial.
+- **Arquivos e módulos prováveis:** `apps/api/src/integracoes/camadas/wms.ts` (a criar), `apps/api/src/rotas/camadas.ts`, `apps/api/test/integracoes/wms-simulado.ts` (a criar).
+- **Risco de segurança:** nome que muda de endereço, redirecionamento, HTML servido como imagem.
+- **Impacto LGPD:** o terceiro recebe só o retângulo e o endereço do servidor, nunca IP do usuário.
+- **Migração necessária:** Não (colunas na E11).
+- **Compatibilidade:** aditiva.
+- **Rollback:** arquivar as camadas WMS; reverter.
+- **Testes positivos:** capabilities e imagem contra o simulado; segundo pedido sai do cache.
+- **Testes negativos:** host fora da lista: 422 sem conexão; nome resolvendo para 169.254.169.254 ou redirecionando para fora da lista: recusado; `text/html` com 200 e imagem de 3 MB: rejeitados.
+- **Testes de autorização e isolamento:** município B pede imagem do A: 404 sem tocar a fonte; `usuario_orgao`: 403.
+- **Regressão obrigatória:** `npm run test:api` (`resolver-link.test.ts`), `npm run test:isolamento`, `npm run typecheck`; G15, G32.
+- **E2E:** `npm run test:e2e:api` com o WMS simulado.
+- **Validação humana:** Rafael vê um host fora da lista recusado.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E12/`: testes.
+- **Documentação a atualizar:** `docs/SUBPROCESSADORES.md`.
+- **Definition of Done:** WMS só por lista, só imagem, só pelo servidor.
+- **Checkpoint:** CP-80 (WMS real, licença e versão; sem ele só o simulado).
+
+### V2-F31-E13 - Camadas no mapa do painel: ligar, legenda, atribuição e lista alternativa
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (depende de E11 e E12)
+- **Objetivo:** o coordenador liga e desliga camadas no mapa, com legenda, atribuição e lista textual.
+- **Problema que resolve:** o mapa só desenha ocorrências (`Mapa.tsx`, `MapaDoGoogle.tsx`).
+- **Origem:** PR:D-14; ALY:12.1; ALY:GEO-01.
+- **Estado atual:** EXPANDIR (o desenho de ocorrências fica).
+- **Dependências de entrada:** E11; E12; F10-E23; F08-E08.
+- **O que deve ser implementado:**
+  - API: `GET /v1/camadas` e `GET /v1/camadas/:id/feicoes?bbox=`, limitado por viewport (índice da F32-E04); teto proposto de 2 000 feições, com aviso.
+  - Frontend: `apps/web/src/componentes/CamadasDoMapa.tsx` (a criar): interruptor, opacidade, legenda com símbolo e texto, atribuição no rodapé; GeoJSON na camada de dados do mapa, WMS pela imagem da E12; propriedades como texto; tabela "feições visíveis" como alternativa.
+  - UX: sem camada ("Nenhuma camada configurada."), erro por camada ("A fonte não respondeu. O mapa segue com as outras."); modo local com camada sintética; textos pelo catálogo da F08-E08.
+- **O que NÃO deve ser implementado nesta etapa:** edição de geometria, upload pelo mapa (E18), camada no app do agente.
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Mapa.tsx`, `apps/web/src/paginas/MapaDoGoogle.tsx`, `apps/web/src/dados/local.ts`, `apps/web/test/camadas-do-mapa.test.ts` (a criar).
+- **Risco de segurança:** propriedade com HTML (XSS); camada pesada travando notebook fraco.
+- **Impacto LGPD:** camada é dado municipal; coordenada de ocorrência não vai a terceiro.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem camada, o mapa é idêntico.
+- **Rollback:** esconder o painel de camadas.
+- **Testes positivos:** ligar a camada desenha e lista as feições; desligar remove.
+- **Testes negativos:** `<img onerror=x>` aparece como texto; camada com erro não derruba o mapa; 5 000 feições: aviso e corte.
+- **Testes de autorização e isolamento:** `usuario_orgao` e `agente_campo` em `/v1/camadas`: 403; município B não vê camadas do A.
+- **Regressão obrigatória:** `npm run test --workspace @dc360/web`, `npm run test:api`, `npm run typecheck`; G10.
+- **E2E:** `apps/web/test/fluxo-api.e2e.mjs`: importar, abrir o mapa e ligar.
+- **Validação humana:** o coordenador liga camadas em notebook simples.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E13/`: testes e capturas nos dois temas e em 360 px (portão visual).
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** camada liga, legenda e atribuição aparecem, portão visual aprovado.
+- **Checkpoint:** Não.
+
+### V2-F31-E14 - Cemaden: confirmação documentada, porta de avisos e exibição com origem e hora
+- **Prioridade:** P2
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** médio  |  **Paralelizável:** sim (com E15)
+- **Objetivo:** confirmar por escrito o que o Cemaden publica; sem confirmação, só porta, fixture e cartão.
+- **Problema que resolve:** D-14 diz "a confirmar"; ALY:4.1 proíbe prometer integração sem API.
+- **Origem:** PR:D-14; ALY:4.1.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E02; E05; F32-E05; CP-81.
+- **O que deve ser implementado:**
+  - Arquivos: `docs/CEMADEN.md` (a criar): existe API ou feed público, autenticação, termos, limites, formato, cobertura; resultado SIM (endereço copiado da fonte) ou NÃO (a etapa fecha só com porta e fixture).
+  - API: porta `FonteDeAvisos` (`integracoes/cemaden/porta.ts`, a criar): `AvisoExterno` (`idNaFonte`, `area`, `nivelNaFonte` na palavra da fonte, `publicadoEm`, `validoAte`, `texto`); `de-arquivo.ts` e `em-memoria.ts`; real só após a confirmação.
+  - Migration: `avisos_externos` INSERT-only (UNIQUE por `id_na_fonte`), RLS forçada; consulta no worker, mínimo de 5 minutos.
+  - Frontend: cartão "Avisos oficiais na região" em `Painel.tsx`: fonte, hora, texto, nível da fonte e "sem previsão do DC360"; vazio, desatualizado, erro.
+- **O que NÃO deve ser implementado nesta etapa:** previsão própria, alerta à população (E17), ocorrência automática.
+- **Arquivos e módulos prováveis:** `docs/CEMADEN.md`, `apps/api/src/integracoes/cemaden/` (a criar), `apps/web/src/paginas/Painel.tsx`.
+- **Risco de segurança:** dado não confirmado tratado como oficial; script no texto.
+- **Impacto LGPD:** Não se aplica: aviso público, sem pessoa.
+- **Migração necessária:** Sim (`NNN_avisos_externos.sql`).
+- **Compatibilidade:** sem fonte configurada o cartão não aparece.
+- **Rollback:** migration inversa; remover o cartão.
+- **Testes positivos:** a fixture gera 2 avisos com fonte e hora; reconsulta não duplica.
+- **Testes negativos:** fonte fora do ar: "desatualizado" e o painel carrega; aviso vencido não aparece; `<script>` vira texto; `real` sem liberação recusado.
+- **Testes de autorização e isolamento:** aviso de área só do município A não aparece ao B; `usuario_orgao`: 403.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`; G10, G32.
+- **E2E:** `apps/web/test/fluxo-api.e2e.mjs` com a fixture.
+- **Validação humana:** Rafael confere que o cartão não promete previsão.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E14/`: `CEMADEN.md`, testes e capturas.
+- **Documentação a atualizar:** `docs/CEMADEN.md`.
+- **Definition of Done:** confirmação registrada, porta pronta, cartão aprovado.
+- **Checkpoint:** CP-81 (existe fonte pública oficial, com que termos; sem ela não há conector real).
+
+### V2-F31-E15 - S2ID: porta, registro canônico e sandbox simulado, ativação só com credenciamento
+- **Prioridade:** P2
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E14)
+- **Objetivo:** porta do S2ID com registro canônico e sandbox simulado; real só com credenciamento.
+- **Problema que resolve:** ALY:12.1 só aceita integrar com API oficial e credenciamento; hoje há só o pacote manual.
+- **Origem:** PR:D-14; ALY:12.1; DP:T27.
+- **Estado atual:** CRIAR (o pacote da F10-E08 segue como caminho manual).
+- **Dependências de entrada:** E05; G09; CP-82 (só real).
+- **O que deve ser implementado:**
+  - Domínio: `packages/shared/src/integracoes-s2id.ts` (a criar): `RegistroCanonico` (Zod) só com campos que o DC360 já tem (tipo COBRADE, localização, datas, situação, documentos por hash); mapeamento para os campos do órgão federal NÃO CONFIRMADO até a especificação oficial.
+  - API: porta `integracoes/s2id/porta.ts` (a criar): `prepararRegistro`, `enviar`, `consultar`; `em-memoria.ts` e `s2id-simulado.ts`; `POST /v1/integracoes/s2id/envios` (ação `enviar_integracao_externa`, coordenador e administrador) com segundo fator no ato, só para ocorrência encerrada ou documento aprovado, pela fila da E05.
+  - UX: sem `real`, a tela diz "em teste: nada foi enviado ao órgão".
+- **O que NÃO deve ser implementado nesta etapa:** adaptador real, formulário do órgão, envio automático.
+- **Arquivos e módulos prováveis:** `packages/shared/src/integracoes-s2id.ts`, `apps/api/src/integracoes/s2id/` (a criar), `apps/api/src/rotas/integracoes.ts`.
+- **Risco de segurança:** dado de pessoas indo a órgão externo.
+- **Impacto LGPD:** o órgão federal receptor é controlador próprio; só campos do registro canônico.
+- **Migração necessária:** Não.
+- **Compatibilidade:** desligado; o pacote manual continua.
+- **Rollback:** `modo=desligado`.
+- **Testes positivos:** registro válido no sandbox devolve protocolo simulado; a mesma chave não duplica.
+- **Testes negativos:** sem segundo fator: 401; ocorrência aberta: 409; nome de morador no registro rejeitado; `real` sem liberação: 422.
+- **Testes de autorização e isolamento:** coordenador do B envia ocorrência do A: 404 sem chamar o sandbox; operador: 403.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run typecheck`; G09.
+- **E2E:** `npm run test:e2e:api` com o sandbox.
+- **Validação humana:** Rafael lê o registro canônico de um caso sintético.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E15/`.
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** porta, contrato e sandbox provados.
+- **Checkpoint:** CP-82 (credenciamento, especificação oficial e base legal; sem ele só o simulado).
+
+### V2-F31-E16 - SEI: porta de processo eletrônico, envio do documento emitido e sandbox simulado
+- **Prioridade:** P2
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E14)
+- **Objetivo:** enviar documento emitido e metadados a processo eletrônico por porta própria, com sandbox simulado.
+- **Problema que resolve:** ALY:12.1 prevê a API do SEI quando disponível; hoje o PDF é anexado à mão.
+- **Origem:** PR:D-14; ALY:12.1; DP:T26.
+- **Estado atual:** CRIAR (documento imutável da F09-E05; pacote da F09-E11 como caminho manual).
+- **Dependências de entrada:** E05; F09-E05; F09-E07; CP-83 (só real).
+- **O que deve ser implementado:**
+  - API: porta `integracoes/sei/porta.ts` (a criar): `abrirProcesso`, `incluirDocumento({processoRef, nome, sha256, metadados})`, `consultar`; PDF só de `documentos_emitidos` aprovado e vigente, com `sha256` reconferido antes de sair (molde F09-E22); metadados: protocolo, tipo, emissão, versão, hash.
+  - API: `POST /v1/integracoes/sei/envios` (ação `enviar_integracao_externa`, segundo fator no ato); o número do processo volta em `id_no_provedor` e aparece no histórico do documento.
+  - Config: instância do município em `hosts_permitidos`; tipos vêm da `config`; versão, caminhos e autenticação da API do SEI NÃO CONFIRMADOS; `sei-simulado.ts` nos testes.
+- **O que NÃO deve ser implementado nesta etapa:** assinatura no SEI (F09), ler processo alheio, enviar rascunho, envio automático.
+- **Arquivos e módulos prováveis:** `apps/api/src/integracoes/sei/` (a criar), `apps/api/src/rotas/integracoes.ts`.
+- **Risco de segurança:** PDF substituído enviado como aprovado.
+- **Impacto LGPD:** o PDF vai ao sistema do próprio município (controlador).
+- **Migração necessária:** Não.
+- **Compatibilidade:** desligado por padrão.
+- **Rollback:** `modo=desligado`.
+- **Testes positivos:** documento aprovado vai ao simulado e o histórico mostra o número.
+- **Testes negativos:** versão substituída: 409; hash diferente do snapshot: nada sai; rascunho: 409; host fora da lista recusado.
+- **Testes de autorização e isolamento:** município B envia documento do A: 404 sem tocar o simulado; agente: 403.
+- **Regressão obrigatória:** `npm run test:api` (`documentos.test.ts`), `npm run test:isolamento`, `npm run typecheck`; G09.
+- **E2E:** `npm run test:e2e:api` com o simulado.
+- **Validação humana:** Rafael envia um laudo sintético ao simulado.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E16/`.
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** só documento aprovado, vigente e íntegro chega à porta.
+- **Checkpoint:** CP-83 (instância, API habilitada, credencial e tipos; sem ele só o simulado).
+
+### V2-F31-E17 - Defesa Civil Alerta: porta, aprovação por segunda pessoa, simulação e sandbox
+- **Prioridade:** P2
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não (reusa o fluxo das E15 e E16)
+- **Objetivo:** emitir alerta à população pelo serviço oficial com aprovação por OUTRA pessoa, simulação por padrão e sandbox.
+- **Problema que resolve:** alerta falso ou duplicado tem custo humano alto; o DC360 não substitui o serviço oficial.
+- **Origem:** PR:D-14; ALY:4.1.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E05; F03-E11; F32-E05; CP-84.
+- **O que deve ser implementado:**
+  - Domínio: `packages/shared/src/integracoes-alerta.ts` (a criar): `AlertaCanonico` (`area`, `nivel`, `texto`, `validoAte`); teto de texto e formato da área NÃO CONFIRMADOS; validador recusa telefone, CPF, e-mail, nome e link.
+  - API: porta `integracoes/alerta/porta.ts` (a criar): `emitir`, `cancelar`, `consultar`; `em-memoria.ts` e sandbox simulado; `POST /v1/integracoes/alerta/envios` cria o rascunho (ação `emitir_alerta_publico`, coordenador e administrador); `POST .../aprovar` exige OUTRA pessoa com segundo fator; sem repetição automática, reenvio só manual.
+  - Migration: gatilho em `integracoes_envio_eventos` recusa `aprovado` do mesmo autor do `solicitado` no `alerta_publico`.
+  - `simulacao` por padrão, mesmo com `real`, até o município marcar "envio real" e o fornecedor liberar.
+- **O que NÃO deve ser implementado nesta etapa:** adaptador real, disparo automático, segmentação por moradores, sirene.
+- **Arquivos e módulos prováveis:** `apps/api/src/integracoes/alerta/` (a criar), `db/migrations/` (nova).
+- **Risco de segurança:** aprovação pela mesma pessoa; texto com dado pessoal; duplicidade.
+- **Impacto LGPD:** texto público sem dado pessoal, por validação.
+- **Migração necessária:** Sim (`NNN_alerta_dupla_aprovacao.sql`).
+- **Compatibilidade:** desligado.
+- **Rollback:** migration inversa.
+- **Testes positivos:** rascunho por A e aprovação por B com código: o sandbox recebe um alerta.
+- **Testes negativos:** A aprova o próprio rascunho: 409 e o gatilho recusa; sem código: 401; texto com telefone rejeitado; em `simulacao` a porta real não é chamada.
+- **Testes de autorização e isolamento:** coordenador do B aprova rascunho do A: 404; operador e agente: 403.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run typecheck`; G03.
+- **E2E:** `npm run test:e2e:api` com duas pessoas e o sandbox.
+- **Validação humana:** Rafael e uma segunda pessoa fazem o exercício de mesa.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E17/`.
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** dupla aprovação no banco e ausência de repetição automática provadas.
+- **Checkpoint:** CP-84 (credenciamento, quem autoriza, textos; sem ele só simulação).
+
+### V2-F31-E18 - Tela de integrações no painel e liberação e leitura no console (migration)
+- **Prioridade:** P1
+- **Tamanho:** L  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (mostra o que E03 a E17 entregam)
+- **Objetivo:** o administrador configura, testa e acompanha cada integração; o fornecedor libera o `real` no console, sem ver segredo.
+- **Problema que resolve:** sem tela a configuração não é operável, e o fornecedor não tem como dar a segunda chave da E01.
+- **Origem:** PR:D-14; ALY:12.2.
+- **Estado atual:** CRIAR (painel) e EXPANDIR (console).
+- **Dependências de entrada:** E03; E04; E05; E07; G10; F08-E08.
+- **O que deve ser implementado:**
+  - Migration: função `console_liberar_integracao(organizacao_id, integracao, liberada, motivo)` (molde `console_suspender_municipio`, lista nominal), com ato em `trilha_administrativa`; o console lê modo, liberação, `circuito` e contagens, nunca `segredo_cifrado`.
+  - Frontend: `apps/web/src/paginas/Integracoes.tsx` (a criar), `/integracoes`, só administrador: cartão por integração (Desligada, Em teste, Ativa), último sucesso, falhas em 24 h; hosts e segredo ("configurado em ...", "Substituir"); "Testar conexão" em linguagem simples; chamadas paginadas; reenviar; `ConfirmarAcao.tsx` antes de `real`; vazio, erro, carregando; teclado, `aria-live`, catálogo da F08-E08.
+  - Console: `consultas.ts` e `pagina.ts`: estado por município e botão de liberar com motivo.
+- **O que NÃO deve ser implementado nesta etapa:** ver corpo ou segredo, editar configuração pelo console, métricas (F20-E07, F21-E02).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/web/src/paginas/Integracoes.tsx` (a criar), `apps/console/src/consultas.ts`.
+- **Risco de segurança:** console lendo segredo; liberação sem trilha.
+- **Impacto LGPD:** as telas mostram só identificadores.
+- **Migração necessária:** Sim (`NNN_console_libera_integracao.sql`).
+- **Compatibilidade:** aditiva.
+- **Rollback:** migration inversa; remover a rota.
+- **Testes positivos:** administrador configura e vê "Em teste"; o fornecedor libera e, ligado o `real`, a tela mostra "Ativa".
+- **Testes negativos:** segredo digitado nunca reaparece; `real` sem liberação: botão desabilitado e API 422; liberar sem motivo: 422; console lendo `segredo_cifrado`: 42501.
+- **Testes de autorização e isolamento:** coordenador em `/integracoes`: 403; município B não vê a tela do A.
+- **Regressão obrigatória:** `npm run test:console`, `npm run test --workspace @dc360/web`, `npm run test:isolamento`, `npm run typecheck`; G10.
+- **E2E:** `apps/web/test/fluxo-api.e2e.mjs`: configurar, testar; console: liberar.
+- **Validação humana:** Rafael percorre a tela com teclado e em 360 px.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E18/`: testes e capturas (portão visual seção 0).
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** tela aprovada no portão visual; liberação com trilha.
+- **Checkpoint:** Não.
+
+### V2-F31-E19 - LGPD das integrações: inventário, subprocessadores, manifesto e teste de documentação
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E18)
+- **Objetivo:** documentar por integração finalidade, dados e papel do receptor, classificar as tabelas no manifesto e barrar integração real sem documentação.
+- **Problema que resolve:** ALY:13 exige finalidade e retenção; `docs/SUBPROCESSADORES.md` não cita nenhuma integração nova.
+- **Origem:** PR:D-14; ALY:13; DP:T41.
+- **Estado atual:** EXPANDIR (`SUBPROCESSADORES.md`, `PRIVACIDADE.md`) e CRIAR (`INTEGRACOES.md`).
+- **Dependências de entrada:** E03 a E17; F05-E02.
+- **O que deve ser implementado:**
+  - Arquivos: `docs/INTEGRACOES.md` (a criar): por integração, finalidade, dado enviado e recebido, receptor e papel (suboperador ou controlador próprio), local dos servidores (NÃO CONFIRMADO até o provedor), retenção e CP; WhatsApp e WMS reais em `docs/SUBPROCESSADORES.md`; `docs/PRIVACIDADE.md` ganha consentimento e parada.
+  - Banco: `db/src/manifesto.ts` classifica as tabelas da fase (`segredo_cifrado` e `entrada_hash` em `colunasQueNuncaSaem`; `contatos_mensageria` `pessoal: sim`; eliminação `apaga`).
+  - Teste: `documentadas.test.ts` (a criar): todo id com adaptador real consta em `docs/INTEGRACOES.md`.
+- **O que NÃO deve ser implementado nesta etapa:** texto jurídico, base legal (CP-11), contrato.
+- **Arquivos e módulos prováveis:** `docs/INTEGRACOES.md`, `docs/SUBPROCESSADORES.md`, `db/src/manifesto.ts`, `apps/api/test/integracoes/documentadas.test.ts` (a criar).
+- **Risco de segurança:** receptor de dado omitido; tabela fora do pacote de saída.
+- **Impacto LGPD:** é a própria etapa; nada é decidido aqui.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: documentação.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** o teste passa com a documentação completa; o pacote de saída sintético traz as chamadas sem segredo.
+- **Testes negativos:** id novo sem linha reprova; tabela sem classificação reprova (F05-E02); `segredo_cifrado` no pacote reprova `saida-de-municipio.test.ts`.
+- **Testes de autorização e isolamento:** a eliminação do município A não toca as integrações do B.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run conferir:numeros`; G05.
+- **E2E:** Não se aplica: sem fluxo.
+- **Validação humana:** o encarregado lê o inventário.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E19/`.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** inventário completo e teste de documentação verde.
+- **Checkpoint:** CP-06 (residência dos servidores; sem ela WhatsApp e fontes reais ficam fora da lista).
+
+### V2-F31-E20 - Suíte de contrato, falha injetada, varredura de segredo e prova de isolamento
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (fecha a fase)
+- **Objetivo:** contrato comum a todo adaptador, falha injetada, varredura de segredo e prova de isolamento.
+- **Problema que resolve:** sem prova comum cada conector falha de um jeito em produção; "segredo nunca em log" só vale se um teste o procura.
+- **Origem:** PR:D-14; BZ-F:P0-SEG; DP:T43.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E01 a E19.
+- **O que deve ser implementado:**
+  - Testes: `apps/api/test/integracoes/contrato-da-porta.ts` (a criar): sucesso, timeout, 429, 500, resposta malformada, corpo gigante, redirecionamento, repetição de webhook e selo inválido, contra cada adaptador (memória, simulado e sandbox real em HML).
+  - Testes: varredura com segredo canário: roda os fluxos e procura o valor em logs, `integracoes_chamadas`, respostas, erros, pacote de saída e DOM: zero ocorrências.
+  - Testes: tabelas da fase com RLS forçada e no manifesto; rotas no manifesto da F03-E12 com `exigirPermissao`; com tudo fora do ar, criar, despachar e encerrar ocorrência respondem sem chamada externa.
+  - E2E: `scripts/e2e-api.mjs`: WhatsApp de teste (consentir, enviar, `entregue`, parada) e camada.
+- **O que NÃO deve ser implementado nesta etapa:** carga (F24-E14), pentest (F25-E16), ativação real.
+- **Arquivos e módulos prováveis:** `apps/api/test/integracoes/` (a criar), `apps/api/test/superficie.test.ts`, `scripts/e2e-api.mjs`.
+- **Risco de segurança:** suíte vazia; canário que não varre a saída certa.
+- **Impacto LGPD:** só dado sintético.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: só testes.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** o contrato passa em todos os adaptadores; o fluxo do WhatsApp de teste fecha.
+- **Testes negativos:** tirar `semSegredos` de um adaptador reprova a varredura; adaptador que chama a rede no pedido reprova; rota nova sem ação no manifesto reprova.
+- **Testes de autorização e isolamento:** dois municípios com a mesma integração e segredos diferentes: o A nunca usa o do B.
+- **Regressão obrigatória:** `npm run verificar`; G00 a G19, G29, G30, G32 a G34.
+- **E2E:** `npm run test:e2e:api`.
+- **Validação humana:** Rafael lê o relatório da varredura.
+- **Evidência a produzir:** `docs/evidencias-v2/G31/V2-F31-E20/`.
+- **Documentação a atualizar:** `docs/IMPLANTACAO.md`.
+- **Definition of Done:** contrato em todos os adaptadores e zero ocorrência do canário.
+- **Checkpoint:** Não.
+
+# GATE G31 - INTEGRAÇÕES EXTERNAS OFICIAIS
+Só passa se:
+- [ ] ADR aprovado com as nove cláusulas, cada uma ligada à etapa e ao teste que a prova (V2-F31-E01; evidência: `docs/evidencias-v2/G31/V2-F31-E01/`); CP-77 decidido, ou adiado com a produção bloqueada.
+- [ ] Núcleo único em uso (resultado tipado, tempo limite, breaker por município, rede segura extraída de `rotas/mapa.ts`), com `resolver-link.test.ts` verde e nenhum conector fora dele (V2-F31-E02; evidência: saída dos testes).
+- [ ] Configuração por município sob RLS forçada, segredo cifrado e sem retorno, `real` impossível sem a liberação do fornecedor no banco e na API (V2-F31-E03; evidência: testes e catálogo).
+- [ ] Trilha de chamadas append-only, sem corpo, sem segredo e sem dado pessoal desnecessário (V2-F31-E04; evidência: testes e amostra sintética).
+- [ ] Toda saída pela fila, idempotente, com tentativas e reenvios limitados e aviso quando desiste, e nenhuma chamada externa no caminho do pedido (V2-F31-E05; evidência: testes).
+- [ ] Webhook de entrada com selo verificado, repetição absorvida, município vindo do banco e 404 uniforme (V2-F31-E06; evidência: testes e respostas comparadas).
+- [ ] WhatsApp: modelos de conteúdo mínimo, consentimento revogável, adaptador oficial passando o contrato no sandbox, estado de entrega e parada provados, nenhum relato nascendo de mensagem (V2-F31-E07 a E10, P1; evidência: testes, trilha e capturas); CP-78 e CP-79 decididos, ou adiados com envio real e relato por WhatsApp bloqueados.
+- [ ] Camadas: GeoJSON e KML importados com segurança, WMS só por lista e só pelo servidor, camadas no mapa com legenda, atribuição e lista alternativa (V2-F31-E11 a E13, P1; evidência: testes e capturas aprovadas no portão visual); CP-80 decidido, ou adiado com fonte real bloqueada.
+- [ ] Cemaden: confirmação documentada com SIM ou NÃO, porta e cartão com origem e hora, sem previsão própria (V2-F31-E14, P2; evidência: `docs/CEMADEN.md` e testes); CP-81 decidido, ou adiado com o conector real inexistente.
+- [ ] S2ID, SEI e Defesa Civil Alerta: porta, contrato, sandbox simulado, dupla aprovação no banco para o alerta, simulação por padrão e nenhum adaptador real (V2-F31-E15 a E17, P2; evidência: testes e roteiro do exercício); CP-82, CP-83 e CP-84 decididos, ou adiados com cada ativação real bloqueada.
+- [ ] Tela de integrações e liberação e leitura no console sem segredo, com trilha (V2-F31-E18, P1; evidência: testes e capturas nos dois temas e em 360 px).
+- [ ] Inventário de dados, `docs/SUBPROCESSADORES.md` e manifesto atualizados, teste de documentação verde (V2-F31-E19, P1; evidência: testes e inventário); CP-06 decidido, ou adiado com WhatsApp e fontes reais bloqueados.
+- [ ] Suíte de contrato verde em todos os adaptadores, varredura de segredo com zero ocorrência e isolamento provado entre dois municípios (V2-F31-E20; evidência: saída e relatório).
+- [ ] Nenhuma integração em modo `real` em produção ao fim da fase e nenhuma tela dizendo "oficial" ou "homologado" sem o checkpoint decidido (evidência: consulta a `integracoes_municipio` e lista de textos).
+- [ ] Nenhuma regressão: gates G00 a G19, G29, G30, G32, G33 e G34 continuam verdes (se um quebrar, ESTE gate volta a REPROVADO), com `npm run test:isolamento`, `npm run test:api`, `npm run test:console`, `npm run test:scripts`, `npm run auditar` e `npm run typecheck` verdes.
+- [ ] Documentação atualizada (`docs/INTEGRACOES.md`, `docs/SUBPROCESSADORES.md`, `docs/PRIVACIDADE.md`, `docs/DICIONARIO-DE-DADOS.md`, `docs/IMPLANTACAO.md`, `docs/LIGAR-O-WHATSAPP.md`) e evidências arquivadas em `docs/evidencias-v2/G31/`.
+
+**Reabre se:** segredo de integração aparecer em log, trilha, resposta, erro ou pacote de saída; webhook aceitar corpo sem selo ou município vindo de parâmetro; modo `real` ligar sem a liberação do fornecedor; chamada externa entrar no caminho do pedido do usuário; WMS ou KML buscar destino fora da lista ou ler arquivo local; mensagem de WhatsApp carregar dado de caso; alerta público sair sem segunda pessoa; relato nascer de mensagem recebida sem o CP-79; integração de um município afetar outro.
+**Este Gate libera:** F35 (F35-E11: idiomas e identidade visual cobrem as telas novas de integrações, camadas e consentimento), F20 (F20-E07: o console consolida a liberação e a leitura), F21 (F21-E02 e F21-E04: métricas e alerta de fila por integração), F25 (F25-E16: webhooks, proxy WMS e alerta público entram no escopo do pentest) e F26 (F26-E10: cenário com integração em sandbox). NÃO libera a ativação real de nenhuma integração: cada uma é um checkpoint novo e um passo de produção.

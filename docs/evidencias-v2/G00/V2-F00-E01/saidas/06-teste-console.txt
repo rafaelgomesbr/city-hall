@@ -1,0 +1,124 @@
+$ npm run test:console   (em .)
+codigo=0 duracao=84s situacao=confere
+
+
+> dc360@0.1.0 test:console
+> npm run test --workspace @dc360/console
+
+
+> @dc360/console@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/console
+
+ ✓ test/o-qr-e-o-do-produto.test.ts (2 tests) 126ms
+ ✓ test/a-tela-responde.test.ts (65 tests) 801ms
+ ✓ test/plateia-nao-atravessa.test.ts (6 tests) 78ms
+ ✓ test/subir-em-producao.test.ts (25 tests) 8974ms
+   ✓ a armadilha das aspas no hash da senha > um hash de verdade passa  984ms
+   ✓ a armadilha das aspas no hash da senha > uma semente inteira bem formada continua sendo aceita  995ms
+ ✓ test/o-acabamento-da-tela.test.ts (26 tests) 8752ms
+{"level":30,"time":1791235660686,"pid":95588,"hostname":"Rafa_Laptop","operador":"coordenacao@fornecedor.com.br","operador_id":"94515a83-9e64-4acc-b577-25ea4ca89db6","msg":"dono do console semeado a partir de CONSOLE_OPERADORES. A variável já pode sair da configuração: daqui em diante ela é ignorada."}
+{"level":30,"time":1791235660718,"pid":95588,"hostname":"Rafa_Laptop","operadores":1,"msg":"console do fornecedor pronto, com 1 operador(es) no banco"}
+{"level":40,"time":1791235660729,"pid":95588,"hostname":"Rafa_Laptop","operador":"coordenacao@fornecedor.com.br","papel":"dono","msg":"operador coordenacao@fornecedor.com.br é dono e não tem códigos de recuperação; gere em Minha senha. Sem eles, perder a senha e o aparelho exige a credencial de dono do banco."}
+{"level":30,"time":1791235660753,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-1","req":{"method":"POST","url":"/entrar","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791235661449,"pid":95588,"hostname":"Rafa_Laptop","operador":"coordenacao@fornecedor.com.br","msg":"senha conferida, aguardando o codigo"}
+{"level":30,"time":1791235661459,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-1","res":{"statusCode":200},"responseTime":704.8629000000001,"msg":"request completed"}
+{"level":30,"time":1791235661460,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-2","req":{"method":"POST","url":"/entrar/codigo","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791235661473,"pid":95588,"hostname":"Rafa_Laptop","operador":"coordenacao@fornecedor.com.br","papel":"dono","msg":"operador entrou no console"}
+{"level":30,"time":1791235661480,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-2","res":{"statusCode":200},"responseTime":19.80789999999979,"msg":"request completed"}
+{"level":30,"time":1791235661483,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-3","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791235661498,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-3","res":{"statusCode":200},"responseTime":14.916300000000774,"msg":"request completed"}
+{"level":30,"time":1791235661507,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-4","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791235661518,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-4","res":{"statusCode":200},"responseTime":11.187400000000707,"msg":"request completed"}
+{"level":30,"time":1791235661520,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-5","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791235661530,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-5","res":{"statusCode":200},"responseTime":10.369800000000396,"msg":"request completed"}
+{"level":30,"time":1791235661532,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-6","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791235661542,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-6","res":{"statusCode":200},"responseTime":10.631399999998393,"msg":"request completed"}
+{"level":30,"time":1791235661543,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-7","req":{"method":"GET","url":"/municipios/11111111-1111-4111-8111-000000000001/serie?dias=30","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791235661555,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-7","res":{"statusCode":200},"responseTime":11.060800000001109,"msg":"request completed"}
+{"level":30,"time":1791235661557,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-8","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791235661569,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-8","res":{"statusCode":200},"responseTime":11.91269999999895,"msg":"request completed"}
+{"level":30,"time":1791235661571,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-9","req":{"method":"GET","url":"/municipios","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791235661586,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-9","res":{"statusCode":200},"responseTime":14.960500000001048,"msg":"request completed"}
+{"level":30,"time":1791235661587,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-a","req":{"method":"GET","url":"/municipios/0090f840-0465-44d5-a3ed-9784c01952f4/serie","host":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1791235661590,"pid":95588,"hostname":"Rafa_Laptop","reqId":"req-a","res":{"statusCode":401},"responseTime":2.4381000000012136,"msg":"request completed"}
+ ✓ test/ponta-a-ponta.test.ts (9 tests) 7980ms
+ ✓ test/superficie.test.ts (12 tests) 12836ms
+   ✓ O limite por endereco cobre a porta, e so a porta > a porta trava depois do teto  1977ms
+ ✓ test/cadastro-de-prefeitura.test.ts (10 tests) 16087ms
+   ✓ O console cadastra a prefeitura e o primeiro administrador dela > cria o municipio, o administrador e a linha de nascimento, e devolve a senha  711ms
+   ✓ O console cadastra a prefeitura e o primeiro administrador dela > a senha que a tela mostra abre a conta que acabou de nascer  2045ms
+   ✓ O console cadastra a prefeitura e o primeiro administrador dela > a senha inicial nao fica guardada em texto claro em lugar nenhum  664ms
+   ✓ O console cadastra a prefeitura e o primeiro administrador dela > recusa municipio duplicado, diz qual ja existe, e nao cria o segundo  1295ms
+   ✓ O console cadastra a prefeitura e o primeiro administrador dela > recusa o email que ja tem conta em outro municipio, e nao diz em qual  1258ms
+ ✓ test/dono-sem-codigos.test.ts (4 tests) 17345ms
+   ✓ A entrada diz quantos codigos a conta tem > o dono recem-semeado entra com zero, e a resposta traz o numero  778ms
+   ✓ Depois de gerar o lote, as duas bocas se calam > a entrada devolve oito, e um segundo processo sobre o mesmo banco sobe sem o warn  7164ms
+ ✓ test/segundo-fator-obrigatorio.test.ts (13 tests) 18879ms
+   ✓ Entrar no console exige o segundo fator, sem excecao > a senha certa NAO devolve sessao, devolve desafio  747ms
+   ✓ Entrar no console exige o segundo fator, sem excecao > o desafio da primeira etapa e recusado pelas rotas de leitura  676ms
+   ✓ Entrar no console exige o segundo fator, sem excecao > a senha errada nao passa da primeira etapa, e a resposta e igual a de email desconhecido  1399ms
+   ✓ Entrar no console exige o segundo fator, sem excecao > com o codigo certo, a sessao nasce e ela vale nas rotas de leitura  666ms
+   ✓ Entrar no console exige o segundo fator, sem excecao > o mesmo codigo nao serve duas vezes  1356ms
+   ✓ Entrar no console exige o segundo fator, sem excecao > codigos errados demais poem a conta de castigo  5385ms
+ ✓ test/area-de-usuarios.test.ts (19 tests) 23264ms
+   ✓ O dono cria operadores, e a credencial deles aparece uma vez > criar operador devolve senha, segredo, endereco otpauth, o desenho do QR e os codigos de recuperacao, uma vez  5999ms
+   ✓ O dono cria operadores, e a credencial deles aparece uma vez > a senha e o segredo mostrados abrem a conta criada  634ms
+   ✓ O dono cria operadores, e a credencial deles aparece uma vez > email repetido e recusado com mensagem, e nao com falha interna  619ms
+   ✓ Trocar a minha senha > exige a senha atual E um codigo novo do autenticador  1745ms
+   ✓ Trocar a minha senha > o codigo da entrada, ja usado, nao serve para trocar a senha  1169ms
+   ✓ Trocar a minha senha > com senha atual e codigo novo, troca, e devolve uma sessao nova  2370ms
+   ✓ Trocar a minha senha > e a senha nova abre a conta  652ms
+ ✓ test/acoes-perigosas.test.ts (17 tests) 24364ms
+   ✓ Eliminar, com prazo de arrependimento de sete dias > a rota exige senha atual, codigo novo, nome exato e motivo, nessa ordem  1786ms
+   ✓ Eliminar, com prazo de arrependimento de sete dias > o codigo que abriu a sessao (ja usado) nao serve para eliminar  1125ms
+   ✓ Eliminar, com prazo de arrependimento de sete dias > com tudo certo, suspende na hora e agenda para sete dias, e a lista mostra  591ms
+   ✓ Nada que sirva para entrar cai no log das acoes perigosas > as linhas de warn carregam quem, qual municipio por id e a acao, e nunca senha nem codigo  652ms
+   ✓ Limite por endereco nas rotas de acao perigosa > depois do teto, a rota responde 429 com a espera certa, e a de numeros nao  2456ms
+ ✓ test/no-navegador.test.ts (8 tests) 30325ms
+   ✓ Eliminar e cancelar, no navegador, com a politica de seguranca valendo > a pagina abre com a politica no cabecalho, e o script e a folha passam por ela  814ms
+   ✓ Eliminar e cancelar, no navegador, com a politica de seguranca valendo > o dono entra pela porta de duas etapas e ve a linha de Serra Alta com as acoes  1110ms
+   ✓ Eliminar e cancelar, no navegador, com a politica de seguranca valendo > com senha, codigo novo, nome exato e motivo, agenda; a linha mostra o prazo e o cancelar  1327ms
+   ✓ Eliminar e cancelar, no navegador, com a politica de seguranca valendo > cancelar durante o prazo passa pelo dialogo, e a linha volta a suspensa, sem reativar sozinha  1013ms
+   ✓ Gerar codigos de recuperacao e recuperar a conta com um deles, no navegador > em Minha senha, com a senha e um codigo novo, os oito codigos aparecem uma vez e a contagem muda  6523ms
+   ✓ Gerar codigos de recuperacao e recuperar a conta com um deles, no navegador > sair, Esqueci a senha, um codigo e a senha nova: o QR novo aparece, e a pessoa entra pela porta com ele  7516ms
+ ✓ test/operadores-no-banco.test.ts (15 tests) 31847ms
+   ✓ A semente do dono, na partida > com a tabela vazia e SEM a variavel, o console nao sobe, e diz o que fazer  1876ms
+   ✓ A semente do dono, na partida > a semente com mais de um operador e recusada: so o dono nasce por ela  1780ms
+   ✓ A semente do dono, na partida > a semente continua recusando hash estragado pelo shell, antes de tocar no banco  1763ms
+   ✓ A porta le o banco, e grava no banco o que antes ficava na memoria > o dono semeado entra com a senha e o segredo da semente  696ms
+   ✓ A porta le o banco, e grava no banco o que antes ficava na memoria > a entrada devolve o papel, para a tela saber o que mostrar  623ms
+   ✓ A porta le o banco, e grava no banco o que antes ficava na memoria > um segundo processo sobre o mesmo banco recusa o codigo que o primeiro ja queimou  1277ms
+   ✓ A porta le o banco, e grava no banco o que antes ficava na memoria > codigos errados contam na tabela, e o quinto poe a conta de castigo tambem na tabela  5670ms
+   ✓ A porta le o banco, e grava no banco o que antes ficava na memoria > operador desativado nao entra, e a resposta e a mesma de senha errada  8923ms
+{"level":40,"time":1791235683782,"pid":80784,"hostname":"Rafa_Laptop","msg":"CONSOLE_OPERADORES ignorada: os operadores do console já vivem no banco (console_operadores), e a variável só serve para semear o dono uma vez. Remova-a da configuração."}
+{"level":30,"time":1791235683789,"pid":80784,"hostname":"Rafa_Laptop","operadores":2,"msg":"console do fornecedor pronto, com 2 operador(es) no banco"}
+ ✓ test/diagnostico-da-porta.test.ts (8 tests) 33040ms
+   ✓ Toda tentativa recusada deixa rastro suficiente para diagnosticar > senha errada escreve uma linha, com o email tentado e um motivo  776ms
+   ✓ Toda tentativa recusada deixa rastro suficiente para diagnosticar > email desconhecido tambem escreve, e com o MESMO motivo generico da senha errada  1368ms
+   ✓ Toda tentativa recusada deixa rastro suficiente para diagnosticar > nem a senha nem o corpo do pedido entram na linha da recusa  687ms
+   ✓ Toda tentativa recusada deixa rastro suficiente para diagnosticar > codigo errado escreve uma linha, e o codigo NAO entra nela  660ms
+   ✓ Toda tentativa recusada deixa rastro suficiente para diagnosticar > a conta de castigo tem motivo proprio, e nao se confunde com codigo errado  2537ms
+   ✓ Nada que sirva para entrar cai no log > uma entrada inteira, com as rotas novas depois dela, nao deixa segredo nenhum escrito  18013ms
+ ✓ test/recuperacao-de-senha.test.ts (20 tests) 80060ms
+   ✓ Gerar codigos de recuperacao, na propria conta > gerar exige a senha atual e um codigo NOVO do autenticador, como a troca de senha  1343ms
+   ✓ Gerar codigos de recuperacao, na propria conta > com senha e codigo novo, saem oito codigos de dez simbolos, e nada em texto claro no banco nem no log  5710ms
+   ✓ Gerar codigos de recuperacao, na propria conta > gerar de novo invalida os anteriores: os oito antigos ficam usados, e sobram exatamente oito  5273ms
+   ✓ Gerar codigos de recuperacao, na propria conta > um codigo do lote invalidado nao recupera nada  4845ms
+   ✓ Gerar codigos de recuperacao, na propria conta > Esqueci a senha, sem sessao: ate o dono recupera a propria conta > um codigo valido redefine a senha E o segundo fator, devolve o segredo novo uma vez, e NAO devolve sessao  4703ms
+   ✓ Gerar codigos de recuperacao, na propria conta > Esqueci a senha, sem sessao: ate o dono recupera a propria conta > a senha antiga e o autenticador antigo nao abrem mais nada  830ms
+   ✓ Gerar codigos de recuperacao, na propria conta > Esqueci a senha, sem sessao: ate o dono recupera a propria conta > a senha nova com o autenticador novo entram, e a sessao e a de sempre  454ms
+   ✓ Gerar codigos de recuperacao, na propria conta > Esqueci a senha, sem sessao: ate o dono recupera a propria conta > o codigo usado nao serve de novo, e a resposta e a generica  3144ms
+   ✓ Toda recusa da recuperacao e a mesma, no mesmo tempo aproximado > email inexistente, operador inativo, codigo errado e codigo ja usado: uma resposta so  15226ms
+   ✓ Toda recusa da recuperacao e a mesma, no mesmo tempo aproximado > email inexistente gasta o mesmo trabalho de uma conta com oito codigos  8080ms
+   ✓ Ao criar operador, os codigos dele saem junto com senha, segredo e QR > a resposta traz oito codigos, gravados como hash na linha do operador novo  5204ms
+   ✓ Ao criar operador, os codigos dele saem junto com senha, segredo e QR > o operador novo recupera a propria conta com um dos codigos, sem precisar do dono  5209ms
+   ✓ A rota de recuperar esta sob o limite da porta > depois do teto, responde 429 com a espera da porta  9962ms
+
+ Test Files  16 passed (16)
+      Tests  259 passed (259)
+   Start at  18:27:28
+   Duration  82.43s (transform 8.38s, setup 1.85s, collect 24.39s, tests 314.76s, environment 6ms, prepare 7.33s)
+

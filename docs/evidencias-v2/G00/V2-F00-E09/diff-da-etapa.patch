@@ -1,0 +1,1326 @@
+diff --git a/dc360/apps/web/src/estilos/app.css b/dc360/apps/web/src/estilos/app.css
+index 7a22618..049d7d6 100644
+--- a/dc360/apps/web/src/estilos/app.css
++++ b/dc360/apps/web/src/estilos/app.css
+@@ -1192,3 +1192,101 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
+ }
+ .qr__fundo { fill: var(--ds-qr-claro); }
+ .qr__modulo { fill: var(--ds-qr-escuro); }
++
++/* ---------------------------------------------------------------------------
++   Sessões e redefinição de senha (V2-F00-E09)
++   --------------------------------------------------------------------------- */
++
++/*
++  Os botões de uma linha da lista de usuários. Com quatro (Corrigir, Desativar,
++  Redefinir senha, Encerrar sessões) a coluna Ação passaria da largura do
++  cartão numa fileira só; em grade de duas colunas (Corrigir e Desativar em
++  cima, Redefinir senha e Encerrar sessões embaixo) o rótulo de cada um continua
++  inteiro, os botões alinham entre as linhas e a coluna ocupa o mínimo.
++*/
++.tabela__acoes {
++  display: grid; grid-template-columns: repeat(2, max-content);
++  justify-items: start; align-items: center;
++  gap: var(--ds-sp-1) var(--ds-sp-2);
++}
++
++/*
++  A janela da senha temporária. A senha é a única coisa da janela que vai ser
++  LIDA EM VOZ ALTA ao telefone, então ela ganha o maior corpo da família mono, o
++  espaçamento de rótulo e a seleção inteira com um toque. Quebra em qualquer
++  ponto para nunca estourar a janela no celular.
++*/
++.senha-temporaria { display: grid; gap: var(--ds-sp-4); margin-top: var(--ds-sp-4); }
++.senha-temporaria .aviso { margin-bottom: 0; }
++.senha-temporaria__mensagem {
++  margin: 0; font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
++  color: var(--ds-text-muted);
++}
++.senha-temporaria__bloco {
++  display: grid; gap: var(--ds-sp-2);
++  padding: var(--ds-sp-4);
++  background: var(--ds-surface-2);
++  border: 1px solid var(--ds-border);
++  border-radius: var(--ds-radius);
++}
++.senha-temporaria__valor {
++  margin: 0;
++  font-size: var(--ds-fs-h3); line-height: var(--ds-lh-h3);
++  font-weight: var(--ds-fw-semibold);
++  letter-spacing: var(--tracking-rotulo);
++  word-break: break-all;
++  user-select: all;
++}
++.senha-temporaria__acoes { display: flex; flex-wrap: wrap; gap: var(--ds-sp-2); }
++.senha-temporaria__estado {
++  margin: 0; min-height: var(--ds-lh-body-sm);
++  display: flex; align-items: center; gap: var(--ds-sp-1);
++  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
++  color: var(--ds-text-muted);
++}
++
++/*
++  A lista das sessões da própria conta. Cada item é uma linha com o aparelho em
++  destaque, e as duas datas embaixo, lado a lado quando cabe e empilhadas no
++  telefone. A marca "Esta sessão" é selo com ícone e texto, nunca só cor.
++*/
++.sessoes {
++  list-style: none; margin: 0 0 var(--ds-sp-4); padding: 0;
++  display: grid; gap: var(--ds-sp-2);
++}
++.sessoes__item {
++  display: grid; gap: var(--ds-sp-1);
++  padding: var(--ds-sp-3) var(--ds-sp-4);
++  background: var(--ds-surface-2);
++  border: 1px solid var(--ds-border);
++  border-radius: var(--ds-radius);
++}
++.sessoes__topo { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-2); }
++.sessoes__aparelho { font-weight: var(--ds-fw-semibold); font-size: var(--ds-fs-body-sm); }
++.sessoes__datas {
++  display: flex; flex-wrap: wrap; gap: var(--ds-sp-1) var(--ds-sp-4);
++  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
++  color: var(--ds-text-muted);
++}
++
++/*
++  A pessoa na lista de usuários. Com a coluna de ações em duas fileiras, a
++  tabela dividia o que sobrava de modo que o nome quebrava em três linhas
++  ("Diego / Nakamura / Alves"). O piso de largura segura o nome em até duas
++  linhas e deixa a coluna de ações inteira dentro do cartão em 1280 px; o email, que é a linha secundária, continua quebrando onde precisar.
++*/
++.tabela__pessoa {
++  display: flex; align-items: center; gap: var(--ds-sp-3);
++  min-width: calc(var(--ds-sp-8) * 2.75);
++}
++
++/*
++  A lista de usuários é a única tabela com seis colunas e quatro botões por
++  linha. Com o respiro lateral de 12 px no lugar de 16 (só nela), as seis
++  colunas cabem em 1280 px sem rolagem; abaixo disso a tabela rola, com o aviso
++  de sempre.
++*/
++.tabela--justa th, .tabela--justa td { padding-left: var(--ds-sp-3); padding-right: var(--ds-sp-3); }
++
++/* O indicador de carregamento do tamanho de um cartão, e não da página. */
++.carregando--no-cartao { min-height: 0; padding: var(--ds-sp-5) 0; }
+diff --git a/dc360/apps/web/src/paginas/MinhaConta.tsx b/dc360/apps/web/src/paginas/MinhaConta.tsx
+index 5101d8b..f78b4ee 100644
+--- a/dc360/apps/web/src/paginas/MinhaConta.tsx
++++ b/dc360/apps/web/src/paginas/MinhaConta.tsx
+@@ -1,13 +1,21 @@
+-import { useEffect, useState } from "react";
++import { useCallback, useEffect, useState } from "react";
+ import { ROTULO_PAPEL, senhaSchema } from "@dc360/shared";
+ import {
+-  MODO, desativarSegundoFator, situacaoSegundoFator, trocarSenha,
+-  type SituacaoSegundoFator,
++  MODO, desativarSegundoFator, encerrarMinhasSessoes, listarMinhasSessoes,
++  situacaoSegundoFator, trocarSenha,
++  type SessaoDaConta, type SituacaoSegundoFator,
+ } from "../dados/repositorio";
+ import { useSessaoObrigatoria } from "../estado/sessao";
+-import { Aviso, AvisoDeObrigatorios, Carregando, Cartao } from "../componentes/comuns";
++import {
++  Aviso, AvisoDeObrigatorios, Carregando, Cartao, formatarDataHora,
++} from "../componentes/comuns";
+ import { Campo } from "../componentes/Campo";
++import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
++import { IconeCheck } from "../componentes/Icones";
+ import { AtivarSegundoFator } from "../componentes/SegundoFator";
++import {
++  SO_ESTA_SESSAO, fraseDeOutrasEncerradas, rotuloDeEncerrarOutras,
++} from "./sessoes-regras";
+ import { useTitulo } from "../seo/titulo";
+ 
+ /**
+@@ -171,6 +179,8 @@ export function MinhaConta() {
+             )}
+           </Cartao>
+ 
++          <MinhasOutrasSessoes />
++
+           <VerificacaoEmDuasEtapas />
+         </div>
+       </div>
+@@ -178,6 +188,160 @@ export function MinhaConta() {
+   );
+ }
+ 
++/**
++ * As sessões abertas da própria conta, e o botão de sair de todas as outras.
++ *
++ * É o caminho de quem perdeu o celular ou esqueceu o painel aberto no
++ * computador da recepção, e de quem não precisa trocar a senha só para expulsar
++ * um aparelho: trocar a senha CONCEDE acesso novo, encerrar sessão só RETIRA, e
++ * por isso este botão não pede a senha atual (decisão do servidor, em
++ * `/auth/encerrar-sessoes`).
++ *
++ * A LISTA VEM ANTES DO BOTÃO porque ninguém decide derrubar o que não
++ * consegue ver: com "Chrome em Windows, entrou ontem" na tela, a pessoa
++ * reconhece o computador da recepção. A tela não recebe IP nem o user-agent
++ * inteiro, só a frase do aparelho.
++ *
++ * ESTA SESSÃO CONTINUA ABERTA, e a frase está na pergunta e na confirmação:
++ * um botão que desloga quem o aperta é um botão que ninguém aperta.
++ */
++function MinhasOutrasSessoes() {
++  const [sessoes, setSessoes] = useState<SessaoDaConta[] | null>(null);
++  const [erroDeLeitura, setErroDeLeitura] = useState<string | null>(null);
++  const [perguntando, setPerguntando] = useState(false);
++  const [encerrando, setEncerrando] = useState(false);
++  const [erro, setErro] = useState<string | null>(null);
++  const [sucesso, setSucesso] = useState<string | null>(null);
++
++  const carregar = useCallback((): (() => void) => {
++    let cancelado = false;
++    setErroDeLeitura(null);
++    listarMinhasSessoes()
++      .then((lista) => { if (!cancelado) setSessoes(lista); })
++      .catch((e: unknown) => {
++        if (!cancelado) setErroDeLeitura(e instanceof Error ? e.message : String(e));
++      });
++    return () => { cancelado = true; };
++  }, []);
++
++  // No modo local não existe sessão para ler: a entrada é por escolha de perfil.
++  useEffect(() => (MODO === "local" ? undefined : carregar()), [carregar]);
++
++  async function encerrar(): Promise<void> {
++    if (encerrando) return;
++    setEncerrando(true);
++    setErro(null);
++    try {
++      const r = await encerrarMinhasSessoes();
++      setPerguntando(false);
++      setSucesso(fraseDeOutrasEncerradas(r.sessoesEncerradas));
++      carregar();
++    } catch (e: unknown) {
++      setErro(e instanceof Error ? e.message : String(e));
++    } finally {
++      setEncerrando(false);
++    }
++  }
++
++  if (MODO === "local") {
++    return (
++      <Cartao titulo="Minhas sessões">
++        <Aviso tom="info">
++          Neste painel a entrada é por escolha de perfil, sem senha e sem sessão em outros
++          aparelhos, então não há o que listar nem encerrar. Esta lista existe quando o
++          painel está ligado ao servidor da prefeitura, que é o caminho de produção.
++        </Aviso>
++      </Cartao>
++    );
++  }
++
++  const outras = sessoes ? sessoes.filter((s) => !s.atual).length : 0;
++
++  return (
++    <Cartao titulo="Minhas sessões">
++      {sucesso && <Aviso tom="sucesso">{sucesso}</Aviso>}
++
++      {/*
++        O `Carregando` da página tem 60vh de altura, que dentro de um cartão
++        empurraria o resto da tela para baixo. Aqui o mesmo desenho, no tamanho
++        do cartão.
++      */}
++      {!sessoes && !erroDeLeitura && (
++        <div className="carregando carregando--no-cartao" role="status" aria-live="polite">
++          <div className="girador" aria-hidden="true" />
++          <p>Carregando as suas sessões</p>
++        </div>
++      )}
++
++      {erroDeLeitura && (
++        <>
++          <Aviso tom="perigo">
++            Não foi possível carregar as suas sessões. {erroDeLeitura}
++          </Aviso>
++          <button type="button" className="botao botao--secundario" onClick={() => carregar()}>
++            Tentar de novo
++          </button>
++        </>
++      )}
++
++      {sessoes && (
++        <>
++          <ul className="sessoes" aria-label="Sessões abertas na sua conta">
++            {sessoes.map((s, i) => (
++              <li key={`${s.entrouEm}-${i}`} className="sessoes__item">
++                <div className="sessoes__topo">
++                  <span className="sessoes__aparelho">{s.aparelho}</span>
++                  {s.atual && (
++                    <span className="selo selo--info">
++                      <IconeCheck tamanho={12} /> Esta sessão
++                    </span>
++                  )}
++                </div>
++                <div className="sessoes__datas">
++                  <span>Entrou em {formatarDataHora(s.entrouEm)}</span>
++                  <span>Expira em {formatarDataHora(s.validaAte)}</span>
++                </div>
++              </li>
++            ))}
++          </ul>
++
++          {outras === 0 ? (
++            <p className="campo__dica" style={{ margin: 0 }}>{SO_ESTA_SESSAO}</p>
++          ) : (
++            <>
++              <p className="campo__dica" style={{ marginTop: 0 }}>
++                Encerrar as outras não mexe nesta: você continua aqui, sem precisar entrar de novo.
++              </p>
++              <button type="button" className="botao botao--perigo"
++                      onClick={() => { setErro(null); setSucesso(null); setPerguntando(true); }}>
++                Encerrar minhas outras sessões
++              </button>
++            </>
++          )}
++        </>
++      )}
++
++      <ConfirmarAcao
++        aberto={perguntando}
++        titulo="Encerrar minhas outras sessões"
++        consequencia={
++          <>
++            Os outros navegadores e aparelhos da sua conta saem agora e precisam entrar de novo
++            com a sua senha. Esta sessão continua aberta, e a senha não muda.
++          </>
++        }
++        rotuloDaAcao={rotuloDeEncerrarOutras(outras)}
++        destrutiva
++        ocupado={encerrando}
++        aoConfirmar={() => void encerrar()}
++        aoCancelar={() => setPerguntando(false)}
++      >
++        {erro && <Aviso tom="perigo">{erro}</Aviso>}
++      </ConfirmarAcao>
++    </Cartao>
++  );
++}
++
+ /**
+  * A verificação em duas etapas da própria conta.
+  *
+diff --git a/dc360/apps/web/src/paginas/Usuarios.tsx b/dc360/apps/web/src/paginas/Usuarios.tsx
+index 196bf20..69df194 100644
+--- a/dc360/apps/web/src/paginas/Usuarios.tsx
++++ b/dc360/apps/web/src/paginas/Usuarios.tsx
+@@ -3,19 +3,24 @@ import {
+   ROTULO_PAPEL, cadastroUsuarioSchema, papeisQuePodeConceder, type Papel,
+ } from "@dc360/shared";
+ import {
+-  MODO, alternarUsuarioAtivo, atualizarUsuario, criarUsuario, listarEquipes, listarUsuarios,
+-  type LinhaEquipe, type LinhaUsuario,
++  MODO, alternarUsuarioAtivo, atualizarUsuario, criarUsuario, encerrarSessoesDeUsuario,
++  listarEquipes, listarUsuarios, redefinirSenhaDeUsuario, sessoesDeUsuario,
++  type LinhaEquipe, type LinhaUsuario, type SenhaRedefinida, type SessoesAbertasDeOutrem,
+ } from "../dados/repositorio";
+ import { useSessaoObrigatoria } from "../estado/sessao";
+ import {
+   DICA_DO_EMAIL_TRAVADO, motivoParaNaoAdministrar, podeTrocarEmail,
+ } from "./usuarios-regras";
++import { fraseDasSessoesAbertas, fraseDasSessoesQueCairam } from "./sessoes-regras";
+ import {
+-  Aviso, AvisoDeObrigatorios, Carregando, Cartao, TabelaEnvolucro, Vazio, iniciais,
++  Aviso, AvisoDeObrigatorios, Carregando, Cartao, TabelaEnvolucro, Vazio, formatarDataHora,
++  iniciais,
+ } from "../componentes/comuns";
+ import { Campo } from "../componentes/Campo";
+ import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
+-import { IconeMais } from "../componentes/Icones";
++import { IconeCheck, IconeMais } from "../componentes/Icones";
++import { Modal } from "../componentes/Modal";
++import { Toast } from "../componentes/Toast";
+ import { useTitulo } from "../seo/titulo";
+ import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
+ 
+@@ -54,6 +59,14 @@ export function Usuarios() {
+   */
+   const [aDesativar, setADesativar] = useState<LinhaUsuario | null>(null);
+   const [desativando, setDesativando] = useState(false);
++  /*
++    A senha que o servidor acabou de sortear, na janela que a mostra UMA vez, e
++    o aviso passageiro de "sessões encerradas". Os dois moram na página, e não
++    no botão da linha, porque a linha pode sumir da tela (a lista recarrega) e
++    a senha não pode ir junto: ela não volta.
++  */
++  const [senhaGerada, setSenhaGerada] = useState<SenhaRedefinida | null>(null);
++  const [aviso, setAviso] = useState<string | null>(null);
+ 
+   const recarregar = useCallback(async () => {
+     const [u, e] = await Promise.all([listarUsuarios(sessao), listarEquipes(sessao)]);
+@@ -314,6 +327,14 @@ export function Usuarios() {
+         */}
+         <div className="detalhe__larga">
+           <Cartao titulo="Usuários do município">
++            {MODO === "local" && (
++              <Aviso tom="info">
++                Neste painel a entrada é por escolha de perfil, sem senha e sem sessão,
++                então não há senha para redefinir nem sessão para encerrar. Esses dois
++                botões aparecem quando o painel está ligado ao servidor da prefeitura,
++                que é o caminho de produção.
++              </Aviso>
++            )}
+             {usuarios && usuarios.length === 0 ? (
+               <Vazio titulo="Nenhum usuário cadastrado">
+                 <p>Cadastre o primeiro usuário no formulário ao lado para que alguém possa
+@@ -321,7 +342,7 @@ export function Usuarios() {
+               </Vazio>
+             ) : (
+               <TabelaEnvolucro>
+-                <table className="tabela">
++                <table className="tabela tabela--justa">
+                   <thead>
+                     <tr>
+                       <th scope="col">Pessoa</th>
+@@ -336,7 +357,7 @@ export function Usuarios() {
+                     {usuarios?.map((u) => (
+                       <tr key={u.id}>
+                         <td>
+-                          <div style={{ display: "flex", alignItems: "center", gap: "var(--ds-sp-3)" }}>
++                          <div className="tabela__pessoa">
+                             <span className="conta__avatar conta__avatar--pequeno" aria-hidden="true">
+                               {iniciais(u.nome)}
+                             </span>
+@@ -355,6 +376,7 @@ export function Usuarios() {
+                           </span>
+                         </td>
+                         <td>
++                          <div className="tabela__acoes">
+                           {/*
+                             Os dois botões seguem o POSTO (ADR 0006): o
+                             coordenador administra quem está abaixo dele, e só o
+@@ -387,6 +409,25 @@ export function Usuarios() {
+                                   }}>
+                             {u.ativo ? "Desativar" : "Reativar"}
+                           </button>
++                          {/*
++                            Redefinir a senha e encerrar as sessões de OUTRA
++                            pessoa. Pela mesma função de posto da tela (nunca
++                            uma cópia da regra), só em quem este posto
++                            administra, e nunca na própria conta: a API recusa
++                            as duas (`autoredefinicao`, `autoencerramento`) e
++                            oferecer o botão seria construir a recusa. No modo
++                            local não há senha nem token, e o aviso acima diz
++                            por quê.
++                          */}
++                          {MODO === "api"
++                            && motivoParaNaoAdministrar(sessao.papel, u) === null
++                            && u.id !== sessao.usuarioId && (
++                            <>
++                              <BotaoRedefinirSenha alvo={u} aoRedefinir={setSenhaGerada} />
++                              <BotaoEncerrarSessoes alvo={u} aoEncerrar={setAviso} />
++                            </>
++                          )}
++                          </div>
+                         </td>
+                       </tr>
+                     ))}
+@@ -427,6 +468,258 @@ export function Usuarios() {
+           </p>
+         )}
+       </ConfirmarAcao>
++
++      {/*
++        A senha sai UMA vez, e fechar sem anotar a perde. Por isso a janela não
++        fecha por clique fora (o que apagaria a única cópia no meio de uma
++        leitura) e não tem o "Fechar" do canto: a saída é o botão que diz que a
++        senha foi anotada. Escape ainda fecha, como em toda janela do painel.
++      */}
++      <Modal
++        aberto={senhaGerada !== null}
++        titulo="Senha temporária"
++        aoFechar={() => setSenhaGerada(null)}
++        fecharAoClicarFora={false}
++        mostrarBotaoFechar={false}
++      >
++        {senhaGerada && (
++          <SenhaTemporaria resultado={senhaGerada} aoFechar={() => setSenhaGerada(null)} />
++        )}
++      </Modal>
++
++      {aviso && <Toast tom="sucesso" mensagem={aviso} aoFechar={() => setAviso(null)} />}
++    </>
++  );
++}
++
++type PropsBotaoRedefinirSenha = {
++  alvo: LinhaUsuario;
++  aoRedefinir: (resultado: SenhaRedefinida) => void;
++};
++
++/**
++ * "Redefinir senha", na linha de quem está abaixo do posto de quem olha.
++ *
++ * Pergunta antes porque o ato derruba o acesso de alguém AGORA: a senha antiga
++ * deixa de valer, as sessões caem, e quem estava em campo para de sincronizar.
++ * O botão da pergunta repete o nome da pessoa, para a linha clicada não ser a
++ * errada de uma lista cheia de nomes parecidos.
++ */
++function BotaoRedefinirSenha({ alvo, aoRedefinir }: PropsBotaoRedefinirSenha) {
++  const sessao = useSessaoObrigatoria();
++  const [aberto, setAberto] = useState(false);
++  const [gravando, setGravando] = useState(false);
++  const [erro, setErro] = useState<string | null>(null);
++
++  // Ninguém redefine a própria senha por aqui: o servidor recusa
++  // (`autoredefinicao`, 422) e exige a senha atual em "Minha conta".
++  if (alvo.id === sessao.usuarioId) return null;
++
++  async function confirmar(): Promise<void> {
++    if (gravando) return;
++    setGravando(true);
++    setErro(null);
++    try {
++      const resultado = await redefinirSenhaDeUsuario(alvo.id);
++      setAberto(false);
++      aoRedefinir(resultado);
++    } catch (e: unknown) {
++      setErro(e instanceof Error ? e.message : String(e));
++    } finally {
++      setGravando(false);
++    }
++  }
++
++  return (
++    <>
++      <button type="button" className="botao botao--discreto"
++              onClick={() => { setErro(null); setAberto(true); }}>
++        Redefinir senha
++      </button>
++      <ConfirmarAcao
++        aberto={aberto}
++        titulo="Redefinir senha"
++        consequencia={
++          <>
++            A senha atual de {alvo.nome} deixa de valer agora e as sessões abertas
++            caem. O sistema sorteia uma senha temporária, mostrada uma única vez,
++            que vale por 72 horas e precisa ser trocada na primeira entrada.
++          </>
++        }
++        rotuloDaAcao={`Redefinir a senha de ${alvo.nome}`}
++        destrutiva
++        ocupado={gravando}
++        aoConfirmar={() => void confirmar()}
++        aoCancelar={() => setAberto(false)}
++      >
++        <p className="campo__dica">
++          <span className="mono">{alvo.matricula}</span>, {alvo.email},{" "}
++          {ROTULO_PAPEL[alvo.papel]}.
++        </p>
++        {erro && <Aviso tom="perigo">{erro}</Aviso>}
++      </ConfirmarAcao>
++    </>
++  );
++}
++
++type PropsBotaoEncerrarSessoes = {
++  alvo: LinhaUsuario;
++  /** Recebe a frase do aviso passageiro, já escrita. */
++  aoEncerrar: (frase: string) => void;
++};
++
++/**
++ * "Encerrar sessões": o botão do celular perdido.
++ *
++ * Tira o acesso agora e não mexe na senha, para quem talvez volte ao trabalho
++ * em uma hora. A pergunta diz QUANTAS sessões a pessoa tem abertas (leitura
++ * própria, só quantidade e datas), e continua valendo se a leitura falhar: o
++ * ato não depende dela.
++ */
++function BotaoEncerrarSessoes({ alvo, aoEncerrar }: PropsBotaoEncerrarSessoes) {
++  const sessao = useSessaoObrigatoria();
++  const [aberto, setAberto] = useState(false);
++  const [gravando, setGravando] = useState(false);
++  const [erro, setErro] = useState<string | null>(null);
++  /* `null` enquanto lê, `"falhou"` se a leitura não veio. */
++  const [abertas, setAbertas] = useState<SessoesAbertasDeOutrem | "falhou" | null>(null);
++
++  // Quem quer sair dos próprios aparelhos usa "Minha conta", onde a sessão de
++  // onde clicou continua aberta. Aqui o servidor recusa (`autoencerramento`).
++  if (alvo.id === sessao.usuarioId) return null;
++
++  async function perguntar(): Promise<void> {
++    setErro(null);
++    setAbertas(null);
++    setAberto(true);
++    try {
++      setAbertas(await sessoesDeUsuario(alvo.id));
++    } catch {
++      setAbertas("falhou");
++    }
++  }
++
++  async function confirmar(): Promise<void> {
++    if (gravando) return;
++    setGravando(true);
++    setErro(null);
++    try {
++      const r = await encerrarSessoesDeUsuario(alvo.id);
++      setAberto(false);
++      aoEncerrar(
++        r.sessoesEncerradas === 0
++          ? `${alvo.nome} não tinha sessão aberta. Nada foi encerrado.`
++          : `Sessões de ${alvo.nome} encerradas. ${
++            r.sessoesEncerradas === 1 ? "1 sessão caiu" : `${r.sessoesEncerradas} sessões caíram`}.`,
++      );
++    } catch (e: unknown) {
++      setErro(e instanceof Error ? e.message : String(e));
++    } finally {
++      setGravando(false);
++    }
++  }
++
++  const leitura = abertas === null
++    ? "Conferindo quantas sessões estão abertas."
++    : abertas === "falhou"
++      ? "Não foi possível conferir quantas sessões estão abertas, mas você pode encerrar mesmo assim."
++      : fraseDasSessoesAbertas(
++        alvo.nome,
++        abertas.sessoesAbertas,
++        abertas.ultimaEntradaEm ? formatarDataHora(abertas.ultimaEntradaEm) : null,
++      );
++
++  return (
++    <>
++      <button type="button" className="botao botao--discreto" onClick={() => void perguntar()}>
++        Encerrar sessões
++      </button>
++      <ConfirmarAcao
++        aberto={aberto}
++        titulo="Encerrar sessões"
++        consequencia={
++          <>
++            {alvo.nome} sai de todos os navegadores e aparelhos agora e precisa entrar de
++            novo com a própria senha, que não muda. Quem está em campo fica sem sincronizar
++            até entrar outra vez.
++          </>
++        }
++        rotuloDaAcao={`Encerrar sessões de ${alvo.nome}`}
++        destrutiva
++        ocupado={gravando}
++        aoConfirmar={() => void confirmar()}
++        aoCancelar={() => setAberto(false)}
++      >
++        <p className="campo__dica" role="status">{leitura}</p>
++        {erro && <Aviso tom="perigo">{erro}</Aviso>}
++      </ConfirmarAcao>
+     </>
+   );
+ }
++
++/**
++ * A senha temporária, mostrada UMA vez.
++ *
++ * O servidor guarda só o hash e nem ele consegue mostrá-la de novo, então esta
++ * janela é a única chance de quem administra anotá-la, ditá-la por telefone ou
++ * entregá-la em mãos (com a recuperação por e-mail desligada não existe outro
++ * canal). Por isso: fonte tabular e seleção com um toque (o zero não pode virar
++ * letra nem o "1" ocupar meia largura quando se dita), botão de copiar, e a
++ * frase que diz que ela não volta.
++ *
++ * A mensagem do servidor chega inteira porque diz DE QUEM é a senha, a
++ * validade e a obrigação de trocar na primeira entrada.
++ */
++export function SenhaTemporaria({ resultado, aoFechar }: {
++  resultado: SenhaRedefinida;
++  aoFechar: () => void;
++}) {
++  const [copia, setCopia] = useState<"nao" | "sim" | "falhou">("nao");
++
++  async function copiar(): Promise<void> {
++    try {
++      await navigator.clipboard.writeText(resultado.senhaTemporaria);
++      setCopia("sim");
++    } catch {
++      // Copiar pode ser recusado (permissão, página sem contexto seguro): a
++      // senha continua na tela, selecionável, e a frase diz o que fazer.
++      setCopia("falhou");
++    }
++  }
++
++  return (
++    <div className="senha-temporaria">
++      <Aviso tom="alerta">
++        <strong>Anote agora.</strong> Esta senha não aparece de novo: o sistema não guarda o
++        texto dela. Se fechar esta janela sem anotar, redefina a senha outra vez.
++      </Aviso>
++
++      <p className="senha-temporaria__mensagem">{resultado.mensagem}</p>
++
++      <div className="senha-temporaria__bloco">
++        <span className="par__rotulo">Senha temporária</span>
++        <p className="senha-temporaria__valor mono">{resultado.senhaTemporaria}</p>
++      </div>
++
++      <p className="campo__dica" style={{ margin: 0 }}>
++        {fraseDasSessoesQueCairam(resultado.sessoesEncerradas)}
++      </p>
++
++      <div className="senha-temporaria__acoes">
++        <button type="button" className="botao botao--secundario" onClick={() => void copiar()}>
++          Copiar senha
++        </button>
++        <button type="button" className="botao botao--primario" onClick={aoFechar}>
++          Já anotei a senha
++        </button>
++      </div>
++
++      {/* A região existe antes do texto, senão o leitor de tela não anuncia a mudança. */}
++      <p className="senha-temporaria__estado" role="status" aria-live="polite">
++        {copia === "sim" && (<><IconeCheck tamanho={16} /> Senha copiada.</>)}
++        {copia === "falhou"
++          && "Não foi possível copiar. Selecione a senha na tela e copie com Ctrl+C."}
++      </p>
++    </div>
++  );
++}
+diff --git a/dc360/apps/api/src/auth/aparelho.ts b/dc360/apps/api/src/auth/aparelho.ts
+new file mode 100644
+index 0000000..972e6ff
+--- /dev/null
++++ b/dc360/apps/api/src/auth/aparelho.ts
+@@ -0,0 +1,67 @@
++/**
++ * O "aparelho" de uma sessão, em uma frase curta, a partir do user-agent.
++ *
++ * POR QUE RESUMIR, E NÃO MOSTRAR O TEXTO: o user-agent completo é uma linha de
++ * 100 a 300 caracteres que identifica a máquina quase individualmente (versão
++ * exata do navegador, do sistema e do motor), e a tela de sessões não precisa
++ * disso para cumprir o único trabalho dela: a pessoa reconhecer "este é o meu
++ * celular, aquele é o computador da recepção que eu esqueci aberto". Dado a
++ * menos que sai do servidor é dado a menos que vaza (IDN-29 do REL:06).
++ *
++ * O IP não passa por aqui nem sai em rota nenhuma de sessão: ele continua
++ * guardado só para investigação.
++ *
++ * A lista é de propósito curta e conservadora. User-agent é texto livre que o
++ * cliente escreve como quiser, então o que não bate com nenhum padrão conhecido
++ * vira "Aparelho não identificado" em vez de um palpite.
++ */
++
++const APLICATIVO_DE_CAMPO = "Aplicativo de campo";
++const NAO_IDENTIFICADO = "Aparelho não identificado";
++
++/**
++ * O navegador, do mais específico para o mais genérico: o Edge e o Opera
++ * também dizem "Chrome", e o Chrome também diz "Safari".
++ */
++function navegadorDe(ua: string): string | null {
++  if (/\bEdg(?:e|A|iOS)?\//.test(ua)) return "Edge";
++  if (/\bOPR\//.test(ua)) return "Opera";
++  if (/\bFirefox\/|\bFxiOS\//.test(ua)) return "Firefox";
++  // "HeadlessChrome" é o Chrome sem janela (testes automatizados): é o mesmo navegador.
++  if (/(?:\b|Headless)Chrome\/|\bCriOS\//.test(ua)) return "Chrome";
++  if (/\bSafari\//.test(ua) && /\bVersion\//.test(ua)) return "Safari";
++  return null;
++}
++
++/** O sistema. Android antes de Linux, porque o user-agent do Android diz os dois. */
++function sistemaDe(ua: string): string | null {
++  if (/\bAndroid\b/.test(ua)) return "Android";
++  if (/\biPhone\b|\biPad\b|\biPod\b/.test(ua)) return "iOS";
++  if (/\bWindows\b/.test(ua)) return "Windows";
++  if (/\bMac OS X\b|\bMacintosh\b/.test(ua)) return "macOS";
++  if (/\bCrOS\b/.test(ua)) return "ChromeOS";
++  if (/\bLinux\b|\bX11\b/.test(ua)) return "Linux";
++  return null;
++}
++
++/**
++ * O app de campo fala por uma biblioteca de rede nativa (OkHttp no Android,
++ * CFNetwork no iOS) ou pelo identificador do Expo, e nunca por um navegador.
++ */
++function ehOAplicativo(ua: string): boolean {
++  return /\bokhttp\//i.test(ua) || /\bCFNetwork\//.test(ua) || /\bExpo\b/i.test(ua)
++    || /\bdc360-campo\b/i.test(ua);
++}
++
++export function resumirAparelho(userAgent: string | null | undefined): string {
++  const ua = (userAgent ?? "").trim();
++  if (ua === "") return NAO_IDENTIFICADO;
++  if (ehOAplicativo(ua)) return APLICATIVO_DE_CAMPO;
++
++  const navegador = navegadorDe(ua);
++  const sistema = sistemaDe(ua);
++  if (navegador && sistema) return `${navegador} em ${sistema}`;
++  if (navegador) return navegador;
++  if (sistema) return `Aparelho com ${sistema}`;
++  return NAO_IDENTIFICADO;
++}
+diff --git a/dc360/apps/api/test/sessoes-da-conta.test.ts b/dc360/apps/api/test/sessoes-da-conta.test.ts
+new file mode 100644
+index 0000000..be2d848
+--- /dev/null
++++ b/dc360/apps/api/test/sessoes-da-conta.test.ts
+@@ -0,0 +1,340 @@
++import type { FastifyInstance } from "fastify";
++import { afterAll, beforeAll, describe, expect, it } from "vitest";
++import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
++import { carregarConfig } from "../src/config.js";
++import { construirServidor } from "../src/servidor.js";
++import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
++import { derivarSenha } from "../src/auth/senha.js";
++import { resumirAparelho } from "../src/auth/aparelho.js";
++
++/**
++ * V2-F00-E09: as duas leituras que as telas de sessões precisam.
++ *
++ * `GET /auth/sessoes` mostra à pessoa as sessões vivas da PRÓPRIA conta, e
++ * `GET /usuarios/:id/sessoes` mostra a quem administra QUANTAS sessões a outra
++ * pessoa tem, antes de derrubá-las. As rotas de escrita (`redefinir-senha`,
++ * `encerrar-sessoes`) já tinham teste em `senha-e-sessoes.test.ts`; aqui estão
++ * as leituras novas e o que elas NÃO podem entregar: IP, user-agent completo,
++ * sessão de outra pessoa, sessão de outro município.
++ */
++
++const SENHA_A = "serra-alta-senha-forte";
++const SENHA_B = "vale-fundo-senha-forte";
++
++const UA_CHROME_WINDOWS =
++  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
++const UA_SAFARI_IPHONE =
++  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
++
++let mem: BancoEmMemoria;
++let app: FastifyInstance;
++const id: Record<string, string> = {};
++
++const com = (t: string) => ({ authorization: `Bearer ${t}` });
++
++async function entrar(
++  email: string, senha: string, userAgent?: string,
++): Promise<{ acesso: string; renovacao: string }> {
++  const r = await app.inject({
++    method: "POST", url: "/auth/entrar", payload: { email, senha },
++    headers: userAgent ? { "user-agent": userAgent } : {},
++  });
++  if (r.statusCode !== 200) throw new Error(`login falhou (${r.statusCode}): ${r.body}`);
++  return { acesso: r.json().acesso, renovacao: r.json().renovacao };
++}
++
++type SessaoLida = { entrouEm: string; validaAte: string; aparelho: string; atual: boolean };
++
++async function minhasSessoes(token: string): Promise<{ status: number; itens: SessaoLida[]; corpo: string }> {
++  const r = await app.inject({ method: "GET", url: "/auth/sessoes", headers: com(token) });
++  return { status: r.statusCode, itens: r.statusCode === 200 ? r.json().itens : [], corpo: r.body };
++}
++
++function sessoesDe(alvo: string, token: string) {
++  return app.inject({ method: "GET", url: `/usuarios/${alvo}/sessoes`, headers: com(token) });
++}
++
++async function semear(): Promise<void> {
++  const db = mem.bruto;
++  const a = await db.query<{ id: string }>(
++    "INSERT INTO organizacoes (nome,municipio,uf) VALUES ('DC Serra Alta','Serra Alta','MG') RETURNING id",
++  );
++  const b = await db.query<{ id: string }>(
++    "INSERT INTO organizacoes (nome,municipio,uf) VALUES ('DC Vale Fundo','Vale Fundo','MG') RETURNING id",
++  );
++  const hashA = await derivarSenha(SENHA_A);
++  const hashB = await derivarSenha(SENHA_B);
++  const pessoas: Array<[string, string, string, string, string, string, string]> = [
++    ["helena", a.rows[0]!.id, "Helena Coutinho", "SA-1", "helena@serraalta.exemplo.gov.br", "coordenador", hashA],
++    ["jonas", a.rows[0]!.id, "Jonas Ferreira", "SA-2", "jonas@serraalta.exemplo.gov.br", "operador", hashA],
++    ["diego", a.rows[0]!.id, "Diego Alves", "SA-3", "diego@serraalta.exemplo.gov.br", "agente_campo", hashA],
++    ["rita", a.rows[0]!.id, "Rita Lopes", "SA-4", "rita@serraalta.exemplo.gov.br", "administrador", hashA],
++    ["carmem", a.rows[0]!.id, "Carmem Boaventura", "SA-5", "carmem@serraalta.exemplo.gov.br", "coordenador", hashA],
++    ["aurelio", b.rows[0]!.id, "Aurelio Machado", "VF-1", "aurelio@valefundo.exemplo.gov.br", "coordenador", hashB],
++  ];
++  for (const [apelido, org, nome, matricula, email, papel, hash] of pessoas) {
++    const r = await db.query<{ id: string }>(
++      `INSERT INTO usuarios (organizacao_id,nome,matricula,email,papel,senha_hash)
++       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
++      [org, nome, matricula, email, papel, hash],
++    );
++    id[apelido] = r.rows[0]!.id;
++  }
++}
++
++beforeAll(async () => {
++  mem = await bancoEmMemoria();
++  const config = carregarConfig({
++    NODE_ENV: "test",
++    JWT_SEGREDO: "segredo-das-sessoes-da-conta-com-mais-de-32-bytes",
++    LOGIN_POR_IP: "10000",
++  } as NodeJS.ProcessEnv);
++  app = await construirServidor({
++    banco: mem.banco, config,
++    armazenamento: armazenamentoEmMemoria({ baseUrl: "http://127.0.0.1:0" }),
++  });
++  await app.ready();
++  await semear();
++}, 300_000);
++
++afterAll(async () => {
++  await app?.close();
++  await mem?.banco.encerrar();
++});
++
++describe("GET /auth/sessoes: as sessões da própria conta", () => {
++  it("lista as vivas, marca de onde veio o pedido e traz o aparelho em uma frase", async () => {
++    const noComputador = await entrar("helena@serraalta.exemplo.gov.br", SENHA_A, UA_CHROME_WINDOWS);
++    const noCelular = await entrar("helena@serraalta.exemplo.gov.br", SENHA_A, UA_SAFARI_IPHONE);
++
++    const doComputador = await minhasSessoes(noComputador.acesso);
++    expect(doComputador.status, doComputador.corpo).toBe(200);
++    expect(doComputador.itens).toHaveLength(2);
++
++    const atual = doComputador.itens.filter((s) => s.atual);
++    expect(atual).toHaveLength(1);
++    expect(atual[0]!.aparelho).toBe("Chrome em Windows");
++    // A sessão atual vem primeiro: é a que a pessoa procura.
++    expect(doComputador.itens[0]!.atual).toBe(true);
++    expect(doComputador.itens[1]!.aparelho).toBe("Safari em iOS");
++
++    // De onde o pedido vem decide a marca: pelo celular, o celular é "esta".
++    const doCelular = await minhasSessoes(noCelular.acesso);
++    expect(doCelular.itens.find((s) => s.atual)!.aparelho).toBe("Safari em iOS");
++
++    for (const s of doComputador.itens) {
++      expect(Date.parse(s.entrouEm)).toBeLessThanOrEqual(Date.now());
++      expect(Date.parse(s.validaAte)).toBeGreaterThan(Date.now());
++    }
++  }, 300_000);
++
++  it("não entrega IP, user-agent completo nem identificador de sessão", async () => {
++    const t = await entrar("jonas@serraalta.exemplo.gov.br", SENHA_A, UA_CHROME_WINDOWS);
++    const r = await minhasSessoes(t.acesso);
++    expect(r.status).toBe(200);
++    expect(Object.keys(r.itens[0]!).sort()).toEqual(["aparelho", "atual", "entrouEm", "validaAte"]);
++    expect(r.corpo).not.toMatch(/Mozilla|AppleWebKit|Win64/);
++    expect(r.corpo).not.toMatch(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/);
++    expect(r.corpo).not.toMatch(/"(ip|user_agent|userAgent|id|token_hash|familia_id)"/);
++  }, 300_000);
++
++  it("a renovação não multiplica as linhas nem muda o 'entrou em'", async () => {
++    const t = await entrar("carmem@serraalta.exemplo.gov.br", SENHA_A, UA_CHROME_WINDOWS);
++    const antes = await minhasSessoes(t.acesso);
++    expect(antes.itens).toHaveLength(1);
++
++    const renovada = await app.inject({
++      method: "POST", url: "/auth/renovar", payload: { renovacao: t.renovacao },
++      headers: { "user-agent": UA_CHROME_WINDOWS },
++    });
++    expect(renovada.statusCode).toBe(200);
++
++    // Com o token NOVO e também com o ANTIGO (ainda vale para leitura): uma
++    // linha só, e é a sessão atual nos dois casos, porque a marca é por família.
++    for (const acesso of [renovada.json().acesso as string, t.acesso]) {
++      const depois = await minhasSessoes(acesso);
++      expect(depois.itens).toHaveLength(1);
++      expect(depois.itens[0]!.atual).toBe(true);
++      expect(depois.itens[0]!.entrouEm).toBe(antes.itens[0]!.entrouEm);
++    }
++  }, 300_000);
++
++  it("só a própria conta: a de outra pessoa e a de outro município não aparecem", async () => {
++    const diego = await entrar("diego@serraalta.exemplo.gov.br", SENHA_A, UA_SAFARI_IPHONE);
++    await entrar("aurelio@valefundo.exemplo.gov.br", SENHA_B, UA_CHROME_WINDOWS);
++    await entrar("aurelio@valefundo.exemplo.gov.br", SENHA_B, UA_CHROME_WINDOWS);
++
++    const r = await minhasSessoes(diego.acesso);
++    expect(r.itens).toHaveLength(1);
++    expect(r.itens[0]!.aparelho).toBe("Safari em iOS");
++  }, 300_000);
++
++  it("encerrar as outras deixa só esta na lista, e a lista reflete o banco", async () => {
++    const e = "rita@serraalta.exemplo.gov.br";
++    const a = await entrar(e, SENHA_A, UA_CHROME_WINDOWS);
++    await entrar(e, SENHA_A, UA_SAFARI_IPHONE);
++    expect((await minhasSessoes(a.acesso)).itens.length).toBeGreaterThanOrEqual(2);
++
++    const r = await app.inject({ method: "POST", url: "/auth/encerrar-sessoes", headers: com(a.acesso) });
++    expect(r.statusCode).toBe(200);
++
++    const depois = await minhasSessoes(a.acesso);
++    expect(depois.itens).toHaveLength(1);
++    expect(depois.itens[0]!.atual).toBe(true);
++    expect(depois.itens[0]!.aparelho).toBe("Chrome em Windows");
++  }, 300_000);
++
++  it("sem token, 401", async () => {
++    const r = await app.inject({ method: "GET", url: "/auth/sessoes" });
++    expect(r.statusCode).toBe(401);
++  });
++
++  it("sessão vencida ou encerrada não aparece", async () => {
++    const t = await entrar("helena@serraalta.exemplo.gov.br", SENHA_A, UA_CHROME_WINDOWS);
++    const base = (await minhasSessoes(t.acesso)).itens.length;
++    // Uma sessão que o banco já considera vencida, gravada por fora.
++    await mem.bruto.query(
++      `INSERT INTO sessoes (organizacao_id, usuario_id, token_hash, expira_em, user_agent)
++       SELECT organizacao_id, id, 'hash-vencida-e09', now() - interval '1 hour', 'curl/8'
++         FROM usuarios WHERE id = $1`,
++      [id["helena"]],
++    );
++    expect((await minhasSessoes(t.acesso)).itens).toHaveLength(base);
++  }, 300_000);
++});
++
++describe("GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem", () => {
++  it("a administradora vê a quantidade e as datas, e nada do aparelho", async () => {
++    const rita = await entrar("rita@serraalta.exemplo.gov.br", SENHA_A);
++    // Zera o que os outros testes deixaram e abre duas sessões conhecidas.
++    await app.inject({ method: "POST", url: `/usuarios/${id["diego"]}/encerrar-sessoes`, headers: com(rita.acesso) });
++    const vazia = await sessoesDe(id["diego"]!, rita.acesso);
++    expect(vazia.statusCode, vazia.body).toBe(200);
++    expect(vazia.json()).toMatchObject({ id: id["diego"], sessoesAbertas: 0 });
++    expect(vazia.json().ultimaEntradaEm).toBeNull();
++
++    await entrar("diego@serraalta.exemplo.gov.br", SENHA_A, UA_SAFARI_IPHONE);
++    await entrar("diego@serraalta.exemplo.gov.br", SENHA_A, UA_CHROME_WINDOWS);
++
++    const r = await sessoesDe(id["diego"]!, rita.acesso);
++    expect(r.statusCode).toBe(200);
++    expect(r.json().sessoesAbertas).toBe(2);
++    expect(Date.parse(r.json().ultimaEntradaEm)).toBeLessThanOrEqual(Date.now());
++    expect(Date.parse(r.json().validaAte)).toBeGreaterThan(Date.now());
++    expect(Object.keys(r.json()).sort()).toEqual(["id", "sessoesAbertas", "ultimaEntradaEm", "validaAte"]);
++    expect(r.body).not.toMatch(/Mozilla|iPhone|Windows|Safari|Chrome/);
++    expect(r.body).not.toMatch(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/);
++
++    // E o número bate com o que o ato de encerrar derruba.
++    const encerrar = await app.inject({
++      method: "POST", url: `/usuarios/${id["diego"]}/encerrar-sessoes`, headers: com(rita.acesso),
++    });
++    expect(encerrar.json().sessoesEncerradas).toBe(2);
++    expect((await sessoesDe(id["diego"]!, rita.acesso)).json().sessoesAbertas).toBe(0);
++  }, 300_000);
++
++  it("a coordenadora vê as de quem está abaixo do posto dela", async () => {
++    const helena = await entrar("helena@serraalta.exemplo.gov.br", SENHA_A);
++    for (const alvo of ["diego", "jonas"]) {
++      const r = await sessoesDe(id[alvo]!, helena.acesso);
++      expect(r.statusCode, `${alvo}: ${r.body}`).toBe(200);
++    }
++  }, 300_000);
++
++  it("posto igual ou acima: 403 posto_insuficiente", async () => {
++    const helena = await entrar("helena@serraalta.exemplo.gov.br", SENHA_A);
++    for (const alvo of ["carmem", "rita"]) {
++      const r = await sessoesDe(id[alvo]!, helena.acesso);
++      expect(r.statusCode, alvo).toBe(403);
++      expect(r.json().erro).toBe("posto_insuficiente");
++    }
++  }, 300_000);
++
++  it("o operador e o agente de campo não têm a ação: 403 sem_permissao nas três rotas", async () => {
++    const jonas = await entrar("jonas@serraalta.exemplo.gov.br", SENHA_A);
++    const diego = await entrar("diego@serraalta.exemplo.gov.br", SENHA_A);
++    for (const quem of [jonas, diego]) {
++      const leitura = await sessoesDe(id["carmem"]!, quem.acesso);
++      expect(leitura.statusCode).toBe(403);
++      expect(leitura.json().erro).toBe("sem_permissao");
++
++      const redefinir = await app.inject({
++        method: "POST", url: `/usuarios/${id["carmem"]}/redefinir-senha`, headers: com(quem.acesso),
++      });
++      expect(redefinir.statusCode).toBe(403);
++      expect(redefinir.json().erro).toBe("sem_permissao");
++
++      const encerrar = await app.inject({
++        method: "POST", url: `/usuarios/${id["carmem"]}/encerrar-sessoes`, headers: com(quem.acesso),
++      });
++      expect(encerrar.statusCode).toBe(403);
++      expect(encerrar.json().erro).toBe("sem_permissao");
++    }
++  }, 300_000);
++
++  it("conta de outro município: 404, igual a id que não existe", async () => {
++    const helena = await entrar("helena@serraalta.exemplo.gov.br", SENHA_A);
++    const deOutroMunicipio = await sessoesDe(id["aurelio"]!, helena.acesso);
++    const inexistente = await sessoesDe("99999999-9999-4999-8999-999999999999", helena.acesso);
++    expect(deOutroMunicipio.statusCode).toBe(404);
++    expect(inexistente.statusCode).toBe(404);
++    expect(deOutroMunicipio.json()).toEqual(inexistente.json());
++
++    // E o inverso: a coordenadora de Vale Fundo não vê as de Serra Alta.
++    const aurelio = await entrar("aurelio@valefundo.exemplo.gov.br", SENHA_B);
++    expect((await sessoesDe(id["diego"]!, aurelio.acesso)).statusCode).toBe(404);
++  }, 300_000);
++
++  it("identificador que não é uuid: 422; sem token: 401", async () => {
++    const helena = await entrar("helena@serraalta.exemplo.gov.br", SENHA_A);
++    expect((await sessoesDe("nao-e-uuid", helena.acesso)).statusCode).toBe(422);
++    const r = await app.inject({ method: "GET", url: `/usuarios/${id["diego"]}/sessoes` });
++    expect(r.statusCode).toBe(401);
++  }, 300_000);
++});
++
++describe("as duas recusas que a tela não oferece e a API mantém", () => {
++  it("redefinir a própria senha e encerrar as próprias sessões por esta via: 422", async () => {
++    const rita = await entrar("rita@serraalta.exemplo.gov.br", SENHA_A);
++    const redefinir = await app.inject({
++      method: "POST", url: `/usuarios/${id["rita"]}/redefinir-senha`, headers: com(rita.acesso),
++    });
++    expect(redefinir.statusCode).toBe(422);
++    expect(redefinir.json().erro).toBe("autoredefinicao");
++
++    const encerrar = await app.inject({
++      method: "POST", url: `/usuarios/${id["rita"]}/encerrar-sessoes`, headers: com(rita.acesso),
++    });
++    expect(encerrar.statusCode).toBe(422);
++    expect(encerrar.json().erro).toBe("autoencerramento");
++  }, 300_000);
++});
++
++describe("resumirAparelho: o aparelho em uma frase, sem entregar a máquina", () => {
++  it.each([
++    [UA_CHROME_WINDOWS, "Chrome em Windows"],
++    [UA_SAFARI_IPHONE, "Safari em iOS"],
++    ["Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0", "Edge em Windows"],
++    ["Mozilla/5.0 (X11; Linux x86_64; rv:127.0) Gecko/20100101 Firefox/127.0", "Firefox em Linux"],
++    ["Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36", "Chrome em Android"],
++    ["Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15", "Safari em macOS"],
++    ["Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/126.0.0.0 Safari/537.36", "Chrome em Windows"],
++    ["okhttp/4.12.0", "Aplicativo de campo"],
++    ["dc360-campo/1.0 CFNetwork/1494.0.7 Darwin/23.4.0", "Aplicativo de campo"],
++    ["curl/8.5.0", "Aparelho não identificado"],
++    ["", "Aparelho não identificado"],
++  ])("%s", (ua, esperado) => {
++    expect(resumirAparelho(ua)).toBe(esperado);
++  });
++
++  it("nulo e indefinido não quebram", () => {
++    expect(resumirAparelho(null)).toBe("Aparelho não identificado");
++    expect(resumirAparelho(undefined)).toBe("Aparelho não identificado");
++  });
++
++  it("nunca devolve texto do user-agent além do nome do navegador e do sistema", () => {
++    const frase = resumirAparelho(UA_CHROME_WINDOWS);
++    expect(frase).not.toMatch(/\d/);
++    expect(frase.length).toBeLessThan(40);
++  });
++});
+diff --git a/dc360/apps/web/src/paginas/sessoes-regras.ts b/dc360/apps/web/src/paginas/sessoes-regras.ts
+new file mode 100644
+index 0000000..aa66622
+--- /dev/null
++++ b/dc360/apps/web/src/paginas/sessoes-regras.ts
+@@ -0,0 +1,62 @@
++/**
++ * As frases das telas de sessões e de redefinição de senha, fora do React.
++ *
++ * Mesma razão de `usuarios-regras.ts`: frase montada dentro do JSX, com
++ * plural e caso de zero, não tem como ser exercitada, e é justamente nela que
++ * mora o erro de português que a pessoa lê na hora em que está decidindo se
++ * derruba um acesso. Como função pura, cada caso (nenhuma, uma, várias) tem
++ * teste que roda em milissegundos.
++ *
++ * Nenhuma frase aqui supõe o gênero de quem é citado: o nome vem da lista e a
++ * pessoa pode ser qualquer uma.
++ */
++
++/** "1 sessão" ou "3 sessões". */
++export function sessoes(quantidade: number): string {
++  return `${quantidade} ${quantidade === 1 ? "sessão" : "sessões"}`;
++}
++
++/**
++ * O que a confirmação de "Encerrar sessões" diz sobre a outra pessoa, ANTES de
++ * derrubar: quantas estão abertas e desde quando a mais recente.
++ *
++ * `ultimaEntrada` já vem formatada, porque formatar data é da tela e esta
++ * função fica pura. Nulo quando a leitura ainda não chegou ou falhou, e aí a
++ * confirmação não afirma nada que não sabe.
++ */
++export function fraseDasSessoesAbertas(
++  nome: string,
++  quantidade: number | null,
++  ultimaEntrada: string | null,
++): string {
++  if (quantidade === null) return "";
++  if (quantidade === 0) return `${nome} não tem sessão aberta agora.`;
++  const desde = ultimaEntrada ? `, a mais recente iniciada em ${ultimaEntrada}` : "";
++  return quantidade === 1
++    ? `${nome} tem 1 sessão aberta${desde}.`
++    : `${nome} tem ${quantidade} sessões abertas${desde}.`;
++}
++
++/** Na janela da senha temporária: quantas sessões caíram junto com a senha antiga. */
++export function fraseDasSessoesQueCairam(quantidade: number): string {
++  if (quantidade === 0) return "Esta conta não tinha nenhuma sessão aberta.";
++  if (quantidade === 1) return "1 sessão aberta desta conta foi encerrada.";
++  return `${quantidade} sessões abertas desta conta foram encerradas.`;
++}
++
++/** O que o botão de "Minha conta" repete: o ato com o objeto dentro, nunca "OK". */
++export function rotuloDeEncerrarOutras(quantidade: number): string {
++  return quantidade === 1 ? "Encerrar a outra sessão" : `Encerrar as outras ${quantidade} sessões`;
++}
++
++/** A confirmação, depois de encerrar as outras da própria conta. */
++export function fraseDeOutrasEncerradas(quantidade: number): string {
++  if (quantidade === 0) return "Nenhuma outra sessão estava aberta. Esta continua aberta.";
++  const encerradas = quantidade === 1 ? "A outra sessão foi encerrada" : `As outras ${quantidade} sessões foram encerradas`;
++  return `${encerradas}. Esta continua aberta.`;
++}
++
++/** O que a lista de "Minha conta" diz quando só existe a sessão atual. */
++export const SO_ESTA_SESSAO =
++  "Esta é a única sessão aberta na sua conta. Quando você entrar em outro navegador ou aparelho, "
++  + "ele passa a aparecer aqui.";
+diff --git a/dc360/apps/web/test/sessoes-e-senha-temporaria.test.ts b/dc360/apps/web/test/sessoes-e-senha-temporaria.test.ts
+new file mode 100644
+index 0000000..387012f
+--- /dev/null
++++ b/dc360/apps/web/test/sessoes-e-senha-temporaria.test.ts
+@@ -0,0 +1,153 @@
++import { readFileSync } from "node:fs";
++import { dirname, join } from "node:path";
++import { fileURLToPath } from "node:url";
++import { createElement as h } from "react";
++import { renderToStaticMarkup } from "react-dom/server";
++import { describe, expect, it } from "vitest";
++
++import * as local from "../src/dados/local";
++import { SenhaTemporaria } from "../src/paginas/Usuarios";
++import {
++  SO_ESTA_SESSAO, fraseDasSessoesAbertas, fraseDasSessoesQueCairam, fraseDeOutrasEncerradas,
++  rotuloDeEncerrarOutras, sessoes,
++} from "../src/paginas/sessoes-regras";
++
++/**
++ * V2-F00-E09: as frases das telas de sessões e a janela da senha temporária,
++ * nos casos que `seguranca-da-conta.test.ts` (que lê o código-fonte) não
++ * alcança: zero, uma e várias sessões, o modo de demonstração recusando com
++ * explicação, e a janela da senha em cada contagem.
++ *
++ * O português é conferido aqui porque é a frase de plural e de zero que erra em
++ * silêncio, e é ela que a pessoa lê na hora de derrubar um acesso.
++ */
++
++const AQUI = dirname(fileURLToPath(import.meta.url));
++const fonte = (relativo: string) => readFileSync(join(AQUI, "..", "src", relativo), "utf8");
++
++// Montado pelo codigo para o arquivo nao conter o caractere que o proprio portao de conteudo varre.
++const TRAVESSAO = String.fromCharCode(0x2014);
++
++describe("As frases das telas de sessões", () => {
++  it("plural: 1 sessão, 2 sessões", () => {
++    expect(sessoes(1)).toBe("1 sessão");
++    expect(sessoes(2)).toBe("2 sessões");
++    expect(sessoes(0)).toBe("0 sessões");
++  });
++
++  it("a confirmação de encerrar diz quantas estão abertas, e nada quando ainda não sabe", () => {
++    expect(fraseDasSessoesAbertas("Diego Alves", null, null)).toBe("");
++    expect(fraseDasSessoesAbertas("Diego Alves", 0, null)).toBe("Diego Alves não tem sessão aberta agora.");
++    expect(fraseDasSessoesAbertas("Diego Alves", 1, "05/10/2026 14:30"))
++      .toBe("Diego Alves tem 1 sessão aberta, a mais recente iniciada em 05/10/2026 14:30.");
++    expect(fraseDasSessoesAbertas("Diego Alves", 3, "05/10/2026 14:30"))
++      .toBe("Diego Alves tem 3 sessões abertas, a mais recente iniciada em 05/10/2026 14:30.");
++    // Sem data (a leitura trouxe a quantidade e nada mais), a frase não inventa uma.
++    expect(fraseDasSessoesAbertas("Diego Alves", 2, null)).toBe("Diego Alves tem 2 sessões abertas.");
++  });
++
++  it("na janela da senha: nenhuma, uma e várias sessões derrubadas", () => {
++    expect(fraseDasSessoesQueCairam(0)).toBe("Esta conta não tinha nenhuma sessão aberta.");
++    expect(fraseDasSessoesQueCairam(1)).toBe("1 sessão aberta desta conta foi encerrada.");
++    expect(fraseDasSessoesQueCairam(4)).toBe("4 sessões abertas desta conta foram encerradas.");
++  });
++
++  it("em Minha conta: o botão repete o ato com o objeto, e a confirmação diz que esta continua", () => {
++    expect(rotuloDeEncerrarOutras(1)).toBe("Encerrar a outra sessão");
++    expect(rotuloDeEncerrarOutras(2)).toBe("Encerrar as outras 2 sessões");
++    expect(fraseDeOutrasEncerradas(0)).toBe("Nenhuma outra sessão estava aberta. Esta continua aberta.");
++    expect(fraseDeOutrasEncerradas(1)).toBe("A outra sessão foi encerrada. Esta continua aberta.");
++    expect(fraseDeOutrasEncerradas(3)).toBe("As outras 3 sessões foram encerradas. Esta continua aberta.");
++  });
++
++  it("nenhuma frase tem travessão nem supõe o gênero de quem é citado", () => {
++    const todas = [
++      fraseDasSessoesAbertas("Pessoa", 0, null), fraseDasSessoesAbertas("Pessoa", 1, "x"),
++      fraseDasSessoesAbertas("Pessoa", 2, "x"), fraseDasSessoesQueCairam(0),
++      fraseDasSessoesQueCairam(1), fraseDasSessoesQueCairam(2), rotuloDeEncerrarOutras(1),
++      rotuloDeEncerrarOutras(2), fraseDeOutrasEncerradas(0), fraseDeOutrasEncerradas(1),
++      fraseDeOutrasEncerradas(2), SO_ESTA_SESSAO,
++    ].join("\n");
++    expect(todas).not.toContain(TRAVESSAO);
++    // "ele" aparece uma vez, falando do aparelho ("ele passa a aparecer aqui"), e não de uma pessoa.
++    expect(todas.replace("ele passa a aparecer aqui", "")).not.toMatch(/\b(ele|ela|dele|dela)\b/i);
++  });
++
++  it("rótulo de botão não é vago: nenhum é só 'OK', 'Sim' ou 'Confirmar'", () => {
++    for (const r of [rotuloDeEncerrarOutras(1), rotuloDeEncerrarOutras(5)]) {
++      expect(r).toMatch(/Encerrar/);
++      expect(r.split(" ").length).toBeGreaterThan(2);
++    }
++  });
++});
++
++describe("A janela da senha temporária", () => {
++  const base = {
++    senhaTemporaria: "corvo-lento-praia",
++    mensagem: "Senha temporária de Rita Lopes. Ela aparece uma única vez.",
++  };
++  const montar = (sessoesEncerradas: number) =>
++    renderToStaticMarkup(h(SenhaTemporaria, {
++      resultado: { ...base, sessoesEncerradas },
++      aoFechar: () => {},
++    }));
++
++  it("diz quantas sessões caíram, em cada contagem", () => {
++    expect(montar(0)).toContain("Esta conta não tinha nenhuma sessão aberta.");
++    expect(montar(1)).toContain("1 sessão aberta desta conta foi encerrada.");
++    expect(montar(3)).toContain("3 sessões abertas desta conta foram encerradas.");
++  });
++
++  it("tem os dois botões, cada um com o que faz escrito, e a saída não é 'OK'", () => {
++    const html = montar(1);
++    expect(html).toMatch(/<button[^>]*type="button"[^>]*>Copiar senha<\/button>/);
++    expect(html).toMatch(/<button[^>]*type="button"[^>]*>Já anotei a senha<\/button>/);
++    expect(html).not.toMatch(/>\s*OK\s*</);
++  });
++
++  it("o anúncio de 'copiada' tem região viva desde o início, para o leitor de tela anunciar a mudança", () => {
++    expect(montar(1)).toMatch(/<p[^>]*role="status"[^>]*aria-live="polite"[^>]*>/);
++  });
++
++  it("a senha vai em fonte tabular, sem ficar escondida do leitor de tela", () => {
++    const html = montar(1);
++    expect(html).toMatch(/class="senha-temporaria__valor mono"[^>]*>corvo-lento-praia</);
++    expect(html).not.toMatch(/aria-hidden="true"[^>]*>corvo-lento-praia/);
++  });
++});
++
++describe("O modo de demonstração explica em vez de oferecer", () => {
++  it.each([
++    ["listarMinhasSessoes", () => local.listarMinhasSessoes()],
++    ["sessoesDeUsuario", () => local.sessoesDeUsuario("qualquer-id")],
++    ["redefinirSenhaDeUsuario", () => local.redefinirSenhaDeUsuario("qualquer-id")],
++    ["encerrarSessoesDeUsuario", () => local.encerrarSessoesDeUsuario("qualquer-id")],
++    ["encerrarMinhasSessoes", () => local.encerrarMinhasSessoes()],
++  ])("%s recusa dizendo que exige a API, sem fingir efeito", async (_nome, chamar) => {
++    const erro = await chamar().then(() => null, (e: unknown) => e);
++    expect(erro).toBeInstanceOf(Error);
++    expect((erro as Error).message).toMatch(/exige a API/);
++    expect((erro as Error).message).not.toContain(TRAVESSAO);
++  });
++});
++
++describe("As telas não oferecem o que a API recusa", () => {
++  const usuarios = fonte("paginas/Usuarios.tsx");
++
++  it("os dois botões de linha só aparecem em quem não é a própria conta, no modo com servidor", () => {
++    expect(usuarios).toMatch(
++      /MODO === "api"\s*&& motivoParaNaoAdministrar\(sessao\.papel, u\) === null\s*&& u\.id !== sessao\.usuarioId/,
++    );
++  });
++
++  it("a janela da senha não fecha por clique fora nem tem o 'Fechar' do canto", () => {
++    expect(usuarios).toMatch(/<Modal[\s\S]{0,400}fecharAoClicarFora=\{false\}[\s\S]{0,200}mostrarBotaoFechar=\{false\}/);
++  });
++
++  it("a senha não é gravada em lugar nenhum além do estado da página", () => {
++    for (const arquivo of ["paginas/Usuarios.tsx", "dados/http.ts"]) {
++      const codigo = fonte(arquivo);
++      expect(codigo, arquivo).not.toMatch(/(localStorage|sessionStorage)\.setItem\([^)]*senhaTemporaria/);
++    }
++  });
++});

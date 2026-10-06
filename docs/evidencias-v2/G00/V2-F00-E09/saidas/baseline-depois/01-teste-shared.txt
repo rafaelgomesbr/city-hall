@@ -1,0 +1,83 @@
+$ npm run test --workspace @dc360/shared   (em .)
+codigo=1 duracao=5s situacao=confere
+
+
+> @dc360/shared@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/packages/shared
+
+ ✓ test/telefone.test.ts (10 tests) 9ms
+ ✓ src/localizacao.test.ts (16 tests) 31ms
+ ✓ test/campos.test.ts (7 tests) 8ms
+ ✓ src/pessoas.test.ts (11 tests) 20ms
+ ✓ test/csv.test.ts (8 tests) 8ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 19ms
+ ✓ test/codigos-de-erro.test.ts (10 tests) 13ms
+ ✓ test/mensagens-em-portugues.test.ts (8 tests) 25ms
+ ✓ test/permissoes.test.ts (16 tests) 26ms
+ ✓ test/evidencia.test.ts (10 tests) 22ms
+ ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 25ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 26ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 29ms
+ ✓ test/dominio.test.ts (14 tests) 683ms
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  670ms
+ ❯ test/regras-de-conteudo.test.ts (5 tests | 1 failed) 2394ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação  516ms
+   × Regras de conteúdo > nenhum travessão em texto nenhum 887ms
+     → travessão encontrado; use vírgula, dois pontos ou parênteses:
+dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe
+docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");": expected [ …(5) ] to deeply equal []
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  983ms
+   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 3ms
+   ✓ Regras de conteúdo > as próprias expressões funcionam 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/regras-de-conteudo.test.ts > Regras de conteúdo > nenhum travessão em texto nenhum
+AssertionError: travessão encontrado; use vírgula, dois pontos ou parênteses:
+dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe
+docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");": expected [ …(5) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",
++   "docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe",
++   "docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",
++   "docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",
++   "docs/auditoria-v2/raw/teste-shared.txt:41  +   \"dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\\\"[travessao]\\\");\"",
++ ]
+
+ ❯ test/regras-de-conteudo.test.ts:158:7
+    156|         ? ""
+    157|         : `travessão encontrado; use vírgula, dois pontos ou parêntese…
+    158|     ).toEqual([]);
+       |       ^
+    159|   });
+    160| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 14 passed (15)
+      Tests  1 failed | 161 passed (162)
+   Start at  14:09:02
+   Duration  3.58s (transform 1.32s, setup 0ms, collect 6.27s, tests 3.34s, environment 6ms, prepare 6.30s)
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Projetos\city-hall\dc360\packages\shared
+npm error workspace @dc360/shared@0.1.0
+npm error location C:\Projetos\city-hall\dc360\packages\shared
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vitest run

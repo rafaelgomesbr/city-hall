@@ -1,0 +1,11 @@
+### CMD: npm run auditar (cwd=.) inicio=2026-09-30T16:33:34-03:00
+
+> dc360@0.1.0 auditar
+> node scripts/auditar.mjs
+
+Runtime (vai para a imagem): 1 vulnerabilidade(s)
+Desenvolvimento (fica na máquina): 2 vulnerabilidade(s)
+
+REPROVADO: 1 moderate em dependência de runtime.
+Isto vai para o servidor que atende a prefeitura. Corrija antes de entregar.
+### EXIT=1 DURACAO=5s fim=2026-09-30T16:33:39-03:00

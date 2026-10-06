@@ -1,0 +1,146 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ❯ test/vigencia-na-escrita.test.ts (13 tests | 6 failed) 8554ms
+   × Token vivo de quem já não pode > conta desativada não escreve mais, no pedido seguinte 419ms
+     → {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+   × Token vivo de quem já não pode > papel rebaixado escreve como o papel NOVO, não como o do token 408ms
+     → {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.42,"lng":-45.46},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+   × Token vivo de quem já não pode > sessões encerradas por quem administra não escrevem mais, e a de quem clicou em 'Minha conta' sobrevive 763ms
+     → {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+   × Token vivo de quem já não pode > o token de acesso continua LENDO até vencer: é a troca declarada 393ms
+     → expected 200 to be 401 // Object.is equality
+   ✓ Token vivo de quem já não pode > depois de renovar, o token de acesso antigo ainda escreve até vencer: rotação não é expulsão  387ms
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > município suspenso com conta desativada responde a suspensão primeiro  391ms
+   × Bordas da vigência na escrita (V2-F00-E04) > token com o sid de OUTRA pessoa não escreve: a sessão tem de ser da própria conta 9ms
+     → {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+   ✓ Bordas da vigência na escrita (V2-F00-E04) > a organização continua vindo do token: com a vigência ligada, o município B segue sem ver a ocorrência do A (404)  765ms
+   × Bordas da vigência na escrita (V2-F00-E04) > a senha provisória vem do banco na escrita: marca no token sem prazo no banco não tranca, e prazo no banco sem marca no token tranca 388ms
+     → {"erro":"troca_de_senha_obrigatoria","mensagem":"Você entrou com uma senha provisória. Defina a sua senha em Minha conta antes de continuar."}: expected 403 to be 200 // Object.is equality
+   ✓ Token de renovação vencido não é reuso > expirado responde 401 e as outras sessões da pessoa continuam vivas  789ms
+   ✓ Token de renovação vencido não é reuso > sessão encerrada pela própria pessoa, ou por quem administra, também não é reuso  761ms
+   ✓ Token de renovação vencido não é reuso > o token ROTACIONADO que reaparece é reuso: a família inteira cai  820ms
+   ✓ Token de renovação vencido não é reuso > H1: dois pedidos de renovação com o mesmo token: um ganha, o outro não emite sessão  385ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/vigencia-na-escrita.test.ts > Token vivo de quem já não pode > conta desativada não escreve mais, no pedido seguinte
+AssertionError: {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ test/vigencia-na-escrita.test.ts:111:46
+    109|     try {
+    110|       const recusa = await escrever(helena.acesso);
+    111|       expect(recusa.statusCode, recusa.body).toBe(401);
+       |                                              ^
+    112|       expect(recusa.json().erro).toBe("sessao");
+    113|     } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  test/vigencia-na-escrita.test.ts > Token vivo de quem já não pode > papel rebaixado escreve como o papel NOVO, não como o do token
+AssertionError: {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.42,"lng":-45.46},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ test/vigencia-na-escrita.test.ts:138:46
+    136|       // O token ainda diz "coordenador". O banco diz "operador". Vale…
+    137|       const recusa = await escrever(helena.acesso);
+    138|       expect(recusa.statusCode, recusa.body).toBe(401);
+       |                                              ^
+    139|       expect(recusa.json().erro).toBe("sessao");
+    140|     } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  test/vigencia-na-escrita.test.ts > Token vivo de quem já não pode > sessões encerradas por quem administra não escrevem mais, e a de quem clicou em 'Minha conta' sobrevive
+AssertionError: {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ test/vigencia-na-escrita.test.ts:156:50
+    154|     expect((await escrever(noComputador.acesso)).statusCode).toBe(200);
+    155|     const doCelular = await escrever(noCelular.acesso);
+    156|     expect(doCelular.statusCode, doCelular.body).toBe(401);
+       |                                                  ^
+    157|     expect(doCelular.json().erro).toBe("sessao");
+    158| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  test/vigencia-na-escrita.test.ts > Token vivo de quem já não pode > o token de acesso continua LENDO até vencer: é a troca declarada
+AssertionError: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ test/vigencia-na-escrita.test.ts:178:56
+    176|     // e aquele precisam mudar juntos.
+    177|     expect((await ler(helena.acesso)).statusCode).toBe(200);
+    178|     expect((await escrever(helena.acesso)).statusCode).toBe(401);
+       |                                                        ^
+    179|   });
+    180| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  test/vigencia-na-escrita.test.ts > Bordas da vigência na escrita (V2-F00-E04) > token com o sid de OUTRA pessoa não escreve: a sessão tem de ser da própria conta
+AssertionError: {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ test/vigencia-na-escrita.test.ts:237:34
+    235|     );
+    236|     const r = await escrever(forjado);
+    237|     expect(r.statusCode, r.body).toBe(401);
+       |                                  ^
+    238|     expect(r.json().erro).toBe("sessao");
+    239|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  test/vigencia-na-escrita.test.ts > Bordas da vigência na escrita (V2-F00-E04) > a senha provisória vem do banco na escrita: marca no token sem prazo no banco não tranca, e prazo no banco sem marca no token tranca
+AssertionError: {"erro":"troca_de_senha_obrigatoria","mensagem":"Você entrou com uma senha provisória. Defina a sua senha em Minha conta antes de continuar."}: expected 403 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 403
+
+ ❯ test/vigencia-na-escrita.test.ts:275:44
+    273|       // O banco não tem prazo: a marca velha do token já não confirma…
+    274|       const solta = await escrever(comMarca);
+    275|       expect(solta.statusCode, solta.body).toBe(200);
+       |                                            ^
+    276| 
+    277|       // O banco tem prazo e o token não tem marca: vale o banco.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 7 passed (13)
+   Start at  10:09:44
+   Duration  11.43s (transform 431ms, setup 63ms, collect 2.27s, tests 8.55s, environment 0ms, prepare 186ms)
+

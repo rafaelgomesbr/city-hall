@@ -1,0 +1,134 @@
+$ npm run test:e2e:api   (em .)
+codigo=1 duracao=46s situacao=confere
+
+
+> dc360@0.1.0 test:e2e:api
+> node scripts/e2e-api.mjs
+
+
+== Subindo API na 3691 ==
+API de pé.
+
+== Construindo o painel apontado para http://127.0.0.1:3691 ==
+
+> @dc360/web@0.1.0 build
+> tsc -b && vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:198): "resolve" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".
+../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:211): "existsSync" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".
+../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:224): "join" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".
+../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:247): "mkdirSync" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".
+✓ 179 modules transformed.
+../../node_modules/@electric-sql/pglite/dist/index.js (1:90333): Use of eval in "../../node_modules/@electric-sql/pglite/dist/index.js" is strongly discouraged as it poses security risks and may cause issues with minification.
+../../node_modules/@electric-sql/pglite/dist/index.js (1:90814): Use of eval in "../../node_modules/@electric-sql/pglite/dist/index.js" is strongly discouraged as it poses security risks and may cause issues with minification.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      3.67 kB │ gzip:     1.50 kB
+dist/assets/postgres-CkP7QCDB.data               5,401.75 kB
+dist/assets/postgres-CyuUVpXN.wasm               8,090.73 kB │ gzip: 2,782.95 kB
+dist/assets/index-Dfs5HsNQ.css                      37.43 kB │ gzip:     7.13 kB
+dist/assets/__vite-browser-external-BIHI7g3E.js      0.03 kB │ gzip:     0.05 kB
+dist/assets/nodefs-cg16klbz.js                       0.42 kB │ gzip:     0.29 kB
+dist/assets/opfs-ahp-C_FiXTdY.js                    10.01 kB │ gzip:     3.04 kB
+dist/assets/index-BRDHXE0c.js                    1,603.44 kB │ gzip:   419.66 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.63s
+
+== Servindo o painel na 4691 ==
+Painel de pé.
+
+== Verificações do caminho de produção, em chromium ==
+
+== 1. Entrada por senha, contra a API ==
+  OK   a tela pede email e senha, nao lista de perfis
+  OK   senha errada mostra erro e nao entra
+  OK   continua na tela de entrada
+  OK   senha correta entra no painel
+  OK   identidade vem do servidor
+
+== 2. Dados vêm da API, com o mesmo conteúdo da semente ==
+  OK   Na fila conta as 6 ativas de Serra Alta
+  OK   fila mostra a critica primeiro
+
+== 3. Token no armazenamento, e nunca a senha ==
+  OK   tokens guardados na sessao
+  OK   a senha nao fica guardada em lugar nenhum
+  OK   nem o hash da senha chega ao navegador
+
+== 4. Isolamento imposto pelo servidor ==
+  OK   protocolo de Vale Fundo nao aparece para Serra Alta
+  OK   abrir ocorrencia de outro municipio pela URL nao mostra o registro
+
+== 5. Fluxo completo gravando no servidor ==
+  OK   protocolo gerado pelo banco segue a sequencia
+  OK   triagem gravou pela API
+  OK   despacho gravou pela API
+  OK   trilha do servidor tem os 3 eventos
+  OK   autoria veio do token, nao da tela
+
+== 6. Persistencia real: outro navegador ve o mesmo dado ==
+  OK   a ocorrencia criada numa sessao aparece na outra
+
+== 7. Papel restringe do lado do servidor ==
+  OK   operador nao ve Usuarios no menu
+  OK   operador nao ve bloco de encerramento
+  OK   a API recusa mesmo contornando a interface
+  OK   e diz que e falta de permissao
+
+== 8. Sair revoga a sessao no servidor ==
+  OK   voltou para a entrada
+  OK   tokens apagados do navegador
+  OK   o token de renovacao nao vale mais no servidor
+
+== 9. Cadastro com senha, e a conta nova entra ==
+  OK   modo API pede senha inicial no cadastro
+  OK   recusa senha curta
+  OK   e marca o campo como invalido para o leitor de tela
+  OK   usuario criado aparece na tabela
+  OK   a conta recem-criada entra com a senha definida
+
+== 10. Outro municipio, do zero ==
+  OK   Vale Fundo ve apenas as proprias 2 ocorrencias
+  OK   nenhum protocolo de Serra Alta vaza
+
+== 11. Documento oficial gerado pelo servidor ==
+  OK   o detalhe oferece o laudo quando ha vistoria
+  OK   o laudo traz o protocolo
+  OK   o laudo identifica o orgao
+  OK   o laudo traz o checklist respondido
+  OK   o laudo identifica quem assinou
+  OK   o laudo sai marcado como documento de validacao
+  OK   o documento tem botao de imprimir
+
+== 12. Isolamento tambem no documento ==
+  OK   outro municipio nao gera o laudo de uma ocorrencia alheia
+
+== 13. Galeria de evidencia no painel ==
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.evaluate: TypeError: Failed to fetch
+    at eval (eval at evaluate (:311:30), <anonymous>:22:21)
+    at async <anonymous>:337:30
+    at C:\Projetos\city-hall\dc360\apps\web\test\fluxo-api.e2e.mjs:350:26 {
+  log: []
+}
+
+Node.js v22.17.0
+file:///C:/Projetos/city-hall/dc360/scripts/e2e-api.mjs:112
+    p.on("exit", (codigo) => (codigo === 0 ? resolve() : reject(new Error(`saiu com ${codigo}`))));
+                                                                ^
+
+Error: saiu com 1
+    at ChildProcess.<anonymous> (file:///C:/Projetos/city-hall/dc360/scripts/e2e-api.mjs:112:65)
+    at ChildProcess.emit (node:events:518:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v22.17.0

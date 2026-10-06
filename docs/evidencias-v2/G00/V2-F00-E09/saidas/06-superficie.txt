@@ -1,0 +1,8 @@
+
+ ✓ test/superficie.test.ts (9 tests) 3085ms
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  14:13:15
+   Duration  6.28s (transform 616ms, setup 67ms, collect 2.39s, tests 3.09s, environment 0ms, prepare 204ms)
+

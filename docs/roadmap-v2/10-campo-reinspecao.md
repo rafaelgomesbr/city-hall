@@ -1,0 +1,1064 @@
+# Fase 13: Reinspeção e retorno ao campo
+
+**Gate da fase:** G13 REINSPEÇÃO | **Depende dos gates:** G00 a G12 (cadeia cumulativa na ordem de execução; o imediato é G12) | **Superfícies tocadas:** `apps/api`, `db`, `packages/shared`, `apps/web` (painel), `packages/campo` (só a decisão de abrir vistoria), `apps/campo` (só o contrato da tarefa; a experiência é F14-E09) | **Checkpoints da fase:** nenhum (CP-23 decidido por D-21)
+
+Esta fase faz a resposta de uma secretaria poder virar nova visita da equipe SEM ocorrência fake: a MESMA ocorrência ganha uma nova RODADA de vistoria por uma aresta explícita `providencia_pendente -> em_campo`, com permissão própria, motivo obrigatório e vínculo a um encaminhamento da F04. Hoje a aresta não existe (`packages/shared/src/dominio.ts:187`) e o banco só confere os valores de `status` (`db/migrations/001_base.sql:159-161`); nenhum gatilho confere a transição.
+
+Pela decisão D-21 (2026-10-01, que resolveu o CP-23 e atende ALY:FLU-04), `encerrada` deixa de ser terminal: uma ocorrência encerrada pode ser REABERTA com motivo por 30 dias (configurável por município) por UMA aresta, `encerrada -> triagem`, com permissão própria e evento append-only `reaberta`. Passado o prazo, fato novo é OCORRÊNCIA NOVA com `vinculada_a`. O documento já emitido continua imutável: a reabertura gera nova versão, nunca altera o emitido.
+
+Preserva (MANTER): o motor offline `packages/campo`, a regra de que o documento sai da vistoria vigente (a última recebida, `apps/api/src/rotas/documentos.ts:115-121`), `recorteDoAgente` e a idempotência da vistoria. O agente recebe só motivo operacional, resumo (desfecho e data) e a nova tarefa, nunca o histórico da secretaria (DP:T39), também na reabertura.
+
+NÃO faz: aceite e devolução antes do prazo (CP-24, F14), relato do cidadão (F16 a F19), tela do aplicativo (F14-E09), prova em aparelho (F14-E13); ver `docs/roadmap-v2/21-fora-da-v2.md`. REGRA DE PROVA: toda etapa de tela daqui (E04, E07, E10) fecha só com capturas de tela e E2E, passa pelo portão visual de `docs/roadmap-v2/19-definicao-de-pronto.md` (seção 0) e pelo portão da F08 (`V2-F08-E13`, `portao-visual.mjs`). Ordem: E01, E02, E03; E04 e E05 depois da E03 (em paralelo); E06 depois da E02 (as duas criam migration); E07 depois da E05 (mesma rota); E08 fecha o fluxo E; E09 depois da E06; E10 depois de E04, E06 e E09; E11 fecha a reabertura.
+
+## Etapas
+
+### V2-F13-E01 - Aresta providencia_pendente -> em_campo no shared e no banco (motivo, permissão, vínculo)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E02 a E06 partem desta aresta)
+- **Objetivo:** `providencia_pendente` volta a `em_campo` por uma única aresta, com permissão, motivo e vínculo, no shared e no banco.
+- **Problema que resolve:** `BZ-D:SEC-39`: `providencia_pendente` só vai a `encerrada` (`dominio.ts:187`) e o banco só confere valores de `status` (`001_base.sql:159-161`), nunca a transição.
+- **Origem:** DP:T14; DP:K17; BZ-D:SEC-39; BZ-D:ARQ-06; PR:D-21.
+- **Estado atual:** EXPANDIR (`TRANSICOES_PERMITIDAS`; `em_campo -> triagem` é a única volta hoje).
+- **Dependências de entrada:** G12.
+- **O que deve ser implementado:**
+  - Domínio: aresta, `ORIGENS_DA_REINSPECAO` e o comentário da "única volta" em `dominio.ts`, reescrito para três voltas (devolução, reinspeção, E06); `determinarReinspecaoSchema` (`encaminhamentoId`, `motivo` de 20 a 2000, `equipeId`, `prazoHoras`).
+  - Autorização: ação `determinar_reinspecao`, só coordenador e administrador.
+  - API: `POST /:id/despacho` exige origem `triagem` ou `em_campo`, senão a aresta libera despacho sem motivo.
+  - Banco: gatilho BEFORE UPDATE OF `status` só para voltas: `encerrada` só sai pela E06; `providencia_pendente -> em_campo` exige, na mesma transação, o evento `reinspecao_determinada` com motivo de 20+ caracteres e vínculo da ocorrência.
+- **O que NÃO deve ser implementado nesta etapa:** rota (E03), rodada (E02), tela (E04), reabrir `encerrada` (E06).
+- **Arquivos e módulos prováveis:** `packages/shared/src/dominio.ts`, `permissoes.ts`, `apps/api/src/rotas/ocorrencias.ts`, `db/migrations/` (nova), `db/test/` (novo).
+- **Risco de segurança:** sem o gatilho, SQL direto volta a ocorrência sem motivo.
+- **Impacto LGPD:** Não se aplica: sem dado pessoal novo.
+- **Migração necessária:** Sim (`NNN_aresta_de_reinspecao.sql`).
+- **Compatibilidade:** fixtures que só avançam estado seguem.
+- **Rollback:** migration corretiva que remove o gatilho.
+- **Testes positivos:** `dominio.test.ts` aceita a aresta; no banco, com o evento da mesma transação, o UPDATE passa.
+- **Testes negativos:** `encerrada -> em_campo` por SQL recusado; UPDATE sem evento recusado; `POST /despacho` em `providencia_pendente`: 409.
+- **Testes de autorização e isolamento:** operador sem a ação; contexto de B sobre ocorrência de A: 0 linhas.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`.
+- **E2E:** Não se aplica: sem rota; ver E08.
+- **Validação humana:** Rafael aceita a segunda volta.
+- **Evidência a produzir:** `docs/evidencias-v2/G13/V2-F13-E01/` com a tabela de arestas.
+- **Documentação a atualizar:** `DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** aresta única; `encerrada` só sai pela E06.
+- **Checkpoint:** Não (CP-23 decidido por D-21).
+
+### V2-F13-E02 - Rodada de vistoria: modelo, prazo por rodada, documento da vistoria vigente (migration)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E03 a E07 leem a rodada)
+- **Objetivo:** cada passagem da equipe vira rodada numerada, com prazo próprio, sem perder o prazo da primeira.
+- **Problema que resolve:** `prazo_em` é um só (`ocorrencias.ts:769`), o despacho não o toca (`:848-868`) e a devolução só vale depois dele (`sincronizacao.ts:1204`); `notificacao_unica_por_aparelho` (`016_aparelho_e_aviso_de_prazo.sql:174-175`) calaria o segundo `tarefa_nova`.
+- **Origem:** DP:T14; BZ-D:SEC-39; REL:03.
+- **Estado atual:** CRIAR (rodada); MANTER a vigência "última recebida" (`documentos.ts:115-121`).
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Migration: `rodadas_de_vistoria` (`numero`, `origem`, `motivo`, `instrucoes`, `encaminhamento_id`, `prazo_em`, `concluida_em`, `encerrada_em`); uma aberta por ocorrência; RLS forçada; classe D (F04-E06); manifesto (F05).
+  - Migration: `vistorias.rodada_id` por gatilho; rodada 1 no primeiro `em_campo` e no backfill (re-vistoria legada fica na 1); `notificacoes_enviadas.rodada` entra na chave `notificacao_unica_por_aparelho`.
+  - Banco: abrir a rodada copia o prazo para `ocorrencias.prazo_em`; o gatilho da E01 passa a exigir a rodada.
+  - API: laudo da rodada 2 diz "Reinspeção nº 2"; o da 1 segue válido.
+- **O que NÃO deve ser implementado nesta etapa:** rota (E03), indicadores (E07).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/rotas/sincronizacao.ts`, `apps/api/src/documentos/laudo.ts`, `db/test/` (novo).
+- **Risco de segurança:** backfill errado inventa rodada; o prazo novo não apaga o atraso da 1.
+- **Impacto LGPD:** `motivo` e `instrucoes` são texto livre (F05-E03).
+- **Migração necessária:** Sim (`NNN_rodadas_de_vistoria.sql`).
+- **Compatibilidade:** envelope sem `rodada` segue.
+- **Rollback:** migration corretiva; o código ignora a tabela.
+- **Testes positivos:** backfill dá rodada 1 a ocorrência com vistoria; rodada 2 traz `prazo_em` novo; laudo da 1 reimpresso idêntico.
+- **Testes negativos:** segunda rodada aberta recusada; vínculo a encaminhamento de outra ocorrência recusado.
+- **Testes de autorização e isolamento:** rodada de A invisível em B; `usuario_orgao` lê 0 linhas.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run conferir:numeros`.
+- **E2E:** Não se aplica: sem rota; ver E08.
+- **Validação humana:** Rafael confere a contagem de rodadas migradas.
+- **Evidência a produzir:** `docs/evidencias-v2/G13/V2-F13-E02/` com a contagem antes e depois.
+- **Documentação a atualizar:** `DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** migration provada; prazo por rodada provado.
+- **Checkpoint:** Não.
+
+### V2-F13-E03 - API de reinspeção e vínculo ao encaminhamento
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E04, E05 e E08 usam a rota)
+- **Objetivo:** `POST /v1/ocorrencias/:id/reinspecao` abre a rodada numa transação: conclui o encaminhamento, volta a ocorrência a `em_campo` e avisa a equipe.
+- **Problema que resolve:** hoje a coordenação só encerra (`ocorrencias.ts:1081`) ou encaminha de novo; não há rota, vínculo à resposta nem aviso ao aparelho (BZ-D:SEC-39).
+- **Origem:** DP:T14; DP:T11; BZ-M:V2-SEC-07.
+- **Estado atual:** CRIAR (a rota), reaproveitando a equipe lida sob RLS e o `tarefa_nova` do despacho.
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - API: `apps/api/src/rotas/reinspecao.ts` (a criar): `exigirPermissao` com `determinar_reinspecao` antes do banco; `exigirTransicao` com `ORIGENS_DA_REINSPECAO`; encaminhamento da MESMA ocorrência em `respondido` (concluído na transação, F04-E03) ou `concluido`, senão 409 `encaminhamento_nao_respondido`; abre a rodada, `mudarStatus` com `equipe_id`, evento na trilha (com rótulo em `ROTULO_EVENTO_TRILHA`), `tarefa_nova` da rodada e `despertarPush` (como `ocorrencias.ts:911-950`).
+  - API: `chaveDeCriacao` (F02-E07): repetir devolve a mesma rodada; resposta `{ rodada, status, prazoEm }`.
+  - Contrato: manifesto (F03-E12) e OpenAPI (F02-E04).
+- **O que NÃO deve ser implementado nesta etapa:** tela (E04), recorte do agente (E05), anexos da secretaria (F06), reinspeção pelo agente.
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/reinspecao.ts` (a criar), `apps/api/src/servidor.ts`, `apps/api/test/reinspecao.test.ts` (a criar).
+- **Risco de segurança:** duplo clique gera duas rodadas: `FOR UPDATE` mais o índice da rodada aberta.
+- **Impacto LGPD:** Não se aplica: `motivo` operacional.
+- **Migração necessária:** Não.
+- **Compatibilidade:** rotas legadas seguem; providência legada `concluido` serve de vínculo.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** sobre `respondido`: 200, encaminhamento `concluido`, `em_campo`, rodada 2; a mesma chave devolve a mesma rodada.
+- **Testes negativos:** `encerrada`: 409; encaminhamento `enviado` ou de outra ocorrência: 409 ou 404; motivo curto: 422; equipe inativa: 409.
+- **Testes de autorização e isolamento:** operador, agente e `usuario_orgao`: 403; coordenador de B: 404; token do portal: 401.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run test:e2e:api`.
+- **E2E:** sonda em `npm run test:e2e:api`; fluxo na E08.
+- **Validação humana:** Rafael chama a rota com `curl`.
+- **Evidência a produzir:** `docs/evidencias-v2/G13/V2-F13-E03/` com a saída dos testes.
+- **Documentação a atualizar:** `README.md`, OpenAPI da F02-E04.
+- **Definition of Done:** rota no manifesto, sem escrita antes de `exigirPermissao`, idempotente.
+- **Checkpoint:** Não.
+
+### V2-F13-E04 - Painel: determinar reinspeção a partir da resposta
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F13-E05, arquivos disjuntos)
+- **Objetivo:** a coordenação determina a reinspeção na ocorrência e no cartão do encaminhamento respondido, nos modos API e local.
+- **Problema que resolve:** sem tela a aresta é só API; a ocorrência oferece despachar (`Ocorrencia.tsx:639-662`) e encerrar (`ocorrencia-regras.ts`), não nova vistoria.
+- **Origem:** DP:T14; BZ-M:V2-SEC-07; BZ-D:SEC-39.
+- **Estado atual:** EXPANDIR (padrão de `ocorrencia-regras.ts`: decisão pura e testada).
+- **Dependências de entrada:** E03; F10-E05; F08-E13.
+- **O que deve ser implementado:**
+  - Frontend: `podeOferecerReinspecao(papel, status)`; botão "Determinar nova vistoria" no cartão `respondido` (F10-E05) e na ocorrência; campo "O que a equipe deve verificar ao voltar (não cole a resposta da secretaria)", equipe, prazo em horas, vínculo preselecionado; confirmação em duas etapas como o encerramento; cartão "Rodadas"; selo "Em campo (reinspeção)" com ícone e texto.
+  - Frontend: `repositorio.ts`, `http.ts` e `local.ts` (PGlite, mesmas migrations) com a mesma função.
+  - Acessibilidade: foco devolvido ao botão, erro em `role=alert`.
+- **O que NÃO deve ser implementado nesta etapa:** aviso à secretaria, reabrir encerrada (E10), tela do agente (F14-E09).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Ocorrencia.tsx`, `ocorrencia-regras.ts`, `apps/web/src/dados/http.ts`, `local.ts`, `repositorio.ts`, `apps/web/test/ocorrencia-reinspecao.test.ts` (a criar).
+- **Risco de segurança:** esconder o botão não é controle (o servidor é).
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** o modo local explica a falta de resposta.
+- **Rollback:** reverter.
+- **Testes positivos:** coordenador vê o botão em `providencia_pendente`, determina, a ocorrência vai a `em_campo` e o cartão mostra a rodada 2.
+- **Testes negativos:** operador não vê o botão; `triagem` e `encerrada` não oferecem; motivo curto erra no campo.
+- **Testes de autorização e isolamento:** operador forçando a chamada: 403; o modo local aplica a mesma regra.
+- **Regressão obrigatória:** `npm run test --workspace @dc360/web`, `npm run test:e2e`, `npm run typecheck`.
+- **E2E:** `apps/web/test/fluxo.e2e.mjs`, cenário novo no modo local.
+- **Validação humana:** Rafael e Alyson leem os rótulos; Rafael aprova as capturas pelo portão visual (`19-definicao-de-pronto.md`, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G13/V2-F13-E04/capturas/` e `INDEX.md` (320, 768 e 1280 px, claro e escuro, quatro estados, dois modos) e checklist do portão (F08-E13).
+- **Documentação a atualizar:** `GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** dois modos; `paridade-dos-modos.test.ts` verde.
+- **Checkpoint:** Não.
+
+### V2-F13-E05 - Minimização: tarefa ao agente com motivo e resumo, sem histórico da secretaria
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** sim (com F13-E04, arquivos disjuntos)
+- **Objetivo:** o aparelho recebe só motivo, resumo (desfecho e data) e nova tarefa; nenhuma rota do agente devolve texto ou autor da secretaria.
+- **Problema que resolve:** o token do agente lê hoje a resposta: `GET /ocorrencias/:id` devolve `SELECT * FROM providencias` e a trilha (`ocorrencias.ts:529-531`); `providencias/pendentes` entrega `responsavel` (`:1422`); o sino traz `providencia_respondida`.
+- **Origem:** DP:T39; BZ-D:CMP-08; BZ-D:CMP-17; BZ-F:P0-SEG.
+- **Estado atual:** CORRIGIR (as três leituras) e CRIAR (`reinspecao` na tarefa).
+- **Dependências de entrada:** E03.
+- **O que deve ser implementado:**
+  - Domínio: `reinspecaoDaTarefaSchema` no shared: `rodada`, `motivo`, `instrucoes`, `determinadaEm`, `resumoDoRetorno` (só `desfecho` e `respondidaEm`).
+  - API: `/sincronizacao/pendencias` junta a rodada por lista de inclusão; `GET /ocorrencias/:id` do agente omite `providencias` e filtra a `trilha` (sem `origem = 'portal'`); `providencias/pendentes`: 403; `GET /avisos` sem `providencia_respondida` nem `encaminhamento_*`.
+  - Mobile: `apps/campo/src/dados/api.ts` aceita `reinspecao` opcional.
+- **O que NÃO deve ser implementado nesta etapa:** tela do agente (F14-E09); contato do cidadão (F19, CP-09).
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/ocorrencias.ts`, `sincronizacao.ts`, `avisos.ts`, `packages/shared/src/schemas.ts`, `apps/api/test/agente-nao-ve-a-secretaria.test.ts` (a criar).
+- **Risco de segurança:** `motivo` livre chega a SQLite em claro (F14-E04): só a lista de inclusão protege.
+- **Impacto LGPD:** reduz exposição: dado de órgão e de servidor deixa de ir ao aparelho.
+- **Migração necessária:** Não.
+- **Compatibilidade:** app instalado ignora `reinspecao` e tolera `providencias` ausente (`historico-da-casa.ts`).
+- **Rollback:** reverter o commit.
+- **Testes positivos:** a tarefa traz os cinco campos; o dossiê do agente traz a vistoria anterior.
+- **Testes negativos:** com resposta, respondente e órgão sentinelas, o JSON de `/ocorrencias/:id`, `/sincronizacao/pendencias` e `/avisos` do agente não os contém.
+- **Testes de autorização e isolamento:** agente da equipe Bravo não lê a reinspeção da Alfa: 404; município B: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:campo`, `npm run test:isolamento`.
+- **E2E:** sonda do token do agente em `scripts/e2e-api.mjs`; fluxo na E08.
+- **Validação humana:** Rafael vê a sonda antes e depois.
+- **Evidência a produzir:** `docs/evidencias-v2/G13/V2-F13-E05/` com sondas e varredura.
+- **Documentação a atualizar:** `PRIVACIDADE.md`, `PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** varredura por sentinela zerada; sino sem avisos de secretaria.
+- **Checkpoint:** Não (o que mais desce é CP-09, em F19).
+
+### V2-F13-E06 - Reabrir ocorrência encerrada: aresta encerrada -> triagem, motivo, permissão e prazo do município
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E02 e esta criam migration; a da E02 sai primeiro)
+- **Objetivo:** a coordenação reabre ocorrência encerrada, com motivo, dentro do prazo do município (30 dias por padrão); depois dele o banco recusa.
+- **Problema que resolve:** ALY:FLU-04 pede "reabrir", mas `encerrada: []` (`dominio.ts:188`); `estadoTerminal` lê esse vazio como "terminal" (`ocorrencias.ts:141,1203,1325`, `documentos.ts:584,665`).
+- **Origem:** DP:T14; DP:K17; ALY:FLU-04; BZ-D:SEC-39; PR:D-21.
+- **Estado atual:** EXPANDIR (`encerrada: []` vira uma aresta).
+- **Dependências de entrada:** E01; E02.
+- **O que deve ser implementado:**
+  - Domínio: `encerrada: ["triagem"]`; `estadoTerminal` vira `estaEncerrada(status)`; ação `reabrir_ocorrencia` (coordenador e administrador); `reabrirOcorrenciaSchema` (`motivo` de 20 a 2000).
+  - Banco: `organizacoes.reabertura_prazo_dias` (padrão 30, de 0 a 365; 0 desliga, PREMISSA); o gatilho da E01 aceita a aresta só com o evento `reaberta` na mesma transação e `now() <= encerrado_em + prazo`.
+  - API: `POST /v1/ocorrencias/:id/reabertura` (`exigirPermissao` antes do banco, `chaveDeCriacao`; 409 `prazo_de_reabertura_vencido`); `GET` e `PATCH /v1/organizacao/reabertura` por `gerenciar_organizacao` (como `administracao.ts:611,632`); rótulo na trilha.
+- **O que NÃO deve ser implementado nesta etapa:** tela (E10), vínculo por fato novo (E09), rodada e documento (E11).
+- **Arquivos e módulos prováveis:** `dominio.ts`, `permissoes.ts`, `rotas/ocorrencias.ts`, `documentos.ts`, `administracao.ts`, `db/migrations/` (nova).
+- **Risco de segurança:** o prazo vem do relógio do banco, nunca do cliente.
+- **Impacto LGPD:** Não se aplica: `motivo` operacional.
+- **Migração necessária:** Sim (`NNN_reabertura_de_ocorrencia.sql`).
+- **Compatibilidade:** encerrada antiga nasce fora do prazo.
+- **Rollback:** migration corretiva.
+- **Testes positivos:** encerrada há 5 dias reabre: `triagem` e evento `reaberta`.
+- **Testes negativos:** com 31 dias: 409 e SQL recusado; motivo curto: 422; `encerrada -> em_campo` por SQL recusado.
+- **Testes de autorização e isolamento:** operador, agente e `usuario_orgao`: 403; coordenador de B: 404; `PATCH` do prazo por coordenador: 403.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`.
+- **E2E:** sonda em `npm run test:e2e:api`; fluxos nas E10 e E11.
+- **Validação humana:** Alyson valida os 30 dias e a frase da recusa.
+- **Evidência a produzir:** `docs/evidencias-v2/G13/V2-F13-E06/` com os testes.
+- **Documentação a atualizar:** `DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** reabertura só pela aresta, com motivo e no prazo; nenhum `estadoTerminal` sobra.
+- **Checkpoint:** Não (CP-23 decidido por D-21).
+
+### V2-F13-E07 - Indicadores de prazo e trilha por rodada
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (altera `GET /ocorrencias/:id` como a E05 e cria migration)
+- **Objetivo:** painel e exportação mostram prazo e trilha por rodada, inclusive de reabertura, sem esconder o atraso da primeira nem distorcer a mediana até a primeira vistoria.
+- **Problema que resolve:** `ocorrencias_atrasadas` (`023_metricas_do_municipio.sql`), `condicaoAtrasada` (`ocorrencias.ts:66`) e a exportação (`prestacao-de-contas.ts:364`) conhecem um `prazo_em`; o novo substitui o antigo e a primeira entrega some.
+- **Origem:** DP:T14; BZ-D:SEC-39; REL:05; PR:D-21.
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** E02; F08-E13.
+- **O que deve ser implementado:**
+  - Banco: `reinspecoes_abertas`, `reinspecoes_atrasadas` e `reaberturas_no_periodo` no resumo diário (`metricas/resumo.ts`); a mediana até a primeira vistoria segue por `min(coletada_em)`.
+  - API: `GET /ocorrencias/:id` devolve `rodadas` (com `origem`) à coordenação; a exportação ganha `rodadas`, `reinspecoes` e `reaberturas`.
+  - Frontend: cartão "Reinspeções abertas" no `Painel.tsx`; linha do tempo por rodada em `trilha-detalhe.ts`.
+- **O que NÃO deve ser implementado nesta etapa:** SLO (F21), indicador por secretaria (F10-E06), tela do agente (F14-E09).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/metricas/resumo.ts`, `apps/api/src/rotas/prestacao-de-contas.ts`, `apps/web/src/paginas/Painel.tsx`, `trilha-detalhe.ts`.
+- **Risco de segurança:** contar a rodada 2 como atraso da 1 distorce a prestação de contas.
+- **Impacto LGPD:** Não se aplica: contagens agregadas.
+- **Migração necessária:** Sim (`NNN_metricas_de_reinspecao.sql`).
+- **Compatibilidade:** colunas novas no fim.
+- **Rollback:** reverter o código; migration só se corrige por migration nova.
+- **Testes positivos:** rodada 1 fora do prazo e rodada 2 em dia: `rodadas` mostra as duas; o painel conta 1 aberta.
+- **Testes negativos:** a mediana não muda com a rodada 2; reinspeção concluída não conta como aberta.
+- **Testes de autorização e isolamento:** resumo de A não conta rodada de B; `usuario_orgao` não lê `rodadas`.
+- **Regressão obrigatória:** `npm run test:api` (`resumo-do-municipio`, `prestacao-de-contas`), `npm run test:isolamento`, `npm run conferir:numeros`.
+- **E2E:** cenário do cartão em `apps/web/test/fluxo.e2e.mjs`; o agregado é coberto pela API.
+- **Validação humana:** Alyson confere cartão e exportação; Rafael aprova as capturas pelo portão visual (`19-definicao-de-pronto.md`, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G13/V2-F13-E07/` com a exportação sintética e `capturas/` e `INDEX.md` do portão (F08-E13).
+- **Documentação a atualizar:** `DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** atraso da rodada 1 preservado; indicadores testados; capturas aprovadas.
+- **Checkpoint:** Não.
+
+### V2-F13-E08 - E2E do fluxo E (secretaria, resposta, reinspeção, agente)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (exige E04 e E05)
+- **Objetivo:** um E2E percorre o fluxo E: encaminhar, secretaria responder, determinar a reinspeção, o agente coletar a rodada 2 pela fila real e a coordenação ver o laudo novo.
+- **Problema que resolve:** PR:Fluxos E não tem teste; `campo-integracao.test.ts` prova a fila só na primeira rodada.
+- **Origem:** PR:Fluxos; DP:T14; DP:T39.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E04; E05.
+- **O que deve ser implementado:**
+  - Testes: `apps/api/test/fluxo-e-reinspecao.test.ts` (a criar), no molde de `campo-integracao.test.ts` (HTTP real, PGlite, `transporteHttp`): encaminhar pela rota da F04-E08; usuário de órgão (`dc360-portal`) aceita e responde; coordenação determina; o agente lê `/sincronizacao/pendencias` sem texto da secretaria; coleta com fotos e drena duas vezes; laudo da 2 novo e o da 1 intacto; encerra.
+  - Testes: sonda em `scripts/e2e-api.mjs` e cenário do painel em `apps/web/test/fluxo.e2e.mjs`; a tela do portal é da F11-E22.
+- **O que NÃO deve ser implementado nesta etapa:** aparelho físico (F14-E13), push real (F14-E05), relato (F19-E07).
+- **Arquivos e módulos prováveis:** `apps/api/test/fluxo-e-reinspecao.test.ts` (a criar), `scripts/e2e-api.mjs`, `apps/web/test/fluxo.e2e.mjs`.
+- **Risco de segurança:** teste com dublê esconde vazamento: a varredura por sentinela roda sobre a resposta real.
+- **Impacto LGPD:** Não se aplica: dados sintéticos.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só teste.
+- **Rollback:** remover o arquivo.
+- **Testes positivos:** fluxo verde; a vistoria da rodada 2 liga à rodada 2; dez reenvios viram um laudo.
+- **Testes negativos:** segunda reinspeção sobre a mesma resposta: 409; agente de outra equipe: 404; sentinela da secretaria ausente em toda resposta do agente.
+- **Testes de autorização e isolamento:** usuário da Saúde lê encaminhamento da Obras: 404; coordenador de B na ocorrência de A: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run test:e2e`, `npm run test:e2e:api`.
+- **E2E:** este é o E2E do fluxo E; a prova em aparelho é F14-E13.
+- **Validação humana:** Rafael roda `npm run test:e2e:api`.
+- **Evidência a produzir:** `docs/evidencias-v2/G13/V2-F13-E08/` com a saída e a linha do tempo.
+- **Documentação a atualizar:** `README.md` (fluxos cobertos).
+- **Definition of Done:** fluxo E verde na CI; sentinela ausente.
+- **Checkpoint:** Não.
+
+### V2-F13-E09 - Fato novo depois do prazo: ocorrência vinculada com tipo e motivo, vínculo imutável
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (E06 e esta criam migration; a da E06 sai primeiro)
+- **Objetivo:** vencido o prazo de reabertura, o fato novo vira ocorrência nova ligada à origem, com tipo e motivo do vínculo, e o vínculo não se reescreve.
+- **Problema que resolve:** `vinculada_a` só entra no INSERT (`ocorrencias.ts:647-667`), sem tipo nem motivo e reescrevível por UPDATE; sem este caminho a coordenação não tem saída depois do prazo da E06.
+- **Origem:** DP:T14; DP:K17; ALY:FLU-04; BZ-D:SEC-39; PR:D-21.
+- **Estado atual:** EXPANDIR (vínculo e FK composta da 008 existem).
+- **Dependências de entrada:** E06.
+- **O que deve ser implementado:**
+  - Migration: `vinculo_tipo` (`duplicidade` padrão ou `fato_novo`) e `vinculo_motivo` em `ocorrencias`, com CHECK; gatilho que torna `vinculada_a` imutável.
+  - API: `aberturaOcorrenciaSchema` ganha `tipoDoVinculo` e `motivoDoVinculo` (20+ caracteres); `fato_novo` só com origem `encerrada` (409 `origem_nao_encerrada`); a resposta traz `dentroDoPrazoDeReabertura` para a tela sugerir reabrir; nada na trilha da origem.
+  - Modo local: `local.ts` aplica o mesmo vínculo.
+- **O que NÃO deve ser implementado nesta etapa:** reabrir (E06), tela (E10), relato do cidadão (F16).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/rotas/ocorrencias.ts`, `packages/shared/src/schemas.ts`, `apps/web/src/dados/local.ts`.
+- **Risco de segurança:** vínculo reescrito esconde a origem.
+- **Impacto LGPD:** Não se aplica: `motivo` operacional.
+- **Migração necessária:** Sim (`NNN_vinculo_por_fato_novo.sql`).
+- **Compatibilidade:** `duplicidade` segue o padrão.
+- **Rollback:** migration corretiva.
+- **Testes positivos:** `fato_novo` com origem encerrada cria protocolo novo vinculado e a origem lista a filha; duplicidade segue (`api.test.ts`).
+- **Testes negativos:** `fato_novo` com origem ativa: 409; motivo curto: 422; UPDATE de `vinculada_a` recusado.
+- **Testes de autorização e isolamento:** `vinculadaA` de outro município recusado; coordenador de B não lista a filha de A.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`.
+- **E2E:** Não se aplica: sem tela; o fluxo com tela é a E10.
+- **Validação humana:** Alyson valida "fato novo" depois do prazo.
+- **Evidência a produzir:** `docs/evidencias-v2/G13/V2-F13-E09/` com os testes.
+- **Documentação a atualizar:** `README.md`, `DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** vínculo com tipo e motivo, imutável; backstop depois do prazo provado.
+- **Checkpoint:** Não.
+
+### V2-F13-E10 - Painel: reabrir ocorrência encerrada, prazo restante e fato novo
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (usa E04, E06 e E09 no mesmo `Ocorrencia.tsx`)
+- **Objetivo:** a coordenação reabre ocorrência encerrada no painel dentro do prazo e, vencido ele, registra fato novo vinculado; o administrador define o prazo.
+- **Problema que resolve:** `ocorrencia-regras.ts` oferece despachar e encerrar; não há tela para reabrir, fato novo nem prazo.
+- **Origem:** DP:T14; ALY:FLU-04; PR:D-21.
+- **Estado atual:** CRIAR (tela; a API é das E06 e E09).
+- **Dependências de entrada:** E04; E06; E09; F08-E13.
+- **O que deve ser implementado:**
+  - Frontend: `podeOferecerReabertura(papel, status, encerradoEm, prazoDias)` pura e testada; em `encerrada`, "Reabrir ocorrência" com o campo "Por que esta ocorrência volta a ser atendida (mínimo 20 caracteres)", confirmação em duas etapas e faixa "Pode ser reaberta por mais N dias"; vencido, só "Registrar fato novo neste endereço" (abre `NovaOcorrencia`); selo "Reaberta" com ícone e texto.
+  - Frontend: `Organizacao.tsx`: "Prazo para reabrir, em dias (0 desliga)"; `http.ts` e `local.ts` com a mesma função; erro em `role=alert`.
+- **O que NÃO deve ser implementado nesta etapa:** aviso à secretaria, tela do agente (F14-E09).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Ocorrencia.tsx`, `ocorrencia-regras.ts`, `Organizacao.tsx`, `apps/web/src/dados/local.ts`, `apps/web/test/ocorrencia-reabertura.test.ts` (a criar).
+- **Risco de segurança:** esconder o botão não é controle (o servidor é).
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** modo local com o mesmo prazo.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** coordenador reabre no prazo e a ocorrência vai a `triagem` com o selo; vencido, vê só o fato novo.
+- **Testes negativos:** operador não vê o botão; motivo curto erra no campo.
+- **Testes de autorização e isolamento:** operador forçando a chamada: 403; o modo local aplica a regra.
+- **Regressão obrigatória:** `npm run test --workspace @dc360/web`, `npm run test:e2e`.
+- **E2E:** `fluxo.e2e.mjs`: encerrar, reabrir, vencer o prazo (relógio simulado) e registrar fato novo.
+- **Validação humana:** Alyson e Rafael leem os rótulos; Rafael aprova as capturas pelo portão visual (`19-definicao-de-pronto.md`, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G13/V2-F13-E10/capturas/` e `INDEX.md` (320, 768 e 1280 px, claro e escuro, quatro estados, dois modos) e checklist do portão.
+- **Documentação a atualizar:** `GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** dois modos; `paridade-dos-modos.test.ts` verde.
+- **Checkpoint:** Não.
+
+### V2-F13-E11 - Reabertura: rodada nova, documento emitido intacto e E2E da API
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (exige E02, E06 e E09)
+- **Objetivo:** provar que reabrir gera rodada nova e versão nova de documento sem alterar o emitido, e que o agente recebe só motivo operacional.
+- **Problema que resolve:** o documento sai da vistoria vigente, a última recebida (`documentos.ts:115-121`); sem rodada nova a vistoria antiga seguiria como laudo.
+- **Origem:** DP:T14; DP:T39; ALY:FLU-04; PR:D-21; PR:D-05.
+- **Estado atual:** CRIAR (gatilho de rodada e teste).
+- **Dependências de entrada:** E02; E06; E09.
+- **O que deve ser implementado:**
+  - Migration: o primeiro `em_campo` depois de `reaberta` abre a rodada n+1 com `origem = 'reabertura'` e o motivo do evento (o CHECK de `origem` da E02 aceita o valor); a tarefa do agente (E05) traz só motivo e resumo.
+  - API: a ocorrência reaberta lista `documentosEmitidosAntes`; o documento novo sai pela substituição da F09 (versão n+1); o emitido segue servido idêntico.
+  - Testes: `apps/api/test/fluxo-reabertura.test.ts` (a criar), no molde de `campo-integracao.test.ts`: laudo, encerrar, reabrir, despachar, coletar, laudo novo, vencer o prazo, fato novo.
+- **O que NÃO deve ser implementado nesta etapa:** tela (E10), aparelho (F14-E13), alterar PDF emitido.
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/rotas/ocorrencias.ts`, `apps/api/test/fluxo-reabertura.test.ts` (a criar), `scripts/e2e-api.mjs`.
+- **Risco de segurança:** laudo emitido que muda de hash quebra a prova.
+- **Impacto LGPD:** Não se aplica: dados sintéticos.
+- **Migração necessária:** Sim (`NNN_rodada_da_reabertura.sql`).
+- **Compatibilidade:** rodada 1 e reinspeção seguem.
+- **Rollback:** migration corretiva.
+- **Testes positivos:** reabrir e despachar abre a rodada 2 com `origem = reabertura`; hash do laudo emitido igual; documento n+1 emitido.
+- **Testes negativos:** segunda rodada aberta recusada; sentinela da secretaria ausente da tarefa; reabrir fora do prazo: 409.
+- **Testes de autorização e isolamento:** agente de outra equipe: 404; coordenador de B: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run test:e2e:api`.
+- **E2E:** este é o E2E da API; o aparelho é a variante da F14-E13.
+- **Validação humana:** Rafael roda `npm run test:e2e:api`.
+- **Evidência a produzir:** `docs/evidencias-v2/G13/V2-F13-E11/` com a saída e os hashes dos laudos.
+- **Documentação a atualizar:** `DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** reabrir gera rodada e versão novas; emitido idêntico.
+- **Checkpoint:** Não.
+
+# GATE G13 - REINSPEÇÃO
+
+Só passa se:
+- [ ] V2-F13-E01: aresta `providencia_pendente -> em_campo` no shared e no banco, `determinar_reinspecao` só de coordenador e administrador, despacho recusado fora de `triagem` e `em_campo`, `encerrada` sem saída por SQL fora da aresta da E06; tabela de arestas e testes em `docs/evidencias-v2/G13/V2-F13-E01/`.
+- [ ] V2-F13-E02: `rodadas_de_vistoria` aplicada em máquina limpa e sobre dado migrado, classificada no manifesto e na classe D do órgão; prazo por rodada, laudo pela vistoria vigente e reimpressão idêntica do laudo da rodada 1 provados.
+- [ ] V2-F13-E03: `POST /v1/ocorrencias/:id/reinspecao` com `exigirPermissao` antes do banco, no manifesto, idempotente, com o aviso `tarefa_nova` da rodada; cenários 404, 403, 409 e 422 verdes.
+- [ ] V2-F13-E04: reinspeção determinada pelo painel nos modos API e local; `paridade-dos-modos.test.ts` verde; capturas em `capturas/` com `INDEX.md`, portão visual (`19-definicao-de-pronto.md`, seção 0) e portão da F08-E13 aprovados por Rafael; E2E verde.
+- [ ] V2-F13-E05: varredura por sentinela zerada em toda rota do agente; a tarefa traz só motivo, instruções e retorno resumido; sondas antes e depois arquivadas.
+- [ ] V2-F13-E06: reabertura `encerrada -> triagem` só com `reabrir_ocorrencia`, motivo, evento `reaberta` e dentro do prazo do município (30 dias por padrão), imposta no banco e na rota; `estadoTerminal` sem chamador; leitura e `PATCH` do prazo provados; evidência em `docs/evidencias-v2/G13/V2-F13-E06/`.
+- [ ] V2-F13-E07 (P1): indicadores por rodada, com as reaberturas, sem esconder o atraso da primeira; mediana até a primeira vistoria inalterada; capturas e portão visual aprovados.
+- [ ] V2-F13-E08: `fluxo-e-reinspecao.test.ts` e a sonda de `npm run test:e2e:api` verdes, com a saída arquivada.
+- [ ] V2-F13-E09: `fato_novo` depois do prazo cria ocorrência vinculada com tipo e motivo; `vinculada_a` imutável por SQL; modo local igual.
+- [ ] V2-F13-E10: reabrir, prazo restante, fato novo e prazo do município no painel, nos modos API e local; `paridade-dos-modos.test.ts` verde; capturas, `INDEX.md`, portão visual (`19-definicao-de-pronto.md`, seção 0) e portão da F08-E13 aprovados por Rafael; E2E verde.
+- [ ] V2-F13-E11: reabertura abre a rodada n+1 com `origem = reabertura`; laudo e documento emitidos idênticos em hash; versão nova pela F09; `fluxo-reabertura.test.ts` verde com a saída arquivada.
+- [ ] `npm run test:isolamento` (suíte inteira de `db/`, CA-06 e os catálogos da F04 incluídos), `npm run test:api`, `npm run test:campo`, `npm run typecheck` e `npm run conferir:numeros` verdes.
+- [ ] nenhuma regressão: gates G00 a G12 continuam verdes (se um quebrar, ESTE gate volta a REPROVADO).
+- [ ] documentação atualizada (`DICIONARIO-DE-DADOS.md`, `PAPEIS_E_RESPONSABILIDADES.md`, `PRIVACIDADE.md`, `GUIA-DO-COORDENADOR.md`, `README.md`) e evidências arquivadas em `docs/evidencias-v2/G13/`.
+
+**Reabre se:** uma ocorrência `encerrada` puder voltar a outro estado sem a aresta, o evento `reaberta` com motivo ou fora do prazo do município (SQL ou rota); documento emitido mudar com a reabertura; etapa de tela fechar sem capturas e portão visual; a aresta de reinspeção funcionar sem motivo e vínculo; resposta, autor ou órgão de secretaria descer ao aparelho do agente; um segundo aviso de tarefa nova da mesma ocorrência for suprimido; um gate anterior quebrar.
+**Este Gate libera:** F14-E01 e F14-E09 (o aplicativo do agente) e, por eles, a prova da reinspeção e da variante de reabertura em aparelho físico (F14-E13, G14).
+
+# Fase 14: Consolidação do app do agente
+
+**Gate da fase:** G14 APP DO AGENTE EM APARELHO FÍSICO | **Depende dos gates:** G13 e G00 (cadeia cumulativa na ordem de execução) | **Superfícies tocadas:** `apps/campo`, `packages/campo`, `apps/api` e `db` (push, versão, aditamento, autoria), `apps/web` (leitura de "Quem está em campo" e a fila de revisão) | **Checkpoints da fase:** CP-04, CP-24, CP-57, CP-58
+
+Esta fase fecha as lacunas conhecidas do app do agente e, acima de tudo, PROVA o app em aparelho FÍSICO, Android e iOS, com artefato por passo: hoje há relato de um iPhone e de emulador, nenhum Android físico e três documentos que se contradizem (BZ-N:N.7). Preserva (MANTER): o motor offline `packages/campo` (fila, idempotência, autoria, devolução), as rotas de saída a campo (agora chamadas pelo app, D-25, que resolveu o CP-02) e as correções da F00 (E06, E14, E15, E16: códigos de sessão na fila, vistoria que não se apaga, GPS e frases); o app segue fora dos workspaces, testado por `scripts/testar-campo.mjs`.
+
+NÃO faz: app do cidadão (F17), origem de relato no campo (F19-E06), acessibilidade do cidadão (F17-E15, F23), observabilidade da operação (F21), fichas de loja (F28-E07), checklist condicional por tipo offline (F33-E07 e F33-E08), QR e rotas de logística no campo (F30-E07, F30-E14 e F30-E15), idiomas, VLibras e cor do município no app (F35-E06, F35-E09 e F35-E12, mais a infraestrutura da F08); ver `docs/roadmap-v2/21-fora-da-v2.md`. Nota de ordem: o item da fila usa `ocorrenciaId` (`ItemBase` de `packages/campo`); a F29-E13, que roda depois, o generaliza com `alvo` e migra o SQLite sem perder item em voo, então nenhuma etapa daqui pode depender de `ItemBase` ficar como está. REGRA DE PROVA: toda etapa de tela daqui (E01, E03, E09, E10 e E16 a E22) fecha só com capturas de simulador e foto ou vídeo do aparelho, E2E, portão visual de `docs/roadmap-v2/19-definicao-de-pronto.md` (seção 0) e portão da F08 (`V2-F08-E13`, roteiro de simulador e jest com `fontScale` 2). Ordem: E02, E07 e E11 cedo (arquivos disjuntos); E10 e E05 em paralelo com a E11; E01 sem condição (D-25); E03 depois da E02; E09 depois do G13; E16 e E17 depois da E02; E18 e E19 depois da E03; E20 depois da E19; E21 e E22 depois da E02; E12 reúne E01, E02, E03, E07, E09, E10, E11 e as novas entregues (E16 a E22) e é o centro da fase; E13 fecha. E04, E05, E06, E08 e E21 dependem de decisão (CP-24, CP-04, CP-58) e não travam as outras, mas o gate declara o que ficar de fora.
+
+## Etapas
+
+### V2-F14-E01 - Saída a campo no app: declarar, prorrogar, retorno e /minha
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (a E12 depende)
+- **Objetivo:** o agente declara, prorroga e confirma o retorno da saída pelo app, que mostra a saída aberta ao reabrir.
+- **Problema que resolve:** BZ-N:N.6: as rotas `/saida-a-campo` (declarar, `/prorrogar`, `/retorno`, `/minha`) e o painel existem, com 27 testes, e `apps/campo/src` não chama nenhuma.
+- **Origem:** DP:K14; BZ-N:N.6; BZ-D:CMP-23; REL:03.
+- **Estado atual:** CRIAR (cliente e telas; API e painel MANTER); D-25 decidiu implementar.
+- **Dependências de entrada:** G13; F08-E13.
+- **O que deve ser implementado:**
+  - Mobile: `apps/campo/src/dados/saida-a-campo.ts` (a criar): `declarar` (chave por `Crypto.randomUUID`, 15 a 480 minutos, `sozinho` sem padrão), `prorrogar`, `confirmarRetorno`, `minha`; reenvio repete a MESMA chave; nunca na fila (exige sinal).
+  - Mobile: folha "Vou a campo" no cartão da tarefa e faixa "Em campo até" lida de `/minha`; prazo e atraso do servidor; sem sinal: "Saída NÃO declarada: avise a base".
+  - Documentação: tirar a ressalva da F00-E24.
+- **O que NÃO deve ser implementado nesta etapa:** push à coordenação; aceite e devolução antes do prazo (E14, atrás de CP-24).
+- **Arquivos e módulos prováveis:** `apps/campo/src/dados/api.ts`, `saida-a-campo.ts` (a criar), `apps/campo/src/app/(agente)/index.tsx`, `_layout.tsx`, `CARTAO-DO-AGENTE.md`.
+- **Risco de segurança:** texto que prometa socorro que o produto não cumpre.
+- **Impacto LGPD:** Não se aplica: o app não envia localização.
+- **Migração necessária:** Não.
+- **Compatibilidade:** API sem mudança.
+- **Rollback:** esconder a entrada.
+- **Testes positivos:** declarar 60 minutos cria a saída e a faixa; `/minha` repõe a faixa; retorno a encerra; mesma chave não duplica.
+- **Testes negativos:** sem sinal não declara; `sozinho` sem resposta bloqueia; duração 10: 422.
+- **Testes de autorização e isolamento:** `agenteId` de outro: 409; saída de outro agente: 404.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:api`.
+- **E2E:** declarar, ver no painel, vencer, ver o sino, confirmar (aparelho, E12).
+- **Validação humana:** Alyson e um agente leem as frases; Rafael aprova capturas e fotos pelo portão visual (`19-definicao-de-pronto.md`, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E01/capturas/` e `INDEX.md` (simulador, aparelho e painel; claro e escuro; quatro estados).
+- **Documentação a atualizar:** `CARTAO-DO-AGENTE.md`, `GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** saída declarada, prorrogada e confirmada pelo app; documentos sem ressalva.
+- **Checkpoint:** Não (CP-02 decidido por D-25; aceite e devolução: E14, CP-24).
+
+### V2-F14-E02 - Sessão, logout e fila: rascunhos e conflitos (estende F00-E15)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (a E03 usa o que muda na fila)
+- **Objetivo:** nenhum caminho de sessão ou fila apaga em silêncio vistoria começada ou coletada; a segunda vistoria acidental fica impossível.
+- **Problema que resolve:** a F00 só avisa ao sair (E15) e classifica 401 e 403 (E06). Falta: o logout apaga lápides e mantém a fila (`banco-local.ts:333`), então pode abrir segunda vistoria (CMP-27); `acolherNoAparelho` apaga dado do colega sem confirmar nem teste (CMP-53); `deposito.ts:110-119` apaga registro ilegível (CMP-60).
+- **Origem:** REL:03; BZ-D:CMP-27; BZ-D:CMP-53; BZ-D:CMP-60.
+- **Estado atual:** CORRIGIR (o motor é MANTER).
+- **Dependências de entrada:** G00.
+- **O que deve ser implementado:**
+  - Domínio: `decidirAberturaDaVistoria` (`packages/campo/src/coleta.ts`) considera item de vistoria da ocorrência na fila e devolve `ja_coletada` sem lápide.
+  - Mobile: `acolherNoAparelho` confirma, nomeando o dono anterior e o que apaga; a fila dele espera o autor.
+  - Mobile: `deposito.ts` isola o registro ilegível em quarentena, visível na Fila, nunca `remover`.
+  - Testes: `acolherNoAparelho`, `marcarDonoDosDadosLocais` e `sair()` com SQLite em memória, como `coletas.test.ts`.
+- **O que NÃO deve ser implementado nesta etapa:** preservar rascunho ao sair (CP-24, F00-E15); verbo da coordenação para coleta alheia (CMP-58); tela de conflitos (E03).
+- **Arquivos e módulos prováveis:** `packages/campo/src/coleta.ts`, `deposito.ts`, `apps/campo/src/dados/banco-local.ts`, `sessao.tsx`, `apps/campo/src/app/(agente)/vistoria/[id].tsx`.
+- **Risco de segurança:** perguntar sempre irrita; só pergunta quando há dado de outro dono.
+- **Impacto LGPD:** reduz: dado alheio só some com ciência.
+- **Migração necessária:** Não.
+- **Compatibilidade:** os dois casos de remoção de `fila.test.ts` mudam.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** após logout com item na fila, a mesma ocorrência dá `ja_coletada`; registro corrompido vai à quarentena e a fila segue.
+- **Testes negativos:** cancelar a confirmação não apaga nada; registro ilegível não some.
+- **Testes de autorização e isolamento:** coleta de outro autor não sobe com a sessão atual.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:api`.
+- **E2E:** aparelho: coletar, sair, entrar com outro agente (E12).
+- **Validação humana:** Rafael vê a pergunta e a quarentena.
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E02/` com os testes e capturas.
+- **Documentação a atualizar:** `LEIA-ME.md` e `PENDENCIAS.md` do campo.
+- **Definition of Done:** lápide e fila concordam; nada some em silêncio.
+- **Checkpoint:** Não.
+
+### V2-F14-E03 - Conflito de sincronização (CA-05): tela de revisão
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (depende da E02)
+- **Objetivo:** todo item que o servidor não aceita sem decisão humana vai a uma tela de revisão, e nenhum descarte é silencioso.
+- **Problema que resolve:** ALY:CA-05 e ALY:RN-06 pedem regra previsível ou fila de revisão; hoje 4xx vira `bloqueado` com a frase crua e `descartar` (`packages/campo/src/fila.ts`) apaga sem rastro no servidor.
+- **Origem:** ALY:CA-05; ALY:RN-06; BZ-D:CMP-56.
+- **Estado atual:** EXPANDIR (estados, correção e `arquivado` existem).
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - Domínio: `CONFLITOS_DE_SINCRONIZACAO` no shared: por código (`autor_divergente`, `ja_encerrada`, `evidencia_ja_vinculada`, `status_nao_permite`, `tarefa_no_prazo`, `data_implausivel`) rótulo, explicação e saídas; teste que descobre os códigos de `RegraDeNegocio` em `sincronizacao.ts` e reprova código sem entrada.
+  - Mobile: seção "Precisa de decisão" na Fila; descarte pede motivo de lista fechada e arquiva.
+  - API: `POST /v1/sincronizacao/descarte`, idempotente, grava `coleta_descartada` (motivo, chave, autor; com rótulo) na trilha; manifesto.
+- **O que NÃO deve ser implementado nesta etapa:** verbo para assumir autoria (E20); aditamento (E19).
+- **Arquivos e módulos prováveis:** `packages/campo/src/fila.ts`, `apps/campo/src/app/(agente)/fila.tsx`, `apps/api/src/rotas/sincronizacao.ts`, `packages/shared/src/dominio.ts`.
+- **Risco de segurança:** descarte sem rastro apaga a prova de um ato.
+- **Impacto LGPD:** o evento leva só motivo, chave e autor.
+- **Migração necessária:** Não.
+- **Compatibilidade:** rota aditiva.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** coleta recusada por `ja_encerrada` aparece em "Precisa de decisão"; descartar com motivo arquiva e grava o evento.
+- **Testes negativos:** código novo sem entrada reprova o teste; descarte sem motivo recusado; reenvio não duplica o evento.
+- **Testes de autorização e isolamento:** evento de A invisível em B; agente descarta só coleta própria ou alheia com confirmação.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:api`, `npm run test:isolamento`.
+- **E2E:** o painel encerra a ocorrência com coleta na fila e a revisão aparece (aparelho, E12).
+- **Validação humana:** Alyson aceita os rótulos; Rafael aprova capturas e fotos pelo portão visual (`19-definicao-de-pronto.md`, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E03/` com `capturas/` e `INDEX.md` do portão (F08-E13).
+- **Documentação a atualizar:** `LEIA-ME.md` do campo.
+- **Definition of Done:** todo código de conflito classificado; descarte deixa rastro.
+- **Checkpoint:** Não.
+
+### V2-F14-E04 - Criptografia local do SQLite e das fotos
+- **Prioridade:** P1
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (muda o armazenamento que E02, E03 e E09 usam)
+- **Objetivo:** se CP-24 aprovar a alternativa B, banco e arquivos locais saem do claro, a coleta migra sem perda e o já confirmado é limpo.
+- **Problema que resolve:** SQLite e fotos em claro (`DECLARACAO-NAS-LOJAS.md:395-400`), lista com contato e vulnerabilidade (`api.ts:Pendencia`), sem criptografia local (CMP-47; a limpeza pós-sincronização e a guarda de espaço, CMP-46 e CMP-51, são da E15).
+- **Origem:** REL:03; DP:K14; BZ-D:CMP-47; BZ-D:CMP-100.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** CP-24.
+- **O que deve ser implementado:**
+  - Mobile: chave de 256 bits no `expo-secure-store` (como `sessao.tsx:75`); SQLCipher via plugin do `expo-sqlite` (confirmar em `~57.0.3`); fotos e assinatura cifradas em disco, biblioteca em ADR.
+  - Mobile: migração do claro: copia, cifra, confere contagem e hash, só então troca; o esquema local ganha versão (hoje sem `user_version`).
+- **O que NÃO deve ser implementado nesta etapa:** wipe remoto e MDM (alternativa C); bloqueio biométrico (CMP-05); retenção por idade; limpeza pós-sincronização e guarda de espaço (E15).
+- **Arquivos e módulos prováveis:** `apps/campo/src/dados/banco-local.ts`, `evidencia-no-disco.ts`, `sessao.tsx`, `apps/campo/app.config.ts`.
+- **Risco de segurança:** migração que perde fila é pior que dado em claro.
+- **Impacto LGPD:** reduz a exposição de dado de morador em aparelho perdido.
+- **Migração necessária:** Não (servidor).
+- **Compatibilidade:** o app novo lê claro e cifrado na transição.
+- **Rollback:** manter a conversão reversível por uma versão.
+- **Testes positivos:** cifrar e ler devolve o igual; fixture de fila antiga migra com todos os itens e hashes.
+- **Testes negativos:** chave errada não abre; migração interrompida retoma sem perder; foto adulterada é rejeitada no envio.
+- **Testes de autorização e isolamento:** agente B segue sem subir a coleta do A.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:scripts`.
+- **E2E:** aparelho: coletar offline, matar o app, reabrir; foto chega com o mesmo SHA-256.
+- **Validação humana:** Alyson aceita o nível.
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E04/` com o relatório de migração.
+- **Documentação a atualizar:** `DECLARACAO-NAS-LOJAS.md`, `PRIVACIDADE.md`.
+- **Definition of Done:** nada em claro, ou decisão A com a exposição declarada.
+- **Checkpoint:** CP-24 (alternativa A, B ou C; sem decisão não começa).
+
+### V2-F14-E05 - Push real (APNs e FCM) e aparelhos multiaplicativo
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** médio  |  **Paralelizável:** sim (com F14-E10, arquivos disjuntos)
+- **Objetivo:** o aviso de tarefa e de prazo chega a iPhone e Android reais com o app fechado, e o remetente escolhe bundle e credencial pelo aplicativo do aparelho.
+- **Problema que resolve:** OPS-102, CMP-73: um só `APNS_BUNDLE` (`config.ts:229`, `push/apns.ts:188`), um só `FCM_CONTA_SERVICO`, `aparelhos` sem coluna de aplicativo (`usuario_id NOT NULL`); Apple e Google só aceitaram credencial com ficha falsa.
+- **Origem:** DP:T31; BZ-D:CMP-73; BZ-D:OPS-102; REL:10.
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** F01-E13; CP-04.
+- **O que deve ser implementado:**
+  - Migration: `aparelhos.aplicativo` (padrão `campo`, CHECK só com `campo`); `usuario_id` segue NOT NULL: o cidadão usa tabela própria (F15-E02).
+  - API: `POST /v1/aparelhos` aceita `aplicativo`; `push/apns.ts` e `push/envio.ts` resolvem bundle, ambiente e conta FCM por `aplicativo` (mapa `APNS_BUNDLES`; `APNS_BUNDLE` vira a entrada `campo`).
+  - Mobile: `src/push/registro.ts` envia `aplicativo: "campo"`.
+  - Infraestrutura: chave APNs e projeto FCM por ambiente, em segredo do Fly.
+- **O que NÃO deve ser implementado nesta etapa:** push do cidadão (F17-E13); push à coordenação; e-mail (F11-E17).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/push/apns.ts`, `envio.ts`, `apps/api/src/config.ts`, `apps/campo/src/push/registro.ts`.
+- **Risco de segurança:** bundle errado manda push de HML a aparelho de PROD.
+- **Impacto LGPD:** a vitrine segue sem dado pessoal (`push-vitrine.test.ts`).
+- **Migração necessária:** Sim (`NNN_aparelhos_por_aplicativo.sql`).
+- **Compatibilidade:** ficha antiga vira `campo`.
+- **Rollback:** reverter o código; a coluna é inócua.
+- **Testes positivos:** aparelho registra com `campo`; o despacho enfileira e o varredor entrega; o mapa resolve o bundle.
+- **Testes negativos:** `aplicativo` desconhecido: 422; bundle ausente do mapa falha em `error` sem enviar.
+- **Testes de autorização e isolamento:** aparelho de A não recebe aviso de B (`push-aparelhos.test.ts`).
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run test:scripts`.
+- **E2E:** HML: despachar com o app fechado em iPhone e Android reais; a notificação aparece na tela bloqueada e abre a tarefa.
+- **Validação humana:** Rafael recebe nos dois.
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E05/` com capturas sem ficha e linhas `entregue`.
+- **Documentação a atualizar:** `IMPLANTACAO.md`, `LOJAS.md`.
+- **Definition of Done:** entrega real nos dois sistemas; remetente por aplicativo.
+- **Checkpoint:** CP-04 (bloqueia a entrega real; migration e mapa antes).
+
+### V2-F14-E06 - Sincronização em segundo plano
+- **Prioridade:** P2
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** médio  |  **Paralelizável:** não (altera `(agente)/_layout.tsx`, como a E01)
+- **Objetivo:** se CP-24 aprovar, a fila tenta drenar com o app fechado, sem garantia de horário; senão a decisão de primeiro plano fica registrada.
+- **Problema que resolve:** CMP-65, CMP-66: o laço é JS em primeiro plano (`LacoDaFila`), sem `expo-task-manager` nem `UIBackgroundModes`; a F00-E16 corrige a frase, não a função.
+- **Origem:** DP:K14; BZ-D:CMP-65; BZ-D:CMP-66.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** CP-24.
+- **O que deve ser implementado:**
+  - Mobile: tarefa de segundo plano (`expo-task-manager` e `expo-background-task`, API a confirmar na SDK 57) chamando o MESMO dreno de `packages/campo`, com trava de dreno único; sem sessão, com `deOutroAutor` ou parada por `FalhaDeSessao`, nada sobe.
+  - Mobile: a tela só diz "sobe com o app fechado" depois da prova em aparelho.
+  - Observabilidade: contagem local de execuções, visível na Fila.
+- **O que NÃO deve ser implementado nesta etapa:** serviço contínuo (alternativa C do CP-24, etapa nova); localização em segundo plano; push silencioso.
+- **Arquivos e módulos prováveis:** `apps/campo/src/app/(agente)/_layout.tsx`, `apps/campo/src/dados/fila.ts`, `apps/campo/app.config.ts`, `apps/campo/package.json`.
+- **Risco de segurança:** envio duplicado (a chave cobre) e bateria.
+- **Impacto LGPD:** Não se aplica: mesmos dados e finalidade.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem tarefa registrada se CP-24 negar.
+- **Rollback:** remover o registro da tarefa.
+- **Testes positivos:** app em segundo plano com rede: o item sobe uma vez; dreno de fundo e de frente juntos não duplicam.
+- **Testes negativos:** sem sessão ou `deOutroAutor` nada sobe; tarefa morta no meio retoma com a mesma chave.
+- **Testes de autorização e isolamento:** a autoria da fila decide, como em primeiro plano.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:api`.
+- **E2E:** aparelho: bloquear com item na fila e sinal; medir se e quando sobe (Android e iOS).
+- **Validação humana:** Alyson aceita o comportamento sem garantia.
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E06/` com a medição por aparelho.
+- **Documentação a atualizar:** `LEIA-ME.md`, `DECLARACAO-NAS-LOJAS.md`.
+- **Definition of Done:** comportamento medido e dito com verdade.
+- **Checkpoint:** CP-24 (primeiro plano, oportunista ou contínuo; em primeiro plano a etapa fecha).
+
+### V2-F14-E07 - ErrorBoundary e crash reporting
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (a E08 e esta alteram `src/app/_layout.tsx`)
+- **Objetivo:** falha de tela não derruba o app nem apaga coleta, e o erro chega sem dado pessoal.
+- **Problema que resolve:** CMP-78: `apps/campo/src` não tem `ErrorBoundary` nem relatório de falhas; os defeitos de 2026-09-15 só apareceram com o aparelho na mão do dono.
+- **Origem:** REL:03; REL:11; BZ-D:CMP-78; DP:T33.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** F01-E14.
+- **O que deve ser implementado:**
+  - Mobile: `ErrorBoundary` na raiz (`src/app/_layout.tsx`): "Algo deu errado. Suas vistorias continuam guardadas." com "Tentar de novo" e código curto; nunca chama `apagarDadosLocais`.
+  - Mobile: `apps/campo/src/observabilidade/reportador.ts` (a criar), interface do `ReportadorDeErros` da F01-E14: erro global de JS; retira token, e-mail, nome, protocolo, coordenada e foto; deduplica rajada; sem DSN, só registro local.
+  - Infraestrutura: crash nativo e mapas de origem só com o SDK e o destino do CP-06.
+- **O que NÃO deve ser implementado nesta etapa:** telemetria de uso; destino final do log (F21-E08); alerta (F21-E01).
+- **Arquivos e módulos prováveis:** `apps/campo/src/app/_layout.tsx`, `apps/campo/src/observabilidade/reportador.ts` (a criar).
+- **Risco de segurança:** dado de morador na mensagem de exceção chega a terceiro.
+- **Impacto LGPD:** a ferramenta de erro é subprocessador (`SUBPROCESSADORES.md`); sem dado pessoal por desenho.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem DSN nada sai do aparelho.
+- **Rollback:** desligar o DSN.
+- **Testes positivos:** tela filha lança erro: o fallback aparece e a fila segue; o evento leva versão, build e modelo.
+- **Testes negativos:** o evento não contém token, e-mail, nome nem coordenada; 50 erros iguais viram um envio.
+- **Testes de autorização e isolamento:** Não se aplica: o relato não usa sessão nem município.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:scripts`.
+- **E2E:** build de HML com erro de teste oculto: o erro chega ao destino e a fila segue intacta.
+- **Validação humana:** Rafael vê o evento sem dado pessoal.
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E07/` com o evento filtrado e a captura.
+- **Documentação a atualizar:** `LEIA-ME.md` do campo, `SUBPROCESSADORES.md`.
+- **Definition of Done:** fallback e filtro testados; evento chega em HML.
+- **Checkpoint:** Não (o destino em PROD é do CP-06, na F01-E14).
+
+### V2-F14-E08 - Versão mínima e compatibilidade (X-App-Version, 426, OTA se aprovada)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (a E07 e esta alteram `src/app/_layout.tsx`)
+- **Objetivo:** o app mostra a tela de atualização quando a API exige versão mínima, sem perder coleta, e decide por escrito se haverá OTA.
+- **Problema que resolve:** a F02-E06 faz a API recusar com 426, mas o app só mostra frase crua; sem `expo-updates`, toda correção exige build (CMP-91, OPS-89).
+- **Origem:** DP:T35; DP:K14; BZ-D:CMP-91; BZ-D:OPS-89.
+- **Estado atual:** EXPANDIR (cabeçalho e classe de falha da F02-E06).
+- **Dependências de entrada:** F02-E06.
+- **O que deve ser implementado:**
+  - Mobile: com sinal, ao abrir, lê `GET /v1/aplicativos/campo/versao-minima`; abaixo do mínimo, tela "Atualize o aplicativo" com link da loja e Fila em leitura ("Suas coletas continuam guardadas"); nunca bloqueia vistoria em andamento nem descarta item; o 426 de rota cai nela.
+  - Mobile: versão e build de `expoConfig` (`app.config.ts:22,80`).
+  - Infraestrutura (só com OTA aprovada no CP-24): `expo-updates` e `runtimeVersion`; só JS e assets, aplicada no próximo início, nunca com vistoria aberta nem com mudança de esquema; sem aprovação, "não aplicável" em `PENDENCIAS.md`.
+- **O que NÃO deve ser implementado nesta etapa:** política de versão do cidadão (F15-E12); fim do espelho legado (F28-E11).
+- **Arquivos e módulos prováveis:** `apps/campo/src/dados/api.ts`, `apps/campo/src/app/_layout.tsx`, `apps/campo/app.config.ts`, `apps/campo/eas.json`.
+- **Risco de segurança:** o bloqueio pode travar agente sem sinal; OTA com módulo nativo incompatível quebra o app.
+- **Impacto LGPD:** Não se aplica: a versão não identifica pessoa.
+- **Migração necessária:** Não.
+- **Compatibilidade:** mínimo vazio, nada muda.
+- **Rollback:** esvaziar `VERSAO_MINIMA_CAMPO`.
+- **Testes positivos:** mínimo acima da versão: a tela aparece e a fila mantém os itens.
+- **Testes negativos:** sem sinal não há tela nem perda; 426 não descarta item.
+- **Testes de autorização e isolamento:** Não se aplica: rota pública sem município.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:api`.
+- **E2E:** aparelho com build antigo e mínimo alto na HML: tela, link e fila intacta.
+- **Validação humana:** Rafael vê a tela no aparelho.
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E08/` com capturas e a decisão de OTA.
+- **Documentação a atualizar:** `LEIA-ME.md`, `PENDENCIAS.md` do campo.
+- **Definition of Done:** tela provada com fila intacta; OTA decidida.
+- **Checkpoint:** Não (a OTA é do CP-24).
+
+### V2-F14-E09 - Reinspeção na experiência do agente
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (mexe na abertura de vistoria da E02)
+- **Objetivo:** o agente vê a reinspeção como tarefa distinta, com motivo e resumo, abre a vistoria da rodada sem ser barrado e não vê a secretaria.
+- **Problema que resolve:** `Pendencia` (`api.ts:337`) não tem `reinspecao`; a lápide é por ocorrência (`coletas`) e barra a segunda vistoria; `historico-da-casa.ts` lista `providencias` (T39).
+- **Origem:** DP:T39; DP:T14; BZ-D:CMP-27; PR:Fluxos.
+- **Estado atual:** EXPANDIR (o motor é MANTER).
+- **Dependências de entrada:** G13.
+- **O que deve ser implementado:**
+  - Mobile: `Pendencia.reinspecao` opcional (JSON em `pendencias.conteudo`, inclusive de reabertura); `ItemDeTarefa.tsx` mostra selo "Reinspeção nº N", motivo, instruções e "Retorno: atendida, em data" (só desfecho e data); vistoria nova em branco, a anterior em leitura; `prazo.ts` usa o da rodada.
+  - Domínio: a lápide guarda a `rodada` (coluna em `coletas` por `ALTER TABLE` guardado por `PRAGMA table_info`); `decidirAberturaDaVistoria` só barra a MESMA rodada; `aplicarReconciliacao` respeita a rodada.
+  - Mobile: envelope com `rodada` opcional (`schemas.ts:617`); `historico-da-casa.ts` perde `providencias`.
+- **O que NÃO deve ser implementado nesta etapa:** contato do cidadão (F19); aceite explícito (CP-24).
+- **Arquivos e módulos prováveis:** `apps/campo/src/dados/api.ts`, `coletas.ts`, `pendencias.ts`, `apps/campo/src/ui/ItemDeTarefa.tsx`, `packages/campo/src/coleta.ts`.
+- **Risco de segurança:** a rodada vem do servidor.
+- **Impacto LGPD:** reduz: `providencias` sai do aparelho.
+- **Migração necessária:** Não (só o SQLite do aparelho).
+- **Compatibilidade:** app antigo ignora `reinspecao`.
+- **Rollback:** reverter.
+- **Testes positivos:** tarefa com selo e motivo; a rodada 2 abre com lápide `enviada` da 1 e sobe uma vez.
+- **Testes negativos:** lápide da MESMA rodada segue barrando; campo de secretaria injetado no JSON não é gravado.
+- **Testes de autorização e isolamento:** agente de outra equipe não vê a tarefa; token do agente não lê `providencias` (F13-E05).
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:api`.
+- **E2E:** simulador: coletar a rodada 1, reinspecionar, coletar a 2 (aparelho: E13).
+- **Validação humana:** Rafael e um agente leem tarefa e selo; Rafael aprova capturas pelo portão visual (`19-definicao-de-pronto.md`, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E09/` com testes, `capturas/` e `INDEX.md` (F08-E13).
+- **Documentação a atualizar:** `LEIA-ME.md` do campo.
+- **Definition of Done:** reinspeção visível e coletável; nada da secretaria no aparelho.
+- **Checkpoint:** Não.
+
+### V2-F14-E10 - Acessibilidade do app (VoiceOver, TalkBack, fonte 200%, toque 44 e 48)
+- **Prioridade:** P1
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** médio  |  **Paralelizável:** sim (com F14-E11, arquivos disjuntos)
+- **Objetivo:** o app cumpre VoiceOver, TalkBack, fonte até 200%, toque de 44 pt e 48 dp e títulos navegáveis, com prova humana em aparelho.
+- **Problema que resolve:** A11-22, A11-25: nenhum uso de `allowFontScaling`, `maxFontSizeMultiplier` ou `fontScale`; `larguraDoRotulo` e `varianteQueCabe` (`ui/componentes.tsx:352-426`) estimam largura com tamanho fixo; um só `accessibilityRole="header"`; só análise estática.
+- **Origem:** DP:T29; REL:11; BZ-D:A11-22; BZ-D:A11-25.
+- **Estado atual:** EXPANDIR (contraste, toque 52, rótulos e papéis existem).
+- **Dependências de entrada:** Nenhuma.
+- **O que deve ser implementado:**
+  - Mobile: `larguraDoRotulo` e `varianteQueCabe` recebem `PixelRatio.getFontScale()`; ações lado a lado viram coluna a partir de 1,3; sem altura fixa em contêiner de texto.
+  - Acessibilidade: `accessibilityRole="header"` em título de tela e de cartão; ordem de foco; rótulo na assinatura; mapa com alternativa em lista; `hitSlop` onde o visual é menor que 44.
+  - Testes: `apps/campo/src/__tests__/escala-de-fonte.test.tsx` (a criar) com escala 1, 1,3 e 2 em Fila, Vistoria e Perfil; portão `scripts/portao-escala-de-fonte-do-aplicativo.test.mjs` (a criar).
+- **O que NÃO deve ser implementado nesta etapa:** acessibilidade do cidadão (F17-E15); relatório de conformidade e lint de RN (F23); orientação (travada em retrato, `app.config.ts:200`).
+- **Arquivos e módulos prováveis:** `apps/campo/src/ui/componentes.tsx`, `apps/campo/src/app/(agente)/fila.tsx`, `vistoria/[id].tsx`, `scripts/` (portão novo).
+- **Risco de segurança:** botão perdido em campo com fonte grande.
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só layout.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** escala 2: as ações cabem; VoiceOver e TalkBack percorrem fila, vistoria e conclusão só por voz.
+- **Testes negativos:** botão sem rótulo, texto truncado em escala 2 e tocável abaixo de 44 reprovam os portões.
+- **Testes de autorização e isolamento:** Não se aplica: sem dado novo.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:scripts`.
+- **E2E:** humano em aparelho: VoiceOver e TalkBack na vistoria; iOS com texto no máximo; Android com fonte e exibição no maior.
+- **Validação humana:** quem usa leitor de tela, se houver; portão visual (`19-definicao-de-pronto.md`, seção 0) aprovado por Rafael.
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E10/` com relatório por tela, modelo, versão do sistema e `capturas/`.
+- **Documentação a atualizar:** `LEIA-ME.md` do campo.
+- **Definition of Done:** falhas corrigidas ou listadas; portões novos verdes.
+- **Checkpoint:** Não.
+
+### V2-F14-E11 - Builds EAS reais (bundle id definitivo; HML e produção)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com F14-E10, arquivos disjuntos)
+- **Objetivo:** o app compila de verdade no EAS, HML e produção, Android e iOS, com o identificador definitivo, e o artefato roda em aparelho.
+- **Problema que resolve:** OPS-87, OPS-88: `projectId` vazio (`app.config.ts:669`), `submit.producao.ios` com `PREENCHER`, nenhum build EAS comprovado (`LOJAS.md`); `dist` de `packages/` não versionado (`file:`).
+- **Origem:** REL:10; BZ-D:OPS-87; BZ-D:OPS-88; BZ-D:OPS-92.
+- **Estado atual:** CORRIGIR.
+- **Dependências de entrada:** F01-E13; CP-04.
+- **O que deve ser implementado:**
+  - Infraestrutura: `eas init` e `EAS_PROJECT_ID`; identificador definitivo numa constante (CP-04); `submit` por variável, nunca no repositório; credenciais gerenciadas pelo EAS.
+  - Infraestrutura: hook `eas-build-pre-install` roda `npm run build:shared` na raiz (confirmar que o EAS enxerga `packages/`); sem ele o build usa `dist` velho.
+  - Infraestrutura: builds `homologacao` (`.apk`, iOS interno) e `producao` (`.aab`, TestFlight); `eas build:list --json` e SHA-256 arquivados; workflow `workflow_dispatch` (a criar em `C:/Projetos/city-hall/.github/workflows/`) dispara o build de HML.
+- **O que NÃO deve ser implementado nesta etapa:** envio às lojas (F28-E07); app do cidadão (F17-E17); OTA (E08).
+- **Arquivos e módulos prováveis:** `apps/campo/eas.json`, `apps/campo/app.config.ts`, `apps/campo/package.json`, `scripts/perfis-do-eas.test.mjs` (da F01-E13).
+- **Risco de segurança:** segredo em log de build; bundle de HML igual ao de PROD.
+- **Impacto LGPD:** Não se aplica: sem dado de pessoa no build.
+- **Migração necessária:** Não.
+- **Compatibilidade:** o perfil `producao` só muda por CP-04.
+- **Rollback:** o build anterior segue no EAS.
+- **Testes positivos:** os quatro builds terminam `finished`, instalam e abrem com versão e build certos.
+- **Testes negativos:** build com `dist` velho reprova; `perfis-do-eas.test.mjs` reprova bundle de HML igual ao de PROD.
+- **Testes de autorização e isolamento:** o build de HML só fala com a API de HML; conta de PROD na HML: 401.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:scripts`.
+- **E2E:** instalar o `.apk` e o iOS nos aparelhos físicos e entrar com conta sintética.
+- **Validação humana:** Rafael instala nos dois aparelhos.
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E11/` com ids de build, perfil e hashes, sem credencial.
+- **Documentação a atualizar:** `LOJAS.md`, `LEIA-ME.md`.
+- **Definition of Done:** quatro builds reais instalados.
+- **Checkpoint:** CP-04 (sem ele não há build externo).
+
+### V2-F14-E12 - Prova em Android físico e iOS físico com artefatos
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (reúne as dependências)
+- **Objetivo:** o app é provado em um Android FÍSICO e um iPhone, com artefato arquivado por passo.
+- **Problema que resolve:** BZ-N:N.7, CMP-82 a CMP-86: só há relato de iPhone e emulador, sem artefato; Android físico nunca; CA-02 e matar o app no envio nunca provados.
+- **Origem:** BZ-N:N.7; ALY:CA-02; BZ-D:CMP-82; BZ-D:CMP-85; BZ-D:CMP-86.
+- **Estado atual:** CRIAR (artefatos).
+- **Dependências de entrada:** E01 a E03, E07, E09 a E11 e E16 a E22 (cada uma com passo no roteiro; E14 e E15, se entregues).
+- **O que deve ser implementado:**
+  - Arquivos: `roteiro.md` (por passo: ação, esperado, resultado, vídeo ou captura, SHA-256); `aparelhos.md` (modelo, versão do sistema, versão e build do app, executor, data).
+  - Testes (humano), em cada plataforma: fluxo B inteiro (despacho, aviso, coleta offline, sincronização, laudo); CA-02 (modo avião, GPS, cinco fotos, sem duplicar); matar o app no envio; reiniciar com a fila cheia; foto de 15 MB em rede ruim; logout com rascunho; troca de agente; sessão derrubada; saída a campo; 426, push, erro e CP-24 se entregues.
+  - Infraestrutura: gravação de tela, `adb logcat -d`, Console do iPhone.
+- **O que NÃO deve ser implementado nesta etapa:** emulador como prova; nuvem de aparelhos; GPS abaixo de 0,5 m (fica no jest).
+- **Arquivos e módulos prováveis:** `docs/evidencias-v2/G14/V2-F14-E12/`, `apps/campo/LEIA-ME.md`.
+- **Risco de segurança:** sem Android físico (pergunta 15 do Decision Pack) não há prova; dado real nas capturas.
+- **Impacto LGPD:** dados sintéticos.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica.
+- **Rollback:** Não se aplica.
+- **Testes positivos:** cada passo `passou` com artefato; nenhuma coleta perdida nem duplicada.
+- **Testes negativos:** matar o app no envio retoma com um laudo só; sessão derrubada não apaga a vistoria.
+- **Testes de autorização e isolamento:** agente de outra equipe não vê a tarefa.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:api`.
+- **E2E:** este é o E2E em aparelho.
+- **Validação humana:** Rafael e quem segura o aparelho assinam.
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E12/` com roteiro, `aparelhos.md` e vídeos.
+- **Documentação a atualizar:** `LEIA-ME.md`, `README.md`.
+- **Definition of Done:** roteiro completo nos dois aparelhos; sem Android físico não fecha.
+- **Checkpoint:** Não.
+
+### V2-F14-E13 - Reabrir a prova da reinspeção (F13-E08) em aparelho
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (depende de E09 e E12)
+- **Objetivo:** o fluxo E roda em Android físico e iPhone: a reinspeção chega sem o histórico da secretaria e a rodada 2 sobe sem perda.
+- **Problema que resolve:** a prova da F13-E08 é automática (PGlite); lápide, SQLite local e telas só existem no aparelho.
+- **Origem:** PR:Fluxos; DP:T39; DP:T14.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E09; E12.
+- **O que deve ser implementado:**
+  - Testes (humano), em HML: a secretaria responde com texto sentinela; a coordenação determina a reinspeção; o aparelho, com a rodada 1 coletada e a lápide, recebe a tarefa; confere selo, motivo e retorno; coleta a rodada 2 em modo avião com três fotos e sincroniza; o painel mostra a rodada 2 e o laudo da 1 idêntico; repetir com ocorrência reaberta (rodada com `origem` reabertura, F13-E11).
+  - Testes: inspeção do banco local num build `desenvolvimento` (depurável): `adb shell run-as` no Android e container do app no Xcode no iOS; a sentinela não está em `pendencias.conteudo` nem em arquivo algum.
+- **O que NÃO deve ser implementado nesta etapa:** refazer o fluxo B (E12); push se a E05 não entregou.
+- **Arquivos e módulos prováveis:** `docs/evidencias-v2/G14/V2-F14-E13/`, `apps/campo/LEIA-ME.md`.
+- **Risco de segurança:** o build de HML não é depurável (a inspeção usa `desenvolvimento`).
+- **Impacto LGPD:** dados sintéticos.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: só prova.
+- **Rollback:** Não se aplica: só prova.
+- **Testes positivos:** rodada 2 coletada, sincronizada e visível no painel nos dois aparelhos.
+- **Testes negativos:** sentinela da secretaria ausente do banco local e das telas; a lápide da rodada 1 não barra a 2.
+- **Testes de autorização e isolamento:** agente de outra equipe não recebe a tarefa; coordenador de outro município não vê a rodada.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:e2e:api`.
+- **E2E:** este é o E2E do fluxo E em aparelho.
+- **Validação humana:** Rafael confere o vídeo.
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E13/` com vídeo, inspeção do banco, modelo e versão do sistema.
+- **Documentação a atualizar:** `LEIA-ME.md` do campo.
+- **Definition of Done:** fluxo E provado nos dois aparelhos.
+- **Checkpoint:** Não.
+
+### V2-F14-E14 - Aceite explícito da tarefa, devolução antes do prazo e tarefa por pessoa
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (altera a devolução e a lista de tarefas)
+- **Objetivo:** executar o que o CP-24 aprovar sobre aceite, devolução imediata por risco e responsável pela tarefa.
+- **Problema que resolve:** CMP-19: sem aceite; a devolução só vale depois do prazo (`tarefa_no_prazo`, `sincronizacao.ts:1204`), até por `risco_para_a_equipe`; a tarefa é da equipe inteira.
+- **Origem:** DP:K14; REL:03; BZ-D:CMP-19.
+- **Estado atual:** EXPANDIR (devolução e portão do prazo existem; aceite e responsável não).
+- **Dependências de entrada:** E02; CP-24.
+- **O que deve ser implementado:**
+  - Migration: `aceites_de_tarefa` append-only (`rodada_id`, `usuario_id`, `decisao`, `idempotency_key`; FKs compostas; RLS forçada); `ocorrencias.responsavel_id` (nulo).
+  - API: `POST /v1/sincronizacao/aceite`, idempotente; o portão do prazo de `/devolucao` dispensa só `risco_para_a_equipe` (com observação), nunca com `coleta_no_aparelho`; `despachoSchema` ganha `responsavelId` opcional; manifesto.
+  - Mobile: `impedimentoParaDevolver` (`packages/campo/src/devolucao.ts`) recebe o motivo; botões "Aceitar tarefa" e "Não posso ir"; sem aceite a tarefa segue coletável.
+- **O que NÃO deve ser implementado nesta etapa:** tarefa só por pessoa, sem equipe (alternativa B, etapa nova); alerta de tarefa não aceita (F21).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/rotas/sincronizacao.ts`, `packages/campo/src/devolucao.ts`.
+- **Risco de segurança:** devolução imediata esvazia a lista sem trabalho: só o risco abre o portão, com trilha.
+- **Impacto LGPD:** `observacao` segue a minimização por prazo (migration 029).
+- **Migração necessária:** Sim (`NNN_aceite_e_responsavel_da_tarefa.sql`).
+- **Compatibilidade:** app antigo segue coletando sem aceitar.
+- **Rollback:** migration corretiva; esconder botões.
+- **Testes positivos:** aceite repetido não duplica; `risco_para_a_equipe` no prazo devolve a tarefa a `triagem` com `prazo_em` intacto.
+- **Testes negativos:** outro motivo no prazo: 409 `tarefa_no_prazo`; risco com coleta no aparelho recusado; UPDATE em `aceites_de_tarefa` negado.
+- **Testes de autorização e isolamento:** aceite de agente de outra equipe: 404; aceite de A invisível em B.
+- **Regressão obrigatória:** `npm run test:api` (`devolucao-de-tarefa`), `npm run test:campo`.
+- **E2E:** aparelho: aceitar e devolver por risco no prazo (E12).
+- **Validação humana:** Alyson valida a regra.
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E14/` com a decisão do CP-24.
+- **Documentação a atualizar:** `GUIA-DO-COORDENADOR.md`, `CARTAO-DO-AGENTE.md`.
+- **Definition of Done:** só as partes aprovadas, provadas; ou etapa cancelada com registro.
+- **Checkpoint:** CP-24 (executa só depois da decisão; se for não fazer, cancelada com registro).
+
+### V2-F14-E15 - Limpeza de foto e assinatura depois da sincronização e guarda de espaço livre
+- **Prioridade:** P2
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (altera `fila.ts`, como a E02)
+- **Objetivo:** o aparelho apaga foto e assinatura só depois de o servidor confirmar o hash e recusa fotografar sem espaço.
+- **Problema que resolve:** CMP-51, CMP-46: `limparConfirmados` tira o item da fila, mas JPEG e PNG ficam em `Paths.document` até um logout que o agente não faz; sem guarda de espaço o aparelho lota.
+- **Origem:** BZ-D:CMP-51; BZ-D:CMP-46; REL:03; DP:K14.
+- **Estado atual:** EXPANDIR (`apagarFotoDoAparelho` e `sha256` opcional em `confirmar-envio` existem).
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - Mobile: o dreno calcula o SHA-256 dos bytes enviados (`expo-crypto`) e o declara em `/evidencias/confirmar-envio`; mídia só fica `verificada` com soma igual; a porta `Arquivos` ganha `apagar`.
+  - Mobile: `limparMidiaConfirmada` apaga só se a vistoria está confirmada E toda foto e assinatura dela está `verificada` E nenhuma `perdida`; falha ao apagar não derruba o dreno.
+  - API: a reconfirmação (`jaEstava`) compara o `sha256` declarado com o gravado (409).
+  - Mobile: antes de fotografar, confere `Paths.availableDiskSpace` (confirmar na SDK 57) contra um mínimo calibrado na E12.
+- **O que NÃO deve ser implementado nesta etapa:** criptografia (E04); retenção por idade; apagar coleta não confirmada.
+- **Arquivos e módulos prováveis:** `packages/campo/src/fila.ts`, `apps/campo/src/dados/evidencia-no-disco.ts`, `apps/campo/src/app/(agente)/vistoria/[id].tsx`, `apps/api/src/rotas/evidencias.ts`.
+- **Risco de segurança:** apagar prova não conferida; vale a conjunção acima.
+- **Impacto LGPD:** reduz a retenção de imagem de imóvel.
+- **Migração necessária:** Não.
+- **Compatibilidade:** item antigo sem `verificada` nunca é apagado.
+- **Rollback:** desligar a limpeza por constante.
+- **Testes positivos:** mídia verificada some após a vistoria confirmar; sem espaço, o aviso diz quanto falta.
+- **Testes negativos:** item `pendente`, `bloqueado`, `arquivado` ou com foto `perdida` mantém tudo; `hash_divergente` mantém.
+- **Testes de autorização e isolamento:** coleta de outro autor no aparelho não é tocada.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:api`.
+- **E2E:** aparelho: cinco fotos, sincronizar, ver sair do disco (E12).
+- **Validação humana:** Rafael confere o espaço usado.
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E15/` com medidas de espaço.
+- **Documentação a atualizar:** `LEIA-ME.md` do campo.
+- **Definition of Done:** mídia confirmada some; nada não confirmado some.
+- **Checkpoint:** Não (independe do CP-24; acompanha a E04).
+
+### V2-F14-E16 - Segundo fator do agente: tela de código, ativação e recuperação no app
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E17, arquivos disjuntos)
+- **Objetivo:** o agente com segundo fator entra no app com o código, ativa, desativa e recupera, sem ficar trancado fora.
+- **Problema que resolve:** `entrar()` (`api.ts:220`) só trata `acesso` e `renovacao`; o servidor deixa o agente ativar o fator e o app não tem tela (BZ-D:CMP-04).
+- **Origem:** BZ-D:CMP-04; GAP-DEF-10; PR:D-27; PR:D-20 (L26).
+- **Estado atual:** CRIAR (telas e cliente; rotas MANTER).
+- **Dependências de entrada:** F03-E11; E02; F08-E13.
+- **O que deve ser implementado:**
+  - Mobile: `entrar` devolve o `desafio` quando vem `segundoFator: "codigo"`; `entrar.tsx` pede "Código de seis dígitos" e oferece "Usar código de recuperação".
+  - Mobile: `perfil.tsx`, "Verificação em duas etapas": ativar (chave, link `otpauth`, confirmação, códigos de recuperação mostrados uma vez) e desativar com a senha.
+  - API: abaixo da versão do app (`X-App-Version`, F02-E06), `/iniciar` recusa `agente` (409 `segundo_fator_indisponivel_no_app`).
+- **O que NÃO deve ser implementado nesta etapa:** fator obrigatório; biometria (CMP-05).
+- **Arquivos e módulos prováveis:** `apps/campo/src/dados/api.ts`, `apps/campo/src/app/entrar.tsx`, `apps/campo/src/app/(agente)/perfil.tsx`, `apps/api/src/rotas/segundo-fator.ts`.
+- **Risco de segurança:** ativar sem tela tranca o agente fora.
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** agente sem segundo fator entra como hoje.
+- **Rollback:** esconder o grupo; manter a recusa do servidor.
+- **Testes positivos:** conta com segundo fator entra com o código; o código de recuperação entra e é consumido.
+- **Testes negativos:** código errado não abre sessão; app antigo ativando: 409.
+- **Testes de autorização e isolamento:** desafio de A não vale em B; agente só mexe no próprio fator.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:api`.
+- **E2E:** aparelho: ativar, sair, entrar (E12).
+- **Validação humana:** Alyson lê as frases; Rafael aprova capturas e fotos pelo portão visual (`19-definicao-de-pronto.md`, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E16/capturas/` e `INDEX.md` (claro e escuro, fonte 200%).
+- **Documentação a atualizar:** `CARTAO-DO-AGENTE.md`, `SEGURANCA-DO-AGENTE.md`.
+- **Definition of Done:** agente ativa, entra e recupera pelo app.
+- **Checkpoint:** CP-57 (sem aparelho nem códigos, o administrador pode desligar o fator do agente? Rafael; bloqueia o fator do agente em produção).
+
+### V2-F14-E17 - Agente sem equipe: histórico e mensagem em vez de tela vazia
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E16, arquivos disjuntos)
+- **Objetivo:** o agente sem equipe continua vendo as vistorias que assinou, o total e uma mensagem do que fazer.
+- **Problema que resolve:** `GET /campo/meu-trabalho` devolve listas vazias antes de ler `concluidas` (`campo.ts:62-70`), que dependem do `agente_id` e não da equipe: o agente removido da equipe perde o registro que o protege quando o ato é questionado (BZ-D:CMP-12).
+- **Origem:** BZ-D:CMP-12; GAP-P1O-19; PR:D-20 (L17).
+- **Estado atual:** CORRIGIR.
+- **Dependências de entrada:** F08-E13.
+- **O que deve ser implementado:**
+  - API: sem equipe, `/meu-trabalho` devolve `semEquipe: true`, `concluidas` e o total real por `agente_id` do token, e `designadas` e `colegas` vazios.
+  - Mobile: `(agente)/index.tsx` mostra "Você não está em nenhuma equipe. Avise a coordenação: ao ser alocado, as tarefas aparecem aqui" e, abaixo, "Vistorias que concluí" com o total; `numeros-do-agente.ts` segue; a fila local não depende de equipe.
+- **O que NÃO deve ser implementado nesta etapa:** alocar o agente (painel, `Equipes.tsx`); tarefa sem equipe.
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/campo.ts`, `apps/campo/src/app/(agente)/index.tsx`, `apps/campo/src/dados/numeros-do-agente.ts`, `apps/api/test/` (novo teste).
+- **Risco de segurança:** entregar tarefa de equipe a quem não tem equipe; a consulta usa só o token.
+- **Impacto LGPD:** Não se aplica: dado do próprio agente.
+- **Migração necessária:** Não.
+- **Compatibilidade:** campo aditivo; app antigo mostra vazio como hoje.
+- **Rollback:** reverter.
+- **Testes positivos:** agente sem equipe com duas vistorias assinadas lista as duas, o total e a mensagem.
+- **Testes negativos:** sem equipe, `designadas` vazio mesmo com tarefa `em_campo` de outra equipe; mais de 50 concluídas mostra o total real.
+- **Testes de autorização e isolamento:** agente de A não lê concluídas de B nem as do colega.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:campo`.
+- **E2E:** aparelho: a coordenação tira o agente da equipe e o app mostra a mensagem e o histórico (E12).
+- **Validação humana:** Rafael e um agente leem a mensagem; Rafael aprova capturas e fotos pelo portão visual (`19-definicao-de-pronto.md`, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E17/` com testes, `capturas/` e `INDEX.md` (F08-E13).
+- **Documentação a atualizar:** `CARTAO-DO-AGENTE.md`.
+- **Definition of Done:** histórico preservado sem equipe, com mensagem.
+- **Checkpoint:** Não.
+
+### V2-F14-E18 - Foto e assinatura obrigatórias também no servidor e no shared, sem destruir coleta offline
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (altera `sincronizacao.ts` e o envelope, como a E03)
+- **Objetivo:** a regra de foto e assinatura sai só do cliente: o shared define a lacuna, o servidor a confere ou a marca, e coleta guardada no aparelho nunca se perde.
+- **Problema que resolve:** `faltaParaConcluir` (`packages/campo/src/conclusao.ts:47`) é a única guarda; o envelope aceita `fotos: []` e `assinaturaChave: null` (`schemas.ts:372,414`) (BZ-D:CMP-44; GAP-DEF-09).
+- **Origem:** BZ-D:CMP-44; GAP-DEF-09; PR:D-20 (L25).
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** E03; F08-E13.
+- **O que deve ser implementado:**
+  - Shared: `lacunasDaVistoria(envelope)` é a fonte única; `faltaParaConcluir` a chama; o envelope ganha `exigencias` opcional (versão da regra).
+  - API: com `exigencias`, sem foto ou sem traço da assinatura (salvo perda já declarada, `PAPEIS_DE_EVIDENCIA`): 422 `vistoria_incompleta` com a lista; sem `exigencias` (app antigo) aceita e grava `vistorias.lacunas`, com evento na trilha.
+  - Banco: `lacunas`, só no INSERT. Frontend: aviso "Vistoria incompleta: sem assinatura" na ocorrência; o app envia `exigencias`.
+- **O que NÃO deve ser implementado nesta etapa:** recusar coleta legada; mudar o laudo (F09); morador que recusa assinar.
+- **Arquivos e módulos prováveis:** `packages/shared/src/schemas.ts`, `packages/campo/src/conclusao.ts`, `apps/api/src/rotas/sincronizacao.ts`, `db/migrations/` (nova), `apps/web/src/paginas/Ocorrencia.tsx`.
+- **Risco de segurança:** 422 em app antigo destrói a coleta; por isso só com `exigencias`.
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Sim (`NNN_lacunas_da_vistoria.sql`).
+- **Compatibilidade:** sem `exigencias`, aceito e marcado.
+- **Rollback:** migration corretiva.
+- **Testes positivos:** envelope novo completo: 201; legado sem assinatura: aceito com `lacunas`; as listas do shared e do app coincidem.
+- **Testes negativos:** `exigencias` sem foto: 422 e item `bloqueado` na fila (E03); UPDATE de `lacunas`: negado.
+- **Testes de autorização e isolamento:** `lacunas` de A invisíveis em B.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:campo`, `npm run test:isolamento`.
+- **E2E:** sonda em `scripts/e2e-api.mjs` com envelope legado e novo; aviso com capturas.
+- **Validação humana:** Alyson lê a frase; Rafael aprova capturas pelo portão visual (`19-definicao-de-pronto.md`, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E18/` com testes, sondas, `capturas/` e `INDEX.md` (F08-E13).
+- **Documentação a atualizar:** `DICIONARIO-DE-DADOS.md`, `LEIA-ME.md` do campo.
+- **Definition of Done:** regra no shared e no servidor; coleta legada intacta.
+- **Checkpoint:** Não.
+
+### V2-F14-E19 - Aditamento avulso de vistoria por texto, com justificativa versionada
+- **Prioridade:** P1
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (altera `fila.ts` e `sincronizacao.ts`)
+- **Objetivo:** o agente complementa vistoria já enviada com texto e justificativa versionados, sem reinspeção, e o aditamento aguarda revisão; o documento emitido não muda.
+- **Problema que resolve:** nada complementa uma vistoria enviada: a saída é coleta nova ou reinspeção, e a E03 exclui o aditamento (ALY:VIS-08; BZ-D:CMP-80).
+- **Origem:** ALY:VIS-08; BZ-D:CMP-80; GAP-P1P-09; GAP-P1P-43; REQ-021; PR:D-20 (L7, L23).
+- **Estado atual:** CRIAR (tabela própria: não abre rodada nem muda o status).
+- **Dependências de entrada:** E02; E03; F08-E13.
+- **O que deve ser implementado:**
+  - Migration: `vistoria_aditamentos` append-only (`vistoria_id`, `versao`, `texto` de 20 a 4000, `justificativa` de 20 a 1000, `autor_id`, `idempotency_key`) e `aditamento_revisoes` (`decisao`, `motivo`); FKs compostas, RLS forçada.
+  - API: `POST /v1/sincronizacao/aditamento` (`ROTA_DA_FILA_DO_CAMPO`, idempotente, só o autor; ocorrência encerrada: 409); `POST /v1/aditamentos/:id/revisao` (`revisar_aditamento`, coordenador e administrador); o aceito alimenta documento novo só pela substituição da F09.
+  - Mobile: item de fila `aditamento` (`packages/campo/src/fila.ts`, mesma chave, autoria e conflitos da E03); "Complementar" em "Vistorias que concluí", justificativa obrigatória, versões anteriores em leitura.
+- **O que NÃO deve ser implementado nesta etapa:** tela do coordenador (E20); checklist condicional (F33-E07); alterar a vistoria enviada.
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/rotas/sincronizacao.ts`, `packages/campo/src/fila.ts`, `apps/campo/src/app/(agente)/index.tsx`, `apps/campo/src/dados/api.ts`.
+- **Risco de segurança:** sobrescrever adultera prova: só acréscimo.
+- **Impacto LGPD:** texto livre entra no manifesto como `observacoes` (F05).
+- **Migração necessária:** Sim (`NNN_aditamento_de_vistoria.sql`).
+- **Compatibilidade:** app antigo não oferece "Complementar".
+- **Rollback:** esconder o botão; migration corretiva.
+- **Testes positivos:** aditamento sobe uma vez com a mesma chave como versão 2; revisão aceita grava evento.
+- **Testes negativos:** justificativa curta: 422; quem não é autor: 404; ocorrência encerrada: 409; UPDATE em `vistoria_aditamentos`: negado.
+- **Testes de autorização e isolamento:** aditamento de A invisível em B; agente não revisa o próprio; `usuario_orgao` não lê.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:api`, `npm run test:isolamento`.
+- **E2E:** aparelho: complementar offline e sincronizar (E12).
+- **Validação humana:** Alyson valida rótulos e regra; Rafael aprova capturas e fotos pelo portão visual (`19-definicao-de-pronto.md`, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E19/` com testes, `capturas/` e `INDEX.md` (F08-E13).
+- **Documentação a atualizar:** `CARTAO-DO-AGENTE.md`, `DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** aditamento versionado, revisável e sem alterar o emitido.
+- **Checkpoint:** Não.
+
+### V2-F14-E20 - Fila de revisão do coordenador: aditamentos e coletas bloqueadas
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (usa E03 e E19)
+- **Objetivo:** a coordenação decide, numa fila, os aditamentos pendentes e as coletas bloqueadas por `autor_divergente`, com rastro.
+- **Problema que resolve:** o aditamento da E19 não tem tela, e coleta de agente que não volta só tem saída destrutiva: faltam verbos da coordenação (BZ-D:CMP-58; GAP-DEF-11).
+- **Origem:** ALY:VIS-08; BZ-D:CMP-58; GAP-P1P-43; PR:D-20 (L23).
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E03; E19; F08-E13.
+- **O que deve ser implementado:**
+  - Migration: `autorias_transferidas` append-only (coleta, de, para, motivo); a conferência de autoria da vistoria a consulta.
+  - API: `GET /v1/revisoes` (aditamentos pendentes e conflitos da E03) e `POST /v1/sincronizacao/autoria` (`transferir_autoria`, coordenador e administrador, motivo de 20+ caracteres) que autoriza o agente da mesma equipe, na sessão do aparelho, a enviar a coleta do colega; evento `autoria_transferida` (PREMISSA).
+  - Frontend: página "Revisões" (`Revisoes.tsx`, a criar) com "Aditamentos" e "Coletas bloqueadas", aceitar ou recusar com motivo, nos dois modos.
+- **O que NÃO deve ser implementado nesta etapa:** editar aditamento; apagar coleta de aparelho alheio; checklist (F33-E06).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `apps/api/src/rotas/sincronizacao.ts`, `packages/shared/src/permissoes.ts`, `apps/web/src/paginas/Revisoes.tsx` (a criar), `apps/web/src/dados/http.ts`.
+- **Risco de segurança:** transferir autoria é o ato mais sensível: permissão própria, motivo e os dois nomes na trilha.
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Sim (`NNN_transferencia_de_autoria.sql`).
+- **Compatibilidade:** sem transferência, segue `autor_divergente`.
+- **Rollback:** migration corretiva.
+- **Testes positivos:** aditamento aceito e coleta liberada com motivo; a coleta sobe com a sessão do colega.
+- **Testes negativos:** motivo curto: 422; agente de outra equipe: 404; UPDATE em `autorias_transferidas`: negado.
+- **Testes de autorização e isolamento:** operador e agente: 403; coordenador de B não vê a fila de A.
+- **Regressão obrigatória:** `npm run test --workspace @dc360/web`, `npm run test:api`, `npm run test:isolamento`.
+- **E2E:** `fluxo.e2e.mjs`: aceitar aditamento e liberar coleta, com captura por passo.
+- **Validação humana:** Alyson valida a regra de autoria; Rafael aprova as capturas pelo portão visual (`19-definicao-de-pronto.md`, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E20/capturas/` e `INDEX.md` (claro e escuro, quatro estados, dois modos).
+- **Documentação a atualizar:** `GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** fila decidida com rastro; autoria transferida só com motivo.
+- **Checkpoint:** Não.
+
+### V2-F14-E21 - Mapa offline no app: pacote da área de atuação e pontos sem sinal
+- **Prioridade:** P2
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** médio  |  **Paralelizável:** não (altera `mapa.tsx` e o armazenamento local)
+- **Objetivo:** o agente vê, sem sinal, o mapa da área do município com a ocorrência e as próprias coletas, a partir de um pacote baixado com sinal.
+- **Problema que resolve:** `mapa.ts` só entrega a coordenada ao aplicativo de mapas do aparelho e não desenha mapa; sem sinal a base some (BZ-D:CMP-64).
+- **Origem:** BZ-D:CMP-64; GAP-P1P-09; PR:D-20 (L23).
+- **Estado atual:** CRIAR (biblioteca e fonte de tiles NÃO CONFIRMADAS).
+- **Dependências de entrada:** E02; F08-E13; CP-58.
+- **O que deve ser implementado:**
+  - ADR: fonte e licença dos tiles, tamanho máximo e hospedagem própria (o servidor público do OpenStreetMap não admite download em massa).
+  - API: `GET /v1/campo/pacote-de-mapa` (ETag), só para o agente do município.
+  - Mobile: baixar com sinal, mostrando o tamanho antes; desenhar a ocorrência da tarefa e as coletas da fila sem rede; estado do pacote e "Apagar pacote" no perfil; "Abrir no app de mapas" segue.
+- **O que NÃO deve ser implementado nesta etapa:** camadas de risco no mapa (o contexto da tarefa guardado no aparelho é de F32-E13), camadas GIS (F31-E13, só no painel); rota e navegação (F30); mapa do cidadão.
+- **Arquivos e módulos prováveis:** `apps/campo/src/app/(agente)/mapa.tsx`, `apps/campo/src/dados/mapa.ts`, `apps/api/src/rotas/campo.ts`.
+- **Risco de segurança:** pacote grande lota o aparelho.
+- **Impacto LGPD:** Não se aplica: tiles públicos.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem pacote, abre o mapa do aparelho.
+- **Rollback:** esconder a opção; apagar o pacote.
+- **Testes positivos:** pacote baixado exibe a ocorrência em modo avião.
+- **Testes negativos:** sem espaço, não baixa; pacote corrompido é rebaixado.
+- **Testes de autorização e isolamento:** agente de A não baixa o pacote de B: 404.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:api`.
+- **E2E:** aparelho: baixar, modo avião, ver pontos (E12).
+- **Validação humana:** um agente usa o mapa no morro; Rafael aprova capturas e fotos pelo portão visual (`19-definicao-de-pronto.md`, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E21/` com a ADR, `capturas/` e `INDEX.md` (F08-E13).
+- **Documentação a atualizar:** `LEIA-ME.md` do campo.
+- **Definition of Done:** mapa offline provado em aparelho, ou etapa fechada como não aplicável.
+- **Checkpoint:** CP-58 (fonte, licença e custo dos tiles; Rafael; bloqueia a etapa).
+
+### V2-F14-E22 - Foto de vistoria no aparelho: integração e prova do envio retomável, da qualidade e da varredura
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (reúne F06-E21 a E23 e a E12)
+- **Objetivo:** provar em Android e iPhone físicos o envio retomável, a qualidade configurada e a varredura da foto de vistoria, com o progresso visível ao agente.
+- **Problema que resolve:** servidor e motor (F06-E21 a E23) são testados sem aparelho; câmera real e rede ruim só existem nele (ALY:VIS-04; BZ-D:CMP-39).
+- **Origem:** ALY:VIS-04; ALY:RNF-08; BZ-D:CMP-39; PR:D-20 (L6).
+- **Estado atual:** EXPANDIR (integração e prova; sem duplicar a F06).
+- **Dependências de entrada:** E02; F06-E21; F06-E22; F06-E23; F08-E13.
+- **O que deve ser implementado:**
+  - Mobile: `fila.tsx` mostra "Foto 2 de 5: parte 3 de 4" lida de `GET /v1/evidencias/:id/partes`; foto retida pela varredura aparece como "Em conferência" sem texto técnico e a fila segue; o perfil de captura é guardado no login e na sincronização.
+  - Testes (humano), em cada plataforma: foto de 12 MB com a rede cortada após a segunda parte retoma só o resto, mesmo SHA-256; matar o app no envio; qualidade 0,5 e 0,9 conferidas no arquivo e em `evidencias.perfil_de_captura`; EICAR em JPEG sintético fora do laudo, hash do objeto igual.
+- **O que NÃO deve ser implementado nesta etapa:** servidor, partes e antivírus (F06-E21 a E23); recodificar a foto.
+- **Arquivos e módulos prováveis:** `apps/campo/src/app/(agente)/fila.tsx`, `apps/campo/src/dados/api.ts`, `evidencia-no-disco.ts`, `docs/evidencias-v2/G14/V2-F14-E22/`.
+- **Risco de segurança:** foto alterada no caminho; o hash decide.
+- **Impacto LGPD:** dados sintéticos.
+- **Migração necessária:** Não.
+- **Compatibilidade:** perfil ausente vale 0,6.
+- **Rollback:** esconder o progresso.
+- **Testes positivos:** envio retomado sobe uma vez; qualidade aplicada.
+- **Testes negativos:** parte de tamanho errado recusada; foto sinalizada fora do laudo.
+- **Testes de autorização e isolamento:** agente de outra equipe não lista `partes`: 404.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:api`.
+- **E2E:** este é o E2E em aparelho do envio de foto (roteiro da E12).
+- **Validação humana:** Rafael corta a rede no envio e aprova vídeo, fotos e capturas pelo portão visual (`19-definicao-de-pronto.md`, seção 0).
+- **Evidência a produzir:** `docs/evidencias-v2/G14/V2-F14-E22/` com vídeo, hashes, modelo, versão do sistema e `capturas/`.
+- **Documentação a atualizar:** `LEIA-ME.md` do campo.
+- **Definition of Done:** retomada, qualidade e varredura provadas nos dois aparelhos.
+- **Checkpoint:** Não.
+
+# GATE G14 - APP DO AGENTE EM APARELHO FÍSICO
+
+Só passa se:
+- [ ] Aparelhos: pelo menos um ANDROID FÍSICO e um iPhone FÍSICO provados com artefato por passo (modelo, versão do sistema, versão e build do app, passos, resultado, vídeo ou captura, SHA-256) em `docs/evidencias-v2/G14/V2-F14-E12/`. Emulador, simulador e Jest NÃO substituem; SEM ANDROID FÍSICO O GATE NÃO PASSA.
+- [ ] V2-F14-E01: saída a campo (D-25, sem condição): declarar, prorrogar, confirmar retorno e `/minha` provados em aparelho e visíveis no painel; capturas, fotos do aparelho e portão visual (`19-definicao-de-pronto.md`, seção 0) aprovados; nenhum documento promete o que o app não faz.
+- [ ] V2-F14-E02 e V2-F14-E03 (fila sem perda): nenhum caminho de fila, logout ou troca de agente apaga vistoria em silêncio; quarentena do registro ilegível; conflitos na tela de revisão e descarte com rastro no servidor, provados em aparelho.
+- [ ] V2-F14-E04, V2-F14-E06 e a OTA da V2-F14-E08 (CP-24): provados em aparelho se aprovados; se não, decisão registrada, etapa fechada como não aplicável e a exposição declarada em `DECLARACAO-NAS-LOJAS.md`.
+- [ ] V2-F14-E14 (P1, CP-24): aceite explícito, devolução antes do prazo e tarefa por pessoa provados em aparelho se o CP-24 aprovar; se não, etapa cancelada com registro da decisão.
+- [ ] V2-F14-E15 (P2): mídia só some do aparelho depois do hash conferido pelo servidor; guarda de espaço provada com aparelho cheio; reconfirmação com `sha256` divergente responde 409 `hash_divergente`.
+- [ ] V2-F14-E05 (P1): push de tarefa e de prazo entregue com o app fechado em iPhone e Android, ou adiado com o bloqueio declarado (despacho sem aviso com app fechado) e o CP-04 aberto.
+- [ ] V2-F14-E07: `ErrorBoundary` e evento de erro sem dado pessoal chegando ao destino em HML; fila intacta após a falha.
+- [ ] V2-F14-E08: tela de versão mínima em aparelho, com a fila intacta.
+- [ ] V2-F14-E09: reinspeção, inclusive a de reabertura, na experiência do agente, sem nada da secretaria no aparelho; capturas e fotos com portão visual aprovado.
+- [ ] V2-F14-E10: VoiceOver e TalkBack percorrem o fluxo de vistoria; fonte em 200%, toque de 44 pt e 48 dp conferidos em aparelho; relatório arquivado.
+- [ ] V2-F14-E11: builds EAS reais (HML e produção, Android e iOS) com ids e hashes arquivados; CP-04 decidido.
+- [ ] V2-F14-E12: fluxo B completo, CA-02, matar o app no envio e reinício com a fila cheia provados nas duas plataformas, com sessão que não apaga vistoria.
+- [ ] V2-F14-E13: fluxo E (reinspeção) e a variante de reabertura provados em aparelho, com a sentinela da secretaria ausente do banco local.
+- [ ] V2-F14-E16: segundo fator do agente com tela de código no login, ativação, desativação e código de recuperação em aparelho; o servidor recusa a ativação por app sem a tela; capturas e portão visual aprovados; CP-57 decidido, ou adiado com a ativação por agente bloqueada em produção.
+- [ ] V2-F14-E17: agente sem equipe vê histórico, total e mensagem; teste de API e foto do aparelho arquivados.
+- [ ] V2-F14-E18: `lacunasDaVistoria` no shared e no servidor; app novo sem foto ou assinatura recebe 422 `vistoria_incompleta`; coleta legada aceita e marcada, nunca perdida; sondas e capturas do aviso arquivadas.
+- [ ] V2-F14-E19 e V2-F14-E20: aditamento versionado com justificativa, revisão pelo coordenador e transferência de autoria com motivo e trilha; documento emitido intacto; provados em aparelho e no painel, com capturas e portão visual aprovados.
+- [ ] V2-F14-E21 (P2, CP-58): mapa offline provado em aparelho, ou etapa fechada como não aplicável com a decisão registrada.
+- [ ] V2-F14-E22: envio retomável por parte, qualidade configurada e varredura da foto de vistoria provados em Android e iPhone físicos, sem recodificar a prova (hash igual); vídeo e hashes arquivados.
+- [ ] CP-04 e CP-24 decididos, ou adiados com o que fica bloqueado declarado (CP-04: build externo e push real; CP-24: E04, E06, E14 e OTA); CP-02 já decidido por D-25.
+- [ ] `npm run test:campo`, `npm run test:api`, `npm run test:isolamento`, `npm run test:scripts` e `npm run typecheck` verdes.
+- [ ] nenhuma regressão: gates G00 a G13 continuam verdes (se um quebrar, ESTE gate volta a REPROVADO).
+- [ ] documentação atualizada (`apps/campo/LEIA-ME.md`, `PENDENCIAS.md`, `LOJAS.md`, `CARTAO-DO-AGENTE.md`, `SEGURANCA-DO-AGENTE.md`, `README.md`, `GUIA-DO-COORDENADOR.md`, `DICIONARIO-DE-DADOS.md`) e evidências arquivadas em `docs/evidencias-v2/G14/`.
+
+**Reabre se:** a fila perder item; a sessão apagar vistoria; a reinspeção ou a reabertura quebrar; um segundo fator ativo trancar o agente fora; coleta legada ser recusada por falta de foto; etapa de tela fechar sem capturas, fotos do aparelho e portão visual; a documentação voltar a prometer o que o app não faz; um build novo for liberado sem repetir o roteiro mínimo da E12 nas duas plataformas.
+**Este Gate libera:** F19 (o campo exibe a origem do relato) e, por ele, G19; F33 (F33-E07 e F33-E08, checklist condicional por tipo no app) e F30 (F30-E14 e F30-E15, QR e entrega no campo); insumo de F21-E01 (crash dos apps móveis), F23 (acessibilidade nativa) e F26-E03 (cenário do agente em aparelho).

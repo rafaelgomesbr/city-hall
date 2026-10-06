@@ -1,0 +1,800 @@
+# Fase 00: Estabilização obrigatória
+
+**Gate da fase:** G00 BASE CONFIÁVEL | **Depende dos gates:** nenhum (é o portão absoluto; CP-01 decidido antes de começar) | **Superfícies tocadas:** `apps/web`, `apps/campo` e `packages/campo`, `apps/api`, `db`, `scripts` e documentação (o `apps/console` entra só na regressão) | **Checkpoints da fase:** CP-02, CP-03, CP-19 (apenas o trecho de recuperação de senha por e-mail)
+
+Objetivo: fechar tudo o que o Baseline Zero provou quebrado, desligado ou falso antes de construir qualquer coisa nova (PR:D-04). Hoje o baseline não fecha em nenhum passo depois do typecheck (REL:01 seção 3.4), a vigência de conta, papel e sessão está desligada na escrita e a documentação afirma o contrário do código. Nada de F01 em diante começa antes do G00.
+
+O que se PRESERVA (MANTER): o isolamento entre municípios (RLS forçada, `db/test/isolamento.test.ts`, critério CA-06), a trilha append-only, o motor offline `packages/campo`, o console, o núcleo de autenticação (scrypt, JWT de 15 minutos, refresh rotativo com detecção de reuso) e a parte da API que já está verde. Só se mexe no que está vermelho, desligado ou divergente, e cada conserto é provado por teste que falha antes e passa depois.
+
+O que a fase NÃO faz: nenhuma funcionalidade nova; nada de `/v1`, claims enxutas do JWT, ator no banco, papéis novos, portal, app do cidadão ou worker (F02 em diante). O que a V2 deixa de fora está em `21-fora-da-v2.md`.
+
+Regra de vermelhos (DP:T42): nenhum vermelho conhecido sobrevive. Cada um é consertado (defeito real), reescrito com registro (decisão superada) ou pulado com dono, prazo e issue; a E02 cria o portão local e a ligação ao CI é F01-E03.
+
+Ordem sugerida: E01, E02 e E03 em sequência (E24 pode andar junto, só documentação); trilha de segurança E04, E05, depois E06 e E07, com E08 em paralelo (E04, E05 e E06 vão juntas para produção); trilha de contas E09 e depois E10; trilha da saída de município E11, depois E12 e E23; trilha dos vermelhos E13, E14, E15 (seguida de E16), E17, E20 e E21, com E18 depois de E13; E19 depende de CP-03; E25 depende só de E01. E22 fecha a fase por último (depois de E04, E11, E12, E17 e E19) e o G00 é conferido em seguida. Paralelas com arquivos disjuntos: E13, E14 e E17; E08, E11 e E15; E19 e E25.
+
+## Etapas
+
+### V2-F00-E01 - Baseline atual reproduzível em máquina limpa
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** baixo  |  **Paralelizável:** sim (com E24, que só toca documentação)
+- **Objetivo:** qualquer pessoa, numa máquina sem estado prévio do projeto, repete a linha de base de 2026-09-30 e obtém os mesmos números, com a saída arquivada e sem segredo.
+- **Problema que resolve:** `BZ-F:P0` e REL:01 (seção 3.4): o baseline só foi medido numa máquina (Windows 11, Node v22.17.0, npm 10.9.2). Nada fixa o Node (`engines` diz `>=20`, o CI usa 22); há duas árvores de dependência (`dc360` e `apps/campo`, lockfile próprio); os testes rodam em PGlite 0.2.17 (Postgres 16), o CI usa `postgres:16` e a produção é Postgres 17.6; e o resultado do CI é NÃO CONFIRMADO (repositório privado, `gh` sem login).
+- **Origem:** REL:01 (seções 3 e 25), BZ-F:P0-SEG.
+- **Estado atual:** CRIAR (existem `npm run verificar` e os scripts, mas nenhum procedimento nem captura reproduzível por terceiros).
+- **Dependências de entrada:** nenhuma etapa; CP-01 decidido antes do início da fase.
+- **O que deve ser implementado:**
+  - Infraestrutura: `dc360/.nvmrc` com `22` e uma nota de versões (Node, npm, PGlite, Postgres do CI, Postgres de produção).
+  - Arquivos: `dc360/scripts/baseline.mjs` (a criar) roda em ordem `npm ci`, `npm run typecheck`, `npm run test --workspace @dc360/<shared|db|campo|api|console|web>`, `npm run test:campo`, `npm run test:scripts`, `npm run conferir:numeros`, `npm run auditar`, `npm audit` (raiz e `apps/campo`), `npx expo-doctor`, `npm run test:e2e` e `npm run test:e2e:api`; grava saída, código de saída e duração de cada um e redige JWT, `Bearer` e URL com credencial antes de gravar (o raw de 2026-09-30 chegou a trazer um JWT de teste numa asserção).
+  - Documentação: tabela comando x resultado esperado (os números do REL:01 3.4) e a lista do que o CI roda e do que não roda (`auditar`, `test:scripts`, `test:campo`).
+- **O que NÃO deve ser implementado nesta etapa:** conserto de qualquer vermelho (E03 a E25); mudança no CI (F01-E02 e F01-E03); banco novo.
+- **Arquivos e módulos prováveis:** `dc360/package.json`, `.github/workflows/verificar.yml` (só leitura), a criar em `dc360/scripts`: `baseline.mjs` e `baseline.test.mjs`; a criar em `dc360`: `.nvmrc`.
+- **Risco de segurança:** a saída bruta pode carregar segredo de teste ou caminho com nome de usuário; a redação roda antes de gravar e a varredura de segredos é manual até F01-E04.
+- **Impacto LGPD:** Não se aplica: roda só com a semente sintética; nenhum dado pessoal é coletado.
+- **Migração necessária:** Não.
+- **Compatibilidade:** `.nvmrc` apenas declara a versão que o CI já usa.
+- **Rollback:** apagar `baseline.mjs`, `baseline.test.mjs` e `.nvmrc`; nenhuma dependência nova.
+- **Testes positivos:** `node --test scripts/baseline.test.mjs` verde; `baseline.mjs --so-listar` imprime os comandos sem executar; a execução completa devolve os números do REL:01 3.4 (shared 149 com 1 falha, web 550 com 14, campo 1801 com 20, `test:scripts` 165 com 3, db 318 verde).
+- **Testes negativos:** a redação mascara um JWT, um `Authorization: Bearer ...` e um `postgres://usuario:senha@host` colados num texto de teste; resultado diferente do esperado marca "divergente" e sai com código 1, sem esconder.
+- **Testes de autorização e isolamento:** `npm run test:isolamento` roda inteiro (318 testes, 137 do `isolamento.test.ts`) e fica verde: é a prova de que o ponto de partida do isolamento está intacto.
+- **Regressão obrigatória:** Não se aplica: a etapa não altera código de produto, ela fixa a linha de base de todas as outras.
+- **E2E:** `npm run test:e2e` (Chromium e Firefox) e `npm run test:e2e:api` rodam na máquina limpa e os resultados atuais, vermelhos, ficam registrados.
+- **Validação humana:** uma segunda pessoa (ou Rafael noutra máquina) segue `COMO-REPRODUZIR.md` do zero; Rafael anexa o resultado do último run do workflow Verificar no GitHub.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E01/` com `AMBIENTE.md`, `COMO-REPRODUZIR.md`, saídas redigidas, `RESUMO.md` e `INDEX.md` com SHA-256.
+- **Documentação a atualizar:** `dc360/README.md` (seção "Como testar": Node 22 e a ordem dos comandos) e `dc360/docs/COLOCAR-DE-PE.md` (matriz de versões).
+- **Definition of Done:** procedimento repetido por segunda pessoa com o mesmo resultado; todo número do REL:01 3.4 reproduzido ou com divergência explicada; zero segredo na evidência; item "baseline reproduzível" do G00 marcado.
+- **Checkpoint:** Não.
+
+### V2-F00-E02 - Política T42 para teste vermelho e skip
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E03 e E04 dependem da política e do portão)
+- **Objetivo:** nenhum vermelho conhecido existe na base: cada um é consertado, reescrito com registro ou pulado com dono, prazo e issue, e um portão local reprova o que escapar disso.
+- **Problema que resolve:** DP:T42. A vigência foi pulada (`apps/api/test/vigencia-na-escrita.test.ts:102`, `describe.skip`) e desligada num commit chamado "ultimo commit" (b4439ac, 2026-09-17) sem que ninguém visse. Testes escritos antes do conserto (web 11, API 1, campo 14, commit 5ecdf4c) misturam defeito real e teste velho. Não há regra escrita nem varredor de `skip`, e o CI não roda `test:scripts`.
+- **Origem:** DP:T42, REL:01 (itens 4 e 6), BZ-N:N.1, BZ-N:N.3, PR:D-04.
+- **Estado atual:** CRIAR (existem três formas de pular espalhadas: o `describe.skip` da vigência, três `it.runIf` em `db/test/busca.test.ts:364,377,386` e `skip:` condicional em `scripts/entitlements-do-ios.test.mjs` e `scripts/som-de-despacho.test.mjs`).
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Documentação: `dc360/docs/POLITICA-DE-TESTE-VERMELHO.md` (a criar em `dc360/docs`): a regra da casa, as três saídas, a diferença entre pular por ambiente (`it.runIf` e `skip:` com motivo textual, permitido e contado) e pular de forma incondicional (exige marca), e quem decide prazo.
+  - Arquivos: `dc360/scripts/portao-de-skip.test.mjs` (a criar; roda em `npm run test:scripts`) varre `apps/*/test`, `apps/*/src`, `packages/*/test`, `packages/*/src`, `db/test` e `scripts` e reprova `skip`, `xit`, `xdescribe` e `todo` incondicionais sem a marca `// T42 dono=<nome> issue=<ref> ate=AAAA-MM-DD` na linha acima, marca com prazo vencido e qualquer `.only`; imprime a contagem de skips por ambiente.
+  - Arquivos: marca no `describe.skip` da vigência apontando para V2-F00-E04 (prazo fixado por Rafael); ele sai na E04.
+  - Documentação: `docs/DECISOES-DE-TESTE-DA-FASE-00.md` (a criar em `docs`) como registro curto de decisão de cada teste reescrito; não consome número de ADR, porque a sequência 0009 em diante já está reservada pelas fases seguintes.
+- **O que NÃO deve ser implementado nesta etapa:** classificar os vermelhos atuais (E03); consertar qualquer um; ligar o portão ao CI (F01-E03); criar sistema de issues (issue é referência a item do GitHub ou ao ID de etapa deste roadmap).
+- **Arquivos e módulos prováveis:** a criar em `dc360/scripts`: `portao-de-skip.test.mjs`; a criar em `dc360/docs`: `POLITICA-DE-TESTE-VERMELHO.md`; `apps/api/test/vigencia-na-escrita.test.ts` (só a marca).
+- **Risco de segurança:** baixo; a regra existe porque skip silencioso escondeu a vigência desligada, um P0.
+- **Impacto LGPD:** Não se aplica: o portão lê código de teste, nenhum dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** o portão novo só reprova hoje o `describe.skip` da vigência, que recebe a marca na própria etapa.
+- **Rollback:** remover o teste do portão, a política e a marca.
+- **Testes positivos:** portão verde na árvore atual com a marca válida; a contagem por ambiente lista os 3 `it.runIf` de `busca.test.ts` e os `skip:` de `entitlements-do-ios.test.mjs` e `som-de-despacho.test.mjs`.
+- **Testes negativos:** arquivo sintético com `it.skip` sem marca reprova; marca sem `dono` reprova; marca com `ate` no passado reprova; `it.only` reprova; `describe.skip` com marca dentro do prazo passa.
+- **Testes de autorização e isolamento:** Não se aplica: a etapa não toca autorização nem dado de município; `npm run test:isolamento` roda só para provar que nada mudou.
+- **Regressão obrigatória:** `npm run test:scripts` (o portão entra nele; as 3 falhas atuais são da E17), `npm test`.
+- **E2E:** Não se aplica: sem experiência de usuário.
+- **Validação humana:** Rafael lê a política, escolhe o prazo máximo de um skip e o dono padrão.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E02/` com a política, a saída do portão e a prova de reprovação do caso sintético.
+- **Documentação a atualizar:** `dc360/README.md` (seção "Como testar").
+- **Definition of Done:** política publicada; portão verde na árvore atual; skip sem marca reprova (provado por teste); item "política T42" do G00 marcado.
+- **Checkpoint:** Não.
+
+### V2-F00-E03 - Classificar os vermelhos por causa e registrar
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E13 a E18 dependem da tabela)
+- **Objetivo:** cada vermelho conhecido tem causa, classe, regra aplicada, etapa que o fecha e dono num registro único, e o que é defeito real não é reescrito para ficar verde.
+- **Problema que resolve:** REL:01 e BZ-N:N.3. A auditoria de 2026-09-30 tratou os 20 vermelhos do campo como um tema ("sessão encerrada"); o baseline provou quatro causas. BZ-N:N.3 deixou aberta a pergunta que decide tudo: os testes do commit 5ecdf4c são a especificação ou o código é a verdade? Sem resposta, as etapas seguintes reescrevem teste por palpite.
+- **Origem:** REL:01 (itens 4, 6, 10, 11, 12 e 13), BZ-N:N.3, BZ-N:N.9, DP:T42.
+- **Estado atual:** CRIAR (a classificação existe espalhada no REL:01; falta o registro executável com dono e etapa).
+- **Dependências de entrada:** E01 e E02.
+- **O que deve ser implementado:**
+  - Documentação: `classificacao-dos-vermelhos.md` com uma linha por vermelho e a etapa que o fecha: shared 1 (E20); painel 14 (8 em E09, 5 em E13, 1 em E21); API 2 (senha provisória em E07, laudo do pacote em E12) e a suíte `banco-tls` com 13 (E21); campo 20 (2 de texto velho e 4 de mock velho em E14, 14 defeitos reais, 7 em E15 e 7 em E16); `test:scripts` 3 e `conferir:numeros` 13 (E17); e2e 3 (E13 e E18); `auditar`, `npm audit` e `expo-doctor` (E19); typecheck do campo com 2 erros de cache `.expo` (E21).
+  - Domínio: regra de decisão escrita na política da E02: onde há decisão datada no código e teste irmão passando (`apps/campo/src/app/(agente)/index.tsx:1222` e `falha-de-atualizacao.test.ts`), o código vale e o teste é reescrito com registro; onde o teste descreve achado confirmado por leitura do código como defeito (`vistoria/[id].tsx:1447`, `perfil.tsx:449-453`), o teste vale e o código é consertado.
+  - Documentação: `docs/DECISOES-DE-TESTE-DA-FASE-00.md` recebe a decisão geral e as seções usadas pela E14.
+- **O que NÃO deve ser implementado nesta etapa:** reescrever ou consertar teste (E04 a E21); decidir a saída a campo (E24 e CP-02).
+- **Arquivos e módulos prováveis:** a criar em `docs/evidencias-v2/G00/V2-F00-E03/`: `classificacao-dos-vermelhos.md`; `docs/DECISOES-DE-TESTE-DA-FASE-00.md`; saídas da E01 como insumo.
+- **Risco de segurança:** classificar defeito real como teste velho esconde bug, que é o padrão do commit 5ecdf4c; por isso cada reescrita exige evidência datada.
+- **Impacto LGPD:** Não se aplica: documentação interna sem dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: nenhum código muda.
+- **Rollback:** reverter os documentos.
+- **Testes positivos:** a soma do registro fecha com o baseline da E01 (1, 14, 2 mais uma suíte, 20, 3, 13 afirmações, 3 e2e).
+- **Testes negativos:** nenhum vermelho do baseline da E01 fica sem linha; nenhuma linha "teste velho" ou "mock velho" sem citar a evidência datada.
+- **Testes de autorização e isolamento:** Não se aplica: sem código.
+- **Regressão obrigatória:** Não se aplica: sem código.
+- **E2E:** Não se aplica: sem código.
+- **Validação humana:** Rafael decide a regra de BZ-N:N.3 com a tabela na mão e confirma os 14 defeitos do campo como defeitos.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E03/` com a classificação, a decisão de Rafael e `INDEX.md`.
+- **Documentação a atualizar:** `docs/DECISOES-DE-TESTE-DA-FASE-00.md`.
+- **Definition of Done:** registro completo e somado contra a E01; regra de BZ-N:N.3 decidida por Rafael; item "vermelhos classificados" do G00 marcado.
+- **Checkpoint:** Não (a decisão de BZ-N:N.3 é de Rafael e fica registrada aqui, fora do catálogo CP).
+
+### V2-F00-E04 - Religar a vigência de conta, papel e sessão na escrita e tirar o skip
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (E05, E06 e E07 dependem do que esta etapa passa a produzir)
+- **Objetivo:** conta desativada, papel rebaixado ou sessão encerrada deixam de escrever com o token ainda vivo (hoje por até 15 minutos, no máximo 60).
+- **Problema que resolve:** `BZ-F:P0-SEG` (BAS-21, 22, 24; G-01; AUT-19; IDN-10). O código está desligado de propósito em `apps/api/src/servidor.ts:454-467` (o commit b4439ac removeu o import e as duas chamadas) e o teste está em `describe.skip` (`apps/api/test/vigencia-na-escrita.test.ts:102`, 5 casos); os comentários de `auth/sessoes.ts:20-27` e `auth/suspensao.ts:36-42` afirmam o contrário do código.
+- **Origem:** REL:01, REL:02, REL:05, REL:06; DP:T09; PR:D-04; BZ-N:N.1.
+- **Estado atual:** CORRIGIR (`auth/vigencia.ts` existe, com `lerVigencia` e `exigirVigencia(vigencia, conteudo, statusDaSuspensao)` e uma consulta única que já era a da suspensão do município; falta ligá-lo e prová-lo).
+- **Dependências de entrada:** E01 e E02 (o `describe.skip` sai pela política).
+- **O que deve ser implementado:**
+  - API: restaurar em `exigirAutenticacao` o bloco removido em b4439ac: na escrita, `lerVigencia` e `exigirVigencia` no lugar de `exigirAcessoAtivo`, na mesma ida ao banco, e a marca de senha provisória passa a vir do banco (`vigencia.senhaProvisoriaAte !== null`), não só do token.
+  - Autorização: conta inativa, papel diferente do token e sessão encerrada negam; a sessão rotacionada continua valendo pelos 15 minutos do token, como `vigencia.ts` decide de propósito ("rotação não é expulsão"); a regra da cadeia é da E07.
+  - Testes: remover o `.skip` e completar o arquivo (município suspenso com conta desativada responde a suspensão primeiro; `sid` de outra pessoa nega); rodar a suíte inteira da API com a vigência ligada e corrigir os casos que escreviam com token de conta desativada ou rebaixada (a nota do b4439ac diz que alguns reprovavam).
+  - Documentação: corrigir os comentários citados, o bloco "DESLIGADO" de `servidor.ts` e a linha do README que diz "sem ida ao banco".
+- **O que NÃO deve ser implementado nesta etapa:** vigência em LEITURAS (F03-E03, centralizada em `comTenant`); códigos novos de erro (E05); fila do campo (E06); família de sessão, papel alterado e senha provisória (E07); lista de revogação, Redis ou cache; mudança de claims do JWT (F03-E02).
+- **Arquivos e módulos prováveis:** `apps/api/src/servidor.ts`, `apps/api/src/auth/vigencia.ts`, `apps/api/src/auth/sessoes.ts`, `apps/api/src/auth/suspensao.ts`, `apps/api/test/vigencia-na-escrita.test.ts`, `apps/api/test/api.test.ts`.
+- **Risco de segurança:** ao ligar, token de conta já desativada recebe erro novo; o campo trata 401 como falha permanente (E06 corrige o efeito na fila), então não implantar a E04 sozinha em produção; leituras que escrevem (`GET /avisos`) seguem fora da vigência até a F03-E03.
+- **Impacto LGPD:** Não se aplica: nenhum dado novo é coletado ou exposto.
+- **Migração necessária:** Não.
+- **Compatibilidade:** resposta de erro nova só para quem já não deveria escrever.
+- **Rollback:** reverter o commit; sem migração.
+- **Testes positivos:** conta ativa escreve e recebe 200 (as rotas de escrita do arquivo respondem 200, não 201).
+- **Testes negativos:** conta desativada, papel rebaixado e sessão encerrada por administrador recebem 401 ao escrever; a própria pessoa que encerra "as outras sessões" mantém a sua.
+- **Testes de autorização e isolamento:** token do município B contra ocorrência do município A continua 404; `npm run test:isolamento` verde.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `apps/api/test/superficie.test.ts`, `npm run test:e2e:api`.
+- **E2E:** desativar um usuário no painel e confirmar que o próximo POST dele falha.
+- **Validação humana:** Rafael vê a sonda reproduzida antes e depois.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E04/` com saída dos testes, log da sonda e diff.
+- **Documentação a atualizar:** `dc360/README.md` (linha do token de acesso, seção de autenticação) e `dc360/apps/api/PENDENCIAS.md`.
+- **Definition of Done:** sonda de conta desativada não escreve; zero `skip` em vigência; comentários batem com o código; item "vigência" do G00 marcado.
+- **Checkpoint:** Não.
+
+### V2-F00-E05 - Códigos de erro 401 nao_autenticado, 401 sessao_encerrada e 403 conta_desativada, com catálogo
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E06, E07 e E09 dependem do catálogo)
+- **Objetivo:** o cliente distingue "renove o token", "entre de novo" e "conta desativada, pare e avise" por códigos estáveis e documentados.
+- **Problema que resolve:** com a vigência religada (E04), tudo responderia `401 sessao`. O painel só reconhece `nao_autenticado` como sessão morta (`apps/web/src/dados/http.ts:182`), o app lê qualquer 401 como sessão encerrada (`apps/campo/src/dados/falha-de-atualizacao.ts:82`) e a fila trata 401 e 403 como falha permanente (`packages/campo/src/transporte.ts:16-21`): conta desativada é indistinguível de token vencido.
+- **Origem:** DP:T09, REL:06, REL:03, BZ-F:P0-SEG.
+- **Estado atual:** EXPANDIR (já existem `nao_autenticado` em `servidor.ts:506`, `acesso_suspenso`, `troca_de_senha_obrigatoria` e `FalhaAutenticacao` com o código `sessao`; falta o terceiro código e o catálogo).
+- **Dependências de entrada:** E04.
+- **O que deve ser implementado:**
+  - Domínio: `packages/shared/src/codigos-de-erro.ts` (a criar em `packages/shared/src`, exportado por `index.ts`) com o catálogo: `nao_autenticado` (401; o cliente renova e repete uma vez), `sessao_encerrada` (401; entrar de novo, dados ficam no aparelho), `conta_desativada` (403; parar a fila, manter os itens, avisar), além de `acesso_suspenso`, `troca_de_senha_obrigatoria` e `sem_permissao`.
+  - API: `FalhaAutenticacao` troca `sessao` por `sessao_encerrada`; nova `ContaDesativada` (403) tratada em `setErrorHandler` (`servidor.ts:504`); `exigirVigencia` lança `ContaDesativada` quando a conta está inativa e `sessao_encerrada` nos demais casos; `/auth/renovar` de conta desativada (`servico.ts:506`) responde `conta_desativada`; `/auth/entrar` mantém a mensagem genérica (resistência a enumeração).
+  - Frontend: `http.ts` trata `sessao_encerrada` como sessão morta e `conta_desativada` com aviso próprio na tela de entrada.
+  - Documentação: tabela de códigos na seção da API do README.
+- **O que NÃO deve ser implementado nesta etapa:** comportamento da fila (E06); papel alterado, rotacionada e senha provisória (E07); esquema de erro único e `/v1` (F02-E03 generaliza este catálogo).
+- **Arquivos e módulos prováveis:** a criar em `packages/shared/src`: `codigos-de-erro.ts`; `apps/api/src/servidor.ts`, `apps/api/src/auth/servico.ts`, `apps/api/src/auth/vigencia.ts`, `apps/web/src/dados/http.ts`, `apps/web/src/paginas/Entrar.tsx`.
+- **Risco de segurança:** respostas distintas revelam o estado da conta, mas só a quem já apresentou token ou renovação válidos; `/auth/entrar` não muda.
+- **Impacto LGPD:** Não se aplica: nenhum dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** renomear `sessao` quebra quem lê esse texto; no repositório são 7 ocorrências em 3 arquivos de teste (`apps/api/test/senha-provisoria.test.ts:184`, `apps/api/test/vigencia-na-escrita.test.ts`, `apps/web/test/sessao-e-entrada.test.ts:79`), atualizadas na etapa.
+- **Rollback:** reverter o commit; sem migração.
+- **Testes positivos:** token vencido responde 401 `nao_autenticado`; sessão encerrada por administrador responde 401 `sessao_encerrada`; conta desativada responde 403 `conta_desativada`; teste compara o catálogo do shared com o que o servidor emite.
+- **Testes negativos:** `/auth/entrar` com conta desativada continua com a recusa genérica, mesma mensagem e status da senha errada; código fora do catálogo reprova o teste de catálogo.
+- **Testes de autorização e isolamento:** token de conta desativada do município A tentando escrever em ocorrência do município B recebe `conta_desativada` sem confirmar nada sobre B; o 404 de recurso de outro município não muda.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run test --workspace @dc360/web`, `npm run test:campo`, `apps/api/test/superficie.test.ts`.
+- **E2E:** no painel, desativar um usuário e ver a próxima chamada dele levar à tela de entrada com a frase certa (seção de usuários de `apps/web/test/fluxo-api.e2e.mjs`).
+- **Validação humana:** Rafael lê as três frases mostradas ao usuário e aprova (mensagem é conteúdo de produto).
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E05/` com o catálogo, a saída dos testes e as capturas das três telas.
+- **Documentação a atualizar:** `dc360/README.md` (seção da API) e `dc360/docs/GUIA-DO-COORDENADOR.md` (o que o agente vê quando a conta é desativada).
+- **Definition of Done:** os três códigos emitidos e testados; catálogo no shared; nenhuma ocorrência do texto `sessao` como código; item "códigos de erro corretos" do G00 marcado.
+- **Checkpoint:** Não.
+
+### V2-F00-E06 - Fila do campo trata os três códigos sem perder item (`packages/campo/src/transporte.ts`)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E08 e E11, arquivos disjuntos)
+- **Objetivo:** desativar um agente ou encerrar a sessão dele não bloqueia nem descarta coleta já feita: a fila para, os itens ficam guardados e a pessoa vê o que fazer.
+- **Problema que resolve:** `transporte.ts` classifica 4xx e 401 como `FalhaPermanente` (linhas 16-21, 96-108) e a falta de token também (`sem_sessao`); `fila.ts` (`tratarFalha`, ~915) transforma isso em item `bloqueado`, sem tela para desbloquear e com "Descartar" ao lado. Uma coleta feita no morro por quem foi desativado, ou cuja sessão caiu, fica marcada como recusada.
+- **Origem:** DP:T09, REL:03, BZ-F:P0-SEG.
+- **Estado atual:** CORRIGIR (o motor offline é MANTER; só a classificação de 401 e 403 e a parada da fila mudam).
+- **Dependências de entrada:** E05.
+- **O que deve ser implementado:**
+  - Domínio: `packages/campo/src/tipos.ts` ganha `FalhaDeSessao` (motivo `sessao_encerrada` ou `conta_desativada`), distinta de `FalhaTemporaria` e de `FalhaPermanente`; `transporte.ts` a lança por código (`falhaDaResposta`, `chamar` e `enviar`, inclusive quando não há token); `fila.ts` interrompe o dreno, mantém o item `pendente`, não conta tentativa nem bloqueia, e `ResultadoDreno` informa `paradaPor`.
+  - Mobile: 401 `nao_autenticado` pede token novo uma única vez, respeitando a trava e o piso de `apps/campo/src/dados/token.ts`, e repete; se falhar, vira `sessao_encerrada`; `falha-de-atualizacao.ts` ganha o motivo `conta-desativada` com a frase "suas coletas continuam guardadas neste aparelho, procure a coordenação".
+  - Autorização: a regra de autoria da fila segue (item de outro autor espera o autor); coleta de quem foi desativado fica no aparelho, sem reconhecimento pela coordenação (isso é decisão futura da DP:T09).
+- **O que NÃO deve ser implementado nesta etapa:** reconhecimento da coleta pela coordenação; criptografia local e segundo plano (F14-E04, F14-E06); rascunhos e logout (E15 e F14-E02).
+- **Arquivos e módulos prováveis:** `packages/campo/src/transporte.ts`, `packages/campo/src/tipos.ts`, `packages/campo/src/fila.ts`, `packages/campo/test/fila.test.ts`, `apps/campo/src/dados/token.ts`, `apps/campo/src/dados/falha-de-atualizacao.ts`, `apps/campo/src/dados/fila.ts`, `apps/api/test/campo-integracao.test.ts`.
+- **Risco de segurança:** repetir com token novo não pode virar laço contra servidor que disse não; a renovação forçada é uma, com piso, e a falha seguinte pausa.
+- **Impacto LGPD:** Não se aplica: nenhum dado novo; a coleta já estava no aparelho.
+- **Migração necessária:** Não.
+- **Compatibilidade:** `ResultadoDreno` ganha campo opcional; 403 `sem_permissao` continua permanente.
+- **Rollback:** reverter o commit; sem migração.
+- **Testes positivos:** 401 `nao_autenticado` renova uma vez e envia; depois de entrar de novo, os itens pausados sobem sem duplicar (mesma chave de idempotência).
+- **Testes negativos:** 401 `sessao_encerrada` e 403 `conta_desativada` deixam todos os itens `pendente`, zero `bloqueado`, tentativas inalteradas, dreno parado; sem token vira `FalhaDeSessao` e não `FalhaPermanente`; 403 `sem_permissao` ainda bloqueia.
+- **Testes de autorização e isolamento:** agente A entra no aparelho depois da desativação do agente B: os itens do B esperam o autor e não sobem com a sessão do A; em `campo-integracao.test.ts`, desativar o agente entre enfileirar e drenar devolve 403 `conta_desativada` e o item fica no aparelho.
+- **Regressão obrigatória:** `npm run test --workspace @dc360/campo`, `npm run test:campo`, `npm run test:api`, `apps/api/test/campo-integracao.test.ts`.
+- **E2E:** no emulador, desativar o agente no painel durante uma coleta na fila: a tela mostra a frase, nada é descartado e a coleta sobe depois da reativação com nova entrada.
+- **Validação humana:** Rafael vê a frase no aparelho e o item preservado.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E06/` com a saída dos testes, a captura da tela e o log do cenário.
+- **Documentação a atualizar:** `apps/campo/LEIA-ME.md`, `apps/campo/PENDENCIAS.md` e o comentário de `transporte.ts`.
+- **Definition of Done:** nenhum item bloqueado ou descartado por 401 ou 403 de sessão ou conta; frase aprovada; item "fila do campo" do G00 marcado.
+- **Checkpoint:** Não.
+
+### V2-F00-E07 - Papel alterado, sessão rotacionada e senha provisória
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (altera `auth/vigencia.ts` e `auth/servico.ts`, os mesmos arquivos de E04 e E05)
+- **Objetivo:** três casos de borda da vigência ficam corretos e provados: o token de quem teve o papel alterado se renova em vez de escrever com o papel velho, a sessão rotacionada só vale enquanto a cadeia dela vive e a senha provisória vencida nem escreve nem se troca.
+- **Problema que resolve:** `apps/api/test/senha-provisoria.test.ts:183` recebe 200 onde espera 401 (`trocarSenha`, `auth/servico.ts:667`, só confere se a senha atual bate, e a marca `sp` do token não expira). `auth/vigencia.ts:69-70` conta como viva toda sessão revogada por `rotacionada na renovacao`, mesmo depois de a cadeia ser encerrada por administrador, pela pessoa, por reuso ou por troca de senha: o token anterior à renovação ainda escreve até completar os 15 minutos. Troca de papel não revoga sessão (REL:06).
+- **Origem:** DP:T09, REL:06, REL:01 (item 4), BZ-F:P0-SEG, BZ-N:N.1.
+- **Estado atual:** CORRIGIR (as quatro perguntas da vigência já são feitas por `lerVigencia`; falta a regra da cadeia e o tratamento do papel).
+- **Dependências de entrada:** E04 e E05.
+- **O que deve ser implementado:**
+  - Banco: coluna `sessoes.familia_id` (as sessões de uma cadeia de renovação compartilham o valor; cada login abre família nova), backfill `familia_id = id` e índice parcial por `familia_id` onde `revogada_em IS NULL`.
+  - Migration: recria `abrir_sessao` com parâmetro opcional de família (mesma permissão; o teto de 27 funções `SECURITY DEFINER` em `db/test/isolamento.test.ts:626` não muda); migração aplicada nunca é editada (`HistoricoAlterado`).
+  - API: `renovar` lê a família sob tenant e a passa a `emitirPar`; `lerVigencia` só aceita sessão rotacionada se a família tem sessão com `revogada_em IS NULL`; papel do banco diferente do token responde 401 `nao_autenticado` (renovar resolve e o token novo já traz o papel novo); a troca de papel não revoga sessões (decisão registrada); `trocarSenha` recusa com `sessao_encerrada` quando `senha_provisoria_ate` já passou.
+  - Testes: expectativas do bloco da vigência alinhadas ao catálogo da E05.
+- **O que NÃO deve ser implementado nesta etapa:** claims enxutas do JWT e vigência em leituras (F03-E02, F03-E03); lista de revogação; reset de MFA de outra pessoa (F03-E11); expurgo de IP e user-agent das sessões (F05-E12).
+- **Arquivos e módulos prováveis:** `apps/api/src/auth/vigencia.ts`, `apps/api/src/auth/servico.ts`, `apps/api/src/auth/sessoes.ts`, `apps/api/test/senha-provisoria.test.ts`, `apps/api/test/vigencia-na-escrita.test.ts`, `db/test/migrar.test.ts`; a criar em `db/migrations`: `047_familia_da_sessao.sql`.
+- **Risco de segurança:** a migration mexe numa função de autenticação; erro nela trava todo login, por isso o ensaio é em Postgres real (`npm run migrar` mais `--conferir`) além do PGlite.
+- **Impacto LGPD:** Não se aplica: coluna técnica sem dado pessoal.
+- **Migração necessária:** Sim (`NNN_familia_da_sessao.sql`, NNN próxima livre, hoje 047).
+- **Compatibilidade:** sessões abertas na hora da migração ganham família própria (`familia_id = id`); no máximo um token antigo cai no deploy e o cliente renova.
+- **Rollback:** migration aditiva; reverter o código deixa a coluna sem uso; reverter a função por nova migration, nunca editando a aplicada.
+- **Testes positivos:** renovação normal: o token antigo escreve até vencer e o novo também (caso da rotação do bloco da vigência); papel rebaixado: o 401 `nao_autenticado` é seguido de `/auth/renovar` com token do papel novo e a escrita permitida ao papel novo passa; senha provisória no prazo troca a senha.
+- **Testes negativos:** administrador, a própria pessoa, reuso de refresh e troca de senha encerram a cadeia: o token pré-renovação que ainda estava vivo recebe 401 `sessao_encerrada` ao escrever; `senha-provisoria.test.ts:183` passa (trocar senha com provisória vencida responde 401 `sessao_encerrada`, e renovar também); depois de rebaixado a operador, o ex-coordenador renovado não despacha (403 `sem_permissao`).
+- **Testes de autorização e isolamento:** coordenador do município A rebaixado: o token antigo não despacha equipe e continua sem ver nada do município B (404); `npm run test:isolamento` verde com a migration.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento` (inclui `migrar.test.ts`), `apps/api/test/api.test.ts` ("desativar usuário derruba as sessões"), `npm run test:console`, `npm run test:e2e:api`.
+- **E2E:** no painel, rebaixar um coordenador que está logado: a próxima ação dele renova em silêncio e passa a ter só as ações do papel novo.
+- **Validação humana:** Rafael vê as três sondas (rotacionada, papel, provisória) antes e depois.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E07/` com saída dos testes, log das sondas, saída de `migrar --conferir` e diff.
+- **Documentação a atualizar:** `dc360/README.md` (autenticação), `dc360/apps/api/PENDENCIAS.md`, `dc360/docs/DICIONARIO-DE-DADOS.md` (coluna nova).
+- **Definition of Done:** as três sondas passam; zero `skip`; migration aplicada do zero e sobre banco existente; itens "papel alterado", "sessão revogada" e "senha provisória" do G00 marcados.
+- **Checkpoint:** Não.
+
+### V2-F00-E08 - Fechar vazamentos P0 de leitura ao agente: GET /oficios, GET /oficios/:id e GET /avisos (que escreve)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com E11 e E15, arquivos disjuntos)
+- **Objetivo:** o token de um agente de campo deixa de ler ofícios do município inteiro e avisos de outras equipes, sem mudar o que coordenação e administração veem.
+- **Problema que resolve:** `BZ-F:P0-SEG` (AUT-12 e AUT-13). `GET /oficios` e `GET /oficios/:id` (`apps/api/src/rotas/oficios.ts:177,211`) exigem só autenticação e devolvem número, órgão, `orgao_email`, `observacoes` e, na ficha, o IP de quem abriu o link, de ocorrência de qualquer equipe (o REL:06 provou 200 ao agente onde a ocorrência da outra equipe dá 404). `GET /avisos` (`rotas/avisos.ts:201`) entrega protocolo e tipo de fato do município inteiro a qualquer papel, a contagem `naoLidos` não passa por recorte algum, e a rota ainda escreve dentro de um GET (materializa prazos vencidos, insere avisos de saída sem retorno, apaga avisos antigos).
+- **Origem:** BZ-F:P0-SEG, REL:05, REL:06 (AUT-10 a AUT-13).
+- **Estado atual:** CORRIGIR (`recorteDoAgente` já protege nove leituras; faltam estas três).
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Domínio: nova ação `consultar_oficio` em `packages/shared/src/permissoes.ts` (`ACOES`, `ROTULO_ACAO`), concedida a operador, coordenador e administrador e não ao agente de campo; a regra mora no shared, não num `if` de papel na rota.
+  - Autorização: `GET /oficios` e `GET /oficios/:id` chamam `exigirPermissao(quem.papel, "consultar_oficio")` antes de abrir transação; o agente recebe 403 `sem_permissao` (o aparelho dele não usa ofício: sem ocorrência em `apps/campo` nem em `packages/campo`).
+  - API: `GET /avisos` aplica `eRecorteDoAgente(quem, "o", params)` na lista (que já junta `ocorrencias o`) e passa a juntar `ocorrencias` na contagem de não lidos; a escrita dentro do GET continua (idempotente, em lote, só do município do token) e fica registrada em `PENDENCIAS.md`.
+  - Frontend: o painel esconde "Ofícios" de quem não tem a ação, pela mesma `podeExecutar`.
+- **O que NÃO deve ser implementado nesta etapa:** manifesto rota x ação e default deny para papéis novos (F03-E12, F03-E14); recorte por órgão (F04); consulta nominal do ofício (F05-E11); tirar a escrita do GET (F07-E03, F04-E11).
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/oficios.ts`, `apps/api/src/rotas/avisos.ts`, `apps/api/src/rotas/recorte-do-agente.ts`, `packages/shared/src/permissoes.ts`, `packages/shared/test/permissoes.test.ts`, `apps/api/test/orgaos-e-oficio.test.ts`, `apps/api/test/sino-de-avisos.test.ts`, `apps/api/test/agente-so-ve-a-equipe.test.ts`.
+- **Risco de segurança:** negar demais quebra a tela do operador, que chama `listarOficios` em `Ocorrencia.tsx:171`; por isso o operador entra na ação nova e a regressão cobre o painel dele.
+- **Impacto LGPD:** reduz a exposição: o IP de quem abriu o link e as `observacoes` deixam de chegar a quem não precisa (minimização).
+- **Migração necessária:** Não.
+- **Compatibilidade:** o agente deixa de receber 200 nas rotas de ofício; no sino passa a ver só os avisos da própria equipe; coordenação e administração não mudam.
+- **Rollback:** reverter o commit; a ação nova some do shared.
+- **Testes positivos:** operador, coordenador e administrador listam e abrem ofício (200); o sino do coordenador devolve a mesma contagem de antes; o agente lista os avisos da equipe dele.
+- **Testes negativos:** agente em `GET /oficios` e `GET /oficios/:id`: 403 `sem_permissao`; agente sem equipe: lista de avisos vazia e `naoLidos` 0.
+- **Testes de autorização e isolamento:** agente da equipe Bravo não vê nem conta o aviso da ocorrência da equipe Alfa; coordenador do município B abre ofício do município A: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test --workspace @dc360/shared`, `npm run test:isolamento`, `apps/api/test/superficie.test.ts`, `npm run test:e2e:api`.
+- **E2E:** com o token do agente da semente de Serra Alta, `GET /oficios` responde 403 e o sino mostra só avisos da equipe dele (sonda em `scripts/e2e-api.mjs` ou seção nova de `fluxo-api.e2e.mjs`).
+- **Validação humana:** Rafael vê a sonda do agente antes (200 com o e-mail do órgão) e depois (403).
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E08/` com as sondas, a saída dos testes e o diff.
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`, `dc360/apps/api/PENDENCIAS.md` (escrita em GET) e a seção "Autorização por papel" do README.
+- **Definition of Done:** sondas do agente fechadas; ação nova testada no shared e na API; pendência da escrita em GET registrada; item "vazamentos de leitura ao agente" do G00 marcado.
+- **Checkpoint:** Não.
+
+### V2-F00-E09 - Telas de sessões e de redefinição de senha no painel
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E13 e esta alteram `Usuarios.tsx` e `dados/http.ts`; E10 depende desta)
+- **Objetivo:** quem administra devolve acesso e derruba sessão de outra pessoa pelo painel, e cada pessoa vê e encerra as próprias outras sessões.
+- **Problema que resolve:** BZ-D:BAS-23, 24 e 25. As rotas existem com teste (`apps/api/src/rotas/administracao.ts:433` redefinir-senha, `:550` encerrar-sessoes, `rotas/autenticacao.ts:229`), as funções do painel também (`dados/http.ts:752,762,854`, `local.ts:458,471,478`, `repositorio.ts`), mas nenhuma página as chama. Com a recuperação por e-mail desligada (`fly.toml:67`), quem esquece a senha não tem caminho e quem perde o celular não derruba o acesso. `apps/web/test/seguranca-da-conta.test.ts` (8 casos) está vermelho desde 5ecdf4c. Não existe rota para listar sessões.
+- **Origem:** BZ-D:BAS-24, REL:06, REL:01 (itens 1 a 3).
+- **Estado atual:** EXPANDIR (API e camada de dados prontas; faltam as telas e a leitura de sessões).
+- **Dependências de entrada:** E05.
+- **O que deve ser implementado:**
+  - Frontend: em `Usuarios.tsx`, por linha, `BotaoRedefinirSenha` e `BotaoEncerrarSessoes`, cada um atrás de `ConfirmarAcao` destrutiva com o nome da pessoa, visíveis só quando `motivoParaNaoAdministrar(sessao.papel, u)` é nulo e nunca para a própria conta; `SenhaTemporaria` exportado (senha uma vez, fonte tabular, botão de copiar, frase de que não volta); Toast ao encerrar. Em `MinhaConta.tsx`, `MinhasOutrasSessoes` com `ConfirmarAcao` e a frase de que esta sessão continua aberta. O modo local explica em vez de oferecer.
+  - API: leituras novas `GET /auth/sessoes` (sessões vivas da própria conta: criada em, expira em, aparelho resumido, marca "esta") e `GET /usuarios/:id/sessoes` (`gerenciar_usuarios` e `exigirPostoParaGerir`; só quantidade e datas), sem IP e sem user-agent completo.
+  - Acessibilidade: confirmação anunciada por `role=status`, foco devolvido ao botão, ícone mais texto.
+- **O que NÃO deve ser implementado nesta etapa:** reset de MFA de outra pessoa (F03-E11); tela consolidada de conta e segurança (F10-E01); expurgo de IP e user-agent (F05-E12); recuperação por e-mail (E10).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Usuarios.tsx`, `apps/web/src/paginas/MinhaConta.tsx`, `apps/web/src/dados/http.ts`, `local.ts`, `repositorio.ts`, `apps/api/src/rotas/administracao.ts`, `apps/api/src/rotas/autenticacao.ts`, `apps/web/test/seguranca-da-conta.test.ts`, `apps/web/test/paridade-dos-modos.test.ts`.
+- **Risco de segurança:** a senha temporária aparece uma vez e vale 72 horas, e quem a sorteou a conhece (IDN-18 do REL:06, fica em `PENDENCIAS.md`); a listagem não pode expor IP de terceiros.
+- **Impacto LGPD:** a listagem não mostra IP nem user-agent completo (IDN-29); sessão é dado técnico da própria pessoa.
+- **Migração necessária:** Não.
+- **Compatibilidade:** as rotas existentes não mudam; as duas de leitura são novas.
+- **Rollback:** reverter o commit; sem migração.
+- **Testes positivos:** os 8 casos de `seguranca-da-conta.test.ts` passam; administrador redefine a senha de um operador e o login com a temporária exige a troca; `GET /auth/sessoes` marca a sessão atual; encerrar "as outras" mantém a de onde se clicou.
+- **Testes negativos:** coordenador não vê os botões em usuário de posto igual ou maior (`posto-abaixo-do-seu.test.ts`); a API recusa `autoredefinicao` e `autoencerramento` (422); `GET /usuarios/:id/sessoes` de posto acima: 403 `posto_insuficiente`.
+- **Testes de autorização e isolamento:** coordenador do município A pede redefinir a senha de usuário do município B: 404; `GET /usuarios/:id/sessoes` de B com token de A: 404; agente chama as três rotas: 403 `sem_permissao`.
+- **Regressão obrigatória:** `npm run test --workspace @dc360/web`, `npm run test:api`, `apps/api/test/superficie.test.ts`, `apps/web/test/paridade-dos-modos.test.ts`.
+- **E2E:** seção nova em `fluxo-api.e2e.mjs`: a administradora redefine a senha da agente da semente, a agente entra com a temporária, troca, e a sessão antiga cai; "encerrar minhas outras sessões" derruba um segundo navegador.
+- **Validação humana:** Rafael faz o fluxo no painel e confere a frase da senha única e as confirmações.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E09/` com a saída dos testes, capturas das telas e o log do e2e.
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md` (esqueci a senha, perdi o celular) e `dc360/apps/web/PENDENCIAS.md`.
+- **Definition of Done:** 8 casos verdes; botões e listagem funcionando nos dois modos; nenhuma rota nova sem permissão; item "telas de sessões e redefinição" do G00 marcado.
+- **Checkpoint:** Não.
+
+### V2-F00-E10 - Recuperação de senha por e-mail: fluxo completo com notificador de teste
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (depende de E09, o plano B por quem administra)
+- **Objetivo:** "esqueci a senha" funciona de ponta a ponta no painel e na API com o notificador de teste, e a produção permanece desligada até o CP-19.
+- **Problema que resolve:** REL:06 (IDN-17, D4) e REL:10. As rotas `POST /auth/recuperar` e `/auth/redefinir` (`rotas/autenticacao.ts:176,187`) têm teste (`recuperacao.test.ts`, `recuperacao-desligada.test.ts`), mas a tela `RecuperarSenha.tsx` só é coberta pelo e2e (seção 14), o link leva o token na URL sem remoção nem política de Referer, e a produção roda `RECUPERACAO_ATIVA = "nao"` (`fly.toml:67`) porque não há provedor. O servidor está provado; faltam a tela e a trava de produção.
+- **Origem:** REL:06 (IDN-17), REL:10, BZ-F:P1-OPER.
+- **Estado atual:** EXPANDIR (fluxo, `notificadorDeArquivo` via `NOTIFICADOR_ARQUIVO`, `notificadorHttp` (Resend) e as travas de `config.ts` existem; falta fechar a tela e as bordas).
+- **Dependências de entrada:** E09.
+- **O que deve ser implementado:**
+  - Frontend: `RecuperarSenha.tsx` cobre pedido (resposta neutra igual para e-mail existente ou não), link inválido, vencido e já usado (frase que manda pedir outro), senhas diferentes, senha curta e sucesso; com a recuperação desligada, a tela manda procurar quem administra e aponta o botão da E09; ao ler o token, remove-o da barra de endereço (`history.replaceState`).
+  - Infraestrutura: cabeçalho `Referrer-Policy: no-referrer` no painel (bloco `headers` de `vercel.json`).
+  - Testes: teste de configuração que prova `RECUPERACAO_ATIVA = "nao"` em `fly.toml` e que `config.ts` recusa `RECUPERACAO_ATIVA=sim` sem `EMAIL_ATIVO=sim` e `NOTIFICADOR_ARQUIVO` em produção.
+- **O que NÃO deve ser implementado nesta etapa:** ligar e-mail em produção (CP-19); domínio verificado e conta de provedor (F01-E10, F15-E14); convite por e-mail e MFA (F03-E10, F03-E11); auditoria de login e recuperação (F03).
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/RecuperarSenha.tsx`, `apps/web/src/paginas/Entrar.tsx`, `apps/api/src/rotas/autenticacao.ts`, `apps/api/src/config.ts`, `apps/api/test/recuperacao.test.ts`, `apps/api/test/recuperacao-desligada.test.ts`, `apps/web/test/fluxo-api.e2e.mjs`, `dc360/vercel.json`, `dc360/docs/LIGAR-O-EMAIL.md`; a criar em `apps/web/test`: `recuperar-senha.test.ts`.
+- **Risco de segurança:** o link de uso único carrega o token na query; a remoção da URL e o Referer fechado reduzem o vazamento; a resposta uniforme impede enumeração; produção desligada evita link em log.
+- **Impacto LGPD:** o e-mail do servidor é tratado só para enviar o link; o notificador de teste grava em arquivo local e `config.ts` o recusa em produção.
+- **Migração necessária:** Não.
+- **Compatibilidade:** a produção segue com a tela mandando procurar quem administra.
+- **Rollback:** reverter o commit; as flags de produção não mudam.
+- **Testes positivos:** pedido responde 202 neutro; o link do arquivo de teste redefine a senha; a nova entra e a antiga não (seção 14 do e2e); `recuperar-senha.test.ts` cobre os estados da tela.
+- **Testes negativos:** o mesmo link duas vezes (a segunda recusada); link vencido; token inventado (mesma mensagem); e-mail inexistente (mesma resposta); produção com `RECUPERACAO_ATIVA=sim` e `EMAIL_ATIVO=nao` não sobe.
+- **Testes de autorização e isolamento:** pedido de recuperação com o e-mail de uma conta do município B, feito pela tela do município A, tem resposta idêntica à de e-mail inexistente; o token de redefinição de uma conta não serve para outra.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test --workspace @dc360/web`, `npm run test:e2e:api`, `npm run test:scripts`.
+- **E2E:** seção 14 de `fluxo-api.e2e.mjs` mantida, mais o caso do link usado duas vezes.
+- **Validação humana:** Rafael faz o fluxo com o notificador de arquivo e confere que a produção continua desligada.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E10/` com a saída dos testes, capturas dos estados da tela e a prova da configuração de produção.
+- **Documentação a atualizar:** `dc360/docs/LIGAR-O-EMAIL.md` e a seção da API do README.
+- **Definition of Done:** fluxo provado ponta a ponta com notificador de teste; estados da tela testados; produção comprovadamente desligada; item "recuperação" do G00 marcado.
+- **Checkpoint:** CP-19 (decide a contratação para uso externo; bloqueia ligar `RECUPERACAO_ATIVA` e `EMAIL_ATIVO` em produção; a etapa fecha sem ele, com o notificador de teste).
+
+### V2-F00-E11 - Bug /pacote.zip e prova do pacote de saída ponta a ponta contra a API real
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** médio  |  **Paralelizável:** sim (com E08 e E15, arquivos disjuntos)
+- **Objetivo:** o botão "Baixar pacote de saída" baixa de fato o ZIP da API real, e uma prova ponta a ponta impede que isso quebre de novo sem aviso.
+- **Problema que resolve:** BZ-N:O.4 e REL:02. `apps/web/src/dados/http.ts:951` chama `${BASE}/pacote.zip`, mas a rota registrada é `/saida/pacote.zip` (prefixo em `servidor.ts:759-760`, handler em `rotas/saida.ts`). O botão (commit b793e82, 2026-09-17) foi declarado pronto sem teste contra a API; `saida-de-municipio.test.ts` chama a rota certa direto e não vê o cliente. A função ainda usa `fetch` puro, sem a renovação de 401 de `chamar`.
+- **Origem:** BZ-N:O.4, REL:02, ALY:CA-10.
+- **Estado atual:** CORRIGIR (uma linha de caminho, a renovação de 401 e a prova que faltava).
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Frontend: `baixarPacoteDeSaida` usa `/saida/pacote.zip` e, em 401, renova o token e repete uma vez (mesma trava de `renovar()`); `Organizacao.tsx` revoga a URL do objeto só depois de o download começar (hoje logo após `ancora.click()`) e mostra a frase da API quando recusado.
+  - Testes: seção nova de `fluxo-api.e2e.mjs`: a administradora da semente abre `/organizacao`, clica no botão e recebe o download; confere nome `dc360-pacote-de-saida-AAAA-MM-DD.zip`, assinatura `PK`, tamanho maior que zero e, nos nomes do diretório do ZIP, `tabelas/ocorrencias.csv` e um laudo em `documentos/`; Chromium e Firefox.
+- **O que NÃO deve ser implementado nesta etapa:** pacote em fluxo sem memória (F07-E06); mesmo artefato do documento emitido (F09-E11); aviso de equipe do laudo (E12); teste de contrato geral (E23).
+- **Arquivos e módulos prováveis:** `apps/web/src/dados/http.ts`, `apps/web/src/paginas/Organizacao.tsx`, `apps/web/test/fluxo-api.e2e.mjs`; `apps/api/src/servidor.ts` e `apps/api/src/rotas/saida.ts` só para leitura.
+- **Risco de segurança:** o pacote é o arquivo mais sensível do produto; a prova usa só a semente sintética de Serra Alta e apaga o arquivo baixado; a rota continua exigindo `exportar_dados` e `gerenciar_organizacao`.
+- **Impacto LGPD:** em produção o pacote traz dado pessoal; na prova só há dado sintético, e como evidência entram apenas a lista de nomes e o hash.
+- **Migração necessária:** Não.
+- **Compatibilidade:** o caminho antigo nunca funcionou; nenhum cliente depende dele.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** o download completa no e2e em Chromium e Firefox; um 401 no primeiro pedido renova e baixa.
+- **Testes negativos:** `/pacote.zip` na raiz responde 404 (prova que o defeito era o prefixo); coordenador (sem `gerenciar_organizacao`) recebe 403 e a tela mostra a frase; município suspenso recebe `acesso_suspenso` com a frase de contrato.
+- **Testes de autorização e isolamento:** o pacote do administrador do município A não contém nenhuma linha do município B nos CSV; coordenador de A: 403.
+- **Regressão obrigatória:** `npm run test:api` (`saida-de-municipio.test.ts`), `npm run test --workspace @dc360/web`, `npm run test:e2e:api`, `npm run test:isolamento`.
+- **E2E:** o descrito acima, no mesmo `fluxo-api.e2e.mjs`.
+- **Validação humana:** Rafael baixa o pacote pelo painel com a API local e abre o ZIP.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E11/` com o log do e2e, a lista de nomes do ZIP e o SHA-256 do arquivo da semente.
+- **Documentação a atualizar:** `dc360/docs/SAIDA-DE-MUNICIPIO.md` (capítulo 4, estado da implementação) e `dc360/apps/web/PENDENCIAS.md`.
+- **Definition of Done:** botão baixa o ZIP em dois navegadores contra a API real; 401 renova; prova no e2e; item "bug /pacote.zip" do G00 marcado.
+- **Checkpoint:** Não.
+
+### V2-F00-E12 - Pacote de saída: laudo com aviso de equipe divergente
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E15 e E16, arquivos disjuntos)
+- **Objetivo:** o laudo dentro do pacote imprime o mesmo aviso de equipe divergente do laudo emitido pela rota.
+- **Problema que resolve:** BZ-D:BAS-26 e BZ-N:N.4. `apps/api/test/saida-de-municipio.test.ts:364` falha: o HTML do laudo do pacote não contém "estava designada à Equipe Alfa". A consulta de vistorias de `saida/pacote.ts:479-494` (`DISTINCT ON (v.ocorrencia_id)`) junta só `usuarios u` e calcula `sem_despacho`; nunca seleciona `equipe_designada_nome` nem `equipe_do_agente_nome`, que `rotas/documentos.ts:108-118` lê e `documentos/laudo.ts` (`avisoDeEquipe`) imprime. Não é regressão: o conserto nasceu como teste em 5ecdf4c e nunca entrou. O município que leva o pacote leva o "papel limpo".
+- **Origem:** BZ-D:BAS-26, BZ-N:N.4, REL:01 (item 5), BZ-F:P0-INT.
+- **Estado atual:** CORRIGIR (o laudo e o aviso existem; falta alimentar o montador do pacote).
+- **Dependências de entrada:** E11.
+- **O que deve ser implementado:**
+  - API: a consulta de vistorias do pacote junta `equipes ed` e `equipes ea` por `v.equipe_designada_id` e `v.equipe_do_agente_id` e seleciona os dois nomes, como `documentos.ts` (o tipo `LinhaVistoria` já herda `DadosDocumento["vistoria"]`, que os aceita).
+  - Testes: casos novos em `saida-de-municipio.test.ts` (equipes iguais sem aviso; diferentes com aviso; agente sem equipe com a frase própria; `sem_despacho` com a nota própria; vistoria anterior à migração 024, colunas nulas, sem aviso falso).
+  - Documentação: registrar em `apps/api/PENDENCIAS.md` que os dois montadores continuam existindo até a F09-E02.
+- **O que NÃO deve ser implementado nesta etapa:** montador único de dados do documento (F09-E02); artefato guardado e hash (F09-E04, F09-E11); memória do pacote (F07-E06).
+- **Arquivos e módulos prováveis:** `apps/api/src/saida/pacote.ts`, `apps/api/test/saida-de-municipio.test.ts`; `apps/api/src/rotas/documentos.ts` e `apps/api/src/documentos/laudo.ts` só para leitura.
+- **Risco de segurança:** integridade de documento jurídico: o aviso não pode faltar nem ser inventado; o texto já passa por `escapar`.
+- **Impacto LGPD:** Não se aplica: nome de equipe não é dado pessoal e nenhum campo novo sai no pacote.
+- **Migração necessária:** Não.
+- **Compatibilidade:** o laudo do pacote ganha um parágrafo quando há divergência; o formato do ZIP não muda.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** o teste vermelho de `saida-de-municipio.test.ts:364` passa; para a vistoria F1 (Alfa designada, agente da Bravo) o trecho do aviso do laudo do pacote é igual ao do laudo da rota.
+- **Testes negativos:** equipes iguais não imprimem aviso; vistoria sem despacho imprime só a nota de sem despacho; agente sem equipe imprime a frase de equipe ausente; vistoria antiga com colunas nulas não imprime nada.
+- **Testes de autorização e isolamento:** o ZIP do município A não contém nome de equipe do município B; `npm run test:isolamento` verde.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run test:e2e:api`.
+- **E2E:** repetir o download da E11 e abrir o laudo do pacote para conferir o aviso.
+- **Validação humana:** Rafael compara o laudo emitido pela rota com o do pacote para a vistoria F1.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E12/` com a saída dos testes e as duas versões do trecho do aviso.
+- **Documentação a atualizar:** `dc360/docs/SAIDA-DE-MUNICIPIO.md` e `dc360/apps/api/PENDENCIAS.md`.
+- **Definition of Done:** teste vermelho verde; casos de borda cobertos; pendência do montador único registrada; item "saída de município" do G00 marcado (com E11).
+- **Checkpoint:** Não.
+
+### V2-F00-E13 - Vermelhos do painel (14), incluindo "entrar a partir de /" que leva a "Esta página não existe"
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E14 e E17; fazer depois da E09, porque as duas alteram `Usuarios.tsx`)
+- **Objetivo:** o painel (`apps/web`) termina com zero testes vermelhos e o login que parte de `/` leva à tela inicial do papel.
+- **Problema que resolve:** REL:01 (item 10). Os 14 vermelhos do painel estão em 5 arquivos: 8 em `seguranca-da-conta.test.ts` (E09), 3 em `semente-e-confirmacoes.test.ts` (`Usuarios.tsx`, `Equipes.tsx` e `Orgaos.tsx` não usam `<Toast`, então leitor de tela não ouve a confirmação de gravar), 1 em `design-system.test.ts` (`componentes/Estrutura.tsx:132`, `borderRadius: "8px"` à mão, nascido no commit b387ee3), 1 em `acessibilidade.test.ts` (o portão olha 4 linhas acima do `onClick` do fundo de `Modal.tsx:260`, e a exceção escrita está em `:254`) e 1 de CRLF (E21). Sem teste de unidade há o defeito de entrada: `App.tsx:43-50` manda `voltarPara: "/"`, `entrar-regras.ts:49-54` aceita `/` e não existe rota índice em `App.tsx:105-145`, então o painel cai em `NaoEncontrada` e derruba o e2e local.
+- **Origem:** REL:01.
+- **Estado atual:** CORRIGIR.
+- **Dependências de entrada:** E03.
+- **O que deve ser implementado:**
+  - Frontend: `<Toast>` (`componentes/Toast.tsx`, hoje só em `Ocorrencia.tsx`) nas gravações de `Usuarios.tsx`, `Equipes.tsx` e `Orgaos.tsx`; em `Estrutura.tsx:132` o raio vira o token `--ds-radius` por classe em `estilos/app.css` (`.lateral__marca`); rota índice em `App.tsx` que redireciona para `telaInicial(papel)` e `rotaInterna` passa a devolver `null` para `"/"`, de modo que `destinoDepoisDeEntrar` caia na tela do papel.
+  - Testes: o portão de `acessibilidade.test.ts` procura a marca "acessibilidade: excecao" no bloco de comentário contíguo acima do elemento, em vez de uma janela fixa de quatro linhas; caso novo em `sessao-e-entrada.test.ts` para `voltarPara: "/"`.
+  - Acessibilidade: confirmações anunciadas por `role=status`.
+- **O que NÃO deve ser implementado nesta etapa:** os 8 casos de `seguranca-da-conta.test.ts` (E09); o caso de CRLF (E21); CORS do PUT (E18); ErrorBoundary e estados padrão (F10-E10); acessibilidade dinâmica (F10-E11). Esta etapa confere a soma final: com E09 e E21, `npm run test --workspace @dc360/web` com 0 falhas.
+- **Arquivos e módulos prováveis:** `apps/web/src/App.tsx`, `apps/web/src/paginas/entrar-regras.ts`, `Usuarios.tsx`, `Equipes.tsx`, `Orgaos.tsx`, `apps/web/src/componentes/Estrutura.tsx`, `Toast.tsx`, `Modal.tsx`, `apps/web/src/estilos/app.css`, `apps/web/test/semente-e-confirmacoes.test.ts`, `design-system.test.ts`, `acessibilidade.test.ts`, `sessao-e-entrada.test.ts`, `fluxo.e2e.mjs`.
+- **Risco de segurança:** `rotaInterna` é o filtro de redirecionamento aberto; mudar sem teste reabre `//outro.exemplo` ou URL absoluta, então a recusa de `//`, de esquema e de `/entrar` fica coberta por caso.
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** entrar a partir de `/` passa a levar à tela do papel; as demais rotas não mudam.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** os 5 casos de painel desta etapa (3 de Toast, `design-system`, `acessibilidade`) passam; entrar partindo de `/` leva à tela do papel; `fluxo.e2e.mjs` passa da seção 2 (`.indicador`).
+- **Testes negativos:** `rotaInterna` recusa `//outro.exemplo`, `https://outro.exemplo` e `/entrar`; o portão de acessibilidade ainda reprova um `onClick` sem exceção escrita (caso sintético).
+- **Testes de autorização e isolamento:** operador digitando `/usuarios` continua sem o formulário (`Exige`); a rota índice sem sessão leva a `/entrar` e não concede nada.
+- **Regressão obrigatória:** `npm run test --workspace @dc360/web`, `npm run typecheck`, `apps/web/test/paridade-dos-modos.test.ts`, `npm run test:e2e`.
+- **E2E:** `npm run test:e2e` em Chromium e `MOTOR=firefox npm run test:e2e` verdes; fluxo A (a prefeitura registra ocorrência manual) intacto.
+- **Validação humana:** Rafael digita só o domínio, entra e chega à tela do papel.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E13/` com a saída do vitest do painel (0 falhas) e o log dos dois e2e.
+- **Documentação a atualizar:** `dc360/apps/web/PENDENCIAS.md`.
+- **Definition of Done:** os 5 casos verdes; defeito do `/` provado por teste e por e2e; soma do painel em zero (com E09 e E21); item "painel verde" do G00 marcado.
+- **Checkpoint:** Não.
+
+### V2-F00-E14 - Vermelhos do app de campo por texto velho e mock velho reescritos conforme decisão de 2026-09-15
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** médio  |  **Paralelizável:** sim (com E13 e E17)
+- **Objetivo:** os seis testes do campo que ficaram para trás de uma decisão datada são reescritos para a decisão vigente, sem esconder nenhum defeito.
+- **Problema que resolve:** REL:01 (item 6, tabela por arquivo; o resumo do relatório fala em 6 de texto velho, mas as linhas somam 2 de texto e 4 de mock). Dois testes (`src/__tests__/a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx:203-204` e `src/__tests__/perfil-a-sessao-que-terminou-e-o-aviso-que-fecha.test.tsx:156-159`) esperam "Sair da conta" e "continua guardado no aparelho", mas `src/dados/falha-de-atualizacao.ts` (`comoContarAFalha`) manda "Toque em Entrar de novo" de propósito: `sair()` apaga a vistoria começada e a decisão está datada em `app/(agente)/index.tsx:1222`; o teste irmão `falha-de-atualizacao.test.ts` passa. Quatro (`src/push/logout-cala-o-aparelho.test.tsx`) mockam `../dados/banco-local` só com `apagarDadosLocais`, mas `dados/sessao.tsx:150,180,247` chama `marcarDonoDosDadosLocais` e `acolherNoAparelho`: `TypeError: acolherNoAparelho is not a function`.
+- **Origem:** BZ-N:N.3, REL:01.
+- **Estado atual:** CORRIGIR (o código é a verdade nestes seis; só o teste muda).
+- **Dependências de entrada:** E03.
+- **O que deve ser implementado:**
+  - Mobile (testes): as duas expectativas passam a exigir o texto vigente ("Entrar de novo", "Nada é apagado") e a recusa de instruir "Sair da conta"; o dublê de `../dados/banco-local` em `logout-cala-o-aparelho.test.tsx` ganha `acolherNoAparelho` (devolve `{ apagou: false }`) e `marcarDonoDosDadosLocais`.
+  - Mobile (testes): caso de deriva que falha se `dados/sessao.tsx` importar de `banco-local` um nome que o dublê não tem.
+  - Documentação: seção "campo: sessão encerrada e logout" em `docs/DECISOES-DE-TESTE-DA-FASE-00.md` com a evidência (`index.tsx:1222`, o teste irmão verde, `banco-local.ts:195-258`).
+- **O que NÃO deve ser implementado nesta etapa:** os 14 defeitos reais do campo (E15 e E16); mudar `falha-de-atualizacao.ts` ou o texto das telas (a decisão é o código); apagar teste.
+- **Arquivos e módulos prováveis:** `apps/campo/src/__tests__/a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx`, `apps/campo/src/__tests__/perfil-a-sessao-que-terminou-e-o-aviso-que-fecha.test.tsx`, `apps/campo/src/push/logout-cala-o-aparelho.test.tsx`, `apps/campo/src/dados/falha-de-atualizacao.ts` (só leitura), `docs/DECISOES-DE-TESTE-DA-FASE-00.md`.
+- **Risco de segurança:** reescrever teste para ficar verde é como defeito real se esconde; por isso só estes seis, cada um com a evidência datada, e o registro da E03 como contrapeso.
+- **Impacto LGPD:** Não se aplica: só teste.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: nenhum código de produto muda.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** os 6 testes passam; `falha-de-atualizacao.test.ts` segue verde; o dublê completo faz os 4 casos de logout exercitarem o `sessao.tsx` real.
+- **Testes negativos:** a frase da sessão encerrada não instrui "Sair da conta" (`not.toMatch`); dublê sem `acolherNoAparelho` faz o caso de deriva reprovar.
+- **Testes de autorização e isolamento:** `src/dados/logout-nao-apaga-prova.test.ts` segue verde: mesma pessoa reencontra a vistoria, outro agente no mesmo aparelho começa limpo.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test --workspace @dc360/campo`.
+- **E2E:** Não se aplica: texto e dublê; a prova em aparelho é F14-E12.
+- **Validação humana:** Rafael lê as frases finais da sessão encerrada.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E14/` com a saída do jest dos três arquivos e o diff dos testes.
+- **Documentação a atualizar:** `docs/DECISOES-DE-TESTE-DA-FASE-00.md`.
+- **Definition of Done:** 6 testes verdes; decisão registrada com evidência; nenhum arquivo de produto alterado; vermelhos de texto e mock do G00 zerados.
+- **Checkpoint:** Não.
+
+### V2-F00-E15 - Defeitos reais do campo, parte 1: sair da conta não apaga vistoria começada; precisão de GPS abaixo de 0,5 m (CMP-52, CMP-33)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com E08, E11 e E12)
+- **Objetivo:** o agente deixa de perder vistoria começada ao sair da conta sem ser avisado e o melhor GPS do plantão deixa de impedir a conclusão.
+- **Problema que resolve:** CMP-52 e G01 (`BZ-F:P0-INT`). `perfil.tsx:449-453` lê `fila.resumo()` uma vez na montagem e o diálogo de saída (`perfil.tsx:535-541`, `1462-1467`) só conta itens da fila; sair chama `apagarDadosLocais` (`dados/sessao.tsx:190-235`, `banco-local.ts:286-372`), que leva o rascunho, as fotos e a assinatura da vistoria começada em silêncio; o comentário de `banco-local.ts:273-277` afirma que o diálogo avisa. CMP-33: `vistoria/[id].tsx:1447` faz `Math.round(posicao.coords.accuracy)` (abaixo de 0,5 m vira 0) e `packages/shared/src/schemas.ts:411` exige `z.number().positive()`: o servidor responde 422 e a frase vinha em inglês. São 7 testes vermelhos: 6 em `src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx` e 1 em `vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx`.
+- **Origem:** BZ-D:CMP-52, BZ-D:CMP-33, BZ-F:P0-INT, REL:03, BZ-N:N.3.
+- **Estado atual:** CORRIGIR (testes de 2026-09-15 descrevem correções que nunca entraram; o motor offline é MANTER).
+- **Dependências de entrada:** E03.
+- **O que deve ser implementado:**
+  - Mobile: o Perfil assina a fila por `useResumoDaFila` (`dados/resumo-da-fila.ts`) em vez de ler uma vez; o diálogo "Sair da conta?" conta também os rascunhos (`listarRascunhos`, `dados/rascunho.ts`) e as fotos deles, diz que sair apaga, com singular e plural, usa o botão destrutivo e, sem rascunho nem fila, volta à frase curta; o comentário de `banco-local.ts` passa a dizer a verdade.
+  - Mobile: `gpsPrecisaoMetros` vira `Math.max(1, Math.round(accuracy))`; precisão não informada continua `null`.
+  - Domínio: mensagem em português para `gpsPrecisaoMetros` (`packages/shared/src/schemas.ts`, `mensagens-do-zod.ts`), sem afrouxar o `positive()`.
+- **O que NÃO deve ser implementado nesta etapa:** preservar o rascunho depois de sair (decisão do CP-24 em F14-E02); criptografia local (F14-E04); foto vazia, teclado, câmera, ajustes e a frase de envio (E16).
+- **Arquivos e módulos prováveis:** `apps/campo/src/app/(agente)/perfil.tsx`, `apps/campo/src/app/(agente)/vistoria/[id].tsx`, `apps/campo/src/dados/resumo-da-fila.ts`, `rascunho.ts`, `banco-local.ts`, `sessao.tsx`, `packages/shared/src/schemas.ts`, `packages/shared/src/mensagens-do-zod.ts`, `apps/campo/src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx`.
+- **Risco de segurança:** o apagamento é regra de privacidade para aparelho compartilhado (quem entra depois não vê o dado de quem saiu); a etapa só avisa, não muda a regra.
+- **Impacto LGPD:** reforça o aviso antes de apagar dado de coleta; nenhum dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** esquema igual; precisão 0 de app antigo continua recusada.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** os 7 casos passam: "2 vistorias começadas" no plural e uma só no singular sem foto; chip e aviso de esperar somem quando a fila esvazia sem trocar de aba; precisão 0,3 vira 1 e 12,4 vira 12.
+- **Testes negativos:** sem rascunho e sem fila o diálogo não fala em apagar; precisão ausente grava `null`; o esquema recusa 0 e negativo com mensagem em português; "Entrar de novo" (sessão vencida) continua sem apagar nada.
+- **Testes de autorização e isolamento:** outro agente entra no aparelho com o rascunho do primeiro: `acolherNoAparelho` limpa (regra mantida); a mesma pessoa reencontra a vistoria.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test --workspace @dc360/shared`, `npm run test:api`.
+- **E2E:** no aparelho ou emulador: começar vistoria sem concluir e tocar em "Sair da conta" (o diálogo lista o que vai ser apagado); concluir vistoria com GPS simulado abaixo de 0,5 m sem 422; a prova física é F14-E12.
+- **Validação humana:** Rafael faz os dois fluxos num aparelho disponível.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E15/` com a saída do jest, capturas do diálogo e a resposta do servidor ao GPS corrigido.
+- **Documentação a atualizar:** `dc360/apps/campo/LEIA-ME.md`, `dc360/apps/campo/PENDENCIAS.md`, `dc360/docs/CARTAO-DO-AGENTE.md` (se citar o ato de sair).
+- **Definition of Done:** 7 testes verdes; diálogo conta rascunhos; GPS excelente conclui; comentário de `banco-local.ts` verdadeiro; itens de integridade do campo do G00 marcados.
+- **Checkpoint:** Não.
+
+### V2-F00-E16 - Defeitos reais do campo, parte 2: mensagem de foto vazia, teclado e câmera na área segura, permissão sem botão de ajustes (CMP-35, CMP-89)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E12 e E25)
+- **Objetivo:** a tela de vistoria diz a verdade sobre o envio, respeita teclado e área segura, abre os ajustes quando falta permissão e explica a foto vazia.
+- **Problema que resolve:** CMP-35, CMP-89 e G02 (`BZ-F:P0-INT`). Seis achados do revisor de 2026-09-15 cobertos por 7 testes vermelhos em `vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx`, nenhum corrigido em `vistoria/[id].tsx`: a tela de vistoria guardada promete envio "mesmo com o aplicativo fechado" (`:2232-2233`), mas não há sincronização em segundo plano (sem `expo-task-manager` nem modos de fundo em `package.json` e `app.config.ts`); o formulário não trata teclado (o primeiro toque só fecha o teclado e no iOS ele cobre o campo); a câmera em tela cheia não reserva a área segura de baixo; permissão negada de câmera ou localização não tem botão para os ajustes; `fotografar` engole a frase certa de `guardarFotoNoAparelho` ("Tire a foto de novo").
+- **Origem:** BZ-D:CMP-35, BZ-D:CMP-89, BZ-F:P0-INT, REL:03.
+- **Estado atual:** CORRIGIR.
+- **Dependências de entrada:** E15.
+- **O que deve ser implementado:**
+  - Mobile: a frase da vistoria guardada passa a dizer "sobe quando o aplicativo estiver aberto e houver rede"; `ScrollView` com `keyboardShouldPersistTaps="handled"` e altura do teclado para o campo digitado; obturador e "Voltar sem fotografar" com `useSafeAreaInsets` na câmera; a tarja de permissão negada ganha "Abrir os ajustes do aparelho" (`Linking.openSettings`, mesmo padrão das notificações no Perfil) e falha que não é de permissão não ganha o botão; `fotografar` propaga a mensagem de `guardarFotoNoAparelho` para a tarja.
+  - Acessibilidade: alvo de toque de 44 por 44 nos botões novos, ícone mais texto, tarja lida por leitor de tela.
+- **O que NÃO deve ser implementado nesta etapa:** sincronização em segundo plano (F14-E06, só se o CP-24 aprovar); acessibilidade completa do app (F14-E10); ErrorBoundary (F14-E07); prova em aparelho físico (F14-E12).
+- **Arquivos e módulos prováveis:** `apps/campo/src/app/(agente)/vistoria/[id].tsx`, `apps/campo/src/dados/evidencia-no-disco.ts`, `apps/campo/src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx`, `apps/campo/LEIA-ME.md`.
+- **Risco de segurança:** a frase falsa de envio é o risco principal (o agente acredita que a coleta subiu); e o botão de ajustes não pode aparecer para falha de outra natureza.
+- **Impacto LGPD:** Não se aplica: câmera e localização seguem com a mesma permissão e finalidade; nenhum dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só texto, layout e botão novo.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** os 7 casos passam: frase sem "aplicativo fechado"; o primeiro toque fora do campo age; a rolagem conhece a altura do teclado; a câmera reserva a área segura; tarjas de câmera e de localização com o botão que chama `Linking.openSettings`; foto vazia mostra "Tire a foto de novo".
+- **Testes negativos:** falha que não é de permissão não ganha o botão de ajustes; a frase nova não promete nada em segundo plano; precisão ausente continua `null`.
+- **Testes de autorização e isolamento:** Não se aplica: tela local, sem chamada nova ao servidor.
+- **Regressão obrigatória:** `npm run test:campo` (typecheck, jest e contagem), `scripts/portao-acessibilidade-do-aplicativo.test.mjs`, `portao-densidade-do-aplicativo.test.mjs`, `portao-design-do-aplicativo.test.mjs`.
+- **E2E:** no aparelho: negar a câmera e tocar no botão (abre os Ajustes); digitar o nome com o teclado aberto e tocar em "Tirar foto" no primeiro toque.
+- **Validação humana:** Rafael no iPhone disponível, e em Android real quando houver (DP pergunta 15).
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E16/` com a saída do jest, capturas das tarjas e o relato do teste no aparelho.
+- **Documentação a atualizar:** `dc360/apps/campo/LEIA-ME.md` e `dc360/apps/campo/PENDENCIAS.md`.
+- **Definition of Done:** 7 testes verdes; nenhuma promessa de segundo plano na interface; portões do app verdes; vermelhos do campo do G00 zerados (com E14 e E15).
+- **Checkpoint:** Não (CP-24 só decide o segundo plano, fora desta etapa).
+
+### V2-F00-E17 - Scripts e conferência de números: test:scripts (3 falhas) e conferir:numeros (13 afirmações)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** baixo  |  **Paralelizável:** sim (com E13 e E14)
+- **Objetivo:** `npm run test:scripts` e `npm run conferir:numeros` fecham verdes em Windows e em Linux, e os números do README deixam de apodrecer em silêncio.
+- **Problema que resolve:** REL:01 e BZ-N:N.9. `test:scripts` (165 testes, 3 falhas): o caso 19 (`scripts/comando-de-migracao.test.mjs:52`) chama `execFileSync("npm", ...)` (linha 68), que dá ENOENT no Windows, e conclui "o comando não chegou a CONFERIR nada"; o caso 22 (`scripts/copiar-producao.test.mjs:48`) usa caminhos POSIX literais com `resolve` e `sep`, que viram `C:\Users\...`, e `razaoParaRecusarAPasta` devolve `null`; o caso 37 (`scripts/entitlements-do-ios.test.mjs:73`) procura por regex a escrita literal do `aps-environment`, e `apps/campo/app.config.ts` passou a usar a constante `PERFIL_DE_PRODUCAO` (linhas 158, 597 e 642). `conferir:numeros` reprova 13 afirmações (`README.md:12-17` e `1059-1063`, `docs/COLOCAR-DE-PE.md:40,288`) e a API lê 1104 testes contra 1109 executados (os 5 do `describe.skip` não entram na lista estática).
+- **Origem:** REL:01, BZ-N:N.9.
+- **Estado atual:** CORRIGIR.
+- **Dependências de entrada:** E03.
+- **O que deve ser implementado:**
+  - Infraestrutura: o caso 19 usa a invocação portátil que `scripts/testar-campo.mjs:103` já adota (`shell: process.platform === "win32"`); o caso 22 monta os caminhos com `join` e `resolve` a partir da raiz da plataforma; o caso 37 passa a conferir que `PERFIL_DE_PRODUCAO` nasce de `EAS_BUILD_PROFILE === "producao"` e alimenta tanto o `mode` do plugin de notificação quanto `extra.pushAmbiente`.
+  - Arquivos: `scripts/conferir-numeros.mjs` passa a contar (ou a declarar na saída) os casos de `describe.skip` marcados pela política da E02; as 13 afirmações são corrigidas com os números reais, e o fechamento do G00 repete a conferência (E04, E12 e E13 a E16 mudam contagens; a E22 faz a rodada final).
+- **O que NÃO deve ser implementado nesta etapa:** mudar o que os testes protegem; ligar `test:scripts` ao CI (F01-E03); corrigir `auditar.mjs` (E19); o portão de skip (E02).
+- **Arquivos e módulos prováveis:** `scripts/comando-de-migracao.test.mjs`, `scripts/copiar-producao.test.mjs`, `scripts/copiar-producao.mjs`, `scripts/entitlements-do-ios.test.mjs`, `scripts/conferir-numeros.mjs`, `scripts/casos-do-aplicativo.mjs`, `dc360/README.md`, `dc360/docs/COLOCAR-DE-PE.md`.
+- **Risco de segurança:** o caso 22 protege onde a cópia de produção (dado de cidadão) pode morar; reescrever sem enfraquecer: os cinco lugares recusados continuam recusados.
+- **Impacto LGPD:** a regra "dump com dado pessoal não fica no repositório, na nuvem de arquivos nem na Área de Trabalho" é preservada e provada nas duas plataformas.
+- **Migração necessária:** Não.
+- **Compatibilidade:** nenhuma mudança de comportamento de produto.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** `npm run test:scripts` com 0 falhas no Windows e no Linux; `conferir:numeros` sem divergência; os 4 pulados seguem por ambiente (sem pasta `ios/`).
+- **Testes negativos:** o caso 22 continua recusando repositório, iCloud (`Mobile Documents`), Dropbox, `Google Drive`, OneDrive e Área de Trabalho e aceita pasta fora disso; o caso 37 reprova se o `mode` voltar a ser escrito à mão; `conferir:numeros` reprova um número alterado de propósito num rascunho.
+- **Testes de autorização e isolamento:** Não se aplica: scripts de ferramenta, sem autorização nem dado de município.
+- **Regressão obrigatória:** `npm run test:scripts`, `npm run conferir:numeros`, `npm test`.
+- **E2E:** Não se aplica: sem experiência de usuário.
+- **Validação humana:** Rafael roda os dois comandos na máquina dele.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E17/` com a saída dos dois comandos no Windows e no Linux e o diff dos três testes.
+- **Documentação a atualizar:** `dc360/README.md` e `dc360/docs/COLOCAR-DE-PE.md` (números), e uma nota de portabilidade em `dc360/README.md`.
+- **Definition of Done:** 0 falhas em `test:scripts`; 0 divergências em `conferir:numeros`; portabilidade provada em duas plataformas; itens "scripts vermelhos" e "números" do G00 marcados.
+- **Checkpoint:** Não.
+
+### V2-F00-E18 - E2E de navegador (3) e CORS do PUT de evidência
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (a prova final dos dois e2e locais depende do conserto do `/` da E13, e `servidor.ts` também é tocado pela E04)
+- **Objetivo:** os três e2e de navegador fecham verdes (modo local em Chromium, modo local em Firefox e o e2e contra a API) e o PUT de evidência passa pelo preflight.
+- **Problema que resolve:** REL:01 (seção 3.4 e itens 10 e 11). `npm run test:e2e` falha na seção 2 (`.indicador` não aparece) em Chromium e Firefox pelo defeito de `/` (E13). `npm run test:e2e:api` falha na seção 13: `servidor.ts:369-378` libera `allowedHeaders: ["content-type", "authorization", "accept"]`, mas a URL de envio assinada repete `if-none-match: *` (`armazenamento/memoria.ts:105-109`, mesmo cabeçalho do adaptador S3 em `s3.ts:121`), então o preflight do navegador reprova ("Failed to fetch"). A suíte e2e já ficou meses fora da integração contínua e escondeu isso.
+- **Origem:** REL:01.
+- **Estado atual:** CORRIGIR.
+- **Dependências de entrada:** E03.
+- **O que deve ser implementado:**
+  - API: `if-none-match` entra em `allowedHeaders` do CORS, sem curinga e sem afrouxar `origin`; o comentário diz que repete o cabeçalho assinado.
+  - Testes: teste de preflight (a criar em `apps/api/test`): `OPTIONS` ao PUT de envio com `access-control-request-headers: content-type,if-none-match` devolve `if-none-match` em `access-control-allow-headers`.
+  - Infraestrutura: documentar as três execuções e o pré-requisito (`npx playwright install chromium firefox`) e o resultado de cada uma no `RESUMO.md` da evidência; o fluxo A (a prefeitura registra uma ocorrência manual) segue em `fluxo.e2e.mjs`, MANTER, agora verde nos dois motores.
+- **O que NÃO deve ser implementado nesta etapa:** CORS por ambiente e domínios (F01-E10); S3 real (F06-E15); axe-core (F23-E01); rodar e2e no CI (F01-E03).
+- **Arquivos e módulos prováveis:** `apps/api/src/servidor.ts`, `apps/web/test/fluxo.e2e.mjs`, `apps/web/test/fluxo-api.e2e.mjs`, `scripts/e2e-api.mjs`; `apps/api/src/armazenamento/memoria.ts` e `apps/api/src/rotas/armazenamento-local.ts` só para leitura; a criar em `apps/api/test`: `cors-do-envio-de-evidencia.test.ts`.
+- **Risco de segurança:** CORS frouxo vira abuso entre origens; entra só um cabeçalho nominal e `origin` continua a lista de `ORIGENS_PERMITIDAS`.
+- **Impacto LGPD:** Não se aplica: nenhum dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** um cabeçalho a mais aceito no preflight; nenhuma resposta muda.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** o preflight devolve `if-none-match`; `npm run test:e2e` (Chromium), `MOTOR=firefox npm run test:e2e` e `npm run test:e2e:api` verdes, com as 103 verificações da API completas.
+- **Testes negativos:** origem fora da lista não recebe `access-control-allow-origin`; cabeçalho `x-qualquer` fora da lista não é permitido; um segundo PUT para a mesma chave continua recusado (escrita única).
+- **Testes de autorização e isolamento:** PUT com URL de envio vencida é recusado; PUT com assinatura trocada é recusado; PUT na chave de um município com URL assinada para a chave de outro é recusado.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test --workspace @dc360/web`, `npm run test:e2e`, `npm run test:e2e:api`.
+- **E2E:** as três execuções acima; a seção 13 sobe a foto pelo painel contra a API.
+- **Validação humana:** Rafael vê o upload de foto pelo painel concluir na seção 13.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E18/` com o log das três execuções e a saída do teste de preflight.
+- **Documentação a atualizar:** `dc360/README.md` (seção "Como testar") e `dc360/apps/web/PENDENCIAS.md`.
+- **Definition of Done:** três e2e verdes; preflight coberto por teste; item "E2E de navegador" do G00 marcado.
+- **Checkpoint:** Não.
+
+### V2-F00-E19 - npm audit conforme política aprovada (raiz e campo) e expo-doctor
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E24 e E25)
+- **Objetivo:** `npm audit` e `npm run auditar` fecham conforme a política que Rafael aprovar no CP-03, nas duas árvores, e o `expo-doctor` fecha 21 de 21.
+- **Problema que resolve:** REL:01 (itens 8 e 9) e `BZ-F:P0-SEG` (BAS-11 e BAS-12). Raiz: 3 moderadas, 1 de runtime (`fast-uri` por `fastify`, `fixAvailable: true`, corrigida em 3.1.8 e 4.1.5) e 2 de desenvolvimento (`vitest` e `@vitest/mocker`, só com `vitest@5.0.3`, salto maior). Campo: 4, 1 alta (`brace-expansion`, DoS, `fixAvailable: true`) e `decode-uri-component` por `expo-router` e `query-string` (moderada, runtime do app, sem correção pelo caminho do npm). `scripts/auditar.mjs:61` quebra no Windows (`spawnSync npm ENOENT`); a lista `ACEITAS_NO_APLICATIVO` não tem dono nem prazo; o CI usa `npm audit --audit-level=low` puro e fica vermelho. O `expo-doctor` dá 20 de 21 (9 pacotes Expo com drift de patch; o CI desliga a checagem com `EXPO_DOCTOR_SKIP_DEPENDENCY_VERSION_CHECK=1`) enquanto o README afirma 21 de 21.
+- **Origem:** PR:D-04, BZ-F:P0-SEG, BZ-D:BAS-11, BZ-D:BAS-12, REL:01.
+- **Estado atual:** CORRIGIR (a política já está codificada em `auditar.mjs`: runtime reprova, desenvolvimento avisa, aceita só o nomeado; faltam prazo, dono e as correções disponíveis).
+- **Dependências de entrada:** E01 e CP-03 (política final).
+- **O que deve ser implementado:**
+  - Infraestrutura: `npm audit fix` sem `--force` em `dc360` (fecha `fast-uri`) e em `apps/campo` (fecha `brace-expansion`), com a suíte rodando depois; `npm update` dentro da faixa dos 9 pacotes Expo; `overrides` para `decode-uri-component` 0.5.0 só se o roteamento e a suíte passarem (compatibilidade NÃO CONFIRMADA); senão a exceção fica nomeada.
+  - Arquivos: `scripts/auditar.mjs` com invocação portátil (`shell: process.platform === "win32"`, como `testar-campo.mjs:103`), cada exceção com `dono`, `motivo` e `ate=AAAA-MM-DD`, reprovando quando o prazo vence ou quando a correção existe (`fixAvailable: true`); desenvolvimento só avisa e imprime a lista; `auditar.test.mjs` com saída sintética de `npm audit --json`.
+  - Documentação: a política do CP-03 na seção de segurança do README; "21 de 21" só se for verdade.
+- **O que NÃO deve ser implementado nesta etapa:** ligar `auditar` ao CI e Dependabot (F01-E03, F01-E06); `--force` ou salto de major do vitest sem decisão; novo scanner (SAST em F01-E05).
+- **Arquivos e módulos prováveis:** `dc360/package.json`, `dc360/package-lock.json`, `dc360/apps/campo/package.json`, `dc360/apps/campo/package-lock.json`, `dc360/scripts/auditar.mjs`, `dc360/README.md`; a criar em `dc360/scripts`: `auditar.test.mjs`.
+- **Risco de segurança:** atualizar dependência pode quebrar o build nativo (mudar pacote Expo exige novo binário) e `overrides` pode mascarar incompatibilidade; vulnerabilidade de runtime é bug, não pendência (regra do projeto).
+- **Impacto LGPD:** Não se aplica: dependência de build, nenhum dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** `npm audit fix` fica dentro das faixas declaradas; o aplicativo precisa de novo binário nativo, registrado no `LEIA-ME`.
+- **Rollback:** reverter os dois lockfiles e os manifestos.
+- **Testes positivos:** `npm run auditar` verde no Windows e no Linux; `npm audit --omit=dev` zero na raiz; o campo conforme a política; `npx expo-doctor` 21 de 21 sem pular a checagem de versões; `npm test` e `npm run test:campo` verdes depois da atualização.
+- **Testes negativos:** `auditar.test.mjs` com JSON sintético: vulnerabilidade de runtime reprova; exceção sem prazo reprova; exceção vencida reprova; exceção com correção disponível reprova; só desenvolvimento apenas avisa.
+- **Testes de autorização e isolamento:** `npm run test:isolamento` e `apps/api/test/superficie.test.ts` verdes depois do `npm audit fix`, para provar que a atualização do Fastify não mexeu em nada de autorização.
+- **Regressão obrigatória:** `npm run typecheck`, `npm test`, `npm run test:campo`, `npm run test:scripts`, `npm run auditar`.
+- **E2E:** `npm run test:e2e:api` (sobe a API com as dependências novas).
+- **Validação humana:** Rafael decide o CP-03 e lê a lista de exceções com dono e prazo.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E19/` com a saída de `npm audit` e `auditar` antes e depois, a do `expo-doctor` e a lista de exceções.
+- **Documentação a atualizar:** `dc360/README.md` (política e "21 de 21") e `dc360/apps/campo/LEIA-ME.md` (novo binário nativo).
+- **Definition of Done:** `auditar` verde nas duas árvores conforme o CP-03; zero runtime vulnerável; exceções com dono e prazo; `expo-doctor` 21 de 21; item "npm audit" do G00 marcado.
+- **Checkpoint:** CP-03 (decide a política de audit; bloqueia o G00 e F01-E06).
+
+### V2-F00-E20 - Portão de conteúdo: zerar as linhas vermelhas pré-existentes (`trilha-detalhe.test.ts:181`, `AUDITORIA-2026-09-30.md:313`, `docs/auditoria-v2/raw`)
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** baixo  |  **Paralelizável:** sim (com E13 e E14)
+- **Objetivo:** `regras-de-conteudo.test.ts` fecha verde sem enfraquecer a regra do travessão: o literal do teste vira escape, e a saída bruta e os relatórios históricos deixam de ser varridos como texto do produto.
+- **Problema que resolve:** REL:01 (item 12). O caso "nenhum travessão em texto nenhum" (`packages/shared/test/regras-de-conteudo.test.ts`, 1 falha em 149) reprova hoje 5 ocorrências em 3 arquivos: `dc360/apps/web/test/trilha-detalhe.test.ts:181` (o caractere dentro de `expect(rotulo).not.toContain(...)`, falso positivo autorreferente desde 5ecdf4c), `docs/AUDITORIA-2026-09-30.md:313` (a auditoria anterior cita o caractere para descrever o falso positivo) e `docs/auditoria-v2/raw/teste-shared.txt:23,33,41` (a saída bruta do próprio teste imprime a linha). O mesmo vai acontecer com qualquer evidência futura em `docs/evidencias-v2/`: a saída de um teste que falha por travessão reproduz o travessão.
+- **Origem:** REL:01.
+- **Estado atual:** CORRIGIR (o portão está certo; os acertos vêm de fontes legítimas).
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - Testes: decisão técnica recomendada, escape no teste e ajuste de varredura, sem higienizar os relatórios (são evidência histórica e reescrevê-los apagaria prova). Em `apps/web/test/trilha-detalhe.test.ts:181` o literal vira `"\u2014"`, com a mesma asserção.
+  - Testes: em `regras-de-conteudo.test.ts`, `CAMINHOS_IGNORADOS` passa a cobrir `docs/auditoria-v2/raw` e `docs/evidencias-v2` apenas para arquivos que não são `.md` (o texto escrito à mão em `.md` continua varrido) e o arquivo `docs/AUDITORIA-2026-09-30.md`, cada um com comentário de motivo; casos de âncora provam que a isenção não é mais larga que isso.
+  - Documentação: nota no cabeçalho do teste e na seção de evidência de `docs/roadmap-v2/19-definicao-de-pronto.md`.
+- **O que NÃO deve ser implementado nesta etapa:** reescrever conteúdo de relatório ou de saída bruta (a etapa só mexe na varredura); afrouxar a regra para texto do produto; editar `docs/auditoria-v2/*`; mexer nas regras de norma e de artigo.
+- **Arquivos e módulos prováveis:** `apps/web/test/trilha-detalhe.test.ts`, `packages/shared/test/regras-de-conteudo.test.ts`; `docs/AUDITORIA-2026-09-30.md`, `docs/auditoria-v2/raw` e `docs/evidencias-v2` apenas como alvos da isenção, sem edição.
+- **Risco de segurança:** isenção larga demais deixaria travessão passar no produto; por isso o recorte por extensão e as âncoras.
+- **Impacto LGPD:** Não se aplica: regra de estilo, sem dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** nenhuma mudança fora de teste.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** `npm run test --workspace @dc360/shared` com 149 testes e 0 falhas; `trilha-detalhe.test.ts` segue provando que o rótulo não contém o caractere.
+- **Testes negativos:** um `.md` sintético em `docs/` com o caractere reprova; um `.md` em `docs/evidencias-v2/G00/` com o caractere reprova; um `.txt` bruto em `docs/evidencias-v2` com o caractere passa; um `.ts` do produto com o caractere reprova.
+- **Testes de autorização e isolamento:** Não se aplica: regra de conteúdo, sem autorização nem dado de município.
+- **Regressão obrigatória:** `npm test` (inclui `regras-de-conteudo`), `npm run test --workspace @dc360/web`.
+- **E2E:** Não se aplica: sem experiência de usuário.
+- **Validação humana:** Rafael aprova a lista de isenções.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E20/` com a saída do shared (149 verdes) e o diff do teste.
+- **Documentação a atualizar:** o cabeçalho de `regras-de-conteudo.test.ts` e `docs/roadmap-v2/19-definicao-de-pronto.md` (seção 3, padrão de evidência).
+- **Definition of Done:** 0 falhas no shared; isenções mínimas e justificadas; âncoras provam o recorte; item "portão de conteúdo" do G00 marcado.
+- **Checkpoint:** Não.
+
+### V2-F00-E21 - Ambiente: CRLF em ocorrencia-encerramento, OPENSSL_CONF em banco-tls, Windows e Linux
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** baixo  |  **Paralelizável:** sim (com E14 e E25)
+- **Objetivo:** a suíte inteira passa em Windows e em Linux sem depender da configuração da máquina do autor.
+- **Problema que resolve:** REL:01 (seção 3.6) e BZ-N:N.5. (1) `apps/web/test/ocorrencia-encerramento.test.ts:166` procura `"\n}\n"` no texto lido do disco e a falha aparece em `:170`; com `core.autocrlf=true` e sem `.gitattributes`, o índice fica LF e a árvore CRLF (30 arquivos de teste do painel leem fonte com `readFileSync`). (2) `apps/api/test/banco-tls.test.ts:109` roda `openssl req` herdando o ambiente; `OPENSSL_CONF` apontando para arquivo inexistente (instalador do driver ODBC do PostgreSQL) derruba a suíte no `beforeAll` (13 casos); sem a variável passam 13 de 13: é ambiente, e a hipótese "openssl fora do PATH" foi refutada. (3) `npm run typecheck` do `apps/campo` dá 2 erros TS2345 (`perfil.tsx(1212,44)` e `Sino.tsx(154,73)`) porque `.expo/types/router.d.ts` (ignorado pelo git, de 2026-08-27) não tem as rotas `mapa`, `perfil` e `avisos`; sem o cache passa com 0 erros. Linux nunca foi provado nesta máquina.
+- **Origem:** REL:01, BZ-N:N.5.
+- **Estado atual:** CORRIGIR.
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Infraestrutura: `.gitattributes` na raiz do repositório (`* text=auto eol=lf`, `*.ps1` em CRLF, binários marcados `binary`) e `git add --renormalize .` (o índice já é LF: só a árvore de trabalho muda).
+  - Testes: helper `ler-fonte.ts` em `apps/web/test` que lê e normaliza `\r\n` para `\n`, usado em `ocorrencia-encerramento.test.ts`; `banco-tls.test.ts` passa ao `openssl` um `env` sem `OPENSSL_CONF` quando ele aponta para arquivo inexistente e imprime o motivo.
+  - Infraestrutura: o `testar-campo.mjs` (e a nota do `LEIA-ME` do app) remove `apps/campo/.expo/types` desatualizado antes do typecheck, para não depender de cache local.
+  - Documentação: matriz plataforma x comando (Windows com Git Bash, Linux) com o que foi rodado de verdade; Linux provado pelo CI ou por contêiner, nunca assumido.
+- **O que NÃO deve ser implementado nesta etapa:** mudar o CI (F01-E02); roteiros de dump multiplataforma (F01-E15); trocar a invocação de `npm` em scripts (E17 e E19).
+- **Arquivos e módulos prováveis:** `apps/web/test/ocorrencia-encerramento.test.ts`, `apps/api/test/banco-tls.test.ts`, `scripts/testar-campo.mjs`; a criar na raiz do repositório (`C:/Projetos/city-hall`): `.gitattributes`; a criar em `apps/web/test`: `ler-fonte.ts`.
+- **Risco de segurança:** `eol=lf` mal marcado corrompe binário (imagem, dump) e altera o hash de arquivo arquivado como evidência; por isso `binary` explícito e conferência com `git ls-files --eol`.
+- **Impacto LGPD:** Não se aplica: configuração de ambiente.
+- **Migração necessária:** Não.
+- **Compatibilidade:** arquivos de texto passam a LF no checkout do Windows; `.ps1` seguem CRLF.
+- **Rollback:** remover `.gitattributes` e o helper.
+- **Testes positivos:** `ocorrencia-encerramento.test.ts` passa com árvore CRLF e com LF; `banco-tls.test.ts` 13 de 13 com `OPENSSL_CONF` apontando para arquivo inexistente; `npm run typecheck` do campo com 0 erros com `.expo/types` velho presente e sem ele.
+- **Testes negativos:** o helper não esconde mudança real (função com a chave de fechamento movida ainda reprova); com `OPENSSL_CONF` válido o teste o respeita; `git ls-files --eol` não mostra nenhum arquivo `i/crlf`.
+- **Testes de autorização e isolamento:** Não se aplica: configuração de ambiente; `npm run test:isolamento` roda para provar que nada mudou.
+- **Regressão obrigatória:** `npm run test --workspace @dc360/web`, `npm run test --workspace @dc360/api`, `npm run typecheck`, `npm run test:campo`, `npm run test:scripts`.
+- **E2E:** Não se aplica: sem experiência de usuário.
+- **Validação humana:** Rafael roda `npm run verificar` no Windows e anexa o resultado de um run em Linux (CI ou contêiner).
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E21/` com a matriz de plataformas, a saída de `git ls-files --eol` e os resultados dos três casos.
+- **Documentação a atualizar:** `dc360/README.md` (seção "Como testar", plataformas) e `dc360/apps/campo/LEIA-ME.md`.
+- **Definition of Done:** três casos verdes em Windows e Linux; `.gitattributes` em vigor; matriz arquivada; item "EOL, Windows e Linux" do G00 marcado.
+- **Checkpoint:** Não.
+
+### V2-F00-E22 - Documentação desatualizada ou falsa (README números, PENDENCIAS, ADR 0008, SAIDA cap. 2 x 5, LEIA-ME do campo, comentários de vigência)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** baixa  |  **Risco:** baixo  |  **Paralelizável:** não (fecha a fase: depende de E04, E11 e E12 e roda depois de E17 e E19)
+- **Objetivo:** nenhum documento do produto afirma o contrário do código; o que ainda não existe é dito como pendência.
+- **Problema que resolve:** BZ-N (N.1, N.2, N.6 a N.9, N.11, N.12) e a seção O do Baseline. Itens: (1) README: números de teste e "`npm audit` em zero" e "expo-doctor 21 de 21" (`README.md:16`), a linha do token "sem ida ao banco" (`README.md:130`), "O console não tem rota de escrita" (`README.md:552`), assinatura "falta quem produza" e mapa com MapLibre (`README.md:1367`, o código usa Google Maps); (2) `db/PENDENCIAS.md` descreve o console como não construído e `resumir_municipio()` sem chamador, mas `apps/console` existe e `agendarResumo` está em `apps/api/src/index.ts`; (3) `apps/api/PENDENCIAS.md` tem uma única pendência e omite as que sobrarem (escrita em GET); (4) ADR 0008: "teto de dano = números agregados" (linhas 156-157) e "banco separado" não valem, pois o console suspende, agenda eliminação e cria município por funções nomeadas, no mesmo Postgres com papel separado; (5) `docs/SAIDA-DE-MUNICIPIO.md`: o capítulo 2 (linha 49, "o sistema continua no ar") contradiz o capítulo 5 (agendar eliminação suspende; o pacote responde 403); (6) `apps/campo/LEIA-ME.md:3` ("NUNCA RODOU EM APARELHO") frente a relatos de emulador e iPhone sem artefato (BZ-N:N.7); (7) `apps/web/PENDENCIAS.md`: os itens 1 (rota da coordenada) e 5 (teto de seis casas) já existem no código e o item 3 (README atrasado sobre o mapa) se encerra com o conserto do README; (8) comentários de vigência de `sessoes.ts`, `suspensao.ts` e `servidor.ts` conferidos depois da E04.
+- **Origem:** BZ-N, PR:D-04.
+- **Estado atual:** CORRIGIR.
+- **Dependências de entrada:** E04, E11 e E12.
+- **O que deve ser implementado:**
+  - Documentação: cada item acima corrigido com a prova (arquivo e linha) numa tabela antes e depois; ADR não se reescreve: a ADR 0008 recebe uma "Nota de revisão" datada ao final, sem apagar o texto; o `LEIA-ME` do campo passa a dizer "sem artefato de aparelho arquivado" até a F14-E12.
+  - Arquivos: rodada final de `npm run conferir:numeros` e de `npm run auditar` depois de todas as outras etapas, com a saída anexada.
+  - Documentação: `apps/api/PENDENCIAS.md` e `apps/web/PENDENCIAS.md` refeitos com o que realmente resta.
+- **O que NÃO deve ser implementado nesta etapa:** documento novo de produto; resolver pendência (só registrá-la); editar `docs/auditoria-v2/*`; ADR nova (a F03-E01 abre a 0009).
+- **Arquivos e módulos prováveis:** `dc360/README.md`, `dc360/db/PENDENCIAS.md`, `dc360/apps/api/PENDENCIAS.md`, `dc360/apps/web/PENDENCIAS.md`, `dc360/apps/campo/LEIA-ME.md`, `dc360/docs/SAIDA-DE-MUNICIPIO.md`, `docs/adr/0008-console-do-fornecedor-sem-credencial-que-ve-dois-municipios.md`, `dc360/docs/COLOCAR-DE-PE.md`.
+- **Risco de segurança:** documentação falsa sobre segurança induz decisão errada (foi o caso da vigência); a etapa troca afirmação por fato verificado.
+- **Impacto LGPD:** Não se aplica: nenhuma mudança de dado nem de política de privacidade.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: só documentação.
+- **Rollback:** reverter os documentos.
+- **Testes positivos:** `npm run conferir:numeros` com zero divergência; `npm test` (`regras-de-conteudo`: sem travessão e sem norma fora da lista) verde; cada afirmação corrigida tem arquivo e linha na tabela da evidência.
+- **Testes negativos:** Grep por "DESLIGADO NESTA IMPLANTAÇÃO", "sem ida ao banco", "NUNCA RODOU EM APARELHO" sem ressalva e "MapLibre" como mapa vigente retorna zero acertos indevidos; nenhuma frase diz "pronto" sem teste que a sustente.
+- **Testes de autorização e isolamento:** Não se aplica: só documentação.
+- **Regressão obrigatória:** `npm run conferir:numeros`, `npm test`, `npm run auditar`.
+- **E2E:** Não se aplica: só documentação.
+- **Validação humana:** Rafael lê a tabela antes e depois e confirma que nada ficou prometido sem existir.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E22/` com a tabela antes e depois, a saída final de `conferir:numeros` e de `auditar`.
+- **Documentação a atualizar:** os próprios documentos listados.
+- **Definition of Done:** os oito itens corrigidos com prova; números conferidos pela máquina; item "documentação desatualizada" do G00 marcado.
+- **Checkpoint:** Não.
+
+### V2-F00-E23 - Teste de contrato mínimo painel x API (caminhos de `dados/http.ts` contra as rotas registradas)
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** baixo  |  **Paralelizável:** sim (com E12 e E15)
+- **Objetivo:** nenhum caminho que o painel chama deixa de existir na API sem que um teste reprove.
+- **Problema que resolve:** BZ-N:O.4 e `BZ-M:V2-TRV-10`. O erro de `/pacote.zip` passou porque nada liga os caminhos de `apps/web/src/dados/http.ts` (64 usos de `chamar` e 7 de `fetch` direto) às rotas que `construirServidor` registra: o cliente foi escrito lendo `rotas/saida.ts` sem conferir o prefixo de `servidor.ts:759-760`.
+- **Origem:** BZ-M:V2-TRV-10, BZ-N:O.4, REL:02.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E11.
+- **O que deve ser implementado:**
+  - Testes: `apps/api/test/contrato-do-painel.test.ts` (a criar) monta o servidor como `superficie.test.ts` e enumera as rotas com `printRoutes`; lê `apps/web/src/dados/http.ts`, extrai método e caminho de cada chamada, normaliza `${...}` para `:parametro` e remove a query, e exige que `MÉTODO caminho` exista entre as rotas registradas; exceções só numa lista curta com motivo.
+  - Testes: âncora contra extrator cego: o teste conta as chamadas `chamar(` e `fetch(` do arquivo e reprova se extrair menos do que contou; caso sintético com `/pacote.zip` prova que o teste teria pego o bug.
+  - Documentação: nota no README de que esta é a versão mínima e de que a F02-E05 a generaliza (campo, console, OpenAPI).
+- **O que NÃO deve ser implementado nesta etapa:** OpenAPI e cliente gerado (F02-E04); contrato do app de campo e do console (F02-E05); `/v1` (F02-E01); validação de corpo e de resposta.
+- **Arquivos e módulos prováveis:** a criar em `apps/api/test`: `contrato-do-painel.test.ts`; `apps/api/test/superficie.test.ts` (só a técnica de `printRoutes`) e `apps/web/src/dados/http.ts` (só leitura).
+- **Risco de segurança:** o extrator por regex é frágil (os testes de fonte do painel já provaram isso); o risco é um falso verde, por isso as âncoras de contagem.
+- **Impacto LGPD:** Não se aplica: o teste lê código e lista de rotas, sem dado.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: nenhum código de produto muda.
+- **Rollback:** apagar o teste.
+- **Testes positivos:** todas as chamadas atuais de `http.ts` casam com rota registrada (depois da E11); a contagem extraída é igual à contada.
+- **Testes negativos:** `POST /pacote.zip` sintético reprova; método errado (`GET /saida/pacote.zip`) reprova; caminho com parâmetro faltando reprova; extrator que perde uma chamada reprova.
+- **Testes de autorização e isolamento:** a rota que o painel chama sem token continua só nas isenções de `superficie.test.ts`; o teste não concede nem testa acesso, só existência de rota.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test --workspace @dc360/web`.
+- **E2E:** Não se aplica: teste estático; o e2e da E11 cobre o caminho real.
+- **Validação humana:** Rafael vê o teste reprovar com `/pacote.zip` reintroduzido numa cópia de trabalho.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E23/` com a saída do teste verde e a do caso sintético vermelho.
+- **Documentação a atualizar:** `dc360/README.md` (seção "Como testar").
+- **Definition of Done:** teste verde na árvore atual; o caso do `/pacote.zip` reprova; âncora ativa; item "contrato painel x API" do G00 marcado.
+- **Checkpoint:** Não.
+
+### V2-F00-E24 - K14: ajustar documentação e apresentação conforme a decisão sobre saída a campo, antes de nova demonstração
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** médio  |  **Paralelizável:** sim (com E01)
+- **Objetivo:** nada que se mostre ou entregue a município afirma que o agente declara a saída a campo no aplicativo enquanto isso não existir.
+- **Problema que resolve:** BZ-N:N.6 e DP:K14. A API (`rotas/saida-a-campo.ts`, prefixo `/saida-a-campo` em `servidor.ts:696`) e o painel (`QuemEstaEmCampo.tsx`) têm a funcionalidade, com 27 testes, mas `apps/campo` não chama declarar, prorrogar, retorno nem `/minha` (só lê se há saída aberta, em `src/dados/api.ts:503`). `docs/SEGURANCA-DO-AGENTE.md` (linhas 15 e 75), `docs/CARTAO-DO-AGENTE.md` (linhas 19-26), `docs/GUIA-DO-COORDENADOR.md` (linhas 162-188), a seção "O agente que sobe o morro sozinho" do README e a apresentação de 2026-09-15 (`docs/apresentacao/2026-09-15-para-o-alyson.html`, linha 394, selo "Pronto" em "Segurança do agente sozinho") afirmam o contrário: promessa de segurança física sem entrega.
+- **Origem:** DP:K14, BZ-N:N.6, PR:D-04.
+- **Estado atual:** CORRIGIR (a documentação; a funcionalidade é MANTER na API e no painel).
+- **Dependências de entrada:** nenhuma etapa; CP-02 decidido.
+- **O que deve ser implementado:**
+  - Documentação: conforme o CP-02. Se A (implementar no app em F14-E01, recomendada, com B imediato): cada documento passa a dizer o estado real ("a API e a tela da coordenação estão prontas; o aplicativo do agente ainda não declara a saída; previsto em V2-F14-E01") e deixa de instruir o agente a declarar no aplicativo. Se B (retirar): a promessa sai de `SEGURANCA-DO-AGENTE.md`, do cartão, do guia, do README e da apresentação até haver decisão. Se C (versão mínima antes de demonstrar): vira etapa de F14 e a documentação segue ressalvada até lá.
+  - Documentação: a apresentação troca o selo "Pronto" por "Parcial" com a ressalva, no HTML (a fonte), e o PDF derivado é regenerado com `docs/apresentacao/gerar-pdf.mjs`; `relatorio-apresentacao-alyson.html` e seu PDF, na raiz, são conferidos por Grep.
+  - Arquivos: Grep por "saída a campo", "declara" e "Segurança do agente" em `dc360/docs`, `dc360/README.md`, `dc360/docs/apresentacao` e na raiz do repositório.
+- **O que NÃO deve ser implementado nesta etapa:** a declaração no app (F14-E01); mudança em API ou painel; aceite e devolução, criptografia local e segundo plano (CP-24).
+- **Arquivos e módulos prováveis:** `dc360/docs/SEGURANCA-DO-AGENTE.md`, `dc360/docs/CARTAO-DO-AGENTE.md`, `dc360/docs/GUIA-DO-COORDENADOR.md`, `dc360/docs/LEIA-ME.md`, `dc360/README.md`, `dc360/docs/apresentacao/2026-09-15-para-o-alyson.html` e `.pdf`, `relatorio-apresentacao-alyson.html`.
+- **Risco de segurança:** promessa falsa de segurança física: alguém sobe o morro contando com um alerta que não existe; a ressalva precisa ser explícita, e o guia diz que a tela "Quem está em campo" ficará vazia até a F14-E01.
+- **Impacto LGPD:** Não se aplica: `docs/PRIVACIDADE.md` descreve o dado que a API já guarda e segue verdadeiro.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: só documentação e apresentação.
+- **Rollback:** reverter os documentos e regenerar o PDF.
+- **Testes positivos:** Grep final sem nenhuma frase que afirme que o aplicativo declara a saída, sem a ressalva; `npm test` com `regras-de-conteudo` verde; PDF regenerado com o selo novo (a saída do gerador informa páginas e erros de console).
+- **Testes negativos:** nenhum "Pronto" na linha de segurança do agente; nenhum passo do cartão manda declarar a saída no aplicativo; as 27 provas da API e do painel seguem verdes, nada foi removido.
+- **Testes de autorização e isolamento:** Não se aplica: só documentação.
+- **Regressão obrigatória:** `npm test`, `npm run test:api` (`saida-a-campo.test.ts`).
+- **E2E:** Não se aplica: só documentação.
+- **Validação humana:** Rafael e Alyson decidem o CP-02 e leem a apresentação ajustada antes de qualquer demonstração a município.
+- **Evidência a produzir:** `docs/evidencias-v2/CP-02/decisao.md`, o diff dos documentos e a saída do gerador de PDF em `docs/evidencias-v2/G00/V2-F00-E24/`.
+- **Documentação a atualizar:** os documentos listados em "Arquivos e módulos prováveis".
+- **Definition of Done:** CP-02 registrado; nenhum documento promete a declaração no app sem ressalva; apresentação e PDF coerentes; item "K14" do G00 marcado.
+- **Checkpoint:** CP-02 (decide: implementar no app ou retirar a promessa; bloqueia qualquer demonstração a município que mencione a funcionalidade e o escopo de F14-E01).
+
+### V2-F00-E25 - Restore das 46 migrações provado em máquina limpa (CA-08) e roteiro mínimo
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E19 e E24)
+- **Objetivo:** provar que um backup do esquema atual (46 migrações) restaura num banco novo com o isolamento intacto, e deixar um roteiro mínimo que outra pessoa repete.
+- **Problema que resolve:** ALY:CA-08 e REL:10 (OPS-04 a OPS-06). O único restore provado (`docs/COLOCAR-DE-PE.md`, Parte 6) é de 2026-09-09, no Mac do autor, com 15 migrações e 15 tabelas, a partir do Supabase (Postgres 17.6). Hoje são 46 migrações e 35 tabelas, e o roteiro só cria os papéis do provedor, `dc360_app` e `dc360_api`: o dump atual traz `GRANT ... TO dc360_console` (migração 023) e `pg_trgm` (migração 041), e a inferência do REL:10, não testada, é que `pg_restore --exit-on-error` pararia. Não existe script de restore (`scripts/copiar-producao.mjs` só tira o dump e só descreve macOS com Homebrew) e a Parte 6 admite que a API não foi apontada para a cópia.
+- **Origem:** ALY:CA-08, REL:10, BZ-D:OPS-04, BZ-D:OPS-05, BZ-D:OPS-06.
+- **Estado atual:** EXPANDIR (a Parte 6 é o roteiro de 15 migrações; passa a 46, multiplataforma e provado).
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Infraestrutura: origem local descartável, sem Supabase: Postgres 17 (versão maior de produção; contêiner `postgres:17` ou binários descartáveis) provisionado como o job `implantavel` do CI (papéis `dc360_setup` e `dc360_api`), `npm run migrar` (46 migrações), `npm run migrar -- --semear` e `pg_dump --format=custom --schema=public`; destino: segundo banco em cluster separado, com os papéis criados antes (inclusive `dc360_console`) e `pg_restore --exit-on-error`.
+  - Testes: linhas por tabela geradas do catálogo, hashes de `schema_migracoes` iguais, `relrowsecurity` e `relforcerowsecurity` nas 35 tabelas, `pg_trgm` e os índices `gin_trgm_ops`, isolamento no banco restaurado (como `dc360_app`, sem contexto 0 linhas; com contexto de A, nada de B) e a API apontada para a cópia (`/saude` 200, login e leitura de uma ocorrência da semente).
+  - Documentação: `dc360/docs/RESTORE-DO-BANCO.md` (a criar) com o passo a passo mínimo para Linux, macOS e Windows com Git Bash e os erros encontrados; a Parte 6 ganha nota que a aponta para ele e a marca como histórica; relatório com versões e tempos (não é RPO nem RTO, que é F22-E07).
+- **O que NÃO deve ser implementado nesta etapa:** restore automatizado em HML (F22-E03); restore por pessoa que não escreveu o sistema (F22-E06); backup e PITR do provedor, storage e cópia fora da conta (F22-E01, F22-E02); dump antes de migration e `copiar-producao.mjs` multiplataforma (F01-E15); medição de RPO e RTO (F22-E07).
+- **Arquivos e módulos prováveis:** `dc360/docs/COLOCAR-DE-PE.md` (Parte 6), `dc360/db/seeds/desenvolvimento.sql`, `dc360/db/src/cli.ts`, `.github/workflows/verificar.yml` (job `implantavel`, só leitura); a criar em `dc360/docs`: `RESTORE-DO-BANCO.md`.
+- **Risco de segurança:** dump traz dado; aqui só sintético, fora do repositório e apagado no fim (regra do `copiar-producao.mjs`); papéis com senha de teste; o papel de aplicação precisa continuar sem `BYPASSRLS` e sem ser dono no destino.
+- **Impacto LGPD:** dado sintético apenas; nenhum dump é arquivado como evidência, só contagens, hashes e saída de comandos.
+- **Migração necessária:** Não.
+- **Compatibilidade:** as 46 migrações passam a ser aplicadas também em Postgres 17 (o CI só usa 16): se alguma falhar, vira achado registrado.
+- **Rollback:** Não se aplica: nada de produto muda; o banco descartável é apagado.
+- **Testes positivos:** restore sem erro com `--exit-on-error`; contagens e hashes iguais; 35 tabelas com RLS ativada e forçada; a API sobe contra a cópia e `/saude` responde 200.
+- **Testes negativos:** sem o papel `dc360_console` o restore para com o erro registrado (confirma a inferência e documenta o remédio); sem `pg_trgm` o destino diz que o índice não existe; `dc360_app` lendo tabela sem contexto recebe 0 linhas.
+- **Testes de autorização e isolamento:** no banco restaurado, com contexto do município A o papel de aplicação lê só A (nenhuma linha de B) e `UPDATE` na trilha é negado (append-only); `npm run test:isolamento` verde na origem.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run migrar -- --conferir`.
+- **E2E:** login e leitura de ocorrência contra a API apontada para a cópia (parte do fluxo M provada no G00).
+- **Validação humana:** uma segunda pessoa (ou Rafael noutra máquina) segue `RESTORE-DO-BANCO.md` do zero.
+- **Evidência a produzir:** `docs/evidencias-v2/G00/V2-F00-E25/` com log, versões, contagens, hashes e relatório; nenhum dump.
+- **Documentação a atualizar:** `dc360/docs/COLOCAR-DE-PE.md` (Parte 6), `dc360/docs/RESTORE-DO-BANCO.md` e `dc360/docs/INDISPONIBILIDADE.md` (a seção que cita o restore).
+- **Definition of Done:** restore provado em máquina limpa com 46 migrações e API contra a cópia; roteiro repetido por segunda pessoa; item "restore" do G00 marcado.
+- **Checkpoint:** Não.
+
+# GATE G00 - BASE CONFIÁVEL
+
+Só passa se:
+- [ ] Baseline reproduzível: uma segunda pessoa, em máquina limpa, repete o procedimento da E01 e a rodada final mostra todos os comandos verdes ou com divergência explicada (E01; `docs/evidencias-v2/G00/V2-F00-E01/RESUMO.md` e a rodada final).
+- [ ] Política T42 em vigor: `POLITICA-DE-TESTE-VERMELHO.md` publicada, portão de skip verde em `npm run test:scripts`, zero `skip` ou `todo` sem dono, issue e prazo, zero vermelho conhecido fora do registro (E02; saída do portão).
+- [ ] Todos os vermelhos classificados e fechados: o registro da E03 tem zero itens abertos e a regra de BZ-N:N.3 está decidida por Rafael (E03; `classificacao-dos-vermelhos.md` atualizado).
+- [ ] Vigência de conta, papel e sessão ligada na escrita: a sonda de conta desativada não escreve, zero `describe.skip` em `vigencia-na-escrita.test.ts` e comentários batendo com o código (E04; saída dos testes e log da sonda antes e depois).
+- [ ] Códigos de erro corretos: 401 `nao_autenticado`, 401 `sessao_encerrada` e 403 `conta_desativada` emitidos, catalogados em `packages/shared/src/codigos-de-erro.ts` e lidos pelo painel e pelo app (E05; testes e capturas das três frases).
+- [ ] Fila do campo sem perda: 401 e 403 de sessão ou conta pausam a fila e nenhum item é bloqueado, descartado ou duplicado (E06; testes do motor, `campo-integracao.test.ts` e captura no aparelho).
+- [ ] Sessão revogada, conta desativada, papel alterado e senha provisória vencida provados: a cadeia rotacionada morre com a sessão, papel alterado se renova, `senha-provisoria.test.ts:183` verde e migration aplicada do zero (E07; testes, sondas e `migrar --conferir`).
+- [ ] Vazamentos P0 de leitura ao agente fechados: `GET /oficios`, `GET /oficios/:id` e `GET /avisos` sem dado de outra equipe nem de ofício (E08; sondas do agente antes e depois e testes).
+- [ ] Telas de sessões e de redefinição de senha: os 8 casos de `seguranca-da-conta.test.ts` verdes e o fluxo no e2e contra a API (E09; testes e capturas).
+- [ ] Recuperação por e-mail provada com notificador de teste e produção comprovadamente desligada (`RECUPERACAO_ATIVA` e `EMAIL_ATIVO`); CP-19 decidido ou registrado como "BLOQUEADO para ligar em produção" (E10; testes, e2e e prova de configuração).
+- [ ] Saída de município: o botão baixa o ZIP da rota `/saida/pacote.zip` em Chromium e Firefox, e o laudo do pacote traz o aviso de equipe divergente igual ao do laudo emitido (E11 e E12; log do e2e e `saida-de-municipio.test.ts` verde).
+- [ ] Contrato painel x API: todo caminho de `apps/web/src/dados/http.ts` existe entre as rotas registradas, com âncora anti extrator cego (E23; saída de `contrato-do-painel.test.ts`).
+- [ ] Painel e app de campo sem teste vermelho: `npm run test --workspace @dc360/web` e `npm run test:campo` com 0 falhas, incluindo o login a partir de `/` (E13, E14, E15 e E16; saídas e capturas).
+- [ ] Scripts e números: `npm run test:scripts` e `npm run conferir:numeros` com 0 falhas no Windows e no Linux, rodada final depois da E22 (E17; saídas nas duas plataformas).
+- [ ] E2E de navegador: `npm run test:e2e` em Chromium e Firefox e `npm run test:e2e:api` verdes, com o preflight do PUT de evidência coberto (E18; logs das três execuções).
+- [ ] Dependências: `npm run auditar` verde e `npm audit` conforme a política do CP-03, com exceções nomeadas, com dono e prazo; `expo-doctor` 21 de 21 (E19; saídas antes e depois; CP-03 decidido).
+- [ ] Portão de conteúdo verde: `regras-de-conteudo.test.ts` sem falha e as isenções mínimas justificadas (E20; saída do shared).
+- [ ] Ambiente: EOL (`.gitattributes`), `OPENSSL_CONF` e cache `.expo` resolvidos, e a suíte inteira passa em Windows e em Linux; o último run do workflow `Verificar` em master está verde ou, se o CI não for consultável, o `verificar` completo rodou em Linux com saída arquivada (E21 e E01; matriz de plataformas).
+- [ ] Documentação sem afirmação falsa: README, `PENDENCIAS.md`, ADR 0008 (com nota de revisão), `SAIDA-DE-MUNICIPIO.md`, `LEIA-ME` do campo e comentários de vigência batem com o código (E22; tabela antes e depois).
+- [ ] K14 resolvido: CP-02 decidido e nenhum documento ou apresentação promete que o aplicativo declara a saída a campo sem ressalva (E24; `docs/evidencias-v2/CP-02/decisao.md` e diff).
+- [ ] Restore provado: o dump do esquema de 46 migrações restaura em banco novo com RLS intacta e a API sobe contra a cópia, com roteiro repetido por uma segunda pessoa (E25; `RESTORE-DO-BANCO.md` e log).
+- [ ] Checkpoints da fase: CP-01, CP-02 e CP-03 decididos; CP-19 decidido ou adiado com o que fica bloqueado (ligar e-mail em produção e recuperação de senha para pessoas reais).
+- [ ] Nenhuma regressão: o kit de regressão (`19-definicao-de-pronto.md`, seção 2) está verde na rodada final e `npm run test:isolamento` nunca ficou vermelho durante a fase (este é o primeiro gate: não há gate anterior).
+- [ ] Documentação atualizada e evidências arquivadas em `docs/evidencias-v2/G00/` (uma pasta por etapa com `INDEX.md` e SHA-256, mais `GATE.md` com o resultado e quem aprovou).
+
+**Reabre se:** a vigência desligar de novo (qualquer rota de escrita aceitar conta desativada, papel rebaixado ou sessão encerrada); o CI de master ficar vermelho; aparecer `skip` sem dono, issue e prazo; surgir vermelho conhecido fora do registro; um cliente do painel chamar caminho que a API não registra; `npm audit` ou `auditar` reprovar dependência de runtime; ou a documentação ou a apresentação voltar a afirmar o que o código não faz.
+
+**Este Gate libera:** F01 em diante (nada novo entra antes dele); as demonstrações a município, depois do K14 resolvido; e a base de que G14 depende (o gate do app do agente exige G00 verde).

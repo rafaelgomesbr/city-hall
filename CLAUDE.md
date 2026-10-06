@@ -131,3 +131,25 @@ Regras que valem lá e não são negociáveis:
   norma continuam valendo igual, lá e aqui.
 
 Ver `dc360/README.md` para como rodar e testar.
+
+## Retomada do Roadmap V2 (ler ANTES de agir em qualquer assunto da V2)
+
+O plano de execução da V2 está em `docs/ROADMAP-V2.md` e `docs/roadmap-v2/`. O estado
+vivo (onde estamos, o que está concluído, o que falta, ponto de parada) está
+SOMENTE em `docs/roadmap-v2/STATUS.md`. O histórico do chat não é confiável: em
+toda conversa nova, leia o STATUS primeiro, confira `git log` e `git status`, e
+só então aja. Pedido típico: "Execute V2-Fnn-Enn". O protocolo está em
+`docs/roadmap-v2/00-README.md`: conferir o gate anterior e os checkpoints,
+implementar só o escopo da etapa, rodar os testes, arquivar a evidência, atualizar
+o STATUS, fazer um commit `V2-Fnn-Enn: resumo` depois da aprovação, e PARAR.
+Nunca marque uma etapa como concluída sem evidência e sem ter rodado os testes.
+
+REGRA DE EXECUÇÃO de 2026-10-05: o Rafael mandou continuar sem parar entre etapas da V2, só parando se os tokens acabarem. O "PARAR" do protocolo deixa de valer; validação humana que não dá para fazer sozinho fica registrada como pendente no STATUS e não bloqueia a etapa seguinte. Commit continua só com autorização dele.
+
+Regras INEGOCIÁVEIS do Rafael (2026-10-02), valem para toda etapa da V2:
+1. Só se avança para a próxima etapa com PROVA arquivada: saída dos testes E2E e,
+   em etapa de interface, capturas de tela reais (ou foto do aparelho) mostrando
+   que o que foi pedido está satisfeito.
+2. A interface tem de estar perfeitamente alinhada e bem escrita: nenhum card
+   desalinhado ou grudado, nenhum texto fora do lugar, cortado ou mal escrito.
+   O portão visual está em `docs/roadmap-v2/19-definicao-de-pronto.md`, seção 0.

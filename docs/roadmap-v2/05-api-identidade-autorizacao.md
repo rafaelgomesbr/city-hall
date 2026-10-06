@@ -1,0 +1,1537 @@
+# Fase 02: API v1 e contratos
+
+**Gate da fase:** G02 API V1 E CONTRATOS | **Depende dos gates:** G00, G01 | **Superfícies tocadas:** `apps/api`, `apps/web`, `apps/campo` (com `packages/campo`), `apps/console`, `packages/shared` | **Checkpoints da fase:** nenhum
+
+Esta fase dá à API um contrato: caminho versionado (`/v1`) com espelho legado datado, esquema de erro com catálogo, documento OpenAPI gerado dos esquemas Zod, teste que liga cada chamada dos clientes a uma rota registrada (a lição do `/pacote.zip`), versão mínima por aplicativo, idempotência de criação e o fuso do município no protocolo e no CSV. É a fundação de F03 e F08: o portal e o app do cidadão já nascem contra `/v1` e contra o registro de rotas, e não contra o comportamento acidental do handler.
+
+O que se PRESERVA (MANTER): o registro de rotas por plugin com `prefix` em `apps/api/src/servidor.ts`, o formato de erro `{ erro, mensagem, campos }`, `exigirAutenticacao`, `comTenant` e todos os testes legados, que continuam cobrindo o espelho. Esta fase NÃO muda identidade, vigência nem autorização (F03), NÃO cria o pacote `cliente-api` (F08-E04) e NÃO retira o espelho (F28-E11). Itens adiados estão em `docs/roadmap-v2/21-fora-da-v2.md`.
+
+Ordem sugerida: E01 abre a fase e nenhuma outra anda antes dela. Depois E02, E03, E04, E07 e E09 podem correr em paralelo (arquivos quase disjuntos; E02 e E07 dividem `apps/web/src/dados/http.ts`, então um depois do outro nesse arquivo). E05 exige E02 e E04. E06 e E08 vêm por último.
+
+## Etapas
+
+### V2-F02-E01 - Prefixo /v1 com espelho legado sem prefixo e data de remoção
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (E02 a E08 dependem do registro de rotas que esta etapa reorganiza)
+- **Objetivo:** toda rota de negócio passa a existir sob `/v1`, e o caminho sem prefixo continua respondendo como espelho com aviso de depreciação e data de remoção, para os aplicativos já instalados não quebrarem.
+- **Problema que resolve:** sem versão, qualquer mudança de contrato quebra o binário de loja já instalado. `servidor.ts:665-786` registra 24 plugins direto na raiz (23 sempre, e o do armazenamento local só fora de produção) e o painel concatena `BASE` em um único ponto (`apps/web/src/dados/http.ts:33`): é o momento mais barato de introduzir versão.
+- **Origem:** DP:T35; BZ-D:ARQ-02; REL:02; REL:07.
+- **Estado atual:** EXPANDIR (os plugins já são registrados com `prefix`; faltam a camada de versão e o espelho).
+- **Dependências de entrada:** G01.
+- **O que deve ser implementado:**
+  - API: extrair o bloco `servidor.ts:665-786` para uma função `registrarRotasDeNegocio` e registrá-la duas vezes: sob `{ prefix: "/v1" }` e no escopo legado, este com hook `onSend` que acrescenta `Deprecation`, `Sunset` (valor de `ESPELHO_LEGADO_ATE`, nova entrada ISO em `config.ts`) e `Link` com `rel="successor-version"`. Ficam fora do `/v1` e do espelho: `GET /saude`, `/armazenamento/objeto` (infraestrutura) e `GET /publico/oficio/:token` (endereço que vive em e-mail já enviado).
+  - Autorização: o que depende de caminho passa a valer nos dois prefixos: `ROTAS_ABERTAS_COM_SENHA_PROVISORIA` (`servidor.ts:808`, compara `routeOptions.url`) aceita `/v1/auth/trocar-senha` e `/v1/auth/encerrar-sessoes`; `caminhoParaLog` e `PREFIXOS_COM_SEGREDO_NA_URL` continuam redigindo o segredo; a marca `filaDoCampo` já é por rota e vale nos dois.
+  - Testes: `superficie.test.ts` remove `^/v1` da chave antes de consultar `SEM_TOKEN` (a isenção é declarada uma vez), e um caso novo prova paridade: toda rota legada tem par em `/v1` e vice-versa, salvo as três exceções.
+- **O que NÃO deve ser implementado nesta etapa:** mudar painel, campo e console (E02); catálogo de erros (E03); OpenAPI (E04); calendário e política de depreciação (E08); retirada do espelho (F28-E11).
+- **Arquivos e módulos prováveis:** `apps/api/src/servidor.ts`, `apps/api/src/config.ts`, `apps/api/test/superficie.test.ts`, a criar `apps/api/test/versao-v1.test.ts`.
+- **Risco de segurança:** o espelho dobra a superfície: senha provisória, redação de log e limitador de taxa precisam valer nos dois prefixos; o registro por função única impede rota nova de existir só de um lado.
+- **Impacto LGPD:** Não se aplica: nenhum dado novo; o segredo do link do ofício continua fora do log.
+- **Migração necessária:** Não.
+- **Compatibilidade:** clientes atuais seguem no caminho sem prefixo; a resposta só ganha cabeçalhos.
+- **Rollback:** reverter o commit; sem migração.
+- **Testes positivos:** `GET /v1/ocorrencias` com token responde o mesmo que o legado; o legado traz `Deprecation` e `Sunset`.
+- **Testes negativos:** `GET /v1/saude` e `GET /v1/publico/oficio/x` respondem 404; token de senha provisória em `/v1/ocorrencias` recebe 403 `troca_de_senha_obrigatoria`.
+- **Testes de autorização e isolamento:** token do município B em `/v1/ocorrencias/<id de A>` responde 404, igual ao legado.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run typecheck`, `npm run test:e2e:api`; G00 e G01 verdes.
+- **E2E:** `npm run test:e2e:api` segue verde pelo espelho (o painel só muda na E02).
+- **Validação humana:** Rafael vê duas chamadas autenticadas, uma por prefixo, e os cabeçalhos do legado.
+- **Evidência a produzir:** `docs/evidencias-v2/G02/V2-F02-E01/` com a saída do teste de paridade, cabeçalhos capturados sem token e o diff de `servidor.ts`.
+- **Documentação a atualizar:** `README.md` (seção da API), `apps/api/PENDENCIAS.md`.
+- **Definition of Done:** paridade provada, três exceções documentadas, `ESPELHO_LEGADO_ATE` presente, nenhuma rota fora do `/v1` além das exceções.
+- **Checkpoint:** Não.
+
+### V2-F02-E02 - Migrar painel, campo e console para /v1
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F02-E03; em `http.ts` fazer antes da F02-E07)
+- **Objetivo:** os três clientes passam a chamar `/v1`; o espelho legado passa a servir só binários antigos e abas com bundle em cache.
+- **Problema que resolve:** painel, campo e console concatenam caminhos sem versão em pontos únicos; sem migrá-los o espelho nunca terá data de fim. Pontos: `apps/web/src/dados/http.ts:33` (`BASE`), `apps/campo/src/dados/api.ts:17-23` (`BASE` e `enderecoDaApi()`, que alimenta o `transporteHttp` de `packages/campo`), `apps/console/src/pagina.ts:2350` (`pedir`).
+- **Origem:** DP:T35; BZ-D:ARQ-02; BZ-N:O.4; REL:02.
+- **Estado atual:** REFATORAR (um ponto de base por cliente; nenhuma regra muda).
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Frontend: `http.ts` separa `ORIGEM` (de `VITE_API_URL`, que continua sendo só a origem em `vercel.json:9`) e `BASE = ORIGEM + "/v1"`; as sete chamadas `${BASE}` herdam, inclusive as quatro com `fetch` direto (documento, CSV, pacote de saída, ofício).
+  - Mobile: `apps/campo/src/dados/api.ts` separa `ORIGEM` (a que `entrar.tsx:272` mostra na tela) de `BASE` (origem + `/v1`); `obterFila(...)` e o `transporteHttp` recebem a base com `/v1`; `packages/campo` não muda (`baseUrl` é parâmetro).
+  - API: o servidor do console registra as próprias rotas (`/entrar`, `/municipios`, `/prefeituras`, `/operadores`, `/senha`, `/codigos-de-recuperacao`, `/recuperar`) também sob `/v1`, por função única como na E01; a SPA usa `/v1`. Estáticos e `/saude` do console ficam sem prefixo. O console não chama a API de servidores (único `fetch` fala com o próprio servidor).
+  - Testes: ajustar a conferência de caminho em `apps/web/test/fluxo-api.e2e.mjs` e `scripts/e2e-api.mjs` apenas se citarem caminho literal (a origem não muda).
+- **O que NÃO deve ser implementado nesta etapa:** teste de contrato (E05); pacote `cliente-api` (F08-E04); retirar o espelho do console (F28-E11); apps novos (portal e cidadão nascem em `/v1`, F11 e F17).
+- **Arquivos e módulos prováveis:** `apps/web/src/dados/http.ts`, `apps/campo/src/dados/api.ts`, `apps/campo/src/app/entrar.tsx`, `apps/console/src/servidor.ts`, `apps/console/src/pagina.ts`.
+- **Risco de segurança:** chamada esquecida fora do ponto único continua no espelho, funcionando; a E05 transforma o esquecimento em teste vermelho.
+- **Impacto LGPD:** Não se aplica: só o caminho muda.
+- **Migração necessária:** Não.
+- **Compatibilidade:** binário de campo já instalado e bundle em cache do painel seguem no espelho; o cliente novo exige a API com `/v1` (ordem de deploy: API primeiro).
+- **Rollback:** reverter o commit do cliente; o espelho cobre. Build antigo do EAS continua válido.
+- **Testes positivos:** painel em modo API (`npm run test:e2e:api`) entra, lista e baixa o pacote de saída por `/v1/saida/pacote.zip`; `apps/api/test/campo-integracao.test.ts` com `baseUrl` terminando em `/v1`.
+- **Testes negativos:** `VITE_API_URL` com barra final não gera `//v1`; console sem sessão em `GET /v1/municipios` responde 401.
+- **Testes de autorização e isolamento:** `apps/console/test/superficie.test.ts` e `plateia-nao-atravessa.test.ts` verdes sobre `/v1`; token do município B no painel segue 404 para recurso de A.
+- **Regressão obrigatória:** `npm run test:console`, `npm run test:campo`, `npm run test:api`, `npm run typecheck`, `npm run test:e2e`, `npm run test:e2e:api`.
+- **E2E:** `npm run test:e2e:api` (painel em modo API contra a API real).
+- **Validação humana:** Rafael abre o painel apontado para a API local e confere no DevTools que toda chamada vai a `/v1`; abre o app de campo em simulador.
+- **Evidência a produzir:** `docs/evidencias-v2/G02/V2-F02-E02/` com a lista de caminhos chamados (sem token) e a saída dos testes.
+- **Documentação a atualizar:** `apps/campo/LEIA-ME.md`, `README.md`.
+- **Definition of Done:** nenhuma chamada dos três clientes sem `/v1` (confirmado pela E05); testes verdes; ordem de deploy escrita.
+- **Checkpoint:** Não.
+
+### V2-F02-E03 - Esquema de erro padronizado e catálogo de códigos (inclui os de F00-E05)
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** baixo  |  **Paralelizável:** sim (com F02-E02)
+- **Objetivo:** toda resposta de erro tem a forma `{ erro, mensagem, campos?, requisicao? }` e todo `erro` é um código de catálogo, com status e categoria (renovar, reentrar, corrigir, aguardar, permanente) que os clientes leem.
+- **Problema que resolve:** a forma existe por convenção (`servidor.ts:504-587`) sem lista: 66 códigos em `new RegraDeNegocio(...)`. Cada cliente decide por status: `packages/campo/src/transporte.ts` trata 401 como permanente e o painel renova em qualquer 401 (`http.ts:207`). Os três códigos de F00-E05 precisam de lugar oficial.
+- **Origem:** DP:T35; DP:T09; REL:03; REL:07.
+- **Estado atual:** CRIAR (catálogo) e MANTER (a forma do corpo).
+- **Dependências de entrada:** E01 (e F00-E05).
+- **O que deve ser implementado:**
+  - Domínio: `packages/shared/src/erros.ts` (a criar): `CODIGOS_DE_ERRO` (código para `{ status, categoria, titulo }`) e `erroDaApiSchema` (Zod).
+  - API: `RegraDeNegocio` recebe o código tipado; em `NODE_ENV=test` o `setErrorHandler` lança se o código não está no catálogo.
+  - Clientes: `transporte.ts`, `apps/campo/src/dados/api.ts` e `apps/web/src/dados/http.ts` leem a `categoria`; as mensagens ao usuário não mudam.
+  - Testes: `apps/api/test/catalogo-de-erros.test.ts` (a criar) varre `apps/api/src` nos dois sentidos.
+- **O que NÃO deve ser implementado nesta etapa:** pacote `cliente-api` (F08-E04); mensagens novas; tradução de idiomas (F35); tela por código.
+- **Arquivos e módulos prováveis:** `packages/shared/src/erros.ts` (a criar), `apps/api/src/servidor.ts`, `packages/campo/src/transporte.ts`, `apps/campo/src/dados/api.ts`, `apps/web/src/dados/http.ts`.
+- **Risco de segurança:** nenhum código distingue "existe em outro município" de "não existe": recurso alheio é sempre 404 `nao_encontrada`.
+- **Impacto LGPD:** Não se aplica: os códigos não carregam dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** nenhum código atual muda de nome.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** 422 segue `{ erro: "dados_invalidos", campos }`; 500 devolve `requisicao`.
+- **Testes negativos:** código fora do catálogo reprova `catalogo-de-erros.test.ts`; corpo fora da forma reprova.
+- **Testes de autorização e isolamento:** `PATCH /orgaos/<id de B>` por coordenador de A: 404 `nao_encontrada`, nunca 403.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:campo`, `npm run typecheck`.
+- **E2E:** Não se aplica: sem fluxo novo.
+- **Validação humana:** Rafael lê a tabela do catálogo.
+- **Evidência a produzir:** `docs/evidencias-v2/G02/V2-F02-E03/` com a tabela gerada.
+- **Documentação a atualizar:** `README.md`.
+- **Definition of Done:** 100% dos códigos no catálogo; clientes leem `categoria`.
+- **Checkpoint:** Não.
+
+### V2-F02-E04 - OpenAPI gerado dos esquemas Zod (rotas existentes; obrigatório nas novas)
+- **Prioridade:** P1
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** médio  |  **Paralelizável:** sim (com F02-E07)
+- **Objetivo:** um documento OpenAPI 3.1 do `/v1`, gerado dos esquemas Zod e de um registro de rotas, versionado no repositório e conferido por teste; rota nova só entra com resposta descrita.
+- **Problema que resolve:** nenhum contrato descreve a API: as rotas validam com `schema.parse(req.body)` dentro do handler e não no esquema do Fastify, então a forma só existe no código (96 rotas distintas, `printRoutes` de 2026-09-30). O portal e o app do cidadão nasceriam lendo handler.
+- **Origem:** DP:T35; BZ-M:V2-TRV-10; REL:02; REL:06.
+- **Estado atual:** CRIAR (a base de esquemas existe em `packages/shared/src/schemas.ts`).
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Domínio: registro único `apps/api/src/contrato/rotas.ts` (a criar): `{ metodo, caminho, resumo, corpo?, consulta?, parametros?, resposta?, erros? }` com referências aos Zod existentes (`aberturaOcorrenciaSchema`, `providenciaSchema`...). É o mesmo arquivo que a F03-E12 estende com ação, ator, plateia e escopo de cada rota: não nascem duas listas.
+  - API: gerador `apps/api/src/contrato/openapi.ts` (a criar) converte Zod 3 em JSON Schema (biblioteca candidata `zod-to-json-schema`; a escolha final exige `npm audit` em zero) e escreve `apps/api/openapi/v1.json` (gerado e commitado) pelo comando `npm run openapi --workspace @dc360/api` (a criar).
+  - Testes: `apps/api/test/openapi.test.ts` (a criar) confere: toda rota de `printRoutes` sob `/v1` tem entrada e toda entrada tem rota; o documento regenerado em memória é igual ao commitado (sem deriva); entrada marcada `nova` sem `resposta` reprova; as existentes sem resposta saem num relatório (dívida listada, não reprova).
+- **O que NÃO deve ser implementado nesta etapa:** servir o documento em produção, gerar SDK, Swagger UI, documentar o espelho legado (E08), definir ação por rota (F03-E12).
+- **Arquivos e módulos prováveis:** `apps/api/src/contrato/` (a criar em `apps/api/src`), `apps/api/package.json`, `packages/shared/src/schemas.ts` (consumido), `apps/api/test/openapi.test.ts`.
+- **Risco de segurança:** o documento descreve a superfície inteira: fica só no repositório, não é rota; a biblioteca nova entra no `npm audit` e fixa versão.
+- **Impacto LGPD:** Não se aplica: só formas, com exemplos sintéticos.
+- **Migração necessária:** Não.
+- **Compatibilidade:** aditiva; nenhuma rota muda.
+- **Rollback:** remover `contrato/` e o script; sem efeito em runtime.
+- **Testes positivos:** documento válido em OpenAPI 3.1; `POST /v1/ocorrencias` descreve `aberturaOcorrenciaSchema`.
+- **Testes negativos:** rota sem entrada reprova; entrada sem rota reprova; `v1.json` desatualizado reprova; `nova` sem resposta reprova.
+- **Testes de autorização e isolamento:** Não se aplica: o registro não concede acesso nem toca banco; a ação por rota é F03-E12.
+- **Regressão obrigatória:** `npm run test:api`, `npm run typecheck`, `npm run auditar`.
+- **E2E:** Não se aplica: sem fluxo de usuário.
+- **Validação humana:** Rafael abre `v1.json` num visualizador local e confere três rotas conhecidas.
+- **Evidência a produzir:** `docs/evidencias-v2/G02/V2-F02-E04/` com `v1.json` e o relatório de rotas existentes sem resposta (número).
+- **Documentação a atualizar:** `README.md`, `apps/api/PENDENCIAS.md` (dívida das respostas).
+- **Definition of Done:** 100% das rotas com entrada; novas com resposta; sem deriva.
+- **Checkpoint:** Não.
+
+### V2-F02-E05 - Teste de contrato cliente x rota no CI (generaliza F00-E23)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (precisa de E02, para os clientes apontarem a `/v1`, e de E04, para o registro)
+- **Objetivo:** nenhum cliente chama caminho que a API não registra, nem com método diferente do da rota; o erro do `/pacote.zip` não se repete em nenhum dos três clientes.
+- **Problema que resolve:** o painel chamou `/pacote.zip` quando a rota real é `/saida/pacote.zip` (`dados/http.ts:951` contra `rotas/saida.ts:39`, registrada com prefixo `/saida` em `servidor.ts:759-760`) e nada reprovou. F00-E23 fecha o mínimo para o painel; esta etapa generaliza.
+- **Origem:** BZ-M:V2-TRV-10; BZ-N:O.4; DP:T28a; REL:02.
+- **Estado atual:** EXPANDIR (parte do que F00-E23 criou).
+- **Dependências de entrada:** E02, E04 (e F00-E23).
+- **O que deve ser implementado:**
+  - Testes: `apps/api/test/contrato-cliente-rota.test.ts` (a criar) lê como texto `apps/web/src/dados/http.ts`, `apps/campo/src/dados/api.ts` e `packages/campo/src/transporte.ts`, extrai método e caminho de cada `chamar(...)` e de cada `fetch(\`${BASE}...\`)`, troca `${...}` por `:p`, remove a query e confronta com as rotas de `/v1` obtidas por `printRoutes` (ajudante `apps/api/test/apoio/rotas.ts`, extraído de `superficie.test.ts`).
+  - Testes: três verificações: o caminho existe; o método bate; o corpo e a consulta do cliente casam com o esquema do registro da E04 quando houver. Rotas sem cliente entram num relatório (não reprovam: há rotas só de API).
+  - Testes: autoteste com fixture: o par `POST /pacote.zip` contra o servidor montado tem de reprovar; âncora de quantidade mínima de chamadas extraídas, como `superficie.test.ts` faz com `rotas.length > 15`.
+  - Infraestrutura: roda no job `produto` do CI por `npm run test:api`, sem passo novo (F01-E03 já cobre os portões).
+- **O que NÃO deve ser implementado nesta etapa:** pacote `cliente-api` (F08-E04); gerar clientes; contrato dos apps novos (portal e cidadão trazem os próprios casos em F11 e F17 usando este ajudante); teste de formato de resposta.
+- **Arquivos e módulos prováveis:** `apps/api/test/contrato-cliente-rota.test.ts` (a criar), `apps/api/test/apoio/rotas.ts` (a criar), `apps/api/test/superficie.test.ts`.
+- **Risco de segurança:** falso negativo por extração frágil (chamada montada por concatenação fora do padrão): a âncora de quantidade e a regra "todo `fetch` de cliente passa por `chamar` ou `${BASE}`" mitigam.
+- **Impacto LGPD:** Não se aplica: teste estático de código.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só teste.
+- **Rollback:** remover o arquivo; sem efeito em runtime.
+- **Testes positivos:** as mais de 60 chamadas de `http.ts` (conferir o número na execução) e as de `api.ts` e `transporte.ts` casam com rota e método.
+- **Testes negativos:** fixture `POST /pacote.zip` reprova; cliente `GET` contra rota `POST` reprova; chamada do campo sem rota reprova.
+- **Testes de autorização e isolamento:** Não se aplica: teste estático, sem token nem banco; o isolamento segue em G00 e G01.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:campo`, `npm run typecheck`.
+- **E2E:** `npm run test:e2e:api` continua necessário: o teste de contrato não o substitui.
+- **Validação humana:** Rafael revê o relatório de rotas sem cliente e marca as que deveriam ter.
+- **Evidência a produzir:** `docs/evidencias-v2/G02/V2-F02-E05/` com a saída do teste e o relatório.
+- **Documentação a atualizar:** `apps/api/PENDENCIAS.md`, `README.md`.
+- **Definition of Done:** três clientes cobertos; autoteste do `/pacote.zip` presente; teste no CI.
+- **Checkpoint:** Não.
+
+### V2-F02-E06 - X-App-Version, versão mínima por aplicativo e resposta 426
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F02-E07)
+- **Objetivo:** todo aplicativo de loja informa a própria versão; a API recusa com 426 e resposta padrão o aplicativo abaixo do mínimo configurado, sem nunca descartar o que está na fila do aparelho.
+- **Problema que resolve:** binário de loja não atualiza na hora e a API não sabe quem a chama; sem isso, mudança de contrato obriga a adivinhar quem ainda usa a versão velha (campo hoje, cidadão depois).
+- **Origem:** DP:T35; REL:07; REL:03; BZ-M:V2-CID-11.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - API: hook `onRequest` no escopo `/v1` lê `X-App-Version` (formato `campo/1.4.0`), compara com `VERSAO_MINIMA_CAMPO` e `VERSAO_MINIMA_CIDADAO` (novas em `config.ts`, vazias por padrão: sem mínimo) e responde `426` com `{ erro: "versao_do_aplicativo_antiga", mensagem, versaoMinima }` antes de autenticar. Cabeçalho ausente: aceita e conta em log de nível info até o fim do espelho.
+  - API: rota pública `GET /v1/aplicativos/:aplicativo/versao-minima`, sem dado de município (entra em `SEM_TOKEN` com razão); `allowedHeaders` do CORS (`servidor.ts:378`) ganha `x-app-version`; o painel manda `painel/<build>` só para observabilidade.
+  - Domínio: `packages/shared/src/versao.ts` (a criar) com `compararVersoes` (maior.menor.correção; pré-lançamento ignorado), testada.
+  - Mobile: `apps/campo/src/dados/api.ts` e `packages/campo/src/transporte.ts` enviam o cabeçalho (versão de `expoConfig.version`, passada por parâmetro); 426 entra na classe de falha que F00-E06 criou para `conta_desativada`: o item permanece na fila.
+- **O que NÃO deve ser implementado nesta etapa:** tela "atualize o aplicativo" e OTA (F14-E08); política de versão do cidadão (F15-E12); fichas de loja.
+- **Arquivos e módulos prováveis:** `apps/api/src/servidor.ts`, `apps/api/src/config.ts`, `packages/shared/src/versao.ts` (a criar em `packages/shared/src`), `packages/campo/src/transporte.ts`, `apps/campo/src/dados/api.ts`, `apps/api/test/versao-do-aplicativo.test.ts` (a criar).
+- **Risco de segurança:** o cabeçalho é declarado pelo cliente: serve a compatibilidade, nunca decide acesso; o 426 antes da autenticação é igual para qualquer cliente velho e não vaza nada.
+- **Impacto LGPD:** Não se aplica: a versão do aplicativo não identifica pessoa e não é gravada junto de usuário.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem cabeçalho é aceito, então os binários atuais seguem; mínimo vazio desliga a recusa.
+- **Rollback:** esvaziar `VERSAO_MINIMA_*` desliga a recusa sem novo deploy de código.
+- **Testes positivos:** `campo/1.4.0` com mínimo `1.3.0` passa; a rota de versão mínima responde sem token.
+- **Testes negativos:** `campo/1.2.0` com mínimo `1.3.0` recebe 426 em `POST /v1/sincronizacao/vistoria` e a fila de `packages/campo` mantém o item; cabeçalho malformado é ignorado, não vira 500.
+- **Testes de autorização e isolamento:** o 426 não depende de tenant e vem antes do 401; token do município B contra recurso de A segue 404 (nada novo vaza por causa da versão).
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:campo`, `npm run typecheck`.
+- **E2E:** simulador do campo com mínimo acima da versão: a fila não perde item (roteiro manual; o fluxo de tela é F14-E08).
+- **Validação humana:** Rafael sobe a API com mínimo alto e vê o 426 num `curl`.
+- **Evidência a produzir:** `docs/evidencias-v2/G02/V2-F02-E06/` com a saída dos testes e a captura do 426.
+- **Documentação a atualizar:** `apps/campo/LEIA-ME.md`, `README.md`.
+- **Definition of Done:** 426 provado; fila preservada; mínimo vazio por padrão; rota de versão pública documentada.
+- **Checkpoint:** Não.
+
+### V2-F02-E07 - Idempotência: chave de criação do cliente e UNIQUE (ocorrência, evidência)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F02-E06)
+- **Objetivo:** repetir `POST /v1/ocorrencias` com a mesma chave devolve o chamado já criado em vez de um segundo, e a mesma chave de evidência em outra ocorrência deixa de devolver a evidência alheia.
+- **Problema que resolve:** `POST /ocorrencias` (`ocorrencias.ts:629-692`) não tem chave: toque duplo ou reenvio sob sinal ruim cria dois chamados e queima dois números do protocolo oficial (`proximo_protocolo` roda antes do INSERT). Em `evidencias.ts:243-245` a busca por `idempotency_key` não confere `ocorrencia_id`: a chave repetida em outra ocorrência devolve a evidência da primeira.
+- **Origem:** DP:T35; REL:07; BZ-D:ARQ-25.
+- **Estado atual:** EXPANDIR (o padrão existe em `vistorias` e `evidencias`; falta no chamado).
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Domínio: campo opcional `chaveDeCriacao` (uuid) em `aberturaOcorrenciaSchema` (`packages/shared/src/schemas.ts:85`).
+  - Migration: `ocorrencias.chave_de_criacao uuid` com índice único parcial `(organizacao_id, chave_de_criacao) WHERE chave_de_criacao IS NOT NULL`; em `evidencias`, índice único `(organizacao_id, ocorrencia_id, idempotency_key)` onde a chave existir.
+  - API: chave já conhecida devolve 200 com o mesmo `id` e `protocolo`, sem gerar protocolo; em corrida, o segundo pedido cai em `23505`, a transação inteira volta (a sequência não é consumida), a rota relê e devolve. Em `evidencias.ts`, chave de outra ocorrência: 409 `chave_ja_usada_em_outro_registro` (código novo no catálogo da E03).
+  - Frontend: `NovaOcorrencia` gera o UUID ao abrir o formulário e o reaproveita no reenvio.
+  - Padrão registrado para os próximos criadores: encaminhamento (F04-E08), anexo (F06), relato (F17-E08).
+- **O que NÃO deve ser implementado nesta etapa:** relato e anexo do cidadão (F16, F06, F17); cabeçalho `Idempotency-Key` genérico (só se surgir necessidade); mudar a idempotência da sincronização do campo (existe e fica).
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/ocorrencias.ts`, `apps/api/src/rotas/evidencias.ts`, `packages/shared/src/schemas.ts`, `apps/web/src/paginas/NovaOcorrencia.tsx`, `db/migrations/` (migration nova).
+- **Risco de segurança:** a chave não é segredo nem autoridade e entra no índice junto de `organizacao_id`: chave de A não colide com B e não revela nada.
+- **Impacto LGPD:** Não se aplica: chave aleatória sem relação com pessoa.
+- **Migração necessária:** Sim (`NNN_chave_de_criacao_do_chamado.sql`).
+- **Compatibilidade:** campo opcional; cliente sem chave se comporta como hoje.
+- **Rollback:** reverter o código; os índices extras são inofensivos; migration aplicada não se reescreve (hash em `schema_migracoes`), correção só por migration nova.
+- **Testes positivos:** duas chamadas com a mesma chave devolvem o mesmo `id` e `protocolo`, e `protocolo_sequencias` avançou uma vez.
+- **Testes negativos:** mesma chave de evidência em outra ocorrência: 409; sem chave: dois chamados distintos; chave que não é uuid: 422.
+- **Testes de autorização e isolamento:** a mesma chave nos municípios A e B cria um chamado em cada, sem 404 nem 409 cruzado; `npm run test:isolamento` verde.
+- **Regressão obrigatória:** `npm run migrar -- --conferir` (a migration aplica do zero), `npm run test:api`, `npm run test:isolamento`, `npm run test:campo`, `npm run typecheck`.
+- **E2E:** `npm run test:e2e:api`: duplo clique em "Registrar" cria um chamado só.
+- **Validação humana:** Rafael tenta o duplo clique no formulário.
+- **Evidência a produzir:** `docs/evidencias-v2/G02/V2-F02-E07/` com a saída dos testes e a consulta de `protocolo_sequencias` antes e depois.
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`, `apps/api/PENDENCIAS.md`.
+- **Definition of Done:** criação idempotente provada; 409 na chave alheia; padrão documentado.
+- **Checkpoint:** Não.
+
+### V2-F02-E08 - Política de depreciação (Deprecation e Sunset, calendário de remoção do espelho)
+- **Prioridade:** P2
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** baixo  |  **Paralelizável:** sim (com F02-E06 e F02-E07)
+- **Objetivo:** escrever a regra de como uma rota ou o espelho sai de cena (cabeçalhos, aviso mínimo, resposta depois do prazo) e o calendário do espelho, para a remoção em F28-E11 ser um ato previsto.
+- **Problema que resolve:** a E01 põe a data como constante; falta a política: quem mede o uso do espelho, quando se avisa, o que responde depois do prazo (um 404 seco faz o aplicativo antigo parecer quebrado em vez de desatualizado).
+- **Origem:** DP:T35; REL:07.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - API: contador de uso do espelho por rota e por `X-App-Version` em log estruturado (nível info, sem usuário) para decidir a data com dado; após `ESPELHO_LEGADO_ATE`, com `ESPELHO_LEGADO_ENCERRADO=sim` (nova, padrão `nao`, só F28-E11 liga), o espelho responde `426 versao_do_aplicativo_antiga` com `Link` para `/v1` em vez de 404.
+  - Arquivos: `dc360/docs/POLITICA-DE-VERSOES-DA-API.md` (a criar em `dc360/docs`): ciclo (introdução, depreciação com aviso mínimo, encerramento), regra de mudança compatível e incompatível, calendário do espelho com data decidida e quem a revisa. A data não é inventada aqui: sai da medição de uso e da versão mínima publicada de cada aplicativo.
+  - Testes: com a data no passado e a chave ligada o legado responde 426; no futuro responde normal com cabeçalhos.
+- **O que NÃO deve ser implementado nesta etapa:** remover o espelho (F28-E11); versão mínima de aplicativo (E06); `/v2`.
+- **Arquivos e módulos prováveis:** `apps/api/src/servidor.ts`, `apps/api/src/config.ts`, `dc360/docs/POLITICA-DE-VERSOES-DA-API.md` (a criar), `apps/api/test/versao-v1.test.ts`.
+- **Risco de segurança:** nenhum novo; o 426 não carrega dado.
+- **Impacto LGPD:** Não se aplica: o contador guarda só rota e versão, sem identificação.
+- **Migração necessária:** Não.
+- **Compatibilidade:** padrão desligado; nada muda até F28-E11.
+- **Rollback:** desligar a chave de configuração.
+- **Testes positivos:** legado com data futura responde 200 com `Deprecation` e `Sunset`.
+- **Testes negativos:** legado com data passada e chave ligada responde 426; data ausente ou inválida impede a partida em produção.
+- **Testes de autorização e isolamento:** o 426 do espelho vem antes da autenticação e é igual para todo município; token de B contra recurso de A em `/v1` segue 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run typecheck`.
+- **E2E:** Não se aplica: nenhum fluxo de usuário muda antes de F28-E11.
+- **Validação humana:** Rafael aprova o calendário do espelho.
+- **Evidência a produzir:** `docs/evidencias-v2/G02/V2-F02-E08/` com o texto aprovado da política e a saída dos testes.
+- **Documentação a atualizar:** `README.md`, `dc360/docs/COLOCAR-DE-PE.md` (variáveis novas).
+- **Definition of Done:** política escrita; data registrada ou adiamento declarado com o que fica bloqueado (F28-E11 não executa sem data); testes verdes.
+- **Checkpoint:** Não.
+
+### V2-F02-E09 - Ano do protocolo e datas do CSV pelo fuso do município
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** baixo  |  **Paralelizável:** sim (com F02-E02 e E07)
+- **Objetivo:** o ano do protocolo e as datas do CSV passam do relógio do processo para o fuso do município, derivado da UF cadastrada.
+- **Problema que resolve:** `ocorrencias.ts:639` usa `new Date().getFullYear()` (UTC em contêiner): às 22h de 31 de dezembro em Brasília a ocorrência recebe protocolo do ano seguinte; `dataParaPlanilha` (`prestacao-de-contas.ts:155`) e o nome do CSV (`:501`) também usam o processo (ALY:OCO-01, ALY:RN-02, ALY:RNF-14).
+- **Origem:** PR:L5; ALY:OCO-01; ALY:RN-02; ALY:RNF-14.
+- **Estado atual:** EXPANDIR (`fusoDoEstado` já existe em `documentos/folha.ts:98`).
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Domínio: `packages/shared/src/fuso.ts` (a criar): `fusoDoEstado` (movido de `folha.ts`, que o reexporta), `anoNoFuso` e `dataNoFuso`.
+  - API: `POST /ocorrencias` lê `organizacoes.uf` na transação e passa o ano no fuso a `proximo_protocolo`; `dataParaPlanilha` e o nome do CSV usam o fuso do município.
+  - Testes: `apps/api/test/fuso-do-protocolo.test.ts` (a criar): 2027-01-01T03:30Z gera ano 2027 em SP e 2026 em AC.
+- **O que NÃO deve ser implementado nesta etapa:** mudar o formato do protocolo; reescrever protocolos antigos; fuso configurável por município; métricas (`023_metricas_do_municipio.sql:84`, anotar em `apps/api/PENDENCIAS.md`).
+- **Arquivos e módulos prováveis:** `packages/shared/src/fuso.ts` (a criar), `apps/api/src/rotas/ocorrencias.ts`, `apps/api/src/rotas/prestacao-de-contas.ts`, `apps/api/src/documentos/folha.ts`, `apps/api/test/fuso-do-documento.test.ts`.
+- **Risco de segurança:** UF ausente cai em `FUSO_PADRAO`; a sequência é por ano, então a virada não corrompe numeração.
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** protocolos emitidos não mudam.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** 2027-01-01T02:30Z em SP gera protocolo de 2026; CSV de 22h local traz a data local.
+- **Testes negativos:** UF desconhecida usa o fuso padrão sem erro; ano em fuso não vira dois protocolos iguais.
+- **Testes de autorização e isolamento:** o fuso vem da organização do token; token de A não escolhe fuso de B; `npm run test:isolamento` verde.
+- **Regressão obrigatória:** `npm run test:api` (`fuso-do-documento`), `npm run test:isolamento`, `npm run typecheck`.
+- **E2E:** `npm run test:e2e:api`: registrar e baixar o CSV.
+- **Validação humana:** Rafael confere a data do CSV de uma ocorrência noturna.
+- **Evidência a produzir:** `docs/evidencias-v2/G02/V2-F02-E09/` com os testes.
+- **Documentação a atualizar:** `apps/api/PENDENCIAS.md`.
+- **Definition of Done:** nenhum ponto de protocolo ou CSV usa o fuso do processo.
+- **Checkpoint:** Não.
+
+# GATE G02 - API V1 E CONTRATOS
+
+Só passa se:
+- [ ] V2-F02-E01: toda rota de negócio existe sob `/v1` e no espelho, com paridade provada por `apps/api/test/versao-v1.test.ts`, e as três exceções (`/saude`, `/armazenamento/objeto`, `/publico/oficio/:token`) estão listadas; evidência em `docs/evidencias-v2/G02/V2-F02-E01/`.
+- [ ] V2-F02-E01: o espelho legado tem `ESPELHO_LEGADO_ATE` em formato ISO e responde `Deprecation` e `Sunset` em toda rota; saída do teste arquivada.
+- [ ] V2-F02-E02: painel, campo e console chamam só `/v1` (confirmado pelo teste da E05); lista de caminhos chamados arquivada.
+- [ ] V2-F02-E03: o catálogo cobre 100% dos códigos usados em `apps/api/src`, inclui os três de F00-E05, e os clientes leem a `categoria`; tabela gerada arquivada.
+- [ ] V2-F02-E04: `apps/api/openapi/v1.json` sem deriva, com entrada para toda rota de `/v1` e resposta descrita nas novas; relatório de rotas existentes sem resposta arquivado.
+- [ ] V2-F02-E05: teste de contrato cliente x rota verde para os três clientes e com o autoteste do `/pacote.zip` reprovando como esperado; saída arquivada.
+- [ ] V2-F02-E06: 426 provado com a fila do campo preservando o item, versão mínima vazia por padrão; captura arquivada.
+- [ ] V2-F02-E07: criação de ocorrência idempotente (um número de protocolo por chave) e 409 para chave de evidência em outra ocorrência; saída dos testes arquivada.
+- [ ] V2-F02-E08 (P2): política de versões escrita e data do espelho decidida; se adiada, o adiamento está registrado e F28-E11 fica bloqueada até haver data.
+- [ ] V2-F02-E09 (P1): ano do protocolo e datas do CSV pelo fuso do município (`fuso-do-protocolo.test.ts` verde, com a virada de ano em SP e em AC); saída arquivada.
+- [ ] `npm run test:isolamento` (suíte inteira de `db/`, com CA-06), `npm run test:api`, `npm run test:campo`, `npm run test:console`, `npm run typecheck` e `npm run test:e2e:api` verdes.
+- [ ] nenhuma regressão: gates G00 e G01 continuam verdes (se um quebrar, ESTE gate volta a REPROVADO).
+- [ ] documentação atualizada e evidências arquivadas em `docs/evidencias-v2/G02/`.
+
+**Reabre se:** surgir rota sem entrada no registro de contrato, cliente chamando caminho que a API não registra, espelho legado sem data de remoção, ou protocolo e CSV voltarem a depender do fuso do processo.
+**Este Gate libera:** F03 (identidade, vigência e contexto de ator) e F08 (design system e fundamentos); as fases novas (F11 e F17) já nascem sobre `/v1` e sobre o registro de rotas.
+
+# Fase 03: Identidade, vigência e contexto de ator V2
+
+**Gate da fase:** G03 IDENTIDADE E VIGÊNCIA PROVADAS | **Depende dos gates:** G00, G01, G02 | **Superfícies tocadas:** `apps/api`, `db`, `packages/shared`, `apps/web` (formulário de usuários e entrada), `apps/console` (teste de plateia) | **Checkpoints da fase:** CP-05, CP-08, CP-49, CP-50, CP-51, CP-52
+
+Esta fase faz do banco e do pacote compartilhado os únicos lugares que dizem quem é o ator, o que ele pode e a que órgão pertence. Entram: PESSOA GLOBAL com conta e vínculos por município (D-08), JWT cujo `sub` é a pessoa e cujo `org` é o município ativo escolhido, login em dois passos com troca de município, órgão externo multi-município, vigência em toda requisição, papel genérico `usuario_orgao` com vínculo temporal (`orgao_vinculos`), audiência `dc360-portal`, contexto do ator no banco, funções privilegiadas que conferem o tenant, e-mail único entre pessoas ativas, convite de uso único, MFA na pessoa, manifesto rota x ação com default negado, matriz empírica, recorte fail-closed, cotas persistentes, trilha de sessão e nível de sigilo.
+
+Decisões fixas (não reabrir): o papel de banco `dc360_app` continua único na API de servidores (o da API PÚBLICA do cidadão é o CP-25, em F15); `pessoas` é global e é a EXCEÇÃO NOMEADA ao isolamento por `organizacao_id` (como `interesse_municipio`): sem grant ao papel de aplicação, acesso só por funções SECURITY DEFINER da lista nominal; `usuarios` vira a conta da pessoa em cada município (mesmos ids e FKs compostas); o token vale para UM município por vez; usuário de órgão tem papel genérico e vínculo temporal, nunca papel por secretaria; o ÓRGÃO é contexto dentro do tenant e NÃO é tenant (ADR 0009). D-02 e A-01 estão revogadas por D-08.
+
+Preserva (MANTER): scrypt, JWT HS256 de 15 minutos, refresh rotativo com detecção de reuso, `exigirPermissao`, posto e regra do último administrador, TOTP, console separado, RLS ativada e forçada, trilha append-only. NÃO faz: encaminhamento e RLS por órgão (F04), telas do portal (F11) e de escolha de município (F10, F11, F14), identidade do cidadão (F15), tela de reset de MFA (F10-E01), cadeia de arquivos (F06).
+
+Ordem sugerida (a numeração não é a ordem): E01, E04, E15 (pessoa e conta, base de tudo), depois E02, E03, E05, E06, E07, E08. E09 e E10 correm ao lado; E11 exige E05 e E15; E16 exige E02 e E11; E12 e E13 exigem E06; E14 fecha o recorte; E17 exige E05, E10 e E16; E18 fecha a identidade depois de E17; E19, E20 e E21 são independentes entre si (E20 exige E16; E21 exige E06 e E12).
+
+## Etapas
+
+### V2-F03-E01 - ADR 0009: pessoa global com contas e vínculos por município; revoga D-02 e A-01
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não
+- **Objetivo:** registrar antes do código a identidade da V2: pessoa global com conta e vínculos por município, token de um município por vez e exceção nomeada ao isolamento.
+- **Problema que resolve:** o CLAUDE.md isola por `organizacao_id` e tira a organização do token; pessoa global e órgão parecem violá-lo (BZ-D:IDN-35, BZ-D:SEC-48). Caso guia: engenheiro de distribuidora atendendo 12 municípios.
+- **Origem:** PR:D-08; PR:D-02; PR:A-01; DP:T01; DP:T05; BZ-D:IDN-38.
+- **Estado atual:** CRIAR (`docs/adr/` vai da 0001 à 0008).
+- **Dependências de entrada:** G02.
+- **O que deve ser implementado:** 
+  - ADR 0009 em `docs/adr/` (estilo das existentes) decidindo: (1) `pessoas` global, `usuarios` como conta da pessoa no município, `orgao_vinculos` temporal; (2) JWT `sub` pessoa, `org` município ativo; (3) `pessoas` é EXCEÇÃO NOMEADA: zero grant, só funções SECURITY DEFINER da lista nominal, lista de exceções em `isolamento.test.ts`; (4) órgão é contexto, não tenant, com redação proposta para o CLAUDE.md; (5) papel genérico `usuario_orgao`; (6) administrador de município nunca define senha, e-mail nem MFA de pessoa com conta em outro município; (7) descartados: e-mail por tenant, conta sem pessoa, token multi-município.
+  - `apps/api/PENDENCIAS.md`: a decisão substitui o backlog de A-01.
+- **O que NÃO deve ser implementado nesta etapa:** código (E02 a E21); realm do cidadão (F15-E01); isolamento por órgão (F04-E01); editar o CLAUDE.md.
+- **Arquivos e módulos prováveis:** `docs/adr/` (ADR 0009, a criar), `apps/api/PENDENCIAS.md`, `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Risco de segurança:** pessoa global concentra credencial: segunda leitura de segurança antes de aceitar.
+- **Impacto LGPD:** liga dados entre municípios; parecer do encarregado em CP-49.
+- **Migração necessária:** Não.
+- **Compatibilidade:** complementa as ADRs 0006 e 0008.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** `packages/shared/test/regras-de-conteudo.test.ts` aprova o arquivo.
+- **Testes negativos:** Não se aplica: documento; negativos em E15 a E18.
+- **Testes de autorização e isolamento:** Não se aplica: invariantes provados por E18 e F04.
+- **Regressão obrigatória:** `npm test --workspace @dc360/shared`.
+- **E2E:** Não se aplica: documento.
+- **Validação humana:** Rafael aceita a ADR e a redação do CLAUDE.md.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E01/` com hash e aceite.
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** ADR aceita com a exceção nomeada.
+- **Checkpoint:** CP-49 (bloqueia pessoa em mais de um município em produção).
+
+### V2-F03-E02 - JWT enxuto: sub é a pessoa, org é o município ativo; papel e sp deixam de ser autoridade
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não
+- **Objetivo:** o token carrega só `sub` (pessoa), `org` (município ativo), `sid`, `aud` e `exp`; papel, nome, conta e vínculo vêm do banco a cada requisição.
+- **Problema que resolve:** `CONTEUDO_ACESSO` (`auth/tokens.ts:18-36`) leva `papel`, `nome` e `sp`, e `exigirAutenticacao` (`servidor.ts:480-486`) monta a `Identidade` deles: rebaixar só vale quando o token vence.
+- **Origem:** PR:D-08; DP:T06; DP:T09; BZ-D:IDN-07; BZ-D:AUT-31; BZ-F:P0-SEG.
+- **Estado atual:** REFATORAR.
+- **Dependências de entrada:** E01, E15.
+- **O que deve ser implementado:** 
+  - API: `CONTEUDO_ACESSO` vira `{ sub, org, sid }`; `papel`, `nome`, `sp` ficam opcionais e ignorados. Dois deploys: o primeiro aceita os dois formatos (`sub` como pessoa ou, até `ACEITA_SUB_DE_CONTA_ATE`, como `usuarios.id`); o segundo emite o enxuto.
+  - API: `exigirAutenticacao` chama a vigência da E15 com (`sub`, `org`, `sid`) e monta a `Identidade` (`pessoaId`, `usuarioId` da conta, papel, nome, vínculos); `org` sem sessão viva da pessoa: 401.
+  - API: `CONTEUDO_DESAFIO` vira `{ sub, org?, etapa }`.
+  - Testes: `apps/api/test/token-nao-e-autoridade.test.ts` (a criar) reprova leitura de `papel`, `nome` ou `sp` do token em `apps/api/src`.
+- **O que NÃO deve ser implementado nesta etapa:** negar leitura de conta inativa (E03); audiência (E07); escolha de município (E16); cache de revogação.
+- **Arquivos e módulos prováveis:** `apps/api/src/auth/tokens.ts`, `servico.ts`, `segundo-fator.ts`, `vigencia.ts`, `apps/api/src/servidor.ts`.
+- **Risco de segurança:** servidor antigo recusaria token novo: dois deploys. Clientes só leem `exp` (`apps/campo/src/dados/token.ts:84-100`).
+- **Impacto LGPD:** Não se aplica: o token carrega menos dado.
+- **Migração necessária:** Não.
+- **Compatibilidade:** tokens anteriores valem até vencer (15 minutos).
+- **Rollback:** reverter o segundo deploy.
+- **Testes positivos:** payload com exatamente `sub`, `org`, `sid`, `aud`, `iss`, `iat`, `exp`; token antigo verifica.
+- **Testes negativos:** token assinado com `papel: 'administrador'` para conta `operador`: 403 em `GET /usuarios`; `org` sem conta da pessoa: 401.
+- **Testes de autorização e isolamento:** token de A pedindo recurso de B: 404; `org` adulterado: 401.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:console`, `npm run test:campo`, `npm run typecheck`.
+- **E2E:** `npm run test:e2e:api`: entrar, renovar e escrever.
+- **Validação humana:** Rafael decodifica um token.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E02/` com payload e testes.
+- **Documentação a atualizar:** `README.md` (autenticação).
+- **Definition of Done:** dois deploys feitos; nada lê papel, nome ou `sp` do token.
+- **Checkpoint:** Não.
+
+### V2-F03-E03 - Vigência em TODA requisição autenticada via comTenant (uma consulta, leituras inclusive)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E06, E12 e E14 dependem)
+- **Objetivo:** conta ativa, sessão viva, senha provisória e município ativo são conferidos no banco em toda requisição autenticada, leituras inclusive, com uma consulta única e os códigos de F00-E05.
+- **Problema que resolve:** depois de F00-E04 só a escrita confere; o cabeçalho de `auth/vigencia.ts:32-36` e `auth/suspensao.ts` declaram que a leitura confia no token por quinze minutos. Conta desativada continua lendo dossiê de família (nome, contato, vulnerabilidade) (BZ-D:IDN-10, BZ-D:AUT-18, BZ-D:AUT-19, BZ-D:SEC-46).
+- **Origem:** DP:T09; PR:D-04; BZ-F:P0-SEG; REL:06 13.2.
+- **Estado atual:** EXPANDIR (a consulta de `lerVigencia` existe e a F00-E04 a liga na escrita; faltam a leitura, a centralização e a prova universal).
+- **Dependências de entrada:** E02; F00-E04 (e F00-E05 para os códigos).
+- **O que deve ser implementado:**
+  - API: `exigirAutenticacao` chama `lerVigencia` (que usa `banco.comTenant`, mesma conexão e mesmo contexto RLS) em TODO método, GET e HEAD incluídos, uma consulta por requisição; `exigirVigencia` responde 403 `acesso_suspenso` (503 na fila do campo), 403 `conta_desativada`, 401 `sessao_encerrada` e, para senha provisória vencida, 401 `sessao_encerrada`. A sessão rotacionada continua válida pelos quinze minutos do token (regra de `vigencia.ts:23-30`). Sem cache entre requisições, sem lista de revogação, sem Redis.
+  - Testes: reescrever o caso "o token de acesso continua LENDO até vencer" (`vigencia-na-escrita.test.ts:172-182`): leitura também nega. Teste universal novo `apps/api/test/vigencia-em-toda-requisicao.test.ts`: com a conta desativada, percorre TODA rota autenticada de `printRoutes` (ajudante da F02-E05) e exige 401 ou 403 em cada uma.
+  - Documentação: efeito declarado: leitura em município suspenso passa a responder 403 de imediato (antes valia até 15 minutos); a política final de suspensão é de F20-E04 (CP-29).
+- **O que NÃO deve ser implementado nesta etapa:** contexto de ator no banco (E06); manifesto (E12); fundir a vigência na transação do negócio num `comAtor` único (otimização só se F24-E02 reprovar o p95); cache.
+- **Arquivos e módulos prováveis:** `apps/api/src/servidor.ts`, `apps/api/src/auth/vigencia.ts`, `apps/api/src/auth/suspensao.ts`, `apps/api/src/auth/sessoes.ts` (comentários), `apps/api/test/vigencia-na-escrita.test.ts`.
+- **Risco de segurança:** uma consulta a mais por leitura sob pico (pool de 10 conexões e sem `statement_timeout`, REL:10): medir em F07-E08 e F24-E02. Códigos novos em leitura chegam à fila do campo: F00-E06 já trata sem perder item.
+- **Impacto LGPD:** Não se aplica: nenhum dado novo; conta desligada deixa de ler dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** o painel precisa levar à entrada em `sessao_encerrada` (F00-E05 e F00-E09); o campo usa a classe de falha de F00-E06.
+- **Rollback:** reverter o commit; sem flag de desligamento (flag deixaria o padrão inseguro na mão de quem esquecer).
+- **Testes positivos:** conta ativa lê e escreve; sessão rotacionada na renovação ainda lê pelos quinze minutos.
+- **Testes negativos:** conta desativada em `GET /ocorrencias` recebe 403 `conta_desativada`; sessão encerrada por `/auth/encerrar-sessoes` recebe 401 `sessao_encerrada` no GET seguinte; senha provisória vencida lê 401; papel rebaixado lê como o papel novo.
+- **Testes de autorização e isolamento:** token do município B contra recurso de A segue 404 com a vigência ligada; município suspenso responde 403 sem expor outro; `npm run test:isolamento` verde.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run test:campo`, `npm run test:e2e:api`, `npm run typecheck`; G00 e G02.
+- **E2E:** desativar usuário no painel e confirmar que o próximo GET e o próximo POST dele falham.
+- **Validação humana:** Rafael repete a sonda de REL:06 (desativar e ler) antes e depois.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E03/` com a saída da varredura universal e o log da sonda.
+- **Documentação a atualizar:** `README.md` (autenticação), `apps/api/PENDENCIAS.md`, comentários de `auth/suspensao.ts:36-42` e `auth/vigencia.ts:32-36`.
+- **Definition of Done:** nenhuma rota autenticada atende conta inativa; varredura universal verde; comentários batem com o código.
+- **Checkpoint:** Não.
+
+### V2-F03-E04 - Domínio de papel e de ator no banco (CREATE DOMAIN) e papel usuario_orgao (migration)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com F03-E03)
+- **Objetivo:** um lugar no banco e no shared define papel e ator; `usuario_orgao` entra sem permissão, como papel da CONTA no município, com login fechado até a E14.
+- **Problema que resolve:** papéis em quatro CHECKs (`usuarios.papel` 001:89, `trilha_eventos.autor_papel` 001:307, `trilha_administrativa.autor_papel` 010:42, `ocorrencia_consultas.usuario_papel` 021:219) e `trilha_eventos.origem` só admite `campo` e `escritorio`; tabela append-only não se corrige depois.
+- **Origem:** PR:D-08; DP:T03; DP:T07; BZ-D:IDN-02; BZ-D:AUT-40; BZ-D:SEC-48.
+- **Estado atual:** REFATORAR (CHECKs viram domínio) e EXPANDIR (papel novo).
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Migration: domínios `papel_de_conta`, `papel_de_autor_administrativo` (mais `operador_da_plataforma`) e `tipo_de_ator` (`servidor`, `usuario_orgao`, `sistema`) nas quatro colunas; `trilha_eventos.origem` ganha `portal`.
+  - Domínio: `PAPEIS` ganha `usuario_orgao` (`POSTO` 1, `PERMISSOES` vazia); `PAPEIS_DE_SERVIDOR` alimenta `usuarioSchema`.
+  - API: `PATCH /usuarios/:id` recusa mudar papel de ou para `usuario_orgao` (409 `papel_nao_se_converte`, mais gatilho); a conta `usuario_orgao` nasce só por convite (E10); `PORTAL_ATIVO=nao` faz o login dela responder credenciais inválidas até o G03.
+  - Testes: `apps/api/test/papeis-batem-com-o-banco.test.ts` (a criar).
+- **O que NÃO deve ser implementado nesta etapa:** pessoa (E15); vínculos (E05); contexto (E06); permissões do `usuario_orgao` (F04-E08).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `packages/shared/src/dominio.ts`, `permissoes.ts`, `apps/api/src/rotas/administracao.ts`, `apps/api/src/config.ts`.
+- **Risco de segurança:** papel novo com 32 rotas só autenticadas herdaria o município (BZ-D:AUT-10): login nasce fechado.
+- **Impacto LGPD:** Não se aplica: nenhum dado novo.
+- **Migração necessária:** Sim (`NNN_dominio_de_papel_e_usuario_orgao.sql`).
+- **Compatibilidade:** clientes ignoram o papel novo.
+- **Rollback:** migration corretiva retira o valor; login fechado limita o dano.
+- **Testes positivos:** gravar `usuario_orgao` e `origem = 'portal'` como dono.
+- **Testes negativos:** papel inventado recusado nas quatro colunas; `PATCH` para `usuario_orgao`: 409; login com `PORTAL_ATIVO=nao`: credenciais inválidas.
+- **Testes de autorização e isolamento:** `npm run test:isolamento` verde; conta de órgão de A ausente em `GET /usuarios` de B.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`.
+- **E2E:** formulário de Usuários lista só os quatro papéis atuais.
+- **Validação humana:** Rafael confere o formulário.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E04/` com os testes.
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** domínio nas quatro colunas; `usuario_orgao` fechado.
+- **Checkpoint:** Não.
+
+### V2-F03-E05 - Vínculo da pessoa com o órgão: orgao_vinculos temporal por município, RLS e FKs compostas (migration)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não
+- **Objetivo:** ligar a pessoa, pela conta no município, a um órgão desse município, com papel, início, fim e motivo, sob RLS; vínculo se encerra, nunca se apaga.
+- **Problema que resolve:** `usuarios` não tem órgão e `orgaos` é só destino de ofício (REL:05): duas secretarias e a mesma pessoa em vários municípios não têm representação (BZ-D:SEC-05).
+- **Origem:** PR:D-08; DP:T03; DP:T05; BZ-D:SEC-05; BZ-M:V2-SEC-01.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E04, E15.
+- **O que deve ser implementado:** 
+  - Banco: `orgao_vinculos` (`organizacao_id`, `usuario_id`, `pessoa_id`, `orgao_id`, `papel_no_orgao` `gestor|executor|leitor`, `inicio`, `fim`, `concedido_por`, motivos de concessão e encerramento); FKs compostas `(organizacao_id, usuario_id, pessoa_id)` para `usuarios`, `(organizacao_id, orgao_id)`, `(organizacao_id, concedido_por)`; `pessoa_id` para `pessoas` na exceção nomeada de FK; índice único parcial `(organizacao_id, usuario_id, orgao_id) WHERE fim IS NULL`; gatilho aceita só conta `usuario_orgao` e órgão ativos.
+  - Banco: RLS por município forçada, sem DELETE; `GRANT UPDATE (fim, encerrado_por, motivo_do_encerramento)` (padrão `oficio_envios`, 017:674); colunas listadas em `isolamento.test.ts:3969-3986`; entra em `ordem_de_apagamento_por_municipio()` (038:834) e `TABELAS_DA_SAIDA` (`saida/pacote.ts:49`).
+  - API: a vigência devolve os vínculos vigentes; concessão e encerramento gravam `trilha_administrativa`.
+- **O que NÃO deve ser implementado nesta etapa:** rota e tela (F10-E03, F11-E19); convite (E10); órgão externo (E17); unidade administrativa (item 26).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `apps/api/src/saida/pacote.ts`, `apps/api/src/auth/vigencia.ts`, `db/test/orgao-vinculos.test.ts` (a criar).
+- **Risco de segurança:** o vínculo é a autoridade do acesso do órgão: FK composta impede conta de A em órgão de B.
+- **Impacto LGPD:** dado mínimo, classificado em F05-E03.
+- **Migração necessária:** Sim (`NNN_orgao_vinculos.sql`).
+- **Compatibilidade:** aditiva.
+- **Rollback:** só migration nova corrige.
+- **Testes positivos:** Maria com vínculos a Obras e Saúde; encerrar um mantém o outro.
+- **Testes negativos:** segundo vínculo vigente do par viola o índice; `DELETE` e `UPDATE` de `orgao_id` negados; `pessoa_id` alheia à conta recusada.
+- **Testes de autorização e isolamento:** contexto de B lê 0 vínculos de A.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `npm run test:isolamento`, `npm run test:api`.
+- **E2E:** Não se aplica: sem tela.
+- **Validação humana:** Rafael revê as colunas.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E05/` com os testes.
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`, `dc360/docs/SAIDA-DE-MUNICIPIO.md`.
+- **Definition of Done:** RLS forçada; eliminação e saída cientes.
+- **Checkpoint:** Não.
+
+### V2-F03-E06 - Contexto do ator no banco: app.ator_tipo, app.ator_id, app.pessoa_id, app.ator_papel, app.orgao_atual (fail-closed)
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** crítica  |  **Risco:** crítico  |  **Paralelizável:** não
+- **Objetivo:** toda transação carrega o ator (conta, pessoa, papel, órgão) além do tenant; contexto ausente devolve zero linhas.
+- **Problema que resolve:** o banco só conhece `app.organizacao_atual` (`banco/postgres.ts:236-239`); a RLS por órgão (F04) e o sigilo (E21) precisam saber quem pede (BZ-D:AUT-38).
+- **Origem:** PR:D-08; DP:T07; DP:T08; BZ-D:AUT-02; BZ-M:V2-SEC-08.
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** E03, E05, E15.
+- **O que deve ser implementado:** 
+  - Migration: `app_ator_tipo()`, `app_ator_id()` (conta), `app_pessoa_id()`, `app_ator_papel()` e `app_orgao_atual()` (SQL, STABLE, sem SECURITY DEFINER; valor malformado estoura).
+  - API: `comTenant(ator, execucao)` (`banco/tipos.ts:29`) com `Ator = { tipo, id, pessoaId, papel, organizacaoId, orgaoId? }`, um `set_config` por transação (`postgres.ts:252`, `memoria.ts:67`); papel e pessoa vêm da vigência, nunca do token; relógios e login usam `comTenantDoSistema(organizacaoId)`.
+  - API: troca das cerca de 100 chamadas guiada pelo compilador; o órgão vem da rota e só vale com vínculo vigente, senão 404.
+  - Frontend: modo local (`apps/web/src/dados/banco.ts:162`) e `comoApp` de `db/test` definem o ator.
+  - Testes: `apps/api/test/rotas-passam-o-ator.test.ts` reprova `comTenant` com texto.
+- **O que NÃO deve ser implementado nesta etapa:** policies por órgão (F04-E05); manifesto (E12); sigilo (E21); papel de banco novo (CP-25).
+- **Arquivos e módulos prováveis:** `apps/api/src/banco/tipos.ts`, `postgres.ts`, `memoria.ts`, `rotas/*.ts`, `apps/web/src/dados/banco.ts`, `db/migrations/` (migration nova).
+- **Risco de segurança:** toca todo caminho de banco; ator esquecido vira zero linhas (falha segura).
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Sim (`NNN_contexto_do_ator.sql`).
+- **Compatibilidade:** `comTenant` muda para todos os chamadores.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** as funções devolvem o ator; `sistema` sem id funciona nos relógios.
+- **Testes negativos:** sem ator, `app_ator_tipo()` é NULL; `app.ator_id` malformado estoura; `comTenant(string)` reprova a varredura.
+- **Testes de autorização e isolamento:** transações concorrentes de municípios diferentes não trocam contexto.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `npm run test:isolamento`, `npm run test:api`, `npm run test:e2e`.
+- **E2E:** `npm run test:e2e` e `npm run test:e2e:api`.
+- **Validação humana:** Rafael vê o ator em transação de teste.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E06/` com as chamadas migradas.
+- **Documentação a atualizar:** `README.md`.
+- **Definition of Done:** nenhum `comTenant` com texto.
+- **Checkpoint:** Não.
+
+### V2-F03-E07 - Audiência dc360-portal por conta e teste de plateia
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com F03-E04 e E05)
+- **Objetivo:** a sessão em que a conta é `usuario_orgao` recebe plateia `dc360-portal` e só vale em rota do portal; o token `dc360` não vale lá, provado com o mesmo segredo, como no console.
+- **Problema que resolve:** há uma plateia só (`tokens.ts:41`): token de órgão seria aceito por toda rota do painel (REL:06 13.3). Com pessoa global a plateia segue a conta escolhida: servidora em A, `usuario_orgao` em B.
+- **Origem:** PR:D-08; DP:T03; DP:T15; BZ-D:AUT-39.
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - API: `emitirAcesso(..., plateia)` e `verificarAcesso(..., plateias)` com `dc360` e `dc360-portal` em `tokens.ts`; a emissão (`servico.ts:435`, mais a E16) escolhe pelo papel da conta no `org`; a renovação mantém a plateia; `chaveDoLimitador` (`rede.ts:123`) e `organizacaoDoAcessoVencido` (`tokens.ts:142`) aceitam as duas.
+  - API: `exigirAutenticacao` lê `config: { plateia }` da rota (padrão `dc360`); outra plateia: 401 `nao_autenticado`.
+  - Testes: `apps/api/test/plateia-do-portal.test.ts` (a criar), no estilo de `apps/console/test/plateia-nao-atravessa.test.ts`.
+- **O que NÃO deve ser implementado nesta etapa:** login e rotas do portal (F11-E04, F04-E08); segredo separado; realm do cidadão (F15-E03).
+- **Arquivos e módulos prováveis:** `apps/api/src/auth/tokens.ts`, `servico.ts`, `apps/api/src/rede.ts`, `servidor.ts`.
+- **Risco de segurança:** plateia mal conferida deixa usuário de órgão chamar rota do painel.
+- **Impacto LGPD:** Não se aplica: nenhum dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** tokens `dc360` inalterados; `usuario_orgao` ainda não loga (E04).
+- **Rollback:** reverter o commit.
+- **Testes positivos:** `dc360-portal` passa em rota do portal; a pessoa de duas contas recebe plateias diferentes em A e B.
+- **Testes negativos:** `dc360-portal` em `GET /v1/ocorrencias`: 401; `dc360`, `dc360-console` e `dc360-desafio` em rota do portal: 401.
+- **Testes de autorização e isolamento:** token do portal de A com recurso de B: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:console`, `npm run typecheck`.
+- **E2E:** Não se aplica: sem fluxo de usuário.
+- **Validação humana:** Rafael lê os casos.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E07/` com o teste.
+- **Documentação a atualizar:** `README.md`, ADR 0009.
+- **Definition of Done:** plateia provada nos dois sentidos.
+- **Checkpoint:** Não.
+
+### V2-F03-E08 - Funções SECURITY DEFINER de autenticação conferem o tenant; lista nominal no lugar do teto de 27
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não
+- **Objetivo:** as funções SECURITY DEFINER de autenticação só agem sobre pessoa com conta ativa no município do contexto; o teto numérico vira lista nominal.
+- **Problema que resolve:** `trocar_senha` (005:135), `registrar_tentativa_login` (002:111) e `revogar_sessoes_do_usuario` (002:219) agem sobre qualquer uuid (REL:06 14b); com `pessoas` global, a conta de A alcançaria quem também atua em B.
+- **Origem:** PR:D-08; BZ-F:P0-SEG; BZ-D:AUT-05; BZ-D:AUT-34; REL:06 14b.
+- **Estado atual:** CORRIGIR e REFATORAR.
+- **Dependências de entrada:** E06, E15.
+- **O que deve ser implementado:** 
+  - Migration: as três só agem se a pessoa tem conta ativa em `app_organizacao_atual()` (a falha de login pré-tenant só incrementa o contador); `dono_do_token` devolve `organizacao_id`. `trocar_senha` só aceita a pessoa do próprio `sub`: administrador de município NUNCA define senha de pessoa (redefinir é novo convite, E10).
+  - API: `auth/servico.ts` chama as três em `comTenantDoSistema`.
+  - Testes: `db/test/funcoes-de-autenticacao-conferem-o-tenant.test.ts` (a criar) reproduz REL:06; `FUNCOES_PRIVILEGIADAS` (nome, motivo, como confere o tenant) em `isolamento.test.ts` substitui o `<= 27` e bate com o catálogo nos dois sentidos; as etapas que criam função a listam.
+- **O que NÃO deve ser implementado nesta etapa:** funções novas (cada etapa lista as suas); funções do cidadão (F15-E07).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `apps/api/src/auth/servico.ts`, `db/test/isolamento.test.ts`.
+- **Risco de segurança:** sem a organização a falha de login não conta: `enumeracao-pelo-bloqueio.test.ts` guarda.
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Sim (`NNN_funcoes_de_autenticacao_conferem_o_tenant.sql`).
+- **Compatibilidade:** assinaturas iguais, exceto `dono_do_token`.
+- **Rollback:** migration corretiva.
+- **Testes positivos:** senha certa zera falhas; reuso de refresh derruba a família.
+- **Testes negativos:** contexto de A: `trocar_senha` de pessoa sem conta em A não muda o hash; `revogar_sessoes_do_usuario` de sessão de B devolve 0; administrador de A trocando senha de pessoa de A e B: recusado.
+- **Testes de autorização e isolamento:** `npm run test:isolamento` verde (lista nominal, search_path fixo).
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`.
+- **E2E:** Não se aplica: sem fluxo novo.
+- **Validação humana:** Rafael vê REL:06 falhar e passar.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E08/` com saída e lista.
+- **Documentação a atualizar:** `db/PENDENCIAS.md`.
+- **Definition of Done:** três funções conferem o tenant; lista nominal em vigor.
+- **Checkpoint:** Não.
+
+### V2-F03-E09 - E-mail único entre pessoas ativas (índice parcial em pessoas) e conflito genérico
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim
+- **Objetivo:** o e-mail é único globalmente só entre PESSOAS ativas e o conflito responde igual em qualquer município; a limitação de A-01 deixa de existir.
+- **Problema que resolve:** `usuarios_email_global_idx` (002:31) e `UNIQUE (organizacao_id, email)` (001:94) prendem o e-mail de conta desativada, e o 409 de `POST /usuarios` confirma que o e-mail existe em algum município (REL:06 13.2).
+- **Origem:** PR:D-08; PR:A-01; DP:T04; BZ-D:IDN-04.
+- **Estado atual:** CORRIGIR.
+- **Dependências de entrada:** E15.
+- **O que deve ser implementado:**
+  - Migration: índice único `pessoas (lower(email)) WHERE ativo`; remove os dois índices de `usuarios` (nome do segundo conferido no catálogo); gatilho SECURITY DEFINER `pessoa_acompanha_as_contas` (lista nominal) inativa a pessoa quando a última conta ativa é desativada, liberando o e-mail; `credenciais_da_pessoa` escolhe a pessoa ativa, com tempo e mensagem iguais aos de e-mail inexistente.
+  - API: reativar conta de pessoa inativa: 409 (novo convite cria pessoa nova); `POST /usuarios` responde o mesmo `usuario_repetido` para e-mail do próprio município ou de outro.
+- **O que NÃO deve ser implementado nesta etapa:** convite (E10); troca de e-mail pela própria pessoa (`apps/api/PENDENCIAS.md`).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `apps/api/src/rotas/administracao.ts`, `apps/api/src/auth/servico.ts`, `apps/api/test/email-entre-ativos.test.ts` (a criar).
+- **Risco de segurança:** e-mail reaproveitado por outra pessoa não herda sessão nem conta: conta desativada nunca se reativa para outra pessoa.
+- **Impacto LGPD:** reduz o oráculo de e-mail entre municípios.
+- **Migração necessária:** Sim (`NNN_email_unico_entre_pessoas_ativas.sql`).
+- **Compatibilidade:** aditiva.
+- **Rollback:** migration corretiva restaura o índice total.
+- **Testes positivos:** pessoa inativa: o mesmo e-mail cadastra pessoa nova, que entra.
+- **Testes negativos:** segunda pessoa ativa com o mesmo e-mail: 409 de corpo idêntico; reativar conta antiga com a nova ativa: 409.
+- **Testes de autorização e isolamento:** corpo do 409 igual para e-mail de A ou de B.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `npm run test:isolamento`, `npm run test:api`.
+- **E2E:** `npm run test:e2e`: usuário duplicado mostra erro genérico.
+- **Validação humana:** Rafael tenta recriar e-mail de pessoa inativa.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E09/` com os dois 409.
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** índice parcial em vigor; conflito genérico.
+- **Checkpoint:** Não.
+
+### V2-F03-E10 - Convite de uso único: a prefeitura convida pessoa nova ou existente e cria a conta no município
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não
+- **Objetivo:** a conta nasce por convite de uso único enviado ao e-mail, não por senha de quem cria; vale para pessoa nova ou existente.
+- **Problema que resolve:** `POST /usuarios` exige senha digitada pelo criador (`schemas.ts:65`) sem verificar o e-mail (BZ-D:IDN-19); convidar quem atua em outro município não pode mudar a credencial dela.
+- **Origem:** PR:D-08; DP:T04; BZ-D:IDN-19; BZ-M:V2-SEC-11.
+- **Estado atual:** SUBSTITUIR (senha conhecida por quem cria).
+- **Dependências de entrada:** E09, E15.
+- **O que deve ser implementado:** 
+  - Migration: `convites_de_vinculo` (`organizacao_id`, `usuario_id` da conta pendente, `pessoa_id`, `token_hash`, `expira_em`, `consumido_em`; RLS por município); a conta nasce inativa e o aceite a ativa. Funções SECURITY DEFINER (lista nominal): `convidar_pessoa` acha ou cria a pessoa sem dizer qual; `aceitar_convite` (pessoa nova define a senha; existente só aceita, com a própria sessão).
+  - API: `POST /v1/usuarios` sem `senha` (422) responde 202 igual nos dois casos; link pelo `Notificador` (só o hash, 72 horas, GET não consome); `POST /v1/usuarios/:id/convite` reemite e invalida o anterior.
+- **O que NÃO deve ser implementado nesta etapa:** tela de aceite (F11-E06); MFA no aceite (E11); e-mail real (CP-19).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `apps/api/src/rotas/administracao.ts`, `apps/api/src/auth/servico.ts`, `apps/api/test/convite.test.ts` (a criar).
+- **Risco de segurança:** link de uso único; resposta igual para pessoa nova e existente (sem oráculo).
+- **Impacto LGPD:** a mensagem leva só município e link.
+- **Migração necessária:** Sim (`NNN_convite_de_vinculo.sql`).
+- **Compatibilidade:** `POST /usuarios` com `senha`: 422.
+- **Rollback:** reverter API e painel.
+- **Testes positivos:** pessoa nova define a senha e entra; pessoa existente aceita sem mudar a senha.
+- **Testes negativos:** segundo uso e vencido: link inválido; `senha` no corpo: 422; aceite com sessão de outra pessoa: recusado.
+- **Testes de autorização e isolamento:** coordenador de B convidando e-mail ativo em A recebe o mesmo 202.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `npm run test:api`, `npm run test:isolamento`.
+- **E2E:** `npm run test:e2e:api`: criar, ler o link, entrar.
+- **Validação humana:** Rafael cria um usuário de teste.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E10/` com as saídas.
+- **Documentação a atualizar:** `dc360/docs/LIGAR-O-EMAIL.md`.
+- **Definition of Done:** nenhuma credencial conhecida por quem cria.
+- **Checkpoint:** CP-05 (e-mail real só em HML).
+
+### V2-F03-E11 - MFA TOTP na pessoa, obrigatório para usuario_orgao, coordenador e administrador; reset por superior com trilha
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com F03-E12)
+- **Objetivo:** o segundo fator é da pessoa e exigido quando a conta escolhida é `usuario_orgao`, `coordenador` ou `administrador`; reset por superior com motivo e trilha.
+- **Problema que resolve:** o TOTP só vale ao administrador e com `SEGUNDO_FATOR_ATIVO=sim` (`config.ts:291`); `segundo_fator` é por `(organizacao_id, usuario_id)` (022:114), preso a um município; falta reset de MFA de outra pessoa (BZ-D:IDN-16, BZ-D:SEC-50).
+- **Origem:** PR:D-08; DP:T03; DP:T37; BZ-D:IDN-16; BZ-D:SEC-50.
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** E05, E15.
+- **O que deve ser implementado:** 
+  - Migration: `pessoa_segundo_fator` e `pessoa_codigos_de_recuperacao` copiam as tabelas atuais por pessoa; RLS `pessoa_id = app_pessoa_id()`, exceção nomeada; segredo segue cifrado (`auth/cofre.ts`).
+  - API: `exigidoPara(papel)` cobre os três papéis, pela conta ESCOLHIDA (E16); para `usuario_orgao` não depende de `SEGUNDO_FATOR_ATIVO` (503 `segundo_fator_desligado`; a partida recusa `PORTAL_ATIVO=sim` sem ele, `config.ts:637`).
+  - API: `POST /v1/usuarios/:id/segundo-fator/redefinir` (`gerenciar_usuarios` mais posto): desativa o segredo, revoga sessões, grava `segundo_fator_redefinido` com motivo; pessoa com conta ativa em outro município: 409 `pessoa_em_varios_municipios`.
+- **O que NÃO deve ser implementado nesta etapa:** telas (F10-E01, F11-E05); atrito (CP-08); reset de pessoa multi-município; MFA do cidadão (F15-E04).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `apps/api/src/auth/segundo-fator.ts`, `apps/api/src/rotas/segundo-fator.ts`, `apps/api/src/config.ts`.
+- **Risco de segurança:** reset por um município desarmaria a proteção da pessoa em outro (REL:06 D4): por isso o 409.
+- **Impacto LGPD:** a trilha leva autor, alvo e motivo, sem segredo.
+- **Migração necessária:** Sim (`NNN_segundo_fator_na_pessoa.sql`).
+- **Compatibilidade:** coordenadores ativam o TOTP no próximo login: comunicar antes.
+- **Rollback:** reverter `exigidoPara` e a rota.
+- **Testes positivos:** coordenador novo ativa o TOTP; administrador reseta o de um coordenador.
+- **Testes negativos:** `usuario_orgao` sem `SEGUNDO_FATOR_ATIVO`: 503; coordenador resetando administrador: 403; auto-reset: recusado; pessoa em A e B: 409.
+- **Testes de autorização e isolamento:** administrador de A resetando pessoa só de B: 404.
+- **Regressão obrigatória:** `npm run test:api` (`segundo-fator`), `npm run test:console`, `npm run test:isolamento`.
+- **E2E:** `npm run test:e2e:api` com `SEGUNDO_FATOR_ATIVO=sim`.
+- **Validação humana:** Rafael reseta o TOTP de um coordenador de teste.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E11/` com testes e a linha de trilha.
+- **Documentação a atualizar:** `README.md`.
+- **Definition of Done:** três papéis exigem TOTP; reset provado.
+- **Checkpoint:** CP-08 e CP-50 (quem redefine MFA de pessoa em vários municípios).
+
+### V2-F03-E12 - Manifesto rota x ação e default deny (rota sem ação declarada reprova)
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** crítica  |  **Risco:** alto  |  **Paralelizável:** não
+- **Objetivo:** toda rota declara num registro único ação, atores, plateia e escopo; rota sem declaração reprova no teste e é negada na prática.
+- **Problema que resolve:** 32 das 96 rotas só exigem autenticação e `superficie.test.ts` só prova 401 sem token: rota nova nasce aberta a qualquer papel (REL:06 14a; BZ-D:AUT-10; BZ-D:SEC-68).
+- **Origem:** PR:D-08; DP:T08; BZ-D:AUT-10; BZ-D:SEC-68.
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** E06.
+- **O que deve ser implementado:**
+  - Domínio: o registro de F02-E04 (`apps/api/src/contrato/rotas.ts`) ganha `acesso: { tipo: 'publica' | 'propria_conta' | 'acao', acao?, atores?, plateia, escopo, justificativa? }`; públicas e 'própria conta' exigem `justificativa`; as 13 leituras ganham ação nomeada (`ler_ocorrencias`, `buscar` e outras) para os quatro papéis atuais; `usuario_orgao` não recebe nenhuma.
+  - API: `exigirAutenticacao` consulta o manifesto por método e `routeOptions.url`; rota sem entrada: 403.
+  - Testes: `apps/api/test/manifesto-de-rotas.test.ts` (a criar): toda rota de `printRoutes` (`/v1` e espelho) tem `acesso` e vice-versa; a ação de `autorizar` bate; `superficie.test.ts` deriva suas isenções dele.
+- **O que NÃO deve ser implementado nesta etapa:** matriz empírica (E13); recorte (E14); ações do encaminhamento (F04-E08); competência do órgão (F04-E15).
+- **Arquivos e módulos prováveis:** `apps/api/src/contrato/rotas.ts`, `apps/api/src/servidor.ts`, `packages/shared/src/permissoes.ts`, `apps/api/test/superficie.test.ts`.
+- **Risco de segurança:** erro de transcrição abre ou fecha rota; a matriz da E13 confronta o manifesto com o comportamento real.
+- **Impacto LGPD:** Não se aplica: o padrão negado reduz acesso.
+- **Migração necessária:** Não.
+- **Compatibilidade:** nenhuma resposta muda para os papéis atuais.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** toda rota declarada; os quatro papéis seguem nas leituras de hoje.
+- **Testes negativos:** rota sem entrada reprova; `usuario_orgao` em `GET /v1/ocorrencias`: 403.
+- **Testes de autorização e isolamento:** token de A em recurso de B: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run test:e2e:api`.
+- **E2E:** `npm run test:e2e:api`: fluxos do painel sob o manifesto.
+- **Validação humana:** Rafael lê a tabela gerada.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E12/` com a tabela do manifesto.
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** zero rota sem ação declarada.
+- **Checkpoint:** Não.
+
+### V2-F03-E13 - Matriz empírica papel x rota x método como teste fixo
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** médio  |  **Paralelizável:** não (depende do manifesto da E12)
+- **Objetivo:** um teste fixo varre toda rota autenticada com um token de cada papel e compara o resultado com o manifesto, de modo que o comportamento real nunca diverge do declarado.
+- **Problema que resolve:** não há varredura rota x papel: o bloco "Autorização por papel" de `api.test.ts:327` tem 4 casos, e a matriz gerada à mão em REL:06 14a (script `matriz.mts`, fora do repositório) não se repete.
+- **Origem:** DP:T08; BZ-D:AUT-33; BZ-M:V2-SEC-08; REL:06 14a.
+- **Estado atual:** CRIAR (a partir do método descrito em REL:06).
+- **Dependências de entrada:** E12.
+- **O que deve ser implementado:**
+  - Testes: `apps/api/test/matriz-papel-x-rota.test.ts` (a criar) sobe o servidor com a semente e, para cada rota de `/v1` em `printRoutes` (o espelho é coberto pela paridade da F02-E01), chama com token de `operador`, `agente_campo`, `coordenador`, `administrador`, `usuario_orgao` (plateia do portal, com vínculo e sessão criados pelo próprio teste via `mem.bruto` e `emitirAcesso`, já que o login do `usuario_orgao` segue fechado até a E14) e de outro município; corpo vazio, porque a autorização antecede o `parse` (403 `sem_permissao` = barrado por ação, 401 = autenticação, 404, 422 ou 200 = autorizado).
+  - Testes: compara cada célula com `acesso.atores` do manifesto; célula não prevista é NEGADA e o teste falha se a resposta foi outra além de 401, 403 ou 404; âncora de quantidade mínima de rotas e dos cinco papéis.
+  - Testes: rotas com efeito externo (`POST /rota` com chave do Google, envio de ofício, saída de município) usam os dublês de configuração de teste existentes, nunca rede.
+  - Arquivos: o teste grava a matriz em `docs/evidencias-v2/G03/V2-F03-E13/matriz.md` (gerada, sem token) e é reexecutado na F25-E03.
+- **O que NÃO deve ser implementado nesta etapa:** autorização de dado por órgão e de arquivos (F04-E13, F25-E05); teste de carga; gerar manifesto a partir da matriz (a direção é manifesto para teste).
+- **Arquivos e módulos prováveis:** `apps/api/test/matriz-papel-x-rota.test.ts` (a criar), `apps/api/test/apoio/rotas.ts`, `apps/api/src/contrato/rotas.ts`.
+- **Risco de segurança:** mutações reais em teste: cada caso roda em banco em memória isolado ou com rollback; token do `usuario_orgao` de teste sem segredo real.
+- **Impacto LGPD:** Não se aplica: dados sintéticos da semente.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só teste.
+- **Rollback:** remover o arquivo; nenhuma mudança de runtime.
+- **Testes positivos:** a matriz gerada bate com o manifesto em todas as células.
+- **Testes negativos:** alterar a ação de uma rota no manifesto sem mudar o handler reprova; `agente_campo` em rota de coordenador: 403; `usuario_orgao` em qualquer rota do painel: 401 ou 403, nunca 200, 404 ou 422.
+- **Testes de autorização e isolamento:** coluna "outro município": 404 em toda rota com `:id`, sem 200 nem 403.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run typecheck`.
+- **E2E:** Não se aplica: a matriz é teste de API; fluxos seguem em `npm run test:e2e:api`.
+- **Validação humana:** Rafael lê a matriz gerada e confirma as linhas críticas (usuários, exportação, saída de município).
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E13/matriz.md` e a saída do teste.
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** matriz verde com os cinco papéis; teste no CI; matriz arquivada.
+- **Checkpoint:** Não.
+
+### V2-F03-E14 - Recorte fail-closed para todo papel novo e cenário do upload do agente de outra equipe
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não
+- **Objetivo:** o recorte vira lista positiva: só `agente_campo` (por equipe) e papéis de servidor veem ocorrência; papel novo recebe vazio ou 404; upload de agente de outra equipe é negado.
+- **Problema que resolve:** `recorteDoAgente` (`rotas/recorte-do-agente.ts:35`) devolve o município inteiro a todo papel que não seja `agente_campo` (BZ-D:AUT-11); `POST /evidencias/autorizar-envio` (`evidencias.ts:288-297`) acha a ocorrência só por id (BZ-D:UPL-04).
+- **Origem:** PR:D-08; PR:L21; DP:T08; BZ-D:AUT-11; BZ-D:UPL-04.
+- **Estado atual:** REFATORAR e CORRIGIR (upload sem equipe).
+- **Dependências de entrada:** E06, E12.
+- **O que deve ser implementado:**
+  - API: `recorteDoPapel(quem, alias, params)`: `agente_campo` aplica a equipe; `administrador`, `coordenador` e `operador` recebem `null` explícito; qualquer outro papel, condição falsa e 404 no detalhe.
+  - API: aplicar em `/busca`, `/avisos`, `/oficios`, `/equipes`, `/orgaos`, `/mapa`; sem ação de leitura no manifesto, nega.
+  - API: `autorizar-envio` e `confirmar-envio` aplicam o recorte da equipe: ocorrência de outra equipe responde 404.
+  - Testes: `apps/api/test/recorte-fail-closed.test.ts` (a criar); `PORTAL_ATIVO=sim` só depois do G03.
+- **O que NÃO deve ser implementado nesta etapa:** RLS por órgão (F04-E05); busca do órgão (F04-E09); cadeia de arquivos (F06-E04).
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/recorte-do-agente.ts`, `evidencias.ts`, `busca.ts`, `avisos.ts`, `oficios.ts`, `orgaos.ts`.
+- **Risco de segurança:** operador e coordenador não podem ganhar recorte por engano: `agente-so-ve-a-equipe.test.ts` guarda.
+- **Impacto LGPD:** reduz exposição.
+- **Migração necessária:** Não.
+- **Compatibilidade:** nada muda para os quatro papéis, salvo o 404 do upload alheio.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** operador e coordenador veem o município; agente, só a equipe.
+- **Testes negativos:** papel fora da lista: lista vazia e 404; agente da equipe B em `POST /v1/evidencias/autorizar-envio` e `confirmar-envio` de ocorrência da equipe A: 404 e nenhuma cota reservada.
+- **Testes de autorização e isolamento:** `usuario_orgao` de A em `GET /v1/ocorrencias/<id de A>`: 404; token de B em recurso de A: 404.
+- **Regressão obrigatória:** `npm run test:api` (`agente-so-ve-a-equipe`), `npm run test:isolamento`, `npm run test:campo`.
+- **E2E:** `npm run test:e2e:api`: coordenador e agente veem o de sempre.
+- **Validação humana:** Rafael confere que usuário de órgão de teste vê tudo vazio.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E14/` com testes e matriz da E13.
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** recorte total e fail-closed; upload alheio negado.
+- **Checkpoint:** Não.
+
+### V2-F03-E15 - Migração de usuarios para pessoa e conta no município, com backfill sem perda e exceção nomeada ao isolamento
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** crítica  |  **Risco:** crítico  |  **Paralelizável:** não
+- **Objetivo:** criar `pessoas` (global) e ligar cada `usuarios` a uma pessoa sem perder conta, sessão, MFA nem autoria; exceção ao isolamento nomeada e provada.
+- **Problema que resolve:** credencial e e-mail moram em `usuarios` (`senha_hash` 002:22, `usuarios_email_global_idx` 002:31), o MFA em `segundo_fator` por município (022); mais de 20 FKs compostas apontam para `usuarios (organizacao_id, id)`.
+- **Origem:** PR:D-08; DP:T01; DP:T05; REL:06 13.3.
+- **Estado atual:** EXPANDIR (`usuarios` vira a conta da pessoa, mesmos ids) e CRIAR (`pessoas`).
+- **Dependências de entrada:** E01, E04.
+- **O que deve ser implementado:** 
+  - Migration: `pessoas` (`nome`, `email`, `senha_hash`, falhas, bloqueio, `senha_provisoria_ate`, `email_verificado_em`, `ativo`) sem `organizacao_id`, RLS forçada sem policy e sem grant ao `dc360_app`; `usuarios.pessoa_id` e `sessoes.pessoa_id`; `UNIQUE (organizacao_id, pessoa_id)` e `(organizacao_id, id, pessoa_id)`.
+  - Backfill: uma pessoa por `usuarios` (o e-mail já é único globalmente), credencial copiada, contagens iguais; colunas antigas caem depois.
+  - Funções SECURITY DEFINER (lista nominal): `vigencia_da_sessao(pessoa, org, sid)` (uma consulta, exige `org = app_organizacao_atual()`, chamada por `lerVigencia`) e `credenciais_da_pessoa` no lugar de `credenciais_para_login`.
+  - Testes: `isolamento.test.ts` ganha `EXCECOES_AO_ISOLAMENTO` nominal (linhas 435-478).
+- **O que NÃO deve ser implementado nesta etapa:** login em dois passos (E16); vínculo (E05); remover colunas antigas.
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `apps/api/src/auth/vigencia.ts`, `db/test/isolamento.test.ts`, `db/test/pessoas.test.ts` (a criar).
+- **Risco de segurança:** tabela fora do tenant: só funções nominais a alcançam; dump antes do backfill (F01-E15).
+- **Impacto LGPD:** credencial fora do tenant: classificar em F05-E03.
+- **Migração necessária:** Sim (`NNN_pessoas_e_conta_no_municipio.sql`).
+- **Compatibilidade:** aditiva; ids e FKs não mudam.
+- **Rollback:** só migration nova corrige.
+- **Testes positivos:** N contas viram N pessoas; login e MFA de antes funcionam.
+- **Testes negativos:** `SELECT` e `INSERT` em `pessoas` pelo `dc360_app`: negados; segunda conta da pessoa no município: `UNIQUE`.
+- **Testes de autorização e isolamento:** `vigencia_da_sessao` com `org` alheio ao contexto: vazio.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `npm run test:isolamento`, `npm run test:api`.
+- **E2E:** `npm run test:e2e:api`: login e escrita como antes.
+- **Validação humana:** Rafael vê as contagens.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E15/` com contagens e lista.
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** backfill sem perda; exceção nomeada e provada.
+- **Checkpoint:** CP-49 (ver E01).
+
+### V2-F03-E16 - Login em dois passos, escolha do município e troca de município com token e sessão novos
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não
+- **Objetivo:** a pessoa entra com e-mail e senha, escolhe o município quando tem mais de uma conta e troca de município sem sair; cada escolha gera token e sessão próprios.
+- **Problema que resolve:** `POST /auth/entrar` (`rotas/autenticacao.ts:116`) resolve um único município pelo e-mail e emite token de `org` fixo: quem atua em 12 municípios não opera.
+- **Origem:** PR:D-08; DP:T03; DP:T05.
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** E02, E11, E15.
+- **O que deve ser implementado:** 
+  - API: `entrar` (`auth/servico.ts:155`) confere senha e bloqueio na pessoa e lista as contas ativas por `municipios_da_pessoa` (SECURITY DEFINER, lista nominal). Uma conta: resposta de hoje. Nenhuma: credenciais inválidas. Várias: 200 com `escolha` (desafio de 5 minutos e municípios).
+  - API: `POST /v1/auth/municipio` (desafio e `organizacaoId`): só município da lista, suspensão conferida (`exigirAcessoAtivo`), segundo fator do papel da conta (E11); então sessão em `sessoes.organizacao_id` e tokens com a plateia da E07.
+  - API: `POST /v1/auth/trocar-municipio` (autenticada): confere a lista pelo `sub`, cria sessão no destino, herda `mfa_verificado_em` por até `MFA_VIGENCIA_MINUTOS`, emite token novo.
+  - API: cliente abaixo de `VERSAO_ESCOLHA_DE_MUNICIPIO` com várias contas: 409.
+- **O que NÃO deve ser implementado nesta etapa:** telas (F10-E01, F11-E04, F14); mesclar sessões.
+- **Arquivos e módulos prováveis:** `apps/api/src/auth/servico.ts`, `apps/api/src/rotas/autenticacao.ts`, `db/migrations/` (migration nova), `apps/api/test/escolha-de-municipio.test.ts` (a criar).
+- **Risco de segurança:** a lista só sai depois da senha (sem oráculo de e-mail); `organizacaoId` só escolhe entre contas da pessoa.
+- **Impacto LGPD:** a lista mostra à pessoa só onde ela já tem conta.
+- **Migração necessária:** Sim (`NNN_escolha_de_municipio.sql`).
+- **Compatibilidade:** uma conta: resposta idêntica.
+- **Rollback:** reverter a API.
+- **Testes positivos:** pessoa com contas em A e B escolhe B e recebe token de `org` B; troca para A emite token novo.
+- **Testes negativos:** município fora da lista: 401; desafio vencido: 401.
+- **Testes de autorização e isolamento:** `trocar-municipio` para município sem conta: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run test:campo`.
+- **E2E:** `npm run test:e2e:api`: entrar e trocar.
+- **Validação humana:** Rafael entra e troca com pessoa de teste.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E16/` com os testes.
+- **Documentação a atualizar:** `README.md`.
+- **Definition of Done:** escolha e troca provadas.
+- **Checkpoint:** Não.
+
+### V2-F03-E17 - Órgão externo no catálogo de cada município (concessionária, órgão estadual, bombeiros) e a mesma pessoa em vários municípios
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não
+- **Objetivo:** o catálogo de órgãos de cada município aceita órgão externo, com abrangência regional, e a mesma pessoa tem vínculo em vários municípios, convidada por cada um.
+- **Problema que resolve:** `orgaos` (017:86) é só destino de ofício, sem tipo nem órgão regional; D-02 excluía isso. Engenheiro de distribuidora de energia atendendo 12 municípios precisaria de 12 e-mails.
+- **Origem:** PR:D-08; PR:D-02; DP:T05; DP:R3.
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** E05, E10, E16.
+- **O que deve ser implementado:** 
+  - Migration: `orgaos.tipo` (`secretaria`, `autarquia`, `concessionaria`, `orgao_estadual`, `bombeiros`, `outro`; F04-E02 o usa sem recriar), `orgaos.externo` e `orgaos.abrangencia` (`local` ou `regional`, só se externo); cada município tem a própria linha; `orgao_vinculos.termo_aceito_em` (nova, texto em F05-E06).
+  - API: `POST` e `PATCH /v1/orgaos` aceitam os campos (`gerenciar_equipes`); convite a órgão externo exige papel `usuario_orgao`, MFA (E11) e o termo aceito; desativar o órgão encerra os vínculos com motivo.
+  - Testes: `apps/api/test/orgao-externo-multimunicipio.test.ts` (a criar): Elisa, da distribuidora, com contas em três municípios, convidada por cada um.
+- **O que NÃO deve ser implementado nesta etapa:** catálogo global; autoatendimento do externo; telas (F10-E02, F11-E19).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `apps/api/src/rotas/orgaos.ts`, `apps/api/test/orgao-externo-multimunicipio.test.ts` (a criar).
+- **Risco de segurança:** terceiro lê só o dossiê mínimo (F04), nunca `ocorrencias`; entra só por convite.
+- **Impacto LGPD:** dado a terceiro: só o dossiê (CP-09) e o termo aceito.
+- **Migração necessária:** Sim (`NNN_orgao_externo.sql`).
+- **Compatibilidade:** padrão `outro`, `externo` falso: nada muda.
+- **Rollback:** colunas inertes.
+- **Testes positivos:** Elisa entra em B ou C escolhendo; cada município vê só a conta dela.
+- **Testes negativos:** convite de órgão externo a papel de servidor: 422; `regional` sem `externo`: CHECK; vínculo sem termo: recusado.
+- **Testes de autorização e isolamento:** Elisa com token de B lendo encaminhamento de C: 404.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `npm run test:api`, `npm run test:isolamento`.
+- **E2E:** `npm run test:e2e:api`: convite, aceite e escolha.
+- **Validação humana:** Rafael convida a mesma pessoa em dois municípios.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E17/` com os testes.
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** externo multi-município provado.
+- **Checkpoint:** CP-51 (termo e base legal; bloqueia convidar externo real).
+
+### V2-F03-E18 - Teste de cruzamento: pessoa com conta em A e B nunca lê dado de A com token de B
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não
+- **Objetivo:** provar no banco e na API que a pessoa com conta em A e B nunca lê dado de A com token de B (e inverso), e que recurso do outro município responde 404.
+- **Problema que resolve:** o CA-06 prova isolamento com um usuário por município; com pessoa global o mesmo `sub` existe nos dois, e defeito de `org`, sessão ou contexto vazaria sem quebrar teste.
+- **Origem:** PR:D-08; DP:T05; REL:06.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E17.
+- **O que deve ser implementado:**
+  - Testes: `db/test/pessoa-em-dois-municipios.test.ts` (a criar): Elisa com conta em A e B; sob contexto de B toda tabela de negócio devolve só B; `vigencia_da_sessao(elisa, A, <sessão de B>)` vazia.
+  - Testes: `apps/api/test/cruzamento-de-municipios.test.ts` (a criar) com `apps/api/test/apoio/rotas.ts` (F02-E05): para toda rota `/v1` com `:id`, token de B com recurso de A: 404, nunca 200 nem 403; busca de B não acha texto de A; refresh de A usado em B recusado; requisições simultâneas de A e B não trocam contexto; desativar a conta em A não derruba B; suspender A não suspende B.
+- **O que NÃO deve ser implementado nesta etapa:** RLS por órgão (F04); pentest (F25).
+- **Arquivos e módulos prováveis:** `db/test/pessoa-em-dois-municipios.test.ts` (a criar), `apps/api/test/cruzamento-de-municipios.test.ts` (a criar), `apps/api/test/apoio/rotas.ts`.
+- **Risco de segurança:** falso verde por rota fora da varredura: âncora de quantidade mínima de rotas, como em `superficie.test.ts`.
+- **Impacto LGPD:** Não se aplica: dados sintéticos.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só teste.
+- **Rollback:** remover os arquivos.
+- **Testes positivos:** Elisa lê em A com token de A e em B com token de B.
+- **Testes negativos:** token de B em recurso de A: 404; `org` de A com `sid` de B: 401; refresh de A em B: recusado.
+- **Testes de autorização e isolamento:** o próprio teste; `npm run test:isolamento` verde, CA-06 incluído.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`.
+- **E2E:** Não se aplica: teste de API e de banco.
+- **Validação humana:** Rafael lê a tabela rota x resposta.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E18/` com a tabela.
+- **Documentação a atualizar:** ADR 0009.
+- **Definition of Done:** varredura completa verde; CA-06 intacto.
+- **Checkpoint:** Não.
+
+### V2-F03-E19 - Cotas persistentes também na API de servidores (limite de taxa e falha de login entre instâncias)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim
+- **Objetivo:** limite de taxa e contagem de falha de login da API de servidores passam da memória do processo para cotas persistentes por chave e ação, válidas entre instâncias.
+- **Problema que resolve:** `falhasDeEmailInexistente` é um `Map` (`auth/servico.ts:130`) e o limitador (`servidor.ts:382`, `rotas/autenticacao.ts:102`) usa balde em memória: reiniciar zera e duas máquinas dividem o balde (ALY:RNF-07).
+- **Origem:** PR:L13; PR:A-03; ALY:RNF-07.
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** E08, E15.
+- **O que deve ser implementado:**
+  - Migration: `cotas_de_uso` (`chave_hash`, `acao`, `janela_inicio`, `contagem`; sem `organizacao_id`, exceção nomeada, sem grant) e função SECURITY DEFINER `consumir_cota(chave_hash, acao, limite, janela)` (lista nominal); chave é HMAC (`COTAS_SEGREDO`) de IP, e-mail normalizado ou pessoa; expurgo das janelas vencidas.
+  - API: `apps/api/src/cotas.ts` (a criar) alimenta login, `/segundo-fator`, `/recuperar`, `/redefinir` e o limite por usuário, no lugar do `Map`; banco indisponível: balde em memória e registro em nível `error`. F15-E10 reaproveita o mecanismo.
+- **O que NÃO deve ser implementado nesta etapa:** cotas da API pública do cidadão (F15-E10); limite na borda (F15-E09); Redis.
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `apps/api/src/cotas.ts` (a criar), `apps/api/src/auth/servico.ts`, `apps/api/src/rotas/autenticacao.ts`, `apps/api/test/cotas-persistentes.test.ts` (a criar).
+- **Risco de segurança:** IP em claro seria dado pessoal e oráculo: só HMAC; falha do banco não pode virar login sem limite.
+- **Impacto LGPD:** só hash, janela curta e expurgo.
+- **Migração necessária:** Sim (`NNN_cotas_de_uso.sql`).
+- **Compatibilidade:** limites iguais, agora válidos entre instâncias.
+- **Rollback:** `COTAS_PERSISTENTES=nao` volta ao balde em memória.
+- **Testes positivos:** duas instâncias somam as falhas; o bloqueio sobrevive a reinício.
+- **Testes negativos:** tentativa acima do limite: 429; falha do banco: balde em memória, sem 500.
+- **Testes de autorização e isolamento:** `dc360_app` não lê `cotas_de_uso`; cota de IP não carrega dado de município.
+- **Regressão obrigatória:** `npm run test:api` (`enumeracao-pelo-bloqueio`, `limite-por-usuario`), `npm run test:isolamento`.
+- **E2E:** `npm run test:e2e:api`: login com bloqueio.
+- **Validação humana:** Rafael reinicia a API e vê o bloqueio persistir.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E19/` com os testes.
+- **Documentação a atualizar:** `dc360/docs/COLOCAR-DE-PE.md`.
+- **Definition of Done:** nenhum contador de limite só em memória.
+- **Checkpoint:** Não.
+
+### V2-F03-E20 - Trilha de sessão: login, saída e falha de login com IP e agente, e consulta da própria trilha
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim
+- **Objetivo:** login, saída, falha de login, troca de município e senha redefinida entram na trilha com IP e agente, e a pessoa consulta a própria trilha.
+- **Problema que resolve:** login e sessão não deixam rastro; `trilha_eventos` (001:300) e `trilha_administrativa` (010) não têm IP nem agente; ninguém lê a trilha da própria conta (ALY:AUD-01, ALY:AUT-02; GAP-P1O-33, GAP-P1O-46, GAP-DEF-02).
+- **Origem:** PR:L11; ALY:AUD-01; ALY:AUT-02; BZ-D:IDN-28.
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** E16.
+- **O que deve ser implementado:**
+  - Migration: `ip inet` e `agente text` (nulos) em `trilha_administrativa` e `trilha_eventos`; eventos `login_ok`, `login_falho`, `saida`, `troca_de_municipio` e `senha_redefinida` em `trilha_administrativa` (`alvo_tipo` `usuario`); `registrar_tentativa_login` grava a falha em cada município onde a pessoa tem conta ativa (e-mail inexistente: só log).
+  - API: `registrarEvento` e `registrarAtoAdministrativo` recebem IP e agente da requisição; `GET /v1/usuarios/eu/trilha` (prefixo `/usuarios/eu`, `usuarios-eu.ts`) devolve só os eventos da própria conta, paginados.
+- **O que NÃO deve ser implementado nesta etapa:** expurgo de IP (F05-E12, CP-10); consulta nominal de ofício e foto (F05-E11).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `apps/api/src/trilha.ts`, `apps/api/src/auth/servico.ts`, `apps/api/src/rotas/usuarios-eu.ts`, `apps/api/test/trilha-de-sessao.test.ts` (a criar).
+- **Risco de segurança:** a trilha da conta não pode revelar evento de outra pessoa nem de outro município.
+- **Impacto LGPD:** IP e agente são dado pessoal: retenção e expurgo em CP-10 e F05-E12.
+- **Migração necessária:** Sim (`NNN_trilha_de_sessao.sql`).
+- **Compatibilidade:** colunas nulas; eventos só crescem.
+- **Rollback:** reverter o código; colunas inertes.
+- **Testes positivos:** login, falha e saída geram um evento cada, com IP e agente; a pessoa lê os seus.
+- **Testes negativos:** e-mail inexistente não grava evento em município; `GET /v1/usuarios/eu/trilha` não aceita `usuarioId` de corpo ou consulta.
+- **Testes de autorização e isolamento:** coordenador não lê a trilha de sessão de outra pessoa por esta rota; evento de A invisível em B.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `npm run test:api`, `npm run test:isolamento`.
+- **E2E:** `npm run test:e2e:api`: entrar, sair e ler a própria trilha.
+- **Validação humana:** Rafael lê a própria trilha após uma falha de senha.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E20/` com os eventos.
+- **Documentação a atualizar:** `dc360/docs/PRIVACIDADE.md`.
+- **Definition of Done:** sessão auditável; consulta própria provada.
+- **Checkpoint:** Não.
+
+### V2-F03-E21 - Nível de sigilo por ocorrência, aplicado no banco
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim
+- **Objetivo:** a ocorrência tem nível de sigilo e o banco só a entrega a quem pode vê-la.
+- **Problema que resolve:** nenhum campo marca ocorrência sensível: todo servidor do município lê tudo (ALY:AUT-03).
+- **Origem:** PR:L12; ALY:AUT-03; DP:T08.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E06, E12.
+- **O que deve ser implementado:**
+  - Migration: `ocorrencias.sigilo` (`normal` padrão, `restrito`); função STABLE `app_pode_ver_ocorrencia(id)` e policy RESTRICTIVE de SELECT em `ocorrencias` e nas filhas por `ocorrencia_id` (`vistorias`, `evidencias`, `providencias`, `trilha_eventos`): `restrito` só para `app_ator_papel()` coordenador ou administrador, quem abriu e a equipe atribuída; lista nominal de filhas no teste de catálogo.
+  - API: `PATCH /v1/ocorrencias/:id/sigilo` (coordenação, motivo obrigatório, evento na trilha); busca, mapa, CSV e sino não devolvem a restrita a quem não pode; detalhe: 404.
+- **O que NÃO deve ser implementado nesta etapa:** níveis além de dois e unidade (CP-52); sigilo do relato do cidadão (F16).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `apps/api/src/rotas/ocorrencias.ts`, `apps/api/src/rotas/busca.ts`, `packages/shared/src/dominio.ts`, `db/test/sigilo.test.ts` (a criar).
+- **Risco de segurança:** filha sem a policy vaza a restrita por foto ou trilha: o teste de catálogo lista toda tabela com `ocorrencia_id`.
+- **Impacto LGPD:** reduz exposição de dado sensível.
+- **Migração necessária:** Sim (`NNN_sigilo_da_ocorrencia.sql`).
+- **Compatibilidade:** padrão `normal`: nada muda até alguém restringir.
+- **Rollback:** migration corretiva remove as policies.
+- **Testes positivos:** restrita visível ao coordenador, a quem abriu e à equipe; normal inalterada.
+- **Testes negativos:** operador sem autoria em restrita: 404 no detalhe, ausente na busca, no mapa e no CSV; restringir sem motivo: 422.
+- **Testes de autorização e isolamento:** agente de outra equipe: 404 nas fotos e na trilha; restrita de A invisível em B.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `npm run test:isolamento`, `npm run test:api`.
+- **E2E:** `npm run test:e2e:api`: restringir e buscar como operador.
+- **Validação humana:** Alyson confirma quem vê a restrita.
+- **Evidência a produzir:** `docs/evidencias-v2/G03/V2-F03-E21/` com os testes.
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** sigilo aplicado no banco e em toda leitura.
+- **Checkpoint:** CP-52 (níveis e quem vê; bloqueia o uso em produção, a mecânica já é testável).
+
+# GATE G03 - IDENTIDADE E VIGÊNCIA PROVADAS
+
+Só passa se:
+- [ ] V2-F03-E01: ADR 0009 aceita (pessoa global com contas e vínculos, `pessoas` como exceção nomeada ao isolamento, D-02 e A-01 revogadas) e a proposta de redação do CLAUDE.md entregue; hash e aceite em `docs/evidencias-v2/G03/V2-F03-E01/`.
+- [ ] V2-F03-E02: o token emitido tem só `sub` (pessoa), `org` (município ativo), `sid`, `aud`, `iss`, `iat`, `exp`, e nenhum ponto de `apps/api/src` lê papel, nome ou `sp` do token (`token-nao-e-autoridade.test.ts` verde); payload decodificado arquivado.
+- [ ] V2-F03-E03: toda rota autenticada nega conta desativada, sessão encerrada e senha provisória vencida, leituras inclusive (`vigencia-em-toda-requisicao.test.ts` verde); log da sonda de REL:06 antes e depois arquivado.
+- [ ] V2-F03-E04: domínio de papel em uso nas quatro colunas, `PAPEIS` igual ao banco, `usuario_orgao` sem permissão e conversão de papel recusada.
+- [ ] V2-F03-E05: `orgao_vinculos` (com `pessoa_id` e FK composta com a conta) sob RLS ativada e forçada, UPDATE só por coluna, eliminação e saída de município cientes; saída de `orgao-vinculos.test.ts` arquivada.
+- [ ] V2-F03-E06: contexto do ator (conta, pessoa, papel, órgão) provado no banco, nenhum `comTenant` com texto; `rotas-passam-o-ator.test.ts` e o teste concorrente verdes.
+- [ ] V2-F03-E07: plateia verde nos dois sentidos (`dc360`, `dc360-portal`, `dc360-console`, `dc360-desafio`), inclusive pessoa com plateias diferentes em A e B.
+- [ ] V2-F03-E08: as funções SECURITY DEFINER de autenticação conferem o tenant (prova de REL:06 14b reprovada) e a lista nominal `FUNCOES_PRIVILEGIADAS` substitui o teto numérico, com toda função da fase listada e justificada.
+- [ ] V2-F03-E09 e E10: e-mail único entre pessoas ativas e convite de uso único (pessoa nova e existente, resposta igual) provados; nenhuma resposta ou log carrega senha.
+- [ ] V2-F03-E11: MFA na pessoa, obrigatório para `usuario_orgao`, `coordenador` e `administrador`, com reset por superior e trilha, recusado para pessoa com conta em outro município; CP-08 e CP-50 decididos, ou adiados com o que fica bloqueado (portal em produção e esse reset).
+- [ ] V2-F03-E10: CP-05 decidido ou adiado com o que fica bloqueado: o teste com e-mail real em HML (valem o notificador de arquivo e o de log) e, até CP-19, o convite real em produção.
+- [ ] V2-F03-E12: zero rota sem ação declarada no manifesto e `superficie.test.ts` alimentado por ele.
+- [ ] V2-F03-E13: matriz papel x rota x método com os cinco papéis verde e arquivada em `docs/evidencias-v2/G03/V2-F03-E13/matriz.md`.
+- [ ] V2-F03-E14: recorte fail-closed provado para papel fora da lista, upload de agente de outra equipe respondendo 404, e matriz verde com `PORTAL_ATIVO=sim`.
+- [ ] V2-F03-E15: backfill de `usuarios` para `pessoas` sem perda (contagens antes e depois iguais), `dc360_app` sem acesso a `pessoas` e `EXCECOES_AO_ISOLAMENTO` nominal em `isolamento.test.ts`.
+- [ ] V2-F03-E16: login em dois passos, escolha e troca de município provados, com uma conta inalterada para os clientes atuais.
+- [ ] V2-F03-E17: órgão externo (tipo, abrangência, termo) e a mesma pessoa em vários municípios provados; CP-51 decidido, ou adiado com o que fica bloqueado: convidar externo real.
+- [ ] V2-F03-E18: teste de cruzamento verde: pessoa com conta em A e B nunca lê A com token de B, e o recurso do outro município responde 404.
+- [ ] V2-F03-E19: nenhum limite de taxa ou contador de falha de login só em memória na API de servidores (`cotas-persistentes.test.ts` verde).
+- [ ] V2-F03-E20: login, saída e falha de login na trilha com IP e agente, e consulta da própria trilha provada.
+- [ ] V2-F03-E21: nível de sigilo aplicado no banco e em toda leitura; CP-52 decidido, ou adiado com o que fica bloqueado: uso em produção.
+- [ ] CP-49 decidido, ou adiado com o que fica bloqueado: a mesma pessoa em mais de um município em produção.
+- [ ] `npm run test:isolamento` (suíte inteira de `db/`, com `isolamento.test.ts` e CA-06) verde, mais `npm run test:api`, `npm run test:campo`, `npm run test:console`, `npm run typecheck` e `npm run test:e2e:api`.
+- [ ] nenhuma regressão: gates G00, G01 e G02 continuam verdes (se um quebrar, ESTE gate volta a REPROVADO).
+- [ ] documentação atualizada (README, `PAPEIS_E_RESPONSABILIDADES.md`, `DICIONARIO-DE-DADOS.md`, ADR 0009) e evidências arquivadas em `docs/evidencias-v2/G03/`.
+
+**Reabre se:** papel ou vínculo voltar a ser autoridade vinda do token; o token passar a valer para mais de um município; surgir tabela sem `organizacao_id` fora da lista nominal de exceções; surgir rota sem ação declarada; `isolamento.test.ts` quebrar; função SECURITY DEFINER de autenticação agir sem conferir o tenant; conta desativada voltar a ler; a pessoa de dois municípios ler um com o token do outro.
+**Este Gate libera:** F04 (isolamento intra-município e encaminhamento) e, em paralelo, F08; as superfícies novas (portal e cidadão) passam a ter identidade, plateia, escolha de município e manifesto sobre os quais nascer.
+
+# Fase 04: Isolamento intra-município e encaminhamento
+
+**Gate da fase:** G04 ISOLAMENTO INTRA-MUNICÍPIO PROVADO | **Depende dos gates:** G00, G01, G02, G03 | **Superfícies tocadas:** `apps/api`, `db`, `packages/shared` (a Defesa Civil e o portal consomem depois, em F10 e F11) | **Checkpoints da fase:** CP-09, CP-53
+
+Esta fase faz o banco impedir, por policy, que um usuário de um órgão veja dado de outro órgão (Obras x Saúde) ou chegue às ocorrências, e transforma a providência em encaminhamento: a tabela `providencias` é EXPANDIDA (não nasce tabela paralela) com sete estados (`enviado`, `aceito`, `aguardando_dc`, `respondido`, `devolvido`, `concluido`, `cancelado`), eventos append-only, dossiê mínimo como snapshot imutável composto pela Defesa Civil, UPDATE por coluna e resposta imutável no banco. A secretaria NUNCA consulta `ocorrencias`: lê o encaminhamento e o dossiê. Recurso de outro órgão responde 404. Desde D-08 o órgão pode ser externo (concessionária, órgão estadual, bombeiros) e a pessoa pode atuar em vários municípios: o isolamento por órgão vale dentro de cada município e o vínculo vigente é o da conta no município do token. Desde D-18 o órgão declara competência por COBRADE ou território (a Defesa Civil continua escolhendo o destino) e o município configura a cadeia de escalonamento acima do gestor do órgão. Desde D-23 a devolução só existe antes do aceite.
+
+Preserva (MANTER): RLS por município e FKs compostas (CA-06), `orgaos`, `oficios` e o link de uso único do ofício, as rotas legadas de providência (compatíveis até CP-22 e F28-E11), a trilha da ocorrência, `exigirPermissao`. NÃO faz: telas da Defesa Civil e do portal (F10, F11), anexos do órgão (F06 e F11-E13), e-mail e push de prazo (F11-E17, CP-19), reinspeção (F13), transferência direta entre secretarias e unidade administrativa dentro do órgão (itens 25 e 26 de `docs/roadmap-v2/21-fora-da-v2.md`).
+
+Ordem sugerida: E01, depois E02; E03, E04 e E07 podem andar em paralelo após E02 (E07 antes da E08); E05 exige E02 e E03; E06 fecha o catálogo depois da E05; E08 reúne E03, E05 e o manifesto; E09, E10, E11 e E12 correm depois (E12 só precisa da E04); E13 fecha a fase do encaminhamento; E14 e E15 exigem E08; E16 exige E10 e E11; E17 exige E08.
+
+## Etapas
+
+### V2-F04-E01 - ADR 0010: isolamento por órgão (RLS fail-closed, dossiê, órgão nunca consulta ocorrencias)
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não
+- **Objetivo:** registrar antes do código as peças do isolamento intra-município e o que se descartou, para a regra "o órgão é contexto e não é tenant" ter dono escrito.
+- **Problema que resolve:** o CA-06 prova isolamento entre municípios; nada separa Obras e Saúde dentro do município, e policy com `OR app_orgao_atual() IS NULL` seria fail-open (REL:05 H.05; BZ-D:SEC-43).
+- **Origem:** DP:T07; DP:T10; DP:T11; BZ-D:SEC-43; BZ-D:AUT-38; BZ-M:V2-SEC-08.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** G03.
+- **O que deve ser implementado:** 
+  - ADR 0010 em `docs/adr/`: (a) usuário de órgão nunca consulta `ocorrencias`: lê o encaminhamento e o dossiê; (b) RLS por órgão só no domínio do encaminhamento, lendo `app.ator_tipo`, `app.ator_id` e `app.orgao_atual`; contexto ausente é zero linhas e `IS NULL` é proibido em policy de órgão; (c) policy RESTRICTIVE nas demais tabelas nega o ator `usuario_orgao`; (d) vínculo reconferido no banco por `app_orgao_vigente()`; (e) documento e arquivo do órgão nascem do dossiê. A pessoa global (ADR 0009) não muda isto: o `orgao_id` da rota vale só com vínculo vigente da conta no município do token.
+  - Alternativas descartadas: sub-tenant, filtro só na aplicação, ACL por item, visão `security_invoker` (ADR 0008).
+- **O que NÃO deve ser implementado nesta etapa:** migration ou código; ADR do cidadão (F15-E01); competência e escalonamento (E15, E16).
+- **Arquivos e módulos prováveis:** `docs/adr/` (ADR 0010, a criar), `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Risco de segurança:** ADR omissa vira policy fail-open: segunda leitura de segurança antes de aceitar.
+- **Impacto LGPD:** Não se aplica: sem dado.
+- **Migração necessária:** Não.
+- **Compatibilidade:** complementa as ADRs 0001, 0006, 0008 e 0009.
+- **Rollback:** reverter o commit; mudar exige ADR nova.
+- **Testes positivos:** `packages/shared/test/regras-de-conteudo.test.ts` aprova o arquivo.
+- **Testes negativos:** Não se aplica: documento; os negativos são de E05, E06 e E13.
+- **Testes de autorização e isolamento:** Não se aplica: a ADR fixa invariantes que as etapas seguintes provam.
+- **Regressão obrigatória:** `npm test --workspace @dc360/shared`.
+- **E2E:** Não se aplica: documento.
+- **Validação humana:** Rafael aceita a ADR.
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E01/` com hash e aceite.
+- **Documentação a atualizar:** ADR 0009 (referência cruzada).
+- **Definition of Done:** ADR aceita com as cinco decisões e as alternativas.
+- **Checkpoint:** Não.
+
+### V2-F04-E02 - Encaminhamento: EXPANDIR providencias (estados, destinatário nominal, parent, prazo) (migration)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não
+- **Objetivo:** `providencias` vira o encaminhamento: sete estados, destinatário nominal, encaminhamento de origem, prazo original e pausa, categorias por município; sem tabela paralela e sem perder linha.
+- **Problema que resolve:** `providencias` (001:274-285, 006, 017) não tem estado (derivado de `respondida_em`), `respondida_por` é texto livre e faltam aceite, devolução, cancelamento, vínculo entre providências e prazo alterável (BZ-D:SEC-09, SEC-12, SEC-63).
+- **Origem:** DP:T10; DP:T13; BZ-D:SEC-63; BZ-D:SEC-12; BZ-D:SEC-24; BZ-M:V2-SEC-03.
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:** 
+  - Migration: domínio `estado_do_encaminhamento` (sete estados); colunas `estado`, `destinatario_id` (FK composta, nulo: CP-20), `parent_id`, `prazo_original_em`, `pausado_em`, `pausa_acumulada`, `aceito_em`, `aceito_por`, `concluido_em`, `cancelado_em`, `motivo_do_cancelamento`, `respondida_por_id`, `categoria_id`; `UNIQUE (organizacao_id, id, orgao_id)` para os eventos (E03); `orgaos.tipo` vem da F03-E17.
+  - Migration: `categorias_de_demanda` por município (RLS, FK composta, desativa com motivo), vazia.
+  - Migration: backfill (sem resposta `enviado`, com resposta `concluido`; `prazo_original_em = prazo_em`); tabelas novas em `ordem_de_apagamento_por_municipio()` (038:834) e `TABELAS_DA_SAIDA` (`saida/pacote.ts:49`).
+  - Domínio: `packages/shared/src/encaminhamento.ts` (a criar): estados e rótulos.
+- **O que NÃO deve ser implementado nesta etapa:** eventos (E03); dossiê (E04); UPDATE por coluna (E07); rotas (E08); prioridade (E14); competência (E15).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `packages/shared/src/encaminhamento.ts` (a criar), `apps/api/src/saida/pacote.ts`, `apps/api/src/rotas/ocorrencias.ts`, `db/test/` (teste novo).
+- **Risco de segurança:** backfill errado faria o painel mentir sobre o que foi respondido.
+- **Impacto LGPD:** `destinatario_id` é dado de servidor (F05-E03).
+- **Migração necessária:** Sim (`NNN_encaminhamento_expande_providencias.sql`).
+- **Compatibilidade:** colunas com padrão; rotas legadas seguem.
+- **Rollback:** só migration nova corrige.
+- **Testes positivos:** legado sem resposta migra para `enviado`, com resposta para `concluido`; linha nova nasce `enviado`.
+- **Testes negativos:** estado fora dos sete recusado; `parent_id` ou `categoria_id` de outro município recusado; `destinatario_id` sem vínculo ao órgão recusado.
+- **Testes de autorização e isolamento:** `npm run test:isolamento` inteiro; categoria de A invisível em B.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `npm run test:isolamento`, `npm run test:api`, `npm run conferir:numeros`.
+- **E2E:** `npm run test:e2e:api`: encaminhar e responder.
+- **Validação humana:** Rafael e Alyson confirmam os estados (CP-20).
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E02/` com a contagem de legados.
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`, `dc360/docs/SAIDA-DE-MUNICIPIO.md`.
+- **Definition of Done:** migration em máquina limpa e sobre dado migrado.
+- **Checkpoint:** Não.
+
+### V2-F04-E03 - Eventos append-only do encaminhamento e máquina de estados de 7 estados no shared
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com F04-E04)
+- **Objetivo:** todo ato do encaminhamento vira evento append-only, e a transição entre os sete estados é conferida no pacote compartilhado e no banco, incluindo quem pode fazê-la.
+- **Problema que resolve:** só a trilha da ocorrência guarda `providencia` e `resposta_providencia` (`ocorrencias.ts:1019` e `1071`); faltam aceite, devolução, complemento, prazo alterado, cobrança e escalonamento (BZ-D:SEC-36, SEC-60). `trilha_eventos` é amarrada à ocorrência, e a máquina de estados da ocorrência não é imposta no banco (BZ-D:ARQ-06): regra só na aplicação é regra que SQL direto contorna.
+- **Origem:** DP:T13; DP:T12; BZ-D:SEC-36; BZ-D:SEC-63; BZ-D:ARQ-06; BZ-M:V2-SEC-10; REL:05.
+- **Estado atual:** CRIAR (eventos) e EXPANDIR (a máquina segue o padrão de `TRANSICOES_PERMITIDAS`, `dominio.ts:155`).
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - Migration: `encaminhamento_eventos` (`organizacao_id`, `id`, `encaminhamento_id`, `orgao_id` copiado, `tipo`, `autor_tipo` (CHECK: `servidor`, `usuario_orgao`, `sistema` ou `link`), `autor_id`, `autor_nome` e `autor_papel` como snapshot, `estado_anterior`, `estado_novo`, `motivo`, `detalhe` jsonb, `visivel_ao_orgao` padrão verdadeiro, `ocorrido_em`, `registrado_em`); FK composta `(organizacao_id, encaminhamento_id, orgao_id)` para `providencias`, que prova que o órgão do evento é o do encaminhamento; tipos: `enviado`, `visualizado`, `aceito`, `devolvido` (destino sugerido), `esclarecimento_solicitado`, `esclarecimento_respondido`, `respondido`, `complemento_solicitado`, `prazo_alterado`, `cobrado`, `escalonado`, `lembrete`, `concluido`, `cancelado`, `reenviado`, `reencaminhado` (invisível ao órgão devolvente) e `migracao` (backfill de um evento por legado); sem policy de UPDATE e DELETE.
+  - Domínio: `packages/shared/src/encaminhamento.ts`: `TRANSICOES_DO_ENCAMINHAMENTO` com o ator de cada uma (Defesa Civil ou órgão), conforme a tabela do Decision Pack: `enviado` para `aceito`, `devolvido` ou `cancelado`; `aceito` para `respondido`, `aguardando_dc` ou `cancelado`; `aguardando_dc` para `aceito` ou `cancelado`; `respondido` para `concluido` ou `aceito`; `devolvido` para `enviado` ou `cancelado`; `concluido` e `cancelado` terminais. `prazo_vencido` e `sem_aceite` são derivados, não estados.
+  - Banco: gatilho `encaminhamento_transicao_valida` (BEFORE UPDATE OF `estado`) com a mesma tabela em SQL (função imutável `transicoes_do_encaminhamento()`) e conferência de quem faz (`app_ator_tipo()`); estado terminal não muda.
+  - Migration: nova tabela na eliminação e na saída, como na E02.
+- **O que NÃO deve ser implementado nesta etapa:** rotas (E08); relógio e lembretes (E10); dossiê (E04); aresta de reinspeção da ocorrência (F13).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `packages/shared/src/encaminhamento.ts`, `apps/api/src/saida/pacote.ts`, `packages/shared/test/encaminhamento.test.ts` (a criar), `db/test/encaminhamento-eventos.test.ts` (a criar).
+- **Risco de segurança:** transição conferida só na aplicação seria contornável; o gatilho repete a regra. Evento invisível mal marcado vaza destino do reencaminhamento ao órgão que devolveu.
+- **Impacto LGPD:** `motivo` e `detalhe` são texto livre em tabela imutável: classificados em F05-E03; nunca gravar dado do solicitante neles (dossiê é a outra tabela).
+- **Migração necessária:** Sim (`NNN_encaminhamento_eventos.sql`).
+- **Compatibilidade:** aditiva; a trilha da ocorrência segue recebendo os eventos que já recebe.
+- **Rollback:** reverter o código; migration só se corrige por migration nova.
+- **Testes positivos:** `shared` e SQL concordam em todos os pares (teste lê `transicoes_do_encaminhamento()`); `enviado` para `aceito` pelo órgão grava evento.
+- **Testes negativos:** `concluido` para `aceito` recusado; órgão tentando `respondido` para `concluido` recusado; UPDATE e DELETE em `encaminhamento_eventos` sem privilégio; evento com `orgao_id` diferente do encaminhamento recusado pela FK.
+- **Testes de autorização e isolamento:** evento de A invisível em B; `npm run test:isolamento` verde (tabela nova com RLS forçada).
+- **Regressão obrigatória:** `npm run migrar -- --conferir` (a migration aplica do zero), `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`, `npm test --workspace @dc360/shared`.
+- **E2E:** Não se aplica: sem rota nem tela; coberto pela E08.
+- **Validação humana:** Rafael revê a tabela de transições e o ator de cada uma.
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E03/` com a tabela de transições gerada e a saída dos testes.
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`, `README.md`.
+- **Definition of Done:** eventos append-only provados; máquina idêntica no shared e no banco; terminais imutáveis.
+- **Checkpoint:** Não.
+
+### V2-F04-E04 - Dossiê mínimo: snapshot imutável composto pela Defesa Civil no envio
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com F04-E03)
+- **Objetivo:** o que o órgão vê da ocorrência é um snapshot imutável, composto pela Defesa Civil no envio por lista de INCLUSÃO de campos; o órgão não lê `ocorrencias`.
+- **Problema que resolve:** o ofício atual leva nome do solicitante, endereço, descrição e vulnerabilidade a qualquer órgão (`oficios/documento.ts:113-129`; BZ-D:SEC-58); a minimização por lista de exclusão já vazou (`privacidade/lista.ts`, `semOQueSoODossieEntrega`); o conteúdo do dossiê é decisão de LGPD ainda não tomada (K3 e J6).
+- **Origem:** DP:T07; DP:J6; DP:K3; BZ-D:SEC-58; BZ-M:V2-SEC-08; REL:05 D8.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - Migration: `encaminhamento_dossies` (`organizacao_id`, `id`, `encaminhamento_id`, `orgao_id`, `versao`, `campos` jsonb, `campos_sensiveis` jsonb nulo por padrão, `composto_por`, `composto_em`, `origem` `dc` ou `migracao`); FK tripla como a dos eventos; `UNIQUE (encaminhamento_id, versao)`; sem UPDATE e DELETE, salvo UPDATE da coluna `campos_sensiveis` por privilégio de coluna (para a retenção de F05-E09 poder anulá-la sem tocar o resto); reenvio (`devolvido` para `enviado`) cria versão nova; legados ganham versão 1 `migracao` pela mesma lista.
+  - Domínio: `packages/shared/src/dossie.ts` (a criar): `CAMPOS_DO_DOSSIE` (chave, rótulo, `sensivel`, coluna de origem) e `montarDossie(ocorrencia, escolha)`, que só copia campo catalogado. Padrão inicial conservador (protocolo, tipo e endereço do local); nome, contato, vulnerabilidade e descrição livre do relato são `sensivel` e só entram com justificativa escrita (mínimo de 20 caracteres, como a exportação completa exige, 021) registrada no evento `enviado` pelas chaves, nunca pelos valores.
+  - API: `comporDossie(c, quem, ocorrenciaId, escolha)` em `apps/api/src/encaminhamentos/dossie.ts` (a criar) lê a ocorrência sob o contexto da Defesa Civil e devolve o snapshot; a rota que o usa é da E08.
+- **O que NÃO deve ser implementado nesta etapa:** decidir o conteúdo definitivo (CP-09); fotos e anexos no dossiê (F06, F11-E13); regerar o ofício a partir dele (E12); o que desce ao aparelho do agente (F19-E01).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `packages/shared/src/dossie.ts` (a criar em `packages/shared/src`), `apps/api/src/encaminhamentos/dossie.ts` (a criar em `apps/api/src`), `apps/api/src/saida/pacote.ts`, `db/test/encaminhamento-dossie.test.ts` (a criar).
+- **Risco de segurança:** snapshot imutável com dado sensível conflita com a minimização (T26 trata o caso do documento): por isso o sensível fica em coluna própria, nula por padrão, e entra na classificação de F05-E03 e na retenção de CP-10. Campo fora do catálogo nunca é copiado.
+- **Impacto LGPD:** central: lista de inclusão, sensível só com justificativa, snapshot em vez de acesso ao dado vivo; a retenção do snapshot é decisão de CP-10.
+- **Migração necessária:** Sim (`NNN_encaminhamento_dossies.sql`).
+- **Compatibilidade:** aditiva; ofício e portal passam a ler o dossiê nas etapas seguintes.
+- **Rollback:** reverter o código; migration só se corrige por migration nova.
+- **Testes positivos:** o dossiê padrão contém só protocolo, tipo e endereço; reenvio cria versão 2 e a 1 permanece.
+- **Testes negativos:** campo fora do catálogo é recusado; campo `sensivel` sem justificativa: 422; UPDATE de `campos` sem privilégio; DELETE sem privilégio.
+- **Testes de autorização e isolamento:** dossiê de A invisível em B; o ator `usuario_orgao` não lê `ocorrencias` mesmo com dossiê (provado em E05); `npm run test:isolamento` verde.
+- **Regressão obrigatória:** `npm run migrar -- --conferir` (a migration aplica do zero), `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`, `npm test --workspace @dc360/shared`.
+- **E2E:** Não se aplica: sem rota nem tela até a E08.
+- **Validação humana:** Alyson e o encarregado revisam a lista de campos e o padrão inicial.
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E04/` com o catálogo de campos e a saída dos testes.
+- **Documentação a atualizar:** `dc360/docs/PRIVACIDADE.md` (o que o órgão recebe), `dc360/docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** snapshot imutável provado; padrão conservador em vigor; decisão de CP-09 registrada ou adiada com o bloqueio declarado.
+- **Checkpoint:** CP-09 (conteúdo do dossiê mínimo e o que desce ao aparelho; bloqueia o primeiro encaminhamento real, enquanto a mecânica e o padrão conservador seguem testáveis).
+
+### V2-F04-E05 - RLS por órgão fail-closed e teste Obras x Saúde
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** crítica  |  **Risco:** crítico  |  **Paralelizável:** não (E06, E08, E09, E11 dependem)
+- **Objetivo:** o banco impede, por policy, que usuário de um órgão leia ou escreva encaminhamento de outro; contexto ausente ou incompleto devolve zero linhas; o usuário de órgão não alcança tabela fora do seu domínio.
+- **Problema que resolve:** toda policy é só por município: `providencias_leitura` (034:253) e `oficios_leitura` (017:392) devolvem tudo do município; o CA-06 aceita policy com condição a mais, mas não cobra a de órgão (BZ-D:SEC-43, BZ-D:AUT-38; REL:05 H.05; REL:06 14c).
+- **Origem:** DP:T07; BZ-M:V2-SEC-08; BZ-D:SEC-43; BZ-D:AUT-38; REL:05; REL:06.
+- **Estado atual:** EXPANDIR (as policies atuais passam a olhar o ator).
+- **Dependências de entrada:** E02, E03; F03-E06.
+- **O que deve ser implementado:**
+  - Migration: `app_orgao_vigente()` (SQL, STABLE, não SECURITY DEFINER) devolve `app_orgao_atual()` só se o ator é `usuario_orgao` e há vínculo vigente (`fim IS NULL`) de `app_ator_id()` com aquele órgão; senão NULL. O banco repete a validação do vínculo que a API já fez.
+  - Migration (classe A, domínio do órgão): `providencias`, `encaminhamento_eventos` (órgão só vê `visivel_ao_orgao`), `encaminhamento_dossies` e `oficios` trocam as policies de município por: município igual E (ator `servidor` ou `sistema` OU `orgao_id = (SELECT app_orgao_vigente())`), em SELECT, INSERT e UPDATE. Nenhuma policy de órgão contém `IS NULL`.
+  - Migration (classes B a E, todas RESTRICTIVE `TO dc360_app`, para não alcançar as policies do console): B, conta própria (`usuarios`, `sessoes`, `segundo_fator`, `segundo_fator_recuperacao`, `orgao_vinculos`): o ator de órgão só vê a própria linha; C, leitura (`orgaos`, `categorias_de_demanda`, `organizacoes`): escrita só de servidor; E, só INSERT limitado: `trilha_eventos` com `origem = 'portal'` e `autor_id = app_ator_id()` (espelho dos atos do órgão na trilha da ocorrência; `registrarEvento` não usa RETURNING) e `avisos` só com tipos `encaminhamento_*` (E11), sem SELECT, UPDATE nem DELETE; D, todas as outras, `ocorrencias` inclusive: `app_ator_tipo() IN ('servidor','sistema')`. Auxiliar `aplicar_negacao_ao_usuario_de_orgao(tabela)` (não SECURITY DEFINER) para migrations futuras.
+  - Testes: `db/test/isolamento-por-orgao.test.ts` (a criar): município A com Obras e Saúde; Maria (vínculo Obras), João (Saúde), Ana (os dois) e Rita (servidor).
+- **O que NÃO deve ser implementado nesta etapa:** o teste de catálogo universal (E06); rotas (E08); busca, exportação e ofício (E09); arquivos por órgão (F06); sub-tenant (descartado na ADR 0010).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `db/test/isolamento-por-orgao.test.ts` (a criar), `db/test/isolamento.test.ts`.
+- **Risco de segurança:** o maior da fase: policy errada vaza. As variáveis de contexto são definidas pela aplicação, como a organização; forjar `orgao_atual` sem vínculo dá zero linhas por causa de `app_orgao_vigente()`. O subselect avalia uma vez; confirmar com EXPLAIN em F24-E02.
+- **Impacto LGPD:** reduz exposição: o órgão só alcança o dossiê do próprio encaminhamento.
+- **Migração necessária:** Sim (`NNN_rls_por_orgao.sql`).
+- **Compatibilidade:** servidor e sistema veem o município inteiro como antes; todo helper de teste e o modo local já definem o ator (F03-E06).
+- **Rollback:** migration corretiva que restaura as policies de município; sem usuário de órgão ativo o efeito é nulo.
+- **Testes positivos:** Rita lê os encaminhamentos de Obras e Saúde; Maria só o de Obras; João só o de Saúde; Ana, com `orgao_atual` Obras, só o de Obras.
+- **Testes negativos:** Maria lendo o encaminhamento da Saúde por id exato: 0 linhas; UPDATE e INSERT com `orgao_id` da Saúde: negados; `orgao_atual` apontando para Saúde sem vínculo: 0 linhas; ator ausente: 0 linhas em `providencias`; Maria em `SELECT * FROM ocorrencias`, `usuarios` (de outros) e `equipes`: 0 linhas; vínculo encerrado: 0 linhas na transação seguinte; Maria inserindo em `trilha_eventos` com `origem = 'escritorio'` ou com `autor_id` de João: negado, e lendo `trilha_eventos`: 0 linhas.
+- **Testes de autorização e isolamento:** o cenário Obras x Saúde acima, mais município B: Maria de A não vê nada de B; `npm run test:isolamento` inteiro verde, CA-06 incluído.
+- **Regressão obrigatória:** `npm run migrar -- --conferir` (a migration aplica do zero), `npm run test:isolamento`, `npm run test:api`, `npm run test:campo`, `npm run typecheck`, `npm run test:e2e:api`.
+- **E2E:** Não se aplica: a prova é no banco; o E2E por rota vem na E13.
+- **Validação humana:** Rafael vê o relatório Obras x Saúde e os zeros dos casos negativos.
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E05/` com a saída de `isolamento-por-orgao.test.ts` e a lista de policies geradas.
+- **Documentação a atualizar:** ADR 0010 (onde vive), `dc360/docs/DICIONARIO-DE-DADOS.md`, `README.md`.
+- **Definition of Done:** Obras x Saúde verde no banco; contexto ausente igual a zero linhas; CA-06 intacto.
+- **Checkpoint:** Não.
+
+### V2-F04-E06 - Teste de catálogo: toda tabela com orgao_id tem policy fail-closed (estilo CA-06)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (valida o que a E05 produziu)
+- **Objetivo:** um teste que DESCOBRE as tabelas no catálogo do Postgres e reprova toda tabela com `orgao_id` sem policy de órgão fail-closed e toda tabela de negócio sem classe de acesso do usuário de órgão.
+- **Problema que resolve:** o portão atual descobre tabelas (`isolamento.test.ts:260-433`) mas só exige `app_organizacao_atual`: uma tabela nova com `orgao_id` e policy só por município passaria em todos os portões (BZ-D:SEC-43; REL:05).
+- **Origem:** DP:T07; PR:Prompt-F04; BZ-D:AUT-32; BZ-D:AUT-38.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E05.
+- **O que deve ser implementado:**
+  - Testes: `db/test/isolamento-por-orgao-catalogo.test.ts` (a criar; `npm run test:isolamento` roda a suíte inteira de `db/`) lê `pg_policies`, `information_schema.columns` e `pg_proc` e exige: (1) toda tabela com coluna `orgao_id` tem policy de SELECT, INSERT e UPDATE (onde houver) cuja expressão contém `app_orgao_vigente` ou `app_ator_tipo` e NÃO contém `IS NULL` nem `OR true`; (2) toda tabela de negócio consta na lista nominal `CLASSES_DE_ACESSO_DO_ORGAO` (A, B, C, D ou E, com motivo) e tem a policy correspondente; (3) tabela nova sem classe reprova com a instrução de usar `aplicar_negacao_ao_usuario_de_orgao`; (4) sentido inverso: entrada da lista sem tabela é erro; (5) `app_orgao_vigente` e as funções de contexto não são SECURITY DEFINER; (6) âncoras: as tabelas conhecidas aparecem.
+  - Testes: prova de que o teste acusa, no estilo "a varredura acusa cada um dos seis caminhos" (`isolamento.test.ts:4048`): num banco descartável, uma tabela com `orgao_id` e policy só por município, outra com `OR ... IS NULL` e outra sem classe, e o portão tem de gritar em cada uma.
+- **O que NÃO deve ser implementado nesta etapa:** policies novas (E05); manifesto de dados LGPD (F05-E02); teste de rota (E13).
+- **Arquivos e módulos prováveis:** `db/test/isolamento-por-orgao-catalogo.test.ts` (a criar), `db/test/isolamento.test.ts` (referência).
+- **Risco de segurança:** regex de policy frágil dá falso verde: o teste que acusa cada ramo é a mitigação; a classificação em lista nominal obriga decisão humana a cada tabela nova.
+- **Impacto LGPD:** Não se aplica: teste de catálogo, sem dado.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só teste; migrations futuras passam a ter de classificar a tabela.
+- **Rollback:** remover o arquivo; sem efeito em runtime.
+- **Testes positivos:** o catálogo atual passa; `oficios`, `providencias`, `encaminhamento_eventos` e `encaminhamento_dossies` aparecem na classe A.
+- **Testes negativos:** tabela com `orgao_id` e policy de município apenas reprova; policy com `IS NULL` reprova; tabela de negócio sem classe reprova; entrada da lista sem tabela reprova.
+- **Testes de autorização e isolamento:** o próprio teste é o portão de isolamento por órgão; ele roda com o papel `dc360_app` e `SET LOCAL ROLE` como o CA-06.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run typecheck`.
+- **E2E:** Não se aplica: teste de banco.
+- **Validação humana:** Rafael lê a lista de classes e discorda de alguma, se for o caso.
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E06/` com a saída do teste e a lista de classes gerada.
+- **Documentação a atualizar:** `db/PENDENCIAS.md`, `dc360/docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** portão no CI via `npm run test:isolamento`; cada ramo provado por caso que o acusa.
+- **Checkpoint:** Não.
+
+### V2-F04-E07 - UPDATE por coluna e resposta imutável no banco (elimina a corrida de providencias)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (altera grants e gatilhos da tabela que E05 e E08 usam; fazer antes da E08)
+- **Objetivo:** o banco só deixa a aplicação atualizar as colunas de que cada ato precisa, e a resposta de uma rodada não se reescreve; duas respostas simultâneas deixam de ser possíveis.
+- **Problema que resolve:** `providencias` tem GRANT UPDATE de tabela inteira (001:330-333) e policy só por município (034:259): `UPDATE ... WHERE id = $1` sem `AND respondida_em IS NULL` (`ocorrencias.ts:1064-1068`) e sem lock deixa a segunda resposta sobrescrever a primeira (P0 de integridade, REL:05 gap 3); nada impede reescrever `prazo_em`, `orgao_id` ou `descricao`.
+- **Origem:** BZ-F:P0-INT; DP:T13; BZ-D:SEC-32; REL:05 gap 3; REL:05 I.05.
+- **Estado atual:** CORRIGIR.
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - Migration: `REVOKE UPDATE ON providencias FROM dc360_app` e `GRANT UPDATE` só nas colunas que mudam: `estado`, `destinatario_id`, `prazo_em`, `pausado_em`, `pausa_acumulada`, `aceito_em`, `aceito_por`, `concluido_em`, `cancelado_em`, `motivo_do_cancelamento`, `respondida_em`, `resposta`, `desfecho`, `respondida_por`, `respondida_por_id`, `categoria_id`; NUNCA `orgao_id`, `ocorrencia_id`, `descricao`, `prazo_original_em`, `encaminhada_em`, `parent_id`, `organizacao_id`, `id` (padrão de `oficio_envios`, 017:674-675).
+  - Migration: gatilho `resposta_do_encaminhamento_e_imutavel` (BEFORE UPDATE): `resposta`, `desfecho`, `respondida_*` só mudam na transição de `aceito` para `respondido`; fora dela, qualquer mudança nessas colunas é recusada. A resposta de cada rodada fica em `encaminhamento_eventos.detalhe`; a coluna guarda a última.
+  - API: a resposta passa a `UPDATE ... WHERE id = $1 AND estado = 'aceito'` com conferência de linhas afetadas (zero vira 409 `ja_respondida`); a rota legada (`ocorrencias.ts:1038-1079`) ganha `AND respondida_em IS NULL` e a mesma conferência já nesta etapa.
+  - Testes: a lista fechada de privilégio de coluna em `db/test/isolamento.test.ts:3969-3986` ganha as colunas; `db/test/encaminhamento-update-por-coluna.test.ts` (a criar).
+- **O que NÃO deve ser implementado nesta etapa:** rotas novas (E08); eventos (E03); lembretes (E10).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `apps/api/src/rotas/ocorrencias.ts`, `db/test/isolamento.test.ts`, `db/test/encaminhamento-update-por-coluna.test.ts` (a criar), `apps/api/test/api.test.ts`.
+- **Risco de segurança:** privilégio de coluna esquecido volta a abrir a tabela; a varredura de privilégios do portão (bloco que começa em `isolamento.test.ts:3562`) enumera as colunas e reprova excesso. Em PGlite a conexão é única: a corrida real roda no job com Postgres real do CI (F01-E03).
+- **Impacto LGPD:** Não se aplica: nenhum dado novo; protege a integridade do registro.
+- **Migração necessária:** Sim (`NNN_providencias_update_por_coluna.sql`).
+- **Compatibilidade:** a rota legada continua, agora recusando a segunda resposta com 409.
+- **Rollback:** migration corretiva que devolve o GRANT amplo (não recomendado).
+- **Testes positivos:** `aceito` para `respondido` grava resposta, desfecho e autor; atualização de `prazo_em` com motivo continua possível.
+- **Testes negativos:** `UPDATE providencias SET orgao_id = ...` negado por privilégio; reescrever `resposta` depois de `respondido`: recusado pelo gatilho; segunda resposta simultânea: uma 200 e outra 409, e o texto da primeira intacto.
+- **Testes de autorização e isolamento:** UPDATE de encaminhamento de B por contexto de A afeta 0 linhas; `npm run test:isolamento` verde, inclusive o portão de privilégios de coluna.
+- **Regressão obrigatória:** `npm run migrar -- --conferir` (a migration aplica do zero), `npm run test:isolamento`, `npm run test:api` (`api.test.ts` "Resposta do orgao a providencia", `orgaos-e-oficio`), `npm run typecheck`.
+- **E2E:** `npm run test:e2e:api`: registrar a resposta de uma providência pelo painel funciona e a segunda tentativa mostra o erro.
+- **Validação humana:** Rafael vê a segunda resposta recusada com o texto da primeira preservado.
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E07/` com a saída dos testes e o par de respostas simultâneas.
+- **Documentação a atualizar:** `db/PENDENCIAS.md`, `dc360/docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** nenhuma coluna imutável atualizável; corrida eliminada; lista de privilégios de coluna do portão atualizada.
+- **Checkpoint:** Não.
+
+### V2-F04-E08 - Rotas do encaminhamento (Defesa Civil e órgão) com exigirPermissao e manifesto
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E09, E10, E11 e E13 usam estas rotas)
+- **Objetivo:** expor o encaminhamento em duas famílias de rota, a da Defesa Civil e a do órgão, com `exigirPermissao` antes do banco, transição válida, autoria nominal e recurso alheio em 404.
+- **Problema que resolve:** hoje só existem `POST /ocorrencias/:id/providencia`, `.../resposta` e a leitura em `GET /ocorrencias/:id` (`ocorrencias.ts:976`, `1038`, `1414`): sem aceite, devolução, complemento ou cobrança, com a resposta digitada pela Defesa Civil e o autor em texto livre (BZ-D:SEC-30, SEC-31; REL:05 gaps 7 e 8).
+- **Origem:** DP:T08; DP:T11; DP:T13; BZ-D:SEC-30; BZ-D:SEC-31; BZ-D:SEC-67; BZ-M:V2-SEC-03; BZ-M:V2-SEC-04.
+- **Estado atual:** EXPANDIR (as rotas legadas continuam e passam a operar sobre o modelo novo).
+- **Dependências de entrada:** E03, E05; F03-E12.
+- **O que deve ser implementado:**
+  - API (Defesa Civil): `POST /v1/ocorrencias/:id/encaminhamentos` (compõe o dossiê da E04, cria `enviado` e o evento; idempotente por `chaveDeCriacao`, padrão da F02-E07), `GET /v1/encaminhamentos` (filtros por estado, órgão e prazo), `GET /v1/encaminhamentos/:id` (com eventos) e `POST /v1/encaminhamentos/:id/{cancelamento,conclusao,complemento,reenvio,reencaminhamento,prazo,cobranca,escalonamento,esclarecimento/resposta}`. Reencaminhar cria encaminhamento novo com `parent_id` e dossiê novo (o órgão B nunca vê a resposta do A); escalonar registra o evento para o gestor do órgão (vínculo `gestor` vigente) e, sem gestor, responde 409 `orgao_sem_gestor`.
+  - API (órgão): `GET /v1/orgaos/:orgaoId/encaminhamentos`, `GET .../:id`, `POST .../:id/{visualizacao,aceite,devolucao,resposta,esclarecimento}` e `GET .../catalogo-de-destinos` (só id, nome e sigla, para sugerir destino na devolução), plateia `dc360-portal`, escopo `orgao`: o órgão da rota só vale com vínculo vigente, senão 404; a autoria vem do usuário nominal do token e `respondidaPor` no corpo é recusado; a visualização grava no máximo um evento por usuário e estado (nenhum GET escreve).
+  - Autorização: ações novas em `ACOES` (Defesa Civil: `ler_encaminhamentos`, `gerir_encaminhamento`; órgão: `ler_encaminhamento_do_orgao`, `aceitar_encaminhamento`, `responder_encaminhamento`, `devolver_encaminhamento`, `pedir_esclarecimento`) e `PERMISSOES_NO_ORGAO` em `permissoes.ts` (leitor lê; executor aceita e responde; gestor faz tudo e atribui; CP-20 decide pessoa ou órgão); toda escrita chama `exigirPermissao` antes do banco; entradas no manifesto e no registro da F02-E04.
+  - API: `apps/api/src/encaminhamentos/eventos.ts` (a criar) grava o evento na mesma transação da mudança de estado e o espelha na trilha da ocorrência (`registrarEvento` com origem `portal`, classe E da E05); a resposta digitada pela Defesa Civil grava `respondido` com `em_nome_do_orgao` (permitida ao operador até CP-22); as rotas legadas delegam ao mesmo domínio.
+  - Contrato: a resposta ao órgão é lista de INCLUSÃO (id, número do ofício, estado, prazo efetivo, descrição, dossiê, eventos visíveis), nunca `ocorrenciaId` nem coluna da ocorrência.
+- **O que NÃO deve ser implementado nesta etapa:** telas (F10-E04 a E06, F11-E09 a E16); anexos de resposta (F11-E13); aviso e e-mail (E11, F11-E17); busca e exportação (E09); relógio (E10); reinspeção (F13).
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/encaminhamentos.ts` e `apps/api/src/rotas/encaminhamentos-do-orgao.ts` (a criar em `apps/api/src/rotas`), `apps/api/src/encaminhamentos/eventos.ts` (a criar), `packages/shared/src/permissoes.ts`, `apps/api/src/contrato/rotas.ts`, `apps/api/src/rotas/ocorrencias.ts`.
+- **Risco de segurança:** duas famílias evitam a mesma rota com comportamento por papel; autoria e `orgaoId` de corpo ou cabeçalho são ignorados; estado e evento na mesma transação impedem estado sem rastro.
+- **Impacto LGPD:** o dossiê é a única fonte de dado da ocorrência para o órgão; motivo e resposta são texto livre, classificados em F05-E03.
+- **Migração necessária:** Não (usa as tabelas de E02 a E07).
+- **Compatibilidade:** rotas legadas seguem; campos novos são aditivos.
+- **Rollback:** reverter o commit; os dados gravados permanecem válidos.
+- **Testes positivos:** a Defesa Civil cria o encaminhamento com dossiê padrão; o executor da Obras aceita e responde; a Defesa Civil conclui; o ato do órgão aparece na trilha da ocorrência; reencaminhar cria o novo com `parent_id`.
+- **Testes negativos:** `concluido` para `aceito`: 409 `transicao_invalida`; leitor aceitando: 403 `sem_permissao`; `respondidaPor` no corpo: 422; `orgaoId` de corpo ignorado; segunda resposta: 409; escalonar sem gestor: 409.
+- **Testes de autorização e isolamento:** usuário da Saúde em `GET /v1/orgaos/<id da Obras>/encaminhamentos`: 404; no `.../<id da Saúde>/encaminhamentos/<id da Obras>`: 404; token do portal em rota do painel: 401; coordenador de B em encaminhamento de A: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run typecheck`, `npm run test:e2e:api`; a matriz papel x rota (F03-E13) reexecutada com as rotas novas.
+- **E2E:** fluxo C por API em `npm run test:e2e:api` (encaminhar, aceitar, responder, concluir); as telas são de F10 e F11.
+- **Validação humana:** Rafael percorre o fluxo com `curl` e dois usuários de teste (Obras e Saúde).
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E08/` com a saída dos testes, a matriz reexecutada e a linha do tempo de um encaminhamento.
+- **Documentação a atualizar:** `README.md`, `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`, `apps/api/openapi/v1.json`.
+- **Definition of Done:** toda rota nova no manifesto e no registro; nenhuma escrita sem `exigirPermissao`; matriz verde.
+- **Checkpoint:** Não.
+
+### V2-F04-E09 - Busca, exportação e ofício leem só encaminhamentos do próprio órgão
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E13 exige esta etapa; mexe em `busca.ts` e `oficios.ts`)
+- **Objetivo:** `usuario_orgao` não acha, não lista nem exporta nada fora dos encaminhamentos do próprio órgão; busca, exportação e ofício leem as mesmas tabelas já protegidas por RLS.
+- **Problema que resolve:** `/busca` devolve ocorrências, usuários, equipes e órgãos a qualquer autenticado (`rotas/busca.ts`; BZ-D:SEC-56); `GET /oficios` e `/oficios/:id` não têm recorte (BZ-D:AUT-12); a saída de município inclui `providencias` e `oficios` inteiros (`saida/pacote.ts:92-94`; BZ-D:SEC-59).
+- **Origem:** DP:T07; BZ-D:SEC-56; BZ-D:SEC-59; BZ-D:AUT-21; BZ-D:AUT-22; BZ-D:AUT-12; REL:05 2.4.
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** E05.
+- **O que deve ser implementado:**
+  - Migration: coluna gerada `busca` em `providencias` (mesma técnica da 041: `normalizar_busca` sobre a descrição e o nome do órgão; o dossiê sensível não é indexado).
+  - API: `/busca` ganha o grupo `encaminhamento`; para `usuario_orgao` é o ÚNICO grupo (nunca ocorrência, usuário, equipe nem órgão), lido sob a RLS da E05; o termo continua sem ser gravado e o teto de 60 por minuto vale.
+  - API: exportações (`/relatorios/*`) e o pacote de saída seguem exclusivos de `exportar_dados`; o manifesto prova que nenhuma ação do órgão os alcança; exportação "escopada" do órgão não existe na V2 (negada).
+  - API: `GET /v1/oficios`, `/oficios/:id`, `/oficios/:id/documento` e `/oficios/:id/envio` negados ao `usuario_orgao` (a ficha traz e-mail e observações da coordenação); o documento do órgão é o encaminhamento com o dossiê (E12).
+- **O que NÃO deve ser implementado nesta etapa:** tela de busca do portal (F11-E18); exportação própria do órgão; ofício regerado do dossiê (E12); consulta nominal de leitura (F05-E11).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `apps/api/src/rotas/busca.ts`, `apps/api/src/rotas/oficios.ts`, `apps/api/src/rotas/prestacao-de-contas.ts`, `apps/api/src/rotas/saida.ts`, `apps/api/test/busca-do-orgao.test.ts` (a criar).
+- **Risco de segurança:** busca vaza por contagem, ranking ou sugestão; a leitura sob RLS impede, e o teste cobre o total retornado.
+- **Impacto LGPD:** o órgão só encontra o que já vê; o termo de busca segue sem gravação.
+- **Migração necessária:** Sim (`NNN_busca_do_encaminhamento.sql`).
+- **Compatibilidade:** servidores seguem com os quatro grupos; o grupo novo é aditivo.
+- **Rollback:** reverter o código; a coluna gerada é inofensiva.
+- **Testes positivos:** Maria (Obras) busca "bueiro" e acha o encaminhamento da Obras; coordenador acha o mesmo e os da Saúde.
+- **Testes negativos:** termo que só existe no encaminhamento da Saúde devolve vazio para Maria; `GET /v1/oficios` por Maria: 403; `GET /v1/relatorios/ocorrencias.csv`: 403; `POST /v1/saida/pacote.zip`: 403; busca sem `q` válido: 422.
+- **Testes de autorização e isolamento:** o total retornado a João nunca soma resultado da Obras; busca de A não alcança B; `npm run test:isolamento` verde.
+- **Regressão obrigatória:** `npm run migrar -- --conferir` (a migration aplica do zero), `npm run test:api` (`busca`, `exportacao-em-dois-niveis`, `saida-de-municipio`, `orgaos-e-oficio`), `npm run test:isolamento`, `npm run typecheck`.
+- **E2E:** `npm run test:e2e:api`: a caixa de busca do painel segue igual para a coordenação.
+- **Validação humana:** Rafael busca com Maria e com Rita e compara os resultados.
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E09/` com a saída dos testes e as respostas comparadas.
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`, `README.md`.
+- **Definition of Done:** `usuario_orgao` só alcança encaminhamentos próprios na busca; exportação e ofício negados e provados.
+- **Checkpoint:** Não.
+
+### V2-F04-E10 - Relógio de prazo e lembretes em percentual do prazo (T12)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** médio  |  **Paralelizável:** sim (com F04-E11)
+- **Objetivo:** lembretes em percentual do prazo (sem aceite 25%, lembrete 75%, vencido 100%; CP-21 calibra), com pausa em `aguardando_dc`; derivado, nunca estado.
+- **Problema que resolve:** providência vencida não gera aviso nem e-mail: o sino só cobre o prazo da ocorrência e só materializa ao ser aberto (`avisos.ts:256-285`); sem pausa nem prorrogação (REL:05 gaps 13 e 14).
+- **Origem:** DP:T12; DP:K2; BZ-D:SEC-15; BZ-M:V2-SEC-05.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E03.
+- **O que deve ser implementado:** 
+  - Migration: gatilho de pausa (`pausado_em`, `pausa_acumulada` ao sair de `aguardando_dc`); `prazo_em` só muda por `prazo_alterado` com motivo; índice único `(encaminhamento_id, marco)` em eventos `lembrete`.
+  - Migration: função SECURITY DEFINER `varrer_lembretes_de_encaminhamento()` (`search_path` fixo, sem parâmetro de município, devolve ids e marco), na lista nominal da F03-E08.
+  - API: relógio `apps/api/src/encaminhamentos/relogio.ts` (a criar) ao lado dos de `index.ts`, com `push/trava.ts`, grava `lembrete` como `sistema`; `LEMBRETE_SEM_ACEITE_PCT` e `LEMBRETE_PCT` em `config.ts`; `situacaoDoPrazo` no shared.
+- **O que NÃO deve ser implementado nesta etapa:** sino (E11); e-mail e push (F11-E17); escalonamento (E16); worker (F07-E03).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `apps/api/src/encaminhamentos/relogio.ts` (a criar), `apps/api/src/index.ts`, `apps/api/src/config.ts`.
+- **Risco de segurança:** função entre municípios, sem parâmetro de município e com saída só de ids e marco.
+- **Impacto LGPD:** Não se aplica: só ids.
+- **Migração necessária:** Sim (`NNN_relogio_de_prazo_do_encaminhamento.sql`).
+- **Compatibilidade:** aditiva.
+- **Rollback:** desligar o relógio.
+- **Testes positivos:** a 30% sem aceite: `sem_aceite_25`; aos 80%: `lembrete_75`; pausa de 2 horas empurra o prazo em 2 horas.
+- **Testes negativos:** segunda rodada não repete o marco; encaminhamento encerrado não recebe lembrete.
+- **Testes de autorização e isolamento:** lembrete de A nunca gravado em B; ator de órgão não executa a função.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `npm run test:isolamento`, `npm run test:api`.
+- **E2E:** Não se aplica: sem fluxo até a E11.
+- **Validação humana:** Alyson e a secretaria piloto avaliam os percentuais (CP-21).
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E10/` com os testes.
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** lembretes idempotentes; pausa provada.
+- **Checkpoint:** Não (CP-21 calibra).
+
+### V2-F04-E11 - Avisos e sino do órgão sem vazamento
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com F04-E10)
+- **Objetivo:** sino do órgão só com fatos do próprio órgão, sem protocolo nem pessoa; Defesa Civil avisada quando o órgão age; nenhum GET escreve.
+- **Problema que resolve:** `GET /avisos` mostra avisos do município inteiro e ESCREVE linhas (`avisos.ts:256-284`); `avisos.ocorrencia_id` NOT NULL prende o aviso a ocorrência que o órgão não vê.
+- **Origem:** BZ-D:AUT-13; REL:05.
+- **Estado atual:** EXPANDIR e CORRIGIR.
+- **Dependências de entrada:** E05.
+- **O que deve ser implementado:**
+  - Migration: `avisos_do_orgao` (`orgao_id`, `encaminhamento_id` com FK tripla, `tipo`, `chave_do_fato` único, `detalhe` até 200 caracteres; classe A; expurgo de 60 dias) e `avisos_do_orgao_lidos` (classe B, `usuario_id = app_ator_id()`); `avisos_tipo_check` substituído repetindo os valores vigentes (migrações 018 e 031) mais `encaminhamento_aceito`, `encaminhamento_devolvido`, `encaminhamento_respondido`, `esclarecimento_solicitado`, `encaminhamento_sem_aceite` e `encaminhamento_vencido`.
+  - Migration: gatilho AFTER INSERT em `encaminhamento_eventos` (idempotente por `chave_do_fato`, sem SECURITY DEFINER, então `FUNCOES_PRIVILEGIADAS` da F03-E08 não cresce) avisa o lado oposto; a policy de `avisos` aceita INSERT do ator de órgão só em tipos `encaminhamento_*`.
+  - API: `GET /v1/orgaos/:orgaoId/avisos` só leitura e `POST .../avisos/lidos`; `usuario_orgao` em `GET /v1/avisos`: 403; `get-nao-escreve.test.ts` (a criar) prova que nenhum GET muda linha.
+- **O que NÃO deve ser implementado nesta etapa:** e-mail e push de prazo (F11-E17); relógio (E10); telas do portal (F11-E08).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `apps/api/src/rotas/avisos.ts`.
+- **Risco de segurança:** `detalhe` sem pessoa; INSERT do órgão em `avisos` limitado por tipo.
+- **Impacto LGPD:** ponteiro sem dado pessoal.
+- **Migração necessária:** Sim (`NNN_avisos_do_orgao.sql`); entra na eliminação e na saída.
+- **Compatibilidade:** tipos aditivos.
+- **Rollback:** migration nova.
+- **Testes positivos:** a Obras aceita e a Defesa Civil recebe `encaminhamento_aceito`; ambos idempotentes.
+- **Testes negativos:** João (Saúde) não lê aviso da Obras; Maria em `GET /v1/avisos`: 403.
+- **Testes de autorização e isolamento:** aviso de A invisível em B; Ana (dois vínculos) vê só o `orgao_atual`.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `npm run test:api`, `npm run test:isolamento`.
+- **E2E:** `npm run test:e2e:api`: o sino da coordenação mostra o aceite.
+- **Validação humana:** Rafael aceita como Maria e vê o aviso chegar à Defesa Civil.
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E11/`.
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** sino isolado; Defesa Civil avisada; nenhum GET escreve.
+- **Checkpoint:** Não.
+
+### V2-F04-E12 - Ofício por link: manter sem vazar e registrar consulta (transição até o portal)
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F04-E11, depois da E09, que também edita `rotas/oficios.ts`)
+- **Objetivo:** durante a transição até o portal, o link de uso único do ofício continua funcionando, mas mostra só o dossiê mínimo do encaminhamento, e a abertura aparece na linha do tempo.
+- **Problema que resolve:** o documento do ofício leva nome do solicitante, endereço, descrição e vulnerabilidade da ocorrência a qualquer órgão (`oficios/documento.ts:113-129`); a abertura do link registra IP e user-agent sem identidade e não aparece no encaminhamento (P0 de LGPD no Baseline; BZ-D:SEC-57, SEC-58).
+- **Origem:** BZ-F:P0-LGPD; BZ-D:SEC-57; BZ-D:SEC-58; BZ-D:SEC-18; REL:05; DP:T07.
+- **Estado atual:** CORRIGIR (conteúdo) e MANTER (link: hash, expiração, uso único, 410 e 404; `abrir_oficio`).
+- **Dependências de entrada:** E04.
+- **O que deve ser implementado:**
+  - API: `oficios/documento.ts` e `GET /publico/oficio/:token` (`rotas/oficios.ts:602`) montam a seção "Ocorrência de origem" a partir do snapshot do dossiê da versão vigente do encaminhamento, nunca de `ocorrencias`; campo sensível só aparece se o dossiê o incluiu com justificativa; as observações da coordenação (texto da Defesa Civil) continuam. Ofício de encaminhamento sem dossiê (legado) usa a versão `migracao` da E04.
+  - API: a abertura bem-sucedida grava o evento `visualizado` com `autor_tipo = 'link'` e sem autor, sob o ator `sistema` (a rota já abre `comTenant` com a organização que `abrir_oficio` devolve), visível à Defesa Civil na linha do tempo; `oficio_aberturas` mantém IP e user-agent (expurgo em F05-E12).
+  - API: o link é leitura: nenhuma resposta, nenhum estado de outro órgão, nenhuma lista.
+- **O que NÃO deve ser implementado nesta etapa:** consulta nominal da Defesa Civil ao ofício (F05-E11); decidir manter ou desligar o link (CP-22, F10-E14, F12-E06); resposta pelo link (nunca); portal (F11).
+- **Arquivos e módulos prováveis:** `apps/api/src/oficios/documento.ts`, `apps/api/src/rotas/oficios.ts`, `apps/api/test/orgaos-e-oficio.test.ts`, a criar `apps/api/test/oficio-so-leva-o-dossie.test.ts`.
+- **Risco de segurança:** o link continua credencial de uso único consumida por GET (scanner de e-mail pode queimá-lo, BZ-D:SEC-19): pendência conhecida, não agravada; a rota pública não pode ler `ocorrencias` por fora do dossiê.
+- **Impacto LGPD:** reduz a exposição: o órgão por link recebe o mesmo mínimo do portal; a abertura passa a ser rastreável no encaminhamento.
+- **Migração necessária:** Não (usa o evento da E03).
+- **Compatibilidade:** ofício já emitido com link vivo passa a ser servido em versão mínima; o link, a validade e o teto de reenvio não mudam.
+- **Rollback:** reverter o código; o link volta a ler a ocorrência (não recomendado).
+- **Testes positivos:** abrir o link mostra protocolo, tipo e endereço do dossiê padrão; a abertura gera o evento `visualizado` visível à Defesa Civil.
+- **Testes negativos:** ocorrência com nome e vulnerabilidade cadastrados: o documento do link não contém esses textos; segunda abertura: 410; link expirado: 410; link desconhecido: 404 sem registro.
+- **Testes de autorização e isolamento:** o link de A não abre ofício de B; `/publico/oficio/:token` continua sem `/v1` e com o segredo redigido no log; `npm run test:isolamento` verde.
+- **Regressão obrigatória:** `npm run test:api` (`orgaos-e-oficio`, `log`), `npm run test:isolamento`, `npm run typecheck`.
+- **E2E:** `npm run test:e2e:api`: emitir o ofício, ler o link do notificador de arquivo e abrir uma vez.
+- **Validação humana:** Rafael abre o link de teste e confere que nome e vulnerabilidade não aparecem.
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E12/` com o documento de teste (dados sintéticos) e a saída dos testes.
+- **Documentação a atualizar:** `dc360/docs/PRIVACIDADE.md`, `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** nenhum campo fora do dossiê no documento do link; abertura rastreável; link inalterado.
+- **Checkpoint:** Não.
+
+### V2-F04-E13 - Cenários negativos: ID trocado, URL de arquivo, encaminhamento encerrado, usuário movido, item não atribuído
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (exige E08 e E09; fecha a fase)
+- **Objetivo:** provar pela API, em um arquivo só, os cenários negativos do portal: Obras x Saúde, secretaria A x B por ID trocado, URL de arquivo, usuário desativado, encaminhamento encerrado, usuário removido ou movido e item não atribuído.
+- **Problema que resolve:** o sistema atual responde a alguns por acidente e a "Obras tentando acessar Saúde" não é testável sem usuário de órgão; responder depois do encerramento nunca teve regra nem teste (BZ-D:SEC-33; REL:05 2.5 cenários 1 a 10).
+- **Origem:** BZ-M:V2-SEC-09; BZ-D:SEC-33; REL:05 2.5; PR:Prompt-F04.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E08, E09.
+- **O que deve ser implementado:**
+  - Testes: `apps/api/test/portal-cenarios-negativos.test.ts` (a criar), com Maria (Obras), João (Saúde), Ana (os dois), Rita (coordenadora) e o município B, criando vínculos e encaminhamentos pelos próprios testes. Cenários: (1) Obras x Saúde em lista, detalhe, busca, aviso e resposta; (2) ID trocado em toda rota de órgão; (3) usuário do município B em rota de A; (4) URL de arquivo: `GET /v1/evidencias/:id/url` e `/v1/evidencias/ocorrencia/:id` por `usuario_orgao` (os anexos do órgão chegam em F11-E13, que estende este arquivo); (5) conta desativada: leitura e resposta falham na requisição seguinte; (6) encaminhamento `concluido` ou `cancelado`: aceite, devolução e resposta recusados com 409 `encaminhamento_encerrado`; (7) vínculo encerrado: acesso some na hora; troca para outro órgão: os itens do órgão antigo não acompanham; (8) item atribuído a outro executor do mesmo órgão: 403 (fora do órgão: 404); (9) `orgaoId` forjado em rota, corpo ou cabeçalho: 404 ou ignorado; (10) autoria forjada no corpo: ignorada.
+  - Domínio: regra explícita para a ocorrência já encerrada com encaminhamento aberto (adotada aqui, a validar com Alyson em F12-E02): o órgão ainda pode responder, a resposta entra como evento e não reabre a ocorrência; a Defesa Civil conclui.
+- **O que NÃO deve ser implementado nesta etapa:** anexos do órgão e URL assinada de encaminhamento (F06, F11-E13); varredura final antes do pentest (F25-E05, F25-E07); atribuição por pessoa ou por órgão (CP-20 decide; o caso 8 flui conforme a decisão).
+- **Arquivos e módulos prováveis:** `apps/api/test/portal-cenarios-negativos.test.ts` (a criar), `apps/api/test/apoio/rotas.ts`, `apps/api/src/rotas/encaminhamentos-do-orgao.ts`.
+- **Risco de segurança:** cenário omitido vira vazamento no piloto; os dez vêm de REL:05 2.5 e do contrato (V2-SEC-09), e a revisão de segurança de F25-E05 os reexecuta.
+- **Impacto LGPD:** Não se aplica: dados sintéticos; o teste prova minimização.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só teste e a regra declarada da ocorrência encerrada.
+- **Rollback:** remover o arquivo; a regra da ocorrência encerrada volta a ser implícita.
+- **Testes positivos:** Maria responde ao próprio encaminhamento (200); Ana, com `orgao_atual` Obras, lê só o da Obras; resposta tardia com a ocorrência encerrada entra como evento.
+- **Testes negativos:** os dez cenários acima, cada um com o código esperado (404, 403, 409 ou 401).
+- **Testes de autorização e isolamento:** nenhum cenário devolve 200 com dado de outro órgão ou município; recurso alheio é 404, nunca 403; `npm run test:isolamento` verde.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run typecheck`; a matriz papel x rota reexecutada.
+- **E2E:** `npm run test:e2e:api` mantém o fluxo C; os negativos ficam no teste de API.
+- **Validação humana:** Rafael lê a tabela cenário x resposta esperada x resposta obtida.
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E13/` com a tabela de cenários e a saída do teste.
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`, `README.md`.
+- **Definition of Done:** os dez cenários verdes; regra da ocorrência encerrada documentada; arquivo preparado para a extensão de F11-E13.
+- **Checkpoint:** Não.
+
+### V2-F04-E14 - Prioridade do encaminhamento
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** baixo  |  **Paralelizável:** sim (com F04-E15)
+- **Objetivo:** o encaminhamento tem prioridade (`baixa`, `normal`, `alta`, `urgente`) definida pela Defesa Civil no envio, visível ao órgão e usada na ordenação das listas.
+- **Problema que resolve:** `providencias` só tem prazo: o órgão não sabe o que atender primeiro (ALY:FLU-01; GAP-P1P-42, REQ-026).
+- **Origem:** PR:L9; ALY:FLU-01; DP:T13.
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** E03, E07, E08.
+- **O que deve ser implementado:**
+  - Migration: `providencias.prioridade` (domínio `prioridade_do_encaminhamento`; padrão `normal`, backfill `normal`) e `GRANT UPDATE (prioridade)` (E07); novo tipo `prioridade_alterada` em `encaminhamento_eventos`.
+  - Domínio: `packages/shared/src/encaminhamento.ts` ganha `PRIORIDADES` e rótulos em português.
+  - API: `POST /v1/ocorrencias/:id/encaminhamentos` aceita `prioridade`; `POST /v1/encaminhamentos/:id/prioridade` (só a Defesa Civil, motivo obrigatório, evento); as listas das duas famílias de rota ordenam por prioridade e prazo.
+- **O que NÃO deve ser implementado nesta etapa:** prazo por prioridade ou SLA; escalonamento por prioridade (E16); telas (F10-E04 e F10-E20, F11-E09).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `packages/shared/src/encaminhamento.ts`, `apps/api/src/rotas/encaminhamentos.ts` e `encaminhamentos-do-orgao.ts` (a criar na E08).
+- **Risco de segurança:** o órgão não pode alterar a prioridade: sem `GRANT` ao ator de órgão.
+- **Impacto LGPD:** Não se aplica: sem dado pessoal.
+- **Migração necessária:** Sim (`NNN_prioridade_do_encaminhamento.sql`).
+- **Compatibilidade:** padrão `normal`; rotas legadas seguem.
+- **Rollback:** reverter o código; coluna inerte.
+- **Testes positivos:** envio `urgente` lista primeiro; alteração grava evento com motivo.
+- **Testes negativos:** valor fora do domínio: 422; órgão alterando: 403; alteração sem motivo: 422.
+- **Testes de autorização e isolamento:** usuário da Saúde não vê a prioridade do encaminhamento da Obras; `npm run test:isolamento` verde.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `npm run test:isolamento`, `npm run test:api`.
+- **E2E:** `npm run test:e2e:api`: encaminhar com prioridade.
+- **Validação humana:** Alyson confirma os quatro valores.
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E14/` com os testes.
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** prioridade no banco, no shared e nas rotas.
+- **Checkpoint:** Não.
+
+### V2-F04-E15 - Competência do órgão por COBRADE e território como dado (a Defesa Civil escolhe, a competência sugere e valida)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** médio  |  **Paralelizável:** sim (com F04-E14)
+- **Objetivo:** cada órgão declara os tipos COBRADE e o território de que é competente; a Defesa Civil continua escolhendo o destino e a competência só sugere e valida.
+- **Problema que resolve:** o destino sai de memória entre `orgaos` (017) e o encaminhamento errado só volta por devolução (DP:T10, DP:T11).
+- **Origem:** PR:D-18; DP:T10; DP:T11; REL:05.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E02, E08.
+- **O que deve ser implementado:** 
+  - Migration: `orgao_competencias` (`organizacao_id`, `orgao_id`, `tipo_cobrade` nulo = todos, `territorio` texto normalizado de bairro, distrito ou setor, nulo = município inteiro, `inicio`, `fim`, `criado_por`); FK composta, RLS por município, sem DELETE; classe C no catálogo da E06.
+  - Domínio: `packages/shared/src/competencia.ts` (a criar): `orgaosCompetentes(competencias, tipo, local)`.
+  - API: `GET /v1/ocorrencias/:id/orgaos-competentes` (`encaminhar_providencia`); `GET` e `PUT /v1/orgaos/:id/competencias` (`gerenciar_equipes`); encaminhar fora da competência declarada exige `justificativa` (20 caracteres) no evento `enviado`; sem competência declarada, sem validação; nada bloqueia; `catalogo-de-destinos` (E08) usa a mesma ordem.
+- **O que NÃO deve ser implementado nesta etapa:** destino automático; transferência direta entre secretarias; geometria: a F32-E10 acrescenta `area_id` e a sugestão por área, e aqui `territorio` é texto.
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `packages/shared/src/competencia.ts` (a criar), `apps/api/src/rotas/orgaos.ts`, `apps/api/src/rotas/encaminhamentos.ts`.
+- **Risco de segurança:** sugestão não envia dossiê sozinha: a Defesa Civil confirma; o ator de órgão só lê o próprio município (classe C).
+- **Impacto LGPD:** Não se aplica: sem pessoa.
+- **Migração necessária:** Sim (`NNN_competencia_do_orgao.sql`); entra na eliminação e na saída.
+- **Compatibilidade:** sem competência declarada, nada muda.
+- **Rollback:** reverter o código.
+- **Testes positivos:** `deslizamento` no bairro X sugere a Obras primeiro; fora da competência com justificativa envia.
+- **Testes negativos:** fora da competência sem justificativa: 422; tipo fora da COBRADE: 422.
+- **Testes de autorização e isolamento:** competência de A invisível em B; `usuario_orgao` não escreve.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `npm run test:isolamento`, `npm run test:api`.
+- **E2E:** `npm run test:e2e:api`: sugerir e encaminhar fora da competência.
+- **Validação humana:** Alyson revê as sugestões.
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E15/`.
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** competência como dado; sugestão e validação provadas.
+- **Checkpoint:** CP-53 (quem cadastra e o rigor da validação; ver E16).
+
+### V2-F04-E16 - Cadeia de escalonamento por município acima do gestor do órgão, com lembretes e eventos append-only
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** médio  |  **Paralelizável:** não
+- **Objetivo:** cada município configura níveis acima do gestor do órgão (por exemplo secretário, prefeito, controle) que recebem lembrete de encaminhamento vencido, com cada passo em evento append-only.
+- **Problema que resolve:** `escalonamento` (E08) avisa só o gestor do órgão e, sem gestor, responde 409: depois dele nada sobe (DP:T12).
+- **Origem:** PR:D-18; DP:T12; DP:K2.
+- **Estado atual:** EXPANDIR (evento `escalonado` e relógio já existem).
+- **Dependências de entrada:** E10, E11.
+- **O que deve ser implementado:** 
+  - Migration: `escalonamento_niveis` (`organizacao_id`, `ordem` de 1 a 4, `rotulo`, `orgao_id` do destinatário, `apos_horas`, `ativo`; RLS por município; desativa, não apaga); índice único `(encaminhamento_id, nivel)` nos eventos `escalonado` (`detalhe.nivel`).
+  - API: `GET` e `PUT /v1/organizacao/escalonamento` (`gerenciar_organizacao`); `POST /v1/encaminhamentos/:id/escalonamento` sobe um nível; o relógio da E10 escala sozinho `apos_horas` depois de `vencido_100`, como `sistema`.
+  - API: o destinatário recebe aviso em `avisos_do_orgao` (E11) e e-mail, nunca acesso ao encaminhamento de outro órgão; sem níveis, vale só o gestor.
+- **O que NÃO deve ser implementado nesta etapa:** acesso do destinatário ao dossiê; e-mail em produção (CP-19); tela (F10-E06).
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `apps/api/src/encaminhamentos/relogio.ts`, `apps/api/src/rotas/encaminhamentos.ts`, `apps/api/src/rotas/administracao.ts`.
+- **Risco de segurança:** escalar não amplia leitura: o destinatário só recebe ponteiro.
+- **Impacto LGPD:** o aviso leva só ids e rótulo.
+- **Migração necessária:** Sim (`NNN_cadeia_de_escalonamento.sql`).
+- **Compatibilidade:** sem níveis configurados, nada muda.
+- **Rollback:** desligar o escalonamento automático por configuração.
+- **Testes positivos:** vencido mais `apos_horas` gera `escalonado` nível 1 e o aviso; o nível 2 só depois do prazo dele.
+- **Testes negativos:** segunda rodada não repete o nível; encaminhamento encerrado não escala.
+- **Testes de autorização e isolamento:** destinatário do nível lendo o encaminhamento: 404; cadeia de A invisível em B.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `npm run test:isolamento`, `npm run test:api`.
+- **E2E:** Não se aplica: o tempo é simulado por UPDATE como dono; tela em F10-E06.
+- **Validação humana:** Alyson e o município definem a cadeia de teste.
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E16/` com os testes.
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** cadeia configurável provada; eventos append-only; sem ampliação de leitura.
+- **Checkpoint:** CP-53 (níveis, destinatários e prazos de cada município; bloqueia ligar o escalonamento em produção).
+
+### V2-F04-E17 - Devolução só antes do aceite (D-23): regra explícita, mensagem e testes de borda
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** baixo  |  **Paralelizável:** sim
+- **Objetivo:** tornar explícito e testado que o órgão só devolve o encaminhamento ANTES do aceite; depois, usa o pedido de esclarecimento, e a Defesa Civil cancela e reencaminha.
+- **Problema que resolve:** E03 e E08 já implementam a regra (`devolvido` só a partir de `enviado`), mas sem teste de borda nem mensagem própria (D-23; CP-20 parcial; contradição 25).
+- **Origem:** PR:D-23; DP:T13; DP:K5.
+- **Estado atual:** MANTER (regra de E03 e E08) e EXPANDIR (testes e mensagem).
+- **Dependências de entrada:** E03, E08.
+- **O que deve ser implementado:**
+  - Domínio: `TRANSICOES_DO_ENCAMINHAMENTO` mantém `devolvido` só a partir de `enviado`, igual a `transicoes_do_encaminhamento()` no banco.
+  - API: devolução em `aceito`, `aguardando_dc` ou `respondido`: 409 `devolucao_so_antes_do_aceite`, com orientação de usar `esclarecimento`; a Defesa Civil segue podendo cancelar e reencaminhar até `concluido`.
+  - Testes: `db/test/encaminhamento-devolucao.test.ts` e `apps/api/test/devolucao-antes-do-aceite.test.ts` (a criar).
+- **O que NÃO deve ser implementado nesta etapa:** devolução depois do aceite (D-23 a exclui); mudar a máquina de estados (E03).
+- **Arquivos e módulos prováveis:** `packages/shared/src/encaminhamento.ts`, `apps/api/src/rotas/encaminhamentos-do-orgao.ts`, `db/test/encaminhamento-devolucao.test.ts` (a criar), `apps/api/test/devolucao-antes-do-aceite.test.ts` (a criar).
+- **Risco de segurança:** regra só na aplicação seria contornável: o gatilho da E03 a repete.
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** nenhuma mudança de estado.
+- **Rollback:** remover os testes e a mensagem.
+- **Testes positivos:** `enviado` para `devolvido` com motivo e destino sugerido: 200; reenvio volta a `enviado`.
+- **Testes negativos:** devolução em `aceito`, `aguardando_dc` e `respondido`: 409; UPDATE direto de `aceito` para `devolvido` como dono: o gatilho recusa.
+- **Testes de autorização e isolamento:** usuário da Saúde devolvendo o encaminhamento da Obras: 404.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm test --workspace @dc360/shared`.
+- **E2E:** `npm run test:e2e:api`: devolver antes do aceite e esclarecer depois.
+- **Validação humana:** Alyson confirma a regra com a secretaria piloto (F12-E02).
+- **Evidência a produzir:** `docs/evidencias-v2/G04/V2-F04-E17/` com os testes.
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** regra provada no banco, no shared e na API.
+- **Checkpoint:** Não (CP-20 segue parcial: secretaria piloto e atribuição).
+
+# GATE G04 - ISOLAMENTO INTRA-MUNICÍPIO PROVADO
+
+Só passa se:
+- [ ] V2-F04-E01: ADR 0010 aceita com as cinco decisões, as alternativas descartadas e o esclarecimento de que o órgão não é tenant e de que a pessoa global não o altera; hash e aceite em `docs/evidencias-v2/G04/V2-F04-E01/`.
+- [ ] V2-F04-E02: `providencias` expandida em máquina limpa e sobre dado migrado (legados por estado contados antes e depois), sem tabela paralela, com as tabelas novas na eliminação e na saída de município; saída arquivada.
+- [ ] V2-F04-E03: eventos append-only provados e a tabela de transições idêntica no shared e no banco (`transicoes_do_encaminhamento()`); estados terminais imutáveis.
+- [ ] V2-F04-E04: dossiê imutável por lista de inclusão, com campo sensível só por justificativa; CP-09 decidido, ou adiado com o que fica bloqueado: o primeiro encaminhamento real e F19.
+- [ ] V2-F04-E05: teste Obras x Saúde verde no banco (`db/test/isolamento-por-orgao.test.ts`), contexto ausente igual a zero linhas, ator de órgão sem leitura de `ocorrencias`; saída arquivada.
+- [ ] V2-F04-E06: teste de catálogo no estilo CA-06 verde no CI e acusando cada ramo (tabela com `orgao_id` sem policy fail-closed, policy com `IS NULL`, tabela sem classe).
+- [ ] V2-F04-E07: UPDATE só por coluna em `providencias`, corrida de respostas eliminada (uma 200 e uma 409) e a lista de privilégios de coluna do portão atualizada.
+- [ ] V2-F04-E08: rotas da Defesa Civil e do órgão com `exigirPermissao` antes do banco, no manifesto e no registro de contrato; matriz papel x rota (F03-E13) reexecutada com as rotas novas e os cinco papéis.
+- [ ] V2-F04-E09: busca, exportação e ofício restritos; `usuario_orgao` só alcança encaminhamentos do próprio órgão.
+- [ ] V2-F04-E10 (P1): lembretes em percentual idempotentes e pausa provada, com a função SECURITY DEFINER na lista nominal; percentuais finais em CP-21 (F12-E03).
+- [ ] V2-F04-E11 (P1): sino do órgão isolado, Defesa Civil avisada, nenhum GET escreve (`get-nao-escreve.test.ts` verde).
+- [ ] V2-F04-E12 (P1): o documento do link do ofício traz só o dossiê mínimo e a abertura aparece no encaminhamento.
+- [ ] V2-F04-E13: os dez cenários negativos verdes pela API; tabela arquivada.
+- [ ] V2-F04-E14 (P1): prioridade do encaminhamento no banco, no shared e nas rotas, alterável só pela Defesa Civil com motivo.
+- [ ] V2-F04-E15 (P1): competência por COBRADE e território como dado, com sugestão e validação por justificativa, sem bloquear a Defesa Civil.
+- [ ] V2-F04-E16 (P1): cadeia de escalonamento acima do gestor provada, sem ampliar leitura; CP-53 decidido, ou adiado com o que fica bloqueado: ligar escalonamento e validação de competência em produção.
+- [ ] V2-F04-E17: devolução só antes do aceite provada (409 `devolucao_so_antes_do_aceite` nos três estados seguintes).
+- [ ] teste de plateia (`plateia-do-portal.test.ts`, F03-E07) e teste de cruzamento (`cruzamento-de-municipios.test.ts`, F03-E18) verdes, e `npm run test:isolamento` (suíte inteira de `db/`, com `isolamento.test.ts`, CA-06 e os catálogos novos) verde.
+- [ ] nenhuma regressão: gates G00, G01, G02 e G03 continuam verdes (se um quebrar, ESTE gate volta a REPROVADO).
+- [ ] documentação atualizada (README, `DICIONARIO-DE-DADOS.md`, `PAPEIS_E_RESPONSABILIDADES.md`, `PRIVACIDADE.md`, ADR 0010) e evidências arquivadas em `docs/evidencias-v2/G04/`.
+
+**Reabre se:** um usuário de órgão ler dado de outro órgão ou qualquer linha de `ocorrencias`; surgir tabela com `orgao_id` sem policy de órgão fail-closed ou tabela de negócio sem classe de acesso; `isolamento.test.ts` quebrar; a resposta de um encaminhamento puder ser sobrescrita; um GET voltar a escrever; o escalonamento der leitura a quem não é do órgão; a devolução voltar a valer depois do aceite.
+**Este Gate libera:** F05 (manifesto de dados e LGPD técnica), F10 (parte da Defesa Civil: telas do encaminhamento, competência e escalonamento) e F11 (portal, após G10); F19 continua dependendo do CP-09.

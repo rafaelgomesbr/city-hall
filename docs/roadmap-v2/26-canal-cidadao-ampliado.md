@@ -1,0 +1,642 @@
+# Fase 34: Canal do cidadão ampliado
+
+**Gate da fase:** G34 CANAL DO CIDADÃO AMPLIADO | **Depende dos gates:** G17 e G18 (cumulativo: todos os anteriores na ordem de execução de `STATUS.md`, seção 5, que põe a F34 entre a F18 e a F19; G15, G16 e G32 em cadeia) | **Superfícies tocadas:** `apps/cidadao`, `apps/web` (blocos da triagem e seção da organização), `apps/api` (modo `publica` e rotas de triagem), `db`, `packages/shared`, `packages/upload-core`, `packages/i18n` (consumo), infraestrutura (saída de rede da API pública, segredos só por nome) | **Checkpoints da fase:** CP-91, CP-92, CP-93, CP-94, CP-47, CP-46, CP-10, CP-11, CP-13, CP-26, CP-27, CP-28
+
+Esta fase amplia o canal do cidadão (D-07, que emenda a D-03) sobre a base da F15 a F18, sem refazer nada dela: vídeo do relato (1 por relato, 30 segundos, 50 MB), conversa por relato (mensagens, SEM tempo real: o app consulta e recebe push), login por gov.br, por SMS e por Google e Apple, e o CPF verificado pelo provedor. Relato ANÔNIMO continua FORA da V2: toda porta de entrada termina em conta com CPF (F15-E16 e F17-E20, reaproveitados, nunca duplicados). A cadeia de arquivos e a transcodificação isolada já existem (F06-E18 a E21, F07-E10 e E11): esta fase só as liga à captura, ao envio retomável, à reprodução e à moderação.
+
+MANTER: o realm separado `dc360-cidadao` (F15-E03), "só o meu" (F15-E06), a interface de provedores e `cidadao_identidades` (F15-E18), as cotas persistentes (F15-E10, `consumir_cota` da F03-E19), o bloqueio manual (F15-E11), `relato_mensagens` e `relato_anexos` (F16-E08 e E12), a leitura por lista de inclusão (F16-E09), os blocos registrados do painel (F18-E01) e a regra RELATO != OCORRÊNCIA: vídeo e conversa ficam no relato, nunca na ocorrência, no laudo, no pacote do agente (F19) nem na métrica oficial. Recurso de outro município ou de outro cidadão responde 404, nunca 403; a trilha é append-only; registro não se apaga, se oculta ou se encerra com motivo.
+
+Tudo nasce DESLIGADO: vídeo e conversa por município (E02) e cada provedor por configuração (E12). Credenciamento, contrato e escolha humana viram CP-NOVO: gov.br (credenciamento), SMS (provedor, custo, antiabuso), login social (a exigência da Apple de oferecer o login dela quando há login social de terceiros NÃO está confirmada: conferir com o agente `publicacao-lojas` na execução), atendimento do chat (quem responde e em que horário) e custo do vídeo. Tudo roda em HML com dado sintético e provedor de teste; nada abre ao público antes de CP-11, CP-26, CP-28, CP-33 e G25. Portão visual (`19-definicao-de-pronto.md`, seção 0) e portão da F08-E13 em toda etapa de tela, com capturas e fotos do aparelho.
+
+NÃO faz: relato anônimo, tempo real (WebSocket, SSE, long polling), vídeo de secretaria, prefeitura ou vistoria, chamada de voz ou de vídeo, legenda automática (mandaria a voz de terceiros a um serviço externo), edição ou exclusão de mensagem pelo cidadão (a correção é mensagem nova), bloqueio global de conta pelo fornecedor, CAPTCHA e atestação (CP-27); o proibido está em `docs/roadmap-v2/21-fora-da-v2.md`. Ordem sugerida: E01, E02; vídeo (E03, E04) e conversa (E05 a E10) em trilhas paralelas depois da E02, com E11 antes de qualquer rota pública; E12 antes de E13, E15 e E16; E14 depois da E13; E17 depois dos provedores que ligar; E18 e E19 acompanham as migrations; E20 fecha.
+
+## Etapas
+
+### V2-F34-E01 - ADR do canal ampliado: conversa sem tempo real, vídeo, provedores e minimização
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (E02 a E20 citam a ADR)
+- **Objetivo:** fixar por escrito, antes das migrations, o que o canal ampliado é e o que nunca sai do relato.
+- **Problema que resolve:** sem decisão escrita, o chat viraria atendimento de emergência, o tempo real entraria por conforto e vídeo e conversa vazariam para ocorrência, laudo e agente.
+- **Origem:** PR:D-07; PR:Regra-relato; DP:T18; DP:K12; BZ-M:V2-CID-06.
+- **Estado atual:** CRIAR (as ADRs 0011, 0015, 0016 e 0017 já definem classe de arquivo, realm, relato e app).
+- **Dependências de entrada:** G17; G18.
+- **O que deve ser implementado:**
+  - Arquivos: ADR em `docs/adr/` (número: o próximo livre, conferido com `ls docs/adr`): conversa é tabela do relato, sem tempo real (consulta e push de vitrine constante); o cidadão envia texto e até 3 fotos por mensagem, o servidor só texto; vídeo 1 por relato, só o derivado é servido; `govbr`, `sms`, `google` e `apple` entram só por `ProvedorDeIdentidade` (F15-E18), sem fundir contas por e-mail igual, e o CPF verificado prevalece; habilitação por município, padrão desligado.
+  - Arquivos: tabela "quem vê o quê" (cidadão dono, coordenador, administrador, operador, agente, `usuario_orgao`, fornecedor).
+- **O que NÃO deve ser implementado nesta etapa:** tabelas, rotas e telas (E02 em diante); texto jurídico (CP-11).
+- **Arquivos e módulos prováveis:** `docs/adr/` (a criar), `docs/PRIVACIDADE.md`.
+- **Risco de segurança:** decisão errada vira migration que não se corrige (tabela append-only).
+- **Impacto LGPD:** define finalidade, retenção por classe e dado de terceiro (rosto e voz).
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: documento.
+- **Rollback:** substituir a ADR.
+- **Testes positivos:** `npm test` aceita o arquivo (`regras-de-conteudo.test.ts`).
+- **Testes negativos:** travessão ou norma fora da lista reprova; ADR com tempo real ou anonimato reprova no checklist de Rafael.
+- **Testes de autorização e isolamento:** Não se aplica: documento.
+- **Regressão obrigatória:** `npm test`; G15 a G18.
+- **E2E:** Não se aplica: documento.
+- **Validação humana:** Rafael aprova; Alyson lê "quem vê o quê".
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E01/`.
+- **Documentação a atualizar:** ADRs 0015 e 0016 (referência cruzada).
+- **Definition of Done:** ADR aceita e citada pelas etapas seguintes.
+- **Checkpoint:** Não.
+
+### V2-F34-E02 - Habilitação de vídeo e conversa por município (padrão desligado)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (E03 a E11 leem os interruptores)
+- **Objetivo:** o administrador liga e desliga vídeo e conversa do município sem deploy.
+- **Problema que resolve:** a F15-E13 liga só o canal inteiro; vídeo custa armazenamento e conversa exige quem responda.
+- **Origem:** PR:D-07; PR:D-03; DP:T20.
+- **Estado atual:** EXPANDIR `organizacoes` e a rota de canal (F15-E13).
+- **Dependências de entrada:** E01; F15-E13.
+- **O que deve ser implementado:**
+  - Migration: `canal_video_habilitado` e `canal_chat_habilitado` (padrão falso); CHECK: exigem `canal_cidadao_habilitado`.
+  - API: `PATCH /v1/organizacao/canal-do-cidadao/recursos` (`exigirPermissao("habilitar_canal_cidadao")`, trilha com antes e depois); variáveis `CANAL_VIDEO_LIBERADO` e `CANAL_CHAT_LIBERADO` (padrão `nao`) como segunda trava; 409 `recurso_indisponivel`; as rotas de E04 a E10 consultam o interruptor.
+  - Frontend: seção "Recursos do canal do cidadão" em `Organizacao.tsx`, com `ConfirmarAcao`; modo local só lê.
+  - Testes: a lista fechada de `console-colunas-de-organizacoes.test.ts` (F15-E13) ganha as colunas.
+- **O que NÃO deve ser implementado nesta etapa:** ligar em município real (CP-28); vídeo e conversa em si (E03 em diante).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `apps/api/src/rotas/administracao.ts`, `packages/shared/src/permissoes.ts`, `apps/web/src/paginas/Organizacao.tsx`, `apps/web/src/dados/http.ts`.
+- **Risco de segurança:** interruptor só na tela deixaria o recurso aberto.
+- **Impacto LGPD:** Não se aplica: configuração sem dado pessoal.
+- **Migração necessária:** Sim (`NNN_recursos_do_canal.sql`, hoje 047).
+- **Compatibilidade:** padrão falso; nada muda para quem já usa a F15.
+- **Rollback:** desligar os interruptores.
+- **Testes positivos:** administrador liga o vídeo com o canal habilitado e a trilha grava antes e depois.
+- **Testes negativos:** ligar com o canal desligado: 409; coordenador: 403; variável `nao`: 409; coluna fora da lista do console reprova.
+- **Testes de autorização e isolamento:** administrador de A liga o recurso de B: 404; o console não lê as colunas.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run test:console`, `npm test --workspace @dc360/web`; G15 a G18.
+- **E2E:** `fluxo-api.e2e.mjs`: ligar, usar e desligar; capturas em 320, 768 e 1280 px, claro e escuro.
+- **Validação humana:** Alyson lê as frases; portão visual (`19-definicao-de-pronto.md`, seção 0) e da F08-E13.
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E02/`: testes, capturas e `INDEX.md`.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** dois interruptores impostos no servidor.
+- **Checkpoint:** CP-28 (ligar em município; HML anda).
+
+### V2-F34-E03 - Vídeo no app: consentimento, captura de até 30 s e alternativa em texto
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (a E04 envia o que esta prepara)
+- **Objetivo:** o cidadão grava ou escolhe vídeo de até 30 s, aceita, descreve o que mostra e vê a prévia.
+- **Problema que resolve:** o app só aceita foto (F17-E07) e o vídeo expõe rosto, voz e placas de terceiros.
+- **Origem:** PR:D-07; DP:K12; DP:T24; DP:T29.
+- **Estado atual:** EXPANDIR o fluxo da F17-E07.
+- **Dependências de entrada:** E02; F17-E07; F17-E14.
+- **O que deve ser implementado:**
+  - Mobile: tela `relatar/video.tsx`: "Gravar vídeo" (corte em 30 s) e "Escolher vídeo"; acima de 30 s ou 50 MB a recusa é no aparelho; 720p com bitrate fixo (biblioteca medida na execução: NÃO CONFIRMADO).
+  - Mobile: aceite `video_do_relato` (F15-E15; texto em CP-11), orientação "evite rostos, crianças e placas", câmera e microfone pedidos no toque.
+  - Mobile: campo obrigatório "O que o vídeo mostra" (10 a 300 caracteres); prévia sem autoplay; cópia apagada no envio e no logout.
+  - Domínio: `packages/shared/src/relato-video.ts` (a criar) com os limites de F06-E06.
+- **O que NÃO deve ser implementado nesta etapa:** envio (E04); painel (E09); localização (F17-E06); legenda automática; edição.
+- **Arquivos e módulos prováveis:** `apps/cidadao/src/app/(cidadao)/relatar/video.tsx` (a criar; o app nasce na F17-E02), `packages/shared/src/relato-video.ts` (a criar).
+- **Risco de segurança:** arquivo de aparelho de terceiro; o servidor revalida (F06-E18).
+- **Impacto LGPD:** imagem e voz de terceiros; aceite próprio.
+- **Migração necessária:** Não.
+- **Compatibilidade:** relato sem vídeo não muda.
+- **Rollback:** esconder a tela pelo interruptor da E02.
+- **Testes positivos:** 30,0 s e 49 MB aceitos, com prévia.
+- **Testes negativos:** 31 s e 51 MB recusados no aparelho; alternativa de 9 caracteres recusada; sem aceite a câmera não abre.
+- **Testes de autorização e isolamento:** o vídeo do rascunho de A some no login de B no mesmo aparelho.
+- **Regressão obrigatória:** `npm run test:cidadao`, `npm run typecheck`; G17.
+- **E2E:** relato com vídeo sintético até a revisão, com capturas.
+- **Validação humana:** Rafael grava em Android e iOS; portões visuais (`19-definicao-de-pronto.md`, seção 0; F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E03/`: capturas, fotos e `INDEX.md`.
+- **Documentação a atualizar:** `apps/cidadao/LEIA-ME.md`.
+- **Definition of Done:** captura, aceite, alternativa e prévia prontos.
+- **Checkpoint:** CP-11 (texto do aceite e menores; bloqueia beta externo).
+
+### V2-F34-E04 - Vídeo: envio retomável por partes e estados do processamento
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (depende da E03)
+- **Objetivo:** o vídeo sobe por partes, retoma após queda de sinal e mostra o estado do processamento.
+- **Problema que resolve:** PUT único de 50 MB falha em rede móvel e a transcodificação demora; sem estado o cidadão reenvia.
+- **Origem:** PR:D-07; DP:T24; DP:T35; REL:07 gap 20.
+- **Estado atual:** EXPANDIR `packages/upload-core` (F17-E03) e o anexo de relato (F16-E12).
+- **Dependências de entrada:** E03; F06-E21; F07-E10; F16-E12.
+- **O que deve ser implementado:**
+  - Mobile: `enviarEmPartes` no `upload-core` sobre as rotas de F06-E21; o rascunho guarda partes e `chaveDeCriacao`; retoma ao voltar a rede.
+  - Banco: `relato_anexos.alternativa_em_texto` (obrigatória no vídeo, 10 a 300 caracteres, com redação); o gatilho de F16-E12 ignora vídeo `rejeitado`.
+  - API: a leitura do cidadão traz `estadoPublico` e `motivoPublico` em lista fechada (`video_longo_demais`, `formato_nao_aceito`, `nao_foi_possivel_processar`); `referencia_externa` e `codec_nao_permitido` viram `formato_nao_aceito`; emenda explícita e testada ao `.strict()` da F16-E09 (regra única).
+- **O que NÃO deve ser implementado nesta etapa:** transcodificação (F07-E10); cota de bytes (F06-E09); leitura do painel (E09).
+- **Arquivos e módulos prováveis:** `packages/upload-core/src/` (a criar na F17-E03), `apps/cidadao/src/dados/envio.ts` (a criar), `apps/api/src/rotas/cidadao-anexos.ts` (a criar na F16-E12), `db/migrations/`.
+- **Risco de segurança:** o motivo técnico ensinaria o atacante o que o filtro detecta.
+- **Impacto LGPD:** a alternativa é texto livre do cidadão, com redação.
+- **Migração necessária:** Sim (`NNN_video_do_relato.sql`, hoje 047).
+- **Compatibilidade:** aditivo; app antigo ignora chaves novas.
+- **Rollback:** migration inversa.
+- **Testes positivos:** 48 MB em 10 partes, queda na quarta, retoma na quinta; `pronto` só depois de `ativo`.
+- **Testes negativos:** MP4 com `dref` externo vira `formato_nao_aceito` sem código interno; parte errada: 409; segundo vídeo ativo: 409; sem alternativa: 422.
+- **Testes de autorização e isolamento:** cidadão A autoriza vídeo no relato do B: 404; conta bloqueada: 403.
+- **Regressão obrigatória:** `npm run test:api` (`relato-do-cidadao-contrato.test.ts`), `npm run test:isolamento`, `npm run test:cidadao`; G06, G07.
+- **E2E:** `scripts/e2e-cidadao.mjs`: vídeo sintético com corte de rede até `pronto`.
+- **Validação humana:** Rafael corta o sinal; portões visuais (`19-definicao-de-pronto.md`, seção 0; F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E04/`: testes e capturas.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`.
+- **Definition of Done:** retomada por parte provada; quatro estados no catálogo.
+- **Checkpoint:** CP-47 (bloqueia vídeo em produção; HML anda).
+
+### V2-F34-E05 - Conversa por relato: tabelas, limites e RLS (migration)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E06 a E10 dependem)
+- **Objetivo:** estender `relato_mensagens` e criar as tabelas de leitura, moderação e encerramento da conversa, append-only e isoladas.
+- **Problema que resolve:** a F16-E08 só tem o complemento de resposta única; conversa exige idempotência, não lidas, ocultação com motivo e foto sem mexer em registro imutável.
+- **Origem:** PR:D-07; BZ-M:V2-CID-06; DP:T21; DP:J11.
+- **Estado atual:** EXPANDIR `relato_mensagens` e `relato_anexos` (F16-E08 e E12); CRIAR três tabelas.
+- **Dependências de entrada:** E01; F16-E08; F16-E12.
+- **O que deve ser implementado:**
+  - Migration: `relato_mensagens` ganha `canal` (`complemento` ou `conversa`) e `chave_de_criacao` (único por relato e autor); novas `relato_conversa_eventos` (`encerrada` ou `reaberta`, motivo, autor), `relato_mensagem_leituras` (`leitor_tipo`, `ate_mensagem_id`) e `relato_mensagem_moderacoes` (`ocultar` ou `restaurar`, `motivo_codigo` fechado, nota até 300), todas append-only.
+  - Migration: `relato_anexos.mensagem_id` e `origem`; gatilho: foto de conversa só do cidadão, até 3 por mensagem e 10 por relato, sem vídeo.
+  - Banco: gatilho de ritmo: a sexta mensagem seguida do cidadão sem resposta do servidor é 409 `aguarde_resposta`; RLS forçada, cidadão só no relato próprio.
+- **O que NÃO deve ser implementado nesta etapa:** rotas (E06, E07); telas (E08, E09); manifesto e retenção (E19).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `db/test/conversa-do-relato.test.ts` (a criar), `db/test/isolamento.test.ts`.
+- **Risco de segurança:** ocultar por UPDATE quebraria o append-only; ocultar é evento.
+- **Impacto LGPD:** texto livre do cidadão, com redação.
+- **Migração necessária:** Sim (`NNN_conversa_do_relato.sql`, hoje 047).
+- **Compatibilidade:** mensagens existentes ficam `complemento`.
+- **Rollback:** migration inversa com as tabelas vazias.
+- **Testes positivos:** mensagem do servidor e do cidadão entram; leitura e moderação gravam evento.
+- **Testes negativos:** UPDATE e DELETE nas quatro tabelas: negados; sexta mensagem seguida: 409; quarta foto na mensagem e vídeo de conversa: recusados; `chave_de_criacao` repetida: UNIQUE.
+- **Testes de autorização e isolamento:** cidadão A lê 0 linhas do relato do B; `usuario_orgao` lê 0; FK composta recusa mensagem de outro município.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`; G15, G16.
+- **E2E:** Não se aplica: sem rota.
+- **Validação humana:** Rafael migra um banco limpo.
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E05/`: testes.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** conversa isolada, append-only e com ritmo imposto no banco.
+- **Checkpoint:** Não.
+
+### V2-F34-E06 - Conversa: API do cidadão (enviar, consultar, marcar como lida)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E08 consome)
+- **Objetivo:** o cidadão envia mensagem com fotos, consulta de forma incremental (sem tempo real) e marca como lida, só no relato próprio.
+- **Problema que resolve:** sem tempo real o app precisa de consulta barata, e sinal ruim não pode duplicar mensagem.
+- **Origem:** PR:D-07; DP:T21; DP:T22; REL:07 gap 20.
+- **Estado atual:** EXPANDIR `apps/api/src/relatos/mensagens.ts` (F16-E08).
+- **Dependências de entrada:** E02; E05; F15-E05; F15-E15.
+- **O que deve ser implementado:**
+  - API: `GET /v1/cidadao/relatos/:id/conversa?depoisDe=` (lista de inclusão: `autor` `voce` ou `defesa_civil`, `texto`, `criadaEm`, `removida`, fotos prontas, `naoLidas`; ETag e 304; 50 por página); mensagem oculta sai `removida: true` sem texto.
+  - API: `POST .../conversa` `{ texto, chaveDeCriacao, anexos? }` (`exigirCidadao`; relato e conversa abertos; interruptor da E02; aceite `conversa_do_relato` pendente: 403 `aceite_pendente`; cotas da E11) e `POST .../conversa/lida`.
+  - Autorização: o município vem do relato, nunca de corpo ou cabeçalho; relato alheio e inexistente dão o mesmo 404.
+- **O que NÃO deve ser implementado nesta etapa:** tempo real (WebSocket, SSE, long polling); editar ou apagar mensagem; lado do servidor (E07); tela (E08).
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/cidadao-conversa.ts` e `apps/api/test/cidadao-conversa.test.ts` (a criar), `apps/api/src/relatos/mensagens.ts`, `packages/shared/src/relato-conversa.ts` (a criar).
+- **Risco de segurança:** nota interna ou mensagem de outro relato na resposta; a lista de inclusão e o teste de contrato barram.
+- **Impacto LGPD:** texto livre, lido só pelo dono.
+- **Migração necessária:** Não (E05).
+- **Compatibilidade:** aditivo.
+- **Rollback:** interruptor `canal_chat_habilitado`.
+- **Testes positivos:** enviar, consultar com `depoisDe` e marcar como lida; mesma `chaveDeCriacao`: uma mensagem.
+- **Testes negativos:** 1001 caracteres: 422; relato `encerrado` e conversa encerrada: 409; recurso desligado: 409; conta bloqueada: 403 e leitura segue; `notaInterna` no corpo: 422.
+- **Testes de autorização e isolamento:** cidadão A em relato do B: 404; token de servidor: 401; sentinela de nota interna ausente da lista.
+- **Regressão obrigatória:** `npm run test:api` (`relato-mensagens.test.ts`), `npm run test:isolamento`; G15, G16.
+- **E2E:** `scripts/e2e-cidadao.mjs`: enviar duas vezes com a mesma chave e consultar.
+- **Validação humana:** Rafael lê o JSON contra a lista.
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E06/`: testes e contrato.
+- **Documentação a atualizar:** ADR da E01.
+- **Definition of Done:** envio idempotente e consulta incremental, sem tempo real.
+- **Checkpoint:** Não.
+
+### V2-F34-E07 - Conversa: API da triagem, aviso no sino e push ao cidadão
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E09 consome)
+- **Objetivo:** a triagem lê e responde a conversa, é avisada de mensagem nova e o cidadão recebe push sem conteúdo.
+- **Problema que resolve:** a F18-E12 avisa só relato novo e complemento; a resposta cairia no vazio.
+- **Origem:** PR:D-07; DP:T21; DP:T31; BZ-M:V2-CID-04.
+- **Estado atual:** EXPANDIR `rotas/avisos.ts` (F18-E12) e a fila de push do cidadão (F17-E13).
+- **Dependências de entrada:** E05; E06; F18-E12; F17-E13.
+- **O que deve ser implementado:**
+  - API: `GET` e `POST /v1/triagem/relatos/:id/conversa` (ação nova `conversar_com_cidadao`, coordenador e administrador, operador só se CP-28 definir; só texto até 1000; abrir grava `relato_consultas`); `.strict()` recusa nota interna.
+  - Migration: `avisos_tipo_check` repete os valores vigentes e ganha `mensagem_do_cidadao` (ordem na F29; gatilho na mensagem do cidadão, só com `canal_chat_habilitado`); a mensagem do servidor enfileira em `avisos_do_cidadao` com a vitrine constante por idioma.
+  - API: a lista da triagem ganha `naoLidas` (número) e o filtro "com mensagem nova"; abrir a conversa grava a leitura do servidor.
+- **O que NÃO deve ser implementado nesta etapa:** tela (E09); ocultar e encerrar (E10); push com texto da mensagem.
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/triagem-de-relatos.ts` (a criar na F18-E01), `apps/api/src/rotas/avisos.ts`, `apps/api/src/push/`, `packages/shared/src/permissoes.ts`, `db/migrations/`.
+- **Risco de segurança:** texto da mensagem no aviso, no push ou no log.
+- **Impacto LGPD:** o aviso guarda protocolo e tipo; abertura nominal.
+- **Migração necessária:** Sim (`NNN_aviso_de_conversa.sql`, hoje 047).
+- **Compatibilidade:** avisos atuais iguais.
+- **Rollback:** interruptor da E02; migration inversa.
+- **Testes positivos:** mensagem do cidadão toca o sino uma vez; resposta do servidor gera um aviso ao aparelho do dono.
+- **Testes negativos:** texto sentinela ausente de aviso, push e log; operador sem a ação: 403; mesma chave não duplica.
+- **Testes de autorização e isolamento:** coordenador de B abre conversa de relato de A: 404; agente e `usuario_orgao`: 404.
+- **Regressão obrigatória:** `npm run test:api` (`sino-de-avisos.test.ts`, `push-do-cidadao.test.ts`), `npm run test:isolamento`; G18.
+- **E2E:** `fluxo-api.e2e.mjs`: cidadão escreve, a triagem responde, o aviso chega.
+- **Validação humana:** Alyson responde um relato sintético.
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E07/`.
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** resposta e aviso nos dois sentidos, sem conteúdo.
+- **Checkpoint:** CP-94 (quem responde, horário e prazo; bloqueia ligar a conversa em produção).
+
+### V2-F34-E08 - Conversa no app: mensagens, fotos, não lidas e consulta sem temporizador
+- **Prioridade:** P1
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** médio  |  **Paralelizável:** não (depende da E06)
+- **Objetivo:** o cidadão conversa com a Defesa Civil dentro do detalhe do relato, com estados claros e sem tempo real.
+- **Problema que resolve:** a F17-E10 só tem a linha do tempo; sem tela a conversa não existe para quem relata.
+- **Origem:** PR:D-07; DP:T29; BZ-M:V2-CID-06.
+- **Estado atual:** EXPANDIR o detalhe do relato (F17-E10), que monta por blocos.
+- **Dependências de entrada:** E06; E07; F17-E05; F17-E13.
+- **O que deve ser implementado:**
+  - Mobile: bloco "Conversa" em `relatos/[id]/conversa.tsx`: mensagens "Você" e "Defesa Civil" (ícone e texto, nunca só alinhamento ou cor), campo "Escreva sua mensagem (até 1000 caracteres)", até 3 fotos, envio idempotente com rascunho local e reenvio ao voltar a rede.
+  - Mobile: a consulta ocorre ao abrir, ao voltar ao primeiro plano, ao tocar no push e ao puxar a lista, sem `setInterval`; "Meus relatos" mostra `naoLidas`.
+  - UX: estados vazio, enviando, erro, `aguarde_resposta` e conversa encerrada; aviso fixo "Não é atendimento de emergência: ligue 190, 192 ou 193".
+  - Acessibilidade: mensagem nova anunciada, alvos de 44 pt e 48 dp, fonte 200%; chaves `cidadao.conversa.*`.
+- **O que NÃO deve ser implementado nesta etapa:** edição ou exclusão de mensagem; vídeo na conversa; temporizador de consulta.
+- **Arquivos e módulos prováveis:** `apps/cidadao/src/app/(cidadao)/relatos/[id]/conversa.tsx`, `apps/cidadao/src/dados/conversa.ts` (a criar; o app nasce na F17-E02).
+- **Risco de segurança:** cache local da conversa de outra conta.
+- **Impacto LGPD:** cache e rascunho apagados no logout.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem o recurso, detalhe da F17-E10.
+- **Rollback:** esconder o bloco pelo interruptor.
+- **Testes positivos:** enviar, receber a resposta ao puxar e zerar `naoLidas`.
+- **Testes negativos:** `sem-tempo-real.test.ts` reprova `setInterval` e WebSocket; sem rede o rascunho fica; `removida: true` mostra "Mensagem removida pela Defesa Civil".
+- **Testes de autorização e isolamento:** o cache de A não aparece no login de B.
+- **Regressão obrigatória:** `npm run test:cidadao`, `npm run typecheck`; G17.
+- **E2E:** conversa em `apps/cidadao/e2e/` contra HML, com capturas.
+- **Validação humana:** Rafael e Alyson no aparelho; portões visuais (`19-definicao-de-pronto.md`, seção 0; F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E08/`: capturas.
+- **Documentação a atualizar:** `apps/cidadao/LEIA-ME.md`.
+- **Definition of Done:** conversa completa e sem temporizador.
+- **Checkpoint:** Não.
+
+### V2-F34-E09 - Painel: blocos Vídeo e Conversa no detalhe do relato
+- **Prioridade:** P1
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E10 estende os mesmos blocos)
+- **Objetivo:** a triagem assiste ao vídeo com a descrição do cidadão ao lado e conversa com ele, em blocos separados da nota interna.
+- **Problema que resolve:** a F18-E01 deixou o detalhe por blocos, sem vídeo nem conversa; vídeo sem alternativa em texto é inacessível e sem registro é sem rastro.
+- **Origem:** PR:D-07; DP:T29; DP:T21; BZ-M:V2-CID-06.
+- **Estado atual:** EXPANDIR `Relato.tsx` e `Triagem.tsx` (F18-E01).
+- **Dependências de entrada:** E04; E07; F06-E20; F18-E08.
+- **O que deve ser implementado:**
+  - Frontend: bloco "Vídeo do relato": poster, "Reproduzir vídeo" (sem autoplay, `preload="none"`, controles nativos), URL por `GET /v1/arquivos/:id/leitura` (ação `ver_video_de_relato`, grava `arquivo_acessos`); link vencido mostra "Gerar novo link"; "Descrição do cidadão sobre o vídeo" sempre visível.
+  - Frontend: bloco "Conversa" com "Mensagem ao cidadão (ele vai ler)" distinto de "Nota interna", aviso "A mensagem não pode ser editada", contador `naoLidas` e filtro em `Triagem.tsx`.
+  - Infraestrutura: `vercel.json` ganha `media-src` só do host do armazenamento.
+  - Local: `local.ts` lê conversa semeada e recusa enviar e reproduzir, explicando.
+- **O que NÃO deve ser implementado nesta etapa:** ocultar, encerrar e remover (E10); áudio e legenda automática; download do vídeo.
+- **Arquivos e módulos prováveis:** `apps/web/src/paginas/Relato.tsx`, `Triagem.tsx`, `apps/web/src/dados/http.ts`, `local.ts`, `vercel.json`.
+- **Risco de segurança:** URL assinada de vídeo de terceiro fora de log.
+- **Impacto LGPD:** reprodução e abertura ficam nominais.
+- **Migração necessária:** Não.
+- **Compatibilidade:** relato sem vídeo e sem conversa não muda.
+- **Rollback:** esconder os blocos.
+- **Testes positivos:** coordenador reproduz e `arquivo_acessos` ganha uma linha; resposta aparece na conversa.
+- **Testes negativos:** sem `autoplay`; vídeo em `quarentena` ausente; operador sem a ação: 403 e sem botão; nota interna nunca na conversa.
+- **Testes de autorização e isolamento:** coordenador de B abre vídeo e conversa de relato de A: 404.
+- **Regressão obrigatória:** `npm test --workspace @dc360/web` (`acessibilidade.test.ts`, `paridade-dos-modos.test.ts`), `npm run test:api`; G18.
+- **E2E:** `fluxo-api.e2e.mjs`: reproduzir e responder; capturas em 320, 768 e 1280 px, claro e escuro.
+- **Validação humana:** Alyson assiste e responde; portões visuais (`19-definicao-de-pronto.md`, seção 0; F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E09/`: capturas e `INDEX.md`.
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** vídeo e conversa operáveis por teclado.
+- **Checkpoint:** Não.
+
+### V2-F34-E10 - Moderação do vídeo e da conversa: ocultar, encerrar e remover
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (mesmos blocos da E09)
+- **Objetivo:** a triagem oculta mensagem, encerra a conversa e remove vídeo com motivo, sem apagar registro.
+- **Problema que resolve:** trote, ofensa e dado de terceiro chegam por mensagem e vídeo; sem moderação só sobra bloquear a conta.
+- **Origem:** PR:D-07; DP:J11; DP:T22; REL:07 11.9.
+- **Estado atual:** EXPANDIR o bloco "Moderação" (F18-E09), `POST /v1/arquivos/:id/remover` (F06-E13) e o bloqueio (F15-E11).
+- **Dependências de entrada:** E05; E09; F18-E09.
+- **O que deve ser implementado:**
+  - API: ação nova `moderar_conversa` (coordenador e administrador); `POST /v1/triagem/mensagens/:id/ocultar` e `/restaurar` (`motivoCodigo` fechado: `conteudo_ilicito`, `dado_de_terceiro`, `ofensa_ou_ameaca`, `fora_do_assunto`, `outro` com nota) e `POST .../conversa/encerrar` e `/reabrir`; tudo evento append-only.
+  - API: a leitura dos dois lados devolve `removida: true` sem texto; o bloqueio de conta (F18-E09) barra escrita nova e a leitura segue.
+  - Frontend: botões "Ocultar mensagem", "Encerrar conversa" e "Remover vídeo" (confirmação com motivo); a triagem vê quem ocultou, nunca o texto.
+- **O que NÃO deve ser implementado nesta etapa:** moderação automática; apagar linha; política de consequência (CP-26).
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/triagem-de-relatos.ts`, `packages/shared/src/permissoes.ts`, `apps/web/src/paginas/Relato.tsx`, `apps/api/test/moderacao-da-conversa.test.ts` (a criar).
+- **Risco de segurança:** ocultar a mensagem errada; reversível por evento.
+- **Impacto LGPD:** o texto oculto fica na tabela até a retenção (E19); só o código do motivo na trilha.
+- **Migração necessária:** Não (E05).
+- **Compatibilidade:** só consome tabelas e rotas existentes.
+- **Rollback:** restaurar e reabrir são eventos novos.
+- **Testes positivos:** ocultar tira o texto das duas leituras e restaurar o devolve; encerrar recusa nova mensagem com 409 `conversa_encerrada`.
+- **Testes negativos:** motivo `outro` sem nota: 422; UPDATE de mensagem: negado; vídeo removido responde 404 no painel e no app.
+- **Testes de autorização e isolamento:** operador oculta: 403; coordenador de B oculta mensagem de A: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm test --workspace @dc360/web`; G18.
+- **E2E:** `fluxo-api.e2e.mjs`: ocultar, encerrar e ver a recusa; capturas.
+- **Validação humana:** Alyson e o jurídico leem os motivos; portões visuais (`19-definicao-de-pronto.md`, seção 0; F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E10/`.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md`.
+- **Definition of Done:** três ações com motivo e histórico, nenhuma apaga registro.
+- **Checkpoint:** CP-26 (consequência e prazo de guarda; bloqueia abertura pública).
+
+### V2-F34-E11 - Antiabuso do canal ampliado em duas camadas: borda e cotas persistentes
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E12)
+- **Objetivo:** limitar mensagem, vídeo, SMS e login por provedor na borda e por cota no banco, sem Redis.
+- **Problema que resolve:** cada porta nova é alvo de spam, custo e força bruta; o catálogo da F15-E10 não a cobre.
+- **Origem:** PR:A-03; PR:D-07; DP:T22; DP:K9.
+- **Estado atual:** EXPANDIR `packages/shared/src/cotas.ts` e `apps/api/src/cotas.ts` (F15-E10); MANTER `consumir_cota` (F03-E19).
+- **Dependências de entrada:** E06; F15-E09; F15-E10.
+- **O que deve ser implementado:**
+  - Domínio: catálogo ganha, em valores iniciais propostos: `cidadao.enviar_mensagem` 30 por dia; `cidadao.autorizar_video` 3 por dia; `cidadao.iniciar_provedor` 20 por hora por endereço; `cidadao.pedir_sms` 3 por hora por número e 10 por dia por endereço; `cidadao.verificar_sms` 10 por hora; `cidadao.vincular_provedor` 5 por dia; chave HMAC de `COTAS_SEGREDO`.
+  - API: camada 1: perfil `publica` (F15-E09) estrito nas rotas sem token e folgado na consulta da conversa; estouro: 429 `cota_excedida`; falha ao contar NEGA a escrita.
+  - Autorização: conta bloqueada (F15-E11) barra escrita nova do canal ampliado e preserva a leitura.
+- **O que NÃO deve ser implementado nesta etapa:** tabela ou função de cota nova; CAPTCHA e atestação (CP-27); valores finais (CP-13); teto global de SMS (E15).
+- **Arquivos e módulos prováveis:** `packages/shared/src/cotas.ts` (a criar na F15-E10), `apps/api/src/cotas.ts`, `apps/api/src/servidor.ts`, `apps/api/test/cotas-do-canal-ampliado.test.ts` (a criar).
+- **Risco de segurança:** chave vinda de cabeçalho; só token, número normalizado e endereço de borda.
+- **Impacto LGPD:** só hash e contagem; janelas expiram.
+- **Migração necessária:** Não (a F15-E10 já concedeu a função).
+- **Compatibilidade:** aditivo.
+- **Rollback:** esvaziar as entradas do catálogo.
+- **Testes positivos:** três vídeos por dia passam; a 31ª mensagem: 429.
+- **Testes negativos:** duas máquinas contam juntas; reinício não zera; número em formatos diferentes conta como um; banco fora nega a escrita.
+- **Testes de autorização e isolamento:** cidadão A estourar não afeta B; SELECT em `cotas_de_uso` pela API pública: 42501.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G15.
+- **E2E:** `scripts/e2e-cidadao.mjs`: quarto vídeo do dia: 429.
+- **Validação humana:** Rafael estoura as cotas em HML.
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E11/`.
+- **Documentação a atualizar:** `docs/IMPLANTACAO.md`.
+- **Definition of Done:** seis cotas provadas entre instâncias.
+- **Checkpoint:** CP-13 e CP-27 (valores finais e abuso observado; bloqueiam valores em produção).
+
+### V2-F34-E12 - Provedores de login: lista fechada, vínculo seguro e desvínculo
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** sim (com E11)
+- **Objetivo:** abrir a interface da F15-E18 a `govbr`, `sms`, `google` e `apple` e permitir vincular outro provedor à conta com sessão viva, sem fundir contas.
+- **Problema que resolve:** provedor novo que funde conta por e-mail igual entrega a conta de uma pessoa a outra; sem vínculo explícito, quem tem dois provedores acumula contas duplicadas.
+- **Origem:** PR:D-07; DP:T18; BZ-M:V2-CID-01.
+- **Estado atual:** EXPANDIR `cidadao_identidades` e `provedores.ts` (F15-E18).
+- **Dependências de entrada:** E01; F15-E18; F15-E05.
+- **O que deve ser implementado:**
+  - Migration: o CHECK de `cidadao_identidades.provedor` ganha os quatro; `vinculada_em`, `desvinculada_em`; `cidadaos.cpf_origem` aceita `informado` e `govbr`.
+  - API: `GET /v1/cidadao/provedores` (lista fechada de `CIDADAO_PROVEDORES`, igual para todos); `POST /v1/cidadao/identidades` (vincula com sessão viva e prova do provedor novo; identidade de outra conta: 409 `identidade_indisponivel`, igual em corpo e tempo); `POST .../:id/desvincular` (evento; a última identidade: 409); `GET /v1/cidadao/eu` ganha `identidades` sem referência.
+  - Infraestrutura: a partida recusa provedor sem os segredos declarados por nome; cada provedor entra em `docs/SUBPROCESSADORES.md`.
+- **O que NÃO deve ser implementado nesta etapa:** adaptadores gov.br, SMS, Google e Apple (E13, E15, E16); disputa de CPF (E14); tela (E17).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `apps/api/src/cidadao/provedores.ts` e `entrada.ts` (a criar na F15-E18), `apps/api/test/provedores-do-cidadao.test.ts`.
+- **Risco de segurança:** vínculo por sessão roubada; exige prova do provedor novo e cota (E11).
+- **Impacto LGPD:** só `referencia_hash`; provedor novo é operador a registrar.
+- **Migração necessária:** Sim (`NNN_provedores_do_cidadao.sql`, hoje 047).
+- **Compatibilidade:** `email_otp` inalterado.
+- **Rollback:** esvaziar `CIDADAO_PROVEDORES`.
+- **Testes positivos:** provedor de teste vincula, entra e é desvinculado; a lista vem de `CIDADAO_PROVEDORES`.
+- **Testes negativos:** referência de outra conta: 409; e-mail igual em outro provedor não funde; desvincular a última: 409; sessão encerrada: 401.
+- **Testes de autorização e isolamento:** identidade do A ilegível ao B; provedor não toca `usuarios` nem `pessoas`.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G15.
+- **E2E:** `scripts/e2e-cidadao.mjs`: entrar por e-mail, vincular o provedor de teste, sair e entrar por ele.
+- **Validação humana:** Rafael lê o contrato.
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E12/`: testes.
+- **Documentação a atualizar:** ADR 0015, `docs/SUBPROCESSADORES.md`.
+- **Definition of Done:** quatro provedores aceitos pela interface, nenhuma fusão automática.
+- **Checkpoint:** Não.
+
+### V2-F34-E13 - Login com gov.br (OIDC com PKCE), com o CPF verificado
+- **Prioridade:** P1
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E15 e E16: arquivos disjuntos)
+- **Objetivo:** o cidadão entra com gov.br e o CPF verificado chega ao serviço da F15-E16, sem digitar.
+- **Problema que resolve:** CPF digitado não prova identidade; o provedor federal a traz verificada.
+- **Origem:** PR:D-07; DP:T18; DP:T19; BZ-D:LGP-01.
+- **Estado atual:** CRIAR o adaptador `govbr` da interface da F15-E18.
+- **Dependências de entrada:** E11; E12; F15-E16; CP-91 para credencial real.
+- **O que deve ser implementado:**
+  - API: `iniciar` devolve a URL de autorização com `state`, `nonce` e PKCE assinados por HMAC (`CIDADAO_PEPPER`, 10 minutos, sem tabela); `concluir` troca o `code` no servidor, valida assinatura, `iss`, `aud`, `nonce` e `exp`, extrai identificador e CPF (claims e escopos conforme o credenciamento: NÃO CONFIRMADO) e descarta os tokens.
+  - Infraestrutura: `GOVBR_CLIENT_ID`, `GOVBR_CLIENT_SECRET` e `GOVBR_REDIRECT_URI` só por nome; saída de rede só para o provedor; HML contra servidor OIDC falso.
+  - Autorização: o CPF sobe ao serviço da F15-E16 com `cpf_origem` `govbr`.
+- **O que NÃO deve ser implementado nesta etapa:** telas (E17); disputa de CPF (E14); guardar token do provedor; credencial real.
+- **Arquivos e módulos prováveis:** `apps/api/src/cidadao/provedores/govbr.ts` e `apps/api/test/apoio/oidc-falso.ts` (a criar), `apps/api/src/config.ts`, `apps/api/test/provedor-govbr.test.ts` (a criar).
+- **Risco de segurança:** token de outro `aud`, redirect aberto e `state` reaproveitado (CSRF de login).
+- **Impacto LGPD:** CPF de alto valor (F05-E13); escopo mínimo.
+- **Migração necessária:** Não (E12).
+- **Compatibilidade:** `govbr` fora de `CIDADAO_PROVEDORES`: 404.
+- **Rollback:** tirar `govbr` de `CIDADAO_PROVEDORES`.
+- **Testes positivos:** com o OIDC falso, conta com CPF sintético `govbr`, sessão e `cpfPendente` falso.
+- **Testes negativos:** `aud`, `iss` ou assinatura errados, `nonce` trocado, `state` vencido ou adulterado e `code` reutilizado: 401 igual; CPF inválido no token: 422.
+- **Testes de autorização e isolamento:** identidade gov.br do A não entra como B; o provedor não toca `usuarios`.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G15.
+- **E2E:** `scripts/e2e-cidadao.mjs`: entrar pelo OIDC falso e relatar sem digitar CPF.
+- **Validação humana:** Rafael entra na homologação do gov.br (NÃO CONFIRMADO).
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E13/`.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md`, `docs/SUBPROCESSADORES.md`.
+- **Definition of Done:** adaptador provado contra provedor falso, sem segredo no repositório.
+- **Checkpoint:** CP-91 (credenciamento e homologação; bloqueia ativar; adaptador e testes andam).
+
+### V2-F34-E14 - CPF verificado prevalece sobre o CPF só informado (disputa sem fusão)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não (mexe no gatilho da F15-E16)
+- **Objetivo:** o CPF atestado pelo gov.br vence o CPF só digitado, sem fundir contas.
+- **Problema que resolve:** na F15-E16 quem digita primeiro segura o CPF e barra o titular no gov.br.
+- **Origem:** PR:D-07; DP:T19; DP:J11.
+- **Estado atual:** EXPANDIR `PUT /v1/cidadao/eu/cpf` e o gatilho de CPF (F15-E16).
+- **Dependências de entrada:** E13; F15-E16; CP-46.
+- **O que deve ser implementado:**
+  - Migration: `cidadao_registrar_cpf_verificado` (SECURITY DEFINER, lista nominal da F03-E08): se o hash é de conta `informado`, ela volta a `cpf_pendente` e a nova recebe o CPF com `govbr`; se é de conta `govbr`: 409 `cpf_indisponivel`; `cidadao_cpf_eventos` append-only (`cpf_reivindicado`, ids, instante, sem CPF).
+  - Banco: o gatilho que só aceita CPF com a coluna nula ganha exceção só para essa função (emenda declarada na F15-E16).
+  - API: só o provedor com CPF atestado (`govbr`) reivindica; e-mail, SMS e social não.
+- **O que NÃO deve ser implementado nesta etapa:** fusão de contas; troca de CPF por pedido de titular (F05-E08); revelar CPF.
+- **Arquivos e módulos prováveis:** `db/migrations/`, `apps/api/src/cidadao/entrada.ts`, `apps/api/src/rotas/cidadao-cpf.ts`, `db/test/cpf-verificado.test.ts` (a criar).
+- **Risco de segurança:** tomada de CPF por provedor sem atestação.
+- **Impacto LGPD:** CPF de alto valor; o evento não leva CPF.
+- **Migração necessária:** Sim (`NNN_cpf_verificado_prevalece.sql`, hoje 047).
+- **Compatibilidade:** contas sem disputa iguais.
+- **Rollback:** migration inversa com a tabela de eventos vazia.
+- **Testes positivos:** A informou o CPF, B entra por gov.br com o mesmo: B o recebe, A volta a `cpf_pendente` e um evento nasce.
+- **Testes negativos:** segunda conta gov.br com o mesmo CPF: 409; Google com CPF no corpo: ignorado; UPDATE direto: negado; A sem CPF: 403 `cpf_pendente`.
+- **Testes de autorização e isolamento:** servidor lê 0 linhas de `cidadao_cpf_eventos`; `PUBLIC` sem EXECUTE; função fora da lista nominal reprova.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api` (`cidadao-cpf.test.ts`); G15, G16.
+- **E2E:** `scripts/e2e-cidadao.mjs`: duas contas, a disputa e o resultado.
+- **Validação humana:** Rafael e o DPO leem a regra.
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E14/`.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md`.
+- **Definition of Done:** prevalência provada e auditada, sem fusão.
+- **Checkpoint:** CP-46 (regra de prevalência e efeito sobre quem perde o CPF; bloqueia CPF real).
+
+### V2-F34-E15 - Login por SMS: porta de provedor, código de uso único e teto de custo
+- **Prioridade:** P2
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E13 e E16)
+- **Objetivo:** entrar com código por SMS, atrás de uma porta de provedor trocável e com teto diário de envio.
+- **Problema que resolve:** quem não usa e-mail fica de fora; SMS custa por mensagem e sofre fraude de tráfego (DP:K8).
+- **Origem:** PR:D-07; DP:T18; DP:T31; DP:K8.
+- **Estado atual:** CRIAR a porta e o provedor `sms`; EXPANDIR o código de acesso (F15-E07).
+- **Dependências de entrada:** E11; E12; F15-E07; CP-92 para envio real.
+- **O que deve ser implementado:**
+  - API: porta `ProvedorDeSms.enviar({ para, texto, chave })` com `smsDeLog` (HML: 4 últimos dígitos) e `smsDeMemoria`; o real só depois do CP.
+  - Migration: `cidadao_codigos_de_acesso.canal` (`email` ou `sms`) e `p_canal` nas funções da F15-E07; identificador é o HMAC do número E.164; só móvel `+55`.
+  - API: `POST /v1/cidadao/codigos` e `/entrar` com `provedor: "sms"` (202 igual para qualquer número; 6 dígitos, 10 minutos, 5 tentativas); texto do catálogo, sem link; teto `SMS_TETO_DIARIO` por `consumir_cota`: estourado, 503 `sms_indisponivel` e alerta `error`.
+- **O que NÃO deve ser implementado nesta etapa:** SMS de aviso; número guardado; WhatsApp (F31-E07 a E10).
+- **Arquivos e módulos prováveis:** `apps/api/src/cidadao/sms.ts` e `provedores/sms.ts` (a criar), `db/migrations/`, `apps/api/test/sms-do-cidadao.test.ts` (a criar).
+- **Risco de segurança:** tráfego inflado, troca de chip e enumeração de números.
+- **Impacto LGPD:** número pessoal: só hash em repouso, fora de log.
+- **Migração necessária:** Sim (`NNN_codigo_por_sms.sql`, hoje 047).
+- **Compatibilidade:** e-mail igual.
+- **Rollback:** tirar `sms` de `CIDADAO_PROVEDORES`.
+- **Testes positivos:** com `smsDeMemoria` o código chega e a sessão sai, com `cpfPendente`.
+- **Testes negativos:** número `+1` ou fixo: 422; quarto pedido na hora: 429; teto global estourado: 503 sem enviar; número ausente de log e de tabela.
+- **Testes de autorização e isolamento:** código do número B não vale para A; conta SMS não reivindica CPF.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G15.
+- **E2E:** `scripts/e2e-cidadao.mjs`: pedir e usar o código por SMS de memória.
+- **Validação humana:** Rafael com número sintético, após o CP.
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E15/`.
+- **Documentação a atualizar:** `docs/SUBPROCESSADORES.md`.
+- **Definition of Done:** porta e teto de custo provados.
+- **Checkpoint:** CP-92 (provedor, preço, teto diário e contrato de dados; bloqueia envio real).
+
+### V2-F34-E16 - Login social: Google e Apple por token de identidade
+- **Prioridade:** P2
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E13 e E15)
+- **Objetivo:** entrar com Google e com Apple pelo token de identidade, sem receber nome nem foto.
+- **Problema que resolve:** D-07 pede os dois; a Apple pode exigir o login dela com login social de terceiros (NÃO CONFIRMADO).
+- **Origem:** PR:D-07; DP:T18.
+- **Estado atual:** CRIAR os adaptadores `google` e `apple` da interface (F15-E18).
+- **Dependências de entrada:** E11; E12; CP-93 para as contas de desenvolvedor.
+- **O que deve ser implementado:**
+  - API: valida o `id_token` (assinatura pelas chaves públicas do provedor, com cache e tempo limite; `iss`; `aud` em `GOOGLE_CLIENT_IDS` e `APPLE_CLIENT_ID`; `nonce`; `exp`); guarda só `sub` em `referencia_hash`; descarta nome, foto e e-mail; a conta nasce sem CPF.
+  - Infraestrutura: a partida no perfil de produção recusa `google` sem `apple` (regra a conferir com o agente `publicacao-lojas`); IDs só por nome; saída de rede só para os provedores.
+  - Domínio: revogação do token da Apple ao encerrar a conta (F17-E19): NÃO CONFIRMADO.
+- **O que NÃO deve ser implementado nesta etapa:** botões (E17); nome, foto e contatos; outros provedores.
+- **Arquivos e módulos prováveis:** `apps/api/src/cidadao/provedores/google.ts` e `apple.ts` (a criar), `apps/api/src/config.ts`, `apps/api/test/login-social.test.ts` (a criar).
+- **Risco de segurança:** token de outro aplicativo (`aud`) aceito.
+- **Impacto LGPD:** só o identificador estável; rótulo de privacidade das lojas.
+- **Migração necessária:** Não (E12).
+- **Compatibilidade:** provedor fora da lista: 404.
+- **Rollback:** tirar os dois de `CIDADAO_PROVEDORES`.
+- **Testes positivos:** com tokens de teste, Google e Apple criam conta e sessão, com `cpfPendente`.
+- **Testes negativos:** `aud`, `iss`, assinatura ou `nonce` errados e token expirado: 401 igual; `google` sem `apple` em `producao`: a partida cai; nome e foto ausentes de tabela e log.
+- **Testes de autorização e isolamento:** `sub` de outra conta: 409 `identidade_indisponivel`; não toca `usuarios`.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G15.
+- **E2E:** `scripts/e2e-cidadao.mjs`: entrar com token de teste.
+- **Validação humana:** Rafael entra com conta de teste em iOS e Android.
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E16/`.
+- **Documentação a atualizar:** `docs/DECLARACAO-NAS-LOJAS.md`.
+- **Definition of Done:** adaptadores provados com tokens de teste; regra de loja registrada.
+- **Checkpoint:** CP-93 (contas de desenvolvedor, regra da Apple, rótulo de privacidade; bloqueia ligar).
+
+### V2-F34-E17 - App: entrada por provedor, CPF vindo do gov.br e vínculo em Minha conta
+- **Prioridade:** P1
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** médio  |  **Paralelizável:** não (usa os provedores que a fase ligar)
+- **Objetivo:** a entrada mostra um botão por provedor ativo e leva o CPF atestado ao campo de CPF.
+- **Problema que resolve:** a F17-E04 deixou só o gancho; cada provedor tem fluxo próprio.
+- **Origem:** PR:D-07; DP:T18; DP:T29.
+- **Estado atual:** EXPANDIR `entrar.tsx`, `provedores.ts` (F17-E04) e `cpf.tsx` (F17-E20).
+- **Dependências de entrada:** E12; E13, E15 ou E16; F17-E20.
+- **O que deve ser implementado:**
+  - Mobile: `provedores.ts` lê `GET /v1/cidadao/provedores` (falhou: só e-mail); um botão por provedor, com ícone e texto (Apple só no iOS); gov.br e Google abrem o navegador e voltam por link do app; telas de telefone e de código SMS; cancelar volta sem erro.
+  - Mobile: o CPF do gov.br chega ao campo da F17-E20 validado e mascarado; quem perdeu o CPF (E14) lê "Este CPF foi vinculado a outra conta" e o que fazer.
+  - Mobile: "Minha conta" lista, vincula e desvincula provedores (E12).
+  - Acessibilidade: alvos de 44 pt e 48 dp; chaves `cidadao.login.*`.
+- **O que NÃO deve ser implementado nesta etapa:** senha; guardar token do provedor; aceite (F17-E14).
+- **Arquivos e módulos prováveis:** `apps/cidadao/src/app/entrar.tsx`, `src/dados/provedores.ts`, `src/app/(cidadao)/conta.tsx` (a criar; o app nasce na F17-E02).
+- **Risco de segurança:** retorno do navegador capturado por outro app.
+- **Impacto LGPD:** nada do provedor fica no aparelho.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem provedor extra, tela da F17-E04.
+- **Rollback:** esvaziar `CIDADAO_PROVEDORES`.
+- **Testes positivos:** três provedores, três botões; o gov.br de teste chega ao CPF mascarado.
+- **Testes negativos:** provedor fora da lista não aparece; `state` adulterado: erro genérico; desvincular o último: recusado.
+- **Testes de autorização e isolamento:** sair num aparelho não encerra outro; A não vê provedores de B no mesmo aparelho.
+- **Regressão obrigatória:** `npm run test:cidadao`, `npm run typecheck`; G17.
+- **E2E:** entrada por cada provedor de teste, com capturas.
+- **Validação humana:** Rafael em Android e iOS; portões visuais (`19-definicao-de-pronto.md`, seção 0; F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E17/`: capturas.
+- **Documentação a atualizar:** `docs/DECLARACAO-NAS-LOJAS.md`.
+- **Definition of Done:** botão por provedor e vínculo em Minha conta.
+- **Checkpoint:** CP-91 e CP-93 (marca dos botões e regra da loja; bloqueiam build externo).
+
+### V2-F34-E18 - Minimização: vídeo, conversa, telefone e identidade fora do agente, do laudo e do log
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** crítica  |  **Risco:** crítico  |  **Paralelizável:** não (precisa de E04, E07, E10, E13 e E15)
+- **Objetivo:** provar que vídeo, conversa, telefone e identidade de provedor não chegam ao agente, ao laudo, ao CSV, à busca, ao sino, à ocorrência nem ao log.
+- **Problema que resolve:** cada recurso novo abre um caminho de vazamento; a F19 só sai com a prova.
+- **Origem:** PR:D-07; PR:Regra-relato; DP:T40; BZ-F:P0-INT; BZ-F:P0-LGPD.
+- **Estado atual:** CRIAR a suíte, no molde de `agente-so-ve-a-equipe.test.ts` e da F16-E15.
+- **Dependências de entrada:** E04; E07; E10; E13; E15; F16-E15.
+- **O que deve ser implementado:**
+  - Testes: `apps/api/test/canal-ampliado-nao-vaza.test.ts` (a criar): relato com sentinelas (texto da conversa, alternativa e chave do vídeo, telefone, `sub` do gov.br) convertido e despachado; com tokens de agente, operador, `usuario_orgao` e coordenador, `/campo/meu-trabalho`, `/sincronizacao/pendencias`, `/ocorrencias`, `/evidencias/ocorrencia/:id`, `/busca`, `/avisos`, laudo, CSV e `/prestacao-de-contas` não devolvem sentinela.
+  - Banco: `db/test/canal-ampliado-sem-caminho.test.ts` (a criar): nenhuma FK liga `evidencias`, `ocorrencias` ou `documentos_emitidos` a mensagem ou vídeo de relato; a conversão (F18-E07) não copia mensagem.
+  - Observabilidade: sentinelas ausentes de log, erro e métrica.
+- **O que NÃO deve ser implementado nesta etapa:** corrigir o vazamento (reabre a etapa de origem); tela.
+- **Arquivos e módulos prováveis:** as duas suítes (a criar); `apps/api/test/agente-nao-recebe-dado-do-relato.test.ts` (F19-E05) reaproveita as sentinelas.
+- **Risco de segurança:** falso verde por rota esquecida; a lista de rotas vem do manifesto da F03-E12.
+- **Impacto LGPD:** Não se aplica: dados sintéticos.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só testes.
+- **Rollback:** reverter os testes.
+- **Testes positivos:** o coordenador vê vídeo e conversa na triagem.
+- **Testes negativos:** cada sentinela ausente em cada rota; coluna nova de `relato_*` sem classificação reprova; mensagem oculta ausente das duas leituras.
+- **Testes de autorização e isolamento:** agente e `usuario_orgao`: 404 nas rotas de vídeo e conversa; relato do município B ausente do A.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run typecheck`; G16, G18.
+- **E2E:** esta suíte é o portão de API do canal ampliado.
+- **Validação humana:** Rafael lê as rotas e as sentinelas.
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E18/`.
+- **Documentação a atualizar:** `apps/api/PENDENCIAS.md`.
+- **Definition of Done:** sentinelas ausentes em todas as rotas e artefatos.
+- **Checkpoint:** Não.
+
+### V2-F34-E19 - Manifesto, trilha, retenção e saída do titular do canal ampliado
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (fecha as migrations da fase)
+- **Objetivo:** classificar tabelas e colunas novas, registrar eventos sem texto e ligar retenção e saída por titular.
+- **Problema que resolve:** tabela sem classe reprova o catálogo e a eliminação de município pararia.
+- **Origem:** PR:D-07; DP:T41; BZ-F:P0-LGPD; BZ-D:LGP-43.
+- **Estado atual:** EXPANDIR `db/src/manifesto.ts`, `retencao_por_classe` (F05-E09) e a exportação por titular (F05-E08).
+- **Dependências de entrada:** E05; E12; E14; F16-E14; F05-E08.
+- **O que deve ser implementado:**
+  - Domínio: entradas do manifesto de `relato_conversa_eventos`, `relato_mensagem_leituras`, `relato_mensagem_moderacoes`, `cidadao_cpf_eventos` e das colunas novas: saída, eliminação, `pessoal`, `textoLivre`, retenção `a_decidir` com CP-10.
+  - Banco: classes `conversa_do_relato` e `video_do_relato` em `retencao_por_classe` (modo `relatar`, sem prazo); redação do texto livre pela primitiva da F05-E10.
+  - API: eventos em `relato_eventos` (`mensagem_enviada` só com o autor, `mensagem_ocultada`, `conversa_encerrada`, `video_removido`) sem texto; o pacote de saída traz conversa e derivado do vídeo sem `cidadao_id`, marcando a mensagem oculta; a exportação por titular inclui os dados próprios e exclui nota interna.
+- **O que NÃO deve ser implementado nesta etapa:** prazos (CP-10); o pedido do titular em si (F17-E19); apagar registro.
+- **Arquivos e módulos prováveis:** `db/src/manifesto.ts` (a criar na F05-E01), `db/test/manifesto-de-tabelas.test.ts`, `apps/api/src/saida/pacote.ts`, `docs/SAIDA-DE-MUNICIPIO.md`.
+- **Risco de segurança:** eliminação que para por tabela esquecida.
+- **Impacto LGPD:** inventário por coluna; texto, voz e imagem classificados.
+- **Migração necessária:** Não (entradas nas migrations anteriores da fase).
+- **Compatibilidade:** tabelas novas no pacote.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** catálogo verde; pacote com conversa e vídeo sem `cidadao_id`; exportação do titular com as mensagens dele.
+- **Testes negativos:** tabela sem entrada reprova; `a_decidir` sem CP reprova; evento da trilha com texto de mensagem reprova a sentinela.
+- **Testes de autorização e isolamento:** o pacote de A sem conversa de B; modo `relatar` não altera linha; titular A não exporta mensagem de B.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`; G05, G16.
+- **E2E:** Não se aplica: classificação e rotinas, sem tela.
+- **Validação humana:** Rafael lê a classificação.
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E19/`.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** nenhuma tabela ou coluna nova sem classe.
+- **Checkpoint:** CP-10 (prazos; o modo `relatar` anda).
+
+### V2-F34-E20 - E2E do canal ampliado em HML e prova em aparelho
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (fecha a fase)
+- **Objetivo:** provar o relato ampliado de ponta a ponta em HML, do login ao agente que nada recebe.
+- **Problema que resolve:** cada etapa prova seu pedaço; o fluxo inteiro só existe aqui.
+- **Origem:** PR:Fluxos (F e G); PR:D-07; DP:T35.
+- **Estado atual:** EXPANDIR `scripts/e2e-cidadao.mjs`, `apps/cidadao/e2e/` e `fluxo-api.e2e.mjs`.
+- **Dependências de entrada:** E01 a E19.
+- **O que deve ser implementado:**
+  - E2E: dois municípios sintéticos (A com vídeo e conversa, B sem): (1) entrar pelo OIDC falso e pelo SMS de memória; (2) relatar com vídeo de 30 s e 50 MB, queda na quarta parte, até `pronto`; (3) a triagem assiste, responde, oculta e encerra; (4) o cidadão recebe o push; (5) a conta é bloqueada; (6) conversão e agente sem nada (E18); (7) em B, 409.
+  - Evidência visual: aparelho físico (Android e iOS) e painel em 320, 768 e 1280 px, claro e escuro.
+  - Medição: pico de memória e tempo do worker com o vídeo de 50 MB e custo por `scripts/estimar-custo-de-video.mjs`.
+- **O que NÃO deve ser implementado nesta etapa:** produção; dado real; teste com pessoas (F23-E05).
+- **Arquivos e módulos prováveis:** `scripts/e2e-cidadao.mjs`, `apps/cidadao/e2e/`, `apps/web/test/fluxo-api.e2e.mjs`.
+- **Risco de segurança:** provedor falso difere do real; os reais dependem dos CP.
+- **Impacto LGPD:** Não se aplica: só dado sintético.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só testes.
+- **Rollback:** reverter os roteiros.
+- **Testes positivos:** sete passos verdes: um relato, um vídeo `pronto`, três mensagens, uma oculta.
+- **Testes negativos:** reenvio não duplica; 51 MB recusado; mensagem após encerrar: 409; conta bloqueada: 403.
+- **Testes de autorização e isolamento:** A não vê B; cidadão B não lê a conversa de A; token do cidadão em rota de servidor: 401.
+- **Regressão obrigatória:** `npm run test:e2e:api`, `npm run test:e2e`, `npm run test:cidadao`, `npm run test:isolamento`, `npm run typecheck`; G15 a G18.
+- **E2E:** este é o item.
+- **Validação humana:** Rafael e Alyson; portões visuais (`19-definicao-de-pronto.md`, seção 0; F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G34/V2-F34-E20/`: saída e capturas.
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** sete passos verdes em HML e em aparelho.
+- **Checkpoint:** CP-47 (máquina e custo medidos; bloqueia vídeo em produção).
+
+# GATE G34 - CANAL DO CIDADÃO AMPLIADO
+Só passa se:
+- [ ] ADR do canal ampliado aceita e citada, com a conversa sem tempo real, o vídeo único, os provedores por interface e a tabela "quem vê o quê" (V2-F34-E01; evidência: hash e aceite em `docs/evidencias-v2/G34/V2-F34-E01/`).
+- [ ] Vídeo e conversa desligados por padrão e impostos no servidor por município, com trilha antes e depois e a lista de colunas do console atualizada (V2-F34-E02; evidência: testes e capturas); CP-28 decidido, ou adiado com ligar em município real bloqueado.
+- [ ] Vídeo no aparelho com aceite próprio, limites de 30 s e 50 MB impostos antes do envio, alternativa em texto obrigatória e prévia sem autoplay (V2-F34-E03; evidência: capturas e fotos do aparelho); CP-11 decidido, ou adiado com beta externo bloqueado.
+- [ ] Envio retomável por partes e quatro estados do processamento, sem motivo técnico exposto ao cidadão (V2-F34-E04; evidência: teste com queda na quarta parte e captura); CP-47 decidido, ou adiado com vídeo em produção bloqueado.
+- [ ] Conversa isolada e append-only, com ritmo imposto no banco, API do cidadão idempotente, API da triagem com aviso e push sem conteúdo, e nenhum temporizador no app (V2-F34-E05 a E08; evidência: `conversa-do-relato.test.ts`, `cidadao-conversa.test.ts`, `sem-tempo-real.test.ts`); CP-94 decidido, ou adiado com a conversa em produção bloqueada.
+- [ ] Painel com vídeo reproduzido por URL assinada e registrada, alternativa em texto visível, conversa separada da nota interna e operável por teclado (V2-F34-E09; evidência: capturas em 320, 768 e 1280 px, claro e escuro).
+- [ ] Ocultar, encerrar e remover com motivo, sem apagar registro e sem texto oculto em nenhuma leitura (V2-F34-E10, P1; evidência: `moderacao-da-conversa.test.ts`); CP-26 decidido, ou adiado com a abertura pública bloqueada.
+- [ ] Antiabuso em duas camadas para mensagem, vídeo, SMS e provedores, sem Redis e sem tabela de cota nova (V2-F34-E11; evidência: contagens entre duas máquinas); CP-13 e CP-27 decididos, ou adiados com valores de produção bloqueados.
+- [ ] Interface de provedores aceitando `govbr`, `sms`, `google` e `apple` sem fundir contas e com vínculo e desvínculo por sessão viva (V2-F34-E12; evidência: `provedores-do-cidadao.test.ts`).
+- [ ] gov.br provado contra provedor falso, com `aud`, `iss`, `nonce` e `state` conferidos e CPF verificado, e a prevalência do CPF atestado auditada (V2-F34-E13 e E14, P1; evidência: testes); CP-91 e CP-46 decididos, ou adiados com ativar gov.br e CPF real bloqueados.
+- [ ] SMS atrás da porta, com teto diário e só números móveis `+55`, e login social com a regra de loja registrada (V2-F34-E15 e E16, P2; evidência: testes); CP-92 e CP-93 decididos, ou adiados com envio real e login social em produção bloqueados.
+- [ ] Tela de entrada por provedor, CPF atestado no campo e vínculo em Minha conta (V2-F34-E17; evidência: capturas e fotos em Android e iOS).
+- [ ] Vídeo, conversa, telefone e identidade de provedor ausentes do agente, do laudo, do CSV, da busca, do sino, da ocorrência e do log (V2-F34-E18; evidência: `canal-ampliado-nao-vaza.test.ts` e `canal-ampliado-sem-caminho.test.ts`).
+- [ ] Manifesto, retenção em modo `relatar`, trilha sem texto e saída por titular das tabelas novas (V2-F34-E19; evidência: `manifesto-de-tabelas.test.ts`); CP-10 decidido, ou adiado com a execução bloqueada.
+- [ ] E2E de sete passos verde em HML e provado em aparelho, com a medida do worker (V2-F34-E20; evidência: saída, capturas e fotos).
+- [ ] Portão visual: toda etapa de tela (E02, E03, E04, E08, E09, E10, E17 e E20) tem capturas e fotos do aparelho, claro e escuro, estados normal, vazio, erro e carregando, com o checklist da seção 0 de `19-definicao-de-pronto.md` preenchido e o portão da F08-E13 verde; Rafael aprovou.
+- [ ] Nenhum relato anônimo, nenhum tempo real, nenhum cidadão real, nenhum CPF real e nenhum recurso ligado em município real ao fim da fase (evidência: consulta das colunas `canal_*` e de `cidadaos`).
+- [ ] nenhuma regressão: todos os gates anteriores na ordem de execução (G00 a G18) continuam verdes (se um quebrar, ESTE gate volta a REPROVADO), com `npm run test:isolamento`, `npm run test:api`, `npm run test:cidadao`, `npm run test:console`, `npm run test:scripts`, `npm run auditar` e `npm run typecheck` verdes.
+- [ ] documentação atualizada (`docs/PRIVACIDADE.md`, `docs/SUBPROCESSADORES.md`, `docs/ARMAZENAMENTO.md`, `docs/DICIONARIO-DE-DADOS.md`, `docs/SAIDA-DE-MUNICIPIO.md`, `docs/DECLARACAO-NAS-LOJAS.md`) e evidências arquivadas em `docs/evidencias-v2/G34/`.
+
+**Reabre se:** relato anônimo ou tempo real (WebSocket, SSE, long polling) entrar; vídeo, conversa, telefone ou identidade de provedor chegarem ao aparelho do agente, ao laudo, ao CSV, à busca, ao sino, ao log ou à ocorrência; texto de mensagem oculta aparecer em alguma leitura; provedor novo fundir contas por e-mail igual ou aceitar token de outro `aud`; CPF só informado vencer o verificado; chave de cota paralela à da F03-E19 surgir; recurso ligado em município real ou provedor real ativado antes dos CP-11, CP-26, CP-28, CP-33, CP-46 e dos CP-NOVO da fase; G15 a G18 reabrirem.
+**Este Gate libera:** F19 (F19-E05: o payload do agente só fecha depois de provada a ausência de vídeo e conversa) e, na ordem de execução, F29 em diante; a F35 traduz as telas desta fase (F35-E11). NÃO libera a abertura pública do canal nem ligar vídeo, conversa ou provedor real em produção (CP-11, CP-26, CP-28, CP-33, G25 e os CP-NOVO da fase).

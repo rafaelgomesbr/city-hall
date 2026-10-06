@@ -1,0 +1,1226 @@
+FAIL src/ui/fila-pausada-pela-sessao.test.tsx
+  sessão encerrada
+    × diz o fato, o que resolve e que a coleta continua guardada (304 ms)
+    × traz o botão 'Entrar de novo', que derruba a sessão sem apagar e leva à entrada (16 ms)
+    × o cartão da coleta não promete 'vai sair assim que houver sinal' (19 ms)
+    √ nenhuma coleta ganha 'Descartar' nem 'Tentar de novo' (21 ms)
+  conta desativada
+    × manda procurar a coordenação, com a frase aprovada para o aparelho (14 ms)
+    × NÃO traz 'Entrar de novo': entrar de novo não resolve conta desativada (17 ms)
+    × o cartão diz que a coleta só sobe depois da reativação, e nada pode ser descartado (19 ms)
+  sem pausa
+    √ a tela é a de sempre: nada de aviso de pausa, e o cartão continua prometendo o envio (17 ms)
+    × a pausa some quando o motor avisa que ela acabou (17 ms)
+
+  ● sessão encerrada › diz o fato, o que resolve e que a coleta continua guardada
+
+    Unable to find an element with text: Sua sessão terminou e o envio está parado
+
+    [36m<RCTScrollView>[39m
+      [36m<View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"2, coletas na fila"[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<Text>[39m
+            [0m0[0m
+          [36m</Text>[39m
+          [36m<Text>[39m
+            [0mcoletas na fila[0m
+          [36m</Text>[39m
+        [36m</View>[39m
+        [36m<View>[39m
+          [36m<View />[39m
+          [36m<View[39m
+            [33maccessibilityLabel[39m=[32m"Minhas coletas, 2 itens"[39m
+            [33maccessibilityRole[39m=[32m"header"[39m
+            [33maccessible[39m=[32m{true}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityElementsHidden[39m=[32m{true}[39m
+              [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+            [36m>[39m
+              [36m<RNSVGSvgView>[39m
+                [36m<RNSVGGroup>[39m
+                  [36m<RNSVGPath />[39m
+                  [36m<RNSVGPath />[39m
+                [36m</RNSVGGroup>[39m
+              [36m</RNSVGSvgView>[39m
+            [36m</View>[39m
+            [36m<Text>[39m
+              [0mMinhas coletas[0m
+            [36m</Text>[39m
+            [36m<View />[39m
+            [36m<View>[39m
+              [36m<Text>[39m
+                [0m2[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000471[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000471: Aguardando"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m…[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAguardando[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mAinda não saiu do aparelho. Vai sair assim que houver sinal.[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m06/10/2026, 06:00:00[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000472[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000472: Aguardando"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m…[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAguardando[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mAinda não saiu do aparelho. Vai sair assim que houver sinal.[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m06/10/2026, 06:00:00[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"Tentar enviar agora"[39m
+          [33maccessibilityRole[39m=[32m"button"[39m
+          [33maccessibilityState[39m=[32m{
+            {
+              "busy": false,
+              "disabled": false,
+            }
+          }[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<RNSVGSvgView[39m
+            [33mpointerEvents[39m=[32m"none"[39m
+          [36m>[39m
+            [36m<RNSVGGroup>[39m
+              [36m<RNSVGDefs>[39m
+                [36m<RNSVGLinearGradient />[39m
+              [36m</RNSVGDefs>[39m
+              [36m<RNSVGRect />[39m
+            [36m</RNSVGGroup>[39m
+          [36m</RNSVGSvgView>[39m
+          [36m<View>[39m
+            [36m<Text>[39m
+              [0mTentar enviar agora[0m
+            [36m</Text>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<Text>[39m
+          [0mO envio acontece sozinho, em segundo plano. Este botão é para quando você quer ver acontecer.[0m
+        [36m</Text>[39m
+      [36m</View>[39m
+    [36m</RCTScrollView>[39m
+
+    [0m [90m 110 |[39m     [36mawait[39m abrirComPausa([32m"sessao_encerrada"[39m)[33m;[39m
+     [90m 111 |[39m
+    [31m[1m>[22m[39m[90m 112 |[39m     expect(screen[33m.[39mgetByText([32m"Sua sessão terminou e o envio está parado"[39m))[33m.[39mtoBeTruthy()[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 113 |[39m     expect(screen[33m.[39mgetByText([35m/Suas coletas continuam guardadas neste aparelho e nada foi apagado/[39m))[33m.[39mtoBeTruthy()[33m;[39m
+     [90m 114 |[39m     expect(screen[33m.[39mgetByText([35m/Entre de novo com o seu email e a sua senha/[39m))[33m.[39mtoBeTruthy()[33m;[39m
+     [90m 115 |[39m   })[33m;[39m[0m
+
+      at Object.getByText (src/ui/fila-pausada-pela-sessao.test.tsx:112:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● sessão encerrada › traz o botão 'Entrar de novo', que derruba a sessão sem apagar e leva à entrada
+
+    Unable to find an element with text: Entrar de novo
+
+    [36m<RCTScrollView>[39m
+      [36m<View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"2, coletas na fila"[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<Text>[39m
+            [0m0[0m
+          [36m</Text>[39m
+          [36m<Text>[39m
+            [0mcoletas na fila[0m
+          [36m</Text>[39m
+        [36m</View>[39m
+        [36m<View>[39m
+          [36m<View />[39m
+          [36m<View[39m
+            [33maccessibilityLabel[39m=[32m"Minhas coletas, 2 itens"[39m
+            [33maccessibilityRole[39m=[32m"header"[39m
+            [33maccessible[39m=[32m{true}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityElementsHidden[39m=[32m{true}[39m
+              [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+            [36m>[39m
+              [36m<RNSVGSvgView>[39m
+                [36m<RNSVGGroup>[39m
+                  [36m<RNSVGPath />[39m
+                  [36m<RNSVGPath />[39m
+                [36m</RNSVGGroup>[39m
+              [36m</RNSVGSvgView>[39m
+            [36m</View>[39m
+            [36m<Text>[39m
+              [0mMinhas coletas[0m
+            [36m</Text>[39m
+            [36m<View />[39m
+            [36m<View>[39m
+              [36m<Text>[39m
+                [0m2[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000471[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000471: Aguardando"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m…[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAguardando[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mAinda não saiu do aparelho. Vai sair assim que houver sinal.[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m06/10/2026, 06:00:00[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000472[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000472: Aguardando"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m…[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAguardando[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mAinda não saiu do aparelho. Vai sair assim que houver sinal.[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m06/10/2026, 06:00:00[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"Tentar enviar agora"[39m
+          [33maccessibilityRole[39m=[32m"button"[39m
+          [33maccessibilityState[39m=[32m{
+            {
+              "busy": false,
+              "disabled": false,
+            }
+          }[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<RNSVGSvgView[39m
+            [33mpointerEvents[39m=[32m"none"[39m
+          [36m>[39m
+            [36m<RNSVGGroup>[39m
+              [36m<RNSVGDefs>[39m
+                [36m<RNSVGLinearGradient />[39m
+              [36m</RNSVGDefs>[39m
+              [36m<RNSVGRect />[39m
+            [36m</RNSVGGroup>[39m
+          [36m</RNSVGSvgView>[39m
+          [36m<View>[39m
+            [36m<Text>[39m
+              [0mTentar enviar agora[0m
+            [36m</Text>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<Text>[39m
+          [0mO envio acontece sozinho, em segundo plano. Este botão é para quando você quer ver acontecer.[0m
+        [36m</Text>[39m
+      [36m</View>[39m
+    [36m</RCTScrollView>[39m
+
+    [0m [90m 118 |[39m     [36mawait[39m abrirComPausa([32m"sessao_encerrada"[39m)[33m;[39m
+     [90m 119 |[39m
+    [31m[1m>[22m[39m[90m 120 |[39m     [36mawait[39m act([36masync[39m () [33m=>[39m { fireEvent[33m.[39mpress(screen[33m.[39mgetByText([32m"Entrar de novo"[39m))[33m;[39m })[33m;[39m
+     [90m     |[39m                                                    [31m[1m^[22m[39m
+     [90m 121 |[39m
+     [90m 122 |[39m     expect(mockEncerrarSessaoVencida)[33m.[39mtoHaveBeenCalledTimes([35m1[39m)[33m;[39m
+     [90m 123 |[39m     expect(router[33m.[39mreplace)[33m.[39mtoHaveBeenCalledWith([32m"/entrar"[39m)[33m;[39m[0m
+
+      at getByText (src/ui/fila-pausada-pela-sessao.test.tsx:120:52)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at callback (node_modules/@testing-library/react-native/src/act.ts:72:33)
+      at callback (node_modules/@testing-library/react-native/src/act.ts:30:24)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:814:22)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:29:25)
+      at _act (node_modules/@testing-library/react-native/src/act.ts:72:10)
+      at Object.<anonymous> (src/ui/fila-pausada-pela-sessao.test.tsx:120:14)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● sessão encerrada › o cartão da coleta não promete 'vai sair assim que houver sinal'
+
+    Found multiple elements with text: /Vai sair assim que houver sinal/
+
+    [36m<RCTScrollView>[39m
+      [36m<View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"2, coletas na fila"[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<Text>[39m
+            [0m0[0m
+          [36m</Text>[39m
+          [36m<Text>[39m
+            [0mcoletas na fila[0m
+          [36m</Text>[39m
+        [36m</View>[39m
+        [36m<View>[39m
+          [36m<View />[39m
+          [36m<View[39m
+            [33maccessibilityLabel[39m=[32m"Minhas coletas, 2 itens"[39m
+            [33maccessibilityRole[39m=[32m"header"[39m
+            [33maccessible[39m=[32m{true}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityElementsHidden[39m=[32m{true}[39m
+              [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+            [36m>[39m
+              [36m<RNSVGSvgView>[39m
+                [36m<RNSVGGroup>[39m
+                  [36m<RNSVGPath />[39m
+                  [36m<RNSVGPath />[39m
+                [36m</RNSVGGroup>[39m
+              [36m</RNSVGSvgView>[39m
+            [36m</View>[39m
+            [36m<Text>[39m
+              [0mMinhas coletas[0m
+            [36m</Text>[39m
+            [36m<View />[39m
+            [36m<View>[39m
+              [36m<Text>[39m
+                [0m2[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000471[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000471: Aguardando"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m…[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAguardando[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mAinda não saiu do aparelho. Vai sair assim que houver sinal.[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m06/10/2026, 06:00:00[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000472[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000472: Aguardando"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m…[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAguardando[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mAinda não saiu do aparelho. Vai sair assim que houver sinal.[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m06/10/2026, 06:00:00[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"Tentar enviar agora"[39m
+          [33maccessibilityRole[39m=[32m"button"[39m
+          [33maccessibilityState[39m=[32m{
+            {
+              "busy": false,
+              "disabled": false,
+            }
+          }[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<RNSVGSvgView[39m
+            [33mpointerEvents[39m=[32m"none"[39m
+          [36m>[39m
+            [36m<RNSVGGroup>[39m
+              [36m<RNSVGDefs>[39m
+                [36m<RNSVGLinearGradient />[39m
+              [36m</RNSVGDefs>[39m
+              [36m<RNSVGRect />[39m
+            [36m</RNSVGGroup>[39m
+          [36m</RNSVGSvgView>[39m
+          [36m<View>[39m
+            [36m<Text>[39m
+              [0mTentar enviar agora[0m
+            [36m</Text>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<Text>[39m
+          [0mO envio acontece sozinho, em segundo plano. Este botão é para quando você quer ver acontecer.[0m
+        [36m</Text>[39m
+      [36m</View>[39m
+    [36m</RCTScrollView>[39m
+
+    [0m [90m 129 |[39m     [36mawait[39m abrirComPausa([32m"sessao_encerrada"[39m)[33m;[39m
+     [90m 130 |[39m
+    [31m[1m>[22m[39m[90m 131 |[39m     expect(screen[33m.[39mqueryByText([35m/Vai sair assim que houver sinal/[39m))[33m.[39mtoBeNull()[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 132 |[39m     expect(screen[33m.[39mgetAllByText([32m"Guardada"[39m))[33m.[39mtoHaveLength([35m2[39m)[33m;[39m
+     [90m 133 |[39m     expect(screen[33m.[39mgetAllByText([35m/Sobe sozinha depois que você entrar de novo/[39m))[33m.[39mtoHaveLength([35m2[39m)[33m;[39m
+     [90m 134 |[39m   })[33m;[39m[0m
+
+      at Object.queryByText (src/ui/fila-pausada-pela-sessao.test.tsx:131:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● conta desativada › manda procurar a coordenação, com a frase aprovada para o aparelho
+
+    Unable to find an element with text: Sua conta foi desativada e o envio está parado
+
+    [36m<RCTScrollView>[39m
+      [36m<View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"2, coletas na fila"[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<Text>[39m
+            [0m0[0m
+          [36m</Text>[39m
+          [36m<Text>[39m
+            [0mcoletas na fila[0m
+          [36m</Text>[39m
+        [36m</View>[39m
+        [36m<View>[39m
+          [36m<View />[39m
+          [36m<View[39m
+            [33maccessibilityLabel[39m=[32m"Minhas coletas, 2 itens"[39m
+            [33maccessibilityRole[39m=[32m"header"[39m
+            [33maccessible[39m=[32m{true}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityElementsHidden[39m=[32m{true}[39m
+              [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+            [36m>[39m
+              [36m<RNSVGSvgView>[39m
+                [36m<RNSVGGroup>[39m
+                  [36m<RNSVGPath />[39m
+                  [36m<RNSVGPath />[39m
+                [36m</RNSVGGroup>[39m
+              [36m</RNSVGSvgView>[39m
+            [36m</View>[39m
+            [36m<Text>[39m
+              [0mMinhas coletas[0m
+            [36m</Text>[39m
+            [36m<View />[39m
+            [36m<View>[39m
+              [36m<Text>[39m
+                [0m2[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000471[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000471: Aguardando"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m…[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAguardando[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mAinda não saiu do aparelho. Vai sair assim que houver sinal.[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m06/10/2026, 06:00:00[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000472[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000472: Aguardando"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m…[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAguardando[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mAinda não saiu do aparelho. Vai sair assim que houver sinal.[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m06/10/2026, 06:00:00[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"Tentar enviar agora"[39m
+          [33maccessibilityRole[39m=[32m"button"[39m
+          [33maccessibilityState[39m=[32m{
+            {
+              "busy": false,
+              "disabled": false,
+            }
+          }[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<RNSVGSvgView[39m
+            [33mpointerEvents[39m=[32m"none"[39m
+          [36m>[39m
+            [36m<RNSVGGroup>[39m
+              [36m<RNSVGDefs>[39m
+                [36m<RNSVGLinearGradient />[39m
+              [36m</RNSVGDefs>[39m
+              [36m<RNSVGRect />[39m
+            [36m</RNSVGGroup>[39m
+          [36m</RNSVGSvgView>[39m
+          [36m<View>[39m
+            [36m<Text>[39m
+              [0mTentar enviar agora[0m
+            [36m</Text>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<Text>[39m
+          [0mO envio acontece sozinho, em segundo plano. Este botão é para quando você quer ver acontecer.[0m
+        [36m</Text>[39m
+      [36m</View>[39m
+    [36m</RCTScrollView>[39m
+
+    [0m [90m 148 |[39m     [36mawait[39m abrirComPausa([32m"conta_desativada"[39m)[33m;[39m
+     [90m 149 |[39m
+    [31m[1m>[22m[39m[90m 150 |[39m     expect(screen[33m.[39mgetByText([32m"Sua conta foi desativada e o envio está parado"[39m))[33m.[39mtoBeTruthy()[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 151 |[39m     [36mconst[39m detalhe [33m=[39m screen[33m.[39mgetByText([35m/procure a coordenação do seu município/[39m)[33m;[39m
+     [90m 152 |[39m     expect(detalhe[33m.[39mprops[33m.[39mchildren[33m.[39mtoString()[33m.[39mtoLowerCase())[33m.[39mtoContain(
+     [90m 153 |[39m       [32m"suas coletas continuam guardadas neste aparelho, procure a coordenação"[39m[33m,[39m[0m
+
+      at Object.getByText (src/ui/fila-pausada-pela-sessao.test.tsx:150:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● conta desativada › NÃO traz 'Entrar de novo': entrar de novo não resolve conta desativada
+
+    Unable to find an element with text: /Entrar de novo não resolve enquanto a conta estiver desativada/
+
+    [36m<RCTScrollView>[39m
+      [36m<View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"2, coletas na fila"[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<Text>[39m
+            [0m0[0m
+          [36m</Text>[39m
+          [36m<Text>[39m
+            [0mcoletas na fila[0m
+          [36m</Text>[39m
+        [36m</View>[39m
+        [36m<View>[39m
+          [36m<View />[39m
+          [36m<View[39m
+            [33maccessibilityLabel[39m=[32m"Minhas coletas, 2 itens"[39m
+            [33maccessibilityRole[39m=[32m"header"[39m
+            [33maccessible[39m=[32m{true}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityElementsHidden[39m=[32m{true}[39m
+              [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+            [36m>[39m
+              [36m<RNSVGSvgView>[39m
+                [36m<RNSVGGroup>[39m
+                  [36m<RNSVGPath />[39m
+                  [36m<RNSVGPath />[39m
+                [36m</RNSVGGroup>[39m
+              [36m</RNSVGSvgView>[39m
+            [36m</View>[39m
+            [36m<Text>[39m
+              [0mMinhas coletas[0m
+            [36m</Text>[39m
+            [36m<View />[39m
+            [36m<View>[39m
+              [36m<Text>[39m
+                [0m2[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000471[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000471: Aguardando"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m…[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAguardando[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mAinda não saiu do aparelho. Vai sair assim que houver sinal.[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m06/10/2026, 06:00:00[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000472[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000472: Aguardando"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m…[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAguardando[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mAinda não saiu do aparelho. Vai sair assim que houver sinal.[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m06/10/2026, 06:00:00[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"Tentar enviar agora"[39m
+          [33maccessibilityRole[39m=[32m"button"[39m
+          [33maccessibilityState[39m=[32m{
+            {
+              "busy": false,
+              "disabled": false,
+            }
+          }[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<RNSVGSvgView[39m
+            [33mpointerEvents[39m=[32m"none"[39m
+          [36m>[39m
+            [36m<RNSVGGroup>[39m
+              [36m<RNSVGDefs>[39m
+                [36m<RNSVGLinearGradient />[39m
+              [36m</RNSVGDefs>[39m
+              [36m<RNSVGRect />[39m
+            [36m</RNSVGGroup>[39m
+          [36m</RNSVGSvgView>[39m
+          [36m<View>[39m
+            [36m<Text>[39m
+              [0mTentar enviar agora[0m
+            [36m</Text>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<Text>[39m
+          [0mO envio acontece sozinho, em segundo plano. Este botão é para quando você quer ver acontecer.[0m
+        [36m</Text>[39m
+      [36m</View>[39m
+    [36m</RCTScrollView>[39m
+
+    [0m [90m 159 |[39m
+     [90m 160 |[39m     expect(screen[33m.[39mqueryByText([32m"Entrar de novo"[39m))[33m.[39mtoBeNull()[33m;[39m
+    [31m[1m>[22m[39m[90m 161 |[39m     expect(screen[33m.[39mgetByText([35m/Entrar de novo não resolve enquanto a conta estiver desativada/[39m))[33m.[39mtoBeTruthy()[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 162 |[39m   })[33m;[39m
+     [90m 163 |[39m
+     [90m 164 |[39m   it([32m"o cartão diz que a coleta só sobe depois da reativação, e nada pode ser descartado"[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.getByText (src/ui/fila-pausada-pela-sessao.test.tsx:161:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● conta desativada › o cartão diz que a coleta só sobe depois da reativação, e nada pode ser descartado
+
+    Unable to find an element with text: /Só sobe depois que a coordenação reativar a sua conta/
+
+    [36m<RCTScrollView>[39m
+      [36m<View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"2, coletas na fila"[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<Text>[39m
+            [0m0[0m
+          [36m</Text>[39m
+          [36m<Text>[39m
+            [0mcoletas na fila[0m
+          [36m</Text>[39m
+        [36m</View>[39m
+        [36m<View>[39m
+          [36m<View />[39m
+          [36m<View[39m
+            [33maccessibilityLabel[39m=[32m"Minhas coletas, 2 itens"[39m
+            [33maccessibilityRole[39m=[32m"header"[39m
+            [33maccessible[39m=[32m{true}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityElementsHidden[39m=[32m{true}[39m
+              [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+            [36m>[39m
+              [36m<RNSVGSvgView>[39m
+                [36m<RNSVGGroup>[39m
+                  [36m<RNSVGPath />[39m
+                  [36m<RNSVGPath />[39m
+                [36m</RNSVGGroup>[39m
+              [36m</RNSVGSvgView>[39m
+            [36m</View>[39m
+            [36m<Text>[39m
+              [0mMinhas coletas[0m
+            [36m</Text>[39m
+            [36m<View />[39m
+            [36m<View>[39m
+              [36m<Text>[39m
+                [0m2[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000471[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000471: Aguardando"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m…[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAguardando[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mAinda não saiu do aparelho. Vai sair assim que houver sinal.[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m06/10/2026, 06:00:00[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000472[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000472: Aguardando"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m…[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAguardando[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mAinda não saiu do aparelho. Vai sair assim que houver sinal.[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m06/10/2026, 06:00:00[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"Tentar enviar agora"[39m
+          [33maccessibilityRole[39m=[32m"button"[39m
+          [33maccessibilityState[39m=[32m{
+            {
+              "busy": false,
+              "disabled": false,
+            }
+          }[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<RNSVGSvgView[39m
+            [33mpointerEvents[39m=[32m"none"[39m
+          [36m>[39m
+            [36m<RNSVGGroup>[39m
+              [36m<RNSVGDefs>[39m
+                [36m<RNSVGLinearGradient />[39m
+              [36m</RNSVGDefs>[39m
+              [36m<RNSVGRect />[39m
+            [36m</RNSVGGroup>[39m
+          [36m</RNSVGSvgView>[39m
+          [36m<View>[39m
+            [36m<Text>[39m
+              [0mTentar enviar agora[0m
+            [36m</Text>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<Text>[39m
+          [0mO envio acontece sozinho, em segundo plano. Este botão é para quando você quer ver acontecer.[0m
+        [36m</Text>[39m
+      [36m</View>[39m
+    [36m</RCTScrollView>[39m
+
+    [0m [90m 165 |[39m     [36mawait[39m abrirComPausa([32m"conta_desativada"[39m)[33m;[39m
+     [90m 166 |[39m
+    [31m[1m>[22m[39m[90m 167 |[39m     expect(screen[33m.[39mgetAllByText([35m/Só sobe depois que a coordenação reativar a sua conta/[39m))[33m.[39mtoHaveLength([35m2[39m)[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 168 |[39m     expect(screen[33m.[39mqueryByText([35m/Descartar/[39m))[33m.[39mtoBeNull()[33m;[39m
+     [90m 169 |[39m   })[33m;[39m
+     [90m 170 |[39m })[33m;[39m[0m
+
+      at Object.getAllByText (src/ui/fila-pausada-pela-sessao.test.tsx:167:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● sem pausa › a pausa some quando o motor avisa que ela acabou
+
+    Unable to find an element with text: Sua sessão terminou e o envio está parado
+
+    [36m<RCTScrollView>[39m
+      [36m<View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"2, coletas na fila"[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<Text>[39m
+            [0m0[0m
+          [36m</Text>[39m
+          [36m<Text>[39m
+            [0mcoletas na fila[0m
+          [36m</Text>[39m
+        [36m</View>[39m
+        [36m<View>[39m
+          [36m<View />[39m
+          [36m<View[39m
+            [33maccessibilityLabel[39m=[32m"Minhas coletas, 2 itens"[39m
+            [33maccessibilityRole[39m=[32m"header"[39m
+            [33maccessible[39m=[32m{true}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityElementsHidden[39m=[32m{true}[39m
+              [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+            [36m>[39m
+              [36m<RNSVGSvgView>[39m
+                [36m<RNSVGGroup>[39m
+                  [36m<RNSVGPath />[39m
+                  [36m<RNSVGPath />[39m
+                [36m</RNSVGGroup>[39m
+              [36m</RNSVGSvgView>[39m
+            [36m</View>[39m
+            [36m<Text>[39m
+              [0mMinhas coletas[0m
+            [36m</Text>[39m
+            [36m<View />[39m
+            [36m<View>[39m
+              [36m<Text>[39m
+                [0m2[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000471[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000471: Aguardando"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m…[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAguardando[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mAinda não saiu do aparelho. Vai sair assim que houver sinal.[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m06/10/2026, 06:00:00[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+          [36m<View>[39m
+            [36m<View>[39m
+              [36m<View>[39m
+                [36m<View[39m
+                  [33maccessibilityElementsHidden[39m=[32m{true}[39m
+                  [33mimportantForAccessibility[39m=[32m"no-hide-descendants"[39m
+                [36m>[39m
+                  [36m<RNSVGSvgView>[39m
+                    [36m<RNSVGGroup>[39m
+                      [36m<RNSVGPath />[39m
+                      [36m<RNSVGPath />[39m
+                    [36m</RNSVGGroup>[39m
+                  [36m</RNSVGSvgView>[39m
+                [36m</View>[39m
+                [36m<Text>[39m
+                  [0m2026/000472[0m
+                [36m</Text>[39m
+                [36m<View />[39m
+                [36m<View[39m
+                  [33maccessibilityLabel[39m=[32m"Protocolo 2026/000472: Aguardando"[39m
+                  [33maccessibilityRole[39m=[32m"text"[39m
+                  [33maccessible[39m=[32m{true}[39m
+                [36m>[39m
+                  [36m<Text>[39m
+                    [0m…[0m
+                  [36m</Text>[39m
+                  [36m<Text>[39m
+                    [0mAguardando[0m
+                  [36m</Text>[39m
+                [36m</View>[39m
+              [36m</View>[39m
+              [36m<Text>[39m
+                [0mAinda não saiu do aparelho. Vai sair assim que houver sinal.[0m
+              [36m</Text>[39m
+              [36m<Text>[39m
+                [0mColetada em [0m
+                [0m06/10/2026, 06:00:00[0m
+              [36m</Text>[39m
+            [36m</View>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<View[39m
+          [33maccessibilityLabel[39m=[32m"Tentar enviar agora"[39m
+          [33maccessibilityRole[39m=[32m"button"[39m
+          [33maccessibilityState[39m=[32m{
+            {
+              "busy": false,
+              "disabled": false,
+            }
+          }[39m
+          [33maccessible[39m=[32m{true}[39m
+        [36m>[39m
+          [36m<RNSVGSvgView[39m
+            [33mpointerEvents[39m=[32m"none"[39m
+          [36m>[39m
+            [36m<RNSVGGroup>[39m
+              [36m<RNSVGDefs>[39m
+                [36m<RNSVGLinearGradient />[39m
+              [36m</RNSVGDefs>[39m
+              [36m<RNSVGRect />[39m
+            [36m</RNSVGGroup>[39m
+          [36m</RNSVGSvgView>[39m
+          [36m<View>[39m
+            [36m<Text>[39m
+              [0mTentar enviar agora[0m
+            [36m</Text>[39m
+          [36m</View>[39m
+        [36m</View>[39m
+        [36m<Text>[39m
+          [0mO envio acontece sozinho, em segundo plano. Este botão é para quando você quer ver acontecer.[0m
+        [36m</Text>[39m
+      [36m</View>[39m
+    [36m</RCTScrollView>[39m
+
+    [0m [90m 181 |[39m   it([32m"a pausa some quando o motor avisa que ela acabou"[39m[33m,[39m [36masync[39m () [33m=>[39m {
+     [90m 182 |[39m     [36mawait[39m abrirComPausa([32m"sessao_encerrada"[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 183 |[39m     expect(screen[33m.[39mgetByText([32m"Sua sessão terminou e o envio está parado"[39m))[33m.[39mtoBeTruthy()[33m;[39m
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 184 |[39m
+     [90m 185 |[39m     [36mawait[39m act([36masync[39m () [33m=>[39m { avisarQueMudou[33m?[39m[33m.[39m({ pausadaPor[33m:[39m [36mnull[39m })[33m;[39m })[33m;[39m
+     [90m 186 |[39m[0m
+
+      at Object.getByText (src/ui/fila-pausada-pela-sessao.test.tsx:183:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       7 failed, 2 passed, 9 total
+Snapshots:   0 total
+Time:        4.789 s, estimated 5 s
+Ran all test suites matching /src\\ui\\fila-pausada-pela-sessao.test.tsx/i.

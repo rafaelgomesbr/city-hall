@@ -1,0 +1,69 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/web
+
+ ❯ test/recuperar-senha-e-sessao.test.ts (3 tests | 3 failed) 33ms
+   × Recuperação de senha com outra sessão aberta no navegador > o pedido de redefinição não leva o token da sessão aberta 20ms
+     → expected 'Bearer [REDIGIDO]' to be undefined
+   × Recuperação de senha com outra sessão aberta no navegador > link vencido (401 sessao_encerrada) não renova, não avisa a tela e não apaga a sessão aberta 9ms
+     → não gasta o refresh de quem está logado: expected true to be false // Object.is equality
+   × Recuperação de senha com outra sessão aberta no navegador > a leitura de 'a recuperação está ligada?' também não leva token e devolve só o interruptor 1ms
+     → situacaoDaRecuperacao is not a function
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/recuperar-senha-e-sessao.test.ts > Recuperação de senha com outra sessão aberta no navegador > o pedido de redefinição não leva o token da sessão aberta
+AssertionError: expected 'Bearer [REDIGIDO]' to be undefined
+
+- Expected: 
+undefined
+
++ Received: 
+"Bearer [REDIGIDO]"
+
+ ❯ test/recuperar-senha-e-sessao.test.ts:69:60
+     67| 
+     68|     expect(cabecalhos).toHaveLength(2);
+     69|     for (const c of cabecalhos) expect(c["authorization"]).toBeUndefin…
+       |                                                            ^
+     70|   });
+     71| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  test/recuperar-senha-e-sessao.test.ts > Recuperação de senha com outra sessão aberta no navegador > link vencido (401 sessao_encerrada) não renova, não avisa a tela e não apaga a sessão aberta
+AssertionError: não gasta o refresh de quem está logado: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ test/recuperar-senha-e-sessao.test.ts:84:106
+     82|       .rejects.toMatchObject({ status: 401, codigo: "sessao_encerrada"…
+     83| 
+     84|     expect(chamadas.some((u) => u.endsWith("/auth/renovar")), "não gas…
+       |                                                                                                          ^
+     85|     expect(expirou).not.toHaveBeenCalled();
+     86|     expect(sessionStorage.getItem("dc360:tokens"), "a sessão da outra …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  test/recuperar-senha-e-sessao.test.ts > Recuperação de senha com outra sessão aberta no navegador > a leitura de 'a recuperação está ligada?' também não leva token e devolve só o interruptor
+TypeError: situacaoDaRecuperacao is not a function
+ ❯ test/recuperar-senha-e-sessao.test.ts:96:26
+     94|     }));
+     95| 
+     96|     const r = await http.situacaoDaRecuperacao();
+       |                          ^
+     97|     expect(r).toEqual({ ativa: false });
+     98|     expect(cabecalho["authorization"]).toBeUndefined();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed (3)
+   Start at  14:39:28
+   Duration  2.74s (transform 466ms, setup 0ms, collect 923ms, tests 33ms, environment 0ms, prepare 419ms)
+

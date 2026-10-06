@@ -1,0 +1,12 @@
+[
+  {
+    "id": "test-scripts",
+    "cmd": "npm run test:scripts",
+    "cwd": ".",
+    "codigo": 1,
+    "duracaoMs": 9332,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "01-test-scripts.txt"
+  }
+]

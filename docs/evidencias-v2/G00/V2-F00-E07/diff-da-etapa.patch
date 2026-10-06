@@ -1,0 +1,2576 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index ecdce7e..d1568cb 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -12,7 +12,7 @@ build) valem lá, não aqui.
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 285 testes do banco passando |
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 454 testes de fonte do painel mais 68 verificações no navegador no modo local e 103 contra a API |
+ | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 962 testes da API passando |
+-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 138 testes de unidade do motor de campo e 10 de integração contra a API |
++| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 138 testes de unidade do motor de campo e 15 de integração contra a API |
+ | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 1708 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+ | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios e não alcança dado de cidadão | Pronto, 250 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+ 
+@@ -127,15 +127,59 @@ confirmaria que o registro existe, e confirmar existência já é vazamento.
+ | Peça | Escolha | Por quê |
+ | --- | --- | --- |
+ | Senha | scrypt do `node:crypto`, N=2^16 | Aprovado no ASVS 4.0 (2.4.3), sem dependência nova e sem módulo nativo para compilar |
+-| Token de acesso | JWT HS256, 15 minutos | Verificado por assinatura, sem ida ao banco. Curto porque não dá para revogar antes de expirar |
++| Token de acesso | JWT HS256, 15 minutos | Na LEITURA, verificado só por assinatura, sem ida ao banco: conta desativada ainda lê até o token vencer (a F03-E03 fecha isso). Na ESCRITA (todo método que não é GET nem HEAD), uma consulta ao banco confere, junto com a suspensão do município, se a conta está ativa, se o papel é o do token, se a sessão do token não foi encerrada e se a senha provisória não venceu: falhando, responde no pedido seguinte 401 `sessao_encerrada` (sessão encerrada ou senha provisória vencida), 401 `nao_autenticado` (papel diferente do token: o cliente renova e repete, e a renovação já traz o papel novo) ou 403 `conta_desativada` (conta desativada), ver os códigos abaixo (`auth/vigencia.ts`, religada em V2-F00-E04, códigos separados em V2-F00-E05, papel e cadeia da sessão em V2-F00-E07) |
+ | Token de renovação | 32 bytes opacos, guardado só como hash | Revogável, e vazamento do banco não devolve sessão utilizável |
+ | Rotação | A cada renovação | Reúso de token gasto é sintoma de roubo: derruba todas as sessões do usuário |
++| Cadeia da sessão | `sessoes.familia_id`: cada login abre uma família e cada renovação a herda (migração 047) | O token de acesso emitido ANTES de uma renovação segue valendo por seus 15 minutos (a fila do aparelho pode estar no meio de um envio), mas só enquanto a família tem sessão de pé: encerrar a cadeia (quem administra, a própria pessoa, sair, reuso de token, troca de senha) derruba também o token anterior à renovação |
+ | Força bruta | Limite por endereço (10 por 5 min) e bloqueio por conta (5 falhas, 15 min) | Um trata o atacante que vem de um lugar, o outro trata a conta martelada de muitos |
+ | Enumeração de conta | Resposta idêntica e tempo equivalente para email inexistente | Senão a API vira lista de emails da prefeitura |
+ | Recuperação de senha | Link de uso único, 30 minutos, entregue por um notificador injetável | Esquecer a senha não pode virar chamado para o suporte, nem "manda a senha no WhatsApp" |
+ | Troca de senha | Exige a senha atual, e derruba as outras sessões | Aparelho esquecido desbloqueado na mesa vira conta sequestrada em dois cliques |
+ | Segunda etapa | Código de seis dígitos do aplicativo de autenticação (TOTP), com segredo guardado cifrado, chave fora do banco | O administrador é o teto do município (ADR 0006): a conta dele estava protegida por senha e mais nada. SMS foi recusado (troca de chip, custo por mensagem, e depende da operadora justamente no dia do temporal) |
+ 
++#### Códigos de erro de acesso
++
++O cliente decide o que fazer pelo código, e não pela frase: o texto muda, o
++código não. A lista mora em `packages/shared/src/codigos-de-erro.ts`, que o
++servidor, o painel e o aplicativo importam, e `apps/api/test/codigos-de-erro.test.ts`
++confere que o servidor emite exatamente ela (código novo fora da lista reprova).
++Até a V2-F00-E05 os três primeiros eram um só, `401 sessao`, e o cliente não
++distinguia token vencido de conta desativada.
++
++| Código | Status | O que o cliente faz | Quando sai |
++| --- | --- | --- | --- |
++| `nao_autenticado` | 401 | Pede token novo com o de renovação e repete o pedido uma vez | Token vencido, adulterado ou ausente; e, na escrita, papel gravado diferente do papel do token (a renovação devolve o token com o papel novo) |
++| `sessao_encerrada` | 401 | Pede para entrar de novo; o que está no aparelho continua lá | Sessão encerrada por alguém (a própria pessoa, quem administra, troca de senha, reuso de token), inclusive o token de acesso anterior a uma renovação quando a cadeia foi encerrada; conta que deixou de existir; senha provisória vencida (que também não se troca nem se renova) |
++| `conta_desativada` | 403 | Para de tentar, mantém o que há no aparelho e manda procurar a coordenação | Conta desativada: na escrita com token vivo e em `/auth/renovar` |
++| `acesso_suspenso` | 403 (503 nas rotas da fila) | Espera: quem resolve é quem administra o contrato | Município suspenso pelo fornecedor |
++| `troca_de_senha_obrigatoria` | 403 | Leva à troca de senha | Sessão nascida de senha provisória |
++| `sem_permissao` | 403 | Nada a repetir | O perfil não pode fazer isto |
++
++Três regras que não mudam com os códigos:
++
++- **Recurso de outro município é 404, nunca 403.** Um 403 confirmaria que o
++  registro existe. `conta_desativada` é 403 porque a conta desativada é a do
++  próprio usuário autenticado, e a vigência é conferida antes de qualquer
++  consulta ao recurso: a resposta é a mesma para uma ocorrência do próprio
++  município, de outro município ou que não existe.
++- **A entrada não conta nada sobre a conta.** `/auth/entrar` com conta
++  desativada responde a mesma recusa genérica da senha errada e do e-mail
++  inexistente, com o mesmo status e a mesma frase.
++- **Conta desativada vem antes de sessão encerrada.** Desativar a conta encerra
++  as sessões dela; se a ordem fosse outra, o cliente leria `sessao_encerrada` e
++  mandaria entrar de novo, que não resolve.
++
++O código antigo `sessao` deixou de existir. O esquema de erro único da API, com
++o catálogo inteiro (validação, regra de negócio, conflito), é da V2-F02-E03, que
++generaliza esta tabela.
++
++Trocar o papel de uma pessoa **não revoga as sessões dela** (decisão da
++V2-F00-E07): a escrita seguinte com o token velho responde 401 `nao_autenticado`,
++o cliente renova e repete sem a pessoa notar, e a renovação lê o papel do banco.
++O painel atualiza o papel da tela com a resposta da renovação, e o menu passa a
++mostrar só o que o papel novo tem. Revogar obrigaria a pessoa a entrar de novo,
++com coleta de campo na fila, para receber o que a renovação já entrega.
++
+ Redefinir a senha derruba **todas** as sessões. Se a recuperação foi pedida
+ porque alguém invadiu a conta, deixar as sessões antigas vivas entregaria a
+ conta de volta ao invasor. E o banco valida o link e grava a senha nova numa
+@@ -296,11 +340,22 @@ Decisões que o código toma, e por quê:
+ | Sem sinal | Guarda e agenda nova tentativa | A coleta já foi feita; refazer significa subir o morro de novo |
+ | Erro de rede no meio da fila | Para ali, não varre o resto | Rede caída não melhora no item seguinte, e insistir gasta bateria |
+ | 5xx ou 429 | Tenta de novo, com espera crescente | Servidor reinicia em deploy; insistir resolve |
+-| 400, 403, 404, 409, 422 | Bloqueia na hora | Repetir não muda o resultado, só enche o log |
+-| 401 | Bloqueia **também** | Insistir com token morto estoura o limite de tentativas e bloqueia a conta de quem está trabalhando |
++| 400, 403 `sem_permissao`, 404, 409, 422 | Bloqueia na hora | Repetir não muda o resultado, só enche o log |
++| 401 `nao_autenticado` | Pede UM token novo, repete o pedido uma vez; se falhar de novo, trata como sessão encerrada | Token vencido se resolve renovando; insistir sem limite estoura o limite de tentativas e bloqueia a conta de quem está trabalhando |
++| 401 `sessao_encerrada` ou 403 `conta_desativada` | **Para a fila e mantém o item pendente**, sem contar tentativa e sem bloquear | O servidor não recusou a coleta, recusou quem manda. A vistoria feita no morro nunca vira "recusada" nem convida a descartar |
++| Sem token no aparelho | O mesmo que `sessao_encerrada` | A pessoa não tem sessão aberta agora; a coleta não foi recusada |
+ | App morre no meio do envio | Reenvia com a MESMA chave | O servidor reconhece e devolve o recibo antigo em vez de gravar outro laudo |
+ | Dois drenos ao mesmo tempo | O segundo recusa começar | Wi-Fi de prefeitura reconecta sozinho e dispara sincronização em cima de outra |
+ 
++Desde a V2-F00-E06 a fila distingue os códigos de acesso do catálogo
++(`packages/shared/src/codigos-de-erro.ts`) pelo código, e não pelo status:
++`FalhaDeSessao` (motivo `sessao_encerrada` ou `conta_desativada`) é diferente de
++`FalhaPermanente` e de `FalhaTemporaria`. O dreno devolve `paradaPor`, o resumo
++da fila devolve `pausadaPor`, e o aparelho mostra a frase de cada caso: sessão
++encerrada, entre de novo; conta desativada, procure a coordenação. Em ambos a
++coleta continua guardada e sobe com a mesma chave depois da nova entrada.
++Detalhes e o que falta ver em aparelho: `apps/campo/PENDENCIAS.md`, item 14.
++
+ A espera entre tentativas cresce exponencialmente **com ruído**. Sem o
+ exponencial, um servidor fora do ar recebe uma tentativa por segundo de cada
+ aparelho em campo. Sem o ruído, todos os aparelhos que perderam sinal no mesmo
+@@ -947,6 +1002,60 @@ Para começar do zero no modo local, limpe o site nas ferramentas do navegador
+ `localStorage`). No modo API, basta reiniciar o servidor: o banco efêmero
+ nasce semeado de novo.
+ 
++## Como testar
++
++A versão do Node é a 22. O arquivo `.nvmrc` a fixa, o CI usa a mesma, e o campo
++`engines` do `package.json` aceita 20 ou mais, mas só a 22 foi medida. Há duas
++árvores de dependência: a raiz (`dc360`) e `apps/campo`, que fica fora do
++`workspaces` de propósito e tem lockfile próprio.
++
++A ordem, do zero:
++
++```bash
++cd dc360
++npm ci                          # raiz
++(cd apps/campo && npm ci)       # aplicativo de campo, árvore própria
++npm run typecheck               # compila shared, db e campo antes de checar os tipos
++npm run test:isolamento         # o portão CA-06, rode este primeiro
++npm test                        # os demais testes de cada workspace
++npm run test:scripts            # portões de design e de acessibilidade do aplicativo, entre outros
++npm run test:campo              # tipos e testes do aplicativo de campo
++npm run auditar                 # dependência vulnerável em runtime
++npm run conferir:numeros        # os números que este README afirma contra a realidade
++npm run test:e2e                # painel no navegador (precisa de Chromium e Firefox do Playwright)
++npm run test:e2e:api            # painel contra a API
++```
++
++`npm run verificar` encadeia typecheck, testes, `test:scripts`, `test:campo`,
++`auditar` e `conferir:numeros`. O CI roda menos do que isso: não roda `auditar`,
++`test:scripts` nem `test:campo`, então esses três só aparecem vermelhos na
++máquina de quem rodar.
++
++**A linha de base de hoje é vermelha de propósito.** Os vermelhos foram medidos
++em 2026-09-30 e são consertados um a um na fase F00 do Roadmap V2
++(`docs/roadmap-v2/03-fase-00-estabilizacao.md`). Para repetir a medição e
++arquivar a saída, sem segredo, em qualquer máquina:
++
++```bash
++node scripts/baseline.mjs --so-listar   # mostra o roteiro, sem executar nada
++node scripts/baseline.mjs               # roda tudo e arquiva em docs/evidencias-v2/G00/V2-F00-E01/saidas
++```
++
++Cada passo diz se o resultado "confere" com o esperado de 2026-09-30 ou se
++está "divergente". Divergente nunca é escondido: sai com código 1 e pede
++explicação. O passo a passo para uma segunda pessoa está em
++`docs/evidencias-v2/G00/V2-F00-E01/COMO-REPRODUZIR.md`.
++
++**Teste pulado tem regra (política T42).** Nenhum vermelho conhecido fica na base
++sem saída: ou se conserta, ou se reescreve com registro, ou se pula com dono,
++prazo e referência. Pular por ambiente (`it.runIf`, `skip` com condição e
++motivo) é permitido e contado; pular de forma incondicional (`skip`, `xit`,
++`todo`) exige a marca `// T42 dono=<nome> issue=<ref> ate=AAAA-MM-DD` na linha
++acima, e `.only` nunca passa. O portão
++`scripts/portao-de-skip.test.mjs` aplica isso dentro de `npm run test:scripts`
++e imprime a contagem de skips por ambiente. A política inteira está em
++`docs/POLITICA-DE-TESTE-VERMELHO.md`.
++
+ ## Implantação
+ 
+ ### O primeiro município, do zero
+@@ -1197,7 +1306,7 @@ LOG_API=/caminho/do/log-da-api npm run test:e2e:api --workspace @dc360/web
+ email: em desenvolvimento o link sai no log do servidor, e é de lá que a suíte
+ o lê.
+ 
+-São 103 verificações no navegador que só existem neste caminho: entrada por senha, senha
++São 112 verificações no navegador que só existem neste caminho: entrada por senha, senha
+ errada recusada, token guardado sem a senha nem o hash, isolamento imposto
+ pelo servidor (inclusive abrindo a URL de outro município na mão), fluxo
+ gravando de verdade, dado criado numa sessão aparecendo em outro navegador,
+@@ -1337,7 +1446,7 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
+   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
+   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
+ 
+-  Essa última já tem 159 testes do motor de campo cobrindo a lógica fora do
++  Essa última já tem 187 testes do motor de campo cobrindo a lógica fora do
+   celular, inclusive retomada arquivo a arquivo.
+   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
+   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e
+diff --git a/dc360/apps/api/PENDENCIAS.md b/dc360/apps/api/PENDENCIAS.md
+index c59ae4a..aa66c3e 100644
+--- a/dc360/apps/api/PENDENCIAS.md
++++ b/dc360/apps/api/PENDENCIAS.md
+@@ -50,3 +50,46 @@ fotografias: o problema não é ela, é acumular o resultado.
+ verdade. Sem essa medida, qualquer teto escolhido é chute. O caminho mais barato
+ para medir é gerar carga sintética com o que já existe em `db/test/carga.test.ts`
+ e observar o processo.
++
++## A vigência de conta, papel e sessão vale só na ESCRITA
++
++**Onde:** `src/servidor.ts` (`exigirAutenticacao`) e `src/auth/vigencia.ts`.
++
++**O que acontece:** desde V2-F00-E04 toda escrita (método que não é GET nem HEAD)
++confere no banco se a conta está ativa, se o papel é o do token, se a sessão do
++token não foi encerrada por alguém e se a senha provisória não venceu. A LEITURA
++continua confiando só na assinatura do token, por até `ACESSO_MINUTOS` (15 por
++padrão, 60 no máximo): conta desativada ainda lê até o token vencer. Pior, as
++leituras que escrevem (`GET /avisos`) seguem fora da vigência.
++
++**Decisões da V2-F00-E07, para não serem reabertas por engano:**
++
++- **Papel alterado:** papel gravado diferente do token responde 401
++  `nao_autenticado` (renove e repita), depois de conta desativada e de sessão
++  encerrada (quem foi rebaixado E derrubado entra de novo). A troca de papel
++  NÃO revoga as sessões da pessoa: a segurança não depende disso, porque a
++  escrita confere o papel do banco, e revogar obrigaria a entrar de novo com
++  coleta na fila.
++- **Cadeia da sessão:** o token de acesso emitido antes de uma renovação só
++  escreve enquanto a família (`sessoes.familia_id`, migração 047) tem sessão
++  não revogada. Limite conhecido: entre `revogar_sessao` (a antiga) e
++  `abrir_sessao` (a nova) da própria renovação a família não tem sessão viva
++  por alguns milissegundos, e uma escrita com o token antigo nessa janela leva
++  401 `sessao_encerrada`. A fila do campo (E06) mantém o item pendente e a
++  pessoa entra de novo; fechar a janela exige renovar numa só transação
++  (F03-E02, claims enxutas e rotação).
++- **Senha provisória vencida:** `trocarSenha` recusa por conta própria (401
++  `sessao_encerrada`), além de a rota já recusar a escrita pela vigência.
++  Entrar e renovar já recusavam.
++- **`troca_de_senha_obrigatoria` na fila do campo:** continua recusa permanente
++  no transporte (ver `apps/campo/PENDENCIAS.md`, item 14). Não é tratada aqui:
++  a E07 só mexe na vigência da API, e o aplicativo leva a pessoa à troca de
++  senha antes de ela chegar à fila.
++
++**Como atacar:** F03-E03 (vigência em toda requisição autenticada, centralizada em
++`comTenant`). Os códigos de erro já estão separados desde a V2-F00-E05
++(`nao_autenticado`, `sessao_encerrada` e `conta_desativada`, catálogo em
++`packages/shared/src/codigos-de-erro.ts`), e desde a V2-F00-E06 a fila do campo
++os trata sem perder item (a fila para e mantém o item pendente; ver
++`apps/campo/PENDENCIAS.md`, item 14). Resta a validação em aparelho, que é
++humana: até ela, a E04, a E05 e a E06 devem ir juntas para produção.
+diff --git a/dc360/apps/api/src/auth/servico.ts b/dc360/apps/api/src/auth/servico.ts
+index e54b3b7..fdbbc98 100644
+--- a/dc360/apps/api/src/auth/servico.ts
++++ b/dc360/apps/api/src/auth/servico.ts
+@@ -10,6 +10,7 @@ import type { ServicoSegundoFator } from "./segundo-fator.js";
+ import { derivarSenha } from "./senha.js";
+ import { encerrarSessoes } from "./sessoes.js";
+ import { exigirAcessoAtivo } from "./suspensao.js";
++import { ContaDesativada } from "./conta-desativada.js";
+ import { registrarAtoAdministrativo } from "../trilha.js";
+ import { mensagemDeRecuperacao, type Notificador } from "./notificador.js";
+ 
+@@ -64,9 +65,23 @@ export type DesafioDeEntrada = {
+ 
+ export type ResultadoDeEntrada = Autenticado | DesafioDeEntrada;
+ 
++/*
++  Os códigos que a autenticação lança. `sessao_encerrada` e `nao_autenticado`
++  são do catálogo de `@dc360/shared` (`codigos-de-erro.ts`): o primeiro era
++  `sessao` até a V2-F00-E05, nome que não dizia o que o cliente faz. `credenciais`, `bloqueado` e
++  `senha_provisoria_vencida` são da ENTRADA e ficam fora do catálogo de acesso.
++  Conta desativada NÃO passa por aqui: é `ContaDesativada` (403), porque 401
++  manda entrar de novo e entrar de novo não resolve.
++*/
+ export class FalhaAutenticacao extends Error {
+   readonly codigo:
+-    | "credenciais" | "bloqueado" | "inativo" | "sessao"
++    | "credenciais" | "bloqueado" | "sessao_encerrada"
++    /*
++      O papel gravado no banco não é o do token (V2-F00-E07). Mesmo código que a
++      verificação do token emite: o cliente renova e repete, e a renovação já
++      devolve o token com o papel novo.
++    */
++    | "nao_autenticado"
+     /*
+       A senha provisória venceu sem ser trocada. Só sai para quem apresentou a
+       senha provisória CERTA (a errada recebe a recusa genérica), então não
+@@ -312,7 +327,7 @@ export function servicoDeAutenticacao(
+     const conteudo = await verificarDesafio(config.jwtSegredos, desafio);
+     if (!conteudo || conteudo.pp !== "segundo_fator") {
+       throw new FalhaAutenticacao(
+-        "sessao",
++        "sessao_encerrada",
+         "Esta tentativa de entrada expirou. Informe email e senha de novo.",
+       );
+     }
+@@ -339,7 +354,7 @@ export function servicoDeAutenticacao(
+ 
+     const linha = await lerCredencialPorId(conteudo.org, conteudo.sub);
+     if (!linha || !linha.ativo) {
+-      throw new FalhaAutenticacao("inativo", MENSAGEM_GENERICA);
++      throw new FalhaAutenticacao("credenciais", MENSAGEM_GENERICA);
+     }
+     // O desafio foi emitido há no máximo cinco minutos, e a suspensão pode
+     // ter entrado nesse intervalo. A sessão nasce aqui, então a pergunta se
+@@ -373,7 +388,7 @@ export function servicoDeAutenticacao(
+   ): Promise<Autenticado> {
+     const linha = await lerCredencialPorId(organizacaoId, usuarioId);
+     if (!linha || !linha.ativo) {
+-      throw new FalhaAutenticacao("inativo", MENSAGEM_GENERICA);
++      throw new FalhaAutenticacao("credenciais", MENSAGEM_GENERICA);
+     }
+     await exigirAcessoAtivo(banco, organizacaoId);
+     return emitirPar(linha, contexto);
+@@ -407,15 +422,21 @@ export function servicoDeAutenticacao(
+     });
+   }
+ 
++  /**
++   * Abre a sessão e emite o par de tokens. `familiaId` só a renovação informa:
++   * a sessão nova entra na cadeia da que acabou de ser rotacionada. Sem ele é
++   * um login, e o banco abre uma família nova (migração 047).
++   */
+   async function emitirPar(
+     linha: LinhaCredencial,
+     contexto: { userAgent?: string; ip?: string },
++    familiaId: string | null = null,
+   ): Promise<Autenticado> {
+     const renovacao = gerarTokenRenovacao();
+ 
+     const sessaoId = await banco.semTenant(async (c) => {
+       const r = await c.query<{ abrir_sessao: string }>(
+-        "SELECT abrir_sessao($1,$2,$3,$4::interval,$5,$6) AS abrir_sessao",
++        "SELECT abrir_sessao($1,$2,$3,$4::interval,$5,$6,$7) AS abrir_sessao",
+         [
+           linha.organizacao_id,
+           linha.usuario_id,
+@@ -423,6 +444,7 @@ export function servicoDeAutenticacao(
+           `${config.RENOVACAO_DIAS} days`,
+           contexto.userAgent ?? null,
+           contexto.ip ?? null,
++          familiaId,
+         ],
+       );
+       return r.rows[0]!.abrir_sessao;
+@@ -494,7 +516,7 @@ export function servicoDeAutenticacao(
+ 
+     if (!sessao) {
+       await derrubarSePossivelReuso(hash);
+-      throw new FalhaAutenticacao("sessao", "Sessão expirada. Entre novamente.");
++      throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
+     }
+ 
+     if (!sessao.ativo) {
+@@ -503,7 +525,10 @@ export function servicoDeAutenticacao(
+           sessao.usuario_id, "usuario desativado",
+         ]),
+       );
+-      throw new FalhaAutenticacao("inativo", "Sessão expirada. Entre novamente.");
++      // 403 e não 401: quem apresenta uma renovação válida pode saber que a
++      // conta foi desativada (o cliente para de insistir e avisa), e entrar de
++      // novo não resolve. A entrada continua com a recusa genérica.
++      throw new ContaDesativada();
+     }
+ 
+     /*
+@@ -522,9 +547,23 @@ export function servicoDeAutenticacao(
+ 
+     // A senha provisória venceu no meio da sessão: não renova (migração 046).
+     if (senhaProvisoriaVencida(sessao)) {
+-      throw new FalhaAutenticacao("sessao", "Sessão expirada. Entre novamente.");
++      throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
+     }
+ 
++    /*
++      A FAMÍLIA da sessão que vai ser rotacionada, lida ANTES da rotação e sob
++      tenant (`sessoes` está sob RLS, e `sessao_por_token` não a devolve: a
++      função da 046 não mudou). A sessão nova entra na mesma cadeia, e é isso
++      que permite à vigência saber que o token de acesso emitido na antiga
++      ainda pertence a uma cadeia viva (migração 047).
++    */
++    const familiaId = await banco.comTenant(sessao.organizacao_id, async (c) => {
++      const r = await c.query<{ familia_id: string }>(
++        "SELECT familia_id FROM sessoes WHERE id = $1", [sessao.sessao_id],
++      );
++      return r.rows[0]?.familia_id ?? null;
++    });
++
+     /*
+       H1: DOIS PEDIDOS COM O MESMO TOKEN, ao mesmo tempo. Os dois leem a sessão
+       de pé acima; só um consegue revogá-la. `revogar_sessao` devolve quantas
+@@ -540,7 +579,7 @@ export function servicoDeAutenticacao(
+       return Number(r.rows[0]?.revogar_sessao ?? 0);
+     });
+     if (revogadas === 0) {
+-      throw new FalhaAutenticacao("sessao", "Sessão expirada. Entre novamente.");
++      throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
+     }
+ 
+     return emitirPar(
+@@ -559,6 +598,7 @@ export function servicoDeAutenticacao(
+         uf: sessao.uf,
+       },
+       contexto,
++      familiaId,
+     );
+   }
+ 
+@@ -652,7 +692,7 @@ export function servicoDeAutenticacao(
+ 
+     if (!trocada) {
+       throw new FalhaAutenticacao(
+-        "sessao",
++        "sessao_encerrada",
+         "Este link de redefinicao nao vale mais. Peca um novo.",
+       );
+     }
+@@ -670,14 +710,29 @@ export function servicoDeAutenticacao(
+     senhaNova: string,
+   ): Promise<{ acesso: string; expiraEm: number }> {
+     const atual = await banco.comTenant(identidade.organizacaoId, async (c) => {
+-      const r = await c.query<{ senha_hash: string | null }>(
+-        "SELECT senha_hash FROM usuarios WHERE id = $1",
++      const r = await c.query<{ senha_hash: string | null; senha_provisoria_ate: string | null }>(
++        "SELECT senha_hash, senha_provisoria_ate FROM usuarios WHERE id = $1",
+         [identidade.usuarioId],
+       );
+-      return r.rows[0]?.senha_hash ?? null;
++      return r.rows[0] ?? null;
+     });
+ 
+-    if (!(await conferirSenha(senhaAtual, atual))) {
++    /*
++      A senha provisória que VENCEU não se troca (V2-F00-E07). A rota já
++      recusa a escrita de quem tem prazo vencido (`auth/vigencia.ts`), mas esta
++      regra não pode depender de a rota ter conferido: o prazo é lido de novo
++      aqui, na mesma leitura da senha atual, e a recusa é a mesma de entrar
++      com ela e de renová-la. Sem esta linha a regra moraria só na rota, e o
++      serviço trocaria por uma senha definitiva a provisória que passou do
++      prazo para qualquer outro chamador (e para a rota, se alguém um dia
++      tirasse `/auth/trocar-senha` da conferência de vigência). Dizer "expirou,
++      entre novamente" a quem já sabia a senha provisória não revela nada.
++    */
++    if (atual && senhaProvisoriaVencida(atual)) {
++      throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
++    }
++
++    if (!(await conferirSenha(senhaAtual, atual?.senha_hash ?? null))) {
+       throw new FalhaAutenticacao("credenciais", "A senha atual nao confere.");
+     }
+ 
+diff --git a/dc360/apps/api/src/auth/vigencia.ts b/dc360/apps/api/src/auth/vigencia.ts
+index 34f16f9..e0f60cd 100644
+--- a/dc360/apps/api/src/auth/vigencia.ts
++++ b/dc360/apps/api/src/auth/vigencia.ts
+@@ -1,7 +1,8 @@
+-import type { Papel } from "@dc360/shared";
++import { CODIGOS_DE_ERRO_DE_ACESSO, type Papel } from "@dc360/shared";
+ import type { Banco } from "../banco/tipos.js";
+ import type { ConteudoAcesso } from "./tokens.js";
+ import { AcessoSuspenso } from "./suspensao.js";
++import { ContaDesativada } from "./conta-desativada.js";
+ import { FalhaAutenticacao } from "./servico.js";
+ 
+ /**
+@@ -20,14 +21,28 @@ import { FalhaAutenticacao } from "./servico.js";
+  * papel é o do token, a sessão do token está de pé. E uma quarta, da
+  * migração 046: a senha ainda é provisória, e até quando.
+  *
+- * A SESSÃO ROTACIONADA NÃO CONTA COMO ENCERRADA. Renovar revoga a sessão
+- * antiga com motivo `rotacionada na renovacao` e abre outra; o token de
+- * acesso emitido na antiga é legítimo pelos seus quinze minutos, e a fila do
+- * aparelho pode estar no meio de um envio com ele. Recusá-lo transformaria
+- * cada renovação numa expulsão, e 401 na fila é falha permanente
+- * (`packages/campo/src/transporte.ts`). O que se recusa é a sessão que
+- * ALGUÉM encerrou: a própria pessoa, quem administra, a troca de senha, o
+- * reuso de token, a suspensão.
++ * A SESSÃO ROTACIONADA SÓ VALE ENQUANTO A CADEIA DELA VIVE. Renovar revoga
++ * a sessão antiga com motivo `rotacionada na renovacao` e abre outra; o token
++ * de acesso emitido na antiga é legítimo pelos seus quinze minutos, e a fila
++ * do aparelho pode estar no meio de um envio com ele. Recusá-lo transformaria
++ * cada renovação numa expulsão, e 401 na fila pausa o envio. Mas "foi
++ * rotacionada" não basta: se depois alguém encerra a cadeia (a própria
++ * pessoa, quem administra, o reuso de token, a troca de senha, a suspensão),
++ * quem cai é a sessão NOVA, e a antiga, já revogada por rotação, continuava
++ * contando como viva. Desde a migração 047 as sessões de uma cadeia
++ * compartilham `familia_id`, e a rotacionada só vale se a família ainda tem
++ * sessão de pé (`revogada_em IS NULL`). Os encerramentos não mudaram: todos
++ * atingem a sessão viva, e isso derruba a cadeia inteira.
++ *
++ * O PAPEL DIFERENTE DO TOKEN NÃO É SESSÃO ENCERRADA. O token continua
++ * legítimo e a sessão está de pé: o que mudou foi o cadastro. A resposta é
++ * 401 `nao_autenticado`, que o cliente já trata como "renove e repita", e a
++ * renovação lê o papel do banco e devolve o token com o papel novo. Trocar o
++ * papel de alguém NÃO revoga as sessões dela (decisão da E07, registrada em
++ * `apps/api/PENDENCIAS.md`): revogar obrigaria a pessoa a entrar de novo,
++ * com a coleta de campo na fila, para receber exatamente o que a renovação
++ * entrega sem ela notar. A segurança não depende disso: a escrita confere o
++ * papel do banco, então o token velho não escreve com o papel antigo.
+  *
+  * LEITURA NÃO PASSA POR AQUI, e a troca continua a de `auth/suspensao.ts`:
+  * quinze minutos de leitura com token vivo não produzem registro, e o custo
+@@ -41,6 +56,12 @@ export type Vigencia = {
+   acesso: "ativo" | "suspenso" | "inexistente";
+   /** A conta existe e está ativa. */
+   usuarioAtivo: boolean;
++  /**
++   * A conta existe e foi DESATIVADA. Separada de `!usuarioAtivo` porque conta
++   * que sumiu (ou de outro município) não é conta desativada, e o cliente age
++   * diferente: desativada para de tentar, sumida entra de novo.
++   */
++  contaDesativada: boolean;
+   /** O papel GRAVADO, que pode não ser o do token. */
+   papel: Papel | null;
+   /** A sessão do token (`sid`) não foi encerrada por ninguém. */
+@@ -67,7 +88,12 @@ export async function lerVigencia(
+                 SELECT 1 FROM sessoes s
+                  WHERE s.id = $2 AND s.usuario_id = u.id
+                    AND (s.revogada_em IS NULL
+-                        OR s.motivo_revogacao = 'rotacionada na renovacao')
++                        OR (s.motivo_revogacao = 'rotacionada na renovacao'
++                            AND EXISTS (
++                              SELECT 1 FROM sessoes v
++                               WHERE v.familia_id = s.familia_id
++                                 AND v.revogada_em IS NULL
++                            )))
+               ) AS sessao_viva
+          FROM organizacoes o
+          LEFT JOIN usuarios u ON u.id = $1 AND u.organizacao_id = o.id
+@@ -77,13 +103,14 @@ export async function lerVigencia(
+     const linha = r.rows[0];
+     if (!linha) {
+       return {
+-        acesso: "inexistente", usuarioAtivo: false, papel: null, sessaoViva: false,
+-        senhaProvisoriaAte: null,
++        acesso: "inexistente", usuarioAtivo: false, contaDesativada: false, papel: null,
++        sessaoViva: false, senhaProvisoriaAte: null,
+       };
+     }
+     return {
+       acesso: linha.suspenso ? "suspenso" : "ativo",
+       usuarioAtivo: linha.ativo === true,
++      contaDesativada: linha.ativo === false,
+       papel: linha.papel,
+       sessaoViva: linha.sessao_viva,
+       senhaProvisoriaAte: linha.senha_provisoria_ate ? new Date(linha.senha_provisoria_ate) : null,
+@@ -91,19 +118,25 @@ export async function lerVigencia(
+   });
+ }
+ 
+-export const MENSAGEM_DE_SESSAO_ENCERRADA =
+-  "Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente.";
++export const MENSAGEM_DE_SESSAO_ENCERRADA = CODIGOS_DE_ERRO_DE_ACESSO.sessao_encerrada.mensagem;
+ 
+ /**
+  * Lança o erro certo para a vigência lida, na ordem que importa.
+  *
+  * Suspensão primeiro, com o status que a rota pediu (403, ou 503 para a fila
+  * do aparelho): é a resposta que manda procurar o contrato, e vale mesmo que
+- * a conta também tenha sido desativada. Depois, tudo que é "entre de novo"
+- * vira 401 `sessao`, que o painel e o aparelho já tratam: conta que sumiu ou
+- * foi desativada, papel diferente do token, sessão encerrada, e senha
+- * provisória que venceu sem ser trocada (entrar de novo vai dizer o que
+- * fazer).
++ * a conta também tenha sido desativada. Depois, conta desativada vira 403
++ * `conta_desativada`, ANTES do resto de propósito: desativar a conta encerra
++ * as sessões dela, então se a ordem fosse outra a conta desativada sairia como
++ * `sessao_encerrada`, o cliente mandaria entrar de novo, e entrar de novo não
++ * resolve. Depois, tudo que é "entre de novo" vira 401 `sessao_encerrada`:
++ * conta que sumiu, sessão encerrada (ou cadeia encerrada), e senha provisória
++ * que venceu sem ser trocada (entrar de novo vai dizer o que fazer). Por
++ * último o papel: diferente do token vira 401 `nao_autenticado`, "renove e
++ * repita", porque a sessão está de pé e a renovação já traz o papel novo. A
++ * ordem importa: quem foi rebaixado E derrubado entra de novo, em vez de
++ * renovar e descobrir só na renovação. O catálogo é
++ * `packages/shared/src/codigos-de-erro.ts`.
+  */
+ export function exigirVigencia(
+   vigencia: Vigencia,
+@@ -112,12 +145,15 @@ export function exigirVigencia(
+   agora: Date = new Date(),
+ ): void {
+   if (vigencia.acesso !== "ativo") throw new AcessoSuspenso(statusDaSuspensao);
++  if (vigencia.contaDesativada) throw new ContaDesativada();
+   if (
+     !vigencia.usuarioAtivo
+-    || vigencia.papel !== conteudo.papel
+     || !vigencia.sessaoViva
+     || (vigencia.senhaProvisoriaAte !== null && vigencia.senhaProvisoriaAte < agora)
+   ) {
+-    throw new FalhaAutenticacao("sessao", MENSAGEM_DE_SESSAO_ENCERRADA);
++    throw new FalhaAutenticacao("sessao_encerrada", MENSAGEM_DE_SESSAO_ENCERRADA);
++  }
++  if (vigencia.papel !== conteudo.papel) {
++    throw new FalhaAutenticacao("nao_autenticado", CODIGOS_DE_ERRO_DE_ACESSO.nao_autenticado.mensagem);
+   }
+ }
+diff --git a/dc360/apps/api/test/senha-provisoria.test.ts b/dc360/apps/api/test/senha-provisoria.test.ts
+index 9c12319..074794c 100644
+--- a/dc360/apps/api/test/senha-provisoria.test.ts
++++ b/dc360/apps/api/test/senha-provisoria.test.ts
+@@ -169,6 +169,13 @@ describe("A senha temporária de quem administra", () => {
+     }
+   }, 300_000);
+ 
++  /*
++    Este caso ficou verde sozinho na V2-F00-E04 (a vigência religada na escrita
++    recusa a troca) e a E07 o manteve como está. O que a E07 acrescentou é o
++    par que faltava: `trocarSenha` recusa por conta própria quando o prazo já
++    passou, sem depender de a rota ter conferido antes. Esse par é provado
++    chamando o serviço direto, em `familia-da-sessao.test.ts`.
++  */
+   it("uma sessão viva cuja senha provisória venceu no meio não escreve nem renova", async () => {
+     const temporaria = await redefinirDiego();
+     try {
+@@ -181,7 +188,7 @@ describe("A senha temporária de quem administra", () => {
+         payload: { senhaAtual: temporaria, senha: SENHA },
+       });
+       expect(troca.statusCode, troca.body).toBe(401);
+-      expect(troca.json().erro).toBe("sessao");
++      expect(troca.json().erro).toBe("sessao_encerrada");
+       const renovado = await app.inject({
+         method: "POST", url: "/auth/renovar", payload: { renovacao: sessao.renovacao },
+       });
+diff --git a/dc360/apps/api/test/vigencia-na-escrita.test.ts b/dc360/apps/api/test/vigencia-na-escrita.test.ts
+index 4a51352..61e98ce 100644
+--- a/dc360/apps/api/test/vigencia-na-escrita.test.ts
++++ b/dc360/apps/api/test/vigencia-na-escrita.test.ts
+@@ -4,7 +4,8 @@ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
+ import { carregarConfig } from "../src/config.js";
+ import { construirServidor } from "../src/servidor.js";
+ import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
+-import { hashDoToken } from "../src/auth/tokens.js";
++import { emitirAcesso, hashDoToken } from "../src/auth/tokens.js";
++import { derivarSenha } from "../src/auth/senha.js";
+ 
+ /**
+  * A escrita confere, no banco, se quem escreve AINDA PODE.
+@@ -19,8 +20,11 @@ import { hashDoToken } from "../src/auth/tokens.js";
+  * A REGRA: toda escrita (qualquer método que não seja GET ou HEAD) lê UMA
+  * linha do banco, na mesma consulta que já conferia a suspensão do município:
+  * a conta está ativa, o papel é o do token, e a sessão do token
+- * (`sid`) está de pé. Qualquer um dos três falhando responde 401 `sessao`,
+- * que o painel e o aparelho já leem como "entre de novo".
++ * (`sid`) está de pé. Sessão encerrada responde 401 `sessao_encerrada`
++ * ("entre de novo"); papel diferente responde 401 `nao_autenticado` ("renove e
++ * repita", porque a renovação já traz o papel novo: V2-F00-E07); conta DESATIVADA responde 403
++ * `conta_desativada` ("pare e avise": entrar de novo não resolve). Os códigos
++ * são do catálogo de `@dc360/shared` (V2-F00-E05); até lá os dois eram `sessao`.
+  *
+  * LEITURA continua confiando no token pelos quinze minutos, como
+  * `auth/suspensao.ts` explica e este arquivo NÃO contesta: o custo seria uma
+@@ -28,6 +32,11 @@ import { hashDoToken } from "../src/auth/tokens.js";
+  * minutos não produz registro. A exceção (leituras do agente de campo) já
+  * consulta `usuarios` pela equipe, mas não a sessão; fica declarado.
+  *
++ * HISTÓRICO: a conferência esteve desligada em `servidor.ts` de 17/09/2026
++ * (commit b4439ac) até V2-F00-E04, com o primeiro bloco abaixo em `describe.skip`.
++ * Ligada de novo, os quatro casos que reprovavam sem ela (conta desativada,
++ * papel rebaixado, sessão encerrada, leitura x escrita) voltaram a ser a prova.
++ *
+  * E o TOKEN DE RENOVAÇÃO VENCIDO deixa de derrubar a família inteira: reuso é
+  * só o token ROTACIONADO que reaparece. Ver a migração 046.
+  */
+@@ -90,16 +99,7 @@ afterAll(async () => {
+   await mem?.banco.encerrar();
+ });
+ 
+-/*
+-  DESLIGADO NESTA IMPLANTAÇÃO: `auth/vigencia.ts` existe e está correto (é o
+-  que este bloco prova), mas `servidor.ts` não o chama mais na escrita, de
+-  propósito, porque a revisão que o escreveu não terminou de rodar a própria
+-  suíte antes do prazo acabar. Ligá-lo sem essa prova arriscaria travar
+-  escrita legítima em produção. Ver a nota em `servidor.ts` e o plano de
+-  execução ("PAUSADO em 15/09/2026"). O bloco de baixo ("Token de renovação
+-  vencido") testa outra coisa, já em vigor, e continua rodando.
+-*/
+-describe.skip("Token vivo de quem já não pode (aguardando religar auth/vigencia.ts)", () => {
++describe("Token vivo de quem já não pode", () => {
+   it("conta desativada não escreve mais, no pedido seguinte", async () => {
+     const helena = await entrar("helena.coutinho@serraalta.exemplo.gov.br");
+     expect((await escrever(helena.acesso)).statusCode).toBe(200);
+@@ -111,8 +111,9 @@ describe.skip("Token vivo de quem já não pode (aguardando religar auth/vigenci
+     expect(r.statusCode, r.body).toBe(200);
+     try {
+       const recusa = await escrever(helena.acesso);
+-      expect(recusa.statusCode, recusa.body).toBe(401);
+-      expect(recusa.json().erro).toBe("sessao");
++      // 403 e não 401: entrar de novo não resolve para conta desativada.
++      expect(recusa.statusCode, recusa.body).toBe(403);
++      expect(recusa.json().erro).toBe("conta_desativada");
+     } finally {
+       await restaurarHelena();
+     }
+@@ -136,10 +137,11 @@ describe.skip("Token vivo de quem já não pode (aguardando religar auth/vigenci
+     });
+     expect(rita.statusCode, rita.body).toBe(200);
+     try {
+-      // O token ainda diz "coordenador". O banco diz "operador". Vale o banco.
++      // O token ainda diz "coordenador". O banco diz "operador". Vale o banco,
++      // e a resposta é "renove e repita" (V2-F00-E07), não "entre de novo".
+       const recusa = await escrever(helena.acesso);
+       expect(recusa.statusCode, recusa.body).toBe(401);
+-      expect(recusa.json().erro).toBe("sessao");
++      expect(recusa.json().erro).toBe("nao_autenticado");
+     } finally {
+       await restaurarHelena();
+     }
+@@ -157,7 +159,7 @@ describe.skip("Token vivo de quem já não pode (aguardando religar auth/vigenci
+     expect((await escrever(noComputador.acesso)).statusCode).toBe(200);
+     const doCelular = await escrever(noCelular.acesso);
+     expect(doCelular.statusCode, doCelular.body).toBe(401);
+-    expect(doCelular.json().erro).toBe("sessao");
++    expect(doCelular.json().erro).toBe("sessao_encerrada");
+ 
+     // Quem administra derruba TODAS, inclusive a que sobreviveu acima.
+     const rita = await app.inject({
+@@ -166,7 +168,7 @@ describe.skip("Token vivo de quem já não pode (aguardando religar auth/vigenci
+     expect(rita.statusCode, rita.body).toBe(200);
+     const recusa = await escrever(noComputador.acesso);
+     expect(recusa.statusCode, recusa.body).toBe(401);
+-    expect(recusa.json().erro).toBe("sessao");
++    expect(recusa.json().erro).toBe("sessao_encerrada");
+   });
+ 
+   it("o token de acesso continua LENDO até vencer: é a troca declarada", async () => {
+@@ -193,6 +195,103 @@ describe.skip("Token vivo de quem já não pode (aguardando religar auth/vigenci
+   });
+ });
+ 
++describe("Bordas da vigência na escrita (V2-F00-E04)", () => {
++  const SEGREDO = "segredo-da-vigencia-na-escrita-com-32-bytes!";
++
++  async function orgDeHelena(): Promise<string> {
++    const r = await mem.bruto.query<{ organizacao_id: string }>(
++      "SELECT organizacao_id FROM usuarios WHERE id = $1", [HELENA],
++    );
++    return r.rows[0]!.organizacao_id;
++  }
++
++  it("município suspenso com conta desativada responde a suspensão primeiro", async () => {
++    const helena = await entrar("helena.coutinho@serraalta.exemplo.gov.br");
++    const org = await orgDeHelena();
++    await mem.bruto.query(
++      "UPDATE organizacoes SET acesso_suspenso_em = now(), suspensao_motivo = 'contrato em discussao' WHERE id = $1",
++      [org],
++    );
++    await mem.bruto.query("UPDATE usuarios SET ativo = false WHERE id = $1", [HELENA]);
++    try {
++      const r = await escrever(helena.acesso);
++      // A resposta que manda procurar o contrato vale mesmo com a conta desativada.
++      expect(r.statusCode, r.body).toBe(403);
++      expect(r.json().erro).toBe("acesso_suspenso");
++    } finally {
++      await mem.bruto.query(
++        "UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [org],
++      );
++      await restaurarHelena();
++    }
++  });
++
++  it("token com o sid de OUTRA pessoa não escreve: a sessão tem de ser da própria conta", async () => {
++    const org = await orgDeHelena();
++    const sessaoDeRita = await mem.bruto.query<{ id: string }>(
++      `SELECT s.id FROM sessoes s JOIN usuarios u ON u.id = s.usuario_id
++        WHERE u.email = 'rita.lopes@serraalta.exemplo.gov.br' AND s.revogada_em IS NULL LIMIT 1`,
++    );
++    const sidDeRita = sessaoDeRita.rows[0]!.id;
++    const forjado = await emitirAcesso(
++      new TextEncoder().encode(SEGREDO),
++      { sub: HELENA, org, papel: "coordenador", nome: "Helena Vasques Coutinho", sid: sidDeRita },
++      15,
++    );
++    const r = await escrever(forjado);
++    expect(r.statusCode, r.body).toBe(401);
++    expect(r.json().erro).toBe("sessao_encerrada");
++  });
++
++  it("a organização continua vindo do token: com a vigência ligada, o município B segue sem ver a ocorrência do A (404)", async () => {
++    const hash = await derivarSenha(SENHA);
++    const b = await mem.bruto.query<{ id: string }>(
++      "INSERT INTO organizacoes (nome,municipio,uf) VALUES ('DC Vale Fundo','Vale Fundo','MG') RETURNING id",
++    );
++    await mem.bruto.query(
++      `INSERT INTO usuarios (organizacao_id,nome,matricula,email,papel,senha_hash)
++       VALUES ($1,'Aurelio Machado','VF-1','aurelio@valefundo.exemplo.gov.br','coordenador',$2)`,
++      [b.rows[0]!.id, hash],
++    );
++    const aurelio = await entrar("aurelio@valefundo.exemplo.gov.br");
++    // Conta ativa de B escreve normalmente no que é dela e NÃO enxerga o que é do A.
++    const r = await escrever(aurelio.acesso);
++    expect(r.statusCode, r.body).toBe(404);
++  });
++
++  it("a senha provisória vem do banco na escrita: marca no token sem prazo no banco não tranca, e prazo no banco sem marca no token tranca", async () => {
++    const org = await orgDeHelena();
++    const helena = await entrar("helena.coutinho@serraalta.exemplo.gov.br");
++    const comMarca = await emitirAcesso(
++      new TextEncoder().encode(SEGREDO),
++      {
++        sub: HELENA, org, papel: "coordenador", nome: "Helena Vasques Coutinho",
++        sid: (await mem.bruto.query<{ id: string }>(
++          "SELECT id FROM sessoes WHERE usuario_id = $1 AND revogada_em IS NULL ORDER BY criada_em DESC LIMIT 1",
++          [HELENA],
++        )).rows[0]!.id,
++        sp: true,
++      },
++      15,
++    );
++    try {
++      // O banco não tem prazo: a marca velha do token já não confirmada não tranca.
++      const solta = await escrever(comMarca);
++      expect(solta.statusCode, solta.body).toBe(200);
++
++      // O banco tem prazo e o token não tem marca: vale o banco.
++      await mem.bruto.query(
++        "UPDATE usuarios SET senha_provisoria_ate = now() + interval '1 hour' WHERE id = $1", [HELENA],
++      );
++      const trancada = await escrever(helena.acesso);
++      expect(trancada.statusCode, trancada.body).toBe(403);
++      expect(trancada.json().erro).toBe("troca_de_senha_obrigatoria");
++    } finally {
++      await mem.bruto.query("UPDATE usuarios SET senha_provisoria_ate = NULL WHERE id = $1", [HELENA]);
++    }
++  });
++});
++
+ describe("Token de renovação vencido não é reuso", () => {
+   it("expirado responde 401 e as outras sessões da pessoa continuam vivas", async () => {
+     const painel = await entrar("helena.coutinho@serraalta.exemplo.gov.br");
+@@ -206,7 +305,7 @@ describe("Token de renovação vencido não é reuso", () => {
+ 
+     const r = await renovar(aparelho.renovacao);
+     expect(r.statusCode).toBe(401);
+-    expect(r.json().erro).toBe("sessao");
++    expect(r.json().erro).toBe("sessao_encerrada");
+ 
+     // O painel NÃO caiu: renovar continua funcionando e a sessão não ganhou motivo.
+     const doPainel = await renovar(painel.renovacao);
+diff --git a/dc360/apps/campo/PENDENCIAS.md b/dc360/apps/campo/PENDENCIAS.md
+index 87f9921..aa8bec0 100644
+--- a/dc360/apps/campo/PENDENCIAS.md
++++ b/dc360/apps/campo/PENDENCIAS.md
+@@ -351,3 +351,52 @@ chamar, o último item dela morre atrás do vidro.
+ Nada disto foi visto em aparelho: a pílula, o indicador deslizando, o anel do
+ Perfil e o cabeçalho mais alto para o sino foram provados por teste e por
+ portão, e a reclamação de origem era visual.
++
++## 14. A fila pausa pela sessão e pela conta (V2-F00-E06). Falta ver no aparelho
++
++**Feito em 2026-10-06.** O transporte (`packages/campo/src/transporte.ts`) lê
++os três códigos do catálogo de `@dc360/shared` e a fila deixou de bloquear coleta
++por recusa de sessão:
++
++| Resposta da API | O que o aparelho faz |
++| --- | --- |
++| 401 `nao_autenticado` | pede UM token novo (`obterToken({ renovarJa: true })`, com a trava e o piso de `dados/token.ts`) e repete o pedido; se o token não mudou ou o pedido falha de novo, é `sessao_encerrada` |
++| 401 `sessao_encerrada` (e 401 sem código) | a fila para, o item fica `pendente`, a pessoa entra de novo e a coleta sobe com a mesma chave |
++| 403 `conta_desativada` | a fila para, o item fica `pendente`; entrar de novo não resolve, a coordenação reativa a conta |
++| 403 `sem_permissao` e as demais recusas de 4xx | continuam bloqueando o item (recusa do dado) |
++| sem token no aparelho | é `sessao_encerrada` (antes era `FalhaPermanente`, e o item bloqueava) |
++
++`ResultadoDreno.paradaPor` diz qual das duas pausas; `ResumoFila.pausadaPor`
++alimenta a faixa do topo, o aviso no alto da tela de envio e o cartão da coleta
++("Guardada"). Só a sessão encerrada traz o botão "Entrar de novo" (o mesmo ato
++da lista de hoje, que não apaga nada). As frases moram em `src/dados/pausa-da-fila.ts`.
++
++Duas decisões que o próximo precisa conhecer:
++
++- **A pausa vive só na memória da fila**, e é da pessoa que estava logada. Se o
++  aplicativo for fechado, a primeira tentativa depois de aberto descobre de novo
++  com uma requisição. Quando a fila acha que não há nada seu para enviar, a
++  pausa é limpa: ela não aparece para quem entrou depois.
++- **O laço de fundo espera 60 s, e não 15 s, enquanto a fila está pausada**
++  (`ESPERA_COM_A_FILA_PAUSADA_MS`): cada volta é uma requisição que o servidor já
++  recusou. Entrar de novo reinicia o laço na hora.
++
++**Decisão da V2-F00-E07 sobre o 403 `troca_de_senha_obrigatoria`:** fica FORA da
++etapa e continua recusa permanente do item, por três razões. (1) A E07 só mexe
++na vigência da API (papel, cadeia da sessão e senha provisória vencida), e a
++classificação desse 403 na fila é do motor offline, que a E06 fechou para os três
++códigos de acesso. (2) O aparelho praticamente não chega a ele: quem entra com a
++senha provisória é mandado ao painel para trocá-la (`src/dados/api.ts`,
++`ErroDaApi`), e redefinir a senha de alguém derruba as sessões dele (401
++`sessao_encerrada`, que já é pausa, não bloqueio). (3) Tratá-lo como pausa sem
++haver tela de troca de senha no aplicativo deixaria o item parado sem saída.
++Reabrir quando o aplicativo ganhar a tela de troca de senha.
++
++**O que falta** (validação humana): ver a frase e a coleta preservada em
++aparelho ou emulador, desativando o agente no painel durante uma coleta na fila,
++e a reativação seguida de nova entrada. O ambiente desta etapa não renderiza o
++app Expo; a prova foi por teste de componente (`src/ui/fila-pausada-pela-sessao.test.tsx`),
++e a foto do aparelho continua pendente. Fora do escopo e ainda aberto: o 403
++`troca_de_senha_obrigatoria` (senha provisória) e o 403 `acesso_suspenso` nas
++rotas que não são da fila ainda são lidos como recusa permanente do item pelo
++transporte; a API responde 503 à fila no caso da suspensão, que é temporário.
+diff --git a/dc360/apps/web/src/dados/http.ts b/dc360/apps/web/src/dados/http.ts
+index e61c66d..e5a4a59 100644
+--- a/dc360/apps/web/src/dados/http.ts
++++ b/dc360/apps/web/src/dados/http.ts
+@@ -1,7 +1,8 @@
+-import type {
+-  AberturaOcorrencia, CorrecaoDeCoordenada, Despacho, Encerramento,
+-  EncerramentoDeSaida,
+-  InteresseMunicipio, Papel, Providencia, Triagem,
++import {
++  CODIGOS_DE_ERRO_DE_ACESSO, ehCodigoDeErroDeAcesso,
++  type AberturaOcorrencia, type CorrecaoDeCoordenada, type Despacho, type Encerramento,
++  type EncerramentoDeSaida,
++  type InteresseMunicipio, type Papel, type Providencia, type Triagem,
+ } from "@dc360/shared";
+ import type {
+   ContaDisponivel, CorrecaoAplicada, FiltroOcorrencias, Indicadores, LinhaEquipe, LinhaEvento,
+@@ -17,7 +18,7 @@ import type {
+   ConfiguracaoDoPainel, DevolucaoDaOcorrencia, DevolucaoPendente,
+   QuemEstaEmCampo, RespostaDeBusca, PontoDoLinkDeMapa,
+   PrazosDeRetencao, RetencaoDoMunicipio, UsoDeArmazenamento,
+-  LinhaExportacao, FiltroConsultas, PaginaDeConsultas,
++  LinhaExportacao, FiltroConsultas, PaginaDeConsultas, MotivoDaSessaoMorta, UsuarioRenovado,
+ } from "./tipos";
+ import { CONSULTA_MAXIMA } from "../busca/combobox";
+ 
+@@ -78,9 +79,16 @@ export class ErroDaApi extends Error {
+  * leria isso como reúso (sintoma de roubo) e derrubaria a sessão inteira. O
+  * usuário seria deslogado exatamente por usar o sistema normalmente.
+  */
+-let renovacaoEmVoo: Promise<boolean> | null = null;
++let renovacaoEmVoo: Promise<boolean | "conta_desativada"> | null = null;
+ 
+-async function renovar(): Promise<boolean> {
++/**
++ * Pede token novo com o de renovação. `true` renovou, `false` não deu, e
++ * `"conta_desativada"` é a renovação recusada porque a conta foi desativada:
++ * quem chama precisa saber, porque o 401 que levou a renovar (token vencido)
++ * não diz isso, e a pessoa leria "sua sessão expirou" quando entrar de novo
++ * não resolve.
++ */
++async function renovar(): Promise<boolean | "conta_desativada"> {
+   if (renovacaoEmVoo) return renovacaoEmVoo;
+ 
+   renovacaoEmVoo = (async () => {
+@@ -94,10 +102,17 @@ async function renovar(): Promise<boolean> {
+       });
+       if (!r.ok) {
+         guardarTokens(null);
+-        return false;
++        const recusa = await r.json().catch(() => ({})) as Record<string, unknown>;
++        return r.status === CODIGOS_DE_ERRO_DE_ACESSO.conta_desativada.status
++          && recusa["erro"] === "conta_desativada"
++          ? "conta_desativada"
++          : false;
+       }
+       const corpo = await r.json();
+       guardarTokens({ acesso: corpo.acesso, renovacao: corpo.renovacao });
++      if (typeof corpo.usuario?.papel === "string" && typeof corpo.usuario?.nome === "string") {
++        ouvinteDeRenovacao?.({ papel: corpo.usuario.papel as Papel, nome: corpo.usuario.nome });
++      }
+       return true;
+     } catch {
+       return false;
+@@ -164,22 +179,56 @@ async function comRedeTraduzida(
+  * se inscreve é o provedor de sessão, que derruba a sessão e manda para a
+  * entrada com o motivo e o caminho de volta.
+  */
+-let ouvinteDeExpiracao: (() => void) | null = null;
++let ouvinteDeExpiracao: ((motivo: MotivoDaSessaoMorta) => void) | null = null;
+ 
+-export function aoExpirar(ouvinte: (() => void) | null): void {
++export function aoExpirar(ouvinte: ((motivo: MotivoDaSessaoMorta) => void) | null): void {
+   ouvinteDeExpiracao = ouvinte;
+ }
+ 
+ /**
+- * O 401 que significa "sessão morta", e só ele.
++ * Quem quer saber que a renovação trouxe a pessoa como ela é AGORA.
++ *
++ * Papel alterado no cadastro responde 401 `nao_autenticado` à escrita seguinte
++ * (V2-F00-E07), o painel renova e repete sem a pessoa notar, e o token novo
++ * já traz o papel novo. A resposta da renovação diz qual é. Sem avisar a
++ * tela, o servidor passaria a recusar com 403 o que o botão ainda oferece,
++ * porque a sessão em memória diria o papel de antes. Mesmo desenho do
++ * `aoExpirar`: este módulo não conhece a sessão da tela, só avisa.
++ */
++let ouvinteDeRenovacao: ((usuario: UsuarioRenovado) => void) | null = null;
++
++export function aoRenovar(ouvinte: ((usuario: UsuarioRenovado) => void) | null): void {
++  ouvinteDeRenovacao = ouvinte;
++}
++
++/**
++ * A resposta que significa "sessão morta", e por quê. Só as três do catálogo.
+  *
+  * `nao_autenticado` é o código que SÓ a verificação de token do servidor
+- * emite (`exigirAutenticacao` em `servidor.ts`). Senha errada na entrada e
+- * senha atual errada na troca também são 401, com o código `credenciais`, e
+- * não podem derrubar a tela de quem só digitou errado.
++ * emite (`exigirAutenticacao` em `servidor.ts`): o token venceu e a renovação
++ * falhou. `sessao_encerrada` (401) é a sessão que alguém encerrou ou o
++ * cadastro que mudou, e `conta_desativada` (403) é a conta desativada. Senha
++ * errada na entrada e senha atual errada na troca também são 401, com o código
++ * `credenciais`, e não podem derrubar a tela de quem só digitou errado. O
++ * código antigo `sessao` já não existe e não está no catálogo: não conta.
++ *
++ * Os dois últimos só valem para pedido que MANDOU token (`mandouToken`): são
++ * respostas sobre a sessão que a pessoa tinha. O desafio de segundo fator
++ * vencido e o link de redefinição inválido também saem como `sessao_encerrada`
++ * e acontecem SEM sessão, e não podem fingir que uma sessão acabou.
+  */
+-function sessaoMorta(status: number, corpo: Record<string, unknown>): boolean {
+-  return status === 401 && corpo["erro"] === "nao_autenticado";
++function sessaoMorta(
++  status: number, corpo: Record<string, unknown>, mandouToken: boolean,
++): MotivoDaSessaoMorta | null {
++  const codigo = corpo["erro"];
++  if (!ehCodigoDeErroDeAcesso(codigo)) return null;
++  if (status !== CODIGOS_DE_ERRO_DE_ACESSO[codigo].status) return null;
++  const acao = CODIGOS_DE_ERRO_DE_ACESSO[codigo].acao;
++  if (acao === "renovar_e_repetir") return "expirou";
++  if (!mandouToken) return null;
++  if (acao === "entrar_de_novo") return "encerrada";
++  if (acao === "parar_e_avisar") return "desativada";
++  return null;
+ }
+ 
+ async function chamar<T>(
+@@ -204,21 +253,29 @@ async function chamar<T>(
+ 
+   // 401 uma vez significa "o token de acesso venceu": renova e repete. 401 de
+   // novo significa que a sessão acabou de verdade, e aí não adianta insistir.
++  // Se a renovação diz que a CONTA foi desativada, é isso que a tela precisa
++  // dizer, e não "sua sessão expirou" (entrar de novo não resolve).
++  let renovacaoRecusadaPorConta = false;
+   if (resposta.status === 401 && !opcoes.repetiu && lerTokens()) {
+-    if (await renovar()) {
++    const renovou = await renovar();
++    if (renovou === true) {
+       return chamar<T>(caminho, { ...opcoes, repetiu: true });
+     }
++    renovacaoRecusadaPorConta = renovou === "conta_desativada";
+   }
+ 
+   if (resposta.status === 204) return undefined as T;
+ 
+   const corpo = await resposta.json().catch(() => ({}));
+-  if (sessaoMorta(resposta.status, corpo)) {
++  const motivo = renovacaoRecusadaPorConta
++    ? "desativada"
++    : sessaoMorta(resposta.status, corpo, tokens !== null);
++  if (motivo) {
+     // Token morto não fica guardado, e a tela é avisada UMA vez por chamada:
+     // o provedor de sessão é quem decide o que fazer, e ele ignora avisos
+     // repetidos das outras chamadas da mesma tela.
+     guardarTokens(null);
+-    ouvinteDeExpiracao?.();
++    ouvinteDeExpiracao?.(motivo);
+   }
+   if (!resposta.ok) throw new ErroDaApi(resposta.status, corpo);
+   return corpo as T;
+diff --git a/dc360/apps/web/src/dados/local.ts b/dc360/apps/web/src/dados/local.ts
+index bff65e8..5ab834b 100644
+--- a/dc360/apps/web/src/dados/local.ts
++++ b/dc360/apps/web/src/dados/local.ts
+@@ -37,7 +37,7 @@ import type {
+   AtivacaoSegundoFator, ResultadoDeEntrada, SegundoFatorLigado, SituacaoSegundoFator,
+   ConfiguracaoDoPainel, DevolucaoDaOcorrencia, DevolucaoPendente,
+   QuemEstaEmCampo, SaidaEmCampo, RespostaDeBusca, PontoDoLinkDeMapa,
+-  PrazosDeRetencao, FiltroConsultas,
++  PrazosDeRetencao, FiltroConsultas, MotivoDaSessaoMorta, UsuarioRenovado,
+ } from "./tipos";
+ import { classificarRegistros, TETO_POR_GRUPO, type RegistroPesquisavel } from "../busca/registros";
+ import { CONSULTA_MAXIMA } from "../busca/combobox";
+@@ -487,10 +487,15 @@ export async function encerrarMinhasSessoes(): Promise<never> {
+  * perfil vale enquanto a aba viver. O ouvinte é aceito e nunca chamado, para
+  * o provedor de sessão se inscrever sem saber em que modo está.
+  */
+-export function aoExpirar(_ouvinte: (() => void) | null): void {
++export function aoExpirar(_ouvinte: ((motivo: MotivoDaSessaoMorta) => void) | null): void {
+   /* nada expira aqui */
+ }
+ 
++/** Idem: no modo de demonstração não há renovação, e portanto nada a avisar. */
++export function aoRenovar(_ouvinte: ((usuario: UsuarioRenovado) => void) | null): void {
++  /* nada renova aqui */
++}
++
+ /**
+  * A trilha e os relatórios existem no banco local, mas a tela de auditoria
+  * consulta a API porque é lá que a consulta filtrada vive. No modo local a
+diff --git a/dc360/apps/web/src/dados/repositorio.ts b/dc360/apps/web/src/dados/repositorio.ts
+index 0bf4a48..a5d1901 100644
+--- a/dc360/apps/web/src/dados/repositorio.ts
++++ b/dc360/apps/web/src/dados/repositorio.ts
+@@ -32,6 +32,7 @@ export const {
+   desativarSegundoFator,
+   encerrarSessao,
+   aoExpirar,
++  aoRenovar,
+   listarOcorrencias,
+   listarPaginaDeOcorrencias,
+   pontosDoMapa,
+diff --git a/dc360/apps/web/src/dados/tipos.ts b/dc360/apps/web/src/dados/tipos.ts
+index 33278e7..4388125 100644
+--- a/dc360/apps/web/src/dados/tipos.ts
++++ b/dc360/apps/web/src/dados/tipos.ts
+@@ -10,6 +10,26 @@ import type {
+   Papel, Severidade, StatusOcorrencia, TipoCobrade, TipoDeEntrada, Origem,
+ } from "@dc360/shared";
+ 
++/**
++ * Por que a sessão da tela acabou sem a pessoa pedir (V2-F00-E05).
++ *
++ * Três motivos porque pedem três frases e três ações, e antes eram um só:
++ * `expirou` (token vencido e a renovação falhou), `encerrada` (alguém
++ * encerrou a sessão ou o cadastro mudou: entrar de novo resolve) e
++ * `desativada` (a conta foi desativada: entrar de novo NÃO resolve, é com a
++ * coordenação). Vêm dos códigos `nao_autenticado`, `sessao_encerrada` e
++ * `conta_desativada` do catálogo de `@dc360/shared`.
++ */
++export type MotivoDaSessaoMorta = "expirou" | "encerrada" | "desativada";
++
++/**
++ * O que uma renovação silenciosa pode ter mudado na pessoa: o papel (alguém
++ * trocou o perfil dela enquanto a tela estava aberta) e o nome. A tela
++ * atualiza a sessão com isto, para mostrar só as ações do papel novo sem
++ * pedir que ela entre de novo.
++ */
++export type UsuarioRenovado = { papel: Papel; nome: string };
++
+ export type Sessao = {
+   organizacaoId: string;
+   organizacaoNome: string;
+diff --git a/dc360/apps/web/src/estado/sessao.tsx b/dc360/apps/web/src/estado/sessao.tsx
+index 5f9d652..e1e9565 100644
+--- a/dc360/apps/web/src/estado/sessao.tsx
++++ b/dc360/apps/web/src/estado/sessao.tsx
+@@ -1,6 +1,7 @@
+ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+ import type { ReactNode } from "react";
+-import { aoExpirar, type Sessao } from "../dados/repositorio";
++import { aoExpirar, aoRenovar, type Sessao } from "../dados/repositorio";
++import type { MotivoDaSessaoMorta } from "../dados/tipos";
+ import { esquecerConfiguracaoDoPainel } from "./configuracao";
+ 
+ /**
+@@ -16,12 +17,14 @@ const CHAVE = "dc360:sessao";
+ /**
+  * Por que a sessão da tela acabou sem a pessoa pedir.
+  *
+- * `"expirou"` é a única razão hoje: a camada HTTP recebeu o 401 de sessão
+- * morta depois de a renovação falhar. A rota protegida lê isto para mandar a
+- * pessoa à entrada com o motivo escrito e o caminho de volta, em vez de
+- * deixá-la numa tela que só diz "falha ao carregar" para sempre.
++ * Três razões (V2-F00-E05), todas vindas da camada HTTP: `"expirou"` (o token
++ * venceu e a renovação falhou), `"encerrada"` (alguém encerrou a sessão ou o
++ * cadastro mudou) e `"desativada"` (a conta foi desativada). A rota protegida
++ * lê isto para mandar a pessoa à entrada com o motivo escrito e o caminho de
++ * volta, em vez de deixá-la numa tela que só diz "falha ao carregar" para
++ * sempre.
+  */
+-export type MotivoDaSaida = "expirou";
++export type MotivoDaSaida = MotivoDaSessaoMorta;
+ 
+ type ContextoSessao = {
+   sessao: Sessao | null;
+@@ -88,10 +91,10 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
+   sessaoAtual.current = sessao;
+ 
+   useEffect(() => {
+-    aoExpirar(() => {
++    aoExpirar((motivo) => {
+       if (!sessaoAtual.current) return;
+       setSessao(null);
+-      setMotivoDaSaida("expirou");
++      setMotivoDaSaida(motivo);
+       esquecerConfiguracaoDoPainel();
+       try {
+         sessionStorage.removeItem(CHAVE);
+@@ -102,6 +105,28 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
+     return () => aoExpirar(null);
+   }, []);
+ 
++  /*
++    A renovação silenciosa pode trazer a pessoa com OUTRO papel: alguém mudou o
++    perfil dela com a tela aberta (V2-F00-E07). A sessão da tela acompanha, e
++    os botões que o papel novo não tem somem sem ela entrar de novo. Só muda
++    quando muda: a renovação de todo dia devolve o mesmo papel, e reescrever
++    o estado a cada quinze minutos refaria a tela à toa.
++  */
++  useEffect(() => {
++    aoRenovar((usuario) => {
++      const atual = sessaoAtual.current;
++      if (!atual || (atual.papel === usuario.papel && atual.usuarioNome === usuario.nome)) return;
++      const nova: Sessao = { ...atual, papel: usuario.papel, usuarioNome: usuario.nome };
++      setSessao(nova);
++      try {
++        sessionStorage.setItem(CHAVE, JSON.stringify(nova));
++      } catch {
++        /* idem */
++      }
++    });
++    return () => aoRenovar(null);
++  }, []);
++
+   const valor = useMemo(
+     () => ({ sessao, entrar, sair, motivoDaSaida }),
+     [sessao, entrar, sair, motivoDaSaida],
+diff --git a/dc360/apps/web/test/fluxo-api.e2e.mjs b/dc360/apps/web/test/fluxo-api.e2e.mjs
+index 803a9c9..eb59e24 100644
+--- a/dc360/apps/web/test/fluxo-api.e2e.mjs
++++ b/dc360/apps/web/test/fluxo-api.e2e.mjs
+@@ -827,6 +827,203 @@ const recusaDaAntiga = await page.evaluate(async ({ api }) => {
+ }, { api: process.env.BASE_API ?? "http://127.0.0.1:3333" });
+ ok("a senha antiga deixa de valer", recusaDaAntiga === 401, `(${recusaDaAntiga})`);
+ 
++
++console.log("\n== 23. Sessão encerrada e conta desativada: a frase certa na tela de entrada (V2-F00-E05) ==");
++/*
++  Duas pessoas ao mesmo tempo, e por isso dois contextos de navegador: a
++  coordenadora age no painel dela, e o Marcos (criado na seção 9) segue com a
++  sessão aberta no dele, sem saber de nada. O que se confere é o PRÓXIMO PEDIDO
++  de escrita do Marcos, porque é nele que a vigência recusa (a leitura com token
++  vivo segue pela assinatura até a F03-E03). A escrita que a tela dele sabe
++  fazer sem preparo é a troca de senha em "Minha conta".
++
++  Duas frases, porque são duas situações com ações opostas: sessão encerrada
++  manda entrar de novo; conta desativada diz que entrar de novo não resolve.
++*/
++const API_E05 = process.env.BASE_API ?? "http://127.0.0.1:3333";
++const SENHA_DO_MARCOS = "senha-inicial-do-marcos";
++
++async function abrirComoMarcos() {
++  const contextoDele = await navegador.newContext();
++  const paginaDele = await contextoDele.newPage();
++  registrar(paginaDele);
++  await paginaDele.goto(`${BASE}/entrar`, { waitUntil: "networkidle" });
++  await paginaDele.waitForSelector("#entrada-email", { timeout: 30_000 });
++  await paginaDele.locator("#entrada-email").fill("marcos.teles@serraalta.exemplo.gov.br");
++  await paginaDele.locator("#entrada-senha").fill(SENHA_DO_MARCOS);
++  await paginaDele.getByRole("button", { name: "Entrar", exact: true }).click();
++  // Esperar a SAÍDA da tela de entrada: ela mesma tem `.cartao`, e navegar antes
++  // de a sessão ser gravada devolve a pessoa para a entrada.
++  await paginaDele.waitForURL((u) => !u.pathname.startsWith("/entrar"), { timeout: 30_000 });
++  await paginaDele.waitForSelector(".indicador, .cartao", { timeout: 30_000 });
++  await paginaDele.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
++  await paginaDele.waitForSelector("#conta-senha-atual", { timeout: 20_000 });
++  return { contextoDele, paginaDele };
++}
++
++async function tentarTrocarSenha(paginaDele) {
++  await paginaDele.locator("#conta-senha-atual").fill(SENHA_DO_MARCOS);
++  await paginaDele.locator("#conta-senha-nova").fill("outra-senha-do-marcos-2026");
++  await paginaDele.locator("#conta-senha-repetida").fill("outra-senha-do-marcos-2026");
++  await paginaDele.getByRole("button", { name: "Trocar senha" }).click();
++  await paginaDele.waitForURL(/\/entrar/, { timeout: 20_000 });
++  await paginaDele.waitForSelector(".aviso", { timeout: 20_000 });
++}
++
++// Helena (no painel de cima) entra com a senha que trocou na seção 22.
++await entrar("helena.coutinho@serraalta.exemplo.gov.br", "senha-nova-da-helena-2026");
++await page.waitForSelector(".indicador", { timeout: 30_000 });
++const idDoMarcos = await page.evaluate(async ({ api }) => {
++  const tokens = JSON.parse(sessionStorage.getItem("dc360:tokens"));
++  const lista = await (await fetch(`${api}/usuarios`, {
++    headers: { authorization: `Bearer ${tokens.acesso}` },
++  })).json();
++  return lista.itens.find((u) => u.email === "marcos.teles@serraalta.exemplo.gov.br").id;
++}, { api: API_E05 });
++
++// 23a. Sessão encerrada por quem administra: entrar de novo resolve.
++{
++  const { contextoDele, paginaDele } = await abrirComoMarcos();
++  const encerradas = await page.evaluate(async ({ api, id }) => {
++    const tokens = JSON.parse(sessionStorage.getItem("dc360:tokens"));
++    const r = await fetch(`${api}/usuarios/${id}/encerrar-sessoes`, {
++      method: "POST", headers: { authorization: `Bearer ${tokens.acesso}` },
++    });
++    return r.status;
++  }, { api: API_E05, id: idDoMarcos });
++  ok("a coordenacao encerra as sessoes do Marcos", encerradas === 200, `(${encerradas})`);
++
++  await tentarTrocarSenha(paginaDele);
++  const aviso = (await paginaDele.locator(".aviso").first().textContent()) ?? "";
++  ok("sessao encerrada leva a tela de entrada", paginaDele.url().includes("/entrar"));
++  ok("e diz que a sessao foi encerrada, sem dizer que expirou", /sess[ãa]o foi encerrada/i.test(aviso)
++     && !/expirou/i.test(aviso), `(${aviso.slice(0, 80)})`);
++  ok("e manda entrar de novo", /entre de novo/i.test(aviso));
++  ok("o token morto nao fica guardado",
++     (await paginaDele.evaluate(() => sessionStorage.getItem("dc360:tokens"))) === null);
++  await contextoDele.close();
++}
++
++// 23b. Conta desativada pelo painel: entrar de novo NÃO resolve.
++{
++  const { contextoDele, paginaDele } = await abrirComoMarcos();
++  await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
++  await page.waitForSelector("#usuario-nome", { timeout: 20_000 });
++  const linha = page.locator("tbody tr", { hasText: "marcos.teles@serraalta.exemplo.gov.br" });
++  await linha.getByRole("button", { name: "Desativar" }).click();
++  await page.getByRole("button", { name: /^Desativar Marcos/ }).click();
++  await linha.getByRole("button", { name: "Reativar" }).waitFor({ timeout: 20_000 });
++  ok("a coordenacao desativa o Marcos pelo painel", true);
++
++  await tentarTrocarSenha(paginaDele);
++  const aviso = (await paginaDele.locator(".aviso").first().textContent()) ?? "";
++  ok("conta desativada leva a tela de entrada", paginaDele.url().includes("/entrar"));
++  ok("e diz que a conta foi desativada", /sua conta foi desativada/i.test(aviso), `(${aviso.slice(0, 80)})`);
++  ok("e manda procurar a coordenacao, e nao entrar de novo",
++     /procure a coordena[çc][ãa]o do seu munic[íi]pio/i.test(aviso) && /n[ãa]o\s+resolve/i.test(aviso));
++  ok("com aviso de perigo, e nao o de sessao expirada",
++     (await paginaDele.locator(".aviso--perigo").count()) === 1 && !/expirou/i.test(aviso));
++
++  // E entrar de novo de fato nao resolve: a entrada recusa com a frase generica
++  // da senha errada, sem contar que a conta existe nem que foi desativada.
++  await paginaDele.locator("#entrada-email").fill("marcos.teles@serraalta.exemplo.gov.br");
++  await paginaDele.locator("#entrada-senha").fill(SENHA_DO_MARCOS);
++  await paginaDele.getByRole("button", { name: "Entrar", exact: true }).click();
++  await paginaDele.waitForSelector(".campo__erro", { timeout: 20_000 });
++  const recusa = (await paginaDele.locator(".campo__erro").first().textContent()) ?? "";
++  ok("a entrada continua com a recusa generica", /inv[áa]lidos/i.test(recusa) && !/desativ/i.test(recusa),
++     `(${recusa.slice(0, 80)})`);
++  await contextoDele.close();
++}
++
++console.log("\n== 24. Papel alterado com a tela aberta: a escrita seguinte renova em silencio (V2-F00-E07) ==");
++/*
++  A coordenadora esta logada no painel quando a administradora (Rita) rebaixa
++  o perfil dela para operador. A leitura com token vivo nao vai ao banco, entao
++  nada acontece ate ela ESCREVER: a troca de senha em "Minha conta" e a escrita
++  que a tela sabe fazer sem preparo. O servidor responde 401 `nao_autenticado`
++  ("renove e repita"), o painel renova sozinho, o token novo ja traz o papel
++  novo, e a escrita passa. A pessoa nao e mandada para a entrada e a tela passa
++  a mostrar so o que o papel novo tem (o menu Usuarios some).
++*/
++const API_E07 = process.env.BASE_API ?? "http://127.0.0.1:3333";
++const SENHA_DA_HELENA_E07 = "senha-nova-da-helena-2026";
++const NOVA_DA_HELENA_E07 = "terceira-senha-da-helena-2026";
++
++async function viaApiE07(caminho, { metodo = "GET", token, corpo } = {}) {
++  const r = await fetch(`${API_E07}${caminho}`, {
++    method: metodo,
++    headers: {
++      ...(corpo ? { "content-type": "application/json" } : {}),
++      ...(token ? { authorization: `Bearer ${token}` } : {}),
++    },
++    body: corpo ? JSON.stringify(corpo) : undefined,
++  });
++  return { status: r.status, json: await r.json().catch(() => ({})) };
++}
++
++const ritaE07 = await viaApiE07("/auth/entrar", {
++  metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA },
++});
++ok("a administradora entra pela API", ritaE07.status === 200, `(${ritaE07.status})`);
++const listaE07 = await viaApiE07("/usuarios", { token: ritaE07.json.acesso });
++const helenaE07 = listaE07.json.itens.find((u) => u.email === "helena.coutinho@serraalta.exemplo.gov.br");
++
++await entrar("helena.coutinho@serraalta.exemplo.gov.br", SENHA_DA_HELENA_E07);
++await page.waitForSelector(".indicador", { timeout: 30_000 });
++const menuUsuarios = page.getByRole("link", { name: "Usuários" });
++ok("a coordenadora ve o menu Usuarios", (await menuUsuarios.count()) === 1);
++await page.goto(`${BASE}/minha-conta`, { waitUntil: "networkidle" });
++await page.waitForSelector("#conta-senha-atual", { timeout: 20_000 });
++
++const rebaixada = await viaApiE07(`/usuarios/${helenaE07.id}`, {
++  metodo: "PATCH", token: ritaE07.json.acesso,
++  corpo: {
++    nome: helenaE07.nome, matricula: helenaE07.matricula, email: helenaE07.email, papel: "operador",
++  },
++});
++ok("a administradora rebaixa a coordenadora para operador", rebaixada.status === 200, `(${rebaixada.status})`);
++
++// A leitura com token vivo ainda passa: o menu continua la ate a primeira escrita.
++ok("a tela dela ainda mostra o menu, porque nada foi escrito", (await menuUsuarios.count()) === 1);
++
++const pedidosE07 = [];
++page.on("response", (r) => {
++  if (r.url().includes("/auth/trocar-senha") || r.url().includes("/auth/renovar")) {
++    pedidosE07.push(`${new URL(r.url()).pathname}:${r.status()}`);
++  }
++});
++await page.locator("#conta-senha-atual").fill(SENHA_DA_HELENA_E07);
++await page.locator("#conta-senha-nova").fill(NOVA_DA_HELENA_E07);
++await page.locator("#conta-senha-repetida").fill(NOVA_DA_HELENA_E07);
++await page.getByRole("button", { name: "Trocar senha" }).click();
++await page.waitForSelector(".aviso--sucesso", { timeout: 20_000 });
++ok("a escrita passa, sem mandar a pessoa para a entrada", !page.url().includes("/entrar"));
++ok("o painel tentou, levou 401, renovou e repetiu",
++   pedidosE07.join(" ") === "/auth/trocar-senha:401 /auth/renovar:200 /auth/trocar-senha:200",
++   `(${pedidosE07.join(" ")})`);
++ok("a tela passa a mostrar so o que o papel novo tem: o menu Usuarios some",
++   (await menuUsuarios.count()) === 0);
++const papelNaTelaE07 = await page.evaluate(() => JSON.parse(sessionStorage.getItem("dc360:sessao")).papel);
++ok("a sessao da tela guarda o papel novo", papelNaTelaE07 === "operador", `(${papelNaTelaE07})`);
++
++// E no servidor o papel rebaixado vale de verdade: despachar deixou de ser dela.
++const tokensDelaE07 = await page.evaluate(() => JSON.parse(sessionStorage.getItem("dc360:tokens")));
++const despachoDelaE07 = await viaApiE07("/ocorrencias/11111111-1111-4111-8111-0000000000c1/despacho", {
++  metodo: "POST", token: tokensDelaE07.acesso,
++  corpo: { equipeId: "11111111-1111-4111-8111-0000000000e1", prazoHoras: 24 },
++});
++ok("o token renovado nao despacha equipe: 403 sem_permissao",
++   despachoDelaE07.status === 403 && despachoDelaE07.json.erro === "sem_permissao",
++   `(${despachoDelaE07.status} ${despachoDelaE07.json.erro})`);
++// Devolve o papel, para a ordem das secoes futuras nao depender desta.
++await viaApiE07(`/usuarios/${helenaE07.id}`, {
++  metodo: "PATCH", token: ritaE07.json.acesso,
++  corpo: {
++    nome: helenaE07.nome, matricula: helenaE07.matricula, email: helenaE07.email, papel: "coordenador",
++  },
++});
++
+ await navegador.close();
+ 
+ console.log(`\n${"=".repeat(52)}`);
+diff --git a/dc360/apps/web/test/sessao-e-entrada.test.ts b/dc360/apps/web/test/sessao-e-entrada.test.ts
+index 34dd5a2..1403e26 100644
+--- a/dc360/apps/web/test/sessao-e-entrada.test.ts
++++ b/dc360/apps/web/test/sessao-e-entrada.test.ts
+@@ -33,7 +33,9 @@ import {
+  *    senha.
+  * 2. A tela de entrada lê o motivo e o caminho de volta do estado da
+  *    navegação, diz "sua sessão expirou" e, depois de entrar, volta para onde
+- *    a pessoa estava. O mesmo caminho de volta serve ao link profundo:
++ *    a pessoa estava. Desde a V2-F00-E05 são TRÊS motivos, porque pedem três
++ *    frases: expirou (`nao_autenticado`), encerrada (`sessao_encerrada`) e
++ *    desativada (`conta_desativada`, 403: entrar de novo não resolve). O mesmo caminho de volta serve ao link profundo:
+  *    `/ocorrencias/<id>` sem sessão passa por `/entrar` e chega ao dossiê, em
+  *    vez de morrer no painel.
+  */
+@@ -69,6 +71,7 @@ describe("O 401 de sessão morta avisa a tela", () => {
+   afterEach(() => {
+     vi.unstubAllGlobals();
+     http.aoExpirar(null);
++    http.aoRenovar(null);
+   });
+ 
+   it("renovação recusada: os tokens somem e quem se inscreveu é avisado uma vez", async () => {
+@@ -76,7 +79,7 @@ describe("O 401 de sessão morta avisa a tela", () => {
+     vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+       chamadas.push(url);
+       if (url.endsWith("/auth/renovar")) {
+-        return resposta(401, { erro: "sessao", mensagem: "Sessão expirada. Entre novamente." });
++        return resposta(401, { erro: "sessao_encerrada", mensagem: "Sessão expirada. Entre novamente." });
+       }
+       return resposta(401, { erro: "nao_autenticado", mensagem: "Token inválido ou expirado." });
+     }));
+@@ -87,11 +90,130 @@ describe("O 401 de sessão morta avisa a tela", () => {
+     await expect(http.indicadores({} as never)).rejects.toMatchObject({ status: 401 });
+ 
+     expect(expirou).toHaveBeenCalledTimes(1);
++    expect(expirou).toHaveBeenCalledWith("expirou");
+     expect(sessionStorage.getItem("dc360:tokens"), "token morto não pode ficar guardado").toBeNull();
+     // Tentou renovar antes de desistir: é o caminho de sempre, preservado.
+     expect(chamadas.some((u) => u.endsWith("/auth/renovar"))).toBe(true);
+   });
+ 
++  it("sessão encerrada (401 sessao_encerrada) derruba a tela com o motivo 'encerrada'", async () => {
++    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
++      if (url.endsWith("/auth/renovar")) {
++        return resposta(401, { erro: "sessao_encerrada", mensagem: "Sessão expirada. Entre novamente." });
++      }
++      return resposta(401, { erro: "sessao_encerrada", mensagem: "Sua sessão foi encerrada." });
++    }));
++    const expirou = vi.fn();
++    http.aoExpirar(expirou);
++
++    await expect(http.criarEquipe({} as never, "Delta", "")).rejects.toMatchObject({
++      status: 401, codigo: "sessao_encerrada",
++    });
++    expect(expirou).toHaveBeenCalledTimes(1);
++    expect(expirou).toHaveBeenCalledWith("encerrada");
++    expect(sessionStorage.getItem("dc360:tokens")).toBeNull();
++  });
++
++  it("papel mudado (401 nao_autenticado) com a renovação viva renova e repete, e avisa a tela do papel novo", async () => {
++    // Até a V2-F00-E07 o servidor respondia sessao_encerrada ao papel diferente.
++    // Agora é nao_autenticado, "renove e repita": a renovação traz o papel novo.
++    let escritas = 0;
++    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
++      if (url.endsWith("/auth/renovar")) {
++        return resposta(200, {
++          acesso: "novo", renovacao: "nova",
++          usuario: { id: "u1", nome: "Helena Vasques Coutinho", papel: "operador" },
++        });
++      }
++      escritas += 1;
++      return escritas === 1
++        ? resposta(401, { erro: "nao_autenticado", mensagem: "Token inválido ou expirado." })
++        : resposta(200, { id: "e1" });
++    }));
++    const expirou = vi.fn();
++    const renovou = vi.fn();
++    http.aoExpirar(expirou);
++    http.aoRenovar(renovou);
++    await http.criarEquipe({} as never, "Delta", "");
++    expect(escritas).toBe(2);
++    expect(expirou).not.toHaveBeenCalled();
++    expect(renovou).toHaveBeenCalledTimes(1);
++    expect(renovou).toHaveBeenCalledWith({ papel: "operador", nome: "Helena Vasques Coutinho" });
++  });
++
++  it("renovação sem o usuário no corpo (servidor antigo) não avisa nada e não quebra", async () => {
++    let escritas = 0;
++    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
++      if (url.endsWith("/auth/renovar")) return resposta(200, { acesso: "novo", renovacao: "nova" });
++      escritas += 1;
++      return escritas === 1
++        ? resposta(401, { erro: "nao_autenticado", mensagem: "Token inválido ou expirado." })
++        : resposta(200, { id: "e1" });
++    }));
++    const renovou = vi.fn();
++    http.aoRenovar(renovou);
++    await http.criarEquipe({} as never, "Delta", "");
++    expect(escritas).toBe(2);
++    expect(renovou).not.toHaveBeenCalled();
++  });
++
++  it("conta desativada (403 conta_desativada) derruba a tela com o motivo 'desativada' e apaga os tokens", async () => {
++    vi.stubGlobal("fetch", vi.fn(async () =>
++      resposta(403, { erro: "conta_desativada", mensagem: "Sua conta foi desativada." })));
++    const expirou = vi.fn();
++    http.aoExpirar(expirou);
++
++    await expect(http.criarEquipe({} as never, "Delta", "")).rejects.toMatchObject({
++      status: 403, codigo: "conta_desativada",
++    });
++    expect(expirou).toHaveBeenCalledTimes(1);
++    expect(expirou).toHaveBeenCalledWith("desativada");
++    expect(sessionStorage.getItem("dc360:tokens"), "conta desativada não guarda token").toBeNull();
++  });
++
++  it("token vencido cuja renovação diz 'conta desativada' leva ao motivo 'desativada', e não a 'expirou'", async () => {
++    const chamadas: string[] = [];
++    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
++      chamadas.push(url);
++      if (url.endsWith("/auth/renovar")) {
++        return resposta(403, { erro: "conta_desativada", mensagem: "Sua conta foi desativada." });
++      }
++      return resposta(401, { erro: "nao_autenticado", mensagem: "Token inválido ou expirado." });
++    }));
++    const expirou = vi.fn();
++    http.aoExpirar(expirou);
++
++    await expect(http.indicadores({} as never)).rejects.toMatchObject({ status: 401 });
++    expect(expirou).toHaveBeenCalledTimes(1);
++    expect(expirou).toHaveBeenCalledWith("desativada");
++    // Uma renovação só, e nenhuma repetição do pedido: não há laço contra quem disse não.
++    expect(chamadas.filter((u) => u.endsWith("/auth/renovar"))).toHaveLength(1);
++    expect(sessionStorage.getItem("dc360:tokens")).toBeNull();
++  });
++
++  it("o código antigo `sessao` já não é sessão morta: não está no catálogo", async () => {
++    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
++      if (url.endsWith("/auth/renovar")) return resposta(200, { acesso: "novo", renovacao: "nova" });
++      return resposta(401, { erro: "sessao", mensagem: "Sessão expirada. Entre novamente." });
++    }));
++    const expirou = vi.fn();
++    http.aoExpirar(expirou);
++    await expect(http.indicadores({} as never)).rejects.toMatchObject({ status: 401 });
++    expect(expirou).not.toHaveBeenCalled();
++  });
++
++  it("sessao_encerrada SEM token (desafio de segundo fator vencido) não finge que uma sessão acabou", async () => {
++    sessionStorage.removeItem("dc360:tokens");
++    vi.stubGlobal("fetch", vi.fn(async () =>
++      resposta(401, { erro: "sessao_encerrada", mensagem: "Esta tentativa de entrada expirou." })));
++    const expirou = vi.fn();
++    http.aoExpirar(expirou);
++    await expect(http.conferirSegundoFator("desafio-velho", "123456")).rejects.toMatchObject({
++      codigo: "sessao_encerrada",
++    });
++    expect(expirou).not.toHaveBeenCalled();
++  });
++
+   it("senha errada na entrada é 401 de credencial, e NÃO expiração", async () => {
+     sessionStorage.removeItem("dc360:tokens");
+     vi.stubGlobal("fetch", vi.fn(async () =>
+@@ -164,6 +286,10 @@ describe("As regras da entrada, fora do React", () => {
+       .toEqual({ motivo: "expirou", voltarPara: "/mapa" });
+     expect(estadoDaEntrada({ motivo: "qualquer", voltarPara: 42 }))
+       .toEqual({ motivo: null, voltarPara: null });
++    // Os três motivos da E05 passam; o nome antigo de código não vira motivo.
++    expect(estadoDaEntrada({ motivo: "encerrada" }).motivo).toBe("encerrada");
++    expect(estadoDaEntrada({ motivo: "desativada" }).motivo).toBe("desativada");
++    expect(estadoDaEntrada({ motivo: "sessao" }).motivo).toBeNull();
+   });
+ });
+ 
+@@ -187,6 +313,22 @@ describe("A tela de entrada", () => {
+     expect(comum).not.toMatch(/sess[ãa]o expirou/i);
+   });
+ 
++  it("diz a frase certa para cada motivo, com ícone e texto, e só a de conta desativada manda procurar a coordenação", () => {
++    const encerrada = desenhar({ motivo: "encerrada" });
++    expect(encerrada).toMatch(/sua sess[ãa]o foi encerrada/i);
++    expect(encerrada).toMatch(/entre de novo/i);
++    expect(encerrada).not.toMatch(/coordena[çc][ãa]o/i);
++    expect(encerrada).toMatch(/aviso--alerta[^>]*>\s*<svg/);
++
++    const desativada = desenhar({ motivo: "desativada", voltarPara: "/painel" });
++    expect(desativada).toMatch(/sua conta foi desativada/i);
++    expect(desativada).toMatch(/procure a coordena[çc][ãa]o do seu munic[íi]pio/i);
++    // Entrar de novo não resolve, e a frase não manda tentar: ela diz que não adianta.
++    expect(desativada).toMatch(/n[ãa]o\s+resolve/i);
++    expect(desativada, "conta desativada é grave: tom de perigo, não de alerta").toMatch(/aviso--perigo[^>]*>\s*<svg/);
++    expect(desativada).not.toMatch(/sess[ãa]o expirou/i);
++  });
++
+   it("valida vazio no cliente, campo a campo, e casa os campos do 422", () => {
+     const entrar = fonte("paginas/Entrar.tsx");
+     expect(entrar, "a validação de vazio precisa vir de entrar-regras").toContain("conferirEntrada(");
+@@ -220,7 +362,9 @@ describe("A rota protegida guarda de onde a pessoa veio", () => {
+   it("o provedor de sessão se inscreve na expiração e guarda o motivo", () => {
+     const sessao = fonte("estado/sessao.tsx");
+     expect(sessao).toContain("aoExpirar(");
+-    expect(sessao).toContain('"expirou"');
++    // O motivo que a camada HTTP manda é o que a rota protegida leva à entrada.
++    expect(sessao).toContain("setMotivoDaSaida(motivo)");
++    expect(sessao).toContain("MotivoDaSessaoMorta");
+     // Entrar de novo limpa o motivo, senão a mensagem volta na próxima saída comum.
+     expect(sessao).toMatch(/motivoDaSaida/);
+   });
+@@ -267,3 +411,15 @@ describe("Servidor fora: a frase certa para leitura e para escrita", () => {
+     }
+   });
+ });
++
++describe("A sessão da tela acompanha o papel que a renovação trouxe (V2-F00-E07)", () => {
++  it("o provedor se inscreve em aoRenovar, só reescreve quando algo mudou e grava o papel novo", () => {
++    const codigo = fonte("estado/sessao.tsx");
++    expect(codigo).toMatch(/aoRenovar\(\(usuario\) => \{/);
++    expect(codigo, "se inscreve e solta a inscrição ao desmontar").toMatch(/return \(\) => aoRenovar\(null\)/);
++    expect(codigo, "papel igual e nome igual não refazem a tela").toMatch(
++      /atual\.papel === usuario\.papel && atual\.usuarioNome === usuario\.nome/,
++    );
++    expect(codigo).toMatch(/papel: usuario\.papel/);
++  });
++});
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index 1408053..3fd4801 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -158,6 +158,15 @@ com os dois erros que ele encontrou pelo caminho.
+     npm run migrar -- --conferir   # confere primeiro, não aplica nada
+   ```
+ 
++  **Ordem na atualização que traz a migração 047 (família da sessão, V2-F00-E07):
++  migre ANTES de implantar o código novo.** O código novo chama `abrir_sessao`
++  com a família e lê `sessoes.familia_id`; contra um banco sem a 047, todo login
++  e toda renovação falhariam. O contrário é seguro: o código antigo contra o
++  banco já migrado continua funcionando (a função nova aceita a chamada de seis
++  argumentos). A migração é aditiva e rápida (uma coluna, um índice parcial e a
++  troca de uma função); sessões abertas na hora ganham família própria, e no
++  máximo um token de acesso antigo cai e o cliente renova.
++
+ ### 3. Servidor da API
+ 
+ PaaS que dá HTTPS automático e roda contêiner ou Node:
+@@ -716,3 +725,18 @@ diz mais sobre a divulgação do que sobre o produto.
+   `WHERE id`, e não tem trilha de auditoria: `interesse_municipio` é anterior ao
+   contrato e fica fora da trilha do município, então o que ficou registrado é o
+   que você escrever em `observacao`.
++
++---
++
++## Parte 8: versões em uso e onde cada uma importa
++
++Quatro versões diferentes de Postgres e de Node aparecem neste projeto, e confundi-las é fonte de "funciona na minha máquina". Esta tabela diz qual é qual (medidas em 2026-09-30, REL:01; a de produção vem da Parte 6).
++
++| O quê | Versão | Onde importa |
++| --- | --- | --- |
++| Node | 22 (`dc360/.nvmrc`; medido com 22.17.0 e npm 10.9.2) | Máquina de quem desenvolve, CI e imagem. O `engines` aceita 20 ou mais, mas só a 22 está medida |
++| PGlite | 0.2.17 (Postgres 16 em WebAssembly) | Todos os testes de unidade e o painel no modo local. Não traz PostGIS nem os papéis do provedor |
++| Postgres do CI | 16 (`postgres:16`) | Job que aplica as migrações e roda a API contra banco real |
++| Postgres de produção | 17.6 (Supabase) | O que atende o município de verdade; o restore da Parte 6 foi provado contra ele |
++
++Duas consequências práticas: o que passa no PGlite pode falhar no Postgres 17 (função, extensão ou papel que só o provedor tem), e a prova de um recurso de PostGIS exige Postgres real, nunca PGlite. A medição das duas árvores de dependência (raiz e `apps/campo`) e o roteiro para repeti-la estão em `README.md` (seção "Como testar") e em `docs/evidencias-v2/G00/V2-F00-E01/`.
+diff --git a/dc360/docs/DICIONARIO-DE-DADOS.md b/dc360/docs/DICIONARIO-DE-DADOS.md
+index af54d19..433f714 100644
+--- a/dc360/docs/DICIONARIO-DE-DADOS.md
++++ b/dc360/docs/DICIONARIO-DE-DADOS.md
+@@ -315,7 +315,7 @@ trás para sempre. Retenção de 60 dias, dentro da própria política de remoç
+ | `protocolo_sequencias` | O último número usado por município e por ano. Garante protocolo único sem sequência global, que vazaria volume entre municípios |
+ | `devolucoes_de_tarefa` | A tarefa que venceu e o agente devolveu à coordenação sem ter vistoriado, com motivo de lista fechada, observação, a equipe que estava designada e o prazo que já estava perdido. **Append-only**, como a trilha: é declaração de campo, e correção se faz com despacho novo. Não encerra a ocorrência (ela volta para `triagem`) e não zera `prazo_em`, senão o atraso sumiria do painel |
+ | `saidas_a_campo` | A ida a campo que o agente declarou ANTES de subir, com o protocolo, o tempo previsto, se foi **sozinho**, e o prazo de retorno carimbado pelo relógio do **servidor**. Uma aberta por agente, imposta por índice único parcial. Não se apaga: encerra com desfecho de lista fechada e quem encerrou, e "acionei apoio" exige dizer o quê. A observação da coordenação é sobre o ATO DA PREFEITURA a respeito da segurança do próprio servidor, e por isso fica fora da minimização por prazo: ver `SEGURANCA-DO-AGENTE.md` |
+-| `sessoes` | Sessões abertas. É o que permite derrubar acesso ao trocar ou redefinir senha |
++| `sessoes` | Sessões abertas. É o que permite derrubar acesso ao trocar ou redefinir senha. `familia_id` (migração 047, V2-F00-E07) liga as sessões de uma cadeia de renovação: cada login abre uma família nova (o `id` da primeira sessão) e cada renovação herda a família da sessão que rotacionou. Coluna técnica, sem dado pessoal, não nula, com padrão `gen_random_uuid()` para quem insere sem informar. A sessão revogada por rotação só vale para a escrita enquanto a família tem sessão com `revogada_em` nulo (índice parcial `sessoes_familia_viva_idx`). `abrir_sessao` aceita a família como sétimo parâmetro opcional e só a aceita se for do mesmo usuário e do mesmo município |
+ | `recuperacoes_senha` | Pedidos de recuperação, com validade e uso único |
+ | `exportacoes` | Registro de quem exportou o quê e quando. Exportação de dado de cidadão é ato que fica registrado |
+ | `interesse_municipio` | Município que se cadastrou pela página pública. É a única tabela com dado que não pertence a um município do sistema |
+diff --git a/dc360/db/migrations/047_familia_da_sessao.sql b/dc360/db/migrations/047_familia_da_sessao.sql
+new file mode 100644
+index 0000000..83cce34
+--- /dev/null
++++ b/dc360/db/migrations/047_familia_da_sessao.sql
+@@ -0,0 +1,114 @@
++-- =====================================================================
++-- 047: familia da sessao. A sessao rotacionada so vale enquanto a CADEIA
++--      de renovacao dela esta viva.
++--
++-- O DEFEITO (V2-F00-E07). Renovar revoga a sessao antiga com o motivo
++-- `rotacionada na renovacao` e abre outra. `auth/vigencia.ts` contava como
++-- viva TODA sessao revogada por esse motivo, para o token de acesso emitido
++-- nela poder escrever pelos seus quinze minutos (a fila do aparelho pode estar
++-- no meio de um envio). So que a sessao rotacionada ja esta revogada: quando
++-- a cadeia e encerrada por quem administra, pela propria pessoa, por reuso de
++-- token ou por troca de senha, quem cai e a sessao NOVA, e a antiga continuava
++-- "viva" na leitura. O token de acesso anterior a renovacao seguia escrevendo
++-- ate completar os quinze minutos, depois de a conta ter sido derrubada.
++--
++-- A CORRECAO. Cada login abre uma FAMILIA, e as sessoes de uma cadeia de
++-- renovacao compartilham o `familia_id`. A sessao rotacionada so vale se a
++-- familia dela ainda tem sessao de pe (`revogada_em IS NULL`). Os encerramentos
++-- continuam atingindo so a sessao viva, como sempre atingiram, e isso
++-- basta: encerrar a viva da cadeia derruba a cadeia inteira.
++--
++-- O QUE MUDA E O QUE NAO MUDA
++--
++--   - `sessoes.familia_id`: coluna tecnica, sem dado pessoal. Sessoes que ja
++--     existem ganham familia propria (`familia_id = id`): no maximo um token
++--     de acesso antigo cai no deploy e o cliente renova.
++--   - `abrir_sessao` ganha um setimo parametro, OPCIONAL: a familia a herdar.
++--     Sem ele, a sessao abre familia nova (login). Com ele, so aceita uma
++--     familia que ja existe, do MESMO usuario e do MESMO municipio: a funcao e
++--     SECURITY DEFINER e nao pode virar uma forma de enfiar uma sessao na
++--     familia de outra pessoa. A assinatura antiga e REMOVIDA em vez de
++--     ficar ao lado da nova, porque duas versoes da mesma funcao somariam uma
++--     ao teto de funcoes SECURITY DEFINER de `db/test/isolamento.test.ts` (27),
++--     que nao muda. O DROP leva as permissoes junto, entao o REVOKE e o GRANT
++--     sao repetidos abaixo, com a mesma regra da 002.
++--   - A recusa de municipio suspenso (038) e preservada tal e qual.
++--   - Nenhuma policy nova: `sessoes_isolamento` (002) ja cobre a coluna.
++--
++-- Migracao aplicada nunca e editada (`HistoricoAlterado`): reverter a funcao
++-- e uma migracao nova. Reverter so o codigo deixa a coluna sem uso.
++-- =====================================================================
++
++ALTER TABLE sessoes ADD COLUMN familia_id uuid;
++
++-- A migracao roda com o papel de setup (superusuario, BYPASSRLS): a policy de
++-- `sessoes` nao a alcanca. Cada sessao que ja existe e a raiz da propria
++-- familia.
++UPDATE sessoes SET familia_id = id WHERE familia_id IS NULL;
++
++-- Daqui em diante, qualquer INSERT que nao diga a familia abre uma nova: e o
++-- que um login e. So a renovacao informa a familia, e o faz por `abrir_sessao`.
++ALTER TABLE sessoes ALTER COLUMN familia_id SET DEFAULT gen_random_uuid();
++ALTER TABLE sessoes ALTER COLUMN familia_id SET NOT NULL;
++
++COMMENT ON COLUMN sessoes.familia_id IS
++  'Identifica a cadeia de renovacao. Cada login abre uma familia nova (o id da primeira sessao) e cada renovacao a herda. A sessao rotacionada so vale para a escrita enquanto a familia tem sessao nao revogada.';
++
++-- A pergunta que a vigencia faz em toda escrita com token de sessao rotacionada:
++-- "esta familia ainda tem sessao de pe?". Parcial, porque so as vivas importam
++-- e sao uma fracao pequena da tabela.
++CREATE INDEX sessoes_familia_viva_idx ON sessoes (familia_id) WHERE revogada_em IS NULL;
++
++-- ---------------------------------------------------------------------
++-- abrir_sessao com a familia opcional.
++-- ---------------------------------------------------------------------
++DROP FUNCTION IF EXISTS abrir_sessao(uuid, uuid, text, interval, text, text);
++
++CREATE FUNCTION abrir_sessao(
++  p_organizacao_id uuid,
++  p_usuario_id uuid,
++  p_token_hash text,
++  p_duracao interval,
++  p_user_agent text,
++  p_ip text,
++  p_familia_id uuid DEFAULT NULL
++) RETURNS uuid
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public, pg_temp
++AS $$
++DECLARE
++  v_id uuid := gen_random_uuid();
++  v_suspenso timestamptz;
++BEGIN
++  SELECT acesso_suspenso_em INTO v_suspenso FROM organizacoes WHERE id = p_organizacao_id;
++  IF v_suspenso IS NOT NULL THEN
++    RAISE EXCEPTION USING
++      ERRCODE = 'DC367',
++      MESSAGE = 'O acesso deste municipio esta suspenso pelo fornecedor.',
++      DETAIL  = format('Suspenso desde %s. Nenhuma sessao nova abre ate a reativacao.', v_suspenso);
++  END IF;
++
++  -- Herdar familia so da familia que existe, do mesmo usuario e do mesmo
++  -- municipio. A mensagem nao diz qual das tres condicoes falhou.
++  IF p_familia_id IS NOT NULL AND NOT EXISTS (
++    SELECT 1 FROM sessoes
++     WHERE familia_id = p_familia_id
++       AND usuario_id = p_usuario_id
++       AND organizacao_id = p_organizacao_id
++  ) THEN
++    RAISE EXCEPTION USING
++      ERRCODE = 'DC369',
++      MESSAGE = 'A familia de sessao informada nao existe para este usuario.';
++  END IF;
++
++  INSERT INTO sessoes (id, organizacao_id, usuario_id, token_hash, expira_em, user_agent, ip, familia_id)
++  VALUES (v_id, p_organizacao_id, p_usuario_id, p_token_hash, now() + p_duracao,
++          left(coalesce(p_user_agent, ''), 400), nullif(p_ip, '')::inet,
++          coalesce(p_familia_id, v_id));
++  RETURN v_id;
++END;
++$$;
++
++REVOKE ALL ON FUNCTION abrir_sessao(uuid, uuid, text, interval, text, text, uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION abrir_sessao(uuid, uuid, text, interval, text, text, uuid) TO dc360_app;
+diff --git a/dc360/db/test/familia-da-sessao.test.ts b/dc360/db/test/familia-da-sessao.test.ts
+new file mode 100644
+index 0000000..444fdef
+--- /dev/null
++++ b/dc360/db/test/familia-da-sessao.test.ts
+@@ -0,0 +1,260 @@
++/**
++ * A MIGRAÇÃO 047: a família da sessão (V2-F00-E07).
++ *
++ * `sessoes.familia_id` liga as sessões de uma cadeia de renovação, e é com ela
++ * que a vigência da API sabe se o token de uma sessão rotacionada ainda
++ * pertence a uma cadeia viva. Este arquivo cobra do BANCO o que o desenho
++ * promete, porque a função que mudou, `abrir_sessao`, é de autenticação: erro
++ * nela trava todo login de todos os municípios.
++ *
++ * O QUE SE PROVA
++ *  - o backfill: a sessão que já existia ganha `familia_id = id`;
++ *  - o login sem família abre família nova, e a coluna não aceita NULL;
++ *  - `abrir_sessao` com a família do mesmo usuário e do mesmo município a herda;
++ *  - com a família de outro usuário, de outro município ou inexistente, recusa
++ *    com o mesmo código e a mesma mensagem (não diz qual das três falhou);
++ *  - município suspenso continua sem abrir sessão (a 038 não regrediu);
++ *  - só EXISTE uma `abrir_sessao` (duas versões somariam uma ao teto de funções
++ *    SECURITY DEFINER), e quem tinha permissão continua a ter, e só ele;
++ *  - a família não cruza a parede do RLS.
++ */
++import { PGlite } from "@electric-sql/pglite";
++import { readFileSync, readdirSync } from "node:fs";
++import { fileURLToPath } from "node:url";
++import { dirname, join } from "node:path";
++import { afterAll, beforeAll, describe, expect, it } from "vitest";
++
++const aqui = dirname(fileURLToPath(import.meta.url));
++const pasta = join(aqui, "..", "migrations");
++const arquivos = readdirSync(pasta).filter((f) => f.endsWith(".sql")).sort();
++const ARQUIVO_047 = "047_familia_da_sessao.sql";
++const ate046 = arquivos.filter((f) => f < ARQUIVO_047);
++const sql = (f: string) => readFileSync(join(pasta, f), "utf8");
++
++const ABRIR_7 = "abrir_sessao(uuid,uuid,text,interval,text,text,uuid)";
++
++let db: PGlite;
++let orgA = "";
++let orgB = "";
++let usuarioA1 = "";
++let usuarioA2 = "";
++let usuarioB = "";
++const sessoesAntigas: string[] = [];
++let definersAntes = 0;
++
++async function contarDefiners(): Promise<number> {
++  const r = await db.query<{ n: number }>(
++    `SELECT count(*)::int AS n FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
++      WHERE n.nspname = 'public' AND p.prosecdef`,
++  );
++  return r.rows[0]!.n;
++}
++
++async function usuario(org: string, email: string, matricula: string): Promise<string> {
++  const r = await db.query<{ id: string }>(
++    `INSERT INTO usuarios (organizacao_id, nome, matricula, email, papel, senha_hash)
++     VALUES ($1, 'Pessoa de Teste', $2, $3, 'coordenador', 'x') RETURNING id`,
++    [org, matricula, email],
++  );
++  return r.rows[0]!.id;
++}
++
++beforeAll(async () => {
++  db = new PGlite();
++  for (const f of ate046) await db.exec(sql(f));
++
++  orgA = (await db.query<{ id: string }>(
++    "INSERT INTO organizacoes (nome, municipio, uf) VALUES ('DC A','Serra Alta','MG') RETURNING id",
++  )).rows[0]!.id;
++  orgB = (await db.query<{ id: string }>(
++    "INSERT INTO organizacoes (nome, municipio, uf) VALUES ('DC B','Vale Fundo','MG') RETURNING id",
++  )).rows[0]!.id;
++  usuarioA1 = await usuario(orgA, "a1@exemplo.gov.br", "A-1");
++  usuarioA2 = await usuario(orgA, "a2@exemplo.gov.br", "A-2");
++  usuarioB = await usuario(orgB, "b1@exemplo.gov.br", "B-1");
++
++  // Sessões que existem ANTES da migração, uma viva e uma rotacionada.
++  for (const [org, usr, hash, revogada] of [
++    [orgA, usuarioA1, "antiga-viva", false],
++    [orgA, usuarioA1, "antiga-rotacionada", true],
++    [orgB, usuarioB, "antiga-de-b", false],
++  ] as const) {
++    const r = await db.query<{ id: string }>(
++      `INSERT INTO sessoes (organizacao_id, usuario_id, token_hash, expira_em, revogada_em, motivo_revogacao)
++       VALUES ($1, $2, $3, now() + interval '1 day', ${revogada ? "now()" : "NULL"},
++               ${revogada ? "'rotacionada na renovacao'" : "NULL"}) RETURNING id`,
++      [org, usr, hash],
++    );
++    sessoesAntigas.push(r.rows[0]!.id);
++  }
++
++  definersAntes = await contarDefiners();
++  await db.exec(sql(ARQUIVO_047));
++}, 180_000);
++
++afterAll(async () => { await db.close(); });
++
++async function recusa(consulta: string, valores: unknown[]): Promise<{ code?: string; message: string }> {
++  try {
++    await db.query(consulta, valores);
++  } catch (erro) {
++    return erro as { code?: string; message: string };
++  }
++  throw new Error("a consulta deveria ter sido recusada");
++}
++
++describe("O que a migração faz com o que já existia", () => {
++  it("o backfill dá a cada sessão antiga a família dela mesma (familia_id = id)", async () => {
++    const r = await db.query<{ id: string; familia_id: string }>(
++      "SELECT id, familia_id FROM sessoes WHERE id = ANY($1::uuid[])", [sessoesAntigas],
++    );
++    expect(r.rows).toHaveLength(3);
++    for (const linha of r.rows) expect(linha.familia_id).toBe(linha.id);
++  });
++
++  it("a coluna não aceita NULL, e INSERT que não diz a família abre uma nova", async () => {
++    const col = await db.query<{ is_nullable: string }>(
++      "SELECT is_nullable FROM information_schema.columns WHERE table_name = 'sessoes' AND column_name = 'familia_id'",
++    );
++    expect(col.rows[0]!.is_nullable).toBe("NO");
++    const r = await db.query<{ id: string; familia_id: string }>(
++      `INSERT INTO sessoes (organizacao_id, usuario_id, token_hash, expira_em)
++       VALUES ($1, $2, 'sem-familia-1', now() + interval '1 day'),
++              ($1, $2, 'sem-familia-2', now() + interval '1 day') RETURNING id, familia_id`,
++      [orgA, usuarioA1],
++    );
++    expect(r.rows[0]!.familia_id).not.toBe(r.rows[1]!.familia_id);
++    await expect(db.query(
++      `INSERT INTO sessoes (organizacao_id, usuario_id, token_hash, expira_em, familia_id)
++       VALUES ($1, $2, 'familia-nula', now() + interval '1 day', NULL)`, [orgA, usuarioA1],
++    )).rejects.toThrow();
++  });
++
++  it("existe o índice parcial das famílias vivas", async () => {
++    const r = await db.query<{ indexdef: string }>(
++      "SELECT indexdef FROM pg_indexes WHERE indexname = 'sessoes_familia_viva_idx'",
++    );
++    expect(r.rows).toHaveLength(1);
++    expect(r.rows[0]!.indexdef).toMatch(/familia_id/);
++    expect(r.rows[0]!.indexdef).toMatch(/revogada_em IS NULL/);
++  });
++});
++
++describe("abrir_sessao com a família opcional", () => {
++  it("a chamada de seis argumentos (a forma da 002 e da 038) continua funcionando e abre família nova", async () => {
++    const r = await db.query<{ abrir_sessao: string }>(
++      "SELECT abrir_sessao($1,$2,'login-seis-args', interval '1 day', 'agente', '10.0.0.1')", [orgA, usuarioA1],
++    );
++    const id = r.rows[0]!.abrir_sessao;
++    const linha = await db.query<{ familia_id: string; ip: string }>(
++      "SELECT familia_id, host(ip) AS ip FROM sessoes WHERE id = $1", [id],
++    );
++    expect(linha.rows[0]!.familia_id).toBe(id);
++    expect(linha.rows[0]!.ip).toBe("10.0.0.1");
++  });
++
++  it("com a família do mesmo usuário e do mesmo município, herda", async () => {
++    const raiz = (await db.query<{ abrir_sessao: string }>(
++      "SELECT abrir_sessao($1,$2,'raiz', interval '1 day', NULL, NULL)", [orgA, usuarioA1],
++    )).rows[0]!.abrir_sessao;
++    const filha = (await db.query<{ abrir_sessao: string }>(
++      "SELECT abrir_sessao($1,$2,'filha', interval '1 day', NULL, NULL, $3)", [orgA, usuarioA1, raiz],
++    )).rows[0]!.abrir_sessao;
++    const r = await db.query<{ id: string; familia_id: string }>(
++      "SELECT id, familia_id FROM sessoes WHERE id = ANY($1::uuid[])", [[raiz, filha]],
++    );
++    const porId = new Map(r.rows.map((l) => [l.id, l.familia_id]));
++    expect(porId.get(raiz)).toBe(raiz);
++    expect(porId.get(filha)).toBe(raiz);
++  });
++
++  it("recusa a família de OUTRO usuário, de OUTRO município e a que não existe, com a mesma mensagem", async () => {
++    const deA2 = (await db.query<{ abrir_sessao: string }>(
++      "SELECT abrir_sessao($1,$2,'raiz-de-a2', interval '1 day', NULL, NULL)", [orgA, usuarioA2],
++    )).rows[0]!.abrir_sessao;
++    const deB = (await db.query<{ abrir_sessao: string }>(
++      "SELECT abrir_sessao($1,$2,'raiz-de-b', interval '1 day', NULL, NULL)", [orgB, usuarioB],
++    )).rows[0]!.abrir_sessao;
++    const inexistente = "99999999-9999-4999-8999-999999999999";
++
++    const outroUsuario = await recusa(
++      "SELECT abrir_sessao($1,$2,'invasora-1', interval '1 day', NULL, NULL, $3)", [orgA, usuarioA1, deA2],
++    );
++    const outroMunicipio = await recusa(
++      "SELECT abrir_sessao($1,$2,'invasora-2', interval '1 day', NULL, NULL, $3)", [orgA, usuarioA1, deB],
++    );
++    const nenhuma = await recusa(
++      "SELECT abrir_sessao($1,$2,'invasora-3', interval '1 day', NULL, NULL, $3)", [orgA, usuarioA1, inexistente],
++    );
++    for (const e of [outroUsuario, outroMunicipio, nenhuma]) expect(e.code).toBe("DC369");
++    expect(outroMunicipio.message).toBe(outroUsuario.message);
++    expect(nenhuma.message).toBe(outroUsuario.message);
++
++    // E nada foi gravado.
++    const gravadas = await db.query<{ n: number }>(
++      "SELECT count(*)::int AS n FROM sessoes WHERE token_hash LIKE 'invasora-%'",
++    );
++    expect(gravadas.rows[0]!.n).toBe(0);
++  });
++
++  it("município suspenso continua sem abrir sessão (a recusa da 038 não regrediu)", async () => {
++    await db.query("UPDATE organizacoes SET acesso_suspenso_em = now(), suspensao_motivo = 'contrato em discussao' WHERE id = $1", [orgB]);
++    try {
++      const e = await recusa(
++        "SELECT abrir_sessao($1,$2,'suspenso', interval '1 day', NULL, NULL)", [orgB, usuarioB],
++      );
++      expect(e.code).toBe("DC367");
++    } finally {
++      await db.query("UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [orgB]);
++    }
++  });
++});
++
++describe("A função, o teto e as permissões", () => {
++  it("existe UMA abrir_sessao, de sete argumentos: a assinatura antiga saiu em vez de ficar ao lado", async () => {
++    const r = await db.query<{ args: string }>(
++      "SELECT pg_get_function_identity_arguments(oid) AS args FROM pg_proc WHERE proname = 'abrir_sessao'",
++    );
++    expect(r.rows).toHaveLength(1);
++    expect(r.rows[0]!.args.split(",")).toHaveLength(7);
++  });
++
++  it("o número de funções SECURITY DEFINER não mudou", async () => {
++    expect(await contarDefiners()).toBe(definersAntes);
++  });
++
++  it("continua SECURITY DEFINER com search_path fixo, e só o papel de aplicação executa", async () => {
++    const f = await db.query<{ prosecdef: boolean; config: string[] | null }>(
++      "SELECT prosecdef, proconfig AS config FROM pg_proc WHERE proname = 'abrir_sessao'",
++    );
++    expect(f.rows[0]!.prosecdef).toBe(true);
++    expect((f.rows[0]!.config ?? []).join(";")).toMatch(/search_path=/);
++    const app = await db.query<{ pode: boolean }>(
++      `SELECT has_function_privilege('dc360_app', '${ABRIR_7}', 'EXECUTE') AS pode`,
++    );
++    const console_ = await db.query<{ pode: boolean }>(
++      `SELECT has_function_privilege('dc360_console', '${ABRIR_7}', 'EXECUTE') AS pode`,
++    );
++    expect(app.rows[0]!.pode).toBe(true);
++    expect(console_.rows[0]!.pode).toBe(false);
++  });
++});
++
++describe("O isolamento não mudou: a família não cruza a parede do RLS", () => {
++  it("o papel de aplicação, no contexto do município A, só vê as famílias do A", async () => {
++    const r = await db.transaction(async (tx) => {
++      await tx.exec("SET LOCAL ROLE dc360_app");
++      await tx.query("SELECT set_config('app.organizacao_atual', $1, true)", [orgA]);
++      return tx.query<{ organizacao_id: string }>("SELECT DISTINCT organizacao_id FROM sessoes");
++    });
++    expect(r.rows.map((l) => l.organizacao_id)).toEqual([orgA]);
++  });
++
++  it("sem contexto de município, o papel de aplicação não vê sessão nenhuma", async () => {
++    const r = await db.transaction(async (tx) => {
++      await tx.exec("SET LOCAL ROLE dc360_app");
++      return tx.query<{ n: number }>("SELECT count(*)::int AS n FROM sessoes");
++    });
++    expect(r.rows[0]!.n).toBe(0);
++  });
++});
+diff --git a/dc360/apps/api/test/familia-da-sessao.test.ts b/dc360/apps/api/test/familia-da-sessao.test.ts
+new file mode 100644
+index 0000000..8673398
+--- /dev/null
++++ b/dc360/apps/api/test/familia-da-sessao.test.ts
+@@ -0,0 +1,515 @@
++import type { FastifyInstance } from "fastify";
++import { afterAll, beforeAll, describe, expect, it } from "vitest";
++import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
++import { carregarConfig } from "../src/config.js";
++import { construirServidor } from "../src/servidor.js";
++import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
++import { derivarSenha } from "../src/auth/senha.js";
++import { hashDoToken as hash } from "../src/auth/tokens.js";
++import { servicoDeAutenticacao, FalhaAutenticacao } from "../src/auth/servico.js";
++import { servicoDeSegundoFator } from "../src/auth/segundo-fator.js";
++import { notificadorDeLog } from "../src/auth/notificador.js";
++
++/**
++ * A cadeia da sessão rotacionada, o papel alterado e a senha provisória
++ * (V2-F00-E07).
++ *
++ * TRÊS CASOS DE BORDA DA VIGÊNCIA que a E04 religou e deixou abertos:
++ *
++ * 1. A SESSÃO ROTACIONADA. Renovar revoga a sessão antiga com o motivo
++ *    `rotacionada na renovacao` e abre outra. `auth/vigencia.ts` contava como
++ *    viva TODA sessão revogada por esse motivo, mesmo depois de a cadeia ser
++ *    encerrada por quem administra, pela própria pessoa, por reuso de token ou
++ *    por troca de senha: o token de acesso emitido ANTES da renovação seguia
++ *    escrevendo até completar os quinze minutos. A migração 047 dá a cada
++ *    sessão uma `familia_id` (as sessões de uma cadeia de renovação a
++ *    compartilham) e a sessão rotacionada só vale enquanto a família tem
++ *    sessão de pé.
++ * 2. O PAPEL ALTERADO. Papel do banco diferente do token é 401
++ *    `nao_autenticado` (o cliente renova e repete), e não `sessao_encerrada`
++ *    (entre de novo): a renovação já devolve o token com o papel novo.
++ * 3. A SENHA PROVISÓRIA VENCIDA NO MEIO. Nem escreve nem se troca, mesmo
++ *    chamando o serviço sem passar pela rota.
++ *
++ * A troca de papel NÃO revoga as sessões da pessoa: decisão registrada em
++ * `dc360/apps/api/PENDENCIAS.md` e em `docs/DECISOES-DE-TESTE-DA-FASE-00.md`.
++ */
++
++const SENHA = "defesa-civil-2026";
++const SENHA_NOVA = "outra-senha-bem-forte-2026";
++const HELENA = "11111111-1111-4111-8111-0000000000d1";
++const DIEGO = "11111111-1111-4111-8111-0000000000d3";
++const OC_ALFA_1 = "11111111-1111-4111-8111-0000000000c1";
++const EMAIL_HELENA = "helena.coutinho@serraalta.exemplo.gov.br";
++const EMAIL_DIEGO = "diego.alves@serraalta.exemplo.gov.br";
++const EMAIL_RITA = "rita.lopes@serraalta.exemplo.gov.br";
++const EMAIL_AURELIO = "aurelio@valefundo.exemplo.gov.br";
++
++let mem: BancoEmMemoria;
++let app: FastifyInstance;
++let config: ReturnType<typeof carregarConfig>;
++let tokenRita: string;
++let ocorrenciaDeB: string;
++
++type Par = { acesso: string; renovacao: string };
++
++const com = (t: string) => ({ authorization: `Bearer ${t}` });
++
++async function entrar(email: string, senha = SENHA): Promise<Par> {
++  const r = await app.inject({ method: "POST", url: "/auth/entrar", payload: { email, senha } });
++  if (r.statusCode !== 200) throw new Error(`login falhou: ${r.body}`);
++  return { acesso: r.json().acesso, renovacao: r.json().renovacao };
++}
++
++async function renovar(renovacao: string): Promise<Par> {
++  const r = await app.inject({ method: "POST", url: "/auth/renovar", payload: { renovacao } });
++  if (r.statusCode !== 200) throw new Error(`renovação falhou (${r.statusCode}): ${r.body}`);
++  return { acesso: r.json().acesso, renovacao: r.json().renovacao };
++}
++
++/** Uma escrita inofensiva e idempotente, permitida à coordenação. */
++function escrever(token: string, ocorrenciaId = OC_ALFA_1) {
++  return app.inject({
++    method: "POST", url: `/ocorrencias/${ocorrenciaId}/coordenada`, headers: com(token),
++    payload: { coordenada: { lat: -22.41, lng: -45.45 }, motivo: "Ponto conferido no local pela equipe." },
++  });
++}
++
++function despachar(token: string, ocorrenciaId = OC_ALFA_1) {
++  return app.inject({
++    method: "POST", url: `/ocorrencias/${ocorrenciaId}/despacho`, headers: com(token),
++    payload: { equipeId: "11111111-1111-4111-8111-0000000000e1", prazoHoras: 24 },
++  });
++}
++
++function abrirOcorrencia(token: string) {
++  return app.inject({
++    method: "POST", url: "/ocorrencias", headers: com(token),
++    payload: {
++      solicitanteNome: "Moradora", canalEntrada: "telefone",
++      endereco: "Travessa do Sol, 30", tipo: "alagamento", descricao: "Agua na calcada",
++    },
++  });
++}
++
++async function exigirEncerrada(token: string) {
++  const r = await escrever(token);
++  expect(r.statusCode, r.body).toBe(401);
++  expect(r.json().erro).toBe("sessao_encerrada");
++}
++
++async function restaurarHelena(): Promise<void> {
++  await mem.bruto.query(
++    "UPDATE usuarios SET ativo = true, papel = 'coordenador', senha_provisoria_ate = NULL, senha_hash = $2 WHERE id = $1",
++    [HELENA, await derivarSenha(SENHA)],
++  );
++}
++
++beforeAll(async () => {
++  mem = await bancoEmMemoria({ semear: true });
++  config = carregarConfig({
++    NODE_ENV: "test",
++    JWT_SEGREDO: "segredo-da-familia-da-sessao-com-32-bytes!!",
++    LOGIN_POR_IP: "10000",
++  } as NodeJS.ProcessEnv);
++  app = await construirServidor({
++    banco: mem.banco, config,
++    armazenamento: armazenamentoEmMemoria({ baseUrl: "http://api.local" }),
++  });
++  await app.ready();
++  tokenRita = (await entrar(EMAIL_RITA)).acesso;
++
++  // O município B, com uma ocorrência e um coordenador: a prova de isolamento.
++  const hash = await derivarSenha(SENHA);
++  const b = await mem.bruto.query<{ id: string }>(
++    "INSERT INTO organizacoes (nome,municipio,uf) VALUES ('DC Vale Fundo','Vale Fundo','MG') RETURNING id",
++  );
++  await mem.bruto.query(
++    `INSERT INTO usuarios (organizacao_id,nome,matricula,email,papel,senha_hash)
++     VALUES ($1,'Aurelio Machado','VF-1',$2,'coordenador',$3)`,
++    [b.rows[0]!.id, EMAIL_AURELIO, hash],
++  );
++  const ocB = await mem.bruto.query<{ id: string }>(
++    `INSERT INTO ocorrencias (organizacao_id,protocolo,tipo,status,endereco,solicitante_nome,canal_entrada,descricao)
++     VALUES ($1,'000001/2026','alagamento','registrada','Rua do Rio, 12','Joaquim','telefone','Agua na calcada')
++     RETURNING id`,
++    [b.rows[0]!.id],
++  );
++  ocorrenciaDeB = ocB.rows[0]!.id;
++}, 180_000);
++
++afterAll(async () => {
++  await app?.close();
++  await mem?.banco.encerrar();
++});
++
++describe("A cadeia da sessão rotacionada só vale enquanto a cadeia vive", () => {
++  it("renovação normal: o token antigo escreve até vencer e o novo também", async () => {
++    const h = await entrar(EMAIL_HELENA);
++    const novo = await renovar(h.renovacao);
++    expect((await escrever(h.acesso)).statusCode).toBe(200);
++    expect((await escrever(novo.acesso)).statusCode).toBe(200);
++  });
++
++  it("várias rotações seguidas: todos os tokens da cadeia escrevem, e todos caem juntos quando a cadeia é encerrada", async () => {
++    const h = await entrar(EMAIL_HELENA);
++    const segundo = await renovar(h.renovacao);
++    const terceiro = await renovar(segundo.renovacao);
++    for (const t of [h.acesso, segundo.acesso, terceiro.acesso]) {
++      expect((await escrever(t)).statusCode).toBe(200);
++    }
++    const adm = await app.inject({
++      method: "POST", url: `/usuarios/${HELENA}/encerrar-sessoes`, headers: com(tokenRita),
++    });
++    expect(adm.statusCode, adm.body).toBe(200);
++    for (const t of [h.acesso, segundo.acesso, terceiro.acesso]) await exigirEncerrada(t);
++  });
++
++  it("quem administra encerra as sessões: o token de ANTES da renovação deixa de escrever", async () => {
++    const h = await entrar(EMAIL_HELENA);
++    const novo = await renovar(h.renovacao);
++    expect((await escrever(h.acesso)).statusCode).toBe(200);
++    const adm = await app.inject({
++      method: "POST", url: `/usuarios/${HELENA}/encerrar-sessoes`, headers: com(tokenRita),
++    });
++    expect(adm.statusCode, adm.body).toBe(200);
++    await exigirEncerrada(h.acesso);
++    await exigirEncerrada(novo.acesso);
++  });
++
++  it("a própria pessoa encerra as outras sessões: o aparelho que tinha renovado perde também o token antigo", async () => {
++    const painel = await entrar(EMAIL_HELENA);
++    const celular = await entrar(EMAIL_HELENA);
++    const celularRenovado = await renovar(celular.renovacao);
++    expect((await escrever(celular.acesso)).statusCode).toBe(200);
++
++    const r = await app.inject({
++      method: "POST", url: "/auth/encerrar-sessoes", headers: com(painel.acesso),
++    });
++    expect(r.statusCode, r.body).toBe(200);
++
++    await exigirEncerrada(celular.acesso);
++    await exigirEncerrada(celularRenovado.acesso);
++    // A de quem clicou sobrevive, e a família dela não foi tocada.
++    expect((await escrever(painel.acesso)).statusCode).toBe(200);
++  });
++
++  it("sair encerra a cadeia: o token anterior à renovação deixa de escrever", async () => {
++    const h = await entrar(EMAIL_HELENA);
++    const novo = await renovar(h.renovacao);
++    expect((await escrever(h.acesso)).statusCode).toBe(200);
++    const r = await app.inject({
++      method: "POST", url: "/auth/sair", payload: { renovacao: novo.renovacao },
++    });
++    expect(r.statusCode, r.body).toBe(204);
++    await exigirEncerrada(h.acesso);
++    await exigirEncerrada(novo.acesso);
++  });
++
++  it("reuso do token de renovação derruba a cadeia: o token de acesso anterior à renovação cai", async () => {
++    const roubado = await entrar(EMAIL_HELENA);
++    const legitimo = await renovar(roubado.renovacao);
++    expect((await escrever(roubado.acesso)).statusCode).toBe(200);
++
++    // O ladrão apresenta o token de renovação já gasto.
++    const reuso = await app.inject({
++      method: "POST", url: "/auth/renovar", payload: { renovacao: roubado.renovacao },
++    });
++    expect(reuso.statusCode).toBe(401);
++
++    await exigirEncerrada(roubado.acesso);
++    await exigirEncerrada(legitimo.acesso);
++  });
++
++  it("troca de senha em outra sessão encerra a cadeia das demais", async () => {
++    const quemTroca = await entrar(EMAIL_HELENA);
++    const outra = await entrar(EMAIL_HELENA);
++    const outraRenovada = await renovar(outra.renovacao);
++    expect((await escrever(outra.acesso)).statusCode).toBe(200);
++    try {
++      const troca = await app.inject({
++        method: "POST", url: "/auth/trocar-senha", headers: com(quemTroca.acesso),
++        payload: { senhaAtual: SENHA, senha: SENHA_NOVA },
++      });
++      expect(troca.statusCode, troca.body).toBe(200);
++
++      await exigirEncerrada(outra.acesso);
++      await exigirEncerrada(outraRenovada.acesso);
++      // A sessão de onde se trocou continua, com o token novo.
++      expect((await escrever(troca.json().acesso)).statusCode).toBe(200);
++    } finally {
++      await restaurarHelena();
++    }
++  }, 120_000);
++
++  it("a família é por login: encerrar a cadeia de um aparelho não derruba a cadeia de outro login", async () => {
++    const a = await entrar(EMAIL_HELENA);
++    const aRenovada = await renovar(a.renovacao);
++    const b = await entrar(EMAIL_HELENA);
++    const bRenovada = await renovar(b.renovacao);
++
++    const sair = await app.inject({
++      method: "POST", url: "/auth/sair", payload: { renovacao: aRenovada.renovacao },
++    });
++    expect(sair.statusCode).toBe(204);
++
++    await exigirEncerrada(a.acesso);
++    await exigirEncerrada(aRenovada.acesso);
++    expect((await escrever(b.acesso)).statusCode).toBe(200);
++    expect((await escrever(bRenovada.acesso)).statusCode).toBe(200);
++  });
++
++  it("cada login abre família nova e cada renovação herda a família: o banco guarda isso", async () => {
++    const h = await entrar(EMAIL_HELENA);
++    const novo = await renovar(h.renovacao);
++    const outro = await entrar(EMAIL_HELENA);
++    const [primeira, segunda, terceira] = await Promise.all(
++      [h, novo, outro].map(async (t) => (await mem.bruto.query<{ familia_id: string; id: string }>(
++        "SELECT id, familia_id FROM sessoes WHERE token_hash = $1", [hash(t.renovacao)],
++      )).rows[0]!),
++    );
++    // O primeiro login é a raiz da família (`familia_id = id`), a renovação a herda.
++    expect(primeira!.familia_id).toBe(primeira!.id);
++    expect(segunda!.familia_id).toBe(primeira!.familia_id);
++    expect(segunda!.id).not.toBe(primeira!.id);
++    expect(terceira!.familia_id).toBe(terceira!.id);
++    expect(terceira!.familia_id).not.toBe(primeira!.familia_id);
++  });
++});
++
++describe("Papel alterado: 401 nao_autenticado e a renovação resolve", () => {
++  async function rebaixarHelena() {
++    const r = await app.inject({
++      method: "PATCH", url: `/usuarios/${HELENA}`, headers: com(tokenRita),
++      payload: {
++        nome: "Helena Vasques Coutinho", matricula: "SA-1042", email: EMAIL_HELENA, papel: "operador",
++      },
++    });
++    expect(r.statusCode, r.body).toBe(200);
++  }
++
++  it("papel rebaixado: o token velho recebe 401 nao_autenticado, a renovação traz o papel novo e a escrita do papel novo passa", async () => {
++    const h = await entrar(EMAIL_HELENA);
++    expect((await escrever(h.acesso)).statusCode).toBe(200);
++    await rebaixarHelena();
++    try {
++      const velho = await escrever(h.acesso);
++      expect(velho.statusCode, velho.body).toBe(401);
++      // É "renove e repita", e não "entre de novo".
++      expect(velho.json().erro).toBe("nao_autenticado");
++
++      const novo = await app.inject({
++        method: "POST", url: "/auth/renovar", payload: { renovacao: h.renovacao },
++      });
++      expect(novo.statusCode, novo.body).toBe(200);
++      expect(novo.json().usuario.papel).toBe("operador");
++
++      // Operador abre ocorrência: a ação é dele.
++      const abriu = await abrirOcorrencia(novo.json().acesso);
++      expect(abriu.statusCode, abriu.body).toBe(201);
++    } finally {
++      await restaurarHelena();
++    }
++  });
++
++  it("depois de rebaixado a operador, o ex-coordenador renovado não despacha: 403 sem_permissao", async () => {
++    const h = await entrar(EMAIL_HELENA);
++    await rebaixarHelena();
++    try {
++      const novo = await renovar(h.renovacao);
++      const r = await despachar(novo.acesso);
++      expect(r.statusCode, r.body).toBe(403);
++      expect(r.json().erro).toBe("sem_permissao");
++    } finally {
++      await restaurarHelena();
++    }
++  });
++
++  it("promoção também: papel maior no banco que no token pede renovação, e o token velho não vale como o papel novo", async () => {
++    const d = await entrar(EMAIL_DIEGO);
++    await mem.bruto.query("UPDATE usuarios SET papel = 'coordenador' WHERE id = $1", [DIEGO]);
++    try {
++      const velho = await escrever(d.acesso);
++      expect(velho.statusCode, velho.body).toBe(401);
++      expect(velho.json().erro).toBe("nao_autenticado");
++    } finally {
++      await mem.bruto.query("UPDATE usuarios SET papel = 'agente_campo' WHERE id = $1", [DIEGO]);
++    }
++  });
++
++  it("a troca de papel NÃO revoga as sessões da pessoa (decisão registrada)", async () => {
++    await entrar(EMAIL_HELENA);
++    const antes = await mem.bruto.query<{ n: string }>(
++      "SELECT count(*)::text AS n FROM sessoes WHERE usuario_id = $1 AND revogada_em IS NULL", [HELENA],
++    );
++    expect(Number(antes.rows[0]!.n)).toBeGreaterThan(0);
++    await rebaixarHelena();
++    try {
++      const depois = await mem.bruto.query<{ n: string }>(
++        "SELECT count(*)::text AS n FROM sessoes WHERE usuario_id = $1 AND revogada_em IS NULL", [HELENA],
++      );
++      expect(depois.rows[0]!.n).toBe(antes.rows[0]!.n);
++    } finally {
++      await restaurarHelena();
++    }
++  });
++
++  it("sessão encerrada vence papel diferente: quem foi rebaixado E derrubado entra de novo, em vez de renovar", async () => {
++    const h = await entrar(EMAIL_HELENA);
++    await rebaixarHelena();
++    try {
++      await app.inject({
++        method: "POST", url: `/usuarios/${HELENA}/encerrar-sessoes`, headers: com(tokenRita),
++      });
++      await exigirEncerrada(h.acesso);
++    } finally {
++      await restaurarHelena();
++    }
++  });
++
++  it("isolamento: coordenador do município A rebaixado, o token antigo não despacha e continua sem ver o município B (404)", async () => {
++    const h = await entrar(EMAIL_HELENA);
++    await rebaixarHelena();
++    try {
++      // O token antigo não despacha equipe: 401, e nada sobre o município B.
++      expect((await despachar(h.acesso)).statusCode).toBe(401);
++      const contraB = await despachar(h.acesso, ocorrenciaDeB);
++      expect(contraB.statusCode).toBe(401);
++
++      // Renovado, o recurso de B continua 404 (nunca 403), antes e depois.
++      const novo = await renovar(h.renovacao);
++      for (const t of [h.acesso, novo.acesso]) {
++        const leitura = await app.inject({
++          method: "GET", url: `/ocorrencias/${ocorrenciaDeB}`, headers: com(t),
++        });
++        expect(leitura.statusCode, leitura.body).toBe(404);
++      }
++      const escritaB = await despachar(novo.acesso, ocorrenciaDeB);
++      expect([403, 404]).toContain(escritaB.statusCode);
++      // Operador não despacha: o 403 é do PAPEL e vem antes de qualquer busca,
++      // então não confirma nada sobre o recurso de B.
++      expect(escritaB.json().erro).toBe("sem_permissao");
++    } finally {
++      await restaurarHelena();
++    }
++  });
++
++  it("coordenador do município B com o papel mudado não ganha nada no município A", async () => {
++    const a = await entrar(EMAIL_AURELIO);
++    expect((await escrever(a.acesso)).statusCode).toBe(404);
++  });
++});
++
++describe("Senha provisória vencida no meio: nem escreve nem se troca", () => {
++  async function sorteada(): Promise<string> {
++    const r = await app.inject({
++      method: "POST", url: `/usuarios/${HELENA}/redefinir-senha`, headers: com(tokenRita),
++    });
++    expect(r.statusCode, r.body).toBe(200);
++    return r.json().senhaTemporaria as string;
++  }
++
++  it("no prazo, a senha provisória troca", async () => {
++    const temporaria = await sorteada();
++    try {
++      const s = await entrar(EMAIL_HELENA, temporaria);
++      const troca = await app.inject({
++        method: "POST", url: "/auth/trocar-senha", headers: com(s.acesso),
++        payload: { senhaAtual: temporaria, senha: SENHA_NOVA },
++      });
++      expect(troca.statusCode, troca.body).toBe(200);
++      const prazo = await mem.bruto.query<{ senha_provisoria_ate: string | null }>(
++        "SELECT senha_provisoria_ate FROM usuarios WHERE id = $1", [HELENA],
++      );
++      expect(prazo.rows[0]!.senha_provisoria_ate).toBeNull();
++    } finally {
++      await restaurarHelena();
++    }
++  }, 120_000);
++
++  it("vencida no meio, pela rota: trocar a senha e renovar respondem 401 sessao_encerrada", async () => {
++    const temporaria = await sorteada();
++    try {
++      const s = await entrar(EMAIL_HELENA, temporaria);
++      await mem.bruto.query(
++        "UPDATE usuarios SET senha_provisoria_ate = now() - interval '1 minute' WHERE id = $1", [HELENA],
++      );
++      const troca = await app.inject({
++        method: "POST", url: "/auth/trocar-senha", headers: com(s.acesso),
++        payload: { senhaAtual: temporaria, senha: SENHA_NOVA },
++      });
++      expect(troca.statusCode, troca.body).toBe(401);
++      expect(troca.json().erro).toBe("sessao_encerrada");
++      const renovado = await app.inject({
++        method: "POST", url: "/auth/renovar", payload: { renovacao: s.renovacao },
++      });
++      expect(renovado.statusCode).toBe(401);
++      expect(renovado.json().erro).toBe("sessao_encerrada");
++      // E o hash não mudou: a senha provisória vencida não virou senha de ninguém.
++      const entrou = await app.inject({
++        method: "POST", url: "/auth/entrar", payload: { email: EMAIL_HELENA, senha: SENHA_NOVA },
++      });
++      expect(entrou.statusCode).toBe(401);
++    } finally {
++      await restaurarHelena();
++    }
++  }, 120_000);
++
++  it("vencida no meio, pelo SERVIÇO: trocarSenha recusa por si, sem depender da rota ter conferido antes", async () => {
++    const temporaria = await sorteada();
++    try {
++      const s = await entrar(EMAIL_HELENA, temporaria);
++      const sessao = (await mem.bruto.query<{ id: string; organizacao_id: string }>(
++        "SELECT id, organizacao_id FROM sessoes WHERE usuario_id = $1 AND revogada_em IS NULL ORDER BY criada_em DESC LIMIT 1",
++        [HELENA],
++      )).rows[0]!;
++      expect(s.acesso.length).toBeGreaterThan(0);
++      await mem.bruto.query(
++        "UPDATE usuarios SET senha_provisoria_ate = now() - interval '1 minute' WHERE id = $1", [HELENA],
++      );
++      const servico = servicoDeAutenticacao(
++        mem.banco, config, notificadorDeLog(), servicoDeSegundoFator(mem.banco, config),
++      );
++      const identidade = {
++        usuarioId: HELENA, organizacaoId: sessao.organizacao_id, papel: "coordenador" as const,
++        nome: "Helena Vasques Coutinho", sessaoId: sessao.id,
++      };
++      const erro = await servico.trocarSenha(identidade, temporaria, SENHA_NOVA).then(
++        () => null, (e: unknown) => e,
++      );
++      expect(erro).toBeInstanceOf(FalhaAutenticacao);
++      expect((erro as FalhaAutenticacao).codigo).toBe("sessao_encerrada");
++      // Nada foi gravado: o hash ainda é o da provisória.
++      const entrou = await app.inject({
++        method: "POST", url: "/auth/entrar", payload: { email: EMAIL_HELENA, senha: SENHA_NOVA },
++      });
++      expect(entrou.statusCode).toBe(401);
++    } finally {
++      await restaurarHelena();
++    }
++  }, 120_000);
++
++  it("senha comum (sem prazo) continua trocando pelo serviço: a recusa é só da provisória vencida", async () => {
++    try {
++      const h = await entrar(EMAIL_HELENA);
++      const sessao = (await mem.bruto.query<{ id: string; organizacao_id: string }>(
++        "SELECT id, organizacao_id FROM sessoes WHERE usuario_id = $1 AND revogada_em IS NULL ORDER BY criada_em DESC LIMIT 1",
++        [HELENA],
++      )).rows[0]!;
++      expect(h.acesso.length).toBeGreaterThan(0);
++      const servico = servicoDeAutenticacao(
++        mem.banco, config, notificadorDeLog(), servicoDeSegundoFator(mem.banco, config),
++      );
++      const novo = await servico.trocarSenha(
++        {
++          usuarioId: HELENA, organizacaoId: sessao.organizacao_id, papel: "coordenador",
++          nome: "Helena Vasques Coutinho", sessaoId: sessao.id,
++        },
++        SENHA, SENHA_NOVA,
++      );
++      expect(novo.acesso.length).toBeGreaterThan(0);
++    } finally {
++      await restaurarHelena();
++    }
++  }, 120_000);
++});

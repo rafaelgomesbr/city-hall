@@ -1,0 +1,181 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ❯ test/codigos-de-erro.test.ts (16 tests | 8 failed) 9083ms
+   ✓ Cada código do catálogo sai do servidor real > token vencido, adulterado ou ausente responde 401 nao_autenticado: o cliente renova e repete 45ms
+   × Cada código do catálogo sai do servidor real > sessão encerrada por alguém responde 401 sessao_encerrada: entrar de novo, nada se perde 512ms
+     → {"erro":"sessao","mensagem":"Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente."}: expected 'sessao' to be 'sessao_encerrada' // Object.is equality
+   × Cada código do catálogo sai do servidor real > papel diferente do token também é sessao_encerrada, e NÃO conta desativada 411ms
+     → {"erro":"sessao","mensagem":"Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente."}: expected 'sessao' to be 'sessao_encerrada' // Object.is equality
+   × Cada código do catálogo sai do servidor real > conta desativada responde 403 conta_desativada, e não 401: entrar de novo não resolve 544ms
+     → {"erro":"sessao","mensagem":"Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente."}: expected 'sessao' to be 'conta_desativada' // Object.is equality
+   × Cada código do catálogo sai do servidor real > conta desativada com as sessões TAMBÉM encerradas (o que o painel faz) continua conta_desativada 587ms
+     → {"erro":"sessao","mensagem":"Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente."}: expected 'sessao' to be 'conta_desativada' // Object.is equality
+   ✓ Cada código do catálogo sai do servidor real > leitura com token vivo segue pela assinatura até a F03-E03: a troca declarada não mudou  493ms
+   ✓ Cada código do catálogo sai do servidor real > acesso_suspenso, troca_de_senha_obrigatoria e sem_permissao seguem emitidos, no catálogo e com o mesmo texto  1051ms
+   × Renovar com a conta desativada > responde 403 conta_desativada, e a renovação não emite par nenhum 490ms
+     → {"erro":"inativo","mensagem":"x"}: expected 'inativo' to be 'conta_desativada' // Object.is equality
+   × Renovar com a conta desativada > renovação encerrada de conta ATIVA continua 401 sessao_encerrada: entra de novo 508ms
+     → {"erro":"sessao","mensagem":"Sessão expirada. Entre novamente."}: expected 'sessao' to be 'sessao_encerrada' // Object.is equality
+   ✓ /auth/entrar não conta nada sobre a conta (resistência a enumeração) > conta desativada com a senha CERTA recebe a mesma recusa da senha errada e do e-mail inexistente  1199ms
+   × Isolamento: a conta desativada não confirma nada sobre outro município > escrever na ocorrência do município B com conta desativada do A responde a MESMA coisa que escrever na própria e numa que não existe 424ms
+     → {"erro":"sessao","mensagem":"Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente."}: expected 'sessao' to be 'conta_desativada' // Object.is equality
+   ✓ Isolamento: a conta desativada não confirma nada sobre outro município > conta ATIVA do município B escrevendo na ocorrência do A continua 404 (nunca 403), e lendo também  398ms
+   × Nada sai fora do catálogo > os arquivos da API só declaram códigos de autenticação do catálogo ou da entrada 17ms
+     → expected [ …(5) ] to deeply equal []
+   ✓ Nada sai fora do catálogo > o leitor pega código novo e o nome antigo: o teste de catálogo reprova de verdade 2ms
+   ✓ Nada sai fora do catálogo > ninguém escreve `erro: "sessao"` à mão em lugar nenhum da API 14ms
+   ✓ Nada sai fora do catálogo > o catálogo tem os seis códigos e cada um tem ação e mensagem 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Cada código do catálogo sai do servidor real > sessão encerrada por alguém responde 401 sessao_encerrada: entrar de novo, nada se perde
+AssertionError: {"erro":"sessao","mensagem":"Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente."}: expected 'sessao' to be 'sessao_encerrada' // Object.is equality
+
+Expected: "sessao_encerrada"
+Received: "sessao"
+
+ ❯ expectDoCatalogo test/codigos-de-erro.test.ts:164:30
+    162| ): void {
+    163|   const corpo = r.json();
+    164|   expect(corpo.erro, r.body).toBe(codigo);
+       |                              ^
+    165|   expect(ehCodigoDeErroDeAcesso(corpo.erro), `${String(corpo.erro)} nã…
+    166|   expect(r.statusCode, r.body).toBe(CODIGOS_DE_ERRO_DE_ACESSO[codigo].…
+ ❯ test/codigos-de-erro.test.ts:215:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Cada código do catálogo sai do servidor real > papel diferente do token também é sessao_encerrada, e NÃO conta desativada
+AssertionError: {"erro":"sessao","mensagem":"Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente."}: expected 'sessao' to be 'sessao_encerrada' // Object.is equality
+
+Expected: "sessao_encerrada"
+Received: "sessao"
+
+ ❯ expectDoCatalogo test/codigos-de-erro.test.ts:164:30
+    162| ): void {
+    163|   const corpo = r.json();
+    164|   expect(corpo.erro, r.body).toBe(codigo);
+       |                              ^
+    165|   expect(ehCodigoDeErroDeAcesso(corpo.erro), `${String(corpo.erro)} nã…
+    166|   expect(r.statusCode, r.body).toBe(CODIGOS_DE_ERRO_DE_ACESSO[codigo].…
+ ❯ test/codigos-de-erro.test.ts:223:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Cada código do catálogo sai do servidor real > conta desativada responde 403 conta_desativada, e não 401: entrar de novo não resolve
+AssertionError: {"erro":"sessao","mensagem":"Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente."}: expected 'sessao' to be 'conta_desativada' // Object.is equality
+
+Expected: "conta_desativada"
+Received: "sessao"
+
+ ❯ expectDoCatalogo test/codigos-de-erro.test.ts:164:30
+    162| ): void {
+    163|   const corpo = r.json();
+    164|   expect(corpo.erro, r.body).toBe(codigo);
+       |                              ^
+    165|   expect(ehCodigoDeErroDeAcesso(corpo.erro), `${String(corpo.erro)} nã…
+    166|   expect(r.statusCode, r.body).toBe(CODIGOS_DE_ERRO_DE_ACESSO[codigo].…
+ ❯ test/codigos-de-erro.test.ts:234:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Cada código do catálogo sai do servidor real > conta desativada com as sessões TAMBÉM encerradas (o que o painel faz) continua conta_desativada
+AssertionError: {"erro":"sessao","mensagem":"Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente."}: expected 'sessao' to be 'conta_desativada' // Object.is equality
+
+Expected: "conta_desativada"
+Received: "sessao"
+
+ ❯ expectDoCatalogo test/codigos-de-erro.test.ts:164:30
+    162| ): void {
+    163|   const corpo = r.json();
+    164|   expect(corpo.erro, r.body).toBe(codigo);
+       |                              ^
+    165|   expect(ehCodigoDeErroDeAcesso(corpo.erro), `${String(corpo.erro)} nã…
+    166|   expect(r.statusCode, r.body).toBe(CODIGOS_DE_ERRO_DE_ACESSO[codigo].…
+ ❯ test/codigos-de-erro.test.ts:249:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Renovar com a conta desativada > responde 403 conta_desativada, e a renovação não emite par nenhum
+AssertionError: {"erro":"inativo","mensagem":"x"}: expected 'inativo' to be 'conta_desativada' // Object.is equality
+
+Expected: "conta_desativada"
+Received: "inativo"
+
+ ❯ expectDoCatalogo test/codigos-de-erro.test.ts:164:30
+    162| ): void {
+    163|   const corpo = r.json();
+    164|   expect(corpo.erro, r.body).toBe(codigo);
+       |                              ^
+    165|   expect(ehCodigoDeErroDeAcesso(corpo.erro), `${String(corpo.erro)} nã…
+    166|   expect(r.statusCode, r.body).toBe(CODIGOS_DE_ERRO_DE_ACESSO[codigo].…
+ ❯ test/codigos-de-erro.test.ts:287:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Renovar com a conta desativada > renovação encerrada de conta ATIVA continua 401 sessao_encerrada: entra de novo
+AssertionError: {"erro":"sessao","mensagem":"Sessão expirada. Entre novamente."}: expected 'sessao' to be 'sessao_encerrada' // Object.is equality
+
+Expected: "sessao_encerrada"
+Received: "sessao"
+
+ ❯ expectDoCatalogo test/codigos-de-erro.test.ts:164:30
+    162| ): void {
+    163|   const corpo = r.json();
+    164|   expect(corpo.erro, r.body).toBe(codigo);
+       |                              ^
+    165|   expect(ehCodigoDeErroDeAcesso(corpo.erro), `${String(corpo.erro)} nã…
+    166|   expect(r.statusCode, r.body).toBe(CODIGOS_DE_ERRO_DE_ACESSO[codigo].…
+ ❯ test/codigos-de-erro.test.ts:303:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Isolamento: a conta desativada não confirma nada sobre outro município > escrever na ocorrência do município B com conta desativada do A responde a MESMA coisa que escrever na própria e numa que não existe
+AssertionError: {"erro":"sessao","mensagem":"Sua sessão foi encerrada ou o seu cadastro mudou. Entre novamente."}: expected 'sessao' to be 'conta_desativada' // Object.is equality
+
+Expected: "conta_desativada"
+Received: "sessao"
+
+ ❯ expectDoCatalogo test/codigos-de-erro.test.ts:164:30
+    162| ): void {
+    163|   const corpo = r.json();
+    164|   expect(corpo.erro, r.body).toBe(codigo);
+       |                              ^
+    165|   expect(ehCodigoDeErroDeAcesso(corpo.erro), `${String(corpo.erro)} nã…
+    166|   expect(r.statusCode, r.body).toBe(CODIGOS_DE_ERRO_DE_ACESSO[codigo].…
+ ❯ test/codigos-de-erro.test.ts:333:59
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  test/codigos-de-erro.test.ts > Nada sai fora do catálogo > os arquivos da API só declaram códigos de autenticação do catálogo ou da entrada
+AssertionError: expected [ …(5) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "C:\\Projetos\\city-hall\\dc360\\apps\\api\\src\\auth\\servico.ts: sessao",
++   "C:\\Projetos\\city-hall\\dc360\\apps\\api\\src\\auth\\servico.ts: inativo",
++   "C:\\Projetos\\city-hall\\dc360\\apps\\api\\src\\auth\\servico.ts: sessao",
++   "C:\\Projetos\\city-hall\\dc360\\apps\\api\\src\\auth\\servico.ts: sessao",
++   "C:\\Projetos\\city-hall\\dc360\\apps\\api\\src\\auth\\vigencia.ts: sessao",
++ ]
+
+ ❯ test/codigos-de-erro.test.ts:386:18
+    384|       }
+    385|     }
+    386|     expect(fora).toEqual([]);
+       |                  ^
+    387|   });
+    388| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed | 8 passed (16)
+   Start at  10:33:16
+   Duration  11.89s (transform 512ms, setup 75ms, collect 2.12s, tests 9.08s, environment 0ms, prepare 278ms)
+

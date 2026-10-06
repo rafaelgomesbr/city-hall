@@ -1,0 +1,1193 @@
+# Fase 11: Portal das secretarias
+
+**Gate da fase:** G11 PORTAL FUNCIONAL EM HML | **Depende dos gates:** G10, G08, G07, G04, G03 (e, pela cadeia da ordem de execução, G00 a G02, G05, G06, G09 e G32) | **Superfícies tocadas:** `apps/portal` (nova), `apps/api`, `packages/shared`, `packages/i18n`, `packages/design-tokens`, `apps/web` (só a leitura dos anexos da resposta), HML | **Checkpoints da fase:** CP-08, CP-12, CP-19 (decididos ou adiados no G11; a validação com secretaria real é a F12), CP-50, CP-51, CP-59 e CP-45 (este decidido em F08-E12)
+
+Primeira superfície nova da V2: `apps/portal`, aplicação separada de `apps/web` (Vite, React, TypeScript), com domínio, CSP, armazenamento de sessão e deploy próprios, audiência `dc360-portal` e instalável como PWA, sem offline (D-22). A pessoa de órgão (`gestor_orgao`, `executor_orgao`, `leitor_orgao`, que no banco são o papel genérico `usuario_orgao` mais `orgao_vinculos`) é PESSOA GLOBAL (D-08): um login, vínculos em vários municípios e órgãos, MFA da pessoa e escolha de município e órgão ao entrar; o token vale para um município por vez e a troca emite outro. Dentro de um município ela vê só os encaminhamentos do próprio órgão, o dossiê mínimo (nunca `ocorrencias`), a competência do órgão e o escalonamento; aceita nominalmente, responde com anexos, pede esclarecimento (o prazo pausa em `aguardando_dc`) e DEVOLVE com destino sugerido só antes do aceite (D-23): a secretaria não transfere, a Defesa Civil reencaminha. Recurso de outro órgão ou município responde 404. O órgão externo (concessionária, órgão estadual) é usuário do portal como os demais, com caixa única e isolamento visual por município (E24, E25, E29). O tema usa logotipo, nome e cor do município (D-11) e todo texto vem do catálogo pt-BR, en e es (D-12). Toda tela segue o mesmo padrão: quatro estados (E20), acessibilidade (E21) e a regra 0 de `19-definicao-de-pronto.md`: capturas de tela, E2E e o portão visual de F08-E13 (nada desalinhado, grudado ou fora do lugar, texto bem escrito).
+
+Preserva (MANTER): o painel `apps/web` (nenhuma página é copiada), as regras de F03 e F04 (RLS por órgão, plateia, manifesto), a cadeia de arquivos de F06 e F07 e o link do ofício até CP-22. NÃO faz: transferência direta entre secretarias, emissão de documento pela secretaria, impersonation completa (D-10: só o suporte assistido, somente leitura, em F20), PDF antes de CP-12, produção do portal (CP-08 e CP-19), tema por secretaria, cadastro do logotipo e da cor do município e tradução revisada (F35), e-mail consolidado entre municípios; ver `docs/roadmap-v2/21-fora-da-v2.md`.
+
+Ordem sugerida: E01, E02; E03 e E04 depois (E04 usa a origem de HML de E03 no CORS); E05 e E06 após E04; E07 após E02; E23 após E04 e E07; E08 e E09 após E07 (E09 também após E23), em paralelo; E27 e E30 após E07; E10 após E09; E11, E14, E15 e E16 após E10 (um arquivo de ação cada); E12 e E13 após E10 (E13 exige G07); E17 após E23; E18 e E19; E20; E24 após E09; E28 após E10 e E16; E29 após E17 e E23; E26 após E03 e E07; E25 após as telas de dados, E28 e E29; E21 por último das telas; E22 fecha a fase.
+
+## Etapas
+
+### V2-F11-E01 - ADR 0014: apps/portal separada (domínio, CSP, sessão, audiência)
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E02 a E22 citam a ADR)
+- **Objetivo:** fixar a fronteira do portal: origem, CSP, sessão, audiência, importações, instalação e município do token.
+- **Problema que resolve:** o bundle do painel leva PGlite e a semente, e o cliente dele tem 1245 linhas de rotas internas (`apps/web/src/dados/http.ts`).
+- **Origem:** DP:T15; DP:T16; DP:T17; REL:02; REL:11 2.2; PR:D-08; PR:D-22.
+- **Estado atual:** CRIAR (não existe ADR do portal).
+- **Dependências de entrada:** G10, G08, G03.
+- **O que deve ser implementado:**
+  - Arquivos: ADR com nove decisões: (1) `apps/portal` em `workspaces`, sem importar de `apps/web`: só `design-tokens`, `cliente-api` e `@dc360/shared/portal`; (2) host próprio por ambiente; (3) CSP sem `unsafe-inline`, `frame-ancestors 'none'`; (4) acesso em memória, renovação em `sessionStorage`, sem cookie; (5) audiência `dc360-portal` com o MESMO segredo (próprio descartado: dobra a rotação); (6) o navegador não decide autorização; (7) componentes próprios (F08-E07); (8) PWA instalável, com service worker que não guarda dado (D-22); (9) o token vale para um município por vez e a troca emite outro (D-08).
+  - Arquivos: alternativas descartadas: rotas em `apps/web` por papel; cópia do painel.
+- **O que NÃO deve ser implementado nesta etapa:** código (E02), deploy (E03), `packages/ui-web` (PROPOSTA), cookie HttpOnly.
+- **Arquivos e módulos prováveis:** `docs/adr/0014-portal-das-secretarias-aplicacao-separada.md` (a criar em `C:/Projetos/city-hall/docs/adr/`).
+- **Risco de segurança:** ADR omissa vira CSP frouxa ou credencial em armazenamento errado.
+- **Impacto LGPD:** Não se aplica: documento, sem dado.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: documento.
+- **Rollback:** reverter o commit; mudar exige ADR nova.
+- **Testes positivos:** `packages/shared/test/regras-de-conteudo.test.ts` aprova o arquivo.
+- **Testes negativos:** travessão ou norma fora da lista reprova o mesmo teste.
+- **Testes de autorização e isolamento:** Não se aplica: documento.
+- **Regressão obrigatória:** `npm test --workspace @dc360/shared`; G08.
+- **E2E:** Não se aplica: documento.
+- **Validação humana:** Rafael lê e aceita.
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E01/` com hash e aceite.
+- **Documentação a atualizar:** ADR 0009 e 0010.
+- **Definition of Done:** ADR aceita com as nove decisões e as alternativas.
+- **Checkpoint:** Não.
+
+### V2-F11-E02 - Scaffold apps/portal (Vite, React, TypeScript), workspace, CI, tokens e catálogo de idiomas
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E03 a E28 partem desta pasta)
+- **Objetivo:** `apps/portal` existe, compila, testa, usa tokens e catálogo de idiomas e é varrida pelos portões, inclusive o visual.
+- **Problema que resolve:** os portões só varrem `apps/web/src` (F08-E06); o portal nasce com três idiomas e a cor do município (D-11, D-12).
+- **Origem:** DP:T15; DP:T16; DP:T33; BZ-D:UXD-47; PR:D-11; PR:D-12.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E01; F08-E08; F08-E11; F08-E13.
+- **O que deve ser implementado:**
+  - Frontend: `apps/portal/` com `package.json` (`@dc360/portal`, porta 5174), `index.html` (`noindex`), `vite.config.ts` sem PGlite, `src/App.tsx` e `src/componentes/` (`Campo`, `Modal`, `ConfirmarAcao`, `Toast`) pelo contrato de F08-E07.
+  - Domínio: `@dc360/shared/portal` reexporta `encaminhamento.ts`, rótulos de `dossie.ts` e `neutro`; o teste de grafo nega `permissoes.ts`, `PAPEIS` e `POSTO`. Texto só por `t()` de `@dc360/i18n` (chaves `portal.*`); cor só pelos cinco tokens de F08-E11.
+  - Infraestrutura: `workspaces`, `dev:portal`, `test:e2e:portal`, `superficies.json`, roteiro do portão visual (F08-E13), build em `verificar.yml`.
+- **O que NÃO deve ser implementado nesta etapa:** login (E04), shell (E07), deploy (E03), PWA (E26), idiomas (E27), axe (E21).
+- **Arquivos e módulos prováveis:** `dc360/apps/portal/` (a criar em `dc360/apps`), `dc360/packages/shared/src/portal.ts` (a criar).
+- **Risco de segurança:** o portal herdar rota ou dependência do painel.
+- **Impacto LGPD:** Não se aplica: sem dado.
+- **Migração necessária:** Não.
+- **Compatibilidade:** `npm ci` com workspace novo.
+- **Rollback:** remover a pasta e a linha de `workspaces`.
+- **Testes positivos:** build e `typecheck` verdes; portões varrem `apps/portal/src`; `portao-visual.mjs --superficie portal` captura a entrada.
+- **Testes negativos:** `bundle-limpo.test.ts` reprova `pglite` e `/v1/ocorrencias` no bundle; import de `apps/web` reprova; português literal no JSX reprova `sem-texto-fixo.test.ts` (a criar).
+- **Testes de autorização e isolamento:** Não se aplica: sem rota nem dado (plateia em E04).
+- **Regressão obrigatória:** `npm test`, `npm run test:scripts`, `npm run auditar`; G08.
+- **E2E:** Não se aplica: sem fluxo ainda (E04); a captura da entrada vai à evidência.
+- **Validação humana:** Rafael roda `npm run dev:portal`; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E02/` com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/README.md`.
+- **Definition of Done:** portal compila, varrido pelos portões, sem código do painel.
+- **Checkpoint:** Não.
+
+### V2-F11-E03 - Domínio, deploy HML e CSP próprios
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E04 usa a origem de HML no CORS e no convite)
+- **Objetivo:** o portal tem host, projeto, cabeçalhos e CSP próprios em HML; a API de HML aceita a origem dele.
+- **Problema que resolve:** `URL_PORTAL` está vazia desde F03-E10 e `dc360/vercel.json` serve só o painel.
+- **Origem:** DP:T15; DP:R5; REL:10.
+- **Estado atual:** CRIAR (deploy) e EXPANDIR (CORS).
+- **Dependências de entrada:** E02; F01-E10; F01-E11; F01-E12.
+- **O que deve ser implementado:**
+  - Infraestrutura: `apps/portal/vercel.json` para projeto Vercel de HML (Root Directory `dc360/apps/portal`; arquivos fora da raiz: NÃO CONFIRMADO, alternativa `vercel deploy` por CLI); SPA; `VITE_API_URL` da variável do projeto.
+  - Infraestrutura: CSP com `default-src 'none'`, `script-src 'self'`, `style-src 'self'`, `font-src 'self'`, `img-src` e `connect-src` limitados ao próprio host, à API e ao bucket de HML, `frame-ancestors 'none'`; `no-referrer`, HSTS, `nosniff`.
+  - API: `URL_PORTAL` e `ORIGENS_PERMITIDAS` de HML ganham a origem; a trava de F01-E09 confere o sufixo.
+- **O que NÃO deve ser implementado nesta etapa:** produção (CP-08, CP-19), domínio próprio (CP-04), CSP em modo relatório.
+- **Arquivos e módulos prováveis:** `dc360/apps/portal/vercel.json` (a criar), `dc360/apps/api/src/config.ts`, `dc360/scripts/conferir-dominio.mjs`.
+- **Risco de segurança:** CSP ou CORS frouxos; bucket fora de `connect-src` quebra o anexo (E13).
+- **Impacto LGPD:** Não se aplica: sem dado.
+- **Migração necessária:** Não.
+- **Compatibilidade:** painel inalterado.
+- **Rollback:** apagar o projeto de HML.
+- **Testes positivos:** `conferir-dominio` verde (TLS, HSTS, preflight só da própria origem); `cabecalhos.test.ts` lê o `vercel.json`.
+- **Testes negativos:** `script` inline reprova `cabecalhos.test.ts`; origem desconhecida sem `access-control-allow-origin`.
+- **Testes de autorização e isolamento:** origem do portal de HML contra a API de PROD falha no preflight.
+- **Regressão obrigatória:** `npm run test:scripts`, `npm run test:api`; G01.
+- **E2E:** portal de HML no Playwright: zero `securitypolicyviolation`.
+- **Validação humana:** Rafael confere cadeado e cabeçalhos.
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E03/`.
+- **Documentação a atualizar:** `dc360/docs/VERCEL-PORTAL.md` (a criar).
+- **Definition of Done:** portal de HML no ar com CSP e CORS exatos.
+- **Checkpoint:** Não (domínio próprio espera CP-04).
+
+### V2-F11-E04 - Login do portal em dois passos: pessoa, depois município (audiência dc360-portal, sessão, refresh)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E05 a E07 usam o cliente)
+- **Objetivo:** dois passos: pessoa (e-mail e senha), depois município e órgão; token de UM município, plateia `dc360-portal`, que renova sem derrubar.
+- **Problema que resolve:** sem tela nem cliente; a pessoa global (D-08) tem vínculos em vários municípios.
+- **Origem:** DP:T03; DP:T28a; REL:06 13.3; PR:D-08.
+- **Estado atual:** CRIAR e EXPANDIR (rota de contexto).
+- **Dependências de entrada:** E02; F03-E07; F03-E16 e F03-E02 (login e token por município); F08-E04.
+- **O que deve ser implementado:**
+  - Frontend: `dados/api.ts`; `estado/sessao.tsx` (acesso em memória, renovação em `sessionStorage` do município atual); `Entrar` (passo 1; "Esqueci minha senha" com resposta igual) e `EscolherMunicipio` (passo 2; um só vínculo o pula).
+  - API: login e token: F03-E16, F03-E02. `GET /v1/portal/eu` (nova, plateia `dc360-portal`): município (`nome`, `uf`, `fuso`), `identidade` (E07) e `vinculos` do município do token (`orgaoId`, `sigla`, `papelNoOrgao`, `competencia`).
+- **O que NÃO deve ser implementado nesta etapa:** MFA (E05), convite (E06), shell (E07), troca com sessão aberta (E23).
+- **Arquivos e módulos prováveis:** `apps/portal/src/dados/api.ts` e `apps/api/src/rotas/portal.ts` (a criar).
+- **Risco de segurança:** o passo 2 só emite token para vínculo vigente lido do banco; `PORTAL_ATIVO=sim` só em HML.
+- **Impacto LGPD:** Não se aplica: lista só os vínculos da própria pessoa.
+- **Migração necessária:** Não.
+- **Compatibilidade:** rota aditiva.
+- **Rollback:** reverter e `PORTAL_ATIVO=nao`.
+- **Testes positivos:** Paulo (concessionária sintética, Serra Alta e Vale Fundo) escolhe Serra Alta; Maria (Obras) pula o passo 2; dez 401 simultâneos, uma renovação; `contrato-portal-rota.test.ts` verde.
+- **Testes negativos:** senha errada: mensagem genérica; município sem vínculo ou vínculo encerrado entre os passos: 404; coordenador no portal: 401; papel lido do token reprova `token-nao-e-autoridade.test.ts`.
+- **Testes de autorização e isolamento:** token de Serra Alta em recurso de Vale Fundo: 404; token do portal em `GET /v1/ocorrencias`: 401.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G03.
+- **E2E:** `entrar.e2e.mjs` (a criar): os dois passos e recarregar; teclado e estados (E20).
+- **Validação humana:** Rafael entra como Maria e como Paulo; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E04/` com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `apps/api/openapi/v1.json`.
+- **Definition of Done:** dois passos provados; token de um município.
+- **Checkpoint:** Não.
+
+### V2-F11-E05 - MFA da pessoa (enrolamento, verificação, recuperação)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E05 e E06 editam a tela de entrada)
+- **Objetivo:** a pessoa ativa o TOTP uma vez e entra com código ou código de recuperação; vale em todos os municípios dela.
+- **Problema que resolve:** o QR mora em `apps/web/src/componentes/qr.ts`; o segundo fator agora é da pessoa (D-08).
+- **Origem:** DP:T03; DP:K4; BZ-D:IDN-16; PR:D-08.
+- **Estado atual:** CRIAR (telas) e REFATORAR (`matrizQr` sai do painel).
+- **Dependências de entrada:** E04; F03-E11 (MFA da pessoa).
+- **O que deve ser implementado:**
+  - Domínio: `matrizQr` vai para `packages/shared/src/qr.ts` (subpath `@dc360/shared/qr`) e `qr.test.ts`; painel e portal importam dali.
+  - Frontend: o passo 1 de `Entrar` trata o desafio `codigo` (`autocomplete="one-time-code"`, recuperação) e `ativacao` (`POST /v1/segundo-fator/iniciar`: QR e segredo; `/confirmar`: recuperação UMA vez). Pedido na entrada, não por município; a troca (E23) segue o CP-50.
+  - UX: "Perdi o aparelho": redefinição por superior (regra de F03); sem opção de desligar o MFA.
+- **O que NÃO deve ser implementado nesta etapa:** reset por superior (E19), WebAuthn, atrito (CP-08).
+- **Arquivos e módulos prováveis:** `packages/shared/src/qr.ts` e `apps/portal/test/apoio/totp.mjs` (a criar), `apps/portal/src/paginas/Entrar.tsx`.
+- **Risco de segurança:** segredo TOTP na tela: sem log nem armazenamento, mostrado uma vez.
+- **Impacto LGPD:** Não se aplica: segredo cifrado no servidor.
+- **Migração necessária:** Não.
+- **Compatibilidade:** painel idêntico.
+- **Rollback:** reverter.
+- **Testes positivos:** Paulo ativa uma vez e entra nos dois municípios; recuperação vale uma vez; `qr.test.ts` verde.
+- **Testes negativos:** código reutilizado recusado; após `POST /v1/segundo-fator/desativar` o login devolve a ativação, nunca sessão; `PORTAL_ATIVO=sim` sem MFA: a API não sobe.
+- **Testes de autorização e isolamento:** ativação em `GET /v1/portal/eu`: 401; gestor de Serra Alta redefinindo MFA de pessoa sem vínculo no órgão dele: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm test`; G03.
+- **E2E:** `entrar.e2e.mjs`: ativação e login com `totp.mjs`; teclado e estados (E20).
+- **Validação humana:** Rafael ativa com autenticador real; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E05/` com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `README.md`.
+- **Definition of Done:** nenhum login de órgão sem segundo fator.
+- **Checkpoint:** CP-50 (troca pede novo código? quem redefine o MFA de pessoa com vários municípios; bloqueia a E23 em produção); atrito: CP-08 (F12-E06).
+
+### V2-F11-E06 - Convite e aceite de vínculo (UI): pessoa nova e pessoa já existente
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (edita a mesma entrada que E05)
+- **Objetivo:** a pessoa nova define a senha e segue ao MFA; a que já tem conta entra e aceita o novo vínculo.
+- **Problema que resolve:** o convite (F03-E10) aponta para `URL_PORTAL`, sem página; o e-mail convidado pode já ter conta noutro município.
+- **Origem:** DP:T04; BZ-D:IDN-19; BZ-M:V2-SEC-11; PR:D-08.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E04; F03-E10 (convite a pessoa nova ou já existente).
+- **O que deve ser implementado:**
+  - Frontend: `/convite` lê `token` da query e o remove da URL (`history.replaceState`); abrir não consome o link; mostra município, órgão e papel.
+  - Frontend: pessoa nova define a senha (`POST /v1/auth/redefinir`) e segue ao MFA (E05). Pessoa existente: o link NÃO cria vínculo; exige entrada (E04, E05) e então "Aceitar vínculo" ou "Recusar".
+  - Frontend: `exige_aceite` (F05-E06): aceite no primeiro acesso. Link inválido ou usado: "Este convite não vale mais. Peça outro ao gestor."
+- **O que NÃO deve ser implementado nesta etapa:** criar convite (E19), MFA (E05), e-mail real (CP-19), texto do aceite (CP-11).
+- **Arquivos e módulos prováveis:** `apps/portal/src/paginas/AceitarConvite.tsx` e `src/dados/convite.ts` (a criar).
+- **Risco de segurança:** o link é credencial: `no-referrer` (E03), token fora da URL; não dá acesso a conta existente.
+- **Impacto LGPD:** o aceite grava versão, usuário, município e IP (F05-E06).
+- **Migração necessária:** Não.
+- **Compatibilidade:** aditiva.
+- **Rollback:** reverter.
+- **Testes positivos:** `convite-url.test.ts` (token lido e URL limpa); Paulo, com conta em Serra Alta, aceita o vínculo de Vale Fundo e o vê no passo 2.
+- **Testes negativos:** segundo uso e link vencido: mesma tela; senha curta: erro de campo; convidar e-mail novo ou existente: mesma resposta.
+- **Testes de autorização e isolamento:** convite de Serra Alta não cria vínculo em Vale Fundo; link aberto por outra pessoa: recusado.
+- **Regressão obrigatória:** `npm run test:api` (`convite`, `recuperacao`); G03.
+- **E2E:** `convite.e2e.mjs`: pessoa nova e existente; teclado e estados (E20).
+- **Validação humana:** Rafael convida uma pessoa nova e uma existente; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E06/` com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/LIGAR-O-EMAIL.md`.
+- **Definition of Done:** convite aceito nos dois casos.
+- **Checkpoint:** Não (e-mail real: CP-19).
+
+### V2-F11-E07 - Shell, navegação e tema (identidade DC360 e do município)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E04 a E06, em arquivos de layout próprios)
+- **Objetivo:** moldura autenticada com marca DC360, identidade do município (nome, logotipo, cor), órgão atual e tema claro e escuro.
+- **Problema que resolve:** D-11: logotipo, nome e cor do município, com AA validado (F08-E10).
+- **Origem:** DP:T17; DP:T16; DP:T29; BZ-D:UXD-42; PR:D-11.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E02; F08-E10; F08-E11 (dados de E04; antes, fixture).
+- **O que deve ser implementado:**
+  - Frontend: `Estrutura.tsx`: marca DC360, logotipo do município (`<img>` própria, com `alt`) e "Defesa Civil de <município>, <UF>"; órgão e papel; "Minha conta", "Sair"; navegação (Início, Encaminhamentos, Busca, Equipe só gestor); lugar do sino (E17), seletor (E23) e idioma (E27); "pular para o conteúdo"; foco no `main`.
+  - Frontend: `identidade.tema` só pelos cinco tokens de destaque (F08-E11); sem identidade, ou cor recusada, vale o violeta DC360. Rotas `/o/:orgaoId/...`; `localStorage` só para o tema; `forced-colors`; alvos de 44 px.
+- **O que NÃO deve ser implementado nesta etapa:** telas de dados, seletor (E23), idioma (E27), cadastro do logotipo e da cor (F35-E02 a E05), tema por secretaria.
+- **Arquivos e módulos prováveis:** `apps/portal/src/estrutura/` e `apps/portal/src/estilos/app.css` (a criar).
+- **Risco de segurança:** `orgaoId` da URL só vale com vínculo vigente (servidor); cor só em hexadecimal validado.
+- **Impacto LGPD:** Não se aplica: município e o próprio usuário.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: tela nova.
+- **Rollback:** reverter.
+- **Testes positivos:** `renderToStaticMarkup` traz "pular", `main` e `aria-current`; a cor de prova resolve os cinco tokens.
+- **Testes negativos:** `/o/<órgão sem vínculo>`: "Não encontrado"; cor recusada ou `logotipoUrl` externa cai no DC360; sobrescrever `--ds-danger` reprova.
+- **Testes de autorização e isolamento:** Maria na URL da Saúde: 404; o cabeçalho nunca traz outro município.
+- **Regressão obrigatória:** `npm test`, `npm run test:scripts`; G08.
+- **E2E:** `navegacao.e2e.mjs`: Tab, "pular" e tema, com a identidade de Serra Alta e a de Vale Fundo; teclado e estados (E20).
+- **Validação humana:** Rafael vê o shell nos dois temas e identidades; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E07/` com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/DESIGN-SYSTEM.md`.
+- **Definition of Done:** shell navegável por teclado, com a identidade do município.
+- **Checkpoint:** Não.
+
+### V2-F11-E08 - Dashboard do órgão (contadores e indicadores do próprio órgão)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E09, páginas próprias)
+- **Objetivo:** página inicial com contadores por estado e prazo, indicadores do PRÓPRIO órgão (tempo de resposta, taxa de atendimento) e atalhos.
+- **Problema que resolve:** a providência vencida não gera aviso (REL:05 gap 13) e o órgão não vê como atende (D-19).
+- **Origem:** BZ-M:V2-SEC-05; DP:T12; REL:05; PR:D-19.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E07; F04-E08; F04-E10; F10-E21 (indicadores por órgão).
+- **O que deve ser implementado:**
+  - API: `GET /v1/orgaos/:orgaoId/encaminhamentos/resumo` (nova, ação `ler_encaminhamento_do_orgao`): contagens por `estado` e `situacaoDoPrazo` (`no_prazo`, `sem_aceite`, `vencido`), sob a RLS.
+  - API: `GET /v1/orgaos/:orgaoId/indicadores` (nova, mesma ação): tempo até o aceite e até a resposta (mediana, 30 dias) e taxa de atendimento (respondidos no prazo), pelo cálculo de F10-E21; só o órgão da rota; menos de 5 casos: "poucos casos".
+  - Frontend: `Inicio.tsx`: cartões "Aguardando aceite", "Em andamento", "Aguardando a Defesa Civil", "Respondidos", "Devolvidos"; bloco "Como o órgão está atendendo"; faixa "Atenção"; cartões são links para a caixa filtrada (E09); ícone e texto; vazio, carregando e erro.
+- **O que NÃO deve ser implementado nesta etapa:** exportação, indicador de outro órgão, soma entre municípios.
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/encaminhamentos-do-orgao.ts`, `apps/portal/src/paginas/Inicio.tsx` e `apps/api/test/indicadores-do-orgao.test.ts` (a criar).
+- **Risco de segurança:** total que soma outro órgão vaza (RLS); poucos casos reidentificam (piso de 5).
+- **Impacto LGPD:** Não se aplica: só números.
+- **Migração necessária:** Não.
+- **Compatibilidade:** rota aditiva.
+- **Rollback:** reverter rota e tela.
+- **Testes positivos:** Maria vê 3 enviados, 1 aceito e 1 vencido da semente; contadores e indicadores batem com a contagem manual.
+- **Testes negativos:** órgão sem encaminhamento: vazio; `vencido` é situação, nunca estado; `indicadores` sem campo de outro órgão nem posição.
+- **Testes de autorização e isolamento:** João (Saúde) em `.../<id da Obras>/encaminhamentos/resumo` e `.../indicadores`: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G04.
+- **E2E:** `inicio.e2e.mjs`: contadores, indicadores e atalho; teclado e estados (E20).
+- **Validação humana:** Rafael compara os números com Maria e João; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E08/` com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `apps/api/openapi/v1.json`.
+- **Definition of Done:** contadores e indicadores corretos, isolados por órgão.
+- **Checkpoint:** Não.
+
+### V2-F11-E09 - Caixa de entrada de encaminhamentos (filtros, estados, município)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com E08)
+- **Objetivo:** lista do órgão com filtros por estado, prazo, atribuição e município, ordenada pelo prazo efetivo, que diz o município de cada item.
+- **Problema que resolve:** o órgão não tem caixa (REL:05 gap 7); com pessoa global, dois municípios se confundem sem sinal claro.
+- **Origem:** DP:T13; DP:T07; BZ-M:V2-SEC-03; REL:05 16; PR:D-08.
+- **Estado atual:** CRIAR (tela) e EXPANDIR (lista de F04-E08).
+- **Dependências de entrada:** E07; E23; F04-E08.
+- **O que deve ser implementado:**
+  - API: `GET /v1/orgaos/:orgaoId/encaminhamentos` aceita `estado`, `situacao`, `atribuidoA=eu` (CP-20), `pagina`, `limite` (teto 50); ordem pelo prazo efetivo; lista de inclusão (id, ofício, estado, prazo, descrição, destinatário), sem `ocorrenciaId`; um município por token.
+  - Frontend: `Caixa.tsx`: tabela com `caption`, colunas ordenáveis por botão, primeira célula link ao detalhe, filtros em `fieldset` na URL, selo de estado com ícone e texto, coluna "Município", total em `aria-live`; filtro "Município": o atual ou "Todos" (E29). Competência e escalonamento: E28.
+- **O que NÃO deve ser implementado nesta etapa:** busca (E18), ação em lote, exportação, mistura de municípios no servidor.
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/encaminhamentos-do-orgao.ts`, `apps/portal/src/paginas/Caixa.tsx` e `apps/api/test/caixa-do-orgao.test.ts` (a criar).
+- **Risco de segurança:** `orgaoId` trocado na URL: 404; campo fora do contrato vaza ocorrência.
+- **Impacto LGPD:** só a descrição escrita pela Defesa Civil.
+- **Migração necessária:** Não.
+- **Compatibilidade:** parâmetros aditivos.
+- **Rollback:** reverter.
+- **Testes positivos:** filtro por estado e por `vencido`; a ordem respeita a pausa; paginação; toda linha traz o município.
+- **Testes negativos:** `limite=1000` e `estado=inexistente`: 422; resposta sem `ocorrenciaId`.
+- **Testes de autorização e isolamento:** Maria em `.../<id da Saúde>/encaminhamentos`: 404; `atribuidoA=eu` só traz os dele; coordenador em rota do órgão: 401; Paulo em Serra Alta nunca recebe item de Vale Fundo.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G04.
+- **E2E:** `caixa.e2e.mjs`: filtros e Enter no link; teclado e estados (E20).
+- **Validação humana:** Rafael lista com Maria, João e Ana; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E09/` com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `apps/api/openapi/v1.json`.
+- **Definition of Done:** caixa filtrada, paginada, isolada por órgão, com município.
+- **Checkpoint:** Não.
+
+### V2-F11-E10 - Detalhe do encaminhamento: dossiê mínimo, linha do tempo e ações desabilitadas com motivo
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E11 a E16 partem desta tela)
+- **Objetivo:** tela com dossiê mínimo, prazo, responsável e ações; a ação não permitida fica desabilitada, com o motivo.
+- **Problema que resolve:** o ofício atual leva nome do solicitante e vulnerabilidade a qualquer órgão (`apps/api/src/oficios/documento.ts`).
+- **Origem:** DP:T07; DP:T13; BZ-D:SEC-58; BZ-M:V2-SEC-03; PR:D-23.
+- **Estado atual:** CRIAR (tela) e EXPANDIR (`GET .../:id` ganha `acoesPossiveis`).
+- **Dependências de entrada:** E09; F04-E04; F04-E08.
+- **O que deve ser implementado:**
+  - API: `GET /v1/orgaos/:orgaoId/encaminhamentos/:id` devolve `acoesPossiveis`: lista de `{ acao, permitida, motivo }` para `aceitar`, `responder`, `devolver`, `pedir_esclarecimento`, calculada no servidor (motivos `ja_aceito`, `somente_leitura`, `sem_atribuicao`, `encerrado`); `POST .../visualizacao` grava `visualizado`.
+  - Frontend: `Encaminhamento.tsx`: cabeçalho (número, município, selo de estado, prazo), "O que a Defesa Civil enviou" pelos rótulos de `CAMPOS_DO_DOSSIE` (sensível marcado por ícone e texto) e ações (`src/acoes/`): a não permitida fica DESABILITADA com o motivo visível (`aria-disabled`, nunca só dica); `concluido` e `cancelado` somente leitura. Competência e escalonamento: E28.
+- **O que NÃO deve ser implementado nesta etapa:** ações (E11, E13 a E15), histórico (E16), ocorrência, mapa, fotos.
+- **Arquivos e módulos prováveis:** `apps/portal/src/paginas/Encaminhamento.tsx` e `src/acoes/` (a criar), `apps/api/src/rotas/encaminhamentos-do-orgao.ts`.
+- **Risco de segurança:** campo fora do contrato vaza ocorrência (lista de inclusão, teste de chaves); sem `dangerouslySetInnerHTML`.
+- **Impacto LGPD:** só o snapshot do dossiê; nenhum dado vivo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** campo aditivo.
+- **Rollback:** reverter.
+- **Testes positivos:** dossiê padrão aparece; executor em `enviado`: aceitar e devolver permitidos; depois do aceite `devolver` vem `permitida: false` com `ja_aceito`.
+- **Testes negativos:** resposta sem `ocorrenciaId`; GET não escreve evento; leitor: todas `somente_leitura`; `concluido`: aceite 409; `<script>` sai como texto.
+- **Testes de autorização e isolamento:** usuário da Saúde lê `.../<id da Obras>/encaminhamentos/<id>`: 404; item atribuído a outro executor: 403 (F04-E13).
+- **Regressão obrigatória:** `npm run test:api` (`portal-cenarios-negativos`), `npm run test:isolamento`; G04.
+- **E2E:** `detalhe.e2e.mjs`: Maria vê só o dossiê e o motivo da ação desabilitada; teclado e estados (E20).
+- **Validação humana:** Alyson lê o detalhe como Maria; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E10/` com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/PRIVACIDADE.md`.
+- **Definition of Done:** detalhe só com o dossiê e ações do servidor.
+- **Checkpoint:** Não.
+
+### V2-F11-E11 - Aceite nominal e responsável
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com E14 e E15, um arquivo de ação cada)
+- **Objetivo:** o executor ou o gestor aceita o encaminhamento e vira o responsável nominal; o aceite é evento.
+- **Problema que resolve:** não existe aceite e `responsavel` é texto livre (BZ-D:SEC-24).
+- **Origem:** BZ-M:V2-SEC-03; DP:T13; DP:K22; BZ-D:SEC-12.
+- **Estado atual:** CRIAR (tela); consome `POST .../aceite` de F04-E08.
+- **Dependências de entrada:** E10; F04-E08.
+- **O que deve ser implementado:**
+  - Frontend: `src/acoes/Aceitar.tsx`: `ConfirmarAcao` (o botão repete o verbo e o objeto, foco em Cancelar) com "Você será o responsável: <nome>. O prazo é <data>."; chave de idempotência (F02-E07); o selo vira "Em andamento".
+  - API: sem rota nova; confere a transição `enviado` para `aceito` (shared e gatilho) e a ação `aceitar_encaminhamento`; atribuição por pessoa ou por órgão segue CP-20.
+- **O que NÃO deve ser implementado nesta etapa:** atribuir ou reatribuir (CP-20, F12), recusar sem motivo (E15), aceite em lote.
+- **Arquivos e módulos prováveis:** `apps/portal/src/acoes/Aceitar.tsx` (a criar), `apps/portal/src/dados/api.ts`.
+- **Risco de segurança:** aceite duplo: `UPDATE ... WHERE estado = 'enviado'` (F04-E07); o segundo recebe 409.
+- **Impacto LGPD:** nome do responsável é dado de servidor já classificado.
+- **Migração necessária:** Não.
+- **Compatibilidade:** aditiva.
+- **Rollback:** reverter.
+- **Testes positivos:** o executor aceita e vira `aceito_por`; evento `aceito` com autor nominal; a Defesa Civil recebe aviso (F04-E11).
+- **Testes negativos:** leitor: 403 `sem_permissao`; aceitar `concluido`: 409 `encaminhamento_encerrado`; dois aceites simultâneos: um 200 e um 409; `aceitoPor` no corpo: 422.
+- **Testes de autorização e isolamento:** João (Saúde) aceita encaminhamento da Obras: 404; vínculo encerrado entre abrir e confirmar: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G04.
+- **E2E:** parte do fluxo C (E22); teclado, foco, nunca só cor e os quatro estados (E20).
+- **Validação humana:** a secretaria piloto testa o texto (F12-E02). Portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E11/`. Com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** aceite nominal provado com concorrência.
+- **Checkpoint:** Não.
+
+### V2-F11-E12 - Prazo e visibilidade do prazo (pausa em aguardando_dc)
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E14 e E15, componente próprio)
+- **Objetivo:** mostrar o prazo efetivo, a situação derivada e a pausa em `aguardando_dc`, sem permitir editar.
+- **Problema que resolve:** o prazo é fixo, sem pausa nem prorrogação, e o vencimento não avisa (REL:05 gaps 13 e 14).
+- **Origem:** BZ-M:V2-SEC-05; DP:T12; DP:K1.
+- **Estado atual:** CRIAR (exibição); consome F04-E10.
+- **Dependências de entrada:** E10; F04-E10.
+- **O que deve ser implementado:**
+  - API: lista e detalhe devolvem `prazoEfetivoEm`, `pausadoDesde` e `situacao`, calculados por `situacaoDoPrazo` (shared, F04-E10); a tela não recalcula.
+  - Frontend: `apps/portal/src/componentes/Prazo.tsx`: data no fuso do município de `portal/eu` (F08-E09), tempo restante por extenso, selo com ícone e texto (No prazo, Sem aceite, Vencido, Pausado), `<time datetime>`; em `aguardando_dc`: "O prazo está pausado porque o órgão pediu esclarecimento"; `prazo_alterado` mostra antes, depois e motivo.
+- **O que NÃO deve ser implementado nesta etapa:** editar ou prorrogar prazo (só a DC), pedido de prorrogação (é esclarecimento, E14), lembretes (E17), percentuais finais (CP-21).
+- **Arquivos e módulos prováveis:** `apps/portal/src/componentes/Prazo.tsx` (a criar), `apps/api/src/rotas/encaminhamentos-do-orgao.ts`.
+- **Risco de segurança:** prazo errado faz a secretaria agir tarde: um só cálculo, no servidor e no shared.
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** campos aditivos.
+- **Rollback:** reverter.
+- **Testes positivos:** a pausa de 2 horas empurra o prazo efetivo em 2 horas (F04-E10); `renderToStaticMarkup` traz `<time>` e o selo.
+- **Testes negativos:** sem campo de edição; `POST .../prazo` (rota da DC) com token do portal: 401.
+- **Testes de autorização e isolamento:** João não vê o prazo da Obras: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm test`; G04.
+- **E2E:** relógio simulado em HML: o selo muda de "No prazo" para "Vencido"; teclado, foco, nunca só cor e os quatro estados (E20).
+- **Validação humana:** Rafael confere o selo nos três casos. Portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E12/`. Com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/DESIGN-SYSTEM.md`.
+- **Definition of Done:** prazo e pausa exibidos sem recálculo.
+- **Checkpoint:** Não (valores finais em F12-E03, CP-21).
+
+### V2-F11-E13 - Resposta com anexos (upload da secretaria pela cadeia segura)
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** crítica  |  **Risco:** crítico  |  **Paralelizável:** não (exige G07)
+- **Objetivo:** o responsável responde com texto e até 10 imagens pela cadeia segura (F06) e pelo worker (F07).
+- **Problema que resolve:** a resposta é digitada pela DC (`apps/api/src/rotas/ocorrencias.ts:1038`); `evidencias` só aceita foto do agente.
+- **Origem:** BZ-M:V2-SEC-06; DP:T23; DP:T24; DP:T25; ALY:FLU-02.
+- **Estado atual:** CRIAR e EXPANDIR (resposta).
+- **Dependências de entrada:** E10; G07; F06-E09; F04-E08.
+- **O que deve ser implementado:**
+  - Frontend: `src/acoes/Responder.tsx`: desfecho, texto e imagens JPEG ou PNG; por arquivo: `POST /v1/arquivos/autorizar` (classe `anexo_secretaria`, `encaminhamentoId`), PUT na URL assinada, `POST /v1/arquivos/:id/confirmar`, estado (`em_verificacao`, `ativo`, `rejeitado`); envia só com todos `ativo`.
+  - API: `POST .../:id/resposta` aceita `anexoIds` (`ativo`, do mesmo encaminhamento, até 10); `GET .../:id/anexos` e `.../anexos/:arquivoId/url` (após o teste de acesso); `GET /v1/encaminhamentos/:id/anexos` para a DC.
+  - Infraestrutura: limites de F06-E06 (imagem até 15 MB); HML com `ARQUIVOS_EXTERNOS_ATIVO=sim`, `EXECUTOR_DE_ARQUIVOS=fila` e CORS do bucket com a origem do portal.
+- **O que NÃO deve ser implementado nesta etapa:** PDF (CP-12, só após o scanner de F06-E14), vídeo, promoção a prova (F06-E12), produção.
+- **Arquivos e módulos prováveis:** `apps/portal/src/acoes/Responder.tsx` (a criar), `apps/api/src/rotas/arquivos.ts`.
+- **Risco de segurança:** arquivo hostil de terceiro: bytes validados no worker, derivado sem EXIF, URL curta.
+- **Impacto LGPD:** EXIF removido (F06-E07); retenção em CP-10.
+- **Migração necessária:** Não.
+- **Compatibilidade:** aditiva.
+- **Rollback:** `ARQUIVOS_EXTERNOS_ATIVO=nao`.
+- **Testes positivos:** resposta com 2 JPEG sintéticos: `ativo`, `respondido`; a DC lê os anexos.
+- **Testes negativos:** PDF renomeado `.jpg`: `tipo_nao_confere`; 16 MB: recusado; worker parado: 503 `verificacao_indisponivel`; `anexoIds` alheios: 404.
+- **Testes de autorização e isolamento:** usuário da Saúde autoriza anexo no encaminhamento da Obras: 404; URL do anexo da Obras para João: 404; nada no laudo.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G06, G07.
+- **E2E:** fluxo C com imagem sintética em HML (E22); teclado, foco, nunca só cor e os quatro estados (E20).
+- **Validação humana:** Rafael sobe PDF e imagem falsos. Portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E13/`. Com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/ARMAZENAMENTO.md`.
+- **Definition of Done:** anexo só ativo pelo worker; nenhum anexo vira prova de laudo.
+- **Checkpoint:** Não (PDF: CP-12).
+
+### V2-F11-E14 - Pedido de esclarecimento à Defesa Civil (aguardando_dc)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E15, um arquivo de ação cada)
+- **Objetivo:** o responsável pergunta à DC (`aceito` para `aguardando_dc`), o prazo pausa e a resposta volta a `aceito`.
+- **Problema que resolve:** o órgão não pode pedir complemento (BZ-D:SEC-28) e o relógio corre contra ele.
+- **Origem:** DP:T13; BZ-D:SEC-28; BZ-M:V2-SEC-04; DP:K1.
+- **Estado atual:** CRIAR (tela); consome `.../esclarecimento` de F04-E08.
+- **Dependências de entrada:** E10; F04-E08.
+- **O que deve ser implementado:**
+  - Frontend: `src/acoes/PedirEsclarecimento.tsx`: "Qual é a sua dúvida?" (20 a 1000 caracteres), aviso "O prazo fica pausado até a Defesa Civil responder", `ConfirmarAcao`; o selo vira "Aguardando a Defesa Civil"; mostra a resposta da DC (`POST /v1/encaminhamentos/:id/esclarecimento/resposta`).
+  - API: sem rota nova: evento `esclarecimento_solicitado`, pausa por gatilho (F04-E10), aviso à DC (F04-E11); a tela da DC para responder é de F10-E05 (se faltar, ajuste em F12-E05).
+- **O que NÃO deve ser implementado nesta etapa:** chat livre (fora da V2), anexo no esclarecimento, outro órgão como destinatário.
+- **Arquivos e módulos prováveis:** `apps/portal/src/acoes/PedirEsclarecimento.tsx` (a criar), `apps/api/src/rotas/encaminhamentos-do-orgao.ts`.
+- **Risco de segurança:** pausa usada para esticar prazo: evento visível à DC (medida em F12-E03).
+- **Impacto LGPD:** texto livre: a tela orienta a não escrever dado de solicitante.
+- **Migração necessária:** Não.
+- **Compatibilidade:** aditiva.
+- **Rollback:** reverter.
+- **Testes positivos:** o executor pede, o estado vira `aguardando_dc` e `pausado_em` grava; a DC responde e volta `aceito` com `pausa_acumulada`.
+- **Testes negativos:** pedir em `enviado`: 409 `transicao_invalida`; menos de 20 caracteres: erro de campo; segundo pedido em `aguardando_dc`: 409; leitor: 403.
+- **Testes de autorização e isolamento:** João pede esclarecimento no encaminhamento da Obras: 404; rota de resposta da DC com token do portal: 401.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G04.
+- **E2E:** `esclarecimento.e2e.mjs`: pedir, ver a pausa, DC responde; teclado, foco, nunca só cor e os quatro estados (E20).
+- **Validação humana:** a secretaria piloto lê o aviso (F12-E02). Portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E14/`. Com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** pedido, pausa e resposta provados.
+- **Checkpoint:** Não.
+
+### V2-F11-E15 - Devolução com motivo e destino sugerido (só antes do aceite)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E14)
+- **Objetivo:** antes do aceite a secretaria devolve com motivo e sugere destino; nunca transfere; depois do aceite a ação fica desabilitada, com o motivo.
+- **Problema que resolve:** só há o desfecho `recusada`, digitado pela DC; transferir levaria dado de família entre órgãos (D-23).
+- **Origem:** DP:T11; BZ-M:V2-SEC-04; BZ-D:SEC-26; REL:05 D2; PR:D-23.
+- **Estado atual:** CRIAR (tela); consome `POST .../devolucao` e `GET .../catalogo-de-destinos` (F04-E08).
+- **Dependências de entrada:** E10; F04-E08.
+- **O que deve ser implementado:**
+  - Frontend: `Devolver.tsx`: motivo (lista fechada, com "Fora da competência do órgão", e texto de 20 a 1000 caracteres), "Sugerir outro órgão" (catálogo: id, nome, sigla), aviso "Você não transfere: a Defesa Civil decide", `ConfirmarAcao`.
+  - Frontend: após o aceite "Devolver" fica desabilitado: "Depois do aceite não é possível devolver. Peça esclarecimento." (E14), por `acoesPossiveis` (E10).
+  - API: motivo e `destinoSugeridoId` no evento `devolvido` (F04-E03); só em `enviado`; em `aceito`: 409 `devolucao_apos_aceite`.
+- **O que NÃO deve ser implementado nesta etapa:** transferir, reencaminhar (F10-E05), devolução em lote.
+- **Arquivos e módulos prováveis:** `apps/portal/src/acoes/Devolver.tsx` (a criar), `apps/api/src/rotas/encaminhamentos-do-orgao.ts`.
+- **Risco de segurança:** a sugestão virar acesso: o órgão sugerido não lê nada.
+- **Impacto LGPD:** motivo é texto livre: a tela orienta a não escrever nome.
+- **Migração necessária:** Não.
+- **Compatibilidade:** aditiva.
+- **Rollback:** reverter.
+- **Testes positivos:** devolução com motivo e sugestão grava o evento; a DC vê os dois.
+- **Testes negativos:** sem motivo: 422; sugerir o próprio órgão ou de outro município: 422; devolver `aceito`: 409 `devolucao_apos_aceite`; botão desabilitado não envia requisição.
+- **Testes de autorização e isolamento:** Obras sugere Saúde e a Saúde segue com 404 na Obras; `catalogo-de-destinos` sem contato; reencaminhar com token do portal: 401.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G04.
+- **E2E:** fluxo D (E22) e `devolucao.e2e.mjs`: devolve antes do aceite; depois, botão desabilitado com motivo.
+- **Validação humana:** a secretaria piloto avalia o aviso; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E15/` com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** devolução provada só antes do aceite.
+- **Checkpoint:** Não (regra decidida em D-23; CP-20 segue para a atribuição).
+
+### V2-F11-E16 - Histórico do encaminhamento (eventos sem vazamento)
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E14 e E15, componente próprio)
+- **Objetivo:** linha do tempo com os eventos visíveis ao órgão, em ordem, com autor nominal.
+- **Problema que resolve:** a trilha da ocorrência mistura fatos que o órgão não pode ver (REL:05 14).
+- **Origem:** BZ-M:V2-SEC-10; DP:T13; BZ-D:SEC-36.
+- **Estado atual:** CRIAR (tela); consome eventos de F04-E03.
+- **Dependências de entrada:** E10; F04-E03; F04-E08.
+- **O que deve ser implementado:**
+  - API: `GET .../:id` devolve `eventos` só com `visivel_ao_orgao` (tipo, `autor_nome`, `autor_papel`, `ocorrido_em`, `motivo`, `detalhe` permitido por tipo); `reencaminhado` e tudo do encaminhamento pai ficam fora.
+  - Frontend: `apps/portal/src/componentes/LinhaDoTempo.tsx`: `<ol>` ordenada, ícone e texto por tipo (aceito, devolvido com destino sugerido, esclarecimento, complemento solicitado, prazo alterado, cobrado, escalonado com nível e quem foi avisado, concluído), data, hora e papel por extenso; `visualizado` agrupado.
+- **O que NÃO deve ser implementado nesta etapa:** trilha da ocorrência (só a DC), exportar histórico, nota interna da DC, editar evento.
+- **Arquivos e módulos prováveis:** `apps/portal/src/componentes/LinhaDoTempo.tsx` (a criar), `apps/api/src/rotas/encaminhamentos-do-orgao.ts`.
+- **Risco de segurança:** vazar o destino do reencaminhamento ou a resposta de outro órgão: filtro por RLS e teste.
+- **Impacto LGPD:** nomes de servidores já classificados; `detalhe` sem dado de solicitante (F04-E03).
+- **Migração necessária:** Não.
+- **Compatibilidade:** aditiva.
+- **Rollback:** reverter.
+- **Testes positivos:** enviado, visualizado, aceito e respondido aparecem em ordem; a devolução mostra a sugestão.
+- **Testes negativos:** `reencaminhado` não aparece ao órgão que devolveu; o filho não mostra eventos do pai; `visivel_ao_orgao=false` ausente; não há rota de editar evento.
+- **Testes de autorização e isolamento:** João não lê eventos da Obras: 404; evento com `orgao_id` diferente do encaminhamento é recusado pelo banco (F04-E03).
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G04.
+- **E2E:** `historico.e2e.mjs`: fluxo C e a ordem dos eventos; teclado, foco, nunca só cor e os quatro estados (E20).
+- **Validação humana:** Rafael confere que nada interno da DC aparece. Portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E16/`. Com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** histórico ordenado e sem evento invisível.
+- **Checkpoint:** Não.
+
+### V2-F11-E17 - Notificações por município (e-mail e sino)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (usa a fila de F07)
+- **Objetivo:** e-mail e sino quando um encaminhamento chega, é cobrado, vence ou escala; cada aviso diz o município.
+- **Problema que resolve:** a providência vencida não gera aviso (REL:05 gap 13); avisos de municípios se misturam.
+- **Origem:** DP:T31; DP:T12; BZ-D:SEC-37; PR:D-08; PR:D-18.
+- **Estado atual:** CRIAR (e-mail e sino) e EXPANDIR (`avisos_do_orgao`).
+- **Dependências de entrada:** E10; E23; F04-E10; F04-E11; F07-E02; F04-E16 (escalonamento).
+- **O que deve ser implementado:**
+  - Banco: `avisos_do_orgao` ganha `email_enviado_em` e `email_tentativas`; idempotente pela `chave_do_fato`.
+  - API: `notificar.ts` e trabalho `notificar_orgao` (F07), POR MUNICÍPIO, ao destinatário, aos gestores e a quem o escalonamento de F04-E16 avisou; o e-mail leva município, órgão, tipo do fato e link, nunca protocolo, endereço, descrição, nome ou anexo; pt-BR até a F35.
+  - Frontend: `Sino.tsx`: lista do município atual e "marcar como lidos"; vazio e erro. Consolidado entre municípios: E29.
+- **O que NÃO deve ser implementado nesta etapa:** push, SMS, preferências, e-mail consolidado entre municípios, e-mail real (CP-19).
+- **Arquivos e módulos prováveis:** `apps/api/src/encaminhamentos/notificar.ts` e `apps/portal/src/componentes/Sino.tsx` (a criar).
+- **Risco de segurança:** e-mail com dado de família; aviso de um município no sino de outro.
+- **Impacto LGPD:** a mensagem não leva dado de ocorrência.
+- **Migração necessária:** Sim (`NNN_avisos_do_orgao_email.sql`).
+- **Compatibilidade:** aditiva.
+- **Rollback:** `EMAIL_ATIVO=nao`.
+- **Testes positivos:** `enviado` gera aviso e e-mail ao gestor e ao executor; `escalonado` avisa o nível acima; Paulo recebe um e-mail por município.
+- **Testes negativos:** segunda rodada não reenvia; mensagem sem protocolo, endereço ou nome; vínculo encerrado não recebe; assunto sem município reprova.
+- **Testes de autorização e isolamento:** aviso de A invisível a B; o GET do sino não escreve; o token de Serra Alta nunca lista aviso de Vale Fundo.
+- **Regressão obrigatória:** `npm run migrar -- --conferir`, `npm run test:api`; G04.
+- **E2E:** `sino.e2e.mjs`: a DC encaminha e o sino mostra +1; teclado e estados (E20).
+- **Validação humana:** Rafael lê o e-mail; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E17/` com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/LIGAR-O-EMAIL.md`.
+- **Definition of Done:** avisos idempotentes, por município, sem dado de ocorrência.
+- **Checkpoint:** CP-19 (e-mail real).
+
+### V2-F11-E18 - Busca no portal restrita ao órgão
+- **Prioridade:** P2
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E19, arquivos próprios)
+- **Objetivo:** caixa de busca que só encontra encaminhamentos do próprio órgão e do município atual.
+- **Problema que resolve:** a `/busca` do painel devolve ocorrências, usuários, equipes e órgãos a qualquer autenticado (BZ-D:SEC-56).
+- **Origem:** DP:T07; BZ-D:SEC-56; REL:05 2.4.
+- **Estado atual:** CRIAR (tela); consome o grupo `encaminhamento` de F04-E09.
+- **Dependências de entrada:** E09; F04-E09.
+- **O que deve ser implementado:**
+  - Frontend: campo `role="search"` no shell; chama a busca do órgão de F04-E09 (confirmar na execução se vive em `/v1/busca` com ação própria ou em `/v1/orgaos/:orgaoId`, sempre com plateia `dc360-portal`); mínimo de 2 caracteres; resultados na tabela da caixa; total em `aria-live`; sem sugestão por digitação; termo só em memória.
+  - UX: vazio ("Nada encontrado neste órgão"), erro e o limite de 60 por minuto com mensagem.
+- **O que NÃO deve ser implementado nesta etapa:** busca em ocorrências, usuários ou órgãos; sugestão por digitação (vaza por contagem); busca entre órgãos.
+- **Arquivos e módulos prováveis:** `apps/portal/src/componentes/Busca.tsx` (a criar), `apps/api/src/rotas/busca.ts`.
+- **Risco de segurança:** vazar por contagem, ranking ou sugestão: leitura sob RLS, total só do órgão.
+- **Impacto LGPD:** o termo não é gravado (F04-E09) nem logado pelo portal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** aditiva.
+- **Rollback:** reverter.
+- **Testes positivos:** Maria busca "bueiro" e acha só o da Obras.
+- **Testes negativos:** termo só da Saúde: vazio para Maria; `q` com 1 caractere: erro de campo; `q` com 500 caracteres: 422; 61ª busca no minuto: 429.
+- **Testes de autorização e isolamento:** o total de João nunca soma a Obras; Paulo em Serra Alta, com termo só de Vale Fundo: vazio; a resposta do portal só tem o grupo `encaminhamento` (teste de chaves).
+- **Regressão obrigatória:** `npm run test:api` (`busca`), `npm run test:isolamento`; G04.
+- **E2E:** `busca.e2e.mjs`: buscar e abrir o resultado; teclado, foco, nunca só cor e os quatro estados (E20).
+- **Validação humana:** Rafael busca com Maria e com João. Portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E18/`. Com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `apps/api/openapi/v1.json`.
+- **Definition of Done:** busca só do órgão, sem sugestão nem vazamento por total.
+- **Checkpoint:** Não.
+
+### V2-F11-E19 - Gestão de usuários do órgão pelo gestor (vínculos)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E18, arquivos próprios)
+- **Objetivo:** o gestor convida pessoa (nova ou existente), lista, encerra vínculo e pede reset de MFA no órgão; cada pessoa gere a própria conta.
+- **Problema que resolve:** toda troca de pessoa depende da DC (T37); o gestor controla o VÍNCULO, não a conta (D-08).
+- **Origem:** DP:T37; BZ-M:V2-SEC-11; BZ-D:SEC-04; PR:D-08.
+- **Estado atual:** CRIAR (telas); consome F10-E03 e o reset de F03-E11.
+- **Dependências de entrada:** E04; E06; F10-E03; F03-E05 (vínculo da pessoa).
+- **O que deve ser implementado:**
+  - Frontend: `Equipe.tsx` (só gestor): vínculos com papel, situação e MFA; "Convidar pessoa" (e-mail novo ou existente, mesma resposta), "Encerrar vínculo" (só neste órgão), "Redefinir segundo fator" com motivo; nunca sobre si.
+  - Frontend: `MinhaConta.tsx`: `POST /v1/auth/trocar-senha` (vale em todos os municípios), `POST /v1/auth/encerrar-sessoes`, MFA e os próprios vínculos.
+  - API: rotas de F10-E03 com plateia `dc360-portal`, ação "Vínculos de órgão: gerenciar" e escopo `orgao`; se faltar, reexecuta a matriz de F03-E13.
+- **O que NÃO deve ser implementado nesta etapa:** promover a gestor (só a DC), mover pessoa entre órgãos, desativar a conta.
+- **Arquivos e módulos prováveis:** `apps/portal/src/paginas/Equipe.tsx` e `MinhaConta.tsx` (a criar), `apps/api/src/rotas/administracao.ts`.
+- **Risco de segurança:** gestor criar gestor; descobrir por convite se o e-mail tem conta noutro município.
+- **Impacto LGPD:** dado mínimo; encerrar mantém o histórico.
+- **Migração necessária:** Não.
+- **Compatibilidade:** aditiva.
+- **Rollback:** reverter.
+- **Testes positivos:** o gestor da Obras convida um executor, que aceita (E06); encerrar o vínculo tira o acesso a este órgão e mantém os outros.
+- **Testes negativos:** convidar `gestor`: 403; reset sem motivo: 422; reset do próprio MFA ou encerrar o próprio vínculo: recusados.
+- **Testes de autorização e isolamento:** gestor da Obras sobre usuário da Saúde: 404; `orgaoId` no corpo ignorado; executor na equipe: 403; equipe de Serra Alta sem vínculo de Vale Fundo.
+- **Regressão obrigatória:** `npm run test:api`; G03, G04.
+- **E2E:** `equipe.e2e.mjs`: convidar, aceitar, encerrar; teclado e estados (E20).
+- **Validação humana:** Rafael faz o ciclo; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E19/` com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** ciclo de vínculo sem a DC e sem escalada.
+- **Checkpoint:** Não.
+
+### V2-F11-E20 - Estados vazios, erro, sessão expirada, vínculo encerrado e conta desativada
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E19)
+- **Objetivo:** todas as telas tratam vazio, erro, sessão expirada, vínculo encerrado e conta desativada do mesmo modo.
+- **Problema que resolve:** `conta_desativada` (F00-E05) é código novo; com pessoa global, perder o vínculo de um município não é perder a conta.
+- **Origem:** REL:11; DP:T29; REL:02; DP:T09; PR:D-08.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E09; E23; F00-E05; F02-E03.
+- **O que deve ser implementado:**
+  - Frontend: `ErrorBoundary` na raiz (código de suporte de F01-E14, "Recarregar", sem pilha); `Vazio`, `ErroDeCarga` ("Tentar de novo") e `Carregando` (`role="status"`).
+  - Frontend: `sessao_encerrada`: "Sua sessão terminou. Entre de novo."; `conta_desativada`: tela final "Seu acesso foi desativado. Fale com o gestor ou com a Defesa Civil.", sem nova chamada; vínculo encerrado: "Seu acesso a <município> foi encerrado." com "Escolher outro município"; 404 igual para inexistente e de outro órgão; 409 `encaminhamento_encerrado`: recarrega.
+  - Segurança: no 401 ou 403 limpa a sessão e o estado de todos os municípios; dados com `no-store`.
+- **O que NÃO deve ser implementado nesta etapa:** modo offline, página de status (F21-E05).
+- **Arquivos e módulos prováveis:** `apps/portal/src/componentes/ErrorBoundary.tsx` e `apps/portal/src/dados/mensagens.ts` (a criar).
+- **Risco de segurança:** laço de reenvio em 401; mensagem que revele recurso de outro órgão ou município.
+- **Impacto LGPD:** a tela de erro não mostra dado.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica.
+- **Rollback:** reverter.
+- **Testes positivos:** `mensagens.test.ts` varre o catálogo de F02-E03: todo código tem texto; `ErrorBoundary` captura erro de render.
+- **Testes negativos:** conta desativada no meio: tela final e nenhuma outra chamada; 401 sem laço; vínculo de Vale Fundo encerrado: só ele some da lista.
+- **Testes de autorização e isolamento:** token de conta desativada não volta a valer; o 404 é igual para inexistente e de outro órgão ou município.
+- **Regressão obrigatória:** `npm test`, `npm run test:scripts`; G08.
+- **E2E:** `sessao.e2e.mjs`: desativar o usuário pelo painel da DC; encerrar o vínculo.
+- **Validação humana:** Rafael vê as telas; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E20/` com `capturas/` de cada estado e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/DESIGN-SYSTEM.md`.
+- **Definition of Done:** estados padronizados; vínculo encerrado distinto de conta desativada.
+- **Checkpoint:** Não.
+
+### V2-F11-E21 - Acessibilidade do portal (axe, teclado, leitor de tela)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (depende de todas as telas)
+- **Objetivo:** o portal passa em axe, teclado e leitor de tela em todas as telas, nos dois temas.
+- **Problema que resolve:** nenhuma superfície tem axe nem leitor de tela (REL:11 2.1 a 2.6); o estado novo precisa de anúncio.
+- **Origem:** DP:T29; REL:11 2.2; BZ-D:A11-38; ALY:RNF-09.
+- **Estado atual:** CRIAR (axe, roteiro) e EXPANDIR (portões web).
+- **Dependências de entrada:** E09; E19; E23 a E30.
+- **O que deve ser implementado:**
+  - Testes: `apps/portal/test/axe.e2e.mjs` (`@axe-core/playwright`, `npm audit` em zero) varre cada tela, inclusive as novas (E23 a E30), em claro, escuro, pt-BR, en e es, com a cor de prova do município, `forced-colors`, 320 px e zoom de 400%; reprova `serious` e `critical`; F23-E01 o leva ao CI.
+  - Frontend: tabela com `caption`, `ConfirmarAcao` com foco em Cancelar e retorno ao gatilho, `Campo` (erro antes da dica), `aria-live` na mudança de estado, selo com ícone e texto, alvos de 44 px.
+  - Roteiro: NVDA e VoiceOver no fluxo C, em `docs/evidencias-v2/G11/V2-F11-E21/roteiro-leitor-de-tela.md`.
+- **O que NÃO deve ser implementado nesta etapa:** axe no CI de todas as superfícies (F23-E01), pessoa com deficiência (F23-E05), declaração de conformidade (CP-32).
+- **Arquivos e módulos prováveis:** `apps/portal/test/axe.e2e.mjs` e `teclado.e2e.mjs` (a criar), `apps/web/test/acessibilidade.test.ts`.
+- **Risco de segurança:** axe não pega foco nem anúncio: por isso o roteiro humano e o teste de teclado.
+- **Impacto LGPD:** Não se aplica.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica.
+- **Rollback:** reverter os testes.
+- **Testes positivos:** zero `serious` e `critical`; do login à resposta só por teclado.
+- **Testes negativos:** PR de prova sem `caption` reprova; `div` clicável sem papel reprova o portão.
+- **Testes de autorização e isolamento:** Não se aplica: sem rota nova.
+- **Regressão obrigatória:** `npm test`, `npm run test:scripts`, `npm run auditar`; G08.
+- **E2E:** o próprio axe e `teclado.e2e.mjs`.
+- **Validação humana:** roteiro com leitor de tela (Rafael e Alyson). Portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E21/`. Com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/DESIGN-SYSTEM.md`.
+- **Definition of Done:** zero `serious` e `critical`; roteiro arquivado.
+- **Checkpoint:** Não.
+
+### V2-F11-E22 - E2E dos fluxos C e D
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (fecha a fase)
+- **Objetivo:** provar em HML, no navegador, os fluxos C e D e o Obras x Saúde de ponta a ponta.
+- **Problema que resolve:** nenhum fluxo foi percorrido por usuário de órgão (matriz C: HML sintético no G11, secretaria real no G12).
+- **Origem:** PR:Fluxos; DP:T11; BZ-M:V2-SEC-09.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E11; E13; E15; E25.
+- **O que deve ser implementado:**
+  - Testes: `scripts/e2e-portal.mjs` (padrão de `scripts/e2e-api.mjs`; script `test:e2e:portal`) e `fluxo-c-d.e2e.mjs` (chromium e firefox; `AMBIENTE=hml` roda no HML); passo no job `navegador` de `verificar.yml`.
+  - Fluxo C: Rita (coordenadora) encaminha à Obras; Maria (executor) entra com MFA, aceita e responde com imagem; Rita vê resposta e anexo e conclui.
+  - Fluxo D: Rita envia à Saúde; João devolve e sugere a Obras; Rita reencaminha (`parent_id`, novo dossiê); Maria vê o novo e não a devolução; João não vê o novo.
+  - Semente: `db/seeds/homologacao.sql` com Obras, Saúde, as pessoas, Serra Alta, Vale Fundo e Paulo.
+- **O que NÃO deve ser implementado nesta etapa:** secretaria real (F12), reinspeção (F13), cidadão (F17).
+- **Arquivos e módulos prováveis:** `scripts/e2e-portal.mjs` e `apps/portal/test/fluxo-c-d.e2e.mjs` (a criar), `db/seeds/homologacao.sql`.
+- **Risco de segurança:** E2E contra HML sujar dado: município sintético fixo.
+- **Impacto LGPD:** só dado sintético.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica.
+- **Rollback:** remover o passo do CI.
+- **Testes positivos:** os dois fluxos em chromium e firefox; `contrato-portal-rota.test.ts` verde.
+- **Testes negativos:** João lê o encaminhamento da Obras: 404; segundo aceite de Maria: 409; usuário desativado no meio é expulso.
+- **Testes de autorização e isolamento:** matriz de F03-E13 reexecutada com as rotas do portal; `portal-cenarios-negativos.test.ts` verde.
+- **Regressão obrigatória:** `npm run test:e2e`, `npm run test:e2e:api`, `npm run test:isolamento`; G00 a G10.
+- **E2E:** este é o E2E.
+- **Validação humana:** Rafael assiste à gravação e repete à mão em HML. Portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E22/` (vídeo e trace). Com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/README.md`.
+- **Definition of Done:** fluxos C e D verdes em HML.
+- **Checkpoint:** Não.
+
+### V2-F11-E23 - Seletor e troca de município e órgão no shell
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E09 e E29 usam a troca)
+- **Objetivo:** quem tem vários vínculos troca de município ou órgão sem sair; cada troca emite novo token e descarta o contexto anterior.
+- **Problema que resolve:** D-08: o token vale para um município por vez; sem troca clara a pessoa age no município errado.
+- **Origem:** PR:D-08; DP:T05; BZ-D:IDN-19.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E04; E07; F03-E16 (troca de município e novo token).
+- **O que deve ser implementado:**
+  - Frontend: `SeletorDeContexto.tsx`: botão "<município>, <UF> · <órgão>" que abre a lista por município; teclado (setas, Enter, Esc); só com mais de um vínculo.
+  - Frontend: ao escolher, chama a troca de F03-E16; `sessao.tsx` descarta token, cache, rascunhos e renovação antigos, recarrega `portal/eu`, aplica a identidade do novo município (E07), navega a `/o/:orgaoId` e anuncia "Município alterado para <nome>" (`aria-live`); rascunho aberto pede `ConfirmarAcao`.
+- **O que NÃO deve ser implementado nesta etapa:** passo 2 do login (E04), caixa de vários municípios (E29), MFA na troca (CP-50).
+- **Arquivos e módulos prováveis:** `apps/portal/src/estrutura/SeletorDeContexto.tsx` (a criar), `estado/sessao.tsx`.
+- **Risco de segurança:** estado do município anterior sobreviver; resposta atrasada no contexto novo.
+- **Impacto LGPD:** Não se aplica: a troca não leva dado entre municípios.
+- **Migração necessária:** Não.
+- **Compatibilidade:** com um só vínculo a tela é a de antes.
+- **Rollback:** reverter.
+- **Testes positivos:** Paulo troca de Serra Alta para Vale Fundo e cabeçalho, cor e caixa mudam; `sessao.test.ts` (a criar): cache e rascunho vazios.
+- **Testes negativos:** troca para município sem vínculo: 404; resposta atrasada do município antigo descartada; troca cancelada mantém o contexto.
+- **Testes de autorização e isolamento:** token novo em recurso do município anterior: 404; `cliente-api` não envia o token antigo após a troca.
+- **Regressão obrigatória:** `npm test`, `npm run test:isolamento`; G03.
+- **E2E:** `troca-de-municipio.e2e.mjs`: duas trocas por teclado, nos dois temas.
+- **Validação humana:** Rafael troca como Paulo; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E23/` com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/DESIGN-SYSTEM.md`.
+- **Definition of Done:** troca provada, sem estado do município anterior.
+- **Checkpoint:** Não (código de MFA na troca: CP-50, em E05).
+
+### V2-F11-E24 - Órgão externo como usuário do portal (concessionária, órgão estadual)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E26 e E27)
+- **Objetivo:** concessionária e órgão estadual usam o portal como os demais órgãos, com o município visível em cada tela e o aceite do termo por município.
+- **Problema que resolve:** D-08: quem atende 12 municípios precisa de um login só, sem confundir os municípios.
+- **Origem:** PR:D-08; DP:T01; DP:T05.
+- **Estado atual:** CRIAR e EXPANDIR (coluna de F03-E17, cadastro de F10-E02).
+- **Dependências de entrada:** E04; E06; E07; E09; F03-E17; F10-E02; CP-51.
+- **O que deve ser implementado:**
+  - Domínio: órgão externo é `orgaos.externo` (F03-E17; tela em F10-E02); o dossiê padrão de F04-E04 vale igual (campo a mais: CP-09).
+  - Frontend: selo "Órgão externo" e município em texto no cabeçalho, na caixa e no detalhe; o primeiro acesso a cada município mostra o aceite do texto vigente (F05-E06).
+- **O que NÃO deve ser implementado nesta etapa:** caixa de vários municípios (E29), termo de dados do órgão externo (CP-51).
+- **Arquivos e módulos prováveis:** `apps/portal/src/estrutura/Estrutura.tsx`, `apps/portal/src/paginas/Caixa.tsx`, `apps/api/src/rotas/administracao.ts`.
+- **Risco de segurança:** ler mais que o dossiê mínimo; agir no município errado.
+- **Impacto LGPD:** só o dossiê mínimo de cada município; aceite por município.
+- **Migração necessária:** Não, salvo se a coluna faltar (F03-E17, F10-E02).
+- **Compatibilidade:** órgão municipal inalterado.
+- **Rollback:** reverter.
+- **Testes positivos:** Paulo, no órgão externo de Serra Alta, vê o selo e "Serra Alta, MG" em toda tela; aceita o termo de Vale Fundo ao entrar lá.
+- **Testes negativos:** resposta sem `ocorrenciaId`; sem aceite do município o portal não abre dados; campo fora do dossiê mínimo reprova.
+- **Testes de autorização e isolamento:** o token de Serra Alta em encaminhamento de Vale Fundo: 404; órgão externo lendo `ocorrencias`: 401.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G03, G04.
+- **E2E:** `orgao-externo.e2e.mjs`: Paulo entra, troca, aceita o termo e responde em cada município; teclado e estados (E20).
+- **Validação humana:** Rafael usa como Paulo; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E24/` com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** órgão externo opera nos dois municípios sem cruzar dado.
+- **Checkpoint:** CP-51 (órgão piloto e instrumento de tratamento de dados; bloqueia conta real).
+
+### V2-F11-E25 - Teste de cruzamento de municípios na interface
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (depois das telas de dados)
+- **Objetivo:** provar no navegador que nenhum dado de um município aparece no contexto de outro.
+- **Problema que resolve:** D-08: com pessoa em vários municípios o risco muda para cache, estado de tela, aba e histórico, que a RLS não enxerga.
+- **Origem:** PR:D-08; DP:T05; REL:11.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E09; E10; E13; E17; E18; E23; E28; E29.
+- **O que deve ser implementado:**
+  - Testes: `apps/portal/test/cruzamento-de-municipios.e2e.mjs`: Serra Alta e Vale Fundo com texto sentinela único (descrição, órgão, anexo, aviso, equipe); Paulo percorre caixa, detalhe, histórico, busca, sino, equipe e anexo, troca 10 vezes e confere a cada passo que DOM, título, URL, `localStorage`, `sessionStorage`, IndexedDB, Cache Storage e respostas não trazem sentinela do outro.
+  - Testes: Voltar, recarregar, duas abas, sessão expirada e resposta atrasada; antes, cada sentinela aparece no próprio contexto (sem falso verde). `cache-por-municipio.test.ts` e `limpar-na-troca.test.ts` (a criar): toda chave de cache traz o município.
+- **O que NÃO deve ser implementado nesta etapa:** teste de API (F04-E13), e-mail, outros apps.
+- **Arquivos e módulos prováveis:** `apps/portal/test/cruzamento-de-municipios.e2e.mjs` (a criar), `scripts/e2e-portal.mjs`, `db/seeds/homologacao.sql`.
+- **Risco de segurança:** falso verde por sentinela ausente.
+- **Impacto LGPD:** só dado sintético.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: teste.
+- **Rollback:** remover o passo do CI.
+- **Testes positivos:** 10 trocas sem sentinela alheia em nenhuma tela; a própria sempre presente.
+- **Testes negativos:** PR de prova com cache sem município reprova; PR que não limpa o rascunho reprova; resposta atrasada no contexto novo reprova.
+- **Testes de autorização e isolamento:** o próprio teste; `fetch` com o token de Serra Alta em rota de Vale Fundo: 404.
+- **Regressão obrigatória:** `npm run test:e2e:portal`, `npm run test:isolamento`; G03, G04, G10.
+- **E2E:** este é o E2E, em chromium e firefox.
+- **Validação humana:** Rafael vê o vídeo e repete duas trocas em HML; portão visual dos dois municípios (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E25/` com vídeo, trace, `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/README.md`.
+- **Definition of Done:** nenhum dado de um município no contexto de outro, em nenhuma tela.
+- **Checkpoint:** Não.
+
+### V2-F11-E26 - Portal instalável (PWA): manifesto, ícones e service worker sem cache de dado
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E24 e E25)
+- **Objetivo:** o portal se instala na tela inicial (computador, Android, iOS), abre em janela própria, sem offline e sem dado guardado.
+- **Problema que resolve:** D-22: o painel já tem `manifest.webmanifest` e ícones em `apps/web/public`; o portal não.
+- **Origem:** PR:D-22; DP:T15.
+- **Estado atual:** CRIAR, pelo padrão de `apps/web/public/manifest.webmanifest`.
+- **Dependências de entrada:** E03; E07.
+- **O que deve ser implementado:**
+  - Frontend: `public/manifest.webmanifest` (a criar: `name`, `short_name` "DC360 Portal", `start_url` e `scope` "/", `display` `standalone`, ícones 192, 512 e `maskable` de `apps/web/public`), `<link rel="manifest">`, `theme-color`; manifesto fixo DC360.
+  - Frontend: `public/sw.js` só com `install`, `activate` e `fetch` que repassa à rede, sem `caches` nem `indexedDB`; registro em `src/instalacao.ts`; "Instalar o portal" em Minha conta (`beforeinstallprompt`; no iOS, "Adicionar à Tela de Início").
+  - Infraestrutura: a CSP de E03 ganha `manifest-src 'self'` e `worker-src 'self'`; `sw.js` e manifesto com `Cache-Control: no-cache`.
+- **O que NÃO deve ser implementado nesta etapa:** uso offline, cache de dado ou tela, push, manifesto por município, instalação do painel (F10-E15).
+- **Arquivos e módulos prováveis:** `apps/portal/public/` e `apps/portal/src/instalacao.ts` (a criar), `apps/portal/vercel.json`.
+- **Risco de segurança:** service worker que guarda resposta de API deixa dado de um município no aparelho.
+- **Impacto LGPD:** Não se aplica: nada é guardado.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem service worker, segue como site.
+- **Rollback:** publicar `sw.js` que se desregistra.
+- **Testes positivos:** `pwa.test.ts` (a criar): manifesto com nome, ícones 192, 512 e `maskable`, `start_url`, `display`; `Page.getInstallabilityErrors` vazio em HML.
+- **Testes negativos:** `sw.js` com `caches.` ou `indexedDB` reprova; Cache Storage e IndexedDB vazios após a sessão; sem rede, o navegador mostra o próprio erro.
+- **Testes de autorização e isolamento:** o service worker não recebe token nem resposta; a varredura de E25 inclui Cache Storage.
+- **Regressão obrigatória:** `npm test`, `npm run test:scripts`; G08.
+- **E2E:** `instalacao.e2e.mjs` (a criar): registro, instalabilidade, armazenamento vazio; Android e iOS por roteiro.
+- **Validação humana:** Rafael instala no computador e no celular; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E26/` com `capturas/`, foto do celular e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/VERCEL-PORTAL.md`.
+- **Definition of Done:** portal instalável, sem cache de dado.
+- **Checkpoint:** Não.
+
+### V2-F11-E27 - Idioma do portal (pt-BR, en, es)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E24 e E26)
+- **Objetivo:** todo texto do portal sai do catálogo e a pessoa escolhe pt-BR, en ou es.
+- **Problema que resolve:** D-12: o portal nasce em português fixo; a tradução revisada é da F35.
+- **Origem:** PR:D-12; DP:K20; DP:T28.
+- **Estado atual:** CRIAR (seletor e chaves) e EXPANDIR (catálogo de F08-E08).
+- **Dependências de entrada:** E02; E07; F08-E08; F08-E09.
+- **O que deve ser implementado:**
+  - Frontend: `SeletorDeIdioma.tsx` no cabeçalho e em Minha conta (nomes na própria língua; preferência em `localStorage` até a F35-E09 gravá-la no servidor; `<html lang>` acompanha); datas e números por `formatarDataHora(iso, fuso, idioma)` com o fuso do município (F08-E09).
+  - Domínio: chaves `portal.*` em pt-BR (completas), en e es no `completude.test.ts` de F08-E08; o que falta fica em `pendentes.json` (a F35 exige vazio) e cai em pt-BR, nunca chave crua; erros de campo pelos `codigo` e `params` do 422.
+- **O que NÃO deve ser implementado nesta etapa:** tradução revisada (F35), idioma por município, gravar a preferência no servidor (F35-E09), Libras (E30).
+- **Arquivos e módulos prováveis:** `apps/portal/src/estrutura/SeletorDeIdioma.tsx` (a criar), `packages/i18n/`.
+- **Risco de segurança:** texto de catálogo virar HTML.
+- **Impacto LGPD:** Não se aplica: sem dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem escolha vale pt-BR.
+- **Rollback:** reverter; o catálogo segue.
+- **Testes positivos:** em en: título, menu, estados, erros e datas em en e `<html lang="en">`; `sem-texto-fixo.test.ts` e `completude.test.ts` verdes.
+- **Testes negativos:** chave ausente em es cai em pt-BR; marcador `{limite}` perdido reprova; texto fixo no JSX reprova.
+- **Testes de autorização e isolamento:** o 404 de recurso de outro município segue 404 em qualquer idioma; trocar o idioma não refaz chamada com outro contexto.
+- **Regressão obrigatória:** `npm test`, `npm run test:scripts`; G08.
+- **E2E:** `idioma.e2e.mjs` (a criar): caixa e detalhe nos três idiomas (texto longo não corta nem sobrepõe); teclado e estados (E20).
+- **Validação humana:** quem fala en e es lê o provisório; portão visual dos três idiomas (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E27/` com `capturas/` (pt-BR, en e es) e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/DESIGN-SYSTEM.md`.
+- **Definition of Done:** nenhum texto fixo fora do catálogo; três idiomas navegáveis.
+- **Checkpoint:** Não.
+
+### V2-F11-E28 - Competência do órgão e escalonamento na caixa, no detalhe e no histórico
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E24 e E26)
+- **Objetivo:** a caixa e o detalhe mostram a competência do órgão e o escalonamento acima do gestor (nível e quem foi avisado).
+- **Problema que resolve:** D-18: o órgão não sabe por que recebeu o item nem que a cobrança subiu.
+- **Origem:** PR:D-18; DP:T10; DP:T12.
+- **Estado atual:** EXPANDIR (E09, E10, E16) com dados de F04-E15, E16.
+- **Dependências de entrada:** E09; E10; E16; F04-E15; F04-E16; F10-E17, E18.
+- **O que deve ser implementado:**
+  - API: a lista de E09 ganha `nivelDeEscalonamento` e o filtro `escalonado`; o detalhe de E10 ganha `competencia` (tipos COBRADE e territórios) e `escalonamentos` (nível, destinatários por nome e cargo, `ocorrido_em`); o evento `escalonado` entra na linha do tempo de E16.
+  - Frontend: `Caixa.tsx`: "Competência: <tipos e territórios>" e selo "Escalonado, nível N" (ícone e texto); `Encaminhamento.tsx`: blocos "Competência do órgão" e "Escalonamento"; `LinhaDoTempo.tsx`: "Escalonado ao nível N: <quem foi avisado>".
+- **O que NÃO deve ser implementado nesta etapa:** cadastro de competência e de níveis (F04-E15, F04-E16, F10-E17, F10-E18), criar ou alterar escalonamento (DC), notificação (E17).
+- **Arquivos e módulos prováveis:** `apps/portal/src/paginas/Caixa.tsx` e `Encaminhamento.tsx`, `apps/portal/src/componentes/LinhaDoTempo.tsx`.
+- **Risco de segurança:** revelar pessoa de outro órgão: só nome e cargo da cadeia do mesmo órgão.
+- **Impacto LGPD:** nome e cargo de servidores classificados.
+- **Migração necessária:** Não.
+- **Compatibilidade:** campos aditivos.
+- **Rollback:** reverter.
+- **Testes positivos:** Maria vê "Competência: deslizamento, alagamento"; após o escalonamento a caixa mostra "nível 2" e o detalhe, quem foi avisado.
+- **Testes negativos:** sem escalonamento o bloco não aparece; competência vazia: "Competência não cadastrada".
+- **Testes de autorização e isolamento:** João (Saúde) não vê o escalonamento da Obras: 404; o de Vale Fundo nunca aparece no contexto de Serra Alta.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G04.
+- **E2E:** `escalonamento.e2e.mjs` (a criar): a DC escala e o portal mostra nível e destinatários; teclado e estados (E20).
+- **Validação humana:** Alyson confere se o texto da competência é entendido; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E28/` com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** competência e escalonamento visíveis na caixa, no detalhe e no histórico.
+- **Checkpoint:** Não.
+
+### V2-F11-E29 - Caixa e sino de todos os municípios (consolidado no cliente)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (usa E09, E17 e E23)
+- **Objetivo:** quem tem vários municípios vê uma caixa única e um sino consolidado, com o município claro em cada item.
+- **Problema que resolve:** D-08: sem consolidado a pessoa troca de município para descobrir se há trabalho em outro.
+- **Origem:** PR:D-08; DP:T05.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E09; E17; E23; CP-59.
+- **O que deve ser implementado:**
+  - Frontend: o filtro "Município: Todos" de `Caixa.tsx` faz UMA chamada por município (rota de E09), cada uma com o token daquele município, em memória; junta no cliente pelo prazo; linha com o município em texto e faixa com ícone (nunca só cor); contadores por município.
+  - Frontend: o sino mostra o contador de cada município no seletor (E23) e o total; abrir item troca o contexto (E23).
+  - Fallback: sem tokens simultâneos, só o contador por município.
+- **O que NÃO deve ser implementado nesta etapa:** agregação no servidor, e-mail consolidado, ação em lote entre municípios.
+- **Arquivos e módulos prováveis:** `apps/portal/src/dados/caixa-todos.ts` (a criar), `Caixa.tsx`, `Sino.tsx`.
+- **Risco de segurança:** token de um município na rota de outro; agir no município errado.
+- **Impacto LGPD:** Não se aplica: cada município responde só o seu.
+- **Migração necessária:** Não.
+- **Compatibilidade:** aditiva.
+- **Rollback:** voltar ao filtro de um município.
+- **Testes positivos:** Paulo vê em "Todos" itens de Serra Alta e Vale Fundo pelo prazo, cada um com o município; o sino soma 2.
+- **Testes negativos:** município fora do ar: aviso "Não foi possível carregar Vale Fundo" e os demais aparecem.
+- **Testes de autorização e isolamento:** toda requisição leva o token do município da rota; o de Serra Alta em `.../<órgão de Vale Fundo>/encaminhamentos`: 404.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G03, G04.
+- **E2E:** `caixa-todos.e2e.mjs`: "Todos", abrir item, voltar; teclado e estados (E20).
+- **Validação humana:** Rafael usa como Paulo; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E29/` com `capturas/` (com e sem agrupamento) e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** consolidado com município em toda linha.
+- **Checkpoint:** CP-59 (tokens de municípios diferentes na mesma sessão; bloqueia o modo "Todos").
+
+### V2-F11-E30 - Botão de Libras (VLibras) no portal
+- **Prioridade:** P2
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E26 e E27)
+- **Objetivo:** o portal tem o botão de Libras do ponto de integração de F08-E12, só no clique e fora das telas com dado.
+- **Problema que resolve:** D-12: o VLibras deve existir nas telas web; o script externo envia o texto da página a terceiro.
+- **Origem:** PR:D-12; DP:K20.
+- **Estado atual:** CRIAR (usa o componente de F08-E12).
+- **Dependências de entrada:** E07; E27; F08-E12.
+- **O que deve ser implementado:**
+  - Frontend: `Libras.tsx` de F08-E12 no rodapé das telas SEM dado de encaminhamento (Início, Minha conta, Ajuda); fora do login, do MFA e do detalhe, salvo o que o CP-45 permitir; o script só carrega no clique.
+  - Infraestrutura: a CSP de E03 cita só o domínio do VLibras, e só se o CP-45 liberar.
+- **O que NÃO deve ser implementado nesta etapa:** Libras em vídeo, ativação em produção e revisão final (F35), botão no detalhe.
+- **Arquivos e módulos prováveis:** `apps/portal/src/componentes/Libras.tsx` (a criar), `apps/portal/vercel.json`.
+- **Risco de segurança:** script de terceiro em página com sessão: só no clique e fora das telas com dado.
+- **Impacto LGPD:** o texto da página sai a terceiro: por isso fora das telas com dado (F08-E12).
+- **Migração necessária:** Não.
+- **Compatibilidade:** desligado por padrão.
+- **Rollback:** remover o componente e a linha da CSP.
+- **Testes positivos:** no clique, um só script carrega e a CSP o aceita.
+- **Testes negativos:** sem clique, zero requisição externa; sem botão no login, no MFA e no detalhe.
+- **Testes de autorização e isolamento:** o script não recebe token nem dado de município; sem botão em rota com dado.
+- **Regressão obrigatória:** `npm test`, `npm run test:scripts`; G08.
+- **E2E:** `libras.e2e.mjs` (a criar): sem requisição externa antes do clique; teclado e estados (E20).
+- **Validação humana:** Rafael ativa o botão; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G11/V2-F11-E30/` com `capturas/` e `INDEX.md`.
+- **Documentação a atualizar:** `dc360/docs/SUBPROCESSADORES.md`.
+- **Definition of Done:** botão testado, desligado por padrão e fora das telas com dado.
+- **Checkpoint:** CP-45 (decidido em F08-E12; bloqueia o botão no detalhe e a ativação em produção).
+
+# GATE G11 - PORTAL FUNCIONAL EM HML
+
+Só passa se:
+- [ ] V2-F11-E01: ADR 0014 aceita com as nove decisões e as alternativas; hash em `docs/evidencias-v2/G11/V2-F11-E01/`.
+- [ ] V2-F11-E02: `apps/portal` em `workspaces`, build e portões de acessibilidade, de design e visual verdes sobre `apps/portal/src`, `bundle-limpo.test.ts` verde (sem PGlite nem rota da Defesa Civil) e `sem-texto-fixo.test.ts` verde; saída em `V2-F11-E02/`.
+- [ ] V2-F11-E03: portal de HML no ar com CSP e CORS exatos; `conferir-dominio` e cabeçalhos coletados em `V2-F11-E03/`.
+- [ ] V2-F11-E04 e E05: login em dois passos (pessoa, depois município), com token de UM município e plateia `dc360-portal` provados nos dois sentidos, e nenhum caminho de login do órgão sem MFA; `contrato-portal-rota.test.ts` e `token-nao-e-autoridade.test.ts` verdes; CP-08 decidido, ou adiado com o que bloqueia: o portal em produção; CP-50 decidido, ou adiado com o que bloqueia: a troca de município em produção.
+- [ ] V2-F11-E06: convite aceito de ponta a ponta nos dois casos (pessoa nova e pessoa já existente), com o token fora da URL e sem vínculo criado só pelo link; saída em `V2-F11-E06/`.
+- [ ] V2-F11-E23, E24, E25 e E29: troca de município e órgão sem estado do contexto anterior; órgão externo operando com o município visível em toda tela; caixa e sino de todos os municípios montados no cliente, um token por município; `cruzamento-de-municipios.e2e.mjs` verde em chromium e firefox, com vídeo e trace (nenhum dado de um município aparece no contexto de outro); CP-51 e CP-59 decididos, ou adiados com o que bloqueiam (conta real de órgão externo; modo "Todos").
+- [ ] V2-F11-E09, E10, E11, E15 e E28: caixa e detalhe só com o dossiê, a competência do órgão e o escalonamento (nível e quem foi avisado); aceite nominal (um 200 e um 409 em concorrência); devolução com destino sugerido só antes do aceite e, depois dele, a ação desabilitada com o motivo, sem transferência direta; saída em cada pasta.
+- [ ] V2-F11-E13: resposta com anexos pela cadeia segura em modo fila (`EXECUTOR_DE_ARQUIVOS=fila`) em HML, suíte maliciosa verde e laudo idêntico; CP-12 decidido, ou adiado com PDF desligado.
+- [ ] Obras x Saúde provado de ponta a ponta: 404 em lista, detalhe, anexo, busca, aviso e histórico, pela API (`portal-cenarios-negativos.test.ts`, estendido em E13) e pelo navegador (E22).
+- [ ] V2-F11-E22: fluxos C e D verdes em HML com dados sintéticos, em chromium e firefox, com vídeo e trace arquivados em `V2-F11-E22/`.
+- [ ] V2-F11-E21: axe sem `serious` e `critical` nos três idiomas e com a cor de prova do município, teclado completo e roteiro de leitor de tela arquivado.
+- [ ] V2-F11-E26, E27 e E30: portal instalável (manifesto válido, instalabilidade sem erro, service worker sem `caches` nem dado, Cache Storage e IndexedDB vazios); portal navegável em pt-BR, en e es, sem texto fixo fora do catálogo, com `pendentes.json` listado para a F35; botão de Libras só no clique e fora das telas com dado; CP-45 conforme decidido em F08-E12.
+- [ ] P1 e P2: shell com a identidade do município (E07), dashboard com contadores e indicadores do PRÓPRIO órgão, sem ranking entre órgãos (E08), prazo com pausa (E12), esclarecimento (E14), histórico sem evento invisível (E16), notificações por município, idempotentes e sem dado de ocorrência (E17), busca só do órgão (E18), gestão de vínculos (E19) e estados vazio, erro, sessão expirada, vínculo encerrado e conta desativada (E20), cada um com a evidência da etapa; CP-19 decidido, ou adiado com o que bloqueia: e-mail real, convites reais e a F12-E02 (HML usa o notificador de teste).
+- [ ] Portão visual: toda etapa de tela de F11 tem `capturas/` e `INDEX.md` (320, 768 e 1280 px, dois temas, estados normal, vazio, erro e carregando), a saída de `portao-visual.mjs` e o checklist da seção 0 de `19-definicao-de-pronto.md` preenchido; Rafael aprovou as capturas (nada desalinhado, grudado ou fora do lugar, texto bem escrito). Etapa de tela sem capturas não fecha e este gate não passa.
+- [ ] CP-20, CP-21, CP-22 e CP-09 explicitamente adiados para a F12, com o que bloqueiam: congelar o modelo e a atribuição, valores finais dos lembretes e dos níveis do escalonamento, desligar o link do ofício e o primeiro encaminhamento real.
+- [ ] `npm run test:isolamento`, `npm run test:api`, `npm test`, `npm run test:e2e`, `npm run test:e2e:api`, `npm run test:e2e:portal`, `npm run typecheck`, `npm run conferir:numeros` e `npm run auditar` verdes.
+- [ ] nenhuma regressão: gates G00 a G10 continuam verdes (se um quebrar, ESTE gate volta a REPROVADO).
+- [ ] documentação atualizada (README, `DESIGN-SYSTEM.md`, `AMBIENTES.md`, `VERCEL-PORTAL.md`, ADR 0014) e evidências arquivadas em `docs/evidencias-v2/G11/`.
+
+**Reabre se:** Obras ler dado da Saúde (ou qualquer órgão ler outro órgão ou `ocorrencias`); dado de um município aparecer no contexto de outro (tela, cache, aba, aviso ou resposta); o token do portal valer para mais de um município; o MFA do órgão for desligado ou contornado; convite criar vínculo em conta existente sem a entrada da pessoa; upload do portal passar sem a cadeia segura e o worker; token do portal valer no painel (ou o do painel no portal); o service worker passar a guardar dado; o bundle do portal voltar a conter código do painel; dado de ocorrência fora do dossiê aparecer em tela, e-mail ou resposta; um GET do portal escrever; texto fixo fora do catálogo ou cor de município sem validação AA; tela de F11 fechar sem capturas e sem o portão visual.
+**Este Gate libera:** a F12 (homologação com secretaria real em HML, incluindo os cenários de órgão externo, instalação, idioma e cor do município). NÃO libera a produção do portal (CP-08 e CP-19), a conta real de órgão externo (CP-51) nem o início do App do Cidadão (D-01: só o G12).
+
+# Fase 12: Homologação do portal com secretaria real
+
+**Gate da fase:** G12 PORTAL HOMOLOGADO COM SECRETARIA REAL | **Depende dos gates:** G11 (e, pela cadeia, G00 a G10) | **Superfícies tocadas:** `apps/portal`, `apps/api`, `apps/web` (ajustes pontuais), `packages/shared`, HML | **Checkpoints da fase:** CP-20, CP-19, CP-21, CP-09, CP-22, CP-08 (e CP-36 no gate), CP-50 e CP-51
+
+Esta fase valida com pessoas reais de uma secretaria piloto o modelo do encaminhamento, a linguagem, o dossiê, os prazos, o escalonamento e o MFA, em HML com dados sintéticos e 3 casos reais da secretaria transcritos sem dado pessoal (DP:K1), e congela o modelo (CP-20). Ensaia também, com dois municípios sintéticos e UMA pessoa vinculada aos dois, o órgão externo multi-município, a instalação do portal, o idioma e a cor do município (E08). NÃO é só E2E: teste verde com usuário de teste não prova que a secretaria entende "Aguardando a Defesa Civil" nem que aceita o MFA. D-01: só o G12 libera F13, a versão final de F14 e o início efetivo de F15.
+
+Preserva (MANTER): tudo de F11; só entra o que a sessão provar necessário (E05, escopo limitado). NÃO faz: dado real de cidadão, produção do portal, reinspeção (F13), cidadão (F15), segunda secretaria real, tradução revisada (F35), conta real de órgão externo antes do CP-51; ver `docs/roadmap-v2/21-fora-da-v2.md`.
+
+Ordem sugerida: E01, E02; E03, E04, E06 e E08 em paralelo depois da E02; E05 depois das decisões; E07 fecha.
+
+## Etapas
+
+### V2-F12-E01 - Preparar HML sintético e roteiro de homologação (cenários, estados, prazos)
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** médio  |  **Paralelizável:** não (E02 usa o roteiro)
+- **Objetivo:** HML pronto para a sessão: município sintético, contas do piloto, 3 casos e roteiro de cenários.
+- **Problema que resolve:** sem roteiro a sessão vira demonstração (K1: fluxo em HML com dados sintéticos e 3 casos).
+- **Origem:** DP:K1; DP:R2; PR:Prompt-F12; PR:D-08.
+- **Estado atual:** CRIAR (roteiro e semente do piloto) e MANTER (HML de F11).
+- **Dependências de entrada:** G11.
+- **O que deve ser implementado:**
+  - Arquivos: `dc360/docs/HOMOLOGACAO-DO-PORTAL.md`: oito cenários (convite e MFA, aceite, resposta, resposta com anexo, esclarecimento e pausa, devolução com sugestão, prazo e lembrete, gestor gerindo pessoas) com estado e evento esperados e perguntas fixas por cenário; os cenários 9 a 12 (órgão externo, instalação, idioma, cor do município) são da E08.
+  - Banco: `db/seeds/homologacao.sql` ganha órgão e contas do piloto (nomes fictícios, e-mails de teste) 3 encaminhamentos dos casos, sem dado pessoal, e dois municípios sintéticos (Serra Alta e Vale Fundo) com uma pessoa vinculada a ambos; senhas sorteadas.
+  - Infraestrutura: HML com `PORTAL_ATIVO=sim` e `SEGUNDO_FATOR_ATIVO=sim`.
+- **O que NÃO deve ser implementado nesta etapa:** a sessão (E02), código (E05), dado real em HML.
+- **Arquivos e módulos prováveis:** `dc360/docs/HOMOLOGACAO-DO-PORTAL.md` (a criar em `dc360/docs`), `dc360/db/seeds/homologacao.sql`, `dc360/db/test/seed-sintetica.test.ts` (a criar).
+- **Risco de segurança:** caso transcrito com dado pessoal.
+- **Impacto LGPD:** as pessoas da secretaria são titulares: ciência na ata; nenhum dado de cidadão.
+- **Migração necessária:** Não.
+- **Compatibilidade:** a semente só roda em HML (F01-E11).
+- **Rollback:** apagar o órgão e as contas do piloto.
+- **Testes positivos:** a semente cria contas, os 3 encaminhamentos e os dois municípios; os oito cenários rodam no ensaio e Paulo entra nos dois municípios.
+- **Testes negativos:** `semear-homologacao` com `AMBIENTE_DC360=prod` recusa; padrão de CPF ou telefone nos casos reprova `seed-sintetica.test.ts`.
+- **Testes de autorização e isolamento:** ensaio Obras x Saúde com as contas do piloto: 404.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:scripts`; G11.
+- **E2E:** `scripts/e2e-portal.mjs` com `AMBIENTE=hml` sobre a semente nova.
+- **Validação humana:** Rafael e Alyson ensaiam o roteiro.
+- **Evidência a produzir:** `docs/evidencias-v2/G12/V2-F12-E01/`.
+- **Documentação a atualizar:** `dc360/docs/AMBIENTES.md`.
+- **Definition of Done:** HML pronto, roteiro ensaiado, zero dado real.
+- **Checkpoint:** Não.
+
+### V2-F12-E02 - Sessões com a secretaria piloto: estados, linguagem, aceite, devolução, dossiê, anexos, MFA, notificações
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (E03 a E06 partem das atas)
+- **Objetivo:** conduzir as sessões com a secretaria piloto e decidir o modelo (CP-20).
+- **Problema que resolve:** estados, destino explícito e atribuição nasceram sem secretaria real (K1, K22).
+- **Origem:** DP:K1; DP:K22; DP:R2.
+- **Estado atual:** CRIAR (sessões e atas).
+- **Dependências de entrada:** E01; CP-20; CP-19.
+- **O que deve ser implementado:**
+  - Sessões: duas ou três de 60 a 90 minutos com gestor, executores e a Alyson observando; roteiro de E01 em HML, contas convidadas por e-mail real (CP-19); a pessoa conduz; medir tempo, erro e pedido de ajuda.
+  - Validar: selos, aceite, aviso de pausa, devolução com sugestão (só antes do aceite, D-23), dossiê (E04), PDF (K11), MFA (E06), lembretes e escalonamento (E03), atribuição (K22), encerramento com encaminhamento aberto (K5).
+  - Decisão: ata do CP-20 sobre estados e atribuição; mudança de modelo vira lista para E05.
+- **O que NÃO deve ser implementado nesta etapa:** mudar código na sessão (E05), medir carga, dado real.
+- **Arquivos e módulos prováveis:** `docs/evidencias-v2/G12/V2-F12-E02/` (atas e tempos), `docs/evidencias-v2/CP-20/`.
+- **Risco de segurança:** mudança grande de modelo vira E05 ou replanejamento (CP-36).
+- **Impacto LGPD:** nomes e e-mails só na ata; gravação só de tela do HML sintético, com ciência registrada.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica.
+- **Rollback:** encerrar os vínculos; apagar gravações.
+- **Testes positivos:** oito cenários completados por quem não é do projeto; MFA ativado por todos.
+- **Testes negativos:** cenário não completado sem ajuda vira item com motivo; URL do outro órgão sintético: 404.
+- **Testes de autorização e isolamento:** a conta real só vê o órgão piloto; vínculo encerrado: acesso some.
+- **Regressão obrigatória:** `scripts/e2e-portal.mjs` em HML; `npm run test:isolamento`.
+- **E2E:** fluxos C e D (F11-E22) em HML como ensaio.
+- **Validação humana:** a própria etapa.
+- **Evidência a produzir:** `docs/evidencias-v2/G12/V2-F12-E02/` com as capturas das telas vistas (portão da seção 0 de `19-definicao-de-pronto.md`).
+- **Documentação a atualizar:** `dc360/docs/HOMOLOGACAO-DO-PORTAL.md`.
+- **Definition of Done:** sessões feitas, atas arquivadas, CP-20 registrado.
+- **Checkpoint:** CP-20 (congelar modelo e atribuição; devolução só antes do aceite: D-23; bloqueia E05 em diante) e CP-19 (contratação para uso externo; e-mail real ao piloto).
+
+### V2-F12-E03 - Calibrar prazos, pausa do prazo e lembretes
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E04, arquivos disjuntos)
+- **Objetivo:** calibrar com a secretaria os percentuais de lembrete, a pausa em `aguardando_dc`, os níveis do escalonamento e o canal.
+- **Problema que resolve:** 25, 75 e 100 por cento (T12) são hipótese; lembrete demais vira ruído (K2) e escalonar cedo cansa o nível acima (D-18).
+- **Origem:** DP:K2; DP:T12; BZ-M:V2-SEC-05; PR:D-18.
+- **Estado atual:** EXPANDIR (parâmetros; o mecanismo é de F04-E10).
+- **Dependências de entrada:** E02; CP-21.
+- **O que deve ser implementado:**
+  - Medição: lembretes por encaminhamento, a tolerância declarada, o tempo até cada nível de escalonamento e os indicadores do órgão (F11-E08); relógio simulado em HML (UPDATE de `encaminhada_em` e `prazo_em`) nos 3 casos.
+  - Configuração: `LEMBRETE_SEM_ACEITE_PCT` e `LEMBRETE_PCT` (`apps/api/src/config.ts`) com os valores finais e o escalonamento de F04-E16; canal: e-mail e sino (F11-E17).
+  - Decisão: ata do CP-21 com percentuais, canal, níveis do escalonamento acima do gestor e quem é avisado em cada nível.
+- **O que NÃO deve ser implementado nesta etapa:** nível novo fora do catálogo de F04-E16, SLA absoluto, prazo por tipo, push e SMS.
+- **Arquivos e módulos prováveis:** `apps/api/src/config.ts`, `apps/api/src/encaminhamentos/relogio.ts`, `docs/evidencias-v2/CP-21/`.
+- **Risco de segurança:** valor errado cria ruído ou omissão: faixa validada na partida.
+- **Impacto LGPD:** Não se aplica: valores de configuração.
+- **Migração necessária:** Não.
+- **Compatibilidade:** os padrões de T12 seguem se o CP-21 os mantiver.
+- **Rollback:** voltar os valores de T12.
+- **Testes positivos:** com os valores finais, o caso a 30 por cento e o de 80 por cento geram um lembrete cada e o escalonamento sobe no marco.
+- **Testes negativos:** percentual fora de 1 a 99 recusa a partida; o marco não repete na segunda rodada; `respondido` não recebe lembrete.
+- **Testes de autorização e isolamento:** o lembrete só chega a vínculo vigente do órgão do encaminhamento.
+- **Regressão obrigatória:** `npm run test:api` (`config`), `npm run test:isolamento`; G04, G11.
+- **E2E:** relógio simulado em HML.
+- **Validação humana:** Alyson e o município.
+- **Evidência a produzir:** `docs/evidencias-v2/G12/V2-F12-E03/` com a contagem de lembretes e de escalonamentos.
+- **Documentação a atualizar:** `apps/api/.env.example`.
+- **Definition of Done:** valores finais gravados e decididos.
+- **Checkpoint:** CP-21 (valores finais dos lembretes e do escalonamento).
+
+### V2-F12-E04 - Validar o conteúdo do dossiê mínimo com o município
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com E03, arquivos disjuntos)
+- **Objetivo:** confirmar com o município e a secretaria o conteúdo do dossiê mínimo e o que é sensível.
+- **Problema que resolve:** o padrão conservador (protocolo, tipo, endereço) de F04-E04 não foi validado por quem recebe nem por quem responde pelos dados (K3).
+- **Origem:** DP:K3; DP:J6; BZ-D:SEC-58.
+- **Estado atual:** EXPANDIR (`CAMPOS_DO_DOSSIE`, F04-E04).
+- **Dependências de entrada:** E02; CP-09.
+- **O que deve ser implementado:**
+  - Sessão: mostrar o dossiê dos 3 casos; perguntar à secretaria "o que faltou para agir?" e ao responsável pelos dados "o que não deve sair?"; por campo: necessário, dispensável ou sensível.
+  - Arquivos: `docs/evidencias-v2/G12/V2-F12-E04/dossie-validado.md` (campo, decisão, motivo); o ajuste de `packages/shared/src/dossie.ts` entra por E05.
+  - Decisão: CP-09 (padrão do dossiê; o que desce ao aparelho do agente é decidido junto, usado só na F19).
+- **O que NÃO deve ser implementado nesta etapa:** alterar código (E05), base legal (CP-11), fotos no dossiê, aparelho do agente (F19).
+- **Arquivos e módulos prováveis:** `packages/shared/src/dossie.ts`, `dc360/docs/PRIVACIDADE.md`, `docs/evidencias-v2/CP-09/`.
+- **Risco de segurança:** campo sensível por padrão por pressão da secretaria: segue exigindo justificativa (F04-E04).
+- **Impacto LGPD:** central: lista de inclusão e minimização; nenhum dado real nos casos.
+- **Migração necessária:** Não.
+- **Compatibilidade:** o novo padrão vale só para dossiê novo (snapshot imutável).
+- **Rollback:** voltar ao padrão conservador.
+- **Testes positivos:** o dossiê validado reproduz os 3 casos sem pedir dado fora da lista.
+- **Testes negativos:** campo recusado pelo município não entra no snapshot novo (teste de `montarDossie`); campo sensível sem justificativa: 422.
+- **Testes de autorização e isolamento:** o dossiê da Obras segue invisível à Saúde (404).
+- **Regressão obrigatória:** `npm test --workspace @dc360/shared`, `npm run test:api`; G04.
+- **E2E:** `scripts/e2e-portal.mjs` com o dossiê novo.
+- **Validação humana:** Alyson, a secretaria e o responsável pelos dados.
+- **Evidência a produzir:** `docs/evidencias-v2/G12/V2-F12-E04/`.
+- **Documentação a atualizar:** `dc360/docs/PRIVACIDADE.md`.
+- **Definition of Done:** lista de campos decidida e registrada.
+- **Checkpoint:** CP-09 (bloqueia o primeiro encaminhamento real e a F19; o padrão conservador segue testável).
+
+### V2-F12-E05 - Ajustes decorrentes e re-teste (escopo limitado)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (tudo que muda o portal passa por aqui)
+- **Objetivo:** aplicar o que as sessões exigirem, em escopo limitado, e re-testar.
+- **Problema que resolve:** sessões geram lista de ajustes; sem regra de corte viram uma fase nova.
+- **Origem:** PR:Prompt-F12; DP:K1.
+- **Estado atual:** CORRIGIR e EXPANDIR (escopo limitado).
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - Regra de corte: entra o que (a) impede a secretaria de concluir um cenário, (b) é texto ou rótulo errado, (c) é parâmetro (E03) ou campo do dossiê (E04), (d) vaza dado; o resto vai para `apps/portal/PENDENCIAS.md`.
+  - Modelo: mudança de estado ou de transição só se o CP-20 escolher ajustar estados: migration, `transicoes_do_encaminhamento()` e os testes de F04-E03 refeitos.
+  - Lista: `docs/evidencias-v2/G12/V2-F12-E05/ajustes.md` (item, origem, decisão, commit); cada ajuste ganha teste; re-teste dos oito cenários com a secretaria; tag de HML (F01-E07) marca o modelo congelado.
+- **O que NÃO deve ser implementado nesta etapa:** funcionalidade fora da regra de corte, reinspeção (F13), cidadão (F15).
+- **Arquivos e módulos prováveis:** `apps/portal/src/`, `packages/shared/src/encaminhamento.ts`, `apps/portal/PENDENCIAS.md` (a criar).
+- **Risco de segurança:** mudança de estado quebrar F04, F10 e F11: matriz e E2E refeitos.
+- **Impacto LGPD:** se o dossiê mudar, `PRIVACIDADE.md` junto.
+- **Migração necessária:** Sim, condicional (`NNN_ajustes_do_encaminhamento.sql`), só se o CP-20 exigir.
+- **Compatibilidade:** ajustes aditivos.
+- **Rollback:** um commit por ajuste.
+- **Testes positivos:** cada ajuste aceito com o teste que o prova.
+- **Testes negativos:** item fora da regra de corte vai à pendência, não ao código; transição alterada sem teste de paridade reprova.
+- **Testes de autorização e isolamento:** matriz de F03-E13 e `portal-cenarios-negativos.test.ts` reexecutados.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run test:e2e:portal`; G00 a G11.
+- **E2E:** fluxos C e D (F11-E22) reexecutados.
+- **Validação humana:** a secretaria reexecuta os cenários.
+- **Evidência a produzir:** `docs/evidencias-v2/G12/V2-F12-E05/`.
+- **Documentação a atualizar:** `apps/portal/PENDENCIAS.md`.
+- **Definition of Done:** ajustes aplicados e re-testados; pendências registradas.
+- **Checkpoint:** Não (a decisão vem do CP-20, em E02).
+
+### V2-F12-E06 - Decidir ofício por link e atrito do MFA
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E05, decisões)
+- **Objetivo:** decidir o ofício por link (CP-22) e o atrito do MFA (CP-08) com a medição das sessões.
+- **Problema que resolve:** o link anônimo convive com o portal (REL:05 D13); o MFA nunca foi medido com pessoa de secretaria (K4).
+- **Origem:** DP:K4; REL:05 D13.
+- **Estado atual:** EXPANDIR (decisão e eventual ajuste de configuração).
+- **Dependências de entrada:** E02; CP-22; CP-08.
+- **O que deve ser implementado:**
+  - MFA: taxa de ativação sem ajuda, tempo, perda de aparelho simulada (reset, F03-E11) e a pessoa com dois municípios (ativa uma vez; troca com e sem novo código); CP-08: A todos, B só gestor, C opcional.
+  - Ofício: comparar o uso do link e do portal; CP-22: A manter para órgão sem conta, B desligar, C link que só avisa e aponta ao portal (recomendada); remoção em F10-E14 e F28-E11.
+- **O que NÃO deve ser implementado nesta etapa:** desligar o link, WebAuthn, SMS, SSO.
+- **Arquivos e módulos prováveis:** `docs/evidencias-v2/CP-08/`, `docs/evidencias-v2/CP-22/`, `apps/api/src/auth/segundo-fator.ts` (só se o CP-08 mudar a regra).
+- **Risco de segurança:** afrouxar o MFA por conveniência: B ou C exigem risco aceito por escrito.
+- **Impacto LGPD:** o link anônimo segue registrando IP e user-agent (F05-E12).
+- **Migração necessária:** Não.
+- **Compatibilidade:** a opção A mantém tudo como está.
+- **Rollback:** voltar `exigidoPara` (F03-E11).
+- **Testes positivos:** na opção A, o login sem MFA segue impossível; o link do ofício abre uma vez.
+- **Testes negativos:** o mesmo link aberto de novo: 410; B ou C no CP-08 passam por E05.
+- **Testes de autorização e isolamento:** reset de MFA pelo gestor da Obras em usuário da Saúde: 404.
+- **Regressão obrigatória:** `npm run test:api` (`segundo-fator`, `orgaos-e-oficio`); G03, G11.
+- **E2E:** login do órgão com MFA e abertura do link do ofício em HML.
+- **Validação humana:** Alyson decide com a secretaria.
+- **Evidência a produzir:** `docs/evidencias-v2/G12/V2-F12-E06/`.
+- **Documentação a atualizar:** `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** CP-08 e CP-22 decididos ou adiados com o bloqueio declarado.
+- **Checkpoint:** CP-22 e CP-08 (bloqueiam desligar o link e o portal em produção) e CP-50 (troca de município e redefinição; bloqueia o órgão externo real).
+
+### V2-F12-E07 - Relatório de homologação e decisão de liberar o cidadão
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (depende de E03, E04, E05, E06 e E08)
+- **Objetivo:** consolidar a homologação num relatório que sustente a decisão D-01 de liberar F13, F14 final e F15.
+- **Problema que resolve:** o G12 não fecha só com E2E verde: precisa de evidência de uso real e das decisões.
+- **Origem:** PR:D-01; DP:R1; DP:K1.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E03; E04; E05; E06; E08.
+- **O que deve ser implementado:**
+  - Arquivos: `docs/evidencias-v2/G12/RELATORIO.md`: cenários completados sem ajuda x total, tempos, ajustes feitos e adiados, decisões de CP-20, CP-21, CP-09, CP-22, CP-08, CP-50 e CP-51 (ou o bloqueio), estado de CP-19 (contratação para produção), riscos, o que NÃO foi provado (PDF, produção, segunda secretaria, órgão externo real, carga) e a recomendação.
+  - CP-36: balanço da onda (horas previstas x realizadas de F08 a F12, custo real de HML, capacidade restante) em `docs/evidencias-v2/CP-36/`, para Rafael decidir se a onda do cidadão começa.
+  - Registro: "G12 aprovado em <data ISO>": libera F13, F14 final e F15.
+- **O que NÃO deve ser implementado nesta etapa:** etapa de F13 ou F15, funcionalidade nova.
+- **Arquivos e módulos prováveis:** `docs/evidencias-v2/G12/RELATORIO.md` (a criar), `docs/evidencias-v2/CP-36/` (a criar).
+- **Risco de segurança:** liberar por pressão sem evidência: o relatório lista o que não foi provado.
+- **Impacto LGPD:** só a função das pessoas; sem dado de cidadão.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: documento.
+- **Rollback:** o G12 volta a reprovado sem evidência.
+- **Testes positivos:** `regras-de-conteudo.test.ts` aprova; todo item do G12 aponta uma evidência.
+- **Testes negativos:** decisão adiada sem o bloqueio declarado reprova a conferência.
+- **Testes de autorização e isolamento:** Não se aplica: documento.
+- **Regressão obrigatória:** `npm test --workspace @dc360/shared`; G00 a G11.
+- **E2E:** Não se aplica: documento.
+- **Validação humana:** Rafael e Alyson aprovam o relatório (ata).
+- **Evidência a produzir:** `docs/evidencias-v2/G12/V2-F12-E07/`.
+- **Documentação a atualizar:** `apps/portal/PENDENCIAS.md`.
+- **Definition of Done:** relatório aprovado e D-01 decidida.
+- **Checkpoint:** Não (o G12 exige CP-36: o balanço da onda entra no relatório e decide se a onda do cidadão começa; bloqueia o início efetivo de F15).
+
+### V2-F12-E08 - Cenários do órgão externo multi-município, instalação, idioma e cor do município
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com E03 e E04)
+- **Objetivo:** provar com pessoas, em HML e com dois municípios sintéticos, o órgão externo, a instalação, o idioma e a cor do município.
+- **Problema que resolve:** D-08, D-22, D-12 e D-11 só foram provados por teste automático.
+- **Origem:** PR:D-08; PR:D-22; PR:D-11; PR:D-12; DP:K1.
+- **Estado atual:** CRIAR (cenários 9 a 12 e atas).
+- **Dependências de entrada:** E01; E02; F11-E23 a E30.
+- **O que deve ser implementado:**
+  - Cenário 9, órgão externo: pessoa com vínculo em Serra Alta e Vale Fundo entra uma vez, troca de município e usa a caixa "Todos"; mede erro de troca.
+  - Cenário 10, instalação: instalar no computador, Android e iOS; abrir e entrar.
+  - Cenário 11, idioma: entrar em en e es; anotar texto cortado ou errado.
+  - Cenário 12, cor do município: logotipo e cor dos dois municípios; a pessoa diz onde está.
+- **O que NÃO deve ser implementado nesta etapa:** conta real de órgão externo (CP-51), tradução revisada (F35), mudar código (E05).
+- **Arquivos e módulos prováveis:** `dc360/docs/HOMOLOGACAO-DO-PORTAL.md`, `dc360/db/seeds/homologacao.sql`.
+- **Risco de segurança:** dado de um município no outro (F11-E25 prova por máquina).
+- **Impacto LGPD:** só atores sintéticos; ciência na ata.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: sessão.
+- **Rollback:** encerrar vínculos sintéticos.
+- **Testes positivos:** os quatro cenários completados por quem não é do projeto.
+- **Testes negativos:** cenário não completado sem ajuda vira item com motivo.
+- **Testes de autorização e isolamento:** a pessoa nunca vê item de um município no contexto do outro (F11-E25); órgão do outro município por URL: 404.
+- **Regressão obrigatória:** `npm run test:e2e:portal`, `npm run test:isolamento`; G11.
+- **E2E:** `cruzamento-de-municipios.e2e.mjs` e `instalacao.e2e.mjs` em HML.
+- **Validação humana:** pessoas do piloto, Rafael e Alyson; portão visual (`19-definicao-de-pronto.md` seção 0, F08-E13).
+- **Evidência a produzir:** `docs/evidencias-v2/G12/V2-F12-E08/` com atas, `capturas/`, `INDEX.md` e foto do celular.
+- **Documentação a atualizar:** `dc360/docs/HOMOLOGACAO-DO-PORTAL.md`.
+- **Definition of Done:** quatro cenários feitos e atas arquivadas.
+- **Checkpoint:** CP-51 (órgão piloto real e instrumento de dados; bloqueia a conta real) e CP-50 (troca de município).
+
+# GATE G12 - PORTAL HOMOLOGADO COM SECRETARIA REAL
+
+Só passa se:
+- [ ] V2-F12-E01: HML com município sintético, órgão e contas do piloto, dois municípios sintéticos com uma pessoa vinculada aos dois, 3 casos sem dado pessoal e roteiro de oito cenários mais os quatro de E08, ensaiado; `seed-sintetica.test.ts` verde; saída em `docs/evidencias-v2/G12/V2-F12-E01/`.
+- [ ] V2-F12-E02: sessões feitas com a secretaria piloto real (gestor e executor), com atas e tempos arquivados e sem dado de cidadão; CP-20 decidido (modelo e atribuição congelados; a devolução só antes do aceite já vale por D-23) e CP-19 decidido (contratação para uso externo, e-mail real restrito ao piloto).
+- [ ] V2-F12-E03: percentuais, pausa, canal e níveis do escalonamento calibrados; CP-21 decidido (valores finais em `config.ts`), ou adiado com o que bloqueia: os valores finais dos lembretes e do escalonamento.
+- [ ] V2-F12-E04: dossiê mínimo validado com o município e a secretaria; CP-09 decidido, ou adiado com o que bloqueia: o primeiro encaminhamento real e a F19.
+- [ ] V2-F12-E05: ajustes dentro da regra de corte aplicados, cada um com teste; os cenários re-testados; fluxos C e D de F11-E22 e o cruzamento de F11-E25 verdes em HML depois dos ajustes; tag de HML do modelo congelado.
+- [ ] V2-F12-E06: CP-08 e CP-22 decididos, ou adiados com o que bloqueiam (portal em produção; desligar o link do ofício); taxa de ativação do MFA registrada, inclusive da pessoa com dois municípios.
+- [ ] V2-F12-E08: cenários de órgão externo em dois municípios, instalação, idioma e cor do município feitos por pessoas, com atas e capturas; CP-51 e CP-50 decididos, ou adiados com o que bloqueiam (conta real de órgão externo; troca de município em produção).
+- [ ] V2-F12-E07: relatório aprovado por Rafael e Alyson, com o que não foi provado; CP-36 decidido; D-01 registrada (libera F13, F14 final e F15).
+- [ ] Obras x Saúde e Serra Alta x Vale Fundo reexecutados com as contas do piloto e a pessoa de dois municípios: 404 em toda rota cruzada e nenhum dado de um município no contexto do outro (`portal-cenarios-negativos.test.ts`, F11-E25 e roteiro).
+- [ ] Portão visual: as capturas das telas usadas nas sessões, nos três idiomas e com as duas identidades de município, arquivadas e aprovadas por Rafael (seção 0 de `19-definicao-de-pronto.md`).
+- [ ] `npm run test:isolamento`, `npm run test:api`, `npm test`, `npm run test:e2e:portal`, `npm run typecheck`, `npm run auditar` e `npm run verificar` verdes.
+- [ ] nenhuma regressão: gates G00 a G11 continuam verdes (se um quebrar, ESTE gate volta a REPROVADO).
+- [ ] documentação atualizada (`HOMOLOGACAO-DO-PORTAL.md`, `PRIVACIDADE.md`, `PAPEIS_E_RESPONSABILIDADES.md`) e evidências arquivadas em `docs/evidencias-v2/G12/`.
+
+**Reabre se:** regressão de tenant ou de órgão (Obras ver Saúde; um município no contexto de outro); o MFA do órgão for afrouxado sem decisão registrada; o modelo do encaminhamento mudar depois do congelamento sem nova sessão; uma conta real ler dado fora do órgão; E2E vermelho em HML.
+**Este Gate libera:** F13 (reinspeção), a versão final de F14 (app do agente) e F15 (início efetivo do App do Cidadão), conforme D-01. NÃO libera a produção do portal (CP-08 e CP-19), a conta real de órgão externo (CP-51) nem a abertura do canal do cidadão.

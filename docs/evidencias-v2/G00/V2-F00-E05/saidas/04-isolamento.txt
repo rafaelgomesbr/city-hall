@@ -1,0 +1,52 @@
+
+> dc360@0.1.0 test:isolamento
+> npm run test --workspace @dc360/db
+
+
+> @dc360/db@0.1.0 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/dc360/db[39m
+
+ [32m✓[39m test/ancora-de-confianca.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m test/teto-de-coordenada.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 5931[2mms[22m[39m
+ [32m✓[39m test/varredura-de-prazo-sem-bypassrls.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 5979[2mms[22m[39m
+ [32m✓[39m test/recuperacao-do-console.test.ts [2m([22m[2m30 tests[22m[2m)[22m[33m 6301[2mms[22m[39m
+ [32m✓[39m test/minimizacao-do-relato-e-da-trilha.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 6430[2mms[22m[39m
+ [32m✓[39m test/carga.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 7268[2mms[22m[39m
+ [32m✓[39m test/eliminacao-de-municipio.test.ts [2m([22m[2m39 tests[22m[2m)[22m[33m 8670[2mms[22m[39m
+ [32m✓[39m test/busca.test.ts [2m([22m[2m40 tests[22m[2m | [22m[33m3 skipped[39m[2m)[22m[33m 9426[2mms[22m[39m
+ [32m✓[39m test/ambiente-do-aparelho.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 10138[2mms[22m[39m
+   [33m[2m✓[22m[39m as linhas que já existiam quando a coluna nasceu[2m > [22mrecebem o APNS_AMBIENTE posto na sessão pelo aplicador [33m 2555[2mms[22m[39m
+   [33m[2m✓[22m[39m as linhas que já existiam quando a coluna nasceu[2m > [22me producao quando ninguém pôs nada, que é o padrão da própria variável [33m 1982[2mms[22m[39m
+ [32m✓[39m test/migrar.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 22716[2mms[22m[39m
+   [33m[2m✓[22m[39m Aplicação[2m > [22maplica na ordem, mesmo recebendo fora de ordem [33m 4536[2mms[22m[39m
+   [33m[2m✓[22m[39m Aplicação[2m > [22mrodar de novo não faz nada [33m 1954[2mms[22m[39m
+   [33m[2m✓[22m[39m Aplicação[2m > [22maplica só o que falta quando uma migração nova aparece [33m 1493[2mms[22m[39m
+   [33m[2m✓[22m[39m Aplicação[2m > [22mregistra quando cada uma foi aplicada [33m 1314[2mms[22m[39m
+   [33m[2m✓[22m[39m Falha no meio[2m > [22mdesfaz a migração que falhou e mantém as anteriores [33m 1056[2mms[22m[39m
+   [33m[2m✓[22m[39m Falha no meio[2m > [22mretoma da que falhou depois que ela é corrigida [33m 1066[2mms[22m[39m
+   [33m[2m✓[22m[39m Falha no meio[2m > [22ma mensagem diz qual migração falhou [33m 950[2mms[22m[39m
+   [33m[2m✓[22m[39m Histórico não se reescreve[2m > [22mpara quando uma migração já aplicada muda de conteúdo [33m 947[2mms[22m[39m
+   [33m[2m✓[22m[39m Histórico não se reescreve[2m > [22ma mensagem explica o que fazer, não só que deu erro [33m 1046[2mms[22m[39m
+   [33m[2m✓[22m[39m Histórico não se reescreve[2m > [22mreindentar não conta como alterar [33m 763[2mms[22m[39m
+   [33m[2m✓[22m[39m Conferência sem aplicar[2m > [22mdiz o que falta e não muda nada [33m 1022[2mms[22m[39m
+   [33m[2m✓[22m[39m Conferência sem aplicar[2m > [22mesquema em dia devolve lista vazia [33m 918[2mms[22m[39m
+   [33m[2m✓[22m[39m As migrações reais do produto[2m > [22maplicam do zero, na ordem, sem erro [33m 1633[2mms[22m[39m
+   [33m[2m✓[22m[39m As migrações reais do produto[2m > [22maplicar duas vezes é seguro, que é o caso de todo redeploy [33m 1391[2mms[22m[39m
+   [33m[2m✓[22m[39m As migrações reais do produto[2m > [22mos nomes começam com número, senão a ordem alfabética não serve [33m 969[2mms[22m[39m
+   [33m[2m✓[22m[39m Migrar com o papel errado[2m > [22mexplica que o papel não pode criar tabela, em vez de repetir o erro do Postgres [33m 849[2mms[22m[39m
+   [33m[2m✓[22m[39m Migrar com o papel errado[2m > [22mo papel certo continua migrando sem nenhum aviso novo [33m 803[2mms[22m[39m
+ [32m✓[39m test/isolamento.test.ts [2m([22m[2m137 tests[22m[2m)[22m[33m 40159[2mms[22m[39m
+   [33m[2m✓[22m[39m CA-06: isolamento entre organizações[2m > [22mtoda tabela de negócio carrega a coluna organizacao_id [33m 328[2mms[22m[39m
+   [33m[2m✓[22m[39m Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT[2m > [22mcom um GRANT DELETE a mais, as linhas continuam lá [33m 462[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22ma varredura enxerga o papel de aplicacao onde ele realmente tem privilegio [33m 1630[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22mnenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio [33m 1448[2mms[22m[39m
+   [33m[2m✓[22m[39m Nenhum papel alem do de aplicacao e do dono tem privilegio[2m > [22ma varredura acusa cada um dos seis caminhos de privilegio [33m 28486[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m11 passed[39m[22m[90m (11)[39m
+[2m      Tests [22m [1m[32m315 passed[39m[22m[2m | [22m[33m3 skipped[39m[90m (318)[39m
+[2m   Start at [22m 10:45:42
+[2m   Duration [22m 41.51s[2m (transform 1.24s, setup 0ms, collect 3.77s, tests 123.03s, environment 4ms, prepare 3.39s)[22m
+

@@ -1,0 +1,80 @@
+
+> @dc360/shared@0.1.0 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/dc360/packages/shared[39m
+
+ [32m✓[39m src/localizacao.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+ [32m✓[39m test/campos.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m test/telefone.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/pessoas.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m test/csv.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m test/codigos-de-erro.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m test/permissoes.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m test/tipo-a-classificar.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m test/evidencia.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m test/orgaos-do-checklist.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+ [32m✓[39m test/prova-perdida-e-coordenada.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m test/glifos-de-severidade.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m✓[39m test/mensagens-em-portugues.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+ [32m✓[39m test/dominio.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 467[2mms[22m[39m
+   [33m[2m✓[22m[39m Checklist da vistoria[2m > [22mninguém redefine o checklist fora do pacote compartilhado [33m 455[2mms[22m[39m
+ [31m❯[39m test/regras-de-conteudo.test.ts [2m([22m[2m5 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 1894[2mms[22m[39m
+   [33m[2m✓[22m[39m Regras de conteúdo[2m > [22ma varredura alcança o código, o protótipo e a documentação [33m 865[2mms[22m[39m
+[31m   [31m×[31m Regras de conteúdo[2m > [22mnenhum travessão em texto nenhum[39m[33m 553[2mms[22m[39m
+[31m     → travessão encontrado; use vírgula, dois pontos ou parênteses:
+dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe
+docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");": expected [ …(5) ] to deeply equal [][39m
+   [33m[2m✓[22m[39m Regras de conteúdo[2m > [22mnenhuma norma citada fora da lista autorizada [33m 471[2mms[22m[39m
+   [32m✓[39m Regras de conteúdo[2m > [22mnenhum número de artigo em documento oficial[32m 2[2mms[22m[39m
+   [32m✓[39m Regras de conteúdo[2m > [22mas próprias expressões funcionam[32m 1[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/regras-de-conteudo.test.ts[2m > [22mRegras de conteúdo[2m > [22mnenhum travessão em texto nenhum
+[31m[1mAssertionError[22m: travessão encontrado; use vírgula, dois pontos ou parênteses:
+dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe
+docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");": expected [ …(5) ] to deeply equal [][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",[39m
+[31m+   "docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe",[39m
+[31m+   "docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",[39m
+[31m+   "docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",[39m
+[31m+   "docs/auditoria-v2/raw/teste-shared.txt:41  +   \"dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\\\"[travessao]\\\");\"",[39m
+[31m+ ][39m
+
+[36m [2m❯[22m test/regras-de-conteudo.test.ts:[2m158:7[22m[39m
+    [90m156| [39m        [33m?[39m [32m""[39m
+    [90m157| [39m        : `travessão encontrado; use vírgula, dois pontos ou parêntese…
+    [90m158| [39m    )[33m.[39m[34mtoEqual[39m([])[33m;[39m
+    [90m   | [39m      [31m^[39m
+    [90m159| [39m  })[33m;[39m
+    [90m160| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m14 passed[39m[22m[90m (15)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m158 passed[39m[22m[90m (159)[39m
+[2m   Start at [22m 10:46:25
+[2m   Duration [22m 2.73s[2m (transform 1.02s, setup 0ms, collect 5.38s, tests 2.55s, environment 6ms, prepare 4.51s)[22m
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Projetos\city-hall\dc360\packages\shared
+npm error workspace @dc360/shared@0.1.0
+npm error location C:\Projetos\city-hall\dc360\packages\shared
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vitest run

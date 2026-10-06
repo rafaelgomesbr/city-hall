@@ -1,0 +1,56 @@
+
+== 26. Redefinir senha e encerrar sessoes pelo painel (V2-F00-E09) ==
+  OK   a administradora lista os usuarios pela API e acha Diego
+  OK   o agente tem sessoes abertas em dois aparelhos
+  OK   na linha de Diego existem os dois botoes novos
+  OK   na propria linha da administradora nao existe nenhum dos dois
+  OK   a administradora ve os botoes em todas as linhas menos na dela
+  OK   a API conta as sessoes abertas de Diego (pelo menos as duas deste teste)
+  OK   a pergunta diz o nome da pessoa e quantas sessoes ela tem abertas, o mesmo numero da API
+  OK   o botao da pergunta repete o ato com o nome da pessoa
+  OK   a pergunta diz que a senha nao muda
+  OK   cancelar fecha a janela e devolve o foco ao botao que a abriu
+  OK   cancelar nao derrubou ninguem
+  OK   o aviso passageiro confirma, com o nome e a quantidade
+  OK   o aviso e anunciado como status para o leitor de tela
+  OK   o token de renovacao do aparelho antigo morreu
+  OK   e o do celular tambem
+  OK   a API conta zero sessoes abertas de Diego
+  OK   a senha de Diego nao mudou: ele entra com a mesma
+  OK   a pergunta da senha diz que a atual deixa de valer, que a temporaria vale 72 horas e que aparece uma vez
+  OK   o botao da pergunta repete o ato com o nome da pessoa
+  OK   o foco comeca em Cancelar, nao no botao que grava
+  OK   a janela mostra a senha temporaria no formato ditavel
+  OK   a janela diz 'Anote agora' e que a senha nao aparece de novo
+  OK   diz de quem e a senha e quantas sessoes cairam junto
+  OK   a senha esta em fonte tabular
+  OK   o foco entra na janela, no primeiro botao
+  OK   copiar responde com uma das duas frases (copiada, ou como copiar a mao)
+  OK   o que foi copiado e a senha
+  OK   clicar fora NAO fecha a janela da senha (a unica copia nao some por esbarrao)
+  OK   ao fechar, a senha some da tela
+  OK   o foco volta ao botao da linha
+  OK   a senha antiga morreu
+  OK   a sessao que existia antes da redefinicao caiu
+  OK   a temporaria entra, e a sessao so alcanca a troca de senha
+  OK   a agente entra com a temporaria e a tela pede a senha nova antes de qualquer outra
+  OK   a agente define a senha e entra
+  OK   a sessao aberta com a temporaria pela API caiu na troca (so a atual sobrevive)
+  OK   a agente ve uma unica sessao, marcada como esta
+  OK   e a tela diz que e a unica, sem oferecer o botao de encerrar as outras
+  OK   o agente de campo recebe 403 sem_permissao nas tres rotas
+  OK   Minha conta lista as sessoes abertas (esta, a do outro navegador e as da API)
+  OK   exatamente uma esta marcada como 'Esta sessao', e e a primeira da lista
+  OK   a lista mostra o navegador em uma frase e nao entrega IP nem o texto do user-agent
+  OK   a pergunta diz que esta sessao continua aberta e que a senha nao muda
+  OK   o botao da pergunta repete o ato com a quantidade
+  OK   a confirmacao diz que esta continua aberta
+  OK   a lista passa a ter so esta sessao
+  OK   e a tela continua aberta: recarregar nao leva a entrada
+  OK   o token de renovacao do segundo navegador morreu
+  OK   e o token de acesso dele nao escreve mais: 401 sessao_encerrada
+  OK   a coordenadora ve os botoes em operador e agente, e em mais ninguem (posto igual ou maior)
+
+====================================================
+Passou: 50   Falhou: 0
+Zero erro de console.

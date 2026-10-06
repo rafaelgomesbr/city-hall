@@ -1,0 +1,4 @@
+npm error workspace @dc360/db@0.1.0
+npm error location C:\Projetos\city-hall\dc360\db
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c tsx src/cli.ts --conferir

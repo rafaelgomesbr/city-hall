@@ -1,0 +1,1120 @@
+# Fase 01: Fundação de engenharia e ambientes
+
+**Gate da fase:** G01 ENGENHARIA E AMBIENTES PRONTOS | **Depende dos gates:** G00 | **Superfícies tocadas:** repositório e CI (GitHub Actions), `apps/api`, `apps/console`, `apps/web` (deploy), `apps/campo` (perfil EAS), `db` (roteiros e semente), infraestrutura (Fly, Supabase, Vercel, DNS), imagem e extensões do Postgres | **Checkpoints da fase:** CP-04, CP-05, CP-06, CP-07 (CP-03, decidido em F00-E19, é consumido por E06) e os novos CP-43 e CP-44
+
+Objetivo: fazer o repositório e a nuvem merecerem a palavra "pronto" antes de qualquer feature da V2. Mudança só entra por PR com o CI completo (E01 a E08), existe um segundo ambiente que não é produção (HML, E09 a E13), o erro deixa de ser silencioso (E14) e uma segunda pessoa consegue operar (E15 e E16). As dívidas de engenharia da D-19 (lint, trava de migration, SBOM, licenças e scan de contêiner, E17 a E20) e a infraestrutura do PostGIS da D-16 (E21 e E22) fecham a fase. Hoje o CI é um workflow único (`.github/workflows/verificar.yml`, jobs `produto`, `navegador`, `demonstracao`, `aplicativo` e `implantavel`, sem deploy) que não chama `auditar`, `test:scripts`, `test:campo` nem `verificar`; a API é implantada por `fly deploy` da máquina do operador e a Vercel publica o painel de produção a cada push na `master`.
+
+O que se PRESERVA (MANTER): os cinco jobs atuais e seus nomes de exibição (viram checks obrigatórios em E01), `npm run verificar`, as recusas de partida de `apps/api/src/config.ts` em produção (TLS verificado, porta 5432, origens sem curinga, S3 obrigatório), o `fly.toml` (`kill_timeout`, `min_machines_running`, `PROXY_DE_BORDA`), o gate de cópia recente de `scripts/migrar-producao.mjs`, `USER node` nas imagens e o aplicador de migração com impressão SHA-256 (`db/src/migrar.ts`).
+
+O que a fase NÃO faz: backup, restore e DR (F22), observabilidade P1 e P2 (F21), pentest, DAST e varredura completa (F25), worker e API pública (F07, F15), tracing distribuído e SLO por rota (F21), o modelo espacial e as consultas por raio (F32) e rollback automático de migration em PROD (a regra "aditiva ou compatível" continua, com desfazer só fora de PROD, E18).
+
+Ordem sugerida: E01 e E02 em sequência; depois E03, E04, E05, E06 e E07 podem andar juntas (cada uma em arquivo ou workflow próprio); E08 depois de E07; E09 antes de E11; E10 não depende de etapa nenhuma, mas só se completa com CP-04; E12 depois de E08 e E11; E13, E14 e E15 depois de E11 (E15 só depende de F00-E25); E17 depois de E03; E18 depois de E08 e E09; E19 depois de E07 e E08; E20 depois de E08; E21 depois de E08 e E09; E22 depois de E11 e E21 e só fecha com CP-44; E16 fecha o bloco de operação. O que não depende de contratação (contratos de ambiente, CI, scripts, adaptadores, runbooks em rascunho) é feito antes dos checkpoints; cada etapa diz o que fica bloqueado por CP-04, CP-05, CP-06 e CP-07. Os nomes de exibição dos jobs de `verificar.yml` são contrato com o ruleset de E01: nenhuma etapa os renomeia sem atualizar a regra.
+
+## Etapas
+
+### V2-F01-E01 - Proteção da master: PR obrigatório, checks obrigatórios, sem push direto, auto-aprovação registrada
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** médio  |  **Paralelizável:** não (E02 em diante assumem que a master só recebe o que passou pelo CI)
+- **Objetivo:** nada entra na `master` sem PR e sem os quatro jobs de CI verdes, mesmo com um único desenvolvedor, e cada merge deixa registro de revisão.
+- **Problema que resolve:** `BZ-F:P1-OPER` (OPS-76): 119 commits direto na master, 0 merges, 1 autor; o workflow roda em `pull_request`, mas nada obriga a passar por ele, e a proteção real no GitHub é NÃO CONFIRMADA.
+- **Origem:** DP:T34; REL:10 (decisão D7); BZ-D:OPS-76; BZ-F:P1-OPER.
+- **Estado atual:** CRIAR (na raiz do repositório `.github/` só tem `workflows/verificar.yml` e não existe `dc360/.github`; o ruleset atual do GitHub é desconhecido e o primeiro passo é lê-lo).
+- **Dependências de entrada:** G00.
+- **O que deve ser implementado:**
+  - Infraestrutura: ruleset da `master`: PR obrigatório com 0 aprovações enquanto houver um só contribuinte (a auto-aprovação é o checklist do PR; vira 1 aprovação com CP-07); checks obrigatórios pelo nome de exibição exato dos jobs ("Testes, tipos e auditoria", "Fluxo ponta a ponta no navegador", "A API sobe contra Postgres real", "Aplicativo de campo"); branch atualizado; só squash; sem force-push nem exclusão; sem exceção para administrador.
+  - Arquivos: `.github/pull_request_template.md` com checklist de auto-aprovação (gates locais, migração aditiva, rollback, evidência) e `.github/CODEOWNERS` para `dc360/db/migrations/`, `dc360/apps/api/src/auth/` e `.github/`; o `CLAUDE.md` passa de commit direto a PR.
+- **O que NÃO deve ser implementado nesta etapa:** lint, SAST e segredos (E04, E05); deploy (E12); segunda pessoa revisora (E16, CP-07); renomear jobs.
+- **Arquivos e módulos prováveis:** `.github/pull_request_template.md` e `.github/CODEOWNERS` (a criar), ruleset do GitHub (exportado em JSON), `CLAUDE.md`, `dc360/README.md`.
+- **Risco de segurança:** sem a regra, credencial de push do dono escreve na master sem rastro; se o plano do GitHub não oferecer proteção em repositório privado (NÃO CONFIRMADO), o plano é pré-condição.
+- **Impacto LGPD:** Não se aplica: nenhum dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** `git push origin master` direto deixa de funcionar.
+- **Rollback:** desativar o ruleset (o JSON exportado o recria).
+- **Testes positivos:** PR de prova com os quatro checks verdes é mesclado por squash.
+- **Testes negativos:** push direto e `--force` na master recusados; PR com check vermelho não mescla.
+- **Testes de autorização e isolamento:** o dono sem bypass e o `GITHUB_TOKEN` do workflow são recusados ao escrever na master; isolamento de dados: Não se aplica.
+- **Regressão obrigatória:** `npm run verificar`, G00.
+- **E2E:** PR de prova de ponta a ponta até o merge.
+- **Validação humana:** Rafael tenta o push direto e vê a recusa.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E01/` com o JSON do ruleset e as saídas das recusas.
+- **Documentação a atualizar:** `CLAUDE.md`, `dc360/README.md`.
+- **Definition of Done:** push direto recusado; quatro checks exigidos pelo nome exato; template de PR em uso.
+- **Checkpoint:** Não.
+
+### V2-F01-E02 - CI confiável: permissions mínimas, timeouts, ações fixadas por SHA, cache
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E03 a E09 partem do `verificar.yml` que esta etapa deixa)
+- **Objetivo:** o workflow deixa de depender dos padrões frouxos do GitHub: token só de leitura, tempo máximo por job, ações imutáveis, runner com versão e cache onde falta.
+- **Problema que resolve:** `BZ-F:P1-OPER` (OPS-75, OPS-96): `verificar.yml` não tem `permissions:` nem `timeout-minutes` nos 5 jobs; as 10 ocorrências de `uses:` são por tag móvel (`actions/checkout@v4`, `actions/setup-node@v4`); `ubuntu-latest` flutua; o Playwright baixa os navegadores em toda execução; o `concurrency` cancela também a execução da master.
+- **Origem:** DP:T34; REL:10 (1.3); BZ-D:OPS-75; BZ-D:OPS-60.
+- **Estado atual:** EXPANDIR (há `concurrency`, `npm ci` e cache do npm por `setup-node`; falta endurecer).
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Infraestrutura: `permissions: contents: read` no topo; `timeout-minutes` por job (o dobro da mediana das últimas execuções verdes); `runs-on: ubuntu-24.04`; toda `uses:` por SHA de 40 caracteres, com a tag em comentário; `cancel-in-progress` só em PR; cache de `~/.cache/ms-playwright`; no job `aplicativo`, `cache-dependency-path` com os dois lockfiles; o job `demonstracao` (protótipo `mockup/`) vai para `.github/workflows/demonstracao.yml` com filtro `paths: mockup/**` e `scripts/**`.
+  - Arquivos: `dc360/scripts/conferir-workflows.test.mjs` (em `npm run test:scripts`): lê `.github/workflows/*.yml` como texto e reprova `uses:` sem SHA, workflow sem `permissions`, job sem `timeout-minutes` e qualquer `pull_request_target`.
+- **O que NÃO deve ser implementado nesta etapa:** segredos (E04), SAST (E05), Dependabot dos SHAs (E06), deploy e seus segredos (E12), renomear job.
+- **Arquivos e módulos prováveis:** `.github/workflows/verificar.yml`, `.github/workflows/demonstracao.yml` e `dc360/scripts/conferir-workflows.test.mjs` (a criar).
+- **Risco de segurança:** ação por tag móvel pode ser reescrita e rodar código no runner; token com escrita padrão amplia o dano, e E12 vai introduzir segredos.
+- **Impacto LGPD:** Não se aplica: o CI usa só dado sintético.
+- **Migração necessária:** Não.
+- **Compatibilidade:** nomes dos jobs inalterados (ruleset de E01); `demonstracao` deixa de rodar quando só o produto muda.
+- **Rollback:** reverter o PR.
+- **Testes positivos:** os quatro jobs exigidos passam com SHA e timeouts; `conferir-workflows` verde.
+- **Testes negativos:** quatro PRs de prova reprovados: `uses` por tag, job sem `timeout-minutes`, sem `permissions`, com `pull_request_target`.
+- **Testes de autorização e isolamento:** o `GITHUB_TOKEN` só lê (passo de prova com `git push` é recusado); isolamento de dados: Não se aplica.
+- **Regressão obrigatória:** `npm run test:scripts`, `npm run verificar`, G00.
+- **E2E:** Não se aplica: a execução do workflow em PR de prova é a prova.
+- **Validação humana:** Rafael compara a duração antes e depois.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E02/` com durações antes e depois e a saída de `conferir-workflows`.
+- **Documentação a atualizar:** `dc360/README.md` (integração contínua) e o cabeçalho de `verificar.yml`.
+- **Definition of Done:** zero `uses:` por tag, zero job sem timeout, `permissions` mínimas, `demonstracao` isolado, `conferir-workflows` verde.
+- **Checkpoint:** Não.
+
+### V2-F01-E03 - CI passa a rodar o que hoje só roda local: `auditar`, `test:scripts`, `test:campo` (paridades e portões do app)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F01-E04, F01-E05, F01-E06, F01-E07: só esta edita `verificar.yml`)
+- **Objetivo:** todo portão do script `verificar` do `package.json` roda no CI, e portão novo que fique só local passa a reprovar.
+- **Problema que resolve:** `BZ-F:P1-OPER` (OPS-63): os 18 `dc360/scripts/*.test.mjs` (portões e paridades do app, entitlements do iOS, variáveis de ambiente, scripts de produção), `scripts/auditar.mjs` e `test:campo` só rodam em `npm run verificar` local; o CI usa `npm audit --audit-level=low` (`verificar.yml:57` e `:242`), mais rígido que a política de `auditar`.
+- **Origem:** REL:10; REL:11 (UXD-47); BZ-D:OPS-63; BZ-D:OPS-66; BZ-N:N.9; DP:T34.
+- **Estado atual:** EXPANDIR (o CI roda typecheck, `test:isolamento`, `npm test`, `conferir:numeros`, e2e e `npm test` do app).
+- **Dependências de entrada:** E02; G00 (F00-E17 e F00-E19 deixam `test:scripts` verde e a política de audit fechada, CP-03).
+- **O que deve ser implementado:**
+  - Infraestrutura: no job `produto`, `npm run auditar` no lugar de `npm audit --audit-level=low` (runtime reprova, desenvolvimento avisa; cobre a raiz e `apps/campo`); no job `aplicativo`, depois do `npm ci` do app, `npm run test:campo` (substitui `typecheck` e `npm test`) e `npm run test:scripts` (precisa das duas árvores: `portao-do-mapa-do-aplicativo.test.mjs` lê `apps/campo/node_modules`); sai o `npm audit` próprio do app.
+  - Arquivos: `conferir-workflows.test.mjs` (E02) ganha a regra "todo comando do script `verificar` aparece em algum `run:`".
+- **O que NÃO deve ser implementado nesta etapa:** renomear job; mudar o conteúdo dos portões (F08-E06 os parametriza); `test:e2e` e `test:e2e:api` (já rodam em `navegador`).
+- **Arquivos e módulos prováveis:** `.github/workflows/verificar.yml`, `dc360/scripts/conferir-workflows.test.mjs`, `dc360/scripts/auditar.mjs`, `dc360/scripts/testar-campo.mjs`, `dc360/package.json`.
+- **Risco de segurança:** advisory nova em runtime passa a reprovar o PR, como se quer.
+- **Impacto LGPD:** Não se aplica: nenhum dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** CI mais longo; advisory só de desenvolvimento passa a avisar (CP-03).
+- **Rollback:** reverter o PR.
+- **Testes positivos:** `aplicativo` verde com `test:campo` e `test:scripts`; `produto` verde com `auditar`.
+- **Testes negativos:** PR de prova que muda `--ds-accent` em `tokens.css` sem mudar `tokens.ts` deixa `aplicativo` vermelho; tirar `npm run auditar` do workflow reprova `conferir-workflows`.
+- **Testes de autorização e isolamento:** `npm run test:isolamento` segue como passo próprio, antes da suíte completa (CA-06); outros cruzamentos: Não se aplica.
+- **Regressão obrigatória:** `npm run verificar`, `npm run test:scripts`, `npm run test:campo`, `npm run auditar`, `npm run conferir:numeros`, G00.
+- **E2E:** Não se aplica: a execução do workflow é a prova.
+- **Validação humana:** Rafael abre o PR de prova da paridade e vê o portão vermelho.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E03/` com os links das execuções verde e vermelha e o diff do workflow.
+- **Documentação a atualizar:** `dc360/README.md` (o que o CI roda e as contagens que `conferir:numeros` confere).
+- **Definition of Done:** o CI roda todos os comandos do `verificar`; tirar um deles reprova o PR; sem `npm audit` próprio no workflow.
+- **Checkpoint:** Não.
+
+### V2-F01-E04 - Varredura de segredos (gitleaks) no CI e no pre-commit
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** médio  |  **Paralelizável:** sim (com F01-E03, F01-E05, F01-E06, F01-E07: workflow, hook e configuração próprios)
+- **Objetivo:** segredo commitado por engano é barrado antes do merge, e o histórico atual é varrido uma vez.
+- **Problema que resolve:** `BZ-F:P1-OPER` (OPS-68): sem varredura de segredos; `core.hooksPath` vazio e `.git/hooks` só com amostras; o `.gitignore` barra só o que é nomeado (`.env*`, `*.p8`, contas Firebase); há fixtures legítimas que um scanner vai acusar.
+- **Origem:** DP:T34; REL:10 (1.3); BZ-D:OPS-68.
+- **Estado atual:** CRIAR (sem gitleaks, hook versionado nem configuração de scanner).
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - Infraestrutura: `.github/workflows/segredos.yml` com histórico completo, `--redact`, `permissions` de leitura e o binário do gitleaks em versão fixa com SHA-256 conferido (sem ação de terceiro licenciada); o check entra no ruleset de E01; secret scanning e push protection do GitHub, se o plano permitir (NÃO CONFIRMADO).
+  - Arquivos: `.gitleaks.toml` com allowlist por caminho e razão: `dc360/apps/api/test/` (chave de exemplo da AWS em `assinatura.test.ts`, PEM falsos em `config.test.ts` e `push-*.test.ts`), `dc360/db/provedores/supabase-prod-ca-2021.crt` (CA pública), `dc360/apps/campo/google-services.json` (configuração de cliente), `dc360/db/seeds/desenvolvimento.sql` (hash de fixture); `.githooks/pre-commit` varre o que está em stage e só avisa se o gitleaks não está instalado; script `preparar` no `dc360/package.json` aponta `core.hooksPath`.
+  - Testes: `dc360/scripts/politica-de-segredos.test.mjs`: todo caminho da allowlist existe, o hook existe e o workflow chama o gitleaks.
+- **O que NÃO deve ser implementado nesta etapa:** SAST (E05); tratamento profundo de achados (F25-E01); cofre de segredos (E16, CP-07).
+- **Arquivos e módulos prováveis:** `.github/workflows/segredos.yml`, `.gitleaks.toml`, `.githooks/pre-commit` (a criar na raiz), `dc360/package.json`, `dc360/scripts/politica-de-segredos.test.mjs` (a criar).
+- **Risco de segurança:** o relatório pode conter o segredo achado (`--redact`); segredo real no histórico é rotacionado (`scripts/rotacionar-segredo.mjs` para o `JWT_SEGREDO`), não só apagado.
+- **Impacto LGPD:** Não se aplica: relatório redigido, sem dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** o hook é opcional por máquina; o CI é o portão que vale.
+- **Rollback:** remover o workflow e o check; `git config --unset core.hooksPath` desliga o hook.
+- **Testes positivos:** varredura do histórico sem achado fora da allowlist; PR comum passa.
+- **Testes negativos:** PR de prova com token sintético no formato de chave de provedor (nunca real) reprova com relatório redigido.
+- **Testes de autorização e isolamento:** o workflow não recebe segredo; allowlist com caminho inexistente reprova `politica-de-segredos`; isolamento de dados: Não se aplica.
+- **Regressão obrigatória:** `npm run test:scripts`, `npm run verificar`, G00.
+- **E2E:** Não se aplica: a prova é o PR de prova reprovado e fechado sem merge.
+- **Validação humana:** Rafael lê o relatório do histórico e confere a allowlist.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E04/` com o relatório redigido e o PR de prova reprovado.
+- **Documentação a atualizar:** `dc360/README.md` (instalar o hook).
+- **Definition of Done:** CI barra segredo novo; histórico triado; allowlist com razão; check obrigatório no ruleset.
+- **Checkpoint:** Não.
+
+### V2-F01-E05 - SAST (Semgrep CE) no CI com política de exceção
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F01-E03, F01-E04, F01-E06, F01-E07: workflow e regras próprios)
+- **Objetivo:** análise estática por PR, com regras do projeto que protegem a regra número 1, e exceções que têm motivo, dono e data.
+- **Problema que resolve:** `BZ-F:P1-OPER` (OPS-65): não há SAST; o substituto caseiro (`apps/api/test/superficie.test.ts`, "toda rota exige token") não analisa código.
+- **Origem:** DP:T34; REL:10 (decisão D8); BZ-D:OPS-65.
+- **Estado atual:** CRIAR (sem ferramenta de SAST nem diretório de regras).
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - Infraestrutura: `.github/workflows/sast.yml` com Semgrep CE em versão ou digest fixos, `--metrics=off` e sem login (nenhum código sai do runner); regras do registro para TypeScript, Node, React e JWT mais as próprias; reprova achado ERROR; achados antigos ficam numa baseline triada (defeito real vira trabalho de F25-E01); o check entra no ruleset.
+  - Arquivos: `.semgrep/regras/` e `.semgrep/test/` com casos positivos e negativos rodados por `semgrep --test`: (1) `organizacao_id` ou `organizacaoId` lido de `body`, `params`, `query` ou cabeçalho em `dc360/apps/api/src`; (2) SQL por template com interpolação em `query(`; (3) log de `req.headers.authorization`. Busca textual simples não achou ocorrência de (1) nem de (2) hoje: nascem como armadilha para o portal e o cidadão.
+  - Testes: `dc360/scripts/excecoes-de-seguranca.test.mjs`: todo `nosemgrep` exige motivo, dono e data ISO de vencimento e reprova se vencida.
+- **O que NÃO deve ser implementado nesta etapa:** CodeQL; DAST (F25-E10); tratamento completo dos achados (F25-E01); scan de contêiner e SBOM.
+- **Arquivos e módulos prováveis:** `.github/workflows/sast.yml`, `.semgrep/` (a criar na raiz), `dc360/scripts/excecoes-de-seguranca.test.mjs` (a criar).
+- **Risco de segurança:** regra ruidosa leva a `nosemgrep` sem critério: a exceção exige motivo, dono e prazo, e as regras do registro ficam fixadas.
+- **Impacto LGPD:** Não se aplica: a análise é local ao runner.
+- **Migração necessária:** Não.
+- **Compatibilidade:** achados antigos ficam na baseline; só achado novo reprova.
+- **Rollback:** tirar o check do ruleset e o workflow.
+- **Testes positivos:** as regras próprias acertam `.semgrep/test/`; o repositório passa com a baseline.
+- **Testes negativos:** PR de prova que lê `organizacaoId` de `request.body` reprova; `nosemgrep` sem data ou vencido reprova `excecoes-de-seguranca`.
+- **Testes de autorização e isolamento:** a regra (1) é a versão estática do isolamento por token; o teste dinâmico segue sendo `npm run test:isolamento`.
+- **Regressão obrigatória:** `npm run test:scripts`, `npm run test:isolamento`, `npm run test:api`, `npm run verificar`, G00.
+- **E2E:** Não se aplica: a prova é o PR de prova reprovado e fechado.
+- **Validação humana:** Rafael lê a triagem da baseline.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E05/` com a baseline triada, a saída de `semgrep --test` e o PR de prova.
+- **Documentação a atualizar:** `dc360/README.md` (política de exceção de SAST).
+- **Definition of Done:** Semgrep roda por PR; achado ERROR novo reprova; exceção só com motivo, dono e data; regras próprias testadas.
+- **Checkpoint:** Não.
+
+### V2-F01-E06 - Dependências: Dependabot ou Renovate e política de atualização
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** médio  |  **Paralelizável:** sim (com F01-E03, F01-E04, F01-E05, F01-E07: arquivos próprios)
+- **Objetivo:** atualização de dependência e de ação do GitHub chega como PR pequeno, e advisory nova é pega por agenda.
+- **Problema que resolve:** `BZ-F:P1-OPER` (OPS-66, OPS-67, OPS-96): sem Dependabot nem Renovate nem `schedule:` no CI; o `npm audit` de 2026-09-30 saiu com código 1 e o README diz "em zero".
+- **Origem:** DP:T34; REL:10 (decisão D8); BZ-D:OPS-66; BZ-D:OPS-67; BZ-D:OPS-96.
+- **Estado atual:** CRIAR (a política de audit é fechada em F00-E19).
+- **Dependências de entrada:** E02; CP-03.
+- **O que deve ser implementado:**
+  - Infraestrutura: `.github/dependabot.yml` com `npm` em `/dc360` e `/dc360/apps/campo`, `github-actions` (mantém os SHAs de E02) e `docker`; semanal; no app, `ignore` de major e minor de `expo`, `react-native`, `react-native-reanimated` e `react-native-worklets`.
+  - Infraestrutura: `.github/workflows/auditoria-semanal.yml` com `schedule` semanal rodando `npm run auditar`.
+  - Documentação: `dc360/docs/DEPENDENCIAS.md` com prazo por severidade (proposta: runtime crítica ou alta em 7 dias, moderada em 30; vale o de CP-03).
+- **O que NÃO deve ser implementado nesta etapa:** Renovate; SBOM e licenças (E19); troca de SDK do Expo; correção das advisories atuais (F00-E19); auto-merge.
+- **Arquivos e módulos prováveis:** `.github/dependabot.yml`, `.github/workflows/auditoria-semanal.yml`, `dc360/docs/DEPENDENCIAS.md` (a criar).
+- **Risco de segurança:** PR de dependência é vetor de cadeia de suprimentos: passa pelos checks obrigatórios, sem auto-merge.
+- **Impacto LGPD:** Não se aplica: nenhum dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem mudança de produto.
+- **Rollback:** remover `dependabot.yml` e o workflow semanal.
+- **Testes positivos:** o Dependabot abre PR com o CI verde; a agenda passa.
+- **Testes negativos:** major de `expo` não gera PR; branch com pacote de runtime vulnerável faz o `auditar` agendado sair com 1.
+- **Testes de autorização e isolamento:** o merge segue o ruleset de E01, sem bypass; isolamento de dados: Não se aplica.
+- **Regressão obrigatória:** `npm run auditar`, G00.
+- **E2E:** Não se aplica: a prova é o PR automático.
+- **Validação humana:** Rafael confere os primeiros PRs.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E06/`.
+- **Documentação a atualizar:** `dc360/README.md`.
+- **Definition of Done:** Dependabot ativo; auditoria semanal; prazos escritos.
+- **Checkpoint:** CP-03 (política de audit, decidida em F00-E19; sem ela os prazos não fecham).
+
+### V2-F01-E07 - SemVer, tags, changelog e estratégia de release
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** baixo  |  **Paralelizável:** sim (com F01-E03, F01-E04, F01-E05, F01-E06)
+- **Objetivo:** cada versão em produção tem número, tag e changelog, e dá para dizer qual commit está no ar.
+- **Problema que resolve:** `BZ-F:P1-OPER` (OPS-77, OPS-94): todos os `package.json` em 0.1.0, `git tag` vazio, sem CHANGELOG; nada liga artefato implantado a commit.
+- **Origem:** DP:T34; REL:10 (decisão D7); BZ-D:OPS-77; BZ-D:OPS-94.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - Domínio: SemVer em duas linhas: plataforma (API, painel, console e db, um número em `dc360/package.json`, igual em todos os workspaces) com tag `vX.Y.Z`, e app do agente (`VERSAO` de `apps/campo/app.config.ts`) com tag `campo-vX.Y.Z`; antes de G28, `0.y.z`; migration ou contrato incompatível sobe o `y`, correção o `z`.
+  - Arquivos: `dc360/CHANGELOG.md` em português; `dc360/scripts/versao.mjs` sobe e confere a versão nos workspaces; `versao.test.mjs` em `test:scripts`.
+  - Infraestrutura: ruleset de tags `v*` e `campo-v*` (sem atualizar nem apagar); primeira tag depois de E01, nunca retroativa; Release do GitHub com as notas, onde E19 anexa o SBOM.
+- **O que NÃO deve ser implementado nesta etapa:** SBOM do release (E19); versão em `/saude` (E08); OTA do app (CP-24, F14); 1.0.0; promoção (E12).
+- **Arquivos e módulos prováveis:** `dc360/package.json`, `dc360/apps/campo/app.config.ts`, `dc360/CHANGELOG.md`, `dc360/scripts/versao.mjs` e `versao.test.mjs` (a criar).
+- **Risco de segurança:** tag mutável permite trocar o que foi promovido: daí o ruleset de tag.
+- **Impacto LGPD:** Não se aplica: nenhum dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** o `BUILD` do app segue do EAS.
+- **Rollback:** apagar a tag antes de promover.
+- **Testes positivos:** `versao.mjs` leva todos os workspaces ao mesmo número.
+- **Testes negativos:** bump em um só workspace reprova; versão sem seção no CHANGELOG reprova; tag `v1` reprova.
+- **Testes de autorização e isolamento:** só o dono e o workflow de E12 criam tag; isolamento de dados: Não se aplica.
+- **Regressão obrigatória:** `npm run test:scripts`, `npm run conferir:numeros`, G00.
+- **E2E:** Não se aplica: a prova é a tag publicada.
+- **Validação humana:** Rafael lê o CHANGELOG.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E07/`.
+- **Documentação a atualizar:** `dc360/README.md`.
+- **Definition of Done:** primeira tag; CHANGELOG com a seção; igualdade de versões testada.
+- **Checkpoint:** Não.
+
+### V2-F01-E08 - Imagem Docker no CI e runbook de rollback (Fly releases, Vercel, EAS)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (depende de E07 e edita `verificar.yml`, como E03)
+- **Objetivo:** as duas imagens são construídas e exercitadas em todo PR, `/saude` mostra versão e commit, e o rollback está escrito.
+- **Problema que resolve:** `BZ-F:P1-OPER` (OPS-73, OPS-74, OPS-86, OPS-48): o `implantavel` não constrói a imagem (só `npm run build` e `node apps/api/dist/index.js`); `/saude` sem versão; rollback só em prosa.
+- **Origem:** DP:T34; REL:10; BZ-D:OPS-73, 74, 86.
+- **Estado atual:** EXPANDIR (as imagens rodam em produção; falta construí-las no CI).
+- **Dependências de entrada:** E07.
+- **O que deve ser implementado:**
+  - Infraestrutura: job `imagens` em `verificar.yml` (entra no ruleset): `docker build` das duas imagens com base por digest; smoke da API contra o Postgres de serviço (`NODE_ENV=development`): `/saude` 200, `chromium --version`, usuário não root; o `implantavel` passa ao Postgres 17 de produção (com PostGIS na E21).
+  - API: `/saude` devolve `versao` e `commit` (build args `DC360_VERSAO` e `DC360_COMMIT`; console igual).
+  - Documentação: `dc360/docs/runbooks/rollback.md`: API (`fly releases`, `fly deploy --image` da anterior), painel (deployment anterior na Vercel), console, app (nova build), banco (migration aditiva e cópia de E15; desfazer de E18 só fora de PROD).
+- **O que NÃO deve ser implementado nesta etapa:** scan (E20) e SBOM (E19); Chromium em processo próprio (F07-E05); promover a imagem (E12).
+- **Arquivos e módulos prováveis:** `.github/workflows/verificar.yml`, `dc360/Dockerfile`, `dc360/Dockerfile.console`, `dc360/docs/runbooks/rollback.md` (a criar).
+- **Risco de segurança:** `/saude` é pública: versão e commit não são sensíveis.
+- **Impacto LGPD:** Não se aplica: sem dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** `/saude` ganha dois campos.
+- **Rollback:** reverter o PR.
+- **Testes positivos:** as duas imagens constroem; smoke 200; `versao` e `commit` batem com o build (`saude-versao.test.ts`, a criar).
+- **Testes negativos:** sem Chromium o smoke reprova; root no lugar de `USER node` reprova.
+- **Testes de autorização e isolamento:** o job não recebe segredo e a imagem roda como `node`.
+- **Regressão obrigatória:** `npm run test:api`, G00.
+- **E2E:** Não se aplica: o smoke de partida da imagem é a prova.
+- **Validação humana:** Rafael lê `rollback.md`.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E08/`.
+- **Documentação a atualizar:** cabeçalhos dos Dockerfiles.
+- **Definition of Done:** imagens em todo PR; smoke verde; `/saude` com versão; `rollback.md`.
+- **Checkpoint:** Não.
+
+### V2-F01-E09 - Contratos de ambiente DEV, HML e PROD (matriz de variáveis, validação na subida, `.env.example`)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F01-E03 a F01-E07: toca configuração e documentação, não workflows)
+- **Objetivo:** DEV, HML e PROD têm contrato verificado na subida: variáveis, valores permitidos e recusa de configuração cruzada.
+- **Problema que resolve:** `BZ-F:P1-OPER` (OPS-83, OPS-93; ARQ-34): a API só distingue ambiente por `NODE_ENV` (`apps/api/src/config.ts:28`) e o piloto roda como `production`; HML também rodaria, sem nada que impeça configuração de PROD colada nele. CI e PGlite rodam Postgres 16 contra 17.6 em produção.
+- **Origem:** DP:T30; REL:10 (decisão D6); BZ-D:OPS-83; BZ-D:OPS-93; BZ-D:ARQ-34.
+- **Estado atual:** EXPANDIR (as recusas de produção de `config.ts` e `scripts/variaveis-de-ambiente.test.mjs` existem; falta a dimensão ambiente).
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - Domínio: `AMBIENTE_DC360` (`dev`, `hml`, `prod`) em `config.ts` da API e do console: obrigatória com `NODE_ENV=production`; em `hml` exige `MARCA_DAGUA` e só envia e-mail a domínios de `EMAIL_DOMINIOS_DE_TESTE`; trava de ambiente cruzado: `IDENTIDADE_DO_BANCO` (não secreta, no `[env]`) precisa constar no usuário ou host de `DATABASE_URL`, e `URL_PAINEL` e `ORIGENS_PERMITIDAS` precisam ter o sufixo de domínio do ambiente; senão a partida recusa.
+  - Arquivos: matriz `dc360/scripts/ambientes.json`; `conferir-ambiente.mjs` compara os NOMES de `fly secrets list` com a matriz; `dc360/docs/AMBIENTES.md`; `.env.example` dos três workspaces; `.node-version` e `engines` em 22; `compose.yaml` com Postgres 17.
+  - Infraestrutura: `fly.toml` e `fly.console.toml` de PROD ganham as duas variáveis no mesmo PR que torna `AMBIENTE_DC360` obrigatória.
+- **O que NÃO deve ser implementado nesta etapa:** criar app, banco ou bucket de HML (E11); domínio (E10); perfil EAS (E13); cofre (E16); Postgres do CI (E08).
+- **Arquivos e módulos prováveis:** `dc360/apps/api/src/config.ts`, `dc360/apps/console/src/config.ts`, `dc360/fly.toml`, `dc360/fly.console.toml`, `dc360/compose.yaml`, os `.env.example` de `apps/api`, `apps/console` e `apps/campo`, `dc360/scripts/ambientes.json`, `dc360/scripts/conferir-ambiente.mjs` e `dc360/docs/AMBIENTES.md` (a criar).
+- **Risco de segurança:** trava mal escrita derruba PROD: é provada em HML antes; a matriz nunca guarda segredo.
+- **Impacto LGPD:** o filtro de HML impede mensagem de teste a pessoa real.
+- **Migração necessária:** Não.
+- **Compatibilidade:** PROD precisa das duas variáveis antes do deploy que as exige.
+- **Rollback:** reverter o PR e as linhas do `fly.toml`.
+- **Testes positivos:** casos novos em `apps/api/test/config.test.ts` e `apps/console/test/subir-em-producao.test.ts`: `prod` e `hml` válidos partem.
+- **Testes negativos:** produção sem `AMBIENTE_DC360` recusa; `hml` com `MARCA_DAGUA` vazia recusa; `DATABASE_URL` sem a identidade esperada recusa; e-mail de HML fora da lista é recusado.
+- **Testes de autorização e isolamento:** HML com credencial de banco de PROD recusa a partida; `conferir-ambiente` reprova segredo exclusivo de PROD no app de HML.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:console`, `npm run test:scripts`, G00.
+- **E2E:** Não se aplica: provado em HML (E11) e PROD (E12).
+- **Validação humana:** Rafael confere a coluna de PROD contra `fly secrets list`.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E09/` com a saída dos testes e `conferir-ambiente` (só nomes).
+- **Documentação a atualizar:** `dc360/docs/AMBIENTES.md`.
+- **Definition of Done:** matriz testada; ambiente obrigatório em produção; trava cruzada testada; PROD ainda sobe.
+- **Checkpoint:** Não.
+
+### V2-F01-E10 - Domínio, DNS, TLS e CORS por ambiente
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F01-E09: toca `vercel.json` e scripts próprios)
+- **Objetivo:** cada ambiente tem endereço, certificado e origem permitida declarados e testados, e o que depende de domínio próprio espera CP-04 sem bloquear o resto.
+- **Problema que resolve:** `BZ-F:P1-OPER` (ARQ-34, ARQ-39): sem domínio próprio (só endereços de provedor), necessário para e-mail verificado e lojas; `dc360/vercel.json` fixa `VITE_API_URL` de PROD em `build.env` e só declara `Cache-Control`.
+- **Origem:** DP:R5; REL:10; BZ-D:ARQ-34; BZ-D:ARQ-39.
+- **Estado atual:** CRIAR (contrato por ambiente) e CORRIGIR (`vercel.json`).
+- **Dependências de entrada:** nenhuma etapa (G00 fechado); CP-04 para o que exige domínio próprio.
+- **O que deve ser implementado:**
+  - Infraestrutura (antes de CP-04): HML sobre os domínios do provedor, com `ORIGENS_PERMITIDAS` listando só o painel de HML; `vercel.json` sem `build.env.VITE_API_URL` (a URL vem da variável de cada projeto Vercel; confirmar antes que a de Production existe) e com cabeçalhos de segurança (HSTS, `X-Content-Type-Options`, `frame-ancestors`).
+  - Arquivos: `dc360/scripts/conferir-dominio.mjs` verifica, para os hosts passados por argumento, TLS válido, redirecionamento http, HSTS e preflight CORS que aceita só a origem do próprio ambiente; `dc360/scripts/vercel-json.test.mjs` reprova `VITE_API_URL` literal.
+  - Infraestrutura (depois de CP-04): nomes (`painel`, `api`, `console`; `portal` e `cidadao` reservados), CNAMEs, certificados, SPF, DKIM e DMARC (F15-E14), `og:url` de `apps/web/index.html`.
+- **O que NÃO deve ser implementado nesta etapa:** criar app e projeto de HML (E11); deploy (E12); portal e cidadão; CORS do bucket (F06-E15).
+- **Arquivos e módulos prováveis:** `dc360/vercel.json`, `dc360/scripts/conferir-dominio.mjs` e `dc360/scripts/vercel-json.test.mjs` (a criar), `dc360/apps/web/index.html`, `dc360/apps/web/test/seo.test.ts`.
+- **Risco de segurança:** CORS aberto demais liga PROD a HML; remover `build.env` sem a variável no painel derruba PROD ao modo local.
+- **Impacto LGPD:** Não se aplica: nenhum dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** o painel de PROD só muda se `VITE_API_URL` faltar no projeto.
+- **Rollback:** reverter `vercel.json` e reimplantar o deployment anterior.
+- **Testes positivos:** `conferir-dominio` verde para HML; o painel de HML entra na API de HML.
+- **Testes negativos:** preflight de `https://dc360-painel-web.vercel.app` contra a API de HML não recebe `access-control-allow-origin`; `vercel-json.test.mjs` reprova `VITE_API_URL` literal.
+- **Testes de autorização e isolamento:** a origem de HML contra a API de PROD também falha no preflight; isolamento de dados: Não se aplica.
+- **Regressão obrigatória:** `npm run test:scripts`, `npm run test:e2e`, `npm run test:e2e:api`, `npm run test:api`, G00.
+- **E2E:** entrar no painel de HML, com o preflight cruzado negado.
+- **Validação humana:** Rafael abre HML e PROD.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E10/` com a saída de `conferir-dominio` e o preflight negado.
+- **Documentação a atualizar:** `dc360/docs/VERCEL-PAINEL.md`.
+- **Definition of Done:** TLS e CORS exatos e testados por ambiente; `vercel.json` sem URL de PROD; domínio próprio só depois de CP-04.
+- **Checkpoint:** CP-04 (R5: entidade, domínio, contas de loja, marca e bundle ids; bloqueia o domínio, o DNS, o remetente de e-mail, o perfil EAS de HML, o primeiro build externo e as lojas).
+
+### V2-F01-E11 - HML: app Fly, projeto Supabase, bucket e e-mail de teste, dados sintéticos, migração ensaiada
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** médio  |  **Paralelizável:** não (cria a infraestrutura de E12, E13 e E14 e exige CP-05)
+- **Objetivo:** existe um ambiente de homologação separado de PROD, com dados sintéticos, onde cada migration é ensaiada antes de produção.
+- **Problema que resolve:** `BZ-F:P1-OPER` (OPS-83, OPS-100, ARQ-34): não há homologação. `db/seeds/desenvolvimento.sql` dá a TODAS as contas uma senha conhecida, e o `--semear` de `db/src/cli.ts` só recusa com `NODE_ENV=production` no processo: contra URL de PROD sem a variável, semearia essas contas. `apps/web/src/dados/semente-da-demonstracao.sql` só acrescenta uma devolução no modo local.
+- **Origem:** DP:T30; DP:R6; REL:10 (decisão D6); BZ-D:OPS-83; BZ-D:OPS-100; BZ-D:ARQ-34.
+- **Estado atual:** CRIAR (ambiente e semente de HML) e CORRIGIR (guarda do `--semear`).
+- **Dependências de entrada:** E09; CP-05.
+- **O que deve ser implementado:**
+  - Infraestrutura (depende de CP-05): apps Fly de API e de console (`fly.hml.toml`, `fly.console.hml.toml`, com `MARCA_DAGUA` ligada e push desligado até E13); banco próprio em Postgres 17 com os três papéis e `db/provedores/supabase-endurecer.sql` aplicado (a consulta de conferência volta vazia); bucket e e-mail de domínio de teste; segredos distintos dos de PROD.
+  - Banco: `db/seeds/homologacao.sql` sem hash fixo e `apps/api/src/semear-homologacao.ts`, que carrega a estrutura e troca a senha de cada conta por uma sorteada na mesma transação (impressa uma vez) e recusa rodar fora de `AMBIENTE_DC360=hml` ou com município real; o `--semear` de `cli.ts` ganha a mesma recusa.
+  - Migration: `npm run migrar` do zero com o papel de setup, `--conferir` em seguida, `schema_migracoes` contra `db/migrations`; migration futura passa por HML antes de PROD.
+- **O que NÃO deve ser implementado nesta etapa:** dado real de PROD; deploy (E12); EAS (E13); observabilidade (E14); S3 completo (F06-E15); restore (F22-E03).
+- **Arquivos e módulos prováveis:** `dc360/fly.hml.toml`, `dc360/fly.console.hml.toml`, `dc360/db/seeds/homologacao.sql`, `dc360/apps/api/src/semear-homologacao.ts` (a criar), `dc360/db/src/cli.ts`, `dc360/db/provedores/supabase-endurecer.sql`.
+- **Risco de segurança:** HML na internet com senha conhecida; HML ligado a PROD (trava de E09); CA do provedor de HML diferente da de `db/provedores/supabase-prod-ca-2021.crt`.
+- **Impacto LGPD:** só dado sintético; e-mail só a domínios de teste (E09).
+- **Migração necessária:** Não (aplica as existentes).
+- **Compatibilidade:** PROD não muda.
+- **Rollback:** destruir app e projeto de HML; a guarda do `--semear` reverte por PR.
+- **Testes positivos:** migration do zero e `--conferir` verdes; login com a senha sorteada; `/saude` 200 nos dois apps.
+- **Testes negativos:** `defesa-civil-2026` não loga em HML; `--semear` contra banco com município real recusa; API de HML com `DATABASE_URL` de PROD não parte.
+- **Testes de autorização e isolamento:** em HML, a conta de Serra Alta recebe 404 ao ler pela API um recurso de Vale Fundo (RLS com o papel restrito de verdade); `npm run test:isolamento` (PGlite) segue verde.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run test:console`, `npm run test:scripts`, G00.
+- **E2E:** fluxo A (prefeitura manual) no painel de HML.
+- **Validação humana:** Rafael entra em HML e vê a marca d'água nos documentos.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E11/` com a saída da migration e do `--conferir` e o endurecimento vazio.
+- **Documentação a atualizar:** `dc360/docs/AMBIENTES.md`, `dc360/docs/IMPLANTACAO.md` (seção HML).
+- **Definition of Done:** HML de pé; migration ensaiada e idempotente; semente sem senha conhecida; guarda do `--semear` corrigida.
+- **Checkpoint:** CP-05 (R6a: contratação do segundo conjunto de serviços; bloqueia app, banco, bucket e e-mail de HML e E12 a E14; tomls, semente e guarda se fazem antes).
+
+### V2-F01-E12 - Deploy HML por merge e PROD por promoção manual
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (depende de E08 e E11 e cria o único caminho de implantação)
+- **Objetivo:** o merge na master implanta HML sozinho depois do CI verde; PROD só muda por promoção manual de versão que já passou por HML.
+- **Problema que resolve:** `BZ-F:P1-OPER` (OPS-84, OPS-85, ARQ-33): a API é implantada à mão (`fly deploy`, `fly.toml:9-10`); a Vercel publica o painel de PROD a cada push na `master` sem esperar o CI; a ordem migration, API, painel é convenção humana.
+- **Origem:** DP:T30; DP:T34; REL:10 (decisão D7); BZ-D:OPS-84; BZ-D:OPS-85; BZ-D:ARQ-33.
+- **Estado atual:** CRIAR (workflows de deploy) e CORRIGIR (publicação de PROD pela Vercel).
+- **Dependências de entrada:** E08; E11.
+- **O que deve ser implementado:**
+  - Infraestrutura: `.github/workflows/deploy-hml.yml`, disparado com o `Verificar` da master verde, no ambiente `homologacao` com token do Fly só do app de HML: constrói a imagem uma vez (digest), faz o dump de E15, migra HML, implanta API e console por digest e confere `/saude` com `versao` e `commit` esperados.
+  - Infraestrutura: `.github/workflows/promover-producao.yml`, só `workflow_dispatch` com a tag `vX.Y.Z` e confirmação digitada; recusa SHA sem deploy bem-sucedido em HML; ambiente `producao` com token só do app de PROD; implanta a MESMA imagem por digest e para se `/saude` não ficar verde. A migration de PROD segue manual (`scripts/migrar-producao.mjs --aplicar`): a credencial de dono do banco não entra em CI (ADR 0008).
+  - Infraestrutura: o painel recebe `VITE_API_URL` no build, então a promoção é novo build de PROD do mesmo SHA, depois da API: o projeto Vercel de PROD deixa de publicar a cada push e usa o ramo `producao`, atualizado só pela promoção.
+  - Documentação: ensaio do `rollback.md` em HML.
+- **O que NÃO deve ser implementado nesta etapa:** migration automática em PROD; feature flags; blue-green (F07); deploy do app (F14-E11) e do portal (F11-E03).
+- **Arquivos e módulos prováveis:** `.github/workflows/deploy-hml.yml` e `.github/workflows/promover-producao.yml` (a criar), `dc360/fly.hml.toml`, `dc360/vercel.json`, `dc360/scripts/migrar-producao.mjs`, `dc360/docs/runbooks/rollback.md`.
+- **Risco de segurança:** o token de deploy de PROD é o segredo mais sensível do CI: só no ambiente `producao`.
+- **Impacto LGPD:** Não se aplica: HML só tem dado sintético.
+- **Migração necessária:** Não.
+- **Compatibilidade:** a Vercel de PROD deixa de publicar no push.
+- **Rollback:** reverter os workflows; imagem anterior por digest.
+- **Testes positivos:** merge de PR de prova implanta HML com a `versao` do merge; a mesma tag promovida a PROD devolve a mesma versão.
+- **Testes negativos:** promoção de SHA sem deploy de HML é recusada; CI vermelho não dispara deploy.
+- **Testes de autorização e isolamento:** o token de HML tenta implantar em PROD e é recusado; PR de fora não dispara deploy.
+- **Regressão obrigatória:** `npm run verificar`, `npm run test:scripts`, `npm run test:e2e:api`, G00.
+- **E2E:** em HML, PR, merge, deploy, login, rollback e nova promoção.
+- **Validação humana:** Rafael executa uma promoção e um rollback seguindo só o runbook.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E12/` com as execuções, `/saude` antes e depois e o tempo de troca.
+- **Documentação a atualizar:** `dc360/docs/IMPLANTACAO.md`, `dc360/docs/VERCEL-PAINEL.md`.
+- **Definition of Done:** HML implanta por merge; PROD só por promoção de tag que passou por HML; Vercel de PROD sem push automático.
+- **Checkpoint:** Não.
+
+### V2-F01-E13 - Perfil EAS de HML com bundle ids distintos
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F01-E14 e F01-E15: `apps/campo` e scripts disjuntos)
+- **Objetivo:** um build interno de HML do app de campo instala ao lado do de PROD e fala só com a API de HML.
+- **Problema que resolve:** `BZ-F:P1-OPER` (OPS-87, OPS-92): o perfil `homologacao` de `apps/campo/eas.json` aponta para `api-homologacao.exemplo.gov.br`; `app.config.ts` fixa `com.solerte.dc360.campo` em `ios.bundleIdentifier` (linha 228) e `android.package` (linha 313) para todo perfil; o `google-services.json` tem um cliente só.
+- **Origem:** DP:T30; DP:R5; REL:10 (decisão D9); BZ-D:OPS-87; BZ-D:OPS-92.
+- **Estado atual:** CORRIGIR (o perfil existe com endereço de exemplo) e EXPANDIR (identidade por perfil).
+- **Dependências de entrada:** E11; CP-04.
+- **O que deve ser implementado:**
+  - Mobile: `app.config.ts` deriva bundle, package e nome do perfil: `homologacao` usa o identificador de produção com sufixo `.hml`; o identificador-base é UMA constante (valor final em CP-04). `eas.json`: `homologacao` com `DC360_API_URL` da API de HML, canal próprio e `distribution: internal`; nenhum outro perfil com a URL de PROD.
+  - Infraestrutura: `APNS_BUNDLE` de `fly.hml.toml` igual ao bundle de HML (é o `apns-topic`) e `APNS_AMBIENTE=teste`; cliente Android de HML no Firebase e no `google-services.json`.
+  - Testes: `dc360/scripts/perfis-do-eas.test.mjs`: bundle de HML diferente do de PROD, só `producao` com a URL de PROD, zero endereço de exemplo, `APNS_BUNDLE` igual ao bundle de HML.
+- **O que NÃO deve ser implementado nesta etapa:** build real e envio às lojas (F14-E11, F28-E07); push real (F14-E05); app do cidadão (F17-E01).
+- **Arquivos e módulos prováveis:** `dc360/apps/campo/eas.json`, `dc360/apps/campo/app.config.ts`, `dc360/apps/campo/google-services.json`, `dc360/fly.hml.toml`, `dc360/scripts/perfis-do-eas.test.mjs` (a criar).
+- **Risco de segurança:** build de HML gravando no banco das prefeituras; bundle igual ao de PROD sobrescreveria o app instalado.
+- **Impacto LGPD:** Não se aplica: HML só tem contas sintéticas.
+- **Migração necessária:** Não.
+- **Compatibilidade:** o perfil `producao` e o bundle atual não mudam.
+- **Rollback:** reverter `app.config.ts` e `eas.json`.
+- **Testes positivos:** `perfis-do-eas.test.mjs` verde; com `EAS_BUILD_PROFILE=homologacao` o `app.config.ts` resolve bundle e endereço de HML.
+- **Testes negativos:** PR de prova que aponta `homologacao` para a URL de PROD reprova; bundle igual ao de PROD reprova.
+- **Testes de autorização e isolamento:** login com conta de PROD na API de HML recebe 401; outros cruzamentos: Não se aplica.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:scripts`, `npm run test:api`, G00.
+- **E2E:** Não se aplica: sem build nem aparelho antes de CP-04; a prova em aparelho é F14-E12.
+- **Validação humana:** Rafael confere a tabela de perfil, bundle e endereço.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E13/` com a saída do teste.
+- **Documentação a atualizar:** `dc360/apps/campo/LOJAS.md` (o perfil deixa de ser inutilizável), `dc360/docs/AMBIENTES.md`.
+- **Definition of Done:** perfil de HML com bundle distinto e URL real; teste verde; sem domínio de exemplo.
+- **Checkpoint:** CP-04 (R5: identificador-base e contas de loja; bloqueia o valor final do bundle, o App ID e o primeiro build externo; derivação e testes se fazem antes).
+
+### V2-F01-E14 - Observabilidade P0 inicial: request id, erro centralizado (API e painel), monitor de /saude, rotinas em nível error, alerta de storage
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim
+- **Objetivo:** antes de usuário externo, todo erro tem código informável, a falha chega a um destino e a queda é detectada.
+- **Problema que resolve:** `BZ-F:P1-OPER` (OPS-33, 39, 40, 41, 45): sem erro centralizado nem monitor de `/saude`; o id só chega ao log; rotina falha em `info`; o alerta de 80% de armazenamento não tem destinatário.
+- **Origem:** DP:T33; DP:K13; DP:J7; BZ-D:OPS-33, 39, 40, 41, 45.
+- **Estado atual:** EXPANDIR e CRIAR.
+- **Dependências de entrada:** E11; CP-06.
+- **O que deve ser implementado:**
+  - API: `genReqId` aceita `X-Request-Id` só se for UUID e toda resposta o devolve (`onSend`, `cors`); console igual.
+  - Observabilidade: `ReportadorDeErros`: log em `error`; com `ERROS_DSN` (CP-06), SDK compatível com Sentry, sem corpo, `authorization`, `cookie`, query string e IP, e com e-mail, telefone e coordenada mascarados.
+  - Frontend: `ErroDaApi` guarda `requisicao`, mostrada como código de suporte nos 5xx; `main.tsx` registra erros globais.
+  - Rotinas: `registrar` de `minimizacao.ts`, `resumo.ts` e `orfaos.ts` ganha nível (falha em `error`); alerta acima de 80% de `S3_COTA_BYTES`; monitor externo de `/saude` (F21-E06).
+- **O que NÃO deve ser implementado nesta etapa:** tracing e SLO por rota (F21); crash do app (F14-E07); ErrorBoundary (F10-E10).
+- **Arquivos e módulos prováveis:** `dc360/apps/api/src/servidor.ts`, `dc360/apps/api/src/observabilidade/` (a criar).
+- **Risco de segurança:** o evento leva dado pessoal a terceiro; `X-Request-Id` hostil vira injeção de log.
+- **Impacto LGPD:** subprocessadores novos, aviso de 30 dias.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem DSN só há log.
+- **Rollback:** desligar o DSN.
+- **Testes positivos:** `request-id.test.ts`, `rotinas-em-nivel-error.test.ts` e `alerta-de-armazenamento.test.ts` (a criar).
+- **Testes negativos:** id com `\n` ou 200 caracteres é descartado; evento sem token e e-mail; banco fora dá 503.
+- **Testes de autorização e isolamento:** evento e cabeçalho não carregam token nem dado de outro município.
+- **Regressão obrigatória:** `npm run test:api`, G00.
+- **E2E:** em HML, derrubar a API e confirmar o alerta.
+- **Validação humana:** Rafael recebe o alerta.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E14/`.
+- **Documentação a atualizar:** `SUBPROCESSADORES.md`.
+- **Definition of Done:** request id e filtro testados; monitor em HML.
+- **Checkpoint:** CP-06 (K13 e J7: ferramenta e residência do dado; bloqueia o destino externo em PROD, F21-E08 e F22-E02).
+
+### V2-F01-E15 - Dump antes de migration e roteiros multiplataforma (hoje só macOS)
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F01-E13 e F01-E14: só `dc360/scripts`)
+- **Objetivo:** cópia antes de migrar e migração rodam em Windows, Linux e macOS, por ambiente, sem depender do chaveiro de uma máquina.
+- **Problema que resolve:** `BZ-F:P1-CONT` (OPS-20, OPS-02, OPS-18): `scripts/producao.mjs` fixa projeto, host e porta de PROD e lê a senha só pelo `security` do chaveiro do macOS; `copiar-producao.mjs` só procura `pg_dump` no PATH e no Homebrew; `cadastrar-prefeitura.mjs` importa as mesmas constantes.
+- **Origem:** REL:10; BZ-D:OPS-20; BZ-D:OPS-02; BZ-D:OPS-18; BZ-F:P1-CONT.
+- **Estado atual:** REFATORAR (a lógica pura testada em `copiar-producao.test.mjs` e `migrar-producao.test.mjs` fica; senha, ambiente e localização do `pg_dump` mudam).
+- **Dependências de entrada:** F00-E25 (restore provado e formato `pg_dump --format=custom` fixado).
+- **O que deve ser implementado:**
+  - Arquivos: `producao.mjs` recebe `--ambiente hml|prod` obrigatório, com projeto, host e porta de `scripts/ambientes.json` (E09); a senha vem de variável de sessão, de prompt sem eco ou do chaveiro do macOS (mantido), nunca da linha de comando; `copiar-producao.mjs` ganha candidatos de `pg_dump` para Windows e Linux, mantém as pastas proibidas e, no Windows, restringe o arquivo por ACL ou recusa gravar; `migrar-producao.mjs` e `cadastrar-prefeitura.mjs` recebem o ambiente; o pipeline de E12 chama o mesmo `copiar` antes de migrar HML.
+  - Testes: casos novos em `copiar-producao.test.mjs` e `migrar-producao.test.mjs` e um `producao.test.mjs`: plataforma simulada (`win32`, `linux`, `darwin`), recusa sem `--ambiente`, URL por ambiente.
+- **O que NÃO deve ser implementado nesta etapa:** backup agendado e cópia off-site cifrada (F22-E01, F22-E02); restore automatizado (F22-E03, F22-E04); cofre de segredos (E16).
+- **Arquivos e módulos prováveis:** `dc360/scripts/producao.mjs`, `dc360/scripts/copiar-producao.mjs`, `dc360/scripts/migrar-producao.mjs`, `dc360/scripts/cadastrar-prefeitura.mjs`, `dc360/scripts/producao.test.mjs` (a criar).
+- **Risco de segurança:** escolher o ambiente errado: `--ambiente` obrigatório e URL mostrada sem senha antes de agir; a senha nunca aparece em tela, histórico ou erro.
+- **Impacto LGPD:** o dump de PROD contém dado de cidadão: as pastas proibidas valem em qualquer sistema.
+- **Migração necessária:** Não.
+- **Compatibilidade:** no macOS, quem roda sem argumento passa a precisar de `--ambiente prod`.
+- **Rollback:** reverter o PR.
+- **Testes positivos:** `copiar-producao.mjs --conferir --ambiente hml` roda no Windows do Rafael e num runner Linux; o dump de HML restaura em cluster descartável.
+- **Testes negativos:** sem `--ambiente` recusa; `--aplicar` em PROD sem cópia recente recusa, como hoje; pasta de cópias no OneDrive recusa.
+- **Testes de autorização e isolamento:** a credencial de HML não abre PROD, e vice-versa (provado por tentativa).
+- **Regressão obrigatória:** `npm run test:scripts`, `npm run migrar -- --conferir`, `npm run verificar`, G00.
+- **E2E:** dump de HML a partir do Windows e restore pelo roteiro de F00-E25.
+- **Validação humana:** Rafael roda nos dois sistemas.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E15/` com a saída do dump no Windows e no Linux (nomes e tamanhos).
+- **Documentação a atualizar:** `dc360/docs/IMPLANTACAO.md` (seção 8), `dc360/docs/COLOCAR-DE-PE.md`.
+- **Definition of Done:** scripts rodam nos três sistemas por ambiente, sem chaveiro obrigatório; gate de cópia também no pipeline de HML.
+- **Checkpoint:** Não.
+
+### V2-F01-E16 - Runbooks mínimos (deploy, rollback, migração, rotação de segredo) e acesso da segunda pessoa
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** médio  |  **Paralelizável:** não (consolida E08, E12, E14 e E15)
+- **Objetivo:** quem não escreveu o sistema implanta, reverte, migra e gira um segredo em HML usando só o texto, e uma segunda pessoa tem acesso.
+- **Problema que resolve:** `BZ-F:P1-CONT` (OPS-13, OPS-15, OPS-20): fator de ônibus 1, com segredos só em `fly secrets` e no chaveiro de um Mac; contatos de `dc360/docs/INDISPONIBILIDADE.md` vazios; sem pasta de runbooks; perder `SEGUNDO_FATOR_CHAVE` deixa ilegíveis os segredos TOTP.
+- **Origem:** DP:K15; REL:10 (decisão D4); BZ-D:OPS-13; BZ-D:OPS-15; BZ-D:OPS-20; BZ-F:P1-CONT.
+- **Estado atual:** CRIAR (o procedimento existe disperso em `IMPLANTACAO.md`, `COLOCAR-DE-PE.md` e `INDISPONIBILIDADE.md`).
+- **Dependências de entrada:** E12; CP-07.
+- **O que deve ser implementado:**
+  - Documentação: `dc360/docs/runbooks/` com `deploy.md`, `rollback.md` (nasce em E08, aqui é ensaiado), `migracao.md` (usa E15), `rotacao-de-segredo.md` (`JWT_SEGREDO` por `scripts/rotacionar-segredo.mjs`; `SEGUNDO_FATOR_CHAVE` não gira sem plano) e `acesso-e-segredos.md` (contas e NOMES de segredos, sem valores). Cada um traz pré-condições, passos com comando, verificação, rollback e quem executa.
+  - Autorização: matriz em `acesso-e-segredos.md`: cada conta (GitHub, Fly, Supabase, Vercel, domínio, monitor, e-mail, Apple, Google, Expo) por função, com MFA e quem revoga; revisão trimestral.
+  - Infraestrutura (depende de CP-07): conceder à segunda pessoa o acesso decidido (mínimo: HML completo e recuperação de PROD) e guardar `SEGUNDO_FATOR_CHAVE` no cofre decidido.
+- **O que NÃO deve ser implementado nesta etapa:** plantão, canal e SLA (F21-E06, F27-E02, F28-E05); runbook de incidente (F21-E07); restore (F22-E04).
+- **Arquivos e módulos prováveis:** `dc360/docs/runbooks/` (a criar), `dc360/docs/INDISPONIBILIDADE.md`, `dc360/docs/IMPLANTACAO.md`, `dc360/docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Risco de segurança:** ampliar o acesso a PROD amplia a superfície sobre dado de cidadão: acesso mínimo e MFA em toda conta; runbook só com nomes de segredo.
+- **Impacto LGPD:** a segunda pessoa pode alcançar dado pessoal de PROD: função, finalidade e prazo em `PAPEIS_E_RESPONSABILIDADES.md`; o acesso padrão é só HML.
+- **Migração necessária:** Não.
+- **Compatibilidade:** nenhuma mudança de produto.
+- **Rollback:** revogar os acessos concedidos.
+- **Testes positivos:** a segunda pessoa executa em HML, só com os runbooks, um deploy, um rollback e uma rotação de `JWT_SEGREDO`, e registra onde o texto falhou.
+- **Testes negativos:** runbook com comando inexistente na CLI reprova a revisão; a revogação de um acesso de teste é provada.
+- **Testes de autorização e isolamento:** com o acesso mínimo, a segunda pessoa não lê segredo de PROD nem implanta em PROD sem a promoção (tentativa recusada).
+- **Regressão obrigatória:** `npm run test:scripts`, `npm run verificar`, G00.
+- **E2E:** o ensaio de deploy, rollback e rotação em HML é o E2E de operação.
+- **Validação humana:** a segunda pessoa registra por escrito que conseguiu; Rafael confere.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E16/` com o registro do ensaio (sem segredo) e a matriz de acesso por função.
+- **Documentação a atualizar:** os runbooks e `dc360/docs/INDISPONIBILIDADE.md` (contatos apontam para eles e para o canal de E14).
+- **Definition of Done:** cinco runbooks executados por quem não os escreveu; matriz de acesso preenchida; acesso da segunda pessoa concedido.
+- **Checkpoint:** CP-07 (K15: segunda pessoa com acesso e plantão; bloqueia a versão completa dos runbooks, o acesso real, o plantão (F21-E06), o suporte do piloto (F27-E02) e qualquer SLA (F28-E05); os rascunhos se fazem antes).
+
+### V2-F01-E17 - Lint e formatação do monorepo (ESLint e Prettier) com baseline que só diminui
+- **Prioridade:** P2
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** baixo  |  **Paralelizável:** sim (com F01-E18 a F01-E20)
+- **Objetivo:** todo TypeScript do monorepo passa por lint e formatação no CI, com os achados antigos numa baseline cujo teto só desce.
+- **Problema que resolve:** `BZ-F:P1-OPER` (OPS-64) e item 33 de `21-fora-da-v2.md`: nenhum `package.json` tem `eslint` nem `prettier` e não há configuração; o SAST de E05 não pega promessa solta nem hook com dependência faltando.
+- **Origem:** PR:D-19; BZ-D:OPS-64; DP:T34.
+- **Estado atual:** CRIAR para os apps que existem na F01 (a F23-E02 acrescenta as regras de acessibilidade do React Native ao config do campo criado aqui e cria só o do `apps/cidadao`).
+- **Dependências de entrada:** E03.
+- **O que deve ser implementado:**
+  - Infraestrutura: ESLint 9 com `typescript-eslint` tipado (`no-floating-promises`, `no-misused-promises`) e `eslint-plugin-react-hooks`, mais Prettier.
+  - Arquivos: `dc360/eslint.config.mjs` (api, console, web, db, packages, scripts), `dc360/apps/campo/eslint.config.mjs` (lockfile próprio), `.prettierrc.json`, `.prettierignore` (arquivos gerados de F08-E02); scripts `lint` e `formato:conferir` no `verificar` e no CI.
+  - Baseline: `eslint --suppress-all` grava `eslint-suppressions.json`; `lint-teto.json` guarda o total e `lint-teto.test.mjs` reprova se subir. `prettier --check` só nos arquivos do PR; reformatar tudo é UM PR à parte, listado em `.git-blame-ignore-revs`.
+- **O que NÃO deve ser implementado nesta etapa:** regras de acessibilidade do React Native (F23-E02); lint do `mockup/`; correção em massa dos achados.
+- **Arquivos e módulos prováveis:** `dc360/eslint.config.mjs`, `dc360/apps/campo/eslint.config.mjs`, `dc360/scripts/lint-teto.test.mjs` (a criar), `.github/workflows/verificar.yml`.
+- **Risco de segurança:** Não se aplica: sem dado nem rota; complementa o SAST de E05.
+- **Impacto LGPD:** Não se aplica: análise estática.
+- **Migração necessária:** Não.
+- **Compatibilidade:** CI mais longo; nomes de job inalterados (E01).
+- **Rollback:** reverter o PR.
+- **Testes positivos:** `npm run lint` e `npm run formato:conferir` verdes na `master`.
+- **Testes negativos:** chamada assíncrona sem `await` em `apps/api/src` reprova; hook com dependência faltando em `apps/web/src` reprova; subir o teto à mão reprova.
+- **Testes de autorização e isolamento:** Não se aplica: análise estática.
+- **Regressão obrigatória:** `npm run verificar`, `npm run test:campo`, G00.
+- **E2E:** Não se aplica: o PR de prova reprovado é a prova.
+- **Validação humana:** Rafael lê a baseline por regra.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E17/`.
+- **Documentação a atualizar:** `dc360/README.md`.
+- **Definition of Done:** lint e formatação no CI; baseline com teto testado.
+- **Checkpoint:** Não.
+
+### V2-F01-E18 - Trava contra migration concorrente e regra de migration reversível
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F01-E17, F01-E19 e F01-E20: só `db/`)
+- **Objetivo:** duas migrações não rodam juntas no mesmo banco, e toda migration nova traz a volta ou declara a irreversibilidade.
+- **Problema que resolve:** `BZ-F:P1-OPER` (OPS-80, OPS-81) e item 31: `aplicarMigracoes` (`db/src/migrar.ts`) não toma lock, então dois migradores disputam a mesma versão; os 46 arquivos de `db/migrations` não têm volta.
+- **Origem:** PR:D-19; BZ-D:OPS-80; BZ-D:OPS-81.
+- **Estado atual:** EXPANDIR (impressão SHA-256 e `HistoricoAlterado` ficam).
+- **Dependências de entrada:** E08; E09.
+- **O que deve ser implementado:**
+  - Banco: `aplicarMigracoes` toma `pg_try_advisory_lock` de sessão, espera 60 s e, sem obtê-lo, sai com código 3 e "outra migração está em andamento"; libera no `finally`. Vale na conexão direta 5432, não no pooler.
+  - Arquivos: `db/migrations/desfazer/NNN_nome.sql` (`carregarMigracoes` só lê `.sql` direto de `db/migrations`), obrigatório depois da 046, salvo cabeçalho `-- IRREVERSIVEL: motivo; aprovado por; data ISO`. `npm run migrar -- --desfazer` desfaz só a última e recusa com `AMBIENTE_DC360=prod` (em PROD, migration aditiva ou restore de F22-E04).
+- **O que NÃO deve ser implementado nesta etapa:** migration automática em PROD (E12); desfazer das 46 existentes.
+- **Arquivos e módulos prováveis:** `dc360/db/src/migrar.ts`, `dc360/db/src/cli.ts`, `dc360/db/migrations/desfazer/`, `dc360/db/test/migracoes-regras.test.ts` e `trava-de-migracao.test.ts` (a criar).
+- **Risco de segurança:** o desfazer apaga dado: recusado em PROD.
+- **Impacto LGPD:** Não se aplica: nenhum dado novo.
+- **Migração necessária:** Não (`desfazer` não é migration).
+- **Compatibilidade:** sem a flag, igual a hoje.
+- **Rollback:** reverter o PR.
+- **Testes positivos:** `db/test/migrar.test.ts` verde sem editar expectativa; aplicar, desfazer e reaplicar deixa `information_schema` idêntico.
+- **Testes negativos:** migration nova sem desfazer nem cabeçalho reprova; número repetido reprova; `--desfazer` em `prod` recusa; dois `pg.Client` migrando juntos em Postgres real: um espera e aplica, o outro sai com código 3.
+- **Testes de autorização e isolamento:** `dc360_api` recebe a mensagem de papel errado existente; `npm run test:isolamento` verde depois de desfazer.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run verificar`, G00.
+- **E2E:** no `implantavel`, duas migrações simultâneas contra Postgres real.
+- **Validação humana:** Rafael lê a recusa do segundo migrador.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E18/`.
+- **Documentação a atualizar:** `dc360/db/PENDENCIAS.md`.
+- **Definition of Done:** lock testado em Postgres real; regra de desfazer ativa no CI.
+- **Checkpoint:** Não.
+
+### V2-F01-E19 - SBOM por release e verificação de licenças
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** baixo  |  **Paralelizável:** sim (com F01-E17, F01-E18 e F01-E20)
+- **Objetivo:** cada tag `v*` e `campo-v*` publica um SBOM CycloneDX, e as licenças de produção são conferidas contra uma lista, com reprovação.
+- **Problema que resolve:** `BZ-F:P1-OPER` (GAP-P1O-55) e item 40: sem inventário por versão nem conferência de licença, uma dependência AGPL entraria na imagem ou no binário de loja sem ninguém ver.
+- **Origem:** PR:D-19; DP:T34; BZ-F:P1-OPER (GAP-P1O-55).
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E07; E08.
+- **O que deve ser implementado:**
+  - Infraestrutura: `.github/workflows/sbom.yml` por tag: `@cyclonedx/cyclonedx-npm` sobre os dois lockfiles (CycloneDX é padrão aberto da OWASP) e o SBOM de cada imagem pelo Trivy de E20, anexados ao Release com SHA-256. `contents: write` só no job de tag.
+  - Arquivos: `dc360/scripts/licencas.mjs` confere cada componente de produção contra `dc360/politica-de-licencas.json` (proposta: permitidas MIT, ISC, BSD, Apache-2.0, 0BSD, CC0-1.0, OFL-1.1; proibidas AGPL, GPL, SSPL e sem licença; exceção com motivo, dono e data ISO, como E05); roda também no job `produto`.
+- **O que NÃO deve ser implementado nesta etapa:** varredura de vulnerabilidade da imagem (E20); assinatura do SBOM (F25).
+- **Arquivos e módulos prováveis:** `.github/workflows/sbom.yml`, `dc360/scripts/licencas.mjs`, `licencas.test.mjs` e `dc360/politica-de-licencas.json` (a criar).
+- **Risco de segurança:** o SBOM lista versões: fica no Release privado; escrita só no job de tag.
+- **Impacto LGPD:** Não se aplica: inventário de software.
+- **Migração necessária:** Não.
+- **Compatibilidade:** licença proibida passa a reprovar PR.
+- **Rollback:** remover o workflow e o passo.
+- **Testes positivos:** `workflow_dispatch` gera os quatro SBOMs; `licencas.mjs` verde no estado atual.
+- **Testes negativos:** fixture com AGPL reprova; componente sem licença reprova; exceção vencida reprova.
+- **Testes de autorização e isolamento:** o job de PR roda sem `contents: write`; isolamento de dados: Não se aplica.
+- **Regressão obrigatória:** `npm run test:scripts`, `npm run auditar`, `npm run verificar`, G00.
+- **E2E:** Não se aplica: o artefato gerado é a prova.
+- **Validação humana:** Rafael abre o SBOM e as exceções.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E19/`.
+- **Documentação a atualizar:** `dc360/docs/DEPENDENCIAS.md`.
+- **Definition of Done:** SBOM por release; licenças conferidas no PR.
+- **Checkpoint:** CP-43 (lista de licenças permitidas e proibidas, decidida por Rafael com o jurídico; sem ela a conferência só avisa).
+
+### V2-F01-E20 - Scan de contêiner (Trivy) no CI com política de exceção
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (edita `verificar.yml` como E08, de que depende)
+- **Objetivo:** as imagens da API e do console são varridas a cada PR, e CRITICAL ou HIGH com correção disponível reprova.
+- **Problema que resolve:** `BZ-F:P1-OPER` (GAP-P1O-55) e item 40: E08 constrói as imagens e nada as varre; a base `node:22-bookworm-slim` e o Chromium do Debian (PDF) acumulam CVE que o `npm audit` não vê.
+- **Origem:** PR:D-19; DP:T34; BZ-F:P1-OPER (GAP-P1O-55).
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E08.
+- **O que deve ser implementado:**
+  - Infraestrutura: passo no job `imagens` (E08) com o Trivy, binário fixo e SHA-256 conferido como o gitleaks de E04 (aberto; varre sistema e pacotes, e gera o SBOM de E19): `--scanners vuln,secret --ignore-unfixed --severity CRITICAL,HIGH --exit-code 1`; SARIF no PR. O `secret` barra `.env` ou chave na imagem.
+  - Infraestrutura: varredura semanal da imagem da `master` em `auditoria-semanal.yml` (E06), porque CVE nasce sem commit.
+  - Arquivos: `.trivyignore` com CVE, motivo, dono e data ISO por linha; `excecoes-de-seguranca.test.mjs` (E05) passa a lê-lo.
+- **O que NÃO deve ser implementado nesta etapa:** SBOM (E19); lint de Dockerfile; DAST (F25-E10).
+- **Arquivos e módulos prováveis:** `.github/workflows/verificar.yml`, `.github/workflows/auditoria-semanal.yml`, `.trivyignore` (a criar na raiz), `dc360/scripts/excecoes-de-seguranca.test.mjs`.
+- **Risco de segurança:** exceção sem prazo vira esquecimento: o teste a vence.
+- **Impacto LGPD:** Não se aplica: a imagem não carrega dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** PR pode reprovar por CVE nova da base.
+- **Rollback:** tirar o passo; `imagens` segue obrigatório.
+- **Testes positivos:** as duas imagens passam depois da triagem.
+- **Testes negativos:** base de CVE CRITICAL corrigível reprova; `COPY .env` de prova reprova no scan de segredo; linha vencida de `.trivyignore` reprova.
+- **Testes de autorização e isolamento:** o job não recebe segredo e a imagem segue como `node`; isolamento de dados: Não se aplica.
+- **Regressão obrigatória:** `npm run test:scripts`, `npm run verificar`, G00.
+- **E2E:** Não se aplica: o PR de prova reprovado é a prova.
+- **Validação humana:** Rafael lê a triagem inicial.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E20/`.
+- **Documentação a atualizar:** `dc360/docs/DEPENDENCIAS.md`.
+- **Definition of Done:** duas imagens varridas por PR e por agenda; exceção com motivo, dono e data.
+- **Checkpoint:** Não.
+
+### V2-F01-E21 - PostGIS no CI e no ambiente local: imagem Postgres com a extensão e testes espaciais em Postgres real
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (edita `verificar.yml` e `compose.yaml`, como E08 e E09)
+- **Objetivo:** `implantavel` e `compose.yaml` usam Postgres 17 com PostGIS, e os testes espaciais da F32 têm onde rodar sem o PGlite.
+- **Problema que resolve:** D-16 reverte DP:T36: `implantavel` usa `postgres:16` sem a extensão; `compose.yaml` já usa `postgis/postgis:16-3.4` e produção roda 17.6; o PGlite 0.2.17 só carrega o de `dist/contrib` e não traz PostGIS (confirmado em `node_modules`).
+- **Origem:** PR:D-16; ALY:GEO-02; BZ-D:ARQ-34.
+- **Estado atual:** EXPANDIR (job e compose existem sem a extensão) e CRIAR (`test:espacial`).
+- **Dependências de entrada:** E08; E09.
+- **O que deve ser implementado:**
+  - Infraestrutura: imagem `postgis/postgis` 17 por digest (tag conferida no registro) no `implantavel` (no lugar do `postgres:17` de E08) e em `banco` e `papeis` de `compose.yaml`.
+  - Decisão: o PGlite segue na suíte atual; a migration de PostGIS da F32 será condicional como a 041. Testes `*.espacial.test.ts` (da F32) rodam só em Postgres real: `db/vitest.espacial.config.ts` e `test:espacial` no `implantavel`. Com `DC360_EXIGE_POSTGIS=1` (CI) faltar PostGIS reprova; local, pula com aviso.
+- **O que NÃO deve ser implementado nesta etapa:** modelo espacial (F32); extensão no provedor e HML (E22).
+- **Arquivos e módulos prováveis:** `.github/workflows/verificar.yml`, `dc360/compose.yaml`, `dc360/db/vitest.espacial.config.ts` e `dc360/db/test/postgis-disponivel.espacial.test.ts` (a criar): `ST_Contains` e `ST_DWithin`.
+- **Risco de segurança:** imagem de comunidade: digest fixo e varrida por E20.
+- **Impacto LGPD:** Não se aplica: o CI usa só coordenada sintética.
+- **Migração necessária:** Não (a extensão nasce na migration da F32).
+- **Compatibilidade:** quem usa só PGlite não precisa de Docker.
+- **Rollback:** voltar a `postgres:17` e tirar `test:espacial`.
+- **Testes positivos:** smoke espacial verde no `implantavel`.
+- **Testes negativos:** `DC360_EXIGE_POSTGIS=1` contra `postgres:17` simples reprova; sem a variável, local, pula com aviso.
+- **Testes de autorização e isolamento:** com `dc360_api`, tabela de prova com `geography` sob RLS forçada não devolve geometria de outro município.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run verificar`, G00.
+- **E2E:** Não se aplica: o smoke em Postgres real é a prova.
+- **Validação humana:** Rafael roda `docker compose up`.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E21/`.
+- **Documentação a atualizar:** `dc360/README.md`, `dc360/docs/AMBIENTES.md`.
+- **Definition of Done:** CI e compose com PostGIS 17 por digest; `test:espacial` obrigatório no CI; PGlite mantido.
+- **Checkpoint:** Não.
+
+### V2-F01-E22 - PostGIS no provedor e no HML: CREATE EXTENSION permitido, esquema da extensão e conferência
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (depende do HML de E11)
+- **Objetivo:** HML e PROD comprovadamente permitem a extensão, sem porta nova pela API do provedor, antes da migration da F32.
+- **Problema que resolve:** `db/provedores/supabase-endurecer.sql` não conhece a extensão; o PostGIS cria `spatial_ref_sys` e funções que a API REST do provedor expõe a `anon`, `authenticated` e `service_role`; o papel de setup poder criá-lo é NÃO CONFIRMADO.
+- **Origem:** PR:D-16; DP:T30; BZ-D:ARQ-34.
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** E11; E21; CP-44.
+- **O que deve ser implementado:**
+  - Banco: `supabase-endurecer.sql` ganha, idempotente: se `postgis` existe, `REVOKE ALL` nos objetos da extensão para os três papéis do provedor e `USAGE` no schema dela, mais `SELECT` em `spatial_ref_sys`, a `dc360_app`.
+  - Arquivos: `scripts/conferir-ambiente.mjs` (E09) ganha `--extensoes`: `pg_available_extensions` lista `postgis` e o papel de setup cria a extensão num banco descartável.
+  - HML: criar a extensão e anotar `postgis_version()`; em PROD só a consulta de disponibilidade (a extensão nasce na migration da F32).
+- **O que NÃO deve ser implementado nesta etapa:** extensão em PROD e tabelas espaciais (F32).
+- **Arquivos e módulos prováveis:** `dc360/db/provedores/supabase-endurecer.sql`, `dc360/scripts/conferir-ambiente.mjs`, `dc360/docs/AMBIENTES.md`.
+- **Risco de segurança:** `spatial_ref_sys` exposta pela API REST amplia a superfície.
+- **Impacto LGPD:** Não se aplica: tabela de referência.
+- **Migração necessária:** Não nesta etapa.
+- **Compatibilidade:** o SQL segue rodando sem PostGIS.
+- **Rollback:** `DROP EXTENSION postgis` em HML.
+- **Testes positivos:** HML responde `postgis_version()`; o endurecimento volta vazio.
+- **Testes negativos:** `anon` com `SELECT` em `spatial_ref_sys` (PR de prova) aparece na conferência; sem `USAGE` no schema, o smoke de E21 em HML falha.
+- **Testes de autorização e isolamento:** `dc360_api` recebe `permission denied` em `CREATE EXTENSION`; em HML, a tabela de prova com `geography` isola Serra Alta de Vale Fundo.
+- **Regressão obrigatória:** `npm run test:isolamento`, G00.
+- **E2E:** Não se aplica: provado em HML.
+- **Validação humana:** Rafael confere a extensão no provedor.
+- **Evidência a produzir:** `docs/evidencias-v2/G01/V2-F01-E22/`.
+- **Documentação a atualizar:** `dc360/docs/AMBIENTES.md` (versão do PostGIS por ambiente).
+- **Definition of Done:** HML com PostGIS e endurecimento vazio; PROD confirmado capaz.
+- **Checkpoint:** CP-44 (confirmar com o provedor, em HML e PROD, que o papel de setup cria `postgis` no plano contratado; sem isso a F32 fica bloqueada).
+
+# GATE G01 - ENGENHARIA E AMBIENTES PRONTOS
+Só passa se:
+- [ ] (E01) a `master` está protegida: o ruleset exportado exige PR, os quatro checks pelo nome exato de exibição, squash, sem push direto, sem force-push e sem exceção para administrador; a tentativa de push direto foi recusada. Evidência: `docs/evidencias-v2/G01/V2-F01-E01/`.
+- [ ] (E02) `dc360/scripts/conferir-workflows.test.mjs` está verde: todo workflow com `permissions`, todo job com `timeout-minutes`, toda `uses:` fixada por SHA, nenhum `pull_request_target`. Evidência: E02.
+- [ ] (E03) o CI roda `npm run auditar`, `npm run test:scripts` e `npm run test:campo`, e todo comando do script `verificar` aparece em um workflow; o PR de prova da paridade de tokens ficou vermelho. Evidência: E03.
+- [ ] (E04, E05) gitleaks e Semgrep são checks obrigatórios; o histórico foi triado e a allowlist tem razão; o PR de prova com segredo sintético reprovou; exceção de SAST sem motivo, dono e data reprova. Evidência: E04 e E05.
+- [ ] (E06, E07) Dependabot ativo, auditoria semanal rodando e política de CP-03 aplicada; primeira tag, CHANGELOG e igualdade de versões testada. Evidência: E06 e E07.
+- [ ] (E08) as duas imagens são construídas e exercitadas em todo PR, `/saude` devolve `versao` e `commit` iguais aos do build e `rollback.md` está escrito. Evidência: E08.
+- [ ] (E09) a matriz de ambiente é testada, `AMBIENTE_DC360` é obrigatório em produção, a trava de ambiente cruzado recusa a partida de HML com credencial de PROD e PROD ainda sobe. Evidência: E09.
+- [ ] (E10 e CP-04) cada ambiente tem TLS e CORS exatos (`conferir-dominio` verde), o preflight cruzado entre HML e PROD é negado e `vercel.json` não carrega a URL de PROD. CP-04 decidido e domínio próprio configurado, ou adiado por escrito: então o item vale sobre os domínios do provedor e ficam bloqueados o DNS próprio, o remetente de e-mail do OTP (F15-E14), os builds externos (F14-E11, F17-E17) e as lojas (F28-E07). Evidência: E10.
+- [ ] (E11 e CP-05) HML está de pé (API e console), com banco e bucket próprios, dados sintéticos sem senha conhecida e guarda do `--semear` corrigida; a migration do zero foi ensaiada, `--conferir` voltou em dia e a consulta de endurecimento voltou vazia; nenhum dado real de PROD em HML. Evidência: E11.
+- [ ] (E12) HML implanta por merge depois do CI verde; PROD só por promoção manual de tag que passou por HML; o token de HML foi recusado ao implantar em PROD; a Vercel de PROD não publica mais a cada push; o rollback foi ensaiado em HML. Evidência: E12.
+- [ ] (E13) o perfil EAS de HML tem bundle distinto e URL real, com `perfis-do-eas.test.mjs` verde; com CP-04 adiado, consta como pendente com o que bloqueia. Evidência: E13.
+- [ ] (E14 e CP-06) observabilidade P0: `X-Request-Id` em cabeçalho e no erro, adaptador de erro com filtro de dado pessoal testado, monitor de `/saude` com alerta recebido num teste de queda em HML, falha de rotina em `error` e alerta de storage a 80%. CP-06 decidido; se adiado por escrito, só HML usa o destino e ligar o destino externo em PROD fica bloqueado. Evidência: E14.
+- [ ] (E15) dump e migração rodam por ambiente em Windows e Linux, sem chaveiro obrigatório e com `--ambiente` obrigatório. Evidência: E15.
+- [ ] (E16 e CP-07) os cinco runbooks foram executados em HML por uma segunda pessoa e o acesso concedido está registrado por função. CP-07 decidido; a alternativa de risco aceito por escrito, sem segunda pessoa, só vale como exceção registrada com o que fica bloqueado (runbooks completos, F21-E06, F27-E02, F28-E05). Evidência: E16.
+- [ ] (E17) `npm run lint` e `npm run formato:conferir` verdes no CI e no `verificar`; a baseline tem teto que só desce (`lint-teto.test.mjs`) e o PR de prova com promessa solta reprovou. Evidência: E17.
+- [ ] (E18) a trava de migration foi provada em Postgres real (dois migradores simultâneos: o segundo sai com código 3 sem erro de chave); migration nova sem desfazer nem cabeçalho de irreversibilidade reprova; `--desfazer` é recusado em `prod`. Evidência: E18.
+- [ ] (E19, E20 e CP-43) cada tag publica o SBOM CycloneDX das duas árvores e das duas imagens; `licencas.mjs` verde (ou só avisando, com o CP adiado por escrito); o Trivy varre as duas imagens por PR e por agenda e não há CRITICAL ou HIGH corrigível fora de `.trivyignore` com motivo, dono e data. Evidência: E19 e E20.
+- [ ] (E21, E22 e CP-44) `implantavel` e `compose.yaml` usam `postgis/postgis` 17 por digest e `test:espacial` é obrigatório no CI (`DC360_EXIGE_POSTGIS=1`), com o PGlite mantido no resto; HML tem PostGIS com o endurecimento vazio e `conferir-ambiente --extensoes` verde; PROD confirmado capaz de criar a extensão (CP decidido; se adiado por escrito, a F32 fica bloqueada). Evidência: E21 e E22.
+- [ ] nenhuma regressão: G00 continua verde e `npm run verificar` verde no CI (se um quebrar, ESTE gate volta a REPROVADO).
+- [ ] documentação atualizada e evidências arquivadas em `docs/evidencias-v2/G01/`.
+
+**Reabre se:** a `master` ficar sem proteção ou com bypass; o CI perder algum comando do `verificar` (`conferir-workflows` vermelho) ou um workflow ficar sem `permissions`, timeout ou SHA; HML divergir de PROD (versão de Node ou Postgres, matriz de variáveis, versão em `/saude`, segredo ou dado de PROD em HML); houver deploy de PROD sem passar por HML; o workflow de HML alcançar segredo de PROD; existir semente com senha conhecida em ambiente acessível da internet; um runbook deixar de ser executável por quem não o escreveu; o `implantavel` voltar a Postgres sem PostGIS ou deixar de rodar `test:espacial`; migration nova sem desfazer nem cabeçalho de irreversibilidade; dois migradores sem trava; release sem SBOM, licença proibida em produção ou imagem com CRITICAL ou HIGH corrigível sem exceção; `spatial_ref_sys` acessível a `anon`; G00 reabrir.
+
+**Este Gate libera:** F02 e F08 (e F03 após G02). Passam a existir como insumo, sem liberar fase sozinhos: HML para F06-E15, F12-E01, F22-E03 e F25-E10; perfil EAS de HML para F14-E05 e F14-E11; observabilidade P0, pré-condição de qualquer usuário externo (G12); Postgres com PostGIS no CI e em HML, pré-condição da F32 (G32); lint, SBOM e scan de contêiner como checks das fases seguintes.
+
+# Fase 08: Design system e fundamentos de UX
+
+**Gate da fase:** G08 DESIGN SYSTEM E FUNDAMENTOS | **Depende dos gates:** G02 (G01 e G00 por cadeia) | **Superfícies tocadas:** `apps/web`, `apps/campo` e `apps/console` (tokens e cliente), `packages/shared` (subcaminhos), novos `packages/design-tokens`, `packages/cliente-api` e `packages/i18n`; portal e cidadão só como contrato, ainda sem código | **Checkpoints da fase:** CP-45 (E12); CP-36 (revisão de onda) é citado no gate
+
+Objetivo: tirar do caminho das superfícies novas três duplicações que hoje custam caro: tokens em três cópias, três clientes de API com a mesma lógica e um barril do shared que levaria permissões ao binário de loja; e deixar os portões de acessibilidade e de design prontos para varrer qualquer superfície. Também entrega a infraestrutura que as superfícies de interface vão consumir: catálogo de idiomas pt-BR, en e es com formatação de data, número e fuso (E08, E09), tema por município com contraste AA validado (E10, E11) e o ponto de integração do VLibras (E12); a tradução e a aplicação por superfície são da F35. E entrega o portão de qualidade visual e de texto (E13), do qual TODA etapa de interface das demais fases depende (regra 0 de `19-definicao-de-pronto.md`). F08 pode andar em paralelo a F03 a F07 depois de G02 (tokens e cliente não dependem de identidade nem de arquivos), mas DEVE fechar antes de F11: o portal nasce sobre tokens, cliente e portões, e G10, G11 e G17 dependem de G08.
+
+O que se PRESERVA (MANTER): `apps/web/src/estilos/tokens.css` como arquivo e caminho (os portões do painel o leem), `apps/web/test/acessibilidade.test.ts`, `design-system.test.ts` e `portoes-de-componente.test.ts`, os quatro `scripts/portao-*-do-aplicativo.test.mjs`, `scripts/paridade-de-severidade.test.mjs`, as três cópias de fonte e seu teste (`scripts/fontes-do-painel.test.mjs`), o motor offline `packages/campo` e o barril de `@dc360/shared`, que segue valendo para API, painel e campo.
+
+Regras da fase: não compartilhar DOM com React Native (UI web e UI nativa só nascem com segundo consumidor da mesma plataforma, em F11 e F17); não criar package sem dois consumidores reais: `design-tokens` (painel, campo e console), `cliente-api` (os três clientes atuais) e `i18n` (painel e campo, mais portal e cidadão quando nascerem) nascem aqui, `upload-core` só em F17-E03, e `api-contracts` e `auth-core` não nascem (DP:T28a). A fase NÃO faz componentes compartilhados, tema por secretaria nem tema completo editável (fora, D-11), Libras em vídeo (fora, D-12), a tradução das telas e a aplicação por superfície de idioma, tema e VLibras (F35), nem axe-core, leitor de tela e fonte a 200% (F23), nem ErrorBoundary e estados do painel (F10-E10).
+
+Ordem sugerida: E01, E02, E03 e E06 em cadeia (tokens e portões); E07 depois de E01; E04 e E05 não dependem da cadeia e podem andar com ela (arquivos disjuntos); E04 espera F00-E06; E08 depois de E05 e E09 depois de E08; E10 depois de E01 e E11 depois de E02, E03 e E10 (o guia de E07 cita as duas e fecha depois delas); E12 depois de E08; E13 depois de E02 e E06, e antes de qualquer etapa de interface das fases F10 em diante fechar. O app de campo está fora do `workspaces` e consome pacotes por `file:` com Metro (`apps/campo/metro.config.js` já liga `unstable_enablePackageExports`): todo pacote novo que o app consome exige ajuste de instalação, de `scripts/testar-campo.mjs` e do job `aplicativo`.
+
+## Etapas
+
+### V2-F08-E01 - Pacote design-tokens (fonte única)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F08-E04, F08-E05 e as fases F03 a F07: nenhuma toca `packages/design-tokens`)
+- **Objetivo:** fonte única, tipada e testada para cor, tipografia, espaço, raio, sombra, toque, z e movimento, derivada do que existe, sem mudar um pixel.
+- **Problema que resolve:** `BZ-F:P1-PROD` (UXD-04, UXD-05, UXD-06): os tokens vivem em três cópias: `apps/web/src/estilos/tokens.css` (233 linhas), `apps/campo/src/ui/tokens.ts` (755 linhas) e o bloco entre `INICIO DOS TOKENS` e `FIM DOS TOKENS` de `apps/console/src/pagina.ts` (linhas 1064 a 1233). A autoridade real é o `tokens.css`, cujo comentário manda espelhar `mockup/design-system/`, que não tem sete dos tokens.
+- **Origem:** DP:T16; REL:11 (1.2); BZ-D:UXD-04; BZ-D:UXD-05; BZ-D:UXD-06; BZ-D:UXD-50.
+- **Estado atual:** CRIAR (o pacote, a partir do que existe) e MANTER (nenhum valor muda).
+- **Dependências de entrada:** G02.
+- **O que deve ser implementado:**
+  - Domínio: `packages/design-tokens/` (entra em `workspaces` pelo glob `packages/*`) com a fonte em `fonte/tokens.json`, formato neutro lido por scripts `.mjs`: primitivas (violeta, tinta), semânticos por tema, espaço, raio, tipografia, sombra, movimento, z, peso, `toque` e os tokens só do painel (`--ds-border-controle`, `--ds-focus-ring`, `--ds-accent-graphic`, `--ds-sev-*`, `--ds-qr-*`, `--ds-fw-*`). Cada token tem `valor` único ou `plataformas: { web, nativo }`, e divergência exige `motivo`: as de hoje (toque 52 contra 44, escala grande de tipografia, selos opacos no escuro do campo, três durações) entram com a razão que `scripts/paridade-de-tokens-do-aplicativo.test.mjs` já declara.
+  - Arquivos: `scripts/extrair.mjs` (uso único) lê `tokens.css` e `tokens.ts` e monta o JSON, que passa a ser a autoridade.
+  - Testes: `packages/design-tokens/test/fonte.test.ts`: fidelidade nos dois sentidos com `tokens.css` e `tokens.ts`; divergência sem `motivo` reprova; contraste dos pares do painel (21) e do campo (34) recalculado sobre a fonte nos dois temas; nenhuma cor fora das primitivas existentes.
+- **O que NÃO deve ser implementado nesta etapa:** geradores (E02); paridade (E03); componentes de UI (F11, F17); fontes (as três cópias ficam); qualquer mudança em `mockup/`.
+- **Arquivos e módulos prováveis:** `dc360/packages/design-tokens/` (a criar), `dc360/apps/web/src/estilos/tokens.css`, `dc360/apps/campo/src/ui/tokens.ts`, `dc360/apps/console/src/pagina.ts` (só leitura).
+- **Risco de segurança:** Não se aplica: sem dado, rota ou credencial; o risco visual é coberto pela fidelidade.
+- **Impacto LGPD:** Não se aplica: nenhum dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** nenhum consumidor muda nesta etapa.
+- **Rollback:** remover o pacote; nada o consome ainda.
+- **Testes positivos:** 100% dos `--ds-*` do painel e dos valores do app presentes na fonte, com contraste AA nos dois temas.
+- **Testes negativos:** remover um token do JSON reprova; alterar um hexadecimal sem tocar `tokens.css` reprova; divergência sem `motivo` reprova; cor nova reprova.
+- **Testes de autorização e isolamento:** Não se aplica: sem dado nem rota.
+- **Regressão obrigatória:** `npm test`, `npm run test:scripts`, `npm run test:campo`, `npm run typecheck`, G00 a G02.
+- **E2E:** Não se aplica: ainda não há consumidor.
+- **Validação humana:** Rafael vê a lista de divergências declaradas e as razões.
+- **Evidência a produzir:** `docs/evidencias-v2/G08/V2-F08-E01/` com a saída dos testes e o hash do JSON.
+- **Documentação a atualizar:** `dc360/README.md` (seção de pacotes).
+- **Definition of Done:** fonte única com fidelidade total; divergências com motivo; contraste medido sobre a fonte.
+- **Checkpoint:** Não.
+
+### V2-F08-E02 - Geradores CSS e TS e arquivo gerado commitado para o console
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (mexe nos três consumidores e E03 e E06 dependem dela)
+- **Objetivo:** o `tokens.css` do painel, os tokens do app e o bloco do console passam a ser SAÍDA do gerador, commitada, e deriva vira erro de CI.
+- **Problema que resolve:** `BZ-F:P1-PROD` (UXD-05, UXD-06): o console é construído só com `tsc` e a página é uma string em `pagina.ts` (3646 linhas): sem etapa de build que consuma pacote, ele copia os tokens à mão.
+- **Origem:** DP:T16; REL:11 (1.2, 1.5); BZ-D:UXD-05; BZ-D:UXD-06.
+- **Estado atual:** REFATORAR (mesmo conteúdo, nova origem; caminhos e nomes de variável preservados).
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Arquivos: `packages/design-tokens/scripts/gerar.mjs` e `alvos.json`: (a) `apps/web/src/estilos/tokens.css` no MESMO caminho, com cabeçalho "ARQUIVO GERADO" e o `@font-face` de um molde (os portões do painel o leem: `acessibilidade.test.ts:29`, `design-system.test.ts:27`); (b) `apps/campo/src/ui/tokens.gerado.ts`, que `tokens.ts` reexporta mantendo a lógica (`elevacao`, `gradienteDeDestaque`, tipo `Tema`); (c) `apps/console/src/tokens-gerados.ts`, texto CSS com os marcadores `INICIO DOS TOKENS` e `FIM DOS TOKENS`, interpolado em `CSS_DO_CONSOLE` (`pagina.ts:1036`).
+  - Infraestrutura: scripts `gerar:tokens` e `conferir:tokens` (regenera em memória e compara) no `dc360/package.json`, no `verificar` e no job `produto` do CI; se o pacote é workspace, `Dockerfile` e `Dockerfile.console` copiam o `package.json` dele (o job `imagens` de F01-E08 prova).
+  - Mobile: `scripts/fonte-do-aplicativo.mjs` (`lerTokensDoApp`, leitura por expressão regular de `tokens.ts`) passa a ler o arquivo gerado, no mesmo PR, para os 10 casos de `paridade-de-tokens-do-aplicativo.test.mjs` seguirem verdes; o app não depende do pacote em execução (nenhum `file:` novo).
+- **O que NÃO deve ser implementado nesta etapa:** alvos do portal e do cidadão (E03); componentes; mudar valor de token; fontes.
+- **Arquivos e módulos prováveis:** `dc360/packages/design-tokens/scripts/gerar.mjs` e `alvos.json` (a criar), `dc360/apps/web/src/estilos/tokens.css`, `dc360/apps/campo/src/ui/tokens.ts`, `dc360/apps/campo/src/ui/tokens.gerado.ts` e `dc360/apps/console/src/tokens-gerados.ts` (a criar), `dc360/apps/console/src/pagina.ts`, `dc360/scripts/fonte-do-aplicativo.mjs`, `dc360/package.json`.
+- **Risco de segurança:** Não se aplica: sem dado nem credencial.
+- **Impacto LGPD:** Não se aplica: nenhum dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** caminhos e nomes de variável idênticos; o console segue só com `tsc`; `app.css` não muda.
+- **Rollback:** reverter o PR devolve os três arquivos escritos à mão, que estão no histórico.
+- **Testes positivos:** `npm run gerar:tokens` é idempotente; o `tokens.css` gerado tem as mesmas custom properties de antes; `acessibilidade.test.ts`, `design-system.test.ts`, `o-acabamento-da-tela.test.ts` e os portões do app seguem verdes.
+- **Testes negativos:** editar `--ds-accent` à mão em `tokens.css` reprova `conferir:tokens`; editar o bloco do console reprova; apagar o cabeçalho de arquivo gerado reprova.
+- **Testes de autorização e isolamento:** Não se aplica: sem dado nem rota.
+- **Regressão obrigatória:** `npm run conferir:tokens`, `npm test`, `npm run test:console`, `npm run test:campo`, `npm run test:scripts`, `npm run test:e2e`, G00 a G02.
+- **E2E:** `npm run test:e2e` (modo local, nos dois temas) com o `tokens.css` gerado.
+- **Validação humana:** Rafael abre painel, app (emulador) e console nos dois temas, antes e depois.
+- **Evidência a produzir:** `docs/evidencias-v2/G08/V2-F08-E02/` com a saída do gerador, o diff de equivalência (vazio) e capturas dos dois temas.
+- **Documentação a atualizar:** `dc360/README.md` (comando de geração) e os cabeçalhos de `tokens.ts` e `pagina.ts`, que hoje dizem "cópia".
+- **Definition of Done:** três saídas geradas e commitadas; `conferir:tokens` no CI; nenhum valor mudou; app e console sem etapa nova de build.
+- **Checkpoint:** Não.
+
+### V2-F08-E03 - Paridade de tokens nas três superfícies atuais e contrato para as novas
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (edita os testes de paridade que E02 deixa verdes e E06 depende dela)
+- **Objetivo:** a paridade passa a garantir que as três superfícies batem com a fonte, inclui o console e os três pares que faltavam, e obriga superfície nova a nascer com alvo declarado.
+- **Problema que resolve:** `BZ-F:P1-PROD` (UXD-04, UXD-05): `scripts/paridade-de-tokens-do-aplicativo.test.mjs` (437 linhas) cobre painel e campo com 23 pares e não mapeia `bordaControle` (`--ds-border-controle`), `anelDeFoco` (`--ds-focus-ring`) nem `--ds-accent-graphic`; o console não tem teste de paridade; o README fala em 17 pares e o portão do painel tem 21.
+- **Origem:** DP:T16; REL:11 (1.2, 1.4); BZ-D:UXD-04; BZ-D:UXD-05; BZ-D:UXD-50.
+- **Estado atual:** EXPANDIR (o teste existente fica e cresce).
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - Testes: estender `paridade-de-tokens-do-aplicativo.test.mjs` com os três pares (26) e com o console como terceira superfície (primitivas por igualdade, semânticos por par, nos dois temas); novo `scripts/paridade-da-fonte-de-tokens.test.mjs`: cada saída gerada é igual ao que o gerador produziria (deriva reprova com a instrução "rode `npm run gerar:tokens`") e toda divergência declarada na fonte continua real.
+  - Arquivos: `packages/design-tokens/alvos.json` declara as superfícies de interface; o teste lista `apps/*/package.json` e reprova superfície de interface sem alvo (apps sem interface em lista explícita: `api`); `portal` e `cidadao` entram como alvos "planejados" com a etapa que os cria (F11-E02, F17-E02), e o teste reprova se a pasta existir com o alvo ainda "planejado".
+  - Documentação: README com o número real de pares; o cabeçalho gerado de `tokens.css` deixa de mandar espelhar `mockup/design-system/`.
+- **O que NÃO deve ser implementado nesta etapa:** portões de acessibilidade e de design por superfície (E06); criar o portal ou o cidadão; axe-core (F23-E01).
+- **Arquivos e módulos prováveis:** `dc360/scripts/paridade-de-tokens-do-aplicativo.test.mjs`, `dc360/scripts/paridade-da-fonte-de-tokens.test.mjs` (a criar), `dc360/scripts/fonte-do-aplicativo.mjs`, `dc360/packages/design-tokens/alvos.json`, `dc360/README.md`.
+- **Risco de segurança:** Não se aplica: sem dado nem credencial; o risco é falso verde, evitado comparando valores resolvidos e não só nomes.
+- **Impacto LGPD:** Não se aplica: nenhum dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** os 10 casos atuais seguem; os pares novos podem revelar divergência real que hoje só se supõe igual: corrige-se a fonte ou declara-se com motivo.
+- **Rollback:** reverter o PR.
+- **Testes positivos:** 26 pares verdes nos dois temas nas três superfícies; `paridade-da-fonte-de-tokens` verde.
+- **Testes negativos:** mudar `bordaControle` só em `tokens.ts` reprova; mudar `--ds-focus-ring` só no bloco do console reprova (hoje passaria calado); criar `apps/portal` sem alvo reprova.
+- **Testes de autorização e isolamento:** Não se aplica: testes estáticos sobre artefatos, sem dado nem rota.
+- **Regressão obrigatória:** `npm run test:scripts`, `npm run conferir:tokens`, `npm run test:campo`, `npm run test:console`, `npm run conferir:numeros`, G00 a G02.
+- **E2E:** Não se aplica: testes estáticos.
+- **Validação humana:** Rafael revisa a lista de divergências declaradas.
+- **Evidência a produzir:** `docs/evidencias-v2/G08/V2-F08-E03/` com a saída dos testes e os PRs de prova reprovados.
+- **Documentação a atualizar:** `dc360/README.md` (pares e portões).
+- **Definition of Done:** paridade com 26 pares nas três superfícies e com a fonte; contrato de alvo para as novas ativo.
+- **Checkpoint:** Não.
+
+### V2-F08-E04 - Pacote cliente-api (transporte, renovação de token, classificação de erro)
+- **Prioridade:** P1
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com F08-E05; só `dc360/package.json` é tocado também por E02, e os PRs entram em sequência)
+- **Objetivo:** um cliente HTTP único, sem DOM nem React Native e com `fetch` injetado, concentra tempo limite, renovação de token em voo único, classificação de falha e erro tipado.
+- **Problema que resolve:** `BZ-F:P1-PROD` (REL:07 10.2, DT-01): a mesma lógica existe em três clientes: `apps/web/src/dados/http.ts` (1245 linhas), `apps/campo/src/dados/api.ts` (856 linhas, com a renovação em `token.ts`) e `packages/campo/src/transporte.ts` (234 linhas, `FalhaTemporaria` e `FalhaPermanente`). O cidadão seria o quarto.
+- **Origem:** DP:T28a; DP:T28; REL:07 (10.2); BZ-F:P1-PROD.
+- **Estado atual:** REFATORAR (extrai o que já funciona; o comportamento de cada cliente é preservado).
+- **Dependências de entrada:** G02 (rotas sob `/v1`, esquema de erro, `X-App-Version` e 426 existem); F00-E06 (a fila trata `nao_autenticado`, `sessao_encerrada` e `conta_desativada` sem perder item).
+- **O que deve ser implementado:**
+  - Domínio: `packages/cliente-api/` com `criarCliente({ baseUrl, buscar, tempoLimiteMs, versaoDoApp, obterAcesso, renovar })`; falha classificada em `temporaria` (rede, 5xx, 429), `permanente` (4xx), `sessao` (os três códigos de F00-E05) e `versao_desatualizada` (426), com `status`, `codigo`, `mensagem`, `campos` (422) e `requisicao` (F01-E14); renovação rotativa com UMA renovação em voo (padrão de `http.ts:73-109`); armazenamento do token, `fetch` e relógio por portas injetadas.
+  - Frontend e mobile: `http.ts` e `api.ts` usam o cliente e mantêm o que é deles (rotas, `sessionStorage`, `mensagemAmigavel()`, tempos limite); `transporte.ts` usa a classificação e mantém a interface `Transporte` e as classes `Falha*` da fila (motor offline intacto). O app consome o pacote por `file:../../packages/cliente-api`: ajustar `apps/campo/package.json`, `scripts/testar-campo.mjs`, o passo "Compilar os pacotes compartilhados" do job `aplicativo`, `build` e `build:shared` da raiz, o `buildCommand` de `vercel.json` e o `COPY` do `package.json` nos Dockerfiles.
+  - Testes: `packages/cliente-api/test/`, com `fetch` falso: tabela de status para tipo de falha, dez chamadas simultâneas com uma só renovação, tempo limite e 426.
+- **O que NÃO deve ser implementado nesta etapa:** `upload-core` (F17-E03); `auth-core` e `api-contracts` (não nascem); clientes do portal e do cidadão (F11, F17).
+- **Arquivos e módulos prováveis:** `dc360/packages/cliente-api/` (a criar), `dc360/apps/web/src/dados/http.ts`, `dc360/apps/campo/src/dados/api.ts`, `dc360/apps/campo/src/dados/token.ts`, `dc360/packages/campo/src/transporte.ts`, `dc360/apps/campo/package.json`, `dc360/scripts/testar-campo.mjs`, `dc360/vercel.json`.
+- **Risco de segurança:** erro na renovação reabre a corrida que derrubava a sessão do agente (token gasto reenviado é lido como roubo); token fora de log.
+- **Impacto LGPD:** Não se aplica: nenhum dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** comportamento externo idêntico; `ErroDaApi` mantém `status`, `codigo` e `campos`; cada cliente migra num PR próprio.
+- **Rollback:** reverter por cliente.
+- **Testes positivos:** `packages/cliente-api` verde; `api-tempo-limite.test.ts`, `token.test.ts` e `sessao.test.tsx` do app, `fila.test.ts` de `packages/campo` e `apps/api/test/campo-integracao.test.ts` verdes sem editar expectativa.
+- **Testes negativos:** dez 401 simultâneos geram uma renovação; 401 `sessao_encerrada` não entra em laço de reenvio e a fila não perde item; 426 vira `versao_desatualizada`, nunca `temporaria`.
+- **Testes de autorização e isolamento:** o cliente só anexa `authorization` quando a chamada pede; 404 de recurso de outro município chega como falha permanente, nunca como 403.
+- **Regressão obrigatória:** `npm run test:campo`, `npm run test:api`, `npm test`, `npm run test:e2e:api`, `npm run typecheck`, G00 a G02.
+- **E2E:** `npm run test:e2e:api` (login, renovação, upload) e a sincronização do campo contra a API real com sessão vencida no meio.
+- **Validação humana:** Rafael deixa a sessão vencer no painel e no app e confirma que nada se perde.
+- **Evidência a produzir:** `docs/evidencias-v2/G08/V2-F08-E04/` com a saída dos testes dos três clientes.
+- **Documentação a atualizar:** `dc360/README.md` (pacotes) e `dc360/apps/campo/LEIA-ME.md` (instalação).
+- **Definition of Done:** painel, app e transporte do motor offline usam o cliente; nenhuma classificação de falha fora dele; testes antigos verdes sem editar expectativa.
+- **Checkpoint:** Não.
+
+### V2-F08-E05 - Subpaths de exportação neutros do shared (sem permissões no binário do cidadão)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F08-E01 a F08-E04: só `packages/shared` é tocado aqui)
+- **Objetivo:** o app do cidadão poderá importar validações neutras do shared sem embarcar permissões, papéis nem vocabulário do agente no binário de loja.
+- **Problema que resolve:** `BZ-F:P1-PROD` (REL:07 10.2, 10.3): `packages/shared/package.json` tem uma só entrada (`.`) e `src/index.ts` reexporta tudo, inclusive `permissoes.ts` (`PERMISSOES`, `POSTO`) e `dominio.ts` (`PAPEIS`, `ROTULO_EVENTO_TRILHA`); `mensagens-do-zod.ts` instala `z.setErrorMap` no import (linha 214); `coordenadaSchema` e `uuidSchema` moram em `schemas.ts` (linhas 23 e 33), que importa `dominio.ts`.
+- **Origem:** DP:T28; REL:07 (10.2, 10.3, 10.5); BZ-F:P1-PROD.
+- **Estado atual:** EXPANDIR (o barril `.` continua valendo para API, painel e campo).
+- **Dependências de entrada:** G02.
+- **O que deve ser implementado:**
+  - Domínio: extrair `uuidSchema`, `coordenadaSchema` e `coordenadaGravadaSchema` de `schemas.ts` para arquivo sem dependência de `dominio.ts`, e `TIPOS_COBRADE`, `TipoCobrade` e os rótulos dos oito tipos (sem o `outro` da triagem) de `dominio.ts` para `cobrade.ts`; tudo reexportado dos arquivos de origem, sem mudar consumidor; `mensagens-do-zod.ts` separado em definição e instalação (o barril continua instalando; o subcaminho exporta `instalarMensagensDoZod()`).
+  - Arquivos: `packages/shared/package.json` ganha `exports` `"./neutro"` apontando para `src/neutro.ts`, que reexporta só coordenada e `uuidSchema`, `localizacao.ts`, `telefone.ts`, os formatos de `evidencia.ts` (`TIPOS_ACEITOS`, tamanho máximo, plausibilidade de captura; não `pedidoDeEvidenciaSchema`, que exige `ocorrenciaId`), `cobrade.ts` e `instalarMensagensDoZod`. Nome confirmado na execução.
+  - Testes: `packages/shared/test/subcaminhos-neutros.test.ts`: o grafo de imports de `src/neutro.ts` nunca alcança `dominio.ts`, `permissoes.ts`, `schemas.ts`, `minuta.ts` nem `glifos-de-severidade.ts`, e o texto resultante não contém `PAPEIS`, `PERMISSOES`, `POSTO` nem `ROTULO_EVENTO_TRILHA`.
+- **O que NÃO deve ser implementado nesta etapa:** esvaziar ou trocar o barril `.`; schemas de relato e de anexo do cidadão (F16, F17-E03); a regra de importação do app do cidadão (F17-E02).
+- **Arquivos e módulos prováveis:** `dc360/packages/shared/package.json`, `dc360/packages/shared/src/index.ts`, `schemas.ts`, `dominio.ts`, `mensagens-do-zod.ts`, `neutro.ts` e `cobrade.ts` (a criar), `dc360/packages/shared/test/subcaminhos-neutros.test.ts` (a criar).
+- **Risco de segurança:** embarcar `PAPEIS`, `PERMISSOES` e `ROTULO_EVENTO_TRILHA` (que inclui eventos de segurança do agente) num binário público revela vocabulário e matriz de permissão: o grafo de imports é a proteção.
+- **Impacto LGPD:** Não se aplica: nenhum dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** `import ... from "@dc360/shared"` segue idêntico; o Metro do app (`unstable_enablePackageExports`) e o `moduleResolution` Bundler leem `exports`.
+- **Rollback:** reverter o PR; o barril não muda.
+- **Testes positivos:** `regras-de-conteudo`, `mensagens-em-portugues`, `telefone` e `evidencia` seguem verdes; `@dc360/shared/neutro` importa em Node ESM depois do `build`; `tsc` do campo e do painel resolvem o subcaminho.
+- **Testes negativos:** PR de prova que faz `neutro.ts` reexportar `permissoes.ts` reprova o teste de grafo; sem chamar `instalarMensagensDoZod` o neutro fica sem mensagens em português (o teste cobre as duas formas).
+- **Testes de autorização e isolamento:** o subcaminho não exporta `exigirPermissao`, `PAPEIS` nem `POSTO`; isolamento de dados: Não se aplica.
+- **Regressão obrigatória:** `npm test`, `npm run typecheck`, `npm run test:campo`, `npm run test:api`, G00 a G02.
+- **E2E:** Não se aplica: o primeiro consumidor do subcaminho é F17-E02.
+- **Validação humana:** Rafael lê a lista do que o subcaminho exporta e do que fica de fora.
+- **Evidência a produzir:** `docs/evidencias-v2/G08/V2-F08-E05/` com a saída do teste de grafo.
+- **Documentação a atualizar:** `dc360/README.md` (pacotes e a regra do que o app do cidadão pode importar).
+- **Definition of Done:** subcaminho neutro publicado; grafo prova ausência de permissões e papéis; barril e consumidores intactos.
+- **Checkpoint:** Não.
+
+### V2-F08-E06 - Portões de acessibilidade e de design parametrizados por superfície
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (edita testes do painel e scripts que E03 acabou de tocar)
+- **Objetivo:** os portões estáticos de acessibilidade e de design varrem uma LISTA de superfícies, e superfície nova sem entrada na lista reprova.
+- **Problema que resolve:** `BZ-F:P1-PROD` (UXD-47, A11-30, A11-31): `apps/web/test/acessibilidade.test.ts` (linha 27) e `design-system.test.ts` (linha 21) fixam `RAIZ` em `apps/web/src`, `scripts/fonte-do-aplicativo.mjs` fixa `apps/campo/src` e o console só testa a própria string: superfície nova nasce sem portão. O console não tem contraste calculado nem salvaguarda de Alto Contraste.
+- **Origem:** DP:T16; DP:T29; REL:11 (1.4, 2.5); BZ-D:UXD-47; BZ-D:A11-30; BZ-D:A11-31.
+- **Estado atual:** REFATORAR (as regras dos portões ficam; a pasta varrida passa a vir de uma lista).
+- **Dependências de entrada:** E03.
+- **O que deve ser implementado:**
+  - Arquivos: `dc360/scripts/superficies.json`: por superfície, `id`, `pasta`, `plataforma` (`web`, `nativo` ou `html-em-string`), `alvo` de tokens e `estado` (`ativa` ou `planejada`, com a etapa que a cria); `acessibilidade.test.ts`, `design-system.test.ts` e `portoes-de-componente.test.ts` iteram as superfícies `web` ativas em vez de `RAIZ` fixa (hoje só `painel`; o portal entra com uma linha em F11-E02); `fonte-do-aplicativo.mjs` lê as `nativo` (`campo`; `cidadao` em F17-E02); o console entra com o subconjunto que já passa (contraste dos tokens da fonte, cor literal fora do bloco gerado), e as regras que ele reprova (foco sem `forced-colors`, erro em `role="status"`) viram exceção nomeada com dono e data, tratada em F23-E08 (política de F00-E02).
+  - Testes: `dc360/scripts/superficies.test.mjs`: toda pasta de `apps/*` com interface (`index.html`, `app.config.ts` ou página servida) precisa estar na lista; superfície `planejada` cuja pasta já exista reprova.
+  - Documentação: checklist para registrar superfície nova (F11-E02, F17-E02).
+- **O que NÃO deve ser implementado nesta etapa:** axe-core, leitor de tela, fonte a 200% e portão de toque (F23-E01 a F23-E04); correção das falhas do console (F23-E08); reescrever as regras dos portões.
+- **Arquivos e módulos prováveis:** `dc360/scripts/superficies.json` e `dc360/scripts/superficies.test.mjs` (a criar), `dc360/apps/web/test/acessibilidade.test.ts`, `dc360/apps/web/test/design-system.test.ts`, `dc360/apps/web/test/portoes-de-componente.test.ts`, `dc360/scripts/fonte-do-aplicativo.mjs`, `dc360/apps/console/test/o-acabamento-da-tela.test.ts`.
+- **Risco de segurança:** Não se aplica: portões estáticos; o risco é portão mais frouxo por engano, evitado mantendo as regras e a contagem de casos.
+- **Impacto LGPD:** Não se aplica: nenhum dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** a contagem de casos do painel e do app não muda (`conferir:numeros`); superfície nova entra por uma linha.
+- **Rollback:** reverter o PR.
+- **Testes positivos:** os 15 casos de `acessibilidade.test.ts` e os 10 de `portao-acessibilidade-do-aplicativo.test.mjs` rodam como antes, com a mesma contagem.
+- **Testes negativos:** criar `apps/portal` com `index.html` sem entrada na lista reprova; `style={{ borderRadius: "8px" }}` em arquivo de superfície listada reprova o portão de design; exceção do console sem data reprova.
+- **Testes de autorização e isolamento:** Não se aplica: portões estáticos sobre código de interface.
+- **Regressão obrigatória:** `npm test`, `npm run test:scripts`, `npm run test:campo`, `npm run test:console`, `npm run conferir:numeros`, G00 a G02.
+- **E2E:** Não se aplica: o navegador real com axe é F23-E01.
+- **Validação humana:** Rafael confere a lista de superfícies e a exceção do console.
+- **Evidência a produzir:** `docs/evidencias-v2/G08/V2-F08-E06/` com a saída dos portões por superfície e o PR de prova reprovado.
+- **Documentação a atualizar:** `dc360/README.md` (seção de portões).
+- **Definition of Done:** portões leem a lista; superfície nova sem registro reprova; contagens inalteradas; exceções do console com dono e data.
+- **Checkpoint:** Não.
+
+### V2-F08-E07 - Linguagem visual: identidade DC360 com nome, logotipo e cor do município; guia do portal e do cidadão
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** baixo  |  **Paralelizável:** sim (só `dc360/docs`)
+- **Objetivo:** um documento único diz como o DC360 aparece nas cinco superfícies, antes de F11 e F17.
+- **Problema que resolve:** `BZ-F:P1-PROD` (UXD-26, UXD-40, UXD-42, UXD-50, UXD-51): o design system do produto real não tem documento.
+- **Origem:** DP:T17; DP:T16; PR:D-11; PR:D-12; BZ-D:UXD-26, 40, 42, 50, 51.
+- **Estado atual:** CRIAR (o documento) e MANTER (violeta, dois temas, Work Sans e Roboto Mono).
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Documentação: `dc360/docs/DESIGN-SYSTEM.md`: (1) identidade DC360, dois temas e a regra de não criar cor fora da fonte; (2) cabeçalho com a marca DC360 e, da identidade do município (E10, E11), nome, logotipo e UMA cor de destaque com AA validado, sem tema por secretaria; (3) o que é compartilhado (tokens, cliente, subcaminho neutro, catálogo de E08) e o que não é (DOM e UI nativa); (4) contrato nas três plataformas: modal e confirmação (o botão repete o verbo e o objeto), formulário (o rótulo diz o que digitar), vazio, erro (com o código de F01-E14), carregando, confirmação passageira; (5) guia do portal (desktop) e do cidadão (celular, toque de 44 pt e 48 dp, fonte até 200%; os tokens `toque.minimo.*` entram na fonte de E01 quando F17 os confirmar); (6) escrita: pt-BR, en e es pelo catálogo, nunca estado só por cor.
+- **O que NÃO deve ser implementado nesta etapa:** tema por secretaria e tema editável (fora, D-11); componentes (F11, F17); `mockup/`.
+- **Arquivos e módulos prováveis:** `dc360/docs/DESIGN-SYSTEM.md` e `dc360/scripts/documento-do-design-system.test.mjs` (a criar).
+- **Risco de segurança:** Não se aplica: documento.
+- **Impacto LGPD:** o guia do cidadão fixa o que a tela não mostra.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem mudança de código.
+- **Rollback:** reverter o documento.
+- **Testes positivos:** `documento-do-design-system.test.mjs`: todo `--ds-*` citado existe na fonte.
+- **Testes negativos:** token inexistente reprova; travessão reprova `regras-de-conteudo.test.ts`.
+- **Testes de autorização e isolamento:** Não se aplica: documento.
+- **Regressão obrigatória:** `npm test`, G00 a G02.
+- **E2E:** Não se aplica: documento.
+- **Validação humana:** Rafael aprova o guia e decide a confirmação passageira.
+- **Evidência a produzir:** `docs/evidencias-v2/G08/V2-F08-E07/`.
+- **Documentação a atualizar:** `dc360/docs/DESIGN-SYSTEM.md`.
+- **Definition of Done:** guia aprovado.
+- **Checkpoint:** Não.
+
+### V2-F08-E08 - Pacote i18n: catálogo de textos em pt-BR, en e es compartilhado pelas superfícies
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F08-E01 a F08-E06: pacote novo)
+- **Objetivo:** um catálogo de textos em três idiomas, com consumidores reais desde já, para nenhuma superfície guardar texto comum próprio.
+- **Problema que resolve:** D-12: os textos comuns estão em português fixo em `packages/shared` (`mensagens-do-zod.ts`, mapa global por `z.setErrorMap`; `ROTULO_*` de `dominio.ts`) e o 422 da API devolve só `campos: [{campo, mensagem}]`, sem como trocar o idioma.
+- **Origem:** PR:D-12; DP:K20; DP:T28.
+- **Estado atual:** CRIAR (o pacote) e EXPANDIR (shared e 422).
+- **Dependências de entrada:** G02; E05.
+- **O que deve ser implementado:**
+  - Domínio: `packages/i18n/` com `pt-BR` (fonte e reserva), `en` e `es`, JSON por chave, marcadores `{nome}`, plural por `Intl.PluralRules` e `t(chave, params, idioma)`, sem biblioteca externa. Consumidores reais: painel e `apps/campo` (por `file:`); portal e cidadão entram em F11-E02 e F17-E02.
+  - Dados: as frases do Zod e os `ROTULO_*` viram chaves; `shared` mantém as exportações atuais, derivadas do catálogo pt-BR; `mensagemDoZod(issue, idioma)` é função pura, sem mapa global.
+  - API: cada item de `campos` do 422 ganha, aditivo, `codigo` e `params`; `cliente-api` (E04) os devolve.
+  - Portão: `packages/i18n/test/completude.test.ts` e `pendentes.json`, que G35 exige vazio.
+- **O que NÃO deve ser implementado nesta etapa:** traduzir telas e documentos; idioma por usuário ou município (F35).
+- **Arquivos e módulos prováveis:** `dc360/packages/i18n/` (a criar), `dc360/packages/shared/src/mensagens-do-zod.ts`, `dc360/apps/api/src/servidor.ts`.
+- **Risco de segurança:** texto de catálogo nunca vira HTML; `regras-de-conteudo.test.ts` varre os JSON.
+- **Impacto LGPD:** Não se aplica: catálogo sem dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** `@dc360/shared` idêntico; o 422 só ganha campos.
+- **Rollback:** reverter o PR.
+- **Testes positivos:** `mensagens-em-portugues.test.ts` verde sem editar expectativa; `mensagemDoZod` devolve en e es.
+- **Testes negativos:** chave ausente em `es` reprova; marcador `{limite}` perdido reprova; chave faltante cai em pt-BR, nunca aparece crua.
+- **Testes de autorização e isolamento:** recurso de outro município segue 404 em qualquer idioma.
+- **Regressão obrigatória:** `npm test`, `npm run test:api`, G00 a G02.
+- **E2E:** `npm run test:e2e`: painel em pt-BR como antes.
+- **Validação humana:** Rafael lê as pendências.
+- **Evidência a produzir:** `docs/evidencias-v2/G08/V2-F08-E08/`.
+- **Documentação a atualizar:** `dc360/README.md`.
+- **Definition of Done:** completude testada; painel e app consomem; 422 com código e parâmetros.
+- **Checkpoint:** Não.
+
+### V2-F08-E09 - Formatação de data, número e fuso por idioma e por município
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (edita o pacote de E08 e a API)
+- **Objetivo:** toda superfície formata data, hora e número por uma função só, no idioma do usuário e no fuso do município.
+- **Problema que resolve:** D-12: `toLocaleString("pt-BR")` e `localeCompare` fixos em `apps/web/src` e `apps/campo/src`; o fuso certo só existe na API (`fusoDoEstado` e `formatarDataHora` em `folha.ts`).
+- **Origem:** PR:D-12; DP:K20.
+- **Estado atual:** REFATORAR (move sem mudar o resultado em pt-BR) e EXPANDIR.
+- **Dependências de entrada:** E08.
+- **O que deve ser implementado:**
+  - Domínio: `packages/i18n/src/formato.ts` com `formatarDataHora(iso, fuso, idioma)`, `formatarData`, `formatarNumero` e `compararTexto`; `fusoDoEstado` e `FUSO_PADRAO` já vivem em `packages/shared/src/fuso.ts` (F02-E09 os move de `folha.ts`) e `formato.ts` os importa, sem duplicar. O fuso segue obrigatório, sem padrão silencioso.
+  - Frontend e mobile: painel e app trocam as chamadas fixas pelas funções, com o fuso da UF do município e o idioma da preferência; o app mostra a hora no fuso do município da ocorrência, não no do aparelho.
+  - Testes: `formato.test.ts` com `TZ=UTC` e `TZ=Asia/Tokyo`; `formato-fixo.test.ts` reprova `toLocale*` e `localeCompare` com idioma literal fora do pacote.
+- **O que NÃO deve ser implementado nesta etapa:** moeda; traduzir telas (F35); traduzir documento oficial (segue em pt-BR; a F35-E08 só troca o cabeçalho); coluna de fuso por município.
+- **Arquivos e módulos prováveis:** `dc360/packages/i18n/src/formato.ts` (a criar), `dc360/apps/api/src/documentos/folha.ts`, `dc360/apps/web/src/componentes/comuns.tsx`, `dc360/packages/campo/src/prazo.ts`.
+- **Risco de segurança:** Não se aplica: sem dado novo.
+- **Impacto LGPD:** Não se aplica: nenhum dado pessoal.
+- **Migração necessária:** Não.
+- **Compatibilidade:** em pt-BR, saída de hoje.
+- **Rollback:** reverter o PR.
+- **Testes positivos:** os testes de fuso de `apps/api/test` verdes sem editar expectativa.
+- **Testes negativos:** `formatarDataHora` sem fuso não compila; UF inválida cai em `America/Sao_Paulo`, nunca no relógio do processo; `"pt-BR"` literal em `apps/web/src` reprova.
+- **Testes de autorização e isolamento:** Não se aplica: formatação pura, sem dado nem rota.
+- **Regressão obrigatória:** `npm test`, `npm run test:api`, G00 a G02.
+- **E2E:** `npm run test:e2e`: datas iguais às de antes.
+- **Validação humana:** Rafael compara a data de um laudo.
+- **Evidência a produzir:** `docs/evidencias-v2/G08/V2-F08-E09/`.
+- **Documentação a atualizar:** `dc360/README.md`.
+- **Definition of Done:** nenhuma formatação fixa fora do pacote; fuso do município nos dois clientes.
+- **Checkpoint:** Não.
+
+### V2-F08-E10 - Tema por município: derivação da cor de destaque e validação automática de contraste AA nos dois modos
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F08-E08 e F08-E09)
+- **Objetivo:** dada UMA cor de destaque, o pacote deriva os tokens dos dois modos e RECUSA a cor que não alcança AA, antes de qualquer tela a usar.
+- **Problema que resolve:** D-11: o destaque é violeta fixo (`--ds-accent`, 8.98:1 no claro e 6.75:1 no escuro); a cor de um município pode derrubar o contraste de botão, link e foco sem ninguém ver.
+- **Origem:** PR:D-11; DP:T17; DP:K19.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Domínio: `packages/design-tokens/src/municipio.ts`: `derivarTemaDoMunicipio(corHex)` devolve, para `claro` e `escuro`, `accent`, `accent-hover`, `accent-graphic`, `on-accent` e `focus-ring`, pela fórmula WCAG de E01. Limites: 4.5:1 para texto e botão (claro sobre branco; escuro sobre `ink-950` e `ink-900`; `on-accent` sobre o destaque) e 3:1 para foco e gráfico.
+  - Regra: aceita ou recusa, sem clarear escondido: `{ ok: false, motivos: [{ modo, par, razao, minimo }] }`. Entrada só `^#[0-9A-Fa-f]{6}$`. A API da F35 a chama NA ESCRITA e grava o derivado; o cliente nunca decide.
+- **O que NÃO deve ser implementado nesta etapa:** cadastro do logotipo (F35); segunda cor, tema por secretaria ou tema editável (fora, D-11).
+- **Arquivos e módulos prováveis:** `dc360/packages/design-tokens/src/municipio.ts` e `test/municipio.test.ts` (a criar).
+- **Risco de segurança:** a cor vira CSS: regex fechada, nunca `rgb(`, `var(` ou `url(`.
+- **Impacto LGPD:** Não se aplica: cor institucional.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem tema vale o violeta DC360.
+- **Rollback:** remover o arquivo.
+- **Testes positivos:** violeta DC360 aceito; 200 cores com semente fixa: toda aceita cumpre os limites.
+- **Testes negativos:** amarelo vivo recusado com a razão; cor que reprova só no escuro recusada com o modo; `#FFF`, `rgb(0,0,0)` e `var(--x)` recusados.
+- **Testes de autorização e isolamento:** Não se aplica: função pura; a permissão de gravar é da F35.
+- **Regressão obrigatória:** `npm test`, `npm run conferir:tokens`, G00 a G02.
+- **E2E:** Não se aplica: sem consumidor ainda (E11).
+- **Validação humana:** Rafael vê as razões.
+- **Evidência a produzir:** `docs/evidencias-v2/G08/V2-F08-E10/`.
+- **Documentação a atualizar:** `dc360/docs/DESIGN-SYSTEM.md` (E07).
+- **Definition of Done:** cor reprovada nunca sai como tema.
+- **Checkpoint:** Não.
+
+### V2-F08-E11 - Entrega do tema do município pelos tokens: painel, app de campo e contrato para portal e cidadão
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (edita o gerador de E02 e a paridade de E03)
+- **Objetivo:** nome, logotipo e cor de destaque do município chegam às superfícies por uma via só, os tokens.
+- **Problema que resolve:** D-11: o `tokens.css` gerado (E02) e o tema do app são fixos; nada leva nome nem logotipo ao cabeçalho.
+- **Origem:** PR:D-11; DP:T17; DP:T16.
+- **Estado atual:** EXPANDIR.
+- **Dependências de entrada:** E02; E03; E10.
+- **O que deve ser implementado:**
+  - Domínio: contrato `IdentidadeDoMunicipio { nome, logotipoUrl | null, tema: { claro, escuro } }`, Zod no subcaminho neutro de `shared` (E05), sem `organizacaoId`.
+  - Frontend: o gerador (E02) emite a lista fechada `TOKENS_DO_MUNICIPIO` (os cinco de destaque) e o painel os aplica no `<html>`; outro `--ds-*` é intocável. O console NÃO é tematizado.
+  - Mobile: `temaComMunicipio(tema, identidade)` em `tokens.ts` troca só os campos de destaque, com os valores derivados pela API (o app não importa o pacote em execução).
+  - Testes: a paridade de E03 ganha município de prova; `alvos.json` marca quem aplica o tema.
+- **O que NÃO deve ser implementado nesta etapa:** coluna, rota e cadastro do logotipo (F35); aplicar no portal e no cidadão (F11, F17, F35).
+- **Arquivos e módulos prováveis:** `dc360/packages/design-tokens/alvos.json`, `dc360/apps/campo/src/ui/tokens.ts`, `dc360/packages/shared/src/neutro.ts`, `dc360/apps/web/test/tema-do-municipio.test.ts` (a criar).
+- **Risco de segurança:** valor do servidor vira CSS: só hex validado; `logotipoUrl` só da origem própria, em `<img>`.
+- **Impacto LGPD:** Não se aplica: identidade institucional.
+- **Migração necessária:** Não.
+- **Compatibilidade:** sem identidade vale o DC360.
+- **Rollback:** reverter o PR.
+- **Testes positivos:** com cor de prova, painel e app resolvem os mesmos valores.
+- **Testes negativos:** cor recusada cai no DC360; sobrescrever `--ds-danger` reprova; `logotipoUrl` externa reprova.
+- **Testes de autorização e isolamento:** o contrato não tem `organizacaoId`: a rota da F35 resolve pelo token.
+- **Regressão obrigatória:** `npm run conferir:tokens`, `npm run test:campo`, G00 a G02.
+- **E2E:** `npm run test:e2e` com identidade de prova nos dois temas.
+- **Validação humana:** Rafael vê painel e app com a cor de prova.
+- **Evidência a produzir:** `docs/evidencias-v2/G08/V2-F08-E11/` com capturas.
+- **Documentação a atualizar:** `dc360/docs/DESIGN-SYSTEM.md`.
+- **Definition of Done:** painel e app aplicam o tema; paridade testada.
+- **Checkpoint:** Não.
+
+### V2-F08-E12 - Ponto de integração do VLibras nas superfícies web e no app
+- **Prioridade:** P2
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com F08-E08 a F08-E11)
+- **Objetivo:** cada superfície tem UM ponto de carregamento do VLibras, desligado por padrão, com segurança e privacidade resolvidas antes da F35.
+- **Problema que resolve:** D-12: o painel não carrega NENHUM script de terceiro (`design-system.test.ts` reprova rede) e `vercel.json` não tem CSP; o plugin do governo é script externo que envia o texto da página (endereço e suporte a React Native NÃO CONFIRMADOS).
+- **Origem:** PR:D-12; DP:K20.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E08.
+- **O que deve ser implementado:**
+  - Frontend: `apps/web/src/componentes/Libras.tsx`: botão "Ativar tradução em Libras" no rodapé; o script oficial só carrega no clique. `vercel.json` ganha CSP que cita só o domínio do VLibras. FORA de login, MFA e telas com dado de ocorrência ou cidadão.
+  - Mobile: `apps/campo/src/ui/Libras.tsx` com o contrato e o estado "indisponível sem conexão"; WebView ou aplicativo do governo é CP-45.
+- **O que NÃO deve ser implementado nesta etapa:** Libras em vídeo (fora, D-12); ativar em produção; aplicar por tela (F35).
+- **Arquivos e módulos prováveis:** `dc360/apps/web/src/componentes/Libras.tsx`, `dc360/apps/web/test/libras.test.ts` e `dc360/apps/campo/src/ui/Libras.tsx` (a criar), `dc360/vercel.json`, `dc360/apps/web/test/design-system.test.ts` (exceção nomeada só para este componente).
+- **Risco de segurança:** script de terceiro em página com sessão: CSP restrita, só por clique.
+- **Impacto LGPD:** o texto da página sai ao serviço do governo: subprocessador novo, aviso de 30 dias.
+- **Migração necessária:** Não.
+- **Compatibilidade:** desligado por padrão.
+- **Rollback:** remover o componente e a linha da CSP.
+- **Testes positivos:** no clique, um único script carrega e a CSP o aceita.
+- **Testes negativos:** sem clique, zero requisição externa; não monta em login nem em tela de ocorrência.
+- **Testes de autorização e isolamento:** sem botão em rota com dado de município.
+- **Regressão obrigatória:** `npm test`, G00 a G02.
+- **E2E:** `npm run test:e2e` sem requisição externa.
+- **Validação humana:** Rafael o ativa.
+- **Evidência a produzir:** `docs/evidencias-v2/G08/V2-F08-E12/`.
+- **Documentação a atualizar:** `dc360/docs/SUBPROCESSADORES.md`.
+- **Definition of Done:** ponto testado, desligado e documentado.
+- **Checkpoint:** CP-45 (como o app integra o VLibras e se o script do governo pode carregar nas telas web; Rafael com parecer de privacidade; bloqueia ativar em produção e a F35).
+
+### V2-F08-E13 - Portão de qualidade visual e de texto: comando reutilizável por superfície, com capturas como prova
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** médio  |  **Paralelizável:** não (toda etapa de interface depende dele)
+- **Objetivo:** um comando captura cada tela e checa alinhamento, espaçamento e texto; as capturas são a prova obrigatória de toda etapa de interface.
+- **Problema que resolve:** a regra 0 de `19-definicao-de-pronto.md` exige capturas e portão visual; os portões atuais leem código e nenhum olha a tela renderizada.
+- **Origem:** regra 0 de `19-definicao-de-pronto.md`; DP:T16; DP:T29; BZ-D:UXD-47.
+- **Estado atual:** CRIAR (comando e checagens).
+- **Dependências de entrada:** E06; E02.
+- **O que deve ser implementado:**
+  - Comando: `portao-visual.mjs --superficie <id> --etapa V2-Fnn-Enn`, lendo `superficies.json` (E06) e o roteiro `telas-do-portao.json`: Playwright captura em 320, 768 e 1280 px, claro e escuro, estados normal, vazio, erro e carregando, em `docs/evidencias-v2/Gnn/V2-Fnn-Enn/capturas/` com `INDEX.md`.
+  - DOM: irmãos `data-grupo` com mesma largura e altura (1 px); vão mínimo pelo token de espaço; nada sobreposto (salvo `data-sobrepoe`), cortado ou vazando do card; sem rolagem horizontal.
+  - Texto: `revisao-de-texto.mjs` reprova travessão e erro de ortografia (`cspell`, pt-BR e glossário COBRADE); o resto é o checklist humano da seção 0 de `19-definicao-de-pronto.md`.
+  - Apps: roteiro por simulador e aparelho e teste jest de layout com `fontScale` 2 (captura automática NÃO CONFIRMADA).
+- **O que NÃO deve ser implementado nesta etapa:** axe-core e leitor de tela (F23); comparação de pixels; reescrever telas.
+- **Arquivos e módulos prováveis:** `dc360/scripts/portao-visual.mjs`, `revisao-de-texto.mjs` e `portao-visual.test.mjs` (a criar), `dc360/scripts/superficies.json`.
+- **Risco de segurança:** o comando recusa URL de PROD.
+- **Impacto LGPD:** capturas só com dado sintético.
+- **Migração necessária:** Não.
+- **Compatibilidade:** achados atuais em baseline.
+- **Rollback:** remover os scripts.
+- **Testes positivos:** 24 capturas por tela do painel.
+- **Testes negativos:** card de largura diferente, vão zero, texto vazando ou `overflow-x` reprova; travessão reprova.
+- **Testes de autorização e isolamento:** com a conta de Serra Alta, nenhuma captura traz nome de Vale Fundo.
+- **Regressão obrigatória:** `npm run test:scripts`, G00 a G02.
+- **E2E:** o comando sobre o painel.
+- **Validação humana:** Rafael vê as capturas.
+- **Evidência a produzir:** `docs/evidencias-v2/G08/V2-F08-E13/`.
+- **Documentação a atualizar:** `dc360/README.md`.
+- **Definition of Done:** comando rodando no painel; etapa de interface sem capturas não fecha.
+- **Checkpoint:** Não.
+
+# GATE G08 - DESIGN SYSTEM E FUNDAMENTOS
+Só passa se:
+- [ ] (E01) `packages/design-tokens` é a fonte única, com fidelidade total aos `--ds-*` do painel e aos valores do app, toda divergência com motivo e contraste AA medido sobre a fonte nos dois temas. Evidência: `docs/evidencias-v2/G08/V2-F08-E01/`.
+- [ ] (E02) `apps/web/src/estilos/tokens.css`, os tokens do campo e o bloco do console são gerados e commitados; `npm run conferir:tokens` está no script `verificar` e no CI; o console segue só com `tsc`. Evidência: E02.
+- [ ] (E03) a paridade cobre as três superfícies com 26 pares e a fonte: editar um token à mão reprova (PR de prova) e superfície de interface sem alvo reprova. Evidência: E03.
+- [ ] (E04) `packages/cliente-api` é usado pelo painel, pelo app e pelo transporte do motor offline, com testes de renovação, tempo limite, classificação e 426; `npm run test:campo`, `apps/api/test/campo-integracao.test.ts` e `npm run test:e2e:api` verdes; nenhuma sessão encerrada perde item da fila (F00-E06 preservada). Evidência: E04.
+- [ ] (E05) `@dc360/shared/neutro` existe e o teste de grafo prova que não alcança permissões, papéis nem vocabulário de trilha; o barril segue intacto. Evidência: E05.
+- [ ] (E06) os portões estáticos varrem `scripts/superficies.json`; superfície nova sem entrada reprova; a contagem de casos do painel e do app é a de antes; as exceções do console têm dono e data. Evidência: E06.
+- [ ] (E07) `dc360/docs/DESIGN-SYSTEM.md` aprovado por Rafael, com a identidade com nome do município e a decisão de confirmação passageira registradas. Evidência: E07.
+- [ ] (E08, E09) `packages/i18n` tem pt-BR, en e es com completude testada e `pendentes.json` listado para a F35, consumido por painel e app; o 422 da API traz `codigo` e `params`; nenhuma formatação fixa de data, número ou fuso fora do pacote (`formato-fixo.test.ts`), com `fusoDoEstado` importado de `packages/shared` (F02-E09) e os testes de fuso do laudo verdes. Evidência: E08 e E09.
+- [ ] (E10, E11) `derivarTemaDoMunicipio` recusa a cor que reprova AA em qualquer dos dois modos (tabela de prova) e painel e app aplicam a cor derivada só pelos cinco tokens de destaque, com paridade testada e o console intocado. Evidência: E10 e E11.
+- [ ] (E12 e CP-45) o ponto de integração do VLibras está testado e desligado por padrão: zero requisição externa sem clique, fora de login e de telas com dado pessoal; CP decidido, ou adiado por escrito com a ativação em produção bloqueada. Evidência: E12.
+- [ ] (E13) o comando `portao-visual` roda no painel atual e gera as capturas (320, 768 e 1280 px, claro e escuro, estados normal, vazio, erro e carregando) com as checagens de alinhamento, espaçamento e texto; superfície sem roteiro reprova; o checklist da seção 0 de `19-definicao-de-pronto.md` foi preenchido e Rafael aprovou as capturas. A partir deste gate, toda etapa de interface das demais fases depende do comando: sem capturas, a etapa não fecha. Evidência: E13.
+- [ ] regra de pacotes auditada: só `design-tokens`, `cliente-api` e `i18n` nasceram, cada um com pelo menos dois consumidores reais; `upload-core` não existe; nenhum componente DOM foi compartilhado com React Native. Evidência: lista de consumidores em `docs/evidencias-v2/G08/`.
+- [ ] CP-36 (R1 recorrente): balanço da onda 1 (F00 a F08) e replanejamento de capacidade e custo da onda seguinte registrados em `docs/evidencias-v2/CP-36/` antes de F11 começar. Como F08 corre em paralelo a F03 a F07 e G08 pode fechar antes de G07, o CP-36 pode ser adiado por escrito para o fechamento do último gate da onda 1; adiado ou não, F11 não começa sem ele (bloqueia o início da onda seguinte).
+- [ ] nenhuma regressão: G00, G01 e G02 continuam verdes, e os gates de G03 a G07 que já tiverem fechado também (G08 não espera por eles, mas não pode quebrá-los); se um quebrar, ESTE gate volta a REPROVADO.
+- [ ] documentação atualizada e evidências arquivadas em `docs/evidencias-v2/G08/`.
+
+**Reabre se:** tokens divergirem entre superfícies (arquivo gerado editado à mão, `conferir:tokens` ou a paridade vermelhos, superfície nova sem alvo); um quarto cliente de API com classificação própria aparecer; o subcaminho neutro passar a alcançar permissões ou papéis; um portão voltar a varrer pasta fixa ou superfície sem registro; package novo for criado sem dois consumidores reais; tela de superfície listada fechar sem capturas e sem as checagens do portão visual; cor de município for aplicada sem validação AA; texto comum voltar a ficar fixo fora do catálogo; script de terceiro carregar sem ativação do usuário.
+
+**Este Gate libera:** F10, F11 e F17 (G10, G11 e G17 dependem de G08; F08 DEVE estar fechada antes de F11 começar). Insumos que passam a existir: `cliente-api` para o login do portal (F11-E04) e do cidadão (F17-E04), `design-tokens` para os scaffolds (F11-E02, F17-E02), o subcaminho neutro para o app do cidadão (F17) e os portões por superfície para F10-E11, F11-E21 e F17-E15. Também passam a existir `packages/i18n`, o tema por município e o ponto do VLibras, insumos da F35, e o portão visual (E13), exigido por toda etapa de interface de F10 em diante.

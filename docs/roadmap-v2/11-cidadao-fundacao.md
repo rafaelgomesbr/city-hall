@@ -1,0 +1,1088 @@
+# Fase 15: Fundação do canal cidadão
+
+**Gate da fase:** G15 FUNDAÇÃO DO CIDADÃO | **Depende dos gates:** G12 (D-01), G32 (PostGIS, executa antes) e, em cadeia, G05 e G07 | **Superfícies tocadas:** `apps/api` (modo `publica`), `db`, `packages/shared`, `apps/console` (só o teste de colunas e grants), infraestrutura (app Fly de HML), e-mail transacional do código (E04 e E14) | **Checkpoints da fase:** CP-25, CP-19, CP-04, CP-11, CP-26, CP-28, CP-46
+
+Esta fase constrói a identidade e a casca de segurança do canal do cidadão, sem tela: realm separado (audiência `dc360-cidadao`, segredo próprio, tabelas próprias, aparelhos sem `usuario_id`, aceites versionados) e NÃO ligado à pessoa global dos servidores (a D-08 não se aplica ao cidadão), RLS "só o meu", conta com CPF obrigatório e validado (D-07: cifrado, com hash, mascarado, finalidade escrita), login por e-mail com código de uso único como PRIMEIRO provedor de uma interface extensível, sessões com refresh rotativo, API pública em app Fly próprio, rate limit em duas camadas (A-03, sem Redis, sobre as cotas persistentes da F03-E19), bloqueio manual, política de versão e opt-in por município. D-03 emendada por D-07: conta obrigatória, verificação por e-mail e CPF; relato anônimo fica FORA da V2. Login gov.br (que traz o CPF), SMS, Google e Apple, chat e vídeo no app são da F34, que apenas implementa a interface de provedores da E04.
+
+A F15 NÃO abre o canal ao público. J1 a J5 (CP-11), CP-46 (finalidade e base legal do CPF), J11 (CP-26), CP-28 e o pentest (CP-33, G25) bloqueiam a ABERTURA PÚBLICA e o CPF de pessoa real, mas NÃO bloqueiam tabelas, versionamento, aceites, retenção configurável nem HML sintético: tudo daqui roda em HML com dados sintéticos (CPF gerado, nunca real), canal desligado em todo município e nenhum app de produção criado. Portão visual (seção 0 de `19-definicao-de-pronto.md`): a fase não tem tela; a única superfície que a pessoa vê é o e-mail do código (E04 e E14), com captura arquivada; as telas de login, CPF e aceite são da F17 e carregam o portão.
+
+MANTER: isolamento entre municípios, RLS forçada, `dc360_app` nas APIs de servidor, plateias `dc360`, `dc360-portal` e `dc360-console`, o `Notificador`. A fase NÃO faz relato (F16), app (F17), triagem (F18), payload do agente (F19), login ampliado, chat e vídeo (F34) nem anti-abuso além da base (CP-27); o proibido na V2 está em `docs/roadmap-v2/21-fora-da-v2.md`.
+
+Ordem sugerida: F32 antes de tudo (G32); E01 primeiro (decide o CP-25; os GRANTs e o `TO <papel>` de E02, E06, E07, E08, E10 e E16 ficam bloqueados até lá); E02; depois E03, E06 e E07 em paralelo; E07 antes de E04 e E05 (são as funções que elas chamam); E18 (interface de provedores e `cidadao_identidades`) depois de E02 e E07 e antes de E04; E08 exige F07-E09 e o CP-25; E09 depois da E08; E10 e E11 depois da E05 (E10 também da F03-E19); E12, E13, E14 e E17 independentes; E15 depois da E05; E16 por último (usa E10 e E15).
+
+## Etapas
+
+### V2-F15-E01 - ADR 0015: realm do cidadão (audiência, segredo, tabelas, papel de banco decidido)
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E02 a E10 dependem do papel decidido)
+- **Objetivo:** fixar o realm do cidadão, fora da pessoa global dos servidores, e a evidência que decide o CP-25: `dc360_app` ou papel próprio de menor privilégio.
+- **Problema que resolve:** as policies só conferem `app_organizacao_atual()`: com o município definido, `dc360_app` lê `ocorrencias` inteira. O cidadão fica fora da pessoa global da D-08.
+- **Origem:** DP:T02; PR:A-02; PR:D-08; REL:07 gap 16.
+- **Estado atual:** CRIAR a ADR e o teste; MANTER os três papéis e `dc360_console` (migração 023).
+- **Dependências de entrada:** G12; G32; G05; G07.
+- **O que deve ser implementado:**
+  - Banco: `db/test/papel-da-api-publica.test.ts` (a criar): lista os grants do `dc360_app` com a consulta de `varredura()` (`isolamento.test.ts:3596`) e, com o município A definido, roda num papel de prova mínimo e no `dc360_app` SELECT em `ocorrencias`, `usuarios`, `evidencias` e EXECUTE de `credenciais_para_login()`.
+  - Arquivos: ADR `docs/adr/0015-realm-do-cidadao-e-papel-de-banco-da-api-publica.md` (a criar) com audiência, segredo, tabelas, comparativo A x B e decisão; declara a D-08 FORA do cidadão (sem `pessoas` nem `usuarios`).
+  - Infraestrutura: custo de B só levantado: terceiro papel no job `implantavel` (`.github/workflows/verificar.yml`), `sobras()` (`isolamento.test.ts:3863`), `db/provedores/supabase-endurecer.sql`; provedor e pooler: NÃO CONFIRMADO.
+- **O que NÃO deve ser implementado nesta etapa:** papel em migration e GRANTs (E02 em diante); publicar a API (E08).
+- **Arquivos e módulos prováveis:** `db/test/papel-da-api-publica.test.ts`, `docs/adr/` (a criar).
+- **Risco de segurança:** decidir por elegância e expor as tabelas de negócio à internet.
+- **Impacto LGPD:** Não se aplica: sem coleta.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: documento.
+- **Rollback:** substituir a ADR.
+- **Testes positivos:** matriz de grants estável.
+- **Testes negativos:** SELECT em `ocorrencias`: papel de prova 42501; `dc360_app` com município definido lê.
+- **Testes de autorização e isolamento:** papel de prova, com o município A definido, não lê tabela de negócio de A nem de B.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm test`; G05, G07.
+- **E2E:** Não se aplica: documento.
+- **Validação humana:** Rafael decide o CP-25.
+- **Evidência a produzir:** `docs/evidencias-v2/CP-25/` e `.../G15/V2-F15-E01/`.
+- **Documentação a atualizar:** `docs/adr/0004-autenticacao-propria.md`.
+- **Definition of Done:** ADR aceita; CP-25 decidido.
+- **Checkpoint:** CP-25 (decide o papel; bloqueia publicar a API, E08 em diante, e os GRANTs).
+
+### V2-F15-E02 - Migrations: cidadaos (com CPF), sessões, aparelhos e aceites versionados
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E03 a E11 dependem das tabelas)
+- **Objetivo:** criar as tabelas de plataforma do realm, com CPF cifrado, RLS ativada e forçada e sem policy (nega tudo até a E06), classificadas no manifesto.
+- **Problema que resolve:** não há tabela de cidadão (REL:07 resumo 1); a D-07 exige CPF na conta.
+- **Origem:** DP:T02; DP:T41; PR:D-07; BZ-M:V2-CID-01; BZ-M:V2-CID-10.
+- **Estado atual:** CRIAR as tabelas; MANTER `usuarios`, `sessoes`, `aparelhos`.
+- **Dependências de entrada:** E01; CP-25 decidido (destino dos GRANTs); F05-E13.
+- **O que deve ser implementado:**
+  - Migration: `cidadaos` (`email`, `email_hash` único, `email_verificado_em`, `cpf_cifrado`, `cpf_hash` único, `cpf_origem`, `cpf_definido_em`, `desativada_em`; CHECK: cifra e hash juntos); `cidadao_codigos_de_acesso`; `cidadao_sessoes` (`familia_id`, `refresh_hash`); `cidadao_aparelhos` (push, `visto_em`, `revogado_em`, `ficha`; SEM `usuario_id` e `organizacao_id`); `cidadao_aceites` (FK para `versoes_de_texto_legal`, `ip`).
+  - Banco: RLS ENABLE e FORCE sem policy; CHECK de e-mail em minúsculas; FK `arquivos.autor_cidadao_id` para `cidadaos(id)`, a primeira da lista nomeada de FKs de tenant para o realm (`isolamento.test.ts:435-478`).
+  - Arquivos: manifesto: `plataforma`, `pessoal: sim`, `altoValor` em `cpf_cifrado` (F05-E13), retenção `a_decidir` (CP-11, CP-46).
+- **O que NÃO deve ser implementado nesta etapa:** policies (E06), funções (E07), rotas (E04, E05), gravar o CPF (E16), identidades (E18), expurgo (E17), bloqueios (E11), cotas (E10), relatos (F16-E02).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `db/test/cidadao-tabelas.test.ts` (a criar), `db/src/manifesto.ts`.
+- **Risco de segurança:** sem policy ninguém lê.
+- **Impacto LGPD:** e-mail e IP: pessoal; CPF: alto valor; retenção em CP-11 e CP-46.
+- **Migração necessária:** Sim (`NNN_realm_do_cidadao.sql`, hoje 047).
+- **Compatibilidade:** só tabelas novas.
+- **Rollback:** migration inversa com tabelas vazias.
+- **Testes positivos:** `npm run migrar -- --conferir` do zero; FK de `arquivos` aceita cidadão existente.
+- **Testes negativos:** e-mail com maiúscula recusado; `cpf_cifrado` sem `cpf_hash`: CHECK; CPF fora de `altoValor` reprova o catálogo; `cidadao_aparelhos` com `usuario_id` ou FK para `pessoas` reprova.
+- **Testes de autorização e isolamento:** município A com contexto lê 0 linhas de `cidadaos`.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`; G05, G06, G07.
+- **E2E:** Não se aplica: sem rota e sem tela.
+- **Validação humana:** Rafael migra um banco limpo.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E02/`: testes.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** nega-tudo provado.
+- **Checkpoint:** CP-46 (bloqueia gravar CPF de pessoa; HML sintético anda).
+
+### V2-F15-E03 - Audiência dc360-cidadao e teste de plateia
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E06 e E07)
+- **Objetivo:** o token do cidadão nasce com plateia `dc360-cidadao` e segredo próprio e só vale na API pública; os demais não valem lá e o dele não vale em rota de servidor.
+- **Problema que resolve:** há uma plateia só (`auth/tokens.ts:41`): token do cidadão com o segredo do produto seria aceito em toda rota do painel (REL:06 13.3).
+- **Origem:** DP:T02; BZ-D:IDN-37; REL:06 13.3; REL:07 gap 1.
+- **Estado atual:** CRIAR módulo irmão de `auth/tokens.ts`; MANTER o verificador de servidor por plateia (F03-E07).
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - API: `apps/api/src/cidadao/tokens.ts` (a criar): conteúdo `{ sub, sid }` (sem `org`, papel ou nome), emissor `dc360-api`, plateia `dc360-cidadao`, HS256 fixo.
+  - Infraestrutura: `CIDADAO_JWT_SEGREDO` em `config.ts`, rotacionável como `JWT_SEGREDO`; a partida recusa valor igual; o modo `publica` só carrega o do cidadão e o modo `api` só o de servidor.
+  - Autorização: rotas do cidadão no manifesto (F03-E12) com `plateia: "dc360-cidadao"`, `atores: ["cidadao"]`, `escopo: "proprio"`; `chaveDoLimitador` (`rede.ts`) ganha `cidadao:<sub>`.
+- **O que NÃO deve ser implementado nesta etapa:** emissão por login (E04, E05); cotas (E09, E10); `cidadao` em `PAPEIS`.
+- **Arquivos e módulos prováveis:** `apps/api/src/cidadao/tokens.ts`, `apps/api/test/plateia-do-cidadao.test.ts` (a criar), `apps/api/src/config.ts`, `apps/console/test/plateia-nao-atravessa.test.ts`.
+- **Risco de segurança:** plateia mal conferida deixa token público chamar rota de equipe; o segredo próprio é a segunda barreira.
+- **Impacto LGPD:** Não se aplica: o token leva dois uuids.
+- **Migração necessária:** Não.
+- **Compatibilidade:** plateias existentes inalteradas.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** token `dc360-cidadao` passa em rota de teste registrada antes de `ready()`.
+- **Testes negativos:** com o mesmo segredo, tokens `dc360`, `dc360-portal`, `dc360-console` e `dc360-desafio` na rota do cidadão: 401; token do cidadão em `GET /v1/ocorrencias`: 401; segredo repetido: a partida cai.
+- **Testes de autorização e isolamento:** `org` forjado em corpo, cabeçalho ou token do cidadão não define município.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:console`; G03.
+- **E2E:** Não se aplica: sem fluxo.
+- **Validação humana:** Rafael lê os casos de plateia.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E03/`: saída do teste.
+- **Documentação a atualizar:** `README.md`.
+- **Definition of Done:** plateia provada nos dois sentidos.
+- **Checkpoint:** Não.
+
+### V2-F15-E04 - E-mail OTP: primeiro provedor da interface, código, expiração, tentativas e hash
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E05 depende; chama as funções da E07)
+- **Objetivo:** login por código de seis dígitos enviado ao e-mail, sem senha, registrado como `email_otp` na interface da E18; a conta nasce na primeira verificação, sem CPF (E16).
+- **Problema que resolve:** não há login de cidadão; o `Notificador` está desligado em produção (`config.ts:102`) e `credenciais_para_login` lê `usuarios`.
+- **Origem:** DP:T18; PR:D-03; PR:D-07; BZ-M:V2-CID-01.
+- **Estado atual:** CRIAR, reusando o `Notificador`.
+- **Dependências de entrada:** E07 (funções chamadas); E18; CP-19 para e-mail real.
+- **O que deve ser implementado:**
+  - Domínio: `apps/api/src/cidadao/codigo.ts` (a criar): código de 6 dígitos por `crypto.randomInt`, `HMAC-SHA256` com `CIDADAO_PEPPER`, tempo constante; validade 10 minutos, 5 tentativas, 60 s entre envios.
+  - API: `POST /v1/cidadao/codigos` (sempre 202, mesma forma) e `POST /v1/cidadao/entrar` (espaços e hífens tolerados; 401 `codigo_invalido` único); código novo invalida o anterior; `CIDADAO_ATIVO` (padrão `nao`).
+  - Observabilidade: `mensagemDeCodigoDoCidadao` em `auth/notificador.ts`; código e e-mail fora do log.
+- **O que NÃO deve ser implementado nesta etapa:** outros provedores (F34-E12 a E16), sessões (E05), CPF (E16), cotas (E10), senha, link mágico, domínio (E14).
+- **Arquivos e módulos prováveis:** `apps/api/src/cidadao/codigo.ts` e `apps/api/src/rotas/cidadao-entrada.ts` (a criar), `apps/api/src/auth/notificador.ts`, `packages/shared/src/cidadao.ts` (a criar).
+- **Risco de segurança:** força bruta em 10^6 códigos (5 tentativas e cotas da E10); código é credencial.
+- **Impacto LGPD:** e-mail só para autenticar; base legal em CP-11.
+- **Migração necessária:** Não (E02 e E07).
+- **Compatibilidade:** aditivo.
+- **Rollback:** `CIDADAO_ATIVO=nao`.
+- **Testes positivos:** e-mail de arquivo com seis dígitos; entrar cria `cidadaos` e reusa depois.
+- **Testes negativos:** sexta tentativa queima o código; código vencido: 401; reenvio em 60 s: 429 igual para qualquer e-mail; log sem código nem e-mail.
+- **Testes de autorização e isolamento:** e-mail de servidor pede código e `usuarios` não muda; código do e-mail B não vale para o A.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G03.
+- **E2E:** `scripts/e2e-cidadao.mjs` (a criar): pedir código, entrar; captura do e-mail (portão visual, `19-definicao-de-pronto.md` seção 0).
+- **Validação humana:** Rafael entra em HML.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E04/`: testes e `capturas/` do e-mail.
+- **Documentação a atualizar:** `docs/LIGAR-O-EMAIL.md`.
+- **Definition of Done:** login sem oráculo; código fora do log.
+- **Checkpoint:** CP-19 (e-mail com domínio verificado; bloqueia OTP real em produção).
+
+### V2-F15-E05 - Sessões do cidadão: refresh rotativo e revogação
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E10 e E11 dependem da vigência)
+- **Objetivo:** acesso de 15 minutos e refresh opaco rotativo com detecção de reuso, revogação por saída e desativação, e vigência conferida em toda requisição.
+- **Problema que resolve:** `sessoes` é de usuário e tenant (`002_autenticacao.sql:39-50`); o cidadão precisa nascer com vigência por requisição (REL:06 13.2).
+- **Origem:** DP:T18; DP:T09; BZ-F:P0-SEG; REL:07 gap 13.
+- **Estado atual:** CRIAR `apps/api/src/cidadao/sessoes.ts` no desenho de `auth/sessoes.ts`; MANTER o de servidor.
+- **Dependências de entrada:** E04; E07 (busca por refresh).
+- **O que deve ser implementado:**
+  - API: `POST /v1/cidadao/renovar` (refresh de 32 bytes, só o hash em `cidadao_sessoes`; cada uso marca `usada_em` e emite o seguinte na mesma `familia_id`; reuso revoga a família: 401 `sessao_encerrada`), `POST /v1/cidadao/sair`, `POST /v1/cidadao/sair-de-todos`, `GET /v1/cidadao/eu` (só `id` e `email`).
+  - Autorização: `exigirCidadao` (`apps/api/src/cidadao/vigencia.ts`, a criar) faz o papel de `exigirPermissao` e antecede toda escrita do cidadão, com uma consulta por requisição: sessão `sid` viva e conta sem `desativada_em`; 401 `nao_autenticado`, 401 `sessao_encerrada`, 403 `conta_desativada`.
+  - Infraestrutura: `CIDADAO_REFRESH_DIAS` (inicial 30).
+- **O que NÃO deve ser implementado nesta etapa:** bloqueio por município (E11), cotas (E10), tela de sessões e push (F17), IP na sessão.
+- **Arquivos e módulos prováveis:** `apps/api/src/cidadao/sessoes.ts` e `vigencia.ts` (a criar), `apps/api/src/rotas/cidadao-entrada.ts`, `apps/api/src/auth/tokens.ts`.
+- **Risco de segurança:** refresh roubado: reuso derruba a família; a vigência derruba o acesso antes dos 15 minutos.
+- **Impacto LGPD:** sessão só com ids e datas, sem IP.
+- **Migração necessária:** Não (E02).
+- **Compatibilidade:** aditivo.
+- **Rollback:** `CIDADAO_ATIVO=nao`.
+- **Testes positivos:** renovar emite par novo e marca o antigo; sair revoga; `eu` devolve só `id` e `email`.
+- **Testes negativos:** reuso do refresh antigo: 401 e o novo também falha; refresh expirado: 401; acesso de sessão revogada: 401 no pedido seguinte; conta desativada: 403.
+- **Testes de autorização e isolamento:** `sid` de outro cidadão: 401; `sair-de-todos` do A não toca sessão do B.
+- **Regressão obrigatória:** `npm run test:api` (`senha-e-sessoes.test.ts`), `npm run test:isolamento`; G03.
+- **E2E:** `scripts/e2e-cidadao.mjs`: entrar, renovar, reutilizar o refresh antigo.
+- **Validação humana:** Rafael testa o reuso no `curl`.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E05/`: testes.
+- **Documentação a atualizar:** `README.md`.
+- **Definition of Done:** rotação, reuso e vigência provados.
+- **Checkpoint:** Não.
+
+### V2-F15-E06 - RLS do cidadão (cidadao_id = ator_id) e negativos
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** sim (com E03 e E07)
+- **Objetivo:** policies "só o meu" no realm, ator `cidadao` no banco e catálogo que exige a regra em toda tabela com `cidadao_id`.
+- **Problema que resolve:** o banco só conhece o município (`banco/postgres.ts:236-239`); recorte por fragmento SQL já vazou (REL:07 gap 3); policy só de organização em tabela com `cidadao_id` entregaria o município inteiro.
+- **Origem:** BZ-F:P0-SEG; REL:07 gaps 3 e 16; DP:T02; DP:T07.
+- **Estado atual:** EXPANDIR `app_ator_tipo()` e `app_ator_id()` (F03-E06) e o domínio `tipo_de_ator` com `cidadao`.
+- **Dependências de entrada:** E02; F03-E06; CP-25 (o `TO <papel>`).
+- **O que deve ser implementado:**
+  - Migration: `ALTER DOMAIN tipo_de_ator` com `cidadao`; policies por comando com `app_ator_tipo() = 'cidadao'` e `cidadao_id = app_ator_id()`: `cidadaos` (SELECT, UPDATE de `ultimo_acesso_em`), `cidadao_sessoes` (SELECT, INSERT, UPDATE), `cidadao_aparelhos`, `cidadao_aceites` (SELECT, INSERT); códigos sem policy.
+  - API: `Ator` em `banco/tipos.ts` aceita `tipo: "cidadao"` (`organizacaoId` opcional); `postgres.ts` e `memoria.ts` definem `app.ator_tipo` e `app.ator_id`.
+  - Testes: `db/test/cidadao-so-o-meu.test.ts` (a criar), catálogo no estilo de CA-06: toda tabela com `cidadao_id` cita `app_ator_tipo()` e `app_ator_id()` e não tem `USING (true)`.
+- **O que NÃO deve ser implementado nesta etapa:** policies de relato (F16-E02), bloqueio (E11), cota (E10).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `db/test/cidadao-so-o-meu.test.ts` (a criar), `apps/api/src/banco/tipos.ts`.
+- **Risco de segurança:** policy frouxa entrega conta e sessão a outro cidadão.
+- **Impacto LGPD:** limita o dado ao titular.
+- **Migração necessária:** Sim (`NNN_policies_do_cidadao.sql`, NNN próxima livre, hoje 047).
+- **Compatibilidade:** `comTenant` de servidor inalterado.
+- **Rollback:** migration que remove as policies.
+- **Testes positivos:** cidadão A lê a própria conta e sessões e grava aceite próprio.
+- **Testes negativos:** A lê ou revoga sessão do B: 0 linhas; ator sem id: 0 linhas; `app.ator_id` malformado: erro; UPDATE em `cidadao_aceites`: negado; policy só de organização reprova o catálogo.
+- **Testes de autorização e isolamento:** atores `servidor` e `usuario_orgao` leem 0 linhas de `cidadaos`.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`; G03, G04.
+- **E2E:** Não se aplica: sem rota nova.
+- **Validação humana:** Rafael vê o catálogo reprovar uma tabela de prova.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E06/`: testes.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** "só o meu" provado por catálogo e casos.
+- **Checkpoint:** Não.
+
+### V2-F15-E07 - Funções SECURITY DEFINER do login do cidadão e lista nominal
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E03 e E06; E04 e E05 dependem)
+- **Objetivo:** criar as três funções privilegiadas do login do cidadão, estreitas e nomeadas, e registrá-las na lista nominal `FUNCOES_PRIVILEGIADAS` (F03-E08).
+- **Problema que resolve:** sem sessão não há ator: a entrada exige função privilegiada (`credenciais_para_login`, 002:80). O teto `<= 27` (`isolamento.test.ts:625-626`) virou lista nominal na F03-E08 (REL:06 13.3).
+- **Origem:** DP:T02; BZ-F:P0-SEG; BZ-D:AUT-34; PR:D-08.
+- **Estado atual:** CRIAR as funções; EXPANDIR `FUNCOES_PRIVILEGIADAS` (F03-E08).
+- **Dependências de entrada:** E02; F03-E08; CP-25 (EXECUTE ao papel decidido).
+- **O que deve ser implementado:**
+  - Migration: `cidadao_emitir_codigo` (invalida o anterior, respeita o intervalo, devolve só `permitido`), `cidadao_consumir_codigo` (conta tentativa, queima na quinta, cria `cidadaos`, devolve só o id ou NULL) e `cidadao_sessao_por_token` (ids e flags de estado), com `SET search_path`, `row_security = off`, sem município de quem chama, EXECUTE só ao papel do CP-25.
+  - Arquivos: as três entram na lista nominal com nome, motivo e como confere o tenant (não há tenant: o escopo é a linha do cidadão); sem número a subir.
+  - Testes: `db/test/funcoes-do-cidadao.test.ts` (a criar): forma da saída.
+- **O que NÃO deve ser implementado nesta etapa:** função para quem já tem ator, cota (E10), município (F16-E05), reuso de `abrir_sessao`.
+- **Arquivos e módulos prováveis:** `db/migrations/` (migration nova), `db/test/funcoes-do-cidadao.test.ts` (a criar), `db/test/isolamento.test.ts`.
+- **Risco de segurança:** enumeração e força bruta; forma mínima.
+- **Impacto LGPD:** só hash de e-mail e de código.
+- **Migração necessária:** Sim (`NNN_funcoes_do_login_do_cidadao.sql`, NNN próxima livre, hoje 047).
+- **Compatibilidade:** funções novas.
+- **Rollback:** migration inversa.
+- **Testes positivos:** emitir, consumir e buscar sessão percorrem o fluxo.
+- **Testes negativos:** `PUBLIC` e `dc360_console` sem EXECUTE; código errado devolve NULL e conta a tentativa; e-mail inexistente devolve a mesma forma; função do realm fora da lista reprova.
+- **Testes de autorização e isolamento:** executar com município definido não toca linha de tenant nem de `usuarios`.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`; G03.
+- **E2E:** Não se aplica: coberto por E04 e E05.
+- **Validação humana:** Rafael lê a lista nominal.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E07/`: lista nominal.
+- **Documentação a atualizar:** `db/PENDENCIAS.md`.
+- **Definition of Done:** três funções estreitas e na lista nominal.
+- **Checkpoint:** Não.
+
+### V2-F15-E08 - API pública separada (app Fly), CORS e cabeçalhos
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E09 e E10 dependem)
+- **Objetivo:** subir em HML a API pública como app Fly próprio (modo `publica`), com CORS fechado, cabeçalhos de segurança e o papel do CP-25; sem app de produção.
+- **Problema que resolve:** há uma API só, com Chromium e relógios: pico de desastre derrubaria a fila do agente (REL:07 R-05). A F07-E09 deixou `fly.publica.toml` pronto.
+- **Origem:** DP:T43; DP:T02; PR:A-02; REL:07 gap 18.
+- **Estado atual:** EXPANDIR o modo `publica` e `fly.publica.toml` (F07-E09); MANTER `fly.toml`.
+- **Dependências de entrada:** F07-E09; E03; E05; CP-25 decidido.
+- **O que deve ser implementado:**
+  - Infraestrutura: `fly.publica.toml` com app de HML, `MODO_DE_SERVICO=publica`, `PROXY_DE_BORDA=fly`, checks de `/saude`; segredos só por nome (`CIDADAO_JWT_SEGREDO`, `CIDADAO_PEPPER`, `COTAS_SEGREDO`, `CPF_CHAVE`, `CPF_HASH_CHAVE`).
+  - Banco: o `SET LOCAL ROLE dc360_app` fixo (`banco/postgres.ts:236`, `banco/memoria.ts:57`) passa a `PAPEL_DE_BANCO`; no modo `publica` vale o do CP-25 e a configuração recusa a combinação que a ADR 0015 proibir.
+  - API: modo `publica` monta `/saude`, `/pronto` e as rotas do cidadão; `helmet` com `default-src 'none'`, `no-store`, CORS sem origem, `bodyLimit` baixo; `superficie.test.ts` lista o modo `publica`.
+- **O que NÃO deve ser implementado nesta etapa:** rotas de relato (F16), app e domínio de produção (F27-E01), limite de taxa (E09, E10).
+- **Arquivos e módulos prováveis:** `fly.publica.toml`, `apps/api/src/servicos/publica.ts`, `apps/api/src/banco/postgres.ts`, `apps/api/src/config.ts`, `apps/api/test/superficie.test.ts`.
+- **Risco de segurança:** superfície aberta com acesso ao banco: papel mínimo e nenhum segredo no arquivo.
+- **Impacto LGPD:** HML só com dados sintéticos.
+- **Migração necessária:** Não.
+- **Compatibilidade:** modo `api` inalterado.
+- **Rollback:** destruir o app de HML.
+- **Testes positivos:** em HML, `/saude`: 200; código pedido com e-mail de teste: 202.
+- **Testes negativos:** `GET /v1/ocorrencias` no modo `publica`: 404; `Origin` qualquer sem `access-control-allow-origin`; `Fly-Client-IP` forjado com `PROXY_DE_BORDA=nenhum` ignorado.
+- **Testes de autorização e isolamento:** com B decidido, SELECT em `ocorrencias` pela conexão pública: 42501 (teste da E01 em HML).
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:scripts`, `npm run auditar`; G07.
+- **E2E:** `scripts/e2e-cidadao.mjs` contra o HML.
+- **Validação humana:** Rafael confere que só o app de HML existe.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E08/`: log de implantação.
+- **Documentação a atualizar:** `docs/IMPLANTACAO.md`.
+- **Definition of Done:** API pública em HML com papel decidido; nada em produção.
+- **Checkpoint:** Não.
+
+### V2-F15-E09 - Rate limit camada 1: limite grosseiro na borda ou infra
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E10 usa o mesmo perfil de limite)
+- **Objetivo:** barrar rajada barata antes da lógica e do banco: limite grosseiro por endereço na borda, se a infraestrutura permitir, e sempre na API pública.
+- **Problema que resolve:** o limitador é `@fastify/rate-limit` sem `store` (memória por processo, `servidor.ts:381-398`) e NAT móvel divide balde (`rede.ts:92-116`); com N máquinas o teto multiplica (DP:T22).
+- **Origem:** PR:A-03; DP:T22; REL:07 11.10.
+- **Estado atual:** EXPANDIR (plugin e `chaveDoLimitador` ficam; o modo `publica` ganha perfil próprio); SEM Redis.
+- **Dependências de entrada:** E08.
+- **O que deve ser implementado:**
+  - Infraestrutura: `[http_service.concurrency]` em `fly.publica.toml` (limites iniciais, medidos na F24); proxy ou WAF à frente avaliado em `docs/IMPLANTACAO.md`, sujeito a domínio (CP-04) e plano (CP-19); limite por IP no plano atual: NÃO CONFIRMADO.
+  - API: perfil `publica` em `servidor.ts`: teto folgado por endereço (`CIDADAO_LIMITE_POR_ENDERECO`; NAT divide IP) e apertado nas rotas sem token (`codigos`, `entrar`, `renovar`); 429 com `retry-after` e erro do catálogo (F02-E03).
+- **O que NÃO deve ser implementado nesta etapa:** contagem persistente por conta, e-mail e ação (E10); CAPTCHA e atestação (CP-27); Redis.
+- **Arquivos e módulos prováveis:** `fly.publica.toml`, `apps/api/src/servidor.ts`, `apps/api/src/rede.ts`, `apps/api/src/config.ts`.
+- **Risco de segurança:** memória subconta com N máquinas e zera no reinício: só grosseiro; a contagem correta é a E10.
+- **Impacto LGPD:** endereço só em memória, sem gravar.
+- **Migração necessária:** Não.
+- **Compatibilidade:** limite do modo `api` inalterado.
+- **Rollback:** voltar ao perfil padrão por configuração.
+- **Testes positivos:** tráfego legítimo abaixo do teto passa.
+- **Testes negativos:** rajada acima do teto: 429 com `retry-after`; `Fly-Client-IP` forjado sem `PROXY_DE_BORDA=fly` não troca o balde; 429 de `codigos` igual para e-mail existente ou não.
+- **Testes de autorização e isolamento:** com token, a chave é `cidadao:<sub>`: cidadão A que estoura não derruba B atrás do mesmo IP.
+- **Regressão obrigatória:** `npm run test:api` (`limite-por-usuario.test.ts`, `endereco-de-origem.test.ts`); G07.
+- **E2E:** `scripts/e2e-cidadao.mjs` com rajada contra o HML: 429 e `/saude` segue 200.
+- **Validação humana:** Rafael vê o 429 e a saúde estável.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E09/`: contagens e 429.
+- **Documentação a atualizar:** `docs/IMPLANTACAO.md`.
+- **Definition of Done:** limite grosseiro provado; decisão de borda registrada.
+- **Checkpoint:** Não.
+
+### V2-F15-E10 - Rate limit camada 2: cotas persistentes do cidadão (reuso de consumir_cota)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (F16 e F06 consomem as cotas)
+- **Objetivo:** aplicar ao cidadão, por conta, endereço e ação, as cotas persistentes da F03-E19, sem recriar tabela nem função.
+- **Problema que resolve:** a F03-E19 já entregou `cotas_de_uso` e `consumir_cota` (DP:T22); faltam o catálogo do cidadão e o acesso da API pública.
+- **Origem:** PR:A-03; PR:L13; DP:T22.
+- **Estado atual:** EXPANDIR `apps/api/src/cotas.ts` (F03-E19); MANTER o limitador da E09.
+- **Dependências de entrada:** E05; F03-E19; CP-25 (EXECUTE ao papel decidido).
+- **O que deve ser implementado:**
+  - Migration: só `GRANT EXECUTE` de `consumir_cota` ao papel do CP-25; sem tabela nem função nova.
+  - API: catálogo em `packages/shared/src/cotas.ts` (a criar), valores iniciais propostos: `cidadao.pedir_codigo` 5 por hora por e-mail e 20 por endereço, `cidadao.verificar_codigo` 10 por hora, `cidadao.cadastrar_cpf` 5 por dia, `cidadao.criar_relato` 10 por dia, `cidadao.autorizar_upload` 30 por dia; chave HMAC (`COTAS_SEGREDO`) de `cidadao:<sub>`, endereço de borda ou e-mail normalizado; estouro: 429 `cota_excedida`.
+  - API: no modo `publica` a falha ao contar NEGA a escrita (a API de servidores cai para memória, F03-E19).
+- **O que NÃO deve ser implementado nesta etapa:** outra tabela ou função de cota, contagem HTTP grossa (E09), bloqueio (E11), CAPTCHA (CP-27), cota de bytes (F06-E09).
+- **Arquivos e módulos prováveis:** `apps/api/src/cotas.ts`, `packages/shared/src/cotas.ts` (a criar), `db/migrations/`, `apps/api/test/cotas-do-cidadao.test.ts` (a criar).
+- **Risco de segurança:** a chave vem do token verificado ou do endereço de borda.
+- **Impacto LGPD:** só hash e contagem; janelas expiram.
+- **Migração necessária:** Sim, só o GRANT (`NNN_cotas_do_cidadao.sql`, NNN próxima livre, hoje 047).
+- **Compatibilidade:** aditivo.
+- **Rollback:** migration inversa do GRANT.
+- **Testes positivos:** cinco pedidos de código passam; o sexto: 429; janela nova zera.
+- **Testes negativos:** duas máquinas contam juntas; reinício não zera; e-mail com maiúsculas diferentes conta como um; banco indisponível: escrita negada.
+- **Testes de autorização e isolamento:** A estourar a própria cota não afeta B; SELECT em `cotas_de_uso` pela API pública (B): 42501.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api` (`cotas-persistentes.test.ts`); G03.
+- **E2E:** `scripts/e2e-cidadao.mjs`: sexto código: 429.
+- **Validação humana:** Rafael estoura a cota em HML.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E10/`: testes.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** cota provada entre instâncias, sem tabela nova.
+- **Checkpoint:** Não.
+
+### V2-F15-E11 - Bloqueio manual de conta com efeito imediato
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com E12)
+- **Objetivo:** registrar o bloqueio de conta de cidadão por motivo estruturado, com efeito imediato nas escritas e sem decisão automática.
+- **Problema que resolve:** sem bloqueio, spam e trote só se absorvem na fila humana (DP:T22); sem decisão automatizada sobre pessoas; J11 exige registro.
+- **Origem:** DP:T22; DP:J11; PR:D-03; REL:07 11.9.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E05; CP-26 para termos e consequência.
+- **O que deve ser implementado:**
+  - Migration: `cidadao_bloqueios` (tenant, append-only: `cidadao_id` com FK ao realm, `tipo` bloqueio ou desbloqueio, `motivo_codigo` em lista fechada, `decidido_por`), RLS por organização, sem UPDATE e DELETE; vale no município que registrou, sem afetar outro.
+  - API: `POST /v1/cidadaos/:cidadaoId/bloqueio` e `.../desbloqueio` (`exigirPermissao("bloquear_conta_de_cidadao")` antes do banco: administrador e coordenador; manifesto F03-E12); `exigirCidadao` (E05) lê o último evento do município da escrita: 403 `conta_bloqueada` no pedido seguinte; leitura continua.
+- **O que NÃO deve ser implementado nesta etapa:** moderação de relato e anexo (F18-E09, F06-E13), bloqueio por heurística ou global pelo fornecedor, tela (F18-E09).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `packages/shared/src/permissoes.ts`, `apps/api/src/rotas/cidadaos.ts` (a criar), `apps/api/src/cidadao/vigencia.ts`, `db/test/cidadao-bloqueios.test.ts` (a criar).
+- **Risco de segurança:** bloqueio indevido pesa sobre a pessoa: motivo estruturado, autor nominal, reversível.
+- **Impacto LGPD:** motivo em código, sem texto livre; guarda do registro em CP-26.
+- **Migração necessária:** Sim (`NNN_bloqueio_de_cidadao.sql`, NNN próxima livre, hoje 047).
+- **Compatibilidade:** aditivo.
+- **Rollback:** migration inversa com a tabela vazia.
+- **Testes positivos:** coordenador bloqueia: o pedido seguinte do cidadão naquele município recebe 403; desbloqueio devolve o acesso.
+- **Testes negativos:** operador bloqueia: 403; UPDATE em evento: negado; 429 ou cota estourada nunca grava bloqueio; motivo fora da lista: 422; cidadão inexistente: 404.
+- **Testes de autorização e isolamento:** o bloqueio do município A não afeta o cidadão no B; administrador do A não lê bloqueios do B.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`; G03.
+- **E2E:** Não se aplica: sem tela (F18-E09).
+- **Validação humana:** Rafael bloqueia um cidadão sintético e vê o 403.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E11/`: testes.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md`.
+- **Definition of Done:** bloqueio imediato, append-only e restrito ao município.
+- **Checkpoint:** CP-26 (bloqueia a abertura pública; mecanismo e HML sintético andam).
+
+### V2-F15-E12 - Política de versão do app do cidadão
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E11)
+- **Objetivo:** a API pública exige o cabeçalho de versão, recusa com 426 o app abaixo do mínimo e informa a versão recomendada, sem perder o rascunho do cidadão.
+- **Problema que resolve:** binário de loja não atualiza na hora (REL:07 R-08); a F02-E06 criou `VERSAO_MINIMA_CIDADAO` e a rota de versão, mas o app novo não tem espelho legado e precisa de política própria.
+- **Origem:** DP:T35; BZ-M:V2-CID-11; REL:07 R-08.
+- **Estado atual:** EXPANDIR `VERSAO_MINIMA_CIDADAO` e `GET /v1/aplicativos/cidadao/versao-minima` (F02-E06).
+- **Dependências de entrada:** F02-E06; E08.
+- **O que deve ser implementado:**
+  - API: no modo `publica`, `X-App-Version: cidadao/<versão>` é OBRIGATÓRIO (ausente ou malformado: 426 `versao_do_aplicativo_ausente`); abaixo do mínimo: 426 `versao_do_aplicativo_antiga` com `versaoMinima`; `VERSAO_RECOMENDADA_CIDADAO` aparece na rota de versão; `VERSOES_BLOQUEADAS_CIDADAO` recusa versão defeituosa; o 426 vem antes da autenticação e depois do limite da E09.
+  - Domínio: reuso de `compararVersoes` (`packages/shared/src/versao.ts`, F02-E06).
+  - Mobile: contrato para a F17: o 426 mantém rascunho e fila local; a tela de atualização é da F17.
+- **O que NÃO deve ser implementado nesta etapa:** tela "atualize o app" e links de loja (F17, CP-04), OTA.
+- **Arquivos e módulos prováveis:** `apps/api/src/servidor.ts`, `apps/api/src/config.ts`, `packages/shared/src/versao.ts`, `apps/api/test/versao-do-cidadao.test.ts` (a criar).
+- **Risco de segurança:** o cabeçalho é declarado pelo cliente: serve à compatibilidade, nunca à autorização.
+- **Impacto LGPD:** Não se aplica: a versão não identifica pessoa e não é gravada.
+- **Migração necessária:** Não.
+- **Compatibilidade:** mínimo vazio desliga a recusa; cabeçalho obrigatório só no modo `publica`.
+- **Rollback:** esvaziar as variáveis.
+- **Testes positivos:** `cidadao/1.2.0` com mínimo `1.1.0` passa; a rota de versão responde sem token.
+- **Testes negativos:** `cidadao/1.0.0` com mínimo `1.1.0`: 426; sem cabeçalho: 426; versão bloqueada: 426; `campo/1.4.0` na API pública: 426.
+- **Testes de autorização e isolamento:** o 426 não depende de tenant nem de token, vem antes do 401 e não vaza dado de município.
+- **Regressão obrigatória:** `npm run test:api` (`versao-do-aplicativo.test.ts`); G02.
+- **E2E:** `curl` com versão antiga e atual contra o HML.
+- **Validação humana:** Rafael sobe o mínimo e vê o 426.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E12/`: respostas.
+- **Documentação a atualizar:** `apps/api/.env.example`.
+- **Definition of Done:** 426 provado nos quatro casos; cabeçalho obrigatório.
+- **Checkpoint:** Não.
+
+### V2-F15-E13 - Opt-in do município (canal_cidadao_habilitado, codigo_ibge) e grants do console
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E12)
+- **Objetivo:** opt-in por município (padrão desligado), apoiado no IBGE da F32-E03, e teste das colunas que o console lê em `organizacoes`.
+- **Problema que resolve:** `organizacoes` não tem opt-in (REL:07 gap 14; o IBGE nasce na F32-E03, que executa antes); o console lê a tabela inteira (023:346) e o teste de colunas a dispensa (`isolamento.test.ts:4428`).
+- **Origem:** PR:D-03; DP:T20; DP:T37; REL:07 DH-29.
+- **Estado atual:** EXPANDIR `organizacoes`; CORRIGIR o teste do console.
+- **Dependências de entrada:** E02; F32-E03 (`codigo_ibge`); CP-28 para ligar em município.
+- **O que deve ser implementado:**
+  - Migration: só `organizacoes.canal_cidadao_habilitado` (padrão falso); CHECK: habilitado exige `codigo_ibge`, coluna e função `console_definir_codigo_ibge` criadas na F32-E03 (não recriar; o município não escolhe o próprio código).
+  - API: `PATCH /v1/organizacao/canal-do-cidadao` (ação `habilitar_canal_cidadao`, só administrador, `exigirPermissao` antes do banco, trilha administrativa); 409 `canal_indisponivel` sem IBGE ou com `CANAL_CIDADAO_LIBERADO=nao` (padrão).
+  - Testes: `db/test/console-colunas-de-organizacoes.test.ts` (a criar): lista fechada das colunas que o console lê; coluna nova sem entrada reprova.
+- **O que NÃO deve ser implementado nesta etapa:** `codigo_ibge` e malha (F32-E03), resolução de município (F16-E05), contato institucional (F20-E03), tela (F20-E07).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `db/test/isolamento.test.ts`, `apps/console/src/esquema.ts`, `apps/api/src/rotas/administracao.ts`.
+- **Risco de segurança:** IBGE errado desvia relatos; coluna sensível futura vazaria ao console.
+- **Impacto LGPD:** Não se aplica: dado de órgão.
+- **Migração necessária:** Sim (`NNN_canal_do_cidadao_por_municipio.sql`, NNN próxima livre, hoje 047).
+- **Compatibilidade:** console inalterado.
+- **Rollback:** migration inversa.
+- **Testes positivos:** administrador habilita município com IBGE; a trilha grava antes e depois.
+- **Testes negativos:** habilitar sem IBGE: 409; coordenador: 403; município define o próprio IBGE: negado; coluna de prova reprova o teste (IBGE repetido é da F32-E03).
+- **Testes de autorização e isolamento:** administrador de A não habilita o B (404); o console não lê tabela de município.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:console`; G05.
+- **E2E:** Não se aplica: sem tela.
+- **Validação humana:** Rafael habilita um município sintético.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E13/`: testes.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** opt-in desligado; colunas travadas.
+- **Checkpoint:** CP-28 (bloqueia ligar o canal em município; HML sintético anda).
+
+### V2-F15-E14 - E-mail com domínio verificado para o OTP
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com E12 e E13)
+- **Objetivo:** enviar o OTP de um domínio do fornecedor com SPF, DKIM e DMARC válidos, medir entrega e tempo, e dimensionar o plano para dia de temporal.
+- **Problema que resolve:** sem domínio verificado o código cai em spam; o plano gratuito limita 100 envios por dia (DP:T31, REL:10 D10).
+- **Origem:** DP:T18; DP:T31; DP:R5; DP:R6.
+- **Estado atual:** MANTER `notificadorHttp`; EXPANDIR a configuração com remetente do cidadão.
+- **Dependências de entrada:** CP-04 e CP-19 (sem etapa anterior).
+- **O que deve ser implementado:**
+  - Infraestrutura: SPF, DKIM e DMARC do domínio de envio no provedor; remetente no domínio do fornecedor com nome de exibição por município (DP:T31).
+  - API: `EMAIL_REMETENTE_CIDADAO` obrigatório com `CIDADAO_ATIVO=sim`; a partida recusa remetente fora do domínio verificado; envio aceito, falha e tempo em `warn` e `error` (F01-E14).
+  - Arquivos: roteiro de entrega a caixas sintéticas: cabeçalhos com `spf=pass dkim=pass dmarc=pass` e tempo até o recebimento.
+- **O que NÃO deve ser implementado nesta etapa:** SMS, outro provedor, ficha de loja (F28-E07), envio em produção (CP-19).
+- **Arquivos e módulos prováveis:** `apps/api/src/config.ts`, `apps/api/src/auth/notificador.ts`, `docs/LIGAR-O-EMAIL.md`, `apps/api/.env.example`.
+- **Risco de segurança:** remetente forjável sem DMARC; código em spam bloqueia o acesso.
+- **Impacto LGPD:** provedor de e-mail é subprocessador do cidadão: `docs/SUBPROCESSADORES.md` (CP-06).
+- **Migração necessária:** Não.
+- **Compatibilidade:** aditivo; desligado, nada envia.
+- **Rollback:** voltar ao remetente de teste.
+- **Testes positivos:** e-mail de HML chega à caixa sintética com SPF, DKIM e DMARC aprovados.
+- **Testes negativos:** remetente fora do domínio: a partida cai; domínio sem DKIM: o roteiro reprova; chave do provedor ausente com `CIDADAO_ATIVO=sim`: a partida cai.
+- **Testes de autorização e isolamento:** Não se aplica: o e-mail leva só o código.
+- **Regressão obrigatória:** `npm run test:api` (`notificador-http.test.ts`, `config.test.ts`); G12.
+- **E2E:** pedido de código em HML recebido na caixa de teste, com capturas (portão visual, `19-definicao-de-pronto.md` seção 0).
+- **Validação humana:** Rafael confere os cabeçalhos.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E14/`: cabeçalhos e capturas, sem código real.
+- **Documentação a atualizar:** `docs/LIGAR-O-EMAIL.md`, `docs/SUBPROCESSADORES.md`.
+- **Definition of Done:** entrega autenticada medida em HML.
+- **Checkpoint:** CP-04 e CP-19 (domínio e plano; bloqueiam OTP real em produção; HML com domínio de teste anda).
+
+### V2-F15-E15 - Aceite e política mínima para beta (termos e finalidade do CPF)
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (E16 depende)
+- **Objetivo:** o cidadão aceita a versão vigente do texto legal e da finalidade do CPF, com registro e revogação, na mecânica da F05, sem texto jurídico no código.
+- **Problema que resolve:** nenhum aceite existe (REL:07 gap 11); a F05-E06 serve ao servidor; a D-07 exige finalidade escrita para o CPF (texto em CP-11 e CP-46).
+- **Origem:** DP:J1; DP:J2; PR:D-07; BZ-M:V2-TRV-01; ALY:AUT-05; REL:07 DH-06 a DH-08.
+- **Estado atual:** EXPANDIR F05-E06 e F05-E07 para o realm do cidadão.
+- **Dependências de entrada:** F05-E06; E02; E05.
+- **O que deve ser implementado:**
+  - API: `GET /v1/cidadao/textos-vigentes` (versão e hash de `versoes_de_texto_legal`, tipos `termos` e `finalidade_do_cpf`), `POST /v1/cidadao/aceites` (idempotente; IP pelo endereço de borda; `faixa_etaria_declarada` opcional) e `POST /v1/cidadao/aceites/:id/revogar` (evento).
+  - Autorização: com versão `exige_aceite` vigente e sem aceite, as escritas respondem 403 `aceite_pendente` com o tipo pendente; leitura, aceite e saída seguem; o CPF (E16) exige a finalidade aceita.
+  - Arquivos: textos sintéticos de HML publicados pelo console (F05-E07).
+- **O que NÃO deve ser implementado nesta etapa:** redigir texto, base legal, menores, encarregado (CP-11, CP-46); consentimento por finalidade (F17-E14).
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/cidadao-aceites.ts` e `apps/api/test/cidadao-aceites.test.ts` (a criar), `apps/api/src/cidadao/vigencia.ts`.
+- **Risco de segurança:** aceite em nome de outra conta e IP forjado por cabeçalho.
+- **Impacto LGPD:** versão, data e IP do aceite; retenção em CP-10 e CP-11.
+- **Migração necessária:** Não (E02 e F05-E06).
+- **Compatibilidade:** sem versão com `exige_aceite`, ninguém é barrado.
+- **Rollback:** desligar `exige_aceite`.
+- **Testes positivos:** aceitar a versão sintética grava uma linha; repetir devolve a mesma; revogar grava evento.
+- **Testes negativos:** versão inexistente: 404; escrita sem aceite com versão exigida: 403; UPDATE em `cidadao_aceites`: negado; revogar aceite de outro: 404.
+- **Testes de autorização e isolamento:** cidadão A não lê aceite do B; administrador de município não lê `cidadao_aceites`.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`; G05.
+- **E2E:** `scripts/e2e-cidadao.mjs`: entrar, aceitar, escrever; sem tela.
+- **Validação humana:** Rafael aceita e revoga.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E15/`: testes.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md`.
+- **Definition of Done:** aceite e revogação auditáveis; `aceite_pendente` provado.
+- **Checkpoint:** CP-11 (bloqueia abertura pública e beta externo) e CP-46 (finalidade); mecanismo e HML andam.
+
+### V2-F15-E16 - CPF da conta do cidadão: cadastro, validação, unicidade e cpf_pendente
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (F16-E16 depende)
+- **Objetivo:** a conta do cidadão passa a ter CPF validado, cifrado e com hash, e a escrita de relato fica barrada sem ele.
+- **Problema que resolve:** a D-07 reverte DP:T19 (CPF obrigatório no relato identificado); sem unicidade, um e-mail novo contorna o bloqueio da E11.
+- **Origem:** PR:D-07; DP:T19; BZ-D:LGP-01.
+- **Estado atual:** CRIAR, sobre as primitivas da F05-E13.
+- **Dependências de entrada:** E02; E05; E10; E15; F05-E13; CP-46.
+- **O que deve ser implementado:**
+  - API: `PUT /v1/cidadao/eu/cpf` (`apps/api/src/rotas/cidadao-cpf.ts`, a criar): `cpfValido` no servidor, finalidade aceita (E15), cota `cidadao.cadastrar_cpf` (E10); grava `cpf_cifrado` e `cpf_hash` (hash global, sem município); CPF de outra conta ou segundo CPF: 409 `cpf_indisponivel`, igual em corpo e tempo.
+  - API: `GET /v1/cidadao/eu` ganha `cpfMascarado` e `cpfPendente`; `exigirCidadao` (E05) barra escrita de relato sem CPF: 403 `cpf_pendente`.
+  - Banco: GRANT de UPDATE nas colunas do CPF ao papel do CP-25 e gatilho que só aceita CPF com a coluna nula (única exceção: a função da F34-E14).
+- **O que NÃO deve ser implementado nesta etapa:** CPF no relato (F16-E16), revelar (F05-E14), gov.br (F34-E13), troca de CPF (F05-E08), consulta à Receita.
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/cidadao-cpf.ts` e `apps/api/test/cidadao-cpf.test.ts` (a criar), `apps/api/src/cidadao/vigencia.ts`.
+- **Risco de segurança:** o 409 revela existência: cota de 5 por dia e resposta genérica.
+- **Impacto LGPD:** alto valor; finalidade aceita antes de gravar.
+- **Migração necessária:** Sim (`NNN_cpf_da_conta_do_cidadao.sql`, hoje 047).
+- **Compatibilidade:** aditivo.
+- **Rollback:** migration inversa.
+- **Testes positivos:** CPF sintético válido grava cifra e hash; `eu` devolve só a máscara.
+- **Testes negativos:** dígito errado: 422; sem finalidade aceita: 403; CPF de outra conta: 409; sexta tentativa no dia: 429; UPDATE sobre CPF definido: recusado.
+- **Testes de autorização e isolamento:** cidadão A não lê nem grava o CPF da conta B; servidor lê 0 linhas de `cidadaos`.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`; G05.
+- **E2E:** `scripts/e2e-cidadao.mjs`: aceitar a finalidade, cadastrar CPF sintético; sem tela.
+- **Validação humana:** Rafael cadastra um CPF sintético.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E16/`: testes, sem CPF real.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md`.
+- **Definition of Done:** CPF único, cifrado e obrigatório para escrever.
+- **Checkpoint:** CP-46 (bloqueia CPF real e abertura pública).
+
+### V2-F15-E17 - Expurgo de aparelho revogado do cidadão (cidadao_aparelhos na função da F05-E15)
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E16)
+- **Objetivo:** zerar a ficha de push de `cidadao_aparelhos` revogado ou sumido depois do prazo, na função da F05-E15, sem apagar a linha.
+- **Problema que resolve:** a F05-E15 expurga `aparelhos` dos servidores e deixa `cidadao_aparelhos` de fora; sem município, a tabela escapa da retenção por município (F05-E09).
+- **Origem:** PR:D-07; BZ-D:LGP-43; PR:D-20 (L19).
+- **Estado atual:** EXPANDIR `expurgar_aparelhos` (F05-E15).
+- **Dependências de entrada:** E02; F05-E15; CP-10 para o prazo.
+- **O que deve ser implementado:**
+  - Banco: migration: a função ganha o ramo do realm: vivo sem `visto_em` além do prazo é revogado por `inatividade`; revogado além do prazo troca `ficha` por `expurgada:<id>` e mantém o resto; prazo da plataforma em `CIDADAO_APARELHO_RETENCAO_DIAS` (vazio: nada muda); sem município de parâmetro.
+  - API: o relógio de `apps/api/src/privacidade/expurgo-de-rastro.ts` (F05-E12) cobre o ramo em modo `relatar` por padrão; `push/varredor.ts` ignora ficha expurgada.
+- **O que NÃO deve ser implementado nesta etapa:** prazo (CP-10); apagar a linha; push do cidadão (F17-E13).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `apps/api/src/privacidade/expurgo-de-rastro.ts`, `apps/api/src/push/varredor.ts`, `db/test/cidadao-aparelhos-expurgo.test.ts` (a criar).
+- **Risco de segurança:** função privilegiada com contagem conferida.
+- **Impacto LGPD:** fecha o token de push do cidadão sem prazo.
+- **Migração necessária:** Sim (`NNN_expurgo_de_aparelho_do_cidadao.sql`, NNN próxima livre, hoje 047).
+- **Compatibilidade:** padrão vazio: nada muda sem prazo; o ramo de `aparelhos` não muda.
+- **Rollback:** remover o ramo e a chamada.
+- **Testes positivos:** prazo de 30 dias: revogado há 31 vira `expurgada:<id>` e mantém `revogado_em`; vivo sem `visto_em` há 31 dias é revogado e expurgado.
+- **Testes negativos:** sem prazo nada muda; revogado há 10 dias não muda; ficha expurgada não recebe push; contagem divergente aborta; `PUBLIC` não executa.
+- **Testes de autorização e isolamento:** a rodada do cidadão não toca `aparelhos` dos servidores nem o inverso.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api` (`push-aparelhos.test.ts`, `push-varredor.test.ts`); G05.
+- **E2E:** Não se aplica: rotina de banco, sem tela.
+- **Validação humana:** Rafael lê o relatório da rodada em `relatar`.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E17/`: testes e relatório.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md` (seção 2.3).
+- **Definition of Done:** ficha do cidadão zerada no prazo, linha preservada.
+- **Checkpoint:** CP-10 (prazo da ficha; padrão vazio e `relatar` andam).
+
+### V2-F15-E18 - Interface de provedores de identidade do cidadão (extensível, OTP primeiro)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E04 depende)
+- **Objetivo:** criar a interface que todo login do cidadão atravessa e a tabela de identidades, para a F34 acrescentar gov.br, SMS, Google e Apple sem mexer no realm.
+- **Problema que resolve:** a D-07 traz quatro provedores novos; sem interface, cada um reescreveria a entrada e arriscaria fundir contas pelo e-mail.
+- **Origem:** PR:D-07; DP:T18; BZ-M:V2-CID-01.
+- **Estado atual:** CRIAR.
+- **Dependências de entrada:** E02; E07.
+- **O que deve ser implementado:**
+  - Migration: `cidadao_identidades` (`cidadao_id`, `provedor` em lista fechada com `email_otp`, `referencia_hash`, único por par), RLS forçada e manifesto como a E02.
+  - Domínio: `apps/api/src/cidadao/provedores.ts` (a criar): interface `ProvedorDeIdentidade` (`iniciar`, `concluir`; devolve `provedor`, `referencia` e, se verificados, e-mail e CPF) e registro `CIDADAO_PROVEDORES` (padrão `email_otp`).
+  - API: `apps/api/src/cidadao/entrada.ts` (a criar): `POST /v1/cidadao/entrar` ganha `provedor`; acha ou cria `cidadaos` por identidade, nunca funde contas por e-mail igual, emite a sessão da E05; o CPF verificado sobe ao serviço da E16; provedor fora da lista: 404.
+- **O que NÃO deve ser implementado nesta etapa:** gov.br, SMS, Google e Apple (F34-E13, E15, E16), código de e-mail (E04), sessões (E05), gravar o CPF (E16).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `apps/api/src/cidadao/provedores.ts` e `entrada.ts` (a criar), `apps/api/test/provedores-do-cidadao.test.ts` (a criar).
+- **Risco de segurança:** provedor novo que funde contas por e-mail igual ou aceita referência alheia.
+- **Impacto LGPD:** só `referencia_hash`, nada em claro.
+- **Migração necessária:** Sim (`NNN_identidades_do_cidadao.sql`, hoje 047).
+- **Compatibilidade:** aditivo.
+- **Rollback:** migration inversa.
+- **Testes positivos:** provedor de teste, registrado só no teste, cria conta e sessão e entrega um CPF sintético ao serviço; o e-mail OTP entra pela mesma interface.
+- **Testes negativos:** provedor fora de `CIDADAO_PROVEDORES`: 404; referência ligada a outro cidadão não funde contas; e-mail igual em outro provedor cria conta separada.
+- **Testes de autorização e isolamento:** provedor de teste não toca `usuarios` nem `pessoas`; identidade do A ilegível ao B.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G03.
+- **E2E:** Não se aplica: sem fluxo nem tela.
+- **Validação humana:** Rafael lê o contrato da interface.
+- **Evidência a produzir:** `docs/evidencias-v2/G15/V2-F15-E18/`: testes.
+- **Documentação a atualizar:** ADR 0015.
+- **Definition of Done:** segundo provedor entra sem tocar o realm.
+- **Checkpoint:** Não.
+
+# GATE G15 - FUNDAÇÃO DO CIDADÃO
+Só passa se:
+- [ ] ADR 0015 aceita, com a D-08 declarada fora do cidadão, e CP-25 decidido, ou adiado com o que fica bloqueado: GRANTs das tabelas do realm e a publicação da API (V2-F15-E01; evidência: `docs/evidencias-v2/CP-25/` com tabela comparativa, negativos e ADR).
+- [ ] Tabelas do realm sob RLS forçada, nega-tudo sem policy, sem FK para `pessoas` ou `usuarios`, FK de tenant para `cidadaos` só em lista nomeada (`arquivos` aqui; E11 e F16-E02 acrescentam as suas), CPF cifrado com hash e `altoValor` no manifesto (V2-F15-E02; evidência: migração e saída de `cidadao-tabelas.test.ts` e do isolamento).
+- [ ] Token do cidadão não vale em rota de servidor e os de servidor, portal, console e desafio não valem na do cidadão, com o MESMO segredo e com segredo próprio recusado se repetido (V2-F15-E03; evidência: `plateia-do-cidadao.test.ts` e o caso do console).
+- [ ] Login por código sem oráculo de existência, código fora do log, `CIDADAO_ATIVO` desligado por padrão (V2-F15-E04; evidência: testes e e-mail de arquivo sem código real); CP-19 decidido, ou adiado com o OTP real em produção bloqueado.
+- [ ] Interface de provedores de identidade com `cidadao_identidades`, o e-mail OTP como primeiro provedor e um segundo provedor de teste entrando sem mudar o realm, a conta nem a sessão (V2-F15-E18; evidência: `provedores-do-cidadao.test.ts`).
+- [ ] Refresh rotativo, reuso derruba a família e vigência por requisição (V2-F15-E05; evidência: saída dos testes).
+- [ ] "Só o meu" provado por catálogo e por casos, inclusive para as tabelas da F16 (V2-F15-E06; evidência: `cidadao-so-o-meu.test.ts` e o vermelho provocado).
+- [ ] Três funções privilegiadas do login estreitas e na lista nominal `FUNCOES_PRIVILEGIADAS` da F03-E08, sem teto numérico (V2-F15-E07; evidência: lista nominal e testes).
+- [ ] API pública em HML com o papel do CP-25, só rotas do cidadão e nenhum app de produção (V2-F15-E08; evidência: log de implantação e `curl` sem credencial).
+- [ ] Rate limit em duas camadas sem Redis: rajada recebe 429, duas máquinas contam juntas e o reinício não zera, com `consumir_cota` da F03-E19 reusada e nenhuma tabela de cota nova (V2-F15-E09 e E10; evidência: contagens e saída dos testes).
+- [ ] Bloqueio imediato e append-only, restrito ao município, sem heurística (V2-F15-E11, P1; evidência: testes); CP-26 decidido, ou adiado com a abertura pública bloqueada.
+- [ ] Política de versão do app com 426 nos quatro casos (V2-F15-E12, P1; evidência: respostas).
+- [ ] Canal desligado por padrão, IBGE definido só pelo console e teste de colunas do console (V2-F15-E13; evidência: testes e consulta com todos os municípios desligados); CP-28 decidido, ou adiado com ligar o canal bloqueado.
+- [ ] OTP entregue de domínio verificado em HML com SPF, DKIM e DMARC aprovados e capturas do e-mail aprovadas no portão visual (V2-F15-E14; evidência: cabeçalhos e `capturas/` com `INDEX.md`); CP-04 e CP-19 decididos, ou adiados com o OTP real em produção bloqueado.
+- [ ] Aceite versionado de termos e de finalidade do CPF e `aceite_pendente` provados com texto sintético (V2-F15-E15; evidência: testes); CP-11 decidido, ou adiado com abertura pública e beta externo bloqueados.
+- [ ] CPF da conta validado no servidor, cifrado, único, mascarado em toda resposta e obrigatório para escrever (`cpf_pendente`), sem oráculo útil e fora do log (V2-F15-E16; evidência: `cidadao-cpf.test.ts` com CPF sintético); CP-46 decidido, ou adiado com CPF real e abertura pública bloqueados.
+- [ ] Expurgo da ficha de `cidadao_aparelhos` na função da F05-E15, em modo `relatar`, sem tocar `aparelhos` dos servidores (V2-F15-E17, P1; evidência: `cidadao-aparelhos-expurgo.test.ts`); CP-10 decidido, ou adiado com a execução bloqueada.
+- [ ] Nenhum cidadão real, nenhum CPF real, nenhum município habilitado e nenhum app de produção existem ao fim da fase (evidência: consulta de `canal_cidadao_habilitado`, de `cidadaos` e listagem de apps do Fly).
+- [ ] Portão visual: a fase não tem tela e o e-mail do código tem captura arquivada; nenhuma tela de login, CPF ou aceite entrou antes da F17 (evidência: `INDEX.md` das capturas e a lista de arquivos tocados).
+- [ ] Nenhuma regressão: gates G00 a G12 e G32 continuam verdes, e G13, G14 e G33 se já fechados (se um quebrar, ESTE gate volta a REPROVADO), com `npm run test:isolamento`, `npm run test:api`, `npm run test:console`, `npm run test:scripts`, `npm run auditar` e `npm run typecheck` verdes.
+- [ ] Documentação atualizada (`docs/PRIVACIDADE.md`, `docs/DICIONARIO-DE-DADOS.md`, `docs/IMPLANTACAO.md`, `docs/LIGAR-O-EMAIL.md`, ADR 0015) e evidências arquivadas em `docs/evidencias-v2/G15/`.
+
+**Reabre se:** token do cidadão atravessar para a API de servidor; "só o meu" falhar; função privilegiada do realm entrar sem a lista nominal; a API pública ganhar rota de equipe; código, e-mail ou CPF do cidadão aparecer em log, lista ou resposta fora da máscara; o cidadão passar a ser linha de `pessoas` ou ganhar vínculo com município; escrita de relato passar sem CPF; tabela ou função de cota paralela à da F03-E19 surgir; canal ligado em município ou app de produção criado antes dos CP-11, CP-26, CP-28, CP-33 e CP-46.
+**Este Gate libera:** F16 (domínio de relatos) e, com G16, G08 e G12, F17 (app do cidadão); a F34 estende a interface de provedores (E18, em F34-E12) e o CPF da E16 (em F34-E14). NÃO libera a abertura pública do canal (CP-11, CP-26, CP-28, CP-33, CP-46 e G25).
+
+# Fase 16: Domínio de relatos e triagem (modelo)
+
+**Gate da fase:** G16 DOMÍNIO DE RELATOS | **Depende dos gates:** G15 e G32 (e, em cadeia, G12, G07 e G05) | **Superfícies tocadas:** `db`, `apps/api` (rotas do cidadão e uma rota de conversão do servidor), `packages/shared` | **Checkpoints da fase:** nenhum próprio (herda CP-25, CP-28, CP-11, CP-10, CP-13 e CP-46 como bloqueios de abertura e de valores e, da F32, CP-44)
+
+Esta fase cria o MODELO do relato do cidadão, sem tela: RELATO != OCORRÊNCIA. O relato é entidade própria (`relatos`, `relato_eventos`, `relato_notas_internas`, `relato_vinculos`), com protocolo próprio; NÃO consome protocolo operacional, NÃO conta em métrica oficial, NÃO vira evidência, NÃO aparece em laudo e NÃO é fato confirmado. A ocorrência oficial só nasce na CONVERSÃO, por ato de servidor, com vínculo auditável (N relatos para 1 ocorrência). Estados: `recebido`, `em_analise`, `aguardando_cidadao`, `encerrado`; resoluções: `convertido`, `vinculado`, `rejeitado`, `fora_da_jurisdicao`, `expirado`, `cancelado_pelo_cidadao`.
+
+O esquema atual não comporta relato e a fase não o força: `canal_entrada` tem CHECK de cinco valores, `solicitante_nome` é NOT NULL, `trilha_eventos` e `ocorrencia_consultas` são atados a ocorrência e a papéis de servidor, `vinculada_a` só entra no INSERT e o resumo de `apps/api/src/rotas/prestacao-de-contas.ts:526` conta toda linha de `ocorrencias`. O cidadão lê por LISTA DE INCLUSÃO (hoje a leitura é `SELECT o.*` com lista de exclusão em `privacidade/lista.ts`: coluna nova vaza por padrão). O município vem do servidor e é decidido por PostGIS sobre o polígono do IBGE, com candidatos na divisa e sem transferência; a duplicidade por distância e janela também roda no banco (D-16, modelo espacial da F32), e o TypeScript de `packages/shared` só valida no cliente e guarda constantes. O relato identificado leva o CPF da conta (D-07, F05-E13 e E14): cifrado, com hash, só a máscara sai (E16); relato anônimo fica FORA da V2. O anexo aceita fotos e 1 vídeo por relato (D-07, F06-E18 a E20).
+
+MANTER: `ocorrencias`, `proximo_protocolo`, trilha, laudo, resumo e CSV, sem mudança de comportamento. NÃO faz: telas e app (F17), caixa de triagem e ações por tela (F18; os serviços de transição nascem aqui), payload do agente (F19), chat e gravação de vídeo no app (F34, que estende `relato_mensagens` e `relato_anexos`), nem o proibido em `docs/roadmap-v2/21-fora-da-v2.md`. Portão visual (seção 0 de `19-definicao-de-pronto.md`): nenhuma etapa desta fase toca interface; os contratos de leitura (E09) e de sinal (E07) alimentam telas da F17 e da F18, que carregam as capturas.
+
+Ordem sugerida: E01, E02; depois E03, E04 e E08 em sequência curta (tocam `relato.ts` e migrations); E06 (ponto e constantes) antes da E05 (exige F15-E13, F15-E16 e G32); E07 depois da E06 e da E05; E16 (CPF no relato) depois da E05 e antes da E15; E09 depois de E04 e E08; E10 depois da E04; E11 e E15 fecham com E10 e E12; E12 e E13 exigem G07 (E12 também F06-E18 a E20); E14 acompanha cada migration. Tudo em HML sintético, nenhum município habilitado.
+
+## Etapas
+
+### V2-F16-E01 - ADR 0016: relato como entidade própria; protocolos separados
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (E02 a E15 citam a ADR)
+- **Objetivo:** fixar por escrito, antes das migrations, que relato não é ocorrência: entidade, estados, protocolos, vínculo, leitura do cidadão e município.
+- **Problema que resolve:** gravar relato como ocorrência queimaria protocolo oficial, inflaria resumo e CSV (`prestacao-de-contas.ts:526-562`) e poria texto livre em trilha imutável; "relato" já nomeia o texto ditado em `ocorrencias.descricao` (REL:07 11.2 e R-06).
+- **Origem:** BZ-M:V2-CID-03; DP:T21; PR:Regra-relato; PR:D-07; PR:D-16; REL:07 11.1 a 11.4.
+- **Estado atual:** CRIAR a ADR; MANTER as ADRs 0001 a 0008 e a numeração oficial.
+- **Dependências de entrada:** G15; G32.
+- **O que deve ser implementado:**
+  - Arquivos: ADR `docs/adr/0016-relato-do-cidadao-como-entidade-propria.md` (a criar em `C:/Projetos/city-hall/docs/adr/`) com: (1) tabelas próprias, nunca `ocorrencias` com status; (2) estados e resoluções; (3) protocolo do relato na criação e oficial só na conversão; (4) vínculo N para 1 e `ocorrencias.relato_origem_id`; (5) leitura do cidadão por lista de inclusão; (6) nota interna e mensagem pública separadas; (7) município resolvido no servidor por PostGIS (F32), sem transferência; (8) texto livre do cidadão só em tabela com redação; (9) CPF cifrado, só a máscara sai; (10) relato anônimo fora da V2.
+  - Arquivos: glossário em `docs/DICIONARIO-DE-DADOS.md`: "relato do cidadão" (entidade) x "descrição" (texto ditado).
+- **O que NÃO deve ser implementado nesta etapa:** tabelas e rotas (E02 em diante); papel de banco (ADR 0015); telas.
+- **Arquivos e módulos prováveis:** `docs/adr/0016-relato-do-cidadao-como-entidade-propria.md` (a criar), `docs/DICIONARIO-DE-DADOS.md`.
+- **Risco de segurança:** modelo errado vira migration destrutiva; tabela imutável não se corrige.
+- **Impacto LGPD:** Não se aplica: documento.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: documento.
+- **Rollback:** substituir a ADR por outra.
+- **Testes positivos:** `npm test` aceita o arquivo (`regras-de-conteudo.test.ts`).
+- **Testes negativos:** ADR sem campo aberto nem norma fora da lista autorizada.
+- **Testes de autorização e isolamento:** Não se aplica: documento.
+- **Regressão obrigatória:** `npm test`; G15.
+- **E2E:** Não se aplica: documento.
+- **Validação humana:** Rafael aprova a ADR antes da E02.
+- **Evidência a produzir:** `docs/evidencias-v2/G16/V2-F16-E01/`: hash e aceite.
+- **Documentação a atualizar:** ADR 0015 (referência cruzada).
+- **Definition of Done:** ADR aceita e citada por E02 a E15.
+- **Checkpoint:** Não.
+
+### V2-F16-E02 - Migrations: relatos, relato_eventos, relato_notas_internas, relato_vinculos
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não (E03 a E12 dependem)
+- **Objetivo:** criar as quatro tabelas do relato com RLS por ator, FKs compostas ponto PostGIS e manifesto, sem tocar `ocorrencias`.
+- **Problema que resolve:** o esquema não comporta relato: `canal_entrada` em cinco valores (`001_base.sql:170`), `solicitante_nome NOT NULL`, trilha e consultas atadas a ocorrência e a servidor (REL:07 11.1).
+- **Origem:** DP:T21; PR:D-16; BZ-M:V2-CID-03; BZ-F:P0-INT; REL:07 gap 8.
+- **Estado atual:** CRIAR as tabelas; MANTER `ocorrencias` e `trilha_eventos` intactos.
+- **Dependências de entrada:** E01; F32-E02.
+- **O que deve ser implementado:**
+  - Migration: `relatos` (`cidadao_id` com FK ao realm, `protocolo` único por município, `chave_de_criacao`, `estado` e `resolucao` com CHECK de coerência, `descricao_do_cidadao` com marcador de redação, `local` ponto geográfico (`ponto_geografico` da F32-E02) com GiST, `coordenada_precisao_m` (1 a 5000, nulo), `ocorrencia_id`); `relato_eventos` (append-only); `relato_notas_internas`; `relato_vinculos` (append-only; único por relato).
+  - Banco: RLS ativada e forçada; policy do servidor (`app_ator_tipo() IN ('servidor','sistema')`) e do cidadão (`app_ator_tipo() = 'cidadao'` e `cidadao_id = app_ator_id()`), ambas com organização; `usuario_orgao` não lê; FKs compostas.
+  - Arquivos: manifesto e ordem de eliminação na mesma migration.
+- **O que NÃO deve ser implementado nesta etapa:** protocolo (E03), transições (E04), município (E05), anexos (E12), conversão (E10), CPF (E16).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `db/test/relatos.test.ts` (a criar), `db/test/isolamento.test.ts`, `db/src/manifesto.ts`.
+- **Risco de segurança:** policy só de organização entregaria o município inteiro.
+- **Impacto LGPD:** nome, e-mail, coordenada e texto: pessoal no manifesto; redação na E14.
+- **Migração necessária:** Sim (`NNN_relatos.sql`, NNN próxima livre, hoje 047).
+- **Compatibilidade:** só tabelas novas.
+- **Rollback:** migration inversa.
+- **Testes positivos:** servidor do município insere e lê; cidadão A lê o próprio.
+- **Testes negativos:** cidadão A lê relato do B: 0 linhas; `usuario_orgao`: 0; vínculo para ocorrência de outro município: FK recusa; UPDATE em evento e DELETE em relato: negados; texto livre em `relato_eventos` reprova o catálogo.
+- **Testes de autorização e isolamento:** município A não lê relato do B; contexto de cidadão sem `app.ator_id`: 0 linhas.
+- **Regressão obrigatória:** `npm run test:isolamento`; G15.
+- **E2E:** Não se aplica: sem rota.
+- **Validação humana:** Rafael migra um banco limpo.
+- **Evidência a produzir:** `docs/evidencias-v2/G16/V2-F16-E02/`: testes.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** quatro tabelas isoladas e classificadas.
+- **Checkpoint:** Não.
+
+### V2-F16-E03 - Protocolo próprio (sequência por município e ano, prefixo distinto)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (E05 usa a função)
+- **Objetivo:** sequência de protocolo do relato por município e ano, com prefixo distinto, gerada na criação; o oficial segue só da conversão.
+- **Problema que resolve:** `proximo_protocolo` (`001_base.sql:124-147`) é a numeração oficial de laudo e ofício e relato indevido a queimaria (REL:07 11.2 item 1); `protocoloSchema` (`schemas.ts:29`) aceita qualquer `NNNNNN/AAAA`.
+- **Origem:** DP:T21; BZ-M:V2-CID-05; REL:07 11.2.
+- **Estado atual:** CRIAR sequência e função no molde de `protocolo_sequencias`; MANTER o oficial.
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - Migration: `relato_protocolo_sequencias` (tenant, chave `(organizacao_id, ano)`, RLS) e `proximo_protocolo_do_relato(p_ano)` (SECURITY INVOKER como a oficial; `REL-`, seis dígitos, barra e ano; teto 999999; só para ator `cidadao`); CHECK de formato em `relatos.protocolo`.
+  - Domínio: `protocoloDoRelatoSchema` em `packages/shared/src/relato.ts` (a criar), disjunto de `protocoloSchema`.
+- **O que NÃO deve ser implementado nesta etapa:** protocolo oficial (E10), rota de criação (E05), tela de protocolo (F17-E09).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `packages/shared/src/relato.ts`, `db/test/relato-protocolo.test.ts` (a criar).
+- **Risco de segurança:** colisão entre criações simultâneas; relato confundido com protocolo oficial.
+- **Impacto LGPD:** Não se aplica: número sem pessoa.
+- **Migração necessária:** Sim (`NNN_protocolo_do_relato.sql`, NNN próxima livre, hoje 047).
+- **Compatibilidade:** `protocolo_sequencias` e `proximo_protocolo` intactos.
+- **Rollback:** migration inversa com a tabela vazia.
+- **Testes positivos:** dois relatos do mesmo município e ano recebem números consecutivos; ano novo reinicia.
+- **Testes negativos:** `protocoloSchema` recusa o formato do relato e `protocoloDoRelatoSchema` recusa o oficial; 20 criações concorrentes não repetem número; transação que falha não deixa buraco.
+- **Testes de autorização e isolamento:** a sequência do município A não avança com relato do B; criar relato não altera `protocolo_sequencias`; ator `servidor` não executa a função.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api` (`prestacao-de-contas.test.ts`); G15.
+- **E2E:** Não se aplica: sem rota.
+- **Validação humana:** Rafael cria dois relatos sintéticos e confere as duas sequências.
+- **Evidência a produzir:** `docs/evidencias-v2/G16/V2-F16-E03/`: testes.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** sequências separadas provadas; formatos disjuntos.
+- **Checkpoint:** Não.
+
+### V2-F16-E04 - Máquina de estados e resoluções (shared e banco)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E09, E10 e E13 usam o serviço)
+- **Objetivo:** impor no shared e no banco os quatro estados, as seis resoluções, quem pode cada transição e o evento de cada uma.
+- **Problema que resolve:** não há estado para rejeitado, aguardando complemento ou convertido, e `triagem` significa ocorrência oficial (REL:07 11.1); sem a regra no banco, a tela decide (DP:T21).
+- **Origem:** DP:T21; BZ-M:V2-CID-03; PR:Regra-relato; REL:07 11.3.
+- **Estado atual:** CRIAR no padrão de `TRANSICOES_PERMITIDAS` (`dominio.ts:155`) e `transicaoPermitida` (`:191`).
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - Domínio: `packages/shared/src/relato.ts`: `ESTADOS_DO_RELATO`, `RESOLUCOES_DO_RELATO`, `TRANSICOES_DO_RELATO` e `transicaoDoRelatoPermitida`; `cancelado_pelo_cidadao` só do ator cidadão, `expirado` só do sistema, as demais só do servidor.
+  - Banco: gatilho `BEFORE UPDATE` em `relatos`: recusa transição fora da tabela e ator inadequado (`app_ator_tipo()`), exige `resolucao` ao encerrar e `motivo_codigo` em `rejeitado` e `fora_da_jurisdicao`, trata `encerrado` como terminal (exceto `etapa_publica`, E09) e grava `relato_eventos` na mesma transação; UPDATE por coluna.
+  - API: `apps/api/src/relatos/transicoes.ts` (a criar): `transicionarRelato`, usado por F18, E10 e E13.
+- **O que NÃO deve ser implementado nesta etapa:** rotas e telas de triagem (F18); conversão (E10); expiração (E13).
+- **Arquivos e módulos prováveis:** `packages/shared/src/relato.ts`, `db/migrations/`, `apps/api/src/relatos/transicoes.ts` (a criar), `db/test/relato-estados.test.ts` (a criar).
+- **Risco de segurança:** transição por ator errado altera o que o cidadão vê.
+- **Impacto LGPD:** eventos só com códigos e ids.
+- **Migração necessária:** Sim (`NNN_estados_do_relato.sql`, NNN próxima livre, hoje 047).
+- **Compatibilidade:** só tabelas novas.
+- **Rollback:** migration que remove o gatilho.
+- **Testes positivos:** percurso até `encerrado/rejeitado` grava um evento por passo.
+- **Testes negativos:** `encerrado` para `em_analise`: recusado; `recebido` direto para `convertido`: recusado; cidadão tenta `rejeitado`: recusado; servidor tenta `cancelado_pelo_cidadao`: recusado; encerrar sem resolução: recusado.
+- **Testes de autorização e isolamento:** cidadão A cancela relato do B: 0 linhas; `usuario_orgao` transiciona: 0 linhas.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`, `npm run typecheck`; G15.
+- **E2E:** Não se aplica: sem rota.
+- **Validação humana:** Rafael vê o diagrama da ADR contra o gatilho.
+- **Evidência a produzir:** `docs/evidencias-v2/G16/V2-F16-E04/`: tabela de transições e testes.
+- **Documentação a atualizar:** ADR 0016.
+- **Definition of Done:** transições impostas no banco e no shared.
+- **Checkpoint:** Não.
+
+### V2-F16-E05 - Resolução do município por polígono do IBGE com PostGIS (candidatos na divisa)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não (E07 depende)
+- **Objetivo:** o servidor decide o município com PostGIS sobre o polígono do IBGE, pede confirmação na divisa e nunca transfere relato entre municípios; cria o relato.
+- **Problema que resolve:** sem token não há `org` (REL:07 DH-29); o município do cliente quebraria o isolamento; falta a rota (IBGE e malha: F32-E03; opt-in: F15-E13).
+- **Origem:** DP:T20; PR:D-16; BZ-M:V2-CID-09.
+- **Estado atual:** CRIAR a função e as rotas; sem tabela de geometria (malha da F32-E03).
+- **Dependências de entrada:** E02; E03; E06; F15-E13; F32-E03.
+- **O que deve ser implementado:**
+  - Migration: função privilegiada `canal_resolver_municipio(p_lat, p_lng, p_margem_m)` sobre `territorio_municipios_do_ponto` (F32-E03), filtrando `canal_cidadao_habilitado`: sem município de parâmetro, até 3 ids, na lista nominal da F03-E08.
+  - API: `POST /v1/cidadao/relatos/municipio` (`{ lat, lng, precisaoM }`) devolve `unico`, `confirmar` (habilitados na margem, o maior entre `MARGEM_DA_DIVISA_M` e `precisaoM`) ou `nao_habilitado` (sem lista), com `escolha` assinada, curta e presa ao cidadão; `POST /v1/cidadao/relatos` cria com `escolha`, `precisaoM` e `chaveDeCriacao` idempotente (protocolo E03, cota `cidadao.criar_relato`): a organização nunca vem de corpo, cabeçalho ou parâmetro.
+- **O que NÃO deve ser implementado nesta etapa:** duplicidade (E07), anexos (E12), CPF (E16), transferência, mapa (F17-E06).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `apps/api/src/rotas/cidadao-relatos.ts` e `apps/api/src/relatos/criacao.ts` (a criar).
+- **Risco de segurança:** `escolha` forjada desvia o relato; a função lê todos os municípios: só ids.
+- **Impacto LGPD:** coordenada: pessoal.
+- **Migração necessária:** Sim (`NNN_resolver_municipio_do_canal.sql`, NNN próxima livre).
+- **Compatibilidade:** só itens novos.
+- **Rollback:** migration inversa.
+- **Testes positivos:** ponto interior: `unico`; mesma `chaveDeCriacao`: um relato.
+- **Testes negativos:** fora de município habilitado ou canal desligado: `nao_habilitado` idêntico; ponto a 10 m da divisa nunca `unico`; `escolha` adulterada, vencida ou de outro cidadão: 422; `organizacaoId` no corpo: ignorado.
+- **Testes de autorização e isolamento:** relato criado com `escolha` do A nunca aparece no B; SELECT em `territorio_malha_municipal` pela API pública: 42501 (a prova da tabela é a F32-E03).
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api` (`superficie.test.ts`); G15.
+- **E2E:** `scripts/e2e-cidadao.mjs`: resolver e criar.
+- **Validação humana:** Rafael testa a divisa.
+- **Evidência a produzir:** `docs/evidencias-v2/G16/V2-F16-E05/`: testes.
+- **Documentação a atualizar:** ADR 0016.
+- **Definition of Done:** município resolvido só no servidor.
+- **Checkpoint:** CP-44 e CP-85 (F32).
+
+### V2-F16-E06 - Contrato geográfico do relato: constantes e validação no cliente, sobre o ponto da F32
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (E05 e E07 dependem)
+- **Objetivo:** fixar as constantes do relato que o banco e o cliente compartilham, com o TypeScript só para validar no cliente, sobre o ponto e o `geo.ts` da F32.
+- **Problema que resolve:** a D-16 reverteu DP:T36: município e duplicidade saem do TypeScript; sobra o risco de inverter latitude e longitude e de o cliente exibir distância diferente da do banco.
+- **Origem:** DP:T20; PR:D-16; BZ-M:V2-CID-09; REL:07 11.7.
+- **Estado atual:** EXPANDIR `geo.ts` (criado na F32-E02; Haversine e paridade na F32-E14); MANTER `coordenadaSchema` e `coordenadaGravadaSchema` (`packages/shared/src/schemas.ts:33`, `:60`).
+- **Dependências de entrada:** E02; F32-E02; F32-E14.
+- **O que deve ser implementado:**
+  - Banco: sem migration e sem `ponto_do_relato`: `relatos.local`, E05 e E07 usam `ponto_geografico` (F32-E02).
+  - Domínio: módulo único `packages/shared/src/geo.ts` (`coordenadaValida`: F32-E02; `distanciaEmMetros`: F32-E14); esta etapa acrescenta `MARGEM_DA_DIVISA_M`, `RAIO_DE_DUPLICIDADE_M` (300) e `JANELA_DE_DUPLICIDADE_H` (72), passadas ao SQL por parâmetro, sem importar `dominio.ts` (F08-E05).
+  - Testes: `packages/shared/test/geo.test.ts` (a criar): constantes e eixos trocados; reexecuta a paridade de `geo-paridade.espacial.test.ts` (F32-E14).
+- **O que NÃO deve ser implementado nesta etapa:** decidir município (E05) ou duplicidade (E07) em TypeScript, raio e área de risco (F32-E08, E09), mapa (F17-E06), simplificação de polígono.
+- **Arquivos e módulos prováveis:** `packages/shared/src/geo.ts`, `packages/shared/test/geo.test.ts` (a criar).
+- **Risco de segurança:** ponto com eixos trocados manda o relato ao município errado.
+- **Impacto LGPD:** Não se aplica: funções puras.
+- **Migração necessária:** Não.
+- **Compatibilidade:** aditivo; exige a extensão da F32.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** ponto de São Paulo cai em São Paulo; Haversine e PostGIS concordam.
+- **Testes negativos:** latitude e longitude invertidas reprovam o teste; coordenada fora de faixa ou `NaN`: erro; `db/test/teto-de-coordenada.test.ts` segue verde.
+- **Testes de autorização e isolamento:** Não se aplica: funções puras; o isolamento é provado nas E05 e E07.
+- **Regressão obrigatória:** `npm test --workspace @dc360/shared`, `npm run test:isolamento`, `npm run typecheck`; G15.
+- **E2E:** Não se aplica: sem fluxo e sem tela.
+- **Validação humana:** Rafael confere dois pontos conhecidos.
+- **Evidência a produzir:** `docs/evidencias-v2/G16/V2-F16-E06/`: testes e a saída da paridade.
+- **Documentação a atualizar:** ADR 0016.
+- **Definition of Done:** um só `geo.ts` e um só ponto no banco; constantes compartilhadas; paridade provada.
+- **Checkpoint:** Não.
+
+### V2-F16-E07 - Duplicidade como sinal à triagem (distância e janela com PostGIS)
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** não (F18-E05 usa o sinal)
+- **Objetivo:** calcular no banco, com PostGIS, a possível duplicidade por tipo, janela e distância como sinal só à triagem, nunca decisão.
+- **Problema que resolve:** a consulta atual vê só ocorrência ativa, tipo igual, 48 horas e trecho de endereço com `LIKE` sem escape (`ocorrencias.ts:695-720`); não compara relato nem usa coordenada (ALY:OCO-04).
+- **Origem:** DP:T21; ALY:OCO-04; PR:D-16; BZ-M:V2-CID-05; REL:07 11.7.
+- **Estado atual:** CRIAR `apps/api/src/relatos/duplicidade.ts`; MANTER a consulta de ocorrências.
+- **Dependências de entrada:** E06; G32.
+- **O que deve ser implementado:**
+  - Migration: `relatos.possiveis_duplicados` (contagem) e `relato_possiveis_duplicados(p_relato_id, p_raio_m, p_janela_h)` (INVOKER, sob a RLS do servidor): `ST_DWithin` em `geography` contra `relatos` (GiST da E02) e `ocorrencias` (`ponto` e GiST da F32-E04), tipo igual, ativos, janela; até 20 linhas de id, protocolo, distância e estado.
+  - API: na criação, na mesma transação, chama a função com as constantes da E06 e grava o evento `sinal_de_duplicidade` com ids e distância; `GET /v1/relatos/:id/possiveis-duplicados` (`triar_relato`; sem nome nem texto).
+  - Cidadão: só aviso de relato próprio aberto na área.
+- **O que NÃO deve ser implementado nesta etapa:** decidir vínculo (F18-E05), mesclar automático, raio e área de risco (F32), corrigir o `LIKE` da consulta de ocorrências (registrar em `apps/api/PENDENCIAS.md`).
+- **Arquivos e módulos prováveis:** `apps/api/src/relatos/duplicidade.ts` (a criar), `db/migrations/`.
+- **Risco de segurança:** revelar relato de terceiro.
+- **Impacto LGPD:** sem nome no sinal.
+- **Migração necessária:** Sim (`NNN_sinal_de_duplicidade.sql`, NNN próxima livre, hoje 047).
+- **Compatibilidade:** aditiva.
+- **Rollback:** migration inversa.
+- **Testes positivos:** relato a 100 m de outro do mesmo tipo em 24 horas gera o sinal.
+- **Testes negativos:** a 2 km, outro tipo ou fora da janela: sem sinal; resposta do cidadão sem sinal nem id alheio.
+- **Testes de autorização e isolamento:** relato do município B nunca entra no sinal do A; cidadão A não recebe dado do relato do B.
+- **Regressão obrigatória:** `npm run test:api` (`busca.test.ts`), `npm run test:isolamento`; G15.
+- **E2E:** Não se aplica: sem tela (F18-E05).
+- **Validação humana:** Rafael vê dois relatos sinalizados.
+- **Evidência a produzir:** `docs/evidencias-v2/G16/V2-F16-E07/`: testes e plano.
+- **Documentação a atualizar:** `apps/api/PENDENCIAS.md`.
+- **Definition of Done:** sinal gerado no banco e restrito ao servidor.
+- **Checkpoint:** Não.
+
+### V2-F16-E08 - Nota interna x mensagem pública (tabelas e API)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E09 depende)
+- **Objetivo:** separar em tabelas e serviços a nota interna (só servidor) e a mensagem pública (ida e volta com o cidadão), sem caminho de uma para a outra.
+- **Problema que resolve:** não há campo de nota interna: texto interno se espalha por colunas de outras tabelas e a leitura devolve `o.*` e a trilha (`ocorrencias.ts:494-626`); o complemento exige campo próprio.
+- **Origem:** DP:T21; BZ-M:V2-CID-06; REL:07 11.5.
+- **Estado atual:** CRIAR `relato_mensagens`; EXPANDIR `relato_notas_internas` (E02).
+- **Dependências de entrada:** E02.
+- **O que deve ser implementado:**
+  - Migration: `relato_mensagens` (tenant, append-only; `autor_tipo` servidor ou cidadão, `texto` até 1000 caracteres com marcador de redação, `campos_solicitados` em lista fechada, `responde_a_id`); policy do cidadão só nas mensagens do próprio relato; `relato_notas_internas` sem policy do cidadão e, com CP-25 em B, sem GRANT.
+  - API: `apps/api/src/relatos/mensagens.ts` (a criar): `registrarNotaInterna` e `enviarMensagemPublica` (ação `triar_relato`) e `POST /v1/cidadao/relatos/:id/mensagens` (complemento, só em `aguardando_cidadao`, cota própria), que devolve o relato a `em_analise` pelo serviço da E04; nenhuma função grava texto de uma tabela na outra.
+- **O que NÃO deve ser implementado nesta etapa:** tela de triagem (F18-E08), push (F17-E13), anexo no complemento (E12), chat (F34-E05).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `apps/api/src/relatos/mensagens.ts` (a criar), `packages/shared/src/permissoes.ts`, `apps/api/test/relato-mensagens.test.ts` (a criar).
+- **Risco de segurança:** nota interna chegando ao cidadão: tabelas separadas e leitura por lista de inclusão (E09).
+- **Impacto LGPD:** texto do cidadão em tabela com redação.
+- **Migração necessária:** Sim (`NNN_mensagens_do_relato.sql`, NNN próxima livre, hoje 047).
+- **Compatibilidade:** só tabelas novas.
+- **Rollback:** migration inversa com tabelas vazias.
+- **Testes positivos:** servidor pede complemento com campos solicitados; cidadão responde; o relato volta a `em_analise`.
+- **Testes negativos:** complemento fora de `aguardando_cidadao`: 409; cidadão grava nota interna: negado; `texto` acima de 1000: 422; UPDATE em mensagem: negado.
+- **Testes de autorização e isolamento:** cidadão A responde em relato do B: 404; `usuario_orgao` lê 0 mensagens; nota interna nunca sai nas mensagens.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`; G15.
+- **E2E:** `scripts/e2e-cidadao.mjs`: pedir complemento e responder.
+- **Validação humana:** Rafael confere as duas separadas.
+- **Evidência a produzir:** `docs/evidencias-v2/G16/V2-F16-E08/`: testes.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** nota e mensagem separadas.
+- **Checkpoint:** Não.
+
+### V2-F16-E09 - Modelo de leitura do cidadão por lista de inclusão e teste de contrato
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não (F17-E10 consome)
+- **Objetivo:** o cidadão lê o relato por lista de INCLUSÃO de colunas, com a etapa pública derivada do andamento; teste de contrato reprova coluna nova.
+- **Problema que resolve:** a leitura atual é `SELECT o.*` com lista de exclusão: coluna nova vaza por padrão (REL:07 gap 2); o cidadão não pode ler `ocorrencias`.
+- **Origem:** BZ-M:V2-CID-06; DP:T21; REL:07 11.5.
+- **Estado atual:** CRIAR a leitura nova; `lista.ts` sem uso aqui.
+- **Dependências de entrada:** E04; E08.
+- **O que deve ser implementado:**
+  - Domínio: `packages/shared/src/relato.ts`: `COLUNAS_DO_RELATO_PARA_O_CIDADAO`, `etapaParaOCidadao` (oito etapas em linguagem simples) e schema Zod `.strict()`, regra única: chave nova só por emenda explícita e testada na etapa que a faz (F34-E04, F35-E07).
+  - Migration: `relatos.etapa_publica`, mantida por gatilho em `ocorrencias` (AFTER UPDATE OF status) nos relatos convertidos; com CP-25 em B, `GRANT SELECT (colunas)` à API pública, nunca à tabela.
+  - API: `GET /v1/cidadao/relatos` e `/:id`, `SELECT` por coluna nomeada, nunca `*`.
+- **O que NÃO deve ser implementado nesta etapa:** tela (F17-E10), trilha ao cidadão, leitura do agente (F19).
+- **Arquivos e módulos prováveis:** `packages/shared/src/relato.ts`, `db/migrations/`, `apps/api/src/rotas/cidadao-relatos.ts`, `apps/api/test/relato-do-cidadao-contrato.test.ts` (a criar).
+- **Risco de segurança:** vazar nota interna, severidade, equipe, prazo, vulnerabilidade, duplicidade, id interno ou terceiro.
+- **Impacto LGPD:** o cidadão recebe só o que informou e a etapa.
+- **Migração necessária:** Sim (`NNN_etapa_publica_do_relato.sql`, NNN próxima livre, hoje 047).
+- **Compatibilidade:** só um gatilho de saída em `ocorrencias`.
+- **Rollback:** migration inversa.
+- **Testes positivos:** cidadão A lista e abre o próprio; convertido mostra protocolo oficial.
+- **Testes negativos:** coluna de prova em `relatos`: resposta idêntica; sentinelas de nota, severidade, equipe, prazo e CPF ausentes; `SELECT *` pela conexão pública (B): 42501; chave fora do `.strict()` reprova.
+- **Testes de autorização e isolamento:** cidadão A abre relato do B: 404; token de servidor nas rotas do cidadão: 401.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G15.
+- **E2E:** `scripts/e2e-cidadao.mjs`: criar e ler.
+- **Validação humana:** Rafael compara o JSON com a lista.
+- **Evidência a produzir:** `docs/evidencias-v2/G16/V2-F16-E09/`: contrato e sentinelas.
+- **Documentação a atualizar:** ADR 0016.
+- **Definition of Done:** coluna nova não vaza; etapa sem ler `ocorrencias`.
+- **Checkpoint:** Não.
+
+### V2-F16-E10 - Conversão em ocorrência (relato_origem_id; protocolo oficial só aqui)
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** crítica  |  **Risco:** crítico  |  **Paralelizável:** não (E11 e E15 dependem)
+- **Objetivo:** o servidor converte relato em ocorrência por ato explícito: consome o protocolo oficial, grava o vínculo e não copia o texto bruto.
+- **Problema que resolve:** só `POST /ocorrencias` cria ocorrência (`ocorrencias.ts:629-692`); `canal_entrada` não tem valor de app e a trilha copia `tipoDescricao` (`:684`), erro das migrações 029 e 043.
+- **Origem:** BZ-M:V2-CID-05; DP:T21; DP:T40; REL:07 11.2 e 11.4.
+- **Estado atual:** EXPANDIR `ocorrencias`; REFATORAR a criação em função reutilizável.
+- **Dependências de entrada:** E04; E03.
+- **O que deve ser implementado:**
+  - Migration: `ocorrencias.relato_origem_id` com FK composta para `relatos`; `canal_entrada` ganha `app_cidadao` (CHECK refeita) e CHECK: canal `app_cidadao` se e só se há origem.
+  - Domínio: `CANAIS_ESCOLHIVEIS` (sem `app_cidadao`) em `dominio.ts` alimenta `NovaOcorrencia.tsx:323`; `aberturaOcorrenciaSchema` recusa o canal novo.
+  - API: `criarOcorrencia` extraída de `rotas/ocorrencias.ts` para `apps/api/src/ocorrencias/criacao.ts`; `POST /v1/relatos/:id/converter` (`exigirPermissao("converter_relato")`: coordenador e administrador; a triagem escreve tipo, descrição e endereço): numa transação trava o relato `em_analise`, cria a ocorrência (nome informado, contato nulo, ponto e precisão do relato), consome `proximo_protocolo`, grava vínculo e evento, encerra como `convertido`; trilha com `relatoOrigem`, sem texto bruto; repetir devolve a mesma ocorrência.
+- **O que NÃO deve ser implementado nesta etapa:** tela (F18-E07), payload e contato do agente (F19), conversão automática.
+- **Arquivos e módulos prováveis:** `apps/api/src/rotas/ocorrencias.ts`, `apps/api/src/ocorrencias/criacao.ts` (a criar), `packages/shared/src/dominio.ts`, `db/migrations/`.
+- **Risco de segurança:** texto bruto na trilha imutável; canal forjado; número queimado.
+- **Impacto LGPD:** nome vai à ocorrência; contato, não.
+- **Migração necessária:** Sim (`NNN_conversao_de_relato.sql`, NNN próxima livre, hoje 047).
+- **Compatibilidade:** `POST /ocorrencias` do operador igual.
+- **Rollback:** reverter o código.
+- **Testes positivos:** conversão cria a ocorrência, `protocolo_sequencias` sobe 1 e o vínculo fica gravado.
+- **Testes negativos:** relato `recebido`: 409; operador: 403; duas conversões simultâneas: uma ocorrência; `POST /ocorrencias` com `app_cidadao`: 422; canal sem origem: CHECK; texto do cidadão ausente de `trilha_eventos`.
+- **Testes de autorização e isolamento:** coordenador do A converte relato do B: 404; `agente_campo`: 403.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G15.
+- **E2E:** `npm run test:e2e:api`: conversão.
+- **Validação humana:** Rafael converte um relato sintético.
+- **Evidência a produzir:** `docs/evidencias-v2/G16/V2-F16-E10/`: testes.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** conversão idempotente; protocolo oficial só nela.
+- **Checkpoint:** Não.
+
+### V2-F16-E11 - Métricas oficiais não contam relato (resumo, CSV, prestação de contas)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com E12)
+- **Objetivo:** provar e travar que resumo, CSV, métricas do console e prestação de contas contam só ocorrência, e que o relato convertido entra uma vez, como ocorrência.
+- **Problema que resolve:** `GET /relatorios/resumo` (`prestacao-de-contas.ts:526`) e o CSV (`:310`) contam toda linha de `ocorrencias` e `resumir_municipio()` (023:215-254) alimenta o console; nenhum teste garante que relato fique de fora (REL:07 11.2 item 5).
+- **Origem:** BZ-F:P0-INT; BZ-M:V2-CID-05; REL:07 gap 7.
+- **Estado atual:** MANTER as consultas; CRIAR os testes de contrato.
+- **Dependências de entrada:** E10.
+- **O que deve ser implementado:**
+  - Testes: `apps/api/test/relato-fora-dos-numeros-oficiais.test.ts` (a criar): município sintético com relato `recebido`, relato `em_analise`, um convertido e uma ocorrência; resumo: total 2; CSV: 2 linhas; `resumir_municipio()`: 2; mapa, busca e indicadores sem relato.
+  - Testes: `apps/api/test/relato-so-onde-deve.test.ts` (a criar), varredura de fonte: nenhuma consulta de `rotas/prestacao-de-contas.ts`, `mapa.ts`, `busca.ts`, `metricas/` cita `relatos`; só os módulos de relato.
+  - Banco: o corpo de `resumir_municipio()` não nomeia `relatos` (catálogo).
+- **O que NÃO deve ser implementado nesta etapa:** métrica nova de relato (F20-E07, rotulada como não oficial); mudar consulta existente.
+- **Arquivos e módulos prováveis:** `apps/api/test/relato-fora-dos-numeros-oficiais.test.ts` e `apps/api/test/relato-so-onde-deve.test.ts` (a criar), `db/test/isolamento.test.ts`.
+- **Risco de segurança:** número oficial inflado vai a prestação de contas ao Tribunal de Contas.
+- **Impacto LGPD:** Não se aplica: sem dado novo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** nenhuma consulta muda.
+- **Rollback:** reverter os testes.
+- **Testes positivos:** total do resumo igual a ocorrências; convertido conta uma vez.
+- **Testes negativos:** relato rejeitado, vinculado, expirado e cancelado: total inalterado; `UNION` com `relatos` em `prestacao-de-contas.ts` reprova a varredura.
+- **Testes de autorização e isolamento:** o resumo do A não conta relato do B; `console_situacao_dos_municipios` sem coluna nova de relato.
+- **Regressão obrigatória:** `npm run test:api` (`prestacao-de-contas.test.ts`, `resumo-do-municipio.test.ts`), `npm run test:isolamento`, `npm run test:console`; G15.
+- **E2E:** Não se aplica: sem tela.
+- **Validação humana:** Rafael compara o CSV com a lista de ocorrências.
+- **Evidência a produzir:** `docs/evidencias-v2/G16/V2-F16-E11/`: testes.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** relato fora de todo número oficial, provado.
+- **Checkpoint:** Não.
+
+### V2-F16-E12 - Anexos de relato pela cadeia segura (fotos e 1 vídeo)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** sim (com E11)
+- **Objetivo:** o cidadão anexa fotos e 1 vídeo ao próprio relato pela cadeia da F06, com cota própria e sem caminho para evidência ou laudo.
+- **Problema que resolve:** a cadeia atual serve só ao agente: `ocorrencia_id` obrigatório, foto avulsa no laudo (`documentos.ts:159-189`); REL:07 gaps 4 a 6.
+- **Origem:** BZ-M:V2-CID-07; DP:T23; DP:T24; DP:T25; PR:D-07; REL:07 11.8.
+- **Estado atual:** EXPANDIR a cadeia da F06.
+- **Dependências de entrada:** G07; E02; F06-E18 a E20.
+- **O que deve ser implementado:**
+  - Migration: `relato_anexos` (tenant, FK composta para `relatos` e `arquivos`) e gatilho: classe `anexo_cidadao` ou `video_cidadao`, autor igual ao `cidadao_id` do relato, no máximo 5 fotos e 1 vídeo.
+  - API: `POST /v1/cidadao/relatos/:id/anexos/autorizar` e `.../:arquivoId/confirmar` sobre `autorizar.ts` e `confirmar.ts` (F06-E04): fotos JPEG e PNG de 10 MB e 25 megapixels (T24); vídeo MP4 ou MOV de 30 s e 50 MB, `ativo` após F06-E18 e E19; relato próprio e aberto; cotas `cidadao.autorizar_upload` (F15-E10) e por classe (F06-E09); leitura só de arquivo `ativo` próprio por URL assinada curta.
+- **O que NÃO deve ser implementado nesta etapa:** gravação e chat (F34-E03, E05), PDF, promoção a evidência (F06-E12), tela (F17-E07), leitura pelo servidor (F06-E20, F18).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `apps/api/src/rotas/cidadao-anexos.ts` (a criar).
+- **Risco de segurança:** arquivo hostil de população aberta.
+- **Impacto LGPD:** sem EXIF nem GPS; retenção em CP-10.
+- **Migração necessária:** Sim (`NNN_relato_anexos.sql`, hoje 047).
+- **Compatibilidade:** só itens novos.
+- **Rollback:** `ARQUIVOS_EXTERNOS_ATIVO=nao`.
+- **Testes positivos:** autorizar, PUT, confirmar e ativar foto e vídeo sintéticos.
+- **Testes negativos:** 6ª foto e 2º vídeo: 409; vídeo de 31 s: 422; arquivo de outro cidadão ou de classe `evidencia_vistoria`: gatilho recusa; relato `encerrado`: 409; bloqueado: 403.
+- **Testes de autorização e isolamento:** cidadão A autoriza anexo no relato do B: 404; vídeo ausente de `/campo/meu-trabalho`; `anexo_cidadao` não bloqueia a evidência do agente.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`; G07.
+- **E2E:** `scripts/e2e-cidadao.mjs`: anexar foto e vídeo sintéticos.
+- **Validação humana:** Rafael envia foto e vídeo.
+- **Evidência a produzir:** `docs/evidencias-v2/G16/V2-F16-E12/`: testes.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`.
+- **Definition of Done:** anexo só pela cadeia segura, com 1 vídeo, isolado do campo e do laudo.
+- **Checkpoint:** Não.
+
+### V2-F16-E13 - Expiração de relato (job no worker)
+- **Prioridade:** P2
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E14)
+- **Objetivo:** encerrar como `expirado` o relato em `aguardando_cidadao` com prazo de complemento vencido, por rotina do worker, com ator `sistema` e evento.
+- **Problema que resolve:** relato aguardando para sempre trava a fila e guarda texto do cidadão sem fim (DP:T21, REL:07 gap 30).
+- **Origem:** DP:T21; REL:07 DH-33.
+- **Estado atual:** CRIAR no padrão de `municipios_a_resumir` (026) e dos relógios do worker (F07-E03).
+- **Dependências de entrada:** G07; E04.
+- **O que deve ser implementado:**
+  - Migration: `relatos.complemento_ate` (definido por quem pede o complemento, entre 1 e 30 dias, F18-E04) e função privilegiada `relatos_a_expirar()` (sem parâmetro; só pares organização e relato, com teto por rodada; no teto de funções).
+  - API: relógio `apps/api/src/relatos/expiracao.ts` (a criar) na lista fechada do worker (F07-E03): por par, `comTenantDoSistema(org)` e `transicionarRelato` para `expirado`; falha da rodada em `error`; trava de `push/trava.ts`.
+- **O que NÃO deve ser implementado nesta etapa:** prazo padrão inventado, expirar `em_analise`, aviso ao cidadão (F17-E13), apagar relato.
+- **Arquivos e módulos prováveis:** `apps/api/src/relatos/expiracao.ts` (a criar), `db/migrations/`, `apps/api/src/servicos/worker.ts`, `db/test/relato-expiracao.test.ts` (a criar).
+- **Risco de segurança:** função privilegiada que enxerga todos os municípios: sem parâmetro e só ids.
+- **Impacto LGPD:** limita a permanência de relato sem resposta.
+- **Migração necessária:** Sim (`NNN_expiracao_de_relato.sql`, NNN próxima livre, hoje 047).
+- **Compatibilidade:** coluna nula para relatos sem pedido.
+- **Rollback:** desligar o relógio; função inerte.
+- **Testes positivos:** relato com `complemento_ate` vencido vira `encerrado/expirado` com evento do `sistema`.
+- **Testes negativos:** `recebido` e `em_analise` não expiram; segunda rodada não repete; prazo futuro intacto; a função não aceita município.
+- **Testes de autorização e isolamento:** a rodada do município A não toca o B; o ator `sistema` só executa a transição `expirado`.
+- **Regressão obrigatória:** `npm run test:isolamento` (teto), `npm run test:api`; G07.
+- **E2E:** Não se aplica: rotina sem tela; o tempo é simulado por UPDATE como dono.
+- **Validação humana:** Rafael vê a rodada em HML com relato sintético.
+- **Evidência a produzir:** `docs/evidencias-v2/G16/V2-F16-E13/`: testes e log da rodada.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md`.
+- **Definition of Done:** expiração idempotente, no worker, provada.
+- **Checkpoint:** Não.
+
+### V2-F16-E14 - Manifesto das tabelas novas e retenção
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (acompanha cada migration)
+- **Objetivo:** fechar no manifesto as tabelas do relato (saída, eliminação, pessoal, retenção) e registrar as classes de retenção, sem fixar prazo.
+- **Problema que resolve:** tabela sem classe reprova o catálogo (F05-E02) e a eliminação de município para (DC366) se faltar na ordem; texto do cidadão sem prazo repete o erro da trilha (BZ-F:P0-LGPD).
+- **Origem:** DP:T41; BZ-F:P0-LGPD; BZ-M:V2-TRV-03; REL:08 15.8.
+- **Estado atual:** EXPANDIR `db/src/manifesto.ts` e a retenção por classe (F05-E09).
+- **Dependências de entrada:** G05; E02.
+- **O que deve ser implementado:**
+  - Domínio: entradas completas das sete tabelas do relato (`relatos`, `relato_eventos`, `relato_notas_internas`, `relato_vinculos`, `relato_mensagens`, `relato_anexos`, `relato_protocolo_sequencias`; a malha municipal é da F32-E15): saída (com `cidadao_id` em `colunasQueNuncaSaem`), eliminação, `pessoal.colunas`, `textoLivre`, retenção `a_decidir` com CP-10.
+  - Banco: classes `relato_nao_convertido`, `relato_convertido`, `mensagem_ao_cidadao`, `anexo_cidadao` e `nota_interna` em `retencao_por_classe` (F05-E09), modo `relatar`, sem prazo; redação do texto livre pela primitiva da F05-E10.
+  - Testes: pacote e eliminação sintéticos com relatos, vínculo e anexos.
+- **O que NÃO deve ser implementado nesta etapa:** prazos e execução (CP-10), pedido de titular (CP-11), tabelas do realm (F15-E02).
+- **Arquivos e módulos prováveis:** `db/src/manifesto.ts`, `db/test/manifesto-de-tabelas.test.ts`, `apps/api/src/saida/pacote.ts`, `docs/DICIONARIO-DE-DADOS.md`.
+- **Risco de segurança:** eliminação que para ou deixa dado de cidadão para trás.
+- **Impacto LGPD:** inventário por coluna do texto do cidadão e de sua retenção.
+- **Migração necessária:** Não (entradas nas migrations da E02 em diante).
+- **Compatibilidade:** tabelas novas no pacote e na eliminação.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** teste de catálogo verde com as tabelas do relato; pacote sintético traz relatos sem `cidadao_id`.
+- **Testes negativos:** tabela do relato sem entrada reprova; classe `a_decidir` sem CP reprova; eliminação sintética apaga todas as tabelas do relato sem DC366.
+- **Testes de autorização e isolamento:** o pacote do município A não traz relato do B; modo `relatar` não altera linha.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api` (`saida-de-municipio.test.ts`, `eliminacao-de-municipio.test.ts`); G05.
+- **E2E:** Não se aplica: classificação e rotinas, sem tela.
+- **Validação humana:** Rafael lê a tabela de classificação.
+- **Evidência a produzir:** `docs/evidencias-v2/G16/V2-F16-E14/`: manifesto e testes.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`, `docs/SAIDA-DE-MUNICIPIO.md`.
+- **Definition of Done:** nenhuma tabela do relato sem classe.
+- **Checkpoint:** Não.
+
+### V2-F16-E15 - Negativos: relato não vira evidência nem laudo e não consome protocolo oficial
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não (fecha a fase)
+- **Objetivo:** suíte fixa de negativos que prova de ponta a ponta a regra RELATO != OCORRÊNCIA.
+- **Problema que resolve:** a regra só vale com teste: nada prova relato fora de protocolo, evidência, laudo e números (REL:07 gaps 6 e 7).
+- **Origem:** PR:Regra-relato; BZ-F:P0-INT; BZ-M:V2-CID-05; REL:07 gaps 6 a 8.
+- **Estado atual:** CRIAR a suíte.
+- **Dependências de entrada:** E10; E12.
+- **O que deve ser implementado:**
+  - Testes: `apps/api/test/relato-nao-e-ocorrencia.test.ts` (a criar), município sintético com relatos em várias resoluções e anexos: (1) `protocolo_sequencias.ultimo` não muda com criação, rejeição, vínculo, expiração e cancelamento e sobe 1 na conversão; (2) `evidencias` com 0 linhas depois de anexar e converter; (3) laudo da ocorrência convertida sem protocolo do relato, sem texto do cidadão e sem imagem de anexo; (4) lista, mapa, busca, resumo e CSV sem relato; (5) promoção humana (F06-E12) cria evidência com `incluir_no_laudo` falso.
+  - Banco: catálogo: nenhuma FK liga `evidencias` a `relatos` ou `relato_anexos`.
+- **O que NÃO deve ser implementado nesta etapa:** tela; correção do que vazar (a falha reabre a etapa de origem).
+- **Arquivos e módulos prováveis:** `apps/api/test/relato-nao-e-ocorrencia.test.ts` (a criar), `db/test/relato-sem-caminho-para-prova.test.ts` (a criar), `apps/api/test/documentos.test.ts`.
+- **Risco de segurança:** foto de terceiro no laudo; número oficial queimado.
+- **Impacto LGPD:** Não se aplica: sem dado novo; a suíte usa dados sintéticos.
+- **Migração necessária:** Não.
+- **Compatibilidade:** só testes.
+- **Rollback:** reverter os testes.
+- **Testes positivos:** conversão sobe o protocolo oficial em 1 e a ocorrência aparece nos números uma vez.
+- **Testes negativos:** os cinco itens acima, cada um com sentinela do texto e da imagem do cidadão ausente do laudo, da trilha e do CSV.
+- **Testes de autorização e isolamento:** relato e anexo do município B nunca entram no laudo, resumo ou pacote do A.
+- **Regressão obrigatória:** `npm run test:api`, `npm run test:isolamento`, `npm run test:e2e:api`, `npm run typecheck`; G15.
+- **E2E:** `scripts/e2e-cidadao.mjs`: criar, anexar, converter e conferir o laudo.
+- **Validação humana:** Rafael abre o laudo e não acha o relato.
+- **Evidência a produzir:** `docs/evidencias-v2/G16/V2-F16-E15/`: suíte e laudo sintético.
+- **Documentação a atualizar:** ADR 0016.
+- **Definition of Done:** cinco negativos verdes no CI.
+- **Checkpoint:** Não.
+
+### V2-F16-E16 - Relato identificado: CPF copiado da conta, cifrado e preso à linha
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (fecha antes da E15)
+- **Objetivo:** o relato nasce com o CPF da conta, cifrado, e o CPF só sai mascarado ou revelado com registro.
+- **Problema que resolve:** a D-07 torna o CPF obrigatório no relato identificado; o servidor do município não lê `cidadaos` (realm), então o relato carrega a própria cópia cifrada.
+- **Origem:** PR:D-07; DP:T19; BZ-D:LGP-01.
+- **Estado atual:** CRIAR, sobre F05-E13, F05-E14 e F15-E16.
+- **Dependências de entrada:** E02; E05; F15-E16; F05-E13; F05-E14.
+- **O que deve ser implementado:**
+  - Migration: `relatos.cpf_cifrado` e `cpf_hash` NOT NULL, `altoValor` e classe `cpf` no manifesto; o hash leva `organizacao_id` (o mesmo CPF difere por município).
+  - API: `criarRelato` (E05) lê o CPF da própria conta sob o ator cidadão, decifra na memória e recifra preso à linha (`privacidade/cpf.ts`); conta sem CPF: 403 `cpf_pendente`; leituras do cidadão (E09) e do servidor devolvem só a máscara; revelar é `POST /v1/cpf/revelar` (F05-E14); a conversão (E10) NÃO copia o CPF à ocorrência.
+- **O que NÃO deve ser implementado nesta etapa:** revelar CPF (F05-E14), tela (F18), duplicidade por CPF, relato anônimo (fora da V2).
+- **Arquivos e módulos prováveis:** `db/migrations/`, `apps/api/src/relatos/criacao.ts`, `apps/api/test/relato-cpf.test.ts` (a criar).
+- **Risco de segurança:** CPF em claro em log, laudo ou ocorrência.
+- **Impacto LGPD:** retenção `cpf` em CP-46.
+- **Migração necessária:** Sim (`NNN_cpf_do_relato.sql`, hoje 047).
+- **Compatibilidade:** só tabela nova.
+- **Rollback:** migration inversa.
+- **Testes positivos:** relato criado guarda cifra e hash do município; a lista mostra a máscara.
+- **Testes negativos:** relato sem CPF: CHECK; conta sem CPF: 403; envelope copiado para outra linha não abre; CPF sintético ausente de laudo, trilha, CSV, resumo, ocorrência convertida e pacote padrão.
+- **Testes de autorização e isolamento:** o mesmo CPF gera hashes diferentes em A e B; cidadão B não lê o CPF do relato de A.
+- **Regressão obrigatória:** `npm run test:isolamento`, `npm run test:api`; G05, G15.
+- **E2E:** `scripts/e2e-cidadao.mjs`: criar relato com CPF sintético; sem tela.
+- **Validação humana:** Rafael cria um relato sintético.
+- **Evidência a produzir:** `docs/evidencias-v2/G16/V2-F16-E16/`: testes, sem CPF real.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md`.
+- **Definition of Done:** CPF no relato cifrado, mascarado e fora de laudo e ocorrência.
+- **Checkpoint:** CP-46.
+
+# GATE G16 - DOMÍNIO DE RELATOS
+Só passa se:
+- [ ] ADR 0016 aceita, com relato como entidade própria, protocolos separados, município por PostGIS, CPF do relato e anonimato fora da V2 (V2-F16-E01; evidência: hash e aceite).
+- [ ] `relatos`, `relato_eventos`, `relato_notas_internas` e `relato_vinculos` sob RLS forçada por ator, FKs compostas, ponto PostGIS indexado, sem tocar `ocorrencias`, e `usuario_orgao` sem leitura (V2-F16-E02; evidência: `relatos.test.ts` e o isolamento).
+- [ ] Protocolo do relato em sequência própria, formato disjunto do oficial, sem buraco em corrida (V2-F16-E03; evidência: testes).
+- [ ] Quatro estados e seis resoluções impostos no banco e no shared, com ator e evento por passo (V2-F16-E04; evidência: tabela de transições e testes).
+- [ ] Município resolvido só no servidor, com PostGIS sobre o polígono do IBGE, candidatos na divisa, sem lista pública e sem transferência, (V2-F16-E05; evidência: casos e testes de divisa).
+- [ ] Ponto único no banco (`ponto_geografico` da F32-E02, sem `ponto_do_relato`), constantes no `geo.ts` único e TypeScript só no cliente, com a paridade Haversine e PostGIS abaixo de 0,5% da F32-E14 reexecutada (V2-F16-E06, P1; evidência: `geo-paridade.espacial.test.ts` e `geo.test.ts`); nenhuma decisão de município ou de duplicidade em TypeScript.
+- [ ] Duplicidade por distância e janela no banco, só ao servidor, sem decisão automática, com o plano da consulta usando o índice espacial (V2-F16-E07, P1; evidência: testes e plano).
+- [ ] Nota interna e mensagem pública em tabelas e serviços separados, sem caminho entre elas (V2-F16-E08; evidência: testes).
+- [ ] Relato identificado com o CPF da conta copiado cifrado e preso à linha, hash por município, `cpf_pendente` sem CPF, só a máscara nas leituras e CPF fora de laudo, trilha, CSV e ocorrência convertida (V2-F16-E16; evidência: `relato-cpf.test.ts` com CPF sintético); CP-46 decidido, ou adiado com CPF real bloqueado.
+- [ ] Leitura do cidadão por lista de inclusão: coluna nova não vaza e as sentinelas não aparecem (V2-F16-E09; evidência: teste de contrato).
+- [ ] Conversão idempotente com `relato_origem_id`, protocolo oficial só nela, canal `app_cidadao` protegido e texto bruto fora da trilha (V2-F16-E10; evidência: testes e linhas antes e depois).
+- [ ] Resumo, CSV, `resumir_municipio()` e console não contam relato, e o convertido conta uma vez (V2-F16-E11; evidência: testes e varredura de fonte).
+- [ ] Anexos do relato só pela cadeia segura, com 5 fotos e 1 vídeo no máximo (F06-E18 a E20), cota própria e sem caminho para evidência, laudo ou agente (V2-F16-E12; evidência: testes); `ARQUIVOS_EXTERNOS_ATIVO` continua `nao` em produção.
+- [ ] Expiração idempotente no worker (V2-F16-E13, P2; evidência: testes e log); ou adiada com o relato em `aguardando_cidadao` sem expirar, registrada em `apps/api/PENDENCIAS.md`.
+- [ ] Manifesto completo das tabelas do relato, saída e eliminação cientes, retenção só em modo `relatar` (V2-F16-E14; evidência: manifesto e testes); CP-10 decidido ou adiado com a execução de prazos bloqueada.
+- [ ] Negativos: relato não vira evidência nem laudo, não consome protocolo oficial e não aparece em resumo nem CSV (V2-F16-E15; evidência: `relato-nao-e-ocorrencia.test.ts` e laudo sintético).
+- [ ] Portão visual: nenhuma tela entrou nesta fase; os contratos de leitura e de sinal estão arquivados para as telas da F17 e da F18 (evidência: lista de arquivos tocados).
+- [ ] Nenhuma regressão: gates G00 a G15 e G32 continuam verdes (se um quebrar, ESTE gate volta a REPROVADO), com `npm run test:isolamento`, `npm run test:api`, `npm run test:console`, `npm run test:e2e`, `npm run test:e2e:api` e `npm run typecheck` verdes.
+- [ ] Documentação atualizada (`docs/DICIONARIO-DE-DADOS.md`, `docs/PRIVACIDADE.md`, `docs/SAIDA-DE-MUNICIPIO.md`, ADR 0016) e evidências arquivadas em `docs/evidencias-v2/G16/`.
+
+**Reabre se:** relato aparecer em métrica oficial, laudo, evidência ou protocolo oficial; a leitura do cidadão ganhar coluna fora da lista de inclusão; o município do relato vier de parâmetro do cliente; texto livre do cidadão entrar em tabela imutável; município ou duplicidade passarem a ser decididos fora do banco (TypeScript, cliente ou lista do cliente); relato criado sem CPF ou CPF em claro em log, lista, trilha, laudo ou ocorrência; segundo vídeo aceito no mesmo relato; vídeo do cidadão chegar ao laudo ou ao app do agente.
+**Este Gate libera:** F17 (app do cidadão, com G15, G08 e G12), F18 (triagem no painel), F34 (canal ampliado, que estende `relato_mensagens` e `relato_anexos`) e, com G18 e G14, F19. NÃO libera a abertura pública do canal (CP-11, CP-26, CP-28, CP-33, CP-46 e G25).

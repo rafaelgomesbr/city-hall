@@ -1,0 +1,61 @@
+### CMD: npx vitest run (cwd=/c/Projetos/city-hall/dc360/packages/shared) inicio=2026-09-30T16:17:28-03:00
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/packages/shared
+
+ ✓ src/localizacao.test.ts (16 tests) 17ms
+ ✓ test/telefone.test.ts (10 tests) 8ms
+ ✓ test/campos.test.ts (7 tests) 7ms
+ ✓ src/pessoas.test.ts (11 tests) 17ms
+ ✓ test/evidencia.test.ts (10 tests) 17ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 15ms
+ ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 20ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 17ms
+ ✓ test/csv.test.ts (8 tests) 8ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 26ms
+ ✓ test/permissoes.test.ts (13 tests) 15ms
+ ✓ test/mensagens-em-portugues.test.ts (8 tests) 23ms
+ ✓ test/dominio.test.ts (14 tests) 780ms
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  767ms
+ ❯ test/regras-de-conteudo.test.ts (5 tests | 1 failed) 5249ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação  775ms
+   × Regras de conteúdo > nenhum travessão em texto nenhum 3429ms
+     → travessão encontrado; use vírgula, dois pontos ou parênteses:
+dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("—");
+docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe: expected [ …(2) ] to deeply equal []
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  1027ms
+   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 3ms
+   ✓ Regras de conteúdo > as próprias expressões funcionam 12ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/regras-de-conteudo.test.ts > Regras de conteúdo > nenhum travessão em texto nenhum
+AssertionError: travessão encontrado; use vírgula, dois pontos ou parênteses:
+dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("—");
+docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe: expected [ …(2) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"—\");",
++   "docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe",
++ ]
+
+ ❯ test/regras-de-conteudo.test.ts:158:7
+    156|         ? ""
+    157|         : `travessão encontrado; use vírgula, dois pontos ou parêntese…
+    158|     ).toEqual([]);
+       |       ^
+    159|   });
+    160| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 13 passed (14)
+      Tests  1 failed | 148 passed (149)
+   Start at  16:17:32
+   Duration  7.03s (transform 3.91s, setup 0ms, collect 10.59s, tests 6.22s, environment 6ms, prepare 8.33s)
+
+### EXIT=1 DURACAO=12s fim=2026-09-30T16:17:40-03:00

@@ -1,0 +1,60 @@
+
+== Subindo API na 3693 ==
+API de pé.
+
+== Construindo o painel apontado para http://127.0.0.1:3693 ==
+
+> @dc360/web@0.1.0 build
+> tsc -b && vite build
+
+[36mvite v7.3.6 [32mbuilding client environment for production...[36m[39m
+transforming...
+[33m../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:198): "resolve" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".[39m
+[33m../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:211): "existsSync" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".[39m
+[33m../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:224): "join" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".[39m
+[33m../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:247): "mkdirSync" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".[39m
+[32m✓[39m 183 modules transformed.
+[33m../../node_modules/@electric-sql/pglite/dist/index.js (1:90333): Use of eval in "../../node_modules/@electric-sql/pglite/dist/index.js" is strongly discouraged as it poses security risks and may cause issues with minification.[39m
+[33m../../node_modules/@electric-sql/pglite/dist/index.js (1:90814): Use of eval in "../../node_modules/@electric-sql/pglite/dist/index.js" is strongly discouraged as it poses security risks and may cause issues with minification.[39m
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                                  [39m[1m[2m    3.67 kB[22m[1m[22m[2m │ gzip:     1.50 kB[22m
+[2mdist/[22m[32massets/postgres-CkP7QCDB.data               [39m[1m[2m5,401.75 kB[22m[1m[22m
+[2mdist/[22m[32massets/postgres-CyuUVpXN.wasm               [39m[1m[2m8,090.73 kB[22m[1m[22m[2m │ gzip: 2,782.95 kB[22m
+[2mdist/[22m[35massets/index-naBOzO6Q.css                   [39m[1m[2m   40.24 kB[22m[1m[22m[2m │ gzip:     7.47 kB[22m
+[2mdist/[22m[36massets/__vite-browser-external-BIHI7g3E.js  [39m[1m[2m    0.03 kB[22m[1m[22m[2m │ gzip:     0.05 kB[22m
+[2mdist/[22m[36massets/nodefs-C1Xwle1W.js                   [39m[1m[2m    0.42 kB[22m[1m[22m[2m │ gzip:     0.29 kB[22m
+[2mdist/[22m[36massets/opfs-ahp-C35QO0WC.js                 [39m[1m[2m   10.01 kB[22m[1m[22m[2m │ gzip:     3.04 kB[22m
+[2mdist/[22m[36massets/index-CR76-bYN.js                    [39m[1m[33m1,633.54 kB[39m[22m[2m │ gzip:   427.35 kB[22m
+[33m
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32m✓ built in 26.66s[39m
+
+== Servindo o painel na 4693 ==
+Painel de pé.
+
+== Verificações do caminho de produção, em chromium ==
+
+== 28. Baixar o pacote de saida pelo painel, contra a API real (V2-F00-E11) ==
+  OK   a administradora entra pela API
+  OK   a coordenadora entra pela API
+  OK   POST /pacote.zip na raiz e 404 (o defeito era o prefixo)
+  OK   GET /saida/pacote.zip tambem nao baixa nada
+  OK   a coordenadora recebe 403 sem_permissao da API
+  OK   a administradora ve o botao Baixar pacote de saida em Organizacao
+  FALHA o navegador recebe o download depois do clique (a tela diz: Rota não encontrada.)
+
+Passou: 6   Falhou: 1
+file:///C:/Projetos/city-hall/dc360/scripts/_e2e-aparado-e11.mjs:112
+    p.on("exit", (codigo) => (codigo === 0 ? resolve() : reject(new Error(`saiu com ${codigo}`))));
+                                                                ^
+
+Error: saiu com 1
+    at ChildProcess.<anonymous> (file:///C:/Projetos/city-hall/dc360/scripts/_e2e-aparado-e11.mjs:112:65)
+    at ChildProcess.emit (node:events:518:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
+
+Node.js v22.17.0

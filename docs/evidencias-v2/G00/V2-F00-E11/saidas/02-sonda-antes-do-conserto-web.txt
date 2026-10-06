@@ -1,0 +1,104 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/dc360/apps/web[39m
+
+ [31m❯[39m test/pacote-de-saida.test.ts [2m([22m[2m7 tests[22m[2m | [22m[31m5 failed[39m[2m)[22m[32m 39[2mms[22m[39m
+[31m   [31m×[31m Baixar o pacote de saída[2m > [22mchama POST /saida/pacote.zip com o token, e entrega o endereço e o nome do arquivo[39m[32m 16[2mms[22m[39m
+[31m     → expected false to be true // Object.is equality[39m
+[31m   [31m×[31m Baixar o pacote de saída[2m > [22m401 no primeiro pedido renova o token UMA vez e baixa com o token novo[39m[32m 2[2mms[22m[39m
+[31m     → Token inválido ou expirado.[39m
+[31m   [31m×[31m Baixar o pacote de saída[2m > [22mse renovar não adianta, para: uma renovação, um pedido repetido, e a tela é avisada da sessão[39m[32m 6[2mms[22m[39m
+[31m     → expected [ { url: '/pacote.zip', …(2) } ] to have a length of 2 but got 1[39m
+   [32m✓[39m Baixar o pacote de saída[2m > [22m403 sem permissão: a frase do servidor chega à tela, e a sessão continua[32m 2[2mms[22m[39m
+   [32m✓[39m Baixar o pacote de saída[2m > [22mmunicípio suspenso: a frase de contrato chega à tela, sem derrubar a sessão[32m 2[2mms[22m[39m
+[31m   [31m×[31m Baixar o pacote de saída[2m > [22msem rede: a frase diz que o ARQUIVO não foi baixado, e não que algo preenchido não foi enviado[39m[32m 6[2mms[22m[39m
+[31m     → expected 'Sem conexão com o servidor. O que voc…' to be 'Sem conexão com o servidor. O arquivo…' // Object.is equality[39m
+[31m   [31m×[31m Baixar o pacote de saída[2m > [22ma conexão que cai no MEIO do arquivo também vira a frase de rede, e não 'Failed to fetch'[39m[32m 3[2mms[22m[39m
+[31m     → expected TypeError: network error to be an instance of SemConexao[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 5 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/pacote-de-saida.test.ts[2m > [22mBaixar o pacote de saída[2m > [22mchama POST /saida/pacote.zip com o token, e entrega o endereço e o nome do arquivo
+[31m[1mAssertionError[22m: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m test/pacote-de-saida.test.ts:[2m83:60[22m[39m
+    [90m 81| [39m    [34mexpect[39m(chamadas)[33m.[39m[34mtoHaveLength[39m([34m1[39m)[33m;[39m
+    [90m 82| [39m    // O defeito: `/pacote.zip`. O caminho certo termina em `/saida/pa…
+    [90m 83| [39m    [34mexpect[39m(chamadas[[34m0[39m][33m![39m[33m.[39murl[33m.[39m[34mendsWith[39m([32m"/saida/pacote.zip"[39m))[33m.[39m[34mtoBe[39m([35mtrue[39m)[33m;[39m
+    [90m   | [39m                                                           [31m^[39m
+    [90m 84| [39m    [34mexpect[39m(chamadas[[34m0[39m][33m![39m[33m.[39murl[33m.[39m[34mendsWith[39m([32m"//pacote.zip"[39m))[33m.[39m[34mtoBe[39m([35mfalse[39m)[33m;[39m
+    [90m 85| [39m    [34mexpect[39m(chamadas[[34m0[39m][33m![39m[33m.[39mmetodo)[33m.[39m[34mtoBe[39m([32m"POST"[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pacote-de-saida.test.ts[2m > [22mBaixar o pacote de saída[2m > [22m401 no primeiro pedido renova o token UMA vez e baixa com o token novo
+[31m[1mErroDaApi[22m: Token inválido ou expirado.[39m
+[36m [2m❯[22m Module.baixarPacoteDeSaida src/dados/http.ts:[2m1092:11[22m[39m
+    [90m1090| [39m    }))[33m;[39m
+    [90m1091| [39m  [35mif[39m ([33m![39mresposta[33m.[39mok) {
+    [90m1092| [39m    throw new ErroDaApi(resposta.status, await resposta.json().catch((…
+    [90m   | [39m          [31m^[39m
+    [90m1093| [39m  }
+    [90m1094| [39m  [35mreturn[39m {
+[90m [2m❯[22m test/pacote-de-saida.test.ts:[2m101:21[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pacote-de-saida.test.ts[2m > [22mBaixar o pacote de saída[2m > [22mse renovar não adianta, para: uma renovação, um pedido repetido, e a tela é avisada da sessão
+[31m[1mAssertionError[22m: expected [ { url: '/pacote.zip', …(2) } ] to have a length of 2 but got 1[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 2[39m
+[31m+ 1[39m
+
+[36m [2m❯[22m test/pacote-de-saida.test.ts:[2m121:22[22m[39m
+    [90m119| [39m
+    [90m120| [39m    [90m// Pedido, renovação que falha. Sem terceiro pedido e sem laço.[39m
+    [90m121| [39m    [34mexpect[39m(chamadas)[33m.[39m[34mtoHaveLength[39m([34m2[39m)[33m;[39m
+    [90m   | [39m                     [31m^[39m
+    [90m122| [39m    [34mexpect[39m(expirou)[33m.[39m[34mtoHaveBeenCalledTimes[39m([34m1[39m)[33m;[39m
+    [90m123| [39m    [34mexpect[39m(sessionStorage[33m.[39m[34mgetItem[39m([32m"dc360:tokens"[39m))[33m.[39m[34mtoBeNull[39m()[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pacote-de-saida.test.ts[2m > [22mBaixar o pacote de saída[2m > [22msem rede: a frase diz que o ARQUIVO não foi baixado, e não que algo preenchido não foi enviado
+[31m[1mAssertionError[22m: expected 'Sem conexão com o servidor. O que voc…' to be 'Sem conexão com o servidor. O arquivo…' // Object.is equality[39m
+
+Expected: [32m"Sem conexão com o servidor. O [7marquivo[27m não foi [7mbaix[27mado. Verifique o sinal e tente de novo."[39m
+Received: [31m"Sem conexão com o servidor. O [7mque você preencheu[27m não foi [7menvi[27mado. Verifique o sinal e tente de novo."[39m
+
+[36m [2m❯[22m test/pacote-de-saida.test.ts:[2m161:37[22m[39m
+    [90m159| [39m
+    [90m160| [39m    [34mexpect[39m(erro)[33m.[39m[34mtoBeInstanceOf[39m(http[33m.[39m[33mSemConexao[39m)[33m;[39m
+    [90m161| [39m    [34mexpect[39m((erro [35mas[39m [33mError[39m)[33m.[39mmessage)[33m.[39m[34mtoBe[39m(
+    [90m   | [39m                                    [31m^[39m
+    [90m162| [39m      "Sem conexão com o servidor. O arquivo não foi baixado. Verifiqu…
+    [90m163| [39m    )[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/pacote-de-saida.test.ts[2m > [22mBaixar o pacote de saída[2m > [22ma conexão que cai no MEIO do arquivo também vira a frase de rede, e não 'Failed to fetch'
+[31m[1mAssertionError[22m: expected TypeError: network error to be an instance of SemConexao[39m
+[36m [2m❯[22m test/pacote-de-saida.test.ts:[2m178:18[22m[39m
+    [90m176| [39m    const erro = await http.baixarPacoteDeSaida(SESSAO).catch((e: unkn…
+    [90m177| [39m
+    [90m178| [39m    [34mexpect[39m(erro)[33m.[39m[34mtoBeInstanceOf[39m(http[33m.[39m[33mSemConexao[39m)[33m;[39m
+    [90m   | [39m                 [31m^[39m
+    [90m179| [39m    expect((erro as Error).message).toContain("O arquivo não foi baixa…
+    [90m180| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m5 failed[39m[22m[2m | [22m[1m[32m2 passed[39m[22m[90m (7)[39m
+[2m   Start at [22m 15:17:55
+[2m   Duration [22m 1.10s[2m (transform 211ms, setup 0ms, collect 575ms, tests 39ms, environment 0ms, prepare 200ms)[22m
+

@@ -1,0 +1,39 @@
+
+== 27. Recuperacao de senha de ponta a ponta com o notificador de teste (V2-F00-E10) ==
+  OK   com a recuperacao ligada o formulario aparece (a tela perguntou ao servidor antes)
+  OK   no celular nenhum controle do pedido tem menos de 44 px de altura
+  OK   o Tab vai do email ao botao e do botao ao link de voltar
+  OK   email em branco: a frase diz o que digitar
+  OK   e o foco volta para o campo do email
+  OK   email torto: a frase mostra o formato
+  OK   email que nao existe: a tela diz exatamente o mesmo
+  OK   email de conta de qualquer municipio: a mesma frase, sem pista de qual municipio e a conta
+  OK   o notificador de teste recebeu o link das duas contas que existem e de nenhum email inexistente
+  OK   o link tem o formato /redefinir-senha?token=...
+  OK   o token sai da barra de endereco assim que a tela o le
+  OK   e a tela continua funcionando (o token ficou guardado na memoria da pagina)
+  OK   no celular nenhum controle da senha nova tem menos de 44 px de altura
+  OK   senha curta: o erro fica na senha nova, e so nela
+  OK   senhas diferentes: o erro fica na repeticao, e so nela
+  OK   redefine a senha e confirma
+  OK   a tela oferece ir para a entrada agora
+  OK   e leva sozinha para a entrada, com recarga completa
+  OK   a senha antiga morreu e a nova entra
+  OK   o link de uma conta nao mexeu em nenhuma outra (nem do mesmo municipio, nem do outro)
+  OK   o mesmo link duas vezes: a segunda e recusada com a frase que manda pedir outro
+  OK   e a tela oferece o caminho de pedir um novo link
+  OK   a senha que a segunda tentativa quis definir NAO vale; a de antes continua
+  OK   pela API tambem: 401
+  OK   link inventado: exatamente a mesma frase do link usado (a tela nao distingue)
+  OK   endereco sem link: diz que o link veio incompleto
+  OK   com sessao aberta, o link que nao vale mostra a frase de link, e nao a de sessao encerrada
+  OK   e a sessao de quem estava logado continua de pe
+  OK   recuperacao desligada: a tela manda procurar quem administra, com os quatro passos, e nao mostra formulario
+  OK   os passos apontam o botao Redefinir senha da lista de Usuarios
+  OK   se o servidor responde 503 recuperacao_desligada no pedido, a tela troca para as instrucoes de quem administra
+  OK   limite de pedidos (429): a frase manda aguardar, e o formulario continua
+  OK   sem rede: a frase diz que nada foi enviado
+
+====================================================
+Passou: 33   Falhou: 0
+Zero erro de console.

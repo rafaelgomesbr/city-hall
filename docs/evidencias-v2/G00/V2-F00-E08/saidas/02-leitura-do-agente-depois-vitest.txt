@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/leitura-do-agente-oficios-e-avisos.test.ts (14 tests) 4924ms
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  12:46:54
+   Duration  7.96s (transform 484ms, setup 64ms, collect 2.45s, tests 4.92s, environment 0ms, prepare 209ms)
+

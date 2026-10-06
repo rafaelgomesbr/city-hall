@@ -1,0 +1,70 @@
+# Texto que a tela de envio do aplicativo de campo desenha, por estado da fila
+# Gerado pelo mesmo teste de componente que prova a tela (src/ui/fila-pausada-pela-sessao.test.tsx).
+# NAO e foto de aparelho: a foto continua pendente (validacao humana).
+
+=== ESTADO DA FILA: pausadaPor = null ===
+  0
+  coletas na fila
+  Minhas coletas
+  2
+  2026/000471
+  …
+  Aguardando
+  Ainda não saiu do aparelho. Vai sair assim que houver sinal.
+  Coletada em 
+  06/10/2026, 06:00:00
+  2026/000472
+  …
+  Aguardando
+  Ainda não saiu do aparelho. Vai sair assim que houver sinal.
+  Coletada em 
+  06/10/2026, 06:00:00
+  Tentar enviar agora
+  O envio acontece sozinho, em segundo plano. Este botão é para quando você quer ver acontecer.
+
+=== ESTADO DA FILA: pausadaPor = sessao_encerrada ===
+  0
+  coletas na fila
+  Minhas coletas
+  2
+  ×
+  Sua sessão terminou e o envio está parado
+  Suas coletas continuam guardadas neste aparelho e nada foi apagado. Entre de novo com o seu email e a sua senha: assim que você entrar, elas sobem sozinhas.
+  Entrar de novo
+  2026/000471
+  ⏸
+  Guardada
+  Guardada neste aparelho. Sobe sozinha depois que você entrar de novo.
+  Coletada em 
+  06/10/2026, 06:00:00
+  2026/000472
+  ⏸
+  Guardada
+  Guardada neste aparelho. Sobe sozinha depois que você entrar de novo.
+  Coletada em 
+  06/10/2026, 06:00:00
+  Tentar enviar agora
+  O envio acontece sozinho, em segundo plano. Este botão é para quando você quer ver acontecer.
+
+=== ESTADO DA FILA: pausadaPor = conta_desativada ===
+  0
+  coletas na fila
+  Minhas coletas
+  2
+  ×
+  Sua conta foi desativada e o envio está parado
+  Suas coletas continuam guardadas neste aparelho, procure a coordenação do seu município. Entrar de novo não resolve enquanto a conta estiver desativada. Se ela for reativada, as coletas sobem depois que você entrar.
+  2026/000471
+  ⏸
+  Guardada
+  Guardada neste aparelho. Só sobe depois que a coordenação reativar a sua conta e você entrar.
+  Coletada em 
+  06/10/2026, 06:00:00
+  2026/000472
+  ⏸
+  Guardada
+  Guardada neste aparelho. Só sobe depois que a coordenação reativar a sua conta e você entrar.
+  Coletada em 
+  06/10/2026, 06:00:00
+  Tentar enviar agora
+  O envio acontece sozinho, em segundo plano. Este botão é para quando você quer ver acontecer.

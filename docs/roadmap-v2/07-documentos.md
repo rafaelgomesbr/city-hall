@@ -1,0 +1,853 @@
+# Fase 09: Documentos oficiais V2
+
+**Gate da fase:** G09 DOCUMENTOS IMUTÁVEIS | **Depende dos gates:** G07 (armazenamento e Chromium, que já exige G06) e G05; na ordem de execução (D-29) vêm antes dela também G08 e G32 | **Superfícies tocadas:** `apps/api`, `db`, `packages/shared` (telas só em compatibilidade; as telas são da F10-E07) | **Checkpoints da fase:** CP-10, CP-14, CP-15, CP-16, CP-41, CP-42
+
+Hoje o documento é função de estado mutável: laudo, termos e ofício são montados do banco a cada abertura e o PDF é descartado. O "registro de emissão" não é tabela: é uma linha `documento_emitido` em `trilha_eventos`, sem conteúdo (índice `trilha_documento_emitido_uma_vez`, migração `009_assinatura_data_e_emissao.sql`; `registrarEmissao` em `apps/api/src/trilha.ts:72`). Por isso a F09-E03 CRIA `documentos_emitidos` (nenhuma das 46 migrações tem tabela de documento) e mantém a linha da trilha. A fase faz do documento uma entidade guardada: snapshot, PDF de escrita única, hash, versão do modelo, aprovação autenticada, substituição e cancelamento por evento. Pela D-09, a versão emitida e aprovada pode seguir a um provedor externo de assinatura (avançada ou ICP-Brasil) por API, e a guarda do PDF assinado é um artefato imutável ligado ao emitido. Pela lacuna L8, a fase traz também notificação, relatório fotográfico avulso e a habilitação de modelos por município.
+
+**MANTER:** o texto dos modelos (`laudo.ts`, `folha.ts`, `oficios/documento.ts`), as regras do ato de interdição (`documentos.ts:345-399`, `:458-490`, `:650-706`), a consulta nominal (`registrarConsulta`), o fuso por UF, `escapar`, a trilha atual e o identificador de 12 hexadecimais (papel já impresso segue validando). **Entra pela D-09** (E19 a E28): assinatura avançada e ICP-Brasil por provedor externo via API, atrás de adaptador injetável, desligada por padrão. **Fora desta fase:** telas (F10-E07) e a edição por município dos formulários e modelos (F33; aqui só os modelos e a habilitação, E16 a E18). O mecanismo se chama APROVAÇÃO AUTENTICADA na interface até o parecer J8 (CP-14); a E28 diz como o texto troca. Caminhos de `documentos/`, `rotas/`, `saida/`, `armazenamento/`, `auth/` e `privacidade/` são relativos a `apps/api/src/`.
+
+Ordem: E01; E02 e E03 em paralelo; E04; E05; E06 (a emissão de rascunho chama a E05); E07, E09, E10 e E11; E08, E12, E14 e E15; E13 por último entre as originais (P3, atrás de CP-16). Novas: E16 depois da E04; E17 e E18 depois da E05 e da E16; E19 depois da E07; E20 depois da E19; E21 depois da E08 e da E20; E22 depois da E14 e da E21; E23 e E26 depois da E22; E24 depois da E09 e da E23; E25 e E27 depois da E24; E28 por último, atrás de CP-14.
+
+## Etapas
+
+### V2-F09-E01 - ADR 0013: documento emitido imutável e aprovação autenticada (sem chamar de assinatura)
+- **Prioridade:** P0
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (E02 a E28 executam o ADR)
+- **Objetivo:** registrar D-05, D-06 e A-04 em ADR antes de qualquer código.
+- **Problema que resolve:** a reimpressão relê o banco (`apps/api/src/rotas/documentos.ts:53-280`) e nada diz o que é imutável nem como se chama a aprovação (REL:09 1.2).
+- **Origem:** PR:D-05; PR:D-06; PR:D-09; PR:A-04; DP:T26; DP:T27.
+- **Estado atual:** CRIAR (ADRs 0001 a 0008 existem em `docs/adr/`; a 0013 não).
+- **Dependências de entrada:** G07 e G05.
+- **O que deve ser implementado:**
+  - Arquivos: nove cláusulas: (1) imutável é PDF, snapshot, hashes, versão do modelo, emissor, aprovação, instante; (2) estados rascunho, em revisão, aprovado (autenticado), emitido, substituído, cancelado; (3) correção é versão nova com `substitui_id`, cancelamento é evento; (4) reimpressão serve o PDF guardado, nunca regenera; (5) um montador e o mesmo artefato no pacote; (6) cobre laudo, dois termos e ofício; (7) nome APROVAÇÃO AUTENTICADA na interface até J8, e assinatura por provedor externo só como adaptador (E19 a E28); (8) retenção em classe própria com derivado redigido (CP-10); (9) sem PDF guardado não há emissão.
+- **O que NÃO deve ser implementado nesta etapa:** código, migration ou tela (E02 a E28); competência e nível (CP-14); prazos (CP-10); o desenho do provedor (ADR própria, E19).
+- **Arquivos e módulos prováveis:** `docs/adr/0013-documento-emitido-imutavel-e-aprovacao-autenticada.md` (a criar em `docs/adr/`).
+- **Risco de segurança:** médio; ADR vaga deixaria etapa conceder UPDATE em documento emitido.
+- **Impacto LGPD:** registra o conflito prova x minimização e a saída técnica.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: texto, sem efeito em código.
+- **Rollback:** reverter o arquivo; mudança vira ADR nova.
+- **Testes positivos:** `regras-de-conteudo.test.ts` passa sobre o ADR.
+- **Testes negativos:** travessão, norma fora da lista ou o termo proibido de nomenclatura no ADR reprova a varredura.
+- **Testes de autorização e isolamento:** Não se aplica: sem código.
+- **Regressão obrigatória:** `npm run test --workspace @dc360/shared`; G00 a G08 verdes.
+- **E2E:** Não se aplica: sem fluxo.
+- **Validação humana:** Rafael aprova; J8 segue em CP-14.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E01/` (ADR aprovado).
+- **Documentação a atualizar:** `docs/roadmap-v2/01-decisoes-e-principios.md`.
+- **Definition of Done:** ADR aprovado; cada cláusula aponta etapa e teste.
+- **Checkpoint:** Não.
+
+### V2-F09-E02 - Montador único de dados do documento (rota e pacote de saída)
+- **Prioridade:** P0
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E03)
+- **Objetivo:** uma função lê o banco e entrega o dado do documento à rota e ao pacote.
+- **Problema que resolve:** dois montadores divergiram: `reunirDados` (`documentos.ts:53-280`) e o bloco de `saida/pacote.ts:479-494` (sem equipes, fotos de todas as vistorias, perdidas, coordenada do ponto, vistoria do ato, identificador que não valida); o ofício repete o par (`oficios.ts:92`, `pacote.ts:519`).
+- **Origem:** DP:T26; BZ-D:DOC-16; BZ-D:DOC-17; BZ-N:N.4.
+- **Estado atual:** SUBSTITUIR o montador inline de `saida/pacote.ts` (divergiu; a F00-E12 conserta só o aviso de equipe); `reunirDados` é REFATORADO e vira o único.
+- **Dependências de entrada:** E01; F00-E12; F06-E08 e F06-E12.
+- **O que deve ser implementado:**
+  - Domínio: `packages/shared/src/documentos.ts` (a criar): esquema Zod `SnapshotDoDocumento` (ocorrência, vistoria, agente, equipes, fotos, perdidas, órgãos, traço, fuso), sem URL assinada.
+  - API: `documentos/montador.ts` (a criar): `montarDocumento(c, quem, ocorrenciaId, tipo, opcoes)` sob `comTenant`: fotos só da vistoria, avulsas só com `incluir_no_laudo` (F06-E12), vistoria do ato. Rota, ofício e pacote só o chamam; `laudo.ts` renderiza do snapshot.
+- **O que NÃO deve ser implementado nesta etapa:** guardar snapshot, hash ou PDF (E03 a E05); estados (E06); texto dos modelos.
+- **Arquivos e módulos prováveis:** `documentos/montador.ts`, `rotas/documentos.ts`, `rotas/oficios.ts`, `saida/pacote.ts`, `documentos/laudo.ts`.
+- **Risco de segurança:** alto; só roda sob `comTenant`, recebe ids, nunca organização.
+- **Impacto LGPD:** Não se aplica: só reorganiza a leitura.
+- **Migração necessária:** Não.
+- **Compatibilidade:** texto igual ao atual; o pacote muda só para corrigir.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** HTML dos quatro documentos igual ao do caminho antigo no mesmo seed; `saida-de-municipio.test.ts` verde.
+- **Testes negativos:** pacote de re-vistoria sem fotos da anterior; avulsa sem `incluir_no_laudo` ausente; `apps/api/test/montador-unico.test.ts` (a criar) reprova rota ou pacote com dado de outra origem.
+- **Testes de autorização e isolamento:** município B pede o laudo do A: 404; agente de campo: 403.
+- **Regressão obrigatória:** `npm run test:api` (documentos, saida-de-municipio, orgaos-e-oficio), `test:isolamento`, `typecheck`; G00 a G08.
+- **E2E:** `npm run test:e2e:api` compara o laudo do pacote com o da rota.
+- **Validação humana:** Rafael compara os dois laudos de uma re-vistoria.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E02/`.
+- **Documentação a atualizar:** `docs/SAIDA-DE-MUNICIPIO.md`.
+- **Definition of Done:** um só montador, imposto por teste estático.
+- **Checkpoint:** Não.
+
+### V2-F09-E03 - Tabela documentos_emitidos append-only e versionamento (migration)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E02)
+- **Objetivo:** criar `documentos_emitidos` e `documentos_eventos`, imutáveis para o papel de aplicação, com versão e `substitui_id`.
+- **Problema que resolve:** o registro de emissão é uma linha da trilha por par (documento, vistoria), sem conteúdo nem versão (migração 009:104-111), e `/validar` varre a trilha (`documentos.ts:881`) (BZ-D:DOC-11).
+- **Origem:** DP:T26; BZ-D:DOC-11; BZ-D:DOC-28; ALY:DOC-03.
+- **Estado atual:** CRIAR (nenhuma das 46 migrações cria tabela de documento; a linha `documento_emitido` na trilha é MANTIDA).
+- **Dependências de entrada:** E01.
+- **O que deve ser implementado:**
+  - Migration: `documentos_emitidos` (`organizacao_id`, `id`, `ocorrencia_id`, `tipo` (4), `vistoria_id` ou `oficio_id`, `versao`, `substitui_id`, `origem`, `identificador`, `snapshot` jsonb, `hash_snapshot`, `versao_modelo`, `chave_pdf`, `sha256_pdf` (CHECK de 64 hexadecimais), `marca_dagua`, emissor, `aprovacao_id`, `emitido_em`), únicos por `id` e por (ocorrência, tipo, `COALESCE` da referência, versão), com FKs compostas; `documentos_eventos` (`emitido_id`, `tipo` substituido ou cancelado, ator, `motivo`, instante).
+  - Banco: RLS forçada; policies e GRANT só de SELECT e INSERT; manifesto F05-E01 (sai, apaga, pessoal em `snapshot`, retenção `a_decidir` CP-10).
+- **O que NÃO deve ser implementado nesta etapa:** snapshot, hash e PDF (E04, E05); estados e aprovação (E06, E07); substituição (E09); derivado redigido (E12).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `db/test/documentos-imutaveis.test.ts` (a criar), `db/src/manifesto.ts`.
+- **Risco de segurança:** alto; prova do ato: sem UPDATE e DELETE, FK com organização.
+- **Impacto LGPD:** `snapshot` leva nome, relato e vulnerabilidade; classificado no manifesto.
+- **Migração necessária:** Sim (`NNN_documentos_emitidos.sql`, NNN próxima livre, hoje 047).
+- **Compatibilidade:** só tabelas novas.
+- **Rollback:** migration inversa enquanto vazia.
+- **Testes positivos:** versões 1 e 2 com `substitui_id` do mesmo município entram.
+- **Testes negativos:** UPDATE e DELETE negados ao papel de aplicação; `sha256_pdf` de 63 caracteres, versão repetida e laudo sem `vistoria_id` recusados.
+- **Testes de autorização e isolamento:** município B não lê documento do A nem por id; `substitui_id` de outro município recusado pela FK.
+- **Regressão obrigatória:** `npm run test:isolamento` (RLS forçada, FK com organização, manifesto), `typecheck`; G00 a G08.
+- **E2E:** Não se aplica: sem rota.
+- **Validação humana:** Rafael aplica em banco limpo e tenta UPDATE como papel de aplicação.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E03/`.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** tabelas isoladas, imutáveis e classificadas.
+- **Checkpoint:** Não.
+
+### V2-F09-E04 - Snapshot estruturado, versão do template e hash do PDF
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (a E05 consome)
+- **Objetivo:** congelar o snapshot canônico, o hash, a versão do modelo e o hash do PDF.
+- **Problema que resolve:** modelo sem versão (`folha.ts:314-357`); identificador de 12 hexadecimais não prova conteúdo (`laudo.ts:257-273`); sha256 das fotos não reverificado (`documentos.ts:295-320`) (BZ-D:DOC-12).
+- **Origem:** DP:T26; ALY:DOC-03; BZ-D:DOC-12.
+- **Estado atual:** EXPANDIR (`codigoDeEmissao` e o rodapé ficam; o identificador é MANTIDO).
+- **Dependências de entrada:** E02 e E03.
+- **O que deve ser implementado:**
+  - Domínio: `documentos/modelos.ts` (a criar): versão por documento (`laudo@1`); no shared, `canonizar` (chaves ordenadas) e `hashDoSnapshot` (SHA-256).
+  - API: `documentos/congelar.ts` (a criar): `reverificarProva` (F06-E08) em fotos e traço (hash do traço calculado aqui), sha256 de cada imagem no snapshot, 409 `prova_divergente` se mudou; `hashearPdf(bytes)` para a E05. O rodapé imprime as versões.
+- **O que NÃO deve ser implementado nesta etapa:** gravar PDF e linha (E05); estados e aprovação (E06, E07); QR (E13); PDF marcado (E15).
+- **Arquivos e módulos prováveis:** `documentos/modelos.ts` e `congelar.ts` (a criar), `packages/shared/src/documentos.ts`, `documentos/folha.ts`, `laudo.ts`.
+- **Risco de segurança:** médio; imagens só do prefixo do tenant; ordem de chaves não muda o hash.
+- **Impacto LGPD:** o snapshot tem dado pessoal; a trilha leva só ids e hashes.
+- **Migração necessária:** Não (colunas da E03).
+- **Compatibilidade:** o modelo atual vira `@1`; o texto muda só no rodapé.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** duas montagens do mesmo estado dão o mesmo `hash_snapshot`; coordenada corrigida muda o hash.
+- **Testes negativos:** foto trocada no armazenamento de memória: 409 `prova_divergente`; mexer em `laudo.ts` ou `folha.ts` sem subir a versão reprova `apps/api/test/modelo-versionado.test.ts` (a criar), que compara o sha256 do HTML de um snapshot fixo.
+- **Testes de autorização e isolamento:** chave de foto de outro município é recusada antes de ler o armazenamento; B emitindo documento do A: 404.
+- **Regressão obrigatória:** `npm run test:api` (documentos, fotos-do-documento), `typecheck`; G00 a G08.
+- **E2E:** Não se aplica: a E10 prova ponta a ponta.
+- **Validação humana:** Rafael confere versão e identificador no rodapé.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E04/`.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** snapshot canônico, hash e versão do modelo impostos por teste.
+- **Checkpoint:** Não.
+
+### V2-F09-E05 - PDF final guardado como objeto de escrita única
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E10, E11, E12 e E15 dependem)
+- **Objetivo:** emitir renderiza no worker, guarda o PDF com escrita única e insere `documentos_emitidos` com o efeito do ato.
+- **Problema que resolve:** o PDF é enviado e descartado (`documentos.ts:836-842`); só laudo e termo de interdição têm PDF (`:845-849`) (BZ-D:DOC-02; BZ-D:DOC-11).
+- **Origem:** DP:T26; BZ-D:DOC-11.
+- **Estado atual:** REFATORAR (`efetivarEmissao` e `responderPdf` passam a guardar o PDF).
+- **Dependências de entrada:** E04; G06; G07.
+- **O que deve ser implementado:**
+  - API: `documentos/emitir.ts` (a criar): id pré-gerado, snapshot (E04), PDF por `geradorPorFila` (F07-E05), `armazenamento.gravar` (F06-E07) em `tenant/<org>/documentos/<id>.pdf`; então, numa transação, INSERT em `documentos_emitidos`, evento `documento_emitido`, `marcarInterditada` se for ato e `registrarConsulta`. Os quatro tipos ganham PDF.
+  - Infraestrutura: sem gerador: 503 `pdf_indisponivel`, sem efeito; objeto órfão de falha (`armazenamento/orfaos.ts`) é reaproveitado na nova tentativa; classe `documento` de `armazenamento/uso.ts` fora do teto de evidência (F06-E09).
+- **O que NÃO deve ser implementado nesta etapa:** reimpressão (E10); pacote (E11); aprovação (E06, E07); PDF marcado (E15); retenção (E12).
+- **Arquivos e módulos prováveis:** `documentos/emitir.ts` (a criar), `rotas/documentos.ts`, `rotas/oficios.ts`, `armazenamento/uso.ts`.
+- **Risco de segurança:** alto; escrita única impede troca do PDF; chave sob o prefixo do tenant.
+- **Impacto LGPD:** o PDF leva dado pessoal; acesso só pela rota, com consulta nominal.
+- **Migração necessária:** Não (tabela da E03).
+- **Compatibilidade:** emitir exige `pdf` (testes usam gerador de teste); emissão só em HTML deixa de existir.
+- **Rollback:** reverter o commit; linhas criadas ficam.
+- **Testes positivos:** emitir grava objeto, linha com `sha256_pdf` igual ao hash e evento; termo interdita na mesma transação.
+- **Testes negativos:** sem gerador: 503 e `interditada_em` nulo; INSERT falho após gravar: sem efeito, nova tentativa conclui; PUT com bytes diferentes na mesma chave: erro.
+- **Testes de autorização e isolamento:** agente de campo: 403; município B pede PDF do A: 404 sem ler o armazenamento.
+- **Regressão obrigatória:** `npm run test:api` (documentos, segunda-via-nao-reinterdita, pdf-na-imagem), `test:isolamento`, `typecheck`; G00 a G08.
+- **E2E:** `npm run test:e2e:api` com Chromium.
+- **Validação humana:** Rafael abre o PDF guardado de um laudo sintético.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E05/`.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`.
+- **Definition of Done:** toda emissão guarda PDF e hash.
+- **Checkpoint:** Não.
+
+### V2-F09-E06 - Estados rascunho, revisão, aprovação autenticada e emissão
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E07 e E08 dependem)
+- **Objetivo:** estados no shared e no banco; com política que exige aprovação, só rascunho aprovado emite.
+- **Problema que resolve:** revisão e aprovação não existem: quem imprime é quem decide (`documentos.ts:569-571`) (BZ-D:DOC-18; ALY:DOC-04).
+- **Origem:** PR:D-06; ALY:DOC-04; BZ-D:DOC-18.
+- **Estado atual:** CRIAR (`TRANSICOES_PERMITIDAS` de `dominio.ts:155` é o molde).
+- **Dependências de entrada:** E03 (a emissão chama a E05).
+- **O que deve ser implementado:**
+  - Domínio: `documentos.ts` do shared: `ESTADOS_DO_DOCUMENTO`, `TRANSICOES_DO_DOCUMENTO`, `transicaoDeDocumentoPermitida`; devolução volta a rascunho com motivo. `permissoes.ts`: ações `revisar_documento`, `aprovar_documento`, `cancelar_documento` (coordenador e administrador).
+  - Migration: `documentos_rascunhos` (INSERT-only: snapshot candidato, `hash_snapshot`, `versao_modelo`, autor); `documentos_eventos` ganha `rascunho_id` e os tipos de rascunho (criado, revisão, devolvido, aprovado, recusado, emitido); gatilho BEFORE INSERT valida a transição; estado é o último evento (view `rascunhos_estado`).
+  - API: `POST /v1/documentos/:ocorrenciaId/:tipo/rascunhos`, `GET /v1/documentos/rascunhos/:id` e `POST /v1/documentos/rascunhos/:id/` `revisao`, `devolucao`, `emissao` (copia o snapshot aprovado, sem reler dado vivo); os GET atuais emitem direto enquanto a política (E08) não exigir aprovação.
+- **O que NÃO deve ser implementado nesta etapa:** registro com MFA (E07); política por município (E08); substituir ou cancelar emitido (E09); telas (F10-E07).
+- **Arquivos e módulos prováveis:** `packages/shared/src/documentos.ts`, `permissoes.ts`, `db/migrations/` (nova), `rotas/documentos.ts`.
+- **Risco de segurança:** alto; `exigirPermissao` antes do banco; transição validada também no banco.
+- **Impacto LGPD:** snapshot do rascunho tem dado pessoal: mesma classe do emitido (E12).
+- **Migração necessária:** Sim (`NNN_documentos_rascunhos.sql`).
+- **Compatibilidade:** fluxo de um clique preservado (padrão dispensa aprovação).
+- **Rollback:** migration inversa enquanto vazia.
+- **Testes positivos:** rascunho, revisão, aprovado (E07), emitido; devolução com motivo volta a rascunho.
+- **Testes negativos:** emitir rascunho `em_revisao`: 409 `estado_invalido`; pular a aprovado: recusado (shared e banco); devolver sem motivo: 422.
+- **Testes de autorização e isolamento:** agente de campo cria rascunho: 403; município B lê ou emite rascunho do A: 404.
+- **Regressão obrigatória:** `npm run test:api` (documentos, `eventos-tem-rotulo.test.ts`, `superficie.test.ts`), `test:isolamento`, `typecheck`; G00 a G08.
+- **E2E:** `npm run test:e2e:api`: rascunho a emitido com a política padrão.
+- **Validação humana:** Rafael percorre rascunho, revisão e devolução.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E06/`.
+- **Documentação a atualizar:** `docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** transições impostas no shared e no banco; fluxo atual intacto.
+- **Checkpoint:** Não.
+
+### V2-F09-E07 - Registro de aprovação autenticada (usuário nominal, MFA, versão, hash, decisão)
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não (E08 e E14 dependem)
+- **Objetivo:** registrar a aprovação (usuário nominal, MFA no ato, versão, hash, decisão); tipos de assinatura só reservados (E21 a E24).
+- **Problema que resolve:** a autoria é só quem imprimiu e o TOTP é opcional (`config.ts:291`) (BZ-D:DOC-18).
+- **Origem:** PR:D-06; PR:D-09; PR:A-04; DP:T27; BZ-D:DOC-18.
+- **Estado atual:** CRIAR (reutiliza `conferirNoLogin` de `auth/segundo-fator.ts`).
+- **Dependências de entrada:** E06; F03-E11.
+- **O que deve ser implementado:**
+  - Migration: `documentos_aprovacoes` (append-only: `rascunho_id`, `hash_snapshot`, `versao_modelo`, `decisao`, `motivo`, aprovador copiado com cargo, `mfa_verificado_em`, instante); `documentos_assinaturas` (tipo, signatário, hash, prova): `tipo` prevê `aprovacao_autenticada`, `simples`, `avancada` e `icp_brasil`, só o primeiro gravável aqui (a E21 libera o resto).
+  - API: `POST /v1/documentos/rascunhos/:id/aprovacao` `{decisao, codigo, motivo}` confere o TOTP no ato (código novo a cada aprovação); sem segundo fator: 403; recurso desligado: 503. Grava `aprovado` ou `recusado` em `documentos_eventos` e na trilha. Nova versão exige nova aprovação. A emissão grava `aprovacao_id` e o PDF imprime `Aprovação autenticada por <nome>, <cargo>, em <instante>`. Tipo reservado nesta rota: 501.
+- **O que NÃO deve ser implementado nesta etapa:** assinatura por provedor (E19 a E28); política (E08); QR (E13); telas (F10-E07); nível jurídico (CP-14).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `auth/segundo-fator.ts`, `rotas/documentos.ts`, `regras-de-conteudo.test.ts`.
+- **Risco de segurança:** alto; MFA conferido no servidor, código nunca logado.
+- **Impacto LGPD:** cargo e registro do aprovador.
+- **Migração necessária:** Sim (`NNN_aprovacoes_de_documento.sql`).
+- **Compatibilidade:** sem política que exija aprovação, nada muda.
+- **Rollback:** migration inversa enquanto vazia.
+- **Testes positivos:** TOTP válido aprova; o PDF mostra aprovador e instante; `aprovacao_id` fica na linha.
+- **Testes negativos:** TOTP errado: 401 `codigo_invalido`; código reutilizado: recusado; coordenador sem segundo fator: 403; `icp_brasil` aqui: 501; chamar a aprovação de assinatura em tela, documento ou `docs/` reprova `regras-de-conteudo.test.ts`.
+- **Testes de autorização e isolamento:** aprovador do B em rascunho do A: 404; operador e agente de campo: 403.
+- **Regressão obrigatória:** `npm run test:api` (segundo-fator, documentos), `test:isolamento`, `typecheck`; G03.
+- **E2E:** `npm run test:e2e:api` com `SEGUNDO_FATOR_ATIVO=sim`.
+- **Validação humana:** coordenador de teste aprova com o autenticador.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E07/`.
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** aprovação só com MFA no ato; nome imposto por teste.
+- **Checkpoint:** Não (nome final em CP-14, E28).
+
+### V2-F09-E08 - Políticas por município e tipo (exige aprovação, dupla) e cargo e registro profissional opcionais
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com E12)
+- **Objetivo:** política por município e tipo (padrão: não exige) e cargo e registro opcionais.
+- **Problema que resolve:** quem aprova é decisão do município e do jurídico (J8); o cargo é texto fixo (`laudo.ts:672`, `:719`, `:816`) e `usuarios` não tem cargo nem registro (migração 001:83-95) (BZ-D:DOC-19).
+- **Origem:** DP:T27; DP:J8; BZ-D:DOC-19; PR:A-04.
+- **Estado atual:** CRIAR (`documentos_politicas`) e EXPANDIR `usuarios` e `PATCH /usuarios/:id` (`administracao.ts:294`).
+- **Dependências de entrada:** E06.
+- **O que deve ser implementado:**
+  - Migration: `documentos_politicas` append-only (`tipo`, `exige_aprovacao`, `dupla_aprovacao`, `papeis_aprovadores` entre coordenador e administrador, autor, instante; vigente é a última linha); `usuarios.cargo` e `usuarios.registro_profissional` (texto curto, nulos).
+  - API: `GET` e `PUT /v1/documentos/politicas/:tipo` (`gerenciar_organizacao`); com `exige_aprovacao`, emitir direto responde 409; dupla exige duas pessoas, nenhuma o autor; `PATCH /usuarios/:id` aceita cargo e registro, com antes e depois em `trilha_administrativa`. O cargo impresso vem do snapshot.
+- **O que NÃO deve ser implementado nesta etapa:** decidir competência, registro obrigatório ou fundamento legal (CP-14); telas (F10-E07); modelos (E16 a E18, F33).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `rotas/administracao.ts`, `rotas/documentos.ts`, `documentos/laudo.ts`.
+- **Risco de segurança:** médio; só `gerenciar_organizacao` altera; papel fora da lista é recusado.
+- **Impacto LGPD:** registro profissional é dado pessoal opcional do servidor; classificado no manifesto.
+- **Migração necessária:** Sim (`NNN_politicas_de_documento.sql`).
+- **Compatibilidade:** o padrão preserva o comportamento atual.
+- **Rollback:** migration inversa.
+- **Testes positivos:** política que exige aprovação bloqueia a emissão direta e libera depois da aprovação.
+- **Testes negativos:** mesma pessoa duas vezes: recusado; `agente_campo` em `papeis_aprovadores`: 422; operador altera política: 403; cargo de 200 caracteres: 422.
+- **Testes de autorização e isolamento:** administrador do B lê só a política do B; a política do A não vale no B.
+- **Regressão obrigatória:** `npm run test:api` (documentos, `posto-abaixo-do-seu.test.ts`), `test:isolamento`, `typecheck`; G00 a G08.
+- **E2E:** `npm run test:e2e:api`: ligar a política, emitir direto (409), aprovar, emitir.
+- **Validação humana:** Alyson e o município definem a política do piloto em CP-14.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E08/`.
+- **Documentação a atualizar:** `docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** política imposta no servidor; padrão "não exige" preservado.
+- **Checkpoint:** CP-14 (decide competência, dupla e registro; sem decisão o padrão fica "não exige").
+
+### V2-F09-E09 - Substituição e cancelamento como eventos e histórico
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E10 e E11 leem o histórico)
+- **Objetivo:** correção é versão nova com `substitui_id`, cancelamento é evento com motivo, e a anterior fica preservada.
+- **Problema que resolve:** sem substituição nem cancelamento: o caminho é vistoria ou ocorrência nova e o ofício "não tem cancelamento" (`Ocorrencia.tsx:1692-1696`).
+- **Origem:** PR:D-05; BZ-D:DOC-18; ALY:RN-02.
+- **Estado atual:** CRIAR (`documentos_eventos` nasce na E03).
+- **Dependências de entrada:** E03 (a nova versão usa a emissão da E05).
+- **O que deve ser implementado:**
+  - Migration: view `documentos_situacao` (vigente, substituído, cancelado) calculada de `substitui_id` e de `documentos_eventos`.
+  - API: `POST /v1/documentos/emitidos/:id/substituicao` (`emitir_documento`, motivo obrigatório): só a versão vigente se substitui; o montador relê os dados vivos (único caso), emite a versão n+1 pela E05 e, na mesma transação, grava `substituido` na anterior; eventos na trilha `documento_substituido` e `documento_cancelado` (o índice de `documento_emitido` é por par). `POST /v1/documentos/emitidos/:id/cancelamento` (`cancelar_documento`, motivo): evento `cancelado`; identificador e versão não se reaproveitam; cancelar termo não levanta a interdição (`POST /ocorrencias/:id/desinterdicao`). `GET /v1/documentos/ocorrencia/:ocorrenciaId` lista versões e situação.
+- **O que NÃO deve ser implementado nesta etapa:** alterar PDF antigo; reabrir ocorrência (F13-E06, decidido em D-21: 30 dias configuráveis, depois só ocorrência vinculada; `estaEncerrada` substitui `estadoTerminal`); telas de versões (F10-E07).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `rotas/documentos.ts`, `documentos/emitir.ts`, `packages/shared/src/permissoes.ts`.
+- **Risco de segurança:** alto; versão anterior intocada; cancelar exige permissão própria e motivo.
+- **Impacto LGPD:** Não se aplica: sem dado novo (retenção na E12).
+- **Migração necessária:** Sim (`NNN_situacao_do_documento.sql`).
+- **Compatibilidade:** documento sem evento fica vigente.
+- **Rollback:** reverter view e rotas.
+- **Testes positivos:** v2 com `substitui_id`; v1 mantém bytes e hash e fica `substituido`; cancelamento com motivo muda a situação.
+- **Testes negativos:** sem motivo: 422; substituir versão já substituída: 409; cancelar duas vezes: 409; cancelar termo não limpa `interditada_em`.
+- **Testes de autorização e isolamento:** operador cancela: 403; município B substitui documento do A: 404.
+- **Regressão obrigatória:** `npm run test:api` (documentos, desinterdicao, eventos-tem-rotulo), `test:isolamento`, `typecheck`; G00 a G08.
+- **E2E:** fluxo J em `npm run test:e2e:api`: emitir, corrigir, substituir.
+- **Validação humana:** Rafael substitui um laudo sintético.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E09/`.
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** versão anterior preservada e consultável; fluxo J completo.
+- **Checkpoint:** Não.
+
+### V2-F09-E10 - Reimpressão serve o PDF guardado; teste laudo de amanhã igual ao de hoje
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** sim (com E11)
+- **Objetivo:** abrir um documento emitido devolve o PDF guardado, conferido contra `sha256_pdf`; nada regenera.
+- **Problema que resolve:** a reimpressão relê o banco e muda com nome ou matrícula do agente (`PATCH /usuarios/:id`, `administracao.ts:294`), equipe (`:93`), coordenada, foto avulsa, minimização e deploy (BZ-D:DOC-13).
+- **Origem:** PR:D-05; BZ-F:P0-INT; BZ-D:DOC-13.
+- **Estado atual:** REFATORAR (rotas de laudo, termos e `GET /oficios/:id/documento` ficam; muda o que respondem).
+- **Dependências de entrada:** E05.
+- **O que deve ser implementado:**
+  - API: resolve a versão vigente do par (tipo, vistoria vigente), ou emite como hoje se não houver (E05, E06); `armazenamento.baixar` e SHA-256 contra `sha256_pdf`; divergência: 500 `integridade_do_documento`, evento `documento_divergente`, nenhum byte enviado; `application/pdf` também nas rotas HTML; `GET /v1/documentos/emitidos/:id/arquivo` serve uma versão; `?previa=1` devolve o HTML vivo só como prévia, sem efeito; o link do ofício (`oficios.ts:602`) serve o PDF guardado.
+  - API: `/validar/:codigo` usa `identificador` indexado e devolve versão, situação e `sha256_pdf`; emissão anterior à fase valida com `conteudoGuardado: false` e, reaberta, emite a v1 com `origem` `reconstruida`, dita no documento.
+- **O que NÃO deve ser implementado nesta etapa:** tela de versões (F10-E07); pacote (E11); QR (E13).
+- **Arquivos e módulos prováveis:** `rotas/documentos.ts`, `rotas/oficios.ts`, `armazenamento/tipos.ts` (comentário), `apps/api/test/laudo-de-amanha-igual-ao-de-hoje.test.ts` (a criar).
+- **Risco de segurança:** alto; o PDF só sai depois da conferência do hash.
+- **Impacto LGPD:** a consulta nominal de cada abertura segue.
+- **Migração necessária:** Não.
+- **Compatibilidade:** papel já impresso continua validando.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** emite; muda nome e matrícula do agente, equipe, coordenada, foto avulsa, versão do modelo e minimização; a reimpressão tem o mesmo sha256.
+- **Testes negativos:** objeto adulterado em memória: 500 e evento; `validar` com código inventado ou de outro município: mesmo 404.
+- **Testes de autorização e isolamento:** município B abre o PDF do A: 404 sem tocar o armazenamento.
+- **Regressão obrigatória:** `npm run test:api` (documentos, identificador-da-emissao), `test:isolamento`, `typecheck`; G00 a G08.
+- **E2E:** fluxo I em `npm run test:e2e:api`.
+- **Validação humana:** Rafael muda o nome do agente e reimprime.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E10/`.
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** reimpressão idêntica ao emitido; fluxo I completo.
+- **Checkpoint:** Não.
+
+### V2-F09-E11 - Pacote de saída usa o mesmo artefato guardado
+- **Prioridade:** P0
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E10)
+- **Objetivo:** o pacote entrega o PDF guardado, o snapshot e o hash de cada versão emitida e não gera documento novo.
+- **Problema que resolve:** o pacote reconstrói laudo e termos de dado vivo (`saida/pacote.ts:659-787`), inclusive de ocorrência que nunca teve laudo; `SOMAS-SHA256.txt` (`:906`) prova o arquivo, não a fidelidade ao emitido (BZ-N:N.4; BZ-D:DOC-16).
+- **Origem:** PR:D-05; BZ-N:N.4; BZ-D:DOC-16; ALY:CA-10.
+- **Estado atual:** REFATORAR (`montarPacoteDeSaida` e `SOMAS-SHA256.txt` ficam; muda só a seção de documentos).
+- **Dependências de entrada:** E05.
+- **O que deve ser implementado:**
+  - API: por versão de `documentos_emitidos` (substituída e cancelada inclusive): `documentos/<pasta>/<tipo>-v<n>.pdf` (bytes conferidos contra `sha256_pdf`), `<tipo>-v<n>.snapshot.json` e linha em `documentos/indice.csv` (versão, situação, hash, emissor, aprovação); tabelas pelo manifesto (F05-E05). Ocorrência sem emissão: "sem documento emitido"; nada é fabricado.
+  - API: hash divergente ou objeto ilegível vai para `PENDENCIAS-DA-EXTRACAO.txt` como "não foi possível ler", nunca "inexistente".
+- **O que NÃO deve ser implementado nesta etapa:** worker e streaming (F07-E06); telas (F10-E08); eliminação (F20-E04).
+- **Arquivos e módulos prováveis:** `saida/pacote.ts`, `apps/api/test/saida-de-municipio.test.ts`.
+- **Risco de segurança:** médio; leitura só sob o tenant do administrador; hash conferido antes de entrar.
+- **Impacto LGPD:** o PDF leva o dado pessoal do emitido (ou o derivado da E12).
+- **Migração necessária:** Não.
+- **Compatibilidade:** o HTML dos documentos sai do pacote; testes e LEIA-ME migram.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** os bytes do PDF no ZIP têm o sha256 do emitido; o índice lista v1 e v2 de um documento substituído.
+- **Testes negativos:** ocorrência sem emissão não gera laudo; objeto adulterado vira pendência e não entra em `SOMAS-SHA256.txt`.
+- **Testes de autorização e isolamento:** administrador do B baixa o pacote do A: 404; o pacote do A só tem versões do A.
+- **Regressão obrigatória:** `npm run test:api` (saida-de-municipio, saida-nao-declara-inexistente), `test:isolamento`, `typecheck`; G00 a G08.
+- **E2E:** fluxo K: `npm run test:e2e:api` compara o hash do PDF do pacote real com o emitido.
+- **Validação humana:** Rafael abre o ZIP sintético e confere o hash de um laudo.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E11/`.
+- **Documentação a atualizar:** `docs/SAIDA-DE-MUNICIPIO.md`.
+- **Definition of Done:** pacote com o artefato guardado, sem montagem própria.
+- **Checkpoint:** Não.
+
+### V2-F09-E12 - Retenção do documento emitido: classe própria e derivado redigido
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** sim (com E13, E14 e E15)
+- **Objetivo:** um derivado redigido substitui o documento emitido e o rascunho vencidos, mantidos hashes e metadados.
+- **Problema que resolve:** congelar mantém nome e relato além do prazo; hoje a reimpressão diz "removido por prazo" (`laudo.ts:323-338`) (BZ-D:DOC-28; DP:J4).
+- **Origem:** DP:J4; BZ-D:DOC-28.
+- **Estado atual:** CRIAR (`minimizar_por_prazo` e a redação da F05-E10 são MANTIDAS).
+- **Dependências de entrada:** E05; F05-E09.
+- **O que deve ser implementado:**
+  - Migration: colunas nulas `redigido_em`, `chave_pdf_redigido`, `sha256_pdf_redigido`; o papel de aplicação segue sem UPDATE: só a função `SECURITY DEFINER` `redigir_documento_por_prazo` (molde de `minimizar_por_prazo`, migração 043) reescreve `snapshot` (emitido ou rascunho; chaves pessoais do manifesto viram `removido por prazo`) e grava o derivado; `hash_snapshot` e `sha256_pdf` do original permanecem.
+  - API: classe `documento_emitido`, ação `redigir`, em `privacidade/retencao.ts` (F05-E09), modo `relatar` por padrão. Executar: o worker renderiza o derivado (escrita única), a função grava, `armazenamento.apagar` remove o original, com evento `documento_redigido`. A reimpressão serve o derivado. Padrão vazio: nada é redigido antes de CP-10.
+- **O que NÃO deve ser implementado nesta etapa:** prazo e base legal (CP-10, J4); backup (F22-E01); eliminação de município (F20-E04).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `privacidade/retencao.ts`, `db/test/documentos-imutaveis.test.ts`.
+- **Risco de segurança:** crítico; único UPDATE e única destruição de PDF: função privilegiada, com evento.
+- **Impacto LGPD:** prova x minimização: prazos ficam com município e jurídico.
+- **Migração necessária:** Sim (`NNN_derivado_redigido.sql`).
+- **Compatibilidade:** sem prazo configurado, nada muda.
+- **Rollback:** migration inversa; derivado gerado fica.
+- **Testes positivos:** prazo curto e relógio adiantado: derivado sem nome nem relato; hashes preservados.
+- **Testes negativos:** município sem prazo: nada muda; modo `relatar` não apaga; falha ao gravar o derivado: original intacto.
+- **Testes de autorização e isolamento:** a função não toca documento de outro município (teto de funções privilegiadas em `db/test/isolamento.test.ts` sobe, justificado).
+- **Regressão obrigatória:** `npm run test:isolamento`, `test:api` (minimizacao, documentos), `typecheck`; G00 a G08.
+- **E2E:** Não se aplica: job; a prova é de integração.
+- **Validação humana:** Rafael vê um derivado redigido.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E12/`.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md`.
+- **Definition of Done:** derivado redigido provado; padrão vazio preservado.
+- **Checkpoint:** CP-10 (prazos reais; sem a decisão os jobs ficam em `relatar`).
+
+### V2-F09-E13 - QR de validação de autenticidade (se aprovado no escopo)
+- **Prioridade:** P3
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E12 e E14)
+- **Objetivo:** se CP-16 aprovar, QR no rodapé leva a conferência pública, sem login, de existência, versão, situação e hash.
+- **Problema que resolve:** o identificador impresso tem 48 bits de dado não secreto e `GET /documentos/validar/:codigo` exige login do mesmo município (`documentos.ts:877-938`) (BZ-D:DOC-10).
+- **Origem:** DP:T26; BZ-D:DOC-10; PR:Prompt-F09.
+- **Estado atual:** CRIAR (a rota autenticada e o identificador são MANTIDOS).
+- **Dependências de entrada:** E04; CP-16.
+- **O que deve ser implementado:**
+  - Migration: `documentos_emitidos.codigo_publico` (128 bits aleatórios, único, gerado na emissão); função `SECURITY DEFINER` `conferir_documento(p_codigo)` (molde de `abrir_oficio`, migração 017) devolve só tipo, município, data, versão, situação e `sha256_pdf`.
+  - API: `GET /v1/publico/documentos/:codigo`, sem login, página HTML mínima; `@fastify/rate-limit` (`servidor.ts:381`) mais estrito; 404 igual para inexistente e malformado; `cache-control: no-store`.
+  - Arquivos: QR em SVG no rodapé de `folha.ts`; o gerador de `apps/web/src/componentes/qr.ts` (e a cópia do console) vai para `packages/shared/src/qr.ts` (a criar).
+- **O que NÃO deve ser implementado nesta etapa:** dado pessoal na rota pública; cotas persistentes (F15-E10); QR em documento já emitido.
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `rotas/documentos.ts`, `documentos/folha.ts`, `packages/shared/src/qr.ts` (a criar).
+- **Risco de segurança:** médio; rota pública sem login: código de 128 bits, limite por IP, resposta mínima.
+- **Impacto LGPD:** a rota não devolve dado pessoal.
+- **Migração necessária:** Sim (`NNN_codigo_publico_de_documento.sql`).
+- **Compatibilidade:** documentos anteriores não têm QR e seguem pela rota autenticada.
+- **Rollback:** migration inversa; rota removida.
+- **Testes positivos:** documento novo traz QR que abre a página; o hash confere com o PDF.
+- **Testes negativos:** código inventado ou malformado: mesmo 404; resposta sem protocolo, nome e endereço; excesso por IP: 429.
+- **Testes de autorização e isolamento:** a função não aceita `id` nem o identificador de 12 hexadecimais.
+- **Regressão obrigatória:** `npm run test:api` (identificador-da-emissao), `test:isolamento` (teto de funções), `typecheck`; G00 a G08.
+- **E2E:** `npm run test:e2e:api`: emitir e abrir a página sem token.
+- **Validação humana:** Alyson aprova o conteúdo da página em CP-16.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E13/`.
+- **Documentação a atualizar:** `docs/PRIVACIDADE.md`.
+- **Definition of Done:** QR confere sem login e sem dado pessoal, ou etapa adiada com CP-16.
+- **Checkpoint:** CP-16 (sem a decisão a etapa não começa).
+
+### V2-F09-E14 - Marca d'água de validação: condição de saída
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** baixa  |  **Risco:** médio  |  **Paralelizável:** sim (com E12, E13 e E15)
+- **Objetivo:** a marca d'água vira propriedade gravada do documento emitido e só sai com condição técnica verificável.
+- **Problema que resolve:** `MARCA_DAGUA` é variável global (`config.ts:49`, `fly.toml:69`) lida na renderização (`documentos.ts:716-719`, `folha.ts:311-328`): apagá-la desmarca todos os municípios e reimpressões (BZ-N:N.10; BZ-D:DOC-23).
+- **Origem:** DP:K16; DP:J8; BZ-N:N.10.
+- **Estado atual:** REFATORAR (variável e carimbo ficam como padrão fail-safe; muda onde a decisão é gravada).
+- **Dependências de entrada:** E07; CP-14.
+- **O que deve ser implementado:**
+  - Migration: `documentos_politicas` ganha `documento_vale` (falso) e `parecer_referencia` (texto curto).
+  - API: `marca_dagua` fica nula só se `MARCA_DAGUA` do ambiente está vazia E a política do tipo tem `documento_vale` e `exige_aprovacao` E há `aprovacao_id`; senão grava o texto. Reimpressão e pacote servem o PDF guardado: marcado continua marcado; para valer, substitui-se (E09). Só `gerenciar_organizacao` liga `documento_vale`, com `parecer_referencia` e trilha. O assinado (E24) herda a marca.
+  - Infraestrutura: `fly.toml:69` e `apps/api/.env.example:105` mantêm o texto; apagá-lo fica condicionado a CP-14.
+- **O que NÃO deve ser implementado nesta etapa:** decidir quando a marca sai (CP-14, F28-E06); a recusa de envio (E22).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `config.ts`, `documentos/emitir.ts`, `fly.toml`.
+- **Risco de segurança:** médio; documento sem marca antes da hora: três condições, só administrador.
+- **Impacto LGPD:** Não se aplica: sem dado pessoal novo.
+- **Migração necessária:** Sim (`NNN_documento_vale.sql`).
+- **Compatibilidade:** padrão atual: tudo marcado.
+- **Rollback:** reverter a migration; documentos gravados ficam.
+- **Testes positivos:** padrão: tudo marcado; ambiente vazio, `documento_vale` e aprovação: documento novo sem marca.
+- **Testes negativos:** variável vazia sem política: marcado; política sem `exige_aprovacao`: marcado; documento marcado reimpresso depois de apagar a variável: mesmos bytes.
+- **Testes de autorização e isolamento:** município liberado não desmarca o outro; operador liga: 403; sem `parecer_referencia`: 422.
+- **Regressão obrigatória:** `npm run test:api` (documentos, config), `test:isolamento`, `typecheck`; G00 a G08.
+- **E2E:** `npm run test:e2e:api`: emitir com e sem a condição.
+- **Validação humana:** Alyson e o município confirmam (CP-14).
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E14/`.
+- **Documentação a atualizar:** `docs/COLOCAR-DE-PE.md`.
+- **Definition of Done:** marca gravada no documento; condição de saída testada.
+- **Checkpoint:** CP-14 (bloqueia retirar a marca d'água e trocar o nome do mecanismo, E28).
+
+### V2-F09-E15 - PDF acessível (tagged)
+- **Prioridade:** P2
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E12 e E14)
+- **Objetivo:** gerar o PDF oficial marcado (tagged), com estrutura semântica revisada, para a validação da F23-E06.
+- **Problema que resolve:** `pagina.pdf` não pede `tagged` (`documentos/pdf.ts:103-107`; o `playwright-core` 1.62.1 tem a opção) e `campo()` imprime rótulo e valor em `div` sem associação (`folha.ts:359-363`) (DP:K21).
+- **Origem:** DP:K21; DP:T29; REL:11.
+- **Estado atual:** EXPANDIR (o HTML já tem `lang`, `h1`, `h2`, tabela de checklist e `alt`; falta marcar o PDF e associar rótulo e valor).
+- **Dependências de entrada:** E05.
+- **O que deve ser implementado:**
+  - Domínio: `campo()` passa a `dl`, `dt`, `dd`; o modelo sobe para a versão 2 em `modelos.ts` (exigência do `modelo-versionado.test.ts`).
+  - API: `pdf.ts` chama `pagina.pdf({ tagged: true, outline: true })` no worker (F07-E05); emitidos antes seguem na versão 1.
+  - Acessibilidade: ordem de leitura igual à visual; foto com `alt`; título nos metadados.
+- **O que NÃO deve ser implementado nesta etapa:** declarar o documento acessível (CP-15, F23-E06); HTML paralelo; regerar emitido.
+- **Arquivos e módulos prováveis:** `documentos/pdf.ts`, `documentos/folha.ts`, `documentos/modelos.ts`, `apps/api/test/pdf-marcado.test.ts` (a criar).
+- **Risco de segurança:** baixo; PDF maior e render mais lento (medir na F24-E05).
+- **Impacto LGPD:** Não se aplica: mesmo conteúdo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** emitidos intactos; os novos usam a versão 2.
+- **Rollback:** `tagged: false` e modelo na versão 1.
+- **Testes positivos:** o PDF com `tagged` traz a árvore de estrutura (`/StructTreeRoot`, conferida nos bytes ou pelo verificador da F23-E06).
+- **Testes negativos:** PDF sem `tagged` reprova o teste; modelo alterado sem subir versão reprova; foto sem `alt` reprova.
+- **Testes de autorização e isolamento:** Não se aplica: sem rota nem dado novo.
+- **Regressão obrigatória:** `npm run test:api` (documentos, pdf-na-imagem, prosa-do-documento), `typecheck`; G00 a G08.
+- **E2E:** Não se aplica: a validação ponta a ponta é da F23-E06.
+- **Validação humana:** Rafael lê o PDF com um leitor de tela e confere a ordem.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E15/`.
+- **Documentação a atualizar:** `README.md` (seção de documentos).
+- **Definition of Done:** PDF marcado gerado e testado; declaração segue atrás de CP-15.
+- **Checkpoint:** CP-15 (decide marcar e validar na V2; bloqueia declarar o documento acessível).
+
+### V2-F09-E16 - Catálogo de modelos de documento e habilitação por município e tipo de ocorrência
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E19)
+- **Objetivo:** catálogo de modelos no shared e habilitação por município e tipo de ocorrência, sobre o template da E04.
+- **Problema que resolve:** o município não liga um modelo novo só para os tipos que usa; a E08 trata política de aprovação, não habilitação (ALY:DOC-02, L8).
+- **Origem:** PR:D-20; PR:D-17; ALY:DOC-02; REL:09.
+- **Estado atual:** CRIAR (molde: `documentos/modelos.ts` da E04; tipos: `TIPOS_DE_ENTRADA` do shared).
+- **Dependências de entrada:** E04; E06.
+- **O que deve ser implementado:**
+  - Domínio: `packages/shared/src/documentos.ts`: `MODELOS_DE_DOCUMENTO` (`laudo`, `termo_de_interdicao`, `termo_de_desinterdicao`, `oficio`, `notificacao`, `relatorio_fotografico`), os quatro primeiros `obrigatorio`; `modeloHabilitado(modelo, tipo, linhas)`: a linha do tipo vence a geral; sem linha, obrigatórios ligados e novos desligados.
+  - Migration: `documentos_modelos_habilitados` append-only (`modelo`, `tipo_ocorrencia` nulo = todos, `habilitado`, autor, instante; vale a última linha do par), RLS forçada, SELECT e INSERT, classificada no manifesto (F05-E01).
+  - API: `GET /v1/documentos/modelos` e `PUT /v1/documentos/modelos/:modelo` `{tipo_ocorrencia?, habilitado}` (`gerenciar_organizacao`, trilha com antes e depois); modelo desligado para o tipo da ocorrência: 409 `modelo_desabilitado`.
+- **O que NÃO deve ser implementado nesta etapa:** desligar modelo obrigatório (422 `modelo_obrigatorio`); editar texto ou formulário por município (F33); conteúdo dos modelos novos (E17, E18); telas (F10-E07).
+- **Arquivos e módulos prováveis:** `packages/shared/src/documentos.ts`, `db/migrations/` (nova), `rotas/documentos.ts`.
+- **Risco de segurança:** médio; checagem no servidor depois de `exigirPermissao`.
+- **Impacto LGPD:** Não se aplica: configuração sem dado pessoal.
+- **Migração necessária:** Sim (`NNN_modelos_habilitados.sql`).
+- **Compatibilidade:** padrão atual: quatro modelos ligados, os novos desligados.
+- **Rollback:** migration inversa enquanto vazia.
+- **Testes positivos:** `notificacao` só para `deslizamento` libera a emissão nesse tipo; a linha mais nova do par vale.
+- **Testes negativos:** `notificacao` em `inundação` com só `deslizamento` ligado: 409; desligar `laudo`: 422; UPDATE e DELETE negados; `tipo_ocorrencia` fora da lista: 422.
+- **Testes de autorização e isolamento:** operador altera habilitação: 403; administrador do B não lê nem muda a do A.
+- **Regressão obrigatória:** `npm run test:api`, `test:isolamento`, `typecheck`; G00 a G08.
+- **E2E:** `npm run test:e2e:api`: ligar, emitir, desligar, emitir (409).
+- **Validação humana:** Rafael liga e desliga um modelo em município de teste.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E16/`.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** habilitação imposta no servidor; padrão preservado.
+- **Checkpoint:** Não.
+
+### V2-F09-E17 - Notificação ao responsável pelo imóvel como modelo versionado
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com E18)
+- **Objetivo:** notificação (destinatário, providência exigida, prazo) emitida pelo caminho do laudo: rascunho, aprovação, PDF guardado.
+- **Problema que resolve:** a notificação ao responsável pelo imóvel é feita fora do sistema (ALY:DOC-02, L8).
+- **Origem:** PR:D-20; ALY:DOC-02; REL:09.
+- **Estado atual:** CRIAR (reaproveita `montarFolha` e `campo` de `folha.ts`).
+- **Dependências de entrada:** E05; E06; E16; CP-42 (só para ligar em PROD).
+- **O que deve ser implementado:**
+  - Migration: `documentos_notificacoes` INSERT-only (`ocorrencia_id`, `destinatario_nome`, `destinatario_endereco`, `providencia_exigida` até 1000 caracteres, `prazo_dias` de 1 a 365, autor); `documentos_emitidos` ganha `notificacao_id` (FK composta), `tipo` ganha `notificacao`, a unicidade da E03 inclui a referência.
+  - Domínio: `notificacao@1` em `modelos.ts`; `documentos/notificacao.ts` (a criar) renderiza do snapshot; o texto narra fatos e não cita artigo.
+  - API: `POST /v1/ocorrencias/:id/notificacoes` cria a linha e o rascunho (E06); aprovação (E07), emissão (E05) e substituição (E09) valem sem código novo; `montarDocumento` (E02) aceita o tipo.
+- **O que NÃO deve ser implementado nesta etapa:** fundamento legal no texto (CP-42); CPF do destinatário; entrega por e-mail; telas (F10-E07).
+- **Arquivos e módulos prováveis:** `documentos/notificacao.ts` (a criar), `documentos/montador.ts`, `rotas/documentos.ts`, `db/migrations/` (nova).
+- **Risco de segurança:** alto; destinatário e prazo viram prova: INSERT-only, `escapar`.
+- **Impacto LGPD:** nome e endereço do destinatário no snapshot; classificados, retenção pela E12.
+- **Migração necessária:** Sim (`NNN_notificacoes.sql`).
+- **Compatibilidade:** tabela e tipo novos; documentos atuais intactos.
+- **Rollback:** migration inversa enquanto vazia.
+- **Testes positivos:** notificação aprovada e emitida guarda PDF e `sha256_pdf`; a v2 substitui a v1 preservada.
+- **Testes negativos:** modelo desligado: 409; `prazo_dias` 0 ou 400: 422; destinatário vazio: 422; `apps/api/test/notificacao.test.ts` (a criar) reprova texto com artigo de lei; UPDATE em `documentos_notificacoes`: negado.
+- **Testes de autorização e isolamento:** agente de campo: 403; município B lê ou emite notificação do A: 404.
+- **Regressão obrigatória:** `npm run test:api` (documentos), `test:isolamento`, `typecheck`; G00 a G08.
+- **E2E:** `npm run test:e2e:api`: criar, aprovar, emitir e reimprimir com o mesmo hash.
+- **Validação humana:** o município e o jurídico dele aprovam o texto (CP-42).
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E17/`.
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** notificação emitida, versionada e reimpressa idêntica.
+- **Checkpoint:** CP-42 (sem a decisão o modelo fica desligado em PROD).
+
+### V2-F09-E18 - Relatório fotográfico avulso como modelo versionado
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E17)
+- **Objetivo:** relatório só de fotos, escolhidas e legendadas pela coordenação, sem depender de vistoria, com PDF guardado e hash.
+- **Problema que resolve:** foto só aparece dentro do laudo; não há como emitir o registro fotográfico sozinho para um processo (ALY:DOC-02, L8).
+- **Origem:** PR:D-20; ALY:DOC-02; REL:09.
+- **Estado atual:** CRIAR (o bloco "Registro fotográfico" de `documentos/laudo.ts` é o molde).
+- **Dependências de entrada:** E05; E16; F06-E08; F06-E12.
+- **O que deve ser implementado:**
+  - Migration: `documentos_relatorios_fotograficos` e `documentos_relatorios_fotos` INSERT-only (`ocorrencia_id`, ordem, `evidencia_id`, `legenda` até 200 caracteres, autor), no máximo 24 fotos; `documentos_emitidos` ganha `relatorio_id` (FK composta) e `tipo` ganha `relatorio_fotografico`.
+  - Domínio: `relatorio_fotografico@1` em `modelos.ts`; `documentos/relatorio-fotografico.ts` (a criar) renderiza do snapshot.
+  - API: `POST /v1/ocorrencias/:id/relatorios-fotograficos` aceita só evidência confirmada do mesmo protocolo; `reverificarProva` (E04) confere o sha256 de cada foto; o resto segue E06, E07 e E05.
+- **O que NÃO deve ser implementado nesta etapa:** foto fora da cadeia de arquivos (F06); recodificar prova de vistoria; escolha de modelo por formulário (F33); telas (F10-E07).
+- **Arquivos e módulos prováveis:** `documentos/relatorio-fotografico.ts` (a criar), `documentos/montador.ts`, `rotas/documentos.ts`, `db/migrations/` (nova).
+- **Risco de segurança:** médio; só evidência do tenant e da ocorrência; URL assinada fora do snapshot.
+- **Impacto LGPD:** foto pode mostrar pessoas; classificada como as evidências.
+- **Migração necessária:** Sim (`NNN_relatorios_fotograficos.sql`).
+- **Compatibilidade:** tabelas e tipo novos; laudo intacto.
+- **Rollback:** migration inversa enquanto vazia.
+- **Testes positivos:** 3 fotos viram PDF guardado com hash; a v2 troca uma legenda e preserva a v1.
+- **Testes negativos:** 25 fotos: 422; evidência de outra ocorrência ou em quarentena: 422; foto trocada no armazenamento de memória: 409 `prova_divergente`; modelo desligado: 409.
+- **Testes de autorização e isolamento:** evidência do município B no relatório do A: 404; agente de campo: 403.
+- **Regressão obrigatória:** `npm run test:api` (documentos, fotos-do-documento), `test:isolamento`, `typecheck`; G00 a G08.
+- **E2E:** `npm run test:e2e:api`: relatório de 3 fotos até a reimpressão.
+- **Validação humana:** Rafael abre o relatório de um caso sintético.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E18/`.
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** relatório avulso emitido, versionado e conferido contra o hash das fotos.
+- **Checkpoint:** Não.
+
+### V2-F09-E19 - ADR do provedor externo de assinatura: adaptador, custódia e nomenclatura
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** sim (com E16)
+- **Objetivo:** registrar em ADR, antes de código, como a assinatura avançada e a ICP-Brasil entram: provedor externo por API, atrás de adaptador.
+- **Problema que resolve:** sem decisão escrita, uma etapa guardaria chave privada no DC360, chamaria a aprovação de assinatura ou aceitaria PDF sem conferir.
+- **Origem:** PR:D-09; PR:D-06; DP:J8; DP:T27.
+- **Estado atual:** CRIAR (a ADR 0013 da E01 só reserva a interface).
+- **Dependências de entrada:** E01; E07.
+- **O que deve ser implementado:**
+  - Arquivos: cláusulas: (1) o DC360 nunca guarda chave nem certificado; (2) adaptador injetável, desligado por padrão, memória nos testes e sandbox em HML; (3) assina-se o PDF emitido e aprovado (E05, E07), nunca rascunho; (4) o assinado é artefato novo ligado ao emitido; (5) retorno por consulta do worker, sem rota pública; (6) idempotência, falha e expiração; (7) cota e custo; (8) o PDF vai a suboperador (`docs/SUBPROCESSADORES.md`, CP-06); (9) a interface diz APROVAÇÃO AUTENTICADA até J8 (E28).
+- **O que NÃO deve ser implementado nesta etapa:** código, migration ou tela; escolher o provedor (CP-41); concluir o valor jurídico (CP-14).
+- **Arquivos e módulos prováveis:** `docs/adr/` (arquivo a criar, próximo número livre no dia), `docs/SUBPROCESSADORES.md`.
+- **Risco de segurança:** alto; ADR vaga deixaria etapa guardar chave ou aceitar callback sem autenticação.
+- **Impacto LGPD:** registra o envio de PDF com dado pessoal a operador externo.
+- **Migração necessária:** Não.
+- **Compatibilidade:** Não se aplica: texto, sem efeito em código.
+- **Rollback:** reverter o arquivo; mudança vira ADR nova.
+- **Testes positivos:** `regras-de-conteudo.test.ts` passa sobre o ADR.
+- **Testes negativos:** travessão, norma fora da lista ou conclusão jurídica de nomenclatura no ADR reprova a varredura.
+- **Testes de autorização e isolamento:** Não se aplica: sem código.
+- **Regressão obrigatória:** `npm run test --workspace @dc360/shared`; G00 a G08 verdes.
+- **E2E:** Não se aplica: sem fluxo.
+- **Validação humana:** Rafael aprova; o jurídico lê a cláusula 9.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E19/` (ADR aprovado).
+- **Documentação a atualizar:** `docs/roadmap-v2/01-decisoes-e-principios.md` (índice de ADRs).
+- **Definition of Done:** ADR aprovado; cada cláusula aponta etapa e teste.
+- **Checkpoint:** Não.
+
+### V2-F09-E20 - Interface ProvedorDeAssinatura: adaptador injetável, provedor em memória e sandbox em HML
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** não (E21 a E27 usam)
+- **Objetivo:** porta `ProvedorDeAssinatura` injetada, com provedor em memória para teste e adaptador do provedor escolhido no sandbox em HML.
+- **Problema que resolve:** nada fala com provedor de assinatura; sem porta, cada etapa acoplaria ao fornecedor e o teste exigiria rede.
+- **Origem:** PR:D-09; DP:T27; DP:J8.
+- **Estado atual:** CRIAR (molde de porta: `armazenamento/tipos.ts` com `memoria.ts`, e `GeradorDePdf` em `documentos/pdf.ts`).
+- **Dependências de entrada:** E19; CP-41 (só o adaptador real).
+- **O que deve ser implementado:**
+  - API: `assinatura/provedor.ts` (a criar): `enviar({pdf, sha256, signatario, tipo, chaveIdempotencia, validadeEm})`, `consultar`, `obterResultado` (PDF assinado e prova), `validar`, `cancelar`; erros tipados `indisponivel`, `recusado`, `expirado`. `assinatura/em-memoria.ts` (a criar) é determinístico e injeta falha e atraso.
+  - Config: `ASSINATURA_PROVEDOR` (`desligado` padrão, `memoria`, `<id>`), `ASSINATURA_URL_BASE` fixa por ambiente, segredo lido no arranque pelo molde de `push/segredo.ts`; PROD recusa `memoria`.
+  - Teste: `apps/api/test/assinatura/contrato-do-provedor.ts` (a criar) roda na memória e, em HML, no sandbox.
+- **O que NÃO deve ser implementado nesta etapa:** rota, fila e tabela (E21 a E24); escolher o provedor; chave real no repositório.
+- **Arquivos e módulos prováveis:** `assinatura/provedor.ts`, `em-memoria.ts` (a criar em `apps/api/src/`), `config.ts`, `.env.example`.
+- **Risco de segurança:** alto; host fixo por configuração (sem SSRF), tempo limite, segredo fora do log e do erro.
+- **Impacto LGPD:** Não se aplica: nenhum dado trafega ainda.
+- **Migração necessária:** Não.
+- **Compatibilidade:** desligado por padrão; nada muda sem configurar.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** a memória conclui enviar, consultar e obter; o contrato passa.
+- **Testes negativos:** `memoria` em PROD: o arranque recusa; host fora da configuração: recusado; segredo ausente com provedor real: recusa sem imprimir o valor; falha injetada vira `indisponivel`.
+- **Testes de autorização e isolamento:** Não se aplica: sem rota; o isolamento é provado nas E22 a E27.
+- **Regressão obrigatória:** `npm run test:api` (config), `typecheck`; G00 a G08.
+- **E2E:** Não se aplica: a E22 prova o fluxo.
+- **Validação humana:** Rafael roda o contrato no sandbox de HML depois do CP-41.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E20/`.
+- **Documentação a atualizar:** `docs/IMPLANTACAO.md`.
+- **Definition of Done:** porta, memória e contrato prontos; real só em HML.
+- **Checkpoint:** CP-41 (sem a escolha só existe o provedor em memória).
+
+### V2-F09-E21 - Signatário nominal, tipos de assinatura e política por tipo de documento
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não (E22 depende)
+- **Objetivo:** liberar `simples`, `avancada` e `icp_brasil` como tipos gravados e exigir signatário nominal, com cargo e registro da E08.
+- **Problema que resolve:** a E07 deixou os tipos só como interface; assinar sem pessoa identificada nem política repete o "emitido por quem imprimiu".
+- **Origem:** PR:D-09; DP:T27; BZ-D:DOC-19.
+- **Estado atual:** EXPANDIR (`documentos_assinaturas` da E07 e `documentos_politicas` da E08).
+- **Dependências de entrada:** E08; E20.
+- **O que deve ser implementado:**
+  - Migration: `documentos_assinaturas` ganha `signatario_id`, `signatario_nome`, `signatario_cargo`, `signatario_registro` (copiados no ato) e `tipo` aceita os três novos; `documentos_politicas` ganha `assinatura_exigida` (`nenhuma` padrão, `simples`, `avancada`, `icp_brasil`).
+  - API: `GET` e `PUT /v1/documentos/politicas/:tipo` aceitam o campo (`gerenciar_organizacao`); `signatarioValido(usuario, politica)` no shared: usuário ativo do município, coordenador ou administrador, cargo preenchido se a política exige. O provedor autentica a pessoa; o DC360 envia nome, e-mail institucional e cargo.
+- **O que NÃO deve ser implementado nesta etapa:** envio (E22); CPF do servidor no DC360; decidir competência ou valor jurídico (CP-14); telas (F10-E07).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `packages/shared/src/documentos.ts`, `rotas/documentos.ts`.
+- **Risco de segurança:** crítico; o signatário vem do banco e da sessão, nunca do corpo.
+- **Impacto LGPD:** cargo e registro do servidor, classificados no manifesto.
+- **Migração necessária:** Sim (`NNN_tipos_de_assinatura.sql`).
+- **Compatibilidade:** padrão `nenhuma` preserva o comportamento atual.
+- **Rollback:** migration inversa enquanto vazia.
+- **Testes positivos:** política `avancada` com coordenador ativo e cargo preenchido passa; vale a última linha.
+- **Testes negativos:** signatário `agente_campo` ou desativado: 422; cargo vazio com política que exige: 422; `icp_brasil` sem a política: 409; UPDATE em `documentos_assinaturas`: negado.
+- **Testes de autorização e isolamento:** operador altera política: 403; signatário de outro município: 404; o administrador do B lê só a política do B.
+- **Regressão obrigatória:** `npm run test:api` (documentos), `test:isolamento`, `typecheck`; G00 a G08.
+- **E2E:** Não se aplica: o fluxo completo é da E22.
+- **Validação humana:** Alyson e o município definem signatários e tipo (CP-14).
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E21/`.
+- **Documentação a atualizar:** `docs/PAPEIS_E_RESPONSABILIDADES.md`.
+- **Definition of Done:** tipos e signatário impostos no banco e no shared.
+- **Checkpoint:** CP-14 (competência de quem assina; sem decisão o padrão é `nenhuma`).
+
+### V2-F09-E22 - Envio do documento aprovado ao provedor, com MFA no ato e fila
+- **Prioridade:** P1
+- **Tamanho:** L  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não (E23, E26 e E27 dependem)
+- **Objetivo:** pedir a assinatura do PDF emitido e aprovado: registrar a solicitação e enviá-la ao provedor por job do worker.
+- **Problema que resolve:** nada liga o documento aprovado ao provedor; enviar no request perderia o pedido numa falha.
+- **Origem:** PR:D-09; PR:D-06; DP:T27.
+- **Estado atual:** CRIAR (usa `conferirNoLogin` e a fila da F07-E02).
+- **Dependências de entrada:** E14; E20; E21; F07-E02.
+- **O que deve ser implementado:**
+  - Migration: `assinaturas_solicitacoes` INSERT-only (`emitido_id`, `sha256_pdf`, `tipo`, `signatario_id`, `chave_idempotencia` única por organização, `validade_em`); `assinaturas_eventos` (`solicitada`, `enviada`, `assinada`, `recusada`, `falha`, `expirada`, `cancelada`; gatilho valida a transição).
+  - API: `POST /v1/documentos/emitidos/:id/assinatura` `{tipo, signatario_id, codigo}` (ação `solicitar_assinatura`): exige `aprovacao_id`, versão vigente, política (E21) e TOTP no ato; provedor real só recebe `marca_dagua` nula. Enfileira `assinatura.enviar`, que confere o `sha256_pdf` do PDF guardado e chama `enviar`.
+- **O que NÃO deve ser implementado nesta etapa:** retorno e guarda (E23, E24); reenvio (E26); cota (E27); callback público; telas (F10-E07).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `assinatura/enviar.ts` (a criar), `rotas/documentos.ts`, `permissoes.ts`.
+- **Risco de segurança:** crítico; só PDF de hash conferido sai; TOTP nunca logado.
+- **Impacto LGPD:** o PDF leva dado pessoal ao suboperador: só com contrato (`docs/SUBPROCESSADORES.md`).
+- **Migração necessária:** Sim (`NNN_solicitacoes_de_assinatura.sql`).
+- **Compatibilidade:** provedor `desligado`: a rota responde 503.
+- **Rollback:** migration inversa enquanto vazia.
+- **Testes positivos:** emitido aprovado e TOTP válido: solicitação, job e evento `enviada` na memória.
+- **Testes negativos:** sem `aprovacao_id`: 409; versão substituída: 409; TOTP errado: 401; PDF guardado adulterado: nada enviado; marcado com provedor real: 409.
+- **Testes de autorização e isolamento:** operador e agente de campo: 403; município B pede assinatura do documento do A: 404 sem tocar o provedor.
+- **Regressão obrigatória:** `npm run test:api` (segundo-fator, documentos), `test:isolamento`, `typecheck`; G00 a G08.
+- **E2E:** `npm run test:e2e:api` com `SEGUNDO_FATOR_ATIVO=sim` e o provedor em memória.
+- **Validação humana:** Rafael pede a assinatura de um laudo sintético em HML.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E22/`.
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** só documento aprovado, vigente e íntegro chega ao provedor.
+- **Checkpoint:** CP-41 (contrato e tratamento de dados antes de envio real).
+
+### V2-F09-E23 - Retorno do PDF assinado e da prova por consulta do worker
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E26)
+- **Objetivo:** consultar o provedor, baixar o PDF assinado e a prova e validá-los antes de guardar.
+- **Problema que resolve:** receber PDF de terceiro sem conferir deixaria entrar arquivo que não é o enviado, e callback público exigiria organização fora do token.
+- **Origem:** PR:D-09; DP:T27.
+- **Estado atual:** CRIAR (molde: relógio do worker da F07-E03).
+- **Dependências de entrada:** E22; F06-E14.
+- **O que deve ser implementado:**
+  - API: job `assinatura.consultar` com espera crescente por solicitação enviada, sob `comTenant` da organização gravada na solicitação: `consultar` e, se assinada, `obterResultado`. Confere: começa com `%PDF`, até 25 MB, validação estrutural da F06-E14, hash do original igual ao enviado e à `sha256_pdf` do emitido, prova presente. Reprovado: evento `falha` com motivo e nada guardado. Aprovado: evento `assinada` e resultado em área temporária; a E24 grava.
+- **O que NÃO deve ser implementado nesta etapa:** guardar o artefato (E24); callback público (se só houver callback, etapa nova com função `SECURITY DEFINER`); validação posterior (E25).
+- **Arquivos e módulos prováveis:** `assinatura/consultar.ts` (a criar), `assinatura/provedor.ts`, `armazenamento/tipos.ts`.
+- **Risco de segurança:** alto; bytes de terceiro: tamanho, estrutura e hash conferidos; nada executa o conteúdo.
+- **Impacto LGPD:** o PDF devolvido leva o dado pessoal do enviado; a prova pode trazer CPF do signatário e é classificada.
+- **Migração necessária:** Não (eventos da E22).
+- **Compatibilidade:** sem solicitação enviada, o job não faz nada.
+- **Rollback:** reverter o commit; solicitações pendentes ficam.
+- **Testes positivos:** a memória assina e o job registra `assinada` com o resultado conferido.
+- **Testes negativos:** PDF assinado sobre outro hash: `falha`; arquivo que não é PDF ou acima de 25 MB: `falha` sem guardar; provedor `indisponivel`: nova consulta depois, sem evento de falha.
+- **Testes de autorização e isolamento:** o job da solicitação do A não escreve no B; solicitação de organização suspensa não é consultada.
+- **Regressão obrigatória:** `npm run test:api` (documentos, fila), `test:isolamento`, `typecheck`; G00 a G08.
+- **E2E:** `npm run test:e2e:api`: pedir, esperar o job, ver `assinada`.
+- **Validação humana:** Rafael confere no sandbox de HML o PDF devolvido.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E23/`.
+- **Documentação a atualizar:** `docs/ARMAZENAMENTO.md`.
+- **Definition of Done:** só retorno conferido avança.
+- **Checkpoint:** Não.
+
+### V2-F09-E24 - Guarda do PDF assinado como artefato imutável ligado ao emitido
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** crítico  |  **Paralelizável:** não (E25 e E27 dependem)
+- **Objetivo:** gravar o PDF assinado e a prova como versão assinada do emitido, sem alterá-lo.
+- **Problema que resolve:** o assinado tem bytes diferentes do emitido; sobrescrever quebraria a E05, e guardar sem vínculo perderia a prova.
+- **Origem:** PR:D-09; PR:D-05; DP:T26; DP:T27.
+- **Estado atual:** EXPANDIR (`documentos_assinaturas` e a escrita única da E05).
+- **Dependências de entrada:** E09; E10; E11; E23.
+- **O que deve ser implementado:**
+  - Migration: `documentos_assinaturas` ganha `emitido_id` (FK composta), `versao_assinada`, `provedor`, `id_externo`, `chave_pdf_assinado`, `sha256_pdf_assinado` (CHECK de 64 hexadecimais), `chave_prova`, `sha256_prova`, `assinado_em` e `hash_snapshot`, `versao_modelo`, `marca_dagua` copiados do emitido; CHECK exige tudo fora do tipo `aprovacao_autenticada`.
+  - API: job `assinatura.guardar` grava PDF e prova com escrita única em `tenant/<org>/documentos/<id>.assinado-v<n>.pdf` e `.prova`, depois a linha e o evento `documento_assinado` na trilha, numa transação; `GET /v1/documentos/emitidos/:id/arquivo?versao=assinada`; o pacote (E11) lista assinado e prova em `documentos/indice.csv`.
+- **O que NÃO deve ser implementado nesta etapa:** substituir o PDF emitido; redação do assinado (a E12 gera derivado sem assinatura e o declara); validação (E25).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `assinatura/guardar.ts` (a criar), `rotas/documentos.ts`, `saida/pacote.ts`.
+- **Risco de segurança:** crítico; escrita única, hash conferido na leitura, FK composta com a organização.
+- **Impacto LGPD:** PDF e prova guardam dado pessoal; retenção da E12.
+- **Migração necessária:** Sim (`NNN_pdf_assinado.sql`).
+- **Compatibilidade:** documento sem assinatura segue como está.
+- **Rollback:** migration inversa enquanto vazia; objetos ficam.
+- **Testes positivos:** versão assinada guarda os hashes; o emitido mantém bytes e hash; o pacote traz assinado e prova.
+- **Testes negativos:** UPDATE e DELETE negados; PUT com bytes diferentes na mesma chave: erro; `sha256_pdf_assinado` de 63 caracteres: recusado; objeto adulterado: 500 sem enviar bytes.
+- **Testes de autorização e isolamento:** município B abre o assinado do A: 404 sem ler o armazenamento; `emitido_id` de outro município: recusado pela FK.
+- **Regressão obrigatória:** `npm run test:isolamento`, `test:api` (documentos, saida-de-municipio), `typecheck`; G00 a G08.
+- **E2E:** `npm run test:e2e:api`: emitir, assinar, baixar e conferir os hashes.
+- **Validação humana:** Rafael abre o assinado e a prova no sandbox de HML.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E24/`.
+- **Documentação a atualizar:** `docs/SAIDA-DE-MUNICIPIO.md`.
+- **Definition of Done:** assinado guardado, imutável e consultável.
+- **Checkpoint:** Não.
+
+### V2-F09-E25 - Validação posterior da assinatura guardada
+- **Prioridade:** P1
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E27)
+- **Objetivo:** conferir, quando o coordenador pedir, se a versão assinada segue íntegra e se o provedor ainda a reconhece.
+- **Problema que resolve:** certificado expira e é revogado; um assinado aceito em 2026 precisa ser reconferível sem regravar nada.
+- **Origem:** PR:D-09; DP:T27.
+- **Estado atual:** CRIAR (molde: conferência de hash da E10).
+- **Dependências de entrada:** E24.
+- **O que deve ser implementado:**
+  - Migration: `assinaturas_validacoes` INSERT-only (`assinatura_id`, `resultado` válida, inválida ou inconclusiva, `detalhe` curto, `verificada_em`, solicitante).
+  - API: `POST /v1/documentos/assinados/:id/validacao` (ação `ler_documento`): baixa o PDF, confere o `sha256_pdf_assinado`, chama `validar` do provedor e grava o resultado; provedor fora do ar grava `inconclusiva`, nunca `inválida`; `GET /documentos/validar/:codigo` (E10) mostra a última validação.
+- **O que NÃO deve ser implementado nesta etapa:** validar certificado no DC360 (o provedor valida); QR público (E13); telas (F10-E07).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `assinatura/validar.ts` (a criar), `rotas/documentos.ts`.
+- **Risco de segurança:** médio; o resultado só registra, nunca altera o assinado; a consulta é nominal.
+- **Impacto LGPD:** a consulta nominal segue (`registrarConsulta`); o resultado não leva dado pessoal.
+- **Migração necessária:** Sim (`NNN_validacoes_de_assinatura.sql`).
+- **Compatibilidade:** só tabela e rota novas.
+- **Rollback:** migration inversa; rota removida.
+- **Testes positivos:** assinado íntegro: `válida`; duas validações geram duas linhas.
+- **Testes negativos:** objeto adulterado: 500 e evento `documento_divergente`; provedor `indisponivel`: `inconclusiva` e 200; id inexistente: 404.
+- **Testes de autorização e isolamento:** agente de campo: 403; município B valida o assinado do A: 404 sem chamar o provedor.
+- **Regressão obrigatória:** `npm run test:api` (documentos, identificador-da-emissao), `test:isolamento`, `typecheck`; G00 a G08.
+- **E2E:** `npm run test:e2e:api`: assinar e validar com o provedor em memória.
+- **Validação humana:** Rafael valida no sandbox de HML um assinado e um adulterado.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E25/`.
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** validação reproduzível, sem regravar o assinado.
+- **Checkpoint:** Não.
+
+### V2-F09-E26 - Falha, reenvio idempotente e expiração da solicitação
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** alta  |  **Risco:** alto  |  **Paralelizável:** sim (com E23)
+- **Objetivo:** tratar recusa, falha, timeout e expiração sem duplicar assinatura nem perder o pedido.
+- **Problema que resolve:** repetir um envio que o provedor já aceitou geraria duas assinaturas, com custo dobrado e dois documentos para o mesmo ato.
+- **Origem:** PR:D-09; DP:T27.
+- **Estado atual:** CRIAR (os estados nascem na E22).
+- **Dependências de entrada:** E22.
+- **O que deve ser implementado:**
+  - API: `chave_idempotencia` = SHA-256 de (emitido, tipo, signatário, tentativa), enviada ao provedor; repetir o job devolve o mesmo `id_externo`. Falha transitória: espera crescente, 5 tentativas, depois `falha`; antes de reenviar, `consultar` por chave e adota o `id_externo` se o provedor já tem o pedido. Job `assinatura.expirar` grava `expirada` passado `validade_em` (padrão 72 horas, configurável). `POST /v1/documentos/assinaturas/:id/reenvio` (ação `solicitar_assinatura`, TOTP, motivo) cria a tentativa n+1 só de `falha`, `recusada` ou `expirada`, no máximo 3; `cancelamento` chama `cancelar`.
+- **O que NÃO deve ser implementado nesta etapa:** retorno (E23); cobrança do reenvio (E27); telas (F10-E07).
+- **Arquivos e módulos prováveis:** `assinatura/enviar.ts`, `assinatura/expirar.ts` (a criar), `rotas/documentos.ts`.
+- **Risco de segurança:** alto; a idempotência impede custo e documento duplicados.
+- **Impacto LGPD:** Não se aplica: mesmo dado da E22.
+- **Migração necessária:** Não (eventos da E22).
+- **Compatibilidade:** só estados e rotas novos.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** mesmo envio repetido: um só `id_externo`; expirada e reenviada: a tentativa 2 assina.
+- **Testes negativos:** reenviar `assinada`: 409; quarta tentativa: 409 `limite_de_tentativas`; reenvio sem motivo: 422; sem TOTP válido: 401; cancelar `assinada`: 409.
+- **Testes de autorização e isolamento:** operador reenvia: 403; município B reenvia a do A: 404; mesma chave de idempotência em dois municípios não colide.
+- **Regressão obrigatória:** `npm run test:api` (segundo-fator, documentos, fila), `test:isolamento`, `typecheck`; G00 a G08.
+- **E2E:** `npm run test:e2e:api`: expirar com relógio adiantado e reenviar.
+- **Validação humana:** Rafael deixa um pedido expirar no sandbox de HML e reenvia.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E26/`.
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** nenhuma falha duplica assinatura nem some o pedido.
+- **Checkpoint:** Não.
+
+### V2-F09-E27 - Cota e custo por assinatura, por município
+- **Prioridade:** P1
+- **Tamanho:** M  |  **Complexidade:** média  |  **Risco:** médio  |  **Paralelizável:** sim (com E25)
+- **Objetivo:** limitar e contar assinaturas por município e registrar o custo de cada pedido.
+- **Problema que resolve:** cada assinatura custa ao fornecedor; sem cota, um município ou um laço de reenvio consome o contrato.
+- **Origem:** PR:D-09; DP:T27.
+- **Estado atual:** CRIAR (a cota por classe da F06-E09 é só de armazenamento).
+- **Dependências de entrada:** E22; CP-41.
+- **O que deve ser implementado:**
+  - Migration: tabela de plataforma `assinaturas_tarifas` (provedor, tipo, `custo_centavos`, vigência; lista da F05-E04); `assinaturas_cotas` (`limite_mensal` padrão 0, autor, instante; append-only); `assinaturas_solicitacoes` ganha `custo_estimado_centavos` copiado da tarifa.
+  - API: antes de gravar a solicitação (E22), conta as do mês que não terminaram em `recusada`, `cancelada` ou `expirada`; no limite: 409 `cota_de_assinaturas_esgotada`; `GET /v1/documentos/assinaturas/consumo` (`gerenciar_organizacao`) mostra uso e limite; só o console (F20) grava o limite e lê o agregado por município.
+- **O que NÃO deve ser implementado nesta etapa:** cobrança, fatura e contrato (F20); preço e plano (CP-41); alerta de consumo (F21).
+- **Arquivos e módulos prováveis:** `db/migrations/` (nova), `assinatura/cota.ts` (a criar), `rotas/documentos.ts`, `db/test/isolamento.test.ts`.
+- **Risco de segurança:** médio; o município não eleva o próprio limite; contagem sob `comTenant`.
+- **Impacto LGPD:** Não se aplica: contagem e valores, sem dado pessoal.
+- **Migração necessária:** Sim (`NNN_cota_de_assinaturas.sql`).
+- **Compatibilidade:** limite padrão 0: ninguém assina até o fornecedor liberar.
+- **Rollback:** migration inversa enquanto vazia.
+- **Testes positivos:** limite 2: dois pedidos passam; o consumo diz 2 de 2 e o custo soma as tarifas copiadas.
+- **Testes negativos:** terceiro pedido: 409; limite 0: 409; pedido recusado pelo provedor não conta; tarifa ausente: 409 `tarifa_nao_definida`.
+- **Testes de autorização e isolamento:** administrador do município grava o limite: 403; o consumo do A não aparece no B; o teto de funções privilegiadas de `db/test/isolamento.test.ts` fica igual.
+- **Regressão obrigatória:** `npm run test:isolamento`, `test:api` (documentos), `typecheck`; G00 a G08.
+- **E2E:** `npm run test:e2e:api`: limite 1, dois pedidos, o segundo é recusado.
+- **Validação humana:** Rafael confere o consumo com o painel do provedor em HML.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E27/`.
+- **Documentação a atualizar:** `docs/DICIONARIO-DE-DADOS.md`.
+- **Definition of Done:** nenhuma assinatura sem cota e tarifa; custo registrado por pedido.
+- **Checkpoint:** CP-41 (contratação, escolha, tarifa e quem paga).
+
+### V2-F09-E28 - Nomenclatura da interface: texto único e troca depois do parecer J8
+- **Prioridade:** P2
+- **Tamanho:** S  |  **Complexidade:** média  |  **Risco:** alto  |  **Paralelizável:** não (última da fase)
+- **Objetivo:** concentrar todo texto de aprovação e assinatura num módulo, para trocar o nome do mecanismo num lugar só quando o parecer J8 sair.
+- **Problema que resolve:** texto espalhado na tela, no PDF e na API faria a troca esquecer um lugar e afirmar mais do que o parecer J8 diz.
+- **Origem:** PR:D-09; PR:D-06; DP:J8; DP:T27.
+- **Estado atual:** CRIAR (apoio: o caso novo de `regras-de-conteudo.test.ts` da E07).
+- **Dependências de entrada:** E21; E24; CP-14.
+- **O que deve ser implementado:**
+  - Domínio: `packages/shared/src/rotulos-de-assinatura.ts` (a criar): `NOMENCLATURA_VIGENTE` (`aprovacao_autenticada`) e os rótulos de tela, PDF e API. Sem parecer, nenhum rótulo afirma validade legal nem chama a aprovação autenticada de assinatura.
+  - Procedimento: a troca é um commit futuro (constante, rótulos, `parecer_referencia` da E14, teste), descrito em `docs/NOMENCLATURA-DE-ASSINATURA.md` (a criar). Esta etapa NÃO escreve os rótulos pós-parecer.
+  - Teste: `regras-de-conteudo.test.ts` varre `apps/web`, `apps/api/src/documentos`, `docs/` e a ADR da E19 e reprova rótulo ou conclusão jurídica fora do módulo.
+- **O que NÃO deve ser implementado nesta etapa:** a conclusão jurídica; o texto pós-parecer; retirar a marca d'água (E14, F28-E06); telas (F10-E07).
+- **Arquivos e módulos prováveis:** `packages/shared/src/rotulos-de-assinatura.ts` (a criar), `regras-de-conteudo.test.ts`, `documentos/folha.ts`.
+- **Risco de segurança:** alto; o risco é jurídico: afirmar validade que ninguém atestou.
+- **Impacto LGPD:** Não se aplica: só texto.
+- **Migração necessária:** Não.
+- **Compatibilidade:** os textos da E07 passam a vir do módulo, sem mudar.
+- **Rollback:** reverter o commit.
+- **Testes positivos:** todo texto de aprovação e de assinatura vem do módulo; a varredura passa.
+- **Testes negativos:** validade legal afirmada em tela, PDF ou `docs/`: reprova; aprovação autenticada chamada de assinatura: reprova; rótulo fora do módulo: reprova.
+- **Testes de autorização e isolamento:** Não se aplica: sem rota nem dado.
+- **Regressão obrigatória:** `npm run test --workspace @dc360/shared`, `test:api` (documentos), `typecheck`; G00 a G08.
+- **E2E:** Não se aplica: sem fluxo.
+- **Validação humana:** Rafael e o jurídico leem os rótulos.
+- **Evidência a produzir:** `docs/evidencias-v2/G09/V2-F09-E28/`.
+- **Documentação a atualizar:** `docs/GUIA-DO-COORDENADOR.md`.
+- **Definition of Done:** um só módulo de texto; procedimento de troca escrito.
+- **Checkpoint:** CP-14 (a troca de nome só acontece com o parecer J8).
+
+# GATE G09 - DOCUMENTOS IMUTÁVEIS
+
+Só passa se:
+- [ ] ADR 0013 aprovada, com cada cláusula apontando etapa e teste (V2-F09-E01; evidência: ADR e saída de `regras-de-conteudo.test.ts` em `docs/evidencias-v2/G09/V2-F09-E01/`).
+- [ ] Um único montador de dados: laudo, termos e ofício da rota e do pacote vêm de `documentos/montador.ts`; `montador-unico.test.ts` verde e o teste do aviso de equipe de `saida-de-municipio.test.ts` verde (V2-F09-E02; evidência: diff vazio entre os dois laudos).
+- [ ] `documentos_emitidos` e `documentos_eventos` existem com RLS forçada, FK composta e classificação no manifesto, e nenhuma tabela de documento (`documentos_emitidos`, `documentos_eventos`, `documentos_rascunhos`, `documentos_aprovacoes`, `documentos_assinaturas`, `documentos_politicas`, `documentos_modelos_habilitados`, `documentos_notificacoes`, `documentos_relatorios_fotograficos`, `documentos_relatorios_fotos`, `assinaturas_solicitacoes`, `assinaturas_eventos`, `assinaturas_validacoes`, `assinaturas_cotas`) concede UPDATE ou DELETE ao papel de aplicação: `db/test/documentos-imutaveis.test.ts` verde; o único UPDATE em documento emitido é a função `redigir_documento_por_prazo` (V2-F09-E03, E06, E07, E08, E09, E12, E16 a E18, E21, E22, E24, E25, E27; evidência: saída do teste).
+- [ ] Snapshot canônico, hash do snapshot, versão do modelo e hash do PDF gravados em toda emissão; mexer no modelo sem subir a versão reprova `modelo-versionado.test.ts` (V2-F09-E04, E05; evidência: hashes e saída do teste).
+- [ ] PDF guardado como objeto de escrita única, sem emissão sem PDF (503 `pdf_indisponivel`), nos quatro tipos (V2-F09-E05; evidência: objeto, hash e linha de um laudo sintético).
+- [ ] Estados rascunho, em revisão, aprovado (autenticado), emitido, substituído e cancelado impostos no shared e no banco (V2-F09-E06, E09; evidência: testes de transição).
+- [ ] Aprovação autenticada exige MFA conferido no ato e grava usuário nominal, versão, hash e decisão; a nomenclatura foi revisada em telas e documentos e o caso novo de `regras-de-conteudo.test.ts` não acha o termo antigo (V2-F09-E07; evidência: linha de aprovação e saída da varredura).
+- [ ] Substituição produz versão nova com `substitui_id` e preserva a anterior com os mesmos bytes e hash; cancelamento é evento com motivo; fluxo J completo (V2-F09-E09; evidência: relatório do E2E do fluxo J).
+- [ ] Reimpressão idêntica ao emitido: `laudo-de-amanha-igual-ao-de-hoje.test.ts` verde depois de editar nome e matrícula do agente, nome da equipe, coordenada, foto avulsa, versão do modelo e minimização; objeto adulterado responde 500 sem enviar bytes; fluxo I completo (V2-F09-E10; evidência: os dois sha256).
+- [ ] Pacote de saída com o PDF guardado, o snapshot e o hash, sem documento fabricado; fluxo K confere o hash do PDF do ZIP com o emitido (V2-F09-E11; evidência: índice do pacote e relatório do E2E).
+- [ ] P1 entregues: políticas por município e tipo com padrão "não exige" (E08), classe de retenção e derivado redigido provados com padrão vazio (E12), marca d'água gravada no documento com condição de saída testada (E14).
+- [ ] Modelos habilitáveis: catálogo e habilitação por município e tipo de ocorrência (E16), notificação (E17) e relatório fotográfico avulso (E18) emitidos pelo mesmo caminho do laudo, com PDF guardado, versão e reimpressão idêntica; modelo desligado responde 409 `modelo_desabilitado` e modelo obrigatório não se desliga (evidência: saída dos testes e dois PDFs sintéticos).
+- [ ] Provedor externo de assinatura (D-09), desligado por padrão: ADR aprovada (E19); porta, provedor em memória e teste de contrato verdes (E20); signatário nominal e política por tipo (E21); envio só de documento aprovado, vigente, íntegro e com MFA no ato (E22); retorno conferido por consulta do worker (E23); PDF assinado e prova guardados como artefato imutável ligado ao emitido, sem alterá-lo (E24); validação posterior (E25); reenvio idempotente e expiração (E26); cota com limite padrão 0 e custo por pedido (E27). Nenhum provedor real é ligado sem CP-41 e sem a E27 (evidência: relatório do E2E com o provedor em memória e, em HML, com o sandbox).
+- [ ] Nomenclatura: a interface segue APROVAÇÃO AUTENTICADA, todo texto vem de `rotulos-de-assinatura.ts` e o procedimento de troca depois do parecer J8 está escrito, sem a conclusão jurídica (V2-F09-E28; evidência: saída da varredura e o documento do procedimento).
+- [ ] Checkpoints da fase decididos ou adiados por escrito: CP-10 (sem ele os jobs de retenção ficam em `relatar`), CP-14 (sem ele a marca d'água fica e o mecanismo não se chama de assinatura), CP-15 (sem ele não se declara o documento acessível; E15 é P2), CP-16 (sem ele não há QR; E13 é P3), CP-41 (sem ele só existe o provedor em memória e a assinatura fica desligada) e CP-42 (sem ele a notificação fica desligada em PROD).
+- [ ] Nenhuma regressão: gates G00 a G08 continuam verdes (se um quebrar, ESTE gate volta a REPROVADO).
+- [ ] Documentação atualizada (ADR 0013, ADR do provedor de assinatura, `docs/DICIONARIO-DE-DADOS.md`, `docs/SAIDA-DE-MUNICIPIO.md`, `docs/PRIVACIDADE.md`, `docs/ARMAZENAMENTO.md`, `docs/GUIA-DO-COORDENADOR.md`, `docs/COLOCAR-DE-PE.md`, `docs/IMPLANTACAO.md`, `docs/SUBPROCESSADORES.md`, `docs/NOMENCLATURA-DE-ASSINATURA.md`) e evidências arquivadas em `docs/evidencias-v2/G09/`.
+
+**Reabre se:** um documento emitido puder mudar (UPDATE ou DELETE concedido, reimpressão regenerando, PDF sobrescrito); o pacote de saída usar montador diferente do da rota ou gerar documento nunca emitido; a aprovação for gravada sem MFA; qualquer tela ou documento chamar a aprovação de assinatura antes do parecer; tabela de documento sem classificação no manifesto; o DC360 guardar chave ou certificado de assinatura; envio ao provedor de documento não aprovado, adulterado, marcado (provedor real) ou fora da cota; PDF assinado sobrescrever o emitido; provedor real ligado sem contrato; texto que afirme validade legal do mecanismo antes do parecer J8.
+
+**Este Gate libera:** F10 (telas de documentos emitidos e do pacote, F10-E07 e F10-E08, com o pedido e o acompanhamento de assinatura e a habilitação de modelos), F33 (edição por município sobre a habilitação de modelos da E16) e F26 (cenário de documento imutável e fluxos I, J e K no POC); deixa prontos F23-E06 (validação do PDF marcado) e F28-E06 (marca d'água e aprovação conforme o parecer).

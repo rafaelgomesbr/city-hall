@@ -1,0 +1,20 @@
+
+== 25. Agente de campo nao le oficio e o sino dele e o da equipe (V2-F00-E08) ==
+  OK   a administradora e o agente entram pela API
+  OK   a semente tem providencia pendente na ocorrencia da Equipe Alfa
+  OK   a administradora emite o oficio
+  OK   GET /oficios com o token do agente: 403 sem_permissao
+  OK   GET /oficios/:id com o token do agente: 403 sem_permissao, sem e-mail nem IP no corpo
+  OK   a administradora abre a mesma ficha (200)
+  OK   o sino do agente responde 200
+  OK   todo aviso do agente e de ocorrencia da equipe dele
+  OK   o sino da administradora tem avisos de outras equipes (e o agente nao os recebe)
+  OK   o numero de nao lidos do agente e o da lista dele, nao o do municipio
+  OK   o agente abre o dossie da propria equipe, sem faixa de erro
+  OK   e o cartao de oficios nem aparece para ele
+  OK   o operador abre o mesmo dossie e continua vendo o cartao de oficios
+  OK   com o numero do oficio que a administradora emitiu
+
+====================================================
+Passou: 14   Falhou: 0
+Zero erro de console.

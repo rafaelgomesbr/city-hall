@@ -1,0 +1,17 @@
+### CMD: npm audit --omit=dev (cwd=.) inicio=2026-09-30T16:16:21-03:00
+# npm audit report
+
+fast-uri  3.0.0 - 3.1.7 || 4.0.0 - 4.1.4
+Severity: moderate
+fast-uri vulnerable to inconsistent host case normalization via percent-encoded octets - https://github.com/advisories/GHSA-hrr3-gc8f-f4qj
+fast-uri vulnerable to inconsistent host case normalization via percent-encoded octets - https://github.com/advisories/GHSA-hrr3-gc8f-f4qj
+fast-uri vulnerable to mailto header injection via percent-encoded field-name desynchronization - https://github.com/advisories/GHSA-jvvf-x445-j334
+fix available via `npm audit fix`
+node_modules/ajv/node_modules/fast-uri
+node_modules/fast-uri
+
+1 moderate severity vulnerability
+
+To address all issues, run:
+  npm audit fix
+### EXIT=1 DURACAO=5s fim=2026-09-30T16:16:27-03:00

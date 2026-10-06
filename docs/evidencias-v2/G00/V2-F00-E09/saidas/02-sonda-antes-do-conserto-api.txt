@@ -1,0 +1,253 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ❯ test/sessoes-da-conta.test.ts (27 tests | 11 failed) 74809ms
+   × GET /auth/sessoes: as sessões da própria conta > lista as vivas, marca de onde veio o pedido e traz o aparelho em uma frase 6967ms
+     → {"erro":"nao_encontrado","mensagem":"Rota não encontrada."}: expected 404 to be 200 // Object.is equality
+   × GET /auth/sessoes: as sessões da própria conta > não entrega IP, user-agent completo nem identificador de sessão 2937ms
+     → expected 404 to be 200 // Object.is equality
+   × GET /auth/sessoes: as sessões da própria conta > a renovação não multiplica as linhas nem muda o 'entrou em' 2229ms
+     → expected [] to have a length of 1 but got +0
+   × GET /auth/sessoes: as sessões da própria conta > só a própria conta: a de outra pessoa e a de outro município não aparecem 8413ms
+     → expected [] to have a length of 1 but got +0
+   × GET /auth/sessoes: as sessões da própria conta > encerrar as outras deixa só esta na lista, e a lista reflete o banco 6024ms
+     → expected 0 to be greater than or equal to 2
+   × GET /auth/sessoes: as sessões da própria conta > sem token, 401 16ms
+     → expected 404 to be 401 // Object.is equality
+   ✓ GET /auth/sessoes: as sessões da própria conta > sessão vencida ou encerrada não aparece  2842ms
+   × GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > a administradora vê a quantidade e as datas, e nada do aparelho 2879ms
+     → {"erro":"nao_encontrado","mensagem":"Rota não encontrada."}: expected 404 to be 200 // Object.is equality
+   × GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > a coordenadora vê as de quem está abaixo do posto dela 2485ms
+     → diego: {"erro":"nao_encontrado","mensagem":"Rota não encontrada."}: expected 404 to be 200 // Object.is equality
+   × GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > posto igual ou acima: 403 posto_insuficiente 2087ms
+     → carmem: expected 404 to be 403 // Object.is equality
+   × GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > o operador e o agente de campo não têm a ação: 403 sem_permissao nas três rotas 5388ms
+     → expected 404 to be 403 // Object.is equality
+   ✓ GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > conta de outro município: 404, igual a id que não existe  5643ms
+   × GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > identificador que não é uuid: 422; sem token: 401 3894ms
+     → expected 404 to be 422 // Object.is equality
+   ✓ as duas recusas que a tela não oferece e a API mantém > redefinir a própria senha e encerrar as próprias sessões por esta via: 422  2453ms
+   ✓ resumirAparelho: o aparelho em uma frase, sem entregar a máquina > Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 1ms
+   ✓ resumirAparelho: o aparelho em uma frase, sem entregar a máquina > Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1 7ms
+   ✓ resumirAparelho: o aparelho em uma frase, sem entregar a máquina > Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0 0ms
+   ✓ resumirAparelho: o aparelho em uma frase, sem entregar a máquina > Mozilla/5.0 (X11; Linux x86_64; rv:127.0) Gecko/20100101 Firefox/127.0 1ms
+   ✓ resumirAparelho: o aparelho em uma frase, sem entregar a máquina > Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36 0ms
+   ✓ resumirAparelho: o aparelho em uma frase, sem entregar a máquina > Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15 0ms
+   ✓ resumirAparelho: o aparelho em uma frase, sem entregar a máquina > Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/126.0.0.0 Safari/537.36 10ms
+   ✓ resumirAparelho: o aparelho em uma frase, sem entregar a máquina > okhttp/4.12.0 0ms
+   ✓ resumirAparelho: o aparelho em uma frase, sem entregar a máquina > dc360-campo/1.0 CFNetwork/1494.0.7 Darwin/23.4.0 0ms
+   ✓ resumirAparelho: o aparelho em uma frase, sem entregar a máquina > curl/8.5.0 0ms
+   ✓ resumirAparelho: o aparelho em uma frase, sem entregar a máquina >  0ms
+   ✓ resumirAparelho: o aparelho em uma frase, sem entregar a máquina > nulo e indefinido não quebram 0ms
+   ✓ resumirAparelho: o aparelho em uma frase, sem entregar a máquina > nunca devolve texto do user-agent além do nome do navegador e do sistema 9ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/sessoes-da-conta.test.ts > GET /auth/sessoes: as sessões da própria conta > lista as vivas, marca de onde veio o pedido e traz o aparelho em uma frase
+AssertionError: {"erro":"nao_encontrado","mensagem":"Rota não encontrada."}: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ test/sessoes-da-conta.test.ts:111:53
+    109| 
+    110|     const doComputador = await minhasSessoes(noComputador.acesso);
+    111|     expect(doComputador.status, doComputador.corpo).toBe(200);
+       |                                                     ^
+    112|     expect(doComputador.itens).toHaveLength(2);
+    113| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  test/sessoes-da-conta.test.ts > GET /auth/sessoes: as sessões da própria conta > não entrega IP, user-agent completo nem identificador de sessão
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ test/sessoes-da-conta.test.ts:134:22
+    132|     const t = await entrar("jonas@serraalta.exemplo.gov.br", SENHA_A, …
+    133|     const r = await minhasSessoes(t.acesso);
+    134|     expect(r.status).toBe(200);
+       |                      ^
+    135|     expect(Object.keys(r.itens[0]!).sort()).toEqual(["aparelho", "atua…
+    136|     expect(r.corpo).not.toMatch(/Mozilla|AppleWebKit|Win64/);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  test/sessoes-da-conta.test.ts > GET /auth/sessoes: as sessões da própria conta > a renovação não multiplica as linhas nem muda o 'entrou em'
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ test/sessoes-da-conta.test.ts:144:25
+    142|     const t = await entrar("carmem@serraalta.exemplo.gov.br", SENHA_A,…
+    143|     const antes = await minhasSessoes(t.acesso);
+    144|     expect(antes.itens).toHaveLength(1);
+       |                         ^
+    145| 
+    146|     const renovada = await app.inject({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  test/sessoes-da-conta.test.ts > GET /auth/sessoes: as sessões da própria conta > só a própria conta: a de outra pessoa e a de outro município não aparecem
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ test/sessoes-da-conta.test.ts:168:21
+    166| 
+    167|     const r = await minhasSessoes(diego.acesso);
+    168|     expect(r.itens).toHaveLength(1);
+       |                     ^
+    169|     expect(r.itens[0]!.aparelho).toBe("Safari em iOS");
+    170|   }, 300_000);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  test/sessoes-da-conta.test.ts > GET /auth/sessoes: as sessões da própria conta > encerrar as outras deixa só esta na lista, e a lista reflete o banco
+AssertionError: expected 0 to be greater than or equal to 2
+ ❯ test/sessoes-da-conta.test.ts:176:58
+    174|     const a = await entrar(e, SENHA_A, UA_CHROME_WINDOWS);
+    175|     await entrar(e, SENHA_A, UA_SAFARI_IPHONE);
+    176|     expect((await minhasSessoes(a.acesso)).itens.length).toBeGreaterTh…
+       |                                                          ^
+    177| 
+    178|     const r = await app.inject({ method: "POST", url: "/auth/encerrar-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  test/sessoes-da-conta.test.ts > GET /auth/sessoes: as sessões da própria conta > sem token, 401
+AssertionError: expected 404 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 404
+
+ ❯ test/sessoes-da-conta.test.ts:189:26
+    187|   it("sem token, 401", async () => {
+    188|     const r = await app.inject({ method: "GET", url: "/auth/sessoes" }…
+    189|     expect(r.statusCode).toBe(401);
+       |                          ^
+    190|   });
+    191| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  test/sessoes-da-conta.test.ts > GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > a administradora vê a quantidade e as datas, e nada do aparelho
+AssertionError: {"erro":"nao_encontrado","mensagem":"Rota não encontrada."}: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ test/sessoes-da-conta.test.ts:212:42
+    210|     await app.inject({ method: "POST", url: `/usuarios/${id["diego"]}/…
+    211|     const vazia = await sessoesDe(id["diego"]!, rita.acesso);
+    212|     expect(vazia.statusCode, vazia.body).toBe(200);
+       |                                          ^
+    213|     expect(vazia.json()).toMatchObject({ id: id["diego"], sessoesAbert…
+    214|     expect(vazia.json().ultimaEntradaEm).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  test/sessoes-da-conta.test.ts > GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > a coordenadora vê as de quem está abaixo do posto dela
+AssertionError: diego: {"erro":"nao_encontrado","mensagem":"Rota não encontrada."}: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ test/sessoes-da-conta.test.ts:240:50
+    238|     for (const alvo of ["diego", "jonas"]) {
+    239|       const r = await sessoesDe(id[alvo]!, helena.acesso);
+    240|       expect(r.statusCode, `${alvo}: ${r.body}`).toBe(200);
+       |                                                  ^
+    241|     }
+    242|   }, 300_000);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  test/sessoes-da-conta.test.ts > GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > posto igual ou acima: 403 posto_insuficiente
+AssertionError: carmem: expected 404 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 404
+
+ ❯ test/sessoes-da-conta.test.ts:248:34
+    246|     for (const alvo of ["carmem", "rita"]) {
+    247|       const r = await sessoesDe(id[alvo]!, helena.acesso);
+    248|       expect(r.statusCode, alvo).toBe(403);
+       |                                  ^
+    249|       expect(r.json().erro).toBe("posto_insuficiente");
+    250|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  test/sessoes-da-conta.test.ts > GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > o operador e o agente de campo não têm a ação: 403 sem_permissao nas três rotas
+AssertionError: expected 404 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 404
+
+ ❯ test/sessoes-da-conta.test.ts:258:34
+    256|     for (const quem of [jonas, diego]) {
+    257|       const leitura = await sessoesDe(id["carmem"]!, quem.acesso);
+    258|       expect(leitura.statusCode).toBe(403);
+       |                                  ^
+    259|       expect(leitura.json().erro).toBe("sem_permissao");
+    260| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+ FAIL  test/sessoes-da-conta.test.ts > GET /usuarios/:id/sessoes: quantas sessões a outra pessoa tem > identificador que não é uuid: 422; sem token: 401
+AssertionError: expected 404 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 404
+
+ ❯ test/sessoes-da-conta.test.ts:290:71
+    288|   it("identificador que não é uuid: 422; sem token: 401", async () => {
+    289|     const helena = await entrar("helena@serraalta.exemplo.gov.br", SEN…
+    290|     expect((await sessoesDe("nao-e-uuid", helena.acesso)).statusCode).…
+       |                                                                       ^
+    291|     const r = await app.inject({ method: "GET", url: `/usuarios/${id["…
+    292|     expect(r.statusCode).toBe(401);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/11]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  11 failed | 16 passed (27)
+   Start at  13:59:34
+   Duration  90.05s (transform 7.00s, setup 395ms, collect 12.52s, tests 74.81s, environment 0ms, prepare 965ms)
+

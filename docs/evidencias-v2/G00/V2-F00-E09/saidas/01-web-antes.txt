@@ -1,0 +1,102 @@
++         consequencia={
+
++           <>
+
++             O órgão some da lista de destinos e para de receber ofício novo. As
+
++             providências e os ofícios antigos continuam apontando para ele, e
+
++             reativar devolve tudo.
+
++           </>
+
++         }
+
++         rotuloDaAcao={`Desativar ${aDesativar?.nome ?? "órgão"}`}
+
++         destrutiva
+
++         ocupado={gravando}
+
++         aoConfirmar={() => void confirmarDesativacao()}
+
++         aoCancelar={() => { setADesativar(null); setMotivo(""); setErroDoMotivo(null); }}
+
++       >
+
++         {aDesativar && aDesativar.abertas > 0 && (
+
++           <Aviso tom="alerta">
+
++             Este órgão tem {aDesativar.abertas}{" "}
+
++             {aDesativar.abertas === 1 ? "providência" : "providências"} sem resposta
+
++             agora. Desativar não devolve nada para a fila: elas continuam apontando
+
++             para ele, e alguém precisa cobrar uma por uma.
+
++           </Aviso>
+
++         )}
+
++         {/*
+
++           O motivo é digitado DENTRO da pergunta porque ele é a resposta à
+
++           pergunta, e não um dado do cadastro: ele explica esta desativação, e
+
++           fica gravado na trilha junto com ela.
+
++         */}
+
++         <Campo
+
++           id="orgao-motivo"
+
++           rotulo="Por que este órgão sai da lista"
+
++           erro={erroDoMotivo}
+
++           dica="Fica na trilha. É o que responde, daqui a um ano, para onde foi a competência dele."
+
++         >
+
++           {(campo) => (
+
++             <textarea {...campo} value={motivo}
+
++                       onChange={(e) => setMotivo(e.target.value)}
+
++                       placeholder="Competência transferida para a Secretaria de Obras em 01/2026" />
+
++           )}
+
++         </Campo>
+
++       </ConfirmarAcao>
+
++     </>
+
++   );
+
++ }
+
++
+
+ ❯ test/semente-e-confirmacoes.test.ts:79:48
+     77|   ])("%s anuncia o que gravou com um Toast", (arquivo, frase) => {
+     78|     const codigo = fonte(arquivo);
+     79|     expect(codigo, `${arquivo} não usa Toast`).toContain("<Toast");
+       |                                                ^
+     80|     expect(codigo).toMatch(frase);
+     81|     // O Toast tem `role="status"` e `aria-live="polite"` por construç…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/14]⎯
+
+
+ Test Files  5 failed | 32 passed (37)
+      Tests  14 failed | 549 passed (563)
+   Start at  13:10:37
+   Duration  7.79s (transform 8.35s, setup 0ms, collect 38.20s, tests 30.82s, environment 13ms, prepare 11.63s)
+

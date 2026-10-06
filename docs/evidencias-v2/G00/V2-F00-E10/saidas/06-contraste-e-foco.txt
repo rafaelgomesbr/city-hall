@@ -1,0 +1,20 @@
+OK    pedido normal (claro): pior 5.14:1 (minimo 4.5) em "Informe o email com que você entra no si"
+OK    pedido normal (escuro): pior 6.75:1 (minimo 4.5) em "Enviar link de redefinição"
+OK    pedido com erro de campo (claro): pior 5.14:1 (minimo 4.5) em "Informe o email com que você entra no si"
+OK    pedido com erro de campo (escuro): pior 6.75:1 (minimo 4.5) em "Enviar link de redefinição"
+OK    pedido enviado (claro): pior 5.14:1 (minimo 4.5) em "Informe o email com que você entra no si"
+OK    pedido enviado (escuro): pior 6.75:1 (minimo 4.5) em "Voltar para a entrada"
+OK    pedido com falha (limite) (claro): pior 4.75:1 (minimo 4.5) em "Muitos pedidos em pouco tempo. Aguarde a"
+OK    pedido com falha (limite) (escuro): pior 5.96:1 (minimo 4.5) em "Muitos pedidos em pouco tempo. Aguarde a"
+OK    recuperacao desligada (claro): pior 5.14:1 (minimo 4.5) em "A recuperação por email não está ligada"
+OK    recuperacao desligada (escuro): pior 6.75:1 (minimo 4.5) em "Voltar para a entrada"
+OK    definir senha normal (claro): pior 5.14:1 (minimo 4.5) em "Escolha uma senha para sua conta"
+OK    definir senha normal (escuro): pior 6.75:1 (minimo 4.5) em "Definir nova senha"
+OK    definir senha com erro (diferentes) (claro): pior 5.14:1 (minimo 4.5) em "Escolha uma senha para sua conta"
+OK    definir senha com erro (diferentes) (escuro): pior 6.75:1 (minimo 4.5) em "Definir nova senha"
+OK    link que nao vale mais (claro): pior 4.75:1 (minimo 4.5) em "Este link de redefinição não vale mais. "
+OK    link que nao vale mais (escuro): pior 5.96:1 (minimo 4.5) em "Este link de redefinição não vale mais. "
+OK    foco visivel (claro): campo {"cor":"rgb(20, 25, 29)","largura":"3px","estilo":"none","sombra":"rgb(245, 247, 248) 0px 0px 0px 2px, rgb(109, 40, 217) 0px 0px 0px 4px"} | botao {"cor":"rgb(255, 255, 255)","largura":"3px","estilo":"none","sombra":"rgb(245, 247, 248) 0px 0px 0px 2px, rgb(109, 40, 217) 0px 0px 0px 4px"}
+OK    foco visivel (escuro): campo {"cor":"rgb(236, 241, 244)","largura":"3px","estilo":"none","sombra":"rgb(16, 21, 25) 0px 0px 0px 2px, rgb(167, 139, 250) 0px 0px 0px 4px"} | botao {"cor":"rgb(16, 21, 25)","largura":"3px","estilo":"none","sombra":"rgb(16, 21, 25) 0px 0px 0px 2px, rgb(167, 139, 250) 0px 0px 0px 4px"}
+
+Contraste AA e foco visivel: tudo dentro do minimo.

@@ -1,0 +1,6 @@
+VAZA   GET /oficios (token do agente)  -> 200 (1 oficios do municipio)
+VAZA   GET /oficios/:id (token do agente)  -> 200 orgao_email=null aberturas=0
+VAZA   GET /avisos: avisos de outra equipe na lista do agente  -> 1 de 3 (protocolos: 000473/2026)
+FECHA  GET /avisos: naoLidos do agente alem da lista dele  -> naoLidos=3, lista=3, municipio=3
+
+RESULTADO: VAZAMENTO

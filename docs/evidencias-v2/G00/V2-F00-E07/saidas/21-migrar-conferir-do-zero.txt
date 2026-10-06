@@ -1,0 +1,9 @@
+
+> dc360@0.1.0 migrar
+> npm run migrar --workspace @dc360/db -- --conferir
+
+
+> @dc360/db@0.1.0 migrar
+> tsx src/cli.ts --conferir
+
+Esquema em dia.

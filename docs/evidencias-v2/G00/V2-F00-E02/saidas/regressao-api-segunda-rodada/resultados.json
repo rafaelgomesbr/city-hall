@@ -1,0 +1,12 @@
+[
+  {
+    "id": "teste-api",
+    "cmd": "npm run test:api",
+    "cwd": ".",
+    "codigo": 1,
+    "duracaoMs": 100362,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "01-teste-api.txt"
+  }
+]

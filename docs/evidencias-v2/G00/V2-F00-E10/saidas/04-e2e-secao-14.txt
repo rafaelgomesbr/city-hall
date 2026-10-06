@@ -1,0 +1,13 @@
+
+== 14. Recuperacao de senha ==
+  OK   responde sem confirmar se a conta existe
+  OK   resposta identica para email inexistente
+  OK   um link de redefinicao foi emitido
+  OK   recusa quando as duas digitacoes diferem
+  OK   redefine a senha
+  OK   a senha antiga nao vale mais
+  OK   a senha nova entra
+
+====================================================
+Passou: 7   Falhou: 0
+Zero erro de console.

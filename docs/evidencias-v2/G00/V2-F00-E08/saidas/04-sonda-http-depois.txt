@@ -1,0 +1,6 @@
+FECHA  GET /oficios (token do agente)  -> 403 sem_permissao
+FECHA  GET /oficios/:id (token do agente)  -> 403 sem_permissao
+FECHA  GET /avisos: avisos de outra equipe na lista do agente  -> 0 de 2 (protocolos: nenhum)
+FECHA  GET /avisos: naoLidos do agente alem da lista dele  -> naoLidos=2, lista=2, municipio=3
+
+RESULTADO: fechado

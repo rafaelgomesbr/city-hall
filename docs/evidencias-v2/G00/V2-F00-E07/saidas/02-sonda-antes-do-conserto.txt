@@ -1,0 +1,239 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ❯ test/familia-da-sessao.test.ts (20 tests | 11 failed) 31850ms
+   ✓ A cadeia da sessão rotacionada só vale enquanto a cadeia vive > renovação normal: o token antigo escreve até vencer e o novo também  622ms
+   × A cadeia da sessão rotacionada só vale enquanto a cadeia vive > várias rotações seguidas: todos os tokens da cadeia escrevem, e todos caem juntos quando a cadeia é encerrada 797ms
+     → {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+   × A cadeia da sessão rotacionada só vale enquanto a cadeia vive > quem administra encerra as sessões: o token de ANTES da renovação deixa de escrever 677ms
+     → {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+   × A cadeia da sessão rotacionada só vale enquanto a cadeia vive > a própria pessoa encerra as outras sessões: o aparelho que tinha renovado perde também o token antigo 1188ms
+     → {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+   × A cadeia da sessão rotacionada só vale enquanto a cadeia vive > sair encerra a cadeia: o token anterior à renovação deixa de escrever 606ms
+     → {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+   × A cadeia da sessão rotacionada só vale enquanto a cadeia vive > reuso do token de renovação derruba a cadeia: o token de acesso anterior à renovação cai 663ms
+     → {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+   × A cadeia da sessão rotacionada só vale enquanto a cadeia vive > troca de senha em outra sessão encerra a cadeia das demais 2815ms
+     → {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+   × A cadeia da sessão rotacionada só vale enquanto a cadeia vive > a família é por login: encerrar a cadeia de um aparelho não derruba a cadeia de outro login 1455ms
+     → {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+   × A cadeia da sessão rotacionada só vale enquanto a cadeia vive > cada login abre família nova e cada renovação herda a família: o banco guarda isso 1307ms
+     → column "familia_id" does not exist
+   × Papel alterado: 401 nao_autenticado e a renovação resolve > papel rebaixado: o token velho recebe 401 nao_autenticado, a renovação traz o papel novo e a escrita do papel novo passa 1202ms
+     → expected 'sessao_encerrada' to be 'nao_autenticado' // Object.is equality
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > depois de rebaixado a operador, o ex-coordenador renovado não despacha: 403 sem_permissao  1228ms
+   × Papel alterado: 401 nao_autenticado e a renovação resolve > promoção também: papel maior no banco que no token pede renovação, e o token velho não vale como o papel novo 560ms
+     → expected 'sessao_encerrada' to be 'nao_autenticado' // Object.is equality
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > a troca de papel NÃO revoga as sessões da pessoa (decisão registrada)  1112ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > sessão encerrada vence papel diferente: quem foi rebaixado E derrubado entra de novo, em vez de renovar  1554ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > isolamento: coordenador do município A rebaixado, o token antigo não despacha e continua sem ver o município B (404)  1389ms
+   ✓ Papel alterado: 401 nao_autenticado e a renovação resolve > coordenador do município B com o papel mudado não ganha nada no município A  618ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > no prazo, a senha provisória troca  2900ms
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > vencida no meio, pela rota: trocar a senha e renovar respondem 401 sessao_encerrada  2222ms
+   × Senha provisória vencida no meio: nem escreve nem se troca > vencida no meio, pelo SERVIÇO: trocarSenha recusa por si, sem depender da rota ter conferido antes 2639ms
+     → expected null to be an instance of FalhaAutenticacao
+   ✓ Senha provisória vencida no meio: nem escreve nem se troca > senha comum (sem prazo) continua trocando pelo serviço: a recusa é só da provisória vencida  2306ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/familia-da-sessao.test.ts > A cadeia da sessão rotacionada só vale enquanto a cadeia vive > várias rotações seguidas: todos os tokens da cadeia escrevem, e todos caem juntos quando a cadeia é encerrada
+AssertionError: {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ exigirEncerrada test/familia-da-sessao.test.ts:97:32
+     95| async function exigirEncerrada(token: string) {
+     96|   const r = await escrever(token);
+     97|   expect(r.statusCode, r.body).toBe(401);
+       |                                ^
+     98|   expect(r.json().erro).toBe("sessao_encerrada");
+     99| }
+ ❯ test/familia-da-sessao.test.ts:165:66
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  test/familia-da-sessao.test.ts > A cadeia da sessão rotacionada só vale enquanto a cadeia vive > quem administra encerra as sessões: o token de ANTES da renovação deixa de escrever
+AssertionError: {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ exigirEncerrada test/familia-da-sessao.test.ts:97:32
+     95| async function exigirEncerrada(token: string) {
+     96|   const r = await escrever(token);
+     97|   expect(r.statusCode, r.body).toBe(401);
+       |                                ^
+     98|   expect(r.json().erro).toBe("sessao_encerrada");
+     99| }
+ ❯ test/familia-da-sessao.test.ts:176:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  test/familia-da-sessao.test.ts > A cadeia da sessão rotacionada só vale enquanto a cadeia vive > a própria pessoa encerra as outras sessões: o aparelho que tinha renovado perde também o token antigo
+AssertionError: {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ exigirEncerrada test/familia-da-sessao.test.ts:97:32
+     95| async function exigirEncerrada(token: string) {
+     96|   const r = await escrever(token);
+     97|   expect(r.statusCode, r.body).toBe(401);
+       |                                ^
+     98|   expect(r.json().erro).toBe("sessao_encerrada");
+     99| }
+ ❯ test/familia-da-sessao.test.ts:191:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  test/familia-da-sessao.test.ts > A cadeia da sessão rotacionada só vale enquanto a cadeia vive > sair encerra a cadeia: o token anterior à renovação deixa de escrever
+AssertionError: {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ exigirEncerrada test/familia-da-sessao.test.ts:97:32
+     95| async function exigirEncerrada(token: string) {
+     96|   const r = await escrever(token);
+     97|   expect(r.statusCode, r.body).toBe(401);
+       |                                ^
+     98|   expect(r.json().erro).toBe("sessao_encerrada");
+     99| }
+ ❯ test/familia-da-sessao.test.ts:205:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  test/familia-da-sessao.test.ts > A cadeia da sessão rotacionada só vale enquanto a cadeia vive > reuso do token de renovação derruba a cadeia: o token de acesso anterior à renovação cai
+AssertionError: {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ exigirEncerrada test/familia-da-sessao.test.ts:97:32
+     95| async function exigirEncerrada(token: string) {
+     96|   const r = await escrever(token);
+     97|   expect(r.statusCode, r.body).toBe(401);
+       |                                ^
+     98|   expect(r.json().erro).toBe("sessao_encerrada");
+     99| }
+ ❯ test/familia-da-sessao.test.ts:220:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  test/familia-da-sessao.test.ts > A cadeia da sessão rotacionada só vale enquanto a cadeia vive > troca de senha em outra sessão encerra a cadeia das demais
+AssertionError: {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ exigirEncerrada test/familia-da-sessao.test.ts:97:32
+     95| async function exigirEncerrada(token: string) {
+     96|   const r = await escrever(token);
+     97|   expect(r.statusCode, r.body).toBe(401);
+       |                                ^
+     98|   expect(r.json().erro).toBe("sessao_encerrada");
+     99| }
+ ❯ test/familia-da-sessao.test.ts:236:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  test/familia-da-sessao.test.ts > A cadeia da sessão rotacionada só vale enquanto a cadeia vive > a família é por login: encerrar a cadeia de um aparelho não derruba a cadeia de outro login
+AssertionError: {"coordenada":{"lat":-22.41,"lng":-45.45},"anterior":{"lat":-22.41,"lng":-45.45},"documentoJaEmitido":false}: expected 200 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 200
+
+ ❯ exigirEncerrada test/familia-da-sessao.test.ts:97:32
+     95| async function exigirEncerrada(token: string) {
+     96|   const r = await escrever(token);
+     97|   expect(r.statusCode, r.body).toBe(401);
+       |                                ^
+     98|   expect(r.json().erro).toBe("sessao_encerrada");
+     99| }
+ ❯ test/familia-da-sessao.test.ts:256:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  test/familia-da-sessao.test.ts > A cadeia da sessão rotacionada só vale enquanto a cadeia vive > cada login abre família nova e cada renovação herda a família: o banco guarda isso
+error: column "familia_id" does not exist
+ ❯ ye.Ve ../../node_modules/@electric-sql/pg-protocol/src/parser.ts:432:11
+ ❯ ye.nt ../../node_modules/@electric-sql/pg-protocol/src/parser.ts:210:16
+ ❯ ye.parse ../../node_modules/@electric-sql/pg-protocol/src/parser.ts:102:25
+ ❯ pe.execProtocol ../../node_modules/@electric-sql/pglite/src/pglite.ts:631:26
+ ❯ pe.l ../../node_modules/@electric-sql/pglite/src/base.ts:130:12
+ ❯ ../../node_modules/@electric-sql/pglite/src/base.ts:223:44
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  test/familia-da-sessao.test.ts > Papel alterado: 401 nao_autenticado e a renovação resolve > papel rebaixado: o token velho recebe 401 nao_autenticado, a renovação traz o papel novo e a escrita do papel novo passa
+AssertionError: expected 'sessao_encerrada' to be 'nao_autenticado' // Object.is equality
+
+Expected: "nao_autenticado"
+Received: "sessao_encerrada"
+
+ ❯ test/familia-da-sessao.test.ts:299:33
+    297|       expect(velho.statusCode, velho.body).toBe(401);
+    298|       // É "renove e repita", e não "entre de novo".
+    299|       expect(velho.json().erro).toBe("nao_autenticado");
+       |                                 ^
+    300| 
+    301|       const novo = await app.inject({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  test/familia-da-sessao.test.ts > Papel alterado: 401 nao_autenticado e a renovação resolve > promoção também: papel maior no banco que no token pede renovação, e o token velho não vale como o papel novo
+AssertionError: expected 'sessao_encerrada' to be 'nao_autenticado' // Object.is equality
+
+Expected: "nao_autenticado"
+Received: "sessao_encerrada"
+
+ ❯ test/familia-da-sessao.test.ts:334:33
+    332|       const velho = await escrever(d.acesso);
+    333|       expect(velho.statusCode, velho.body).toBe(401);
+    334|       expect(velho.json().erro).toBe("nao_autenticado");
+       |                                 ^
+    335|     } finally {
+    336|       await mem.bruto.query("UPDATE usuarios SET papel = 'agente_campo…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+ FAIL  test/familia-da-sessao.test.ts > Senha provisória vencida no meio: nem escreve nem se troca > vencida no meio, pelo SERVIÇO: trocarSenha recusa por si, sem depender da rota ter conferido antes
+AssertionError: expected null to be an instance of FalhaAutenticacao
+ ❯ test/familia-da-sessao.test.ts:480:20
+    478|         () => null, (e: unknown) => e,
+    479|       );
+    480|       expect(erro).toBeInstanceOf(FalhaAutenticacao);
+       |                    ^
+    481|       expect((erro as FalhaAutenticacao).codigo).toBe("sessao_encerrad…
+    482|       // Nada foi gravado: o hash ainda é o da provisória.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/11]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  11 failed | 9 passed (20)
+   Start at  11:38:02
+   Duration  34.91s (transform 639ms, setup 54ms, collect 2.41s, tests 31.85s, environment 0ms, prepare 136ms)
+

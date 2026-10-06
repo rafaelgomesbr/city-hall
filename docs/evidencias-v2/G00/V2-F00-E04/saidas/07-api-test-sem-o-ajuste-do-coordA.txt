@@ -1,0 +1,528 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ❯ test/api.test.ts (52 tests | 26 failed) 14345ms
+   ✓ Autenticação > recusa senha errada com a mesma resposta de email inexistente  1066ms
+   ✓ Autenticação > nunca devolve o hash da senha  503ms
+   ✓ Autenticação > bloqueia a conta depois das tentativas configuradas  2861ms
+   ✓ Autenticação > recusa requisição sem token e com token adulterado 3ms
+   ✓ Autenticação > rotaciona o token de renovação e derruba tudo se o antigo reaparecer  536ms
+   ✓ Isolamento entre municípios pela API > cada município lista apenas as próprias ocorrências 14ms
+   ✓ Isolamento entre municípios pela API > pedir pelo id exato de outro município devolve 404, não 403 8ms
+   × Isolamento entre municípios pela API > não altera ocorrência de outro município 18ms
+     → expected 401 to be 404 // Object.is equality
+   × Isolamento entre municípios pela API > não despacha para equipe de outro município 11ms
+     → expected 401 to be 404 // Object.is equality
+   × Isolamento entre municípios pela API > não cadastra usuário carimbado para outro município 8ms
+     → expected 401 to be 201 // Object.is equality
+   ✓ Isolamento entre municípios pela API > equipes e usuários também respeitam o município do token 7ms
+   ✓ Autorização por papel > operador registra ocorrência, mas não encerra nem despacha 20ms
+   ✓ Autorização por papel > agente de campo não despacha equipe 7ms
+   ✓ Autorização por papel > operador não lista usuários 1ms
+   × Autorização por papel > coordenador não desativa a própria conta 9ms
+     → expected 401 to be 422 // Object.is equality
+   × Fluxo e trilha auditável > cada transição grava autor, papel e origem, e o protocolo vem do banco 6ms
+     → expected 401 to be 201 // Object.is equality
+   × Fluxo e trilha auditável > recusa transição fora da ordem do fluxo 18ms
+     → expected 401 to be 409 // Object.is equality
+   × Fluxo e trilha auditável > recusa encerrar sem motivo, com erro por campo 9ms
+     → expected 401 to be 422 // Object.is equality
+   ✓ Fluxo e trilha auditável > a troca de email de outra conta entra na trilha, de/para  550ms
+   ✓ Fluxo e trilha auditável > a trilha é append-only mesmo para quem tem token válido 6ms
+   × Sincronização do aplicativo de campo > a mesma coleta enviada duas vezes gera um laudo só 23ms
+     → expected 422 to be 201 // Object.is equality
+   × Sincronização do aplicativo de campo > a chave de storage é remontada no servidor, com o prefixo do tenant 2ms
+     → Cannot read properties of undefined (reading 'chave_storage')
+   ✓ Sincronização do aplicativo de campo > o agente só recebe pendências das próprias equipes 6ms
+   × Superfície e respostas de erro > não vaza detalhe interno em erro de validação 11ms
+     → expected 401 to be 422 // Object.is equality
+   ✓ Superfície e respostas de erro > aplica cabeçalhos de segurança 7ms
+   × Superfície e respostas de erro > desativar usuário derruba as sessões dele na hora 6ms
+     → expected 401 to be 201 // Object.is equality
+   ✓ Limite de tentativas por endereço > recusa depois do teto configurado, com 429  1611ms
+   × Resposta do orgao a providencia > registra o desfecho e entra na trilha 28ms
+     → Cannot read properties of undefined (reading '0')
+   × Resposta do orgao a providencia > nao sobrescreve uma resposta ja registrada 31ms
+     → Cannot read properties of undefined (reading '0')
+   × Resposta do orgao a providencia > recusa desfecho fora da lista e resposta vazia 29ms
+     → Cannot read properties of undefined (reading '0')
+   × Resposta do orgao a providencia > o agente de campo nao registra resposta de orgao 31ms
+     → Cannot read properties of undefined (reading '0')
+   × Resposta do orgao a providencia > encerrar avisa quais providencias ficaram sem resposta 32ms
+     → Cannot read properties of undefined (reading '0')
+   × Resposta do orgao a providencia > providencia respondida nao aparece como pendente no encerramento 47ms
+     → Cannot read properties of undefined (reading '0')
+   × Vinculo de duplicidade e providencias vencendo > o vinculo aparece nos DOIS lados 33ms
+     → Cannot read properties of undefined (reading 'map')
+   ✓ Vinculo de duplicidade e providencias vencendo > nao vincula a ocorrencia de outro municipio 11ms
+   ✓ Vinculo de duplicidade e providencias vencendo > lista as providencias que vencem sem resposta 5ms
+   ✓ Vinculo de duplicidade e providencias vencendo > o painel conta providencia aberta e vencida 6ms
+   × Vinculo de duplicidade e providencias vencendo > a providencia continua visivel depois de a ocorrencia encerrar 8ms
+     → expected 0 to be greater than 0
+   × Posto entre papeis > o coordenador nao cria administrador 8ms
+     → expected 401 to be 403 // Object.is equality
+   ✓ Posto entre papeis > o administrador cria administrador  543ms
+   × Posto entre papeis > o coordenador nao desativa o administrador 9ms
+     → expected 401 to be 403 // Object.is equality
+   × Posto entre papeis > o coordenador nao se promove a administrador pela edicao 15ms
+     → expected 401 to be 403 // Object.is equality
+   × Posto entre papeis > o coordenador corrige o cadastro de quem esta abaixo dele 9ms
+     → expected 401 to be 200 // Object.is equality
+   ✓ Posto entre papeis > o municipio nao fica sem administrador ativo 60ms
+   × Encerrar duas vezes > recusa a segunda com 409 e não duplica o evento na trilha 14ms
+     → expected 401 to be 200 // Object.is equality
+   × Encerrar duas vezes > reclassificar na triagem continua permitido, porque triagem não é desfecho 8ms
+     → expected 401 to be 200 // Object.is equality
+   × Trilha dos atos administrativos > promover, rebaixar e desativar deixa os três registros 7ms
+     → expected 401 to be 201 // Object.is equality
+   ✓ Trilha dos atos administrativos > a trilha administrativa não se reescreve nem se apaga 6ms
+   ✓ Formulário público de interesse > aceita sem token e responde sempre a mesma coisa 7ms
+   ✓ Formulário público de interesse > pedir de novo na mesma janela não duplica, e a resposta não muda 5ms
+   ✓ Formulário público de interesse > NÃO cria município nenhum 14ms
+   ✓ Formulário público de interesse > recusa dados que não fazem sentido 3ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 26 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/api.test.ts > Isolamento entre municípios pela API > não altera ocorrência de outro município
+AssertionError: expected 401 to be 404 // Object.is equality
+
+- Expected
++ Received
+
+- 404
++ 401
+
+ ❯ test/api.test.ts:273:26
+    271|       payload: { motivo: "tentativa de invasao" },
+    272|     });
+    273|     expect(r.statusCode).toBe(404);
+       |                          ^
+    274| 
+    275|     // Conferência fora da API, como dono das tabelas.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/26]⎯
+
+ FAIL  test/api.test.ts > Isolamento entre municípios pela API > não despacha para equipe de outro município
+AssertionError: expected 401 to be 404 // Object.is equality
+
+- Expected
++ Received
+
+- 404
++ 401
+
+ ❯ test/api.test.ts:295:26
+    293|       payload: { equipeId: equipeB, prazoHoras: 24 },
+    294|     });
+    295|     expect(r.statusCode).toBe(404);
+       |                          ^
+    296|     expect(r.json().erro).toBe("equipe_inexistente");
+    297|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/26]⎯
+
+ FAIL  test/api.test.ts > Isolamento entre municípios pela API > não cadastra usuário carimbado para outro município
+AssertionError: expected 401 to be 201 // Object.is equality
+
+- Expected
++ Received
+
+- 201
++ 401
+
+ ❯ test/api.test.ts:310:26
+    308|       },
+    309|     });
+    310|     expect(r.statusCode).toBe(201);
+       |                          ^
+    311| 
+    312|     const onde = await mem.bruto.query<{ organizacao_id: string }>(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/26]⎯
+
+ FAIL  test/api.test.ts > Autorização por papel > coordenador não desativa a própria conta
+AssertionError: expected 401 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 401
+
+ ❯ test/api.test.ts:373:26
+    371|       payload: { ativo: false },
+    372|     });
+    373|     expect(r.statusCode).toBe(422);
+       |                          ^
+    374|   });
+    375| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/26]⎯
+
+ FAIL  test/api.test.ts > Fluxo e trilha auditável > cada transição grava autor, papel e origem, e o protocolo vem do banco
+AssertionError: expected 401 to be 201 // Object.is equality
+
+- Expected
++ Received
+
+- 201
++ 401
+
+ ❯ test/api.test.ts:388:30
+    386|       },
+    387|     });
+    388|     expect(criar.statusCode).toBe(201);
+       |                              ^
+    389|     expect(criar.json().protocolo).toMatch(/^\d{6}\/\d{4}$/);
+    390|     const id = criar.json().id;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/26]⎯
+
+ FAIL  test/api.test.ts > Fluxo e trilha auditável > recusa transição fora da ordem do fluxo
+AssertionError: expected 401 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 401
+
+ ❯ test/api.test.ts:433:26
+    431|       payload: { equipeId: equipeA, prazoHoras: 24 },
+    432|     });
+    433|     expect(r.statusCode).toBe(409);
+       |                          ^
+    434|     expect(r.json().erro).toBe("transicao_invalida");
+    435|   }, 60_000);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/26]⎯
+
+ FAIL  test/api.test.ts > Fluxo e trilha auditável > recusa encerrar sem motivo, com erro por campo
+AssertionError: expected 401 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 401
+
+ ❯ test/api.test.ts:443:26
+    441|       payload: { motivo: "" },
+    442|     });
+    443|     expect(r.statusCode).toBe(422);
+       |                          ^
+    444|     expect(r.json().campos[0].campo).toBe("motivo");
+    445|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/26]⎯
+
+ FAIL  test/api.test.ts > Sincronização do aplicativo de campo > a mesma coleta enviada duas vezes gera um laudo só
+AssertionError: expected 422 to be 201 // Object.is equality
+
+- Expected
++ Received
+
+- 201
++ 422
+
+ ❯ test/api.test.ts:552:33
+    550|       headers: comToken(tokens["agenteA"]!.acesso), payload: envelope,
+    551|     });
+    552|     expect(primeiro.statusCode).toBe(201);
+       |                                 ^
+    553|     expect(primeiro.json().duplicada).toBe(false);
+    554| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/26]⎯
+
+ FAIL  test/api.test.ts > Sincronização do aplicativo de campo > a chave de storage é remontada no servidor, com o prefixo do tenant
+TypeError: Cannot read properties of undefined (reading 'chave_storage')
+ ❯ test/api.test.ts:581:31
+    579|       "SELECT chave_storage FROM evidencias ORDER BY capturada_em DESC…
+    580|     );
+    581|     expect(evidencia.rows[0]!.chave_storage.startsWith(`tenant/${orgA}…
+       |                               ^
+    582|   });
+    583| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/26]⎯
+
+ FAIL  test/api.test.ts > Superfície e respostas de erro > não vaza detalhe interno em erro de validação
+AssertionError: expected 401 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 401
+
+ ❯ test/api.test.ts:604:26
+    602|       payload: { tipo: "nao_existe_esse_tipo" },
+    603|     });
+    604|     expect(r.statusCode).toBe(422);
+       |                          ^
+    605|     expect(r.body).not.toMatch(/ocorrencias|organizacao_id|pg|postgres…
+    606|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/26]⎯
+
+ FAIL  test/api.test.ts > Superfície e respostas de erro > desativar usuário derruba as sessões dele na hora
+AssertionError: expected 401 to be 201 // Object.is equality
+
+- Expected
++ Received
+
+- 201
++ 401
+
+ ❯ test/api.test.ts:624:29
+    622|       },
+    623|     });
+    624|     expect(alvo.statusCode).toBe(201);
+       |                             ^
+    625| 
+    626|     const sessao = await entrar("temporario@serraalta.exemplo.gov.br",…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/26]⎯
+
+ FAIL  test/api.test.ts > Resposta do orgao a providencia > registra o desfecho e entra na trilha
+TypeError: Cannot read properties of undefined (reading '0')
+ ❯ ateProvidencia test/api.test.ts:729:48
+    727|       method: "GET", url: `/ocorrencias/${id}`, headers: comToken(toke…
+    728|     });
+    729|     return { id, providenciaId: detalhe.json().providencias[0].id };
+       |                                                ^
+    730|   }
+    731| 
+ ❯ test/api.test.ts:733:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/26]⎯
+
+ FAIL  test/api.test.ts > Resposta do orgao a providencia > nao sobrescreve uma resposta ja registrada
+TypeError: Cannot read properties of undefined (reading '0')
+ ❯ ateProvidencia test/api.test.ts:729:48
+    727|       method: "GET", url: `/ocorrencias/${id}`, headers: comToken(toke…
+    728|     });
+    729|     return { id, providenciaId: detalhe.json().providencias[0].id };
+       |                                                ^
+    730|   }
+    731| 
+ ❯ test/api.test.ts:764:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/26]⎯
+
+ FAIL  test/api.test.ts > Resposta do orgao a providencia > recusa desfecho fora da lista e resposta vazia
+TypeError: Cannot read properties of undefined (reading '0')
+ ❯ ateProvidencia test/api.test.ts:729:48
+    727|       method: "GET", url: `/ocorrencias/${id}`, headers: comToken(toke…
+    728|     });
+    729|     return { id, providenciaId: detalhe.json().providencias[0].id };
+       |                                                ^
+    730|   }
+    731| 
+ ❯ test/api.test.ts:786:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/26]⎯
+
+ FAIL  test/api.test.ts > Resposta do orgao a providencia > o agente de campo nao registra resposta de orgao
+TypeError: Cannot read properties of undefined (reading '0')
+ ❯ ateProvidencia test/api.test.ts:729:48
+    727|       method: "GET", url: `/ocorrencias/${id}`, headers: comToken(toke…
+    728|     });
+    729|     return { id, providenciaId: detalhe.json().providencias[0].id };
+       |                                                ^
+    730|   }
+    731| 
+ ❯ test/api.test.ts:806:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/26]⎯
+
+ FAIL  test/api.test.ts > Resposta do orgao a providencia > encerrar avisa quais providencias ficaram sem resposta
+TypeError: Cannot read properties of undefined (reading '0')
+ ❯ ateProvidencia test/api.test.ts:729:48
+    727|       method: "GET", url: `/ocorrencias/${id}`, headers: comToken(toke…
+    728|     });
+    729|     return { id, providenciaId: detalhe.json().providencias[0].id };
+       |                                                ^
+    730|   }
+    731| 
+ ❯ test/api.test.ts:816:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/26]⎯
+
+ FAIL  test/api.test.ts > Resposta do orgao a providencia > providencia respondida nao aparece como pendente no encerramento
+TypeError: Cannot read properties of undefined (reading '0')
+ ❯ ateProvidencia test/api.test.ts:729:48
+    727|       method: "GET", url: `/ocorrencias/${id}`, headers: comToken(toke…
+    728|     });
+    729|     return { id, providenciaId: detalhe.json().providencias[0].id };
+       |                                                ^
+    730|   }
+    731| 
+ ❯ test/api.test.ts:840:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/26]⎯
+
+ FAIL  test/api.test.ts > Vinculo de duplicidade e providencias vencendo > o vinculo aparece nos DOIS lados
+TypeError: Cannot read properties of undefined (reading 'map')
+ ❯ test/api.test.ts:893:30
+    891|       method: "GET", url: `/ocorrencias/${idOriginal}`, headers: comTo…
+    892|     });
+    893|     expect(daOriginal.json().vinculadas.map((v: { id: string }) => v.i…
+       |                              ^
+    894|     expect(daOriginal.json().vinculadaA).toBeNull();
+    895|   }, 120_000);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/26]⎯
+
+ FAIL  test/api.test.ts > Vinculo de duplicidade e providencias vencendo > a providencia continua visivel depois de a ocorrencia encerrar
+AssertionError: expected 0 to be greater than 0
+ ❯ test/api.test.ts:949:31
+    947|     const encerradas = (antes.json().itens as Array<{ status: string }…
+    948|       .filter((p) => p.status === "encerrada");
+    949|     expect(encerradas.length).toBeGreaterThan(0);
+       |                               ^
+    950|   }, 60_000);
+    951| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/26]⎯
+
+ FAIL  test/api.test.ts > Posto entre papeis > o coordenador nao cria administrador
+AssertionError: expected 401 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 401
+
+ ❯ test/api.test.ts:975:26
+    973|       },
+    974|     });
+    975|     expect(r.statusCode).toBe(403);
+       |                          ^
+    976|     expect(r.json().erro).toBe("posto_insuficiente");
+    977|   }, 60_000);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/26]⎯
+
+ FAIL  test/api.test.ts > Posto entre papeis > o coordenador nao desativa o administrador
+AssertionError: expected 401 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 401
+
+ ❯ test/api.test.ts:1005:26
+    1003|       payload: { ativo: false },
+    1004|     });
+    1005|     expect(r.statusCode).toBe(403);
+       |                          ^
+    1006|     expect(r.json().erro).toBe("posto_insuficiente");
+    1007|   }, 60_000);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/26]⎯
+
+ FAIL  test/api.test.ts > Posto entre papeis > o coordenador nao se promove a administrador pela edicao
+AssertionError: expected 401 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 401
+
+ ❯ test/api.test.ts:1024:26
+    1022|       },
+    1023|     });
+    1024|     expect(r.statusCode).toBe(403);
+       |                          ^
+    1025|     expect(r.json().erro).toBe("posto_insuficiente");
+    1026|   }, 60_000);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/26]⎯
+
+ FAIL  test/api.test.ts > Posto entre papeis > o coordenador corrige o cadastro de quem esta abaixo dele
+AssertionError: expected 401 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 401
+
+ ❯ test/api.test.ts:1043:26
+    1041|       },
+    1042|     });
+    1043|     expect(r.statusCode).toBe(200);
+       |                          ^
+    1044| 
+    1045|     const depois = await app.inject({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/26]⎯
+
+ FAIL  test/api.test.ts > Encerrar duas vezes > recusa a segunda com 409 e não duplica o evento na trilha
+AssertionError: expected 401 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 401
+
+ ❯ test/api.test.ts:1135:33
+    1133|       payload: { motivo: "Bueiro desobstruído pela zeladoria, risco ce…
+    1134|     });
+    1135|     expect(primeira.statusCode).toBe(200);
+       |                                 ^
+    1136| 
+    1137|     const segunda = await app.inject({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/26]⎯
+
+ FAIL  test/api.test.ts > Encerrar duas vezes > reclassificar na triagem continua permitido, porque triagem não é desfecho
+AssertionError: expected 401 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 401
+
+ ❯ test/api.test.ts:1169:28
+    1167|         payload: { severidade, vulnerabilidadePresente: false },
+    1168|       });
+    1169|       expect(r.statusCode).toBe(200);
+       |                            ^
+    1170|     }
+    1171| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/26]⎯
+
+ FAIL  test/api.test.ts > Trilha dos atos administrativos > promover, rebaixar e desativar deixa os três registros
+AssertionError: expected 401 to be 201 // Object.is equality
+
+- Expected
++ Received
+
+- 201
++ 401
+
+ ❯ test/api.test.ts:1206:31
+    1204|       },
+    1205|     });
+    1206|     expect(criado.statusCode).toBe(201);
+       |                               ^
+    1207|     const alvoId = criado.json().id;
+    1208| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/26]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  26 failed | 26 passed (52)
+   Start at  10:23:07
+   Duration  17.35s (transform 606ms, setup 75ms, collect 2.35s, tests 14.34s, environment 0ms, prepare 230ms)
+

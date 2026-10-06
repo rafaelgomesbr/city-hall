@@ -1,0 +1,8 @@
+### CMD: npm run typecheck (cwd=.) inicio=2026-09-30T16:24:59-03:00
+
+> @dc360/campo-app@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+src/app/(agente)/perfil.tsx(1212,44): error TS2345: Argument of type '"/(agente)/avisos"' is not assignable to parameter of type '"/" | RelativePathString | ExternalPathString | "/entrar" | `/entrar?${string}` | `/entrar#${string}` | `/?${string}` | `/#${string}` | "/../../../../packages/shared/src/pessoas.test" | ... 42 more ... | { ...; }'.
+src/ui/Sino.tsx(154,73): error TS2345: Argument of type '"/(agente)/avisos"' is not assignable to parameter of type '"/" | RelativePathString | ExternalPathString | "/entrar" | `/entrar?${string}` | `/entrar#${string}` | `/?${string}` | `/#${string}` | "/../../../../packages/shared/src/pessoas.test" | ... 42 more ... | { ...; }'.
+### EXIT=2 DURACAO=26s fim=2026-09-30T16:25:24-03:00

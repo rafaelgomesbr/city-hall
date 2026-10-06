@@ -1,0 +1,12 @@
+### CMD: npx vitest run test/banco-tls.test.ts (cwd=.) inicio=2026-09-30T16:34:37-03:00
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/banco-tls.test.ts (13 tests) 263ms
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  16:34:40
+   Duration  1.11s (transform 147ms, setup 66ms, collect 154ms, tests 263ms, environment 0ms, prepare 253ms)
+
+### EXIT=0 DURACAO=4s fim=2026-09-30T16:34:41-03:00

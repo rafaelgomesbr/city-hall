@@ -1,0 +1,54 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/dc360[39m
+
+ [31m❯[39m packages/shared/test/regras-de-conteudo.test.ts [2m([22m[2m5 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 1535[2mms[22m[39m
+   [32m✓[39m Regras de conteúdo[2m > [22ma varredura alcança o código, o protótipo e a documentação[32m 200[2mms[22m[39m
+[31m   [31m×[31m Regras de conteúdo[2m > [22mnenhum travessão em texto nenhum[39m[33m 416[2mms[22m[39m
+[31m     → travessão encontrado; use vírgula, dois pontos ou parênteses:
+dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe
+docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");": expected [ …(5) ] to deeply equal [][39m
+   [33m[2m✓[22m[39m Regras de conteúdo[2m > [22mnenhuma norma citada fora da lista autorizada [33m 912[2mms[22m[39m
+   [32m✓[39m Regras de conteúdo[2m > [22mnenhum número de artigo em documento oficial[32m 3[2mms[22m[39m
+   [32m✓[39m Regras de conteúdo[2m > [22mas próprias expressões funcionam[32m 1[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m packages/shared/test/regras-de-conteudo.test.ts[2m > [22mRegras de conteúdo[2m > [22mnenhum travessão em texto nenhum
+[31m[1mAssertionError[22m: travessão encontrado; use vírgula, dois pontos ou parênteses:
+dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe
+docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");": expected [ …(5) ] to deeply equal [][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",[39m
+[31m+   "docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe",[39m
+[31m+   "docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",[39m
+[31m+   "docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");",[39m
+[31m+   "docs/auditoria-v2/raw/teste-shared.txt:41  +   \"dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\\\"[travessao]\\\");\"",[39m
+[31m+ ][39m
+
+[36m [2m❯[22m packages/shared/test/regras-de-conteudo.test.ts:[2m158:7[22m[39m
+    [90m156| [39m        [33m?[39m [32m""[39m
+    [90m157| [39m        : `travessão encontrado; use vírgula, dois pontos ou parêntese…
+    [90m158| [39m    )[33m.[39m[34mtoEqual[39m([])[33m;[39m
+    [90m   | [39m      [31m^[39m
+    [90m159| [39m  })[33m;[39m
+    [90m160| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m4 passed[39m[22m[90m (5)[39m
+[2m   Start at [22m 11:28:05
+[2m   Duration [22m 2.13s[2m (transform 54ms, setup 0ms, collect 77ms, tests 1.53s, environment 0ms, prepare 199ms)[22m
+
