@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { EnvelopeSincronizacao } from "@dc360/shared";
 import {
+  FalhaDeSessao,
   FalhaPermanente,
   FalhaTemporaria,
   criarFilaDeSincronizacao,
@@ -1156,22 +1157,28 @@ describe("Transporte HTTP", () => {
     }
   });
 
-  it("401 é permanente de propósito, para não bloquear a conta do agente", async () => {
-    // Repetir com token morto é o caminho mais rápido para estourar o limite
-    // de tentativas e bloquear quem está trabalhando. Sessão expirada se
-    // resolve entrando de novo, não insistindo.
+  it("401 não é mais permanente: vira falha de SESSÃO, e a fila guarda a coleta", async () => {
+    /*
+      Reescrito na V2-F00-E06 (decisão superada, registrada em
+      `docs/DECISOES-DE-TESTE-DA-FASE-00.md`). O teste antigo afirmava que o 401
+      era `FalhaPermanente`, o que bloqueava o item e punha "Descartar" ao lado
+      de uma vistoria feita no morro. O motivo original continua valendo
+      (repetir com token morto estoura o limite de tentativas), e agora é
+      cumprido de outro jeito: UMA renovação, e a fila para. Os casos completos
+      estão em `pausa-de-sessao.test.ts`.
+    */
     const { transporte } = transporteCom({ ok: false, status: 401, json: async () => ({}) });
-    await expect(transporte.enviar(envelopeBase)).rejects.toBeInstanceOf(FalhaPermanente);
+    await expect(transporte.enviar(envelopeBase)).rejects.toBeInstanceOf(FalhaDeSessao);
   });
 
-  it("sem token nem tenta a chamada", async () => {
+  it("sem token nem tenta a chamada, e é falha de sessão (a coleta não foi recusada)", async () => {
     const buscar = vi.fn();
     const transporte = transporteHttp({
       baseUrl: "http://api.exemplo",
       obterToken: async () => null,
       buscar: buscar as unknown as typeof fetch,
     });
-    await expect(transporte.enviar(envelopeBase)).rejects.toBeInstanceOf(FalhaPermanente);
+    await expect(transporte.enviar(envelopeBase)).rejects.toBeInstanceOf(FalhaDeSessao);
     expect(buscar).not.toHaveBeenCalled();
   });
 });

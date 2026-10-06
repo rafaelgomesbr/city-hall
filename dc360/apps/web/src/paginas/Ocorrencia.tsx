@@ -155,6 +155,14 @@ export function Ocorrencia() {
     navegar(`${local.pathname}${local.search}`, { replace: true, state: null });
   }, [chegouDoRegistro, navegar, local.pathname, local.search]);
 
+  /*
+    Ofício é leitura da coordenação (`consultar_oficio`, V2-F00-E08). O servidor
+    responde 403 ao agente de campo, e uma chamada que falha derrubaria a tela
+    inteira do dossiê (o `Promise.all` abaixo rejeita junto). Quem não tem a ação
+    nem pergunta, e o cartão de ofícios nem é desenhado.
+  */
+  const podeConsultarOficio = podeExecutar(sessao.papel, "consultar_oficio");
+
   const recarregar = useCallback(async () => {
     const [
       ocorrencia, trilha, vistoria, providencias, equipes, evidencias, vinculos,
@@ -168,7 +176,7 @@ export function Ocorrencia() {
       listarEvidencias(sessao, id),
       vinculosDaOcorrencia(sessao, id),
       listarOrgaos(sessao),
-      listarOficios(sessao, id),
+      podeConsultarOficio ? listarOficios(sessao, id) : Promise.resolve<LinhaOficio[]>([]),
       devolucaoDaOcorrencia(sessao, id),
     ]);
     if (!ocorrencia) throw new Error("Ocorrência não encontrada nesta organização");
@@ -187,7 +195,7 @@ export function Ocorrencia() {
       vinculadaA: vinculos.vinculadaA as VinculoOcorrencia | null,
       vinculadas: vinculos.vinculadas as VinculoOcorrencia[],
     });
-  }, [sessao, id]);
+  }, [sessao, id, podeConsultarOficio]);
 
   useEffect(() => {
     setDados(null);
@@ -796,7 +804,7 @@ export function Ocorrencia() {
             diferentes da tela faria o coordenador responder "encaminhei" sem
             saber que nada saiu do prédio.
           */}
-          {providencias.length > 0 && (
+          {providencias.length > 0 && podeConsultarOficio && (
             <CartaoOficios
               providencias={providencias}
               oficios={oficios}

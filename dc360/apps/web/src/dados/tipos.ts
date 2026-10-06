@@ -10,6 +10,26 @@ import type {
   Papel, Severidade, StatusOcorrencia, TipoCobrade, TipoDeEntrada, Origem,
 } from "@dc360/shared";
 
+/**
+ * Por que a sessão da tela acabou sem a pessoa pedir (V2-F00-E05).
+ *
+ * Três motivos porque pedem três frases e três ações, e antes eram um só:
+ * `expirou` (token vencido e a renovação falhou), `encerrada` (alguém
+ * encerrou a sessão ou o cadastro mudou: entrar de novo resolve) e
+ * `desativada` (a conta foi desativada: entrar de novo NÃO resolve, é com a
+ * coordenação). Vêm dos códigos `nao_autenticado`, `sessao_encerrada` e
+ * `conta_desativada` do catálogo de `@dc360/shared`.
+ */
+export type MotivoDaSessaoMorta = "expirou" | "encerrada" | "desativada";
+
+/**
+ * O que uma renovação silenciosa pode ter mudado na pessoa: o papel (alguém
+ * trocou o perfil dela enquanto a tela estava aberta) e o nome. A tela
+ * atualiza a sessão com isto, para mostrar só as ações do papel novo sem
+ * pedir que ela entre de novo.
+ */
+export type UsuarioRenovado = { papel: Papel; nome: string };
+
 export type Sessao = {
   organizacaoId: string;
   organizacaoNome: string;
@@ -561,6 +581,31 @@ export type SessoesDeOutrem = {
 export type MinhasSessoes = {
   sessoesEncerradas: number;
   mensagem: string;
+};
+
+/**
+ * Uma sessão viva da PRÓPRIA conta, como "Minha conta" a lista.
+ *
+ * O aparelho já vem em uma frase ("Chrome em Windows"): o servidor não entrega
+ * IP nem user-agent, e a tela não tem como reconstituí-los.
+ */
+export type SessaoDaConta = {
+  entrouEm: string;
+  validaAte: string;
+  aparelho: string;
+  /** É a sessão de onde o pedido saiu: a que continua aberta ao encerrar as outras. */
+  atual: boolean;
+};
+
+/**
+ * O que quem administra vê das sessões de OUTRA pessoa: quantas, e as datas.
+ * Nada do aparelho: a decisão de derrubar não precisa dele.
+ */
+export type SessoesAbertasDeOutrem = {
+  id: string;
+  sessoesAbertas: number;
+  ultimaEntradaEm: string | null;
+  validaAte: string | null;
 };
 
 // ---------------------------------------------------------------------------

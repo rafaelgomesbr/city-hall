@@ -54,6 +54,32 @@ describe("Permissões por papel", () => {
     }
   });
 
+  it("consultar ofício é de operador, coordenador e administrador, e NUNCA do agente de campo (V2-F00-E08)", () => {
+    // O agente recebe 403 em `GET /oficios`: a ficha traz o e-mail do órgão, as
+    // observações da coordenação e o IP de quem abriu o link.
+    expect(podeExecutar("operador", "consultar_oficio")).toBe(true);
+    expect(podeExecutar("coordenador", "consultar_oficio")).toBe(true);
+    expect(podeExecutar("administrador", "consultar_oficio")).toBe(true);
+    expect(podeExecutar("agente_campo", "consultar_oficio")).toBe(false);
+    expect(acoesDoPapel("agente_campo")).not.toContain("consultar_oficio");
+  });
+
+  it("consultar ofício é leitura: o operador a tem e continua sem emitir nem enviar ofício", () => {
+    expect(podeExecutar("operador", "emitir_documento")).toBe(false);
+    expect(podeExecutar("operador", "encaminhar_providencia")).toBe(false);
+  });
+
+  it("a recusa de consultar ofício diz o que a pessoa não pode fazer", () => {
+    try {
+      exigirPermissao("agente_campo", "consultar_oficio");
+      throw new Error("devia ter lançado");
+    } catch (e) {
+      expect(e).toBeInstanceOf(SemPermissao);
+      expect((e as SemPermissao).acao).toBe("consultar_oficio");
+      expect((e as SemPermissao).message).toContain("consultar os ofícios de encaminhamento");
+    }
+  });
+
   it("toda ação declarada é permitida a pelo menos um papel", () => {
     // Ação que ninguém pode executar é ação morta, ou papel esquecido.
     for (const acao of ACOES) {

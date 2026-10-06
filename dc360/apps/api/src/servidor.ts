@@ -9,6 +9,8 @@ import type { Banco } from "./banco/tipos.js";
 import { organizacaoDoAcessoVencido, verificarAcesso } from "./auth/tokens.js";
 import { servicoDeAutenticacao, FalhaAutenticacao } from "./auth/servico.js";
 import { AcessoSuspenso, exigirAcessoAtivo } from "./auth/suspensao.js";
+import { ContaDesativada } from "./auth/conta-desativada.js";
+import { exigirVigencia, lerVigencia } from "./auth/vigencia.js";
 import { servicoDeSegundoFator } from "./auth/segundo-fator.js";
 import { notificadorDeLog, type Notificador } from "./auth/notificador.js";
 import { rotasAutenticacao } from "./rotas/autenticacao.js";
@@ -408,6 +410,10 @@ export async function construirServidor(
   */
   const segundoFator = servicoDeSegundoFator(banco, config);
   const autenticacao = servicoDeAutenticacao(banco, config, notificador, segundoFator);
+  // O link de recuperação sai depois da resposta (não revela, pelo relógio,
+  // quem tem conta). Quem encerra o servidor espera esses envios terminarem,
+  // para a mensagem já aceita não morrer no meio do caminho até o provedor.
+  app.addHook("onClose", async () => { await autenticacao.esperarEnvios(); });
 
   /**
    * Extrai e verifica o token de acesso. A organização usada no `SET LOCAL`
@@ -447,23 +453,27 @@ export async function construirServidor(
     }
 
     /*
-      ESCRITA confere a suspensão; LEITURA com token vivo não. O argumento
-      inteiro está em `auth/suspensao.ts`. `HEAD` conta como leitura porque é
-      o que ele é.
+      ESCRITA confere, numa ida só ao banco, a suspensão do município E a
+      vigência de quem escreve: conta ativa, papel igual ao do token, sessão
+      não encerrada, senha provisória dentro do prazo. LEITURA com token vivo
+      não vai ao banco (a vigência em leitura é da F03-E03, centralizada em
+      `comTenant`). O argumento da suspensão está em `auth/suspensao.ts`; o da
+      vigência, em `auth/vigencia.ts`. `HEAD` conta como leitura porque é o
+      que ele é.
 
-      DESLIGADO NESTA IMPLANTAÇÃO, DE PROPÓSITO: `auth/vigencia.ts` (conta
-      ativa, papel do token, sessão viva, senha provisória) foi escrito por
-      uma revisão de segurança que não terminou de rodar a própria suíte de
-      teste antes do prazo acabar. Ele fica no repositório, pronto para ser
-      ligado, mas ligá-lo aqui hoje arriscaria travar escrita legítima em
-      produção sem prova de que fecha certo (a suíte local ainda reprova
-      alguns casos). A senha provisória continua valendo pela MARCA DO
-      TOKEN (`conteudo.sp`), que não depende desta consulta.
+      Esta conferência esteve desligada de 17/09/2026 até V2-F00-E04 (o commit
+      b4439ac tirou o import e as duas chamadas, e o teste ficou em skip). Sem
+      ela, conta desativada, papel rebaixado e sessão encerrada por quem
+      administra escreviam por até quinze minutos com o token ainda vivo.
     */
     const escrita = req.method !== "GET" && req.method !== "HEAD";
-    const senhaProvisoria = conteudo.sp === true;
+    let senhaProvisoria = conteudo.sp === true;
     if (escrita) {
-      await exigirAcessoAtivo(banco, conteudo.org, statusDaSuspensao);
+      const vigencia = await lerVigencia(banco, conteudo);
+      exigirVigencia(vigencia, conteudo, statusDaSuspensao);
+      // O banco manda: uma marca no token que o banco já não confirma não
+      // tranca ninguém, e um prazo que o banco tem e o token não também vale.
+      senhaProvisoria = vigencia.senhaProvisoriaAte !== null;
     }
 
     /*
@@ -523,6 +533,15 @@ export async function construirServidor(
     if ((erro as { code?: unknown }).code === "DC367") {
       const suspenso = new AcessoSuspenso(403);
       return resposta.code(suspenso.status).send({ erro: suspenso.codigo, mensagem: suspenso.message });
+    }
+    /*
+      403 e não 401: a credencial está certa, é a CONTA que foi desativada, e
+      entrar de novo não resolve. É a conta do próprio usuário autenticado, não
+      um recurso alheio, então não confirma a existência de nada de outro
+      município (esse continua 404). Ver `auth/conta-desativada.ts`.
+    */
+    if (erro instanceof ContaDesativada) {
+      return resposta.code(erro.status).send({ erro: erro.codigo, mensagem: erro.message });
     }
     if (erro instanceof SemPermissao) {
       return resposta.code(403).send({ erro: "sem_permissao", mensagem: erro.message });

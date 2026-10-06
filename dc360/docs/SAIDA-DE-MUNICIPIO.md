@@ -82,7 +82,8 @@ município.
 | Exportação dos documentos gerados | **Existe** para laudo, termo de interdição, termo de desinterdição e ofício, em `HTML` autossuficiente (estilo dentro do arquivo, imagens apontando para a pasta do próprio pacote). **Não sai em `PDF`**: o `HTML` imprime, e gerar milhares de `PDF` numa requisição só derrubaria o servidor |
 | Índice ligando protocolo a arquivo | **Existe.** `INDICE.html` (abre por duplo clique, sem internet) e `INDICE.csv` na raiz, ligando protocolo, pasta, documentos e a linha correspondente de `tabelas/ocorrencias.csv` |
 | Esquema do banco | **Existe.** `esquema/`, com as próprias migrações comentadas, que explicam o que cada coluna significa |
-| Soma de verificação | **Existe.** `SOMAS-SHA256.txt`, um `SHA-256` por arquivo do pacote |
+| Soma de verificação | **Existe.** `SOMAS-SHA256.txt`, um `SHA-256` por arquivo do pacote (menos ele mesmo) |
+| Botão no painel | **Existe e está provado de ponta a ponta.** Em Organização (só para quem administra), "Baixar pacote de saída" chama `POST /saida/pacote.zip`, renova o token se ele venceu e entrega `dc360-pacote-de-saida-AAAA-MM-DD.zip`. Até 2026-10-06 o botão chamava `/pacote.zip` (sem o prefixo) e todo clique dava 404: ninguém via, porque o teste da API chamava a rota certa direto. A prova que faltava é a seção 28 de `apps/web/test/fluxo-api.e2e.mjs`, que clica no botão, recebe o arquivo pelo navegador, abre o ZIP e confere o que há dentro (índice, tabelas, laudo, soma SHA-256 de cada arquivo, só linhas do município de quem pediu, nenhuma coluna que nunca sai) |
 | Dicionário de dados | `DICIONARIO-DE-DADOS.md`, e ele **ainda não vai dentro do pacote**: é entregue à parte |
 | Declaração de eliminação | **Não existe** modelo |
 
@@ -98,6 +99,18 @@ seria um envelope inútil para quem recebe e perigoso para quem guarda. O que
 importa sobre ela vai junto de qualquer forma, na trilha administrativa: quando
 cada conta ligou e quando desligou.
 O `LEIA-ME.txt` do próprio pacote diz isso a quem o recebe.
+
+### O que o painel diz quando o pacote não sai
+
+A tela mostra a frase que o servidor mandou, e não a inventa: quem não administra
+recebe "Seu perfil não tem permissão para alterar os dados do município."; município
+com o acesso suspenso recebe a frase de contrato (procurar quem administra o contrato
+na prefeitura); sem rede, "Sem conexão com o servidor. O arquivo não foi baixado."
+Atenção ao que isso significa para a saída: a suspensão do acesso vale também para
+este botão (a rota é uma escrita, e toda escrita confere a suspensão), então município
+suspenso não baixa o pacote pelo painel até o acesso voltar. Se o contrato quiser que
+o município suspenso ainda possa sair, é decisão a registrar (hoje é premissa, na seção
+9 do STATUS do roadmap).
 
 ### O que continua manual
 

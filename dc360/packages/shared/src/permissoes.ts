@@ -24,6 +24,7 @@ export const ACOES = [
   "responder_providencia",
   "encerrar_ocorrencia",
   "emitir_documento",
+  "consultar_oficio",
   "levantar_interdicao",
   "registrar_vistoria",
   "gerenciar_equipes",
@@ -44,6 +45,7 @@ export const ROTULO_ACAO: Record<Acao, string> = {
   responder_providencia: "registrar a resposta de uma providência",
   encerrar_ocorrencia: "encerrar ocorrência",
   emitir_documento: "emitir laudo ou termo de interdição",
+  consultar_oficio: "consultar os ofícios de encaminhamento",
   levantar_interdicao: "levantar a interdição de um imóvel",
   registrar_vistoria: "registrar vistoria",
   gerenciar_equipes: "gerenciar equipes",
@@ -76,7 +78,21 @@ const PERMISSOES: Record<Papel, readonly Acao[]> = {
     O que ele continua sem fazer é decidir o fluxo: triar, despachar, encerrar
     a ocorrência. Saber que alguém não desceu do morro não é decisão de fluxo.
   */
-  operador: ["abrir_ocorrencia", "responder_providencia", "acompanhar_saida_a_campo"],
+  /*
+    CONSULTAR OFÍCIO (V2-F00-E08) é leitura, e não emissão: a tela da ocorrência
+    lista os ofícios dela ("o que já saiu para o órgão"), para ninguém responder
+    "encaminhei" por cima de um papel que não saiu. O operador continua sem
+    emitir (`emitir_documento`) e sem enviar (`encaminhar_providencia`). O
+    agente de campo NÃO tem a ação: a ficha do ofício traz o e-mail do órgão,
+    as observações da coordenação e o IP de quem abriu o link, e o aparelho
+    dele não usa ofício.
+  */
+  operador: [
+    "abrir_ocorrencia",
+    "responder_providencia",
+    "consultar_oficio",
+    "acompanhar_saida_a_campo",
+  ],
   agente_campo: ["registrar_vistoria"],
   coordenador: [
     "abrir_ocorrencia",
@@ -86,6 +102,7 @@ const PERMISSOES: Record<Papel, readonly Acao[]> = {
     "responder_providencia",
     "encerrar_ocorrencia",
     "emitir_documento",
+    "consultar_oficio",
     "levantar_interdicao",
     "gerenciar_equipes",
     "gerenciar_usuarios",
@@ -102,6 +119,7 @@ const PERMISSOES: Record<Papel, readonly Acao[]> = {
     "responder_providencia",
     "encerrar_ocorrencia",
     "emitir_documento",
+    "consultar_oficio",
     "levantar_interdicao",
     "gerenciar_equipes",
     "gerenciar_usuarios",

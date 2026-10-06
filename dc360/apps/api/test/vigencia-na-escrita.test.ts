@@ -4,7 +4,8 @@ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
-import { hashDoToken } from "../src/auth/tokens.js";
+import { emitirAcesso, hashDoToken } from "../src/auth/tokens.js";
+import { derivarSenha } from "../src/auth/senha.js";
 
 /**
  * A escrita confere, no banco, se quem escreve AINDA PODE.
@@ -19,14 +20,22 @@ import { hashDoToken } from "../src/auth/tokens.js";
  * A REGRA: toda escrita (qualquer método que não seja GET ou HEAD) lê UMA
  * linha do banco, na mesma consulta que já conferia a suspensão do município:
  * a conta está ativa, o papel é o do token, e a sessão do token
- * (`sid`) está de pé. Qualquer um dos três falhando responde 401 `sessao`,
- * que o painel e o aparelho já leem como "entre de novo".
+ * (`sid`) está de pé. Sessão encerrada responde 401 `sessao_encerrada`
+ * ("entre de novo"); papel diferente responde 401 `nao_autenticado` ("renove e
+ * repita", porque a renovação já traz o papel novo: V2-F00-E07); conta DESATIVADA responde 403
+ * `conta_desativada` ("pare e avise": entrar de novo não resolve). Os códigos
+ * são do catálogo de `@dc360/shared` (V2-F00-E05); até lá os dois eram `sessao`.
  *
  * LEITURA continua confiando no token pelos quinze minutos, como
  * `auth/suspensao.ts` explica e este arquivo NÃO contesta: o custo seria uma
  * ida ao banco em cada leitura de uma noite de chuva, e ler por quinze
  * minutos não produz registro. A exceção (leituras do agente de campo) já
  * consulta `usuarios` pela equipe, mas não a sessão; fica declarado.
+ *
+ * HISTÓRICO: a conferência esteve desligada em `servidor.ts` de 17/09/2026
+ * (commit b4439ac) até V2-F00-E04, com o primeiro bloco abaixo em `describe.skip`.
+ * Ligada de novo, os quatro casos que reprovavam sem ela (conta desativada,
+ * papel rebaixado, sessão encerrada, leitura x escrita) voltaram a ser a prova.
  *
  * E o TOKEN DE RENOVAÇÃO VENCIDO deixa de derrubar a família inteira: reuso é
  * só o token ROTACIONADO que reaparece. Ver a migração 046.
@@ -90,16 +99,7 @@ afterAll(async () => {
   await mem?.banco.encerrar();
 });
 
-/*
-  DESLIGADO NESTA IMPLANTAÇÃO: `auth/vigencia.ts` existe e está correto (é o
-  que este bloco prova), mas `servidor.ts` não o chama mais na escrita, de
-  propósito, porque a revisão que o escreveu não terminou de rodar a própria
-  suíte antes do prazo acabar. Ligá-lo sem essa prova arriscaria travar
-  escrita legítima em produção. Ver a nota em `servidor.ts` e o plano de
-  execução ("PAUSADO em 15/09/2026"). O bloco de baixo ("Token de renovação
-  vencido") testa outra coisa, já em vigor, e continua rodando.
-*/
-describe.skip("Token vivo de quem já não pode (aguardando religar auth/vigencia.ts)", () => {
+describe("Token vivo de quem já não pode", () => {
   it("conta desativada não escreve mais, no pedido seguinte", async () => {
     const helena = await entrar("helena.coutinho@serraalta.exemplo.gov.br");
     expect((await escrever(helena.acesso)).statusCode).toBe(200);
@@ -111,8 +111,9 @@ describe.skip("Token vivo de quem já não pode (aguardando religar auth/vigenci
     expect(r.statusCode, r.body).toBe(200);
     try {
       const recusa = await escrever(helena.acesso);
-      expect(recusa.statusCode, recusa.body).toBe(401);
-      expect(recusa.json().erro).toBe("sessao");
+      // 403 e não 401: entrar de novo não resolve para conta desativada.
+      expect(recusa.statusCode, recusa.body).toBe(403);
+      expect(recusa.json().erro).toBe("conta_desativada");
     } finally {
       await restaurarHelena();
     }
@@ -136,10 +137,11 @@ describe.skip("Token vivo de quem já não pode (aguardando religar auth/vigenci
     });
     expect(rita.statusCode, rita.body).toBe(200);
     try {
-      // O token ainda diz "coordenador". O banco diz "operador". Vale o banco.
+      // O token ainda diz "coordenador". O banco diz "operador". Vale o banco,
+      // e a resposta é "renove e repita" (V2-F00-E07), não "entre de novo".
       const recusa = await escrever(helena.acesso);
       expect(recusa.statusCode, recusa.body).toBe(401);
-      expect(recusa.json().erro).toBe("sessao");
+      expect(recusa.json().erro).toBe("nao_autenticado");
     } finally {
       await restaurarHelena();
     }
@@ -157,7 +159,7 @@ describe.skip("Token vivo de quem já não pode (aguardando religar auth/vigenci
     expect((await escrever(noComputador.acesso)).statusCode).toBe(200);
     const doCelular = await escrever(noCelular.acesso);
     expect(doCelular.statusCode, doCelular.body).toBe(401);
-    expect(doCelular.json().erro).toBe("sessao");
+    expect(doCelular.json().erro).toBe("sessao_encerrada");
 
     // Quem administra derruba TODAS, inclusive a que sobreviveu acima.
     const rita = await app.inject({
@@ -166,7 +168,7 @@ describe.skip("Token vivo de quem já não pode (aguardando religar auth/vigenci
     expect(rita.statusCode, rita.body).toBe(200);
     const recusa = await escrever(noComputador.acesso);
     expect(recusa.statusCode, recusa.body).toBe(401);
-    expect(recusa.json().erro).toBe("sessao");
+    expect(recusa.json().erro).toBe("sessao_encerrada");
   });
 
   it("o token de acesso continua LENDO até vencer: é a troca declarada", async () => {
@@ -193,6 +195,103 @@ describe.skip("Token vivo de quem já não pode (aguardando religar auth/vigenci
   });
 });
 
+describe("Bordas da vigência na escrita (V2-F00-E04)", () => {
+  const SEGREDO = "segredo-da-vigencia-na-escrita-com-32-bytes!";
+
+  async function orgDeHelena(): Promise<string> {
+    const r = await mem.bruto.query<{ organizacao_id: string }>(
+      "SELECT organizacao_id FROM usuarios WHERE id = $1", [HELENA],
+    );
+    return r.rows[0]!.organizacao_id;
+  }
+
+  it("município suspenso com conta desativada responde a suspensão primeiro", async () => {
+    const helena = await entrar("helena.coutinho@serraalta.exemplo.gov.br");
+    const org = await orgDeHelena();
+    await mem.bruto.query(
+      "UPDATE organizacoes SET acesso_suspenso_em = now(), suspensao_motivo = 'contrato em discussao' WHERE id = $1",
+      [org],
+    );
+    await mem.bruto.query("UPDATE usuarios SET ativo = false WHERE id = $1", [HELENA]);
+    try {
+      const r = await escrever(helena.acesso);
+      // A resposta que manda procurar o contrato vale mesmo com a conta desativada.
+      expect(r.statusCode, r.body).toBe(403);
+      expect(r.json().erro).toBe("acesso_suspenso");
+    } finally {
+      await mem.bruto.query(
+        "UPDATE organizacoes SET acesso_suspenso_em = NULL, suspensao_motivo = NULL WHERE id = $1", [org],
+      );
+      await restaurarHelena();
+    }
+  });
+
+  it("token com o sid de OUTRA pessoa não escreve: a sessão tem de ser da própria conta", async () => {
+    const org = await orgDeHelena();
+    const sessaoDeRita = await mem.bruto.query<{ id: string }>(
+      `SELECT s.id FROM sessoes s JOIN usuarios u ON u.id = s.usuario_id
+        WHERE u.email = 'rita.lopes@serraalta.exemplo.gov.br' AND s.revogada_em IS NULL LIMIT 1`,
+    );
+    const sidDeRita = sessaoDeRita.rows[0]!.id;
+    const forjado = await emitirAcesso(
+      new TextEncoder().encode(SEGREDO),
+      { sub: HELENA, org, papel: "coordenador", nome: "Helena Vasques Coutinho", sid: sidDeRita },
+      15,
+    );
+    const r = await escrever(forjado);
+    expect(r.statusCode, r.body).toBe(401);
+    expect(r.json().erro).toBe("sessao_encerrada");
+  });
+
+  it("a organização continua vindo do token: com a vigência ligada, o município B segue sem ver a ocorrência do A (404)", async () => {
+    const hash = await derivarSenha(SENHA);
+    const b = await mem.bruto.query<{ id: string }>(
+      "INSERT INTO organizacoes (nome,municipio,uf) VALUES ('DC Vale Fundo','Vale Fundo','MG') RETURNING id",
+    );
+    await mem.bruto.query(
+      `INSERT INTO usuarios (organizacao_id,nome,matricula,email,papel,senha_hash)
+       VALUES ($1,'Aurelio Machado','VF-1','aurelio@valefundo.exemplo.gov.br','coordenador',$2)`,
+      [b.rows[0]!.id, hash],
+    );
+    const aurelio = await entrar("aurelio@valefundo.exemplo.gov.br");
+    // Conta ativa de B escreve normalmente no que é dela e NÃO enxerga o que é do A.
+    const r = await escrever(aurelio.acesso);
+    expect(r.statusCode, r.body).toBe(404);
+  });
+
+  it("a senha provisória vem do banco na escrita: marca no token sem prazo no banco não tranca, e prazo no banco sem marca no token tranca", async () => {
+    const org = await orgDeHelena();
+    const helena = await entrar("helena.coutinho@serraalta.exemplo.gov.br");
+    const comMarca = await emitirAcesso(
+      new TextEncoder().encode(SEGREDO),
+      {
+        sub: HELENA, org, papel: "coordenador", nome: "Helena Vasques Coutinho",
+        sid: (await mem.bruto.query<{ id: string }>(
+          "SELECT id FROM sessoes WHERE usuario_id = $1 AND revogada_em IS NULL ORDER BY criada_em DESC LIMIT 1",
+          [HELENA],
+        )).rows[0]!.id,
+        sp: true,
+      },
+      15,
+    );
+    try {
+      // O banco não tem prazo: a marca velha do token já não confirmada não tranca.
+      const solta = await escrever(comMarca);
+      expect(solta.statusCode, solta.body).toBe(200);
+
+      // O banco tem prazo e o token não tem marca: vale o banco.
+      await mem.bruto.query(
+        "UPDATE usuarios SET senha_provisoria_ate = now() + interval '1 hour' WHERE id = $1", [HELENA],
+      );
+      const trancada = await escrever(helena.acesso);
+      expect(trancada.statusCode, trancada.body).toBe(403);
+      expect(trancada.json().erro).toBe("troca_de_senha_obrigatoria");
+    } finally {
+      await mem.bruto.query("UPDATE usuarios SET senha_provisoria_ate = NULL WHERE id = $1", [HELENA]);
+    }
+  });
+});
+
 describe("Token de renovação vencido não é reuso", () => {
   it("expirado responde 401 e as outras sessões da pessoa continuam vivas", async () => {
     const painel = await entrar("helena.coutinho@serraalta.exemplo.gov.br");
@@ -206,7 +305,7 @@ describe("Token de renovação vencido não é reuso", () => {
 
     const r = await renovar(aparelho.renovacao);
     expect(r.statusCode).toBe(401);
-    expect(r.json().erro).toBe("sessao");
+    expect(r.json().erro).toBe("sessao_encerrada");
 
     // O painel NÃO caiu: renovar continua funcionando e a sessão não ganhou motivo.
     const doPainel = await renovar(painel.renovacao);

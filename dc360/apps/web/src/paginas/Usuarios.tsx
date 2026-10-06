@@ -3,19 +3,24 @@ import {
   ROTULO_PAPEL, cadastroUsuarioSchema, papeisQuePodeConceder, type Papel,
 } from "@dc360/shared";
 import {
-  MODO, alternarUsuarioAtivo, atualizarUsuario, criarUsuario, listarEquipes, listarUsuarios,
-  type LinhaEquipe, type LinhaUsuario,
+  MODO, alternarUsuarioAtivo, atualizarUsuario, criarUsuario, encerrarSessoesDeUsuario,
+  listarEquipes, listarUsuarios, redefinirSenhaDeUsuario, sessoesDeUsuario,
+  type LinhaEquipe, type LinhaUsuario, type SenhaRedefinida, type SessoesAbertasDeOutrem,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
   DICA_DO_EMAIL_TRAVADO, motivoParaNaoAdministrar, podeTrocarEmail,
 } from "./usuarios-regras";
+import { fraseDasSessoesAbertas, fraseDasSessoesQueCairam } from "./sessoes-regras";
 import {
-  Aviso, AvisoDeObrigatorios, Carregando, Cartao, TabelaEnvolucro, Vazio, iniciais,
+  Aviso, AvisoDeObrigatorios, Carregando, Cartao, TabelaEnvolucro, Vazio, formatarDataHora,
+  iniciais,
 } from "../componentes/comuns";
 import { Campo } from "../componentes/Campo";
 import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
-import { IconeMais } from "../componentes/Icones";
+import { IconeCheck, IconeMais } from "../componentes/Icones";
+import { Modal } from "../componentes/Modal";
+import { Toast } from "../componentes/Toast";
 import { useTitulo } from "../seo/titulo";
 import { depoisDePintar, focarPrimeiroInvalido } from "../componentes/foco";
 
@@ -54,6 +59,14 @@ export function Usuarios() {
   */
   const [aDesativar, setADesativar] = useState<LinhaUsuario | null>(null);
   const [desativando, setDesativando] = useState(false);
+  /*
+    A senha que o servidor acabou de sortear, na janela que a mostra UMA vez, e
+    o aviso passageiro de "sessões encerradas". Os dois moram na página, e não
+    no botão da linha, porque a linha pode sumir da tela (a lista recarrega) e
+    a senha não pode ir junto: ela não volta.
+  */
+  const [senhaGerada, setSenhaGerada] = useState<SenhaRedefinida | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const recarregar = useCallback(async () => {
     const [u, e] = await Promise.all([listarUsuarios(sessao), listarEquipes(sessao)]);
@@ -314,6 +327,14 @@ export function Usuarios() {
         */}
         <div className="detalhe__larga">
           <Cartao titulo="Usuários do município">
+            {MODO === "local" && (
+              <Aviso tom="info">
+                Neste painel a entrada é por escolha de perfil, sem senha e sem sessão,
+                então não há senha para redefinir nem sessão para encerrar. Esses dois
+                botões aparecem quando o painel está ligado ao servidor da prefeitura,
+                que é o caminho de produção.
+              </Aviso>
+            )}
             {usuarios && usuarios.length === 0 ? (
               <Vazio titulo="Nenhum usuário cadastrado">
                 <p>Cadastre o primeiro usuário no formulário ao lado para que alguém possa
@@ -321,7 +342,7 @@ export function Usuarios() {
               </Vazio>
             ) : (
               <TabelaEnvolucro>
-                <table className="tabela">
+                <table className="tabela tabela--justa">
                   <thead>
                     <tr>
                       <th scope="col">Pessoa</th>
@@ -336,7 +357,7 @@ export function Usuarios() {
                     {usuarios?.map((u) => (
                       <tr key={u.id}>
                         <td>
-                          <div style={{ display: "flex", alignItems: "center", gap: "var(--ds-sp-3)" }}>
+                          <div className="tabela__pessoa">
                             <span className="conta__avatar conta__avatar--pequeno" aria-hidden="true">
                               {iniciais(u.nome)}
                             </span>
@@ -355,6 +376,7 @@ export function Usuarios() {
                           </span>
                         </td>
                         <td>
+                          <div className="tabela__acoes">
                           {/*
                             Os dois botões seguem o POSTO (ADR 0006): o
                             coordenador administra quem está abaixo dele, e só o
@@ -387,6 +409,25 @@ export function Usuarios() {
                                   }}>
                             {u.ativo ? "Desativar" : "Reativar"}
                           </button>
+                          {/*
+                            Redefinir a senha e encerrar as sessões de OUTRA
+                            pessoa. Pela mesma função de posto da tela (nunca
+                            uma cópia da regra), só em quem este posto
+                            administra, e nunca na própria conta: a API recusa
+                            as duas (`autoredefinicao`, `autoencerramento`) e
+                            oferecer o botão seria construir a recusa. No modo
+                            local não há senha nem token, e o aviso acima diz
+                            por quê.
+                          */}
+                          {MODO === "api"
+                            && motivoParaNaoAdministrar(sessao.papel, u) === null
+                            && u.id !== sessao.usuarioId && (
+                            <>
+                              <BotaoRedefinirSenha alvo={u} aoRedefinir={setSenhaGerada} />
+                              <BotaoEncerrarSessoes alvo={u} aoEncerrar={setAviso} />
+                            </>
+                          )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -427,6 +468,258 @@ export function Usuarios() {
           </p>
         )}
       </ConfirmarAcao>
+
+      {/*
+        A senha sai UMA vez, e fechar sem anotar a perde. Por isso a janela não
+        fecha por clique fora (o que apagaria a única cópia no meio de uma
+        leitura) e não tem o "Fechar" do canto: a saída é o botão que diz que a
+        senha foi anotada. Escape ainda fecha, como em toda janela do painel.
+      */}
+      <Modal
+        aberto={senhaGerada !== null}
+        titulo="Senha temporária"
+        aoFechar={() => setSenhaGerada(null)}
+        fecharAoClicarFora={false}
+        mostrarBotaoFechar={false}
+      >
+        {senhaGerada && (
+          <SenhaTemporaria resultado={senhaGerada} aoFechar={() => setSenhaGerada(null)} />
+        )}
+      </Modal>
+
+      {aviso && <Toast tom="sucesso" mensagem={aviso} aoFechar={() => setAviso(null)} />}
     </>
+  );
+}
+
+type PropsBotaoRedefinirSenha = {
+  alvo: LinhaUsuario;
+  aoRedefinir: (resultado: SenhaRedefinida) => void;
+};
+
+/**
+ * "Redefinir senha", na linha de quem está abaixo do posto de quem olha.
+ *
+ * Pergunta antes porque o ato derruba o acesso de alguém AGORA: a senha antiga
+ * deixa de valer, as sessões caem, e quem estava em campo para de sincronizar.
+ * O botão da pergunta repete o nome da pessoa, para a linha clicada não ser a
+ * errada de uma lista cheia de nomes parecidos.
+ */
+function BotaoRedefinirSenha({ alvo, aoRedefinir }: PropsBotaoRedefinirSenha) {
+  const sessao = useSessaoObrigatoria();
+  const [aberto, setAberto] = useState(false);
+  const [gravando, setGravando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  // Ninguém redefine a própria senha por aqui: o servidor recusa
+  // (`autoredefinicao`, 422) e exige a senha atual em "Minha conta".
+  if (alvo.id === sessao.usuarioId) return null;
+
+  async function confirmar(): Promise<void> {
+    if (gravando) return;
+    setGravando(true);
+    setErro(null);
+    try {
+      const resultado = await redefinirSenhaDeUsuario(alvo.id);
+      setAberto(false);
+      aoRedefinir(resultado);
+    } catch (e: unknown) {
+      setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setGravando(false);
+    }
+  }
+
+  return (
+    <>
+      <button type="button" className="botao botao--discreto"
+              onClick={() => { setErro(null); setAberto(true); }}>
+        Redefinir senha
+      </button>
+      <ConfirmarAcao
+        aberto={aberto}
+        titulo="Redefinir senha"
+        consequencia={
+          <>
+            A senha atual de {alvo.nome} deixa de valer agora e as sessões abertas
+            caem. O sistema sorteia uma senha temporária, mostrada uma única vez,
+            que vale por 72 horas e precisa ser trocada na primeira entrada.
+          </>
+        }
+        rotuloDaAcao={`Redefinir a senha de ${alvo.nome}`}
+        destrutiva
+        ocupado={gravando}
+        aoConfirmar={() => void confirmar()}
+        aoCancelar={() => setAberto(false)}
+      >
+        <p className="campo__dica">
+          <span className="mono">{alvo.matricula}</span>, {alvo.email},{" "}
+          {ROTULO_PAPEL[alvo.papel]}.
+        </p>
+        {erro && <Aviso tom="perigo">{erro}</Aviso>}
+      </ConfirmarAcao>
+    </>
+  );
+}
+
+type PropsBotaoEncerrarSessoes = {
+  alvo: LinhaUsuario;
+  /** Recebe a frase do aviso passageiro, já escrita. */
+  aoEncerrar: (frase: string) => void;
+};
+
+/**
+ * "Encerrar sessões": o botão do celular perdido.
+ *
+ * Tira o acesso agora e não mexe na senha, para quem talvez volte ao trabalho
+ * em uma hora. A pergunta diz QUANTAS sessões a pessoa tem abertas (leitura
+ * própria, só quantidade e datas), e continua valendo se a leitura falhar: o
+ * ato não depende dela.
+ */
+function BotaoEncerrarSessoes({ alvo, aoEncerrar }: PropsBotaoEncerrarSessoes) {
+  const sessao = useSessaoObrigatoria();
+  const [aberto, setAberto] = useState(false);
+  const [gravando, setGravando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  /* `null` enquanto lê, `"falhou"` se a leitura não veio. */
+  const [abertas, setAbertas] = useState<SessoesAbertasDeOutrem | "falhou" | null>(null);
+
+  // Quem quer sair dos próprios aparelhos usa "Minha conta", onde a sessão de
+  // onde clicou continua aberta. Aqui o servidor recusa (`autoencerramento`).
+  if (alvo.id === sessao.usuarioId) return null;
+
+  async function perguntar(): Promise<void> {
+    setErro(null);
+    setAbertas(null);
+    setAberto(true);
+    try {
+      setAbertas(await sessoesDeUsuario(alvo.id));
+    } catch {
+      setAbertas("falhou");
+    }
+  }
+
+  async function confirmar(): Promise<void> {
+    if (gravando) return;
+    setGravando(true);
+    setErro(null);
+    try {
+      const r = await encerrarSessoesDeUsuario(alvo.id);
+      setAberto(false);
+      aoEncerrar(
+        r.sessoesEncerradas === 0
+          ? `${alvo.nome} não tinha sessão aberta. Nada foi encerrado.`
+          : `Sessões de ${alvo.nome} encerradas. ${
+            r.sessoesEncerradas === 1 ? "1 sessão caiu" : `${r.sessoesEncerradas} sessões caíram`}.`,
+      );
+    } catch (e: unknown) {
+      setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setGravando(false);
+    }
+  }
+
+  const leitura = abertas === null
+    ? "Conferindo quantas sessões estão abertas."
+    : abertas === "falhou"
+      ? "Não foi possível conferir quantas sessões estão abertas, mas você pode encerrar mesmo assim."
+      : fraseDasSessoesAbertas(
+        alvo.nome,
+        abertas.sessoesAbertas,
+        abertas.ultimaEntradaEm ? formatarDataHora(abertas.ultimaEntradaEm) : null,
+      );
+
+  return (
+    <>
+      <button type="button" className="botao botao--discreto" onClick={() => void perguntar()}>
+        Encerrar sessões
+      </button>
+      <ConfirmarAcao
+        aberto={aberto}
+        titulo="Encerrar sessões"
+        consequencia={
+          <>
+            {alvo.nome} sai de todos os navegadores e aparelhos agora e precisa entrar de
+            novo com a própria senha, que não muda. Quem está em campo fica sem sincronizar
+            até entrar outra vez.
+          </>
+        }
+        rotuloDaAcao={`Encerrar sessões de ${alvo.nome}`}
+        destrutiva
+        ocupado={gravando}
+        aoConfirmar={() => void confirmar()}
+        aoCancelar={() => setAberto(false)}
+      >
+        <p className="campo__dica" role="status">{leitura}</p>
+        {erro && <Aviso tom="perigo">{erro}</Aviso>}
+      </ConfirmarAcao>
+    </>
+  );
+}
+
+/**
+ * A senha temporária, mostrada UMA vez.
+ *
+ * O servidor guarda só o hash e nem ele consegue mostrá-la de novo, então esta
+ * janela é a única chance de quem administra anotá-la, ditá-la por telefone ou
+ * entregá-la em mãos (com a recuperação por e-mail desligada não existe outro
+ * canal). Por isso: fonte tabular e seleção com um toque (o zero não pode virar
+ * letra nem o "1" ocupar meia largura quando se dita), botão de copiar, e a
+ * frase que diz que ela não volta.
+ *
+ * A mensagem do servidor chega inteira porque diz DE QUEM é a senha, a
+ * validade e a obrigação de trocar na primeira entrada.
+ */
+export function SenhaTemporaria({ resultado, aoFechar }: {
+  resultado: SenhaRedefinida;
+  aoFechar: () => void;
+}) {
+  const [copia, setCopia] = useState<"nao" | "sim" | "falhou">("nao");
+
+  async function copiar(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(resultado.senhaTemporaria);
+      setCopia("sim");
+    } catch {
+      // Copiar pode ser recusado (permissão, página sem contexto seguro): a
+      // senha continua na tela, selecionável, e a frase diz o que fazer.
+      setCopia("falhou");
+    }
+  }
+
+  return (
+    <div className="senha-temporaria">
+      <Aviso tom="alerta">
+        <strong>Anote agora.</strong> Esta senha não aparece de novo: o sistema não guarda o
+        texto dela. Se fechar esta janela sem anotar, redefina a senha outra vez.
+      </Aviso>
+
+      <p className="senha-temporaria__mensagem">{resultado.mensagem}</p>
+
+      <div className="senha-temporaria__bloco">
+        <span className="par__rotulo">Senha temporária</span>
+        <p className="senha-temporaria__valor mono">{resultado.senhaTemporaria}</p>
+      </div>
+
+      <p className="campo__dica" style={{ margin: 0 }}>
+        {fraseDasSessoesQueCairam(resultado.sessoesEncerradas)}
+      </p>
+
+      <div className="senha-temporaria__acoes">
+        <button type="button" className="botao botao--secundario" onClick={() => void copiar()}>
+          Copiar senha
+        </button>
+        <button type="button" className="botao botao--primario" onClick={aoFechar}>
+          Já anotei a senha
+        </button>
+      </div>
+
+      {/* A região existe antes do texto, senão o leitor de tela não anuncia a mudança. */}
+      <p className="senha-temporaria__estado" role="status" aria-live="polite">
+        {copia === "sim" && (<><IconeCheck tamanho={16} /> Senha copiada.</>)}
+        {copia === "falhou"
+          && "Não foi possível copiar. Selecione a senha na tela e copie com Ctrl+C."}
+      </p>
+    </div>
   );
 }

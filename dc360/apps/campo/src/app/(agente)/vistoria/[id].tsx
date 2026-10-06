@@ -15,7 +15,7 @@ import {
 import type { CampoRecusado, ColetaLocal, FotoLocal } from "@dc360/campo";
 import { enderecoDaApi, type OrgaoDoCatalogo, type Pendencia } from "../../../dados/api";
 import {
-  comoContarAFalha, motivoDaFalha, type MotivoDaFalha,
+  comoContarAFalha, ehFimDeLinha, motivoDaFalha, type MotivoDaFalha,
 } from "../../../dados/falha-de-atualizacao";
 import {
   atualizarPendencias, orgaosGuardados, pendenciaGuardada,
@@ -1875,7 +1875,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
             <Aviso
               /* Sessão encerrada é fim de linha, e não alerta: nada desce até
                  o agente agir. Os outros três passam sozinhos ou com o tempo. */
-              tom={falhaAoBaixar === "sessao-encerrada" ? "perigo" : "alerta"}
+              tom={ehFimDeLinha(falhaAoBaixar) ? "perigo" : "alerta"}
               /* O título só quando ele diz algo que o corpo não começa dizendo:
                  "Sem sinal para atualizar" em cima de "Sem sinal para
                  atualizar. Procure sinal..." é a mesma frase duas vezes. */

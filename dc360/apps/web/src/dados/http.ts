@@ -1,7 +1,8 @@
-import type {
-  AberturaOcorrencia, CorrecaoDeCoordenada, Despacho, Encerramento,
-  EncerramentoDeSaida,
-  InteresseMunicipio, Papel, Providencia, Triagem,
+import {
+  CODIGOS_DE_ERRO_DE_ACESSO, ehCodigoDeErroDeAcesso,
+  type AberturaOcorrencia, type CorrecaoDeCoordenada, type Despacho, type Encerramento,
+  type EncerramentoDeSaida,
+  type InteresseMunicipio, type Papel, type Providencia, type Triagem,
 } from "@dc360/shared";
 import type {
   ContaDisponivel, CorrecaoAplicada, FiltroOcorrencias, Indicadores, LinhaEquipe, LinhaEvento,
@@ -9,7 +10,7 @@ import type {
   LinhaTrilha,
   ImovelInterditado, LinhaUsuario, LinhaVistoria, MeuTrabalho, MinhasSessoes,
   PaginaDeOcorrencias, PontosDoMapa, ProvidenciaPendente,
-  ResumoPeriodo, SenhaRedefinida, SessoesDeOutrem,
+  ResumoPeriodo, SenhaRedefinida, SessaoDaConta, SessoesAbertasDeOutrem, SessoesDeOutrem,
   Sessao, TipoDeDocumento, VinculoOcorrencia,
   CursorDeAvisos, DadosDoOrgao, LinhaOficio, LinhaOrgao, OficioDetalhado,
   RespostaDeAvisos, ResultadoDeEnvio,
@@ -17,7 +18,7 @@ import type {
   ConfiguracaoDoPainel, DevolucaoDaOcorrencia, DevolucaoPendente,
   QuemEstaEmCampo, RespostaDeBusca, PontoDoLinkDeMapa,
   PrazosDeRetencao, RetencaoDoMunicipio, UsoDeArmazenamento,
-  LinhaExportacao, FiltroConsultas, PaginaDeConsultas,
+  LinhaExportacao, FiltroConsultas, PaginaDeConsultas, MotivoDaSessaoMorta, UsuarioRenovado,
 } from "./tipos";
 import { CONSULTA_MAXIMA } from "../busca/combobox";
 
@@ -78,9 +79,16 @@ export class ErroDaApi extends Error {
  * leria isso como reúso (sintoma de roubo) e derrubaria a sessão inteira. O
  * usuário seria deslogado exatamente por usar o sistema normalmente.
  */
-let renovacaoEmVoo: Promise<boolean> | null = null;
+let renovacaoEmVoo: Promise<boolean | "conta_desativada"> | null = null;
 
-async function renovar(): Promise<boolean> {
+/**
+ * Pede token novo com o de renovação. `true` renovou, `false` não deu, e
+ * `"conta_desativada"` é a renovação recusada porque a conta foi desativada:
+ * quem chama precisa saber, porque o 401 que levou a renovar (token vencido)
+ * não diz isso, e a pessoa leria "sua sessão expirou" quando entrar de novo
+ * não resolve.
+ */
+async function renovar(): Promise<boolean | "conta_desativada"> {
   if (renovacaoEmVoo) return renovacaoEmVoo;
 
   renovacaoEmVoo = (async () => {
@@ -94,10 +102,17 @@ async function renovar(): Promise<boolean> {
       });
       if (!r.ok) {
         guardarTokens(null);
-        return false;
+        const recusa = await r.json().catch(() => ({})) as Record<string, unknown>;
+        return r.status === CODIGOS_DE_ERRO_DE_ACESSO.conta_desativada.status
+          && recusa["erro"] === "conta_desativada"
+          ? "conta_desativada"
+          : false;
       }
       const corpo = await r.json();
       guardarTokens({ acesso: corpo.acesso, renovacao: corpo.renovacao });
+      if (typeof corpo.usuario?.papel === "string" && typeof corpo.usuario?.nome === "string") {
+        ouvinteDeRenovacao?.({ papel: corpo.usuario.papel as Papel, nome: corpo.usuario.nome });
+      }
       return true;
     } catch {
       return false;
@@ -125,22 +140,30 @@ async function renovar(): Promise<boolean> {
  * que nada foi carregado; escrita continua dizendo que nada foi gravado.
  */
 export class SemConexao extends Error {
-  constructor(leitura = false) {
+  /**
+   * `"arquivo"` é a terceira frase: baixar um arquivo (o pacote de saída) não é
+   * carregar tela nem enviar formulário. "O que você preencheu não foi enviado"
+   * fazia a pessoa procurar um formulário que não existe.
+   */
+  constructor(oQue: boolean | "arquivo" = false) {
     super(
-      leitura
-        ? "Sem conexão com o servidor. Não foi possível carregar esta tela. " +
+      oQue === "arquivo"
+        ? "Sem conexão com o servidor. O arquivo não foi baixado. " +
           "Verifique o sinal e tente de novo."
-        : "Sem conexão com o servidor. O que você preencheu não foi enviado. " +
-          "Verifique o sinal e tente de novo.",
+        : oQue
+          ? "Sem conexão com o servidor. Não foi possível carregar esta tela. " +
+            "Verifique o sinal e tente de novo."
+          : "Sem conexão com o servidor. O que você preencheu não foi enviado. " +
+            "Verifique o sinal e tente de novo.",
     );
     this.name = "SemConexao";
   }
 }
 
-async function comRedeTraduzida(
-  chamada: () => Promise<Response>,
-  leitura = false,
-): Promise<Response> {
+async function comRedeTraduzida<T = Response>(
+  chamada: () => Promise<T>,
+  leitura: boolean | "arquivo" = false,
+): Promise<T> {
   try {
     return await chamada();
   } catch (erro) {
@@ -164,31 +187,85 @@ async function comRedeTraduzida(
  * se inscreve é o provedor de sessão, que derruba a sessão e manda para a
  * entrada com o motivo e o caminho de volta.
  */
-let ouvinteDeExpiracao: (() => void) | null = null;
+let ouvinteDeExpiracao: ((motivo: MotivoDaSessaoMorta) => void) | null = null;
 
-export function aoExpirar(ouvinte: (() => void) | null): void {
+export function aoExpirar(ouvinte: ((motivo: MotivoDaSessaoMorta) => void) | null): void {
   ouvinteDeExpiracao = ouvinte;
 }
 
 /**
- * O 401 que significa "sessão morta", e só ele.
+ * Quem quer saber que a renovação trouxe a pessoa como ela é AGORA.
+ *
+ * Papel alterado no cadastro responde 401 `nao_autenticado` à escrita seguinte
+ * (V2-F00-E07), o painel renova e repete sem a pessoa notar, e o token novo
+ * já traz o papel novo. A resposta da renovação diz qual é. Sem avisar a
+ * tela, o servidor passaria a recusar com 403 o que o botão ainda oferece,
+ * porque a sessão em memória diria o papel de antes. Mesmo desenho do
+ * `aoExpirar`: este módulo não conhece a sessão da tela, só avisa.
+ */
+let ouvinteDeRenovacao: ((usuario: UsuarioRenovado) => void) | null = null;
+
+export function aoRenovar(ouvinte: ((usuario: UsuarioRenovado) => void) | null): void {
+  ouvinteDeRenovacao = ouvinte;
+}
+
+/**
+ * A resposta que significa "sessão morta", e por quê. Só as três do catálogo.
  *
  * `nao_autenticado` é o código que SÓ a verificação de token do servidor
- * emite (`exigirAutenticacao` em `servidor.ts`). Senha errada na entrada e
- * senha atual errada na troca também são 401, com o código `credenciais`, e
- * não podem derrubar a tela de quem só digitou errado.
+ * emite (`exigirAutenticacao` em `servidor.ts`): o token venceu e a renovação
+ * falhou. `sessao_encerrada` (401) é a sessão que alguém encerrou ou o
+ * cadastro que mudou, e `conta_desativada` (403) é a conta desativada. Senha
+ * errada na entrada e senha atual errada na troca também são 401, com o código
+ * `credenciais`, e não podem derrubar a tela de quem só digitou errado. O
+ * código antigo `sessao` já não existe e não está no catálogo: não conta.
+ *
+ * Os dois últimos só valem para pedido que MANDOU token (`mandouToken`): são
+ * respostas sobre a sessão que a pessoa tinha. O desafio de segundo fator
+ * vencido e o link de redefinição inválido também saem como `sessao_encerrada`
+ * e acontecem SEM sessão, e não podem fingir que uma sessão acabou.
  */
-function sessaoMorta(status: number, corpo: Record<string, unknown>): boolean {
-  return status === 401 && corpo["erro"] === "nao_autenticado";
+function sessaoMorta(
+  status: number, corpo: Record<string, unknown>, mandouToken: boolean,
+): MotivoDaSessaoMorta | null {
+  const codigo = corpo["erro"];
+  if (!ehCodigoDeErroDeAcesso(codigo)) return null;
+  if (status !== CODIGOS_DE_ERRO_DE_ACESSO[codigo].status) return null;
+  const acao = CODIGOS_DE_ERRO_DE_ACESSO[codigo].acao;
+  if (acao === "renovar_e_repetir") return "expirou";
+  if (!mandouToken) return null;
+  if (acao === "entrar_de_novo") return "encerrada";
+  if (acao === "parar_e_avisar") return "desativada";
+  return null;
 }
 
 async function chamar<T>(
   caminho: string,
-  opcoes: { metodo?: string; corpo?: unknown; repetiu?: boolean; sinal?: AbortSignal } = {},
+  opcoes: {
+    metodo?: string; corpo?: unknown; repetiu?: boolean; sinal?: AbortSignal;
+    /**
+     * Pedido de quem NÃO tem sessão, e que por isso não pode mexer na sessão
+     * de ninguém: não leva token, não tenta renovar e a recusa dele nunca
+     * derruba a tela. É o caso do "esqueci a senha": o link chega por email e
+     * pode ser aberto num navegador onde outra pessoa está logada, e o 401
+     * `sessao_encerrada` de um link vencido não é "a sua sessão acabou".
+     */
+    semSessao?: boolean;
+    /**
+     * A resposta é um ARQUIVO (o pacote de saída), e não JSON: devolve o `Blob`.
+     * O 401 de token vencido renova e repete UMA vez, e as recusas continuam
+     * chegando como `ErroDaApi` com a frase do servidor, igual a qualquer
+     * outra chamada. Antes o pacote usava `fetch` puro e não tinha nenhuma
+     * das duas coisas.
+     */
+    arquivo?: boolean;
+  } = {},
 ): Promise<T> {
-  const tokens = lerTokens();
+  const tokens = opcoes.semSessao ? null : lerTokens();
   const metodo = opcoes.metodo ?? "GET";
-  const cabecalhos: Record<string, string> = { accept: "application/json" };
+  const cabecalhos: Record<string, string> = {
+    accept: opcoes.arquivo ? "application/zip, application/json" : "application/json",
+  };
   if (opcoes.corpo !== undefined) cabecalhos["content-type"] = "application/json";
   if (tokens) cabecalhos["authorization"] = `Bearer ${tokens.acesso}`;
 
@@ -200,25 +277,41 @@ async function chamar<T>(
     // Cancelamento chega como `AbortError`, que não é `TypeError`, então
     // `comRedeTraduzida` o deixa passar em vez de chamá-lo de "sem conexão".
     signal: opcoes.sinal,
-  }), metodo === "GET");
+  }), opcoes.arquivo ? "arquivo" : metodo === "GET");
 
   // 401 uma vez significa "o token de acesso venceu": renova e repete. 401 de
   // novo significa que a sessão acabou de verdade, e aí não adianta insistir.
-  if (resposta.status === 401 && !opcoes.repetiu && lerTokens()) {
-    if (await renovar()) {
+  // Se a renovação diz que a CONTA foi desativada, é isso que a tela precisa
+  // dizer, e não "sua sessão expirou" (entrar de novo não resolve).
+  let renovacaoRecusadaPorConta = false;
+  if (resposta.status === 401 && !opcoes.repetiu && !opcoes.semSessao && lerTokens()) {
+    const renovou = await renovar();
+    if (renovou === true) {
       return chamar<T>(caminho, { ...opcoes, repetiu: true });
     }
+    renovacaoRecusadaPorConta = renovou === "conta_desativada";
   }
 
   if (resposta.status === 204) return undefined as T;
 
+  // O corpo de um arquivo grande chega em pedaços: a conexão pode cair no meio
+  // da leitura, e isso é falha de rede, não de leitura do arquivo.
+  if (opcoes.arquivo && resposta.ok) {
+    return await comRedeTraduzida(() => resposta.blob(), "arquivo") as T;
+  }
+
   const corpo = await resposta.json().catch(() => ({}));
-  if (sessaoMorta(resposta.status, corpo)) {
+  const motivo = opcoes.semSessao
+    ? null
+    : renovacaoRecusadaPorConta
+      ? "desativada"
+      : sessaoMorta(resposta.status, corpo, tokens !== null);
+  if (motivo) {
     // Token morto não fica guardado, e a tela é avisada UMA vez por chamada:
     // o provedor de sessão é quem decide o que fazer, e ele ignora avisos
     // repetidos das outras chamadas da mesma tela.
     guardarTokens(null);
-    ouvinteDeExpiracao?.();
+    ouvinteDeExpiracao?.(motivo);
   }
   if (!resposta.ok) throw new ErroDaApi(resposta.status, corpo);
   return corpo as T;
@@ -814,9 +907,21 @@ export async function registrarInteresse(dados: InteresseMunicipio): Promise<str
 
 export async function pedirRecuperacao(email: string): Promise<string> {
   const r = await chamar<{ mensagem: string }>("/auth/recuperar", {
-    metodo: "POST", corpo: { email },
+    metodo: "POST", corpo: { email }, semSessao: true,
   });
   return r.mensagem;
+}
+
+/**
+ * Se a recuperação por email está ligada neste servidor.
+ *
+ * Lida ANTES de a tela mostrar o formulário, para a pessoa não digitar o email
+ * e só então descobrir que o caminho é procurar quem administra. Falha de
+ * leitura não é "desligada": a tela cai para o formulário e o pedido em si
+ * conta a verdade (503 `recuperacao_desligada`).
+ */
+export async function situacaoDaRecuperacao(): Promise<{ ativa: boolean }> {
+  return chamar<{ ativa: boolean }>("/auth/recuperacao", { semSessao: true });
 }
 
 /**
@@ -855,9 +960,30 @@ export async function encerrarMinhasSessoes(): Promise<MinhasSessoes> {
   return chamar<MinhasSessoes>("/auth/encerrar-sessoes", { metodo: "POST" });
 }
 
+/**
+ * As sessões vivas da própria conta.
+ *
+ * É a leitura que dá sentido a "encerrar minhas outras sessões": ninguém
+ * decide derrubar o que não consegue ver. Qualquer papel, só a própria conta.
+ */
+export async function listarMinhasSessoes(): Promise<SessaoDaConta[]> {
+  const r = await chamar<{ itens: SessaoDaConta[] }>("/auth/sessoes");
+  return r.itens;
+}
+
+/**
+ * Quantas sessões a outra pessoa tem abertas, para quem vai derrubá-las.
+ *
+ * Acompanha o botão "Encerrar sessões": a pergunta antes do ato diz quantas
+ * vão cair, em vez de pedir confirmação às cegas.
+ */
+export async function sessoesDeUsuario(id: string): Promise<SessoesAbertasDeOutrem> {
+  return chamar<SessoesAbertasDeOutrem>(`/usuarios/${id}/sessoes`);
+}
+
 export async function redefinirSenha(token: string, senha: string): Promise<string> {
   const r = await chamar<{ mensagem: string }>("/auth/redefinir", {
-    metodo: "POST", corpo: { token, senha },
+    metodo: "POST", corpo: { token, senha }, semSessao: true,
   });
   return r.mensagem;
 }
@@ -942,21 +1068,23 @@ export async function salvarRetencaoDoMunicipio(
 }
 
 /**
- * Baixa o pacote de saída do município, o mesmo caminho da exportação de CSV:
- * o token vai no cabeçalho, então a rota não pode ser um link direto.
+ * Baixa o pacote de saída do município. O token vai no cabeçalho, então a rota
+ * não pode ser um link direto.
+ *
+ * A rota é `/saida/pacote.zip` (o prefixo `/saida` é de `servidor.ts`). Este
+ * cliente chamou `/pacote.zip` por três semanas, o botão foi dado como pronto
+ * sem nenhum teste contra a API, e todo clique terminava em 404: o teste da API
+ * chamava a rota certa direto e não via o cliente. A prova que faltava é a
+ * seção 28 de `test/fluxo-api.e2e.mjs`, que baixa o ZIP pelo botão.
+ *
+ * Passa por `chamar`, e não por `fetch` solto, para ganhar o que o resto do
+ * painel já tem: 401 de token vencido renova e repete uma vez, e a recusa vira
+ * `ErroDaApi` com a frase do servidor (sem permissão, acesso suspenso).
  */
 export async function baixarPacoteDeSaida(_s: Sessao): Promise<{ url: string; nome: string }> {
-  const tokens = lerTokens();
-  const resposta = await comRedeTraduzida(() =>
-    fetch(`${BASE}/pacote.zip`, {
-      method: "POST",
-      headers: tokens ? { authorization: `Bearer ${tokens.acesso}` } : {},
-    }));
-  if (!resposta.ok) {
-    throw new ErroDaApi(resposta.status, await resposta.json().catch(() => ({})));
-  }
+  const arquivo = await chamar<Blob>("/saida/pacote.zip", { metodo: "POST", arquivo: true });
   return {
-    url: URL.createObjectURL(await resposta.blob()),
+    url: URL.createObjectURL(arquivo),
     nome: `dc360-pacote-de-saida-${new Date().toISOString().slice(0, 10)}.zip`,
   };
 }

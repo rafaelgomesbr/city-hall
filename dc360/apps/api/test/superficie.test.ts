@@ -42,6 +42,12 @@ const SEM_TOKEN = new Map<string, string>([
   ["POST /auth/renovar", "autentica pelo próprio token de renovação"],
   ["POST /auth/sair", "revoga pelo token de renovação, sem precisar do de acesso"],
   ["POST /auth/recuperar", "quem esqueceu a senha não tem token"],
+  [
+    "GET /auth/recuperacao",
+    "quem esqueceu a senha não tem token, e a tela precisa saber se a recuperação "
+    + "por email está ligada ANTES de pedir o email. Devolve só `{ ativa }`: um "
+    + "interruptor do servidor inteiro, igual para todos, sem dado de município",
+  ],
   ["POST /auth/redefinir", "autentica pelo link de uso único"],
   ["PUT /armazenamento/objeto", "autenticado pela assinatura embutida na URL"],
   ["GET /armazenamento/objeto", "autenticado pela assinatura embutida na URL"],

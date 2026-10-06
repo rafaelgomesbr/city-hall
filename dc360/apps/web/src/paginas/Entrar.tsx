@@ -66,6 +66,22 @@ export function Entrar() {
             de onde estava. Nada do que já tinha sido gravado se perdeu.
           </Aviso>
         )}
+        {estado.motivo === "encerrada" && (
+          <Aviso tom="alerta">
+            <strong>Sua sessão foi encerrada.</strong> Entre de novo para
+            continuar de onde estava. Isso acontece quando o acesso é
+            encerrado em outro aparelho, por quem administra o sistema, ou
+            quando o seu cadastro muda. Nada do que já tinha sido gravado se
+            perdeu.
+          </Aviso>
+        )}
+        {estado.motivo === "desativada" && (
+          <Aviso tom="perigo">
+            <strong>Sua conta foi desativada.</strong> Entrar de novo não
+            resolve: procure a coordenação do seu município. Nada do que você
+            já registrou se perdeu.
+          </Aviso>
+        )}
 
         {MODO === "api"
           ? <FormularioSenha voltarPara={estado.voltarPara} />

@@ -22,7 +22,7 @@ import type { Consulta } from "../banco/tipos.js";
  * Encerrar a sessao mata a RENOVACAO e, na ESCRITA, o token de acesso
  * tambem: toda escrita relê a sessao do token no banco (`auth/vigencia.ts`,
  * na mesma consulta que ja conferia a suspensao do municipio), e sessao
- * encerrada responde 401 no pedido seguinte. O que sobra da janela de
+ * encerrada responde 401 `sessao_encerrada` no pedido seguinte. O que sobra da janela de
  * `ACESSO_MINUTOS` e a LEITURA, que continua confiando no token pelos quinze
  * minutos, pela troca escrita em `auth/suspensao.ts`.
  *

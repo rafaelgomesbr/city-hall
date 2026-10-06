@@ -792,6 +792,35 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
   font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
   color: var(--ds-text-muted);
 }
+/* O link do rodape e alvo de toque: 44 px de altura, como todo controle do celular. */
+.entrada__rodape a {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: var(--ds-touch); padding: 0 var(--ds-sp-3);
+}
+
+/* Texto corrido e ação das telas de recuperação de senha. */
+.entrada__texto {
+  margin: 0 0 var(--ds-sp-4);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+}
+.entrada__texto--apoio { color: var(--ds-text-muted); }
+.entrada__acao { width: 100%; }
+.entrada__verificando {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  min-height: var(--ds-touch);
+  color: var(--ds-text-muted); font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+}
+.entrada__verificando p { margin: 0; }
+.entrada__verificando .girador { flex: 0 0 auto; }
+
+/* Os passos de quem administra redefinir a senha: lista numerada, um passo por item. */
+.passos {
+  margin: 0 0 var(--ds-sp-2); padding-left: var(--ds-sp-5);
+  display: flex; flex-direction: column; gap: var(--ds-sp-3);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+}
+.passos li { padding-left: var(--ds-sp-1); }
+.passos li::marker { color: var(--ds-text-muted); font-weight: var(--ds-fw-bold); }
 
 .lista-contas { display: flex; flex-direction: column; gap: var(--ds-sp-2); }
 .lista-contas__grupo { font-size: var(--ds-fs-caption); text-transform: uppercase; letter-spacing: var(--tracking-rotulo);
@@ -1192,3 +1221,101 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
 }
 .qr__fundo { fill: var(--ds-qr-claro); }
 .qr__modulo { fill: var(--ds-qr-escuro); }
+
+/* ---------------------------------------------------------------------------
+   Sessões e redefinição de senha (V2-F00-E09)
+   --------------------------------------------------------------------------- */
+
+/*
+  Os botões de uma linha da lista de usuários. Com quatro (Corrigir, Desativar,
+  Redefinir senha, Encerrar sessões) a coluna Ação passaria da largura do
+  cartão numa fileira só; em grade de duas colunas (Corrigir e Desativar em
+  cima, Redefinir senha e Encerrar sessões embaixo) o rótulo de cada um continua
+  inteiro, os botões alinham entre as linhas e a coluna ocupa o mínimo.
+*/
+.tabela__acoes {
+  display: grid; grid-template-columns: repeat(2, max-content);
+  justify-items: start; align-items: center;
+  gap: var(--ds-sp-1) var(--ds-sp-2);
+}
+
+/*
+  A janela da senha temporária. A senha é a única coisa da janela que vai ser
+  LIDA EM VOZ ALTA ao telefone, então ela ganha o maior corpo da família mono, o
+  espaçamento de rótulo e a seleção inteira com um toque. Quebra em qualquer
+  ponto para nunca estourar a janela no celular.
+*/
+.senha-temporaria { display: grid; gap: var(--ds-sp-4); margin-top: var(--ds-sp-4); }
+.senha-temporaria .aviso { margin-bottom: 0; }
+.senha-temporaria__mensagem {
+  margin: 0; font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+  color: var(--ds-text-muted);
+}
+.senha-temporaria__bloco {
+  display: grid; gap: var(--ds-sp-2);
+  padding: var(--ds-sp-4);
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+}
+.senha-temporaria__valor {
+  margin: 0;
+  font-size: var(--ds-fs-h3); line-height: var(--ds-lh-h3);
+  font-weight: var(--ds-fw-semibold);
+  letter-spacing: var(--tracking-rotulo);
+  word-break: break-all;
+  user-select: all;
+}
+.senha-temporaria__acoes { display: flex; flex-wrap: wrap; gap: var(--ds-sp-2); }
+.senha-temporaria__estado {
+  margin: 0; min-height: var(--ds-lh-body-sm);
+  display: flex; align-items: center; gap: var(--ds-sp-1);
+  font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm);
+  color: var(--ds-text-muted);
+}
+
+/*
+  A lista das sessões da própria conta. Cada item é uma linha com o aparelho em
+  destaque, e as duas datas embaixo, lado a lado quando cabe e empilhadas no
+  telefone. A marca "Esta sessão" é selo com ícone e texto, nunca só cor.
+*/
+.sessoes {
+  list-style: none; margin: 0 0 var(--ds-sp-4); padding: 0;
+  display: grid; gap: var(--ds-sp-2);
+}
+.sessoes__item {
+  display: grid; gap: var(--ds-sp-1);
+  padding: var(--ds-sp-3) var(--ds-sp-4);
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+}
+.sessoes__topo { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-sp-2); }
+.sessoes__aparelho { font-weight: var(--ds-fw-semibold); font-size: var(--ds-fs-body-sm); }
+.sessoes__datas {
+  display: flex; flex-wrap: wrap; gap: var(--ds-sp-1) var(--ds-sp-4);
+  font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  color: var(--ds-text-muted);
+}
+
+/*
+  A pessoa na lista de usuários. Com a coluna de ações em duas fileiras, a
+  tabela dividia o que sobrava de modo que o nome quebrava em três linhas
+  ("Diego / Nakamura / Alves"). O piso de largura segura o nome em até duas
+  linhas e deixa a coluna de ações inteira dentro do cartão em 1280 px; o email, que é a linha secundária, continua quebrando onde precisar.
+*/
+.tabela__pessoa {
+  display: flex; align-items: center; gap: var(--ds-sp-3);
+  min-width: calc(var(--ds-sp-8) * 2.75);
+}
+
+/*
+  A lista de usuários é a única tabela com seis colunas e quatro botões por
+  linha. Com o respiro lateral de 12 px no lugar de 16 (só nela), as seis
+  colunas cabem em 1280 px sem rolagem; abaixo disso a tabela rola, com o aviso
+  de sempre.
+*/
+.tabela--justa th, .tabela--justa td { padding-left: var(--ds-sp-3); padding-right: var(--ds-sp-3); }
+
+/* O indicador de carregamento do tamanho de um cartão, e não da página. */
+.carregando--no-cartao { min-height: 0; padding: var(--ds-sp-5) 0; }

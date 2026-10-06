@@ -1,5 +1,6 @@
 import type { DevolucaoDeTarefa, EnvelopeSincronizacao } from "@dc360/shared";
 import {
+  FalhaDeSessao,
   FalhaPermanente,
   FalhaTemporaria,
   type Arquivos,
@@ -11,6 +12,7 @@ import {
   type FotoNaFila,
   type ItemDeVistoria,
   type ItemFila,
+  type MotivoDeSessao,
   type ResultadoDaRetirada,
   type ResultadoDreno,
   type ResumoFila,
@@ -242,6 +244,26 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
    */
   let marcaAtual = 0;
 
+  /**
+   * A fila esta parada pela SESSAO (ver `FalhaDeSessao`), e de quem era a
+   * sessao quando parou.
+   *
+   * Vive so na memoria, de proposito: nao e dado da coleta, e uma observacao
+   * sobre o servidor naquele momento. Se o aplicativo for fechado, a primeira
+   * tentativa depois de aberto descobre de novo, com uma requisicao so, e nenhum
+   * item carrega marca de falha que ficaria velha.
+   *
+   * Guarda o usuario porque a fila atravessa troca de turno: a pausa do agente
+   * da manha (conta desativada) nao pode aparecer para o agente da noite, que
+   * entrou com outra conta e nao tem nada a ver com ela.
+   */
+  let pausa: { motivo: MotivoDeSessao; usuarioId: string | null } | null = null;
+
+  function pausadaPeloUsuarioAtual(): MotivoDeSessao | null {
+    if (!pausa) return null;
+    return pausa.usuarioId === (sessaoAtual()?.usuarioId ?? null) ? pausa.motivo : null;
+  }
+
   const ouvintes = new Set<(r: ResumoFila) => void>();
 
   async function avisar(): Promise<void> {
@@ -285,6 +307,7 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       */
       arquivados: itens.filter((i) => i.estado === "arquivado").length,
       sincronizando: drenando,
+      pausadaPor: pausadaPeloUsuarioAtual(),
     };
   }
 
@@ -526,7 +549,15 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       const removeu = await limparConfirmados();
       if (prontos(await deposito.listar(), agora()).length === 0) {
         if (minhaMarca === marcaAtual) drenando = false;
-        if (removeu) await avisar();
+        /*
+          Sem nada pronto para esta sessao, a pausa nao tem mais o que
+          segurar: ela falava de coleta que esta pessoa tinha para enviar. Sem
+          isto o aviso "sessao encerrada" ficaria na faixa de quem entrou
+          depois, sobre uma fila que nao e dela.
+        */
+        const tinhaPausa = pausa !== null;
+        pausa = null;
+        if (removeu || tinhaPausa) await avisar();
         return {
           fotosEnviadas: 0, enviados: 0, duplicados: 0, adiados: 0, bloqueados: 0,
           interrompido: false,
@@ -623,10 +654,28 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
           });
           if (duplicada) resultado.duplicados += 1;
           else resultado.enviados += 1;
+          // O servidor aceitou: a sessao vale, e a pausa (se havia) acabou.
+          pausa = null;
           await avisar();
 
           if (resultado.interrompido) break;
         } catch (erro) {
+          /*
+            A SESSAO NAO VALE, e isto vem ANTES de `tratarFalha`.
+
+            Nao e item bloqueado, nao e tentativa gasta e nao e espera
+            crescente: o servidor nao recusou a COLETA, recusou QUEM manda. O
+            item volta como estava (pendente, mesma contagem, mesma janela) e
+            o dreno inteiro para, porque o proximo item, do mesmo autor, levaria
+            o mesmo 401 ou 403. Os itens seguintes nem sao tocados.
+          */
+          if (erro instanceof FalhaDeSessao) {
+            await guardarPausaDeSessao(item, erro);
+            resultado.paradaPor = erro.motivo;
+            resultado.interrompido = true;
+            await avisar();
+            break;
+          }
           const desfecho = await tratarFalha(item, erro);
           if (desfecho === "bloqueado") resultado.bloqueados += 1;
           else resultado.adiados += 1;
@@ -909,6 +958,26 @@ export function criarFilaDeSincronizacao(opcoes: OpcoesFila) {
       permanente,
       em: agora().toISOString(),
     };
+  }
+
+  /**
+   * Devolve o item ao estado anterior ao envio e registra a pausa da fila.
+   *
+   * O progresso das fotos que subiram nesta rodada fica (e e o que torna a
+   * retomada barata); `tentativas` e `liberadoEm` voltam ao que eram, porque a
+   * tentativa nao foi culpa do item; `ultimaFalha` nao muda, porque a pausa e da
+   * fila e nao da coleta, e o cartao nao deve passar a dizer que a coleta
+   * falhou.
+   */
+  async function guardarPausaDeSessao(item: ItemFila, erro: FalhaDeSessao): Promise<void> {
+    const atual = (await deposito.listar()).find((i) => i.id === item.id) ?? item;
+    await deposito.salvar({
+      ...item,
+      fotos: atual.fotos,
+      estado: "pendente",
+      tentativas: item.tentativas,
+    });
+    pausa = { motivo: erro.motivo, usuarioId: sessaoAtual()?.usuarioId ?? null };
   }
 
   async function tratarFalha(

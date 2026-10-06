@@ -10,10 +10,23 @@ import type { ServicoSegundoFator } from "./segundo-fator.js";
 import { derivarSenha } from "./senha.js";
 import { encerrarSessoes } from "./sessoes.js";
 import { exigirAcessoAtivo } from "./suspensao.js";
+import { ContaDesativada } from "./conta-desativada.js";
 import { registrarAtoAdministrativo } from "../trilha.js";
-import { mensagemDeRecuperacao, type Notificador } from "./notificador.js";
+import { createHash } from "node:crypto";
+import { mensagemDeRecuperacao, semOsEnderecos, type Mensagem, type Notificador } from "./notificador.js";
+import { resumirAparelho } from "./aparelho.js";
 
 export type Credenciais = { email: string; senha: string };
+
+/** Uma sessão viva da própria conta, como a tela de "Minha conta" a mostra. */
+export type SessaoDaConta = {
+  entrouEm: string;
+  validaAte: string;
+  /** Navegador e sistema em uma frase. Nunca o user-agent completo nem o IP. */
+  aparelho: string;
+  /** É a sessão de onde o pedido veio. */
+  atual: boolean;
+};
 
 export type Autenticado = {
   acesso: string;
@@ -64,9 +77,23 @@ export type DesafioDeEntrada = {
 
 export type ResultadoDeEntrada = Autenticado | DesafioDeEntrada;
 
+/*
+  Os códigos que a autenticação lança. `sessao_encerrada` e `nao_autenticado`
+  são do catálogo de `@dc360/shared` (`codigos-de-erro.ts`): o primeiro era
+  `sessao` até a V2-F00-E05, nome que não dizia o que o cliente faz. `credenciais`, `bloqueado` e
+  `senha_provisoria_vencida` são da ENTRADA e ficam fora do catálogo de acesso.
+  Conta desativada NÃO passa por aqui: é `ContaDesativada` (403), porque 401
+  manda entrar de novo e entrar de novo não resolve.
+*/
 export class FalhaAutenticacao extends Error {
   readonly codigo:
-    | "credenciais" | "bloqueado" | "inativo" | "sessao"
+    | "credenciais" | "bloqueado" | "sessao_encerrada"
+    /*
+      O papel gravado no banco não é o do token (V2-F00-E07). Mesmo código que a
+      verificação do token emite: o cliente renova e repete, e a renovação já
+      devolve o token com o papel novo.
+    */
+    | "nao_autenticado"
     /*
       A senha provisória venceu sem ser trocada. Só sai para quem apresentou a
       senha provisória CERTA (a errada recebe a recusa genérica), então não
@@ -146,12 +173,105 @@ function registrarFalhaDeEmailInexistente(email: string, maxFalhas: number, bloq
   }
 }
 
+/**
+ * A janela do teto de pedidos de recuperação por email: uma hora.
+ *
+ * Mais curta e o teto não protege a caixa de entrada de ninguém (cinco
+ * mensagens a cada cinco minutos ainda são sessenta por hora); mais longa e
+ * quem pediu o link de verdade e perdeu a mensagem fica esperando o dia
+ * inteiro. Uma hora é o tempo que o suporte leva para responder, e a pessoa
+ * sempre tem a saída de quem administra (E09) enquanto espera.
+ */
+const JANELA_DO_TETO_DE_EMAIL_MS = 60 * 60_000;
+
+/** Quantos emails o contador guarda; passado disto sai o mais antigo. */
+const TETO_DE_EMAILS_CONTADOS = 10_000;
+
+/** Quanto do erro do provedor vai para o log do servidor. */
+const TETO_DO_ERRO_NO_LOG = 300;
+
 export function servicoDeAutenticacao(
   banco: Banco,
   config: Config,
   notificador: Notificador,
   segundoFator: ServicoSegundoFator,
 ) {
+  /*
+    O contador de pedidos de recuperação por email, em memória e por processo.
+
+    Guarda o HASH do email e não o email: o endereço de uma pessoa não tem por
+    que morar num mapa em memória que um dump de processo entregaria. Conta
+    email que existe e email que não existe do mesmo jeito, ANTES de consultar
+    o banco: se só contasse quem tem conta, o dia em que o teto estourasse
+    seria o dia em que a resposta (o envio que não acontece) contaria quais
+    emails existem.
+
+    Por processo, e por isso é um freio e não a defesa inteira: a defesa que
+    vale para o endereço de quem chama é `LOGIN_POR_IP` na rota. O que este
+    contador acrescenta é o que o limite por endereço não alcança, que é cem
+    endereços diferentes martelando o MESMO email até encher a caixa de
+    entrada de uma pessoa. Com mais de uma máquina o teto vira "por máquina";
+    a conta final continua pequena e a alternativa (uma tabela só para isto)
+    custaria uma migração por um ganho que o piloto não pede.
+  */
+  const pedidosPorEmail = new Map<string, number[]>();
+
+  /** Registra o pedido e diz se ele ainda cabe no teto da última hora. */
+  function cabeNoTetoDoEmail(email: string): boolean {
+    const chave = createHash("sha256").update(email.trim().toLowerCase()).digest("base64url");
+    const agora = Date.now();
+    const recentes = (pedidosPorEmail.get(chave) ?? [])
+      .filter((instante) => agora - instante < JANELA_DO_TETO_DE_EMAIL_MS);
+    const cabe = recentes.length < config.RECUPERACAO_POR_EMAIL_HORA;
+    // Pedido recusado pelo teto NÃO entra na lista: senão quem insiste
+    // empurraria o fim da janela para sempre, e a vítima nunca mais recuperaria.
+    if (cabe) recentes.push(agora);
+    // Apaga e reinsere para a ordem do mapa ser a do último uso.
+    pedidosPorEmail.delete(chave);
+    pedidosPorEmail.set(chave, recentes);
+    if (pedidosPorEmail.size > TETO_DE_EMAILS_CONTADOS) {
+      const maisAntigo = pedidosPorEmail.keys().next().value;
+      if (maisAntigo !== undefined) pedidosPorEmail.delete(maisAntigo);
+    }
+    return cabe;
+  }
+
+  /*
+    Os envios que saíram do pedido e ainda não terminaram.
+
+    O envio NÃO é aguardado dentro do pedido (ver `pedirRecuperacao`), então
+    alguém precisa saber que ele existe: o encerramento do servidor espera por
+    esta lista, para a mensagem que já foi aceita não morrer junto com o
+    processo no meio da viagem até o provedor.
+  */
+  const enviosEmVoo = new Set<Promise<void>>();
+
+  function enviarSemEsperar(
+    mensagem: Mensagem,
+    aoFalhar: ((motivo: string) => void) | undefined,
+  ): void {
+    const envio = (async () => {
+      try {
+        await notificador.enviar(mensagem);
+      } catch (erro) {
+        const bruto = erro instanceof Error ? erro.message : String(erro);
+        try {
+          // O erro do provedor costuma ecoar o pedido inteiro, e o pedido
+          // carrega o link de uso único e o email de quem pediu.
+          aoFalhar?.(semOsEnderecos(bruto, mensagem.corpo, mensagem.para).slice(0, TETO_DO_ERRO_NO_LOG));
+        } catch {
+          // Quem registra a falha não pode derrubar o processo por falhar também.
+        }
+      }
+    })();
+    enviosEmVoo.add(envio);
+    void envio.finally(() => { enviosEmVoo.delete(envio); });
+  }
+
+  async function esperarEnvios(): Promise<void> {
+    await Promise.allSettled([...enviosEmVoo]);
+  }
+
   async function entrar(
     credenciais: Credenciais,
     contexto: { userAgent?: string; ip?: string },
@@ -312,7 +432,7 @@ export function servicoDeAutenticacao(
     const conteudo = await verificarDesafio(config.jwtSegredos, desafio);
     if (!conteudo || conteudo.pp !== "segundo_fator") {
       throw new FalhaAutenticacao(
-        "sessao",
+        "sessao_encerrada",
         "Esta tentativa de entrada expirou. Informe email e senha de novo.",
       );
     }
@@ -339,7 +459,7 @@ export function servicoDeAutenticacao(
 
     const linha = await lerCredencialPorId(conteudo.org, conteudo.sub);
     if (!linha || !linha.ativo) {
-      throw new FalhaAutenticacao("inativo", MENSAGEM_GENERICA);
+      throw new FalhaAutenticacao("credenciais", MENSAGEM_GENERICA);
     }
     // O desafio foi emitido há no máximo cinco minutos, e a suspensão pode
     // ter entrado nesse intervalo. A sessão nasce aqui, então a pergunta se
@@ -373,7 +493,7 @@ export function servicoDeAutenticacao(
   ): Promise<Autenticado> {
     const linha = await lerCredencialPorId(organizacaoId, usuarioId);
     if (!linha || !linha.ativo) {
-      throw new FalhaAutenticacao("inativo", MENSAGEM_GENERICA);
+      throw new FalhaAutenticacao("credenciais", MENSAGEM_GENERICA);
     }
     await exigirAcessoAtivo(banco, organizacaoId);
     return emitirPar(linha, contexto);
@@ -407,15 +527,21 @@ export function servicoDeAutenticacao(
     });
   }
 
+  /**
+   * Abre a sessão e emite o par de tokens. `familiaId` só a renovação informa:
+   * a sessão nova entra na cadeia da que acabou de ser rotacionada. Sem ele é
+   * um login, e o banco abre uma família nova (migração 047).
+   */
   async function emitirPar(
     linha: LinhaCredencial,
     contexto: { userAgent?: string; ip?: string },
+    familiaId: string | null = null,
   ): Promise<Autenticado> {
     const renovacao = gerarTokenRenovacao();
 
     const sessaoId = await banco.semTenant(async (c) => {
       const r = await c.query<{ abrir_sessao: string }>(
-        "SELECT abrir_sessao($1,$2,$3,$4::interval,$5,$6) AS abrir_sessao",
+        "SELECT abrir_sessao($1,$2,$3,$4::interval,$5,$6,$7) AS abrir_sessao",
         [
           linha.organizacao_id,
           linha.usuario_id,
@@ -423,6 +549,7 @@ export function servicoDeAutenticacao(
           `${config.RENOVACAO_DIAS} days`,
           contexto.userAgent ?? null,
           contexto.ip ?? null,
+          familiaId,
         ],
       );
       return r.rows[0]!.abrir_sessao;
@@ -494,7 +621,7 @@ export function servicoDeAutenticacao(
 
     if (!sessao) {
       await derrubarSePossivelReuso(hash);
-      throw new FalhaAutenticacao("sessao", "Sessão expirada. Entre novamente.");
+      throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
     }
 
     if (!sessao.ativo) {
@@ -503,7 +630,10 @@ export function servicoDeAutenticacao(
           sessao.usuario_id, "usuario desativado",
         ]),
       );
-      throw new FalhaAutenticacao("inativo", "Sessão expirada. Entre novamente.");
+      // 403 e não 401: quem apresenta uma renovação válida pode saber que a
+      // conta foi desativada (o cliente para de insistir e avisa), e entrar de
+      // novo não resolve. A entrada continua com a recusa genérica.
+      throw new ContaDesativada();
     }
 
     /*
@@ -522,8 +652,22 @@ export function servicoDeAutenticacao(
 
     // A senha provisória venceu no meio da sessão: não renova (migração 046).
     if (senhaProvisoriaVencida(sessao)) {
-      throw new FalhaAutenticacao("sessao", "Sessão expirada. Entre novamente.");
+      throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
     }
+
+    /*
+      A FAMÍLIA da sessão que vai ser rotacionada, lida ANTES da rotação e sob
+      tenant (`sessoes` está sob RLS, e `sessao_por_token` não a devolve: a
+      função da 046 não mudou). A sessão nova entra na mesma cadeia, e é isso
+      que permite à vigência saber que o token de acesso emitido na antiga
+      ainda pertence a uma cadeia viva (migração 047).
+    */
+    const familiaId = await banco.comTenant(sessao.organizacao_id, async (c) => {
+      const r = await c.query<{ familia_id: string }>(
+        "SELECT familia_id FROM sessoes WHERE id = $1", [sessao.sessao_id],
+      );
+      return r.rows[0]?.familia_id ?? null;
+    });
 
     /*
       H1: DOIS PEDIDOS COM O MESMO TOKEN, ao mesmo tempo. Os dois leem a sessão
@@ -540,7 +684,7 @@ export function servicoDeAutenticacao(
       return Number(r.rows[0]?.revogar_sessao ?? 0);
     });
     if (revogadas === 0) {
-      throw new FalhaAutenticacao("sessao", "Sessão expirada. Entre novamente.");
+      throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
     }
 
     return emitirPar(
@@ -559,6 +703,7 @@ export function servicoDeAutenticacao(
         uf: sessao.uf,
       },
       contexto,
+      familiaId,
     );
   }
 
@@ -609,11 +754,21 @@ export function servicoDeAutenticacao(
    * cadastrado" ajudaria quem esqueceu a senha e ajudaria igualmente quem esta
    * montando a lista de emails da prefeitura. Como o segundo uso e mais
    * provavel num sistema publico exposto, a resposta e uniforme.
+   *
+   * "Uniforme" vale para o corpo, para o status E para o tempo. O envio ao
+   * provedor leva centenas de milissegundos e so acontece para quem tem conta:
+   * aguardado dentro do pedido, o relogio entregava o que o corpo escondia.
+   * Por isso o envio sai DEPOIS da resposta (`enviarSemEsperar`), e a falha do
+   * provedor vai para o log sem o link, em vez de virar 500 so para quem tem
+   * conta. O custo e honesto: se o provedor recusar, quem pediu nao e avisado
+   * na tela (e nao deve ser: a tela nao sabe se a conta existe). A pessoa pede
+   * de novo, ou procura quem administra.
    */
   async function pedirRecuperacao(
     email: string,
-    contexto: { ip?: string },
+    contexto: { ip?: string; aoFalharEnvio?: (motivo: string) => void },
   ): Promise<void> {
+    if (!cabeNoTetoDoEmail(email)) return;
     const token = gerarTokenRenovacao();
 
     const alvo = await banco.semTenant(async (c) => {
@@ -627,8 +782,12 @@ export function servicoDeAutenticacao(
     if (!alvo) return;
 
     const link = `${config.URL_PAINEL.replace(/\/$/, "")}/redefinir-senha?token=${encodeURIComponent(token)}`;
-    await notificador.enviar(
+    enviarSemEsperar(
       mensagemDeRecuperacao(alvo.nome, alvo.email, link, config.RECUPERACAO_MINUTOS),
+      // Quem não diz para onde vai a falha NÃO a perde em silêncio: sem este
+      // padrão, um chamador esquecido deixaria o provedor falhar sem rastro.
+      contexto.aoFalharEnvio
+        ?? ((motivo) => console.error(`[recuperacao] falha ao enviar o link: ${motivo}`)),
     );
   }
 
@@ -652,8 +811,8 @@ export function servicoDeAutenticacao(
 
     if (!trocada) {
       throw new FalhaAutenticacao(
-        "sessao",
-        "Este link de redefinicao nao vale mais. Peca um novo.",
+        "sessao_encerrada",
+        "Este link de redefinição não vale mais. Peça um novo.",
       );
     }
   }
@@ -670,14 +829,29 @@ export function servicoDeAutenticacao(
     senhaNova: string,
   ): Promise<{ acesso: string; expiraEm: number }> {
     const atual = await banco.comTenant(identidade.organizacaoId, async (c) => {
-      const r = await c.query<{ senha_hash: string | null }>(
-        "SELECT senha_hash FROM usuarios WHERE id = $1",
+      const r = await c.query<{ senha_hash: string | null; senha_provisoria_ate: string | null }>(
+        "SELECT senha_hash, senha_provisoria_ate FROM usuarios WHERE id = $1",
         [identidade.usuarioId],
       );
-      return r.rows[0]?.senha_hash ?? null;
+      return r.rows[0] ?? null;
     });
 
-    if (!(await conferirSenha(senhaAtual, atual))) {
+    /*
+      A senha provisória que VENCEU não se troca (V2-F00-E07). A rota já
+      recusa a escrita de quem tem prazo vencido (`auth/vigencia.ts`), mas esta
+      regra não pode depender de a rota ter conferido: o prazo é lido de novo
+      aqui, na mesma leitura da senha atual, e a recusa é a mesma de entrar
+      com ela e de renová-la. Sem esta linha a regra moraria só na rota, e o
+      serviço trocaria por uma senha definitiva a provisória que passou do
+      prazo para qualquer outro chamador (e para a rota, se alguém um dia
+      tirasse `/auth/trocar-senha` da conferência de vigência). Dizer "expirou,
+      entre novamente" a quem já sabia a senha provisória não revela nada.
+    */
+    if (atual && senhaProvisoriaVencida(atual)) {
+      throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
+    }
+
+    if (!(await conferirSenha(senhaAtual, atual?.senha_hash ?? null))) {
       throw new FalhaAutenticacao("credenciais", "A senha atual nao confere.");
     }
 
@@ -833,9 +1007,54 @@ export function servicoDeAutenticacao(
     });
   }
 
+  /**
+   * As sessões VIVAS da própria conta, para a pessoa reconhecer o que está
+   * aberto e decidir se derruba.
+   *
+   * O QUE SAI E O QUE NÃO SAI: quando entrou, até quando vale, o aparelho em
+   * uma frase e a marca de qual é esta. IP e user-agent completo ficam no
+   * banco para investigação e não saem (IDN-29 do REL:06): a tela precisa que
+   * a pessoa reconheça o aparelho, não que ela leia a máquina.
+   *
+   * UMA LINHA POR FAMÍLIA, e não por linha da tabela. A renovação rotaciona: a
+   * sessão antiga fica revogada e a nova vive, então só a viva aparece, e o
+   * "entrou em" é o da PRIMEIRA sessão da família (o login), porque a data da
+   * linha viva é a da última renovação e diria "entrou há três minutos" a quem
+   * está logado há uma semana.
+   *
+   * A MARCA "ESTA" É POR FAMÍLIA. O token de acesso carrega o id da sessão em
+   * que nasceu; se essa sessão já foi rotacionada, ela está revogada e sumiu da
+   * lista, mas a família dela é a mesma da que está viva. Comparar por família
+   * mantém a marca na linha certa também nesse intervalo.
+   */
+  async function listarMinhasSessoes(identidade: Identidade): Promise<SessaoDaConta[]> {
+    return banco.comTenant(identidade.organizacaoId, async (c) => {
+      const r = await c.query<{
+        entrou_em: string; expira_em: string; user_agent: string | null; atual: boolean;
+      }>(
+        `SELECT s.expira_em, s.user_agent,
+                (SELECT min(f.criada_em) FROM sessoes f WHERE f.familia_id = s.familia_id) AS entrou_em,
+                coalesce(s.familia_id = (SELECT a.familia_id FROM sessoes a WHERE a.id = $2), false) AS atual
+           FROM sessoes s
+          WHERE s.usuario_id = $1
+            AND s.revogada_em IS NULL
+            AND s.expira_em > now()
+          ORDER BY atual DESC, entrou_em DESC`,
+        [identidade.usuarioId, identidade.sessaoId],
+      );
+      return r.rows.map((l) => ({
+        entrouEm: l.entrou_em,
+        validaAte: l.expira_em,
+        aparelho: resumirAparelho(l.user_agent),
+        atual: l.atual,
+      }));
+    });
+  }
+
   return {
     entrar, conferirSegundoFator, sessaoAposAtivacao, renovar, sair,
     pedirRecuperacao, redefinirSenha, trocarSenha, encerrarMinhasSessoes,
+    listarMinhasSessoes, esperarEnvios,
   };
 }
 

@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, View } from "react-native";
 
+import type { MotivoDeSessao } from "@dc360/campo";
 import { useSinal } from "../dados/conectividade";
+import { frasesDaPausa } from "../dados/pausa-da-fila";
 import { contagemDaFila, useResumoDaFila } from "../dados/resumo-da-fila";
 import { Txt, useTema } from "./componentes";
 import { easing, movimento, raio, espaco, toque, type Tema } from "./tokens";
@@ -42,6 +44,8 @@ export type EstadoDaFaixa = {
     | "sem_sinal"
     | "enviando"
     | "esperando"
+    | "sessao_encerrada"
+    | "conta_desativada"
     | "precisa_de_correcao"
     | "aguardando_autor"
     | "sincronizado";
@@ -85,6 +89,12 @@ export function decidirFaixa(
     /** Coletas de outro agente, ou sem autor: não saem com esta sessão. */
     deOutroAutor: number;
     sincronizando: boolean;
+    /**
+     * A fila está parada pela SESSÃO da pessoa (V2-F00-E06): o servidor disse
+     * que a sessão acabou ou que a conta foi desativada. Opcional para quem
+     * chama sem fila (o teste da faixa pura).
+     */
+    pausadaPor?: MotivoDeSessao | null;
   },
   tema: Tema,
 ): EstadoDaFaixa {
@@ -93,6 +103,22 @@ export function decidirFaixa(
       chave: "sem_sinal",
       fundo: tema.alertaFundo, cor: tema.alertaTexto, sinalTexto: "!",
       titulo: "Sem sinal", detalhe: "Salvando neste aparelho",
+    };
+  }
+  /*
+    A PAUSA DA SESSAO vem antes de "Enviando" e de "Com sinal", e a ordem e o
+    conteudo: "Com sinal, 2 esperando envio" promete que sai sozinha, e nao sai
+    enquanto a pessoa nao entrar de novo (ou a coordenacao nao reativar a
+    conta). "Enviando" tambem mentiria: cada volta do laco e uma tentativa que
+    o servidor recusa na hora, e a faixa piscaria nesse estado a cada
+    tentativa. O tom e o de perigo, o mesmo dos outros fins de linha.
+  */
+  if (entrada.pausadaPor) {
+    const frases = frasesDaPausa(entrada.pausadaPor);
+    return {
+      chave: entrada.pausadaPor,
+      fundo: tema.perigoFundo, cor: tema.perigoTexto, sinalTexto: "!",
+      titulo: frases.faixaTitulo, detalhe: frases.faixaDetalhe,
     };
   }
   if (entrada.sincronizando) {
@@ -312,7 +338,7 @@ export function FaixaDeSincronizacaoLigada({ aoTocar }: { aoTocar: () => void })
   const tema = useTema();
   const sinal = useSinal();
   const resumo = useResumoDaFila();
-  const { pendentes, bloqueados, deOutroAutor, sincronizando } = contagemDaFila(resumo);
+  const { pendentes, bloqueados, deOutroAutor, sincronizando, pausadaPor } = contagemDaFila(resumo);
 
   /*
     A `chave` dentro de `decidirFaixa` existe para a faixa saber que houve
@@ -322,7 +348,7 @@ export function FaixaDeSincronizacaoLigada({ aoTocar }: { aoTocar: () => void })
     enviado, o que o esvaziaria de sentido.
   */
   const estado = decidirFaixa(
-    { temSinal: sinal.temSinal, pendentes, bloqueados, deOutroAutor, sincronizando },
+    { temSinal: sinal.temSinal, pendentes, bloqueados, deOutroAutor, sincronizando, pausadaPor },
     tema,
   );
 

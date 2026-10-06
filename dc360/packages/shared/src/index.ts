@@ -14,4 +14,5 @@ export * from "./campos.js";
 export * from "./telefone.js";
 export * from "./glifos-de-severidade.js";
 export * from "./evidencia.js";
+export * from "./codigos-de-erro.js";
 export { mensagensDoZodEmPortugues } from "./mensagens-do-zod.js";

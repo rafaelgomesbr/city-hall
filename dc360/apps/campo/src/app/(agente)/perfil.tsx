@@ -7,7 +7,7 @@ import {
   SemSinal, enderecoDaApi, normalizarMeuTrabalho, type Colega, type MeuTrabalho,
 } from "../../dados/api";
 import {
-  comoContarAFalha, motivoDaFalha, type MotivoDaFalha,
+  comoContarAFalha, ehFimDeLinha, motivoDaFalha, type MotivoDaFalha,
 } from "../../dados/falha-de-atualizacao";
 import {
   atualizarMeuTrabalho, meuTrabalhoGuardado, pendenciasGuardadas,
@@ -645,7 +645,7 @@ export default function Perfil() {
     >
       {falhaDeRede && fraseDaFalha && (
         <Aviso
-          tom={falhaDeRede === "sessao-encerrada" ? "perigo" : "alerta"}
+          tom={ehFimDeLinha(falhaDeRede) ? "perigo" : "alerta"}
           peso="leve"
           titulo={fraseDaFalha.resumo}
           acao={{

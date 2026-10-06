@@ -1,4 +1,5 @@
 import { podeExecutar, type Papel } from "@dc360/shared";
+import type { MotivoDaSessaoMorta } from "../dados/tipos";
 
 /**
  * As regras da entrada, fora do React, para serem provadas sem navegador.
@@ -33,7 +34,9 @@ export function telaInicial(papel: Papel | undefined): string {
 }
 
 /** Por que a pessoa está na tela de entrada, quando há um porquê a dizer. */
-export type MotivoDaEntrada = "expirou";
+export type MotivoDaEntrada = MotivoDaSessaoMorta;
+
+const MOTIVOS: ReadonlySet<unknown> = new Set<MotivoDaEntrada>(["expirou", "encerrada", "desativada"]);
 
 export type EstadoDaEntrada = {
   motivo: MotivoDaEntrada | null;
@@ -58,7 +61,7 @@ export function estadoDaEntrada(state: unknown): EstadoDaEntrada {
   if (!state || typeof state !== "object") return { motivo: null, voltarPara: null };
   const bruto = state as Record<string, unknown>;
   return {
-    motivo: bruto["motivo"] === "expirou" ? "expirou" : null,
+    motivo: MOTIVOS.has(bruto["motivo"]) ? (bruto["motivo"] as MotivoDaEntrada) : null,
     voltarPara: rotaInterna(bruto["voltarPara"]),
   };
 }

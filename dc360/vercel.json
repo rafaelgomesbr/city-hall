@@ -18,6 +18,19 @@
   ],
   "headers": [
     {
+      "source": "/(recuperar-senha|redefinir-senha)",
+      "headers": [
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    },
+    {
       "source": "/(icone\\.svg|icone-192\\.png|icone-512\\.png|icone-mascaravel-512\\.png|apple-touch-icon\\.png|favicon\\.ico|og\\.png)",
       "headers": [
         {

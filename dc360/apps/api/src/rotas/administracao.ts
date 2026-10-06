@@ -595,6 +595,66 @@ export async function rotasAdministracao(
   });
 
   /**
+   * Quantas sessões a outra pessoa tem abertas, para quem vai derrubá-las.
+   *
+   * É a leitura que acompanha o botão "Encerrar sessões": a confirmação diz
+   * "Diego tem 2 sessões abertas" em vez de pedir que se derrube às cegas, e
+   * uma conta sem nenhuma sessão não precisa do ato.
+   *
+   * SÓ QUANTIDADE E DATAS, e é decisão de privacidade (IDN-29 do REL:06): quem
+   * administra não precisa do IP nem do aparelho de ninguém para decidir, e
+   * entregar isso a todo coordenador seria vigilância que o produto não pediu.
+   * A pessoa que quer ver o aparelho vê o PRÓPRIO em `/auth/sessoes`.
+   *
+   * Mesmas regras de `redefinir-senha` e `encerrar-sessoes`: `gerenciar_usuarios`
+   * antes de tocar no banco, 404 para conta de outro município (o RLS esconde,
+   * e um 403 confirmaria que o id existe em algum lugar) e `exigirPostoParaGerir`
+   * contra o papel do alvo (403 `posto_insuficiente`).
+   */
+  app.get("/usuarios/:id/sessoes", async (req) => {
+    const quem = await autorizar(app, req, "gerenciar_usuarios");
+    const { id } = idSchema.parse(req.params);
+
+    return banco.comTenant(quem.organizacaoId, async (c) => {
+      const atual = await c.query<{ papel: Papel }>(
+        "SELECT papel FROM usuarios WHERE id = $1",
+        [id],
+      );
+      const alvo = atual.rows[0];
+      if (!alvo) {
+        throw new RegraDeNegocio("nao_encontrado", "Usuário não encontrado.", 404);
+      }
+      exigirPostoParaGerir(quem.papel, alvo.papel);
+
+      /*
+        Uma sessão viva por família: a renovação revoga a antiga ao abrir a
+        nova, então contar as vivas conta os aparelhos. "Entrou em" é o do
+        login mais recente (o início da família), e não o da última renovação.
+      */
+      const r = await c.query<{
+        sessoes: string; ultima_entrada_em: string | null; valida_ate: string | null;
+      }>(
+        `SELECT count(*)::text AS sessoes,
+                max((SELECT min(f.criada_em) FROM sessoes f WHERE f.familia_id = s.familia_id))
+                  AS ultima_entrada_em,
+                max(s.expira_em) AS valida_ate
+           FROM sessoes s
+          WHERE s.usuario_id = $1
+            AND s.revogada_em IS NULL
+            AND s.expira_em > now()`,
+        [id],
+      );
+      const linha = r.rows[0]!;
+      return {
+        id,
+        sessoesAbertas: Number(linha.sessoes),
+        ultimaEntradaEm: linha.ultima_entrada_em,
+        validaAte: linha.valida_ate,
+      };
+    });
+  });
+
+  /**
    * A retenção de dado pessoal, que é decisão do MUNICÍPIO.
    *
    * O município é o controlador na acepção da Lei 13.709/2018: é ele que

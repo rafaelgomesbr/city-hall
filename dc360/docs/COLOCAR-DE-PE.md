@@ -158,6 +158,15 @@ com os dois erros que ele encontrou pelo caminho.
     npm run migrar -- --conferir   # confere primeiro, não aplica nada
   ```
 
+  **Ordem na atualização que traz a migração 047 (família da sessão, V2-F00-E07):
+  migre ANTES de implantar o código novo.** O código novo chama `abrir_sessao`
+  com a família e lê `sessoes.familia_id`; contra um banco sem a 047, todo login
+  e toda renovação falhariam. O contrário é seguro: o código antigo contra o
+  banco já migrado continua funcionando (a função nova aceita a chamada de seis
+  argumentos). A migração é aditiva e rápida (uma coluna, um índice parcial e a
+  troca de uma função); sessões abertas na hora ganham família própria, e no
+  máximo um token de acesso antigo cai e o cliente renova.
+
 ### 3. Servidor da API
 
 PaaS que dá HTTPS automático e roda contêiner ou Node:
@@ -210,6 +219,11 @@ Sem isto, a foto da vistoria não sobe.
   conferir que funcionou. O provedor escolhido é o **Resend**, e as variáveis
   são `NOTIFICADOR_URL`, `NOTIFICADOR_CHAVE`, `EMAIL_REMETENTE` e
   `EMAIL_ATIVO=sim`, nesta ordem.
+- O fluxo completo de "esqueci a senha" já está pronto e provado com o notificador
+  de teste (V2-F00-E10); o que falta para ligar em produção é só a conta e o
+  domínio (CP-19). `vercel.json` serve as duas telas de recuperação com
+  `Referrer-Policy: no-referrer` e `noindex`, e SÓ elas: `no-referrer` no painel
+  inteiro quebraria a chave do Google Maps restrita por referenciador.
 
 ### 6. Painel web (opcional para o app, necessário para o coordenador)
 
@@ -716,3 +730,18 @@ diz mais sobre a divulgação do que sobre o produto.
   `WHERE id`, e não tem trilha de auditoria: `interesse_municipio` é anterior ao
   contrato e fica fora da trilha do município, então o que ficou registrado é o
   que você escrever em `observacao`.
+
+---
+
+## Parte 8: versões em uso e onde cada uma importa
+
+Quatro versões diferentes de Postgres e de Node aparecem neste projeto, e confundi-las é fonte de "funciona na minha máquina". Esta tabela diz qual é qual (medidas em 2026-09-30, REL:01; a de produção vem da Parte 6).
+
+| O quê | Versão | Onde importa |
+| --- | --- | --- |
+| Node | 22 (`dc360/.nvmrc`; medido com 22.17.0 e npm 10.9.2) | Máquina de quem desenvolve, CI e imagem. O `engines` aceita 20 ou mais, mas só a 22 está medida |
+| PGlite | 0.2.17 (Postgres 16 em WebAssembly) | Todos os testes de unidade e o painel no modo local. Não traz PostGIS nem os papéis do provedor |
+| Postgres do CI | 16 (`postgres:16`) | Job que aplica as migrações e roda a API contra banco real |
+| Postgres de produção | 17.6 (Supabase) | O que atende o município de verdade; o restore da Parte 6 foi provado contra ele |
+
+Duas consequências práticas: o que passa no PGlite pode falhar no Postgres 17 (função, extensão ou papel que só o provedor tem), e a prova de um recurso de PostGIS exige Postgres real, nunca PGlite. A medição das duas árvores de dependência (raiz e `apps/campo`) e o roteiro para repeti-la estão em `README.md` (seção "Como testar") e em `docs/evidencias-v2/G00/V2-F00-E01/`.

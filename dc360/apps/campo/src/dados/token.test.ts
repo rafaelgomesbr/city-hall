@@ -219,3 +219,104 @@ describe("criarObtentorDeToken", () => {
     expect(renovacoes).toBe(0);
   });
 });
+
+/**
+ * A renovação FORÇADA (V2-F00-E06): a resposta do transporte a um 401
+ * `nao_autenticado`.
+ *
+ * O servidor recusou o token que o aparelho julgava válido (relógio errado,
+ * sessão rotacionada em outro lugar), então a validade lida do token não vale
+ * como critério. O que NÃO muda: a trava de renovação em voo e o piso entre
+ * tentativas. É por eles que "recusado, renova, recusado, renova" não vira laço
+ * contra um servidor que já disse não, e é a devolução do MESMO token (quando
+ * não renovou) que o transporte lê como "repetir seria inútil".
+ */
+describe("renovarJa", () => {
+  const agora = 1_700_000_000_000;
+
+  function obtentorCom(renovar: () => Promise<Credenciais>, relogio: { t: number }) {
+    const c = cofre({ acesso: tokenQueVenceEm(15 * 60_000, agora), renovacao: "r1" });
+    const obterToken = criarObtentorDeToken({
+      lerCredenciais: c.lerCredenciais,
+      guardarCredenciais: c.guardarCredenciais,
+      agora: () => relogio.t,
+      renovar,
+      folgaMs: 120_000,
+      intervaloMinimoMs: 60_000,
+    });
+    return { c, obterToken };
+  }
+
+  it("com o token ainda longe de vencer, renovarJa renova mesmo assim", async () => {
+    let renovacoes = 0;
+    const { c, obterToken } = obtentorCom(async () => {
+      renovacoes += 1;
+      return { acesso: tokenQueVenceEm(15 * 60_000, agora), renovacao: "r2" };
+    }, { t: agora });
+    const velho = c.valor!.acesso;
+
+    expect(await obterToken()).toBe(velho);
+    expect(renovacoes).toBe(0);
+
+    const novo = await obterToken({ renovarJa: true });
+
+    expect(renovacoes).toBe(1);
+    expect(novo).toBe(c.valor!.acesso);
+    expect(c.valor!.renovacao).toBe("r2");
+  });
+
+  it("respeita o piso: duas forçadas seguidas fazem UMA renovação, e a segunda devolve o mesmo token", async () => {
+    let renovacoes = 0;
+    const relogio = { t: agora };
+    const { obterToken } = obtentorCom(async () => {
+      renovacoes += 1;
+      return {
+        acesso: tokenQueVenceEm(15 * 60_000, agora) + String(renovacoes),
+        renovacao: "r" + String(renovacoes + 1),
+      };
+    }, relogio);
+
+    const primeiro = await obterToken({ renovarJa: true });
+    relogio.t += 5_000; // dentro do piso de 60 s
+    const segundo = await obterToken({ renovarJa: true });
+
+    expect(renovacoes).toBe(1);
+    // Mesmo token: é o sinal de que o transporte NÃO deve repetir o pedido.
+    expect(segundo).toBe(primeiro);
+
+    relogio.t += 61_000; // passou o piso: pode tentar de novo
+    await obterToken({ renovarJa: true });
+    expect(renovacoes).toBe(2);
+  });
+
+  it("cinco forçadas ao mesmo tempo emitem UMA renovação (a trava continua valendo)", async () => {
+    let renovacoes = 0;
+    const { obterToken } = obtentorCom(async () => {
+      renovacoes += 1;
+      await new Promise((r) => setTimeout(r, 0));
+      return { acesso: tokenQueVenceEm(15 * 60_000, agora), renovacao: "r2" };
+    }, { t: agora });
+
+    const tokens = await Promise.all(
+      Array.from({ length: 5 }, () => obterToken({ renovarJa: true })),
+    );
+
+    expect(renovacoes).toBe(1);
+    expect(new Set(tokens).size).toBe(1);
+  });
+
+  it("renovação recusada devolve o token atual, sem lançar: é assim que o transporte pausa a fila", async () => {
+    const { c, obterToken } = obtentorCom(async () => {
+      throw new Error("sessão encerrada");
+    }, { t: agora });
+    const velho = c.valor!.acesso;
+
+    await expect(obterToken({ renovarJa: true })).resolves.toBe(velho);
+  });
+
+  it("sem credenciais, devolve nulo", async () => {
+    const { c, obterToken } = obtentorCom(async () => ({ acesso: "x", renovacao: "y" }), { t: agora });
+    c.trocarPorFora(null);
+    await expect(obterToken({ renovarJa: true })).resolves.toBeNull();
+  });
+});

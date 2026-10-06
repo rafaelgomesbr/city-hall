@@ -53,6 +53,19 @@ export class ErroDaApi extends Error {
       );
     }
     /*
+      A conta desativada (403, V2-F00-E06): pelo código, antes do 403 genérico,
+      que mandaria "ajustar o cadastro" de uma conta que foi desativada de
+      propósito. Entrar de novo não resolve, e o que a pessoa já registrou
+      continua no aparelho.
+    */
+    if (this.codigo === "conta_desativada") {
+      return (
+        "Sua conta foi desativada. Entrar de novo não resolve: procure a "
+        + "coordenação do seu município. O que você já registrou continua "
+        + "guardado no aparelho."
+      );
+    }
+    /*
       A senha provisória (migração 046): quem entrou com a senha sorteada por
       quem administra recebe 403 em toda rota até definir a própria senha, e
       o aplicativo não tem tela para isso. Sem esta frase, o 403 caía na do

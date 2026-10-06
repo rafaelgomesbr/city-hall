@@ -84,7 +84,7 @@ type Opcoes = { autenticacao: ServicoAutenticacao; config: Config };
 const RESPOSTA_DESLIGADA = {
   erro: "recuperacao_desligada",
   mensagem:
-    "A recuperacao de senha por email esta desligada neste municipio. "
+    "A recuperação de senha por email está desligada neste município. "
     + "Procure quem administra o sistema na sua Defesa Civil para redefinir a sua senha.",
 } as const;
 
@@ -176,13 +176,29 @@ export async function rotasAutenticacao(app: FastifyInstance, opcoes: Opcoes): P
   app.post("/recuperar", limiteLogin, async (req, resposta) => {
     const { email } = recuperacaoSchema.parse(req.body);
     if (recuperacaoDesligada) return resposta.code(503).send(RESPOSTA_DESLIGADA);
-    await autenticacao.pedirRecuperacao(email, { ip: enderecoDoCliente(req) });
+    await autenticacao.pedirRecuperacao(email, {
+      ip: enderecoDoCliente(req),
+      // O envio sai depois da resposta; se falhar, só o log fica sabendo, e o
+      // texto já vem sem o link nem o email (ver `enviarSemEsperar`).
+      aoFalharEnvio: (motivo) => req.log.error({ motivo }, "falha ao enviar o link de recuperacao"),
+    });
     return resposta.code(202).send({
       mensagem:
-        "Se existir conta com esse email, enviamos um link de redefinicao. " +
+        "Se existir conta com esse email, enviamos um link de redefinição. " +
         "Confira sua caixa de entrada.",
     });
   });
+
+  /**
+   * Se a recuperação por email está ligada neste servidor, e só isso.
+   *
+   * Existe para a tela de "esqueci a senha" poder dizer, ANTES de pedir o
+   * email, que o caminho é procurar quem administra. Sem esta leitura a tela
+   * oferecia o formulário, a pessoa digitava o email, e só então levava a
+   * recusa 503. Sem token (quem esqueceu a senha não tem) e sem dado de
+   * município: é um interruptor do servidor inteiro, o mesmo para todos.
+   */
+  app.get("/recuperacao", async () => ({ ativa: !recuperacaoDesligada }));
 
   app.post("/redefinir", limiteLogin, async (req, resposta) => {
     if (recuperacaoDesligada) return resposta.code(503).send(RESPOSTA_DESLIGADA);
@@ -206,7 +222,7 @@ export async function rotasAutenticacao(app: FastifyInstance, opcoes: Opcoes): P
       minutos. Ver `auth/servico.ts#trocarSenha`.
     */
     return resposta.code(200).send({
-      mensagem: "Senha trocada. As outras sessoes foram encerradas.",
+      mensagem: "Senha trocada. As outras sessões foram encerradas.",
       acesso: novo.acesso,
       expiraEm: novo.expiraEm,
     });
@@ -232,10 +248,23 @@ export async function rotasAutenticacao(app: FastifyInstance, opcoes: Opcoes): P
     return resposta.code(200).send({
       sessoesEncerradas: encerradas,
       mensagem: encerradas === 0
-        ? "Nenhuma outra sessao estava aberta. Esta continua."
-        : `${encerradas} ${encerradas === 1 ? "sessao foi encerrada" : "sessoes foram encerradas"}`
+        ? "Nenhuma outra sessão estava aberta. Esta continua aberta."
+        : `${encerradas} ${encerradas === 1 ? "sessão foi encerrada" : "sessões foram encerradas"}`
           + " em outros navegadores e aparelhos. Esta continua aberta.",
     });
+  });
+
+  /**
+   * As sessões vivas da própria conta.
+   *
+   * Qualquer papel, e só a própria conta: a identidade vem do token e o banco
+   * filtra pelo município dele, então não há parâmetro nenhum a conferir. É a
+   * leitura que dá sentido ao botão "encerrar minhas outras sessões": ninguém
+   * decide derrubar o que não consegue ver. Sem IP e sem user-agent completo.
+   */
+  app.get("/sessoes", async (req) => {
+    const identidade = await app.exigirAutenticacao(req);
+    return { itens: await autenticacao.listarMinhasSessoes(identidade) };
   });
 
   app.get("/eu", async (req) => {

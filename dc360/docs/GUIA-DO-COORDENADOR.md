@@ -155,6 +155,59 @@ usuário apagado deixaria documentos assinados por ninguém.
 O município **nunca fica sem administrador ativo**: o sistema recusa a
 desativação ou o rebaixamento do último.
 
+**O que a pessoa desativada vê.** A desativação vale no próximo registro que ela
+tentar gravar, sem esperar o acesso vencer. No painel, ela é levada à tela de
+entrada com a frase "Sua conta foi desativada. Entrar de novo não resolve:
+procure a coordenação do seu município. Nada do que você já registrou se
+perdeu." Quando só a sessão foi encerrada (por você, em "encerrar sessões", ou
+por uma troca de papel), a frase é outra, "Sua sessão foi encerrada", e entrar
+de novo resolve. Tentar entrar com a conta desativada recusa com a mesma frase de
+senha errada, de propósito: a tela de entrada não revela quem tem conta.
+
+No aplicativo de campo, o que o agente já coletou continua guardado no aparelho
+e nada é apagado pelo servidor. Quando a conta é desativada (ou as sessões são
+encerradas) com coleta ainda na fila, o aplicativo **para o envio e guarda tudo**:
+a faixa do topo e a tela de envio mostram "Conta desativada" com a frase
+"Suas coletas continuam guardadas neste aparelho, procure a coordenação do seu
+município", a coleta aparece como "Guardada", e **não há botão "Descartar"**.
+Quando só as sessões foram encerradas, a frase é "Entre de novo" e o botão leva à
+entrada, sem apagar nada. Para a coleta subir depois de uma desativação, reative
+a conta e peça ao agente para entrar de novo: a mesma coleta sobe, uma vez só.
+
+**Esqueci a senha.** Com a recuperação por e-mail desligada, que é como o piloto
+roda, quem esqueceu a senha pede a quem administra. Em **Usuários**, na linha da
+pessoa, clique em **Redefinir senha** e confirme: a janela repete o nome para
+você conferir que é a linha certa. O sistema mostra uma senha temporária **uma
+única vez**: anote, ou dite por telefone, antes de clicar em **Já anotei a
+senha**. Se fechar sem anotar, redefina de novo. A senha antiga deixa de valer
+na hora, as sessões abertas da pessoa caem, e a temporária vale por 72 horas.
+Na primeira entrada, antes de qualquer tela, a pessoa escolhe a senha dela. Você
+não vê o botão na sua própria linha (a sua senha se troca em **Minha conta**) nem
+na linha de quem tem o mesmo posto ou um posto acima do seu.
+
+Quem esqueceu a senha e abre **Esqueceu a senha?** na tela de entrada vê, com a
+recuperação por e-mail desligada, a mesma instrução em quatro passos: procurar quem
+administra, pedir a redefinição, receber a senha temporária e escolher uma nova na
+primeira entrada. Quando o e-mail for ligado (decisão do CP-19), a mesma tela passa a
+pedir o e-mail da conta e mandar um link que vale uma vez só e por pouco tempo; a
+resposta é sempre a mesma, exista a conta ou não, e depois de cinco pedidos por hora
+para o mesmo e-mail os seguintes não enviam nada. Se a pessoa disser que o link
+"não vale mais", ele venceu, já foi usado ou foi trocado por um pedido mais novo: ela
+pede outro, ou você redefine a senha pelo botão acima.
+
+**Perdi o celular.** Em **Usuários**, clique em **Encerrar sessões** na linha da
+pessoa. A confirmação diz quantas sessões ela tem abertas. A senha não muda: a
+pessoa só precisa entrar de novo. Quem está em campo fica sem sincronizar até
+entrar outra vez. Se for você quem perdeu o aparelho, abra **Minha conta**: a
+lista **Minhas sessões** mostra cada navegador e aparelho aberto (o aparelho em
+uma frase, quando entrou e até quando vale, com a marca **Esta sessão**), e o
+botão **Encerrar minhas outras sessões** derruba todas as outras sem tirar você
+daquela onde está. Trocar a senha também encerra as outras sessões.
+
+No modo de demonstração (painel sem servidor) esses botões não existem: a
+entrada é por escolha de perfil, não há senha nem sessão, e a tela explica isso
+no lugar dos botões.
+
 ---
 
 ## 9. Quem está em campo, e o agente que não deu notícia

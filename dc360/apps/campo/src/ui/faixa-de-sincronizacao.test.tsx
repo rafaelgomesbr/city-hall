@@ -51,6 +51,19 @@ const ESTADOS: Record<EstadoDaFaixa["chave"], EstadoDaFaixa> = {
     detalhe: "1 coleta espera quem a fez entrar",
   },
   /*
+    A fila parada pela SESSAO (V2-F00-E06): o servidor disse que a sessao
+    acabou, ou que a conta foi desativada. Nenhum dos dois e "esperando envio".
+  */
+  sessao_encerrada: {
+    chave: "sessao_encerrada", fundo: "#FDEBEB", cor: "#C92A2A", sinalTexto: "!",
+    titulo: "Sessão encerrada", detalhe: "Entre de novo: suas coletas continuam guardadas",
+  },
+  conta_desativada: {
+    chave: "conta_desativada", fundo: "#FDEBEB", cor: "#C92A2A", sinalTexto: "!",
+    titulo: "Conta desativada",
+    detalhe: "Suas coletas continuam guardadas neste aparelho, procure a coordenação",
+  },
+  /*
     A coleta que o servidor recusou e espera o dedo do agente. Existe pelo
     mesmo motivo do estado acima: em 15/09/2026 a vistoria 000009/2026 parou
     na fila por 422 e a faixa do topo ficou verde, "Tudo sincronizado, nada
@@ -292,6 +305,70 @@ describe("o que a faixa promete", () => {
       temSinal: true, pendentes: 2, bloqueados: 1, deOutroAutor: 0, sincronizando: false,
     });
     expect(r.chave).toBe("esperando");
+  });
+});
+
+describe("a faixa quando a fila esta parada pela sessao", () => {
+  function faixa(entrada: Parameters<typeof decidirFaixa>[0]) {
+    return decidirFaixa(entrada, temaEscuro);
+  }
+
+  it("sessao encerrada NAO diz 'Com sinal, esperando envio': a coleta nao sai sozinha", async () => {
+    const r = faixa({
+      temSinal: true, pendentes: 2, bloqueados: 0, deOutroAutor: 0,
+      sincronizando: false, pausadaPor: "sessao_encerrada",
+    });
+    expect(r.chave).toBe("sessao_encerrada");
+    expect(r.titulo).toBe("Sessão encerrada");
+    expect(r.detalhe).toContain("Entre de novo");
+    expect(r.detalhe).toContain("continuam guardadas");
+    expect(r.sinalTexto).toBe("!");
+    expect(r.fundo).toBe(temaEscuro.perigoFundo);
+  });
+
+  it("conta desativada manda procurar a coordenacao e NAO manda entrar de novo", async () => {
+    const r = faixa({
+      temSinal: true, pendentes: 1, bloqueados: 0, deOutroAutor: 0,
+      sincronizando: false, pausadaPor: "conta_desativada",
+    });
+    expect(r.chave).toBe("conta_desativada");
+    expect(r.titulo).toBe("Conta desativada");
+    expect(r.detalhe.toLowerCase()).toContain(
+      "suas coletas continuam guardadas neste aparelho, procure a coordenação",
+    );
+    expect(r.detalhe).not.toContain("Entre de novo");
+  });
+
+  it("a pausa vem antes de 'Enviando', que piscaria a cada tentativa recusada", async () => {
+    const r = faixa({
+      temSinal: true, pendentes: 1, bloqueados: 0, deOutroAutor: 0,
+      sincronizando: true, pausadaPor: "conta_desativada",
+    });
+    expect(r.chave).toBe("conta_desativada");
+  });
+
+  it("sem sinal, a falta de sinal continua vindo primeiro", async () => {
+    const r = faixa({
+      temSinal: false, pendentes: 1, bloqueados: 0, deOutroAutor: 0,
+      sincronizando: false, pausadaPor: "sessao_encerrada",
+    });
+    expect(r.chave).toBe("sem_sinal");
+  });
+
+  it("sem pausa, tudo continua como era", async () => {
+    const r = faixa({
+      temSinal: true, pendentes: 2, bloqueados: 0, deOutroAutor: 0,
+      sincronizando: false, pausadaPor: null,
+    });
+    expect(r.chave).toBe("esperando");
+  });
+
+  it("desenhada, a conta desativada e dita em palavra e simbolo, e nao so por cor", async () => {
+    await montar("conta_desativada", 0);
+    expect(screen.getByText("Conta desativada")).toBeTruthy();
+    expect(screen.getByText("!")).toBeTruthy();
+    const faixaDesenhada = screen.getByTestId("faixa-de-sincronizacao");
+    expect(faixaDesenhada.props.accessibilityLabel).toContain("procure a coordenação");
   });
 });
 

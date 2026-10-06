@@ -4,7 +4,7 @@ Duas funções do produto dependem de email e estão desligadas hoje:
 
 | Função | Estado hoje | O que o cidadão ou o servidor vê |
 | --- | --- | --- |
-| Recuperação de senha | `RECUPERACAO_ATIVA=nao` | A rota responde **503** e a tela manda procurar quem administra o município |
+| Recuperação de senha | `RECUPERACAO_ATIVA=nao` | A tela de "esqueci a senha" pergunta ao servidor (`GET /auth/recuperacao`) e, desligada, manda procurar quem administra, com os passos; se mesmo assim o pedido chegar, a rota responde **503** |
 | Ofício por email para órgão | `EMAIL_ATIVO=nao` | A rota de envio recusa dizendo que o recurso está desligado |
 
 As duas ficaram assim pelo mesmo motivo, e vale dizer em voz alta qual foi: **o
@@ -18,6 +18,51 @@ esperando o email.
 
 Agora existe cliente de verdade, falando o contrato publicado do **Resend**,
 com teste conferindo o corpo campo a campo. O que falta é a conta.
+
+---
+
+## O que já está pronto e provado sem provedor (V2-F00-E10)
+
+O fluxo de "esqueci a senha" funciona de ponta a ponta, na API e no painel, com o
+**notificador de teste**. O que o CP-19 trava é só o **envio real** (conta no
+provedor e domínio verificado), e a produção continua desligada até ele.
+
+| Peça | Estado |
+| --- | --- |
+| Pedido (`POST /auth/recuperar`) | **202** com a mesma frase para email que existe, que não existe e que passou do teto de pedidos por hora. O envio sai **depois** da resposta: aguardado dentro do pedido, o relógio diria quem tem conta. Falha do provedor vai para o log sem o link e sem o email, e nunca vira 500 só para quem tem conta |
+| Teto por email | `RECUPERACAO_POR_EMAIL_HORA` (padrão 5): passado o teto, 202 igual e nada é enviado. Conta email inexistente do mesmo jeito. Por processo: com mais de uma máquina o teto é por máquina. Complementa `LOGIN_POR_IP`, que não vê cem endereços martelando o mesmo email |
+| O link | Uso único, vence em `RECUPERACAO_MINUTOS` (30), guardado só como hash no banco, um pedido novo invalida o anterior, e redefinir derruba todas as sessões da conta. Vencido, usado, trocado e inventado dão a **mesma** resposta (401), e a tela tem uma frase só para os quatro |
+| A organização | Sai do registro da conta, nunca do pedido: campo de município no corpo ou em cabeçalho é ignorado, e o link de uma conta não mexe em outra |
+| Painel, `/recuperar-senha` | Pergunta se a recuperação está ligada **antes** de mostrar o campo (`GET /auth/recuperacao`, sem token, devolve só `{ ativa }`). Ligada: campo de email e resposta neutra. Desligada: os quatro passos para quem administra (o botão **Redefinir senha** da lista de Usuários, E09) |
+| Painel, `/redefinir-senha` | O token sai da barra de endereço assim que a tela o lê (`history.replaceState`). Senha curta e senhas diferentes marcam o campo certo; link que não vale mais manda pedir outro; sucesso leva para a entrada com recarga completa |
+| Quem está com outra sessão aberta | O pedido de recuperação **não leva token e não renova**: o 401 de um link vencido não derruba a sessão de quem só abriu o link no navegador de outra pessoa |
+| Produção | `fly.toml` com `RECUPERACAO_ATIVA = "nao"` (teste confere o arquivo). `config.ts` recusa `RECUPERACAO_ATIVA=sim` sem `EMAIL_ATIVO=sim` e recusa `NOTIFICADOR_ARQUIVO` |
+
+**Como repetir o fluxo com o notificador de teste** (só em desenvolvimento e teste;
+em produção a partida derruba o processo com `NOTIFICADOR_ARQUIVO`):
+
+```bash
+# terminal 1: a API grava a mensagem inteira, com o link, num arquivo local
+cd apps/api && NOTIFICADOR_ARQUIVO=/tmp/notificacoes.txt LOGIN_POR_IP=10000 \
+  JWT_SEGREDO=... ORIGENS_PERMITIDAS=http://localhost:4173 URL_PAINEL=http://localhost:4173 \
+  npx tsx src/index.ts
+# terminal 2: o painel apontando para ela
+cd apps/web && VITE_API_URL=http://127.0.0.1:3333 npm run build && npx vite preview --port 4173
+```
+
+Abra `/recuperar-senha`, peça o link de uma conta da semente (por exemplo
+`tarcisio.ramos@valefundo.exemplo.gov.br`), copie a linha `.../redefinir-senha?token=...`
+de `/tmp/notificacoes.txt` e abra no navegador. O mesmo fluxo é a seção 14 e a seção 27
+de `apps/web/test/fluxo-api.e2e.mjs`.
+
+**Política de referenciador.** `vercel.json` serve `/recuperar-senha` e
+`/redefinir-senha` com `Referrer-Policy: no-referrer` e `X-Robots-Tag: noindex`. A
+política vale **só** nessas duas rotas, e não no painel inteiro, por um motivo de
+operação: a chave do Google Maps (`MAPS_KEY`) é restrita por referenciador HTTP no
+console do Google, e `no-referrer` no painel todo faria o Google recusá-la
+(`RefererNotAllowedMapError`) em todo município com mapa ligado. Pelo mesmo motivo,
+as saídas dessas duas telas são links comuns (recarregam a página), para a política
+não seguir a pessoa para dentro do painel depois do login.
 
 ---
 

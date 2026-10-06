@@ -18,7 +18,14 @@
  * dessas URLs não guardar nem o título dela.
  */
 
-/** Rotas que podem ser indexadas. Todas as outras são internas. */
+/**
+ * Rotas que podem ser indexadas. Todas as outras são internas.
+ *
+ * `/redefinir-senha` fica aqui porque o portão de `seo.test.ts` define "pública"
+ * como "fora de <Protegida>". A página que carrega o link de uso único não é
+ * indexada por outro caminho: `vercel.json` a serve com `X-Robots-Tag: noindex`
+ * (V2-F00-E10), e a tela apaga o token da barra de endereço ao lê-lo.
+ */
 export const ROTAS_PUBLICAS: ReadonlySet<string> = new Set([
   "/",
   "/entrar",

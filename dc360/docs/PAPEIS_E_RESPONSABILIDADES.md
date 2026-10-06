@@ -36,8 +36,9 @@ coordenador em outro turno.
 | --- | --- |
 | Registrar ocorrência (gera o protocolo) | Classificar severidade |
 | Registrar a resposta de uma providência | Despachar equipe |
-| Acompanhar quem está em campo, e encerrar uma saída dizendo o que foi feito | Encerrar ocorrência |
-| | Emitir documento |
+| Consultar os ofícios de encaminhamento (só leitura) | Encerrar ocorrência |
+| Acompanhar quem está em campo, e encerrar uma saída dizendo o que foi feito | Emitir documento |
+| | Emitir ou enviar ofício |
 
 **Por que a linha é essa:** classificar severidade é decisão técnica com
 consequência de prazo. Quem atende a ligação registra o que ouviu; quem tem
@@ -74,11 +75,20 @@ internet, e o aplicativo existe para ele.
 | Registrar vistoria (checklist, foto, coordenada, assinatura) | Registrar ocorrência |
 | Ver as tarefas despachadas para a equipe dele | Ver a fila do município |
 | Ver a equipe e o que ele mesmo já concluiu | Despachar, encerrar |
-| | Emitir laudo ou termo |
+| Ver o sino de avisos da equipe dele | Emitir laudo ou termo |
+| | Consultar ofício, nem ver aviso de outra equipe |
 
 **Por que ele não vê a fila inteira:** ele trabalha sobre o que foi despachado
 para a equipe dele. A fila do município é ferramenta de coordenação, e mostrar
 tudo a todos transformaria o aplicativo numa lista que ninguém lê.
+
+**Por que ele não consulta ofício e o sino dele é o da equipe:** o aparelho do
+agente anda pelo morro, cai e é emprestado. A ficha do ofício traz o e-mail do
+órgão, as observações da coordenação e o IP de quem abriu o link, e o aviso
+traz o protocolo e o tipo do fato. Até 2026-10-06 as duas rotas respondiam ao
+token do agente com dado de ocorrência de qualquer equipe, enquanto a lista de
+ocorrências do mesmo token já respondia 404 a elas. Hoje o ofício responde 403
+(ele não tem a ação) e o sino é recortado à equipe, igual às demais leituras.
 
 **O que só ele pode fazer:** registrar vistoria. Ninguém mais, nem o
 coordenador. O motivo é que a vistoria é ato de quem esteve no local e assina
@@ -105,6 +115,7 @@ providências". O produto não dá: ele coleta e cala.
 - Registrar a resposta de uma providência
 - Encerrar ocorrência, com motivo
 - Emitir laudo e termo de interdição
+- Consultar os ofícios de encaminhamento (e emitir e enviar)
 - Gerenciar equipes e usuários
 - Consultar a trilha de auditoria e exportar dados
 

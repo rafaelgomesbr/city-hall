@@ -1,5 +1,5 @@
 import { SemSinal } from "./api";
-import { comoContarAFalha, motivoDaFalha } from "./falha-de-atualizacao";
+import { comoContarAFalha, ehFimDeLinha, motivoDaFalha } from "./falha-de-atualizacao";
 
 /**
  * O acesso suspenso pelo fornecedor não é "sua sessão terminou".
@@ -78,6 +78,52 @@ describe("o que a tela escreve para o acesso suspenso", () => {
     // sobrevive, e a API responde 503 à fila para ela esperar em vez de
     // bloquear.
     expect(frase.detalhe).toMatch(/continua guardad/i);
+  });
+
+  it("o resumo cabe numa linha da faixa", () => {
+    expect(frase.resumo.length).toBeLessThanOrEqual(32);
+  });
+});
+
+/**
+ * A conta desativada (V2-F00-E06): o 403 que caía em "outro".
+ *
+ * "Outro" diz "tenta de novo daqui a pouco", e tentar de novo contra uma conta
+ * desativada não resolve nunca. É lido pelo código (`conta_desativada`) e não
+ * pelo status: o 403 também é `sem_permissao`, que não tem nada a ver com a
+ * conta e continua sendo "outro".
+ */
+describe("a conta desativada", () => {
+  it("403 conta_desativada é conta desativada, e não 'outro'", () => {
+    expect(motivoDaFalha(new RespostaDoServidor(403, "conta_desativada"))).toBe("conta-desativada");
+  });
+
+  it("403 sem_permissao continua 'outro': o código decide, não o status", () => {
+    expect(motivoDaFalha(new RespostaDoServidor(403, "sem_permissao"))).toBe("outro");
+  });
+
+  it("conta desativada e sessão encerrada são os dois fins de linha; os outros passam sozinhos", () => {
+    expect(ehFimDeLinha("conta-desativada")).toBe(true);
+    expect(ehFimDeLinha("sessao-encerrada")).toBe(true);
+    expect(ehFimDeLinha("sem-sinal")).toBe(false);
+    expect(ehFimDeLinha("acesso-suspenso")).toBe(false);
+    expect(ehFimDeLinha("outro")).toBe(false);
+  });
+
+  const frase = comoContarAFalha("conta-desativada", "Mostrando o que já estava no aparelho.");
+
+  it("diz que as coletas continuam guardadas e manda procurar a coordenação", () => {
+    expect(frase.resumo).toBe("Conta desativada");
+    expect(frase.detalhe.toLowerCase()).toContain(
+      "suas coletas continuam guardadas neste aparelho, procure a coordenação",
+    );
+  });
+
+  it("diz que entrar de novo NÃO resolve, e não é a frase da sessão encerrada", () => {
+    expect(frase.detalhe).toMatch(/não resolve/i);
+    const daSessao = comoContarAFalha("sessao-encerrada", "a lista");
+    expect(frase.detalhe).not.toBe(daSessao.detalhe);
+    expect(frase.detalhe).not.toMatch(/toque em "entrar de novo"/i);
   });
 
   it("o resumo cabe numa linha da faixa", () => {

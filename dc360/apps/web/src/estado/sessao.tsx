@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { aoExpirar, type Sessao } from "../dados/repositorio";
+import { aoExpirar, aoRenovar, type Sessao } from "../dados/repositorio";
+import type { MotivoDaSessaoMorta } from "../dados/tipos";
 import { esquecerConfiguracaoDoPainel } from "./configuracao";
 
 /**
@@ -16,12 +17,14 @@ const CHAVE = "dc360:sessao";
 /**
  * Por que a sessão da tela acabou sem a pessoa pedir.
  *
- * `"expirou"` é a única razão hoje: a camada HTTP recebeu o 401 de sessão
- * morta depois de a renovação falhar. A rota protegida lê isto para mandar a
- * pessoa à entrada com o motivo escrito e o caminho de volta, em vez de
- * deixá-la numa tela que só diz "falha ao carregar" para sempre.
+ * Três razões (V2-F00-E05), todas vindas da camada HTTP: `"expirou"` (o token
+ * venceu e a renovação falhou), `"encerrada"` (alguém encerrou a sessão ou o
+ * cadastro mudou) e `"desativada"` (a conta foi desativada). A rota protegida
+ * lê isto para mandar a pessoa à entrada com o motivo escrito e o caminho de
+ * volta, em vez de deixá-la numa tela que só diz "falha ao carregar" para
+ * sempre.
  */
-export type MotivoDaSaida = "expirou";
+export type MotivoDaSaida = MotivoDaSessaoMorta;
 
 type ContextoSessao = {
   sessao: Sessao | null;
@@ -88,10 +91,10 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
   sessaoAtual.current = sessao;
 
   useEffect(() => {
-    aoExpirar(() => {
+    aoExpirar((motivo) => {
       if (!sessaoAtual.current) return;
       setSessao(null);
-      setMotivoDaSaida("expirou");
+      setMotivoDaSaida(motivo);
       esquecerConfiguracaoDoPainel();
       try {
         sessionStorage.removeItem(CHAVE);
@@ -100,6 +103,28 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
       }
     });
     return () => aoExpirar(null);
+  }, []);
+
+  /*
+    A renovação silenciosa pode trazer a pessoa com OUTRO papel: alguém mudou o
+    perfil dela com a tela aberta (V2-F00-E07). A sessão da tela acompanha, e
+    os botões que o papel novo não tem somem sem ela entrar de novo. Só muda
+    quando muda: a renovação de todo dia devolve o mesmo papel, e reescrever
+    o estado a cada quinze minutos refaria a tela à toa.
+  */
+  useEffect(() => {
+    aoRenovar((usuario) => {
+      const atual = sessaoAtual.current;
+      if (!atual || (atual.papel === usuario.papel && atual.usuarioNome === usuario.nome)) return;
+      const nova: Sessao = { ...atual, papel: usuario.papel, usuarioNome: usuario.nome };
+      setSessao(nova);
+      try {
+        sessionStorage.setItem(CHAVE, JSON.stringify(nova));
+      } catch {
+        /* idem */
+      }
+    });
+    return () => aoRenovar(null);
   }, []);
 
   const valor = useMemo(

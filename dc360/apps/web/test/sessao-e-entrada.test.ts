@@ -33,7 +33,9 @@ import {
  *    senha.
  * 2. A tela de entrada lê o motivo e o caminho de volta do estado da
  *    navegação, diz "sua sessão expirou" e, depois de entrar, volta para onde
- *    a pessoa estava. O mesmo caminho de volta serve ao link profundo:
+ *    a pessoa estava. Desde a V2-F00-E05 são TRÊS motivos, porque pedem três
+ *    frases: expirou (`nao_autenticado`), encerrada (`sessao_encerrada`) e
+ *    desativada (`conta_desativada`, 403: entrar de novo não resolve). O mesmo caminho de volta serve ao link profundo:
  *    `/ocorrencias/<id>` sem sessão passa por `/entrar` e chega ao dossiê, em
  *    vez de morrer no painel.
  */
@@ -69,6 +71,7 @@ describe("O 401 de sessão morta avisa a tela", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     http.aoExpirar(null);
+    http.aoRenovar(null);
   });
 
   it("renovação recusada: os tokens somem e quem se inscreveu é avisado uma vez", async () => {
@@ -76,7 +79,7 @@ describe("O 401 de sessão morta avisa a tela", () => {
     vi.stubGlobal("fetch", vi.fn(async (url: string) => {
       chamadas.push(url);
       if (url.endsWith("/auth/renovar")) {
-        return resposta(401, { erro: "sessao", mensagem: "Sessão expirada. Entre novamente." });
+        return resposta(401, { erro: "sessao_encerrada", mensagem: "Sessão expirada. Entre novamente." });
       }
       return resposta(401, { erro: "nao_autenticado", mensagem: "Token inválido ou expirado." });
     }));
@@ -87,9 +90,128 @@ describe("O 401 de sessão morta avisa a tela", () => {
     await expect(http.indicadores({} as never)).rejects.toMatchObject({ status: 401 });
 
     expect(expirou).toHaveBeenCalledTimes(1);
+    expect(expirou).toHaveBeenCalledWith("expirou");
     expect(sessionStorage.getItem("dc360:tokens"), "token morto não pode ficar guardado").toBeNull();
     // Tentou renovar antes de desistir: é o caminho de sempre, preservado.
     expect(chamadas.some((u) => u.endsWith("/auth/renovar"))).toBe(true);
+  });
+
+  it("sessão encerrada (401 sessao_encerrada) derruba a tela com o motivo 'encerrada'", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      if (url.endsWith("/auth/renovar")) {
+        return resposta(401, { erro: "sessao_encerrada", mensagem: "Sessão expirada. Entre novamente." });
+      }
+      return resposta(401, { erro: "sessao_encerrada", mensagem: "Sua sessão foi encerrada." });
+    }));
+    const expirou = vi.fn();
+    http.aoExpirar(expirou);
+
+    await expect(http.criarEquipe({} as never, "Delta", "")).rejects.toMatchObject({
+      status: 401, codigo: "sessao_encerrada",
+    });
+    expect(expirou).toHaveBeenCalledTimes(1);
+    expect(expirou).toHaveBeenCalledWith("encerrada");
+    expect(sessionStorage.getItem("dc360:tokens")).toBeNull();
+  });
+
+  it("papel mudado (401 nao_autenticado) com a renovação viva renova e repete, e avisa a tela do papel novo", async () => {
+    // Até a V2-F00-E07 o servidor respondia sessao_encerrada ao papel diferente.
+    // Agora é nao_autenticado, "renove e repita": a renovação traz o papel novo.
+    let escritas = 0;
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      if (url.endsWith("/auth/renovar")) {
+        return resposta(200, {
+          acesso: "novo", renovacao: "nova",
+          usuario: { id: "u1", nome: "Helena Vasques Coutinho", papel: "operador" },
+        });
+      }
+      escritas += 1;
+      return escritas === 1
+        ? resposta(401, { erro: "nao_autenticado", mensagem: "Token inválido ou expirado." })
+        : resposta(200, { id: "e1" });
+    }));
+    const expirou = vi.fn();
+    const renovou = vi.fn();
+    http.aoExpirar(expirou);
+    http.aoRenovar(renovou);
+    await http.criarEquipe({} as never, "Delta", "");
+    expect(escritas).toBe(2);
+    expect(expirou).not.toHaveBeenCalled();
+    expect(renovou).toHaveBeenCalledTimes(1);
+    expect(renovou).toHaveBeenCalledWith({ papel: "operador", nome: "Helena Vasques Coutinho" });
+  });
+
+  it("renovação sem o usuário no corpo (servidor antigo) não avisa nada e não quebra", async () => {
+    let escritas = 0;
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      if (url.endsWith("/auth/renovar")) return resposta(200, { acesso: "novo", renovacao: "nova" });
+      escritas += 1;
+      return escritas === 1
+        ? resposta(401, { erro: "nao_autenticado", mensagem: "Token inválido ou expirado." })
+        : resposta(200, { id: "e1" });
+    }));
+    const renovou = vi.fn();
+    http.aoRenovar(renovou);
+    await http.criarEquipe({} as never, "Delta", "");
+    expect(escritas).toBe(2);
+    expect(renovou).not.toHaveBeenCalled();
+  });
+
+  it("conta desativada (403 conta_desativada) derruba a tela com o motivo 'desativada' e apaga os tokens", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () =>
+      resposta(403, { erro: "conta_desativada", mensagem: "Sua conta foi desativada." })));
+    const expirou = vi.fn();
+    http.aoExpirar(expirou);
+
+    await expect(http.criarEquipe({} as never, "Delta", "")).rejects.toMatchObject({
+      status: 403, codigo: "conta_desativada",
+    });
+    expect(expirou).toHaveBeenCalledTimes(1);
+    expect(expirou).toHaveBeenCalledWith("desativada");
+    expect(sessionStorage.getItem("dc360:tokens"), "conta desativada não guarda token").toBeNull();
+  });
+
+  it("token vencido cuja renovação diz 'conta desativada' leva ao motivo 'desativada', e não a 'expirou'", async () => {
+    const chamadas: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      chamadas.push(url);
+      if (url.endsWith("/auth/renovar")) {
+        return resposta(403, { erro: "conta_desativada", mensagem: "Sua conta foi desativada." });
+      }
+      return resposta(401, { erro: "nao_autenticado", mensagem: "Token inválido ou expirado." });
+    }));
+    const expirou = vi.fn();
+    http.aoExpirar(expirou);
+
+    await expect(http.indicadores({} as never)).rejects.toMatchObject({ status: 401 });
+    expect(expirou).toHaveBeenCalledTimes(1);
+    expect(expirou).toHaveBeenCalledWith("desativada");
+    // Uma renovação só, e nenhuma repetição do pedido: não há laço contra quem disse não.
+    expect(chamadas.filter((u) => u.endsWith("/auth/renovar"))).toHaveLength(1);
+    expect(sessionStorage.getItem("dc360:tokens")).toBeNull();
+  });
+
+  it("o código antigo `sessao` já não é sessão morta: não está no catálogo", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      if (url.endsWith("/auth/renovar")) return resposta(200, { acesso: "novo", renovacao: "nova" });
+      return resposta(401, { erro: "sessao", mensagem: "Sessão expirada. Entre novamente." });
+    }));
+    const expirou = vi.fn();
+    http.aoExpirar(expirou);
+    await expect(http.indicadores({} as never)).rejects.toMatchObject({ status: 401 });
+    expect(expirou).not.toHaveBeenCalled();
+  });
+
+  it("sessao_encerrada SEM token (desafio de segundo fator vencido) não finge que uma sessão acabou", async () => {
+    sessionStorage.removeItem("dc360:tokens");
+    vi.stubGlobal("fetch", vi.fn(async () =>
+      resposta(401, { erro: "sessao_encerrada", mensagem: "Esta tentativa de entrada expirou." })));
+    const expirou = vi.fn();
+    http.aoExpirar(expirou);
+    await expect(http.conferirSegundoFator("desafio-velho", "123456")).rejects.toMatchObject({
+      codigo: "sessao_encerrada",
+    });
+    expect(expirou).not.toHaveBeenCalled();
   });
 
   it("senha errada na entrada é 401 de credencial, e NÃO expiração", async () => {
@@ -164,6 +286,10 @@ describe("As regras da entrada, fora do React", () => {
       .toEqual({ motivo: "expirou", voltarPara: "/mapa" });
     expect(estadoDaEntrada({ motivo: "qualquer", voltarPara: 42 }))
       .toEqual({ motivo: null, voltarPara: null });
+    // Os três motivos da E05 passam; o nome antigo de código não vira motivo.
+    expect(estadoDaEntrada({ motivo: "encerrada" }).motivo).toBe("encerrada");
+    expect(estadoDaEntrada({ motivo: "desativada" }).motivo).toBe("desativada");
+    expect(estadoDaEntrada({ motivo: "sessao" }).motivo).toBeNull();
   });
 });
 
@@ -185,6 +311,22 @@ describe("A tela de entrada", () => {
 
     const comum = desenhar(null);
     expect(comum).not.toMatch(/sess[ãa]o expirou/i);
+  });
+
+  it("diz a frase certa para cada motivo, com ícone e texto, e só a de conta desativada manda procurar a coordenação", () => {
+    const encerrada = desenhar({ motivo: "encerrada" });
+    expect(encerrada).toMatch(/sua sess[ãa]o foi encerrada/i);
+    expect(encerrada).toMatch(/entre de novo/i);
+    expect(encerrada).not.toMatch(/coordena[çc][ãa]o/i);
+    expect(encerrada).toMatch(/aviso--alerta[^>]*>\s*<svg/);
+
+    const desativada = desenhar({ motivo: "desativada", voltarPara: "/painel" });
+    expect(desativada).toMatch(/sua conta foi desativada/i);
+    expect(desativada).toMatch(/procure a coordena[çc][ãa]o do seu munic[íi]pio/i);
+    // Entrar de novo não resolve, e a frase não manda tentar: ela diz que não adianta.
+    expect(desativada).toMatch(/n[ãa]o\s+resolve/i);
+    expect(desativada, "conta desativada é grave: tom de perigo, não de alerta").toMatch(/aviso--perigo[^>]*>\s*<svg/);
+    expect(desativada).not.toMatch(/sess[ãa]o expirou/i);
   });
 
   it("valida vazio no cliente, campo a campo, e casa os campos do 422", () => {
@@ -220,7 +362,9 @@ describe("A rota protegida guarda de onde a pessoa veio", () => {
   it("o provedor de sessão se inscreve na expiração e guarda o motivo", () => {
     const sessao = fonte("estado/sessao.tsx");
     expect(sessao).toContain("aoExpirar(");
-    expect(sessao).toContain('"expirou"');
+    // O motivo que a camada HTTP manda é o que a rota protegida leva à entrada.
+    expect(sessao).toContain("setMotivoDaSaida(motivo)");
+    expect(sessao).toContain("MotivoDaSessaoMorta");
     // Entrar de novo limpa o motivo, senão a mensagem volta na próxima saída comum.
     expect(sessao).toMatch(/motivoDaSaida/);
   });
@@ -265,5 +409,17 @@ describe("Servidor fora: a frase certa para leitura e para escrita", () => {
       expect(falha, `${arquivo}: falha de carga sem botão de tentar de novo`)
         .toMatch(/<button[\s\S]*?Tentar de novo\s*<\/button>/);
     }
+  });
+});
+
+describe("A sessão da tela acompanha o papel que a renovação trouxe (V2-F00-E07)", () => {
+  it("o provedor se inscreve em aoRenovar, só reescreve quando algo mudou e grava o papel novo", () => {
+    const codigo = fonte("estado/sessao.tsx");
+    expect(codigo).toMatch(/aoRenovar\(\(usuario\) => \{/);
+    expect(codigo, "se inscreve e solta a inscrição ao desmontar").toMatch(/return \(\) => aoRenovar\(null\)/);
+    expect(codigo, "papel igual e nome igual não refazem a tela").toMatch(
+      /atual\.papel === usuario\.papel && atual\.usuarioNome === usuario\.nome/,
+    );
+    expect(codigo).toMatch(/papel: usuario\.papel/);
   });
 });

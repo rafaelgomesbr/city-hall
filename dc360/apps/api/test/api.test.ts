@@ -234,6 +234,15 @@ describe("Autenticação", () => {
       method: "POST", url: "/auth/renovar", payload: { renovacao: rotacionado },
     });
     expect(depois.statusCode, "o token rotacionado tambem deve cair").toBe(401);
+
+    /*
+      O reuso derruba TODAS as sessões da Helena, inclusive a de `tokens.coordA`,
+      aberta no `beforeAll`. Com a vigência ligada na escrita (V2-F00-E04) esse
+      token passa a morrer de verdade, e os blocos de baixo escrevem com ele.
+      Entra de novo, como o painel faria depois de um 401. O efeito do reuso
+      sobre o token vivo é provado em `vigencia-na-escrita.test.ts`.
+    */
+    tokens["coordA"] = await entrar("helena@serraalta.exemplo.gov.br", SENHA_A);
   }, 60_000);
 });
 

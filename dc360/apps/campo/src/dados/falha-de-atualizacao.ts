@@ -13,14 +13,20 @@ import { SemSinal } from "./api";
  * sozinho, sessão encerrada não passa nunca, e as duas frases mandavam o
  * agente fazer a mesma coisa (esperar).
  *
- * São quatro desfechos porque são quatro atos diferentes:
+ * São cinco desfechos porque são cinco atos diferentes:
  *
  * | Motivo | O que o agente faz |
  * | --- | --- |
  * | `sem-sinal` | espera o sinal voltar, e continua trabalhando no que baixou |
  * | `sessao-encerrada` | entra de novo, e ATÉ LÁ nada novo desce |
+ * | `conta-desativada` | NADA que ele faça resolve: quem resolve é a coordenação |
  * | `acesso-suspenso` | NADA que ele faça resolve: quem resolve é quem administra o contrato |
  * | `outro` | tenta de novo daqui a pouco |
+ *
+ * O `conta-desativada` entrou com a V2-F00-E06. O 403 `conta_desativada` caía em
+ * `outro` ("tenta de novo daqui a pouco"), e tentar de novo contra uma conta
+ * desativada não resolve nunca. É lido pelo CÓDIGO, não pelo status, pelo mesmo
+ * motivo da suspensão: o 403 também serve a `sem_permissao`, que é outra coisa.
  *
  * O quarto entrou com a suspensão de acesso pelo fornecedor (migração 038 e
  * `auth/suspensao.ts` na API). Ele existe separado do segundo porque a frase
@@ -36,7 +42,21 @@ import { SemSinal } from "./api";
  * errada nas duas.
  */
 
-export type MotivoDaFalha = "sem-sinal" | "sessao-encerrada" | "acesso-suspenso" | "outro";
+export type MotivoDaFalha =
+  | "sem-sinal"
+  | "sessao-encerrada"
+  | "conta-desativada"
+  | "acesso-suspenso"
+  | "outro";
+
+/**
+ * Se o motivo é o fim da linha para o que a tela faz (nada novo desce até a
+ * pessoa agir), o que pede o tom de perigo. Os outros passam sozinhos ou com
+ * o tempo. Fica aqui para as telas não repetirem a lista a cada aviso.
+ */
+export function ehFimDeLinha(motivo: MotivoDaFalha): boolean {
+  return motivo === "sessao-encerrada" || motivo === "conta-desativada";
+}
 
 /**
  * O status HTTP que veio dentro do erro, quando veio algum.
@@ -73,6 +93,14 @@ export function motivoDaFalha(erro: unknown): MotivoDaFalha {
   */
   if (statusDaResposta(erro) !== null && codigoDaResposta(erro) === "acesso_suspenso") {
     return "acesso-suspenso";
+  }
+  /*
+    A conta desativada é lida pelo código, antes do 401 e do `outro`: o status
+    é 403, e 403 sozinho também é `sem_permissao` (perfil sem direito a esta
+    ação), que não tem nada a ver com a conta.
+  */
+  if (statusDaResposta(erro) !== null && codigoDaResposta(erro) === "conta_desativada") {
+    return "conta-desativada";
   }
   /*
     O 401 vem na frente do `SemSinal` de propósito: um erro que carrega status
@@ -125,6 +153,23 @@ export function comoContarAFalha(
         + "e entre com o seu email e a sua senha. Nada é apagado: a vistoria começada, "
         + "as fotos e o que você já coletou continuam neste aparelho e voltam para "
         + "você assim que entrar com a sua conta.",
+    };
+  }
+  if (motivo === "conta-desativada") {
+    return {
+      resumo: "Conta desativada",
+      /*
+        Três coisas, nesta ordem: o fato, o que NÃO resolve (entrar de novo e
+        sair da conta, que apagaria a identidade que carimba a coleta), e a
+        promessa com o próximo passo. A promessa é verdade pelo mesmo desenho da
+        sessão encerrada, e por um a mais: desde a V2-F00-E06 a fila trata o 403
+        `conta_desativada` como pausa, e não como recusa da coleta, então o item
+        espera em vez de virar bloqueado com "Descartar" embaixo.
+      */
+      detalhe:
+        "Sua conta foi desativada e nada novo desce para este aparelho. Entrar de "
+        + "novo não resolve: suas coletas continuam guardadas neste aparelho, "
+        + "procure a coordenação do seu município.",
     };
   }
   if (motivo === "acesso-suspenso") {

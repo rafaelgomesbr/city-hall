@@ -1,8 +1,12 @@
-import type { DevolucaoDeTarefa, EnvelopeSincronizacao } from "@dc360/shared";
+import {
+  CODIGOS_DE_ERRO_DE_ACESSO, acaoParaOCodigo,
+  type DevolucaoDeTarefa, type EnvelopeSincronizacao,
+} from "@dc360/shared";
 import { pedidoDeEvidenciaDaFoto } from "./conferencia.js";
 import {
-  FalhaPermanente, FalhaTemporaria,
-  type AutorizacaoFoto, type Recibo, type ReciboDeDevolucao, type Transporte,
+  FalhaDeSessao, FalhaPermanente, FalhaTemporaria,
+  type AutorizacaoFoto, type MotivoDeSessao, type ObterToken, type Recibo,
+  type ReciboDeDevolucao, type Transporte,
 } from "./tipos.js";
 
 /**
@@ -13,17 +17,34 @@ import {
  *
  * - Rede indisponível, tempo esgotado, 5xx, 429: temporário. A rua tem sombra
  *   de sinal, o servidor reinicia em deploy. Insistir resolve.
- * - 400, 403, 404, 409, 422: permanente. Dado inválido, papel sem permissão,
- *   ocorrência já encerrada. Insistir só gasta bateria e enche o log.
- * - 401: permanente TAMBÉM, e de propósito. Sessão expirada não se resolve
- *   repetindo o envio, se resolve entrando de novo. Reenviar em laço com
- *   token morto é o caminho mais rápido para bloquear a conta do agente pelo
- *   limite de tentativas.
+ * - 400, 403 `sem_permissao`, 404, 409, 422: permanente. Dado inválido, papel
+ *   sem permissão, ocorrência já encerrada. Insistir só gasta bateria e enche
+ *   o log.
+ * - 401 e 403 DE SESSÃO ou de conta: nem temporário nem permanente, e sim
+ *   `FalhaDeSessao` (V2-F00-E06). A decisão é pelo CÓDIGO do catálogo
+ *   (`@dc360/shared`, `codigos-de-erro.ts`), e não pelo status:
+ *     - 401 `nao_autenticado` (token vencido ou ilegível): pede UM token novo e
+ *       repete o pedido, uma vez. Se o token não mudou ou o pedido falha de
+ *       novo, vira `sessao_encerrada`. Repetir sem limite contra um servidor
+ *       que disse não é o laço que bloqueia a conta de quem está trabalhando.
+ *     - 401 `sessao_encerrada`: a pessoa entra de novo, e a fila espera.
+ *     - 403 `conta_desativada`: entrar de novo não resolve, e a fila espera a
+ *       coordenação.
+ *   Nos dois casos a fila para e MANTÉM o item pendente. Até a E06 isso era
+ *   `FalhaPermanente`: o item virava `bloqueado` com "Descartar" ao lado, e a
+ *   vistoria feita no morro por quem foi desativado (ou cuja sessão caiu) ficava
+ *   marcada como recusada.
+ *   O 401 sem código reconhecido (corpo vazio, servidor antigo) segue o mesmo
+ *   caminho do `nao_autenticado`: na dúvida entre perder coleta e pausar, pausa.
  */
 export type OpcoesTransporte = {
   baseUrl: string;
-  /** Buscado a cada envio: entre uma tentativa e outra o token pode ter mudado. */
-  obterToken: () => Promise<string | null>;
+  /**
+   * Buscado a cada envio: entre uma tentativa e outra o token pode ter mudado.
+   * Com `{ renovarJa: true }` é o pedido de um token novo depois de um 401
+   * `nao_autenticado` (ver `ObterToken`).
+   */
+  obterToken: ObterToken;
   buscar?: typeof fetch;
   tempoLimiteMs?: number;
 };
@@ -46,8 +67,21 @@ async function lerCorpo(resposta: Response): Promise<Record<string, unknown>> {
  * `mensagem` e `erro`. A lista `campos`, que o servidor sempre mandou no 422 e
  * que e a unica parte da resposta que diz QUAL campo esta errado, era lida e
  * descartada na mesma linha. Duas copias tambem sao duas chances de divergir.
+ *
+ * A falha de SESSAO sai daqui pelo mesmo motivo: e o unico lugar que diz qual
+ * resposta e da sessao e qual e do dado. Quando chega aqui um 401, o caminho
+ * de renovar e repetir ja foi percorrido (ou o servidor ja disse que a sessao
+ * foi encerrada), entao ele e `sessao_encerrada` sem mais perguntas.
  */
-function falhaDaResposta(status: number, corpo: Record<string, unknown>): FalhaPermanente {
+function falhaDaResposta(
+  status: number,
+  corpo: Record<string, unknown>,
+): FalhaPermanente | FalhaDeSessao {
+  if (status === 401) return falhaDeSessao("sessao_encerrada", corpo);
+  if (status === 403 && acaoParaOCodigo(corpo["erro"]) === "parar_e_avisar") {
+    return falhaDeSessao("conta_desativada", corpo);
+  }
+
   const brutos = Array.isArray(corpo["campos"]) ? corpo["campos"] : [];
   const campos = brutos
     .filter((c): c is { campo: string; mensagem: string } =>
@@ -63,9 +97,88 @@ function falhaDaResposta(status: number, corpo: Record<string, unknown>): FalhaP
   );
 }
 
+/** A frase do servidor quando veio, e a do catalogo quando nao veio. */
+function falhaDeSessao(
+  motivo: MotivoDeSessao,
+  corpo: Record<string, unknown> = {},
+): FalhaDeSessao {
+  const doServidor = corpo["mensagem"];
+  return new FalhaDeSessao(
+    typeof doServidor === "string" && doServidor !== ""
+      ? doServidor
+      : CODIGOS_DE_ERRO_DE_ACESSO[motivo].mensagem,
+    motivo,
+  );
+}
+
 export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
   const { baseUrl, obterToken, buscar = fetch, tempoLimiteMs = 30_000 } = opcoes;
   const base = baseUrl.replace(/\/$/, "");
+
+  /**
+   * Um pedido com token, tempo limite e a renovacao de uma vez so.
+   *
+   * Devolve a resposta (ok ou nao) e, quando ja precisou ler o corpo para
+   * decidir, o corpo lido: o corpo de uma resposta so se le uma vez.
+   *
+   * Sem token e `FalhaDeSessao`, e nao `FalhaPermanente` como era
+   * (`sem_sessao`): a pessoa nao tem sessao aberta agora, e a coleta que ela
+   * fez antes de a sessao cair nao e uma coleta recusada. Nem chega a sair
+   * pela rede.
+   */
+  async function pedir(
+    caminho: string,
+    corpoDoPedido: unknown,
+    metodo: string,
+    mensagemDeRede: string,
+  ): Promise<{ resposta: Response; corpo: Record<string, unknown> | null }> {
+    const token = await obterToken();
+    if (!token) throw falhaDeSessao("sessao_encerrada");
+
+    async function uma(comToken: string): Promise<Response> {
+      const cancelador = new AbortController();
+      const relogio = setTimeout(() => cancelador.abort(), tempoLimiteMs);
+      try {
+        return await buscar(`${base}${caminho}`, {
+          method: metodo,
+          headers: { "content-type": "application/json", authorization: `Bearer ${comToken}` },
+          body: corpoDoPedido === undefined ? undefined : JSON.stringify(corpoDoPedido),
+          signal: cancelador.signal,
+        });
+      } catch (erro) {
+        // Rede fora, DNS falhando, tempo esgotado: tudo isso melhora sozinho.
+        throw new FalhaTemporaria(mensagemDeRede, erro);
+      } finally {
+        clearTimeout(relogio);
+      }
+    }
+
+    const primeira = await uma(token);
+    if (primeira.ok || primeira.status !== 401) return { resposta: primeira, corpo: null };
+
+    const corpo = await lerCorpo(primeira);
+    /*
+      O servidor ja disse que a sessao acabou: renovar so gastaria o token de
+      renovacao (rotativo) contra uma sessao que ele mesmo encerrou. Quem diz o
+      que e "entrar de novo" e o catalogo.
+    */
+    if (acaoParaOCodigo(corpo["erro"]) === "entrar_de_novo") {
+      return { resposta: primeira, corpo };
+    }
+
+    /*
+      UMA renovacao, e so uma. O `obterToken` do aplicativo respeita a trava e o
+      piso entre tentativas, e devolve o MESMO token quando nao renovou (piso,
+      renovacao recusada, sem sinal). Token igual ao que acabou de ser recusado
+      e a prova de que repetir seria inutil, e o pedido nao sai de novo.
+    */
+    const novo = await obterToken({ renovarJa: true });
+    if (!novo || novo === token) return { resposta: primeira, corpo };
+
+    const segunda = await uma(novo);
+    const corpoDaSegunda = segunda.ok || segunda.status !== 401 ? null : await lerCorpo(segunda);
+    return { resposta: segunda, corpo: corpoDaSegunda };
+  }
 
   /**
    * Uma chamada, com token, tempo limite e a mesma traducao de erro para
@@ -77,27 +190,9 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
     corpo: unknown,
     metodo = "POST",
   ): Promise<T> {
-    const token = await obterToken();
-    if (!token) {
-      throw new FalhaPermanente("Sessao encerrada. Entre novamente para sincronizar.", "sem_sessao");
-    }
-
-    const cancelador = new AbortController();
-    const relogio = setTimeout(() => cancelador.abort(), tempoLimiteMs);
-
-    let resposta: Response;
-    try {
-      resposta = await buscar(`${base}${caminho}`, {
-        method: metodo,
-        headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-        body: corpo === undefined ? undefined : JSON.stringify(corpo),
-        signal: cancelador.signal,
-      });
-    } catch (erro) {
-      throw new FalhaTemporaria("Sem conexao com o servidor.", erro);
-    } finally {
-      clearTimeout(relogio);
-    }
+    const { resposta, corpo: lido } = await pedir(
+      caminho, corpo, metodo, "Sem conexao com o servidor.",
+    );
 
     if (resposta.ok) return (await lerCorpo(resposta)) as T;
 
@@ -105,7 +200,7 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
       throw new FalhaTemporaria(`Servidor indisponivel (${resposta.status}).`);
     }
 
-    throw falhaDaResposta(resposta.status, await lerCorpo(resposta));
+    throw falhaDaResposta(resposta.status, lido ?? await lerCorpo(resposta));
   }
 
   return {
@@ -188,28 +283,9 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
     },
 
     async enviar(envelope: EnvelopeSincronizacao): Promise<Recibo> {
-      const token = await obterToken();
-      if (!token) {
-        throw new FalhaPermanente("Sessão encerrada. Entre novamente para sincronizar.", "sem_sessao");
-      }
-
-      const cancelador = new AbortController();
-      const relogio = setTimeout(() => cancelador.abort(), tempoLimiteMs);
-
-      let resposta: Response;
-      try {
-        resposta = await buscar(`${base}/sincronizacao/vistoria`, {
-          method: "POST",
-          headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-          body: JSON.stringify(envelope),
-          signal: cancelador.signal,
-        });
-      } catch (erro) {
-        // Rede fora, DNS falhando, tempo esgotado: tudo isso melhora sozinho.
-        throw new FalhaTemporaria("Sem conexão com o servidor.", erro);
-      } finally {
-        clearTimeout(relogio);
-      }
+      const { resposta, corpo: lido } = await pedir(
+        "/sincronizacao/vistoria", envelope, "POST", "Sem conexão com o servidor.",
+      );
 
       if (resposta.ok) {
         const corpo = await lerCorpo(resposta);
@@ -228,7 +304,7 @@ export function transporteHttp(opcoes: OpcoesTransporte): Transporte {
         cópia que ainda lia só `mensagem` e `erro`, e o 422 do envelope chegava
         ao cartão da fila sem a lista de campos que o servidor mandou.
       */
-      throw falhaDaResposta(resposta.status, await lerCorpo(resposta));
+      throw falhaDaResposta(resposta.status, lido ?? await lerCorpo(resposta));
     },
   };
 }

@@ -6,7 +6,7 @@ import * as Location from "expo-location";
 import { ROTULO_TIPO_COBRADE } from "@dc360/shared";
 import { enderecoDaApi, type Pendencia } from "../../dados/api";
 import {
-  comoContarAFalha, motivoDaFalha, type MotivoDaFalha,
+  comoContarAFalha, ehFimDeLinha, motivoDaFalha, type MotivoDaFalha,
 } from "../../dados/falha-de-atualizacao";
 import {
   atualizarPendencias, baixadasEm, esquecerPendencia, pendenciasGuardadas, tetoAtingido,
@@ -1200,7 +1200,7 @@ export default function Tarefas() {
         subir o morro com uma lista de ontem achando que é a de hoje. Os outros
         dois fracassos passam sozinhos; este só passa com um ato dele.
       */
-      tom: falhaDeRede === "sessao-encerrada" ? "perigo" : "alerta",
+      tom: ehFimDeLinha(falhaDeRede) ? "perigo" : "alerta",
       resumo: frase.resumo,
       detalhe: frase.detalhe,
       /*

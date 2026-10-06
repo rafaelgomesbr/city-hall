@@ -3,6 +3,7 @@ import * as SecureStore from "expo-secure-store";
 import { entrar as entrarNaApi, renovar, sair as sairDaApi, type Credenciais, type Identidade } from "./api";
 import { acolherNoAparelho, apagarDadosLocais, marcarDonoDosDadosLocais } from "./banco-local";
 import { esquecerFicha, fichaGuardada } from "../push/ficha-do-aparelho";
+import type { ObterToken } from "@dc360/campo";
 import { criarObtentorDeToken } from "./token";
 
 /**
@@ -47,8 +48,12 @@ type EstadoSessao = {
    * (`acolherNoAparelho`, em `banco-local.ts`).
    */
   encerrarSessaoVencida(): Promise<void>;
-  /** Devolve um token de acesso válido, renovando só se estiver perto de vencer. */
-  obterToken(): Promise<string | null>;
+  /**
+   * Devolve um token de acesso válido, renovando só se estiver perto de vencer.
+   * Com `{ renovarJa: true }` renova mesmo assim (resposta ao 401
+   * `nao_autenticado`), respeitando a trava e o piso entre tentativas.
+   */
+  obterToken: ObterToken;
   /**
    * Quem está logado AGORA, lido no momento da chamada.
    *
@@ -158,7 +163,7 @@ export function ProvedorDeSessao({ children }: { children: ReactNode }) {
     nunca mais. Recriar o obtentor recriaria a trava, e duas travas valem o
     mesmo que trava nenhuma.
   */
-  const obtentor = useRef<(() => Promise<string | null>) | null>(null);
+  const obtentor = useRef<ObterToken | null>(null);
   obtentor.current ??= criarObtentorDeToken({
     lerCredenciais: () => credenciais.current,
     guardarCredenciais: async (novas) => {

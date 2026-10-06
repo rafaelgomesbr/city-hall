@@ -18,7 +18,7 @@ O que É verificável daqui, e está verificado:
 | TypeScript estrito | `npm run typecheck` | limpo |
 | Saúde do projeto Expo | `npx expo-doctor` | 21 de 21 (reconferido em 15/09/2026, depois de `npx expo install --fix` alinhar os pacotes ao SDK 57) |
 | Dependência vulnerável | `npm run auditar` (na raiz) | runtime zero; no aplicativo, uma advisory aceita com motivo escrito em `scripts/auditar.mjs` (`decode-uri-component`, sem correção sem trocar o expo-router) |
-| A fila que ele consome | `npm test --workspace @dc360/campo` | 159 testes do motor de campo |
+| A fila que ele consome | `npm test --workspace @dc360/campo` | 187 testes do motor de campo |
 
 ## Para colocar de pé
 
@@ -53,9 +53,16 @@ na chuva.
    envelope e a assinatura indo para o campo dela.
 6. Matar o aplicativo no meio do envio e reabrir: **nada pode duplicar no
    servidor**.
+7. Com uma coleta na fila e o aparelho com sinal, **desativar o agente no
+   painel** (ou encerrar as sessões dele). A faixa do topo e a tela de envio
+   dizem a frase (conta desativada: "procure a coordenação"; sessão encerrada:
+   "entre de novo"), a coleta continua na lista como "Guardada", nada é
+   descartado e **não há botão "Descartar"**. Reativar a conta, entrar de novo e
+   ver a MESMA coleta subir, uma vez só. É a validação de aparelho da
+   V2-F00-E06, ainda pendente (ver `PENDENCIAS.md`, item 14).
 
 Os passos 4 e 6 são os que só o aparelho responde. O 6 já tem
-159 testes do motor de campo cobrindo a lógica fora do celular, inclusive
+187 testes do motor de campo cobrindo a lógica fora do celular, inclusive
 retomada arquivo a arquivo; o que falta comprovar é que o `expo-sqlite` guarda o que promete
 quando o sistema mata o processo.
 
@@ -72,8 +79,8 @@ src/ui/              tokens e componentes
 ```
 
 **A lógica difícil não está aqui.** A fila que não perde nem duplica coleta
-feita sem sinal vive em `packages/campo`, com 159 testes de unidade do motor de campo, e a
-integração dela com a API tem mais 10 em `apps/api`. Este diretório liga os
+feita sem sinal vive em `packages/campo`, com 187 testes de unidade do motor de campo, e a
+integração dela com a API tem mais 15 em `apps/api`. Este diretório liga os
 fios: o que sobra é tela, permissão de aparelho e persistência local, e é por
 isso que ele é fino de propósito.
 

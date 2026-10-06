@@ -35,7 +35,9 @@ import { TETO_DE_AVISOS, RETENCAO_DE_AVISOS_DIAS } from "../src/rotas/avisos.js"
      consultada do produto fica mais lenta a cada mês.
 
   PENDÊNCIA REGISTRADA: nenhuma das duas rotas passa por `exigirPermissao`, e a
-  razão está escrita em `src/rotas/avisos.ts`. Não existe ação no pacote
+  razão está escrita em `src/rotas/avisos.ts`. (Desde a V2-F00-E08 o sino do
+  AGENTE DE CAMPO é recortado à equipe dele, e quem prova isso é
+  `leitura-do-agente-oficios-e-avisos.test.ts`.) Não existe ação no pacote
   compartilhado que descreva "receber aviso", e o pacote está fora da faixa
   deste turno. Se a casa preferir uma ação explícita, ela precisa nascer em
   `packages/shared/src/permissoes.ts` e entrar nas duas rotas de uma vez.

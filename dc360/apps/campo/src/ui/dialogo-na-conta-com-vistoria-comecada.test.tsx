@@ -75,7 +75,7 @@ const mockOuvintes = new Set<(r: ResumoFila) => void>();
 function resumoCom(pendentes: number): ResumoFila {
   return {
     pendentes, enviando: 0, confirmados: 0, bloqueados: 0, arquivados: 0,
-    deOutroAutor: 0, sincronizando: false,
+    deOutroAutor: 0, sincronizando: false, pausadaPor: null,
   };
 }
 let mockResumoInicial = resumoCom(0);

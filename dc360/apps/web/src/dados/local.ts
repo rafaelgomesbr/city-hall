@@ -37,7 +37,7 @@ import type {
   AtivacaoSegundoFator, ResultadoDeEntrada, SegundoFatorLigado, SituacaoSegundoFator,
   ConfiguracaoDoPainel, DevolucaoDaOcorrencia, DevolucaoPendente,
   QuemEstaEmCampo, SaidaEmCampo, RespostaDeBusca, PontoDoLinkDeMapa,
-  PrazosDeRetencao, FiltroConsultas,
+  PrazosDeRetencao, FiltroConsultas, MotivoDaSessaoMorta, UsuarioRenovado,
 } from "./tipos";
 import { classificarRegistros, TETO_POR_GRUPO, type RegistroPesquisavel } from "../busca/registros";
 import { CONSULTA_MAXIMA } from "../busca/combobox";
@@ -433,6 +433,11 @@ export async function pedirRecuperacao(_email: string): Promise<string> {
   throw new Error("A recuperação de senha exige a API. Este painel está em modo local.");
 }
 
+/** No modo local não há email nem conta para recuperar: a tela explica em vez de oferecer. */
+export async function situacaoDaRecuperacao(): Promise<{ ativa: boolean }> {
+  return { ativa: false };
+}
+
 export async function redefinirSenha(_token: string, _senha: string): Promise<string> {
   throw new Error("A recuperação de senha exige a API. Este painel está em modo local.");
 }
@@ -474,6 +479,24 @@ export async function encerrarSessoesDeUsuario(_id: string): Promise<never> {
   );
 }
 
+/**
+ * Sem servidor não há sessão para listar: a entrada por escolha de perfil não
+ * emite token, e uma lista inventada diria à pessoa que existe aparelho dela
+ * aberto em algum lugar quando não existe nenhum.
+ */
+export async function listarMinhasSessoes(): Promise<never> {
+  throw new Error(
+    "Listar as suas sessões exige a API. Neste painel a entrada vale só nesta aba.",
+  );
+}
+
+/** Idem para as sessões de outra pessoa: sem token emitido, não há o que contar. */
+export async function sessoesDeUsuario(_id: string): Promise<never> {
+  throw new Error(
+    "Ver as sessões de outra pessoa exige a API. Este painel está em modo local.",
+  );
+}
+
 /** Mesmo motivo: sem servidor não há sessão em outro aparelho para encerrar. */
 export async function encerrarMinhasSessoes(): Promise<never> {
   throw new Error(
@@ -487,8 +510,13 @@ export async function encerrarMinhasSessoes(): Promise<never> {
  * perfil vale enquanto a aba viver. O ouvinte é aceito e nunca chamado, para
  * o provedor de sessão se inscrever sem saber em que modo está.
  */
-export function aoExpirar(_ouvinte: (() => void) | null): void {
+export function aoExpirar(_ouvinte: ((motivo: MotivoDaSessaoMorta) => void) | null): void {
   /* nada expira aqui */
+}
+
+/** Idem: no modo de demonstração não há renovação, e portanto nada a avisar. */
+export function aoRenovar(_ouvinte: ((usuario: UsuarioRenovado) => void) | null): void {
+  /* nada renova aqui */
 }
 
 /**
@@ -1757,7 +1785,10 @@ export async function reativarOrgao(s: Sessao, id: string): Promise<void> {
 // Ofício
 // ---------------------------------------------------------------------------
 
+// Leitura de ofício também é recusada por papel, como na API (V2-F00-E08): o
+// modo local espelha o servidor, e a tela esconde o cartão por cima disso.
 export async function listarOficios(s: Sessao, ocorrenciaId: string): Promise<LinhaOficio[]> {
+  exigirPermissao(s.papel, "consultar_oficio");
   return comoApp(s.organizacaoId, async (db) => {
     const r = await db.query<LinhaOficio>(
       `SELECT f.id, f.numero, f.emitido_em::text AS emitido_em, f.emitido_por_nome,
@@ -1778,6 +1809,7 @@ export async function listarOficios(s: Sessao, ocorrenciaId: string): Promise<Li
 }
 
 export async function detalharOficio(s: Sessao, id: string): Promise<OficioDetalhado> {
+  exigirPermissao(s.papel, "consultar_oficio");
   return comoApp(s.organizacaoId, async (db) => {
     const oficio = await db.query<Omit<OficioDetalhado, "envios" | "aberturas">>(
       `SELECT f.id, f.numero, f.observacoes, f.emitido_em::text AS emitido_em,

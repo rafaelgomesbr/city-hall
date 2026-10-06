@@ -7,9 +7,11 @@ import {
   transporteHttp,
   type AutorDaColeta,
   type FilaDeSincronizacao,
+  type ObterToken,
 } from "@dc360/campo";
 import { bancoLocal } from "./banco-local";
 import { arquivosDoAparelho } from "./evidencia-no-disco";
+import { ESPERA_COM_A_FILA_PAUSADA_MS } from "./pausa-da-fila";
 
 /**
  * Onde a parte testada encontra o aparelho.
@@ -42,7 +44,7 @@ let fila: FilaDeSincronizacao | null = null;
  */
 export async function obterFila(
   baseUrl: string,
-  obterToken: () => Promise<string | null>,
+  obterToken: ObterToken,
   lerIdentidade: () => Identidade | null,
 ): Promise<FilaDeSincronizacao> {
   if (fila) return fila;
@@ -120,12 +122,22 @@ export function iniciarSincronizacaoContinua(
 
   void (async () => {
     while (ativo) {
+      let pausadaPelaSessao = false;
       if (temSinal()) {
-        await fila.drenar().catch(() => undefined);
+        const resultado = await fila.drenar().catch(() => undefined);
+        pausadaPelaSessao = resultado?.paradaPor !== undefined;
       }
       await fila.aguardarProximaJanela();
-      // Piso de espera: sem ele, uma fila vazia giraria em laço apertado.
-      await new Promise((r) => setTimeout(r, 15_000));
+      /*
+        Piso de espera: sem ele, uma fila vazia giraria em laço apertado.
+
+        Com a fila parada pela SESSÃO (401 `sessao_encerrada` ou 403
+        `conta_desativada`) o piso é maior. Cada volta é uma requisição que o
+        servidor já respondeu "não", e a pessoa que resolve entrando de novo
+        reinicia este laço na hora (o layout das abas é desmontado e montado de
+        novo com a sessão), então o piso só governa o caso em que ninguém agiu.
+      */
+      await new Promise((r) => setTimeout(r, pausadaPelaSessao ? ESPERA_COM_A_FILA_PAUSADA_MS : 15_000));
     }
   })();
 

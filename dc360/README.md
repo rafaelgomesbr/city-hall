@@ -12,7 +12,7 @@ build) valem lá, não aqui.
 | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 285 testes do banco passando |
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 454 testes de fonte do painel mais 68 verificações no navegador no modo local e 103 contra a API |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 962 testes da API passando |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 138 testes de unidade do motor de campo e 10 de integração contra a API |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 138 testes de unidade do motor de campo e 15 de integração contra a API |
 | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 1708 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios e não alcança dado de cidadão | Pronto, 250 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
@@ -127,14 +127,59 @@ confirmaria que o registro existe, e confirmar existência já é vazamento.
 | Peça | Escolha | Por quê |
 | --- | --- | --- |
 | Senha | scrypt do `node:crypto`, N=2^16 | Aprovado no ASVS 4.0 (2.4.3), sem dependência nova e sem módulo nativo para compilar |
-| Token de acesso | JWT HS256, 15 minutos | Verificado por assinatura, sem ida ao banco. Curto porque não dá para revogar antes de expirar |
+| Token de acesso | JWT HS256, 15 minutos | Na LEITURA, verificado só por assinatura, sem ida ao banco: conta desativada ainda lê até o token vencer (a F03-E03 fecha isso). Na ESCRITA (todo método que não é GET nem HEAD), uma consulta ao banco confere, junto com a suspensão do município, se a conta está ativa, se o papel é o do token, se a sessão do token não foi encerrada e se a senha provisória não venceu: falhando, responde no pedido seguinte 401 `sessao_encerrada` (sessão encerrada ou senha provisória vencida), 401 `nao_autenticado` (papel diferente do token: o cliente renova e repete, e a renovação já traz o papel novo) ou 403 `conta_desativada` (conta desativada), ver os códigos abaixo (`auth/vigencia.ts`, religada em V2-F00-E04, códigos separados em V2-F00-E05, papel e cadeia da sessão em V2-F00-E07) |
 | Token de renovação | 32 bytes opacos, guardado só como hash | Revogável, e vazamento do banco não devolve sessão utilizável |
 | Rotação | A cada renovação | Reúso de token gasto é sintoma de roubo: derruba todas as sessões do usuário |
+| Cadeia da sessão | `sessoes.familia_id`: cada login abre uma família e cada renovação a herda (migração 047) | O token de acesso emitido ANTES de uma renovação segue valendo por seus 15 minutos (a fila do aparelho pode estar no meio de um envio), mas só enquanto a família tem sessão de pé: encerrar a cadeia (quem administra, a própria pessoa, sair, reuso de token, troca de senha) derruba também o token anterior à renovação |
 | Força bruta | Limite por endereço (10 por 5 min) e bloqueio por conta (5 falhas, 15 min) | Um trata o atacante que vem de um lugar, o outro trata a conta martelada de muitos |
 | Enumeração de conta | Resposta idêntica e tempo equivalente para email inexistente | Senão a API vira lista de emails da prefeitura |
-| Recuperação de senha | Link de uso único, 30 minutos, entregue por um notificador injetável | Esquecer a senha não pode virar chamado para o suporte, nem "manda a senha no WhatsApp" |
+| Recuperação de senha | Link de uso único, 30 minutos, guardado só como hash, entregue por um notificador injetável. `POST /auth/recuperar` responde 202 igual para email que existe, que não existe e que passou do teto de `RECUPERACAO_POR_EMAIL_HORA` por hora; o envio sai depois da resposta e a falha do provedor vai para o log sem o link. `GET /auth/recuperacao` diz só se está ligada (V2-F00-E10). Produção desligada até o CP-19 (`fly.toml`) | Esquecer a senha não pode virar chamado para o suporte, nem "manda a senha no WhatsApp". Esperar o provedor dentro do pedido, ou deixá-lo falhar só para quem tem conta, entregaria quais emails existem pelo relógio e pelo status |
 | Troca de senha | Exige a senha atual, e derruba as outras sessões | Aparelho esquecido desbloqueado na mesa vira conta sequestrada em dois cliques |
+| Sessões e redefinição pelo painel (V2-F00-E09) | Em Usuários, quem administra redefine a senha (`POST /usuarios/:id/redefinir-senha`, senha temporária mostrada UMA vez, 72 horas) e encerra as sessões (`POST /usuarios/:id/encerrar-sessoes`) de quem está abaixo do posto dele, nunca da própria conta. Em Minha conta, a pessoa vê as sessões vivas (`GET /auth/sessoes`: quando entrou, até quando vale, o aparelho em uma frase e a marca "Esta sessão") e encerra as outras. `GET /usuarios/:id/sessoes` (ação `gerenciar_usuarios`, posto e 404 como nas outras duas) devolve só a quantidade e as datas | Com a recuperação por e-mail desligada, "esqueci a senha" e "perdi o celular" não tinham saída pelo painel. Nenhuma das leituras entrega IP nem o texto do user-agent (IDN-29 do REL:06); o modo de demonstração explica em vez de oferecer, porque lá não há senha nem token |
 | Segunda etapa | Código de seis dígitos do aplicativo de autenticação (TOTP), com segredo guardado cifrado, chave fora do banco | O administrador é o teto do município (ADR 0006): a conta dele estava protegida por senha e mais nada. SMS foi recusado (troca de chip, custo por mensagem, e depende da operadora justamente no dia do temporal) |
+
+#### Códigos de erro de acesso
+
+O cliente decide o que fazer pelo código, e não pela frase: o texto muda, o
+código não. A lista mora em `packages/shared/src/codigos-de-erro.ts`, que o
+servidor, o painel e o aplicativo importam, e `apps/api/test/codigos-de-erro.test.ts`
+confere que o servidor emite exatamente ela (código novo fora da lista reprova).
+Até a V2-F00-E05 os três primeiros eram um só, `401 sessao`, e o cliente não
+distinguia token vencido de conta desativada.
+
+| Código | Status | O que o cliente faz | Quando sai |
+| --- | --- | --- | --- |
+| `nao_autenticado` | 401 | Pede token novo com o de renovação e repete o pedido uma vez | Token vencido, adulterado ou ausente; e, na escrita, papel gravado diferente do papel do token (a renovação devolve o token com o papel novo) |
+| `sessao_encerrada` | 401 | Pede para entrar de novo; o que está no aparelho continua lá | Sessão encerrada por alguém (a própria pessoa, quem administra, troca de senha, reuso de token), inclusive o token de acesso anterior a uma renovação quando a cadeia foi encerrada; conta que deixou de existir; senha provisória vencida (que também não se troca nem se renova) |
+| `conta_desativada` | 403 | Para de tentar, mantém o que há no aparelho e manda procurar a coordenação | Conta desativada: na escrita com token vivo e em `/auth/renovar` |
+| `acesso_suspenso` | 403 (503 nas rotas da fila) | Espera: quem resolve é quem administra o contrato | Município suspenso pelo fornecedor |
+| `troca_de_senha_obrigatoria` | 403 | Leva à troca de senha | Sessão nascida de senha provisória |
+| `sem_permissao` | 403 | Nada a repetir | O perfil não pode fazer isto |
+
+Três regras que não mudam com os códigos:
+
+- **Recurso de outro município é 404, nunca 403.** Um 403 confirmaria que o
+  registro existe. `conta_desativada` é 403 porque a conta desativada é a do
+  próprio usuário autenticado, e a vigência é conferida antes de qualquer
+  consulta ao recurso: a resposta é a mesma para uma ocorrência do próprio
+  município, de outro município ou que não existe.
+- **A entrada não conta nada sobre a conta.** `/auth/entrar` com conta
+  desativada responde a mesma recusa genérica da senha errada e do e-mail
+  inexistente, com o mesmo status e a mesma frase.
+- **Conta desativada vem antes de sessão encerrada.** Desativar a conta encerra
+  as sessões dela; se a ordem fosse outra, o cliente leria `sessao_encerrada` e
+  mandaria entrar de novo, que não resolve.
+
+O código antigo `sessao` deixou de existir. O esquema de erro único da API, com
+o catálogo inteiro (validação, regra de negócio, conflito), é da V2-F02-E03, que
+generaliza esta tabela.
+
+Trocar o papel de uma pessoa **não revoga as sessões dela** (decisão da
+V2-F00-E07): a escrita seguinte com o token velho responde 401 `nao_autenticado`,
+o cliente renova e repete sem a pessoa notar, e a renovação lê o papel do banco.
+O painel atualiza o papel da tela com a resposta da renovação, e o menu passa a
+mostrar só o que o papel novo tem. Revogar obrigaria a pessoa a entrar de novo,
+com coleta de campo na fila, para receber o que a renovação já entrega.
 
 Redefinir a senha derruba **todas** as sessões. Se a recuperação foi pedida
 porque alguém invadiu a conta, deixar as sessões antigas vivas entregaria a
@@ -144,7 +189,9 @@ em que o mesmo link serve duas vezes.
 
 O envio da mensagem passa por uma porta (`Notificador`), e não por um cliente de
 email embutido na rota: um teste que precisasse de servidor de email nunca seria
-rodado. Em desenvolvimento o link vai para o log.
+rodado. Em desenvolvimento o notificador de log só anuncia que houve uma
+notificação (nunca imprime o corpo, que carrega o link); quem precisa do link em
+teste usa `NOTIFICADOR_ARQUIVO`, canal que a partida em produção recusa.
 
 #### O cliente de email, e o defeito que ele já foi
 
@@ -296,10 +343,21 @@ Decisões que o código toma, e por quê:
 | Sem sinal | Guarda e agenda nova tentativa | A coleta já foi feita; refazer significa subir o morro de novo |
 | Erro de rede no meio da fila | Para ali, não varre o resto | Rede caída não melhora no item seguinte, e insistir gasta bateria |
 | 5xx ou 429 | Tenta de novo, com espera crescente | Servidor reinicia em deploy; insistir resolve |
-| 400, 403, 404, 409, 422 | Bloqueia na hora | Repetir não muda o resultado, só enche o log |
-| 401 | Bloqueia **também** | Insistir com token morto estoura o limite de tentativas e bloqueia a conta de quem está trabalhando |
+| 400, 403 `sem_permissao`, 404, 409, 422 | Bloqueia na hora | Repetir não muda o resultado, só enche o log |
+| 401 `nao_autenticado` | Pede UM token novo, repete o pedido uma vez; se falhar de novo, trata como sessão encerrada | Token vencido se resolve renovando; insistir sem limite estoura o limite de tentativas e bloqueia a conta de quem está trabalhando |
+| 401 `sessao_encerrada` ou 403 `conta_desativada` | **Para a fila e mantém o item pendente**, sem contar tentativa e sem bloquear | O servidor não recusou a coleta, recusou quem manda. A vistoria feita no morro nunca vira "recusada" nem convida a descartar |
+| Sem token no aparelho | O mesmo que `sessao_encerrada` | A pessoa não tem sessão aberta agora; a coleta não foi recusada |
 | App morre no meio do envio | Reenvia com a MESMA chave | O servidor reconhece e devolve o recibo antigo em vez de gravar outro laudo |
 | Dois drenos ao mesmo tempo | O segundo recusa começar | Wi-Fi de prefeitura reconecta sozinho e dispara sincronização em cima de outra |
+
+Desde a V2-F00-E06 a fila distingue os códigos de acesso do catálogo
+(`packages/shared/src/codigos-de-erro.ts`) pelo código, e não pelo status:
+`FalhaDeSessao` (motivo `sessao_encerrada` ou `conta_desativada`) é diferente de
+`FalhaPermanente` e de `FalhaTemporaria`. O dreno devolve `paradaPor`, o resumo
+da fila devolve `pausadaPor`, e o aparelho mostra a frase de cada caso: sessão
+encerrada, entre de novo; conta desativada, procure a coordenação. Em ambos a
+coleta continua guardada e sobe com a mesma chave depois da nova entrada.
+Detalhes e o que falta ver em aparelho: `apps/campo/PENDENCIAS.md`, item 14.
 
 A espera entre tentativas cresce exponencialmente **com ruído**. Sem o
 exponencial, um servidor fora do ar recebe uma tentativa por segundo de cada
@@ -881,10 +939,10 @@ de postos entrou, e ninguém percebeu porque documentação não quebra build.
 
 | Papel | Pode |
 | --- | --- |
-| Operador de plantão | registrar ocorrência, registrar a resposta de uma providência, acompanhar quem está em campo agora |
+| Operador de plantão | registrar ocorrência, registrar a resposta de uma providência, consultar os ofícios de encaminhamento, acompanhar quem está em campo agora |
 | Agente de campo | registrar vistoria |
-| Coordenador | registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados, acompanhar quem está em campo agora |
-| Administrador | alterar os dados do município, registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados, acompanhar quem está em campo agora |
+| Coordenador | registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, consultar os ofícios de encaminhamento, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados, acompanhar quem está em campo agora |
+| Administrador | alterar os dados do município, registrar ocorrência, classificar na triagem, despachar equipe, encaminhar providência, registrar a resposta de uma providência, encerrar ocorrência, emitir laudo ou termo de interdição, consultar os ofícios de encaminhamento, gerenciar equipes, gerenciar usuários, consultar a trilha de auditoria, exportar dados, acompanhar quem está em campo agora |
 
 O administrador NÃO é um coordenador com outro nome. Ele é o único que altera
 os dados do município, e o sistema de postos impede que qualquer pessoa
@@ -900,6 +958,23 @@ muda a natureza da coisa.
 
 O operador também registra a resposta de uma providência: é ele quem atende o
 telefone quando a secretaria liga de volta. Continua sem decidir o fluxo.
+
+**Ofício é leitura da coordenação e do plantão, e o agente de campo não a tem**
+(`consultar_oficio`, V2-F00-E08). `GET /oficios` e `GET /oficios/:id` chamam
+`exigirPermissao` antes de abrir transação: o agente recebe 403 `sem_permissao`,
+igual para qualquer ofício, existindo ou não (a resposta não confirma nada). A
+ficha do ofício traz o e-mail do órgão, as observações da coordenação e o IP de
+quem abriu o link, e o aparelho do agente não usa ofício. Operador, coordenador
+e administrador consultam; emitir continua sendo `emitir_documento` e enviar
+continua sendo `encaminhar_providencia`. Ofício de outro município responde 404.
+
+**O sino do agente é o da equipe dele.** `GET /avisos` aplica o mesmo recorte
+das leituras de ocorrência (`recorte-do-agente.ts`) à lista e à contagem de não
+lidos, e `POST /avisos/lidos` só marca o que o agente pode ver. Agente sem equipe
+recebe lista vazia e contagem zero. Coordenação, operador e administração seguem
+vendo o município inteiro. A rota continua ESCREVENDO dentro de um GET
+(materializa prazos vencidos e saídas sem retorno, expurga avisos velhos), de
+forma idempotente, em lote e só no município do token: ver `apps/api/PENDENCIAS.md`.
 
 E ele **acompanha quem está em campo**, que é a única permissão concedida ao
 posto mais baixo por uma razão que não é de fluxo. O valor inteiro daquele
@@ -946,6 +1021,60 @@ Para começar do zero no modo local, limpe o site nas ferramentas do navegador
 (isso apaga o IndexedDB, onde o PGlite guarda o banco, e a marca da semente no
 `localStorage`). No modo API, basta reiniciar o servidor: o banco efêmero
 nasce semeado de novo.
+
+## Como testar
+
+A versão do Node é a 22. O arquivo `.nvmrc` a fixa, o CI usa a mesma, e o campo
+`engines` do `package.json` aceita 20 ou mais, mas só a 22 foi medida. Há duas
+árvores de dependência: a raiz (`dc360`) e `apps/campo`, que fica fora do
+`workspaces` de propósito e tem lockfile próprio.
+
+A ordem, do zero:
+
+```bash
+cd dc360
+npm ci                          # raiz
+(cd apps/campo && npm ci)       # aplicativo de campo, árvore própria
+npm run typecheck               # compila shared, db e campo antes de checar os tipos
+npm run test:isolamento         # o portão CA-06, rode este primeiro
+npm test                        # os demais testes de cada workspace
+npm run test:scripts            # portões de design e de acessibilidade do aplicativo, entre outros
+npm run test:campo              # tipos e testes do aplicativo de campo
+npm run auditar                 # dependência vulnerável em runtime
+npm run conferir:numeros        # os números que este README afirma contra a realidade
+npm run test:e2e                # painel no navegador (precisa de Chromium e Firefox do Playwright)
+npm run test:e2e:api            # painel contra a API
+```
+
+`npm run verificar` encadeia typecheck, testes, `test:scripts`, `test:campo`,
+`auditar` e `conferir:numeros`. O CI roda menos do que isso: não roda `auditar`,
+`test:scripts` nem `test:campo`, então esses três só aparecem vermelhos na
+máquina de quem rodar.
+
+**A linha de base de hoje é vermelha de propósito.** Os vermelhos foram medidos
+em 2026-09-30 e são consertados um a um na fase F00 do Roadmap V2
+(`docs/roadmap-v2/03-fase-00-estabilizacao.md`). Para repetir a medição e
+arquivar a saída, sem segredo, em qualquer máquina:
+
+```bash
+node scripts/baseline.mjs --so-listar   # mostra o roteiro, sem executar nada
+node scripts/baseline.mjs               # roda tudo e arquiva em docs/evidencias-v2/G00/V2-F00-E01/saidas
+```
+
+Cada passo diz se o resultado "confere" com o esperado de 2026-09-30 ou se
+está "divergente". Divergente nunca é escondido: sai com código 1 e pede
+explicação. O passo a passo para uma segunda pessoa está em
+`docs/evidencias-v2/G00/V2-F00-E01/COMO-REPRODUZIR.md`.
+
+**Teste pulado tem regra (política T42).** Nenhum vermelho conhecido fica na base
+sem saída: ou se conserta, ou se reescreve com registro, ou se pula com dono,
+prazo e referência. Pular por ambiente (`it.runIf`, `skip` com condição e
+motivo) é permitido e contado; pular de forma incondicional (`skip`, `xit`,
+`todo`) exige a marca `// T42 dono=<nome> issue=<ref> ate=AAAA-MM-DD` na linha
+acima, e `.only` nunca passa. O portão
+`scripts/portao-de-skip.test.mjs` aplica isso dentro de `npm run test:scripts`
+e imprime a contagem de skips por ambiente. A política inteira está em
+`docs/POLITICA-DE-TESTE-VERMELHO.md`.
 
 ## Implantação
 
@@ -1197,7 +1326,7 @@ LOG_API=/caminho/do/log-da-api npm run test:e2e:api --workspace @dc360/web
 email: em desenvolvimento o link sai no log do servidor, e é de lá que a suíte
 o lê.
 
-São 103 verificações no navegador que só existem neste caminho: entrada por senha, senha
+São 236 verificações no navegador que só existem neste caminho: entrada por senha, senha
 errada recusada, token guardado sem a senha nem o hash, isolamento imposto
 pelo servidor (inclusive abrindo a URL de outro município na mão), fluxo
 gravando de verdade, dado criado numa sessão aparecendo em outro navegador,
@@ -1206,7 +1335,7 @@ sessão no servidor, cadastro com senha inicial seguido de entrada, e o laudo
 oficial abrindo numa aba com protocolo, checklist e autoria corretos, e a foto
 enviada pelo agente aparecendo na galeria do coordenador, e a recuperação de
 senha do pedido até entrar com a senha nova, a trilha de auditoria filtrada, e
-o CSV baixado e conferido célula a célula contra injeção de fórmula.
+o CSV baixado e conferido célula a célula contra injeção de fórmula, e o pacote de saída baixado pelo botão do painel, aberto e conferido por dentro (soma SHA-256 de cada arquivo, só as linhas do município, nenhuma coluna que nunca sai).
 
 Duas correções vieram dessa suíte, e nenhuma apareceria em teste de servidor:
 o CORS da API não permitia `PUT`, então o envio de bytes nem saía do
@@ -1337,7 +1466,7 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
 
-  Essa última já tem 159 testes do motor de campo cobrindo a lógica fora do
+  Essa última já tem 187 testes do motor de campo cobrindo a lógica fora do
   celular, inclusive retomada arquivo a arquivo.
   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e

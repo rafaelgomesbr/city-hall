@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { ResumoFila } from "@dc360/campo";
+import type { MotivoDeSessao, ResumoFila } from "@dc360/campo";
 import { enderecoDaApi } from "./api";
 import { obterFila } from "./fila";
 import { useSessao } from "./sessao";
@@ -72,6 +72,8 @@ export function contagemDaFila(resumo: ResumoFila | null): {
   deOutroAutor: number;
   naFila: number;
   sincronizando: boolean;
+  /** A fila está parada pela sessão desta pessoa (ver `pausa-da-fila.ts`). */
+  pausadaPor: MotivoDeSessao | null;
 } {
   const pendentes = (resumo?.pendentes ?? 0) + (resumo?.enviando ?? 0);
   const bloqueados = resumo?.bloqueados ?? 0;
@@ -82,6 +84,7 @@ export function contagemDaFila(resumo: ResumoFila | null): {
     deOutroAutor,
     naFila: pendentes + bloqueados + deOutroAutor,
     sincronizando: resumo?.sincronizando ?? false,
+    pausadaPor: resumo?.pausadaPor ?? null,
   };
 }
 

@@ -1,3 +1,4 @@
+import type { ObterToken } from "@dc360/campo";
 import type { Credenciais } from "./api";
 
 /**
@@ -125,7 +126,7 @@ function decodificarBase64Url(segmento: string): string | null {
  */
 export function criarObtentorDeToken(
   ferramentas: FerramentasDoToken,
-): () => Promise<string | null> {
+): ObterToken {
   const agora = ferramentas.agora ?? (() => Date.now());
   const folgaMs = ferramentas.folgaMs ?? FOLGA_PADRAO_MS;
   const intervaloMinimoMs = ferramentas.intervaloMinimoMs ?? INTERVALO_MINIMO_MS;
@@ -141,11 +142,21 @@ export function criarObtentorDeToken(
     return expiraEmMs - agora() <= folgaMs;
   }
 
-  return async function obterToken(): Promise<string | null> {
+  return async function obterToken(pedido?: { renovarJa?: boolean }): Promise<string | null> {
     const atuais = ferramentas.lerCredenciais();
     if (!atuais) return null;
 
-    if (!estaPertoDeVencer(atuais.acesso)) return atuais.acesso;
+    /*
+      `renovarJa` e o pedido do transporte depois de um 401 `nao_autenticado`:
+      o servidor recusou o token, entao a validade que o aparelho le dele (e o
+      relogio do aparelho, que passa o dia sem sincronizar) nao vale mais como
+      criterio. So esta linha muda: a TRAVA e o PISO abaixo continuam valendo
+      para esse pedido, e e por eles que o laco "token recusado, renova, recusa
+      de novo, renova" nao existe. Dentro do piso, ou com a renovacao recusada,
+      a funcao devolve o MESMO token, e e essa igualdade que o transporte le como
+      "repetir seria inutil" e pausa a fila em vez de insistir.
+    */
+    if (pedido?.renovarJa !== true && !estaPertoDeVencer(atuais.acesso)) return atuais.acesso;
     if (agora() - ultimaTentativaMs < intervaloMinimoMs) return atuais.acesso;
 
     // A trava. Quem chegar durante a renovação espera a mesma requisição, em
@@ -174,8 +185,8 @@ export function criarObtentorDeToken(
           Falhou: pode ser sinal, pode ser sessão morta. Devolver o token
           atual é o certo nos dois casos. Se for sinal, o token ainda vale e o
           envio vai tentar; se estiver morto, o servidor responde 401, que o
-          transporte classifica como falha permanente, e a fila para de
-          insistir em vez de queimar bateria.
+          transporte classifica como falha de sessão (`FalhaDeSessao`): a fila
+          para e guarda a coleta, em vez de queimar bateria ou bloqueá-la.
         */
         return ferramentas.lerCredenciais()?.acesso ?? null;
       } finally {

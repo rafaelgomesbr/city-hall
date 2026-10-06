@@ -174,8 +174,19 @@ export async function rotasOficios(
     marcaDagua?: string;
   },
 ): Promise<void> {
+  /**
+   * A lista de ofícios do município (ou de uma ocorrência).
+   *
+   * `consultar_oficio` ANTES de abrir transação, e não só `exigirAutenticacao`:
+   * a rota já foi autenticada-e-nada-mais, e com o token de um agente de campo
+   * (o papel cujo aparelho cai e é emprestado) devolvia número, órgão e
+   * observações de ofício de ocorrência de QUALQUER equipe. O 403 aqui é da
+   * AÇÃO, igual para qualquer ofício que exista ou não, e por isso não
+   * confirma nada: o agente nem chega a perguntar por um registro. Recurso de
+   * outro município continua 404, porque o RLS não o mostra a ninguém.
+   */
   app.get("/", async (req) => {
-    const quem = await app.exigirAutenticacao(req);
+    const quem = await autorizar(app, req, "consultar_oficio");
     const { ocorrenciaId } = z.object({
       ocorrenciaId: z.string().uuid().optional(),
     }).parse(req.query);
@@ -209,7 +220,10 @@ export async function rotasOficios(
    * pública, que é onde o uso único é cobrado.
    */
   app.get("/:id", async (req) => {
-    const quem = await app.exigirAutenticacao(req);
+    // A permissão vem ANTES do `idSchema`: com a ordem inversa, um id malformado
+    // responderia 422 ao agente e um bem formado 403, e a diferença diria que o
+    // agente chegou a ler o corpo do pedido. O 403 é a primeira e única resposta.
+    const quem = await autorizar(app, req, "consultar_oficio");
     const { id } = idSchema.parse(req.params);
 
     return banco.comTenant(quem.organizacaoId, async (c) => {

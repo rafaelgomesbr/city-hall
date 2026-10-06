@@ -12,12 +12,14 @@ import {
   type FilaDeSincronizacao,
   type ItemDeDevolucao,
   type ItemFila,
+  type MotivoDeSessao,
 } from "@dc360/campo";
 import { ROTULO_MOTIVO_DE_DEVOLUCAO, rotuloDoCampo } from "@dc360/shared";
 import { enderecoDaApi } from "../../dados/api";
 import { devolverParaCorrecao } from "../../dados/correcao-da-coleta";
 import { obterFila } from "../../dados/fila";
 import { useSinal } from "../../dados/conectividade";
+import { frasesDaPausa } from "../../dados/pausa-da-fila";
 import { useSessao } from "../../dados/sessao";
 import {
   Aviso, Botao, Cartao, Carregando, Dado, Separador, Txt, Vazio, useTema,
@@ -346,7 +348,11 @@ function primeiroNome(nome: string): string {
   return nome.trim().split(/\s+/)[0] ?? nome;
 }
 
-function descreverEstado(item: ItemFila, autoria: Autoria): EstadoDoItem {
+function descreverEstado(
+  item: ItemFila,
+  autoria: Autoria,
+  pausadaPor: MotivoDeSessao | null = null,
+): EstadoDoItem {
   /*
     A AUTORIA VEM ANTES DO ESTADO, e a ordem é o conteúdo.
 
@@ -396,6 +402,21 @@ function descreverEstado(item: ItemFila, autoria: Autoria): EstadoDoItem {
     dissolver a dúvida "cadê o que eu fiz?".
   */
   if (item.tipo === "devolucao") return descreverDevolucao(item);
+  /*
+    A COLETA GUARDADA PELA PAUSA DA SESSAO: "Aguardando" prometeria que ela sai
+    assim que houver sinal, e nao sai: o servidor ja respondeu que a sessao
+    acabou (ou que a conta foi desativada), e repetir nao muda isso. O estado
+    do disco continua `pendente`, de proposito, e e so a frase que muda.
+  */
+  if (pausadaPor && autoria === "propria" && item.estado === "pendente") {
+    return {
+      rotulo: "Guardada",
+      simbolo: "⏸",
+      tom: "alerta",
+      Icone: IconeAguardando,
+      porque: frasesDaPausa(pausadaPor).doCartao,
+    };
+  }
   if (autoria === "sem_autor") {
     return {
       rotulo: "Sem autor registrado",
@@ -811,13 +832,20 @@ export default function TelaDaFila() {
   const recuoDoMenu = useRecuoDoMenu();
   // Toda aba começa do topo a cada foco (ver `ui/CenaDaAba.tsx`).
   const rolagem = useComecarDoTopo<ScrollView>();
-  const { obterToken, lerIdentidade, identidade } = useSessao();
+  const { obterToken, lerIdentidade, identidade, encerrarSessaoVencida } = useSessao();
   const tema = useTema();
   const reduzirMovimento = useReducaoDeMovimento();
 
   const [fila, setFila] = useState<FilaDeSincronizacao | null>(null);
   const [itens, setItens] = useState<ItemFila[] | null>(null);
   const [sincronizando, setSincronizando] = useState(false);
+  /*
+    A fila esta parada pela SESSAO desta pessoa (401 `sessao_encerrada` ou 403
+    `conta_desativada`, V2-F00-E06). Vem do resumo que a fila avisa a cada
+    mudanca, e nao da lista de itens: a pausa e do servidor naquele momento, nao
+    de nenhuma coleta, e nenhum item carrega marca dela.
+  */
+  const [pausadaPor, setPausadaPor] = useState<MotivoDeSessao | null>(null);
   /*
     Os itens que JÁ saíram do disco e ainda estão desaparecendo da tela.
 
@@ -1000,7 +1028,10 @@ export default function TelaDaFila() {
       await recarregar(f);
       // A fila avisa a cada mudança de estado; a tela relê a lista inteira.
       // Reler tudo é barato aqui, e evita o estado da tela divergir do disco.
-      desassinar = f.assinar(() => { void recarregar(f); });
+      desassinar = f.assinar((resumo) => {
+        setPausadaPor(resumo?.pausadaPor ?? null);
+        void recarregar(f);
+      });
     })();
     return () => { vivo = false; desassinar?.(); };
   }, [obterToken, lerIdentidade, recarregar, tentativaDeAbrir]);
@@ -1284,7 +1315,7 @@ export default function TelaDaFila() {
    */
   function cartaoDaColeta(item: ItemFila) {
     const autoria = autoriaDaColeta(item, eu);
-    const estado = descreverEstado(item, autoria);
+    const estado = descreverEstado(item, autoria, pausadaPor);
     const fotosEnviadas = item.fotos.filter((f) => f.enviada).length;
     /*
       QUEM TEM SAÍDA PELA TELA, e por quê.
@@ -1687,6 +1718,43 @@ export default function TelaDaFila() {
 
           {minhasColetas.length > 0 && (
             <Secao Icone={IconeEnvio} titulo="Minhas coletas" quantos={contar(minhasColetas)}>
+              {/*
+                A PAUSA DA SESSAO, no alto da lista que ela afeta. Diz o fato,
+                o que resolve e a promessa (a coleta continua guardada). Só a
+                sessao encerrada traz o botao: e a unica com um ato que resolve.
+                Conta desativada nao tem botao, porque entrar de novo nao
+                resolve, e oferecer o botao ensinaria o contrario do que a frase
+                diz. O ato e o mesmo da lista de hoje: `encerrarSessaoVencida`
+                derruba a sessao e deixa o disco como esta.
+              */}
+              {pausadaPor && (
+                <Aviso
+                  tom="perigo"
+                  /* R1 e R2 da régua (`ui/regua.ts`): a seção já pode ter o aviso
+                     de coleta recusada, também de perigo, e o que a máquina
+                     cobra é um bloco preenchido por peça. A pausa desce para o
+                     peso leve (filete, ícone e palavra no tom de perigo) porque
+                     o fundo cheio já está na faixa do topo, que diz a mesma
+                     coisa na primeira linha de toda aba. */
+                  peso="leve"
+                  titulo={frasesDaPausa(pausadaPor).titulo}
+                  {...(pausadaPor === "sessao_encerrada"
+                    ? {
+                      acao: {
+                        titulo: "Entrar de novo",
+                        descricao: "Entrar de novo com o seu email e a sua senha, sem apagar as coletas",
+                        testID: "entrar-de-novo-pela-fila",
+                        onPress: () => void (async () => {
+                          await encerrarSessaoVencida();
+                          router.replace("/entrar");
+                        })(),
+                      },
+                    }
+                    : {})}
+                >
+                  {frasesDaPausa(pausadaPor).detalhe}
+                </Aviso>
+              )}
               {/* O número do aviso é o contado, e não o desenhado: uma coleta
                   que já saiu do disco não "precisa de atenção" de ninguém, mesmo
                   enquanto o cartão dela ainda está desaparecendo. */}

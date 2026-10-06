@@ -376,6 +376,60 @@ export class FalhaPermanente extends Error {
 }
 
 /**
+ * Por que a SESSÃO do aparelho, e não o dado, impede o envio.
+ *
+ * `sessao_encerrada`: o servidor não reconhece mais a entrada deste aparelho
+ * (encerrada em outro lugar, por quem administra, ou o cadastro mudou). Entrar
+ * de novo resolve.
+ *
+ * `conta_desativada`: a conta da pessoa foi desativada. Entrar de novo NÃO
+ * resolve, e quem resolve é a coordenação.
+ *
+ * Os dois nomes são os códigos do catálogo de `@dc360/shared`
+ * (`codigos-de-erro.ts`), de propósito: o texto do servidor muda, o código não.
+ */
+export type MotivoDeSessao = "sessao_encerrada" | "conta_desativada";
+
+/**
+ * A falha que não é nem de rede nem do dado: é da sessão.
+ *
+ * Existe separada de `FalhaPermanente` por causa do que a fila faz com cada
+ * uma. Permanente quer dizer "o servidor recusou ESTA coleta", e o item vira
+ * `bloqueado`, com "Descartar" ao lado. Aqui o servidor não recusou a coleta
+ * nenhuma: recusou QUEM está mandando. A vistoria feita no morro por um agente
+ * cuja sessão caiu, ou cuja conta foi desativada depois de ele sair, é um ato
+ * que aconteceu, e marcá-la como recusada convida a pessoa a apagar prova.
+ * Então a fila para, o item fica `pendente` com a contagem de tentativas como
+ * estava, e a tela diz o que fazer.
+ *
+ * Também não é `FalhaTemporaria`: esperar não resolve, e insistir contra um
+ * servidor que já disse não é o laço que o piso do `token.ts` do aplicativo
+ * existe para impedir.
+ */
+export class FalhaDeSessao extends Error {
+  constructor(
+    mensagem: string,
+    readonly motivo: MotivoDeSessao,
+  ) {
+    super(mensagem);
+    this.name = "FalhaDeSessao";
+  }
+}
+
+/**
+ * Como o transporte pede o token.
+ *
+ * Sem argumento, é o pedido de sempre: o token que vale agora, renovado só se
+ * estiver perto de vencer. Com `renovarJa`, é a resposta ao 401
+ * `nao_autenticado`: o servidor recusou o token que a fila apresentou, então a
+ * data de validade que o aparelho lê dele não é mais confiável, e vale tentar
+ * UM token novo. Quem implementa continua dono da trava de renovação e do piso
+ * entre tentativas, e devolve o MESMO token quando não renovou: é assim que o
+ * transporte sabe que repetir seria inútil.
+ */
+export type ObterToken = (pedido?: { renovarJa?: boolean }) => Promise<string | null>;
+
+/**
  * A coleta como ela SAI da fila para virar rascunho de novo.
  *
  * É o que `retirarParaCorrecao` devolve, e o que a tela de vistoria precisa
@@ -421,6 +475,14 @@ export type ResumoFila = {
   deOutroAutor: number;
   /** Verdadeiro enquanto um dreno está em andamento. */
   sincronizando: boolean;
+  /**
+   * A fila está parada pela SESSÃO da pessoa que está no aparelho agora, e não
+   * por rede nem por recusa de coleta. `null` quando não está. Existe separado
+   * de `pendentes` porque a frase "esperando envio" promete que sai sozinha, e
+   * isso seria mentira enquanto a pessoa não entrar de novo (ou a coordenação
+   * não reativar a conta).
+   */
+  pausadaPor: MotivoDeSessao | null;
 };
 
 export type ResultadoDreno = {
@@ -431,4 +493,10 @@ export type ResultadoDreno = {
   bloqueados: number;
   /** O dreno parou no meio porque perdeu o sinal ou foi cancelado. */
   interrompido: boolean;
+  /**
+   * O dreno parou porque a SESSÃO não vale mais (ver `FalhaDeSessao`). Ausente
+   * quando não foi isso. Os itens seguem `pendente`: nada foi bloqueado, nada
+   * foi contado como tentativa.
+   */
+  paradaPor?: MotivoDeSessao;
 };

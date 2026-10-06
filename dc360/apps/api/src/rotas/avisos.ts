@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { Banco } from "../banco/tipos.js";
+import { eRecorteDoAgente } from "./recorte-do-agente.js";
 
 /**
  * O sino de avisos do painel, do lado servidor.
@@ -211,6 +212,17 @@ export async function rotasAvisos(
       O que substitui a permissão é o que o aviso carrega: tipo, protocolo,
       instante e um complemento curto. Nome, contato, endereço, relato e
       descrição de vulnerabilidade não passam por aqui.
+
+      MAS O PROTOCOLO E O TIPO DE FATO TAMBÉM SÃO DADO, e por isso o sino do
+      AGENTE DE CAMPO é recortado à equipe dele (V2-F00-E08, AUT-13): o aparelho
+      do agente cai e é emprestado, e o sino dele entregava o protocolo e o tipo
+      de fato de ocorrência de toda equipe do município, enquanto a lista de
+      ocorrências do mesmo token já respondia 404 a elas. O recorte é o MESMO
+      de `recorte-do-agente.ts` (a equipe vem do cadastro do usuário, nunca do
+      token), aplicado à lista E à contagem: um número de não lidos maior que a
+      lista denunciaria os avisos que ela esconde. Coordenação, operador e
+      administração seguem vendo o município inteiro: o sino é a fila de
+      trabalho deles.
     */
     const quem = await app.exigirAutenticacao(req);
     const pedido = consultaSchema.parse(req.query ?? {});
@@ -383,6 +395,10 @@ export async function rotasAvisos(
         indefinida, e com teto isso vira sorteio: o aviso que caiu fora agora
         pode ser outro na consulta seguinte, e algum deles não aparece nunca.
       */
+      const paramsDaLista: unknown[] = [
+        quem.usuarioId, ate, desde ?? null, desdeId ?? null, TETO_DE_AVISOS + 1,
+      ];
+      const recorteDaLista = eRecorteDoAgente(quem, "o", paramsDaLista);
       const lista = await c.query<LinhaDeAviso>(
         /*
           A ORDEM É CRESCENTE, e essa é a única em que o corte não perde nada.
@@ -419,9 +435,10 @@ export async function rotasAvisos(
             AND ($3::timestamptz IS NULL OR a.criado_em > $3::timestamptz
                  OR ($4::uuid IS NOT NULL
                      AND a.criado_em = $3::timestamptz AND a.id > $4::uuid))
+            ${recorteDaLista}
           ORDER BY a.criado_em, a.id
           LIMIT $5`,
-        [quem.usuarioId, ate, desde ?? null, desdeId ?? null, TETO_DE_AVISOS + 1],
+        paramsDaLista,
       );
 
       const truncada = lista.rows.length > TETO_DE_AVISOS;
@@ -461,21 +478,31 @@ export async function rotasAvisos(
         acabou de cortar e o que veio antes da última pergunta. É o número que
         sobrevive ao corte: a lista pode estar truncada, e o sino continua
         dizendo a verdade sobre quanto falta.
+
+        Passa pelo MESMO recorte da lista, e junta `ocorrencias` como ela faz:
+        sem isso, o número do sino do agente incluiria os avisos de outras
+        equipes que a lista não mostra, e a diferença entre os dois números
+        seria um oráculo (quantos avisos existem fora do recorte dele).
       */
+      const paramsDaContagem: unknown[] = [quem.usuarioId, ate, TETO_DA_CONTAGEM + 1];
+      const recorteDaContagem = eRecorteDoAgente(quem, "o", paramsDaContagem);
       const contagem = await c.query<{ n: number }>(
         `SELECT count(*)::int AS n
            FROM (
              SELECT 1
                FROM avisos a
+               JOIN ocorrencias o
+                 ON o.organizacao_id = a.organizacao_id AND o.id = a.ocorrencia_id
                LEFT JOIN avisos_lidos l
                  ON l.organizacao_id = a.organizacao_id
                 AND l.aviso_id = a.id
                 AND l.usuario_id = $1
               WHERE l.usuario_id IS NULL
                 AND a.criado_em <= $2::timestamptz
+                ${recorteDaContagem}
               LIMIT $3
            ) AS amostra`,
-        [quem.usuarioId, ate, TETO_DA_CONTAGEM + 1],
+        paramsDaContagem,
       );
       const contados = contagem.rows[0]!.n;
       const naoLidosTruncado = contados > TETO_DA_CONTAGEM;
@@ -533,6 +560,14 @@ export async function rotasAvisos(
 
     return banco.comTenant(quem.organizacaoId, async (c) => {
       /*
+        O agente só marca o que ele PODE VER (o mesmo recorte do sino). Fora do
+        recorte o aviso se comporta como se não existisse: `marcados: 0`, igual
+        ao identificador de outro município. Sem isso, o "marcados: 1" confirmava
+        ao agente que um aviso de outra equipe existe.
+      */
+      const paramsDeLidos: unknown[] = [quem.usuarioId, ids];
+      const recorteDeLidos = eRecorteDoAgente(quem, "o", paramsDeLidos);
+      /*
         A inserção passa POR DENTRO de `avisos`, e não direto pela lista de
         identificadores recebida. Dois motivos, e os dois importam:
 
@@ -548,10 +583,13 @@ export async function rotasAvisos(
         `INSERT INTO avisos_lidos (organizacao_id, usuario_id, aviso_id)
          SELECT a.organizacao_id, $1, a.id
            FROM avisos a
+           JOIN ocorrencias o
+             ON o.organizacao_id = a.organizacao_id AND o.id = a.ocorrencia_id
           WHERE a.id = ANY($2::uuid[])
+            ${recorteDeLidos}
          ON CONFLICT DO NOTHING
          RETURNING aviso_id`,
-        [quem.usuarioId, ids],
+        paramsDeLidos,
       );
 
       // Quantos passaram a contar como lidos AGORA. O que já estava marcado

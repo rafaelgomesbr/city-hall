@@ -1,13 +1,21 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ROTULO_PAPEL, senhaSchema } from "@dc360/shared";
 import {
-  MODO, desativarSegundoFator, situacaoSegundoFator, trocarSenha,
-  type SituacaoSegundoFator,
+  MODO, desativarSegundoFator, encerrarMinhasSessoes, listarMinhasSessoes,
+  situacaoSegundoFator, trocarSenha,
+  type SessaoDaConta, type SituacaoSegundoFator,
 } from "../dados/repositorio";
 import { useSessaoObrigatoria } from "../estado/sessao";
-import { Aviso, AvisoDeObrigatorios, Carregando, Cartao } from "../componentes/comuns";
+import {
+  Aviso, AvisoDeObrigatorios, Carregando, Cartao, formatarDataHora,
+} from "../componentes/comuns";
 import { Campo } from "../componentes/Campo";
+import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
+import { IconeCheck } from "../componentes/Icones";
 import { AtivarSegundoFator } from "../componentes/SegundoFator";
+import {
+  SO_ESTA_SESSAO, fraseDeOutrasEncerradas, rotuloDeEncerrarOutras,
+} from "./sessoes-regras";
 import { useTitulo } from "../seo/titulo";
 
 /**
@@ -171,10 +179,166 @@ export function MinhaConta() {
             )}
           </Cartao>
 
+          <MinhasOutrasSessoes />
+
           <VerificacaoEmDuasEtapas />
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * As sessões abertas da própria conta, e o botão de sair de todas as outras.
+ *
+ * É o caminho de quem perdeu o celular ou esqueceu o painel aberto no
+ * computador da recepção, e de quem não precisa trocar a senha só para expulsar
+ * um aparelho: trocar a senha CONCEDE acesso novo, encerrar sessão só RETIRA, e
+ * por isso este botão não pede a senha atual (decisão do servidor, em
+ * `/auth/encerrar-sessoes`).
+ *
+ * A LISTA VEM ANTES DO BOTÃO porque ninguém decide derrubar o que não
+ * consegue ver: com "Chrome em Windows, entrou ontem" na tela, a pessoa
+ * reconhece o computador da recepção. A tela não recebe IP nem o user-agent
+ * inteiro, só a frase do aparelho.
+ *
+ * ESTA SESSÃO CONTINUA ABERTA, e a frase está na pergunta e na confirmação:
+ * um botão que desloga quem o aperta é um botão que ninguém aperta.
+ */
+function MinhasOutrasSessoes() {
+  const [sessoes, setSessoes] = useState<SessaoDaConta[] | null>(null);
+  const [erroDeLeitura, setErroDeLeitura] = useState<string | null>(null);
+  const [perguntando, setPerguntando] = useState(false);
+  const [encerrando, setEncerrando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [sucesso, setSucesso] = useState<string | null>(null);
+
+  const carregar = useCallback((): (() => void) => {
+    let cancelado = false;
+    setErroDeLeitura(null);
+    listarMinhasSessoes()
+      .then((lista) => { if (!cancelado) setSessoes(lista); })
+      .catch((e: unknown) => {
+        if (!cancelado) setErroDeLeitura(e instanceof Error ? e.message : String(e));
+      });
+    return () => { cancelado = true; };
+  }, []);
+
+  // No modo local não existe sessão para ler: a entrada é por escolha de perfil.
+  useEffect(() => (MODO === "local" ? undefined : carregar()), [carregar]);
+
+  async function encerrar(): Promise<void> {
+    if (encerrando) return;
+    setEncerrando(true);
+    setErro(null);
+    try {
+      const r = await encerrarMinhasSessoes();
+      setPerguntando(false);
+      setSucesso(fraseDeOutrasEncerradas(r.sessoesEncerradas));
+      carregar();
+    } catch (e: unknown) {
+      setErro(e instanceof Error ? e.message : String(e));
+    } finally {
+      setEncerrando(false);
+    }
+  }
+
+  if (MODO === "local") {
+    return (
+      <Cartao titulo="Minhas sessões">
+        <Aviso tom="info">
+          Neste painel a entrada é por escolha de perfil, sem senha e sem sessão em outros
+          aparelhos, então não há o que listar nem encerrar. Esta lista existe quando o
+          painel está ligado ao servidor da prefeitura, que é o caminho de produção.
+        </Aviso>
+      </Cartao>
+    );
+  }
+
+  const outras = sessoes ? sessoes.filter((s) => !s.atual).length : 0;
+
+  return (
+    <Cartao titulo="Minhas sessões">
+      {sucesso && <Aviso tom="sucesso">{sucesso}</Aviso>}
+
+      {/*
+        O `Carregando` da página tem 60vh de altura, que dentro de um cartão
+        empurraria o resto da tela para baixo. Aqui o mesmo desenho, no tamanho
+        do cartão.
+      */}
+      {!sessoes && !erroDeLeitura && (
+        <div className="carregando carregando--no-cartao" role="status" aria-live="polite">
+          <div className="girador" aria-hidden="true" />
+          <p>Carregando as suas sessões</p>
+        </div>
+      )}
+
+      {erroDeLeitura && (
+        <>
+          <Aviso tom="perigo">
+            Não foi possível carregar as suas sessões. {erroDeLeitura}
+          </Aviso>
+          <button type="button" className="botao botao--secundario" onClick={() => carregar()}>
+            Tentar de novo
+          </button>
+        </>
+      )}
+
+      {sessoes && (
+        <>
+          <ul className="sessoes" aria-label="Sessões abertas na sua conta">
+            {sessoes.map((s, i) => (
+              <li key={`${s.entrouEm}-${i}`} className="sessoes__item">
+                <div className="sessoes__topo">
+                  <span className="sessoes__aparelho">{s.aparelho}</span>
+                  {s.atual && (
+                    <span className="selo selo--info">
+                      <IconeCheck tamanho={12} /> Esta sessão
+                    </span>
+                  )}
+                </div>
+                <div className="sessoes__datas">
+                  <span>Entrou em {formatarDataHora(s.entrouEm)}</span>
+                  <span>Expira em {formatarDataHora(s.validaAte)}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {outras === 0 ? (
+            <p className="campo__dica" style={{ margin: 0 }}>{SO_ESTA_SESSAO}</p>
+          ) : (
+            <>
+              <p className="campo__dica" style={{ marginTop: 0 }}>
+                Encerrar as outras não mexe nesta: você continua aqui, sem precisar entrar de novo.
+              </p>
+              <button type="button" className="botao botao--perigo"
+                      onClick={() => { setErro(null); setSucesso(null); setPerguntando(true); }}>
+                Encerrar minhas outras sessões
+              </button>
+            </>
+          )}
+        </>
+      )}
+
+      <ConfirmarAcao
+        aberto={perguntando}
+        titulo="Encerrar minhas outras sessões"
+        consequencia={
+          <>
+            Os outros navegadores e aparelhos da sua conta saem agora e precisam entrar de novo
+            com a sua senha. Esta sessão continua aberta, e a senha não muda.
+          </>
+        }
+        rotuloDaAcao={rotuloDeEncerrarOutras(outras)}
+        destrutiva
+        ocupado={encerrando}
+        aoConfirmar={() => void encerrar()}
+        aoCancelar={() => setPerguntando(false)}
+      >
+        {erro && <Aviso tom="perigo">{erro}</Aviso>}
+      </ConfirmarAcao>
+    </Cartao>
   );
 }
 

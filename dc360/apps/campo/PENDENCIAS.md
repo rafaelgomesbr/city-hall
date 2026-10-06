@@ -351,3 +351,52 @@ chamar, o último item dela morre atrás do vidro.
 Nada disto foi visto em aparelho: a pílula, o indicador deslizando, o anel do
 Perfil e o cabeçalho mais alto para o sino foram provados por teste e por
 portão, e a reclamação de origem era visual.
+
+## 14. A fila pausa pela sessão e pela conta (V2-F00-E06). Falta ver no aparelho
+
+**Feito em 2026-10-06.** O transporte (`packages/campo/src/transporte.ts`) lê
+os três códigos do catálogo de `@dc360/shared` e a fila deixou de bloquear coleta
+por recusa de sessão:
+
+| Resposta da API | O que o aparelho faz |
+| --- | --- |
+| 401 `nao_autenticado` | pede UM token novo (`obterToken({ renovarJa: true })`, com a trava e o piso de `dados/token.ts`) e repete o pedido; se o token não mudou ou o pedido falha de novo, é `sessao_encerrada` |
+| 401 `sessao_encerrada` (e 401 sem código) | a fila para, o item fica `pendente`, a pessoa entra de novo e a coleta sobe com a mesma chave |
+| 403 `conta_desativada` | a fila para, o item fica `pendente`; entrar de novo não resolve, a coordenação reativa a conta |
+| 403 `sem_permissao` e as demais recusas de 4xx | continuam bloqueando o item (recusa do dado) |
+| sem token no aparelho | é `sessao_encerrada` (antes era `FalhaPermanente`, e o item bloqueava) |
+
+`ResultadoDreno.paradaPor` diz qual das duas pausas; `ResumoFila.pausadaPor`
+alimenta a faixa do topo, o aviso no alto da tela de envio e o cartão da coleta
+("Guardada"). Só a sessão encerrada traz o botão "Entrar de novo" (o mesmo ato
+da lista de hoje, que não apaga nada). As frases moram em `src/dados/pausa-da-fila.ts`.
+
+Duas decisões que o próximo precisa conhecer:
+
+- **A pausa vive só na memória da fila**, e é da pessoa que estava logada. Se o
+  aplicativo for fechado, a primeira tentativa depois de aberto descobre de novo
+  com uma requisição. Quando a fila acha que não há nada seu para enviar, a
+  pausa é limpa: ela não aparece para quem entrou depois.
+- **O laço de fundo espera 60 s, e não 15 s, enquanto a fila está pausada**
+  (`ESPERA_COM_A_FILA_PAUSADA_MS`): cada volta é uma requisição que o servidor já
+  recusou. Entrar de novo reinicia o laço na hora.
+
+**Decisão da V2-F00-E07 sobre o 403 `troca_de_senha_obrigatoria`:** fica FORA da
+etapa e continua recusa permanente do item, por três razões. (1) A E07 só mexe
+na vigência da API (papel, cadeia da sessão e senha provisória vencida), e a
+classificação desse 403 na fila é do motor offline, que a E06 fechou para os três
+códigos de acesso. (2) O aparelho praticamente não chega a ele: quem entra com a
+senha provisória é mandado ao painel para trocá-la (`src/dados/api.ts`,
+`ErroDaApi`), e redefinir a senha de alguém derruba as sessões dele (401
+`sessao_encerrada`, que já é pausa, não bloqueio). (3) Tratá-lo como pausa sem
+haver tela de troca de senha no aplicativo deixaria o item parado sem saída.
+Reabrir quando o aplicativo ganhar a tela de troca de senha.
+
+**O que falta** (validação humana): ver a frase e a coleta preservada em
+aparelho ou emulador, desativando o agente no painel durante uma coleta na fila,
+e a reativação seguida de nova entrada. O ambiente desta etapa não renderiza o
+app Expo; a prova foi por teste de componente (`src/ui/fila-pausada-pela-sessao.test.tsx`),
+e a foto do aparelho continua pendente. Fora do escopo e ainda aberto: o 403
+`troca_de_senha_obrigatoria` (senha provisória) e o 403 `acesso_suspenso` nas
+rotas que não são da fila ainda são lidos como recusa permanente do item pelo
+transporte; a API responde 503 à fila no caso da suspensão, que é temporário.

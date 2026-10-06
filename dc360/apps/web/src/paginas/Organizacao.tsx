@@ -197,6 +197,16 @@ function CartaoDeArmazenamento() {
 }
 
 /**
+ * Quanto tempo o endereço do arquivo baixado continua valendo.
+ *
+ * Liberar logo depois de `click()` (como era) pode cancelar o download: o
+ * navegador só LÊ o endereço quando começa a baixar, e num pacote grande isso
+ * não é no mesmo instante do clique. Meio minuto sobra para o início do
+ * download e ainda devolve a memória do pacote inteiro à aba.
+ */
+const MS_ATE_LIBERAR_O_ARQUIVO = 30_000;
+
+/**
  * A saída de município: pacote completo, ato do administrador, dos dois
  * jeitos (ver `apps/api/src/rotas/saida.ts`).
  */
@@ -213,8 +223,12 @@ function CartaoDeSaida() {
       const ancora = document.createElement("a");
       ancora.href = url;
       ancora.download = nome;
+      // Fora da página o Firefox antigo ignora o clique, e o botão pareceria
+      // quebrado só nele.
+      document.body.appendChild(ancora);
       ancora.click();
-      URL.revokeObjectURL(url);
+      ancora.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), MS_ATE_LIBERAR_O_ARQUIVO);
     } catch (e: unknown) {
       setErro(e instanceof Error ? e.message : String(e));
     } finally {

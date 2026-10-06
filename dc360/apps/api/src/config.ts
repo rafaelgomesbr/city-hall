@@ -374,6 +374,17 @@ const esquema = z.object({
   /** Endereço público do painel, para montar o link de redefinição de senha. */
   URL_PAINEL: z.string().url().default("http://localhost:5173"),
   RECUPERACAO_MINUTOS: z.coerce.number().int().min(5).max(120).default(30),
+  /**
+   * Quantos pedidos de recuperação por email cabem em uma hora para o MESMO
+   * endereço de email, venha de onde vier.
+   *
+   * O limite por endereço de rede (`LOGIN_POR_IP`) não vê cem máquinas
+   * martelando o mesmo email até encher a caixa de entrada de uma pessoa; este
+   * teto vê. O pedido acima do teto responde 202 igual aos outros e não envia
+   * nada: dizer "muitos pedidos" só para quem tem conta seria um oráculo.
+   * Cinco cobre quem perdeu a mensagem, errou o email e tentou de novo.
+   */
+  RECUPERACAO_POR_EMAIL_HORA: z.coerce.number().int().min(1).max(60).default(5),
 
   /**
    * A chave de navegador do Google Maps que o PAINEL usa para desenhar as ruas.

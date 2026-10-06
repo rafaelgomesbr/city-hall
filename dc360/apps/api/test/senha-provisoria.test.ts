@@ -169,6 +169,13 @@ describe("A senha temporária de quem administra", () => {
     }
   }, 300_000);
 
+  /*
+    Este caso ficou verde sozinho na V2-F00-E04 (a vigência religada na escrita
+    recusa a troca) e a E07 o manteve como está. O que a E07 acrescentou é o
+    par que faltava: `trocarSenha` recusa por conta própria quando o prazo já
+    passou, sem depender de a rota ter conferido antes. Esse par é provado
+    chamando o serviço direto, em `familia-da-sessao.test.ts`.
+  */
   it("uma sessão viva cuja senha provisória venceu no meio não escreve nem renova", async () => {
     const temporaria = await redefinirDiego();
     try {
@@ -181,7 +188,7 @@ describe("A senha temporária de quem administra", () => {
         payload: { senhaAtual: temporaria, senha: SENHA },
       });
       expect(troca.statusCode, troca.body).toBe(401);
-      expect(troca.json().erro).toBe("sessao");
+      expect(troca.json().erro).toBe("sessao_encerrada");
       const renovado = await app.inject({
         method: "POST", url: "/auth/renovar", payload: { renovacao: sessao.renovacao },
       });

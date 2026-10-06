@@ -212,7 +212,7 @@ describe("Redefinição pelo link", () => {
       payload: { token: "token-completamente-inventado", senha: "uma-senha-qualquer-longa" },
     });
     expect(r.statusCode).toBe(401);
-    expect(r.json().mensagem).toContain("nao vale mais");
+    expect(r.json().mensagem).toContain("não vale mais");
   }, 60_000);
 
   it("recusa senha curta antes de tocar no banco", async () => {

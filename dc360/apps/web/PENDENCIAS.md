@@ -179,3 +179,93 @@ aparelho) não passa por aqui: ele grava o que o aparelho dá. Enquanto o teto
 não existir no banco ou no esquema compartilhado, a mesma coluna guarda seis
 casas quando veio do painel e quinze quando veio do celular, e as duas telas
 mostram números com aparência de precisão diferente para o mesmo tipo de dado.
+
+## 6. Telas de sessões e de redefinição de senha (V2-F00-E09): o que ficou de fora
+
+Feitas: em Usuários, **Redefinir senha** e **Encerrar sessões** por linha (só em
+quem o posto deixa administrar, nunca na própria conta, com confirmação que
+repete o nome); a janela da **senha temporária**, mostrada uma única vez; em
+Minha conta, **Minhas sessões** com a marca "Esta sessão" e o botão de encerrar
+as outras. O modo de demonstração explica em vez de oferecer.
+
+O que não é desta etapa e continua aberto:
+
+1. **Reset do segundo fator de outra pessoa** (F03-E11), **tela consolidada de
+   conta e segurança** (F10-E01) e **expurgo de IP e user-agent** (F05-E12).
+2. **A senha temporária é conhecida por quem a sorteou** (IDN-18 do REL:06):
+   quem administra a vê e a dita. Ela vale 72 horas e a primeira entrada exige
+   troca, mas durante essa janela duas pessoas a conhecem. O fim disso é o
+   convite por link de uso único (F03-E10).
+3. **A lista de usuários em 390 px** rola na horizontal, com o aviso de sempre, e
+   os quatro botões da linha ficam na última coluna, fora da primeira dobra. Foi
+   deixado assim de propósito: transformar a tabela em cartões no celular é
+   decisão de interface para a F10, e mexer nela aqui ampliaria o escopo.
+4. **O aviso passageiro no celular** (`Toast`) é desenhado em cima da barra de
+   menu fixa de baixo. Vem da peça, não desta etapa, e vale também para o
+   aviso de registro da ocorrência.
+5. **"Encerrar as outras"** preserva a sessão pelo identificador que o token traz
+   (`preservarSessaoId`). Quem clica com um token de acesso emitido antes da
+   última renovação derruba a sessão viva da própria cadeia (e o token cai em
+   seguida). A lista de "Minhas sessões" já marca "esta" por família; alinhar o
+   encerramento a ela é da F03-E02 (renovação em uma transação só).
+
+## 7. Recuperação de senha por e-mail (V2-F00-E10): o que ficou de fora
+
+Feitas: as duas telas (`/recuperar-senha` e `/redefinir-senha`) com todos os
+estados (verificando, desligada, formulário, enviando, enviado, erro de campo,
+limite de pedidos, falha de rede e de servidor, link que não vale mais, link
+incompleto, senhas diferentes, senha curta, sucesso), o token fora da barra de
+endereço, `Referrer-Policy: no-referrer` e `noindex` só nessas duas rotas, e o
+pedido sem sessão (não leva token nem derruba a sessão de quem está logado).
+
+O que não é desta etapa e continua aberto:
+
+1. **O envio real de e-mail** (provedor e domínio verificado) é o CP-19. Até
+   lá a produção segue desligada e a tela manda procurar quem administra.
+2. **A política de referenciador é só das duas rotas**, e não do painel inteiro
+   como o texto da etapa dizia: a chave do Google Maps é restrita por
+   referenciador HTTP, e `no-referrer` global faria o Google recusá-la. As saídas
+   dessas duas telas recarregam a página de propósito (para a política não seguir
+   a pessoa para dentro do painel). Se um dia o mapa deixar de depender de
+   referenciador, a política pode subir para o painel todo.
+3. **O header só se vê na Vercel**: `vite preview` não aplica o `vercel.json`. A
+   prova é o teste que lê o arquivo (`apps/web/test/recuperar-senha.test.ts`); a
+   conferência na URL de produção fica para o primeiro deploy depois desta etapa.
+4. **Sem mostrar a senha** (olho para ver o que se digita) e sem medidor de
+   força: a etapa não pede, e a regra da casa é comprimento mínimo sem regra de
+   composição. Fica como melhoria de interface da F10.
+5. **A tela não sabe por quanto tempo o link vale** (o servidor decide por
+   `RECUPERACAO_MINUTOS`), então diz "pouco tempo". Se o município quiser o número
+   na tela, a leitura de `GET /auth/recuperacao` pode devolvê-lo.
+
+
+## 8. Baixar o pacote de saída (V2-F00-E11): o que ficou de fora
+
+Feitas: o botão chama `POST /saida/pacote.zip` (o caminho de antes, `/pacote.zip`, nunca
+existiu: todo clique dava 404), passa por `chamar` (um 401 de token vencido renova UMA
+vez e repete), a recusa do servidor chega à tela com a frase dele, a rede que cai
+(inclusive no meio do arquivo) diz "O arquivo não foi baixado", e o endereço do arquivo só
+é liberado 30 segundos depois do clique, para o download começar antes. A prova é a seção
+28 de `test/fluxo-api.e2e.mjs`, contra a API real.
+
+O que não é desta etapa e continua aberto:
+
+1. **Os outros downloads seguem com `fetch` solto**: `baixarCsvDeOcorrencias`,
+   `abrirDocumento` e `abrirOficio` não renovam o token em 401 nem passam pela
+   política de sessão morta. O mesmo conserto (`chamar` com `arquivo: true`) vale para
+   eles. Fica para a E23 (teste de contrato geral) ou para a F10, que mexe nessas telas.
+2. **O pacote ainda é montado inteiro na memória do servidor** antes do primeiro byte
+   (F07-E06): o botão fica em "Gerando" durante todo esse tempo, sem barra de progresso,
+   e o navegador também guarda o ZIP inteiro na memória da aba (`blob()`) antes de
+   entregá-lo ao disco. Para um município grande isso pesa; o pacote em fluxo, sem
+   memória, é da F07-E06 (o lado do navegador precisará acompanhar).
+3. **A frase de quem não administra** vem de `exigirPermissao` ("Seu perfil não tem
+   permissão para alterar os dados do município."): a verdade, mas fala em "alterar" onde
+   a pessoa quis "baixar". Só aparece se o papel mudar com a tela aberta (a rota
+   `/organizacao` já é fechada a quem não administra), então não pesa; reescrever a
+   frase da rota para falar de saída é uma linha na API, a decidir com o texto do
+   catálogo de permissões (F03).
+4. **Município com o acesso suspenso não baixa o pacote** (a rota é uma escrita, e toda
+   escrita confere a suspensão). É o comportamento que a etapa pediu e está provado, mas
+   é uma decisão de contrato: se o município suspenso precisar poder sair, a rota precisa
+   de exceção própria, e quem decide é Rafael com o jurídico (CP-29).

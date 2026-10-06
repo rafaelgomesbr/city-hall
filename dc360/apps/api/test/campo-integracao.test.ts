@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { SignJWT } from "jose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   criarFilaDeSincronizacao,
@@ -6,6 +7,7 @@ import {
   lojaEmMemoria,
   transporteHttp,
   type ChaveValor,
+  type ObterToken,
 } from "@dc360/campo";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
 import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
@@ -326,7 +328,15 @@ describe("Fila de campo contra a API", () => {
     expect(gravada.rows[0]!.n).toBe("1");
   }, 120_000);
 
-  it("token vencido bloqueia o item em vez de martelar o login do agente", async () => {
+  it("token recusado e sem renovação possível pausa a fila: o item NÃO é bloqueado nem descartado", async () => {
+    /*
+      Reescrito na V2-F00-E06 (decisão superada). O teste antigo afirmava que o
+      token vencido BLOQUEAVA o item, para não martelar o login do agente. O
+      motivo continua valendo e agora é cumprido sem perder a coleta: uma
+      renovação por pedido, e a fila pausa. Os cenários de sessão encerrada e
+      conta desativada contra a API real estão no bloco "Fila de campo quando a
+      SESSÃO ou a CONTA cai", mais abaixo.
+    */
     const alvo = await prepararOcorrenciaEmCampo("Rua Doutor Peixoto, 909, Jardim Bela Vista");
     const chave = "aaaaaaaa-0000-4000-8000-000000000004";
 
@@ -343,10 +353,11 @@ describe("Fila de campo contra a API", () => {
     await fila.enfileirar(envelopeDe(alvo.id, chave), { protocolo: alvo.protocolo });
     const r = await fila.drenar();
 
-    // Insistir com token morto estouraria o limite de tentativas e bloquearia
-    // a conta de quem está trabalhando em campo.
-    expect(r.bloqueados).toBe(1);
-    expect((await fila.itens())[0]!.tentativas).toBe(1);
+    expect(r.bloqueados).toBe(0);
+    expect(r.paradaPor).toBe("sessao_encerrada");
+    const [item] = await fila.itens();
+    expect(item!.estado).toBe("pendente");
+    expect(item!.tentativas).toBe(0);
   }, 60_000);
 
   it("papel sem permissão bloqueia sem gastar bateria repetindo", async () => {
@@ -399,6 +410,173 @@ describe("Fila de campo contra a API", () => {
     // número disparar, a fila está gravando em laço, e em aparelho de campo
     // isso é bateria e desgaste de memória flash.
     expect(loja.escritas - antes).toBeLessThanOrEqual(3);
+  }, 60_000);
+});
+
+describe("Fila de campo quando a SESSÃO ou a CONTA cai (V2-F00-E06)", () => {
+  /*
+    O que se prova aqui é o que o roteiro de ponta a ponta do aparelho faria:
+    o agente coleta no morro, a coordenação desativa a conta (ou a sessão cai)
+    ANTES de o sinal voltar, e o dreno recebe 401 ou 403 do servidor de
+    verdade. A vistoria nunca pode virar "recusada": ela fica no aparelho, e
+    sobe com a mesma chave quando a pessoa volta.
+
+    As respostas vêm da API real (catálogo de `@dc360/shared`), e não de um
+    dublê: se a API mudar o código ou o status, estes casos reprovam.
+  */
+  const SEGREDO = "segredo-de-integracao-com-mais-de-trinta-e-dois";
+
+  function filaCom(loja: ChaveValor, obterToken: ObterToken) {
+    return criarFilaDeSincronizacao({
+      deposito: depositoSobreChaveValor(loja),
+      transporte: transporteHttp({ baseUrl: endereco, obterToken }),
+      sessaoAtual: () => SESSAO_DO_DIEGO,
+      dormir: async () => undefined,
+    });
+  }
+
+  async function entrarComoAgente(): Promise<string> {
+    const r = await app.inject({
+      method: "POST", url: "/auth/entrar", payload: { email: AGENTE, senha: SENHA },
+    });
+    if (r.statusCode !== 200) throw new Error(`login do agente falhou: ${r.body}`);
+    return r.json().acesso as string;
+  }
+
+  async function vistoriasComAChave(chave: string): Promise<number> {
+    const r = await mem.bruto.query<{ n: string }>(
+      "SELECT count(*)::text AS n FROM vistorias WHERE idempotency_key = $1", [chave],
+    );
+    return Number(r.rows[0]!.n);
+  }
+
+  it("conta desativada entre enfileirar e drenar: 403, o item fica no aparelho, e sobe depois da reativação", async () => {
+    const alvo = await prepararOcorrenciaEmCampo("Rua das Hortênsias, 31, Alto da Serra");
+    const chave = "bbbbbbbb-0000-4000-8000-000000000001";
+    const loja = lojaEmMemoria();
+    const token = await entrarComoAgente();
+    const fila = filaCom(loja, async () => token);
+
+    await fila.enfileirar(envelopeDe(alvo.id, chave), { protocolo: alvo.protocolo });
+
+    // A coordenação desativa o agente, sem encerrar a sessão (o estado que a vigência pega sozinha).
+    await mem.bruto.query("UPDATE usuarios SET ativo = false WHERE id = $1", [SESSAO_DO_DIEGO.usuarioId]);
+    try {
+      const r = await fila.drenar();
+
+      expect(r.paradaPor).toBe("conta_desativada");
+      expect(r.bloqueados).toBe(0);
+      const [item] = await fila.itens();
+      expect(item!.estado).toBe("pendente");
+      expect(item!.tentativas).toBe(0);
+      expect((await fila.resumo()).pausadaPor).toBe("conta_desativada");
+      expect(await vistoriasComAChave(chave), "nada pode ter chegado ao banco").toBe(0);
+
+      // A coordenação reativa; a pessoa entra de novo. A MESMA coleta sobe, uma vez só.
+      await mem.bruto.query("UPDATE usuarios SET ativo = true WHERE id = $1", [SESSAO_DO_DIEGO.usuarioId]);
+      const novaEntrada = await entrarComoAgente();
+      const filaDepois = filaCom(loja, async () => novaEntrada);
+      const subiu = await filaDepois.drenar();
+
+      expect(subiu.enviados).toBe(1);
+      expect(subiu.paradaPor).toBeUndefined();
+      expect(await vistoriasComAChave(chave)).toBe(1);
+    } finally {
+      await mem.bruto.query("UPDATE usuarios SET ativo = true WHERE id = $1", [SESSAO_DO_DIEGO.usuarioId]);
+    }
+  }, 120_000);
+
+  it("sessão encerrada por quem administra: 401 sessao_encerrada, item pendente, e sobe depois da nova entrada", async () => {
+    const alvo = await prepararOcorrenciaEmCampo("Rua do Mirante, 77, Alto da Serra");
+    const chave = "bbbbbbbb-0000-4000-8000-000000000002";
+    const loja = lojaEmMemoria();
+    const token = await entrarComoAgente();
+    const sid = JSON.parse(Buffer.from(token.split(".")[1]!, "base64url").toString("utf8")).sid as string;
+    const fila = filaCom(loja, async () => token);
+
+    await fila.enfileirar(envelopeDe(alvo.id, chave), { protocolo: alvo.protocolo });
+    // Só ESTA sessão cai: o token compartilhado dos outros testes segue vivo.
+    await mem.bruto.query(
+      "UPDATE sessoes SET revogada_em = now(), motivo_revogacao = 'encerrada por quem administra' WHERE id = $1",
+      [sid],
+    );
+
+    const r = await fila.drenar();
+
+    expect(r.paradaPor).toBe("sessao_encerrada");
+    expect(r.bloqueados).toBe(0);
+    const [item] = await fila.itens();
+    expect(item!.estado).toBe("pendente");
+    expect(item!.tentativas).toBe(0);
+    expect(await vistoriasComAChave(chave)).toBe(0);
+
+    const novaEntrada = await entrarComoAgente();
+    const subiu = await filaCom(loja, async () => novaEntrada).drenar();
+    expect(subiu.enviados).toBe(1);
+    expect(await vistoriasComAChave(chave)).toBe(1);
+  }, 120_000);
+
+  it("token vencido (401 nao_autenticado): renova UMA vez e a coleta sobe, sem pausar", async () => {
+    const alvo = await prepararOcorrenciaEmCampo("Rua das Orquídeas, 15, Alto da Serra");
+    const chave = "bbbbbbbb-0000-4000-8000-000000000003";
+    const agora = Math.floor(Date.now() / 1000);
+    const vencido = await new SignJWT({
+      org: SESSAO_DO_DIEGO.organizacaoId, papel: "agente_campo", nome: SESSAO_DO_DIEGO.nome,
+      sid: "00000000-0000-4000-8000-000000000000",
+    })
+      .setProtectedHeader({ alg: "HS256", typ: "JWT" })
+      .setSubject(SESSAO_DO_DIEGO.usuarioId)
+      .setIssuer("dc360-api")
+      .setAudience("dc360")
+      .setIssuedAt(agora - 1200)
+      .setExpirationTime(agora - 300)
+      .sign(new TextEncoder().encode(SEGREDO));
+    const vivo = await entrarComoAgente();
+    let renovacoes = 0;
+    const fila = filaCom(lojaEmMemoria(), async (pedido) => {
+      if (pedido?.renovarJa) { renovacoes += 1; return vivo; }
+      return vencido;
+    });
+
+    await fila.enfileirar(envelopeDe(alvo.id, chave), { protocolo: alvo.protocolo });
+    const r = await fila.drenar();
+
+    expect(r.enviados).toBe(1);
+    expect(r.paradaPor).toBeUndefined();
+    expect(renovacoes).toBe(1);
+    expect(await vistoriasComAChave(chave)).toBe(1);
+  }, 120_000);
+
+  it("token vencido e a renovação não muda nada: a fila PAUSA, sem laço contra o servidor", async () => {
+    const alvo = await prepararOcorrenciaEmCampo("Rua das Begônias, 9, Alto da Serra");
+    const chave = "bbbbbbbb-0000-4000-8000-000000000004";
+    let pedidosDeRenovacao = 0;
+    const fila = filaCom(lojaEmMemoria(), async (pedido) => {
+      if (pedido?.renovarJa) pedidosDeRenovacao += 1;
+      return "token.completamente.invalido";
+    });
+
+    await fila.enfileirar(envelopeDe(alvo.id, chave), { protocolo: alvo.protocolo });
+    const r = await fila.drenar();
+
+    expect(r.paradaPor).toBe("sessao_encerrada");
+    expect(pedidosDeRenovacao, "uma renovação por pedido, nunca em laço").toBe(1);
+    expect((await fila.itens())[0]!.estado).toBe("pendente");
+    expect(await vistoriasComAChave(chave)).toBe(0);
+  }, 60_000);
+
+  it("papel sem permissão (403 sem_permissao) continua BLOQUEANDO: só a sessão é poupada", async () => {
+    const alvo = await prepararOcorrenciaEmCampo("Rua das Camélias, 4, Alto da Serra");
+    const fila = filaCom(lojaEmMemoria(), async () => tokenCoordenador);
+
+    await fila.enfileirar(envelopeDe(alvo.id, "bbbbbbbb-0000-4000-8000-000000000005"), {
+      protocolo: alvo.protocolo,
+    });
+    const r = await fila.drenar();
+
+    expect(r.bloqueados).toBe(1);
+    expect(r.paradaPor).toBeUndefined();
+    expect((await fila.itens())[0]!.estado).toBe("bloqueado");
   }, 60_000);
 });
 
