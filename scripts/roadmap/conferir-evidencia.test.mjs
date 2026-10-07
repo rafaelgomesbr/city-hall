@@ -171,6 +171,23 @@ test("INDEX.md: bate só normalizando CRLF vira AVISO, não FALHA", () => {
   }
 });
 
+test("INDEX.md: índice feito com CRLF e arquivo em LF (Windows para Linux) também vira AVISO", () => {
+  const r = repoComEvidencia();
+  try {
+    writeFileSync(join(r.pasta, "RESUMO.md"), "# Resumo\r\n\r\nFatos.\r\n");
+    gravarIndice(r.pasta);
+    writeFileSync(join(r.pasta, "RESUMO.md"), "# Resumo\n\nFatos.\n");
+    const res = conferirIndice(r.pasta);
+    assert.deepEqual(res.map((x) => x.nivel), ["OK", "AVISO"]);
+    assert.match(res[1].mensagem, /LF para CRLF/);
+    // Conteúdo realmente diferente continua sendo FALHA.
+    writeFileSync(join(r.pasta, "RESUMO.md"), "# Resumo\n\nOutro texto.\n");
+    assert.deepEqual(conferirIndice(r.pasta).map((x) => x.nivel), ["FALHA"]);
+  } finally {
+    r.limpar();
+  }
+});
+
 test("segredos: cada padrão é pego, e nunca com o valor na mensagem", () => {
   const pasta = mkdtempSync(join(tmpdir(), "roadmap-segredo-"));
   try {

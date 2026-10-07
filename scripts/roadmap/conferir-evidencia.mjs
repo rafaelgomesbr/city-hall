@@ -148,9 +148,13 @@ export function conferirIndice(pasta) {
     }
     const bytes = readFileSync(join(pasta, arquivo));
     if (sha256(bytes) === esperado) continue;
-    // O índice de uma máquina com CRLF e o arquivo de outra: bate se as quebras de linha forem normalizadas.
-    const lf = Buffer.from(bytes.toString("utf8").replace(/\r\n/g, "\n"), "utf8");
+    // O índice de uma máquina e o arquivo de outra: bate se as quebras de linha forem normalizadas, nos dois sentidos.
+    // CRLF no índice e LF no disco acontece quando o índice nasceu no Windows e o checkout é de Linux (o .gitattributes guarda LF).
+    const texto = bytes.toString("utf8").replace(/\r\n/g, "\n");
+    const lf = Buffer.from(texto, "utf8");
+    const crlf = Buffer.from(texto.replace(/\n/g, "\r\n"), "utf8");
     if (sha256(lf) === esperado) avisos.push(`${arquivo} só bate com o SHA-256 normalizando CRLF para LF`);
+    else if (sha256(crlf) === esperado) avisos.push(`${arquivo} só bate com o SHA-256 normalizando LF para CRLF`);
     else problemas.push(`${arquivo} tem SHA-256 diferente do INDEX.md`);
   }
   for (const [arquivo] of listados) {
