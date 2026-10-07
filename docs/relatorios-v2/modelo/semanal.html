@@ -1,0 +1,170 @@
+<!doctype html>
+<!--
+  ESQUELETO do relatório semanal de evolução. Não é um relatório: é a estrutura.
+
+  Como usar (skill relatorio-semanal):
+    1. Rode scripts/roadmap/coletar-relatorio.mjs e escreva a coleta em docs/relatorios-v2/semanais/AAAA-MM-DD.json.
+    2. Copie este arquivo para docs/relatorios-v2/semanais/AAAA-MM-DD.html e troque cada {{...}}.
+       Qualquer {{ que sobrar reprova na conferência.
+    3. Rode scripts/roadmap/conferir-relatorio.mjs e depois scripts/roadmap/gerar-pdf.mjs.
+
+  Regras de redação (a conferência recusa várias delas):
+    - Tom de quem presta contas ao sócio: direto, humano, sem jargão. Diga o IMPACTO, não o arquivo.
+      Ruim: "Middleware de vigência voltou ao comTenant".
+      Bom:  "A segurança de sessão foi corrigida para impedir que contas desativadas continuem operando".
+    - Nunca escreva mais forte que o status registrado:
+        IMPLEMENTADA, EM VALIDAÇÃO e EM ANDAMENTO com "falta validação": "implementado, aguarda validação".
+        VALIDADA: "validado". VALIDADA COM PENDÊNCIA HUMANA: "validado, falta <o quê>".
+        CONCLUÍDA: "concluído". CONCLUÍDA COM RISCO ACEITO: "concluído com risco aceito", nunca só "concluído".
+        REPROVADA: "em correção". BLOQUEADA: "bloqueado por <motivo>". "Fase concluída" só com gate APROVADO.
+    - Todo item que fala de uma etapa leva data-etapa e data-status (o status REGISTRADO, igual ao da coleta).
+    - Sem travessão, sem segredo, sem rota, nome de arquivo nem passo de exploração. Segurança em nível executivo.
+    - Seção sem conteúdo no período continua existindo e diz "Nada neste período."
+    - Esta caixa de comentário pode ficar: ela não aparece na página.
+-->
+<html lang="pt-BR" data-relatorio="semanal" data-desde="{{AAAA-MM-DD do início}}" data-ate="{{AAAA-MM-DD do fim}}" data-fase-atual="{{Fnn}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Defesa Civil 360, relatório semanal {{AAAA-MM-DD}}</title>
+<meta name="description" content="Relatório semanal de evolução do Defesa Civil 360: período, onde estamos, o que foi implementado, validado e concluído, bloqueios e próximos passos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../modelo/relatorio.css">
+<style>:root { --cabecalho-pagina: "Defesa Civil 360 | Relatório semanal | {{AAAA-MM-DD do início}} a {{AAAA-MM-DD do fim}}"; }</style>
+</head>
+<body>
+<div class="folha">
+
+<header>
+  <div class="marca-topo">
+    <div class="brasao" aria-hidden="true">DC</div>
+    <div><div class="n">Defesa Civil 360</div><div class="u">Relatório interno entre sócios</div></div>
+  </div>
+  <p class="eyebrow">Defesa Civil 360</p>
+  <h1>Relatório semanal de evolução</h1>
+  <dl class="meta">
+    <div><dt>Período</dt><dd>{{DD/MM/AAAA}} a {{DD/MM/AAAA}}</dd></div>
+    <div><dt>Fase atual</dt><dd>{{Fnn, nome da fase, ordem N de 36}}</dd></div>
+    <div><dt>Gate atual</dt><dd>{{Gnn, nome, status registrado}}</dd></div>
+    <div><dt>Situação</dt><dd><span class="situacao" data-situacao="{{NO RUMO | ATENÇÃO | BLOQUEADO}}">{{NO RUMO | ATENÇÃO | BLOQUEADO}}</span></dd></div>
+  </dl>
+  <p class="motivo-da-situacao">{{Uma frase com o motivo da situação. NO RUMO só sem bloqueio, sem regressão e sem gate reaberto.}}</p>
+</header>
+
+<main>
+
+<section data-secao="resumo">
+  <h2>Resumo executivo</h2>
+  <div class="destaque">
+    <p>{{Três a cinco frases: onde a semana deixou o projeto, o que de fato foi provado, o que não foi, e o que depende de quem.}}</p>
+  </div>
+</section>
+
+<section data-secao="onde-estamos">
+  <h2>Onde estamos</h2>
+  <p class="sub">Só as fases que importam agora: as concluídas, a atual e as duas seguintes. O roteiro completo tem 36 fases e não cabe aqui.</p>
+  <div class="rolavel tabela-curta">
+    <table>
+      <thead><tr><th>Fase</th><th>Gate</th><th>Momento</th></tr></thead>
+      <tbody>
+        <!-- Uma linha por fase. data-gate e data-status iguais ao registrado. Momento: concluída, atual ou próxima. -->
+        <tr data-gate="{{Gnn}}" data-status="{{status registrado do gate}}"><td>{{Fnn nome}}</td><td>{{Gnn nome}}</td><td><span class="pilula">{{status do gate}}</span> {{atual | próxima}}</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>{{Uma frase sobre a fase atual: quantas etapas tem e em que ponto estão, sem inflar.}}</p>
+</section>
+
+<section data-secao="implementado">
+  <h2>O que foi implementado (aguarda validação)</h2>
+  <p class="sub">Trabalho feito e medido por quem o implementou. Ainda não passou pela validação independente: não conta como pronto.</p>
+  <div class="rolavel">
+    <table>
+      <thead><tr><th>Etapa</th><th>O que mudou para o produto</th><th>Situação</th></tr></thead>
+      <tbody>
+        <!-- Uma linha por etapa (ou por grupo curto de etapas, uma linha cada). Diga o impacto. -->
+        <tr data-etapa="{{V2-Fnn-Enn}}" data-status="{{status registrado}}"><td class="id">{{Fnn-Enn}}</td><td>{{O que isso muda, em uma ou duas frases.}}</td><td class="estado"><span class="pilula">Implementado, aguarda validação</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section data-secao="validado">
+  <h2>O que foi validado</h2>
+  <p class="sub">Provado por validador independente sobre um commit fixo. Falta, quando houver, uma conferência humana: ela aparece junto.</p>
+  <p class="vazio">{{Nada neste período. | tabela no mesmo formato da anterior, com "Validado" ou "Validado, falta <o quê>"}}</p>
+</section>
+
+<section data-secao="concluido">
+  <h2>O que foi concluído</h2>
+  <p class="sub">Validado e com as pendências humanas resolvidas, com evidência arquivada.</p>
+  <p class="vazio">{{Nada neste período. | tabela no mesmo formato, com "Concluído"}}</p>
+</section>
+
+<!-- Só quando houver risco aceito vigente ou etapa CONCLUÍDA COM RISCO ACEITO. Sem risco, apague a seção inteira. -->
+<section data-secao="risco-aceito">
+  <h2>Seguimos com risco aceito</h2>
+  <p class="sub">Itens que seguiram sem a prova completa por decisão registrada de quem era dono do critério. Não é o mesmo que provado.</p>
+  <ul class="limpa">
+    <li data-etapa="{{V2-Fnn-Enn}}" data-status="CONCLUÍDA COM RISCO ACEITO"><span class="t">{{Fnn-Enn}}: concluído com risco aceito.</span> <span class="d">{{O que ficou sem prova, o risco, a mitigação, o dono e até quando vale.}}</span></li>
+  </ul>
+</section>
+
+<section data-secao="bloqueios">
+  <h2>Bloqueios</h2>
+  <p class="sub">Separados por quem pode destravar. Um bloqueio só some quando a causa some e a etapa é validada de novo.</p>
+  <div class="bloqueios">
+    <div data-bloqueio="tecnico"><h3>Técnico</h3>{{lista com <li data-etapa data-status> ou "Nenhum."}}</div>
+    <div data-bloqueio="rafael"><h3>Rafael</h3>{{decisões e ações que só o Rafael faz, ou "Nenhum."}}</div>
+    <div data-bloqueio="alyson"><h3>Alyson</h3>{{decisões de domínio, ou "Nenhum."}}</div>
+    <div data-bloqueio="juridico-dpo"><h3>Jurídico e DPO</h3>{{parecer de profissional, ou "Nenhum."}}</div>
+    <div data-bloqueio="externo"><h3>Externo</h3>{{município, fornecedor, loja, ou "Nenhum."}}</div>
+  </div>
+</section>
+
+<section data-secao="decisoes-tomadas">
+  <h2>Decisões tomadas</h2>
+  <p class="vazio">{{Nada neste período. | lista: decisão em uma frase, quem decidiu e o efeito prático}}</p>
+</section>
+
+<section data-secao="decisoes-proximas">
+  <h2>Decisões próximas</h2>
+  <p class="vazio">{{Nada neste período. | lista: o que precisa ser decidido, por quem, e o que fica parado até lá}}</p>
+</section>
+
+<section data-secao="riscos">
+  <h2>Riscos principais</h2>
+  <p class="vazio">{{Dois a quatro riscos reais, cada um com o efeito no prazo ou na confiança, em linguagem comum.}}</p>
+</section>
+
+<section data-secao="horizontes">
+  <h2>Agora, a seguir, depois</h2>
+  <div class="horizontes">
+    <div data-secao="agora"><h3>Agora</h3>{{o que está sendo feito nesta semana}}</div>
+    <div data-secao="a-seguir"><h3>A seguir</h3>{{o que entra logo depois}}</div>
+    <div data-secao="depois"><h3>Depois</h3>{{o que vem na sequência, sem prometer data}}</div>
+  </div>
+</section>
+
+<section data-secao="proximo-passo">
+  <h2>Próximo passo</h2>
+  <p>{{Uma ação concreta, com quem faz.}}</p>
+</section>
+
+<section data-secao="observacao-gestao">
+  <h2>Observação de gestão</h2>
+  <p class="sub">Espaço do Rafael. O sistema nunca preenche.</p>
+  <div class="observacao-de-gestao" aria-label="Espaço em branco para a observação do Rafael"></div>
+</section>
+
+</main>
+
+<footer data-sha="{{SHA completo ou de 7 caracteres da coleta}}">
+  <p>Gerado em {{DD/MM/AAAA}} a partir do estado do repositório no commit {{sha7}} (ramo {{ramo}}). É uma visão do STATUS mantido pelo processo, não uma nova auditoria. Nada aqui foi enviado a ninguém: a revisão e o envio são do Rafael.</p>
+</footer>
+
+</div>
+</body>
+</html>

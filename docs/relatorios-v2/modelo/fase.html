@@ -1,0 +1,139 @@
+<!doctype html>
+<!--
+  ESQUELETO do relatório de conclusão de fase. Não é um relatório: é a estrutura.
+
+  Só existe depois que o gate da fase está APROVADO (ou APROVADO COM RISCO ACEITO) e o merge foi feito
+  (skill relatorio-de-fase). Antes disso, não se gera: "fase concluída" sem gate aprovado é o erro que a
+  conferência existe para impedir.
+
+  Como usar:
+    1. Rode scripts/roadmap/coletar-relatorio.mjs com --desde <início da fase> --fase Fnn e grave a coleta em
+       docs/relatorios-v2/fases/Fnn.json.
+    2. Copie este arquivo para docs/relatorios-v2/fases/Fnn.html e troque cada {{...}}.
+    3. Rode scripts/roadmap/conferir-relatorio.mjs e depois scripts/roadmap/gerar-pdf.mjs.
+
+  As regras de redação são as do esqueleto semanal (tom executivo, impacto em vez de arquivo, nunca mais forte
+  que o status registrado, data-etapa e data-status em todo item de etapa, sem travessão, sem segredo, sem
+  detalhe explorável). Aqui, além disso: os riscos aceitos aparecem À PARTE na seção do gate, nunca misturados
+  com o que foi provado.
+-->
+<html lang="pt-BR" data-relatorio="fase" data-fase-atual="{{Fnn}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Defesa Civil 360, conclusão da {{Fnn}}</title>
+<meta name="description" content="Relatório de conclusão de fase do Defesa Civil 360: o que a fase buscava, o que foi feito, como foi provado e o que ela libera.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../modelo/relatorio.css">
+<style>:root { --cabecalho-pagina: "Defesa Civil 360 | Conclusão da {{Fnn}} | Gate {{Gnn}}"; }</style>
+</head>
+<body>
+<div class="folha">
+
+<header>
+  <div class="marca-topo">
+    <div class="brasao" aria-hidden="true">DC</div>
+    <div><div class="n">Defesa Civil 360</div><div class="u">Relatório interno entre sócios</div></div>
+  </div>
+  <p class="eyebrow">Defesa Civil 360</p>
+  <h1>Conclusão da {{Fnn}}: {{nome da fase}}</h1>
+  <dl class="meta">
+    <div><dt>Fase</dt><dd>{{Fnn, ordem N de 36}}</dd></div>
+    <div><dt>Gate</dt><dd data-gate="{{Gnn}}" data-status="{{APROVADO | APROVADO COM RISCO ACEITO}}">{{Gnn nome, status registrado}}</dd></div>
+    <div><dt>Aprovado por</dt><dd>{{quem e quando, como está no GATE.md}}</dd></div>
+    <div><dt>Commit do merge</dt><dd class="mono">{{sha7}}</dd></div>
+  </dl>
+</header>
+
+<main>
+
+<section data-secao="objetivo">
+  <h2>Objetivo</h2>
+  <p>{{O que a fase se propôs a entregar, em uma ou duas frases.}}</p>
+</section>
+
+<section data-secao="por-que">
+  <h2>Por que a fase existia</h2>
+  <p>{{O problema que o projeto tinha antes e por que ele não podia esperar.}}</p>
+</section>
+
+<section data-secao="situacao-antes">
+  <h2>Situação antes</h2>
+  <p>{{Como o produto estava no começo da fase, em fatos medidos, sem adjetivo.}}</p>
+</section>
+
+<section data-secao="feito">
+  <h2>O que foi feito, por capacidade</h2>
+  <p class="sub">Agrupado pelo que o produto passou a fazer, não pela ordem das etapas.</p>
+  <h3>{{Capacidade, por exemplo: contas desativadas deixam de operar}}</h3>
+  <div class="rolavel">
+    <table>
+      <thead><tr><th>Etapa</th><th>O que mudou para o produto</th><th>Situação</th></tr></thead>
+      <tbody>
+        <tr data-etapa="{{V2-Fnn-Enn}}" data-status="{{status registrado}}"><td class="id">{{Fnn-Enn}}</td><td>{{O que mudou, em uma ou duas frases.}}</td><td class="estado"><span class="pilula">{{Concluído | Validado | ...}}</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section data-secao="antes-depois">
+  <h2>Antes e depois</h2>
+  <div class="rolavel">
+    <table>
+      <thead><tr><th>Ponto</th><th>Antes</th><th>Depois</th></tr></thead>
+      <tbody>
+        <tr><td>{{ponto}}</td><td>{{antes, em fato}}</td><td>{{depois, em fato}}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section data-secao="provas">
+  <h2>Como provamos</h2>
+  <p>{{Em linguagem comum: quem validou, sobre qual commit, que tipo de prova (teste automático, captura de tela, aparelho, pessoa de fora) e onde ficou arquivada. Sem rota, sem comando.}}</p>
+</section>
+
+<section data-secao="gate">
+  <h2>Gate</h2>
+  <p>{{O gate foi aprovado por quem, em que data, e o que isso significa.}}</p>
+  <!-- Risco aceito À PARTE. Sem risco aceito, deixe só a frase "Nenhum risco aceito neste gate." -->
+  <h3>Seguimos com risco aceito</h3>
+  <p class="vazio">{{Nenhum risco aceito neste gate. | lista no formato do relatório semanal, com data-etapa e data-status="CONCLUÍDA COM RISCO ACEITO"}}</p>
+</section>
+
+<section data-secao="riscos-residuais">
+  <h2>Riscos residuais</h2>
+  <p class="vazio">{{O que continua sendo risco depois da fase, com o efeito prático.}}</p>
+</section>
+
+<section data-secao="decisoes-tomadas">
+  <h2>Decisões tomadas na fase</h2>
+  <p class="vazio">{{lista: decisão em uma frase, quem decidiu, efeito prático}}</p>
+</section>
+
+<section data-secao="adiados">
+  <h2>Itens adiados</h2>
+  <p class="vazio">{{O que ficou para depois, com o motivo e onde está registrado. Nenhum? Diga "Nenhum."}}</p>
+</section>
+
+<section data-secao="libera">
+  <h2>O que a fase libera</h2>
+  <p>{{O que agora pode começar e o que ainda não pode.}}</p>
+</section>
+
+<section data-secao="proxima-fase">
+  <h2>Próxima fase</h2>
+  <p>{{Qual é, qual o gate dela, quantas etapas, o que depende de decisão humana antes de começar.}}</p>
+</section>
+
+</main>
+
+<footer data-sha="{{SHA completo ou de 7 caracteres da coleta}}">
+  <p>Gerado em {{DD/MM/AAAA}} a partir do estado do repositório no commit {{sha7}} (ramo {{ramo}}). É uma visão do que o processo registrou, não uma nova auditoria. Nada aqui foi enviado a ninguém: a revisão e o envio são do Rafael.</p>
+</footer>
+
+</div>
+</body>
+</html>

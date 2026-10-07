@@ -209,6 +209,56 @@ jobs:
           overwrite: true
           if-no-files-found: error
 
+  roadmap:
+    # As ferramentas do sistema de validação (D-30, `scripts/roadmap/`) e o
+    # alarme de drift do estado: `gerar-estado --conferir` reprova quando o
+    # `ESTADO-ATUAL.md` não bate com o STATUS, quando o STATUS cita commit que
+    # não existe ou quando uma etapa afirma mais do que o VEREDITO prova.
+    # Histórico completo (`fetch-depth: 0`) porque a conferência resolve os
+    # commits citados. Sem `npm ci`: as ferramentas não têm dependência; o
+    # teste de PDF se pula sozinho quando não há Chromium.
+    name: Ferramentas do roadmap e estado gerado
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Contexto do run
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" contexto "$RUNNER_TEMP/artefatos"
+
+      - name: Testes das ferramentas (node --test)
+        run: node --test "scripts/roadmap/*.test.mjs" 2>&1 | tee "$RUNNER_TEMP/artefatos/01-testes-roadmap.txt"
+
+      - name: Estado gerado confere com o repositório
+        if: ${{ !cancelled() }}
+        run: node scripts/roadmap/gerar-estado.mjs --conferir 2>&1 | tee "$RUNNER_TEMP/artefatos/02-estado-conferir.txt"
+
+      - name: Redigir segredo dos artefatos
+        if: ${{ always() }}
+        run: bash "$GITHUB_WORKSPACE/dc360/scripts/ci-artefatos.sh" redigir "$RUNNER_TEMP/artefatos"
+
+      - name: Publicar os artefatos
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: roadmap-${{ github.sha }}
+          path: ${{ runner.temp }}/artefatos
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
   navegador:
     name: Fluxo ponta a ponta no navegador
     runs-on: ubuntu-latest

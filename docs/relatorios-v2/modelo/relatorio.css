@@ -1,0 +1,277 @@
+/*
+  Folha de estilo dos relatórios executivos da V2 (semanal e de fase).
+
+  Para quem lê: comunicação entre sócios, não material de venda. Fundo branco,
+  texto escuro, uma cor de destaque só (a violeta da marca, a mesma da
+  apresentação de 2026-09-15), tabelas legíveis e nada que dependa de cor para
+  dizer o estado: toda situação traz ícone E texto.
+
+  Os tokens vêm de dc360/docs/apresentacao/2026-09-15-para-o-alyson.html. Na
+  tela há tema escuro (prefers-color-scheme); na impressão e no PDF o tema é
+  sempre claro, porque papel não tem tema.
+
+  Cabeçalho e numeração de página saem de @page (margin boxes). O texto do
+  cabeçalho vem da variável --cabecalho-pagina, definida no <style> de cada
+  relatório.
+*/
+
+:root {
+  color-scheme: light;
+  --papel: #FFFFFF;
+  --mesa: #EEF1F4;
+  --tinta: #14191D;
+  --tinta-fraca: #4A5763;
+  --linha: #D6DDE3;
+  --marca: #5B21B6;
+  --marca-tenue: #F3EEFF;
+  --alerta: #92400E;
+  --alerta-fundo: #FEF3C7;
+  --ok: #15803D;
+  --ok-fundo: #DCFCE7;
+  --perigo: #9F1239;
+  --perigo-fundo: #FFE4E6;
+  --neutro: #4A5763;
+  --neutro-fundo: #E6EAEE;
+  --sombra: 0 1px 2px rgba(16, 21, 25, .06), 0 8px 24px rgba(16, 21, 25, .06);
+  --corpo: "Work Sans", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --mono: "Roboto Mono", ui-monospace, Consolas, "Courier New", monospace;
+  --cabecalho-pagina: "Defesa Civil 360";
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --papel: #171B20;
+    --mesa: #0E1114;
+    --tinta: #E8EDF2;
+    --tinta-fraca: #9AA7B4;
+    --linha: #2C333B;
+    --marca: #A78BFA;
+    --marca-tenue: #221A3A;
+    --alerta: #FCD34D;
+    --alerta-fundo: #2E2410;
+    --ok: #86EFAC;
+    --ok-fundo: #12281A;
+    --perigo: #FDA4AF;
+    --perigo-fundo: #3A1420;
+    --neutro: #9AA7B4;
+    --neutro-fundo: #242A31;
+    --sombra: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  padding: 28px 16px 48px;
+  background: var(--mesa);
+  color: var(--tinta);
+  font-family: var(--corpo);
+  font-size: 16.5px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.folha {
+  max-width: 880px;
+  margin: 0 auto;
+  background: var(--papel);
+  box-shadow: var(--sombra);
+}
+
+.folha > header,
+.folha > main > section,
+.folha > footer { padding: 34px 52px; }
+.folha > main > section { border-top: 1px solid var(--linha); }
+
+@media (max-width: 640px) {
+  body { padding: 0 0 32px; font-size: 16px; }
+  .folha > header,
+  .folha > main > section,
+  .folha > footer { padding: 26px 18px; }
+}
+
+h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
+h1 { font-size: 2.1rem; line-height: 1.15; font-weight: 800; letter-spacing: -.02em; }
+h2 { font-size: 1.3rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 4px; }
+h3 { font-size: 1rem; font-weight: 700; margin: 22px 0 4px; }
+p { margin: 0 0 12px; max-width: 70ch; }
+p:last-child { margin-bottom: 0; }
+strong { font-weight: 600; }
+a { color: var(--marca); }
+.sub { color: var(--tinta-fraca); }
+.pequeno { font-size: .85rem; color: var(--tinta-fraca); }
+.nq { white-space: nowrap; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: .9em; }
+
+.eyebrow {
+  font-size: .72rem; font-weight: 700; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--marca); margin: 0 0 12px;
+}
+
+/* Capa */
+.marca-topo { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+.brasao {
+  width: 42px; height: 42px; flex: 0 0 42px; border-radius: 50%;
+  border: 2px solid var(--marca); color: var(--marca);
+  display: grid; place-items: center; font-weight: 800; font-size: .9rem;
+}
+.marca-topo .n { font-weight: 700; font-size: .95rem; line-height: 1.25; }
+.marca-topo .u { color: var(--tinta-fraca); font-size: .8rem; line-height: 1.25; }
+
+.meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin: 24px 0 0; background: var(--linha); border: 1px solid var(--linha); }
+.meta > div { background: var(--papel); padding: 12px 14px; min-width: 0; }
+.meta dt { font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-fraca); }
+.meta dd { margin: 3px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .meta { grid-template-columns: repeat(2, 1fr); } }
+
+/* Situação: ícone mais texto, nunca só cor */
+.situacao {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 3px 12px 3px 10px; border-radius: 999px;
+  font-size: .85rem; font-weight: 700; letter-spacing: .03em; white-space: nowrap;
+  background: var(--neutro-fundo); color: var(--neutro);
+}
+.situacao::before { font-weight: 800; }
+.situacao[data-situacao="NO RUMO"] { background: var(--ok-fundo); color: var(--ok); }
+.situacao[data-situacao="NO RUMO"]::before { content: "\2713"; }
+.situacao[data-situacao="ATENÇÃO"] { background: var(--alerta-fundo); color: var(--alerta); }
+.situacao[data-situacao="ATENÇÃO"]::before { content: "!"; }
+.situacao[data-situacao="BLOQUEADO"] { background: var(--perigo-fundo); color: var(--perigo); }
+.situacao[data-situacao="BLOQUEADO"]::before { content: "\00D7"; font-size: 1.1em; }
+.motivo-da-situacao { margin-top: 14px; color: var(--tinta-fraca); }
+
+/* Blocos de leitura */
+.destaque {
+  border-left: 3px solid var(--marca); background: var(--marca-tenue);
+  padding: 14px 18px; margin: 16px 0; border-radius: 0 6px 6px 0;
+}
+.destaque p { max-width: none; }
+.aviso {
+  border-left: 3px solid var(--alerta); background: var(--alerta-fundo);
+  padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0;
+}
+.aviso p { max-width: none; }
+.vazio { color: var(--tinta-fraca); font-style: italic; }
+
+/* Tabelas */
+.rolavel { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.rolavel table { min-width: 520px; }
+th, td { text-align: left; padding: 9px 12px 9px 0; border-bottom: 1px solid var(--linha); vertical-align: top; }
+th { font-size: .68rem; text-transform: uppercase; letter-spacing: .07em; color: var(--tinta-fraca); font-weight: 700; }
+td.id { font-family: var(--mono); font-size: .8rem; white-space: nowrap; padding-right: 16px; }
+td.estado { white-space: nowrap; padding-right: 0; }
+caption { text-align: left; font-size: .8rem; color: var(--tinta-fraca); padding: 0 0 6px; }
+
+/* Pílula de status da etapa (a cor vem da linha; o texto sempre diz o estado) */
+.pilula {
+  display: inline-block; padding: 2px 9px; border-radius: 999px;
+  font-size: .68rem; font-weight: 700; letter-spacing: .03em; white-space: nowrap;
+  background: var(--neutro-fundo); color: var(--neutro);
+}
+[data-status="IMPLEMENTADA"] .pilula,
+[data-status="EM ANDAMENTO"] .pilula,
+[data-status="EM VALIDAÇÃO"] .pilula { background: var(--marca-tenue); color: var(--marca); }
+[data-status="VALIDADA"] .pilula,
+[data-status="VALIDADA COM PENDÊNCIA HUMANA"] .pilula,
+[data-status="CONCLUÍDA"] .pilula,
+[data-status="CONCLUÍDA COM RISCO ACEITO"] .pilula,
+[data-status="APROVADO"] .pilula,
+[data-status="APROVADO COM RISCO ACEITO"] .pilula { background: var(--ok-fundo); color: var(--ok); }
+[data-status="BLOQUEADA"] .pilula,
+[data-status="REPROVADA"] .pilula,
+[data-status="REPROVADO"] .pilula,
+[data-status="REABERTO"] .pilula { background: var(--perigo-fundo); color: var(--perigo); }
+[data-status="RECOMENDADO"] .pilula { background: var(--alerta-fundo); color: var(--alerta); }
+
+/* Listas */
+ul.limpa { list-style: none; padding: 0; margin: 12px 0 0; }
+ul.limpa > li { padding: 10px 0 10px 24px; border-bottom: 1px solid var(--linha); position: relative; }
+ul.limpa > li:last-child { border-bottom: 0; }
+ul.limpa > li::before {
+  content: ""; position: absolute; left: 3px; top: 19px;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--marca);
+}
+ul.limpa .t { font-weight: 600; }
+ul.limpa .d { color: var(--tinta-fraca); font-size: .92rem; }
+ul.compacta { margin: 8px 0 0; padding-left: 20px; }
+ul.compacta li { margin-bottom: 5px; }
+
+/* Bloqueios: cinco blocos, um por quem destrava */
+.bloqueios { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 14px; }
+.bloqueios > div { border: 1px solid var(--linha); border-radius: 6px; padding: 12px 14px; min-width: 0; }
+.bloqueios h3 { margin: 0 0 6px; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--tinta-fraca); }
+.bloqueios ul { margin: 0; padding-left: 18px; }
+.bloqueios li { margin-bottom: 6px; }
+@media (max-width: 640px) { .bloqueios { grid-template-columns: 1fr; } }
+
+/* Agora, a seguir, depois */
+.horizontes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
+.horizontes > div { border-top: 3px solid var(--marca); padding-top: 8px; min-width: 0; }
+.horizontes h3 { margin: 0 0 6px; }
+.horizontes ul { margin: 0; padding-left: 18px; }
+.horizontes li { margin-bottom: 6px; }
+@media (max-width: 640px) { .horizontes { grid-template-columns: 1fr; } }
+
+/* Observação de gestão: espaço em branco para Rafael escrever */
+.observacao-de-gestao {
+  min-height: 90px; border: 1px dashed var(--tinta-fraca); border-radius: 6px;
+  padding: 12px 14px; margin-top: 12px; color: var(--tinta-fraca);
+}
+
+footer { color: var(--tinta-fraca); font-size: .82rem; }
+footer p { max-width: none; }
+
+/* Impressão e PDF: folha branca, A4, cabeçalho e página de N em cada página */
+@page {
+  size: A4;
+  margin: 20mm 14mm 18mm;
+  @top-left {
+    content: var(--cabecalho-pagina);
+    font-family: "Work Sans", Arial, sans-serif;
+    font-size: 8pt;
+    color: #4A5763;
+  }
+  @bottom-right {
+    content: "Página " counter(page) " de " counter(pages);
+    font-family: "Work Sans", Arial, sans-serif;
+    font-size: 8pt;
+    color: #4A5763;
+  }
+}
+
+@media print {
+  :root, :root[data-theme="dark"], :root:not([data-theme="light"]) {
+    color-scheme: light;
+    --papel: #FFFFFF; --mesa: #FFFFFF; --tinta: #14191D; --tinta-fraca: #4A5763;
+    --linha: #D6DDE3; --marca: #5B21B6; --marca-tenue: #F3EEFF;
+    --alerta: #92400E; --alerta-fundo: #FEF3C7; --ok: #15803D; --ok-fundo: #DCFCE7;
+    --perigo: #9F1239; --perigo-fundo: #FFE4E6; --neutro: #4A5763; --neutro-fundo: #E6EAEE;
+    --sombra: none;
+  }
+  body { background: #fff; padding: 0; font-size: 10.5pt; line-height: 1.45; }
+  .folha { max-width: none; box-shadow: none; }
+  .folha > header,
+  .folha > main > section,
+  .folha > footer { padding: 14pt 0; }
+  .folha > header { padding-top: 0; }
+  h1 { font-size: 22pt; }
+  h2 { font-size: 13.5pt; break-after: avoid; }
+  h3 { font-size: 10.5pt; break-after: avoid; }
+  h2 + .sub, h3 + .sub { break-after: avoid; }
+  section[data-secao="bloqueios"], section[data-secao="horizontes"] { break-inside: avoid; }
+  p { max-width: none; }
+  table { font-size: 8.8pt; }
+  th, td { padding: 4pt 8pt 4pt 0; }
+  .rolavel { overflow: visible; }
+  .rolavel table { min-width: 0; }
+  thead { display: table-header-group; }
+  .tabela-curta { break-inside: avoid; }
+  tr, .destaque, .aviso, .bloqueios > div, .horizontes > div, ul.limpa > li { break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
+  .pilula, .situacao { border: 1px solid currentColor; }
+  .observacao-de-gestao { min-height: 70pt; }
+}

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="pt-BR" data-relatorio="semanal" data-desde="2026-10-05" data-ate="2026-10-11" data-fase-atual="F00">
+<head>
+<meta charset="utf-8">
+<title>Defesa Civil 360, relatório semanal de fixture</title>
+<link rel="stylesheet" href="../modelo/relatorio.css">
+</head>
+<body>
+<div class="folha">
+<header>
+  <h1>Relatório semanal de evolução</h1>
+  <dl class="meta">
+    <div><dt>Período</dt><dd>05/10/2026 a 11/10/2026</dd></div>
+    <div><dt>Fase atual</dt><dd>F00, Estabilização de brinquedo (1 de 3)</dd></div>
+    <div><dt>Gate atual</dt><dd>G00, em andamento</dd></div>
+    <div><dt>Situação</dt><dd><span class="situacao" data-situacao="ATENÇÃO">ATENÇÃO</span></dd></div>
+  </dl>
+  <p class="motivo-da-situacao">Há uma etapa bloqueada e uma em correção.</p>
+</header>
+<main>
+
+<section data-secao="resumo">
+  <h2>Resumo executivo</h2>
+  <p>A semana teve uma etapa concluída, uma validada e uma regressão que voltou para bloqueada. O gate G00 ainda não foi aprovado.</p>
+</section>
+
+<section data-secao="onde-estamos">
+  <h2>Onde estamos</h2>
+  <p>Ainda não há fase concluída. A fase atual é a F00.</p>
+  <table><tbody>
+    <tr data-gate="G00" data-status="EM ANDAMENTO"><td>F00</td><td>G00</td><td>EM ANDAMENTO (atual)</td></tr>
+  </tbody></table>
+</section>
+
+<section data-secao="implementado">
+  <h2>O que foi implementado (aguarda validação)</h2>
+  <table><tbody>
+    <tr data-etapa="V2-F00-E05" data-status="IMPLEMENTADA"><td>F00-E05</td><td>A tela de aparelhos foi feita e medida. Implementado, aguarda validação.</td></tr>
+    <tr data-etapa="V2-F00-E06" data-status="EM ANDAMENTO"><td>F00-E06</td><td>Medida por quem implementou: implementado, aguarda validação. Ainda não validado por ninguém de fora.</td></tr>
+  </tbody></table>
+</section>
+
+<section data-secao="validado">
+  <h2>O que foi validado</h2>
+  <table><tbody>
+    <tr data-etapa="V2-F00-E02" data-status="VALIDADA"><td>F00-E02</td><td>Validado por agente independente sobre um commit fixo.</td></tr>
+    <tr data-etapa="V2-F00-E03" data-status="VALIDADA COM PENDÊNCIA HUMANA"><td>F00-E03</td><td>Validado, falta Rafael ver a tela no aparelho.</td></tr>
+  </tbody></table>
+</section>
+
+<section data-secao="concluido">
+  <h2>O que foi concluído</h2>
+  <table><tbody>
+    <tr data-etapa="V2-F00-E01" data-status="CONCLUÍDA"><td>F00-E01</td><td>Concluído, com a evidência arquivada.</td></tr>
+  </tbody></table>
+</section>
+
+<section data-secao="risco-aceito">
+  <h2>Seguimos com risco aceito</h2>
+  <ul>
+    <li data-etapa="V2-F00-E04" data-status="CONCLUÍDA COM RISCO ACEITO">F00-E04: concluído com risco aceito. A rodada em Linux ficou sem prova por decisão de Rafael, até o G01.</li>
+  </ul>
+</section>
+
+<section data-secao="bloqueios">
+  <h2>Bloqueios</h2>
+  <div class="bloqueios">
+    <div data-bloqueio="tecnico"><h3>Técnico</h3>
+      <ul>
+        <li data-etapa="V2-F00-E08" data-status="REPROVADA">F00-E08 está em correção depois de uma reprovação.</li>
+      </ul>
+    </div>
+    <div data-bloqueio="rafael"><h3>Rafael</h3>
+      <ul>
+        <li data-etapa="V2-F00-E07" data-status="BLOQUEADA">F00-E07 está bloqueado pela decisão da política de auditoria (CP-03). Antes estava validado e voltou atrás.</li>
+      </ul>
+    </div>
+    <div data-bloqueio="alyson"><h3>Alyson</h3><p>Nenhum.</p></div>
+    <div data-bloqueio="juridico-dpo"><h3>Jurídico e DPO</h3><p>Nenhum.</p></div>
+    <div data-bloqueio="externo"><h3>Externo</h3><p>Nenhum.</p></div>
+  </div>
+</section>
+
+<section data-secao="decisoes-tomadas"><h2>Decisões tomadas</h2><p>Nada neste período.</p></section>
+<section data-secao="decisoes-proximas"><h2>Decisões próximas</h2><p>CP-03, com Rafael.</p></section>
+<section data-secao="riscos"><h2>Riscos principais</h2><p>O gate G00 depende do CP-03.</p></section>
+<section data-secao="horizontes">
+  <h2>Agora, a seguir, depois</h2>
+  <div data-secao="agora"><h3>Agora</h3><p>Corrigir a F00-E08.</p></div>
+  <div data-secao="a-seguir"><h3>A seguir</h3><p data-etapa="V2-F00-E09" data-status="PENDENTE">F00-E09 ainda não começou.</p></div>
+  <div data-secao="depois"><h3>Depois</h3><p>F02.</p></div>
+</section>
+<section data-secao="proximo-passo"><h2>Próximo passo</h2><p>Decidir o CP-03.</p></section>
+<section data-secao="observacao-gestao"><h2>Observação de gestão</h2><div class="observacao-de-gestao"></div></section>
+
+</main>
+<footer data-sha="abcdef1234567890abcdef1234567890abcdef12"><p>Gerado a partir do commit abcdef1.</p></footer>
+</div>
+</body>
+</html>
