@@ -105,6 +105,13 @@ jobs:
         working-directory: dc360/apps/campo
         run: npm ci 2>&1 | tee "$RUNNER_TEMP/artefatos/02-npm-ci-campo.txt"
 
+      # O PDF do documento técnico é gerado pelo Chromium (a API e o console
+      # testam isso). Numa imagem limpa ele não existe, e o teste do PDF devolve
+      # 503 em vez de falhar por motivo claro.
+      - name: Instalar o Chromium (os testes de PDF precisam dele)
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: npx playwright install --with-deps chromium 2>&1 | tee "$RUNNER_TEMP/artefatos/02b-playwright-install.txt"
+
       # Dai em diante cada passo roda mesmo que o anterior tenha falhado (desde
       # que a instalação tenha dado certo): o run de um SHA candidato deve
       # trazer TODAS as saídas, e não só a do primeiro vermelho. O job continua
@@ -290,10 +297,12 @@ jobs:
       - name: Instalar navegadores
         run: npx playwright install --with-deps chromium firefox 2>&1 | tee "$RUNNER_TEMP/artefatos/02-playwright-install.txt"
 
-      # O painel importa `@dc360/shared` pelo `dist/`, que numa imagem limpa
+      # O painel importa `@dc360/shared`, e a API do caminho de produção
+      # importa também `@dc360/db`, os dois pelo `dist/`, que numa imagem limpa
       # não existe até alguém construir o pacote.
-      - name: Construir o pacote compartilhado
-        run: npm run build --workspace @dc360/shared 2>&1 | tee "$RUNNER_TEMP/artefatos/02b-build-do-shared.txt"
+      - name: Construir os pacotes compartilhados
+        run: |
+          { npm run build --workspace @dc360/shared && npm run build --workspace @dc360/db; } 2>&1 | tee "$RUNNER_TEMP/artefatos/02b-build-dos-compartilhados.txt"
 
       - name: Construir o painel
         run: npm run build --workspace @dc360/web 2>&1 | tee "$RUNNER_TEMP/artefatos/03-build-do-painel.txt"
