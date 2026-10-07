@@ -1,0 +1,18 @@
+== o remedio do negativo anterior: o papel do console, com os atributos da migracao 023, criado pelo setup
+$ psql -U dc360_setup -c "CREATE ROLE dc360_console NOLOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT;"
+CREATE ROLE
+== negativo: o dump feito so com --schema=public (sem --extension=pg_trgm)
+$ createdb -h 127.0.0.1 -p 55452 -U postgres -T template0 --encoding=UTF8 --locale=C prova_e25_neg_trgm
+$ psql -d prova_e25_neg_trgm -c "DROP SCHEMA public CASCADE;"
+DROP SCHEMA
+$ psql -d prova_e25_neg_trgm -c "GRANT CREATE ON DATABASE prova_e25_neg_trgm TO dc360_setup;"
+GRANT
+$ pg_restore -h 127.0.0.1 -p 55452 -U dc360_setup --dbname=prova_e25_neg_trgm --exit-on-error dc360-sem-extensao.dump
+pg_restore: error: could not execute query: ERROR:  operator class "public.gin_trgm_ops" does not exist for access method "gin"
+Command was: CREATE INDEX equipes_busca_idx ON public.equipes USING gin (busca public.gin_trgm_ops);
+
+
+codigo 1
+$ psql -d prova_e25_neg_trgm -Atc "select count(*) from pg_extension where extname = 'pg_trgm'; select count(*) from pg_indexes where indexdef like '%gin_trgm_ops%'"
+0
+0

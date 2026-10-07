@@ -1,0 +1,32 @@
+
+> dc360@0.1.0 conferir:numeros
+> node scripts/conferir-numeros.mjs
+
+Lendo a lista de testes de cada pacote (sem executar)...
+
+Contagens reais:
+  2851  total de testes automatizados
+   168  testes do pacote compartilhado
+   187  testes do motor de campo
+  1267  testes da API
+   259  testes do console do fornecedor
+   643  testes de fonte do painel
+   327  testes do banco
+   137  testes de isolamento (CA-06)
+    17  testes do aplicador de migrações
+    15  testes de integração do campo contra a API
+    58  testes da fila de sincronização
+     9  testes do depósito SQLite
+    70  verificações no navegador, modo local
+   251  verificações no navegador, contra a API
+   321  verificações no navegador, somadas
+  1861  testes do aplicativo de campo
+  4712  total de testes automatizados, somando o aplicativo
+
+Pulos que a lista estática não enumera (política T42, scripts/portao-de-skip.mjs):
+  0 ponto(s) de pulo incondicional com marca T42 nos pacotes do vitest; os casos dentro deles NÃO estão nas contagens acima.
+  3 ponto(s) de pulo por ambiente nos pacotes do vitest (o que avalia falso na coleta também fica fora das contagens):
+    3 em db/test/busca.test.ts
+
+Afirmações conferidas: 24
+Todos os números da documentação batem com a realidade.

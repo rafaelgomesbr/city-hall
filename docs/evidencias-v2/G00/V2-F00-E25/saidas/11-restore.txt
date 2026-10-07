@@ -1,0 +1,10 @@
+== restore positivo
+$ createdb -h 127.0.0.1 -p 55452 -U postgres -T template0 --encoding=UTF8 --locale=C prova_e25_restaurado
+$ psql -d prova_e25_restaurado -c "DROP SCHEMA public CASCADE;"
+DROP SCHEMA
+$ psql -d prova_e25_restaurado -c "GRANT CREATE ON DATABASE prova_e25_restaurado TO dc360_setup;"
+GRANT
+$ pg_restore -h 127.0.0.1 -p 55452 -U dc360_setup --dbname=prova_e25_restaurado --exit-on-error dc360.dump
+codigo 0 em 655 ms
+$ psql -U postgres -c "GRANT dc360_app TO dc360_api WITH SET TRUE;"   (associacao de papel nao vem no dump)
+GRANT ROLE

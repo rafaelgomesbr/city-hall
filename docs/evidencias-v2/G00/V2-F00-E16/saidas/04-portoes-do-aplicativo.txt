@@ -1,0 +1,208 @@
+TAP version 13
+# Subtest: contraste calculado: temaClaro passa no mínimo exigido em todo par
+ok 1 - contraste calculado: temaClaro passa no mínimo exigido em todo par
+  ---
+  duration_ms: 1.8184
+  type: 'test'
+  ...
+# Subtest: contraste calculado: temaEscuro passa no mínimo exigido em todo par
+ok 2 - contraste calculado: temaEscuro passa no mínimo exigido em todo par
+  ---
+  duration_ms: 0.1704
+  type: 'test'
+  ...
+# Subtest: o cálculo confere com valores conhecidos
+ok 3 - o cálculo confere com valores conhecidos
+  ---
+  duration_ms: 0.3739
+  type: 'test'
+  ...
+# Subtest: os dois temas são de fato dois, e a leitura resolve as primitivas
+ok 4 - os dois temas são de fato dois, e a leitura resolve as primitivas
+  ---
+  duration_ms: 0.2267
+  type: 'test'
+  ...
+# Subtest: nenhuma pendência de contraste sobreviveu ao próprio conserto
+ok 5 - nenhuma pendência de contraste sobreviveu ao próprio conserto
+  ---
+  duration_ms: 0.1547
+  type: 'test'
+  ...
+# Subtest: a varredura enxerga os elementos tocáveis de verdade
+ok 6 - a varredura enxerga os elementos tocáveis de verdade
+  ---
+  duration_ms: 282.9944
+  type: 'test'
+  ...
+# Subtest: nenhum alvo de toque abaixo de 52
+ok 7 - nenhum alvo de toque abaixo de 52
+  ---
+  duration_ms: 235.8691
+  type: 'test'
+  ...
+# Subtest: todo elemento tocável se apresenta ao leitor de tela
+ok 8 - todo elemento tocável se apresenta ao leitor de tela
+  ---
+  duration_ms: 226.5479
+  type: 'test'
+  ...
+# Subtest: as três varreduras pegam o que deveriam pegar
+ok 9 - as três varreduras pegam o que deveriam pegar
+  ---
+  duration_ms: 1.3946
+  type: 'test'
+  ...
+# Subtest: o escape nomeado dispensa quem foi declarado, e ninguém mais
+ok 10 - o escape nomeado dispensa quem foi declarado, e ninguém mais
+  ---
+  duration_ms: 205.3464
+  type: 'test'
+  ...
+# Subtest: R1: nenhuma peça empilha mais de um bloco preenchido
+ok 11 - R1: nenhuma peça empilha mais de um bloco preenchido
+  ---
+  duration_ms: 1.9556
+  type: 'test'
+  ...
+# Subtest: a varredura enxerga o aplicativo de verdade
+ok 12 - a varredura enxerga o aplicativo de verdade
+  ---
+  duration_ms: 0.3433
+  type: 'test'
+  ...
+# Subtest: a varredura pega o cartão da reclamação, bloco a bloco
+ok 13 - a varredura pega o cartão da reclamação, bloco a bloco
+  ---
+  duration_ms: 0.6357
+  type: 'test'
+  ...
+# Subtest: a varredura não confunde o que está calmo com o que grita
+ok 14 - a varredura não confunde o que está calmo com o que grita
+  ---
+  duration_ms: 0.6303
+  type: 'test'
+  ...
+# Subtest: R3 e R5 continuam ligadas, e o Chip e o Aviso continuam obedecendo
+ok 15 - R3 e R5 continuam ligadas, e o Chip e o Aviso continuam obedecendo
+  ---
+  duration_ms: 3.7839
+  type: 'test'
+  ...
+# Subtest: R5 é aritmética, e o portão refaz a conta
+ok 16 - R5 é aritmética, e o portão refaz a conta
+  ---
+  duration_ms: 1.2233
+  type: 'test'
+  ...
+# Subtest: nenhuma pendência de densidade sobreviveu ao próprio conserto
+ok 17 - nenhuma pendência de densidade sobreviveu ao próprio conserto
+  ---
+  duration_ms: 0.3573
+  type: 'test'
+  ...
+# Subtest: a varredura enxerga os arquivos do aplicativo de verdade
+ok 18 - a varredura enxerga os arquivos do aplicativo de verdade
+  ---
+  duration_ms: 17.5475
+  type: 'test'
+  ...
+# Subtest: nenhum valor de design escrito à mão no aplicativo
+ok 19 - nenhum valor de design escrito à mão no aplicativo
+  ---
+  duration_ms: 157.8023
+  type: 'test'
+  ...
+# Subtest: a varredura pega o que deveria pegar
+ok 20 - a varredura pega o que deveria pegar
+  ---
+  duration_ms: 0.8186
+  type: 'test'
+  ...
+# Subtest: a varredura não reclama do que está certo
+ok 21 - a varredura não reclama do que está certo
+  ---
+  duration_ms: 1.0205
+  type: 'test'
+  ...
+# Subtest: o marcador de exceção dispensa o que declarou, e só isso
+ok 22 - o marcador de exceção dispensa o que declarou, e só isso
+  ---
+  duration_ms: 0.3537
+  type: 'test'
+  ...
+# Subtest: os comentários são apagados antes da varredura, e o código da mesma linha não
+ok 23 - os comentários são apagados antes da varredura, e o código da mesma linha não
+  ---
+  duration_ms: 0.3479
+  type: 'test'
+  ...
+# Subtest: a dívida de peso de fonte morre no dia em que o token nascer
+ok 24 - a dívida de peso de fonte morre no dia em que o token nascer
+  ---
+  duration_ms: 0.8983
+  type: 'test'
+  ...
+# Subtest: nenhuma espera de tela cheia fica sem saída
+ok 25 - nenhuma espera de tela cheia fica sem saída
+  ---
+  duration_ms: 115.0995
+  type: 'test'
+  ...
+# Subtest: a varredura de espera sem saída enxerga alguma coisa
+ok 26 - a varredura de espera sem saída enxerga alguma coisa
+  ---
+  duration_ms: 55.5671
+  type: 'test'
+  ...
+# Subtest: nenhum token declarado fica sem alguém apontando para ele
+ok 27 - nenhum token declarado fica sem alguém apontando para ele
+  ---
+  duration_ms: 108.243
+  type: 'test'
+  ...
+# Subtest: a dívida de token sem dono não sobrevive ao próprio conserto
+ok 28 - a dívida de token sem dono não sobrevive ao próprio conserto
+  ---
+  duration_ms: 69.2333
+  type: 'test'
+  ...
+# Subtest: a varredura de token sem dono enxerga o que deveria
+ok 29 - a varredura de token sem dono enxerga o que deveria
+  ---
+  duration_ms: 2.7518
+  type: 'test'
+  ...
+# Subtest: H3: o protagonista é pelo menos o dobro do apoio, e a conta é refeita aqui
+ok 30 - H3: o protagonista é pelo menos o dobro do apoio, e a conta é refeita aqui
+  ---
+  duration_ms: 15.2575
+  type: 'test'
+  ...
+# Subtest: H1: nenhuma peça desenha mais de um protagonista
+ok 31 - H1: nenhuma peça desenha mais de um protagonista
+  ---
+  duration_ms: 190.1521
+  type: 'test'
+  ...
+# Subtest: a varredura de protagonista enxerga o que deveria
+ok 32 - a varredura de protagonista enxerga o que deveria
+  ---
+  duration_ms: 0.6544
+  type: 'test'
+  ...
+# Subtest: o gradiente é pontual: ele não escapa de `src/ui/`
+ok 33 - o gradiente é pontual: ele não escapa de `src/ui/`
+  ---
+  duration_ms: 40.0467
+  type: 'test'
+  ...
+1..33
+# tests 33
+# suites 0
+# pass 33
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1065.3596

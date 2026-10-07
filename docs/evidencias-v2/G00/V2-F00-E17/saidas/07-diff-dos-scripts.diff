@@ -1,0 +1,217 @@
+diff --git a/dc360/scripts/comando-de-migracao.test.mjs b/dc360/scripts/comando-de-migracao.test.mjs
+index cf76baa..a39282b 100644
+--- a/dc360/scripts/comando-de-migracao.test.mjs
++++ b/dc360/scripts/comando-de-migracao.test.mjs
+@@ -63,6 +63,14 @@ test("rodando da raiz, --conferir confere e NÃO aplica", () => {
+     mediria o código de saída, que não é o que este caso pergunta. O que ele
+     pergunta é o que o comando FEZ, e isso está no texto.
+   */
++  /*
++    `shell` no Windows, a mesma invocação de `scripts/testar-campo.mjs`: lá
++    `npm` é `npm.cmd`, e sem shell o `execFileSync` morre com ENOENT antes de
++    rodar nada. Esse erro caía no `catch` com a saída vazia, e o caso reprovava
++    dizendo que o comando "não chegou a CONFERIR", quando ele nem tinha
++    começado. Os argumentos são fixos e sem espaço, então o shell não tem o que
++    interpretar.
++  */
+   let saida = "";
+   try {
+     saida = execFileSync("npm", ["run", "migrar", "--", "--conferir"], {
+@@ -70,6 +78,7 @@ test("rodando da raiz, --conferir confere e NÃO aplica", () => {
+       encoding: "utf8",
+       env: { ...process.env, DATABASE_URL: "" },
+       stdio: ["ignore", "pipe", "pipe"],
++      shell: process.platform === "win32",
+     });
+   } catch (erro) {
+     saida = `${erro.stdout ?? ""}${erro.stderr ?? ""}`;
+diff --git a/dc360/scripts/conferir-numeros.mjs b/dc360/scripts/conferir-numeros.mjs
+index 343041f..2029e5a 100644
+--- a/dc360/scripts/conferir-numeros.mjs
++++ b/dc360/scripts/conferir-numeros.mjs
+@@ -32,6 +32,7 @@ import { dirname, join, relative, sep } from "node:path";
+ import { fileURLToPath } from "node:url";
+ 
+ import { contarCasosDoAplicativo } from "./casos-do-aplicativo.mjs";
++import { varrerArvore } from "./portao-de-skip.mjs";
+ 
+ const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
+ 
+@@ -392,6 +393,46 @@ for (const [rotulo, valor] of Object.entries(VERDADE)) {
+   console.log(`  ${String(valor).padStart(4)}  ${rotulo}`);
+ }
+ 
++/*
++  O que a lista estática NÃO enxerga, dito na saída em vez de calado.
++
++  `vitest list` só enumera o caso que a coleta registra para rodar: o que está
++  dentro de `describe.skip` ou `it.skip`, e o `runIf`/`skipIf` que avaliou
++  falso na coleta, não aparecem. O `vitest run` os mostra como pulados. Foi
++  assim que a API chegou a ser lida com 1104 casos contra 1109 executados (os
++  5 do `describe.skip` da vigência, removido na V2-F00-E04), e ninguém tinha
++  como saber pela saída daqui que a diferença existia. Contar o caso dentro de
++  um bloco pulado exigiria ler a sintaxe do arquivo, e a política T42 já obriga
++  todo pulo incondicional a ter marca com dono e prazo: basta repetir aqui o
++  que o portão de skip acha, para quem compara as duas contagens saber de onde
++  vem a diferença. O pulo decidido DURANTE a execução (o `ctx.skip()`, ou um
++  `beforeAll` que falha) aparece na lista e conta normalmente.
++
++  No aplicativo de campo é o contrário: `casos-do-aplicativo.mjs` lê o código,
++  então o `it.skip` dele ENTRA na contagem, como o jest também o conta no total.
++*/
++const skips = varrerArvore(RAIZ);
++// `scripts/` roda no node:test e o aplicativo no jest: nenhum dos dois passa por `vitest list`.
++const foraDoVitest = (arquivo) => arquivo.startsWith("apps/campo/") || arquivo.startsWith("scripts/");
++const foraDaLista = skips.marcados.filter((m) => !foraDoVitest(m.arquivo));
++const ambienteForaDoApp = Object.entries(skips.ambientePorArquivo)
++  .filter(([arquivo]) => !foraDoVitest(arquivo))
++  .sort(([a], [b]) => a.localeCompare(b));
++
++console.log("\nPulos que a lista estática não enumera (política T42, scripts/portao-de-skip.mjs):");
++console.log(
++  `  ${foraDaLista.length} pulo(s) incondicional(is) com marca T42 nos pacotes do vitest; ` +
++  "os casos dentro deles NÃO estão nas contagens acima.",
++);
++for (const m of foraDaLista) {
++  console.log(`    ${m.arquivo}:${m.linha} ${m.tipo}, dono=${m.dono} issue=${m.issue} ate=${m.ate}`);
++}
++console.log(
++  `  ${ambienteForaDoApp.reduce((t, [, n]) => t + n, 0)} pulo(s) por ambiente nos pacotes do vitest ` +
++  "(o que avalia falso na coleta também fica fora das contagens):",
++);
++for (const [arquivo, n] of ambienteForaDoApp) console.log(`    ${n} em ${arquivo}`);
++
+ console.log(`\nAfirmações conferidas: ${conferidos.length}`);
+ if (soPorValor.length > 0) {
+   /*
+diff --git a/dc360/scripts/copiar-producao.test.mjs b/dc360/scripts/copiar-producao.test.mjs
+index be43f0b..e1966b1 100644
+--- a/dc360/scripts/copiar-producao.test.mjs
++++ b/dc360/scripts/copiar-producao.test.mjs
+@@ -2,7 +2,7 @@ import { test } from "node:test";
+ import assert from "node:assert/strict";
+ import { mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+ import { tmpdir } from "node:os";
+-import { join } from "node:path";
++import { join, parse, resolve } from "node:path";
+ 
+ import {
+   CA_DO_PROVEDOR, COMO_INSTALAR, JANELA_DA_COPIA_MS, PASTA_DE_COPIAS, RAIZ_DO_REPO,
+@@ -45,17 +45,29 @@ test("a copia mora fora do repositorio, e a pasta e a da casa de quem roda", ()
+   assert.ok(!PASTA_DE_COPIAS.startsWith(RAIZ_DO_REPO));
+ });
+ 
++/*
++  Os caminhos nascem da raiz da plataforma, e não de texto POSIX literal. Com
++  "/Users/alguem" escrito à mão, o `resolve` do código vira "C:\Users\alguem"
++  no Windows, deixa de começar pela raiz do repositório de mentira e de casar
++  a Área de Trabalho, e a função devolvia `null` para os cinco lugares que ela
++  existe para recusar. O teste reprovava no Windows por um motivo que não era
++  o que ele protege, e um teste que reprova sempre num sistema deixa de ser
++  lido nele. Montados com `join` a partir de `parse(...).root`, os mesmos
++  lugares valem em "/" e em "C:\\".
++*/
+ test("a pasta de copias recusa o repositorio, a nuvem de arquivos e a Area de Trabalho", () => {
+-  const casa = "/Users/alguem";
+-  const opcoes = { raizDoRepo: "/Users/alguem/city-hall/dc360", casa };
+-  assert.match(razaoParaRecusarAPasta("/Users/alguem/city-hall/dc360/copias", opcoes), /repositório/);
+-  assert.match(razaoParaRecusarAPasta("/Users/alguem/city-hall/dc360", opcoes), /repositório/);
+-  assert.match(razaoParaRecusarAPasta("/Users/alguem/Library/Mobile Documents/com~apple~CloudDocs/copias", opcoes), /nuvem/);
+-  assert.match(razaoParaRecusarAPasta("/Users/alguem/Dropbox/dc360", opcoes), /nuvem/);
+-  assert.match(razaoParaRecusarAPasta("/Users/alguem/Google Drive/dc360", opcoes), /nuvem/);
+-  assert.match(razaoParaRecusarAPasta("/Users/alguem/OneDrive/dc360", opcoes), /nuvem/);
+-  assert.match(razaoParaRecusarAPasta("/Users/alguem/Desktop/copias", opcoes), /Área de Trabalho/);
+-  assert.equal(razaoParaRecusarAPasta("/Users/alguem/dc360-copias", opcoes), null);
++  const raiz = parse(resolve(".")).root;
++  const casa = join(raiz, "Users", "alguem");
++  const naCasa = (...partes) => join(casa, ...partes);
++  const opcoes = { raizDoRepo: naCasa("city-hall", "dc360"), casa };
++  assert.match(razaoParaRecusarAPasta(naCasa("city-hall", "dc360", "copias"), opcoes), /repositório/);
++  assert.match(razaoParaRecusarAPasta(naCasa("city-hall", "dc360"), opcoes), /repositório/);
++  assert.match(razaoParaRecusarAPasta(naCasa("Library", "Mobile Documents", "com~apple~CloudDocs", "copias"), opcoes), /nuvem/);
++  assert.match(razaoParaRecusarAPasta(naCasa("Dropbox", "dc360"), opcoes), /nuvem/);
++  assert.match(razaoParaRecusarAPasta(naCasa("Google Drive", "dc360"), opcoes), /nuvem/);
++  assert.match(razaoParaRecusarAPasta(naCasa("OneDrive", "dc360"), opcoes), /nuvem/);
++  assert.match(razaoParaRecusarAPasta(naCasa("Desktop", "copias"), opcoes), /Área de Trabalho/);
++  assert.equal(razaoParaRecusarAPasta(naCasa("dc360-copias"), opcoes), null);
+ });
+ 
+ test("a URL do pg_dump e a mesma do migrador, com a raiz do provedor apontada para o libpq verificar a cadeia", () => {
+diff --git a/dc360/scripts/entitlements-do-ios.test.mjs b/dc360/scripts/entitlements-do-ios.test.mjs
+index fb606c6..431fc82 100644
+--- a/dc360/scripts/entitlements-do-ios.test.mjs
++++ b/dc360/scripts/entitlements-do-ios.test.mjs
+@@ -70,15 +70,71 @@ test("o valor do aps-environment é um dos dois que a Apple aceita", { skip: !ex
+   );
+ });
+ 
++/*
++  O que o caso confere, separado do arquivo para poder ser provado contra um
++  rascunho estragado de propósito (o caso negativo logo abaixo).
++
++  A forma antiga escrevia a comparação com `EAS_BUILD_PROFILE` dentro do
++  próprio `mode`, e a regex procurava aquela escrita literal. O `app.config.ts`
++  passou a decidir uma vez, em `PERFIL_DE_PRODUCAO`, e a ler a constante em dois
++  lugares (o `mode` do plugin e o `extra.pushAmbiente`), que é mais seguro: os
++  dois não têm mais como divergir. A regex velha reprovava o arquivo certo.
++  Agora o caso confere as três pontas dessa decisão: de onde a constante nasce
++  e os dois lugares que a leem. E reprova se o `mode` voltar a ser escrito à
++  mão, que é o defeito que ele existe para impedir.
++*/
++function problemasDaEscolhaDoAmbiente(config) {
++  const problemas = [];
++  if (!/const PERFIL_DE_PRODUCAO = process\.env\["EAS_BUILD_PROFILE"\] === "producao";/.test(config)) {
++    problemas.push("PERFIL_DE_PRODUCAO deixou de nascer de EAS_BUILD_PROFILE === \"producao\"");
++  }
++  if (!/mode: PERFIL_DE_PRODUCAO \? "production" : "development"/.test(config)) {
++    problemas.push("o mode do expo-notifications deixou de ler PERFIL_DE_PRODUCAO");
++  }
++  if (!/pushAmbiente: PERFIL_DE_PRODUCAO \? "producao" : "teste"/.test(config)) {
++    problemas.push("o extra.pushAmbiente deixou de ler PERFIL_DE_PRODUCAO");
++  }
++  if (/mode:\s*["'](?:production|development)["']/.test(config)) {
++    problemas.push("o mode está escrito à mão");
++  }
++  return problemas;
++}
++
+ test("a escolha do ambiente continua morando no app.config.ts, e não escrita à mão", () => {
+   const config = readFileSync(APP_CONFIG, "utf8");
+-  assert.match(
+-    config, /EAS_BUILD_PROFILE"\] === "producao" \? "production" : "development"/,
++  assert.deepEqual(
++    problemasDaEscolhaDoAmbiente(config), [],
+     "app.config.ts deixou de decidir o aps-environment pelo perfil do build. " +
+     "Escrito à mão, ele erra na direção que não avisa.",
+   );
+ });
+ 
++test("a conferência do ambiente reprova o mode escrito à mão num rascunho", () => {
++  const config = readFileSync(APP_CONFIG, "utf8");
++  const aMao = config.replace(
++    'mode: PERFIL_DE_PRODUCAO ? "production" : "development"', 'mode: "production"',
++  );
++  assert.notEqual(aMao, config, "o rascunho não mudou: a linha do mode saiu do app.config.ts");
++  assert.deepEqual(problemasDaEscolhaDoAmbiente(aMao), [
++    "o mode do expo-notifications deixou de ler PERFIL_DE_PRODUCAO",
++    "o mode está escrito à mão",
++  ]);
++
++  const semPerfil = config.replace(
++    'process.env["EAS_BUILD_PROFILE"] === "producao"', 'true',
++  );
++  assert.deepEqual(problemasDaEscolhaDoAmbiente(semPerfil), [
++    "PERFIL_DE_PRODUCAO deixou de nascer de EAS_BUILD_PROFILE === \"producao\"",
++  ]);
++
++  const pushAMao = config.replace(
++    'pushAmbiente: PERFIL_DE_PRODUCAO ? "producao" : "teste"', 'pushAmbiente: "producao"',
++  );
++  assert.deepEqual(problemasDaEscolhaDoAmbiente(pushAMao), [
++    "o extra.pushAmbiente deixou de ler PERFIL_DE_PRODUCAO",
++  ]);
++});
++
+ /* ------------------------------------------------------------------------
+    O som de despacho e o direito que ele exige (15/09/2026).
+ 

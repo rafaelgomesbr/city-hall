@@ -1,0 +1,7 @@
+dc360/apps/campo/LEIA-ME.md:23:| Saúde do projeto Expo | `npx expo-doctor` | **20 de 21** em 2026-10-07: dez pacotes do Expo (`expo`, `expo-camera`, `expo-router`, `expo-sqlite` e outros) com versão de correção atrás da que o SDK 57 pede. Era 21 de 21 em 15/09/2026; o alinhamento é da V2-F00-E19 |
+dc360/apps/campo/LEIA-ME.md:148:- `npx expo-doctor` deu 21 de 21. Ele não confere dependência transitiva.
+dc360/apps/web/PENDENCIAS.md:153:`GET /configuracao` e o modo esquemático sem chave, e não cita mais MapLibre
+dc360/apps/web/PENDENCIAS.md:157:cartográfico será MapLibre GL JS com provedor de tiles. Isso deixou de ser
+dc360/apps/web/PENDENCIAS.md:162:alinhar o texto, ou o próximo a ler vai procurar um MapLibre que não existe.
+dc360/README.md:1579:  próprio lockfile e a própria auditoria, que hoje NÃO fecha em zero. O preço
+docs/adr/0004-autenticacao-propria.md:36:| Token de acesso | JWT HS256, 15 minutos | Verificado por assinatura, sem ida ao banco. Curto porque não há como revogá-lo antes de expirar |

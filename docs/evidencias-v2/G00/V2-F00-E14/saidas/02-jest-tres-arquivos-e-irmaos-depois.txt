@@ -1,0 +1,125 @@
+PASS src/dados/falha-de-atualizacao.test.ts
+  classificar a falha
+    √ 403 acesso_suspenso é acesso suspenso, e não sessão encerrada (15 ms)
+    √ 503 acesso_suspenso (o que a fila recebe) também é acesso suspenso, e não 'outro' (1 ms)
+    √ 403 de outro código continua sendo 'outro': perfil sem permissão não é suspensão (1 ms)
+    √ 401 continua sendo sessão encerrada (27 ms)
+    √ sem sinal continua sendo sem sinal (1 ms)
+  o que a tela escreve para o acesso suspenso
+    √ diz que foi o fornecedor, e quem resolve é quem administra o contrato (2 ms)
+    √ NÃO manda entrar de novo, porque entrar de novo não resolve (1 ms)
+    √ promete que o que foi coletado continua guardado, como a frase da sessão encerrada promete (1 ms)
+    √ o resumo cabe numa linha da faixa
+  a conta desativada
+    √ 403 conta_desativada é conta desativada, e não 'outro'
+    √ 403 sem_permissao continua 'outro': o código decide, não o status (1 ms)
+    √ conta desativada e sessão encerrada são os dois fins de linha; os outros passam sozinhos (1 ms)
+    √ diz que as coletas continuam guardadas e manda procurar a coordenação (1 ms)
+    √ diz que entrar de novo NÃO resolve, e não é a frase da sessão encerrada (1 ms)
+    √ o resumo cabe numa linha da faixa (2 ms)
+
+  console.warn
+    Não deu para ler a fila antes de limpar os arquivos Error: no such table: fila_sincronizacao
+        at prepare (C:\Projetos\city-hall\dc360\apps\campo\src\dados\logout-nao-apaga-prova.test.ts:40:19)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+        at _next (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+        at C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+        at new Promise (<anonymous>)
+        at Object.<anonymous> (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+        at Object.apply [as getAllAsync] (C:\Projetos\city-hall\dc360\apps\campo\src\dados\logout-nao-apaga-prova.test.ts:40:47)
+        at getAllAsync (C:\Projetos\city-hall\dc360\apps\campo\src\dados\banco-local.ts:73:29)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+        at _next (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+        at C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+        at new Promise (<anonymous>)
+        at C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12
+        at apply (C:\Projetos\city-hall\dc360\apps\campo\src\dados\banco-local.ts:69:35)
+        at arquivosAindaNaFila (C:\Projetos\city-hall\dc360\apps\campo\src\dados\banco-local.ts:355:25)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+        at _next (C:\Projetos\city-hall\dc360\apps\campo\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+        at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+      code: 'ERR_SQLITE_ERROR',
+      errcode: 1,
+      errstr: 'SQL logic error'
+    }
+
+      88 |     return nomes;
+      89 |   } catch (erro) {
+    > 90 |     console.warn("Não deu para ler a fila antes de limpar os arquivos", erro);
+         |             ^
+      91 |     return null;
+      92 |   }
+      93 | }
+
+      at warn (src/dados/banco-local.ts:90:13)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+  console.warn
+    Arquivos de prova preservados: não deu para conferir a fila
+
+      355 |     const emUso = await arquivosAindaNaFila(await bancoLocal());
+      356 |     if (emUso === null) {
+    > 357 |       console.warn("Arquivos de prova preservados: não deu para conferir a fila");
+          |               ^
+      358 |     } else {
+      359 |       const dir = new Directory(Paths.document);
+      360 |       for (const item of dir.list()) {
+
+      at warn (src/dados/banco-local.ts:357:15)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+(node:121000) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/dados/logout-nao-apaga-prova.test.ts
+  sair da conta com coleta esperando envio
+    √ NÃO apaga a assinatura que a coleta na fila ainda usa (41 ms)
+    √ NÃO apaga a foto que a coleta na fila ainda usa (2 ms)
+    √ apaga o arquivo que não está em coleta nenhuma (3 ms)
+    √ com a fila ilegível, prefere deixar o arquivo a destruir prova (140 ms)
+
+PASS src/push/logout-cala-o-aparelho.test.tsx
+  √ manda a ficha deste aparelho junto com a saída (81 ms)
+  √ sai normalmente quando este aparelho nunca teve ficha (6 ms)
+  √ esquece a ficha depois de mandá-la, para ela não sobreviver ao turno (4 ms)
+  √ guarda o município da sessão, que é o que a barreira de push compara (3 ms)
+  √ o dublê do banco local acompanha tudo o que sessao.tsx importa dele (2 ms)
+
+PASS src/__tests__/a-sessao-vencida-nao-apaga-a-vistoria.test.tsx (10.256 s)
+  a sessão que venceu no meio do plantão
+    √ o botão da faixa diz 'Entrar de novo', e não 'Sair' (713 ms)
+    √ tocar nele derruba a sessão SEM apagar o disco, e leva à entrada (77 ms)
+    √ o texto por extenso promete a vistoria começada de pé, e não manda 'Sair da conta' (450 ms)
+
+PASS src/__tests__/a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx (10.771 s)
+  o servidor que não reconhece mais a sessão
+    √ a faixa diz que a sessão terminou, e não que foi a rede (790 ms)
+    √ o ⓘ ensina o caminho de volta, e promete a fila de pé (376 ms)
+    √ sem sinal continua dizendo que é o sinal (80 ms)
+  o aviso de rede tem saída
+    √ dá para dispensar, e dispensar some com ele (250 ms)
+    √ some sozinho quando a atualização seguinte dá certo (119 ms)
+  o ato de voltar fica na cara, e não atrás do ⓘ
+    √ a faixa traz o botão de voltar, sem precisar abrir o detalhe (53 ms)
+    √ o resumo cabe numa linha, em vez de sair cortado no meio da palavra (1 ms)
+    √ os fracassos que passam sozinhos não ganham botão nenhum (81 ms)
+
+PASS src/__tests__/perfil-a-sessao-que-terminou-e-o-aviso-que-fecha.test.tsx (12.13 s)
+  o servidor que não reconhece mais a sessão
+    √ o perfil diz que a sessão terminou, e não que foi a rede (1131 ms)
+    √ e ensina o caminho de volta, sem prometer o que não vale (316 ms)
+    √ sem sinal continua dizendo que é o sinal (389 ms)
+  o aviso de rede tem saída
+    √ dá para fechar, com alvo de 52 e rótulo para quem ouve a tela (563 ms)
+    √ some sozinho quando a atualização seguinte dá certo (645 ms)
+
+Test Suites: 6 passed, 6 total
+Tests:       40 passed, 40 total
+Snapshots:   0 total
+Time:        14.712 s, estimated 26 s
+Ran all test suites matching /src\\__tests__\\a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx|src\\__tests__\\perfil-a-sessao-que-terminou-e-o-aviso-que-fecha.test.tsx|src\\push\\logout-cala-o-aparelho.test.tsx|src\\__tests__\\a-sessao-vencida-nao-apaga-a-vistoria.test.tsx|src\\dados\\logout-nao-apaga-prova.test.ts|src\\dados\\falha-de-atualizacao.test.ts/i.

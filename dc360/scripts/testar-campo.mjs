@@ -43,9 +43,9 @@
  *
  * Rodar:  npm run test:campo
  */
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { contarCasosDoAplicativo } from "./casos-do-aplicativo.mjs";
@@ -92,6 +92,86 @@ export function planejar({ ambiente, existe }) {
   }
 
   return { acao: "rodar", compilar: COMPARTILHADOS.filter((c) => !existe(c.dist)) };
+}
+
+/*
+  O cache de rotas tipadas do expo-router (V2-F00-E21).
+
+  Com `experiments.typedRoutes` ligado no `app.config.ts`, o `expo start` grava
+  em `apps/campo/.expo/types/router.d.ts` a lista das rotas que existiam
+  NAQUELE momento, e o `tsconfig` do aplicativo inclui esse arquivo. Ele é
+  gerado, é por máquina e o `.gitignore` do aplicativo o deixa fora do git
+  (`.expo/`), então ninguém o atualiza a não ser o próprio `expo start`. Numa
+  máquina onde o Expo não roda há semanas, o arquivo velho não conhece as rotas
+  novas e o typecheck reprova `router.push("/perfil")` como se a rota não
+  existisse: em 2026-10-07, dois TS2345 (`perfil.tsx` e `Sino.tsx`) por um
+  `router.d.ts` de 2026-08-27 sem `mapa`, `perfil` e `avisos`. Sem o arquivo o
+  typecheck passa limpo, porque o `href` volta a ser texto.
+
+  Então, antes do typecheck, o arquivo é conferido contra as rotas que existem
+  no disco, e só é apagado quando falta alguma. Apagar sempre também
+  funcionaria, mas jogaria fora a checagem de rota tipada justamente na máquina
+  em que o cache está em dia. O próximo `expo start` o recria.
+*/
+const PASTA_DE_ROTAS = "apps/campo/src/app";
+const TIPOS_DE_ROTA = "apps/campo/.expo/types";
+const ARQUIVO_DE_ROTAS = `${TIPOS_DE_ROTA}/router.d.ts`;
+
+/**
+ * Converte o caminho de um arquivo de `src/app` na rota que o expo-router
+ * publica, ou `null` quando o arquivo não é rota.
+ *
+ * Regras do expo-router que importam aqui: `_layout` e `_sitemap` não são
+ * rota, `+html` e `+not-found` também não; grupo entre parênteses some do
+ * caminho; `index` é a raiz da pasta.
+ */
+export function rotaDoArquivo(relativo) {
+  const partes = relativo.replaceAll("\\", "/").split("/");
+  const arquivo = partes.pop();
+  const nome = arquivo.replace(/\.(tsx|ts|jsx|js)$/, "");
+  if (nome === arquivo || /^[_+]/.test(nome) || /\.(test|spec)$/.test(nome)) return null;
+  const segmentos = partes.filter((p) => !/^\(.*\)$/.test(p));
+  if (nome !== "index") segmentos.push(nome);
+  return `/${segmentos.join("/")}`;
+}
+
+/** Rotas que o arquivo de tipos gerado não conhece. Vazio quando está em dia. */
+export function rotasQueFaltamNoCache(rotas, conteudo) {
+  // Toda rota aparece no arquivo gerado como literal fechado por crase.
+  return [...new Set(rotas)].filter((rota) => !conteudo.includes(`${rota}\``));
+}
+
+function arquivosDeRota(pasta) {
+  return readdirSync(pasta, { recursive: true, withFileTypes: true })
+    .filter((e) => e.isFile())
+    .map((e) => relative(pasta, join(e.parentPath ?? e.path, e.name)));
+}
+
+/**
+ * Decide o que fazer com o cache, sem tocar em nada (testável com disco
+ * falso). `ler` devolve o conteúdo do arquivo de rotas, ou `null` se ele não
+ * existe.
+ */
+export function planejarCacheDeRotas({ rotas, ler }) {
+  const conteudo = ler(ARQUIVO_DE_ROTAS);
+  if (conteudo === null) return { acao: "nada", motivo: "não há cache de rotas tipadas" };
+  const faltam = rotasQueFaltamNoCache(rotas, conteudo);
+  if (faltam.length === 0) return { acao: "manter", motivo: "o cache de rotas tipadas conhece todas as rotas" };
+  return { acao: "apagar", alvo: TIPOS_DE_ROTA, faltam, motivo: `o cache de rotas tipadas não conhece ${faltam.join(", ")}` };
+}
+
+function limparCacheDeRotasVelho() {
+  const rotas = arquivosDeRota(join(RAIZ, PASTA_DE_ROTAS)).map(rotaDoArquivo).filter(Boolean);
+  const plano = planejarCacheDeRotas({
+    rotas,
+    ler: (relativo) => (existsSync(join(RAIZ, relativo)) ? readFileSync(join(RAIZ, relativo), "utf8") : null),
+  });
+  if (plano.acao === "apagar") {
+    console.log(`\n== Cache .expo/types desatualizado (${plano.motivo}): apagado, o próximo \`expo start\` o recria ==`);
+    rmSync(join(RAIZ, plano.alvo), { recursive: true, force: true });
+  } else {
+    console.log(`\n== Cache .expo/types: ${plano.motivo} ==`);
+  }
 }
 
 /*
@@ -184,6 +264,8 @@ function principal() {
     console.log(`\n== Compilando ${alvo.pacote}: o aplicativo consome o dist, não a origem ==`);
     rodar(["run", "build", "--workspace", alvo.pacote]);
   }
+
+  limparCacheDeRotasVelho();
 
   console.log("\n== TypeScript estrito do aplicativo de campo ==");
   rodar(["run", "typecheck", "--prefix", "apps/campo"]);

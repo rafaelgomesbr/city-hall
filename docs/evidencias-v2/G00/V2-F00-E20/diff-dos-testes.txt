@@ -1,0 +1,263 @@
+diff --git a/dc360/apps/web/test/trilha-detalhe.test.ts b/dc360/apps/web/test/trilha-detalhe.test.ts
+index 8dd7df8..5c09895 100644
+--- a/dc360/apps/web/test/trilha-detalhe.test.ts
++++ b/dc360/apps/web/test/trilha-detalhe.test.ts
+@@ -178,7 +178,10 @@ describe("Toda chave que as rotas gravam na trilha tem rótulo, ou é escondida
+   it("o dicionário não tem rótulo com travessão nem chave com espaço", () => {
+     for (const [chave, rotulo] of Object.entries(ROTULO_CHAVE_DO_DETALHE)) {
+       expect(chave).not.toMatch(/\s/);
+-      expect(rotulo).not.toContain("[travessao]");
++      // Escape em vez do caractere: o literal faria a varredura de conteúdo
++      // (`packages/shared/test/regras-de-conteudo.test.ts`) reprovar este
++      // próprio teste, que existe justamente para proibir o caractere.
++      expect(rotulo).not.toContain("\u2014");
+     }
+   });
+ });
+diff --git a/dc360/packages/shared/test/regras-de-conteudo.test.ts b/dc360/packages/shared/test/regras-de-conteudo.test.ts
+index 11535cd..948b00c 100644
+--- a/dc360/packages/shared/test/regras-de-conteudo.test.ts
++++ b/dc360/packages/shared/test/regras-de-conteudo.test.ts
+@@ -1,4 +1,5 @@
+-import { readFileSync, readdirSync, statSync } from "node:fs";
++import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
++import { tmpdir } from "node:os";
+ import { dirname, join, relative, sep } from "node:path";
+ import { fileURLToPath } from "node:url";
+ import { describe, expect, it } from "vitest";
+@@ -17,6 +18,18 @@ import { describe, expect, it } from "vitest";
+  * Até aqui as duas dependiam de alguém lembrar. Este arquivo as transforma em
+  * portão, e ele varre a superfície que o PRODUTO gera: o código do sistema,
+  * o texto que ele imprime e o protótipo de demonstração.
++ *
++ * Isenções do travessão (V2-F00-E20, 2026-10-07). O portão reprovava três
++ * fontes legítimas: o literal dentro do teste que proíbe o caractere (virou
++ * escape), a auditoria de 2026-09-30, que cita o caractere para descrever esse
++ * falso positivo, e a saída bruta de teste arquivada como evidência, que
++ * reproduz a linha que reprovou. Relatório e saída bruta são PROVA: reescrevê-los
++ * para agradar o teste apagaria o que eles provam. Por isso a varredura deixa de
++ * olhar para eles, e só para eles: a saída bruta é isenta apenas fora de `.md`
++ * (o `RESUMO.md` e o `INDEX.md` de uma evidência são texto escrito à mão e
++ * continuam varridos), e a auditoria antiga é isenta pelo nome exato do
++ * arquivo. Os casos de âncora no fim deste arquivo provam o recorte num
++ * diretório sintético.
+  */
+ 
+ const AQUI = dirname(fileURLToPath(import.meta.url));
+@@ -82,13 +95,54 @@ const EXTENSOES = [
+  * PRODUTO afirma, não o que a pesquisa investigou. Apagar citação de pesquisa
+  * para satisfazer um teste seria destruir a evidência que sustentou a decisão.
+  */
+-const CAMINHOS_IGNORADOS = [
+-  join("docs", "referencia"),
+-  join("relatorio"),
+-  join("dc360", "packages", "shared", "test"), // este arquivo cita normas por natureza
++type Isencao = {
++  caminho: string;
++  /**
++   * `pasta`: tudo abaixo do caminho. `pasta-fora-de-md`: tudo abaixo do caminho
++   * que não termina em `.md`. `arquivo`: só aquele arquivo, pelo nome exato.
++   */
++  alcance: "pasta" | "pasta-fora-de-md" | "arquivo";
++};
++
++const CAMINHOS_IGNORADOS: Isencao[] = [
++  { caminho: join("docs", "referencia"), alcance: "pasta" },
++  { caminho: join("relatorio"), alcance: "pasta" },
++  // Este arquivo cita normas e o travessão por natureza.
++  { caminho: join("dc360", "packages", "shared", "test"), alcance: "pasta" },
++  /*
++    Saída bruta da auditoria Baseline Zero (`.txt`, `.json`). É o que os
++    comandos imprimiram em 2026-09-30, inclusive a linha que este teste
++    reprovava. Editar seria falsificar a evidência; os `.md` da auditoria
++    continuam varridos.
++  */
++  { caminho: join("docs", "auditoria-v2", "raw"), alcance: "pasta-fora-de-md" },
++  /*
++    Saída bruta arquivada como evidência das etapas da V2. Uma etapa que prova
++    um teste vermelho por travessão reproduz o travessão na saída. O `RESUMO.md`
++    e o `INDEX.md` de cada etapa são escritos à mão e continuam varridos.
++  */
++  { caminho: join("docs", "evidencias-v2"), alcance: "pasta-fora-de-md" },
++  /*
++    Relatório de auditoria anterior, histórico. A linha 313 cita o caractere
++    para descrever o falso positivo deste mesmo portão. Isento pelo nome exato:
++    outro relatório em `docs/` continua varrido.
++  */
++  { caminho: join("docs", "AUDITORIA-2026-09-30.md"), alcance: "arquivo" },
+ ];
+ 
+-function arquivos(raiz: string): string[] {
++/** `relativo` é o caminho a partir da raiz do repositório, com o separador do sistema. */
++function isento(relativo: string): boolean {
++  return CAMINHOS_IGNORADOS.some(({ caminho, alcance }) => {
++    if (alcance === "arquivo") return relativo === caminho;
++    if (alcance === "pasta-fora-de-md") {
++      // O separador no fim impede que `docs/evidencias-v2-outra` herde a isenção.
++      return relativo.startsWith(caminho + sep) && !relativo.endsWith(".md");
++    }
++    return relativo.startsWith(caminho);
++  });
++}
++
++function arquivos(raiz: string, raizRepo: string = RAIZ_REPO): string[] {
+   const encontrados: string[] = [];
+ 
+   function percorrer(pasta: string): void {
+@@ -98,8 +152,7 @@ function arquivos(raiz: string): string[] {
+       if (statSync(caminho).isDirectory()) {
+         percorrer(caminho);
+       } else if (EXTENSOES.some((e) => nome.endsWith(e))) {
+-        const relativo = relative(RAIZ_REPO, caminho);
+-        if (CAMINHOS_IGNORADOS.some((ignorado) => relativo.startsWith(ignorado))) continue;
++        if (isento(relative(raizRepo, caminho))) continue;
+         encontrados.push(caminho);
+       }
+     }
+@@ -109,23 +162,39 @@ function arquivos(raiz: string): string[] {
+   return encontrados;
+ }
+ 
+-/** Superfícies que o produto gera ou apresenta. */
+-function superficiesDoProduto(): string[] {
++/**
++ * Superfícies que o produto gera ou apresenta. `raizRepo` só muda nos casos de
++ * âncora, que montam um repositório sintético com a mesma estrutura.
++ */
++function superficiesDoProduto(raizRepo: string = RAIZ_REPO): string[] {
++  const raizProduto = raizRepo === RAIZ_REPO ? RAIZ_PRODUTO : join(raizRepo, "dc360");
+   return [
+-    ...arquivos(RAIZ_PRODUTO),
+-    ...arquivos(join(RAIZ_REPO, "mockup")),
+-    ...arquivos(join(RAIZ_REPO, "docs")),
++    ...arquivos(raizProduto, raizRepo),
++    ...arquivos(join(raizRepo, "mockup"), raizRepo),
++    ...arquivos(join(raizRepo, "docs"), raizRepo),
+   ];
+ }
+ 
+-function nome(caminho: string): string {
+-  return relative(RAIZ_REPO, caminho).split(sep).join("/");
++function nome(caminho: string, raizRepo: string = RAIZ_REPO): string {
++  return relative(raizRepo, caminho).split(sep).join("/");
++}
++
++function achadosDeTravessao(raizRepo: string = RAIZ_REPO): string[] {
++  const achados: string[] = [];
++  for (const caminho of superficiesDoProduto(raizRepo)) {
++    readFileSync(caminho, "utf8").split("\n").forEach((linha, i) => {
++      if (linha.includes(TRAVESSAO)) {
++        achados.push(`${nome(caminho, raizRepo)}:${i + 1}  ${linha.trim().slice(0, 90)}`);
++      }
++    });
++  }
++  return achados;
+ }
+ 
+ describe("Regras de conteúdo", () => {
+   it("a varredura alcança o código, o protótipo e a documentação", () => {
+     // Âncora: sem ela, um caminho errado faria a varredura passar vazia.
+-    const lista = superficiesDoProduto().map(nome);
++    const lista = superficiesDoProduto().map((c) => nome(c));
+     expect(lista.length).toBeGreaterThan(40);
+     expect(lista.some((a) => a.startsWith("dc360/apps/api/src"))).toBe(true);
+     expect(lista.some((a) => a.startsWith("mockup/"))).toBe(true);
+@@ -140,15 +209,7 @@ describe("Regras de conteúdo", () => {
+   });
+ 
+   it("nenhum travessão em texto nenhum", () => {
+-    const achados: string[] = [];
+-
+-    for (const caminho of superficiesDoProduto()) {
+-      readFileSync(caminho, "utf8").split("\n").forEach((linha, i) => {
+-        if (linha.includes(TRAVESSAO)) {
+-          achados.push(`${nome(caminho)}:${i + 1}  ${linha.trim().slice(0, 90)}`);
+-        }
+-      });
+-    }
++    const achados = achadosDeTravessao();
+ 
+     expect(
+       achados,
+@@ -204,6 +265,81 @@ describe("Regras de conteúdo", () => {
+     expect(achados).toEqual([]);
+   });
+ 
++  it("as isenções da E20 valem só no recorte, e na árvore real", () => {
++    // Âncora na árvore de verdade: o que é escrito à mão continua entrando.
++    const lista = superficiesDoProduto().map((c) => nome(c));
++    expect(lista).toContain("dc360/apps/web/test/trilha-detalhe.test.ts");
++    expect(lista).toContain("docs/AUDITORIA-V2-BASELINE-ZERO.md");
++    expect(lista).toContain("docs/auditoria-v2/01-baseline.md");
++    expect(lista.some((a) => /^docs\/evidencias-v2\/.+\/RESUMO\.md$/.test(a))).toBe(true);
++    expect(lista.some((a) => /^docs\/evidencias-v2\/.+\/INDEX\.md$/.test(a))).toBe(true);
++    // E o que é saída bruta, e só ele, sai.
++    expect(lista).not.toContain("docs/AUDITORIA-2026-09-30.md");
++    expect(lista).not.toContain("docs/auditoria-v2/raw/teste-shared.txt");
++    expect(lista.some((a) => a.startsWith("docs/evidencias-v2/") && !a.endsWith(".md"))).toBe(false);
++    expect(lista.some((a) => a.startsWith("docs/auditoria-v2/raw/") && !a.endsWith(".md"))).toBe(false);
++  });
++
++  describe("recorte das isenções num repositório sintético", () => {
++    /*
++      Os casos negativos da E20. Cada arquivo leva um travessão; o portão tem de
++      reprovar todos, menos os dois que são saída bruta. Os nomes das armadilhas
++      (`evidencias-v2-copia`, `AUDITORIA-2026-10-01.md`, `.txt` fora do `raw`)
++      provam que a isenção não pega por prefixo solto nem por parecença de nome.
++    */
++    const TEXTO = `linha com ${TRAVESSAO} no meio\n`;
++    const REPROVAM = [
++      "docs/nota-nova.md",
++      "docs/evidencias-v2/G00/V2-F00-E99/RESUMO.md",
++      "docs/evidencias-v2/G00/V2-F00-E99/INDEX.md",
++      "docs/auditoria-v2/raw/nota-escrita-a-mao.md",
++      "docs/auditoria-v2/relatorio-fora-do-raw.txt",
++      "docs/evidencias-v2-copia/saida.txt",
++      "docs/AUDITORIA-2026-10-01.md",
++      "docs/sub/AUDITORIA-2026-09-30.md",
++      "dc360/apps/api/src/produto-novo.ts",
++      "dc360/apps/web/src/Tela.tsx",
++      "mockup/app/tela.js",
++    ];
++    const PASSAM = [
++      "docs/evidencias-v2/G00/V2-F00-E99/saida-do-teste.txt",
++      "docs/evidencias-v2/G00/V2-F00-E99/resultado.json",
++      "docs/auditoria-v2/raw/teste-novo.txt",
++      "docs/AUDITORIA-2026-09-30.md",
++    ];
++
++    function montar(): string {
++      const raiz = mkdtempSync(join(tmpdir(), "dc360-conteudo-"));
++      for (const relativo of [...REPROVAM, ...PASSAM]) {
++        const caminho = join(raiz, ...relativo.split("/"));
++        mkdirSync(dirname(caminho), { recursive: true });
++        writeFileSync(caminho, TEXTO, "utf8");
++      }
++      return raiz;
++    }
++
++    it("reprova o travessão novo em documento, evidência escrita à mão e produto", () => {
++      const raiz = montar();
++      try {
++        const achados = achadosDeTravessao(raiz).map((a) => a.split(":")[0]);
++        for (const relativo of REPROVAM) expect(achados).toContain(relativo);
++        expect(achados).toHaveLength(REPROVAM.length);
++      } finally {
++        rmSync(raiz, { recursive: true, force: true });
++      }
++    });
++
++    it("deixa passar só a saída bruta e o relatório histórico pelo nome exato", () => {
++      const raiz = montar();
++      try {
++        const achados = achadosDeTravessao(raiz).map((a) => a.split(":")[0]);
++        for (const relativo of PASSAM) expect(achados).not.toContain(relativo);
++      } finally {
++        rmSync(raiz, { recursive: true, force: true });
++      }
++    });
++  });
++
+   it("as próprias expressões funcionam", () => {
+     // Sem isto, um erro nas expressões faria a varredura passar vazia.
+     expect(`texto com ${TRAVESSAO} travessão`.includes(TRAVESSAO)).toBe(true);

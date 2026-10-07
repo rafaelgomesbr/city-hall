@@ -1,0 +1,25 @@
+[
+  {
+    "id": "teste-db",
+    "cmd": "npm run test:isolamento",
+    "cwd": ".",
+    "codigo": 1,
+    "duracaoMs": 91589,
+    "status": "divergente",
+    "detalhes": [
+      "código de saída 1, esperado 0",
+      "falhas: obtido 1, esperado 0"
+    ],
+    "arquivo": "01-teste-db.txt"
+  },
+  {
+    "id": "teste-campo-app",
+    "cmd": "npx jest --silent",
+    "cwd": "apps/campo",
+    "codigo": 0,
+    "duracaoMs": 61678,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "02-teste-campo-app.txt"
+  }
+]

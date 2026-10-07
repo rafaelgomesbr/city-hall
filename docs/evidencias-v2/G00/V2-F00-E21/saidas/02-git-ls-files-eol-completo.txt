@@ -1,0 +1,1381 @@
+$ git ls-files --eol   (2026-10-07, depois do .gitattributes)
+i/lf    w/crlf  attr/text=auto eol=lf 	.claude/agents/revisor-qa.md
+i/lf    w/crlf  attr/text=auto eol=lf 	.claude/agents/revisor-ux.md
+i/lf    w/crlf  attr/text=auto eol=lf 	.github/workflows/verificar.yml
+i/lf    w/crlf  attr/text=auto eol=lf 	.gitignore
+i/lf    w/crlf  attr/text=auto eol=lf 	CLAUDE.md
+i/lf    w/lf    attr/text=auto eol=lf 	PROMPT_INICIAL.md
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/.dockerignore
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/.gitignore
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/.nvmrc
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/Dockerfile
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/Dockerfile.console
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/README.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/.env.example
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/PENDENCIAS.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/package.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/armazenamento/assinatura.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/armazenamento/cli.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/armazenamento/memoria.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/armazenamento/orfaos.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/armazenamento/s3.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/armazenamento/tipos.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/armazenamento/uso.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/auth/aparelho.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/auth/cofre.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/auth/conta-desativada.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/auth/notificador.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/auth/segundo-fator.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/auth/senha.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/auth/servico.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/auth/sessoes.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/auth/suspensao.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/auth/tokens.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/auth/totp.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/auth/vigencia.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/banco/memoria.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/banco/postgres.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/api/src/banco/tipos.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/banco/tls.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/config.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/documentos/folha.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/documentos/laudo.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/documentos/pdf.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/eliminacao/relogio.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/index.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/metricas/resumo.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/oficios/documento.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/privacidade/consulta.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/privacidade/lista.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/privacidade/minimizacao.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/provisionar.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/push/apns.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/push/envio.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/push/fcm.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/push/mensagem.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/push/segredo.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/push/trava.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/push/varredor.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rede.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/administracao.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/aparelhos.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/armazenamento-local.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/armazenamento.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/autenticacao.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/avisos.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/busca.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/campo.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/configuracao.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/documentos.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/evidencias.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/interesse.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/mapa.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/ocorrencias.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/oficios.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/orgaos.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/prestacao-de-contas.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/recorte-do-agente.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/rota.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/saida-a-campo.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/saida.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/segundo-fator.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/sincronizacao.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/rotas/usuarios-eu.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/saida/pacote.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/saida/zip.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/servidor.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/src/trilha.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/acesso-suspenso.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/agente-so-ve-a-equipe.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/api.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/assinatura-ausente-no-documento.test.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/api/test/assinatura.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/autoria-da-coleta.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/banco-tls.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/busca.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/bytes-confirmados-nao-se-trocam.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/campo-integracao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/codigos-de-erro.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/coleta-nao-reescreve-prova.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/config.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/configuracao-do-painel.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/coordenada-de-ocorrencia-aberta.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/desinterdicao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/despacho-avisa.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/devolucao-de-tarefa.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/devolvidas-esperando-decisao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/documentos.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/duble-da-migracao-038.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/eliminacao-de-municipio.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/encerrada-nao-recebe-ato.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/endereco-de-origem.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/enumeracao-pelo-bloqueio.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/eventos-tem-rotulo.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/evidencias.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/exportacao-em-dois-niveis.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/familia-da-sessao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/foto-do-agente.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/fotos-do-documento.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/fuso-do-documento.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/identificador-da-emissao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/laudo-depois-da-minimizacao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/leitura-do-agente-oficios-e-avisos.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/ler-zip.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/limite-por-usuario.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/listagem-do-armazenamento.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/log.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/minimizacao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/minuta-nao-diverge.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/notificador-http.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/objeto-orfao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/orgaos-e-oficio.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/orgaos-indicados-na-vistoria.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/pacote-de-saida-contrato.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/partida-nao-carrega-pglite.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/pdf-na-imagem.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/pico-lista-e-mapa.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/posto-abaixo-do-seu.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/prazo-do-despacho.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/prestacao-de-contas.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/prosa-do-documento.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/prova-fotografica.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/prova-perdida-e-ponto-da-vistoria.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/provisionar.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/push-ambiente-por-aparelho.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/push-aparelhos.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/push-canal-e-som.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/push-credenciais.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/push-partida-e-validade.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/push-rodada-diz-o-que-fez.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/push-saude-e-despertar.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/push-segredo.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/push-sem-resposta.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/push-varredor.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/push-vitrine.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/reconciliar-pendencias.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/recuperacao-desligada.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/recuperacao-em-producao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/recuperacao-sem-oraculo.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/recuperacao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/registro-de-consulta.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/resolver-link.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/resumo-do-municipio.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/retencao-do-municipio.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/rota.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/rotacao-de-segredo.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/saida-a-campo.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/saida-de-municipio.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/saida-nao-declara-inexistente.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/segunda-via-nao-reinterdita.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/segundo-fator.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/senha-e-sessoes.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/senha-provisoria.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/sessoes-da-conta.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/sino-de-avisos.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/superficie.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/teto-de-armazenamento.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/teto-de-pendencias.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/tipo-a-classificar.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/triagem-nao-devolve.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/vigencia-na-escrita.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/vistoria-e-da-equipe.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/test/vistoria-em-corrida.test.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/api/tsconfig.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/api/vitest.config.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/.env.example
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/.gitignore
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/LEIA-ME.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/LOJAS.md
+i/lf    w/mixed attr/text=auto eol=lf 	dc360/apps/campo/PENDENCIAS.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/__mocks__/expo-image-manipulator.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/__mocks__/expo-image-picker.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/__mocks__/react-native-maps.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/app.config.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/assets/fontes/OFL-RobotoMono.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/assets/fontes/OFL-WorkSans.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/assets/fontes/PROVENIENCIA.txt
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/fontes/RobotoMono-Bold.ttf
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/fontes/RobotoMono-Regular.ttf
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/fontes/WorkSans-Bold.ttf
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/fontes/WorkSans-Regular.ttf
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/fontes/WorkSans-SemiBold.ttf
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/icone-adaptativo.png
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/icone.png
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/opcoes/folha-de-contato.png
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/opcoes/icone-alerta.png
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/opcoes/icone-anel.png
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/opcoes/icone-cume.png
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/opcoes/icone-escudo.png
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/opcoes/icone-prumo.png
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/opcoes/icone-sonar.png
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/sons/despacho.wav
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/splash-escuro.png
+i/-text w/-text attr/-text            	dc360/apps/campo/assets/splash.png
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/campo/babel.config.js
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/eas.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/google-services.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/jest.setup.js
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/campo/metro.config.js
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/package-lock.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/package.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/scripts/gerar-icones.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/scripts/gerar-opcoes-de-marca.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/a-aba-nao-fica-escura.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/a-lista-de-tarefas-entra-e-sai.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/a-sessao-vencida-nao-apaga-a-vistoria.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/a-vistoria-recebida-sai-da-lista.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/avisos-a-tela-do-sino.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/devolver-tarefa-vencida.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/entrar-responde-ao-dedo.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/hoje-lista-e-mapa.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/lista-de-tarefas-coletadas.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/lista-de-tarefas-nao-pula.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/mapa-a-legenda-nao-mente.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/mapa-tela-dedicada.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/menu-de-vidro-e-transicoes.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/o-cartao-responde-ao-dedo.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/orgaos-a-acionar.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/perfil-a-foto-os-numeros-e-a-equipe.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/perfil-a-sessao-que-terminou-e-o-aviso-que-fecha.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/perfil-caminho-para-os-ajustes.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/perfil-equipe-e-concluidas.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/perfil-identidade-e-estado.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/perfil-o-atalho-dos-avisos.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/perfil-o-que-eu-conclui.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/perfil-um-indicador-por-fato.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/tarefas-em-sanfona.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/tela-de-vistoria.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/tema-a-escolha-do-agente.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/vistoria-ainda-nao-baixada.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/vistoria-ao-voltar-ao-foco.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/vistoria-como-produto.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/vistoria-ja-coletada.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/vistoria-mapa-e-historico.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/vistoria-nao-sai-quebrada.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/app/(agente)/_layout.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/app/(agente)/avisos.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/app/(agente)/fila.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/app/(agente)/index.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/app/(agente)/mapa.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/app/(agente)/perfil.tsx
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/app/_layout.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/app/entrar.tsx
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/campo/src/app/index.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/api-acesso-suspenso.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/api-aparelho.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/api-avisos.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/api-conta-desativada.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/api-tempo-limite.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/api.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/campo/src/dados/atualizacao.test.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/campo/src/dados/atualizacao.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/avisos.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/avisos.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/banco-local.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/catalogo-de-orgaos.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/coletas.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/coletas.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/campo/src/dados/conectividade.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/conquistas.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/conquistas.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/contagem-de-avisos.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/correcao-da-coleta.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/correcao-da-coleta.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/evidencia-no-disco.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/evidencia-no-disco.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/falha-de-atualizacao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/falha-de-atualizacao.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/fila.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/foto-do-agente.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/foto-do-agente.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/historico-da-casa.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/historico-da-casa.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/lista-cortada-no-cliente.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/lista-cortada.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/logout-nao-apaga-prova.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/mapa-de-base.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/mapa.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/mapa.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/numeros-do-agente.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/numeros-do-agente.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/ordem-do-dia.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/ordem-do-dia.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/pausa-da-fila.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/pausa-da-fila.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/pendencias.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/preferencia-de-tema.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/preferencia-de-tema.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/rascunho-da-correcao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/rascunho-de-versao-antiga.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/rascunho.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/reconciliacao-ligada.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/resumo-da-fila.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/rota.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/rota.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/campo/src/dados/sessao.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/sessao.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/tarefa-nova-avisa.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/token.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/dados/token.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/node-sqlite.d.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/PortaExpo.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/ProvedorDePush.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/aviso-local.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/aviso-local.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/aviso.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/aviso.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/canais.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/canais.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/canal-padrao-do-android.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/contexto.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/convite.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/despacho-toca-uma-vez.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/duplo-de-porta.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/ficha-do-aparelho.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/logout-cala-o-aparelho.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/permissao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/permissao.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/porta.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/provedor-descarta-outro-municipio.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/registro-tenta-de-novo.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/registro.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/registro.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/tarefa-nova-com-o-aplicativo-aberto.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/push/volta-do-segundo-plano.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/Assinatura.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/Avatar.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/BarraDeAbas.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/BarraDeStatus.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/Campo.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/CenaDaAba.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/Chip.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/Cracha.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/Dialogo.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/DialogoDeDevolucao.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/EscolhaDeMapa.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/FaixaDeSincronizacao.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/FolhaArrastavel.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/FolhaDeEscolha.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/Grafico.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/GuardaDeSaidaDaVistoria.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/ItemDeLista.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/ItemDeTarefa.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/MinutaDoLaudo.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/OrgaosParaAcionar.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/Sino.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/artefato-de-documento.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/avatar.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/aviso-e-vazio.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/botoes-que-chamam.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/campo.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/cena-da-aba.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/chip.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/componentes.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/corrigir-na-fila.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/cracha.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/dado-que-conta.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/devolucao-na-fila.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/dialogo-na-conta.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/dialogo-na-fila.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/dialogo-na-vistoria.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/dialogo.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/elevacao-no-cartao.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/escolha-de-mapa.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/espera.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/faixa-de-sincronizacao.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/fila-como-produto.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/fila-pausada-pela-sessao.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/folha-arrastavel.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/folha-de-escolha.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/fontes.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/fontes.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/grafico.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/guarda-de-saida-da-vistoria.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/hierarquia.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/hierarquia.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/icones.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/icones.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/identidade-do-produto.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/item-de-lista.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/item-de-tarefa.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/linha-de-acoes.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/DesenhoDaCriticidade.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/MapaDoImovel.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/ModoDoMapaDito.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/PlanoDasTarefas.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/PlanoEsquematico.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/criticidade.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/criticidade.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/desenho-da-criticidade.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/estilo-do-google.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/estilo-do-google.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/index.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/lado.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/mapa-do-imovel.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/pinos.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/pinos.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/plano-das-tarefas.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/plano-esquematico.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/use-mapa-do-municipio.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/mapa/useMapaDoMunicipio.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/pilula-do-produto.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/regua.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/resposta-ao-toque.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/retorno-tatil.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/retornoTatil.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/sino.test.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/tipografia.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/tokens-que-faltavam.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/tokens.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/useReducaoDeMovimento.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/src/ui/useRespostaAoToque.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/campo/tsconfig.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/.env.example
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/package.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/src/banco-em-memoria.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/src/banco.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/src/cadastro.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/src/config.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/src/consultas.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/src/esquema.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/src/fontes.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/src/index.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/src/municipios.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/src/operadores.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/src/pagina.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/src/provisionar-operador.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/src/qr.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/src/recuperacao.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/src/servidor.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/src/tokens.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/a-tela-responde.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/acoes-perigosas.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/apoio/console-de-teste.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/apoio/duble-da-migracao-039.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/area-de-usuarios.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/cadastro-de-prefeitura.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/diagnostico-da-porta.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/dono-sem-codigos.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/no-navegador.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/o-acabamento-da-tela.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/o-qr-e-o-do-produto.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/operadores-no-banco.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/plateia-nao-atravessa.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/ponta-a-ponta.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/recuperacao-de-senha.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/segundo-fator-obrigatorio.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/subir-em-producao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/test/superficie.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/tsconfig.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/console/vitest.config.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/PENDENCIAS.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/index.html
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/package.json
+i/-text w/-text attr/-text            	dc360/apps/web/public/apple-touch-icon.png
+i/-text w/-text attr/-text            	dc360/apps/web/public/favicon.ico
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/public/fontes/OFL-RobotoMono.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/public/fontes/OFL-WorkSans.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/public/fontes/PROVENIENCIA.txt
+i/-text w/-text attr/-text            	dc360/apps/web/public/fontes/roboto-mono-v31-400.woff
+i/-text w/-text attr/-text            	dc360/apps/web/public/fontes/roboto-mono-v31-700.woff
+i/-text w/-text attr/-text            	dc360/apps/web/public/fontes/work-sans-v24-400.woff
+i/-text w/-text attr/-text            	dc360/apps/web/public/fontes/work-sans-v24-600.woff
+i/-text w/-text attr/-text            	dc360/apps/web/public/fontes/work-sans-v24-700.woff
+i/-text w/-text attr/-text            	dc360/apps/web/public/icone-192.png
+i/-text w/-text attr/-text            	dc360/apps/web/public/icone-512.png
+i/-text w/-text attr/-text            	dc360/apps/web/public/icone-mascaravel-512.png
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/public/icone.svg
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/public/manifest.webmanifest
+i/-text w/-text attr/-text            	dc360/apps/web/public/og.png
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/public/og.svg
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/public/robots.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/scripts/gerar-marca.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/App.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/busca/combobox.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/busca/indice.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/busca/pontuador.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/busca/registros.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/componentes/BuscaGlobal.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/componentes/Campo.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/componentes/ConfirmarAcao.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/componentes/DescobrirPonto.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/componentes/Estrutura.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/componentes/Icones.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/componentes/Modal.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/componentes/SegundoFator.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/componentes/Sino.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/componentes/Toast.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/componentes/TrocaDeTela.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/componentes/comuns.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/componentes/foco.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/componentes/qr.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/componentes/sino-regras.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/dados/banco.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/dados/http.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/dados/local.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/dados/repositorio.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/dados/semente-da-demonstracao.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/dados/tipos.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/devolucao.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/estado/configuracao.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/estado/sessao.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/estilos/app.css
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/estilos/tokens.css
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/web/src/main.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/Auditoria.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/Entrar.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/Equipes.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/Mapa.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/MapaDoGoogle.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/MeuTrabalho.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/MinhaConta.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/NaoEncontrada.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/NovaOcorrencia.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/Ocorrencia.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/Ocorrencias.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/Organizacao.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/Orgaos.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/Painel.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/QuemEstaEmCampo.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/QueroConhecer.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/RecuperarSenha.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/Usuarios.tsx
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/coordenada-colada.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/coordenada-corrigida.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/entrar-regras.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/link-encurtado.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/mapa-de-base.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/meu-trabalho-regras.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/ocorrencia-regras.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/oficio-regras.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/orgaos-regras.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/recuperar-regras.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/senha-provisoria-regras.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/sessoes-regras.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/trilha-detalhe.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/paginas/usuarios-regras.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/seo/indexacao.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/src/seo/titulo.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/web/src/vite-env.d.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/web/test/acessibilidade.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/busca-global.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/busca-nos-dois-modos.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/busca-pontuador.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/busca-registros.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/campo.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/coordenada-corrigida.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/design-system.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/devolucao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/fluxo-api.e2e.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/fluxo.e2e.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/foco.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/formularios.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/glifos-de-severidade.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/link-encurtado.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/lista-sem-o-que-so-o-dossie-entrega.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/mapa-e-coordenada.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/modal.test.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/web/test/modo-de-demonstracao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/ocorrencia-encerramento.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/ocorrencia-ver-tambem.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/oficio-so-para-quem-consulta.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/oficio.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/orgaos.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/pacote-de-saida.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/paridade-dos-modos.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/pico-lista-e-mapa.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/portoes-de-componente.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/qr.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/quem-esta-em-campo.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/recuperar-senha-e-sessao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/recuperar-senha.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/seguranca-da-conta.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/semente-e-confirmacoes.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/senha-provisoria.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/seo.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/sessao-e-entrada.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/sessoes-e-senha-temporaria.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/sino.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/tipo-a-classificar.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/toast.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/trilha-detalhe.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/apps/web/test/usuarios-regras.test.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/web/tsconfig.json
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/web/vite.config.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/apps/web/vitest.config.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/compose.yaml
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/PENDENCIAS.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/001_base.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/002_autenticacao.sql
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/db/migrations/003_evidencias.sql
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/db/migrations/004_evidencia_idempotente.sql
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/db/migrations/005_recuperacao_de_senha.sql
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/db/migrations/006_resposta_de_providencia.sql
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/db/migrations/007_registro_de_exportacao.sql
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/db/migrations/008_chaves_coerentes_por_municipio.sql
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/db/migrations/009_assinatura_data_e_emissao.sql
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/db/migrations/010_trilha_administrativa.sql
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/db/migrations/011_interesse_de_municipio.sql
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/db/migrations/012_ponto_de_referencia.sql
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/db/migrations/013_matricula_no_login.sql
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/db/migrations/014_interdicao_tem_fim.sql
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/db/migrations/015_pessoas_atingidas.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/016_aparelho_e_aviso_de_prazo.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/017_orgaos_oficio_e_email.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/018_sino_de_avisos.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/019_tipo_a_classificar.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/020_orgaos_indicados_na_vistoria.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/021_minimizacao_e_registro_de_consulta.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/022_segundo_fator.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/023_metricas_do_municipio.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/024_prova_tem_autor_e_equipe.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/025_provisionar_deixa_linha_espelho.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/026_relogio_do_resumo.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/027_recibo_do_provedor_de_email.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/028_devolucao_de_tarefa_vencida.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/029_minimizacao_alcanca_a_devolucao.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/030_prova_perdida_e_ponto_da_vistoria.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/031_saida_a_campo.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/032_prova_que_nao_se_apaga_e_prorrogacao_idempotente.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/033_as_outras_duas_que_prometiam_append_only.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/034_as_tabelas_centrais_tambem_nao_se_apagam.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/035_teto_e_objeto_orfao.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/036_o_console_cadastra_prefeitura.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/037_o_expurgo_de_notificacao_nao_depende_de_bypassrls.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/038_suspensao_eliminacao_e_operadores_do_console.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/039_codigos_de_recuperacao_do_console.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/040_foto_do_agente.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/041_busca_com_tolerancia_a_erro.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/042_aviso_de_despacho_nasce_no_despacho.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/043_minimizacao_alcanca_relato_vistoria_e_trilha.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/044_ambiente_da_apns_por_aparelho.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/045_varredura_de_prazo_sem_bypassrls_e_a_foto_no_teto.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/046_senha_provisoria_e_o_dono_do_token_diz_por_que.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/migrations/047_familia_da_sessao.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/package.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/provedores/supabase-endurecer.sql
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/provedores/supabase-prod-ca-2021.crt
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/seeds/desenvolvimento.sql
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/db/src/carregar.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/src/cli.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/src/conexao.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/db/src/index.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/src/migrar.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/test/ambiente-do-aparelho.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/test/ancora-de-confianca.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/test/busca.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/test/carga.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/test/eliminacao-de-municipio.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/test/familia-da-sessao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/test/isolamento.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/test/migrar.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/test/minimizacao-do-relato-e-da-trilha.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/test/recuperacao-do-console.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/test/teto-de-coordenada.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/test/varredura-de-prazo-sem-bypassrls.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/tsconfig.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/db/vitest.config.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/ARMAZENAMENTO.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/CARTAO-DO-AGENTE.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/COLOCAR-DE-PE.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/DECLARACAO-NAS-LOJAS.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/DICIONARIO-DE-DADOS.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/GUIA-DO-COORDENADOR.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/IMPLANTACAO.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/INDISPONIBILIDADE.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/LEIA-ME.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/LIGAR-O-EMAIL.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/PAPEIS_E_RESPONSABILIDADES.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/POLITICA-DE-TESTE-VERMELHO.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/PRIVACIDADE.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/SAIDA-DE-MUNICIPIO.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/SEGURANCA-DO-AGENTE.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/SUBPROCESSADORES.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/VERCEL-PAINEL.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/apresentacao/2026-09-15-para-o-alyson.html
+i/-text w/-text attr/-text            	dc360/docs/apresentacao/2026-09-15-para-o-alyson.pdf
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/apresentacao/README.md
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/docs/apresentacao/gerar-pdf.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/fly.console.toml
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/fly.toml
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/package-lock.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/package.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/package.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/src/coleta.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/src/conclusao.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/src/conferencia.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/packages/campo/src/deposito-sqlite.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/src/deposito.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/src/devolucao.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/src/fila.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/src/index.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/src/prazo.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/src/tipos.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/src/transporte.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/test/coleta.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/test/conclusao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/test/correcao-da-coleta.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/test/deposito-sqlite.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/test/devolucao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/test/fila.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/test/pausa-de-sessao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/test/prazo.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/test/prova-perdida.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/tsconfig.build.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/campo/tsconfig.json
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/packages/shared/package.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/src/campos.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/src/codigos-de-erro.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/packages/shared/src/csv.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/src/dominio.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/src/evidencia.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/src/glifos-de-severidade.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/src/index.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/src/localizacao.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/src/localizacao.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/src/mensagens-do-zod.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/src/minuta.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/src/permissoes.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/src/pessoas.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/src/protocolo.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/src/schemas.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/src/telefone.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/test/campos.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/test/codigos-de-erro.test.ts
+i/lf    w/lf    attr/text=auto eol=lf 	dc360/packages/shared/test/csv.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/test/dominio.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/test/evidencia.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/test/glifos-de-severidade.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/test/mensagens-em-portugues.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/test/orgaos-do-checklist.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/test/permissoes.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/test/prova-perdida-e-coordenada.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/test/regras-de-conteudo.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/test/telefone.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/test/tipo-a-classificar.test.ts
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/packages/shared/tsconfig.json
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/abertura-do-aplicativo.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/ancoras-da-declaracao.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/ancoras-da-declaracao.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/auditar.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/baseline.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/baseline.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/cadastrar-prefeitura.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/casos-do-aplicativo.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/comando-de-migracao.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/conferir-numeros.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/conferir-push.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/copiar-producao.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/copiar-producao.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/e2e-api.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/e2e-porta-ocupada.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/entitlements-do-ios.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/fonte-do-aplicativo.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/fontes-do-painel.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/gerar-fontes-do-painel.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/gerar-som-de-despacho.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/migrar-producao.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/migrar-producao.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/paridade-de-severidade.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/paridade-de-tokens-do-aplicativo.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/portao-acessibilidade-do-aplicativo.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/portao-de-skip.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/portao-de-skip.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/portao-densidade-do-aplicativo.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/portao-design-do-aplicativo.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/portao-do-mapa-do-aplicativo.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/producao.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/renderizar-laudo.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/rotacionar-segredo.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/rotacionar-segredo.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/som-de-despacho.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/testar-campo.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/testar-campo.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/scripts/variaveis-de-ambiente.test.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	dc360/vercel.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/APRESENTACAO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/AUDITORIA-2026-09-30.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/AUDITORIA-V2-BASELINE-ZERO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/CONTEXTO.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/DECISOES-DE-TESTE-DA-FASE-00.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/ROADMAP-V2.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/ROADMAP_FASE0.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/ROTEIRO_DEMO.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/ROTEIRO_VIDEO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/adr/0001-isolamento-entre-municipios-no-banco.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/adr/0002-trilha-append-only-por-ausencia-de-policy.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/adr/0003-painel-em-dois-modos.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/adr/0004-autenticacao-propria.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/adr/0005-sigv4-a-mao-em-vez-do-sdk-da-aws.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/adr/0006-administrador-e-o-teto-do-municipio.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/adr/0007-codigo-em-portugues.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/adr/0008-console-do-fornecedor-sem-credencial-que-ve-dois-municipios.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/apresentacao-produto-alyson.html
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/01-baseline.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/02-painel-arquitetura.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/03-campo-offline.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/04-console.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/05-secretarias.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/auditoria-v2/06-identidade-authz.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/07-cidadao.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/08-lgpd-arquivos.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/09-documentos-requisitos.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/10-operacao.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/11-design-acessibilidade.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/12-decision-pack.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/_api-diag.log
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/_cadeiaA.log
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/_cadeiaE2E.log
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/_preview-diag.log
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/audit-campo-omit-dev.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/audit-campo-omit-dev.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/audit-campo.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/audit-campo.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/audit-raiz-json.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/audit-raiz-omit-dev.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/audit-raiz-omit-dev.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/audit-raiz.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/audit-raiz.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/auditar-com-shim-windows.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/auditar.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/build-web-local.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/conferir-numeros.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/e2e-api-chromium.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/e2e-local-chromium.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/e2e-local-firefox.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/e2e-preview.log
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/expo-doctor-como-no-ci.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/expo-doctor.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/npm-ls-campo.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/test-campo-script.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/test-scripts.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/teste-api.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/teste-banco-tls-sem-openssl-conf.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/teste-console.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/teste-db.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/teste-packages-campo.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/teste-shared.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/tsconfig-sem-cache-expo.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/typecheck-campo-sem-cache-expo.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/typecheck-campo.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/auditoria-v2/raw/typecheck-raiz.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/AMBIENTE.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/COMO-REPRODUZIR.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/01-typecheck.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/02-teste-shared.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/03-teste-db.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/04-teste-campo-pacote.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/05-teste-api.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/06-teste-console.txt
+i/lf    w/mixed attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/07-teste-web.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/08-teste-campo-app.txt
+i/lf    w/mixed attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/09-test-campo.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/10-test-scripts.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/11-conferir-numeros.txt
+i/lf    w/mixed attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/12-auditar.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/13-audit-raiz.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/14-audit-campo.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/15-expo-doctor.txt
+i/lf    w/mixed attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/16-e2e.txt
+i/lf    w/mixed attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/17-e2e-api.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E01/saidas/resultados.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/INDEX.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/POLITICA-DE-TESTE-VERMELHO.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/01-portao-de-skip.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/02-prova-de-reprovacao.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/antes/01-test-scripts.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/antes/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/antes/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/antes/resultados.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/depois-test-scripts/01-test-scripts.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/depois-test-scripts/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/depois-test-scripts/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/depois-test-scripts/resultados.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/regressao-api-segunda-rodada/01-teste-api.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/regressao-api-segunda-rodada/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/regressao-api-segunda-rodada/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/regressao-api-segunda-rodada/resultados.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/regressao-npm-test/01-teste-shared.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/regressao-npm-test/02-teste-db.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/regressao-npm-test/03-teste-campo-pacote.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/regressao-npm-test/04-teste-api.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/regressao-npm-test/05-teste-console.txt
+i/lf    w/mixed attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/regressao-npm-test/06-teste-web.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/regressao-npm-test/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/regressao-npm-test/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E02/saidas/regressao-npm-test/resultados.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E03/INDEX.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E03/RESUMO.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E03/classificacao-dos-vermelhos.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E04/INDEX.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E04/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E04/baseline-teste-api/01-teste-api.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E04/baseline-teste-api/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E04/baseline-teste-api/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E04/baseline-teste-api/resultados.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E04/diff-da-etapa.patch
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E04/saidas/01-api-completa-antes.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E04/saidas/02-sonda-antes-do-conserto.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E04/saidas/03-api-completa-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E04/saidas/04-isolamento.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E04/saidas/05-superficie.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E04/saidas/06-e2e-api-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E04/saidas/07-api-test-sem-o-ajuste-do-coordA.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/RESUMO.md
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E05/capturas/entrada-desativada-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E05/capturas/entrada-desativada-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E05/capturas/entrada-desativada-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E05/capturas/entrada-desativada-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E05/capturas/entrada-encerrada-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E05/capturas/entrada-encerrada-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E05/capturas/entrada-encerrada-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E05/capturas/entrada-encerrada-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E05/capturas/entrada-expirou-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E05/capturas/entrada-expirou-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E05/capturas/entrada-expirou-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E05/capturas/entrada-expirou-390-escuro.png
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/02-sonda-antes-do-conserto.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/03-api-completa-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/04-isolamento.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/05-shared-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/06-e2e-secao-23-em-api-limpa.txt
+i/-text w/-text attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/07-web-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/08-campo-pacote-depois.txt
+i/lf    w/mixed attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/09-test-campo-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/10-jest-campo-direto-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/11-superficie.txt
+i/lf    w/mixed attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/12-e2e-api-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/13-test-scripts-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/14-conferir-numeros-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/antes/01-teste-shared.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/antes/02-teste-api.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/antes/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/antes/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/antes/resultados.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/baseline-depois/01-teste-shared.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/baseline-depois/02-teste-db.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/baseline-depois/03-teste-api.txt
+i/lf    w/mixed attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/baseline-depois/04-teste-web.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/baseline-depois/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/baseline-depois/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E05/saidas/baseline-depois/resultados.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/02a-sonda-transporte-antigo.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/02b-sonda-fila-antiga.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/02c-sonda-tela-antiga.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/04-api-completa-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/05-tela-da-fila-em-texto.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/06-isolamento.txt
+i/lf    w/mixed attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/07-test-campo-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/08-test-scripts-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/09-conferir-numeros-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/10-regras-de-conteudo.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/antes/01-teste-campo-pacote.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/antes/02-teste-campo-app.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/antes/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/antes/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/antes/resultados.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/baseline-depois/01-teste-campo-pacote.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/baseline-depois/02-teste-campo-app.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/baseline-depois/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/baseline-depois/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E06/saidas/baseline-depois/resultados.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/RESUMO.md
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E07/capturas/papel-antes-da-escrita-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E07/capturas/papel-antes-da-escrita-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E07/capturas/papel-antes-da-escrita-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E07/capturas/papel-antes-da-escrita-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E07/capturas/papel-depois-da-escrita-1280-claro-com-aviso.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E07/capturas/papel-depois-da-escrita-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E07/capturas/papel-depois-da-escrita-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E07/capturas/papel-depois-da-escrita-390-escuro.png
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/diff-da-etapa.patch
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/01-api-completa-antes.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/02-sonda-antes-do-conserto.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/03-familia-da-sessao-api-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/04-api-completa-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/05-isolamento-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/06-e2e-secao-24-em-api-limpa.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/07-superficie.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/08-shared.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/09-campo-pacote.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/10-web.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/11-console.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/12-test-campo.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/13-test-scripts.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/14-conferir-numeros.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/15-jest-campo-direto.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/16-typecheck.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/17-regras-de-conteudo.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/18-e2e-api-completo.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/20-migrar-do-zero.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/21-migrar-conferir-do-zero.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/22-migrar-conferir-banco-existente-antes.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/23-migrar-aplica-no-banco-existente.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/24-migrar-conferir-banco-existente-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/25-sondas-do-banco-real.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/baseline-depois/01-teste-shared.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/baseline-depois/02-teste-db.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/baseline-depois/03-teste-campo-pacote.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/baseline-depois/04-teste-api.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/baseline-depois/05-teste-web.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/baseline-depois/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/saidas/baseline-depois/resultados.json
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E07/sondas/e2e-aparado-secao-24.mjs
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/RESUMO.md
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E08/capturas/agente-dossie-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E08/capturas/agente-dossie-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E08/capturas/agente-dossie-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E08/capturas/agente-dossie-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E08/capturas/operador-dossie-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E08/capturas/operador-dossie-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E08/capturas/operador-dossie-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E08/capturas/operador-dossie-390-escuro.png
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/diff-da-etapa.patch
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/01-sonda-antes-do-conserto-vitest.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/02-leitura-do-agente-depois-vitest.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/03-sonda-http-antes.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/04-sonda-http-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/05-e2e-secao-25-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/06-api-completa-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/07-isolamento-depois.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/08-shared.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/09-campo-pacote.txt
+i/lf    w/mixed attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/10-web.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/11-console.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/12-typecheck.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/13-test-scripts.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/14-conferir-numeros.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/baseline-depois/01-teste-shared.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/baseline-depois/02-teste-db.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/baseline-depois/03-teste-campo-pacote.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/baseline-depois/04-teste-api.txt
+i/lf    w/mixed attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/baseline-depois/05-teste-web.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/baseline-depois/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/baseline-depois/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/saidas/baseline-depois/resultados.json
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/sondas/e2e-aparado-secao-25.mjs
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E08/sondas/sonda-agente-http.mjs
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/RESUMO.md
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-confirmar-outras-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-confirmar-outras-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-confirmar-outras-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-confirmar-outras-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-modo-demonstracao-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-modo-demonstracao-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-modo-demonstracao-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-modo-demonstracao-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessao-unica-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessao-unica-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessao-unica-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessao-unica-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessoes-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessoes-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessoes-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessoes-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessoes-carregando-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessoes-carregando-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessoes-carregando-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessoes-carregando-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessoes-depois-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessoes-depois-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessoes-depois-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessoes-depois-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessoes-erro-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessoes-erro-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessoes-erro-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/minha-conta-sessoes-erro-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-administradora-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-administradora-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-administradora-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-administradora-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-encerrar-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-encerrar-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-encerrar-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-encerrar-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-encerrar-erro-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-encerrar-erro-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-encerrar-erro-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-encerrar-erro-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-encerrar-sem-contagem-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-encerrar-sem-contagem-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-encerrar-sem-contagem-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-encerrar-sem-contagem-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-redefinir-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-redefinir-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-redefinir-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-redefinir-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-redefinir-erro-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-redefinir-erro-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-redefinir-erro-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-confirmar-redefinir-erro-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-coordenadora-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-coordenadora-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-coordenadora-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-coordenadora-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-modo-demonstracao-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-modo-demonstracao-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-modo-demonstracao-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-modo-demonstracao-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-senha-temporaria-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-senha-temporaria-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-senha-temporaria-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-senha-temporaria-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-sessoes-encerradas-aviso-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-sessoes-encerradas-aviso-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-sessoes-encerradas-aviso-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E09/capturas/usuarios-sessoes-encerradas-aviso-390-escuro.png
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/diff-da-etapa.patch
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/saidas/01-web-antes.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/saidas/02-sonda-antes-do-conserto-api.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/saidas/05-e2e-secao-26.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/saidas/06-superficie.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/saidas/07-typecheck.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/saidas/08-console.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/saidas/09-test-scripts.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/saidas/10-conferir-numeros.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/saidas/11-regras-de-conteudo.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/saidas/baseline-depois/01-teste-shared.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/saidas/baseline-depois/02-teste-db.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/saidas/baseline-depois/03-teste-api.txt
+i/lf    w/mixed attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/saidas/baseline-depois/04-teste-web.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/saidas/baseline-depois/INDEX.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/saidas/baseline-depois/RESUMO.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/saidas/baseline-depois/resultados.json
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/sondas/capturas-estados-e09.mjs
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E09/sondas/e2e-aparado-secao-26.mjs
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/INDEX.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/RESUMO.md
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-desligada-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-desligada-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-desligada-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-desligada-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-curta-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-curta-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-curta-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-curta-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-diferentes-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-diferentes-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-diferentes-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-diferentes-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-excesso-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-excesso-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-excesso-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-excesso-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-rede-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-rede-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-rede-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-rede-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-servidor-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-servidor-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-servidor-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-erro-servidor-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-link-ja-usado-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-link-ja-usado-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-link-ja-usado-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-link-ja-usado-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-normal-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-normal-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-normal-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-normal-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-salvando-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-salvando-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-salvando-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-salvando-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-sem-link-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-sem-link-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-sem-link-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-sem-link-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-sucesso-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-sucesso-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-sucesso-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/definir-sucesso-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/entrada-esqueceu-a-senha-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/entrada-esqueceu-a-senha-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/entrada-esqueceu-a-senha-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/entrada-esqueceu-a-senha-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-desligada-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-desligada-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-desligada-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-desligada-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-desligada-pelo-pedido-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-desligada-pelo-pedido-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-desligada-pelo-pedido-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-desligada-pelo-pedido-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-enviado-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-enviado-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-enviado-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-enviado-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-enviando-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-enviando-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-enviando-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-enviando-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-excesso-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-excesso-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-excesso-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-excesso-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-formato-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-formato-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-formato-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-formato-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-rede-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-rede-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-rede-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-rede-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-servidor-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-servidor-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-servidor-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-servidor-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-vazio-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-vazio-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-vazio-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-erro-vazio-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-modo-demonstracao-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-modo-demonstracao-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-modo-demonstracao-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-modo-demonstracao-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-normal-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-normal-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-normal-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-normal-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-verificando-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-verificando-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-verificando-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E10/capturas/pedido-verificando-390-escuro.png
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/02-sonda-antes-do-conserto-api.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/03-sonda-antes-do-conserto-web.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/04-e2e-secao-14.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/05-e2e-secao-27.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/06-contraste-e-foco.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/07-api-recuperacao-final.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/10-api-completo-bruto.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/11-isolamento.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/12-superficie.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/13-shared.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/14-web.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/15-typecheck.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/16-console.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/17-test-scripts.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/18-conferir-numeros.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/19-regras-de-conteudo.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/baseline-depois/01-teste-shared.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/baseline-depois/02-teste-db.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/baseline-depois/03-teste-api.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/baseline-depois/04-teste-web.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/baseline-depois/INDEX.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/baseline-depois/RESUMO.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/saidas/baseline-depois/resultados.json
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/sondas/capturas-estados-e10.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/sondas/contraste-e10.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/sondas/e2e-aparado-secao-14.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E10/sondas/e2e-aparado-secao-27.mjs
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-carregando-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-carregando-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-carregando-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-carregando-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-erro-rede-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-erro-rede-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-erro-rede-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-erro-rede-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-erro-sem-permissao-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-erro-sem-permissao-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-erro-sem-permissao-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-erro-sem-permissao-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-erro-suspenso-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-erro-suspenso-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-erro-suspenso-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-erro-suspenso-390-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-normal-1280-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-normal-1280-escuro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-normal-390-claro.png
+i/-text w/-text attr/-text            	docs/evidencias-v2/G00/V2-F00-E11/capturas/saida-normal-390-escuro.png
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E11/pacote/lista-de-nomes-do-zip-chromium.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E11/pacote/lista-de-nomes-do-zip-firefox.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E11/pacote/sha256-do-zip-chromium.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E11/pacote/sha256-do-zip-firefox.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E11/saidas/00-build-shared.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E11/saidas/01-antes-api-saida.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E11/saidas/02-sonda-antes-do-conserto-web.txt
+i/lf    w/mixed attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E11/saidas/03-sonda-antes-do-conserto-e2e.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E11/saidas/04-e2e-secao-28-chromium.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E11/saidas/05-e2e-secao-28-firefox.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E11/saidas/baseline-depois/01-typecheck.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E11/saidas/baseline-depois/02-teste-shared.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E11/sondas/cliente-anterior.py
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E11/sondas/e2e-aparado-runner.mjs
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/evidencias-v2/G00/V2-F00-E11/sondas/e2e-aparado-secao-28.mjs
+i/-text w/-text attr/-text            	docs/referencia/Defesa_Civil_Operacional_360_Especificacao_Tecnica_Preliminar.docx
+i/lf    w/lf    attr/text=auto eol=lf 	docs/referencia/ESPECIFICACAO_TECNICA_PRELIMINAR.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/referencia/LEVANTAMENTO_TECNICO_JURIDICO_GOVTECH.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/referencia/especificacao-dc360.html
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/00-README.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/01-decisoes-e-principios.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/02-mapa-de-dependencias.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/03-fase-00-estabilizacao.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/04-fundacao-engenharia.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/05-api-identidade-autorizacao.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/06-lgpd-arquivos.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/07-documentos.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/08-painel-prefeitura.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/09-portal-secretarias.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/10-campo-reinspecao.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/11-cidadao-fundacao.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/12-cidadao-app-triagem.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/13-console.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/14-operacao-observabilidade-dr.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/15-seguranca-acessibilidade.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/16-poc-piloto-producao.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/17-rastreabilidade.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/18-checkpoints.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/19-definicao-de-pronto.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/20-matrizes.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/21-fora-da-v2.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/22-incidentes-abrigos-logistica.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/23-integracoes-externas.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/24-postgis-territorio.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/25-configuracao-checklist-importacao.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/26-canal-cidadao-ampliado.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/27-idiomas-identidade-visual.md
+i/lf    w/crlf  attr/text=auto eol=lf 	docs/roadmap-v2/STATUS.md
+i/lf    w/crlf  attr/text=auto eol=lf 	mockup/LEIA-ME.txt
+i/lf    w/crlf  attr/text=auto eol=lf 	mockup/app/app.js
+i/lf    w/crlf  attr/text=auto eol=lf 	mockup/app/dados.js
+i/lf    w/crlf  attr/text=auto eol=lf 	mockup/app/estilos.css
+i/lf    w/crlf  attr/text=auto eol=lf 	mockup/design-system/DESIGN_SYSTEM.md
+i/lf    w/lf    attr/text=auto eol=lf 	mockup/design-system/_tokens.scss
+i/lf    w/lf    attr/text=auto eol=lf 	mockup/design-system/tokens.css
+i/lf    w/crlf  attr/text=auto eol=lf 	mockup/index.html
+i/lf    w/crlf  attr/text=auto eol=lf 	relatorio-apresentacao-alyson.html
+i/-text w/-text attr/-text            	relatorio-apresentacao-alyson.pdf
+i/lf    w/lf    attr/text=auto eol=lf 	relatorio/01-head-e-sumario.html
+i/lf    w/lf    attr/text=auto eol=lf 	relatorio/02-veredito.html
+i/lf    w/lf    attr/text=auto eol=lf 	relatorio/03-concorrencia.html
+i/lf    w/lf    attr/text=auto eol=lf 	relatorio/04-licitacao.html
+i/lf    w/lf    attr/text=auto eol=lf 	relatorio/05-trava-dominio.html
+i/lf    w/lf    attr/text=auto eol=lf 	relatorio/06-fornecedores-economia.html
+i/lf    w/lf    attr/text=auto eol=lf 	relatorio/07-identidade-visual.html
+i/lf    w/lf    attr/text=auto eol=lf 	relatorio/08-oferta-precificacao.html
+i/lf    w/lf    attr/text=auto eol=lf 	relatorio/09-prototipo-hoje.html
+i/lf    w/lf    attr/text=auto eol=lf 	relatorio/10-roadmap.html
+i/lf    w/lf    attr/text=auto eol=lf 	relatorio/11-riscos-decisoes.html
+i/-text w/-text attr/-text            	relatorio/Defesa-Civil-360-Dossie-Viabilidade.pdf
+i/lf    w/lf    attr/text=auto eol=lf 	relatorio/build.py
+i/lf    w/crlf  attr/text=auto eol=lf 	relatorio/dossie.html
+i/lf    w/lf    attr/text eol=crlf    	scripts/conferir-demo.ps1
+i/lf    w/lf    attr/text=auto eol=lf 	scripts/conferir-pacote.mjs
+i/lf    w/lf    attr/text=auto eol=lf 	scripts/conferir-roteiro.mjs
+i/lf    w/lf    attr/text eol=crlf    	scripts/empacotar-demo.ps1

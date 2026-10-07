@@ -14,7 +14,9 @@ import {
 } from "../../dados/pendencias";
 import { listarColetas } from "../../dados/coletas";
 import { coletadasNoAparelho } from "../../dados/ordem-do-dia";
-import { obterFila } from "../../dados/fila";
+import { useResumoDaFila } from "../../dados/resumo-da-fila";
+import { listarRascunhos } from "../../dados/rascunho";
+import { avisoDaSaida, contarRascunhos, type RascunhosNaSaida } from "../../dados/aviso-da-saida";
 import { useSessao } from "../../dados/sessao";
 import { useSinal } from "../../dados/conectividade";
 import { usePush } from "../../push/contexto";
@@ -337,7 +339,19 @@ export default function Perfil() {
   const [falhaDeRede, setFalhaDeRede] = useState<MotivoDaFalha | null>(null);
   const [agora, setAgora] = useState(() => new Date());
 
-  const [pendentes, setPendentes] = useState<number | null>(null);
+  /*
+    A fila ASSINADA, e não lida uma vez na montagem: a aba fica montada o dia
+    inteiro, e o chip, o aviso de esperar e o diálogo de saída envelheciam,
+    discordando do crachá do menu, que já assinava pelo mesmo gancho. A conta
+    é a de antes (o que espera envio mais o que o servidor recusou), porque é
+    isso que só sobe com esta conta.
+  */
+  const resumoDaFila = useResumoDaFila();
+  const pendentes = resumoDaFila === null
+    ? null
+    : resumoDaFila.pendentes + resumoDaFila.enviando + resumoDaFila.bloqueados;
+  /** O que a saída apagaria, conferido no toque em "Sair da conta". */
+  const [rascunhosNaSaida, setRascunhosNaSaida] = useState<RascunhosNaSaida>(null);
   /** Quantas tarefas o aparelho tem para hoje e ainda não vistoriou. Nulo: não deu para ler. */
   const [pendentesHoje, setPendentesHoje] = useState<number | null>(null);
   const [perguntandoSaida, setPerguntandoSaida] = useState(false);
@@ -443,17 +457,21 @@ export default function Perfil() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    let vivo = true;
-    void (async () => {
-      const fila = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
-      const resumo = await fila.resumo();
-      if (vivo) {
-        setPendentes(resumo.pendentes + resumo.enviando + resumo.bloqueados);
-      }
-    })();
-    return () => { vivo = false; };
-  }, [obterToken, lerIdentidade]);
+  /*
+    A pergunta de saída conta o que está no disco NO INSTANTE do toque, e não
+    o que estava na montagem: a aba fica montada o dia inteiro, e a vistoria
+    começada depois do café também vai embora ao sair. Se o disco não
+    responder, a frase avisa do mesmo jeito (ver `avisoDaSaida`), porque dizer
+    "não há nada" sem ter conferido é a promessa que apagava vistoria.
+  */
+  const perguntarSaida = useCallback(async () => {
+    try {
+      setRascunhosNaSaida(contarRascunhos(await listarRascunhos()));
+    } catch {
+      setRascunhosNaSaida(null);
+    }
+    setPerguntandoSaida(true);
+  }, []);
 
   /* Trocar a foto: escolher, reduzir, enviar. Tudo em português, e tudo termina
      numa frase que diz o que aconteceu. */
@@ -526,17 +544,8 @@ export default function Perfil() {
     ? comoContarAFalha(falhaDeRede, "Mostrando o que já estava no aparelho.")
     : null;
 
-  /*
-    A promessa da saída, e ela precisa ser exata: as coletas continuam no
-    aparelho, e só voltam a subir com a SUA conta, porque o laudo e a trilha
-    registram como autor quem apresenta o token.
-  */
-  const avisoDaSaida = pendentes && pendentes > 0
-    ? `Você tem ${pendentes} ${pendentes === 1 ? "coleta" : "coletas"} ainda não enviadas. ` +
-      "Ao sair, elas continuam guardadas no aparelho e ninguém mais consegue " +
-      "enviá-las: o laudo sai com o nome de quem fez a vistoria, que é você. " +
-      "Elas voltam a subir quando você entrar de novo, com sinal."
-    : "Você vai precisar de sinal e da sua senha para entrar de novo.";
+  /* O que a saída apaga e o que ela guarda, dito antes do toque que confirma. */
+  const textoDaSaida = avisoDaSaida(pendentes, rascunhosNaSaida);
 
   /* As contas dos números, memoizadas: mudam com os dados e com o relógio. */
   const concluidas = dados?.concluidas ?? [];
@@ -1448,7 +1457,7 @@ export default function Perfil() {
             <Botao
               titulo="Sair da conta"
               tipo="perigo"
-              onPress={() => { setPerguntandoSaida(true); }}
+              onPress={() => { void perguntarSaida(); }}
             />
           </Cartao>,
         )}
@@ -1462,7 +1471,7 @@ export default function Perfil() {
       <Dialogo
         aberto={perguntandoSaida}
         titulo="Sair da conta?"
-        texto={avisoDaSaida}
+        texto={textoDaSaida}
         acao={{
           rotulo: "Sair da conta",
           destrutiva: true,

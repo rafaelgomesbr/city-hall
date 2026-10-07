@@ -1,0 +1,18 @@
+== papeis no cluster de destino (SEM dc360_console, de proposito)
+$ psql -U postgres -c "CREATE ROLE dc360_setup LOGIN PASSWORD [senha da rodada] CREATEROLE BYPASSRLS NOSUPERUSER;"
+CREATE ROLE
+$ psql -U postgres -c "CREATE ROLE dc360_api LOGIN PASSWORD [senha da rodada] NOSUPERUSER;"
+CREATE ROLE
+$ psql -U dc360_setup -c "CREATE ROLE dc360_app NOLOGIN;"   (criado pelo setup, como a migracao 001 cria)
+CREATE ROLE
+$ createdb -h 127.0.0.1 -p 55452 -U postgres -T template0 --encoding=UTF8 --locale=C prova_e25_neg_console
+$ psql -d prova_e25_neg_console -c "DROP SCHEMA public CASCADE;"
+DROP SCHEMA
+$ psql -d prova_e25_neg_console -c "GRANT CREATE ON DATABASE prova_e25_neg_console TO dc360_setup;"
+GRANT
+$ pg_restore -h 127.0.0.1 -p 55452 -U dc360_setup --dbname=prova_e25_neg_console --exit-on-error dc360.dump
+pg_restore: error: could not execute query: ERROR:  role "dc360_console" does not exist
+Command was: CREATE POLICY console_codigos_insercao ON public.console_codigos_de_recuperacao FOR INSERT TO dc360_console WITH CHECK ((operador_id = public.console_operador_atual()));
+
+
+codigo 1

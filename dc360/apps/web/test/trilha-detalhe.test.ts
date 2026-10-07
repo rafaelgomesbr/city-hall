@@ -178,7 +178,10 @@ describe("Toda chave que as rotas gravam na trilha tem rótulo, ou é escondida 
   it("o dicionário não tem rótulo com travessão nem chave com espaço", () => {
     for (const [chave, rotulo] of Object.entries(ROTULO_CHAVE_DO_DETALHE)) {
       expect(chave).not.toMatch(/\s/);
-      expect(rotulo).not.toContain("—");
+      // Escape em vez do caractere: o literal faria a varredura de conteúdo
+      // (`packages/shared/test/regras-de-conteudo.test.ts`) reprovar este
+      // próprio teste, que existe justamente para proibir o caractere.
+      expect(rotulo).not.toContain("\u2014");
     }
   });
 });

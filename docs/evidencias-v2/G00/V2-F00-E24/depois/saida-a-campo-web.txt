@@ -1,0 +1,24 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/web
+
+stderr | test/quem-esta-em-campo.test.ts > Quem está em campo, no modo de demonstração
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///C:/Projetos/city-hall/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///C:/Projetos/city-hall/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114890)
+    at callback (file:///C:/Projetos/city-hall/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///C:/Projetos/city-hall/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114798)
+    at Object.syncfs (file:///C:/Projetos/city-hall/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113275)
+    at file:///C:/Projetos/city-hall/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///C:/Projetos/city-hall/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131429)
+    at file:///C:/Projetos/city-hall/dc360/node_modules/@electric-sql/pglite/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+ ✓ test/quem-esta-em-campo.test.ts (4 tests) 1056ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  04:09:32
+   Duration  2.88s (transform 283ms, setup 0ms, collect 1.42s, tests 1.06s, environment 0ms, prepare 158ms)
+
+codigo=0

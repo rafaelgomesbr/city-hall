@@ -1,0 +1,31 @@
+# INDEX
+
+| Arquivo | SHA-256 |
+| --- | --- |
+| RESUMO.md | f232837f80c2e450a6d351c33daeaf509e2eccb2244c4d2682d2414e21f2f20a |
+| capturas/registrar-sem-sinal-1280-claro.png | 45fee5429e9b1c8190adf13694cc47d55042f130d90d5fc0425aab5eaadaadc2 |
+| capturas/registrar-sem-sinal-1280-escuro.png | e3d598516a0db06a04a8b34a557a593c07a8ab4bb4e17794d4485509dc577acf |
+| capturas/registrar-sem-sinal-390-claro.png | 2f3a655f428637f04c6ae96ab736ca468d985d265809ac293c966dba78507ff6 |
+| capturas/registrar-sem-sinal-390-escuro.png | 522dab31e9f6ee81b4d6be956a1d9d5dbdf17bbde548a738dc64f2d7171dd7a8 |
+| saidas/01-e2e-api-chromium-antes.txt | 62ca54bab03200f7db5649aa936a2cc01a5dae8748717698a9a7b4e2d029f83e |
+| saidas/02-e2e-api-chromium-depois-do-cors.txt | 51e8c3f2c797eeb60519120ee59a376bcd6d2bec6a65640c06824dce776a1a5f |
+| saidas/03-e2e-api-chromium-final.txt | 05d187327a128937fe8a80ae5b528ce0059b0d02fa03b29ab47c70a42d279d70 |
+| saidas/04-e2e-api-firefox-final.txt | 981c5f6e8a4ffd22237ad94bbf911d62f8a4a860665f432fd008f2dded2ccb5e |
+| saidas/05-e2e-local-chromium.txt | 5b9b440b1990305d53dfa28806def656cde4528316578dfe5e476e4a8e54aafb |
+| saidas/06-e2e-local-firefox.txt | 5b9b440b1990305d53dfa28806def656cde4528316578dfe5e476e4a8e54aafb |
+| saidas/07-preflight-antes-do-conserto.txt | d5682f08e15ca325eef33a716c7bae9fb9935edcc7840b68a56f065deee6217f |
+| saidas/08-preflight-depois-do-conserto.txt | db5aa21a323d67a1777c8d1c5b5e5593f5fc60d68d942380dc8310b562261ce5 |
+| saidas/09-duplicidade-sem-rede-sonda-sem-conserto.txt | fe181492e0ab6df65f6aacd1b27d1342b34a73fdb06f4c532cbaa724f3f31d76 |
+| saidas/10-duplicidade-sem-rede-depois.txt | db4360499bb8e18d75586ebbb24410092ad99dc07e31bc1c9aa3d3703c2755bd |
+| saidas/11-e2e-api-firefox-rodada-1-miniatura-lazy.txt | f95bef6febe9de3d9e5db93bef03c3d684677f4ba8549c4ad133b504bad40024 |
+| saidas/12-e2e-api-firefox-rodada-2-console-dos-abortos.txt | 3dd68bd1d5ad7faad0ded9d59ad509b2e4ece019e5b17d8492a6707e595ec93c |
+| saidas/13-diff-do-produto-e-do-roteiro.diff | 973ef0d4a85085b6bcc67f965c767a5a2bec80b08b8f562fd40f0049bc74861b |
+| saidas/baseline-depois/01-typecheck.txt | 9c025ec2a0caad10564955add354add35c6ea049eebc10857b72dd3179b30367 |
+| saidas/baseline-depois/02-teste-shared.txt | 7bf3d4547f92f2abedaa63ab4ae447a9e3a457182ef7cb7a25bc6a74607c60dc |
+| saidas/baseline-depois/03-teste-db.txt | 0e1e18310d4bffa80fdf9051065d0eb8bd4d513f18a19a271de4193f6f42ea32 |
+| saidas/baseline-depois/04-teste-api.txt | 76bdcb5bd366898e657a7097ba7bde91cffefbcd55c5f0969db36bffcd0d160e |
+| saidas/baseline-depois/05-teste-web.txt | 81bdeee4c3cbfc1982da635d106592bfff46f716997ce7a31b7ca4f328bb9604 |
+| saidas/baseline-depois/06-test-scripts.txt | b327419d26367d4d9d42dda47f4de699b1c521e8104502728aa2dd801ab90e5e |
+| saidas/baseline-depois/07-conferir-numeros.txt | 39829b3782a0e2baeae991e1df7f1ef8d3536bc8591fc74d3b1ac9e9d9bee60a |
+| saidas/baseline-depois/RESUMO.md | 089c1d359f355f0124ed6b71782a53d13b99cd02d2365a6f9e093358642ed5ad |
+| saidas/baseline-depois/resultados.json | 08b9f0958ac874fbf03c6b33c17d3825408f6c2e4b512a5aaf89098568d83a33 |

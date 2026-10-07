@@ -1,0 +1,11 @@
+$ psql -c "DROP DATABASE prova_e25_origem;"   (o banco da tentativa acima, deste cluster descartavel)
+DROP DATABASE
+$ psql -c "CREATE DATABASE prova_e25_origem;"
+CREATE DATABASE
+$ psql -d prova_e25_origem -c "ALTER SCHEMA public OWNER TO dc360_setup;"
+ALTER SCHEMA
+$ psql -d prova_e25_origem -c "GRANT ALL ON SCHEMA public TO dc360_setup;"
+GRANT
+$ psql -d prova_e25_origem -c "GRANT CREATE ON DATABASE prova_e25_origem TO dc360_setup;"   (o remedio: pg_trgm e extensao confiavel, mas exige CREATE no banco)
+GRANT
+(os papeis dc360_setup e dc360_api sao do cluster e ja existem desde a tentativa anterior)

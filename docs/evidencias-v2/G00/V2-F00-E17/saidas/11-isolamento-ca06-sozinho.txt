@@ -1,0 +1,13 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/db
+
+ ✓ test/isolamento.test.ts (137 tests) 21925ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  717ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  982ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio  18406ms
+
+ Test Files  1 passed (1)
+      Tests  137 passed (137)
+   Start at  01:26:19
+   Duration  22.59s (transform 131ms, setup 0ms, collect 193ms, tests 21.92s, environment 0ms, prepare 194ms)
+

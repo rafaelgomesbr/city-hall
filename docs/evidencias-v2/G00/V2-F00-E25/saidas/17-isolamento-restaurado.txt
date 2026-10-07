@@ -1,0 +1,54 @@
+$ psql -h 127.0.0.1 -p 55452 -U dc360_api -d prova_e25_restaurado -f isolamento.sql
+== quem sou (login e papel assumido), e os atributos dos dois
+SET
+dc360_api|dc360_app
+dc360_api|f|f
+dc360_app|f|f
+tabelas de public cujo dono e o papel atual ou o login|0
+== sem contexto: toda tabela de public que dc360_app pode ler devolve 0 linhas
+BEGIN
+psql:[pasta temporaria]/sql/isolamento.sql:33: NOTICE:  sem privilegio de leitura: console_codigos_de_recuperacao
+psql:[pasta temporaria]/sql/isolamento.sql:33: NOTICE:  sem privilegio de leitura: console_operadores
+psql:[pasta temporaria]/sql/isolamento.sql:33: NOTICE:  sem privilegio de leitura: eliminacoes_de_municipio
+psql:[pasta temporaria]/sql/isolamento.sql:33: NOTICE:  sem privilegio de leitura: interesse_municipio
+psql:[pasta temporaria]/sql/isolamento.sql:33: NOTICE:  SEM CONTEXTO VE LINHA: schema_migracoes (47)
+psql:[pasta temporaria]/sql/isolamento.sql:33: NOTICE:  sem contexto: 32 tabelas lidas, 1 com alguma linha, 4 sem privilegio de leitura
+DO
+COMMIT
+== com contexto de A: nenhuma linha de B em nenhuma tabela com organizacao_id
+BEGIN
+t
+psql:[pasta temporaria]/sql/isolamento.sql:53: NOTICE:  contexto A: 30 tabelas com organizacao_id lidas, 47 linhas de A, 0 linhas fora de A
+DO
+ocorrencias visiveis com contexto A|8
+ocorrencias de B visiveis com contexto A|0
+organizacoes visiveis com contexto A|Serra Alta
+COMMIT
+== com contexto de B: o espelho
+BEGIN
+t
+ocorrencias visiveis com contexto B|2
+ocorrencias de A visiveis com contexto B|0
+COMMIT
+== escrita cruzada: com contexto de A, gravar ocorrencia em B tem que ser recusado
+BEGIN
+t
+UPDATE 0
+COMMIT
+== trilha append-only: com contexto de A, UPDATE e DELETE na trilha
+BEGIN
+t
+eventos de trilha visiveis com contexto A|25
+psql:[pasta temporaria]/sql/isolamento.sql:76: ERROR:  permission denied for table trilha_eventos
+ROLLBACK
+BEGIN
+t
+psql:[pasta temporaria]/sql/isolamento.sql:80: ERROR:  permission denied for table trilha_eventos
+ROLLBACK
+BEGIN
+t
+psql:[pasta temporaria]/sql/isolamento.sql:84: ERROR:  permission denied for table trilha_administrativa
+ROLLBACK
+== fila de interesse: o papel de aplicacao nao le (migracao 011)
+psql:[pasta temporaria]/sql/isolamento.sql:88: ERROR:  permission denied for table interesse_municipio
+codigo 0

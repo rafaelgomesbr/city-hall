@@ -1,24 +1,41 @@
 # Aplicativo de campo
 
-**Estado: escrito por inteiro, compila, NUNCA RODOU EM APARELHO.**
+**Estado: escrito por inteiro, compila, sem artefato de aparelho arquivado.**
 
 Este diretório traz o aplicativo do agente de proteção e defesa civil, em
 React Native com Expo. Ele está completo em código e configuração: telas,
 navegação, coleta offline, câmera, GPS, assinatura no dedo, fila de envio,
 ícones, e a configuração das duas lojas.
 
-O que ele não tem é a única coisa que não se resolve daqui: **nenhuma tela foi
-aberta em aparelho nenhum**. Não há emulador nesta máquina, e simulador de iOS
-só existe em Mac.
+O que ele não tem é a única coisa que não se resolve daqui: **prova arquivada
+de que ele roda num aparelho**. Há relato de uso (o `README.md` da raiz fala de
+compilação nativa num iPhone em 08/09/2026, com três vistorias coletadas, e
+outras sessões falaram de emulador), mas nenhuma foto, vídeo, registro ou
+captura de aparelho está no repositório, e relato não é prova. Até a
+V2-F14-E12 arquivar esse artefato, nada aqui deve ser lido como "testado em
+aparelho". Não há emulador nesta máquina, e simulador de iOS só existe em Mac.
 
 O que É verificável daqui, e está verificado:
 
 | Verificação | Como rodar | Resultado |
 | --- | --- | --- |
-| TypeScript estrito | `npm run typecheck` | limpo |
-| Saúde do projeto Expo | `npx expo-doctor` | 21 de 21 (reconferido em 15/09/2026, depois de `npx expo install --fix` alinhar os pacotes ao SDK 57) |
-| Dependência vulnerável | `npm run auditar` (na raiz) | runtime zero; no aplicativo, uma advisory aceita com motivo escrito em `scripts/auditar.mjs` (`decode-uri-component`, sem correção sem trocar o expo-router) |
+| TypeScript estrito | `npm run typecheck` | limpo com o cache `.expo/types` em dia (ver o parágrafo abaixo); `npm run test:campo` na raiz limpa o cache velho antes |
+| Saúde do projeto Expo | `npx expo-doctor` | **20 de 21** em 2026-10-07: dez pacotes do Expo (`expo`, `expo-camera`, `expo-router`, `expo-sqlite` e outros) com versão de correção atrás da que o SDK 57 pede. Era 21 de 21 em 15/09/2026; o alinhamento é da V2-F00-E19 |
+| Dependência vulnerável | `npm audit` (aqui) e `npm run auditar` (na raiz) | **NÃO fecha** em 2026-10-07: o `npm audit` daqui acusa dezenas de avisos, altos e um crítico, e a raiz tem um aviso alto de execução no `fastify`. A única aceita com motivo escrito continua sendo `decode-uri-component` (`scripts/auditar.mjs`). No Windows, `npm run auditar` morre com `spawnSync npm ENOENT` antes de auditar. A correção é da V2-F00-E19, que espera o CP-03 |
 | A fila que ele consome | `npm test --workspace @dc360/campo` | 187 testes do motor de campo |
+
+**O cache `.expo/types` e o typecheck.** Com `experiments.typedRoutes` ligado,
+o `expo start` grava em `.expo/types/router.d.ts` a lista das rotas de
+`src/app` que existiam naquele momento, e o `tsconfig.json` inclui esse
+arquivo. Ele é gerado, é de cada máquina e fica fora do git (`.expo/` está no
+`.gitignore`). Numa máquina onde o Expo não roda há tempo, o arquivo velho não
+conhece as rotas novas e o `npm run typecheck` reprova um `router.push` para
+rota que existe (em 2026-10-07: dois TS2345, em `perfil.tsx` e `Sino.tsx`, por
+um cache de 2026-08-27 sem `mapa`, `perfil` e `avisos`). `npm run test:campo`,
+na raiz do `dc360`, confere o arquivo contra as rotas do disco antes do
+typecheck e apaga `.expo/types` quando falta alguma rota; o próximo
+`expo start` o recria. Quem rodar `npm run typecheck` direto aqui, com cache
+velho, apaga `.expo/types` à mão ou roda `npm run test:campo`.
 
 ## Para colocar de pé
 
@@ -60,6 +77,22 @@ na chuva.
    descartado e **não há botão "Descartar"**. Reativar a conta, entrar de novo e
    ver a MESMA coleta subir, uma vez só. É a validação de aparelho da
    V2-F00-E06, ainda pendente (ver `PENDENCIAS.md`, item 14).
+8. Começar uma vistoria (marcar o checklist, tirar uma foto, colher a
+   assinatura) SEM concluir e tocar em "Sair da conta" no Perfil. O diálogo
+   diz "Você tem 1 vistoria começada neste aparelho, com fotos e
+   assinatura" e que **sair apaga**; "Continuar conectado" não apaga nada.
+   Depois, com GPS simulado abaixo de meio metro, capturar a localização: a
+   tela diz "Precisão de 1 metro" e a conclusão sobe sem 422. É a validação
+   de aparelho da V2-F00-E15, ainda pendente (ver `PENDENCIAS.md`, item 15).
+9. Na vistoria, negar a permissão de câmera e tocar em "Tirar foto": a tarja
+   traz **"Abrir os ajustes do aparelho"**, e o botão abre os Ajustes (o mesmo
+   vale para a localização negada). Digitar o nome de quem assina com o teclado
+   aberto e tocar em "Tirar foto": **o primeiro toque abre a câmera**, e o campo
+   digitado não fica embaixo do teclado. Na câmera, o obturador e "Voltar sem
+   fotografar" ficam acima da barra do sistema. Ao concluir, a tela diz que a
+   coleta sobe **quando o aplicativo estiver aberto e houver rede**: não há
+   envio em segundo plano, e o aplicativo fechado não envia nada. É a validação
+   de aparelho da V2-F00-E16, ainda pendente (ver `PENDENCIAS.md`, item 16).
 
 Os passos 4 e 6 são os que só o aparelho responde. O 6 já tem
 187 testes do motor de campo cobrindo a lógica fora do celular, inclusive

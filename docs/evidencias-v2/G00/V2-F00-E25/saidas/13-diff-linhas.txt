@@ -1,0 +1,3 @@
+$ diff 12-linhas-origem.txt 12-linhas-restaurado.txt
+linhas: identico
+codigo 0

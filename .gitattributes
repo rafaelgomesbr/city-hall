@@ -1,0 +1,49 @@
+# Fim de linha do repositório (V2-F00-E21).
+#
+# Sem este arquivo, quem decidia o fim de linha era a configuração de cada
+# máquina (`core.autocrlf`). No Windows do autor o índice ficava LF e a árvore
+# CRLF, e todo teste que lia fonte do disco e procurava "\n" passava no Linux e
+# reprovava no Windows, ou o contrário. Aqui a regra passa a morar no
+# repositório: o índice é LF para todo arquivo de texto, e o checkout também,
+# em qualquer sistema. A única exceção é o PowerShell, que segue em CRLF.
+#
+# `text=auto` deixa o git detectar binário pelo conteúdo, e é por isso que uma
+# saída bruta de evidência com CR solto (barra de progresso) continua sendo
+# guardada byte a byte. As extensões abaixo são marcadas `binary` mesmo assim:
+# a detecção erra em arquivo pequeno, e converter fim de linha dentro de
+# imagem, fonte, dump ou PDF corrompe o arquivo e muda o SHA-256 de evidência.
+
+* text=auto eol=lf
+
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.docx binary
+*.xlsx binary
+*.pptx binary
+*.zip binary
+*.gz binary
+*.tgz binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.wav binary
+*.mp3 binary
+*.mp4 binary
+*.dump binary
+*.backup binary
+*.sqlite binary
+*.db binary
+*.p12 binary
+*.der binary
+*.jks binary
+*.keystore binary

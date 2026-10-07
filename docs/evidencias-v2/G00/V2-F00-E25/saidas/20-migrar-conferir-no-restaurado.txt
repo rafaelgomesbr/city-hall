@@ -1,0 +1,6 @@
+$ DATABASE_URL=[dc360_setup no prova_e25_restaurado, porta 55452] npm run migrar -- --conferir
+Esquema em dia.
+codigo 0
+$ DATABASE_URL=[dc360_setup no prova_e25_origem, porta 55451] npm run migrar -- --conferir   (depois de tudo)
+Esquema em dia.
+codigo 0

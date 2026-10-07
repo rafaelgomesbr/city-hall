@@ -105,6 +105,8 @@ Se uma etapa posterior quebra algo aprovado antes, o gate anterior volta a REPRO
 
 **O que NUNCA entra em evidência:** segredo, token, chave, senha, URL com credencial, credencial ou certificado de integração, dado real de cidadão, de servidor ou de município, CPF real, logotipo de município real sem o termo de uso (CP-95), e arquivo de aparelho pessoal com metadado (EXIF, localização). Evidência com dado pessoal é refeita com dado sintético. Antes de arquivar, passa-se a varredura de segredos do repositório.
 
+**Travessão e o portão de conteúdo (V2-F00-E20, 2026-10-07):** `dc360/packages/shared/test/regras-de-conteudo.test.ts` varre `docs/` inteiro atrás do travessão (U+2014). A saída bruta arquivada (arquivo que não é `.md`, dentro de `docs/evidencias-v2/` e de `docs/auditoria-v2/raw/`) fica fora da varredura, porque reproduz a linha que um teste reprovou e reescrevê-la apagaria a prova; o mesmo vale para o relatório histórico `docs/AUDITORIA-2026-09-30.md`, isento pelo nome exato. O `RESUMO.md`, o `INDEX.md` e qualquer outro `.md` de evidência continuam varridos e reprovam com travessão. Mesmo isenta, a saída bruta continua passando por `redigir` de `dc360/scripts/baseline.mjs` antes de arquivar (troca o travessão por `[travessao]` e apaga JWT de teste). A lista de isenções muda só no próprio teste, com comentário de motivo e caso de âncora.
+
 **Quem confere:** Rafael vê a evidência listada em "Validação humana" da etapa. Evidência sem `INDEX.md` não conta.
 
 ## 4. Evidência do gate

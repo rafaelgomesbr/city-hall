@@ -1,0 +1,62 @@
+[
+  {
+    "id": "typecheck",
+    "cmd": "npm run typecheck",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 18147,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "01-typecheck.txt"
+  },
+  {
+    "id": "teste-shared",
+    "cmd": "npm run test --workspace @dc360/shared",
+    "cwd": ".",
+    "codigo": 1,
+    "duracaoMs": 3432,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "02-teste-shared.txt"
+  },
+  {
+    "id": "teste-campo-pacote",
+    "cmd": "npm run test --workspace @dc360/campo",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 2442,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "03-teste-campo-pacote.txt"
+  },
+  {
+    "id": "teste-api",
+    "cmd": "npm run test:api",
+    "cwd": ".",
+    "codigo": 1,
+    "duracaoMs": 115690,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "04-teste-api.txt"
+  },
+  {
+    "id": "teste-campo-app",
+    "cmd": "npx jest --silent",
+    "cwd": "apps/campo",
+    "codigo": 1,
+    "duracaoMs": 45254,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "05-teste-campo-app.txt"
+  },
+  {
+    "id": "test-campo",
+    "cmd": "npm run test:campo",
+    "cwd": ".",
+    "codigo": 2,
+    "duracaoMs": 7136,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "06-test-campo.txt"
+  }
+]

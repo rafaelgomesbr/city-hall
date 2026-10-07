@@ -1,0 +1,12 @@
+
+> @dc360/shared@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @dc360/db@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @dc360/api@0.1.0 build
+> tsc -p tsconfig.json
+

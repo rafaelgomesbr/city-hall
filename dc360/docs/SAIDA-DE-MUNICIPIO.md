@@ -46,9 +46,21 @@ recebeu e conferiu.** A ordem inversa já destruiu dado de gente em outros
 produtos, e o erro é sempre o mesmo: apagar contra o calendário em vez de contra
 a confirmação.
 
-O sistema continua no ar durante todo o processo. Corte de acesso na data do
+O sistema continua no ar do passo 1 ao passo 5. Corte de acesso na data do
 pedido seria punição, e uma Defesa Civil sem sistema é uma Defesa Civil às
-cegas.
+cegas: por isso a extração (passo 3) acontece com o acesso normal, e o
+município baixa o pacote pelo próprio painel enquanto continua trabalhando.
+
+O corte acontece em dois momentos, e só neles (capítulo 5): quando o
+fornecedor **suspende** o acesso (contrato em discussão), e quando ele
+**agenda a eliminação** do passo 6, que suspende na hora. Com o acesso
+suspenso, ninguém do município entra, e o próprio pacote de saída deixa de
+sair pelo painel: a rota é uma escrita, toda escrita confere a suspensão, e a
+resposta é 403 `acesso_suspenso` (ver "O que o painel diz quando o pacote não
+sai", no capítulo 4). Por isso a ordem importa: **o pacote se baixa e se
+confere ANTES de a eliminação ser agendada**. Se o contrato precisar que o
+município suspenso ainda consiga sair, é decisão a tomar e registrar (hoje é
+premissa na seção 9 do STATUS do roadmap, perto do CP-29).
 
 ---
 
@@ -80,6 +92,7 @@ município.
 | Exportação das tabelas em `CSV` e `JSON` | **Existe.** Uma planilha e um `JSON` por tabela, e são TODAS as tabelas do município, inclusive as que o banco ganhou depois (órgão, ofício, aviso, aparelho, registro de consulta). Um teste compara a lista com o que o banco tem, então tabela nova de migração futura obriga alguém a decidir se ela sai |
 | Exportação das fotografias e assinaturas | **Existe.** Arquivos originais, em pastas por protocolo. O que o banco promete e o armazenamento não tem vai para `PENDENCIAS-DA-EXTRACAO.txt` em vez de sumir |
 | Exportação dos documentos gerados | **Existe** para laudo, termo de interdição, termo de desinterdição e ofício, em `HTML` autossuficiente (estilo dentro do arquivo, imagens apontando para a pasta do próprio pacote). **Não sai em `PDF`**: o `HTML` imprime, e gerar milhares de `PDF` numa requisição só derrubaria o servidor |
+| O laudo do pacote diz o mesmo que o laudo emitido | **Sim, e isso passou a ser provado em 2026-10-06.** Até então a consulta de vistorias do montador do pacote juntava só `usuarios`, nunca as duas equipes da vistoria: o laudo que ia DENTRO do pacote saía sem o aviso de equipe divergente, enquanto o laudo que a rota `GET /documentos/:id/laudo` emitia, para a mesma vistoria, saía com ele. O município que levasse o pacote embora levaria o papel limpo, e é esse o papel que fica no processo depois de o contrato acabar. Agora as duas junções existem nos dois montadores, e o teste compara os dois documentos entre si: a seção 29 de `apps/web/test/fluxo-api.e2e.mjs` monta a divergência pela API de verdade (a coordenação despacha para a Equipe Bravo, o agente da Equipe Alfa envia a coleta), baixa o pacote pelo botão do painel e confere que o trecho do aviso é idêntico nos dois |
 | Índice ligando protocolo a arquivo | **Existe.** `INDICE.html` (abre por duplo clique, sem internet) e `INDICE.csv` na raiz, ligando protocolo, pasta, documentos e a linha correspondente de `tabelas/ocorrencias.csv` |
 | Esquema do banco | **Existe.** `esquema/`, com as próprias migrações comentadas, que explicam o que cada coluna significa |
 | Soma de verificação | **Existe.** `SOMAS-SHA256.txt`, um `SHA-256` por arquivo do pacote (menos ele mesmo) |
@@ -123,6 +136,19 @@ o município suspenso ainda possa sair, é decisão a registrar (hoje é premiss
 Enquanto a declaração de eliminação não tiver modelo, o passo 6 depende de
 trabalho manual, e isso precisa ser dito ao município em vez de escondido
 atrás do procedimento bonito acima.
+
+### O risco que continua aberto: dois montadores de documento
+
+Os dados que o laudo imprime são montados em DOIS lugares, com duas consultas
+diferentes: `apps/api/src/rotas/documentos.ts` (o laudo que o navegador abre) e
+`apps/api/src/saida/pacote.ts` (o laudo que vai dentro do ZIP). As duas
+consultas precisam ler os mesmos campos, e foi a divergência entre elas que
+produziu o defeito do aviso de equipe. Um conserto numa delas continua podendo
+não chegar à outra. A unificação está planejada para a V2-F09-E02; até ela
+existir, campo novo que o laudo imprima tem de entrar nas duas consultas, e o
+teste que compara os dois documentos entre si (seção 29 do e2e, mais os casos de
+`apps/api/test/saida-de-municipio.test.ts`) é o que avisa quando isso é
+esquecido. A pendência está registrada em `apps/api/PENDENCIAS.md`.
 
 ---
 
@@ -220,18 +246,17 @@ quê.
 
 ### O que ainda não está feito
 
-- **A retomada de uma purga interrompida depende da memória do processo.** Se a
-  listagem ou um apagamento falhar, a API lembra do município e tenta de novo
-  na rodada seguinte, conferindo antes no banco que ele continua eliminado e
-  não purgado. Se o processo reiniciar nesse meio tempo, ou se a purga tiver
-  começado na outra máquina, a lista se perde, porque a função do banco só
-  devolve cada município uma vez (na rodada em que apaga as linhas) e o papel
-  de aplicação não enumera organizações. O sinal é `vencidas` em `/saude` sem
-  zerar. A correção é do banco (a função devolver também quem está eliminado e
-  não purgado), e está pedida.
-- **A contagem de `/saude` depende de uma função de banco que a migração 038
-  ainda não traz** (`eliminacoes_pendentes()`, só números). Até ela existir, a
-  rota responde `eliminacoes: null` e avisa no log a cada sonda.
+- ~~**A retomada de uma purga interrompida depende da memória do processo.**~~
+  Resolvido (conferido em 2026-10-07, V2-F00-E22): `executar_eliminacoes_vencidas()`
+  devolve, em toda rodada, também quem já teve as linhas apagadas e ainda não
+  teve o armazenamento purgado, até `concluir_eliminacao` marcar a purga, então
+  reinício e troca de máquina não perdem mais a purga pela metade (ver o
+  comentário de `apps/api/src/eliminacao/relogio.ts`). A memória do processo
+  continua só como atalho dentro de uma mesma vida do processo.
+- ~~**A contagem de `/saude` depende de uma função de banco que a migração 038
+  ainda não traz.**~~ Resolvido (conferido em 2026-10-07): a migração 038 cria
+  `eliminacoes_pendentes()`, e `/saude` a consulta. O `eliminacoes: null` só
+  aparece se a função faltar no banco (migração atrasada), com aviso no log.
 - **A declaração de eliminação** do passo 6 continua sem modelo. O livro tem
   tudo o que ela precisa dizer (datas, contagens, quem pediu); falta o texto.
 - **O prazo de sete dias corre a partir do pedido no console**, não da

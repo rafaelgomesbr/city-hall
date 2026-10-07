@@ -63,6 +63,14 @@ test("rodando da raiz, --conferir confere e NÃO aplica", () => {
     mediria o código de saída, que não é o que este caso pergunta. O que ele
     pergunta é o que o comando FEZ, e isso está no texto.
   */
+  /*
+    `shell` no Windows, a mesma invocação de `scripts/testar-campo.mjs`: lá
+    `npm` é `npm.cmd`, e sem shell o `execFileSync` morre com ENOENT antes de
+    rodar nada. Esse erro caía no `catch` com a saída vazia, e o caso reprovava
+    dizendo que o comando "não chegou a CONFERIR", quando ele nem tinha
+    começado. Os argumentos são fixos e sem espaço, então o shell não tem o que
+    interpretar.
+  */
   let saida = "";
   try {
     saida = execFileSync("npm", ["run", "migrar", "--", "--conferir"], {
@@ -70,6 +78,7 @@ test("rodando da raiz, --conferir confere e NÃO aplica", () => {
       encoding: "utf8",
       env: { ...process.env, DATABASE_URL: "" },
       stdio: ["ignore", "pipe", "pipe"],
+      shell: process.platform === "win32",
     });
   } catch (erro) {
     saida = `${erro.stdout ?? ""}${erro.stderr ?? ""}`;

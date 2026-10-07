@@ -1,0 +1,11 @@
+
+> dc360@0.1.0 migrar
+> npm run migrar --workspace @dc360/db -- --semear
+
+
+> @dc360/db@0.1.0 migrar
+> tsx src/cli.ts --semear
+
+Nada a fazer: 47 migração(ões) já aplicada(s).
+Semeado com os dois municípios fictícios.
+codigo 0 em 1294 ms

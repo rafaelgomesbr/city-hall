@@ -1,0 +1,30 @@
+Arquivos tocados pela V2-F00-E15 (git status, recorte):
+ M dc360/apps/campo/LEIA-ME.md
+ M dc360/apps/campo/PENDENCIAS.md
+ M dc360/apps/campo/src/__tests__/a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx
+ M dc360/apps/campo/src/__tests__/perfil-a-foto-os-numeros-e-a-equipe.test.tsx
+ M dc360/apps/campo/src/__tests__/perfil-a-sessao-que-terminou-e-o-aviso-que-fecha.test.tsx
+ M dc360/apps/campo/src/__tests__/perfil-caminho-para-os-ajustes.test.tsx
+ M dc360/apps/campo/src/__tests__/perfil-equipe-e-concluidas.test.tsx
+ M dc360/apps/campo/src/__tests__/perfil-identidade-e-estado.test.tsx
+ M dc360/apps/campo/src/__tests__/perfil-o-atalho-dos-avisos.test.tsx
+ M dc360/apps/campo/src/__tests__/perfil-o-que-eu-conclui.test.tsx
+ M dc360/apps/campo/src/__tests__/perfil-um-indicador-por-fato.test.tsx
+ M dc360/apps/campo/src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx
+ M dc360/apps/campo/src/app/(agente)/perfil.tsx
+ M dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx
+ M dc360/apps/campo/src/dados/banco-local.ts
+ M dc360/apps/campo/src/dados/resumo-da-fila.ts
+ M dc360/apps/campo/src/push/logout-cala-o-aparelho.test.tsx
+ M dc360/apps/campo/src/ui/dialogo-na-conta.test.tsx
+ M dc360/packages/shared/src/schemas.ts
+ M dc360/scripts/baseline.mjs
+?? dc360/apps/api/test/precisao-do-gps-na-sincronizacao.test.ts
+?? dc360/apps/campo/src/dados/aviso-da-saida.test.ts
+?? dc360/apps/campo/src/dados/aviso-da-saida.ts
+?? dc360/apps/campo/src/dados/precisao-do-gps.test.ts
+?? dc360/apps/campo/src/dados/precisao-do-gps.ts
+?? dc360/apps/campo/src/dados/sair-e-entrar-nao-perde-a-coleta.test.ts
+?? dc360/packages/shared/test/precisao-do-gps.test.ts
+
+Observação: os arquivos de apps/campo listados como M que não constam do RESUMO (logout-cala-o-aparelho, a-sessao-que-terminou-nao-e-falta-de-sinal) são da E14.

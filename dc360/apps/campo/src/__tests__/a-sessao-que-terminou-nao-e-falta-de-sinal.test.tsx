@@ -191,8 +191,20 @@ describe("o servidor que não reconhece mais a sessão", () => {
   /*
     Dizer que a sessão caiu sem dizer o que fazer seria trocar uma frase inútil
     por outra. O texto por extenso precisa terminar num ATO, e precisa desfazer
-    o medo que faz o agente não executá-lo: sair da conta não apaga a vistoria
-    que ele fez no morro.
+    o medo que faz o agente não executá-lo: nada do que ele fez no morro se
+    perde por entrar outra vez.
+
+    O ato é "Entrar de novo", e NÃO "Sair da conta". A versão anterior deste
+    caso exigia a frase "Sair da conta" porque até 15/09/2026 era isso que o
+    aviso mandava fazer. `sair()` apaga o dado local, inclusive a vistoria
+    COMEÇADA (rascunho, fotos, assinatura), então aquela instrução mandava o
+    agente fazer a única coisa que custa caro. A decisão está escrita no
+    comentário de `app/(agente)/index.tsx:1222` e na frase de
+    `dados/falha-de-atualizacao.ts` (`comoContarAFalha`), commit 5ecdf4c, e o
+    teste irmão `a-sessao-vencida-nao-apaga-a-vistoria.test.tsx` já afirma que o
+    botão não chama `sair()`. Registro em
+    `docs/DECISOES-DE-TESTE-DA-FASE-00.md`, seção "campo: sessão encerrada e
+    logout".
   */
   it("o ⓘ ensina o caminho de volta, e promete a fila de pé", async () => {
     quebrarARedeCom = new ErroDaApiFalso(401, "nao_autenticado", "Token inválido ou expirado.");
@@ -200,8 +212,13 @@ describe("o servidor que não reconhece mais a sessão", () => {
     await tocar("detalhe-da-lista");
 
     const dialogo = within(screen.getByTestId("explicacao"));
-    expect(dialogo.getByText(/Sair da conta/)).toBeTruthy();
-    expect(dialogo.getByText(/continua guardado no aparelho/)).toBeTruthy();
+    /* A frase inteira, e não só "Entrar de novo": o rótulo do botão do aviso
+       diz as mesmas três palavras, e procurar só por elas provaria o botão em
+       vez do texto. */
+    expect(dialogo.getByText(/Toque em "Entrar de novo"/)).toBeTruthy();
+    expect(dialogo.getByText(/Nada é apagado/)).toBeTruthy();
+    /* NEGATIVO: o diálogo não pode voltar a instruir o verbo que apaga. */
+    expect(dialogo.queryByText(/Sair da conta/)).toBeNull();
   });
 
   /*

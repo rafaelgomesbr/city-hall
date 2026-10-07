@@ -75,6 +75,16 @@ jest.mock("../dados/fila", () => ({
       : Promise.resolve({
         pendentes: mockPendentes, enviando: 0, bloqueados: 0, confirmados: 0,
       })),
+    /*
+      O Perfil assina a fila (V2-F00-E15). A fila de verdade avisa quem assina
+      na hora; a pendurada é a que ainda não avisou ninguém.
+    */
+    assinar: (ouvinte: (r: unknown) => void) => {
+      if (!mockFilaPendurada) {
+        ouvinte({ pendentes: mockPendentes, enviando: 0, bloqueados: 0, confirmados: 0 });
+      }
+      return () => undefined;
+    },
   }),
 }));
 

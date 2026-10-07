@@ -1,0 +1,32 @@
+# INDEX
+
+| Arquivo | SHA-256 |
+| --- | --- |
+| RESUMO.md | 6c10902c359ab1ef4cd3108a26f5820d8e5abc608850f77b71b6f15cbdd75ab7 |
+| baseline-antes/01-typecheck.txt | 744ee05ad54b9b26f4b31eb4b1964e010a92b6f7207962ed552fe955f606aeab |
+| baseline-antes/02-teste-api.txt | 715604ad660c884e6121692a8e3091a47ee8188191d169d2dc4edeaea339a087 |
+| baseline-antes/03-teste-web.txt | 23996702a45db3535209b00f8bf1269e307f38532b0b4b9a20d44f9776d73fa1 |
+| baseline-antes/04-test-campo.txt | d23b82106235f74cccab6ec9145f142d5b8a158fc2d4ee4ef6dc82a6a26b4e53 |
+| baseline-antes/05-test-scripts.txt | 390c5d1a82a72a9ec1994f44f213d372dcad88fdab78003957dbb9d46d7fa432 |
+| baseline-antes/RESUMO.md | 73c8bfbc02d49746cf0051c7f529262976587a4bf948f5ae34d464fcb7bd023f |
+| baseline-antes/resultados.json | 9f39f2bab2f78e17cb9c54d4898fe31343eee4b6a4d9b4cefdbff9d7d835336f |
+| baseline-depois/01-typecheck.txt | 744ee05ad54b9b26f4b31eb4b1964e010a92b6f7207962ed552fe955f606aeab |
+| baseline-depois/02-teste-shared.txt | ad4c03a1fe763d8c7eb0ca877242647eca88dd3add94cac0ae4049dc722100b1 |
+| baseline-depois/03-teste-db.txt | 287dde6044f29b09e692a10962ff7c1b68cb387d3efc1dd5117f99c1c15dd108 |
+| baseline-depois/04-teste-campo-pacote.txt | 3db6f5410c09d21a68b34401da02667c625fcbfda80df81161eaf2b3fabc35a5 |
+| baseline-depois/05-teste-api.txt | 41112ed9f74b69be7d581106d753c33af38a2f81dfca4dbe62c8ed28d40a3ea8 |
+| baseline-depois/06-teste-console.txt | 50f234225582426826337fa8d2bdfb3d4662d6951539654ea127b6078b6bec20 |
+| baseline-depois/07-teste-web.txt | 3af40336bf941ea7d716edcf087ba3f12554d7145610d9a4de13e3751ac94d05 |
+| baseline-depois/08-test-campo.txt | da985419e4ba987c9c1ba6023ca75cf187560af72d6ae3aaefaad1d6cec4cef9 |
+| baseline-depois/09-test-scripts.txt | 4322e83f4fc20e50d6f1a37a4cbccae49565e4719eefb97d00784e6013599b6a |
+| baseline-depois/10-conferir-numeros.txt | 8630d970d37ef0b258396df250402f3ae319a3336ae503cbcd5e830c7e9efe67 |
+| baseline-depois/RESUMO.md | 5a5b02acbb3ed6e089221a00968b3e7ac4ce9045b8a2eef0312b2b494cfdf3e5 |
+| baseline-depois/resultados.json | 41e592d20885df4ae2a84e011800b054fd4eb0016d7f2a7415dc651e161fce3e |
+| saidas/01-git-ls-files-eol-resumo.txt | 5a8677d75a41310727417c53d4a411b45324a4cd26e70637c730239986dcaaaf |
+| saidas/02-git-ls-files-eol-completo.txt | cdd296692fc57d471e9f6c36a4445ef911da2b87699a753e09a44c660d3caad2 |
+| saidas/03-renormalize-em-indice-copiado.txt | 7662765eca32830adb2bd74d28ecff4ba828d01bff440156cdb199c4342f3911 |
+| saidas/04-banco-tls-git-bash-com-e-sem-openssl-conf.txt | 063640efaf258720705b31e8df2a18df72c23590736fb8229bee48dd59530097 |
+| saidas/05-banco-tls-powershell.txt | 3ef815b13768d8dd22a5dd7439a5fe541d3a1818832d0488f94546bbccfe5895 |
+| saidas/06-typecheck-campo-com-e-sem-cache-velho.txt | bd1f20400493ad6c9020409f49126aede7fe79b839d9b1707cc71b159a5d573e |
+| saidas/07-test-campo-com-cache-velho-presente.txt | fa52e1e4b52fa078f296116c4ae41ff97ff5c96ac6f953880517772793492e7f |
+| saidas/08-npm-test-raiz.txt | 704927ddb335bb36e67cc1d4e34352b677297984df620af38c8f02f4c11b334f |

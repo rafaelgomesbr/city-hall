@@ -1,0 +1,66 @@
+## sem rascunho e sem fila
+
+Título: Sair da conta?
+Botão de confirmar (perigo): Sair da conta
+Botão de recusa: Continuar conectado
+
+Você vai precisar de sinal e da sua senha para entrar de novo.
+
+## 1 vistoria começada, sem foto
+
+Título: Sair da conta?
+Botão de confirmar (perigo): Sair da conta
+Botão de recusa: Continuar conectado
+
+Você tem 1 vistoria começada neste aparelho, que ainda não foi concluída. Sair apaga essa vistoria e tudo o que já foi preenchido nela, sem volta. Para não perder, conclua antes de sair.
+
+## 2 vistorias começadas, uma com foto e assinatura
+
+Título: Sair da conta?
+Botão de confirmar (perigo): Sair da conta
+Botão de recusa: Continuar conectado
+
+Você tem 2 vistorias começadas neste aparelho, com fotos e assinatura, que ainda não foram concluídas. Sair apaga essas vistorias e tudo o que já foi preenchido nelas, inclusive as fotos e a assinatura, sem volta. Para não perder, conclua antes de sair.
+
+## 1 vistoria só com assinatura
+
+Título: Sair da conta?
+Botão de confirmar (perigo): Sair da conta
+Botão de recusa: Continuar conectado
+
+Você tem 1 vistoria começada neste aparelho, com assinatura, que ainda não foi concluída. Sair apaga essa vistoria e tudo o que já foi preenchido nela, inclusive a assinatura, sem volta. Para não perder, conclua antes de sair.
+
+## 1 coleta na fila, sem rascunho
+
+Título: Sair da conta?
+Botão de confirmar (perigo): Sair da conta
+Botão de recusa: Continuar conectado
+
+Você tem 1 coleta ainda não enviada. Ao sair, ela continua guardada no aparelho e ninguém mais consegue enviá-la: o laudo sai com o nome de quem fez a vistoria, que é você. Ela volta a subir quando você entrar de novo, com sinal.
+
+## 3 coletas na fila, sem rascunho
+
+Título: Sair da conta?
+Botão de confirmar (perigo): Sair da conta
+Botão de recusa: Continuar conectado
+
+Você tem 3 coletas ainda não enviadas. Ao sair, elas continuam guardadas no aparelho e ninguém mais consegue enviá-las: o laudo sai com o nome de quem fez a vistoria, que é você. Elas voltam a subir quando você entrar de novo, com sinal.
+
+## 1 vistoria com foto e 2 coletas na fila
+
+Título: Sair da conta?
+Botão de confirmar (perigo): Sair da conta
+Botão de recusa: Continuar conectado
+
+Você tem 1 vistoria começada neste aparelho, com fotos, que ainda não foi concluída. Sair apaga essa vistoria e tudo o que já foi preenchido nela, inclusive as fotos, sem volta. Para não perder, conclua antes de sair.
+
+Você tem 2 coletas ainda não enviadas. Ao sair, elas continuam guardadas no aparelho e ninguém mais consegue enviá-las: o laudo sai com o nome de quem fez a vistoria, que é você. Elas voltam a subir quando você entrar de novo, com sinal.
+
+## disco que não respondeu, sem fila
+
+Título: Sair da conta?
+Botão de confirmar (perigo): Sair da conta
+Botão de recusa: Continuar conectado
+
+Não deu para conferir se há vistoria começada neste aparelho. Sair apaga toda vistoria que ainda não foi concluída, com as fotos e a assinatura dela. Se você começou alguma, conclua antes de sair.
+

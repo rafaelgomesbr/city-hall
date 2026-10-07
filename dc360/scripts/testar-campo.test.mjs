@@ -25,12 +25,12 @@
  */
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { planejar } from "./testar-campo.mjs";
+import { planejar, planejarCacheDeRotas, rotaDoArquivo, rotasQueFaltamNoCache } from "./testar-campo.mjs";
 import { arquivosDeTeste, contarCasos, contarCasosDoAplicativo } from "./casos-do-aplicativo.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -234,6 +234,65 @@ test("a varredura do aplicativo não sai de apps/campo", () => {
     assert.ok(caminho.startsWith(join(RAIZ, "apps/campo")), `${caminho} está fora do aplicativo`);
     assert.ok(!caminho.includes("node_modules"), `${caminho} veio de node_modules`);
   }
+});
+
+/* ---------- O cache de rotas tipadas do expo-router (V2-F00-E21) ---------- */
+
+/** Trecho no formato que o `expo start` grava em `.expo/types/router.d.ts`. */
+const CACHE_DE_AGOSTO = "{ pathname: `/entrar`; } | { pathname: `/`; } | `/conta` | `/fila` | `/vistoria/[id]`";
+
+test("o arquivo de src/app vira a rota que o expo-router publica", () => {
+  assert.equal(rotaDoArquivo("(agente)/perfil.tsx"), "/perfil");
+  assert.equal(rotaDoArquivo("(agente)\\vistoria\\[id].tsx"), "/vistoria/[id]");
+  assert.equal(rotaDoArquivo("(agente)/index.tsx"), "/");
+  assert.equal(rotaDoArquivo("entrar.tsx"), "/entrar");
+  for (const naoRota of ["_layout.tsx", "(agente)/_layout.tsx", "+not-found.tsx", "+html.tsx", "LEIA.md", "x.test.tsx"]) {
+    assert.equal(rotaDoArquivo(naoRota), null, `${naoRota} não é rota`);
+  }
+});
+
+test("cache velho que não conhece as rotas novas é apagado, e diz quais faltam", () => {
+  const plano = planejarCacheDeRotas({
+    rotas: ["/entrar", "/", "/fila", "/vistoria/[id]", "/mapa", "/perfil", "/avisos"],
+    ler: () => CACHE_DE_AGOSTO,
+  });
+  assert.equal(plano.acao, "apagar");
+  assert.equal(plano.alvo, "apps/campo/.expo/types");
+  assert.deepEqual(plano.faltam, ["/mapa", "/perfil", "/avisos"]);
+  assert.match(plano.motivo, /\/mapa, \/perfil, \/avisos/);
+});
+
+test("cache em dia fica, para não perder a checagem de rota tipada", () => {
+  const plano = planejarCacheDeRotas({ rotas: ["/entrar", "/", "/fila", "/vistoria/[id]"], ler: () => CACHE_DE_AGOSTO });
+  assert.equal(plano.acao, "manter");
+});
+
+test("sem cache não há nada a apagar", () => {
+  assert.equal(planejarCacheDeRotas({ rotas: ["/perfil"], ler: () => null }).acao, "nada");
+});
+
+test("rota que é prefixo de outra não conta como presente", () => {
+  // `/fila` não pode valer por `/filas`: a crase que fecha o literal é o que separa.
+  assert.deepEqual(rotasQueFaltamNoCache(["/fila"], "`/filas`"), ["/fila"]);
+});
+
+test("as rotas reais do aplicativo saem do disco, e o cache de 2026-08-27 seria apagado por elas", () => {
+  const pasta = join(RAIZ, "apps/campo/src/app");
+  const rotas = readdirSync(pasta, { recursive: true, withFileTypes: true })
+    .filter((e) => e.isFile())
+    .map((e) => rotaDoArquivo(relative(pasta, join(e.parentPath ?? e.path, e.name))))
+    .filter(Boolean);
+  for (const esperada of ["/", "/entrar", "/fila", "/mapa", "/perfil", "/avisos", "/vistoria/[id]"]) {
+    assert.ok(rotas.includes(esperada), `${esperada} não saiu de src/app`);
+  }
+  assert.equal(planejarCacheDeRotas({ rotas, ler: () => CACHE_DE_AGOSTO }).acao, "apagar");
+});
+
+test("o test:campo limpa o cache ANTES do typecheck, não depois", () => {
+  const fonte = readFileSync(join(AQUI, "testar-campo.mjs"), "utf8");
+  const limpa = fonte.indexOf("limparCacheDeRotasVelho();");
+  const tipa = fonte.indexOf('rodar(["run", "typecheck"');
+  assert.ok(limpa > 0 && tipa > limpa, "a limpeza do cache tem de vir antes do typecheck");
 });
 
 /* ---------- A fiação: os comandos da raiz precisam CHAMAR isto ---------- */

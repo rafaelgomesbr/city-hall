@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createElement } from "react";
@@ -9,6 +8,7 @@ import {
   podeOferecerEncerramento, proximoPassoDoEncerramento, rotuloDoBotaoDeEncerrar,
 } from "../src/paginas/ocorrencia-regras";
 import { BlocoEncerramento } from "../src/paginas/Ocorrencia";
+import { blocoDaFuncao, lerFonte } from "./ler-fonte";
 
 /**
  * O botão vermelho da tela de ocorrência.
@@ -145,8 +145,10 @@ describe("O bloco desenhado na tela", () => {
 });
 
 describe("A fiação entre a página e as regras", () => {
+  // Normalizada para LF (V2-F00-E21): numa árvore CRLF o recorte abaixo não
+  // achava a chave de fechamento e o teste reprovava pelo fim de linha.
   function fonte(): string {
-    return readFileSync(PAGINA, "utf8");
+    return lerFonte(PAGINA);
   }
 
   it("o bloco só é desenhado sob o portão de status", () => {
@@ -160,10 +162,8 @@ describe("A fiação entre a página e as regras", () => {
   });
 
   it("nada grava o encerramento fora do ramo de confirmação", () => {
-    const inicio = fonte().indexOf("export function BlocoEncerramento");
-    expect(inicio).toBeGreaterThan(0);
-    // A chave que fecha a função é a única na coluna zero depois daqui.
-    const bloco = fonte().slice(inicio, fonte().indexOf("\n}\n", inicio));
+    // A chave que fecha a função é a única na coluna zero depois da assinatura.
+    const bloco = blocoDaFuncao(fonte(), "export function BlocoEncerramento");
 
     expect(bloco).toMatch(/proximoPassoDoEncerramento\(passo, motivo\)/);
     // Uma chamada só, e ela vem depois do desvio de "perguntar".

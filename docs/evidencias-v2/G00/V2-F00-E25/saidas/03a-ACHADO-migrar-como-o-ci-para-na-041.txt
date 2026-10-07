@@ -1,0 +1,93 @@
+
+> dc360@0.1.0 migrar
+> npm run migrar --workspace @dc360/db --
+
+
+> @dc360/db@0.1.0 migrar
+> tsx src/cli.ts
+
+aplicando 001_base.sql
+aplicando 002_autenticacao.sql
+aplicando 003_evidencias.sql
+aplicando 004_evidencia_idempotente.sql
+aplicando 005_recuperacao_de_senha.sql
+aplicando 006_resposta_de_providencia.sql
+aplicando 007_registro_de_exportacao.sql
+aplicando 008_chaves_coerentes_por_municipio.sql
+aplicando 009_assinatura_data_e_emissao.sql
+aplicando 010_trilha_administrativa.sql
+aplicando 011_interesse_de_municipio.sql
+aplicando 012_ponto_de_referencia.sql
+aplicando 013_matricula_no_login.sql
+aplicando 014_interdicao_tem_fim.sql
+aplicando 015_pessoas_atingidas.sql
+aplicando 016_aparelho_e_aviso_de_prazo.sql
+aplicando 017_orgaos_oficio_e_email.sql
+aplicando 018_sino_de_avisos.sql
+aplicando 019_tipo_a_classificar.sql
+aplicando 020_orgaos_indicados_na_vistoria.sql
+aplicando 021_minimizacao_e_registro_de_consulta.sql
+aplicando 022_segundo_fator.sql
+aplicando 023_metricas_do_municipio.sql
+aplicando 024_prova_tem_autor_e_equipe.sql
+aplicando 025_provisionar_deixa_linha_espelho.sql
+aplicando 026_relogio_do_resumo.sql
+aplicando 027_recibo_do_provedor_de_email.sql
+aplicando 028_devolucao_de_tarefa_vencida.sql
+aplicando 029_minimizacao_alcanca_a_devolucao.sql
+aplicando 030_prova_perdida_e_ponto_da_vistoria.sql
+aplicando 031_saida_a_campo.sql
+aplicando 032_prova_que_nao_se_apaga_e_prorrogacao_idempotente.sql
+aplicando 033_as_outras_duas_que_prometiam_append_only.sql
+aplicando 034_as_tabelas_centrais_tambem_nao_se_apagam.sql
+aplicando 035_teto_e_objeto_orfao.sql
+aplicando 036_o_console_cadastra_prefeitura.sql
+aplicando 037_o_expurgo_de_notificacao_nao_depende_de_bypassrls.sql
+aplicando 038_suspensao_eliminacao_e_operadores_do_console.sql
+aplicando 039_codigos_de_recuperacao_do_console.sql
+aplicando 040_foto_do_agente.sql
+aplicando 041_busca_com_tolerancia_a_erro.sql
+C:\Projetos\city-hall\dc360\db\src\migrar.ts:188
+      throw new Error(
+            ^
+
+
+Error: Falha ao aplicar 041_busca_com_tolerancia_a_erro.sql: permission denied to create extension "pg_trgm"
+    at aplicarMigracoes (C:\Projetos\city-hall\dc360\db\src\migrar.ts:188:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async <anonymous> (C:\Projetos\city-hall\dc360\db\src\cli.ts:92:15) {
+  [cause]: error: permission denied to create extension "pg_trgm"
+      at C:\Projetos\city-hall\dc360\node_modules\pg\lib\client.js:694:17
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async aplicarMigracoes (C:\Projetos\city-hall\dc360\db\src\migrar.ts:180:7)
+      at async <anonymous> (C:\Projetos\city-hall\dc360\db\src\cli.ts:92:15) {
+    length: 310,
+    severity: 'ERROR',
+    code: '42501',
+    detail: undefined,
+    hint: 'Must have CREATE privilege on current database to create this extension.',
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: 'SQL statement "CREATE EXTENSION IF NOT EXISTS pg_trgm"\n' +
+      'PL/pgSQL function inline_code_block line 8 at SQL statement',
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'extension.c',
+    line: '1227',
+    routine: 'execute_extension_script'
+  }
+}
+
+Node.js v22.17.0
+npm error Lifecycle script `migrar` failed with error:
+npm error code 1
+npm error path C:\Projetos\city-hall\dc360\db
+npm error workspace @dc360/db@0.1.0
+npm error location C:\Projetos\city-hall\dc360\db
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c tsx src/cli.ts
+codigo 1 em 1810 ms

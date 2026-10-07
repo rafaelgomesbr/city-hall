@@ -1,0 +1,168 @@
+diff --git a/dc360/apps/campo/src/__tests__/a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx b/dc360/apps/campo/src/__tests__/a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx
+index bbd561d..bf33f84 100644
+--- a/dc360/apps/campo/src/__tests__/a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx
++++ b/dc360/apps/campo/src/__tests__/a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx
+@@ -191,8 +191,20 @@ describe("o servidor que não reconhece mais a sessão", () => {
+   /*
+     Dizer que a sessão caiu sem dizer o que fazer seria trocar uma frase inútil
+     por outra. O texto por extenso precisa terminar num ATO, e precisa desfazer
+-    o medo que faz o agente não executá-lo: sair da conta não apaga a vistoria
+-    que ele fez no morro.
++    o medo que faz o agente não executá-lo: nada do que ele fez no morro se
++    perde por entrar outra vez.
++
++    O ato é "Entrar de novo", e NÃO "Sair da conta". A versão anterior deste
++    caso exigia a frase "Sair da conta" porque até 15/09/2026 era isso que o
++    aviso mandava fazer. `sair()` apaga o dado local, inclusive a vistoria
++    COMEÇADA (rascunho, fotos, assinatura), então aquela instrução mandava o
++    agente fazer a única coisa que custa caro. A decisão está escrita no
++    comentário de `app/(agente)/index.tsx:1222` e na frase de
++    `dados/falha-de-atualizacao.ts` (`comoContarAFalha`), commit 5ecdf4c, e o
++    teste irmão `a-sessao-vencida-nao-apaga-a-vistoria.test.tsx` já afirma que o
++    botão não chama `sair()`. Registro em
++    `docs/DECISOES-DE-TESTE-DA-FASE-00.md`, seção "campo: sessão encerrada e
++    logout".
+   */
+   it("o ⓘ ensina o caminho de volta, e promete a fila de pé", async () => {
+     quebrarARedeCom = new ErroDaApiFalso(401, "nao_autenticado", "Token inválido ou expirado.");
+@@ -200,8 +212,13 @@ describe("o servidor que não reconhece mais a sessão", () => {
+     await tocar("detalhe-da-lista");
+ 
+     const dialogo = within(screen.getByTestId("explicacao"));
+-    expect(dialogo.getByText(/Sair da conta/)).toBeTruthy();
+-    expect(dialogo.getByText(/continua guardado no aparelho/)).toBeTruthy();
++    /* A frase inteira, e não só "Entrar de novo": o rótulo do botão do aviso
++       diz as mesmas três palavras, e procurar só por elas provaria o botão em
++       vez do texto. */
++    expect(dialogo.getByText(/Toque em "Entrar de novo"/)).toBeTruthy();
++    expect(dialogo.getByText(/Nada é apagado/)).toBeTruthy();
++    /* NEGATIVO: o diálogo não pode voltar a instruir o verbo que apaga. */
++    expect(dialogo.queryByText(/Sair da conta/)).toBeNull();
+   });
+ 
+   /*
+diff --git a/dc360/apps/campo/src/__tests__/perfil-a-sessao-que-terminou-e-o-aviso-que-fecha.test.tsx b/dc360/apps/campo/src/__tests__/perfil-a-sessao-que-terminou-e-o-aviso-que-fecha.test.tsx
+index 8f800fe..61018c7 100644
+--- a/dc360/apps/campo/src/__tests__/perfil-a-sessao-que-terminou-e-o-aviso-que-fecha.test.tsx
++++ b/dc360/apps/campo/src/__tests__/perfil-a-sessao-que-terminou-e-o-aviso-que-fecha.test.tsx
+@@ -149,14 +149,26 @@ describe("o servidor que não reconhece mais a sessão", () => {
+     expect(screen.queryByText(/Não deu para atualizar agora/)).toBeNull();
+   });
+ 
++  /*
++    O caminho de volta é "Entrar de novo", e o aviso NÃO manda sair da conta.
++    Este caso exigia a frase `toque em "Sair da conta" e entre de novo` até a
++    V2-F00-E14, e ela deixou de existir em 15/09/2026 (commit 5ecdf4c): `sair()`
++    apaga o dado local, inclusive a vistoria começada, e o aviso passou a
++    mandar "Entrar de novo", que derruba a sessão e deixa o disco como está. A
++    decisão está em `dados/falha-de-atualizacao.ts` (`comoContarAFalha`) e no
++    comentário de `app/(agente)/index.tsx:1222`; registro em
++    `docs/DECISOES-DE-TESTE-DA-FASE-00.md`, seção "campo: sessão encerrada e
++    logout".
++  */
+   it("e ensina o caminho de volta, sem prometer o que não vale", async () => {
+     quebrarARedeCom = new ErroDaApiFalso(401, "nao_autenticado", "Token inválido ou expirado.");
+     await abrirATela();
+ 
+-    /* O botão de sair também diz "Sair da conta": o que se procura aqui é a
+-       frase do AVISO, que manda usar aquele botão. */
+-    expect(screen.getByText(/toque em "Sair da conta" e entre de novo/)).toBeTruthy();
+-    expect(screen.getByText(/continua guardado no aparelho/)).toBeTruthy();
++    expect(screen.getByText(/Toque em "Entrar de novo"/)).toBeTruthy();
++    expect(screen.getByText(/Nada é apagado/)).toBeTruthy();
++    /* NEGATIVO: esta tela TEM um botão escrito "Sair da conta", então o que se
++       recusa aqui é a INSTRUÇÃO de usá-lo, que é a frase antiga. */
++    expect(screen.queryByText(/toque em "Sair da conta"/i)).toBeNull();
+   });
+ 
+   it("sem sinal continua dizendo que é o sinal", async () => {
+diff --git a/dc360/apps/campo/src/push/logout-cala-o-aparelho.test.tsx b/dc360/apps/campo/src/push/logout-cala-o-aparelho.test.tsx
+index c268ab6..f436d42 100644
+--- a/dc360/apps/campo/src/push/logout-cala-o-aparelho.test.tsx
++++ b/dc360/apps/campo/src/push/logout-cala-o-aparelho.test.tsx
+@@ -15,8 +15,26 @@ jest.mock("expo-secure-store", () => ({
+   deleteItemAsync: jest.fn(async (chave: string) => { mockCofre.delete(chave); }),
+ }));
+ 
++/*
++  O DUBLÊ DO BANCO LOCAL, COMPLETO.
++
++  Até a V2-F00-E14 ele tinha só `apagarDadosLocais`, e os quatro casos deste
++  arquivo morriam com "acolherNoAparelho is not a function": em 15/09/2026
++  (commit 5ecdf4c) `dados/sessao.tsx` passou a chamar também
++  `acolherNoAparelho` (no login) e `marcarDonoDosDadosLocais` (no login e na
++  retomada da sessão guardada), e o dublê ficou para trás. Nenhuma afirmação
++  deste arquivo mudou: o que mudou foi o dublê, para que os casos voltem a
++  exercitar o `sessao.tsx` real. O caso de deriva no fim do arquivo impede que
++  isto se repita em silêncio.
++
++  `acolherNoAparelho` devolve `{ apagou: false }` porque o caso provado aqui é
++  a MESMA pessoa entrando no aparelho: nada é apagado. O apagamento ao trocar
++  de agente tem prova própria em `dados/logout-nao-apaga-prova.test.ts`.
++*/
+ jest.mock("../dados/banco-local", () => ({
+   apagarDadosLocais: jest.fn(async () => undefined),
++  acolherNoAparelho: jest.fn(async () => ({ apagou: false })),
++  marcarDonoDosDadosLocais: jest.fn(async () => undefined),
+ }));
+ 
+ /** O que o servidor viu chegar em `POST /auth/sair`. */
+@@ -42,6 +60,21 @@ jest.mock("../dados/api", () => ({
+   }),
+ }));
+ 
++/*
++  O `fs` e o `path` vêm por `jest.requireActual`, tipados à mão no mínimo que
++  o caso de deriva usa, e não por `import "node:fs"`: o `tsconfig` do
++  aplicativo não carrega os tipos do Node (o código dele roda no telefone), e
++  acrescentá-los por causa de um teste deixaria o código de tela enxergar uma
++  API que no aparelho não existe. O `__dirname` existe no jest e é declarado
++  aqui pelo mesmo motivo.
++*/
++declare const __dirname: string;
++const { readFileSync } = jest.requireActual("fs") as {
++  readFileSync(caminho: string, codificacao: "utf8"): string;
++};
++const { join } = jest.requireActual("path") as { join(...partes: string[]): string };
++
++import * as bancoLocalDublado from "../dados/banco-local";
+ import { ProvedorDeSessao, useSessao } from "../dados/sessao";
+ import { fichaGuardada, guardarFicha } from "./ficha-do-aparelho";
+ 
+@@ -131,3 +164,36 @@ it("guarda o município da sessão, que é o que a barreira de push compara", as
+   expect(sessaoAtual?.identidade?.organizacaoId)
+     .toBe("3f1c6c4e-0a1b-4c2d-8e3f-aaaaaaaaaaaa");
+ });
++
++/*
++  O CASO DE DERIVA. Ele não prova o produto: prova o dublê acima.
++
++  Dublê incompleto não reprova dizendo "falta um nome no dublê". Ele reprova
++  dizendo "acolherNoAparelho is not a function" no meio de um caso que fala de
++  notificação, e foi isso que manteve estes quatro casos vermelhos por três
++  semanas: a mensagem apontava para o lugar errado. Este caso lê o que
++  `dados/sessao.tsx` importa de `./banco-local` e confere que o dublê oferece
++  cada nome. Se amanhã o `sessao.tsx` importar um quarto, a falha diz o nome.
++
++  Lê a FONTE em vez de usar uma lista escrita à mão aqui, porque uma lista
++  escrita à mão envelhece exatamente como o dublê envelheceu.
++*/
++it("o dublê do banco local acompanha tudo o que sessao.tsx importa dele", () => {
++  const fonte = readFileSync(join(__dirname, "../dados/sessao.tsx"), "utf8");
++  const importacao = /import\s*\{([^}]+)\}\s*from\s*["']\.\/banco-local["']/.exec(fonte);
++
++  /* Se o import deixar de existir ou mudar de forma, isto reprova em vez de
++     passar por não ter encontrado nada: um casamento vazio não é um acerto. */
++  expect(importacao).not.toBeNull();
++
++  const nomesUsados = ((importacao as RegExpExecArray)[1] ?? "")
++    .split(",")
++    .map((n) => (n.trim().split(/\s+as\s+/)[0] ?? "").trim())
++    .filter((n) => n.length > 0);
++
++  expect(nomesUsados.length).toBeGreaterThan(0);
++
++  const dubleDoBanco = bancoLocalDublado as unknown as Record<string, unknown>;
++  const faltando = nomesUsados.filter((n) => typeof dubleDoBanco[n] !== "function");
++  expect(faltando).toEqual([]);
++});

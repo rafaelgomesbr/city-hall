@@ -212,9 +212,18 @@ no lugar dos botões.
 
 ## 9. Quem está em campo, e o agente que não deu notícia
 
-O agente declara, **antes de subir e com sinal**, para onde vai, em quanto tempo
-pretende voltar e se vai **sozinho**. Quando volta, confirma. Se demorar mais que
-o previsto, prorroga.
+> **Estado atual: a tela existe, mas fica vazia.** O servidor e a tela "Quem
+> está em campo" estão prontos. O aplicativo do agente **ainda não declara a
+> saída, não prorroga e não confirma o retorno**: essa parte está planejada no
+> roteiro de desenvolvimento (etapa V2-F14-E01), sem data marcada. Até lá
+> nenhuma saída chega ao painel, a tela fica vazia e **o sino não vai avisar de
+> prazo estourado nenhum**. Tela vazia, hoje, não quer dizer que ninguém está no
+> morro. Acompanhe as saídas pelo procedimento que o município já usa (rádio,
+> telefone), e não conte com este recurso até ele estar no aplicativo.
+
+Quando a parte do aplicativo existir, o agente vai declarar, **antes de subir e
+com sinal**, para onde vai, em quanto tempo pretende voltar e se vai
+**sozinho**. Quando voltar, confirma. Se demorar mais que o previsto, prorroga.
 
 Se a confirmação não chegar até o prazo, a saída aparece como **prazo estourado**
 na tela "Quem está em campo", e o sino toca.

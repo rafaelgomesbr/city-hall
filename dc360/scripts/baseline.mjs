@@ -76,6 +76,22 @@ export const TESTES_DA_E01_EM_SCRIPTS = 16;
  */
 export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F00-E02": 17, // scripts/portao-de-skip.test.mjs
+  /*
+    V2-F00-E17: um caso novo em `scripts/entitlements-do-ios.test.mjs` (o
+    negativo que prova que o `mode` escrito à mão reprova). O arquivo já
+    existia, então ele NÃO entra na tabela de arquivos abaixo, que confere o
+    arquivo inteiro contra a contagem da etapa.
+  */
+  "V2-F00-E17": 1,
+  /*
+    V2-F00-E21: 7 casos novos em `scripts/testar-campo.test.mjs` (o arquivo
+    de `src/app` vira a rota do expo-router, o cache velho de `.expo/types` é
+    apagado dizendo quais rotas faltam, o cache em dia fica, sem cache não se
+    faz nada, rota prefixo de outra não conta, as rotas reais do disco, e a
+    limpeza vem antes do typecheck). O arquivo já existia: fora da tabela de
+    arquivos abaixo.
+  */
+  "V2-F00-E21": 7,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
@@ -168,6 +184,66 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     defeito era do cliente, e a sonda dele esta no painel).
   */
   "V2-F00-E11": { total: 8, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E12: `apps/api/test/saida-de-municipio.test.ts` ganhou 6 casos no
+    bloco novo do aviso de equipe (os dois laudos com o mesmo trecho quando as
+    equipes divergem, equipes iguais sem aviso, agente sem equipe com a frase
+    propria, as duas colunas nulas da vistoria anterior a migracao 024 sem aviso
+    falso, a coleta sem despacho com a nota propria no lugar da de divergencia, e
+    o isolamento do nome de equipe do outro municipio). A falha que a E04 deixou
+    anotada como "o laudo do pacote, da E12" fica verde aqui (falhas 1 para 0),
+    e com ela a API fecha a fase SEM nenhuma falha de teste. A suite
+    `banco-tls` continua reprovando na carga do arquivo (E21) e segue fora da
+    contagem; as 13 puladas sao dela.
+  */
+  "V2-F00-E12": { total: 6, falhas: -1, puladas: 0 },
+  /*
+    V2-F00-E15: `apps/api/test/precisao-do-gps-na-sincronizacao.test.ts` e novo,
+    com 3 casos pela rota de verdade: o piso de 1 metro que o aparelho passou a
+    mandar responde 201, a precisao nula continua aceita, e o 0 de aplicativo
+    antigo continua 422 com o campo nomeado e a frase em portugues. Nenhum
+    codigo da API mudou; o esquema compartilhado so ganhou o nome
+    `gpsPrecisaoMetrosSchema`, com a mesma regra.
+  */
+  "V2-F00-E15": { total: 3, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E18: `apps/api/test/cors-do-envio-de-evidencia.test.ts` e novo, com 8
+    casos (o preflight do PUT de envio libera `if-none-match` para a origem do
+    painel, todo cabecalho que a autorizacao manda repetir passa, origem fora da
+    lista fica sem `access-control-allow-origin`, `x-qualquer` nao passa, a
+    escrita unica segue com 412, e a URL vencida, a assinatura trocada e a chave
+    de outro municipio seguem com 403). 3 reprovam antes do conserto. Nenhum
+    teste existente mudou. Nenhuma falha nova nem pulo.
+  */
+  "V2-F00-E18": { total: 8, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E21: os 13 casos de `banco-tls.test.ts` deixam de ser pulados e
+    RODAM (puladas 13 para 0, total sem mudança por eles): o `beforeAll`
+    caía porque o `openssl req` herdava um OPENSSL_CONF apontando para arquivo
+    inexistente (instalador do driver ODBC do PostgreSQL). Entra
+    `apps/api/test/openssl-do-teste.test.ts`, com 10 casos (a variável quebrada
+    sai e diz por quê, a válida fica, ausente passa igual, qualquer caixa, o
+    ambiente de quem chamou não muda; o `openssl` achado no PATH, ao lado do
+    `git` no Windows quando o PATH não o tem (o PowerShell), e a reprovação
+    com frase quando não existe; e o `openssl` de verdade com a variável
+    inexistente e com uma configuração válida que ele comprovadamente lê).
+    `openssl-do-teste.ts` é apoio, não conta. Com isso `npm run test:api` sai
+    com código 0.
+  */
+  "V2-F00-E21": { total: 10, falhas: 0, puladas: -13 },
+  /*
+    V2-F00-E23: `apps/api/test/contrato-do-painel.test.ts` e novo, com 12 casos
+    (6 contra a arvore atual: rotas lidas, cada chamada de `dados/http.ts` com
+    metodo e caminho registrados, ancora de contagem, chamadas sem token so nas
+    isencoes, excecoes sem entrada morta, expansao dos tipos de documento; e 6
+    sinteticos: o caminho certo do pacote passa, `POST /pacote.zip` reprova,
+    `GET /saida/pacote.zip` reprova, parametro faltando reprova, chamada nao
+    lida fura a ancora, extrator que perde uma chamada reprova).
+    `superficie-registrada.ts` e apoio (a leitura de `printRoutes` e a lista
+    `SEM_TOKEN`, movidas de `superficie.test.ts` sem mudar caso nenhum), nao
+    conta. Nenhuma falha nova nem pulo.
+  */
+  "V2-F00-E23": { total: 12, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -196,6 +272,10 @@ export const MUDANCAS_DO_TESTE_SHARED_POR_ETAPA = {
   "V2-F00-E05": { total: 10, falhas: 0 },
   // `packages/shared/test/permissoes.test.ts`: a acao `consultar_oficio` (3 casos novos).
   "V2-F00-E08": { total: 3, falhas: 0 },
+  // `packages/shared/test/precisao-do-gps.test.ts`: o `positive()` de `gpsPrecisaoMetrosSchema` continua recusando 0 e negativo, em português (3 casos novos).
+  "V2-F00-E15": { total: 3, falhas: 0 },
+  // `packages/shared/test/regras-de-conteudo.test.ts`: 3 casos de âncora das isenções (árvore real e repositório sintético, o que reprova e o que passa). A falha pré-existente do travessão fecha: o literal de `trilha-detalhe.test.ts` virou escape e a saída bruta e a auditoria de 2026-09-30 saíram da varredura. O shared fecha sem vermelho.
+  "V2-F00-E20": { total: 3, falhas: -1 },
 };
 export function esperadoDoTesteShared() {
   return somarMudancas(BASE_DO_TESTE_SHARED, MUDANCAS_DO_TESTE_SHARED_POR_ETAPA);
@@ -215,6 +295,12 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E10": { total: 40, falhas: 0 },
   // `apps/web/test/pacote-de-saida.test.ts` (7 casos: o cliente chama POST /saida/pacote.zip, 401 renova uma vez e baixa, a recusa traz a frase do servidor sem derrubar a sessao, rede caida diz que o arquivo nao foi baixado, inclusive no meio do corpo). 5 reprovam com o cliente anterior (os 2 de recusa ja passavam). Nenhuma falha nova.
   "V2-F00-E11": { total: 7, falhas: 0 },
+  // 5 casos novos: 1 em `acessibilidade.test.ts` (a excecao vale pelo comentario inteiro), 2 em `sessao-e-entrada.test.ts` (entrar a partir de `/` e sair sem deixar caminho de volta) e 2 em `acessibilidade.test.ts` (o Tab traz o item da barra do rodape inteiro para a tela, e o aviso passageiro nao cai em cima da barra). Zera 5 dos 6 vermelhos: 3 de Toast em `semente-e-confirmacoes.test.ts`, 1 de raio a mao em `design-system.test.ts` e 1 de `onClick` em `acessibilidade.test.ts`. Sobra 1, o de CRLF em `ocorrencia-encerramento.test.ts`, que e da E21.
+  "V2-F00-E13": { total: 5, falhas: -5 },
+  // `apps/web/test/duplicidade-sem-rede.test.ts` (3 casos: sem rede, a checagem de duplicidade do "Registrar" diz que o preenchido nao foi enviado, e nao que a tela nao carregou; a recusa do servidor segue como ErroDaApi; com rede devolve as candidatas). 1 reprova antes do conserto. Nenhuma falha nova.
+  "V2-F00-E18": { total: 3, falhas: 0 },
+  // `apps/web/test/ler-fonte.test.ts` (7 casos: a mesma fonte em CRLF e em LF lê e recorta igual, o recorte aceita o texto cru, a chave de fechamento movida tira o onEnviar do bloco, função sem chave na coluna zero e assinatura ausente reprovam alto, CR solto fica). O vermelho de CRLF de `ocorrencia-encerramento.test.ts` fecha usando o helper novo `ler-fonte.ts` (apoio, não conta). O painel fecha sem vermelho.
+  "V2-F00-E21": { total: 7, falhas: -1 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -250,6 +336,30 @@ export function esperadoDoTesteDb() {
  * V2-F00-E06 no app: 35 casos novos (renovação forçada do token 5, classificação
  * da conta desativada 6, frases da pausa 6, frase da API 3, faixa de sincronização 6, tela da
  * fila pausada 9). Nenhuma falha nova.
+ *
+ * V2-F00-E14 no app: os 6 vermelhos de texto velho e de dublê velho ficam
+ * verdes (2 de frase da sessão encerrada, 4 do logout com o dublê do banco
+ * local completo) e entra 1 caso novo, o de deriva do dublê em
+ * `push/logout-cala-o-aparelho.test.tsx`. Sobram 14 vermelhos, todos defeitos
+ * reais: 7 da E15 e 7 da E16.
+ *
+ * V2-F00-E15 no app: os 7 defeitos reais dela ficam verdes (6 do diálogo de
+ * saída com vistoria começada e a fila assinada, 1 da precisão de GPS) e
+ * entram 20 casos novos: `dados/aviso-da-saida.test.ts` (10, o texto do
+ * diálogo em todas as combinações), `dados/precisao-do-gps.test.ts` (5, o piso
+ * de 1 metro contra o esquema do servidor) e
+ * `dados/sair-e-entrar-nao-perde-a-coleta.test.ts` (5, a mesma pessoa
+ * reencontra a vistoria, outra pessoa recebe o aparelho limpo, a fila fica
+ * intacta e pendente). Sobram 7 vermelhos, todos da E16.
+ *
+ * V2-F00-E16 no app: os 7 defeitos reais dela ficam verdes (frase do envio, 2
+ * do teclado, área segura da câmera, 2 do botão dos ajustes, foto vazia) e
+ * entram 4 casos novos: 3 em
+ * `__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx` (o
+ * botão dos ajustes não sobrevive à falha seguinte que não é de permissão, o
+ * botão tem nome e 44 de altura, a câmera que não disparou continua com a
+ * frase genérica) e 1 em `dados/evidencia-no-disco.test.ts` (a cópia recusada
+ * sai em português). O jest do app fecha sem vermelho.
  */
 export const BASE_DO_TESTE_CAMPO_PACOTE = { total: 159, falhas: 0 };
 export const MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA = {
@@ -262,6 +372,9 @@ export function esperadoDoTesteCampoPacote() {
 export const BASE_DO_TESTE_CAMPO_APP = { total: 1801, falhas: 20 };
 export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
   "V2-F00-E06": { total: 35, falhas: 0 },
+  "V2-F00-E14": { total: 1, falhas: -6 },
+  "V2-F00-E15": { total: 20, falhas: -7 },
+  "V2-F00-E16": { total: 4, falhas: -7 },
 };
 export function esperadoDoTesteCampoApp() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);
@@ -279,16 +392,22 @@ export const PASSOS = [
   { id: "instalar", titulo: "npm ci (dc360)", cmd: "npm ci", cwd: ".", instalacao: true, esperado: { codigo: 0 } },
   { id: "instalar-campo", titulo: "npm ci (apps/campo)", cmd: "npm ci", cwd: "apps/campo", instalacao: true, esperado: { codigo: 0 } },
   { id: "typecheck", titulo: "npm run typecheck", cmd: "npm run typecheck", cwd: ".", esperado: { codigo: 0 } },
-  { id: "teste-shared", titulo: "vitest em packages/shared", cmd: "npm run test --workspace @dc360/shared", cwd: ".", ferramenta: "vitest", esperado: { codigo: "falha", ...esperadoDoTesteShared() } },
+  { id: "teste-shared", titulo: "vitest em packages/shared", cmd: "npm run test --workspace @dc360/shared", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteShared() } }, // verde desde a V2-F00-E20
   { id: "teste-db", titulo: "vitest em db (inclui o isolamento)", cmd: "npm run test:isolamento", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteDb() } },
   { id: "teste-campo-pacote", titulo: "vitest em packages/campo", cmd: "npm run test --workspace @dc360/campo", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteCampoPacote() } },
-  { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: "falha", ...esperadoDoTesteApi() } },
+  { id: "teste-api", titulo: "vitest em apps/api", cmd: "npm run test:api", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteApi() } }, // verde desde a V2-F00-E21 (banco-tls roda)
   { id: "teste-console", titulo: "vitest em apps/console", cmd: "npm run test:console", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, total: 259, falhas: 0 } },
-  { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: "falha", ...esperadoDoTesteWeb() } },
-  { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: "falha", ...esperadoDoTesteCampoApp() } },
-  { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: "falha" } },
-  { id: "test-scripts", titulo: "npm run test:scripts", cmd: "npm run test:scripts", cwd: ".", ferramenta: "node-test", esperado: { codigo: "falha", total: 165 + TESTES_DA_E01_EM_SCRIPTS + SOMA_DAS_ETAPAS_SEGUINTES, falhas: 3, puladas: 4 } },
-  { id: "conferir-numeros", titulo: "npm run conferir:numeros", cmd: "npm run conferir:numeros", cwd: ".", esperado: { codigo: "falha", contem: "Afirmações que não batem (13)" } },
+  { id: "teste-web", titulo: "vitest em apps/web", cmd: "npm run test --workspace @dc360/web", cwd: ".", ferramenta: "vitest", esperado: { codigo: 0, ...esperadoDoTesteWeb() } }, // verde desde a V2-F00-E21 (CRLF)
+  { id: "teste-campo-app", titulo: "jest em apps/campo (direto)", cmd: "npx jest --silent", cwd: "apps/campo", ferramenta: "jest", esperado: { codigo: 0, ...esperadoDoTesteCampoApp() } }, // verde desde a V2-F00-E16
+  { id: "test-campo", titulo: "npm run test:campo", cmd: "npm run test:campo", cwd: ".", esperado: { codigo: 0 } }, // verde desde a V2-F00-E21 (cache .expo/types velho apagado antes do typecheck)
+  { id: "test-scripts", titulo: "npm run test:scripts", cmd: "npm run test:scripts", cwd: ".", ferramenta: "node-test", esperado: { codigo: 0, total: 165 + TESTES_DA_E01_EM_SCRIPTS + SOMA_DAS_ETAPAS_SEGUINTES, falhas: 0, puladas: 4 } }, // verde desde a V2-F00-E17; os 4 pulados são por ambiente (sem pasta ios/)
+  /*
+    Verde desde a V2-F00-E17. Este é o passo que MAIS volta a divergir: toda
+    etapa que acrescenta teste muda uma contagem que o README afirma, e a
+    etapa só fecha com o texto corrigido. Divergir aqui depois de uma etapa
+    nova quer dizer "faltou corrigir o número", e não regressão de produto.
+  */
+  { id: "conferir-numeros", titulo: "npm run conferir:numeros", cmd: "npm run conferir:numeros", cwd: ".", esperado: { codigo: 0, contem: "Todos os números da documentação batem com a realidade." } },
   { id: "auditar", titulo: "npm run auditar", cmd: "npm run auditar", cwd: ".", esperado: { codigo: "falha" } },
   { id: "audit-raiz", titulo: "npm audit (dc360)", cmd: "npm audit", cwd: ".", esperado: { codigo: "falha" } },
   { id: "audit-campo", titulo: "npm audit (apps/campo)", cmd: "npm audit", cwd: "apps/campo", esperado: { codigo: "falha" } },
@@ -307,9 +426,27 @@ export const PASSOS = [
       cwd: "apps/web",
       url: "http://localhost:4173",
     },
-    esperado: { codigo: "falha", contem: "waiting for locator('.indicador') to be visible" },
+    /*
+      A V2-F00-E13 consertou o defeito que derrubava este passo: o painel nao
+      tinha rota para a raiz, entao quem entrava partindo de `/` (que e o que o
+      proprio E2E faz na secao 1) voltava para `/` depois do login e caia em
+      "Esta pagina nao existe". O teste morria na secao 2, esperando
+      `.indicador`. Agora ele fecha verde, em Chromium e em Firefox, com 70
+      verificacoes (as 68 de antes mais as 2 que a E13 acrescentou na secao 2).
+    */
+    esperado: { codigo: 0, contem: "Passou: 70   Falhou: 0" },
   },
-  { id: "e2e-api", titulo: "npm run test:e2e:api", cmd: "npm run test:e2e:api", cwd: ".", esperado: { codigo: "falha" } },
+  /*
+    Verde desde a V2-F00-E18. Morria na secao 13 (o CORS nao liberava
+    `if-none-match` no preflight do PUT de evidencia). Com o arquivo inteiro
+    rodando apareceram mais tres: a secao 15 contava as tres tabelas da tela
+    como se fossem a trilha (teste), a secao 19 dizia "nao foi possivel carregar
+    esta tela" ao registrar sem sinal (produto), e `e2e-api.mjs` nao terminava
+    quando tudo passava (roteiro). 271 verificacoes executadas: o `conferir`
+    conta as 251 chamadas de `ok(` no inicio de linha, e as demais ficam dentro
+    de laco ou de funcao, e so aparecem na execucao.
+  */
+  { id: "e2e-api", titulo: "npm run test:e2e:api", cmd: "npm run test:e2e:api", cwd: ".", esperado: { codigo: 0, contem: "Passou: 271   Falhou: 0" } },
 ];
 
 /** Marcadores no lugar de segredo (e do travessão). Cada regra roda antes de qualquer gravação. */

@@ -17,14 +17,21 @@ import type { Consulta } from "../banco/tipos.js";
  * linha de outro municipio mesmo que a rota erre a conferencia. A conferencia
  * continua existindo (e o que produz o 404), esta e a segunda barreira.
  *
- * O QUE ISTO FAZ COM O TOKEN DE ACESSO JA EMITIDO (desde 15/09/2026)
+ * O QUE ISTO FAZ COM O TOKEN DE ACESSO JA EMITIDO
  *
  * Encerrar a sessao mata a RENOVACAO e, na ESCRITA, o token de acesso
  * tambem: toda escrita relê a sessao do token no banco (`auth/vigencia.ts`,
  * na mesma consulta que ja conferia a suspensao do municipio), e sessao
  * encerrada responde 401 `sessao_encerrada` no pedido seguinte. O que sobra da janela de
- * `ACESSO_MINUTOS` e a LEITURA, que continua confiando no token pelos quinze
- * minutos, pela troca escrita em `auth/suspensao.ts`.
+ * `ACESSO_MINUTOS` (15 por padrao, teto de 60) e a LEITURA, que continua
+ * confiando no token ate ele vencer, pela troca escrita em `auth/suspensao.ts`.
+ *
+ * A DATA IMPORTA, e esteve errada aqui: a conferencia na escrita nasceu em
+ * 15/09/2026, ficou DESLIGADA de 17/09/2026 (commit b4439ac) ate a
+ * V2-F00-E04 (2026-10-06), e desde a V2-F00-E07 vale pela FAMILIA da sessao
+ * (`sessoes.familia_id`, migracao 047): o token emitido antes de uma
+ * renovacao so escreve enquanto a cadeia tem sessao viva. Conferido contra
+ * `servidor.ts` e `auth/vigencia.ts` na V2-F00-E22.
  *
  * @returns quantas sessoes estavam abertas e foram encerradas agora.
  */

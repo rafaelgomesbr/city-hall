@@ -1,0 +1,12 @@
+# typecheck do app de campo (tsc -p tsconfig.json --noEmit), ANTES e DEPOIS da E15
+
+## antes (código 2)
+src/app/(agente)/perfil.tsx(1212,44): error TS2345: Argument of type '"/(agente)/avisos"' is not assignable to parameter of type '"/" | RelativePathString | ExternalPathString | "/entrar" | `/entrar?${string}` | `/entrar#${string}` | `/?${string}` | `/#${string}` | "/../../../../packages/shared/src/pessoas.test" | ... 42 more ... | { ...; }'.
+src/ui/Sino.tsx(154,73): error TS2345: Argument of type '"/(agente)/avisos"' is not assignable to parameter of type '"/" | RelativePathString | ExternalPathString | "/entrar" | `/entrar?${string}` | `/entrar#${string}` | `/?${string}` | `/#${string}` | "/../../../../packages/shared/src/pessoas.test" | ... 42 more ... | { ...; }'.
+
+## depois (código 2)
+src/app/(agente)/perfil.tsx(1221,44): error TS2345: Argument of type '"/(agente)/avisos"' is not assignable to parameter of type '"/" | RelativePathString | ExternalPathString | "/entrar" | `/entrar?${string}` | `/entrar#${string}` | `/?${string}` | `/#${string}` | "/../../../../packages/shared/src/pessoas.test" | ... 42 more ... | { ...; }'.
+src/ui/Sino.tsx(154,73): error TS2345: Argument of type '"/(agente)/avisos"' is not assignable to parameter of type '"/" | RelativePathString | ExternalPathString | "/entrar" | `/entrar?${string}` | `/entrar#${string}` | `/?${string}` | `/#${string}` | "/../../../../packages/shared/src/pessoas.test" | ... 42 more ... | { ...; }'.
+
+## listas comparadas sem a posição (linha, coluna)
+IGUAIS: os mesmos 2 erros do cache .expo (E21); perfil.tsx:1212 virou 1221 só porque a E15 acrescentou linhas acima.

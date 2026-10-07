@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360
+
+ ✓ packages/shared/test/regras-de-conteudo.test.ts (8 tests) 1064ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  416ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  04:35:39
+   Duration  1.59s (transform 63ms, setup 0ms, collect 71ms, tests 1.06s, environment 0ms, prepare 175ms)
+

@@ -1,0 +1,194 @@
+--- antes/dc360/README.md
++++ depois/dc360/README.md
+@@ -880,6 +880,16 @@
+ 
+ ## O agente que sobe o morro sozinho
+ 
++> **Estado em 07/10/2026: pela metade, e a metade que falta é a do agente.** A
++> API (`apps/api/src/rotas/saida-a-campo.ts`, prefixo `/saida-a-campo`) e a tela
++> da coordenação (`apps/web/src/paginas/QuemEstaEmCampo.tsx`) estão prontas e
++> testadas. O aplicativo de campo **não chama** declarar, prorrogar, retorno nem
++> `/minha`: só lê, na lista da equipe, se um colega tem saída aberta. Na prática
++> nenhuma saída é declarada, a tela "Quem está em campo" fica vazia e nenhum
++> prazo estourado aparece. A parte do aplicativo está planejada na V2-F14-E01,
++> sem data. Tudo o que esta seção diz sobre o agente declarar é o desenho, não
++> o que o aplicativo faz hoje (V2-F00-E24, decisão CP-02).
++
+ O vocabulário deste produto reconhece, por escrito e desde a migração 028, que o
+ agente entra em lugar que oferece risco à integridade física dele:
+ `risco_para_a_equipe` é um dos seis motivos de devolução de tarefa. E não havia
+@@ -891,7 +901,8 @@
+ botão nenhum, porque cria expectativa de socorro e a pessoa muda o comportamento
+ dela contando com uma resposta que não vem.
+ 
+-Então o produto promete só o que cumpre. O agente declara, **antes de subir e com
++Então o produto promete só o que cumpre. No desenho (o servidor já cumpre a sua
++parte, o aplicativo ainda não), o agente declara, **antes de subir e com
+ sinal**, para onde vai, em quanto tempo volta e se vai **sozinho**. O prazo é
+ carimbado pelo relógio do SERVIDOR. Se o retorno não for confirmado, a saída
+ aparece como prazo estourado na tela de quem coordena e no sino, e o que a
+--- antes/dc360/docs/SEGURANCA-DO-AGENTE.md
++++ depois/dc360/docs/SEGURANCA-DO-AGENTE.md
+@@ -1,9 +1,26 @@
+ # Segurança do agente que trabalha sozinho
+ 
+-- **Versão:** 1, de 14/09/2026
++- **Versão:** 2, de 07/10/2026 (a versão 1, de 14/09/2026, descrevia o
++  aplicativo do agente como se ele já declarasse a saída, e ele não declara)
+ - **Para quem:** quem coordena a Defesa Civil do município, e quem decide se
+   este produto é adequado ao que a prefeitura precisa.
+ 
++> **Estado atual: recurso em construção, ainda não disponível para o agente.**
++>
++> O servidor e a tela da coordenação "Quem está em campo" estão prontos e
++> testados. O aplicativo do agente **ainda não declara a saída, não prorroga e
++> não confirma o retorno**. Enquanto isso não existir, nenhuma saída é
++> declarada, a tela "Quem está em campo" fica vazia e **nenhum prazo estourado
++> aparece, mesmo com um agente sozinho no morro**.
++>
++> **Não conte com este recurso para a segurança de ninguém** até ele estar no
++> aplicativo. A parte do aplicativo está planejada no roteiro de
++> desenvolvimento (etapa V2-F14-E01), sem data marcada.
++>
++> O resto deste documento descreve o recurso como ele foi desenhado. Onde ele
++> fala do aplicativo do agente, fala do que está planejado, e não do que existe
++> hoje.
++
+ Leia isto antes de ligar o recurso. Ele trata da integridade física de um
+ servidor público, e ligá-lo sem ter combinado o que está escrito aqui é pior do
+ que não ligar.
+@@ -12,15 +29,17 @@
+ 
+ ## 1. O que este recurso é
+ 
+-O agente, **ainda na base e com sinal**, declara no aplicativo:
++Quando a parte do aplicativo existir, o agente, **ainda na base e com sinal**,
++vai declarar no aplicativo:
+ 
+ - para qual protocolo ele está indo;
+ - em quanto tempo pretende voltar;
+ - se vai **sozinho** ou acompanhado.
+ 
+ O sistema marca o prazo de retorno pelo **relógio do servidor**, e nunca pelo
+-relógio do telefone. Quando o agente volta, ele confirma. Se precisar de mais
+-tempo, ele prorroga.
++relógio do telefone. Quando o agente voltar, ele confirma. Se precisar de mais
++tempo, ele prorroga. Hoje o servidor já sabe fazer as três coisas; quem ainda
++não sabe pedir é o aplicativo.
+ 
+ Se a confirmação não chegar até o prazo, a saída aparece como **prazo estourado**
+ na tela "Quem está em campo" e toca o sino de avisos da coordenação.
+@@ -107,13 +126,14 @@
+ 
+ ## 5. Como isto aparece nas telas
+ 
+-### No aplicativo do agente
++### No aplicativo do agente (planejado, ainda não existe)
+ 
+-Antes de subir, um passo a mais: para onde, por quanto tempo, sozinho ou não. Ao
+-voltar, um toque para confirmar. Se o serviço demorar, um toque para prorrogar.
++O aplicativo de hoje não tem esta tela. O desenho planejado é: antes de subir,
++um passo a mais (para onde, por quanto tempo, sozinho ou não); ao voltar, um
++toque para confirmar; se o serviço demorar, um toque para prorrogar.
+ 
+-A tela diz, com todas as letras, que a coordenação vê a saída e vê o prazo, e
+-que **ninguém é acionado automaticamente**.
++A tela planejada diz, com todas as letras, que a coordenação vê a saída e vê o
++prazo, e que **ninguém é acionado automaticamente**.
+ 
+ ### No painel, em "Quem está em campo"
+ 
+--- antes/dc360/docs/CARTAO-DO-AGENTE.md
++++ depois/dc360/docs/CARTAO-DO-AGENTE.md
+@@ -14,20 +14,18 @@
+ 
+ A tela diz quando a lista foi baixada. Se disser "ontem", baixe de novo.
+ 
+-# 2. AVISE PARA ONDE VOCÊ VAI.
++# 2. AVISE A COORDENAÇÃO PARA ONDE VOCÊ VAI.
+ 
+-Ainda na base, **com sinal**, declare a saída: para qual protocolo, em quanto
+-tempo pretende voltar, e se vai **sozinho**.
++Ainda na base, avise a coordenação pelo meio que o seu município combinou
++(rádio, telefone): para qual protocolo, em quanto tempo pretende voltar, e se
++vai **sozinho**.
++
++> **O aplicativo ainda não registra a sua saída.** Esse recurso está em
++> construção. Hoje o sistema não sabe que você saiu e **não avisa ninguém se
++> você não voltar no prazo**: quem acompanha é a coordenação, pelo que você
++> disse a ela.
+ 
+-**Isso exige sinal, e não fica guardado no aparelho.** Declaração que não chegou
+-ao servidor é declaração que ninguém recebeu.
+-
+-> **O que a coordenação vê:** que você saiu, para onde, e o prazo. Se ninguém
+-> confirmar seu retorno até lá, sua saída aparece como prazo estourado no painel.
+->
+-> **Isto não é botão de apoio. Ninguém é acionado automaticamente.**
+-
+-**Vai demorar mais?** Prorrogue. É um toque, e evita alarme à toa.
++**Vai demorar mais?** Avise a coordenação de novo, pelo mesmo meio.
+ 
+ ---
+ 
+@@ -91,8 +89,8 @@
+ 
+ ## AO VOLTAR
+ 
+-**CONFIRME O RETORNO**, assim que pegar sinal. Enquanto não confirmar, você
+-continua marcado como em campo, e a coordenação continua vendo prazo estourado.
++**AVISE A COORDENAÇÃO QUE VOLTOU**, pelo mesmo meio que usou na saída. O
++aplicativo ainda não registra o retorno.
+ 
+ **Confira que a fila esvaziou.** A faixa precisa dizer **tudo sincronizado**
+ antes de você encerrar o turno.
+--- antes/dc360/docs/GUIA-DO-COORDENADOR.md
++++ depois/dc360/docs/GUIA-DO-COORDENADOR.md
+@@ -212,9 +212,18 @@
+ 
+ ## 9. Quem está em campo, e o agente que não deu notícia
+ 
+-O agente declara, **antes de subir e com sinal**, para onde vai, em quanto tempo
+-pretende voltar e se vai **sozinho**. Quando volta, confirma. Se demorar mais que
+-o previsto, prorroga.
++> **Estado atual: a tela existe, mas fica vazia.** O servidor e a tela "Quem
++> está em campo" estão prontos. O aplicativo do agente **ainda não declara a
++> saída, não prorroga e não confirma o retorno**: essa parte está planejada no
++> roteiro de desenvolvimento (etapa V2-F14-E01), sem data marcada. Até lá
++> nenhuma saída chega ao painel, a tela fica vazia e **o sino não vai avisar de
++> prazo estourado nenhum**. Tela vazia, hoje, não quer dizer que ninguém está no
++> morro. Acompanhe as saídas pelo procedimento que o município já usa (rádio,
++> telefone), e não conte com este recurso até ele estar no aplicativo.
++
++Quando a parte do aplicativo existir, o agente vai declarar, **antes de subir e
++com sinal**, para onde vai, em quanto tempo pretende voltar e se vai
++**sozinho**. Quando voltar, confirma. Se demorar mais que o previsto, prorroga.
+ 
+ Se a confirmação não chegar até o prazo, a saída aparece como **prazo estourado**
+ na tela "Quem está em campo", e o sino toca.
+--- antes/dc360/docs/LEIA-ME.md
++++ depois/dc360/docs/LEIA-ME.md
+@@ -26,7 +26,7 @@
+ | [IMPLANTACAO.md](IMPLANTACAO.md) | Quem conduz a implantação. Traz o que precisa ser decidido ANTES de qualquer tela |
+ | [CARTAO-DO-AGENTE.md](CARTAO-DO-AGENTE.md) | Uma página, para imprimir e plastificar. Vai no bolso, junto com o aparelho |
+ | [GUIA-DO-COORDENADOR.md](GUIA-DO-COORDENADOR.md) | Quem manda no fluxo operacional |
+-| [SEGURANCA-DO-AGENTE.md](SEGURANCA-DO-AGENTE.md) | Quem decide se o produto atende o município. O que a declaração de saída a campo faz, **o que ela não faz**, e o procedimento que a prefeitura precisa escrever antes de ligar o recurso |
++| [SEGURANCA-DO-AGENTE.md](SEGURANCA-DO-AGENTE.md) | Quem decide se o produto atende o município. O que a declaração de saída a campo faz, **o que ela não faz**, e o procedimento que a prefeitura precisa escrever antes de ligar o recurso. **Em construção:** o servidor e a tela da coordenação estão prontos, o aplicativo do agente ainda não declara a saída |
+ | [PAPEIS_E_RESPONSABILIDADES.md](PAPEIS_E_RESPONSABILIDADES.md) | Quem faz o quê no sistema |
+ 
+ ## Para operar e migrar
+--- antes/dc360/docs/apresentacao/2026-09-15-para-o-alyson.html
++++ depois/dc360/docs/apresentacao/2026-09-15-para-o-alyson.html
+@@ -388,10 +388,10 @@
+           <tr><td>Menu flutuante de vidro com avatar</td><td><span class="pilula p-ok">Pronto</span></td><td>Pílula recuada das bordas, indicador que desliza entre as abas, avatar do Perfil com a foto e o crachá do sino. O vidro só existe no iOS; no Android a pílula é opaca com a mesma forma, e isso está declarado</td></tr>
+           <tr><td>Mapa dentro do aplicativo</td><td><span class="pilula p-ok">Pronto</span></td><td>Aba própria, quadrado, com os pinos por criticidade e a lista de tarefas em sanfona embaixo. Google Maps nativo (sem custo por uso) quando o município autoriza; sem autorização, plano esquemático desenhado pelo próprio aparelho, sem contato com o Google. O modo Google nunca rodou no aparelho: falta a chave da plataforma no binário</td></tr>
+           <tr><td>Rota até o imóvel ("Ver o caminho")</td><td><span class="pilula p-pronto">Pronto, desligado</span></td><td>Só quando o agente pede. A API do produto chama a Routes API do Google com chave de servidor, guarda por 24 h por par de pontos e limita a 30 por minuto por pessoa. Falta a chave no servidor; a Routes API nunca foi chamada de verdade. "Navegar até lá" no mapa do aparelho funciona desde 10/09</td></tr>
+-          <tr><td>Perfil com foto e números</td><td><span class="pilula p-ok">Pronto</span></td><td>Foto do agente (migração 040, na produção), concluídas na semana e no mês, gráfico dos últimos 7 dias em SVG próprio, equipe com quem está em campo agora, conquistas por marco. Tudo lido do servidor</td></tr>
++          <tr><td>Perfil com foto e números</td><td><span class="pilula p-ok">Pronto</span></td><td>Foto do agente (migração 040, na produção), concluídas na semana e no mês, gráfico dos últimos 7 dias em SVG próprio, equipe com quem está em campo agora (o indicador depende da saída a campo declarada, que o aplicativo ainda não faz, e por isso hoje não acende), conquistas por marco. Tudo lido do servidor</td></tr>
+           <tr><td>Sino em toda tela</td><td><span class="pilula p-ok">Pronto</span></td><td>Balança uma vez quando chega aviso, com a tela de avisos fora da barra. O crachá é o mesmo do avatar no menu</td></tr>
+           <tr><td>Notificação de despacho com som</td><td><span class="pilula p-pronto">Pronto, desligado</span></td><td>Som próprio de duas notas, vibração, canal de urgência no Android, APNs e FCM direto, sem serviço de terceiro no meio. Em 13/09 a Apple e o Google aceitaram as credenciais numa chamada real. Falta pôr a chave no servidor do Fly e ligar a capacidade "Time Sensitive" no App ID da conta da Apple, que foi o que parou a compilação em 15/09</td></tr>
+-          <tr><td>Segurança do agente sozinho</td><td><span class="pilula p-ok">Pronto</span></td><td>Saída a campo declarada antes de subir, com sinal; prazo carimbado pelo servidor; prazo estourado aparece no sino e no painel de plantão; prorrogação contada. Não é botão de pânico, e a tela diz isso</td></tr>
++          <tr><td>Segurança do agente sozinho</td><td><span class="pilula p-parcial">Parcial</span></td><td>Pronto no servidor e na tela da coordenação: saída a campo com prazo carimbado pelo servidor, prazo estourado no sino e no painel de plantão, prorrogação contada. O aplicativo do agente ainda não declara a saída, não prorroga e não confirma o retorno: hoje a tela "Quem está em campo" fica vazia e ninguém é avisado de nada. A parte do aplicativo está planejada, sem data. Não é botão de pânico, e a tela diz isso. Corrigido em 07/10/2026: a versão anterior desta tabela dizia "Pronto"</td></tr>
+           <tr><td>Foto perdida não destrói a vistoria</td><td><span class="pilula p-ok">Pronto</span></td><td>Se o sistema apagou o arquivo do cache, a vistoria sobe com a perda registrada na trilha e no laudo, em vez de ficar presa para sempre no aparelho</td></tr>
+         </tbody>
+       </table>

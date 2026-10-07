@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { X509Certificate } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import net from "node:net";
@@ -9,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { CA_DO_PROVEDOR, bancoPostgres, montarConfiguracaoDoPool } from "../src/banco/postgres.js";
+import { gerarCertificadoAutoassinado } from "./openssl-do-teste.js";
 
 /**
  * A conexão com o banco confere COM QUEM está falando.
@@ -102,18 +102,15 @@ let impostor: Impostor;
 
 beforeAll(async () => {
   pasta = mkdtempSync(join(tmpdir(), "dc360-tls-"));
-  const chave = join(pasta, "impostor.key");
-  const certificado = join(pasta, "impostor.crt");
   // Autoassinado e com o nome `localhost`, que é como o intermediário se
   // apresentaria: um certificado tecnicamente válido, emitido por ninguém.
-  execFileSync("openssl", [
-    "req", "-x509", "-newkey", "rsa:2048", "-nodes",
-    "-keyout", chave, "-out", certificado,
-    "-days", "3650", "-subj", "/CN=localhost",
-    "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1",
-  ], { stdio: "ignore" });
-  certificadoDoImpostor = readFileSync(certificado, "utf8");
-  impostor = await subirImpostor(readFileSync(chave, "utf8"), certificadoDoImpostor);
+  // O gerador tira do ambiente do `openssl` um OPENSSL_CONF que aponta para
+  // arquivo inexistente (V2-F00-E21); sem isso, nesta suíte os 13 casos viravam
+  // "pulados" na máquina de quem tem o driver ODBC do PostgreSQL instalado.
+  const gerado = gerarCertificadoAutoassinado(pasta);
+  if (gerado.motivo) console.warn(`banco-tls: ${gerado.motivo}.`);
+  certificadoDoImpostor = gerado.certificado;
+  impostor = await subirImpostor(gerado.chave, certificadoDoImpostor);
 }, 60_000);
 
 afterAll(async () => {

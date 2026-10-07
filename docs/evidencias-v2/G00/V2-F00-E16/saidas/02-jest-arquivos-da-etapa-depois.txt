@@ -1,0 +1,50 @@
+PASS src/dados/evidencia-no-disco.test.ts
+  a foto recém tirada
+    √ é copiada do cache para o diretório de documentos (6 ms)
+    √ declara o tamanho do arquivo que ficou, e não o do original
+    √ o tamanho vem dos bytes de verdade, e não do `size` que pode vir zerado (1 ms)
+    √ zero bytes é arquivo perdido, e não um tamanho: a foto não entra na coleta (11 ms)
+    √ a cópia recusada pelo sistema sai em português e com o que fazer, e não em inglês (1 ms)
+    √ duas fotos no mesmo milissegundo não viram uma só
+  a leitura dos bytes na hora de enviar
+    √ lê o arquivo que está lá
+    √ arquivo que sumiu vira falha PERMANENTE, e não tentativa eterna
+    √ e a frase é em português, com o código que a fila reconhece (2 ms)
+  a fotografia que o agente mandou apagar
+    √ sai do disco de verdade
+    √ arquivo que já não existe não é erro
+    √ o sistema que recusa apagar não derruba quem chamou (1 ms)
+  a medida de um arquivo na hora de concluir
+    √ devolve os bytes do arquivo que existe
+    √ devolve zero para o arquivo que não existe, sem estourar
+    √ usa o tamanho que o sistema informa, sem ler os bytes
+    √ com o `size` zerado ou nulo, cai para os bytes de verdade (1 ms)
+
+PASS src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx
+  a tela de 'vistoria guardada'
+    √ não promete envio com o aplicativo fechado, porque isso não existe (372 ms)
+  o formulário e o teclado
+    √ o primeiro toque fora do campo AGE, em vez de só fechar o teclado (94 ms)
+    √ a rolagem sabe a altura do teclado, para o campo digitado não ficar embaixo dele (97 ms)
+  a câmera em tela cheia
+    √ reserva a área segura de baixo, onde o menu escondido não está mais para reservar (116 ms)
+  a permissão negada
+    √ de câmera: a tarja traz 'Abrir os ajustes do aparelho', e o botão abre os ajustes (109 ms)
+    √ de localização: a mesma tarja, o mesmo botão (71 ms)
+    √ uma falha que não é de permissão não ganha o botão dos ajustes (71 ms)
+    √ o botão não sobrevive à falha seguinte, que não é de permissão (V2-F00-E16) (114 ms)
+    √ o botão dos ajustes tem nome para o leitor de tela e área de toque de 44 (129 ms)
+  a câmera que não disparou (V2-F00-E16)
+    √ continua com a frase genérica, porque o erro nativo não diz ao agente o que fazer (133 ms)
+  a precisão da leitura de GPS
+    √ abaixo de meio metro vira 1, e não zero (157 ms)
+    √ a leitura comum continua arredondada ao metro (74 ms)
+    √ aparelho que não informa a precisão grava nulo, que é 'não informada' (78 ms)
+  a foto que saiu vazia do disco
+    √ a tarja diz a frase certa, com o que fazer, e não a genérica (65 ms)
+
+Test Suites: 2 passed, 2 total
+Tests:       30 passed, 30 total
+Snapshots:   0 total
+Time:        4.954 s, estimated 16 s
+Ran all test suites matching /src\\__tests__\\vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx|src\\dados\\evidencia-no-disco.test.ts/i.

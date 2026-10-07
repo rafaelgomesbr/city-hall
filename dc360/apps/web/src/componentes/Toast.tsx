@@ -85,13 +85,14 @@ export function duracaoComPausa(
   return interagindo ? null : duracao;
 }
 
-const ESTILO_REGIAO: CSSProperties = {
-  position: "fixed",
-  right: "var(--ds-sp-4)",
-  bottom: "var(--ds-sp-4)",
-  zIndex: "var(--ds-z-toast)",
-  maxWidth: "min(420px, calc(100% - var(--ds-sp-6)))",
-};
+/*
+  A posição do aviso mora em `.toast`, em `src/estilos/app.css`, e não aqui.
+
+  Ela saiu daqui porque no celular o aviso precisa subir acima da barra de
+  navegação do rodapé, e media query não vence estilo escrito no elemento: com
+  a posição em `style`, a confirmação de gravação aparecia por cima de "Painel"
+  e "Ocorrências", com as frases sobrepostas.
+*/
 
 const ESTILO_AVISO: CSSProperties = {
   /* `.aviso` empurra margem para baixo para separar de um formulário; aqui
@@ -138,7 +139,7 @@ export function Toast({ mensagem, tom = "info", duracao = DURACAO_PADRAO, aoFech
   ), [duracao, interagindo]);
 
   return (
-    <div className="toast" style={ESTILO_REGIAO} role="status" aria-live="polite"
+    <div className="toast" role="status" aria-live="polite"
          onPointerEnter={() => setInteragindo(true)}
          onPointerLeave={() => setInteragindo(false)}
          onFocus={() => setInteragindo(true)}

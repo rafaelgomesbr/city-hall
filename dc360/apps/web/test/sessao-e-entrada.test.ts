@@ -10,7 +10,7 @@ import * as http from "../src/dados/http";
 import { ProvedorSessao } from "../src/estado/sessao";
 import { Entrar } from "../src/paginas/Entrar";
 import {
-  conferirEntrada, destinoDepoisDeEntrar, estadoDaEntrada, telaInicial,
+  caminhoDeVolta, conferirEntrada, destinoDepoisDeEntrar, estadoDaEntrada, telaInicial,
 } from "../src/paginas/entrar-regras";
 
 /**
@@ -270,6 +270,28 @@ describe("As regras da entrada, fora do React", () => {
     expect(destinoDepoisDeEntrar({ voltarPara: "/entrar" }, "coordenador")).toBe("/painel");
   });
 
+  it("entrar a partir de / leva à tela do papel, e não a 'Esta página não existe'", () => {
+    /*
+      O defeito de entrada (V2-F00-E13): quem digita só o domínio chega a `/`,
+      a rota protegida manda para `/entrar` com `voltarPara: "/"`, e o painel
+      voltava para `/` depois do login. Como `/` não tinha rota, o curinga
+      respondia "Esta página não existe" logo depois de entrar.
+
+      São duas metades, e as duas precisam ser provadas: aqui, a regra que
+      recusa `/` como caminho de volta; no `App.tsx`, a rota índice que desvia
+      para a tela do papel para quem digita `/` já com sessão aberta.
+    */
+    expect(destinoDepoisDeEntrar({ voltarPara: "/" }, "coordenador")).toBe("/painel");
+    expect(destinoDepoisDeEntrar({ voltarPara: "/" }, "agente_campo")).toBe("/meu-trabalho");
+    expect(destinoDepoisDeEntrar({ voltarPara: "/?x=1" }, "operador")).toBe("/painel");
+    expect(destinoDepoisDeEntrar({ voltarPara: "/#topo" }, "operador")).toBe("/painel");
+    expect(estadoDaEntrada({ voltarPara: "/" }).voltarPara).toBeNull();
+    // E a raiz continua sendo rota: o curinga não pode mais pegá-la.
+    const app = fonte("App.tsx");
+    expect(app, "falta a rota índice que desvia a raiz para a tela do papel")
+      .toMatch(/<Route\s+index\s+element=\{<Navigate\s+to=\{inicio\}\s+replace\s*\/>\}\s*\/>/);
+  });
+
   it("telaInicial é uma só, e o App usa a mesma", () => {
     expect(telaInicial(undefined)).toBe("/entrar");
     expect(telaInicial("agente_campo")).toBe("/meu-trabalho");
@@ -357,6 +379,26 @@ describe("A rota protegida guarda de onde a pessoa veio", () => {
     expect(protegida).toContain("useLocation()");
     expect(protegida).toMatch(/<Navigate[^>]*to="\/entrar"[^>]*state=\{/);
     expect(protegida).toContain("voltarPara");
+  });
+
+  it("sair de propósito não deixa caminho de volta para a pessoa seguinte", () => {
+    /*
+      O clique em "Sair" também passa pela rota protegida, porque a tela ainda
+      está montada quando a sessão some. Sem a distinção, a tela abandonada
+      ficava guardada e a PESSOA SEGUINTE a entrar naquele navegador caía nela.
+    */
+    expect(caminhoDeVolta(true, "/mapa")).toBeNull();
+    // Sessão que cai sozinha é o caso oposto: o caminho é o que devolve a
+    // pessoa ao trabalho interrompido.
+    expect(caminhoDeVolta(false, "/ocorrencias/abc?x=1")).toBe("/ocorrencias/abc?x=1");
+    // E a decisão não pode voltar para dentro do componente.
+    const app = fonte("App.tsx");
+    expect(app, "Protegida precisa usar caminhoDeVolta, e não repetir a regra")
+      .toMatch(/voltarPara:\s*caminhoDeVolta\(/);
+    const sessao = fonte("estado/sessao.tsx");
+    expect(sessao).toContain("setSaidaVoluntaria(true)");
+    // Entrar de novo limpa a marca, senão o link profundo seguinte seria perdido.
+    expect(sessao).toMatch(/setMotivoDaSaida\(null\);\s*\r?\n\s*setSaidaVoluntaria\(false\);/);
   });
 
   it("o provedor de sessão se inscreve na expiração e guarda o motivo", () => {

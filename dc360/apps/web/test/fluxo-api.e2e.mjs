@@ -73,6 +73,18 @@ const ESPERADOS = new RegExp([
   // O mesmo aborto, como o Firefox o registra, SO para o pedido do pacote de saida
   // (secao 28, que derruba a rota de proposito para conferir a frase de rede).
   "Cross-Origin Request Blocked: .*/saida/pacote\.zip.*CORS request did not succeed",
+  // Os outros dois abortos de proposito, tambem como o Firefox os registra, e
+  // tambem SO no caminho abortado: a checagem de duplicidade da secao 19 (o
+  // primeiro pedido de "Registrar" com a rota da API derrubada) e o pedido de
+  // recuperacao da secao 27 (`rota.abort("failed")`). So apareceram quando o
+  // arquivo inteiro passou a rodar no Gecko (V2-F00-E18). Bloqueio de CORS de
+  // verdade em qualquer outro caminho continua reprovando.
+  "Cross-Origin Request Blocked: .*/ocorrencias/duplicidades/consulta\\?.*CORS request did not succeed",
+  "Cross-Origin Request Blocked: .*/auth/recuperar\\. .*CORS request did not succeed",
+  // Fonte cuja carga a NAVEGACAO cancelou: 2152398850 e NS_BINDING_ABORTED
+  // (0x804B0002), o Firefox largando o pedido porque a suite trocou de pagina
+  // no meio. Fonte que falta de verdade da outro status e continua reprovando.
+  "downloadable font: download failed .*status=2152398850 ",
 ].join("|"));
 
 function registrar(page) {
@@ -401,9 +413,21 @@ ok("a legenda vem junto",
    (await page.textContent(".galeria__legenda")).includes("Trinca na parede dos fundos"));
 
 // A imagem carrega de verdade, e nao e um quadrado quebrado.
-const carregou = await page.locator(".galeria__item img").evaluate(
-  (img) => img.complete && img.naturalWidth > 0,
-);
+//
+// A miniatura e `loading="lazy"` de proposito, e o Firefox so a busca quando
+// ela chega perto da area visivel (o Chromium busca de mais longe). Conferir
+// na hora, com a galeria abaixo da dobra, reprovava no Gecko sem nada de
+// errado com a foto (V2-F00-E18). Rola ate ela, como a pessoa faria, e espera
+// o carregamento terminar; quadrado quebrado continua reprovando, porque
+// `naturalWidth` fica 0.
+const miniatura = page.locator(".galeria__item img").first();
+await miniatura.scrollIntoViewIfNeeded();
+const carregou = await miniatura.evaluate((img) => new Promise((resolve) => {
+  if (img.complete) { resolve(img.naturalWidth > 0); return; }
+  img.addEventListener("load", () => resolve(img.naturalWidth > 0), { once: true });
+  img.addEventListener("error", () => resolve(false), { once: true });
+  setTimeout(() => resolve(img.complete && img.naturalWidth > 0), 15_000);
+}));
 ok("a imagem carrega pela URL assinada", carregou);
 
 await page.locator(".galeria__item").first().click();
@@ -533,17 +557,33 @@ const resumoTexto = await page.textContent(".conteudo");
 ok("mostra o tempo mediano, nao a media", resumoTexto.includes("Tempo mediano até encerrar"));
 ok("quebra por tipo de ocorrencia", resumoTexto.includes("Deslizamento"));
 
-await page.waitForSelector(".tabela tbody tr", { timeout: 20_000 });
-const eventosNaTrilha = await page.locator(".tabela tbody tr").count();
+// A tela tem TRES tabelas ".tabela" (quem exportou, quem consultou dado de
+// cidadao e a trilha). O seletor solto contava as tres juntas, e o filtro por
+// autor "falhava" com as linhas de consulta de outra pessoa misturadas. Ninguem
+// viu porque a suite morria antes, na secao 13 (V2-F00-E18). Agora a conta e
+// so da tabela da trilha, achada pela legenda dela.
+const linhasDaTrilha = page
+  .locator("table.tabela", { has: page.locator("caption", { hasText: "Eventos da trilha" }) })
+  .locator("tbody tr");
+await linhasDaTrilha.first().waitFor({ timeout: 20_000 });
+const eventosNaTrilha = await linhasDaTrilha.count();
 ok("a trilha do municipio aparece", eventosNaTrilha > 0, `(${eventosNaTrilha})`);
 
-const primeiraLinha = await page.locator(".tabela tbody tr").first().textContent();
+const primeiraLinha = await linhasDaTrilha.first().textContent();
 ok("cada evento diz quem agiu", /Coordenador|Operador|Agente/.test(primeiraLinha));
 
 await page.locator("#trilha-autor").fill("helena");
 await page.getByRole("button", { name: "Filtrar", exact: true }).click();
-await page.waitForTimeout(1500);
-const linhasFiltradas = await page.locator(".tabela tbody tr").allTextContents();
+// Espera a resposta do filtro, e nao um numero de milissegundos: o titulo do
+// cartao traz o total, e ele muda quando a trilha filtrada chega.
+await page.waitForFunction(
+  (antes) => [...document.querySelectorAll("h2, h3")]
+    .some((h) => /^Trilha de auditoria \(\d+\)$/.test(h.textContent ?? "")
+      && h.textContent !== antes),
+  await page.locator("h2, h3", { hasText: /^Trilha de auditoria \(\d+\)$/ }).first().textContent(),
+  { timeout: 20_000 },
+).catch(() => { /* o total pode nao mudar; a verificacao abaixo decide */ });
+const linhasFiltradas = await linhasDaTrilha.allTextContents();
 ok("filtrar por autor funciona",
    linhasFiltradas.length > 0 && linhasFiltradas.every((l) => l.includes("Helena")),
    `(${linhasFiltradas.length} linhas)`);
@@ -2129,6 +2169,217 @@ for (const [largura, altura] of [[1280, 900], [390, 844]]) {
     ok("390px: o botao tem pelo menos 44px de altura", medidas.altura >= 44, `(${medidas.altura})`);
   }
 }
+
+console.log("\n== 29. O laudo do pacote avisa a equipe divergente (V2-F00-E12) ==");
+
+/*
+  A consulta de vistorias do pacote juntava so `usuarios`, e nunca as duas
+  equipes da vistoria. O resultado: o laudo DENTRO do pacote saia sem o aviso de
+  equipe divergente, e o laudo que a rota emite, para a MESMA vistoria, saia com
+  ele. O municipio que leva o pacote embora levaria o papel limpo, e e esse o
+  papel que fica no processo depois de o contrato acabar.
+
+  A divergencia aqui e montada pela API de verdade, e nao por SQL: a coordenacao
+  despacha para a Equipe Bravo e o agente Diego, que e da Equipe Alfa, envia a
+  coleta. A rota aceita e MARCA, de proposito (o porque esta em
+  `apps/api/test/vistoria-e-da-equipe.test.ts`). Depois a administradora clica no
+  botao do painel, o ZIP baixado e aberto com o leitor independente da secao 28,
+  e o trecho do aviso do laudo do pacote e comparado com o do laudo da rota.
+
+  O que se prova aqui, e nao no teste da API: os dois documentos que a prefeitura
+  pode ter em maos ao mesmo tempo dizem a mesma coisa, saindo do servidor de
+  verdade e passando pelo cliente de verdade.
+*/
+const EQUIPE_BRAVO_E12 = "11111111-1111-4111-8111-0000000000e2";
+const EQUIPE_ALFA_E12 = "11111111-1111-4111-8111-0000000000e1";
+await paginaE11.setViewportSize({ width: 1280, height: 900 });
+
+/** Os paragrafos de ressalva do laudo, que e onde o aviso de equipe mora. */
+function notasDoLaudoE12(html) {
+  return [...html.matchAll(/<p class="nota">([\s\S]*?)<\/p>/g)].map((m) => m[1].trim());
+}
+
+/** A rota de documento devolve HTML, e nao JSON: `viaApiE11` nao serve aqui. */
+async function htmlDaApiE12(caminho, token) {
+  const r = await fetch(`${API_E11}${caminho}`, { headers: { authorization: `Bearer ${token}` } });
+  return { status: r.status, html: await r.text() };
+}
+
+const criadaE12 = await viaApiE11("/ocorrencias", {
+  metodo: "POST", token: helenaE11?.json.acesso,
+  corpo: {
+    tipo: "deslizamento",
+    endereco: "Rua do Laudo do Pacote, 12, Centro",
+    solicitanteNome: "Marilda Souza Prado",
+    canalEntrada: "telefone",
+    descricao: "Talude atras da casa cedeu depois da chuva da madrugada.",
+  },
+});
+ok("a coordenacao abre a ocorrencia do caso", criadaE12.status === 201, `(${criadaE12.status})`);
+const OC_E12 = criadaE12.json.id;
+const PROTOCOLO_E12 = String(criadaE12.json.protocolo ?? "");
+const PASTA_E12 = PROTOCOLO_E12.replace("/", "-");
+
+const triagemE12 = await viaApiE11(`/ocorrencias/${OC_E12}/triagem`, {
+  metodo: "POST", token: helenaE11?.json.acesso,
+  corpo: { severidade: "critica", vulnerabilidadePresente: false },
+});
+ok("a triagem classifica a ocorrencia", triagemE12.status === 200, `(${triagemE12.status})`);
+
+const despachoE12 = await viaApiE11(`/ocorrencias/${OC_E12}/despacho`, {
+  metodo: "POST", token: helenaE11?.json.acesso,
+  corpo: { equipeId: EQUIPE_BRAVO_E12, prazoHoras: 4 },
+});
+ok("a coordenacao despacha para a Equipe Bravo", despachoE12.status === 200, `(${despachoE12.status})`);
+
+// Diego e da Equipe Alfa. A secao da E09 troca a senha dele, e a ordem das
+// secoes nao pode importar: tenta as duas, como ja e feito com a coordenadora.
+let diegoE12 = null;
+for (const senha of ["senha-nova-do-diego-2026", SENHA]) {
+  const r = await viaApiE11("/auth/entrar", {
+    metodo: "POST", corpo: { email: "diego.alves@serraalta.exemplo.gov.br", senha },
+  });
+  if (r.status === 200) { diegoE12 = r; break; }
+}
+ok("o agente da Equipe Alfa entra pela API", diegoE12 !== null);
+
+const coletadaEmE12 = new Date().toISOString();
+const sincronizadaE12 = await viaApiE11("/sincronizacao/vistoria", {
+  metodo: "POST", token: diegoE12?.json.acesso,
+  corpo: {
+    idempotencyKey: crypto.randomUUID(),
+    ocorrenciaId: OC_E12,
+    coletadaEm: coletadaEmE12,
+    vistoria: {
+      checklist: [
+        { chave: "risco_iminente", resposta: true },
+        { chave: "evacuacao_necessaria", resposta: true },
+        { chave: "interdicao_indicada", resposta: true },
+        { chave: "acionar_outro_orgao", resposta: false },
+      ],
+      fotos: [], gpsPrecisaoMetros: 6.2,
+      assinanteNome: "Marilda Souza Prado", assinaturaChave: null,
+      coletadaEm: coletadaEmE12, observacoes: "Trinca ativa no talude.",
+    },
+  },
+});
+ok("a coleta do agente de OUTRA equipe e aceita e marcada, e nao recusada",
+   sincronizadaE12.status === 201 && sincronizadaE12.json.foraDaEquipeDesignada === true,
+   `(${sincronizadaE12.status} fora=${sincronizadaE12.json.foraDaEquipeDesignada})`);
+
+// ---- O laudo que a rota emite: o aviso que a prefeitura ja tem impresso ----
+const laudoDaRotaE12 = await htmlDaApiE12(`/documentos/${OC_E12}/laudo`, helenaE11?.json.acesso);
+ok("a rota emite o laudo da ocorrencia", laudoDaRotaE12.status === 200, `(${laudoDaRotaE12.status})`);
+const avisoDaRotaE12 = notasDoLaudoE12(laudoDaRotaE12.html).filter((n) => n.startsWith("Atenção:"));
+ok("o laudo da rota traz o aviso de equipe divergente, com as duas equipes pelo nome",
+   avisoDaRotaE12.length === 1
+   && avisoDaRotaE12[0].includes("estava designada à Equipe Bravo")
+   && avisoDaRotaE12[0].includes("lotado na Equipe Alfa"),
+   `(${avisoDaRotaE12.join(" | ") || "nenhum aviso"})`);
+
+// ---- O laudo que vai DENTRO do pacote, baixado pelo botao do painel ----
+const esperandoE12 = paginaE11.waitForEvent("download", { timeout: 120_000 }).catch(() => null);
+await botaoE11.click();
+const baixadoE12 = await esperandoE12;
+ok("o painel baixa o pacote outra vez, depois da coleta divergente", baixadoE12 !== null);
+const bytesE12 = readFileSync(await baixadoE12.path());
+const pacoteE12 = lerZipE11(bytesE12);
+const caminhoLaudoE12 = `documentos/${PASTA_E12}/laudo-de-vistoria.html`;
+ok(`o pacote traz o laudo da ocorrencia nova (${caminhoLaudoE12})`, pacoteE12.has(caminhoLaudoE12),
+   `(${[...pacoteE12.keys()].filter((n) => n.startsWith("documentos/")).slice(0, 4).join(", ")})`);
+
+const laudoDoPacoteE12 = (pacoteE12.get(caminhoLaudoE12) ?? Buffer.alloc(0)).toString("utf8");
+const avisoDoPacoteE12 = notasDoLaudoE12(laudoDoPacoteE12).filter((n) => n.startsWith("Atenção:"));
+ok("o laudo DO PACOTE traz o mesmo aviso, e nao o papel limpo",
+   avisoDoPacoteE12.length === 1
+   && avisoDoPacoteE12[0].includes("estava designada à Equipe Bravo")
+   && avisoDoPacoteE12[0].includes("lotado na Equipe Alfa"),
+   `(${avisoDoPacoteE12.join(" | ") || "nenhum aviso"})`);
+ok("e o trecho do aviso e IDENTICO nos dois documentos, palavra por palavra",
+   avisoDoPacoteE12.length === avisoDaRotaE12.length
+   && avisoDoPacoteE12.every((n, i) => n === avisoDaRotaE12[i]),
+   `(pacote: ${avisoDoPacoteE12.join(" | ")} / rota: ${avisoDaRotaE12.join(" | ")})`);
+
+// A ocorrencia da semente, despachada para a Alfa e coletada pelo agente da
+// Alfa, continua sem aviso nenhum nos dois documentos: o conserto nao passou a
+// avisar sempre, que seria a outra forma de o documento perder valor.
+const semDivergenciaE12 = await viaApiE11("/ocorrencias", {
+  metodo: "POST", token: helenaE11?.json.acesso,
+  corpo: {
+    tipo: "alagamento",
+    endereco: "Rua do Laudo Limpo, 34, Centro",
+    solicitanteNome: "Neuza Aparecida Bento",
+    canalEntrada: "telefone",
+    descricao: "Agua acumulada na pista depois da chuva.",
+  },
+});
+await viaApiE11(`/ocorrencias/${semDivergenciaE12.json.id}/triagem`, {
+  metodo: "POST", token: helenaE11?.json.acesso,
+  corpo: { severidade: "media", vulnerabilidadePresente: false },
+});
+await viaApiE11(`/ocorrencias/${semDivergenciaE12.json.id}/despacho`, {
+  metodo: "POST", token: helenaE11?.json.acesso,
+  corpo: { equipeId: EQUIPE_ALFA_E12, prazoHoras: 4 },
+});
+const coletaLimpaEmE12 = new Date().toISOString();
+const limpaE12 = await viaApiE11("/sincronizacao/vistoria", {
+  metodo: "POST", token: diegoE12?.json.acesso,
+  corpo: {
+    idempotencyKey: crypto.randomUUID(),
+    ocorrenciaId: semDivergenciaE12.json.id,
+    coletadaEm: coletaLimpaEmE12,
+    vistoria: {
+      checklist: [
+        { chave: "risco_iminente", resposta: false },
+        { chave: "evacuacao_necessaria", resposta: false },
+        { chave: "interdicao_indicada", resposta: false },
+        { chave: "acionar_outro_orgao", resposta: false },
+      ],
+      fotos: [], gpsPrecisaoMetros: 5.1,
+      assinanteNome: "Neuza Aparecida Bento", assinaturaChave: null,
+      coletadaEm: coletaLimpaEmE12, observacoes: "Agua escoou sozinha.",
+    },
+  },
+});
+ok("a coleta da equipe designada entra sem marca de divergencia",
+   limpaE12.status === 201 && limpaE12.json.foraDaEquipeDesignada === false,
+   `(${limpaE12.status} fora=${limpaE12.json.foraDaEquipeDesignada})`);
+
+const esperandoLimpoE12 = paginaE11.waitForEvent("download", { timeout: 120_000 }).catch(() => null);
+await botaoE11.click();
+const baixadoLimpoE12 = await esperandoLimpoE12;
+const pacoteLimpoE12 = lerZipE11(readFileSync(await baixadoLimpoE12.path()));
+const pastaLimpaE12 = String(semDivergenciaE12.json.protocolo ?? "").replace("/", "-");
+const laudoLimpoE12 = (pacoteLimpoE12.get(`documentos/${pastaLimpaE12}/laudo-de-vistoria.html`)
+  ?? Buffer.alloc(0)).toString("utf8");
+ok("o laudo da coleta sem divergencia NAO ganha aviso de equipe no pacote",
+   laudoLimpoE12.length > 0 && !laudoLimpoE12.includes("estava designada à"),
+   `(${notasDoLaudoE12(laudoLimpoE12).join(" | ") || "nenhuma nota"})`);
+ok("nem no laudo que a rota emite para ela",
+   !(await htmlDaApiE12(`/documentos/${semDivergenciaE12.json.id}/laudo`, helenaE11?.json.acesso))
+     .html.includes("estava designada à"));
+
+// E nenhum nome de equipe do outro municipio entra no pacote por causa das
+// juncoes novas: as duas sao por id da vistoria, que e sempre do municipio.
+ok("nenhum arquivo do pacote cita a equipe de Vale Fundo",
+   ![...pacoteLimpoE12.keys()].some((n) => !n.startsWith("esquema/")
+     && pacoteLimpoE12.get(n).toString("utf8").includes("Equipe Única")));
+
+// Evidencia: so os dois trechos do aviso, que e o que a etapa pede. Nenhum
+// dado pessoal: nome de equipe nao e dado de pessoa.
+if (process.env.EVIDENCIA_E12) {
+  const { mkdirSync, writeFileSync } = await import("node:fs");
+  mkdirSync(process.env.EVIDENCIA_E12, { recursive: true });
+  writeFileSync(`${process.env.EVIDENCIA_E12}/trecho-do-aviso-${MOTOR}.txt`,
+    `Protocolo: ${PROTOCOLO_E12} (despachada a Equipe Bravo, coletada por agente da Equipe Alfa)\n`
+    + `Motor: ${MOTOR}\n\n`
+    + `--- laudo emitido pela rota GET /documentos/:id/laudo ---\n${avisoDaRotaE12.join("\n")}\n\n`
+    + `--- laudo de dentro do pacote (${caminhoLaudoE12}) ---\n${avisoDoPacoteE12.join("\n")}\n\n`
+    + `Identicos: ${avisoDoPacoteE12.join("\n") === avisoDaRotaE12.join("\n") ? "sim" : "nao"}\n`);
+}
+await baixadoE12.delete();
+await baixadoLimpoE12.delete();
+
 await contextoE11.close();
 
 await navegador.close();

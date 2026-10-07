@@ -1,0 +1,8 @@
+== negativo: banco criado sem derrubar o public de fabrica
+$ createdb -h 127.0.0.1 -p 55452 -U postgres -T template0 --encoding=UTF8 --locale=C prova_e25_neg_public
+$ pg_restore -h 127.0.0.1 -p 55452 -U dc360_setup --dbname=prova_e25_neg_public --exit-on-error dc360.dump
+pg_restore: error: could not execute query: ERROR:  schema "public" already exists
+Command was: CREATE SCHEMA public;
+
+
+codigo 1

@@ -1,0 +1,57 @@
+$ npm audit   (em .)
+codigo=1 duracao=2s situacao=confere
+
+# npm audit report
+
+@vitest/mocker  2.1.0 - 4.1.10
+Severity: moderate
+Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock - https://github.com/advisories/GHSA-82fw-gwwq-j7x9
+fix available via `npm audit fix --force`
+Will install vitest@5.0.3, which is a breaking change
+node_modules/@vitest/mocker
+  vitest  0.0.95 - 4.1.10
+  Depends on vulnerable versions of @vitest/mocker
+  Depends on vulnerable versions of tinypool
+  node_modules/vitest
+
+fast-uri  3.0.0 - 3.1.7 || 4.0.0 - 4.1.4
+Severity: moderate
+fast-uri vulnerable to inconsistent host case normalization via percent-encoded octets - https://github.com/advisories/GHSA-hrr3-gc8f-f4qj
+fast-uri vulnerable to inconsistent host case normalization via percent-encoded octets - https://github.com/advisories/GHSA-hrr3-gc8f-f4qj
+fast-uri vulnerable to mailto header injection via percent-encoded field-name desynchronization - https://github.com/advisories/GHSA-jvvf-x445-j334
+fix available via `npm audit fix`
+node_modules/ajv/node_modules/fast-uri
+node_modules/fast-uri
+
+fastify  <=5.12.4
+Severity: high
+fastify vulnerable to Denial of Service via unhandled exception on HTTP/2 trailer responses - https://github.com/advisories/GHSA-4mh8-r7rc-xpvc
+fastify vulnerable to request body replacement via an async validation result collision - https://github.com/advisories/GHSA-667r-xxjv-c9mm
+fastify vulnerable to authentication bypass via malformed URLs reaching encapsulated not-found handlers - https://github.com/advisories/GHSA-p68q-wchp-6fh7
+fastify vulnerable to request validation bypass via skipped boolean false schemas - https://github.com/advisories/GHSA-hwr6-493r-vm6h
+fastify vulnerable to header validation bypass via incomplete schema case normalization - https://github.com/advisories/GHSA-9q9j-q6p8-xq58
+fix available via `npm audit fix`
+node_modules/fastify
+
+source-map-js  1.0.0 - 1.2.1
+Severity: high
+source-map-js allows event-loop denial of service through indexed source-map section offsets - https://github.com/advisories/GHSA-68fv-2mgg-jv7q
+fix available via `npm audit fix`
+node_modules/source-map-js
+
+tinypool  <=2.1.1
+Severity: critical
+Tinypool: Prototype Pollution gadget in worker options leads to Remote Code Execution - https://github.com/advisories/GHSA-5gmw-xhrv-c9v3
+Tinypool: Prototype Pollution Gadget to RCE in run() options - https://github.com/advisories/GHSA-85c8-ppgw-ccpr
+fix available via `npm audit fix --force`
+Will install vitest@5.0.3, which is a breaking change
+node_modules/tinypool
+
+
+6 vulnerabilities (2 moderate, 2 high, 2 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force

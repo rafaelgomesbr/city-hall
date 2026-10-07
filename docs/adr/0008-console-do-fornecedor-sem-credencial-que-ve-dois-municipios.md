@@ -200,3 +200,48 @@ Ruins, e assumidas:
 - A implementação é o turno T10 do plano de execução. Esta ADR é escrita
   **antes**, no primeiro commit do bloco, porque a decisão que ela registra é
   justamente a que impede o console de nascer errado.
+
+## Nota de revisão de 2026-10-07 (V2-F00-E22)
+
+Esta nota não reescreve a decisão acima: ela registra onde o texto deixou de
+descrever o código, conferido contra a árvore em 2026-10-07. A decisão nova que
+estes fatos pedem não é tomada aqui, e esta nota não abre ADR: a relação entre
+fornecedor e prefeitura no console é a ADR 0018 (V2-F20-E01), e a suspensão com
+aviso e a eliminação que não suspende na hora são a V2-F20-E04.
+
+1. **"Banco de dados separado" (título da decisão 1) não vale.** O console é
+   processo separado, com aplicativo próprio no Fly (`dc360/fly.console.toml`),
+   segredo de token próprio e conexão própria (`CONSOLE_DATABASE_URL`), mas a
+   conexão é ao MESMO Postgres dos municípios, com o papel `dc360_console`
+   (assumido por um papel de login com `SET ROLE`). O que separa é o papel, não
+   o banco.
+2. **A decisão 3 ("nada em nenhuma outra tabela", "sem execução de função")
+   ganhou exceções nomeadas além da emenda de 14/09/2026.** A migração 038 deu
+   ao console `EXECUTE` em `console_suspender_municipio`,
+   `console_reativar_municipio`, `console_agendar_eliminacao` e
+   `console_cancelar_eliminacao` (todas `SECURITY DEFINER`), além das funções
+   do próprio login, e escrita nas tabelas do fornecedor `console_operadores` e
+   `eliminacoes_de_municipio`; a 039 somou `console_codigos_de_recuperacao` e
+   três funções de recuperação. Continua sem privilégio direto em tabela de
+   negócio, e a lista de exceções é cobrada por nome em
+   `dc360/db/test/isolamento.test.ts`.
+3. **"Um vazamento do console entrega números agregados, não pessoas. O dano
+   tem teto, e o teto está escrito" (Consequências, boas) e "Cadastrar
+   prefeitura é, agora, o único ato de escrita do console" (Consequências,
+   ruins) não valem.** A parte de LEITURA continua verdadeira: o console não lê
+   dado de cidadão. Mas uma sessão do fornecedor comprometida hoje também
+   SUSPENDE o acesso de qualquer município (`POST /municipios/:id/suspender`:
+   ninguém entra, a escrita para, a fila do campo espera) e AGENDA A ELIMINAÇÃO
+   de qualquer município (`POST /municipios/:id/eliminar`: suspende na hora e,
+   se ninguém cancelar em sete dias, o relógio da API apaga o banco e as
+   fotografias do município). As duas exigem a sessão com segundo fator e
+   papel de dono, e o banco recusa quem não é dono ativo; mesmo assim, o teto
+   de dano deixou de ser "números agregados" e passou a incluir interromper o
+   serviço e destruir a base de qualquer município, com sete dias de prazo para
+   alguém perceber. O prazo, o livro `eliminacoes_de_municipio` e o
+   `GET /saude` (`eliminacoes: { agendadas, vencidas }`) são o que permite
+   perceber (`dc360/docs/SAIDA-DE-MUNICIPIO.md`, capítulo 5).
+4. **As contas do console moram no banco desde a migração 038**
+   (`console_operadores`), e não na configuração do processo; a variável
+   `CONSOLE_OPERADORES` virou só a semente do primeiro dono
+   (`dc360/apps/console/src/operadores.ts`).

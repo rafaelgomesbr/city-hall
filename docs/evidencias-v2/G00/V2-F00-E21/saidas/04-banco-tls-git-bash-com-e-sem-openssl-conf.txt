@@ -1,0 +1,30 @@
+$ npx vitest run test/banco-tls.test.ts test/openssl-do-teste.test.ts   (Git Bash, ambiente desta maquina, OPENSSL_CONF quebrado)
+OPENSSL_CONF=C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+stderr | test/banco-tls.test.ts
+banco-tls: OPENSSL_CONF aponta para "C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf", que não existe; o openssl do teste roda sem a variável.
+
+ ✓ test/openssl-do-teste.test.ts (10 tests) 167ms
+ ✓ test/banco-tls.test.ts (13 tests) 178ms
+
+ Test Files  2 passed (2)
+      Tests  23 passed (23)
+   Start at  03:03:21
+   Duration  743ms (transform 106ms, setup 83ms, collect 171ms, tests 345ms, environment 0ms, prepare 342ms)
+
+codigo=0
+
+$ env -u OPENSSL_CONF npx vitest run test/banco-tls.test.ts   (sem a variavel)
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/banco-tls.test.ts (13 tests) 167ms
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  03:03:24
+   Duration  724ms (transform 84ms, setup 44ms, collect 120ms, tests 167ms, environment 0ms, prepare 160ms)
+
+codigo=0

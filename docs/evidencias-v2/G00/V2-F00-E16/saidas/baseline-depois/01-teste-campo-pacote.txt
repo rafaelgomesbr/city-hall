@@ -1,0 +1,25 @@
+$ npm run test --workspace @dc360/campo   (em .)
+codigo=0 duracao=2s situacao=confere
+
+
+> @dc360/campo@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/packages/campo
+
+ ✓ test/prazo.test.ts (12 tests) 28ms
+ ✓ test/conclusao.test.ts (11 tests) 10ms
+ ✓ test/coleta.test.ts (14 tests) 10ms
+ ✓ test/devolucao.test.ts (24 tests) 16ms
+ ✓ test/prova-perdida.test.ts (10 tests) 21ms
+ ✓ test/deposito-sqlite.test.ts (9 tests) 23ms
+ ✓ test/correcao-da-coleta.test.ts (21 tests) 34ms
+ ✓ test/pausa-de-sessao.test.ts (28 tests) 51ms
+ ✓ test/fila.test.ts (58 tests) 83ms
+
+ Test Files  9 passed (9)
+      Tests  187 passed (187)
+   Start at  00:57:56
+   Duration  1.41s (transform 1.18s, setup 0ms, collect 5.81s, tests 277ms, environment 3ms, prepare 2.27s)
+

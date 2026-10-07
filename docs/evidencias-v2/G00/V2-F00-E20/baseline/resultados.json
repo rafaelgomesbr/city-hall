@@ -1,0 +1,42 @@
+[
+  {
+    "id": "teste-shared",
+    "cmd": "npm run test --workspace @dc360/shared",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 3131,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "01-teste-shared.txt"
+  },
+  {
+    "id": "teste-web",
+    "cmd": "npm run test --workspace @dc360/web",
+    "cwd": ".",
+    "codigo": 1,
+    "duracaoMs": 7650,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "02-teste-web.txt"
+  },
+  {
+    "id": "test-scripts",
+    "cmd": "npm run test:scripts",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 2909,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "03-test-scripts.txt"
+  },
+  {
+    "id": "conferir-numeros",
+    "cmd": "npm run conferir:numeros",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 24420,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "04-conferir-numeros.txt"
+  }
+]

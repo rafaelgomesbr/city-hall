@@ -199,3 +199,15 @@ await rodar("node", ["test/fluxo-api.e2e.mjs"], {
 });
 
 console.log("\nTUDO CERTO: o caminho de produção passou de ponta a ponta.");
+/*
+  Sai explicitamente, e é o `exit` que derruba a API e o painel.
+
+  Sem isto o script NUNCA terminava quando tudo passava: os dois filhos têm o
+  stdout e o stderr ligados a este processo por pipe, e pipe aberto segura o
+  laço de eventos do Node. Ninguém tinha visto porque a suíte nunca tinha
+  chegado verde até aqui: a falha lança, o `exit` roda e derruba tudo. A
+  primeira execução verde (V2-F00-E18) ficou pendurada com as duas portas
+  ocupadas, e a execução seguinte recusaria começar pelo portão de porta
+  ocupada logo acima.
+*/
+process.exit(0);

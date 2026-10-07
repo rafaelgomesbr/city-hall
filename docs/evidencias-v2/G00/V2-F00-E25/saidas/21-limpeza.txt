@@ -1,0 +1,25 @@
+== bancos de cada cluster descartavel antes de apagar (nenhum e do Rafael: os dois clusters nasceram nesta rodada, com initdb, nas portas 55451 e 55452)
+-- 55451
+postgres
+prova_e25_origem
+template0
+template1
+-- 55452
+postgres
+prova_e25_neg_console
+prova_e25_neg_public
+prova_e25_neg_trgm
+prova_e25_restaurado
+template0
+template1
+== o Postgres do Rafael (porta 4002) nao foi tocado: nenhuma conexao foi feita a ele nesta etapa
+$ pg_ctl -D [pasta temporaria]/pg-origem -m fast stop ; pg_ctl -D [pasta temporaria]/pg-destino -m fast stop
+servidor está parado
+servidor está parado
+$ rm -rf [pasta temporaria]   (os dois clusters, os dois dumps, a senha da rodada e o log da API)
+$ ls [pasta temporaria]
+ls: cannot access '[pasta temporaria]/run': No such file or directory
+$ find (repositorio e pasta temporaria) -name "*.dump"
+(fim da busca)
+  TCP    0.0.0.0:4002           0.0.0.0:0              LISTENING       8232
+  TCP    [::]:4002              [::]:0                 LISTENING       8232

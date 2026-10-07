@@ -1,0 +1,18 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/dc360[39m
+
+ [32m✓[39m packages/campo/test/prazo.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+ [32m✓[39m packages/campo/test/conclusao.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m packages/campo/test/coleta.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m packages/campo/test/devolucao.test.ts [2m([22m[2m24 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m packages/campo/test/prova-perdida.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+ [32m✓[39m packages/campo/test/deposito-sqlite.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+ [32m✓[39m packages/campo/test/correcao-da-coleta.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 36[2mms[22m[39m
+ [32m✓[39m packages/campo/test/pausa-de-sessao.test.ts [2m([22m[2m28 tests[22m[2m)[22m[32m 49[2mms[22m[39m
+ [32m✓[39m packages/campo/test/fila.test.ts [2m([22m[2m58 tests[22m[2m)[22m[32m 97[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m9 passed[39m[22m[90m (9)[39m
+[2m      Tests [22m [1m[32m187 passed[39m[22m[90m (187)[39m
+[2m   Start at [22m 00:55:34
+[2m   Duration [22m 1.54s[2m (transform 1.15s, setup 0ms, collect 5.94s, tests 294ms, environment 11ms, prepare 2.57s)[22m
+

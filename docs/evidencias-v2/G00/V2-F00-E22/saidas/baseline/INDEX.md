@@ -1,0 +1,19 @@
+# INDEX
+
+| Arquivo | SHA-256 |
+| --- | --- |
+| 01-typecheck.txt | 744ee05ad54b9b26f4b31eb4b1964e010a92b6f7207962ed552fe955f606aeab |
+| 02-teste-shared.txt | da4d8c90b19a994af2c06faaec2f5a5a5a90fde39d55b86120812f192e61800a |
+| 03-teste-db.txt | 9e7ffe908116f610e6bce6e726a8def5e0020559bbb8d11517ed6b627c357c19 |
+| 04-teste-campo-pacote.txt | 63bc05aa34086e5f8e1371216a367ac7d3918a54bc87af732ca1a50b23a68127 |
+| 05-teste-api.txt | 5fd6c181fd67309242b2946f0b7e64d0f46acb7f23e53a2d43d60a1446f64519 |
+| 06-teste-console.txt | ecde892e216840ee0e13880385d99e33b8b41757f6e9918d0ee33a236fa53185 |
+| 07-teste-web.txt | b2bbfbf066fce59b7af5c9c5dc869b344c4fba1e92f3e9fd577c5328f6dd78ee |
+| 08-test-scripts.txt | 0502a6a65bd6ebbc1a665d785f23e3de9743f537332a8186cb3c0e796ea523e8 |
+| 09-conferir-numeros.txt | 446b62814ee01660794c1a32b34a30e42e45aa14b506fa1c5d75c2a12efa49ae |
+| 10-auditar.txt | 577771b64fed39817ddc4f40f4b582c88f398bb14769aef6632545324dbcffa9 |
+| 11-audit-raiz.txt | 36a1663183c7ea13df0d68aa802d949bd36dbfc6589d4eb024512eb96b8964bd |
+| 12-audit-campo.txt | 7372480181536c23b64fa311ce20df89b586ba6fabe0371072feff6ce61c19a8 |
+| 13-expo-doctor.txt | dfda63f20f79f3887e255f0df8b21c667a8132e5aa2a48a21c87472f678c5adf |
+| RESUMO.md | c2436be96e436c3f5a13355b3162272ef0e8ea5ae1954723ac8712d9f807a282 |
+| resultados.json | 775bca3ba94cdaecdcf982ce6be22e116e9994a640a74870f88a976f63a4b8e6 |

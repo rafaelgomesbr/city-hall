@@ -1,0 +1,26 @@
+PS> npx vitest run test/banco-tls.test.ts test/openssl-do-teste.test.ts   (Windows PowerShell 5.1, openssl fora do PATH)
+OPENSSL_CONF=C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf
+openssl no PATH: False
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+node.exe : stderr | test/banco-tls.test.ts
+At C:\node\node-v22.17.0-win-x64\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (stderr | test/banco-tls.test.ts:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+banco-tls: OPENSSL_CONF aponta para "C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf", que não existe; o openssl 
+do teste roda sem a variável.
+
+ ✓ test/banco-tls.test.ts (13 tests) 312ms
+ ✓ test/openssl-do-teste.test.ts (10 tests) 441ms
+
+ Test Files  2 passed (2)
+      Tests  23 passed (23)
+   Start at  02:53:48
+   Duration  956ms (transform 114ms, setup 91ms, collect 174ms, tests 753ms, environment 0ms, prepare 326ms)
+
+
+codigo=0

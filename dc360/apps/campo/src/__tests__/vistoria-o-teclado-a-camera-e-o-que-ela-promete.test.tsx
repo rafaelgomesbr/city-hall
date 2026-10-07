@@ -258,6 +258,10 @@ describe("a tela de 'vistoria guardada'", () => {
     expect(screen.queryByText(/mesmo com o aplicativo fechado/)).toBeNull();
     expect(screen.getByText(/quando você abrir o aplicativo com sinal/)).toBeTruthy();
     expect(screen.getByText(/a fila de envio mostra o andamento/i)).toBeTruthy();
+    /* V2-F00-E16: nem a frase nem o título prometem coisa alguma em segundo
+       plano ("sozinha" era o título antigo). */
+    expect(screen.queryByText(/fechado|segundo plano|sozinha/i)).toBeNull();
+    expect(screen.getByText(/sobe quando o aplicativo estiver aberto e houver rede/)).toBeTruthy();
   });
 });
 
@@ -367,6 +371,58 @@ describe("a permissão negada", () => {
     expect(screen.getByTestId("tarja-de-erro")).toBeTruthy();
     expect(screen.queryByText("Abrir os ajustes do aparelho")).toBeNull();
   });
+
+  it("o botão não sobrevive à falha seguinte, que não é de permissão (V2-F00-E16)", async () => {
+    /*
+      A localização negada acende o botão; depois a foto falha no disco. A
+      tarja nova é de outra natureza, e os ajustes não resolvem disco cheio.
+    */
+    mockPermissaoDeLocal = { granted: false };
+    mockGuardarFoto = () => { throw new Error("disco cheio"); };
+    await abrirATela();
+
+    await act(async () => { fireEvent.press(screen.getByTestId("capturar-localizacao")); });
+    await act(async () => {});
+    expect(screen.getByText("Abrir os ajustes do aparelho")).toBeTruthy();
+
+    await act(async () => { fireEvent.press(screen.getByText("Tirar foto")); });
+    await act(async () => { fireEvent.press(screen.getByLabelText("Tirar a fotografia")); });
+    await act(async () => {});
+
+    expect(screen.getByText(/disco cheio/)).toBeTruthy();
+    expect(screen.queryByText("Abrir os ajustes do aparelho")).toBeNull();
+  });
+
+  it("o botão dos ajustes tem nome para o leitor de tela e área de toque de 44", async () => {
+    mockPermissaoDeCamera = { granted: false };
+    await abrirATela();
+
+    await act(async () => { fireEvent.press(screen.getByText("Tirar foto")); });
+    await act(async () => {});
+
+    /* A tarja é região viva: o leitor de tela lê a falha sem o agente procurar. */
+    expect(screen.getByTestId("tarja-de-erro").props.accessibilityLiveRegion).toBe("assertive");
+    const botao = screen.getByTestId("abrir-ajustes");
+    expect(botao.props.accessibilityRole).toBe("button");
+    expect(botao.props.accessibilityLabel).toMatch(/ajustes/);
+    const estilo = StyleSheet.flatten(botao.props.style as never) as { minHeight?: number };
+    expect(estilo.minHeight ?? 0).toBeGreaterThanOrEqual(44);
+  });
+});
+
+describe("a câmera que não disparou (V2-F00-E16)", () => {
+  it("continua com a frase genérica, porque o erro nativo não diz ao agente o que fazer", async () => {
+    mockTirarFoto.mockImplementationOnce(async () => { throw new Error("Camera is not running"); });
+    await abrirATela();
+
+    await act(async () => { fireEvent.press(screen.getByText("Tirar foto")); });
+    await act(async () => { fireEvent.press(screen.getByLabelText("Tirar a fotografia")); });
+    await act(async () => {});
+
+    expect(screen.getByText("O aparelho não conseguiu tirar a foto. Tente de novo.")).toBeTruthy();
+    expect(screen.queryByText(/Camera is not running/)).toBeNull();
+    expect(screen.queryByText("Abrir os ajustes do aparelho")).toBeNull();
+  });
 });
 
 /* ============================================================
@@ -388,7 +444,9 @@ describe("a precisão da leitura de GPS", () => {
     await act(async () => {});
 
     expect(ultimoGravado()["gpsPrecisaoMetros"]).toBe(1);
-    expect(screen.getByText("Precisão de 1 metros")).toBeTruthy();
+    /* No singular (V2-F00-E15): o texto exato continua cobrado, e "1 metros"
+       era erro de escrita justamente na leitura do melhor GPS. */
+    expect(screen.getByText("Precisão de 1 metro")).toBeTruthy();
   });
 
   it("a leitura comum continua arredondada ao metro", async () => {

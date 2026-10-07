@@ -214,6 +214,27 @@ function CartaoDeSaida() {
   const sessao = useSessaoObrigatoria();
   const [baixando, setBaixando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [arquivoParaLiberar, setArquivoParaLiberar] = useState<string | null>(null);
+
+  /*
+    O relógio que libera o endereço vive AQUI, e não dentro de `baixar`, porque
+    um `setTimeout` solto continua de pé depois que a tela sai (o portão de
+    `test/portoes-de-componente.test.ts` reprova justamente isso). Sair de
+    Organização antes dos trinta segundos libera na hora: o download já começou
+    (o clique é síncrono e o navegador lê o endereço em seguida) e segurar a
+    memória de um pacote inteiro pela sessão toda é pior.
+  */
+  useEffect(() => {
+    if (arquivoParaLiberar === null) return;
+    const relogio = window.setTimeout(() => {
+      URL.revokeObjectURL(arquivoParaLiberar);
+      setArquivoParaLiberar(null);
+    }, MS_ATE_LIBERAR_O_ARQUIVO);
+    return () => {
+      window.clearTimeout(relogio);
+      URL.revokeObjectURL(arquivoParaLiberar);
+    };
+  }, [arquivoParaLiberar]);
 
   async function baixar() {
     setErro(null);
@@ -228,7 +249,7 @@ function CartaoDeSaida() {
       document.body.appendChild(ancora);
       ancora.click();
       ancora.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), MS_ATE_LIBERAR_O_ARQUIVO);
+      setArquivoParaLiberar(url);
     } catch (e: unknown) {
       setErro(e instanceof Error ? e.message : String(e));
     } finally {

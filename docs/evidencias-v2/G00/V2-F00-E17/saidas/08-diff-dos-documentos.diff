@@ -1,0 +1,118 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index b0541f9..23930be 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -9,12 +9,12 @@ build) valem lá, não aqui.
+ | Pacote | O que é | Situação |
+ | --- | --- | --- |
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
+-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 285 testes do banco passando |
+-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 454 testes de fonte do painel mais 68 verificações no navegador no modo local e 103 contra a API |
+-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 962 testes da API passando |
+-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 138 testes de unidade do motor de campo e 15 de integração contra a API |
+-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 1708 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+-| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios e não alcança dado de cidadão | Pronto, 250 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
++| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 327 testes do banco passando |
++| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 633 testes de fonte do painel mais 70 verificações no navegador no modo local e 251 contra a API |
++| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1237 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele ficam pulados) |
++| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 187 testes de unidade do motor de campo e 15 de integração contra a API |
++| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 1861 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
++| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios e não alcança dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+ 
+ ## Os dois modos do painel
+ 
+@@ -1051,6 +1051,25 @@ npm run test:e2e:api            # painel contra a API
+ `test:scripts` nem `test:campo`, então esses três só aparecem vermelhos na
+ máquina de quem rodar.
+ 
++**Portabilidade dos scripts.** `test:scripts` e `conferir:numeros` precisam
++fechar verdes no Windows e no Linux, e os três casos que só reprovavam no
++Windows ensinaram três regras para quem escrever um caso novo em `scripts/`:
++chamar `npm` com `shell: process.platform === "win32"` (lá ele é `npm.cmd`, e
++sem shell a chamada morre com ENOENT antes de rodar qualquer coisa); montar
++caminho com `join` e `resolve` a partir da raiz da plataforma, e nunca com
++texto POSIX literal, porque `resolve` transforma `/Users/x` em `C:\Users\x`; e
++conferir uma decisão de configuração pelo que ela decide, e não pela escrita
++literal de uma linha que pode mudar de forma sem mudar de sentido.
++
++Os números de teste que este README e `docs/COLOCAR-DE-PE.md` afirmam mudam
++sempre que uma etapa acrescenta caso, e `conferir:numeros` volta a reprovar
++até alguém corrigir o texto. Isso é de propósito: o número velho é mentira
++pequena, e o portão existe para ela não passar calada. Quem acrescenta teste
++roda `conferir:numeros` antes de encerrar. A saída também lista os pulos que
++`vitest list` não enumera (`describe.skip`, `it.skip`, e `runIf` ou `skipIf`
++que avaliou falso), para a diferença entre a contagem afirmada e o total do
++`vitest run` ter origem visível.
++
+ **A linha de base de hoje é vermelha de propósito.** Os vermelhos foram medidos
+ em 2026-09-30 e são consertados um a um na fase F00 do Roadmap V2
+ (`docs/roadmap-v2/03-fase-00-estabilizacao.md`). Para repetir a medição e
+@@ -1185,11 +1204,11 @@ começar por subir os dois uma vez.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 2219 testes em seis pacotes
+-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 285 testes do banco
+-npm run test:api            # 962 testes da API
+-npm run test --workspace @dc360/campo   # 138 testes do motor de campo
+-npm run test:campo          # tipos e os 1708 testes do aplicativo de campo
++npm test                    # 2808 testes em seis pacotes
++npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 327 testes do banco
++npm run test:api            # 1237 testes da API
++npm run test --workspace @dc360/campo   # 187 testes do motor de campo
++npm run test:campo          # tipos e os 1861 testes do aplicativo de campo
+ npm run typecheck           # TypeScript estrito em todos os pacotes
+ npm audit                   # precisa fechar em zero
+ ```
+@@ -1268,7 +1287,7 @@ MOTOR=firefox npm run test:e2e                              # e no Gecko
+ ```
+ 
+ A variável `MOTOR` troca o motor do navegador (`chromium`, `firefox`,
+-`webkit`). As 68 verificações passam no Chromium, que é o motor do Chrome e do
++`webkit`). As 70 verificações passam no Chromium, que é o motor do Chrome e do
+ Edge, e no Firefox. Sobre o WebKit, leia a seção seguinte antes de tentar.
+ 
+ ### O modo local não serve para o Safari
+@@ -1326,7 +1345,7 @@ LOG_API=/caminho/do/log-da-api npm run test:e2e:api --workspace @dc360/web
+ email: em desenvolvimento o link sai no log do servidor, e é de lá que a suíte
+ o lê.
+ 
+-São 236 verificações no navegador que só existem neste caminho: entrada por senha, senha
++São 251 verificações no navegador que só existem neste caminho: entrada por senha, senha
+ errada recusada, token guardado sem a senha nem o hash, isolamento imposto
+ pelo servidor (inclusive abrindo a URL de outro município na mão), fluxo
+ gravando de verdade, dado criado numa sessão aparecendo em outro navegador,
+@@ -1342,7 +1361,7 @@ o CORS da API não permitia `PUT`, então o envio de bytes nem saía do
+ navegador; e o `Cross-Origin-Resource-Policy` do helmet bloqueava a imagem
+ quando painel e API ficam em origens diferentes, que é o arranjo de produção.
+ 
+-São 68 verificações no navegador: entrada, a busca global tolerante a erro, isolamento entre municípios visto dos dois lados,
++São 70 verificações no navegador: entrada, a busca global tolerante a erro, isolamento entre municípios visto dos dois lados,
+ geração de protocolo em sequência, triagem, despacho, encerramento com motivo
+ obrigatório, indicadores do painel reagindo às mudanças, cadastro de equipes e
+ usuários com recusa de duplicata, mapa, restrição de menu por papel, tema
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index eeec202..d29dd8e 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -37,7 +37,10 @@ D-U-N-S e a revisão não forem gargalo.
+ - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
+   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
+   compartilhados.
+-- **3927 testes verdes somando o aplicativo, e `npm audit` em zero.**
++- **4669 testes somando o aplicativo.** Durante a estabilização da V2 (fase
++  F00) nem todos estão verdes e o `npm audit` não está em zero: cada vermelho
++  conhecido, e a etapa que o fecha, está em `docs/roadmap-v2/STATUS.md`, na
++  raiz do repositório.
+ - **A API sobe contra PostgreSQL real** (provado contra o Postgres 18, à mão) e
+   serve o ciclo inteiro: login, isolamento entre municípios, ocorrência,
+   vistoria offline, laudo, termo de interdição e desinterdição, contagem de
+@@ -299,7 +302,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 3927 testes com o aplicativo, npm audit, números
++npm run verificar          # typecheck, 4669 testes com o aplicativo, npm audit, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo

@@ -10,6 +10,7 @@ import {
 import { Campo } from "../componentes/Campo";
 import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
 import { IconeMais } from "../componentes/Icones";
+import { Toast } from "../componentes/Toast";
 import { FORMULARIO_VAZIO, conferirMotivo, conferirOrgao } from "./orgaos-regras";
 import { useTitulo } from "../seo/titulo";
 
@@ -61,6 +62,15 @@ export function Orgaos() {
   const [aDesativar, setADesativar] = useState<LinhaOrgao | null>(null);
   const [motivo, setMotivo] = useState("");
   const [erroDoMotivo, setErroDoMotivo] = useState<string | null>(null);
+  /*
+    A confirmação passageira de que a gravação aconteceu.
+
+    Antes, gravar limpava o formulário e a linha aparecia na tabela, sem uma
+    frase. Quem enxerga fica na dúvida se o clique pegou; quem usa leitor de
+    tela não vê a linha nova e não ouve nada. O `Toast` tem `role="status"`, e
+    é ele quem anuncia.
+  */
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const recarregar = useCallback(async () => {
     setOrgaos(await listarOrgaos(sessao, incluirInativos));
@@ -105,8 +115,13 @@ export function Orgaos() {
     setErrosDeCampo({});
     setCamposRecusados([]);
     try {
-      if (editando) await atualizarOrgao(sessao, editando, dados);
-      else await criarOrgao(sessao, dados);
+      if (editando) {
+        await atualizarOrgao(sessao, editando, dados);
+        setAviso("Órgão corrigido. A lista abaixo já mostra o que mudou.");
+      } else {
+        await criarOrgao(sessao, dados);
+        setAviso("Órgão cadastrado. Ele já aparece na lista abaixo.");
+      }
       limparFormulario();
       await recarregar();
     } catch (e: unknown) {
@@ -404,6 +419,8 @@ export function Orgaos() {
           )}
         </Campo>
       </ConfirmarAcao>
+
+      {aviso && <Toast tom="sucesso" mensagem={aviso} aoFechar={() => setAviso(null)} />}
     </>
   );
 }

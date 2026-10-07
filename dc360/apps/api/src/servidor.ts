@@ -376,8 +376,17 @@ export async function construirServidor(
     // upload nem sai. Em produção o armazenamento é externo e tem o próprio
     // CORS, mas no caminho local quem serve é esta API.
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    // O envio assinado repete os cabeçalhos que entraram na assinatura.
-    allowedHeaders: ["content-type", "authorization", "accept"],
+    /*
+      O envio assinado repete os cabeçalhos que entraram na assinatura, e
+      `if-none-match` é um deles: é o `if-none-match: *` da escrita única
+      (`armazenamento/memoria.ts` e `armazenamento/s3.ts`). Sem ele aqui o
+      preflight do navegador reprova e o PUT da foto nem sai ("Failed to
+      fetch", seção 13 do e2e contra a API, V2-F00-E18). Nome a nome, e nunca
+      curinga: a lista de origens continua sendo `ORIGENS_PERMITIDAS`, e
+      `test/cors-do-envio-de-evidencia.test.ts` trava que nada além disto
+      passa.
+    */
+    allowedHeaders: ["content-type", "authorization", "accept", "if-none-match"],
   });
 
   await app.register(rateLimit, {

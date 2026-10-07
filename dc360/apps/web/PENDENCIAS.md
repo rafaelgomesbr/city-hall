@@ -4,10 +4,44 @@ O que este turno deixou pronto para o próximo pegar, e o que ficou fora da
 faixa de `apps/web/`. Cada item diz o que precisa existir e por quê, para o
 turno seguinte não ter que reconstruir o raciocínio.
 
-## 1. Rota da API: corrigir a coordenada de uma ocorrência já aberta
+**Revisão de 2026-10-07 (V2-F00-E22).** Três itens deste arquivo descreviam
+como pendente o que o código já tem (1, 3 e 5) e um descrevia como manual o
+que o CI já roda (10.1); o vermelho de CRLF do item 9.1 fechou na V2-F00-E21.
+Eles continuam aqui, marcados como resolvidos e com a prova, porque o
+raciocínio de cada um ainda explica o código. O que REALMENTE resta, conferido
+contra o código nesta data:
 
-Não foi feita neste turno porque exige rota nova na API, que está com outro
-agente. A tela do painel é a parte fácil e fica esperando a rota.
+| O que resta | Item | Quem fecha |
+| --- | --- | --- |
+| Prova do link encurtado contra o Google de verdade (todos os testes usam dublê) | 2 | validação humana |
+| `google.maps.Marker` obsoleto e carregador sem `loading=async`; `fitBounds` num município espalhado | 4 | F10 |
+| Reset do segundo fator de outra pessoa, tela consolidada de conta, expurgo de IP e user-agent | 6.1 | F03-E11, F10-E01, F05-E12 |
+| Senha temporária conhecida por quem a sorteia; "encerrar as outras" preserva por id | 6.2, 6.5 | F03-E10, F03-E02 |
+| Lista de usuários em 390 px rola na horizontal | 6.3 | F10 |
+| Envio real de e-mail; `Referrer-Policy` só nas duas rotas; header só visto na Vercel; sem olho na senha; prazo do link não dito | 7 | CP-19, F10 |
+| Os outros downloads (`baixarCsvDeOcorrencias`, `abrirDocumento`, `abrirOficio`) com `fetch` solto | 8.1 | V2-F00-E23 ou F10 |
+| Pacote montado inteiro em memória, no servidor e na aba | 8.2 | F07-E06 |
+| Frase de permissão fala em "alterar" no download do pacote | 8.3 | F03 |
+| Município suspenso não baixa o pacote | 8.4 | Rafael com o jurídico (CP-29) |
+| Barra de navegação a 390 px rola na horizontal | 9.2 | F10 |
+| Janela de milissegundos na renovação | 9.3 | F03-E02 |
+| e2e contra a API no Firefox fora do CI; nenhum run do CI conferido | 10.1 | F01-E03, validação humana |
+| CORS por ambiente e do armazenamento externo | 10.2 | F01-E10, F06-E15 |
+| Ver a foto subir na seção 13 | 10.3 | validação humana |
+
+## 1. ~~Rota da API: corrigir a coordenada de uma ocorrência já aberta~~ (feita)
+
+**Resolvido, conferido em 2026-10-07.** A rota existe: `POST
+/ocorrencias/:id/coordenada` (`apps/api/src/rotas/ocorrencias.ts`), com
+`exigirPermissao` de `abrir_ocorrencia`, recusa em estado terminal pela máquina
+de estados, trilha com o ponto anterior, o novo e o motivo, e a coordenada pelo
+`coordenadaGravadaSchema` compartilhado. O painel a chama por
+`corrigirCoordenada` (`src/dados/http.ts`) na tela da ocorrência
+(`src/paginas/Ocorrencia.tsx`). O texto abaixo é a especificação de antes, e
+fica porque explica as decisões da rota.
+
+Não foi feita naquele turno porque exigia rota nova na API, que estava com
+outro agente.
 
 **O problema real.** O operador cola a localização durante a ligação, com o
 telefone no ombro. Depois o agente chega no local e descobre que o ponto está
@@ -112,7 +146,12 @@ que o leitor compartilhado ainda não conhece.
 A saída de dado correspondente está declarada em `docs/SUBPROCESSADORES.md`,
 seção 2.2 ("O link encurtado, a pedido do coordenador").
 
-## 3. O README ficou desatualizado sobre o mapa de base
+## 3. ~~O README ficou desatualizado sobre o mapa de base~~ (resolvido)
+
+**Resolvido em 2026-10-07 (V2-F00-E22):** `dc360/README.md`, em "O que falta, e
+por quê", passou a descrever o mapa do Google com a chave servida por
+`GET /configuracao` e o modo esquemático sem chave, e não cita mais MapLibre
+como mapa vigente. O registro de antes:
 
 `dc360/README.md`, seção "O que falta, e por quê", ainda diz que o mapa
 cartográfico será MapLibre GL JS com provedor de tiles. Isso deixou de ser
@@ -171,7 +210,13 @@ console confirmado (são AVISOS, não erros):
 O que continua sem prova: como o `fitBounds` enquadra um município grande e
 espalhado. A semente é de uma cidade compacta.
 
-## 5. O teto de seis casas está no painel, e ainda não no banco
+## 5. ~~O teto de seis casas está no painel, e ainda não no banco~~ (resolvido)
+
+**Resolvido, conferido em 2026-10-07.** O teto mora no esquema compartilhado
+(`coordenadaGravadaSchema`, em `packages/shared/src/schemas.ts`), usado em toda
+entrada que grava coordenada, inclusive o GPS do aparelho
+(`evidenciaFotoSchema`), e o banco cobra o mesmo teto por `CHECK` (migração
+030). O registro de antes:
 
 O painel arredonda em seis casas o que lê do campo colado, e imprime seis na
 tela da ocorrência e no mapa. O caminho do aplicativo de campo (GPS do
@@ -200,9 +245,14 @@ O que não é desta etapa e continua aberto:
    os quatro botões da linha ficam na última coluna, fora da primeira dobra. Foi
    deixado assim de propósito: transformar a tabela em cartões no celular é
    decisão de interface para a F10, e mexer nela aqui ampliaria o escopo.
-4. **O aviso passageiro no celular** (`Toast`) é desenhado em cima da barra de
-   menu fixa de baixo. Vem da peça, não desta etapa, e vale também para o
-   aviso de registro da ocorrência.
+4. ~~**O aviso passageiro no celular** (`Toast`) é desenhado em cima da barra de
+   menu fixa de baixo.~~ RESOLVIDO na V2-F00-E13: a posição do aviso saiu do
+   `style` do componente e foi para `.toast`, em `estilos/app.css`, onde o bloco
+   responsivo o levanta a altura da barra (`--ds-touch` mais o respiro da
+   própria lateral). O mesmo conserto deu fundo opaco ao aviso, porque no tema
+   escuro os fundos de aviso são translúcidos (12%) e o texto da página
+   atravessava a confirmação. Vale também para o aviso de registro da
+   ocorrência.
 5. **"Encerrar as outras"** preserva a sessão pelo identificador que o token traz
    (`preservarSessaoId`). Quem clica com um token de acesso emitido antes da
    última renovação derruba a sessão viva da própria cadeia (e o token cai em
@@ -245,8 +295,12 @@ Feitas: o botão chama `POST /saida/pacote.zip` (o caminho de antes, `/pacote.zi
 existiu: todo clique dava 404), passa por `chamar` (um 401 de token vencido renova UMA
 vez e repete), a recusa do servidor chega à tela com a frase dele, a rede que cai
 (inclusive no meio do arquivo) diz "O arquivo não foi baixado", e o endereço do arquivo só
-é liberado 30 segundos depois do clique, para o download começar antes. A prova é a seção
-28 de `test/fluxo-api.e2e.mjs`, contra a API real.
+é liberado 30 segundos depois do clique, para o download começar antes. Esse relógio vive
+num `useEffect` com limpeza: a primeira versão usava um `setTimeout` solto dentro do
+tratador do clique, que continuava de pé depois de a tela sair (o portão de
+`test/portoes-de-componente.test.ts` reprova isso, e reprovou). Sair de Organização antes
+dos 30 segundos libera o endereço na hora. A prova é a seção 28 de
+`test/fluxo-api.e2e.mjs`, contra a API real.
 
 O que não é desta etapa e continua aberto:
 
@@ -269,3 +323,56 @@ O que não é desta etapa e continua aberto:
    escrita confere a suspensão). É o comportamento que a etapa pediu e está provado, mas
    é uma decisão de contrato: se o município suspenso precisar poder sair, a rota precisa
    de exceção própria, e quem decide é Rafael com o jurídico (CP-29).
+
+## 9. Vermelhos do painel e a entrada pela raiz (V2-F00-E13): o que ficou de fora
+
+Feitos: `<Toast>` com `role="status"` nas gravações de `Usuarios.tsx`,
+`Equipes.tsx` e `Orgaos.tsx`; o raio do ícone da marca saiu do `style` de
+`Estrutura.tsx` e virou `.lateral__marca img { border-radius: var(--ds-radius) }`;
+o portão de `acessibilidade.test.ts` passou a ler o COMENTÁRIO contíguo acima do
+elemento, em vez de uma janela fixa de quatro linhas; rota índice em `App.tsx`
+desviando a raiz para `telaInicial(papel)` e `rotaInterna` recusando `/` como
+caminho de volta.
+
+O que não é desta etapa e continua aberto:
+
+1. ~~**O vermelho de CRLF** em `test/ocorrencia-encerramento.test.ts`~~.
+   RESOLVIDO na V2-F00-E21 (`.gitattributes` e `test/ler-fonte.ts`): o painel
+   fecha com zero falha.
+2. **A barra de navegação em 390 px rola na horizontal** e isso continua sendo
+   de propósito: dez destinos não cabem na largura, e o rótulo por extenso vale
+   mais do que um ícone a adivinhar. Medido: `scrollWidth` 1484 contra
+   `clientWidth` 390, toque arrasta, Tab alcança os dez. O que foi corrigido
+   aqui é o Tab parar num item PELA METADE. Transformar a barra em outra coisa
+   (menu "mais", ícones sem rótulo, abas) é decisão de interface da F10.
+3. **A janela de milissegundos entre revogar e abrir sessão** na renovação
+   continua como estava (F03-E02); esta etapa não tocou em sessão no servidor.
+
+## 10. E2E de navegador e CORS do PUT de evidência (V2-F00-E18): o que ficou de fora
+
+Feitos: o CORS da API libera `if-none-match` (o cabeçalho da escrita única que a URL de
+envio manda repetir), nome a nome e sem mexer em `ORIGENS_PERMITIDAS`; com isso a seção
+13 de `test/fluxo-api.e2e.mjs` sobe a foto pelo navegador e o arquivo inteiro roda de
+ponta a ponta, no Chromium e no Firefox. Rodar o arquivo inteiro mostrou três coisas que
+a cópia aparada escondia: a checagem de duplicidade dizia "Não foi possível carregar
+esta tela" quando o sinal caía ao apertar "Registrar e gerar protocolo" (consertado em
+`src/dados/http.ts`, travado por `test/duplicidade-sem-rede.test.ts`); a seção 15 contava
+as linhas das três tabelas da Prestação de contas como se fossem da trilha (o teste
+passou a achar a tabela pela legenda, registrado em
+`docs/DECISOES-DE-TESTE-DA-FASE-00.md`); e `scripts/e2e-api.mjs` nunca terminava quando
+tudo passava (agora sai e derruba a API e o painel). No Firefox, a miniatura da galeria (`loading="lazy"`)
+precisou de rolagem e espera no teste, e os abortos de propósito das seções 19 e 27
+entraram na lista de console esperado, cada um preso ao seu caminho.
+
+O que não é desta etapa e continua aberto:
+
+1. **O e2e contra a API no Firefox não roda no CI.** Corrigido em 2026-10-07
+   (V2-F00-E22): este item dizia que os três e2e eram manuais, e não são. O
+   trabalho `navegador` de `.github/workflows/verificar.yml` roda o modo local em
+   Chromium e em Firefox e o caminho contra a API em Chromium. O que fica fora
+   do CI é só o Firefox contra a API (`node scripts/e2e-api.mjs firefox`), e
+   nenhuma rodada do CI foi conferida durante a F00 (validação humana pendente
+   da V2-F00-E01).
+2. **CORS por ambiente e por domínio** (F01-E10) e o CORS do armazenamento externo de
+   verdade (F06-E15): esta etapa só exercitou o armazenamento local da própria API.
+3. **Validação humana:** Rafael ver o upload da foto pelo painel concluir na seção 13.

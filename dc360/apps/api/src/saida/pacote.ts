@@ -483,13 +483,17 @@ export async function* montarPacoteDeSaida(
               v.assinatura_chave, v.desalojados, v.desabrigados, v.feridos,
               v.desaparecidos, v.obitos,
               u.nome AS agente_nome, u.matricula AS agente_matricula,
+              ed.nome AS equipe_designada_nome, ea.nome AS equipe_do_agente_nome,
               EXISTS (
                 SELECT 1 FROM trilha_eventos t
                  WHERE t.ocorrencia_id = v.ocorrencia_id
                    AND t.tipo = 'vistoria_sem_despacho'
                    AND t.detalhe ->> 'vistoriaId' = v.id::text
               ) AS sem_despacho
-         FROM vistorias v LEFT JOIN usuarios u ON u.id = v.agente_id
+         FROM vistorias v
+         LEFT JOIN usuarios u ON u.id = v.agente_id
+         LEFT JOIN equipes ed ON ed.id = v.equipe_designada_id
+         LEFT JOIN equipes ea ON ea.id = v.equipe_do_agente_id
         ORDER BY v.ocorrencia_id, v.sincronizada_em DESC, v.coletada_em DESC`,
     );
     /*
@@ -499,6 +503,19 @@ export async function* montarPacoteDeSaida(
       O laudo do pacote precisa dizer o que o laudo emitido diz: uma coleta que
       chegou sem despacho não pode virar um papel limpo só porque saiu na
       exportação.
+
+      As duas equipes vêm pelos MESMOS dois `LEFT JOIN` que `rotas/documentos.ts`
+      faz, e pelo mesmo motivo: `documentos/laudo.ts` imprime o aviso de equipe
+      divergente a partir de `equipe_designada_nome` e `equipe_do_agente_nome`, e
+      a consulta daqui nunca os selecionava. O laudo do pacote saía limpo
+      enquanto o laudo emitido pela rota, para a mesma vistoria, trazia o aviso.
+      O município que leva o pacote embora leva o documento que vale: ele não
+      pode ser a versão sem a ressalva.
+
+      `LEFT JOIN` e não `JOIN`: as duas colunas são nulas em toda vistoria
+      anterior à migração 024, e um `JOIN` interno apagaria essas vistorias do
+      pacote inteiro em vez de só deixar o aviso de fora. Nulo aqui significa
+      "nada a avisar", e `avisoDeEquipe` já trata assim.
     */
 
     const indicados = await c.query<{ vistoria_id: string; nome: string; sigla: string | null }>(

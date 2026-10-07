@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import type { FocusEvent } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { ROTULO_PAPEL, podeExecutar, type Acao } from "@dc360/shared";
 import { useSessao, useTema } from "../estado/sessao";
@@ -99,6 +100,26 @@ const NAVEGACAO: ItemNav[] = [
     sinonimos: ["retenção", "lgpd", "saída de município", "extração", "dados pessoais"] },
 ];
 
+/**
+ * O Tab precisa trazer o item INTEIRO para a tela.
+ *
+ * No celular a lateral vira barra no pé da tela e rola na horizontal (dez
+ * destinos não cabem em 390px). O navegador só rola sozinho quando o item está
+ * TOTALMENTE fora: parado pela metade, ele entende que já está visível e deixa
+ * o rótulo cortado na borda, com o foco em cima de um texto que não dá para
+ * ler. Medido a 390px: "Mapa da cidade" vai de 255px a 416px numa barra de
+ * 390px, e o Tab não movia a barra um pixel. O mesmo valia para "Equipes",
+ * "Usuários" e "Tema escuro".
+ *
+ * `inline: "nearest"` rola o mínimo necessário na horizontal, respeitando o
+ * `scroll-padding-inline` da barra; `block: "nearest"` impede que isto mexa na
+ * rolagem vertical da página. Na largura de mesa a lateral não rola, e a
+ * chamada não faz nada.
+ */
+function trazerParaATela(evento: FocusEvent<HTMLElement>): void {
+  evento.currentTarget.scrollIntoView({ inline: "nearest", block: "nearest" });
+}
+
 export function Estrutura() {
   const { sessao, sair } = useSessao();
   const [tema, alternarTema] = useTema();
@@ -107,8 +128,14 @@ export function Estrutura() {
   // Revoga no servidor antes de esquecer localmente: sem isso, o token de
   // renovação continuaria valendo por dias. É o mesmo caminho para o botão da
   // lateral e para a ação "Sair" da busca do topo.
+  //
+  // `replace` para a tela abandonada não ficar no histórico: depois de sair, o
+  // botão Voltar do navegador levava de volta a ela, que então redirecionava
+  // para a entrada de novo. Quem decide o destino depois de entrar é
+  // `destinoDepoisDeEntrar`, e sair de propósito não deixa caminho de volta
+  // (ver `saidaVoluntaria` em `estado/sessao.tsx` e `Protegida` em `App.tsx`).
   const encerrarESair = useCallback(() => {
-    void encerrarSessao().finally(() => { sair(); navegar("/entrar"); });
+    void encerrarSessao().finally(() => { sair(); navegar("/entrar", { replace: true }); });
   }, [sair, navegar]);
 
   if (!sessao) return null;
@@ -129,7 +156,7 @@ export function Estrutura() {
 
       <nav className="lateral" aria-label="Navegação principal">
         <div className="lateral__marca">
-          <img src="/icone.svg" alt="" width={40} height={40} style={{ borderRadius: "8px" }} />
+          <img src="/icone.svg" alt="" width={40} height={40} />
           <span>
             <span className="lateral__nome">Defesa Civil 360</span>
             <span className="lateral__org">{sessao.municipio}, {sessao.uf}</span>
@@ -140,7 +167,8 @@ export function Estrutura() {
           <div className="lateral__grupo" key={grupo}>
             <span className="lateral__rotulo">{grupo}</span>
             {visiveis.filter((i) => i.grupo === grupo).map((item) => (
-              <NavLink key={item.para} to={item.para} className="lateral__item">
+              <NavLink key={item.para} to={item.para} className="lateral__item"
+                       onFocus={trazerParaATela}>
                 {item.icone}
                 {item.rotulo}
               </NavLink>
@@ -150,11 +178,13 @@ export function Estrutura() {
 
         <div className="lateral__rodape">
           <button type="button" className="lateral__item" onClick={alternarTema}
+                  onFocus={trazerParaATela}
                   style={{ border: "none", background: "transparent", cursor: "pointer", width: "100%" }}>
             {tema === "claro" ? <IconeLua /> : <IconeSol />}
             {tema === "claro" ? "Tema escuro" : "Tema claro"}
           </button>
           <button type="button" className="lateral__item" onClick={encerrarESair}
+                  onFocus={trazerParaATela}
                   style={{ border: "none", background: "transparent", cursor: "pointer", width: "100%" }}>
             <IconeSair />
             Sair

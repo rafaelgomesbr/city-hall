@@ -1,0 +1,26 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360
+
+ ❯ packages/shared/test/regras-de-conteudo.test.ts (8 tests | 4 failed) 1279ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação 160ms
+   × Regras de conteúdo > nenhum travessão em texto nenhum 366ms
+     → travessão encontrado; use vírgula, dois pontos ou parênteses:
+docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe
+docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
+docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");": expected [ …(4) ] to deeply equal []
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  553ms
+   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 1ms
+   × Regras de conteúdo > as isenções da E20 valem só no recorte, e na árvore real 158ms
+     → expected [ …(1438) ] to not include 'docs/AUDITORIA-2026-09-30.md'
+   × Regras de conteúdo > recorte das isenções num repositório sintético > reprova o travessão novo em documento, evidência escrita à mão e produto 19ms
+     → expected [ …(15) ] to have a length of 11 but got 15
+   × Regras de conteúdo > recorte das isenções num repositório sintético > deixa passar só a saída bruta e o relatório histórico pelo nome exato 19ms
+     → expected [ …(15) ] to not include 'docs/evidencias-v2/G00/V2-F00-E99/sai…'
+   ✓ Regras de conteúdo > as próprias expressões funcionam 0ms
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 4 passed (8)
+   Start at  02:20:19
+   Duration  1.81s (transform 59ms, setup 0ms, collect 77ms, tests 1.28s, environment 0ms, prepare 162ms)
+

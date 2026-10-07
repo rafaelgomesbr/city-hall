@@ -1,0 +1,3 @@
+SHA-256 de apps/web/src/dados/http.ts antes da sonda e depois de restaurar:
+3e52870ab0e932df909ab1f329a36c43e0dd8cfe2017ef8aa664356944bda9e0 *apps/web/src/dados/http.ts
+3e52870ab0e932df909ab1f329a36c43e0dd8cfe2017ef8aa664356944bda9e0 *apps/web/src/dados/http.ts

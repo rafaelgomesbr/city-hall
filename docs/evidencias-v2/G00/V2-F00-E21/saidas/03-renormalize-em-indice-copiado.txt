@@ -1,0 +1,8 @@
+$ GIT_INDEX_FILE=<copia do indice> git add --renormalize .   (o indice real NAO foi tocado)
+codigo=0
+
+$ arquivos que a renormalizacao mudaria em relacao a HEAD, menos os que ja estao modificados na arvore
+69
+69
+so pela renormalizacao:
+0

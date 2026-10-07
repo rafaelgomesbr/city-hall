@@ -15,8 +15,26 @@ jest.mock("expo-secure-store", () => ({
   deleteItemAsync: jest.fn(async (chave: string) => { mockCofre.delete(chave); }),
 }));
 
+/*
+  O DUBLÊ DO BANCO LOCAL, COMPLETO.
+
+  Até a V2-F00-E14 ele tinha só `apagarDadosLocais`, e os quatro casos deste
+  arquivo morriam com "acolherNoAparelho is not a function": em 15/09/2026
+  (commit 5ecdf4c) `dados/sessao.tsx` passou a chamar também
+  `acolherNoAparelho` (no login) e `marcarDonoDosDadosLocais` (no login e na
+  retomada da sessão guardada), e o dublê ficou para trás. Nenhuma afirmação
+  deste arquivo mudou: o que mudou foi o dublê, para que os casos voltem a
+  exercitar o `sessao.tsx` real. O caso de deriva no fim do arquivo impede que
+  isto se repita em silêncio.
+
+  `acolherNoAparelho` devolve `{ apagou: false }` porque o caso provado aqui é
+  a MESMA pessoa entrando no aparelho: nada é apagado. O apagamento ao trocar
+  de agente tem prova própria em `dados/logout-nao-apaga-prova.test.ts`.
+*/
 jest.mock("../dados/banco-local", () => ({
   apagarDadosLocais: jest.fn(async () => undefined),
+  acolherNoAparelho: jest.fn(async () => ({ apagou: false })),
+  marcarDonoDosDadosLocais: jest.fn(async () => undefined),
 }));
 
 /** O que o servidor viu chegar em `POST /auth/sair`. */
@@ -42,6 +60,21 @@ jest.mock("../dados/api", () => ({
   }),
 }));
 
+/*
+  O `fs` e o `path` vêm por `jest.requireActual`, tipados à mão no mínimo que
+  o caso de deriva usa, e não por `import "node:fs"`: o `tsconfig` do
+  aplicativo não carrega os tipos do Node (o código dele roda no telefone), e
+  acrescentá-los por causa de um teste deixaria o código de tela enxergar uma
+  API que no aparelho não existe. O `__dirname` existe no jest e é declarado
+  aqui pelo mesmo motivo.
+*/
+declare const __dirname: string;
+const { readFileSync } = jest.requireActual("fs") as {
+  readFileSync(caminho: string, codificacao: "utf8"): string;
+};
+const { join } = jest.requireActual("path") as { join(...partes: string[]): string };
+
+import * as bancoLocalDublado from "../dados/banco-local";
 import { ProvedorDeSessao, useSessao } from "../dados/sessao";
 import { fichaGuardada, guardarFicha } from "./ficha-do-aparelho";
 
@@ -130,4 +163,37 @@ it("guarda o município da sessão, que é o que a barreira de push compara", as
 
   expect(sessaoAtual?.identidade?.organizacaoId)
     .toBe("3f1c6c4e-0a1b-4c2d-8e3f-aaaaaaaaaaaa");
+});
+
+/*
+  O CASO DE DERIVA. Ele não prova o produto: prova o dublê acima.
+
+  Dublê incompleto não reprova dizendo "falta um nome no dublê". Ele reprova
+  dizendo "acolherNoAparelho is not a function" no meio de um caso que fala de
+  notificação, e foi isso que manteve estes quatro casos vermelhos por três
+  semanas: a mensagem apontava para o lugar errado. Este caso lê o que
+  `dados/sessao.tsx` importa de `./banco-local` e confere que o dublê oferece
+  cada nome. Se amanhã o `sessao.tsx` importar um quarto, a falha diz o nome.
+
+  Lê a FONTE em vez de usar uma lista escrita à mão aqui, porque uma lista
+  escrita à mão envelhece exatamente como o dublê envelheceu.
+*/
+it("o dublê do banco local acompanha tudo o que sessao.tsx importa dele", () => {
+  const fonte = readFileSync(join(__dirname, "../dados/sessao.tsx"), "utf8");
+  const importacao = /import\s*\{([^}]+)\}\s*from\s*["']\.\/banco-local["']/.exec(fonte);
+
+  /* Se o import deixar de existir ou mudar de forma, isto reprova em vez de
+     passar por não ter encontrado nada: um casamento vazio não é um acerto. */
+  expect(importacao).not.toBeNull();
+
+  const nomesUsados = ((importacao as RegExpExecArray)[1] ?? "")
+    .split(",")
+    .map((n) => (n.trim().split(/\s+as\s+/)[0] ?? "").trim())
+    .filter((n) => n.length > 0);
+
+  expect(nomesUsados.length).toBeGreaterThan(0);
+
+  const dubleDoBanco = bancoLocalDublado as unknown as Record<string, unknown>;
+  const faltando = nomesUsados.filter((n) => typeof dubleDoBanco[n] !== "function");
+  expect(faltando).toEqual([]);
 });

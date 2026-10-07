@@ -1,0 +1,13 @@
+$ node api-contra-a-copia.mjs http://127.0.0.1:3355 22222222-2222-4222-8222-0000000000c1   (API: node apps/api/dist/index.js, DATABASE_URL = dc360_api no banco prova_e25_restaurado)
+OK   GET /saude responde 200: status 200, status=ok, banco=ok
+OK   /saude diz banco ok
+OK   POST /auth/entrar (Helena, Serra Alta) responde 200: status 200
+OK   a entrada devolve token de acesso: token omitido desta saida
+OK   GET /ocorrencias responde 200: status 200, 6 itens
+     protocolos: 000471/2026, 000472/2026, 000473/2026, 000474/2026, 000475/2026, 000478/2026
+OK   GET /ocorrencias/{c1 de Serra Alta} responde 200: status 200, protocolo 000471/2026, tipo deslizamento
+OK   GET /ocorrencias/{ocorrencia de Vale Fundo} com token de Serra Alta responde 404: status 404
+OK   GET /busca?q=acacias (pg_trgm restaurado) responde 200: status 200, 291 bytes
+     busca: {"consulta":"acacias","teto":8,"grupos":[{"tipo":"ocorrencia","itens":[{"id":"11111111-1111-4111-8111-0000000000c1","protocolo":"000471/2026","titulo":"Rua das Acácias, 245, Morro do Cruzeiro","detalhe":"Deslizamento, em campo","severidade":"critica","status":"em_campo","pontuacao":0.8}]}]}
+TODAS AS CONFERENCIAS PASSARAM
+codigo 0

@@ -33,8 +33,24 @@ export function guardarFotoNoAparelho(
     mesmo milissegundo, que acontece quando o agente segura o botão. Nome
     repetido sobrescreveria a foto anterior, e a foto anterior é prova.
   */
-  const destino = new File(Paths.document, `foto-${Date.now()}-${ordem}.jpg`);
-  new File(uriDaCamera).copy(destino);
+  /*
+    Toda falha daqui sai com frase em português e com o que fazer.
+
+    A tela de vistoria passa a mostrar a frase que esta função lança, em vez da
+    genérica (V2-F00-E16). O que o módulo nativo lança na cópia (disco cheio,
+    caminho recusado) vem em inglês e sem saída, e por isso não atravessa: é
+    trocado aqui pela frase que o agente consegue seguir na porta da casa.
+  */
+  let destino: File;
+  try {
+    destino = new File(Paths.document, `foto-${Date.now()}-${ordem}.jpg`);
+    new File(uriDaCamera).copy(destino);
+  } catch {
+    throw new Error(
+      "A foto não ficou guardada neste aparelho (o armazenamento pode estar "
+      + "cheio). Libere espaço e tire a foto de novo.",
+    );
+  }
 
   /*
     O tamanho é lido do arquivo que ficou, e não do que a câmera devolveu.

@@ -48,12 +48,39 @@ export type EstadoDaEntrada = {
  * Só rota interna do painel: começa com uma barra e não com duas (`//host`
  * é endereço absoluto sem esquema para o navegador), e nunca a própria tela
  * de entrada, que viraria um laço.
+ *
+ * A raiz (`/`) também não vale como caminho de volta, e isso era um defeito
+ * de entrada: quem digitava só o domínio chegava a `/`, era mandado para
+ * `/entrar` com `voltarPara: "/"`, e depois de entrar voltava para `/`, que
+ * não tinha tela nenhuma. O painel respondia "Esta página não existe" logo
+ * depois do login. Devolvendo `null`, `destinoDepoisDeEntrar` cai na tela do
+ * papel, que é o destino certo de quem não pediu lugar nenhum.
  */
 function rotaInterna(valor: unknown): string | null {
   if (typeof valor !== "string") return null;
   if (!valor.startsWith("/") || valor.startsWith("//")) return null;
+  if (valor === "/" || valor.startsWith("/?") || valor.startsWith("/#")) return null;
   if (valor === "/entrar" || valor.startsWith("/entrar?")) return null;
   return valor;
+}
+
+/**
+ * O caminho de volta que a rota protegida guarda, ou nenhum.
+ *
+ * Sair de propósito não deixa caminho de volta, e isso era um defeito: o clique
+ * em "Sair" também dispara o redirecionamento da rota protegida (a tela ainda
+ * está montada quando a sessão some), então a tela abandonada ficava guardada
+ * na navegação. Quem entrasse em seguida naquele navegador caía nela, e não na
+ * tela do próprio papel: outra pessoa, em outro papel, na tela da anterior.
+ *
+ * Sessão que cai sozinha é o caso oposto: ali o caminho de volta é justamente o
+ * que devolve a pessoa ao trabalho interrompido.
+ *
+ * A regra fica aqui, e não dentro do componente, para ser provada sem
+ * navegador.
+ */
+export function caminhoDeVolta(saidaVoluntaria: boolean, caminho: string): string | null {
+  return saidaVoluntaria ? null : caminho;
 }
 
 /** Lê o `state` da navegação com desconfiança: ele é `unknown` por contrato. */

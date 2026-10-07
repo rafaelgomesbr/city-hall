@@ -1,0 +1,232 @@
+$ npm run test:isolamento   (em .)
+codigo=1 duracao=92s situacao=divergente
+
+
+> dc360@0.1.0 test:isolamento
+> npm run test --workspace @dc360/db
+
+
+> @dc360/db@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/db
+
+ ✓ test/ancora-de-confianca.test.ts (6 tests) 7ms
+ ✓ test/familia-da-sessao.test.ts (12 tests) 6163ms
+ ✓ test/minimizacao-do-relato-e-da-trilha.test.ts (15 tests) 6620ms
+ ✓ test/recuperacao-do-console.test.ts (30 tests) 6841ms
+ ✓ test/teto-de-coordenada.test.ts (9 tests) 6314ms
+ ✓ test/varredura-de-prazo-sem-bypassrls.test.ts (6 tests) 7212ms
+ ✓ test/carga.test.ts (15 tests) 8430ms
+ ✓ test/eliminacao-de-municipio.test.ts (39 tests) 10231ms
+   ✓ Agendar a eliminacao, e cancelar dentro do prazo > cancelar dentro do prazo impede a execucao, e NAO reativa o acesso sozinho  338ms
+   ✓ Agendar a eliminacao, e cancelar dentro do prazo > escrever no livro por fora da funcao nao aciona o relogio: ele exige o estado na organizacao  428ms
+   ✓ Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica > vencido o prazo, o relogio apaga todas as linhas do municipio e grava as contagens  360ms
+   ✓ Executar apaga tudo do municipio, deixa o vizinho intacto e o livro fica > tabela nova sem lugar na ordem faz a funcao recusar ANTES de apagar  434ms
+ ✓ test/busca.test.ts (40 tests | 3 skipped) 11675ms
+ ✓ test/ambiente-do-aparelho.test.ts (4 tests) 13079ms
+   ✓ as linhas que já existiam quando a coluna nasceu > recebem o APNS_AMBIENTE posto na sessão pelo aplicador  3718ms
+   ✓ as linhas que já existiam quando a coluna nasceu > e producao quando ninguém pôs nada, que é o padrão da própria variável  3033ms
+ ✓ test/migrar.test.ts (17 tests) 37851ms
+   ✓ Aplicação > aplica na ordem, mesmo recebendo fora de ordem  4491ms
+   ✓ Aplicação > rodar de novo não faz nada  3323ms
+   ✓ Aplicação > aplica só o que falta quando uma migração nova aparece  2259ms
+   ✓ Aplicação > registra quando cada uma foi aplicada  2090ms
+   ✓ Falha no meio > desfaz a migração que falhou e mantém as anteriores  1768ms
+   ✓ Falha no meio > retoma da que falhou depois que ela é corrigida  1688ms
+   ✓ Falha no meio > a mensagem diz qual migração falhou  1882ms
+   ✓ Histórico não se reescreve > para quando uma migração já aplicada muda de conteúdo  1953ms
+   ✓ Histórico não se reescreve > a mensagem explica o que fazer, não só que deu erro  1596ms
+   ✓ Histórico não se reescreve > reindentar não conta como alterar  1735ms
+   ✓ Conferência sem aplicar > diz o que falta e não muda nada  1549ms
+   ✓ Conferência sem aplicar > esquema em dia devolve lista vazia  1806ms
+   ✓ As migrações reais do produto > aplicam do zero, na ordem, sem erro  3191ms
+   ✓ As migrações reais do produto > aplicar duas vezes é seguro, que é o caso de todo redeploy  2559ms
+   ✓ As migrações reais do produto > os nomes começam com número, senão a ordem alfabética não serve  1844ms
+   ✓ Migrar com o papel errado > explica que o papel não pode criar tabela, em vez de repetir o erro do Postgres  2030ms
+   ✓ Migrar com o papel errado > o papel certo continua migrando sem nenhum aviso novo  2082ms
+ ❯ test/isolamento.test.ts (137 tests | 1 failed) 81549ms
+   ✓ CA-06: isolamento entre organizações > cada município enxerga apenas as próprias ocorrências 38ms
+   ✓ CA-06: isolamento entre organizações > não lê ocorrência de outro município nem pedindo pelo id exato 24ms
+   ✓ CA-06: isolamento entre organizações > não altera ocorrência de outro município 9ms
+   ✓ CA-06: isolamento entre organizações > não cria registro carimbado com o id de outro município 27ms
+   ✓ CA-06: isolamento entre organizações > sem contexto de organização, não enxerga nada 5ms
+   ✓ CA-06: isolamento entre organizações > toda tabela do esquema tem RLS ativada E forçada 142ms
+   ✓ CA-06: isolamento entre organizações > o formulário público escreve e NÃO lê 123ms
+   ✓ CA-06: isolamento entre organizações > toda tabela de negócio tem policy amarrada na organização do contexto 277ms
+   ✓ CA-06: isolamento entre organizações > toda tabela de negócio carrega a coluna organizacao_id  546ms
+   ✓ CA-06: isolamento entre organizações > toda referência entre tabelas de negócio inclui a organização 23ms
+   ✓ Funções privilegiadas > existem, e são poucas o bastante para caberem numa revisão 4ms
+   ✓ Funções privilegiadas > toda função privilegiada fixa o search_path 3ms
+   ✓ Funções privilegiadas > nenhuma função privilegiada é executável por PUBLIC 5ms
+   ✓ Funções privilegiadas > o papel de aplicação não é superusuário nem dono das tabelas 29ms
+   ✓ Trilha auditável é append-only > aceita inserção mas recusa alteração e exclusão 43ms
+   ✓ Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > nenhuma tabela de prova tem policy que alcance DELETE 151ms
+   ✓ Apagar prova é negado por AUSÊNCIA de policy, e não só por ausência de GRANT > com um GRANT DELETE a mais, as linhas continuam lá  687ms
+   ✓ O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > a ancora: a varredura enxerga as duas excecoes nomeadas, entao ela le o catalogo de verdade 11ms
+   ✓ O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > em TODA tabela de public: nenhuma policy ALL, e policy DELETE e privilegio de DELETE so na lista nomeada 23ms
+   ✓ O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: tabela nova com policy sem FOR e GRANT DELETE e mordida, mesmo sem estar em lista nenhuma 12ms
+   ✓ O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: GRANT DELETE ON ocorrencias TO dc360_app e mordido, sem ninguem precisar lista-lo 28ms
+   ✓ O portao universal contra apagar: nenhuma policy ALL, e DELETE so onde esta nomeado > caso-irmao: privilegio por HERANCA tambem e mordido, porque a pergunta e feita ao banco e nao ao GRANT 31ms
+   ✓ Regras de negócio garantidas pelo banco > recusa encerrar sem motivo 6ms
+   ✓ Regras de negócio garantidas pelo banco > protocolo pode repetir entre municípios, mas não dentro do mesmo 5ms
+   ✓ Regras de negócio garantidas pelo banco > gera protocolo sequencial por organização e ano, sem colidir entre municípios 20ms
+   ✓ Regras de negócio garantidas pelo banco > recusa evidência cuja chave de storage não tem o prefixo do tenant 21ms
+   ✓ Regras de negócio garantidas pelo banco > a foto do servidor so aceita chave sob o municipio E o proprio usuario (migracao 040) 59ms
+   ✓ Regras de negócio garantidas pelo banco > recusa a mesma coleta enviada duas vezes com a mesma chave de idempotência 27ms
+   ✓ Isolamento sob concorrência na mesma conexão > duas leituras concorrentes de municípios diferentes não trocam de contexto 152ms
+   ✓ Isolamento sob concorrência na mesma conexão > escrita concorrente de um município não escapa para o outro 27ms
+   ✓ Chave estrangeira nao atravessa municipio > nao vincula ocorrencia a chamado de outro municipio 6ms
+   ✓ Chave estrangeira nao atravessa municipio > nao despacha para equipe de outro municipio 5ms
+   ✓ Chave estrangeira nao atravessa municipio > nao coloca servidor em equipe de outro municipio 15ms
+   ✓ Chave estrangeira nao atravessa municipio > nao grava vistoria apontando para ocorrencia de outro municipio 8ms
+   ✓ Chave estrangeira nao atravessa municipio > nao assina evento da trilha com servidor de outro municipio 7ms
+   ✓ Chave estrangeira nao atravessa municipio > o vinculo dentro do proprio municipio continua funcionando 18ms
+   ✓ Aparelho de push e aviso de prazo > nao le a ficha de push do aparelho de outro municipio 4ms
+   ✓ Aparelho de push e aviso de prazo > nao revoga o aparelho de outro municipio 4ms
+   ✓ Aparelho de push e aviso de prazo > nao registra aparelho no nome de servidor de outro municipio 4ms
+   ✓ Aparelho de push e aviso de prazo > a mesma ficha registrada por dois municipios nao denuncia a existencia da outra 36ms
+   ✓ Aparelho de push e aviso de prazo > a mesma ficha registrada duas vezes no mesmo municipio atualiza, nao duplica 22ms
+   ✓ Aparelho de push e aviso de prazo > aparelho nao se apaga, se revoga 3ms
+   ✓ Aparelho de push e aviso de prazo > revogar aparelho sem motivo e recusado pelo banco 4ms
+   ✓ Aparelho de push e aviso de prazo > nao registra aviso apontando para ocorrencia de outro municipio 24ms
+   ✓ Aparelho de push e aviso de prazo > o papel de aplicacao nao apaga aviso enviado: quem expurga e a varredura, por idade 23ms
+   ✓ Aparelho de push e aviso de prazo > nao le o aviso enviado por outro municipio 5ms
+   ✓ Aparelho de push e aviso de prazo > a varredura nao aceita municipio de quem chama e nao devolve dado de pessoa 6ms
+   ✓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > nao enfileira aviso carimbado com o id de outro municipio 7ms
+   ✓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > nao enfileira aviso para aparelho de outro municipio, nem carimbado com o proprio id 4ms
+   ✓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > a aplicacao so enfileira: nao registra entrega nem cria aviso de prazo 17ms
+   ✓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > enfileira a tarefa nova pendente para aparelho e ocorrencia do proprio municipio 10ms
+   ✓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > a varredura de tarefa nova nao aceita municipio de quem chama e nao devolve dado de pessoa 13ms
+   ✓ O aviso de despacho nasce na aplicacao, pela porta estreita da 042 > a varredura reivindica a pendente uma vez so, e a devolve com a ficha do aparelho 13ms
+   ✓ Sino de avisos > nao le o aviso de outro municipio 3ms
+   ✓ Sino de avisos > nao cria aviso carimbado com o id de outro municipio 3ms
+   ✓ Sino de avisos > nao cria aviso apontando para ocorrencia de outro municipio 21ms
+   ✓ Sino de avisos > nao registra leitura no nome de servidor de outro municipio 4ms
+   ✓ Sino de avisos > nao registra leitura de aviso de outro municipio 4ms
+   ✓ Sino de avisos > nao le quem leu o que no outro municipio 5ms
+   ✓ Sino de avisos > nao apaga aviso de outro municipio, nem o velho 21ms
+   ✓ Sino de avisos > a retencao e do banco: nem o proprio municipio apaga aviso que ainda vale 5ms
+   ✓ Sino de avisos > o expurgo por idade leva junto quem leu, em vez de travar 26ms
+   ✓ Sino de avisos > o mesmo fato nao vira dois avisos 11ms
+   ✓ Sino de avisos > aviso nao se edita, e leitura nao se desfaz 17ms
+   ✓ Sino de avisos > os gatilhos do sino nao sao privilegiados 2ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > nao le o orgao de outro municipio nem pedindo pelo id exato 20ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > nao encaminha providencia para orgao de outro municipio 8ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > providencia sem orgao_id cai no catalogo do proprio municipio, e nao no do vizinho 16ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > o mesmo nome de orgao nao entra duas vezes so por causa da caixa 11ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > orgao nao se apaga, se desativa com motivo 26ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > numera oficio por municipio e por ano, sem colidir entre municipios 51ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > a numeracao de oficio recusa rodar sem contexto de municipio 3ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > nao emite dois oficios para a mesma providencia 24ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > oficio emitido nao se corrige: sem UPDATE e sem DELETE 8ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > nao le o oficio nem o envio de outro municipio 25ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > o email so sai para dominio de orgao ativo do proprio municipio 9ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > o link abre uma vez, e a segunda abertura e recusada e registrada 19ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > o uso unico e do banco, e nao da aplicacao 4ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > link expirado nao entrega o oficio, e a recusa fica registrada 7ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > link desconhecido nao registra nada e nao conta se o municipio existe 15ms
+   ✓ Catalogo de orgaos, oficio numerado e link de uso unico > a trilha de aberturas e append-only: o papel de aplicacao le e nao escreve 36ms
+   ✓ O link do oficio nao se estende, se reenvia > o papel de aplicacao registra o desfecho e nao mexe no prazo nem no token 24ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > aceita o chamado que entrou sem classificacao, com o relato junto 4ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > recusa 'outro' sem dizer o que foi relatado 14ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > recusa descricao pendurada em tipo da COBRADE 6ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > recusa despachar equipe para chamado que continua 'outro' 9ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > encerrar sem nunca classificar continua permitido 22ms
+   ✓ O tipo a classificar, e ate onde ele pode ir > reclassificar limpa a descricao e libera o despacho 45ms
+   ✓ Orgaos indicados pela vistoria > grava a indicacao do proprio municipio, do catalogo e por texto livre 24ms
+   ✓ Orgaos indicados pela vistoria > nao indica orgao do catalogo de outro municipio 8ms
+   ✓ Orgaos indicados pela vistoria > nao pendura indicacao em vistoria de outro municipio 4ms
+   ✓ Orgaos indicados pela vistoria > o vizinho nao le as indicacoes de quem esta ao lado 4ms
+   ✓ Orgaos indicados pela vistoria > o mesmo orgao do catalogo nao entra duas vezes na mesma vistoria 23ms
+   ✓ Orgaos indicados pela vistoria > a coleta de campo nao se reescreve nem se apaga 7ms
+   ✓ Minimizacao por prazo e registro de consulta > nao le o registro de acesso do municipio vizinho 20ms
+   ✓ Minimizacao por prazo e registro de consulta > nao registra consulta apontando para ocorrencia de outro municipio 6ms
+   ✓ Minimizacao por prazo e registro de consulta > nao registra consulta no nome de servidor de outro municipio 4ms
+   ✓ Minimizacao por prazo e registro de consulta > nao carimba o registro com o id de outro municipio 4ms
+   ✓ Minimizacao por prazo e registro de consulta > o registro de acesso nao se reescreve nem se apaga 24ms
+   ✓ Minimizacao por prazo e registro de consulta > nao le nem altera o prazo de retencao do municipio vizinho 7ms
+   ✓ Minimizacao por prazo e registro de consulta > a minimizacao nao aceita municipio nem prazo de quem chama 2ms
+   ✓ Minimizacao por prazo e registro de consulta > a minimizacao nao devolve dado de pessoa 17ms
+   ✓ Minimizacao por prazo e registro de consulta > nem PUBLIC nem uma conta qualquer executa a minimizacao 2ms
+   ✓ Segundo fator > um municipio nao alcanca o segundo fator do outro, nem pelo id exato 23ms
+   ✓ Segundo fator > recusa o segredo do TOTP gravado em texto 7ms
+   ✓ Segundo fator > recusa desligar o segundo fator deixando o segredo guardado 5ms
+   ✓ Segundo fator > recusa o codigo de recuperacao gravado em texto 21ms
+   ✓ Segundo fator > guarda o codigo como resumo e recusa apagar o que ja foi gasto 11ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura enxerga o papel de aplicacao onde ele realmente tem privilegio  2983ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel alem do de aplicacao e do dono tem privilegio em tabela de negocio  2622ms
+   ✓ Nenhum papel alem do de aplicacao e do dono tem privilegio > nenhum papel do produto e superusuario ou ignora RLS 12ms
+   × Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio 65433ms
+     → Test timed out in 60000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+   ✓ Metricas escritas pelo proprio municipio > o municipio escreve o proprio resumo, e ele bate com o que o municipio ve 7ms
+   ✓ Metricas escritas pelo proprio municipio > chamar duas vezes no mesmo dia corrige a linha, nao empilha outra 12ms
+   ✓ Metricas escritas pelo proprio municipio > o resumo conta o proprio municipio, e nao enxerga o vizinho 10ms
+   ✓ Metricas escritas pelo proprio municipio > nao escreve resumo carimbado com o id de outro municipio 4ms
+   ✓ Metricas escritas pelo proprio municipio > sem contexto de municipio, a escrita nao acontece 7ms
+   ✓ Metricas escritas pelo proprio municipio > o municipio nao apaga o proprio historico de metricas 5ms
+   ✓ Metricas escritas pelo proprio municipio > a regra de coluna proibida reprova de verdade quando ha o que reprovar 6ms
+   ✓ Metricas escritas pelo proprio municipio > nada que identifique pessoa ou imovel entra no que o console le 21ms
+   ✓ Metricas escritas pelo proprio municipio > a marca de tempo da ultima escrita existe e e obrigatoria 4ms
+   ✓ Metricas escritas pelo proprio municipio > municipio que nao escreveu aparece como sinal, e nao como linha faltando 3ms
+   ✓ O console le metrica e nao alcanca dado de municipio > le o resumo de mais de um municipio, que e o motivo de ele existir 2ms
+   ✓ O console le metrica e nao alcanca dado de municipio > nao le ocorrencia, vistoria, usuario nem trilha, de municipio nenhum 21ms
+   ✓ O console le metrica e nao alcanca dado de municipio > nao escreve nada, nem na tabela que ele le 3ms
+   ✓ O console le metrica e nao alcanca dado de municipio > a visao que ele le roda com os privilegios DELE, e nao com os do dono 10ms
+   ✓ O relogio que descobre para quem chamar o resumo > descobre quem esta sem resumo fresco, sem contexto de municipio nenhum 4ms
+   ✓ O relogio que descobre para quem chamar o resumo > some da fila assim que o municipio escreve, e volta quando o resumo envelhece 13ms
+   ✓ O relogio que descobre para quem chamar o resumo > nao aceita municipio de parametro, e nao devolve nome de prefeitura 2ms
+   ✓ O relogio que descobre para quem chamar o resumo > o papel do console nao executa o relogio 4ms
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > o municipio, o administrador e a linha de nascimento nascem juntos 13ms
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > a saida sao dois identificadores, e nao ha como devolver linha de tabela 2ms
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > nenhum parametro dela vira consulta, e o corpo nao alcanca tabela de negocio 7ms
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > depois de criar o municipio, o console continua sem enxergar o que criou 21ms
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > recusa municipio duplicado ANTES de escrever, e diz qual ja existe 8ms
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > recusa senha em texto claro, e recusa cadastro sem o nome de quem cadastrou 16ms
+   ✓ A porta de criar municipio, e por que ela nao serve para ler > o papel de aplicacao de um municipio nao alcanca esta porta 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/isolamento.test.ts > Nenhum papel alem do de aplicacao e do dono tem privilegio > a varredura acusa cada um dos seis caminhos de privilegio
+Error: Test timed out in 60000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ test/isolamento.test.ts:4048:3
+    4046|    * linha nenhuma neles.
+    4047|    */
+    4048|   it("a varredura acusa cada um dos seis caminhos de privilegio", asyn…
+       |   ^
+    4049|     expect((await sobras()).length, "o banco ja comeca sujo").toBe(0);
+    4050| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-worker]: Timeout calling "onTaskUpdate"
+ ❯ Object.onTimeoutError ../node_modules/vitest/dist/chunks/rpc.-pEldfrD.js:53:10
+ ❯ Timeout._onTimeout ../node_modules/vitest/dist/chunks/index.B521nVV-.js:59:62
+ ❯ listOnTimeout node:internal/timers:588:17
+ ❯ processTimers node:internal/timers:523:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  1 failed | 11 passed (12)
+      Tests  1 failed | 326 passed | 3 skipped (330)
+     Errors  1 error
+   Start at  01:21:08
+   Duration  85.38s (transform 6.48s, setup 0ms, collect 8.71s, tests 195.97s, environment 4ms, prepare 5.43s)
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Projetos\city-hall\dc360\db
+npm error workspace @dc360/db@0.1.0
+npm error location C:\Projetos\city-hall\dc360\db
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vitest run

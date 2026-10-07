@@ -1,0 +1,16 @@
+  ● a câmera em tela cheia › reserva a área segura de baixo, onde o menu escondido não está mais para reservar
+  ● a foto que saiu vazia do disco › a tarja diz a frase certa, com o que fazer, e não a genérica
+  ● a permissão negada › de câmera: a tarja traz 'Abrir os ajustes do aparelho', e o botão abre os ajustes
+  ● a permissão negada › de localização: a mesma tarja, o mesmo botão
+  ● a tela de 'vistoria guardada' › não promete envio com o aplicativo fechado, porque isso não existe
+  ● o formulário e o teclado › a rolagem sabe a altura do teclado, para o campo digitado não ficar embaixo dele
+  ● o formulário e o teclado › o primeiro toque fora do campo AGE, em vez de só fechar o teclado
+FAIL src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx (8.856 s)
+PASS src/__tests__/a-sessao-vencida-nao-apaga-a-vistoria.test.tsx (5.587 s)
+PASS src/dados/aviso-da-saida.test.ts
+PASS src/dados/logout-nao-apaga-prova.test.ts
+PASS src/dados/precisao-do-gps.test.ts
+PASS src/dados/sair-e-entrar-nao-perde-a-coleta.test.ts
+PASS src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx (6.761 s)
+PASS src/ui/dialogo-na-conta.test.tsx (6.343 s)
+Tests:       7 failed, 43 passed, 50 total

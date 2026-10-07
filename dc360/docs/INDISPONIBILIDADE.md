@@ -102,8 +102,15 @@ erros que apareceram no caminho) contra uma cópia, com conferência de linhas,
 tabelas, políticas de segurança em nível de linha, funções, índices, restrições
 e concessões. **Cópia de segurança não testada não é cópia de segurança**, e
 por isso o teste se repete a cada `[[periodicidade a definir]]`. Esse campo
-está aberto desde a versão 1, e é decisão do dono: enquanto ele estiver aberto,
-o único restore provado continua sendo o de 09/09/2026.
+está aberto desde a versão 1, e é decisão do dono.
+
+Em 2026-10-07 (V2-F00-E25) o restore foi refeito com o esquema atual, 47
+migrações, entre dois clusters PostgreSQL descartáveis no Windows, com a
+semente sintética: isolamento conferido no banco restaurado e a API respondendo
+contra a cópia. O roteiro vigente é `RESTORE-DO-BANCO.md`; a Parte 6 de
+`COLOCAR-DE-PE.md` ficou como registro histórico. O restore a partir da
+produção (Supabase) com o esquema atual continua NÃO provado: o de 09/09/2026,
+com 15 migrações, segue sendo o único feito com dado do provedor.
 
 **Cópia antes de migrar.** Desde 15/09/2026 `scripts/migrar-producao.mjs
 --aplicar` recusa sem uma cópia feita nos últimos trinta minutos por

@@ -52,16 +52,18 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
 
 | Seção | Testes | Etapa que reescreve | Situação do registro |
 | --- | --- | --- | --- |
-| campo: sessão encerrada e logout | 6 | E14 | decisão e evidência prontas; falta o diff |
+| campo: sessão encerrada e logout | 6 (mais 1 caso de deriva novo) | E14 | feito e provado na V2-F00-E14 |
 | painel: portão de acessibilidade | 1 | E13 | idem |
 | shared: varredura de travessão | 1 (mais 1 literal) | E20 | idem |
-| painel: leitura de fonte com fim de linha | 1 | E21 | idem |
-| API: certificado de teste do banco | 13 casos (1 suíte) | E21 | idem |
+| painel: leitura de fonte com fim de linha | 1 | E21 | feito e provado na V2-F00-E21 |
+| API: certificado de teste do banco | 13 casos (1 suíte) | E21 | feito e provado na V2-F00-E21 |
 | scripts: três testes de portabilidade e de configuração | 3 | E17 | idem |
 | API: código de erro da sessão | 3 arquivos, 7 ocorrências | E05 (e E07) | idem |
 | API: espera fixa de 20 ms | 1 instável (e 10 pontos a medir) | a definir (proposta: E21) | proposta, sem etapa aceita |
 | fila do campo: 401 e 403 de sessão deixam de ser permanentes | 3 (2 no pacote, 1 na integração com a API) | E06 | feito e provado na V2-F00-E06 |
 | API e painel: papel diferente do token deixa de ser `sessao_encerrada` | 3 (2 na API, 1 no painel) | E07 | feito e provado na V2-F00-E07 |
+| painel, e2e contra a API: a seção 15 conta só a tabela da trilha | 1 verificação (e as 2 anteriores da mesma seção, que usavam o mesmo seletor) | E18 | feito e provado na V2-F00-E18 |
+| painel, e2e contra a API no Firefox: miniatura com `loading="lazy"` e os abortos de propósito no console | 1 verificação e o portão de console | E18 | feito e provado na V2-F00-E18 |
 
 ## Registros
 
@@ -91,13 +93,31 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
      `acolherNoAparelho` e `marcarDonoDosDadosLocais` (`dados/banco-local.ts:252`
      e `:228`), também em 5ecdf4c. O teste do logout é de 57795e9 (2026-09-09) e
      não foi tocado depois, então o dublê ficou para trás.
-- **Depois (previsto, a confirmar na E14):** as duas expectativas exigem "Entrar
-  de novo" e "Nada é apagado" e recusam instruir "Sair da conta" (`not.toMatch`);
-  o dublê do banco local ganha `acolherNoAparelho` (devolve `{ apagou: false }`)
-  e `marcarDonoDosDadosLocais`; um caso novo falha se `sessao.tsx` importar de
-  `banco-local` um nome que o dublê não tem. Os quatro casos do logout
-  continuam afirmando o mesmo (a ficha segue com a saída, é esquecida depois, o
-  município da sessão é guardado): só o dublê muda.
+- **Depois (feito na V2-F00-E14, 2026-10-07):**
+  - Os dois casos de frase exigem a frase inteira `Toque em "Entrar de novo"`
+    (e não só as três palavras, que também são o rótulo do botão do aviso) e
+    `Nada é apagado`. O negativo do diálogo da lista recusa qualquer
+    `Sair da conta` dentro de `explicacao` (`queryByText(...)` nulo); o do
+    Perfil recusa a INSTRUÇÃO `toque em "Sair da conta"`, porque a tela tem um
+    botão legítimo com esse rótulo. O roadmap escreve `not.toMatch`; o
+    equivalente na biblioteca de tela é `queryByText` nulo, que procura em
+    todos os textos desenhados e não em uma string só.
+  - O dublê de `../dados/banco-local` em `push/logout-cala-o-aparelho.test.tsx`
+    ganhou `acolherNoAparelho` (devolve `{ apagou: false }`, a mesma pessoa
+    entrando) e `marcarDonoDosDadosLocais`. Os quatro casos do logout continuam
+    afirmando o mesmo (a ficha segue com a saída, é esquecida depois, o
+    município da sessão é guardado): nenhuma linha de asserção mudou.
+  - Caso novo, "o dublê do banco local acompanha tudo o que sessao.tsx importa
+    dele": lê a fonte de `dados/sessao.tsx`, extrai os nomes do import de
+    `./banco-local` e reprova listando o nome que faltar no dublê. Reprova
+    também se o import não for encontrado (casamento vazio não é acerto).
+- **Sondas (o teste reescrito ainda pega o defeito):** com `acolherNoAparelho`
+  tirado do dublê, os 5 casos do arquivo reprovam e o de deriva diz
+  `["acolherNoAparelho"]`; com a frase antiga ("toque em \"Sair da conta\" e
+  entre de novo ... continua guardado no aparelho") posta de volta em
+  `falha-de-atualizacao.ts` por um instante, os 2 casos de frase reprovam. O
+  arquivo de produto voltou idêntico (SHA-256 conferido). Saídas em
+  `docs/evidencias-v2/G00/V2-F00-E14/saidas/`.
 - **Evidência:** o teste irmão é `__tests__/a-sessao-vencida-nao-apaga-a-vistoria.test.tsx`
   (afirma o "Entrar de novo" e que `sair()` não é chamado; passa em
   `V2-F00-E01/saidas/08-teste-campo-app.txt:8051`, mesmo commit da decisão).
@@ -105,8 +125,12 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
   `falha-de-atualizacao.test.ts` que o roadmap cita: ele passa, mas cobre o
   acesso suspenso e a classificação do 401 (ver a divergência D-2 da
   classificação). As seis falhas atuais estão em `08-teste-campo-app.txt:4,70,3545`.
+  Leitura de apoio da E14: `dados/banco-local.ts:215-285` (`donoDosDadosLocais`,
+  `marcarDonoDosDadosLocais` em `:228`, `acolherNoAparelho` em `:252`, que
+  apaga só quando outra pessoa entra) e o comentário de
+  `app/(agente)/index.tsx:1222` ("Até 15/09/2026 este botão chamava `sair()`").
 - **Etapa e data:** decisão registrada na V2-F00-E03 em 2026-10-05; reescrita na
-  V2-F00-E14.
+  V2-F00-E14 em 2026-10-07, sem tocar em nenhum arquivo de produto.
 
 ### painel: portão de acessibilidade (E13)
 
@@ -156,9 +180,14 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
 - **Decisão que o torna velho:** nenhuma decisão superada: é ambiente. Com
   `core.autocrlf=true` e sem `.gitattributes`, o índice fica LF e a árvore
   CRLF, e o marcador não existe (`slice(inicio, -1)` pega o arquivo inteiro).
-- **Depois (previsto, E21):** o helper `ler-fonte.ts` lê e normaliza `\r\n`
-  para `\n`; um caso negativo prova que uma chave de fechamento movida ainda
-  reprova (o helper não esconde mudança real).
+- **Depois (feito na E21, 2026-10-07):** `apps/web/test/ler-fonte.ts` lê e
+  normaliza `\r\n` para `\n` (`lerFonte`) e recorta a função até a chave na
+  coluna zero (`blocoDaFuncao`), lançando erro em vez de devolver o resto do
+  arquivo quando não acha o fim. As três afirmações do caso não mudaram.
+  `apps/web/test/ler-fonte.test.ts` (7 casos) prova a mesma fonte em CRLF e em
+  LF com o mesmo recorte, e os negativos: a chave de fechamento movida para
+  antes do `onEnviar` tira a chamada do bloco, e função sem chave na coluna
+  zero reprova alto. O `.gitattributes` da raiz passou a fixar LF.
 - **Evidência:** `V2-F00-E01/saidas/07-teste-web.txt:384-398`; `git ls-files --eol`
   mostra `i/lf w/crlf` para o arquivo.
 - **Etapa e data:** decisão registrada na V2-F00-E03 em 2026-10-05; reescrita na
@@ -172,9 +201,16 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
 - **Decisão que o torna velho:** nenhuma decisão superada: é ambiente. A variável
   `OPENSSL_CONF` desta máquina aponta para
   `C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf`, que não existe.
-- **Depois (previsto, E21):** o teste passa ao `openssl` um ambiente sem
-  `OPENSSL_CONF` quando ela aponta para arquivo inexistente e imprime o motivo;
-  com a variável válida ele a respeita. As 13 afirmações não mudam.
+- **Depois (feito na E21, 2026-10-07):** o `beforeAll` chama
+  `gerarCertificadoAutoassinado` de `apps/api/test/openssl-do-teste.ts`, que
+  passa ao `openssl` um ambiente sem `OPENSSL_CONF` só quando ela aponta para
+  arquivo inexistente e imprime o motivo no `stderr` do teste. As 13 afirmações
+  não mudaram e os 13 casos RODAM (nenhum pulado), no Git Bash e no PowerShell
+  (lá o `openssl` não está no PATH e é achado ao lado do `git`; sem ele em
+  lugar nenhum a suíte reprova com frase). `openssl-do-teste.test.ts`
+  (10 casos) prova as duas metades: a variável quebrada sai, e uma configuração
+  válida é lida de verdade (ela pede `CA:FALSE` e o certificado sai com
+  `ca === false`; sem ela, `ca === true`).
 - **Evidência:** `docs/auditoria-v2/raw/teste-banco-tls-sem-openssl-conf.txt`
   (13 de 13 sem a variável, 2026-09-30); a saída da E01
   (`05-teste-api.txt:417-430`) não mostra a causa porque o teste usa
@@ -295,3 +331,20 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
 - **Evidência:** `docs/evidencias-v2/G00/V2-F00-E10/saidas/02-sonda-antes-do-conserto-api.txt` (a frase acentuada reprova com o código velho).
 - **Etapa e data:** V2-F00-E10, 2026-10-06.
 
+### Painel, e2e contra a API: a seção 15 conta só a tabela da trilha (uma verificação)
+
+- **Teste:** `dc360/apps/web/test/fluxo-api.e2e.mjs`, seção 15, "filtrar por autor funciona" (e, pelo mesmo seletor, "a trilha do municipio aparece" e "cada evento diz quem agiu").
+- **Antes:** contava `.tabela tbody tr` na página inteira de Prestação de contas e exigia que toda linha, depois de filtrar por "helena", trouxesse "Helena". Esperava a resposta do filtro com um `waitForTimeout(1500)`.
+- **Decisão que o torna velho:** a tela ganhou mais duas tabelas `.tabela` acima e abaixo da trilha, os cartões "Quem exportou o quê" e "Quem consultou dado de cidadão" (`apps/web/src/paginas/Auditoria.tsx`, `CartaoDeExportacoes` e `CartaoDeConsultas`, com legenda própria cada um). O filtro por autor é só da trilha, e a linha de consulta de outra pessoa entrava na conta. Ninguém viu porque a suíte morria na seção 13 desde então. O teste irmão que afirma o filtro é o da rota (`apps/api/test/prestacao-de-contas.test.ts`, `GET /trilha?autor=helena`), e a tela filtra certo: na mesma execução, a tabela da trilha sai só com linhas de Helena.
+- **Depois:** acha a tabela pela legenda ("Eventos da trilha") e conta só as linhas dela; espera o total do título "Trilha de auditoria (N)" mudar, em vez de 1500 ms. Nenhuma asserção foi enfraquecida: as mesmas três verificações, com o mesmo critério (toda linha da trilha filtrada traz "Helena" e há ao menos uma).
+- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E18/saidas/02-e2e-api-chromium-depois-do-cors.txt` (com o CORS consertado e o seletor antigo: "FALHA filtrar por autor funciona (26 linhas)") e as execuções finais `03` e `04` (verde nos dois motores).
+- **Etapa e data:** V2-F00-E18, 2026-10-07.
+
+### Painel, e2e contra a API no Firefox: miniatura preguiçosa e os abortos de propósito no console
+
+- **Teste:** `dc360/apps/web/test/fluxo-api.e2e.mjs`, seção 13, "a imagem carrega pela URL assinada", e a lista `ESPERADOS` do portão "zero erro de console".
+- **Antes:** conferia `img.complete && img.naturalWidth > 0` no instante em que a galeria aparecia; e a lista `ESPERADOS` só conhecia a forma do Firefox para o aborto da seção 28 (`/saida/pacote.zip`).
+- **Decisão que o torna velho:** a miniatura da galeria é `loading="lazy"` de propósito (`apps/web/src/paginas/Ocorrencia.tsx`), e o Firefox só a busca quando ela chega perto da área visível; o Chromium busca de mais longe, por isso o teste nunca reprovou nele. E o Firefox registra como "Cross-Origin Request Blocked ... CORS request did not succeed" o pedido que a própria suíte aborta com `route.abort` (seções 19 e 27), e como `downloadable font: download failed ... status=2152398850` (NS_BINDING_ABORTED) a fonte cuja carga a navegação da suíte cancelou. A suíte nunca tinha rodado inteira no Gecko antes desta etapa.
+- **Depois:** rola até a miniatura e espera o `load` (ou o `error`, que reprova) por até 15 s; `naturalWidth` zero continua reprovando. A lista ganhou três padrões estreitos, presos ao caminho abortado (`/ocorrencias/duplicidades/consulta?` e `/auth/recuperar.`) e ao código de aborto da fonte. Bloqueio de CORS em qualquer outro caminho e fonte ausente de verdade (outro status) continuam reprovando. Nenhuma asserção foi enfraquecida.
+- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E18/saidas/11-e2e-api-firefox-rodada-1-miniatura-lazy.txt` (a miniatura e os dois abortos), `12-e2e-api-firefox-rodada-2-console-dos-abortos.txt` (271 de 271, só o console) e `04-e2e-api-firefox-final.txt` (verde).
+- **Etapa e data:** V2-F00-E18, 2026-10-07.

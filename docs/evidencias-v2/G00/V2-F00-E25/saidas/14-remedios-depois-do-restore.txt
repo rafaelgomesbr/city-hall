@@ -1,0 +1,5 @@
+== os dois remedios que o primeiro diff pediu (nada disso vem no dump)
+$ psql -U dc360_setup -d prova_e25_restaurado -c "GRANT dc360_app TO dc360_setup WITH SET TRUE;"   (a concessao da migracao 025 ao dono das tabelas)
+GRANT ROLE
+$ psql -U dc360_setup -d prova_e25_restaurado -c "GRANT USAGE ON SCHEMA public TO PUBLIC;"   (o USAGE de fabrica do public, que o pg_dump omite por achar que e padrao)
+GRANT

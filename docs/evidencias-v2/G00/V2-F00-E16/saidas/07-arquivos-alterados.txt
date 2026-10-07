@@ -1,0 +1,9 @@
+ dc360/apps/campo/LEIA-ME.md                        |  16 ++
+ dc360/apps/campo/PENDENCIAS.md                     |  73 ++++++++
+ ...o-teclado-a-camera-e-o-que-ela-promete.test.tsx |  60 ++++++-
+ .../apps/campo/src/app/(agente)/vistoria/[id].tsx  | 200 ++++++++++++++++++---
+ .../campo/src/dados/evidencia-no-disco.test.ts     |  19 ++
+ dc360/apps/campo/src/dados/evidencia-no-disco.ts   |  20 ++-
+ dc360/scripts/baseline.mjs                         |  65 ++++++-
+ 7 files changed, 419 insertions(+), 34 deletions(-)
+(o diff contra HEAD inclui o que E14 e E15 ja tinham deixado na arvore nesses arquivos; os trechos da E16 levam a marca V2-F00-E16 nos comentarios)

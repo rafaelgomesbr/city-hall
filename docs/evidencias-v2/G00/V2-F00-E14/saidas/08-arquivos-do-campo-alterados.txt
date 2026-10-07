@@ -1,0 +1,3 @@
+dc360/apps/campo/src/__tests__/a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx
+dc360/apps/campo/src/__tests__/perfil-a-sessao-que-terminou-e-o-aviso-que-fecha.test.tsx
+dc360/apps/campo/src/push/logout-cala-o-aparelho.test.tsx

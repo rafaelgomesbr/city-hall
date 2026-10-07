@@ -1,0 +1,20 @@
+$ git ls-files --eol | resumo por estado do indice e atributo
+    244 i/-text attr/-text
+      1 i/-text attr/text=auto
+      2 i/lf attr/text
+   1133 i/lf attr/text=auto
+
+$ git ls-files --eol | grep -c "i/crlf"
+0
+
+$ git check-attr text eol -- scripts/conferir-demo.ps1 dc360/apps/web/public/og.png dc360/README.md
+scripts/conferir-demo.ps1: text: set
+scripts/conferir-demo.ps1: eol: crlf
+dc360/apps/web/public/og.png: text: unset
+dc360/apps/web/public/og.png: eol: lf
+dc360/README.md: text: auto
+dc360/README.md: eol: lf
+
+$ git diff --name-only | wc -l ; git diff --ignore-cr-at-eol --name-only | wc -l   (nenhum arquivo muda so por fim de linha)
+69
+69

@@ -10,6 +10,7 @@ import {
 import { Campo } from "../componentes/Campo";
 import { ConfirmarAcao } from "../componentes/ConfirmarAcao";
 import { IconeMais } from "../componentes/Icones";
+import { Toast } from "../componentes/Toast";
 import { useTitulo } from "../seo/titulo";
 
 /**
@@ -39,6 +40,15 @@ export function Equipes() {
   */
   const [aDesativar, setADesativar] = useState<LinhaEquipe | null>(null);
   const [desativando, setDesativando] = useState(false);
+  /*
+    A confirmação passageira de que a gravação aconteceu.
+
+    Antes, gravar limpava o formulário e a linha aparecia na tabela, sem uma
+    frase. Quem enxerga fica na dúvida se o clique pegou; quem usa leitor de
+    tela não vê a linha nova e não ouve nada. O `Toast` tem `role="status"`, e
+    é ele quem anuncia.
+  */
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const recarregar = useCallback(async () => {
     setEquipes(await listarEquipes(sessao));
@@ -70,8 +80,10 @@ export function Equipes() {
       if (editando) {
         const atual = equipes?.find((e) => e.id === editando);
         await atualizarEquipe(sessao, editando, nome, especialidade, atual?.ativa ?? true);
+        setAviso("Equipe corrigida. A lista abaixo já mostra o que mudou.");
       } else {
         await criarEquipe(sessao, nome, especialidade);
+        setAviso("Equipe criada. Ela já aparece na lista abaixo.");
       }
       setNome(""); setEspecialidade(""); setEditando(null); setErrosDeCampo({});
       await recarregar();
@@ -252,6 +264,8 @@ export function Equipes() {
           </Aviso>
         )}
       </ConfirmarAcao>
+
+      {aviso && <Toast tom="sucesso" mensagem={aviso} aoFechar={() => setAviso(null)} />}
     </>
   );
 }

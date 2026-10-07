@@ -3,7 +3,7 @@ import { podeExecutar, type Acao } from "@dc360/shared";
 import { Estrutura } from "./componentes/Estrutura";
 import { useSessao, useTema } from "./estado/sessao";
 import { Entrar } from "./paginas/Entrar";
-import { destinoDepoisDeEntrar, telaInicial } from "./paginas/entrar-regras";
+import { caminhoDeVolta, destinoDepoisDeEntrar, telaInicial } from "./paginas/entrar-regras";
 import { DefinirNovaSenha, RecuperarSenha } from "./paginas/RecuperarSenha";
 import { Equipes } from "./paginas/Equipes";
 import { Mapa } from "./paginas/Mapa";
@@ -34,9 +34,15 @@ import { NaoEncontrada } from "./paginas/NaoEncontrada";
  * uma tela derrubava a pessoa sem dizer por quê e sem trazê-la de volta. O
  * motivo vem do provedor de sessão; o caminho, daqui. A tela de entrada lê
  * os dois de `location.state` (ver `paginas/entrar-regras.ts`).
+ *
+ * Quem SAIU de propósito não ganha caminho de volta. A diferença importa
+ * porque este redirecionamento também dispara no clique em "Sair": a tela
+ * ainda está montada quando a sessão some, e o caminho dela ficava guardado na
+ * navegação. A pessoa seguinte a entrar naquele navegador caía na tela da
+ * anterior (o mapa, por exemplo), e não na tela do próprio papel.
  */
 function Protegida({ children }: { children: JSX.Element }) {
-  const { sessao, motivoDaSaida } = useSessao();
+  const { sessao, motivoDaSaida, saidaVoluntaria } = useSessao();
   const location = useLocation();
   if (sessao) return children;
   return (
@@ -45,7 +51,10 @@ function Protegida({ children }: { children: JSX.Element }) {
       replace
       state={{
         motivo: motivoDaSaida,
-        voltarPara: `${location.pathname}${location.search}${location.hash}`,
+        voltarPara: caminhoDeVolta(
+          saidaVoluntaria,
+          `${location.pathname}${location.search}${location.hash}`,
+        ),
       }}
     />
   );
@@ -112,6 +121,14 @@ export function App() {
       <Route path="/redefinir-senha" element={<DefinirNovaSenha />} />
 
       <Route element={<Protegida><Estrutura /></Protegida>}>
+        {/*
+          A raiz do painel. Sem ela, quem digitava só o domínio caía no curinga
+          lá embaixo e lia "Esta página não existe" logo depois de entrar, que
+          é o primeiro endereço que qualquer pessoa tenta. Ela não é tela: é o
+          desvio para a tela do papel, a MESMA regra de `telaInicial` que a
+          entrada usa, para as duas não divergirem.
+        */}
+        <Route index element={<Navigate to={inicio} replace />} />
         <Route path="/painel" element={<Painel />} />
         <Route path="/meu-trabalho" element={<MeuTrabalho />} />
         <Route path="/minha-conta" element={<MinhaConta />} />

@@ -69,8 +69,19 @@ jest.mock("../dados/fila", () => ({
     resumo: async () => ({
       pendentes: mockPendentes, enviando: 0, bloqueados: 0, confirmados: 0,
     }),
+    /* O Perfil assina a fila (V2-F00-E15), e a fila de verdade avisa quem assina na hora. */
+    assinar: (ouvinte: (r: unknown) => void) => {
+      ouvinte({ pendentes: mockPendentes, enviando: 0, bloqueados: 0, confirmados: 0 });
+      return () => undefined;
+    },
   }),
 }));
+
+/*
+  Nenhuma vistoria começada no disco: este arquivo é sobre a FILA. O caso com
+  rascunho mora em `dialogo-na-conta-com-vistoria-comecada.test.tsx`.
+*/
+jest.mock("../dados/rascunho", () => ({ listarRascunhos: async () => [] }));
 
 const mockSair = jest.fn(async () => {});
 jest.mock("../dados/sessao", () => ({

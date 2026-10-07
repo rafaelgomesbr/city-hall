@@ -293,6 +293,44 @@ function elementos(fonte: string): Array<{ texto: string; linha: number }> {
 const NAO_INTERATIVOS =
   /^<(div|span|li|section|article|p|tr|td|ul|ol|header|footer|figure|img)[\s/>]/;
 
+/**
+ * O comentário contíguo imediatamente acima de um elemento.
+ *
+ * A janela era fixa em quatro linhas, e isso punia exatamente a exceção bem
+ * escrita: a de `Modal.tsx` explica em sete linhas por que o clique no fundo
+ * não ganha `tabIndex`, a marca ficou na primeira linha do bloco, e o portão
+ * leu só as quatro últimas e reprovou. Encurtar a justificativa para caber
+ * seria o contrário do que a regra quer.
+ *
+ * Então a leitura passa a ser o BLOCO inteiro: sobe linha a linha a partir do
+ * elemento, atravessa linhas em branco e o JSX de abertura do comentário
+ * (`{/*`), e para no começo do bloco (`/*`) ou na primeira linha que não é
+ * comentário. Fora de um comentário, nada é lido: a marca continua precisando
+ * estar escrita num comentário, e não solta no meio do código.
+ */
+function comentarioAcima(linhas: string[], linhaDoElemento: number): string {
+  const colhidas: string[] = [];
+  let i = linhaDoElemento - 2; // índice da linha imediatamente acima
+  // Linhas em branco entre o comentário e o elemento não quebram a ligação.
+  while (i >= 0 && linhas[i]!.trim() === "") i--;
+  if (i < 0) return "";
+
+  const fim = linhas[i]!.trim();
+  if (fim.startsWith("//")) {
+    // Bloco de linhas `//` seguidas.
+    while (i >= 0 && linhas[i]!.trim().startsWith("//")) { colhidas.push(linhas[i]!); i--; }
+    return colhidas.join(" ");
+  }
+  // Comentário de bloco: a linha de cima precisa FECHAR um (`*/` ou `*/}`).
+  if (!/\*\/\s*\}?$/.test(fim)) return "";
+  while (i >= 0) {
+    colhidas.push(linhas[i]!);
+    if (/(\{\s*)?\/\*/.test(linhas[i]!)) break;
+    i--;
+  }
+  return colhidas.join(" ");
+}
+
 describe("Teclado e leitor de tela", () => {
   it("a varredura enxerga as telas de verdade", () => {
     const telas = arquivos(RAIZ, /\.tsx$/);
@@ -311,11 +349,12 @@ describe("Teclado e leitor de tela", () => {
         if (!el.texto.includes("onClick")) continue;
         if (!NAO_INTERATIVOS.test(el.texto)) continue;
         /*
-          Exceção declarada logo acima, com a razão escrita. A janela é de
-          quatro linhas porque a razão costuma não caber em uma, e obrigar a
-          caber produziria justificativa curta demais para significar algo.
+          Exceção declarada no comentário logo acima, com a razão escrita. O
+          bloco inteiro conta, sem teto de linhas: a razão costuma não caber em
+          uma, e obrigar a caber produziria justificativa curta demais para
+          significar algo.
         */
-        const acima = linhas.slice(Math.max(0, el.linha - 5), el.linha - 1).join(" ");
+        const acima = comentarioAcima(linhas, el.linha);
         if (acima.includes(PERMISSAO)) continue;
         // Alcançável por teclado significa foco mais tecla, os dois.
         const focavel = el.texto.includes("tabIndex");
@@ -432,6 +471,41 @@ describe("Teclado e leitor de tela", () => {
     ).toEqual([]);
   });
 
+  it("o Tab traz o item da barra do rodapé inteiro para a tela", () => {
+    /*
+      No celular a lateral vira barra no pé da tela e rola na horizontal. O
+      navegador NÃO rola sozinho um item que está pela metade: medido a 390px,
+      o Tab parava em "Mapa da cidade" com o rótulo cortado na borda direita.
+      Quem rola é o `onFocus` da estrutura, e o respiro vem do
+      `scroll-padding-inline` da folha. São duas metades da mesma correção, e
+      este portão guarda as duas.
+    */
+    const estrutura = readFileSync(join(RAIZ, "componentes", "Estrutura.tsx"), "utf8");
+    expect(estrutura).toMatch(/scrollIntoView\(\{\s*inline:\s*"nearest",\s*block:\s*"nearest"\s*\}\)/);
+    // Os três tipos de item da barra: destino, troca de tema e sair.
+    expect(estrutura.match(/onFocus=\{trazerParaATela\}/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+    const css = readFileSync(join(RAIZ, "estilos", "app.css"), "utf8");
+    expect(css).toMatch(/\.lateral\s*\{\s*scroll-padding-inline:\s*var\(--ds-sp-\d\)/);
+  });
+
+  it("o aviso passageiro não cai em cima da barra de navegação", () => {
+    /*
+      `.toast` é fixo no canto inferior direito. No celular a barra ocupa esse
+      canto, e a confirmação de gravação aparecia POR CIMA dos destinos, com as
+      frases sobrepostas. A posição precisa estar na folha (regra de media query
+      não vence estilo escrito no elemento) e precisa subir a altura da barra.
+    */
+    const toast = readFileSync(join(RAIZ, "componentes", "Toast.tsx"), "utf8");
+    expect(toast, "a posição do toast não pode voltar para dentro do componente")
+      .not.toMatch(/position:\s*"fixed"/);
+    const css = readFileSync(join(RAIZ, "estilos", "app.css"), "utf8");
+    expect(css).toMatch(/\.toast\s*\{[^}]*position:\s*fixed/);
+    // A altura é a mesma conta que desenha a barra, e não um número escolhido.
+    expect(css).toMatch(
+      /\.toast\s*\{\s*bottom:\s*calc\(var\(--ds-sp-4\)\s*\+\s*var\(--ds-touch\)\s*\+\s*var\(--ds-sp-5\)\s*\*\s*2\)/,
+    );
+  });
+
   it("existe um atalho para pular direto ao conteúdo", () => {
     // Sem isso, quem navega por teclado atravessa a lateral inteira a cada
     // troca de tela.
@@ -453,6 +527,46 @@ describe("Teclado e leitor de tela", () => {
 
     expect(/\balt=/.test('<img src={u} loading="lazy" />')).toBe(false);
     expect(/\balt=/.test('<img src={u} alt="foto" />')).toBe(true);
+  });
+
+  it("a exceção vale pelo comentário inteiro, e só por ele", () => {
+    /*
+      O portão precisa continuar reprovando o clique só de mouse. Se ele
+      passasse a aceitar qualquer coisa, os casos acima ficariam verdes para
+      sempre sem ninguém notar, que é como um portão morre.
+    */
+    const comBlocoLongo = [
+      "    /*",
+      `      ${PERMISSAO}. Clique no fundo é atalho de ponteiro, e a`,
+      "      contrapartida de teclado está no mesmo componente: Escape fecha,",
+      "      e o botão Cancelar fecha por Tab e Enter. Dar tabIndex ao fundo",
+      "      acrescentaria ao ciclo do Tab uma parada que não é controle.",
+      "    */",
+      "    <div onClick={f}>",
+    ];
+    // Sete linhas de bloco: a janela fixa de quatro linhas reprovava isto.
+    expect(comentarioAcima(comBlocoLongo, 7)).toContain(PERMISSAO);
+
+    // Comentário de linha, e com linha em branco no meio do caminho.
+    const comBarras = [`    // ${PERMISSAO}: a razão`, "", "    <div onClick={f}>"];
+    expect(comentarioAcima(comBarras, 3)).toContain(PERMISSAO);
+
+    // Sem comentário nenhum: não há exceção, e o caso reprova.
+    expect(comentarioAcima(["    <div onClick={f}>"], 1)).toBe("");
+
+    // A marca SOLTA no código, fora de comentário, não vale como exceção.
+    const semComentario = [`    const x = "${PERMISSAO}";`, "    <div onClick={f}>"];
+    expect(comentarioAcima(semComentario, 2)).toBe("");
+
+    // Nem a marca de um bloco que não é o de cima (há código entre os dois).
+    const blocoDistante = [
+      "    /*",
+      `      ${PERMISSAO}: razão de outro elemento`,
+      "    */",
+      "    const y = 1;",
+      "    <div onClick={f}>",
+    ];
+    expect(comentarioAcima(blocoDistante, 5)).toBe("");
   });
 });
 

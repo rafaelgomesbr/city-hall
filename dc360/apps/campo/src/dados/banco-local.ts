@@ -274,7 +274,16 @@ export async function acolherNoAparelho(usuarioId: string): Promise<{ apagou: bo
  * alguém confirmar a saída: a vistoria COMEÇADA e ainda não concluída. O
  * rascunho vai em `rascunhos`, e as fotos e a assinatura dela estão no disco
  * sem nenhum item da fila apontando para elas, então caem na limpeza abaixo.
- * É por isso que o diálogo de saída conta os rascunhos e avisa.
+ *
+ * Até a V2-F00-E15 este comentário dizia que o diálogo de saída contava os
+ * rascunhos, e ele não contava: só a fila, lida uma vez na montagem do Perfil.
+ * Desde então conta de fato. No toque em "Sair da conta" o Perfil lê
+ * `listarRascunhos` e o texto vem de `avisoDaSaida` (`aviso-da-saida.ts`): diz
+ * quantas vistorias começadas serão apagadas, se há fotos e assinatura, e que
+ * sair apaga; se o disco não responder, avisa do mesmo jeito. A prova está em
+ * `ui/dialogo-na-conta-com-vistoria-comecada.test.tsx` e
+ * `dados/aviso-da-saida.test.ts`. Preservar o rascunho depois da saída não é
+ * desta função: é decisão do CP-24 (F14-E02).
  *
  * Zera as tabelas em vez de derrubar o arquivo: o esquema fica de pé para o
  * próximo login, e o WAL não precisa recriar nada. Depois esquece a conexão,

@@ -1,0 +1,12 @@
+$ diff 12-estrutura-origem.txt 12-estrutura-restaurado.txt
+60c60
+< public|dc360_setup|{dc360_setup=UC/dc360_setup,=U/dc360_setup,dc360_app=U/dc360_setup,dc360_console=U/dc360_setup}
+---
+> public|dc360_setup|{dc360_setup=UC/dc360_setup,dc360_app=U/dc360_setup,dc360_console=U/dc360_setup}
+738c738
+< oficio_envios|provedor_id_plausivel|b72fb1301dad0783f69ff33b53a0a171
+---
+> oficio_envios|provedor_id_plausivel|feee8fbbf92150243198324df806ec98
+1062d1061
+< dc360_app|dc360_setup|t|t|f
+codigo 1

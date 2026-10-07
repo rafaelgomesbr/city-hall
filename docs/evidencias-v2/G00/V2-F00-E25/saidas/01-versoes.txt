@@ -1,0 +1,9 @@
+== versoes
+2026-10-07T04:16:42-03:00
+MINGW64_NT-10.0-26200 Rafa_Laptop 3.4.9-be826601.x86_64 2023-09-07 12:36 UTC x86_64 Msys
+v22.17.0
+10.9.2
+initdb (PostgreSQL) 18.3
+pg_dump (PostgreSQL) 18.3
+pg_restore (PostgreSQL) 18.3
+psql (PostgreSQL) 18.3

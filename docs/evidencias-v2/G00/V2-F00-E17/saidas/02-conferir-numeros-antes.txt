@@ -1,0 +1,94 @@
+Lendo a lista de testes de cada pacote (sem executar)...
+
+Contagens reais:
+  2808  total de testes automatizados
+   165  testes do pacote compartilhado
+   187  testes do motor de campo
+  1237  testes da API
+   259  testes do console do fornecedor
+   633  testes de fonte do painel
+   327  testes do banco
+   137  testes de isolamento (CA-06)
+    17  testes do aplicador de migrações
+    15  testes de integração do campo contra a API
+    58  testes da fila de sincronização
+     9  testes do depósito SQLite
+    70  verificações no navegador, modo local
+   251  verificações no navegador, contra a API
+   321  verificações no navegador, somadas
+  1861  testes do aplicativo de campo
+  4669  total de testes automatizados, somando o aplicativo
+
+Afirmações conferidas: 5
+
+Afirmações que não batem (17):
+
+  docs/COLOCAR-DE-PE.md:40
+    afirma: - **3927 testes verdes somando o aplicativo, e `npm audit` em zero.**
+    a frase fala de uma grandeza cujo valor real é 1861 ou 4669, e não 3927
+
+  docs/COLOCAR-DE-PE.md:302
+    afirma: npm run verificar          # typecheck, 3927 testes com o aplicativo, npm audit, números
+    a frase fala de uma grandeza cujo valor real é 1861 ou 4669, e não 3927
+
+  README.md:12
+    afirma: | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 
+    a frase fala de uma grandeza cujo valor real é 327, e não 285
+
+  README.md:13
+    afirma: | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP
+    a frase fala de uma grandeza cujo valor real é 633, e não 454
+
+  README.md:13
+    afirma: | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP
+    a frase fala de uma grandeza cujo valor real é 70 ou 251 ou 321, e não 68
+
+  README.md:14
+    afirma: | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotent
+    a frase fala de uma grandeza cujo valor real é 1237 ou 251, e não 962
+
+  README.md:15
+    afirma: | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, 
+    a frase fala de uma grandeza cujo valor real é 187, e não 138
+
+  README.md:16
+    afirma: | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila 
+    a frase fala de uma grandeza cujo valor real é 1861 ou 4669, e não 1708
+
+  README.md:17
+    afirma: | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de us
+    a frase fala de uma grandeza cujo valor real é 259, e não 250
+
+  README.md:1188
+    afirma: npm test                    # 2219 testes em seis pacotes
+    a frase fala de uma grandeza cujo valor real é 2808, e não 2219
+
+  README.md:1189
+    afirma: npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 285 testes do banco
+    a frase fala de uma grandeza cujo valor real é 327, e não 285
+
+  README.md:1190
+    afirma: npm run test:api            # 962 testes da API
+    a frase fala de uma grandeza cujo valor real é 1237 ou 251, e não 962
+
+  README.md:1191
+    afirma: npm run test --workspace @dc360/campo   # 138 testes do motor de campo
+    a frase fala de uma grandeza cujo valor real é 187, e não 138
+
+  README.md:1192
+    afirma: npm run test:campo          # tipos e os 1708 testes do aplicativo de campo
+    a frase fala de uma grandeza cujo valor real é 1861 ou 4669, e não 1708
+
+  README.md:1271
+    afirma: `webkit`). As 68 verificações passam no Chromium, que é o motor do Chrome e do
+    a frase fala de uma grandeza cujo valor real é 70 ou 251 ou 321, e não 68
+
+  README.md:1329
+    afirma: São 236 verificações no navegador que só existem neste caminho: entrada por senha, senha
+    a frase fala de uma grandeza cujo valor real é 70 ou 251 ou 321, e não 236
+
+  README.md:1345
+    afirma: São 68 verificações no navegador: entrada, a busca global tolerante a erro, isolamento entre municípios visto 
+    a frase fala de uma grandeza cujo valor real é 70 ou 251 ou 321, e não 68
+
+Corrija o texto, ou registre o número em VERDADE se ele mede algo novo.

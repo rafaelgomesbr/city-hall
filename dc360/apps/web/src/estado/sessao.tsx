@@ -32,6 +32,15 @@ type ContextoSessao = {
   sair: () => void;
   /** Preenchido só quando a sessão caiu sozinha; `entrar` limpa. */
   motivoDaSaida: MotivoDaSaida | null;
+  /**
+   * Verdadeiro quando quem saiu foi a própria pessoa, no botão "Sair".
+   *
+   * A rota protegida precisa distinguir isso de sessão que caiu sozinha: sair
+   * de propósito não deixa caminho de volta. Sem a distinção, a tela que a
+   * pessoa abandonou ficava guardada na navegação e a PESSOA SEGUINTE a entrar
+   * naquele navegador caía nela, em vez de cair na tela do papel dela.
+   */
+  saidaVoluntaria: boolean;
 };
 
 const Contexto = createContext<ContextoSessao | null>(null);
@@ -47,12 +56,14 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
   });
 
   const [motivoDaSaida, setMotivoDaSaida] = useState<MotivoDaSaida | null>(null);
+  const [saidaVoluntaria, setSaidaVoluntaria] = useState(false);
 
   const entrar = useCallback((s: Sessao) => {
     setSessao(s);
     // Entrar de novo apaga o motivo: senão a próxima saída comum ainda diria
     // "sua sessão expirou".
     setMotivoDaSaida(null);
+    setSaidaVoluntaria(false);
     try {
       sessionStorage.setItem(CHAVE, JSON.stringify(s));
     } catch {
@@ -63,6 +74,8 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
   const sair = useCallback(() => {
     setSessao(null);
     setMotivoDaSaida(null);
+    // Quem clicou em "Sair" não tem caminho de volta: ver `saidaVoluntaria`.
+    setSaidaVoluntaria(true);
     /*
       A configuração do ambiente é da IMPLANTAÇÃO e não da pessoa, então trocar
       de conta não muda o valor. Ela é esquecida aqui assim mesmo: guardar
@@ -95,6 +108,9 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
       if (!sessaoAtual.current) return;
       setSessao(null);
       setMotivoDaSaida(motivo);
+      // Caiu sozinha: o caminho de volta continua valendo, e é o que traz a
+      // pessoa de volta à tela onde ela estava quando o token venceu.
+      setSaidaVoluntaria(false);
       esquecerConfiguracaoDoPainel();
       try {
         sessionStorage.removeItem(CHAVE);
@@ -128,8 +144,8 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
   }, []);
 
   const valor = useMemo(
-    () => ({ sessao, entrar, sair, motivoDaSaida }),
-    [sessao, entrar, sair, motivoDaSaida],
+    () => ({ sessao, entrar, sair, motivoDaSaida, saidaVoluntaria }),
+    [sessao, entrar, sair, motivoDaSaida, saidaVoluntaria],
   );
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }

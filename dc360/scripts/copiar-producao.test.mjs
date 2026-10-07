@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, parse, resolve } from "node:path";
 
 import {
   CA_DO_PROVEDOR, COMO_INSTALAR, JANELA_DA_COPIA_MS, PASTA_DE_COPIAS, RAIZ_DO_REPO,
@@ -45,17 +45,29 @@ test("a copia mora fora do repositorio, e a pasta e a da casa de quem roda", () 
   assert.ok(!PASTA_DE_COPIAS.startsWith(RAIZ_DO_REPO));
 });
 
+/*
+  Os caminhos nascem da raiz da plataforma, e não de texto POSIX literal. Com
+  "/Users/alguem" escrito à mão, o `resolve` do código vira "C:\Users\alguem"
+  no Windows, deixa de começar pela raiz do repositório de mentira e de casar
+  a Área de Trabalho, e a função devolvia `null` para os cinco lugares que ela
+  existe para recusar. O teste reprovava no Windows por um motivo que não era
+  o que ele protege, e um teste que reprova sempre num sistema deixa de ser
+  lido nele. Montados com `join` a partir de `parse(...).root`, os mesmos
+  lugares valem em "/" e em "C:\\".
+*/
 test("a pasta de copias recusa o repositorio, a nuvem de arquivos e a Area de Trabalho", () => {
-  const casa = "/Users/alguem";
-  const opcoes = { raizDoRepo: "/Users/alguem/city-hall/dc360", casa };
-  assert.match(razaoParaRecusarAPasta("/Users/alguem/city-hall/dc360/copias", opcoes), /repositório/);
-  assert.match(razaoParaRecusarAPasta("/Users/alguem/city-hall/dc360", opcoes), /repositório/);
-  assert.match(razaoParaRecusarAPasta("/Users/alguem/Library/Mobile Documents/com~apple~CloudDocs/copias", opcoes), /nuvem/);
-  assert.match(razaoParaRecusarAPasta("/Users/alguem/Dropbox/dc360", opcoes), /nuvem/);
-  assert.match(razaoParaRecusarAPasta("/Users/alguem/Google Drive/dc360", opcoes), /nuvem/);
-  assert.match(razaoParaRecusarAPasta("/Users/alguem/OneDrive/dc360", opcoes), /nuvem/);
-  assert.match(razaoParaRecusarAPasta("/Users/alguem/Desktop/copias", opcoes), /Área de Trabalho/);
-  assert.equal(razaoParaRecusarAPasta("/Users/alguem/dc360-copias", opcoes), null);
+  const raiz = parse(resolve(".")).root;
+  const casa = join(raiz, "Users", "alguem");
+  const naCasa = (...partes) => join(casa, ...partes);
+  const opcoes = { raizDoRepo: naCasa("city-hall", "dc360"), casa };
+  assert.match(razaoParaRecusarAPasta(naCasa("city-hall", "dc360", "copias"), opcoes), /repositório/);
+  assert.match(razaoParaRecusarAPasta(naCasa("city-hall", "dc360"), opcoes), /repositório/);
+  assert.match(razaoParaRecusarAPasta(naCasa("Library", "Mobile Documents", "com~apple~CloudDocs", "copias"), opcoes), /nuvem/);
+  assert.match(razaoParaRecusarAPasta(naCasa("Dropbox", "dc360"), opcoes), /nuvem/);
+  assert.match(razaoParaRecusarAPasta(naCasa("Google Drive", "dc360"), opcoes), /nuvem/);
+  assert.match(razaoParaRecusarAPasta(naCasa("OneDrive", "dc360"), opcoes), /nuvem/);
+  assert.match(razaoParaRecusarAPasta(naCasa("Desktop", "copias"), opcoes), /Área de Trabalho/);
+  assert.equal(razaoParaRecusarAPasta(naCasa("dc360-copias"), opcoes), null);
 });
 
 test("a URL do pg_dump e a mesma do migrador, com a raiz do provedor apontada para o libpq verificar a cadeia", () => {

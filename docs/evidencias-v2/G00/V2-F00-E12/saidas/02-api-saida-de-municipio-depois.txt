@@ -1,0 +1,34 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/dc360[39m
+
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mO pacote leva tudo que é do município[2m > [22mtraz toda tabela em CSV e em JSON, e o índice na raiz[32m 219[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mO pacote leva tudo que é do município[2m > [22mtabela nova de migração futura obriga alguém a decidir se ela sai[32m 8[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mSegredo não vai junto[2m > [22mnem hash de senha, nem token de sessão, nem ficha de notificação[32m 189[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mFotografias, assinaturas e documentos[2m > [22ma fotografia sai em pasta por protocolo, com os bytes originais[32m 176[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mFotografias, assinaturas e documentos[2m > [22ma foto de perfil do servidor sai na pasta dele, com os bytes originais[32m 161[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mFotografias, assinaturas e documentos[2m > [22mo laudo do pacote imprime o aviso de equipe divergente, como o laudo emitido[32m 156[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mFotografias, assinaturas e documentos[2m > [22mo laudo é HTML autossuficiente e aponta para o arquivo do próprio pacote[32m 152[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mFotografias, assinaturas e documentos[2m > [22mo ofício numerado sai junto, na pasta da ocorrência dele[32m 159[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mFotografias, assinaturas e documentos[2m > [22marquivo que o banco promete e o armazenamento não tem vira pendência escrita[32m 170[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mO índice liga protocolo a pasta, a documento e a linha do CSV[2m > [22mo número de linha que o índice dá bate com o CSV de verdade[32m 154[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mIsolamento entre municípios[2m > [22mo pacote de um município não carrega nada do outro[32m 166[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mÉ ato administrativo grave[2m > [22mexige administrador: quem só exporta relatório não tira a base inteira[32m 12[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mÉ ato administrativo grave[2m > [22mrecusa operador e recusa quem não apresenta token[32m 6[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mÉ ato administrativo grave[2m > [22mdeixa trilha, registra a exportação e NÃO apaga nada[32m 153[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mÉ ato administrativo grave[2m > [22ma organização vem do token, e não de parâmetro nenhum[32m 4[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mO escritor de ZIP[2m > [22mescreve um pacote que um leitor independente abre[32m 0[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mO escritor de ZIP[2m > [22mo caminho ZIP64 funciona, exercitado com o teto rebaixado[32m 0[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mO escritor de ZIP[2m > [22mrecusa caminho repetido, que sobrescreveria arquivo em silêncio[32m 1[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mO escritor de ZIP[2m > [22mnão deixa um nome de arquivo escapar da pasta do pacote[32m 0[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mO laudo do pacote avisa a equipe divergente igual ao laudo da rota[2m > [22mequipes diferentes: o trecho do aviso é o MESMO nos dois laudos[32m 158[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mO laudo do pacote avisa a equipe divergente igual ao laudo da rota[2m > [22mequipes iguais: nenhum dos dois laudos inventa aviso[32m 187[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mO laudo do pacote avisa a equipe divergente igual ao laudo da rota[2m > [22magente sem equipe registrada: a frase própria, e não a de outra equipe[32m 203[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mO laudo do pacote avisa a equipe divergente igual ao laudo da rota[2m > [22mvistoria anterior à migração 024, as duas colunas nulas: nenhum aviso falso[32m 296[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mO laudo do pacote avisa a equipe divergente igual ao laudo da rota[2m > [22mcoleta sem despacho: a nota própria, e não a de divergência[32m 171[2mms[22m[39m
+ [32m✓[39m apps/api/test/saida-de-municipio.test.ts[2m > [22mO laudo do pacote avisa a equipe divergente igual ao laudo da rota[2m > [22misolamento: o nome de equipe do outro município não entra no pacote[32m 156[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m25 passed[39m[22m[90m (25)[39m
+[2m   Start at [22m 16:55:18
+[2m   Duration [22m 9.16s[2m (transform 430ms, setup 0ms, collect 2.10s, tests 6.51s, environment 0ms, prepare 149ms)[22m
+

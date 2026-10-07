@@ -32,12 +32,21 @@ export function useResumoDaFila(): ResumoFila | null {
   const { identidade, obterToken, lerIdentidade } = useSessao();
   const [resumo, setResumo] = useState<ResumoFila | null>(null);
 
+  const comSessao = Boolean(identidade);
+  const quem = identidade?.usuarioId;
+
   useEffect(() => {
-    if (!identidade) return;
+    if (!comSessao) return;
     let vivo = true;
     let desassinar: (() => void) | undefined;
 
     void (async () => {
+      /*
+        As funções passam DIRETO, como sempre passaram, e não embrulhadas: a
+        fila guarda as da primeira chamada para sempre (ver o contrato em
+        `obterFila`), e um embrulho preso a este componente viraria a fonte da
+        autoria da coleta.
+      */
       const fila = await obterFila(enderecoDaApi(), obterToken, lerIdentidade);
       if (!vivo) return;
       desassinar = fila.assinar((r) => { if (vivo) setResumo(r); });
@@ -48,11 +57,17 @@ export function useResumoDaFila(): ResumoFila | null {
       desassinar?.();
     };
     /*
-      Só a identidade decide reassinar: `obterToken` e `lerIdentidade` são
-      estáveis por contrato (ver `ProvedorDeSessao`), e o logout desmonta quem
-      chama este gancho antes de a identidade virar nula.
+      Só a PESSOA decide reassinar, e por isso a lista leva o `usuarioId` e não
+      as funções nem o objeto da identidade. Com eles na lista, um provedor que
+      entregasse objeto ou função nova a cada desenho fazia o gancho desassinar
+      e reassinar a cada desenho, e a reassinatura devolve o resumo do instante
+      da assinatura: o Perfil, que passou a assinar por aqui na V2-F00-E15,
+      ficava preso no número velho depois de a fila esvaziar. As funções só
+      importam na primeira chamada de `obterFila`, que cria a instância única.
+      O logout desmonta quem chama este gancho antes de a identidade virar nula.
     */
-  }, [identidade, obterToken, lerIdentidade]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comSessao, quem]);
 
   return resumo;
 }

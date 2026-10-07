@@ -1,0 +1,72 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ❯ test/cors-do-envio-de-evidencia.test.ts (8 tests | 3 failed) 1513ms
+   × Preflight do PUT de envio > libera if-none-match para a origem do painel, que é o cabeçalho assinado do envio 198ms
+     → expected [ 'content-type', …(2) ] to include 'if-none-match'
+   × Preflight do PUT de envio > todo cabeçalho que a autorização manda repetir passa no preflight (menos os que o navegador mesmo põe) 2ms
+     → if-none-match: expected [ 'content-type', …(2) ] to include 'if-none-match'
+   ✓ Preflight do PUT de envio > origem fora da lista não recebe access-control-allow-origin 1ms
+   × Preflight do PUT de envio > cabeçalho qualquer fora da lista não é liberado 4ms
+     → expected [ 'accept', 'authorization', …(1) ] to deeply equal [ 'accept', 'authorization', …(2) ]
+   ✓ O PUT continua guardado pela assinatura > o primeiro PUT grava, e um segundo para a mesma chave é recusado (escrita única) 6ms
+   ✓ O PUT continua guardado pela assinatura > URL de envio vencida é recusada 1ms
+   ✓ O PUT continua guardado pela assinatura > assinatura trocada é recusada 1ms
+   ✓ O PUT continua guardado pela assinatura > URL assinada para a chave de um município não grava na chave de outro 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/cors-do-envio-de-evidencia.test.ts > Preflight do PUT de envio > libera if-none-match para a origem do painel, que é o cabeçalho assinado do envio
+AssertionError: expected [ 'content-type', …(2) ] to include 'if-none-match'
+ ❯ test/cors-do-envio-de-evidencia.test.ts:111:24
+    109|     expect(liberados(r.headers["access-control-allow-methods"])).toCon…
+    110|     const cabecalhos = liberados(r.headers["access-control-allow-heade…
+    111|     expect(cabecalhos).toContain("if-none-match");
+       |                        ^
+    112|     expect(cabecalhos).toContain("content-type");
+    113|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  test/cors-do-envio-de-evidencia.test.ts > Preflight do PUT de envio > todo cabeçalho que a autorização manda repetir passa no preflight (menos os que o navegador mesmo põe)
+AssertionError: if-none-match: expected [ 'content-type', …(2) ] to include 'if-none-match'
+ ❯ test/cors-do-envio-de-evidencia.test.ts:126:60
+    124|       .map((c) => c.toLowerCase())
+    125|       .filter((c) => c !== "content-length");
+    126|     for (const nome of repetidos) expect(cabecalhos, nome).toContain(n…
+       |                                                            ^
+    127|   });
+    128| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  test/cors-do-envio-de-evidencia.test.ts > Preflight do PUT de envio > cabeçalho qualquer fora da lista não é liberado
+AssertionError: expected [ 'accept', 'authorization', …(1) ] to deeply equal [ 'accept', 'authorization', …(2) ]
+
+- Expected
++ Received
+
+  [
+    "accept",
+    "authorization",
+    "content-type",
+-   "if-none-match",
+  ]
+
+ ❯ test/cors-do-envio-de-evidencia.test.ts:147:31
+    145|     expect(cabecalhos).not.toContain("x-qualquer");
+    146|     expect(cabecalhos).not.toContain("*");
+    147|     expect(cabecalhos.sort()).toEqual(
+       |                               ^
+    148|       ["accept", "authorization", "content-type", "if-none-match"].sor…
+    149|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 5 passed (8)
+   Start at  01:35:19
+   Duration  3.69s (transform 376ms, setup 44ms, collect 1.71s, tests 1.51s, environment 0ms, prepare 157ms)
+
+codigo=1

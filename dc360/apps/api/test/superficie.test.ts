@@ -4,6 +4,7 @@ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
 import { carregarConfig } from "../src/config.js";
 import { construirServidor } from "../src/servidor.js";
 import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
+import { rotasRegistradas, SEM_TOKEN } from "./superficie-registrada.js";
 
 /**
  * A superfície da API, descoberta e não listada.
@@ -15,109 +16,13 @@ import { armazenamentoEmMemoria } from "../src/armazenamento/memoria.js";
  *
  * Em vez de manter uma lista de rotas que precisam de token (que ficaria
  * desatualizada na primeira pressa), o teste enumera as rotas de verdade e
- * exige token de TODAS, com uma isenção explícita e curta.
+ * exige token de TODAS, com uma isenção explícita e curta. A lista de isenções
+ * (`SEM_TOKEN`) e a leitura da árvore (`rotasRegistradas`) moram em
+ * `superficie-registrada.ts`, que o contrato do painel também usa.
  */
 
 let mem: BancoEmMemoria;
 let app: FastifyInstance;
-
-/**
- * As únicas rotas que podem responder sem token, cada uma com a razão.
- *
- * Acrescentar algo aqui é uma decisão de segurança, e é por isso que a lista
- * é de exceções e não de regras: exceção alguém revisa, regra alguém esquece.
- */
-const SEM_TOKEN = new Map<string, string>([
-  ["GET /saude", "sonda do balanceador, e não devolve dado de município"],
-  ["POST /auth/entrar", "é o que entrega o token"],
-  [
-    "POST /auth/segundo-fator",
-    "é a SEGUNDA metade da entrada, e por definição acontece antes de existir "
-    + "sessão. Quem chega aqui já provou a senha, e o que ele traz é o token de "
-    + "desafio (plateia `dc360-desafio`, cinco minutos, propósito único), que "
-    + "rota nenhuma do produto aceita como credencial: é isso que impede o "
-    + "atalho de emitir o token de acesso antes do segundo fator e só esconder "
-    + "a tela",
-  ],
-  ["POST /auth/renovar", "autentica pelo próprio token de renovação"],
-  ["POST /auth/sair", "revoga pelo token de renovação, sem precisar do de acesso"],
-  ["POST /auth/recuperar", "quem esqueceu a senha não tem token"],
-  [
-    "GET /auth/recuperacao",
-    "quem esqueceu a senha não tem token, e a tela precisa saber se a recuperação "
-    + "por email está ligada ANTES de pedir o email. Devolve só `{ ativa }`: um "
-    + "interruptor do servidor inteiro, igual para todos, sem dado de município",
-  ],
-  ["POST /auth/redefinir", "autentica pelo link de uso único"],
-  ["PUT /armazenamento/objeto", "autenticado pela assinatura embutida na URL"],
-  ["GET /armazenamento/objeto", "autenticado pela assinatura embutida na URL"],
-  [
-    "POST /publico/interesse",
-    "formulário público de contato: quem preenche ainda não é cliente e não "
-    + "tem token. Grava pedido e NÃO cria município nenhum; o papel de "
-    + "aplicação insere e não lê (migração 011)",
-  ],
-  [
-    "GET /publico/oficio/:token",
-    "o ofício que o órgão destinatário abre: quem clica é uma pessoa do Corpo "
-    + "de Bombeiros ou da Secretaria de Obras, sem conta no sistema. O que "
-    + "protege não é token de sessão e sim o próprio endereço, que é um segredo "
-    + "de 32 bytes que só existe dentro do email enviado, EXPIRA, ABRE UMA VEZ "
-    + "SÓ e deixa registro de quem abriu (migração 017). É a única leitura sem "
-    + "autenticação que devolve dado de município, e é por isso que o email não "
-    + "leva o conteúdo do ofício",
-  ],
-]);
-
-type Rota = { metodo: string; caminho: string };
-
-/**
- * Lê a árvore de rotas do próprio Fastify.
- *
- * `printRoutes` é a única forma pública de enumerar o que foi registrado, e é
- * justamente por vir do servidor montado que ela não pode ficar desatualizada.
- */
-function rotasRegistradas(instancia: FastifyInstance): Rota[] {
-  const arvore = instancia.printRoutes({ commonPrefix: false });
-  const rotas: Rota[] = [];
-
-  /*
-    O caminho de verdade é a CONCATENAÇÃO da árvore, e não o texto de uma
-    linha.
-
-    `printRoutes` desenha uma árvore em que cada linha traz só o próprio
-    segmento. A versão anterior deste parser tomava o segmento como se fosse o
-    caminho inteiro, e o resultado era pedir `GET :id` e `POST /triagem`, que
-    não existem: DEZESSETE rotas do produto respondiam 404, e o portão aceitava
-    404 como prova de que estavam protegidas.
-
-    Ou seja: o portão que existe para garantir que nenhuma rota responde sem
-    token estava, para a maioria delas, verificando endereço nenhum. Isso só
-    apareceu quando a régua foi apertada para exigir 401.
-
-    A profundidade sai do prefixo de desenho, contado em blocos de quatro
-    caracteres, que é como o Fastify indenta.
-  */
-  const pilha: string[] = [];
-
-  for (const linha of arvore.split("\n")) {
-    const casou = /^([\s│├└─]*)(\S+)\s+\((.+?)\)\s*$/.exec(linha);
-    if (!casou) continue;
-
-    const profundidade = Math.floor(casou[1]!.length / 4);
-    const segmento = casou[2]!;
-
-    pilha.length = profundidade;
-    pilha[profundidade] = segmento;
-    const caminho = pilha.slice(0, profundidade + 1).join("");
-
-    for (const metodo of casou[3]!.split(",").map((m) => m.trim())) {
-      if (metodo === "HEAD" || metodo === "OPTIONS") continue;
-      rotas.push({ metodo, caminho });
-    }
-  }
-  return rotas;
-}
 
 /** Preenche `:id` com um uuid válido: o teste é de autenticação, não de rota. */
 function comParametros(caminho: string): string {

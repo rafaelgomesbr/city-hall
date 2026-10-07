@@ -78,6 +78,11 @@ jest.mock("../dados/conectividade", () => ({
 jest.mock("../dados/fila", () => ({
   obterFila: async () => ({
     resumo: async () => ({ pendentes: 0, enviando: 0, bloqueados: 0, confirmados: 0 }),
+    /* O Perfil assina a fila (V2-F00-E15), e a fila de verdade avisa quem assina na hora. */
+    assinar: (ouvinte: (r: unknown) => void) => {
+      ouvinte({ pendentes: 0, enviando: 0, bloqueados: 0, confirmados: 0 });
+      return () => undefined;
+    },
   }),
 }));
 
@@ -149,14 +154,26 @@ describe("o servidor que não reconhece mais a sessão", () => {
     expect(screen.queryByText(/Não deu para atualizar agora/)).toBeNull();
   });
 
+  /*
+    O caminho de volta é "Entrar de novo", e o aviso NÃO manda sair da conta.
+    Este caso exigia a frase `toque em "Sair da conta" e entre de novo` até a
+    V2-F00-E14, e ela deixou de existir em 15/09/2026 (commit 5ecdf4c): `sair()`
+    apaga o dado local, inclusive a vistoria começada, e o aviso passou a
+    mandar "Entrar de novo", que derruba a sessão e deixa o disco como está. A
+    decisão está em `dados/falha-de-atualizacao.ts` (`comoContarAFalha`) e no
+    comentário de `app/(agente)/index.tsx:1222`; registro em
+    `docs/DECISOES-DE-TESTE-DA-FASE-00.md`, seção "campo: sessão encerrada e
+    logout".
+  */
   it("e ensina o caminho de volta, sem prometer o que não vale", async () => {
     quebrarARedeCom = new ErroDaApiFalso(401, "nao_autenticado", "Token inválido ou expirado.");
     await abrirATela();
 
-    /* O botão de sair também diz "Sair da conta": o que se procura aqui é a
-       frase do AVISO, que manda usar aquele botão. */
-    expect(screen.getByText(/toque em "Sair da conta" e entre de novo/)).toBeTruthy();
-    expect(screen.getByText(/continua guardado no aparelho/)).toBeTruthy();
+    expect(screen.getByText(/Toque em "Entrar de novo"/)).toBeTruthy();
+    expect(screen.getByText(/Nada é apagado/)).toBeTruthy();
+    /* NEGATIVO: esta tela TEM um botão escrito "Sair da conta", então o que se
+       recusa aqui é a INSTRUÇÃO de usá-lo, que é a frase antiga. */
+    expect(screen.queryByText(/toque em "Sair da conta"/i)).toBeNull();
   });
 
   it("sem sinal continua dizendo que é o sinal", async () => {

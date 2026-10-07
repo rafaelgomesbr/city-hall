@@ -61,9 +61,14 @@ export function Usuarios() {
   const [desativando, setDesativando] = useState(false);
   /*
     A senha que o servidor acabou de sortear, na janela que a mostra UMA vez, e
-    o aviso passageiro de "sessões encerradas". Os dois moram na página, e não
-    no botão da linha, porque a linha pode sumir da tela (a lista recarrega) e
-    a senha não pode ir junto: ela não volta.
+    o aviso passageiro: "sessões encerradas" e, agora, a confirmação de que o
+    cadastro foi gravado. Os dois moram na página, e não no botão da linha,
+    porque a linha pode sumir da tela (a lista recarrega) e a senha não pode ir
+    junto: ela não volta.
+
+    A confirmação de gravação usa o mesmo aviso porque ela tem o mesmo destino:
+    um `role="status"`, que é o único jeito de quem usa leitor de tela saber que
+    o clique pegou. Sem ele, a tela limpava o formulário em silêncio.
   */
   const [senhaGerada, setSenhaGerada] = useState<SenhaRedefinida | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -127,11 +132,13 @@ export function Usuarios() {
       };
       if (editando) {
         await atualizarUsuario(sessao, editando, dados);
+        setAviso("Cadastro corrigido. A lista abaixo já mostra o que mudou.");
       } else {
         await criarUsuario(sessao, {
           ...dados,
           ...(MODO === "api" ? { senha } : {}),
         });
+        setAviso("Usuário cadastrado. Ele já aparece na lista abaixo.");
       }
       limparFormulario();
       await recarregar();

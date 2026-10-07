@@ -37,7 +37,10 @@ D-U-N-S e a revisão não forem gargalo.
 - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
   compartilhados.
-- **3927 testes verdes somando o aplicativo, e `npm audit` em zero.**
+- **4712 testes somando o aplicativo.** Durante a estabilização da V2 (fase
+  F00) nem todos estão verdes e o `npm audit` não está em zero: cada vermelho
+  conhecido, e a etapa que o fecha, está em `docs/roadmap-v2/STATUS.md`, na
+  raiz do repositório.
 - **A API sobe contra PostgreSQL real** (provado contra o Postgres 18, à mão) e
   serve o ciclo inteiro: login, isolamento entre municípios, ocorrência,
   vistoria offline, laudo, termo de interdição e desinterdição, contagem de
@@ -299,7 +302,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 3927 testes com o aplicativo, npm audit, números
+npm run verificar          # typecheck, 4712 testes com o aplicativo, npm audit, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo
@@ -352,6 +355,14 @@ ter o app no seu iPhone via TestFlight neste fim de semana.
 ---
 
 ## Parte 6: o restore do banco, testado de verdade (CA-08)
+
+> **Registro histórico, de 2026-09-09.** O roteiro vigente é
+> `RESTORE-DO-BANCO.md` (V2-F00-E25, 2026-10-07), provado com as 47 migrações,
+> com o papel `dc360_console`, a extensão `pg_trgm` e a API apontada para a
+> cópia. Esta parte descreve o teste com 15 migrações e 15 tabelas e, se
+> seguida hoje, para no restore: faltam o papel `dc360_console` (migração 023)
+> e a extensão `pg_trgm` no dump (migração 041). Ela continua valendo pelo que
+> ensina sobre a origem Supabase (papéis do provedor e `sslmode`).
 
 O levantamento técnico fixa que **backup só existe depois de um restore
 testado**. Até agora isso nunca tinha sido feito neste projeto: existia a

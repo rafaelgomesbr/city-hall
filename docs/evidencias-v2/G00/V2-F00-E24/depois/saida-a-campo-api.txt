@@ -1,0 +1,14 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/saida-nao-declara-inexistente.test.ts (11 tests) 1343ms
+ ✓ test/saida-a-campo.test.ts (27 tests) 5411ms
+   ✓ Isolamento entre municípios > a lista de um município não mostra saída de outro  434ms
+   ✓ Isolamento entre municípios > encerrar saída de outro município responde 404, e nunca 403  454ms
+
+ Test Files  2 passed (2)
+      Tests  38 passed (38)
+   Start at  04:09:23
+   Duration  7.43s (transform 472ms, setup 81ms, collect 2.15s, tests 6.75s, environment 0ms, prepare 300ms)
+
+codigo=0

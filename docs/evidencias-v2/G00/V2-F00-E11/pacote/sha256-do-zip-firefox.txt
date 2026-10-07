@@ -1,1 +1,1 @@
-1cb55899cdc4e04a50cbb2e7f5c3ec96402ae983c29326252763f551c507da79  dc360-pacote-de-saida-2026-10-06.zip  (235476 bytes, motor firefox)
+53f30814afc803d4bef56a854414d4a57f96c34d528573290f33101748b9f769  dc360-pacote-de-saida-2026-10-06.zip  (235430 bytes, motor firefox)

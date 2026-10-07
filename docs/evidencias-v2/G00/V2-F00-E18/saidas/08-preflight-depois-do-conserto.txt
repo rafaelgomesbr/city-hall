@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/cors-do-envio-de-evidencia.test.ts (8 tests) 2036ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  01:35:40
+   Duration  4.39s (transform 392ms, setup 46ms, collect 1.79s, tests 2.04s, environment 0ms, prepare 122ms)
+
+codigo=0

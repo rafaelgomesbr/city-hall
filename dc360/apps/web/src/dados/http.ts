@@ -702,8 +702,21 @@ export async function possiveisDuplicidades(
   endereco: string,
 ): Promise<LinhaOcorrencia[]> {
   const p = new URLSearchParams({ tipo, endereco });
-  const r = await chamar<{ itens: LinhaOcorrencia[] }>(`/ocorrencias/duplicidades/consulta?${p}`);
-  return r.itens;
+  /*
+    É um GET, mas é o PRIMEIRO passo de "Registrar e gerar protocolo", e não a
+    abertura de uma tela. Com a frase de leitura, quem apertou o botão com o
+    sinal caído lia "Não foi possível carregar esta tela" e não sabia se o
+    chamado tinha sido gravado. A frase certa é a da escrita: o que a pessoa
+    preencheu não foi enviado. A seção 19 do e2e contra a API pegou isso assim
+    que a seção 13 deixou de derrubar a suíte (V2-F00-E18).
+  */
+  try {
+    const r = await chamar<{ itens: LinhaOcorrencia[] }>(`/ocorrencias/duplicidades/consulta?${p}`);
+    return r.itens;
+  } catch (erro) {
+    if (erro instanceof SemConexao) throw new SemConexao(false);
+    throw erro;
+  }
 }
 
 export async function abrirOcorrencia(_s: Sessao, dados: AberturaOcorrencia): Promise<string> {

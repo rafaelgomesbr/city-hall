@@ -1,0 +1,18 @@
+Jest do app ANTES da V2-F00-E16 (2026-10-07, mesma arvore da E15, resumo):
+Test Suites: 1 failed, 126 passed, 127 total
+Tests:       7 failed, 1850 passed, 1857 total
+
+Os 7 vermelhos, por nome, estao arquivados pela E15 em docs/evidencias-v2/G00/V2-F00-E15/saidas/baseline-depois/05-teste-campo-app.txt (mesma arvore de partida).
+
+Jest do app DEPOIS:
+Test Suites: 127 passed, 127 total
+Tests:       1861 passed, 1861 total
+
+Os 7 vermelhos de partida (nomes, copiados da saida da E15):
+  ● a câmera em tela cheia › reserva a área segura de baixo, onde o menu escondido não está mais para reservar
+  ● a foto que saiu vazia do disco › a tarja diz a frase certa, com o que fazer, e não a genérica
+  ● a permissão negada › de câmera: a tarja traz 'Abrir os ajustes do aparelho', e o botão abre os ajustes
+  ● a permissão negada › de localização: a mesma tarja, o mesmo botão
+  ● a tela de 'vistoria guardada' › não promete envio com o aplicativo fechado, porque isso não existe
+  ● o formulário e o teclado › a rolagem sabe a altura do teclado, para o campo digitado não ficar embaixo dele
+  ● o formulário e o teclado › o primeiro toque fora do campo AGE, em vez de só fechar o teclado

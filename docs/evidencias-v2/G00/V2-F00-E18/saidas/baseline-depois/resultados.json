@@ -1,0 +1,72 @@
+[
+  {
+    "id": "typecheck",
+    "cmd": "npm run typecheck",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 15357,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "01-typecheck.txt"
+  },
+  {
+    "id": "teste-shared",
+    "cmd": "npm run test --workspace @dc360/shared",
+    "cwd": ".",
+    "codigo": 1,
+    "duracaoMs": 3033,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "02-teste-shared.txt"
+  },
+  {
+    "id": "teste-db",
+    "cmd": "npm run test:isolamento",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 33494,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "03-teste-db.txt"
+  },
+  {
+    "id": "teste-api",
+    "cmd": "npm run test:api",
+    "cwd": ".",
+    "codigo": 1,
+    "duracaoMs": 95375,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "04-teste-api.txt"
+  },
+  {
+    "id": "teste-web",
+    "cmd": "npm run test --workspace @dc360/web",
+    "cwd": ".",
+    "codigo": 1,
+    "duracaoMs": 7786,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "05-teste-web.txt"
+  },
+  {
+    "id": "test-scripts",
+    "cmd": "npm run test:scripts",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 2961,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "06-test-scripts.txt"
+  },
+  {
+    "id": "conferir-numeros",
+    "cmd": "npm run conferir:numeros",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 24195,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "07-conferir-numeros.txt"
+  }
+]

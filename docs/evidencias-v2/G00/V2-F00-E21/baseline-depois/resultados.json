@@ -1,0 +1,102 @@
+[
+  {
+    "id": "typecheck",
+    "cmd": "npm run typecheck",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 15519,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "01-typecheck.txt"
+  },
+  {
+    "id": "teste-shared",
+    "cmd": "npm run test --workspace @dc360/shared",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 3186,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "02-teste-shared.txt"
+  },
+  {
+    "id": "teste-db",
+    "cmd": "npm run test:isolamento",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 30060,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "03-teste-db.txt"
+  },
+  {
+    "id": "teste-campo-pacote",
+    "cmd": "npm run test --workspace @dc360/campo",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 2086,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "04-teste-campo-pacote.txt"
+  },
+  {
+    "id": "teste-api",
+    "cmd": "npm run test:api",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 95617,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "05-teste-api.txt"
+  },
+  {
+    "id": "teste-console",
+    "cmd": "npm run test:console",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 71503,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "06-teste-console.txt"
+  },
+  {
+    "id": "teste-web",
+    "cmd": "npm run test --workspace @dc360/web",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 7888,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "07-teste-web.txt"
+  },
+  {
+    "id": "test-campo",
+    "cmd": "npm run test:campo",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 32378,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "08-test-campo.txt"
+  },
+  {
+    "id": "test-scripts",
+    "cmd": "npm run test:scripts",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 2992,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "09-test-scripts.txt"
+  },
+  {
+    "id": "conferir-numeros",
+    "cmd": "npm run conferir:numeros",
+    "cwd": ".",
+    "codigo": 0,
+    "duracaoMs": 24368,
+    "status": "confere",
+    "detalhes": [],
+    "arquivo": "10-conferir-numeros.txt"
+  }
+]

@@ -350,6 +350,24 @@ export const orgaoIndicadoSchema = z.object({
 });
 export type OrgaoIndicado = z.infer<typeof orgaoIndicadoSchema>;
 
+/**
+ * A precisão da leitura de GPS, em metros: positiva, ou nula quando o aparelho
+ * não informou.
+ *
+ * O `positive()` fica, e não vira `nonnegative()`: erro de posição zero não
+ * existe em receptor nenhum, e aceitar 0 deixaria o laudo dizer "precisão de 0
+ * metros", que é falso. O defeito de CMP-33 (V2-F00-E15) estava do outro lado:
+ * o aplicativo arredondava 0,3 m para 0 e o servidor respondia 422. Quem
+ * conserta é o aparelho, com piso de 1 metro (`precisaoDoGpsEmMetros`, no app
+ * de campo), e aparelho com versão antiga que mande 0 continua recusado. A
+ * frase da recusa sai em português pelo mapa global de `mensagens-do-zod.ts`
+ * ("Precisa ser maior que 0"), e é a tela que escreve o rótulo do campo ao lado.
+ *
+ * Exportado em separado para o aplicativo provar, contra o MESMO esquema, que
+ * todo número que ele grava passa.
+ */
+export const gpsPrecisaoMetrosSchema = z.number().positive().nullable();
+
 export const vistoriaSchema = z.object({
   checklist: checklistSchema,
   /*
@@ -408,7 +426,7 @@ export const vistoriaSchema = z.object({
     e evento próprio (`correcaoDeCoordenadaSchema`).
   */
   coordenada: coordenadaGravadaSchema.optional(),
-  gpsPrecisaoMetros: z.number().positive().nullable(),
+  gpsPrecisaoMetros: gpsPrecisaoMetrosSchema,
   assinanteNome: z.string().min(1, "Informe quem assinou").max(200),
   /** Traço da assinatura, como chave de storage. */
   assinaturaChave: z.string().min(1).nullable(),

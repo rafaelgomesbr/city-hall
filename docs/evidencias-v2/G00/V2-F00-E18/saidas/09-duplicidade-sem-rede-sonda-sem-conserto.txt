@@ -1,0 +1,34 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/web
+
+ ❯ test/duplicidade-sem-rede.test.ts (3 tests | 1 failed) 13ms
+   × Checagem de duplicidade sem rede > diz que o que foi preenchido não foi enviado, e não que a tela não carregou 8ms
+     → expected 'Sem conexão com o servidor. Não foi p…' to be 'Sem conexão com o servidor. O que voc…' // Object.is equality
+   ✓ Checagem de duplicidade sem rede > a recusa do servidor continua chegando como está, sem virar frase de rede 3ms
+   ✓ Checagem de duplicidade sem rede > com rede, devolve as candidatas 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/duplicidade-sem-rede.test.ts > Checagem de duplicidade sem rede > diz que o que foi preenchido não foi enviado, e não que a tela não carregou
+AssertionError: expected 'Sem conexão com o servidor. Não foi p…' to be 'Sem conexão com o servidor. O que voc…' // Object.is equality
+
+Expected: "Sem conexão com o servidor. O que você preencheu não foi enviado. Verifique o sinal e tente de novo."
+Received: "Sem conexão com o servidor. Não foi possível carregar esta tela. Verifique o sinal e tente de novo."
+
+ ❯ test/duplicidade-sem-rede.test.ts:44:37
+     42| 
+     43|     expect(erro).toBeInstanceOf(http.SemConexao);
+     44|     expect((erro as Error).message).toBe(
+       |                                     ^
+     45|       "Sem conexão com o servidor. O que você preencheu não foi enviad…
+     46|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  01:40:32
+   Duration  872ms (transform 142ms, setup 0ms, collect 440ms, tests 13ms, environment 0ms, prepare 174ms)
+
+codigo=1

@@ -18,6 +18,8 @@ const mockTamanhos = new Map<string, number>();
 let mockRecusaApagar = false;
 /** O `size` do aparelho vindo zerado, como no iPhone de 15/09/2026. */
 let mockSizeZerado = false;
+/** O sistema recusando a cópia (disco cheio), com a frase nativa em inglês. */
+let mockRecusaCopiar = false;
 /** Quantas vezes o arquivo INTEIRO foi lido para ser medido. */
 let mockLeiturasDeBytes = 0;
 
@@ -45,6 +47,7 @@ jest.mock("expo-file-system", () => ({
       return new Uint8Array(mockTamanhos.get(this.uri) ?? 0);
     }
     copy(destino: { uri: string }): void {
+      if (mockRecusaCopiar) throw new Error("ENOSPC: no space left on device");
       mockCopias.push({ de: this.uri, para: destino.uri });
       mockTamanhos.set(destino.uri, mockTamanhos.get(this.uri) ?? 0);
     }
@@ -65,6 +68,7 @@ beforeEach(() => {
   mockTamanhos.clear();
   mockRecusaApagar = false;
   mockSizeZerado = false;
+  mockRecusaCopiar = false;
   mockLeiturasDeBytes = 0;
   jest.spyOn(Date, "now").mockReturnValue(1_757_000_000_000);
 });
@@ -118,6 +122,21 @@ describe("a foto recém tirada", () => {
     mockTamanhos.set(DA_CAMERA, 0);
 
     expect(() => guardarFotoNoAparelho(DA_CAMERA, 0)).toThrow(/não ficou guardada/);
+  });
+
+  it("a cópia recusada pelo sistema sai em português e com o que fazer, e não em inglês", async () => {
+    /*
+      V2-F00-E16: a tela de vistoria passou a mostrar a frase que esta função
+      lança. A frase nativa ("ENOSPC: no space left on device") não pode chegar
+      à tarja do agente.
+    */
+    mockTamanhos.set(DA_CAMERA, 812_345);
+    mockRecusaCopiar = true;
+
+    expect(() => guardarFotoNoAparelho(DA_CAMERA, 0)).toThrow(
+      /não ficou guardada neste aparelho.*tire a foto de novo/i,
+    );
+    expect(() => guardarFotoNoAparelho(DA_CAMERA, 0)).not.toThrow(/ENOSPC/);
   });
 
   it("duas fotos no mesmo milissegundo não viram uma só", async () => {

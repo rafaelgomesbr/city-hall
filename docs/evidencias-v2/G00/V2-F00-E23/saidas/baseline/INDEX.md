@@ -1,0 +1,12 @@
+# INDEX
+
+| Arquivo | SHA-256 |
+| --- | --- |
+| 01-typecheck.txt | 744ee05ad54b9b26f4b31eb4b1964e010a92b6f7207962ed552fe955f606aeab |
+| 02-teste-db.txt | 90d301819e19d677223c3f700f71e43c8f23f5e50674a27f1083327c606ea975 |
+| 03-teste-api.txt | 15fa5e5926120ccffb2bc6417ce874ed343d991aed7f788670342e2213588aef |
+| 04-teste-web.txt | 69c047934d2b0993bc9d6efcebdcae6dd7678c8747518d4d40a7e77c3c55b666 |
+| 05-test-scripts.txt | 36ec19a9f5d0481b30299655eea0c95f356e8c372173b022f468f30c927c85e5 |
+| 06-conferir-numeros.txt | d3a21a7f68bb4f47f62de8d431cf8602c1838beef953bec6d92b1dad2f478a6c |
+| RESUMO.md | 46d5ef931071cbda4b04066bf98dcfbfb40c610c585a4de53b8ce381f14039e3 |
+| resultados.json | e24ac7e02fcd2805d043fa8225baaacbce25d2c766e5bfd8775400207ed516c6 |

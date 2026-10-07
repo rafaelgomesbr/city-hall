@@ -1,5 +1,5 @@
 $ npm run test --workspace @dc360/shared   (em .)
-codigo=1 duracao=16s situacao=divergente
+codigo=1 duracao=14s situacao=confere
 
 
 > @dc360/shared@0.1.0 test
@@ -8,63 +8,35 @@ codigo=1 duracao=16s situacao=divergente
 
  RUN  v3.2.7 C:/Projetos/city-hall/dc360/packages/shared
 
- ✓ test/telefone.test.ts (10 tests) 5ms
- ✓ src/localizacao.test.ts (16 tests) 10ms
- ✓ test/campos.test.ts (7 tests) 8ms
- ✓ src/pessoas.test.ts (11 tests) 9ms
+ ✓ test/campos.test.ts (7 tests) 7ms
+ ✓ test/telefone.test.ts (10 tests) 7ms
+ ✓ src/localizacao.test.ts (16 tests) 26ms
+ ✓ src/pessoas.test.ts (11 tests) 11ms
  ✓ test/csv.test.ts (8 tests) 7ms
- ✓ test/codigos-de-erro.test.ts (10 tests) 11ms
- ✓ test/orgaos-do-checklist.test.ts (9 tests) 16ms
- ✓ test/tipo-a-classificar.test.ts (12 tests) 14ms
- ✓ test/mensagens-em-portugues.test.ts (8 tests) 19ms
- ✓ test/permissoes.test.ts (16 tests) 18ms
- ✓ test/evidencia.test.ts (10 tests) 19ms
+ ✓ test/codigos-de-erro.test.ts (10 tests) 10ms
+ ✓ test/permissoes.test.ts (16 tests) 14ms
+ ✓ test/evidencia.test.ts (10 tests) 15ms
+ ✓ test/tipo-a-classificar.test.ts (12 tests) 17ms
+ ✓ test/glifos-de-severidade.test.ts (15 tests) 21ms
+ ✓ test/orgaos-do-checklist.test.ts (9 tests) 28ms
  ✓ test/prova-perdida-e-coordenada.test.ts (11 tests) 21ms
- ✓ test/glifos-de-severidade.test.ts (15 tests) 25ms
- ❯ test/dominio.test.ts (14 tests | 1 failed) 6426ms
-   ✓ Máquina de estados da ocorrência > todo estado é alcançável, ou está declarado como reservado com a razão 2ms
-   ✓ Máquina de estados da ocorrência > toda reserva tem razão escrita, e não uma frase de ocasião 1ms
-   ✓ Máquina de estados da ocorrência > nenhuma reserva sobra depois de o estado passar a ser alcançável 0ms
-   ✓ Máquina de estados da ocorrência > encerrada é terminal, e alcançável de todo estado ativo 1ms
-   ✓ Máquina de estados da ocorrência > nenhuma transição aponta para estado que não existe 1ms
-   ✓ Máquina de estados da ocorrência > todo estado tem lista de transições declarada 1ms
-   ✓ Máquina de estados da ocorrência > estado reservado não conta como ativo 0ms
-   ✓ Máquina de estados da ocorrência > o grafo é percorrido de verdade 0ms
-   ✓ Máquina de estados da ocorrência > a triagem parte só de registrada e de triagem: a volta de em_campo é da devolução 2ms
-   ✓ Checklist da vistoria > todo item tem chave, rótulo e obrigatoriedade declarada 1ms
-   ✓ Checklist da vistoria > nenhuma chave repetida 0ms
-   ✓ Checklist da vistoria > os rótulos cobrem todas as chaves 0ms
-   ✓ Checklist da vistoria > existe pelo menos um item obrigatório, e nem todos são 0ms
-   × Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado 6413ms
-     → Test timed out in 5000ms.
-If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
- ❯ test/regras-de-conteudo.test.ts (5 tests | 1 failed) 12821ms
-   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação  885ms
-   × Regras de conteúdo > nenhum travessão em texto nenhum 11399ms
+ ✓ test/mensagens-em-portugues.test.ts (8 tests) 23ms
+ ✓ test/dominio.test.ts (14 tests) 2385ms
+   ✓ Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado  2373ms
+ ❯ test/regras-de-conteudo.test.ts (5 tests | 1 failed) 12021ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação  645ms
+   × Regras de conteúdo > nenhum travessão em texto nenhum 10810ms
      → travessão encontrado; use vírgula, dois pontos ou parênteses:
 dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
 docs/AUDITORIA-2026-09-30.md:313  | `packages/shared/test/regras-de-conteudo.test.ts` | 1 | **C** | Falso positivo autorrefe
 docs/auditoria-v2/raw/teste-shared.txt:23  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
 docs/auditoria-v2/raw/teste-shared.txt:33  dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain("[travessao]");
 docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detalhe.test.ts:181  expect(rotulo).not.toContain(\"[travessao]\");": expected [ …(5) ] to deeply equal []
-   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  532ms
-   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 1ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  560ms
+   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 2ms
    ✓ Regras de conteúdo > as próprias expressões funcionam 1ms
 
-⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
-
- FAIL  test/dominio.test.ts > Checklist da vistoria > ninguém redefine o checklist fora do pacote compartilhado
-Error: Test timed out in 5000ms.
-If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
- ❯ test/dominio.test.ts:175:3
-    173|   });
-    174| 
-    175|   it("ninguém redefine o checklist fora do pacote compartilhado", () =…
-       |   ^
-    176|     /*
-    177|       Este é o caso que impede a divergência de voltar. Ele varre o có…
-
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
 
  FAIL  test/regras-de-conteudo.test.ts > Regras de conteúdo > nenhum travessão em texto nenhum
 AssertionError: travessão encontrado; use vírgula, dois pontos ou parênteses:
@@ -94,13 +66,13 @@ docs/auditoria-v2/raw/teste-shared.txt:41  +   "dc360/apps/web/test/trilha-detal
     159|   });
     160| 
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
 
 
- Test Files  2 failed | 13 passed (15)
-      Tests  2 failed | 160 passed (162)
-   Start at  16:03:45
-   Duration  13.97s (transform 1.64s, setup 0ms, collect 6.34s, tests 19.43s, environment 4ms, prepare 7.38s)
+ Test Files  1 failed | 14 passed (15)
+      Tests  1 failed | 161 passed (162)
+   Start at  16:19:44
+   Duration  13.03s (transform 2.22s, setup 0ms, collect 7.16s, tests 14.62s, environment 4ms, prepare 4.95s)
 
 npm error Lifecycle script `test` failed with error:
 npm error code 1

@@ -38,8 +38,24 @@ function ok(nome, cond, extra = "") {
 const navegador = await lancador.launch();
 const contexto = await navegador.newContext();
 const page = await contexto.newPage();
+/*
+  Ruido do motor, e nao erro do painel: o Firefox registra como erro de console
+  o download de fonte ABORTADO (NS_BINDING_ABORTED, status=2152398850) quando o
+  teste troca de tela antes de o arquivo terminar de chegar. Numa pagina parada
+  as mesmas fontes respondem 200 e `document.fonts` as da por carregadas, sem
+  erro nenhum. Sem este filtro, o teste em Firefox terminaria em vermelho por
+  causa da propria pressa dele, e esconderia o erro de verdade no meio.
+
+  O filtro e estreito de proposito: so download de fonte, so abortado. Fonte que
+  volta 404, ou que o motor recusa por estar corrompida, continua reprovando.
+*/
+const RUIDO_DE_FONTE_ABORTADA = /downloadable font: download failed[\s\S]*status=2152398850/;
 page.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
-page.on("console", (m) => { if (m.type() === "error") erros.push(`console: ${m.text()}`); });
+page.on("console", (m) => {
+  if (m.type() !== "error") return;
+  if (RUIDO_DE_FONTE_ABORTADA.test(m.text())) return;
+  erros.push(`console: ${m.text()}`);
+});
 
 console.log("\n== 1. Entrada e preparo do banco ==");
 await page.goto(BASE, { waitUntil: "networkidle" });
@@ -52,6 +68,20 @@ ok("Vale Fundo aparece", await page.getByText("Vale Fundo, MG").isVisible());
 console.log("\n== 2. Painel do coordenador de Serra Alta ==");
 await page.getByRole("button", { name: /Helena Vasques Coutinho/ }).click();
 await page.waitForSelector(".indicador", { timeout: 30_000 });
+/*
+  O defeito de entrada da V2-F00-E13, provado onde ele acontecia: a secao 1
+  abre `http://localhost:4173` SEM caminho, que e o que qualquer pessoa digita.
+  Antes, o painel guardava `voltarPara: "/"`, voltava para `/` depois do login,
+  nao achava rota e respondia "Esta pagina nao existe". O teste inteiro morria
+  aqui, esperando `.indicador`.
+*/
+ok("entrar a partir de / leva a tela do papel",
+   new URL(page.url()).pathname === "/painel", `(${page.url()})`);
+// E a raiz digitada JA com sessao aberta tambem desvia, pela rota indice.
+await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+await page.waitForSelector(".indicador", { timeout: 30_000 });
+ok("abrir / com a sessao aberta desvia para a tela do papel",
+   new URL(page.url()).pathname === "/painel", `(${page.url()})`);
 const naFila = await page.locator(".indicador").first().locator(".indicador__valor").textContent();
 ok("indicador Na fila conta as 6 ativas de Serra Alta", naFila.trim() === "6", `(${naFila})`);
 const criticas = await page.locator(".indicador", { hasText: "Críticas ativas" }).locator(".indicador__valor").textContent();

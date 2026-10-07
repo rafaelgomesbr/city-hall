@@ -14,20 +14,18 @@ base, espere a lista aparecer e confira que as tarefas do dia estão nela.
 
 A tela diz quando a lista foi baixada. Se disser "ontem", baixe de novo.
 
-# 2. AVISE PARA ONDE VOCÊ VAI.
+# 2. AVISE A COORDENAÇÃO PARA ONDE VOCÊ VAI.
 
-Ainda na base, **com sinal**, declare a saída: para qual protocolo, em quanto
-tempo pretende voltar, e se vai **sozinho**.
+Ainda na base, avise a coordenação pelo meio que o seu município combinou
+(rádio, telefone): para qual protocolo, em quanto tempo pretende voltar, e se
+vai **sozinho**.
 
-**Isso exige sinal, e não fica guardado no aparelho.** Declaração que não chegou
-ao servidor é declaração que ninguém recebeu.
+> **O aplicativo ainda não registra a sua saída.** Esse recurso está em
+> construção. Hoje o sistema não sabe que você saiu e **não avisa ninguém se
+> você não voltar no prazo**: quem acompanha é a coordenação, pelo que você
+> disse a ela.
 
-> **O que a coordenação vê:** que você saiu, para onde, e o prazo. Se ninguém
-> confirmar seu retorno até lá, sua saída aparece como prazo estourado no painel.
->
-> **Isto não é botão de apoio. Ninguém é acionado automaticamente.**
-
-**Vai demorar mais?** Prorrogue. É um toque, e evita alarme à toa.
+**Vai demorar mais?** Avise a coordenação de novo, pelo mesmo meio.
 
 ---
 
@@ -91,8 +89,8 @@ não subiu.
 
 ## AO VOLTAR
 
-**CONFIRME O RETORNO**, assim que pegar sinal. Enquanto não confirmar, você
-continua marcado como em campo, e a coordenação continua vendo prazo estourado.
+**AVISE A COORDENAÇÃO QUE VOLTOU**, pelo mesmo meio que usou na saída. O
+aplicativo ainda não registra o retorno.
 
 **Confira que a fila esvaziou.** A faixa precisa dizer **tudo sincronizado**
 antes de você encerrar o turno.

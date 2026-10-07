@@ -1,0 +1,43 @@
+Texto que a tela de vistoria desenha nos estados tocados pela V2-F00-E16
+(copiado do codigo de apps/campo/src/app/(agente)/vistoria/[id].tsx e cobrado
+pelos testes de componente; o app Expo nao renderiza neste ambiente, entao nao
+ha captura de tela: foto do aparelho fica como validacao humana, F14-E12).
+
+1. Vistoria guardada (aviso informativo)
+   Titulo: "Ela sobe com o aplicativo aberto"
+   Texto:  "Nada depende de sinal agora. A coleta está guardada neste aparelho e
+            sobe quando o aplicativo estiver aberto e houver rede: se agora não
+            há sinal, ela sobe quando você abrir o aplicativo com sinal. A fila
+            de envio mostra o andamento."
+   Antes:  titulo "Ela sobe sozinha"; texto "... sobe assim que houver rede,
+           mesmo com o aplicativo fechado."
+
+2. Tarja de permissao de camera negada (regiao viva assertiva, sinal "×" + "Perigo")
+   Titulo: "Não deu certo"
+   Texto:  "Sem permissão de câmera. Libere a câmera para este aplicativo nos
+            ajustes do aparelho para poder fotografar a vistoria."
+   Acao do aviso (realce): "Abrir os ajustes do aparelho"
+     (rotulo para leitor de tela: "Abrir os ajustes do sistema para liberar a
+      permissão deste aplicativo"; chama Linking.openSettings)
+   Botao abaixo (secundario): "Fechar"
+
+3. Tarja de permissao de localizacao negada
+   Texto:  "Sem permissão de localização. O laudo pode ser concluído sem a
+            coordenada, mas ela é o que prova onde a vistoria foi feita."
+   Mesma acao "Abrir os ajustes do aparelho" e "Fechar".
+
+4. Foto que saiu vazia do disco
+   Texto:  "A foto não ficou guardada neste aparelho (o arquivo saiu vazio).
+            Tire a foto de novo."   (sem botao de ajustes; acao "Fechar")
+   Antes:  "O aparelho não conseguiu tirar a foto. Tente de novo."
+
+5. Copia recusada pelo sistema (disco cheio)
+   Texto:  "A foto não ficou guardada neste aparelho (o armazenamento pode estar
+            cheio). Libere espaço e tire a foto de novo."   (sem botao de ajustes)
+
+6. Camera que nao disparou (erro nativo)
+   Texto:  "O aparelho não conseguiu tirar a foto. Tente de novo."  (inalterado)
+
+Formulario: ScrollView com keyboardShouldPersistTaps="handled" e
+automaticallyAdjustKeyboardInsets. Camera: barra do obturador com
+paddingBottom = espaco.e5 + area segura de baixo (34 no teste: 24 + 34 = 58).

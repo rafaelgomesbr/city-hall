@@ -1,0 +1,13 @@
+[1/6] typecheck: npm run typecheck (.)
+    codigo 0, confere
+[2/6] teste-db: npm run test:isolamento (.)
+    codigo 0, confere
+[3/6] teste-api: npm run test:api (.)
+    codigo 0, confere
+[4/6] teste-web: npm run test --workspace @dc360/web (.)
+    codigo 0, confere
+[5/6] test-scripts: npm run test:scripts (.)
+    codigo 0, confere
+[6/6] conferir-numeros: npm run conferir:numeros (.)
+    codigo 0, confere
+exit 0

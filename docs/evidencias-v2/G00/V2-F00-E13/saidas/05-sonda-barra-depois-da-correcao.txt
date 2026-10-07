@@ -1,0 +1,14 @@
+== Tab de verdade ate cada item da barra ==
+  Tab 20: {"scrollLeft":0,"focado":"Painel","dentroDaBarra":true,"inteiroNaTela":true}
+  Tab 21: {"scrollLeft":0,"focado":"Ocorrências","dentroDaBarra":true,"inteiroNaTela":true}
+  Tab 22: {"scrollLeft":42,"focado":"Mapa da cidade","dentroDaBarra":true,"inteiroNaTela":true}
+  Tab 23: {"scrollLeft":328,"focado":"Quem está em campo","dentroDaBarra":true,"inteiroNaTela":true}
+  Tab 24: {"scrollLeft":368,"focado":"Equipes","dentroDaBarra":true,"inteiroNaTela":true}
+  Tab 25: {"scrollLeft":640,"focado":"Órgãos de destino","dentroDaBarra":true,"inteiroNaTela":true}
+  Tab 26: {"scrollLeft":667,"focado":"Usuários","dentroDaBarra":true,"inteiroNaTela":true}
+  Tab 27: {"scrollLeft":947,"focado":"Prestação de contas","dentroDaBarra":true,"inteiroNaTela":true}
+  Tab 28: {"scrollLeft":1007,"focado":"Tema escuro","dentroDaBarra":true,"inteiroNaTela":true}
+  Tab 29: {"scrollLeft":1094,"focado":"Sair","dentroDaBarra":true,"inteiroNaTela":true}
+
+== Toque de verdade: arrasto horizontal na barra ==
+  scrollLeft depois do arrasto por toque: 265

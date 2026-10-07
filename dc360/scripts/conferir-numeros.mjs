@@ -32,6 +32,7 @@ import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { contarCasosDoAplicativo } from "./casos-do-aplicativo.mjs";
+import { varrerArvore } from "./portao-de-skip.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -69,7 +70,18 @@ function listarTestes(pacote) {
   return porArquivo;
 }
 
-/** Conta as verificações de uma suíte de navegador: uma por chamada de `ok(`. */
+/**
+ * Conta as verificações de uma suíte de navegador: uma por chamada de `ok(`
+ * no início de linha.
+ *
+ * É a contagem ESTÁTICA, e é ela que a documentação afirma (decisão da
+ * V2-F00-E22). A executada é maior: a chamada dentro de laço conta uma vez por
+ * volta e a de dentro de bloco fica fora desta conta (em 2026-10-07, 251
+ * aqui contra 271 que o arquivo contra a API imprimiu ao terminar). A
+ * executada depende de navegador e de API de pé, e um número que só se
+ * confere rodando tudo não é um número que este portão consegue cobrar; quem
+ * quiser o executado lê o "Passou:" no fim da saída da própria suíte.
+ */
 function contarVerificacoes(caminho) {
   return readFileSync(join(RAIZ, caminho), "utf8")
     .split("\n")
@@ -182,8 +194,16 @@ function markdowns(pasta) {
   Pega tanto "123 testes da API" quanto a forma elidida "43 testes de unidade
   e mais 7 de integração", em que o segundo número conta testes sem repetir a
   palavra. Sem o segundo ramo, exatamente esse número foi o que envelheceu.
+
+  O terceiro ramo é a mesma elisão com outra cara: "70 verificações no
+  navegador no modo local e 251 contra a API". O 251 não tinha palavra de
+  contagem ao lado e passava sem conferência nenhuma; foi assim que "103
+  contra a API" sobreviveu da V2-F00-E01 até a E17 com o valor velho, e
+  ninguém via, porque o portão nem listava a afirmação (V2-F00-E22). A janela
+  de assunto do número cobre "contra a API", então ele é cobrado contra as
+  grandezas de API da tabela.
 */
-const AFIRMACAO = /(\d+)\s+(?:teste|verificaç|de\s+(?:integraç|unidade))/gi;
+const AFIRMACAO = /(\d+)\s+(?:teste|verificaç|de\s+(?:integraç|unidade)|contra\s+a\s+API)/gi;
 
 /**
  * O ASSUNTO da afirmação, e por que este bloco existe.
@@ -391,6 +411,46 @@ console.log("\nContagens reais:");
 for (const [rotulo, valor] of Object.entries(VERDADE)) {
   console.log(`  ${String(valor).padStart(4)}  ${rotulo}`);
 }
+
+/*
+  O que a lista estática NÃO enxerga, dito na saída em vez de calado.
+
+  `vitest list` só enumera o caso que a coleta registra para rodar: o que está
+  dentro de `describe.skip` ou `it.skip`, e o `runIf`/`skipIf` que avaliou
+  falso na coleta, não aparecem. O `vitest run` os mostra como pulados. Foi
+  assim que a API chegou a ser lida com 1104 casos contra 1109 executados (os
+  5 do `describe.skip` da vigência, removido na V2-F00-E04), e ninguém tinha
+  como saber pela saída daqui que a diferença existia. Contar o caso dentro de
+  um bloco pulado exigiria ler a sintaxe do arquivo, e a política T42 já obriga
+  todo pulo incondicional a ter marca com dono e prazo: basta repetir aqui o
+  que o portão de skip acha, para quem compara as duas contagens saber de onde
+  vem a diferença. O pulo decidido DURANTE a execução (o `ctx.skip()`, ou um
+  `beforeAll` que falha) aparece na lista e conta normalmente.
+
+  No aplicativo de campo é o contrário: `casos-do-aplicativo.mjs` lê o código,
+  então o `it.skip` dele ENTRA na contagem, como o jest também o conta no total.
+*/
+const skips = varrerArvore(RAIZ);
+// `scripts/` roda no node:test e o aplicativo no jest: nenhum dos dois passa por `vitest list`.
+const foraDoVitest = (arquivo) => arquivo.startsWith("apps/campo/") || arquivo.startsWith("scripts/");
+const foraDaLista = skips.marcados.filter((m) => !foraDoVitest(m.arquivo));
+const ambienteForaDoApp = Object.entries(skips.ambientePorArquivo)
+  .filter(([arquivo]) => !foraDoVitest(arquivo))
+  .sort(([a], [b]) => a.localeCompare(b));
+
+console.log("\nPulos que a lista estática não enumera (política T42, scripts/portao-de-skip.mjs):");
+console.log(
+  `  ${foraDaLista.length} ponto(s) de pulo incondicional com marca T42 nos pacotes do vitest; ` +
+  "os casos dentro deles NÃO estão nas contagens acima.",
+);
+for (const m of foraDaLista) {
+  console.log(`    ${m.arquivo}:${m.linha} ${m.tipo}, dono=${m.dono} issue=${m.issue} ate=${m.ate}`);
+}
+console.log(
+  `  ${ambienteForaDoApp.reduce((t, [, n]) => t + n, 0)} ponto(s) de pulo por ambiente nos pacotes do vitest ` +
+  "(o que avalia falso na coleta também fica fora das contagens):",
+);
+for (const [arquivo, n] of ambienteForaDoApp) console.log(`    ${n} em ${arquivo}`);
 
 console.log(`\nAfirmações conferidas: ${conferidos.length}`);
 if (soPorValor.length > 0) {

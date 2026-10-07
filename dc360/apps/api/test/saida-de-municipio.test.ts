@@ -595,3 +595,158 @@ describe("O escritor de ZIP", () => {
     expect([...lerZip(zip).keys()]).toEqual(["etc/passwd"]);
   });
 });
+
+/* ==========================================================================
+   O aviso de equipe divergente, caso por caso.
+
+   Fica no FIM do arquivo de propósito: estes casos alteram as duas colunas de
+   equipe da vistoria F1 para exercitar cada ramo de `avisoDeEquipe`, e os
+   testes anteriores leem a vistoria no estado da semente. O `afterAll`
+   devolve o estado, para quem acrescentar teste depois daqui não herdar a
+   última variação.
+
+   O que se tranca aqui é a INTEGRIDADE DO DOCUMENTO, e não a consulta: o laudo
+   que o município leva no pacote tem de dizer o mesmo que o laudo que a
+   prefeitura imprimiu pela rota. Faltar a ressalva é grave (o ato é praticado
+   sem a conferência que ela pede) e inventá-la é igualmente grave (a vistoria
+   anterior à migração 024 tem as duas colunas nulas, e isso não é divergência
+   nenhuma).
+   ========================================================================== */
+
+describe("O laudo do pacote avisa a equipe divergente igual ao laudo da rota", () => {
+  const ALFA = "11111111-1111-4111-8111-0000000000e1";
+  const BRAVO = "11111111-1111-4111-8111-0000000000e2";
+
+  /** Os parágrafos de ressalva do laudo, que é onde o aviso de equipe mora. */
+  function notas(html: string): string[] {
+    return [...html.matchAll(/<p class="nota">([\s\S]*?)<\/p>/g)].map((m) => m[1]!.trim());
+  }
+
+  async function laudoDoPacote(): Promise<string> {
+    const pacote = await baixarPacote(tokenAdministradora);
+    return pacote.get("documentos/000473-2026/laudo-de-vistoria.html")!.toString("utf8");
+  }
+
+  async function laudoDaRota(): Promise<string> {
+    const r = await app.inject({
+      method: "GET", url: `/documentos/${OCORRENCIA_C3}/laudo`, headers: com(tokenCoordenadora),
+    });
+    expect(r.statusCode).toBe(200);
+    return r.body;
+  }
+
+  async function definirEquipes(designada: string | null, doAgente: string | null) {
+    await mem.bruto.exec(
+      `UPDATE vistorias
+          SET equipe_designada_id = ${designada === null ? "NULL" : `'${designada}'`},
+              equipe_do_agente_id = ${doAgente === null ? "NULL" : `'${doAgente}'`}
+        WHERE id = '${VISTORIA_F1}'`,
+    );
+  }
+
+  afterAll(async () => {
+    await definirEquipes(ALFA, BRAVO);
+    await mem.bruto.exec(
+      `DELETE FROM trilha_eventos
+        WHERE tipo = 'vistoria_sem_despacho' AND detalhe ->> 'vistoriaId' = '${VISTORIA_F1}'`,
+    );
+  });
+
+  it("equipes diferentes: o trecho do aviso é o MESMO nos dois laudos", async () => {
+    await definirEquipes(ALFA, BRAVO);
+
+    const doPacote = notas(await laudoDoPacote());
+    const daRota = notas(await laudoDaRota());
+
+    const esperado = "Atenção: esta ocorrência estava designada à Equipe Alfa e a vistoria foi "
+      + "coletada por agente lotado na Equipe Bravo. O sistema registrou a coleta e manteve a "
+      + "tarefa com a equipe designada. A divergência precisa ser conferida pela coordenação "
+      + "antes de o ato ser praticado.";
+
+    /*
+      Comparar os dois documentos entre si, e não cada um contra uma string
+      solta, é o que impede os dois de errarem juntos: se amanhã a frase mudar
+      em `documentos/laudo.ts`, os dois mudam, e o teste continua provando que
+      o pacote não ficou atrás. A string literal existe junto porque dois
+      documentos vazios também seriam iguais.
+    */
+    expect(doPacote).toContain(esperado);
+    expect(daRota).toContain(esperado);
+    expect(doPacote.filter((n) => n.startsWith("Atenção:")))
+      .toEqual(daRota.filter((n) => n.startsWith("Atenção:")));
+  }, 60_000);
+
+  it("equipes iguais: nenhum dos dois laudos inventa aviso", async () => {
+    await definirEquipes(ALFA, ALFA);
+
+    expect(notas(await laudoDoPacote()).some((n) => n.startsWith("Atenção:"))).toBe(false);
+    expect(notas(await laudoDaRota()).some((n) => n.startsWith("Atenção:"))).toBe(false);
+  }, 60_000);
+
+  it("agente sem equipe registrada: a frase própria, e não a de outra equipe", async () => {
+    await definirEquipes(ALFA, null);
+
+    const doPacote = await laudoDoPacote();
+    expect(doPacote).toContain("estava designada à Equipe Alfa");
+    expect(doPacote).toContain("sem equipe registrada no momento do recebimento");
+    // E não pode sobrar o nome de uma equipe que o agente não tinha.
+    expect(doPacote).not.toContain("lotado na");
+    expect(notas(doPacote).filter((n) => n.startsWith("Atenção:")))
+      .toEqual(notas(await laudoDaRota()).filter((n) => n.startsWith("Atenção:")));
+  }, 60_000);
+
+  it("vistoria anterior à migração 024, as duas colunas nulas: nenhum aviso falso", async () => {
+    /*
+      Este é o caso mais numeroso do banco de um município que já usava o
+      produto antes da 024: as duas colunas nulas. Ler nulo como divergência
+      poria ressalva em laudo de vistoria que nunca teve problema de equipe, e
+      um documento que avisa sempre é um documento que ninguém mais lê.
+    */
+    await definirEquipes(null, null);
+
+    expect(notas(await laudoDoPacote()).some((n) => n.startsWith("Atenção:"))).toBe(false);
+    expect(await laudoDoPacote()).not.toContain("Equipe Alfa");
+  }, 60_000);
+
+  it("coleta sem despacho: a nota própria, e não a de divergência", async () => {
+    /*
+      Rodado por último dentro do bloco porque a marca de "sem despacho" é um
+      evento da TRILHA, que é append-only no produto: aqui ela entra por SQL
+      direto do arranjo de teste e o `afterAll` a remove, o que o produto não
+      faz em lugar nenhum.
+    */
+    await definirEquipes(ALFA, BRAVO);
+    await mem.bruto.exec(`
+      INSERT INTO trilha_eventos
+        (organizacao_id, ocorrencia_id, tipo, autor_id, autor_nome, autor_papel,
+         origem, ocorrido_em, detalhe)
+      VALUES ('${ORG_SERRA_ALTA}', '${OCORRENCIA_C3}', 'vistoria_sem_despacho',
+              '${COORDENADORA}', 'Helena Vasques Coutinho', 'coordenador',
+              'campo', now() - interval '20 hours',
+              jsonb_build_object('vistoriaId', '${VISTORIA_F1}'))
+    `);
+
+    const doPacote = await laudoDoPacote();
+    expect(doPacote).toContain(
+      "Esta ocorrência não tinha equipe despachada quando a vistoria foi recebida.",
+    );
+    // A nota de sem despacho SUBSTITUI a de divergência: duas ressalvas
+    // contraditórias na mesma folha é o que faz o leitor descartar as duas.
+    expect(doPacote).not.toContain("estava designada à Equipe Alfa");
+    expect(notas(doPacote).filter((n) => n.startsWith("Esta ocorrência não tinha")))
+      .toEqual(notas(await laudoDaRota()).filter((n) => n.startsWith("Esta ocorrência não tinha")));
+  }, 60_000);
+
+  it("isolamento: o nome de equipe do outro município não entra no pacote", async () => {
+    await definirEquipes(ALFA, BRAVO);
+
+    const pacote = await baixarPacote(tokenAdministradora);
+    for (const [caminho, conteudo] of pacote) {
+      // `esquema/` é o SQL de criação, igual em toda instalação (mesmo motivo
+      // explicado no bloco de isolamento acima).
+      if (caminho.startsWith("esquema/")) continue;
+      expect(conteudo.toString("utf8"), `equipe de Vale Fundo em ${caminho}`)
+        .not.toContain("Equipe Única");
+    }
+  }, 60_000);
+});

@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/web
+
+ ✓ test/duplicidade-sem-rede.test.ts (3 tests) 7ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  01:40:34
+   Duration  802ms (transform 141ms, setup 0ms, collect 392ms, tests 7ms, environment 0ms, prepare 152ms)
+
+codigo=0

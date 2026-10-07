@@ -1,0 +1,388 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.7 [39m[90mC:/Projetos/city-hall/dc360[39m
+
+ [31m❯[39m apps/api/test/saida-de-municipio.test.ts [2m([22m[2m19 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 5973[2mms[22m[39m
+   [32m✓[39m O pacote leva tudo que é do município[2m > [22mtraz toda tabela em CSV e em JSON, e o índice na raiz[32m 269[2mms[22m[39m
+   [32m✓[39m O pacote leva tudo que é do município[2m > [22mtabela nova de migração futura obriga alguém a decidir se ela sai[32m 12[2mms[22m[39m
+   [32m✓[39m Segredo não vai junto[2m > [22mnem hash de senha, nem token de sessão, nem ficha de notificação[32m 260[2mms[22m[39m
+   [32m✓[39m Fotografias, assinaturas e documentos[2m > [22ma fotografia sai em pasta por protocolo, com os bytes originais[32m 239[2mms[22m[39m
+   [32m✓[39m Fotografias, assinaturas e documentos[2m > [22ma foto de perfil do servidor sai na pasta dele, com os bytes originais[32m 257[2mms[22m[39m
+[31m   [31m×[31m Fotografias, assinaturas e documentos[2m > [22mo laudo do pacote imprime o aviso de equipe divergente, como o laudo emitido[39m[32m 263[2mms[22m[39m
+[31m     → expected '<!doctype html>\n<html lang="pt-BR">\…' to contain 'estava designada à Equipe Alfa'[39m
+   [32m✓[39m Fotografias, assinaturas e documentos[2m > [22mo laudo é HTML autossuficiente e aponta para o arquivo do próprio pacote[32m 175[2mms[22m[39m
+   [32m✓[39m Fotografias, assinaturas e documentos[2m > [22mo ofício numerado sai junto, na pasta da ocorrência dele[32m 178[2mms[22m[39m
+   [32m✓[39m Fotografias, assinaturas e documentos[2m > [22marquivo que o banco promete e o armazenamento não tem vira pendência escrita[32m 177[2mms[22m[39m
+   [32m✓[39m O índice liga protocolo a pasta, a documento e a linha do CSV[2m > [22mo número de linha que o índice dá bate com o CSV de verdade[32m 181[2mms[22m[39m
+   [32m✓[39m Isolamento entre municípios[2m > [22mo pacote de um município não carrega nada do outro[32m 196[2mms[22m[39m
+   [32m✓[39m É ato administrativo grave[2m > [22mexige administrador: quem só exporta relatório não tira a base inteira[32m 13[2mms[22m[39m
+   [32m✓[39m É ato administrativo grave[2m > [22mrecusa operador e recusa quem não apresenta token[32m 7[2mms[22m[39m
+   [32m✓[39m É ato administrativo grave[2m > [22mdeixa trilha, registra a exportação e NÃO apaga nada[32m 166[2mms[22m[39m
+   [32m✓[39m É ato administrativo grave[2m > [22ma organização vem do token, e não de parâmetro nenhum[32m 4[2mms[22m[39m
+   [32m✓[39m O escritor de ZIP[2m > [22mescreve um pacote que um leitor independente abre[32m 1[2mms[22m[39m
+   [32m✓[39m O escritor de ZIP[2m > [22mo caminho ZIP64 funciona, exercitado com o teto rebaixado[32m 1[2mms[22m[39m
+   [32m✓[39m O escritor de ZIP[2m > [22mrecusa caminho repetido, que sobrescreveria arquivo em silêncio[32m 2[2mms[22m[39m
+   [32m✓[39m O escritor de ZIP[2m > [22mnão deixa um nome de arquivo escapar da pasta do pacote[32m 1[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m apps/api/test/saida-de-municipio.test.ts[2m > [22mFotografias, assinaturas e documentos[2m > [22mo laudo do pacote imprime o aviso de equipe divergente, como o laudo emitido
+[31m[1mAssertionError[22m: expected '<!doctype html>\n<html lang="pt-BR">\…' to contain 'estava designada à Equipe Alfa'[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- estava designada à Equipe Alfa[39m
+[31m+ <!doctype html>[39m
+[31m+ <html lang="pt-BR">[39m
+[31m+ <head>[39m
+[31m+ <meta charset="utf-8">[39m
+[31m+ <meta name="viewport" content="width=device-width, initial-scale=1">[39m
+[31m+ <title>Laudo de vistoria 000473/2026</title>[39m
+[31m+ <style>[39m
+[31m+   :root {[39m
+[31m+     --tinta: #14191D;[39m
+[31m+     --tinta-fraca: #4A5763;[39m
+[31m+     --linha: #C9D2D8;[39m
+[31m+     --marca: #5B21B6;[39m
+[31m+     --papel: #FFFFFF;[39m
+[31m+   }[39m
+[31m+   * { box-sizing: border-box; }[39m
+[31m+   html, body { margin: 0; padding: 0; background: #E9EDF1; }[39m
+[31m+   body {[39m
+[31m+     font-family: "Work Sans", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;[39m
+[31m+     color: var(--tinta);[39m
+[31m+     font-size: 12pt;[39m
+[31m+     line-height: 1.45;[39m
+[31m+   }[39m
+[31m+   .folha {[39m
+[31m+     background: var(--papel);[39m
+[31m+     width: 210mm;[39m
+[31m+     min-height: 297mm;[39m
+[31m+     margin: 16px auto;[39m
+[31m+     padding: 18mm 18mm 22mm;[39m
+[31m+     position: relative;[39m
+[31m+     box-shadow: 0 4px 12px rgba(16,21,25,0.12);[39m
+[31m+   }[39m
+[31m+   .cabecalho {[39m
+[31m+     display: flex; gap: 14px; align-items: center;[39m
+[31m+     border-bottom: 2px solid var(--marca);[39m
+[31m+     padding-bottom: 10px; margin-bottom: 14px;[39m
+[31m+   }[39m
+[31m+   .brasao {[39m
+[31m+     width: 54px; height: 54px; flex: 0 0 54px;[39m
+[31m+     border: 2px solid var(--marca); border-radius: 50%;[39m
+[31m+     display: grid; place-items: center;[39m
+[31m+     color: var(--marca); font-weight: 700; font-size: 15pt;[39m
+[31m+   }[39m
+[31m+   .orgao { font-weight: 700; font-size: 12pt; line-height: 1.25; }[39m
+[31m+   .municipio { color: var(--tinta-fraca); font-size: 10pt; }[39m
+[31m+   .titulo {[39m
+[31m+     text-align: center; font-size: 15pt; font-weight: 700;[39m
+[31m+     letter-spacing: 0.02em; margin: 16px 0 4px; text-transform: uppercase;[39m
+[31m+   }[39m
+[31m+   .protocolo {[39m
+[31m+     text-align: center; font-family: "Roboto Mono", ui-monospace, Consolas, monospace;[39m
+[31m+     font-size: 12pt; color: var(--tinta-fraca); margin-bottom: 18px;[39m
+[31m+   }[39m
+[31m+   h2 {[39m
+[31m+     font-size: 10pt; text-transform: uppercase; letter-spacing: 0.08em;[39m
+[31m+     color: var(--tinta-fraca); border-bottom: 1px solid var(--linha);[39m
+[31m+     padding-bottom: 4px; margin: 18px 0 8px;[39m
+[31m+   }[39m
+[31m+   .campos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; }[39m
+[31m+   .campo { break-inside: avoid; }[39m
+[31m+   .rotulo {[39m
+[31m+     font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.06em;[39m
+[31m+     color: var(--tinta-fraca); font-weight: 600;[39m
+[31m+   }[39m
+[31m+   .valor { font-size: 11pt; }[39m
+[31m+   .valor.mono { font-family: "Roboto Mono", ui-monospace, Consolas, monospace; }[39m
+[31m+   .largo { grid-column: 1 / -1; }[39m
+[31m+   /*[39m
+[31m+     ATENÇÃO: este bloco está DENTRO de um template literal. Crase aqui fecha a[39m
+[31m+     string e o arquivo para de compilar. Sem crase, então.[39m
+[31m+[39m
+[31m+     A classe relato é para texto que uma PESSOA digitou: o relato do[39m
+[31m+     solicitante, a descrição da vulnerabilidade, a observação do agente, o[39m
+[31m+     motivo do levantamento. O pre-wrap existe por causa deles: quem escreveu[39m
+[31m+     separou parágrafos, e o documento oficial mostra o texto como foi escrito.[39m
+[31m+[39m
+[31m+     A classe nota é para a prosa que o SISTEMA escreve, e ela é separada[39m
+[31m+     justamente porque não pode ter pre-wrap. Prosa do sistema mora em template[39m
+[31m+     literal, e template literal guarda a quebra de linha e a indentação do[39m
+[31m+     arquivo .ts. Com pre-wrap, essas quebras iam parar no papel: o laudo real do[39m
+[31m+     protocolo 000001/2026, renderizado em 09/09/2026, saía com "A contagem de[39m
+[31m+     pessoas atingidas não foi registrada nesta" quebrando no meio da frase, e[39m
+[31m+     com o aviso de coleta sem conexão saindo com recuo pendurado, como se o[39m
+[31m+     documento estivesse mal impresso.[39m
+[31m+[39m
+[31m+     Havia uma gambiarra parcial no lugar: escrever a continuação da frase na[39m
+[31m+     coluna zero do arquivo, o que esconde o recuo e mantém a quebra. Ela sai[39m
+[31m+     junto, porque deixava o fonte ilegível e não resolvia o defeito.[39m
+[31m+   */[39m
+[31m+   .relato, .nota {[39m
+[31m+     border-left: 3px solid var(--linha); padding-left: 10px;[39m
+[31m+     font-size: 11pt;[39m
+[31m+   }[39m
+[31m+   .relato { white-space: pre-wrap; }[39m
+[31m+   table.checklist { width: 100%; border-collapse: collapse; font-size: 11pt; }[39m
+[31m+   table.checklist td { padding: 5px 0; border-bottom: 1px solid var(--linha); }[39m
+[31m+   table.checklist td.resposta { text-align: right; font-weight: 700; white-space: nowrap; }[39m
+[31m+   .fotos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }[39m
+[31m+   .foto { break-inside: avoid; }[39m
+[31m+   .foto img {[39m
+[31m+     width: 100%; height: 62mm; object-fit: cover;[39m
+[31m+     border: 1px solid var(--linha);[39m
+[31m+   }[39m
+[31m+   .foto .legenda { font-size: 9pt; color: var(--tinta-fraca); margin-top: 4px; }[39m
+[31m+   .assinaturas { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 26px; }[39m
+[31m+   .assinatura { text-align: center; break-inside: avoid; }[39m
+[31m+   /*[39m
+[31m+     Altura fixa para o bloco não pular quando um lado tem traço e o outro não.[39m
+[31m+[39m
+[31m+     A margem inferior é ZERO, e não pode voltar a ser negativa. O PNG que o[39m
+[31m+     aparelho grava tem papel branco OPACO por baixo do traço, de propósito: sem[39m
+[31m+     ele o traço ficaria transparente e dependeria do fundo de quem abrisse o[39m
+[31m+     laudo. A consequência é que o PNG cobre o que estiver atrás dele. Com uma[39m
+[31m+     margem inferior de -2px ele subia em cima da linha de assinatura e apagava[39m
+[31m+     justamente o trecho que ele cobre, deixando dois tocos de linha, um de cada[39m
+[31m+     lado. Conferido a olho no laudo do protocolo 000001/2026 em 09/09/2026: a[39m
+[31m+     coluna do agente saía com a linha inteira e a do morador saía partida.[39m
+[31m+[39m
+[31m+     A linha precisa continuar inteira porque quem imprime o laudo para colher[39m
+[31m+     assinatura de próprio punho assina em cima dela.[39m
+[31m+   */[39m
+[31m+   .assinatura .traco { display: block; height: 46px; margin: 0 auto; max-width: 100%; }[39m
+[31m+   .assinatura .traco-ausente {[39m
+[31m+     height: 46px; display: flex; align-items: flex-end; justify-content: center;[39m
+[31m+     font-size: 9pt; font-style: italic; color: #8A5A00;[39m
+[31m+   }[39m
+[31m+   /*[39m
+[31m+     O espaço de quem assina à caneta. Mesma altura do traço, para as duas[39m
+[31m+     colunas alinharem, e SEM a cor de aviso: não falta nada aqui, a assinatura[39m
+[31m+     é colhida no papel, em cima da linha.[39m
+[31m+   */[39m
+[31m+   .assinatura .proprio-punho {[39m
+[31m+     height: 46px; display: flex; align-items: flex-end; justify-content: center;[39m
+[31m+     font-size: 8pt; color: var(--tinta-fraca);[39m
+[31m+   }[39m
+[31m+   .assinatura .linha { border-top: 1px solid var(--tinta); margin-bottom: 5px; }[39m
+[31m+   .assinatura .nome { font-size: 11pt; font-weight: 600; }[39m
+[31m+   .assinatura .papel { font-size: 9pt; color: var(--tinta-fraca); }[39m
+[31m+   .rodape {[39m
+[31m+     margin-top: 22px; padding-top: 8px; border-top: 1px solid var(--linha);[39m
+[31m+     display: flex; justify-content: space-between; align-items: flex-end;[39m
+[31m+     font-size: 8.5pt; color: var(--tinta-fraca);[39m
+[31m+   }[39m
+[31m+   .identificador { display: flex; gap: 10px; align-items: center; }[39m
+[31m+   .selo-identificador {[39m
+[31m+     width: 56px; height: 56px; flex: 0 0 56px;[39m
+[31m+     border: 1px solid var(--linha); display: grid; place-items: center;[39m
+[31m+     font-family: "Roboto Mono", ui-monospace, Consolas, monospace;[39m
+[31m+     font-size: 6pt; text-align: center; line-height: 1.15; padding: 3px;[39m
+[31m+     word-break: break-all;[39m
+[31m+   }[39m
+[31m+   .aviso-prototipo {[39m
+[31m+     margin: 0 auto 0; max-width: 210mm; padding: 10px 18mm;[39m
+[31m+     background: #FEF3C7; color: #92400E; font-size: 10pt;[39m
+[31m+   }[39m
+[31m+   .marca-dagua {[39m
+[31m+     position: absolute; inset: 0; display: grid; place-items: center;[39m
+[31m+     pointer-events: none; opacity: 0.07;[39m
+[31m+     font-size: 48pt; font-weight: 800; transform: rotate(-28deg);[39m
+[31m+     color: var(--marca); letter-spacing: 0.1em;[39m
+[31m+   }[39m
+[31m+   .barra { max-width: 210mm; margin: 16px auto 0; padding: 0 18mm; }[39m
+[31m+   .barra button {[39m
+[31m+     font: inherit; font-size: 11pt; padding: 9px 18px; cursor: pointer;[39m
+[31m+     background: var(--marca); color: #fff; border: none; border-radius: 6px;[39m
+[31m+   }[39m
+[31m+   @media print {[39m
+[31m+     html, body { background: #fff; }[39m
+[31m+     .barra, .aviso-prototipo { display: none; }[39m
+[31m+     .folha { margin: 0; box-shadow: none; width: auto; min-height: auto; padding: 12mm; }[39m
+[31m+     /* A marca d'água acompanha o papel: um documento impresso sem ela[39m
+[31m+        passaria por definitivo. */[39m
+[31m+     .marca-dagua { opacity: 0.10; }[39m
+[31m+     @page { size: A4; margin: 10mm; }[39m
+[31m+   }[39m
+[31m+ </style>[39m
+[31m+ </head>[39m
+[31m+ <body>[39m
+[31m+ <p class="aviso-prototipo">DOCUMENTO DE VALIDAÇÃO</p>[39m
+[31m+ <div class="barra"><button type="button" onclick="window.print()">Imprimir</button></div>[39m
+[31m+ <article class="folha">[39m
+[31m+   <div class="marca-dagua" aria-hidden="true">DOCUMENTO DE VALIDAÇÃO</div>[39m
+[31m+   <header class="cabecalho">[39m
+[31m+     <div class="brasao" aria-hidden="true">DC</div>[39m
+[31m+     <div>[39m
+[31m+       <div class="orgao">Coordenadoria Municipal de Proteção e Defesa Civil de Serra Alta</div>[39m
+[31m+       <div class="municipio">Serra Alta, MG</div>[39m
+[31m+     </div>[39m
+[31m+   </header>[39m
+[31m+[39m
+[31m+   <h1 class="titulo">Laudo de vistoria</h1>[39m
+[31m+   <p class="protocolo">Protocolo 000473/2026</p>[39m
+[31m+[39m
+[31m+   [39m
+[31m+     <h2>Identificação da ocorrência</h2>[39m
+[31m+   <div class="campos">[39m
+[31m+     <div class="campo">[39m
+[31m+     <div class="rotulo">Protocolo</div>[39m
+[31m+     <div class="valor mono">000473/2026</div>[39m
+[31m+   </div>[39m
+[31m+     <div class="campo">[39m
+[31m+     <div class="rotulo">Tipo (COBRADE)</div>[39m
+[31m+     <div class="valor">Colapso de edificação</div>[39m
+[31m+   </div>[39m
+[31m+     [39m
+[31m+     <div class="campo">[39m
+[31m+     <div class="rotulo">Severidade</div>[39m
+[31m+     <div class="valor">Alta</div>[39m
+[31m+   </div>[39m
+[31m+     <div class="campo">[39m
+[31m+     <div class="rotulo">Chamado registrado em</div>[39m
+[31m+     <div class="valor">06/09/2026, 16:35</div>[39m
+[31m+   </div>[39m
+[31m+     <div class="campo largo">[39m
+[31m+     <div class="rotulo">Endereço</div>[39m
+[31m+     <div class="valor">Travessa São Benedito, 57, Vila Operária</div>[39m
+[31m+   </div>[39m
+[31m+     <div class="campo">[39m
+[31m+     <div class="rotulo">Coordenada</div>[39m
+[31m+     <div class="valor mono">-22.430200, -45.461000</div>[39m
+[31m+   </div>[39m
+[31m+     <div class="campo">[39m
+[31m+     <div class="rotulo">Equipe responsável</div>[39m
+[31m+     <div class="valor">Equipe Bravo</div>[39m
+[31m+   </div>[39m
+[31m+     <div class="campo">[39m
+[31m+     <div class="rotulo">Solicitante</div>[39m
+[31m+     <div class="valor">Cleuza Ramos de Andrade</div>[39m
+[31m+   </div>[39m
+[31m+     <div class="campo">[39m
+[31m+     <div class="rotulo">Canal de entrada</div>[39m
+[31m+     <div class="valor">Presencial</div>[39m
+[31m+   </div>[39m
+[31m+   </div>[39m
+[31m+[39m
+[31m+   <h2>Relato recebido</h2>[39m
+[31m+   <p class="relato">Muro de arrimo de três metros com barriga aparente, encostado na área de serviço do vizinho.</p>[39m
+[31m+[39m
+[31m+   [39m
+[31m+     <h2>Vistoria realizada</h2>[39m
+[31m+   <div class="campos">[39m
+[31m+     <div class="campo">[39m
+[31m+     <div class="rotulo">Data e hora da vistoria em campo</div>[39m
+[31m+     <div class="valor">08/09/2026, 16:35</div>[39m
+[31m+   </div>[39m
+[31m+     <div class="campo">[39m
+[31m+     <div class="rotulo">Recebida pelo sistema em</div>[39m
+[31m+     <div class="valor">08/09/2026, 19:35</div>[39m
+[31m+   </div>[39m
+[31m+     <div class="campo">[39m
+[31m+     <div class="rotulo">Agente responsável</div>[39m
+[31m+     <div class="valor">Diego Nakamura Alves</div>[39m
+[31m+   </div>[39m
+[31m+     <div class="campo">[39m
+[31m+     <div class="rotulo">Matrícula</div>[39m
+[31m+     <div class="valor mono">SA-3390</div>[39m
+[31m+   </div>[39m
+[31m+     <div class="campo">[39m
+[31m+     <div class="rotulo">Precisão do GPS</div>[39m
+[31m+     <div class="valor">6.2 metros</div>[39m
+[31m+   </div>[39m
+[31m+     <div class="campo">[39m
+[31m+     <div class="rotulo">Coordenada capturada no local</div>[39m
+[31m+     <div class="valor mono">não registrada</div>[39m
+[31m+   </div>[39m
+[31m+     <div class="campo">[39m
+[31m+     <div class="rotulo">Presente no local</div>[39m
+[31m+     <div class="valor">Cleuza Ramos de Andrade</div>[39m
+[31m+   </div>[39m
+[31m+   </div>[39m
+[31m+[39m
+[31m+   <p class="nota">Esta vistoria foi coletada em campo sem conexão e transmitida ao sistema posteriormente. As duas datas acima constam por essa razão, e a data de referência do ato é a da vistoria em campo.</p>[39m
+[31m+[39m
+[31m+   [39m
+[31m+[39m
+[31m+   <h2>Checklist técnico</h2>[39m
+[31m+   <table class="checklist"><tbody><tr>[39m
+[31m+         <td>Risco iminente identificado</td>[39m
+[31m+         <td class="resposta">SIM</td>[39m
+[31m+       </tr><tr>[39m
+[31m+         <td>Evacuação necessária</td>[39m
+[31m+         <td class="resposta">NÃO</td>[39m
+[31m+       </tr><tr>[39m
+[31m+         <td>Interdição indicada</td>[39m
+[31m+         <td class="resposta">SIM</td>[39m
+[31m+       </tr><tr>[39m
+[31m+         <td>Necessário acionar outro órgão</td>[39m
+[31m+         <td class="resposta">SIM</td>[39m
+[31m+       </tr></tbody></table>[39m
+[31m+[39m
+[31m+   <h2>Órgãos a acionar</h2>[39m
+[31m+     <p class="nota">Indicada a necessidade de acionar outro órgão, sem especificar qual.</p>[39m
+[31m+[39m
+[31m+   <h2>Pessoas atingidas</h2>[39m
+[31m+       <p class="nota">A contagem de pessoas atingidas não foi registrada nesta vistoria. A ausência de contagem não significa ausência de atingidos.</p>[39m
+[31m+[39m
+[31m+   <h2>Observações do agente</h2><p class="relato">Vistoria realizada com a moradora presente. Registro fotográfico anexado.</p>[39m
+[31m+     <h2>Registro fotográfico</h2><div class="fotos"><figure class="foto">[39m
+[31m+         <img src="../../evidencias/000473-2026/talude-fundos.jpg" alt="Fotografia da vistoria 1">[39m
+[31m+         <figcaption class="legenda">[39m
+[31m+           Foto 1. Talude nos fundos<br>[39m
+[31m+           Capturada em 05/10/2026, 15:35[39m
+[31m+         </figcaption>[39m
+[31m+       </figure><figure class="foto">[39m
+[31m+         <img src="../../evidencias/000473-2026/foto-que-sumiu.jpg" alt="Fotografia da vistoria 2">[39m
+[31m+         <figcaption class="legenda">[39m
+[31m+           Foto 2. Trinca na parede<br>[39m
+[31m+           Capturada em 05/10/2026, 15:35[39m
+[31m+         </figcaption>[39m
+[31m+       </figure></div>[39m
+[31m+     <div class="assinaturas">[39m
+[31m+       <div class="assinatura">[39m
+[31m+     <div class="proprio-punho">Assinatura de próprio punho</div>[39m
+[31m+     <div class="linha"></div>[39m
+[31m+     <div class="nome">Diego Nakamura Alves</div>[39m
+[31m+     <div class="papel">Agente de proteção e defesa civil</div>[39m
+[31m+   </div>[39m
+[31m+       <div class="assinatura">[39m
+[31m+     <img class="traco" src="../../evidencias/000473-2026/assinatura-f1.png" alt="Assinatura de Cleuza Ramos de Andrade">[39m
+[31m+     <div class="linha"></div>[39m
+[31m+     <div class="nome">Cleuza Ramos de Andrade</div>[39m
+[31m+     <div class="papel">Presente no local</div>[39m
+[31m+   </div>[39m
+[31m+     </div>[39m
+[31m+[39m
+[31m+   <footer class="rodape">[39m
+[31m+     <div>[39m
+[31m+       Emitido em 06/10/2026, 16:35<br>[39m
+[31m+       por Rita Sampaio Lopes (administrador)[39m
+[31m+     </div>[39m
+[31m+     <div class="identificador">[39m
+[31m+       <div class="selo-identificador" aria-hidden="true">8C66AD79530D</div>[39m
+[31m+       <div>Identificador da emissão<br><strong>8C66AD79530D</strong></div>[39m
+[31m+     </div>[39m
+[31m+   </footer>[39m
+[31m+ </article>[39m
+[31m+ </body>[39m
+[31m+ </html>[39m
+
+[36m [2m❯[22m apps/api/test/saida-de-municipio.test.ts:[2m367:19[22m[39m
+    [90m365| [39m    [35mconst[39m pacote [33m=[39m [35mawait[39m [34mbaixarPacote[39m(tokenAdministradora)[33m;[39m
+    [90m366| [39m    const laudo = pacote.get("documentos/000473-2026/laudo-de-vistoria…
+    [90m367| [39m    [34mexpect[39m(laudo)[33m.[39m[34mtoContain[39m([32m"estava designada à Equipe Alfa"[39m)[33m;[39m
+    [90m   | [39m                  [31m^[39m
+    [90m368| [39m    [34mexpect[39m(laudo)[33m.[39m[34mtoContain[39m([32m"lotado na Equipe Bravo"[39m)[33m;[39m
+    [90m369| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m18 passed[39m[22m[90m (19)[39m
+[2m   Start at [22m 16:35:25
+[2m   Duration [22m 8.95s[2m (transform 493ms, setup 0ms, collect 2.42s, tests 5.97s, environment 0ms, prepare 166ms)[22m
+

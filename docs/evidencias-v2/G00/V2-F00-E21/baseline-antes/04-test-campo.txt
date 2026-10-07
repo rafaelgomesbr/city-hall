@@ -1,0 +1,17 @@
+$ npm run test:campo   (em .)
+codigo=2 duracao=15s situacao=confere
+
+
+> dc360@0.1.0 test:campo
+> node scripts/testar-campo.mjs
+
+
+== TypeScript estrito do aplicativo de campo ==
+
+> @dc360/campo-app@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+src/app/(agente)/perfil.tsx(1221,44): error TS2345: Argument of type '"/(agente)/avisos"' is not assignable to parameter of type '"/" | RelativePathString | ExternalPathString | "/entrar" | `/entrar?${string}` | `/entrar#${string}` | `/?${string}` | `/#${string}` | "/../../../../packages/shared/src/pessoas.test" | ... 42 more ... | { ...; }'.
+src/ui/Sino.tsx(154,73): error TS2345: Argument of type '"/(agente)/avisos"' is not assignable to parameter of type '"/" | RelativePathString | ExternalPathString | "/entrar" | `/entrar?${string}` | `/entrar#${string}` | `/?${string}` | `/#${string}` | "/../../../../packages/shared/src/pessoas.test" | ... 42 more ... | { ...; }'.
+
+FALHOU: npm run typecheck --prefix apps/campo saiu com 2.

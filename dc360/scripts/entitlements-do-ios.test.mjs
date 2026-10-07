@@ -70,13 +70,69 @@ test("o valor do aps-environment é um dos dois que a Apple aceita", { skip: !ex
   );
 });
 
+/*
+  O que o caso confere, separado do arquivo para poder ser provado contra um
+  rascunho estragado de propósito (o caso negativo logo abaixo).
+
+  A forma antiga escrevia a comparação com `EAS_BUILD_PROFILE` dentro do
+  próprio `mode`, e a regex procurava aquela escrita literal. O `app.config.ts`
+  passou a decidir uma vez, em `PERFIL_DE_PRODUCAO`, e a ler a constante em dois
+  lugares (o `mode` do plugin e o `extra.pushAmbiente`), que é mais seguro: os
+  dois não têm mais como divergir. A regex velha reprovava o arquivo certo.
+  Agora o caso confere as três pontas dessa decisão: de onde a constante nasce
+  e os dois lugares que a leem. E reprova se o `mode` voltar a ser escrito à
+  mão, que é o defeito que ele existe para impedir.
+*/
+function problemasDaEscolhaDoAmbiente(config) {
+  const problemas = [];
+  if (!/const PERFIL_DE_PRODUCAO = process\.env\["EAS_BUILD_PROFILE"\] === "producao";/.test(config)) {
+    problemas.push("PERFIL_DE_PRODUCAO deixou de nascer de EAS_BUILD_PROFILE === \"producao\"");
+  }
+  if (!/mode: PERFIL_DE_PRODUCAO \? "production" : "development"/.test(config)) {
+    problemas.push("o mode do expo-notifications deixou de ler PERFIL_DE_PRODUCAO");
+  }
+  if (!/pushAmbiente: PERFIL_DE_PRODUCAO \? "producao" : "teste"/.test(config)) {
+    problemas.push("o extra.pushAmbiente deixou de ler PERFIL_DE_PRODUCAO");
+  }
+  if (/mode:\s*["'](?:production|development)["']/.test(config)) {
+    problemas.push("o mode está escrito à mão");
+  }
+  return problemas;
+}
+
 test("a escolha do ambiente continua morando no app.config.ts, e não escrita à mão", () => {
   const config = readFileSync(APP_CONFIG, "utf8");
-  assert.match(
-    config, /EAS_BUILD_PROFILE"\] === "producao" \? "production" : "development"/,
+  assert.deepEqual(
+    problemasDaEscolhaDoAmbiente(config), [],
     "app.config.ts deixou de decidir o aps-environment pelo perfil do build. " +
     "Escrito à mão, ele erra na direção que não avisa.",
   );
+});
+
+test("a conferência do ambiente reprova o mode escrito à mão num rascunho", () => {
+  const config = readFileSync(APP_CONFIG, "utf8");
+  const aMao = config.replace(
+    'mode: PERFIL_DE_PRODUCAO ? "production" : "development"', 'mode: "production"',
+  );
+  assert.notEqual(aMao, config, "o rascunho não mudou: a linha do mode saiu do app.config.ts");
+  assert.deepEqual(problemasDaEscolhaDoAmbiente(aMao), [
+    "o mode do expo-notifications deixou de ler PERFIL_DE_PRODUCAO",
+    "o mode está escrito à mão",
+  ]);
+
+  const semPerfil = config.replace(
+    'process.env["EAS_BUILD_PROFILE"] === "producao"', 'true',
+  );
+  assert.deepEqual(problemasDaEscolhaDoAmbiente(semPerfil), [
+    "PERFIL_DE_PRODUCAO deixou de nascer de EAS_BUILD_PROFILE === \"producao\"",
+  ]);
+
+  const pushAMao = config.replace(
+    'pushAmbiente: PERFIL_DE_PRODUCAO ? "producao" : "teste"', 'pushAmbiente: "producao"',
+  );
+  assert.deepEqual(problemasDaEscolhaDoAmbiente(pushAMao), [
+    "o extra.pushAmbiente deixou de ler PERFIL_DE_PRODUCAO",
+  ]);
 });
 
 /* ------------------------------------------------------------------------

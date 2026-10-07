@@ -1,0 +1,22 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/contrato-do-painel.test.ts > Tudo o que o painel chama existe na API > a árvore de rotas foi lida e traz o prefixo da saída 1ms
+ ✓ test/contrato-do-painel.test.ts > Tudo o que o painel chama existe na API > cada chamada de dados/http.ts casa com MÉTODO e caminho registrados 14ms
+ ✓ test/contrato-do-painel.test.ts > Tudo o que o painel chama existe na API > âncora: a extração alcança todas as chamadas contadas 5ms
+ ✓ test/contrato-do-painel.test.ts > Tudo o que o painel chama existe na API > o que o painel chama sem token está nas isenções de superficie.test.ts 6ms
+ ✓ test/contrato-do-painel.test.ts > Tudo o que o painel chama existe na API > toda exceção declarada é usada e tem motivo com etapa dona 5ms
+ ✓ test/contrato-do-painel.test.ts > Tudo o que o painel chama existe na API > os tipos de documento se expandem em rotas que existem 5ms
+ ✓ test/contrato-do-painel.test.ts > Casos sintéticos: o teste teria pego o defeito > o caminho certo do pacote passa (controle) 0ms
+ ✓ test/contrato-do-painel.test.ts > Casos sintéticos: o teste teria pego o defeito > POST /pacote.zip, o defeito da E11, reprova 0ms
+ ✓ test/contrato-do-painel.test.ts > Casos sintéticos: o teste teria pego o defeito > método errado no caminho certo reprova 1ms
+ ✓ test/contrato-do-painel.test.ts > Casos sintéticos: o teste teria pego o defeito > caminho com parâmetro faltando reprova 1ms
+ ✓ test/contrato-do-painel.test.ts > Casos sintéticos: o teste teria pego o defeito > chamada que o extrator não lê aparece como não lida e fura a âncora 1ms
+ ✓ test/contrato-do-painel.test.ts > Casos sintéticos: o teste teria pego o defeito > extrator que perde uma chamada reprova a âncora 5ms
+
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  03:47:46
+   Duration  3.57s (transform 379ms, setup 53ms, collect 1.70s, tests 1.38s, environment 0ms, prepare 123ms)
+
+exit 0

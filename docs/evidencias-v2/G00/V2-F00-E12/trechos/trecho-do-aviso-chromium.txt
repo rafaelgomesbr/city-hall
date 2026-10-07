@@ -1,0 +1,10 @@
+Protocolo: 000479/2026 (despachada a Equipe Bravo, coletada por agente da Equipe Alfa)
+Motor: chromium
+
+--- laudo emitido pela rota GET /documentos/:id/laudo ---
+Atenção: esta ocorrência estava designada à Equipe Bravo e a vistoria foi coletada por agente lotado na Equipe Alfa. O sistema registrou a coleta e manteve a tarefa com a equipe designada. A divergência precisa ser conferida pela coordenação antes de o ato ser praticado.
+
+--- laudo de dentro do pacote (documentos/000479-2026/laudo-de-vistoria.html) ---
+Atenção: esta ocorrência estava designada à Equipe Bravo e a vistoria foi coletada por agente lotado na Equipe Alfa. O sistema registrou a coleta e manteve a tarefa com a equipe designada. A divergência precisa ser conferida pela coordenação antes de o ato ser praticado.
+
+Identicos: sim

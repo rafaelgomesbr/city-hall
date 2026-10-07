@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  Animated, Easing, Image, ScrollView, TextInput, View,
+  Animated, Easing, Image, Linking, ScrollView, TextInput, View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams, useNavigation } from "expo-router";
 import * as Location from "expo-location";
 import * as Crypto from "expo-crypto";
@@ -25,6 +26,7 @@ import {
   apagarFotoDoAparelho, guardarFotoNoAparelho, medirArquivoNoAparelho,
 } from "../../../dados/evidencia-no-disco";
 import { obterFila } from "../../../dados/fila";
+import { precisaoDoGpsEmMetros } from "../../../dados/precisao-do-gps";
 import {
   buscarHistoricoDaCasa, historicoTemConteudo, type HistoricoDaCasa,
 } from "../../../dados/historico-da-casa";
@@ -639,11 +641,41 @@ function OQueJaAconteceuNestaCasa({ resultado }: {
  * `TituloDoCartao`: componente declarado dentro de outro é um tipo novo a cada
  * renderização.
  */
-function TarjaDeErro({ mensagem, aoFechar }: {
+/**
+ * A foto que a câmera devolveu e que não ficou guardada no aparelho.
+ *
+ * Marca a falha de `guardarFotoNoAparelho` para `fotografar` saber que a frase
+ * dela é para o agente ler (V2-F00-E16). Classe local, e não do módulo do
+ * disco, porque quem decide o que vai para a tarja é esta tela.
+ */
+class FotoNaoGuardada extends Error {}
+
+function TarjaDeErro({ mensagem, abreAjustes = false, aoFechar }: {
   mensagem: string;
+  /**
+   * A falha é permissão negada (câmera ou localização), e a saída dela está
+   * nos ajustes do aparelho (V2-F00-E16).
+   *
+   * Antes a tarja dizia "libere nas configurações" e parava aí: o agente, na
+   * porta da casa, tinha de achar sozinho o aplicativo de ajustes, a lista de
+   * aplicativos e a chave certa. O Perfil já resolvia isso para as
+   * notificações com o mesmo botão e o mesmo `Linking.openSettings`.
+   *
+   * Só permissão negada liga isto. Disco cheio, GPS sem resposta ou foto que
+   * não gravou NÃO ganham o botão: mandar o agente aos ajustes por um problema
+   * que eles não resolvem é pior que não oferecer nada, porque ele volta, a
+   * falha continua, e na próxima tarja ele já não acredita no botão.
+   */
+  abreAjustes?: boolean;
   aoFechar: () => void;
 }) {
   const tema = useTema();
+  const fechar = {
+    titulo: "Fechar",
+    onPress: aoFechar,
+    descricao: "Fechar este aviso de erro",
+    testID: "fechar-erro",
+  };
   return (
     <View
       testID="tarja-de-erro"
@@ -654,20 +686,31 @@ function TarjaDeErro({ mensagem, aoFechar }: {
         borderBottomWidth: borda.fio,
         borderBottomColor: tema.borda,
         padding: espaco.e3,
+        gap: espaco.e2,
       }}
     >
+      {/*
+        Com a permissão negada, o ato que resolve é abrir os ajustes, e ele é
+        a AÇÃO do aviso (realce, dentro da caixa, onde o olho já está). O
+        "Fechar" desce para um botão próprio logo abaixo e continua existindo:
+        tarja que não sai é tarja que se aprende a ignorar.
+      */}
       <Aviso
         tom="perigo"
         titulo="Não deu certo"
-        acao={{
-          titulo: "Fechar",
-          onPress: aoFechar,
-          descricao: "Fechar este aviso de erro",
-          testID: "fechar-erro",
-        }}
+        acao={abreAjustes
+          ? {
+            titulo: "Abrir os ajustes do aparelho",
+            tipo: "realce",
+            onPress: () => { void Linking.openSettings().catch(() => undefined); },
+            descricao: "Abrir os ajustes do sistema para liberar a permissão deste aplicativo",
+            testID: "abrir-ajustes",
+          }
+          : fechar}
       >
         {mensagem}
       </Aviso>
+      {abreAjustes && <Botao tipo="secundario" {...fechar} />}
     </View>
   );
 }
@@ -747,6 +790,12 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
     de verdade (ver `barraEscondida` em `ui/BarraDeAbas.tsx`).
   */
   const recuoDoMenu = useRecuoDoMenu();
+  /*
+    A área segura, para a ÚNICA tela daqui que não tem o menu embaixo: a
+    câmera. As outras reservam o vão do menu, que já inclui a barra do
+    sistema; a câmera esconde o menu e precisa reservar a barra sozinha.
+  */
+  const margens = useSafeAreaInsets();
   const tema = useTema();
   const { obterToken, identidade, lerIdentidade, sair } = useSessao();
 
@@ -771,7 +820,25 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
    */
   const [catalogoDeOrgaos, setCatalogoDeOrgaos] = useState<OrgaoDoCatalogo[]>([]);
   const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  /*
+    A FALHA DESENHADA NA TARJA, e se os ajustes do aparelho são a saída dela.
+
+    As duas coisas moram no MESMO estado de propósito (V2-F00-E16). Um
+    booleano ao lado da frase sobreviveria à próxima falha: a permissão de
+    câmera negada acende o botão, o GPS falha depois por outro motivo, e a
+    tarja nova sairia com "Abrir os ajustes do aparelho" para um problema que
+    os ajustes não resolvem. Aqui cada falha nasce dizendo se pede os ajustes,
+    e `setErro` (o caminho de todas as outras) nasce sempre sem o botão.
+  */
+  const [falha, setFalha] = useState<{ mensagem: string; abreAjustes: boolean } | null>(null);
+  const erro = falha?.mensagem ?? null;
+  const setErro = useCallback((mensagem: string | null): void => {
+    setFalha(mensagem === null ? null : { mensagem, abreAjustes: false });
+  }, []);
+  /** Só para permissão negada: é o único caso em que os ajustes resolvem. */
+  const avisarQueFaltaPermissao = useCallback((mensagem: string): void => {
+    setFalha({ mensagem, abreAjustes: true });
+  }, []);
   /**
    * A tarefa existe no servidor e ainda não chegou a este aparelho.
    *
@@ -1427,7 +1494,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
     try {
       const permissao = await Location.requestForegroundPermissionsAsync();
       if (!permissao.granted) {
-        setErro(
+        avisarQueFaltaPermissao(
           "Sem permissão de localização. O laudo pode ser concluído sem a " +
           "coordenada, mas ela é o que prova onde a vistoria foi feita.",
         );
@@ -1443,9 +1510,9 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
           lat: Number(posicao.coords.latitude.toFixed(6)),
           lng: Number(posicao.coords.longitude.toFixed(6)),
         },
-        gpsPrecisaoMetros: posicao.coords.accuracy
-          ? Math.round(posicao.coords.accuracy)
-          : null,
+        /* Piso de 1 metro: abaixo de meio metro o arredondamento dava 0, e o
+           esquema recusa 0. Ver `precisaoDoGpsEmMetros`. */
+        gpsPrecisaoMetros: precisaoDoGpsEmMetros(posicao.coords.accuracy),
       });
     } catch {
       setErro("O aparelho não conseguiu obter a localização. Tente de novo a céu aberto.");
@@ -1479,8 +1546,20 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
         */
         retornoTatil("confirmado");
       }
-    } catch {
-      setErro("O aparelho não conseguiu tirar a foto. Tente de novo.");
+    } catch (e) {
+      /*
+        A frase de quem SABE o que houve chega à tarja (V2-F00-E16).
+
+        `guardarFotoNoAparelho` lança a frase certa quando o arquivo sai vazio
+        ("Tire a foto de novo"), e este `catch` a engolia e escrevia a
+        genérica, como se a câmera tivesse falhado. Só a falha de guardar a
+        foto traz frase própria, e ela vem marcada (`FotoNaoGuardada`); o resto
+        (a câmera que não disparou) continua com a genérica, porque o erro do
+        módulo nativo vem em inglês e não diz ao agente o que fazer.
+      */
+      setErro(e instanceof FotoNaoGuardada
+        ? e.message
+        : "O aparelho não conseguiu tirar a foto. Tente de novo.");
       setCameraAberta(false);
     } finally {
       setFotografando(false);
@@ -1498,7 +1577,16 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
       envio inteiro morreria nele. O porquê está inteiro em
       `dados/evidencia-no-disco.ts`.
     */
-    const guardada = guardarFotoNoAparelho(uri, rascunho.fotos.length);
+    let guardada: { uriLocal: string; tamanhoBytes: number };
+    try {
+      guardada = guardarFotoNoAparelho(uri, rascunho.fotos.length);
+    } catch (e) {
+      throw new FotoNaoGuardada(
+        e instanceof Error && e.message
+          ? e.message
+          : "A foto não ficou guardada neste aparelho. Tire a foto de novo.",
+      );
+    }
     const foto: FotoLocal = {
       // A chave nasce aqui, com a foto, e não no envio: é ela que impede o
       // servidor de aceitar a mesma imagem duas vezes se o envio for repetido.
@@ -2011,7 +2099,13 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
           onde aparecer: `refazerVistoria` acendia `erro` e esta tela não lia
           `erro` em lugar nenhum. Ver o cabeçalho de `TarjaDeErro`.
         */}
-        {erro && <TarjaDeErro mensagem={erro} aoFechar={() => { setErro(null); }} />}
+        {falha && (
+          <TarjaDeErro
+            mensagem={falha.mensagem}
+            abreAjustes={falha.abreAjustes}
+            aoFechar={() => { setErro(null); }}
+          />
+        )}
         <Cartao>
           <View style={{ flexDirection: "row", alignItems: "center", gap: espaco.e2 }}>
             <Txt variante="corpoP" mono negrito>{ocorrencia.protocolo}</Txt>
@@ -2227,10 +2321,24 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
           não pedia, e por isso era o único bloco da tela com outra largura,
           entre dois que iam de borda a borda.
         */}
+        {/*
+          A FRASE DIZ SÓ O QUE O APARELHO FAZ (V2-F00-E16, CMP-35).
+
+          Ela prometia que a coleta subia "mesmo com o aplicativo fechado", e
+          não existe sincronização em segundo plano neste aplicativo: a fila
+          drena enquanto ele está aberto (`iniciarSincronizacaoContinua` vive
+          no layout das abas), sem `expo-task-manager` e sem modo de fundo
+          declarado. O agente que fecha o aplicativo sem sinal acreditava que a
+          vistoria tinha subido. A frase agora diz a verdade que ele vai
+          comprovar: abriu com sinal, subiu. O segundo plano, se vier, é a
+          F14-E06 e depende do CP-24.
+        */}
         <View style={{ alignSelf: "stretch" }}>
-          <Aviso tom="info" titulo="Ela sobe sozinha">
-            Nada depende de sinal agora. A coleta está na fila de envio deste
-            aparelho e sobe assim que houver rede, mesmo com o aplicativo fechado.
+          <Aviso tom="info" titulo="Ela sobe com o aplicativo aberto">
+            Nada depende de sinal agora. A coleta está guardada neste aparelho e
+            sobe quando o aplicativo estiver aberto e houver rede: se agora não
+            há sinal, ela sobe quando você abrir o aplicativo com sinal. A fila
+            de envio mostra o andamento.
           </Aviso>
         </View>
 
@@ -2402,10 +2510,21 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
     return (
       <View style={{ flex: 1, backgroundColor: visor.fundo }}>
         <CameraView ref={cameraRef} style={{ flex: 1 }} facing="back" />
-        <View style={{
-          padding: espaco.e5, gap: espaco.e3,
-          backgroundColor: visor.fundo, alignItems: "center",
-        }}>
+        <View
+          testID="barra-da-camera"
+          style={{
+            padding: espaco.e5, gap: espaco.e3,
+            /*
+              A barra do sistema embaixo (V2-F00-E16, CMP-89). Tela cheia
+              esconde o menu, e com ele o vão que as outras telas reservam; no
+              aparelho sem botão físico o obturador e "Voltar sem fotografar"
+              ficavam em cima do traço de gesto do sistema, e o toque ia para
+              o sistema e não para a câmera.
+            */
+            paddingBottom: espaco.e5 + margens.bottom,
+            backgroundColor: visor.fundo, alignItems: "center",
+          }}
+        >
           {/*
             Disparador redondo e grande, no lugar onde o polegar já está. Um
             botão de tamanho normal aqui seria errado a cada duas fotos, e cada
@@ -2565,7 +2684,13 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
         Com botão de fechar, porque tarja que não sai é tarja que o agente
         aprende a ignorar, e a próxima que importar ele também ignora.
       */}
-      {erro && <TarjaDeErro mensagem={erro} aoFechar={() => { setErro(null); }} />}
+      {falha && (
+        <TarjaDeErro
+          mensagem={falha.mensagem}
+          abreAjustes={falha.abreAjustes}
+          aoFechar={() => { setErro(null); }}
+        />
+      )}
 
     <ScrollView
       ref={rolagem}
@@ -2576,6 +2701,21 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
         disputa. So vira duas vezes por traco, no inicio e no fim.
       */
       scrollEnabled={!desenhando}
+      /*
+        O TECLADO (V2-F00-E16, CMP-89). Relato com o aparelho na mão: "digitei
+        o nome e toquei em Tirar foto: o teclado fechou e nada aconteceu".
+
+        `handled`: o toque num botão com o teclado aberto chega ao botão na
+        primeira vez, em vez de ser gasto só para fechar o teclado. Toque em
+        área vazia continua fechando o teclado, que é o que o agente espera.
+
+        `automaticallyAdjustKeyboardInsets`: no iOS a rolagem soma a altura do
+        teclado ao próprio recuo, e o campo que está sendo digitado (o nome de
+        quem assina, as observações) não fica escondido embaixo dele. No
+        Android quem faz isso é o próprio sistema, que redimensiona a janela.
+      */
+      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
       contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: recuoDoMenu + espaco.e4 }}
     >
       <Cartao>
@@ -3362,9 +3502,9 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
             if (!permissaoCamera?.granted) {
               const resultado = await pedirCamera();
               if (!resultado.granted) {
-                setErro(
-                  "Sem permissão de câmera. Libere nas configurações do aparelho " +
-                  "para poder fotografar a vistoria.",
+                avisarQueFaltaPermissao(
+                  "Sem permissão de câmera. Libere a câmera para este aplicativo " +
+                  "nos ajustes do aparelho para poder fotografar a vistoria.",
                 );
                 return;
               }
@@ -3516,8 +3656,10 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
                   {pontoDoAgente.latitude.toFixed(6)}, {pontoDoAgente.longitude.toFixed(6)}
                 </Txt>
                 <Txt variante="legenda" discreto>
+                  {/* Com o piso de 1 metro, "1" virou a leitura do GPS bom, e
+                      "1 metros" seria a frase errada justamente nele. */}
                   {rascunho.gpsPrecisaoMetros
-                    ? `Precisão de ${rascunho.gpsPrecisaoMetros} metros`
+                    ? `Precisão de ${rascunho.gpsPrecisaoMetros} ${rascunho.gpsPrecisaoMetros === 1 ? "metro" : "metros"}`
                     : "Precisão não informada pelo aparelho"}
                 </Txt>
               </>

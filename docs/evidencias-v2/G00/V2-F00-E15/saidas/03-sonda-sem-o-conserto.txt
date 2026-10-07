@@ -1,0 +1,11 @@
+SONDA: banco-local.ts com DELETE FROM fila_sincronizacao no logout e acolherNoAparelho apagando sempre; precisao-do-gps.ts sem o piso de 1 metro.
+  ● a mesma pessoa que volta reencontra o que deixou › a Ana entra de novo: a vistoria começada continua, com foto e assinatura
+  ● a mesma pessoa que volta reencontra o que deixou › e a fila dela fica exatamente como estava, ainda pendente
+  ● a precisão gravada pelo aparelho › abaixo de meio metro vira 1, e não zero
+  ● a precisão gravada pelo aparelho › todo valor que o aparelho grava passa no esquema do servidor
+  ● a saída explícita, depois do aviso › apaga o rascunho, que é o que o diálogo agora diz que apaga, e só isso da coleta
+  ● outra pessoa que entra no aparelho com o rascunho da primeira › mas a coleta da Ana na fila continua, intacta e pendente, com a assinatura no disco
+Tests:       6 failed, 4 passed, 10 total
+Restaurado:
+banco-local.ts: OK
+precisao-do-gps.ts: OK

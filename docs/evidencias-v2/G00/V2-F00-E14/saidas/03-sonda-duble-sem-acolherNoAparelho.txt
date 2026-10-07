@@ -1,0 +1,97 @@
+FAIL src/push/logout-cala-o-aparelho.test.tsx
+  × manda a ficha deste aparelho junto com a saída (23 ms)
+  × sai normalmente quando este aparelho nunca teve ficha (2 ms)
+  × esquece a ficha depois de mandá-la, para ela não sobreviver ao turno (4 ms)
+  × guarda o município da sessão, que é o que a barreira de push compara (1 ms)
+  × o dublê do banco local acompanha tudo o que sessao.tsx importa dele (4 ms)
+
+  ● manda a ficha deste aparelho junto com a saída
+
+    TypeError: (0 , _bancoLocal.acolherNoAparelho) is not a function
+
+      183 |       tela de tarefas já ter mostrado a lista do turno anterior.
+      184 |     */
+    > 185 |     await acolherNoAparelho(r.identidade.usuarioId);
+          |                            ^
+      186 |     credenciais.current = r.credenciais;
+      187 |     identidadeViva.current = r.identidade;
+      188 |     await Promise.all([
+
+      at Object.<anonymous> (src/dados/sessao.tsx:185:28)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● sai normalmente quando este aparelho nunca teve ficha
+
+    TypeError: (0 , _bancoLocal.acolherNoAparelho) is not a function
+
+      183 |       tela de tarefas já ter mostrado a lista do turno anterior.
+      184 |     */
+    > 185 |     await acolherNoAparelho(r.identidade.usuarioId);
+          |                            ^
+      186 |     credenciais.current = r.credenciais;
+      187 |     identidadeViva.current = r.identidade;
+      188 |     await Promise.all([
+
+      at Object.<anonymous> (src/dados/sessao.tsx:185:28)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● esquece a ficha depois de mandá-la, para ela não sobreviver ao turno
+
+    TypeError: (0 , _bancoLocal.acolherNoAparelho) is not a function
+
+      183 |       tela de tarefas já ter mostrado a lista do turno anterior.
+      184 |     */
+    > 185 |     await acolherNoAparelho(r.identidade.usuarioId);
+          |                            ^
+      186 |     credenciais.current = r.credenciais;
+      187 |     identidadeViva.current = r.identidade;
+      188 |     await Promise.all([
+
+      at Object.<anonymous> (src/dados/sessao.tsx:185:28)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● guarda o município da sessão, que é o que a barreira de push compara
+
+    TypeError: (0 , _bancoLocal.acolherNoAparelho) is not a function
+
+      183 |       tela de tarefas já ter mostrado a lista do turno anterior.
+      184 |     */
+    > 185 |     await acolherNoAparelho(r.identidade.usuarioId);
+          |                            ^
+      186 |     credenciais.current = r.credenciais;
+      187 |     identidadeViva.current = r.identidade;
+      188 |     await Promise.all([
+
+      at Object.<anonymous> (src/dados/sessao.tsx:185:28)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● o dublê do banco local acompanha tudo o que sessao.tsx importa dele
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "acolherNoAparelho",
+    + ]
+
+      195 |   const dubleDoBanco = bancoLocalDublado as unknown as Record<string, unknown>;
+      196 |   const faltando = nomesUsados.filter((n) => typeof dubleDoBanco[n] !== "function");
+    > 197 |   expect(faltando).toEqual([]);
+          |                    ^
+      198 | });
+      199 |
+
+      at Object.toEqual (src/push/logout-cala-o-aparelho.test.tsx:197:20)
+
+Test Suites: 1 failed, 1 total
+Tests:       5 failed, 5 total
+Snapshots:   0 total
+Time:        2.161 s
+Ran all test suites matching /src\\push\\logout-cala-o-aparelho.test.tsx/i.

@@ -8,13 +8,13 @@ build) valem lá, não aqui.
 
 | Pacote | O que é | Situação |
 | --- | --- | --- |
-| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto |
-| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 285 testes do banco passando |
-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 454 testes de fonte do painel mais 68 verificações no navegador no modo local e 103 contra a API |
-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 962 testes da API passando |
-| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 138 testes de unidade do motor de campo e 15 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Instalado e usado em iPhone de verdade (compilação nativa, 08/09/2026), com três vistorias reais coletadas. TypeScript limpo, 1708 testes do aplicativo passando, 21 de 21 no `expo-doctor`, `npm audit` em zero. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
-| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios e não alcança dado de cidadão | Pronto, 250 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+| `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 168 testes do pacote compartilhado passando |
+| `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 327 testes do banco passando |
+| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 643 testes de fonte do painel mais 70 verificações no navegador no modo local e 251 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1267 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+| `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 187 testes de unidade do motor de campo e 15 de integração contra a API |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1861 testes do aplicativo passando. **NÃO fecha hoje** o `expo-doctor` (em 2026-10-07, 20 de 21: dez pacotes do Expo com versão de correção atrás do SDK) nem o `npm audit` (em 2026-10-07, dezenas de avisos altos e um crítico na árvore do aplicativo); os dois são da V2-F00-E19, bloqueada pelo CP-03. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
 
@@ -127,7 +127,7 @@ confirmaria que o registro existe, e confirmar existência já é vazamento.
 | Peça | Escolha | Por quê |
 | --- | --- | --- |
 | Senha | scrypt do `node:crypto`, N=2^16 | Aprovado no ASVS 4.0 (2.4.3), sem dependência nova e sem módulo nativo para compilar |
-| Token de acesso | JWT HS256, 15 minutos | Na LEITURA, verificado só por assinatura, sem ida ao banco: conta desativada ainda lê até o token vencer (a F03-E03 fecha isso). Na ESCRITA (todo método que não é GET nem HEAD), uma consulta ao banco confere, junto com a suspensão do município, se a conta está ativa, se o papel é o do token, se a sessão do token não foi encerrada e se a senha provisória não venceu: falhando, responde no pedido seguinte 401 `sessao_encerrada` (sessão encerrada ou senha provisória vencida), 401 `nao_autenticado` (papel diferente do token: o cliente renova e repete, e a renovação já traz o papel novo) ou 403 `conta_desativada` (conta desativada), ver os códigos abaixo (`auth/vigencia.ts`, religada em V2-F00-E04, códigos separados em V2-F00-E05, papel e cadeia da sessão em V2-F00-E07) |
+| Token de acesso | JWT HS256, 15 minutos por padrão (`ACESSO_MINUTOS`, teto de 60) | Na LEITURA (GET e HEAD), verificado só pela assinatura: conta, papel e sessão NÃO são consultados, então conta desativada ainda lê até o token vencer, e o `GET /avisos`, que escreve, também aceita esse token (a F03-E03 fecha a leitura; a escrita dentro do GET está em `apps/api/PENDENCIAS.md`). Na ESCRITA (todo método que não é GET nem HEAD), uma consulta ao banco confere, junto com a suspensão do município, se a conta está ativa, se o papel é o do token, se a sessão do token não foi encerrada e se a senha provisória não venceu: falhando, responde no pedido seguinte 401 `sessao_encerrada` (sessão encerrada ou senha provisória vencida), 401 `nao_autenticado` (papel diferente do token: o cliente renova e repete, e a renovação já traz o papel novo) ou 403 `conta_desativada` (conta desativada), ver os códigos abaixo (`auth/vigencia.ts`, religada em V2-F00-E04, códigos separados em V2-F00-E05, papel e cadeia da sessão em V2-F00-E07) |
 | Token de renovação | 32 bytes opacos, guardado só como hash | Revogável, e vazamento do banco não devolve sessão utilizável |
 | Rotação | A cada renovação | Reúso de token gasto é sintoma de roubo: derruba todas as sessões do usuário |
 | Cadeia da sessão | `sessoes.familia_id`: cada login abre uma família e cada renovação a herda (migração 047) | O token de acesso emitido ANTES de uma renovação segue valendo por seus 15 minutos (a fila do aparelho pode estar no meio de um envio), mas só enquanto a família tem sessão de pé: encerrar a cadeia (quem administra, a própria pessoa, sair, reuso de token, troca de senha) derruba também o token anterior à renovação |
@@ -216,8 +216,9 @@ Hoje o cliente fala o contrato publicado do **Resend**
 (`POST https://api.resend.com/emails`, com `from`, `to`, `subject` e `text`), e
 `apps/api/test/notificador-http.test.ts` confere o corpo campo a campo, além de
 afirmar que os cinco nomes inventados **não** aparecem nele. Sem SDK, pela mesma
-razão que a assinatura S3 é escrita à mão: o `npm audit` deste produto fecha em
-zero.
+razão que a assinatura S3 é escrita à mão: o `npm audit` deste produto precisa
+fechar em zero (hoje não fecha, por dependência que não é esta: ver "Como
+testar").
 
 Três decisões que vale registrar:
 
@@ -568,8 +569,15 @@ console consiga ler.
 ### O papel de banco do console não tem concessão em tabela de negócio
 
 `dc360_console` tem `SELECT` na tabela de métricas, no cadastro de organizações e
-na visão que junta as duas. Nada mais, no banco inteiro: sem escrita, sem
-sequência, sem função privilegiada, sem `BYPASSRLS`.
+na visão que junta as duas. Em tabela de negócio, é só isso: sem escrita, sem
+sequência, sem `BYPASSRLS`. O que ele tem a mais, desde as migrações 036, 038 e
+039, é por NOME e fica fora das tabelas de negócio: `EXECUTE` em funções
+`SECURITY DEFINER` que fazem um ato fechado cada (cadastrar prefeitura,
+suspender e reativar o acesso, agendar e cancelar a eliminação, e as do próprio
+login do fornecedor), e escrita nas tabelas do fornecedor (`console_operadores`,
+o livro `eliminacoes_de_municipio` e `console_codigos_de_recuperacao`). A lista
+de exceções é nomeada em `db/test/isolamento.test.ts`: uma função nova
+concedida ao console reprova o portão até alguém escrever o nome dela lá.
 
 Isso não é lista conferida uma a uma, é **asserção universal** em
 `db/test/isolamento.test.ts`: nenhum papel além do de aplicação e do dono tem
@@ -607,10 +615,18 @@ tokens com a **mesma chave** e o mesmo conteúdo, trocando só a plateia, e most
 cada lado recusando o do outro. Uma rota nova do produto nasce recusando token de
 console, e uma rota nova do console nasce recusando token de município.
 
-O console não tem rota de escrita, não tem CORS (a página é servida pelo próprio
-processo), não carrega a `DATABASE_URL` do produto, não tem credencial de
-armazenamento, de push nem de email, e não provisiona município: isso continua
-sendo linha de comando com a credencial de dono, como a ADR 0006 fixou.
+O console não tem CORS (a página é servida pelo próprio processo), não carrega a
+`DATABASE_URL` do produto e não tem credencial de armazenamento, de push nem de
+email. Ele TEM rotas de escrita, e elas são o que uma sessão do fornecedor
+comprometida alcança: `POST /prefeituras` (cadastra prefeitura e o primeiro
+administrador, por `provisionar_municipio`, migração 036), `POST
+/municipios/:id/suspender` e `/reativar`, `POST /municipios/:id/eliminar` (agenda
+a eliminação para daqui a sete dias e suspende na hora) e
+`/eliminacao/cancelar`, mais as da própria conta (operadores, senha, códigos de
+recuperação). Nenhuma delas lê dado de cidadão, e nenhuma apaga na hora: quem
+executa a eliminação vencida é o relógio da API (`docs/SAIDA-DE-MUNICIPIO.md`,
+capítulo 5). O banco é o MESMO Postgres dos municípios, com papel próprio, e não
+um banco separado.
 
 ### O segundo fator não é opcional
 
@@ -628,20 +644,22 @@ O TOTP é o do produto, literalmente: `apps/api/src/auth/totp.ts`, com o mesmo
 passo queimado depois de usado e o mesmo `scrypt` para a senha. O console não tem
 implementação própria de criptografia.
 
-### Onde moram as contas, e por que não no banco
+### Onde moram as contas
 
-Na configuração do processo, e isso é consequência do papel de banco ser pobre:
-uma tabela de operadores exigiria dar escrita ao console, e escrita é o que separa
-"um vazamento entrega números agregados" de "um vazamento entrega uma porta de
-escrita no banco de todos os municípios".
+Em `console_operadores`, no banco, desde a migração 038. Até ela as contas
+moravam na configuração do processo, porque o papel do console não escrevia em
+tabela nenhuma; a 038 abriu ao console essa tabela, que não é de negócio (só
+quem opera o fornecedor), sob policy: operador atualiza a própria linha, só o
+dono cria e desativa. Tentativas falhadas, castigo e passo de TOTP já usado vão
+para a linha do operador, então valem em qualquer processo e sobrevivem a
+reinício. O dono cria operadores pela tela.
 
-O que se perde, dito em voz alta: criar operador é mudança de configuração, e o
-passo de TOTP já usado e o contador de tentativas vivem na memória do processo,
-não no banco. Reiniciar o processo esquece os dois, e a janela que isso abre é a
-de um passo de trinta segundos.
+`CONSOLE_OPERADORES` virou a SEMENTE do dono: na partida, com a tabela vazia, a
+conta da variável entra como dono, uma vez; depois disso a variável é ignorada,
+com aviso no log (`apps/console/src/operadores.ts`).
 
 ```bash
-# 1. Criar o operador. Nada disto vai para o banco: o comando imprime.
+# 1. Gerar a linha da semente do dono. O comando imprime; nada vai ao banco aqui.
 CONSOLE_SEGUNDO_FATOR_CHAVE=... npm run provisionar --workspace @dc360/console \
   -- --email coordenacao@fornecedor.com.br
 
@@ -814,8 +832,11 @@ SQL na mão no banco de produção.
 Um usuário que enxergasse todos os municípios contradiria o isolamento, que é a
 regra número um daqui: bastaria um token vazado para alcançar todas as
 prefeituras de uma vez. Por isso **provisionar município é ato de operador da
-plataforma**, feito pela linha de comando com a credencial de dono do banco, a
-mesma que aplica migração:
+plataforma**, e não de papel do município. Ele tem dois caminhos: a tela do
+console do fornecedor (`POST /prefeituras`, pela função `provisionar_municipio`
+da migração 036, sem a credencial de dono; ver "O console do fornecedor"), e a
+linha de comando com a credencial de dono do banco, a mesma que aplica
+migração:
 
 ```bash
 DATABASE_URL=postgres://... npm run provisionar --   --municipio "Serra Alta" --uf MG   --nome "Rita Lopes" --matricula SA-1 --email rita@serraalta.mg.gov.br   --operador "Seu nome, operação da plataforma"
@@ -859,6 +880,16 @@ envio.
 
 ## O agente que sobe o morro sozinho
 
+> **Estado em 07/10/2026: pela metade, e a metade que falta é a do agente.** A
+> API (`apps/api/src/rotas/saida-a-campo.ts`, prefixo `/saida-a-campo`) e a tela
+> da coordenação (`apps/web/src/paginas/QuemEstaEmCampo.tsx`) estão prontas e
+> testadas. O aplicativo de campo **não chama** declarar, prorrogar, retorno nem
+> `/minha`: só lê, na lista da equipe, se um colega tem saída aberta. Na prática
+> nenhuma saída é declarada, a tela "Quem está em campo" fica vazia e nenhum
+> prazo estourado aparece. A parte do aplicativo está planejada na V2-F14-E01,
+> sem data. Tudo o que esta seção diz sobre o agente declarar é o desenho, não
+> o que o aplicativo faz hoje (V2-F00-E24, decisão CP-02).
+
 O vocabulário deste produto reconhece, por escrito e desde a migração 028, que o
 agente entra em lugar que oferece risco à integridade física dele:
 `risco_para_a_equipe` é um dos seis motivos de devolução de tarefa. E não havia
@@ -870,7 +901,8 @@ responde?** Um botão de apoio que aciona alguém que não existe é pior do que
 botão nenhum, porque cria expectativa de socorro e a pessoa muda o comportamento
 dela contando com uma resposta que não vem.
 
-Então o produto promete só o que cumpre. O agente declara, **antes de subir e com
+Então o produto promete só o que cumpre. No desenho (o servidor já cumpre a sua
+parte, o aplicativo ainda não), o agente declara, **antes de subir e com
 sinal**, para onde vai, em quanto tempo volta e se vai **sozinho**. O prazo é
 carimbado pelo relógio do SERVIDOR. Se o retorno não for confirmado, a saída
 aparece como prazo estourado na tela de quem coordena e no sino, e o que a
@@ -1051,6 +1083,75 @@ npm run test:e2e:api            # painel contra a API
 `test:scripts` nem `test:campo`, então esses três só aparecem vermelhos na
 máquina de quem rodar.
 
+**Portabilidade dos scripts.** `test:scripts` e `conferir:numeros` precisam
+fechar verdes no Windows e no Linux, e os três casos que só reprovavam no
+Windows ensinaram três regras para quem escrever um caso novo em `scripts/`:
+chamar `npm` com `shell: process.platform === "win32"` (lá ele é `npm.cmd`, e
+sem shell a chamada morre com ENOENT antes de rodar qualquer coisa); montar
+caminho com `join` e `resolve` a partir da raiz da plataforma, e nunca com
+texto POSIX literal, porque `resolve` transforma `/Users/x` em `C:\Users\x`; e
+conferir uma decisão de configuração pelo que ela decide, e não pela escrita
+literal de uma linha que pode mudar de forma sem mudar de sentido.
+
+**Plataformas e o que depende da máquina (V2-F00-E21).** Três vermelhos que
+eram da máquina, e não do código, foram fechados no próprio repositório:
+
+- *Fim de linha.* O `.gitattributes` da raiz fixa LF no índice e no checkout
+  para todo texto (`* text=auto eol=lf`), CRLF só para `.ps1`, e marca imagem,
+  fonte, PDF e dump como `binary`. Teste do painel que confere fonte lê com
+  `apps/web/test/ler-fonte.ts`, que normaliza `\r\n`, porque árvore clonada
+  antes do `.gitattributes` continua CRLF até ser renormalizada. Conferência:
+  `git ls-files --eol` não pode mostrar nenhum `i/crlf`.
+- *`OPENSSL_CONF`.* O instalador do driver ODBC do PostgreSQL no Windows deixa
+  a variável apontando para um arquivo que não existe, e o `openssl req` de
+  `apps/api/test/banco-tls.test.ts` caía. O gerador de certificado do teste
+  (`apps/api/test/openssl-do-teste.ts`) tira a variável do ambiente do
+  `openssl` só nesse caso e imprime o motivo; variável que aponta para arquivo
+  existente é respeitada. O `openssl` vem do PATH; no Windows, quando o PATH
+  não o tem (o caso do PowerShell), o teste o procura ao lado do `git` (Git for
+  Windows). Sem `openssl` em lugar nenhum a suíte reprova dizendo o que
+  instalar, em vez de pular.
+- *Cache do Expo.* `npm run test:campo` apaga `apps/campo/.expo/types` quando o
+  `router.d.ts` gerado ali não conhece alguma rota de `src/app` (ver
+  `apps/campo/LEIA-ME.md`).
+
+| Comando | Windows 11 com Git Bash (Node 22.17.0) | Linux |
+| --- | --- | --- |
+| `npm run typecheck` | rodado em 2026-10-07, código 0 | não provado nesta máquina |
+| `npm test` | rodado em 2026-10-07, código 0 | não provado nesta máquina |
+| `npm run test:api` (inclui `banco-tls`) | rodado em 2026-10-07, código 0, nenhum pulado; com e sem `OPENSSL_CONF` quebrado, no Git Bash e no PowerShell | não provado nesta máquina |
+| `npm run test --workspace @dc360/web` | rodado em 2026-10-07, código 0, árvore CRLF | não provado nesta máquina |
+| `npm run test:campo` | rodado em 2026-10-07, código 0, com o cache velho presente e sem ele | não provado nesta máquina |
+| `npm run test:scripts` | rodado em 2026-10-07, código 0 | não provado nesta máquina |
+| `npm run test:isolamento` | rodado em 2026-10-07, código 0 | não provado nesta máquina |
+
+A coluna Linux fica "não provado" até existir um run de verdade, do CI
+(F01-E03) ou de contêiner: esta máquina não tem WSL nem Docker, e o código foi
+escrito para não depender da plataforma, o que não é o mesmo que ter rodado
+nela. A evidência está em `docs/evidencias-v2/G00/V2-F00-E21/`.
+
+Os números de teste que este README e `docs/COLOCAR-DE-PE.md` afirmam mudam
+sempre que uma etapa acrescenta caso, e `conferir:numeros` volta a reprovar
+até alguém corrigir o texto. Isso é de propósito: o número velho é mentira
+pequena, e o portão existe para ela não passar calada. Quem acrescenta teste
+roda `conferir:numeros` antes de encerrar. A saída também lista os pulos que
+`vitest list` não enumera (`describe.skip`, `it.skip`, e `runIf` ou `skipIf`
+que avaliou falso), para a diferença entre a contagem afirmada e o total do
+`vitest run` ter origem visível.
+
+**Contrato mínimo painel x API (V2-F00-E23).** `apps/api/test/contrato-do-painel.test.ts`
+lê `apps/web/src/dados/http.ts` como texto, tira de cada `chamar(` e `fetch(` o
+método e o caminho (interpolação vira parâmetro, query sai) e exige que
+`MÉTODO caminho` exista entre as rotas do servidor montado, lidas por
+`printRoutes` com a mesma leitura de `superficie.test.ts`
+(`apps/api/test/superficie-registrada.ts`), e não de uma lista copiada. Uma
+âncora conta as chamadas por expressão regular e reprova se o extrator ler
+menos do que contou, e os casos sintéticos provam que `POST /pacote.zip` (o
+defeito da E11), método errado e parâmetro faltando reprovam. É a versão
+mínima: só o painel e só a existência da rota. A F02-E05 a generaliza para o
+aplicativo de campo e o console e a liga ao OpenAPI (F02-E04); corpo e resposta
+não são conferidos aqui.
+
 **A linha de base de hoje é vermelha de propósito.** Os vermelhos foram medidos
 em 2026-09-30 e são consertados um a um na fase F00 do Roadmap V2
 (`docs/roadmap-v2/03-fase-00-estabilizacao.md`). Para repetir a medição e
@@ -1185,14 +1286,24 @@ começar por subir os dois uma vez.
 ## Como testar
 
 ```bash
-npm test                    # 2219 testes em seis pacotes
-npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 285 testes do banco
-npm run test:api            # 962 testes da API
-npm run test --workspace @dc360/campo   # 138 testes do motor de campo
-npm run test:campo          # tipos e os 1708 testes do aplicativo de campo
+npm test                    # 2851 testes em seis pacotes
+npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 327 testes do banco
+npm run test:api            # 1267 testes da API
+npm run test --workspace @dc360/campo   # 187 testes do motor de campo
+npm run test:campo          # tipos e os 1861 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
-npm audit                   # precisa fechar em zero
+npm audit                   # precisa fechar em zero, e HOJE NÃO FECHA
 ```
+
+**O `npm audit` não está em zero.** Medido em 2026-10-07: na raiz, só com as
+dependências de execução (`npm audit --omit=dev`), um aviso alto no `fastify`
+e um moderado no `fast-uri`, ambos com correção por `npm audit fix`; no
+aplicativo de campo, dezenas de avisos (altos e um crítico) na árvore do Expo.
+A regra do produto diz que vulnerabilidade em execução é bug, e a correção é a
+V2-F00-E19, que espera a política do CP-03. Nesta máquina `npm run auditar`
+nem chega a auditar: no Windows ele morre com `spawnSync npm ENOENT` antes da
+primeira consulta (o `npm` de lá é `npm.cmd`), então quem roda o portão aqui
+precisa ler o erro, e não concluir nada sobre vulnerabilidade a partir dele.
 
 ### O aplicativo de campo precisa de um comando próprio
 
@@ -1268,7 +1379,7 @@ MOTOR=firefox npm run test:e2e                              # e no Gecko
 ```
 
 A variável `MOTOR` troca o motor do navegador (`chromium`, `firefox`,
-`webkit`). As 68 verificações passam no Chromium, que é o motor do Chrome e do
+`webkit`). As 70 verificações passam no Chromium, que é o motor do Chrome e do
 Edge, e no Firefox. Sobre o WebKit, leia a seção seguinte antes de tentar.
 
 ### O modo local não serve para o Safari
@@ -1312,21 +1423,25 @@ banco é o do servidor e o navegador só desenha.
 Fluxo ponta a ponta com a API, que é o caminho de produção:
 
 ```bash
-# terminal 1: API recém-iniciada (a suíte confere contagens exatas)
-cd apps/api && JWT_SEGREDO="pelo-menos-trinta-e-dois-bytes-aqui"   ORIGENS_PERMITIDAS=http://localhost:4173 npx tsx src/index.ts
-
-# terminal 2
-cd apps/web && VITE_API_URL=http://127.0.0.1:3333 npx vite build   && npx vite preview --port 4173 --strictPort
-
-# terminal 3, com LOG_API apontando para onde o terminal 1 está escrevendo
-LOG_API=/caminho/do/log-da-api npm run test:e2e:api --workspace @dc360/web
+npx playwright install chromium firefox   # na primeira vez
+npm run test:e2e:api                      # Chromium
+node scripts/e2e-api.mjs firefox          # e no Gecko
 ```
 
-`LOG_API` é necessário porque a recuperação de senha ainda não tem provedor de
-email: em desenvolvimento o link sai no log do servidor, e é de lá que a suíte
-o lê.
+`scripts/e2e-api.mjs` sobe uma API nova na porta 3691 (o banco efêmero nasce
+semeado, e a suíte confere contagens exatas, então ela não roda contra uma
+instância suja), constrói o painel apontado para ela, serve na 4691, roda
+`apps/web/test/fluxo-api.e2e.mjs` inteiro e derruba tudo no fim. Se uma das duas
+portas já estiver ocupada ele recusa começar, em vez de falar com a instância
+velha. O link de redefinição de senha chega pelo notificador de teste
+(`NOTIFICADOR_ARQUIVO`), que a configuração recusa em produção.
 
-São 236 verificações no navegador que só existem neste caminho: entrada por senha, senha
+Os três e2e de navegador fecham verdes desde a V2-F00-E18 (2026-10-07): o modo
+local no Chromium e no Firefox e, contra a API, o arquivo inteiro de ponta a
+ponta nos dois motores, sem cópia aparada. Antes disso a suíte contra a API
+morria na seção 13, e as seções seguintes nunca tinham sido alcançadas juntas.
+
+São 251 verificações no navegador que só existem neste caminho: entrada por senha, senha
 errada recusada, token guardado sem a senha nem o hash, isolamento imposto
 pelo servidor (inclusive abrindo a URL de outro município na mão), fluxo
 gravando de verdade, dado criado numa sessão aparecendo em outro navegador,
@@ -1337,12 +1452,20 @@ enviada pelo agente aparecendo na galeria do coordenador, e a recuperação de
 senha do pedido até entrar com a senha nova, a trilha de auditoria filtrada, e
 o CSV baixado e conferido célula a célula contra injeção de fórmula, e o pacote de saída baixado pelo botão do painel, aberto e conferido por dentro (soma SHA-256 de cada arquivo, só as linhas do município, nenhuma coluna que nunca sai).
 
-Duas correções vieram dessa suíte, e nenhuma apareceria em teste de servidor:
+As correções que vieram dessa suíte, e nenhuma apareceria em teste de servidor:
 o CORS da API não permitia `PUT`, então o envio de bytes nem saía do
-navegador; e o `Cross-Origin-Resource-Policy` do helmet bloqueava a imagem
-quando painel e API ficam em origens diferentes, que é o arranjo de produção.
+navegador; o `Cross-Origin-Resource-Policy` do helmet bloqueava a imagem
+quando painel e API ficam em origens diferentes, que é o arranjo de produção;
+e o CORS não liberava `if-none-match`, o cabeçalho da escrita única que a URL
+de envio manda repetir, então o preflight reprovava e o PUT da foto acabava em
+"Failed to fetch" (V2-F00-E18; liberado nome a nome, sem curinga e sem mexer na
+lista de origens, travado por `apps/api/test/cors-do-envio-de-evidencia.test.ts`).
+Com a suíte inteira enfim rodando, a mesma etapa achou mais um defeito de
+produto: a checagem de duplicidade, primeiro passo de "Registrar e gerar
+protocolo", dizia "Não foi possível carregar esta tela" quando o sinal caía, em
+vez de dizer que o que a pessoa preencheu não foi enviado.
 
-São 68 verificações no navegador: entrada, a busca global tolerante a erro, isolamento entre municípios visto dos dois lados,
+São 70 verificações no navegador: entrada, a busca global tolerante a erro, isolamento entre municípios visto dos dois lados,
 geração de protocolo em sequência, triagem, despacho, encerramento com motivo
 obrigatório, indicadores do painel reagindo às mudanças, cadastro de equipes e
 usuários com recusa de duplicata, mapa, restrição de menu por papel, tema
@@ -1354,7 +1477,7 @@ de pular para o conteúdo, o atalho aparecendo ao receber foco e levando de fato
 ao conteúdo, e todo item da lateral alcançável sem mouse. O teste também falha
 se aparecer qualquer erro no console.
 
-Na primeira vez: `npx playwright install chromium`.
+Na primeira vez: `npx playwright install chromium firefox`.
 
 ## RLS não cobre chave estrangeira
 
@@ -1436,14 +1559,18 @@ cinco trabalhos paralelos:
 <!-- numeros: nao sao contagem -->
 | Trabalho | O que ele impõe |
 | --- | --- |
-| Testes, tipos e auditoria | TypeScript estrito, o portão CA-06 sozinho e primeiro, a suíte inteira, `npm audit` em zero e os números do README conferidos |
-| Fluxo no navegador | O painel de ponta a ponta, em Chromium e em Firefox |
+| Testes, tipos e auditoria | TypeScript estrito, o portão CA-06 sozinho e primeiro, a suíte inteira, `npm audit` em zero (hoje esse passo reprova: ver "Como testar") e os números do README conferidos |
+| Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API, só em Chromium (o Firefox contra a API roda só na máquina, com `node scripts/e2e-api.mjs firefox`) |
 | Pacote da demonstração | O zip montado, extraído e percorrido pelo roteiro de dez minutos nos dois motores |
 | A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação |
-| Aplicativo de campo | TypeScript, os testes do aplicativo, árvore de dependência coerente, as 21 verificações do `expo-doctor` e auditoria própria |
+| Aplicativo de campo | TypeScript, os testes do aplicativo, árvore de dependência coerente, as 21 verificações do `expo-doctor` (hoje 20 de 21) e auditoria própria (hoje reprova) |
 
 O CA-06 roda separado e antes de tudo de propósito: isolamento entre
 municípios é a regra número um, e se ela quebrar nada mais importa.
+
+A tabela diz o que o arquivo manda rodar, e não um resultado: nenhuma rodada
+do CI foi conferida durante a F00 (é validação humana pendente da V2-F00-E01),
+e pelo menos o `npm audit` dos dois trabalhos e o `expo-doctor` reprovam hoje.
 
 Na máquina, o mesmo se pede com `npm run verificar` e
 `scripts/conferir-demo.ps1`. O `verificar` inclui `npm run test:campo`: por um
@@ -1458,20 +1585,22 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
 
 ## O que falta, e por quê
 
-- **Rodar o aplicativo de campo num aparelho.** Ele está inteiro: telas,
-  coleta offline, câmera, GPS, assinatura no dedo, fila de envio, ícones e a
-<!-- numeros: nao sao contagem -->
-  configuração das duas lojas. Compila, passa nas 21 verificações do
-  `expo-doctor` e fecha o `npm audit` em zero. O que falta é o que só o
+- **A prova do aplicativo de campo num aparelho.** Ele está inteiro em
+  código: telas, coleta offline, câmera, GPS, assinatura no dedo, fila de
+  envio, ícones e a configuração das duas lojas. Compila e passa nos testes do
+  aplicativo; NÃO passa hoje no `expo-doctor` (20 de 21) nem no `npm audit`
+  (V2-F00-E19). Há relato de uso em iPhone (08/09/2026), mas **nenhum artefato
+  de aparelho está arquivado**, e relato não é prova. O que falta é o que só o
   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
+  aparelho fica sem sinal (V2-F14-E12).
 
   Essa última já tem 187 testes do motor de campo cobrindo a lógica fora do
   celular, inclusive retomada arquivo a arquivo.
   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e
   desacopla o `npm audit` do produto do ciclo do React Native. Ele tem o
-  próprio lockfile e a própria auditoria, que também fecha em zero. O preço
+  próprio lockfile e a própria auditoria, que hoje NÃO fecha em zero. O preço
   dessa separação é que nenhum comando da raiz o enxerga de graça: quem o
   alcança é `npm run test:campo`, e ele está dentro de `npm run verificar`.
 - **Conta de desenvolvedor nas lojas.** `apps/campo/LOJAS.md` cobre Play
@@ -1489,13 +1618,21 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
   `docs/LIGAR-O-EMAIL.md`. Até isso acontecer, `EMAIL_ATIVO=nao` e
   `RECUPERACAO_ATIVA=nao`, e quem precisa trocar a senha troca por dentro, em
   "Minha conta", sem depender de email.
-- **Captura da assinatura no aparelho.** O caminho de saída está pronto e
-  testado: o documento lê a chave, confere se os bytes chegaram, assina uma
-  URL de vida curta e desenha o traço acima da linha, no laudo e no termo. O
-  que falta é quem produz, que é o dedo na tela do aplicativo de campo.
-- **Mapa cartográfico.** MapLibre GL JS depende de um provedor de tiles, que é
-  custo recorrente por carregamento. Entra junto com a decisão de provedor. O
-  que já existe plota as coordenadas reais gravadas.
+- **A assinatura no aparelho, provada em aparelho.** Os dois lados existem em
+  código: o aplicativo de campo captura o traço com o dedo
+  (`apps/campo/src/ui/Assinatura.tsx`, usado na tela de vistoria) e o envia na
+  sincronização, e o documento lê a chave, confere se os bytes chegaram, assina
+  uma URL de vida curta e desenha o traço acima da linha, no laudo e no termo.
+  O que falta é o mesmo de todo o aplicativo: ver o traço feito num aparelho
+  chegar ao laudo, com artefato arquivado.
+- **Mapa cartográfico com chave em produção.** O mapa é o do Google (Maps
+  JavaScript no painel, `react-native-maps` no aplicativo), com a chave servida
+  em tempo de execução por `GET /configuracao`, e sem chave a tela cai no modo
+  esquemático, que plota as coordenadas gravadas sobre um plano quadriculado
+  sem requisição nenhuma ao Google (`apps/web/src/paginas/mapa-de-base.ts`).
+  O que falta é decisão e conta, não código: cada município ligar a própria
+  chave, com o custo por carregamento e o envio da coordenada ao Google que
+  `docs/SUBPROCESSADORES.md` declara.
 - **Armazenamento de evidência.** A regra de chave por tenant já está no banco;
   falta o bucket. O levantamento aponta Cloudflare R2 por causa do egress.
 - **PostGIS.** A migração ainda não cria a extensão porque nada hoje faz

@@ -31,6 +31,11 @@ jest.mock("expo-constants", () => ({
 jest.mock("../dados/fila", () => ({
   obterFila: async () => ({
     resumo: async () => ({ pendentes: 0, enviando: 0, bloqueados: 0, confirmados: 0 }),
+    /* O Perfil assina a fila (V2-F00-E15), e a fila de verdade avisa quem assina na hora. */
+    assinar: (ouvinte: (r: unknown) => void) => {
+      ouvinte({ pendentes: 0, enviando: 0, bloqueados: 0, confirmados: 0 });
+      return () => undefined;
+    },
   }),
 }));
 

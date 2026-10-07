@@ -4,6 +4,26 @@ O que está escrito aqui é defeito reproduzido ou risco identificado que **não
 foi corrigido, com o detalhe suficiente para alguém atacar sem repetir a
 investigação. Item que já tem correção sai daqui e vira teste.
 
+**Revisão de 2026-10-07 (V2-F00-E22).** Até esta data o arquivo tinha seções
+escritas por várias etapas e deixava de fora pendências que só estavam no
+STATUS do roadmap ou no README. Cada item abaixo foi conferido contra o código
+nesta data; as seções antigas ficaram, e o que faltava entrou no fim, em "O que
+estava fora daqui". O que resta, numa linha cada:
+
+| O que resta | Seção | Quem fecha |
+| --- | --- | --- |
+| O pacote de saída monta a base inteira do município em memória antes do primeiro byte | "O pacote de saída lê TODAS as tabelas" | F07-E06 |
+| A vigência (conta, papel, sessão) só vale na escrita; a leitura confia no token por até `ACESSO_MINUTOS` | "A vigência de conta, papel e sessão" | F03-E03 |
+| A janela de milissegundos entre revogar e abrir sessão na renovação | "A vigência de conta, papel e sessão" | F03-E02 |
+| `GET /avisos` escreve dentro de um GET, com o token de qualquer papel | "`GET /avisos` ESCREVE" | F07-E03, F04-E11 |
+| A senha temporária é conhecida por quem a sorteia; "encerrar as outras" preserva por id | "Sessões no painel" | F03-E10, F03-E02 |
+| O teto de pedidos de recuperação é por processo; produção com a recuperação desligada | "Recuperação de senha por e-mail" | F03, CP-19 |
+| Dois montadores de dados do laudo; o do pacote não lê a coordenada da vistoria | "Dois montadores de dados do documento" | F09-E02 |
+| `GET /orgaos` (com o e-mail de cada órgão) responde a qualquer papel autenticado, inclusive ao agente de campo | "O que estava fora daqui", 1 | F03-E12 ou F04-E09 |
+| Município com o acesso suspenso não baixa o pacote de saída | "O que estava fora daqui", 2 | decisão de Rafael com o jurídico (CP-29) |
+| Ninguém desliga o segundo fator de OUTRA pessoa | "O que estava fora daqui", 3 | F03-E11 |
+| Dependência de execução com aviso conhecido (`fastify`, `fast-uri`) | "O que estava fora daqui", 4 | V2-F00-E19 (CP-03) |
+
 ## O pacote de saída lê TODAS as tabelas em memória, e a rota promete o contrário
 
 **Onde:** `src/saida/pacote.ts` (o bloco `banco.comTenant` que monta `dados`) e
@@ -168,3 +188,66 @@ provedor vai para o log, sem o link e sem o e-mail), a contar pedidos por e-mail
    O `NOTIFICADOR_ARQUIVO` só é recusado quando `NODE_ENV=production`: em
    `staging` ou em qualquer outro valor ele funciona, e a F01 (ambientes) decide se
    o HML precisa da mesma trava.
+
+## Dois montadores de dados do documento, e eles podem divergir outra vez (V2-F00-E12)
+
+**Onde:** `src/rotas/documentos.ts` (a consulta de vistoria da rota) e
+`src/saida/pacote.ts` (a consulta de vistorias do montador do pacote).
+
+**O que acontece:** os dados que `src/documentos/laudo.ts` imprime são montados em
+DOIS lugares, por duas consultas escritas à mão, e nada obriga as duas a lerem os
+mesmos campos. Foi assim que o defeito desta etapa nasceu: a consulta do pacote
+nunca selecionava `equipe_designada_nome` nem `equipe_do_agente_nome`, então
+`avisoDeEquipe` não tinha o que imprimir e o laudo de dentro do ZIP saía sem a
+ressalva de equipe divergente, enquanto o laudo emitido pela rota, para a MESMA
+vistoria, saía com ela. O município que levasse o pacote embora levaria o papel
+limpo, e é esse o papel que fica no processo depois de o contrato acabar.
+
+**O que foi corrigido:** as duas junções (`equipes ed` por `v.equipe_designada_id`
+e `equipes ea` por `v.equipe_do_agente_id`) entraram na consulta do pacote, iguais
+às de `documentos.ts`. São `LEFT JOIN` de propósito: as duas colunas são nulas em
+toda vistoria anterior à migração 024, e junção interna apagaria essas vistorias
+do pacote em vez de só deixar o aviso de fora.
+
+**O que sobra:** a DUPLICIDADE. Campo novo que o laudo passe a imprimir continua
+tendo de entrar nas duas consultas, e esquecer uma delas volta a produzir dois
+documentos que se contradizem. A unificação num montador só é a **V2-F09-E02**, e
+até ela existir a defesa é o teste que compara os dois documentos ENTRE SI, e não
+cada um contra um texto esperado: os casos do bloco "O laudo do pacote avisa a
+equipe divergente igual ao laudo da rota" em `test/saida-de-municipio.test.ts` e a
+seção 29 de `apps/web/test/fluxo-api.e2e.mjs`. O artefato guardado com hash (o
+mesmo arquivo em vez de dois montadores) é da F09-E04 e F09-E11.
+
+**O que a consulta do pacote ainda não lê, e por que não entrou aqui:** ela não
+seleciona `v.latitude` nem `v.longitude`, que `documentos.ts` seleciona. O laudo
+não deixou de sair por isso, então não é o defeito desta etapa e não foi tocado;
+a F09-E02 resolve junto com a unificação.
+
+## O que estava fora daqui (acrescentado na revisão de 2026-10-07)
+
+1. **`GET /orgaos` responde a qualquer papel autenticado.** Onde:
+   `src/rotas/orgaos.ts`, rota `GET /`, que só chama `exigirAutenticacao`. O
+   catálogo de órgãos traz o e-mail e o telefone de cada órgão, e o token do
+   agente de campo o lê. Não é dado de cidadão nem de outro município (o RLS
+   recorta ao município do token), mas é leitura que o papel do agente não
+   precisa. Achado da V2-F00-E08, fora do escopo dela; outras leituras que
+   exigem só autenticação entram no manifesto rota por ação da F03-E12.
+2. **Município com o acesso suspenso não baixa o pacote de saída.** Onde:
+   `src/rotas/saida.ts` (`POST /saida/pacote.zip`). A rota é uma escrita, toda
+   escrita confere a suspensão, e a resposta é 403 `acesso_suspenso`, provada em
+   `test/pacote-de-saida-contrato.test.ts`. É o comportamento que a V2-F00-E11
+   pediu, mas é decisão de contrato: o município em litígio é o que mais quer
+   sair. Se a saída precisar de exceção à suspensão, a decisão é de Rafael com o
+   jurídico (perto do CP-29); até lá fica como está, e
+   `docs/SAIDA-DE-MUNICIPIO.md` (capítulo 2) diz para baixar e conferir o pacote
+   ANTES de agendar a eliminação.
+3. **Ninguém desliga o segundo fator de outra pessoa.** `src/rotas/segundo-fator.ts`
+   só tem as rotas da própria conta (`/iniciar`, `/confirmar`, `/desativar`).
+   Quem perdeu o telefone usa os códigos de recuperação; quem perdeu o telefone
+   E os códigos não tem caminho pela tela. É uma porta para retirar a proteção
+   de uma conta alheia e merece etapa própria (F03-E11).
+4. **Dependência de execução com aviso conhecido.** Em 2026-10-07,
+   `npm audit --omit=dev` na raiz acusa um aviso alto no `fastify` (o servidor
+   desta API) e um moderado no `fast-uri`, ambos com correção por
+   `npm audit fix`. Pela regra do produto, vulnerabilidade em execução é bug; a
+   correção é da V2-F00-E19, que espera a política do CP-03.

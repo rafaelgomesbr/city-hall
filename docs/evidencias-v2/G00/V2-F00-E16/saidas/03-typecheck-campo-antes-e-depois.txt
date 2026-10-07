@@ -1,0 +1,9 @@
+== typecheck do app ANTES ==
+src/app/(agente)/perfil.tsx(1221,44): error TS2345: Argument of type '"/(agente)/avisos"' is not assignable to parameter of type '"/" | RelativePathString | ExternalPathString | "/entrar" | `/entrar?${string}` | `/entrar#${string}` | `/?${string}` | `/#${string}` | "/../../../../packages/shared/src/pessoas.test" | ... 42 more ... | { ...; }'.
+src/ui/Sino.tsx(154,73): error TS2345: Argument of type '"/(agente)/avisos"' is not assignable to parameter of type '"/" | RelativePathString | ExternalPathString | "/entrar" | `/entrar?${string}` | `/entrar#${string}` | `/?${string}` | `/#${string}` | "/../../../../packages/shared/src/pessoas.test" | ... 42 more ... | { ...; }'.
+
+== typecheck do app DEPOIS ==
+src/app/(agente)/perfil.tsx(1221,44): error TS2345: Argument of type '"/(agente)/avisos"' is not assignable to parameter of type '"/" | RelativePathString | ExternalPathString | "/entrar" | `/entrar?${string}` | `/entrar#${string}` | `/?${string}` | `/#${string}` | "/../../../../packages/shared/src/pessoas.test" | ... 42 more ... | { ...; }'.
+src/ui/Sino.tsx(154,73): error TS2345: Argument of type '"/(agente)/avisos"' is not assignable to parameter of type '"/" | RelativePathString | ExternalPathString | "/entrar" | `/entrar?${string}` | `/entrar#${string}` | `/?${string}` | `/#${string}` | "/../../../../packages/shared/src/pessoas.test" | ... 42 more ... | { ...; }'.
+
+Lista identica (diff vazio, ignorando so linha e coluna): os 2 erros do cache .expo (E21), nenhum novo.

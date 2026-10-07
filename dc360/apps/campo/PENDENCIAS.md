@@ -400,3 +400,76 @@ e a foto do aparelho continua pendente. Fora do escopo e ainda aberto: o 403
 `troca_de_senha_obrigatoria` (senha provisória) e o 403 `acesso_suspenso` nas
 rotas que não são da fila ainda são lidos como recusa permanente do item pelo
 transporte; a API responde 503 à fila no caso da suspensão, que é temporário.
+
+## 15. Sair da conta avisa o que apaga, e o GPS bom conclui (V2-F00-E15). Falta ver no aparelho
+
+**Feito em 2026-10-07.** Dois defeitos reais (CMP-52 e CMP-33):
+
+- **Sair da conta.** A saída explícita apaga o dado local (`apagarDadosLocais`),
+  e isso inclui a vistoria começada: rascunho, fotos e assinatura. O diálogo só
+  contava a fila, lida uma vez na montagem. Agora o Perfil assina a fila por
+  `useResumoDaFila` (chip, aviso de esperar e diálogo acompanham a fila ao
+  vivo), e no toque em "Sair da conta" lê `listarRascunhos`; o texto vem de
+  `src/dados/aviso-da-saida.ts`: quantas vistorias começadas, se há fotos e
+  assinatura, e que **sair apaga**, com singular e plural; o que se apaga vem
+  antes do que fica guardado (a fila, que a saída NÃO apaga). Sem rascunho e
+  sem fila, volta à frase curta. Se o disco não responder, avisa do mesmo
+  jeito. O botão de confirmar continua o destrutivo.
+- **GPS.** `Math.round(0.3)` era 0 e o esquema recusa 0 (422). O aparelho grava
+  `precisaoDoGpsEmMetros` (`src/dados/precisao-do-gps.ts`): piso de 1 metro,
+  nulo quando não informada. O esquema não afrouxou (`gpsPrecisaoMetrosSchema`,
+  em `@dc360/shared`, continua `positive()` e recusa em português).
+
+`useResumoDaFila` passou a reassinar só quando a PESSOA muda (`usuarioId`), e não
+a cada função ou objeto novo da sessão: reassinar devolvia o número do instante da
+assinatura e prendia a tela no valor velho.
+
+**O que NÃO mudou, de propósito:** a regra de apagar. Preservar o rascunho depois
+de sair é decisão do CP-24 (F14-E02); criptografia local é F14-E04. A sessão
+vencida ("Entrar de novo") continua sem apagar nada, e outra pessoa que entra
+continua recebendo o aparelho limpo (`acolherNoAparelho`). A fila e os arquivos
+que ela usa continuam fora da limpeza (`src/dados/sair-e-entrar-nao-perde-a-coleta.test.ts`).
+
+**O que falta** (validação humana): os dois fluxos num aparelho ou emulador
+(LEIA-ME, passo 8), com foto do diálogo; a prova física é F14-E12. Achado fora
+do escopo: o laudo (`packages/shared/src/minuta.ts`) e o cartão de vistoria
+concluída do Perfil escrevem "N metros" sem singular, e com o piso de 1 metro
+"1 metros" passa a ser comum; fica para a etapa que mexer nesses textos.
+
+## 16. A vistoria diz a verdade sobre o envio, respeita teclado e área segura, e abre os ajustes (V2-F00-E16). Falta ver no aparelho
+
+**Feito em 2026-10-07.** Defeitos reais CMP-35 e CMP-89, na tela de vistoria
+(`src/app/(agente)/vistoria/[id].tsx`):
+
+- **A frase do envio.** A tela de "vistoria guardada" prometia que a coleta subia
+  "mesmo com o aplicativo fechado", e não existe sincronização em segundo plano.
+  Agora o título é "Ela sobe com o aplicativo aberto" e o texto diz que ela sobe
+  quando o aplicativo estiver aberto e houver rede, e que a fila de envio mostra
+  o andamento.
+- **O teclado.** O formulário ganhou `keyboardShouldPersistTaps="handled"` (o
+  primeiro toque em "Tirar foto" com o teclado aberto age) e
+  `automaticallyAdjustKeyboardInsets` (no iOS o campo digitado não fica embaixo
+  do teclado; no Android o sistema redimensiona a janela).
+- **A câmera.** A barra do obturador e de "Voltar sem fotografar" soma a área
+  segura de baixo (`useSafeAreaInsets`) ao próprio recuo.
+- **Permissão negada.** As tarjas de câmera e de localização negadas ganham
+  "Abrir os ajustes do aparelho" (`Linking.openSettings`, mesmo padrão das
+  notificações no Perfil), com "Fechar" logo abaixo. Falha de outra natureza não
+  ganha o botão, nem quando vem logo depois de uma de permissão: a frase e o
+  "abre os ajustes" moram no mesmo estado.
+- **Foto vazia.** `fotografar` mostra a frase de `guardarFotoNoAparelho` ("Tire a
+  foto de novo") em vez da genérica. A cópia recusada pelo sistema (disco cheio)
+  também sai em português, de `src/dados/evidencia-no-disco.ts`. A câmera que não
+  dispara continua com a frase genérica, porque o erro nativo vem em inglês.
+
+**O que NÃO mudou, de propósito:** sincronização em segundo plano (F14-E06, só se
+o CP-24 aprovar), acessibilidade completa do app (F14-E10), ErrorBoundary
+(F14-E07).
+
+**O que falta** (validação humana, F14-E12): no iPhone (e em Android real quando
+houver), negar a câmera e tocar em "Abrir os ajustes do aparelho" (abre os
+Ajustes); digitar o nome de quem assina com o teclado aberto e tocar em "Tirar
+foto" no primeiro toque; ver o obturador acima da barra do sistema. Foto do
+aparelho para a evidência da etapa. O ambiente da etapa não renderiza o app Expo:
+a prova foi por teste de componente
+(`src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx`).

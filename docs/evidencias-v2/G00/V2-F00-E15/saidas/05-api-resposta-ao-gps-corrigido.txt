@@ -1,0 +1,12 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360
+
+ ✓ apps/api/test/precisao-do-gps-na-sincronizacao.test.ts > a precisão de GPS que chega do aparelho > o piso de 1 metro (leitura de 0,3 m) é aceito: 201, sem 422 55ms
+ ✓ apps/api/test/precisao-do-gps-na-sincronizacao.test.ts > a precisão de GPS que chega do aparelho > precisão não informada (nulo) continua aceita 42ms
+ ✓ apps/api/test/precisao-do-gps-na-sincronizacao.test.ts > a precisão de GPS que chega do aparelho > o 0 de aplicativo antigo continua recusado, com o campo nomeado e a frase em português 39ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  00:41:44
+   Duration  5.79s (transform 438ms, setup 0ms, collect 2.63s, tests 2.60s, environment 0ms, prepare 161ms)
+

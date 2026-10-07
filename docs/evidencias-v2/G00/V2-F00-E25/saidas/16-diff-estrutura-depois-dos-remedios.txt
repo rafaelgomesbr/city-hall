@@ -1,0 +1,25 @@
+$ diff 12-estrutura-origem.txt 15-estrutura-restaurado-depois-dos-remedios.txt
+60c60
+< public|dc360_setup|{dc360_setup=UC/dc360_setup,=U/dc360_setup,dc360_app=U/dc360_setup,dc360_console=U/dc360_setup}
+---
+> public|dc360_setup|{dc360_setup=UC/dc360_setup,dc360_app=U/dc360_setup,dc360_console=U/dc360_setup,=U/dc360_setup}
+738c738
+< oficio_envios|provedor_id_plausivel|b72fb1301dad0783f69ff33b53a0a171
+---
+> oficio_envios|provedor_id_plausivel|feee8fbbf92150243198324df806ec98
+codigo 1
+== a unica linha restante, por extenso (origem e restaurado)
+CHECK (((provedor_id IS NULL) OR (((length(provedor_id) >= 1) AND (length(provedor_id) <= 200)) AND (provedor_id !~ '[[:space:]]'::text))))
+CHECK (((provedor_id IS NULL) OR ((length(provedor_id) >= 1) AND (length(provedor_id) <= 200) AND (provedor_id !~ '[[:space:]]'::text))))
+== a mesma restricao, com os parenteses removidos, comparada
+da7cb6c41537f03e4e4aaeec479d1e8d
+da7cb6c41537f03e4e4aaeec479d1e8d
+== e todas as restricoes, do mesmo jeito
+eb06c069530a217333adb9076972587c
+eb06c069530a217333adb9076972587c
+== acl do schema public como conjunto ordenado (origem, depois restaurado)
+dc360_setup:USAGE:dc360_setup,dc360_setup:CREATE:dc360_setup,PUBLIC:USAGE:dc360_setup,dc360_app:USAGE:dc360_setup,dc360_console:USAGE:dc360_setup
+dc360_setup:USAGE:dc360_setup,dc360_setup:CREATE:dc360_setup,dc360_app:USAGE:dc360_setup,dc360_console:USAGE:dc360_setup,PUBLIC:USAGE:dc360_setup
+== (corrigido: ordenado pelo texto da entrada) origem, depois restaurado
+PUBLIC:USAGE:dc360_setup,dc360_app:USAGE:dc360_setup,dc360_console:USAGE:dc360_setup,dc360_setup:CREATE:dc360_setup,dc360_setup:USAGE:dc360_setup
+PUBLIC:USAGE:dc360_setup,dc360_app:USAGE:dc360_setup,dc360_console:USAGE:dc360_setup,dc360_setup:CREATE:dc360_setup,dc360_setup:USAGE:dc360_setup

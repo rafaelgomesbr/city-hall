@@ -107,6 +107,36 @@ a:hover { color: var(--ds-accent-hover); }
 }
 .pular-para-conteudo:focus { top: var(--ds-sp-3); }
 
+/*
+  O aviso passageiro, no canto inferior direito.
+
+  A posição morava em `style` dentro de `componentes/Toast.tsx` e veio para cá
+  porque no celular ele precisa DESVIAR da barra de navegação: abaixo de 900px
+  a lateral vira barra fixa no pé da tela, e o aviso caía em cima dela, com a
+  frase da confirmação sobreposta a "Painel" e "Ocorrências". Regra de media
+  query não vence estilo escrito no elemento, então a posição tinha de sair de
+  lá. O deslocamento está no bloco responsivo, no fim deste arquivo.
+*/
+.toast {
+  position: fixed;
+  right: var(--ds-sp-4);
+  bottom: var(--ds-sp-4);
+  z-index: var(--ds-z-toast);
+  max-width: min(420px, calc(100% - var(--ds-sp-6)));
+  /*
+    O fundo opaco embaixo do aviso.
+
+    `--ds-success-bg` e os irmãos dele são TRANSLÚCIDOS no tema escuro (12%),
+    porque foram feitos para tingir um cartão, não para flutuar. Dentro de um
+    cartão isso é certo; aqui o aviso paira sobre a tela, e no tema escuro o
+    texto da página atravessava a confirmação: duas frases sobrepostas, sem
+    nenhuma legível. Com a superfície atrás, a tinta de 12% compõe sobre
+    exatamente o fundo que o teste de contraste supõe (`sobre: --ds-surface`).
+  */
+  background: var(--ds-surface);
+  border-radius: var(--ds-radius);
+}
+
 /* ---------- Estrutura ---------- */
 
 /*
@@ -147,6 +177,9 @@ a:hover { color: var(--ds-accent-hover); }
   display: flex; align-items: center; gap: var(--ds-sp-3);
   padding: 0 var(--ds-sp-2);
 }
+/* O raio do ícone da marca vinha escrito à mão no JSX (`borderRadius: "8px"`),
+   fora do design system e fora do alcance de quem mexe na folha. */
+.lateral__marca img { border-radius: var(--ds-radius); }
 
 
 /* `display: block` nos dois: são `span` dentro de `span`, e em linha o nome
@@ -886,7 +919,29 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
   */
   .lateral__rodape { flex-direction: row; margin-top: 0; margin-left: auto; }
   .lateral__item { white-space: nowrap; }
+  /*
+    A barra rola na horizontal de propósito: dez destinos não cabem em 390px, e
+    o rótulo inteiro ("Mapa da cidade", "Prestação de contas") vale mais do que
+    um ícone que a pessoa precisa adivinhar.
+
+    O respiro nas duas pontas é para o item não encostar na borda quando a barra
+    rola até ele. Quem manda rolar é `Estrutura.tsx`, no foco do item: sozinho,
+    o navegador não rola um item que está pela metade, e o Tab parava com o
+    rótulo cortado. O comentário de lá tem a medida.
+  */
+  .lateral { scroll-padding-inline: var(--ds-sp-4); }
   .conteudo { padding: var(--ds-sp-4); }
+  /*
+    O aviso passageiro sobe a altura da barra do rodapé, senão a confirmação de
+    gravação aparece POR CIMA dos itens de navegação, com as duas frases
+    sobrepostas e o botão Fechar em cima de "Mapa da cidade".
+
+    A altura não é um número escolhido aqui: é a mesma conta que desenha a
+    barra, `--ds-touch` (a área de toque mínima, que dá a altura do item) mais o
+    respiro de cima e de baixo da própria `.lateral`. Mudar o respiro move os
+    dois juntos.
+  */
+  .toast { bottom: calc(var(--ds-sp-4) + var(--ds-touch) + var(--ds-sp-5) * 2); }
 }
 
 /*

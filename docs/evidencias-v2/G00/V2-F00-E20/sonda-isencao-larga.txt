@@ -1,0 +1,20 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360
+
+ ❯ packages/shared/test/regras-de-conteudo.test.ts (8 tests | 2 failed) 989ms
+   ✓ Regras de conteúdo > a varredura alcança o código, o protótipo e a documentação 159ms
+   ✓ Regras de conteúdo > nenhum travessão em texto nenhum 265ms
+   ✓ Regras de conteúdo > nenhuma norma citada fora da lista autorizada  385ms
+   ✓ Regras de conteúdo > nenhum número de artigo em documento oficial 1ms
+   × Regras de conteúdo > as isenções da E20 valem só no recorte, e na árvore real 143ms
+     → expected false to be true // Object.is equality
+   × Regras de conteúdo > recorte das isenções num repositório sintético > reprova o travessão novo em documento, evidência escrita à mão e produto 19ms
+     → expected [ …(6) ] to include 'docs/evidencias-v2/G00/V2-F00-E99/RES…'
+   ✓ Regras de conteúdo > recorte das isenções num repositório sintético > deixa passar só a saída bruta e o relatório histórico pelo nome exato 15ms
+   ✓ Regras de conteúdo > as próprias expressões funcionam 0ms
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 6 passed (8)
+   Start at  02:20:16
+   Duration  1.49s (transform 57ms, setup 0ms, collect 67ms, tests 989ms, environment 0ms, prepare 168ms)
+

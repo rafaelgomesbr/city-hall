@@ -1,8 +1,25 @@
 # Segurança do agente que trabalha sozinho
 
-- **Versão:** 1, de 14/09/2026
+- **Versão:** 2, de 07/10/2026 (a versão 1, de 14/09/2026, descrevia o
+  aplicativo do agente como se ele já declarasse a saída, e ele não declara)
 - **Para quem:** quem coordena a Defesa Civil do município, e quem decide se
   este produto é adequado ao que a prefeitura precisa.
+
+> **Estado atual: recurso em construção, ainda não disponível para o agente.**
+>
+> O servidor e a tela da coordenação "Quem está em campo" estão prontos e
+> testados. O aplicativo do agente **ainda não declara a saída, não prorroga e
+> não confirma o retorno**. Enquanto isso não existir, nenhuma saída é
+> declarada, a tela "Quem está em campo" fica vazia e **nenhum prazo estourado
+> aparece, mesmo com um agente sozinho no morro**.
+>
+> **Não conte com este recurso para a segurança de ninguém** até ele estar no
+> aplicativo. A parte do aplicativo está planejada no roteiro de
+> desenvolvimento (etapa V2-F14-E01), sem data marcada.
+>
+> O resto deste documento descreve o recurso como ele foi desenhado. Onde ele
+> fala do aplicativo do agente, fala do que está planejado, e não do que existe
+> hoje.
 
 Leia isto antes de ligar o recurso. Ele trata da integridade física de um
 servidor público, e ligá-lo sem ter combinado o que está escrito aqui é pior do
@@ -12,15 +29,17 @@ que não ligar.
 
 ## 1. O que este recurso é
 
-O agente, **ainda na base e com sinal**, declara no aplicativo:
+Quando a parte do aplicativo existir, o agente, **ainda na base e com sinal**,
+vai declarar no aplicativo:
 
 - para qual protocolo ele está indo;
 - em quanto tempo pretende voltar;
 - se vai **sozinho** ou acompanhado.
 
 O sistema marca o prazo de retorno pelo **relógio do servidor**, e nunca pelo
-relógio do telefone. Quando o agente volta, ele confirma. Se precisar de mais
-tempo, ele prorroga.
+relógio do telefone. Quando o agente voltar, ele confirma. Se precisar de mais
+tempo, ele prorroga. Hoje o servidor já sabe fazer as três coisas; quem ainda
+não sabe pedir é o aplicativo.
 
 Se a confirmação não chegar até o prazo, a saída aparece como **prazo estourado**
 na tela "Quem está em campo" e toca o sino de avisos da coordenação.
@@ -107,13 +126,14 @@ produto não impede que ele vá.
 
 ## 5. Como isto aparece nas telas
 
-### No aplicativo do agente
+### No aplicativo do agente (planejado, ainda não existe)
 
-Antes de subir, um passo a mais: para onde, por quanto tempo, sozinho ou não. Ao
-voltar, um toque para confirmar. Se o serviço demorar, um toque para prorrogar.
+O aplicativo de hoje não tem esta tela. O desenho planejado é: antes de subir,
+um passo a mais (para onde, por quanto tempo, sozinho ou não); ao voltar, um
+toque para confirmar; se o serviço demorar, um toque para prorrogar.
 
-A tela diz, com todas as letras, que a coordenação vê a saída e vê o prazo, e
-que **ninguém é acionado automaticamente**.
+A tela planejada diz, com todas as letras, que a coordenação vê a saída e vê o
+prazo, e que **ninguém é acionado automaticamente**.
 
 ### No painel, em "Quem está em campo"
 
