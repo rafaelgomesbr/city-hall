@@ -153,3 +153,11 @@ Regras INEGOCIÁVEIS do Rafael (2026-10-02), valem para toda etapa da V2:
 2. A interface tem de estar perfeitamente alinhada e bem escrita: nenhum card
    desalinhado ou grudado, nenhum texto fora do lugar, cortado ou mal escrito.
    O portão visual está em `docs/roadmap-v2/19-definicao-de-pronto.md`, seção 0.
+
+SISTEMA DE EXECUÇÃO E VALIDAÇÃO de 2026-10-07 (D-30, `docs/roadmap-v2/28-execucao-e-validacao.md`), aprovado pelo Rafael:
+- A conversa nunca é fonte de verdade sobre a V2. Toda sessão reconstrói o estado pelo repositório (`ESTADO-ATUAL.md` gerado, etapa, gate anterior, CPs, decisões, evidência, código no SHA corrente). Se a memória, um handoff ou uma nota divergirem do repositório, vale o repositório.
+- Implementar termina em COMMIT CANDIDATO (`V2-Fnn-Enn: candidato, <resumo>`) com push no ramo da fase `v2/fnn`, e a etapa fica IMPLEMENTADA. Quem implementou nunca marca VALIDADA nem CONCLUÍDA: isso é do gatekeeper, numa sessão nova, sobre aquele SHA, com validadores independentes em sequência.
+- No ramo da fase, commit candidato, de correção e de registro, e o push do ramo, não pedem autorização a cada vez. Merge e push em master, e qualquer reescrita de histórico, continuam só com o Rafael.
+- BLOCKED só vira PASS removendo o bloqueio e revalidando. Seguir sem prova é RISCO ACEITO, registrado à parte, e nunca vale para os critérios da lista da seção 7 de `28`.
+- Modelos: Sonnet é o padrão; Opus por risco, preferencialmente como planejador e revisor (seção 12 de `28`). Toda chamada de subagente passa o modelo explicitamente.
+- Handoffs em `.claude/handoffs/` são efêmeros e ficam fora do git.

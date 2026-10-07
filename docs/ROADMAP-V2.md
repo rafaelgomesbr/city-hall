@@ -64,5 +64,6 @@ Plano de execução da V2, em gates cumulativos. Cinco superfícies (painel da p
 | [19-definicao-de-pronto](roadmap-v2/19-definicao-de-pronto.md) | Regras inegociáveis, portão visual, Definition of Done, Definition of Ready, padrão de evidência |
 | [20-matrizes](roadmap-v2/20-matrizes.md) | Superfícies, autorização, fluxos E2E por gate |
 | [21-fora-da-v2](roadmap-v2/21-fora-da-v2.md) | O que continua fora, o que entrou em 2026-10-01 e o gatilho para reavaliar |
+| [28-execucao-e-validacao](roadmap-v2/28-execucao-e-validacao.md) | Como a etapa é executada, validada por agentes independentes e decidida no gate; estado gerado; relatórios executivos (D-30) |
 
 A auditoria que originou este roadmap está em `docs/AUDITORIA-V2-BASELINE-ZERO.md` e `docs/auditoria-v2/` (evidência histórica, não alterada por este roadmap).
