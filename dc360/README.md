@@ -1204,8 +1204,14 @@ Na ordem, e nenhum passo é opcional:
 #
 #    CREATE ROLE dc360_setup LOGIN PASSWORD '...' CREATEROLE BYPASSRLS NOSUPERUSER;
 #    CREATE ROLE dc360_api   LOGIN PASSWORD '...' NOSUPERUSER;
-#    -- como dono do banco/schema:
+#    -- como dono do banco/schema (ou como o administrador do provedor):
 #    ALTER SCHEMA public OWNER TO dc360_setup;
+#    -- A migracao 041 cria a extensao pg_trgm. Ela e extensao confiavel, mas
+#    -- "confiavel" exige o privilegio CREATE no BANCO, e um banco criado por
+#    -- outro papel nao o da ao dc360_setup: sem esta linha a 041 para com
+#    -- `permission denied to create extension "pg_trgm"`. Em Postgres
+#    -- gerenciado o banco ja existe e o dono nao se troca, entao e conceder:
+#    GRANT CREATE ON DATABASE dc360 TO dc360_setup;
 #    -- depois de migrar (passo 2), o papel dc360_app ja existe:
 #    GRANT dc360_app TO dc360_api WITH SET TRUE;
 
