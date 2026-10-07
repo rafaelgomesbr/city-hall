@@ -80,6 +80,8 @@ ramo da fase v2/fnn, com PR rascunho para master aberto no início da fase
 IMPLEMENTAR
  -> testes locais, regressão seletiva, evidência do implementador
  -> COMMIT CANDIDATO        "V2-Fnn-Enn: candidato, <resumo>"
+ -> REGISTRO DO CANDIDATO   "V2-Fnn-Enn: registro do candidato <sha7>" (só STATUS e ESTADO:
+                            a etapa vira IMPLEMENTADA citando o SHA; um commit não cita o próprio SHA)
  -> PUSH no ramo da fase    (dispara o CI daquele SHA)
  -> sessão NOVA: GATEKEEPER fixa o SHA, confere o CI do SHA,
     chama os VALIDADORES sobre exatamente aquele SHA
@@ -95,7 +97,7 @@ Regras:
 - **O commit de registro não revalida o produto.** O produto validado continua sendo o `sha_validado`. O registro roda só conferências documentais e estruturais rápidas: o diff `<sha_validado>..HEAD` dentro da lista permitida, `INDEX.md` e SHA-256, formato dos relatórios e do VEREDITO, `gerar-estado --conferir`, varredura de segredos e de travessão. Lista permitida: `docs/evidencias-v2/**/validacao/**`, `VEREDITO.md`, `RISCO-ACEITO.md`, `STATUS.md`, `ESTADO-ATUAL.md` e `docs/relatorios-v2/**`. Se tocar qualquer arquivo fora dela, a validação é invalidada e refeita sobre um SHA novo.
 - **Revalidação depois de FAIL:** as dimensões que reprovaram rodam de novo inteiras. As que passaram só são herdadas se o diff entre os dois SHAs não toca o mapa de impacto delas, e isso fica registrado como "herdado de <sha7>, sem impacto". Senão, rodam de novo.
 - **A validação roda com HEAD igual ao SHA e árvore limpa.** O gatekeeper registra a árvore antes e depois de cada validador. Mudança além do arquivo daquela dimensão deixa a dimensão BLOCKED, e a árvore é restaurada antes do próximo validador.
-- **CI:** o gatekeeper lê o run do SHA e avalia job a job. Run pendente: espera. Run inexistente: BLOCKED. Job vermelho: FAIL ou BLOCKED na dimensão ligada a ele, conforme a causa. O CI completo é obrigatório no candidato de etapa de risco alto ou crítico e no fechamento de gate. O CI reduzido nas demais só vale se a medição real de minutos o justificar.
+- **CI:** o gatekeeper lê o run do SHA e avalia job a job. Vale como run do candidato o run de um commit descendente cujo diff contra o candidato toque só a lista permitida (caso do registro do candidato, que sobe no mesmo push), porque o produto é o mesmo; o VEREDITO cita os dois SHAs. Run pendente: espera. Run inexistente: BLOCKED. Job vermelho: FAIL ou BLOCKED na dimensão ligada a ele, conforme a causa. O CI completo é obrigatório no candidato de etapa de risco alto ou crítico e no fechamento de gate. O CI reduzido nas demais só vale se a medição real de minutos o justificar.
 - **Merge em master** só com o gate APROVADO, por Rafael, com commit de merge (nunca squash), para os SHAs citados nos VEREDITOs continuarem existindo em master.
 - **Autorização durável (D-30):** commit candidato, commit de correção, commit de registro e push no ramo da fase não pedem autorização a cada vez. Merge e push em master, e qualquer reescrita de histórico, continuam com Rafael.
 - **Toda regra que aprova precisa estar num commit.** Esta política, o mapa de impacto e a skill do gatekeeper com mudança não commitada deixam a validação BLOCKED.
@@ -232,6 +234,10 @@ As capturas continuam obrigatórias em toda etapa de interface (regra 1 de `19-d
 | gate de fase | sempre (smoke visual) |
 | critério E4 explícito na etapa | sempre |
 
+**Texto da etapa ou diff.** Antes da implementação, só o texto da etapa existe, e quase toda etapa futura "cria" algo. Por isso o gatilho visual é decidido pelo DIFF do candidato, na validação. Pelo texto, só disparam sozinhos: critério E4 explícito, tela pública e gate de fase. Os demais (padrão visual novo, tela nova, jornada nova, texto de produto, mudança grande de UX, erro crítico) ficam "a decidir pelo diff". Calibração de 2026-10-07: decidido só pelo texto, Rafael ficaria obrigatório em 207 das 250 etapas de interface, contra o objetivo do portão por risco. Mudança grande de UX pelo diff: página nova, rota nova, ou alteração em mais de um arquivo de tela com mudança de estrutura (elemento novo de layout, não só texto ou estilo); na dúvida, dispara.
+
+**Validadores de interface não saem pelo teto.** Em etapa com tag UI e sem gatilho visual para Rafael, `ux` é obrigatório e não é cortado pelo teto de 4 (senão ninguém olharia a tela); o teto corta primeiro a duplicidade entre `red-team` e `seguranca-aplicacao` em risco médio.
+
 UI de rotina: Playwright com capturas (1280 e 390 px, claro e escuro; 320 e 768 px quando a etapa pede), validador de UX lendo as capturas, validador de acessibilidade e amostragem (seção 11).
 
 ## 11. Amostragem humana
@@ -270,7 +276,7 @@ Sonnet é o padrão. Opus é exceção, preferencialmente como planejador e revi
 1. o diff toca caminho fora de "Arquivos e módulos prováveis" da etapa e fora do mapa de impacto;
 2. item de gate anterior reprova na regressão seletiva;
 3. o diff atravessa dois ou mais grupos de fronteira: {auth, sessão}, {RLS, policy, grant}, {tenant}, {rota pública}, {arquivo público};
-4. Risco crítico, ou Risco alto com tag AUTHZ, TENANT, RLS, PUBLIC_API, DOCUMENTO ou LGPD;
+4. Risco crítico, ou Risco alto com tag AUTHZ, TENANT, RLS ou PUBLIC_API, ou com DOCUMENTO só quando toca imutabilidade ou assinatura, ou com LGPD só quando é estrutural (manifesto de dados, base de retenção, eliminação, expurgo, anonimização). Calibração de 2026-10-07: com LGPD e DOCUMENTO amplos o Opus caía em 372 das 618 etapas, contra o princípio de Opus como exceção;
 5. terceira rodada na mesma etapa;
 6. vereditos opostos na mesma dimensão.
 
