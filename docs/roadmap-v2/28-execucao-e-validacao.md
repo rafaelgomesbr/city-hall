@@ -216,6 +216,8 @@ As tags são derivadas por script, sem editar etapa, da união de três fontes: 
 | DOCUMENTO | qa, especificacao | sim se imutabilidade ou assinatura |
 | INFRA | engenharia-entrega | não, salvo segredo ou produção |
 
+Na coluna "Opus revisa?", "sim" vale só para etapa de Risco alto ou crítico; em risco baixo ou médio a revisão fica nos validadores Sonnet, salvo gatilho da seção 12. Calibração de 2026-10-07: sem esse corte, a matriz mandava Opus em 315 das 618 etapas, porque AUTH, AUTHZ, TENANT, RLS e PUBLIC_API aparecem em muitas etapas de risco médio.
+
 Teto de 4 validadores por etapa: qa sempre, mais os três de maior risco. Os agentes do usuário não declaram modelo e herdariam o da sessão, por isso toda chamada passa o modelo explicitamente. O prompt do validador sobrescreve a régua e o formato de saída de cada agente (a régua do projeto é OWASP ASVS 4.0 nível 2).
 
 ## 10. Portão visual por risco
