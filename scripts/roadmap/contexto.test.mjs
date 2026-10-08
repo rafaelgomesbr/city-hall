@@ -177,9 +177,9 @@ test("repositório real: o pacote da V2-F00-E04 sai completo e curto", () => {
   }
 });
 
-test("repositório real: V2-F00-E19 mostra o CP-03 como trava", () => {
+test("repositório real: V2-F00-E19 não tem mais o CP-03 como trava (decidido em 2026-10-07)", () => {
   const c = montarContexto("V2-F00-E19", RAIZ_REAL);
-  assert.ok(c.travas.some((t) => t.tipo === "checkpoint" && /CP-03/.test(t.descricao)));
+  assert.ok(!c.travas.some((t) => t.tipo === "checkpoint" && /CP-03/.test(t.descricao)));
 });
 
 test("repositório real: toda etapa da F00 monta pacote sem erro e abaixo de 150 linhas", () => {

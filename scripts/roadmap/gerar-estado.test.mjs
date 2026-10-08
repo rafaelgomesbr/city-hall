@@ -324,16 +324,16 @@ test("repositório real: o estado gerado passa no conferir logo em seguida, com 
   }
 });
 
-test("repositório real: hoje a F00 é a fase atual e a pendência humana é das 24 etapas", () => {
+test("repositório real: hoje a F00 é a fase atual e a pendência humana é das 25 etapas", () => {
   const status = lerStatusDoRepositorio(RAIZ_REAL);
   const atual = faseAtual(status);
   // Só vale enquanto o G00 não for aprovado; quando for, este teste é o primeiro a avisar que o estado andou.
   assert.equal(atual.fase, "F00");
   const t = gerarEstado(RAIZ_REAL);
   assert.match(t, /Etapas da F00 \(25\)/);
-  assert.match(t, /EM ANDAMENTO 24/);
+  assert.match(t, /EM ANDAMENTO 25/);
   assert.match(t, /V2-F00-E01 \(EM ANDAMENTO\)/);
-  assert.match(t, /CP-03 ABERTO/);
+  assert.doesNotMatch(t, /CP-03 ABERTO/); // decidido por Rafael em 2026-10-07
 });
 
 test("CLI: --saida grava, --conferir --saida confere, e o arquivo editado à mão é pego", () => {
