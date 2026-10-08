@@ -1,0 +1,219 @@
+# Subtest: a abertura declara uma cor por tema, e são as cores do tema
+# Subtest: o plugin da abertura recebe o bloco do tema escuro
+# Subtest: nenhuma cor e nenhuma arte de abertura é escrita à mão, nos DOIS lugares
+# Subtest: a leitura dos dois blocos pega o valor escrito à mão
+# Subtest: as duas artes de abertura existem no disco
+# Subtest: a leitura da constante enxerga mesmo o arquivo
+# Subtest: o documento de verdade passa: todo arquivo citado existe, todo simbolo esta la, nenhum numero de linha
+# Subtest: a ancora: o documento tem dezenas de ancoras por simbolo, senao o portao esta lendo o arquivo errado
+# Subtest: caso-irmao: simbolo que nao existe no arquivo e mordido
+# Subtest: caso-irmao: arquivo que nao existe e mordido, com e sem ancora
+# Subtest: caso-irmao: a ancora por numero de linha, que era a forma antiga, e mordida em todas as suas grafias
+# Subtest: caso-irmao: a ancora de ausencia morde quando o simbolo EXISTE
+# Subtest: caso-irmao: ausencia em pasta varre a pasta inteira
+# Subtest: presenca em pasta nao vale como ancora: ela nao diz onde olhar
+# Subtest: o simbolo e palavra inteira: foto nao casa em foto_chave, e um nome com ponto casa literal
+# Subtest: o caminho resolve da raiz, de apps/campo, de apps/campo/src e de docs, nessa ordem
+# Subtest: as seis ancoras que o revisor provou erradas na versao 2 estao por simbolo, e resolvem
+# Subtest: auditar.mjs
+# Subtest: redige um JWT colado num texto
+# Subtest: redige o valor de Authorization Bearer e Basic
+# Subtest: redige usuário e senha de uma URL de banco
+# Subtest: troca o nome do usuário nas pastas pessoais
+# Subtest: troca o travessão, que a regra de conteúdo proíbe em docs
+# Subtest: não mexe em texto comum
+# Subtest: lê as contagens do vitest
+# Subtest: lê as contagens do node --test e do jest
+# Subtest: sem contagem na saída o resultado é vazio, não zero
+# Subtest: avaliar confere quando o resultado é o esperado, vermelho inclusive
+# Subtest: avaliar marca divergente quando fica verde sem esperar, e quando a contagem muda
+# Subtest: avaliar não aceita a ausência de contagem como confere
+# Subtest: a lista de passos tem ids únicos e o total de scripts soma a própria etapa
+# Subtest: o E2E do painel local declara o servidor que o teste exige
+# Subtest: as opções recusam o que não conhecem e os filtros recusam passo inexistente
+# Subtest: --so-listar imprime os comandos, não executa nada e não cria a pasta de saída
+# Subtest: o script da raiz repassa as opções para o migrador
+# Subtest: rodando da raiz, --conferir confere e NÃO aplica
+# Subtest: o nome da copia traz a data, ordena por nome e nao tem dois-pontos
+# Subtest: a copia mora fora do repositorio, e a pasta e a da casa de quem roda
+# Subtest: a pasta de copias recusa o repositorio, a nuvem de arquivos e a Area de Trabalho
+# Subtest: a URL do pg_dump e a mesma do migrador, com a raiz do provedor apontada para o libpq verificar a cadeia
+# Subtest: a versao do pg_dump e lida da saida dele, e o cliente serve quando a maior e a do servidor ou mais nova
+# Subtest: localizar o pg_dump tenta o PATH e os caminhos do Homebrew, e diz o que instalar quando nao acha
+# Subtest: a copia recente e a mais nova dentro da janela; fora dela, ou vazia, nao conta
+# Subtest: conferir nao pergunta por copia
+# Subtest: aplicar sem copia recente e RECUSADO, e a recusa ensina a tirar a copia e o escape
+# Subtest: aplicar com copia recente passa, e a conclusao nomeia a copia e a idade dela
+# Subtest: aplicar com --sem-copia passa, e a conclusao diz por extenso que a copia foi PULADA
+# Subtest: com copia recente, --sem-copia nao apaga o registro: a copia que existe e a que vale
+# Subtest: a decisao usa a pasta e a janela de verdade quando ninguem as passa
+# Subtest: recusa subir com a porta da API ocupada, em vez de falar com a instância velha
+# Subtest: a porta conferida é a mesma que o roteiro usa
+# Subtest: o entitlements do iOS declara aps-environment
+# Subtest: o valor do aps-environment é um dos dois que a Apple aceita
+# Subtest: a escolha do ambiente continua morando no app.config.ts, e não escrita à mão
+# Subtest: a conferência do ambiente reprova o mode escrito à mão num rascunho
+# Subtest: o entitlements gerado concorda com DC360_TIME_SENSITIVE sobre o direito sensível ao tempo
+# Subtest: o som de despacho foi copiado para o projeto iOS
+# Subtest: o app.config.ts pede o direito atrás da variável, e declara o som
+# Subtest: cada .woff do repositorio e exatamente o que o roteiro gera dos .ttf do aplicativo
+# Subtest: a licenca OFL acompanha as fontes, igual a de origem
+# Subtest: o WOFF e o TTF tabela a tabela, e o cabecalho diz a verdade sobre os tamanhos
+# Subtest: o tokens.css do painel declara exatamente as faces geradas, e nenhuma outra
+# Subtest: o codificador e determinista: duas passadas, os mesmos bytes
+# Subtest: senha com caractere que parte a URL continua chegando inteira
+# Subtest: senha comum passa sem enfeite
+# Subtest: migra com o papel de setup, nunca com o da aplicação
+# Subtest: a URL exige verificação do certificado, e diz isso por escrito
+# Subtest: vai pelo pooler, porque a conexão direta não tem IPv4
+# Subtest: em modo SESSÃO (5432), e nunca em modo transação (6543)
+# Subtest: o nome do cofre e da conta são os mesmos que a mensagem de ajuda ensina
+# Subtest: a varredura enxerga os dois canais de verdade
+# Subtest: o painel não desenha severidade com forma própria
+# Subtest: o aplicativo não desenha severidade com forma própria
+# Subtest: cada sítio canônico existe e lê o glifo do pacote compartilhado
+# Subtest: o compartilhado declara os cinco glifos com contorno, marca e preenchimento
+# Subtest: a varredura acusa um caminho local reintroduzido no selo do painel
+# Subtest: a varredura acusa um mapa de severidade para caminho reintroduzido no marcador do Google
+# Subtest: a varredura acusa o medidor antigo do aplicativo, e um objeto com forma por nível
+# Subtest: a varredura não reclama do que está certo
+# Subtest: o leitor de sítio pula o parâmetro desestruturado e pega o corpo de verdade
+# Subtest: o leitor de valor para na vírgula do mesmo nível, e não dentro de um objeto
+# Subtest: primitiva: as duas paletas são a mesma paleta
+# Subtest: primitiva: nenhum dos dois lados tem cor que o outro não tem
+# Subtest: semântico: temaClaro concorda com o painel, par a par
+# Subtest: semântico: temaEscuro concorda com o painel, par a par
+# Subtest: escala: espaçamento e raio são idênticos aos do painel
+# Subtest: escala: do corpo do texto para baixo, as duas tipografias são a mesma
+# Subtest: escala: o alvo de toque do aplicativo é maior que o do painel, e não menor
+# Subtest: nenhuma divergência declarada sobreviveu ao próprio conserto
+# Subtest: a paridade pega o que deveria pegar
+# Subtest: os tokens de papel são os mesmos da folha impressa
+# Subtest: contraste calculado: temaClaro passa no mínimo exigido em todo par
+# Subtest: contraste calculado: temaEscuro passa no mínimo exigido em todo par
+# Subtest: o cálculo confere com valores conhecidos
+# Subtest: os dois temas são de fato dois, e a leitura resolve as primitivas
+# Subtest: nenhuma pendência de contraste sobreviveu ao próprio conserto
+# Subtest: a varredura enxerga os elementos tocáveis de verdade
+# Subtest: nenhum alvo de toque abaixo de 52
+# Subtest: todo elemento tocável se apresenta ao leitor de tela
+# Subtest: as três varreduras pegam o que deveriam pegar
+# Subtest: o escape nomeado dispensa quem foi declarado, e ninguém mais
+# Portão de skip: 636 arquivos varridos; 10 skips por ambiente em 3 arquivos; 0 incondicionais com marca T42.
+#   por ambiente: 3 em db/test/busca.test.ts
+#   por ambiente: 4 em scripts/entitlements-do-ios.test.mjs
+#   por ambiente: 3 em scripts/som-de-despacho.test.mjs
+# Subtest: a árvore atual passa no portão: nenhum skip sem marca, vencido ou .only
+# Subtest: a vigência da escrita voltou a rodar: o skip da E04 saiu e nenhum skip incondicional resta
+# Subtest: a contagem por ambiente lista os runIf de busca e os skip de entitlements e de som
+# Subtest: it.skip sem marca reprova
+# Subtest: skip, todo, xit, xdescribe e t.skip incondicionais sem marca reprovam
+# Subtest: marca sem dono, sem issue ou sem ate reprova
+# Subtest: marca com ate no passado reprova, e ate igual a hoje ainda vale
+# Subtest: marca com prazo além do máximo, ou com data que não existe, reprova
+# Subtest: it.only reprova mesmo com marca válida, em it, test, describe e fit
+# Subtest: a marca precisa estar na linha imediatamente acima
+# Subtest: skip por opção sem condição e sem motivo textual reprova
+# Subtest: describe.skip com marca dentro do prazo passa e aparece como marcado
+# Subtest: skip por ambiente (runIf, skipIf e skip com condição e motivo) passa e é contado
+# Subtest: comentário, bloco de comentário e texto entre aspas não disparam falso positivo
+# Subtest: o fim de linha CRLF não atrapalha a leitura da marca
+# Subtest: conferirMarca aceita o limite exato do prazo e rejeita um dia a mais que a folga de fuso
+# Subtest: a varredura em disco acha o skip sem marca de um arquivo sintético e ignora node_modules
+# Subtest: R1: nenhuma peça empilha mais de um bloco preenchido
+# Subtest: a varredura enxerga o aplicativo de verdade
+# Subtest: a varredura pega o cartão da reclamação, bloco a bloco
+# Subtest: a varredura não confunde o que está calmo com o que grita
+# Subtest: R3 e R5 continuam ligadas, e o Chip e o Aviso continuam obedecendo
+# Subtest: R5 é aritmética, e o portão refaz a conta
+# Subtest: nenhuma pendência de densidade sobreviveu ao próprio conserto
+# Subtest: a varredura enxerga os arquivos do aplicativo de verdade
+# Subtest: nenhum valor de design escrito à mão no aplicativo
+# Subtest: a varredura pega o que deveria pegar
+# Subtest: a varredura não reclama do que está certo
+# Subtest: o marcador de exceção dispensa o que declarou, e só isso
+# Subtest: os comentários são apagados antes da varredura, e o código da mesma linha não
+# Subtest: a dívida de peso de fonte morre no dia em que o token nascer
+# Subtest: nenhuma espera de tela cheia fica sem saída
+# Subtest: a varredura de espera sem saída enxerga alguma coisa
+# Subtest: nenhum token declarado fica sem alguém apontando para ele
+# Subtest: a dívida de token sem dono não sobrevive ao próprio conserto
+# Subtest: a varredura de token sem dono enxerga o que deveria
+# Subtest: H3: o protagonista é pelo menos o dobro do apoio, e a conta é refeita aqui
+# Subtest: H1: nenhuma peça desenha mais de um protagonista
+# Subtest: a varredura de protagonista enxerga o que deveria
+# Subtest: o gradiente é pontual: ele não escapa de `src/ui/`
+# Subtest: a varredura enxerga os arquivos de verdade
+# Subtest: nenhum arquivo do aplicativo chama geocodificação, Places ou Directions
+# Subtest: na API, só `rotas/rota.ts` chama a Routes API do Google, e ele de fato chama
+# Subtest: o portão do caminho MORDE fora do arquivo permitido, e só fora dele
+# Subtest: as próprias regras pegam o que deveriam pegar
+# Subtest: a limpeza apaga comentário, e o TEXTO LITERAL sobrevive inteiro
+# Subtest: as regras pegam o que deveriam pegar DEPOIS da limpeza, e não só no texto cru
+# Subtest: todo MapView do aplicativo pede o provedor Google, explicitamente
+# Subtest: a regra do provedor pega um MapView sem ele
+# Subtest: a chave do mapa vem do ambiente, e não escrita no app.config.ts
+# Subtest: cada plataforma tem a SUA chave, e nenhuma delas fica sem
+# Subtest: o plugin de configuração do react-native-maps carrega
+# Subtest: react-native-maps está fixado numa versão e é transformado pelo jest
+# Subtest: o dublê comum de react-native-maps está no lugar em que o jest o acha sozinho
+# Subtest: o segredo gerado passa no mínimo que a API exige e não parte a lista
+# Subtest: rotação: o novo entra na frente e o antigo continua aceito
+# Subtest: rotação: o passo 2 aposenta o antigo, senão a troca ficou pela metade
+# Subtest: rotação: recusa quando a lista passaria do teto
+# Subtest: revogação: o segredo vazado SAI DA LISTA, e é aqui que os dois planos divergem
+# Subtest: revogação: recusa quando o valor apontado não está na lista
+# Subtest: o som de despacho existe no repositório
+# Subtest: o cabeçalho do som está dentro da régua das duas lojas
+# Subtest: o arquivo versionado é exatamente o que o roteiro gera hoje
+# Subtest: o som não estala nem estoura: começa e termina em silêncio, e o pico fica abaixo do teto
+# Subtest: a régua aceita um WAV forjado dentro dela (senão os casos abaixo não provam nada)
+# Subtest: a régua reprova estéreo
+# Subtest: a régua reprova 22 kHz
+# Subtest: a régua reprova 8 bits
+# Subtest: a régua reprova formato comprimido
+# Subtest: a régua reprova o toque curto demais
+# Subtest: a régua reprova o toque longo demais
+# Subtest: a régua reprova cabeçalho que mente sobre o tamanho
+# Subtest: o leitor recusa o que não é WAV
+# Subtest: sem as dependências do aplicativo, falha e diz o comando exato
+# Subtest: a falha por dependência ausente aponta o escape, em vez de deixar a pessoa presa
+# Subtest: o escape só vale ligado em 1: variável presente com outro valor não pula
+# Subtest: DC360_SEM_APP=1 pula mesmo com as dependências instaladas
+# Subtest: com tudo no lugar, roda sem mandar compilar nada
+# Subtest: dist ausente entra na lista de compilação, e shared vem antes de campo
+# Subtest: dist que já existe não é recompilado
+# Subtest: conta it e test abrindo a linha, com ou sem sufixo
+# Subtest: não conta describe, comentário, nem palavra terminada em it ou test
+# Subtest: it.each com tabela literal vale uma vez por linha, e não uma vez só
+# Subtest: it.each resolve tabela declarada como constante no mesmo arquivo
+# Subtest: vírgula sobrando no fim da tabela não inventa um caso
+# Subtest: it.each com tabela em template conta as linhas, menos o cabeçalho
+# Subtest: each que a leitura não sabe resolver estoura, e diz onde
+# Subtest: describe.each estoura, porque multiplica tudo que está dentro do bloco
+# Subtest: a varredura ignora node_modules e dist, que só guardam cópia
+# Subtest: o aplicativo de campo tem casos de teste, e cada arquivo achado tem pelo menos um
+# Subtest: a varredura do aplicativo não sai de apps/campo
+# Subtest: o arquivo de src/app vira a rota que o expo-router publica
+# Subtest: cache velho que não conhece as rotas novas é apagado, e diz quais faltam
+# Subtest: cache em dia fica, para não perder a checagem de rota tipada
+# Subtest: sem cache não há nada a apagar
+# Subtest: rota que é prefixo de outra não conta como presente
+# Subtest: as rotas reais do aplicativo saem do disco, e o cache de 2026-08-27 seria apagado por elas
+# Subtest: o test:campo limpa o cache ANTES do typecheck, não depois
+# Subtest: existe o comando test:campo, e ele chama este script
+# Subtest: npm run verificar alcança o aplicativo de campo
+# Subtest: o conferidor de números pergunta pelo aplicativo
+# Subtest: apps/api: toda variável lida está no .env.example, e vice-versa
+# Subtest: apps/console: toda variável lida está no .env.example, e vice-versa
+# Subtest: apps/campo: toda variável lida está no .env.example, e vice-versa
+# Subtest: a leitura pega o que deveria pegar, e o portão morde na variável que falta
+# Subtest: a leitura enxerga os arquivos de verdade
+# tests 213
+# suites 1
+# pass 209
+# fail 0
+# cancelled 0
+# skipped 4
+# todo 0
+# duration_ms 2783.6573

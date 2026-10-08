@@ -49,17 +49,64 @@ import { fileURLToPath } from "node:url";
  * `fixAvailable: true`, e um `npm audit fix` a fechou. É o caso que fez este
  * portão passar a reprovar aceita com correção disponível (ver abaixo).
  */
+/*
+  Cada exceção tem `motivo`, `dono` e `ate` (AAAA-MM-DD). Vencido o prazo, o
+  portão reprova até alguém reavaliar. `comCorrecao: true` só vale para o caso em
+  que o `npm audit` diz `fixAvailable: true` mas a correção é inaplicável (ver
+  CP-03, decidido por Rafael em 2026-10-07): o `npm audit fix` em apps/campo
+  reembaralha a árvore inteira do Expo e mistura pacotes do SDK 57 e do 58.
+*/
+const DONO = "Rafael";
+const PRAZO = "2027-01-05";
+const FERRAMENTA_DO_EXPO = "Chega por dentro do pacote `expo` (ferramenta de "
+  + "build e de desenvolvimento, que roda na máquina de quem compila) e NÃO entra "
+  + "no pacote JavaScript que vai para o telefone do agente. ";
+const SEM_FIX_SEGURO = "O `npm audit fix` em apps/campo não é aplicável: "
+  + "reembaralha a árvore do Expo e mistura pacotes do SDK 57 e 58. A saída é "
+  + "subir o SDK do Expo por inteiro, o que exige novo binário nativo. ";
+
 const ACEITAS_NO_APLICATIVO = {
-  "decode-uri-component": "Chega por expo-router > query-string, e esta vai "
-    + "junto com o aplicativo. O ataque é negação de serviço por percentual mal "
-    + "formado numa URL, e a única URL que o aplicativo analisa é o próprio link "
-    + "profundo dele. Sem correção acima sem trocar o expo-router.",
+  "decode-uri-component": {
+    motivo: "Chega por expo-router > query-string, e esta vai "
+      + "junto com o aplicativo. O ataque é negação de serviço por percentual mal "
+      + "formado numa URL, e a única URL que o aplicativo analisa é o próprio link "
+      + "profundo dele. Sem correção acima sem trocar o expo-router.",
+    dono: DONO, ate: PRAZO,
+  },
+  "brace-expansion": {
+    motivo: FERRAMENTA_DO_EXPO + "Negação de serviço por padrão `{a},b}` em glob, "
+      + "e o aplicativo não expande glob em execução. " + SEM_FIX_SEGURO,
+    dono: DONO, ate: PRAZO, comCorrecao: true,
+  },
+  braces: {
+    motivo: FERRAMENTA_DO_EXPO + "Negação de serviço por padrão aninhado em glob "
+      + "(micromatch), só no bundler. " + SEM_FIX_SEGURO,
+    dono: DONO, ate: PRAZO,
+  },
+  "node-forge": {
+    motivo: FERRAMENTA_DO_EXPO + "Vem de @expo/code-signing-certificates, usado "
+      + "para assinar atualização do EAS na máquina de build, não no telefone. "
+      + SEM_FIX_SEGURO,
+    dono: DONO, ate: PRAZO,
+  },
+  "shell-quote": {
+    motivo: FERRAMENTA_DO_EXPO + "Vem de react-devtools-core, só no modo de "
+      + "desenvolvimento. Injeção de comando exige que o desenvolvedor passe "
+      + "entrada hostil ao `quote()` local. " + SEM_FIX_SEGURO,
+    dono: DONO, ate: PRAZO, comCorrecao: true,
+  },
+  "sprintf-js": {
+    motivo: FERRAMENTA_DO_EXPO + "Vem de argparse > js-yaml, usado só para ler "
+      + "configuração local de ferramenta. " + SEM_FIX_SEGURO,
+    dono: DONO, ate: PRAZO,
+  },
 };
 
 function auditar(argumentos, cwd) {
   try {
     const saida = execFileSync("npm", ["audit", "--json", ...argumentos], {
-      encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], ...(cwd ? { cwd } : {}),
+      encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], shell: process.platform === "win32",
+      ...(cwd ? { cwd } : {}),
     });
     return JSON.parse(saida);
   } catch (erro) {
@@ -142,13 +189,19 @@ const naoAceitas = pacotesDoApp.filter((nome) => !(nome in ACEITAS_NO_APLICATIVO
   decisão de gente, não deste portão.
 */
 const aceitasComCorrecao = pacotesDoApp.filter(
-  (nome) => nome in ACEITAS_NO_APLICATIVO && relatorioDoApp.vulnerabilities[nome].fixAvailable === true,
+  (nome) => nome in ACEITAS_NO_APLICATIVO
+    && !ACEITAS_NO_APLICATIVO[nome].comCorrecao
+    && relatorioDoApp.vulnerabilities[nome].fixAvailable === true,
+);
+const hoje = new Date().toISOString().slice(0, 10);
+const vencidas = pacotesDoApp.filter(
+  (nome) => nome in ACEITAS_NO_APLICATIVO && ACEITAS_NO_APLICATIVO[nome].ate < hoje,
 );
 
 console.log(`\nAplicativo de campo (vai para o telefone): ${doApp.total} vulnerabilidade(s)`);
 for (const nome of pacotesDoApp) {
-  const razao = ACEITAS_NO_APLICATIVO[nome];
-  console.log(razao ? `  aceita: ${nome}` : `  NOVA:   ${nome}`);
+  const aceita = ACEITAS_NO_APLICATIVO[nome];
+  console.log(aceita ? `  aceita: ${nome} (dono ${aceita.dono}, até ${aceita.ate})` : `  NOVA:   ${nome}`);
 }
 
 if (naoAceitas.length > 0) {
@@ -159,6 +212,14 @@ if (naoAceitas.length > 0) {
   console.error(
     "Isto vai instalado no telefone do agente. Corrija, ou acrescente a "
     + "ACEITAS_NO_APLICATIVO em scripts/auditar.mjs COM O MOTIVO escrito.",
+  );
+  process.exit(1);
+}
+
+if (vencidas.length > 0) {
+  console.error(
+    `\nREPROVADO: o prazo da exceção venceu para ${vencidas.join(", ")}. `
+    + "Reavalie em ACEITAS_NO_APLICATIVO (scripts/auditar.mjs) e renove com motivo, ou corrija.",
   );
   process.exit(1);
 }

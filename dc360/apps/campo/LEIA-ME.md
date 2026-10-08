@@ -20,7 +20,7 @@ O que É verificável daqui, e está verificado:
 | Verificação | Como rodar | Resultado |
 | --- | --- | --- |
 | TypeScript estrito | `npm run typecheck` | limpo com o cache `.expo/types` em dia (ver o parágrafo abaixo); `npm run test:campo` na raiz limpa o cache velho antes |
-| Saúde do projeto Expo | `npx expo-doctor` | **20 de 21** em 2026-10-07: dez pacotes do Expo (`expo`, `expo-camera`, `expo-router`, `expo-sqlite` e outros) com versão de correção atrás da que o SDK 57 pede. Era 21 de 21 em 15/09/2026; o alinhamento é da V2-F00-E19 |
+| Saúde do projeto Expo | `npx expo-doctor` | **21 de 21** em 2026-10-08, depois de alinhar `expo`, `expo-camera`, `expo-router`, `expo-sqlite` e outros pacotes ao SDK 57 (versões de correção). Mudou a versão de pacote nativo: o próximo binário do aparelho precisa ser recompilado |
 | Dependência vulnerável | `npm audit` (aqui) e `npm run auditar` (na raiz) | **NÃO fecha** em 2026-10-07: o `npm audit` daqui acusa dezenas de avisos, altos e um crítico, e a raiz tem um aviso alto de execução no `fastify`. A única aceita com motivo escrito continua sendo `decode-uri-component` (`scripts/auditar.mjs`). No Windows, `npm run auditar` morre com `spawnSync npm ENOENT` antes de auditar. A correção é da V2-F00-E19, que espera o CP-03 |
 | A fila que ele consome | `npm test --workspace @dc360/campo` | 187 testes do motor de campo |
 

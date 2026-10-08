@@ -1,0 +1,6 @@
+
+====================================================
+Passou: 271   Falhou: 0
+Zero erro de console.
+
+TUDO CERTO: o caminho de produção passou de ponta a ponta.

@@ -13,7 +13,7 @@ build) valem lá, não aqui.
 | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 643 testes de fonte do painel mais 70 verificações no navegador no modo local e 251 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
 | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1267 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
 | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 187 testes de unidade do motor de campo e 15 de integração contra a API |
-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1861 testes do aplicativo passando. **NÃO fecha hoje** o `expo-doctor` (em 2026-10-07, 20 de 21: dez pacotes do Expo com versão de correção atrás do SDK) nem o `npm audit` (em 2026-10-07, dezenas de avisos altos e um crítico na árvore do aplicativo); os dois são da V2-F00-E19, bloqueada pelo CP-03. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1861 testes do aplicativo passando. O `expo-doctor` fecha 21 de 21 (medido em 2026-10-08, depois de alinhar os pacotes do Expo ao SDK 57) e o `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
 | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
 
 ## Os dois modos do painel
@@ -1298,18 +1298,21 @@ npm run test:api            # 1267 testes da API
 npm run test --workspace @dc360/campo   # 187 testes do motor de campo
 npm run test:campo          # tipos e os 1861 testes do aplicativo de campo
 npm run typecheck           # TypeScript estrito em todos os pacotes
-npm audit                   # precisa fechar em zero, e HOJE NÃO FECHA
+npm run auditar             # runtime em zero; exceções do aplicativo nomeadas (CP-03)
 ```
 
-**O `npm audit` não está em zero.** Medido em 2026-10-07: na raiz, só com as
-dependências de execução (`npm audit --omit=dev`), um aviso alto no `fastify`
-e um moderado no `fast-uri`, ambos com correção por `npm audit fix`; no
-aplicativo de campo, dezenas de avisos (altos e um crítico) na árvore do Expo.
-A regra do produto diz que vulnerabilidade em execução é bug, e a correção é a
-V2-F00-E19, que espera a política do CP-03. Nesta máquina `npm run auditar`
-nem chega a auditar: no Windows ele morre com `spawnSync npm ENOENT` antes da
-primeira consulta (o `npm` de lá é `npm.cmd`), então quem roda o portão aqui
-precisa ler o erro, e não concluir nada sobre vulnerabilidade a partir dele.
+**A política do `npm audit` (CP-03, decidido por Rafael em 2026-10-07).**
+Dependência de execução com vulnerabilidade reprova, na raiz e no aplicativo
+de campo (`npm run auditar`, que agora também roda no Windows). Na raiz,
+o que sobra é só de desenvolvimento (`vitest` e `tinypool`, que pedem salto de
+versão maior) e aparece como aviso. No aplicativo, os avisos que chegam por
+dentro do Expo (`brace-expansion`, `braces`, `node-forge`, `shell-quote`,
+`sprintf-js` e `decode-uri-component`) estão em `ACEITAS_NO_APLICATIVO`, cada
+um com motivo, dono e prazo de 2027-01-05; depois do prazo o portão reprova até
+alguém reavaliar. O `npm audit fix` no aplicativo foi descartado porque
+reembaralha a árvore do Expo; a saída definitiva é subir o SDK por inteiro, o
+que exige novo binário nativo. `npm audit` puro continua listando esses avisos:
+quem quer a resposta do portão roda `npm run auditar`.
 
 ### O aplicativo de campo precisa de um comando próprio
 
@@ -1565,18 +1568,18 @@ cinco trabalhos paralelos:
 <!-- numeros: nao sao contagem -->
 | Trabalho | O que ele impõe |
 | --- | --- |
-| Testes, tipos e auditoria | TypeScript estrito, o portão CA-06 sozinho e primeiro, a suíte inteira, `npm audit` em zero (hoje esse passo reprova: ver "Como testar") e os números do README conferidos |
+| Testes, tipos e auditoria | TypeScript estrito, o portão CA-06 sozinho e primeiro, a suíte inteira, `npm run auditar` conforme a política do CP-03 (ver "Como testar") e os números do README conferidos |
 | Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API, só em Chromium (o Firefox contra a API roda só na máquina, com `node scripts/e2e-api.mjs firefox`) |
 | Pacote da demonstração | O zip montado, extraído e percorrido pelo roteiro de dez minutos nos dois motores |
 | A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação |
-| Aplicativo de campo | TypeScript, os testes do aplicativo, árvore de dependência coerente, as 21 verificações do `expo-doctor` (hoje 20 de 21) e auditoria própria (hoje reprova) |
+| Aplicativo de campo | TypeScript, os testes do aplicativo, árvore de dependência coerente, as 21 verificações do `expo-doctor` e auditoria própria |
 
 O CA-06 roda separado e antes de tudo de propósito: isolamento entre
 municípios é a regra número um, e se ela quebrar nada mais importa.
 
 A tabela diz o que o arquivo manda rodar, e não um resultado: nenhuma rodada
 do CI foi conferida durante a F00 (é validação humana pendente da V2-F00-E01),
-e pelo menos o `npm audit` dos dois trabalhos e o `expo-doctor` reprovam hoje.
+e o `npm audit` puro dos dois trabalhos do CI ainda lista os avisos aceitos pelo CP-03 (o CI chama `npm audit`, não `npm run auditar`).
 
 Na máquina, o mesmo se pede com `npm run verificar` e
 `scripts/conferir-demo.ps1`. O `verificar` inclui `npm run test:campo`: por um
@@ -1594,8 +1597,8 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
 - **A prova do aplicativo de campo num aparelho.** Ele está inteiro em
   código: telas, coleta offline, câmera, GPS, assinatura no dedo, fila de
   envio, ícones e a configuração das duas lojas. Compila e passa nos testes do
-  aplicativo; NÃO passa hoje no `expo-doctor` (20 de 21) nem no `npm audit`
-  (V2-F00-E19). Há relato de uso em iPhone (08/09/2026), mas **nenhum artefato
+  aplicativo; passa no `expo-doctor` (21 de 21) e no `npm run auditar`
+  conforme o CP-03 (V2-F00-E19). Há relato de uso em iPhone (08/09/2026), mas **nenhum artefato
   de aparelho está arquivado**, e relato não é prova. O que falta é o que só o
   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
