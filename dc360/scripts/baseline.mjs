@@ -129,12 +129,14 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     V2-F00-E19: `scripts/auditar.test.mjs` já existia com 7 casos (que a tabela
     nunca registrou) e a correção 1 acrescentou 13 (a regra do CP-03: sem prazo,
     prazo inválido, sem dono, sem motivo, vencida, válida, a lista real, e a
-    cópia adulterada do portão). Conferido por `node --test scripts/auditar.test.mjs`: 20.
+    cópia adulterada do portão); a decisão D3 Q5 de 2026-10-13 acrescentou 3 (aviso de
+    desenvolvimento nomeado na lista, o que não está na lista só avisa, e a lista real
+    de desenvolvimento). Conferido por `node --test scripts/auditar.test.mjs`: 23.
     O arquivo entra na tabela de arquivos abaixo (a E01, correção 1, trocou o
     contador de `test(` na coluna zero por um que vê `it(` com recuo; o antigo
     dava 0 para este arquivo e por isso ele ficou de fora).
   */
-  "V2-F00-E19": 20,
+  "V2-F00-E19": 23,
   /*
     V2-F00-E16, correção 1: `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs`
     é novo, com 4 casos (o portão que impede o aplicativo de prometer envio em

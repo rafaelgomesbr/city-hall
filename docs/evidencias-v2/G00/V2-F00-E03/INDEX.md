@@ -4,7 +4,7 @@
 | --- | --- |
 | RESUMO.md | b4eb4cdf85381c81343d6819ab311b0fd92c64c0dd78ab77b44f06ff2884b755 |
 | VEREDITO.md | c256ecc70d41391c4e4f308a7ccd5d130fab91ca7ed7516d1bac436ae1c0ed70 |
-| classificacao-dos-vermelhos.md | 476456f1ee609836d9adbbd7f505a7b609b6b32bd1983376fb5681b6fa84a429 |
+| classificacao-dos-vermelhos.md | b68048d3f9085854428ccd90766075a3f74a77f2fa3aecf5a8de63dd49000b8c |
 | correcao-1/RESUMO.md | 3ae06b6a39f18ce1232bb700c0566e74c657da042132a15d4e56c5edbc16354b |
 | correcao-1/brutas/e2e-api-firefox-rodada-1.txt | cf71a50a3ed280752c670940a73046d8dff23004e62c5b71fd5808bcf668e547 |
 | correcao-1/brutas/e2e-api-firefox-rodada-2.txt | fd7173b5301741f55f8800286316c9b434627982c368399f06cf188ca1b87c03 |
@@ -53,4 +53,5 @@
 | correcao-1/saidas/17-e2e-api.txt | d5d48005830a4b664f3e3677719803a20318399ffac238dbef9fd3b7851b0a69 |
 | correcao-1/saidas/RESUMO.md | b1c36bd3025b99ea077df4d389eb102619039e35f44738b02b0a59f3e52b049a |
 | correcao-1/saidas/resultados.json | e8e57c73fa8f24aa1a34d80cd3f47a627d0ea57738909cd910691011ed7e34bd |
+| correcao-2/RESUMO.md | 91c3a6bf013f9acdac23936969472e90d792c8c8f89885b6101f29ef6f0852d8 |
 | validacao/7005a60/qa.md | 218b43ebe25ed1b10f1f168a1c4b8827c19de2aca5e6c0c4fc72b907a93c7d61 |

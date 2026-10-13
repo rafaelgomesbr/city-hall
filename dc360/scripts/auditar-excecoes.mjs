@@ -71,6 +71,35 @@ export const ACEITAS_NO_APLICATIVO = {
 };
 
 /**
+ * Advisories de FERRAMENTA DE DESENVOLVIMENTO da raiz (o programa que roda os
+ * testes). Ficam só na máquina de quem desenvolve e nunca vão para a imagem.
+ * Não reprovam o portão, mas desde 2026-10-13 (D3, Q5, decidida por Rafael)
+ * têm dono e prazo como as do aplicativo: corrigir pede subir o `vitest` para a
+ * versão 5, mudança grande que mexe em todas as suítes e entra como etapa
+ * planejada, não como conserto agora. Quando o `vitest` subir, o teste reclama
+ * de excesso e alguém apaga a linha.
+ */
+const FERRAMENTA_DE_TESTE = "Chega por dentro do `vitest` (o programa que roda os testes da raiz), "
+  + "só na máquina de desenvolvimento e no CI, e NÃO entra na imagem do servidor nem no telefone. "
+  + "Corrigir pede subir o `vitest` para a versão 5, que mexe em todas as suítes. ";
+
+export const ACEITAS_EM_DESENVOLVIMENTO = {
+  vitest: {
+    motivo: FERRAMENTA_DE_TESTE + "Aviso do próprio pacote.",
+    dono: DONO, ate: PRAZO,
+  },
+  "@vitest/mocker": {
+    motivo: FERRAMENTA_DE_TESTE + "Aviso de gravidade moderada no módulo de dublês de teste.",
+    dono: DONO, ate: PRAZO,
+  },
+  tinypool: {
+    motivo: FERRAMENTA_DE_TESTE + "Dois avisos de execução de código no processo de teste, que só roda "
+      + "código escrito por este projeto.",
+    dono: DONO, ate: PRAZO,
+  },
+};
+
+/**
  * A política do CP-03 diz que exceção é NOMEADA, com dono e prazo. Esta função é
  * o que faz a lista cumprir isso, em vez de a regra viver só num comentário.
  *

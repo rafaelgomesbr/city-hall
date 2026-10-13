@@ -18,7 +18,7 @@ import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
-import { ACEITAS_NO_APLICATIVO, problemasDasExcecoes } from "./auditar-excecoes.mjs";
+import { ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, problemasDasExcecoes } from "./auditar-excecoes.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = join(AQUI, "auditar.mjs");
@@ -86,6 +86,22 @@ describe("auditar.mjs", () => {
     const { codigo, saida } = rodar({ tudo: relatorio({ vitest: false }) });
     assert.equal(codigo, 0, saida);
     assert.match(saida, /apenas em ferramenta de/);
+  });
+
+  it("dev nomeado na lista (CP-03, D3 Q5) aparece como aceito, com dono e prazo, e não como 'precisa de dono'", () => {
+    const { codigo, saida } = rodar({ tudo: relatorio({ vitest: false, tinypool: false }) });
+    assert.equal(codigo, 0, saida);
+    assert.match(saida, /aceita \(desenvolvimento\): vitest \(dono Rafael, até 2027-01-05\)/);
+    assert.match(saida, /aceita \(desenvolvimento\): tinypool/);
+    assert.match(saida, /todas aceitas com dono e prazo/);
+    assert.doesNotMatch(saida, /precisa de dono/);
+  });
+
+  it("dev que NÃO está na lista continua só avisando, mas diz o nome e que falta dono e prazo", () => {
+    const { codigo, saida } = rodar({ tudo: relatorio({ vitest: false, "pacote-novo-de-teste": false }) });
+    assert.equal(codigo, 0, saida);
+    assert.match(saida, /sem dono e prazo: pacote-novo-de-teste/);
+    assert.match(saida, /aceita \(desenvolvimento\): vitest/);
   });
 
   it("reprova advisory nova no aplicativo de campo", () => {
@@ -170,6 +186,12 @@ describe("exceções do CP-03: nome, dono e prazo", () => {
     assert.ok(Object.keys(ACEITAS_NO_APLICATIVO).length > 0);
     const hoje = new Date().toISOString().slice(0, 10);
     assert.deepEqual(problemasDasExcecoes(ACEITAS_NO_APLICATIVO, hoje), []);
+  });
+
+  it("a lista REAL de desenvolvimento nomeia os três pacotes do vitest, com dono e prazo válidos", () => {
+    assert.deepEqual(Object.keys(ACEITAS_EM_DESENVOLVIMENTO).sort(), ["@vitest/mocker", "tinypool", "vitest"]);
+    const hoje = new Date().toISOString().slice(0, 10);
+    assert.deepEqual(problemasDasExcecoes(ACEITAS_EM_DESENVOLVIMENTO, hoje), []);
   });
 });
 

@@ -36,7 +36,7 @@
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ACEITAS_NO_APLICATIVO, problemasDasExcecoes } from "./auditar-excecoes.mjs";
+import { ACEITAS_EM_DESENVOLVIMENTO, ACEITAS_NO_APLICATIVO, problemasDasExcecoes } from "./auditar-excecoes.mjs";
 
 function auditar(argumentos, cwd) {
   try {
@@ -71,19 +71,24 @@ function contar(relatorio) {
   pacote dela não apareça no relatório de hoje.
 */
 const hoje = new Date().toISOString().slice(0, 10);
-const defeitosDaLista = problemasDasExcecoes(ACEITAS_NO_APLICATIVO, hoje);
+const defeitosDaLista = [
+  ...problemasDasExcecoes(ACEITAS_NO_APLICATIVO, hoje),
+  ...problemasDasExcecoes(ACEITAS_EM_DESENVOLVIMENTO, hoje).map((p) => `(desenvolvimento) ${p}`),
+];
 if (defeitosDaLista.length > 0) {
   console.error(`\nREPROVADO: ${defeitosDaLista.length} defeito(s) na lista de exceções (CP-03: nome, dono e prazo).`);
   for (const defeito of defeitosDaLista) console.error(`  - ${defeito}`);
   console.error(
-    "Corrija ou renove com motivo em ACEITAS_NO_APLICATIVO (scripts/auditar-excecoes.mjs), "
+    "Corrija ou renove com motivo em ACEITAS_NO_APLICATIVO ou ACEITAS_EM_DESENVOLVIMENTO (scripts/auditar-excecoes.mjs), "
     + "ou corrija a dependência e apague a linha.",
   );
   process.exit(1);
 }
 
-const runtime = contar(auditar(["--omit=dev", "--audit-level=low"]));
-const tudo = contar(auditar(["--audit-level=low"]));
+const relatorioDoRuntime = auditar(["--omit=dev", "--audit-level=low"]);
+const relatorioDeTudo = auditar(["--audit-level=low"]);
+const runtime = contar(relatorioDoRuntime);
+const tudo = contar(relatorioDeTudo);
 const soDesenvolvimento = Math.max(0, tudo.total - runtime.total);
 
 console.log(`Runtime (vai para a imagem): ${runtime.total} vulnerabilidade(s)`);
@@ -96,11 +101,30 @@ if (runtime.total > 0) {
 }
 
 if (soDesenvolvimento > 0) {
-  console.warn(
-    `\nAviso: ${soDesenvolvimento} vulnerabilidade(s) apenas em ferramenta de`
-    + " desenvolvimento. Não reprova, e precisa de dono.",
-  );
-  console.warn("Veja o detalhe com: npm audit --audit-level=low");
+  /*
+    Só os pacotes com advisory PRÓPRIA (quem traz objeto em `via`), fora os que já
+    aparecem no runtime. Os nomeados em ACEITAS_EM_DESENVOLVIMENTO têm dono e
+    prazo (CP-03, D3 Q5); os demais continuam sendo aviso que "precisa de dono".
+  */
+  const proprios = (relatorio) => Object.entries(relatorio.vulnerabilities ?? {})
+    .filter(([, v]) => (v.via ?? []).some((origem) => typeof origem === "object"))
+    .map(([nome]) => nome);
+  const noRuntime = new Set(proprios(relatorioDoRuntime));
+  const nomesDeDev = proprios(relatorioDeTudo).filter((nome) => !noRuntime.has(nome)).sort();
+  const semDono = nomesDeDev.filter((nome) => !(nome in ACEITAS_EM_DESENVOLVIMENTO));
+  for (const nome of nomesDeDev.filter((n) => n in ACEITAS_EM_DESENVOLVIMENTO)) {
+    const e = ACEITAS_EM_DESENVOLVIMENTO[nome];
+    console.log(`  aceita (desenvolvimento): ${nome} (dono ${e.dono}, até ${e.ate})`);
+  }
+  if (semDono.length > 0) {
+    console.warn(
+      `\nAviso: ${soDesenvolvimento} vulnerabilidade(s) apenas em ferramenta de desenvolvimento;`
+      + ` sem dono e prazo: ${semDono.join(", ")}. Não reprova, mas precisa de dono.`,
+    );
+    console.warn("Veja o detalhe com: npm audit --audit-level=low");
+  } else {
+    console.log(`\nAviso: ${soDesenvolvimento} vulnerabilidade(s) apenas em ferramenta de desenvolvimento, todas aceitas com dono e prazo (CP-03). Não reprova.`);
+  }
 }
 
 /* ---------- O aplicativo de campo, que fica fora do `workspaces` ---------- */
