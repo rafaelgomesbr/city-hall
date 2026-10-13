@@ -797,7 +797,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
   */
   const margens = useSafeAreaInsets();
   const tema = useTema();
-  const { obterToken, identidade, lerIdentidade, sair } = useSessao();
+  const { obterToken, identidade, lerIdentidade, encerrarSessaoVencida } = useSessao();
 
   const [ocorrencia, setOcorrencia] = useState<Pendencia | null>(null);
   const [rascunho, setRascunho] = useState<Rascunho | null>(null);
@@ -853,7 +853,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
     não uma frase. Era `erro` com "Tente de novo em alguns minutos" para tudo
     que não fosse `SemSinal`, e o 401 de sessão revogada caía nisso: tentar de
     novo dá 401 de novo, para sempre. A lista de tarefas já classifica com
-    `motivoDaFalha` e oferece "Sair e entrar de novo"; esta tela usa a mesma
+    `motivoDaFalha` e oferece "Entrar de novo"; esta tela usa a mesma
     régua, porque é o mesmo agente lendo as duas.
   */
   const [falhaAoBaixar, setFalhaAoBaixar] = useState<MotivoDaFalha | null>(null);
@@ -1406,12 +1406,18 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
   }, [obterToken, carregarDoDisco]);
 
   /**
-   * Sair da conta e voltar à entrada: o único ato que resolve a sessão
-   * encerrada. É o mesmo par de linhas da lista de tarefas, e a promessa de
-   * que a fila sobrevive ao logout está escrita em `comoContarAFalha`.
+   * Entrar de novo e voltar à entrada: o único ato que resolve a sessão
+   * encerrada. É o mesmo par de linhas da lista de tarefas e da fila.
+   *
+   * Chama `encerrarSessaoVencida`, e NÃO `sair()`: `sair()` é o verbo do fim do
+   * turno e apaga o dado local. Esta tela é justamente a de quem pode ter uma
+   * vistoria começada no disco (rascunho, fotos, assinatura), e a pessoa que só
+   * precisava renovar a credencial a perderia sem aviso (V2-F00-E15). Aqui o
+   * disco fica como está, com a marca de quem o deixou; quem confere se quem
+   * entra em seguida é a mesma pessoa é o login (`acolherNoAparelho`).
    */
-  async function sairEEntrarDeNovo(): Promise<void> {
-    await sair();
+  async function entrarDeNovo(): Promise<void> {
+    await encerrarSessaoVencida();
     router.replace("/entrar");
   }
 
@@ -1975,10 +1981,10 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
               {...(falhaAoBaixar === "sessao-encerrada"
                 ? {
                   acao: {
-                    titulo: "Sair e entrar de novo",
-                    onPress: () => void sairEEntrarDeNovo(),
-                    descricao: "Sair da conta e entrar de novo com o seu email e a sua senha",
-                    testID: "sair-e-entrar-de-novo",
+                    titulo: "Entrar de novo",
+                    onPress: () => void entrarDeNovo(),
+                    descricao: "Entrar de novo com o seu email e a sua senha, sem apagar a vistoria começada",
+                    testID: "entrar-de-novo",
                   },
                 }
                 : {})}

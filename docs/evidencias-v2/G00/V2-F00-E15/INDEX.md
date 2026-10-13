@@ -3,6 +3,17 @@
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | aa8f012c20bcd26af454fc7347f7a3adacfbeae11529992456cae0ea20f5835f |
+| VEREDITO.md | d2d30c3a9015cf343b20ae659037a71eff58e25a3995e872d4fe936a7f1e1ef2 |
+| correcao-1/RESUMO.md | 3e75a435746b033fe877289025928d2b586bb5cb616d218dffa646011f013285 |
+| correcao-1/diff-da-correcao.patch | a6e3d212fc8218a1513b70c086646e5cbf520b0c02cce339876085542cea0057 |
+| correcao-1/saidas/01-teste-novo-ANTES-do-conserto.txt | e1f3b17e5fa301eaebd950c4663a7fd9a0b188c58e4e5f17c38814470777285f |
+| correcao-1/saidas/02-teste-antigo-contra-o-conserto.txt | 636d65085d89bc90ec10e25b0bf25782757d221ccbb917f32593f84064c7e3fe |
+| correcao-1/saidas/03-teste-novo-e-reescrito-DEPOIS.txt | 8e6fc965ab04e32b9c3494ae89550c9bb1497cc70894649e86610b44af223051 |
+| correcao-1/saidas/04-test-campo-DEPOIS.txt | 3e56d9aa952c35ec17e757d9bb0127b5cda7fe1a9af9fce9e5514201da67271b |
+| correcao-1/saidas/05-test-packages-campo-DEPOIS.txt | 0354c297dabf4bfe0e5842e6eb1f80cf44a3b4674cb4f0d8271f59578873fcff |
+| correcao-1/saidas/06-typecheck-DEPOIS.txt | 8f27539a38780b755d941a744a111b7da06d673d917fc95ad7bbe5c5f43aa57c |
+| correcao-1/saidas/07-conferir-numeros-DEPOIS.txt | 1a40a4c4db20c3c1694643743805b05ee9bc102a2dbf1d4e79ba261937d9d7ee |
+| correcao-1/saidas/08-portao-de-conteudo.txt | 5fd548e47f8e65de93b425e3a6cb95b637da131f6674a93bbc6dcab05d4ac570 |
 | saidas/01-jest-dois-arquivos-antes.txt | 895026b54da5b668bbd72aa8c5e42087cc574abf3f3eadb08deff4e2450c61fd |
 | saidas/02-jest-arquivos-da-etapa-depois.txt | 3e3a7c0a82852e627fbeeaac84c9268e33a830a4abc1bcadef6f3417ec9a631b |
 | saidas/03-sonda-sem-o-conserto.txt | bfa26477b9d04d24c573a7939e1c3d85551f36077fbd3d4b930fbc95bd8859d4 |
@@ -18,3 +29,6 @@
 | saidas/baseline-depois/06-test-campo.txt | c4e51b601c9ffc619c652de4909c1b9854ff9bf8216b6ee55aaf5637a2b2018d |
 | saidas/baseline-depois/RESUMO.md | 38134945745633b68b788649d2ebc4d591bfa8b2376dfbdc885b341beb687105 |
 | saidas/baseline-depois/resultados.json | ad6fe2974c90f0995e3332cb5211a6b0d54bf0c1ff0d7146e190690182d25cab |
+| validacao/7005a60/privacidade-lgpd.md | 508c757b8b07f3e10ecfb8a5c92c02feee7bf60b1b679cae84729ac062f32f8b |
+| validacao/7005a60/qa.md | 7cbb3185b9760cb009c9f4368133daecbcf9b1a54dc840218f59159105f6f2eb |
+| validacao/7005a60/testes.md | db527e58c910ce168f0dfc2d2adb621bb21380b674ede11534935ca310c9358a |

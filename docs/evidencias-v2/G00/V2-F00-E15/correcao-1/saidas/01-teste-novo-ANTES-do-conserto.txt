@@ -1,0 +1,74 @@
+# ANTES: o teste novo (sessao, banco e tela reais) contra o codigo de a1760af da tela da vistoria. 3 de 4 reprovam: o rascunho some. O quarto e o controle da saida explicita, que apaga de proposito.
+
+(node:127252) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL src/__tests__/vistoria-sessao-vencida-preserva-o-rascunho.test.tsx
+  a tela da vistoria com a sessão encerrada, sessão e banco de verdade
+    × 'Entrar de novo' leva à entrada e o rascunho, a foto e a assinatura continuam no disco (128 ms)
+    × a Ana entra de novo e reencontra a vistoria como deixou (29 ms)
+    √ contraste: a saída explícita (a do Perfil, que pergunta antes) continua apagando (10 ms)
+    × a tela não oferece mais 'Sair e entrar de novo' em lugar nenhum (16 ms)
+
+  ● a tela da vistoria com a sessão encerrada, sessão e banco de verdade › 'Entrar de novo' leva à entrada e o rascunho, a foto e a assinatura continuam no disco
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 1
+    Received length: 0
+    Received array:  []
+
+      229 |     expect(sessaoAtual?.identidade).toBeNull();
+      230 |     const rascunhos = await listarRascunhos();
+    > 231 |     expect(rascunhos).toHaveLength(1);
+          |                       ^
+      232 |     expect(rascunhos[0]?.fotos).toHaveLength(1);
+      233 |     expect([...mockNoDisco].sort()).toEqual([ASSINATURA, FOTO]);
+      234 |   });
+
+      at Object.toHaveLength (src/__tests__/vistoria-sessao-vencida-preserva-o-rascunho.test.tsx:231:23)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a tela da vistoria com a sessão encerrada, sessão e banco de verdade › a Ana entra de novo e reencontra a vistoria como deixou
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 1
+    Received length: 0
+    Received array:  []
+
+      245 |     expect(sessaoAtual?.identidade?.usuarioId).toBe(ANA);
+      246 |     const rascunhos = await listarRascunhos();
+    > 247 |     expect(rascunhos).toHaveLength(1);
+          |                       ^
+      248 |     expect(rascunhos[0]?.checklist).toEqual({ risco_iminente: true });
+      249 |     expect(rascunhos[0]?.observacoes).toBe("Trinca na parede dos fundos.");
+      250 |     expect(rascunhos[0]?.assinaturaUri).toBe(`file:///documentos/${ASSINATURA}`);
+
+      at Object.toHaveLength (src/__tests__/vistoria-sessao-vencida-preserva-o-rascunho.test.tsx:247:23)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a tela da vistoria com a sessão encerrada, sessão e banco de verdade › a tela não oferece mais 'Sair e entrar de novo' em lugar nenhum
+
+    expect(received).toBeNull()
+
+    Received: <Text numberOfLines={1} style={{"color": "#ECF1F4", "fontFamily": "System", "fontSize": 16, "fontWeight": "700", "letterSpacing": undefined, "lineHeight": 24, "textAlign": undefined, "textTransform": undefined}}>Sair e entrar de novo</Text>
+
+      269 |     await terminarASessao();
+      270 |
+    > 271 |     expect(screen.queryByText("Sair e entrar de novo")).toBeNull();
+          |                                                         ^
+      272 |     expect(screen.queryByTestId("sair-e-entrar-de-novo")).toBeNull();
+      273 |   });
+      274 | });
+
+      at Object.toBeNull (src/__tests__/vistoria-sessao-vencida-preserva-o-rascunho.test.tsx:271:57)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 1 passed, 4 total
+Snapshots:   0 total
+Time:        3.124 s
+Ran all test suites matching /src\\__tests__\\vistoria-sessao-vencida/i.

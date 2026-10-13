@@ -474,6 +474,35 @@ do escopo: o laudo (`packages/shared/src/minuta.ts`) e o cartão de vistoria
 concluída do Perfil escrevem "N metros" sem singular, e com o piso de 1 metro
 "1 metros" passa a ser comum; fica para a etapa que mexer nesses textos.
 
+### Correção 1 da E15 (2026-10-13): "Entrar de novo" na tela da vistoria, e o que sobrou da LGPD
+
+**Feito.** A tela da vistoria oferecia "Sair e entrar de novo" quando a baixa dava
+401, e o botão chamava `sair()`, que apaga rascunho, fotos e assinatura sem avisar.
+Agora ela oferece "Entrar de novo" e chama `encerrarSessaoVencida`, como a lista de
+tarefas e a fila. Não há mais nenhum `sair()` no app fora do diálogo "Sair da conta?"
+do Perfil. O outro apagamento, `acolherNoAparelho` (quando OUTRA pessoa entra num
+aparelho com dado de turno), é a regra de isolamento entre agentes e continua; o
+agente que perde o rascunho por isso não é avisado na hora, porque quem está na tela
+é o colega, e esse aviso é a decisão do CP-24 (F14-E02).
+
+**Achados de LGPD da validação, abertos e SEM dono de código ainda** (nada disto é
+da correção 1; a validação classificou como "corrigir antes de crescer"):
+
+1. **A fila e os arquivos dela ficam no aparelho sem prazo**, inclusive depois que
+   outro agente entra (envelope com CPF e coordenada, fotos, assinatura). Dono
+   provável: F05-E09 (retenção por classe) para o prazo, e F14-E02 para o item de
+   outro autor e o item bloqueado.
+2. **JPEG e PNG de coleta já enviada ou descartada só saem no logout**, que o agente
+   raramente faz. Dono: F14-E15 (já escrita para isso, com `limparMidiaConfirmada`).
+3. **O original da câmera no cache nunca é apagado** (`takePictureAsync` copia para
+   `Paths.document`, o original fica em `Paths.cache`, que nada limpa). Dono
+   provável: F14-E15, ou F14-E04 junto da criptografia das fotos. A F14-E15 hoje
+   NÃO cita o cache: quem a implementar precisa acrescentar.
+4. **Coordenada gravada com 6 casas** (cerca de 0,11 m, `vistoria/[id].tsx`), mais
+   fina que o GPS informa; 5 casas bastariam. Dono provável: F05-E10 (minimização).
+5. **Resíduo de WAL e páginas livres do SQLite** depois de `DELETE` sem `VACUUM`.
+   Risco baixo (armazenamento privado do aplicativo). Dono: F14-E04.
+
 ## 16. A vistoria diz a verdade sobre o envio, respeita teclado e área segura, e abre os ajustes (V2-F00-E16). Falta ver no aparelho
 
 **Feito em 2026-10-07.** Defeitos reais CMP-35 e CMP-89, na tela de vistoria
