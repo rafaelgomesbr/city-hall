@@ -67,6 +67,12 @@ declare module "fastify" {
      * `auth/suspensao.ts`. Não afeta permissão, não afeta isolamento.
      */
     filaDoCampo?: boolean;
+    /**
+     * Marca a rota GET que ESCREVE: muda estado ou grava trilha, exportação
+     * ou registro de acesso. A vigência (conta, papel, sessão) vale para ela
+     * como vale para um POST. Ver `ROTA_GET_COM_EFEITO`.
+     */
+    comEfeito?: boolean;
   }
 }
 
@@ -79,6 +85,31 @@ declare module "fastify" {
  * marca: uma rota nova da fila sem ela bloquearia coleta em município suspenso.
  */
 export const ROTA_DA_FILA_DO_CAMPO = { config: { filaDoCampo: true } } as const;
+
+/**
+ * A configuração de rota que marca "este GET escreve".
+ *
+ * O método HTTP não diz se um pedido escreve: abrir o termo de interdição É
+ * interditar o imóvel (e grava `documento_emitido`), baixar o CSV grava
+ * `exportacoes`, abrir o laudo ou um termo grava a emissão e o acesso, e
+ * consultar o sino de avisos materializa e expurga avisos. Decidir por
+ * `req.method !== "GET"` deixava conta desativada, papel rebaixado e sessão
+ * encerrada escreverem por esses GET (e por HEAD, que o Fastify serve com o
+ * mesmo handler), e a trilha não se corrige (V2-F00-E04, correção 1).
+ *
+ * O CRITÉRIO da marca: o GET pratica um ATO (emite documento, interdita,
+ * exporta) ou muda dado do município (materializa e expurga avisos). O GET
+ * cuja única escrita é o registro de que ELE foi lido (`registrarConsulta`:
+ * o dossiê `GET /ocorrencias/:id` e a busca) NÃO leva a marca: é leitura, o
+ * registro é a auditoria dela, e a vigência dessa leitura é da F03-E03.
+ *
+ * A marca é lida em `exigirAutenticacao` de `req.routeOptions.config`, e o HEAD
+ * automático do Fastify herda a configuração do GET. Rota GET nova que escreve
+ * e não leva a marca reprova em `test/get-com-efeito.test.ts`, que confere a
+ * lista explícita pelo comportamento e varre o fonte das rotas. A vigência em
+ * LEITURA PURA continua sendo da F03-E03.
+ */
+export const ROTA_GET_COM_EFEITO = { config: { comEfeito: true } } as const;
 
 export type Dependencias = {
   banco: Banco;
@@ -464,18 +495,25 @@ export async function construirServidor(
     /*
       ESCRITA confere, numa ida só ao banco, a suspensão do município E a
       vigência de quem escreve: conta ativa, papel igual ao do token, sessão
-      não encerrada, senha provisória dentro do prazo. LEITURA com token vivo
-      não vai ao banco (a vigência em leitura é da F03-E03, centralizada em
-      `comTenant`). O argumento da suspensão está em `auth/suspensao.ts`; o da
-      vigência, em `auth/vigencia.ts`. `HEAD` conta como leitura porque é o
-      que ele é.
+      não encerrada, senha provisória dentro do prazo. LEITURA PURA com token
+      vivo não vai ao banco (a vigência em leitura é da F03-E03, centralizada
+      em `comTenant`). O argumento da suspensão está em `auth/suspensao.ts`; o
+      da vigência, em `auth/vigencia.ts`.
+
+      Escrita é "método diferente de GET e HEAD" OU "rota marcada com efeito"
+      (`ROTA_GET_COM_EFEITO`). A segunda metade existe porque há GET que
+      escreve: o termo de interdição, o laudo, o termo de desinterdição e os
+      PDFs, o CSV e o sino de avisos. O HEAD dessas rotas
+      é servido pelo mesmo handler e carrega a mesma marca, então também
+      confere. HEAD de rota sem marca continua sendo leitura.
 
       Esta conferência esteve desligada de 17/09/2026 até V2-F00-E04 (o commit
       b4439ac tirou o import e as duas chamadas, e o teste ficou em skip). Sem
       ela, conta desativada, papel rebaixado e sessão encerrada por quem
       administra escreviam por até quinze minutos com o token ainda vivo.
     */
-    const escrita = req.method !== "GET" && req.method !== "HEAD";
+    const escrita = (req.method !== "GET" && req.method !== "HEAD")
+      || req.routeOptions.config.comEfeito === true;
     let senhaProvisoria = conteudo.sp === true;
     if (escrita) {
       const vigencia = await lerVigencia(banco, conteudo);

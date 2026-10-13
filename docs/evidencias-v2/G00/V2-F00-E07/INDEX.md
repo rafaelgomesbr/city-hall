@@ -11,6 +11,7 @@
 | capturas/papel-depois-da-escrita-1280-escuro.png | 391e2c12e13b2fdc93c0c0b56d511be424980d8874cfe913d71c8818d0414d78 |
 | capturas/papel-depois-da-escrita-390-claro.png | e69742fe95b02f1fed2cf8653e8702ca195d6663bd8d0b0a52356386c888f20c |
 | capturas/papel-depois-da-escrita-390-escuro.png | 42c67d3d0589004ca69ca6f40563103112c2d6c14a6683690fb0fa394431f8cc |
+| correcao-1/RESUMO.md | ab20a85dfd82fbb36aaa2360892337af10b0894de86e45109115a7ee661956bb |
 | diff-da-etapa.patch | e6c1ca09bce91d4e265f4ae8a696e6ef01f4d0ab86275f7bea2b04ee13954d0c |
 | saidas/01-api-completa-antes.txt | df5fd0d39709dd1e8cf2fa7d7971fee2dddc001840adea8875c12cbff71a2b14 |
 | saidas/02-sonda-antes-do-conserto.txt | 1415535fd3d942cfb415240bf9a7b9d84e307f24966fb97e2d09889c2ab29a51 |

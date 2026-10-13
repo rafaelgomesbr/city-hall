@@ -43,6 +43,12 @@ export async function encerrarSessoes(
     motivo: string;
     /**
      * A sessao de quem pediu, quando ela deve sobreviver. `null` derruba tudo.
+     *
+     * Sobrevive a CADEIA dela (`familia_id`, migracao 047), e nao so a linha: o
+     * token de acesso emitido antes de uma renovacao carrega o `sid` da sessao
+     * ja rotacionada, e a viva da mesma cadeia e outra linha. Preservar so o
+     * `sid` derrubava a cadeia de quem pediu, enquanto a mensagem da rota
+     * dizia que a sessao de onde a pessoa clicou continuava aberta.
      */
     preservarSessaoId?: string | null;
   },
@@ -52,7 +58,8 @@ export async function encerrarSessoes(
         SET revogada_em = now(), motivo_revogacao = $2
       WHERE usuario_id = $1
         AND revogada_em IS NULL
-        AND ($3::uuid IS NULL OR id <> $3::uuid)
+        AND ($3::uuid IS NULL
+             OR familia_id IS DISTINCT FROM (SELECT familia_id FROM sessoes WHERE id = $3::uuid))
     RETURNING id`,
     [alvo.usuarioId, alvo.motivo, alvo.preservarSessaoId ?? null],
   );

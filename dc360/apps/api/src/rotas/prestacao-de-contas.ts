@@ -7,7 +7,7 @@ import {
   type TipoDeEntrada,
 } from "@dc360/shared";
 import type { Banco } from "../banco/tipos.js";
-import { RegraDeNegocio, autorizar } from "../servidor.js";
+import { ROTA_GET_COM_EFEITO, RegraDeNegocio, autorizar } from "../servidor.js";
 import { registrarAtoAdministrativo } from "../trilha.js";
 import { enderecoDoCliente } from "../rede.js";
 
@@ -307,7 +307,7 @@ export async function rotasPrestacaoDeContas(
    * telefone, e sem isso a planilha da prefeitura vira vetor de execução na
    * máquina de quem a abre.
    */
-  app.get("/relatorios/ocorrencias.csv", async (req, resposta) => {
+  app.get("/relatorios/ocorrencias.csv", ROTA_GET_COM_EFEITO, async (req, resposta) => {
     const quem = await autorizar(app, req, "exportar_dados");
     const f = filtroExportacaoSchema.parse(req.query);
     const n = nivelDaExportacaoSchema.parse(req.query);

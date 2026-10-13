@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { Banco } from "../banco/tipos.js";
 import { eRecorteDoAgente } from "./recorte-do-agente.js";
+import { ROTA_GET_COM_EFEITO } from "../servidor.js";
 
 /**
  * O sino de avisos do painel, do lado servidor.
@@ -198,8 +199,13 @@ export async function rotasAvisos(
    *
    * As duas escritas são idempotentes, limitadas por lote e restritas ao
    * município do token. Nenhuma delas depende do que veio na requisição.
+   *
+   * Como escreve, a rota leva `ROTA_GET_COM_EFEITO`: conta desativada, papel
+   * rebaixado e sessão encerrada não materializam nem expurgam nada por aqui
+   * (V2-F00-E04, correção 1). Quando a F07-E03 tirar a escrita de dentro do
+   * GET, a marca sai junto.
    */
-  app.get("/", async (req) => {
+  app.get("/", ROTA_GET_COM_EFEITO, async (req) => {
     /*
       SEM `exigirPermissao`, e a razão é a mesma da rota de aparelhos.
       O sino não decide nada: ele mostra que um fato do próprio município

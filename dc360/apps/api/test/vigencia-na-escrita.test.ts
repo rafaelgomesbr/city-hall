@@ -17,7 +17,9 @@ import { derivarSenha } from "../src/auth/senha.js";
  * chamava isso de pendência. Em quinze minutos se encerra uma ocorrência com
  * motivo inventado, e a trilha não se corrige.
  *
- * A REGRA: toda escrita (qualquer método que não seja GET ou HEAD) lê UMA
+ * A REGRA: toda escrita (qualquer método que não seja GET ou HEAD, e também
+ * os GET marcados com `ROTA_GET_COM_EFEITO`, que `get-com-efeito.test.ts`
+ * trava) lê UMA
  * linha do banco, na mesma consulta que já conferia a suspensão do município:
  * a conta está ativa, o papel é o do token, e a sessão do token
  * (`sid`) está de pé. Sessão encerrada responde 401 `sessao_encerrada`

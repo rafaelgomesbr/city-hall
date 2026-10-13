@@ -117,9 +117,15 @@ export const BASE_DO_TESTE_API = { total: 1109, falhas: 2, puladas: 18 };
  * passou a ficar verde sozinha, porque ela depende da vigência na escrita
  * (falhas 2 para 1; a falha que sobra é o laudo do pacote, da E12). A suíte
  * `banco-tls` continua falhando na carga do arquivo e não entra na contagem.
+ *
+ * V2-F00-E04, correção 1: `apps/api/test/get-com-efeito.test.ts` é novo, com
+ * 10 casos (o controle de quem está vigente, as quatro sondas contra os GET
+ * que escrevem, a lista explícita pelo comportamento, a varredura do fonte, a
+ * varredura de escrita com conta desativada e a preservação da cadeia em
+ * `/auth/encerrar-sessoes`). Total 4 para 14, sem falha nem pulo novos.
  */
 export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
-  "V2-F00-E04": { total: 4, falhas: -1, puladas: -5 },
+  "V2-F00-E04": { total: 14, falhas: -1, puladas: -5 },
   /*
     V2-F00-E05: `apps/api/test/codigos-de-erro.test.ts` e novo, com 16
     casos (os seis códigos saindo do servidor real, renovação de conta

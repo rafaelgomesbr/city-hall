@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { estadoTerminal, type StatusOcorrencia } from "@dc360/shared";
 import type { Banco, Consulta } from "../banco/tipos.js";
-import { RegraDeNegocio, autorizar, type Identidade } from "../servidor.js";
+import { ROTA_GET_COM_EFEITO, RegraDeNegocio, autorizar, type Identidade } from "../servidor.js";
 import type { Armazenamento } from "../armazenamento/tipos.js";
 import {
   codigoDeEmissao, laudoDeVistoria, termoDeDesinterdicao, termoDeInterdicao,
@@ -726,12 +726,12 @@ export async function rotasDocumentos(
     return gerar(documento, preparado.dados, emissao);
   }
 
-  app.get("/:id/laudo", async (req, resposta) => {
+  app.get("/:id/laudo", ROTA_GET_COM_EFEITO, async (req, resposta) => {
     const html = await responder(req, "laudo");
     return resposta.type("text/html; charset=utf-8").send(html);
   });
 
-  app.get("/:id/termo-de-interdicao", async (req, resposta) => {
+  app.get("/:id/termo-de-interdicao", ROTA_GET_COM_EFEITO, async (req, resposta) => {
     const html = await responder(req, "termo_de_interdicao");
     return resposta.type("text/html; charset=utf-8").send(html);
   });
@@ -753,7 +753,7 @@ export async function rotasDocumentos(
    * 409 `interdicao_nao_indicada` justamente para o papel que a família
    * esperava. Reproduzido pelo revisor de integridade.
    */
-  app.get("/:id/termo-de-desinterdicao", async (req, resposta) => {
+  app.get("/:id/termo-de-desinterdicao", ROTA_GET_COM_EFEITO, async (req, resposta) => {
     const html = await responder(req, "termo_de_desinterdicao");
     return resposta.type("text/html; charset=utf-8").send(html);
   });
@@ -842,10 +842,10 @@ export async function rotasDocumentos(
       .send(Buffer.from(bytes));
   }
 
-  app.get("/:id/laudo.pdf", async (req, resposta) =>
+  app.get("/:id/laudo.pdf", ROTA_GET_COM_EFEITO, async (req, resposta) =>
     responderPdf(req, resposta, "laudo", "laudo-de-vistoria"));
 
-  app.get("/:id/termo-de-interdicao.pdf", async (req, resposta) =>
+  app.get("/:id/termo-de-interdicao.pdf", ROTA_GET_COM_EFEITO, async (req, resposta) =>
     responderPdf(req, resposta, "termo_de_interdicao", "termo-de-interdicao"));
 
   /**

@@ -1,0 +1,380 @@
+$ npm run test:e2e:api (em dc360), com o conserto da API e do http.ts do painel
+
+
+> dc360@0.1.0 test:e2e:api
+> node scripts/e2e-api.mjs
+
+
+== Subindo API na 3691 ==
+API de pé.
+
+== Construindo o painel apontado para http://127.0.0.1:3691 ==
+
+> @dc360/web@0.1.0 build
+> tsc -b && vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:198): "resolve" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".
+../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:211): "existsSync" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".
+../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:224): "join" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".
+../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js (1:247): "mkdirSync" is not exported by "__vite-browser-external", imported by "../../node_modules/@electric-sql/pglite/dist/fs/nodefs.js".
+✓ 183 modules transformed.
+../../node_modules/@electric-sql/pglite/dist/index.js (1:90333): Use of eval in "../../node_modules/@electric-sql/pglite/dist/index.js" is strongly discouraged as it poses security risks and may cause issues with minification.
+../../node_modules/@electric-sql/pglite/dist/index.js (1:90814): Use of eval in "../../node_modules/@electric-sql/pglite/dist/index.js" is strongly discouraged as it poses security risks and may cause issues with minification.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      3.67 kB │ gzip:     1.50 kB
+dist/assets/postgres-CkP7QCDB.data               5,401.75 kB
+dist/assets/postgres-CyuUVpXN.wasm               8,090.73 kB │ gzip: 2,782.95 kB
+dist/assets/index-BkTctZmJ.css                      40.61 kB │ gzip:     7.55 kB
+dist/assets/__vite-browser-external-BIHI7g3E.js      0.03 kB │ gzip:     0.05 kB
+dist/assets/nodefs-DP_GT3b6.js                       0.42 kB │ gzip:     0.29 kB
+dist/assets/opfs-ahp-xpF9vxnU.js                    10.01 kB │ gzip:     3.04 kB
+dist/assets/index-D09tJNeb.js                    1,634.38 kB │ gzip:   427.68 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.98s
+
+== Servindo o painel na 4691 ==
+Painel de pé.
+
+== Verificações do caminho de produção, em chromium ==
+
+== 1. Entrada por senha, contra a API ==
+  OK   a tela pede email e senha, nao lista de perfis
+  OK   senha errada mostra erro e nao entra
+  OK   continua na tela de entrada
+  OK   senha correta entra no painel
+  OK   identidade vem do servidor
+
+== 2. Dados vêm da API, com o mesmo conteúdo da semente ==
+  OK   Na fila conta as 6 ativas de Serra Alta
+  OK   fila mostra a critica primeiro
+
+== 3. Token no armazenamento, e nunca a senha ==
+  OK   tokens guardados na sessao
+  OK   a senha nao fica guardada em lugar nenhum
+  OK   nem o hash da senha chega ao navegador
+
+== 4. Isolamento imposto pelo servidor ==
+  OK   protocolo de Vale Fundo nao aparece para Serra Alta
+  OK   abrir ocorrencia de outro municipio pela URL nao mostra o registro
+
+== 5. Fluxo completo gravando no servidor ==
+  OK   protocolo gerado pelo banco segue a sequencia
+  OK   triagem gravou pela API
+  OK   despacho gravou pela API
+  OK   trilha do servidor tem os 3 eventos
+  OK   autoria veio do token, nao da tela
+
+== 6. Persistencia real: outro navegador ve o mesmo dado ==
+  OK   a ocorrencia criada numa sessao aparece na outra
+
+== 7. Papel restringe do lado do servidor ==
+  OK   operador nao ve Usuarios no menu
+  OK   operador nao ve bloco de encerramento
+  OK   a API recusa mesmo contornando a interface
+  OK   e diz que e falta de permissao
+
+== 8. Sair revoga a sessao no servidor ==
+  OK   voltou para a entrada
+  OK   tokens apagados do navegador
+  OK   o token de renovacao nao vale mais no servidor
+
+== 9. Cadastro com senha, e a conta nova entra ==
+  OK   modo API pede senha inicial no cadastro
+  OK   recusa senha curta
+  OK   e marca o campo como invalido para o leitor de tela
+  OK   usuario criado aparece na tabela
+  OK   a conta recem-criada entra com a senha definida
+
+== 10. Outro municipio, do zero ==
+  OK   Vale Fundo ve apenas as proprias 2 ocorrencias
+  OK   nenhum protocolo de Serra Alta vaza
+
+== 11. Documento oficial gerado pelo servidor ==
+  OK   o detalhe oferece o laudo quando ha vistoria
+  OK   o laudo traz o protocolo
+  OK   o laudo identifica o orgao
+  OK   o laudo traz o checklist respondido
+  OK   o laudo identifica quem assinou
+  OK   o laudo sai marcado como documento de validacao
+  OK   o documento tem botao de imprimir
+
+== 12. Isolamento tambem no documento ==
+  OK   outro municipio nao gera o laudo de uma ocorrencia alheia
+
+== 13. Galeria de evidencia no painel ==
+  OK   os bytes sobem direto para o armazenamento
+  OK   o servidor confirma o envio
+  OK   a foto do agente aparece para o coordenador
+  OK   a legenda vem junto
+  OK   a imagem carrega pela URL assinada
+  OK   clicar amplia a foto
+  OK   o foco vai para o botao Fechar ao ampliar
+  OK   Escape fecha a ampliacao
+  OK   o foco volta para a miniatura ao fechar
+  OK   o botao Fechar tambem fecha
+
+== 14. Recuperacao de senha ==
+  OK   responde sem confirmar se a conta existe
+  OK   resposta identica para email inexistente
+  OK   um link de redefinicao foi emitido
+  OK   recusa quando as duas digitacoes diferem
+  OK   redefine a senha
+  OK   a senha antiga nao vale mais
+  OK   a senha nova entra
+
+== 15. Prestacao de contas ==
+  OK   mostra o tempo mediano, nao a media
+  OK   quebra por tipo de ocorrencia
+  OK   a trilha do municipio aparece
+  OK   cada evento diz quem agiu
+  OK   filtrar por autor funciona
+  OK   o CSV e baixado com nome de arquivo util
+  OK   o CSV traz o cabecalho legivel
+  OK   nenhuma celula do CSV comeca com caractere de formula
+
+== 16. Auditoria so para quem tem papel ==
+  OK   operador nao ve Prestacao de contas no menu
+  OK   e a API recusa mesmo contornando a tela
+
+== 17. Vinculo de duplicidade e providencias no painel ==
+  OK   a duplicidade e detectada na abertura
+  OK   a filha diz de quem e continuacao
+  OK   a original avisa que ha outro chamado sobre o mesmo evento
+  OK   e avisa que encerrar um nao encerra o outro
+  OK   o painel conta providencias vencidas
+  OK   o painel lista as providencias sem resposta
+  OK   e explica por que elas continuam ali
+
+== 18. O agente de campo tem a tela dele ==
+  OK   o agente cai em Meu trabalho, nao no painel do coordenador
+  OK   o titulo da tela e o dele
+  OK   a tela avisa que precisa de conexao
+  OK   e diz onde fica o trabalho sem sinal
+  OK   mostra as vistorias designadas para a equipe dele
+  OK   mostra o que ele ja concluiu
+  OK   mostra qual e a equipe dele
+  OK   nomeia a equipe
+  OK   o menu do agente comeca por Meu trabalho
+  OK   o menu do agente nao tem o painel do coordenador
+  OK   nem a tabela de todas as ocorrencias
+  OK   nem administracao de usuarios
+  OK   abrir /usuarios pela URL mostra recusa, nao o formulario
+  OK   e a recusa explica o que fazer
+
+== 19. Erro de rede fala portugues ==
+  OK   erro de rede vira frase em portugues
+  OK   e diz que nada foi enviado
+
+== 20. Corrigir cadastro sem recriar a conta ==
+  OK   coordenador nao ve o papel de administrador no seletor
+  OK   corrigir carrega o cadastro no formulario
+  OK   e o formulario nao pede senha na correcao
+  OK   a correcao aparece na tabela
+
+== 21. Trocar equipe depois de despachar ==
+  OK   ocorrencia ja em campo oferece trocar equipe ou prazo
+  OK   a troca confirma que ficou registrada
+  OK   e a trilha guarda os dois despachos
+
+== 22. Minha conta e troca de senha ==
+  OK   a identidade no topo leva para a propria conta
+  OK   recusa senha nova curta, no campo
+  OK   recusa quando a repeticao nao bate
+  OK   a troca acontece e avisa que as outras sessoes cairam
+  OK   a senha nova entra
+  OK   a senha antiga deixa de valer
+
+== 23. Sessão encerrada e conta desativada: a frase certa na tela de entrada (V2-F00-E05) ==
+  OK   a coordenacao encerra as sessoes do Marcos
+  OK   sessao encerrada leva a tela de entrada
+  OK   e diz que a sessao foi encerrada, sem dizer que expirou
+  OK   e manda entrar de novo
+  OK   o token morto nao fica guardado
+  OK   a coordenacao desativa o Marcos pelo painel
+  OK   conta desativada leva a tela de entrada
+  OK   e diz que a conta foi desativada
+  OK   e manda procurar a coordenacao, e nao entrar de novo
+  OK   com aviso de perigo, e nao o de sessao expirada
+  OK   a entrada continua com a recusa generica
+
+== 24. Papel alterado com a tela aberta: a escrita seguinte renova em silencio (V2-F00-E07) ==
+  OK   a administradora entra pela API
+  OK   a coordenadora ve o menu Usuarios
+  OK   a administradora rebaixa a coordenadora para operador
+  OK   a tela dela ainda mostra o menu, porque nada foi escrito
+  OK   a escrita passa, sem mandar a pessoa para a entrada
+  OK   o painel tentou, levou 401, renovou e repetiu
+  OK   a tela passa a mostrar so o que o papel novo tem: o menu Usuarios some
+  OK   a sessao da tela guarda o papel novo
+  OK   o token renovado nao despacha equipe: 403 sem_permissao
+
+== 25. Agente de campo nao le oficio e o sino dele e o da equipe (V2-F00-E08) ==
+  OK   a administradora e o agente entram pela API
+  OK   a semente tem providencia pendente na ocorrencia da Equipe Alfa
+  OK   a administradora emite o oficio
+  OK   GET /oficios com o token do agente: 403 sem_permissao
+  OK   GET /oficios/:id com o token do agente: 403 sem_permissao, sem e-mail nem IP no corpo
+  OK   a administradora abre a mesma ficha (200)
+  OK   o sino do agente responde 200
+  OK   todo aviso do agente e de ocorrencia da equipe dele
+  OK   o sino da administradora tem avisos de outras equipes (e o agente nao os recebe)
+  OK   o numero de nao lidos do agente e o da lista dele, nao o do municipio
+  OK   o agente abre o dossie da propria equipe, sem faixa de erro
+  OK   e o cartao de oficios nem aparece para ele
+  OK   o operador abre o mesmo dossie e continua vendo o cartao de oficios
+  OK   com o numero do oficio que a administradora emitiu
+
+== 26. Redefinir senha e encerrar sessoes pelo painel (V2-F00-E09) ==
+  OK   a administradora lista os usuarios pela API e acha Diego
+  OK   o agente tem sessoes abertas em dois aparelhos
+  OK   na linha de Diego existem os dois botoes novos
+  OK   na propria linha da administradora nao existe nenhum dos dois
+  OK   a administradora ve os botoes em todas as linhas menos na dela
+  OK   a API conta as sessoes abertas de Diego (pelo menos as duas deste teste)
+  OK   a pergunta diz o nome da pessoa e quantas sessoes ela tem abertas, o mesmo numero da API
+  OK   o botao da pergunta repete o ato com o nome da pessoa
+  OK   a pergunta diz que a senha nao muda
+  OK   cancelar fecha a janela e devolve o foco ao botao que a abriu
+  OK   cancelar nao derrubou ninguem
+  OK   o aviso passageiro confirma, com o nome e a quantidade
+  OK   o aviso e anunciado como status para o leitor de tela
+  OK   o token de renovacao do aparelho antigo morreu
+  OK   e o do celular tambem
+  OK   a API conta zero sessoes abertas de Diego
+  OK   a senha de Diego nao mudou: ele entra com a mesma
+  OK   a pergunta da senha diz que a atual deixa de valer, que a temporaria vale 72 horas e que aparece uma vez
+  OK   o botao da pergunta repete o ato com o nome da pessoa
+  OK   o foco comeca em Cancelar, nao no botao que grava
+  OK   a janela mostra a senha temporaria no formato ditavel
+  OK   a janela diz 'Anote agora' e que a senha nao aparece de novo
+  OK   diz de quem e a senha e quantas sessoes cairam junto
+  OK   a senha esta em fonte tabular
+  OK   o foco entra na janela, no primeiro botao
+  OK   copiar responde com uma das duas frases (copiada, ou como copiar a mao)
+  OK   o que foi copiado e a senha
+  OK   clicar fora NAO fecha a janela da senha (a unica copia nao some por esbarrao)
+  OK   ao fechar, a senha some da tela
+  OK   o foco volta ao botao da linha
+  OK   a senha antiga morreu
+  OK   a sessao que existia antes da redefinicao caiu
+  OK   a temporaria entra, e a sessao so alcanca a troca de senha
+  OK   a agente entra com a temporaria e a tela pede a senha nova antes de qualquer outra
+  OK   a agente define a senha e entra
+  OK   a sessao aberta com a temporaria pela API caiu na troca (so a atual sobrevive)
+  OK   a agente ve uma unica sessao, marcada como esta
+  OK   e a tela diz que e a unica, sem oferecer o botao de encerrar as outras
+  OK   o agente de campo recebe 403 sem_permissao nas tres rotas
+  OK   Minha conta lista as sessoes abertas (esta, a do outro navegador e as da API)
+  OK   exatamente uma esta marcada como 'Esta sessao', e e a primeira da lista
+  OK   a lista mostra o navegador em uma frase e nao entrega IP nem o texto do user-agent
+  OK   a pergunta diz que esta sessao continua aberta e que a senha nao muda
+  OK   o botao da pergunta repete o ato com a quantidade
+  OK   a confirmacao diz que esta continua aberta
+  OK   a lista passa a ter so esta sessao
+  OK   e a tela continua aberta: recarregar nao leva a entrada
+  OK   o token de renovacao do segundo navegador morreu
+  OK   e o token de acesso dele nao escreve mais: 401 sessao_encerrada
+  OK   a coordenadora ve os botoes em operador e agente, e em mais ninguem (posto igual ou maior)
+
+== 27. Recuperacao de senha de ponta a ponta com o notificador de teste (V2-F00-E10) ==
+  OK   com a recuperacao ligada o formulario aparece (a tela perguntou ao servidor antes)
+  OK   no celular nenhum controle do pedido tem menos de 44 px de altura
+  OK   o Tab vai do email ao botao e do botao ao link de voltar
+  OK   email em branco: a frase diz o que digitar
+  OK   e o foco volta para o campo do email
+  OK   email torto: a frase mostra o formato
+  OK   email que nao existe: a tela diz exatamente o mesmo
+  OK   email de conta de qualquer municipio: a mesma frase, sem pista de qual municipio e a conta
+  OK   o notificador de teste recebeu o link das duas contas que existem e de nenhum email inexistente
+  OK   o link tem o formato /redefinir-senha?token=...
+  OK   o token sai da barra de endereco assim que a tela o le
+  OK   e a tela continua funcionando (o token ficou guardado na memoria da pagina)
+  OK   no celular nenhum controle da senha nova tem menos de 44 px de altura
+  OK   senha curta: o erro fica na senha nova, e so nela
+  OK   senhas diferentes: o erro fica na repeticao, e so nela
+  OK   redefine a senha e confirma
+  OK   a tela oferece ir para a entrada agora
+  OK   e leva sozinha para a entrada, com recarga completa
+  OK   a senha antiga morreu e a nova entra
+  OK   o link de uma conta nao mexeu em nenhuma outra (nem do mesmo municipio, nem do outro)
+  OK   o mesmo link duas vezes: a segunda e recusada com a frase que manda pedir outro
+  OK   e a tela oferece o caminho de pedir um novo link
+  OK   a senha que a segunda tentativa quis definir NAO vale; a de antes continua
+  OK   pela API tambem: 401
+  OK   link inventado: exatamente a mesma frase do link usado (a tela nao distingue)
+  OK   endereco sem link: diz que o link veio incompleto
+  OK   com sessao aberta, o link que nao vale mostra a frase de link, e nao a de sessao encerrada
+  OK   e a sessao de quem estava logado continua de pe
+  OK   recuperacao desligada: a tela manda procurar quem administra, com os quatro passos, e nao mostra formulario
+  OK   os passos apontam o botao Redefinir senha da lista de Usuarios
+  OK   se o servidor responde 503 recuperacao_desligada no pedido, a tela troca para as instrucoes de quem administra
+  OK   limite de pedidos (429): a frase manda aguardar, e o formulario continua
+  OK   sem rede: a frase diz que nada foi enviado
+
+== 28. Baixar o pacote de saida pelo painel, contra a API real (V2-F00-E11) ==
+  OK   a administradora entra pela API
+  OK   a coordenadora entra pela API
+  OK   POST /pacote.zip na raiz e 404 (o defeito era o prefixo)
+  OK   GET /saida/pacote.zip tambem nao baixa nada
+  OK   a coordenadora recebe 403 sem_permissao da API
+  OK   a administradora ve o botao Baixar pacote de saida em Organizacao
+  OK   o navegador recebe o download com o nome combinado
+  OK   o arquivo baixado comeca com a assinatura PK e nao esta vazio
+  OK   o download nao falhou no meio
+  OK   o ZIP abre pelo diretorio central, com mais de uma dezena de arquivos
+  OK   traz tabelas/ocorrencias.csv
+  OK   traz um laudo de vistoria em documentos/
+  OK   traz o indice, o LEIA-ME, as pendencias e as somas
+  OK   SOMAS-SHA256.txt cobre todos os arquivos
+  OK   cada soma SHA-256 e a do arquivo de verdade
+  OK   toda linha de toda tabela e de Serra Alta (nenhuma de outro municipio)
+  OK   o cadastro de organizacoes do pacote e so o de Serra Alta
+  OK   nenhum arquivo de dado cita Vale Fundo nem o id dele
+  OK   o CSV de ocorrencias tem o cabecalho e uma linha por ocorrencia do JSON
+  OK   o indice lista o protocolo de Serra Alta e nao o de Vale Fundo
+  OK   nenhuma coluna proibida (senha_hash, ficha, token_hash) em CSV ou JSON
+  OK   nenhum arquivo traz hash de senha (scrypt$)
+  OK   nenhuma tabela de credencial nem do fornecedor no pacote
+  OK   com 401 no primeiro pedido o painel renova UMA vez e baixa o ZIP
+  OK   e a pessoa continua no painel, sem ser mandada para a entrada
+  OK   enquanto gera, o botao diz Gerando e fica desabilitado
+  OK   terminado o download, o botao volta a dizer Baixar pacote de saida
+  OK   a tela mostra a frase do servidor: Seu perfil não tem permissão para alterar os dad...
+  OK   e o botao volta a poder ser usado
+  OK   a tela mostra a frase do servidor: O acesso deste município ao sistema foi suspenso...
+  OK   e o botao volta a poder ser usado
+  OK   a recusa nao derruba a sessao: a administradora continua em Organizacao
+  OK   sem rede: a frase diz que o arquivo nao foi baixado, e nao que algo preenchido nao foi enviado
+  OK   1280px: sem rolagem horizontal e o botao cabe na tela
+  OK   390px: sem rolagem horizontal e o botao cabe na tela
+  OK   390px: o botao tem pelo menos 44px de altura
+
+== 29. O laudo do pacote avisa a equipe divergente (V2-F00-E12) ==
+  OK   a coordenacao abre a ocorrencia do caso
+  OK   a triagem classifica a ocorrencia
+  OK   a coordenacao despacha para a Equipe Bravo
+  OK   o agente da Equipe Alfa entra pela API
+  OK   a coleta do agente de OUTRA equipe e aceita e marcada, e nao recusada
+  OK   a rota emite o laudo da ocorrencia
+  OK   o laudo da rota traz o aviso de equipe divergente, com as duas equipes pelo nome
+  OK   o painel baixa o pacote outra vez, depois da coleta divergente
+  OK   o pacote traz o laudo da ocorrencia nova (documentos/000483-2026/laudo-de-vistoria.html)
+  OK   o laudo DO PACOTE traz o mesmo aviso, e nao o papel limpo
+  OK   e o trecho do aviso e IDENTICO nos dois documentos, palavra por palavra
+  OK   a coleta da equipe designada entra sem marca de divergencia
+  OK   o laudo da coleta sem divergencia NAO ganha aviso de equipe no pacote
+  OK   nem no laudo que a rota emite para ela
+  OK   nenhum arquivo do pacote cita a equipe de Vale Fundo
+
+====================================================
+Passou: 271   Falhou: 0
+Zero erro de console.
+
+TUDO CERTO: o caminho de produção passou de ponta a ponta.

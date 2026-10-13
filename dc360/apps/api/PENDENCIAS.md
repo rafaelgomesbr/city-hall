@@ -13,10 +13,10 @@ estava fora daqui". O que resta, numa linha cada:
 | O que resta | Seção | Quem fecha |
 | --- | --- | --- |
 | O pacote de saída monta a base inteira do município em memória antes do primeiro byte | "O pacote de saída lê TODAS as tabelas" | F07-E06 |
-| A vigência (conta, papel, sessão) só vale na escrita; a leitura confia no token por até `ACESSO_MINUTOS` | "A vigência de conta, papel e sessão" | F03-E03 |
+| A vigência (conta, papel, sessão) vale na escrita e nos GET marcados como com efeito; a LEITURA PURA confia no token por até `ACESSO_MINUTOS` | "A vigência de conta, papel e sessão" | F03-E03 |
 | A janela de milissegundos entre revogar e abrir sessão na renovação | "A vigência de conta, papel e sessão" | F03-E02 |
-| `GET /avisos` escreve dentro de um GET, com o token de qualquer papel | "`GET /avisos` ESCREVE" | F07-E03, F04-E11 |
-| A senha temporária é conhecida por quem a sorteia; "encerrar as outras" preserva por id | "Sessões no painel" | F03-E10, F03-E02 |
+| `GET /avisos` escreve dentro de um GET, com o token de qualquer papel (a vigência já vale nele) | "`GET /avisos` ESCREVE" | F07-E03, F04-E11 |
+| A senha temporária é conhecida por quem a sorteia | "Sessões no painel" | F03-E10 |
 | O teto de pedidos de recuperação é por processo; produção com a recuperação desligada | "Recuperação de senha por e-mail" | F03, CP-19 |
 | Dois montadores de dados do laudo; o do pacote não lê a coordenada da vistoria | "Dois montadores de dados do documento" | F09-E02 |
 | `GET /orgaos` (com o e-mail de cada órgão) responde a qualquer papel autenticado, inclusive ao agente de campo | "O que estava fora daqui", 1 | F03-E12 ou F04-E09 |
@@ -75,12 +75,28 @@ e observar o processo.
 
 **Onde:** `src/servidor.ts` (`exigirAutenticacao`) e `src/auth/vigencia.ts`.
 
-**O que acontece:** desde V2-F00-E04 toda escrita (método que não é GET nem HEAD)
-confere no banco se a conta está ativa, se o papel é o do token, se a sessão do
-token não foi encerrada por alguém e se a senha provisória não venceu. A LEITURA
-continua confiando só na assinatura do token, por até `ACESSO_MINUTOS` (15 por
-padrão, 60 no máximo): conta desativada ainda lê até o token vencer. Pior, as
-leituras que escrevem (`GET /avisos`) seguem fora da vigência.
+**O que acontece:** desde V2-F00-E04 toda escrita confere no banco se a conta
+está ativa, se o papel é o do token, se a sessão do token não foi encerrada por
+alguém e se a senha provisória não venceu. Escrita é todo método que não é GET
+nem HEAD MAIS as rotas GET marcadas com `ROTA_GET_COM_EFEITO` (`servidor.ts`),
+com o HEAD delas: o laudo, o termo de interdição, o termo de desinterdição e os
+PDFs, `GET /relatorios/ocorrencias.csv` e `GET /avisos`. Foi a correção 1 da E04: até ela a decisão era só pelo método, e
+conta desativada, papel rebaixado e cadeia encerrada interditavam imóvel e
+exportavam dado pessoal por GET. A lista é fixada por
+`test/get-com-efeito.test.ts`, que reprova GET novo que escreve sem a marca. A
+LEITURA PURA continua confiando só na assinatura do token, por até
+`ACESSO_MINUTOS` (15 por padrão, 60 no máximo): conta desativada ainda lê, nas
+rotas que só leem, até o token vencer.
+
+**Decisão da correção 1, para não ser reaberta por engano:** o critério da marca
+é "o GET pratica um ato (emite documento, interdita, exporta) ou muda dado do
+município". `GET /ocorrencias/:id` (o dossiê) e `GET /busca` também escrevem,
+mas só o registro de que foram lidos (`registrarConsulta`, a auditoria da
+própria leitura); ficam como LEITURA e NÃO levam a marca. Marcá-los antecipa a
+F03-E03: o dossiê passaria a conferir a vigência no banco, o que contradiz as
+decisões fixadas em `acesso-suspenso.test.ts` ("leitura continua até o token
+vencer") e em `familia-da-sessao.test.ts`. Quando a F03-E03 centralizar a
+vigência em `comTenant`, eles entram junto com o resto da leitura.
 
 **Decisões da V2-F00-E07, para não serem reabertas por engano:**
 
@@ -136,9 +152,11 @@ precisaria de função `SECURITY DEFINER`, e o teto de definers do isolamento
 município consulta o sino.
 
 **Por que isto continua sendo dívida:** GET com efeito colateral foge do que
-cache, prefetch e repetição automática supõem, e a vigência (E04) só cobre
-métodos de escrita, então a conta desativada ainda dispara essas escritas até o
-token vencer.
+cache, prefetch e repetição automática supõem. A vigência já vale nesta rota
+(ela carrega `ROTA_GET_COM_EFEITO` desde a correção 1 da E04, então conta
+desativada, papel rebaixado e sessão encerrada não disparam mais essas
+escritas), mas a rota continua sendo um GET que escreve. A marca sai quando a
+rota virar só leitura.
 
 **Como atacar:** F07-E03 (trabalhador que materializa o fato) e F04-E11 (avisos
 e sino do órgão sem vazamento): a rota vira só leitura, a materialização e o
@@ -155,10 +173,12 @@ sobra:
 
 1. **A senha temporária é conhecida por quem a sorteou** (IDN-18 do REL:06). Vale
    72 horas e a primeira entrada exige troca. O fim é o convite por link (F03-E10).
-2. **`encerrarMinhasSessoes` preserva por id de sessão**, e a lista marca "esta"
-   por família. Com um token de acesso anterior à última renovação, o botão
-   "encerrar as outras" derruba a sessão viva da própria cadeia. Alinhar a
-   preservação à família é da F03-E02 (renovação numa transação só).
+2. **`encerrarMinhasSessoes` preservava por id de sessão** (a lista marca "esta"
+   por família). Com um token de acesso anterior à última renovação, o botão
+   "encerrar as outras" derrubava a sessão viva da própria cadeia, e a mensagem
+   dizia que ela continuava aberta. Corrigido na correção 1 da E04: a
+   preservação é pela família (`encerrarSessoes` em `auth/sessoes.ts`), travada
+   em `test/get-com-efeito.test.ts`. Sem pendência.
 3. **O resumo do aparelho** (`auth/aparelho.ts`) é uma lista curta de padrões de
    user-agent. O que não reconhece vira "Aparelho não identificado" em vez de
    palpite; ampliar a lista é barato e fica para quando houver caso real.

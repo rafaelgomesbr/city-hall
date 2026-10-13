@@ -3,6 +3,7 @@
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | e6076dabb818e9fe9c7eb90d2ca74cf8902e4aaa5a70ad5b7931ab2fc83e178e |
+| correcao-1/RESUMO.md | 5eddb53a9561461e07860b671128a2da1806c3b19cc4a9218a6436aa3f4038d4 |
 | saidas/antes/audit-campo-runtime.txt | a528c1c75dfb55d40c08b126115a1ce37fb4bda3048a0585bdf1c854f47cbaa3 |
 | saidas/antes/audit-raiz-runtime.txt | 48cfb220bd1c60fb3182a0cc3c7730f7e5b22545de62daa30a0ca3bfbd27c477 |
 | saidas/antes/auditar.txt | 7317721a7dde62487f23c85cdf9f571fdac0676308253ceac4316c4dd5cedda5 |
