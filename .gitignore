@@ -25,3 +25,9 @@ dc360/apps/campo/segredos/
 # PDF dos relatorios executivos: artefato, fora do git (D-30). A fonte
 # HTML, o JSON da coleta e o INDEX.md com o SHA-256 ficam versionados.
 docs/relatorios-v2/**/*.pdf
+
+# Página de progresso da V2: saída gerada a cada etapa por scripts/roadmap/publicar-progresso.mjs (fonte: STATUS e editorial.json)
+docs/relatorios-v2/site/progresso/
+docs/relatorios-v2/semanais/progresso/coleta.json
+docs/relatorios-v2/semanais/progresso/estimativa.json
+docs/relatorios-v2/semanais/progresso/estimativa.csv

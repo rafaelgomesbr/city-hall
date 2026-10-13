@@ -1,0 +1,13 @@
+{
+  "nota": "Agrupamento das 36 fases em blocos para o relatório visual. As fases aparecem na ordem de execução (seção 5 do STATUS). Se a ordem de execução mudar, este arquivo muda junto.",
+  "blocos": [
+    { "nome": "Base confiável", "fases": ["F00"], "entrega": "Consertar o que estava quebrado ou desligado antes de construir mais." },
+    { "nome": "Fundação técnica e segurança", "fases": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F32"], "entrega": "Ambientes, regras de quem vê o quê, proteção de dados pessoais, arquivos seguros, base visual e mapa." },
+    { "nome": "Produto para a prefeitura", "fases": ["F09", "F10", "F11", "F12"], "entrega": "Documentos oficiais imutáveis, painel consolidado e portal das secretarias." },
+    { "nome": "Campo", "fases": ["F13", "F14", "F33"], "entrega": "Reinspeção, aplicativo do agente em aparelho físico e configuração por município." },
+    { "nome": "Cidadão", "fases": ["F15", "F16", "F17", "F18", "F34", "F19"], "entrega": "Aplicativo do cidadão, triagem no painel e ligação do relato até o campo." },
+    { "nome": "Incidentes e integrações", "fases": ["F29", "F30", "F31", "F35"], "entrega": "Incidentes, abrigos, logística, integrações oficiais, idiomas e identidade por município." },
+    { "nome": "Operação e confiança", "fases": ["F20", "F21", "F22", "F23", "F24", "F25"], "entrega": "Console do fornecedor, monitoramento, backup, acessibilidade, desempenho e segurança." },
+    { "nome": "Prova e lançamento", "fases": ["F26", "F27", "F28"], "entrega": "Prova controlada, piloto num município e candidata a produção." }
+  ]
+}

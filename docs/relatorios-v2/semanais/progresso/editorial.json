@@ -1,0 +1,76 @@
+{
+  "titulo": "Onde estamos na V2",
+  "lead": "Do diagnóstico de 30/09 à primeira validação independente de 13/10. Nenhuma etapa está concluída ainda, e este relatório mostra o motivo.",
+  "aSeguir": {
+    "titulo": "Segunda validação, aprovação do gate G00 e fase 2",
+    "texto": "Cada fase só começa quando o gate da anterior é aprovado."
+  },
+  "imagens": [
+    {
+      "arquivo": "docs/relatorios-v2/semanais/imagens/painel-coordenacao.jpg",
+      "tipo": "pc",
+      "alt": "Painel operacional da coordenação, com contagem de ocorrências e fila de atendimento",
+      "legenda": "Painel da coordenação municipal"
+    },
+    {
+      "arquivo": "docs/relatorios-v2/semanais/imagens/mapa-celular.jpg",
+      "tipo": "cel",
+      "alt": "Mapa da cidade no celular, com ocorrências ativas marcadas",
+      "legenda": "Mapa no celular"
+    }
+  ],
+  "notaDasImagens": "Capturas reais do ambiente de teste, com dados fictícios.",
+  "validacao": {
+    "titulo": "O que a validação achou",
+    "lead": "Um revisor que não escreveu o código tentou quebrar cada uma das 25 etapas. Quase metade reprovou, e é para isso que ele existe. As 12 reprovadas já foram corrigidas e aguardam nova validação.",
+    "achados": [
+      {
+        "titulo": "Conta desativada",
+        "texto": "ainda emitia documento oficial por alguns caminhos.",
+        "selo": "corrigido"
+      },
+      {
+        "titulo": "Fila do campo",
+        "texto": "travava e oferecia \"descartar\", com risco de perder trabalho.",
+        "selo": "corrigido"
+      },
+      {
+        "titulo": "Vistoria em andamento",
+        "texto": "era apagada ao sair da conta, sem aviso.",
+        "selo": "corrigido"
+      },
+      {
+        "titulo": "Celular:",
+        "texto": "botão saía da janela e um item do menu ficava cortado.",
+        "selo": "corrigido"
+      },
+      {
+        "titulo": "Aplicativo",
+        "texto": "prometia envio em segundo plano, que ele não faz.",
+        "selo": "corrigido"
+      }
+    ]
+  },
+  "decisoes": [
+    {
+      "quem": "Rafael",
+      "titulo": "Gate G00",
+      "texto": "Aprovar a fase 1 depois da segunda validação."
+    },
+    {
+      "quem": "Rafael",
+      "titulo": "E-mail e atualizações",
+      "texto": "Escolher o provedor de e-mail e decidir sobre seis atualizações pendentes do Expo."
+    },
+    {
+      "quem": "Rafael e Alyson",
+      "titulo": "Saída a campo",
+      "texto": "Confirmar que será implementada no aplicativo, antes de qualquer nova demonstração."
+    },
+    {
+      "quem": "Rafael",
+      "titulo": "Prazo",
+      "texto": "Decidir como tratar a meta de 31/12: ritmo, gates em lote ou escopo (ver a seção de prazo)."
+    }
+  ]
+}

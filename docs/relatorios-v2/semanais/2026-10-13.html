@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="pt-BR" data-relatorio="semanal" data-desde="2026-10-08" data-ate="2026-10-13" data-fase-atual="F00">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Defesa Civil 360, relatório semanal 2026-10-13</title>
+<meta name="description" content="Relatório semanal de evolução do Defesa Civil 360: período, onde estamos, o que foi implementado, validado e concluído, bloqueios, linha do tempo da V2 e próximos passos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../modelo/relatorio.css">
+<style>:root { --cabecalho-pagina: "Defesa Civil 360 | Relatório semanal | 08/10/2026 a 13/10/2026"; }</style>
+</head>
+<body>
+<div class="folha">
+
+<header>
+  <div class="marca-topo">
+    <div class="brasao" aria-hidden="true">DC</div>
+    <div><div class="n">Defesa Civil 360</div><div class="u">Relatório interno entre sócios</div></div>
+  </div>
+  <p class="eyebrow">Defesa Civil 360</p>
+  <h1>Relatório semanal de evolução</h1>
+  <dl class="meta">
+    <div><dt>Período</dt><dd>08/10/2026 a 13/10/2026</dd></div>
+    <div><dt>Fase atual</dt><dd>F00, Estabilização obrigatória, ordem 1 de 36</dd></div>
+    <div><dt>Gate atual</dt><dd>G00, Base confiável, em andamento</dd></div>
+    <div><dt>Situação</dt><dd><span class="situacao" data-situacao="ATENÇÃO">ATENÇÃO</span></dd></div>
+  </dl>
+  <p class="motivo-da-situacao">Nada está parado por causa técnica, mas a fase só fecha com uma segunda validação das correções e com decisões e conferências que só o Rafael pode fazer.</p>
+</header>
+
+<main>
+
+<section data-secao="resumo">
+  <h2>Resumo executivo</h2>
+  <div class="destaque">
+    <p>Esta semana o projeto passou pela primeira validação independente da fase 1. Dos 25 itens, 13 passaram (6 sem ressalva e 7 aguardando uma conferência do Rafael) e 12 foram reprovados por falhas reais, que o processo existe justamente para achar antes de um cliente achar. As 12 falhas já foram corrigidas, mas as correções ainda não foram validadas de novo. Nenhum item está concluído e nenhuma fase está concluída. O que falta agora: uma segunda validação, decisões e conferências do Rafael e a aprovação do gate G00, que libera a fase 2.</p>
+  </div>
+</section>
+
+<section data-secao="onde-estamos">
+  <h2>Onde estamos</h2>
+  <p class="sub">Só as fases que importam agora: a atual e as duas seguintes. O roteiro completo tem 36 fases e a linha do tempo abaixo mostra o conjunto, em blocos.</p>
+  <p>Ainda não há fase concluída. A fase atual é a F00, com 25 itens: 13 validados (6 sem ressalva, 7 com uma conferência humana pendente) e 12 implementados que aguardam nova validação, depois de corrigidos. O gate é a conferência final da fase e ainda não foi aprovado.</p>
+  <div class="rolavel tabela-curta">
+    <table>
+      <thead><tr><th>Fase</th><th>Gate</th><th>Momento</th></tr></thead>
+      <tbody>
+        <tr data-gate="G00" data-status="EM ANDAMENTO"><td>F00, Estabilização obrigatória</td><td>G00</td><td><span class="pilula">EM ANDAMENTO</span> (fase atual, 25 etapas)</td></tr>
+        <tr data-gate="G01" data-status="NÃO INICIADO"><td>F01, Fundação de engenharia e ambientes</td><td>G01</td><td><span class="pilula">NÃO INICIADO</span> (próxima, 22 etapas)</td></tr>
+        <tr data-gate="G02" data-status="NÃO INICIADO"><td>F02, API v1 e contratos</td><td>G02</td><td><span class="pilula">NÃO INICIADO</span> (depois dela, 9 etapas)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section data-secao="linha-do-tempo">
+  <h2>Linha do tempo da V2</h2>
+  <p class="sub">A V2 tem 618 etapas em 36 fases, que agrupamos em 8 blocos, na ordem em que serão feitos. Aqui a "fase 1" é a F00, a "fase 2" é a F01, e assim por diante. O plano não tem datas: foi decidido de propósito não inventar cronograma (ele usa tamanho e risco, não prazo), e o custo real passa a ser medido nas primeiras etapas da fase 2. Cada fase só começa quando o gate da anterior é aprovado pelo Rafael.</p>
+  <div class="rolavel">
+    <table>
+      <thead><tr><th>Bloco</th><th>O que entrega, em linguagem comum</th><th>Fases</th><th>Etapas</th><th>Momento</th></tr></thead>
+      <tbody>
+        <tr><td><strong>1. Base confiável</strong></td><td>Consertar o que estava quebrado ou desligado antes de construir mais: segurança de contas, fila do campo, testes e documentação.</td><td>F00</td><td>25</td><td><span class="pilula">Estamos aqui</span></td></tr>
+        <tr><td><strong>2. Fundação técnica e segurança</strong></td><td>Ambientes de teste e de produção, regras de quem vê o quê em cada município e em cada equipe, proteção de dados pessoais, arquivos seguros, base visual e dados de mapa.</td><td>F01 a F08 e F32</td><td>149</td><td>Próximo bloco</td></tr>
+        <tr><td><strong>3. Produto para a prefeitura</strong></td><td>Documentos oficiais que não podem ser alterados depois de emitidos, painel consolidado da Defesa Civil e portal das secretarias, com teste junto a uma secretaria real.</td><td>F09 a F12</td><td>102</td><td>Depois</td></tr>
+        <tr><td><strong>4. Campo</strong></td><td>Reinspeção, aplicativo do agente testado em aparelho físico e configuração por município, com importação de dados em lote.</td><td>F13, F14 e F33</td><td>49</td><td>Depois</td></tr>
+        <tr><td><strong>5. Cidadão</strong></td><td>Aplicativo do cidadão, triagem dos relatos no painel, canais ampliados e a ligação do relato do cidadão até o agente em campo.</td><td>F15 a F19 e F34</td><td>94</td><td>Depois</td></tr>
+        <tr><td><strong>6. Incidentes e integrações</strong></td><td>Incidentes, abrigos e logística humanitária, integrações com sistemas oficiais, idiomas e identidade visual por município.</td><td>F29, F30, F31 e F35</td><td>70</td><td>Depois</td></tr>
+        <tr><td><strong>7. Operação e confiança</strong></td><td>Console do fornecedor, monitoramento, backup e recuperação, acessibilidade, desempenho e segurança antes do piloto.</td><td>F20 a F25</td><td>92</td><td>Depois</td></tr>
+        <tr><td><strong>8. Prova e lançamento</strong></td><td>Prova controlada, piloto num município e candidata a produção.</td><td>F26, F27 e F28</td><td>37</td><td>Depois</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Falta o quê, em números:</strong> das 618 etapas, 25 estão em andamento (fase 1), das quais 13 foram validadas e nenhuma está concluída. As outras 593 ainda não começaram. Parte delas depende de coisas que não são código: decisões do Rafael e da Alyson, contratação de ambientes, domínio e contas de loja, prova em aparelho físico, secretaria real e município piloto.</p>
+</section>
+
+<section data-secao="implementado">
+  <h2>O que foi implementado (aguarda validação)</h2>
+  <p class="sub">12 itens que reprovaram na primeira validação, foram corrigidos nesta semana e aguardam a segunda validação. Ainda não contam como prontos.</p>
+  <div class="rolavel">
+    <table>
+      <thead><tr><th>Etapa</th><th>O que mudou para o produto</th><th>Situação</th></tr></thead>
+      <tbody>
+        <tr data-etapa="V2-F00-E04" data-status="IMPLEMENTADA"><td class="id">F00-E04</td><td>Contas desativadas, com papel rebaixado ou sessão encerrada ainda conseguiam emitir documentos oficiais e baixar relatórios por alguns caminhos. Todos passaram a exigir a mesma verificação de qualquer alteração de dados.</td><td class="estado"><span class="pilula">Implementado, aguarda validação</span></td></tr>
+        <tr data-etapa="V2-F00-E07" data-status="IMPLEMENTADA"><td class="id">F00-E07</td><td>A mesma falha atingia o fim da sessão e a troca de papel. Com a correção, uma sessão encerrada ou um papel rebaixado deixa de valer em todos os caminhos.</td><td class="estado"><span class="pilula">Implementado, aguarda validação</span></td></tr>
+        <tr data-etapa="V2-F00-E05" data-status="IMPLEMENTADA"><td class="id">F00-E05</td><td>A pessoa com conta desativada passou a ver a frase certa ("conta desativada") em vez de uma mensagem genérica de sessão encerrada.</td><td class="estado"><span class="pilula">Implementado, aguarda validação</span></td></tr>
+        <tr data-etapa="V2-F00-E06" data-status="IMPLEMENTADA"><td class="id">F00-E06</td><td>No aplicativo de campo, depois de uma troca de senha, a fila de coletas travava e oferecia "descartar", o que podia fazer o agente perder trabalho. Agora a fila apenas pausa, e o envio confere que a evidência é de quem enviou.</td><td class="estado"><span class="pilula">Implementado, aguarda validação</span></td></tr>
+        <tr data-etapa="V2-F00-E15" data-status="IMPLEMENTADA"><td class="id">F00-E15</td><td>Ao encerrar a sessão dentro de uma vistoria, o rascunho, as fotos e a assinatura eram apagados sem aviso. Agora ficam guardados para quando o agente entrar de novo.</td><td class="estado"><span class="pilula">Implementado, aguarda validação</span></td></tr>
+        <tr data-etapa="V2-F00-E16" data-status="IMPLEMENTADA"><td class="id">F00-E16</td><td>O aplicativo prometia envio "em segundo plano", que ele não faz. Os textos agora dizem a verdade: o envio acontece com o aplicativo aberto e com sinal.</td><td class="estado"><span class="pilula">Implementado, aguarda validação</span></td></tr>
+        <tr data-etapa="V2-F00-E09" data-status="IMPLEMENTADA"><td class="id">F00-E09</td><td>No celular, botões de confirmação saíam da janela e um item do menu inferior ficava cortado. A interface foi ajustada para telas estreitas.</td><td class="estado"><span class="pilula">Implementado, aguarda validação</span></td></tr>
+        <tr data-etapa="V2-F00-E19" data-status="IMPLEMENTADA"><td class="id">F00-E19</td><td>A verificação de dependências com vulnerabilidade aceitava uma exceção sem prazo. Agora toda exceção precisa de motivo, responsável e prazo.</td><td class="estado"><span class="pilula">Implementado, aguarda validação</span></td></tr>
+        <tr data-etapa="V2-F00-E12" data-status="IMPLEMENTADA"><td class="id">F00-E12</td><td>O laudo que sai no pacote de saída de município diverge do laudo emitido em quatro pontos. Um foi corrigido (a coordenada) e os outros três ficam registrados e travados por teste, para uma fase seguinte.</td><td class="estado"><span class="pilula">Implementado, aguarda validação</span></td></tr>
+        <tr data-etapa="V2-F00-E22" data-status="IMPLEMENTADA"><td class="id">F00-E22</td><td>A documentação foi conferida de novo e as afirmações que o sistema não cumpria foram corrigidas.</td><td class="estado"><span class="pilula">Implementado, aguarda validação</span></td></tr>
+        <tr data-etapa="V2-F00-E03" data-status="IMPLEMENTADA"><td class="id">F00-E03</td><td>O registro de falhas conhecidas foi conferido contra o estado de hoje: 62 fechadas e 9 abertas, todas com responsável e prazo. Restam 5 perguntas para o Rafael.</td><td class="estado"><span class="pilula">Implementado, aguarda validação</span></td></tr>
+        <tr data-etapa="V2-F00-E01" data-status="IMPLEMENTADA"><td class="id">F00-E01</td><td>O roteiro que mede a saúde do projeto estava desatualizado e acusava erro com tudo certo. Foi atualizado e agora avisa quando algum número ficar velho.</td><td class="estado"><span class="pilula">Implementado, aguarda validação</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section data-secao="validado">
+  <h2>O que foi validado</h2>
+  <p class="sub">Provado por validador independente sobre um ponto fixo do código. Falta, quando houver, uma conferência humana: ela aparece junto.</p>
+  <div class="rolavel">
+    <table>
+      <thead><tr><th>Etapa</th><th>O que mudou para o produto</th><th>Situação</th></tr></thead>
+      <tbody>
+        <tr data-etapa="V2-F00-E08" data-status="VALIDADA"><td class="id">F00-E08</td><td>O agente de campo deixou de enxergar ofícios e avisos de outra equipe.</td><td class="estado"><span class="pilula">Validado</span></td></tr>
+        <tr data-etapa="V2-F00-E17" data-status="VALIDADA"><td class="id">F00-E17</td><td>Os scripts de verificação e a conferência dos números da documentação passam no Windows e no Linux.</td><td class="estado"><span class="pilula">Validado</span></td></tr>
+        <tr data-etapa="V2-F00-E18" data-status="VALIDADA"><td class="id">F00-E18</td><td>O teste de ponta a ponta no navegador passa nos navegadores testados, inclusive o envio de foto. Há uma oscilação ocasional no Firefox, já registrada para acompanhamento.</td><td class="estado"><span class="pilula">Validado</span></td></tr>
+        <tr data-etapa="V2-F00-E21" data-status="VALIDADA"><td class="id">F00-E21</td><td>Problemas de ambiente (fim de linha, configuração de criptografia, cache) resolvidos, e a suíte inteira passa nas duas plataformas.</td><td class="estado"><span class="pilula">Validado</span></td></tr>
+        <tr data-etapa="V2-F00-E23" data-status="VALIDADA"><td class="id">F00-E23</td><td>Todo endereço que o painel chama existe de fato na API, com teste que reprova se isso deixar de ser verdade.</td><td class="estado"><span class="pilula">Validado</span></td></tr>
+        <tr data-etapa="V2-F00-E25" data-status="VALIDADA"><td class="id">F00-E25</td><td>O backup do banco restaura em um banco novo com o isolamento entre municípios intacto, provado na nuvem em Linux.</td><td class="estado"><span class="pilula">Validado</span></td></tr>
+        <tr data-etapa="V2-F00-E02" data-status="VALIDADA COM PENDÊNCIA HUMANA"><td class="id">F00-E02</td><td>A política para teste vermelho e teste pulado está em vigor.</td><td class="estado"><span class="pilula">Validado, falta o Rafael escolher o prazo máximo e o responsável padrão</span></td></tr>
+        <tr data-etapa="V2-F00-E10" data-status="VALIDADA COM PENDÊNCIA HUMANA"><td class="id">F00-E10</td><td>Recuperação de senha por e-mail funciona com notificador de teste e está desligada em produção.</td><td class="estado"><span class="pilula">Validado, falta o Rafael ver a tela e decidir o provedor de e-mail</span></td></tr>
+        <tr data-etapa="V2-F00-E11" data-status="VALIDADA COM PENDÊNCIA HUMANA"><td class="id">F00-E11</td><td>O botão de saída de município baixa o pacote de dados e ele abre corretamente.</td><td class="estado"><span class="pilula">Validado, falta o Rafael ver as telas</span></td></tr>
+        <tr data-etapa="V2-F00-E13" data-status="VALIDADA COM PENDÊNCIA HUMANA"><td class="id">F00-E13</td><td>O painel não tem teste vermelho e o login a partir do endereço raiz funciona.</td><td class="estado"><span class="pilula">Validado, falta o Rafael ver as telas</span></td></tr>
+        <tr data-etapa="V2-F00-E14" data-status="VALIDADA COM PENDÊNCIA HUMANA"><td class="id">F00-E14</td><td>O aplicativo de campo não tem teste vermelho.</td><td class="estado"><span class="pilula">Validado, falta o Rafael ler as frases</span></td></tr>
+        <tr data-etapa="V2-F00-E20" data-status="VALIDADA COM PENDÊNCIA HUMANA"><td class="id">F00-E20</td><td>A verificação automática dos textos do projeto (por exemplo, sem travessão) está ativa.</td><td class="estado"><span class="pilula">Validado, falta o Rafael aprovar as isenções</span></td></tr>
+        <tr data-etapa="V2-F00-E24" data-status="VALIDADA COM PENDÊNCIA HUMANA"><td class="id">F00-E24</td><td>Nenhum documento promete que o aplicativo declara a saída a campo sem ressalva.</td><td class="estado"><span class="pilula">Validado, falta Rafael e Alyson confirmarem a premissa</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section data-secao="concluido">
+  <h2>O que foi concluído</h2>
+  <p class="sub">Validado e com as pendências humanas resolvidas, com evidência arquivada.</p>
+  <p class="vazio">Nada neste período.</p>
+</section>
+
+<section data-secao="bloqueios">
+  <h2>Bloqueios</h2>
+  <p class="sub">Separados por quem pode destravar. Um bloqueio só some quando a causa some e a etapa passa por nova validação.</p>
+  <div class="bloqueios">
+    <div data-bloqueio="tecnico"><h3>Técnico</h3>
+      <p>Nenhum.</p>
+    </div>
+    <div data-bloqueio="rafael"><h3>Rafael</h3>
+      <ul>
+        <li>CP-19: provedor e domínio de e-mail. Trava só o envio real de recuperação de senha; o fluxo está pronto com notificador de teste.</li>
+        <li data-etapa="V2-F00-E19" data-status="IMPLEMENTADA">F00-E19: a verificação do aplicativo de campo mostra 20 de 21 porque seis pacotes do Expo ficaram uma atualização para trás. Rafael decide se sobe as atualizações ou aceita, porque o gate pede 21 de 21.</li>
+        <li>Decisões e conferências de produto da fase: frases novas, folhas de contato das telas, prazo e responsável padrão dos testes pulados, isenções do portão de texto e 5 perguntas sobre os defeitos conhecidos do campo.</li>
+      </ul>
+    </div>
+    <div data-bloqueio="alyson"><h3>Alyson</h3>
+      <p>Nenhum.</p>
+    </div>
+    <div data-bloqueio="juridico-dpo"><h3>Jurídico e DPO</h3>
+      <p>Nenhum nesta fase.</p>
+    </div>
+    <div data-bloqueio="externo"><h3>Externo</h3>
+      <p>Nenhum.</p>
+    </div>
+  </div>
+</section>
+
+<section data-secao="decisoes-tomadas">
+  <h2>Decisões tomadas</h2>
+  <p class="vazio">Nada neste período.</p>
+</section>
+
+<section data-secao="decisoes-proximas">
+  <h2>Decisões próximas</h2>
+  <ul class="limpa">
+    <li>Rafael, antes do gate G00: o provedor de e-mail (CP-19, só para ligar recuperação de senha em produção), o destino do aviso de atualização do aplicativo de campo (subir ou aceitar), as 5 perguntas sobre os defeitos conhecidos e a aprovação das frases novas.</li>
+    <li>Rafael e Alyson: confirmar a premissa de que a saída a campo será implementada no aplicativo, antes de qualquer nova demonstração a município.</li>
+    <li>Rafael, para começar a fase 2: entidade, domínio, contas de loja, ambiente de homologação e segunda pessoa com acesso (CP-04, CP-05 e CP-07). Sem eles, parte da fase 2 fica parada.</li>
+  </ul>
+</section>
+
+<section data-secao="riscos">
+  <h2>Riscos principais</h2>
+  <ul class="limpa">
+    <li><span class="t">Volume.</span> <span class="d">São 618 etapas e a fase 1, com 25, ainda não fechou. Sem ritmo medido, não prometemos data; só dá para estimar com honestidade depois das primeiras etapas da fase 2.</span></li>
+    <li><span class="t">Dependência de decisões e conferências humanas.</span> <span class="d">Vários itens só andam com decisão do Rafael ou da Alyson, contratação de serviços e prova em aparelho físico. Parados esperando, atrasam o gate.</span></li>
+    <li><span class="t">Falhas que a validação ainda pode achar.</span> <span class="d">A primeira rodada reprovou quase metade dos itens. A segunda tem o mesmo rigor, e o gate só abre se ela passar.</span></li>
+    <li><span class="t">Atualizações de terceiros.</span> <span class="d">Uma atualização do Expo já reabriu uma verificação sem que o código mudasse. Outras podem acontecer ao longo do projeto.</span></li>
+  </ul>
+</section>
+
+<section data-secao="horizontes">
+  <h2>Agora, a seguir, depois</h2>
+  <div class="horizontes">
+    <div data-secao="agora"><h3>Agora</h3>
+      <ul>
+        <li>Preparar a segunda validação da fase 1, sobre as 12 correções, numa sessão nova.</li>
+        <li>Rafael fazer o bloco de decisões e conferências humanas da fase.</li>
+      </ul>
+    </div>
+    <div data-secao="a-seguir"><h3>A seguir</h3>
+      <ul>
+        <li>Se a segunda validação passar, o gatekeeper recomenda o gate G00 e o Rafael aprova, com o merge no código principal.</li>
+      </ul>
+    </div>
+    <div data-secao="depois"><h3>Depois</h3>
+      <ul>
+        <li>Fase 2, Fundação de engenharia e ambientes (22 etapas), e fase 3, API v1 e contratos (9 etapas). Sem data prometida.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section data-secao="proximo-passo">
+  <h2>Próximo passo</h2>
+  <p>Rafael abre uma sessão nova e pede a segunda validação da fase 1; enquanto ela roda, decide o que for das pendências acima.</p>
+</section>
+
+<section data-secao="observacao-gestao">
+  <h2>Observação de gestão</h2>
+  <p class="sub">Espaço do Rafael. O sistema nunca preenche.</p>
+  <div class="observacao-de-gestao" aria-label="Espaço em branco para a observação do Rafael"></div>
+</section>
+
+</main>
+
+<footer data-sha="8bf7e2cba99aa3fccc01002120fe356d2afa82f0">
+  <p>Gerado em 13/10/2026 a partir do estado do repositório no commit 8bf7e2c (ramo v2/f00). É uma visão do STATUS mantido pelo processo, não uma nova auditoria. Nada aqui foi enviado a ninguém: a revisão e o envio são do Rafael.</p>
+</footer>
+
+</div>
+</body>
+</html>

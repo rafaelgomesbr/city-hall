@@ -38,6 +38,7 @@ Um commit não consegue citar o próprio SHA, por isso são dois commits:
 1. **Commit candidato** `V2-Fnn-Enn: candidato, <resumo>` com o código, os testes, a evidência e a documentação (mensagem num arquivo do scratchpad, `git commit -F`). A linha da etapa no STATUS continua `EM ANDAMENTO` neste commit.
 2. **Commit de registro do candidato** `V2-Fnn-Enn: registro do candidato <sha7>`, tocando SÓ `docs/roadmap-v2/STATUS.md` e `docs/roadmap-v2/ESTADO-ATUAL.md`: a linha da etapa vira `IMPLEMENTADA` com "candidato `<sha7>`" na observação, seção 1 e diário (seção 10) com data ISO; rode `node scripts/roadmap/gerar-estado.mjs` e depois `--conferir` antes de commitar. Como só toca arquivos da lista permitida, ele não invalida a validação do candidato.
 3. Push do ramo da fase. Sem amend, rebase ou force-push.
+   Depois do push, atualize a página de progresso (só números; o texto é da semana): `node scripts/roadmap/publicar-progresso.mjs`. Se a CLI da Vercel pedir login, registre no relatório final que a página não foi atualizada.
 4. PARE a etapa. Nunca marque VALIDADA nem CONCLUÍDA: isso é do gatekeeper (skill `validar-etapa`, sessão nova) e do Rafael.
 5. Encerre a sessão se algum gatilho da seção 13 de `28` disparou (fase nova, risco crítico, contexto compactado, mudança de domínio). Senão, siga para a próxima etapa pela mesma skill.
 

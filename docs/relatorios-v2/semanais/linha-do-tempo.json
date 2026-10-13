@@ -1,0 +1,15 @@
+{
+  "nota": "Histórico da V2 para a linha do tempo do relatório visual. Só ACRESCENTAR marcos; nunca reescrever os antigos. Cada marco é um fato do repositório (STATUS, diário, git), em linguagem comum, sem travessão.",
+  "antes": "Antes da V2: protótipo em 19/08, produto real autorizado em 21/08 e no ar em produção em 08/09.",
+  "marcos": [
+    { "data": "30/09", "iso": "2026-09-30", "titulo": "Diagnóstico", "texto": "Auditoria completa mostra o que estava quebrado ou desligado.", "tipo": "marco" },
+    { "data": "01/10", "iso": "2026-10-01", "titulo": "Plano da V2 escrito", "texto": "Rafael decide que tudo o que foi planejado entra na V2.", "tipo": "marco" },
+    { "data": "02/10", "iso": "2026-10-02", "titulo": "Plano revisado: 36 fases, 618 etapas", "texto": "Regra de ferro: nada avança sem prova, com testes e capturas de tela.", "tipo": "marco" },
+    { "data": "05/10", "iso": "2026-10-05", "titulo": "Rafael diz \"prossiga\"", "texto": "Começa a fase 1, de estabilização.", "tipo": "marco" },
+    { "data": "06 a 07/10", "iso": "2026-10-07", "titulo": "As 25 etapas da fase 1 ficam prontas para validar", "texto": "Segurança de contas, fila do campo, testes e documentação.", "tipo": "marco" },
+    { "data": "07/10", "iso": "2026-10-07", "titulo": "Quem faz não valida", "texto": "Aprovado o sistema em que um revisor independente confere cada etapa.", "tipo": "marco" },
+    { "data": "08/10", "iso": "2026-10-08", "titulo": "Verificação automática na nuvem passa", "texto": "9 de 9 verificações verdes, em Linux.", "tipo": "ok" },
+    { "data": "13/10", "iso": "2026-10-13", "titulo": "Primeira validação independente", "texto": "6 passaram, 7 passaram com conferência pendente, 12 reprovaram por falhas reais.", "tipo": "warn" },
+    { "data": "13/10", "iso": "2026-10-13", "titulo": "As 12 falhas são corrigidas", "texto": "Nova verificação automática: 9 de 9 verdes. Falta validar de novo.", "tipo": "ok" }
+  ]
+}
