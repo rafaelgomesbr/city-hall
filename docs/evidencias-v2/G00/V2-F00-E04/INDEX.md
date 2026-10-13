@@ -3,6 +3,7 @@
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | 6d734fc21c3a10877ab005c0cc8e7b3347d66f56b246f747a3a9ff0d32d6fd8e |
+| VEREDITO.md | f932e0973f490db32f8e2ec47c00dd0cbf4b0d87d15e430b31f7cd00298942d7 |
 | baseline-teste-api/01-teste-api.txt | ee217ecd98270521988db2e2e227a9a59d99c84f16fe34c08c8b24d30c2f8673 |
 | baseline-teste-api/RESUMO.md | 6f9f4e49ba7ae81c071ad7cb4c7e454cb2045bc9039d488c28f9c5072be75fb4 |
 | baseline-teste-api/resultados.json | 760d0a774ec56c487d5b111048c045e3c4870a3dba5d50b18ceaf0fa6abedb13 |
@@ -18,7 +19,7 @@
 | correcao-1/10-portao-de-conteudo.txt | bf6c72477fb9f8b2a238f8be177963570581ef87c096216f4f39c791c7f96e61 |
 | correcao-1/11-test-web.txt | 007900b7b342c044b72f42b55044c467ef06a6db729b419622b2143cf68d1e08 |
 | correcao-1/12-test-scripts.txt | 919fd3eec1ba7c44450d841f7f1813ee70cb06f028fdb206dd43144eb734afb4 |
-| correcao-1/13-diagnostico-do-e2e-que-travava.txt | 477b23a72d994d6c8148d7741bdc773f19506406dd5c8929e2316f519ed54a32 |
+| correcao-1/13-diagnostico-do-e2e-que-travava.txt | 588e765b2e57e2cc193164fa6854ce456b05571d6c9d9a03e8bdf389af26c6c2 |
 | correcao-1/RESUMO.md | a744e748ed5e65d276ba9056055992ff1354d649736c6ef74e6d577dcf52c4c3 |
 | correcao-1/diff-da-correcao.patch | c0512cc1f29bcd4a2c875613bc894fe57a58a3393e6ac47a578aa0dd60d73743 |
 | diff-da-etapa.patch | 252361baeb0ef41a1cdd831d8b7a31fc0f39fc9213891904e039b118ccfdef76 |
@@ -29,3 +30,8 @@
 | saidas/05-superficie.txt | 5cd071a40ae3ca8c289b212052de01d9bea9f08b299f995bc974e9c5fa8fb210 |
 | saidas/06-e2e-api-depois.txt | b84f6f0154344d1359425164fbd5867078590f74177f820c4070891579113f66 |
 | saidas/07-api-test-sem-o-ajuste-do-coordA.txt | 6e89771983ac4b473b9e07474b39ac4592becdb19a5271f3d3f0be92305971bc |
+| validacao/7005a60/arbitragem.md | 87479e764bf9cbef7a9b0a3a6062db8752eb878b8536351032b1c07b05d7bc7c |
+| validacao/7005a60/banco-de-dados.md | dda6fb784a0f0ab5cd394feb51eb1440a569e859d8625d3536187b96c2b5277a |
+| validacao/7005a60/qa.md | 3a63d479fb74a05b4890f79cd02c1692cad0b4642b778f2474f04f979466dc00 |
+| validacao/7005a60/red-team.md | 098172406bce275d8a7ff1e6ef49c1d8c6cf89d876fb424a2807d3b8ff52c78d |
+| validacao/7005a60/seguranca-aplicacao.md | eb1c967bc5e86511615964dd69b304cda239bbaea7afd7bfc006a70c9ffb6012 |

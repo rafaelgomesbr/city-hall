@@ -3,6 +3,7 @@
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | b8cee8222c3a314d1c41899348321afe988b35274dc4cda388308214a4956494 |
+| VEREDITO.md | a629a89c868ab2f8818b896e7b6c17228840d1722fdd213b955ff1300e92a939 |
 | capturas/entrada-desativada-1280-claro.png | 1ab26f144ff5ad1e6dc3b89cea842a76c1193ca2e391219b2f44dcd259a3695b |
 | capturas/entrada-desativada-1280-escuro.png | 5b6613c324b88d3b4a1e55d460b657455d34339065f97bb2bedf23ed78029523 |
 | capturas/entrada-desativada-390-claro.png | a7c5f28f0760c1bce10bef7b30296c5d0c2a1c826568f60d397192dc13919cff |
@@ -23,7 +24,7 @@
 | correcao-1/diff-da-correcao.patch | e3f66e88c6cbbd4c69e02f5c4bb566fcabea4c92b55ff92c6a719de9be15def7 |
 | correcao-1/saidas/01-api-codigos-de-erro-ANTES-do-conserto.txt | 7e32c89bb0d197b3b37240e945216188b5a5af15f1195bcf5c1e99fe15a60c2b |
 | correcao-1/saidas/02-app-token-ANTES-do-conserto.txt | 59def37396293efed2fa2079833e1aa5bc4712018a673fd8ed107c0c4e58de90 |
-| correcao-1/saidas/03-e2e-api-ANTES-do-conserto.txt | 0fcd7aaae5e6ed7ac021257177f536dedf6cd4fbc44a2eefca5f1033ade7ea9f |
+| correcao-1/saidas/03-e2e-api-ANTES-do-conserto.txt | 99cd47a1d4291a376c43372ad0a17c2d6fb62654ffb9e27093c922cdbbf897a3 |
 | correcao-1/saidas/04-api-codigos-de-erro-DEPOIS.txt | bdd1f8a72fdd0ad99bb86527d3cfdc4cf9e25cafb7847c14d6928b913ba0df09 |
 | correcao-1/saidas/05-app-token-DEPOIS.txt | 56dd6784cdf20cadd62c0aa80fb40d9bd9fb85f3fe107181b7ca12b7057f5bb1 |
 | correcao-1/saidas/06-campo-pacote-pausa-de-sessao-DEPOIS.txt | 705606f387bfa53e8acca59ac724b40435ade603d53a22a38a18da52a02f9f3f |
@@ -60,3 +61,7 @@
 | saidas/baseline-depois/04-teste-web.txt | 3d22ce6d2c2903336d208a9b112c02997a4b7abd3a2942dc4aa7a3f60ca44bd9 |
 | saidas/baseline-depois/RESUMO.md | 7728447eaf0c902fffcb0aed9538bfed7fa6d5c701e88ef9f76f55fd0ddfc6b1 |
 | saidas/baseline-depois/resultados.json | 8253f79088cb4e9f4a6baaa78a5b576a226eab6a9292ff68f1a3d17602a9459b |
+| validacao/7005a60/acessibilidade.md | 9b293f90b305ed597b791c0e531da246124ec7eadf49bb2e78450b6c6259a01d |
+| validacao/7005a60/qa.md | 1db0c58c2b63ed37211417db2572d3e0b767d9a79aa9b712fa6dc2c8a0657c60 |
+| validacao/7005a60/red-team.md | d78e5677358c95332853dc4b5ce7dbebe68d036868331b1c6e6d29dfa3f7cfb2 |
+| validacao/7005a60/ux.md | ab418da92d3c26b564dfc9c4806b6987104e2a8713706d4bb1414fca0f06c556 |
