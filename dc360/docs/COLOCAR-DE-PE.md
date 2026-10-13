@@ -37,7 +37,7 @@ D-U-N-S e a revisão não forem gargalo.
 - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
   compartilhados.
-- **4722 testes somando o aplicativo.** Durante a estabilização da V2 (fase
+- **4735 testes somando o aplicativo.** Durante a estabilização da V2 (fase
   F00) nem todos estão verdes e o `npm audit` não está em zero: cada vermelho
   conhecido, e a etapa que o fecha, está em `docs/roadmap-v2/STATUS.md`, na
   raiz do repositório.
@@ -160,6 +160,13 @@ com os dois erros que ele encontrou pelo caminho.
   DATABASE_URL="postgresql://postgres:SENHA@db.SEU-PROJETO.supabase.co:5432/postgres?sslmode=verify-full&sslrootcert=${CA}" \
     npm run migrar -- --conferir   # confere primeiro, não aplica nada
   ```
+
+  **Migração 048 (V2-F00-E05, correção 1): sem ordem obrigatória.** Ela só
+  acrescenta uma coluna de saída (`usuario_ativo`) a `dono_do_token`. O código
+  novo lê essa coluna só quando ela existe: contra um banco sem a 048 a
+  renovação de conta desativada continua respondendo `sessao_encerrada`, como
+  antes, e nada quebra. Migre quando puder; a frase "conta desativada" ao
+  voltar depois de 15 minutos só aparece com a 048 aplicada.
 
   **Ordem na atualização que traz a migração 047 (família da sessão, V2-F00-E07):
   migre ANTES de implantar o código novo.** O código novo chama `abrir_sessao`
@@ -302,7 +309,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 4722 testes com o aplicativo, npm audit, números
+npm run verificar          # typecheck, 4735 testes com o aplicativo, npm audit, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo

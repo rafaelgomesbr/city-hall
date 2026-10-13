@@ -250,6 +250,14 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
     conta. Nenhuma falha nova nem pulo.
   */
   "V2-F00-E23": { total: 12, falhas: 0, puladas: 0 },
+  /*
+    V2-F00-E05, correcao 1: seis casos em `apps/api/test/codigos-de-erro.test.ts`
+    ("Renovar depois de desativar PELO ENDPOINT real": a renovacao da conta
+    desativada pelo painel responde 403 `conta_desativada`, o token ja
+    rotacionado, os tres negativos e a entrada generica). O caso de
+    `api.test.ts` que esperava 401 foi reescrito no lugar, sem mudar a conta.
+  */
+  "V2-F00-E05-correcao-1": { total: 6, falhas: 0, puladas: 0 },
 };
 
 /** Soma a base de um passo com o que cada etapa seguinte declarou mudar nele. */
@@ -370,6 +378,8 @@ export function esperadoDoTesteDb() {
 export const BASE_DO_TESTE_CAMPO_PACOTE = { total: 159, falhas: 0 };
 export const MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA = {
   "V2-F00-E06": { total: 28, falhas: 0 },
+  // V2-F00-E05, correcao 1: o obtentor lanca a falha de sessao da conta desativada.
+  "V2-F00-E05-correcao-1": { total: 1, falhas: 0 },
 };
 export function esperadoDoTesteCampoPacote() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_PACOTE, MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA);
@@ -381,6 +391,8 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
   "V2-F00-E14": { total: 1, falhas: -6 },
   "V2-F00-E15": { total: 20, falhas: -7 },
   "V2-F00-E16": { total: 4, falhas: -7 },
+  // V2-F00-E05, correcao 1: seis casos em `token.test.ts` (renovacao recusada por conta desativada).
+  "V2-F00-E05-correcao-1": { total: 6, falhas: 0 },
 };
 export function esperadoDoTesteCampoApp() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);

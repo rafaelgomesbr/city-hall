@@ -1,4 +1,4 @@
-import type { ObterToken } from "@dc360/campo";
+import { FalhaDeSessao, type ObterToken } from "@dc360/campo";
 import type { Credenciais } from "./api";
 
 /**
@@ -11,7 +11,7 @@ import type { Credenciais } from "./api";
  *
  * O token de renovação é ROTATIVO: cada uso queima o anterior. O servidor
  * trata a reapresentação de um token já queimado como sintoma de roubo e
- * derruba TODAS as sessões do agente (`derrubarSePossivelReuso`, na API).
+ * derruba TODAS as sessões do agente (`tratarTokenRecusado`, na API).
  * Duas consequências decorrem disso, e as duas moram aqui:
  *
  * 1. Duas renovações ao mesmo tempo se sabotam. A segunda a chegar leva um
@@ -133,6 +133,15 @@ export function criarObtentorDeToken(
 
   let renovacaoEmVoo: Promise<string | null> | null = null;
   let ultimaTentativaMs = Number.NEGATIVE_INFINITY;
+  /*
+    A última recusa de renovação que foi 403 `conta_desativada`: o token de
+    renovação que a provocou e a frase do servidor. É a memória que faz o
+    pedido forçado do transporte (depois de um 401 `nao_autenticado`) saber o
+    PORQUÊ, e não só que não renovou. Sem ela, a pessoa desativada que voltava
+    do morro depois dos 15 minutos do token de acesso lia "entre de novo" e,
+    ao entrar, "Email ou senha inválidos" (V2-F00-E05, correção 1).
+  */
+  let contaDesativada: { renovacao: string; mensagem: string } | null = null;
 
   function estaPertoDeVencer(acesso: string): boolean {
     const expiraEmMs = lerExpiracaoDoAcesso(acesso);
@@ -142,7 +151,7 @@ export function criarObtentorDeToken(
     return expiraEmMs - agora() <= folgaMs;
   }
 
-  return async function obterToken(pedido?: { renovarJa?: boolean }): Promise<string | null> {
+  async function obterOuRenovar(pedido?: { renovarJa?: boolean }): Promise<string | null> {
     const atuais = ferramentas.lerCredenciais();
     if (!atuais) return null;
 
@@ -165,6 +174,9 @@ export function criarObtentorDeToken(
 
     renovacaoEmVoo = (async () => {
       try {
+        // Uma tentativa nova reavalia a recusa: conta reativada depois de
+        // desativada responde outra coisa (a sessão antiga está revogada).
+        contaDesativada = null;
         const novas = await ferramentas.renovar(atuais.renovacao);
 
         const valendoAgora = ferramentas.lerCredenciais();
@@ -180,7 +192,10 @@ export function criarObtentorDeToken(
 
         await ferramentas.guardarCredenciais(novas);
         return novas.acesso;
-      } catch {
+      } catch (erro) {
+        if (ehContaDesativada(erro)) {
+          contaDesativada = { renovacao: atuais.renovacao, mensagem: (erro as Error).message };
+        }
         /*
           Falhou: pode ser sinal, pode ser sessão morta. Devolver o token
           atual é o certo nos dois casos. Se for sinal, o token ainda vale e o
@@ -196,5 +211,36 @@ export function criarObtentorDeToken(
     })();
 
     return renovacaoEmVoo;
+  }
+
+  return async function obterToken(pedido?: { renovarJa?: boolean }): Promise<string | null> {
+    const token = await obterOuRenovar(pedido);
+    /*
+      Só o pedido FORÇADO lê a recusa por conta desativada, e lança. É o do
+      transporte da fila, que já recebeu um 401 `nao_autenticado` do token
+      vencido e pergunta se há token novo: a resposta honesta é "a conta foi
+      desativada", que a fila guarda como pausa `conta_desativada`, e não
+      "devolvi o mesmo token" (que viraria `sessao_encerrada`). O pedido comum
+      continua devolvendo o token atual, sem lançar, para quem não sabe o que
+      fazer com uma exceção (telas, push). A recusa vale para as credenciais
+      que a provocaram: entrar de novo troca o token de renovação e a apaga.
+    */
+    if (pedido?.renovarJa === true && contaDesativada) {
+      if (ferramentas.lerCredenciais()?.renovacao === contaDesativada.renovacao) {
+        throw new FalhaDeSessao(contaDesativada.mensagem, "conta_desativada");
+      }
+    }
+    return token;
   };
+}
+
+/**
+ * A renovação foi recusada com 403 `conta_desativada`. Lida pelo CÓDIGO que
+ * `ErroDaApi` carrega (o mesmo de `falha-de-atualizacao.ts`), sem importar a
+ * classe: este arquivo só conhece o contrato da função `renovar`.
+ */
+function ehContaDesativada(erro: unknown): boolean {
+  if (typeof erro !== "object" || erro === null) return false;
+  const { status, codigo } = erro as { status?: unknown; codigo?: unknown };
+  return status === 403 && codigo === "conta_desativada";
 }

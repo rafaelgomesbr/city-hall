@@ -219,6 +219,25 @@ describe("Transporte HTTP: os três códigos", () => {
     expect(pedidos.some((p) => p?.renovarJa)).toBe(false);
   });
 
+  it("renovação recusada por conta desativada (o obtentor lança): o envio para como conta_desativada, sem repetir o pedido", async () => {
+    // Correção 1 da E05: o 401 nao_autenticado do token vencido não pode virar
+    // "entre de novo" quando a renovação já disse que a conta foi desativada.
+    const buscar = vi.fn(async () => resposta(401, NAO_AUTENTICADO));
+    const obterToken: ObterToken = async (pedido) => {
+      if (pedido?.renovarJa) throw new FalhaDeSessao("Sua conta foi desativada.", "conta_desativada");
+      return "token-velho";
+    };
+    const transporte = transporteHttp({
+      baseUrl: "http://api.exemplo", obterToken, buscar: buscar as unknown as typeof fetch,
+    });
+
+    const erro = await transporte.enviar(envelope(CHAVE_A)).catch((e: unknown) => e);
+
+    expect(erro).toBeInstanceOf(FalhaDeSessao);
+    expect((erro as FalhaDeSessao).motivo).toBe("conta_desativada");
+    expect(buscar).toHaveBeenCalledTimes(1);
+  });
+
   it("a falha de sessão NÃO é permanente nem temporária: a fila decide por isso", async () => {
     const { transporte } = transporteCom([resposta(403, CONTA_DESATIVADA)]);
     const erro = await transporte.enviar(envelope(CHAVE_A)).catch((e: unknown) => e);

@@ -620,7 +620,11 @@ export function servicoDeAutenticacao(
     });
 
     if (!sessao) {
-      await derrubarSePossivelReuso(hash);
+      // `sessao_por_token` não devolve sessão revogada, e desativar a conta
+      // pelo painel REVOGA as sessões dela. Sem esta pergunta, a pessoa
+      // desativada que volta depois do token de acesso vencer caía aqui e lia
+      // "sessão encerrada" (V2-F00-E05, correção 1).
+      if (await tratarTokenRecusado(hash) === "conta_desativada") throw new ContaDesativada();
       throw new FalhaAutenticacao("sessao_encerrada", "Sessão expirada. Entre novamente.");
     }
 
@@ -713,30 +717,58 @@ export function servicoDeAutenticacao(
   }
 
   /**
-   * Um token de renovação que já foi ROTACIONADO continua existindo no banco,
-   * revogado com o motivo `rotacionada na renovacao`. Se ele reaparecer, é
-   * reúso (o legítimo e o atacante passaram a alternar), e aí a família
-   * inteira cai.
+   * O que fazer com um token de renovação que `sessao_por_token` não aceitou
+   * (revogado, vencido ou desconhecido). Uma pergunta ao banco, duas decisões.
    *
-   * SÓ ESSE CASO. Até 15/09/2026 `dono_do_token` devolvia o dono "mesmo que
-   * revogada ou expirada", e esta função derrubava tudo por um token que só
-   * VENCEU (o aparelho que ficou quinze dias sem sinal) ou que a própria
-   * pessoa encerrou em "Minha conta" e um aparelho antigo reapresentou. O
-   * painel da coordenação caía por um token que ninguém roubou. A migração
-   * 046 faz a função devolver o motivo e o vencimento, e o que não é
-   * rotação responde 401 e nada mais.
+   * 1. CONTA DESATIVADA (V2-F00-E05, correção 1). Se o servidor RECONHECE o
+   *    token (a sessão existe, mesmo revogada) e a conta do dono está
+   *    desativada AGORA, quem o apresenta recebe `conta_desativada`: ele já
+   *    tem uma credencial que o servidor emitiu para esta conta, e entrar de
+   *    novo não resolve. O estado vem de `dono_do_token` (migração 048), e
+   *    não do motivo da revogação: conta desativada e depois reativada tem
+   *    sessões revogadas por `usuario desativado` e está ativa, e dizer
+   *    "desativada" a ela mandaria a pessoa parar sem motivo.
+   *
+   *    NÃO abre oráculo para quem não tem credencial: token DESCONHECIDO não
+   *    devolve linha e sai como `sessao_encerrada`, igual ao de conta ativa
+   *    cuja sessão foi encerrada. `/auth/entrar` e `/auth/recuperar` não
+   *    mudam. A desativação continua revogando tudo (idempotente).
+   *
+   * 2. REÚSO. Um token que já foi ROTACIONADO continua existindo no banco,
+   *    revogado com o motivo `rotacionada na renovacao`. Se ele reaparecer, é
+   *    reúso (o legítimo e o atacante passaram a alternar), e aí a família
+   *    inteira cai.
+   *
+   *    SÓ ESSE CASO. Até 15/09/2026 `dono_do_token` devolvia o dono "mesmo que
+   *    revogada ou expirada", e esta função derrubava tudo por um token que só
+   *    VENCEU (o aparelho que ficou quinze dias sem sinal) ou que a própria
+   *    pessoa encerrou em "Minha conta" e um aparelho antigo reapresentou. O
+   *    painel da coordenação caía por um token que ninguém roubou. A migração
+   *    046 faz a função devolver o motivo e o vencimento, e o que não é
+   *    rotação responde 401 e nada mais.
    */
-  async function derrubarSePossivelReuso(hash: string): Promise<void> {
+  async function tratarTokenRecusado(hash: string): Promise<"conta_desativada" | "sessao_encerrada"> {
     // `sessoes` está sob RLS e não é legível sem contexto de tenant, que é
     // exatamente o que ainda não temos aqui. A pergunta passa pela função
-    // nomeada da migração 002 (redefinida na 046).
+    // nomeada da migração 002 (redefinida na 046 e na 048).
     const dono = await banco.semTenant(async (c) => {
       const r = await c.query<{
         usuario_id: string; revogada_em: string | null;
         motivo_revogacao: string | null; expira_em: string;
+        // Ausente num banco que ainda não aplicou a 048: só `false` conta.
+        usuario_ativo?: boolean;
       }>("SELECT * FROM dono_do_token($1)", [hash]);
       return r.rows[0] ?? null;
     }).catch(() => null);
+
+    if (dono && dono.usuario_ativo === false) {
+      await banco.semTenant((c) =>
+        c.query("SELECT revogar_sessoes_do_usuario($1, $2)", [
+          dono.usuario_id, "usuario desativado",
+        ]),
+      );
+      return "conta_desativada";
+    }
 
     if (dono && dono.revogada_em !== null && dono.motivo_revogacao === "rotacionada na renovacao") {
       await banco.semTenant((c) =>
@@ -745,6 +777,7 @@ export function servicoDeAutenticacao(
         ]),
       );
     }
+    return "sessao_encerrada";
   }
 
   /**
@@ -983,7 +1016,7 @@ export function servicoDeAutenticacao(
    *
    * A PRESERVACAO VALE DE VERDADE desde a migracao 046: se um dos aparelhos
    * derrubados tentar renovar sozinho com o token que acabou de cair,
-   * `derrubarSePossivelReuso` le o MOTIVO da revogacao ("encerradas pelo
+   * `tratarTokenRecusado` le o MOTIVO da revogacao ("encerradas pelo
    * proprio usuario"), ve que nao e rotacao, e responde 401 sem derrubar mais
    * nada. Antes disso `dono_do_token` (migracao 002) devolvia so o dono, e a
    * duvida entre "foi o proprio usuario" e "e um token roubado" caia para o

@@ -990,6 +990,78 @@ const idDoMarcos = await page.evaluate(async ({ api }) => {
   await contextoDele.close();
 }
 
+// 23c. Conta desativada pelo painel e a pessoa so volta DEPOIS de o token de
+// acesso vencer (correcao 1 da E05). E o caminho comum: o aparelho ou a aba
+// parada passa dos 15 minutos, o pedido leva 401 `nao_autenticado`, o painel
+// renova, e a renovacao tem de dizer `conta_desativada`. Desativar pelo painel
+// REVOGA as sessoes, e foi ai que a renovacao respondia "sessao encerrada".
+{
+  // O Marcos foi desativado em 23b: a coordenacao o reativa (rota do produto) para ele entrar de novo.
+  const reativou = await page.evaluate(async ({ api, id }) => {
+    const tokens = JSON.parse(sessionStorage.getItem("dc360:tokens"));
+    const r = await fetch(`${api}/usuarios/${id}/situacao`, {
+      method: "PATCH",
+      headers: { authorization: `Bearer ${tokens.acesso}`, "content-type": "application/json" },
+      body: JSON.stringify({ ativo: true }),
+    });
+    return r.status;
+  }, { api: API_E05, id: idDoMarcos });
+  ok("a coordenacao reativa o Marcos", reativou === 200, `(${reativou})`);
+
+  const { contextoDele, paginaDele } = await abrirComoMarcos();
+  await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
+  await page.waitForSelector("#usuario-nome", { timeout: 20_000 });
+  const linha = page.locator("tbody tr", { hasText: "marcos.teles@serraalta.exemplo.gov.br" });
+  await linha.getByRole("button", { name: "Desativar" }).click();
+  await page.getByRole("button", { name: /^Desativar Marcos/ }).click();
+  await linha.getByRole("button", { name: "Reativar" }).waitFor({ timeout: 20_000 });
+  ok("a coordenacao desativa o Marcos pelo painel (as sessoes dele caem junto)", true);
+
+  // Passam os 15 minutos: o token de acesso dele vence, e o de renovacao e o que o painel usa.
+  await paginaDele.evaluate(() => {
+    const tokens = JSON.parse(sessionStorage.getItem("dc360:tokens"));
+    sessionStorage.setItem("dc360:tokens", JSON.stringify({ ...tokens, acesso: "token.vencido.invalido" }));
+  });
+  await tentarTrocarSenha(paginaDele);
+  const aviso = (await paginaDele.locator(".aviso").first().textContent()) ?? "";
+  ok("token vencido + conta desativada leva a tela de entrada", paginaDele.url().includes("/entrar"));
+  ok("e diz que a conta foi desativada, e nao que a sessao foi encerrada ou expirou",
+     /sua conta foi desativada/i.test(aviso) && !/sess[ãa]o foi encerrada/i.test(aviso) && !/expirou/i.test(aviso),
+     `(${aviso.slice(0, 80)})`);
+  ok("e manda procurar a coordenacao, e nao entrar de novo",
+     /procure a coordena[çc][ãa]o do seu munic[íi]pio/i.test(aviso) && /n[ãa]o\s+resolve/i.test(aviso));
+  ok("com aviso de perigo", (await paginaDele.locator(".aviso--perigo").count()) === 1);
+  ok("os tokens nao ficam guardados",
+     (await paginaDele.evaluate(() => sessionStorage.getItem("dc360:tokens"))) === null);
+
+  if (process.env.CAPTURAS_E05C) {
+    const { mkdirSync } = await import("node:fs");
+    mkdirSync(process.env.CAPTURAS_E05C, { recursive: true });
+    for (const [largura, altura] of [[1280, 900], [390, 844]]) {
+      for (const tema of ["claro", "escuro"]) {
+        await paginaDele.setViewportSize({ width: largura, height: altura });
+        await paginaDele.evaluate((t) => {
+          document.documentElement.dataset.theme = t === "escuro" ? "dark" : "light";
+        }, tema);
+        await paginaDele.waitForTimeout(150);
+        await paginaDele.screenshot({
+          path: `${process.env.CAPTURAS_E05C}/entrada-renovacao-recusada-${largura}-${tema}.png`, fullPage: true,
+        });
+      }
+    }
+  }
+
+  // Entrar de novo continua com a recusa generica, para quem nao tem credencial.
+  await paginaDele.locator("#entrada-email").fill("marcos.teles@serraalta.exemplo.gov.br");
+  await paginaDele.locator("#entrada-senha").fill(SENHA_DO_MARCOS);
+  await paginaDele.getByRole("button", { name: "Entrar", exact: true }).click();
+  await paginaDele.waitForSelector(".campo__erro", { timeout: 20_000 });
+  const recusa = (await paginaDele.locator(".campo__erro").first().textContent()) ?? "";
+  ok("a entrada continua com a recusa generica", /inv[áa]lidos/i.test(recusa) && !/desativ/i.test(recusa),
+     `(${recusa.slice(0, 80)})`);
+  await contextoDele.close();
+}
+
 console.log("\n== 24. Papel alterado com a tela aberta: a escrita seguinte renova em silencio (V2-F00-E07) ==");
 /*
   A coordenadora esta logada no painel quando a administradora (Rita) rebaixa

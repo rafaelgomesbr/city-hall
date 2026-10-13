@@ -643,7 +643,12 @@ describe("Superfície e respostas de erro", () => {
     const renovar = await app.inject({
       method: "POST", url: "/auth/renovar", payload: { renovacao: sessao.renovacao },
     });
-    expect(renovar.statusCode).toBe(401);
+    // 403 `conta_desativada` e nao 401 (correcao 1 da E05): quem apresenta uma
+    // renovacao que o servidor reconhece pode saber que a conta foi desativada.
+    // Continua sem par novo de tokens, e a sessao continua revogada (abaixo).
+    expect(renovar.statusCode).toBe(403);
+    expect(renovar.json().erro).toBe("conta_desativada");
+    expect(renovar.json().renovacao).toBeUndefined();
 
     const noBanco = await mem.bruto.query<{ revogada_em: string | null }>(
       "SELECT revogada_em FROM sessoes WHERE token_hash = $1",

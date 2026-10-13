@@ -22,7 +22,7 @@ O que É verificável daqui, e está verificado:
 | TypeScript estrito | `npm run typecheck` | limpo com o cache `.expo/types` em dia (ver o parágrafo abaixo); `npm run test:campo` na raiz limpa o cache velho antes |
 | Saúde do projeto Expo | `npx expo-doctor` | **21 de 21** em 2026-10-08, depois de alinhar `expo`, `expo-camera`, `expo-router`, `expo-sqlite` e outros pacotes ao SDK 57 (versões de correção). Mudou a versão de pacote nativo: o próximo binário do aparelho precisa ser recompilado |
 | Dependência vulnerável | `npm audit` (aqui) e `npm run auditar` (na raiz) | **NÃO fecha** em 2026-10-07: o `npm audit` daqui acusa dezenas de avisos, altos e um crítico, e a raiz tem um aviso alto de execução no `fastify`. A única aceita com motivo escrito continua sendo `decode-uri-component` (`scripts/auditar.mjs`). No Windows, `npm run auditar` morre com `spawnSync npm ENOENT` antes de auditar. A correção é da V2-F00-E19, que espera o CP-03 |
-| A fila que ele consome | `npm test --workspace @dc360/campo` | 187 testes do motor de campo |
+| A fila que ele consome | `npm test --workspace @dc360/campo` | 188 testes do motor de campo |
 
 **O cache `.expo/types` e o typecheck.** Com `experiments.typedRoutes` ligado,
 o `expo start` grava em `.expo/types/router.d.ts` a lista das rotas de
@@ -95,7 +95,7 @@ na chuva.
    de aparelho da V2-F00-E16, ainda pendente (ver `PENDENCIAS.md`, item 16).
 
 Os passos 4 e 6 são os que só o aparelho responde. O 6 já tem
-187 testes do motor de campo cobrindo a lógica fora do celular, inclusive
+188 testes do motor de campo cobrindo a lógica fora do celular, inclusive
 retomada arquivo a arquivo; o que falta comprovar é que o `expo-sqlite` guarda o que promete
 quando o sistema mata o processo.
 
@@ -112,7 +112,7 @@ src/ui/              tokens e componentes
 ```
 
 **A lógica difícil não está aqui.** A fila que não perde nem duplica coleta
-feita sem sinal vive em `packages/campo`, com 187 testes de unidade do motor de campo, e a
+feita sem sinal vive em `packages/campo`, com 188 testes de unidade do motor de campo, e a
 integração dela com a API tem mais 15 em `apps/api`. Este diretório liga os
 fios: o que sobra é tela, permissão de aparelho e persistência local, e é por
 isso que ele é fino de propósito.

@@ -18,6 +18,8 @@ Provado em 2026-10-07, no Windows 11 com Git Bash, por quem escreveu o sistema:
   numa pasta temporária, provisionado como o job `implantavel` do CI, com as
   **47 migrações** (001 a 047; o roteiro da V2 dizia 46, mas a E07 acrescentou
   a 047) aplicadas do zero e a semente sintética.
+  (A 048, de 2026-10-13, só recria `dono_do_token` com uma coluna a mais; o job
+  `restore` do CI a aplica junto das outras, e esta prova local não foi repetida.)
 - Destino: um **segundo cluster**, também criado com `initdb`, noutra porta.
 - `pg_restore --exit-on-error` sem erro; linhas por tabela idênticas (36
   tabelas, 106 linhas); as 47 impressões de `schema_migracoes` idênticas; RLS

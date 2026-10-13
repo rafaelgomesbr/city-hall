@@ -307,6 +307,121 @@ describe("Renovar com a conta desativada", () => {
   });
 });
 
+/**
+ * Correção 1 da V2-F00-E05. O teste acima desativa por UPDATE direto e deixa
+ * a sessão de pé, estado que o produto NUNCA produz: desativar pelo painel
+ * (`PATCH /usuarios/:id/situacao`) revoga as sessões na mesma transação. Aí
+ * `sessao_por_token` já não devolve a sessão e a renovação caía em
+ * `sessao_encerrada`, de modo que a pessoa desativada que voltava depois dos
+ * 15 minutos do token de acesso lia "sessão encerrada" e, ao entrar, "Email ou
+ * senha inválidos", e nunca ficava sabendo que a conta foi desativada.
+ *
+ * Aqui a desativação é a REAL, pelo endpoint, e a renovação é a que o cliente
+ * faz depois que o token de acesso vence.
+ */
+describe("Renovar depois de desativar PELO ENDPOINT real (correção 1 da E05)", () => {
+  /** Quem administra desativa ou reativa uma conta do município A, pela rota do produto. */
+  async function mudarSituacao(quem: string, alvoEmail: string, ativo: boolean) {
+    const r = await app.inject({
+      method: "PATCH", url: `/usuarios/${await usuarioDe(alvoEmail)}/situacao`,
+      headers: com(quem), payload: { ativo },
+    });
+    expect(r.statusCode, r.body).toBe(200);
+  }
+
+  async function sessoesVivas(email: string): Promise<number> {
+    const r = await mem.bruto.query(
+      "SELECT 1 FROM sessoes WHERE usuario_id = $1 AND revogada_em IS NULL", [await usuarioDe(email)],
+    );
+    return r.rows.length;
+  }
+
+  it("desativada pelo painel, a renovação do aparelho responde 403 conta_desativada, sem par novo, e repete", async () => {
+    const helena = await entrar(EMAIL_COORD_A);
+    const diego = await entrar(EMAIL_AGENTE_A);
+    await mudarSituacao(helena.acesso, EMAIL_AGENTE_A, false);
+    // O estado que o produto produz: as sessões já caíram antes de qualquer renovação.
+    expect(await sessoesVivas(EMAIL_AGENTE_A)).toBe(0);
+
+    const r = await renovar(diego.renovacao);
+    expectDoCatalogo(r, "conta_desativada");
+    expect(r.json().mensagem).toBe(CODIGOS_DE_ERRO_DE_ACESSO.conta_desativada.mensagem);
+    expect(r.json().acesso, "conta desativada não ganha token novo").toBeUndefined();
+    expect(r.json().renovacao).toBeUndefined();
+    expect(await sessoesVivas(EMAIL_AGENTE_A), "a revogação por desativação continua valendo").toBe(0);
+
+    // O aparelho pode insistir: a resposta não muda (o cliente para na primeira).
+    expectDoCatalogo(await renovar(diego.renovacao), "conta_desativada");
+  });
+
+  it("um token de renovação JÁ ROTACIONADO, apresentado depois da desativação, também diz conta_desativada", async () => {
+    const helena = await entrar(EMAIL_COORD_A);
+    const diego = await entrar(EMAIL_AGENTE_A);
+    const rotacionado = await renovar(diego.renovacao);
+    expect(rotacionado.statusCode, rotacionado.body).toBe(200);
+    await mudarSituacao(helena.acesso, EMAIL_AGENTE_A, false);
+    // O aparelho que perdeu a resposta da renovação ainda tem o token antigo.
+    expectDoCatalogo(await renovar(diego.renovacao), "conta_desativada");
+    expectDoCatalogo(await renovar(rotacionado.json().renovacao), "conta_desativada");
+  });
+
+  it("NEGATIVO: token de renovação que o servidor não conhece continua 401 sessao_encerrada, igual ao de conta ativa encerrada", async () => {
+    const helena = await entrar(EMAIL_COORD_A);
+    const diego = await entrar(EMAIL_AGENTE_A);
+    // Diego é desativado; um terceiro token inventado e o de uma conta ativa
+    // encerrada por quem administra têm de sair IGUAIS entre si.
+    await mudarSituacao(helena.acesso, EMAIL_AGENTE_A, false);
+    const aurelio = await entrar(EMAIL_COORD_B);
+    await mem.bruto.query(
+      `UPDATE sessoes SET revogada_em = now(), motivo_revogacao = 'encerrada por quem administra'
+        WHERE usuario_id = $1`, [await usuarioDe(EMAIL_COORD_B)],
+    );
+
+    const desconhecido = await renovar("token-que-ninguem-emitiu-0123456789abcdef0123456789abcdef");
+    const deContaInexistente = await renovar("outro-token-inventado-fedcba9876543210fedcba9876543210");
+    const deContaAtiva = await renovar(aurelio.renovacao);
+    for (const r of [desconhecido, deContaInexistente, deContaAtiva]) expectDoCatalogo(r, "sessao_encerrada");
+    expect(desconhecido.body).toBe(deContaInexistente.body);
+    expect(desconhecido.body, "quem não tem credencial não distingue conta ativa de inexistente").toBe(deContaAtiva.body);
+    // E o aparelho de Diego, que TEM o token, continua sabendo.
+    expectDoCatalogo(await renovar(diego.renovacao), "conta_desativada");
+  });
+
+  it("NEGATIVO: sessão encerrada por quem administra, SEM desativar, continua 401 sessao_encerrada", async () => {
+    const helena = await entrar(EMAIL_COORD_A);
+    const diego = await entrar(EMAIL_AGENTE_A);
+    const encerrar = await app.inject({
+      method: "POST", url: `/usuarios/${await usuarioDe(EMAIL_AGENTE_A)}/encerrar-sessoes`,
+      headers: com(helena.acesso),
+    });
+    expect(encerrar.statusCode, encerrar.body).toBe(200);
+    expectDoCatalogo(await renovar(diego.renovacao), "sessao_encerrada");
+    // A conta está ativa: entrar de novo é o caminho, e funciona.
+    expect((await tentarEntrar(EMAIL_AGENTE_A, SENHA)).statusCode).toBe(200);
+  });
+
+  it("NEGATIVO: desativada e REATIVADA, a renovação antiga volta a ser sessao_encerrada: a conta está ativa, é só entrar", async () => {
+    const helena = await entrar(EMAIL_COORD_A);
+    const diego = await entrar(EMAIL_AGENTE_A);
+    await mudarSituacao(helena.acesso, EMAIL_AGENTE_A, false);
+    await mudarSituacao(helena.acesso, EMAIL_AGENTE_A, true);
+    // Dizer "conta desativada" a uma conta ativa mandaria a pessoa parar sem motivo.
+    expectDoCatalogo(await renovar(diego.renovacao), "sessao_encerrada");
+    expect((await tentarEntrar(EMAIL_AGENTE_A, SENHA)).statusCode).toBe(200);
+  });
+
+  it("depois do 403, entrar com a senha certa continua a recusa genérica: a tela de entrada não confirma nada a quem não tem token", async () => {
+    const helena = await entrar(EMAIL_COORD_A);
+    const diego = await entrar(EMAIL_AGENTE_A);
+    await mudarSituacao(helena.acesso, EMAIL_AGENTE_A, false);
+    expectDoCatalogo(await renovar(diego.renovacao), "conta_desativada");
+    const desativada = await tentarEntrar(EMAIL_AGENTE_A, SENHA);
+    const inexistente = await tentarEntrar("ninguem@serraalta.exemplo.gov.br", SENHA);
+    expect(desativada.statusCode).toBe(401);
+    expect(desativada.body).toBe(inexistente.body);
+  });
+});
+
 describe("/auth/entrar não conta nada sobre a conta (resistência a enumeração)", () => {
   it("conta desativada com a senha CERTA recebe a mesma recusa da senha errada e do e-mail inexistente", async () => {
     await desativar(EMAIL_AGENTE_A);
