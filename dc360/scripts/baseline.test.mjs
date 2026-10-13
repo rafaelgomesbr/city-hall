@@ -12,6 +12,12 @@
  * O que ele NÃO faz: não roda os passos de verdade (levaria uma hora e
  * precisa de rede e navegador). Quem prova a execução completa é a evidência
  * em `docs/evidencias-v2/G00/V2-F00-E01/`.
+ *
+ * Também não confere o total de casos de cada suíte contra a ÁRVORE: isso é do
+ * `npm run conferir:numeros` (`conferirContagensDoRoteiro`), que roda o
+ * `node --test` de `scripts/` e o `vitest list` dos pacotes, coisa que não cabe
+ * dentro de um teste de `scripts/` sem recursão. Aqui se prova que o conferidor
+ * MORDE: com um número velho plantado ele reprova, com o certo ele passa.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -22,6 +28,9 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   PASSOS,
+  codigoDeSaida,
+  conferirContagensDoRoteiro,
+  montarResumo,
   ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS,
   TESTES_DA_E01_EM_SCRIPTS,
   TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS,
@@ -52,6 +61,8 @@ import {
 } from "./baseline.mjs";
 
 const SCRIPT = fileURLToPath(new URL("./baseline.mjs", import.meta.url));
+/** `test(` e `it(` com ou sem recuo (`describe`), com sufixo (`.skip`): a regra antiga só via `test(` na coluna zero e dava 0 para `auditar.test.mjs`. */
+const CASO_DE_TESTE = /^[ \t]*(?:test|it)(?:\.[A-Za-z]+)*\(/gm;
 const ESTE_ARQUIVO = fileURLToPath(import.meta.url);
 
 test("redige um JWT colado num texto", () => {
@@ -161,11 +172,11 @@ test("a lista de passos tem ids únicos e o total de scripts soma a própria eta
     assert.deepEqual(esperado, somado, id);
     assert.deepEqual(Object.fromEntries(campos.map((c) => [c, passo.esperado[c]])), somado, id);
   }
-  const declarados = (readFileSync(ESTE_ARQUIVO, "utf8").match(/^test\(/gm) ?? []).length;
+  const declarados = (readFileSync(ESTE_ARQUIVO, "utf8").match(CASO_DE_TESTE) ?? []).length;
   assert.equal(declarados, TESTES_DA_E01_EM_SCRIPTS);
   // Cada etapa seguinte que soma teste a `test:scripts` declara quantos: a tabela confere com o arquivo.
   for (const [etapa, arquivo] of Object.entries(ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS)) {
-    const dessa = (readFileSync(fileURLToPath(new URL(`./${arquivo}`, import.meta.url)), "utf8").match(/^test\(/gm) ?? []).length;
+    const dessa = (readFileSync(fileURLToPath(new URL(`./${arquivo}`, import.meta.url)), "utf8").match(CASO_DE_TESTE) ?? []).length;
     assert.equal(dessa, TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS[etapa], `${etapa}: ${arquivo} tem ${dessa} testes`);
   }
 });
@@ -191,4 +202,122 @@ test("--so-listar imprime os comandos, não executa nada e não cria a pasta de 
   assert.ok(r.stdout.includes("npm run typecheck"));
   assert.equal(r.stdout.trim().split("\n").length, listarComandos().length);
   assert.equal(existsSync(pasta), false);
+});
+
+/* ---------- V2-F00-E01, correção 1: o esperado é o de hoje, e divergência se nomeia ---------- */
+
+const SAIDA_EXPO_20_DE_21 = [
+  "20/21 checks passed. 1 checks failed. Possible issues detected:",
+  "Check the logs and the table below for more information.",
+  "",
+  "\u2716 Check that packages match versions required by installed Expo SDK",
+].join("\n");
+
+test("o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor espera 21 de 21, nomeando a deriva", () => {
+  assert.deepEqual(PASSOS.find((p) => p.id === "auditar").esperado, { codigo: 0 });
+  const expo = PASSOS.find((p) => p.id === "expo-doctor");
+  assert.deepEqual(expo.esperado, { codigo: 0, contem: "21/21 checks passed" });
+  assert.equal(expo.divergenciaExplicada.id, "V-DEP-4");
+  // Os dois `npm audit` crus seguem vermelhos por desenho (a política do CP-03 está no `auditar`).
+  assert.equal(PASSOS.find((p) => p.id === "audit-raiz").esperado.codigo, "falha");
+  assert.equal(PASSOS.find((p) => p.id === "audit-campo").esperado.codigo, "falha");
+});
+
+test("o expo-doctor 20 de 21 é divergência EXPLICADA e nomeada, e saída diferente da descrita continua divergente", () => {
+  const expo = PASSOS.find((p) => p.id === "expo-doctor");
+  const explicada = avaliar(expo, SAIDA_EXPO_20_DE_21, 1);
+  assert.equal(explicada.status, "divergente-explicada");
+  assert.equal(explicada.explicacao.id, "V-DEP-4");
+  assert.ok(explicada.detalhes.length > 0, "a divergência não some: o detalhe continua dizendo o que diverge");
+  // Verde de verdade confere.
+  assert.equal(avaliar(expo, "21/21 checks passed. No issues detected!", 0).status, "confere");
+  // Outra verificação falhando (19 de 21) NÃO é a deriva descrita.
+  assert.equal(avaliar(expo, SAIDA_EXPO_20_DE_21.replace("20/21", "19/21"), 1).status, "divergente");
+  // 20 de 21 por OUTRA verificação também não é a deriva descrita.
+  assert.equal(avaliar(expo, SAIDA_EXPO_20_DE_21.replace("packages match versions required by installed Expo SDK", "something else"), 1).status, "divergente");
+  // O código de saída também faz parte da descrição.
+  assert.equal(avaliar(expo, SAIDA_EXPO_20_DE_21, 2).status, "divergente");
+});
+
+test("passo sem divergência nomeada nunca vira explicada, e contem aceita lista exigindo todos os trechos", () => {
+  const passo = { esperado: { codigo: 0, contem: ["Passou: 279   Falhou: 0", "Passou: 50   Falhou: 0"] } };
+  assert.equal(avaliar(passo, "Passou: 279   Falhou: 0\nPassou: 50   Falhou: 0", 0).status, "confere");
+  const falta = avaliar(passo, "Passou: 279   Falhou: 0", 0);
+  assert.equal(falta.status, "divergente");
+  assert.ok(falta.detalhes.some((d) => d.includes("Passou: 50")));
+});
+
+test("o código de saída separa tudo confere (0), só explicada (1) e sem explicação (3)", () => {
+  assert.equal(codigoDeSaida([{ status: "confere" }]), 0);
+  assert.equal(codigoDeSaida([{ status: "confere" }, { status: "divergente-explicada" }]), 1);
+  assert.equal(codigoDeSaida([{ status: "divergente-explicada" }, { status: "divergente" }]), 3);
+});
+
+test("o resumo conta as divergências explicadas e diz por quê", () => {
+  const resumo = montarResumo(
+    [
+      { id: "typecheck", cmd: "npm run typecheck", cwd: ".", codigo: 0, duracaoMs: 1000, status: "confere", detalhes: [] },
+      {
+        id: "expo-doctor",
+        cmd: "npx expo-doctor",
+        cwd: "apps/campo",
+        codigo: 1,
+        duracaoMs: 1000,
+        status: "divergente-explicada",
+        detalhes: ["código de saída 1, esperado 0"],
+        explicacao: { id: "V-DEP-4", onde: "PENDENCIAS.md, item 17", motivo: "deriva do Expo" },
+      },
+    ],
+    "2026-10-13T00:00:00Z",
+  );
+  assert.match(resumo, /Conferem: 1 de 2\. Divergentes sem explicação: 0\. Divergentes explicadas: 1 \(expo-doctor por V-DEP-4\)/);
+  assert.match(resumo, /EXPLICADA por V-DEP-4 \(PENDENCIAS\.md, item 17\): deriva do Expo/);
+});
+
+test("o conferidor de contagens reprova o número velho plantado e passa com o certo", () => {
+  // O caso real que reprovou a E01: o roteiro esperava 206 e o node imprimia 213.
+  const passos = [{ id: "test-scripts", cmd: "npm run test:scripts", esperado: { codigo: 0, total: 206 } }];
+  const velho = conferirContagensDoRoteiro({ "test-scripts": { quantos: 213 } }, passos);
+  assert.equal(velho.length, 1);
+  assert.match(velho[0], /test-scripts/);
+  assert.match(velho[0], /espera 206 casos e a árvore tem 213 \(\+7\)/);
+  assert.match(velho[0], /TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS/, "a mensagem diz ONDE atualizar");
+  passos[0].esperado.total = 213;
+  assert.deepEqual(conferirContagensDoRoteiro({ "test-scripts": { quantos: 213 } }, passos), []);
+  // Teste a MENOS também reprova (apagar teste sem declarar).
+  assert.equal(conferirContagensDoRoteiro({ "test-scripts": { quantos: 200 } }, passos).length, 1);
+});
+
+test("o conferidor desconta o pulo por ambiente só onde a lista do vitest não o enumera", () => {
+  const passos = [{ id: "teste-db", cmd: "npm run test:isolamento", esperado: { codigo: 0, total: 330, puladas: 3 } }];
+  assert.deepEqual(conferirContagensDoRoteiro({ "teste-db": { quantos: 327, descontaPuladas: true } }, passos), []);
+  assert.equal(conferirContagensDoRoteiro({ "teste-db": { quantos: 327 } }, passos).length, 1);
+});
+
+test("suíte com total esperado e sem medida reprova, e medida de passo que o roteiro não conhece também", () => {
+  const passos = [{ id: "teste-nova", cmd: "npm run test:nova", esperado: { codigo: 0, total: 10 } }];
+  const semMedida = conferirContagensDoRoteiro({}, passos);
+  assert.equal(semMedida.length, 1);
+  assert.match(semMedida[0], /teste-nova.*nenhuma medida/);
+  const semPasso = conferirContagensDoRoteiro({ "teste-nova": { quantos: 10 }, "teste-fantasma": { quantos: 3 } }, passos);
+  assert.equal(semPasso.length, 1);
+  assert.match(semPasso[0], /teste-fantasma/);
+});
+
+test("todo passo do roteiro com total esperado aparece na medição do conferir:numeros", () => {
+  const fonte = readFileSync(fileURLToPath(new URL("./conferir-numeros.mjs", import.meta.url)), "utf8");
+  assert.match(fonte, /conferirContagensDoRoteiro/);
+  for (const passo of PASSOS.filter((p) => p.esperado?.total !== undefined)) {
+    assert.ok(fonte.includes(`"${passo.id}":`), `${passo.id} tem total esperado e o conferir-numeros.mjs não o mede`);
+  }
+});
+
+test("a divergência explicada aponta para registros que existem", () => {
+  const raiz = fileURLToPath(new URL("../..", import.meta.url));
+  const expo = PASSOS.find((p) => p.id === "expo-doctor").divergenciaExplicada;
+  const pendencias = readFileSync(join(raiz, "dc360/apps/campo/PENDENCIAS.md"), "utf8");
+  assert.ok(expo.onde.includes("PENDENCIAS.md, item 17"));
+  assert.match(pendencias, /^## 17\. `expo-doctor` dá 20 de 21/m);
+  const registro = readFileSync(join(raiz, "docs/evidencias-v2/G00/V2-F00-E03/classificacao-dos-vermelhos.md"), "utf8");
+  assert.ok(registro.includes(expo.id), `${expo.id} não está na classificação dos vermelhos`);
 });

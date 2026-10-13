@@ -1,0 +1,35 @@
+[1/17] typecheck: npm run typecheck (.)
+    codigo 0, confere
+[2/17] teste-shared: npm run test --workspace @dc360/shared (.)
+    codigo 0, confere
+[3/17] teste-db: npm run test:isolamento (.)
+    codigo 0, confere
+[4/17] teste-campo-pacote: npm run test --workspace @dc360/campo (.)
+    codigo 0, confere
+[5/17] teste-api: npm run test:api (.)
+    codigo 0, confere
+[6/17] teste-console: npm run test:console (.)
+    codigo 0, confere
+[7/17] teste-web: npm run test --workspace @dc360/web (.)
+    codigo 0, confere
+[8/17] teste-campo-app: npx jest --silent (apps/campo)
+    codigo 0, confere
+[9/17] test-campo: npm run test:campo (.)
+    codigo 0, confere
+[10/17] test-scripts: npm run test:scripts (.)
+    codigo 0, confere
+[11/17] conferir-numeros: npm run conferir:numeros (.)
+    codigo 0, confere
+[12/17] auditar: npm run auditar (.)
+    codigo 0, confere
+[13/17] audit-raiz: npm audit (.)
+    codigo 1, confere
+[14/17] audit-campo: npm audit (apps/campo)
+    codigo 1, confere
+[15/17] expo-doctor: npx expo-doctor (apps/campo)
+    codigo 1, divergente-explicada: código de saída 1, esperado 0; a saída não contém "21/21 checks passed"
+[16/17] e2e: npm run test:e2e (.)
+    codigo 0, confere
+[17/17] e2e-api: npm run test:e2e:api (.)
+    codigo 0, confere
+CODIGO=1

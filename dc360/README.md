@@ -1153,19 +1153,27 @@ mínima: só o painel e só a existência da rota. A F02-E05 a generaliza para o
 aplicativo de campo e o console e a liga ao OpenAPI (F02-E04); corpo e resposta
 não são conferidos aqui.
 
-**A linha de base de hoje é vermelha de propósito.** Os vermelhos foram medidos
-em 2026-09-30 e são consertados um a um na fase F00 do Roadmap V2
-(`docs/roadmap-v2/03-fase-00-estabilizacao.md`). Para repetir a medição e
-arquivar a saída, sem segredo, em qualquer máquina:
+**O roteiro da linha de base.** Em 2026-09-30 a linha de base era vermelha de
+propósito (a medição original segue arquivada em `docs/auditoria-v2/`), e a
+fase F00 do Roadmap V2 (`docs/roadmap-v2/03-fase-00-estabilizacao.md`) a
+consertou. Desde a correção 1 da V2-F00-E01, o roteiro espera o que a árvore
+verde produz hoje. Para repetir a medição e arquivar a saída, sem segredo, em
+qualquer máquina:
 
 ```bash
 node scripts/baseline.mjs --so-listar   # mostra o roteiro, sem executar nada
 node scripts/baseline.mjs               # roda tudo e arquiva em docs/evidencias-v2/G00/V2-F00-E01/saidas
 ```
 
-Cada passo diz se o resultado "confere" com o esperado de 2026-09-30 ou se
-está "divergente". Divergente nunca é escondido: sai com código 1 e pede
-explicação. O passo a passo para uma segunda pessoa está em
+Cada passo diz se o resultado "confere", se está "divergente-explicada" (um
+achado nomeado, com o registro onde está descrito, e que só vale quando a saída
+bate com a descrição inteira) ou "divergente" (sem explicação). O código de
+saída é 0 (tudo confere), 1 (só divergência explicada) ou 3 (divergência sem
+explicação, que reprova); 2 é o roteiro quebrado. Hoje a única divergência
+explicada é o `expo-doctor` (V-DEP-4). O total de casos que o roteiro espera de
+cada suíte é conferido contra a árvore por `npm run conferir:numeros`:
+acrescentar teste sem declarar a diferença em `scripts/baseline.mjs` reprova ali.
+O passo a passo para uma segunda pessoa está em
 `docs/evidencias-v2/G00/V2-F00-E01/COMO-REPRODUZIR.md`.
 
 **Teste pulado tem regra (política T42).** Nenhum vermelho conhecido fica na base

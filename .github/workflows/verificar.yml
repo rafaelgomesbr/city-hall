@@ -691,22 +691,35 @@ jobs:
     # (RESUMO.md, INDEX.md com SHA-256, resultados.json e a saída de cada passo,
     # já redigida pelo próprio roteiro).
     #
-    # COMO LER O RESULTADO. O baseline sai com código 0 quando todo passo
-    # "confere", 1 quando algum fica "divergente", e 2 quando o próprio roteiro
-    # quebra (opção inválida, pasta ilegível). Este job:
-    #   - FALHA se o roteiro quebrar (código 2 ou outro), se faltar arquivo de
-    #     resultado ou se o número de resultados não bater com o de passos;
-    #   - PASSA, com aviso, se só houver divergência. Divergência não é falha de
-    #     roteiro: quem a avalia é o validador, lendo `RESUMO.md` e
-    #     `resultados.json` do artefato (um passo esperado vermelho que ficou
-    #     verde, ou o contrário, é achado a explicar, e não motivo para o job
-    #     derrubar o CI por si só).
+    # COMO LER O RESULTADO. O esperado do roteiro é o da árvore verde de hoje
+    # (V2-F00-E01, correção 1). Ele sai com:
+    #   0  todo passo "confere";
+    #   1  há divergência, mas SÓ de passo que declara `divergenciaExplicada`
+    #      (achado nomeado, com o registro onde está descrito; hoje o
+    #      `expo-doctor` 20 de 21, V-DEP-4) e cuja saída bate com a descrição
+    #      inteira;
+    #   3  há divergência SEM explicação (defeito, deriva externa nova ou
+    #      contabilidade atrasada);
+    #   2  o próprio roteiro quebrou (opção inválida, pasta ilegível).
+    # Este job:
+    #   - PASSA com o código 0;
+    #   - PASSA, com aviso, com o código 1: divergência explicada continua
+    #     visível no RESUMO e na página do run, mas não derruba o CI, porque a
+    #     decisão de subir os patches do Expo é do Rafael e não é defeito do
+    #     produto. Antes da correção 1 este tratamento era errado: o roteiro
+    #     esperava números velhos e saía 1 numa árvore verde, então o aviso era
+    #     ruído constante e escondia divergência de verdade;
+    #   - FALHA com o código 3 (divergência sem explicação), com o 2 ou outro,
+    #     se faltar arquivo de resultado, se o número de resultados não bater
+    #     com o de passos, ou se o código 1 vier com algum passo "divergente"
+    #     no resultados.json (o código e o arquivo têm de contar a mesma coisa).
     #
     # Dois passos merecem atenção. O `expo-doctor` e os dois `npm audit` dependem
-    # de rede e da base de avisos do dia, e o roteiro os espera vermelhos (20 de
-    # 21 verificações; avisos abertos): a divergência neles é esperada de tempos
-    # em tempos e aparece no RESUMO. O `auditar` fecha em 0 pela política do
-    # CP-03; se divergir, é achado a explicar.
+    # de rede e da base de avisos do dia. O `expo-doctor` espera 21 de 21 e hoje
+    # dá 20 de 21 (explicada, V-DEP-4); os dois `npm audit` esperam vermelho por
+    # desenho (a política do CP-03 está em `npm run auditar`, que espera 0). Um
+    # `npm audit` que fechar em 0, ou um advisory que derrube o `auditar`, faz o
+    # job FALHAR: é o que se quer, alguém precisa explicar.
     #
     # Só em push (ver o comentário do topo): é o job mais longo.
     name: Linha de base (baseline.mjs) em Linux
@@ -755,8 +768,12 @@ jobs:
           set -e -o pipefail
           echo "o baseline saiu com código $codigo"
 
+          if [ "$codigo" -eq 3 ]; then
+            echo "::error title=baseline com divergência sem explicação::há passo divergente do esperado e sem divergenciaExplicada. Leia o RESUMO.md e o resultados.json do artefato: ou se conserta, ou se nomeia e se registra."
+            exit 1
+          fi
           if [ "$codigo" -ne 0 ] && [ "$codigo" -ne 1 ]; then
-            echo "::error title=baseline quebrou::o roteiro saiu com código $codigo (0 confere, 1 divergente, outro é falha do roteiro)"
+            echo "::error title=baseline quebrou::o roteiro saiu com código $codigo (0 confere, 1 só divergência explicada, 3 divergência sem explicação, outro é falha do roteiro)"
             exit 1
           fi
           for f in RESUMO.md INDEX.md resultados.json; do
@@ -771,8 +788,13 @@ jobs:
             echo "::error title=baseline quebrou::o roteiro tem $esperados passos e o resultado traz $obtidos"
             exit 1
           fi
+          sem_explicacao="$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).filter((r) => r.status === 'divergente').length)" "$pasta/resultados.json")"
+          if [ "$sem_explicacao" != "0" ]; then
+            echo "::error title=baseline quebrou::o roteiro saiu com código $codigo, mas o resultados.json traz $sem_explicacao passo(s) divergente(s) sem explicação"
+            exit 1
+          fi
           if [ "$codigo" -eq 1 ]; then
-            echo "::warning title=baseline com divergência::há passo divergente do esperado. A avaliação é do validador, pelo RESUMO.md e resultados.json do artefato."
+            echo "::warning title=baseline com divergência explicada::só há divergência nomeada (veja o RESUMO.md do artefato: o passo e o registro que a explica)."
           fi
 
       - name: Resumo do baseline na página do run

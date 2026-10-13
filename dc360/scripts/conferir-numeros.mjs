@@ -26,11 +26,12 @@
  * Fica fora de `npm test` de propósito: ele chama o vitest, e chamar o vitest
  * de dentro do vitest é receita de processo pendurado.
  */
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { conferirContagensDoRoteiro, extrairContagem } from "./baseline.mjs";
 import { contarCasosDoAplicativo } from "./casos-do-aplicativo.mjs";
 import { varrerArvore } from "./portao-de-skip.mjs";
 
@@ -413,6 +414,49 @@ for (const [rotulo, valor] of Object.entries(VERDADE)) {
 }
 
 /*
+  O roteiro da linha de base (`scripts/baseline.mjs`) carrega o total esperado de
+  cada suíte. Este bloco o confere com a árvore, para que acrescentar teste sem
+  atualizar o roteiro REPROVE aqui, com a diferença e a tabela a atualizar na
+  mensagem (V2-F00-E01, correção 1: a promessa antiga de que o
+  `baseline.test.mjs` fazia isso era falsa, e o roteiro saiu 1 numa árvore
+  verde por causa dela).
+
+  Seis pacotes pela lista do vitest (que não enumera o pulo por ambiente, daí
+  `descontaPuladas`), o aplicativo pela leitura estática e `scripts/` pelo
+  próprio `node --test`: a conta dinâmica, porque o laço que gera caso vale um
+  por volta e o texto sozinho dá menos (226 contra 230 em 2026-10-13).
+*/
+function contarCasosDeScripts() {
+  const env = { ...process.env };
+  // Sem isto o `node --test` filho se acha filho de outro runner e imprime em outro formato.
+  delete env.NODE_TEST_CONTEXT;
+  const r = spawnSync(process.execPath, ["--test", "--test-reporter=tap", "scripts/*.test.mjs"], {
+    cwd: RAIZ,
+    env,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+    timeout: 5 * 60 * 1000,
+  });
+  const contagem = extrairContagem(r.stdout ?? "", "node-test");
+  if (contagem.total === undefined) {
+    console.log("\nNão consegui ler o total do `node --test` em scripts/. Confira antes de confiar no verde.");
+    process.exit(1);
+  }
+  return contagem.total;
+}
+
+const problemasDoRoteiro = conferirContagensDoRoteiro({
+  "teste-shared": { quantos: porPacote.shared, descontaPuladas: true },
+  "teste-db": { quantos: porPacote.db, descontaPuladas: true },
+  "teste-campo-pacote": { quantos: porPacote.campo, descontaPuladas: true },
+  "teste-api": { quantos: porPacote.api, descontaPuladas: true },
+  "teste-console": { quantos: porPacote.console, descontaPuladas: true },
+  "teste-web": { quantos: porPacote.web, descontaPuladas: true },
+  "teste-campo-app": { quantos: app },
+  "test-scripts": { quantos: contarCasosDeScripts() },
+});
+
+/*
   O que a lista estática NÃO enxerga, dito na saída em vez de calado.
 
   `vitest list` só enumera o caso que a coleta registra para rodar: o que está
@@ -467,6 +511,16 @@ if (soPorValor.length > 0) {
   for (const s of soPorValor) console.log(`    ${s}`);
 }
 
+if (problemasDoRoteiro.length > 0) {
+  console.log(`\nO roteiro da linha de base não confere com a árvore (${problemasDoRoteiro.length}):\n`);
+  for (const p of problemasDoRoteiro) console.log(`  ${p}\n`);
+  console.log("Atualize as tabelas de esperado em scripts/baseline.mjs: o roteiro não pode esperar um número velho.");
+} else {
+  console.log("\nO roteiro da linha de base (scripts/baseline.mjs) espera o mesmo total de casos que a árvore tem, nas oito suítes.");
+}
+
+// Só o roteiro desatualizado também reprova; com problema de texto, o bloco abaixo imprime e sai.
+if (problemasDoRoteiro.length > 0 && problemas.length === 0) process.exit(1);
 if (problemas.length > 0) {
   console.log(`\nAfirmações que não batem (${problemas.length}):\n`);
   for (const p of problemas) console.log(`  ${p}\n`);

@@ -1,0 +1,161 @@
+$ npx jest --silent   (em apps/campo)
+codigo=0 duracao=61s situacao=confere
+
+PASS src/__tests__/perfil-a-sessao-que-terminou-e-o-aviso-que-fecha.test.tsx (22.877 s)
+PASS src/ui/dialogo-na-vistoria.test.tsx (23.756 s)
+PASS src/__tests__/vistoria-nao-sai-quebrada.test.tsx (24.256 s)
+PASS src/__tests__/perfil-o-que-eu-conclui.test.tsx (24.333 s)
+PASS src/__tests__/tarefas-em-sanfona.test.tsx (24.224 s)
+PASS src/ui/fila-como-produto.test.tsx (24.472 s)
+PASS src/__tests__/perfil-equipe-e-concluidas.test.tsx (24.542 s)
+PASS src/__tests__/devolver-tarefa-vencida.test.tsx (26.989 s)
+PASS src/__tests__/a-sessao-que-terminou-nao-e-falta-de-sinal.test.tsx
+PASS src/ui/dialogo-na-conta-com-vistoria-comecada.test.tsx
+PASS src/__tests__/a-sessao-vencida-nao-apaga-a-vistoria.test.tsx
+PASS src/__tests__/vistoria-mapa-e-historico.test.tsx (28.075 s)
+PASS src/push/logout-cala-o-aparelho.test.tsx
+(node:17284) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/__tests__/hoje-lista-e-mapa.test.tsx
+PASS src/ui/dialogo-na-conta.test.tsx
+PASS src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx (29.733 s)
+PASS src/__tests__/menu-de-vidro-e-transicoes.test.tsx (5.507 s)
+PASS src/__tests__/perfil-identidade-e-estado.test.tsx (5.149 s)
+PASS src/__tests__/tela-de-vistoria.test.tsx (30.726 s)
+(node:64508) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/__tests__/lista-de-tarefas-nao-pula.test.tsx
+PASS src/__tests__/perfil-a-foto-os-numeros-e-a-equipe.test.tsx (31.179 s)
+PASS src/__tests__/vistoria-ao-voltar-ao-foco.test.tsx
+PASS src/__tests__/tema-a-escolha-do-agente.test.tsx
+PASS src/__tests__/a-lista-de-tarefas-entra-e-sai.test.tsx
+PASS src/ui/artefato-de-documento.test.tsx
+PASS src/__tests__/perfil-caminho-para-os-ajustes.test.tsx
+PASS src/__tests__/vistoria-ja-coletada.test.tsx
+PASS src/ui/dialogo-na-fila.test.tsx
+PASS src/__tests__/o-cartao-responde-ao-dedo.test.tsx
+PASS src/__tests__/perfil-um-indicador-por-fato.test.tsx
+PASS src/__tests__/mapa-tela-dedicada.test.tsx (33.226 s)
+PASS src/ui/corrigir-na-fila.test.tsx
+PASS src/__tests__/a-vistoria-recebida-sai-da-lista.test.tsx
+PASS src/__tests__/lista-de-tarefas-coletadas.test.tsx
+(node:77412) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/ui/fila-pausada-pela-sessao.test.tsx
+PASS src/__tests__/vistoria-sessao-vencida-preserva-o-rascunho.test.tsx
+PASS src/ui/folha-arrastavel.test.tsx
+PASS src/__tests__/vistoria-ainda-nao-baixada.test.tsx
+(node:75432) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/ui/devolucao-na-fila.test.tsx
+PASS src/ui/dialogo.test.tsx
+PASS src/ui/icones.test.tsx
+PASS src/__tests__/perfil-o-atalho-dos-avisos.test.tsx
+PASS src/__tests__/orgaos-a-acionar.test.tsx (34.913 s)
+PASS src/__tests__/mapa-a-legenda-nao-mente.test.tsx
+PASS src/__tests__/a-aba-nao-fica-escura.test.tsx
+PASS src/ui/mapa/mapa-do-imovel.test.tsx
+PASS src/__tests__/avisos-a-tela-do-sino.test.tsx
+PASS src/ui/item-de-tarefa.test.tsx
+PASS src/ui/linha-de-acoes.test.tsx
+PASS src/ui/folha-de-escolha.test.tsx
+PASS src/ui/escolha-de-mapa.test.tsx
+PASS src/ui/grafico.test.tsx
+PASS src/__tests__/entrar-responde-ao-dedo.test.tsx
+PASS src/push/registro-tenta-de-novo.test.tsx
+PASS src/ui/faixa-de-sincronizacao.test.tsx
+PASS src/push/tarefa-nova-com-o-aplicativo-aberto.test.tsx
+PASS src/push/provedor-descarta-outro-municipio.test.tsx
+PASS src/ui/mapa/plano-das-tarefas.test.tsx
+PASS src/ui/resposta-ao-toque.test.tsx
+PASS src/ui/campo.test.tsx
+PASS src/push/volta-do-segundo-plano.test.tsx
+PASS src/ui/guarda-de-saida-da-vistoria.test.tsx
+PASS src/ui/mapa/plano-esquematico.test.tsx
+PASS src/ui/chip.test.tsx
+PASS src/ui/dado-que-conta.test.tsx
+PASS src/ui/sino.test.tsx
+PASS src/ui/pilula-do-produto.test.tsx
+PASS src/push/despacho-toca-uma-vez.test.tsx
+PASS src/ui/cracha.test.tsx
+PASS src/ui/identidade-do-produto.test.tsx
+PASS src/ui/aviso-e-vazio.test.tsx
+PASS src/ui/botoes-que-chamam.test.tsx
+PASS src/ui/mapa/desenho-da-criticidade.test.tsx
+PASS src/ui/mapa/use-mapa-do-municipio.test.tsx
+PASS src/ui/espera.test.tsx
+PASS src/ui/elevacao-no-cartao.test.tsx
+PASS src/ui/avatar.test.tsx
+PASS src/dados/token.test.ts
+PASS src/ui/cena-da-aba.test.tsx
+PASS src/ui/item-de-lista.test.tsx
+(node:31404) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/dados/tarefa-nova-avisa.test.ts
+(node:66360) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/ui/fontes.test.tsx
+PASS src/dados/troca-de-conta-com-pedido-em-voo.test.ts
+(node:25820) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/dados/sair-e-entrar-nao-perde-a-coleta.test.ts
+PASS src/dados/rascunho-de-versao-antiga.test.ts
+(node:122608) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/dados/rota.test.ts
+PASS src/dados/sessao.test.tsx
+PASS src/push/canal-padrao-do-android.test.ts
+PASS src/dados/ordem-do-dia.test.ts
+PASS src/dados/mapa.test.ts
+(node:21560) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:59000) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/dados/coletas.test.ts
+PASS src/dados/mapa-de-base.test.ts
+(node:60920) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/dados/preferencia-de-tema.test.ts
+PASS src/dados/contagem-de-avisos.test.tsx
+PASS src/dados/logout-nao-apaga-prova.test.ts
+PASS src/dados/rascunho-da-correcao.test.ts
+PASS src/dados/evidencia-no-disco.test.ts
+PASS src/dados/historico-da-casa.test.ts
+PASS src/push/registro.test.ts
+PASS src/dados/foto-do-agente.test.ts
+PASS src/dados/lista-cortada.test.ts
+PASS src/dados/avisos.test.ts
+PASS src/push/aviso.test.ts
+PASS src/dados/pausa-da-fila.test.ts
+PASS src/dados/api-avisos.test.ts
+PASS src/dados/falha-de-atualizacao.test.ts
+PASS src/ui/tokens-que-faltavam.test.ts
+PASS src/push/aviso-local.test.ts
+PASS src/push/canais.test.ts
+PASS src/dados/numeros-do-agente.test.ts
+PASS src/ui/mapa/estilo-do-google.test.ts
+PASS src/ui/mapa/criticidade.test.ts
+(node:66088) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/dados/reconciliacao-ligada.test.ts
+PASS src/ui/retorno-tatil.test.ts
+PASS src/dados/correcao-da-coleta.test.ts
+PASS src/dados/lista-cortada-no-cliente.test.ts
+PASS src/dados/precisao-do-gps.test.ts
+PASS src/ui/hierarquia.test.ts
+PASS src/dados/catalogo-de-orgaos.test.ts
+PASS src/push/permissao.test.ts
+PASS src/dados/api-acesso-suspenso.test.ts
+PASS src/dados/conquistas.test.ts
+PASS src/dados/api-tempo-limite.test.ts
+PASS src/dados/aviso-da-saida.test.ts
+PASS src/dados/api-conta-desativada.test.ts
+PASS src/dados/api-aparelho.test.ts
+PASS src/dados/atualizacao.test.ts
+PASS src/ui/mapa/pinos.test.ts
+PASS src/__tests__/vistoria-como-produto.test.tsx (40.681 s)
+
+Test Suites: 129 passed, 129 total
+Tests:       1903 passed, 1903 total
+Snapshots:   0 total
+Time:        44.721 s

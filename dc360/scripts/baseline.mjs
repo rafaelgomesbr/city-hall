@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Repete a linha de base de 2026-09-30 e arquiva a saída, sem segredo.
+ * Repete a linha de base e arquiva a saída, sem segredo.
  *
  * O buraco que este arquivo fecha: o baseline do Baseline Zero (REL:01,
  * seção 3.4) foi medido numa única máquina, à mão, e nada dizia como outra
@@ -8,23 +8,45 @@
  * opinião de quem rodou por último. Aqui a ordem dos comandos, o que se espera
  * de cada um e o que fazer com a saída estão escritos em código.
  *
- * Três decisões que valem explicação:
+ * O ESPERADO É O DE HOJE. Em 2026-09-30 a linha era vermelha de propósito (63
+ * linhas, que a F00 consertou; a medição original segue arquivada em REL:01 3.4
+ * e nas saídas de 2026-10-05). Depois das correções 1 da fase, a árvore está
+ * verde, e o esperado de cada passo passou a ser o que a árvore verde produz.
+ * Roteiro que espera o vermelho velho sai com código 1 numa árvore saudável, e
+ * quem lê "divergente" deixa de saber se é defeito ou contabilidade atrasada
+ * (foi o que reprovou a E01 em 2026-10-13).
  *
- * 1. NÃO ESCONDE VERMELHO. A linha de base de hoje é vermelha de propósito
- *    (a E03 a E25 da fase F00 consertam). Cada passo carrega o resultado
- *    esperado de 2026-09-30, vermelho inclusive. O passo "confere" quando o
- *    resultado é o esperado, e "divergente" quando é outro, para melhor ou
- *    para pior. Divergente sai com código 1 e nunca é maquiado: ou se
- *    explica na evidência, ou se conserta.
+ * Quatro decisões que valem explicação:
  *
- * 2. A SAÍDA É REDIGIDA ANTES DE IR PARA O DISCO. O raw de 2026-09-30 chegou a
+ * 1. NÃO ESCONDE DIVERGÊNCIA. O passo "confere" quando o resultado é o
+ *    esperado. Quando é outro, há duas situações, e a diferença é a razão de
+ *    ser deste arquivo:
+ *    - "divergente-explicada": o passo declara em `divergenciaExplicada` um
+ *      achado NOMEADO (id, onde está registrado, motivo, código de saída e o
+ *      trecho exato da saída). Só vale se a saída bater com a descrição inteira;
+ *      saída diferente da descrita volta a ser "divergente". Hoje há uma só: o
+ *      `expo-doctor` (V-DEP-4).
+ *    - "divergente": sem explicação, ou com a explicação não casando. É defeito
+ *      do produto, deriva externa nova ou contabilidade atrasada; nunca é
+ *      maquiado: ou se conserta, ou se nomeia e se registra.
+ *    Código de saída: 0 tudo confere; 1 há divergência, mas SÓ explicada; 3 há
+ *    divergência sem explicação (reprova); 2 o próprio roteiro quebrou.
+ *
+ * 2. A CONTAGEM ESPERADA DE CADA SUÍTE TEM UMA FONTE ÚNICA E UM CONFERIDOR. As
+ *    tabelas abaixo (base mais o que cada etapa declarou mudar) são a única
+ *    fonte do total de cada suíte, e `npm run conferir:numeros` lê estas
+ *    tabelas (`conferirContagensDoRoteiro`) e as compara com os casos que a
+ *    árvore tem de verdade. Acrescentar teste sem declarar aqui reprova o
+ *    conferidor, com a diferença e o nome da tabela a atualizar.
+ *
+ * 3. A SAÍDA É REDIGIDA ANTES DE IR PARA O DISCO. O raw de 2026-09-30 chegou a
  *    trazer um JWT de teste dentro de uma asserção. JWT, `Bearer`, `Basic`,
  *    URL com usuário e senha e a pasta pessoal do usuário viram marcadores
  *    antes de qualquer gravação, e o travessão também (a regra de conteúdo do
  *    repositório reprova o caractere em `docs/`, onde a evidência mora). A varredura automática de segredo só chega
  *    com a F01-E04; até lá este filtro e a leitura humana são a defesa.
  *
- * 3. `--so-listar` imprime os comandos sem executar nada e sem criar pasta,
+ * 4. `--so-listar` imprime os comandos sem executar nada e sem criar pasta,
  *    para quem quer conferir o roteiro antes de gastar uma hora de máquina.
  *
  * O que ele NÃO faz: não conserta nada, não mexe no CI e não sobe banco.
@@ -59,9 +81,11 @@ export const SAIDA_PADRAO = join(
  * Quantos testes a própria E01 acrescenta ao `test:scripts`
  * (`baseline.test.mjs`). O baseline de 2026-09-30 mediu 165 sem ele; o total
  * esperado é 165 mais esta constante, e quem acrescentar teste ali atualiza
- * o número aqui.
+ * o número aqui. 16 da entrega original mais 10 da correção 1 (divergência
+ * explicada, código de saída, conferidor de contagens com número velho
+ * plantado).
  */
-export const TESTES_DA_E01_EM_SCRIPTS = 16;
+export const TESTES_DA_E01_EM_SCRIPTS = 26;
 
 /**
  * Quantos testes cada etapa SEGUINTE da fase F00 soma ao `test:scripts`, por ID.
@@ -69,10 +93,19 @@ export const TESTES_DA_E01_EM_SCRIPTS = 16;
  * `test-scripts` é 165 mais a E01 mais tudo o que está aqui. Sem este registro,
  * cada etapa nova que ganha teste em `scripts/` faria o roteiro marcar
  * "divergente" por um motivo bom (teste a mais), e o sinal de "divergente"
- * perderia valor. Regra: a etapa que cria um `scripts/*.test.mjs` acrescenta uma
- * linha aqui com a contagem de `test(` do arquivo e o nome dele na tabela
- * seguinte. O `baseline.test.mjs` confere as duas tabelas contra os arquivos,
- * então número esquecido reprova.
+ * perderia valor.
+ *
+ * Regra: a etapa que acrescenta teste em `scripts/` acrescenta uma linha aqui com
+ * quantos casos o `node --test` passou a imprimir a mais (conta DINÂMICA: o laço
+ * que gera caso vale um por volta, e três arquivos de `scripts/` fazem isso, por
+ * isso contar `test(` no texto dá 226 onde o node imprime 230).
+ *
+ * Quem confere: `npm run conferir:numeros` roda `node --test` em `scripts/`, lê o
+ * "# tests" e compara com o esperado do passo `test-scripts`, que é a soma desta
+ * tabela. Número esquecido reprova ali, com a diferença na mensagem. (A promessa
+ * antiga, "o baseline.test.mjs confere", era falsa: ele só olhava os arquivos da
+ * segunda tabela e contava só `test(` na coluna zero. Reprovou a E01 em
+ * 2026-10-13.)
  */
 export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F00-E02": 17, // scripts/portao-de-skip.test.mjs
@@ -96,15 +129,26 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     V2-F00-E19: `scripts/auditar.test.mjs` já existia com 7 casos (que a tabela
     nunca registrou) e a correção 1 acrescentou 13 (a regra do CP-03: sem prazo,
     prazo inválido, sem dono, sem motivo, vencida, válida, a lista real, e a
-    cópia adulterada do portão). Arquivo já existente: fora da tabela de
-    arquivos abaixo. Conferido por `node --test scripts/auditar.test.mjs`: 20.
+    cópia adulterada do portão). Conferido por `node --test scripts/auditar.test.mjs`: 20.
+    O arquivo entra na tabela de arquivos abaixo (a E01, correção 1, trocou o
+    contador de `test(` na coluna zero por um que vê `it(` com recuo; o antigo
+    dava 0 para este arquivo e por isso ele ficou de fora).
   */
   "V2-F00-E19": 20,
+  /*
+    V2-F00-E16, correção 1: `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs`
+    é novo, com 4 casos (o portão que impede o aplicativo de prometer envio em
+    segundo plano). Faltava aqui desde 81a5223; o roteiro de 2026-10-13 mostrava
+    226 esperado contra 230 obtidos.
+  */
+  "V2-F00-E16-correcao-1": 4,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */
 export const ARQUIVOS_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
   "V2-F00-E02": "portao-de-skip.test.mjs",
+  "V2-F00-E19": "auditar.test.mjs",
+  "V2-F00-E16-correcao-1": "portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs",
 };
 
 const SOMA_DAS_ETAPAS_SEGUINTES = Object.values(TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS).reduce((a, b) => a + b, 0);
@@ -340,6 +384,8 @@ export const MUDANCAS_DO_TESTE_WEB_POR_ETAPA = {
   "V2-F00-E18": { total: 3, falhas: 0 },
   // `apps/web/test/ler-fonte.test.ts` (7 casos: a mesma fonte em CRLF e em LF lê e recorta igual, o recorte aceita o texto cru, a chave de fechamento movida tira o onEnviar do bloco, função sem chave na coluna zero e assinatura ausente reprovam alto, CR solto fica). O vermelho de CRLF de `ocorrencia-encerramento.test.ts` fecha usando o helper novo `ler-fonte.ts` (apoio, não conta). O painel fecha sem vermelho.
   "V2-F00-E21": { total: 7, falhas: -1 },
+  // V2-F00-E09, correção 1: 3 casos em `acessibilidade.test.ts` (diálogos e barra inferior em tela estreita) e 3 em `devolucao.test.ts`. Faltava aqui desde 39051f7 (V-ROT-01): 643 esperado contra 649.
+  "V2-F00-E09-correcao-1": { total: 6, falhas: 0 },
 };
 export function esperadoDoTesteWeb() {
   return somarMudancas(BASE_DO_TESTE_WEB, MUDANCAS_DO_TESTE_WEB_POR_ETAPA);
@@ -422,18 +468,28 @@ export const MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA = {
   "V2-F00-E05-correcao-1": { total: 6, falhas: 0 },
   // V2-F00-E06, correcao 1: 13 casos (falha-de-atualizacao 5, pausa-da-fila 2, tela da fila 3, faixa 1, fila real com troca de conta 2).
   "V2-F00-E06-correcao-1": { total: 13, falhas: 0 },
+  // V2-F00-E15, correção 1: `vistoria-sessao-vencida-preserva-o-rascunho.test.tsx` (4 casos). Faltava aqui desde a5da710.
+  "V2-F00-E15-correcao-1": { total: 4, falhas: 0 },
+  // V2-F00-E16, correção 1: 19 casos (a foto sem frase própria, o teclado e a câmera, a falha de atualização, a pausa da fila e a fila como produto; dois `it.each` entram com uma linha por valor). Faltava aqui desde 81a5223: 1880 esperado contra 1903.
+  "V2-F00-E16-correcao-1": { total: 19, falhas: 0 },
 };
 export function esperadoDoTesteCampoApp() {
   return somarMudancas(BASE_DO_TESTE_CAMPO_APP, MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA);
 }
 
 /**
- * Os passos, na ordem em que se roda. `esperado` é o resultado de 2026-09-30
- * (REL:01, 3.4):
+ * Os passos, na ordem em que se roda. `esperado` é o resultado que a árvore
+ * verde produz hoje:
  *   - `codigo`: 0 (passa) ou "falha" (qualquer saída diferente de zero);
  *   - `total`, `falhas`, `puladas`: contagens, quando a ferramenta as imprime;
  *   - `contem`: trecho que a saída tem de trazer.
  * Passo sem `esperado` só registra.
+ *
+ * `divergenciaExplicada` (opcional) nomeia UM achado conhecido que faz o passo
+ * divergir do esperado: `id` (o do registro de vermelhos), `onde` (o arquivo e
+ * o item que o descrevem), `motivo`, `codigo` (o código de saída que o achado
+ * produz) e `contem` (os trechos que a saída tem de trazer). Só vale quando a
+ * saída bate com TUDO isso; fora disso o passo volta a ser "divergente".
  */
 export const PASSOS = [
   { id: "instalar", titulo: "npm ci (dc360)", cmd: "npm ci", cwd: ".", instalacao: true, esperado: { codigo: 0 } },
@@ -455,10 +511,48 @@ export const PASSOS = [
     nova quer dizer "faltou corrigir o número", e não regressão de produto.
   */
   { id: "conferir-numeros", titulo: "npm run conferir:numeros", cmd: "npm run conferir:numeros", cwd: ".", esperado: { codigo: 0, contem: "Todos os números da documentação batem com a realidade." } },
-  { id: "auditar", titulo: "npm run auditar", cmd: "npm run auditar", cwd: ".", esperado: { codigo: "falha" } },
+  /*
+    Verde desde a V2-F00-E19 (CP-03, alternativa B): vulnerabilidade em
+    dependência de runtime reprova; a de ferramenta de desenvolvimento aparece e
+    não reprova; as do aplicativo de campo são uma lista nomeada, com dono,
+    motivo e prazo (`scripts/auditar-excecoes.mjs`).
+  */
+  { id: "auditar", titulo: "npm run auditar", cmd: "npm run auditar", cwd: ".", esperado: { codigo: 0 } },
+  /*
+    Os dois `npm audit` crus CONTINUAM vermelhos por desenho, e é por isso que o
+    esperado deles é "falha": medem o que a política do CP-03 aceita (raiz: 3
+    avisos de ferramenta de desenvolvimento, entre eles dois críticos; campo: 61,
+    da árvore do Expo SDK 57). A decisão está no CP-03, com prazo das exceções
+    em 2027-01-05. Se algum dia um deles fechar em 0, o passo diverge de
+    propósito: é a notícia de que a exceção pode sair.
+  */
   { id: "audit-raiz", titulo: "npm audit (dc360)", cmd: "npm audit", cwd: ".", esperado: { codigo: "falha" } },
   { id: "audit-campo", titulo: "npm audit (apps/campo)", cmd: "npm audit", cwd: "apps/campo", esperado: { codigo: "falha" } },
-  { id: "expo-doctor", titulo: "npx expo-doctor", cmd: "npx expo-doctor", cwd: "apps/campo", esperado: { codigo: "falha", contem: "20/21 checks passed" } },
+  /*
+    O esperado é o verde de verdade: 21 de 21. Hoje a árvore dá 20 de 21 por
+    DERIVA EXTERNA, e o roteiro a nomeia em vez de aceitá-la calado: o Expo
+    publicou patches (seis pacotes um patch atrás do que o SDK 57 exige) depois
+    do 21 de 21 de 2026-10-08, e o repositório não subiu nenhum de propósito
+    (subir patch sem a suíte do aplicativo e o prebuild não é conserto de uma
+    linha, e o CP-03 não quer misturar SDK 57 e 58). Registro: item 17 de
+    `apps/campo/PENDENCIAS.md`; na classificação da E03 é V-DEP-4. Quando o
+    Rafael subir os patches, o passo passa a "confere" sozinho e a explicação
+    deve sair daqui.
+  */
+  {
+    id: "expo-doctor",
+    titulo: "npx expo-doctor",
+    cmd: "npx expo-doctor",
+    cwd: "apps/campo",
+    esperado: { codigo: 0, contem: "21/21 checks passed" },
+    divergenciaExplicada: {
+      id: "V-DEP-4",
+      onde: "dc360/apps/campo/PENDENCIAS.md, item 17",
+      motivo: "seis pacotes do Expo um patch atrás do que o SDK 57 exige hoje (deriva externa, o 21 de 21 era de 2026-10-08); atualizar é decisão do Rafael",
+      codigo: 1,
+      contem: ["20/21 checks passed", "Check that packages match versions required by installed Expo SDK"],
+    },
+  },
   {
     id: "e2e",
     titulo: "npm run test:e2e (painel local, com o painel servido)",
@@ -492,8 +586,20 @@ export const PASSOS = [
     quando tudo passava (roteiro). 271 verificacoes executadas: o `conferir`
     conta as 251 chamadas de `ok(` no inicio de linha, e as demais ficam dentro
     de laco ou de funcao, e so aparecem na execucao.
+
+    Desde a V2-F00-E09 (correcao 1) o comando roda DOIS arquivos em sequencia e
+    cada um imprime o seu "Passou:": o fluxo contra a API (279 verificacoes
+    executadas; eram 271 ate a E18) e a largura estreita
+    (`layout-estreito.e2e.mjs`, 50, onde a correcao conferiu dialogos e barra
+    inferior). Os dois trechos tem de aparecer.
   */
-  { id: "e2e-api", titulo: "npm run test:e2e:api", cmd: "npm run test:e2e:api", cwd: ".", esperado: { codigo: 0, contem: "Passou: 271   Falhou: 0" } },
+  {
+    id: "e2e-api",
+    titulo: "npm run test:e2e:api",
+    cmd: "npm run test:e2e:api",
+    cwd: ".",
+    esperado: { codigo: 0, contem: ["Passou: 279   Falhou: 0", "Passou: 50   Falhou: 0"] },
+  },
 ];
 
 /** Marcadores no lugar de segredo (e do travessão). Cada regra roda antes de qualquer gravação. */
@@ -560,10 +666,79 @@ export function avaliar(passo, saida, codigo) {
     if (contagem[campo] === undefined) detalhes.push(`${campo}: a saída não traz a contagem`);
     else if (contagem[campo] !== esperado[campo]) detalhes.push(`${campo}: obtido ${contagem[campo]}, esperado ${esperado[campo]}`);
   }
-  if (esperado.contem && !saida.replace(SEM_COR, "").includes(esperado.contem)) {
-    detalhes.push(`a saída não contém "${esperado.contem}"`);
+  // `contem` é um trecho ou uma lista deles (o E2E da API imprime dois "Passou:", um por arquivo).
+  for (const trecho of [esperado.contem ?? []].flat()) {
+    if (!saida.replace(SEM_COR, "").includes(trecho)) detalhes.push(`a saída não contém "${trecho}"`);
   }
-  return { status: detalhes.length ? "divergente" : "confere", detalhes };
+  if (detalhes.length === 0) return { status: "confere", detalhes };
+  const explicada = passo.divergenciaExplicada;
+  if (explicada && explicacaoServe(explicada, saida, codigo)) {
+    return {
+      status: "divergente-explicada",
+      detalhes,
+      explicacao: { id: explicada.id, onde: explicada.onde, motivo: explicada.motivo },
+    };
+  }
+  return { status: "divergente", detalhes };
+}
+
+/** A explicação só vale quando a saída bate com a descrição inteira: código de saída e todos os trechos. */
+function explicacaoServe(explicada, saida, codigo) {
+  const limpo = saida.replace(SEM_COR, "");
+  return codigo === explicada.codigo && explicada.contem.every((trecho) => limpo.includes(trecho));
+}
+
+/**
+ * Nomes das tabelas onde cada etapa declara o que muda na contagem do passo,
+ * para a mensagem do conferidor dizer ONDE atualizar.
+ */
+const TABELA_DO_PASSO = {
+  "teste-shared": "MUDANCAS_DO_TESTE_SHARED_POR_ETAPA",
+  "teste-db": "MUDANCAS_DO_TESTE_DB_POR_ETAPA",
+  "teste-campo-pacote": "MUDANCAS_DO_TESTE_CAMPO_PACOTE_POR_ETAPA",
+  "teste-api": "MUDANCAS_DO_TESTE_API_POR_ETAPA",
+  "teste-console": "o número do próprio passo (teste-console)",
+  "teste-web": "MUDANCAS_DO_TESTE_WEB_POR_ETAPA",
+  "teste-campo-app": "MUDANCAS_DO_TESTE_CAMPO_APP_POR_ETAPA",
+  "test-scripts": "TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS",
+};
+
+/**
+ * Compara o total que o roteiro ESPERA de cada suíte com os casos que a árvore
+ * TEM, e devolve uma frase por problema (lista vazia quando tudo bate).
+ *
+ * `medidas` é `{ idDoPasso: { quantos, descontaPuladas } }`, medido por quem
+ * chama (`conferir-numeros.mjs`: `vitest list` por pacote, a leitura estática do
+ * aplicativo e o `node --test` de `scripts/`). `descontaPuladas` vale para a
+ * lista do vitest, que não enumera o pulo por ambiente que avalia falso na
+ * coleta: o total que o vitest IMPRIME é a lista mais esses pulos.
+ *
+ * Passo do roteiro com total esperado e sem medida também reprova: é a brecha
+ * por onde uma suíte nova escaparia da conferência.
+ */
+export function conferirContagensDoRoteiro(medidas, passos = PASSOS) {
+  const problemas = [];
+  for (const passo of passos) {
+    if (passo.esperado?.total === undefined) continue;
+    if (!(passo.id in medidas)) {
+      problemas.push(`${passo.id}: o roteiro espera ${passo.esperado.total} casos, mas nenhuma medida foi feita desta suíte. Meça-a em scripts/conferir-numeros.mjs.`);
+    }
+  }
+  for (const [id, medida] of Object.entries(medidas)) {
+    const passo = passos.find((p) => p.id === id);
+    if (passo?.esperado?.total === undefined) {
+      problemas.push(`${id}: foi medido, mas o roteiro (scripts/baseline.mjs) não declara total para este passo.`);
+      continue;
+    }
+    const esperado = medida.descontaPuladas ? passo.esperado.total - (passo.esperado.puladas ?? 0) : passo.esperado.total;
+    if (esperado === medida.quantos) continue;
+    const diferenca = medida.quantos - esperado;
+    problemas.push(
+      `${id} (${passo.cmd}): o roteiro (scripts/baseline.mjs) espera ${esperado} casos e a árvore tem ${medida.quantos} ` +
+        `(${diferenca > 0 ? "+" : ""}${diferenca}). A etapa que mexeu nos testes declara a diferença em ${TABELA_DO_PASSO[id] ?? "scripts/baseline.mjs"}.`,
+    );
+  }
+  return problemas;
 }
 
 export function listarComandos(passos = PASSOS) {
@@ -690,17 +865,23 @@ export function montarResumo(resultados, quando) {
   const linhas = [
     "# Resumo da linha de base",
     "",
-    `Gerado em ${quando}. Resultado esperado: o de 2026-09-30 (REL:01, seção 3.4), vermelhos inclusive.`,
+    `Gerado em ${quando}. Resultado esperado: o da árvore verde de hoje (a linha vermelha de 2026-09-30, REL:01 seção 3.4, é o histórico). Situações: confere; divergente-explicada (achado nomeado, ver o detalhe); divergente (sem explicação, reprova).`,
     "",
     "| Passo | Comando | Saída | Duração | Situação | Detalhe |",
     "| --- | --- | --- | --- | --- | --- |",
   ];
   for (const r of resultados) {
     const s = Math.round(r.duracaoMs / 1000);
-    linhas.push(`| ${r.id} | \`${r.cmd}\` (${r.cwd}) | ${r.codigo} | ${s} s | ${r.status} | ${r.detalhes.join("; ") || "-"} |`);
+    const nota = r.explicacao ? ` EXPLICADA por ${r.explicacao.id} (${r.explicacao.onde}): ${r.explicacao.motivo}` : "";
+    linhas.push(`| ${r.id} | \`${r.cmd}\` (${r.cwd}) | ${r.codigo} | ${s} s | ${r.status} | ${(r.detalhes.join("; ") + nota).trim() || "-"} |`);
   }
-  const diverge = resultados.filter((r) => r.status === "divergente").length;
-  linhas.push("", `Divergentes: ${diverge} de ${resultados.length}.`, "");
+  const sem = resultados.filter((r) => r.status === "divergente").length;
+  const explicadas = resultados.filter((r) => r.status === "divergente-explicada");
+  linhas.push(
+    "",
+    `Conferem: ${resultados.filter((r) => r.status === "confere").length} de ${resultados.length}. Divergentes sem explicação: ${sem}. Divergentes explicadas: ${explicadas.length}${explicadas.length ? ` (${explicadas.map((r) => `${r.id} por ${r.explicacao.id}`).join(", ")})` : ""}.`,
+    "",
+  );
   return linhas.join("\n");
 }
 
@@ -738,7 +919,16 @@ async function principal() {
   await writeFile(join(pasta, "resultados.json"), JSON.stringify(resultados, null, 2) + "\n");
   await writeFile(join(pasta, "RESUMO.md"), montarResumo(resultados, quando));
   await writeFile(join(pasta, "INDEX.md"), await montarIndice(pasta));
-  return resultados.some((r) => r.status === "divergente") ? 1 : 0;
+  return codigoDeSaida(resultados);
+}
+
+/**
+ * 0: tudo confere. 1: há divergência, mas só explicada. 3: há divergência sem
+ * explicação. O 2 é do roteiro quebrado (ver o final deste arquivo).
+ */
+export function codigoDeSaida(resultados) {
+  if (resultados.some((r) => r.status === "divergente")) return 3;
+  return resultados.some((r) => r.status === "divergente-explicada") ? 1 : 0;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

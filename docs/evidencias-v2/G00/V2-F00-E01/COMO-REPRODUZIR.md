@@ -2,12 +2,14 @@
 
 Para quem vai repetir a medição numa máquina sem estado prévio do projeto: uma segunda pessoa, ou o Rafael noutro computador. Leva cerca de uma hora e meia, a maior parte em espera.
 
+Este texto foi reescrito na correção 1 da etapa (2026-10-13). O roteiro deixou de esperar a linha vermelha de 2026-09-30 e passou a esperar o que a árvore verde produz hoje. A linha vermelha original ficou preservada na seção "Histórico" no fim.
+
 ## O que a máquina precisa ter
 
 - Node 22 (o arquivo `dc360/.nvmrc` diz `22`). Com `nvm`, `nvm use` dentro de `dc360`.
 - npm 10 (vem com o Node 22).
 - Git, e acesso de leitura ao repositório (privado).
-- Acesso à internet: `npm ci`, o download dos navegadores do Playwright e o `expo-doctor` precisam.
+- Acesso à internet: `npm ci`, o download dos navegadores do Playwright, o `npm audit` e o `expo-doctor` precisam.
 - Cerca de 6 GB livres em disco.
 
 ## Passo a passo
@@ -35,19 +37,52 @@ Para quem vai repetir a medição numa máquina sem estado prévio do projeto: u
 
    Não use `--sem-instalar` numa máquina nova: ele existe para quem já tem as árvores instaladas e não quer apagá-las. Para repetir só alguns passos: `--so=typecheck,teste-db`.
 
-6. Abra `RESUMO.md` na pasta de saída. Cada linha diz `confere` (o resultado é o esperado de 2026-09-30, vermelho inclusive) ou `divergente` (é outro, para melhor ou para pior). Divergência tem de ter explicação escrita: versão de dependência que mudou, advisory novo, diferença de sistema operacional.
+6. Olhe o código de saída e abra `RESUMO.md` na pasta de saída.
+
+## Como ler o resultado
+
+O código de saída do roteiro diz o que esperar:
+
+| Código | Significa | O que fazer |
+| --- | --- | --- |
+| 0 | Todos os 19 passos "confere" | Nada. |
+| 1 | Há divergência, mas SÓ de passo "divergente-explicada" | Ler a linha do `RESUMO.md`: ela traz o nome do achado e o arquivo que o descreve. |
+| 3 | Há passo "divergente" (sem explicação) | É defeito, deriva externa nova ou contabilidade atrasada. Não se anexa um resumo assim sem explicar cada linha. |
+| 2 | O próprio roteiro quebrou (opção inválida, pasta ilegível) | Corrigir o roteiro. |
+
+Cada linha do `RESUMO.md` tem uma situação:
+
+- `confere`: o resultado é o esperado (código de saída, contagens e trecho da saída).
+- `divergente-explicada`: o resultado difere do esperado, mas é um achado conhecido, NOMEADO no próprio roteiro, e a saída bate com a descrição inteira (código de saída e trechos). A divergência continua escrita na linha; ela só deixa de ser um mistério.
+- `divergente`: o resultado é outro e ninguém o explicou. Pode ser melhor ou pior que o esperado; nos dois casos é achado.
 
 ## O que esperar
 
-A linha de base é vermelha de propósito: as etapas V2-F00-E02 a E25 consertam. Os números esperados estão em `RESUMO.md` e em `PASSOS` dentro de `scripts/baseline.mjs`. Em resumo, de 2026-09-30:
+O esperado de cada passo está em `PASSOS`, dentro de `scripts/baseline.mjs`, e o total de casos de cada suíte é a soma de uma base mais o que cada etapa da fase F00 declarou mudar. Em resumo, na árvore verde de 2026-10-13:
 
-- passam: `typecheck`, db (318 testes, 3 pulados de propósito), `packages/campo` (159), console (259);
-- falham: shared (1 de 149, o travessão), web (14 de 550), API (2 de 1109, mais 18 pulados), jest do aplicativo (20 de 1801), `test:scripts` (3), `conferir:numeros` (13 afirmações), `auditar`, `npm audit` das duas árvores, `expo-doctor` (20 de 21) e os dois E2E.
+- passam, com código 0: `typecheck`, as suítes de `packages/shared`, `db` (inclui o isolamento, com 3 pulados por ambiente em `busca.test.ts`), `packages/campo`, `apps/api` (sem nenhum pulado), `apps/console` e `apps/web`, o jest do aplicativo de campo, `npm run test:campo`, `npm run test:scripts` (4 pulados por ambiente, a pasta `ios/` que não existe), `conferir:numeros`, `auditar` e os dois E2E;
+- falham de propósito: os dois `npm audit` crus (raiz e `apps/campo`). A política do CP-03 aceita o que eles apontam, e quem decide é o `auditar`, que sai 0. Se um deles fechar em 0, o passo diverge de propósito: é a notícia de que a exceção pode sair;
+- uma divergência EXPLICADA: o `expo-doctor` dá 20 de 21, e o roteiro o nomeia como **V-DEP-4**. É deriva externa: o Expo publicou patches depois do 21 de 21 de 2026-10-08, e seis pacotes ficaram um patch atrás do que o SDK 57 exige. A atualização é decisão do Rafael e está descrita no item 17 de `dc360/apps/campo/PENDENCIAS.md`. Quando ela for feita, o passo passa a "confere" sozinho e a explicação deve sair do roteiro.
 
-Em Windows o `auditar` quebra por `spawnSync npm ENOENT`; em Linux e macOS isso não deve acontecer, e se não acontecer é uma divergência esperada e explicável (a etapa V2-F00-E21 trata).
+Portanto uma árvore verde e rede disponível dão código **1**, por V-DEP-4 e só por ela. Código 0 só volta quando os seis patches do Expo forem aplicados.
 
-## Anexar ao fechar a validação humana
+## Quem garante que o roteiro não fica velho
 
-- O último run do workflow **Verificar** no GitHub (link ou captura), porque o repositório é privado e o resultado do CI é NÃO CONFIRMADO sem isso.
-- O `RESUMO.md` da segunda máquina, com a explicação de cada divergência.
+O total esperado de cada suíte tem uma fonte única, as tabelas de `scripts/baseline.mjs`, e `npm run conferir:numeros` as lê (`conferirContagensDoRoteiro`) e compara com os casos que a árvore tem: `vitest list` por pacote, a leitura estática do aplicativo e o `node --test` de `scripts/`. Quem acrescenta ou remove teste sem declarar a diferença no roteiro reprova ali, com a diferença e o nome da tabela a atualizar na mensagem. O `conferir:numeros` roda no job do CI "Testes, tipos e scripts" em todo push.
+
+Isso não cobre, e é dito aqui para não parecer que cobre: as verificações que só existem na execução dos dois E2E de navegador (o "Passou: N" que eles imprimem ao terminar, conferido só pelo roteiro completo), e o conteúdo exato das saídas do `npm audit` e do `expo-doctor`.
+
+## Anexar ao fechar a validação
+
+- O último run do workflow **Verificar** no GitHub (link ou captura), porque o repositório é privado e o resultado do CI é NÃO CONFIRMADO sem isso. O job "Linha de base (baseline.mjs) em Linux" só roda com `[ci completo]` na mensagem do commit, por `workflow_dispatch` ou na rodada semanal.
+- O `RESUMO.md` da segunda máquina, com a explicação de qualquer divergência além de V-DEP-4.
 - Nada de segredo: o roteiro redige JWT, `Bearer`, `Basic`, URL com senha e a pasta pessoal, mas confira o texto antes de anexar.
+
+## Histórico: a linha vermelha de 2026-09-30
+
+Até a correção 1, este texto descrevia a linha de base como vermelha de propósito, com as etapas V2-F00-E02 a E25 consertando-a. Os números esperados eram os de 2026-09-30 (REL:01, seção 3.4):
+
+- passavam: `typecheck`, db (318 testes, 3 pulados de propósito), `packages/campo` (159), console (259);
+- falhavam: shared (1 de 149, o travessão), web (14 de 550), API (2 de 1109, mais 18 pulados), jest do aplicativo (20 de 1801), `test:scripts` (3), `conferir:numeros` (13 afirmações), `auditar`, `npm audit` das duas árvores, `expo-doctor` (20 de 21) e os dois E2E.
+
+Em Windows o `auditar` quebrava por `spawnSync npm ENOENT` (tratado na V2-F00-E21). Esses números seguem arquivados em `docs/auditoria-v2/` e em `docs/evidencias-v2/G00/V2-F00-E01/saidas/`. Não são mais o que o roteiro espera.
