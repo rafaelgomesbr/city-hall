@@ -92,7 +92,7 @@ município.
 | Exportação das tabelas em `CSV` e `JSON` | **Existe.** Uma planilha e um `JSON` por tabela, e são TODAS as tabelas do município, inclusive as que o banco ganhou depois (órgão, ofício, aviso, aparelho, registro de consulta). Um teste compara a lista com o que o banco tem, então tabela nova de migração futura obriga alguém a decidir se ela sai |
 | Exportação das fotografias e assinaturas | **Existe.** Arquivos originais, em pastas por protocolo. O que o banco promete e o armazenamento não tem vai para `PENDENCIAS-DA-EXTRACAO.txt` em vez de sumir |
 | Exportação dos documentos gerados | **Existe** para laudo, termo de interdição, termo de desinterdição e ofício, em `HTML` autossuficiente (estilo dentro do arquivo, imagens apontando para a pasta do próprio pacote). **Não sai em `PDF`**: o `HTML` imprime, e gerar milhares de `PDF` numa requisição só derrubaria o servidor |
-| O laudo do pacote diz o mesmo que o laudo emitido | **Sim, e isso passou a ser provado em 2026-10-06.** Até então a consulta de vistorias do montador do pacote juntava só `usuarios`, nunca as duas equipes da vistoria: o laudo que ia DENTRO do pacote saía sem o aviso de equipe divergente, enquanto o laudo que a rota `GET /documentos/:id/laudo` emitia, para a mesma vistoria, saía com ele. O município que levasse o pacote embora levaria o papel limpo, e é esse o papel que fica no processo depois de o contrato acabar. Agora as duas junções existem nos dois montadores, e o teste compara os dois documentos entre si: a seção 29 de `apps/web/test/fluxo-api.e2e.mjs` monta a divergência pela API de verdade (a coordenação despacha para a Equipe Bravo, o agente da Equipe Alfa envia a coleta), baixa o pacote pelo botão do painel e confere que o trecho do aviso é idêntico nos dois |
+| O laudo do pacote diz o mesmo que o laudo emitido | **Só em parte. O aviso de equipe divergente e a coordenada da vistoria saem iguais (provado); três diferenças continuam até a V2-F09-E02.** No pacote, a seção de fotografias mistura as fotos de todas as vistorias do protocolo (inclusive a foto avulsa, que o laudo da rota separa), e faltam duas seções que o laudo da rota imprime: "Fotografias anexadas ao protocolo" e "Registros capturados que não puderam ser recuperados". Quem usar o laudo do pacote como substituto do laudo emitido, sem conferir, pode ler um documento com foto atribuída à vistoria errada ou sem a ressalva de que um registro de campo se perdeu. O aviso de equipe passou a ser provado em 2026-10-06: até então a consulta de vistorias do montador do pacote juntava só `usuarios`, nunca as duas equipes da vistoria: o laudo que ia DENTRO do pacote saía sem o aviso de equipe divergente, enquanto o laudo que a rota `GET /documentos/:id/laudo` emitia, para a mesma vistoria, saía com ele. O município que levasse o pacote embora levaria o papel limpo, e é esse o papel que fica no processo depois de o contrato acabar. Agora as duas junções existem nos dois montadores, e o teste compara os dois documentos entre si: a seção 29 de `apps/web/test/fluxo-api.e2e.mjs` monta a divergência pela API de verdade (a coordenação despacha para a Equipe Bravo, o agente da Equipe Alfa envia a coleta), baixa o pacote pelo botão do painel e confere que o trecho do aviso é idêntico nos dois. Em 2026-10-13 a coordenada passou a sair igual também (duas colunas que a consulta do pacote não lia), e o bloco "campo por campo" de `apps/api/test/saida-de-municipio.test.ts` prende as três diferenças que restam: ele reprova se alguma delas for consertada ou se aparecer uma diferença nova, para este texto ser atualizado junto |
 | Índice ligando protocolo a arquivo | **Existe.** `INDICE.html` (abre por duplo clique, sem internet) e `INDICE.csv` na raiz, ligando protocolo, pasta, documentos e a linha correspondente de `tabelas/ocorrencias.csv` |
 | Esquema do banco | **Existe.** `esquema/`, com as próprias migrações comentadas, que explicam o que cada coluna significa |
 | Soma de verificação | **Existe.** `SOMAS-SHA256.txt`, um `SHA-256` por arquivo do pacote (menos ele mesmo) |
@@ -149,6 +149,18 @@ existir, campo novo que o laudo imprima tem de entrar nas duas consultas, e o
 teste que compara os dois documentos entre si (seção 29 do e2e, mais os casos de
 `apps/api/test/saida-de-municipio.test.ts`) é o que avisa quando isso é
 esquecido. A pendência está registrada em `apps/api/PENDENCIAS.md`.
+
+As diferenças que existem HOJE entre o laudo da rota e o do pacote, para a mesma
+vistoria (medidas em 2026-10-13 e travadas no bloco "campo por campo" do teste):
+
+| Diferença | Laudo da rota | Laudo do pacote | Estado |
+| --- | --- | --- | --- |
+| Aviso de equipe divergente | imprime | imprime, igual | **Igual** (E12) |
+| Coordenada da vistoria | imprime | imprime, igual | **Igual** (consertada na correção 1 da E12) |
+| Fotos do registro fotográfico | só as da vistoria vigente | as de TODAS as vistorias e a avulsa, numeradas como da vistoria | **Diferente** até a F09-E02 |
+| Seção "Fotografias anexadas ao protocolo" (fotos avulsas, com quem anexou) | imprime | não existe | **Diferente** até a F09-E02 |
+| Seção "Registros capturados que não puderam ser recuperados" | imprime | não existe | **Diferente** até a F09-E02 |
+| Endereço das imagens e identificador da emissão | endereço assinado, identificador próprio | caminho relativo dentro do pacote | Esperado, não é defeito |
 
 ---
 

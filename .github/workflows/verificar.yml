@@ -5,9 +5,11 @@
 # - Dependência com vulnerabilidade conhecida em runtime é bug, não pendência
 #   (CLAUDE.md). Quem decide é `npm run auditar`, a política do CP-03 já
 #   codificada, e não um `npm audit` cru. Ele roda no job `dependencias`, sozinho,
-#   para a leitura job a job ficar limpa. O CP-03 está ABERTO e hoje o `auditar`
-#   reprova por uma dependência de execução (`fastify`): job vermelho ali é o
-#   resultado ESPERADO e correto, e não se mascara com `continue-on-error`.
+#   para a leitura job a job ficar limpa. O CP-03 está decidido (2026-10-07):
+#   o runtime da raiz fecha em zero e o aplicativo de campo é auditado contra a
+#   lista nomeada de `scripts/auditar-excecoes.mjs` (motivo, dono e prazo).
+#   Job vermelho ali quer dizer dependência de execução vulnerável, exceção
+#   malformada ou prazo vencido, e não se mascara com `continue-on-error`.
 # - O portão CA-06, de isolamento entre municípios, roda separado e primeiro.
 #   É a regra número um do produto, e se ela quebrar nada mais importa.
 # - Os números que o README afirma são conferidos contra a realidade.
@@ -159,15 +161,16 @@ jobs:
     # A política do CP-03 (alternativa B), codificada em `scripts/auditar.mjs`:
     # vulnerabilidade em dependência de runtime reprova; em ferramenta de
     # desenvolvimento aparece e não reprova; o aplicativo de campo é auditado
-    # contra uma lista nomeada (`ACEITAS_NO_APLICATIVO`). Substitui os dois
+    # contra uma lista nomeada (`ACEITAS_NO_APLICATIVO`, em
+    # `scripts/auditar-excecoes.mjs`). Substitui os dois
     # `npm audit` crus que ficavam nos jobs `produto` e `aplicativo`.
     #
     # Job próprio de propósito: a leitura job a job fica limpa (vermelho aqui
     # quer dizer só "há dependência vulnerável") e nenhum outro passo espera
     # por ele. Não instala nada: `npm audit` lê o `package-lock.json`.
     #
-    # VERMELHO HOJE É O ESPERADO enquanto o CP-03 estiver aberto (o `fastify`
-    # de execução). Não pôr `continue-on-error`.
+    # Vermelho aqui é achado real (runtime vulnerável, exceção sem motivo, dono
+    # ou prazo, ou prazo vencido). Não pôr `continue-on-error`.
     name: Dependências com vulnerabilidade conhecida (auditar)
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -702,8 +705,8 @@ jobs:
     # Dois passos merecem atenção. O `expo-doctor` e os dois `npm audit` dependem
     # de rede e da base de avisos do dia, e o roteiro os espera vermelhos (20 de
     # 21 verificações; avisos abertos): a divergência neles é esperada de tempos
-    # em tempos e aparece no RESUMO. O `auditar` também é esperado vermelho
-    # enquanto o CP-03 estiver aberto.
+    # em tempos e aparece no RESUMO. O `auditar` fecha em 0 pela política do
+    # CP-03; se divergir, é achado a explicar.
     #
     # Só em push (ver o comentário do topo): é o job mais longo.
     name: Linha de base (baseline.mjs) em Linux

@@ -3,6 +3,17 @@
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | 4b7f8b25db26acd4f24832041c3b907fa5286acfe296d487e6535cd62a5ec254 |
+| VEREDITO.md | 26b83b6ea0fb477255a50c215498049ff669f1ed9edfc199bd84b570eba9e875 |
+| correcao-1/RESUMO.md | 86078882e53865af700b83aceb631d715561dd48737aa51062429ece4e8e9456 |
+| correcao-1/diff-da-correcao.patch | 21b854328acf59c8a1c35d76648db9050318387bdaed09f5e899b864b88f06f1 |
+| correcao-1/saidas/01-saida-de-municipio-ANTES-do-conserto.txt | 9ba6ceca671a21bf7b87b81f833d94644d23d2455a8eca6fe2a35ce4eb3e3232 |
+| correcao-1/saidas/02-saida-de-municipio-DEPOIS.txt | fe73e59536ce4a18d58d68255f5cffa098697407292384ad567f0e124edcc8b3 |
+| correcao-1/saidas/03-test-api-completa-DEPOIS.txt | 53ca7ede211002d81cfdeade28fb6a44b3b97a53b1453afd3594ad3e2ad422aa |
+| correcao-1/saidas/04-test-isolamento-DEPOIS.txt | 17ab7d9b63d54f87685491630ee29ca292a14a7288fa6afac3d7d6999df337e6 |
+| correcao-1/saidas/05-typecheck-DEPOIS.txt | 661758c3fab7c2e9592f37de6a237886eab752ef8f725eec3175dfccbbb1f8c6 |
+| correcao-1/saidas/06-conferir-numeros-DEPOIS.txt | 93c3abc0576efae998b1a3405bd7bb1cca4b5063d46d3bbd2b291239c69b4b9e |
+| correcao-1/saidas/07-portao-de-conteudo-DEPOIS.txt | 23735c827c84e1ebfdcdbc5872a63310bcfc6bfc2af2d9321032c7d1e3ada0c3 |
+| correcao-1/saidas/08-baseline-test-DEPOIS.txt | f0546dda8039948f16b62b5465d27490eb822c24fbe6ba7885cc4a56db946301 |
 | saidas/00-antes-api-saida-de-municipio.txt | fc5bbc9d0af61c11a639f1882810982c4baa50d05c334806163473cdc5242c43 |
 | saidas/01-sonda-e2e-antes-do-conserto.txt | da9eb47b45577e0027c2e03757f10c217278c8d08a524053d4b1a1fe2df35f3e |
 | saidas/02-api-saida-de-municipio-depois.txt | bdc4e933b92f5db0ec9e648d9e17d037341ec698440c62d87f094fbf1ffeb6ba |
@@ -20,3 +31,6 @@
 | sondas/e2e-aparado-secoes-28-29.mjs | 42e3480c0a129e566f474328e2c8db2829559f511b94b39c97ab7007a3ca63f0 |
 | trechos/trecho-do-aviso-chromium.txt | e4d475a2b12f601246703b64c785b0723aaf9dc2c58cabe2d60203bcda27362a |
 | trechos/trecho-do-aviso-firefox.txt | 4bf158b95b35c24f262ac3b51f265e0af6b25fdd779cbc229898a8f3929ab0aa |
+| validacao/7005a60/arbitragem.md | c8e3eb8b78daea4df25c8baab397c66acf8ea87be5f99a255cfc6e696efb74a4 |
+| validacao/7005a60/especificacao.md | a96eea5fff6ae2b00fece348c2609c3cb92dc785a12668877b186be0a98c390d |
+| validacao/7005a60/qa.md | fcb0097d21ea429716d2aca82f2f62ff7244967b2bd08379778d8c827c7f66f1 |

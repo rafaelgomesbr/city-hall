@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/saida-de-municipio.test.ts (28 tests) 6383ms
+
+ Test Files  1 passed (1)
+      Tests  28 passed (28)
+   Start at  07:04:27
+   Duration  9.07s (transform 397ms, setup 29ms, collect 2.25s, tests 6.38s, environment 0ms, prepare 156ms)
+

@@ -3,7 +3,14 @@
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | e6076dabb818e9fe9c7eb90d2ca74cf8902e4aaa5a70ad5b7931ab2fc83e178e |
-| correcao-1/RESUMO.md | 5eddb53a9561461e07860b671128a2da1806c3b19cc4a9218a6436aa3f4038d4 |
+| VEREDITO.md | 0a604319a9a53c58cd0d820c48f71932eddf0faf9ca9733c64423dc53f233c34 |
+| correcao-1/RESUMO.md | 34023a04e48879c130fe19fdf8bd0478cbaf192b54d36fb256bb6e81924630cf |
+| correcao-1/diff-da-correcao.patch | ad503200ccef2f8863676bee65229857e5af11e8d4e0420ea7faf58a440692dc |
+| correcao-1/saidas/01-conferir-numeros-DEPOIS.txt | 93c3abc0576efae998b1a3405bd7bb1cca4b5063d46d3bbd2b291239c69b4b9e |
+| correcao-1/saidas/02-portao-de-conteudo-DEPOIS.txt | 23735c827c84e1ebfdcdbc5872a63310bcfc6bfc2af2d9321032c7d1e3ada0c3 |
+| correcao-1/saidas/03-npm-run-auditar.txt | 8445563cfa46355aa6fbafa4bbfed2f31c849a88ce6b290ca59950ecaf1214c9 |
+| correcao-1/saidas/04-npm-audit-omit-dev-raiz.txt | 6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3 |
+| correcao-1/saidas/05-expo-doctor-campo.txt | d19777d35ee010f27cac3edea3656c54bc0a375bb74e730a5b51123a3fff9890 |
 | saidas/antes/audit-campo-runtime.txt | a528c1c75dfb55d40c08b126115a1ce37fb4bda3048a0585bdf1c854f47cbaa3 |
 | saidas/antes/audit-raiz-runtime.txt | 48cfb220bd1c60fb3182a0cc3c7730f7e5b22545de62daa30a0ca3bfbd27c477 |
 | saidas/antes/auditar.txt | 7317721a7dde62487f23c85cdf9f571fdac0676308253ceac4316c4dd5cedda5 |
@@ -29,3 +36,4 @@
 | saidas/npm-test.txt | 56696e6803a6af8d232201528bc9ca4c29b14480fba635cd6cb12f1f6de2009a |
 | saidas/sonda-103-contra-a-api.txt | 43d9ca95bf9f8b66c397002bb3ed476eee1263db3c76c67a82385f9d66c2c94c |
 | saidas/sonda-103-regex-antigo.txt | 9fa84d770fcb83cd335c6235eaf024afaf2cff9868b319325a92b63ac0941393 |
+| validacao/7005a60/qa.md | 6e5b4a5e40652f61e3cdaade496ff18c63f17feb7e7dfce9b0e81bbd2a21d8df |

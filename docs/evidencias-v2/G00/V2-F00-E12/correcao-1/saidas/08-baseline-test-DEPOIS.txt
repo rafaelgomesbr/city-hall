@@ -1,0 +1,106 @@
+TAP version 13
+# Subtest: redige um JWT colado num texto
+ok 1 - redige um JWT colado num texto
+  ---
+  duration_ms: 1.7592
+  type: 'test'
+  ...
+# Subtest: redige o valor de Authorization Bearer e Basic
+ok 2 - redige o valor de Authorization Bearer e Basic
+  ---
+  duration_ms: 0.1403
+  type: 'test'
+  ...
+# Subtest: redige usuário e senha de uma URL de banco
+ok 3 - redige usuário e senha de uma URL de banco
+  ---
+  duration_ms: 0.1185
+  type: 'test'
+  ...
+# Subtest: troca o nome do usuário nas pastas pessoais
+ok 4 - troca o nome do usuário nas pastas pessoais
+  ---
+  duration_ms: 0.0767
+  type: 'test'
+  ...
+# Subtest: troca o travessão, que a regra de conteúdo proíbe em docs
+ok 5 - troca o travessão, que a regra de conteúdo proíbe em docs
+  ---
+  duration_ms: 0.2283
+  type: 'test'
+  ...
+# Subtest: não mexe em texto comum
+ok 6 - não mexe em texto comum
+  ---
+  duration_ms: 0.0942
+  type: 'test'
+  ...
+# Subtest: lê as contagens do vitest
+ok 7 - lê as contagens do vitest
+  ---
+  duration_ms: 0.8944
+  type: 'test'
+  ...
+# Subtest: lê as contagens do node --test e do jest
+ok 8 - lê as contagens do node --test e do jest
+  ---
+  duration_ms: 0.2842
+  type: 'test'
+  ...
+# Subtest: sem contagem na saída o resultado é vazio, não zero
+ok 9 - sem contagem na saída o resultado é vazio, não zero
+  ---
+  duration_ms: 0.2276
+  type: 'test'
+  ...
+# Subtest: avaliar confere quando o resultado é o esperado, vermelho inclusive
+ok 10 - avaliar confere quando o resultado é o esperado, vermelho inclusive
+  ---
+  duration_ms: 0.3634
+  type: 'test'
+  ...
+# Subtest: avaliar marca divergente quando fica verde sem esperar, e quando a contagem muda
+ok 11 - avaliar marca divergente quando fica verde sem esperar, e quando a contagem muda
+  ---
+  duration_ms: 0.1902
+  type: 'test'
+  ...
+# Subtest: avaliar não aceita a ausência de contagem como confere
+ok 12 - avaliar não aceita a ausência de contagem como confere
+  ---
+  duration_ms: 0.0679
+  type: 'test'
+  ...
+# Subtest: a lista de passos tem ids únicos e o total de scripts soma a própria etapa
+ok 13 - a lista de passos tem ids únicos e o total de scripts soma a própria etapa
+  ---
+  duration_ms: 0.949
+  type: 'test'
+  ...
+# Subtest: o E2E do painel local declara o servidor que o teste exige
+ok 14 - o E2E do painel local declara o servidor que o teste exige
+  ---
+  duration_ms: 0.2849
+  type: 'test'
+  ...
+# Subtest: as opções recusam o que não conhecem e os filtros recusam passo inexistente
+ok 15 - as opções recusam o que não conhecem e os filtros recusam passo inexistente
+  ---
+  duration_ms: 0.4959
+  type: 'test'
+  ...
+# Subtest: --so-listar imprime os comandos, não executa nada e não cria a pasta de saída
+ok 16 - --so-listar imprime os comandos, não executa nada e não cria a pasta de saída
+  ---
+  duration_ms: 50.9554
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 131.8489

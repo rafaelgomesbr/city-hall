@@ -750,3 +750,111 @@ describe("O laudo do pacote avisa a equipe divergente igual ao laudo da rota", (
     }
   }, 60_000);
 });
+
+/* ==========================================================================
+   O laudo do pacote e o da rota, campo por campo (V2-F00-E12, correção 1).
+
+   Existem DOIS montadores de dados do laudo (`rotas/documentos.ts` e
+   `saida/pacote.ts`), e a documentação chegou a responder "Sim" a "o laudo do
+   pacote diz o mesmo que o laudo emitido" porque só o aviso de equipe tinha
+   sido comparado. A validação de 7005a60 gerou os dois laudos da mesma vistoria
+   e achou quatro diferenças. Este bloco prende o estado REAL:
+
+     - a coordenada da vistoria foi consertada (era trivial: duas colunas na
+       consulta do pacote) e tem de ser igual nos dois;
+     - as outras três diferenças continuam, são da V2-F09-E02 (montador único),
+       e estão TRAVADAS como diferenças conhecidas. Se alguém as conserta, o
+       teste reprova de propósito: é o aviso para apagar a ressalva de
+       `docs/SAIDA-DE-MUNICIPIO.md` e de `apps/api/PENDENCIAS.md` no mesmo
+       commit, em vez de a documentação envelhecer sozinha. Se alguém abre uma
+       diferença NOVA, reprova do mesmo jeito.
+
+   Fica depois do bloco do aviso de equipe e limpa o que cria.
+   ========================================================================== */
+
+describe("O laudo do pacote e o da rota, campo por campo", () => {
+  const CHAVE_AVULSA = `tenant/${ORG_SERRA_ALTA}/ocorrencias/${OCORRENCIA_C3}/avulsa-do-joao.jpg`;
+
+  async function laudoDoPacote(): Promise<string> {
+    const pacote = await baixarPacote(tokenAdministradora);
+    return pacote.get("documentos/000473-2026/laudo-de-vistoria.html")!.toString("utf8");
+  }
+
+  async function laudoDaRota(): Promise<string> {
+    const r = await app.inject({
+      method: "GET", url: `/documentos/${OCORRENCIA_C3}/laudo`, headers: com(tokenCoordenadora),
+    });
+    expect(r.statusCode).toBe(200);
+    return r.body;
+  }
+
+  const titulos = (html: string) => [...html.matchAll(/<h2>([\s\S]*?)<\/h2>/g)].map((m) => m[1]!.trim());
+
+  /** O texto de uma seção: do título até o próximo `<h2>` (ou o fim). */
+  function secao(html: string, titulo: string): string {
+    const inicio = html.indexOf(`<h2>${titulo}</h2>`);
+    if (inicio < 0) return "";
+    const fim = html.indexOf("<h2>", inicio + 1);
+    return html.slice(inicio, fim < 0 ? undefined : fim);
+  }
+
+  beforeAll(async () => {
+    await mem.bruto.exec(`
+      UPDATE vistorias SET latitude = -22.9, longitude = -43.2 WHERE id = '${VISTORIA_F1}';
+
+      INSERT INTO evidencias
+        (organizacao_id, ocorrencia_id, vistoria_id, chave_storage, legenda,
+         capturada_em, ordem, tipo_conteudo, tamanho_bytes, enviada_em)
+      VALUES
+        ('${ORG_SERRA_ALTA}', '${OCORRENCIA_C3}', NULL, '${CHAVE_AVULSA}',
+         'Avulsa do Joao', now() - interval '3 hours', 9,
+         'image/jpeg', 1234, now() - interval '2 hours');
+
+      INSERT INTO vistoria_evidencias_perdidas
+        (organizacao_id, vistoria_id, idempotency_key, papel, capturada_em, legenda, ordem)
+      VALUES
+        ('${ORG_SERRA_ALTA}', '${VISTORIA_F1}', 'perdida-do-teste', 'foto',
+         now() - interval '26 hours', 'Muro de arrimo que sumiu', 0);
+    `);
+  }, 60_000);
+
+  afterAll(async () => {
+    await mem.bruto.exec(`
+      DELETE FROM vistoria_evidencias_perdidas WHERE idempotency_key = 'perdida-do-teste';
+      DELETE FROM evidencias WHERE chave_storage = '${CHAVE_AVULSA}';
+      UPDATE vistorias SET latitude = NULL, longitude = NULL WHERE id = '${VISTORIA_F1}';
+    `);
+  });
+
+  it("a coordenada da vistoria sai IGUAL nos dois laudos (consertada nesta correção)", async () => {
+    const daRota = await laudoDaRota();
+    const doPacote = await laudoDoPacote();
+    expect(daRota).toContain("-22.900000, -43.200000");
+    expect(doPacote).toContain("-22.900000, -43.200000");
+    expect(doPacote).not.toContain("não registrada");
+  }, 60_000);
+
+  it("DIFERENÇA CONHECIDA (F09-E02): o pacote não tem duas seções que a rota tem", async () => {
+    const daRota = titulos(await laudoDaRota());
+    const doPacote = titulos(await laudoDoPacote());
+
+    // Só a falta: nenhuma seção do pacote pode faltar na rota.
+    expect(doPacote.filter((t) => !daRota.includes(t))).toEqual([]);
+    expect(daRota.filter((t) => !doPacote.includes(t)).sort()).toEqual([
+      "Fotografias anexadas ao protocolo",
+      "Registros capturados que não puderam ser recuperados",
+    ]);
+  }, 60_000);
+
+  it("DIFERENÇA CONHECIDA (F09-E02): a foto avulsa entra no registro da vistoria só no pacote", async () => {
+    const daRota = await laudoDaRota();
+    const doPacote = await laudoDoPacote();
+
+    // Na rota, a avulsa fica na seção própria, e não no registro do agente.
+    expect(secao(daRota, "Registro fotográfico")).not.toContain("Avulsa do Joao");
+    expect(secao(daRota, "Fotografias anexadas ao protocolo")).toContain("Avulsa do Joao");
+    // No pacote, o montador traz TODA evidência da ocorrência: a avulsa vira
+    // foto da vistoria, e o documento atribui ao agente uma imagem que ele não fez.
+    expect(secao(doPacote, "Registro fotográfico")).toContain("Avulsa do Joao");
+  }, 60_000);
+});

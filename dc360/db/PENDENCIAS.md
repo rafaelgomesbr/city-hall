@@ -13,6 +13,16 @@ API chama o resumo por relógio. O que estava escrito como pendência e já foi
 feito ficou abaixo, riscado, com o que o fechou; o que continua aberto está
 dito como aberto. Cada afirmação foi conferida contra o código nesta data.
 
+**Segunda conferência de 2026-10-13 (correção 1 da V2-F00-E22).** A rodada de
+validação não conferiu este arquivo. Refeito contra o código de hoje, afirmação
+por afirmação (o relógio do resumo em `apps/api/src/index.ts`, a migração 026, o
+console, os códigos de recuperação da 039, os papéis de `COLOCAR-DE-PE.md` e
+`IMPLANTACAO.md`, o teto de 27 funções `SECURITY DEFINER` em
+`db/test/isolamento.test.ts:626`): nada mudou. A migração 048 (V2-F00-E05,
+correção 1) recriou `dono_do_token` com uma coluna a mais de saída, sem criar
+função privilegiada nova, então o teto continua 27 e o texto "hoje no máximo 27"
+vale.
+
 ## 1. ~~Quem chama `resumir_municipio()`, e quando~~ (feito)
 
 Feito pela API, por relógio: `agendarResumo` (`apps/api/src/metricas/resumo.ts`,

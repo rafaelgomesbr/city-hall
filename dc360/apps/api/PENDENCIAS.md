@@ -8,7 +8,16 @@ investigação. Item que já tem correção sai daqui e vira teste.
 escritas por várias etapas e deixava de fora pendências que só estavam no
 STATUS do roadmap ou no README. Cada item abaixo foi conferido contra o código
 nesta data; as seções antigas ficaram, e o que faltava entrou no fim, em "O que
-estava fora daqui". O que resta, numa linha cada:
+estava fora daqui".
+
+**Segunda conferência de 2026-10-13 (correção 1 da V2-F00-E22).** A validação
+de 7005a60 reprovou a conferência acima por restos falsos. Reconferido contra o
+código de hoje: a vigência (escrita por método OU por `ROTA_GET_COM_EFEITO`), a
+fila do campo diante de `troca_de_senha_obrigatoria` (agora pausa) e a lista de
+diferenças entre o laudo da rota e o do pacote. Saiu o item da dependência de
+execução com aviso (`fastify`, `fast-uri`): `npm audit --omit=dev` na raiz dá 0
+e `npm run auditar` fecha com saída 0 pela política do CP-03 (V2-F00-E19). O
+que resta, numa linha cada:
 
 | O que resta | Seção | Quem fecha |
 | --- | --- | --- |
@@ -18,11 +27,10 @@ estava fora daqui". O que resta, numa linha cada:
 | `GET /avisos` escreve dentro de um GET, com o token de qualquer papel (a vigência já vale nele) | "`GET /avisos` ESCREVE" | F07-E03, F04-E11 |
 | A senha temporária é conhecida por quem a sorteia | "Sessões no painel" | F03-E10 |
 | O teto de pedidos de recuperação é por processo; produção com a recuperação desligada | "Recuperação de senha por e-mail" | F03, CP-19 |
-| Dois montadores de dados do laudo; o do pacote não lê a coordenada da vistoria | "Dois montadores de dados do documento" | F09-E02 |
+| Dois montadores de dados do laudo: o do pacote mistura as fotos de todas as vistorias e não imprime as seções das fotos avulsas e dos registros perdidos | "Dois montadores de dados do documento" | F09-E02 |
 | `GET /orgaos` (com o e-mail de cada órgão) responde a qualquer papel autenticado, inclusive ao agente de campo | "O que estava fora daqui", 1 | F03-E12 ou F04-E09 |
 | Município com o acesso suspenso não baixa o pacote de saída | "O que estava fora daqui", 2 | decisão de Rafael com o jurídico (CP-29) |
 | Ninguém desliga o segundo fator de OUTRA pessoa | "O que estava fora daqui", 3 | F03-E11 |
-| Dependência de execução com aviso conhecido (`fastify`, `fast-uri`) | "O que estava fora daqui", 4 | V2-F00-E19 (CP-03) |
 
 ## O pacote de saída lê TODAS as tabelas em memória, e a rota promete o contrário
 
@@ -117,10 +125,13 @@ vigência em `comTenant`, eles entram junto com o resto da leitura.
 - **Senha provisória vencida:** `trocarSenha` recusa por conta própria (401
   `sessao_encerrada`), além de a rota já recusar a escrita pela vigência.
   Entrar e renovar já recusavam.
-- **`troca_de_senha_obrigatoria` na fila do campo:** continua recusa permanente
-  no transporte (ver `apps/campo/PENDENCIAS.md`, item 14). Não é tratada aqui:
-  a E07 só mexe na vigência da API, e o aplicativo leva a pessoa à troca de
-  senha antes de ela chegar à fila.
+- **`troca_de_senha_obrigatoria` na fila do campo:** PAUSA a fila (correção 1
+  da E06, 2026-10-13), e não é mais recusa permanente. A decisão da E07, de deixar
+  esse 403 bloquear a coleta porque o aparelho "praticamente não chega a ele",
+  foi derrubada: redefinir a senha derruba as sessões, o agente entra com a
+  provisória, e o dreno recebia 403 em toda escrita. A matriz do transporte está
+  em `apps/campo/PENDENCIAS.md`, item 14. A API não mudou aqui: continua
+  respondendo 403 `troca_de_senha_obrigatoria` a toda rota fora da lista aberta.
 
 **Como atacar:** F03-E03 (vigência em toda requisição autenticada, centralizada em
 `comTenant`). Os códigos de erro já estão separados desde a V2-F00-E05
@@ -229,7 +240,7 @@ e `equipes ea` por `v.equipe_do_agente_id`) entraram na consulta do pacote, igua
 toda vistoria anterior à migração 024, e junção interna apagaria essas vistorias
 do pacote em vez de só deixar o aviso de fora.
 
-**O que sobra:** a DUPLICIDADE. Campo novo que o laudo passe a imprimir continua
+**O que sobra, medido em 2026-10-13:** a DUPLICIDADE. Campo novo que o laudo passe a imprimir continua
 tendo de entrar nas duas consultas, e esquecer uma delas volta a produzir dois
 documentos que se contradizem. A unificação num montador só é a **V2-F09-E02**, e
 até ela existir a defesa é o teste que compara os dois documentos ENTRE SI, e não
@@ -238,10 +249,27 @@ equipe divergente igual ao laudo da rota" em `test/saida-de-municipio.test.ts` e
 seção 29 de `apps/web/test/fluxo-api.e2e.mjs`. O artefato guardado com hash (o
 mesmo arquivo em vez de dois montadores) é da F09-E04 e F09-E11.
 
-**O que a consulta do pacote ainda não lê, e por que não entrou aqui:** ela não
-seleciona `v.latitude` nem `v.longitude`, que `documentos.ts` seleciona. O laudo
-não deixou de sair por isso, então não é o defeito desta etapa e não foi tocado;
-a F09-E02 resolve junto com a unificação.
+**As diferenças entre os dois laudos, para a MESMA vistoria** (a validação de
+7005a60 gerou os dois e comparou; o bloco "campo por campo" de
+`test/saida-de-municipio.test.ts` trava o estado abaixo, e reprova se uma
+diferença some ou se aparece outra, para este texto e o de
+`docs/SAIDA-DE-MUNICIPIO.md` serem atualizados junto):
+
+| Campo | Rota | Pacote | Estado |
+| --- | --- | --- | --- |
+| Aviso de equipe | imprime | imprime, igual | igual (E12) |
+| Coordenada da vistoria (`v.latitude`, `v.longitude`) | imprime | imprimia "não registrada" | **consertada na correção 1 da E12**: duas colunas a mais na consulta do pacote |
+| Fotos do "Registro fotográfico" | só as da vistoria vigente (`vistoria_id` igual ao da vistoria) | as de TODAS as vistorias da ocorrência e a avulsa (`vistoria_id` nulo), numeradas como da vistoria | **continua**, F09-E02 |
+| Seção "Fotografias anexadas ao protocolo" (`fotosAvulsas`) | imprime, com quem anexou | não existe | **continua**, F09-E02 |
+| Seção "Registros capturados que não puderam ser recuperados" (`vistoria_evidencias_perdidas`) | imprime | não existe | **continua**, F09-E02 |
+| Assinatura | confere o prefixo do município e descreve no armazenamento | usa só a chave (a falta vira `PENDENCIAS-DA-EXTRACAO.txt`) | diferença de mecanismo, sem efeito no papel |
+
+A gravidade das três que continuam: a foto avulsa aparece no pacote como feita
+pelo agente na vistoria (o documento atribui a ele uma imagem que não fez, o
+defeito que a rota já tinha consertado), e a seção dos registros perdidos
+some, então o laudo do pacote parece completo sendo incompleto. Por isso
+`docs/SAIDA-DE-MUNICIPIO.md` não afirma mais que o laudo do pacote diz o mesmo
+que o emitido: só o aviso de equipe e a coordenada estão provados iguais.
 
 ## O que estava fora daqui (acrescentado na revisão de 2026-10-07)
 
@@ -266,8 +294,3 @@ a F09-E02 resolve junto com a unificação.
    Quem perdeu o telefone usa os códigos de recuperação; quem perdeu o telefone
    E os códigos não tem caminho pela tela. É uma porta para retirar a proteção
    de uma conta alheia e merece etapa própria (F03-E11).
-4. **Dependência de execução com aviso conhecido.** Em 2026-10-07,
-   `npm audit --omit=dev` na raiz acusa um aviso alto no `fastify` (o servidor
-   desta API) e um moderado no `fast-uri`, ambos com correção por
-   `npm audit fix`. Pela regra do produto, vulnerabilidade em execução é bug; a
-   correção é da V2-F00-E19, que espera a política do CP-03.

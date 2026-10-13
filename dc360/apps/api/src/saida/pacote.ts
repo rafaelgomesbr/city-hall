@@ -480,7 +480,8 @@ export async function* montarPacoteDeSaida(
       `SELECT DISTINCT ON (v.ocorrencia_id)
               v.id, v.ocorrencia_id, v.checklist, v.gps_precisao_metros,
               v.assinante_nome, v.observacoes, v.coletada_em, v.sincronizada_em,
-              v.assinatura_chave, v.desalojados, v.desabrigados, v.feridos,
+              v.assinatura_chave, v.latitude, v.longitude,
+              v.desalojados, v.desabrigados, v.feridos,
               v.desaparecidos, v.obitos,
               u.nome AS agente_nome, u.matricula AS agente_matricula,
               ed.nome AS equipe_designada_nome, ea.nome AS equipe_do_agente_nome,
@@ -516,6 +517,14 @@ export async function* montarPacoteDeSaida(
       anterior à migração 024, e um `JOIN` interno apagaria essas vistorias do
       pacote inteiro em vez de só deixar o aviso de fora. Nulo aqui significa
       "nada a avisar", e `avisoDeEquipe` já trata assim.
+
+      A COORDENADA DA VISTORIA (`v.latitude`, `v.longitude`) também vem daqui,
+      como em `rotas/documentos.ts`: sem ela o laudo do pacote imprimia "não
+      registrada" para uma vistoria que tem ponto. As DUAS consultas continuam
+      diferindo em três pontos que a V2-F09-E02 resolve com o montador único
+      (fotos de todas as vistorias, sem a seção das avulsas, sem a seção dos
+      registros perdidos); `test/saida-de-municipio.test.ts` (bloco "campo por
+      campo") trava essa lista, e reprova se ela mudar sem a documentação.
     */
 
     const indicados = await c.query<{ vistoria_id: string; nome: string; sigla: string | null }>(

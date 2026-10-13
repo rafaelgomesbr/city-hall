@@ -37,7 +37,7 @@ D-U-N-S e a revisão não forem gargalo.
 - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
   compartilhados.
-- **4825 testes somando o aplicativo.** Durante a estabilização da V2 (fase
+- **4828 testes somando o aplicativo.** Durante a estabilização da V2 (fase
   F00) nem todos estão verdes e o `npm audit` não está em zero: cada vermelho
   conhecido, e a etapa que o fecha, está em `docs/roadmap-v2/STATUS.md`, na
   raiz do repositório.
@@ -309,7 +309,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
 # 1. Clonar e conferir que tudo passa no Mac
 git clone <repo> && cd dc360
 npm ci
-npm run verificar          # typecheck, 4825 testes com o aplicativo, npm audit, números
+npm run verificar          # typecheck, 4828 testes com o aplicativo, npm audit, números
 
 # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
 cd apps/campo

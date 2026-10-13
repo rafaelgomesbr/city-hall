@@ -1,0 +1,390 @@
+diff --git a/.github/workflows/verificar.yml b/.github/workflows/verificar.yml
+index 4503b0f..fb6bc51 100644
+--- a/.github/workflows/verificar.yml
++++ b/.github/workflows/verificar.yml
+@@ -5,9 +5,11 @@
+ # - Dependência com vulnerabilidade conhecida em runtime é bug, não pendência
+ #   (CLAUDE.md). Quem decide é `npm run auditar`, a política do CP-03 já
+ #   codificada, e não um `npm audit` cru. Ele roda no job `dependencias`, sozinho,
+-#   para a leitura job a job ficar limpa. O CP-03 está ABERTO e hoje o `auditar`
+-#   reprova por uma dependência de execução (`fastify`): job vermelho ali é o
+-#   resultado ESPERADO e correto, e não se mascara com `continue-on-error`.
++#   para a leitura job a job ficar limpa. O CP-03 está decidido (2026-10-07):
++#   o runtime da raiz fecha em zero e o aplicativo de campo é auditado contra a
++#   lista nomeada de `scripts/auditar-excecoes.mjs` (motivo, dono e prazo).
++#   Job vermelho ali quer dizer dependência de execução vulnerável, exceção
++#   malformada ou prazo vencido, e não se mascara com `continue-on-error`.
+ # - O portão CA-06, de isolamento entre municípios, roda separado e primeiro.
+ #   É a regra número um do produto, e se ela quebrar nada mais importa.
+ # - Os números que o README afirma são conferidos contra a realidade.
+@@ -159,15 +161,16 @@ jobs:
+     # A política do CP-03 (alternativa B), codificada em `scripts/auditar.mjs`:
+     # vulnerabilidade em dependência de runtime reprova; em ferramenta de
+     # desenvolvimento aparece e não reprova; o aplicativo de campo é auditado
+-    # contra uma lista nomeada (`ACEITAS_NO_APLICATIVO`). Substitui os dois
++    # contra uma lista nomeada (`ACEITAS_NO_APLICATIVO`, em
++    # `scripts/auditar-excecoes.mjs`). Substitui os dois
+     # `npm audit` crus que ficavam nos jobs `produto` e `aplicativo`.
+     #
+     # Job próprio de propósito: a leitura job a job fica limpa (vermelho aqui
+     # quer dizer só "há dependência vulnerável") e nenhum outro passo espera
+     # por ele. Não instala nada: `npm audit` lê o `package-lock.json`.
+     #
+-    # VERMELHO HOJE É O ESPERADO enquanto o CP-03 estiver aberto (o `fastify`
+-    # de execução). Não pôr `continue-on-error`.
++    # Vermelho aqui é achado real (runtime vulnerável, exceção sem motivo, dono
++    # ou prazo, ou prazo vencido). Não pôr `continue-on-error`.
+     name: Dependências com vulnerabilidade conhecida (auditar)
+     runs-on: ubuntu-latest
+     timeout-minutes: 15
+@@ -702,8 +705,8 @@ jobs:
+     # Dois passos merecem atenção. O `expo-doctor` e os dois `npm audit` dependem
+     # de rede e da base de avisos do dia, e o roteiro os espera vermelhos (20 de
+     # 21 verificações; avisos abertos): a divergência neles é esperada de tempos
+-    # em tempos e aparece no RESUMO. O `auditar` também é esperado vermelho
+-    # enquanto o CP-03 estiver aberto.
++    # em tempos e aparece no RESUMO. O `auditar` fecha em 0 pela política do
++    # CP-03; se divergir, é achado a explicar.
+     #
+     # Só em push (ver o comentário do topo): é o job mais longo.
+     name: Linha de base (baseline.mjs) em Linux
+diff --git a/dc360/README.md b/dc360/README.md
+index 1884a28..f86c4b1 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -11,9 +11,9 @@ build) valem lá, não aqui.
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 168 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 327 testes do banco passando |
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 649 testes de fonte do painel mais 70 verificações no navegador no modo local e 251 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+-| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1296 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
++| `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1299 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 223 testes de unidade do motor de campo e 17 de integração contra a API |
+-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1903 testes do aplicativo passando. O `expo-doctor` fecha 21 de 21 (medido em 2026-10-08, depois de alinhar os pacotes do Expo ao SDK 57) e o `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
++| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1903 testes do aplicativo passando. O `expo-doctor` dá 20 de 21 (medido em 2026-10-13; eram 21 de 21 em 2026-10-08): a única verificação que falha é a de versões, por seis pacotes do Expo um patch atrás, pendência 17 de `apps/campo/PENDENCIAS.md`. O `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar-excecoes.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+ | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+ 
+ ## Os dois modos do painel
+@@ -217,8 +217,8 @@ Hoje o cliente fala o contrato publicado do **Resend**
+ `apps/api/test/notificador-http.test.ts` confere o corpo campo a campo, além de
+ afirmar que os cinco nomes inventados **não** aparecem nele. Sem SDK, pela mesma
+ razão que a assinatura S3 é escrita à mão: o `npm audit` deste produto precisa
+-fechar em zero (hoje não fecha, por dependência que não é esta: ver "Como
+-testar").
++fechar em zero em execução (na raiz fecha; o aplicativo de campo tem exceções
++nomeadas, ver "Como testar").
+ 
+ Três decisões que vale registrar:
+ 
+@@ -1079,9 +1079,10 @@ npm run test:e2e:api            # painel contra a API
+ ```
+ 
+ `npm run verificar` encadeia typecheck, testes, `test:scripts`, `test:campo`,
+-`auditar` e `conferir:numeros`. O CI roda menos do que isso: não roda `auditar`,
+-`test:scripts` nem `test:campo`, então esses três só aparecem vermelhos na
+-máquina de quem rodar.
++`auditar` e `conferir:numeros`. O CI roda esses passos em jobs separados
++(`test:scripts` e `conferir:numeros` no job de testes, `auditar` no job
++`dependencias`, `test:campo` no job do aplicativo); a diferença é que o CI não
++roda o `verificar` inteiro de uma vez, e sim cada passo no seu job.
+ 
+ **Portabilidade dos scripts.** `test:scripts` e `conferir:numeros` precisam
+ fechar verdes no Windows e no Linux, e os três casos que só reprovavam no
+@@ -1292,9 +1293,9 @@ começar por subir os dois uma vez.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 2922 testes em seis pacotes
++npm test                    # 2925 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 327 testes do banco
+-npm run test:api            # 1296 testes da API
++npm run test:api            # 1299 testes da API
+ npm run test --workspace @dc360/campo   # 223 testes do motor de campo
+ npm run test:campo          # tipos e os 1903 testes do aplicativo de campo
+ npm run typecheck           # TypeScript estrito em todos os pacotes
+@@ -1563,23 +1564,27 @@ mesmo papel sem privilégio que a API usará em produção.
+ ## Integração contínua
+ 
+ `.github/workflows/verificar.yml` roda a cada push e a cada pull request, em
+-cinco trabalhos paralelos:
++trabalhos paralelos (os cinco principais abaixo; há ainda o de dependências,
++`npm run auditar`, o do restore do banco e o de ferramentas do roadmap):
+ 
+ <!-- numeros: nao sao contagem -->
+ | Trabalho | O que ele impõe |
+ | --- | --- |
+-| Testes, tipos e auditoria | TypeScript estrito, o portão CA-06 sozinho e primeiro, a suíte inteira, `npm run auditar` conforme a política do CP-03 (ver "Como testar") e os números do README conferidos |
++| Testes e tipos | TypeScript estrito, o portão CA-06 sozinho e primeiro, a suíte inteira, `test:scripts` e os números do README conferidos. A auditoria de dependência é o job `dependencias` (`npm run auditar`, política do CP-03, ver "Como testar") |
+ | Fluxo no navegador | O painel de ponta a ponta no modo local, em Chromium e em Firefox, e contra a API, só em Chromium (o Firefox contra a API roda só na máquina, com `node scripts/e2e-api.mjs firefox`) |
+ | Pacote da demonstração | O zip montado, extraído e percorrido pelo roteiro de dez minutos nos dois motores |
+ | A API sobe contra Postgres real | Migração, idempotência e `/saude` respondendo, com o papel restrito de aplicação |
+-| Aplicativo de campo | TypeScript, os testes do aplicativo, árvore de dependência coerente, as 21 verificações do `expo-doctor` e auditoria própria |
++| Aplicativo de campo | TypeScript, os testes do aplicativo, árvore de dependência coerente, o `expo-doctor` (sem a checagem de versão de pacote, que depende do dia). A auditoria do aplicativo vai no job `dependencias` |
+ 
+ O CA-06 roda separado e antes de tudo de propósito: isolamento entre
+ municípios é a regra número um, e se ela quebrar nada mais importa.
+ 
+ A tabela diz o que o arquivo manda rodar, e não um resultado: nenhuma rodada
+-do CI foi conferida durante a F00 (é validação humana pendente da V2-F00-E01),
+-e o `npm audit` puro dos dois trabalhos do CI ainda lista os avisos aceitos pelo CP-03 (o CI chama `npm audit`, não `npm run auditar`).
++do CI foi conferida por uma pessoa durante a F00 (é validação humana pendente
++da V2-F00-E01); o gatekeeper leu o run 37739535524 do SHA 7005a60, com 9 jobs
++verdes. O CI decide dependência por `npm run auditar` (job `dependencias`), e não por
++`npm audit` puro; o `npm audit` puro ainda lista os avisos aceitos pelo CP-03,
++e os relatórios brutos dele só são arquivados como evidência.
+ 
+ Na máquina, o mesmo se pede com `npm run verificar` e
+ `scripts/conferir-demo.ps1`. O `verificar` inclui `npm run test:campo`: por um
+@@ -1597,8 +1602,9 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
+ - **A prova do aplicativo de campo num aparelho.** Ele está inteiro em
+   código: telas, coleta offline, câmera, GPS, assinatura no dedo, fila de
+   envio, ícones e a configuração das duas lojas. Compila e passa nos testes do
+-  aplicativo; passa no `expo-doctor` (21 de 21) e no `npm run auditar`
+-  conforme o CP-03 (V2-F00-E19). Há relato de uso em iPhone (08/09/2026), mas **nenhum artefato
++  aplicativo; passa no `expo-doctor` menos uma verificação, a de versões de pacote
++  (seis patches novos do Expo, pendência 17 de `apps/campo/PENDENCIAS.md`) e no `npm run auditar` conforme o CP-03
++  (V2-F00-E19). Há relato de uso em iPhone (08/09/2026), mas **nenhum artefato
+   de aparelho está arquivado**, e relato não é prova. O que falta é o que só o
+   aparelho responde: como a câmera, o GPS e o traço na tela se comportam de
+   verdade, e a prova de que o `expo-sqlite` guarda o que promete quando o
+@@ -1609,7 +1615,8 @@ regra podia estar impecável e continuar sem ser chamada por comando nenhum.
+   `apps/campo` fica **fora do `workspaces`** de propósito: o Expo traz quase
+   seiscentos pacotes, e deixá-lo fora mantém rápido o `npm install` da raiz e
+   desacopla o `npm audit` do produto do ciclo do React Native. Ele tem o
+-  próprio lockfile e a própria auditoria, que hoje NÃO fecha em zero. O preço
++  próprio lockfile e a própria auditoria, que NÃO fecha em zero no `npm audit` puro
++  (fecha em `npm run auditar`, com as seis exceções nomeadas do CP-03). O preço
+   dessa separação é que nenhum comando da raiz o enxerga de graça: quem o
+   alcança é `npm run test:campo`, e ele está dentro de `npm run verificar`.
+ - **Conta de desenvolvedor nas lojas.** `apps/campo/LOJAS.md` cobre Play
+diff --git a/dc360/apps/api/PENDENCIAS.md b/dc360/apps/api/PENDENCIAS.md
+index 6d876ed..9e2d411 100644
+--- a/dc360/apps/api/PENDENCIAS.md
++++ b/dc360/apps/api/PENDENCIAS.md
+@@ -8,7 +8,16 @@ investigação. Item que já tem correção sai daqui e vira teste.
+ escritas por várias etapas e deixava de fora pendências que só estavam no
+ STATUS do roadmap ou no README. Cada item abaixo foi conferido contra o código
+ nesta data; as seções antigas ficaram, e o que faltava entrou no fim, em "O que
+-estava fora daqui". O que resta, numa linha cada:
++estava fora daqui".
++
++**Segunda conferência de 2026-10-13 (correção 1 da V2-F00-E22).** A validação
++de 7005a60 reprovou a conferência acima por restos falsos. Reconferido contra o
++código de hoje: a vigência (escrita por método OU por `ROTA_GET_COM_EFEITO`), a
++fila do campo diante de `troca_de_senha_obrigatoria` (agora pausa) e a lista de
++diferenças entre o laudo da rota e o do pacote. Saiu o item da dependência de
++execução com aviso (`fastify`, `fast-uri`): `npm audit --omit=dev` na raiz dá 0
++e `npm run auditar` fecha com saída 0 pela política do CP-03 (V2-F00-E19). O
++que resta, numa linha cada:
+ 
+ | O que resta | Seção | Quem fecha |
+ | --- | --- | --- |
+@@ -18,11 +27,10 @@ estava fora daqui". O que resta, numa linha cada:
+ | `GET /avisos` escreve dentro de um GET, com o token de qualquer papel (a vigência já vale nele) | "`GET /avisos` ESCREVE" | F07-E03, F04-E11 |
+ | A senha temporária é conhecida por quem a sorteia | "Sessões no painel" | F03-E10 |
+ | O teto de pedidos de recuperação é por processo; produção com a recuperação desligada | "Recuperação de senha por e-mail" | F03, CP-19 |
+-| Dois montadores de dados do laudo; o do pacote não lê a coordenada da vistoria | "Dois montadores de dados do documento" | F09-E02 |
++| Dois montadores de dados do laudo: o do pacote mistura as fotos de todas as vistorias e não imprime as seções das fotos avulsas e dos registros perdidos | "Dois montadores de dados do documento" | F09-E02 |
+ | `GET /orgaos` (com o e-mail de cada órgão) responde a qualquer papel autenticado, inclusive ao agente de campo | "O que estava fora daqui", 1 | F03-E12 ou F04-E09 |
+ | Município com o acesso suspenso não baixa o pacote de saída | "O que estava fora daqui", 2 | decisão de Rafael com o jurídico (CP-29) |
+ | Ninguém desliga o segundo fator de OUTRA pessoa | "O que estava fora daqui", 3 | F03-E11 |
+-| Dependência de execução com aviso conhecido (`fastify`, `fast-uri`) | "O que estava fora daqui", 4 | V2-F00-E19 (CP-03) |
+ 
+ ## O pacote de saída lê TODAS as tabelas em memória, e a rota promete o contrário
+ 
+@@ -117,10 +125,13 @@ vigência em `comTenant`, eles entram junto com o resto da leitura.
+ - **Senha provisória vencida:** `trocarSenha` recusa por conta própria (401
+   `sessao_encerrada`), além de a rota já recusar a escrita pela vigência.
+   Entrar e renovar já recusavam.
+-- **`troca_de_senha_obrigatoria` na fila do campo:** continua recusa permanente
+-  no transporte (ver `apps/campo/PENDENCIAS.md`, item 14). Não é tratada aqui:
+-  a E07 só mexe na vigência da API, e o aplicativo leva a pessoa à troca de
+-  senha antes de ela chegar à fila.
++- **`troca_de_senha_obrigatoria` na fila do campo:** PAUSA a fila (correção 1
++  da E06, 2026-10-13), e não é mais recusa permanente. A decisão da E07, de deixar
++  esse 403 bloquear a coleta porque o aparelho "praticamente não chega a ele",
++  foi derrubada: redefinir a senha derruba as sessões, o agente entra com a
++  provisória, e o dreno recebia 403 em toda escrita. A matriz do transporte está
++  em `apps/campo/PENDENCIAS.md`, item 14. A API não mudou aqui: continua
++  respondendo 403 `troca_de_senha_obrigatoria` a toda rota fora da lista aberta.
+ 
+ **Como atacar:** F03-E03 (vigência em toda requisição autenticada, centralizada em
+ `comTenant`). Os códigos de erro já estão separados desde a V2-F00-E05
+@@ -229,7 +240,7 @@ e `equipes ea` por `v.equipe_do_agente_id`) entraram na consulta do pacote, igua
+ toda vistoria anterior à migração 024, e junção interna apagaria essas vistorias
+ do pacote em vez de só deixar o aviso de fora.
+ 
+-**O que sobra:** a DUPLICIDADE. Campo novo que o laudo passe a imprimir continua
++**O que sobra, medido em 2026-10-13:** a DUPLICIDADE. Campo novo que o laudo passe a imprimir continua
+ tendo de entrar nas duas consultas, e esquecer uma delas volta a produzir dois
+ documentos que se contradizem. A unificação num montador só é a **V2-F09-E02**, e
+ até ela existir a defesa é o teste que compara os dois documentos ENTRE SI, e não
+@@ -238,10 +249,27 @@ equipe divergente igual ao laudo da rota" em `test/saida-de-municipio.test.ts` e
+ seção 29 de `apps/web/test/fluxo-api.e2e.mjs`. O artefato guardado com hash (o
+ mesmo arquivo em vez de dois montadores) é da F09-E04 e F09-E11.
+ 
+-**O que a consulta do pacote ainda não lê, e por que não entrou aqui:** ela não
+-seleciona `v.latitude` nem `v.longitude`, que `documentos.ts` seleciona. O laudo
+-não deixou de sair por isso, então não é o defeito desta etapa e não foi tocado;
+-a F09-E02 resolve junto com a unificação.
++**As diferenças entre os dois laudos, para a MESMA vistoria** (a validação de
++7005a60 gerou os dois e comparou; o bloco "campo por campo" de
++`test/saida-de-municipio.test.ts` trava o estado abaixo, e reprova se uma
++diferença some ou se aparece outra, para este texto e o de
++`docs/SAIDA-DE-MUNICIPIO.md` serem atualizados junto):
++
++| Campo | Rota | Pacote | Estado |
++| --- | --- | --- | --- |
++| Aviso de equipe | imprime | imprime, igual | igual (E12) |
++| Coordenada da vistoria (`v.latitude`, `v.longitude`) | imprime | imprimia "não registrada" | **consertada na correção 1 da E12**: duas colunas a mais na consulta do pacote |
++| Fotos do "Registro fotográfico" | só as da vistoria vigente (`vistoria_id` igual ao da vistoria) | as de TODAS as vistorias da ocorrência e a avulsa (`vistoria_id` nulo), numeradas como da vistoria | **continua**, F09-E02 |
++| Seção "Fotografias anexadas ao protocolo" (`fotosAvulsas`) | imprime, com quem anexou | não existe | **continua**, F09-E02 |
++| Seção "Registros capturados que não puderam ser recuperados" (`vistoria_evidencias_perdidas`) | imprime | não existe | **continua**, F09-E02 |
++| Assinatura | confere o prefixo do município e descreve no armazenamento | usa só a chave (a falta vira `PENDENCIAS-DA-EXTRACAO.txt`) | diferença de mecanismo, sem efeito no papel |
++
++A gravidade das três que continuam: a foto avulsa aparece no pacote como feita
++pelo agente na vistoria (o documento atribui a ele uma imagem que não fez, o
++defeito que a rota já tinha consertado), e a seção dos registros perdidos
++some, então o laudo do pacote parece completo sendo incompleto. Por isso
++`docs/SAIDA-DE-MUNICIPIO.md` não afirma mais que o laudo do pacote diz o mesmo
++que o emitido: só o aviso de equipe e a coordenada estão provados iguais.
+ 
+ ## O que estava fora daqui (acrescentado na revisão de 2026-10-07)
+ 
+@@ -266,8 +294,3 @@ a F09-E02 resolve junto com a unificação.
+    Quem perdeu o telefone usa os códigos de recuperação; quem perdeu o telefone
+    E os códigos não tem caminho pela tela. É uma porta para retirar a proteção
+    de uma conta alheia e merece etapa própria (F03-E11).
+-4. **Dependência de execução com aviso conhecido.** Em 2026-10-07,
+-   `npm audit --omit=dev` na raiz acusa um aviso alto no `fastify` (o servidor
+-   desta API) e um moderado no `fast-uri`, ambos com correção por
+-   `npm audit fix`. Pela regra do produto, vulnerabilidade em execução é bug; a
+-   correção é da V2-F00-E19, que espera a política do CP-03.
+diff --git a/dc360/apps/campo/LEIA-ME.md b/dc360/apps/campo/LEIA-ME.md
+index 3f753b9..144f37a 100644
+--- a/dc360/apps/campo/LEIA-ME.md
++++ b/dc360/apps/campo/LEIA-ME.md
+@@ -20,8 +20,8 @@ O que É verificável daqui, e está verificado:
+ | Verificação | Como rodar | Resultado |
+ | --- | --- | --- |
+ | TypeScript estrito | `npm run typecheck` | limpo com o cache `.expo/types` em dia (ver o parágrafo abaixo); `npm run test:campo` na raiz limpa o cache velho antes |
+-| Saúde do projeto Expo | `npx expo-doctor` | **21 de 21** em 2026-10-08, depois de alinhar `expo`, `expo-camera`, `expo-router`, `expo-sqlite` e outros pacotes ao SDK 57 (versões de correção). Mudou a versão de pacote nativo: o próximo binário do aparelho precisa ser recompilado |
+-| Dependência vulnerável | `npm audit` (aqui) e `npm run auditar` (na raiz) | **NÃO fecha** em 2026-10-07: o `npm audit` daqui acusa dezenas de avisos, altos e um crítico, e a raiz tem um aviso alto de execução no `fastify`. A única aceita com motivo escrito continua sendo `decode-uri-component` (`scripts/auditar.mjs`). No Windows, `npm run auditar` morre com `spawnSync npm ENOENT` antes de auditar. A correção é da V2-F00-E19, que espera o CP-03 |
++| Saúde do projeto Expo | `npx expo-doctor` | **20 de 21** em 2026-10-13 (era 21 de 21 em 2026-10-08, depois de alinhar `expo`, `expo-camera`, `expo-router`, `expo-sqlite` e outros pacotes ao SDK 57). A única verificação que falha é a de versões: seis pacotes (`expo`, `expo-crypto`, `expo-location`, `expo-router`, `expo-splash-screen`, `jest-expo`) ficaram um patch atrás porque o Expo publicou patches depois. Nada foi atualizado; `PENDENCIAS.md`, item 17, tem o dono e o comando. Mudar a versão de pacote nativo exige recompilar o binário do aparelho |
++| Dependência vulnerável | `npm audit` (aqui) e `npm run auditar` (na raiz) | `npm audit` puro **não fecha** aqui: acusa dezenas de avisos, altos e um crítico (a contagem muda com a base de avisos do dia), que chegam por dentro do Expo. `npm run auditar` (na raiz) fecha com saída 0 em 2026-10-13: runtime da raiz em zero (o aviso do `fastify` e do `fast-uri` não aparece mais: `npm audit --omit=dev` na raiz dá 0) e, no aplicativo, as seis exceções nomeadas do CP-03 (`decode-uri-component`, `brace-expansion`, `braces`, `node-forge`, `shell-quote`, `sprintf-js`), cada uma com motivo, dono e prazo 2027-01-05 em `scripts/auditar-excecoes.mjs`. Exceção sem motivo, dono ou prazo, ou com prazo vencido, reprova. O `npm run auditar` roda no Windows |
+ | A fila que ele consome | `npm test --workspace @dc360/campo` | 223 testes do motor de campo |
+ 
+ **O cache `.expo/types` e o typecheck.** Com `experiments.typedRoutes` ligado,
+diff --git a/dc360/apps/web/PENDENCIAS.md b/dc360/apps/web/PENDENCIAS.md
+index 2eda4cb..3ad55d2 100644
+--- a/dc360/apps/web/PENDENCIAS.md
++++ b/dc360/apps/web/PENDENCIAS.md
+@@ -9,14 +9,23 @@ como pendente o que o código já tem (1, 3 e 5) e um descrevia como manual o
+ que o CI já roda (10.1); o vermelho de CRLF do item 9.1 fechou na V2-F00-E21.
+ Eles continuam aqui, marcados como resolvidos e com a prova, porque o
+ raciocínio de cada um ainda explica o código. O que REALMENTE resta, conferido
+-contra o código nesta data:
++contra o código nesta data.
++
++**Segunda conferência de 2026-10-13 (correção 1 da V2-F00-E22).** A rodada de
++validação não conferiu este arquivo. Refeito contra o código de hoje, item a item:
++o 6.5 ("encerrar as outras") estava falso desde a correção 1 da V2-F00-E04 e saiu
++da lista; o 10.1 dizia que nenhuma rodada do CI foi conferida, e o gatekeeper leu
++o run 37739535524 do SHA 7005a60 (9 de 9 verdes), então a frase passou a dizer só
++o que continua pendente (a conferência humana da V2-F00-E01); o 9.2 ganhou a
++remissão ao item 11. Os demais itens batem com o código (os comandos e arquivos
++citados existem; os pedidos de rede e o CORS não mudaram).
+ 
+ | O que resta | Item | Quem fecha |
+ | --- | --- | --- |
+ | Prova do link encurtado contra o Google de verdade (todos os testes usam dublê) | 2 | validação humana |
+ | `google.maps.Marker` obsoleto e carregador sem `loading=async`; `fitBounds` num município espalhado | 4 | F10 |
+ | Reset do segundo fator de outra pessoa, tela consolidada de conta, expurgo de IP e user-agent | 6.1 | F03-E11, F10-E01, F05-E12 |
+-| Senha temporária conhecida por quem a sorteia; "encerrar as outras" preserva por id | 6.2, 6.5 | F03-E10, F03-E02 |
++| Senha temporária conhecida por quem a sorteia | 6.2 | F03-E10 |
+ | Lista de usuários em 390 px rola na horizontal | 6.3 | F10 |
+ | Envio real de e-mail; `Referrer-Policy` só nas duas rotas; header só visto na Vercel; sem olho na senha; prazo do link não dito | 7 | CP-19, F10 |
+ | Os outros downloads (`baixarCsvDeOcorrencias`, `abrirDocumento`, `abrirOficio`) com `fetch` solto | 8.1 | V2-F00-E23 ou F10 |
+@@ -253,11 +262,13 @@ O que não é desta etapa e continua aberto:
+    escuro os fundos de aviso são translúcidos (12%) e o texto da página
+    atravessava a confirmação. Vale também para o aviso de registro da
+    ocorrência.
+-5. **"Encerrar as outras"** preserva a sessão pelo identificador que o token traz
+-   (`preservarSessaoId`). Quem clica com um token de acesso emitido antes da
+-   última renovação derruba a sessão viva da própria cadeia (e o token cai em
+-   seguida). A lista de "Minhas sessões" já marca "esta" por família; alinhar o
+-   encerramento a ela é da F03-E02 (renovação em uma transação só).
++5. ~~**"Encerrar as outras"** preserva a sessão pelo identificador que o token
++   traz.~~ RESOLVIDO na correção 1 da V2-F00-E04: a preservação passou a ser pela
++   FAMÍLIA da sessão (`encerrarSessoes` em `apps/api/src/auth/sessoes.ts`, que
++   compara `familia_id`), igual ao que a lista de "Minhas sessões" marca como
++   "esta"; quem clica com um token anterior à última renovação mantém a sessão
++   viva da própria cadeia. O que continua de F03-E02 é só a janela de
++   milissegundos da renovação (item 9.3).
+ 
+ ## 7. Recuperação de senha por e-mail (V2-F00-E10): o que ficou de fora
+ 
+@@ -343,7 +354,9 @@ O que não é desta etapa e continua aberto:
+    de propósito: dez destinos não cabem na largura, e o rótulo por extenso vale
+    mais do que um ícone a adivinhar. Medido: `scrollWidth` 1484 contra
+    `clientWidth` 390, toque arrasta, Tab alcança os dez. O que foi corrigido
+-   aqui é o Tab parar num item PELA METADE. Transformar a barra em outra coisa
++   aqui é o Tab parar num item PELA METADE (a V2-F00-E09, correção 1, mudou a
++   barra para ladrilhos inteiros: ver o item 11; os números acima são da medição
++   original). Transformar a barra em outra coisa
+    (menu "mais", ícones sem rótulo, abas) é decisão de interface da F10.
+ 3. **A janela de milissegundos entre revogar e abrir sessão** na renovação
+    continua como estava (F03-E02); esta etapa não tocou em sessão no servidor.
+@@ -371,8 +384,8 @@ O que não é desta etapa e continua aberto:
+    trabalho `navegador` de `.github/workflows/verificar.yml` roda o modo local em
+    Chromium e em Firefox e o caminho contra a API em Chromium. O que fica fora
+    do CI é só o Firefox contra a API (`node scripts/e2e-api.mjs firefox`), e
+-   nenhuma rodada do CI foi conferida durante a F00 (validação humana pendente
+-   da V2-F00-E01).
++   o gatekeeper leu o run 37739535524 do SHA 7005a60 (9 de 9 verdes), mas a
++   conferência humana do CI continua pendente na V2-F00-E01.
+ 2. **CORS por ambiente e por domínio** (F01-E10) e o CORS do armazenamento externo de
+    verdade (F06-E15): esta etapa só exercitou o armazenamento local da própria API.
+ 3. **Validação humana:** Rafael ver o upload da foto pelo painel concluir na seção 13.
+diff --git a/dc360/db/PENDENCIAS.md b/dc360/db/PENDENCIAS.md
+index feea225..e021070 100644
+--- a/dc360/db/PENDENCIAS.md
++++ b/dc360/db/PENDENCIAS.md
+@@ -13,6 +13,16 @@ API chama o resumo por relógio. O que estava escrito como pendência e já foi
+ feito ficou abaixo, riscado, com o que o fechou; o que continua aberto está
+ dito como aberto. Cada afirmação foi conferida contra o código nesta data.
+ 
++**Segunda conferência de 2026-10-13 (correção 1 da V2-F00-E22).** A rodada de
++validação não conferiu este arquivo. Refeito contra o código de hoje, afirmação
++por afirmação (o relógio do resumo em `apps/api/src/index.ts`, a migração 026, o
++console, os códigos de recuperação da 039, os papéis de `COLOCAR-DE-PE.md` e
++`IMPLANTACAO.md`, o teto de 27 funções `SECURITY DEFINER` em
++`db/test/isolamento.test.ts:626`): nada mudou. A migração 048 (V2-F00-E05,
++correção 1) recriou `dono_do_token` com uma coluna a mais de saída, sem criar
++função privilegiada nova, então o teto continua 27 e o texto "hoje no máximo 27"
++vale.
++
+ ## 1. ~~Quem chama `resumir_municipio()`, e quando~~ (feito)
+ 
+ Feito pela API, por relógio: `agendarResumo` (`apps/api/src/metricas/resumo.ts`,
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index bba64fc..dcf3100 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -37,7 +37,7 @@ D-U-N-S e a revisão não forem gargalo.
+ - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
+   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
+   compartilhados.
+-- **4825 testes somando o aplicativo.** Durante a estabilização da V2 (fase
++- **4828 testes somando o aplicativo.** Durante a estabilização da V2 (fase
+   F00) nem todos estão verdes e o `npm audit` não está em zero: cada vermelho
+   conhecido, e a etapa que o fecha, está em `docs/roadmap-v2/STATUS.md`, na
+   raiz do repositório.
+@@ -309,7 +309,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 4825 testes com o aplicativo, npm audit, números
++npm run verificar          # typecheck, 4828 testes com o aplicativo, npm audit, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo

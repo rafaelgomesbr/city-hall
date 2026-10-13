@@ -9,14 +9,23 @@ como pendente o que o código já tem (1, 3 e 5) e um descrevia como manual o
 que o CI já roda (10.1); o vermelho de CRLF do item 9.1 fechou na V2-F00-E21.
 Eles continuam aqui, marcados como resolvidos e com a prova, porque o
 raciocínio de cada um ainda explica o código. O que REALMENTE resta, conferido
-contra o código nesta data:
+contra o código nesta data.
+
+**Segunda conferência de 2026-10-13 (correção 1 da V2-F00-E22).** A rodada de
+validação não conferiu este arquivo. Refeito contra o código de hoje, item a item:
+o 6.5 ("encerrar as outras") estava falso desde a correção 1 da V2-F00-E04 e saiu
+da lista; o 10.1 dizia que nenhuma rodada do CI foi conferida, e o gatekeeper leu
+o run 37739535524 do SHA 7005a60 (9 de 9 verdes), então a frase passou a dizer só
+o que continua pendente (a conferência humana da V2-F00-E01); o 9.2 ganhou a
+remissão ao item 11. Os demais itens batem com o código (os comandos e arquivos
+citados existem; os pedidos de rede e o CORS não mudaram).
 
 | O que resta | Item | Quem fecha |
 | --- | --- | --- |
 | Prova do link encurtado contra o Google de verdade (todos os testes usam dublê) | 2 | validação humana |
 | `google.maps.Marker` obsoleto e carregador sem `loading=async`; `fitBounds` num município espalhado | 4 | F10 |
 | Reset do segundo fator de outra pessoa, tela consolidada de conta, expurgo de IP e user-agent | 6.1 | F03-E11, F10-E01, F05-E12 |
-| Senha temporária conhecida por quem a sorteia; "encerrar as outras" preserva por id | 6.2, 6.5 | F03-E10, F03-E02 |
+| Senha temporária conhecida por quem a sorteia | 6.2 | F03-E10 |
 | Lista de usuários em 390 px rola na horizontal | 6.3 | F10 |
 | Envio real de e-mail; `Referrer-Policy` só nas duas rotas; header só visto na Vercel; sem olho na senha; prazo do link não dito | 7 | CP-19, F10 |
 | Os outros downloads (`baixarCsvDeOcorrencias`, `abrirDocumento`, `abrirOficio`) com `fetch` solto | 8.1 | V2-F00-E23 ou F10 |
@@ -253,11 +262,13 @@ O que não é desta etapa e continua aberto:
    escuro os fundos de aviso são translúcidos (12%) e o texto da página
    atravessava a confirmação. Vale também para o aviso de registro da
    ocorrência.
-5. **"Encerrar as outras"** preserva a sessão pelo identificador que o token traz
-   (`preservarSessaoId`). Quem clica com um token de acesso emitido antes da
-   última renovação derruba a sessão viva da própria cadeia (e o token cai em
-   seguida). A lista de "Minhas sessões" já marca "esta" por família; alinhar o
-   encerramento a ela é da F03-E02 (renovação em uma transação só).
+5. ~~**"Encerrar as outras"** preserva a sessão pelo identificador que o token
+   traz.~~ RESOLVIDO na correção 1 da V2-F00-E04: a preservação passou a ser pela
+   FAMÍLIA da sessão (`encerrarSessoes` em `apps/api/src/auth/sessoes.ts`, que
+   compara `familia_id`), igual ao que a lista de "Minhas sessões" marca como
+   "esta"; quem clica com um token anterior à última renovação mantém a sessão
+   viva da própria cadeia. O que continua de F03-E02 é só a janela de
+   milissegundos da renovação (item 9.3).
 
 ## 7. Recuperação de senha por e-mail (V2-F00-E10): o que ficou de fora
 
@@ -343,7 +354,9 @@ O que não é desta etapa e continua aberto:
    de propósito: dez destinos não cabem na largura, e o rótulo por extenso vale
    mais do que um ícone a adivinhar. Medido: `scrollWidth` 1484 contra
    `clientWidth` 390, toque arrasta, Tab alcança os dez. O que foi corrigido
-   aqui é o Tab parar num item PELA METADE. Transformar a barra em outra coisa
+   aqui é o Tab parar num item PELA METADE (a V2-F00-E09, correção 1, mudou a
+   barra para ladrilhos inteiros: ver o item 11; os números acima são da medição
+   original). Transformar a barra em outra coisa
    (menu "mais", ícones sem rótulo, abas) é decisão de interface da F10.
 3. **A janela de milissegundos entre revogar e abrir sessão** na renovação
    continua como estava (F03-E02); esta etapa não tocou em sessão no servidor.
@@ -371,8 +384,8 @@ O que não é desta etapa e continua aberto:
    trabalho `navegador` de `.github/workflows/verificar.yml` roda o modo local em
    Chromium e em Firefox e o caminho contra a API em Chromium. O que fica fora
    do CI é só o Firefox contra a API (`node scripts/e2e-api.mjs firefox`), e
-   nenhuma rodada do CI foi conferida durante a F00 (validação humana pendente
-   da V2-F00-E01).
+   o gatekeeper leu o run 37739535524 do SHA 7005a60 (9 de 9 verdes), mas a
+   conferência humana do CI continua pendente na V2-F00-E01.
 2. **CORS por ambiente e por domínio** (F01-E10) e o CORS do armazenamento externo de
    verdade (F06-E15): esta etapa só exercitou o armazenamento local da própria API.
 3. **Validação humana:** Rafael ver o upload da foto pelo painel concluir na seção 13.

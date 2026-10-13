@@ -212,6 +212,15 @@ export const MUDANCAS_DO_TESTE_API_POR_ETAPA = {
   */
   "V2-F00-E12": { total: 6, falhas: -1, puladas: 0 },
   /*
+    V2-F00-E12, correcao 1: o mesmo arquivo ganha o bloco "O laudo do pacote e o
+    da rota, campo por campo", com 3 casos: a coordenada da vistoria igual nos
+    dois laudos (consertada, duas colunas na consulta do pacote) e duas
+    DIFERENCAS CONHECIDAS travadas ate a F09-E02 (as duas secoes que o pacote nao
+    tem, e a foto avulsa que o pacote mistura no registro da vistoria). Nenhuma
+    falha nem pulo.
+  */
+  "V2-F00-E12-correcao-1": { total: 3, falhas: 0, puladas: 0 },
+  /*
     V2-F00-E15: `apps/api/test/precisao-do-gps-na-sincronizacao.test.ts` e novo,
     com 3 casos pela rota de verdade: o piso de 1 metro que o aparelho passou a
     mandar responde 201, a precisao nula continua aceita, e o 0 de aplicativo
