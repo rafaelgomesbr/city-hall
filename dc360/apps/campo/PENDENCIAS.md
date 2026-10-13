@@ -552,3 +552,26 @@ sinal"**. O portão `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.
 impede a volta (varre a fonte, menos comentários). Frases novas são texto de
 produto e aguardam a aprovação do Rafael (lista no `RESUMO.md` da correção).
 Segundo plano de verdade continua sendo a F14-E06, só se o CP-24 aprovar.
+
+## 17. `expo-doctor` dá 20 de 21 por patches novos do Expo (V2-F00-E19, correção 1)
+
+**Deriva externa, não defeito do projeto.** Em 2026-10-13, `npx expo-doctor` em
+`apps/campo` deu **20 de 21**. A única verificação que falha é "Check that
+packages match versions required by installed Expo SDK", com seis pacotes um
+patch atrás do que o SDK 57 exige hoje: `expo` (57.0.27, esperado ~57.0.28),
+`expo-crypto` (57.0.3, ~57.0.4), `expo-location` (57.0.20, ~57.0.21),
+`expo-router` (57.0.25, ~57.0.26), `expo-splash-screen` (57.0.9, ~57.0.10) e
+`jest-expo` (57.0.5, ~57.0.6). O baseline Linux de 2026-10-08 deu 21 de 21: o
+Expo publicou os patches depois. Nenhum pacote foi atualizado nesta correção, de
+propósito: o CP-03 decidiu que mexer na árvore do Expo (`npm audit fix`) mistura
+pacotes do SDK 57 e 58, e subir patch sem rodar a suíte do aplicativo e o
+`prebuild` não é um conserto de uma linha.
+
+- **Dono:** Rafael (decide quando subir os seis patches).
+- **Como fechar:** `npx expo install --check` em `apps/campo`, conferir o
+  `package-lock.json`, rodar `npm run test:campo` e `npx expo-doctor`
+  (esperado 21 de 21). Pode entrar junto com a subida do SDK que fecha o CP-03
+  (prazo das exceções: 2027-01-05).
+- **Efeito no G00:** o critério "`expo-doctor` 21 de 21" da E19 e do gate G00
+  está BLOQUEADO enquanto isso não for feito. Aceitar o 20 de 21 como risco é
+  decisão do gatekeeper e do Rafael, não do implementador.

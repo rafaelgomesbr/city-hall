@@ -3,6 +3,19 @@
 | Arquivo | SHA-256 |
 | --- | --- |
 | RESUMO.md | aa57a95819efa41d56375aaad5deb6eefe2ce48a9c9c45e3578a83bd17cd1464 |
+| VEREDITO.md | 750fa55e773c24cf7a4184ee65ee4f87511324e257af3b7e072aaf361ca8ac1e |
+| correcao-1/RESUMO.md | 3fe5444ac71a912b4a41748762010e32a3210c85043772cf04ce46d906ae64ec |
+| correcao-1/diff-da-correcao.patch | 8ab339714c5c1488d06553c7958205425316592cab699a596723a9b2b65311ff |
+| correcao-1/saidas/01-auditar-test-ANTES.txt | 9f3300669c6ddc4b0e1ca5d5d0a9bb1da2dd42c9bd6a642e247a5e2522b9ffec |
+| correcao-1/saidas/02-auditar-test-DEPOIS.txt | 58b44ed4d9045a69e78b6cc1f3ab8ec9c4d8a18f66ea4a010345fa3d0a30c336 |
+| correcao-1/saidas/03-npm-run-auditar-DEPOIS.txt | cdce653e51f5b86c5d5ee7ca6fa3926121511211d6de0b6779da58b0d9658868 |
+| correcao-1/saidas/04-expo-doctor.txt | d19777d35ee010f27cac3edea3656c54bc0a375bb74e730a5b51123a3fff9890 |
+| correcao-1/saidas/05-test-scripts-DEPOIS.txt | f8dcb0269372028279a85087492d4eaae5099d9845d0c5dbee3b61999db330d9 |
+| correcao-1/saidas/05b-baseline-test.txt | d85eff3da85bd6443bc4236e96b3344f21ca5e86f7e7d08d8ef81cdfedf2e2ff |
+| correcao-1/saidas/06-typecheck-DEPOIS.txt | 661758c3fab7c2e9592f37de6a237886eab752ef8f725eec3175dfccbbb1f8c6 |
+| correcao-1/saidas/07-conferir-numeros-DEPOIS.txt | cf61878bd9159c4322958ad03e67a41199d2bc4aec348261c9c44d4ee6e1f1b6 |
+| correcao-1/saidas/08-portao-de-conteudo.txt | 74c9d3eb779c93bb4bacb517d45a2b70082e5c16c547b786b6fde5063160428b |
+| correcao-1/saidas/09-excecoes-atuais.txt | be70fffde30c5cb9abbbedf8b3823e96a040567c2e163a2001056c99eb2f3c1b |
 | saidas/01-auditar.txt | f3ac3cae828cab1ab08277243da0c605aa522f998fc5fadee16ab585ecd3b0aa |
 | saidas/02-auditar-test.txt | 40e7693258ba85c64cf9cfabe40fadc684157a3f432f9851b775f54e02db5033 |
 | saidas/03-expo-doctor.txt | 3398056cdac22661840b6afb1ba2611b95dcc2d9282fac3680367cc603c30b98 |
@@ -13,3 +26,5 @@
 | saidas/08-typecheck.txt | 5a56ccad88c743e16bc01377d357554dd764184a5732248d5d9aa0005ea8eb21 |
 | saidas/09-npm-audit-raiz-runtime.txt | 026aadca0cc89a2bd8e18ec36f3fb8119b2922f27026ce3057f6335913263fe2 |
 | saidas/10-e2e-api.txt | d3bdd4c4b8a8b09184518a4ed6ceca9b54025b5057e666964b16d50c8d71b395 |
+| validacao/7005a60/engenharia-entrega.md | 90dbf1cca62ed7590f4de4beeeb97108fc23cddcfe32013844aa52dc533e7feb |
+| validacao/7005a60/qa.md | cf161cf812d2d8c75f1fbe71415b6b27974649f6781d78c1099314e88edafe4a |

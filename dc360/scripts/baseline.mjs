@@ -92,6 +92,14 @@ export const TESTES_DAS_ETAPAS_SEGUINTES_EM_SCRIPTS = {
     arquivos abaixo.
   */
   "V2-F00-E21": 7,
+  /*
+    V2-F00-E19: `scripts/auditar.test.mjs` já existia com 7 casos (que a tabela
+    nunca registrou) e a correção 1 acrescentou 13 (a regra do CP-03: sem prazo,
+    prazo inválido, sem dono, sem motivo, vencida, válida, a lista real, e a
+    cópia adulterada do portão). Arquivo já existente: fora da tabela de
+    arquivos abaixo. Conferido por `node --test scripts/auditar.test.mjs`: 20.
+  */
+  "V2-F00-E19": 20,
 };
 
 /** Arquivo de teste (em `scripts/`) que cada etapa da tabela acima acrescentou, para o conferidor. */

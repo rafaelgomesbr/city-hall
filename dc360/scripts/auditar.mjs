@@ -36,71 +36,7 @@
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-
-/**
- * Advisories do aplicativo de campo que hoje NÃO dá para fechar, com o motivo.
- *
- * Nenhuma delas vem de dependência escolhida por este projeto: chegam por
- * dentro do Expo, e `npm audit fix --force` quebraria a compilação nativa.
- * A lista tem nome e razão de propósito, para envelhecer em público.
- *
- * `js-yaml` (por `@expo/xcpretty`) esteve aqui até 15/09/2026 com a razão
- * "sai quando o Expo atualizar", e a razão era falsa: o `npm audit` já dizia
- * `fixAvailable: true`, e um `npm audit fix` a fechou. É o caso que fez este
- * portão passar a reprovar aceita com correção disponível (ver abaixo).
- */
-/*
-  Cada exceção tem `motivo`, `dono` e `ate` (AAAA-MM-DD). Vencido o prazo, o
-  portão reprova até alguém reavaliar. `comCorrecao: true` só vale para o caso em
-  que o `npm audit` diz `fixAvailable: true` mas a correção é inaplicável (ver
-  CP-03, decidido por Rafael em 2026-10-07): o `npm audit fix` em apps/campo
-  reembaralha a árvore inteira do Expo e mistura pacotes do SDK 57 e do 58.
-*/
-const DONO = "Rafael";
-const PRAZO = "2027-01-05";
-const FERRAMENTA_DO_EXPO = "Chega por dentro do pacote `expo` (ferramenta de "
-  + "build e de desenvolvimento, que roda na máquina de quem compila) e NÃO entra "
-  + "no pacote JavaScript que vai para o telefone do agente. ";
-const SEM_FIX_SEGURO = "O `npm audit fix` em apps/campo não é aplicável: "
-  + "reembaralha a árvore do Expo e mistura pacotes do SDK 57 e 58. A saída é "
-  + "subir o SDK do Expo por inteiro, o que exige novo binário nativo. ";
-
-const ACEITAS_NO_APLICATIVO = {
-  "decode-uri-component": {
-    motivo: "Chega por expo-router > query-string, e esta vai "
-      + "junto com o aplicativo. O ataque é negação de serviço por percentual mal "
-      + "formado numa URL, e a única URL que o aplicativo analisa é o próprio link "
-      + "profundo dele. Sem correção acima sem trocar o expo-router.",
-    dono: DONO, ate: PRAZO,
-  },
-  "brace-expansion": {
-    motivo: FERRAMENTA_DO_EXPO + "Negação de serviço por padrão `{a},b}` em glob, "
-      + "e o aplicativo não expande glob em execução. " + SEM_FIX_SEGURO,
-    dono: DONO, ate: PRAZO, comCorrecao: true,
-  },
-  braces: {
-    motivo: FERRAMENTA_DO_EXPO + "Negação de serviço por padrão aninhado em glob "
-      + "(micromatch), só no bundler. " + SEM_FIX_SEGURO,
-    dono: DONO, ate: PRAZO,
-  },
-  "node-forge": {
-    motivo: FERRAMENTA_DO_EXPO + "Vem de @expo/code-signing-certificates, usado "
-      + "para assinar atualização do EAS na máquina de build, não no telefone. "
-      + SEM_FIX_SEGURO,
-    dono: DONO, ate: PRAZO,
-  },
-  "shell-quote": {
-    motivo: FERRAMENTA_DO_EXPO + "Vem de react-devtools-core, só no modo de "
-      + "desenvolvimento. Injeção de comando exige que o desenvolvedor passe "
-      + "entrada hostil ao `quote()` local. " + SEM_FIX_SEGURO,
-    dono: DONO, ate: PRAZO, comCorrecao: true,
-  },
-  "sprintf-js": {
-    motivo: FERRAMENTA_DO_EXPO + "Vem de argparse > js-yaml, usado só para ler "
-      + "configuração local de ferramenta. " + SEM_FIX_SEGURO,
-    dono: DONO, ate: PRAZO,
-  },
-};
+import { ACEITAS_NO_APLICATIVO, problemasDasExcecoes } from "./auditar-excecoes.mjs";
 
 function auditar(argumentos, cwd) {
   try {
@@ -127,6 +63,23 @@ function contar(relatorio) {
       .map((n) => `${v[n]} ${n}`)
       .join(", "),
   };
+}
+
+/*
+  A lista de exceções precisa cumprir o CP-03 (motivo, dono e prazo, ainda no
+  prazo) ANTES de qualquer auditoria: lista malformada reprova mesmo que o
+  pacote dela não apareça no relatório de hoje.
+*/
+const hoje = new Date().toISOString().slice(0, 10);
+const defeitosDaLista = problemasDasExcecoes(ACEITAS_NO_APLICATIVO, hoje);
+if (defeitosDaLista.length > 0) {
+  console.error(`\nREPROVADO: ${defeitosDaLista.length} defeito(s) na lista de exceções (CP-03: nome, dono e prazo).`);
+  for (const defeito of defeitosDaLista) console.error(`  - ${defeito}`);
+  console.error(
+    "Corrija ou renove com motivo em ACEITAS_NO_APLICATIVO (scripts/auditar-excecoes.mjs), "
+    + "ou corrija a dependência e apague a linha.",
+  );
+  process.exit(1);
 }
 
 const runtime = contar(auditar(["--omit=dev", "--audit-level=low"]));
@@ -193,10 +146,6 @@ const aceitasComCorrecao = pacotesDoApp.filter(
     && !ACEITAS_NO_APLICATIVO[nome].comCorrecao
     && relatorioDoApp.vulnerabilities[nome].fixAvailable === true,
 );
-const hoje = new Date().toISOString().slice(0, 10);
-const vencidas = pacotesDoApp.filter(
-  (nome) => nome in ACEITAS_NO_APLICATIVO && ACEITAS_NO_APLICATIVO[nome].ate < hoje,
-);
 
 console.log(`\nAplicativo de campo (vai para o telefone): ${doApp.total} vulnerabilidade(s)`);
 for (const nome of pacotesDoApp) {
@@ -211,15 +160,7 @@ if (naoAceitas.length > 0) {
   );
   console.error(
     "Isto vai instalado no telefone do agente. Corrija, ou acrescente a "
-    + "ACEITAS_NO_APLICATIVO em scripts/auditar.mjs COM O MOTIVO escrito.",
-  );
-  process.exit(1);
-}
-
-if (vencidas.length > 0) {
-  console.error(
-    `\nREPROVADO: o prazo da exceção venceu para ${vencidas.join(", ")}. `
-    + "Reavalie em ACEITAS_NO_APLICATIVO (scripts/auditar.mjs) e renove com motivo, ou corrija.",
+    + "ACEITAS_NO_APLICATIVO em scripts/auditar-excecoes.mjs COM O MOTIVO escrito.",
   );
   process.exit(1);
 }
@@ -246,7 +187,7 @@ const obsoletas = Object.keys(ACEITAS_NO_APLICATIVO).filter((n) => !pacotesDoApp
 if (obsoletas.length > 0) {
   console.warn(
     `\nAviso: ${obsoletas.join(", ")} não aparece(m) mais no relatório do `
-    + "aplicativo. Apague de ACEITAS_NO_APLICATIVO em scripts/auditar.mjs.",
+    + "aplicativo. Apague de ACEITAS_NO_APLICATIVO em scripts/auditar-excecoes.mjs.",
   );
 }
 
