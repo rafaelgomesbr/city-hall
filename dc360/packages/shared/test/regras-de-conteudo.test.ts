@@ -138,7 +138,9 @@ function isento(relativo: string): boolean {
       // O separador no fim impede que `docs/evidencias-v2-outra` herde a isenção.
       return relativo.startsWith(caminho + sep) && !relativo.endsWith(".md");
     }
-    return relativo.startsWith(caminho);
+    // `pasta`: o próprio caminho ou o que está abaixo dele, com o separador no fim da comparação
+    // (sem isso `docs/referencia-outra` herdaria a isenção de `docs/referencia`; D4, 2026-10-13).
+    return relativo === caminho || relativo.startsWith(caminho + sep);
   });
 }
 
@@ -300,6 +302,8 @@ describe("Regras de conteúdo", () => {
       "dc360/apps/api/src/produto-novo.ts",
       "dc360/apps/web/src/Tela.tsx",
       "mockup/app/tela.js",
+      // Vizinho de nome de uma pasta isenta: NÃO herda a isenção (D4).
+      "docs/referencia-outra/nota.md",
     ];
     const PASSAM = [
       "docs/evidencias-v2/G00/V2-F00-E99/saida-do-teste.txt",
