@@ -1,7 +1,7 @@
 # Roteiro de aprovação humana da F00 (para o Rafael aprovar o G00)
 
 - **Para quem:** Rafael, sozinho, passo a passo.
-- **Escrito em:** 2026-10-13, sobre o candidato `4e0ccd3` (CI completo verde, 9 de 9).
+- **Escrito em:** 2026-10-13, sobre o candidato `18abaee` (o CI completo do anterior, `4e0ccd3`, deu 9 de 9; o deste foi pedido).
 - **Como aprovar:** responda aqui no chat com o código do item e a palavra "aprovo" ou "reprovo, porque ...". Exemplo: "D1 a, D2 ok, T3 aprovo, T5 reprovo, o botão cortou". Quem registra no STATUS sou eu. Você não edita arquivo nenhum.
 - **Regra para sempre:** toda vez que algo terminar e precisar de aprovação humana, eu entrego um roteiro neste formato (o que abrir, o que fazer, o que deve acontecer, o que reprova, como responder).
 
@@ -25,7 +25,7 @@ Por que a parte 2 espera: as 12 etapas corrigidas ainda vão passar por uma segu
 
 | Código | O que decidir | Onde ler | Minha recomendação |
 | --- | --- | --- | --- |
-| **D1** (E19) | `expo-doctor` dá 20 de 21 porque seis pacotes do Expo ficaram um patch atrás. (a) eu subo os seis patches e refaço os testes do app, ou (b) você aceita a exceção com dono e prazo. | `docs/evidencias-v2/G00/V2-F00-E19/VEREDITO.md` | (a), são só patches. Responda "D1 a" ou "D1 b". |
+| **D1** (E19) | **FEITA em 2026-10-13:** você escolheu atualizar. Os seis pacotes do Expo subiram, `expo-doctor` 21 de 21 e os testes do app passam (`docs/evidencias-v2/G00/V2-F00-E19/correcao-2/RESUMO.md`). | n/a | n/a |
 | **D2** (E02) | Prazo máximo de um teste pulado (hoje 30 dias) e dono padrão (hoje `rafael`). | `dc360/docs/POLITICA-DE-TESTE-VERMELHO.md` | Manter os dois. Responda "D2 ok". |
 | **D3** (E03) | Cinco perguntas sobre os vermelhos conhecidos (Q1 a Q5): se a regra de BZ-N:N.3 vale, se os 14 defeitos do campo são reais, se as 13 reescritas de teste ficam, se troca espera fixa por espera com condição, e o que fazer com os avisos de ferramenta. | `docs/evidencias-v2/G00/V2-F00-E03/classificacao-dos-vermelhos.md`, seção 8.6 (uma tabela, cada linha pede "sim" ou "troque por X") | Sim para Q1 a Q4. Na Q5, corrigir o Expo junto com D1 e deixar os 3 avisos de desenvolvimento do `vitest` como aviso com dono e prazo. Responda "D3 padrão" para aceitar tudo isso. |
 | **D4** (E20) | Lista de isenções do portão de conteúdo (arquivos que podem ter o que o portão proíbe, por exemplo travessão em texto de terceiros). | `dc360/packages/shared/test/regras-de-conteudo.test.ts`, bloco de comentário "Isenções" no topo | Aprovar se cada isenção tiver motivo escrito. Responda "D4 ok". |
@@ -34,7 +34,7 @@ Por que a parte 2 espera: as 12 etapas corrigidas ainda vão passar por uma segu
 | **D7** | Textos que o usuário vê: as três frases de sessão (E05), as frases da fila e da senha provisória no campo (E06), as frases finais de sessão (E14) e as 12 frases que trocaram a promessa de segundo plano (E16). | `docs/evidencias-v2/G00/V2-F00-E05/RESUMO.md` (seção "Frases mostradas ao usuário"), `docs/evidencias-v2/G00/V2-F00-E06/correcao-1/RESUMO.md` (frase da pausa por senha provisória) e `docs/evidencias-v2/G00/V2-F00-E16/correcao-1/RESUMO.md` (tabela antes e depois) | Ler com olho de quem usa. Responda "D7 aprovo" ou "D7 troque a frase X por Y". |
 | **D8** (E22) | Ler a tabela "afirmação, o que o código faz, ação" e confirmar que nada ficou prometido sem existir. | `docs/evidencias-v2/G00/V2-F00-E22/correcao-1/RESUMO.md` e `docs/evidencias-v2/G00/V2-F00-E12/correcao-1/RESUMO.md` | Responda "D8 aprovo". |
 
-Depois de D1 a D8, o próximo passo é a segunda validação, numa sessão nova: `Valide a F00 no SHA 4e0ccd3`.
+Depois de D1 a D8, o próximo passo é a segunda validação, numa sessão nova: `Valide a F00 no SHA 18abaee`.
 
 ---
 
