@@ -1,0 +1,82 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/web
+
+ ✓ test/design-system.test.ts > Nenhum valor de design escrito à mão > a varredura enxerga os arquivos de verdade 5ms
+ ✓ test/design-system.test.ts > Nenhum valor de design escrito à mão > nem no CSS, nem nos estilos escritos dentro do componente 70ms
+ ✓ test/design-system.test.ts > Nenhum valor de design escrito à mão > a varredura pega o que deveria pegar 2ms
+ ✓ test/design-system.test.ts > Nenhum valor de design escrito à mão > os blocos de comentário são apagados antes da varredura, e o código da mesma linha não 0ms
+ ✓ test/design-system.test.ts > Nenhum valor de design escrito à mão > todo tipo de input que as telas usam recebe estilo 8ms
+ ✓ test/design-system.test.ts > Nenhum valor de design escrito à mão > a lupa da busca não fica sobre o texto: quem afasta o texto vence a regra genérica de campo 4ms
+ ✓ test/design-system.test.ts > Nenhum valor de design escrito à mão > o campo inválido fica vermelho, e o campo sob o mouse escurece: as duas regras vencem a genérica 5ms
+ ✓ test/design-system.test.ts > Nenhum valor de design escrito à mão > a grade da aplicação não deixa a tabela empurrar a largura da tela 5ms
+ ✓ test/acessibilidade.test.ts > Contraste AA calculado a partir dos tokens > tema claro: todo par passa no mínimo exigido 4ms
+ ✓ test/acessibilidade.test.ts > Contraste AA calculado a partir dos tokens > tema escuro: todo par passa no mínimo exigido 1ms
+ ✓ test/acessibilidade.test.ts > Contraste AA calculado a partir dos tokens > o cálculo confere com valores conhecidos 0ms
+ ✓ test/acessibilidade.test.ts > Contraste AA calculado a partir dos tokens > a leitura dos tokens resolve as cadeias de var() 1ms
+ ✓ test/acessibilidade.test.ts > Contraste AA calculado a partir dos tokens > a composição de transparência muda o resultado 0ms
+ ✓ test/acessibilidade.test.ts > Teclado e leitor de tela > a varredura enxerga as telas de verdade 6ms
+ ✓ test/acessibilidade.test.ts > Teclado e leitor de tela > nenhum onClick pendurado em elemento que o teclado não alcança 19ms
+ ✓ test/acessibilidade.test.ts > Teclado e leitor de tela > toda imagem tem texto alternativo 10ms
+ ✓ test/acessibilidade.test.ts > Teclado e leitor de tela > foco visível nunca é removido sem substituto 2ms
+ ✓ test/acessibilidade.test.ts > Teclado e leitor de tela > o foco sobrevive ao Alto Contraste do Windows 1ms
+ ✓ test/acessibilidade.test.ts > Teclado e leitor de tela > campo de formulário usa a borda de CONTROLE, não a decorativa 2ms
+ ✓ test/acessibilidade.test.ts > Teclado e leitor de tela > o Tab traz o item da barra do rodapé inteiro para a tela 1ms
+ ✓ test/acessibilidade.test.ts > Teclado e leitor de tela > o aviso passageiro não cai em cima da barra de navegação 1ms
+ ✓ test/acessibilidade.test.ts > Teclado e leitor de tela > a barra do rodapé tem ladrilhos que cabem inteiros e o rótulo quebra em vez de cortar 1ms
+ ✓ test/acessibilidade.test.ts > Teclado e leitor de tela > o rodapé de toda janela quebra o rótulo e empilha os botões no celular 1ms
+ ✓ test/acessibilidade.test.ts > Teclado e leitor de tela > o painel do sino se ancora na tela, e não no botão, no celular 0ms
+ ✓ test/acessibilidade.test.ts > Teclado e leitor de tela > existe um atalho para pular direto ao conteúdo 7ms
+ ✓ test/acessibilidade.test.ts > Teclado e leitor de tela > as próprias regras pegam o que deveriam pegar 0ms
+ ✓ test/acessibilidade.test.ts > Teclado e leitor de tela > a exceção vale pelo comentário inteiro, e só por ele 0ms
+ ✓ test/design-system.test.ts > Nenhum valor de design escrito à mão > nenhuma fonte vem de rede: o painel serve as suas, e o portão lê até o tokens.css 30ms
+ ✓ test/design-system.test.ts > Nenhum valor de design escrito à mão > as fontes declaradas no tokens.css existem em public/fontes, com a licença ao lado 2ms
+ ✓ test/design-system.test.ts > Nenhum valor de design escrito à mão > o portão de fonte de rede pega o @import que existia, e deixa passar a declaração local 0ms
+ ✓ test/design-system.test.ts > Nenhum valor de design escrito à mão > a varredura não reclama do que está certo 1ms
+ ✓ test/acessibilidade.test.ts > Troca de tela > toda rota do painel tem título próprio 160ms
+ ✓ test/acessibilidade.test.ts > Troca de tela > o conteúdo pode receber foco, senão levar o foco até ele não funciona 1ms
+stderr | test/semente-e-confirmacoes.test.ts > A linha do tempo da semente conta a história na ordem
+Persistência em IndexedDB indisponível neste navegador. O banco local sobe em memória e o que for feito nesta aba some ao fechá-la. TypeError: Cannot read properties of null (reading 'open')
+    at Object.getDB (file:///C:/Projetos/city-hall/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113692)
+    at Object.getRemoteSet (file:///C:/Projetos/city-hall/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114890)
+    at callback (file:///C:/Projetos/city-hall/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113341)
+    at Object.getLocalSet (file:///C:/Projetos/city-hall/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:114798)
+    at Object.syncfs (file:///C:/Projetos/city-hall/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:113275)
+    at file:///C:/Projetos/city-hall/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131497
+    at Array.forEach (<anonymous>)
+    at Object.syncfs (file:///C:/Projetos/city-hall/dc360/node_modules/@electric-sql/pglite/release/postgres.js:9:131429)
+    at file:///C:/Projetos/city-hall/dc360/node_modules/@electric-sql/pglite/src/fs/idbfs.ts:31:26
+    at new Promise (<anonymous>)
+
+ ✓ test/seguranca-da-conta.test.ts > Usuários: redefinir senha e encerrar sessões de outra pessoa > os dois botões existem, por linha, e chamam a camada de dados 1ms
+ ✓ test/seguranca-da-conta.test.ts > Usuários: redefinir senha e encerrar sessões de outra pessoa > cada um pergunta antes, com o nome da pessoa no botão, e é destrutivo 1ms
+ ✓ test/seguranca-da-conta.test.ts > Usuários: redefinir senha e encerrar sessões de outra pessoa > só quem o posto deixa administrar vê os botões, pela função da tela e não por cópia da regra 0ms
+ ✓ test/seguranca-da-conta.test.ts > Usuários: redefinir senha e encerrar sessões de outra pessoa > a senha temporária aparece uma vez, copiável, com a frase de que não volta 5ms
+ ✓ test/seguranca-da-conta.test.ts > Usuários: redefinir senha e encerrar sessões de outra pessoa > depois de encerrar as sessões, a tela confirma com um Toast 0ms
+ ✓ test/seguranca-da-conta.test.ts > Usuários: redefinir senha e encerrar sessões de outra pessoa > no modo de demonstração os botões não aparecem, e a tela diz por quê 0ms
+ ✓ test/seguranca-da-conta.test.ts > Minha conta: encerrar minhas outras sessões > o botão existe, chama a camada de dados e pergunta antes 0ms
+ ✓ test/seguranca-da-conta.test.ts > Minha conta: encerrar minhas outras sessões > no modo de demonstração o cartão explica em vez de oferecer 0ms
+ ✓ test/ocorrencia-encerramento.test.ts > Quando o painel oferece o encerramento > não oferece em ocorrência recém registrada 2ms
+ ✓ test/ocorrencia-encerramento.test.ts > Quando o painel oferece o encerramento > não oferece em rascunho, e nunca em ocorrência já encerrada 1ms
+ ✓ test/ocorrencia-encerramento.test.ts > Quando o painel oferece o encerramento > oferece do resto do fluxo, porque encerrar continua sendo possível 1ms
+ ✓ test/ocorrencia-encerramento.test.ts > Quando o painel oferece o encerramento > permissão continua valendo antes de qualquer status 1ms
+ ✓ test/ocorrencia-encerramento.test.ts > Os dois toques do encerramento > o primeiro toque com motivo válido PERGUNTA, não grava 1ms
+ ✓ test/ocorrencia-encerramento.test.ts > Os dois toques do encerramento > o segundo toque grava, com o motivo já limpo de espaços 0ms
+ ✓ test/ocorrencia-encerramento.test.ts > Os dois toques do encerramento > motivo vazio é recusado ANTES da pergunta, nos dois passos 1ms
+ ✓ test/ocorrencia-encerramento.test.ts > Os dois toques do encerramento > a confirmação diz qual protocolo está sendo encerrado 0ms
+ ✓ test/ocorrencia-encerramento.test.ts > O bloco desenhado na tela > começa perguntando, e não já confirmando 9ms
+ ✓ test/ocorrencia-encerramento.test.ts > O bloco desenhado na tela > o campo de motivo é anunciado como obrigatório 1ms
+ ✓ test/ocorrencia-encerramento.test.ts > O bloco desenhado na tela > a validação nativa do navegador fica desligada 1ms
+ ✓ test/ocorrencia-encerramento.test.ts > A fiação entre a página e as regras > o bloco só é desenhado sob o portão de status 3ms
+ ✓ test/ocorrencia-encerramento.test.ts > A fiação entre a página e as regras > nada grava o encerramento fora do ramo de confirmação 3ms
+ ✓ test/semente-e-confirmacoes.test.ts > A linha do tempo da semente conta a história na ordem > 000473: registro, triagem, despacho, vistoria e termo, nesta ordem 4ms
+ ✓ test/semente-e-confirmacoes.test.ts > A linha do tempo da semente conta a história na ordem > 000473 foi aberta há um mês, e o imóvel segue interditado há 27 dias 3ms
+ ✓ test/semente-e-confirmacoes.test.ts > Cadastrar confirma > paginas/Usuarios.tsx anuncia o que gravou com um Toast 1ms
+ ✓ test/semente-e-confirmacoes.test.ts > Cadastrar confirma > paginas/Equipes.tsx anuncia o que gravou com um Toast 0ms
+ ✓ test/semente-e-confirmacoes.test.ts > Cadastrar confirma > paginas/Orgaos.tsx anuncia o que gravou com um Toast 0ms
+
+ Test Files  5 passed (5)
+      Tests  59 passed (59)
+   Start at  08:16:38
+   Duration  3.53s (transform 810ms, setup 0ms, collect 6.48s, tests 1.54s, environment 1ms, prepare 972ms)
+
+saida=0

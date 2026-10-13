@@ -81,6 +81,10 @@ em execução é bug e não pendência.
 passar e não se pula. Registra-se como instável, com a causa provável e a etapa
 que o trata, e o conserto troca a espera de tempo fixo por uma espera com
 condição e limite. A causa dita "carga da máquina" é hipótese até alguém medir.
+O instável fica no registro vivo (`docs/evidencias-v2/G00/V2-F00-E03/classificacao-dos-vermelhos.md`,
+seção 8) como uma linha com dono, issue e prazo, como qualquer skip: sem os três
+ele conta como item aberto sem dono, e o item do G00 "registro da E03 com zero
+itens abertos" não fecha.
 
 **Sem prova de R1 nem de R2.** O teste não se reescreve e o código não se mexe
 no escuro: trata-se como defeito até Rafael dizer o contrário (é a opção

@@ -1,0 +1,406 @@
+diff --git a/dc360/apps/api/test/resolver-link.test.ts b/dc360/apps/api/test/resolver-link.test.ts
+index bf240d8..b458ad1 100644
+--- a/dc360/apps/api/test/resolver-link.test.ts
++++ b/dc360/apps/api/test/resolver-link.test.ts
+@@ -1,7 +1,7 @@
+ import { createServer, type Server } from "node:http";
+ import type { AddressInfo } from "node:net";
+ import type { FastifyInstance } from "fastify";
+-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
++import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+ import { bancoEmMemoria, type BancoEmMemoria } from "../src/banco/memoria.js";
+ import { carregarConfig } from "../src/config.js";
+ import { construirServidor } from "../src/servidor.js";
+@@ -415,8 +415,18 @@ describe("A conexão de verdade vai para o endereço conferido, e não lê corpo
+     });
+     expect(r).toEqual({ status: 200, location: null });
+     expect(pedidos).toEqual([{ host: `nome-que-nao-existe.invalid:${porta}`, metodo: "GET", caminho: "/destino" }]);
+-    await new Promise((resolve) => setTimeout(resolve, 20));
+-    expect(conexaoFechada, "a conexão precisa ser fechada assim que os cabeçalhos chegam").toBe(true);
++    /*
++      Espera com condição e limite, e não um tempo fixo. O `close` da resposta
++      chega no servidor local pelo laço de eventos, e sob a carga da suíte
++      inteira (o pool de derivação de senha ocupa os fios) 20 ms não bastavam:
++      o teste falhou 1 vez em 3 rodadas completas (V2-F00-E03, classe F). Agora
++      ele passa assim que a conexão fecha e só reprova se ela NÃO fechar em 5 s,
++      que é o defeito que o teste existe para pegar (corpo lido até o fim).
++    */
++    await vi.waitFor(
++      () => expect(conexaoFechada, "a conexão precisa ser fechada assim que os cabeçalhos chegam").toBe(true),
++      { timeout: 5000, interval: 10 },
++    );
+   });
+ 
+   it("devolve o `Location` de um redirecionamento sem segui-lo por conta própria", async () => {
+diff --git a/dc360/docs/POLITICA-DE-TESTE-VERMELHO.md b/dc360/docs/POLITICA-DE-TESTE-VERMELHO.md
+index 8c60a2f..3ad1611 100644
+--- a/dc360/docs/POLITICA-DE-TESTE-VERMELHO.md
++++ b/dc360/docs/POLITICA-DE-TESTE-VERMELHO.md
+@@ -81,6 +81,10 @@ em execução é bug e não pendência.
+ passar e não se pula. Registra-se como instável, com a causa provável e a etapa
+ que o trata, e o conserto troca a espera de tempo fixo por uma espera com
+ condição e limite. A causa dita "carga da máquina" é hipótese até alguém medir.
++O instável fica no registro vivo (`docs/evidencias-v2/G00/V2-F00-E03/classificacao-dos-vermelhos.md`,
++seção 8) como uma linha com dono, issue e prazo, como qualquer skip: sem os três
++ele conta como item aberto sem dono, e o item do G00 "registro da E03 com zero
++itens abertos" não fecha.
+ 
+ **Sem prova de R1 nem de R2.** O teste não se reescreve e o código não se mexe
+ no escuro: trata-se como defeito até Rafael dizer o contrário (é a opção
+diff --git a/docs/DECISOES-DE-TESTE-DA-FASE-00.md b/docs/DECISOES-DE-TESTE-DA-FASE-00.md
+index cacfb49..b172cc1 100644
+--- a/docs/DECISOES-DE-TESTE-DA-FASE-00.md
++++ b/docs/DECISOES-DE-TESTE-DA-FASE-00.md
+@@ -59,7 +59,7 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
+ | API: certificado de teste do banco | 13 casos (1 suíte) | E21 | feito e provado na V2-F00-E21 |
+ | scripts: três testes de portabilidade e de configuração | 3 | E17 | idem |
+ | API: código de erro da sessão | 3 arquivos, 7 ocorrências | E05 (e E07) | idem |
+-| API: espera fixa de 20 ms | 1 instável (e 10 pontos a medir) | a definir (proposta: E21) | proposta, sem etapa aceita |
++| API: espera fixa de 20 ms | 1 instável (feito) e 10 pontos a medir (aberto) | correção 1 da E03 (o 1); a definir (os 10, proposta: E21) | o primeiro feito e provado na correção 1 da V2-F00-E03; os 10 pontos seguem como linha aberta V-INS-02 do registro, com dono e prazo |
+ | fila do campo: 401 e 403 de sessão deixam de ser permanentes | 3 (2 no pacote, 1 na integração com a API) | E06 | feito e provado na V2-F00-E06 |
+ | API e painel: papel diferente do token deixa de ser `sessao_encerrada` | 3 (2 na API, 1 no painel) | E07 | feito e provado na V2-F00-E07 |
+ | painel, e2e contra a API: a seção 15 conta só a tabela da trilha | 1 verificação (e as 2 anteriores da mesma seção, que usavam o mesmo seletor) | E18 | feito e provado na V2-F00-E18 |
+@@ -144,14 +144,20 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
+   de `componentes/Modal.tsx:254-259` (commit eafc4ca, 2026-09-09) tem 6 linhas
+   e a regra do próprio teste diz que a razão "costuma não caber em uma". O
+   portão é que está estreito: o elemento (`Modal.tsx:260`) tem a exceção escrita.
+-- **Depois (previsto, E13):** o portão procura a marca no bloco de comentário
+-  contíguo acima do elemento, sem janela fixa; um caso sintético prova que um
+-  `onClick` sem exceção ainda reprova.
++- **Depois (feito na E13, 2026-10-06; completado na correção 1 da E03,
++  2026-10-13):** `comentarioAcima` em `acessibilidade.test.ts` sobe linha a
++  linha a partir do elemento, atravessa linhas em branco e a abertura do
++  comentário JSX, e para no começo do bloco ou na primeira linha que não é
++  comentário; fora de comentário nada é lido, então a marca continua precisando
++  estar escrita num comentário. A janela fixa (`slice(el.linha - 5, el.linha - 1)`)
++  saiu e `Modal.tsx` não foi tocado. Nenhuma asserção foi enfraquecida: o
++  `onClick` em elemento não interativo ainda exige foco e tecla, ou a marca de
++  exceção com a razão escrita. Passa hoje (`correcao-1/brutas/prova-web.txt`).
+ - **Evidência:** `V2-F00-E01/saidas/07-teste-web.txt:331-340`; leitura de
+   `Modal.tsx:253-260`. Teste irmão: os demais casos do mesmo arquivo passam.
+ - **Etapa e data:** decisão registrada na V2-F00-E03 em 2026-10-05; reescrita na
+-  V2-F00-E13. A E13 não lista este arquivo em "Documentação a atualizar": deve
+-  completar este registro.
++  V2-F00-E13. O "Depois" foi completado na correção 1 da E03 (2026-10-13),
++  porque a E13 não lista este arquivo em "Documentação a atualizar".
+ 
+ ### shared: varredura de travessão (E20)
+ 
+@@ -165,11 +171,16 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
+   O que muda é a fonte do acerto. A E01 já trocou o travessão por `[travessao]`
+   nas saídas novas que arquiva; os relatórios históricos não se reescrevem
+   (seriam evidência apagada).
+-- **Depois (previsto, E20):** o literal vira escape (`"\u2014"`) com a mesma
+-  asserção; `CAMINHOS_IGNORADOS` cobre `docs/auditoria-v2/raw` e
+-  `docs/evidencias-v2` só para arquivos que não são `.md`, e o arquivo
+-  `docs/AUDITORIA-2026-09-30.md`, cada um com o motivo; casos de âncora provam
+-  que a isenção não é mais larga.
++- **Depois (feito na E20, 2026-10-07; completado na correção 1 da E03,
++  2026-10-13):** o literal de `trilha-detalhe.test.ts` virou escape
++  (`"\u2014"`) com a mesma asserção; `CAMINHOS_IGNORADOS` ganhou o campo
++  `alcance` e cobre `docs/auditoria-v2/raw` e `docs/evidencias-v2` só para
++  arquivos que não são `.md` (`pasta-fora-de-md`) e `docs/AUDITORIA-2026-09-30.md`
++  pelo nome exato (`arquivo`), cada um com o motivo; dois casos de âncora num
++  repositório sintético provam que a isenção não é mais larga (travessão novo em
++  documento, evidência escrita à mão e produto reprova; só a saída bruta e o
++  relatório histórico passam). Passa hoje, 8 de 8
++  (`correcao-1/brutas/prova-shared.txt`).
+ - **Evidência:** `V2-F00-E01/saidas/02-teste-shared.txt:40-47`.
+ - **Etapa e data:** decisão registrada na V2-F00-E03 em 2026-10-05; reescrita na
+   V2-F00-E20 (lista de isenções aprovada por Rafael).
+@@ -237,18 +248,21 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
+   23:28; o teste é de bcb02c0, 2026-09-15 17:03). Para este terceiro não existe
+   teste irmão que afirme o mesmo: por isso a reescrita precisa afirmar a
+   constante E os dois usos, e não só apagar o regex.
+-- **Depois (previsto, E17):** o primeiro usa a invocação portátil de
++- **Depois (feito na E17, 2026-10-07; completado na correção 1 da E03,
++  2026-10-13):** o primeiro usa a invocação portátil de
+   `scripts/testar-campo.mjs:103`; o segundo monta os caminhos com `join` e
+   `resolve` a partir da raiz da plataforma e continua recusando repositório,
+   iCloud, Dropbox, Google Drive, OneDrive e Área de Trabalho; o terceiro confere
+   que `PERFIL_DE_PRODUCAO` nasce de `EAS_BUILD_PROFILE === "producao"` e alimenta
+   o `mode` do plugin e `extra.pushAmbiente`, e reprova se o `mode` voltar a ser
+-  escrito à mão.
++  escrito à mão (`problemasDaEscolhaDoAmbiente`, mais um caso negativo que
++  estraga o rascunho de propósito). Nenhuma asserção foi enfraquecida. Os três
++  passam hoje (`correcao-1/brutas/prova-scripts.txt`).
+ - **Evidência:** `V2-F00-E01/saidas/10-test-scripts.txt:214,248,354` (casos 35,
+   38 e 53 na numeração atual; 19, 22 e 37 na antiga).
+ - **Etapa e data:** decisão registrada na V2-F00-E03 em 2026-10-05; reescrita na
+-  V2-F00-E17. A E17 não lista este arquivo em "Documentação a atualizar": deve
+-  completar este registro.
++  V2-F00-E17. O "Depois" foi completado na correção 1 da E03 (2026-10-13),
++  porque a E17 não lista este arquivo em "Documentação a atualizar".
+ 
+ ### API: código de erro da sessão (E05, com efeito na E07)
+ 
+@@ -262,8 +276,12 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
+   por `sessao_encerrada`. É decisão do roadmap, ainda não implementada. A
+   primeira asserção do `senha-provisoria.test.ts:183` (o status 401) é defeito
+   real e não se reescreve: é a que falha hoje e fecha na E07.
+-- **Depois (previsto, E05 e E07):** só o valor do código muda; o status e o
+-  comportamento afirmados ficam.
++- **Depois (feito na E05, 2026-10-06, e na E07; completado na correção 1 da
++  E03, 2026-10-13):** só o valor do código mudou, de `sessao` para
++  `sessao_encerrada` (`senha-provisoria.test.ts:191`, `sessao-e-entrada.test.ts`);
++  o status 401 e o comportamento afirmados ficaram. O detalhe das ocorrências
++  está na seção "API e painel: o código `sessao` deixa de existir", mais abaixo,
++  e `codigos-de-erro.test.ts` impede o código antigo de voltar.
+ - **Evidência:** `V2-F00-E01/saidas/05-teste-api.txt:789-805`.
+ - **Etapa e data:** decisão registrada na V2-F00-E03 em 2026-10-05; reescrita na
+   V2-F00-E05.
+@@ -277,15 +295,25 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
+ - **Decisão que o torna velho:** nenhuma decisão superada: é instabilidade. Falhou
+   uma vez em três rodadas completas (E02, `V2-F00-E02/saidas/regressao-npm-test/04-teste-api.txt:565-580`)
+   e passou isolado 3 de 3 e na segunda rodada completa.
+-- **Depois (proposto):** espera com condição e limite (por exemplo `vi.waitFor`
+-  com teto de 2 s) no lugar do tempo fixo, afirmando a mesma coisa. A mesma
+-  espera fixa aparece em outros 10 pontos de 4 arquivos (`desinterdicao`,
+-  `fotos-do-documento`, `identificador-da-emissao`, `segunda-via-nao-reinterdita`):
+-  medir antes de trocar.
++- **Depois (feito na correção 1 da E03, 2026-10-13):** `vi.waitFor` com
++  `timeout: 5000` e `interval: 10` no lugar do `setTimeout(resolve, 20)`,
++  afirmando a mesma coisa (a conexão é fechada assim que os cabeçalhos chegam),
++  com a mesma mensagem de falha. Nenhuma asserção foi enfraquecida: o teste só
++  reprova agora se a conexão NÃO fechar em 5 s, que é o defeito que ele existe
++  para pegar. Prova: 10 rodadas isoladas e 10 sob carga sintética, 37 de 37 em
++  todas; o mutante (servidor que não registra o `close`) reprova com a mensagem
++  do teste (`correcao-1/brutas/resolver-link-*.txt`). A carga sintética NÃO
++  reproduziu a falha da versão antiga (10 de 10 verdes), então a causa "carga
++  da máquina" segue hipótese. A mesma espera fixa aparece em outros 10 pontos
++  de 4 arquivos (`desinterdicao`, `fotos-do-documento`, `identificador-da-emissao`,
++  `segunda-via-nao-reinterdita`) e há outras 6 de 10 a 100 ms em 3 arquivos de
++  push e recuperação: seguem abertos como V-INS-02 (dono `rafael`, prazo
++  2026-10-27), medir antes de trocar.
+ - **Evidência:** classificação, seção 6.
+-- **Etapa e data:** proposta feita na V2-F00-E03 em 2026-10-05; nenhuma etapa
+-  existente a cobre (a E21 é a mais próxima). Aguarda Rafael aceitar o quarto
+-  item da E21 ou abrir etapa própria.
++- **Etapa e data:** proposta feita na V2-F00-E03 em 2026-10-05; o primeiro
++  ponto trocado na correção 1 da V2-F00-E03 em 2026-10-13. A troca nos demais
++  pontos aguarda Rafael aceitar o quarto item da E21 (pergunta Q4 da seção 8.6
++  da classificação).
+ 
+ ### API: `tokens.coordA` do `api.test.ts` entra de novo depois do teste de reuso
+ 
+diff --git a/docs/evidencias-v2/G00/V2-F00-E03/INDEX.md b/docs/evidencias-v2/G00/V2-F00-E03/INDEX.md
+index d5ff9b0..c2f96ea 100644
+--- a/docs/evidencias-v2/G00/V2-F00-E03/INDEX.md
++++ b/docs/evidencias-v2/G00/V2-F00-E03/INDEX.md
+@@ -2,5 +2,55 @@
+ 
+ | Arquivo | SHA-256 |
+ | --- | --- |
+-| RESUMO.md | b4c8787884ac468e345585e78788de23269bc31a5ed8cdf3772e43b84271bac4 |
+-| classificacao-dos-vermelhos.md | ddc5cd817a50b502aea00ee97a8a6f0c903a47f4a443252d08752e20ffeb03d7 |
++| RESUMO.md | b4eb4cdf85381c81343d6819ab311b0fd92c64c0dd78ab77b44f06ff2884b755 |
++| VEREDITO.md | c256ecc70d41391c4e4f308a7ccd5d130fab91ca7ed7516d1bac436ae1c0ed70 |
++| classificacao-dos-vermelhos.md | 1c32f7ff6b4c41a4c8da530566c34af79ff7c8e1055f8dc5d64017ce7a4465e1 |
++| correcao-1/RESUMO.md | 3ae06b6a39f18ce1232bb700c0566e74c657da042132a15d4e56c5edbc16354b |
++| correcao-1/brutas/e2e-api-firefox-rodada-1.txt | cf71a50a3ed280752c670940a73046d8dff23004e62c5b71fd5808bcf668e547 |
++| correcao-1/brutas/e2e-api-firefox-rodada-2.txt | fd7173b5301741f55f8800286316c9b434627982c368399f06cf188ca1b87c03 |
++| correcao-1/brutas/e2e-api-firefox-rodada-3.txt | 6872b8116a339547d88d64fa1a9004d2492b153d3a119718021e11fa860c1af1 |
++| correcao-1/brutas/e2e-api-firefox-rodada-4.txt | 645daba6e965e0b6162f89f5d8cc50c9508764e31f4a1edb1cfea2501bb93862 |
++| correcao-1/brutas/e2e-api-firefox-rodadas.txt | 173b62ce5f3eb87ee57570b5c73c50b30b5dfaae4096f885f36c64924fa04d21 |
++| correcao-1/brutas/npm-audit-campo-omit-dev.txt | 5ab1a6f7e66c1a3072aa3e4dbcaef89f3ef45ca1d673f05dc7aa33fe836a7a4b |
++| correcao-1/brutas/npm-audit-raiz-omit-dev.txt | 6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3 |
++| correcao-1/brutas/npm-test-rodada-1.txt | a73f0902c34d077416334e95e6a9cf3dfaa15fd2a9cbfee915e9eaf9d7cbf04c |
++| correcao-1/brutas/npm-test-rodada-2.txt | bc05a2624f50a717654f52b78b7def06ccea3d08fc50f3b5675f60d21e6b3c25 |
++| correcao-1/brutas/npm-test-rodada-3.txt | 104b200d6774341558496f0a60c054ed350778860bcb352f992a298f0b5f6679 |
++| correcao-1/brutas/npm-test-rodada-4.txt | 06f2db26cff4346b544d0521a71abb16ad21ea62209d418b49754cef1245a13d |
++| correcao-1/brutas/npm-test-rodada-5.txt | 2571817aaa3de3720ee49305f1970540c2e4cc7c13a810b69d83ed72c66775b8 |
++| correcao-1/brutas/npm-test-rodadas.txt | 2d9228e0a0efcda9b4dedbcbb4d8ec03c6a3ef61e3ac29b4c9051b2094d64e0c |
++| correcao-1/brutas/prova-api.txt | 7ef00340c125c162aeb0263fe4629b712648ba9e9963d7c5097d7e2935e16ac0 |
++| correcao-1/brutas/prova-campo.txt | 6d8b77bd73391227d1b72b60eb265593ed20c7d70693f6023679af19bbe7c815 |
++| correcao-1/brutas/prova-scripts.txt | 56f917e9785a8f715a12718407fa738de42328bd5ec7a3f83010d5c4eaa81951 |
++| correcao-1/brutas/prova-shared.txt | deeef01017b7505ee2730df2da84d30572fc360a76a18c87708383bad03732c1 |
++| correcao-1/brutas/prova-web.txt | f4c25d5007c5f76d02932e64d243026dccb340aa92932a9c0de9133d42dda32a |
++| correcao-1/brutas/resolver-link-10-rodadas.txt | b6101acb8b114d8fbc13b90f4ed48bd7f9e2f87d6773c18272055a14d809a600 |
++| correcao-1/brutas/resolver-link-mutante.txt | 427a08efe4f76e4b4ff738e23aeb11ce167a82d469ccfb7e476b9b017adbc304 |
++| correcao-1/brutas/resolver-link-sob-carga.txt | d2dabf6939b77c4e142dadf0175a05cfae8d920e76d0a1b5023ac28236956de9 |
++| correcao-1/diff-da-correcao.patch | 872142815b65d5a902bd29c3d2c1ab19d51a85bfc8cc778e1ba233d6701eec7b |
++| correcao-1/regressao-final/01-conferir-numeros.txt | a60c9c3cad179a2a11efbb79150885604372e0d5f5aa9c0d7b116c4f22f39d5c |
++| correcao-1/regressao-final/02-portao-de-conteudo.txt | 074196831cfe59d85686e1a157c2da77a85eafcb920a58a3b9f6193f549fe5bf |
++| correcao-1/regressao-final/03-test-scripts.txt | f5a03ef3197410445ec4b80fde80d180b0361f5fff27f38656c105598f3a4619 |
++| correcao-1/saidas-firefox-painel/01-e2e.txt | c69709f0bda97285c9eb7565a0ecc133d4963c02ea873d490d1afef2382362f4 |
++| correcao-1/saidas-firefox-painel/RESUMO.md | 9733fd2735b58d51b8c32705222272303e605a19c7b23b4431c5934a15b45f38 |
++| correcao-1/saidas-firefox-painel/resultados.json | 0024189635e67e642b3e87d4fde60ae8e3f22f6df9b72467461655f7361f60da |
++| correcao-1/saidas/01-typecheck.txt | 744ee05ad54b9b26f4b31eb4b1964e010a92b6f7207962ed552fe955f606aeab |
++| correcao-1/saidas/02-teste-shared.txt | c9c9571411f316ac643bdc8b8fd599eedbbb887eef6f9fa541e90131a2e8e9bc |
++| correcao-1/saidas/03-teste-db.txt | c29df57ff63ecca8de1a7a886a3da30e1bdf749dceac912ec1807229cbdf4b0e |
++| correcao-1/saidas/04-teste-campo-pacote.txt | ebc2968d677667aed74f0a90525bfc009e9f9404c19edf0285291213bccee5fd |
++| correcao-1/saidas/05-teste-api.txt | 20aa6d572b64e667c211b222d881b56ddf8f37287bd31ddd8a68445920d64fcd |
++| correcao-1/saidas/06-teste-console.txt | 911764e138e2199d1490e4715d6962577293b8ff898e5de5a2781ab029585686 |
++| correcao-1/saidas/07-teste-web.txt | 26ef46386fcf3eaf1da373a38bbcd399beee0337e9b7698a15055e41eb408880 |
++| correcao-1/saidas/08-teste-campo-app.txt | 11bf02f843ed74692d99462eeb829a3112c4ffd9efbf811b43332bc5fab32db4 |
++| correcao-1/saidas/09-test-campo.txt | 77fc59ac81b63a6f8ddbb3ea320a8a61b96890c7e9553e46cd068ffdffcfc3d5 |
++| correcao-1/saidas/10-test-scripts.txt | e12df91d32fd79a1885d0a6e7586e83bd603809bfd96d12522b61a5f0098412b |
++| correcao-1/saidas/11-conferir-numeros.txt | 90713d5b11acab56b38ac041679ec9308aa931f70d1d36273652e68d5e0ffd22 |
++| correcao-1/saidas/12-auditar.txt | 9e4bc6ea025353055753ebcb55336d6662e94a1c5e3e1d0e0ef8f986629fe3de |
++| correcao-1/saidas/13-audit-raiz.txt | 2f4069b66f9394fe8bab0ea2337dbdeb286e93f122d9a3ea75b5ed4fa1f90cca |
++| correcao-1/saidas/14-audit-campo.txt | 40afe0d4d0a906bb108b1608b7d9c2656490b5402b022cffda1cd0f973761088 |
++| correcao-1/saidas/15-expo-doctor.txt | 0a48caf2430baeb05d39ef84577c8e03b5bb90f160f9737806ec0d9bbb1ee7a7 |
++| correcao-1/saidas/16-e2e.txt | 244601ef60a6db988da157edb75406a057157431fedf91293864fb454e55c87b |
++| correcao-1/saidas/17-e2e-api.txt | d5d48005830a4b664f3e3677719803a20318399ffac238dbef9fd3b7851b0a69 |
++| correcao-1/saidas/RESUMO.md | b1c36bd3025b99ea077df4d389eb102619039e35f44738b02b0a59f3e52b049a |
++| correcao-1/saidas/resultados.json | e8e57c73fa8f24aa1a34d80cd3f47a627d0ea57738909cd910691011ed7e34bd |
++| validacao/7005a60/qa.md | 218b43ebe25ed1b10f1f168a1c4b8827c19de2aca5e6c0c4fc72b907a93c7d61 |
+diff --git a/docs/evidencias-v2/G00/V2-F00-E03/RESUMO.md b/docs/evidencias-v2/G00/V2-F00-E03/RESUMO.md
+index 9905781..40fc389 100644
+--- a/docs/evidencias-v2/G00/V2-F00-E03/RESUMO.md
++++ b/docs/evidencias-v2/G00/V2-F00-E03/RESUMO.md
+@@ -1,5 +1,7 @@
+ # V2-F00-E03: Classificar os vermelhos por causa e registrar
+ 
++**Atualização de 2026-10-13:** a validação da E03 reprovou o registro (o `classificacao-dos-vermelhos.md` não marcava nada como fechado e as instabilidades estavam fora dele). A correção 1 está em `correcao-1/RESUMO.md`, e o registro vivo é a seção 8 de `classificacao-dos-vermelhos.md`. O texto abaixo é o da entrega de 2026-10-05.
++
+ Situação: FEITA EM DOCUMENTAÇÃO em 2026-10-05; FALTA A DECISÃO DE RAFAEL (ver o fim). Por isso a etapa está EM ANDAMENTO no STATUS e o item "vermelhos classificados" do G00 não foi marcado.
+ 
+ ## O que foi entregue
+diff --git a/docs/evidencias-v2/G00/V2-F00-E03/classificacao-dos-vermelhos.md b/docs/evidencias-v2/G00/V2-F00-E03/classificacao-dos-vermelhos.md
+index 8e2b9a7..d220b2c 100644
+--- a/docs/evidencias-v2/G00/V2-F00-E03/classificacao-dos-vermelhos.md
++++ b/docs/evidencias-v2/G00/V2-F00-E03/classificacao-dos-vermelhos.md
+@@ -4,6 +4,8 @@ Data: 2026-10-05. Base: as saídas arquivadas da E01 (`docs/evidencias-v2/G00/V2
+ 
+ Situação da decisão: a regra da seção 1 está aplicada como PREMISSA (STATUS, seção 9), porque Rafael ainda não decidiu BZ-N:N.3. A validação humana pedida está na seção 7.
+ 
++**Atualização de 2026-10-13 (correção 1 da E03).** As seções 1 a 7 são a fotografia de 2026-10-05, escrita antes das 22 etapas seguintes, e dizem "Fecha em" no futuro. A seção 8 é o registro vivo: cada linha com seu estado de hoje (FECHADO ou ABERTO), a etapa e o commit que fecharam, a prova do comando que rodou, e, para o que segue aberto, dono, issue e prazo pela política T42. As instabilidades conhecidas (`resolver-link.test.ts`, `dominio.test.ts`, `regras-de-conteudo`, `test:isolamento`, o e2e da API em Firefox) entram ali como linhas. A contagem final está em 8.7. Onde as seções antigas e a 8 divergirem, vale a 8.
++
+ ## 1. Classes e regra aplicada
+ 
+ | Classe | O que é | O que muda | Regra |
+@@ -173,6 +175,8 @@ Classe F (instável). Não entra na soma do baseline, porque a E01 o mediu verde
+ - **Alcance.** A mesma espera fixa de 20 ms aparece em outros 10 pontos de 4 arquivos da API (`desinterdicao.test.ts` 3, `fotos-do-documento.test.ts` 2, `identificador-da-emissao.test.ts` 2, `segunda-via-nao-reinterdita.test.ts` 3). Nenhum falhou nas três rodadas e nenhum foi classificado aqui: ficam listados.
+ - **Quem trata.** Nenhuma etapa existente cabe com precisão: a E21 é a mais próxima (objetivo "a suíte inteira passa sem depender da máquina"), mas o escopo escrito dela é CRLF, `OPENSSL_CONF` e cache do campo. Registrado como achado novo no STATUS, seção 11, com a proposta de a E21 receber um quarto item ("esperas fixas sob carga"): trocar a espera de 20 ms por espera com condição e limite (por exemplo `vi.waitFor` com teto de 2 s) em `resolver-link.test.ts` e, depois de medir, nos outros 10 pontos. A troca é reescrita de teste e pede o registro que a política exige. Enquanto isso, quem vir o teste vermelho numa rodada completa roda o arquivo sozinho e registra a rodada; não pula e não repete até passar.
+ 
++**Atualização de 2026-10-13.** A espera de 20 ms de `resolver-link.test.ts` foi trocada por `vi.waitFor` com limite de 5 s (linha V-INS-01, fechada). Os outros 10 pontos de 20 ms e as demais esperas fixas seguem abertos, com dono, issue e prazo (V-INS-02). A carga sintética não reproduziu a falha da versão antiga: a causa "carga da máquina" continua hipótese (8.4).
++
+ ## 7. Decisão pedida a Rafael
+ 
+ Com esta tabela na mão, três respostas:
+@@ -182,3 +186,124 @@ Com esta tabela na mão, três respostas:
+ 3. Os 6 do campo e os 3 de scripts que a regra manda reescrever (V-CAM-01 a V-CAM-06, V-SCR-3, e os de classe C com mudança de teste) podem ser reescritos nas etapas E14, E17 e E21 com o registro já aberto?
+ 
+ Resposta de Rafael: PENDENTE. O item "vermelhos classificados" do G00 só se marca com a decisão dele.
++
++Situação em 2026-10-13: segue PENDENTE. A tabela pronta, com as cinco perguntas (as três acima, mais a troca de espera fixa por condição e a política dos avisos de ferramenta), as linhas que dependem de cada uma e o que muda no sim e no não, está na seção 8.6.
++
++## 8. Registro vivo em 2026-10-13 (correção 1 da E03)
++
++Base: HEAD `5dfc389` (depois das correções `4fcc241` a `5dfc389`) mais a troca de espera de `resolver-link.test.ts` feita nesta correção. Máquina: Windows 11, Node 22.17.0, a das medições da E01. As seções 1 a 7 ficam como a fotografia de 2026-10-05: o "Fecha em" delas é o que foi prometido, e esta seção diz o que aconteceu. Onde divergirem, vale esta.
++
++Estados: **FECHADO** (o teste passa hoje, com a prova ao lado) e **ABERTO** (segue vermelho ou avisando, e tem dono, issue e prazo pela T42). Dono padrão `rafael` (PREMISSA da E02). Os prazos das linhas abertas são PROPOSTA deste registro, dentro do máximo de 30 dias da política (até 2026-11-12), e Rafael pode mudá-los. A coluna "Commit" é o commit do código que fechou; as etapas E01 a E10 entraram em `5d6bc57`, as E11 a E25 em `99390e0`, e as correções 1 de 2026-10-13 têm o próprio commit.
++
++### 8.1 O que rodou hoje, e onde está a saída
++
++Saídas passadas por `redigir` de `dc360/scripts/baseline.mjs`, na pasta `docs/evidencias-v2/G00/V2-F00-E03/correcao-1/`.
++
++| Comando | Resultado | Arquivo |
++| --- | --- | --- |
++| `node scripts/baseline.mjs --sem-instalar` (17 passos) | 12 conferem, 5 divergem: ver V-ROT-01 (o roteiro, e não a árvore, está desatualizado) | `saidas/RESUMO.md` |
++| `npm run typecheck` | saída 0 | `saidas/01-typecheck.txt` |
++| `npm test` completo, 5 rodadas em sequência | saída 0 nas 5; contagens iguais nas 5: shared 168, campo (pacote) 223, API 1299, console 259, painel 649, banco 327 e 3 pulados por ambiente | `brutas/npm-test-rodada-1.txt` a `5` |
++| `npm run test:api` | 1299 de 1299, 99 arquivos | `saidas/05-teste-api.txt` |
++| `npm run test --workspace @dc360/web` | 649 de 649, 43 arquivos | `saidas/07-teste-web.txt` |
++| `npm run test:campo` | tipos limpos e 1903 de 1903 casos (129 suítes) | `saidas/09-test-campo.txt` |
++| `npx jest --silent` em `apps/campo` | 1903 de 1903 | `saidas/08-teste-campo-app.txt` |
++| `npm run test:scripts` | 230 casos, 226 ok, 0 falhas, 4 pulados por ambiente (sem `ios/`); o portão de skip diz "10 skips por ambiente em 3 arquivos; 0 incondicionais com marca T42" | `saidas/10-test-scripts.txt` |
++| `npm run conferir:numeros` | "Todos os números da documentação batem com a realidade." | `saidas/11-conferir-numeros.txt` |
++| `npm run test:isolamento` | 327 ok e 3 pulados por ambiente (`busca.test.ts`, `it.runIf`) | `saidas/03-teste-db.txt` |
++| `npm run test:e2e` (painel), Chromium | 70 passou, 0 falhou | `saidas/16-e2e.txt` |
++| `MOTOR=firefox npm run test:e2e` (painel) | 70 passou, 0 falhou | `saidas-firefox-painel/01-e2e.txt` |
++| `npm run test:e2e:api`, Chromium | 279 passou e 0 falhou (arquivo do fluxo), 50 e 0 (largura estreita) | `saidas/17-e2e-api.txt` |
++| `npm run test:e2e:api -- firefox`, 4 rodadas | 4 de 4 verdes, 279 e 50 em cada uma | `brutas/e2e-api-firefox-rodada-1.txt` a `4`, `brutas/e2e-api-firefox-rodadas.txt` |
++| `npm run auditar` | saída 0: runtime 0, 3 avisos de desenvolvimento, app de campo sem advisory nova | `saidas/12-auditar.txt` |
++| `npm audit` raiz / `apps/campo` / `npx expo-doctor` | 3 (1 moderada, 2 críticas, todas de desenvolvimento) / 59 / 20 de 21: ver V-DEP-2b, V-DEP-3 e V-DEP-4 | `saidas/13`, `14`, `15` |
++| Provas por linha (arquivo de teste com `--reporter=verbose`) | todos os testes nomeados na seção 3 passam: shared 8 de 8, painel 59 de 59 em 5 arquivos, API 61 de 61 em 4 arquivos, campo 44 de 44 em 6 arquivos, scripts 22 (18 ok, 4 pulados por ambiente) | `brutas/prova-shared.txt`, `prova-web.txt`, `prova-api.txt`, `prova-campo.txt`, `prova-scripts.txt` |
++
++A coluna "Prova" das tabelas abaixo cita estes arquivos. Os testes nomeados de cada linha aparecem com ✓ nos arquivos `brutas/prova-*.txt`.
++
++### 8.2 Linhas fechadas (62 de 71)
++
++| Linha(s) | Fechou em | Commit | Prova de hoje |
++| --- | --- | --- | --- |
++| V-SHA-1 | E20 | `99390e0` | `prova-shared.txt`: "nenhum travessão em texto nenhum" ✓, 8 de 8; o literal de `trilha-detalhe.test.ts` virou escape e as isenções têm casos de âncora |
++| V-WEB-01 | E13 | `99390e0` | `prova-web.txt`: "nenhum onClick pendurado em elemento que o teclado não alcança" ✓; o portão lê o bloco de comentário inteiro (`comentarioAcima`), e `Modal.tsx` não mudou desde 2026-09-09 |
++| V-WEB-02 | E13 | `99390e0` | `prova-web.txt`: design-system "nem no CSS, nem nos estilos escritos dentro do componente" ✓; `Estrutura.tsx` não tem mais `borderRadius: "8px"` (busca sem resultado) |
++| V-WEB-03 | E21 | `99390e0` | `prova-web.txt`: "nada grava o encerramento fora do ramo de confirmação" ✓ com a árvore em CRLF; `.gitattributes` e o leitor de fonte da E21 |
++| V-WEB-04 a V-WEB-11 | E09 | `5d6bc57`, correção `39051f7` | `prova-web.txt`: os 8 casos de `seguranca-da-conta.test.ts` ✓ (botões, pergunta antes, quem vê, senha temporária, Toast, modo de demonstração, Minha conta) |
++| V-WEB-12 a V-WEB-14 | E13 | `99390e0` | `prova-web.txt`: "anuncia o que gravou com um Toast" ✓ em `Usuarios.tsx`, `Equipes.tsx` e `Orgaos.tsx` |
++| V-API-1 | E04 (a vigência na escrita), E07 (o par que faltava) | `5d6bc57` | `prova-api.txt`: "uma sessão viva cuja senha provisória venceu no meio não escreve nem renova" ✓ |
++| V-API-2 | E12 | `99390e0`, correção `5dfc389` | `prova-api.txt`: "o laudo do pacote imprime o aviso de equipe divergente, como o laudo emitido" ✓ |
++| V-API-S1 | E21 | `99390e0` | `prova-api.txt`: `banco-tls.test.ts` 13 de 13 ✓ (não é mais suíte pulada). `OPENSSL_CONF` continua apontando para arquivo que não existe nesta máquina; o teste avisa em stderr e roda o `openssl` sem a variável |
++| V-API-S2 | E04 | `5d6bc57`, correção `4fcc241` | `prova-api.txt`: `vigencia-na-escrita.test.ts` roda inteiro, 13 de 13 ✓ (o `describe.skip` saiu; "conta desativada não escreve mais, no pedido seguinte" ✓); portão de skip: "0 incondicionais com marca T42" |
++| V-CAM-01 a V-CAM-06 | E14 | `99390e0` | `prova-campo.txt`: os 2 testes da sessão encerrada e os 4 do logout ✓; teste irmão `a-sessao-vencida-nao-apaga-a-vistoria.test.tsx` ✓ (3 casos). Regra R1 (depende de Q1 e Q3) |
++| V-CAM-07 a V-CAM-13 | E15 | `99390e0`, correção `a5da710` | `prova-campo.txt`: os 6 de `dialogo-na-conta-com-vistoria-comecada.test.tsx` ✓ e "abaixo de meio metro vira 1, e não zero" ✓. Defeitos reais (depende de Q2) |
++| V-CAM-14 a V-CAM-20 | E16 | `99390e0`, correção `81a5223` | `prova-campo.txt`: os 7 de `vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx` ✓ (segundo plano, toque fora, teclado, área segura, ajustes de câmera e de localização, frase certa). Defeitos reais (depende de Q2) |
++| V-TC-1 | E21 | `99390e0` | `saidas/09-test-campo.txt`: tipos limpos, 1903 casos |
++| V-SCR-1, V-SCR-2, V-SCR-3 | E17 | `99390e0` | `prova-scripts.txt`: "rodando da raiz, --conferir confere e NÃO aplica" ok, "a pasta de copias recusa o repositorio..." ok, "a escolha do ambiente continua morando no app.config.ts..." ok, mais o negativo novo ("reprova o mode escrito à mão") ok |
++| V-NUM-01 a V-NUM-13 | E17, rodada final na E22 | `99390e0`, `4fcc241`, `5dfc389` | `saidas/11-conferir-numeros.txt`: "Todos os números da documentação batem com a realidade." |
++| V-DEP-1 | E19 | `e2d4aec` | `saidas/12-auditar.txt`: o `auditar` roda no Windows (sem `ENOENT`) e sai 0 |
++| V-DEP-2a (`fastify` e `fast-uri`, de execução) | correção do CI da D-30 e E19 | `e16209b`, `e2d4aec` | `brutas/npm-audit-raiz-omit-dev.txt`: "found 0 vulnerabilities"; `fastify` 5.12.5 e `fast-uri` 4.2.1 no `package-lock.json`; `auditar`: "Runtime (vai para a imagem): 0 vulnerabilidade(s)" |
++| V-E2E-1, V-E2E-2 | E13 | `99390e0` | `saidas/16-e2e.txt` (Chromium) e `saidas-firefox-painel/01-e2e.txt` (Firefox): 70 passou, 0 falhou; a seção 2 não morre mais esperando `.indicador` |
++| V-E2E-3 | E18 | `99390e0` | `saidas/17-e2e-api.txt` e as 4 rodadas em Firefox: 279 e 50 passou, 0 falhou em todas |
++| V-INS-01 (`resolver-link.test.ts`, espera fixa de 20 ms) | esta correção (E03, classe F) | o commit desta correção | `vi.waitFor` com limite de 5 s no lugar de `setTimeout(resolve, 20)`; 10 rodadas isoladas e 10 sob carga sintética, 37 de 37 em todas; o mutante (ninguém avisa que fechou) reprova em 5 s. Ver 8.4 |
++
++Soma das linhas fechadas: 1 + 1 + 1 + 1 + 8 + 3 + 1 + 1 + 1 + 1 + 6 + 7 + 7 + 1 + 3 + 13 + 1 + 1 + 2 + 1 + 1 = 62.
++
++### 8.3 Linhas abertas (9)
++
++Todas têm dono, issue e prazo. Nenhuma está pulada: o portão de skip não tem o que marcar, e a T42 se aplica aqui como registro. Pela regra R6, nenhuma foi repetida até passar.
++
++| Linha | O que segue aberto | Dono | Issue | Prazo | Tratamento |
++| --- | --- | --- | --- | --- | --- |
++| V-DEP-2b | `npm audit` da raiz lista 3 avisos só de desenvolvimento: `@vitest/mocker` (moderada), `tinypool` (crítica, 2 avisos de execução remota de código no processo de teste) e `vitest` (crítica, só por depender dos dois). O `auditar` sai 0 e diz "Não reprova, e precisa de dono" | `rafael` | `V2-F00-E19` (nova rodada) | 2026-11-12 | Subir `vitest` para 5 (salto de major, `npm audit fix --force`), ou registrar exceção nomeada com dono e prazo na lista do CP-03. A escolha é de Rafael (Q5). Não é runtime: `npm audit --omit=dev` dá 0 |
++| V-DEP-3 | `apps/campo`: `npm audit` lista 59 (55 fora de desenvolvimento: 8 moderadas, 46 altas, 1 crítica), todas da cadeia de ferramenta do Expo. O `auditar` aceita 6 pelo nome | `rafael` | `CP-03` (decidido em 2026-10-07) e `V2-F00-E19` | 2027-01-05 (o prazo do CP-03; o portão reprova depois dele) | Subir o SDK do Expo por inteiro (a saída que o CP-03 registrou; `npm audit fix` descartado por misturar SDK 57 e 58). Tolerado por decisão já tomada |
++| V-DEP-4 | `npx expo-doctor` dá 20 de 21: 6 pacotes com deriva de patch (`expo` 57.0.27 contra ~57.0.28, `expo-crypto`, `expo-location`, `expo-router`, `expo-splash-screen`, `jest-expo`). Estava 21 de 21 em 2026-10-08; a deriva é externa, por patch novo publicado | `rafael` | `V2-F00-E19` (nova rodada) | 2026-11-12 | `npx expo install --check` e `--fix` dentro do SDK 57. Muda pacote nativo: o próximo binário precisa ser recompilado, por isso não foi feito aqui. Como a deriva reabre sozinha a cada patch, Rafael decide se vira aviso na política (Q5) |
++| V-ROT-01 (novo) | O roteiro `dc360/scripts/baseline.mjs` diverge numa árvore verde: espera 643 testes no painel (rodam 649), 1880 no jest (1903), 226 casos em `test:scripts` (230), 271 verificações no e2e da API (279 mais as 50 da largura estreita) e vermelho no `auditar` (agora verde). Sai com código 1. Também falta o passo do Firefox (D-4) | `rafael` | `V2-F00-E01` (correção 1) | 2026-10-20 | Atualizar as tabelas de esperado do roteiro com as contagens de cada correção. Não é desta etapa: a E01 tem a correção própria; este item fecha quando o roteiro sair 0 numa árvore verde |
++| V-INS-02 (novo) | Os outros 10 pontos com `setTimeout(r, 20)` em 4 arquivos da API (`desinterdicao` 3, `fotos-do-documento` 2, `identificador-da-emissao` 2, `segunda-via-nao-reinterdita` 3) e 6 esperas fixas de 10 a 100 ms em `push-rodada-diz-o-que-fez`, `push-sem-resposta` e `recuperacao-sem-oraculo`. Nenhum falhou em nenhuma rodada medida | `rafael` | `V2-F00-E21` (a proposta de 2026-10-05 de quarto item, STATUS seção 11, ainda sem aceite) | 2026-10-27 | Medir e trocar por `vi.waitFor` com limite onde o teste espera um evento (a mesma troca de V-INS-01), com registro em `DECISOES-DE-TESTE-DA-FASE-00.md`. Depende de Q4 |
++| V-INS-03 (novo) | `packages/shared/test/dominio.test.ts` ("ninguém redefine o checklist fora do pacote compartilhado") estoura os 5 s do limite padrão sob carga. Falhou em 2 de cerca de 7 rodadas completas de `npm test` na validação de 2026-10-13, e uma vez na E10; passa isolado em 252 ms | `rafael` | `V2-F00-E21` | 2026-10-27 | Causa provável: a varredura lê o código-fonte de todo o produto e disputa disco e CPU com o resto da suíte; HIPÓTESE, não medida. Tratamento: limite explícito e generoso por teste (`it(..., 60_000)`) e, se medido, o cache da lista de arquivos. Não pular, não repetir até passar. Depende de Q4 |
++| V-INS-04 (novo) | `packages/shared/test/regras-de-conteudo.test.ts` ("nenhum travessão em texto nenhum"): falhou em 1 execução de `npm test` na E19 (mensagem não capturada, não reproduzida em 4 reexecuções) e nas rodadas completas da validação, junto com o item anterior | `rafael` | `V2-F00-E21` | 2026-10-27 | Causa provável: a varredura lê `docs/` inteiro enquanto outro processo grava arquivo (o `npm install` do Expo, uma evidência sendo escrita): HIPÓTESE. Tratamento: arquivar a saída bruta completa da próxima falha (a da E19 perdeu a mensagem), tolerar arquivo que some entre a listagem e a leitura (`ENOENT`), se for essa a causa, e fixar o limite de tempo. Depende de Q4 |
++| V-INS-05 (novo) | `npm run test:isolamento` (o portão número um, CA-06) falhou sob carga da máquina: em 2026-10-07, 4 rodadas com 1 saída diferente de 0 (2 com `Timeout calling "onTaskUpdate"` do vitest, com 327 passando, e 2 com a varredura de seis caminhos de privilégio passando de 60 s), com um `ng serve` de outro projeto a 50% de CPU | `rafael` | `V2-F00-E21` | 2026-10-27 | Rodar com a máquina livre e medir; se repetir, subir o limite de tempo da varredura (ela passou de 60 s nas falhas) com a medição ao lado, e nunca afrouxar a asserção. O arquivo do CA-06 sozinho fecha 137 de 137 em 22 s |
++| V-INS-06 (novo) | `npm run test:e2e:api -- firefox` no Windows: 1 falha em 4 rodadas na validação de 2026-10-13, `CONNECTION_REFUSED` na seção 23 | `rafael` | `V2-F00-E18` | 2026-10-27 | Causa NÃO medida. A seção 23 abre um segundo contexto de navegador e navega de novo para o painel. Hipóteses a testar: o painel ainda não aceitava a conexão nesse instante, ou o Firefox no Windows resolveu `localhost` para IPv6 enquanto o servidor escuta em IPv4. Tratamento: na próxima falha arquivar a saída bruta e o trace (URL e hora da recusa), e então esperar o servidor responder, com limite, antes de abrir o contexto. O CI Linux roda o e2e da API e passa (run 37739535524) |
++
++Quatro dessas nove (V-INS-03 a V-INS-06) são instabilidades vistas fora desta correção (na E10, na E17, na E19 e na validação de 2026-10-13); hoje nenhuma reproduziu (ver 8.4). Elas ficam abertas porque a falta de reprodução não é prova de conserto, e a causa de nenhuma foi medida.
++
++### 8.4 Instabilidades: o que foi medido hoje
++
++Regra R6 da política: não se repete até passar e não se pula; mede-se e registra-se. Esta tabela é o que foi medido, com a máquina sem outro processo pesado (`ng serve` desligado).
++
++| Instável | Rodadas hoje | Resultado hoje | Antes | Leitura |
++| --- | --- | --- | --- | --- |
++| `resolver-link.test.ts`, "conecta no endereço conferido..." | 11 com a versão antiga (1 do roteiro e 10 sob carga sintética, a cópia de `git show HEAD:...`) e 25 com a nova (5 de `npm test` completo, 10 isoladas e 10 sob a mesma carga) | 0 falhas em 36. A carga sintética (12 processos Node em laço ocupado em 16 núcleos) NÃO reproduziu a falha da versão antiga (10 de 10 verdes) | 1 falha em 3 rodadas completas da E02 | A causa "carga da máquina" continua HIPÓTESE (a política exige dizer isto). O conserto não depende dela: a espera por condição com limite passa assim que a conexão fecha e só reprova se NÃO fechar em 5 s. O mutante (servidor que não avisa o `close`) reprova com a mensagem do teste |
++| `dominio.test.ts` e `regras-de-conteudo.test.ts` (shared) | 6 execuções completas (1 do roteiro, 5 de `npm test`) | 0 falhas em 6, shared 168 de 168 em todas; a rodada de prova isolada: `regras-de-conteudo` 8 de 8 | 2 de cerca de 7 rodadas na validação; 1 na E10; 1 na E19 | Não reproduziu hoje. Sem causa medida |
++| `test:isolamento` | 6 (1 do roteiro, 5 de `npm test`) | 0 falhas, 327 ok e 3 pulados em todas, 30 s no roteiro | 4 rodadas com 1 falha em 2026-10-07 (máquina com `ng serve`) | A falha só apareceu com a máquina carregada. Sem causa medida |
++| `test:e2e:api` em Firefox no Windows | 4 | 4 de 4 verdes, 279 e 50 verificações | 1 falha em 4 na validação (`CONNECTION_REFUSED`, seção 23) | Total medido: 1 falha em 8 rodadas em Firefox. Chromium: 1 de 1 verde hoje e verde no CI Linux |
++
++Arquivos: `brutas/resolver-link-10-rodadas.txt`, `brutas/resolver-link-sob-carga.txt`, `brutas/resolver-link-mutante.txt`, `brutas/npm-test-rodada-1.txt` a `5`, `brutas/e2e-api-firefox-rodadas.txt`.
++
++### 8.5 As divergências D-1 a D-7 da seção 5: situação
++
++| Divergência | Situação em 2026-10-13 |
++| --- | --- |
++| D-1, números de `npm audit` | Superada. Raiz: runtime 0, 3 avisos de desenvolvimento (V-DEP-2b). Campo: 59 no total, 55 fora de desenvolvimento, aceitos pelo CP-03 (V-DEP-3). O `fastify` alto de execução foi corrigido em `e16209b` (V-DEP-2a) |
++| D-2, o teste irmão é `a-sessao-vencida-nao-apaga-a-vistoria.test.tsx` | Fechada. O registro de decisões da E14 cita o arquivo certo, e ele passa hoje (3 casos) |
++| D-3, `Linking.openSettings` em `PortaExpo.ts` | Fechada. Era só uma citação a ajustar, e a E16 usa o padrão de `PortaExpo.ts` (V-CAM-18 e V-CAM-19 ✓) |
++| D-4, e2e de Firefox fora do roteiro | Parcial: o Firefox foi medido hoje à mão (painel 70 de 70, API 4 de 4 rodadas), mas o `baseline.mjs` ainda não tem o passo. Entra em V-ROT-01 |
++| D-5, a causa de `banco-tls` não aparece na saída da E01 | Fechada. O teste de hoje avisa em stderr que `OPENSSL_CONF` aponta para arquivo inexistente e roda o `openssl` sem a variável (`prova-api.txt`) |
++| D-6, o teste velho do campo não é uniforme | Fechada. As reescritas da E14 e da E17 mantêm a intenção; o registro de decisões diz "nenhuma asserção foi enfraquecida" em cada uma, e a E17 acrescentou o caso negativo do `mode` escrito à mão |
++| D-7, reescritas sem registro previsto | Fechada. `DECISOES-DE-TESTE-DA-FASE-00.md` tem uma seção para cada reescrita (E05, E13, E14, E17, E20, E21), e nesta correção as quatro que ainda diziam "previsto" (E05, E13, E17, E20) receberam o diff real |
++
++### 8.6 Decisão de Rafael: a tabela pronta
++
++Nada aqui foi decidido por quem implementou. A situação de cada pergunta é a PREMISSA aplicada desde a E03 (STATUS, seção 9). A decisão só precisa de um "sim" ou de um "troque por X" por linha.
++
++| # | Pergunta | Hoje | Linhas que dependem | Se disser sim | Se disser não |
++| --- | --- | --- | --- | --- | --- |
++| Q1 | A regra de BZ-N:N.3 vale? Onde há decisão datada no código, posterior ao teste, e teste irmão passando, o código vale e o teste é reescrito com registro (R1). Onde o teste descreve defeito confirmado por leitura do código, o teste vale e o código é consertado (R2). Sem prova de uma das duas, trata-se como defeito | Premissa aplicada em todas as etapas | 40 linhas: 32 de classe A e 8 de classe B | Nada muda; o item "regra de BZ-N:N.3 decidida" fecha | Rafael diz a regra nova; as 8 reescritas da classe B (V-WEB-01, V-CAM-01 a V-CAM-06, V-SCR-3) voltam a ser defeito de código até a nova regra dizer outra coisa |
++| Q2 | Os 14 defeitos do campo (V-CAM-07 a V-CAM-20) são defeitos reais? | Tratados como reais; consertados no código pelas E15 e E16 e provados (8.2) | 14 linhas fechadas | Fica como está | Cada linha que ele disser que não é defeito: o conserto da E15 ou da E16 é revisto e o teste correspondente é reescrito com registro |
++| Q3 | As 13 reescritas (V-CAM-01 a V-CAM-06, V-WEB-01, V-WEB-03, V-SHA-1, V-API-S1, V-SCR-1 a V-SCR-3) podem ficar como foram feitas, com o registro de `DECISOES-DE-TESTE-DA-FASE-00.md`? | Feitas e registradas nas E13, E14, E17, E20 e E21 | 13 linhas fechadas | Fica como está | A reescrita escolhida é revertida (o diff de cada uma está no registro) |
++| Q4 | Aceita trocar espera fixa por espera com condição e limite nos testes instáveis? Feita em `resolver-link.test.ts` (um arquivo, desfazível) | Feita só em `resolver-link.test.ts` | V-INS-01 (fechada), V-INS-02, V-INS-03 e V-INS-04 | A E21 ganha o quarto item e as três linhas abertas se tratam | Reverter o patch de `resolver-link.test.ts` (volta V-INS-01 a aberta) e Rafael diz como tratar a instabilidade |
++| Q5 | Aviso de ferramenta que muda sem o código mudar (3 advisories de desenvolvimento da raiz e a deriva de patch do Expo): corrigir já, ou virar aviso com dono e prazo na política do CP-03? | Abertas, com prazo 2026-11-12 | V-DEP-2b e V-DEP-4 | Corrige (`vitest` 5, `expo install --fix`) ou entra na lista do CP-03, conforme ele disser | Mantém aberto até o prazo |
++
++### 8.7 Contagem final
++
++**Abertos: 9** (V-DEP-2b, V-DEP-3, V-DEP-4, V-ROT-01, V-INS-02 a V-INS-06), todos com dono, issue e prazo; um deles (V-DEP-3) é tolerado por decisão já tomada (CP-03, até 2027-01-05). **Fechados: 62 de 71** (as 63 linhas do baseline da E01, com V-DEP-2 dividida em 2a e 2b, mais V-INS-01 a V-INS-06 e V-ROT-01). **Pendentes de decisão humana: 5 perguntas** (Q1 a Q5), de que dependem 27 das 62 linhas fechadas (13 reescritas e 14 defeitos do campo, sem repetição) e 5 das 9 abertas (V-INS-02 a V-INS-04 em Q4, V-DEP-2b e V-DEP-4 em Q5). O item do G00 "o registro da E03 tem zero itens abertos e a regra de BZ-N:N.3 está decidida por Rafael" NÃO está satisfeito hoje: há 9 linhas abertas e a decisão é pendente.

@@ -1,0 +1,71 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ❯ test/zz-mutante.test.ts (37 tests | 1 failed | 36 skipped) 11464ms
+   ↓ Quem pode pedir > sem token é 401, e nada sai para a rede
+   ↓ Quem pode pedir > quem não registra ocorrência leva 403 antes de qualquer conexão
+   ↓ A lista fechada de encurtador, conferida antes de tudo > as listas são as da especificação, e não uma folga
+   ↓ A lista fechada de encurtador, conferida antes de tudo > host fora da lista é 422 link_nao_aceito, sem consultar nome nem conectar
+   ↓ A lista fechada de encurtador, conferida antes de tudo > corpo que não é um link de até 500 caracteres é 422
+   ↓ A lista fechada de encurtador, conferida antes de tudo > os dois encurtadores da lista passam, e o `goo.gl` antigo chega ao mesmo mapa
+   ↓ O endereço é conferido depois de resolver o nome, e a cada salto > a régua de endereço, endereço a endereço
+   ↓ O endereço é conferido depois de resolver o nome, e a cada salto > nome do encurtador resolvendo para dentro da rede é recusado ANTES de conectar
+   ↓ O endereço é conferido depois de resolver o nome, e a cada salto > o SEGUNDO salto apontando para dentro também é recusado, e a conexão não acontece
+   ↓ O endereço é conferido depois de resolver o nome, e a cada salto > cada conexão vai para o endereço que foi conferido, e o nome é consultado uma vez por salto
+   ↓ O endereço é conferido depois de resolver o nome, e a cada salto > endereço IPv6 público passa, com a família certa
+   ↓ O endereço é conferido depois de resolver o nome, e a cada salto > nome que não resolve é 502, sem conectar
+   ↓ A conexão de verdade vai para o endereço conferido, e não lê corpo > o `lookup` fixo devolve o endereço conferido para qualquer nome, nas duas formas que o `net` pede
+   × A conexão de verdade vai para o endereço conferido, e não lê corpo > conecta no endereço conferido com o nome no cabeçalho Host, e fecha sem ler o corpo 5029ms
+     → a conexão precisa ser fechada assim que os cabeçalhos chegam: expected false to be true // Object.is equality
+   ↓ A conexão de verdade vai para o endereço conferido, e não lê corpo > devolve o `Location` de um redirecionamento sem segui-lo por conta própria
+   ↓ A conexão de verdade vai para o endereço conferido, e não lê corpo > o sinal de abandono derruba a conexão
+   ↓ Os tetos > os números são os da especificação
+   ↓ Os tetos > quatro saltos passam, e o quinto é recusado sem ser seguido
+   ↓ Os tetos > tempo esgotado é 502, e a espera é abandonada
+   ↓ Os tetos > redirecionamento sem `Location`, e status que não é nem 2xx nem 3xx, são 502
+   ↓ Os tetos > falha de rede é 502 sem repetir a mensagem do erro
+   ↓ O destino final só pode ser o Google Maps > salto para fora do Google é recusado, e a conexão para lá nunca acontece
+   ↓ O destino final só pode ser o Google Maps > o encurtador que responde 200 em vez de redirecionar não é destino
+   ↓ O destino final só pode ser o Google Maps > `Location` relativo é resolvido contra a URL do salto
+   ↓ A coordenada lida da URL final, pelo leitor do painel > lê @lat,lng na barra
+   ↓ A coordenada lida da URL final, pelo leitor do painel > lê !3d!4d do link de lugar
+   ↓ A coordenada lida da URL final, pelo leitor do painel > lê q= do compartilhamento
+   ↓ A coordenada lida da URL final, pelo leitor do painel > lê query= com vírgula escapada
+   ↓ A coordenada lida da URL final, pelo leitor do painel > lê ll= do centro do mapa
+   ↓ A coordenada lida da URL final, pelo leitor do painel > lê destination= do como chegar
+   ↓ A coordenada lida da URL final, pelo leitor do painel > lê daddr= do como chegar antigo
+   ↓ A coordenada lida da URL final, pelo leitor do painel > lê domínio .com.br sem www
+   ↓ A coordenada lida da URL final, pelo leitor do painel > a URL final volta sem os parâmetros de rastreamento
+   ↓ A coordenada lida da URL final, pelo leitor do painel > a coordenada volta com seis casas, como a gravação guarda
+   ↓ A coordenada lida da URL final, pelo leitor do painel > destino sem coordenada legível é 422 sem_ponto, porque nome não é ponto
+   ↓ O que o servidor não guarda > nem o link nem a coordenada vão para o log, no sucesso e nas falhas
+   ↓ O teto por pessoa > o trigésimo primeiro pedido no mesmo minuto leva 429
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/zz-mutante.test.ts > A conexão de verdade vai para o endereço conferido, e não lê corpo > conecta no endereço conferido com o nome no cabeçalho Host, e fecha sem ler o corpo
+AssertionError: a conexão precisa ser fechada assim que os cabeçalhos chegam: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ vi.waitFor.timeout test/zz-mutante.test.ts:427:100
+    425|     */
+    426|     await vi.waitFor(
+    427|       () => expect(conexaoFechada, "a conexão precisa ser fechada assi…
+       |                                                                                                    ^
+    428|       { timeout: 5000, interval: 10 },
+    429|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 36 skipped (37)
+   Start at  07:39:34
+   Duration  14.25s (transform 391ms, setup 30ms, collect 2.35s, tests 11.46s, environment 0ms, prepare 173ms)
+
+saida=1

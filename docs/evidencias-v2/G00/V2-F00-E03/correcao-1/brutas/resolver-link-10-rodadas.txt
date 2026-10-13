@@ -1,0 +1,130 @@
+=== rodada 1
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/resolver-link.test.ts (37 tests) 7809ms
+   ✓ O teto por pessoa > o trigésimo primeiro pedido no mesmo minuto leva 429  463ms
+
+ Test Files  1 passed (1)
+      Tests  37 passed (37)
+   Start at  07:25:08
+   Duration  10.49s (transform 385ms, setup 30ms, collect 2.24s, tests 7.81s, environment 0ms, prepare 144ms)
+
+saida=0
+=== rodada 2
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/resolver-link.test.ts (37 tests) 7268ms
+   ✓ O teto por pessoa > o trigésimo primeiro pedido no mesmo minuto leva 429  468ms
+
+ Test Files  1 passed (1)
+      Tests  37 passed (37)
+   Start at  07:25:20
+   Duration  9.98s (transform 384ms, setup 31ms, collect 2.28s, tests 7.27s, environment 0ms, prepare 157ms)
+
+saida=0
+=== rodada 3
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/resolver-link.test.ts (37 tests) 7312ms
+   ✓ O teto por pessoa > o trigésimo primeiro pedido no mesmo minuto leva 429  469ms
+
+ Test Files  1 passed (1)
+      Tests  37 passed (37)
+   Start at  07:25:31
+   Duration  9.80s (transform 404ms, setup 35ms, collect 2.03s, tests 7.31s, environment 0ms, prepare 166ms)
+
+saida=0
+=== rodada 4
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/resolver-link.test.ts (37 tests) 7263ms
+   ✓ O teto por pessoa > o trigésimo primeiro pedido no mesmo minuto leva 429  464ms
+
+ Test Files  1 passed (1)
+      Tests  37 passed (37)
+   Start at  07:25:43
+   Duration  10.13s (transform 398ms, setup 29ms, collect 2.42s, tests 7.26s, environment 0ms, prepare 140ms)
+
+saida=0
+=== rodada 5
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/resolver-link.test.ts (37 tests) 7564ms
+   ✓ O teto por pessoa > o trigésimo primeiro pedido no mesmo minuto leva 429  474ms
+
+ Test Files  1 passed (1)
+      Tests  37 passed (37)
+   Start at  07:25:54
+   Duration  10.66s (transform 438ms, setup 34ms, collect 2.62s, tests 7.56s, environment 0ms, prepare 182ms)
+
+saida=0
+=== rodada 6
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/resolver-link.test.ts (37 tests) 7210ms
+   ✓ O teto por pessoa > o trigésimo primeiro pedido no mesmo minuto leva 429  504ms
+
+ Test Files  1 passed (1)
+      Tests  37 passed (37)
+   Start at  07:26:06
+   Duration  9.95s (transform 397ms, setup 29ms, collect 2.29s, tests 7.21s, environment 0ms, prepare 153ms)
+
+saida=0
+=== rodada 7
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/resolver-link.test.ts (37 tests) 7904ms
+   ✓ O teto por pessoa > o trigésimo primeiro pedido no mesmo minuto leva 429  511ms
+
+ Test Files  1 passed (1)
+      Tests  37 passed (37)
+   Start at  07:26:18
+   Duration  10.62s (transform 393ms, setup 31ms, collect 2.27s, tests 7.90s, environment 0ms, prepare 163ms)
+
+saida=0
+=== rodada 8
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/resolver-link.test.ts (37 tests) 7264ms
+   ✓ O teto por pessoa > o trigésimo primeiro pedido no mesmo minuto leva 429  451ms
+
+ Test Files  1 passed (1)
+      Tests  37 passed (37)
+   Start at  07:26:30
+   Duration  9.88s (transform 387ms, setup 37ms, collect 2.16s, tests 7.26s, environment 0ms, prepare 166ms)
+
+saida=0
+=== rodada 9
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/resolver-link.test.ts (37 tests) 7689ms
+   ✓ O teto por pessoa > o trigésimo primeiro pedido no mesmo minuto leva 429  485ms
+
+ Test Files  1 passed (1)
+      Tests  37 passed (37)
+   Start at  07:26:41
+   Duration  10.33s (transform 395ms, setup 30ms, collect 2.20s, tests 7.69s, environment 0ms, prepare 155ms)
+
+saida=0
+=== rodada 10
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+ ✓ test/resolver-link.test.ts (37 tests) 7278ms
+   ✓ O teto por pessoa > o trigésimo primeiro pedido no mesmo minuto leva 429  491ms
+
+ Test Files  1 passed (1)
+      Tests  37 passed (37)
+   Start at  07:26:53
+   Duration  9.92s (transform 394ms, setup 29ms, collect 2.19s, tests 7.28s, environment 0ms, prepare 162ms)
+
+saida=0

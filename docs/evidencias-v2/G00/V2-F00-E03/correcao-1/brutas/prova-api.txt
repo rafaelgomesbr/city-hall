@@ -1,0 +1,74 @@
+
+ RUN  v3.2.7 C:/Projetos/city-hall/dc360/apps/api
+
+stderr | test/banco-tls.test.ts
+banco-tls: OPENSSL_CONF aponta para "C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf", que não existe; o openssl do teste roda sem a variável.
+
+ ✓ test/banco-tls.test.ts > Certificado do banco: o que chega no driver > a CA sobrevive ao merge interno do pg 3ms
+ ✓ test/banco-tls.test.ts > Certificado do banco: o que chega no driver > a maneira ingenua de fazer isto nao faz nada, e e por isso que a funcao existe 1ms
+ ✓ test/banco-tls.test.ts > Certificado do banco: o que chega no driver > recusa subir no modo verificado quando a CA nao existe 1ms
+ ✓ test/banco-tls.test.ts > Certificado do banco: o que chega no driver > recusa CA junto de um modo que nao verifica, porque isso e ilusao de seguranca 0ms
+ ✓ test/banco-tls.test.ts > Certificado do banco: o que chega no driver > nao mexe na string quando ninguem pediu verificacao 0ms
+ ✓ test/banco-tls.test.ts > Certificado do banco: o que chega no driver > acha sozinha a CA do provedor, no mesmo caminho que o Dockerfile copia 1ms
+ ✓ test/banco-tls.test.ts > Certificado do banco: o que chega no driver > o certificado guardado e a raiz da Supabase, e esta dentro da validade 1ms
+ ✓ test/banco-tls.test.ts > Certificado do banco: contra um servidor que apresenta o proprio > recusa o impostor quando o modo verificado esta ligado 42ms
+ ✓ test/banco-tls.test.ts > Certificado do banco: contra um servidor que apresenta o proprio > aceita o mesmo servidor quando a CA e a dele, e ai quem recusa e o banco 12ms
+ ✓ test/banco-tls.test.ts > DATABASE_URL sem verificacao nao sobe > uma producao com verify-full sobe 18ms
+ ✓ test/banco-tls.test.ts > DATABASE_URL sem verificacao nao sobe > a partida recusa a URL que o painel do provedor entrega 2ms
+ ✓ test/banco-tls.test.ts > DATABASE_URL sem verificacao nao sobe > o pool recusa nascer sem verificacao, e nao so a partida 1ms
+ ✓ test/banco-tls.test.ts > DATABASE_URL sem verificacao nao sobe > verify-full esta escrito onde o operador le 1ms
+ ✓ test/vigencia-na-escrita.test.ts > Token vivo de quem já não pode > conta desativada não escreve mais, no pedido seguinte 440ms
+ ✓ test/vigencia-na-escrita.test.ts > Token vivo de quem já não pode > papel rebaixado escreve como o papel NOVO, não como o do token 433ms
+ ✓ test/saida-de-municipio.test.ts > O pacote leva tudo que é do município > traz toda tabela em CSV e em JSON, e o índice na raiz 185ms
+ ✓ test/saida-de-municipio.test.ts > O pacote leva tudo que é do município > tabela nova de migração futura obriga alguém a decidir se ela sai 7ms
+ ✓ test/saida-de-municipio.test.ts > Segredo não vai junto > nem hash de senha, nem token de sessão, nem ficha de notificação 158ms
+ ✓ test/senha-provisoria.test.ts > A senha temporária de quem administra > grava o prazo de 72 horas, e a senha escolhida pela pessoa o zera 1598ms
+ ✓ test/vigencia-na-escrita.test.ts > Token vivo de quem já não pode > sessões encerradas por quem administra não escrevem mais, e a de quem clicou em 'Minha conta' sobrevive 824ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > a fotografia sai em pasta por protocolo, com os bytes originais 150ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > a foto de perfil do servidor sai na pasta dele, com os bytes originais 142ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > o laudo do pacote imprime o aviso de equipe divergente, como o laudo emitido 140ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > o laudo é HTML autossuficiente e aponta para o arquivo do próprio pacote 137ms
+ ✓ test/vigencia-na-escrita.test.ts > Token vivo de quem já não pode > o token de acesso continua LENDO até vencer: é a troca declarada 434ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > o ofício numerado sai junto, na pasta da ocorrência dele 134ms
+ ✓ test/saida-de-municipio.test.ts > Fotografias, assinaturas e documentos > arquivo que o banco promete e o armazenamento não tem vira pendência escrita 132ms
+ ✓ test/saida-de-municipio.test.ts > O índice liga protocolo a pasta, a documento e a linha do CSV > o número de linha que o índice dá bate com o CSV de verdade 128ms
+ ✓ test/vigencia-na-escrita.test.ts > Token vivo de quem já não pode > depois de renovar, o token de acesso antigo ainda escreve até vencer: rotação não é expulsão 408ms
+ ✓ test/saida-de-municipio.test.ts > Isolamento entre municípios > o pacote de um município não carrega nada do outro 133ms
+ ✓ test/senha-provisoria.test.ts > A senha temporária de quem administra > enquanto provisória, a sessão só alcança a troca de senha: leitura e escrita respondem 403 1219ms
+ ✓ test/saida-de-municipio.test.ts > É ato administrativo grave > exige administrador: quem só exporta relatório não tira a base inteira 17ms
+ ✓ test/saida-de-municipio.test.ts > É ato administrativo grave > recusa operador e recusa quem não apresenta token 4ms
+ ✓ test/saida-de-municipio.test.ts > É ato administrativo grave > deixa trilha, registra a exportação e NÃO apaga nada 152ms
+ ✓ test/vigencia-na-escrita.test.ts > Bordas da vigência na escrita (V2-F00-E04) > município suspenso com conta desativada responde a suspensão primeiro 428ms
+ ✓ test/saida-de-municipio.test.ts > É ato administrativo grave > a organização vem do token, e não de parâmetro nenhum 3ms
+ ✓ test/saida-de-municipio.test.ts > O escritor de ZIP > escreve um pacote que um leitor independente abre 1ms
+ ✓ test/saida-de-municipio.test.ts > O escritor de ZIP > o caminho ZIP64 funciona, exercitado com o teto rebaixado 0ms
+ ✓ test/saida-de-municipio.test.ts > O escritor de ZIP > recusa caminho repetido, que sobrescreveria arquivo em silêncio 1ms
+ ✓ test/saida-de-municipio.test.ts > O escritor de ZIP > não deixa um nome de arquivo escapar da pasta do pacote 0ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > equipes diferentes: o trecho do aviso é o MESMO nos dois laudos 180ms
+ ✓ test/vigencia-na-escrita.test.ts > Bordas da vigência na escrita (V2-F00-E04) > token com o sid de OUTRA pessoa não escreve: a sessão tem de ser da própria conta 8ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > equipes iguais: nenhum dos dois laudos inventa aviso 150ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > agente sem equipe registrada: a frase própria, e não a de outra equipe 140ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > vistoria anterior à migração 024, as duas colunas nulas: nenhum aviso falso 286ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > coleta sem despacho: a nota própria, e não a de divergência 150ms
+ ✓ test/vigencia-na-escrita.test.ts > Bordas da vigência na escrita (V2-F00-E04) > a organização continua vindo do token: com a vigência ligada, o município B segue sem ver a ocorrência do A (404) 826ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote avisa a equipe divergente igual ao laudo da rota > isolamento: o nome de equipe do outro município não entra no pacote 137ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > a coordenada da vistoria sai IGUAL nos dois laudos (consertada nesta correção) 157ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): o pacote não tem duas seções que a rota tem 163ms
+ ✓ test/vigencia-na-escrita.test.ts > Bordas da vigência na escrita (V2-F00-E04) > a senha provisória vem do banco na escrita: marca no token sem prazo no banco não tranca, e prazo no banco sem marca no token tranca 420ms
+ ✓ test/saida-de-municipio.test.ts > O laudo do pacote e o da rota, campo por campo > DIFERENÇA CONHECIDA (F09-E02): a foto avulsa entra no registro da vistoria só no pacote 145ms
+ ✓ test/senha-provisoria.test.ts > A senha temporária de quem administra > vencida, a senha provisória não entra, e a resposta diz o que fazer só a quem a tinha 1626ms
+ ✓ test/vigencia-na-escrita.test.ts > Token de renovação vencido não é reuso > expirado responde 401 e as outras sessões da pessoa continuam vivas 767ms
+ ✓ test/senha-provisoria.test.ts > A senha temporária de quem administra > uma sessão viva cuja senha provisória venceu no meio não escreve nem renova 1117ms
+ ✓ test/senha-provisoria.test.ts > A senha inicial do console > provisionar_municipio carimba 72 horas no administrador que nasce 5ms
+ ✓ test/vigencia-na-escrita.test.ts > Token de renovação vencido não é reuso > sessão encerrada pela própria pessoa, ou por quem administra, também não é reuso 771ms
+ ✓ test/senha-provisoria.test.ts > A senha inicial do console > o link de recuperação por email zera o prazo, porque a senha passa a ser da pessoa 731ms
+ ✓ test/senha-provisoria.test.ts > A senha inicial do console > a coluna não existe para ninguém que não passou pela senha sorteada 1ms
+ ✓ test/vigencia-na-escrita.test.ts > Token de renovação vencido não é reuso > o token ROTACIONADO que reaparece é reuso: a família inteira cai 746ms
+ ✓ test/vigencia-na-escrita.test.ts > Token de renovação vencido não é reuso > H1: dois pedidos de renovação com o mesmo token: um ganha, o outro não emite sessão 363ms
+
+ Test Files  4 passed (4)
+      Tests  61 passed (61)
+   Start at  08:16:44
+   Duration  11.81s (transform 535ms, setup 107ms, collect 6.58s, tests 24.36s, environment 1ms, prepare 837ms)
+
+saida=0

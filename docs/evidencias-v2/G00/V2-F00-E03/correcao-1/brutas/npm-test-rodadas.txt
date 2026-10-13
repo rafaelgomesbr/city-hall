@@ -1,0 +1,6 @@
+rodada 1 saida=0
+rodada 2 saida=0
+rodada 3 saida=0
+rodada 4 saida=0
+rodada 5 saida=0
+FIM

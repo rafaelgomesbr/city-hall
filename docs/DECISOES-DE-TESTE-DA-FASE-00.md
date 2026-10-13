@@ -59,7 +59,7 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
 | API: certificado de teste do banco | 13 casos (1 suíte) | E21 | feito e provado na V2-F00-E21 |
 | scripts: três testes de portabilidade e de configuração | 3 | E17 | idem |
 | API: código de erro da sessão | 3 arquivos, 7 ocorrências | E05 (e E07) | idem |
-| API: espera fixa de 20 ms | 1 instável (e 10 pontos a medir) | a definir (proposta: E21) | proposta, sem etapa aceita |
+| API: espera fixa de 20 ms | 1 instável (feito) e 10 pontos a medir (aberto) | correção 1 da E03 (o 1); a definir (os 10, proposta: E21) | o primeiro feito e provado na correção 1 da V2-F00-E03; os 10 pontos seguem como linha aberta V-INS-02 do registro, com dono e prazo |
 | fila do campo: 401 e 403 de sessão deixam de ser permanentes | 3 (2 no pacote, 1 na integração com a API) | E06 | feito e provado na V2-F00-E06 |
 | API e painel: papel diferente do token deixa de ser `sessao_encerrada` | 3 (2 na API, 1 no painel) | E07 | feito e provado na V2-F00-E07 |
 | painel, e2e contra a API: a seção 15 conta só a tabela da trilha | 1 verificação (e as 2 anteriores da mesma seção, que usavam o mesmo seletor) | E18 | feito e provado na V2-F00-E18 |
@@ -144,14 +144,20 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
   de `componentes/Modal.tsx:254-259` (commit eafc4ca, 2026-09-09) tem 6 linhas
   e a regra do próprio teste diz que a razão "costuma não caber em uma". O
   portão é que está estreito: o elemento (`Modal.tsx:260`) tem a exceção escrita.
-- **Depois (previsto, E13):** o portão procura a marca no bloco de comentário
-  contíguo acima do elemento, sem janela fixa; um caso sintético prova que um
-  `onClick` sem exceção ainda reprova.
+- **Depois (feito na E13, 2026-10-06; completado na correção 1 da E03,
+  2026-10-13):** `comentarioAcima` em `acessibilidade.test.ts` sobe linha a
+  linha a partir do elemento, atravessa linhas em branco e a abertura do
+  comentário JSX, e para no começo do bloco ou na primeira linha que não é
+  comentário; fora de comentário nada é lido, então a marca continua precisando
+  estar escrita num comentário. A janela fixa (`slice(el.linha - 5, el.linha - 1)`)
+  saiu e `Modal.tsx` não foi tocado. Nenhuma asserção foi enfraquecida: o
+  `onClick` em elemento não interativo ainda exige foco e tecla, ou a marca de
+  exceção com a razão escrita. Passa hoje (`correcao-1/brutas/prova-web.txt`).
 - **Evidência:** `V2-F00-E01/saidas/07-teste-web.txt:331-340`; leitura de
   `Modal.tsx:253-260`. Teste irmão: os demais casos do mesmo arquivo passam.
 - **Etapa e data:** decisão registrada na V2-F00-E03 em 2026-10-05; reescrita na
-  V2-F00-E13. A E13 não lista este arquivo em "Documentação a atualizar": deve
-  completar este registro.
+  V2-F00-E13. O "Depois" foi completado na correção 1 da E03 (2026-10-13),
+  porque a E13 não lista este arquivo em "Documentação a atualizar".
 
 ### shared: varredura de travessão (E20)
 
@@ -165,11 +171,16 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
   O que muda é a fonte do acerto. A E01 já trocou o travessão por `[travessao]`
   nas saídas novas que arquiva; os relatórios históricos não se reescrevem
   (seriam evidência apagada).
-- **Depois (previsto, E20):** o literal vira escape (`"\u2014"`) com a mesma
-  asserção; `CAMINHOS_IGNORADOS` cobre `docs/auditoria-v2/raw` e
-  `docs/evidencias-v2` só para arquivos que não são `.md`, e o arquivo
-  `docs/AUDITORIA-2026-09-30.md`, cada um com o motivo; casos de âncora provam
-  que a isenção não é mais larga.
+- **Depois (feito na E20, 2026-10-07; completado na correção 1 da E03,
+  2026-10-13):** o literal de `trilha-detalhe.test.ts` virou escape
+  (`"\u2014"`) com a mesma asserção; `CAMINHOS_IGNORADOS` ganhou o campo
+  `alcance` e cobre `docs/auditoria-v2/raw` e `docs/evidencias-v2` só para
+  arquivos que não são `.md` (`pasta-fora-de-md`) e `docs/AUDITORIA-2026-09-30.md`
+  pelo nome exato (`arquivo`), cada um com o motivo; dois casos de âncora num
+  repositório sintético provam que a isenção não é mais larga (travessão novo em
+  documento, evidência escrita à mão e produto reprova; só a saída bruta e o
+  relatório histórico passam). Passa hoje, 8 de 8
+  (`correcao-1/brutas/prova-shared.txt`).
 - **Evidência:** `V2-F00-E01/saidas/02-teste-shared.txt:40-47`.
 - **Etapa e data:** decisão registrada na V2-F00-E03 em 2026-10-05; reescrita na
   V2-F00-E20 (lista de isenções aprovada por Rafael).
@@ -237,18 +248,21 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
   23:28; o teste é de bcb02c0, 2026-09-15 17:03). Para este terceiro não existe
   teste irmão que afirme o mesmo: por isso a reescrita precisa afirmar a
   constante E os dois usos, e não só apagar o regex.
-- **Depois (previsto, E17):** o primeiro usa a invocação portátil de
+- **Depois (feito na E17, 2026-10-07; completado na correção 1 da E03,
+  2026-10-13):** o primeiro usa a invocação portátil de
   `scripts/testar-campo.mjs:103`; o segundo monta os caminhos com `join` e
   `resolve` a partir da raiz da plataforma e continua recusando repositório,
   iCloud, Dropbox, Google Drive, OneDrive e Área de Trabalho; o terceiro confere
   que `PERFIL_DE_PRODUCAO` nasce de `EAS_BUILD_PROFILE === "producao"` e alimenta
   o `mode` do plugin e `extra.pushAmbiente`, e reprova se o `mode` voltar a ser
-  escrito à mão.
+  escrito à mão (`problemasDaEscolhaDoAmbiente`, mais um caso negativo que
+  estraga o rascunho de propósito). Nenhuma asserção foi enfraquecida. Os três
+  passam hoje (`correcao-1/brutas/prova-scripts.txt`).
 - **Evidência:** `V2-F00-E01/saidas/10-test-scripts.txt:214,248,354` (casos 35,
   38 e 53 na numeração atual; 19, 22 e 37 na antiga).
 - **Etapa e data:** decisão registrada na V2-F00-E03 em 2026-10-05; reescrita na
-  V2-F00-E17. A E17 não lista este arquivo em "Documentação a atualizar": deve
-  completar este registro.
+  V2-F00-E17. O "Depois" foi completado na correção 1 da E03 (2026-10-13),
+  porque a E17 não lista este arquivo em "Documentação a atualizar".
 
 ### API: código de erro da sessão (E05, com efeito na E07)
 
@@ -262,8 +276,12 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
   por `sessao_encerrada`. É decisão do roadmap, ainda não implementada. A
   primeira asserção do `senha-provisoria.test.ts:183` (o status 401) é defeito
   real e não se reescreve: é a que falha hoje e fecha na E07.
-- **Depois (previsto, E05 e E07):** só o valor do código muda; o status e o
-  comportamento afirmados ficam.
+- **Depois (feito na E05, 2026-10-06, e na E07; completado na correção 1 da
+  E03, 2026-10-13):** só o valor do código mudou, de `sessao` para
+  `sessao_encerrada` (`senha-provisoria.test.ts:191`, `sessao-e-entrada.test.ts`);
+  o status 401 e o comportamento afirmados ficaram. O detalhe das ocorrências
+  está na seção "API e painel: o código `sessao` deixa de existir", mais abaixo,
+  e `codigos-de-erro.test.ts` impede o código antigo de voltar.
 - **Evidência:** `V2-F00-E01/saidas/05-teste-api.txt:789-805`.
 - **Etapa e data:** decisão registrada na V2-F00-E03 em 2026-10-05; reescrita na
   V2-F00-E05.
@@ -277,15 +295,25 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
 - **Decisão que o torna velho:** nenhuma decisão superada: é instabilidade. Falhou
   uma vez em três rodadas completas (E02, `V2-F00-E02/saidas/regressao-npm-test/04-teste-api.txt:565-580`)
   e passou isolado 3 de 3 e na segunda rodada completa.
-- **Depois (proposto):** espera com condição e limite (por exemplo `vi.waitFor`
-  com teto de 2 s) no lugar do tempo fixo, afirmando a mesma coisa. A mesma
-  espera fixa aparece em outros 10 pontos de 4 arquivos (`desinterdicao`,
-  `fotos-do-documento`, `identificador-da-emissao`, `segunda-via-nao-reinterdita`):
-  medir antes de trocar.
+- **Depois (feito na correção 1 da E03, 2026-10-13):** `vi.waitFor` com
+  `timeout: 5000` e `interval: 10` no lugar do `setTimeout(resolve, 20)`,
+  afirmando a mesma coisa (a conexão é fechada assim que os cabeçalhos chegam),
+  com a mesma mensagem de falha. Nenhuma asserção foi enfraquecida: o teste só
+  reprova agora se a conexão NÃO fechar em 5 s, que é o defeito que ele existe
+  para pegar. Prova: 10 rodadas isoladas e 10 sob carga sintética, 37 de 37 em
+  todas; o mutante (servidor que não registra o `close`) reprova com a mensagem
+  do teste (`correcao-1/brutas/resolver-link-*.txt`). A carga sintética NÃO
+  reproduziu a falha da versão antiga (10 de 10 verdes), então a causa "carga
+  da máquina" segue hipótese. A mesma espera fixa aparece em outros 10 pontos
+  de 4 arquivos (`desinterdicao`, `fotos-do-documento`, `identificador-da-emissao`,
+  `segunda-via-nao-reinterdita`) e há outras 6 de 10 a 100 ms em 3 arquivos de
+  push e recuperação: seguem abertos como V-INS-02 (dono `rafael`, prazo
+  2026-10-27), medir antes de trocar.
 - **Evidência:** classificação, seção 6.
-- **Etapa e data:** proposta feita na V2-F00-E03 em 2026-10-05; nenhuma etapa
-  existente a cobre (a E21 é a mais próxima). Aguarda Rafael aceitar o quarto
-  item da E21 ou abrir etapa própria.
+- **Etapa e data:** proposta feita na V2-F00-E03 em 2026-10-05; o primeiro
+  ponto trocado na correção 1 da V2-F00-E03 em 2026-10-13. A troca nos demais
+  pontos aguarda Rafael aceitar o quarto item da E21 (pergunta Q4 da seção 8.6
+  da classificação).
 
 ### API: `tokens.coordA` do `api.test.ts` entra de novo depois do teste de reuso
 

@@ -1,0 +1,1420 @@
+
+> dc360@0.1.0 test:scripts
+> node --test "scripts/*.test.mjs"
+
+TAP version 13
+# Subtest: a abertura declara uma cor por tema, e são as cores do tema
+ok 1 - a abertura declara uma cor por tema, e são as cores do tema
+  ---
+  duration_ms: 10.9334
+  type: 'test'
+  ...
+# Subtest: o plugin da abertura recebe o bloco do tema escuro
+ok 2 - o plugin da abertura recebe o bloco do tema escuro
+  ---
+  duration_ms: 2.7384
+  type: 'test'
+  ...
+# Subtest: nenhuma cor e nenhuma arte de abertura é escrita à mão, nos DOIS lugares
+ok 3 - nenhuma cor e nenhuma arte de abertura é escrita à mão, nos DOIS lugares
+  ---
+  duration_ms: 10.9741
+  type: 'test'
+  ...
+# Subtest: a leitura dos dois blocos pega o valor escrito à mão
+ok 4 - a leitura dos dois blocos pega o valor escrito à mão
+  ---
+  duration_ms: 1.861
+  type: 'test'
+  ...
+# Subtest: as duas artes de abertura existem no disco
+ok 5 - as duas artes de abertura existem no disco
+  ---
+  duration_ms: 2.7905
+  type: 'test'
+  ...
+# Subtest: a leitura da constante enxerga mesmo o arquivo
+ok 6 - a leitura da constante enxerga mesmo o arquivo
+  ---
+  duration_ms: 1.9865
+  type: 'test'
+  ...
+# Subtest: o documento de verdade passa: todo arquivo citado existe, todo simbolo esta la, nenhum numero de linha
+ok 7 - o documento de verdade passa: todo arquivo citado existe, todo simbolo esta la, nenhum numero de linha
+  ---
+  duration_ms: 486.5409
+  type: 'test'
+  ...
+# Subtest: a ancora: o documento tem dezenas de ancoras por simbolo, senao o portao esta lendo o arquivo errado
+ok 8 - a ancora: o documento tem dezenas de ancoras por simbolo, senao o portao esta lendo o arquivo errado
+  ---
+  duration_ms: 1.8665
+  type: 'test'
+  ...
+# Subtest: caso-irmao: simbolo que nao existe no arquivo e mordido
+ok 9 - caso-irmao: simbolo que nao existe no arquivo e mordido
+  ---
+  duration_ms: 345.0216
+  type: 'test'
+  ...
+# Subtest: caso-irmao: arquivo que nao existe e mordido, com e sem ancora
+ok 10 - caso-irmao: arquivo que nao existe e mordido, com e sem ancora
+  ---
+  duration_ms: 288.3803
+  type: 'test'
+  ...
+# Subtest: caso-irmao: a ancora por numero de linha, que era a forma antiga, e mordida em todas as suas grafias
+ok 11 - caso-irmao: a ancora por numero de linha, que era a forma antiga, e mordida em todas as suas grafias
+  ---
+  duration_ms: 824.5925
+  type: 'test'
+  ...
+# Subtest: caso-irmao: a ancora de ausencia morde quando o simbolo EXISTE
+ok 12 - caso-irmao: a ancora de ausencia morde quando o simbolo EXISTE
+  ---
+  duration_ms: 218.224
+  type: 'test'
+  ...
+# Subtest: caso-irmao: ausencia em pasta varre a pasta inteira
+ok 13 - caso-irmao: ausencia em pasta varre a pasta inteira
+  ---
+  duration_ms: 586.848
+  type: 'test'
+  ...
+# Subtest: presenca em pasta nao vale como ancora: ela nao diz onde olhar
+ok 14 - presenca em pasta nao vale como ancora: ela nao diz onde olhar
+  ---
+  duration_ms: 197.712
+  type: 'test'
+  ...
+# Subtest: o simbolo e palavra inteira: foto nao casa em foto_chave, e um nome com ponto casa literal
+ok 15 - o simbolo e palavra inteira: foto nao casa em foto_chave, e um nome com ponto casa literal
+  ---
+  duration_ms: 0.6731
+  type: 'test'
+  ...
+# Subtest: o caminho resolve da raiz, de apps/campo, de apps/campo/src e de docs, nessa ordem
+ok 16 - o caminho resolve da raiz, de apps/campo, de apps/campo/src e de docs, nessa ordem
+  ---
+  duration_ms: 1.525
+  type: 'test'
+  ...
+# Subtest: as seis ancoras que o revisor provou erradas na versao 2 estao por simbolo, e resolvem
+ok 17 - as seis ancoras que o revisor provou erradas na versao 2 estao por simbolo, e resolvem
+  ---
+  duration_ms: 0.9159
+  type: 'test'
+  ...
+# Subtest: auditar.mjs
+    # Subtest: passa quando runtime e aplicativo estão limpos
+    ok 1 - passa quando runtime e aplicativo estão limpos
+      ---
+      duration_ms: 712.2115
+      type: 'test'
+      ...
+    # Subtest: reprova vulnerabilidade de runtime
+    ok 2 - reprova vulnerabilidade de runtime
+      ---
+      duration_ms: 301.1539
+      type: 'test'
+      ...
+    # Subtest: só avisa de vulnerabilidade apenas de desenvolvimento
+    ok 3 - só avisa de vulnerabilidade apenas de desenvolvimento
+      ---
+      duration_ms: 391.9994
+      type: 'test'
+      ...
+    # Subtest: reprova advisory nova no aplicativo de campo
+    ok 4 - reprova advisory nova no aplicativo de campo
+      ---
+      duration_ms: 323.0178
+      type: 'test'
+      ...
+    # Subtest: aceita o nomeado, com dono e prazo na saída
+    ok 5 - aceita o nomeado, com dono e prazo na saída
+      ---
+      duration_ms: 353.7304
+      type: 'test'
+      ...
+    # Subtest: reprova aceita que tem correção disponível e não está marcada como inaplicável
+    ok 6 - reprova aceita que tem correção disponível e não está marcada como inaplicável
+      ---
+      duration_ms: 425.5044
+      type: 'test'
+      ...
+    # Subtest: tolera correção disponível quando a exceção é marcada como inaplicável (CP-03)
+    ok 7 - tolera correção disponível quando a exceção é marcada como inaplicável (CP-03)
+      ---
+      duration_ms: 367.0907
+      type: 'test'
+      ...
+    1..7
+ok 18 - auditar.mjs
+  ---
+  duration_ms: 2876.1047
+  type: 'suite'
+  ...
+# Subtest: exceções do CP-03: nome, dono e prazo
+    # Subtest: aceita exceção com motivo, dono e prazo no futuro
+    ok 1 - aceita exceção com motivo, dono e prazo no futuro
+      ---
+      duration_ms: 2.3001
+      type: 'test'
+      ...
+    # Subtest: aceita exceção que vence hoje (o prazo vale até o fim do dia)
+    ok 2 - aceita exceção que vence hoje (o prazo vale até o fim do dia)
+      ---
+      duration_ms: 0.3423
+      type: 'test'
+      ...
+    # Subtest: reprova exceção sem prazo
+    ok 3 - reprova exceção sem prazo
+      ---
+      duration_ms: 0.1761
+      type: 'test'
+      ...
+    # Subtest: reprova prazo em branco, fora do formato ou que não existe no calendário
+    ok 4 - reprova prazo em branco, fora do formato ou que não existe no calendário
+      ---
+      duration_ms: 0.2677
+      type: 'test'
+      ...
+    # Subtest: reprova exceção sem dono ou com dono em branco
+    ok 5 - reprova exceção sem dono ou com dono em branco
+      ---
+      duration_ms: 0.1775
+      type: 'test'
+      ...
+    # Subtest: reprova exceção sem motivo ou com motivo em branco
+    ok 6 - reprova exceção sem motivo ou com motivo em branco
+      ---
+      duration_ms: 0.1812
+      type: 'test'
+      ...
+    # Subtest: reprova exceção vencida e diz a data
+    ok 7 - reprova exceção vencida e diz a data
+      ---
+      duration_ms: 0.1008
+      type: 'test'
+      ...
+    # Subtest: aponta todos os defeitos de uma vez, de todas as exceções
+    ok 8 - aponta todos os defeitos de uma vez, de todas as exceções
+      ---
+      duration_ms: 0.0825
+      type: 'test'
+      ...
+    # Subtest: a lista REAL tem motivo, dono e prazo válidos e no futuro
+    ok 9 - a lista REAL tem motivo, dono e prazo válidos e no futuro
+      ---
+      duration_ms: 0.1433
+      type: 'test'
+      ...
+    1..9
+ok 19 - exceções do CP-03: nome, dono e prazo
+  ---
+  duration_ms: 4.2472
+  type: 'suite'
+  ...
+# Subtest: auditar.mjs com a lista de exceções adulterada
+    # Subtest: a cópia sem adulteração passa (controle do próprio teste)
+    ok 1 - a cópia sem adulteração passa (controle do próprio teste)
+      ---
+      duration_ms: 288.4334
+      type: 'test'
+      ...
+    # Subtest: reprova a exceção sem prazo, mesmo que o pacote esteja no relatório
+    ok 2 - reprova a exceção sem prazo, mesmo que o pacote esteja no relatório
+      ---
+      duration_ms: 83.8593
+      type: 'test'
+      ...
+    # Subtest: reprova a exceção sem dono
+    ok 3 - reprova a exceção sem dono
+      ---
+      duration_ms: 80.5363
+      type: 'test'
+      ...
+    # Subtest: reprova a exceção vencida
+    ok 4 - reprova a exceção vencida
+      ---
+      duration_ms: 83.3336
+      type: 'test'
+      ...
+    1..4
+ok 20 - auditar.mjs com a lista de exceções adulterada
+  ---
+  duration_ms: 536.4088
+  type: 'suite'
+  ...
+# Subtest: redige um JWT colado num texto
+ok 21 - redige um JWT colado num texto
+  ---
+  duration_ms: 5.6953
+  type: 'test'
+  ...
+# Subtest: redige o valor de Authorization Bearer e Basic
+ok 22 - redige o valor de Authorization Bearer e Basic
+  ---
+  duration_ms: 1.2994
+  type: 'test'
+  ...
+# Subtest: redige usuário e senha de uma URL de banco
+ok 23 - redige usuário e senha de uma URL de banco
+  ---
+  duration_ms: 1.4073
+  type: 'test'
+  ...
+# Subtest: troca o nome do usuário nas pastas pessoais
+ok 24 - troca o nome do usuário nas pastas pessoais
+  ---
+  duration_ms: 0.2498
+  type: 'test'
+  ...
+# Subtest: troca o travessão, que a regra de conteúdo proíbe em docs
+ok 25 - troca o travessão, que a regra de conteúdo proíbe em docs
+  ---
+  duration_ms: 2.391
+  type: 'test'
+  ...
+# Subtest: não mexe em texto comum
+ok 26 - não mexe em texto comum
+  ---
+  duration_ms: 0.4645
+  type: 'test'
+  ...
+# Subtest: lê as contagens do vitest
+ok 27 - lê as contagens do vitest
+  ---
+  duration_ms: 4.5224
+  type: 'test'
+  ...
+# Subtest: lê as contagens do node --test e do jest
+ok 28 - lê as contagens do node --test e do jest
+  ---
+  duration_ms: 0.5831
+  type: 'test'
+  ...
+# Subtest: sem contagem na saída o resultado é vazio, não zero
+ok 29 - sem contagem na saída o resultado é vazio, não zero
+  ---
+  duration_ms: 1.2227
+  type: 'test'
+  ...
+# Subtest: avaliar confere quando o resultado é o esperado, vermelho inclusive
+ok 30 - avaliar confere quando o resultado é o esperado, vermelho inclusive
+  ---
+  duration_ms: 9.4917
+  type: 'test'
+  ...
+# Subtest: avaliar marca divergente quando fica verde sem esperar, e quando a contagem muda
+ok 31 - avaliar marca divergente quando fica verde sem esperar, e quando a contagem muda
+  ---
+  duration_ms: 0.4443
+  type: 'test'
+  ...
+# Subtest: avaliar não aceita a ausência de contagem como confere
+ok 32 - avaliar não aceita a ausência de contagem como confere
+  ---
+  duration_ms: 0.1579
+  type: 'test'
+  ...
+# Subtest: a lista de passos tem ids únicos e o total de scripts soma a própria etapa
+ok 33 - a lista de passos tem ids únicos e o total de scripts soma a própria etapa
+  ---
+  duration_ms: 5.299
+  type: 'test'
+  ...
+# Subtest: o E2E do painel local declara o servidor que o teste exige
+ok 34 - o E2E do painel local declara o servidor que o teste exige
+  ---
+  duration_ms: 1.215
+  type: 'test'
+  ...
+# Subtest: as opções recusam o que não conhecem e os filtros recusam passo inexistente
+ok 35 - as opções recusam o que não conhecem e os filtros recusam passo inexistente
+  ---
+  duration_ms: 1.791
+  type: 'test'
+  ...
+# Subtest: --so-listar imprime os comandos, não executa nada e não cria a pasta de saída
+ok 36 - --so-listar imprime os comandos, não executa nada e não cria a pasta de saída
+  ---
+  duration_ms: 139.4587
+  type: 'test'
+  ...
+# Subtest: o script da raiz repassa as opções para o migrador
+ok 37 - o script da raiz repassa as opções para o migrador
+  ---
+  duration_ms: 6.9519
+  type: 'test'
+  ...
+# Subtest: rodando da raiz, --conferir confere e NÃO aplica
+ok 38 - rodando da raiz, --conferir confere e NÃO aplica
+  ---
+  duration_ms: 2825.0868
+  type: 'test'
+  ...
+# Subtest: o nome da copia traz a data, ordena por nome e nao tem dois-pontos
+ok 39 - o nome da copia traz a data, ordena por nome e nao tem dois-pontos
+  ---
+  duration_ms: 3.3959
+  type: 'test'
+  ...
+# Subtest: a copia mora fora do repositorio, e a pasta e a da casa de quem roda
+ok 40 - a copia mora fora do repositorio, e a pasta e a da casa de quem roda
+  ---
+  duration_ms: 0.5388
+  type: 'test'
+  ...
+# Subtest: a pasta de copias recusa o repositorio, a nuvem de arquivos e a Area de Trabalho
+ok 41 - a pasta de copias recusa o repositorio, a nuvem de arquivos e a Area de Trabalho
+  ---
+  duration_ms: 0.7174
+  type: 'test'
+  ...
+# Subtest: a URL do pg_dump e a mesma do migrador, com a raiz do provedor apontada para o libpq verificar a cadeia
+ok 42 - a URL do pg_dump e a mesma do migrador, com a raiz do provedor apontada para o libpq verificar a cadeia
+  ---
+  duration_ms: 0.7004
+  type: 'test'
+  ...
+# Subtest: a versao do pg_dump e lida da saida dele, e o cliente serve quando a maior e a do servidor ou mais nova
+ok 43 - a versao do pg_dump e lida da saida dele, e o cliente serve quando a maior e a do servidor ou mais nova
+  ---
+  duration_ms: 0.8263
+  type: 'test'
+  ...
+# Subtest: localizar o pg_dump tenta o PATH e os caminhos do Homebrew, e diz o que instalar quando nao acha
+ok 44 - localizar o pg_dump tenta o PATH e os caminhos do Homebrew, e diz o que instalar quando nao acha
+  ---
+  duration_ms: 1.3201
+  type: 'test'
+  ...
+# Subtest: a copia recente e a mais nova dentro da janela; fora dela, ou vazia, nao conta
+ok 45 - a copia recente e a mais nova dentro da janela; fora dela, ou vazia, nao conta
+  ---
+  duration_ms: 10.3698
+  type: 'test'
+  ...
+# Subtest: conferir nao pergunta por copia
+ok 46 - conferir nao pergunta por copia
+  ---
+  duration_ms: 0.289
+  type: 'test'
+  ...
+# Subtest: aplicar sem copia recente e RECUSADO, e a recusa ensina a tirar a copia e o escape
+ok 47 - aplicar sem copia recente e RECUSADO, e a recusa ensina a tirar a copia e o escape
+  ---
+  duration_ms: 0.5271
+  type: 'test'
+  ...
+# Subtest: aplicar com copia recente passa, e a conclusao nomeia a copia e a idade dela
+ok 48 - aplicar com copia recente passa, e a conclusao nomeia a copia e a idade dela
+  ---
+  duration_ms: 0.6497
+  type: 'test'
+  ...
+# Subtest: aplicar com --sem-copia passa, e a conclusao diz por extenso que a copia foi PULADA
+ok 49 - aplicar com --sem-copia passa, e a conclusao diz por extenso que a copia foi PULADA
+  ---
+  duration_ms: 0.2934
+  type: 'test'
+  ...
+# Subtest: com copia recente, --sem-copia nao apaga o registro: a copia que existe e a que vale
+ok 50 - com copia recente, --sem-copia nao apaga o registro: a copia que existe e a que vale
+  ---
+  duration_ms: 0.1513
+  type: 'test'
+  ...
+# Subtest: a decisao usa a pasta e a janela de verdade quando ninguem as passa
+ok 51 - a decisao usa a pasta e a janela de verdade quando ninguem as passa
+  ---
+  duration_ms: 5.3814
+  type: 'test'
+  ...
+# Subtest: recusa subir com a porta da API ocupada, em vez de falar com a instância velha
+ok 52 - recusa subir com a porta da API ocupada, em vez de falar com a instância velha
+  ---
+  duration_ms: 251.3499
+  type: 'test'
+  ...
+# Subtest: a porta conferida é a mesma que o roteiro usa
+ok 53 - a porta conferida é a mesma que o roteiro usa
+  ---
+  duration_ms: 1.1839
+  type: 'test'
+  ...
+# Subtest: o entitlements do iOS declara aps-environment
+ok 54 - o entitlements do iOS declara aps-environment # SKIP sem pasta ios/ nesta máquina
+  ---
+  duration_ms: 2.3737
+  type: 'test'
+  ...
+# Subtest: o valor do aps-environment é um dos dois que a Apple aceita
+ok 55 - o valor do aps-environment é um dos dois que a Apple aceita # SKIP sem projeto iOS gerado
+  ---
+  duration_ms: 0.2444
+  type: 'test'
+  ...
+# Subtest: a escolha do ambiente continua morando no app.config.ts, e não escrita à mão
+ok 56 - a escolha do ambiente continua morando no app.config.ts, e não escrita à mão
+  ---
+  duration_ms: 1.7285
+  type: 'test'
+  ...
+# Subtest: a conferência do ambiente reprova o mode escrito à mão num rascunho
+ok 57 - a conferência do ambiente reprova o mode escrito à mão num rascunho
+  ---
+  duration_ms: 1.3783
+  type: 'test'
+  ...
+# Subtest: o entitlements gerado concorda com DC360_TIME_SENSITIVE sobre o direito sensível ao tempo
+ok 58 - o entitlements gerado concorda com DC360_TIME_SENSITIVE sobre o direito sensível ao tempo # SKIP sem projeto iOS gerado
+  ---
+  duration_ms: 0.2282
+  type: 'test'
+  ...
+# Subtest: o som de despacho foi copiado para o projeto iOS
+ok 59 - o som de despacho foi copiado para o projeto iOS # SKIP sem pasta ios/ nesta máquina
+  ---
+  duration_ms: 0.19
+  type: 'test'
+  ...
+# Subtest: o app.config.ts pede o direito atrás da variável, e declara o som
+ok 60 - o app.config.ts pede o direito atrás da variável, e declara o som
+  ---
+  duration_ms: 1.1421
+  type: 'test'
+  ...
+# Subtest: cada .woff do repositorio e exatamente o que o roteiro gera dos .ttf do aplicativo
+ok 61 - cada .woff do repositorio e exatamente o que o roteiro gera dos .ttf do aplicativo
+  ---
+  duration_ms: 53.4167
+  type: 'test'
+  ...
+# Subtest: a licenca OFL acompanha as fontes, igual a de origem
+ok 62 - a licenca OFL acompanha as fontes, igual a de origem
+  ---
+  duration_ms: 1.1794
+  type: 'test'
+  ...
+# Subtest: o WOFF e o TTF tabela a tabela, e o cabecalho diz a verdade sobre os tamanhos
+ok 63 - o WOFF e o TTF tabela a tabela, e o cabecalho diz a verdade sobre os tamanhos
+  ---
+  duration_ms: 46.0249
+  type: 'test'
+  ...
+# Subtest: o tokens.css do painel declara exatamente as faces geradas, e nenhuma outra
+ok 64 - o tokens.css do painel declara exatamente as faces geradas, e nenhuma outra
+  ---
+  duration_ms: 1.8507
+  type: 'test'
+  ...
+# Subtest: o codificador e determinista: duas passadas, os mesmos bytes
+ok 65 - o codificador e determinista: duas passadas, os mesmos bytes
+  ---
+  duration_ms: 29.3841
+  type: 'test'
+  ...
+# Subtest: senha com caractere que parte a URL continua chegando inteira
+ok 66 - senha com caractere que parte a URL continua chegando inteira
+  ---
+  duration_ms: 2.0629
+  type: 'test'
+  ...
+# Subtest: senha comum passa sem enfeite
+ok 67 - senha comum passa sem enfeite
+  ---
+  duration_ms: 0.6899
+  type: 'test'
+  ...
+# Subtest: migra com o papel de setup, nunca com o da aplicação
+ok 68 - migra com o papel de setup, nunca com o da aplicação
+  ---
+  duration_ms: 0.5174
+  type: 'test'
+  ...
+# Subtest: a URL exige verificação do certificado, e diz isso por escrito
+ok 69 - a URL exige verificação do certificado, e diz isso por escrito
+  ---
+  duration_ms: 0.359
+  type: 'test'
+  ...
+# Subtest: vai pelo pooler, porque a conexão direta não tem IPv4
+ok 70 - vai pelo pooler, porque a conexão direta não tem IPv4
+  ---
+  duration_ms: 0.5554
+  type: 'test'
+  ...
+# Subtest: em modo SESSÃO (5432), e nunca em modo transação (6543)
+ok 71 - em modo SESSÃO (5432), e nunca em modo transação (6543)
+  ---
+  duration_ms: 0.3598
+  type: 'test'
+  ...
+# Subtest: o nome do cofre e da conta são os mesmos que a mensagem de ajuda ensina
+ok 72 - o nome do cofre e da conta são os mesmos que a mensagem de ajuda ensina
+  ---
+  duration_ms: 1.2284
+  type: 'test'
+  ...
+# Subtest: a varredura enxerga os dois canais de verdade
+ok 73 - a varredura enxerga os dois canais de verdade
+  ---
+  duration_ms: 28.2184
+  type: 'test'
+  ...
+# Subtest: o painel não desenha severidade com forma própria
+ok 74 - o painel não desenha severidade com forma própria
+  ---
+  duration_ms: 83.2256
+  type: 'test'
+  ...
+# Subtest: o aplicativo não desenha severidade com forma própria
+ok 75 - o aplicativo não desenha severidade com forma própria
+  ---
+  duration_ms: 132.0152
+  type: 'test'
+  ...
+# Subtest: cada sítio canônico existe e lê o glifo do pacote compartilhado
+ok 76 - cada sítio canônico existe e lê o glifo do pacote compartilhado
+  ---
+  duration_ms: 12.8366
+  type: 'test'
+  ...
+# Subtest: o compartilhado declara os cinco glifos com contorno, marca e preenchimento
+ok 77 - o compartilhado declara os cinco glifos com contorno, marca e preenchimento
+  ---
+  duration_ms: 2.2647
+  type: 'test'
+  ...
+# Subtest: a varredura acusa um caminho local reintroduzido no selo do painel
+ok 78 - a varredura acusa um caminho local reintroduzido no selo do painel
+  ---
+  duration_ms: 1.9669
+  type: 'test'
+  ...
+# Subtest: a varredura acusa um mapa de severidade para caminho reintroduzido no marcador do Google
+ok 79 - a varredura acusa um mapa de severidade para caminho reintroduzido no marcador do Google
+  ---
+  duration_ms: 2.2163
+  type: 'test'
+  ...
+# Subtest: a varredura acusa o medidor antigo do aplicativo, e um objeto com forma por nível
+ok 80 - a varredura acusa o medidor antigo do aplicativo, e um objeto com forma por nível
+  ---
+  duration_ms: 5.2176
+  type: 'test'
+  ...
+# Subtest: a varredura não reclama do que está certo
+ok 81 - a varredura não reclama do que está certo
+  ---
+  duration_ms: 0.891
+  type: 'test'
+  ...
+# Subtest: o leitor de sítio pula o parâmetro desestruturado e pega o corpo de verdade
+ok 82 - o leitor de sítio pula o parâmetro desestruturado e pega o corpo de verdade
+  ---
+  duration_ms: 0.9795
+  type: 'test'
+  ...
+# Subtest: o leitor de valor para na vírgula do mesmo nível, e não dentro de um objeto
+ok 83 - o leitor de valor para na vírgula do mesmo nível, e não dentro de um objeto
+  ---
+  duration_ms: 0.3506
+  type: 'test'
+  ...
+# Subtest: primitiva: as duas paletas são a mesma paleta
+ok 84 - primitiva: as duas paletas são a mesma paleta
+  ---
+  duration_ms: 2.6567
+  type: 'test'
+  ...
+# Subtest: primitiva: nenhum dos dois lados tem cor que o outro não tem
+ok 85 - primitiva: nenhum dos dois lados tem cor que o outro não tem
+  ---
+  duration_ms: 0.923
+  type: 'test'
+  ...
+# Subtest: semântico: temaClaro concorda com o painel, par a par
+ok 86 - semântico: temaClaro concorda com o painel, par a par
+  ---
+  duration_ms: 0.6213
+  type: 'test'
+  ...
+# Subtest: semântico: temaEscuro concorda com o painel, par a par
+ok 87 - semântico: temaEscuro concorda com o painel, par a par
+  ---
+  duration_ms: 1.0492
+  type: 'test'
+  ...
+# Subtest: escala: espaçamento e raio são idênticos aos do painel
+ok 88 - escala: espaçamento e raio são idênticos aos do painel
+  ---
+  duration_ms: 0.5295
+  type: 'test'
+  ...
+# Subtest: escala: do corpo do texto para baixo, as duas tipografias são a mesma
+ok 89 - escala: do corpo do texto para baixo, as duas tipografias são a mesma
+  ---
+  duration_ms: 0.3003
+  type: 'test'
+  ...
+# Subtest: escala: o alvo de toque do aplicativo é maior que o do painel, e não menor
+ok 90 - escala: o alvo de toque do aplicativo é maior que o do painel, e não menor
+  ---
+  duration_ms: 0.2327
+  type: 'test'
+  ...
+# Subtest: nenhuma divergência declarada sobreviveu ao próprio conserto
+ok 91 - nenhuma divergência declarada sobreviveu ao próprio conserto
+  ---
+  duration_ms: 8.3441
+  type: 'test'
+  ...
+# Subtest: a paridade pega o que deveria pegar
+ok 92 - a paridade pega o que deveria pegar
+  ---
+  duration_ms: 2.2182
+  type: 'test'
+  ...
+# Subtest: os tokens de papel são os mesmos da folha impressa
+ok 93 - os tokens de papel são os mesmos da folha impressa
+  ---
+  duration_ms: 2.19
+  type: 'test'
+  ...
+# Subtest: contraste calculado: temaClaro passa no mínimo exigido em todo par
+ok 94 - contraste calculado: temaClaro passa no mínimo exigido em todo par
+  ---
+  duration_ms: 4.3621
+  type: 'test'
+  ...
+# Subtest: contraste calculado: temaEscuro passa no mínimo exigido em todo par
+ok 95 - contraste calculado: temaEscuro passa no mínimo exigido em todo par
+  ---
+  duration_ms: 1.7195
+  type: 'test'
+  ...
+# Subtest: o cálculo confere com valores conhecidos
+ok 96 - o cálculo confere com valores conhecidos
+  ---
+  duration_ms: 1.0308
+  type: 'test'
+  ...
+# Subtest: os dois temas são de fato dois, e a leitura resolve as primitivas
+ok 97 - os dois temas são de fato dois, e a leitura resolve as primitivas
+  ---
+  duration_ms: 1.0093
+  type: 'test'
+  ...
+# Subtest: nenhuma pendência de contraste sobreviveu ao próprio conserto
+ok 98 - nenhuma pendência de contraste sobreviveu ao próprio conserto
+  ---
+  duration_ms: 1.1296
+  type: 'test'
+  ...
+# Subtest: a varredura enxerga os elementos tocáveis de verdade
+ok 99 - a varredura enxerga os elementos tocáveis de verdade
+  ---
+  duration_ms: 424.3567
+  type: 'test'
+  ...
+# Subtest: nenhum alvo de toque abaixo de 52
+ok 100 - nenhum alvo de toque abaixo de 52
+  ---
+  duration_ms: 249.2484
+  type: 'test'
+  ...
+# Subtest: todo elemento tocável se apresenta ao leitor de tela
+ok 101 - todo elemento tocável se apresenta ao leitor de tela
+  ---
+  duration_ms: 233.5152
+  type: 'test'
+  ...
+# Subtest: as três varreduras pegam o que deveriam pegar
+ok 102 - as três varreduras pegam o que deveriam pegar
+  ---
+  duration_ms: 2.083
+  type: 'test'
+  ...
+# Subtest: o escape nomeado dispensa quem foi declarado, e ninguém mais
+ok 103 - o escape nomeado dispensa quem foi declarado, e ninguém mais
+  ---
+  duration_ms: 226.2709
+  type: 'test'
+  ...
+# Portão de skip: 644 arquivos varridos; 10 skips por ambiente em 3 arquivos; 0 incondicionais com marca T42.
+#   por ambiente: 3 em db/test/busca.test.ts
+#   por ambiente: 4 em scripts/entitlements-do-ios.test.mjs
+#   por ambiente: 3 em scripts/som-de-despacho.test.mjs
+# Subtest: a árvore atual passa no portão: nenhum skip sem marca, vencido ou .only
+ok 104 - a árvore atual passa no portão: nenhum skip sem marca, vencido ou .only
+  ---
+  duration_ms: 1.4687
+  type: 'test'
+  ...
+# Subtest: a vigência da escrita voltou a rodar: o skip da E04 saiu e nenhum skip incondicional resta
+ok 105 - a vigência da escrita voltou a rodar: o skip da E04 saiu e nenhum skip incondicional resta
+  ---
+  duration_ms: 0.2566
+  type: 'test'
+  ...
+# Subtest: a contagem por ambiente lista os runIf de busca e os skip de entitlements e de som
+ok 106 - a contagem por ambiente lista os runIf de busca e os skip de entitlements e de som
+  ---
+  duration_ms: 0.288
+  type: 'test'
+  ...
+# Subtest: it.skip sem marca reprova
+ok 107 - it.skip sem marca reprova
+  ---
+  duration_ms: 1.3516
+  type: 'test'
+  ...
+# Subtest: skip, todo, xit, xdescribe e t.skip incondicionais sem marca reprovam
+ok 108 - skip, todo, xit, xdescribe e t.skip incondicionais sem marca reprovam
+  ---
+  duration_ms: 1.041
+  type: 'test'
+  ...
+# Subtest: marca sem dono, sem issue ou sem ate reprova
+ok 109 - marca sem dono, sem issue ou sem ate reprova
+  ---
+  duration_ms: 0.5466
+  type: 'test'
+  ...
+# Subtest: marca com ate no passado reprova, e ate igual a hoje ainda vale
+ok 110 - marca com ate no passado reprova, e ate igual a hoje ainda vale
+  ---
+  duration_ms: 0.6641
+  type: 'test'
+  ...
+# Subtest: marca com prazo além do máximo, ou com data que não existe, reprova
+ok 111 - marca com prazo além do máximo, ou com data que não existe, reprova
+  ---
+  duration_ms: 0.541
+  type: 'test'
+  ...
+# Subtest: it.only reprova mesmo com marca válida, em it, test, describe e fit
+ok 112 - it.only reprova mesmo com marca válida, em it, test, describe e fit
+  ---
+  duration_ms: 0.6942
+  type: 'test'
+  ...
+# Subtest: a marca precisa estar na linha imediatamente acima
+ok 113 - a marca precisa estar na linha imediatamente acima
+  ---
+  duration_ms: 0.6605
+  type: 'test'
+  ...
+# Subtest: skip por opção sem condição e sem motivo textual reprova
+ok 114 - skip por opção sem condição e sem motivo textual reprova
+  ---
+  duration_ms: 0.3509
+  type: 'test'
+  ...
+# Subtest: describe.skip com marca dentro do prazo passa e aparece como marcado
+ok 115 - describe.skip com marca dentro do prazo passa e aparece como marcado
+  ---
+  duration_ms: 0.6309
+  type: 'test'
+  ...
+# Subtest: skip por ambiente (runIf, skipIf e skip com condição e motivo) passa e é contado
+ok 116 - skip por ambiente (runIf, skipIf e skip com condição e motivo) passa e é contado
+  ---
+  duration_ms: 0.2563
+  type: 'test'
+  ...
+# Subtest: comentário, bloco de comentário e texto entre aspas não disparam falso positivo
+ok 117 - comentário, bloco de comentário e texto entre aspas não disparam falso positivo
+  ---
+  duration_ms: 0.2031
+  type: 'test'
+  ...
+# Subtest: o fim de linha CRLF não atrapalha a leitura da marca
+ok 118 - o fim de linha CRLF não atrapalha a leitura da marca
+  ---
+  duration_ms: 0.2801
+  type: 'test'
+  ...
+# Subtest: conferirMarca aceita o limite exato do prazo e rejeita um dia a mais que a folga de fuso
+ok 119 - conferirMarca aceita o limite exato do prazo e rejeita um dia a mais que a folga de fuso
+  ---
+  duration_ms: 0.3329
+  type: 'test'
+  ...
+# Subtest: a varredura em disco acha o skip sem marca de um arquivo sintético e ignora node_modules
+ok 120 - a varredura em disco acha o skip sem marca de um arquivo sintético e ignora node_modules
+  ---
+  duration_ms: 19.4944
+  type: 'test'
+  ...
+# Subtest: R1: nenhuma peça empilha mais de um bloco preenchido
+ok 121 - R1: nenhuma peça empilha mais de um bloco preenchido
+  ---
+  duration_ms: 3.2693
+  type: 'test'
+  ...
+# Subtest: a varredura enxerga o aplicativo de verdade
+ok 122 - a varredura enxerga o aplicativo de verdade
+  ---
+  duration_ms: 0.4091
+  type: 'test'
+  ...
+# Subtest: a varredura pega o cartão da reclamação, bloco a bloco
+ok 123 - a varredura pega o cartão da reclamação, bloco a bloco
+  ---
+  duration_ms: 0.8431
+  type: 'test'
+  ...
+# Subtest: a varredura não confunde o que está calmo com o que grita
+ok 124 - a varredura não confunde o que está calmo com o que grita
+  ---
+  duration_ms: 0.8062
+  type: 'test'
+  ...
+# Subtest: R3 e R5 continuam ligadas, e o Chip e o Aviso continuam obedecendo
+ok 125 - R3 e R5 continuam ligadas, e o Chip e o Aviso continuam obedecendo
+  ---
+  duration_ms: 3.8645
+  type: 'test'
+  ...
+# Subtest: R5 é aritmética, e o portão refaz a conta
+ok 126 - R5 é aritmética, e o portão refaz a conta
+  ---
+  duration_ms: 0.8708
+  type: 'test'
+  ...
+# Subtest: nenhuma pendência de densidade sobreviveu ao próprio conserto
+ok 127 - nenhuma pendência de densidade sobreviveu ao próprio conserto
+  ---
+  duration_ms: 0.2131
+  type: 'test'
+  ...
+# Subtest: a varredura enxerga os arquivos do aplicativo de verdade
+ok 128 - a varredura enxerga os arquivos do aplicativo de verdade
+  ---
+  duration_ms: 28.0909
+  type: 'test'
+  ...
+# Subtest: nenhum valor de design escrito à mão no aplicativo
+ok 129 - nenhum valor de design escrito à mão no aplicativo
+  ---
+  duration_ms: 215.1426
+  type: 'test'
+  ...
+# Subtest: a varredura pega o que deveria pegar
+ok 130 - a varredura pega o que deveria pegar
+  ---
+  duration_ms: 0.9985
+  type: 'test'
+  ...
+# Subtest: a varredura não reclama do que está certo
+ok 131 - a varredura não reclama do que está certo
+  ---
+  duration_ms: 1.1665
+  type: 'test'
+  ...
+# Subtest: o marcador de exceção dispensa o que declarou, e só isso
+ok 132 - o marcador de exceção dispensa o que declarou, e só isso
+  ---
+  duration_ms: 0.6859
+  type: 'test'
+  ...
+# Subtest: os comentários são apagados antes da varredura, e o código da mesma linha não
+ok 133 - os comentários são apagados antes da varredura, e o código da mesma linha não
+  ---
+  duration_ms: 0.3772
+  type: 'test'
+  ...
+# Subtest: a dívida de peso de fonte morre no dia em que o token nascer
+ok 134 - a dívida de peso de fonte morre no dia em que o token nascer
+  ---
+  duration_ms: 0.7648
+  type: 'test'
+  ...
+# Subtest: nenhuma espera de tela cheia fica sem saída
+ok 135 - nenhuma espera de tela cheia fica sem saída
+  ---
+  duration_ms: 164.0951
+  type: 'test'
+  ...
+# Subtest: a varredura de espera sem saída enxerga alguma coisa
+ok 136 - a varredura de espera sem saída enxerga alguma coisa
+  ---
+  duration_ms: 74.815
+  type: 'test'
+  ...
+# Subtest: nenhum token declarado fica sem alguém apontando para ele
+ok 137 - nenhum token declarado fica sem alguém apontando para ele
+  ---
+  duration_ms: 134.2839
+  type: 'test'
+  ...
+# Subtest: a dívida de token sem dono não sobrevive ao próprio conserto
+ok 138 - a dívida de token sem dono não sobrevive ao próprio conserto
+  ---
+  duration_ms: 103.1088
+  type: 'test'
+  ...
+# Subtest: a varredura de token sem dono enxerga o que deveria
+ok 139 - a varredura de token sem dono enxerga o que deveria
+  ---
+  duration_ms: 1.9067
+  type: 'test'
+  ...
+# Subtest: H3: o protagonista é pelo menos o dobro do apoio, e a conta é refeita aqui
+ok 140 - H3: o protagonista é pelo menos o dobro do apoio, e a conta é refeita aqui
+  ---
+  duration_ms: 16.9675
+  type: 'test'
+  ...
+# Subtest: H1: nenhuma peça desenha mais de um protagonista
+ok 141 - H1: nenhuma peça desenha mais de um protagonista
+  ---
+  duration_ms: 208.7831
+  type: 'test'
+  ...
+# Subtest: a varredura de protagonista enxerga o que deveria
+ok 142 - a varredura de protagonista enxerga o que deveria
+  ---
+  duration_ms: 0.9498
+  type: 'test'
+  ...
+# Subtest: o gradiente é pontual: ele não escapa de `src/ui/`
+ok 143 - o gradiente é pontual: ele não escapa de `src/ui/`
+  ---
+  duration_ms: 50.0478
+  type: 'test'
+  ...
+# Subtest: a varredura enxerga os arquivos de verdade
+ok 144 - a varredura enxerga os arquivos de verdade
+  ---
+  duration_ms: 59.8952
+  type: 'test'
+  ...
+# Subtest: nenhum arquivo do aplicativo chama geocodificação, Places ou Directions
+ok 145 - nenhum arquivo do aplicativo chama geocodificação, Places ou Directions
+  ---
+  duration_ms: 267.4755
+  type: 'test'
+  ...
+# Subtest: na API, só `rotas/rota.ts` chama a Routes API do Google, e ele de fato chama
+ok 146 - na API, só `rotas/rota.ts` chama a Routes API do Google, e ele de fato chama
+  ---
+  duration_ms: 119.7876
+  type: 'test'
+  ...
+# Subtest: o portão do caminho MORDE fora do arquivo permitido, e só fora dele
+ok 147 - o portão do caminho MORDE fora do arquivo permitido, e só fora dele
+  ---
+  duration_ms: 0.4163
+  type: 'test'
+  ...
+# Subtest: as próprias regras pegam o que deveriam pegar
+ok 148 - as próprias regras pegam o que deveriam pegar
+  ---
+  duration_ms: 0.2674
+  type: 'test'
+  ...
+# Subtest: a limpeza apaga comentário, e o TEXTO LITERAL sobrevive inteiro
+ok 149 - a limpeza apaga comentário, e o TEXTO LITERAL sobrevive inteiro
+  ---
+  duration_ms: 0.1255
+  type: 'test'
+  ...
+# Subtest: as regras pegam o que deveriam pegar DEPOIS da limpeza, e não só no texto cru
+ok 150 - as regras pegam o que deveriam pegar DEPOIS da limpeza, e não só no texto cru
+  ---
+  duration_ms: 0.2005
+  type: 'test'
+  ...
+# Subtest: todo MapView do aplicativo pede o provedor Google, explicitamente
+ok 151 - todo MapView do aplicativo pede o provedor Google, explicitamente
+  ---
+  duration_ms: 68.3518
+  type: 'test'
+  ...
+# Subtest: a regra do provedor pega um MapView sem ele
+ok 152 - a regra do provedor pega um MapView sem ele
+  ---
+  duration_ms: 0.6003
+  type: 'test'
+  ...
+# Subtest: a chave do mapa vem do ambiente, e não escrita no app.config.ts
+ok 153 - a chave do mapa vem do ambiente, e não escrita no app.config.ts
+  ---
+  duration_ms: 2.3346
+  type: 'test'
+  ...
+# Subtest: cada plataforma tem a SUA chave, e nenhuma delas fica sem
+ok 154 - cada plataforma tem a SUA chave, e nenhuma delas fica sem
+  ---
+  duration_ms: 1.5215
+  type: 'test'
+  ...
+# Subtest: o plugin de configuração do react-native-maps carrega
+ok 155 - o plugin de configuração do react-native-maps carrega
+  ---
+  duration_ms: 143.4576
+  type: 'test'
+  ...
+# Subtest: react-native-maps está fixado numa versão e é transformado pelo jest
+ok 156 - react-native-maps está fixado numa versão e é transformado pelo jest
+  ---
+  duration_ms: 0.5742
+  type: 'test'
+  ...
+# Subtest: o dublê comum de react-native-maps está no lugar em que o jest o acha sozinho
+ok 157 - o dublê comum de react-native-maps está no lugar em que o jest o acha sozinho
+  ---
+  duration_ms: 0.7977
+  type: 'test'
+  ...
+# Subtest: nenhum texto do aplicativo promete segundo plano nem envio com o aplicativo fechado
+ok 158 - nenhum texto do aplicativo promete segundo plano nem envio com o aplicativo fechado
+  ---
+  duration_ms: 245.1514
+  type: 'test'
+  ...
+# Subtest: o portão morde: as frases que a arbitragem achou na fila são reprovadas
+ok 159 - o portão morde: as frases que a arbitragem achou na fila são reprovadas
+  ---
+  duration_ms: 0.9076
+  type: 'test'
+  ...
+# Subtest: o portão não pune quem explica: comentário pode citar a frase proibida
+ok 160 - o portão não pune quem explica: comentário pode citar a frase proibida
+  ---
+  duration_ms: 0.3869
+  type: 'test'
+  ...
+# Subtest: as frases verdadeiras passam
+ok 161 - as frases verdadeiras passam
+  ---
+  duration_ms: 0.4184
+  type: 'test'
+  ...
+# Subtest: o segredo gerado passa no mínimo que a API exige e não parte a lista
+ok 162 - o segredo gerado passa no mínimo que a API exige e não parte a lista
+  ---
+  duration_ms: 2.5294
+  type: 'test'
+  ...
+# Subtest: rotação: o novo entra na frente e o antigo continua aceito
+ok 163 - rotação: o novo entra na frente e o antigo continua aceito
+  ---
+  duration_ms: 5.642
+  type: 'test'
+  ...
+# Subtest: rotação: o passo 2 aposenta o antigo, senão a troca ficou pela metade
+ok 164 - rotação: o passo 2 aposenta o antigo, senão a troca ficou pela metade
+  ---
+  duration_ms: 0.4113
+  type: 'test'
+  ...
+# Subtest: rotação: recusa quando a lista passaria do teto
+ok 165 - rotação: recusa quando a lista passaria do teto
+  ---
+  duration_ms: 3.6219
+  type: 'test'
+  ...
+# Subtest: revogação: o segredo vazado SAI DA LISTA, e é aqui que os dois planos divergem
+ok 166 - revogação: o segredo vazado SAI DA LISTA, e é aqui que os dois planos divergem
+  ---
+  duration_ms: 1.7435
+  type: 'test'
+  ...
+# Subtest: revogação: recusa quando o valor apontado não está na lista
+ok 167 - revogação: recusa quando o valor apontado não está na lista
+  ---
+  duration_ms: 0.3801
+  type: 'test'
+  ...
+# Subtest: o som de despacho existe no repositório
+ok 168 - o som de despacho existe no repositório
+  ---
+  duration_ms: 2.294
+  type: 'test'
+  ...
+# Subtest: o cabeçalho do som está dentro da régua das duas lojas
+ok 169 - o cabeçalho do som está dentro da régua das duas lojas
+  ---
+  duration_ms: 1.8437
+  type: 'test'
+  ...
+# Subtest: o arquivo versionado é exatamente o que o roteiro gera hoje
+ok 170 - o arquivo versionado é exatamente o que o roteiro gera hoje
+  ---
+  duration_ms: 72.6602
+  type: 'test'
+  ...
+# Subtest: o som não estala nem estoura: começa e termina em silêncio, e o pico fica abaixo do teto
+ok 171 - o som não estala nem estoura: começa e termina em silêncio, e o pico fica abaixo do teto
+  ---
+  duration_ms: 6.0987
+  type: 'test'
+  ...
+# Subtest: a régua aceita um WAV forjado dentro dela (senão os casos abaixo não provam nada)
+ok 172 - a régua aceita um WAV forjado dentro dela (senão os casos abaixo não provam nada)
+  ---
+  duration_ms: 6.9414
+  type: 'test'
+  ...
+# Subtest: a régua reprova estéreo
+ok 173 - a régua reprova estéreo
+  ---
+  duration_ms: 0.6858
+  type: 'test'
+  ...
+# Subtest: a régua reprova 22 kHz
+ok 174 - a régua reprova 22 kHz
+  ---
+  duration_ms: 0.463
+  type: 'test'
+  ...
+# Subtest: a régua reprova 8 bits
+ok 175 - a régua reprova 8 bits
+  ---
+  duration_ms: 0.3437
+  type: 'test'
+  ...
+# Subtest: a régua reprova formato comprimido
+ok 176 - a régua reprova formato comprimido
+  ---
+  duration_ms: 8.078
+  type: 'test'
+  ...
+# Subtest: a régua reprova o toque curto demais
+ok 177 - a régua reprova o toque curto demais
+  ---
+  duration_ms: 1.954
+  type: 'test'
+  ...
+# Subtest: a régua reprova o toque longo demais
+ok 178 - a régua reprova o toque longo demais
+  ---
+  duration_ms: 2.1115
+  type: 'test'
+  ...
+# Subtest: a régua reprova cabeçalho que mente sobre o tamanho
+ok 179 - a régua reprova cabeçalho que mente sobre o tamanho
+  ---
+  duration_ms: 0.4641
+  type: 'test'
+  ...
+# Subtest: o leitor recusa o que não é WAV
+ok 180 - o leitor recusa o que não é WAV
+  ---
+  duration_ms: 0.8824
+  type: 'test'
+  ...
+# Subtest: sem as dependências do aplicativo, falha e diz o comando exato
+ok 181 - sem as dependências do aplicativo, falha e diz o comando exato
+  ---
+  duration_ms: 4.0768
+  type: 'test'
+  ...
+# Subtest: a falha por dependência ausente aponta o escape, em vez de deixar a pessoa presa
+ok 182 - a falha por dependência ausente aponta o escape, em vez de deixar a pessoa presa
+  ---
+  duration_ms: 0.325
+  type: 'test'
+  ...
+# Subtest: o escape só vale ligado em 1: variável presente com outro valor não pula
+ok 183 - o escape só vale ligado em 1: variável presente com outro valor não pula
+  ---
+  duration_ms: 0.993
+  type: 'test'
+  ...
+# Subtest: DC360_SEM_APP=1 pula mesmo com as dependências instaladas
+ok 184 - DC360_SEM_APP=1 pula mesmo com as dependências instaladas
+  ---
+  duration_ms: 1.8225
+  type: 'test'
+  ...
+# Subtest: com tudo no lugar, roda sem mandar compilar nada
+ok 185 - com tudo no lugar, roda sem mandar compilar nada
+  ---
+  duration_ms: 1.3486
+  type: 'test'
+  ...
+# Subtest: dist ausente entra na lista de compilação, e shared vem antes de campo
+ok 186 - dist ausente entra na lista de compilação, e shared vem antes de campo
+  ---
+  duration_ms: 0.3666
+  type: 'test'
+  ...
+# Subtest: dist que já existe não é recompilado
+ok 187 - dist que já existe não é recompilado
+  ---
+  duration_ms: 0.2903
+  type: 'test'
+  ...
+# Subtest: conta it e test abrindo a linha, com ou sem sufixo
+ok 188 - conta it e test abrindo a linha, com ou sem sufixo
+  ---
+  duration_ms: 0.4182
+  type: 'test'
+  ...
+# Subtest: não conta describe, comentário, nem palavra terminada em it ou test
+ok 189 - não conta describe, comentário, nem palavra terminada em it ou test
+  ---
+  duration_ms: 12.4775
+  type: 'test'
+  ...
+# Subtest: it.each com tabela literal vale uma vez por linha, e não uma vez só
+ok 190 - it.each com tabela literal vale uma vez por linha, e não uma vez só
+  ---
+  duration_ms: 1.2995
+  type: 'test'
+  ...
+# Subtest: it.each resolve tabela declarada como constante no mesmo arquivo
+ok 191 - it.each resolve tabela declarada como constante no mesmo arquivo
+  ---
+  duration_ms: 0.5098
+  type: 'test'
+  ...
+# Subtest: vírgula sobrando no fim da tabela não inventa um caso
+ok 192 - vírgula sobrando no fim da tabela não inventa um caso
+  ---
+  duration_ms: 0.43
+  type: 'test'
+  ...
+# Subtest: it.each com tabela em template conta as linhas, menos o cabeçalho
+ok 193 - it.each com tabela em template conta as linhas, menos o cabeçalho
+  ---
+  duration_ms: 2.0235
+  type: 'test'
+  ...
+# Subtest: each que a leitura não sabe resolver estoura, e diz onde
+ok 194 - each que a leitura não sabe resolver estoura, e diz onde
+  ---
+  duration_ms: 1.3291
+  type: 'test'
+  ...
+# Subtest: describe.each estoura, porque multiplica tudo que está dentro do bloco
+ok 195 - describe.each estoura, porque multiplica tudo que está dentro do bloco
+  ---
+  duration_ms: 0.2786
+  type: 'test'
+  ...
+# Subtest: a varredura ignora node_modules e dist, que só guardam cópia
+ok 196 - a varredura ignora node_modules e dist, que só guardam cópia
+  ---
+  duration_ms: 18.5864
+  type: 'test'
+  ...
+# Subtest: o aplicativo de campo tem casos de teste, e cada arquivo achado tem pelo menos um
+ok 197 - o aplicativo de campo tem casos de teste, e cada arquivo achado tem pelo menos um
+  ---
+  duration_ms: 64.7993
+  type: 'test'
+  ...
+# Subtest: a varredura do aplicativo não sai de apps/campo
+ok 198 - a varredura do aplicativo não sai de apps/campo
+  ---
+  duration_ms: 24.1331
+  type: 'test'
+  ...
+# Subtest: o arquivo de src/app vira a rota que o expo-router publica
+ok 199 - o arquivo de src/app vira a rota que o expo-router publica
+  ---
+  duration_ms: 0.7186
+  type: 'test'
+  ...
+# Subtest: cache velho que não conhece as rotas novas é apagado, e diz quais faltam
+ok 200 - cache velho que não conhece as rotas novas é apagado, e diz quais faltam
+  ---
+  duration_ms: 0.3901
+  type: 'test'
+  ...
+# Subtest: cache em dia fica, para não perder a checagem de rota tipada
+ok 201 - cache em dia fica, para não perder a checagem de rota tipada
+  ---
+  duration_ms: 0.1439
+  type: 'test'
+  ...
+# Subtest: sem cache não há nada a apagar
+ok 202 - sem cache não há nada a apagar
+  ---
+  duration_ms: 0.1006
+  type: 'test'
+  ...
+# Subtest: rota que é prefixo de outra não conta como presente
+ok 203 - rota que é prefixo de outra não conta como presente
+  ---
+  duration_ms: 0.1896
+  type: 'test'
+  ...
+# Subtest: as rotas reais do aplicativo saem do disco, e o cache de 2026-08-27 seria apagado por elas
+ok 204 - as rotas reais do aplicativo saem do disco, e o cache de 2026-08-27 seria apagado por elas
+  ---
+  duration_ms: 1.8792
+  type: 'test'
+  ...
+# Subtest: o test:campo limpa o cache ANTES do typecheck, não depois
+ok 205 - o test:campo limpa o cache ANTES do typecheck, não depois
+  ---
+  duration_ms: 0.4437
+  type: 'test'
+  ...
+# Subtest: existe o comando test:campo, e ele chama este script
+ok 206 - existe o comando test:campo, e ele chama este script
+  ---
+  duration_ms: 0.1421
+  type: 'test'
+  ...
+# Subtest: npm run verificar alcança o aplicativo de campo
+ok 207 - npm run verificar alcança o aplicativo de campo
+  ---
+  duration_ms: 0.1617
+  type: 'test'
+  ...
+# Subtest: o conferidor de números pergunta pelo aplicativo
+ok 208 - o conferidor de números pergunta pelo aplicativo
+  ---
+  duration_ms: 0.4209
+  type: 'test'
+  ...
+# Subtest: apps/api: toda variável lida está no .env.example, e vice-versa
+ok 209 - apps/api: toda variável lida está no .env.example, e vice-versa
+  ---
+  duration_ms: 16.1737
+  type: 'test'
+  ...
+# Subtest: apps/console: toda variável lida está no .env.example, e vice-versa
+ok 210 - apps/console: toda variável lida está no .env.example, e vice-versa
+  ---
+  duration_ms: 1.5178
+  type: 'test'
+  ...
+# Subtest: apps/campo: toda variável lida está no .env.example, e vice-versa
+ok 211 - apps/campo: toda variável lida está no .env.example, e vice-versa
+  ---
+  duration_ms: 1.751
+  type: 'test'
+  ...
+# Subtest: a leitura pega o que deveria pegar, e o portão morde na variável que falta
+ok 212 - a leitura pega o que deveria pegar, e o portão morde na variável que falta
+  ---
+  duration_ms: 0.7526
+  type: 'test'
+  ...
+# Subtest: a leitura enxerga os arquivos de verdade
+ok 213 - a leitura enxerga os arquivos de verdade
+  ---
+  duration_ms: 8.9148
+  type: 'test'
+  ...
+1..213
+# tests 230
+# suites 3
+# pass 226
+# fail 0
+# cancelled 0
+# skipped 4
+# todo 0
+# duration_ms 3562.9908
+saida=0

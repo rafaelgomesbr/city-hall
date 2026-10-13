@@ -1,5 +1,7 @@
 # V2-F00-E03: Classificar os vermelhos por causa e registrar
 
+**Atualização de 2026-10-13:** a validação da E03 reprovou o registro (o `classificacao-dos-vermelhos.md` não marcava nada como fechado e as instabilidades estavam fora dele). A correção 1 está em `correcao-1/RESUMO.md`, e o registro vivo é a seção 8 de `classificacao-dos-vermelhos.md`. O texto abaixo é o da entrega de 2026-10-05.
+
 Situação: FEITA EM DOCUMENTAÇÃO em 2026-10-05; FALTA A DECISÃO DE RAFAEL (ver o fim). Por isso a etapa está EM ANDAMENTO no STATUS e o item "vermelhos classificados" do G00 não foi marcado.
 
 ## O que foi entregue
