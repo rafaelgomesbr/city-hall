@@ -1,0 +1,965 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index fa658bc..1884a28 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -10,7 +10,7 @@ build) valem lá, não aqui.
+ | --- | --- | --- |
+ | `packages/shared` | Vocabulário do domínio, máquina de estados e esquemas Zod, compartilhados entre web, aplicativo de campo e API | Pronto, 168 testes do pacote compartilhado passando |
+ | `db` | Migrações PostgreSQL com RLS forçada, aplicador de migrações e o teste de isolamento CA-06 | Pronto, 327 testes do banco passando |
+-| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 643 testes de fonte do painel mais 70 verificações no navegador no modo local e 251 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
++| `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 649 testes de fonte do painel mais 70 verificações no navegador no modo local e 251 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+ | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1296 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 223 testes de unidade do motor de campo e 17 de integração contra a API |
+ | `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1903 testes do aplicativo passando. O `expo-doctor` fecha 21 de 21 (medido em 2026-10-08, depois de alinhar os pacotes do Expo ao SDK 57) e o `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+@@ -1292,7 +1292,7 @@ começar por subir os dois uma vez.
+ ## Como testar
+ 
+ ```bash
+-npm test                    # 2916 testes em seis pacotes
++npm test                    # 2922 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 327 testes do banco
+ npm run test:api            # 1296 testes da API
+ npm run test --workspace @dc360/campo   # 223 testes do motor de campo
+diff --git a/dc360/apps/web/PENDENCIAS.md b/dc360/apps/web/PENDENCIAS.md
+index 4d5ea7a..2eda4cb 100644
+--- a/dc360/apps/web/PENDENCIAS.md
++++ b/dc360/apps/web/PENDENCIAS.md
+@@ -23,7 +23,7 @@ contra o código nesta data:
+ | Pacote montado inteiro em memória, no servidor e na aba | 8.2 | F07-E06 |
+ | Frase de permissão fala em "alterar" no download do pacote | 8.3 | F03 |
+ | Município suspenso não baixa o pacote | 8.4 | Rafael com o jurídico (CP-29) |
+-| Barra de navegação a 390 px rola na horizontal | 9.2 | F10 |
++| Barra de navegação a 390 px ainda rola na horizontal (mas sem ladrilho cortado desde a V2-F00-E09, correção 1) | 9.2, 11 | F10 |
+ | Janela de milissegundos na renovação | 9.3 | F03-E02 |
+ | e2e contra a API no Firefox fora do CI; nenhum run do CI conferido | 10.1 | F01-E03, validação humana |
+ | CORS por ambiente e do armazenamento externo | 10.2 | F01-E10, F06-E15 |
+@@ -376,3 +376,35 @@ O que não é desta etapa e continua aberto:
+ 2. **CORS por ambiente e por domínio** (F01-E10) e o CORS do armazenamento externo de
+    verdade (F06-E15): esta etapa só exercitou o armazenamento local da própria API.
+ 3. **Validação humana:** Rafael ver o upload da foto pelo painel concluir na seção 13.
++
++## 11. Tela estreita e devolvidas por papel (V2-F00-E09, correção 1)
++
++A validação da V2-F00-E09 reprovou o portão visual a 390 px. Feitos, todos presos
++por `test/layout-estreito.e2e.mjs` (mede retângulos no navegador a 320, 360, 361,
++390 e 768 px; roda dentro de `npm run test:e2e:api`):
++
++- o botão de `ConfirmarAcao` (rodapé de todo `Modal`) quebra linha, cabe na janela
++  e empilha no celular (`.modal__rodape .botao` e `.modal__rodape` em `app.css`);
++  a linha de identificação da janela (`.campo__dica`, com o e-mail inteiro) quebra
++  onde precisar, porque a 320 px o e-mail passava do respiro da borda;
++- a barra do pé da tela virou ladrilhos de ícone e rótulo em número fixo de
++  ladrilhos inteiros (`--barra-visiveis`: 6, 4 e 3), então "Mapa da cidade" nunca
++  fica cortado; a altura da barra e a do aviso passageiro vêm da mesma conta
++  (`--barra-altura`); a tela atual é trazida para dentro da barra na troca de rota;
++- o painel do sino se ancora na tela em até 600 px (saía 48 px pela esquerda a 390);
++- "Não despachada" no painel não quebra mais no meio da palavra a 1280 px;
++- o painel e a lista de ocorrências não pedem `GET /ocorrencias/devolvidas` a quem
++  não tem `despachar_equipe` (decisão por `podeVerDevolucoes`, que lê a matriz de
++  permissões do pacote compartilhado), o que tirou o 403 de console do operador e
++  a frase falsa de que "a consulta não respondeu agora". O servidor continua
++  recusando (esconder pedido não é controle de acesso).
++
++O que continua aberto:
++
++1. **A barra ainda rola na horizontal** a 320 e 390 px (onze destinos, três ou
++   quatro ladrilhos à vista). Já não corta rótulo, mas não há dica visual de que
++   rola além do ladrilho que espia na borda. Menu "mais" ou abas continuam sendo
++   decisão da F10.
++2. **Lista de usuários a 390 px** continua rolando dentro do cartão (item 6.3).
++3. A lista `ESPERADOS` de `fluxo-api.e2e.mjs` ainda aceita 403 em qualquer rota:
++   o teste novo é quem prova a ausência do 403 de devolvidas, por papel.
+diff --git a/dc360/apps/web/src/componentes/Estrutura.tsx b/dc360/apps/web/src/componentes/Estrutura.tsx
+index bc76e84..6062803 100644
+--- a/dc360/apps/web/src/componentes/Estrutura.tsx
++++ b/dc360/apps/web/src/componentes/Estrutura.tsx
+@@ -1,6 +1,6 @@
+-import { useCallback } from "react";
++import { useCallback, useEffect, useRef } from "react";
+ import type { FocusEvent } from "react";
+-import { NavLink, Outlet, useNavigate } from "react-router-dom";
++import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+ import { ROTULO_PAPEL, podeExecutar, type Acao } from "@dc360/shared";
+ import { useSessao, useTema } from "../estado/sessao";
+ import { encerrarSessao } from "../dados/repositorio";
+@@ -103,13 +103,16 @@ const NAVEGACAO: ItemNav[] = [
+ /**
+  * O Tab precisa trazer o item INTEIRO para a tela.
+  *
+- * No celular a lateral vira barra no pé da tela e rola na horizontal (dez
+- * destinos não cabem em 390px). O navegador só rola sozinho quando o item está
++ * No celular a lateral vira barra no pé da tela e rola na horizontal (onze
++ * destinos não cabem em 390px: cabem quatro ladrilhos inteiros, ver
++ * `--barra-visiveis` na folha). O navegador só rola sozinho quando o item está
+  * TOTALMENTE fora: parado pela metade, ele entende que já está visível e deixa
+  * o rótulo cortado na borda, com o foco em cima de um texto que não dá para
+- * ler. Medido a 390px: "Mapa da cidade" vai de 255px a 416px numa barra de
+- * 390px, e o Tab não movia a barra um pixel. O mesmo valia para "Equipes",
+- * "Usuários" e "Tema escuro".
++ * ler. Foi medido com a barra antiga, de rótulo em uma linha: "Mapa da cidade"
++ * ia de 255px a 416px numa barra de 390px, e o Tab não movia a barra um pixel.
++ * O mesmo valia para "Equipes", "Usuários" e "Tema escuro". Com os ladrilhos
++ * o primeiro Tab já não corta nada, mas o foco num ladrilho que está na parte
++ * que rola continua precisando trazê-lo para a tela.
+  *
+  * `inline: "nearest"` rola o mínimo necessário na horizontal, respeitando o
+  * `scroll-padding-inline` da barra; `block: "nearest"` impede que isto mexa na
+@@ -124,6 +127,35 @@ export function Estrutura() {
+   const { sessao, sair } = useSessao();
+   const [tema, alternarTema] = useTema();
+   const navegar = useNavigate();
++  const { pathname } = useLocation();
++  const barraRef = useRef<HTMLElement>(null);
++
++  /*
++    A barra do celular mostra poucos ladrilhos por vez e o resto rola. Quem
++    abre "Usuários" por um link (o sino, a busca, o endereço digitado) cairia
++    numa barra parada no começo, sem nenhum ladrilho marcado à vista, e a
++    pessoa perderia a noção de onde está. Trazer o ladrilho da tela atual para
++    dentro é o mínimo para a marca de "você está aqui" continuar visível.
++    Rola a barra pelo `scrollLeft`, e NÃO por `scrollIntoView`: o Chromium
++    toma o `scrollIntoView` como o ponto de partida do Tab, e o primeiro Tab da
++    página passava a cair no item seguinte ao da tela atual em vez de cair em
++    "Pular para o conteúdo" (o e2e do modo local pegou). Já à vista (o caso de
++    "Mapa da cidade", sempre entre os primeiros), ou na largura de mesa, em que
++    a lateral não rola, não faz nada.
++  */
++  useEffect(() => {
++    const barra = barraRef.current;
++    const atual = barra?.querySelector<HTMLElement>('.lateral__item[aria-current="page"]');
++    if (!barra || !atual || barra.scrollWidth <= barra.clientWidth) return;
++    const respiro = parseFloat(getComputedStyle(barra).paddingLeft) || 0;
++    const caixaDaBarra = barra.getBoundingClientRect();
++    const caixaDoItem = atual.getBoundingClientRect();
++    if (caixaDoItem.left < caixaDaBarra.left + respiro) {
++      barra.scrollLeft += caixaDoItem.left - caixaDaBarra.left - respiro;
++    } else if (caixaDoItem.right > caixaDaBarra.right - respiro) {
++      barra.scrollLeft += caixaDoItem.right - caixaDaBarra.right + respiro;
++    }
++  }, [pathname]);
+ 
+   // Revoga no servidor antes de esquecer localmente: sem isso, o token de
+   // renovação continuaria valendo por dias. É o mesmo caminho para o botão da
+@@ -154,7 +186,7 @@ export function Estrutura() {
+       */}
+       <a className="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
+ 
+-      <nav className="lateral" aria-label="Navegação principal">
++      <nav className="lateral" aria-label="Navegação principal" ref={barraRef}>
+         <div className="lateral__marca">
+           <img src="/icone.svg" alt="" width={40} height={40} />
+           <span>
+@@ -170,7 +202,7 @@ export function Estrutura() {
+               <NavLink key={item.para} to={item.para} className="lateral__item"
+                        onFocus={trazerParaATela}>
+                 {item.icone}
+-                {item.rotulo}
++                <span className="lateral__texto">{item.rotulo}</span>
+               </NavLink>
+             ))}
+           </div>
+@@ -181,13 +213,13 @@ export function Estrutura() {
+                   onFocus={trazerParaATela}
+                   style={{ border: "none", background: "transparent", cursor: "pointer", width: "100%" }}>
+             {tema === "claro" ? <IconeLua /> : <IconeSol />}
+-            {tema === "claro" ? "Tema escuro" : "Tema claro"}
++            <span className="lateral__texto">{tema === "claro" ? "Tema escuro" : "Tema claro"}</span>
+           </button>
+           <button type="button" className="lateral__item" onClick={encerrarESair}
+                   onFocus={trazerParaATela}
+                   style={{ border: "none", background: "transparent", cursor: "pointer", width: "100%" }}>
+             <IconeSair />
+-            Sair
++            <span className="lateral__texto">Sair</span>
+           </button>
+         </div>
+       </nav>
+diff --git a/dc360/apps/web/src/devolucao.ts b/dc360/apps/web/src/devolucao.ts
+index e9bfe7b..6f7b44c 100644
+--- a/dc360/apps/web/src/devolucao.ts
++++ b/dc360/apps/web/src/devolucao.ts
+@@ -31,7 +31,9 @@
+  * reescritos aqui: o agente lê uma frase no aparelho e a coordenação precisa
+  * ler a mesma, senão a conversa por telefone é sobre dois textos diferentes.
+  */
+-import { ROTULO_MOTIVO_DE_DEVOLUCAO, type MotivoDeDevolucao } from "@dc360/shared";
++import {
++  ROTULO_MOTIVO_DE_DEVOLUCAO, podeExecutar, type Acao, type MotivoDeDevolucao, type Papel,
++} from "@dc360/shared";
+ /*
+   O tipo da linha mora em `dados/tipos.ts`, com os outros tipos da porta, e não
+   aqui: quem o devolve é o repositório, e as duas implementações dele precisam
+@@ -348,3 +350,31 @@ export function avisoDoPainel(quantas: number): string {
+     ? "1 ocorrência voltou do campo sem vistoria e espera uma decisão."
+     : `${quantas} ocorrências voltaram do campo sem vistoria e esperam decisão.`;
+ }
++
++/**
++ * A permissão que a rota `GET /ocorrencias/devolvidas` exige, escrita uma vez.
++ *
++ * É a mesma do despacho, porque a decisão que a lista pede é despachar de novo
++ * (ver o comentário da rota, em `apps/api/src/rotas/ocorrencias.ts`). Fica aqui
++ * como constante para o painel e a lista decidirem pela MESMA coisa que o
++ * servidor, e não por um papel escrito na tela: se a matriz de permissões do
++ * pacote compartilhado mudar, a tela acompanha sozinha.
++ */
++export const ACAO_PARA_VER_DEVOLUCOES: Acao = "despachar_equipe";
++
++/**
++ * Este papel pode ver as devolvidas do município?
++ *
++ * Existe porque o painel pedia a lista a TODO papel e engolia a recusa: o
++ * operador recebia 403 em todo carregamento (um erro vermelho de console por
++ * visita, achado da validação da V2-F00-E09) e, pior, a tela lia o `null` da
++ * recusa como "a consulta falhou" e mostrava a frase de que a marca pode estar
++ * faltando. Quem não pode ver a lista não perde marca nenhuma: ela nunca foi
++ * dele. Esconder o pedido na tela não é controle de acesso (o servidor continua
++ * recusando, e o teste de integração confere o 403); é só o painel parar de
++ * pedir o que o papel não pode receber.
++ */
++export function podeVerDevolucoes(papel: Papel): boolean {
++  return podeExecutar(papel, ACAO_PARA_VER_DEVOLUCOES);
++}
++
+diff --git a/dc360/apps/web/src/estilos/app.css b/dc360/apps/web/src/estilos/app.css
+index 4bc1da0..5f8c8bd 100644
+--- a/dc360/apps/web/src/estilos/app.css
++++ b/dc360/apps/web/src/estilos/app.css
+@@ -516,6 +516,16 @@ a:hover { color: var(--ds-accent-hover); }
+    largura mínima da coluna: é a linha secundária, e quebrar custa menos que
+    empurrar as três últimas colunas para fora do cartão. */
+ .tabela__secundario { color: var(--ds-text-muted); font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); overflow-wrap: anywhere; }
++/*
++  Frase curta de célula ("Não despachada"): não quebra no meio da palavra.
++
++  `overflow-wrap: anywhere`, acima, existe para endereço comprido, e ele ENCOLHE
++  a largura mínima da coluna a uma letra: com a tabela apertada, a coluna
++  "Equipe" do painel ficava com a menor largura que a tabela aceitasse e a frase
++  saía "Não despach / ada". Quebrar entre palavras ("Não" / "despachada") é
++  legítimo; no meio da palavra, não.
++*/
++.tabela__secundario--frase { overflow-wrap: normal; word-break: normal; }
+ 
+ .lista-papeis { margin: 0; font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
+ .lista-papeis__descricao { color: var(--ds-text-muted); margin: 0 0 var(--ds-sp-3); }
+@@ -526,6 +536,14 @@ a:hover { color: var(--ds-accent-hover); }
+ .campo { display: flex; flex-direction: column; gap: var(--ds-sp-2); margin-bottom: var(--ds-sp-4); }
+ .campo > label { font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); }
+ .campo__dica { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
++/*
++  A linha de identificação da janela de confirmação ("matrícula, e-mail, papel")
++  traz um e-mail inteiro, que não tem onde quebrar: a 320 px ele passava da
++  área útil da janela e entrava no respiro da borda (o teste de geometria
++  mediu 247 px de e-mail numa caixa de 222). Quebrar onde precisar é melhor
++  que sair da janela.
++*/
++.modal__painel .campo__dica { overflow-wrap: anywhere; }
+ /* A frase que abre o formulário. Como é um <p>, sem isto o navegador aplica a
+    margem própria dele e a distância até o primeiro rótulo fica maior que a
+    distância entre os campos, sugerindo que a frase é de outro bloco. */
+@@ -671,6 +689,32 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
+ 
+ .botao--icone { min-width: var(--ds-touch); padding: 0; }
+ 
++/*
++  Os botões do rodapé de toda janela (`Modal`, e por isso toda `ConfirmarAcao`).
++
++  `.botao` não quebra linha (`white-space: nowrap`), certo para "Salvar" e
++  "Ver todas". Mas o botão de confirmação REPETE o objeto por regra ("Encerrar
++  sessões de Marcos Vinicius Teles"), e nome de pessoa é comprido: a 390 px o
++  rótulo era mais largo que a janela, o painel ganhava rolagem horizontal e o
++  botão perdia a borda (reprovação da V2-F00-E09). Aqui o rótulo quebra em
++  linhas e o botão cresce em altura, sem passar da janela.
++
++  Até 600 px os botões empilham, cada um com a largura toda: dois botões lado a
++  lado com rótulo de duas linhas viram dois blocos estreitos e difíceis de
++  acertar com o dedo. A ordem do HTML continua (confirmar, depois cancelar),
++  que é a do leitor de tela e a do Tab.
++*/
++.modal__rodape .botao {
++  max-width: 100%; height: auto;
++  padding-top: var(--ds-sp-2); padding-bottom: var(--ds-sp-2);
++  white-space: normal; overflow-wrap: break-word; text-align: center;
++  line-height: var(--ds-lh-body-sm);
++}
++@media (max-width: 600px) {
++  .modal__rodape { flex-direction: column; align-items: stretch; }
++  .modal__rodape .botao { width: 100%; }
++}
++
+ /* ---------- Filtros ---------- */
+ 
+ .filtros {
+@@ -907,27 +951,62 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
+ 
+ @media (max-width: 900px) {
+   .aplicacao { grid-template-columns: minmax(0, 1fr); grid-template-areas: "topo" "conteudo" "lateral"; }
+-  .lateral { flex-direction: row; overflow-x: auto; gap: var(--ds-sp-2); align-items: center;
++  /*
++    A barra do pé da tela: ladrilhos de ícone em cima e rótulo embaixo, em
++    número FIXO de ladrilhos visíveis, e o resto rola.
++
++    Era uma fila de itens com o rótulo em uma linha só (`white-space: nowrap`),
++    e dez destinos não cabem em 390 px: o terceiro item, "Mapa da cidade",
++    aparecia cortado na borda da tela, com a metade do rótulo faltando (a
++    validação da V2-F00-E09 viu e reprovou, e mediu 255 a 416 px numa tela de
++    390). Cortar um rótulo no meio é o pior dos dois mundos: a pessoa lê metade
++    de uma palavra e ainda não sabe que a barra rola.
++
++    Agora a largura do ladrilho é a conta de quantos cabem INTEIROS
++    (`--barra-visiveis`), o rótulo quebra em até duas linhas dentro dele, e o
++    ladrilho seguinte só espia na borda, sem texto visível. "Mapa da cidade" é
++    sempre um dos primeiros três em qualquer papel, então nunca fica para a
++    parte que rola.
++
++    Os grupos e o rodapé viram `display: contents` para os ladrilhos serem
++    todos filhos diretos da barra: a largura em porcentagem é a da barra, e não
++    a de cada grupo, que é o que fazia a conta anterior não fechar.
++  */
++  .lateral { --barra-visiveis: 6;
++             flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: var(--ds-sp-2); align-items: center;
++             padding: var(--ds-sp-2) var(--ds-sp-4); scrollbar-width: thin;
+              border-right: none; border-top: 1px solid var(--ds-ink-800);
+              position: sticky; bottom: 0; z-index: var(--ds-z-sticky); }
+   .lateral__marca, .lateral__rotulo { display: none; }
+-  .lateral__grupo { flex-direction: row; }
+   /*
+     "Tema" e "Sair" continuam na barra, no fim dela. Antes o rodapé sumia
+     junto com a marca, e no celular não havia como sair nem trocar o tema fora
+     da caixa de busca, que é o único lugar onde ninguém procura isso.
+   */
+-  .lateral__rodape { flex-direction: row; margin-top: 0; margin-left: auto; }
+-  .lateral__item { white-space: nowrap; }
++  .lateral__grupo, .lateral__rodape { display: contents; }
++  .lateral__item {
++    flex: 0 0 calc((100% - (var(--barra-visiveis) - 1) * var(--ds-sp-2)) / var(--barra-visiveis));
++    min-width: 0; height: var(--barra-item-altura);
++    flex-direction: column; justify-content: center; gap: var(--ds-sp-1);
++    padding: var(--ds-sp-1);
++    text-align: center; white-space: normal;
++    font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
++  }
++  /*
++    Os botões "Tema" e "Sair" nascem de `<button>`, que não herda a família da
++    fonte: sem isto o rótulo deles sairia na fonte do sistema, diferente do
++    resto da barra.
++  */
++  button.lateral__item { font-family: inherit; font-weight: var(--ds-fw-medium); }
++  .lateral__texto { display: block; max-width: 100%; }
+   /*
+-    A barra rola na horizontal de propósito: dez destinos não cabem em 390px, e
+-    o rótulo inteiro ("Mapa da cidade", "Prestação de contas") vale mais do que
+-    um ícone que a pessoa precisa adivinhar.
+-
+-    O respiro nas duas pontas é para o item não encostar na borda quando a barra
+-    rola até ele. Quem manda rolar é `Estrutura.tsx`, no foco do item: sozinho,
+-    o navegador não rola um item que está pela metade, e o Tab parava com o
+-    rótulo cortado. O comentário de lá tem a medida.
++    A barra rola na horizontal de propósito: onze destinos não cabem em 320px, e
++    o rótulo inteiro vale mais do que um ícone que a pessoa precisa adivinhar.
++
++    O respiro nas duas pontas é para o ladrilho não encostar na borda quando a
++    barra rola até ele. Quem manda rolar é `Estrutura.tsx`, no foco do item e na
++    troca de tela: sozinho, o navegador não rola um item que está pela metade, e
++    o Tab parava com o rótulo cortado. O comentário de lá tem a medida.
+   */
+   .lateral { scroll-padding-inline: var(--ds-sp-4); }
+   .conteudo { padding: var(--ds-sp-4); }
+@@ -937,11 +1016,29 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
+     sobrepostas e o botão Fechar em cima de "Mapa da cidade".
+ 
+     A altura não é um número escolhido aqui: é a mesma conta que desenha a
+-    barra, `--ds-touch` (a área de toque mínima, que dá a altura do item) mais o
+-    respiro de cima e de baixo da própria `.lateral`. Mudar o respiro move os
+-    dois juntos.
++    barra, `--barra-altura` (o ladrilho mais o respiro de cima e de baixo da
++    própria `.lateral`). Mudar o ladrilho ou o respiro move os dois juntos.
++  */
++  .toast { bottom: calc(var(--ds-sp-4) + var(--barra-altura)); }
++  /*
++    As duas medidas moram no `:root` daqui para baixo, e não em `.lateral`,
++    porque o aviso não é filho da barra e precisa enxergá-las. Ladrilho: o
++    respiro, o ícone de 18 px, o respiro entre os dois e as duas linhas do
++    rótulo.
+   */
+-  .toast { bottom: calc(var(--ds-sp-4) + var(--ds-touch) + var(--ds-sp-5) * 2); }
++  :root { --barra-item-altura: calc(var(--ds-sp-1) * 2 + 18px + var(--ds-sp-1) + var(--ds-lh-caption) * 2);
++          --barra-altura: calc(var(--barra-item-altura) + var(--ds-sp-2) * 2); }
++}
++@media (max-width: 600px) {
++  .lateral { --barra-visiveis: 4; }
++}
++/*
++  Celular estreito (até 360 px): três ladrilhos, porque "Ocorrências" e
++  "Organização" em quatro ladrilhos de 66 px não cabem na largura do ladrilho.
++  A 361 px já cabem (o teste de geometria mede 360 e 361 por isso).
++*/
++@media (max-width: 360px) {
++  .lateral { --barra-visiveis: 3; }
+ }
+ 
+ /*
+@@ -1165,6 +1262,21 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
+   padding: var(--ds-sp-4);
+ }
+ 
++/*
++  Celular: o painel do sino se ancora na TELA, e não no botão.
++
++  Ancorado no botão (`right: 0`), o painel de largura quase total saía pela
++  esquerda, porque o sino está no meio do topo, ao lado do avatar: a 390 px os
++  primeiros 48 px do painel ficavam fora da tela e o título "Avisos" perdia o
++  começo. Aqui o `.sino` deixa de ser a referência e o painel passa a medir a
++  partir do `.topo` (que é posicionado, ver acima), com o mesmo respiro lateral
++  do resto da página.
++*/
++@media (max-width: 600px) {
++  .sino { position: static; }
++  .sino__painel { left: var(--ds-sp-4); right: var(--ds-sp-4); width: auto; top: calc(100% + var(--ds-sp-2)); }
++}
++
+ .sino__cabecalho {
+   display: flex; align-items: center; gap: var(--ds-sp-3);
+   margin-bottom: var(--ds-sp-3);
+diff --git a/dc360/apps/web/src/paginas/Ocorrencias.tsx b/dc360/apps/web/src/paginas/Ocorrencias.tsx
+index fc0c28f..d16de12 100644
+--- a/dc360/apps/web/src/paginas/Ocorrencias.tsx
++++ b/dc360/apps/web/src/paginas/Ocorrencias.tsx
+@@ -8,7 +8,7 @@ import {
+   devolucoesPendentes, listarPaginaDeOcorrencias,
+   type DevolucaoPendente, type PaginaDeOcorrencias,
+ } from "../dados/repositorio";
+-import { marcaDaLista, porOcorrencia } from "../devolucao";
++import { marcaDaLista, podeVerDevolucoes, porOcorrencia } from "../devolucao";
+ import { useSessaoObrigatoria } from "../estado/sessao";
+ import {
+   Aviso, Carregando, Prazo, PrazoVenceEm, SeloSeveridade, SeloStatus, TipoDaOcorrencia,
+@@ -109,6 +109,11 @@ export function Ocorrencias() {
+   const [marcaFalhou, setMarcaFalhou] = useState(false);
+   useEffect(() => {
+     let vivo = true;
++    /* Papel sem `despachar_equipe` não pede a lista: ver `podeVerDevolucoes`. */
++    if (!podeVerDevolucoes(sessao.papel)) {
++      setDevolvidas([]); setMarcaFalhou(false);
++      return () => { vivo = false; };
++    }
+     devolucoesPendentes(sessao)
+       .then((d) => { if (!vivo) return; setDevolvidas(d); setMarcaFalhou(false); })
+       .catch(() => { if (!vivo) return; setDevolvidas(null); setMarcaFalhou(true); });
+diff --git a/dc360/apps/web/src/paginas/Painel.tsx b/dc360/apps/web/src/paginas/Painel.tsx
+index 1cf2489..ca73310 100644
+--- a/dc360/apps/web/src/paginas/Painel.tsx
++++ b/dc360/apps/web/src/paginas/Painel.tsx
+@@ -13,7 +13,7 @@ import {
+   type ProvidenciaPendente,
+   type DevolucaoPendente,
+ } from "../dados/repositorio";
+-import { avisoDoPainel, marcaDaLista, porOcorrencia } from "../devolucao";
++import { avisoDoPainel, marcaDaLista, podeVerDevolucoes, porOcorrencia } from "../devolucao";
+ import { useSessaoObrigatoria } from "../estado/sessao";
+ import {
+   Aviso, Carregando, Cartao, Prazo, SeloSeveridade, SeloStatus, TipoDaOcorrencia, Vazio,
+@@ -125,7 +125,15 @@ export function Painel() {
+           confusão custa uma equipe mandada para um endereço que já derrubou
+           uma viagem.
+         */
+-        devolucoesPendentes(sessao).catch(() => null),
++        /*
++          Quem não pode ver as devolvidas não as pede (`podeVerDevolucoes`) e
++          recebe lista vazia, sem a frase de falha: para esse papel a marca não
++          existe, e a recusa do servidor deixaria de ser erro de console para
++          virar aviso falso na tela.
++        */
++        podeVerDevolucoes(sessao.papel)
++          ? devolucoesPendentes(sessao).catch(() => null)
++          : Promise.resolve<DevolucaoPendente[]>([]),
+       ])
+         .then(([ind, fila, providencias, interditados, devolvidas]) => {
+           if (!vivo) return;
+@@ -361,7 +369,7 @@ export function Painel() {
+                         </div>
+                       )}
+                     </td>
+-                    <td>{o.equipe_nome ?? <span className="tabela__secundario">Não despachada</span>}</td>
++                    <td>{o.equipe_nome ?? <span className="tabela__secundario tabela__secundario--frase">Não despachada</span>}</td>
+                     <td>
+                       <Prazo prazoEm={o.prazo_em} criadoEm={o.criado_em}
+                              encerrada={o.status === "encerrada"} />
+diff --git a/dc360/apps/web/test/acessibilidade.test.ts b/dc360/apps/web/test/acessibilidade.test.ts
+index 14cee96..73c65b5 100644
+--- a/dc360/apps/web/test/acessibilidade.test.ts
++++ b/dc360/apps/web/test/acessibilidade.test.ts
+@@ -500,10 +500,56 @@ describe("Teclado e leitor de tela", () => {
+       .not.toMatch(/position:\s*"fixed"/);
+     const css = readFileSync(join(RAIZ, "estilos", "app.css"), "utf8");
+     expect(css).toMatch(/\.toast\s*\{[^}]*position:\s*fixed/);
+-    // A altura é a mesma conta que desenha a barra, e não um número escolhido.
++    // A altura é a mesma conta que desenha a barra, e não um número escolhido:
++    // `--barra-altura` é o ladrilho mais o respiro de cima e de baixo, e a
++    // barra usa as MESMAS duas medidas (`height` do item e `padding` da barra).
+     expect(css).toMatch(
+-      /\.toast\s*\{\s*bottom:\s*calc\(var\(--ds-sp-4\)\s*\+\s*var\(--ds-touch\)\s*\+\s*var\(--ds-sp-5\)\s*\*\s*2\)/,
++      /\.toast\s*\{\s*bottom:\s*calc\(var\(--ds-sp-4\)\s*\+\s*var\(--barra-altura\)\)/,
+     );
++    expect(css).toMatch(/--barra-altura:\s*calc\(var\(--barra-item-altura\)\s*\+\s*var\(--ds-sp-2\)\s*\*\s*2\)/);
++    expect(css).toMatch(/\.lateral__item\s*\{[^}]*height:\s*var\(--barra-item-altura\)/);
++    expect(css).toMatch(/\.lateral\s*\{[^}]*padding:\s*var\(--ds-sp-2\)\s+var\(--ds-sp-4\)/);
++  });
++
++  it("a barra do rodapé tem ladrilhos que cabem inteiros e o rótulo quebra em vez de cortar", () => {
++    /*
++      A reprovação da V2-F00-E09: "Mapa da cidade" aparecia cortado na borda da
++      barra a 390 px. A prova de geometria é `test/layout-estreito.e2e.mjs`
++      (mede os retângulos no navegador, a 320, 390 e 768 px); este portão
++      guarda a causa na folha, que é o que dá para ler sem navegador: o rótulo
++      NÃO pode voltar a ser `nowrap` na barra, e a largura do ladrilho é a
++      conta de quantos cabem inteiros.
++    */
++    const css = readFileSync(join(RAIZ, "estilos", "app.css"), "utf8");
++    const bloco = css.slice(css.indexOf("@media (max-width: 900px)"));
++    const regraDoItem = bloco.match(/\.lateral__item\s*\{[^}]*\}/)?.[0] ?? "";
++    expect(regraDoItem).toMatch(/white-space:\s*normal/);
++    expect(regraDoItem).not.toMatch(/nowrap/);
++    expect(regraDoItem).toMatch(/flex:\s*0 0 calc\(\(100% - \(var\(--barra-visiveis\) - 1\)/);
++    expect(css).toMatch(/\.lateral__grupo,\s*\.lateral__rodape\s*\{\s*display:\s*contents/);
++    // Em tela de celular o número de ladrilhos inteiros diminui, nunca cresce.
++    const visiveis = [...css.matchAll(/--barra-visiveis:\s*(\d+)/g)].map((m) => Number(m[1]));
++    expect(visiveis).toEqual([6, 4, 3]);
++  });
++
++  it("o rodapé de toda janela quebra o rótulo e empilha os botões no celular", () => {
++    /*
++      O botão de `ConfirmarAcao` repete o objeto ("Encerrar sessões de Marcos
++      Vinicius Teles") e `.botao` é `nowrap`: a 390 px o rótulo passava da
++      janela e o botão perdia a borda. A conta está em
++      `test/layout-estreito.e2e.mjs`; aqui fica a causa.
++    */
++    const css = readFileSync(join(RAIZ, "estilos", "app.css"), "utf8");
++    const regra = css.match(/\.modal__rodape \.botao\s*\{[^}]*\}/)?.[0] ?? "";
++    expect(regra).toMatch(/white-space:\s*normal/);
++    expect(regra).toMatch(/max-width:\s*100%/);
++    expect(css).toMatch(/\.modal__rodape\s*\{\s*flex-direction:\s*column/);
++  });
++
++  it("o painel do sino se ancora na tela, e não no botão, no celular", () => {
++    const css = readFileSync(join(RAIZ, "estilos", "app.css"), "utf8");
++    expect(css).toMatch(/\.sino\s*\{\s*position:\s*static;\s*\}/);
++    expect(css).toMatch(/\.sino__painel\s*\{[^}]*left:\s*var\(--ds-sp-4\);\s*right:\s*var\(--ds-sp-4\)/);
+   });
+ 
+   it("existe um atalho para pular direto ao conteúdo", () => {
+diff --git a/dc360/apps/web/test/devolucao.test.ts b/dc360/apps/web/test/devolucao.test.ts
+index 39475fe..02ac261 100644
+--- a/dc360/apps/web/test/devolucao.test.ts
++++ b/dc360/apps/web/test/devolucao.test.ts
+@@ -3,12 +3,12 @@ import { dirname, join } from "node:path";
+ import { fileURLToPath } from "node:url";
+ import { beforeAll, describe, expect, it } from "vitest";
+ import {
+-  MOTIVOS_DE_DEVOLUCAO, ROTULO_MOTIVO_DE_DEVOLUCAO, rotuloEventoTrilha,
++  MOTIVOS_DE_DEVOLUCAO, PAPEIS, ROTULO_MOTIVO_DE_DEVOLUCAO, podeExecutar, rotuloEventoTrilha,
+ } from "@dc360/shared";
+ import {
+   ANCORA_DA_COORDENADA, ANCORA_DO_DESPACHO, TIPO_EVENTO_DEVOLUCAO,
+-  avisoDoPainel, devolucaoEmAberto, lerDevolucao, marcaDaLista,
+-  porOcorrencia, proximoPasso, rotuloDoMotivo,
++  ACAO_PARA_VER_DEVOLUCOES, avisoDoPainel, devolucaoEmAberto, lerDevolucao, marcaDaLista,
++  podeVerDevolucoes, porOcorrencia, proximoPasso, rotuloDoMotivo,
+   type DevolucaoDaOcorrencia, type EventoDaTrilha,
+ } from "../src/devolucao";
+ import * as local from "../src/dados/local";
+@@ -659,3 +659,39 @@ describe("A devolução na demonstração, contra o banco", () => {
+     expect(Number.isNaN(new Date(faixa!.quando).getTime())).toBe(false);
+   });
+ });
++
++describe("O painel só pede as devolvidas a quem pode ver", () => {
++  /*
++    Achado da validação da V2-F00-E09: o painel pedia `GET /ocorrencias/devolvidas`
++    a todo papel, a rota exige `despachar_equipe`, e o operador levava 403 em
++    todo carregamento, além da frase falsa de que a consulta tinha falhado. A
++    decisão sai da matriz de permissões do pacote compartilhado, e não de um
++    papel escrito na tela: estes casos amarram as duas pontas.
++  */
++  it("a decisão é a da matriz de permissões, para todos os papéis", () => {
++    for (const papel of PAPEIS) {
++      expect(podeVerDevolucoes(papel), papel).toBe(podeExecutar(papel, "despachar_equipe"));
++    }
++    expect(ACAO_PARA_VER_DEVOLUCOES).toBe("despachar_equipe");
++  });
++
++  it("o operador e o agente de campo não pedem; coordenação e administração pedem", () => {
++    expect(podeVerDevolucoes("operador")).toBe(false);
++    expect(podeVerDevolucoes("agente_campo")).toBe(false);
++    expect(podeVerDevolucoes("coordenador")).toBe(true);
++    expect(podeVerDevolucoes("administrador")).toBe(true);
++  });
++
++  it("o painel e a lista só chamam a consulta depois de perguntar", () => {
++    for (const arquivo of ["Painel.tsx", "Ocorrencias.tsx"]) {
++      const tela = fonte("paginas", arquivo);
++      const chamada = tela.indexOf("devolucoesPendentes(sessao)");
++      expect(chamada, `${arquivo} deixou de chamar a consulta`).toBeGreaterThan(0);
++      // A pergunta vem logo antes do pedido, e não em outro lugar do arquivo.
++      expect(tela.slice(Math.max(0, chamada - 200), chamada),
++        `${arquivo} não consulta mais a permissão antes de pedir as devolvidas`)
++        .toContain("podeVerDevolucoes(sessao.papel)");
++    }
++  });
++});
++
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index 101c386..bba64fc 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -37,7 +37,7 @@ D-U-N-S e a revisão não forem gargalo.
+ - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
+   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
+   compartilhados.
+-- **4819 testes somando o aplicativo.** Durante a estabilização da V2 (fase
++- **4825 testes somando o aplicativo.** Durante a estabilização da V2 (fase
+   F00) nem todos estão verdes e o `npm audit` não está em zero: cada vermelho
+   conhecido, e a etapa que o fecha, está em `docs/roadmap-v2/STATUS.md`, na
+   raiz do repositório.
+@@ -309,7 +309,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 4819 testes com o aplicativo, npm audit, números
++npm run verificar          # typecheck, 4825 testes com o aplicativo, npm audit, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/dc360/scripts/e2e-api.mjs b/dc360/scripts/e2e-api.mjs
+index 9dedf89..7541b56 100644
+--- a/dc360/scripts/e2e-api.mjs
++++ b/dc360/scripts/e2e-api.mjs
+@@ -198,6 +198,18 @@ await rodar("node", ["test/fluxo-api.e2e.mjs"], {
+   },
+ });
+ 
++/*
++  A geometria da tela estreita (V2-F00-E09, correção 1) roda DEPOIS da suíte
++  principal, na mesma API e no mesmo painel. Ela cria a própria pessoa de nome
++  longo com e-mail único, então a instância já usada não atrapalha, e fica em
++  arquivo à parte para poder rodar sozinha contra um painel de pé.
++*/
++console.log(`\n== Geometria da tela estreita, em ${MOTOR} ==`);
++await rodar("node", ["test/layout-estreito.e2e.mjs"], {
++  cwd: join(RAIZ, "apps/web"),
++  env: { BASE_WEB, BASE_API, MOTOR },
++});
++
+ console.log("\nTUDO CERTO: o caminho de produção passou de ponta a ponta.");
+ /*
+   Sai explicitamente, e é o `exit` que derruba a API e o painel.
+diff --git a/dc360/apps/web/test/layout-estreito.e2e.mjs b/dc360/apps/web/test/layout-estreito.e2e.mjs
+new file mode 100644
+index 0000000..22dffef
+--- /dev/null
++++ b/dc360/apps/web/test/layout-estreito.e2e.mjs
+@@ -0,0 +1,304 @@
++/**
++ * Tela estreita: o que a validação da V2-F00-E09 reprovou a 390 px.
++ *
++ * Três defeitos, todos de "nada fora do lugar" (portão visual, seção 0 de
++ * `docs/roadmap-v2/19-definicao-de-pronto.md`), e nenhum aparecia nos testes
++ * porque nenhum deles media geometria:
++ *
++ * 1. o botão da janela de confirmação com o nome da pessoa dentro ("Encerrar
++ *    sessões de Marcos Vinicius Teles") era mais largo que a janela e perdia a
++ *    borda. O rótulo precisa ser longo, porque repetir o objeto no botão é a
++ *    regra de `ConfirmarAcao`, e nome de pessoa é comprido;
++ * 2. "Mapa da cidade" aparecia cortado na barra de navegação do pé da tela;
++ * 3. o painel do operador pedia `GET /ocorrencias/devolvidas`, que exige
++ *    `despachar_equipe`, e recebia 403 em todo carregamento, além de mostrar a
++ *    faixa "a consulta não respondeu" para quem nunca poderia vê-la.
++ *
++ * Mede com o navegador de verdade (retângulos, não classe CSS), em 320, 390,
++ * 768 e 1280 px. Roda contra a API e o painel já de pé: `scripts/e2e-api.mjs`
++ * chama este arquivo depois de `fluxo-api.e2e.mjs`, e dá para rodá-lo sozinho:
++ *
++ *   BASE_WEB=http://localhost:4691 BASE_API=http://127.0.0.1:3691 \
++ *     node test/layout-estreito.e2e.mjs
++ *
++ * Cria a própria pessoa de nome longo pela API, com e-mail único, então pode
++ * rodar em instância já usada.
++ */
++import * as playwright from "playwright";
++
++const MOTOR = process.env.MOTOR ?? "chromium";
++const lancador = playwright[MOTOR];
++if (!lancador) { console.error(`motor desconhecido: ${MOTOR}`); process.exit(2); }
++
++const BASE = process.env.BASE_WEB ?? "http://localhost:4173";
++const API = process.env.BASE_API ?? "http://127.0.0.1:3333";
++const SENHA = "defesa-civil-2026";
++const LARGURAS = [320, 390, 768, 1280];
++const erros = [];
++let passou = 0, falhou = 0;
++
++function ok(nome, cond, extra = "") {
++  if (cond) { passou++; console.log(`  OK   ${nome}`); }
++  else { falhou++; console.log(`  FALHA ${nome} ${extra}`); }
++}
++
++async function viaApi(caminho, { metodo = "GET", token, corpo } = {}) {
++  const r = await fetch(`${API}${caminho}`, {
++    method: metodo,
++    headers: {
++      ...(corpo ? { "content-type": "application/json" } : {}),
++      ...(token ? { authorization: `Bearer ${token}` } : {}),
++    },
++    body: corpo ? JSON.stringify(corpo) : undefined,
++  });
++  return { status: r.status, json: await r.json().catch(() => ({})) };
++}
++
++const navegador = await lancador.launch();
++const contexto = await navegador.newContext({ locale: "pt-BR" });
++const page = await contexto.newPage();
++page.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
++page.on("console", (m) => {
++  if (m.type() !== "error") return;
++  // 401/403/404 de propósito: nada aqui os provoca, então qualquer um é falha.
++  if (/downloadable font: download failed .*status=2152398850 /.test(m.text())) return;
++  erros.push(`console: ${m.text()}`);
++});
++
++async function entrar(email, senha = SENHA, pagina = page) {
++  const page = pagina;
++  await page.goto(`${BASE}/entrar`, { waitUntil: "networkidle" });
++  await page.waitForSelector("#entrada-email", { timeout: 30_000 });
++  await page.locator("#entrada-email").fill(email);
++  await page.locator("#entrada-senha").fill(senha);
++  await page.getByRole("button", { name: "Entrar", exact: true }).click();
++  await page.waitForSelector(".cabecalho-pagina h1", { timeout: 30_000 });
++}
++
++/**
++ * Geometria da janela de confirmação aberta, medida no navegador.
++ *
++ * "Cabe" quer dizer três coisas ao mesmo tempo, e as três já falharam: o botão
++ * está dentro da área útil do painel (sem encostar na borda de fora), o texto
++ * dele cabe no próprio botão (sem `overflow`), e o painel não ganhou rolagem
++ * horizontal (que seria o estouro escondido atrás de `overflow-y: auto`).
++ */
++async function medirJanela() {
++  return page.evaluate(() => {
++    const painel = document.querySelector(".modal__painel");
++    if (!painel) return null;
++    const estilo = getComputedStyle(painel);
++    const p = painel.getBoundingClientRect();
++    const util = {
++      esq: p.left + parseFloat(estilo.paddingLeft) + parseFloat(estilo.borderLeftWidth),
++      dir: p.right - parseFloat(estilo.paddingRight) - parseFloat(estilo.borderRightWidth),
++    };
++    const dirDoPainel = p.right - parseFloat(estilo.paddingRight) - parseFloat(estilo.borderRightWidth);
++    const botoes = [...painel.querySelectorAll(".modal__rodape button")].map((b) => {
++      const r = b.getBoundingClientRect();
++      return {
++        texto: b.textContent.trim(), esq: r.left, dir: r.right, altura: r.height, largura: r.width,
++        cortado: b.scrollWidth > b.clientWidth + 1 || b.scrollHeight > b.clientHeight + 1,
++      };
++    });
++    return {
++      util, botoes,
++      painelRola: painel.scrollWidth > painel.clientWidth + 1,
++      painelLargura: `${painel.scrollWidth} contra ${painel.clientWidth}`,
++      culpados: [...painel.querySelectorAll("*")].filter((e) => e.getBoundingClientRect().right > dirDoPainel + 1)
++        .slice(0, 3).map((e) => `${e.tagName.toLowerCase()}.${e.className} "${e.textContent.trim().slice(0, 40)}"`),
++      paginaRola: document.documentElement.scrollWidth > window.innerWidth + 1,
++      painelDentro: p.left >= -0.5 && p.right <= window.innerWidth + 0.5,
++    };
++  });
++}
++
++function janelaCabe(m) {
++  if (!m) return "janela nao abriu";
++  if (m.paginaRola) return "a pagina ganhou rolagem horizontal";
++  if (m.painelRola) return `o painel da janela ganhou rolagem horizontal (${m.painelLargura}; passam da borda: ${m.culpados.join(" | ") || "nenhum"})`;
++  if (!m.painelDentro) return "a janela passa da tela";
++  for (const b of m.botoes) {
++    if (b.esq < m.util.esq - 0.5 || b.dir > m.util.dir + 0.5)
++      return `botao "${b.texto}" fora da area util (${b.esq.toFixed(0)}..${b.dir.toFixed(0)} contra ${m.util.esq.toFixed(0)}..${m.util.dir.toFixed(0)})`;
++    if (b.cortado) return `botao "${b.texto}" com o texto cortado`;
++    if (b.altura < 43.5 || b.largura < 43.5) return `botao "${b.texto}" abaixo de 44 px (${b.largura.toFixed(0)}x${b.altura.toFixed(0)})`;
++  }
++  return null;
++}
++
++console.log("\n== 1. Preparo: pessoa de nome longo, criada pela API ==");
++const rita = await viaApi("/auth/entrar", { metodo: "POST", corpo: { email: "rita.lopes@serraalta.exemplo.gov.br", senha: SENHA } });
++ok("a administradora entra pela API", rita.status === 200, `(${rita.status})`);
++const sufixo = Date.now().toString(36);
++const NOME_LONGO = "Marcos Vinicius Teles de Albuquerque Sobrinho";
++const emailLongo = `longo.${sufixo}@serraalta.exemplo.gov.br`;
++const criada = await viaApi("/usuarios", {
++  metodo: "POST", token: rita.json.acesso,
++  corpo: {
++    nome: NOME_LONGO, matricula: `LG-${sufixo}`.toUpperCase(), email: emailLongo,
++    papel: "operador", equipeId: null, senha: "senha-provisoria-do-teste-1",
++  },
++});
++ok("a pessoa de nome longo foi cadastrada", criada.status === 201 || criada.status === 200, `(${criada.status} ${JSON.stringify(criada.json).slice(0, 120)})`);
++/*
++  A coordenadora também é criada aqui, e o operador é a própria pessoa de nome
++  longo: as contas da semente (Helena, Jonas) mudam de senha e de situação ao
++  longo de `fluxo-api.e2e.mjs`, que roda antes deste arquivo no CI, então
++  depender delas faria este teste falhar por causa do outro.
++*/
++const SENHA_DO_TESTE = "senha-provisoria-do-teste-1";
++const emailCoordenacao = `coordenacao.${sufixo}@serraalta.exemplo.gov.br`;
++const coordenacao = await viaApi("/usuarios", {
++  metodo: "POST", token: rita.json.acesso,
++  corpo: {
++    nome: "Coordenadora de Teste de Layout", matricula: `CO-${sufixo}`.toUpperCase(), email: emailCoordenacao,
++    papel: "coordenador", equipeId: null, senha: SENHA_DO_TESTE,
++  },
++});
++ok("a coordenadora de teste foi cadastrada", coordenacao.status === 201 || coordenacao.status === 200, `(${coordenacao.status})`);
++
++console.log("\n== 2. As janelas de confirmação cabem, do celular pequeno à mesa ==");
++await entrar("rita.lopes@serraalta.exemplo.gov.br");
++await page.goto(`${BASE}/usuarios`, { waitUntil: "networkidle" });
++await page.waitForSelector(".tabela tbody tr", { timeout: 30_000 });
++const linha = page.locator("tbody tr", { hasText: emailLongo });
++for (const [botao, padrao] of [["Encerrar sessões", /^Encerrar sessões de Marcos/], ["Redefinir senha", /^Redefinir a senha de Marcos/]]) {
++  for (const largura of LARGURAS) {
++    await page.setViewportSize({ width: largura, height: 800 });
++    await page.waitForTimeout(100);
++    await linha.getByRole("button", { name: botao, exact: true }).scrollIntoViewIfNeeded();
++    await linha.getByRole("button", { name: botao, exact: true }).click();
++    const janela = page.getByRole("dialog");
++    await janela.waitFor({ timeout: 10_000 });
++    await janela.getByRole("button", { name: padrao }).waitFor({ timeout: 10_000 });
++    // "Encerrar sessões" lê a contagem depois de abrir; espera sair do "Conferindo".
++    await page.waitForTimeout(400);
++    const m = await medirJanela();
++    const motivo = janelaCabe(m);
++    ok(`"${botao}" a ${largura} px: o botao com o nome inteiro cabe na janela`, motivo === null, `(${motivo})`);
++    await janela.getByRole("button", { name: "Cancelar" }).click();
++    await janela.waitFor({ state: "detached", timeout: 10_000 });
++  }
++}
++
++/**
++ * A barra de navegação do pé da tela (largura até 900 px).
++ *
++ * "Cortado" aqui é o que a validação viu: o rótulo passando da borda da tela, ou
++ * do próprio botão. Mede o item DEPOIS de a página assentar e com a barra
++ * rolada para o começo, que é como a pessoa a encontra ao abrir o painel.
++ */
++async function medirBarra() {
++  return page.evaluate(() => {
++    const barra = document.querySelector("nav.lateral");
++    if (!barra) return null;
++    barra.scrollLeft = 0;
++    const largura = window.innerWidth;
++    const itens = [...barra.querySelectorAll(".lateral__item")].map((a) => {
++      const r = a.getBoundingClientRect();
++      const rotulo = a.querySelector(".lateral__texto") ?? a;
++      const rr = rotulo.getBoundingClientRect();
++      return {
++        texto: a.textContent.trim(), esq: r.left, dir: r.right, altura: r.height, largura: r.width,
++        rotuloEsq: rr.left, rotuloDir: rr.right,
++        cortado: a.scrollWidth > a.clientWidth + 1 || a.scrollHeight > a.clientHeight + 1,
++      };
++    });
++    return { largura, itens, paginaRola: document.documentElement.scrollWidth > largura + 1 };
++  });
++}
++
++console.log("\n== 3. A barra de navegação não corta os rótulos ==");
++await page.goto(`${BASE}/painel`, { waitUntil: "networkidle" });
++await page.waitForSelector(".cabecalho-pagina h1", { timeout: 30_000 });
++for (const largura of [320, 360, 361, 390, 768]) {
++  await page.setViewportSize({ width: largura, height: 800 });
++  await page.waitForTimeout(150);
++  const m = await medirBarra();
++  const mapa = m?.itens.find((i) => i.texto === "Mapa da cidade");
++  ok(`a ${largura} px a barra existe e tem o item "Mapa da cidade"`, Boolean(mapa));
++  if (!mapa) continue;
++  ok(`a ${largura} px "Mapa da cidade" está inteiro dentro da tela, sem rolar a barra`,
++     mapa.esq >= -0.5 && mapa.dir <= m.largura + 0.5, `(${mapa.esq.toFixed(0)}..${mapa.dir.toFixed(0)} de ${m.largura})`);
++  ok(`a ${largura} px o rótulo de "Mapa da cidade" cabe no próprio botão`,
++     !mapa.cortado && mapa.rotuloEsq >= mapa.esq - 0.5 && mapa.rotuloDir <= mapa.dir + 0.5,
++     `(rótulo ${mapa.rotuloEsq.toFixed(0)}..${mapa.rotuloDir.toFixed(0)}, botão ${mapa.esq.toFixed(0)}..${mapa.dir.toFixed(0)})`);
++  ok(`a ${largura} px nenhum item da barra tem texto cortado`,
++     m.itens.every((i) => !i.cortado), `(${m.itens.filter((i) => i.cortado).map((i) => i.texto).join(", ")})`);
++  ok(`a ${largura} px todo item tem pelo menos 44 px de toque`,
++     m.itens.every((i) => i.altura >= 43.5 && i.largura >= 43.5),
++     `(${m.itens.filter((i) => i.altura < 43.5 || i.largura < 43.5).map((i) => `${i.texto} ${i.largura.toFixed(0)}x${i.altura.toFixed(0)}`).join(", ")})`);
++  ok(`a ${largura} px a página não ganhou rolagem horizontal`, !m.paginaRola);
++}
++/*
++  A tela atual precisa estar à vista na barra: a de "Organização" é a décima
++  e fica na parte que rola, a 390 px. E o primeiro Tab continua caindo em
++  "Pular para o conteúdo", e não no item seguinte ao da tela atual (o
++  Chromium toma `scrollIntoView` como ponto de partida do Tab).
++*/
++await page.setViewportSize({ width: 390, height: 800 });
++await page.goto(`${BASE}/organizacao`, { waitUntil: "networkidle" });
++await page.waitForSelector(".cabecalho-pagina h1", { timeout: 30_000 });
++await page.waitForTimeout(300);
++const atual = await page.evaluate(() => {
++  const a = document.querySelector('.lateral__item[aria-current="page"]');
++  const r = a?.getBoundingClientRect();
++  return r ? { texto: a.textContent.trim(), esq: r.left, dir: r.right, largura: window.innerWidth } : null;
++});
++ok("a 390 px o ladrilho da tela atual (Organização) está inteiro à vista",
++   Boolean(atual) && atual.esq >= -0.5 && atual.dir <= atual.largura + 0.5, `(${JSON.stringify(atual)})`);
++await page.keyboard.press("Tab");
++ok("o primeiro Tab da página cai em Pular para o conteúdo, mesmo com a barra rolada",
++   await page.evaluate(() => document.activeElement?.className === "pular-para-conteudo"
++     || document.activeElement?.textContent?.includes("Pular para o conteúdo")));
++await page.setViewportSize({ width: 1280, height: 800 });
++await page.waitForTimeout(100);
++ok("a 1280 px a barra é a lateral e não o pé da tela",
++   await page.evaluate(() => getComputedStyle(document.querySelector("nav.lateral")).flexDirection === "column"));
++
++console.log("\n== 4. O painel pede só o que o papel pode ver ==");
++async function pedidosDeDevolvidas(email, caminho) {
++  const senha = email === emailLongo || email === emailCoordenacao ? SENHA_DO_TESTE : SENHA;
++  /*
++    Contexto novo a cada pessoa: com a página compartilhada, o pedido que a
++    sessão ANTERIOR ainda tinha em voo contaria como se fosse da atual, e o
++    teste atribuiria o 403 de um papel ao outro.
++  */
++  const ctx = await navegador.newContext({ locale: "pt-BR" });
++  const pg = await ctx.newPage();
++  const pedidos = [];
++  pg.on("response", (r) => { if (r.url().includes("/ocorrencias/devolvidas")) pedidos.push(r.status()); });
++  pg.on("console", (m) => { if (m.type() === "error") erros.push(`console: ${m.text()}`); });
++  pg.on("pageerror", (e) => erros.push(`pageerror: ${e.message}`));
++  await entrar(email, senha, pg);
++  await pg.goto(`${BASE}${caminho}`, { waitUntil: "networkidle" });
++  await pg.waitForSelector(".cabecalho-pagina h1", { timeout: 30_000 });
++  await pg.waitForTimeout(500);
++  const texto = (await pg.locator("main, .conteudo").first().textContent()) ?? "";
++  await ctx.close();
++  return { pedidos, texto };
++}
++for (const caminho of ["/painel", "/ocorrencias"]) {
++  const operador = await pedidosDeDevolvidas(emailLongo, caminho);
++  ok(`o operador abre ${caminho} sem pedir as devolvidas (que ele não pode ver)`,
++     operador.pedidos.length === 0, `(pedidos: ${operador.pedidos.join(",")})`);
++  ok(`o operador em ${caminho} não lê a frase de que a consulta falhou`,
++     !operador.texto.includes("não respondeu agora"));
++  const coordenacaoVendo = await pedidosDeDevolvidas(emailCoordenacao, caminho);
++  ok(`a coordenadora abre ${caminho} e pede as devolvidas, com 200`,
++     coordenacaoVendo.pedidos.length >= 1 && coordenacaoVendo.pedidos.every((s) => s === 200),
++     `(pedidos: ${coordenacaoVendo.pedidos.join(",")})`);
++}
++
++await navegador.close();
++
++console.log(`\n${"=".repeat(52)}`);
++console.log(`Passou: ${passou}   Falhou: ${falhou}`);
++if (erros.length) {
++  console.log(`\nErros de console/pagina (${erros.length}):`);
++  for (const e of [...new Set(erros)]) console.log(`  - ${e}`);
++} else {
++  console.log("Zero erro de console.");
++}
++process.exit(falhou > 0 || erros.length > 0 ? 1 : 0);

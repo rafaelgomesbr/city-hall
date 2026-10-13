@@ -516,6 +516,16 @@ a:hover { color: var(--ds-accent-hover); }
    largura mínima da coluna: é a linha secundária, e quebrar custa menos que
    empurrar as três últimas colunas para fora do cartão. */
 .tabela__secundario { color: var(--ds-text-muted); font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); overflow-wrap: anywhere; }
+/*
+  Frase curta de célula ("Não despachada"): não quebra no meio da palavra.
+
+  `overflow-wrap: anywhere`, acima, existe para endereço comprido, e ele ENCOLHE
+  a largura mínima da coluna a uma letra: com a tabela apertada, a coluna
+  "Equipe" do painel ficava com a menor largura que a tabela aceitasse e a frase
+  saía "Não despach / ada". Quebrar entre palavras ("Não" / "despachada") é
+  legítimo; no meio da palavra, não.
+*/
+.tabela__secundario--frase { overflow-wrap: normal; word-break: normal; }
 
 .lista-papeis { margin: 0; font-size: var(--ds-fs-body-sm); line-height: var(--ds-lh-body-sm); }
 .lista-papeis__descricao { color: var(--ds-text-muted); margin: 0 0 var(--ds-sp-3); }
@@ -526,6 +536,14 @@ a:hover { color: var(--ds-accent-hover); }
 .campo { display: flex; flex-direction: column; gap: var(--ds-sp-2); margin-bottom: var(--ds-sp-4); }
 .campo > label { font-size: var(--ds-fs-body-sm); font-weight: var(--ds-fw-semibold); }
 .campo__dica { font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption); color: var(--ds-text-muted); }
+/*
+  A linha de identificação da janela de confirmação ("matrícula, e-mail, papel")
+  traz um e-mail inteiro, que não tem onde quebrar: a 320 px ele passava da
+  área útil da janela e entrava no respiro da borda (o teste de geometria
+  mediu 247 px de e-mail numa caixa de 222). Quebrar onde precisar é melhor
+  que sair da janela.
+*/
+.modal__painel .campo__dica { overflow-wrap: anywhere; }
 /* A frase que abre o formulário. Como é um <p>, sem isto o navegador aplica a
    margem própria dele e a distância até o primeiro rótulo fica maior que a
    distância entre os campos, sugerindo que a frase é de outro bloco. */
@@ -670,6 +688,32 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
 .botao--discreto:not(:disabled):hover { color: var(--ds-text); background: var(--ds-surface-2); }
 
 .botao--icone { min-width: var(--ds-touch); padding: 0; }
+
+/*
+  Os botões do rodapé de toda janela (`Modal`, e por isso toda `ConfirmarAcao`).
+
+  `.botao` não quebra linha (`white-space: nowrap`), certo para "Salvar" e
+  "Ver todas". Mas o botão de confirmação REPETE o objeto por regra ("Encerrar
+  sessões de Marcos Vinicius Teles"), e nome de pessoa é comprido: a 390 px o
+  rótulo era mais largo que a janela, o painel ganhava rolagem horizontal e o
+  botão perdia a borda (reprovação da V2-F00-E09). Aqui o rótulo quebra em
+  linhas e o botão cresce em altura, sem passar da janela.
+
+  Até 600 px os botões empilham, cada um com a largura toda: dois botões lado a
+  lado com rótulo de duas linhas viram dois blocos estreitos e difíceis de
+  acertar com o dedo. A ordem do HTML continua (confirmar, depois cancelar),
+  que é a do leitor de tela e a do Tab.
+*/
+.modal__rodape .botao {
+  max-width: 100%; height: auto;
+  padding-top: var(--ds-sp-2); padding-bottom: var(--ds-sp-2);
+  white-space: normal; overflow-wrap: break-word; text-align: center;
+  line-height: var(--ds-lh-body-sm);
+}
+@media (max-width: 600px) {
+  .modal__rodape { flex-direction: column; align-items: stretch; }
+  .modal__rodape .botao { width: 100%; }
+}
 
 /* ---------- Filtros ---------- */
 
@@ -907,27 +951,62 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
 
 @media (max-width: 900px) {
   .aplicacao { grid-template-columns: minmax(0, 1fr); grid-template-areas: "topo" "conteudo" "lateral"; }
-  .lateral { flex-direction: row; overflow-x: auto; gap: var(--ds-sp-2); align-items: center;
+  /*
+    A barra do pé da tela: ladrilhos de ícone em cima e rótulo embaixo, em
+    número FIXO de ladrilhos visíveis, e o resto rola.
+
+    Era uma fila de itens com o rótulo em uma linha só (`white-space: nowrap`),
+    e dez destinos não cabem em 390 px: o terceiro item, "Mapa da cidade",
+    aparecia cortado na borda da tela, com a metade do rótulo faltando (a
+    validação da V2-F00-E09 viu e reprovou, e mediu 255 a 416 px numa tela de
+    390). Cortar um rótulo no meio é o pior dos dois mundos: a pessoa lê metade
+    de uma palavra e ainda não sabe que a barra rola.
+
+    Agora a largura do ladrilho é a conta de quantos cabem INTEIROS
+    (`--barra-visiveis`), o rótulo quebra em até duas linhas dentro dele, e o
+    ladrilho seguinte só espia na borda, sem texto visível. "Mapa da cidade" é
+    sempre um dos primeiros três em qualquer papel, então nunca fica para a
+    parte que rola.
+
+    Os grupos e o rodapé viram `display: contents` para os ladrilhos serem
+    todos filhos diretos da barra: a largura em porcentagem é a da barra, e não
+    a de cada grupo, que é o que fazia a conta anterior não fechar.
+  */
+  .lateral { --barra-visiveis: 6;
+             flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: var(--ds-sp-2); align-items: center;
+             padding: var(--ds-sp-2) var(--ds-sp-4); scrollbar-width: thin;
              border-right: none; border-top: 1px solid var(--ds-ink-800);
              position: sticky; bottom: 0; z-index: var(--ds-z-sticky); }
   .lateral__marca, .lateral__rotulo { display: none; }
-  .lateral__grupo { flex-direction: row; }
   /*
     "Tema" e "Sair" continuam na barra, no fim dela. Antes o rodapé sumia
     junto com a marca, e no celular não havia como sair nem trocar o tema fora
     da caixa de busca, que é o único lugar onde ninguém procura isso.
   */
-  .lateral__rodape { flex-direction: row; margin-top: 0; margin-left: auto; }
-  .lateral__item { white-space: nowrap; }
+  .lateral__grupo, .lateral__rodape { display: contents; }
+  .lateral__item {
+    flex: 0 0 calc((100% - (var(--barra-visiveis) - 1) * var(--ds-sp-2)) / var(--barra-visiveis));
+    min-width: 0; height: var(--barra-item-altura);
+    flex-direction: column; justify-content: center; gap: var(--ds-sp-1);
+    padding: var(--ds-sp-1);
+    text-align: center; white-space: normal;
+    font-size: var(--ds-fs-caption); line-height: var(--ds-lh-caption);
+  }
   /*
-    A barra rola na horizontal de propósito: dez destinos não cabem em 390px, e
-    o rótulo inteiro ("Mapa da cidade", "Prestação de contas") vale mais do que
-    um ícone que a pessoa precisa adivinhar.
+    Os botões "Tema" e "Sair" nascem de `<button>`, que não herda a família da
+    fonte: sem isto o rótulo deles sairia na fonte do sistema, diferente do
+    resto da barra.
+  */
+  button.lateral__item { font-family: inherit; font-weight: var(--ds-fw-medium); }
+  .lateral__texto { display: block; max-width: 100%; }
+  /*
+    A barra rola na horizontal de propósito: onze destinos não cabem em 320px, e
+    o rótulo inteiro vale mais do que um ícone que a pessoa precisa adivinhar.
 
-    O respiro nas duas pontas é para o item não encostar na borda quando a barra
-    rola até ele. Quem manda rolar é `Estrutura.tsx`, no foco do item: sozinho,
-    o navegador não rola um item que está pela metade, e o Tab parava com o
-    rótulo cortado. O comentário de lá tem a medida.
+    O respiro nas duas pontas é para o ladrilho não encostar na borda quando a
+    barra rola até ele. Quem manda rolar é `Estrutura.tsx`, no foco do item e na
+    troca de tela: sozinho, o navegador não rola um item que está pela metade, e
+    o Tab parava com o rótulo cortado. O comentário de lá tem a medida.
   */
   .lateral { scroll-padding-inline: var(--ds-sp-4); }
   .conteudo { padding: var(--ds-sp-4); }
@@ -937,11 +1016,29 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
     sobrepostas e o botão Fechar em cima de "Mapa da cidade".
 
     A altura não é um número escolhido aqui: é a mesma conta que desenha a
-    barra, `--ds-touch` (a área de toque mínima, que dá a altura do item) mais o
-    respiro de cima e de baixo da própria `.lateral`. Mudar o respiro move os
-    dois juntos.
+    barra, `--barra-altura` (o ladrilho mais o respiro de cima e de baixo da
+    própria `.lateral`). Mudar o ladrilho ou o respiro move os dois juntos.
   */
-  .toast { bottom: calc(var(--ds-sp-4) + var(--ds-touch) + var(--ds-sp-5) * 2); }
+  .toast { bottom: calc(var(--ds-sp-4) + var(--barra-altura)); }
+  /*
+    As duas medidas moram no `:root` daqui para baixo, e não em `.lateral`,
+    porque o aviso não é filho da barra e precisa enxergá-las. Ladrilho: o
+    respiro, o ícone de 18 px, o respiro entre os dois e as duas linhas do
+    rótulo.
+  */
+  :root { --barra-item-altura: calc(var(--ds-sp-1) * 2 + 18px + var(--ds-sp-1) + var(--ds-lh-caption) * 2);
+          --barra-altura: calc(var(--barra-item-altura) + var(--ds-sp-2) * 2); }
+}
+@media (max-width: 600px) {
+  .lateral { --barra-visiveis: 4; }
+}
+/*
+  Celular estreito (até 360 px): três ladrilhos, porque "Ocorrências" e
+  "Organização" em quatro ladrilhos de 66 px não cabem na largura do ladrilho.
+  A 361 px já cabem (o teste de geometria mede 360 e 361 por isso).
+*/
+@media (max-width: 360px) {
+  .lateral { --barra-visiveis: 3; }
 }
 
 /*
@@ -1163,6 +1260,21 @@ textarea[aria-invalid="true"], select[aria-invalid="true"] {
   box-shadow: var(--ds-shadow-3);
   z-index: var(--ds-z-dropdown);
   padding: var(--ds-sp-4);
+}
+
+/*
+  Celular: o painel do sino se ancora na TELA, e não no botão.
+
+  Ancorado no botão (`right: 0`), o painel de largura quase total saía pela
+  esquerda, porque o sino está no meio do topo, ao lado do avatar: a 390 px os
+  primeiros 48 px do painel ficavam fora da tela e o título "Avisos" perdia o
+  começo. Aqui o `.sino` deixa de ser a referência e o painel passa a medir a
+  partir do `.topo` (que é posicionado, ver acima), com o mesmo respiro lateral
+  do resto da página.
+*/
+@media (max-width: 600px) {
+  .sino { position: static; }
+  .sino__painel { left: var(--ds-sp-4); right: var(--ds-sp-4); width: auto; top: calc(100% + var(--ds-sp-2)); }
 }
 
 .sino__cabecalho {

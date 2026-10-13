@@ -198,6 +198,18 @@ await rodar("node", ["test/fluxo-api.e2e.mjs"], {
   },
 });
 
+/*
+  A geometria da tela estreita (V2-F00-E09, correção 1) roda DEPOIS da suíte
+  principal, na mesma API e no mesmo painel. Ela cria a própria pessoa de nome
+  longo com e-mail único, então a instância já usada não atrapalha, e fica em
+  arquivo à parte para poder rodar sozinha contra um painel de pé.
+*/
+console.log(`\n== Geometria da tela estreita, em ${MOTOR} ==`);
+await rodar("node", ["test/layout-estreito.e2e.mjs"], {
+  cwd: join(RAIZ, "apps/web"),
+  env: { BASE_WEB, BASE_API, MOTOR },
+});
+
 console.log("\nTUDO CERTO: o caminho de produção passou de ponta a ponta.");
 /*
   Sai explicitamente, e é o `exit` que derruba a API e o painel.

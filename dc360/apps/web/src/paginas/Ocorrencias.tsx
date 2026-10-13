@@ -8,7 +8,7 @@ import {
   devolucoesPendentes, listarPaginaDeOcorrencias,
   type DevolucaoPendente, type PaginaDeOcorrencias,
 } from "../dados/repositorio";
-import { marcaDaLista, porOcorrencia } from "../devolucao";
+import { marcaDaLista, podeVerDevolucoes, porOcorrencia } from "../devolucao";
 import { useSessaoObrigatoria } from "../estado/sessao";
 import {
   Aviso, Carregando, Prazo, PrazoVenceEm, SeloSeveridade, SeloStatus, TipoDaOcorrencia,
@@ -109,6 +109,11 @@ export function Ocorrencias() {
   const [marcaFalhou, setMarcaFalhou] = useState(false);
   useEffect(() => {
     let vivo = true;
+    /* Papel sem `despachar_equipe` não pede a lista: ver `podeVerDevolucoes`. */
+    if (!podeVerDevolucoes(sessao.papel)) {
+      setDevolvidas([]); setMarcaFalhou(false);
+      return () => { vivo = false; };
+    }
     devolucoesPendentes(sessao)
       .then((d) => { if (!vivo) return; setDevolvidas(d); setMarcaFalhou(false); })
       .catch(() => { if (!vivo) return; setDevolvidas(null); setMarcaFalhou(true); });

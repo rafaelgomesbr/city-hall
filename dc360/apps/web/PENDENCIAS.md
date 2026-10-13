@@ -23,7 +23,7 @@ contra o código nesta data:
 | Pacote montado inteiro em memória, no servidor e na aba | 8.2 | F07-E06 |
 | Frase de permissão fala em "alterar" no download do pacote | 8.3 | F03 |
 | Município suspenso não baixa o pacote | 8.4 | Rafael com o jurídico (CP-29) |
-| Barra de navegação a 390 px rola na horizontal | 9.2 | F10 |
+| Barra de navegação a 390 px ainda rola na horizontal (mas sem ladrilho cortado desde a V2-F00-E09, correção 1) | 9.2, 11 | F10 |
 | Janela de milissegundos na renovação | 9.3 | F03-E02 |
 | e2e contra a API no Firefox fora do CI; nenhum run do CI conferido | 10.1 | F01-E03, validação humana |
 | CORS por ambiente e do armazenamento externo | 10.2 | F01-E10, F06-E15 |
@@ -376,3 +376,35 @@ O que não é desta etapa e continua aberto:
 2. **CORS por ambiente e por domínio** (F01-E10) e o CORS do armazenamento externo de
    verdade (F06-E15): esta etapa só exercitou o armazenamento local da própria API.
 3. **Validação humana:** Rafael ver o upload da foto pelo painel concluir na seção 13.
+
+## 11. Tela estreita e devolvidas por papel (V2-F00-E09, correção 1)
+
+A validação da V2-F00-E09 reprovou o portão visual a 390 px. Feitos, todos presos
+por `test/layout-estreito.e2e.mjs` (mede retângulos no navegador a 320, 360, 361,
+390 e 768 px; roda dentro de `npm run test:e2e:api`):
+
+- o botão de `ConfirmarAcao` (rodapé de todo `Modal`) quebra linha, cabe na janela
+  e empilha no celular (`.modal__rodape .botao` e `.modal__rodape` em `app.css`);
+  a linha de identificação da janela (`.campo__dica`, com o e-mail inteiro) quebra
+  onde precisar, porque a 320 px o e-mail passava do respiro da borda;
+- a barra do pé da tela virou ladrilhos de ícone e rótulo em número fixo de
+  ladrilhos inteiros (`--barra-visiveis`: 6, 4 e 3), então "Mapa da cidade" nunca
+  fica cortado; a altura da barra e a do aviso passageiro vêm da mesma conta
+  (`--barra-altura`); a tela atual é trazida para dentro da barra na troca de rota;
+- o painel do sino se ancora na tela em até 600 px (saía 48 px pela esquerda a 390);
+- "Não despachada" no painel não quebra mais no meio da palavra a 1280 px;
+- o painel e a lista de ocorrências não pedem `GET /ocorrencias/devolvidas` a quem
+  não tem `despachar_equipe` (decisão por `podeVerDevolucoes`, que lê a matriz de
+  permissões do pacote compartilhado), o que tirou o 403 de console do operador e
+  a frase falsa de que "a consulta não respondeu agora". O servidor continua
+  recusando (esconder pedido não é controle de acesso).
+
+O que continua aberto:
+
+1. **A barra ainda rola na horizontal** a 320 e 390 px (onze destinos, três ou
+   quatro ladrilhos à vista). Já não corta rótulo, mas não há dica visual de que
+   rola além do ladrilho que espia na borda. Menu "mais" ou abas continuam sendo
+   decisão da F10.
+2. **Lista de usuários a 390 px** continua rolando dentro do cartão (item 6.3).
+3. A lista `ESPERADOS` de `fluxo-api.e2e.mjs` ainda aceita 403 em qualquer rota:
+   o teste novo é quem prova a ausência do 403 de devolvidas, por papel.
