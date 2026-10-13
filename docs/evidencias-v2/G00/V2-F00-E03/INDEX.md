@@ -4,7 +4,7 @@
 | --- | --- |
 | RESUMO.md | b4eb4cdf85381c81343d6819ab311b0fd92c64c0dd78ab77b44f06ff2884b755 |
 | VEREDITO.md | c256ecc70d41391c4e4f308a7ccd5d130fab91ca7ed7516d1bac436ae1c0ed70 |
-| classificacao-dos-vermelhos.md | 3161ead6c16353876ade64322755041220b3d1fb798976899611a45130f9c823 |
+| classificacao-dos-vermelhos.md | 476456f1ee609836d9adbbd7f505a7b609b6b32bd1983376fb5681b6fa84a429 |
 | correcao-1/RESUMO.md | 3ae06b6a39f18ce1232bb700c0566e74c657da042132a15d4e56c5edbc16354b |
 | correcao-1/brutas/e2e-api-firefox-rodada-1.txt | cf71a50a3ed280752c670940a73046d8dff23004e62c5b71fd5808bcf668e547 |
 | correcao-1/brutas/e2e-api-firefox-rodada-2.txt | fd7173b5301741f55f8800286316c9b434627982c368399f06cf188ca1b87c03 |

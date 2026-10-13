@@ -24,8 +24,8 @@
  *    - "divergente-explicada": o passo declara em `divergenciaExplicada` um
  *      achado NOMEADO (id, onde está registrado, motivo, código de saída e o
  *      trecho exato da saída). Só vale se a saída bater com a descrição inteira;
- *      saída diferente da descrita volta a ser "divergente". Hoje há uma só: o
- *      `expo-doctor` (V-DEP-4).
+ *      saída diferente da descrita volta a ser "divergente". Hoje não há
+ *      nenhuma: a última foi o `expo-doctor` (V-DEP-4), fechada em 2026-10-13.
  *    - "divergente": sem explicação, ou com a explicação não casando. É defeito
  *      do produto, deriva externa nova ou contabilidade atrasada; nunca é
  *      maquiado: ou se conserta, ou se nomeia e se registra.
@@ -529,15 +529,13 @@ export const PASSOS = [
   { id: "audit-raiz", titulo: "npm audit (dc360)", cmd: "npm audit", cwd: ".", esperado: { codigo: "falha" } },
   { id: "audit-campo", titulo: "npm audit (apps/campo)", cmd: "npm audit", cwd: "apps/campo", esperado: { codigo: "falha" } },
   /*
-    O esperado é o verde de verdade: 21 de 21. Hoje a árvore dá 20 de 21 por
-    DERIVA EXTERNA, e o roteiro a nomeia em vez de aceitá-la calado: o Expo
-    publicou patches (seis pacotes um patch atrás do que o SDK 57 exige) depois
-    do 21 de 21 de 2026-10-08, e o repositório não subiu nenhum de propósito
-    (subir patch sem a suíte do aplicativo e o prebuild não é conserto de uma
-    linha, e o CP-03 não quer misturar SDK 57 e 58). Registro: item 17 de
-    `apps/campo/PENDENCIAS.md`; na classificação da E03 é V-DEP-4. Quando o
-    Rafael subir os patches, o passo passa a "confere" sozinho e a explicação
-    deve sair daqui.
+    O esperado é o verde de verdade: 21 de 21. Em 2026-10-13 a árvore deu 20 de 21
+    por deriva externa (o Expo publicou patches de seis pacotes depois do 21 de 21
+    de 2026-10-08, V-DEP-4); o Rafael decidiu atualizar (D1) e a E19, correção 2,
+    subiu os seis patches com `npx expo install --fix`, rodou a suíte do aplicativo
+    e voltou a 21 de 21. Se a deriva voltar (e ela volta a cada patch novo do
+    Expo), o passo diverge de propósito: descreva-a em `divergenciaExplicada`, com
+    o registro onde está, só se decidir não atualizar na hora.
   */
   {
     id: "expo-doctor",
@@ -545,13 +543,6 @@ export const PASSOS = [
     cmd: "npx expo-doctor",
     cwd: "apps/campo",
     esperado: { codigo: 0, contem: "21/21 checks passed" },
-    divergenciaExplicada: {
-      id: "V-DEP-4",
-      onde: "dc360/apps/campo/PENDENCIAS.md, item 17",
-      motivo: "seis pacotes do Expo um patch atrás do que o SDK 57 exige hoje (deriva externa, o 21 de 21 era de 2026-10-08); atualizar é decisão do Rafael",
-      codigo: 1,
-      contem: ["20/21 checks passed", "Check that packages match versions required by installed Expo SDK"],
-    },
   },
   {
     id: "e2e",

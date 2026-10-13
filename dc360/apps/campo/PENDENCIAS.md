@@ -553,7 +553,18 @@ impede a volta (varre a fonte, menos comentários). Frases novas são texto de
 produto e aguardam a aprovação do Rafael (lista no `RESUMO.md` da correção).
 Segundo plano de verdade continua sendo a F14-E06, só se o CP-24 aprovar.
 
-## 17. `expo-doctor` dá 20 de 21 por patches novos do Expo (V2-F00-E19, correção 1)
+## 17. `expo-doctor` deu 20 de 21 por patches novos do Expo (V2-F00-E19, correção 1; RESOLVIDO em 2026-10-13, correção 2)
+
+**RESOLVIDO em 2026-10-13 (V2-F00-E19, correção 2).** O Rafael decidiu atualizar (D1 do
+roteiro de aprovação). `npx expo install --fix` em `apps/campo` subiu os seis pacotes
+(`expo` ~57.0.28, `expo-crypto` ~57.0.4, `expo-location` ~57.0.21, `expo-router`
+~57.0.26, `expo-splash-screen` ~57.0.10, `jest-expo` ~57.0.6) e o
+`package-lock.json`. Depois: `npx expo-doctor` **21 de 21**, `npm run test:campo`
+1903 de 1903, testes do pacote `campo` 223 de 223, `npm run typecheck` com código 0 e
+`npm run auditar` com código 0 (runtime em zero e nenhuma advisory nova no aplicativo).
+Prova em `docs/evidencias-v2/G00/V2-F00-E19/correcao-2/`. O texto abaixo é o registro
+da deriva como ela estava em 2026-10-13, antes da correção. A deriva volta a cada patch
+novo do Expo: quando voltar, é um item novo.
 
 **Deriva externa, não defeito do projeto.** Em 2026-10-13, `npx expo-doctor` em
 `apps/campo` deu **20 de 21**. A única verificação que falha é "Check that
@@ -573,5 +584,4 @@ pacotes do SDK 57 e 58, e subir patch sem rodar a suíte do aplicativo e o
   (esperado 21 de 21). Pode entrar junto com a subida do SDK que fecha o CP-03
   (prazo das exceções: 2027-01-05).
 - **Efeito no G00:** o critério "`expo-doctor` 21 de 21" da E19 e do gate G00
-  está BLOQUEADO enquanto isso não for feito. Aceitar o 20 de 21 como risco é
-  decisão do gatekeeper e do Rafael, não do implementador.
+  estava BLOQUEADO; deixou de estar com a correção 2 (21 de 21).

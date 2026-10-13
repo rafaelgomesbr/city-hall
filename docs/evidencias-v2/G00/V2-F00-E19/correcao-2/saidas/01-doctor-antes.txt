@@ -1,0 +1,28 @@
+Running 21 checks on your project...
+20/21 checks passed. 1 checks failed. Possible issues detected:
+Use the --verbose flag to see more details about passed checks.
+
+✖ Check that packages match versions required by installed Expo SDK
+
+🔧 Patch version mismatches
+package             expected  found    
+expo                ~57.0.28  57.0.27  
+expo-crypto         ~57.0.4   57.0.3   
+expo-location       ~57.0.21  57.0.20  
+expo-router         ~57.0.26  57.0.25  
+expo-splash-screen  ~57.0.10  57.0.9   
+jest-expo           ~57.0.6   57.0.5   
+
+Changelogs:
+- expo-crypto → https://github.com/expo/expo/blob/sdk-57/packages/expo-crypto/CHANGELOG.md
+- expo-location → https://github.com/expo/expo/blob/sdk-57/packages/expo-location/CHANGELOG.md
+- expo-router → https://github.com/expo/expo/blob/sdk-57/packages/expo-router/CHANGELOG.md
+- expo-splash-screen → https://github.com/expo/expo/blob/sdk-57/packages/expo-splash-screen/CHANGELOG.md
+
+6 packages out of date.
+Advice:
+Use 'npx expo install --check' to review and upgrade your dependencies.
+To ignore specific packages, add them to "expo.install.exclude" in package.json. Learn more: https://expo.fyi/dependency-validation
+
+1 check failed, indicating possible issues with the project.
+saida 1

@@ -16,6 +16,16 @@
 | correcao-1/saidas/07-conferir-numeros-DEPOIS.txt | cf61878bd9159c4322958ad03e67a41199d2bc4aec348261c9c44d4ee6e1f1b6 |
 | correcao-1/saidas/08-portao-de-conteudo.txt | 74c9d3eb779c93bb4bacb517d45a2b70082e5c16c547b786b6fde5063160428b |
 | correcao-1/saidas/09-excecoes-atuais.txt | be70fffde30c5cb9abbbedf8b3823e96a040567c2e163a2001056c99eb2f3c1b |
+| correcao-2/RESUMO.md | 95a52f4d464b79ab7f03124aeb8fb3825a8b38f45364b99f79b6746c40bd3490 |
+| correcao-2/diff-da-correcao.patch | 2dc6201a18fd7d0b74954f1b82c9819d3f6fe386eb2b7f31aad31e111a7fa4ed |
+| correcao-2/saidas/01-doctor-antes.txt | cb91d942f0fcfd560ce9d358b059e95d2006c29ba02b1735a5b66b476d9459ee |
+| correcao-2/saidas/02-install-fix.txt | 78c7b1d9f7b437a5bea78871de48b0e0b03a13ec7103badd07a2b6afc528cade |
+| correcao-2/saidas/03-auditar.txt | 726cf22bb5d661f7a716b5ba0fb689236a71055628e60395a2d8c24312e4d1c6 |
+| correcao-2/saidas/04-doctor-depois.txt | dedf60f4f025062b414f5ef3786bd0d894ab7288cad4d70d810e8c970179fcc3 |
+| correcao-2/saidas/05-typecheck.txt | 618492d4cee36ccfbde28d71de72d45a939619df339503ca79b283b0ed297c0c |
+| correcao-2/saidas/06-test-campo.txt | c19f9eda3dab39fe9a6316fa73c644a62abd321797800e5d92f8ce244f4138a9 |
+| correcao-2/saidas/07-test-pacote-campo.txt | 084ef2cd6bb554e9e2dd9496811adaf9d1ece13f780d37ebed7a4074e37e8e8b |
+| correcao-2/saidas/08-numeros.txt | 7d8495e012ef9b735ff6bd3117dbf65b1433aec6899c38ad2c573d4045f9fccf |
 | saidas/01-auditar.txt | f3ac3cae828cab1ab08277243da0c605aa522f998fc5fadee16ab585ecd3b0aa |
 | saidas/02-auditar-test.txt | 40e7693258ba85c64cf9cfabe40fadc684157a3f432f9851b775f54e02db5033 |
 | saidas/03-expo-doctor.txt | 3398056cdac22661840b6afb1ba2611b95dcc2d9282fac3680367cc603c30b98 |

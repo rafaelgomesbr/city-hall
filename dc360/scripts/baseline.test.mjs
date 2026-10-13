@@ -213,18 +213,31 @@ const SAIDA_EXPO_20_DE_21 = [
   "\u2716 Check that packages match versions required by installed Expo SDK",
 ].join("\n");
 
-test("o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor espera 21 de 21, nomeando a deriva", () => {
+test("o esperado é o da árvore verde: auditar fecha em 0 e o expo-doctor espera 21 de 21, sem divergência explicada", () => {
   assert.deepEqual(PASSOS.find((p) => p.id === "auditar").esperado, { codigo: 0 });
   const expo = PASSOS.find((p) => p.id === "expo-doctor");
   assert.deepEqual(expo.esperado, { codigo: 0, contem: "21/21 checks passed" });
-  assert.equal(expo.divergenciaExplicada.id, "V-DEP-4");
+  assert.equal(expo.divergenciaExplicada, undefined, "a deriva V-DEP-4 foi fechada em 2026-10-13: nenhuma explicação sobrevive no passo");
   // Os dois `npm audit` crus seguem vermelhos por desenho (a política do CP-03 está no `auditar`).
   assert.equal(PASSOS.find((p) => p.id === "audit-raiz").esperado.codigo, "falha");
   assert.equal(PASSOS.find((p) => p.id === "audit-campo").esperado.codigo, "falha");
 });
 
-test("o expo-doctor 20 de 21 é divergência EXPLICADA e nomeada, e saída diferente da descrita continua divergente", () => {
-  const expo = PASSOS.find((p) => p.id === "expo-doctor");
+test("a deriva do expo-doctor, quando descrita num passo, é divergência EXPLICADA e nomeada; sem descrição, é divergente", () => {
+  const real = PASSOS.find((p) => p.id === "expo-doctor");
+  // O passo real não descreve nada: 20 de 21 hoje seria deriva nova e sem explicação.
+  assert.equal(avaliar(real, SAIDA_EXPO_20_DE_21, 1).status, "divergente");
+  // O mecanismo continua coberto com um passo sintético que descreve a deriva V-DEP-4 de 2026-10-13.
+  const expo = {
+    ...real,
+    divergenciaExplicada: {
+      id: "V-DEP-4",
+      onde: "dc360/apps/campo/PENDENCIAS.md, item 17",
+      motivo: "seis pacotes do Expo um patch atrás do que o SDK 57 exige",
+      codigo: 1,
+      contem: ["20/21 checks passed", "Check that packages match versions required by installed Expo SDK"],
+    },
+  };
   const explicada = avaliar(expo, SAIDA_EXPO_20_DE_21, 1);
   assert.equal(explicada.status, "divergente-explicada");
   assert.equal(explicada.explicacao.id, "V-DEP-4");
@@ -312,12 +325,10 @@ test("todo passo do roteiro com total esperado aparece na medição do conferir:
   }
 });
 
-test("a divergência explicada aponta para registros que existem", () => {
+test("o registro da deriva V-DEP-4 existe e diz que foi fechada", () => {
   const raiz = fileURLToPath(new URL("../..", import.meta.url));
-  const expo = PASSOS.find((p) => p.id === "expo-doctor").divergenciaExplicada;
   const pendencias = readFileSync(join(raiz, "dc360/apps/campo/PENDENCIAS.md"), "utf8");
-  assert.ok(expo.onde.includes("PENDENCIAS.md, item 17"));
-  assert.match(pendencias, /^## 17\. `expo-doctor` dá 20 de 21/m);
+  assert.match(pendencias, /^## 17\. `expo-doctor` deu 20 de 21 .*RESOLVIDO em 2026-10-13/m);
   const registro = readFileSync(join(raiz, "docs/evidencias-v2/G00/V2-F00-E03/classificacao-dos-vermelhos.md"), "utf8");
-  assert.ok(registro.includes(expo.id), `${expo.id} não está na classificação dos vermelhos`);
+  assert.ok(registro.includes("V-DEP-4"), "V-DEP-4 não está na classificação dos vermelhos");
 });

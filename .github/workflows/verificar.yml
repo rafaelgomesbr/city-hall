@@ -695,8 +695,8 @@ jobs:
     # (V2-F00-E01, correção 1). Ele sai com:
     #   0  todo passo "confere";
     #   1  há divergência, mas SÓ de passo que declara `divergenciaExplicada`
-    #      (achado nomeado, com o registro onde está descrito; hoje o
-    #      `expo-doctor` 20 de 21, V-DEP-4) e cuja saída bate com a descrição
+    #      (achado nomeado, com o registro onde está descrito; hoje
+    #      nenhum: o `expo-doctor` 20 de 21, V-DEP-4, foi fechado em 2026-10-13) e cuja saída bate com a descrição
     #      inteira;
     #   3  há divergência SEM explicação (defeito, deriva externa nova ou
     #      contabilidade atrasada);
@@ -716,7 +716,7 @@ jobs:
     #
     # Dois passos merecem atenção. O `expo-doctor` e os dois `npm audit` dependem
     # de rede e da base de avisos do dia. O `expo-doctor` espera 21 de 21 e hoje
-    # dá 20 de 21 (explicada, V-DEP-4); os dois `npm audit` esperam vermelho por
+    # dá 21 de 21 (a deriva V-DEP-4 foi fechada em 2026-10-13); os dois `npm audit` esperam vermelho por
     # desenho (a política do CP-03 está em `npm run auditar`, que espera 0). Um
     # `npm audit` que fechar em 0, ou um advisory que derrube o `auditar`, faz o
     # job FALHAR: é o que se quer, alguém precisa explicar.
