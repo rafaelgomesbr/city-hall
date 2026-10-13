@@ -191,3 +191,4 @@ details.det details.det > summary { font-weight: 500; font-size: .9rem; padding:
 .tab-et td.m { font-family: var(--mono); white-space: nowrap; }
 .rolavel-x { overflow-x: auto; }
 .premissas { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: .88rem; }
+.rodape a.sair { color: var(--accent); font-weight: 600; margin-left: 8px; }

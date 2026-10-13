@@ -148,6 +148,11 @@ test("a seção de prazo diz se o cenário conservador cabe no teto desejado e c
   assert.match(dentro, /O ritmo medido hoje/);
 });
 
+test("o link de saída só aparece quando pedido", () => {
+  assert.doesNotMatch(montar().html, /href="\/progresso\/sair"/);
+  assert.match(montar({ linkDeSaida: "/progresso/sair" }).html, /<a class="sair" href="\/progresso\/sair">Sair<\/a>/);
+});
+
 test("linha do tempo traz os marcos do arquivo e o 'a seguir' do editorial", () => {
   const { html } = montar();
   assert.match(html, /Início da fase 1\./);

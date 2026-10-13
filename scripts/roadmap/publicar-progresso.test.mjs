@@ -21,6 +21,7 @@ test("os três comandos rodam na ordem coleta, estimativa e página, com os cami
   const pagina = cmds[2].args;
   assert.ok(pagina.includes(c.pagina));
   assert.ok(pagina.includes("--sem-indexar"));
+  assert.equal(pagina[pagina.indexOf("--link-de-saida") + 1], "/progresso/sair");
   assert.equal(pagina[pagina.indexOf("--imagens-externas") + 1], "/progresso/img");
   assert.equal(pagina[pagina.indexOf("--pasta-de-imagens") + 1], c.imagens);
   assert.equal(cmds[0].args[cmds[0].args.indexOf("--desde") + 1], "2026-10-06");
@@ -35,5 +36,8 @@ test("a senha nunca aparece em nenhum arquivo do site nem nos comandos", async (
     assert.doesNotMatch(texto, /defesacivil/i, arquivo);
   }
   assert.doesNotMatch(JSON.stringify(comandosDeGeracao({ hoje: "2026-10-13" })), /defesacivil/i);
-  assert.match(readFileSync(join(RAIZ, "docs", "relatorios-v2", "site", "middleware.js"), "utf8"), /process\.env\.PROGRESSO_SENHA/);
+  const mw = readFileSync(join(RAIZ, "docs", "relatorios-v2", "site", "middleware.js"), "utf8");
+  assert.match(mw, /process\.env\.PROGRESSO_SENHA/);
+  assert.match(mw, /process\.env\.PROGRESSO_SEGREDO/);
+  assert.match(mw, /HttpOnly; Secure; SameSite=Lax/);
 });

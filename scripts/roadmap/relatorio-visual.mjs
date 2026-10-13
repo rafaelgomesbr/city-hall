@@ -471,12 +471,12 @@ function secaoDecisoes({ editorial }) {
 
 /* ---------- Montagem ---------- */
 
-export function montarRelatorio({ coleta, estimativa, editorial, linha, blocos, css, raiz = RAIZ, resolverImagem = (arquivo) => dataUri(arquivo, raiz) }) {
+export function montarRelatorio({ coleta, estimativa, editorial, linha, blocos, css, raiz = RAIZ, resolverImagem = (arquivo) => dataUri(arquivo, raiz), linkDeSaida = null }) {
   const contagens = contarStatus(coleta.statusPorEtapa);
   const anoRef = Number(coleta.periodo.ate.slice(0, 4));
   const problemas = conferirTextos({ editorial, linha, concluidas: contagens.concluidas });
   const [a, m, d] = coleta.periodo.ate.split("-");
-  const rodape = `<p class="rodape">Fonte: estado do projeto no repositório em ${d}/${m}/${a} (commit ${esc(coleta.base.shaCurto)}, ramo ${esc(coleta.base.ramo)}). "Concluída" só vale para etapa validada e com as conferências humanas feitas. A estimativa de prazo foi recalculada nesta data e muda a cada semana.</p>`;
+  const rodape = `<p class="rodape">Fonte: estado do projeto no repositório em ${d}/${m}/${a} (commit ${esc(coleta.base.shaCurto)}, ramo ${esc(coleta.base.ramo)}). "Concluída" só vale para etapa validada e com as conferências humanas feitas. A estimativa de prazo foi recalculada nesta data e muda a cada semana.${linkDeSaida ? ` <a class="sair" href="${esc(linkDeSaida)}">Sair</a>` : ""}</p>`;
   const partes = [
     secaoTopo({ coleta, contagens, editorial, anoRef }),
     secaoProgresso({ coleta, contagens }),
@@ -522,6 +522,7 @@ function principal(argv) {
     else if (a === "--saida") op.saida = args[++i];
     else if (a === "--completo") op.completo = true;
     else if (a === "--sem-indexar") op.semIndexar = true;
+    else if (a === "--link-de-saida") op.linkDeSaida = args[++i];
     else if (a === "--imagens-externas") op.prefixoDasImagens = args[++i];
     else if (a === "--pasta-de-imagens") op.pastaDasImagens = args[++i];
     else {
@@ -557,7 +558,7 @@ function principal(argv) {
       return `${op.prefixoDasImagens.replace(/\/$/, "")}/${nome}`;
     };
   }
-  const r = montarRelatorio({ coleta, estimativa, editorial, linha, blocos, css, ...(resolverImagem ? { resolverImagem } : {}) });
+  const r = montarRelatorio({ coleta, estimativa, editorial, linha, blocos, css, ...(resolverImagem ? { resolverImagem } : {}), linkDeSaida: op.linkDeSaida ?? null });
   if (r.problemas.length) {
     console.error(`O texto não passa na conferência (${r.problemas.length} problema(s)):`);
     for (const p of r.problemas) console.error(`  - ${p}`);

@@ -64,6 +64,7 @@ export function comandosDeGeracao({ hoje, raiz = RAIZ }) {
         "--saida", c.pagina,
         "--completo",
         "--sem-indexar",
+        "--link-de-saida", "/progresso/sair",
         "--imagens-externas", "/progresso/img",
         "--pasta-de-imagens", c.imagens,
       ],
