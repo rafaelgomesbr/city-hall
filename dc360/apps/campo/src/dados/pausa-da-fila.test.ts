@@ -70,3 +70,28 @@ describe("frases da pausa", () => {
     expect(ESPERA_COM_A_FILA_PAUSADA_MS).toBeGreaterThan(15_000);
   });
 });
+
+/**
+ * Nenhuma frase da pausa promete envio fora do aplicativo (V2-F00-E16, correção 1).
+ *
+ * A fila só envia com o aplicativo aberto. "Elas sobem sozinhas" lido por quem
+ * acabou de fechar o aplicativo é a promessa de segundo plano que a etapa tirou.
+ */
+describe("as frases da pausa não prometem envio em segundo plano", () => {
+  const FALSA = /segundo plano|fechado|assim que houver sinal|(sai|sobe|sobem|acontece) sozinh/i;
+
+  it.each(["sessao_encerrada", "conta_desativada", "troca_de_senha_obrigatoria"] as const)(
+    "%s: nenhum dos cinco textos promete",
+    (motivo) => {
+      const f = frasesDaPausa(motivo);
+      for (const texto of [f.titulo, f.detalhe, f.faixaTitulo, f.faixaDetalhe, f.doCartao]) {
+        expect(texto).not.toMatch(FALSA);
+      }
+    },
+  );
+
+  it("quando a coleta sobe depois de entrar, a frase diz que o aplicativo está aberto", () => {
+    expect(frasesDaPausa("sessao_encerrada").detalhe).toMatch(/com o aplicativo aberto/);
+    expect(frasesDaPausa("troca_de_senha_obrigatoria").detalhe).toMatch(/com o aplicativo aberto/);
+  });
+});

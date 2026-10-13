@@ -1,0 +1,818 @@
+# ANTES: os testes novos e os reescritos contra os cinco arquivos de produto de a5da710. 12 casos reprovam.
+
+FAIL src/dados/pausa-da-fila.test.ts
+  ● as frases da pausa não prometem envio em segundo plano › sessao_encerrada: nenhum dos cinco textos promete
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /segundo plano|fechado|assim que houver sinal|(sai|sobe|sobem|acontece) sozinh/i
+    Received string:      "Suas coletas continuam guardadas neste aparelho e nada foi apagado. Entre de novo com o seu email e a sua senha: assim que você entrar, elas sobem sozinhas."
+
+      86 |       const f = frasesDaPausa(motivo);
+      87 |       for (const texto of [f.titulo, f.detalhe, f.faixaTitulo, f.faixaDetalhe, f.doCartao]) {
+    > 88 |         expect(texto).not.toMatch(FALSA);
+         |                           ^
+      89 |       }
+      90 |     },
+      91 |   );
+
+      at toMatch (src/dados/pausa-da-fila.test.ts:88:27)
+
+  ● as frases da pausa não prometem envio em segundo plano › troca_de_senha_obrigatoria: nenhum dos cinco textos promete
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /segundo plano|fechado|assim que houver sinal|(sai|sobe|sobem|acontece) sozinh/i
+    Received string:      "Suas coletas continuam guardadas neste aparelho e nada foi apagado. Defina a sua senha no painel, no computador (a tela de entrada pede isso), e depois entre aqui de novo: assim que você entrar, elas sobem sozinhas."
+
+      86 |       const f = frasesDaPausa(motivo);
+      87 |       for (const texto of [f.titulo, f.detalhe, f.faixaTitulo, f.faixaDetalhe, f.doCartao]) {
+    > 88 |         expect(texto).not.toMatch(FALSA);
+         |                           ^
+      89 |       }
+      90 |     },
+      91 |   );
+
+      at toMatch (src/dados/pausa-da-fila.test.ts:88:27)
+
+  ● as frases da pausa não prometem envio em segundo plano › quando a coleta sobe depois de entrar, a frase diz que o aplicativo está aberto
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /com o aplicativo aberto/
+    Received string:  "Suas coletas continuam guardadas neste aparelho e nada foi apagado. Entre de novo com o seu email e a sua senha: assim que você entrar, elas sobem sozinhas."
+
+      92 |
+      93 |   it("quando a coleta sobe depois de entrar, a frase diz que o aplicativo está aberto", () => {
+    > 94 |     expect(frasesDaPausa("sessao_encerrada").detalhe).toMatch(/com o aplicativo aberto/);
+         |                                                       ^
+      95 |     expect(frasesDaPausa("troca_de_senha_obrigatoria").detalhe).toMatch(/com o aplicativo aberto/);
+      96 |   });
+      97 | });
+
+      at Object.toMatch (src/dados/pausa-da-fila.test.ts:94:55)
+
+FAIL src/dados/falha-de-atualizacao.test.ts
+  ● nenhuma frase da falha promete envio em segundo plano (V2-F00-E16, correção 1) › acesso-suspenso: nem o resumo nem o detalhe prometem
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /segundo plano|fechado|assim que houver sinal|(sai|sobe|sobem|acontece) sozinh/i
+    Received string:      "O fornecedor do sistema suspendeu o acesso da sua prefeitura, e por isso nada novo desce para este aparelho. Sair da conta ou tentar entrar outra vez não resolve: quem resolve é quem administra o contrato na prefeitura. O que você já coletou continua guardado no aparelho e sobe sozinho se o acesso voltar."
+
+      180 |     const frase = comoContarAFalha(motivo, "a lista");
+      181 |     expect(frase.resumo).not.toMatch(FALSA);
+    > 182 |     expect(frase.detalhe).not.toMatch(FALSA);
+          |                               ^
+      183 |   });
+      184 |
+      185 |   it("o acesso suspenso diz que a coleta sobe se o acesso voltar, com o aplicativo aberto", () => {
+
+      at toMatch (src/dados/falha-de-atualizacao.test.ts:182:31)
+
+  ● nenhuma frase da falha promete envio em segundo plano (V2-F00-E16, correção 1) › o acesso suspenso diz que a coleta sobe se o acesso voltar, com o aplicativo aberto
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /sobe se o acesso voltar, com o aplicativo aberto/
+    Received string:  "O fornecedor do sistema suspendeu o acesso da sua prefeitura, e por isso nada novo desce para este aparelho. Sair da conta ou tentar entrar outra vez não resolve: quem resolve é quem administra o contrato na prefeitura. O que você já coletou continua guardado no aparelho e sobe sozinho se o acesso voltar."
+
+      185 |   it("o acesso suspenso diz que a coleta sobe se o acesso voltar, com o aplicativo aberto", () => {
+      186 |     expect(comoContarAFalha("acesso-suspenso", "a lista").detalhe)
+    > 187 |       .toMatch(/sobe se o acesso voltar, com o aplicativo aberto/);
+          |        ^
+      188 |   });
+      189 | });
+      190 |
+
+      at Object.toMatch (src/dados/falha-de-atualizacao.test.ts:187:8)
+
+FAIL src/ui/fila-pausada-pela-sessao.test.tsx
+  ● sessão encerrada › o cartão da coleta não promete 'vai sair quando o aplicativo estiver aberto e houver sinal'
+
+    Unable to find an element with text: /Sobe depois que você entrar de novo/
+
+    <RCTScrollView>
+      <View>
+        <View
+          accessibilityLabel="2, coletas na fila"
+          accessible={true}
+        >
+          <Text>
+            0
+          </Text>
+          <Text>
+            coletas na fila
+          </Text>
+        </View>
+        <View>
+          <View />
+          <View
+            accessibilityLabel="Minhas coletas, 2 itens"
+            accessibilityRole="header"
+            accessible={true}
+          >
+            <View
+              accessibilityElementsHidden={true}
+              importantForAccessibility="no-hide-descendants"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+            <Text>
+              Minhas coletas
+            </Text>
+            <View />
+            <View>
+              <Text>
+                2
+              </Text>
+            </View>
+          </View>
+          <View
+            accessibilityRole="alert"
+          >
+            <View>
+              <View
+                accessibilityLabel="Perigo"
+                accessible={true}
+              >
+                <Text>
+                  ×
+                </Text>
+              </View>
+              <View>
+                <Text>
+                  Sua sessão terminou e o envio está parado
+                </Text>
+                <Text>
+                  Suas coletas continuam guardadas neste aparelho e nada foi apagado. Entre de novo com o seu email e a sua senha: assim que você entrar, elas sobem sozinhas.
+                </Text>
+              </View>
+            </View>
+            <View
+              accessibilityLabel="Entrar de novo com o seu email e a sua senha, sem apagar as coletas"
+              accessibilityRole="button"
+              accessibilityState={
+                {
+                  "busy": false,
+                  "disabled": false,
+                }
+              }
+              accessible={true}
+              testID="entrar-de-novo-pela-fila"
+            >
+              <View
+                testID="entrar-de-novo-pela-fila-rotulo"
+              >
+                <Text>
+                  Entrar de novo
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View>
+            <View>
+              <View>
+                <View
+                  accessibilityElementsHidden={true}
+                  importantForAccessibility="no-hide-descendants"
+                >
+                  <RNSVGSvgView>
+                    <RNSVGGroup>
+                      <RNSVGPath />
+                      <RNSVGPath />
+                    </RNSVGGroup>
+                  </RNSVGSvgView>
+                </View>
+                <Text>
+                  2026/000471
+                </Text>
+                <View />
+                <View
+                  accessibilityLabel="Protocolo 2026/000471: Guardada"
+                  accessibilityRole="text"
+                  accessible={true}
+                >
+                  <Text>
+                    ⏸
+                  </Text>
+                  <Text>
+                    Guardada
+                  </Text>
+                </View>
+              </View>
+              <Text>
+                Guardada neste aparelho. Sobe sozinha depois que você entrar de novo.
+              </Text>
+              <Text>
+                Coletada em 
+                06/10/2026, 06:00:00
+              </Text>
+            </View>
+          </View>
+          <View>
+            <View>
+              <View>
+                <View
+                  accessibilityElementsHidden={true}
+                  importantForAccessibility="no-hide-descendants"
+                >
+                  <RNSVGSvgView>
+                    <RNSVGGroup>
+                      <RNSVGPath />
+                      <RNSVGPath />
+                    </RNSVGGroup>
+                  </RNSVGSvgView>
+                </View>
+                <Text>
+                  2026/000472
+                </Text>
+                <View />
+                <View
+                  accessibilityLabel="Protocolo 2026/000472: Guardada"
+                  accessibilityRole="text"
+                  accessible={true}
+                >
+                  <Text>
+                    ⏸
+                  </Text>
+                  <Text>
+                    Guardada
+                  </Text>
+                </View>
+              </View>
+              <Text>
+                Guardada neste aparelho. Sobe sozinha depois que você entrar de novo.
+              </Text>
+              <Text>
+                Coletada em 
+                06/10/2026, 06:00:00
+              </Text>
+            </View>
+          </View>
+        </View>
+        <View
+          accessibilityLabel="Tentar enviar agora"
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "busy": false,
+              "disabled": false,
+            }
+          }
+          accessible={true}
+        >
+          <RNSVGSvgView
+            pointerEvents="none"
+          >
+            <RNSVGGroup>
+              <RNSVGDefs>
+                <RNSVGLinearGradient />
+              </RNSVGDefs>
+              <RNSVGRect />
+            </RNSVGGroup>
+          </RNSVGSvgView>
+          <View>
+            <Text>
+              Tentar enviar agora
+            </Text>
+          </View>
+        </View>
+        <Text>
+          O envio acontece sozinho, em segundo plano. Este botão é para quando você quer ver acontecer.
+        </Text>
+      </View>
+    </RCTScrollView>
+
+      133 |     expect(screen.queryByText(/assim que houver sinal/)).toBeNull();
+      134 |     expect(screen.getAllByText("Guardada")).toHaveLength(2);
+    > 135 |     expect(screen.getAllByText(/Sobe depois que você entrar de novo/)).toHaveLength(2);
+          |                   ^
+      136 |   });
+      137 |
+      138 |   it("nenhuma coleta ganha 'Descartar' nem 'Tentar de novo'", async () => {
+
+      at Object.getAllByText (src/ui/fila-pausada-pela-sessao.test.tsx:135:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL src/ui/fila-como-produto.test.tsx
+  ● a espera de abertura tem saída › o estado de desistência diz que nada se perdeu, porque nada se perdeu
+
+    Unable to find an element with text: /continua no aparelho e sai quando o aplicativo estiver aberto/
+
+    <View>
+      <View>
+        <View
+          accessibilityElementsHidden={true}
+          importantForAccessibility="no-hide-descendants"
+        >
+          <RNSVGSvgView>
+            <RNSVGGroup>
+              <RNSVGPath />
+              <RNSVGPath />
+              <RNSVGCircle />
+            </RNSVGGroup>
+          </RNSVGSvgView>
+        </View>
+        <Text>
+          A fila não abriu
+        </Text>
+        <Text>
+          Nada se perdeu: o que estava guardado continua no aparelho e sai sozinho quando a conexão voltar. Dá para tentar abrir de novo.
+        </Text>
+        <View
+          accessibilityLabel="Tentar abrir a fila de envio de novo"
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "busy": false,
+              "disabled": false,
+            }
+          }
+          accessible={true}
+          testID="abrir-a-fila-de-novo"
+        >
+          <RNSVGSvgView
+            pointerEvents="none"
+          >
+            <RNSVGGroup>
+              <RNSVGDefs>
+                <RNSVGLinearGradient />
+              </RNSVGDefs>
+              <RNSVGRect />
+            </RNSVGGroup>
+          </RNSVGSvgView>
+          <View
+            testID="abrir-a-fila-de-novo-rotulo"
+          >
+            <Text>
+              Tentar abrir de novo
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      666 |     await act(async () => { fireEvent.press(screen.getByText("Parar de esperar")); });
+      667 |
+    > 668 |     expect(screen.getByText(/continua no aparelho e sai quando o aplicativo estiver aberto/)).toBeTruthy();
+          |                   ^
+      669 |   });
+      670 |
+      671 |   it("'Tentar abrir de novo' abre a fila de verdade", async () => {
+
+      at Object.getByText (src/ui/fila-como-produto.test.tsx:668:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a fila não promete envio em segundo plano nem com o aplicativo fechado › a fila zerada diz que o que vier depois sobe com o aplicativo aberto e rede
+
+    Unable to find an element with text: /sobe quando o aplicativo estiver aberto e houver rede/
+
+    <RCTScrollView>
+      <View>
+        <View>
+          <View>
+            <View>
+              <View
+                accessibilityElementsHidden={true}
+                importantForAccessibility="no-hide-descendants"
+              >
+                <View>
+                  <RNSVGSvgView>
+                    <RNSVGGroup>
+                      <RNSVGCircle />
+                      <RNSVGPath />
+                    </RNSVGGroup>
+                  </RNSVGSvgView>
+                </View>
+              </View>
+              <Text>
+                Tudo o que você fez já chegou
+              </Text>
+              <Text>
+                Nenhuma coleta esperando envio neste aparelho. Toda vistoria concluída aqui já está com a coordenação, e o envio do que vier depois acontece sozinho, em segundo plano.
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </RCTScrollView>
+
+      1448 |
+      1449 |     expect(screen.getByText("Tudo o que você fez já chegou")).toBeTruthy();
+    > 1450 |     expect(screen.getByText(/sobe quando o aplicativo estiver aberto e houver rede/)).toBeTruthy();
+           |                   ^
+      1451 |     nenhumTextoPromete();
+      1452 |   });
+      1453 |
+
+      at Object.getByText (src/ui/fila-como-produto.test.tsx:1450:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a fila não promete envio em segundo plano nem com o aplicativo fechado › com coleta na fila e com sinal, a legenda do botão diz a condição
+
+    Unable to find an element with text: /Com o aplicativo aberto e com sinal, o envio acontece sem você tocar/
+
+    <RCTScrollView>
+      <View>
+        <View
+          accessibilityLabel="1, coleta na fila"
+          accessible={true}
+        >
+          <Text>
+            0
+          </Text>
+          <Text>
+            coleta na fila
+          </Text>
+        </View>
+        <View>
+          <View />
+          <View
+            accessibilityLabel="Minhas coletas, 1 item"
+            accessibilityRole="header"
+            accessible={true}
+          >
+            <View
+              accessibilityElementsHidden={true}
+              importantForAccessibility="no-hide-descendants"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+            <Text>
+              Minhas coletas
+            </Text>
+            <View />
+            <View>
+              <Text>
+                1
+              </Text>
+            </View>
+          </View>
+          <View>
+            <View>
+              <View>
+                <View
+                  accessibilityElementsHidden={true}
+                  importantForAccessibility="no-hide-descendants"
+                >
+                  <RNSVGSvgView>
+                    <RNSVGGroup>
+                      <RNSVGPath />
+                      <RNSVGPath />
+                    </RNSVGGroup>
+                  </RNSVGSvgView>
+                </View>
+                <Text>
+                  2026/000123
+                </Text>
+                <View />
+                <View
+                  accessibilityLabel="Protocolo 2026/000123: Aguardando"
+                  accessibilityRole="text"
+                  accessible={true}
+                >
+                  <Text>
+                    …
+                  </Text>
+                  <Text>
+                    Aguardando
+                  </Text>
+                </View>
+              </View>
+              <Text>
+                Ainda não saiu do aparelho. Vai sair assim que houver sinal.
+              </Text>
+              <Text>
+                Coletada em 
+                09/09/2026, 06:00:00
+              </Text>
+            </View>
+          </View>
+        </View>
+        <View
+          accessibilityLabel="Tentar enviar agora"
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "busy": false,
+              "disabled": false,
+            }
+          }
+          accessible={true}
+        >
+          <RNSVGSvgView
+            pointerEvents="none"
+          >
+            <RNSVGGroup>
+              <RNSVGDefs>
+                <RNSVGLinearGradient />
+              </RNSVGDefs>
+              <RNSVGRect />
+            </RNSVGGroup>
+          </RNSVGSvgView>
+          <View>
+            <Text>
+              Tentar enviar agora
+            </Text>
+          </View>
+        </View>
+        <Text>
+          O envio acontece sozinho, em segundo plano. Este botão é para quando você quer ver acontecer.
+        </Text>
+      </View>
+    </RCTScrollView>
+
+      1456 |     await abrirATela();
+      1457 |
+    > 1458 |     expect(screen.getByText(/Com o aplicativo aberto e com sinal, o envio acontece sem você tocar/))
+           |                   ^
+      1459 |       .toBeTruthy();
+      1460 |     nenhumTextoPromete();
+      1461 |   });
+
+      at Object.getByText (src/ui/fila-como-produto.test.tsx:1458:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a fila não promete envio em segundo plano nem com o aplicativo fechado › sem sinal, o aviso e o cartão não prometem envio fora do aplicativo
+
+    Unable to find an element with text: /sai quando a conexão voltar, com o aplicativo aberto/
+
+    <RCTScrollView>
+      <View>
+        <View
+          accessibilityRole="text"
+        >
+          <View>
+            <View
+              accessibilityLabel="Atenção"
+              accessible={true}
+            >
+              <Text>
+                !
+              </Text>
+            </View>
+            <View>
+              <Text>
+                Sem sinal agora
+              </Text>
+              <Text>
+                Nada se perde: o que está aqui sai sozinho quando a conexão voltar, sem você precisar fazer nada.
+              </Text>
+            </View>
+          </View>
+        </View>
+        <View
+          accessibilityLabel="1, coleta na fila"
+          accessible={true}
+        >
+          <Text>
+            0
+          </Text>
+          <Text>
+            coleta na fila
+          </Text>
+        </View>
+        <View>
+          <View />
+          <View
+            accessibilityLabel="Minhas coletas, 1 item"
+            accessibilityRole="header"
+            accessible={true}
+          >
+            <View
+              accessibilityElementsHidden={true}
+              importantForAccessibility="no-hide-descendants"
+            >
+              <RNSVGSvgView>
+                <RNSVGGroup>
+                  <RNSVGPath />
+                  <RNSVGPath />
+                </RNSVGGroup>
+              </RNSVGSvgView>
+            </View>
+            <Text>
+              Minhas coletas
+            </Text>
+            <View />
+            <View>
+              <Text>
+                1
+              </Text>
+            </View>
+          </View>
+          <View>
+            <View>
+              <View>
+                <View
+                  accessibilityElementsHidden={true}
+                  importantForAccessibility="no-hide-descendants"
+                >
+                  <RNSVGSvgView>
+                    <RNSVGGroup>
+                      <RNSVGPath />
+                      <RNSVGPath />
+                    </RNSVGGroup>
+                  </RNSVGSvgView>
+                </View>
+                <Text>
+                  2026/000123
+                </Text>
+                <View />
+                <View
+                  accessibilityLabel="Protocolo 2026/000123: Aguardando"
+                  accessibilityRole="text"
+                  accessible={true}
+                >
+                  <Text>
+                    …
+                  </Text>
+                  <Text>
+                    Aguardando
+                  </Text>
+                </View>
+              </View>
+              <Text>
+                Ainda não saiu do aparelho. Vai sair assim que houver sinal.
+              </Text>
+              <Text>
+                Coletada em 
+                09/09/2026, 06:00:00
+              </Text>
+            </View>
+          </View>
+        </View>
+        <View
+          accessibilityLabel="Tentar enviar agora. Este botão volta assim que a conexão voltar."
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "busy": false,
+              "disabled": true,
+            }
+          }
+          accessible={true}
+        >
+          <RNSVGSvgView
+            pointerEvents="none"
+          >
+            <RNSVGGroup>
+              <RNSVGDefs>
+                <RNSVGLinearGradient />
+              </RNSVGDefs>
+              <RNSVGRect />
+            </RNSVGGroup>
+          </RNSVGSvgView>
+          <View>
+            <Text>
+              Tentar enviar agora
+            </Text>
+          </View>
+        </View>
+        <View>
+          <View
+            accessibilityElementsHidden={true}
+            importantForAccessibility="no-hide-descendants"
+          >
+            <RNSVGSvgView>
+              <RNSVGGroup>
+                <RNSVGPath />
+                <RNSVGPath />
+                <RNSVGCircle />
+              </RNSVGGroup>
+            </RNSVGSvgView>
+          </View>
+          <View>
+            <Text>
+              Este botão volta assim que a conexão voltar.
+            </Text>
+          </View>
+        </View>
+      </View>
+    </RCTScrollView>
+
+      1466 |     await abrirATela();
+      1467 |
+    > 1468 |     expect(screen.getByText(/sai quando a conexão voltar, com o aplicativo aberto/)).toBeTruthy();
+           |                   ^
+      1469 |     expect(screen.getByText(/Vai sair quando o aplicativo estiver aberto e houver sinal/)).toBeTruthy();
+      1470 |     nenhumTextoPromete();
+      1471 |   });
+
+      at Object.getByText (src/ui/fila-como-produto.test.tsx:1468:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a fila não promete envio em segundo plano nem com o aplicativo fechado › depois de várias tentativas, o cartão continua sem prometer o que o aparelho não faz
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "O envio acontece sozinho, em segundo plano. Este botão é para quando você quer ver acontecer.",
+    + ]
+
+      1441 |   function nenhumTextoPromete(): void {
+      1442 |     const promessas = textosNaTela().filter((t) => PROMESSA_FALSA.test(t));
+    > 1443 |     expect(promessas).toEqual([]);
+           |                       ^
+      1444 |   }
+      1445 |
+      1446 |   it("a fila zerada diz que o que vier depois sobe com o aplicativo aberto e rede", async () => {
+
+      at toEqual (src/ui/fila-como-produto.test.tsx:1443:23)
+      at Object.nenhumTextoPromete (src/ui/fila-como-produto.test.tsx:1478:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a fila não promete envio em segundo plano nem com o aplicativo fechado › a fila que não abriu também diz a condição
+
+    Unable to find an element with text: /sai quando o aplicativo estiver aberto e a conexão voltar/
+
+    <View>
+      <View>
+        <View
+          accessibilityElementsHidden={true}
+          importantForAccessibility="no-hide-descendants"
+        >
+          <RNSVGSvgView>
+            <RNSVGGroup>
+              <RNSVGPath />
+              <RNSVGPath />
+              <RNSVGCircle />
+            </RNSVGGroup>
+          </RNSVGSvgView>
+        </View>
+        <Text>
+          A fila não abriu
+        </Text>
+        <Text>
+          Nada se perdeu: o que estava guardado continua no aparelho e sai sozinho quando a conexão voltar. Dá para tentar abrir de novo.
+        </Text>
+        <View
+          accessibilityLabel="Tentar abrir a fila de envio de novo"
+          accessibilityRole="button"
+          accessibilityState={
+            {
+              "busy": false,
+              "disabled": false,
+            }
+          }
+          accessible={true}
+          testID="abrir-a-fila-de-novo"
+        >
+          <RNSVGSvgView
+            pointerEvents="none"
+          >
+            <RNSVGGroup>
+              <RNSVGDefs>
+                <RNSVGLinearGradient />
+              </RNSVGDefs>
+              <RNSVGRect />
+            </RNSVGGroup>
+          </RNSVGSvgView>
+          <View
+            testID="abrir-a-fila-de-novo-rotulo"
+          >
+            <Text>
+              Tentar abrir de novo
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+
+      1486 |     await act(async () => { fireEvent.press(screen.getByText("Parar de esperar")); });
+      1487 |
+    > 1488 |     expect(screen.getByText(/sai quando o aplicativo estiver aberto e a conexão voltar/)).toBeTruthy();
+           |                   ^
+      1489 |     nenhumTextoPromete();
+      1490 |   });
+      1491 | });
+
+      at Object.getByText (src/ui/fila-como-produto.test.tsx:1488:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 4 failed, 4 total
+Tests:       12 failed, 104 passed, 116 total
+Snapshots:   0 total
+Time:        5.25 s
+Ran all test suites matching /src\\ui\\fila-como-produto|src\\ui\\fila-pausada|src\\dados\\pausa-da-fila|src\\dados\\falha-de-atualizacao/i.

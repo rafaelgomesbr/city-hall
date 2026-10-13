@@ -1,0 +1,2108 @@
+# SONDA: com o fallback de FotoNaoGuardada trocado, os 2 casos novos reprovam (2 de 17). Restaurado.
+
+FAIL src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx (6.064 s)
+  a tela de 'vistoria guardada'
+    √ não promete envio com o aplicativo fechado, porque isso não existe (434 ms)
+  o formulário e o teclado
+    √ o primeiro toque fora do campo AGE, em vez de só fechar o teclado (131 ms)
+    √ a rolagem sabe a altura do teclado, para o campo digitado não ficar embaixo dele (145 ms)
+  a câmera em tela cheia
+    √ reserva a área segura de baixo, onde o menu escondido não está mais para reservar (124 ms)
+  a permissão negada
+    √ de câmera: a tarja traz 'Abrir os ajustes do aparelho', e o botão abre os ajustes (148 ms)
+    √ de localização: a mesma tarja, o mesmo botão (156 ms)
+    √ uma falha que não é de permissão não ganha o botão dos ajustes (202 ms)
+    √ o botão não sobrevive à falha seguinte, que não é de permissão (V2-F00-E16) (252 ms)
+    √ se o sistema recusar abrir os ajustes, nada estoura e a tarja continua (V2-F00-E16, correção 1) (137 ms)
+    √ o botão dos ajustes tem nome para o leitor de tela e área de toque de 44 (65 ms)
+  a foto que não ficou guardada, sem frase própria (V2-F00-E16, correção 1)
+    × erro sem mensagem: a tarja diz o fallback de guardar a foto (120 ms)
+    × algo que nem é Error: o mesmo fallback (102 ms)
+  a câmera que não disparou (V2-F00-E16)
+    √ continua com a frase genérica, porque o erro nativo não diz ao agente o que fazer (173 ms)
+  a precisão da leitura de GPS
+    √ abaixo de meio metro vira 1, e não zero (186 ms)
+    √ a leitura comum continua arredondada ao metro (149 ms)
+    √ aparelho que não informa a precisão grava nulo, que é 'não informada' (63 ms)
+  a foto que saiu vazia do disco
+    √ a tarja diz a frase certa, com o que fazer, e não a genérica (58 ms)
+
+  ● a foto que não ficou guardada, sem frase própria (V2-F00-E16, correção 1) › erro sem mensagem: a tarja diz o fallback de guardar a foto
+
+    Unable to find an element with text: A foto não ficou guardada neste aparelho. Tire a foto de novo.
+
+    <View>
+      <View
+        testID="tarja-de-erro"
+      >
+        <View
+          accessibilityRole="alert"
+        >
+          <View>
+            <View
+              accessibilityLabel="Perigo"
+              accessible={true}
+            >
+              <Text>
+                ×
+              </Text>
+            </View>
+            <View>
+              <Text>
+                Não deu certo
+              </Text>
+              <Text>
+                Falhou.
+              </Text>
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Fechar este aviso de erro"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "busy": false,
+                "disabled": false,
+              }
+            }
+            accessible={true}
+            testID="fechar-erro"
+          >
+            <View
+              testID="fechar-erro-rotulo"
+            >
+              <Text>
+                Fechar
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+      <RCTScrollView
+        testID="formulario-da-vistoria"
+      >
+        <View>
+          <View>
+            <View>
+              <Text>
+                2026/000123
+              </Text>
+              <View />
+              <View
+                accessibilityLabel="Severidade alta"
+                accessibilityRole="text"
+                accessible={true}
+              >
+                <RNSVGSvgView>
+                  <RNSVGGroup>
+                    <RNSVGPath />
+                    <RNSVGPath />
+                    <RNSVGPath />
+                  </RNSVGGroup>
+                </RNSVGSvgView>
+                <Text>
+                  Alta
+                </Text>
+              </View>
+            </View>
+            <Text>
+              Deslizamento
+            </Text>
+            <Text>
+              Servidão do Morro, 45
+            </Text>
+            <View>
+              <View>
+                <Text>
+                  Sem prazo definido
+                </Text>
+              </View>
+            </View>
+            <View
+              testID="acoes-do-cabecalho"
+            >
+              <View
+                accessibilityLabel="Abrir no mapa: escolher como chegar até Servidão do Morro, 45"
+                accessibilityRole="button"
+                accessibilityState={
+                  {
+                    "busy": false,
+                    "disabled": false,
+                  }
+                }
+                accessible={true}
+                testID="abrir-no-mapa"
+              >
+                <RNSVGSvgView>
+                  <RNSVGGroup>
+                    <RNSVGPath />
+                    <RNSVGCircle />
+                  </RNSVGGroup>
+                </RNSVGSvgView>
+                <View
+                  testID="abrir-no-mapa-rotulo"
+                >
+                  <Text>
+                    Abrir no mapa
+                  </Text>
+                </View>
+              </View>
+              <View
+                accessibilityLabel="Salvar e sair, voltando para a lista de tarefas sem perder o que já foi preenchido"
+                accessibilityRole="button"
+                accessibilityState={
+                  {
+                    "busy": false,
+                    "disabled": false,
+                  }
+                }
+                accessible={true}
+                testID="salvar-e-sair"
+              >
+                <View
+                  testID="salvar-e-sair-rotulo"
+                >
+                  <Text>
+                    Salvar e sair
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <View />
+            <Text>
+              Relato recebido
+            </Text>
+            <Text>
+              Barranco escorregou sobre os fundos da casa.
+            </Text>
+          </View>
+          <View
+            testID="ancora-progresso"
+          >
+            <View>
+              <Text>
+                Progresso da vistoria
+              </Text>
+              <View
+                accessibilityLabel="0 de 7, requisitos concluídos"
+                accessible={true}
+                testID="contagem-de-requisitos"
+              >
+                <Text>
+                  0 de 7
+                </Text>
+                <Text>
+                  requisitos concluídos
+                </Text>
+              </View>
+              <View
+                accessibilityLabel="0 de 7 requisitos concluídos"
+                accessibilityRole="progressbar"
+                accessibilityValue={
+                  {
+                    "max": 7,
+                    "min": 0,
+                    "now": 0,
+                  }
+                }
+                testID="barra-de-progresso"
+              >
+                <View />
+              </View>
+              <View
+                testID="lista-do-que-falta"
+              >
+                <Text>
+                  Faltam 4 itens:
+                </Text>
+                <View
+                  accessibilityLabel="Falta responder 4 itens obrigatórios do checklist. Toque para ir até onde isso se resolve."
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "disabled": false,
+                    }
+                  }
+                  accessible={true}
+                  testID="falta-checklist"
+                >
+                  <RNSVGSvgView>
+                    <RNSVGGroup>
+                      <RNSVGPath />
+                      <RNSVGPath />
+                      <RNSVGCircle />
+                    </RNSVGGroup>
+                  </RNSVGSvgView>
+                  <View>
+                    <Text>
+                      responder 4 itens obrigatórios do checklist
+                    </Text>
+                  </View>
+                  <Text>
+                    ›
+                  </Text>
+                </View>
+                <View
+                  accessibilityLabel="Falta tirar ao menos uma fotografia. Toque para ir até onde isso se resolve."
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "disabled": false,
+                    }
+                  }
+                  accessible={true}
+                  testID="falta-fotos"
+                >
+                  <RNSVGSvgView>
+                    <RNSVGGroup>
+                      <RNSVGPath />
+                      <RNSVGPath />
+                      <RNSVGCircle />
+                    </RNSVGGroup>
+                  </RNSVGSvgView>
+                  <View>
+                    <Text>
+                      tirar ao menos uma fotografia
+                    </Text>
+                  </View>
+                  <Text>
+                    ›
+                  </Text>
+                </View>
+                <View
+                  accessibilityLabel="Falta informar quem estava no local. Toque para ir até onde isso se resolve."
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "disabled": false,
+                    }
+                  }
+                  accessible={true}
+                  testID="falta-assinatura"
+                >
+                  <RNSVGSvgView>
+                    <RNSVGGroup>
+                      <RNSVGPath />
+                      <RNSVGPath />
+                      <RNSVGCircle />
+                    </RNSVGGroup>
+                  </RNSVGSvgView>
+                  <View>
+                    <Text>
+                      informar quem estava no local
+                    </Text>
+                  </View>
+                  <Text>
+                    ›
+                  </Text>
+                </View>
+                <View
+                  accessibilityLabel="Falta coletar e confirmar a assinatura de quem estava no local. Toque para ir até onde isso se resolve."
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "disabled": false,
+                    }
+                  }
+                  accessible={true}
+                  testID="falta-assinatura"
+                >
+                  <RNSVGSvgView>
+                    <RNSVGGroup>
+                      <RNSVGPath />
+                      <RNSVGPath />
+                      <RNSVGCircle />
+                    </RNSVGGroup>
+                  </RNSVGSvgView>
+                  <View>
+                    <Text>
+                      coletar e confirmar a assinatura de quem estava no local
+                    </Text>
+                  </View>
+                  <Text>
+                    ›
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+          <View
+            testID="ancora-checklist"
+          >
+            <View>
+              <View>
+                <RNSVGSvgView>
+                  <RNSVGGroup>
+                    <RNSVGPath />
+                    <RNSVGPath />
+                  </RNSVGGroup>
+                </RNSVGSvgView>
+                <Text>
+                  Checklist técnico
+                </Text>
+              </View>
+              <Text>
+                0
+                 de 
+                4
+                 itens obrigatórios respondidos
+              </Text>
+              <View>
+                <Text>
+                  Risco iminente identificado
+                </Text>
+                <View>
+                  <View
+                    accessibilityLabel="Risco iminente identificado: Sim"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Sim
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Risco iminente identificado: Não"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Não
+                    </Text>
+                  </View>
+                </View>
+                <View />
+              </View>
+              <View>
+                <Text>
+                  Evacuação necessária
+                </Text>
+                <View>
+                  <View
+                    accessibilityLabel="Evacuação necessária: Sim"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Sim
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Evacuação necessária: Não"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Não
+                    </Text>
+                  </View>
+                </View>
+                <View />
+              </View>
+              <View>
+                <Text>
+                  Interdição indicada
+                </Text>
+                <View>
+                  <View
+                    accessibilityLabel="Interdição indicada: Sim"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Sim
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Interdição indicada: Não"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Não
+                    </Text>
+                  </View>
+                </View>
+                <View />
+              </View>
+              <View>
+                <Text>
+                  Necessário acionar outro órgão
+                </Text>
+                <View>
+                  <View
+                    accessibilityLabel="Necessário acionar outro órgão: Sim"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Sim
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Necessário acionar outro órgão: Não"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Não
+                    </Text>
+                  </View>
+                </View>
+                <View />
+              </View>
+              <View>
+                <Text>
+                  Danos estruturais visíveis
+                  <Text>
+                      opcional
+                  </Text>
+                </Text>
+                <View>
+                  <View
+                    accessibilityLabel="Danos estruturais visíveis: Sim"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Sim
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Danos estruturais visíveis: Não"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Não
+                    </Text>
+                  </View>
+                </View>
+                <View />
+              </View>
+              <View>
+                <Text>
+                  Acesso ao imóvel comprometido
+                  <Text>
+                      opcional
+                  </Text>
+                </Text>
+                <View>
+                  <View
+                    accessibilityLabel="Acesso ao imóvel comprometido: Sim"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Sim
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Acesso ao imóvel comprometido: Não"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Não
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+          <View
+            testID="ancora-fotos"
+          >
+            <View>
+              <View>
+                <RNSVGSvgView>
+                  <RNSVGGroup>
+                    <RNSVGPath />
+                    <RNSVGCircle />
+                  </RNSVGGroup>
+                </RNSVGSvgView>
+                <Text>
+                  Fotografias (0)
+                </Text>
+              </View>
+              <Text>
+                Pelo menos uma fotografia é obrigatória. É ela que o coordenador olha antes de decidir o despacho.
+              </Text>
+              <View
+                accessibilityLabel="Tirar foto"
+                accessibilityRole="button"
+                accessibilityState={
+                  {
+                    "busy": false,
+                    "disabled": false,
+                  }
+                }
+                accessible={true}
+              >
+                <RNSVGSvgView>
+                  <RNSVGGroup>
+                    <RNSVGPath />
+                    <RNSVGCircle />
+                  </RNSVGGroup>
+                </RNSVGSvgView>
+                <View>
+                  <Text>
+                    Tirar foto
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+          <View
+            testID="ancora-localizacao"
+          >
+            <View>
+              <View>
+                <RNSVGSvgView>
+                  <RNSVGGroup>
+                    <RNSVGCircle />
+                    <RNSVGCircle />
+                    <RNSVGPath />
+                  </RNSVGGroup>
+                </RNSVGSvgView>
+                <Text>
+                  Localização
+                </Text>
+              </View>
+              <View>
+                <View
+                  testID="moldura-do-mapa"
+                >
+                  <View
+                    testID="area-do-plano"
+                  >
+                    <View>
+                      <View
+                        accessibilityLabel="Plano esquemático. Ainda não sei onde você está: o aparelho está procurando o GPS. O ponto do imóvel continua marcado."
+                        accessibilityRole="image"
+                      >
+                        <RNSVGSvgView>
+                          <RNSVGGroup>
+                            <RNSVGRect />
+                            <RNSVGGroup>
+                              <RNSVGCircle />
+                              <RNSVGCircle />
+                              <RNSVGCircle />
+                              <RNSVGLine />
+                              <RNSVGLine />
+                            </RNSVGGroup>
+                            <RNSVGPath />
+                            <RNSVGCircle
+                              testID="plano-imovel"
+                            />
+                            <RNSVGCircle />
+                          </RNSVGGroup>
+                        </RNSVGSvgView>
+                      </View>
+                      <Text>
+                        O topo do desenho é o norte. O desenho mostra a direção, não a distância.
+                      </Text>
+                      <Text>
+                        Ainda não sei onde você está: o aparelho está procurando o GPS. O ponto do imóvel continua marcado.
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <View
+                  accessibilityLabel="Plano esquemático. O seu município optou por não enviar coordenada ao Google. O desenho abaixo é feito pelo próprio aplicativo, com a distância e o rumo até o imóvel, e nenhuma informação sai daqui."
+                  accessibilityRole="summary"
+                  accessible={true}
+                >
+                  <View>
+                    <RNSVGSvgView>
+                      <RNSVGGroup>
+                        <RNSVGCircle />
+                        <RNSVGCircle />
+                        <RNSVGPath />
+                      </RNSVGGroup>
+                    </RNSVGSvgView>
+                    <Text>
+                      Plano esquemático
+                    </Text>
+                  </View>
+                  <Text>
+                    O seu município optou por não enviar coordenada ao Google. O desenho abaixo é feito pelo próprio aplicativo, com a distância e o rumo até o imóvel, e nenhuma informação sai daqui.
+                  </Text>
+                </View>
+              </View>
+              <View>
+                <View>
+                  <Text>
+                    Ponto informado
+                  </Text>
+                  <Text>
+                    -27.595378
+                    , 
+                    -48.548050
+                  </Text>
+                </View>
+                <View>
+                  <Text>
+                    Leitura do aparelho
+                  </Text>
+                  <Text>
+                    Ainda não capturada
+                  </Text>
+                </View>
+              </View>
+              <Text>
+                A leitura do aparelho é o que prova, no laudo, onde a vistoria aconteceu. Ela sobe junto com a coleta.
+              </Text>
+              <View
+                accessibilityLabel="Capturar localização"
+                accessibilityRole="button"
+                accessibilityState={
+                  {
+                    "busy": false,
+                    "disabled": false,
+                  }
+                }
+                accessible={true}
+                testID="capturar-localizacao"
+              >
+                <RNSVGSvgView>
+                  <RNSVGGroup>
+                    <RNSVGCircle />
+                    <RNSVGCircle />
+                    <RNSVGPath />
+                  </RNSVGGroup>
+                </RNSVGSvgView>
+                <View
+                  testID="capturar-localizacao-rotulo"
+                >
+                  <Text>
+                    Capturar localização
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+          <View
+            testID="ancora-assinatura"
+          >
+            <View>
+              <View>
+                <RNSVGSvgView>
+                  <RNSVGGroup>
+                    <RNSVGPath />
+                    <RNSVGPath />
+                  </RNSVGGroup>
+                </RNSVGSvgView>
+                <Text>
+                  Quem estava no local
+                </Text>
+              </View>
+              <View>
+                <Text>
+                  Nome de quem acompanhou e assina
+                </Text>
+                <View>
+                  <View>
+                    <TextInput
+                      accessibilityHint="É este nome que sai acima da linha de assinatura no laudo."
+                      accessibilityLabel="Nome de quem acompanhou e assina"
+                      placeholder="Nome completo"
+                      testID="nome-de-quem-assina"
+                      value=""
+                    />
+                  </View>
+                  <View
+                    pointerEvents="none"
+                    style={
+                      {
+                        "opacity": 0,
+                      }
+                    }
+                    testID="nome-de-quem-assina-anel-de-foco"
+                  />
+                </View>
+                <Text>
+                  É este nome que sai acima da linha de assinatura no laudo.
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View>
+            <Text>
+              Pessoas atingidas
+            </Text>
+            <Text>
+              Deixe em branco o que você não contou. Em branco não é zero.
+            </Text>
+            <View>
+              <Text>
+                Desalojados
+                 (opcional)
+              </Text>
+              <View>
+                <TextInput
+                  accessibilityHint="Saíram de casa e têm para onde ir: parente, vizinho, aluguel."
+                  accessibilityLabel="Desalojados, opcional"
+                  placeholder="não contado"
+                  testID="pessoas-desalojados"
+                  value=""
+                />
+                <View
+                  pointerEvents="none"
+                  style={
+                    {
+                      "opacity": 0,
+                    }
+                  }
+                  testID="pessoas-desalojados-anel-de-foco"
+                />
+              </View>
+              <Text>
+                Saíram de casa e têm para onde ir: parente, vizinho, aluguel.
+              </Text>
+            </View>
+            <View>
+              <Text>
+                Desabrigados
+                 (opcional)
+              </Text>
+              <View>
+                <TextInput
+                  accessibilityHint="Saíram de casa e dependem de abrigo público. É este número que decide se o município precisa abrir abrigo hoje."
+                  accessibilityLabel="Desabrigados, opcional"
+                  placeholder="não contado"
+                  testID="pessoas-desabrigados"
+                  value=""
+                />
+                <View
+                  pointerEvents="none"
+                  style={
+                    {
+                      "opacity": 0,
+                    }
+                  }
+                  testID="pessoas-desabrigados-anel-de-foco"
+                />
+              </View>
+              <Text>
+                Saíram de casa e dependem de abrigo público. É este número que decide se o município precisa abrir abrigo hoje.
+              </Text>
+            </View>
+            <View>
+              <Text>
+                Feridos
+                 (opcional)
+              </Text>
+              <View>
+                <TextInput
+                  accessibilityHint="Precisaram de atendimento de saúde."
+                  accessibilityLabel="Feridos, opcional"
+                  placeholder="não contado"
+                  testID="pessoas-feridos"
+                  value=""
+                />
+                <View
+                  pointerEvents="none"
+                  style={
+                    {
+                      "opacity": 0,
+                    }
+                  }
+                  testID="pessoas-feridos-anel-de-foco"
+                />
+              </View>
+              <Text>
+                Precisaram de atendimento de saúde.
+              </Text>
+            </View>
+            <View>
+              <Text>
+                Desaparecidos
+                 (opcional)
+              </Text>
+              <View>
+                <TextInput
+                  accessibilityHint="Não localizados até o fim da vistoria."
+                  accessibilityLabel="Desaparecidos, opcional"
+                  placeholder="não contado"
+                  testID="pessoas-desaparecidos"
+                  value=""
+                />
+                <View
+                  pointerEvents="none"
+                  style={
+                    {
+                      "opacity": 0,
+                    }
+                  }
+                  testID="pessoas-desaparecidos-anel-de-foco"
+                />
+              </View>
+              <Text>
+                Não localizados até o fim da vistoria.
+              </Text>
+            </View>
+            <View>
+              <Text>
+                Óbitos
+                 (opcional)
+              </Text>
+              <View>
+                <TextInput
+                  accessibilityHint="Confirmados no local."
+                  accessibilityLabel="Óbitos, opcional"
+                  placeholder="não contado"
+                  testID="pessoas-obitos"
+                  value=""
+                />
+                <View
+                  pointerEvents="none"
+                  style={
+                    {
+                      "opacity": 0,
+                    }
+                  }
+                  testID="pessoas-obitos-anel-de-foco"
+                />
+              </View>
+              <Text>
+                Confirmados no local.
+              </Text>
+            </View>
+          </View>
+          <View>
+            <Text>
+              Observações do agente
+            </Text>
+            <View>
+              <Text>
+                Observações do agente
+                 (opcional)
+              </Text>
+              <View>
+                <View>
+                  <TextInput
+                    accessibilityHint="O que o checklist não cobre e o laudo precisa registrar."
+                    accessibilityLabel="Observações do agente, opcional"
+                    placeholder="O que o checklist não cobre e o laudo precisa registrar"
+                    testID="observacoes-do-agente"
+                    value=""
+                  />
+                </View>
+                <View
+                  pointerEvents="none"
+                  style={
+                    {
+                      "opacity": 0,
+                    }
+                  }
+                  testID="observacoes-do-agente-anel-de-foco"
+                />
+              </View>
+              <Text>
+                O que o checklist não cobre e o laudo precisa registrar.
+              </Text>
+            </View>
+          </View>
+          <View
+            accessibilityRole="text"
+          >
+            <View>
+              <View
+                accessibilityLabel="Atenção"
+                accessible={true}
+              >
+                <Text>
+                  !
+                </Text>
+              </View>
+              <View>
+                <Text>
+                  Faltam 4 itens para concluir
+                </Text>
+                <Text>
+                  A lista, com o caminho para cada item, está no alto desta tela.
+                </Text>
+              </View>
+            </View>
+            <View
+              accessibilityLabel="Ir para a lista do que falta, no alto desta tela"
+              accessibilityRole="button"
+              accessibilityState={
+                {
+                  "busy": false,
+                  "disabled": false,
+                }
+              }
+              accessible={true}
+              testID="ver-o-que-falta"
+            >
+              <View
+                testID="ver-o-que-falta-rotulo"
+              >
+                <Text>
+                  Ver o que falta
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Revisar e concluir"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "busy": false,
+                "disabled": true,
+              }
+            }
+            accessible={true}
+          >
+            <RNSVGSvgView
+              pointerEvents="none"
+            >
+              <RNSVGGroup>
+                <RNSVGDefs>
+                  <RNSVGLinearGradient />
+                </RNSVGDefs>
+                <RNSVGRect />
+              </RNSVGGroup>
+            </RNSVGSvgView>
+            <View>
+              <Text>
+                Revisar e concluir
+              </Text>
+            </View>
+          </View>
+          <Text>
+            Tudo o que você preencheu já está guardado neste aparelho. O próximo passo mostra a minuta do laudo para você conferir com quem está no local, antes de a vistoria entrar na fila de envio.
+          </Text>
+        </View>
+      </RCTScrollView>
+    </View>
+
+      461 |     await act(async () => {});
+      462 |
+    > 463 |     expect(screen.getByText(FALLBACK)).toBeTruthy();
+          |                   ^
+      464 |     expect(screen.queryByText("O aparelho não conseguiu tirar a foto. Tente de novo.")).toBeNull();
+      465 |     expect(screen.queryByText("Abrir os ajustes do aparelho")).toBeNull();
+      466 |   });
+
+      at Object.getByText (src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx:463:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● a foto que não ficou guardada, sem frase própria (V2-F00-E16, correção 1) › algo que nem é Error: o mesmo fallback
+
+    Unable to find an element with text: A foto não ficou guardada neste aparelho. Tire a foto de novo.
+
+    <View>
+      <View
+        testID="tarja-de-erro"
+      >
+        <View
+          accessibilityRole="alert"
+        >
+          <View>
+            <View
+              accessibilityLabel="Perigo"
+              accessible={true}
+            >
+              <Text>
+                ×
+              </Text>
+            </View>
+            <View>
+              <Text>
+                Não deu certo
+              </Text>
+              <Text>
+                Falhou.
+              </Text>
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Fechar este aviso de erro"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "busy": false,
+                "disabled": false,
+              }
+            }
+            accessible={true}
+            testID="fechar-erro"
+          >
+            <View
+              testID="fechar-erro-rotulo"
+            >
+              <Text>
+                Fechar
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+      <RCTScrollView
+        testID="formulario-da-vistoria"
+      >
+        <View>
+          <View>
+            <View>
+              <Text>
+                2026/000123
+              </Text>
+              <View />
+              <View
+                accessibilityLabel="Severidade alta"
+                accessibilityRole="text"
+                accessible={true}
+              >
+                <RNSVGSvgView>
+                  <RNSVGGroup>
+                    <RNSVGPath />
+                    <RNSVGPath />
+                    <RNSVGPath />
+                  </RNSVGGroup>
+                </RNSVGSvgView>
+                <Text>
+                  Alta
+                </Text>
+              </View>
+            </View>
+            <Text>
+              Deslizamento
+            </Text>
+            <Text>
+              Servidão do Morro, 45
+            </Text>
+            <View>
+              <View>
+                <Text>
+                  Sem prazo definido
+                </Text>
+              </View>
+            </View>
+            <View
+              testID="acoes-do-cabecalho"
+            >
+              <View
+                accessibilityLabel="Abrir no mapa: escolher como chegar até Servidão do Morro, 45"
+                accessibilityRole="button"
+                accessibilityState={
+                  {
+                    "busy": false,
+                    "disabled": false,
+                  }
+                }
+                accessible={true}
+                testID="abrir-no-mapa"
+              >
+                <RNSVGSvgView>
+                  <RNSVGGroup>
+                    <RNSVGPath />
+                    <RNSVGCircle />
+                  </RNSVGGroup>
+                </RNSVGSvgView>
+                <View
+                  testID="abrir-no-mapa-rotulo"
+                >
+                  <Text>
+                    Abrir no mapa
+                  </Text>
+                </View>
+              </View>
+              <View
+                accessibilityLabel="Salvar e sair, voltando para a lista de tarefas sem perder o que já foi preenchido"
+                accessibilityRole="button"
+                accessibilityState={
+                  {
+                    "busy": false,
+                    "disabled": false,
+                  }
+                }
+                accessible={true}
+                testID="salvar-e-sair"
+              >
+                <View
+                  testID="salvar-e-sair-rotulo"
+                >
+                  <Text>
+                    Salvar e sair
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <View />
+            <Text>
+              Relato recebido
+            </Text>
+            <Text>
+              Barranco escorregou sobre os fundos da casa.
+            </Text>
+          </View>
+          <View
+            testID="ancora-progresso"
+          >
+            <View>
+              <Text>
+                Progresso da vistoria
+              </Text>
+              <View
+                accessibilityLabel="0 de 7, requisitos concluídos"
+                accessible={true}
+                testID="contagem-de-requisitos"
+              >
+                <Text>
+                  0 de 7
+                </Text>
+                <Text>
+                  requisitos concluídos
+                </Text>
+              </View>
+              <View
+                accessibilityLabel="0 de 7 requisitos concluídos"
+                accessibilityRole="progressbar"
+                accessibilityValue={
+                  {
+                    "max": 7,
+                    "min": 0,
+                    "now": 0,
+                  }
+                }
+                testID="barra-de-progresso"
+              >
+                <View />
+              </View>
+              <View
+                testID="lista-do-que-falta"
+              >
+                <Text>
+                  Faltam 4 itens:
+                </Text>
+                <View
+                  accessibilityLabel="Falta responder 4 itens obrigatórios do checklist. Toque para ir até onde isso se resolve."
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "disabled": false,
+                    }
+                  }
+                  accessible={true}
+                  testID="falta-checklist"
+                >
+                  <RNSVGSvgView>
+                    <RNSVGGroup>
+                      <RNSVGPath />
+                      <RNSVGPath />
+                      <RNSVGCircle />
+                    </RNSVGGroup>
+                  </RNSVGSvgView>
+                  <View>
+                    <Text>
+                      responder 4 itens obrigatórios do checklist
+                    </Text>
+                  </View>
+                  <Text>
+                    ›
+                  </Text>
+                </View>
+                <View
+                  accessibilityLabel="Falta tirar ao menos uma fotografia. Toque para ir até onde isso se resolve."
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "disabled": false,
+                    }
+                  }
+                  accessible={true}
+                  testID="falta-fotos"
+                >
+                  <RNSVGSvgView>
+                    <RNSVGGroup>
+                      <RNSVGPath />
+                      <RNSVGPath />
+                      <RNSVGCircle />
+                    </RNSVGGroup>
+                  </RNSVGSvgView>
+                  <View>
+                    <Text>
+                      tirar ao menos uma fotografia
+                    </Text>
+                  </View>
+                  <Text>
+                    ›
+                  </Text>
+                </View>
+                <View
+                  accessibilityLabel="Falta informar quem estava no local. Toque para ir até onde isso se resolve."
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "disabled": false,
+                    }
+                  }
+                  accessible={true}
+                  testID="falta-assinatura"
+                >
+                  <RNSVGSvgView>
+                    <RNSVGGroup>
+                      <RNSVGPath />
+                      <RNSVGPath />
+                      <RNSVGCircle />
+                    </RNSVGGroup>
+                  </RNSVGSvgView>
+                  <View>
+                    <Text>
+                      informar quem estava no local
+                    </Text>
+                  </View>
+                  <Text>
+                    ›
+                  </Text>
+                </View>
+                <View
+                  accessibilityLabel="Falta coletar e confirmar a assinatura de quem estava no local. Toque para ir até onde isso se resolve."
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "disabled": false,
+                    }
+                  }
+                  accessible={true}
+                  testID="falta-assinatura"
+                >
+                  <RNSVGSvgView>
+                    <RNSVGGroup>
+                      <RNSVGPath />
+                      <RNSVGPath />
+                      <RNSVGCircle />
+                    </RNSVGGroup>
+                  </RNSVGSvgView>
+                  <View>
+                    <Text>
+                      coletar e confirmar a assinatura de quem estava no local
+                    </Text>
+                  </View>
+                  <Text>
+                    ›
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+          <View
+            testID="ancora-checklist"
+          >
+            <View>
+              <View>
+                <RNSVGSvgView>
+                  <RNSVGGroup>
+                    <RNSVGPath />
+                    <RNSVGPath />
+                  </RNSVGGroup>
+                </RNSVGSvgView>
+                <Text>
+                  Checklist técnico
+                </Text>
+              </View>
+              <Text>
+                0
+                 de 
+                4
+                 itens obrigatórios respondidos
+              </Text>
+              <View>
+                <Text>
+                  Risco iminente identificado
+                </Text>
+                <View>
+                  <View
+                    accessibilityLabel="Risco iminente identificado: Sim"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Sim
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Risco iminente identificado: Não"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Não
+                    </Text>
+                  </View>
+                </View>
+                <View />
+              </View>
+              <View>
+                <Text>
+                  Evacuação necessária
+                </Text>
+                <View>
+                  <View
+                    accessibilityLabel="Evacuação necessária: Sim"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Sim
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Evacuação necessária: Não"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Não
+                    </Text>
+                  </View>
+                </View>
+                <View />
+              </View>
+              <View>
+                <Text>
+                  Interdição indicada
+                </Text>
+                <View>
+                  <View
+                    accessibilityLabel="Interdição indicada: Sim"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Sim
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Interdição indicada: Não"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Não
+                    </Text>
+                  </View>
+                </View>
+                <View />
+              </View>
+              <View>
+                <Text>
+                  Necessário acionar outro órgão
+                </Text>
+                <View>
+                  <View
+                    accessibilityLabel="Necessário acionar outro órgão: Sim"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Sim
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Necessário acionar outro órgão: Não"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Não
+                    </Text>
+                  </View>
+                </View>
+                <View />
+              </View>
+              <View>
+                <Text>
+                  Danos estruturais visíveis
+                  <Text>
+                      opcional
+                  </Text>
+                </Text>
+                <View>
+                  <View
+                    accessibilityLabel="Danos estruturais visíveis: Sim"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Sim
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Danos estruturais visíveis: Não"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Não
+                    </Text>
+                  </View>
+                </View>
+                <View />
+              </View>
+              <View>
+                <Text>
+                  Acesso ao imóvel comprometido
+                  <Text>
+                      opcional
+                  </Text>
+                </Text>
+                <View>
+                  <View
+                    accessibilityLabel="Acesso ao imóvel comprometido: Sim"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Sim
+                    </Text>
+                  </View>
+                  <View
+                    accessibilityLabel="Acesso ao imóvel comprometido: Não"
+                    accessibilityRole="radio"
+                    accessibilityState={
+                      {
+                        "checked": false,
+                        "disabled": false,
+                      }
+                    }
+                    accessible={true}
+                  >
+                    <Text>
+                      Não
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+          <View
+            testID="ancora-fotos"
+          >
+            <View>
+              <View>
+                <RNSVGSvgView>
+                  <RNSVGGroup>
+                    <RNSVGPath />
+                    <RNSVGCircle />
+                  </RNSVGGroup>
+                </RNSVGSvgView>
+                <Text>
+                  Fotografias (0)
+                </Text>
+              </View>
+              <Text>
+                Pelo menos uma fotografia é obrigatória. É ela que o coordenador olha antes de decidir o despacho.
+              </Text>
+              <View
+                accessibilityLabel="Tirar foto"
+                accessibilityRole="button"
+                accessibilityState={
+                  {
+                    "busy": false,
+                    "disabled": false,
+                  }
+                }
+                accessible={true}
+              >
+                <RNSVGSvgView>
+                  <RNSVGGroup>
+                    <RNSVGPath />
+                    <RNSVGCircle />
+                  </RNSVGGroup>
+                </RNSVGSvgView>
+                <View>
+                  <Text>
+                    Tirar foto
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+          <View
+            testID="ancora-localizacao"
+          >
+            <View>
+              <View>
+                <RNSVGSvgView>
+                  <RNSVGGroup>
+                    <RNSVGCircle />
+                    <RNSVGCircle />
+                    <RNSVGPath />
+                  </RNSVGGroup>
+                </RNSVGSvgView>
+                <Text>
+                  Localização
+                </Text>
+              </View>
+              <View>
+                <View
+                  testID="moldura-do-mapa"
+                >
+                  <View
+                    testID="area-do-plano"
+                  >
+                    <View>
+                      <View
+                        accessibilityLabel="Plano esquemático. Ainda não sei onde você está: o aparelho está procurando o GPS. O ponto do imóvel continua marcado."
+                        accessibilityRole="image"
+                      >
+                        <RNSVGSvgView>
+                          <RNSVGGroup>
+                            <RNSVGRect />
+                            <RNSVGGroup>
+                              <RNSVGCircle />
+                              <RNSVGCircle />
+                              <RNSVGCircle />
+                              <RNSVGLine />
+                              <RNSVGLine />
+                            </RNSVGGroup>
+                            <RNSVGPath />
+                            <RNSVGCircle
+                              testID="plano-imovel"
+                            />
+                            <RNSVGCircle />
+                          </RNSVGGroup>
+                        </RNSVGSvgView>
+                      </View>
+                      <Text>
+                        O topo do desenho é o norte. O desenho mostra a direção, não a distância.
+                      </Text>
+                      <Text>
+                        Ainda não sei onde você está: o aparelho está procurando o GPS. O ponto do imóvel continua marcado.
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <View
+                  accessibilityLabel="Plano esquemático. O seu município optou por não enviar coordenada ao Google. O desenho abaixo é feito pelo próprio aplicativo, com a distância e o rumo até o imóvel, e nenhuma informação sai daqui."
+                  accessibilityRole="summary"
+                  accessible={true}
+                >
+                  <View>
+                    <RNSVGSvgView>
+                      <RNSVGGroup>
+                        <RNSVGCircle />
+                        <RNSVGCircle />
+                        <RNSVGPath />
+                      </RNSVGGroup>
+                    </RNSVGSvgView>
+                    <Text>
+                      Plano esquemático
+                    </Text>
+                  </View>
+                  <Text>
+                    O seu município optou por não enviar coordenada ao Google. O desenho abaixo é feito pelo próprio aplicativo, com a distância e o rumo até o imóvel, e nenhuma informação sai daqui.
+                  </Text>
+                </View>
+              </View>
+              <View>
+                <View>
+                  <Text>
+                    Ponto informado
+                  </Text>
+                  <Text>
+                    -27.595378
+                    , 
+                    -48.548050
+                  </Text>
+                </View>
+                <View>
+                  <Text>
+                    Leitura do aparelho
+                  </Text>
+                  <Text>
+                    Ainda não capturada
+                  </Text>
+                </View>
+              </View>
+              <Text>
+                A leitura do aparelho é o que prova, no laudo, onde a vistoria aconteceu. Ela sobe junto com a coleta.
+              </Text>
+              <View
+                accessibilityLabel="Capturar localização"
+                accessibilityRole="button"
+                accessibilityState={
+                  {
+                    "busy": false,
+                    "disabled": false,
+                  }
+                }
+                accessible={true}
+                testID="capturar-localizacao"
+              >
+                <RNSVGSvgView>
+                  <RNSVGGroup>
+                    <RNSVGCircle />
+                    <RNSVGCircle />
+                    <RNSVGPath />
+                  </RNSVGGroup>
+                </RNSVGSvgView>
+                <View
+                  testID="capturar-localizacao-rotulo"
+                >
+                  <Text>
+                    Capturar localização
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+          <View
+            testID="ancora-assinatura"
+          >
+            <View>
+              <View>
+                <RNSVGSvgView>
+                  <RNSVGGroup>
+                    <RNSVGPath />
+                    <RNSVGPath />
+                  </RNSVGGroup>
+                </RNSVGSvgView>
+                <Text>
+                  Quem estava no local
+                </Text>
+              </View>
+              <View>
+                <Text>
+                  Nome de quem acompanhou e assina
+                </Text>
+                <View>
+                  <View>
+                    <TextInput
+                      accessibilityHint="É este nome que sai acima da linha de assinatura no laudo."
+                      accessibilityLabel="Nome de quem acompanhou e assina"
+                      placeholder="Nome completo"
+                      testID="nome-de-quem-assina"
+                      value=""
+                    />
+                  </View>
+                  <View
+                    pointerEvents="none"
+                    style={
+                      {
+                        "opacity": 0,
+                      }
+                    }
+                    testID="nome-de-quem-assina-anel-de-foco"
+                  />
+                </View>
+                <Text>
+                  É este nome que sai acima da linha de assinatura no laudo.
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View>
+            <Text>
+              Pessoas atingidas
+            </Text>
+            <Text>
+              Deixe em branco o que você não contou. Em branco não é zero.
+            </Text>
+            <View>
+              <Text>
+                Desalojados
+                 (opcional)
+              </Text>
+              <View>
+                <TextInput
+                  accessibilityHint="Saíram de casa e têm para onde ir: parente, vizinho, aluguel."
+                  accessibilityLabel="Desalojados, opcional"
+                  placeholder="não contado"
+                  testID="pessoas-desalojados"
+                  value=""
+                />
+                <View
+                  pointerEvents="none"
+                  style={
+                    {
+                      "opacity": 0,
+                    }
+                  }
+                  testID="pessoas-desalojados-anel-de-foco"
+                />
+              </View>
+              <Text>
+                Saíram de casa e têm para onde ir: parente, vizinho, aluguel.
+              </Text>
+            </View>
+            <View>
+              <Text>
+                Desabrigados
+                 (opcional)
+              </Text>
+              <View>
+                <TextInput
+                  accessibilityHint="Saíram de casa e dependem de abrigo público. É este número que decide se o município precisa abrir abrigo hoje."
+                  accessibilityLabel="Desabrigados, opcional"
+                  placeholder="não contado"
+                  testID="pessoas-desabrigados"
+                  value=""
+                />
+                <View
+                  pointerEvents="none"
+                  style={
+                    {
+                      "opacity": 0,
+                    }
+                  }
+                  testID="pessoas-desabrigados-anel-de-foco"
+                />
+              </View>
+              <Text>
+                Saíram de casa e dependem de abrigo público. É este número que decide se o município precisa abrir abrigo hoje.
+              </Text>
+            </View>
+            <View>
+              <Text>
+                Feridos
+                 (opcional)
+              </Text>
+              <View>
+                <TextInput
+                  accessibilityHint="Precisaram de atendimento de saúde."
+                  accessibilityLabel="Feridos, opcional"
+                  placeholder="não contado"
+                  testID="pessoas-feridos"
+                  value=""
+                />
+                <View
+                  pointerEvents="none"
+                  style={
+                    {
+                      "opacity": 0,
+                    }
+                  }
+                  testID="pessoas-feridos-anel-de-foco"
+                />
+              </View>
+              <Text>
+                Precisaram de atendimento de saúde.
+              </Text>
+            </View>
+            <View>
+              <Text>
+                Desaparecidos
+                 (opcional)
+              </Text>
+              <View>
+                <TextInput
+                  accessibilityHint="Não localizados até o fim da vistoria."
+                  accessibilityLabel="Desaparecidos, opcional"
+                  placeholder="não contado"
+                  testID="pessoas-desaparecidos"
+                  value=""
+                />
+                <View
+                  pointerEvents="none"
+                  style={
+                    {
+                      "opacity": 0,
+                    }
+                  }
+                  testID="pessoas-desaparecidos-anel-de-foco"
+                />
+              </View>
+              <Text>
+                Não localizados até o fim da vistoria.
+              </Text>
+            </View>
+            <View>
+              <Text>
+                Óbitos
+                 (opcional)
+              </Text>
+              <View>
+                <TextInput
+                  accessibilityHint="Confirmados no local."
+                  accessibilityLabel="Óbitos, opcional"
+                  placeholder="não contado"
+                  testID="pessoas-obitos"
+                  value=""
+                />
+                <View
+                  pointerEvents="none"
+                  style={
+                    {
+                      "opacity": 0,
+                    }
+                  }
+                  testID="pessoas-obitos-anel-de-foco"
+                />
+              </View>
+              <Text>
+                Confirmados no local.
+              </Text>
+            </View>
+          </View>
+          <View>
+            <Text>
+              Observações do agente
+            </Text>
+            <View>
+              <Text>
+                Observações do agente
+                 (opcional)
+              </Text>
+              <View>
+                <View>
+                  <TextInput
+                    accessibilityHint="O que o checklist não cobre e o laudo precisa registrar."
+                    accessibilityLabel="Observações do agente, opcional"
+                    placeholder="O que o checklist não cobre e o laudo precisa registrar"
+                    testID="observacoes-do-agente"
+                    value=""
+                  />
+                </View>
+                <View
+                  pointerEvents="none"
+                  style={
+                    {
+                      "opacity": 0,
+                    }
+                  }
+                  testID="observacoes-do-agente-anel-de-foco"
+                />
+              </View>
+              <Text>
+                O que o checklist não cobre e o laudo precisa registrar.
+              </Text>
+            </View>
+          </View>
+          <View
+            accessibilityRole="text"
+          >
+            <View>
+              <View
+                accessibilityLabel="Atenção"
+                accessible={true}
+              >
+                <Text>
+                  !
+                </Text>
+              </View>
+              <View>
+                <Text>
+                  Faltam 4 itens para concluir
+                </Text>
+                <Text>
+                  A lista, com o caminho para cada item, está no alto desta tela.
+                </Text>
+              </View>
+            </View>
+            <View
+              accessibilityLabel="Ir para a lista do que falta, no alto desta tela"
+              accessibilityRole="button"
+              accessibilityState={
+                {
+                  "busy": false,
+                  "disabled": false,
+                }
+              }
+              accessible={true}
+              testID="ver-o-que-falta"
+            >
+              <View
+                testID="ver-o-que-falta-rotulo"
+              >
+                <Text>
+                  Ver o que falta
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View
+            accessibilityLabel="Revisar e concluir"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "busy": false,
+                "disabled": true,
+              }
+            }
+            accessible={true}
+          >
+            <RNSVGSvgView
+              pointerEvents="none"
+            >
+              <RNSVGGroup>
+                <RNSVGDefs>
+                  <RNSVGLinearGradient />
+                </RNSVGDefs>
+                <RNSVGRect />
+              </RNSVGGroup>
+            </RNSVGSvgView>
+            <View>
+              <Text>
+                Revisar e concluir
+              </Text>
+            </View>
+          </View>
+          <Text>
+            Tudo o que você preencheu já está guardado neste aparelho. O próximo passo mostra a minuta do laudo para você conferir com quem está no local, antes de a vistoria entrar na fila de envio.
+          </Text>
+        </View>
+      </RCTScrollView>
+    </View>
+
+      474 |     await act(async () => {});
+      475 |
+    > 476 |     expect(screen.getByText(FALLBACK)).toBeTruthy();
+          |                   ^
+      477 |     expect(screen.queryByText(/sem espaço/)).toBeNull();
+      478 |   });
+      479 | });
+
+      at Object.getByText (src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx:476:19)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 15 passed, 17 total
+Snapshots:   0 total
+Time:        6.228 s, estimated 7 s
+Ran all test suites matching /src\\__tests__\\vistoria-o-teclado/i.

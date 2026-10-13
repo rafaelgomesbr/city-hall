@@ -393,6 +393,38 @@ describe("a permissão negada", () => {
     expect(screen.queryByText("Abrir os ajustes do aparelho")).toBeNull();
   });
 
+  it("se o sistema recusar abrir os ajustes, nada estoura e a tarja continua (V2-F00-E16, correção 1)", async () => {
+    /*
+      `Linking.openSettings()` rejeita em aparelho sem tela de ajustes para o
+      aplicativo, e a promessa sem tratamento vira rejeição não tratada: no
+      Hermes, aviso vermelho em desenvolvimento e ruído de crash em produção. O
+      `catch` do botão é a única coisa que impede isso, e a mutação que o tirava
+      sobrevivia porque o dublê sempre resolvia.
+    */
+    mockPermissaoDeCamera = { granted: false };
+    const naoTratadas: unknown[] = [];
+    const ouvinte = (motivo: unknown) => { naoTratadas.push(motivo); };
+    process.on("unhandledRejection", ouvinte);
+    const abrirAjustes = jest.spyOn(Linking, "openSettings")
+      .mockRejectedValue(new Error("sem tela de ajustes"));
+    try {
+      await abrirATela();
+      await act(async () => { fireEvent.press(screen.getByText("Tirar foto")); });
+      await act(async () => {});
+
+      await act(async () => { fireEvent.press(screen.getByText("Abrir os ajustes do aparelho")); });
+      /* Deixa o laço de eventos entregar uma rejeição solta, se houver. */
+      await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+
+      expect(abrirAjustes).toHaveBeenCalledTimes(1);
+      expect(naoTratadas).toEqual([]);
+      expect(screen.getByTestId("tarja-de-erro")).toBeTruthy();
+      expect(screen.getByTestId("fechar-erro")).toBeTruthy();
+    } finally {
+      process.off("unhandledRejection", ouvinte);
+    }
+  });
+
   it("o botão dos ajustes tem nome para o leitor de tela e área de toque de 44", async () => {
     mockPermissaoDeCamera = { granted: false };
     await abrirATela();
@@ -407,6 +439,42 @@ describe("a permissão negada", () => {
     expect(botao.props.accessibilityLabel).toMatch(/ajustes/);
     const estilo = StyleSheet.flatten(botao.props.style as never) as { minHeight?: number };
     expect(estilo.minHeight ?? 0).toBeGreaterThanOrEqual(44);
+  });
+});
+
+describe("a foto que não ficou guardada, sem frase própria (V2-F00-E16, correção 1)", () => {
+  /*
+    `guardarFotoNoAparelho` normalmente lança a frase certa. Se um dia lançar um
+    erro sem mensagem (ou algo que nem é `Error`), a tela cai no fallback de
+    `FotoNaoGuardada`, e o fallback precisa ser a frase de produto: nada de
+    tarja vazia, nada de "Error" cru, e a genérica da câmera seria mentira
+    (a câmera funcionou, o disco é que não guardou).
+  */
+  const FALLBACK = "A foto não ficou guardada neste aparelho. Tire a foto de novo.";
+
+  it("erro sem mensagem: a tarja diz o fallback de guardar a foto", async () => {
+    mockGuardarFoto = () => { throw new Error(""); };
+    await abrirATela();
+
+    await act(async () => { fireEvent.press(screen.getByText("Tirar foto")); });
+    await act(async () => { fireEvent.press(screen.getByLabelText("Tirar a fotografia")); });
+    await act(async () => {});
+
+    expect(screen.getByText(FALLBACK)).toBeTruthy();
+    expect(screen.queryByText("O aparelho não conseguiu tirar a foto. Tente de novo.")).toBeNull();
+    expect(screen.queryByText("Abrir os ajustes do aparelho")).toBeNull();
+  });
+
+  it("algo que nem é Error: o mesmo fallback", async () => {
+    mockGuardarFoto = () => { throw "sem espaço"; };
+    await abrirATela();
+
+    await act(async () => { fireEvent.press(screen.getByText("Tirar foto")); });
+    await act(async () => { fireEvent.press(screen.getByLabelText("Tirar a fotografia")); });
+    await act(async () => {});
+
+    expect(screen.getByText(FALLBACK)).toBeTruthy();
+    expect(screen.queryByText(/sem espaço/)).toBeNull();
   });
 });
 

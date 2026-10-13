@@ -1,0 +1,184 @@
+# DEPOIS: os cinco arquivos de teste tocados, todos verdes.
+
+PASS src/dados/pausa-da-fila.test.ts
+  frases da pausa
+    √ as duas prometem que a coleta continua guardada (7 ms)
+    √ sessão encerrada manda entrar de novo (3 ms)
+    √ conta desativada manda procurar a coordenação e diz que entrar de novo não resolve (1 ms)
+    √ as frases das duas pausas não se confundem (1 ms)
+    √ nenhuma frase tem travessão
+    √ senha provisória manda definir a senha no painel e não manda procurar a coordenação (1 ms)
+    √ as três pausas têm frases diferentes
+    √ com a fila parada o laço espera mais que o piso normal de 15 s (1 ms)
+  as frases da pausa não prometem envio em segundo plano
+    √ sessao_encerrada: nenhum dos cinco textos promete
+    √ conta_desativada: nenhum dos cinco textos promete
+    √ troca_de_senha_obrigatoria: nenhum dos cinco textos promete
+    √ quando a coleta sobe depois de entrar, a frase diz que o aplicativo está aberto
+
+PASS src/dados/falha-de-atualizacao.test.ts
+  classificar a falha
+    √ 403 acesso_suspenso é acesso suspenso, e não sessão encerrada (7 ms)
+    √ 503 acesso_suspenso (o que a fila recebe) também é acesso suspenso, e não 'outro'
+    √ 403 de outro código continua sendo 'outro': perfil sem permissão não é suspensão
+    √ 401 continua sendo sessão encerrada
+    √ sem sinal continua sendo sem sinal
+  o que a tela escreve para o acesso suspenso
+    √ diz que foi o fornecedor, e quem resolve é quem administra o contrato
+    √ NÃO manda entrar de novo, porque entrar de novo não resolve (1 ms)
+    √ promete que o que foi coletado continua guardado, como a frase da sessão encerrada promete
+    √ o resumo cabe numa linha da faixa
+  a conta desativada
+    √ 403 conta_desativada é conta desativada, e não 'outro'
+    √ 403 sem_permissao continua 'outro': o código decide, não o status
+    √ conta desativada e sessão encerrada são os dois fins de linha; os outros passam sozinhos
+    √ diz que as coletas continuam guardadas e manda procurar a coordenação (1 ms)
+    √ diz que entrar de novo NÃO resolve, e não é a frase da sessão encerrada (1 ms)
+    √ o resumo cabe numa linha da faixa
+  a senha provisória
+    √ 403 troca_de_senha_obrigatoria é troca de senha, e não 'outro'
+    √ é fim de linha para a tela: nada novo desce até a senha ser definida
+    √ manda definir a senha no painel e promete que as coletas continuam guardadas (1 ms)
+    √ não é a frase da sessão encerrada nem da conta desativada
+    √ o resumo cabe numa linha da faixa e não tem travessão (1 ms)
+  nenhuma frase da falha promete envio em segundo plano (V2-F00-E16, correção 1)
+    √ sem-sinal: nem o resumo nem o detalhe prometem
+    √ sessao-encerrada: nem o resumo nem o detalhe prometem (1 ms)
+    √ conta-desativada: nem o resumo nem o detalhe prometem
+    √ troca-de-senha: nem o resumo nem o detalhe prometem
+    √ acesso-suspenso: nem o resumo nem o detalhe prometem (1 ms)
+    √ outro: nem o resumo nem o detalhe prometem
+    √ o acesso suspenso diz que a coleta sobe se o acesso voltar, com o aplicativo aberto
+
+PASS src/ui/fila-pausada-pela-sessao.test.tsx
+  sessão encerrada
+    √ diz o fato, o que resolve e que a coleta continua guardada (276 ms)
+    √ traz o botão 'Entrar de novo', que derruba a sessão sem apagar e leva à entrada (38 ms)
+    √ o cartão da coleta não promete 'vai sair quando o aplicativo estiver aberto e houver sinal' (41 ms)
+    √ nenhuma coleta ganha 'Descartar' nem 'Tentar de novo' (19 ms)
+  conta desativada
+    √ manda procurar a coordenação, com a frase aprovada para o aparelho (32 ms)
+    √ NÃO traz 'Entrar de novo': entrar de novo não resolve conta desativada (32 ms)
+    √ o cartão diz que a coleta só sobe depois da reativação, e nada pode ser descartado (31 ms)
+  senha provisória (correção 1)
+    √ diz o fato, manda definir a senha no painel e promete que a coleta continua guardada (34 ms)
+    √ NÃO traz 'Entrar de novo': entrar com a provisória volta ao mesmo lugar (30 ms)
+    √ o cartão guarda a coleta, e NENHUM botão de apagar aparece (o defeito era 'Descartar') (30 ms)
+  sem pausa
+    √ a tela é a de sempre: nada de aviso de pausa, e o cartão continua prometendo o envio (22 ms)
+    √ a pausa some quando o motor avisa que ela acabou (37 ms)
+
+PASS src/ui/fila-como-produto.test.tsx
+  o cartão responde três perguntas, em vez de contar uma história
+    √ nenhum pedaço de texto do cartão é um parágrafo (280 ms)
+    √ diz QUEM primeiro, e o nome não fica na quinta linha (28 ms)
+    √ diz POR QUÊ, sem a instrução grudada na explicação (15 ms)
+    √ diz O QUE FAZER, em passos, com título próprio (26 ms)
+    √ a coleta sem autor também vira passos, e não um parágrafo (13 ms)
+    √ quando não há nada a fazer, não existe bloco de passos (7 ms)
+  as quatro seções param de ser um texto de 21 pontos
+    √ cada seção se apresenta como cabeçalho ao leitor de tela (52 ms)
+    √ o contador sai de dentro da frase e vira número próprio (44 ms)
+    √ o título da seção não repete o selo do cartão que está dentro dela (42 ms)
+  a fila vazia, que é a resposta a 'o meu trabalho chegou?'
+    √ não tem botão apagado embaixo dela (10 ms)
+    √ afirma que chegou, em vez de informar que não há nada (8 ms)
+  o toque que muda alguma coisa deixa marca
+    √ 'Tentar de novo' confirma na tela que o envio foi pedido (44 ms)
+    √ o verbo que estoura no aparelho deixa marca, em vez de sumir sem nada (32 ms)
+    √ a confirmação não promete chegada, porque o reenvio não garante nenhuma (49 ms)
+    √ 'Tentar de novo' é realce, e os vizinhos dele não (24 ms)
+    √ 'Esta coleta é minha' confirma que o nome no laudo vai ser o seu (56 ms)
+    √ a confirmação some sozinha, para não virar ruído em cima do estado novo (67 ms)
+  o botão apagado diz por que está apagado
+    √ sem sinal, a frase fala do botão e não repete o aviso do topo (16 ms)
+    √ com sinal e nada que saia por ali, diz que nada sai por ali (21 ms)
+    √ quem ouve a tela ouve a razão junto com o nome do botão (10 ms)
+    √ com sinal e coleta pronta, o botão não se explica: ele funciona (6 ms)
+  o item que sai da fila não some num corte seco
+    √ continua na tela enquanto desaparece, e sai depois (136 ms)
+    √ o contador não espera a animação: ele cai no instante em que o disco larga o item (33 ms)
+    √ a coleta que JÁ CHEGOU sai do número, e continua no cartão (21 ms)
+    √ a fila só com o que já chegou não anuncia número nenhum (13 ms)
+    √ o vazio só chega depois que o último cartão terminou de sair (41 ms)
+  a espera de abertura tem saída
+    √ aos seis segundos a espera oferece a saída, e a saída leva a algum lugar (13 ms)
+    √ o estado de desistência diz que nada se perdeu, porque nada se perdeu (11 ms)
+    √ 'Tentar abrir de novo' abre a fila de verdade (15 ms)
+  a hierarquia nova não apagou o que já estava certo
+    √ o selo continua trazendo símbolo além da cor, e o desenho é o terceiro canal (21 ms)
+  a fila zerando, que é o momento que este aplicativo existe para produzir
+    √ vibra quando o último item sai (21 ms)
+    √ abrir a aba com a fila já vazia não comemora nada (4 ms)
+    √ descartar o último item esvazia a fila e não comemora (42 ms)
+    √ um item a menos, com outros na fila, não comemora (29 ms)
+  a régua do peso visual, na fila
+    √ uma fila inteira de coletas enviadas não acende um bloco sequer (22 ms)
+    √ a coleta bloqueada continua sendo a única que pinta, mesmo depois do toque (58 ms)
+  o clímax da fila zerando só acontece quando a fila zera de verdade
+    √ abrir a aba com a fila já vazia não comemora nada, nem na tela (6 ms)
+    √ a fila zerando por entrega roda o clímax (23 ms)
+    √ o gesto inteiro cabe no orçamento do token, e roda na camada nativa (26 ms)
+    √ descartar o último item esvazia a fila e NÃO comemora, nem na tela (54 ms)
+    √ quem pede para reduzir movimento recebe a mesma tela, sem o gesto (17 ms)
+  os cartões que chegam à fila entram em cascata
+    √ abrir a aba com a fila cheia não anima nada: a primeira pintura chega pronta (20 ms)
+    √ a coleta que chega depois entra animada, com duração de token e na camada nativa (18 ms)
+    √ várias chegando juntas entram uma depois da outra, no passo do token (24 ms)
+    √ quem já estava na tela não entra de novo quando outra chega (25 ms)
+    √ com redução de movimento, a coleta que chega aparece inteira, sem cascata (16 ms)
+  a coleta que não sobe porque um arquivo se perdeu
+    √ o cartão não repete o parágrafo de quarenta palavras que o motor escreve (20 ms)
+    √ o selo diz que falta uma DECISÃO, e não que falta atenção (25 ms)
+    √ diz quantas fotografias sumiram, e que não há como recuperá-las (21 ms)
+    √ quando é a assinatura que sumiu, ela é dita com todas as letras (16 ms)
+    √ a saída é oferecida sem imperativo: quem decide é o agente (22 ms)
+    √ NUNCA com um toque só: o botão pergunta antes de autorizar (44 ms)
+    √ a pergunta diz o protocolo, o número e o que o laudo vai declarar (40 ms)
+    √ com a assinatura entre as perdas, a pergunta diz o que acontece com a linha do laudo (32 ms)
+    √ sem a assinatura entre as perdas, a pergunta não inventa esse aviso (21 ms)
+    √ confirmada, chama o motor e confirma com o número QUE O MOTOR devolveu (26 ms)
+    √ recusada pelo motor, a tela NÃO diz 'Pronto' (48 ms)
+    √ coleta de outro agente não oferece a saída, porque a perda é assinada (12 ms)
+    √ bloqueio que não é perda de arquivo continua sem a saída (12 ms)
+    √ a régua do peso visual continua valendo neste cartão (48 ms)
+  a fila não promete envio em segundo plano nem com o aplicativo fechado
+    √ a fila zerada diz que o que vier depois sobe com o aplicativo aberto e rede (3 ms)
+    √ com coleta na fila e com sinal, a legenda do botão diz a condição (8 ms)
+    √ sem sinal, o aviso e o cartão não prometem envio fora do aplicativo (10 ms)
+    √ depois de várias tentativas, o cartão continua sem prometer o que o aparelho não faz (9 ms)
+    √ a fila que não abriu também diz a condição (6 ms)
+
+PASS src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx (5.559 s)
+  a tela de 'vistoria guardada'
+    √ não promete envio com o aplicativo fechado, porque isso não existe (598 ms)
+  o formulário e o teclado
+    √ o primeiro toque fora do campo AGE, em vez de só fechar o teclado (155 ms)
+    √ a rolagem sabe a altura do teclado, para o campo digitado não ficar embaixo dele (133 ms)
+  a câmera em tela cheia
+    √ reserva a área segura de baixo, onde o menu escondido não está mais para reservar (132 ms)
+  a permissão negada
+    √ de câmera: a tarja traz 'Abrir os ajustes do aparelho', e o botão abre os ajustes (204 ms)
+    √ de localização: a mesma tarja, o mesmo botão (158 ms)
+    √ uma falha que não é de permissão não ganha o botão dos ajustes (194 ms)
+    √ o botão não sobrevive à falha seguinte, que não é de permissão (V2-F00-E16) (143 ms)
+    √ se o sistema recusar abrir os ajustes, nada estoura e a tarja continua (V2-F00-E16, correção 1) (106 ms)
+    √ o botão dos ajustes tem nome para o leitor de tela e área de toque de 44 (69 ms)
+  a foto que não ficou guardada, sem frase própria (V2-F00-E16, correção 1)
+    √ erro sem mensagem: a tarja diz o fallback de guardar a foto (99 ms)
+    √ algo que nem é Error: o mesmo fallback (106 ms)
+  a câmera que não disparou (V2-F00-E16)
+    √ continua com a frase genérica, porque o erro nativo não diz ao agente o que fazer (142 ms)
+  a precisão da leitura de GPS
+    √ abaixo de meio metro vira 1, e não zero (195 ms)
+    √ a leitura comum continua arredondada ao metro (104 ms)
+    √ aparelho que não informa a precisão grava nulo, que é 'não informada' (67 ms)
+  a foto que saiu vazia do disco
+    √ a tarja diz a frase certa, com o que fazer, e não a genérica (65 ms)
+
+Test Suites: 5 passed, 5 total
+Tests:       133 passed, 133 total
+Snapshots:   0 total
+Time:        6.226 s, estimated 15 s
+Ran all test suites matching /src\\ui\\fila-como-produto|src\\ui\\fila-pausada|src\\dados\\pausa-da-fila|src\\dados\\falha-de-atualizacao|src\\__tests__\\vistoria-o-teclado/i.
+exit 0

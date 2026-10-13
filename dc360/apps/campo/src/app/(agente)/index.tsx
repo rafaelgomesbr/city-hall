@@ -839,7 +839,7 @@ export default function Tarefas() {
 
           A promoção da lápide e a saída da tarefa moram em `lerAFila`, que
           varre a fila procurando item confirmado. Esse caminho cobre o envio
-          que acontece sozinho, em segundo plano, sem ninguém tocar em nada.
+          que acontece sozinho com o aplicativo aberto, sem ninguém tocar em nada.
 
           Só que ele PERDE A CORRIDA no caminho do dedo: `drenar()` confirma e
           REMOVE o item da fila, então quando a leitura chega não há item
@@ -878,7 +878,7 @@ export default function Tarefas() {
           ocorrenciaId: alvo.id,
           tom: "alerta",
           titulo: "Ainda não deu para enviar",
-          texto: "A coleta continua guardada no aparelho e sai sozinha assim que houver sinal.",
+          texto: "A coleta continua guardada no aparelho e sai quando o aplicativo estiver aberto e houver sinal.",
         });
       }
     } finally {

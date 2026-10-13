@@ -219,8 +219,8 @@ export function comoContarAFalha(
         "O fornecedor do sistema suspendeu o acesso da sua prefeitura, e por isso "
         + "nada novo desce para este aparelho. Sair da conta ou tentar entrar outra "
         + "vez não resolve: quem resolve é quem administra o contrato na prefeitura. "
-        + "O que você já coletou continua guardado no aparelho e sobe sozinho se o "
-        + "acesso voltar.",
+        + "O que você já coletou continua guardado no aparelho e sobe se o "
+        + "acesso voltar, com o aplicativo aberto.",
     };
   }
   if (motivo === "sem-sinal") {

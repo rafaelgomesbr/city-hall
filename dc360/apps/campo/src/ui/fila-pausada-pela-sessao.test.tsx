@@ -12,7 +12,8 @@
  * 1. a frase diz o fato, o que resolve e a promessa (a coleta continua guardada);
  * 2. sessão encerrada traz o botão que resolve ("Entrar de novo"); conta
  *    desativada NÃO traz, porque entrar de novo não resolve;
- * 3. o cartão da coleta deixa de prometer "vai sair assim que houver sinal";
+ * 3. o cartão da coleta deixa de prometer "vai sair quando o aplicativo estiver aberto
+ *    e houver sinal" (a coleta pausada pela sessão não sai nem assim);
  * 4. nenhum botão de apagar aparece: a coleta pausada não é uma coleta recusada;
  * 5. sem pausa, a tela é a de sempre.
  *
@@ -125,12 +126,13 @@ describe("sessão encerrada", () => {
     expect(mockFila.descartar).not.toHaveBeenCalled();
   });
 
-  it("o cartão da coleta não promete 'vai sair assim que houver sinal'", async () => {
+  it("o cartão da coleta não promete 'vai sair quando o aplicativo estiver aberto e houver sinal'", async () => {
     await abrirComPausa("sessao_encerrada");
 
-    expect(screen.queryByText(/Vai sair assim que houver sinal/)).toBeNull();
+    expect(screen.queryByText(/Vai sair quando o aplicativo estiver aberto/)).toBeNull();
+    expect(screen.queryByText(/assim que houver sinal/)).toBeNull();
     expect(screen.getAllByText("Guardada")).toHaveLength(2);
-    expect(screen.getAllByText(/Sobe sozinha depois que você entrar de novo/)).toHaveLength(2);
+    expect(screen.getAllByText(/Sobe depois que você entrar de novo/)).toHaveLength(2);
   });
 
   it("nenhuma coleta ganha 'Descartar' nem 'Tentar de novo'", async () => {

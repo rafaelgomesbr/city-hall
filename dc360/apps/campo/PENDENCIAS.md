@@ -540,3 +540,15 @@ foto" no primeiro toque; ver o obturador acima da barra do sistema. Foto do
 aparelho para a evidência da etapa. O ambiente da etapa não renderiza o app Expo:
 a prova foi por teste de componente
 (`src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx`).
+
+### Correção 1 da E16 (2026-10-13): a fila também prometia segundo plano
+
+A validação (arbitragem em Opus) achou "o envio acontece sozinho, em segundo
+plano" em duas frases da fila (`fila.tsx`). A varredura do aplicativo inteiro
+achou a mesma promessa, com outras palavras, em 12 frases de 5 arquivos (fila,
+lista de tarefas, vistoria guardada, pausa da sessão e acesso suspenso). Todos
+passaram a dizer a condição: **"quando o aplicativo estiver aberto e houver
+sinal"**. O portão `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs`
+impede a volta (varre a fonte, menos comentários). Frases novas são texto de
+produto e aguardam a aprovação do Rafael (lista no `RESUMO.md` da correção).
+Segundo plano de verdade continua sendo a F14-E06, só se o CP-24 aprovar.

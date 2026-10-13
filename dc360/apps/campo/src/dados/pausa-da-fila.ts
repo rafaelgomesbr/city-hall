@@ -46,9 +46,9 @@ const FRASES: Record<MotivoDeSessao, FrasesDaPausa> = {
     titulo: "Sua sessão terminou e o envio está parado",
     detalhe:
       "Suas coletas continuam guardadas neste aparelho e nada foi apagado. "
-      + "Entre de novo com o seu email e a sua senha: assim que você entrar, "
-      + "elas sobem sozinhas.",
-    doCartao: "Guardada neste aparelho. Sobe sozinha depois que você entrar de novo.",
+      + "Entre de novo com o seu email e a sua senha: com o aplicativo aberto, "
+      + "elas sobem depois que você entrar.",
+    doCartao: "Guardada neste aparelho. Sobe depois que você entrar de novo.",
   },
   conta_desativada: {
     faixaTitulo: "Conta desativada",
@@ -69,7 +69,7 @@ const FRASES: Record<MotivoDeSessao, FrasesDaPausa> = {
     detalhe:
       "Suas coletas continuam guardadas neste aparelho e nada foi apagado. "
       + "Defina a sua senha no painel, no computador (a tela de entrada pede isso), "
-      + "e depois entre aqui de novo: assim que você entrar, elas sobem sozinhas.",
+      + "e depois entre aqui de novo: com o aplicativo aberto, elas sobem depois que você entrar.",
     doCartao:
       "Guardada neste aparelho. Só sobe depois que você definir a sua senha no "
       + "painel e entrar de novo.",

@@ -2160,7 +2160,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
           Esta ocorrência já foi coletada neste aparelho.
           {jaColetada.situacao === "enviada"
             ? " A vistoria já foi enviada ao servidor."
-            : " A vistoria está na fila de envio e sobe assim que houver sinal."}
+            : " A vistoria está na fila de envio e sobe quando o aplicativo estiver aberto e houver sinal."}
         </Aviso>
 
         <Txt variante="corpoP" discreto>

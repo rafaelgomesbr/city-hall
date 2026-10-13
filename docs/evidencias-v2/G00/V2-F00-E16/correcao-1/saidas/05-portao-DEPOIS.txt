@@ -1,0 +1,36 @@
+# DEPOIS: o portao, 4 de 4 verdes.
+
+TAP version 13
+# Subtest: nenhum texto do aplicativo promete segundo plano nem envio com o aplicativo fechado
+ok 1 - nenhum texto do aplicativo promete segundo plano nem envio com o aplicativo fechado
+  ---
+  duration_ms: 95.158
+  type: 'test'
+  ...
+# Subtest: o portão morde: as frases que a arbitragem achou na fila são reprovadas
+ok 2 - o portão morde: as frases que a arbitragem achou na fila são reprovadas
+  ---
+  duration_ms: 0.2683
+  type: 'test'
+  ...
+# Subtest: o portão não pune quem explica: comentário pode citar a frase proibida
+ok 3 - o portão não pune quem explica: comentário pode citar a frase proibida
+  ---
+  duration_ms: 0.1157
+  type: 'test'
+  ...
+# Subtest: as frases verdadeiras passam
+ok 4 - as frases verdadeiras passam
+  ---
+  duration_ms: 0.1351
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 174.1602

@@ -1,0 +1,648 @@
+diff --git a/dc360/README.md b/dc360/README.md
+index b61d8a4..fa658bc 100644
+--- a/dc360/README.md
++++ b/dc360/README.md
+@@ -13,7 +13,7 @@ build) valem lá, não aqui.
+ | `apps/web` | Painel do coordenador em React, Vite e TypeScript, em dois modos: banco na própria aba, ou HTTP contra a API | Pronto, 643 testes de fonte do painel mais 70 verificações no navegador no modo local e 251 contra a API (contadas no código, uma por `ok(` no início de linha; a execução imprime mais, porque verificação dentro de laço conta a cada volta) |
+ | `apps/api` | API HTTP: autenticação com recuperação de senha, isolamento por token, sincronização idempotente, evidência fotográfica e documentos oficiais | Pronta, 1296 testes da API (os 13 de TLS do banco exigem `openssl` no PATH, e sem ele a suíte reprova em vez de pular) |
+ | `packages/campo` | Motor de sincronização offline: fila persistente, espera entre tentativas, idempotência, persistência em SQLite | Pronto, 223 testes de unidade do motor de campo e 17 de integração contra a API |
+-| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1884 testes do aplicativo passando. O `expo-doctor` fecha 21 de 21 (medido em 2026-10-08, depois de alinhar os pacotes do Expo ao SDK 57) e o `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
++| `apps/campo` | Aplicativo do agente em React Native com Expo: coleta offline, câmera, GPS, assinatura, fila de envio, configuração das duas lojas | Relatado como instalado em iPhone (compilação nativa, 08/09/2026, com três vistorias coletadas), mas **sem artefato de aparelho arquivado**: nenhuma foto, vídeo ou registro do aparelho está no repositório, e a prova fica para a V2-F14-E12. TypeScript limpo com o cache `.expo/types` em dia e 1903 testes do aplicativo passando. O `expo-doctor` fecha 21 de 21 (medido em 2026-10-08, depois de alinhar os pacotes do Expo ao SDK 57) e o `npm run auditar` fecha conforme a política do CP-03: a árvore do aplicativo ainda tem avisos de ferramenta do Expo, aceitos um a um com motivo, dono e prazo (2027-01-05) em `scripts/auditar.mjs`. Ver `apps/campo/LEIA-ME.md` e `apps/campo/LOJAS.md` |
+ | `apps/console` | Console do fornecedor: processo separado, com segundo fator obrigatório, que lê saúde de uso agregada de todos os municípios, cadastra prefeitura, suspende o acesso e agenda a eliminação de município, e não lê dado de cidadão | Pronto, 259 testes do console do fornecedor passando. Ver "O console do fornecedor", mais abaixo |
+ 
+ ## Os dois modos do painel
+@@ -1296,7 +1296,7 @@ npm test                    # 2916 testes em seis pacotes
+ npm run test:isolamento     # portão CA-06 e o aplicador de migrações: 327 testes do banco
+ npm run test:api            # 1296 testes da API
+ npm run test --workspace @dc360/campo   # 223 testes do motor de campo
+-npm run test:campo          # tipos e os 1884 testes do aplicativo de campo
++npm run test:campo          # tipos e os 1903 testes do aplicativo de campo
+ npm run typecheck           # TypeScript estrito em todos os pacotes
+ npm run auditar             # runtime em zero; exceções do aplicativo nomeadas (CP-03)
+ ```
+diff --git a/dc360/apps/campo/PENDENCIAS.md b/dc360/apps/campo/PENDENCIAS.md
+index 706b291..d3f2273 100644
+--- a/dc360/apps/campo/PENDENCIAS.md
++++ b/dc360/apps/campo/PENDENCIAS.md
+@@ -540,3 +540,15 @@ foto" no primeiro toque; ver o obturador acima da barra do sistema. Foto do
+ aparelho para a evidência da etapa. O ambiente da etapa não renderiza o app Expo:
+ a prova foi por teste de componente
+ (`src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx`).
++
++### Correção 1 da E16 (2026-10-13): a fila também prometia segundo plano
++
++A validação (arbitragem em Opus) achou "o envio acontece sozinho, em segundo
++plano" em duas frases da fila (`fila.tsx`). A varredura do aplicativo inteiro
++achou a mesma promessa, com outras palavras, em 12 frases de 5 arquivos (fila,
++lista de tarefas, vistoria guardada, pausa da sessão e acesso suspenso). Todos
++passaram a dizer a condição: **"quando o aplicativo estiver aberto e houver
++sinal"**. O portão `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs`
++impede a volta (varre a fonte, menos comentários). Frases novas são texto de
++produto e aguardam a aprovação do Rafael (lista no `RESUMO.md` da correção).
++Segundo plano de verdade continua sendo a F14-E06, só se o CP-24 aprovar.
+diff --git a/dc360/apps/campo/src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx b/dc360/apps/campo/src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx
+index 2ec6184..546dce7 100644
+--- a/dc360/apps/campo/src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx
++++ b/dc360/apps/campo/src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx
+@@ -393,6 +393,38 @@ describe("a permissão negada", () => {
+     expect(screen.queryByText("Abrir os ajustes do aparelho")).toBeNull();
+   });
+ 
++  it("se o sistema recusar abrir os ajustes, nada estoura e a tarja continua (V2-F00-E16, correção 1)", async () => {
++    /*
++      `Linking.openSettings()` rejeita em aparelho sem tela de ajustes para o
++      aplicativo, e a promessa sem tratamento vira rejeição não tratada: no
++      Hermes, aviso vermelho em desenvolvimento e ruído de crash em produção. O
++      `catch` do botão é a única coisa que impede isso, e a mutação que o tirava
++      sobrevivia porque o dublê sempre resolvia.
++    */
++    mockPermissaoDeCamera = { granted: false };
++    const naoTratadas: unknown[] = [];
++    const ouvinte = (motivo: unknown) => { naoTratadas.push(motivo); };
++    process.on("unhandledRejection", ouvinte);
++    const abrirAjustes = jest.spyOn(Linking, "openSettings")
++      .mockRejectedValue(new Error("sem tela de ajustes"));
++    try {
++      await abrirATela();
++      await act(async () => { fireEvent.press(screen.getByText("Tirar foto")); });
++      await act(async () => {});
++
++      await act(async () => { fireEvent.press(screen.getByText("Abrir os ajustes do aparelho")); });
++      /* Deixa o laço de eventos entregar uma rejeição solta, se houver. */
++      await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
++
++      expect(abrirAjustes).toHaveBeenCalledTimes(1);
++      expect(naoTratadas).toEqual([]);
++      expect(screen.getByTestId("tarja-de-erro")).toBeTruthy();
++      expect(screen.getByTestId("fechar-erro")).toBeTruthy();
++    } finally {
++      process.off("unhandledRejection", ouvinte);
++    }
++  });
++
+   it("o botão dos ajustes tem nome para o leitor de tela e área de toque de 44", async () => {
+     mockPermissaoDeCamera = { granted: false };
+     await abrirATela();
+@@ -410,6 +442,42 @@ describe("a permissão negada", () => {
+   });
+ });
+ 
++describe("a foto que não ficou guardada, sem frase própria (V2-F00-E16, correção 1)", () => {
++  /*
++    `guardarFotoNoAparelho` normalmente lança a frase certa. Se um dia lançar um
++    erro sem mensagem (ou algo que nem é `Error`), a tela cai no fallback de
++    `FotoNaoGuardada`, e o fallback precisa ser a frase de produto: nada de
++    tarja vazia, nada de "Error" cru, e a genérica da câmera seria mentira
++    (a câmera funcionou, o disco é que não guardou).
++  */
++  const FALLBACK = "A foto não ficou guardada neste aparelho. Tire a foto de novo.";
++
++  it("erro sem mensagem: a tarja diz o fallback de guardar a foto", async () => {
++    mockGuardarFoto = () => { throw new Error(""); };
++    await abrirATela();
++
++    await act(async () => { fireEvent.press(screen.getByText("Tirar foto")); });
++    await act(async () => { fireEvent.press(screen.getByLabelText("Tirar a fotografia")); });
++    await act(async () => {});
++
++    expect(screen.getByText(FALLBACK)).toBeTruthy();
++    expect(screen.queryByText("O aparelho não conseguiu tirar a foto. Tente de novo.")).toBeNull();
++    expect(screen.queryByText("Abrir os ajustes do aparelho")).toBeNull();
++  });
++
++  it("algo que nem é Error: o mesmo fallback", async () => {
++    mockGuardarFoto = () => { throw "sem espaço"; };
++    await abrirATela();
++
++    await act(async () => { fireEvent.press(screen.getByText("Tirar foto")); });
++    await act(async () => { fireEvent.press(screen.getByLabelText("Tirar a fotografia")); });
++    await act(async () => {});
++
++    expect(screen.getByText(FALLBACK)).toBeTruthy();
++    expect(screen.queryByText(/sem espaço/)).toBeNull();
++  });
++});
++
+ describe("a câmera que não disparou (V2-F00-E16)", () => {
+   it("continua com a frase genérica, porque o erro nativo não diz ao agente o que fazer", async () => {
+     mockTirarFoto.mockImplementationOnce(async () => { throw new Error("Camera is not running"); });
+diff --git a/dc360/apps/campo/src/app/(agente)/fila.tsx b/dc360/apps/campo/src/app/(agente)/fila.tsx
+index 414c48e..d4d256b 100644
+--- a/dc360/apps/campo/src/app/(agente)/fila.tsx
++++ b/dc360/apps/campo/src/app/(agente)/fila.tsx
+@@ -191,8 +191,8 @@ function descreverDevolucao(item: ItemDeDevolucao): EstadoDoItem {
+         tom: "neutro",
+         Icone: IconeAguardando,
+         porque: item.tentativas === 0
+-          ? `Motivo: ${motivo}. Ainda não saiu do aparelho, e vai sair assim que `
+-            + "houver sinal. A tarefa já saiu da sua lista."
++          ? `Motivo: ${motivo}. Ainda não saiu do aparelho, e vai sair quando `
++            + "o aplicativo estiver aberto e houver sinal. A tarefa já saiu da sua lista."
+           : `Motivo: ${motivo}. Já tentou ${item.tentativas}x e vai continuar `
+             + "tentando sozinha. Enquanto ela não chegar, a coordenação não sabe "
+             + "que esta tarefa voltou.",
+@@ -442,7 +442,7 @@ function descreverEstado(
+         tom: "neutro",
+         Icone: IconeAguardando,
+         porque: item.tentativas === 0
+-          ? "Ainda não saiu do aparelho. Vai sair assim que houver sinal."
++          ? "Ainda não saiu do aparelho. Vai sair quando o aplicativo estiver aberto e houver sinal."
+           : item.tentativas < TENTATIVAS_ATE_AVISAR
+             ? `Já tentou ${item.tentativas}x. Vai tentar de novo em instantes.`
+             /*
+@@ -1151,7 +1151,8 @@ export default function TelaDaFila() {
+             titulo="A fila não abriu"
+             descricao={
+               "Nada se perdeu: o que estava guardado continua no aparelho e sai "
+-              + "sozinho quando a conexão voltar. Dá para tentar abrir de novo."
++              + "quando o aplicativo estiver aberto e a conexão voltar. Dá para "
++              + "tentar abrir de novo."
+             }
+             acao={{
+               titulo: "Tentar abrir de novo",
+@@ -1646,8 +1647,8 @@ export default function TelaDaFila() {
+     <ScrollView ref={rolagem} contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: recuoDoMenu }}>
+       {!sinal.temSinal && (
+         <Aviso tom="alerta" titulo="Sem sinal agora">
+-          Nada se perde: o que está aqui sai sozinho quando a conexão voltar, sem
+-          você precisar fazer nada.
++          Nada se perde: o que está aqui sai quando a conexão voltar, com o
++          aplicativo aberto, sem você precisar tocar em nada.
+         </Aviso>
+       )}
+ 
+@@ -1685,8 +1686,8 @@ export default function TelaDaFila() {
+                 titulo="Tudo o que você fez já chegou"
+                 descricao={
+                   "Nenhuma coleta esperando envio neste aparelho. Toda vistoria "
+-                  + "concluída aqui já está com a coordenação, e o envio do que vier "
+-                  + "depois acontece sozinho, em segundo plano."
++                  + "concluída aqui já está com a coordenação, e o que vier depois "
++                  + "sobe quando o aplicativo estiver aberto e houver rede."
+                 }
+               />
+             </Cartao>
+@@ -1852,8 +1853,8 @@ export default function TelaDaFila() {
+             </View>
+           ) : (
+             <Txt variante="legenda" discreto alinhamento="center">
+-              O envio acontece sozinho, em segundo plano. Este botão é para quando
+-              você quer ver acontecer.
++              Com o aplicativo aberto e com sinal, o envio acontece sem você tocar
++              em nada. Este botão é para quando você quer ver acontecer.
+             </Txt>
+           )}
+         </>
+diff --git a/dc360/apps/campo/src/app/(agente)/index.tsx b/dc360/apps/campo/src/app/(agente)/index.tsx
+index 04468ed..ae988e2 100644
+--- a/dc360/apps/campo/src/app/(agente)/index.tsx
++++ b/dc360/apps/campo/src/app/(agente)/index.tsx
+@@ -839,7 +839,7 @@ export default function Tarefas() {
+ 
+           A promoção da lápide e a saída da tarefa moram em `lerAFila`, que
+           varre a fila procurando item confirmado. Esse caminho cobre o envio
+-          que acontece sozinho, em segundo plano, sem ninguém tocar em nada.
++          que acontece sozinho com o aplicativo aberto, sem ninguém tocar em nada.
+ 
+           Só que ele PERDE A CORRIDA no caminho do dedo: `drenar()` confirma e
+           REMOVE o item da fila, então quando a leitura chega não há item
+@@ -878,7 +878,7 @@ export default function Tarefas() {
+           ocorrenciaId: alvo.id,
+           tom: "alerta",
+           titulo: "Ainda não deu para enviar",
+-          texto: "A coleta continua guardada no aparelho e sai sozinha assim que houver sinal.",
++          texto: "A coleta continua guardada no aparelho e sai quando o aplicativo estiver aberto e houver sinal.",
+         });
+       }
+     } finally {
+diff --git a/dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx b/dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx
+index 6ae9982..a67eca1 100644
+--- a/dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx
++++ b/dc360/apps/campo/src/app/(agente)/vistoria/[id].tsx
+@@ -2160,7 +2160,7 @@ function VistoriaDaOcorrencia({ id }: { id: string }) {
+           Esta ocorrência já foi coletada neste aparelho.
+           {jaColetada.situacao === "enviada"
+             ? " A vistoria já foi enviada ao servidor."
+-            : " A vistoria está na fila de envio e sobe assim que houver sinal."}
++            : " A vistoria está na fila de envio e sobe quando o aplicativo estiver aberto e houver sinal."}
+         </Aviso>
+ 
+         <Txt variante="corpoP" discreto>
+diff --git a/dc360/apps/campo/src/dados/falha-de-atualizacao.test.ts b/dc360/apps/campo/src/dados/falha-de-atualizacao.test.ts
+index 8470d0b..6e1807f 100644
+--- a/dc360/apps/campo/src/dados/falha-de-atualizacao.test.ts
++++ b/dc360/apps/campo/src/dados/falha-de-atualizacao.test.ts
+@@ -169,3 +169,21 @@ describe("a senha provisória", () => {
+     expect(frase.detalhe).not.toContain(String.fromCharCode(0x2014));
+   });
+ });
++
++describe("nenhuma frase da falha promete envio em segundo plano (V2-F00-E16, correção 1)", () => {
++  const FALSA = /segundo plano|fechado|assim que houver sinal|(sai|sobe|sobem|acontece) sozinh/i;
++  const MOTIVOS = [
++    "sem-sinal", "sessao-encerrada", "conta-desativada", "troca-de-senha", "acesso-suspenso", "outro",
++  ] as const;
++
++  it.each(MOTIVOS)("%s: nem o resumo nem o detalhe prometem", (motivo) => {
++    const frase = comoContarAFalha(motivo, "a lista");
++    expect(frase.resumo).not.toMatch(FALSA);
++    expect(frase.detalhe).not.toMatch(FALSA);
++  });
++
++  it("o acesso suspenso diz que a coleta sobe se o acesso voltar, com o aplicativo aberto", () => {
++    expect(comoContarAFalha("acesso-suspenso", "a lista").detalhe)
++      .toMatch(/sobe se o acesso voltar, com o aplicativo aberto/);
++  });
++});
+diff --git a/dc360/apps/campo/src/dados/falha-de-atualizacao.ts b/dc360/apps/campo/src/dados/falha-de-atualizacao.ts
+index 0e0d2e8..8da2cc7 100644
+--- a/dc360/apps/campo/src/dados/falha-de-atualizacao.ts
++++ b/dc360/apps/campo/src/dados/falha-de-atualizacao.ts
+@@ -219,8 +219,8 @@ export function comoContarAFalha(
+         "O fornecedor do sistema suspendeu o acesso da sua prefeitura, e por isso "
+         + "nada novo desce para este aparelho. Sair da conta ou tentar entrar outra "
+         + "vez não resolve: quem resolve é quem administra o contrato na prefeitura. "
+-        + "O que você já coletou continua guardado no aparelho e sobe sozinho se o "
+-        + "acesso voltar.",
++        + "O que você já coletou continua guardado no aparelho e sobe se o "
++        + "acesso voltar, com o aplicativo aberto.",
+     };
+   }
+   if (motivo === "sem-sinal") {
+diff --git a/dc360/apps/campo/src/dados/pausa-da-fila.test.ts b/dc360/apps/campo/src/dados/pausa-da-fila.test.ts
+index f042b3b..8ad7ab8 100644
+--- a/dc360/apps/campo/src/dados/pausa-da-fila.test.ts
++++ b/dc360/apps/campo/src/dados/pausa-da-fila.test.ts
+@@ -70,3 +70,28 @@ describe("frases da pausa", () => {
+     expect(ESPERA_COM_A_FILA_PAUSADA_MS).toBeGreaterThan(15_000);
+   });
+ });
++
++/**
++ * Nenhuma frase da pausa promete envio fora do aplicativo (V2-F00-E16, correção 1).
++ *
++ * A fila só envia com o aplicativo aberto. "Elas sobem sozinhas" lido por quem
++ * acabou de fechar o aplicativo é a promessa de segundo plano que a etapa tirou.
++ */
++describe("as frases da pausa não prometem envio em segundo plano", () => {
++  const FALSA = /segundo plano|fechado|assim que houver sinal|(sai|sobe|sobem|acontece) sozinh/i;
++
++  it.each(["sessao_encerrada", "conta_desativada", "troca_de_senha_obrigatoria"] as const)(
++    "%s: nenhum dos cinco textos promete",
++    (motivo) => {
++      const f = frasesDaPausa(motivo);
++      for (const texto of [f.titulo, f.detalhe, f.faixaTitulo, f.faixaDetalhe, f.doCartao]) {
++        expect(texto).not.toMatch(FALSA);
++      }
++    },
++  );
++
++  it("quando a coleta sobe depois de entrar, a frase diz que o aplicativo está aberto", () => {
++    expect(frasesDaPausa("sessao_encerrada").detalhe).toMatch(/com o aplicativo aberto/);
++    expect(frasesDaPausa("troca_de_senha_obrigatoria").detalhe).toMatch(/com o aplicativo aberto/);
++  });
++});
+diff --git a/dc360/apps/campo/src/dados/pausa-da-fila.ts b/dc360/apps/campo/src/dados/pausa-da-fila.ts
+index 27cd230..f789e6c 100644
+--- a/dc360/apps/campo/src/dados/pausa-da-fila.ts
++++ b/dc360/apps/campo/src/dados/pausa-da-fila.ts
+@@ -46,9 +46,9 @@ const FRASES: Record<MotivoDeSessao, FrasesDaPausa> = {
+     titulo: "Sua sessão terminou e o envio está parado",
+     detalhe:
+       "Suas coletas continuam guardadas neste aparelho e nada foi apagado. "
+-      + "Entre de novo com o seu email e a sua senha: assim que você entrar, "
+-      + "elas sobem sozinhas.",
+-    doCartao: "Guardada neste aparelho. Sobe sozinha depois que você entrar de novo.",
++      + "Entre de novo com o seu email e a sua senha: com o aplicativo aberto, "
++      + "elas sobem depois que você entrar.",
++    doCartao: "Guardada neste aparelho. Sobe depois que você entrar de novo.",
+   },
+   conta_desativada: {
+     faixaTitulo: "Conta desativada",
+@@ -69,7 +69,7 @@ const FRASES: Record<MotivoDeSessao, FrasesDaPausa> = {
+     detalhe:
+       "Suas coletas continuam guardadas neste aparelho e nada foi apagado. "
+       + "Defina a sua senha no painel, no computador (a tela de entrada pede isso), "
+-      + "e depois entre aqui de novo: assim que você entrar, elas sobem sozinhas.",
++      + "e depois entre aqui de novo: com o aplicativo aberto, elas sobem depois que você entrar.",
+     doCartao:
+       "Guardada neste aparelho. Só sobe depois que você definir a sua senha no "
+       + "painel e entrar de novo.",
+diff --git a/dc360/apps/campo/src/ui/fila-como-produto.test.tsx b/dc360/apps/campo/src/ui/fila-como-produto.test.tsx
+index 51b6788..278d8a6 100644
+--- a/dc360/apps/campo/src/ui/fila-como-produto.test.tsx
++++ b/dc360/apps/campo/src/ui/fila-como-produto.test.tsx
+@@ -665,7 +665,7 @@ describe("a espera de abertura tem saída", () => {
+     await act(async () => { jest.advanceTimersByTime(DEMORA_MS); });
+     await act(async () => { fireEvent.press(screen.getByText("Parar de esperar")); });
+ 
+-    expect(screen.getByText(/continua no aparelho e sai sozinho/)).toBeTruthy();
++    expect(screen.getByText(/continua no aparelho e sai quando o aplicativo estiver aberto/)).toBeTruthy();
+   });
+ 
+   it("'Tentar abrir de novo' abre a fila de verdade", async () => {
+@@ -1422,3 +1422,71 @@ describe("a coleta que não sobe porque um arquivo se perdeu", () => {
+     expect(preenchidos()).toEqual([temaEscuro.perigoFundo, temaEscuro.perigoFundo]);
+   });
+ });
++
++/* ========================================================================
++   8. A fila só promete o que o aplicativo faz (V2-F00-E16, correção 1)
++   ======================================================================== */
++
++/*
++  A fila drena enquanto o aplicativo está ABERTO (`iniciarSincronizacaoContinua`
++  vive no layout das abas), e não existe tarefa de segundo plano. A E16 tirou a
++  promessa falsa da vistoria guardada, e a arbitragem da validação achou a mesma
++  promessa duas vezes nesta tela: "o envio ... acontece sozinho, em segundo
++  plano". O portão `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo`
++  varre a fonte; estes casos leem o que a tela DESENHA em cada estado.
++*/
++describe("a fila não promete envio em segundo plano nem com o aplicativo fechado", () => {
++  const PROMESSA_FALSA = /segundo plano|fechado|em background|assim que houver sinal|(sai|sobe|acontece) sozinh/i;
++
++  function nenhumTextoPromete(): void {
++    const promessas = textosNaTela().filter((t) => PROMESSA_FALSA.test(t));
++    expect(promessas).toEqual([]);
++  }
++
++  it("a fila zerada diz que o que vier depois sobe com o aplicativo aberto e rede", async () => {
++    await abrirATela();
++
++    expect(screen.getByText("Tudo o que você fez já chegou")).toBeTruthy();
++    expect(screen.getByText(/sobe quando o aplicativo estiver aberto e houver rede/)).toBeTruthy();
++    nenhumTextoPromete();
++  });
++
++  it("com coleta na fila e com sinal, a legenda do botão diz a condição", async () => {
++    mockItens = [item({ id: "esperando", estado: "pendente" })];
++    await abrirATela();
++
++    expect(screen.getByText(/Com o aplicativo aberto e com sinal, o envio acontece sem você tocar/))
++      .toBeTruthy();
++    nenhumTextoPromete();
++  });
++
++  it("sem sinal, o aviso e o cartão não prometem envio fora do aplicativo", async () => {
++    mockSinal = { temSinal: false, tipo: "nenhuma" };
++    mockItens = [item({ id: "esperando", estado: "pendente" })];
++    await abrirATela();
++
++    expect(screen.getByText(/sai quando a conexão voltar, com o aplicativo aberto/)).toBeTruthy();
++    expect(screen.getByText(/Vai sair quando o aplicativo estiver aberto e houver sinal/)).toBeTruthy();
++    nenhumTextoPromete();
++  });
++
++  it("depois de várias tentativas, o cartão continua sem prometer o que o aparelho não faz", async () => {
++    mockItens = [item({ id: "teimosa", estado: "pendente", tentativas: 8 })];
++    await abrirATela();
++
++    expect(screen.getByText(/vai continuar tentando sozinha/)).toBeTruthy();
++    nenhumTextoPromete();
++  });
++
++  it("a fila que não abriu também diz a condição", async () => {
++    jest.useFakeTimers();
++    mockObterFila = () => new Promise(() => {});
++    await abrirATela();
++    await act(async () => { jest.advanceTimersByTime(DEMORA_MS); });
++    await act(async () => { fireEvent.press(screen.getByText("Parar de esperar")); });
++
++    expect(screen.getByText(/sai quando o aplicativo estiver aberto e a conexão voltar/)).toBeTruthy();
++    nenhumTextoPromete();
++  });
++});
++
+diff --git a/dc360/apps/campo/src/ui/fila-pausada-pela-sessao.test.tsx b/dc360/apps/campo/src/ui/fila-pausada-pela-sessao.test.tsx
+index 2fc7cec..960bd41 100644
+--- a/dc360/apps/campo/src/ui/fila-pausada-pela-sessao.test.tsx
++++ b/dc360/apps/campo/src/ui/fila-pausada-pela-sessao.test.tsx
+@@ -12,7 +12,8 @@
+  * 1. a frase diz o fato, o que resolve e a promessa (a coleta continua guardada);
+  * 2. sessão encerrada traz o botão que resolve ("Entrar de novo"); conta
+  *    desativada NÃO traz, porque entrar de novo não resolve;
+- * 3. o cartão da coleta deixa de prometer "vai sair assim que houver sinal";
++ * 3. o cartão da coleta deixa de prometer "vai sair quando o aplicativo estiver aberto
++ *    e houver sinal" (a coleta pausada pela sessão não sai nem assim);
+  * 4. nenhum botão de apagar aparece: a coleta pausada não é uma coleta recusada;
+  * 5. sem pausa, a tela é a de sempre.
+  *
+@@ -125,12 +126,13 @@ describe("sessão encerrada", () => {
+     expect(mockFila.descartar).not.toHaveBeenCalled();
+   });
+ 
+-  it("o cartão da coleta não promete 'vai sair assim que houver sinal'", async () => {
++  it("o cartão da coleta não promete 'vai sair quando o aplicativo estiver aberto e houver sinal'", async () => {
+     await abrirComPausa("sessao_encerrada");
+ 
+-    expect(screen.queryByText(/Vai sair assim que houver sinal/)).toBeNull();
++    expect(screen.queryByText(/Vai sair quando o aplicativo estiver aberto/)).toBeNull();
++    expect(screen.queryByText(/assim que houver sinal/)).toBeNull();
+     expect(screen.getAllByText("Guardada")).toHaveLength(2);
+-    expect(screen.getAllByText(/Sobe sozinha depois que você entrar de novo/)).toHaveLength(2);
++    expect(screen.getAllByText(/Sobe depois que você entrar de novo/)).toHaveLength(2);
+   });
+ 
+   it("nenhuma coleta ganha 'Descartar' nem 'Tentar de novo'", async () => {
+diff --git a/dc360/docs/COLOCAR-DE-PE.md b/dc360/docs/COLOCAR-DE-PE.md
+index e873bbb..101c386 100644
+--- a/dc360/docs/COLOCAR-DE-PE.md
++++ b/dc360/docs/COLOCAR-DE-PE.md
+@@ -37,7 +37,7 @@ D-U-N-S e a revisão não forem gargalo.
+ - Painel web (React + Vite), aplicativo de campo (Expo, **mesmo código para iOS
+   e Android**), API (Fastify), banco (PostgreSQL + PostGIS), esquemas Zod
+   compartilhados.
+-- **4800 testes somando o aplicativo.** Durante a estabilização da V2 (fase
++- **4819 testes somando o aplicativo.** Durante a estabilização da V2 (fase
+   F00) nem todos estão verdes e o `npm audit` não está em zero: cada vermelho
+   conhecido, e a etapa que o fecha, está em `docs/roadmap-v2/STATUS.md`, na
+   raiz do repositório.
+@@ -309,7 +309,7 @@ conta todos os operadores juntos atrás do balanceador do Fly).
+ # 1. Clonar e conferir que tudo passa no Mac
+ git clone <repo> && cd dc360
+ npm ci
+-npm run verificar          # typecheck, 4800 testes com o aplicativo, npm audit, números
++npm run verificar          # typecheck, 4819 testes com o aplicativo, npm audit, números
+ 
+ # 2. Ver o app no simulador iOS (precisa do Xcode instalado)
+ cd apps/campo
+diff --git a/docs/DECISOES-DE-TESTE-DA-FASE-00.md b/docs/DECISOES-DE-TESTE-DA-FASE-00.md
+index 8539ea4..cacfb49 100644
+--- a/docs/DECISOES-DE-TESTE-DA-FASE-00.md
++++ b/docs/DECISOES-DE-TESTE-DA-FASE-00.md
+@@ -379,3 +379,22 @@ E12), os 5 da vigência (E04) e o e2e da API (E18). O conserto deles é no códi
+ - **Depois:** o dublê ganhou `encerrarSessaoVencida`; o teste exige `mockEncerrarSessaoVencida` chamado uma vez, `mockSair` NUNCA chamado e `router.replace("/entrar")`. Nenhuma asserção foi enfraquecida: a de navegação ficou igual, e a de verbo passou de "o que apaga" para "o que não apaga, e só ele". Como um dublê esconde exatamente a diferença entre os dois verbos, o acréscimo que vale é o teste com os módulos reais, `apps/campo/src/__tests__/vistoria-sessao-vencida-preserva-o-rascunho.test.tsx` (4 casos): `ProvedorDeSessao`, `banco-local` e `rascunho` de verdade sobre SQLite do Node e a tela real, 401 na baixa; o rascunho com foto e assinatura sobrevive ao toque, reaparece quando a mesma pessoa entra de novo, a saída explícita continua apagando (controle) e o rótulo antigo não existe mais.
+ - **Evidência:** `docs/evidencias-v2/G00/V2-F00-E15/correcao-1/saidas/` (antes: 3 dos 4 casos novos reprovam com o código velho, o controle passa; o teste antigo reprova com o código novo; depois: todos passam).
+ - **Etapa e data:** V2-F00-E15, correção 1, 2026-10-13.
++
++### App de campo, vistoria: "Precisão de 1 metros" vira "Precisão de 1 metro" (uma asserção reescrita, registro que faltava da E15)
++
++- **Teste reescrito:** `apps/campo/src/__tests__/vistoria-o-teclado-a-camera-e-o-que-ela-promete.test.tsx`, "abaixo de meio metro vira 1, e não zero". **Antes:** `expect(screen.getByText("Precisão de 1 metros")).toBeTruthy()`. **Depois:** `expect(screen.getByText("Precisão de 1 metro")).toBeTruthy()`. A troca foi feita na V2-F00-E15 e a validação da E16 (rodada 1, `testes.md`) apontou que não estava registrada aqui.
++- **Decisão que o torna velho:** o piso de 1 metro da E15 (`precisaoDoGpsEmMetros`, `dados/precisao-do-gps.ts`). Antes dele, a leitura de GPS abaixo de meio metro arredondava para 0 e o esquema (`gpsPrecisaoMetrosSchema`, `positive()`) a recusava com 422; com o piso, "1" passou a ser a leitura do MELHOR GPS do plantão, e "Precisão de 1 metros" é erro de escrita justamente nela. É texto da tela, não regra: o conserto está em `vistoria/[id].tsx` (singular quando o valor é 1), e a asserção passou a cobrar o texto certo. O valor gravado (`gpsPrecisaoMetros` igual a 1) continua afirmado na linha de cima do mesmo caso.
++- **Depois:** nenhuma asserção foi enfraquecida: o texto exato continua cobrado, só que o correto. A leitura comum ("Precisão de 12 metros") continua no plural no caso vizinho.
++- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E15/` (RESUMO e saídas da etapa) e este registro, da correção 1 da E16.
++- **Etapa e data:** feita na V2-F00-E15 em 2026-10-07; registrada na V2-F00-E16, correção 1, em 2026-10-13.
++
++### App de campo, fila e pausa: as frases deixam de prometer envio sem o aplicativo aberto (dois testes reescritos)
++
++- **Testes reescritos:** (1) `apps/campo/src/ui/fila-como-produto.test.tsx`, "o estado de desistência diz que nada se perdeu, porque nada se perdeu"; (2) `apps/campo/src/ui/fila-pausada-pela-sessao.test.tsx`, "o cartão da coleta não promete ..." (nome e regex) e a asserção de "Guardada" do mesmo caso.
++- **Antes:** (1) exigia `/continua no aparelho e sai sozinho/`; (2) exigia a ausência de `/Vai sair assim que houver sinal/` e a presença de `/Sobe sozinha depois que você entrar de novo/` nos dois cartões.
++- **Decisão que os torna velhos:** a DoD da V2-F00-E16 ("nenhuma promessa de segundo plano na interface") e a arbitragem em Opus da rodada 1 (`validacao/7005a60/arbitragem.md`): a fila só drena com o aplicativo ABERTO (`iniciarSincronizacaoContinua`, no layout das abas), não existe tarefa de fundo, e a sincronização em segundo plano é a F14-E06, só se o CP-24 aprovar. As frases que dizem "sai sozinho", "sobe sozinha" ou "assim que houver sinal" sem a condição são lidas por quem fecha o aplicativo sem sinal como "vai subir". É defeito real de texto de produto; o código foi consertado e os testes acompanham a frase nova.
++- **Depois:** (1) exige `/continua no aparelho e sai quando o aplicativo estiver aberto/`; (2) exige a ausência da frase nova no cartão da coleta pausada pela sessão (que não sai nem com o aplicativo aberto) e da velha, e a presença de `/Sobe depois que você entrar de novo/`. Nenhuma asserção foi enfraquecida: os dois testes continuam travando a mesma coisa (o que a tela diz), com a frase certa. A ausência da frase velha no cartão pausado continua cobrada, agora com as DUAS redações.
++- **Testes acrescentados:** o portão `scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs` (varre a fonte do aplicativo inteiro, 4 casos, incluindo o de que morde e o de que não pune comentário); 5 casos em `fila-como-produto.test.tsx` (fila zerada, com sinal, sem sinal, muitas tentativas, fila que não abriu); casos de frase em `pausa-da-fila.test.ts` e `falha-de-atualizacao.test.ts`; e, na tela da vistoria, o `catch` de `Linking.openSettings` (rejeição não tratada) e o fallback de `FotoNaoGuardada` (erro sem mensagem e valor que não é `Error`), que as mutações da validação mostraram sobreviverem.
++- **Evidência:** `docs/evidencias-v2/G00/V2-F00-E16/correcao-1/saidas/` (antes: o portão lista 15 achados em 5 arquivos e 12 casos de jest reprovam; depois: todos passam).
++- **Etapa e data:** V2-F00-E16, correção 1, 2026-10-13.
++
+diff --git a/dc360/scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs b/dc360/scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs
+new file mode 100644
+index 0000000..235ee32
+--- /dev/null
++++ b/dc360/scripts/portao-sem-promessa-de-segundo-plano-do-aplicativo.test.mjs
+@@ -0,0 +1,147 @@
++/**
++ * Nenhuma promessa de segundo plano na interface do aplicativo de campo
++ * (V2-F00-E16, correção 1).
++ *
++ * O fato: a fila só drena enquanto o aplicativo está ABERTO. O laço
++ * (`iniciarSincronizacaoContinua`) vive no layout das abas, e o aplicativo não
++ * tem `expo-task-manager`, nem modo de fundo declarado. Sincronização em
++ * segundo plano é a F14-E06 e só existe se o CP-24 aprovar.
++ *
++ * O defeito: a E16 consertou a frase da vistoria guardada ("mesmo com o
++ * aplicativo fechado") e blindou SÓ essa tela com um `queryByText`. A fila,
++ * duas telas depois, continuava dizendo "o envio acontece sozinho, em segundo
++ * plano", e a arbitragem da validação reprovou a etapa por isso. O agente que
++ * lê isso fecha o aplicativo sem sinal e acredita que a vistoria subiu.
++ *
++ * Este portão varre a fonte de TODO o aplicativo (menos comentários, que
++ * explicam o defeito e precisam poder citá-lo, e menos os testes, que
++ * precisam escrever a frase proibida para provar que ela sumiu). O que ele
++ * reprova, em texto que o agente lê:
++ *
++ * 1. "segundo plano", "em background", "nos bastidores";
++ * 2. "aplicativo fechado" e variações ("mesmo fechado", "fechou o app");
++ * 3. um verbo de envio seguido de "sozinho/sozinha" ("sai sozinho", "sobe
++ *    sozinha"), que diz que a coisa acontece sem o aplicativo precisar estar
++ *    em uso. A frase verdadeira diz a condição: "quando o aplicativo estiver
++ *    aberto e houver sinal";
++ * 4. "assim que houver sinal", que condiciona o envio só ao sinal.
++ *
++ * Limite, dito na cara: ele lê TEXTO escrito, não o que o React Native
++ * desenha. Frase montada em tempo de execução a partir de valor de fora do
++ * arquivo passa por ele (é o mesmo limite dos outros portões do aplicativo).
++ * `app.config.ts` fica fora da varredura: ali "nunca em segundo plano" é a
++ * promessa VERDADEIRA de que a localização não roda em segundo plano.
++ *
++ * A prova de que o portão morde está no próprio arquivo (ver o último teste):
++ * as frases que a arbitragem achou são reprovadas.
++ */
++import test from "node:test";
++import assert from "node:assert/strict";
++import { readFileSync } from "node:fs";
++
++import { arquivosDeFonte, nomeCurto, semComentarios } from "./fonte-do-aplicativo.mjs";
++
++const PROMESSAS = [
++  { nome: "segundo plano", regra: /segundo plano|em background|nos bastidores|plano de fundo/i },
++  {
++    nome: "aplicativo fechado",
++    regra: /(aplicativo|app) fechado|mesmo fechado|fechou o (aplicativo|app)/i,
++  },
++  {
++    nome: "envio sozinho",
++    regra: /\b(sai|saem|sobe|sobem|envia|enviam|acontece|chega|chegam)\b[^.\n]{0,25}\bsozinh[oa]s?\b/i,
++  },
++  { nome: "só o sinal como condição", regra: /assim que houver (sinal|rede|conexão)/i },
++];
++
++/**
++ * O texto de tela, sem comentário, com as frases partidas em várias linhas
++ * emendadas: `"vai sair assim que " + "houver sinal"` é UMA frase para o
++ * agente, e uma varredura linha a linha não a enxerga. Cada caractere guarda
++ * a linha de onde veio, para a mensagem apontar o lugar certo.
++ */
++function textoEmendado(fonte) {
++  const limpo = semComentarios(fonte);
++  const caracteres = [];
++  const linhas = [];
++  let linha = 1;
++  let i = 0;
++  while (i < limpo.length) {
++    const emenda = /^["'`]\s*\+\s*["'`]/.exec(limpo.slice(i, i + 200));
++    if (emenda) {
++      linha += emenda[0].split("\n").length - 1;
++      i += emenda[0].length;
++      continue;
++    }
++    const c = limpo[i];
++    if (/\s/.test(c)) {
++      if (c === "\n") linha += 1;
++      if (caracteres[caracteres.length - 1] !== " ") { caracteres.push(" "); linhas.push(linha); }
++    } else {
++      caracteres.push(c);
++      linhas.push(linha);
++    }
++    i += 1;
++  }
++  return { texto: caracteres.join(""), linhas };
++}
++
++/** Cada trecho de texto (sem comentário) que casa com alguma regra. */
++export function promessasEm(fonte) {
++  const { texto, linhas } = textoEmendado(fonte);
++  const achados = [];
++  for (const { nome, regra } of PROMESSAS) {
++    for (const m of texto.matchAll(new RegExp(regra.source, "gi"))) {
++      achados.push({
++        linha: linhas[m.index] ?? 0,
++        nome,
++        texto: texto.slice(Math.max(0, m.index - 30), m.index + m[0].length + 20).trim(),
++      });
++    }
++  }
++  return achados.sort((a, b) => a.linha - b.linha);
++}
++
++test("nenhum texto do aplicativo promete segundo plano nem envio com o aplicativo fechado", () => {
++  const problemas = [];
++  const arquivos = arquivosDeFonte();
++  assert.ok(arquivos.length > 50, "a varredura precisa achar o aplicativo inteiro");
++  for (const arquivo of arquivos) {
++    for (const a of promessasEm(readFileSync(arquivo, "utf8"))) {
++      problemas.push(`${nomeCurto(arquivo)}:${a.linha} [${a.nome}] ${a.texto}`);
++    }
++  }
++  assert.deepEqual(
++    problemas,
++    [],
++    "A fila só envia com o aplicativo aberto. Diga a condição: "
++      + "'quando o aplicativo estiver aberto e houver sinal'.\n" + problemas.join("\n"),
++  );
++});
++
++test("o portão morde: as frases que a arbitragem achou na fila são reprovadas", () => {
++  const vazio = `descricao={"e o envio do que vier depois acontece sozinho, em segundo plano."}`;
++  const legenda = `<Txt>O envio acontece sozinho, em segundo plano. Este botão é para quando</Txt>`;
++  assert.ok(promessasEm(vazio).some((a) => a.nome === "segundo plano"));
++  assert.ok(promessasEm(legenda).some((a) => a.nome === "envio sozinho"));
++  assert.ok(promessasEm(`"sobe mesmo com o aplicativo fechado"`).some((a) => a.nome === "aplicativo fechado"));
++  assert.ok(promessasEm(`"A coleta sai sozinha assim que houver sinal."`).length >= 2);
++});
++
++test("o portão não pune quem explica: comentário pode citar a frase proibida", () => {
++  const fonte = [
++    "/* Ela prometia 'em segundo plano', e isso era falso. */",
++    "// o envio acontece sozinho, em segundo plano (antes)",
++    `const frase = "Ela sobe com o aplicativo aberto";`,
++  ].join("\n");
++  assert.deepEqual(promessasEm(fonte), []);
++});
++
++test("as frases verdadeiras passam", () => {
++  const ok = [
++    "sobe quando o aplicativo estiver aberto e houver rede",
++    "Com o aplicativo aberto e com sinal, o envio acontece sem você tocar em nada.",
++    "Ainda não saiu do aparelho. Vai sair quando o aplicativo estiver aberto e houver sinal.",
++  ];
++  for (const frase of ok) assert.deepEqual(promessasEm(`"${frase}"`), [], frase);
++});

@@ -169,3 +169,21 @@ describe("a senha provisória", () => {
     expect(frase.detalhe).not.toContain(String.fromCharCode(0x2014));
   });
 });
+
+describe("nenhuma frase da falha promete envio em segundo plano (V2-F00-E16, correção 1)", () => {
+  const FALSA = /segundo plano|fechado|assim que houver sinal|(sai|sobe|sobem|acontece) sozinh/i;
+  const MOTIVOS = [
+    "sem-sinal", "sessao-encerrada", "conta-desativada", "troca-de-senha", "acesso-suspenso", "outro",
+  ] as const;
+
+  it.each(MOTIVOS)("%s: nem o resumo nem o detalhe prometem", (motivo) => {
+    const frase = comoContarAFalha(motivo, "a lista");
+    expect(frase.resumo).not.toMatch(FALSA);
+    expect(frase.detalhe).not.toMatch(FALSA);
+  });
+
+  it("o acesso suspenso diz que a coleta sobe se o acesso voltar, com o aplicativo aberto", () => {
+    expect(comoContarAFalha("acesso-suspenso", "a lista").detalhe)
+      .toMatch(/sobe se o acesso voltar, com o aplicativo aberto/);
+  });
+});

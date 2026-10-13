@@ -191,8 +191,8 @@ function descreverDevolucao(item: ItemDeDevolucao): EstadoDoItem {
         tom: "neutro",
         Icone: IconeAguardando,
         porque: item.tentativas === 0
-          ? `Motivo: ${motivo}. Ainda não saiu do aparelho, e vai sair assim que `
-            + "houver sinal. A tarefa já saiu da sua lista."
+          ? `Motivo: ${motivo}. Ainda não saiu do aparelho, e vai sair quando `
+            + "o aplicativo estiver aberto e houver sinal. A tarefa já saiu da sua lista."
           : `Motivo: ${motivo}. Já tentou ${item.tentativas}x e vai continuar `
             + "tentando sozinha. Enquanto ela não chegar, a coordenação não sabe "
             + "que esta tarefa voltou.",
@@ -442,7 +442,7 @@ function descreverEstado(
         tom: "neutro",
         Icone: IconeAguardando,
         porque: item.tentativas === 0
-          ? "Ainda não saiu do aparelho. Vai sair assim que houver sinal."
+          ? "Ainda não saiu do aparelho. Vai sair quando o aplicativo estiver aberto e houver sinal."
           : item.tentativas < TENTATIVAS_ATE_AVISAR
             ? `Já tentou ${item.tentativas}x. Vai tentar de novo em instantes.`
             /*
@@ -1151,7 +1151,8 @@ export default function TelaDaFila() {
             titulo="A fila não abriu"
             descricao={
               "Nada se perdeu: o que estava guardado continua no aparelho e sai "
-              + "sozinho quando a conexão voltar. Dá para tentar abrir de novo."
+              + "quando o aplicativo estiver aberto e a conexão voltar. Dá para "
+              + "tentar abrir de novo."
             }
             acao={{
               titulo: "Tentar abrir de novo",
@@ -1646,8 +1647,8 @@ export default function TelaDaFila() {
     <ScrollView ref={rolagem} contentContainerStyle={{ padding: espaco.e4, gap: espaco.e4, paddingBottom: recuoDoMenu }}>
       {!sinal.temSinal && (
         <Aviso tom="alerta" titulo="Sem sinal agora">
-          Nada se perde: o que está aqui sai sozinho quando a conexão voltar, sem
-          você precisar fazer nada.
+          Nada se perde: o que está aqui sai quando a conexão voltar, com o
+          aplicativo aberto, sem você precisar tocar em nada.
         </Aviso>
       )}
 
@@ -1685,8 +1686,8 @@ export default function TelaDaFila() {
                 titulo="Tudo o que você fez já chegou"
                 descricao={
                   "Nenhuma coleta esperando envio neste aparelho. Toda vistoria "
-                  + "concluída aqui já está com a coordenação, e o envio do que vier "
-                  + "depois acontece sozinho, em segundo plano."
+                  + "concluída aqui já está com a coordenação, e o que vier depois "
+                  + "sobe quando o aplicativo estiver aberto e houver rede."
                 }
               />
             </Cartao>
@@ -1852,8 +1853,8 @@ export default function TelaDaFila() {
             </View>
           ) : (
             <Txt variante="legenda" discreto alinhamento="center">
-              O envio acontece sozinho, em segundo plano. Este botão é para quando
-              você quer ver acontecer.
+              Com o aplicativo aberto e com sinal, o envio acontece sem você tocar
+              em nada. Este botão é para quando você quer ver acontecer.
             </Txt>
           )}
         </>
